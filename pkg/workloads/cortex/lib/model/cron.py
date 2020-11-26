@@ -41,6 +41,7 @@ from cortex.lib.type import (
 
 from cortex.lib.model import (
     find_all_s3_models,
+    validate_model_paths,
     TensorFlowServingAPI,
     TensorFlowServingAPIClones,
     ModelsHolder,

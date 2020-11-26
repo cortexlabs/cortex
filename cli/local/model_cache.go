@@ -30,14 +30,14 @@ import (
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 )
 
-func CacheLocalModels(apiSpec *spec.API) error {
+func CacheLocalModels(apiSpec *spec.API, models []spec.CuratedModelResource) error {
 	var err error
 	var wasAlreadyCached bool
 	var localModelCache *spec.LocalModelCache
 	localModelCaches := make([]*spec.LocalModelCache, 0)
 
 	modelsThatWereCachedAlready := 0
-	for i, model := range apiSpec.CuratedModelResources {
+	for _, model := range models {
 		if model.S3Path {
 			continue
 		}
@@ -47,17 +47,17 @@ func CacheLocalModels(apiSpec *spec.API) error {
 			if apiSpec.Predictor.ModelPath != nil {
 				return errors.Wrap(err, apiSpec.Identify(), userconfig.PredictorKey, userconfig.ModelPathKey)
 			} else if apiSpec.Predictor.Models != nil && apiSpec.Predictor.Models.Dir != nil {
-				return errors.Wrap(err, apiSpec.Identify(), userconfig.PredictorKey, userconfig.ModelsKey, userconfig.ModelsDirKey, apiSpec.CuratedModelResources[i].Name, *apiSpec.Predictor.Models.Dir)
+				return errors.Wrap(err, apiSpec.Identify(), userconfig.PredictorKey, userconfig.ModelsKey, userconfig.ModelsDirKey, model.Name, *apiSpec.Predictor.Models.Dir)
 			}
-			return errors.Wrap(err, apiSpec.Identify(), userconfig.PredictorKey, userconfig.ModelsKey, userconfig.ModelsPathsKey, apiSpec.CuratedModelResources[i].Name, userconfig.ModelPathKey)
+			return errors.Wrap(err, apiSpec.Identify(), userconfig.PredictorKey, userconfig.ModelsKey, userconfig.ModelsPathsKey, model.Name, userconfig.ModelPathKey)
 		}
 		if wasAlreadyCached {
 			modelsThatWereCachedAlready++
 		}
 		if len(model.Versions) == 0 {
-			localModelCache.TargetPath = filepath.Join(apiSpec.CuratedModelResources[i].Name, "1")
+			localModelCache.TargetPath = filepath.Join(model.Name, "1")
 		} else {
-			localModelCache.TargetPath = apiSpec.CuratedModelResources[i].Name
+			localModelCache.TargetPath = model.Name
 		}
 
 		localModelCaches = append(localModelCaches, localModelCache)

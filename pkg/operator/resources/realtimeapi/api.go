@@ -42,7 +42,7 @@ func deploymentID() string {
 	return k8s.RandomName()[:10]
 }
 
-func UpdateAPI(apiConfig *userconfig.API, models []spec.CuratedModelResource, projectID string, force bool) (*spec.API, string, error) {
+func UpdateAPI(apiConfig *userconfig.API, projectID string, force bool) (*spec.API, string, error) {
 	prevDeployment, prevService, prevVirtualService, err := getK8sResources(apiConfig)
 	if err != nil {
 		return nil, "", err
@@ -60,7 +60,7 @@ func UpdateAPI(apiConfig *userconfig.API, models []spec.CuratedModelResource, pr
 	if config.Provider == types.GCPProviderType {
 		clusterName = config.GCPCluster.ClusterName
 	}
-	api := spec.GetAPISpec(apiConfig, models, projectID, deploymentID, clusterName)
+	api := spec.GetAPISpec(apiConfig, projectID, deploymentID, clusterName)
 
 	if prevDeployment == nil {
 		if config.Provider == types.AWSProviderType {
@@ -206,7 +206,7 @@ func RefreshAPI(apiName string, force bool) (string, error) {
 	if config.Provider == types.GCPProviderType {
 		clusterName = config.GCPCluster.ClusterName
 	}
-	api = spec.GetAPISpec(api.API, api.CuratedModelResources, api.ProjectID, deploymentID(), clusterName)
+	api = spec.GetAPISpec(api.API, api.ProjectID, deploymentID(), clusterName)
 
 	if config.Provider == types.AWSProviderType {
 		if err := config.AWS.UploadJSONToS3(api, config.Cluster.Bucket, api.Key); err != nil {

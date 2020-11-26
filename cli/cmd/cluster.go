@@ -215,7 +215,6 @@ var _upCmd = &cobra.Command{
 			exit.Error(err)
 		}
 		clusterConfig.Provider = providerType
-		debug.Pp(clusterConfig)
 
 		clusterState, err := clusterstate.GetClusterState(awsClient, accessConfig)
 		if err != nil {

@@ -155,6 +155,8 @@ def get_models_from_api_spec(
         return CuratedModelResources([])
 
     predictor_type = predictor_type_from_api_spec(api_spec)
+
+    # for predictor.model_path
     models = []
     if predictor["model_path"]:
         model = {
@@ -164,6 +166,7 @@ def get_models_from_api_spec(
         }
         models.append(model)
 
+    # for predictor.models.paths
     if predictor["models"] and predictor["models"]["paths"]:
         for model in predictor["models"]["paths"]:
             models.append(
@@ -174,6 +177,7 @@ def get_models_from_api_spec(
                 }
             )
 
+    # building model resources for predictor.model_path or predictor.models.paths
     model_resources = []
     for model in models:
         model_resource = {}
@@ -198,5 +202,20 @@ def get_models_from_api_spec(
             model_resource["versions"] = os.listdir(model_resource["model_path"])
 
         model_resources.append(model_resource)
+
+    # building model resources for predictor.models.dir
+    if (
+        predictor["models"]
+        and predictor["models"]["dir"]
+        and not predictor["models"]["dir"].startswith("s3://")
+    ):
+        for model_name in os.listdir(model_dir):
+            model_resource = {}
+            model_resource["name"] = model_name
+            model_resource["s3_path"] = False
+            model_resource["signature_key"] = predictor["models"]["signature_key"]
+            model_resource["model_path"] = os.path.join(model_dir, model_name)
+            model_resource["versions"] = os.listdir(model_resource["model_path"])
+            model_resources.append(model_resource)
 
     return CuratedModelResources(model_resources)
