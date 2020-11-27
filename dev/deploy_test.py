@@ -36,7 +36,7 @@ class PythonPredictor:
 api = cx.deploy(
     api_config,
     predictor=PythonPredictor,
-    requirements=["0qw9eruwoeirjfsdlkf", "transformers"],
+    requirements=["torch", "transformers"],
     wait=True,
 )
 
