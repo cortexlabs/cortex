@@ -83,13 +83,9 @@ func upGCP(gcpPath string) {
 	}
 
 	GCP := &gcp.Client{}
-	if exists, err := GCP.BucketExists(gcpConfig.Bucket); err != nil {
+	err = GCP.CreateBucket(gcpConfig.Bucket, gcpConfig.Project, true)
+	if err != nil {
 		exit.Error(err)
-	} else if !exists {
-		err = GCP.CreateBucket(gcpConfig.Bucket, gcpConfig.Project)
-		if err != nil {
-			exit.Error(err)
-		}
 	}
 
 	fmt.Print("￮ spinning up a cluster .")

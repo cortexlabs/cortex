@@ -407,10 +407,20 @@ func GetAPIByID(apiName string, apiID string) ([]schema.APIResponse, error) {
 
 func getPastAPIDeploys(apiName string) ([]schema.APIVersion, error) {
 	var apiVersions []schema.APIVersion
+	var apiIDs []string
+	var err error
 
-	apiIDs, err := config.AWS.ListS3DirOneLevel(config.Cluster.Bucket, spec.KeysPrefix(apiName, config.Cluster.ClusterName), pointer.Int64(10))
-	if err != nil {
-		return nil, err
+	if config.Provider == types.AWSProviderType {
+		apiIDs, err = config.AWS.ListS3DirOneLevel(config.Cluster.Bucket, spec.KeysPrefix(apiName, config.Cluster.ClusterName), pointer.Int64(10))
+		if err != nil {
+			return nil, err
+		}
+	}
+	if config.Provider == types.GCPProviderType {
+		apiIDs, err = config.GCP.ListGCSDirOneLevel(config.GCPCluster.Bucket, spec.KeysPrefix(apiName, config.GCPCluster.ClusterName), pointer.Int64(10))
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	for _, apiID := range apiIDs {

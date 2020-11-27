@@ -21,10 +21,14 @@ import (
 	"context"
 	"encoding/json"
 	"path/filepath"
+	"strings"
 
 	"cloud.google.com/go/storage"
+	"github.com/cortexlabs/cortex/pkg/lib/debug"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
+	"google.golang.org/api/googleapi"
 	"google.golang.org/api/iterator"
 )
 
@@ -32,24 +36,23 @@ func GCSPath(bucket string, key string) string {
 	return "gs://" + filepath.Join(bucket, key)
 }
 
-func (c *Client) BucketExists(bucket string) (bool, error) {
-	gcsClient, err := c.GCS()
-	if err != nil {
-		return false, err
-	}
-	_, err = gcsClient.Bucket(bucket).Attrs(context.Background())
-	// TODO fix this
-	return err == nil, nil
-}
-
-func (c *Client) CreateBucket(bucket, projectID string) error {
+func (c *Client) CreateBucket(bucket, projectID string, ignoreErrorIfBucketExists bool) error {
 	gcsClient, err := c.GCS()
 	if err != nil {
 		return err
 	}
 	err = gcsClient.Bucket(bucket).Create(context.Background(), projectID, nil)
 	if err != nil {
-		return err
+		if e, ok := err.(*googleapi.Error); ok {
+			debug.Ppg(e)
+		}
+		if DoesBucketAlreadyExistError(err) {
+			if !ignoreErrorIfBucketExists {
+				return err
+			}
+		} else {
+			return err
+		}
 	}
 	return nil
 }
@@ -161,4 +164,39 @@ func (c *Client) ReadBytesFromGCS(bucket string, key string) ([]byte, error) {
 		return nil, err
 	}
 	return buf.Bytes(), nil
+}
+
+func (c *Client) ListGCSDirOneLevel(bucket string, gcsDir string, maxResults *int64) ([]string, error) {
+	gcsClient, err := c.GCS()
+	if err != nil {
+		return nil, err
+	}
+
+	gcsDir = s.EnsureSuffix(gcsDir, "/")
+
+	objectIterator := gcsClient.Bucket(bucket).Objects(context.Background(), &storage.Query{
+		Prefix: gcsDir,
+	})
+
+	allNames := strset.New()
+
+	for {
+		attrs, err := objectIterator.Next()
+		if err == iterator.Done {
+			break
+		}
+		if err != nil {
+			return nil, err
+		}
+
+		relativePath := strings.TrimPrefix(attrs.Name, gcsDir)
+		oneLevelPath := strings.Split(relativePath, "/")[0]
+		allNames.Add(oneLevelPath)
+
+		if maxResults != nil && int64(len(allNames)) >= *maxResults {
+			break
+		}
+	}
+
+	return allNames.SliceSorted(), nil
 }
