@@ -1421,10 +1421,6 @@ func validateCompute(api *userconfig.API, providerType types.ProviderType) error
 		return ErrorUnsupportedComputeResourceForProvider(userconfig.InfKey, providerType)
 	}
 
-	if compute.GPU > 0 && providerType == types.GCPProviderType {
-		return ErrorUnsupportedComputeResourceForProvider(userconfig.GPUKey, providerType)
-	}
-
 	if compute.Inf > 0 && api.Predictor.Type == userconfig.ONNXPredictorType {
 		return ErrorFieldNotSupportedByPredictorType(userconfig.InfKey, api.Predictor.Type)
 	}

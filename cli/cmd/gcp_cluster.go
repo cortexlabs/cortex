@@ -83,19 +83,22 @@ func upGCP(gcpPath string) {
 	}
 
 	GCP := &gcp.Client{}
-	err = GCP.CreateBucket(gcpConfig.Bucket, gcpConfig.Project, true)
-	if err != nil {
+	if exists, err := GCP.BucketExists(gcpConfig.Bucket); err != nil {
 		exit.Error(err)
+	} else if !exists {
+		err = GCP.CreateBucket(gcpConfig.Bucket, gcpConfig.Project)
+		if err != nil {
+			exit.Error(err)
+		}
 	}
 
 	fmt.Print("￮ spinning up a cluster .")
 
 	parent := fmt.Sprintf("projects/%s/locations/%s", gcpConfig.Project, gcpConfig.Zone)
-	clusterName := gcpConfig.ClusterName
 	request := containerpb.CreateClusterRequest{
 		Parent: parent,
 		Cluster: &containerpb.Cluster{
-			Name: clusterName,
+			Name: gcpConfig.ClusterName,
 			NodePools: []*containerpb.NodePool{
 				{
 					Name: "ng-cortex-operator",
@@ -159,12 +162,20 @@ func upGCP(gcpPath string) {
 	for {
 		time.Sleep(10 * time.Second)
 		req := &containerpb.GetClusterRequest{
-			Name: fmt.Sprintf("%s/clusters/%s", parent, clusterName),
+			Name: fmt.Sprintf("%s/clusters/%s", parent, gcpConfig.ClusterName),
 		}
 
 		resp, err := c.GetCluster(ctx, req)
 		if err != nil {
 			exit.Error(err)
+		}
+
+		if resp.Status == containerpb.Cluster_ERROR {
+			fmt.Println(" ✗")
+			helpStr := fmt.Sprintf("\nyour cluster couldn't be spun up; here is the error that was encountered: %s", resp.StatusMessage)
+			helpStr += fmt.Sprintf("\nadditional error information may be found on the cluster's page in the GCP console: https://console.cloud.google.com/kubernetes/clusters/details/%s/%s?project=%s", gcpConfig.Zone, gcpConfig.ClusterName, gcpConfig.Project)
+			fmt.Println(helpStr)
+			exit.Error(ErrorClusterUp(resp.StatusMessage))
 		}
 
 		if resp.Status != containerpb.Cluster_PROVISIONING {
