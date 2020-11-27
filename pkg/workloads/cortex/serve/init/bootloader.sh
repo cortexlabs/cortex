@@ -67,7 +67,9 @@ if [ -f "/mnt/project/conda-packages.txt" ]; then
     py_version_cmd='echo $(python -c "import sys; v=sys.version_info[:2]; print(\"{}.{}\".format(*v));")'
     old_py_version=$(eval $py_version_cmd)
 
+    # look for packages in defaults and then conda-forge to improve chances of finding the package (specifically for python reinstalls)
     conda config --append channels conda-forge
+
     conda install -y --file /mnt/project/conda-packages.txt
 
     new_py_version=$(eval $py_version_cmd)
