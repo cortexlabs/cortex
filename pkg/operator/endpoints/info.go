@@ -48,6 +48,7 @@ func Info(w http.ResponseWriter, r *http.Request) {
 }
 
 func getNodeInfos() ([]schema.NodeInfo, int, error) {
+	// TODO do this for GCP
 	pods, err := config.K8sAllNamspaces.ListPods(nil)
 	if err != nil {
 		return nil, 0, err

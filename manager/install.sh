@@ -75,7 +75,7 @@ function cluster_up_aws() {
 
   if [[ "$CORTEX_INSTANCE_TYPE" == p* ]] || [[ "$CORTEX_INSTANCE_TYPE" == g* ]]; then
     echo -n "￮ configuring gpu support "
-    envsubst < manifests/nvidia.yaml | kubectl apply -f - >/dev/null
+    envsubst < manifests/nvidia_aws.yaml | kubectl apply -f - >/dev/null
     echo "✓"
   fi
 
@@ -133,10 +133,15 @@ function cluster_up_gcp() {
   echo "✓"
 
   # configure networking
-  echo -n "￮ configuring networking "
+  echo -n "￮ configuring networking (this might take a few minutes) "
   setup_istio
   python render_template.py $CORTEX_CLUSTER_CONFIG_FILE manifests/apis.yaml.j2 > /workspace/apis.yaml
   kubectl apply -f /workspace/apis.yaml >/dev/null
+  echo "✓"
+
+  # configure gpu support
+  echo -n "￮ configuring gpu support "
+  cat manifests/nvidia_gcp.yaml | kubectl apply -f - >/dev/null
   echo "✓"
 
   restart_operator

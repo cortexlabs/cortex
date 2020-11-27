@@ -113,7 +113,8 @@ func upGCP(gcpPath string) {
 					Config: &containerpb.NodeConfig{
 						MachineType: gcpConfig.InstanceType,
 						Labels: map[string]string{
-							"workload": "true",
+							"workload":       "true",
+							"nvidia.com/gpu": "present",
 						},
 						Taints: []*containerpb.NodeTaint{
 							{

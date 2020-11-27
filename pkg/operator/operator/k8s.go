@@ -908,8 +908,7 @@ var Tolerations = []kcore.Toleration{
 	},
 	{
 		Key:      "nvidia.com/gpu",
-		Operator: kcore.TolerationOpEqual,
-		Value:    "true",
+		Operator: kcore.TolerationOpExists,
 		Effect:   kcore.TaintEffectNoSchedule,
 	},
 	{
