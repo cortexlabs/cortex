@@ -93,6 +93,7 @@ func getAPIEnv(api *spec.API, awsClient *aws.Client) []string {
 		"CORTEX_THREADS_PER_PROCESS="+s.Int32(api.Predictor.ThreadsPerProcess),
 		"CORTEX_MAX_REPLICA_CONCURRENCY="+s.Int32(api.Predictor.ProcessesPerReplica*api.Predictor.ThreadsPerProcess+1024), // allow a queue of 1024
 		"AWS_REGION="+awsClient.Region,
+		"S6_BEHAVIOUR_IF_STAGE2_FAILS="+"2",
 	)
 
 	if api.Predictor.ModelPath != nil || api.Predictor.Models != nil {

@@ -388,6 +388,10 @@ func getEnvVars(api *spec.API, container string) []kcore.EnvVar {
 				Name:  "CORTEX_PROJECT_DIR",
 				Value: path.Join(_emptyDirMountPath, "project"),
 			},
+			kcore.EnvVar{
+				Name:  "S6_BEHAVIOUR_IF_STAGE2_FAILS",
+				Value: "2",
+			},
 		)
 
 		if api.Kind == userconfig.RealtimeAPIKind {
