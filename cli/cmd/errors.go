@@ -77,12 +77,6 @@ const (
 	ErrNoTerminalWidth                       = "cli.no_terminal_width"
 	ErrDeployFromTopLevelDir                 = "cli.deploy_from_top_level_dir"
 	ErrOperationNotSupportedForCloudProvider = "cli.operation_not_supported_for_cloud_provider"
-
-	ErrGCPInvalidProjectID                        = "cli.gcp_invalid_project_id"
-	ErrGCPInvalidZone                             = "cli.gcp_invalid_zone"
-	ErrGCPInvalidInstanceType                     = "cli.gcp_invalid_instance_type"
-	ErrGCPInvalidAcceleratorType                  = "cli.gcp_invalid_accelerator_type"
-	ErrGCPIncompatibleInstanceTypeWithAccelerator = "cli.gcp_incompatible_instance_type_with_accelerator"
 )
 
 func ErrorInvalidProvider(providerStr string) error {
@@ -351,61 +345,5 @@ func ErrorOperationNotSupportedForCloudProvider(cloudProvider flags.CloudProvide
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrOperationNotSupportedForCloudProvider,
 		Message: fmt.Sprintf("this command is not supported for provider %s", cloudProvider.String()),
-	})
-}
-
-func ErrorGCPInvalidProjectID(projectID string) error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrGCPInvalidProjectID,
-		Message: fmt.Sprintf("invalid project ID '%s'", projectID),
-	})
-}
-
-func ErrorGCPInvalidZone(zone string, suggestedZones ...string) error {
-	errorMessage := fmt.Sprintf("invalid zone '%s'", zone)
-	if len(suggestedZones) == 1 {
-		errorMessage += fmt.Sprintf("; use zone '%s' instead", suggestedZones[0])
-	}
-	if len(suggestedZones) > 1 {
-		errorMessage += fmt.Sprintf("; use one of the following zones instead %s", s.UserStrsOr(suggestedZones))
-	}
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrGCPInvalidZone,
-		Message: errorMessage,
-	})
-}
-
-func ErrorGCPInvalidInstanceType(instanceType string, suggestedInstanceTypes ...string) error {
-	errorMessage := fmt.Sprintf("invalid instance type '%s'", instanceType)
-	if len(suggestedInstanceTypes) == 1 {
-		errorMessage += fmt.Sprintf("; use instance type '%s' instead", suggestedInstanceTypes[0])
-	}
-	if len(suggestedInstanceTypes) > 1 {
-		errorMessage += fmt.Sprintf("; use one of the following instance types instead %s", s.UserStrsOr(suggestedInstanceTypes))
-	}
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrGCPInvalidInstanceType,
-		Message: errorMessage,
-	})
-}
-
-func ErrorGCPInvalidAcceleratorType(acceleratorType string, zone string, suggestedAcceleratorsInZone []string, suggestedZonesForAccelerator []string) error {
-	errorMessage := fmt.Sprintf("invalid accelerator type '%s'", acceleratorType)
-	if len(suggestedAcceleratorsInZone) > 0 {
-		errorMessage += fmt.Sprintf("\n\nfor zone %s, the following accelerators are available: %s", zone, s.UserStrsAnd(suggestedAcceleratorsInZone))
-	}
-	if len(suggestedZonesForAccelerator) > 0 {
-		errorMessage += fmt.Sprintf("\n\nfor accelerator %s, the following zones are accepted: %s", acceleratorType, s.UserStrsAnd(suggestedZonesForAccelerator))
-	}
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrGCPInvalidAcceleratorType,
-		Message: errorMessage,
-	})
-}
-
-func ErrorGCPIncompatibleInstanceTypeWithAccelerator(instanceType, acceleratorType, zone string, compatibleInstances []string) error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrGCPIncompatibleInstanceTypeWithAccelerator,
-		Message: fmt.Sprintf("instance type '%s' is incompatible with accelerator '%s'; the following instance types are compatible with '%s' accelerator in zone %s: %s", instanceType, acceleratorType, acceleratorType, zone, s.UserStrsOr(compatibleInstances)),
 	})
 }

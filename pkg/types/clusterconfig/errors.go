@@ -58,6 +58,12 @@ const (
 	ErrIOPSTooLarge                           = "clusterconfig.iops_too_large"
 	ErrCantOverrideDefaultTag                 = "clusterconfig.cant_override_default_tag"
 	ErrSSLCertificateARNNotFound              = "clusterconfig.ssl_certificate_arn_not_found"
+
+	ErrGCPInvalidProjectID                        = "clusterconfig.gcp_invalid_project_id"
+	ErrGCPInvalidZone                             = "clusterconfig.gcp_invalid_zone"
+	ErrGCPInvalidInstanceType                     = "clusterconfig.gcp_invalid_instance_type"
+	ErrGCPInvalidAcceleratorType                  = "clusterconfig.gcp_invalid_accelerator_type"
+	ErrGCPIncompatibleInstanceTypeWithAccelerator = "clusterconfig.gcp_incompatible_instance_type_with_accelerator"
 )
 
 func ErrorUndefinedField(fieldKey string) error {
@@ -272,5 +278,61 @@ func ErrorSSLCertificateARNNotFound(sslCertificateARN string, region string) err
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrSSLCertificateARNNotFound,
 		Message: fmt.Sprintf("unable to find the specified ssl certificate in %s: %s", region, sslCertificateARN),
+	})
+}
+
+func ErrorGCPInvalidProjectID(projectID string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrGCPInvalidProjectID,
+		Message: fmt.Sprintf("invalid project ID '%s'", projectID),
+	})
+}
+
+func ErrorGCPInvalidZone(zone string, suggestedZones ...string) error {
+	errorMessage := fmt.Sprintf("invalid zone '%s'", zone)
+	if len(suggestedZones) == 1 {
+		errorMessage += fmt.Sprintf("; use zone '%s' instead", suggestedZones[0])
+	}
+	if len(suggestedZones) > 1 {
+		errorMessage += fmt.Sprintf("; use one of the following zones instead %s", s.UserStrsOr(suggestedZones))
+	}
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrGCPInvalidZone,
+		Message: errorMessage,
+	})
+}
+
+func ErrorGCPInvalidInstanceType(instanceType string, suggestedInstanceTypes ...string) error {
+	errorMessage := fmt.Sprintf("invalid instance type '%s'", instanceType)
+	if len(suggestedInstanceTypes) == 1 {
+		errorMessage += fmt.Sprintf("; use instance type '%s' instead", suggestedInstanceTypes[0])
+	}
+	if len(suggestedInstanceTypes) > 1 {
+		errorMessage += fmt.Sprintf("; use one of the following instance types instead %s", s.UserStrsOr(suggestedInstanceTypes))
+	}
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrGCPInvalidInstanceType,
+		Message: errorMessage,
+	})
+}
+
+func ErrorGCPInvalidAcceleratorType(acceleratorType string, zone string, suggestedAcceleratorsInZone []string, suggestedZonesForAccelerator []string) error {
+	errorMessage := fmt.Sprintf("invalid accelerator type '%s'", acceleratorType)
+	if len(suggestedAcceleratorsInZone) > 0 {
+		errorMessage += fmt.Sprintf("\n\nfor zone %s, the following accelerators are available: %s", zone, s.UserStrsAnd(suggestedAcceleratorsInZone))
+	}
+	if len(suggestedZonesForAccelerator) > 0 {
+		errorMessage += fmt.Sprintf("\n\nfor accelerator %s, the following zones are accepted: %s", acceleratorType, s.UserStrsAnd(suggestedZonesForAccelerator))
+	}
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrGCPInvalidAcceleratorType,
+		Message: errorMessage,
+	})
+}
+
+func ErrorGCPIncompatibleInstanceTypeWithAccelerator(instanceType, acceleratorType, zone string, compatibleInstances []string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrGCPIncompatibleInstanceTypeWithAccelerator,
+		Message: fmt.Sprintf("instance type '%s' is incompatible with accelerator '%s'; the following instance types are compatible with '%s' accelerator in zone %s: %s", instanceType, acceleratorType, acceleratorType, zone, s.UserStrsOr(compatibleInstances)),
 	})
 }

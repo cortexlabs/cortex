@@ -17,6 +17,11 @@ limitations under the License.
 package clusterconfig
 
 import (
+	"fmt"
+	"strings"
+
+	"github.com/cortexlabs/cortex/pkg/lib/gcp"
+	"github.com/cortexlabs/cortex/pkg/lib/slices"
 	"github.com/cortexlabs/cortex/pkg/types"
 )
 
@@ -48,4 +53,75 @@ type InternalGCPConfig struct {
 	ID                string `json:"id"`
 	APIVersion        string `json:"api_version"`
 	OperatorInCluster bool   `json:"operator_in_cluster"`
+}
+
+func (gcpConfig *GCPConfig) Validate(GCP *gcp.Client) error {
+	fmt.Print("verifying your configuration ...\n\n")
+
+	if validID, err := GCP.IsProjectIDValid(); err != nil {
+		return err
+	} else if !validID {
+		return ErrorGCPInvalidProjectID(gcpConfig.Project)
+	}
+
+	if validZone, err := GCP.IsZoneValid(); err != nil {
+		return err
+	} else if !validZone {
+		availableZones, err := GCP.GetAvailableZones()
+		if err != nil {
+			return err
+		}
+		return ErrorGCPInvalidZone(gcpConfig.Zone, availableZones...)
+	}
+
+	if validInstanceType, err := GCP.IsInstanceTypeAvailable(gcpConfig.InstanceType); err != nil {
+		return err
+	} else if !validInstanceType {
+		instanceTypes, err := GCP.GetAvailableInstanceTypes()
+		if err != nil {
+			return err
+		}
+		return ErrorGCPInvalidInstanceType(gcpConfig.InstanceType, instanceTypes...)
+	}
+
+	if gcpConfig.AcceleratorType != nil {
+		if validAccelerator, err := GCP.IsAcceleratorTypeAvailable(*gcpConfig.AcceleratorType); err != nil {
+			return err
+		} else if !validAccelerator {
+			availableAcceleratorsInZone, err := GCP.GetAvailableAcceleratorTypes()
+			if err != nil {
+				return err
+			}
+			allAcceleratorTypes, err := GCP.GetAvailableAcceleratorTypesForAllZones()
+			if err != nil {
+				return err
+			}
+
+			var availableZonesForAccelerator []string
+			if slices.HasString(allAcceleratorTypes, *gcpConfig.AcceleratorType) {
+				availableZonesForAccelerator, err = GCP.GetAvailableZonesForAccelerator(*gcpConfig.AcceleratorType)
+				if err != nil {
+					return err
+				}
+			}
+			return ErrorGCPInvalidAcceleratorType(*gcpConfig.AcceleratorType, gcpConfig.Zone, availableAcceleratorsInZone, availableZonesForAccelerator)
+		}
+
+		// according to https://cloud.google.com/kubernetes-engine/docs/how-to/gpus
+		var compatibleInstances []string
+		var err error
+		if !strings.HasSuffix(*gcpConfig.AcceleratorType, "a100") {
+			compatibleInstances, err = GCP.GetInstanceTypesWithPrefix("n1")
+		} else {
+			compatibleInstances, err = GCP.GetInstanceTypesWithPrefix("a2")
+		}
+		if err != nil {
+			return err
+		}
+		if !slices.HasString(compatibleInstances, gcpConfig.InstanceType) {
+			return ErrorGCPIncompatibleInstanceTypeWithAccelerator(gcpConfig.InstanceType, *gcpConfig.AcceleratorType, gcpConfig.Zone, compatibleInstances)
+		}
+	}
+
+	return nil
 }
