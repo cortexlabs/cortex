@@ -103,8 +103,6 @@ func upGCP(gcpPath string) {
 		nodeLabels["nvidia.com/gpu"] = "present"
 	}
 
-	exit.Ok()
-
 	err = GCP.CreateBucket(gcpConfig.Bucket, gcpConfig.Project, true)
 	if err != nil {
 		exit.Error(err)
