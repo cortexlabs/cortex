@@ -7,14 +7,14 @@ assignees: ''
 
 ---
 
-#### Description
+### Description
 
 (describe the feature)
 
-#### Motivation
+### Motivation
 
 (how this will improve the product / what problem will this solve / what is the use case)
 
-#### Additional context
+### Additional context
 
 (optional)

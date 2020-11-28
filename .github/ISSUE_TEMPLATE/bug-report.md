@@ -7,37 +7,37 @@ assignees: ''
 
 ---
 
-#### Version
+### Version
 
 (use `cortex version` to determine your version)
 
-#### Description
+### Description
 
 (describe the bug)
 
-#### Configuration
+### Configuration
 
 (paste relevant `cortex.yaml` or `cluster.yaml` configuration)
 
-#### Steps to reproduce
+### Steps to reproduce
 
 1. ...
 2. ...
 3. ...
 
-#### Expected behavior
+### Expected behavior
 
 (describe the behavior you expected)
 
-#### Actual behavior
+### Actual behavior
 
 (describe the behavior you experienced)
 
-#### Screenshots
+### Screenshots
 
 (optional)
 
-#### Stack traces
+### Stack traces
 
 (error output from `cortex logs <api name>`)
 
@@ -45,10 +45,10 @@ assignees: ''
 <paste stack traces here>
 ```
 
-#### Additional context
+### Additional context
 
 (optional)
 
-#### Suggested solution
+### Suggested solution
 
 (optional)
