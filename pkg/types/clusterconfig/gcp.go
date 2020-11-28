@@ -27,6 +27,7 @@ type GCPConfig struct {
 	ClusterName         string             `json:"cluster_name" yaml:"cluster_name"`
 	Zone                string             `json:"zone" yaml:"zone"`
 	InstanceType        string             `json:"instance_type" yaml:"instance_type"`
+	AcceleratorType     *string            `json:"accelerator_type" yaml:"accelerator_type"`
 	MinInstances        int                `json:"min_instances" yaml:"min_instances"`
 	MaxInstances        int                `json:"max_instances" yaml:"max_instances"`
 	Telemetry           bool               `json:"telemetry" yaml:"telemetry"`

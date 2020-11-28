@@ -21,6 +21,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	container "cloud.google.com/go/container/apiv1"
@@ -29,6 +30,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/files"
 	"github.com/cortexlabs/cortex/pkg/lib/gcp"
 	"github.com/cortexlabs/cortex/pkg/lib/hash"
+	"github.com/cortexlabs/cortex/pkg/lib/slices"
 	"github.com/cortexlabs/cortex/pkg/types/clusterconfig"
 	containerpb "google.golang.org/genproto/googleapis/container/v1"
 	"gopkg.in/yaml.v2"
@@ -82,7 +84,86 @@ func upGCP(gcpPath string) {
 		gcpConfig.Bucket = gcpConfig.ClusterName + "-" + bucketID
 	}
 
-	GCP := &gcp.Client{}
+	GCP := &gcp.Client{
+		ProjectID: gcpConfig.Project,
+		Zone:      gcpConfig.Zone,
+	}
+
+	if validID, err := GCP.IsProjectIDValid(); err != nil {
+		exit.Error(err)
+	} else if !validID {
+		exit.Error(ErrorGCPInvalidProjectID(gcpConfig.Project))
+	}
+
+	if validZone, err := GCP.IsZoneValid(); err != nil {
+		exit.Error(err)
+	} else if !validZone {
+		availableZones, err := GCP.GetAvailableZones()
+		if err != nil {
+			exit.Error(err)
+		}
+		exit.Error(ErrorGCPInvalidZone(gcpConfig.Zone, availableZones...))
+	}
+
+	if validInstanceType, err := GCP.IsInstanceTypeAvailable(gcpConfig.InstanceType); err != nil {
+		exit.Error(err)
+	} else if !validInstanceType {
+		instanceTypes, err := GCP.GetAvailableInstanceTypes()
+		if err != nil {
+			exit.Error(err)
+		}
+		exit.Error(ErrorGCPInvalidInstanceType(gcpConfig.InstanceType, instanceTypes...))
+	}
+
+	nodeLabels := map[string]string{"workload": "true"}
+	var accelerators []*containerpb.AcceleratorConfig
+
+	if gcpConfig.AcceleratorType != nil {
+		if validAccelerator, err := GCP.IsAcceleratorTypeAvailable(*gcpConfig.AcceleratorType); err != nil {
+			exit.Error(err)
+		} else if !validAccelerator {
+			availableAcceleratorsInZone, err := GCP.GetAvailableAcceleratorTypes()
+			if err != nil {
+				exit.Error(err)
+			}
+			allAcceleratorTypes, err := GCP.GetAvailableAcceleratorTypesForAllZones()
+			if err != nil {
+				exit.Error(err)
+			}
+
+			var availableZonesForAccelerator []string
+			if slices.HasString(allAcceleratorTypes, *gcpConfig.AcceleratorType) {
+				availableZonesForAccelerator, err = GCP.GetAvailableZonesForAccelerator(*gcpConfig.AcceleratorType)
+				if err != nil {
+					exit.Error(err)
+				}
+			}
+			exit.Error(ErrorGCPInvalidAcceleratorType(*gcpConfig.AcceleratorType, gcpConfig.Zone, availableAcceleratorsInZone, availableZonesForAccelerator))
+		}
+
+		// according to https://cloud.google.com/kubernetes-engine/docs/how-to/gpus
+		var compatibleInstances []string
+		if !strings.HasSuffix(*gcpConfig.AcceleratorType, "a100") {
+			compatibleInstances, err = GCP.GetInstanceTypesWithPrefix("n1")
+		} else {
+			compatibleInstances, err = GCP.GetInstanceTypesWithPrefix("a2")
+		}
+		if err != nil {
+			exit.Error(err)
+		}
+		if !slices.HasString(compatibleInstances, gcpConfig.InstanceType) {
+			exit.Error(ErrorGCPIncompatibleInstanceTypeWithAccelerator(gcpConfig.InstanceType, *gcpConfig.AcceleratorType, gcpConfig.Zone, compatibleInstances))
+		}
+
+		accelerators = append(accelerators, &containerpb.AcceleratorConfig{
+			AcceleratorCount: 1,
+			AcceleratorType:  *gcpConfig.AcceleratorType,
+		})
+		nodeLabels["nvidia.com/gpu"] = "present"
+	}
+
+	exit.Ok()
+
 	err = GCP.CreateBucket(gcpConfig.Bucket, gcpConfig.Project, true)
 	if err != nil {
 		exit.Error(err)
@@ -112,10 +193,7 @@ func upGCP(gcpPath string) {
 					Name: "ng-cortex-worker-on-demand",
 					Config: &containerpb.NodeConfig{
 						MachineType: gcpConfig.InstanceType,
-						Labels: map[string]string{
-							"workload":       "true",
-							"nvidia.com/gpu": "present",
-						},
+						Labels:      nodeLabels,
 						Taints: []*containerpb.NodeTaint{
 							{
 								Key:    "workload",
@@ -123,12 +201,7 @@ func upGCP(gcpPath string) {
 								Effect: containerpb.NodeTaint_NO_SCHEDULE,
 							},
 						},
-						// Accelerators: []*containerpb.AcceleratorConfig{
-						// 	{
-						// 		AcceleratorCount: 1,
-						// 		AcceleratorType:  "nvidia-tesla-k80",
-						// 	},
-						// },
+						Accelerators: accelerators,
 						OauthScopes: []string{
 							"https://www.googleapis.com/auth/compute",
 							"https://www.googleapis.com/auth/devstorage.read_only",
@@ -147,7 +220,8 @@ func upGCP(gcpPath string) {
 				// 		Disabled: true,
 				// 	},
 			},
-			Locations: []string{gcpConfig.Zone},
+			Location:  gcpConfig.Zone,
+			Locations: []string{"europe-west1-b", "europe-west1-d"},
 		},
 	}
 

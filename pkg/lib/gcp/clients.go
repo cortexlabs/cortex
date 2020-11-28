@@ -20,10 +20,12 @@ import (
 	"context"
 
 	"cloud.google.com/go/storage"
+	"google.golang.org/api/compute/v1"
 )
 
 type clients struct {
-	gcs *storage.Client
+	gcs     *storage.Client
+	compute *compute.Service
 }
 
 func (c *Client) GCS() (*storage.Client, error) {
@@ -35,4 +37,15 @@ func (c *Client) GCS() (*storage.Client, error) {
 		c.clients.gcs = gcs
 	}
 	return c.clients.gcs, nil
+}
+
+func (c *Client) Compute() (*compute.Service, error) {
+	if c.clients.compute == nil {
+		comp, err := compute.NewService(context.Background())
+		if err != nil {
+			return nil, err
+		}
+		c.clients.compute = comp
+	}
+	return c.clients.compute, nil
 }

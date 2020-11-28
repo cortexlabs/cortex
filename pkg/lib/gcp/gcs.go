@@ -24,11 +24,9 @@ import (
 	"strings"
 
 	"cloud.google.com/go/storage"
-	"github.com/cortexlabs/cortex/pkg/lib/debug"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
-	"google.golang.org/api/googleapi"
 	"google.golang.org/api/iterator"
 )
 
@@ -43,9 +41,6 @@ func (c *Client) CreateBucket(bucket, projectID string, ignoreErrorIfBucketExist
 	}
 	err = gcsClient.Bucket(bucket).Create(context.Background(), projectID, nil)
 	if err != nil {
-		if e, ok := err.(*googleapi.Error); ok {
-			debug.Ppg(e)
-		}
 		if DoesBucketAlreadyExistError(err) {
 			if !ignoreErrorIfBucketExists {
 				return err
