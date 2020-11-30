@@ -88,7 +88,7 @@ class Client:
                 return self._deploy(cortex_yaml_path, force, wait)
 
         if api_spec.get("name") is None:
-            raise ValueError("api_spec must be dictionary containing `name` key")
+            raise ValueError("`api_spec` must have the `name` key set")
 
         project_dir = Path.home() / ".cortex" / "deployments" / api_spec["name"]
 
