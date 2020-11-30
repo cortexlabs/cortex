@@ -12,9 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# USAGE: python ./dev/deploy_test.py <env_name>
+# e.g.: python ./dev/deploy_test.py aws
+
 import os
 import cortex
 import sys
+import requests
 
 cx = cortex.client(sys.argv[1])
 api_config = {
@@ -39,8 +43,6 @@ api = cx.deploy(
     requirements=["torch", "transformers"],
     wait=True,
 )
-
-import requests
 
 response = requests.post(
     api["endpoint"],

@@ -29,6 +29,9 @@ from typing import List, Dict, Optional, Tuple, Callable, Union
 from cortex.binary import run_cli, get_cli_path
 from cortex import util
 
+# Change if PYTHONVERSION changes
+EXPECTED_PYTHON_VERSION = "3.6.9"
+
 
 class Client:
     def __init__(self, env: str):
@@ -102,13 +105,11 @@ class Client:
                 yaml.dump([api_spec], f)  # write a list
                 return self._deploy(cortex_yaml_path, force=force, wait=wait)
 
-        # Change if PYTHONVERSION changes
-        expected_version = "3.6.9"
         actual_version = (
             f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
         )
 
-        if actual_version != expected_version:
+        if actual_version != EXPECTED_PYTHON_VERSION:
             is_python_set = any(
                 conda_dep.startswith("python=") or "::python=" in conda_dep
                 for conda_dep in conda_packages
@@ -193,8 +194,7 @@ class Client:
                 sys.stdout.flush()
 
         api_name = deploy_result["api"]["spec"]["name"]
-        kind = deploy_result["api"]["spec"]["kind"]
-        if kind != "RealtimeAPI":
+        if deploy_result["api"]["spec"]["kind"] != "RealtimeAPI":
             return deploy_result
 
         env = os.environ.copy()

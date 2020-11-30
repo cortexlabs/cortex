@@ -15,8 +15,8 @@
 # limitations under the License.
 
 
-# USAGE: ./dev/python_version_test.py <python version> <env_name>
-# e.g.: ./dev/python_version_test.py 3.6.9 aws
+# USAGE: ./dev/python_version_test.sh <python version> <env_name>
+# e.g.: ./dev/python_version_test.sh 3.6.9 aws
 
 set -e
 

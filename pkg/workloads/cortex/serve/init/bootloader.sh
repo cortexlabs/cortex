@@ -87,10 +87,6 @@ fi
 # install pip packages
 if [ -f "/mnt/project/requirements.txt" ]; then
     pip --no-cache-dir install -r /mnt/project/requirements.txt
-    status=$?
-    if [ $status -ne 0 ]; then
-        exit $status
-    fi
 fi
 
 create_s6_service() {
