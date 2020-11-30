@@ -246,7 +246,7 @@ Here is the typical full dev workflow which covers most cases:
 
 If you want to switch back to the in-cluster operator:
 
-1. `<ctrl+c>` to stop your off-cluster operator
+1. `<ctrl+c>` to stop your local operator
 2. `make cluster-configure` to install the operator in your cluster
 
 If you only want to test Cortex's local environment, here is the common workflow:
