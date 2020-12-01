@@ -17,6 +17,10 @@ limitations under the License.
 package operator
 
 import (
+	"github.com/cortexlabs/cortex/pkg/lib/cast"
+	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
+	"github.com/cortexlabs/cortex/pkg/lib/debug"
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/parallel"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
@@ -31,6 +35,38 @@ func DownloadAPISpec(apiName string, apiID string) (*spec.API, error) {
 	}
 
 	return &api, nil
+}
+
+func DownloadRawAPISpec(api *spec.API) (map[string]interface{}, error) {
+	s3Key := api.RawAPIKey(config.Cluster.ClusterName)
+
+	configBytes, err := config.AWS.ReadBytesFromS3(config.Cluster.Bucket, s3Key)
+	if err != nil {
+		return nil, err
+	}
+
+	configData, err := cr.ReadYAMLBytes(configBytes)
+	if err != nil {
+		return nil, err
+	}
+
+	debug.Ppj(configData)
+
+	apiSlice, ok := cast.InterfaceToInterfaceSlice(configData)
+	if !ok {
+		return nil, errors.ErrorUnexpected("unable to case userconfig to json slice map")
+	}
+
+	if len(apiSlice) == 0 {
+		return nil, errors.ErrorUnexpected("unable to case userconfig to json slice map")
+	}
+
+	strMap, ok := cast.InterfaceToStrInterfaceMapRecursive(apiSlice[0])
+	if !ok {
+		return nil, errors.ErrorUnexpected("unable to case userconfig to json slice map")
+	}
+
+	return strMap, nil
 }
 
 func DownloadAPISpecs(apiNames []string, apiIDs []string) ([]spec.API, error) {

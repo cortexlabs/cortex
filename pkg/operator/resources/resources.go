@@ -170,6 +170,30 @@ func UpdateAPI(apiConfig *userconfig.API, models []spec.CuratedModelResource, pr
 	return nil, msg, err
 }
 
+func PatchAPI(configBytes []byte, configFileName string, force bool) ([]*schema.APIResponse, error) {
+	apiConfigs, err := spec.ExtractAPIConfigs(configBytes, types.AWSProviderType, configFileName, &config.Cluster.Config)
+	if err != nil {
+		return nil, err
+	}
+
+	for i := range apiConfigs {
+		apiConfig := &apiConfigs[i]
+
+		deployedResource, err := GetDeployedResourceByName(apiConfig.Name)
+		if err != nil {
+			return nil, err
+		}
+
+		switch deployedResource.Kind {
+		case userconfig.RealtimeAPIKind:
+			return realtimeapi.PatchAPI(apiConfig.Name, force)
+		default:
+			return nil, ErrorOperationIsOnlySupportedForKind(*deployedResource, userconfig.RealtimeAPIKind)
+		}
+	}
+
+}
+
 func RefreshAPI(apiName string, force bool) (string, error) {
 	deployedResource, err := GetDeployedResourceByName(apiName)
 	if err != nil {

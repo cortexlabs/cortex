@@ -125,6 +125,51 @@ func UpdateAPI(apiConfig *userconfig.API, models []spec.CuratedModelResource, pr
 	return api, fmt.Sprintf("%s is up to date", api.Resource.UserString()), nil
 }
 
+func PatchAPI(apiConfig *userconfig.API, force bool) (*spec.API, error) {
+	prevDeployment, err := config.K8s.GetDeployment(operator.K8sName(apiName))
+	if err != nil {
+		return "", err
+	} else if prevDeployment == nil {
+		return "", errors.ErrorUnexpected("unable to find deployment", apiName)
+	}
+
+	isUpdating, err := isAPIUpdating(prevDeployment)
+	if err != nil {
+		return "", err
+	}
+
+	if isUpdating && !force {
+		return "", ErrorAPIUpdating(apiName)
+	}
+
+	api, err := operator.DownloadAPISpec(deployedResource.Name, deployedResource.ID())
+	if err != nil {
+		return nil, err
+	}
+
+	api = spec.GetAPISpec(apiConfig, api.CuratedModelResources, api.ProjectID, k8s.RandomName()[:10], config.Cluster.ClusterName)
+
+	deployedResource, err := GetDeployedResourceByName(apiConfig.Name)
+	if err != nil {
+		return nil, err
+	}
+
+	switch deployedResource.Kind {
+	case userconfig.RealtimeAPIKind:
+		return realtimeapi.RefreshAPI(apiConfig.Name, force)
+	default:
+		return nil, ErrorOperationIsOnlySupportedForKind(*deployedResource, userconfig.RealtimeAPIKind)
+	}
+
+	api, err := operator.DownloadAPISpec(deployedResource.Name, deployedResource.ID())
+	if err != nil {
+		return nil, err
+	}
+
+	api = spec.GetAPISpec(apiConfig, api.CuratedModelResources, api.ProjectID, k8s.RandomName()[:10], config.Cluster.ClusterName)
+
+}
+
 func RefreshAPI(apiName string, force bool) (string, error) {
 	prevDeployment, err := config.K8s.GetDeployment(operator.K8sName(apiName))
 	if err != nil {
@@ -294,13 +339,19 @@ func GetAPIByName(deployedResource *operator.DeployedResource) ([]schema.APIResp
 
 	dashboardURL := DashboardURL()
 
+	submittedAPISpec, err := operator.DownloadRawAPISpec(api)
+	if err != nil {
+		return nil, err
+	}
+
 	return []schema.APIResponse{
 		{
-			Spec:         *api,
-			Status:       status,
-			Metrics:      metrics,
-			Endpoint:     apiEndpoint,
-			DashboardURL: &dashboardURL,
+			Spec:             *api,
+			Status:           status,
+			Metrics:          metrics,
+			Endpoint:         apiEndpoint,
+			DashboardURL:     &dashboardURL,
+			SubmittedAPISpec: submittedAPISpec,
 		},
 	}, nil
 }

@@ -694,6 +694,41 @@ func InterfaceToStrInterfaceMap(in interface{}) (map[string]interface{}, bool) {
 	return out, true
 }
 
+func InterfaceToStrInterfaceMapRecursive(in interface{}) (map[string]interface{}, bool) {
+	if in == nil {
+		return nil, true
+	}
+
+	if strMap, ok := in.(map[string]interface{}); ok {
+		return strMap, true
+	}
+
+	inMap, ok := InterfaceToInterfaceInterfaceMap(in)
+	if !ok {
+		return nil, false
+	}
+
+	out := map[string]interface{}{}
+
+	for key, value := range inMap {
+		casted, ok := key.(string)
+		if !ok {
+			return nil, false
+		}
+
+		if intToIntMap, ok := value.(map[interface{}]interface{}); ok {
+			castedStrMap, ok := InterfaceToStrInterfaceMapRecursive(intToIntMap)
+			if !ok {
+				return nil, false
+			}
+			out[casted] = castedStrMap
+		} else {
+			out[casted] = value
+		}
+	}
+	return out, true
+}
+
 func InterfaceToStrStrMap(in interface{}) (map[string]string, bool) {
 	if in == nil {
 		return nil, true

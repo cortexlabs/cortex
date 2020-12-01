@@ -49,13 +49,14 @@ type DeployResult struct {
 }
 
 type APIResponse struct {
-	Spec         spec.API           `json:"spec"`
-	Status       *status.Status     `json:"status,omitempty"`
-	Metrics      *metrics.Metrics   `json:"metrics,omitempty"`
-	Endpoint     string             `json:"endpoint"`
-	DashboardURL *string            `json:"dashboard_url,omitempty"`
-	JobStatuses  []status.JobStatus `json:"job_statuses,omitempty"`
-	APIVersions  []APIVersion       `json:"api_versions,omitempty"`
+	Spec             spec.API               `json:"spec"`
+	Status           *status.Status         `json:"status,omitempty"`
+	Metrics          *metrics.Metrics       `json:"metrics,omitempty"`
+	Endpoint         string                 `json:"endpoint"`
+	DashboardURL     *string                `json:"dashboard_url,omitempty"`
+	JobStatuses      []status.JobStatus     `json:"job_statuses,omitempty"`
+	APIVersions      []APIVersion           `json:"api_versions,omitempty"`
+	SubmittedAPISpec map[string]interface{} `json:"submitted_api_spec"`
 }
 
 type JobResponse struct {

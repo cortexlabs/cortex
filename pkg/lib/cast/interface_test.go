@@ -186,6 +186,37 @@ func TestInterfaceToInterfaceInterfaceMap(t *testing.T) {
 	require.Equal(t, expected, casted)
 }
 
+func TestInterfaceToStrInterfaceMapRecursive(t *testing.T) {
+	var ok bool
+	var in interface{}
+	var casted map[string]interface{}
+	var expected map[string]interface{}
+
+	in = map[string]interface{}{"test": map[string]interface{}{"testing": []string{}}}
+	expected = map[string]interface{}{"test": map[string]interface{}{"testing": []string{}}}
+	casted, ok = InterfaceToStrInterfaceMapRecursive(in)
+	require.True(t, ok)
+	require.Equal(t, expected, casted)
+
+	in = map[string]interface{}{"test": map[string]interface{}{"testing": []string{}}, "slice": []int{1}}
+	expected = map[string]interface{}{"test": map[string]interface{}{"testing": []string{}}, "slice": []int{1}}
+	casted, ok = InterfaceToStrInterfaceMapRecursive(in)
+	require.True(t, ok)
+	require.Equal(t, expected, casted)
+
+	in = map[string]interface{}{"test": nil}
+	expected = map[string]interface{}{"test": nil}
+	casted, ok = InterfaceToStrInterfaceMapRecursive(in)
+	require.True(t, ok)
+	require.Equal(t, expected, casted)
+
+	in = map[string]interface{}{}
+	expected = map[string]interface{}{}
+	casted, ok = InterfaceToStrInterfaceMapRecursive(in)
+	require.True(t, ok)
+	require.Equal(t, expected, casted)
+}
+
 func TestFlattenInterfaceSlices(t *testing.T) {
 	expected := []interface{}{"a", "b", "c"}
 
