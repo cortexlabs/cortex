@@ -22,11 +22,15 @@ import yaml
 import uuid
 import dill
 import inspect
+import shutil
 from pathlib import Path
 
 from typing import List, Dict, Optional, Tuple, Callable, Union
 from cortex.binary import run_cli, get_cli_path
 from cortex import util
+
+# Change if PYTHONVERSION changes
+EXPECTED_PYTHON_VERSION = "3.6.9"
 
 
 class Client:
@@ -44,10 +48,10 @@ class Client:
         self,
         api_spec: dict,
         predictor=None,
-        pip_dependencies=[],
-        conda_dependencies=[],
+        requirements=[],
+        conda_packages=[],
         project_dir: Optional[str] = None,
-        force: bool = False,
+        force: bool = True,
         wait: bool = False,
     ) -> list:
         """
@@ -61,8 +65,8 @@ class Client:
             predictor: A Cortex Predictor class implementation. Not required when deploying a traffic splitter.
                 → Realtime API: https://docs.cortex.dev/v/master/deployments/realtime-api/predictors
                 → Batch API: https://docs.cortex.dev/v/master/deployments/batch-api/predictors
-            pip_dependencies: A list of PyPI dependencies that will be installed before the predictor class implementation is invoked.
-            conda_dependencies: A list of Conda dependencies that will be installed before the predictor class implementation is invoked.
+            requirements: A list of PyPI dependencies that will be installed before the predictor class implementation is invoked.
+            conda_packages: A list of Conda dependencies that will be installed before the predictor class implementation is invoked.
             project_dir: Path to a python project.
             force: Override any in-progress api updates.
             wait: Streams logs until the APIs are ready.
@@ -83,61 +87,66 @@ class Client:
                 yaml.dump([api_spec], f)  # write a list
                 return self._deploy(cortex_yaml_path, force, wait)
 
-        project_dir = Path.home() / ".cortex" / "deployments" / str(uuid.uuid4())
-        with util.open_tempdir(str(project_dir)):
-            cortex_yaml_path = os.path.join(project_dir, "cortex.yaml")
+        if api_spec.get("name") is None:
+            raise ValueError("`api_spec` must have the `name` key set")
 
-            if predictor is None:
-                # for deploying a traffic splitter
-                with open(cortex_yaml_path, "w") as f:
-                    yaml.dump([api_spec], f)  # write a list
-                    return self._deploy(cortex_yaml_path, force=force, wait=wait)
+        project_dir = Path.home() / ".cortex" / "deployments" / api_spec["name"]
 
-            # Change if PYTHONVERSION changes
-            expected_version = "3.6"
-            actual_version = f"{sys.version_info.major}.{sys.version_info.minor}"
-            if actual_version < expected_version:
-                raise Exception("cortex is only supported for python versions >= 3.6")  # unexpected
-            if actual_version > expected_version:
-                is_python_set = any(
-                    conda_dep.startswith("python=") or "::python=" in conda_dep
-                    for conda_dep in conda_dependencies
-                )
+        if project_dir.exists():
+            shutil.rmtree(str(project_dir))
 
-                if not is_python_set:
-                    conda_dependencies = [
-                        f"conda-forge::python={sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
-                    ] + conda_dependencies
+        project_dir.mkdir(parents=True)
 
-            if len(pip_dependencies) > 0:
-                with open(project_dir / "requirements.txt", "w") as requirements_file:
-                    requirements_file.write("\n".join(pip_dependencies))
+        cortex_yaml_path = os.path.join(project_dir, "cortex.yaml")
 
-            if len(conda_dependencies) > 0:
-                with open(project_dir / "conda-packages.txt", "w") as conda_file:
-                    conda_file.write("\n".join(conda_dependencies))
-
-            if not inspect.isclass(predictor):
-                raise ValueError("predictor parameter must be a class definition")
-
-            with open(project_dir / "predictor.pickle", "wb") as pickle_file:
-                dill.dump(predictor, pickle_file)
-                if api_spec.get("predictor") is None:
-                    api_spec["predictor"] = {}
-
-                if predictor.__name__ == "PythonPredictor":
-                    predictor_type = "python"
-                if predictor.__name__ == "TensorFlowPredictor":
-                    predictor_type = "tensorflow"
-                if predictor.__name__ == "ONNXPredictor":
-                    predictor_type = "onnx"
-
-                api_spec["predictor"]["path"] = "predictor.pickle"
-                api_spec["predictor"]["type"] = predictor_type
-
+        if predictor is None:
+            # for deploying a traffic splitter
             with open(cortex_yaml_path, "w") as f:
                 yaml.dump([api_spec], f)  # write a list
                 return self._deploy(cortex_yaml_path, force=force, wait=wait)
+
+        actual_version = (
+            f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
+        )
+
+        if actual_version != EXPECTED_PYTHON_VERSION:
+            is_python_set = any(
+                conda_dep.startswith("python=") or "::python=" in conda_dep
+                for conda_dep in conda_packages
+            )
+
+            if not is_python_set:
+                conda_packages = [f"python={actual_version}"] + conda_packages
+
+        if len(requirements) > 0:
+            with open(project_dir / "requirements.txt", "w") as requirements_file:
+                requirements_file.write("\n".join(requirements))
+
+        if len(conda_packages) > 0:
+            with open(project_dir / "conda-packages.txt", "w") as conda_file:
+                conda_file.write("\n".join(conda_packages))
+
+        if not inspect.isclass(predictor):
+            raise ValueError("predictor parameter must be a class definition")
+
+        with open(project_dir / "predictor.pickle", "wb") as pickle_file:
+            dill.dump(predictor, pickle_file)
+            if api_spec.get("predictor") is None:
+                api_spec["predictor"] = {}
+
+            if predictor.__name__ == "PythonPredictor":
+                predictor_type = "python"
+            if predictor.__name__ == "TensorFlowPredictor":
+                predictor_type = "tensorflow"
+            if predictor.__name__ == "ONNXPredictor":
+                predictor_type = "onnx"
+
+            api_spec["predictor"]["path"] = "predictor.pickle"
+            api_spec["predictor"]["type"] = predictor_type
+
+        with open(cortex_yaml_path, "w") as f:
+            yaml.dump([api_spec], f)  # write a list
+            return self._deploy(cortex_yaml_path, force=force, wait=wait)
 
     def _deploy(
         self,
@@ -164,6 +173,7 @@ class Client:
             self.env,
             "-o",
             "mixed",
+            "-y",
         ]
 
         if force:
@@ -173,42 +183,44 @@ class Client:
 
         deploy_results = json.loads(output.strip())
 
+        deploy_result = deploy_results[0]
+
         if not wait:
-            return deploy_results
+            return deploy_result
 
         def stream_to_stdout(process):
             for c in iter(lambda: process.stdout.read(1), ""):
                 sys.stdout.write(c)
+                sys.stdout.flush()
 
-        for deploy_result in deploy_results:
-            api_name = deploy_result["api"]["spec"]["name"]
-            kind = deploy_result["api"]["spec"]["kind"]
-            if kind != "RealtimeAPI":
-                continue
+        api_name = deploy_result["api"]["spec"]["name"]
+        if deploy_result["api"]["spec"]["kind"] != "RealtimeAPI":
+            return deploy_result
 
-            env = os.environ.copy()
-            env["CORTEX_CLI_INVOKER"] = "python"
-            process = subprocess.Popen(
-                [get_cli_path(), "logs", "--env", self.env, api_name],
-                stderr=subprocess.STDOUT,
-                stdout=subprocess.PIPE,
-                encoding="utf8",
-                env=env,
-            )
+        env = os.environ.copy()
+        env["CORTEX_CLI_INVOKER"] = "python"
+        process = subprocess.Popen(
+            [get_cli_path(), "logs", "--env", self.env, api_name],
+            stderr=subprocess.STDOUT,
+            stdout=subprocess.PIPE,
+            encoding="utf8",
+            errors="replace",  # replace non-utf8 characters with `?` instead of failing
+            env=env,
+        )
 
-            streamer = threading.Thread(target=stream_to_stdout, args=[process])
-            streamer.start()
+        streamer = threading.Thread(target=stream_to_stdout, args=[process])
+        streamer.start()
 
-            while process.poll() is None:
-                api = self.get_api(api_name)
-                if api["status"]["status_code"] != "status_updating":
-                    if api["status"]["status_code"] == "status_live":
-                        time.sleep(2)
-                    process.terminate()
-                    break
-                time.sleep(2)
+        while process.poll() is None:
+            api = self.get_api(api_name)
+            if api["status"]["status_code"] != "status_updating":
+                time.sleep(10)  # wait for logs to stream
+                process.terminate()
+                break
+            time.sleep(5)
+        streamer.join(timeout=10)
 
-        return deploy_results
+        return api
 
     def get_api(self, api_name: str) -> dict:
         """
