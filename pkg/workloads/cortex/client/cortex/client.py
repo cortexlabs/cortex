@@ -116,7 +116,7 @@ class Client:
             )
 
             if not is_python_set:
-                conda_packages = [f"python={actual_version}"] + conda_packages
+                conda_packages = [f"python={actual_version}", "pip=19.*"] + conda_packages
 
         if len(requirements) > 0:
             with open(project_dir / "requirements.txt", "w") as requirements_file:
