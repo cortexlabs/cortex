@@ -19,6 +19,8 @@ RUN cd /tmp/ && \
     cd - && \
     chmod +x /tmp/s6-overlay-amd64-installer && /tmp/s6-overlay-amd64-installer / && rm /tmp/s6-overlay-amd64-installer
 
+ENV S6_BEHAVIOUR_IF_STAGE2_FAILS 2
+
 RUN locale-gen en_US.UTF-8
 ENV LANG=en_US.UTF-8 LANGUAGE=en_US.en LC_ALL=en_US.UTF-8
 

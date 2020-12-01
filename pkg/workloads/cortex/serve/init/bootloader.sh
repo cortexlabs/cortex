@@ -56,10 +56,6 @@ fi
 if [ -f "/mnt/project/dependencies.sh" ]; then
     eval $source_env_file_cmd
     bash -e /mnt/project/dependencies.sh
-    status=$?
-    if [ $status -ne 0 ]; then
-        exit $status
-    fi
 fi
 
 # install from conda-packages.txt
