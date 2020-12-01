@@ -126,48 +126,41 @@ func UpdateAPI(apiConfig *userconfig.API, models []spec.CuratedModelResource, pr
 }
 
 func PatchAPI(apiConfig *userconfig.API, force bool) (*spec.API, error) {
-	prevDeployment, err := config.K8s.GetDeployment(operator.K8sName(apiName))
+	prevDeployment, err := config.K8s.GetDeployment(operator.K8sName(apiConfig.Name))
 	if err != nil {
-		return "", err
+		return nil, err
 	} else if prevDeployment == nil {
-		return "", errors.ErrorUnexpected("unable to find deployment", apiName)
+		return nil, errors.ErrorUnexpected("unable to find deployment", apiConfig.Name)
 	}
 
 	isUpdating, err := isAPIUpdating(prevDeployment)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	if isUpdating && !force {
-		return "", ErrorAPIUpdating(apiName)
+		return nil, ErrorAPIUpdating(apiName)
 	}
 
-	api, err := operator.DownloadAPISpec(deployedResource.Name, deployedResource.ID())
+	api, err := operator.DownloadAPISpec(deployedResource.Name, prevDeployment.Labels["APIID"])
 	if err != nil {
 		return nil, err
 	}
 
 	api = spec.GetAPISpec(apiConfig, api.CuratedModelResources, api.ProjectID, k8s.RandomName()[:10], config.Cluster.ClusterName)
 
-	deployedResource, err := GetDeployedResourceByName(apiConfig.Name)
-	if err != nil {
-		return nil, err
+
+	UpdateAPI(apiConfig, apiConfig.)
+	if err := config.AWS.UploadJSONToS3(api, config.Cluster.Bucket, api.Key); err != nil {
+		return "", errors.Wrap(err, "upload api spec")
 	}
 
-	switch deployedResource.Kind {
-	case userconfig.RealtimeAPIKind:
-		return realtimeapi.RefreshAPI(apiConfig.Name, force)
-	default:
-		return nil, ErrorOperationIsOnlySupportedForKind(*deployedResource, userconfig.RealtimeAPIKind)
+	// Reupload api spec to the same PredictorID but with the new DeploymentID
+	if err := config.AWS.UploadJSONToS3(api, config.Cluster.Bucket, api.PredictorKey); err != nil {
+		return "", errors.Wrap(err, "upload predictor spec")
 	}
 
-	api, err := operator.DownloadAPISpec(deployedResource.Name, deployedResource.ID())
-	if err != nil {
-		return nil, err
-	}
-
-	api = spec.GetAPISpec(apiConfig, api.CuratedModelResources, api.ProjectID, k8s.RandomName()[:10], config.Cluster.ClusterName)
-
+	return api, nil
 }
 
 func RefreshAPI(apiName string, force bool) (string, error) {
