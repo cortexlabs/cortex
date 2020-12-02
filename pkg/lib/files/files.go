@@ -691,6 +691,19 @@ func LongestCommonPath(paths ...string) string {
 	return commonPath
 }
 
+func FilterPathsWithPrefix(paths []string, prefix string) []string {
+	prefix = s.EnsureSuffix(prefix, "/")
+
+	filteredPaths := []string{}
+	for _, path := range paths {
+		if strings.HasPrefix(path, prefix) {
+			filteredPaths = append(filteredPaths, path)
+		}
+	}
+
+	return filteredPaths
+}
+
 type DirsOrder string
 
 var DirsSorted DirsOrder = "sorted"
