@@ -134,64 +134,6 @@ Your API can accept requests with different types of payloads such as `JSON`-par
 
 Your `predictor` method can return different types of objects such as `JSON`-parseable, `string`, and `bytes` objects. Navigate to the [API responses](#api-responses) section to learn about how to configure your `predictor` method to respond with different response codes and content-types.
 
-### Examples
-
-<!-- CORTEX_VERSION_MINOR -->
-Many of the [examples](https://github.com/cortexlabs/cortex/tree/master/examples) use the Python Predictor, including all of the PyTorch examples.
-
-<!-- CORTEX_VERSION_MINOR -->
-Here is the Predictor for [examples/pytorch/text-generator](https://github.com/cortexlabs/cortex/tree/master/examples/pytorch/text-generator):
-
-```python
-import torch
-from transformers import GPT2Tokenizer, GPT2LMHeadModel
-
-
-class PythonPredictor:
-    def __init__(self, config):
-        self.device = "cuda" if torch.cuda.is_available() else "cpu"
-        print(f"using device: {self.device}")
-        self.tokenizer = GPT2Tokenizer.from_pretrained("gpt2")
-        self.model = GPT2LMHeadModel.from_pretrained("gpt2").to(self.device)
-
-    def predict(self, payload):
-        input_length = len(payload["text"].split())
-        tokens = self.tokenizer.encode(payload["text"], return_tensors="pt").to(self.device)
-        prediction = self.model.generate(tokens, max_length=input_length + 20, do_sample=True)
-        return self.tokenizer.decode(prediction[0])
-```
-
-<!-- CORTEX_VERSION_MINOR -->
-Here is the Predictor for [examples/live-reloading/python/mpg-estimator](https://github.com/cortexlabs/cortex/tree/feature/master/examples/live-reloading/python/mpg-estimator):
-
-```python
-import mlflow.sklearn
-import numpy as np
-
-
-class PythonPredictor:
-    def __init__(self, config, python_client):
-        self.client = python_client
-
-    def load_model(self, model_path):
-        return mlflow.sklearn.load_model(model_path)
-
-    def predict(self, payload, query_params):
-        model_version = query_params.get("version")
-
-        model = self.client.get_model(model_version=model_version)
-        model_input = [
-            payload["cylinders"],
-            payload["displacement"],
-            payload["horsepower"],
-            payload["weight"],
-            payload["acceleration"],
-        ]
-        result = model.predict([model_input]).item()
-
-        return {"prediction": result, "model": {"version": model_version}}
-```
-
 ### Pre-installed packages
 
 The following Python packages are pre-installed in Python Predictors and can be used in your implementations:

@@ -97,7 +97,7 @@ For proper separation of concerns, it is recommended to use the constructor's `c
 ### Examples
 
 <!-- CORTEX_VERSION_MINOR -->
-You can find an example of a BatchAPI using a PythonPredictor in [examples/batch/image-classifier](https://github.com/cortexlabs/cortex/tree/master/examples/batch/image-classifier).
+You can find an example of a BatchAPI using a PythonPredictor in [examples/batch/python](https://github.com/cortexlabs/cortex/tree/master/examples/batch/python).
 
 ### Pre-installed packages
 

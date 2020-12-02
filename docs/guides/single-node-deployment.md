@@ -101,7 +101,7 @@ $ sudo groupadd docker; sudo gpasswd -a $USER docker
 $ logout
 ```
 
-If you have installed Docker correctly, you should be able to run docker commands such as `docker run hello-world` without running into permission issues or needing `sudo`.
+If you have installed Docker correctly, you should be able to run docker commands such as `docker run hello-world/python` without running into permission issues or needing `sudo`.
 
 ### Step 12
 
@@ -120,7 +120,7 @@ You can now use Cortex to deploy your model:
 ```bash
 $ git clone -b master https://github.com/cortexlabs/cortex.git
 
-$ cd cortex/examples/pytorch/text-generator
+$ cd cortex/examples/hello-world/python
 
 $ cortex deploy
 

@@ -2,8 +2,6 @@
 
 ## TensorFlow
 
-- [Iris classification](tensorflow/iris-classifier): deploy a model to classify iris flowers.
-
 - [Text generation](tensorflow/text-generator): deploy OpenAI's GPT-2 to generate text.
 
 - [Sentiment analysis](tensorflow/sentiment-analyzer): deploy a BERT model for sentiment analysis.
@@ -49,8 +47,6 @@
 - [Question generator](pytorch/question-generator): deploy a transformers model to generate questions given text and the correct answer.
 
 ## ONNX
-
-- [Iris classification](onnx/iris-classifier): deploy an XGBoost model (exported in ONNX) to classify iris flowers.
 
 - [YOLOv5 YouTube detection](onnx/yolov5-youtube): deploy a YOLOv5 model trained on COCO val2017 dataset.
 

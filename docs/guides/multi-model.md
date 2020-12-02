@@ -9,9 +9,6 @@ It is possible to serve multiple models in the same Cortex API using any type of
 
 ### Specifying models in API config
 
-<!-- CORTEX_VERSION_MINOR -->
-The following template is based on the [live-reloading/python/mpg-estimator](https://github.com/cortexlabs/cortex/tree/master/examples/live-reloading/python/mpg-estimator) example.
-
 #### `cortex.yaml`
 
 Even though it looks as if there's only a single model served, there are actually 4 different versions saved in `s3://cortex-examples/sklearn/mpg-estimator/linreg/`.
@@ -158,7 +155,7 @@ Machine learning is the study of algorithms and statistical models that computer
 For the TensorFlow Predictor, a multi-model API is configured by placing the list of models in the Predictor's `models` field (each model will specify its own unique name). The `predict()` method of the `tensorflow_client` object expects a second argument that represents the name of the model that will be used for inference.
 
 <!-- CORTEX_VERSION_MINOR -->
-The following template is based on the [tensorflow/multi-model-classifier](https://github.com/cortexlabs/cortex/tree/master/examples/tensorflow/multi-model-classifier) example.
+The following template is based on the [multi-model/tensorflow](https://github.com/cortexlabs/cortex/tree/master/examples/tensorflow/multi-model-classifier) example.
 
 ### `cortex.yaml`
 

@@ -1,5 +1,3 @@
-## Live-reloading model APIs
-
 _WARNING: you are on the master branch; please refer to examples on the branch corresponding to your `cortex version` (e.g. for version 0.23.*, run `git checkout -b 0.23` or switch to the `0.23` branch on GitHub)_
 
-Model live-reloading is automatically enabled for TensorFlow predictors unless using Inferentia resources (`compute.inf`) and `processes_per_replica` > 1.
+Please refer to the [tutorial](https://docs.cortex.dev/tutorial) to see how to deploy an example with Cortex.

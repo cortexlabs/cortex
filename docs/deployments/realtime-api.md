@@ -40,7 +40,7 @@ The Cortex Cluster will automatically scale based on the incoming traffic and th
 
 ## Next steps
 
-* Try the [tutorial](../../examples/pytorch/text-generator/README.md) to deploy a Realtime API locally or on AWS.
+* Try the [tutorial](../../examples/hello-world/python/README.md) to deploy a Realtime API locally or on AWS.
 * See our [exporting guide](../guides/exporting.md) for how to export your model to use in a Realtime API.
 * See the [Predictor docs](realtime-api/predictors.md) for how to implement a Predictor class.
 * See the [API configuration docs](realtime-api/api-configuration.md) for a full list of features that can be used to deploy your Realtime API.

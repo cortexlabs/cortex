@@ -1,3 +1,0 @@
-ffmpeg-python
-aiofiles
-opencv-python-headless

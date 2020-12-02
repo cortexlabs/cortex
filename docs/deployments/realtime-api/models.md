@@ -182,9 +182,6 @@ The following is a list of events that will trigger the API to update its model(
 * A model changes its directory structure.
 * A file in the model directory is updated in-place.
 
-<!-- CORTEX_VERSION_MINOR -->
-Examples can be seen in [examples/live-reloading](https://github.com/cortexlabs/cortex/tree/master/examples/live-reloading).
-
 Usage varies based on the predictor type:
 
 ### Python
