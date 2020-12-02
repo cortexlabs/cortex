@@ -843,15 +843,6 @@ func getBaseEnvVars() []kcore.EnvFromSource {
 			},
 		})
 	}
-	if config.Provider == types.GCPProviderType {
-		baseEnvVars = append(baseEnvVars, kcore.EnvFromSource{
-			ConfigMapRef: &kcore.ConfigMapEnvSource{
-				LocalObjectReference: kcore.LocalObjectReference{
-					Name: "gcp-vars",
-				},
-			},
-		})
-	}
 
 	return baseEnvVars
 }
