@@ -28,18 +28,18 @@ type Client struct {
 	ProjectID    string
 	Zone         string
 	ClientEmail  string
-	ClientId     string
+	ClientID     string
 	PrivateKey   string
-	PrivateKeyId string
+	PrivateKeyID string
 	clients      clients
 }
 
 type credentialsFile struct {
 	ClientEmail  string `json:"client_email"`
-	ClientId     string `json:"client_id"`
-	PrivateKeyId string `json:"private_key_id"`
+	ClientID     string `json:"client_id"`
+	PrivateKeyID string `json:"private_key_id"`
 	PrivateKey   string `json:"private_key"`
-	ProjectId    string `json:"project_id"`
+	ProjectID    string `json:"project_id"`
 }
 
 // Uses environment variable $GOOGLE_APPLICATION_CREDENTIALS
@@ -60,16 +60,16 @@ func NewFromEnv(projectID string, zone string) (*Client, error) {
 		return nil, errors.Wrap(err, credsFilePath)
 	}
 
-	if credsFile.ProjectId != projectID {
-		return nil, ErrorProjectIDMismatch(credsFile.ProjectId, projectID, credsFilePath)
+	if credsFile.ProjectID != projectID {
+		return nil, ErrorProjectIDMismatch(credsFile.ProjectID, projectID, credsFilePath)
 	}
 
 	return &Client{
 		ProjectID:    projectID,
 		Zone:         zone,
 		ClientEmail:  credsFile.ClientEmail,
-		ClientId:     credsFile.ClientId,
+		ClientID:     credsFile.ClientID,
 		PrivateKey:   credsFile.PrivateKey,
-		PrivateKeyId: credsFile.PrivateKeyId,
+		PrivateKeyID: credsFile.PrivateKeyID,
 	}, nil
 }
