@@ -108,14 +108,12 @@ function cluster_up_gcp() {
   setup_secrets_gcp
   echo "✓"
 
-  # configure networking
   echo -n "￮ configuring networking (this will take a few minutes) "
   setup_istio
   python render_template.py $CORTEX_CLUSTER_CONFIG_FILE manifests/apis.yaml.j2 > /workspace/apis.yaml
   kubectl apply -f /workspace/apis.yaml >/dev/null
   echo "✓"
 
-  # configure gpu support
   if [ -z "$CORTEX_ACCELLERATOR_TYPE" ]; then
     echo -n "￮ configuring gpu support "
     cat manifests/nvidia_gcp.yaml | kubectl apply -f - >/dev/null
@@ -456,6 +454,7 @@ function setup_istio() {
   output_if_error istio-${ISTIO_VERSION}/bin/istioctl install -f /workspace/istio.yaml
 }
 
+# TODO for GCP
 function start_pre_download_images() {
   if [[ "$CORTEX_INSTANCE_TYPE" == p* ]] || [[ "$CORTEX_INSTANCE_TYPE" == g* ]]; then
     envsubst < manifests/image-downloader-gpu.yaml | kubectl apply -f - &>/dev/null

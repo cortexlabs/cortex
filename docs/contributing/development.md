@@ -85,6 +85,13 @@ Run the tests:
 make test
 ```
 
+<!-- TODO add GCP instructions -->
+
+```bash
+# bash profile
+export CORTEX_DEV_DEFAULT_PREDICTOR_IMAGE_REGISTRY_GCP="gcr.io/XXXXXXXX/cortexlabs"  # set the default image for APIs
+```
+
 ### Image Registry
 
 Create a config directory in the repo's root directory:

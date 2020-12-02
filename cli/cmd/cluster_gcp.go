@@ -210,6 +210,7 @@ var _clusterGCPDownCmd = &cobra.Command{
 			prompt.YesOrExit(fmt.Sprintf("your cluster named \"%s\" in %s (zone: %s) will be spun down and all apis will be deleted, are you sure you want to continue?", *accessConfig.ClusterName, *accessConfig.Project, *accessConfig.Zone), "", "")
 		}
 
+		// TODO this fails when the bucket is not empty
 		fmt.Print("￮ deleting bucket ")
 		bucketName := clusterconfig.GCPBucketName(*accessConfig.ClusterName, *accessConfig.Project, *accessConfig.Zone)
 		err = gcpClient.DeleteBucket(bucketName)
