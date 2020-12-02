@@ -199,7 +199,7 @@ func modelResourceToCurated(modelResources []userconfig.ModelResource, projectDi
 
 // ##################
 
-func validateDirModels(modelPath string, api userconfig.API, awsClient *aws.Client, gcpClient *gcp.Client, extraValidators []modelValidator) ([]userconfig.ModelResource, error) {
+func validateDirModels(modelPath string, api userconfig.API, awsClient *aws.Client, gcpClient *gcp.Client, extraValidators []modelValidator) ([]CuratedModelResource, error) {
 	var bucket string
 	var key string
 	var modelDirPaths []string
@@ -257,8 +257,8 @@ func validateDirModels(modelPath string, api userconfig.API, awsClient *aws.Clie
 	}
 	modelNames = slices.UniqueStrings(modelNames)
 
-	modelResources := make([]userconfig.ModelResource, len(modelNames))
-	for _, modelName := range modelNames {
+	modelResources := make([]CuratedModelResource, len(modelNames))
+	for i, modelName := range modelNames {
 		modelPrefix := filepath.Join(key, modelName)
 		modelPrefix = s.EnsureSuffix(modelPrefix, "/")
 
@@ -292,16 +292,29 @@ func validateDirModels(modelPath string, api userconfig.API, awsClient *aws.Clie
 			}
 		}
 
-		modelResources = append(modelResources, userconfig.ModelResource{
-			Name:      modelName,
-			ModelPath: aws.S3Path(bucket, modelPrefix),
-		})
+		intVersions, err := slices.StringToInt64(versions)
+		if err != nil {
+			return nil, errors.Wrap(err, modelName)
+		}
+
+		modelResources[i] = CuratedModelResource{
+			ModelResource: &userconfig.ModelResource{
+				Name:         modelName,
+				ModelPath:    s.EnsureSuffix(aws.S3Path(bucket, modelPrefix), "/"),
+				SignatureKey: api.Predictor.SignatureKey,
+			},
+			S3Path:    s3Path,
+			GCSPath:   gcsPath,
+			LocalPath: localPath,
+			Versions:  intVersions,
+		}
 	}
 
 	return modelResources, nil
 }
 
-func validateModels(models []userconfig.ModelResource, api userconfig.API, awsClient *aws.Client, gcpClient *gcp.Client, extraValidators []modelValidator) error {
+func validateModels(models []userconfig.ModelResource, api userconfig.API, awsClient *aws.Client, gcpClient *gcp.Client, extraValidators []modelValidator) ([]CuratedModelResource, error) {
+	var bucket string
 	var modelPrefix string
 	var modelPaths []string
 
@@ -317,7 +330,8 @@ func validateModels(models []userconfig.ModelResource, api userconfig.API, awsCl
 		return nil
 	}
 
-	for _, model := range models {
+	modelResources := make([]CuratedModelResource, len(models))
+	for i, model := range models {
 		modelPath := s.EnsureSuffix(model.ModelPath, "/")
 
 		s3Path := strings.HasPrefix(model.ModelPath, "s3://")
@@ -327,22 +341,22 @@ func validateModels(models []userconfig.ModelResource, api userconfig.API, awsCl
 		if s3Path {
 			awsClientForBucket, err := aws.NewFromClientS3Path(model.ModelPath, awsClient)
 			if err != nil {
-				return errors.Wrap(err, model.Name)
+				return nil, errors.Wrap(err, model.Name)
 			}
 
-			_, modelPrefix, err = aws.SplitS3Path(model.ModelPath)
+			bucket, modelPrefix, err = aws.SplitS3Path(model.ModelPath)
 			if err != nil {
-				return errors.Wrap(err, model.Name)
+				return nil, errors.Wrap(err, model.Name)
 			}
 			modelPrefix = s.EnsureSuffix(modelPrefix, "/")
 
 			s3Objects, err := awsClientForBucket.ListS3PathDir(modelPath, false, nil)
 			if err != nil {
-				return errors.Wrap(err, model.Name)
+				return nil, errors.Wrap(err, model.Name)
 			}
 			modelPaths = aws.ConvertS3ObjectsToKeys(s3Objects...)
 			if len(modelPaths) == 0 {
-				return errors.Wrap(errFunc(modelPrefix, modelPaths), model.Name)
+				return nil, errors.Wrap(errFunc(modelPrefix, modelPaths), model.Name)
 			}
 		}
 
@@ -356,7 +370,7 @@ func validateModels(models []userconfig.ModelResource, api userconfig.API, awsCl
 
 		modelStructureType := determineBaseModelStructure(modelPaths, modelPrefix)
 		if modelStructureType == userconfig.UnknownModelStructureType {
-			return errors.Wrap(ErrorInvalidPythonModelPath(modelPath, []string{}), model.Name)
+			return nil, errors.Wrap(ErrorInvalidPythonModelPath(modelPath, []string{}), model.Name)
 		}
 
 		fmt.Println("we got", modelStructureType, "for", model.Name, "of", modelPath)
@@ -371,7 +385,7 @@ func validateModels(models []userconfig.ModelResource, api userconfig.API, awsCl
 				for _, validator := range extraValidators {
 					err := validator(modelPaths, modelPrefix, pointer.String(versionedModelPrefix))
 					if err != nil {
-						return errors.Wrap(err, model.Name)
+						return nil, errors.Wrap(err, model.Name)
 					}
 				}
 			}
@@ -379,13 +393,36 @@ func validateModels(models []userconfig.ModelResource, api userconfig.API, awsCl
 			for _, validator := range extraValidators {
 				err := validator(modelPaths, modelPrefix, nil)
 				if err != nil {
-					return errors.Wrap(err, model.Name)
+					return nil, errors.Wrap(err, model.Name)
 				}
 			}
 		}
+
+		intVersions, err := slices.StringToInt64(versions)
+		if err != nil {
+			return nil, errors.Wrap(err, model.Name)
+		}
+
+		var signatureKey *string
+		if model.SignatureKey != nil {
+			signatureKey = model.SignatureKey
+		} else if api.Predictor.Models != nil && api.Predictor.Models.SignatureKey != nil {
+			signatureKey = api.Predictor.SignatureKey
+		}
+		modelResources[i] = CuratedModelResource{
+			ModelResource: &userconfig.ModelResource{
+				Name:         model.Name,
+				ModelPath:    s.EnsureSuffix(aws.S3Path(bucket, modelPrefix), "/"),
+				SignatureKey: signatureKey,
+			},
+			S3Path:    s3Path,
+			GCSPath:   gcsPath,
+			LocalPath: localPath,
+			Versions:  intVersions,
+		}
 	}
 
-	return nil
+	return modelResources, nil
 }
 
 func onnxModelValidator(paths []string, prefix string, versionedPrefix *string) error {
@@ -534,7 +571,7 @@ func getModelVersionsFromPaths(paths []string, prefix string) []string {
 		versions = append(versions, splitPath[prefixLength])
 	}
 
-	return versions
+	return slices.UniqueStrings(versions)
 }
 
 // ##################

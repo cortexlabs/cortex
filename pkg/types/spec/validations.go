@@ -28,6 +28,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/cast"
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
+	"github.com/cortexlabs/cortex/pkg/lib/debug"
 	"github.com/cortexlabs/cortex/pkg/lib/docker"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
@@ -933,15 +934,10 @@ func validatePythonPredictor(api *userconfig.API, models *[]CuratedModelResource
 
 	var err error
 	if hasMultiModels && predictor.Models.Dir != nil {
-		modelResources, err = validateDirModels(*predictor.Models.Dir, *api, awsClient, nil, nil)
+		*models, err = validateDirModels(*predictor.Models.Dir, *api, awsClient, nil, nil)
 	} else {
-		err = validateModels(modelResources, *api, awsClient, nil, nil)
+		*models, err = validateModels(modelResources, *api, awsClient, nil, nil)
 	}
-	if err != nil {
-		return modelWrapError(err)
-	}
-
-	*models, err = modelResourceToCurated(modelResources, projectFiles.ProjectDir())
 	if err != nil {
 		return modelWrapError(err)
 	}
@@ -1031,17 +1027,12 @@ func validateTensorFlowPredictor(api *userconfig.API, models *[]CuratedModelReso
 
 	var err error
 	if hasMultiModels && predictor.Models.Dir != nil {
-		modelResources, err = validateDirModels(*predictor.Models.Dir, *api, awsClient, nil, validators)
+		*models, err = validateDirModels(*predictor.Models.Dir, *api, awsClient, nil, validators)
 	} else {
-		err = validateModels(modelResources, *api, awsClient, nil, validators)
+		*models, err = validateModels(modelResources, *api, awsClient, nil, validators)
 	}
 	if err != nil {
 		return modelWrapError(err)
-	}
-
-	*models, err = modelResourceToCurated(modelResources, projectFiles.ProjectDir())
-	if err != nil {
-		return err
 	}
 
 	if hasMultiModels {
@@ -1133,17 +1124,12 @@ func validateONNXPredictor(api *userconfig.API, models *[]CuratedModelResource, 
 
 	var err error
 	if hasMultiModels && predictor.Models.Dir != nil {
-		modelResources, err = validateDirModels(*predictor.Models.Dir, *api, awsClient, nil, validators)
+		*models, err = validateDirModels(*predictor.Models.Dir, *api, awsClient, nil, validators)
 	} else {
-		err = validateModels(modelResources, *api, awsClient, nil, validators)
+		*models, err = validateModels(modelResources, *api, awsClient, nil, validators)
 	}
 	if err != nil {
 		return modelWrapError(err)
-	}
-
-	*models, err = modelResourceToCurated(modelResources, projectFiles.ProjectDir())
-	if err != nil {
-		return err
 	}
 
 	if hasMultiModels {
