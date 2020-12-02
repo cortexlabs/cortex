@@ -16,9 +16,60 @@ limitations under the License.
 
 package gcp
 
+import (
+	"os"
+
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/files"
+	"github.com/cortexlabs/cortex/pkg/lib/json"
+)
+
 type Client struct {
-	ProjectID   string
-	Zone        string
-	IsAnonymous bool
-	clients     clients
+	ProjectID    string
+	Zone         string
+	ClientEmail  string
+	ClientId     string
+	PrivateKey   string
+	PrivateKeyId string
+	clients      clients
+}
+
+type credentialsFile struct {
+	ClientEmail  string `json:"client_email"`
+	ClientId     string `json:"client_id"`
+	PrivateKeyId string `json:"private_key_id"`
+	PrivateKey   string `json:"private_key"`
+	ProjectId    string `json:"project_id"`
+}
+
+// Uses environment variable $GOOGLE_APPLICATION_CREDENTIALS
+func NewFromEnv(projectID string, zone string) (*Client, error) {
+	credsFilePath := os.Getenv("GOOGLE_APPLICATION_CREDENTIALS")
+	if credsFilePath == "" {
+		return nil, ErrorCredentialsFileEnvVarNotSet()
+	}
+
+	credsBytes, err := files.ReadFileBytes(credsFilePath)
+	if err != nil {
+		return nil, err
+	}
+
+	credsFile := credentialsFile{}
+	err = json.Unmarshal(credsBytes, &credsFile)
+	if err != nil {
+		return nil, errors.Wrap(err, credsFilePath)
+	}
+
+	if credsFile.ProjectId != projectID {
+		return nil, ErrorProjectIDMismatch(credsFile.ProjectId, projectID, credsFilePath)
+	}
+
+	return &Client{
+		ProjectID:    projectID,
+		Zone:         zone,
+		ClientEmail:  credsFile.ClientEmail,
+		ClientId:     credsFile.ClientId,
+		PrivateKey:   credsFile.PrivateKey,
+		PrivateKeyId: credsFile.PrivateKeyId,
+	}, nil
 }

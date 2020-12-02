@@ -93,8 +93,7 @@ func Deploy(projectBytes []byte, configFileName string, configBytes []byte, forc
 		if err != nil {
 			return nil, err
 		}
-	}
-	if config.Provider == types.GCPProviderType {
+	} else {
 		apiConfigs, err = spec.ExtractAPIConfigs(configBytes, config.Provider, configFileName, nil, &config.GCPCluster.GCPConfig)
 		if err != nil {
 			return nil, err
@@ -118,8 +117,7 @@ func Deploy(projectBytes []byte, configFileName string, configBytes []byte, forc
 				return nil, err
 			}
 		}
-	}
-	if config.Provider == types.GCPProviderType {
+	} else {
 		projectKey := spec.ProjectKey(projectID, config.GCPCluster.ClusterName)
 		isProjectUploaded, err := config.GCP.IsGCSFile(config.GCPCluster.Bucket, projectKey)
 		if err != nil {
@@ -165,7 +163,7 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string, force bool) (*schema
 		return nil, "", ErrorCannotChangeKindOfDeployedAPI(apiConfig.Name, apiConfig.Kind, deployedResource.Kind)
 	}
 
-	telemetry.Event("operator.deploy", apiConfig.TelemetryEvent(types.AWSProviderType))
+	telemetry.Event("operator.deploy", apiConfig.TelemetryEvent(config.Provider))
 
 	var api *spec.API
 	var msg string
@@ -415,8 +413,7 @@ func getPastAPIDeploys(apiName string) ([]schema.APIVersion, error) {
 		if err != nil {
 			return nil, err
 		}
-	}
-	if config.Provider == types.GCPProviderType {
+	} else {
 		apiIDs, err = config.GCP.ListGCSDirOneLevel(config.GCPCluster.Bucket, spec.KeysPrefix(apiName, config.GCPCluster.ClusterName), pointer.Int64(10))
 		if err != nil {
 			return nil, err

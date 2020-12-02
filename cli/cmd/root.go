@@ -57,6 +57,7 @@ type commandType int
 const (
 	_generalCommandType commandType = iota
 	_clusterCommandType
+	_clusterGCPCommandType
 )
 
 func init() {
@@ -119,6 +120,7 @@ func init() {
 	}
 
 	clusterInit()
+	clusterGCPInit()
 	completionInit()
 	deleteInit()
 	deployInit()
@@ -170,6 +172,7 @@ func Execute() {
 	_rootCmd.AddCommand(_deleteCmd)
 
 	_rootCmd.AddCommand(_clusterCmd)
+	_rootCmd.AddCommand(_clusterGCPCmd)
 
 	_rootCmd.AddCommand(_envCmd)
 	_rootCmd.AddCommand(_versionCmd)

@@ -20,6 +20,7 @@ import (
 	"context"
 
 	"cloud.google.com/go/storage"
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"google.golang.org/api/compute/v1"
 )
 
@@ -32,7 +33,7 @@ func (c *Client) GCS() (*storage.Client, error) {
 	if c.clients.gcs == nil {
 		gcs, err := storage.NewClient(context.Background())
 		if err != nil {
-			return nil, err
+			return nil, errors.WithStack(err)
 		}
 		c.clients.gcs = gcs
 	}
@@ -43,7 +44,7 @@ func (c *Client) Compute() (*compute.Service, error) {
 	if c.clients.compute == nil {
 		comp, err := compute.NewService(context.Background())
 		if err != nil {
-			return nil, err
+			return nil, errors.WithStack(err)
 		}
 		c.clients.compute = comp
 	}

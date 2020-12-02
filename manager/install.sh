@@ -113,7 +113,6 @@ function cluster_up_gcp() {
   kubectl -n=default create configmap 'env-vars' \
     --from-literal='CORTEX_VERSION'=$CORTEX_VERSION \
     --from-literal='CORTEX_REGION'=$CORTEX_REGION \
-    --from-literal='CORTEX_BUCKET'=$CORTEX_BUCKET \
     --from-literal='CORTEX_GCP_PROJECT'=$CORTEX_GCP_PROJECT \
     --from-literal='CORTEX_GCP_ZONE'=$CORTEX_GCP_ZONE \
     --from-literal='CORTEX_TELEMETRY_DISABLE'=$CORTEX_TELEMETRY_DISABLE \
@@ -133,16 +132,18 @@ function cluster_up_gcp() {
   echo "✓"
 
   # configure networking
-  echo -n "￮ configuring networking (this might take a few minutes) "
+  echo -n "￮ configuring networking (this will take a few minutes) "
   setup_istio
   python render_template.py $CORTEX_CLUSTER_CONFIG_FILE manifests/apis.yaml.j2 > /workspace/apis.yaml
   kubectl apply -f /workspace/apis.yaml >/dev/null
   echo "✓"
 
   # configure gpu support
-  echo -n "￮ configuring gpu support "
-  cat manifests/nvidia_gcp.yaml | kubectl apply -f - >/dev/null
-  echo "✓"
+  if [ -z "$CORTEX_ACCELLERATOR_TYPE" ]; then
+    echo -n "￮ configuring gpu support "
+    cat manifests/nvidia_gcp.yaml | kubectl apply -f - >/dev/null
+    echo "✓"
+  fi
 
   restart_operator
 
@@ -274,7 +275,6 @@ function setup_configmap() {
     --from-literal='CORTEX_VERSION'=$CORTEX_VERSION \
     --from-literal='CORTEX_REGION'=$CORTEX_REGION \
     --from-literal='AWS_REGION'=$CORTEX_REGION \
-    --from-literal='CORTEX_BUCKET'=$CORTEX_BUCKET \
     --from-literal='CORTEX_TELEMETRY_DISABLE'=$CORTEX_TELEMETRY_DISABLE \
     --from-literal='CORTEX_TELEMETRY_SENTRY_DSN'=$CORTEX_TELEMETRY_SENTRY_DSN \
     --from-literal='CORTEX_TELEMETRY_SEGMENT_WRITE_KEY'=$CORTEX_TELEMETRY_SEGMENT_WRITE_KEY \

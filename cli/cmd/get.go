@@ -192,10 +192,10 @@ func getAPIsInAllEnvironments() (string, error) {
 	for _, env := range cliConfig.Environments {
 		var apisRes []schema.APIResponse
 		var err error
-		if env.Provider == types.AWSProviderType || env.Provider == types.GCPProviderType {
-			apisRes, err = cluster.GetAPIs(MustGetOperatorConfig(env.Name))
-		} else {
+		if env.Provider == types.LocalProviderType {
 			apisRes, err = local.GetAPIs()
+		} else {
+			apisRes, err = cluster.GetAPIs(MustGetOperatorConfig(env.Name))
 		}
 
 		apisOutput := getAPIsOutput{
@@ -321,8 +321,8 @@ func getAPIsByEnv(env cliconfig.Environment, printEnv bool) (string, error) {
 	var apisRes []schema.APIResponse
 	var err error
 
-	if env.Provider == types.AWSProviderType || env.Provider == types.GCPProviderType {
-		apisRes, err = cluster.GetAPIs(MustGetOperatorConfig(env.Name))
+	if env.Provider == types.LocalProviderType {
+		apisRes, err = local.GetAPIs()
 		if err != nil {
 			return "", err
 		}
@@ -335,7 +335,7 @@ func getAPIsByEnv(env cliconfig.Environment, printEnv bool) (string, error) {
 			return string(bytes), nil
 		}
 	} else {
-		apisRes, err = local.GetAPIs()
+		apisRes, err = cluster.GetAPIs(MustGetOperatorConfig(env.Name))
 		if err != nil {
 			return "", err
 		}
@@ -448,7 +448,7 @@ func getLocalVersionMismatchedAPIsMessage() (string, error) {
 }
 
 func getAPI(env cliconfig.Environment, apiName string) (string, error) {
-	if env.Provider == types.AWSProviderType || env.Provider == types.GCPProviderType {
+	if env.Provider != types.LocalProviderType {
 		apisRes, err := cluster.GetAPI(MustGetOperatorConfig(env.Name), apiName)
 		if err != nil {
 			return "", err

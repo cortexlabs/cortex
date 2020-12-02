@@ -61,6 +61,7 @@ func ReadLogs(w http.ResponseWriter, r *http.Request) {
 		defer socket.Close()
 		realtimeapi.ReadLogs(apiName, socket)
 	}
+
 	if config.Provider == types.GCPProviderType {
 		query := gcpLogsQueryBuilder(apiName)
 		respond(w, query)

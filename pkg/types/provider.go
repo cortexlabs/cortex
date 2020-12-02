@@ -47,6 +47,10 @@ func ProviderTypeStrings() []string {
 	return _providerTypes[1:]
 }
 
+func ClusterProviderTypeStrings() []string {
+	return _providerTypes[2:]
+}
+
 func (t ProviderType) String() string {
 	return _providerTypes[t]
 }

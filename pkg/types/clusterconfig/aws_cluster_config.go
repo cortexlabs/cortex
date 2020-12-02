@@ -41,8 +41,6 @@ import (
 )
 
 const (
-	ClusterNameTag = "cortex.dev/cluster-name"
-
 	// the s3 url should be used (rather than the cloudfront URL) to avoid caching
 	_cniSupportedInstancesURL = "https://cortex-public.s3-us-west-2.amazonaws.com/cli-assets/cni_supported_instances.txt"
 )
@@ -52,7 +50,6 @@ var (
 	_cachedCNISupportedInstances *string
 	// This regex is stricter than the actual S3 rules
 	_strictS3BucketRegex = regexp.MustCompile(`^([a-z0-9])+(-[a-z0-9]+)*$`)
-	_invalidTagPrefixes  = []string{"kubernetes.io/", "k8s.io/", "eksctl.", "alpha.eksctl.", "beta.eksctl.", "aws:", "Aws:", "aWs:", "awS:", "aWS:", "AwS:", "aWS:", "AWS:"}
 )
 
 type Config struct {
@@ -128,7 +125,7 @@ var UserValidation = &cr.StructValidation{
 		{
 			StructField: "Provider",
 			StringValidation: &cr.StringValidation{
-				Validator: validateProviderType,
+				Validator: specificProviderTypeValidator(types.AWSProviderType),
 				Default:   types.AWSProviderType.String(),
 			},
 			Parser: func(str string) (interface{}, error) {
@@ -470,10 +467,6 @@ func RegionValidator(region string) (string, error) {
 	return region, nil
 }
 
-func validateImageVersion(image string) (string, error) {
-	return cr.ValidateImageVersion(image, consts.CortexVersion)
-}
-
 var Validation = &cr.StructValidation{
 	StructFieldValidations: append(UserValidation.StructFieldValidations,
 		&cr.StructFieldValidation{
@@ -483,66 +476,6 @@ var Validation = &cr.StructValidation{
 			},
 		},
 	),
-}
-
-var ProviderValidation = &cr.StructValidation{
-	AllowExtraFields: true,
-	StructFieldValidations: []*cr.StructFieldValidation{
-		{
-			StructField: "Provider",
-			StringPtrValidation: &cr.StringPtrValidation{
-				AllowedValues: []string{types.AWSProviderType.String(), types.GCPProviderType.String()},
-			},
-			Parser: func(str string) (interface{}, error) {
-				return types.ProviderTypeFromString(str), nil
-			},
-		},
-	},
-}
-
-func GetClusterProviderType(clusterPath string, disallowPrompt bool) (types.ProviderType, error) {
-	type provider struct {
-		Provider *types.ProviderType `json:"provider" yaml:"provider"`
-	}
-
-	errorMessage := fmt.Sprintf("\n\ncluster configuration schema can be found here: https://docs.cortex.dev/v/%s/cluster-management/config", consts.CortexVersionMinor)
-
-	providerHolder := provider{}
-	if clusterPath != "" {
-		errs := cr.ParseYAMLFile(&providerHolder, ProviderValidation, clusterPath)
-		if errors.HasError(errs) {
-			return types.UnknownProviderType, errors.Append(errors.FirstError(errs...), errorMessage)
-		}
-	}
-
-	if providerHolder.Provider == nil {
-		err := cr.ReadPrompt(&providerHolder, &cr.PromptValidation{
-			PromptItemValidations: []*cr.PromptItemValidation{
-				{
-					StructField: "Provider",
-					PromptOpts: &prompt.Options{
-						Prompt: "provider",
-					},
-					StringPtrValidation: &cr.StringPtrValidation{
-						Required:  true,
-						Validator: validateProviderType,
-					},
-					Parser: func(str string) (interface{}, error) {
-						return types.ProviderTypeFromString(str), nil
-					},
-				},
-			},
-		})
-		if err != nil {
-			return types.UnknownProviderType, errors.Append(err, errorMessage)
-		}
-	}
-
-	if providerHolder.Provider == nil && disallowPrompt == true {
-		return types.UnknownProviderType, errors.Append(ErrorUndefinedField(ProviderKey), errorMessage)
-	}
-
-	return *providerHolder.Provider, nil
 }
 
 var AccessValidation = &cr.StructValidation{
@@ -1029,13 +962,6 @@ var AccessPromptValidation = &cr.PromptValidation{
 	},
 }
 
-func validateClusterName(clusterName string) (string, error) {
-	if !_strictS3BucketRegex.MatchString(clusterName) {
-		return "", errors.Wrap(ErrorDidNotMatchStrictS3Regex(), clusterName)
-	}
-	return clusterName, nil
-}
-
 func validateBucketNameOrEmpty(bucket string) (string, error) {
 	if bucket == "" {
 		return "", nil
@@ -1057,13 +983,6 @@ func validateVPCCIDR(cidr string) (string, error) {
 	}
 
 	return cidr, nil
-}
-
-func validateProviderType(providerType string) (string, error) {
-	if providerType == types.AWSProviderType.String() || providerType == types.GCPProviderType.String() {
-		return providerType, nil
-	}
-	return "", ErrorInvalidProviderType(providerType)
 }
 
 func validateInstanceType(instanceType string) (string, error) {

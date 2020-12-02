@@ -24,16 +24,13 @@ import (
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
-	"github.com/cortexlabs/cortex/pkg/lib/debug"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
-	"github.com/cortexlabs/cortex/pkg/lib/files"
 	"github.com/cortexlabs/cortex/pkg/lib/gcp"
 	"github.com/cortexlabs/cortex/pkg/lib/hash"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	"github.com/cortexlabs/cortex/pkg/types"
 	"github.com/cortexlabs/cortex/pkg/types/clusterconfig"
-	"gopkg.in/yaml.v2"
 )
 
 const _clusterConfigPath = "/configs/cluster/cluster.yaml"
@@ -59,15 +56,16 @@ func Init() error {
 		clusterConfigPath = _clusterConfigPath
 	}
 
-	Provider, err = clusterconfig.GetClusterProviderType(clusterConfigPath, true)
+	Provider, err = clusterconfig.GetClusterProviderType(clusterConfigPath)
 	if err != nil {
 		return err
 	}
 
-	hashedAccountID := ""
-	clusterID := ""
-	useTelemetry := false
-	operatorInCluster := false
+	var hashedAccountID string
+	var clusterID string
+	var useTelemetry bool
+	var operatorInCluster bool
+
 	if Provider == types.AWSProviderType {
 		Cluster = &clusterconfig.InternalConfig{
 			APIVersion:        consts.CortexVersion,
@@ -123,40 +121,33 @@ func Init() error {
 		clusterID = Cluster.ID
 		useTelemetry = Cluster.Telemetry
 		operatorInCluster = Cluster.OperatorInCluster
-
-		debug.Pp(Cluster)
 	}
+
 	if Provider == types.GCPProviderType {
-		gcpClusterconfigBytes, err := files.ReadFileBytes(clusterConfigPath)
-		if err != nil {
-			return err
-		}
-
-		gcpCluster := clusterconfig.GCPConfig{}
-
-		err = yaml.Unmarshal(gcpClusterconfigBytes, &gcpCluster)
-		if err != nil {
-			return err
-		}
-
 		GCPCluster = &clusterconfig.InternalGCPConfig{
-			GCPConfig:         gcpCluster,
-			ID:                hash.String(gcpCluster.ClusterName + gcpCluster.Zone + gcpCluster.Project),
 			APIVersion:        consts.CortexVersion,
 			OperatorInCluster: strings.ToLower(os.Getenv("CORTEX_OPERATOR_IN_CLUSTER")) != "false",
 		}
 
-		GCP = &gcp.Client{}
+		errs := cr.ParseYAMLFile(GCPCluster, clusterconfig.GCPValidation, clusterConfigPath)
+		if errors.HasError(errs) {
+			return errors.FirstError(errs...)
+		}
+
+		GCPCluster.ID = hash.String(GCPCluster.ClusterName + *GCPCluster.Project + *GCPCluster.Zone)
+		GCPCluster.Bucket = clusterconfig.GCPBucketName(GCPCluster.ClusterName, *GCPCluster.Project, *GCPCluster.Zone)
+
+		GCP, err = gcp.NewFromEnv(*GCPCluster.Project, *GCPCluster.Zone)
+		if err != nil {
+			return err
+		}
 
 		clusterID = GCPCluster.ID
 		useTelemetry = GCPCluster.Telemetry
 		operatorInCluster = GCPCluster.OperatorInCluster
-
-		debug.Pp(GCPCluster)
-
-		// TODO add hashed account ID
 	}
 
+	// TODO fix this
 	err = telemetry.Init(telemetry.Config{
 		Enabled: useTelemetry,
 		UserID:  hashedAccountID,

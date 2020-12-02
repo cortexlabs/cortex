@@ -108,8 +108,7 @@ func InitContainer(api *spec.API) kcore.Container {
 	imageDownloader := ""
 	if config.Provider == types.AWSProviderType {
 		imageDownloader = config.Cluster.ImageDownloader
-	}
-	if config.Provider == types.GCPProviderType {
+	} else {
 		imageDownloader = config.GCPCluster.ImageDownloader
 	}
 
@@ -734,16 +733,9 @@ func neuronRuntimeDaemonContainer(api *spec.API, volumeMounts []kcore.VolumeMoun
 }
 
 func RequestMonitorContainer(api *spec.API) kcore.Container {
-	imageRequestMonitor := ""
-	clusterName := ""
-	if config.Provider == types.AWSProviderType {
-		imageRequestMonitor = config.Cluster.ImageRequestMonitor
-		clusterName = config.Cluster.ClusterName
-	}
-	if config.Provider == types.GCPProviderType {
-		imageRequestMonitor = config.GCPCluster.ImageRequestMonitor
-		clusterName = config.GCPCluster.ClusterName
-	}
+	imageRequestMonitor := config.Cluster.ImageRequestMonitor
+	clusterName := config.Cluster.ClusterName
+
 	return kcore.Container{
 		Name:            "request-monitor",
 		Image:           imageRequestMonitor,
@@ -947,7 +939,7 @@ func APIEndpoint(api *spec.API) (string, error) {
 
 	if config.Provider == types.AWSProviderType && api.Networking.APIGateway == userconfig.PublicAPIGatewayType && config.Cluster.APIGateway != nil {
 		baseAPIEndpoint = *config.Cluster.APIGateway.ApiEndpoint
-	} else if config.Provider == types.AWSProviderType || config.Provider == types.GCPProviderType {
+	} else {
 		baseAPIEndpoint, err = APILoadBalancerURL()
 		if err != nil {
 			return "", err

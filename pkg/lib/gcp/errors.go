@@ -17,12 +17,17 @@ limitations under the License.
 package gcp
 
 import (
+	"fmt"
+
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"google.golang.org/api/googleapi"
 )
 
 const (
+	ErrCredentialsFileEnvVarNotSet = "gcp.credentials_file_env_var_not_set"
+	ErrProjectIDMismatch           = "gcp.project_id_mismatch"
+
 	YouAlreadyOwnThisBucketErrorMessage = "You already own this bucket. Please select another name."
 	InvalidBucketNameErrorMessage       = "Sorry, that name is not available. Please try a different one."
 )
@@ -55,4 +60,18 @@ func DoesBucketAlreadyExistError(err error) bool {
 
 func IsInvalidBucketNameError(err error) bool {
 	return IsErrCode(err, 409, pointer.String(InvalidBucketNameErrorMessage))
+}
+
+func ErrorCredentialsFileEnvVarNotSet() error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrCredentialsFileEnvVarNotSet,
+		Message: "please set the path to your credentials file via `export GOOGLE_APPLICATION_CREDENTIALS=<path>`",
+	})
+}
+
+func ErrorProjectIDMismatch(credsFileProject string, providedProject string, credsFilePath string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrProjectIDMismatch,
+		Message: fmt.Sprintf("the \"%s\" project was specified in your configuration, but the credentials file at %s (specified via $GOOGLE_APPLICATION_CREDENTIALS) is connected the the project named \"%s\"", providedProject, credsFilePath, credsFileProject),
+	})
 }

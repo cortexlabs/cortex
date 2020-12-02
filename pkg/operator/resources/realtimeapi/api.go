@@ -56,10 +56,10 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string, force bool) (*spec.A
 	clusterName := ""
 	if config.Provider == types.AWSProviderType {
 		clusterName = config.Cluster.ClusterName
-	}
-	if config.Provider == types.GCPProviderType {
+	} else {
 		clusterName = config.GCPCluster.ClusterName
 	}
+
 	api := spec.GetAPISpec(apiConfig, projectID, deploymentID, clusterName)
 
 	if prevDeployment == nil {
@@ -76,8 +76,7 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string, force bool) (*spec.A
 			if err := config.AWS.UploadJSONToS3(api, config.Cluster.Bucket, api.PredictorKey); err != nil {
 				return nil, "", errors.Wrap(err, "upload predictor spec")
 			}
-		}
-		if config.Provider == types.GCPProviderType {
+		} else {
 			if err := config.GCP.UploadJSONToGCS(api, config.GCPCluster.Bucket, api.Key); err != nil {
 				return nil, "", errors.Wrap(err, "upload api spec")
 			}
@@ -134,8 +133,7 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string, force bool) (*spec.A
 			if err := config.AWS.UploadJSONToS3(api, config.Cluster.Bucket, api.PredictorKey); err != nil {
 				return nil, "", errors.Wrap(err, "upload predictor spec")
 			}
-		}
-		if config.Provider == types.GCPProviderType {
+		} else {
 			if err := config.GCP.UploadJSONToGCS(api, config.GCPCluster.Bucket, api.Key); err != nil {
 				return nil, "", errors.Wrap(err, "upload api spec")
 			}
@@ -202,10 +200,10 @@ func RefreshAPI(apiName string, force bool) (string, error) {
 	clusterName := ""
 	if config.Provider == types.AWSProviderType {
 		clusterName = config.Cluster.ClusterName
-	}
-	if config.Provider == types.GCPProviderType {
+	} else {
 		clusterName = config.GCPCluster.ClusterName
 	}
+
 	api = spec.GetAPISpec(api.API, api.ProjectID, deploymentID(), clusterName)
 
 	if config.Provider == types.AWSProviderType {
@@ -217,8 +215,7 @@ func RefreshAPI(apiName string, force bool) (string, error) {
 		if err := config.AWS.UploadJSONToS3(api, config.Cluster.Bucket, api.PredictorKey); err != nil {
 			return "", errors.Wrap(err, "upload predictor spec")
 		}
-	}
-	if config.Provider == types.GCPProviderType {
+	} else {
 		if err := config.GCP.UploadJSONToGCS(api, config.GCPCluster.Bucket, api.Key); err != nil {
 			return "", errors.Wrap(err, "upload api spec")
 		}
@@ -446,7 +443,7 @@ func applyK8sDeployment(api *spec.API, prevDeployment *kapps.Deployment) error {
 			return err
 		}
 	}
-	// TODO implement autoscaler for GCP as well
+	// TODO implement autoscaler for GCP
 
 	return nil
 }

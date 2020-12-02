@@ -28,11 +28,9 @@ import (
 	"github.com/aws/aws-sdk-go/service/elbv2"
 	"github.com/cortexlabs/cortex/cli/cluster"
 	"github.com/cortexlabs/cortex/cli/types/cliconfig"
-	"github.com/cortexlabs/cortex/cli/types/flags"
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/archive"
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
-	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/lib/console"
 	"github.com/cortexlabs/cortex/pkg/lib/docker"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
@@ -65,52 +63,51 @@ var (
 	_flagAWSSecretAccessKey        string
 	_flagClusterAWSAccessKeyID     string
 	_flagClusterAWSSecretAccessKey string
-	_flagCloudProvider             flags.CloudProviderType
 )
 
 func clusterInit() {
-	_upCmd.Flags().SortFlags = false
-	addClusterConfigFlag(_upCmd)
-	addAWSCredentialsFlags(_upCmd)
-	addClusterAWSCredentialsFlags(_upCmd)
+	_clusterUpCmd.Flags().SortFlags = false
+	addClusterConfigFlag(_clusterUpCmd)
+	addAWSCredentialsFlags(_clusterUpCmd)
+	addClusterAWSCredentialsFlags(_clusterUpCmd)
 	defaultEnv := getDefaultEnv(_clusterCommandType)
-	_upCmd.Flags().StringVarP(&_flagClusterUpEnv, "configure-env", "e", defaultEnv, "name of environment to configure")
-	_upCmd.Flags().BoolVarP(&_flagClusterDisallowPrompt, "yes", "y", false, "skip prompts")
-	_clusterCmd.AddCommand(_upCmd)
+	_clusterUpCmd.Flags().StringVarP(&_flagClusterUpEnv, "configure-env", "e", defaultEnv, "name of environment to configure")
+	_clusterUpCmd.Flags().BoolVarP(&_flagClusterDisallowPrompt, "yes", "y", false, "skip prompts")
+	_clusterCmd.AddCommand(_clusterUpCmd)
 
-	_infoCmd.Flags().SortFlags = false
-	addClusterConfigFlag(_infoCmd)
-	addClusterNameFlag(_infoCmd)
-	addClusterRegionFlag(_infoCmd)
-	addAWSCredentialsFlags(_infoCmd)
-	_infoCmd.Flags().StringVarP(&_flagClusterInfoEnv, "configure-env", "e", "", "name of environment to configure")
-	_infoCmd.Flags().BoolVarP(&_flagClusterInfoDebug, "debug", "d", false, "save the current cluster state to a file")
-	_infoCmd.Flags().BoolVarP(&_flagClusterDisallowPrompt, "yes", "y", false, "skip prompts")
-	_clusterCmd.AddCommand(_infoCmd)
+	_clusterInfoCmd.Flags().SortFlags = false
+	addClusterConfigFlag(_clusterInfoCmd)
+	addClusterNameFlag(_clusterInfoCmd)
+	addClusterRegionFlag(_clusterInfoCmd)
+	addAWSCredentialsFlags(_clusterInfoCmd)
+	_clusterInfoCmd.Flags().StringVarP(&_flagClusterInfoEnv, "configure-env", "e", "", "name of environment to configure")
+	_clusterInfoCmd.Flags().BoolVarP(&_flagClusterInfoDebug, "debug", "d", false, "save the current cluster state to a file")
+	_clusterInfoCmd.Flags().BoolVarP(&_flagClusterDisallowPrompt, "yes", "y", false, "skip prompts")
+	_clusterCmd.AddCommand(_clusterInfoCmd)
 
-	_configureCmd.Flags().SortFlags = false
-	addClusterConfigFlag(_configureCmd)
-	addAWSCredentialsFlags(_configureCmd)
-	addClusterAWSCredentialsFlags(_configureCmd)
-	_configureCmd.Flags().StringVarP(&_flagClusterConfigureEnv, "configure-env", "e", "", "name of environment to configure")
-	_configureCmd.Flags().BoolVarP(&_flagClusterDisallowPrompt, "yes", "y", false, "skip prompts")
-	_clusterCmd.AddCommand(_configureCmd)
+	_clusterConfigureCmd.Flags().SortFlags = false
+	addClusterConfigFlag(_clusterConfigureCmd)
+	addAWSCredentialsFlags(_clusterConfigureCmd)
+	addClusterAWSCredentialsFlags(_clusterConfigureCmd)
+	_clusterConfigureCmd.Flags().StringVarP(&_flagClusterConfigureEnv, "configure-env", "e", "", "name of environment to configure")
+	_clusterConfigureCmd.Flags().BoolVarP(&_flagClusterDisallowPrompt, "yes", "y", false, "skip prompts")
+	_clusterCmd.AddCommand(_clusterConfigureCmd)
 
-	_downCmd.Flags().SortFlags = false
-	addClusterConfigFlag(_downCmd)
-	addClusterNameFlag(_downCmd)
-	addClusterRegionFlag(_downCmd)
-	addAWSCredentialsFlags(_downCmd)
-	_downCmd.Flags().BoolVarP(&_flagClusterDisallowPrompt, "yes", "y", false, "skip prompts")
-	_downCmd.Flags().StringVarP(&_flagClusterProject, "project", "", "", "GCP project id")
-	_clusterCmd.AddCommand(_downCmd)
+	_clusterDownCmd.Flags().SortFlags = false
+	addClusterConfigFlag(_clusterDownCmd)
+	addClusterNameFlag(_clusterDownCmd)
+	addClusterRegionFlag(_clusterDownCmd)
+	addAWSCredentialsFlags(_clusterDownCmd)
+	_clusterDownCmd.Flags().BoolVarP(&_flagClusterDisallowPrompt, "yes", "y", false, "skip prompts")
+	_clusterDownCmd.Flags().StringVarP(&_flagClusterProject, "project", "", "", "GCP project id")
+	_clusterCmd.AddCommand(_clusterDownCmd)
 
-	_exportCmd.Flags().SortFlags = false
-	addClusterConfigFlag(_exportCmd)
-	addClusterNameFlag(_exportCmd)
-	addClusterRegionFlag(_exportCmd)
-	addAWSCredentialsFlags(_exportCmd)
-	_clusterCmd.AddCommand(_exportCmd)
+	_clusterExportCmd.Flags().SortFlags = false
+	addClusterConfigFlag(_clusterExportCmd)
+	addClusterNameFlag(_clusterExportCmd)
+	addClusterRegionFlag(_clusterExportCmd)
+	addAWSCredentialsFlags(_clusterExportCmd)
+	_clusterCmd.AddCommand(_clusterExportCmd)
 }
 
 func addClusterConfigFlag(cmd *cobra.Command) {
@@ -119,15 +116,11 @@ func addClusterConfigFlag(cmd *cobra.Command) {
 }
 
 func addClusterNameFlag(cmd *cobra.Command) {
-	cmd.Flags().StringVarP(&_flagClusterName, "name", "n", "", "aws name of the cluster")
+	cmd.Flags().StringVarP(&_flagClusterName, "name", "n", "", "name of the cluster")
 }
 
 func addClusterRegionFlag(cmd *cobra.Command) {
 	cmd.Flags().StringVarP(&_flagClusterRegion, "region", "r", "", "aws region of the cluster")
-}
-
-func addCloudProviderFlag(cmd *cobra.Command) {
-	cmd.Flags().VarP(&_flagCloudProvider, "provider", "", fmt.Sprintf("cloud provider: one of %s", strings.Join(flags.CloudProviderTypeStrings(), "|")))
 }
 
 func addAWSCredentialsFlags(cmd *cobra.Command) {
@@ -142,10 +135,10 @@ func addClusterAWSCredentialsFlags(cmd *cobra.Command) {
 
 var _clusterCmd = &cobra.Command{
 	Use:   "cluster",
-	Short: "manage clusters (contains subcommands)",
+	Short: "manage AWS clusters (contains subcommands)",
 }
 
-var _upCmd = &cobra.Command{
+var _clusterUpCmd = &cobra.Command{
 	Use:   "up",
 	Short: "spin up a cluster",
 	Args:  cobra.NoArgs,
@@ -153,7 +146,7 @@ var _upCmd = &cobra.Command{
 		telemetry.EventNotify("cli.cluster.up")
 
 		if _flagClusterUpEnv == "local" {
-			exit.Error(ErrorLocalEnvironmentCantUseAWSProvider())
+			exit.Error(ErrorLocalEnvironmentCantUseClusterProvider(types.AWSProviderType))
 		}
 
 		envExists, err := isEnvConfigured(_flagClusterUpEnv)
@@ -176,20 +169,10 @@ var _upCmd = &cobra.Command{
 			promptForEmail()
 		}
 
-		providerType, err := clusterconfig.GetClusterProviderType(_flagClusterConfig, _flagClusterDisallowPrompt)
-		if err != nil {
-			exit.Error(err)
-		}
-
 		if _flagClusterConfig != "" {
 			// Deprecation: specifying aws creds in cluster configuration is no longer supported
 			if err := detectAWSCredsInConfigFile(cmd.Use, _flagClusterConfig); err != nil {
 				exit.Error(err)
-			}
-
-			// TODO add error to transition old users to add provider field
-			if providerType == types.GCPProviderType {
-				upGCP(_flagClusterConfig)
 			}
 		}
 
@@ -210,11 +193,10 @@ var _upCmd = &cobra.Command{
 
 		cacheAWSCredentials(awsCreds, *accessConfig)
 
-		clusterConfig, err := getInstallClusterConfig(awsCreds, *accessConfig, _flagClusterDisallowPrompt)
+		clusterConfig, err := getInstallClusterConfig(awsClient, awsCreds, *accessConfig, _flagClusterDisallowPrompt)
 		if err != nil {
 			exit.Error(err)
 		}
-		clusterConfig.Provider = providerType
 
 		clusterState, err := clusterstate.GetClusterState(awsClient, accessConfig)
 		if err != nil {
@@ -226,7 +208,7 @@ var _upCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
-		err = createBucketIfNotFound(awsClient, clusterConfig.Bucket, clusterConfig.Tags)
+		err = createS3BucketIfNotFound(awsClient, clusterConfig.Bucket, clusterConfig.Tags)
 		if err != nil {
 			exit.Error(err)
 		}
@@ -354,7 +336,7 @@ var _upCmd = &cobra.Command{
 	},
 }
 
-var _configureCmd = &cobra.Command{
+var _clusterConfigureCmd = &cobra.Command{
 	Use:   "configure",
 	Short: "update a cluster's configuration",
 	Args:  cobra.NoArgs,
@@ -362,7 +344,7 @@ var _configureCmd = &cobra.Command{
 		telemetry.Event("cli.cluster.configure")
 
 		if _flagClusterConfigureEnv == "local" {
-			exit.Error(ErrorLocalEnvironmentCantUseAWSProvider())
+			exit.Error(ErrorLocalEnvironmentCantUseClusterProvider(types.AWSProviderType))
 		}
 
 		if _, err := docker.GetDockerClient(); err != nil {
@@ -427,7 +409,7 @@ var _configureCmd = &cobra.Command{
 				exit.Error(errors.Append(err, fmt.Sprintf("\n\nyou can attempt to resolve this issue and configure your cli environment by running `cortex cluster info --configure-env %s`", _flagClusterConfigureEnv)))
 			}
 			operatorEndpoint := "https://" + *loadBalancer.DNSName
-			err = updateCLIEnv(_flagClusterConfigureEnv, operatorEndpoint, awsCreds, _flagClusterDisallowPrompt)
+			err = updateAWSCLIEnv(_flagClusterConfigureEnv, operatorEndpoint, awsCreds, _flagClusterDisallowPrompt)
 			if err != nil {
 				exit.Error(errors.Append(err, fmt.Sprintf("\n\nyou can attempt to resolve this issue and configure your cli environment by running `cortex cluster info --configure-env %s`", _flagClusterConfigureEnv)))
 			}
@@ -435,7 +417,7 @@ var _configureCmd = &cobra.Command{
 	},
 }
 
-var _infoCmd = &cobra.Command{
+var _clusterInfoCmd = &cobra.Command{
 	Use:   "info",
 	Short: "get information about a cluster",
 	Args:  cobra.NoArgs,
@@ -443,7 +425,7 @@ var _infoCmd = &cobra.Command{
 		telemetry.Event("cli.cluster.info")
 
 		if _flagClusterInfoEnv == "local" {
-			exit.Error(ErrorLocalEnvironmentCantUseAWSProvider())
+			exit.Error(ErrorLocalEnvironmentCantUseClusterProvider(types.AWSProviderType))
 		}
 
 		if _, err := docker.GetDockerClient(); err != nil {
@@ -477,7 +459,7 @@ var _infoCmd = &cobra.Command{
 	},
 }
 
-var _downCmd = &cobra.Command{
+var _clusterDownCmd = &cobra.Command{
 	Use:   "down",
 	Short: "spin down a cluster",
 	Args:  cobra.NoArgs,
@@ -494,12 +476,6 @@ var _downCmd = &cobra.Command{
 				exit.Error(err)
 			}
 		}
-
-		// how to get the provider type from the cluster config
-		// provider, err := clusterconfig.GetClusterProviderType(_flagClusterConfig)
-		// if err != nil {
-		// 	exit.Error(err)
-		// }
 
 		accessConfig, err := getClusterAccessConfigWithCache(_flagClusterDisallowPrompt)
 		if err != nil {
@@ -615,7 +591,7 @@ var _downCmd = &cobra.Command{
 	},
 }
 
-var _exportCmd = &cobra.Command{
+var _clusterExportCmd = &cobra.Command{
 	Use:   "export [API_NAME] [API_ID]",
 	Short: "download the code and configuration for APIs",
 	Args:  cobra.RangeArgs(0, 2),
@@ -739,49 +715,6 @@ var _exportCmd = &cobra.Command{
 	},
 }
 
-var _emailPrompValidation = &cr.PromptValidation{
-	PromptItemValidations: []*cr.PromptItemValidation{
-		{
-			StructField: "EmailAddress",
-			PromptOpts: &prompt.Options{
-				Prompt: "email address [press enter to skip]",
-			},
-			StringPtrValidation: &cr.StringPtrValidation{
-				Required:  false,
-				Validator: cr.EmailValidator,
-			},
-		},
-	},
-}
-
-func promptForEmail() {
-	if email, err := files.ReadFile(_emailPath); err == nil && email != "" {
-		return
-	}
-
-	emailAddressContainer := &struct {
-		EmailAddress *string
-	}{}
-	err := cr.ReadPrompt(emailAddressContainer, _emailPrompValidation)
-	if err != nil {
-		exit.Error(err)
-	}
-
-	if emailAddressContainer.EmailAddress != nil {
-		if !isTelemetryEnabled() {
-			initTelemetry()
-		}
-
-		telemetry.RecordEmail(*emailAddressContainer.EmailAddress)
-
-		if !isTelemetryEnabled() {
-			telemetry.Close()
-		}
-
-		files.WriteFile([]byte(*emailAddressContainer.EmailAddress), _emailPath)
-	}
-}
-
 func cmdInfo(awsCreds AWSCredentials, accessConfig *clusterconfig.AccessConfig, disallowPrompt bool) {
 	awsClient, err := newAWSClient(*accessConfig.Region, awsCreds)
 	if err != nil {
@@ -818,7 +751,7 @@ func cmdInfo(awsCreds AWSCredentials, accessConfig *clusterconfig.AccessConfig, 
 	}
 
 	if _flagClusterInfoEnv != "" {
-		if err := updateCLIEnv(_flagClusterInfoEnv, operatorEndpoint, awsCreds, disallowPrompt); err != nil {
+		if err := updateAWSCLIEnv(_flagClusterInfoEnv, operatorEndpoint, awsCreds, disallowPrompt); err != nil {
 			exit.Error(err)
 		}
 	}
@@ -989,7 +922,7 @@ func printInfoNodes(infoResponse *schema.InfoResponse) {
 	t.MustPrint(&table.Opts{Sort: pointer.Bool(false)})
 }
 
-func updateCLIEnv(envName string, operatorEndpoint string, awsCreds AWSCredentials, disallowPrompt bool) error {
+func updateAWSCLIEnv(envName string, operatorEndpoint string, awsCreds AWSCredentials, disallowPrompt bool) error {
 	prevEnv, err := readEnv(envName)
 	if err != nil {
 		return err
@@ -1087,7 +1020,7 @@ func refreshCachedClusterConfig(awsCreds AWSCredentials, accessConfig *clusterco
 	return *refreshedClusterConfig
 }
 
-func createBucketIfNotFound(awsClient *aws.Client, bucket string, tags map[string]string) error {
+func createS3BucketIfNotFound(awsClient *aws.Client, bucket string, tags map[string]string) error {
 	bucketFound, err := awsClient.DoesBucketExist(bucket)
 	if err != nil {
 		return err

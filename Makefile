@@ -113,6 +113,7 @@ operator-stop:
 registry-all:
 	@./dev/registry.sh update all
 .PHONY: registry-all-gcp
+# TODO: revisit
 registry-all-gcp:
 	@./dev/registry-gcp.sh update all
 .PHONY: registry-all-local

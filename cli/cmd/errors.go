@@ -22,7 +22,6 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/cortexlabs/cortex/cli/types/flags"
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
@@ -42,41 +41,41 @@ func errStrFailedToConnect(u url.URL) string {
 }
 
 const (
-	ErrInvalidProvider                       = "cli.invalid_provider"
-	ErrNotSupportedInLocalEnvironment        = "cli.not_supported_in_local_environment"
-	ErrLocalEnvironmentCantUseAWSProvider    = "cli.local_environment_cant_use_aws_provider"
-	ErrCommandNotSupportedForKind            = "cli.command_not_supported_for_kind"
-	ErrEnvironmentNotFound                   = "cli.environment_not_found"
-	ErrOperatorEndpointInLocalEnvironment    = "cli.operator_endpoint_in_local_environment"
-	ErrOperatorConfigFromLocalEnvironment    = "cli.operater_config_from_local_environment"
-	ErrFieldNotFoundInEnvironment            = "cli.field_not_found_in_environment"
-	ErrInvalidOperatorEndpoint               = "cli.invalid_operator_endpoint"
-	ErrNoOperatorLoadBalancer                = "cli.no_operator_load_balancer"
-	ErrCortexYAMLNotFound                    = "cli.cortex_yaml_not_found"
-	ErrConnectToDockerDaemon                 = "cli.connect_to_docker_daemon"
-	ErrDockerPermissions                     = "cli.docker_permissions"
-	ErrDockerCtrlC                           = "cli.docker_ctrl_c"
-	ErrResponseUnknown                       = "cli.response_unknown"
-	ErrAPINotReady                           = "cli.api_not_ready"
-	ErrOneAWSEnvVarSet                       = "cli.one_aws_env_var_set"
-	ErrOneAWSFlagSet                         = "cli.one_aws_flag_set"
-	ErrOnlyAWSClusterEnvVarSet               = "cli.only_aws_cluster_env_var_set"
-	ErrOnlyAWSClusterFlagSet                 = "cli.only_aws_cluster_flag_set"
-	ErrMissingAWSCredentials                 = "cli.missing_aws_credentials"
-	ErrCredentialsInClusterConfig            = "cli.credentials_in_cluster_config"
-	ErrClusterUp                             = "cli.cluster_up"
-	ErrClusterConfigure                      = "cli.cluster_configure"
-	ErrClusterInfo                           = "cli.cluster_info"
-	ErrClusterDebug                          = "cli.cluster_debug"
-	ErrClusterRefresh                        = "cli.cluster_refresh"
-	ErrClusterDown                           = "cli.cluster_down"
-	ErrDuplicateCLIEnvNames                  = "cli.duplicate_cli_env_names"
-	ErrClusterConfigOrPromptsRequired        = "cli.cluster_config_or_prompts_required"
-	ErrClusterAccessConfigOrPromptsRequired  = "cli.cluster_access_config_or_prompts_required"
-	ErrShellCompletionNotSupported           = "cli.shell_completion_not_supported"
-	ErrNoTerminalWidth                       = "cli.no_terminal_width"
-	ErrDeployFromTopLevelDir                 = "cli.deploy_from_top_level_dir"
-	ErrOperationNotSupportedForCloudProvider = "cli.operation_not_supported_for_cloud_provider"
+	ErrInvalidProvider                         = "cli.invalid_provider"
+	ErrNotSupportedInLocalEnvironment          = "cli.not_supported_in_local_environment"
+	ErrLocalEnvironmentCantUseClusterProvider  = "cli.local_environment_cant_use_cluster_provider"
+	ErrCommandNotSupportedForKind              = "cli.command_not_supported_for_kind"
+	ErrEnvironmentNotFound                     = "cli.environment_not_found"
+	ErrOperatorEndpointInLocalEnvironment      = "cli.operator_endpoint_in_local_environment"
+	ErrOperatorConfigFromLocalEnvironment      = "cli.operater_config_from_local_environment"
+	ErrFieldNotFoundInEnvironment              = "cli.field_not_found_in_environment"
+	ErrInvalidOperatorEndpoint                 = "cli.invalid_operator_endpoint"
+	ErrNoOperatorLoadBalancer                  = "cli.no_operator_load_balancer"
+	ErrCortexYAMLNotFound                      = "cli.cortex_yaml_not_found"
+	ErrConnectToDockerDaemon                   = "cli.connect_to_docker_daemon"
+	ErrDockerPermissions                       = "cli.docker_permissions"
+	ErrDockerCtrlC                             = "cli.docker_ctrl_c"
+	ErrResponseUnknown                         = "cli.response_unknown"
+	ErrAPINotReady                             = "cli.api_not_ready"
+	ErrOneAWSEnvVarSet                         = "cli.one_aws_env_var_set"
+	ErrOneAWSFlagSet                           = "cli.one_aws_flag_set"
+	ErrOnlyAWSClusterEnvVarSet                 = "cli.only_aws_cluster_env_var_set"
+	ErrOnlyAWSClusterFlagSet                   = "cli.only_aws_cluster_flag_set"
+	ErrMissingAWSCredentials                   = "cli.missing_aws_credentials"
+	ErrCredentialsInClusterConfig              = "cli.credentials_in_cluster_config"
+	ErrClusterUp                               = "cli.cluster_up"
+	ErrClusterConfigure                        = "cli.cluster_configure"
+	ErrClusterInfo                             = "cli.cluster_info"
+	ErrClusterDebug                            = "cli.cluster_debug"
+	ErrClusterRefresh                          = "cli.cluster_refresh"
+	ErrClusterDown                             = "cli.cluster_down"
+	ErrDuplicateCLIEnvNames                    = "cli.duplicate_cli_env_names"
+	ErrClusterConfigOrPromptsRequired          = "cli.cluster_config_or_prompts_required"
+	ErrClusterAccessConfigOrPromptsRequired    = "cli.cluster_access_config_or_prompts_required"
+	ErrGCPClusterAccessConfigOrPromptsRequired = "cli.gcp_cluster_access_config_or_prompts_required"
+	ErrShellCompletionNotSupported             = "cli.shell_completion_not_supported"
+	ErrNoTerminalWidth                         = "cli.no_terminal_width"
+	ErrDeployFromTopLevelDir                   = "cli.deploy_from_top_level_dir"
 )
 
 func ErrorInvalidProvider(providerStr string) error {
@@ -93,10 +92,10 @@ func ErrorNotSupportedInLocalEnvironment() error {
 	})
 }
 
-func ErrorLocalEnvironmentCantUseAWSProvider() error {
+func ErrorLocalEnvironmentCantUseClusterProvider(provider types.ProviderType) error {
 	return errors.WithStack(&errors.Error{
-		Kind:    ErrLocalEnvironmentCantUseAWSProvider,
-		Message: "the environment named \"local\" cannot be configured to point to a cortex cluster in aws",
+		Kind:    ErrLocalEnvironmentCantUseClusterProvider,
+		Message: fmt.Sprintf("the environment named \"local\" cannot be configured to point to a cortex cluster in %s", provider),
 	})
 }
 
@@ -316,6 +315,13 @@ func ErrorClusterAccessConfigOrPromptsRequired() error {
 	})
 }
 
+func ErrorGCPClusterAccessConfigOrPromptsRequired() error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrGCPClusterAccessConfigOrPromptsRequired,
+		Message: fmt.Sprintf("please provide a cluster configuration file which specifies `%s`, `%s`, and `%s` (e.g. `--config cluster.yaml`) or enable prompts (i.e. omit the `--yes` flag)", clusterconfig.ClusterNameKey, clusterconfig.ZoneKey, clusterconfig.ProjectKey),
+	})
+}
+
 func ErrorShellCompletionNotSupported(shell string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrShellCompletionNotSupported,
@@ -338,12 +344,5 @@ func ErrorDeployFromTopLevelDir(genericDirName string, providerType types.Provid
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrDeployFromTopLevelDir,
 		Message: fmt.Sprintf("cannot deploy from your %s directory - when deploying your API, cortex sends all files in your project directory (i.e. the directory which contains cortex.yaml) to your %s (see https://docs.cortex.dev/v/%s/deployments/realtime-api/predictors#project-files for Realtime API and https://docs.cortex.dev/v/%s/deployments/batch-api/predictors#project-files for Batch API); therefore it is recommended to create a subdirectory for your project files", genericDirName, targetStr, consts.CortexVersionMinor, consts.CortexVersionMinor),
-	})
-}
-
-func ErrorOperationNotSupportedForCloudProvider(cloudProvider flags.CloudProviderType) error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrOperationNotSupportedForCloudProvider,
-		Message: fmt.Sprintf("this command is not supported for provider %s", cloudProvider.String()),
 	})
 }
