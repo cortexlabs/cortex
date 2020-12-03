@@ -91,6 +91,10 @@ function cluster_up_aws() {
 
   restart_operator
 
+  validate_cortex
+
+  await_pre_download_images
+
   echo -e "\ncortex is ready!"
   if [ "$CORTEX_OPERATOR_LOAD_BALANCER_SCHEME" == "internal" ]; then
     echo -e "note: you will need to configure VPC Peering to connect to your cluster: https://docs.cortex.dev/v/${CORTEX_VERSION_MINOR}/aws/vpc-peering"

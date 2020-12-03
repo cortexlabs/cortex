@@ -26,6 +26,8 @@ kill $(pgrep -f rerun) >/dev/null 2>&1 || true
 
 eval $(python3 $ROOT/manager/cluster_config_env.py "$ROOT/dev/config/cluster.yaml")
 
+# TODO set registry override env var based on GCP or AWS
+
 export CLUSTER_AWS_ACCESS_KEY_ID="${CLUSTER_AWS_ACCESS_KEY_ID:-$AWS_ACCESS_KEY_ID}"
 export CLUSTER_AWS_SECRET_ACCESS_KEY="${CLUSTER_AWS_SECRET_ACCESS_KEY:-$AWS_SECRET_ACCESS_KEY}"
 
