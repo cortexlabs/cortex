@@ -59,7 +59,7 @@ cluster-up:
 	@eval $$(python3 ./manager/cluster_config_env.py ./dev/config/cluster.yaml) && ./bin/cortex cluster up --config=./dev/config/cluster.yaml --configure-env="$$CORTEX_CLUSTER_NAME" --aws-key=$$AWS_ACCESS_KEY_ID --aws-secret=$$AWS_SECRET_ACCESS_KEY --cluster-aws-key=$$CLUSTER_AWS_ACCESS_KEY_ID --cluster-aws-secret=$$CLUSTER_AWS_SECRET_ACCESS_KEY && ./bin/cortex env default "$$CORTEX_CLUSTER_NAME"
 	@$(MAKE) kubectl
 
-# TODO add GCP versions of all commands
+# TODO add GCP versions of all commands. auto-configure env like "cortex-gcp".
 
 .PHONY: cluster-up-y
 cluster-up-y:
