@@ -24,7 +24,7 @@ from cortex.lib import util
 from cortex.lib.type import PredictorType
 from cortex.lib.log import cx_logger as logger
 from cortex.lib.concurrency import ReadWriteLock
-from cortex.lib.exceptions import WithBreak
+from cortex.lib.exceptions import CortexException, WithBreak
 from cortex.lib.storage import S3
 
 from cortex.lib.model.validation import (
