@@ -74,7 +74,11 @@ if [ -f "/mnt/project/conda-packages.txt" ]; then
     if [ $old_py_version != $new_py_version ]; then
         echo "warning: you have changed the Python version from $old_py_version to $new_py_version; this may break Cortex's web server"
         echo "reinstalling core packages ..."
+
         pip --no-cache-dir install -r /src/cortex/serve/requirements.txt
+        if [ -f "/src/cortex/serve/image.requirements.txt" ]; then
+            pip --no-cache-dir install -r /src/cortex/serve/image.requirements.txt
+        fi
 
         rm -rf $CONDA_PREFIX/lib/python${old_py_version}  # previous python is no longer needed
     fi

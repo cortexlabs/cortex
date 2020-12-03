@@ -1,0 +1,2 @@
+tensorflow-cpu==2.3.0
+tensorflow-serving-api==2.3.0
