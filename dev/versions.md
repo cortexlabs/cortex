@@ -179,7 +179,7 @@ Note: it's ok if example training notebooks aren't upgraded, as long as the expo
 ## Python packages
 
 1. Update versions in `images/python-predictor-*/Dockerfile`, `images/tensorflow-predictor/Dockerfile`, and `images/onnx-predictor-*/Dockerfile`
-1. Update versions in `pkg/workloads/cortex/serve/requirements.txt` and `pkg/workloads/cortex/downloader/requirements.txt`
+1. Update versions in `pkg/workloads/cortex/serve/*requirements.txt` and `pkg/workloads/cortex/downloader/requirements.txt`
 1. Update the versions listed in "Pre-installed packages" in `realtime-api/predictors.md` and `batch-api/predictors.md`
     * look at the diff carefully since some packages are not shown, and e.g. `tensorflow-cpu` -> `tensorflow`
     * be careful not to update any of the versions for Inferentia that are not latest in `images/python-predictor-inf/Dockerfile`
