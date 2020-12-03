@@ -34,10 +34,3 @@ Once you've implemented your predictor and defined your API configuration, you c
 A job submission typically consists of an input dataset or the location of your input dataset, the number of workers for your job, and the batch size. When a job is submitted to your Batch API endpoint, you will immediately receive a Job ID that you can use to get the job's status and logs, and stop the job if necessary. Behind the scenes, your Batch API will break down the dataset into batches and push them onto a queue. Once all of the batches have been enqueued, the Cortex Cluster will spin up the requested number of workers and initialize them with your predictor implementation. Each worker will take one batch at a time from the queue and run your Predictor implementation. After all batches have been processed, the `on_job_complete` hook in your predictor implementation (if provided) will be executed by one of the workers.
 
 At any point, you can use the Job ID that was provided upon job submission to make requests to the Batch API endpoint to get job status, progress metrics, and worker statuses. Logs for each job are aggregated and are accessible via the Cortex CLI or in your AWS console.
-
-## Next steps
-
-* Try the [tutorial](../../examples/batch/python/README.md) to deploy a Batch API on your Cortex cluster.
-* See our [exporting guide](../guides/exporting.md) for how to export your model to use in a Batch API.
-* See the [Predictor docs](batch-api/predictors.md) for how to implement a Predictor class.
-* See the [API configuration docs](batch-api/api-configuration.md) for a full list of features that can be used to deploy your Batch API.

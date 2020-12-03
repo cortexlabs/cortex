@@ -76,9 +76,6 @@ $ curl "${api_endpoint}?version=2" -X POST -H "Content-Type: application/json" -
 
 For the Python Predictor, the API configuration for a multi-model API is similar to single-model APIs. The Predictor's `config` field can be used to customize the behavior of the `predictor.py` implementation.
 
-<!-- CORTEX_VERSION_MINOR -->
-The following template is based on the [pytorch/multi-model-text-analyzer](https://github.com/cortexlabs/cortex/tree/master/examples/pytorch/multi-model-text-analyzer) example.
-
 #### `cortex.yaml`
 
 ```yaml
@@ -153,9 +150,6 @@ Machine learning is the study of algorithms and statistical models that computer
 ## TensorFlow Predictor
 
 For the TensorFlow Predictor, a multi-model API is configured by placing the list of models in the Predictor's `models` field (each model will specify its own unique name). The `predict()` method of the `tensorflow_client` object expects a second argument that represents the name of the model that will be used for inference.
-
-<!-- CORTEX_VERSION_MINOR -->
-The following template is based on the [multi-model/tensorflow](https://github.com/cortexlabs/cortex/tree/master/examples/tensorflow/multi-model-classifier) example.
 
 ### `cortex.yaml`
 
@@ -237,9 +231,6 @@ $ curl "${ENDPOINT}?model=inception" -X POST -H "Content-Type: application/json"
 ## ONNX Predictor
 
 For the ONNX Predictor, a multi-model API is configured by placing the list of models in the Predictor's `models` field (each model will specify its own unique name). The `predict()` method of the `onnx_client` object expects a second argument that represents the name of the model that will be used for inference.
-
-<!-- CORTEX_VERSION_MINOR -->
-The following template is based on the [onnx/multi-model-classifier](https://github.com/cortexlabs/cortex/tree/master/examples/onnx/multi-model-classifier) example.
 
 ### `cortex.yaml`
 

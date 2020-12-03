@@ -275,27 +275,6 @@ Your API can accept requests with different types of payloads such as `JSON`-par
 
 Your `predictor` method can return different types of objects such as `JSON`-parseable, `string`, and `bytes` objects. Navigate to the [API responses](#api-responses) section to learn about how to configure your `predictor` method to respond with different response codes and content-types.
 
-### Examples
-
-<!-- CORTEX_VERSION_MINOR -->
-Most of the examples in [examples/tensorflow](https://github.com/cortexlabs/cortex/tree/master/examples/tensorflow) use the TensorFlow Predictor.
-
-<!-- CORTEX_VERSION_MINOR -->
-Here is the Predictor for [examples/tensorflow/iris-classifier](https://github.com/cortexlabs/cortex/tree/master/examples/tensorflow/iris-classifier):
-
-```python
-labels = ["setosa", "versicolor", "virginica"]
-
-class TensorFlowPredictor:
-    def __init__(self, tensorflow_client, config):
-        self.client = tensorflow_client
-
-    def predict(self, payload):
-        prediction = self.client.predict(payload)
-        predicted_class_id = int(prediction["class_ids"][0])
-        return labels[predicted_class_id]
-```
-
 ### Pre-installed packages
 
 The following Python packages are pre-installed in TensorFlow Predictors and can be used in your implementations:
@@ -386,31 +365,6 @@ For proper separation of concerns, it is recommended to use the constructor's `c
 Your API can accept requests with different types of payloads such as `JSON`-parseable, `bytes` or `starlette.datastructures.FormData` data. Navigate to the [API requests](#api-requests) section to learn about how headers can be used to change the type of `payload` that is passed into your `predict` method.
 
 Your `predictor` method can return different types of objects such as `JSON`-parseable, `string`, and `bytes` objects. Navigate to the [API responses](#api-responses) section to learn about how to configure your `predictor` method to respond with different response codes and content-types.
-
-### Examples
-
-<!-- CORTEX_VERSION_MINOR -->
-[examples/onnx/iris-classifier](https://github.com/cortexlabs/cortex/tree/master/examples/onnx/iris-classifier) uses the ONNX Predictor:
-
-```python
-labels = ["setosa", "versicolor", "virginica"]
-
-class ONNXPredictor:
-    def __init__(self, onnx_client, config):
-        self.client = onnx_client
-
-    def predict(self, payload):
-        model_input = [
-            payload["sepal_length"],
-            payload["sepal_width"],
-            payload["petal_length"],
-            payload["petal_width"],
-        ]
-
-        prediction = self.client.predict(model_input)
-        predicted_class_id = prediction[0][0]
-        return labels[predicted_class_id]
-```
 
 ### Pre-installed packages
 

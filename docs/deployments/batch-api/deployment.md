@@ -118,10 +118,3 @@ $ cortex delete my-api
 
 deleting my-api
 ```
-
-## Additional resources
-
-<!-- CORTEX_VERSION_MINOR -->
-* [Tutorial](../../../examples/batch/python/README.md) provides a step-by-step walkthrough of deploying an image classification batch API
-* [CLI documentation](../../miscellaneous/cli.md) lists all CLI commands
-* [Examples](https://github.com/cortexlabs/cortex/tree/master/examples/batch) demonstrate how to deploy models from common ML libraries

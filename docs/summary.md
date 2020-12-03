@@ -32,14 +32,14 @@
   * [Autoscaling](deployments/realtime-api/autoscaling.md)
   * [Prediction monitoring](deployments/realtime-api/prediction-monitoring.md)
   * [Traffic Splitter](deployments/realtime-api/traffic-splitter.md)
-  * [Realtime API tutorial](../examples/hello-world/python/README.md)
+  * [Realtime API tutorial](tutorials/realtime/README.md)
 * [Batch API](deployments/batch-api.md)
   * [Predictor implementation](deployments/batch-api/predictors.md)
   * [API configuration](deployments/batch-api/api-configuration.md)
   * [API deployment](deployments/batch-api/deployment.md)
   * [Endpoints](deployments/batch-api/endpoints.md)
   * [Job statuses](deployments/batch-api/statuses.md)
-  * [Batch API tutorial](../examples/batch/python/README.md)
+  * [Batch API tutorial](tutorials/batch/README.md)
 
 ## Advanced
 

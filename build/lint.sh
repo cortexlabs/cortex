@@ -72,7 +72,6 @@ output=$(cd "$ROOT" && find . -type f \
 ! -path "./vendor/*" \
 ! -path "**/.vscode/*" \
 ! -path "**/__pycache__/*" \
-! -path "./examples/*" \
 ! -path "./dev/config/*" \
 ! -path "./bin/*" \
 ! -path "./.circleci/*" \

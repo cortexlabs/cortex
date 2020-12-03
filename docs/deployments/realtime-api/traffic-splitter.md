@@ -73,9 +73,3 @@ deleted traffic-splitter
 ```
 
 Note that this will not delete the Realtime APIs targeted by the Traffic Splitter.
-
-## Additional resources
-
-* [Traffic Splitter Tutorial](../../../examples/traffic-splitting/README.md) provides a step-by-step walkthrough for deploying an Traffic Splitter
-* [Realtime API Tutorial](../../../examples/hello-world/python/README.md) provides a step-by-step walkthrough of deploying a realtime API for text generation
-* [CLI documentation](../../miscellaneous/cli.md) lists all CLI commands

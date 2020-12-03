@@ -37,10 +37,3 @@ Once you've implemented your predictor and defined your API configuration, you c
 When a request is made to the HTTP endpoint, it gets routed to one your API's replicas (at random). The replica receives the request, parses the payload and executes the inference code you've defined in your predictor implementation and sends a response.
 
 The Cortex Cluster will automatically scale based on the incoming traffic and the autoscaling configuration you've defined. You can safely update your model or your code and use the Cortex CLI to deploy without experiencing downtime because updates to your API will be rolled out automatically. Request metrics and logs will automatically be aggregated and be accessible via the Cortex CLI or on your AWS console.
-
-## Next steps
-
-* Try the [tutorial](../../examples/hello-world/python/README.md) to deploy a Realtime API locally or on AWS.
-* See our [exporting guide](../guides/exporting.md) for how to export your model to use in a Realtime API.
-* See the [Predictor docs](realtime-api/predictors.md) for how to implement a Predictor class.
-* See the [API configuration docs](realtime-api/api-configuration.md) for a full list of features that can be used to deploy your Realtime API.

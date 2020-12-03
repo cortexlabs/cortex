@@ -5,9 +5,9 @@ structure:
   summary: summary.md
 
 redirects:
-  tutorial: ../examples/hello-world/python/README.md
-  tutorial/realtime: ../examples/hello-world/python/README.md
-  tutorial/batch: ../examples/batch/python/README.md
+  tutorial: ./tutorials/hello-world/python/README.md
+  tutorial/realtime: ./tutorials/hello-world/python/README.md
+  tutorial/batch: ./tutorials/batch/python/README.md
   install: ./aws/install.md
   uninstall: ./aws/uninstall.md
   update: ./aws/update.md

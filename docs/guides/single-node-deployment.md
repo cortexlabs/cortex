@@ -120,7 +120,7 @@ You can now use Cortex to deploy your model:
 ```bash
 $ git clone -b master https://github.com/cortexlabs/cortex.git
 
-$ cd cortex/examples/hello-world/python
+$ cd cortex/docs/tutorials/realtime
 
 $ cortex deploy
 

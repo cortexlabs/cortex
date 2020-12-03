@@ -94,11 +94,6 @@ class PythonPredictor:
 
 For proper separation of concerns, it is recommended to use the constructor's `config` parameter for information such as from where to download the model and initialization files, or any configurable model parameters. You define `config` in your [API configuration](api-configuration.md), and it is passed through to your Predictor's constructor. The `config` parameters in the `API configuration` can be overridden by providing `config` in the job submission requests.
 
-### Examples
-
-<!-- CORTEX_VERSION_MINOR -->
-You can find an example of a BatchAPI using a PythonPredictor in [examples/batch/python](https://github.com/cortexlabs/cortex/tree/master/examples/batch/python).
-
 ### Pre-installed packages
 
 The following Python packages are pre-installed in Python Predictors and can be used in your implementations:
@@ -231,11 +226,6 @@ When multiple models are defined using the Predictor's `models` field, the `tens
 
 For proper separation of concerns, it is recommended to use the constructor's `config` parameter for information such as from where to download the model and initialization files, or any configurable model parameters. You define `config` in your [API configuration](api-configuration.md), and it is passed through to your Predictor's constructor. The `config` parameters in the `API configuration` can be overridden by providing `config` in the job submission requests.
 
-### Examples
-
-<!-- CORTEX_VERSION_MINOR -->
-You can find an example of a BatchAPI using a TensorFlowPredictor in [examples/batch/tensorflow](https://github.com/cortexlabs/cortex/tree/master/examples/batch/tensorflow).
-
 ### Pre-installed packages
 
 The following Python packages are pre-installed in TensorFlow Predictors and can be used in your implementations:
@@ -317,11 +307,6 @@ Cortex provides an `onnx_client` to your Predictor's constructor. `onnx_client` 
 When multiple models are defined using the Predictor's `models` field, the `onnx_client.predict()` method expects a second argument `model_name` which must hold the name of the model that you want to use for inference (for example: `self.client.predict(model_input, "text-generator")`). See the [multi model guide](../../guides/multi-model.md#onnx-predictor) for more information.
 
 For proper separation of concerns, it is recommended to use the constructor's `config` parameter for information such as from where to download the model and initialization files, or any configurable model parameters. You define `config` in your [API configuration](api-configuration.md), and it is passed through to your Predictor's constructor. The `config` parameters in the `API configuration` can be overridden by providing `config` in the job submission requests.
-
-### Examples
-
-<!-- CORTEX_VERSION_MINOR -->
-You can find an example of a BatchAPI using an ONNXPredictor in [examples/batch/onnx](https://github.com/cortexlabs/cortex/tree/master/examples/batch/onnx).
 
 ### Pre-installed packages
 

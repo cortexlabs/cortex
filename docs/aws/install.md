@@ -19,9 +19,6 @@ cortex cluster up  # or: cortex cluster up --config cluster.yaml (see configurat
 cortex env default aws
 ```
 
-<!-- CORTEX_VERSION_MINOR -->
-Try the [tutorial](../../examples/hello-world/python/README.md) or deploy one of our [examples](https://github.com/cortexlabs/cortex/tree/master/examples).
-
 ## Configure Cortex
 
 <!-- CORTEX_VERSION_MINOR -->
