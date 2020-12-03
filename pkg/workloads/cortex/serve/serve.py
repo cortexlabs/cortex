@@ -26,7 +26,6 @@ import asyncio
 from typing import Any
 
 from fastapi import Body, FastAPI
-from fastapi.middleware.cors import CORSMiddleware
 from fastapi.exceptions import RequestValidationError
 from starlette.requests import Request
 from starlette.responses import Response, PlainTextResponse, JSONResponse
@@ -52,14 +51,6 @@ loop = asyncio.get_event_loop()
 loop.set_default_executor(request_thread_pool)
 
 app = FastAPI()
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["GET", "HEAD", "POST"],
-    allow_headers=["*"],
-)
 
 local_cache = {
     "api": None,
@@ -347,6 +338,6 @@ def start_fn():
             logger().warn("an error occurred while attempting to load classes", exc_info=True)
 
     app.add_api_route(local_cache["predict_route"], predict, methods=["POST"])
-    app.add_api_route(local_cache["predict_route"], get_summary, methods=["GET", "HEAD"])
+    app.add_api_route(local_cache["predict_route"], get_summary, methods=["GET"])
 
     return app

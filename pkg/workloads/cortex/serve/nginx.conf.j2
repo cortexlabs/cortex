@@ -83,17 +83,35 @@ http {
         }
 
         location ~ ^/(predict/?|)$ {
+            # CORS (https://enable-cors.org/server_nginx.html)
+            if ($request_method = 'OPTIONS') {
+                add_header 'Access-Control-Allow-Origin' '*';
+                add_header 'Access-Control-Allow-Methods' 'HEAD, GET, POST, OPTIONS';
+                add_header 'Access-Control-Allow-Headers' '*';
+                add_header 'Access-Control-Max-Age' 1728000;
+                add_header 'Content-Type' 'text/plain; charset=utf-8';
+                add_header 'Content-Length' 0;
+                return 204;
+            }
+            if ($request_method = 'POST') {
+                add_header 'Access-Control-Allow-Origin' '*';
+                add_header 'Access-Control-Allow-Methods' 'HEAD, GET, POST, OPTIONS';
+                add_header 'Access-Control-Allow-Headers' '*';
+                add_header 'Access-Control-Expose-Headers' 'Content-Length,Content-Range';
+            }
+            if ($request_method = 'GET') {
+                add_header 'Access-Control-Allow-Origin' '*';
+                add_header 'Access-Control-Allow-Methods' 'HEAD, GET, POST, OPTIONS';
+                add_header 'Access-Control-Allow-Headers' '*';
+                add_header 'Access-Control-Expose-Headers' 'Content-Length,Content-Range';
+            }
+
             limit_conn inflights {{ CORTEX_MAX_REPLICA_CONCURRENCY | int }};
 
-            add_header Access-Control-Allow-Origin "*";
-            add_header Access-Control-Allow-Headers "*";
-            add_header Access-Control-Allow-Methods "GET, HEAD, POST";
-            add_header Access-Control-Allow-Credentials "true";
-
-            proxy_set_header HOST $host;
-            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-            proxy_set_header X-Real-IP $remote_addr;
-            proxy_set_header X-Forwarded-Proto $scheme;
+            proxy_set_header 'HOST' $host;
+            proxy_set_header 'X-Forwarded-For' $proxy_add_x_forwarded_for;
+            proxy_set_header 'X-Real-IP' $remote_addr;
+            proxy_set_header 'X-Forwarded-Proto' $scheme;
 
             proxy_redirect off;
             proxy_buffering off;
