@@ -33,7 +33,13 @@ from cortex.lib.concurrency import LockedFile
 from cortex.lib.storage import S3, LocalStorage
 from cortex.lib.exceptions import UserRuntimeException
 
+from concurrent.futures import ThreadPoolExecutor
+import asyncio
+from typing import Any
+
 API_LIVENESS_UPDATE_PERIOD = 5  # seconds
+INITIAL_MESSAGE_VISIBILITY = 120  # seconds
+MESSAGE_RENEWAL_PERIOD = 60  # seconds
 MAXIMUM_MESSAGE_VISIBILITY = 60 * 60 * 12  # 12 hours is the maximum message visibility
 
 local_cache = {
@@ -46,6 +52,23 @@ local_cache = {
     "class_set": set(),
     "sqs_client": None,
 }
+
+
+class PeriodicGeneratorRunner:
+    def __init__(self, interval, func, *args, **kwargs):
+        self.interval = interval
+        self.func = func
+        self.args = args
+        self.kwargs = kwargs
+        self.generator = self.func(*self.args, **self.kwargs)
+
+    def start(self):
+        self.timer = threading.Timer(self.interval, self.start)
+        self.timer.start()
+        next(self.generator)
+
+    def stop(self):
+        self.timer.cancel()
 
 
 def dimensions():
@@ -65,6 +88,38 @@ def failed_counter_metric():
 
 def time_per_batch_metric(total_time_seconds):
     return {"MetricName": "TimePerBatch", "Dimensions": dimensions(), "Value": total_time_seconds}
+
+
+def update_api_liveness():
+    threading.Timer(API_LIVENESS_UPDATE_PERIOD, update_api_liveness).start()
+    with open("/mnt/workspace/api_liveness.txt", "w") as f:
+        f.write(str(math.ceil(time.time())))
+
+
+def startup():
+    open("/mnt/workspace/api_readiness.txt", "a").close()
+    update_api_liveness()
+
+
+def renew_message_visibility(queue_url, receipt_handle, initial_offset, interval, *args, **kwargs):
+    new_timeout = initial_offset + interval
+    while True:
+        yield
+        try:
+            local_cache["sqs"].change_message_visibility(
+                QueueUrl=queue_url, ReceiptHandle=receipt_handle, VisibilityTimeout=new_timeout
+            )
+        except botocore.exceptions.ClientError as e:
+            if e.response["Error"]["Code"] == "InvalidParameterValue":
+                continue
+            elif e.response["Error"]["Code"] == "AWS.SimpleQueueService.NonExistentQueue":
+                cx_logger().info(
+                    "failed to renew message visibility because the queue was not found"
+                )
+            else:
+                raise e
+
+        new_timeout += interval
 
 
 def build_predict_args(payload, batch_id):
@@ -109,6 +164,8 @@ def handle_on_complete(message):
     queue_url = job_spec["sqs_url"]
     receipt_handle = message["ReceiptHandle"]
 
+    total_message_visibility = INITIAL_MESSAGE_VISIBILITY
+
     try:
         if not getattr(predictor_impl, "on_job_complete", None):
             sqs_client.delete_message(QueueUrl=queue_url, ReceiptHandle=receipt_handle)
@@ -126,6 +183,8 @@ def handle_on_complete(message):
                 )
                 return False
 
+            total_in_queue = visible_count + not_visible_count
+            
             if should_run_on_job_complete:
                 # double check that the queue is still empty (except for the job_complete message)
                 if not_visible_count <= 1:
@@ -136,9 +195,16 @@ def handle_on_complete(message):
                 else:
                     should_run_on_job_complete = False
 
-            if not_visible_count <= 1:
+             if total_in_queue <= 1:
                 should_run_on_job_complete = True
 
+            # check queue state every 20 seconds (give time for queue metrics to achieve consistency)
+            total_message_visibility += 20
+            sqs_client.change_message_visibility(
+                QueueUrl=queue_url,
+                ReceiptHandle=receipt_handle,
+                VisibilityTimeout=total_message_visibility,
+            )
             time.sleep(20)
     except:
         sqs_client.delete_message(QueueUrl=queue_url, ReceiptHandle=receipt_handle)
@@ -160,7 +226,8 @@ def sqs_loop():
             QueueUrl=queue_url,
             MaxNumberOfMessages=1,
             WaitTimeSeconds=10,
-            VisibilityTimeout=MAXIMUM_MESSAGE_VISIBILITY,
+            VisibilityTimeout=INITIAL_MESSAGE_VISIBILITY,
+            # VisibilityTimeout=MAXIMUM_MESSAGE_VISIBILITY,
             MessageAttributeNames=["All"],
         )
 
@@ -186,11 +253,21 @@ def sqs_loop():
             else:
                 # sometimes on_job_complete message will be released if there are other messages still to be processed
                 continue
-
+        
         try:
             logger().info(f"processing batch {message['MessageId']}")
 
             start_time = time.time()
+
+            renewer = PeriodicGeneratorRunner(
+                MESSAGE_RENEWAL_PERIOD,
+                renew_message_visibility,
+                queue_url,
+                receipt_handle,
+                INITIAL_MESSAGE_VISIBILITY,
+                MESSAGE_RENEWAL_PERIOD,
+            )
+            renewer.start()
 
             payload = json.loads(message["Body"])
             batch_id = message["MessageId"]
@@ -203,8 +280,11 @@ def sqs_loop():
             api_spec.post_metrics(
                 [failed_counter_metric(), time_per_batch_metric(time.time() - start_time)]
             )
+            # TODO: What if I just resend current message with the same body here?
+            # and probably some counter for retries
             logger().exception("failed to process batch")
         finally:
+            renewer.stop()
             sqs_client.delete_message(QueueUrl=queue_url, ReceiptHandle=receipt_handle)
 
 
