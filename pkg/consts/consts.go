@@ -58,9 +58,7 @@ var (
 
 func defaultDockerImage(imageName string) string {
 	// override default image paths in development
-	if imageOverride := os.Getenv("CORTEX_DEV_DEFAULT_PREDICTOR_IMAGE_REGISTRY_GCP"); imageOverride != "" {
-		return fmt.Sprintf("%s/%s:latest", imageOverride, imageName)
-	} else if imageOverride := os.Getenv("CORTEX_DEV_DEFAULT_PREDICTOR_IMAGE_REGISTRY"); imageOverride != "" {
+	if imageOverride := os.Getenv("CORTEX_DEV_DEFAULT_PREDICTOR_IMAGE_REGISTRY"); imageOverride != "" {
 		return fmt.Sprintf("%s/%s:latest", imageOverride, imageName)
 	}
 
