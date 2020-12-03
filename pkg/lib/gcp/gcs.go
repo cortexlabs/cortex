@@ -26,12 +26,42 @@ import (
 	"cloud.google.com/go/storage"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
+	"github.com/cortexlabs/cortex/pkg/lib/slices"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"google.golang.org/api/iterator"
 )
 
 func GCSPath(bucket string, key string) string {
 	return "gs://" + filepath.Join(bucket, key)
+}
+
+func SplitGCSPath(gcsPath string) (string, string, error) {
+	if !IsValidGCSPath(gcsPath) {
+		return "", "", ErrorInvalidGCSPath(gcsPath)
+	}
+	fullPath := gcsPath[len("s3://"):]
+	slashIndex := strings.Index(fullPath, "/")
+	if slashIndex == -1 {
+		return fullPath, "", nil
+	}
+	bucket := fullPath[0:slashIndex]
+	key := fullPath[slashIndex+1:]
+
+	return bucket, key, nil
+}
+
+func IsValidGCSPath(gcsPath string) bool {
+	if !strings.HasPrefix(gcsPath, "gs://") {
+		return false
+	}
+	parts := strings.Split(gcsPath[5:], "/")
+	if len(parts) == 0 {
+		return false
+	}
+	if parts[0] == "" {
+		return false
+	}
+	return true
 }
 
 func (c *Client) CreateBucket(bucket, projectID string, ignoreErrorIfBucketExists bool) error {
@@ -161,12 +191,11 @@ func (c *Client) ReadBytesFromGCS(bucket string, key string) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-func (c *Client) ListGCSDirOneLevel(bucket string, gcsDir string, maxResults *int64) ([]string, error) {
+func (c *Client) ListGCSDir(bucket string, gcsDir string, maxResults *int64) ([]string, error) {
 	gcsClient, err := c.GCS()
 	if err != nil {
 		return nil, err
 	}
-
 	gcsDir = s.EnsureSuffix(gcsDir, "/")
 
 	objectIterator := gcsClient.Bucket(bucket).Objects(context.Background(), &storage.Query{
@@ -183,15 +212,35 @@ func (c *Client) ListGCSDirOneLevel(bucket string, gcsDir string, maxResults *in
 		if err != nil {
 			return nil, err
 		}
-
-		relativePath := strings.TrimPrefix(attrs.Name, gcsDir)
-		oneLevelPath := strings.Split(relativePath, "/")[0]
-		allNames.Add(oneLevelPath)
-
+		allNames.Add(attrs.Name)
 		if maxResults != nil && int64(len(allNames)) >= *maxResults {
 			break
 		}
 	}
 
 	return allNames.SliceSorted(), nil
+}
+
+func (c *Client) ListGCSPathDir(gcsDirPath string, maxResults *int64) ([]string, error) {
+	bucket, gcsDir, err := SplitGCSPath(gcsDirPath)
+	if err != nil {
+		return nil, err
+	}
+	return c.ListGCSDir(bucket, gcsDir, maxResults)
+}
+
+func (c *Client) ListGCSDirOneLevel(bucket string, gcsDir string, maxResults *int64) ([]string, error) {
+	objects, err := c.ListGCSDir(bucket, gcsDir, maxResults)
+	if err != nil {
+		return nil, err
+	}
+
+	filteredObjects := strset.New()
+	for _, object := range objects {
+		relativePath := strings.TrimPrefix(object, gcsDir)
+		oneLevelPath := slices.UniqueStrings(strings.Split(relativePath, "/"))[0]
+		filteredObjects.Add(oneLevelPath)
+	}
+
+	return filteredObjects.SliceSorted(), nil
 }

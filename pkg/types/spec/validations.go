@@ -32,6 +32,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/docker"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
+	"github.com/cortexlabs/cortex/pkg/lib/gcp"
 	libjson "github.com/cortexlabs/cortex/pkg/lib/json"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	libmath "github.com/cortexlabs/cortex/pkg/lib/math"
@@ -698,6 +699,7 @@ func ValidateAPI(
 	projectFiles ProjectFiles,
 	providerType types.ProviderType,
 	awsClient *aws.Client,
+	gcpClient *gcp.Client,
 	k8sClient *k8s.Client, // will be nil for local provider
 ) error {
 
@@ -709,7 +711,7 @@ func ValidateAPI(
 		api.Networking.Endpoint = pointer.String("/" + api.Name)
 	}
 
-	if err := validatePredictor(api, models, projectFiles, providerType, awsClient, k8sClient); err != nil {
+	if err := validatePredictor(api, models, projectFiles, providerType, awsClient, gcpClient, k8sClient); err != nil {
 		return errors.Wrap(err, userconfig.PredictorKey)
 	}
 
@@ -761,6 +763,7 @@ func validatePredictor(
 	projectFiles ProjectFiles,
 	providerType types.ProviderType,
 	awsClient *aws.Client,
+	gcpClient *gcp.Client,
 	k8sClient *k8s.Client, // will be nil for local provider
 ) error {
 	predictor := api.Predictor
@@ -791,18 +794,18 @@ func validatePredictor(
 
 	switch predictor.Type {
 	case userconfig.PythonPredictorType:
-		if err := validatePythonPredictor(api, models, providerType, projectFiles, awsClient); err != nil {
+		if err := validatePythonPredictor(api, models, providerType, projectFiles, awsClient, gcpClient); err != nil {
 			return err
 		}
 	case userconfig.TensorFlowPredictorType:
-		if err := validateTensorFlowPredictor(api, models, providerType, projectFiles, awsClient); err != nil {
+		if err := validateTensorFlowPredictor(api, models, providerType, projectFiles, awsClient, gcpClient); err != nil {
 			return err
 		}
 		if err := validateDockerImagePath(predictor.TensorFlowServingImage, providerType, awsClient, k8sClient); err != nil {
 			return errors.Wrap(err, userconfig.TensorFlowServingImageKey)
 		}
 	case userconfig.ONNXPredictorType:
-		if err := validateONNXPredictor(api, models, providerType, projectFiles, awsClient); err != nil {
+		if err := validateONNXPredictor(api, models, providerType, projectFiles, awsClient, gcpClient); err != nil {
 			return err
 		}
 	}
@@ -877,7 +880,7 @@ func validateMultiModelsFields(api *userconfig.API) error {
 	return nil
 }
 
-func validatePythonPredictor(api *userconfig.API, models *[]CuratedModelResource, providerType types.ProviderType, projectFiles ProjectFiles, awsClient *aws.Client) error {
+func validatePythonPredictor(api *userconfig.API, models *[]CuratedModelResource, providerType types.ProviderType, projectFiles ProjectFiles, awsClient *aws.Client, gcpClient *gcp.Client) error {
 	predictor := api.Predictor
 
 	if predictor.SignatureKey != nil {
@@ -941,9 +944,9 @@ func validatePythonPredictor(api *userconfig.API, models *[]CuratedModelResource
 
 	var err error
 	if hasMultiModels && predictor.Models.Dir != nil {
-		*models, err = validateDirModels(*predictor.Models.Dir, *api, awsClient, nil, nil)
+		*models, err = validateDirModels(*predictor.Models.Dir, *api, projectFiles.ProjectDir(), awsClient, gcpClient, nil)
 	} else {
-		*models, err = validateModels(modelResources, *api, awsClient, nil, nil)
+		*models, err = validateModels(modelResources, *api, projectFiles.ProjectDir(), awsClient, gcpClient, nil)
 	}
 	if err != nil {
 		return modelWrapError(err)
@@ -964,7 +967,7 @@ func validatePythonPredictor(api *userconfig.API, models *[]CuratedModelResource
 	return nil
 }
 
-func validateTensorFlowPredictor(api *userconfig.API, models *[]CuratedModelResource, providerType types.ProviderType, projectFiles ProjectFiles, awsClient *aws.Client) error {
+func validateTensorFlowPredictor(api *userconfig.API, models *[]CuratedModelResource, providerType types.ProviderType, projectFiles ProjectFiles, awsClient *aws.Client, gcpClient *gcp.Client) error {
 	predictor := api.Predictor
 
 	if providerType == types.GCPProviderType {
@@ -1034,9 +1037,9 @@ func validateTensorFlowPredictor(api *userconfig.API, models *[]CuratedModelReso
 
 	var err error
 	if hasMultiModels && predictor.Models.Dir != nil {
-		*models, err = validateDirModels(*predictor.Models.Dir, *api, awsClient, nil, validators)
+		*models, err = validateDirModels(*predictor.Models.Dir, *api, projectFiles.ProjectDir(), awsClient, gcpClient, validators)
 	} else {
-		*models, err = validateModels(modelResources, *api, awsClient, nil, validators)
+		*models, err = validateModels(modelResources, *api, projectFiles.ProjectDir(), awsClient, gcpClient, validators)
 	}
 	if err != nil {
 		return modelWrapError(err)
@@ -1057,7 +1060,7 @@ func validateTensorFlowPredictor(api *userconfig.API, models *[]CuratedModelReso
 	return nil
 }
 
-func validateONNXPredictor(api *userconfig.API, models *[]CuratedModelResource, providerType types.ProviderType, projectFiles ProjectFiles, awsClient *aws.Client) error {
+func validateONNXPredictor(api *userconfig.API, models *[]CuratedModelResource, providerType types.ProviderType, projectFiles ProjectFiles, awsClient *aws.Client, gcpClient *gcp.Client) error {
 	predictor := api.Predictor
 
 	if providerType == types.GCPProviderType {
@@ -1131,9 +1134,9 @@ func validateONNXPredictor(api *userconfig.API, models *[]CuratedModelResource, 
 
 	var err error
 	if hasMultiModels && predictor.Models.Dir != nil {
-		*models, err = validateDirModels(*predictor.Models.Dir, *api, awsClient, nil, validators)
+		*models, err = validateDirModels(*predictor.Models.Dir, *api, projectFiles.ProjectDir(), awsClient, gcpClient, validators)
 	} else {
-		*models, err = validateModels(modelResources, *api, awsClient, nil, validators)
+		*models, err = validateModels(modelResources, *api, projectFiles.ProjectDir(), awsClient, gcpClient, validators)
 	}
 	if err != nil {
 		return modelWrapError(err)

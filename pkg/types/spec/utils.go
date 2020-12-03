@@ -121,87 +121,9 @@ func modelResourceToCurated(modelResources []userconfig.ModelResource, projectDi
 	return models, nil
 }
 
-// getTFServingVersionsFromS3Path checks that the path contains a valid S3 directory for (Neuron) TensorFlow models:
-//
-// For TensorFlow models:
-// - model-name
-// 		- 1523423423/ (version prefix, usually a timestamp)
-//			- saved_model.pb
-// 			- variables/
-//				- variables.index
-//				- variables.data-00000-of-00001 (there are a variable number of these files)
-// 		- 2434389194/ (version prefix, usually a timestamp)
-// 			- saved_model.pb
-//			- variables/
-//				- variables.index
-//				- variables.data-00000-of-00001 (there are a variable number of these files)
-//   ...
-//
-// For Neuron TensorFlow models:
-// - model-name
-// 		- 1523423423/ (version prefix, usually a timestamp)
-// 			- saved_model.pb
-// 		- 2434389194/ (version prefix, usually a timestamp)
-//			- saved_model.pb
-// 		...
-//
-
-// isValidTensorFlowS3Directory checks that the path contains a valid S3 directory for TensorFlow models
-// Must contain the following structure:
-// - 1523423423/ (version prefix, usually a timestamp)
-// 		- saved_model.pb
-//		- variables/
-//			- variables.index
-//			- variables.data-00000-of-00001 (there are a variable number of these files)
-
-// isValidNeuronTensorFlowS3Directory checks that the path contains a valid S3 directory for Neuron TensorFlow models
-// Must contain the following structure:
-// - 1523423423/ (version prefix, usually a timestamp)
-// 		- saved_model.pb
-
-// getTFServingVersionsFromLocalPath checks that the path contains a valid local directory for TensorFlow models:
-// - model-name
-// 		- 1523423423/ (version prefix, usually a timestamp)
-//			- saved_model.pb
-// 			- variables/
-//				- variables.index
-//				- variables.data-00000-of-00001 (there are a variable number of these files)
-// 		- 2434389194/ (version prefix, usually a timestamp)
-// 			- saved_model.pb
-//			- variables/
-//				- variables.index
-//				- variables.data-00000-of-00001 (there are a variable number of these files)
-//   ...
-
-// isValidTensorFlowLocalDirectory checks that the path contains a valid local directory for TensorFlow models
-// Must contain the following structure:
-// - 1523423423/ (version prefix, usually a timestamp)
-// 		- saved_model.pb
-//		- variables/
-//			- variables.index
-//			- variables.data-00000-of-00001 (there are a variable number of these files)
-
-// getONNXVersionsFromS3Path checks that the path contains a valid S3 directory for versioned ONNX models:
-// - model-name
-// 		- 1523423423/ (version prefix, usually a timestamp)
-// 			- <model-name>.onnx
-// 		- 2434389194/ (version prefix, usually a timestamp)
-//			- <model-name>.onnx
-// 		...
-
-// getONNXVersionsFromLocalPath checks that the path contains a valid local directory for versioned ONNX models:
-// - model-name
-// 		- 1523423423/ (version prefix, usually a timestamp)
-// 			- <model-name>.onnx
-// 		- 2434389194/ (version prefix, usually a timestamp)
-//			- <model-name>.onnx
-// 		...
-
-// ##################
-
-func validateDirModels(modelPath string, api userconfig.API, awsClient *aws.Client, gcpClient *gcp.Client, extraValidators []modelValidator) ([]CuratedModelResource, error) {
+func validateDirModels(modelPath string, api userconfig.API, projectDir string, awsClient *aws.Client, gcpClient *gcp.Client, extraValidators []modelValidator) ([]CuratedModelResource, error) {
 	var bucket string
-	var key string
+	var dirPrefix string
 	var modelDirPaths []string
 
 	modelPath = s.EnsureSuffix(modelPath, "/")
@@ -228,7 +150,7 @@ func validateDirModels(modelPath string, api userconfig.API, awsClient *aws.Clie
 			return nil, err
 		}
 
-		bucket, key, err = aws.SplitS3Path(modelPath)
+		bucket, dirPrefix, err = aws.SplitS3Path(modelPath)
 		if err != nil {
 			return nil, err
 		}
@@ -238,19 +160,40 @@ func validateDirModels(modelPath string, api userconfig.API, awsClient *aws.Clie
 			return nil, err
 		}
 		modelDirPaths = aws.ConvertS3ObjectsToKeys(s3Objects...)
-		if len(modelDirPaths) == 0 {
-			return nil, ErrorS3DirIsEmpty(key)
-		}
 	}
 	if gcsPath {
+		var err error
 
+		bucket, dirPrefix, err = gcp.SplitGCSPath(modelPath)
+		if err != nil {
+			return nil, err
+		}
+
+		modelDirPaths, err = gcpClient.ListGCSPathDir(modelPath, nil)
+		if err != nil {
+			return nil, err
+		}
 	}
 	if localPath {
+		expandedLocalPath := files.RelToAbsPath(modelPath, projectDir)
+		dirPrefix = s.EnsureSuffix(expandedLocalPath, "/")
 
+		err := files.CheckDir(dirPrefix)
+		if err != nil {
+			return nil, err
+		}
+
+		modelDirPaths, err = files.ListDirRecursive(dirPrefix, false, nil...)
+		if err != nil {
+			return nil, err
+		}
+	}
+	if len(modelDirPaths) == 0 {
+		return nil, errFunc(dirPrefix, modelDirPaths)
 	}
 
 	modelNames := []string{}
-	modelDirPathLength := len(slices.RemoveEmpties(strings.Split(key, "/")))
+	modelDirPathLength := len(slices.RemoveEmpties(strings.Split(dirPrefix, "/")))
 	for _, path := range modelDirPaths {
 		splitPath := strings.Split(path, "/")
 		modelNames = append(modelNames, splitPath[modelDirPathLength])
@@ -259,7 +202,7 @@ func validateDirModels(modelPath string, api userconfig.API, awsClient *aws.Clie
 
 	modelResources := make([]CuratedModelResource, len(modelNames))
 	for i, modelName := range modelNames {
-		modelPrefix := filepath.Join(key, modelName)
+		modelPrefix := filepath.Join(dirPrefix, modelName)
 		modelPrefix = s.EnsureSuffix(modelPrefix, "/")
 
 		modelStructureType := determineBaseModelStructure(modelDirPaths, modelPrefix)
@@ -297,10 +240,21 @@ func validateDirModels(modelPath string, api userconfig.API, awsClient *aws.Clie
 			return nil, errors.Wrap(err, modelName)
 		}
 
+		fullModelPath := ""
+		if s3Path {
+			fullModelPath = s.EnsureSuffix(aws.S3Path(bucket, modelPrefix), "/")
+		}
+		if gcsPath {
+			fullModelPath = s.EnsureSuffix(gcp.GCSPath(bucket, modelPrefix), "/")
+		}
+		if localPath {
+			fullModelPath = s.EnsureSuffix(modelPrefix, "/")
+		}
+
 		modelResources[i] = CuratedModelResource{
 			ModelResource: &userconfig.ModelResource{
 				Name:         modelName,
-				ModelPath:    s.EnsureSuffix(aws.S3Path(bucket, modelPrefix), "/"),
+				ModelPath:    fullModelPath,
 				SignatureKey: api.Predictor.SignatureKey,
 			},
 			S3Path:    s3Path,
@@ -313,7 +267,7 @@ func validateDirModels(modelPath string, api userconfig.API, awsClient *aws.Clie
 	return modelResources, nil
 }
 
-func validateModels(models []userconfig.ModelResource, api userconfig.API, awsClient *aws.Client, gcpClient *gcp.Client, extraValidators []modelValidator) ([]CuratedModelResource, error) {
+func validateModels(models []userconfig.ModelResource, api userconfig.API, projectDir string, awsClient *aws.Client, gcpClient *gcp.Client, extraValidators []modelValidator) ([]CuratedModelResource, error) {
 	var bucket string
 	var modelPrefix string
 	var modelPaths []string
@@ -355,17 +309,39 @@ func validateModels(models []userconfig.ModelResource, api userconfig.API, awsCl
 				return nil, errors.Wrap(err, model.Name)
 			}
 			modelPaths = aws.ConvertS3ObjectsToKeys(s3Objects...)
-			if len(modelPaths) == 0 {
-				return nil, errors.Wrap(errFunc(modelPrefix, modelPaths), model.Name)
-			}
 		}
 
 		if gcsPath {
+			var err error
 
+			bucket, modelPrefix, err = gcp.SplitGCSPath(model.ModelPath)
+			if err != nil {
+				return nil, errors.Wrap(err, model.Name)
+			}
+			modelPrefix = s.EnsureSuffix(modelPrefix, "/")
+
+			modelPaths, err = gcpClient.ListGCSPathDir(modelPath, nil)
+			if err != nil {
+				return nil, errors.Wrap(err, model.Name)
+			}
 		}
 
 		if localPath {
+			expandedLocalPath := files.RelToAbsPath(model.ModelPath, projectDir)
+			modelPrefix = s.EnsureSuffix(expandedLocalPath, "/")
 
+			err := files.CheckDir(modelPrefix)
+			if err != nil {
+				return nil, errors.Wrap(err, model.Name)
+			}
+
+			modelPaths, err = files.ListDirRecursive(modelPrefix, false, nil...)
+			if err != nil {
+				return nil, errors.Wrap(err, model.Name)
+			}
+		}
+		if len(modelPaths) == 0 {
+			return nil, errors.Wrap(errFunc(modelPrefix, modelPaths), model.Name)
 		}
 
 		modelStructureType := determineBaseModelStructure(modelPaths, modelPrefix)
@@ -409,10 +385,22 @@ func validateModels(models []userconfig.ModelResource, api userconfig.API, awsCl
 		} else if api.Predictor.Models != nil && api.Predictor.Models.SignatureKey != nil {
 			signatureKey = api.Predictor.SignatureKey
 		}
+
+		fullModelPath := ""
+		if s3Path {
+			fullModelPath = s.EnsureSuffix(aws.S3Path(bucket, modelPrefix), "/")
+		}
+		if gcsPath {
+			fullModelPath = s.EnsureSuffix(gcp.GCSPath(bucket, modelPrefix), "/")
+		}
+		if localPath {
+			fullModelPath = s.EnsureSuffix(modelPrefix, "/")
+		}
+
 		modelResources[i] = CuratedModelResource{
 			ModelResource: &userconfig.ModelResource{
 				Name:         model.Name,
-				ModelPath:    s.EnsureSuffix(aws.S3Path(bucket, modelPrefix), "/"),
+				ModelPath:    fullModelPath,
 				SignatureKey: signatureKey,
 			},
 			S3Path:    s3Path,
