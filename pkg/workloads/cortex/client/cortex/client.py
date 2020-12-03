@@ -34,14 +34,16 @@ EXPECTED_PYTHON_VERSION = "3.6.9"
 
 
 class Client:
-    def __init__(self, env: str):
+    def __init__(self, env: dict):
         """
         A client to deploy and manage APIs in the specified environment.
 
         Args:
-            env: Name of the environment to use.
+            env: Environment config
         """
+        print(env)
         self.env = env
+        self.env_name = env["name"]
 
     # CORTEX_VERSION_MINOR x5
     def deploy(
@@ -170,7 +172,7 @@ class Client:
             "deploy",
             config_file,
             "--env",
-            self.env,
+            self.env_name,
             "-o",
             "mixed",
             "-y",
@@ -188,6 +190,8 @@ class Client:
         if not wait:
             return deploy_result
 
+        time.sleep(5)  # wait a few moments for cortex to deploy the API
+
         def stream_to_stdout(process):
             for c in iter(lambda: process.stdout.read(1), ""):
                 sys.stdout.write(c)
@@ -200,7 +204,7 @@ class Client:
         env = os.environ.copy()
         env["CORTEX_CLI_INVOKER"] = "python"
         process = subprocess.Popen(
-            [get_cli_path(), "logs", "--env", self.env, api_name],
+            [get_cli_path(), "logs", "--env", self.env_name, api_name],
             stderr=subprocess.STDOUT,
             stdout=subprocess.PIPE,
             encoding="utf8",
@@ -214,7 +218,7 @@ class Client:
         while process.poll() is None:
             api = self.get_api(api_name)
             if api["status"]["status_code"] != "status_updating":
-                time.sleep(10)  # wait for logs to stream
+                time.sleep(5)  # wait for logs to stream
                 process.terminate()
                 break
             time.sleep(5)
@@ -232,7 +236,7 @@ class Client:
         Returns:
             Information about the API, including the API specification, endpoint, status, and metrics (if applicable).
         """
-        output = run_cli(["get", api_name, "--env", self.env, "-o", "json"], hide_output=True)
+        output = run_cli(["get", api_name, "--env", self.env_name, "-o", "json"], hide_output=True)
 
         apis = json.loads(output.strip())
         return apis[0]
@@ -244,7 +248,7 @@ class Client:
         Returns:
             List of APIs, including information such as the API specification, endpoint, status, and metrics (if applicable).
         """
-        args = ["get", "-o", "json", "--env", self.env]
+        args = ["get", "-o", "json", "--env", self.env_name]
 
         output = run_cli(args, hide_output=True)
 
@@ -261,7 +265,7 @@ class Client:
         Returns:
             Information about the job, including the job status, worker status, and job progress.
         """
-        args = ["get", api_name, job_id, "--env", self.env, "-o", "json"]
+        args = ["get", api_name, job_id, "--env", self.env_name, "-o", "json"]
 
         output = run_cli(args, hide_output=True)
 
@@ -275,12 +279,34 @@ class Client:
             api_name: Name of the API to refresh.
             force: Override an already in-progress API update.
         """
-        args = ["refresh", api_name, "--env", self.env, "-o", "json"]
+        args = ["refresh", api_name, "--env", self.env_name, "-o", "json"]
 
         if force:
             args.append("--force")
 
         run_cli(args, hide_output=True)
+
+    def patch(self, api_spec: dict, force: bool = False) -> dict:
+        """
+        Update the api specification for an API that has already been deployed.
+
+        Args:
+            api_spec: The new api specification to apply
+            force: Override an already in-progress API update.
+        """
+
+        cortex_yaml_file = (
+            Path.home() / ".cortex" / "deployments" / f"cortex-{str(uuid.uuid4())}.yaml"
+        )
+        with util.open_temporarily(cortex_yaml_file, "w") as f:
+            yaml.dump([api_spec], f)
+            args = ["patch", cortex_yaml_file, "--env", self.env_name, "-o", "json"]
+
+            if force:
+                args.append("--force")
+
+            output = run_cli(args, hide_output=True)
+            return json.loads(output.strip())
 
     def delete_api(self, api_name: str, keep_cache: bool = False):
         """
@@ -294,7 +320,7 @@ class Client:
             "delete",
             api_name,
             "--env",
-            self.env,
+            self.env_name,
             "--force",
             "-o",
             "json",
@@ -318,7 +344,7 @@ class Client:
             api_name,
             job_id,
             "--env",
-            self.env,
+            self.env_name,
             "-o",
             "json",
         ]
@@ -335,7 +361,7 @@ class Client:
         Args:
             api_name: Name of the API.
         """
-        args = ["logs", api_name, "--env", self.env]
+        args = ["logs", api_name, "--env", self.env_name]
         run_cli(args)
 
     def stream_job_logs(
@@ -350,5 +376,5 @@ class Client:
             api_name: Name of the Batch API.
             job_id: Job ID.
         """
-        args = ["logs", api_name, job_id, "--env", self.env]
+        args = ["logs", api_name, job_id, "--env", self.env_name]
         run_cli(args)

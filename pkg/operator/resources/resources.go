@@ -85,7 +85,6 @@ func Deploy(projectBytes []byte, configFileName string, configBytes []byte, forc
 
 	projectFiles := ProjectFiles{
 		ProjectByteMap: projectFileMap,
-		ConfigFileName: configFileName,
 	}
 
 	apiConfigs, err := spec.ExtractAPIConfigs(configBytes, types.AWSProviderType, configFileName, &config.Cluster.Config)
@@ -170,28 +169,80 @@ func UpdateAPI(apiConfig *userconfig.API, models []spec.CuratedModelResource, pr
 	return nil, msg, err
 }
 
-func PatchAPI(configBytes []byte, configFileName string, force bool) ([]*schema.APIResponse, error) {
+func PatchAPI(configBytes []byte, configFileName string, force bool) ([]schema.DeployResult, error) {
 	apiConfigs, err := spec.ExtractAPIConfigs(configBytes, types.AWSProviderType, configFileName, &config.Cluster.Config)
 	if err != nil {
 		return nil, err
 	}
 
+	results := make([]schema.DeployResult, 0, len(apiConfigs))
 	for i := range apiConfigs {
 		apiConfig := &apiConfigs[i]
+		result := schema.DeployResult{}
 
-		deployedResource, err := GetDeployedResourceByName(apiConfig.Name)
+		apiSpec, msg, err := patchAPI(apiConfig, configFileName, force)
+		if err == nil && apiSpec != nil {
+			apiEndpoint, _ := operator.APIEndpoint(apiSpec)
+
+			result.API = &schema.APIResponse{
+				Spec:     *apiSpec,
+				Endpoint: apiEndpoint,
+			}
+		}
+
+		result.Message = msg
 		if err != nil {
-			return nil, err
+			result.Error = errors.ErrorStr(err)
 		}
 
-		switch deployedResource.Kind {
-		case userconfig.RealtimeAPIKind:
-			return realtimeapi.PatchAPI(apiConfig.Name, force)
-		default:
-			return nil, ErrorOperationIsOnlySupportedForKind(*deployedResource, userconfig.RealtimeAPIKind)
-		}
+		results = append(results, result)
+	}
+	return results, nil
+}
+
+func patchAPI(apiConfig *userconfig.API, configFileName string, force bool) (*spec.API, string, error) {
+	deployedResource, err := GetDeployedResourceByName(apiConfig.Name)
+	if err != nil {
+		return nil, "", err
 	}
 
+	if deployedResource.Kind == userconfig.TrafficSplitterKind {
+		return trafficsplitter.UpdateAPI(apiConfig, force)
+	}
+	// TODO handle unknown kind
+
+	prevAPISpec, err := operator.DownloadAPISpec(deployedResource.Name, deployedResource.ID())
+	if err != nil {
+		return nil, "", err
+	}
+
+	bytes, err := config.AWS.ReadBytesFromS3(config.Cluster.Bucket, prevAPISpec.ProjectKey)
+	if err != nil {
+		return nil, "", err
+	}
+
+	projectFileMap, err := archive.UnzipMemToMem(bytes)
+	if err != nil {
+		return nil, "", err
+	}
+
+	projectFiles := ProjectFiles{
+		ProjectByteMap: projectFileMap,
+	}
+
+	models := []spec.CuratedModelResource{}
+	err = ValidateClusterAPIs([]userconfig.API{*apiConfig}, &models, projectFiles)
+	if err != nil {
+		err = errors.Append(err, fmt.Sprintf("\n\napi configuration schema can be found here:\n  → Realtime API: https://docs.cortex.dev/v/%s/deployments/realtime-api/api-configuration\n  → Batch API: https://docs.cortex.dev/v/%s/deployments/batch-api/api-configuration\n  → Traffic Splitter: https://docs.cortex.dev/v/%s/deployments/realtime-api/traffic-splitter", consts.CortexVersionMinor, consts.CortexVersionMinor, consts.CortexVersionMinor))
+		return nil, "", err
+	}
+
+	switch deployedResource.Kind {
+	case userconfig.RealtimeAPIKind:
+		return realtimeapi.UpdateAPI(apiConfig, models, prevAPISpec.ProjectID, force)
+	default:
+		return batchapi.UpdateAPI(apiConfig, models, prevAPISpec.ProjectID)
+	}
 }
 
 func RefreshAPI(apiName string, force bool) (string, error) {

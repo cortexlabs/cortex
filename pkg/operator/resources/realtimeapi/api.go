@@ -59,10 +59,6 @@ func UpdateAPI(apiConfig *userconfig.API, models []spec.CuratedModelResource, pr
 			return nil, "", errors.Wrap(err, "upload api spec")
 		}
 
-		if err := config.AWS.UploadBytesToS3(api.RawYAMLBytes, config.Cluster.Bucket, api.RawAPIKey(config.Cluster.ClusterName)); err != nil {
-			return nil, "", errors.Wrap(err, "upload raw api spec")
-		}
-
 		// Use api spec indexed by PredictorID for replicas to prevent rolling updates when SpecID changes without PredictorID changing
 		if err := config.AWS.UploadJSONToS3(api, config.Cluster.Bucket, api.PredictorKey); err != nil {
 			return nil, "", errors.Wrap(err, "upload predictor spec")
@@ -96,10 +92,6 @@ func UpdateAPI(apiConfig *userconfig.API, models []spec.CuratedModelResource, pr
 			return nil, "", errors.Wrap(err, "upload api spec")
 		}
 
-		if err := config.AWS.UploadBytesToS3(api.RawYAMLBytes, config.Cluster.Bucket, api.RawAPIKey(config.Cluster.ClusterName)); err != nil {
-			return nil, "", errors.Wrap(err, "upload raw api spec")
-		}
-
 		// Use api spec indexed by PredictorID for replicas to prevent rolling updates when SpecID changes without PredictorID changing
 		if err := config.AWS.UploadJSONToS3(api, config.Cluster.Bucket, api.PredictorKey); err != nil {
 			return nil, "", errors.Wrap(err, "upload predictor spec")
@@ -125,42 +117,33 @@ func UpdateAPI(apiConfig *userconfig.API, models []spec.CuratedModelResource, pr
 	return api, fmt.Sprintf("%s is up to date", api.Resource.UserString()), nil
 }
 
-func PatchAPI(apiConfig *userconfig.API, force bool) (*spec.API, error) {
+func PatchAPI(apiConfig *userconfig.API, models []spec.CuratedModelResource, force bool) (*spec.API, string, error) {
 	prevDeployment, err := config.K8s.GetDeployment(operator.K8sName(apiConfig.Name))
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	} else if prevDeployment == nil {
-		return nil, errors.ErrorUnexpected("unable to find deployment", apiConfig.Name)
+		return nil, "", errors.ErrorUnexpected("unable to find deployment", apiConfig.Name)
 	}
 
 	isUpdating, err := isAPIUpdating(prevDeployment)
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 
 	if isUpdating && !force {
-		return nil, ErrorAPIUpdating(apiName)
+		return nil, "", ErrorAPIUpdating(apiConfig.Name)
 	}
 
-	api, err := operator.DownloadAPISpec(deployedResource.Name, prevDeployment.Labels["APIID"])
+	api, err := operator.DownloadAPISpec(apiConfig.Name, prevDeployment.Labels["APIID"])
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 
-	api = spec.GetAPISpec(apiConfig, api.CuratedModelResources, api.ProjectID, k8s.RandomName()[:10], config.Cluster.ClusterName)
-
-
-	UpdateAPI(apiConfig, apiConfig.)
-	if err := config.AWS.UploadJSONToS3(api, config.Cluster.Bucket, api.Key); err != nil {
-		return "", errors.Wrap(err, "upload api spec")
+	api, msg, err := UpdateAPI(apiConfig, models, api.PredictorID, force)
+	if err != nil {
+		return nil, "", err
 	}
-
-	// Reupload api spec to the same PredictorID but with the new DeploymentID
-	if err := config.AWS.UploadJSONToS3(api, config.Cluster.Bucket, api.PredictorKey); err != nil {
-		return "", errors.Wrap(err, "upload predictor spec")
-	}
-
-	return api, nil
+	return api, msg, nil
 }
 
 func RefreshAPI(apiName string, force bool) (string, error) {
@@ -332,19 +315,13 @@ func GetAPIByName(deployedResource *operator.DeployedResource) ([]schema.APIResp
 
 	dashboardURL := DashboardURL()
 
-	submittedAPISpec, err := operator.DownloadRawAPISpec(api)
-	if err != nil {
-		return nil, err
-	}
-
 	return []schema.APIResponse{
 		{
-			Spec:             *api,
-			Status:           status,
-			Metrics:          metrics,
-			Endpoint:         apiEndpoint,
-			DashboardURL:     &dashboardURL,
-			SubmittedAPISpec: submittedAPISpec,
+			Spec:         *api,
+			Status:       status,
+			Metrics:      metrics,
+			Endpoint:     apiEndpoint,
+			DashboardURL: &dashboardURL,
 		},
 	}, nil
 }

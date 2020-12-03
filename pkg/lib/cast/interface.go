@@ -699,10 +699,6 @@ func InterfaceToStrInterfaceMapRecursive(in interface{}) (map[string]interface{}
 		return nil, true
 	}
 
-	if strMap, ok := in.(map[string]interface{}); ok {
-		return strMap, true
-	}
-
 	inMap, ok := InterfaceToInterfaceInterfaceMap(in)
 	if !ok {
 		return nil, false

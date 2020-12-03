@@ -38,7 +38,6 @@ import (
 
 type ProjectFiles struct {
 	ProjectByteMap map[string][]byte
-	ConfigFileName string
 }
 
 func (projectFiles ProjectFiles) AllPaths() []string {

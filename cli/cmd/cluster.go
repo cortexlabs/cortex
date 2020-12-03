@@ -47,6 +47,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/types/clusterconfig"
 	"github.com/cortexlabs/cortex/pkg/types/clusterstate"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
+	"github.com/cortexlabs/yaml"
 	"github.com/spf13/cobra"
 )
 
@@ -688,7 +689,12 @@ var _exportCmd = &cobra.Command{
 				exit.Error(err)
 			}
 
-			err = awsClient.DownloadFileFromS3(info.ClusterConfig.Bucket, apiResponse.Spec.RawAPIKey(info.ClusterConfig.ClusterName), path.Join(baseDir, apiResponse.Spec.FileName))
+			yamlBytes, err := yaml.Marshal(apiResponse.Spec.API.SubmittedAPISpec)
+			if err != nil {
+				exit.Error(err)
+			}
+
+			err = files.WriteFile(yamlBytes, apiResponse.Spec.FileName)
 			if err != nil {
 				exit.Error(err)
 			}
