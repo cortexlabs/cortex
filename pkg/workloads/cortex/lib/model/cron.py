@@ -28,7 +28,7 @@ from typing import Dict, List, Tuple, Any, Union, Callable, Optional
 from cortex.lib import util
 from cortex.lib.log import cx_logger as logger
 from cortex.lib.concurrency import LockedFile, get_locked_files
-from cortex.lib.storage import S3, LocalStorage
+from cortex.lib.storage import S3, GCS, LocalStorage
 from cortex.lib.exceptions import CortexException, WithBreak
 from cortex.lib.type import (
     predictor_type_from_api_spec,
@@ -259,6 +259,7 @@ class FileBasedModelsTreeUpdater(mp.Process):
             model_paths,
             sub_paths,
             timestamps,
+            bucket_providers,
             bucket_names,
         ) = find_all_s3_models(
             self._is_dir_used,
@@ -272,8 +273,8 @@ class FileBasedModelsTreeUpdater(mp.Process):
         # a model is updated if its directory tree has changed, if it's not present or if it doesn't exist on the upstream
         with ThreadPoolExecutor(max_workers=5) as executor:
             futures = []
-            for idx, (model_name, bucket_name, bucket_sub_paths) in enumerate(
-                zip(model_names, bucket_names, sub_paths)
+            for idx, (model_name, bucket_provider, bucket_name, bucket_sub_paths) in enumerate(
+                zip(model_names, bucket_providers, bucket_names, sub_paths)
             ):
                 futures += [
                     executor.submit(
@@ -284,6 +285,7 @@ class FileBasedModelsTreeUpdater(mp.Process):
                         versions[model_name],
                         timestamps[idx],
                         bucket_sub_paths,
+                        bucket_provider,
                         bucket_name,
                     )
                 ]
@@ -314,9 +316,14 @@ class FileBasedModelsTreeUpdater(mp.Process):
         versions: List[str],
         timestamps: List[datetime.datetime],
         sub_paths: List[str],
+        bucket_provider: str,
         bucket_name: str,
     ) -> None:
-        s3_client = S3(bucket_name)
+
+        if bucket_provider == "s3":
+            client = S3(bucket_name)
+        if bucket_provider == "gs":
+            client = GCS(bucket_name)
 
         ondisk_model_path = os.path.join(self._download_dir, model_name)
         for version, model_ts in zip(versions, timestamps):
@@ -362,7 +369,7 @@ class FileBasedModelsTreeUpdater(mp.Process):
                 # download to a temp directory
                 temp_dest = os.path.join(self._temp_dir, model_name, version)
                 s3_src = os.path.join(model_path, version)
-                s3_client.download_dir_contents(s3_src, temp_dest)
+                client.download_dir_contents(s3_src, temp_dest)
 
                 # validate the downloaded model
                 model_contents = glob.glob(temp_dest + "*/**", recursive=True)
@@ -373,8 +380,14 @@ class FileBasedModelsTreeUpdater(mp.Process):
                 except CortexException:
                     passed_validation = False
                     shutil.rmtree(temp_dest)
+
+                    cloud_path = ""
+                    if bucket_provider == "s3":
+                        cloud_path = S3.construct_s3_path(bucket_name, s3_src)
+                    if bucket_provider == "gs":
+                        cloud_path = GCS.construct_gcs_path(bucket_name, s3_src)
                     logger().debug(
-                        f"failed validating model {model_name} of version {version} found at {S3.construct_s3_path(bucket_name, s3_src)} path"
+                        f"failed validating model {model_name} of version {version} found at {cloud_path} path"
                     )
 
                 # move the model to its destination directory
@@ -458,7 +471,7 @@ class FileBasedModelsTreeUpdater(mp.Process):
 
             # download to a temp directory
             temp_dest = os.path.join(self._temp_dir, model_name)
-            s3_client.download_dir_contents(model_path, temp_dest)
+            client.download_dir_contents(model_path, temp_dest)
 
             # validate the downloaded model
             model_contents = glob.glob(temp_dest + "*/**", recursive=True)
@@ -469,8 +482,14 @@ class FileBasedModelsTreeUpdater(mp.Process):
             except CortexException:
                 passed_validation = False
                 shutil.rmtree(temp_dest)
+
+                cloud_path = ""
+                if bucket_provider == "s3":
+                    cloud_path = S3.construct_s3_path(bucket_name, model_path)
+                if bucket_provider == "gs":
+                    cloud_path = GCS.construct_gcs_path(bucket_name, model_path)
                 logger().debug(
-                    f"failed validating model {model_name} of version {version} found at {S3.construct_s3_path(bucket_name, model_path)} path"
+                    f"failed validating model {model_name} of version {version} found at {cloud_path} path"
                 )
 
             # move the model to its destination directory
@@ -801,6 +820,7 @@ class TFSModelLoader(mp.Process):
             model_paths,
             sub_paths,
             timestamps,
+            bucket_providers,
             bucket_names,
         ) = find_all_s3_models(
             self._is_dir_used,
@@ -814,8 +834,8 @@ class TFSModelLoader(mp.Process):
         # a model is updated if its directory tree has changed, if it's not present or if it doesn't exist on the upstream
         with ThreadPoolExecutor(max_workers=5) as executor:
             futures = []
-            for idx, (model_name, bucket_name, bucket_sub_paths) in enumerate(
-                zip(model_names, bucket_names, sub_paths)
+            for idx, (model_name, bucket_provider, bucket_name, bucket_sub_paths) in enumerate(
+                zip(model_names, bucket_providers, bucket_names, sub_paths)
             ):
                 futures += [
                     executor.submit(
@@ -826,6 +846,7 @@ class TFSModelLoader(mp.Process):
                         versions[model_name],
                         timestamps[idx],
                         bucket_sub_paths,
+                        bucket_provider,
                         bucket_name,
                     )
                 ]
@@ -922,9 +943,14 @@ class TFSModelLoader(mp.Process):
         versions: List[str],
         timestamps: List[datetime.datetime],
         sub_paths: List[str],
+        bucket_provider: str,
         bucket_name: str,
     ) -> None:
-        s3_client = S3(bucket_name)
+
+        if bucket_provider == "s3":
+            client = S3(bucket_name)
+        if bucket_provider == "gs":
+            client = GCS(bucket_name)
 
         ondisk_model_path = os.path.join(self._download_dir, model_name)
         for version, model_ts in zip(versions, timestamps):
@@ -961,7 +987,7 @@ class TFSModelLoader(mp.Process):
                 # download to a temp directory
                 temp_dest = os.path.join(self._temp_dir, model_name, version)
                 s3_src = os.path.join(model_path, version)
-                s3_client.download_dir_contents(s3_src, temp_dest)
+                client.download_dir_contents(s3_src, temp_dest)
 
                 # validate the downloaded model
                 model_contents = glob.glob(temp_dest + "*/**", recursive=True)
@@ -972,8 +998,14 @@ class TFSModelLoader(mp.Process):
                 except CortexException:
                     passed_validation = False
                     shutil.rmtree(temp_dest)
+
+                    cloud_path = ""
+                    if bucket_provider == "s3":
+                        cloud_path = S3.construct_s3_path(bucket_name, model_path)
+                    if bucket_provider == "gs":
+                        cloud_path = GCS.construct_gcs_path(bucket_name, model_path)
                     logger().debug(
-                        f"failed validating model {model_name} of version {version} found at {S3.construct_s3_path(bucket_name, model_path)} path"
+                        f"failed validating model {model_name} of version {version} found at {cloud_path} path"
                     )
 
                 # move the model to its destination directory
@@ -1042,7 +1074,7 @@ class TFSModelLoader(mp.Process):
 
             # download to a temp directory
             temp_dest = os.path.join(self._temp_dir, model_name)
-            s3_client.download_dir_contents(model_path, temp_dest)
+            client.download_dir_contents(model_path, temp_dest)
 
             # validate the downloaded model
             model_contents = glob.glob(temp_dest + "*/**", recursive=True)
@@ -1053,8 +1085,14 @@ class TFSModelLoader(mp.Process):
             except CortexException:
                 passed_validation = False
                 shutil.rmtree(temp_dest)
+
+                cloud_path = ""
+                if bucket_provider == "s3":
+                    cloud_path = S3.construct_s3_path(bucket_name, model_path)
+                if bucket_provider == "gs":
+                    cloud_path = GCS.construct_gcs_path(bucket_name, model_path)
                 logger().debug(
-                    f"failed validating model {model_name} of version {version} found at {S3.construct_s3_path(bucket_name, model_path)} path"
+                    f"failed validating model {model_name} of version {version} found at {cloud_path} path"
                 )
 
             # move the model to its destination directory
@@ -1516,6 +1554,7 @@ class ModelTreeUpdater(AbstractLoopingThread):
                 ondisk_paths = util.remove_non_empty_directory_paths(ondisk_paths)
                 # removable is set to false to prevent the local models from being removed
                 self._tree.update_model(
+                    provider="",
                     bucket="",
                     model_name=model_name,
                     model_version=model_version,
@@ -1533,6 +1572,7 @@ class ModelTreeUpdater(AbstractLoopingThread):
                 ondisk_paths = util.remove_non_empty_directory_paths(ondisk_paths)
                 # removable is set to false to prevent the local models from being removed
                 self._tree.update_model(
+                    provider="",
                     bucket="",
                     model_name=model_name,
                     model_version=model_version,
@@ -1554,6 +1594,7 @@ class ModelTreeUpdater(AbstractLoopingThread):
             model_paths,
             sub_paths,
             timestamps,
+            bucket_providers,
             bucket_names,
         ) = find_all_s3_models(
             self._is_dir_used,
@@ -1565,7 +1606,13 @@ class ModelTreeUpdater(AbstractLoopingThread):
 
         # update model tree
         self._tree.update_models(
-            model_names, versions, model_paths, sub_paths, timestamps, bucket_names
+            model_names,
+            versions,
+            model_paths,
+            sub_paths,
+            timestamps,
+            bucket_providers,
+            bucket_names,
         )
 
         logger().debug(f"{self.__class__.__name__} cron heartbeat")

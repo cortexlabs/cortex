@@ -40,7 +40,6 @@ import (
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	libtime "github.com/cortexlabs/cortex/pkg/lib/time"
 	"github.com/cortexlabs/cortex/pkg/lib/urls"
-	"github.com/cortexlabs/cortex/pkg/operator/config"
 	"github.com/cortexlabs/cortex/pkg/types"
 	"github.com/cortexlabs/cortex/pkg/types/clusterconfig"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
@@ -785,7 +784,7 @@ func validatePredictor(
 		}
 	}
 
-	err := validateBucketProviders(api.Predictor)
+	err := validateBucketProviders(api.Predictor, providerType)
 	if err != nil {
 		return err
 	}
@@ -1155,32 +1154,31 @@ func validateONNXPredictor(api *userconfig.API, models *[]CuratedModelResource, 
 	return nil
 }
 
-func validateBucketProviders(predictor *userconfig.Predictor) error {
-	if predictor.ModelPath != nil {
-		isS3Path := strings.HasPrefix(*predictor.ModelPath, "s3://")
-		isGCSPath := strings.HasPrefix(*predictor.ModelPath, "gs://")
-		if !(config.Provider == types.AWSProviderType && isS3Path) || !(config.Provider == types.GCPProviderType && isGCSPath) || !(config.Provider == types.LocalProviderType && !isGCSPath) {
-			return errors.Wrap(ErrorIncorrectBucketProvider(config.Provider), userconfig.ModelPathKey)
+func validateBucketProviders(predictor *userconfig.Predictor, providerType types.ProviderType) error {
+	isIncorrectBucketProvider := func(modelPath string) error {
+		isS3Path := strings.HasPrefix(modelPath, "s3://")
+		isGCSPath := strings.HasPrefix(modelPath, "gs://")
+		if (providerType == types.AWSProviderType && !isS3Path) || (providerType == types.GCPProviderType && !isGCSPath) || (providerType == types.LocalProviderType && isGCSPath) {
+			return ErrorIncorrectBucketProvider(providerType)
 		}
+		return nil
+	}
+
+	if predictor.ModelPath != nil {
+		return errors.Wrap(isIncorrectBucketProvider(*predictor.ModelPath), userconfig.ModelPathKey)
 	}
 
 	if predictor.Models != nil {
 		if predictor.Models.Dir != nil {
-			isS3Path := strings.HasPrefix(*predictor.Models.Dir, "s3://")
-			isGCSPath := strings.HasPrefix(*predictor.Models.Dir, "gs://")
-
-			if !(config.Provider == types.AWSProviderType && isS3Path) || !(config.Provider == types.GCPProviderType && isGCSPath) || !(config.Provider == types.LocalProviderType && !isGCSPath) {
-				return errors.Wrap(ErrorIncorrectBucketProvider(config.Provider), userconfig.ModelsKey, userconfig.ModelsDirKey)
-			}
+			return errors.Wrap(isIncorrectBucketProvider(*predictor.Models.Dir), userconfig.ModelsKey, userconfig.ModelsDirKey)
 		}
 		for _, model := range predictor.Models.Paths {
 			if model == nil {
 				continue
 			}
-			isS3Path := strings.HasPrefix(model.ModelPath, "s3://")
-			isGCSPath := strings.HasPrefix(model.ModelPath, "gs://")
-			if !(config.Provider == types.AWSProviderType && isS3Path) || !(config.Provider == types.GCPProviderType && isGCSPath) || !(config.Provider == types.LocalProviderType && !isGCSPath) {
-				return errors.Wrap(ErrorIncorrectBucketProvider(config.Provider), userconfig.ModelsKey, userconfig.ModelsPathsKey, model.Name)
+			err := isIncorrectBucketProvider(model.ModelPath)
+			if err != nil {
+				return errors.Wrap(err, userconfig.ModelsKey, userconfig.ModelsPathsKey, model.Name)
 			}
 		}
 	}

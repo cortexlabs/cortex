@@ -313,6 +313,7 @@ class PythonClient:
                             f"downloading model {model_name} of version {model_version} from the S3 upstream"
                         )
                         date = self._models.download_model(
+                            upstream_model["provider"],
                             upstream_model["bucket"],
                             model_name,
                             model_version,

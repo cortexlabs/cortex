@@ -29,6 +29,8 @@ class CuratedModelResources:
                 'model_path': 's3://cortex-examples/models/tensorflow/transformer/',
                 'name': 'modelB',
                 's3_path': True,
+                'gs_path': False,
+                'local_path': False,
                 'signature_key': None,
                 'versions': [1554540232]
             },
@@ -55,7 +57,7 @@ class CuratedModelResources:
         """
         for model in self._models:
             if model["name"] == name:
-                return not model["s3_path"]
+                return model["local_path"]
         return None
 
     def get_field(self, field: str) -> List[str]:
@@ -183,15 +185,19 @@ def get_models_from_api_spec(
         model_resource = {}
         model_resource["name"] = model["name"]
         model_resource["s3_path"] = model["model_path"].startswith("s3://")
+        model_resource["gcs_path"] = model["model_path"].startswith("gs://")
+        model_resource["local_path"] = (
+            not model_resource["s3_path"] and not model_resource["gcs_path"]
+        )
 
         if not model["signature_key"] and predictor["models"]:
             model_resource["signature_key"] = predictor["models"]["signature_key"]
         else:
             model_resource["signature_key"] = model["signature_key"]
 
-        if model_resource["s3_path"]:
+        if model_resource["s3_path"] or model_resource["gcs_path"]:
             model_resource["model_path"] = model["model_path"]
-            _, versions, _, _, _, _ = find_all_s3_models(
+            _, versions, _, _, _, _, _ = find_all_s3_models(
                 False, "", predictor_type, [model_resource["model_path"]], [model_resource["name"]]
             )
             if model_resource["name"] not in versions:
@@ -208,11 +214,14 @@ def get_models_from_api_spec(
         predictor["models"]
         and predictor["models"]["dir"]
         and not predictor["models"]["dir"].startswith("s3://")
+        and not predictor["models"]["dir"].startswith("gs://")
     ):
         for model_name in os.listdir(model_dir):
             model_resource = {}
             model_resource["name"] = model_name
             model_resource["s3_path"] = False
+            model_resource["gcs_path"] = False
+            model_resource["local_path"] = True
             model_resource["signature_key"] = predictor["models"]["signature_key"]
             model_resource["model_path"] = os.path.join(model_dir, model_name)
             model_resource["versions"] = os.listdir(model_resource["model_path"])
