@@ -12,24 +12,29 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os
 import base64
-import time
-from pathlib import Path
 import json
+import os
 import threading
-import datadog
-from typing import Tuple, Union, Optional
+from pathlib import Path
+from typing import Any, Dict, Optional, Tuple, Union
 
-from cortex.lib.log import cx_logger as logger
+import datadog
+from cortex.lib.api import Monitoring, Predictor
 from cortex.lib.exceptions import CortexException
 from cortex.lib.storage import LocalStorage, S3, GCS
-
-from cortex.lib.api import Monitoring, Predictor
+from cortex.lib.log import cx_logger as logger
 
 
 class API:
-    def __init__(self, provider, storage, api_spec, model_dir, cache_dir="."):
+    def __init__(
+        self,
+        provider: str,
+        storage: Union[LocalStorage, S3],
+        api_spec: Dict[str, Any],
+        model_dir: str,
+        cache_dir: str = ".",
+    ):
         self.provider = provider
         self.storage = storage
         self.api_spec = api_spec
@@ -56,6 +61,10 @@ class API:
         if provider == "local":
             self.metrics_file_lock = threading.Lock()
 
+    @property
+    def server_side_batching_enabled(self):
+        return self.api_spec["predictor"].get("server_side_batching") is not None
+
     def get_cached_classes(self):
         prefix = os.path.join(self.metadata_root, "classes") + "/"
         class_paths, _ = self.storage.search(prefix=prefix)
@@ -65,7 +74,7 @@ class API:
             class_set.add(base64.urlsafe_b64decode(encoded_class_name.encode()).decode())
         return class_set
 
-    def upload_class(self, class_name):
+    def upload_class(self, class_name: str):
         try:
             ascii_encoded = class_name.encode("ascii")  # cloudwatch only supports ascii
             encoded_class_name = base64.urlsafe_b64encode(ascii_encoded)

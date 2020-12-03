@@ -12,32 +12,30 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import sys
-import os
-import argparse
-import inspect
-import time
-import json
-from concurrent.futures import ThreadPoolExecutor
-import threading
-import math
-import uuid
 import asyncio
-from typing import Any
-
-from fastapi import Body, FastAPI
-from fastapi.exceptions import RequestValidationError
-from starlette.requests import Request
-from starlette.responses import Response, PlainTextResponse, JSONResponse
-from starlette.background import BackgroundTasks
-from starlette.exceptions import HTTPException as StarletteHTTPException
+import inspect
+import json
+import math
+import os
+import sys
+import threading
+import time
+import uuid
+from concurrent.futures import ThreadPoolExecutor
+from typing import Any, Dict
 
 from cortex.lib import util
-from cortex.lib.api import API, get_api
-from cortex.lib.log import cx_logger as logger
+from cortex.lib.api import get_api
+from cortex.lib.api.batching import DynamicBatcher
 from cortex.lib.concurrency import FileLock, LockedFile
-from cortex.lib.storage import S3, LocalStorage
 from cortex.lib.exceptions import UserRuntimeException
+from cortex.lib.log import cx_logger as logger
+from fastapi import FastAPI
+from fastapi.exceptions import RequestValidationError
+from starlette.background import BackgroundTasks
+from starlette.exceptions import HTTPException as StarletteHTTPException
+from starlette.requests import Request
+from starlette.responses import JSONResponse, PlainTextResponse, Response
 
 API_SUMMARY_MESSAGE = (
     "make a prediction by sending a post request to this endpoint with a json payload"
@@ -52,10 +50,11 @@ loop.set_default_executor(request_thread_pool)
 
 app = FastAPI()
 
-local_cache = {
+local_cache: Dict[str, Any] = {
     "api": None,
     "provider": None,
     "predictor_impl": None,
+    "dynamic_batcher": None,
     "predict_route": None,
     "client": None,
     "class_set": set(),
@@ -78,17 +77,17 @@ def startup():
 def shutdown():
     try:
         os.remove("/mnt/workspace/api_readiness.txt")
-    except:
+    except FileNotFoundError:
         pass
 
     try:
         os.remove(f"/mnt/workspace/proc-{os.getpid()}-ready.txt")
-    except:
+    except FileNotFoundError:
         pass
 
     try:
         os.remove("/mnt/workspace/api_liveness.txt")
-    except:
+    except FileNotFoundError:
         pass
 
 
@@ -135,7 +134,7 @@ async def register_request(request: Request, call_next):
         if file_id is not None:
             try:
                 os.remove(file_id)
-            except:
+            except FileNotFoundError:
                 pass
 
         if is_prediction_request(request):
@@ -180,9 +179,13 @@ def predict(request: Request):
     tasks = BackgroundTasks()
     api = local_cache["api"]
     predictor_impl = local_cache["predictor_impl"]
+    dynamic_batcher = local_cache["dynamic_batcher"]
     kwargs = build_predict_kwargs(request)
 
-    prediction = predictor_impl.predict(**kwargs)
+    if dynamic_batcher:
+        prediction = dynamic_batcher.predict(**kwargs)
+    else:
+        prediction = predictor_impl.predict(**kwargs)
 
     if isinstance(prediction, bytes):
         response = Response(content=prediction, media_type="application/octet-stream")
@@ -196,7 +199,8 @@ def predict(request: Request):
         except Exception as e:
             raise UserRuntimeException(
                 str(e),
-                "please return an object that is JSON serializable (including its nested fields), a bytes object, a string, or a starlette.response.Response object",
+                "please return an object that is JSON serializable (including its nested fields), a bytes object, "
+                "a string, or a starlette.response.Response object",
             ) from e
         response = Response(content=json_string, media_type="application/json")
 
@@ -313,6 +317,15 @@ def start_fn():
         local_cache["client"] = client
         local_cache["predictor_impl"] = predictor_impl
         local_cache["predict_fn_args"] = inspect.getfullargspec(predictor_impl.predict).args
+
+        if api.server_side_batching_enabled:
+            dynamic_batching_config = api.api_spec["predictor"]["server_side_batching"]
+            local_cache["dynamic_batcher"] = DynamicBatcher(
+                predictor_impl,
+                max_batch_size=dynamic_batching_config["max_batch_size"],
+                batch_interval=dynamic_batching_config["batch_interval"],
+            )
+
         if util.has_method(predictor_impl, "post_predict"):
             local_cache["post_predict_fn_args"] = inspect.getfullargspec(
                 predictor_impl.post_predict
