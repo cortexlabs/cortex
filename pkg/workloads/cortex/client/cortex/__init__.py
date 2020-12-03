@@ -37,6 +37,7 @@ def client(env: str):
     for environment in environments:
         if environment["name"] == env:
             found = True
+            break
 
     if not found:
         raise NotFound(
