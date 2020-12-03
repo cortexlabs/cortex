@@ -85,8 +85,8 @@ func deploy(env cliconfig.Environment, apiConfigs []userconfig.API, projectFiles
 		return nil, err
 	}
 
-	projectFilePaths := projectFiles.AllAbsPaths()
-	projectID, err := files.HashFile(projectFilePaths[0], projectFilePaths[1:]...)
+	projectRelFilePaths := projectFiles.AllPaths()
+	projectID, err := files.HashFile(projectRelFilePaths[0], projectRelFilePaths[1:]...)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to hash directory", projectFiles.projectRoot)
 	}

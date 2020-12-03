@@ -169,7 +169,7 @@ func UpdateAPI(apiConfig *userconfig.API, models []spec.CuratedModelResource, pr
 	return nil, msg, err
 }
 
-func PatchAPI(configBytes []byte, configFileName string, force bool) ([]schema.DeployResult, error) {
+func Patch(configBytes []byte, configFileName string, force bool) ([]schema.DeployResult, error) {
 	apiConfigs, err := spec.ExtractAPIConfigs(configBytes, types.AWSProviderType, configFileName, &config.Cluster.Config)
 	if err != nil {
 		return nil, err
@@ -208,8 +208,9 @@ func patchAPI(apiConfig *userconfig.API, configFileName string, force bool) (*sp
 
 	if deployedResource.Kind == userconfig.TrafficSplitterKind {
 		return trafficsplitter.UpdateAPI(apiConfig, force)
+	} else if deployedResource.Kind != userconfig.BatchAPIKind && deployedResource.Kind != userconfig.RealtimeAPIKind {
+		return nil, "", ErrorOperationIsOnlySupportedForKind(*deployedResource, userconfig.RealtimeAPIKind, userconfig.BatchAPIKind, userconfig.TrafficSplitterKind) // unexpected
 	}
-	// TODO handle unknown kind
 
 	prevAPISpec, err := operator.DownloadAPISpec(deployedResource.Name, deployedResource.ID())
 	if err != nil {

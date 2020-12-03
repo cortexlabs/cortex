@@ -41,7 +41,7 @@ func Patch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response, err := resources.PatchAPI(bodyBytes, configFileName, force)
+	response, err := resources.Patch(bodyBytes, configFileName, force)
 	if err != nil {
 		respondError(w, r, err)
 		return
