@@ -83,7 +83,7 @@ http {
         }
 
         location ~ ^/(predict/?|)$ {
-            # CORS (https://enable-cors.org/server_nginx.html)
+            # CORS (inspired by https://enable-cors.org/server_nginx.html)
             if ($request_method = 'OPTIONS') {
                 add_header 'Access-Control-Allow-Origin' '*';
                 add_header 'Access-Control-Allow-Methods' 'HEAD, GET, POST, OPTIONS';
@@ -100,6 +100,12 @@ http {
                 add_header 'Access-Control-Expose-Headers' 'Content-Length,Content-Range';
             }
             if ($request_method = 'GET') {
+                add_header 'Access-Control-Allow-Origin' '*';
+                add_header 'Access-Control-Allow-Methods' 'HEAD, GET, POST, OPTIONS';
+                add_header 'Access-Control-Allow-Headers' '*';
+                add_header 'Access-Control-Expose-Headers' 'Content-Length,Content-Range';
+            }
+            if ($request_method = 'HEAD') {
                 add_header 'Access-Control-Allow-Origin' '*';
                 add_header 'Access-Control-Allow-Methods' 'HEAD, GET, POST, OPTIONS';
                 add_header 'Access-Control-Allow-Headers' '*';
