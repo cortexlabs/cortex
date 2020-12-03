@@ -87,7 +87,7 @@ http {
 
             add_header Access-Control-Allow-Origin "*";
             add_header Access-Control-Allow-Headers "*";
-            add_header Access-Control-Allow-Methods "GET, POST";
+            add_header Access-Control-Allow-Methods "GET, HEAD, POST";
             add_header Access-Control-Allow-Credentials "true";
 
             proxy_set_header HOST $host;
