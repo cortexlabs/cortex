@@ -16,7 +16,7 @@ import os
 from typing import List, Optional
 
 import cortex.consts
-from cortex.lib.model import find_all_s3_models
+from cortex.lib.model import find_all_cloud_models
 from cortex.lib.type import predictor_type_from_api_spec
 
 
@@ -65,7 +65,7 @@ class CuratedModelResources:
         Get a list of the values of each models' specified field.
 
         Args:
-            field: name, s3_path, signature_key or versions.
+            field: name, s3_path, gs_path, local_path, signature_key or versions.
 
         Returns:
             A list with the specified value of each model.
@@ -108,19 +108,19 @@ class CuratedModelResources:
 
         return local_model_names
 
-    def get_s3_model_names(self) -> List[str]:
+    def get_cloud_model_names(self) -> List[str]:
         """
-        Get S3-provided models as specified with predictor:model_path or predictor:models:paths.
+        Get cloud-provided models as specified with predictor:model_path or predictor:models:paths.
 
         Returns:
-            A list of names of all models available from S3.
+            A list of names of all models available from the cloud bucket(s).
         """
-        s3_model_names = []
+        cloud_model_names = []
         for model_name in self.get_field("name"):
             if not self.is_local(model_name):
-                s3_model_names.append(model_name)
+                cloud_model_names.append(model_name)
 
-        return s3_model_names
+        return cloud_model_names
 
     def __getitem__(self, name: str) -> dict:
         """
@@ -197,7 +197,7 @@ def get_models_from_api_spec(
 
         if model_resource["s3_path"] or model_resource["gcs_path"]:
             model_resource["model_path"] = model["model_path"]
-            _, versions, _, _, _, _, _ = find_all_s3_models(
+            _, versions, _, _, _, _, _ = find_all_cloud_models(
                 False, "", predictor_type, [model_resource["model_path"]], [model_resource["name"]]
             )
             if model_resource["name"] not in versions:

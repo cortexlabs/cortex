@@ -40,7 +40,7 @@ from cortex.lib.type import (
 )
 
 from cortex.lib.model import (
-    find_all_s3_models,
+    find_all_cloud_models,
     validate_model_paths,
     TensorFlowServingAPI,
     TensorFlowServingAPIClones,
@@ -140,8 +140,8 @@ class FileBasedModelsTreeUpdater(mp.Process):
         self._s3_paths = []
         self._spec_models = get_models_from_api_spec(self._api_spec)
         self._local_model_names = self._spec_models.get_local_model_names()
-        self._s3_model_names = self._spec_models.get_s3_model_names()
-        for model_name in self._s3_model_names:
+        self._cloud_model_names = self._spec_models.get_cloud_model_names()
+        for model_name in self._cloud_model_names:
             self._s3_paths.append(self._spec_models[model_name]["model_path"])
 
         if (
@@ -256,7 +256,7 @@ class FileBasedModelsTreeUpdater(mp.Process):
         ):
             return
 
-        # get updated/validated paths/versions of the S3 models
+        # get updated/validated paths/versions of the cloud models
         (
             model_names,
             versions,
@@ -265,12 +265,12 @@ class FileBasedModelsTreeUpdater(mp.Process):
             timestamps,
             bucket_providers,
             bucket_names,
-        ) = find_all_s3_models(
+        ) = find_all_cloud_models(
             self._is_dir_used,
             self._models_dir,
             self._predictor_type,
             self._s3_paths,
-            self._s3_model_names,
+            self._cloud_model_names,
         )
 
         # update models on the local disk if changes have been detected
@@ -347,15 +347,15 @@ class FileBasedModelsTreeUpdater(mp.Process):
                 ]
                 local_paths = [path for path in local_paths if not path.startswith("../")]
 
-                s3_model_version_path = os.path.join(model_path, version)
-                s3_paths = [
-                    os.path.relpath(sub_path, s3_model_version_path) for sub_path in sub_paths
+                cloud_model_version_path = os.path.join(model_path, version)
+                cloud_paths = [
+                    os.path.relpath(sub_path, cloud_model_version_path) for sub_path in sub_paths
                 ]
-                s3_paths = [path for path in s3_paths if not path.startswith("../")]
-                s3_paths = util.remove_non_empty_directory_paths(s3_paths)
+                cloud_paths = [path for path in cloud_paths if not path.startswith("../")]
+                cloud_paths = util.remove_non_empty_directory_paths(cloud_paths)
 
                 # update if the paths don't match
-                if set(local_paths) != set(s3_paths):
+                if set(local_paths) != set(cloud_paths):
                     update_model = True
 
                 # update if the timestamp is newer
@@ -372,8 +372,8 @@ class FileBasedModelsTreeUpdater(mp.Process):
             if update_model:
                 # download to a temp directory
                 temp_dest = os.path.join(self._temp_dir, model_name, version)
-                s3_src = os.path.join(model_path, version)
-                client.download_dir_contents(s3_src, temp_dest)
+                cloud_src = os.path.join(model_path, version)
+                client.download_dir_contents(cloud_src, temp_dest)
 
                 # validate the downloaded model
                 model_contents = glob.glob(temp_dest + "*/**", recursive=True)
@@ -387,9 +387,9 @@ class FileBasedModelsTreeUpdater(mp.Process):
 
                     cloud_path = ""
                     if bucket_provider == "s3":
-                        cloud_path = S3.construct_s3_path(bucket_name, s3_src)
+                        cloud_path = S3.construct_s3_path(bucket_name, cloud_src)
                     if bucket_provider == "gs":
-                        cloud_path = GCS.construct_gcs_path(bucket_name, s3_src)
+                        cloud_path = GCS.construct_gcs_path(bucket_name, cloud_src)
                     logger().debug(
                         f"failed validating model {model_name} of version {version} found at {cloud_path} path"
                     )
@@ -448,15 +448,15 @@ class FileBasedModelsTreeUpdater(mp.Process):
                 ]
                 local_paths = [path for path in local_paths if not path.startswith("../")]
 
-                s3_model_version_path = model_path
-                s3_paths = [
-                    os.path.relpath(sub_path, s3_model_version_path) for sub_path in sub_paths
+                cloud_model_version_path = model_path
+                cloud_paths = [
+                    os.path.relpath(sub_path, cloud_model_version_path) for sub_path in sub_paths
                 ]
-                s3_paths = [path for path in s3_paths if not path.startswith("../")]
-                s3_paths = util.remove_non_empty_directory_paths(s3_paths)
+                cloud_paths = [path for path in cloud_paths if not path.startswith("../")]
+                cloud_paths = util.remove_non_empty_directory_paths(cloud_paths)
 
                 # update if the paths don't match
-                if set(local_paths) != set(s3_paths):
+                if set(local_paths) != set(cloud_paths):
                     update_model = True
 
                 # update if the timestamp is newer
@@ -549,7 +549,7 @@ class FileBasedModelsGC(AbstractLoopingThread):
                 if self._models.has_model_id(in_memory_id)[0] == "in-memory":
                     model_name, model_version = in_memory_id.rsplit("-", maxsplit=1)
                     logger().info(
-                        f"removing model {model_name} of version {model_version} from memory as it's no longer present on disk/S3 (thread {td.get_ident()})"
+                        f"removing model {model_name} of version {model_version} from memory as it's no longer present on disk/S3/GS (thread {td.get_ident()})"
                     )
                     self._models.remove_model_by_id(
                         in_memory_id, mem=True, disk=False, del_reference=True
@@ -676,7 +676,7 @@ def find_ondisk_model_info(lock_dir: str, model_name: str) -> Tuple[List[str], L
 
 class TFSModelLoader(mp.Process):
     """
-    Monitors the S3 path(s)/dir and continuously updates the models on TFS.
+    Monitors the cloud path(s)/dir (S3 or GS) and continuously updates the models on TFS.
     The model paths are validated - the bad paths are ignored.
     When a new model is found, it updates the tree, downloads it and loads it into memory - likewise when a model is removed.
     """
@@ -725,12 +725,12 @@ class TFSModelLoader(mp.Process):
             self._tfs_address = None
             self._tfs_addresses = addresses
 
-        self._s3_paths = []
+        self._cloud_paths = []
         self._spec_models = get_models_from_api_spec(self._api_spec)
         self._local_model_names = self._spec_models.get_local_model_names()
-        self._s3_model_names = self._spec_models.get_s3_model_names()
-        for model_name in self._s3_model_names:
-            self._s3_paths.append(self._spec_models[model_name]["model_path"])
+        self._cloud_model_names = self._spec_models.get_cloud_model_names()
+        for model_name in self._cloud_model_names:
+            self._cloud_paths.append(self._spec_models[model_name]["model_path"])
 
         if (
             self._api_spec["predictor"]["model_path"] is None
@@ -821,7 +821,7 @@ class TFSModelLoader(mp.Process):
         ):
             return True
 
-        # get updated/validated paths/versions of the S3 models
+        # get updated/validated paths/versions of the cloud models (S3 or GS)
         (
             model_names,
             versions,
@@ -830,12 +830,12 @@ class TFSModelLoader(mp.Process):
             timestamps,
             bucket_providers,
             bucket_names,
-        ) = find_all_s3_models(
+        ) = find_all_cloud_models(
             self._is_dir_used,
             self._models_dir,
             self._predictor_type,
-            self._s3_paths,
-            self._s3_model_names,
+            self._cloud_paths,
+            self._cloud_model_names,
         )
 
         # update models on the local disk if changes have been detected
@@ -975,14 +975,14 @@ class TFSModelLoader(mp.Process):
                 ]
                 local_paths = [path for path in local_paths if not path.startswith("../")]
 
-                s3_model_version_path = os.path.join(model_path, version)
-                s3_paths = [
-                    os.path.relpath(sub_path, s3_model_version_path) for sub_path in sub_paths
+                cloud_model_version_path = os.path.join(model_path, version)
+                cloud_paths = [
+                    os.path.relpath(sub_path, cloud_model_version_path) for sub_path in sub_paths
                 ]
-                s3_paths = [path for path in s3_paths if not path.startswith("../")]
-                s3_paths = util.remove_non_empty_directory_paths(s3_paths)
+                cloud_paths = [path for path in cloud_paths if not path.startswith("../")]
+                cloud_paths = util.remove_non_empty_directory_paths(cloud_paths)
 
-                if set(local_paths) != set(s3_paths):
+                if set(local_paths) != set(cloud_paths):
                     update_model = True
 
                 model_id = f"{model_name}-{version}"
@@ -994,8 +994,8 @@ class TFSModelLoader(mp.Process):
             if update_model:
                 # download to a temp directory
                 temp_dest = os.path.join(self._temp_dir, model_name, version)
-                s3_src = os.path.join(model_path, version)
-                client.download_dir_contents(s3_src, temp_dest)
+                cloud_src = os.path.join(model_path, version)
+                client.download_dir_contents(cloud_src, temp_dest)
 
                 # validate the downloaded model
                 model_contents = glob.glob(temp_dest + "*/**", recursive=True)
@@ -1060,15 +1060,15 @@ class TFSModelLoader(mp.Process):
                 ]
                 local_paths = [path for path in local_paths if not path.startswith("../")]
 
-                s3_model_version_path = model_path
-                s3_paths = [
-                    os.path.relpath(sub_path, s3_model_version_path) for sub_path in sub_paths
+                cloud_model_version_path = model_path
+                cloud_paths = [
+                    os.path.relpath(sub_path, cloud_model_version_path) for sub_path in sub_paths
                 ]
-                s3_paths = [path for path in s3_paths if not path.startswith("../")]
-                s3_paths = util.remove_non_empty_directory_paths(s3_paths)
+                cloud_paths = [path for path in cloud_paths if not path.startswith("../")]
+                cloud_paths = util.remove_non_empty_directory_paths(cloud_paths)
 
                 # update if the paths don't match
-                if set(local_paths) != set(s3_paths):
+                if set(local_paths) != set(cloud_paths):
                     update_model = True
 
                 model_id = f"{model_name}-1"
@@ -1113,33 +1113,33 @@ class TFSModelLoader(mp.Process):
         self,
         model_name: str,
         model_versions: List[str],
-        _s3_timestamps: List[List[datetime.datetime]],
-        _s3_model_names: List[str],
-        _s3_versions: Dict[str, List[str]],
+        _cloud_timestamps: List[List[datetime.datetime]],
+        _cloud_model_names: List[str],
+        _cloud_versions: Dict[str, List[str]],
     ) -> Optional[dict]:
         """
         Compares the existing models from TFS with those present on disk.
         Does the loading/unloading/reloading of models.
 
-        From the _s3_timestamps, _s3_model_names, _s3_versions params, only the fields of the respective model name are used.
+        From the _cloud_timestamps, _cloud_model_names, _cloud_versions params, only the fields of the respective model name are used.
         """
 
         # to prevent overwriting mistakes
-        s3_timestamps = copy.deepcopy(_s3_timestamps)
-        s3_model_names = copy.deepcopy(_s3_model_names)
-        s3_versions = copy.deepcopy(_s3_versions)
+        cloud_timestamps = copy.deepcopy(_cloud_timestamps)
+        cloud_model_names = copy.deepcopy(_cloud_model_names)
+        cloud_versions = copy.deepcopy(_cloud_versions)
 
         current_ts_state = {}
 
         # get the right order of model versions with respect to the model ts order
-        model_timestamps = s3_timestamps[s3_model_names.index(model_name)]
+        model_timestamps = cloud_timestamps[cloud_model_names.index(model_name)]
         filtered_model_versions = []
-        if len(s3_versions[model_name]) == 0:
+        if len(cloud_versions[model_name]) == 0:
             filtered_model_versions = ["1"] * len(model_timestamps)
         else:
             for idx in range(len(model_timestamps)):
-                if s3_versions[model_name][idx] in model_versions:
-                    filtered_model_versions.append(s3_versions[model_name][idx])
+                if cloud_versions[model_name][idx] in model_versions:
+                    filtered_model_versions.append(cloud_versions[model_name][idx])
 
         for model_version, model_ts in zip(filtered_model_versions, model_timestamps):
             model_ts = int(model_ts.timestamp())
@@ -1435,20 +1435,20 @@ class ModelsGC(AbstractLoopingThread):
 
     def _remove_stale_models(self) -> None:
         """
-        Remove models that exist locally in-memory and on-disk that no longer appear on the S3 upstream.
+        Remove models that exist locally in-memory and on-disk that no longer appear on the cloud upstream (S3 or GS).
         """
 
         # get available upstream S3 model IDs
-        s3_model_names = self._tree.get_model_names()
-        s3_model_versions = [
-            self._tree.model_info(model_name)["versions"] for model_name in s3_model_names
+        cloud_model_names = self._tree.get_model_names()
+        cloud_model_versions = [
+            self._tree.model_info(model_name)["versions"] for model_name in cloud_model_names
         ]
-        s3_model_ids = []
-        for model_name, model_versions in zip(s3_model_names, s3_model_versions):
+        cloud_model_ids = []
+        for model_name, model_versions in zip(cloud_model_names, cloud_model_versions):
             if len(model_versions) == 0:
                 continue
             for model_version in model_versions:
-                s3_model_ids.append(f"{model_name}-{model_version}")
+                cloud_model_ids.append(f"{model_name}-{model_version}")
 
         # get model IDs loaded into memory or on disk.
         with LockedGlobalModelsGC(self._models, "r"):
@@ -1458,7 +1458,7 @@ class ModelsGC(AbstractLoopingThread):
         present_model_ids = list(set(present_model_ids) - set(self._local_model_ids))
 
         # remove models that don't exist in the S3 upstream
-        ghost_model_ids = list(set(present_model_ids) - set(s3_model_ids))
+        ghost_model_ids = list(set(present_model_ids) - set(cloud_model_ids))
         for model_id in ghost_model_ids:
             model_name, model_version = model_id.rsplit("-", maxsplit=1)
             with LockedModel(self._models, "w", model_name, model_version):
@@ -1508,7 +1508,7 @@ class ModelsGC(AbstractLoopingThread):
 
 class ModelTreeUpdater(AbstractLoopingThread):
     """
-    Model tree updater. Updates a local representation of all available models from the S3 upstreams.
+    Model tree updater. Updates a local representation of all available models from the cloud upstreams (S3 or GS).
     """
 
     def __init__(self, interval: int, api_spec: dict, tree: ModelsTree, ondisk_models_dir: str):
@@ -1516,7 +1516,7 @@ class ModelTreeUpdater(AbstractLoopingThread):
         Args:
             interval: How often to update the models tree. Measured in seconds.
             api_spec: Identical copy of pkg.type.spec.api.API.
-            tree: Model tree representation of the available models on the S3 upstream.
+            tree: Model tree representation of the available models on the cloud upstream (S3 or GS).
             ondisk_models_dir: Where the models are stored on disk. Necessary when local models are used.
         """
 
@@ -1526,11 +1526,11 @@ class ModelTreeUpdater(AbstractLoopingThread):
         self._tree = tree
         self._ondisk_models_dir = ondisk_models_dir
 
-        self._s3_paths = []
+        self._cloud_paths = []
         self._spec_models = get_models_from_api_spec(self._api_spec)
-        self._s3_model_names = self._spec_models.get_s3_model_names()
-        for model_name in self._s3_model_names:
-            self._s3_paths.append(self._spec_models[model_name]["model_path"])
+        self._cloud_model_names = self._spec_models.get_cloud_model_names()
+        for model_name in self._cloud_model_names:
+            self._cloud_paths.append(self._spec_models[model_name]["model_path"])
 
         if (
             self._api_spec["predictor"]["model_path"] is None
@@ -1599,7 +1599,7 @@ class ModelTreeUpdater(AbstractLoopingThread):
         ):
             return True
 
-        # get updated/validated paths/versions of the S3 models
+        # get updated/validated paths/versions of the cloud models (S3 or GS)
         (
             model_names,
             versions,
@@ -1608,12 +1608,12 @@ class ModelTreeUpdater(AbstractLoopingThread):
             timestamps,
             bucket_providers,
             bucket_names,
-        ) = find_all_s3_models(
+        ) = find_all_cloud_models(
             self._is_dir_used,
             self._models_dir,
             self._predictor_type,
-            self._s3_paths,
-            self._s3_model_names,
+            self._cloud_paths,
+            self._cloud_model_names,
         )
 
         # update model tree

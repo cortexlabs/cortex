@@ -501,7 +501,7 @@ def model_downloader(
     model_dir: str,
 ) -> Optional[datetime.datetime]:
     """
-    Downloads model to disk. Validates the S3 model path and the downloaded model as well.
+    Downloads model to disk. Validates the cloud model path and the downloaded model as well.
 
     Args:
         predictor_type: The predictor type as implemented by the API.
@@ -509,7 +509,7 @@ def model_downloader(
         bucket_name: Name of the bucket where the model is stored.
         model_name: Name of the model. Is part of the model's local path.
         model_version: Version of the model. Is part of the model's local path.
-        model_path: S3 model prefix to the versioned model.
+        model_path: Model prefix to the versioned model.
         temp_dir: Where to temporarily store the model for validation.
         model_dir: The top directory of where all models are stored locally.
 
@@ -526,7 +526,7 @@ def model_downloader(
     if bucket_provider == "gs":
         client = GCS(bucket_name)
 
-    # validate upstream S3 model
+    # validate upstream cloud model
     sub_paths, ts = client.search(model_path)
     try:
         validate_model_paths(sub_paths, predictor_type, model_path)

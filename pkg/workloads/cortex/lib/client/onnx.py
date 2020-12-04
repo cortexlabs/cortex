@@ -351,11 +351,11 @@ class ONNXClient:
                             )
                         elif status == "on-disk":
                             logger().info(
-                                f"found newer model {model_name} of vesion {model_version} on the S3 upstream than the one on the disk"
+                                f"found newer model {model_name} of vesion {model_version} on the {upstream_model['provider']} upstream than the one on the disk"
                             )
                         else:
                             logger().info(
-                                f"found newer model {model_name} of vesion {model_version} on the S3 upstream than the one loaded into memory"
+                                f"found newer model {model_name} of vesion {model_version} on the {upstream_model['provider']} upstream than the one loaded into memory"
                             )
 
                         # remove model from disk and memory

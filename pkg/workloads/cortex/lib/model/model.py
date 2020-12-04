@@ -288,7 +288,7 @@ class ModelsHolder:
         Args:
             model_name: The name of the model.
             model_version: The version of the model.
-            upstream_timestamp: When was this model last modified on the upstream source (e.g. S3).
+            upstream_timestamp: When was this model last modified on the upstream source (e.g. S3, GS).
             tags: List of tags to initialize the model with.
             kwargs: Extra arguments to pass into the loading callback.
 
@@ -334,7 +334,7 @@ class ModelsHolder:
 
         Args:
             provider: Provider of the bucket. Can be "s3" or "gs".
-            bucket: The upstream model's S3 bucket name.
+            bucket: The upstream model's cloud bucket name.
             model_name: The name of the model.
             model_version: The version of the model.
             model_path: Path to the model as discovered in models:dir or specified in models:paths.

@@ -17,7 +17,7 @@ from cortex.lib.model.tfs import TensorFlowServingAPI, TensorFlowServingAPIClone
 from cortex.lib.model.tree import (
     ModelsTree,
     LockedModelsTree,
-    find_all_s3_models,
+    find_all_cloud_models,
 )
 from cortex.lib.model.type import get_models_from_api_spec, CuratedModelResources
 from cortex.lib.model.validation import (
