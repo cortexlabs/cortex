@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	"google.golang.org/api/compute/v1"
@@ -38,7 +39,7 @@ func (c *Client) IsProjectIDValid() (bool, error) {
 		if IsErrCode(err, 404, pointer.String(errorMessage)) {
 			return false, nil
 		}
-		return false, err
+		return false, errors.WithStack(err)
 	}
 
 	return true, nil
@@ -56,7 +57,7 @@ func (c *Client) IsZoneValid() (bool, error) {
 		if IsErrCode(err, 404, pointer.String(errorMessage)) {
 			return false, nil
 		}
-		return false, err
+		return false, errors.WithStack(err)
 	}
 
 	return true, nil
@@ -74,7 +75,7 @@ func (c *Client) IsInstanceTypeAvailable(instanceType string) (bool, error) {
 		if IsErrCode(err, 404, pointer.String(errorMessage)) {
 			return false, nil
 		}
-		return false, err
+		return false, errors.WithStack(err)
 	}
 
 	return true, nil
@@ -92,7 +93,7 @@ func (c *Client) IsAcceleratorTypeAvailable(acceleratorType string) (bool, error
 		if IsErrCode(err, 404, pointer.String(fmt.Sprintf("The resource '%s' was not found", resource))) {
 			return false, nil
 		}
-		return false, err
+		return false, errors.WithStack(err)
 	}
 
 	return true, nil
@@ -118,7 +119,7 @@ func (c *Client) GetAvailableZones() ([]string, error) {
 		return nil
 	})
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 
 	return availableZones.SliceSorted(), nil
@@ -144,7 +145,7 @@ func (c *Client) GetAvailableInstanceTypes() ([]string, error) {
 		return nil
 	})
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 
 	return availableInstanceTypes.SliceSorted(), nil
@@ -172,7 +173,7 @@ func (c *Client) GetAvailableInstanceTypesForAllZones() ([]string, error) {
 		return nil
 	})
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 
 	return availableInstanceTypes.SliceSorted(), nil
@@ -197,7 +198,7 @@ func (c *Client) GetInstanceTypesMetadata() ([]compute.MachineType, error) {
 		return nil
 	})
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 
 	return machineTypesList, nil
@@ -224,7 +225,7 @@ func (c *Client) GetInstanceTypesMetadataForAllZones() ([]compute.MachineType, e
 		return nil
 	})
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 
 	return machineTypesList, nil
@@ -266,7 +267,7 @@ func (c *Client) GetAvailableAcceleratorTypes() ([]string, error) {
 		return nil
 	})
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 
 	return availableAcceleratorTypes.SliceSorted(), nil
@@ -294,7 +295,7 @@ func (c *Client) GetAvailableAcceleratorTypesForAllZones() ([]string, error) {
 		return nil
 	})
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 
 	return availableAcceleratorTypes.SliceSorted(), nil
@@ -325,7 +326,7 @@ func (c *Client) GetAvailableZonesForAccelerator(acceleratorType string) ([]stri
 		return nil
 	})
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 
 	return availableAcceleratorZones.SliceSorted(), nil

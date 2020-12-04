@@ -740,7 +740,7 @@ func ValidateTrafficSplitter(
 	awsClient *aws.Client,
 ) error {
 
-	if providerType != types.AWSProviderType {
+	if providerType == types.LocalProviderType {
 		return ErrorKindIsNotSupportedByProvider(userconfig.TrafficSplitterKind, providerType)
 	}
 

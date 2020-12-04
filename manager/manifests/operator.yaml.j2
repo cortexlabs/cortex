@@ -72,10 +72,6 @@ spec:
             - secretRef:
                 name: aws-credentials
             {%endif %}
-            {% if env['CORTEX_PROVIDER'] == "gcp" %}
-            - configMapRef:
-                name: gcp-vars
-            {%endif %}
           volumeMounts:
             - name: cluster-config
               mountPath: /configs/cluster

@@ -216,14 +216,13 @@ func runManagerWithClusterConfig(entrypoint string, clusterConfig *clusterconfig
 	return output, exitCode, nil
 }
 
-// TODO: remove references to AWS here
-func runManagerWithClusterConfigGCP(entrypoint string, clusterConfig *clusterconfig.GCPConfig, copyToPaths []dockerCopyToPath, copyFromPaths []dockerCopyFromPath) (string, *int, error) {
+func runGCPManagerWithClusterConfig(entrypoint string, clusterConfig *clusterconfig.GCPConfig, bucketName string, copyToPaths []dockerCopyToPath, copyFromPaths []dockerCopyFromPath) (string, *int, error) {
 	clusterConfigBytes, err := yaml.Marshal(clusterConfig)
 	if err != nil {
 		return "", nil, errors.WithStack(err)
 	}
 
-	clusterConfigPath := cachedClusterConfigPath(clusterConfig.ClusterName, clusterConfig.Zone)
+	clusterConfigPath := cachedGCPClusterConfigPath(clusterConfig.ClusterName, *clusterConfig.Project, *clusterConfig.Zone)
 	if err := files.WriteFile(clusterConfigBytes, clusterConfigPath); err != nil {
 		return "", nil, err
 	}
@@ -261,14 +260,14 @@ func runManagerWithClusterConfigGCP(entrypoint string, clusterConfig *clustercon
 		AttachStdout: true,
 		AttachStderr: true,
 		Env: []string{
-			"CORTEX_PROVIDER=" + "gcp",
 			"GOOGLE_APPLICATION_CREDENTIALS=" + gcpCredsPath,
-			"CORTEX_GCP_PROJECT=" + clusterConfig.Project,
-			"CORTEX_GCP_ZONE=" + clusterConfig.Zone,
+			"CORTEX_PROVIDER=gcp",
+			"CORTEX_GCP_PROJECT=" + *clusterConfig.Project,
+			"CORTEX_GCP_ZONE=" + *clusterConfig.Zone,
 			"CORTEX_TELEMETRY_DISABLE=" + os.Getenv("CORTEX_TELEMETRY_DISABLE"),
 			"CORTEX_TELEMETRY_SENTRY_DSN=" + os.Getenv("CORTEX_TELEMETRY_SENTRY_DSN"),
 			"CORTEX_TELEMETRY_SEGMENT_WRITE_KEY=" + os.Getenv("CORTEX_TELEMETRY_SEGMENT_WRITE_KEY"),
-			"CORTEX_DEV_DEFAULT_PREDICTOR_IMAGE_REGISTRY=" + os.Getenv("CORTEX_DEV_DEFAULT_PREDICTOR_IMAGE_REGISTRY"),
+			"CORTEX_DEV_DEFAULT_PREDICTOR_IMAGE_REGISTRY=" + os.Getenv("CORTEX_DEV_DEFAULT_PREDICTOR_IMAGE_REGISTRY_GCP"),
 			"CORTEX_CLUSTER_CONFIG_FILE=" + containerClusterConfigPath,
 			"CORTEX_IMAGE_PYTHON_PREDICTOR_CPU=" + consts.DefaultImagePythonPredictorCPU,
 			"CORTEX_IMAGE_PYTHON_PREDICTOR_GPU=" + consts.DefaultImagePythonPredictorGPU,

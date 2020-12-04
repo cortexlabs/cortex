@@ -13,6 +13,8 @@ RUN apt-get update -qq && apt-get install -y -q \
 RUN wget -P /tmp/ https://github.com/just-containers/s6-overlay/releases/download/v2.1.0.2/s6-overlay-amd64-installer && \
     chmod +x /tmp/s6-overlay-amd64-installer && /tmp/s6-overlay-amd64-installer / && rm /tmp/s6-overlay-amd64-installer
 
+ENV S6_BEHAVIOUR_IF_STAGE2_FAILS 2
+
 ENV PATH=/opt/aws/neuron/bin/:$PATH
 
 RUN apt-get update -qq && apt-get install -y -q \
@@ -41,7 +43,7 @@ RUN curl "https://repo.anaconda.com/miniconda/Miniconda3-4.7.12.1-Linux-x86_64.s
     rm -rf ~/.cache ~/miniconda.sh
 
 # split the conda installations because the dev boxes have limited memory
-RUN /opt/conda/bin/conda create -n env -c conda-forge python=$PYTHONVERSION pip && \
+RUN /opt/conda/bin/conda create -n env -c conda-forge python=$PYTHONVERSION pip=19.* && \
     /opt/conda/bin/conda clean -a && \
     ln -s /opt/conda/etc/profile.d/conda.sh /etc/profile.d/conda.sh && \
     echo ". /opt/conda/etc/profile.d/conda.sh" > ~/.env && \

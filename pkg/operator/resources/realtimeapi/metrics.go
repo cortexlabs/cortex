@@ -91,6 +91,7 @@ func GetMetrics(api *spec.API) (*metrics.Metrics, error) {
 		mergedMetrics.APIName = api.Name
 		return &mergedMetrics, nil
 	}
+
 	return &metrics.Metrics{}, nil
 }
 

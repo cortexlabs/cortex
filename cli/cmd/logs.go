@@ -69,6 +69,7 @@ var _logsCmd = &cobra.Command{
 				}
 			}
 		}
+
 		if env.Provider == types.GCPProviderType {
 			gcpLogsResponse, err := cluster.GetGCPLogsURL(MustGetOperatorConfig(env.Name), apiName)
 			if err != nil {
@@ -91,6 +92,7 @@ var _logsCmd = &cobra.Command{
 			consoleOutput := console.Bold(fmt.Sprintf("api %s logs: ", apiName)) + gcpLogsURL
 			fmt.Println(consoleOutput)
 		}
+
 		if env.Provider == types.LocalProviderType {
 			if len(args) == 2 {
 				exit.Error(ErrorNotSupportedInLocalEnvironment(), fmt.Sprintf("cannot stream logs for job %s for api %s", args[1], args[0]))

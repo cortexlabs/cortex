@@ -55,7 +55,7 @@ func ensureLogGroupForAPI(apiName string) error {
 			LogGroupName: aws.String(apiNameLogGroup),
 		}
 
-		// There should always be a default tag. Tags are only empty when running local operator without the tags field specified in a cluster.yaml.
+		// There should always be a default tag. Tags are only empty when running local operator without the tags field specified in a cluster config file.
 		if len(config.Cluster.Tags) > 0 {
 			input.Tags = aws.StringMap(config.Cluster.Tags)
 		}

@@ -115,6 +115,7 @@ func AuthMiddleware(next http.Handler) http.Handler {
 				return
 			}
 		}
+
 		if config.Provider == types.GCPProviderType {
 			// TODO do the same for GCP as well
 		}

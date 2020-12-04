@@ -48,7 +48,7 @@ func tensorflowAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.D
 
 	containers, volumes := operator.TensorFlowPredictorContainers(api)
 
-	if config.Provider != types.GCPProviderType {
+	if config.Provider == types.AWSProviderType {
 		containers = append(containers, operator.RequestMonitorContainer(api))
 	}
 
@@ -101,7 +101,7 @@ func tensorflowAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.D
 func pythonAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deployment {
 	containers, volumes := operator.PythonPredictorContainers(api)
 
-	if config.Provider != types.GCPProviderType {
+	if config.Provider == types.AWSProviderType {
 		containers = append(containers, operator.RequestMonitorContainer(api))
 	}
 
@@ -154,7 +154,7 @@ func pythonAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deplo
 func onnxAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deployment {
 	containers := operator.ONNXPredictorContainers(api)
 
-	if config.Provider != types.GCPProviderType {
+	if config.Provider == types.AWSProviderType {
 		containers = append(containers, operator.RequestMonitorContainer(api))
 	}
 

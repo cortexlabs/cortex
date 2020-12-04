@@ -27,8 +27,7 @@ func DownloadAPISpec(apiName string, apiID string) (*spec.API, error) {
 	bucketKey := ""
 	if config.Provider == types.AWSProviderType {
 		bucketKey = spec.Key(apiName, apiID, config.Cluster.ClusterName)
-	}
-	if config.Provider == types.GCPProviderType {
+	} else {
 		bucketKey = spec.Key(apiName, apiID, config.GCPCluster.ClusterName)
 	}
 
@@ -37,12 +36,10 @@ func DownloadAPISpec(apiName string, apiID string) (*spec.API, error) {
 		if err := config.AWS.ReadJSONFromS3(&api, config.Cluster.Bucket, bucketKey); err != nil {
 			return nil, err
 		}
-	} else if config.Provider == types.GCPProviderType {
+	} else {
 		if err := config.GCP.ReadJSONFromGCS(&api, config.GCPCluster.Bucket, bucketKey); err != nil {
 			return nil, err
 		}
-	} else {
-		return nil, ErrorUnknownProvider()
 	}
 	return &api, nil
 }

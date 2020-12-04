@@ -91,6 +91,10 @@ function cluster_up_aws() {
 
   restart_operator
 
+  validate_cortex
+
+  await_pre_download_images
+
   echo -e "\ncortex is ready!"
   if [ "$CORTEX_OPERATOR_LOAD_BALANCER_SCHEME" == "internal" ]; then
     echo -e "note: you will need to configure VPC Peering to connect to your cluster: https://docs.cortex.dev/v/${CORTEX_VERSION_MINOR}/aws/vpc-peering"
@@ -104,45 +108,21 @@ function cluster_up_gcp() {
   gcloud container clusters get-credentials $CORTEX_CLUSTER_NAME --project $CORTEX_GCP_PROJECT --region $CORTEX_GCP_ZONE > /dev/null 2>&1 # write both stderr and stdout to dev/null
 
   echo -n "￮ updating cluster configuration "
-
-  # setup_configmap
-  kubectl -n=default create configmap 'cluster-config' \
-    --from-file='cluster.yaml'=$CORTEX_CLUSTER_CONFIG_FILE \
-    -o yaml --dry-run=client | kubectl apply -f - >/dev/null
-
-  kubectl -n=default create configmap 'env-vars' \
-    --from-literal='CORTEX_VERSION'=$CORTEX_VERSION \
-    --from-literal='CORTEX_REGION'=$CORTEX_REGION \
-    --from-literal='CORTEX_BUCKET'=$CORTEX_BUCKET \
-    --from-literal='CORTEX_GCP_PROJECT'=$CORTEX_GCP_PROJECT \
-    --from-literal='CORTEX_GCP_ZONE'=$CORTEX_GCP_ZONE \
-    --from-literal='CORTEX_TELEMETRY_DISABLE'=$CORTEX_TELEMETRY_DISABLE \
-    --from-literal='CORTEX_TELEMETRY_SENTRY_DSN'=$CORTEX_TELEMETRY_SENTRY_DSN \
-    --from-literal='CORTEX_TELEMETRY_SEGMENT_WRITE_KEY'=$CORTEX_TELEMETRY_SEGMENT_WRITE_KEY \
-    --from-literal='CORTEX_DEV_DEFAULT_PREDICTOR_IMAGE_REGISTRY'=$CORTEX_DEV_DEFAULT_PREDICTOR_IMAGE_REGISTRY \
-    -o yaml --dry-run=client | kubectl apply -f - >/dev/null
-
-  kubectl -n=default create configmap 'gcp-vars' \
-    --from-literal='GOOGLE_APPLICATION_CREDENTIALS'='/var/secrets/google/key.json' \
-    --from-literal='GCP_PROJECT'=$CORTEX_GCP_PROJECT \
-    --from-literal='GKE_CLUSTER_NAME'=$CORTEX_CLUSTER_NAME \
-    -o yaml --dry-run=client | kubectl apply -f - >/dev/null
-
-  # setup secrets
-  kubectl create secret generic 'gcp-credentials' --from-file=$GOOGLE_APPLICATION_CREDENTIALS >/dev/null
+  setup_configmap_gcp
+  setup_secrets_gcp
   echo "✓"
 
-  # configure networking
-  echo -n "￮ configuring networking (this might take a few minutes) "
+  echo -n "￮ configuring networking (this will take a few minutes) "
   setup_istio
   python render_template.py $CORTEX_CLUSTER_CONFIG_FILE manifests/apis.yaml.j2 > /workspace/apis.yaml
   kubectl apply -f /workspace/apis.yaml >/dev/null
   echo "✓"
 
-  # configure gpu support
-  echo -n "￮ configuring gpu support "
-  cat manifests/nvidia_gcp.yaml | kubectl apply -f - >/dev/null
-  echo "✓"
+  if [ -n "$CORTEX_ACCELERATOR_TYPE" ]; then
+    echo -n "￮ configuring gpu support "
+    cat manifests/nvidia_gcp.yaml | kubectl apply -f - >/dev/null
+    echo "✓"
+  fi
 
   restart_operator
 
@@ -274,11 +254,30 @@ function setup_configmap() {
     --from-literal='CORTEX_VERSION'=$CORTEX_VERSION \
     --from-literal='CORTEX_REGION'=$CORTEX_REGION \
     --from-literal='AWS_REGION'=$CORTEX_REGION \
-    --from-literal='CORTEX_BUCKET'=$CORTEX_BUCKET \
     --from-literal='CORTEX_TELEMETRY_DISABLE'=$CORTEX_TELEMETRY_DISABLE \
     --from-literal='CORTEX_TELEMETRY_SENTRY_DSN'=$CORTEX_TELEMETRY_SENTRY_DSN \
     --from-literal='CORTEX_TELEMETRY_SEGMENT_WRITE_KEY'=$CORTEX_TELEMETRY_SEGMENT_WRITE_KEY \
     --from-literal='CORTEX_DEV_DEFAULT_PREDICTOR_IMAGE_REGISTRY'=$CORTEX_DEV_DEFAULT_PREDICTOR_IMAGE_REGISTRY \
+    -o yaml --dry-run=client | kubectl apply -f - >/dev/null
+}
+
+function setup_configmap_gcp() {
+  kubectl -n=default create configmap 'cluster-config' \
+    --from-file='cluster.yaml'=$CORTEX_CLUSTER_CONFIG_FILE \
+    -o yaml --dry-run=client | kubectl apply -f - >/dev/null
+
+  kubectl -n=default create configmap 'env-vars' \
+    --from-literal='CORTEX_VERSION'=$CORTEX_VERSION \
+    --from-literal='CORTEX_REGION'=$CORTEX_REGION \
+    --from-literal='CORTEX_GCP_PROJECT'=$CORTEX_GCP_PROJECT \
+    --from-literal='CORTEX_GCP_ZONE'=$CORTEX_GCP_ZONE \
+    --from-literal='CORTEX_TELEMETRY_DISABLE'=$CORTEX_TELEMETRY_DISABLE \
+    --from-literal='CORTEX_TELEMETRY_SENTRY_DSN'=$CORTEX_TELEMETRY_SENTRY_DSN \
+    --from-literal='CORTEX_TELEMETRY_SEGMENT_WRITE_KEY'=$CORTEX_TELEMETRY_SEGMENT_WRITE_KEY \
+    --from-literal='CORTEX_DEV_DEFAULT_PREDICTOR_IMAGE_REGISTRY'=$CORTEX_DEV_DEFAULT_PREDICTOR_IMAGE_REGISTRY \
+    --from-literal='GOOGLE_APPLICATION_CREDENTIALS'='/var/secrets/google/key.json' \
+    --from-literal='GCP_PROJECT'=$CORTEX_GCP_PROJECT \
+    --from-literal='GKE_CLUSTER_NAME'=$CORTEX_CLUSTER_NAME \
     -o yaml --dry-run=client | kubectl apply -f - >/dev/null
 }
 
@@ -287,6 +286,10 @@ function setup_secrets() {
     --from-literal='AWS_ACCESS_KEY_ID'=$CLUSTER_AWS_ACCESS_KEY_ID \
     --from-literal='AWS_SECRET_ACCESS_KEY'=$CLUSTER_AWS_SECRET_ACCESS_KEY \
     -o yaml --dry-run=client | kubectl apply -f - >/dev/null
+}
+
+function setup_secrets_gcp() {
+  kubectl create secret generic 'gcp-credentials' --from-file=$GOOGLE_APPLICATION_CREDENTIALS >/dev/null
 }
 
 function restart_operator() {
@@ -453,6 +456,7 @@ function setup_istio() {
   output_if_error istio-${ISTIO_VERSION}/bin/istioctl install -f /workspace/istio.yaml
 }
 
+# TODO for GCP
 function start_pre_download_images() {
   if [[ "$CORTEX_INSTANCE_TYPE" == p* ]] || [[ "$CORTEX_INSTANCE_TYPE" == g* ]]; then
     envsubst < manifests/image-downloader-gpu.yaml | kubectl apply -f - &>/dev/null

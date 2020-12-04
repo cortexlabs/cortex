@@ -56,10 +56,6 @@ fi
 if [ -f "/mnt/project/dependencies.sh" ]; then
     eval $source_env_file_cmd
     bash -e /mnt/project/dependencies.sh
-    status=$?
-    if [ $status -ne 0 ]; then
-        exit $status
-    fi
 fi
 
 # install from conda-packages.txt
@@ -67,7 +63,11 @@ if [ -f "/mnt/project/conda-packages.txt" ]; then
     py_version_cmd='echo $(python -c "import sys; v=sys.version_info[:2]; print(\"{}.{}\".format(*v));")'
     old_py_version=$(eval $py_version_cmd)
 
+    # look for packages in defaults and then conda-forge to improve chances of finding the package (specifically for python reinstalls)
+    conda config --append channels conda-forge
+
     conda install -y --file /mnt/project/conda-packages.txt
+
     new_py_version=$(eval $py_version_cmd)
 
     # reinstall core packages if Python version has changed
@@ -75,6 +75,7 @@ if [ -f "/mnt/project/conda-packages.txt" ]; then
         echo "warning: you have changed the Python version from $old_py_version to $new_py_version; this may break Cortex's web server"
         echo "reinstalling core packages ..."
         pip --no-cache-dir install -r /src/cortex/serve/requirements.txt
+
         rm -rf $CONDA_PREFIX/lib/python${old_py_version}  # previous python is no longer needed
     fi
 fi

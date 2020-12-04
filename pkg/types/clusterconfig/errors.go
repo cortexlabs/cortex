@@ -58,6 +58,7 @@ const (
 	ErrIOPSTooLarge                           = "clusterconfig.iops_too_large"
 	ErrCantOverrideDefaultTag                 = "clusterconfig.cant_override_default_tag"
 	ErrSSLCertificateARNNotFound              = "clusterconfig.ssl_certificate_arn_not_found"
+	ErrProviderMismatch                       = "clusterconfig.provider_mismatch"
 
 	ErrGCPInvalidProjectID                        = "clusterconfig.gcp_invalid_project_id"
 	ErrGCPInvalidZone                             = "clusterconfig.gcp_invalid_zone"
@@ -67,17 +68,17 @@ const (
 )
 
 func ErrorUndefinedField(fieldKey string) error {
-	return &errors.Error{
+	return errors.WithStack(&errors.Error{
 		Kind:    ErrUndefinedField,
 		Message: fmt.Sprintf("%s field is undefined", fieldKey),
-	}
+	})
 }
 
 func ErrorInvalidProviderType(provider string) error {
-	return &errors.Error{
+	return errors.WithStack(&errors.Error{
 		Kind:    ErrInvalidProviderType,
 		Message: fmt.Sprintf("%s is not a valid provider type; can use %s or %s", provider, types.AWSProviderType.String(), types.GCPProviderType.String()),
-	}
+	})
 }
 
 func ErrorInvalidRegion(region string) error {
@@ -278,6 +279,13 @@ func ErrorSSLCertificateARNNotFound(sslCertificateARN string, region string) err
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrSSLCertificateARNNotFound,
 		Message: fmt.Sprintf("unable to find the specified ssl certificate in %s: %s", region, sslCertificateARN),
+	})
+}
+
+func ErrorProviderMismatch(expectedProvider types.ProviderType, actualProvider string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrProviderMismatch,
+		Message: fmt.Sprintf("expected \"%s\" provider, but got \"%s\"; please use `cortex cluster *` for aws clusters, and `cortex cluster-gcp *` for gcp clusters", expectedProvider, actualProvider),
 	})
 }
 

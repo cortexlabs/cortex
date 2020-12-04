@@ -303,6 +303,7 @@ func AutoscalingFromAnnotations(k8sObj kmeta.Object) (*Autoscaling, error) {
 	return &a, nil
 }
 
+// TODO update for GCP
 func (api *API) UserStr(provider types.ProviderType) string {
 	var sb strings.Builder
 	sb.WriteString(fmt.Sprintf("%s: %s\n", NameKey, api.Name))

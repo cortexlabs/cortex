@@ -73,14 +73,19 @@ func ErrorImageInaccessible(image string, providerType types.ProviderType, cause
 		message += "\n" + errors.Message(cause) // add \n because docker client errors are verbose but useful
 	}
 
-	if providerType == types.LocalProviderType {
+	switch providerType {
+	case types.LocalProviderType:
 		message += fmt.Sprintf("\n\nyou can download your image with `docker pull %s` and try this command again", image)
 		if strings.Contains(cause.Error(), "authorized") || strings.Contains(cause.Error(), "authentication") {
 			message += " (if your registry is private, run `docker login` first)"
 		}
-	} else if providerType == types.AWSProviderType {
+	case types.AWSProviderType:
 		if strings.Contains(cause.Error(), "authorized") || strings.Contains(cause.Error(), "authentication") {
 			message += fmt.Sprintf("\n\nif you would like to use a private docker registry, see https://docs.cortex.dev/v/%s/guides/private-docker", consts.CortexVersionMinor)
+		}
+	case types.GCPProviderType:
+		if strings.Contains(cause.Error(), "authorized") || strings.Contains(cause.Error(), "authentication") {
+			message += "\n\nprivate docker registries are not currently supported on GCP"
 		}
 	}
 

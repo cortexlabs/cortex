@@ -19,12 +19,12 @@ package gcp
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	"path/filepath"
 	"strings"
 
 	"cloud.google.com/go/storage"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/json"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	"github.com/cortexlabs/cortex/pkg/lib/slices"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
@@ -64,20 +64,32 @@ func IsValidGCSPath(gcsPath string) bool {
 	return true
 }
 
-func (c *Client) CreateBucket(bucket, projectID string, ignoreErrorIfBucketExists bool) error {
+func (c *Client) CreateBucket(bucket string, ignoreErrorIfBucketExists bool) error {
 	gcsClient, err := c.GCS()
 	if err != nil {
 		return err
 	}
-	err = gcsClient.Bucket(bucket).Create(context.Background(), projectID, nil)
+	err = gcsClient.Bucket(bucket).Create(context.Background(), c.ProjectID, nil)
 	if err != nil {
 		if DoesBucketAlreadyExistError(err) {
 			if !ignoreErrorIfBucketExists {
-				return err
+				return errors.WithStack(err)
 			}
 		} else {
-			return err
+			return errors.WithStack(err)
 		}
+	}
+	return nil
+}
+
+func (c *Client) DeleteBucket(bucket string) error {
+	gcsClient, err := c.GCS()
+	if err != nil {
+		return err
+	}
+	err = gcsClient.Bucket(bucket).Delete(context.Background())
+	if err != nil {
+		return errors.WithStack(err)
 	}
 	return nil
 }
@@ -92,7 +104,7 @@ func (c *Client) IsGCSFile(bucket string, key string) (bool, error) {
 		return false, nil
 	}
 	if err != nil {
-		return false, err
+		return false, errors.WithStack(err)
 	}
 	return true, nil
 }
@@ -102,7 +114,11 @@ func (c *Client) ReadJSONFromGCS(objPtr interface{}, bucket string, key string) 
 	if err != nil {
 		return err
 	}
-	return errors.Wrap(json.Unmarshal(jsonBytes, objPtr), GCSPath(bucket, key))
+	err = json.Unmarshal(jsonBytes, objPtr)
+	if err != nil {
+		return errors.Wrap(err, GCSPath(bucket, key))
+	}
+	return nil
 }
 
 func (c *Client) UploadJSONToGCS(obj interface{}, bucket string, key string) error {
@@ -119,7 +135,7 @@ func (c *Client) DeleteGCSFile(bucket string, key string) error {
 		return err
 	}
 	if err := gcsClient.Bucket(bucket).Object(key).Delete(context.Background()); err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 	return nil
 }
@@ -156,7 +172,7 @@ func (c *Client) DeleteGCSPrefix(bucket string, gcsDir string, continueIfFailure
 	}
 
 	if err != nil && err != iterator.Done && !continueIfFailure {
-		return err
+		return errors.WithStack(err)
 	}
 	return nil
 }
@@ -169,7 +185,7 @@ func (c *Client) UploadBytesToGCS(data []byte, bucket string, key string) error 
 	objectWriter := gcsClient.Bucket(bucket).Object(key).NewWriter(context.Background())
 	defer objectWriter.Close()
 	if _, err := objectWriter.Write(data); err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 	return nil
 }
@@ -181,12 +197,12 @@ func (c *Client) ReadBytesFromGCS(bucket string, key string) ([]byte, error) {
 	}
 	objectReader, err := gcsClient.Bucket(bucket).Object(key).NewReader(context.Background())
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 	defer objectReader.Close()
 	buf := new(bytes.Buffer)
 	if _, err := buf.ReadFrom(objectReader); err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 	return buf.Bytes(), nil
 }
@@ -210,7 +226,7 @@ func (c *Client) ListGCSDir(bucket string, gcsDir string, maxResults *int64) ([]
 			break
 		}
 		if err != nil {
-			return nil, err
+			return nil, errors.WithStack(err)
 		}
 		allNames.Add(attrs.Name)
 		if maxResults != nil && int64(len(allNames)) >= *maxResults {
