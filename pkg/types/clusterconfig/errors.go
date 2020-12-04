@@ -61,6 +61,7 @@ const (
 	ErrProviderMismatch                       = "clusterconfig.provider_mismatch"
 
 	ErrGCPInvalidProjectID                        = "clusterconfig.gcp_invalid_project_id"
+	ErrGCPProjectMustBeSpecified                  = "clusterconfig.gcp_project_must_be_specified"
 	ErrGCPInvalidZone                             = "clusterconfig.gcp_invalid_zone"
 	ErrGCPInvalidInstanceType                     = "clusterconfig.gcp_invalid_instance_type"
 	ErrGCPInvalidAcceleratorType                  = "clusterconfig.gcp_invalid_accelerator_type"
@@ -293,6 +294,13 @@ func ErrorGCPInvalidProjectID(projectID string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrGCPInvalidProjectID,
 		Message: fmt.Sprintf("invalid project ID '%s'", projectID),
+	})
+}
+
+func ErrorGCPProjectMustBeSpecified() error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrGCPProjectMustBeSpecified,
+		Message: fmt.Sprintf("please provide a cluster configuration file which specifies `%s` (e.g. via `--config cluster.yaml`) or enable prompts (i.e. omit the `--yes` flag)", ProjectKey),
 	})
 }
 

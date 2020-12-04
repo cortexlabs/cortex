@@ -342,7 +342,9 @@ func InstallGCPPrompt(clusterConfig *GCPConfig, disallowPrompt bool) error {
 	defaults := applyGCPPromptDefaults(*clusterConfig)
 
 	if disallowPrompt {
-		// TODO error if project is not set
+		if clusterConfig.Project == nil {
+			return ErrorGCPProjectMustBeSpecified()
+		}
 
 		if clusterConfig.Zone == nil {
 			clusterConfig.Zone = defaults.Zone
