@@ -95,8 +95,7 @@ var _clusterGCPUpCmd = &cobra.Command{
 	Short: "spin up a cluster",
 	Args:  cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
-		// TODO does this make sense? or merge them and add provider to event?
-		telemetry.EventNotify("cli.cluster-gcp.up")
+		telemetry.EventNotify("cli.cluster.up", map[string]interface{}{"provider": types.GCPProviderType.String()})
 
 		if _flagClusterGCPUpEnv == "local" {
 			exit.Error(ErrorLocalEnvironmentCantUseClusterProvider(types.GCPProviderType))
@@ -180,8 +179,7 @@ var _clusterGCPDownCmd = &cobra.Command{
 	Short: "spin down a cluster",
 	Args:  cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
-		// TODO does this make sense? or merge them and add provider to event?
-		telemetry.Event("cli.cluster-gcp.down")
+		telemetry.Event("cli.cluster.down", map[string]interface{}{"provider": types.GCPProviderType.String()})
 
 		if _flagClusterGCPUpEnv == "local" {
 			exit.Error(ErrorLocalEnvironmentCantUseClusterProvider(types.GCPProviderType))
