@@ -29,6 +29,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/exit"
 	"github.com/cortexlabs/cortex/pkg/lib/gcp"
+	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/prompt"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
@@ -417,5 +418,32 @@ func createGKECluster(clusterConfig *clusterconfig.GCPConfig, gcpClient *gcp.Cli
 		fmt.Print(".")
 	}
 
+	// TODO set the environment to this operator IP
+	ip, err := getGCPOperatorLoadBalancer(gkeClusterName, gcpClient)
+	if err != nil {
+		return err
+	}
+	fmt.Println("operator IP is", ip)
+
 	return nil
+}
+
+func getGCPOperatorLoadBalancer(clusterName string, gcpClient *gcp.Client) (string, error) {
+	cluster, err := gcpClient.GetCluster(clusterName)
+	if err != nil {
+		return "", err
+	}
+	restConfig, err := gcpClient.CreateK8SConfigFromCluster(cluster)
+	if err != nil {
+		return "", err
+	}
+	k8sIstio, err := k8s.New("istio-system", false, restConfig)
+	if err != nil {
+		return "", err
+	}
+	service, err := k8sIstio.GetService("ingressgateway-operator")
+	if err != nil {
+		return "", err
+	}
+	return "http://" + service.Status.LoadBalancer.Ingress[0].IP, nil
 }

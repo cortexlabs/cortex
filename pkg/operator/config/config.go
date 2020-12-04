@@ -163,15 +163,15 @@ func Init() error {
 		fmt.Println(errors.Message(err))
 	}
 
-	if K8s, err = k8s.New("default", operatorInCluster); err != nil {
+	if K8s, err = k8s.New("default", operatorInCluster, nil); err != nil {
 		return err
 	}
 
-	if K8sIstio, err = k8s.New("istio-system", operatorInCluster); err != nil {
+	if K8sIstio, err = k8s.New("istio-system", operatorInCluster, nil); err != nil {
 		return err
 	}
 
-	if K8sAllNamspaces, err = k8s.New("", operatorInCluster); err != nil {
+	if K8sAllNamspaces, err = k8s.New("", operatorInCluster, nil); err != nil {
 		return err
 	}
 

@@ -310,7 +310,7 @@ var _clusterUpCmd = &cobra.Command{
 			exit.Error(ErrorClusterUp(out + helpStr))
 		}
 
-		loadBalancer, err := getOperatorLoadBalancer(clusterConfig.ClusterName, awsClient)
+		loadBalancer, err := getAWSOperatorLoadBalancer(clusterConfig.ClusterName, awsClient)
 		if err != nil {
 			exit.Error(errors.Append(err, fmt.Sprintf("\n\nyou can attempt to resolve this issue and configure your cli environment by running `cortex cluster info --configure-env %s`", _flagClusterUpEnv)))
 		}
@@ -404,7 +404,7 @@ var _clusterConfigureCmd = &cobra.Command{
 		}
 
 		if _flagClusterConfigureEnv != "" {
-			loadBalancer, err := getOperatorLoadBalancer(clusterConfig.ClusterName, awsClient)
+			loadBalancer, err := getAWSOperatorLoadBalancer(clusterConfig.ClusterName, awsClient)
 			if err != nil {
 				exit.Error(errors.Append(err, fmt.Sprintf("\n\nyou can attempt to resolve this issue and configure your cli environment by running `cortex cluster info --configure-env %s`", _flagClusterConfigureEnv)))
 			}
@@ -509,7 +509,7 @@ var _clusterDownCmd = &cobra.Command{
 		}
 
 		// updating CLI env is best-effort, so ignore errors
-		loadBalancer, _ := getOperatorLoadBalancer(*accessConfig.ClusterName, awsClient)
+		loadBalancer, _ := getAWSOperatorLoadBalancer(*accessConfig.ClusterName, awsClient)
 
 		if _flagClusterDisallowPrompt {
 			fmt.Printf("your cluster named \"%s\" in %s will be spun down and all apis will be deleted\n\n", *accessConfig.ClusterName, *accessConfig.Region)
@@ -632,7 +632,7 @@ var _clusterExportCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
-		loadBalancer, err := getOperatorLoadBalancer(*accessConfig.ClusterName, awsClient)
+		loadBalancer, err := getAWSOperatorLoadBalancer(*accessConfig.ClusterName, awsClient)
 		if err != nil {
 			exit.Error(err)
 		}
@@ -1134,7 +1134,7 @@ func createOrReplaceAPIGateway(awsClient *aws.Client, clusterName string, tags m
 }
 
 // Will return error if load balancer can't be found
-func getOperatorLoadBalancer(clusterName string, awsClient *aws.Client) (*elbv2.LoadBalancer, error) {
+func getAWSOperatorLoadBalancer(clusterName string, awsClient *aws.Client) (*elbv2.LoadBalancer, error) {
 	loadBalancer, err := awsClient.FindLoadBalancer(map[string]string{
 		clusterconfig.ClusterNameTag: clusterName,
 		"cortex.dev/load-balancer":   "operator",
