@@ -38,7 +38,7 @@ func CacheLocalModels(apiSpec *spec.API, models []spec.CuratedModelResource) err
 
 	modelsThatWereCachedAlready := 0
 	for _, model := range models {
-		if model.S3Path {
+		if !model.LocalPath {
 			continue
 		}
 
@@ -75,7 +75,7 @@ func cacheLocalModel(model spec.CuratedModelResource) (*spec.LocalModelCache, bo
 	localModelCache := spec.LocalModelCache{}
 	var err error
 
-	if model.S3Path {
+	if !model.LocalPath {
 		return nil, false, nil
 	}
 

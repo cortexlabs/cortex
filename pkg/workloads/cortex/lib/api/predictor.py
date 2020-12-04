@@ -56,7 +56,7 @@ from cortex.lib.model import (
 from cortex.lib.model import validate_model_paths
 
 # misc
-from cortex.lib.storage import S3
+from cortex.lib.storage import S3, GCS
 from cortex.lib import util
 from cortex.lib.log import refresh_logger, cx_logger as logger
 from cortex.lib.exceptions import CortexException, UserException, UserRuntimeException
@@ -492,6 +492,7 @@ def _validate_python_predictor_with_models(impl, api_spec):
 
 def model_downloader(
     predictor_type: PredictorType,
+    bucket_provider: str,
     bucket_name: str,
     model_name: str,
     model_version: str,
@@ -500,13 +501,15 @@ def model_downloader(
     model_dir: str,
 ) -> Optional[datetime.datetime]:
     """
-    Downloads model to disk. Validates the S3 model path and the downloaded model as well.
+    Downloads model to disk. Validates the cloud model path and the downloaded model as well.
 
     Args:
+        predictor_type: The predictor type as implemented by the API.
+        bucket_provider: Provider for the bucket. Can be "s3" or "gs".
         bucket_name: Name of the bucket where the model is stored.
         model_name: Name of the model. Is part of the model's local path.
         model_version: Version of the model. Is part of the model's local path.
-        model_path: S3 model prefix to the versioned model.
+        model_path: Model prefix to the versioned model.
         temp_dir: Where to temporarily store the model for validation.
         model_dir: The top directory of where all models are stored locally.
 
@@ -518,10 +521,13 @@ def model_downloader(
         f"downloading from bucket {bucket_name}/{model_path}, model {model_name} of version {model_version}, temporarily to {temp_dir} and then finally to {model_dir}"
     )
 
-    s3_client = S3(bucket_name)
+    if bucket_provider == "s3":
+        client = S3(bucket_name)
+    if bucket_provider == "gs":
+        client = GCS(bucket_name)
 
-    # validate upstream S3 model
-    sub_paths, ts = s3_client.search(model_path)
+    # validate upstream cloud model
+    sub_paths, ts = client.search(model_path)
     try:
         validate_model_paths(sub_paths, predictor_type, model_path)
     except CortexException:
@@ -531,7 +537,7 @@ def model_downloader(
     # download model to temp dir
     temp_dest = os.path.join(temp_dir, model_name, model_version)
     try:
-        s3_client.download_dir_contents(model_path, temp_dest)
+        client.download_dir_contents(model_path, temp_dest)
     except CortexException:
         logger().info(
             f"failed downloading model {model_name} of version {model_version} to temp dir {temp_dest}"

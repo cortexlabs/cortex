@@ -65,13 +65,15 @@ type Client struct {
 	Namespace            string
 }
 
-func New(namespace string, inCluster bool) (*Client, error) {
+func New(namespace string, inCluster bool, restConfig *kclientrest.Config) (*Client, error) {
 	var err error
 	client := &Client{
 		Namespace: namespace,
 	}
 	if inCluster {
 		client.RestConfig, err = kclientrest.InClusterConfig()
+	} else if restConfig != nil {
+		client.RestConfig = restConfig
 	} else {
 		kubeConfig := path.Join(_home, ".kube", "config")
 		client.RestConfig, err = kclientcmd.BuildConfigFromFlags("", kubeConfig)

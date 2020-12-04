@@ -278,9 +278,10 @@ class TensorFlowClient:
 
                         # download model
                         logger().info(
-                            f"downloading model {model_name} of version {model_version} from the S3 upstream"
+                            f"downloading model {model_name} of version {model_version} from the {upstream_model['provider']} upstream"
                         )
                         date = self._models.download_model(
+                            upstream_model["provider"],
                             upstream_model["bucket"],
                             model_name,
                             model_version,
@@ -288,7 +289,7 @@ class TensorFlowClient:
                         )
                         if not date:
                             raise WithBreak
-                        current_upstream_ts = date.timestamp()
+                        current_upstream_ts = int(date.timestamp())
 
                     # load model
                     try:

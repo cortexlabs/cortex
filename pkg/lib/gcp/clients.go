@@ -19,6 +19,7 @@ package gcp
 import (
 	"context"
 
+	container "cloud.google.com/go/container/apiv1"
 	"cloud.google.com/go/storage"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"google.golang.org/api/compute/v1"
@@ -27,6 +28,7 @@ import (
 type clients struct {
 	gcs     *storage.Client
 	compute *compute.Service
+	gke     *container.ClusterManagerClient
 }
 
 func (c *Client) GCS() (*storage.Client, error) {
@@ -49,4 +51,15 @@ func (c *Client) Compute() (*compute.Service, error) {
 		c.clients.compute = comp
 	}
 	return c.clients.compute, nil
+}
+
+func (c *Client) GKE() (*container.ClusterManagerClient, error) {
+	if c.clients.gke == nil {
+		gke, err := container.NewClusterManagerClient(context.Background())
+		if err != nil {
+			return nil, errors.WithStack(err)
+		}
+		c.clients.gke = gke
+	}
+	return c.clients.gke, nil
 }

@@ -31,6 +31,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/exit"
 	"github.com/cortexlabs/cortex/pkg/lib/gcp"
+	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/prompt"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
@@ -38,6 +39,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/types/clusterconfig"
 	"github.com/spf13/cobra"
 	containerpb "google.golang.org/genproto/googleapis/container/v1"
+	v1 "k8s.io/api/core/v1"
 )
 
 var (
@@ -167,10 +169,17 @@ var _clusterGCPUpCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
+		gkeClusterParent := fmt.Sprintf("projects/%s/locations/%s", *clusterConfig.Project, *clusterConfig.Zone)
+		gkeClusterName := fmt.Sprintf("%s/clusters/%s", gkeClusterParent, clusterConfig.ClusterName)
+		operatorLoadBalancer, err := getGCPOperatorLoadBalancer(gkeClusterName, gcpClient)
+		if err != nil {
+			exit.Error(err)
+		}
+
 		newEnvironment := cliconfig.Environment{
 			Name:             _flagClusterGCPUpEnv,
 			Provider:         types.GCPProviderType,
-			OperatorEndpoint: pointer.String("https://<placeholder>"), // TODO
+			OperatorEndpoint: pointer.String(operatorLoadBalancer.Ingress[0].IP),
 		}
 
 		err = addEnvToCLIConfig(newEnvironment)
@@ -531,4 +540,27 @@ func createGKECluster(clusterConfig *clusterconfig.GCPConfig, gcpClient *gcp.Cli
 	}
 
 	return nil
+}
+
+func getGCPOperatorLoadBalancer(clusterName string, gcpClient *gcp.Client) (v1.LoadBalancerStatus, error) {
+	cluster, err := gcpClient.GetCluster(clusterName)
+	if err != nil {
+		return v1.LoadBalancerStatus{}, err
+	}
+	restConfig, err := gcpClient.CreateK8SConfigFromCluster(cluster)
+	if err != nil {
+		return v1.LoadBalancerStatus{}, err
+	}
+	k8sIstio, err := k8s.New("istio-system", false, restConfig)
+	if err != nil {
+		return v1.LoadBalancerStatus{}, err
+	}
+	service, err := k8sIstio.GetService("ingressgateway-operator")
+	if err != nil {
+		return v1.LoadBalancerStatus{}, err
+	}
+	if service == nil {
+		return v1.LoadBalancerStatus{}, ErrorNoOperatorLoadBalancer()
+	}
+	return service.Status.LoadBalancer, nil
 }

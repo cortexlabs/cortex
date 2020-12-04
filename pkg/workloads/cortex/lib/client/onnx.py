@@ -351,11 +351,11 @@ class ONNXClient:
                             )
                         elif status == "on-disk":
                             logger().info(
-                                f"found newer model {model_name} of vesion {model_version} on the S3 upstream than the one on the disk"
+                                f"found newer model {model_name} of vesion {model_version} on the {upstream_model['provider']} upstream than the one on the disk"
                             )
                         else:
                             logger().info(
-                                f"found newer model {model_name} of vesion {model_version} on the S3 upstream than the one loaded into memory"
+                                f"found newer model {model_name} of vesion {model_version} on the {upstream_model['provider']} upstream than the one loaded into memory"
                             )
 
                         # remove model from disk and memory
@@ -372,9 +372,10 @@ class ONNXClient:
 
                         # download model
                         logger().info(
-                            f"downloading model {model_name} of version {model_version} from the S3 upstream"
+                            f"downloading model {model_name} of version {model_version} from the {upstream_model['provider']} upstream"
                         )
                         date = self._models.download_model(
+                            upstream_model["provider"],
                             upstream_model["bucket"],
                             model_name,
                             model_version,
@@ -382,7 +383,7 @@ class ONNXClient:
                         )
                         if not date:
                             raise WithBreak
-                        current_upstream_ts = date.timestamp()
+                        current_upstream_ts = int(date.timestamp())
 
                     # give the local model a timestamp initialized at start time
                     if model_name in self._spec_local_model_names:

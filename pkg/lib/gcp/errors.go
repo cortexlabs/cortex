@@ -21,16 +21,25 @@ import (
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
+	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"google.golang.org/api/googleapi"
 )
 
 const (
+	ErrInvalidGCSPath              = "gcp.invalid_gcs_path"
 	ErrCredentialsFileEnvVarNotSet = "gcp.credentials_file_env_var_not_set"
 	ErrProjectIDMismatch           = "gcp.project_id_mismatch"
 
 	YouAlreadyOwnThisBucketErrorMessage = "You already own this bucket. Please select another name."
 	InvalidBucketNameErrorMessage       = "Sorry, that name is not available. Please try a different one."
 )
+
+func ErrorInvalidGCSPath(provided string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrInvalidGCSPath,
+		Message: fmt.Sprintf("%s is not a valid GCS path (e.g. gs://cortex-examples/pytorch/iris-classifier/weights.pth is a valid GCS path)", s.UserStr(provided)),
+	})
+}
 
 func IsGCPError(err error) bool {
 	_, ok := errors.CauseOrSelf(err).(*googleapi.Error)

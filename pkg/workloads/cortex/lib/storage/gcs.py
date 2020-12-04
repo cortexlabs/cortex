@@ -40,6 +40,17 @@ class GCS:
         key = os.path.join(*path.split("/")[1:])
         return bucket, key
 
+    @staticmethod
+    def is_valid_gcs_path(path: str) -> bool:
+        if not path.startswith("gs://"):
+            return False
+        parts = path[5:].split("/")
+        if len(parts) < 2:
+            return False
+        if parts[0] == "" or parts[1] == "":
+            return False
+        return True
+
     def _does_blob_exist(self, prefix: str) -> bool:
         return isinstance(self.gcs.get_blob(blob_name=prefix), storage.blob.Blob)
 
