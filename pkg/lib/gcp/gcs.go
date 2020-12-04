@@ -83,6 +83,10 @@ func (c *Client) CreateBucket(bucket string, ignoreErrorIfBucketExists bool) err
 }
 
 func (c *Client) DeleteBucket(bucket string) error {
+	err := c.DeleteGCSPrefix(bucket, "", false)
+	if err != nil {
+		return err
+	}
 	gcsClient, err := c.GCS()
 	if err != nil {
 		return err
