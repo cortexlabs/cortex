@@ -19,12 +19,25 @@
 set -euo pipefail
 
 arg1=${1:-""}
+arg2=${2:-""}
+
+operator_only="false"
+if [ "$arg1" = "--operator-only" ] || [ "$arg2" = "--operator-only" ]; then
+  operator_only="true"
+fi
+
+# TODO use this
+gcp="false"
+if [ "$arg1" = "--gcp" ] || [ "$arg2" = "--gcp" ]; then
+  gcp="true"
+fi
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")"/.. >/dev/null && pwd)"
 
 kill $(pgrep -f rerun) >/dev/null 2>&1 || true
 
-eval $(python3 $ROOT/manager/cluster_config_env.py "$ROOT/dev/config/cluster.yaml")
+# TODO fix this
+eval $(python3 $ROOT/manager/cluster_config_env.py "$ROOT/dev/config/cluster-aws.yaml")
 
 # TODO set registry override env var based on GCP or AWS
 
@@ -33,7 +46,8 @@ export CLUSTER_AWS_SECRET_ACCESS_KEY="${CLUSTER_AWS_SECRET_ACCESS_KEY:-$AWS_SECR
 
 python3 $ROOT/dev/update_cli_config.py "$HOME/.cortex/cli.yaml" "$CORTEX_CLUSTER_NAME" "http://localhost:8888" "$CLUSTER_AWS_ACCESS_KEY_ID" "$CLUSTER_AWS_SECRET_ACCESS_KEY"
 
-cp -r $ROOT/dev/config/cluster.yaml ~/.cortex/cluster-dev.yaml
+# TODO fix this
+cp -r $ROOT/dev/config/cluster-aws.yaml ~/.cortex/cluster-dev.yaml
 
 if grep -qiP '^telemetry:\s*false\s*$' ~/.cortex/cli.yaml; then
   echo "telemetry: false" >> ~/.cortex/cluster-dev.yaml
@@ -44,7 +58,7 @@ export CORTEX_CLUSTER_CONFIG_PATH=~/.cortex/cluster-dev.yaml
 
 mkdir -p $ROOT/bin
 
-if [ "$arg1" = "--operator-only" ]; then
+if [ "$operator_only" = "true" ]; then
   rerun -watch $ROOT/pkg $ROOT/dev/config -run sh -c \
   "clear && echo 'building operator...' && go build -o $ROOT/bin/operator $ROOT/pkg/operator && echo 'starting local operator...' && $ROOT/bin/operator"
 else

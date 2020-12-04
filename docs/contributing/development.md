@@ -109,10 +109,6 @@ make test
 ```
 
 <!-- TODO add GCP instructions -->
-```bash
-# bash profile
-export CORTEX_DEV_DEFAULT_PREDICTOR_IMAGE_REGISTRY_GCP="gcr.io/XXXXXXXX/cortexlabs"  # set the default image for APIs
-```
 
 ### Dev tools
 
@@ -154,6 +150,8 @@ Create `dev/config/env.sh` with your AWS credentials:
 export AWS_ACCESS_KEY_ID=***
 export AWS_SECRET_ACCESS_KEY=***
 ```
+
+<!-- TODO fix all of this -->
 
 Next, create `dev/config/build.sh`. Add the following content to it (you may use a different region for `REGISTRY_REGION`):
 

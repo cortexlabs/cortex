@@ -15,47 +15,101 @@
 # limitations under the License.
 
 # images to build/push for development and CI commands
+# each image should appear exactly once on this page
 
 set -euo pipefail
 
-user_facing_images=(
+api_images_local=(
   "python-predictor-cpu"
-  # "python-predictor-gpu"
-  # "python-predictor-inf"
+  "python-predictor-gpu"
   "tensorflow-predictor"
   "onnx-predictor-cpu"
-  # "onnx-predictor-gpu"
+  "onnx-predictor-gpu"
+)
+api_images_cluster=(
+  # includes api_images_local
+)
+api_images_aws=(
+  # includes api_images_local and api_images_cluster
+  "python-predictor-inf"
+)
+api_images_gcp=(
+  # includes api_images_local and api_images_cluster
 )
 
-user_facing_slim_images=(
+api_slim_images_local=(
   "python-predictor-cpu-slim"
   "python-predictor-gpu-slim"
-  "python-predictor-inf-slim"
   "tensorflow-predictor-slim"
   "onnx-predictor-cpu-slim"
   "onnx-predictor-gpu-slim"
 )
-
-dev_images=(
-  "manager"
-  "request-monitor"
-  "downloader"
+api_slim_images_cluster=(
+  # includes api_slim_images_local
+)
+api_slim_images_aws=(
+  # includes api_slim_images_local and api_slim_images_cluster
+  "python-predictor-inf-slim"
+)
+api_slim_images_gcp=(
+  # includes api_slim_images_local and api_slim_images_cluster
 )
 
-non_dev_images=(
-  "operator"
+dev_images_local=(
+  "downloader"
+)
+dev_images_cluster=(
+  # includes dev_images_local
+  "manager"
+)
+dev_images_aws=(
+  # includes dev_images_local and dev_images_cluster
+  "request-monitor"
+)
+dev_images_gcp=(
+  # includes dev_images_local and dev_images_cluster
+)
+
+non_dev_images_local=(
   "tensorflow-serving-cpu"
-  # "tensorflow-serving-gpu"
-  # "tensorflow-serving-inf"
-  "cluster-autoscaler"
-  "metrics-server"
-  # "inferentia"
-  # "neuron-rtd"
-  "nvidia"
-  "fluentd"
-  "statsd"
+  "tensorflow-serving-gpu"
+)
+non_dev_images_cluster=(
+  # includes non_dev_images_local
+  "operator"
   "istio-proxy"
   "istio-pilot"
 )
+non_dev_images_aws=(
+  # includes non_dev_images_local and non_dev_images_cluster
+  "tensorflow-serving-inf"
+  "cluster-autoscaler"
+  "metrics-server"
+  "inferentia"
+  "neuron-rtd"
+  "nvidia"
+  "fluentd"
+  "statsd"
+)
+non_dev_images_gcp=(
+  # includes non_dev_images_local and non_dev_images_cluster
+)
 
-all_images=( "${user_facing_images[@]}" "${user_facing_slim_images[@]}" "${dev_images[@]}" "${non_dev_images[@]}" )
+all_images=(
+  "${api_images_local[@]}"
+  "${api_images_cluster[@]}"
+  "${api_images_aws[@]}"
+  "${api_images_gcp[@]}"
+  "${api_slim_images_local[@]}"
+  "${api_slim_images_cluster[@]}"
+  "${api_slim_images_aws[@]}"
+  "${api_slim_images_gcp[@]}"
+  "${dev_images_local[@]}"
+  "${dev_images_cluster[@]}"
+  "${dev_images_aws[@]}"
+  "${dev_images_gcp[@]}"
+  "${non_dev_images_local[@]}"
+  "${non_dev_images_cluster[@]}"
+  "${non_dev_images_aws[@]}"
+  "${non_dev_images_gcp[@]}"
+)
