@@ -143,7 +143,7 @@ var _clusterUpCmd = &cobra.Command{
 	Short: "spin up a cluster",
 	Args:  cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
-		telemetry.EventNotify("cli.cluster.up", map[string]interface{}{"provider": types.AWSProviderType.String()})
+		telemetry.EventNotify("cli.cluster.up", map[string]interface{}{"provider": types.AWSProviderType})
 
 		if _flagClusterUpEnv == "local" {
 			exit.Error(ErrorLocalEnvironmentCantUseClusterProvider(types.AWSProviderType))
@@ -341,7 +341,7 @@ var _clusterConfigureCmd = &cobra.Command{
 	Short: "update a cluster's configuration",
 	Args:  cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
-		telemetry.Event("cli.cluster.configure", map[string]interface{}{"provider": types.AWSProviderType.String()})
+		telemetry.Event("cli.cluster.configure", map[string]interface{}{"provider": types.AWSProviderType})
 
 		if _flagClusterConfigureEnv == "local" {
 			exit.Error(ErrorLocalEnvironmentCantUseClusterProvider(types.AWSProviderType))
@@ -422,7 +422,7 @@ var _clusterInfoCmd = &cobra.Command{
 	Short: "get information about a cluster",
 	Args:  cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
-		telemetry.Event("cli.cluster.info", map[string]interface{}{"provider": types.AWSProviderType.String()})
+		telemetry.Event("cli.cluster.info", map[string]interface{}{"provider": types.AWSProviderType})
 
 		if _flagClusterInfoEnv == "local" {
 			exit.Error(ErrorLocalEnvironmentCantUseClusterProvider(types.AWSProviderType))
@@ -464,7 +464,7 @@ var _clusterDownCmd = &cobra.Command{
 	Short: "spin down a cluster",
 	Args:  cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
-		telemetry.Event("cli.cluster.down", map[string]interface{}{"provider": types.AWSProviderType.String()})
+		telemetry.Event("cli.cluster.down", map[string]interface{}{"provider": types.AWSProviderType})
 
 		if _, err := docker.GetDockerClient(); err != nil {
 			exit.Error(err)
@@ -596,7 +596,7 @@ var _clusterExportCmd = &cobra.Command{
 	Short: "download the code and configuration for APIs",
 	Args:  cobra.RangeArgs(0, 2),
 	Run: func(cmd *cobra.Command, args []string) {
-		telemetry.Event("cli.cluster.export", map[string]interface{}{"provider": types.AWSProviderType.String()})
+		telemetry.Event("cli.cluster.export", map[string]interface{}{"provider": types.AWSProviderType})
 
 		if _flagClusterConfig != "" {
 			// Deprecation: specifying aws creds in cluster configuration is no longer supported

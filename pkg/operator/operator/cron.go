@@ -61,6 +61,7 @@ type instanceInfo struct {
 }
 
 func InstanceTelemetry() error {
+	// TODO
 	nodes, err := config.K8s.ListNodes(nil)
 	if err != nil {
 		return err
