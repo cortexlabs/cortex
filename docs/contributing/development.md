@@ -108,8 +108,6 @@ Run the tests:
 make test
 ```
 
-<!-- TODO add GCP instructions -->
-
 ### Dev tools
 
 Install development tools by running:
@@ -142,50 +140,31 @@ Create a config directory in the repo's root directory:
 mkdir dev/config
 ```
 
-Create `dev/config/env.sh` with your AWS credentials:
+Create `dev/config/env.sh` with the following information:
 
 ```bash
 # dev/config/env.sh
 
-export AWS_ACCESS_KEY_ID=***
-export AWS_SECRET_ACCESS_KEY=***
-```
-
-<!-- TODO fix all of this -->
-
-Next, create `dev/config/build.sh`. Add the following content to it (you may use a different region for `REGISTRY_REGION`):
-
-```bash
-# dev/config/build.sh
-
-export CORTEX_VERSION="master"
-export REGISTRY_REGION="us-west-2"
+export AWS_ACCOUNT_ID="***"  # you can find your account ID in the AWS web console; here is an example: 764403040417
+export AWS_REGION="us-west-2"  # you can use any AWS region you'd like
+export AWS_ACCESS_KEY_ID="***"
+export AWS_SECRET_ACCESS_KEY="***"
 # export NUM_BUILD_PROCS=2  # optional; can be >2 if you have enough memory
 ```
 
 Create the ECR registries:
 
 ```bash
-make registry-create
+make registry-create-aws
 ```
 
-Update `dev/config/build.sh` to include `REGISTRY_URL`, which was printed in the previous command:
-
-```bash
-# dev/config/build.sh
-
-export CORTEX_VERSION="master"
-export REGISTRY_REGION="us-west-2"
-export REGISTRY_URL="XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com"
-# export NUM_BUILD_PROCS=2  # optional; can be >2 if you have enough memory
-```
-
-Create `dev/config/cluster.yaml`. Paste the following config, and update `cortex_region` and all registry URLs accordingly:
+Create `dev/config/cluster-aws.yaml`. Paste the following config, and update `cortex_region` and all registry URLs (replace `XXXXXXXX` with your AWS account ID, and update the region):
 
 ```yaml
-# dev/config/cluster.yaml
+# dev/config/cluster-aws.yaml
 
 cluster_name: cortex
+provider: aws
 region: us-west-2
 instance_type: m5.large
 min_instances: 1
@@ -211,7 +190,7 @@ image_istio_pilot: XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/istio-pil
 Add this to your bash profile (e.g. `~/.bash_profile`, `~/.profile` or `~/.bashrc`), replacing the image registry URL accordingly:
 
 ```bash
-export CORTEX_DEV_DEFAULT_PREDICTOR_IMAGE_REGISTRY="XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs"  # set the default image for APIs
+export CORTEX_DEV_DEFAULT_PREDICTOR_IMAGE_REGISTRY_AWS="XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs"  # set the default image for APIs
 export CORTEX_TELEMETRY_SENTRY_DSN="https://c334df915c014ffa93f2076769e5b334@sentry.io/1848098"  # redirect analytics to our dev environment
 export CORTEX_TELEMETRY_SEGMENT_WRITE_KEY="0WvoJyCey9z1W2EW7rYTPJUMRYat46dl"  # redirect error reporting to our dev environment
 
@@ -234,39 +213,39 @@ cortex version  # should show "master"
 Build and push all Cortex images:
 
 ```bash
-make registry-all
+make images-all-aws
 ```
 
 ## Dev workflow
 
 Here is the typical full dev workflow which covers most cases:
 
-1. `make cluster-up` (creates a cluster using `dev/config/cluster.yaml`)
-2. `make devstart` (deletes the in-cluster operator, builds the CLI, and starts the operator locally; file changes will trigger the CLI and operator to re-build)
+1. `make cluster-up-aws` (creates a cluster using `dev/config/cluster-aws.yaml`)
+2. `make devstart-aws` (deletes the in-cluster operator, builds the CLI, and starts the operator locally; file changes will trigger the CLI and operator to re-build)
 3. Make your changes
-4. `make registry-dev` (only necessary if API images or the manager are modified)
+4. `make images-dev-aws` (only necessary if API images or the manager are modified)
 5. Test your changes e.g. via `cortex deploy` (and repeat steps 3 and 4 as necessary)
-6. `make cluster-down` (deletes your cluster)
+6. `make cluster-down-aws` (deletes your cluster)
 
 If you want to switch back to the in-cluster operator:
 
 1. `<ctrl+c>` to stop your local operator
-2. `make cluster-configure` to install the operator in your cluster
+2. `make cluster-configure-aws` to install the operator in your cluster
 
 If you only want to test Cortex's local environment, here is the common workflow:
 
 1. `make cli-watch` (builds the CLI and re-builds it when files are changed)
 2. Make your changes
-3. `make registry-dev` (only necessary if API images or the manager are modified)
+3. `make images-dev-local` (only necessary if API images or the manager are modified)
 4. Test your changes e.g. via `cortex deploy` (and repeat steps 2 and 3 as necessary)
 
 ### Dev workflow optimizations
 
 If you are only modifying the CLI, `make cli-watch` will build the CLI and re-build it when files are changed. When doing this, you can leave the operator running in the cluster instead of running it locally.
 
-If you are only modifying the operator, `make operator-local` will build and start the operator locally, and build/restart it when files are changed.
+If you are only modifying the operator, `make operator-local-aws` will build and start the operator locally, and build/restart it when files are changed.
 
-If you are modifying code in the API images (i.e. any of the Python serving code), `make registry-dev` may build more images than you need during testing. For example, if you are only testing using the `python-predictor-cpu` image, you can comment out the other images listed in `user_facing_images` and `dev_images` in `build/images.sh` before running `make registry-dev`.
+If you are modifying code in the API images (i.e. any of the Python serving code), `make images-dev-aws` may build more images than you need during testing. For example, if you are only testing using the `python-predictor-cpu` image, you can run `./dev/registry.sh update-single python-predictor-cpu --provider aws` (or use `--provider local` if testing locally).
 
 See `Makefile` for additional dev commands.
 
