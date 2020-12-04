@@ -45,7 +45,6 @@ require (
 	google.golang.org/genproto v0.0.0-20200921151605-7abf4a1a14d5
 	gopkg.in/karalabe/cookiejar.v2 v2.0.0-20150724131613-8dcd6a7f4951
 	gopkg.in/segmentio/analytics-go.v3 v3.1.0
-	gopkg.in/yaml.v2 v2.2.8
 	gopkg.in/yaml.v3 v3.0.0-20200615113413-eeeca48fe776 // indirect
 	gotest.tools v2.2.0+incompatible // indirect
 	istio.io/api v0.0.0-20200911191701-0dc35ad5c478
