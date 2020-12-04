@@ -113,3 +113,33 @@ all_images=(
   "${non_dev_images_aws[@]}"
   "${non_dev_images_gcp[@]}"
 )
+
+aws_images=(
+  "${api_images_local[@]}"
+  "${api_images_cluster[@]}"
+  "${api_images_aws[@]}"
+  "${api_slim_images_local[@]}"
+  "${api_slim_images_cluster[@]}"
+  "${api_slim_images_aws[@]}"
+  "${dev_images_local[@]}"
+  "${dev_images_cluster[@]}"
+  "${dev_images_aws[@]}"
+  "${non_dev_images_local[@]}"
+  "${non_dev_images_cluster[@]}"
+  "${non_dev_images_aws[@]}"
+)
+
+gcp_images=(
+  "${api_images_local[@]}"
+  "${api_images_cluster[@]}"
+  "${api_images_gcp[@]}"
+  "${api_slim_images_local[@]}"
+  "${api_slim_images_cluster[@]}"
+  "${api_slim_images_gcp[@]}"
+  "${dev_images_local[@]}"
+  "${dev_images_cluster[@]}"
+  "${dev_images_gcp[@]}"
+  "${non_dev_images_local[@]}"
+  "${non_dev_images_cluster[@]}"
+  "${non_dev_images_gcp[@]}"
+)

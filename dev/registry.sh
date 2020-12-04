@@ -96,7 +96,7 @@ function registry_login() {
 }
 
 function create_aws_registry() {
-  for image in "${all_images[@]}"; do
+  for image in "${aws_images[@]}"; do
     aws ecr create-repository --repository-name=cortexlabs/$image --region=$AWS_REGION || true
   done
 }
