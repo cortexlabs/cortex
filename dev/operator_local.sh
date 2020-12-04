@@ -14,8 +14,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# TODO try this
-
 set -euo pipefail
 
 arg1=${1:-""}
@@ -26,28 +24,33 @@ if [ "$arg1" = "--operator-only" ] || [ "$arg2" = "--operator-only" ]; then
   operator_only="true"
 fi
 
-# TODO use this
-gcp="false"
-if [ "$arg1" = "--gcp" ] || [ "$arg2" = "--gcp" ]; then
-  gcp="true"
+provider=""
+if [ "$arg1" = "--aws" ] || [ "$arg2" = "--aws" ]; then
+  provider="aws"
+elif [ "$arg1" = "--gcp" ] || [ "$arg2" = "--gcp" ]; then
+  provider="gcp"
+else
+  echo "provider must be set: either pass in the --aws or the --gcp flag"
+  exit 1
 fi
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")"/.. >/dev/null && pwd)"
 
 kill $(pgrep -f rerun) >/dev/null 2>&1 || true
 
-# TODO fix this
-eval $(python3 $ROOT/manager/cluster_config_env.py "$ROOT/dev/config/cluster-aws.yaml")
+eval $(python3 $ROOT/manager/cluster_config_env.py "$ROOT/dev/config/cluster-${provider}.yaml")
 
-# TODO set registry override env var based on GCP or AWS
+if [ "$provider" = "aws" ]; then
+  export CORTEX_DEV_DEFAULT_PREDICTOR_IMAGE_REGISTRY="$CORTEX_DEV_DEFAULT_PREDICTOR_IMAGE_REGISTRY_AWS"
+  export CLUSTER_AWS_ACCESS_KEY_ID="${CLUSTER_AWS_ACCESS_KEY_ID:-$AWS_ACCESS_KEY_ID}"
+  export CLUSTER_AWS_SECRET_ACCESS_KEY="${CLUSTER_AWS_SECRET_ACCESS_KEY:-$AWS_SECRET_ACCESS_KEY}"
+else
+  export CORTEX_DEV_DEFAULT_PREDICTOR_IMAGE_REGISTRY="$CORTEX_DEV_DEFAULT_PREDICTOR_IMAGE_REGISTRY_GCP"
+fi
 
-export CLUSTER_AWS_ACCESS_KEY_ID="${CLUSTER_AWS_ACCESS_KEY_ID:-$AWS_ACCESS_KEY_ID}"
-export CLUSTER_AWS_SECRET_ACCESS_KEY="${CLUSTER_AWS_SECRET_ACCESS_KEY:-$AWS_SECRET_ACCESS_KEY}"
+python3 $ROOT/dev/update_cli_config.py "$HOME/.cortex/cli.yaml" "${CORTEX_CLUSTER_NAME}-${provider}" "$provider" "http://localhost:8888"
 
-python3 $ROOT/dev/update_cli_config.py "$HOME/.cortex/cli.yaml" "$CORTEX_CLUSTER_NAME" "http://localhost:8888" "$CLUSTER_AWS_ACCESS_KEY_ID" "$CLUSTER_AWS_SECRET_ACCESS_KEY"
-
-# TODO fix this
-cp -r $ROOT/dev/config/cluster-aws.yaml ~/.cortex/cluster-dev.yaml
+cp -r $ROOT/dev/config/cluster-${provider}.yaml ~/.cortex/cluster-dev.yaml
 
 if grep -qiP '^telemetry:\s*false\s*$' ~/.cortex/cli.yaml; then
   echo "telemetry: false" >> ~/.cortex/cluster-dev.yaml
