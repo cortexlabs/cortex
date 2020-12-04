@@ -44,8 +44,14 @@ func main() {
 
 	telemetry.Event("operator.init", map[string]interface{}{"provider": config.Provider})
 
-	cron.Run(operator.InstanceTelemetry, operator.ErrorHandler("instance telemetry"), 1*time.Hour)
 	cron.Run(operator.DeleteEvictedPods, operator.ErrorHandler("delete evicted pods"), 12*time.Hour)
+
+	switch config.Provider {
+	case types.AWSProviderType:
+		cron.Run(operator.InstanceTelemetryAWS, operator.ErrorHandler("instance telemetry"), 1*time.Hour)
+	case types.GCPProviderType:
+		cron.Run(operator.InstanceTelemetryGCP, operator.ErrorHandler("instance telemetry"), 1*time.Hour)
+	}
 
 	if config.Provider == types.AWSProviderType {
 		_, err := operator.UpdateMemoryCapacityConfigMap()
