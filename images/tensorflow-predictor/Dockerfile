@@ -44,10 +44,11 @@ ENV BASH_ENV=~/.env
 SHELL ["/bin/bash", "-c"]
 
 COPY pkg/workloads/cortex/serve/requirements.txt /src/cortex/serve/requirements.txt
+COPY pkg/workloads/cortex/serve/tf.requirements.txt /src/cortex/serve/image.requirements.txt
+
 RUN pip install --no-cache-dir -r \
     /src/cortex/serve/requirements.txt \
-    tensorflow-cpu==2.3.0 \
-    tensorflow-serving-api==2.3.0
+    -r /src/cortex/serve/image.requirements.txt
 
 ARG SLIM="false"
 RUN test "${SLIM}" = "true" || ( \
