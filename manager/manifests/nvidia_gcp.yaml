@@ -106,5 +106,5 @@ spec:
             - name: cos-tools
               mountPath: /build/cos-tools
       containers:
-        - image: "gcr.io/google-containers/pause:2.0"
+        - image: "$CORTEX_IMAGE_GOOGLE_PAUSE"
           name: pause

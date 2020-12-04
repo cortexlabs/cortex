@@ -120,7 +120,7 @@ function cluster_up_gcp() {
 
   if [ -n "$CORTEX_ACCELERATOR_TYPE" ]; then
     echo -n "￮ configuring gpu support "
-    cat manifests/nvidia_gcp.yaml | kubectl apply -f - >/dev/null
+    envsubst < manifests/nvidia_gcp.yaml | kubectl apply -f - >/dev/null
     echo "✓"
   fi
 

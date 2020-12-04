@@ -32,20 +32,21 @@ import (
 )
 
 type GCPConfig struct {
-	Provider        types.ProviderType `json:"provider" yaml:"provider"`
-	Project         *string            `json:"project" yaml:"project"`
-	Zone            *string            `json:"zone" yaml:"zone"`
-	InstanceType    *string            `json:"instance_type" yaml:"instance_type"`
-	AcceleratorType *string            `json:"accelerator_type" yaml:"accelerator_type"`
-	MinInstances    *int64             `json:"min_instances" yaml:"min_instances"`
-	MaxInstances    *int64             `json:"max_instances" yaml:"max_instances"`
-	ClusterName     string             `json:"cluster_name" yaml:"cluster_name"`
-	Telemetry       bool               `json:"telemetry" yaml:"telemetry"`
-	ImageOperator   string             `json:"image_operator" yaml:"image_operator"`
-	ImageManager    string             `json:"image_manager" yaml:"image_manager"`
-	ImageDownloader string             `json:"image_downloader" yaml:"image_downloader"`
-	ImageIstioProxy string             `json:"image_istio_proxy" yaml:"image_istio_proxy"`
-	ImageIstioPilot string             `json:"image_istio_pilot" yaml:"image_istio_pilot"`
+	Provider         types.ProviderType `json:"provider" yaml:"provider"`
+	Project          *string            `json:"project" yaml:"project"`
+	Zone             *string            `json:"zone" yaml:"zone"`
+	InstanceType     *string            `json:"instance_type" yaml:"instance_type"`
+	AcceleratorType  *string            `json:"accelerator_type" yaml:"accelerator_type"`
+	MinInstances     *int64             `json:"min_instances" yaml:"min_instances"`
+	MaxInstances     *int64             `json:"max_instances" yaml:"max_instances"`
+	ClusterName      string             `json:"cluster_name" yaml:"cluster_name"`
+	Telemetry        bool               `json:"telemetry" yaml:"telemetry"`
+	ImageOperator    string             `json:"image_operator" yaml:"image_operator"`
+	ImageManager     string             `json:"image_manager" yaml:"image_manager"`
+	ImageDownloader  string             `json:"image_downloader" yaml:"image_downloader"`
+	ImageIstioProxy  string             `json:"image_istio_proxy" yaml:"image_istio_proxy"`
+	ImageIstioPilot  string             `json:"image_istio_pilot" yaml:"image_istio_pilot"`
+	ImageGooglePause string             `json:"image_google_pause" yaml:"image_google_pause"`
 }
 
 type InternalGCPConfig struct {
@@ -191,6 +192,13 @@ var UserGCPValidation = &cr.StructValidation{
 			StructField: "ImageIstioPilot",
 			StringValidation: &cr.StringValidation{
 				Default:   "quay.io/cortexlabs/istio-pilot:" + consts.CortexVersion,
+				Validator: validateImageVersion,
+			},
+		},
+		{
+			StructField: "ImageGooglePause",
+			StringValidation: &cr.StringValidation{
+				Default:   "quay.io/cortexlabs/google-pause:" + consts.CortexVersion,
 				Validator: validateImageVersion,
 			},
 		},
@@ -487,6 +495,9 @@ func (cc *GCPConfig) TelemetryEvent() map[string]interface{} {
 	}
 	if !strings.HasPrefix(cc.ImageIstioPilot, "cortexlabs/") {
 		event["image_istio_pilot._is_custom"] = true
+	}
+	if !strings.HasPrefix(cc.ImageGooglePause, "cortexlabs/") {
+		event["image_google_pause._is_custom"] = true
 	}
 
 	return event
