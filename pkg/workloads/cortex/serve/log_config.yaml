@@ -38,12 +38,12 @@ handlers:
     stream: ext://sys.stdout
 loggers:
   uvicorn.error:
-    level: DEBUG
+    level: INFO
     handlers:
       - default
     propagate: no
   uvicorn.access:
-    level: DEBUG
+    level: INFO
     handlers:
       - access
     propagate: no
