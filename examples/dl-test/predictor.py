@@ -7,12 +7,12 @@ import time
 
 class PythonPredictor:
     def __init__(self, config, job_spec):
-        sqs = boto3.client('sqs')
+        sqs = boto3.client('sqs', region_name='us-east-1')
         queue_url = job_spec['sqs_url']
         dead_letter_queue_arn = 'arn:aws:sqs:us-east-1:186623276624:dl-test.fifo'
         redrive_policy = {
             'deadLetterTargetArn': dead_letter_queue_arn,
-            'maxReceiveCount': '10'
+            'maxReceiveCount': '1'
         }
         # Configure queue to send messages to dead letter queue
         sqs.set_queue_attributes(
