@@ -43,7 +43,7 @@ func (c *Client) CreateK8SConfigFromCluster(cluster *containerpb.Cluster) (*rest
 	googleAuthPlugin := "google"
 	var _ rest.AuthProvider = &googleAuthProvider{}
 
-	if err := rest.RegisterAuthProviderPlugin(googleAuthPlugin, newGoogleAuthProvider); err != nil {
+	if err := rest.RegisterAuthProviderPlugin(googleAuthPlugin, NewGoogleAuthProvider); err != nil {
 		return nil, err
 	}
 

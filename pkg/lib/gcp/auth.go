@@ -38,7 +38,7 @@ func (g *googleAuthProvider) WrapTransport(rt http.RoundTripper) http.RoundTripp
 }
 func (g *googleAuthProvider) Login() error { return nil }
 
-func newGoogleAuthProvider(addr string, config map[string]string, persister rest.AuthProviderConfigPersister) (rest.AuthProvider, error) {
+func NewGoogleAuthProvider(addr string, config map[string]string, persister rest.AuthProviderConfigPersister) (rest.AuthProvider, error) {
 	ts, err := google.DefaultTokenSource(
 		context.TODO(),
 		"https://www.googleapis.com/auth/cloud-platform",
