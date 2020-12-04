@@ -147,13 +147,12 @@ func Init() error {
 		operatorInCluster = GCPCluster.OperatorInCluster
 	}
 
-	// TODO fix this
 	err = telemetry.Init(telemetry.Config{
 		Enabled: useTelemetry,
 		UserID:  hashedAccountID,
 		Properties: map[string]string{
 			"cluster_id":  clusterID,
-			"operator_id": hashedAccountID,
+			"operator_id": hashedAccountID, // TODO fix this (hash the project ID)
 		},
 		Environment: "operator",
 		LogErrors:   true,
