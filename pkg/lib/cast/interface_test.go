@@ -188,21 +188,20 @@ func TestInterfaceToInterfaceInterfaceMap(t *testing.T) {
 
 func TestInterfaceToStrInterfaceMapRecursive(t *testing.T) {
 	var ok bool
-	var in interface{}
+	var in map[string]interface{}
 	var casted map[string]interface{}
 	var expected map[string]interface{}
 
-	in = map[string]interface{}{"test": map[string]interface{}{"testing": []string{}}}
+	in = map[string]interface{}{"test": map[interface{}]interface{}{"testing": []string{}}}
 	expected = map[string]interface{}{"test": map[string]interface{}{"testing": []string{}}}
 	casted, ok = InterfaceToStrInterfaceMapRecursive(in)
 	require.True(t, ok)
 	require.Equal(t, expected, casted)
 
-	in = map[string]interface{}{"test": map[string]interface{}{"testing": []string{}}, "slice": []int{1}}
+	in = map[string]interface{}{"test": map[interface{}]interface{}{1: []string{}}, "slice": []int{1}}
 	expected = map[string]interface{}{"test": map[string]interface{}{"testing": []string{}}, "slice": []int{1}}
 	casted, ok = InterfaceToStrInterfaceMapRecursive(in)
-	require.True(t, ok)
-	require.Equal(t, expected, casted)
+	require.False(t, ok)
 
 	in = map[string]interface{}{"test": nil}
 	expected = map[string]interface{}{"test": nil}

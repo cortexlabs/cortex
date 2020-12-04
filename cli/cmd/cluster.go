@@ -694,7 +694,7 @@ var _exportCmd = &cobra.Command{
 				exit.Error(err)
 			}
 
-			err = files.WriteFile(yamlBytes, apiResponse.Spec.FileName)
+			err = files.WriteFile(yamlBytes, path.Join(baseDir, apiResponse.Spec.FileName))
 			if err != nil {
 				exit.Error(err)
 			}

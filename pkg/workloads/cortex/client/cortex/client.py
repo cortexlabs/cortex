@@ -41,7 +41,6 @@ class Client:
         Args:
             env: Environment config
         """
-        print(env)
         self.env = env
         self.env_name = env["name"]
 
@@ -190,7 +189,9 @@ class Client:
         if not wait:
             return deploy_result
 
-        time.sleep(5)  # wait a few moments for cortex to deploy the API
+        # logging immediately will show previous versions of the replica terminating;
+        # wait a few seconds for the new replicas to start initializing
+        time.sleep(5)
 
         def stream_to_stdout(process):
             for c in iter(lambda: process.stdout.read(1), ""):
@@ -218,7 +219,7 @@ class Client:
         while process.poll() is None:
             api = self.get_api(api_name)
             if api["status"]["status_code"] != "status_updating":
-                time.sleep(5)  # wait for logs to stream
+                time.sleep(5)  # accommodate latency in log streaming from the cluster
                 process.terminate()
                 break
             time.sleep(5)

@@ -694,6 +694,7 @@ func InterfaceToStrInterfaceMap(in interface{}) (map[string]interface{}, bool) {
 	return out, true
 }
 
+// Expects to receive a map[string]interface{}
 func InterfaceToStrInterfaceMapRecursive(in interface{}) (map[string]interface{}, bool) {
 	if in == nil {
 		return nil, true
@@ -712,7 +713,12 @@ func InterfaceToStrInterfaceMapRecursive(in interface{}) (map[string]interface{}
 			return nil, false
 		}
 
-		if intToIntMap, ok := value.(map[interface{}]interface{}); ok {
+		if value == nil {
+			out[casted] = value
+			continue
+		}
+
+		if intToIntMap, ok := InterfaceToInterfaceInterfaceMap(value); ok {
 			castedStrMap, ok := InterfaceToStrInterfaceMapRecursive(intToIntMap)
 			if !ok {
 				return nil, false

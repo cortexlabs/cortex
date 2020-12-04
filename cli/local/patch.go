@@ -51,7 +51,7 @@ func Patch(env cliconfig.Environment, configPath string) ([]schema.DeployResult,
 
 		localProjectDir := apiResponse[0].Spec.LocalProjectDir
 
-		projectFileList, err := findProjectFiles(types.LocalProviderType, localProjectDir)
+		projectFileList, err := findProjectFiles(localProjectDir)
 		if err != nil {
 			return nil, err
 		}
@@ -72,7 +72,7 @@ func Patch(env cliconfig.Environment, configPath string) ([]schema.DeployResult,
 	return deployResults, nil
 }
 
-func findProjectFiles(provider types.ProviderType, projectRoot string) ([]string, error) {
+func findProjectFiles(projectRoot string) ([]string, error) {
 	ignoreFns := []files.IgnoreFn{
 		files.IgnoreCortexDebug,
 		files.IgnoreHiddenFiles,

@@ -128,7 +128,6 @@ func UpdateAPI(apiConfig *userconfig.API, models []spec.CuratedModelResource, pr
 }
 
 func toAPIResponse(api *spec.API) *schema.APIResponse {
-
 	return &schema.APIResponse{
 		Spec:     *api,
 		Endpoint: fmt.Sprintf("http://localhost:%d", *api.Networking.LocalPort),

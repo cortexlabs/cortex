@@ -117,35 +117,6 @@ func UpdateAPI(apiConfig *userconfig.API, models []spec.CuratedModelResource, pr
 	return api, fmt.Sprintf("%s is up to date", api.Resource.UserString()), nil
 }
 
-func PatchAPI(apiConfig *userconfig.API, models []spec.CuratedModelResource, force bool) (*spec.API, string, error) {
-	prevDeployment, err := config.K8s.GetDeployment(operator.K8sName(apiConfig.Name))
-	if err != nil {
-		return nil, "", err
-	} else if prevDeployment == nil {
-		return nil, "", errors.ErrorUnexpected("unable to find deployment", apiConfig.Name)
-	}
-
-	isUpdating, err := isAPIUpdating(prevDeployment)
-	if err != nil {
-		return nil, "", err
-	}
-
-	if isUpdating && !force {
-		return nil, "", ErrorAPIUpdating(apiConfig.Name)
-	}
-
-	api, err := operator.DownloadAPISpec(apiConfig.Name, prevDeployment.Labels["APIID"])
-	if err != nil {
-		return nil, "", err
-	}
-
-	api, msg, err := UpdateAPI(apiConfig, models, api.PredictorID, force)
-	if err != nil {
-		return nil, "", err
-	}
-	return api, msg, nil
-}
-
 func RefreshAPI(apiName string, force bool) (string, error) {
 	prevDeployment, err := config.K8s.GetDeployment(operator.K8sName(apiName))
 	if err != nil {
