@@ -184,7 +184,10 @@ def handle_on_complete(message):
                 return False
 
             total_in_queue = visible_count + not_visible_count
-            
+
+            if total_in_queue <= 1:
+                should_run_on_job_complete = True
+
             if should_run_on_job_complete:
                 # double check that the queue is still empty (except for the job_complete message)
                 if not_visible_count <= 1:
@@ -194,9 +197,6 @@ def handle_on_complete(message):
                     return True
                 else:
                     should_run_on_job_complete = False
-
-            if total_in_queue <= 1:
-                should_run_on_job_complete = True
 
             # check queue state every 20 seconds (give time for queue metrics to achieve consistency)
             total_message_visibility += 20
