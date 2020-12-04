@@ -20,11 +20,11 @@ set -euo pipefail
 
 user_facing_images=(
   "python-predictor-cpu"
-  "python-predictor-gpu"
-  "python-predictor-inf"
-  "tensorflow-predictor"
-  "onnx-predictor-cpu"
-  "onnx-predictor-gpu"
+  # "python-predictor-gpu"
+  # "python-predictor-inf"
+  # "tensorflow-predictor"
+  # "onnx-predictor-cpu"
+  # "onnx-predictor-gpu"
 )
 
 user_facing_slim_images=(
