@@ -60,8 +60,7 @@ type instanceInfo struct {
 	Count         int32   `json:"count" yaml:"count"`
 }
 
-func InstanceTelemetry() error {
-	// TODO
+func InstanceTelemetryAWS() error {
 	nodes, err := config.K8s.ListNodes(nil)
 	if err != nil {
 		return err
@@ -129,7 +128,7 @@ func InstanceTelemetry() error {
 		totalInstancePriceIfOnDemand += (info.OnDemandPrice + apiEBSPrice) * float64(info.Count)
 	}
 
-	fixedPrice := clusterFixedPrice()
+	fixedPrice := clusterFixedPriceAWS()
 
 	properties := map[string]interface{}{
 		"region":                      *config.Cluster.Region,
@@ -147,7 +146,7 @@ func InstanceTelemetry() error {
 	return nil
 }
 
-func clusterFixedPrice() float64 {
+func clusterFixedPriceAWS() float64 {
 	eksPrice := aws.EKSPrices[*config.Cluster.Region]
 	operatorInstancePrice := aws.InstanceMetadatas[*config.Cluster.Region]["t3.medium"].Price
 	operatorEBSPrice := aws.EBSMetadatas[*config.Cluster.Region]["gp2"].PriceGB * 20 / 30 / 24
@@ -162,6 +161,54 @@ func clusterFixedPrice() float64 {
 	}
 
 	return eksPrice + operatorInstancePrice + operatorEBSPrice + 2*nlbPrice + natTotalPrice
+}
+
+func InstanceTelemetryGCP() error {
+	nodes, err := config.K8s.ListNodes(nil)
+	if err != nil {
+		return err
+	}
+
+	instanceInfos := make(map[string]*instanceInfo)
+	var totalInstances int
+
+	for _, node := range nodes {
+		if node.Labels["workload"] != "true" {
+			continue
+		}
+
+		instanceType := node.Labels["beta.kubernetes.io/instance-type"]
+		if instanceType == "" {
+			instanceType = "unknown"
+		}
+
+		totalInstances++
+
+		instanceInfosKey := instanceType + "_ondemand"
+
+		if info, ok := instanceInfos[instanceInfosKey]; ok {
+			info.Count++
+			continue
+		}
+
+		info := instanceInfo{
+			InstanceType: instanceType,
+			IsSpot:       false,
+			Count:        1,
+		}
+
+		instanceInfos[instanceInfosKey] = &info
+	}
+
+	properties := map[string]interface{}{
+		"region":         *config.Cluster.Region,
+		"instance_count": totalInstances,
+		"instances":      instanceInfos,
+	}
+
+	telemetry.Event("operator.cron", properties, config.Cluster.TelemetryEvent())
+
+	return nil
 }
 
 func ErrorHandler(cronName string) func(error) {

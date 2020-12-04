@@ -61,6 +61,7 @@ const (
 	ErrProviderMismatch                       = "clusterconfig.provider_mismatch"
 
 	ErrGCPInvalidProjectID                        = "clusterconfig.gcp_invalid_project_id"
+	ErrGCPProjectMustBeSpecified                  = "clusterconfig.gcp_project_must_be_specified"
 	ErrGCPInvalidZone                             = "clusterconfig.gcp_invalid_zone"
 	ErrGCPInvalidInstanceType                     = "clusterconfig.gcp_invalid_instance_type"
 	ErrGCPInvalidAcceleratorType                  = "clusterconfig.gcp_invalid_accelerator_type"
@@ -296,6 +297,13 @@ func ErrorGCPInvalidProjectID(projectID string) error {
 	})
 }
 
+func ErrorGCPProjectMustBeSpecified() error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrGCPProjectMustBeSpecified,
+		Message: fmt.Sprintf("please provide a cluster configuration file which specifies `%s` (e.g. via `--config cluster.yaml`) or enable prompts (i.e. omit the `--yes` flag)", ProjectKey),
+	})
+}
+
 func ErrorGCPInvalidZone(zone string, suggestedZones ...string) error {
 	errorMessage := fmt.Sprintf("invalid zone '%s'", zone)
 	if len(suggestedZones) == 1 {
@@ -341,6 +349,6 @@ func ErrorGCPInvalidAcceleratorType(acceleratorType string, zone string, suggest
 func ErrorGCPIncompatibleInstanceTypeWithAccelerator(instanceType, acceleratorType, zone string, compatibleInstances []string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrGCPIncompatibleInstanceTypeWithAccelerator,
-		Message: fmt.Sprintf("instance type '%s' is incompatible with accelerator '%s'; the following instance types are compatible with '%s' accelerator in zone %s: %s", instanceType, acceleratorType, acceleratorType, zone, s.UserStrsOr(compatibleInstances)),
+		Message: fmt.Sprintf("instance type %s is incompatible with the %s accelerator; the following instance types are compatible with the %s accelerator in zone %s: %s", instanceType, acceleratorType, acceleratorType, zone, s.StrsOr(compatibleInstances)),
 	})
 }
