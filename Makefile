@@ -15,8 +15,7 @@
 # limitations under the License.
 
 SHELL := /bin/bash
--include ./dev/config/env.sh
-export $(shell sed 's/=.*//' ./dev/config/env.sh 2>/dev/null)
+export BASH_ENV=./dev/config/env.sh
 
 # declare all targets as phony to avoid collisions with local files or folders
 .PHONY: $(MAKECMDGOALS)
