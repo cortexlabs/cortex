@@ -31,6 +31,10 @@ type InfoResponse struct {
 	NumPendingReplicas   int                          `json:"num_pending_replicas"`
 }
 
+type InfoGCPResponse struct {
+	ClusterConfig clusterconfig.InternalGCPConfig `json:"cluster_config"`
+}
+
 type NodeInfo struct {
 	Name                 string             `json:"name"`
 	InstanceType         string             `json:"instance_type"`

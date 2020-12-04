@@ -20,9 +20,11 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	container "cloud.google.com/go/container/apiv1"
+	"github.com/cortexlabs/cortex/cli/cluster"
 	"github.com/cortexlabs/cortex/cli/types/cliconfig"
 	"github.com/cortexlabs/cortex/pkg/lib/console"
 	"github.com/cortexlabs/cortex/pkg/lib/docker"
@@ -40,6 +42,8 @@ import (
 
 var (
 	_flagClusterGCPUpEnv          string
+	_flagClusterGCPInfoEnv        string
+	_flagClusterGCPInfoDebug      bool
 	_flagClusterGCPConfig         string
 	_flagClusterGCPName           string
 	_flagClusterGCPZone           string
@@ -54,6 +58,16 @@ func clusterGCPInit() {
 	_clusterGCPUpCmd.Flags().StringVarP(&_flagClusterGCPUpEnv, "configure-env", "e", defaultEnv, "name of environment to configure")
 	addClusterGCPDisallowPromptFlag(_clusterGCPUpCmd)
 	_clusterGCPCmd.AddCommand(_clusterGCPUpCmd)
+
+	_clusterGCPInfoCmd.Flags().SortFlags = false
+	addClusterGCPConfigFlag(_clusterGCPInfoCmd)
+	addClusterGCPNameFlag(_clusterGCPInfoCmd)
+	addClusterGCPProjectFlag(_clusterGCPInfoCmd)
+	addClusterGCPZoneFlag(_clusterGCPInfoCmd)
+	_clusterGCPInfoCmd.Flags().StringVarP(&_flagClusterGCPInfoEnv, "configure-env", "e", "", "name of environment to configure")
+	_clusterGCPInfoCmd.Flags().BoolVarP(&_flagClusterGCPInfoDebug, "debug", "d", false, "save the current cluster state to a file")
+	_clusterGCPInfoCmd.Flags().BoolVarP(&_flagClusterGCPDisallowPrompt, "yes", "y", false, "skip prompts")
+	_clusterGCPCmd.AddCommand(_clusterGCPInfoCmd)
 
 	_clusterGCPDownCmd.Flags().SortFlags = false
 	addClusterGCPConfigFlag(_clusterGCPDownCmd)
@@ -172,7 +186,108 @@ var _clusterGCPUpCmd = &cobra.Command{
 	},
 }
 
-// TODO add `cortex cluster-gcp info` command which at least prints the operator URL
+var _clusterGCPInfoCmd = &cobra.Command{
+	Use:   "info",
+	Short: "get information about a cluster",
+	Args:  cobra.NoArgs,
+	Run: func(cmd *cobra.Command, args []string) {
+		telemetry.Event("cli.cluster.info", map[string]interface{}{"provider": types.GCPProviderType.String()})
+
+		if _flagClusterGCPInfoEnv == "local" {
+			exit.Error(ErrorLocalEnvironmentCantUseClusterProvider(types.GCPProviderType))
+		}
+
+		if _, err := docker.GetDockerClient(); err != nil {
+			exit.Error(err)
+		}
+
+		accessConfig, err := getGCPClusterAccessConfigWithCache(_flagClusterGCPDisallowPrompt)
+		if err != nil {
+			exit.Error(err)
+		}
+
+		if _flagClusterGCPInfoDebug {
+			cmdDebugGCP(accessConfig)
+		} else {
+			cmdInfoGCP(accessConfig, _flagClusterGCPDisallowPrompt)
+		}
+	},
+}
+
+func cmdInfoGCP(accessConfig *clusterconfig.GCPAccessConfig, disallowPrompt bool) {
+	fmt.Print("fetching cluster endpoints ...\n\n")
+	out, exitCode, err := runGCPManagerAccessCommand("/root/info_gcp.sh", *accessConfig, nil, nil)
+	if err != nil {
+		exit.Error(err)
+	}
+	if exitCode == nil || *exitCode != 0 {
+		exit.Error(ErrorClusterInfo(out))
+	}
+
+	fmt.Println()
+
+	var operatorEndpoint string
+	for _, line := range strings.Split(out, "\n") {
+		// before modifying this, search for this prefix
+		if strings.HasPrefix(line, "operator: ") {
+			operatorEndpoint = "https://" + strings.TrimSpace(strings.TrimPrefix(line, "operator: "))
+			break
+		}
+	}
+
+	if err := printInfoOperatorResponseGCP(accessConfig, operatorEndpoint); err != nil {
+		exit.Error(err)
+	}
+
+	if _flagClusterGCPInfoEnv != "" {
+		if err := updateGCPCLIEnv(_flagClusterGCPInfoEnv, operatorEndpoint, disallowPrompt); err != nil {
+			exit.Error(err)
+		}
+	}
+}
+
+func printInfoOperatorResponseGCP(accessConfig *clusterconfig.GCPAccessConfig, operatorEndpoint string) error {
+	fmt.Print("fetching cluster status ...\n\n")
+
+	operatorConfig := cluster.OperatorConfig{
+		Telemetry:        isTelemetryEnabled(),
+		ClientID:         clientID(),
+		OperatorEndpoint: operatorEndpoint,
+	}
+
+	infoResponse, err := cluster.InfoGCP(operatorConfig)
+	if err != nil {
+		return err
+	}
+
+	infoResponse.ClusterConfig.UserTable().Print()
+
+	return nil
+}
+
+func cmdDebugGCP(accessConfig *clusterconfig.GCPAccessConfig) {
+	// note: if modifying this string, also change it in files.IgnoreCortexDebug()
+	debugFileName := fmt.Sprintf("cortex-debug-%s.tgz", time.Now().UTC().Format("2006-01-02-15-04-05"))
+
+	containerDebugPath := "/out/" + debugFileName
+	copyFromPaths := []dockerCopyFromPath{
+		{
+			containerPath: containerDebugPath,
+			localDir:      _cwd,
+		},
+	}
+
+	out, exitCode, err := runGCPManagerAccessCommand("/root/debug_gcp.sh "+containerDebugPath, *accessConfig, nil, copyFromPaths)
+	if err != nil {
+		exit.Error(err)
+	}
+	if exitCode == nil || *exitCode != 0 {
+		exit.Error(ErrorClusterDebug(out))
+	}
+
+	fmt.Println("saved cluster info to ./" + debugFileName)
+	return
+}
 
 var _clusterGCPDownCmd = &cobra.Command{
 	Use:   "down",

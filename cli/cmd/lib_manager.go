@@ -230,27 +230,30 @@ func runGCPManagerWithClusterConfig(entrypoint string, clusterConfig *clustercon
 	containerClusterConfigPath := "/in/" + filepath.Base(clusterConfigPath)
 	gcpCredsPath := "/in/key.json"
 
-	copyToPaths = append(copyToPaths, dockerCopyToPath{
-		input: &archive.Input{
-			Files: []archive.FileInput{
-				{
-					Source: clusterConfigPath,
-					Dest:   containerClusterConfigPath,
+	copyToPaths = append(copyToPaths,
+		dockerCopyToPath{
+			input: &archive.Input{
+				Files: []archive.FileInput{
+					{
+						Source: clusterConfigPath,
+						Dest:   containerClusterConfigPath,
+					},
 				},
 			},
+			containerPath: "/",
 		},
-		containerPath: "/",
-	}, dockerCopyToPath{
-		input: &archive.Input{
-			Files: []archive.FileInput{
-				{
-					Source: os.Getenv("GOOGLE_APPLICATION_CREDENTIALS"),
-					Dest:   gcpCredsPath,
+		dockerCopyToPath{
+			input: &archive.Input{
+				Files: []archive.FileInput{
+					{
+						Source: os.Getenv("GOOGLE_APPLICATION_CREDENTIALS"),
+						Dest:   gcpCredsPath,
+					},
 				},
 			},
+			containerPath: "/",
 		},
-		containerPath: "/",
-	})
+	)
 
 	containerConfig := &container.Config{
 		Image:        clusterConfig.ImageManager,
@@ -260,8 +263,8 @@ func runGCPManagerWithClusterConfig(entrypoint string, clusterConfig *clustercon
 		AttachStdout: true,
 		AttachStderr: true,
 		Env: []string{
-			"GOOGLE_APPLICATION_CREDENTIALS=" + gcpCredsPath,
 			"CORTEX_PROVIDER=gcp",
+			"GOOGLE_APPLICATION_CREDENTIALS=" + gcpCredsPath,
 			"CORTEX_GCP_PROJECT=" + *clusterConfig.Project,
 			"CORTEX_GCP_ZONE=" + *clusterConfig.Zone,
 			"CORTEX_TELEMETRY_DISABLE=" + os.Getenv("CORTEX_TELEMETRY_DISABLE"),
@@ -298,6 +301,7 @@ func runManagerAccessCommand(entrypoint string, accessConfig clusterconfig.Acces
 		AttachStdout: true,
 		AttachStderr: true,
 		Env: []string{
+			"CORTEX_PROVIDER=aws",
 			"AWS_ACCESS_KEY_ID=" + awsCreds.AWSAccessKeyID,
 			"AWS_SECRET_ACCESS_KEY=" + awsCreds.AWSSecretAccessKey,
 			"CLUSTER_AWS_ACCESS_KEY_ID=" + awsCreds.ClusterAWSAccessKeyID,
@@ -308,6 +312,47 @@ func runManagerAccessCommand(entrypoint string, accessConfig clusterconfig.Acces
 	}
 
 	output, exitCode, err := runManager(containerConfig, true, copyToPaths, copyFromPaths)
+	if err != nil {
+		return "", nil, err
+	}
+
+	return output, exitCode, nil
+}
+
+func runGCPManagerAccessCommand(entrypoint string, accessConfig clusterconfig.GCPAccessConfig, copyToPaths []dockerCopyToPath, copyFromPaths []dockerCopyFromPath) (string, *int, error) {
+	gcpCredsPath := "/in/key.json"
+
+	copyToPaths = append(copyToPaths,
+		dockerCopyToPath{
+			input: &archive.Input{
+				Files: []archive.FileInput{
+					{
+						Source: os.Getenv("GOOGLE_APPLICATION_CREDENTIALS"),
+						Dest:   gcpCredsPath,
+					},
+				},
+			},
+			containerPath: "/",
+		},
+	)
+
+	containerConfig := &container.Config{
+		Image:        accessConfig.ImageManager,
+		Entrypoint:   []string{"/bin/bash", "-c"},
+		Cmd:          []string{entrypoint},
+		Tty:          true,
+		AttachStdout: true,
+		AttachStderr: true,
+		Env: []string{
+			"CORTEX_PROVIDER=gcp",
+			"GOOGLE_APPLICATION_CREDENTIALS=" + gcpCredsPath,
+			"CORTEX_CLUSTER_NAME=" + *accessConfig.ClusterName,
+			"CORTEX_GCP_PROJECT=" + *accessConfig.Project,
+			"CORTEX_GCP_ZONE=" + *accessConfig.Zone,
+		},
+	}
+
+	output, exitCode, err := runManager(containerConfig, false, copyToPaths, copyFromPaths)
 	if err != nil {
 		return "", nil, err
 	}

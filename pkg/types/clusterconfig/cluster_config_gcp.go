@@ -28,6 +28,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/prompt"
 	"github.com/cortexlabs/cortex/pkg/lib/slices"
+	"github.com/cortexlabs/cortex/pkg/lib/table"
 	"github.com/cortexlabs/cortex/pkg/types"
 )
 
@@ -443,6 +444,45 @@ func DefaultGCPAccessConfig() (*GCPAccessConfig, error) {
 		return nil, errors.FirstError(errs...)
 	}
 	return accessConfig, nil
+}
+
+func (cc *InternalGCPConfig) UserTable() table.KeyValuePairs {
+	var items table.KeyValuePairs
+
+	items.Add(APIVersionUserKey, cc.APIVersion)
+	items.Add(BucketUserKey, cc.Bucket)
+	items.AddAll(cc.GCPConfig.UserTable())
+	return items
+}
+
+func (cc *InternalGCPConfig) UserStr() string {
+	return cc.UserTable().String()
+}
+
+func (cc *GCPConfig) UserTable() table.KeyValuePairs {
+	var items table.KeyValuePairs
+
+	items.Add(ClusterNameUserKey, cc.ClusterName)
+	items.Add(ProjectUserKey, *cc.Project)
+	items.Add(ZoneUserKey, *cc.Zone)
+	items.Add(InstanceTypeUserKey, *cc.InstanceType)
+	items.Add(MinInstancesUserKey, *cc.MinInstances)
+	items.Add(MaxInstancesUserKey, *cc.MaxInstances)
+	if cc.AcceleratorType != nil {
+		items.Add(AcceleratorTypeUserKey, *cc.AcceleratorType)
+	}
+	items.Add(TelemetryUserKey, cc.Telemetry)
+	items.Add(ImageOperatorUserKey, cc.ImageOperator)
+	items.Add(ImageManagerUserKey, cc.ImageManager)
+	items.Add(ImageDownloaderUserKey, cc.ImageDownloader)
+	items.Add(ImageIstioProxyUserKey, cc.ImageIstioProxy)
+	items.Add(ImageIstioPilotUserKey, cc.ImageIstioPilot)
+
+	return items
+}
+
+func (cc *GCPConfig) UserStr() string {
+	return cc.UserTable().String()
 }
 
 func (cc *GCPConfig) TelemetryEvent() map[string]interface{} {

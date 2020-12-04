@@ -27,24 +27,32 @@ import (
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
+	"github.com/cortexlabs/cortex/pkg/types"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	kcore "k8s.io/api/core/v1"
 )
 
 func Info(w http.ResponseWriter, r *http.Request) {
-	nodeInfos, numPendingReplicas, err := getNodeInfos()
-	if err != nil {
-		respondError(w, r, err)
-		return
-	}
+	if config.Provider == types.AWSProviderType {
+		nodeInfos, numPendingReplicas, err := getNodeInfos()
+		if err != nil {
+			respondError(w, r, err)
+			return
+		}
 
-	response := schema.InfoResponse{
-		MaskedAWSAccessKeyID: s.MaskString(os.Getenv("AWS_ACCESS_KEY_ID"), 4),
-		ClusterConfig:        *config.Cluster,
-		NodeInfos:            nodeInfos,
-		NumPendingReplicas:   numPendingReplicas,
+		response := schema.InfoResponse{
+			MaskedAWSAccessKeyID: s.MaskString(os.Getenv("AWS_ACCESS_KEY_ID"), 4),
+			ClusterConfig:        *config.Cluster,
+			NodeInfos:            nodeInfos,
+			NumPendingReplicas:   numPendingReplicas,
+		}
+		respond(w, response)
+	} else {
+		response := schema.InfoGCPResponse{
+			ClusterConfig: *config.GCPCluster,
+		}
+		respond(w, response)
 	}
-	respond(w, response)
 }
 
 func getNodeInfos() ([]schema.NodeInfo, int, error) {
