@@ -316,15 +316,9 @@ func EncodeAuthConfig(authConfig dockertypes.AuthConfig) (string, error) {
 }
 
 func CheckImageAccessible(dockerClient *Client, dockerImage, authConfig string, providerType types.ProviderType) error {
-	// TODO: fix this
-	// fmt.Println("CheckImageAccessible")
-	// fmt.Println(dockerImage)
-	// fmt.Println(authConfig)
-	// if _, err := dockerClient.DistributionInspect(context.Background(), dockerImage, authConfig); err != nil {
-	// 	fmt.Println(err.Error())
-	// 	errors.PrintStacktrace(err)
-	// 	return ErrorImageInaccessible(dockerImage, err)
-	// }
+	if _, err := dockerClient.DistributionInspect(context.Background(), dockerImage, authConfig); err != nil {
+		return ErrorImageInaccessible(dockerImage, providerType, err)
+	}
 	return nil
 }
 

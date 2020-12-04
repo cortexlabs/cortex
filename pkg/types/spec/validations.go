@@ -1456,6 +1456,11 @@ func validateDockerImagePath(
 		return err
 	}
 
+	// skip the docker auth check on GCP
+	if providerType == types.GCPProviderType {
+		return nil
+	}
+
 	dockerClient, err := docker.GetDockerClient()
 	if err != nil {
 		return err
