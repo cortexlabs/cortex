@@ -494,10 +494,14 @@ def find_all_s3_models(
                 continue
             model_paths.append(model_path)
             model_names.append(s3_model_names[idx])
-            bucket_providers.append("s3")
             bucket_names.append(bucket_name)
             sub_paths += [sb]
             timestamps += [model_path_ts]
+
+            if S3.is_valid_s3_path(path):
+                bucket_providers.append("s3")
+            if GCS.is_valid_gcs_path(path):
+                bucket_providers.append("gs")
 
     # determine the detected versions for each model
     # if the model was not versioned, then leave the version list empty

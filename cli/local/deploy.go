@@ -18,6 +18,7 @@ package local
 
 import (
 	"fmt"
+	"os"
 	"path/filepath"
 
 	"github.com/cortexlabs/cortex/cli/types/cliconfig"
@@ -26,6 +27,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/docker"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
+	"github.com/cortexlabs/cortex/pkg/lib/gcp"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
 	"github.com/cortexlabs/cortex/pkg/types"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
@@ -50,15 +52,30 @@ func Deploy(env cliconfig.Environment, configPath string, projectFileList []stri
 	}
 
 	var awsClient *aws.Client
-	if env.AWSAccessKeyID != nil {
-		awsClient, err = aws.NewFromCreds(*env.AWSRegion, *env.AWSAccessKeyID, *env.AWSSecretAccessKey)
+	var gcpClient *gcp.Client
+
+	if env.Provider == types.GCPProviderType {
+		if os.Getenv("GOOGLE_APPLICATION_CREDENTIALS") == "" {
+			return nil, errors.ErrorUnexpected("need to specify $GOOGLE_APPLICATION_CREDENTIALS")
+		}
+
+		_, err := files.ReadFileBytes(os.Getenv("GOOGLE_APPLICATION_CREDENTIALS"))
 		if err != nil {
 			return nil, err
 		}
+
+		gcpClient = &gcp.Client{}
 	} else {
-		awsClient, err = aws.NewAnonymousClient()
-		if err != nil {
-			return nil, err
+		if env.AWSAccessKeyID != nil {
+			awsClient, err = aws.NewFromCreds(*env.AWSRegion, *env.AWSAccessKeyID, *env.AWSSecretAccessKey)
+			if err != nil {
+				return nil, err
+			}
+		} else {
+			awsClient, err = aws.NewAnonymousClient()
+			if err != nil {
+				return nil, err
+			}
 		}
 	}
 
@@ -68,7 +85,7 @@ func Deploy(env cliconfig.Environment, configPath string, projectFileList []stri
 	}
 
 	models := []spec.CuratedModelResource{}
-	err = ValidateLocalAPIs(apiConfigs, &models, projectFiles, awsClient)
+	err = ValidateLocalAPIs(apiConfigs, &models, projectFiles, awsClient, gcpClient)
 	if err != nil {
 		err = errors.Append(err, fmt.Sprintf("\n\napi configuration schema for Realtime API can be found at https://docs.cortex.dev/v/%s/deployments/realtime-api/api-configuration", consts.CortexVersionMinor))
 		return nil, err

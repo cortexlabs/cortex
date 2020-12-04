@@ -778,14 +778,6 @@ func validatePredictor(
 			}
 		}
 	}
-	if providerType == types.GCPProviderType {
-		if predictor.Models != nil {
-			return ErrorFieldNotSupportedByProvider(userconfig.ModelsKey, providerType)
-		}
-		if predictor.ModelPath != nil {
-			return ErrorFieldNotSupportedByProvider(userconfig.ModelPathKey, providerType)
-		}
-	}
 
 	err := validateBucketProviders(api.Predictor, providerType)
 	if err != nil {
@@ -970,10 +962,6 @@ func validatePythonPredictor(api *userconfig.API, models *[]CuratedModelResource
 func validateTensorFlowPredictor(api *userconfig.API, models *[]CuratedModelResource, providerType types.ProviderType, projectFiles ProjectFiles, awsClient *aws.Client, gcpClient *gcp.Client) error {
 	predictor := api.Predictor
 
-	if providerType == types.GCPProviderType {
-		return ErrorPredictorIsNotSupportedByProvider(predictor.Type, providerType)
-	}
-
 	if predictor.ServerSideBatching != nil {
 		if api.Compute.Inf == 0 && predictor.ServerSideBatching.MaxBatchSize > predictor.ProcessesPerReplica*predictor.ThreadsPerProcess {
 			return ErrorInsufficientBatchConcurrencyLevel(predictor.ServerSideBatching.MaxBatchSize, predictor.ProcessesPerReplica, predictor.ThreadsPerProcess)
@@ -1062,10 +1050,6 @@ func validateTensorFlowPredictor(api *userconfig.API, models *[]CuratedModelReso
 
 func validateONNXPredictor(api *userconfig.API, models *[]CuratedModelResource, providerType types.ProviderType, projectFiles ProjectFiles, awsClient *aws.Client, gcpClient *gcp.Client) error {
 	predictor := api.Predictor
-
-	if providerType == types.GCPProviderType {
-		return ErrorPredictorIsNotSupportedByProvider(predictor.Type, providerType)
-	}
 
 	if predictor.SignatureKey != nil {
 		return ErrorFieldNotSupportedByPredictorType(userconfig.SignatureKeyKey, predictor.Type)

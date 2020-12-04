@@ -84,7 +84,7 @@ def register_logger(name, show_pid=True):
 
     logger.propagate = False
     logger.addHandler(handler)
-    logger.setLevel(logging.INFO)
+    logger.setLevel(logging.DEBUG)
     return logger
 
 

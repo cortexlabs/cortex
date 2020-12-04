@@ -249,7 +249,11 @@ class FileBasedModelsTreeUpdater(mp.Process):
 
     def _update_models_tree(self) -> None:
         # don't update when the models:dir is a local path
-        if self._is_dir_used and not self._models_dir.startswith("s3://"):
+        if (
+            self._is_dir_used
+            and not self._models_dir.startswith("s3://")
+            and not self._models_dir.startswith("gs://")
+        ):
             return
 
         # get updated/validated paths/versions of the S3 models
@@ -810,7 +814,11 @@ class TFSModelLoader(mp.Process):
 
     def _update_models(self) -> bool:
         # don't update when the models:dir is a local path
-        if self._is_dir_used and not self._models_dir.startswith("s3://"):
+        if (
+            self._is_dir_used
+            and not self._models_dir.startswith("s3://")
+            and not self._models_dir.startswith("gs://")
+        ):
             return True
 
         # get updated/validated paths/versions of the S3 models
@@ -1584,8 +1592,12 @@ class ModelTreeUpdater(AbstractLoopingThread):
 
     def _update_models_tree(self) -> None:
         # don't update when the models:dir is a local path
-        if self._is_dir_used and not self._models_dir.startswith("s3://"):
-            return
+        if (
+            self._is_dir_used
+            and not self._models_dir.startswith("s3://")
+            and not self._models_dir.startswith("gs://")
+        ):
+            return True
 
         # get updated/validated paths/versions of the S3 models
         (

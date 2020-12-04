@@ -159,8 +159,7 @@ func upGCP(gcpPath string) {
 				// 		Disabled: true,
 				// 	},
 			},
-			Location:  gcpConfig.Zone,
-			Locations: []string{"europe-west1-b", "europe-west1-d"},
+			Locations: []string{gcpConfig.Zone},
 		},
 	}
 

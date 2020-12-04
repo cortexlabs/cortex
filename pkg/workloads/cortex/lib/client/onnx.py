@@ -372,7 +372,7 @@ class ONNXClient:
 
                         # download model
                         logger().info(
-                            f"downloading model {model_name} of version {model_version} from the S3 upstream"
+                            f"downloading model {model_name} of version {model_version} from the {upstream_model['provider']} upstream"
                         )
                         date = self._models.download_model(
                             upstream_model["provider"],
@@ -383,7 +383,7 @@ class ONNXClient:
                         )
                         if not date:
                             raise WithBreak
-                        current_upstream_ts = date.timestamp()
+                        current_upstream_ts = int(date.timestamp())
 
                     # give the local model a timestamp initialized at start time
                     if model_name in self._spec_local_model_names:
