@@ -349,6 +349,6 @@ func ErrorGCPInvalidAcceleratorType(acceleratorType string, zone string, suggest
 func ErrorGCPIncompatibleInstanceTypeWithAccelerator(instanceType, acceleratorType, zone string, compatibleInstances []string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrGCPIncompatibleInstanceTypeWithAccelerator,
-		Message: fmt.Sprintf("instance type '%s' is incompatible with accelerator '%s'; the following instance types are compatible with '%s' accelerator in zone %s: %s", instanceType, acceleratorType, acceleratorType, zone, s.UserStrsOr(compatibleInstances)),
+		Message: fmt.Sprintf("instance type %s is incompatible with the %s accelerator; the following instance types are compatible with the %s accelerator in zone %s: %s", instanceType, acceleratorType, acceleratorType, zone, s.StrsOr(compatibleInstances)),
 	})
 }
