@@ -2,49 +2,48 @@
 
 ## Remote development
 
-We recommend that you run your development environment on a cloud instance, e.g. an AWS EC2 instance or GCP VM (due to frequent docker registry pushing). There are a variety of ways to develop on a remote VM, feel free to reach out on [gitter](https://gitter.im/cortexlabs/cortex) and we can point you in the right direction based on your operating system and editor preferences.
+We recommend that you run your development environment on a cloud instance due to frequent docker registry pushing, e.g. an AWS EC2 instance or GCP VM. We've had a good experience using [Mutagen](https://mutagen.io/documentation/introduction) to synchronize local / remote file systems. Feel free to reach out to us on [gitter](https://gitter.im/cortexlabs/cortex) if you have any questions about this.
 
 ## Prerequisites
 
-1. Go (>=1.14)
-2. Docker
-3. eksctl
-4. kubectl
-5. aws-cli
+### System packages
 
-Also, please use the VS Code [yaml extension](https://marketplace.visualstudio.com/items?itemName=redhat.vscode-yaml) and enable auto-formatting for YAML files.
+To install the necessary system packages on Ubuntu, you can run these commands:
+
+```bash
+sudo apt-get update
+sudo apt install -y apt-transport-https ca-certificates software-properties-common gnupg-agent curl zip python3 python3-pip python3-dev build-essential jq tree
+sudo python3 -m pip install --upgrade pip setuptools boto3
+```
 
 ### Go
 
 To install Go on linux, run:
 
 ```bash
+mkdir -p ~/bin && \
 wget https://dl.google.com/go/go1.14.7.linux-amd64.tar.gz && \
 sudo tar -xvf go1.14.7.linux-amd64.tar.gz && \
 sudo mv go /usr/local && \
-rm go1.14.7.linux-amd64.tar.gz
+rm go1.14.7.linux-amd64.tar.gz && \
+echo 'export PATH="/usr/local/go/bin:$HOME/go/bin:$PATH"' >> $HOME/.bashrc
 ```
+
+And then log out and back in.
 
 ### Docker
 
 To install Docker on Ubuntu, run:
 
 ```bash
-sudo apt install docker.io && \
-sudo systemctl start docker && \
-sudo systemctl enable docker && \
-sudo groupadd docker && \
-sudo gpasswd -a $USER docker
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add - && \
+sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" && \
+sudo apt update && \
+sudo apt install -y docker-ce docker-ce-cli containerd.io && \
+sudo usermod -aG docker $USER
 ```
 
-### eksctl
-
-To install eksctl run:
-
-```bash
-curl --silent --location "https://github.com/weaveworks/eksctl/releases/latest/download/eksctl_$(uname -s)_amd64.tar.gz" | tar xz -C /tmp && \
-sudo mv /tmp/eksctl /usr/local/bin
-```
+And then log out and back in.
 
 ### kubectl
 
@@ -56,6 +55,15 @@ chmod +x ./kubectl && \
 sudo mv ./kubectl /usr/local/bin/kubectl
 ```
 
+### eksctl
+
+To install eksctl run:
+
+```bash
+curl --silent --location "https://github.com/weaveworks/eksctl/releases/latest/download/eksctl_$(uname -s)_amd64.tar.gz" | tar xz -C /tmp && \
+sudo mv /tmp/eksctl /usr/local/bin
+```
+
 ### aws-cli (v1)
 
 Follow [these instructions](https://github.com/aws/aws-cli#installation) to install aws-cli (v1).
@@ -63,9 +71,24 @@ Follow [these instructions](https://github.com/aws/aws-cli#installation) to inst
 E.g. to install it globally, run:
 
 ```bash
-sudo python -m pip install awscli
+sudo python3 -m pip install awscli
 
 aws configure
+```
+
+### gcloud (v1)
+
+Follow [these instructions](https://cloud.google.com/sdk/docs/install#deb) to install gcloud.
+
+For example:
+
+```bash
+echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] https://packages.cloud.google.com/apt cloud-sdk main" | sudo tee -a /etc/apt/sources.list.d/google-cloud-sdk.list && \
+curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key --keyring /usr/share/keyrings/cloud.google.gpg add - && \
+sudo apt-get update && \
+sudo apt-get install -y google-cloud-sdk
+
+gcloud init
 ```
 
 ## Cortex dev environment
@@ -86,13 +109,36 @@ make test
 ```
 
 <!-- TODO add GCP instructions -->
-
 ```bash
 # bash profile
 export CORTEX_DEV_DEFAULT_PREDICTOR_IMAGE_REGISTRY_GCP="gcr.io/XXXXXXXX/cortexlabs"  # set the default image for APIs
 ```
 
-### Image Registry
+### Dev tools
+
+Install development tools by running:
+
+```bash
+make tools
+```
+
+After the dependencies are installed, there may be a diff in `go.mod` and `go.sum`, which you can revert.
+
+Run the linter:
+
+```bash
+make lint
+```
+
+We use `gofmt` for formatting Go files, `black` for Python files (line length = 100), and the VS Code [yaml extension](https://marketplace.visualstudio.com/items?itemName=redhat.vscode-yaml) for YAML files. It is recommended to enable these in your code editor, but you can also run the Go and Python formatters from the terminal:
+
+```bash
+make format
+
+git diff  # there should be no diff
+```
+
+### Cluster configuration
 
 Create a config directory in the repo's root directory:
 
@@ -100,53 +146,52 @@ Create a config directory in the repo's root directory:
 mkdir dev/config
 ```
 
+Create `dev/config/env.sh` with your AWS credentials:
+
+```bash
+# dev/config/env.sh
+
+export AWS_ACCESS_KEY_ID=***
+export AWS_SECRET_ACCESS_KEY=***
+```
+
 Next, create `dev/config/build.sh`. Add the following content to it (you may use a different region for `REGISTRY_REGION`):
 
 ```bash
-export CORTEX_VERSION="master"
+# dev/config/build.sh
 
+export CORTEX_VERSION="master"
 export REGISTRY_REGION="us-west-2"
+# export NUM_BUILD_PROCS=2  # optional; can be >2 if you have enough memory
 ```
 
-Create the AWS Elastic Container Registry:
+Create the ECR registries:
 
 ```bash
 make registry-create
 ```
 
-Take note of the registry URL, this will be needed shortly.
-
-Create the S3 buckets:
+Update `dev/config/build.sh` to include `REGISTRY_URL`, which was printed in the previous command:
 
 ```bash
-aws s3 mb s3://cortex-cluster-<your_name>
-aws s3 mb s3://cortex-cli-<your_name>  # if you'll be uploading your compiled CLI
-```
+# dev/config/build.sh
 
-### Cluster
-
-Update `dev/config/build.sh`. Paste the following config, and update `CLI_BUCKET_NAME`, `CLI_BUCKET_REGION`, `REGISTRY_URL` (the), and `REGISTRY_REGION` accordingly:
-
-```bash
 export CORTEX_VERSION="master"
-
 export REGISTRY_REGION="us-west-2"
 export REGISTRY_URL="XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com"
-
-# optional, only used for dev/build_cli.sh
-export CLI_BUCKET_NAME="cortex-cli-<your_name>"
-export CLI_BUCKET_REGION="us-west-2"
+# export NUM_BUILD_PROCS=2  # optional; can be >2 if you have enough memory
 ```
 
-Create `dev/config/cluster.yaml`. Paste the following config, and update `cortex_bucket`, `cortex_region`, and all registry URLs accordingly:
+Create `dev/config/cluster.yaml`. Paste the following config, and update `cortex_region` and all registry URLs accordingly:
 
 ```yaml
-instance_type: m5.large
-min_instances: 2
-max_instances: 5
-bucket: cortex-cluster-<your_name>
-region: us-west-2
+# dev/config/cluster.yaml
+
 cluster_name: cortex
+region: us-west-2
+instance_type: m5.large
+min_instances: 1
+max_instances: 5
 
 image_operator: XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/operator:latest
 image_manager: XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/manager:latest
@@ -165,17 +210,14 @@ image_istio_pilot: XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/istio-pil
 
 ### Building
 
-Add this to your bash profile (e.g. `~/.bash_profile`, `~/.profile` or `~/.bashrc`):
+Add this to your bash profile (e.g. `~/.bash_profile`, `~/.profile` or `~/.bashrc`), replacing the image registry URL accordingly:
 
 ```bash
 export CORTEX_DEV_DEFAULT_PREDICTOR_IMAGE_REGISTRY="XXXXXXXX.dkr.ecr.us-west-2.amazonaws.com/cortexlabs"  # set the default image for APIs
 export CORTEX_TELEMETRY_SENTRY_DSN="https://c334df915c014ffa93f2076769e5b334@sentry.io/1848098"  # redirect analytics to our dev environment
 export CORTEX_TELEMETRY_SEGMENT_WRITE_KEY="0WvoJyCey9z1W2EW7rYTPJUMRYat46dl"  # redirect error reporting to our dev environment
 
-export AWS_ACCESS_KEY_ID=""
-export AWS_SECRET_ACCESS_KEY=""
-
-alias cortex-dev='<path/to/cortex>/bin/cortex'  # replace <path/to/cortex> with the path to the cortex repo that you cloned
+alias cortex='$HOME/bin/cortex'  # your path may be different depending on where you cloned the repo
 ```
 
 Refresh your bash profile:
@@ -184,61 +226,49 @@ Refresh your bash profile:
 . ~/.bash_profile  # or: `. ~/.bashrc`
 ```
 
+Build the Cortex CLI:
+
+```bash
+make cli  # the binary will be placed in <path/to/cortex>/bin/cortex
+cortex version  # should show "master"
+```
+
 Build and push all Cortex images:
 
 ```bash
 make registry-all
 ```
 
-Build the Cortex CLI:
+## Dev workflow
 
-```bash
-make cli  # the binary will be placed in <path/to/cortex>/bin/cortex
-cortex-dev version  # should show "master"
-```
+Here is the typical full dev workflow which covers most cases:
 
-If you wish to parallelize the build process, the `parallel` GNU utility needs to be installed. Once installed, set the `NUM_BUILD_PROCS` environment variable to the desired number of parallel jobs. For ease of use, export `NUM_BUILD_PROCS` in `dev/config/build.sh`.
-
-### Cortex cluster
-
-Start Cortex:
-
-```bash
-make cluster-up
-```
-
-Tear down the Cortex cluster:
-
-```bash
-make cluster-down
-```
-
-### Deploy an example
-
-```bash
-cortex deploy examples/pytorch/iris-classifier --env aws
-```
-
-## Off-cluster operator
-
-If you're making changes in the operator and want faster iterations, you can run an off-cluster operator.
-
-1. `make tools` to install the necessary dependencies to run the operator
-2. `make operator-stop` to stop the in-cluster operator
-3. `make devstart` to run the off-cluster operator (which rebuilds the CLI and restarts the Operator when files change)
+1. `make cluster-up` (creates a cluster using `dev/config/cluster.yaml`)
+2. `make devstart` (deletes the in-cluster operator, builds the CLI, and starts the operator locally; file changes will trigger the CLI and operator to re-build)
+3. Make your changes
+4. `make registry-dev` (only necessary if API images or the manager are modified)
+5. Test your changes e.g. via `cortex deploy` (and repeat steps 3 and 4 as necessary)
+6. `make cluster-down` (deletes your cluster)
 
 If you want to switch back to the in-cluster operator:
 
-1. `<ctrl+c>` to stop your off-cluster operator
+1. `<ctrl+c>` to stop your local operator
 2. `make cluster-configure` to install the operator in your cluster
 
-## Dev workflow
+If you only want to test Cortex's local environment, here is the common workflow:
 
-1. `make cluster-up`
-2. `make devstart`
-3. Make changes
-4. `make registry-dev`
-5. Test your changes with projects in `examples` or your own
+1. `make cli-watch` (builds the CLI and re-builds it when files are changed)
+2. Make your changes
+3. `make registry-dev` (only necessary if API images or the manager are modified)
+4. Test your changes e.g. via `cortex deploy` (and repeat steps 2 and 3 as necessary)
+
+### Dev workflow optimizations
+
+If you are only modifying the CLI, `make cli-watch` will build the CLI and re-build it when files are changed. When doing this, you can leave the operator running in the cluster instead of running it locally.
+
+If you are only modifying the operator, `make operator-local` will build and start the operator locally, and build/restart it when files are changed.
+
+If you are modifying code in the API images (i.e. any of the Python serving code), `make registry-dev` may build more images than you need during testing. For example, if you are only testing using the `python-predictor-cpu` image, you can comment out the other images listed in `user_facing_images` and `dev_images` in `build/images.sh` before running `make registry-dev`.
 
 See `Makefile` for additional dev commands.
 
