@@ -195,7 +195,7 @@ def handle_on_complete(message):
                 else:
                     should_run_on_job_complete = False
 
-             if total_in_queue <= 1:
+            if total_in_queue <= 1:
                 should_run_on_job_complete = True
 
             # check queue state every 20 seconds (give time for queue metrics to achieve consistency)
