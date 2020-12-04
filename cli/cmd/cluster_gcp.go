@@ -214,81 +214,6 @@ var _clusterGCPInfoCmd = &cobra.Command{
 	},
 }
 
-func cmdInfoGCP(accessConfig *clusterconfig.GCPAccessConfig, disallowPrompt bool) {
-	fmt.Print("fetching cluster endpoints ...\n\n")
-	out, exitCode, err := runGCPManagerAccessCommand("/root/info_gcp.sh", *accessConfig, nil, nil)
-	if err != nil {
-		exit.Error(err)
-	}
-	if exitCode == nil || *exitCode != 0 {
-		exit.Error(ErrorClusterInfo(out))
-	}
-
-	fmt.Println()
-
-	var operatorEndpoint string
-	for _, line := range strings.Split(out, "\n") {
-		// before modifying this, search for this prefix
-		if strings.HasPrefix(line, "operator: ") {
-			operatorEndpoint = "https://" + strings.TrimSpace(strings.TrimPrefix(line, "operator: "))
-			break
-		}
-	}
-
-	if err := printInfoOperatorResponseGCP(accessConfig, operatorEndpoint); err != nil {
-		exit.Error(err)
-	}
-
-	if _flagClusterGCPInfoEnv != "" {
-		if err := updateGCPCLIEnv(_flagClusterGCPInfoEnv, operatorEndpoint, disallowPrompt); err != nil {
-			exit.Error(err)
-		}
-	}
-}
-
-func printInfoOperatorResponseGCP(accessConfig *clusterconfig.GCPAccessConfig, operatorEndpoint string) error {
-	fmt.Print("fetching cluster status ...\n\n")
-
-	operatorConfig := cluster.OperatorConfig{
-		Telemetry:        isTelemetryEnabled(),
-		ClientID:         clientID(),
-		OperatorEndpoint: operatorEndpoint,
-	}
-
-	infoResponse, err := cluster.InfoGCP(operatorConfig)
-	if err != nil {
-		return err
-	}
-
-	infoResponse.ClusterConfig.UserTable().Print()
-
-	return nil
-}
-
-func cmdDebugGCP(accessConfig *clusterconfig.GCPAccessConfig) {
-	// note: if modifying this string, also change it in files.IgnoreCortexDebug()
-	debugFileName := fmt.Sprintf("cortex-debug-%s.tgz", time.Now().UTC().Format("2006-01-02-15-04-05"))
-
-	containerDebugPath := "/out/" + debugFileName
-	copyFromPaths := []dockerCopyFromPath{
-		{
-			containerPath: containerDebugPath,
-			localDir:      _cwd,
-		},
-	}
-
-	out, exitCode, err := runGCPManagerAccessCommand("/root/debug_gcp.sh "+containerDebugPath, *accessConfig, nil, copyFromPaths)
-	if err != nil {
-		exit.Error(err)
-	}
-	if exitCode == nil || *exitCode != 0 {
-		exit.Error(ErrorClusterDebug(out))
-	}
-
-	fmt.Println("saved cluster info to ./" + debugFileName)
-	return
-}
-
 var _clusterGCPDownCmd = &cobra.Command{
 	Use:   "down",
 	Short: "spin down a cluster",
@@ -372,6 +297,81 @@ var _clusterGCPDownCmd = &cobra.Command{
 		cachedClusterConfigPath := cachedGCPClusterConfigPath(*accessConfig.ClusterName, *accessConfig.Project, *accessConfig.Zone)
 		os.Remove(cachedClusterConfigPath)
 	},
+}
+
+func cmdInfoGCP(accessConfig *clusterconfig.GCPAccessConfig, disallowPrompt bool) {
+	fmt.Print("fetching cluster endpoints ...\n\n")
+	out, exitCode, err := runGCPManagerAccessCommand("/root/info_gcp.sh", *accessConfig, nil, nil)
+	if err != nil {
+		exit.Error(err)
+	}
+	if exitCode == nil || *exitCode != 0 {
+		exit.Error(ErrorClusterInfo(out))
+	}
+
+	fmt.Println()
+
+	var operatorEndpoint string
+	for _, line := range strings.Split(out, "\n") {
+		// before modifying this, search for this prefix
+		if strings.HasPrefix(line, "operator: ") {
+			operatorEndpoint = "https://" + strings.TrimSpace(strings.TrimPrefix(line, "operator: "))
+			break
+		}
+	}
+
+	if err := printInfoOperatorResponseGCP(accessConfig, operatorEndpoint); err != nil {
+		exit.Error(err)
+	}
+
+	if _flagClusterGCPInfoEnv != "" {
+		if err := updateGCPCLIEnv(_flagClusterGCPInfoEnv, operatorEndpoint, disallowPrompt); err != nil {
+			exit.Error(err)
+		}
+	}
+}
+
+func printInfoOperatorResponseGCP(accessConfig *clusterconfig.GCPAccessConfig, operatorEndpoint string) error {
+	fmt.Print("fetching cluster status ...\n\n")
+
+	operatorConfig := cluster.OperatorConfig{
+		Telemetry:        isTelemetryEnabled(),
+		ClientID:         clientID(),
+		OperatorEndpoint: operatorEndpoint,
+	}
+
+	infoResponse, err := cluster.InfoGCP(operatorConfig)
+	if err != nil {
+		return err
+	}
+
+	infoResponse.ClusterConfig.UserTable().Print()
+
+	return nil
+}
+
+func cmdDebugGCP(accessConfig *clusterconfig.GCPAccessConfig) {
+	// note: if modifying this string, also change it in files.IgnoreCortexDebug()
+	debugFileName := fmt.Sprintf("cortex-debug-%s.tgz", time.Now().UTC().Format("2006-01-02-15-04-05"))
+
+	containerDebugPath := "/out/" + debugFileName
+	copyFromPaths := []dockerCopyFromPath{
+		{
+			containerPath: containerDebugPath,
+			localDir:      _cwd,
+		},
+	}
+
+	out, exitCode, err := runGCPManagerAccessCommand("/root/debug_gcp.sh "+containerDebugPath, *accessConfig, nil, copyFromPaths)
+	if err != nil {
+		exit.Error(err)
+	}
+	if exitCode == nil || *exitCode != 0 {
+		exit.Error(ErrorClusterDebug(out))
+	}
+
+	fmt.Println("saved cluster info to ./" + debugFileName)
+	return
 }
 
 func updateGCPCLIEnv(envName string, operatorEndpoint string, disallowPrompt bool) error {
