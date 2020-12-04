@@ -12,7 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# TODO mirror these images
+# Source: https://cloud.google.com/kubernetes-engine/docs/how-to/gpus#cos
+
+# TODO mirror these images?
+# TODO add to versions.md
 
 apiVersion: apps/v1
 kind: DaemonSet
