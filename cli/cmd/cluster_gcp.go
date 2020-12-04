@@ -109,7 +109,7 @@ var _clusterGCPUpCmd = &cobra.Command{
 	Short: "spin up a cluster",
 	Args:  cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
-		telemetry.EventNotify("cli.cluster.up", map[string]interface{}{"provider": types.GCPProviderType.String()})
+		telemetry.EventNotify("cli.cluster.up", map[string]interface{}{"provider": types.GCPProviderType})
 
 		if _flagClusterGCPUpEnv == "local" {
 			exit.Error(ErrorLocalEnvironmentCantUseClusterProvider(types.GCPProviderType))
@@ -191,7 +191,7 @@ var _clusterGCPInfoCmd = &cobra.Command{
 	Short: "get information about a cluster",
 	Args:  cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
-		telemetry.Event("cli.cluster.info", map[string]interface{}{"provider": types.GCPProviderType.String()})
+		telemetry.Event("cli.cluster.info", map[string]interface{}{"provider": types.GCPProviderType})
 
 		if _flagClusterGCPInfoEnv == "local" {
 			exit.Error(ErrorLocalEnvironmentCantUseClusterProvider(types.GCPProviderType))
@@ -219,7 +219,7 @@ var _clusterGCPDownCmd = &cobra.Command{
 	Short: "spin down a cluster",
 	Args:  cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
-		telemetry.Event("cli.cluster.down", map[string]interface{}{"provider": types.GCPProviderType.String()})
+		telemetry.Event("cli.cluster.down", map[string]interface{}{"provider": types.GCPProviderType})
 
 		if _flagClusterGCPUpEnv == "local" {
 			exit.Error(ErrorLocalEnvironmentCantUseClusterProvider(types.GCPProviderType))
