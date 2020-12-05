@@ -4,8 +4,7 @@
 <br>
 
 <!-- Delete on release branches -->
-<!-- CORTEX_VERSION_README_MINOR -->
-[install](https://docs.cortex.dev/install) • [documentation](https://docs.cortex.dev) • [examples](https://github.com/cortexlabs/cortex/tree/0.23/examples) • [community](https://gitter.im/cortexlabs/cortex)
+[install](https://docs.cortex.dev/install) • [documentation](https://docs.cortex.dev) • [community](https://gitter.im/cortexlabs/cortex)
 
 # Deploy machine learning models to production
 
@@ -74,10 +73,6 @@ class PythonPredictor:
 api_spec = {
   "name": "text-generator",
   "kind": "RealtimeAPI",
-  "predictor": {
-    "type": "python",
-    "path": "predictor.py"
-  },
   "compute": {
     "gpu": 1,
     "mem": "8Gi",
