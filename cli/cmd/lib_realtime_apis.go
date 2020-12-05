@@ -68,8 +68,6 @@ func realtimeAPITable(realtimeAPI schema.APIResponse, env cliconfig.Environment)
 
 	out += "\n" + console.Bold("endpoint: ") + realtimeAPI.Endpoint
 
-	out += fmt.Sprintf("\n%s curl %s -X POST -H \"Content-Type: application/json\" -d @sample.json\n", console.Bold("example curl:"), realtimeAPI.Endpoint)
-
 	if !(realtimeAPI.Spec.Predictor.Type == userconfig.PythonPredictorType && realtimeAPI.Spec.Predictor.ModelPath == nil && realtimeAPI.Spec.Predictor.Models == nil) {
 		out += "\n" + describeModelInput(realtimeAPI.Status, realtimeAPI.Spec.Predictor, realtimeAPI.Endpoint)
 	}
