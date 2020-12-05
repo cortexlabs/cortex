@@ -7,6 +7,8 @@
 
 Cortex is an open source platform for deploying, managing, and scaling machine learning in production.
 
+<br>
+
 ## Model serving infrastructure
 
 * Supports deploying TensorFlow, PyTorch, sklearn and other models as realtime or batch APIs.
@@ -14,12 +16,16 @@ Cortex is an open source platform for deploying, managing, and scaling machine l
 * Runs inference on spot instances with on-demand backups.
 * Autoscales to handle production workloads.
 
+<br>
+
 ## Reproducible deployments
 
 * Package dependencies, code, and configuration for reproducible deployments.
 * Configure compute, autoscaling, and networking for each API.
 * Integrate with your data science platform or CI/CD system.
 * Test locally before deploying to your cluster.
+
+<br>
 
 ## Scalable machine learning APIs
 
@@ -29,8 +35,9 @@ Cortex is an open source platform for deploying, managing, and scaling machine l
 * Configure traffic splitting for A/B testing.
 * Update APIs without downtime.
 
+<br>
+
 ## Get started
 
-* [Deploy a realtime API](https://docs.cortex.dev/start)
-* [Read the docs](https://docs.cortex.dev)
+* [Deploy models](https://docs.cortex.dev/start)
 * [Join our community](https://gitter.im/cortexlabs/cortex)
