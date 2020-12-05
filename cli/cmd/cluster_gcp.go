@@ -530,7 +530,6 @@ func createGKECluster(clusterConfig *clusterconfig.GCPConfig, gcpClient *gcp.Cli
 			exit.Error(ErrorClusterUp(resp.StatusMessage))
 		}
 
-		// TODO should this check for Cluster_RUNNING?
 		if resp.Status != containerpb.Cluster_PROVISIONING {
 			fmt.Println(" ✓")
 			break

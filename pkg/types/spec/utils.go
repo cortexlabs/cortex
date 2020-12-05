@@ -562,8 +562,6 @@ func getModelVersionsFromPaths(paths []string, prefix string) []string {
 	return slices.UniqueStrings(versions)
 }
 
-// ##################
-
 func verifyTotalWeight(apis []*userconfig.TrafficSplit) error {
 	totalWeight := int32(0)
 	for _, api := range apis {

@@ -276,7 +276,7 @@ func GetVersionFromAPISpecFilePath(path string) string {
 func TotalLocalModelVersions(models []spec.CuratedModelResource) int {
 	totalLocalModelVersions := 0
 	for _, model := range models {
-		if model.S3Path {
+		if !model.LocalPath {
 			continue
 		}
 		if len(model.Versions) > 0 {

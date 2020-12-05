@@ -286,7 +286,7 @@ var UserValidation = &cr.StructValidation{
 				AllowEmpty:        true,
 				AllowExplicitNull: true,
 				DisallowDups:      true,
-				// InvalidLengths:    []int{1},
+				InvalidLengths:    []int{1},
 			},
 		},
 		{

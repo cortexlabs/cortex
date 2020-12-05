@@ -58,7 +58,6 @@ var (
 	_flagClusterRegion             string
 	_flagClusterInfoDebug          bool
 	_flagClusterDisallowPrompt     bool
-	_flagClusterProject            string
 	_flagAWSAccessKeyID            string
 	_flagAWSSecretAccessKey        string
 	_flagClusterAWSAccessKeyID     string
@@ -99,7 +98,6 @@ func clusterInit() {
 	addClusterRegionFlag(_clusterDownCmd)
 	addAWSCredentialsFlags(_clusterDownCmd)
 	_clusterDownCmd.Flags().BoolVarP(&_flagClusterDisallowPrompt, "yes", "y", false, "skip prompts")
-	_clusterDownCmd.Flags().StringVarP(&_flagClusterProject, "project", "", "", "GCP project id")
 	_clusterCmd.AddCommand(_clusterDownCmd)
 
 	_clusterExportCmd.Flags().SortFlags = false
