@@ -1,13 +1,10 @@
 root: ./docs/
 
 structure:
-  readme: ../README.md
   summary: summary.md
 
 redirects:
-  tutorial: ./tutorials/hello-world/python/README.md
-  tutorial/realtime: ./tutorials/hello-world/python/README.md
-  tutorial/batch: ./tutorials/batch/python/README.md
+  start: ./tutorials/realtime.md
   install: ./aws/install.md
   uninstall: ./aws/uninstall.md
   update: ./aws/update.md

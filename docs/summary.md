@@ -1,10 +1,9 @@
 # Table of contents
 
-* [Deploy machine learning models to production](../README.md)
-* [Get started](tutorials/realtime.md)
-* [Contact us](contact.md)
+* [Deploy a realtime API](tutorials/realtime.md)
+* [Deploy a batch API](tutorials/batch.md)
 
-## Running Cortex on AWS
+## Running on AWS
 
 * [Install](aws/install.md)
 * [Credentials](aws/credentials.md)
@@ -30,14 +29,12 @@
   * [Autoscaling](deployments/realtime-api/autoscaling.md)
   * [Prediction monitoring](deployments/realtime-api/prediction-monitoring.md)
   * [Traffic Splitter](deployments/realtime-api/traffic-splitter.md)
-  * [Realtime API tutorial](tutorials/realtime/README.md)
 * [Batch API](deployments/batch-api.md)
   * [Predictor implementation](deployments/batch-api/predictors.md)
   * [API configuration](deployments/batch-api/api-configuration.md)
   * [API deployment](deployments/batch-api/deployment.md)
   * [Endpoints](deployments/batch-api/endpoints.md)
   * [Job statuses](deployments/batch-api/statuses.md)
-  * [Batch API tutorial](tutorials/batch/README.md)
 
 ## Advanced
 
