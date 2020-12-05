@@ -35,6 +35,9 @@
   * [API deployment](deployments/batch-api/deployment.md)
   * [Endpoints](deployments/batch-api/endpoints.md)
   * [Job statuses](deployments/batch-api/statuses.md)
+* [Python client](deployments/python-client.md)
+* [Environments](deployments/environments.md)
+* [Telemetry](deployments/telemetry.md)
 
 ## Advanced
 
@@ -43,14 +46,6 @@
 * [Using Inferentia](deployments/inferentia.md)
 * [Python packages](deployments/python-packages.md)
 * [System packages](deployments/system-packages.md)
-
-## Miscellaneous
-
-* [CLI commands](miscellaneous/cli.md)
-* [Python client](miscellaneous/python-client.md)
-* [Environments](miscellaneous/environments.md)
-* [Architecture diagram](miscellaneous/architecture.md)
-* [Telemetry](miscellaneous/telemetry.md)
 
 ## Troubleshooting
 
@@ -73,7 +68,4 @@
 * [Docker Hub rate limiting](guides/docker-hub-rate-limiting.md)
 * [Private docker registry](guides/private-docker.md)
 * [Install CLI on Windows](guides/windows-cli.md)
-
-## Contributing
-
-* [Development](contributing/development.md)
+* [Contributing](guides/contributing.md)
