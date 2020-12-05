@@ -4,7 +4,6 @@ structure:
   summary: summary.md
 
 redirects:
-  start: ./tutorials/realtime.md
   install: ./aws/install.md
   uninstall: ./aws/uninstall.md
   update: ./aws/update.md

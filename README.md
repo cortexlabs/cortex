@@ -39,5 +39,4 @@ Cortex is an open source platform for deploying, managing, and scaling machine l
 
 ## Get started
 
-* [Deploy models](https://docs.cortex.dev/start)
-* [Join our community](https://gitter.im/cortexlabs/cortex)
+[Deploy models](https://docs.cortex.dev) and [join our community](https://gitter.im/cortexlabs/cortex).
