@@ -58,6 +58,11 @@ type instanceInfo struct {
 	Price         float64 `json:"price" yaml:"price"`
 	OnDemandPrice float64 `json:"on_demand_price" yaml:"on_demand_price"`
 	Count         int32   `json:"count" yaml:"count"`
+	Memory        int64   `json:"memory" yaml:"memory"`
+	CPU           float64 `json:"cpu" yaml:"cpu"`
+	GPU           int64   `json:"gpu" yaml:"gpu"`
+	Inf           int64   `json:"inf" yaml:"inf"`
+	GPUType       string  `json:"gpu_type" yaml:"gpu_type"` // currently only used in GCP
 }
 
 func InstanceTelemetryAWS() error {
@@ -105,12 +110,26 @@ func InstanceTelemetryAWS() error {
 			}
 		}
 
+		gpuQty := node.Status.Allocatable["nvidia.com/gpu"]
+		infQty := node.Status.Allocatable["aws.amazon.com/neuron"]
+
+		// For AWS, use the instance type as the GPU type
+		gpuType := ""
+		if gpuQty.Value() > 0 {
+			gpuType = instanceType
+		}
+
 		info := instanceInfo{
 			InstanceType:  instanceType,
 			IsSpot:        isSpot,
 			Price:         price,
 			OnDemandPrice: onDemandPrice,
 			Count:         1,
+			Memory:        node.Status.Allocatable.Memory().Value(),
+			CPU:           float64(node.Status.Allocatable.Cpu().MilliValue()) / 1000,
+			GPU:           gpuQty.Value(),
+			Inf:           infQty.Value(),
+			GPUType:       gpuType,
 		}
 
 		instanceInfos[instanceInfosKey] = &info
@@ -191,10 +210,16 @@ func InstanceTelemetryGCP() error {
 			continue
 		}
 
+		gpuQty := node.Status.Allocatable["nvidia.com/gpu"]
+
 		info := instanceInfo{
 			InstanceType: instanceType,
 			IsSpot:       false,
 			Count:        1,
+			Memory:       node.Status.Allocatable.Memory().Value(),
+			CPU:          float64(node.Status.Allocatable.Cpu().MilliValue()) / 1000,
+			GPU:          gpuQty.Value(),
+			GPUType:      node.Labels["cloud.google.com/gke-accelerator"],
 		}
 
 		instanceInfos[instanceInfosKey] = &info

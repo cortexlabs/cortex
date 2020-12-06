@@ -162,7 +162,7 @@ func nodeComputeAllocatable(node *kcore.Node) userconfig.Compute {
 	return userconfig.Compute{
 		CPU: k8s.WrapQuantity(*node.Status.Allocatable.Cpu()),
 		Mem: k8s.WrapQuantity(*node.Status.Allocatable.Memory()),
-		GPU: (&gpuQty).Value(),
-		Inf: (&infQty).Value(),
+		GPU: gpuQty.Value(),
+		Inf: infQty.Value(),
 	}
 }
