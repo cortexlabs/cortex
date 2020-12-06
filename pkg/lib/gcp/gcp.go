@@ -26,7 +26,6 @@ import (
 
 type Client struct {
 	ProjectID    string
-	Zone         string
 	ClientEmail  string
 	ClientID     string
 	PrivateKey   string
@@ -43,7 +42,21 @@ type credentialsFile struct {
 }
 
 // Uses environment variable $GOOGLE_APPLICATION_CREDENTIALS
-func NewFromEnv(projectID string, zone string) (*Client, error) {
+func NewFromEnvCheckProjectID(projectID string) (*Client, error) {
+	client, err := NewFromEnv()
+	if err != nil {
+		return nil, err
+	}
+
+	if client.ProjectID != projectID {
+		return nil, ErrorProjectIDMismatch(client.ProjectID, projectID, os.Getenv("GOOGLE_APPLICATION_CREDENTIALS"))
+	}
+
+	return client, nil
+}
+
+// Uses environment variable $GOOGLE_APPLICATION_CREDENTIALS
+func NewFromEnv() (*Client, error) {
 	credsFilePath := os.Getenv("GOOGLE_APPLICATION_CREDENTIALS")
 	if credsFilePath == "" {
 		return nil, ErrorCredentialsFileEnvVarNotSet()
@@ -60,13 +73,8 @@ func NewFromEnv(projectID string, zone string) (*Client, error) {
 		return nil, errors.Wrap(err, credsFilePath)
 	}
 
-	if credsFile.ProjectID != projectID {
-		return nil, ErrorProjectIDMismatch(credsFile.ProjectID, projectID, credsFilePath)
-	}
-
 	return &Client{
-		ProjectID:    projectID,
-		Zone:         zone,
+		ProjectID:    credsFile.ProjectID,
 		ClientEmail:  credsFile.ClientEmail,
 		ClientID:     credsFile.ClientID,
 		PrivateKey:   credsFile.PrivateKey,

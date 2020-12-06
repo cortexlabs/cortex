@@ -137,7 +137,7 @@ func Init() error {
 		GCPCluster.ID = hash.String(GCPCluster.ClusterName + *GCPCluster.Project + *GCPCluster.Zone)
 		GCPCluster.Bucket = clusterconfig.GCPBucketName(GCPCluster.ClusterName, *GCPCluster.Project, *GCPCluster.Zone)
 
-		GCP, err = gcp.NewFromEnv(*GCPCluster.Project, *GCPCluster.Zone)
+		GCP, err = gcp.NewFromEnvCheckProjectID(*GCPCluster.Project)
 		if err != nil {
 			return err
 		}

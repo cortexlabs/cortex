@@ -142,7 +142,7 @@ var _clusterGCPUpCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
-		gcpClient, err := gcp.NewFromEnv(*accessConfig.Project, *accessConfig.Zone)
+		gcpClient, err := gcp.NewFromEnvCheckProjectID(*accessConfig.Project)
 		if err != nil {
 			exit.Error(err)
 		}
@@ -243,7 +243,7 @@ var _clusterGCPDownCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
-		gcpClient, err := gcp.NewFromEnv(*accessConfig.Project, *accessConfig.Zone)
+		gcpClient, err := gcp.NewFromEnvCheckProjectID(*accessConfig.Project)
 		if err != nil {
 			exit.Error(err)
 		}

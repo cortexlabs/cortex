@@ -260,7 +260,7 @@ func (cc *GCPConfig) Validate(GCP *gcp.Client) error {
 		return ErrorGCPInvalidProjectID(*cc.Project)
 	}
 
-	if validZone, err := GCP.IsZoneValid(); err != nil {
+	if validZone, err := GCP.IsZoneValid(*cc.Zone); err != nil {
 		return err
 	} else if !validZone {
 		availableZones, err := GCP.GetAvailableZones()
@@ -270,10 +270,10 @@ func (cc *GCPConfig) Validate(GCP *gcp.Client) error {
 		return ErrorGCPInvalidZone(*cc.Zone, availableZones...)
 	}
 
-	if validInstanceType, err := GCP.IsInstanceTypeAvailable(*cc.InstanceType); err != nil {
+	if validInstanceType, err := GCP.IsInstanceTypeAvailable(*cc.InstanceType, *cc.Zone); err != nil {
 		return err
 	} else if !validInstanceType {
-		instanceTypes, err := GCP.GetAvailableInstanceTypes()
+		instanceTypes, err := GCP.GetAvailableInstanceTypes(*cc.Zone)
 		if err != nil {
 			return err
 		}
@@ -281,10 +281,10 @@ func (cc *GCPConfig) Validate(GCP *gcp.Client) error {
 	}
 
 	if cc.AcceleratorType != nil {
-		if validAccelerator, err := GCP.IsAcceleratorTypeAvailable(*cc.AcceleratorType); err != nil {
+		if validAccelerator, err := GCP.IsAcceleratorTypeAvailable(*cc.AcceleratorType, *cc.Zone); err != nil {
 			return err
 		} else if !validAccelerator {
-			availableAcceleratorsInZone, err := GCP.GetAvailableAcceleratorTypes()
+			availableAcceleratorsInZone, err := GCP.GetAvailableAcceleratorTypes(*cc.Zone)
 			if err != nil {
 				return err
 			}
@@ -307,9 +307,9 @@ func (cc *GCPConfig) Validate(GCP *gcp.Client) error {
 		var compatibleInstances []string
 		var err error
 		if strings.HasSuffix(*cc.AcceleratorType, "a100") {
-			compatibleInstances, err = GCP.GetInstanceTypesWithPrefix("a2")
+			compatibleInstances, err = GCP.GetInstanceTypesWithPrefix("a2", *cc.Zone)
 		} else {
-			compatibleInstances, err = GCP.GetInstanceTypesWithPrefix("n1")
+			compatibleInstances, err = GCP.GetInstanceTypesWithPrefix("n1", *cc.Zone)
 		}
 		if err != nil {
 			return err

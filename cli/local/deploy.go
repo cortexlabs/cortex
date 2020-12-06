@@ -18,7 +18,6 @@ package local
 
 import (
 	"fmt"
-	"os"
 	"path/filepath"
 
 	"github.com/cortexlabs/cortex/cli/types/cliconfig"
@@ -55,16 +54,10 @@ func Deploy(env cliconfig.Environment, configPath string, projectFileList []stri
 	var gcpClient *gcp.Client
 
 	if env.Provider == types.GCPProviderType {
-		if os.Getenv("GOOGLE_APPLICATION_CREDENTIALS") == "" {
-			return nil, errors.ErrorUnexpected("need to specify $GOOGLE_APPLICATION_CREDENTIALS")
-		}
-
-		_, err := files.ReadFileBytes(os.Getenv("GOOGLE_APPLICATION_CREDENTIALS"))
+		gcpClient, err = gcp.NewFromEnv()
 		if err != nil {
 			return nil, err
 		}
-
-		gcpClient = &gcp.Client{}
 	} else {
 		if env.AWSAccessKeyID != nil {
 			awsClient, err = aws.NewFromCreds(*env.AWSRegion, *env.AWSAccessKeyID, *env.AWSSecretAccessKey)

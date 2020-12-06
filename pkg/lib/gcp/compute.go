@@ -45,15 +45,15 @@ func (c *Client) IsProjectIDValid() (bool, error) {
 	return true, nil
 }
 
-func (c *Client) IsZoneValid() (bool, error) {
+func (c *Client) IsZoneValid(zone string) (bool, error) {
 	compClient, err := c.Compute()
 	if err != nil {
 		return false, err
 	}
 
-	_, err = compClient.Zones.Get(c.ProjectID, c.Zone).Do()
+	_, err = compClient.Zones.Get(c.ProjectID, zone).Do()
 	if err != nil {
-		errorMessage := fmt.Sprintf("The resource 'projects/%s/zones/%s' was not found", c.ProjectID, c.Zone)
+		errorMessage := fmt.Sprintf("The resource 'projects/%s/zones/%s' was not found", c.ProjectID, zone)
 		if IsErrCode(err, 404, pointer.String(errorMessage)) {
 			return false, nil
 		}
@@ -63,15 +63,15 @@ func (c *Client) IsZoneValid() (bool, error) {
 	return true, nil
 }
 
-func (c *Client) IsInstanceTypeAvailable(instanceType string) (bool, error) {
+func (c *Client) IsInstanceTypeAvailable(instanceType string, zone string) (bool, error) {
 	compClient, err := c.Compute()
 	if err != nil {
 		return false, err
 	}
 
-	_, err = compClient.MachineTypes.Get(c.ProjectID, c.Zone, instanceType).Do()
+	_, err = compClient.MachineTypes.Get(c.ProjectID, zone, instanceType).Do()
 	if err != nil {
-		errorMessage := fmt.Sprintf("The resource 'projects/%s/zones/%s/machineTypes/%s' was not found", c.ProjectID, c.Zone, instanceType)
+		errorMessage := fmt.Sprintf("The resource 'projects/%s/zones/%s/machineTypes/%s' was not found", c.ProjectID, zone, instanceType)
 		if IsErrCode(err, 404, pointer.String(errorMessage)) {
 			return false, nil
 		}
@@ -81,15 +81,15 @@ func (c *Client) IsInstanceTypeAvailable(instanceType string) (bool, error) {
 	return true, nil
 }
 
-func (c *Client) IsAcceleratorTypeAvailable(acceleratorType string) (bool, error) {
+func (c *Client) IsAcceleratorTypeAvailable(acceleratorType string, zone string) (bool, error) {
 	compClient, err := c.Compute()
 	if err != nil {
 		return false, err
 	}
 
-	_, err = compClient.AcceleratorTypes.Get(c.ProjectID, c.Zone, acceleratorType).Do()
+	_, err = compClient.AcceleratorTypes.Get(c.ProjectID, zone, acceleratorType).Do()
 	if err != nil {
-		resource := fmt.Sprintf("projects/%s/zones/%s/acceleratorTypes/%s", c.ProjectID, c.Zone, acceleratorType)
+		resource := fmt.Sprintf("projects/%s/zones/%s/acceleratorTypes/%s", c.ProjectID, zone, acceleratorType)
 		if IsErrCode(err, 404, pointer.String(fmt.Sprintf("The resource '%s' was not found", resource))) {
 			return false, nil
 		}
@@ -125,7 +125,7 @@ func (c *Client) GetAvailableZones() ([]string, error) {
 	return availableZones.SliceSorted(), nil
 }
 
-func (c *Client) GetAvailableInstanceTypes() ([]string, error) {
+func (c *Client) GetAvailableInstanceTypes(zone string) ([]string, error) {
 	compClient, err := c.Compute()
 	if err != nil {
 		return nil, err
@@ -133,7 +133,7 @@ func (c *Client) GetAvailableInstanceTypes() ([]string, error) {
 
 	availableInstanceTypes := strset.New()
 
-	err = compClient.MachineTypes.List(c.ProjectID, c.Zone).Pages(context.Background(), func(instanceTypeList *compute.MachineTypeList) error {
+	err = compClient.MachineTypes.List(c.ProjectID, zone).Pages(context.Background(), func(instanceTypeList *compute.MachineTypeList) error {
 		if instanceTypeList != nil {
 			for _, machineType := range instanceTypeList.Items {
 				if machineType == nil {
@@ -179,14 +179,14 @@ func (c *Client) GetAvailableInstanceTypesForAllZones() ([]string, error) {
 	return availableInstanceTypes.SliceSorted(), nil
 }
 
-func (c *Client) GetInstanceTypesMetadata() ([]compute.MachineType, error) {
+func (c *Client) GetInstanceTypesMetadata(zone string) ([]compute.MachineType, error) {
 	compClient, err := c.Compute()
 	if err != nil {
 		return nil, err
 	}
 
 	machineTypesList := make([]compute.MachineType, 0)
-	err = compClient.MachineTypes.List(c.ProjectID, c.Zone).Pages(context.Background(), func(instanceTypeList *compute.MachineTypeList) error {
+	err = compClient.MachineTypes.List(c.ProjectID, zone).Pages(context.Background(), func(instanceTypeList *compute.MachineTypeList) error {
 		if instanceTypeList != nil {
 			for _, machineType := range instanceTypeList.Items {
 				if machineType == nil {
@@ -231,8 +231,8 @@ func (c *Client) GetInstanceTypesMetadataForAllZones() ([]compute.MachineType, e
 	return machineTypesList, nil
 }
 
-func (c *Client) GetInstanceTypesWithPrefix(prefix string) ([]string, error) {
-	instanceTypes, err := c.GetAvailableInstanceTypes()
+func (c *Client) GetInstanceTypesWithPrefix(prefix string, zone string) ([]string, error) {
+	instanceTypes, err := c.GetAvailableInstanceTypes(zone)
 	if err != nil {
 		return nil, err
 	}
@@ -247,7 +247,7 @@ func (c *Client) GetInstanceTypesWithPrefix(prefix string) ([]string, error) {
 	return instanceTypesWithPrefix.SliceSorted(), nil
 }
 
-func (c *Client) GetAvailableAcceleratorTypes() ([]string, error) {
+func (c *Client) GetAvailableAcceleratorTypes(zone string) ([]string, error) {
 	compClient, err := c.Compute()
 	if err != nil {
 		return nil, err
@@ -255,7 +255,7 @@ func (c *Client) GetAvailableAcceleratorTypes() ([]string, error) {
 
 	availableAcceleratorTypes := strset.New()
 
-	err = compClient.AcceleratorTypes.List(c.ProjectID, c.Zone).Pages(context.Background(), func(acceleratorTypeList *compute.AcceleratorTypeList) error {
+	err = compClient.AcceleratorTypes.List(c.ProjectID, zone).Pages(context.Background(), func(acceleratorTypeList *compute.AcceleratorTypeList) error {
 		if acceleratorTypeList != nil {
 			for _, acceleratorType := range acceleratorTypeList.Items {
 				if acceleratorType == nil {
