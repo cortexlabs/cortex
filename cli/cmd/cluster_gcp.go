@@ -253,8 +253,6 @@ var _clusterGCPDownCmd = &cobra.Command{
 		// updating CLI env is best-effort, so ignore errors
 		operatorLoadBalancerIP, _ := getGCPOperatorLoadBalancerIP(gkeClusterName, gcpClient)
 
-		// loadBalancer, _ := getOperatorLoadBalancer(*accessConfig.ClusterName, awsClient) // TODO
-
 		if _flagClusterGCPDisallowPrompt {
 			fmt.Printf("your cluster named \"%s\" in %s (zone: %s) will be spun down and all apis will be deleted\n\n", *accessConfig.ClusterName, *accessConfig.Project, *accessConfig.Zone)
 		} else {
@@ -286,8 +284,6 @@ var _clusterGCPDownCmd = &cobra.Command{
 			fmt.Print("\n\n")
 			exit.Error(err)
 		}
-
-		// TODO wait for cluster to be down
 
 		fmt.Println("✓")
 

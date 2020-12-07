@@ -58,7 +58,7 @@ func ClientIDMiddleware(next http.Handler) http.Handler {
 				if config.Provider == types.AWSProviderType {
 					_, hashedAccountID, err = config.AWS.GetCachedAccountID()
 				} else {
-					// TODO do the same for GCP
+					hashedAccountID = config.GCP.HashedProjectID
 				}
 				if err == nil && hashedAccountID != "" {
 					telemetry.RecordOperatorID(clientID, hashedAccountID)
@@ -114,10 +114,6 @@ func AuthMiddleware(next http.Handler) http.Handler {
 				respondErrorCode(w, r, http.StatusForbidden, ErrorAuthOtherAccount())
 				return
 			}
-		}
-
-		if config.Provider == types.GCPProviderType {
-			// TODO do the same for GCP as well
 		}
 
 		next.ServeHTTP(w, r)

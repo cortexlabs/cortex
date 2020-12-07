@@ -443,7 +443,6 @@ func applyK8sDeployment(api *spec.API, prevDeployment *kapps.Deployment) error {
 			return err
 		}
 	}
-	// TODO implement autoscaler for GCP
 
 	return nil
 }

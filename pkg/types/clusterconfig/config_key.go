@@ -61,6 +61,7 @@ const (
 	ImageStatsdKey                         = "image_statsd"
 	ImageIstioProxyKey                     = "image_istio_proxy"
 	ImageIstioPilotKey                     = "image_istio_pilot"
+	ImageGooglePauseKey                    = "image_google_pause"
 
 	// User facing string
 	ProviderUserKey                            = "provider"
@@ -107,4 +108,5 @@ const (
 	ImageStatsdUserKey                         = "statsd image"
 	ImageIstioProxyUserKey                     = "istio proxy image"
 	ImageIstioPilotUserKey                     = "istio pilot image"
+	ImageGooglePauseUserKey                    = "google pause image"
 )

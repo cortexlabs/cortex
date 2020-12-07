@@ -28,7 +28,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/cast"
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
-	"github.com/cortexlabs/cortex/pkg/lib/debug"
 	"github.com/cortexlabs/cortex/pkg/lib/docker"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
@@ -801,8 +800,6 @@ func validatePredictor(
 			return err
 		}
 	}
-
-	debug.Ppg(models)
 
 	if api.Kind == userconfig.BatchAPIKind {
 		if predictor.ProcessesPerReplica > 1 {

@@ -838,8 +838,6 @@ func validateAWSCreds(env cliconfig.Environment) error {
 	return nil
 }
 
-// TODO make it work with GCP environments
-// we should probably only show GCP-deployed/AWS-deployed APIs when running `cortex get`
 func MustGetOperatorConfig(envName string) cluster.OperatorConfig {
 	clientID := clientID()
 	env, err := readEnv(envName)

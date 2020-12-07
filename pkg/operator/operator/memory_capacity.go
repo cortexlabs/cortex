@@ -17,6 +17,8 @@ limitations under the License.
 package operator
 
 import (
+	"math"
+
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 	"github.com/cortexlabs/cortex/pkg/types"
@@ -77,6 +79,11 @@ func getMemoryCapacityFromConfigMap() (*kresource.Quantity, error) {
 }
 
 func UpdateMemoryCapacityConfigMap() (kresource.Quantity, error) {
+	minMem := *kresource.NewQuantity(math.MaxInt64, kresource.DecimalSI)
+	if config.Provider == types.AWSProviderType {
+		minMem = config.Cluster.InstanceMetadata.Memory
+	}
+
 	nodeMemCapacity, err := getMemoryCapacityFromNodes()
 	if err != nil {
 		return kresource.Quantity{}, err
@@ -86,14 +93,6 @@ func UpdateMemoryCapacityConfigMap() (kresource.Quantity, error) {
 	if err != nil {
 		return kresource.Quantity{}, err
 	}
-
-	minMem := *kresource.NewQuantity(0, kresource.DecimalSI)
-	if config.Provider == types.AWSProviderType {
-		awsAdvertisedMem := config.Cluster.InstanceMetadata.Memory
-		minMem = awsAdvertisedMem
-	}
-
-	// TODO check instance metadata for GCP as well
 
 	if nodeMemCapacity != nil && minMem.Cmp(*nodeMemCapacity) > 0 {
 		minMem = *nodeMemCapacity

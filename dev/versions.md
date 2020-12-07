@@ -205,6 +205,11 @@ Note: it's ok if example training notebooks aren't upgraded, as long as the expo
 1. Update `istio.yaml.j2`, `apis.yaml.j2`, `operator.yaml.j2`, and `pkg/lib/k8s` as necessary
 1. Update `install.sh` as necessary
 
+## Google Pause
+
+1. Find the version of google pause used in the nvidia device driver yaml file referenced [here](https://cloud.google.com/kubernetes-engine/docs/how-to/gpus#installing_drivers)
+1. Update the version in `images/google-pause/Dockerfile`
+
 ## Metrics server
 
 1. Find the latest release on [GitHub](https://github.com/kubernetes-incubator/metrics-server/releases) and check the changelog

@@ -456,7 +456,6 @@ function setup_istio() {
   output_if_error istio-${ISTIO_VERSION}/bin/istioctl install -f /workspace/istio.yaml
 }
 
-# TODO for GCP
 function start_pre_download_images() {
   if [[ "$CORTEX_INSTANCE_TYPE" == p* ]] || [[ "$CORTEX_INSTANCE_TYPE" == g* ]]; then
     envsubst < manifests/image-downloader-gpu.yaml | kubectl apply -f - &>/dev/null

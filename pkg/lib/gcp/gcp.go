@@ -21,11 +21,13 @@ import (
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
+	"github.com/cortexlabs/cortex/pkg/lib/hash"
 	"github.com/cortexlabs/cortex/pkg/lib/json"
 )
 
 type Client struct {
 	ProjectID       string
+	HashedProjectID string
 	ClientEmail     string
 	ClientID        string
 	PrivateKey      string
@@ -76,6 +78,7 @@ func NewFromEnv() (*Client, error) {
 
 	return &Client{
 		ProjectID:       credsFile.ProjectID,
+		HashedProjectID: hash.String(credsFile.ProjectID),
 		ClientEmail:     credsFile.ClientEmail,
 		ClientID:        credsFile.ClientID,
 		PrivateKey:      credsFile.PrivateKey,
