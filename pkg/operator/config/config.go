@@ -142,6 +142,7 @@ func Init() error {
 			return err
 		}
 
+		hashedAccountID = hash.String(*GCPCluster.Project)
 		clusterID = GCPCluster.ID
 		useTelemetry = GCPCluster.Telemetry
 		operatorInCluster = GCPCluster.OperatorInCluster
@@ -152,7 +153,7 @@ func Init() error {
 		UserID:  hashedAccountID,
 		Properties: map[string]string{
 			"cluster_id":  clusterID,
-			"operator_id": hashedAccountID, // TODO fix this (hash the project ID)
+			"operator_id": hashedAccountID,
 		},
 		Environment: "operator",
 		LogErrors:   true,
