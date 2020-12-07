@@ -152,7 +152,8 @@ var _clusterGCPUpCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
-		bucketName, err := createClusterGCPBucket(gcpClient, accessConfig)
+		bucketName := clusterconfig.GCPBucketName(*accessConfig.ClusterName, *accessConfig.Project, *accessConfig.Zone)
+		err = gcpClient.CreateBucket(bucketName, gcp.ZoneToRegion(*accessConfig.Zone), true)
 		if err != nil {
 			exit.Error(err)
 		}
@@ -257,9 +258,8 @@ var _clusterGCPDownCmd = &cobra.Command{
 			prompt.YesOrExit(fmt.Sprintf("your cluster named \"%s\" in %s (zone: %s) will be spun down and all apis will be deleted, are you sure you want to continue?", *accessConfig.ClusterName, *accessConfig.Project, *accessConfig.Zone), "", "")
 		}
 
-		// TODO this fails when the bucket is not empty
-		fmt.Print("￮ deleting bucket ")
 		bucketName := clusterconfig.GCPBucketName(*accessConfig.ClusterName, *accessConfig.Project, *accessConfig.Zone)
+		fmt.Printf("￮ deleting bucket %s ", bucketName)
 		err = gcpClient.DeleteBucket(bucketName)
 		if err != nil {
 			fmt.Printf("\n\nunable to delete cortex's bucket (see error below); if it still exists after the cluster has been deleted, please delete it via the the GCP console\n")
@@ -424,18 +424,6 @@ func updateGCPCLIEnv(envName string, operatorEndpoint string, disallowPrompt boo
 	}
 
 	return nil
-}
-
-func createClusterGCPBucket(gcpClient *gcp.Client, accessConfig *clusterconfig.GCPAccessConfig) (string, error) {
-	bucketName := clusterconfig.GCPBucketName(*accessConfig.ClusterName, *accessConfig.Project, *accessConfig.Zone)
-
-	// TODO what to do if bucket already exists?
-	err := gcpClient.CreateBucket(bucketName, true)
-	if err != nil {
-		return "", err
-	}
-
-	return bucketName, nil
 }
 
 func createGKECluster(clusterConfig *clusterconfig.GCPConfig, gcpClient *gcp.Client) error {

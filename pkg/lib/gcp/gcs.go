@@ -64,12 +64,14 @@ func IsValidGCSPath(gcsPath string) bool {
 	return true
 }
 
-func (c *Client) CreateBucket(bucket string, ignoreErrorIfBucketExists bool) error {
+func (c *Client) CreateBucket(bucket string, location string, ignoreErrorIfBucketExists bool) error {
 	gcsClient, err := c.GCS()
 	if err != nil {
 		return err
 	}
-	err = gcsClient.Bucket(bucket).Create(context.Background(), c.ProjectID, nil)
+	err = gcsClient.Bucket(bucket).Create(context.Background(), c.ProjectID, &storage.BucketAttrs{
+		Location: location,
+	})
 	if err != nil {
 		if DoesBucketAlreadyExistError(err) {
 			if !ignoreErrorIfBucketExists {
