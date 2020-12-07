@@ -42,6 +42,7 @@ API_SUMMARY_MESSAGE = (
 )
 
 API_LIVENESS_UPDATE_PERIOD = 5  # seconds
+NANOSECONDS_IN_SECOND = 1e9
 
 
 request_thread_pool = ThreadPoolExecutor(max_workers=int(os.environ["CORTEX_THREADS_PER_PROCESS"]))
@@ -323,7 +324,8 @@ def start_fn():
             local_cache["dynamic_batcher"] = DynamicBatcher(
                 predictor_impl,
                 max_batch_size=dynamic_batching_config["max_batch_size"],
-                batch_interval=dynamic_batching_config["batch_interval"],
+                batch_interval=dynamic_batching_config["batch_interval"]
+                / NANOSECONDS_IN_SECOND,  # convert nanoseconds to seconds
             )
 
         if util.has_method(predictor_impl, "post_predict"):
