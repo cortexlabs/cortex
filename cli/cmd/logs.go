@@ -81,8 +81,8 @@ var _logsCmd = &cobra.Command{
 				exit.Error(err)
 			}
 			query := ""
-			for q, v := range gcpLogsResponse.Query {
-				query += fmt.Sprintf("%s=\"%s\"\n", q, v.Param)
+			for q, v := range gcpLogsResponse.QueryParams {
+				query += fmt.Sprintf("%s=\"%s\"\n", q, v)
 			}
 			queryValues := make(url.Values)
 			queryValues.Add("query", query)

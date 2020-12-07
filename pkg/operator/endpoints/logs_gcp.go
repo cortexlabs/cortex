@@ -18,19 +18,17 @@ package endpoints
 
 import (
 	"github.com/cortexlabs/cortex/pkg/operator/config"
-	"github.com/cortexlabs/cortex/pkg/operator/schema"
 )
 
-func gcpLogsQueryBuilder(apiName string) schema.GCPLogsResponse {
-	gcpLogsResponse := schema.GCPLogsResponse{}
-	gcpLogsResponse.Query = make(map[string]schema.QueryParam)
+func gcpLogsQueryParams(apiName string) map[string]string {
+	queryParams := make(map[string]string)
 
-	gcpLogsResponse.Query["resource.type"] = schema.QueryParam{Param: "k8s_container"}
-	gcpLogsResponse.Query["resource.labels.namespace_name"] = schema.QueryParam{Param: "default"}
-	gcpLogsResponse.Query["resource.labels.project_id"] = schema.QueryParam{Param: *config.GCPCluster.Project}
-	gcpLogsResponse.Query["resource.labels.location"] = schema.QueryParam{Param: *config.GCPCluster.Zone}
-	gcpLogsResponse.Query["resource.labels.cluster_name"] = schema.QueryParam{Param: config.GCPCluster.ClusterName}
-	gcpLogsResponse.Query["labels.k8s-pod/apiName"] = schema.QueryParam{Param: apiName}
+	queryParams["resource.type"] = "k8s_container"
+	queryParams["resource.labels.namespace_name"] = "default"
+	queryParams["resource.labels.project_id"] = *config.GCPCluster.Project
+	queryParams["resource.labels.location"] = *config.GCPCluster.Zone
+	queryParams["resource.labels.cluster_name"] = config.GCPCluster.ClusterName
+	queryParams["labels.k8s-pod/apiName"] = apiName
 
-	return gcpLogsResponse
+	return queryParams
 }

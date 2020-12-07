@@ -82,11 +82,7 @@ type ErrorResponse struct {
 }
 
 type GCPLogsResponse struct {
-	Query map[string]QueryParam `json:"query"`
-}
-
-type QueryParam struct {
-	Param string `json:"param"`
+	QueryParams map[string]string `json:"query_params"`
 }
 
 type APITFLiveReloadingSummary struct {

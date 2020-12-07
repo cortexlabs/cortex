@@ -22,6 +22,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 	"github.com/cortexlabs/cortex/pkg/operator/resources"
 	"github.com/cortexlabs/cortex/pkg/operator/resources/realtimeapi"
+	"github.com/cortexlabs/cortex/pkg/operator/schema"
 	"github.com/cortexlabs/cortex/pkg/types"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	"github.com/gorilla/mux"
@@ -63,7 +64,7 @@ func ReadLogs(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if config.Provider == types.GCPProviderType {
-		query := gcpLogsQueryBuilder(apiName)
-		respond(w, query)
+		queryParams := gcpLogsQueryParams(apiName)
+		respond(w, schema.GCPLogsResponse{QueryParams: queryParams})
 	}
 }
