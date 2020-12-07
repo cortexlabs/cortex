@@ -1,0 +1,2 @@
+transformers==2.9.*
+torch

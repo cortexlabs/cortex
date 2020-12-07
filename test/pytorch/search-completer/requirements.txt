@@ -1,0 +1,5 @@
+torch
+regex
+tqdm
+dataclasses
+hydra-core

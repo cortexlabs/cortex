@@ -1,0 +1,5 @@
+bert-tensorflow==1.0.1
+tensorflow-hub==0.7.0
+tensorflow==1.15.*
+tensorflow-serving-api==1.15.*
+numpy==1.16.*

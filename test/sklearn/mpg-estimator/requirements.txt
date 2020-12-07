@@ -1,0 +1,4 @@
+mlflow
+pandas
+numpy
+scikit-learn==0.21.3

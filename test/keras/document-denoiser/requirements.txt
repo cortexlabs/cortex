@@ -1,0 +1,5 @@
+numpy==1.18.0
+requests==2.22.0
+opencv-python==4.1.2.30
+keras==2.3.1
+h5py==2.10.0

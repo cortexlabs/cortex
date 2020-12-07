@@ -1,0 +1,30 @@
+# WARNING: you are on the master branch; please refer to examples on the branch corresponding to your `cortex version` (e.g. for version 0.23.*, run `git checkout -b 0.23` or switch to the `0.23` branch on GitHub)
+
+- name: multi-model-classifier
+  kind: RealtimeAPI
+  predictor:
+    type: tensorflow
+    path: predictor.py
+    models:
+      paths:
+        - name: inception
+          model_path: s3://cortex-examples/tensorflow/image-classifier/inception/
+        - name: iris
+          model_path: s3://cortex-examples/tensorflow/iris-classifier/nn/
+        - name: resnet50
+          model_path: s3://cortex-examples/tensorflow/resnet50/
+    config:
+      models:
+        iris:
+          labels: ["setosa", "versicolor", "virginica"]
+        resnet50:
+          input_shape: [224, 224]
+          input_key: input
+          output_key: output
+        inception:
+          input_shape: [224, 224]
+          input_key: images
+          output_key: classes
+      image-classifier-classes: https://s3.amazonaws.com/deep-learning-models/image-models/imagenet_class_index.json
+  compute:
+    mem: 2G

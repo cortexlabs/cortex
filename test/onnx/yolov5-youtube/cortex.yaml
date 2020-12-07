@@ -1,0 +1,13 @@
+# WARNING: you are on the master branch; please refer to examples on the branch corresponding to your `cortex version` (e.g. for version 0.23.*, run `git checkout -b 0.23` or switch to the `0.23` branch on GitHub)
+
+- name: yolov5-youtube
+  kind: RealtimeAPI
+  predictor:
+    type: onnx
+    path: predictor.py
+    model_path: s3://cortex-examples/onnx/yolov5-youtube/
+    config:
+      iou_threshold: 0.5
+      confidence_threshold: 0.6
+  compute:
+    gpu: 1 # this is optional, since the api can also run on cpu

@@ -1,0 +1,3 @@
+torch
+transformers==2.3.*
+wget==3.*
