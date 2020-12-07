@@ -528,10 +528,10 @@ func determineBaseModelStructure(paths []string, prefix string) userconfig.Model
 		versionStr := splitPath[prefixLength]
 		_, err := strconv.ParseInt(versionStr, 10, 64)
 		if err != nil {
-			numFailedVersionChecks += 1
+			numFailedVersionChecks++
 			continue
 		}
-		numPassedVersionChecks += 1
+		numPassedVersionChecks++
 		if len(splitPath) == prefixLength {
 			return userconfig.UnknownModelStructureType
 		}
