@@ -32,14 +32,8 @@ func DownloadAPISpec(apiName string, apiID string) (*spec.API, error) {
 	}
 
 	var api spec.API
-	if config.Provider == types.AWSProviderType {
-		if err := config.AWS.ReadJSONFromS3(&api, config.Cluster.Bucket, bucketKey); err != nil {
-			return nil, err
-		}
-	} else {
-		if err := config.GCP.ReadJSONFromGCS(&api, config.GCPCluster.Bucket, bucketKey); err != nil {
-			return nil, err
-		}
+	if err := config.ReadJSONFromBucket(&api, bucketKey); err != nil {
+		return nil, err
 	}
 	return &api, nil
 }

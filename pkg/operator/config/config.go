@@ -37,15 +37,14 @@ const _clusterConfigPath = "/configs/cluster/cluster.yaml"
 const _clusterConfigBackupPath = "/configs/cluster-aws/cluster-aws.yaml"
 
 var (
-	Cluster *clusterconfig.InternalConfig
-	AWS     *aws.Client
-	GCP     *gcp.Client
-
+	Provider        types.ProviderType
+	Cluster         *clusterconfig.InternalConfig
+	GCPCluster      *clusterconfig.InternalGCPConfig
+	AWS             *aws.Client
+	GCP             *gcp.Client
 	K8s             *k8s.Client
 	K8sIstio        *k8s.Client
 	K8sAllNamspaces *k8s.Client
-	GCPCluster      *clusterconfig.InternalGCPConfig
-	Provider        types.ProviderType
 )
 
 func Init() error {
