@@ -101,3 +101,13 @@ func ListBucketDirOneLevel(dir string, maxResults *int64) ([]string, error) {
 	}
 	return nil, nil
 }
+
+func DeleteBucketDir(dir string, continueIfFailure bool) error {
+	switch Provider {
+	case types.AWSProviderType:
+		return AWS.DeleteS3Dir(Cluster.Bucket, dir, continueIfFailure)
+	case types.GCPProviderType:
+		return GCP.DeleteGCSDir(GCPCluster.Bucket, dir, continueIfFailure)
+	}
+	return nil
+}

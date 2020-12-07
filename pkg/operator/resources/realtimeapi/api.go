@@ -193,12 +193,8 @@ func DeleteAPI(apiName string, keepCache bool) error {
 			if keepCache {
 				return nil
 			}
-			// best effort deletion
-			if config.Provider == types.AWSProviderType {
-				deleteS3Resources(apiName) // swallow errors because there could be weird error messages
-			} else {
-				deleteGCSResources(apiName)
-			}
+			// best effort deletion, swallow errors because there could be weird error messages
+			deleteBucketResources(apiName)
 			return nil
 		},
 		// delete API from API Gateway
@@ -455,14 +451,9 @@ func deleteK8sResources(apiName string) error {
 	)
 }
 
-func deleteS3Resources(apiName string) error {
-	prefix := filepath.Join(config.Cluster.ClusterName, "apis", apiName)
-	return config.AWS.DeleteS3Dir(config.Cluster.Bucket, prefix, true)
-}
-
-func deleteGCSResources(apiName string) error {
-	prefix := filepath.Join(config.GCPCluster.ClusterName, "apis", apiName)
-	return config.GCP.DeleteGCSDir(config.GCPCluster.Bucket, prefix, true)
+func deleteBucketResources(apiName string) error {
+	prefix := filepath.Join(config.ClusterName(), "apis", apiName)
+	return config.DeleteBucketDir(prefix, true)
 }
 
 func IsAPIUpdating(apiName string) (bool, error) {
