@@ -34,12 +34,12 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/prompt"
+	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	"github.com/cortexlabs/cortex/pkg/types"
 	"github.com/cortexlabs/cortex/pkg/types/clusterconfig"
 	"github.com/spf13/cobra"
 	containerpb "google.golang.org/genproto/googleapis/container/v1"
-	v1 "k8s.io/api/core/v1"
 )
 
 var (
@@ -170,9 +170,8 @@ var _clusterGCPUpCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
-		gkeClusterParent := fmt.Sprintf("projects/%s/locations/%s", *clusterConfig.Project, *clusterConfig.Zone)
-		gkeClusterName := fmt.Sprintf("%s/clusters/%s", gkeClusterParent, clusterConfig.ClusterName)
-		operatorLoadBalancer, err := getGCPOperatorLoadBalancer(gkeClusterName, gcpClient)
+		gkeClusterName := fmt.Sprintf("projects/%s/locations/%s/clusters/%s", *clusterConfig.Project, *clusterConfig.Zone, clusterConfig.ClusterName)
+		operatorLoadBalancerIP, err := getGCPOperatorLoadBalancerIP(gkeClusterName, gcpClient)
 		if err != nil {
 			exit.Error(err)
 		}
@@ -180,7 +179,7 @@ var _clusterGCPUpCmd = &cobra.Command{
 		newEnvironment := cliconfig.Environment{
 			Name:             _flagClusterGCPUpEnv,
 			Provider:         types.GCPProviderType,
-			OperatorEndpoint: pointer.String(operatorLoadBalancer.Ingress[0].IP),
+			OperatorEndpoint: &operatorLoadBalancerIP,
 		}
 
 		err = addEnvToCLIConfig(newEnvironment)
@@ -249,7 +248,11 @@ var _clusterGCPDownCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
+		gkeClusterName := fmt.Sprintf("projects/%s/locations/%s/clusters/%s", *accessConfig.Project, *accessConfig.Zone, *accessConfig.ClusterName)
+
 		// updating CLI env is best-effort, so ignore errors
+		operatorLoadBalancerIP, _ := getGCPOperatorLoadBalancerIP(gkeClusterName, gcpClient)
+
 		// loadBalancer, _ := getOperatorLoadBalancer(*accessConfig.ClusterName, awsClient) // TODO
 
 		if _flagClusterGCPDisallowPrompt {
@@ -277,7 +280,7 @@ var _clusterGCPDownCmd = &cobra.Command{
 		fmt.Print("￮ spinning down the cluster ")
 
 		_, err = clusterManager.DeleteCluster(context.Background(), &containerpb.DeleteClusterRequest{
-			Name: fmt.Sprintf("projects/%s/locations/%s/clusters/%s", *accessConfig.Project, *accessConfig.Zone, *accessConfig.ClusterName),
+			Name: gkeClusterName,
 		})
 		if err != nil {
 			fmt.Print("\n\n")
@@ -289,19 +292,18 @@ var _clusterGCPDownCmd = &cobra.Command{
 		fmt.Println("✓")
 
 		// best-effort deletion of cli environment(s)
-		// TODO
-		// if loadBalancer != nil {
-		// 	envNames, isDefaultEnv, _ := getEnvNamesByOperatorEndpoint(*loadBalancer.DNSName)
-		// 	if len(envNames) > 0 {
-		// 		for _, envName := range envNames {
-		// 			removeEnvFromCLIConfig(envName)
-		// 		}
-		// 		fmt.Printf("✓ deleted the %s environment configuration%s\n", s.StrsAnd(envNames), s.SIfPlural(len(envNames)))
-		// 		if isDefaultEnv {
-		// 			fmt.Println("✓ set the default environment to local")
-		// 		}
-		// 	}
-		// }
+		if operatorLoadBalancerIP != "" {
+			envNames, isDefaultEnv, _ := getEnvNamesByOperatorEndpoint(operatorLoadBalancerIP)
+			if len(envNames) > 0 {
+				for _, envName := range envNames {
+					removeEnvFromCLIConfig(envName)
+				}
+				fmt.Printf("✓ deleted the %s environment configuration%s\n", s.StrsAnd(envNames), s.SIfPlural(len(envNames)))
+				if isDefaultEnv {
+					fmt.Println("✓ set the default environment to local")
+				}
+			}
+		}
 
 		cachedClusterConfigPath := cachedGCPClusterConfigPath(*accessConfig.ClusterName, *accessConfig.Project, *accessConfig.Zone)
 		os.Remove(cachedClusterConfigPath)
@@ -529,25 +531,34 @@ func createGKECluster(clusterConfig *clusterconfig.GCPConfig, gcpClient *gcp.Cli
 	return nil
 }
 
-func getGCPOperatorLoadBalancer(clusterName string, gcpClient *gcp.Client) (v1.LoadBalancerStatus, error) {
+func getGCPOperatorLoadBalancerIP(clusterName string, gcpClient *gcp.Client) (string, error) {
 	cluster, err := gcpClient.GetCluster(clusterName)
 	if err != nil {
-		return v1.LoadBalancerStatus{}, err
+		return "", err
 	}
 	restConfig, err := gcpClient.CreateK8SConfigFromCluster(cluster)
 	if err != nil {
-		return v1.LoadBalancerStatus{}, err
+		return "", err
 	}
 	k8sIstio, err := k8s.New("istio-system", false, restConfig)
 	if err != nil {
-		return v1.LoadBalancerStatus{}, err
+		return "", err
 	}
 	service, err := k8sIstio.GetService("ingressgateway-operator")
 	if err != nil {
-		return v1.LoadBalancerStatus{}, err
+		return "", err
 	}
 	if service == nil {
-		return v1.LoadBalancerStatus{}, ErrorNoOperatorLoadBalancer()
+		return "", ErrorNoOperatorLoadBalancer()
 	}
-	return service.Status.LoadBalancer, nil
+
+	if len(service.Status.LoadBalancer.Ingress) == 0 {
+		return "", errors.ErrorUnexpected("unable to determine operator's endpoint")
+	}
+
+	if service.Status.LoadBalancer.Ingress[0].IP == "" {
+		return "", errors.ErrorUnexpected("operator's endpoint is missing")
+	}
+
+	return service.Status.LoadBalancer.Ingress[0].IP, nil
 }
