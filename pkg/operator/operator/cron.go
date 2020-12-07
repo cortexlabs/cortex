@@ -226,12 +226,12 @@ func InstanceTelemetryGCP() error {
 	}
 
 	properties := map[string]interface{}{
-		"region":         *config.Cluster.Region,
+		"zone":           *config.GCPCluster.Zone,
 		"instance_count": totalInstances,
 		"instances":      instanceInfos,
 	}
 
-	telemetry.Event("operator.cron", properties, config.Cluster.TelemetryEvent())
+	telemetry.Event("operator.cron", properties, config.GCPCluster.TelemetryEvent())
 
 	return nil
 }
