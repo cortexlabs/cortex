@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"math"
 	"net"
+	"path"
 	"path/filepath"
 	"strings"
 
@@ -66,6 +67,15 @@ func newProjectFiles(projectFileList []string, projectRoot string) (ProjectFiles
 
 func (projectFiles ProjectFiles) AllPaths() []string {
 	return projectFiles.relFilePaths
+}
+
+func (projectFiles ProjectFiles) AllAbsPaths() []string {
+	absPaths := make([]string, 0, len(projectFiles.relFilePaths))
+	for _, relPath := range projectFiles.relFilePaths {
+		absPaths = append(absPaths, path.Join(projectFiles.projectRoot, relPath))
+	}
+
+	return absPaths
 }
 
 func (projectFiles ProjectFiles) GetFile(path string) ([]byte, error) {

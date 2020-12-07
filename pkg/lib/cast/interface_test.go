@@ -17,6 +17,7 @@ limitations under the License.
 package cast
 
 import (
+	"encoding/json"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -186,34 +187,56 @@ func TestInterfaceToInterfaceInterfaceMap(t *testing.T) {
 	require.Equal(t, expected, casted)
 }
 
-func TestInterfaceToStrInterfaceMapRecursive(t *testing.T) {
+func TestJSONMarshallable(t *testing.T) {
 	var ok bool
-	var in map[string]interface{}
-	var casted map[string]interface{}
-	var expected map[string]interface{}
+	var in interface{}
+	var casted interface{}
+	var expected interface{}
+	var err error
 
 	in = map[string]interface{}{"test": map[interface{}]interface{}{"testing": []string{}}}
-	expected = map[string]interface{}{"test": map[string]interface{}{"testing": []string{}}}
-	casted, ok = InterfaceToStrInterfaceMapRecursive(in)
+	expected = map[string]interface{}{"test": map[string]interface{}{"testing": []interface{}{}}}
+	casted, ok = JSONMarshallable(in)
 	require.True(t, ok)
 	require.Equal(t, expected, casted)
+	_, err = json.Marshal(casted)
+	require.Equal(t, err, nil)
 
 	in = map[string]interface{}{"test": map[interface{}]interface{}{1: []string{}}, "slice": []int{1}}
-	expected = map[string]interface{}{"test": map[string]interface{}{"testing": []string{}}, "slice": []int{1}}
-	casted, ok = InterfaceToStrInterfaceMapRecursive(in)
+	casted, ok = JSONMarshallable(in)
 	require.False(t, ok)
+
+	in = map[string]interface{}{"test": map[interface{}]interface{}{"1": []string{}}, "slice": []int{1}}
+	expected = map[string]interface{}{"test": map[string]interface{}{"1": []interface{}{}}, "slice": []interface{}{1}}
+	casted, ok = JSONMarshallable(in)
+	require.True(t, ok)
+	require.Equal(t, expected, casted)
+	_, err = json.Marshal(casted)
+	require.Equal(t, err, nil)
 
 	in = map[string]interface{}{"test": nil}
 	expected = map[string]interface{}{"test": nil}
-	casted, ok = InterfaceToStrInterfaceMapRecursive(in)
+	casted, ok = JSONMarshallable(in)
 	require.True(t, ok)
 	require.Equal(t, expected, casted)
+	_, err = json.Marshal(casted)
+	require.Equal(t, err, nil)
+
+	in = map[string]interface{}{"slice": []interface{}{1, "1", map[interface{}]interface{}{"key": false}}}
+	expected = map[string]interface{}{"slice": []interface{}{1, "1", map[string]interface{}{"key": false}}}
+	casted, ok = JSONMarshallable(in)
+	require.True(t, ok)
+	require.Equal(t, expected, casted)
+	_, err = json.Marshal(casted)
+	require.Equal(t, err, nil)
 
 	in = map[string]interface{}{}
 	expected = map[string]interface{}{}
-	casted, ok = InterfaceToStrInterfaceMapRecursive(in)
+	casted, ok = JSONMarshallable(in)
 	require.True(t, ok)
 	require.Equal(t, expected, casted)
+	_, err = json.Marshal(casted)
+	require.Equal(t, err, nil)
 }
 
 func TestFlattenInterfaceSlices(t *testing.T) {

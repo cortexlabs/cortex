@@ -206,24 +206,24 @@ func patchAPI(apiConfig *userconfig.API, configFileName string, force bool) (*sp
 		return nil, "", err
 	}
 
-	if deployedResource.Kind != userconfig.BatchAPIKind && deployedResource.Kind != userconfig.RealtimeAPIKind {
+	if deployedResource.Kind == userconfig.UnknownKind {
 		return nil, "", ErrorOperationIsOnlySupportedForKind(*deployedResource, userconfig.RealtimeAPIKind, userconfig.BatchAPIKind, userconfig.TrafficSplitterKind) // unexpected
 	}
+
+	var projectFiles ProjectFiles
+	models := []spec.CuratedModelResource{}
 
 	prevAPISpec, err := operator.DownloadAPISpec(deployedResource.Name, deployedResource.ID())
 	if err != nil {
 		return nil, "", err
 	}
 
-	bytes, err := config.AWS.ReadBytesFromS3(config.Cluster.Bucket, prevAPISpec.ProjectKey)
-	if err != nil {
-		return nil, "", err
-	}
-
-	var projectFiles ProjectFiles
-	models := []spec.CuratedModelResource{}
-
 	if deployedResource.Kind != userconfig.TrafficSplitterKind {
+		bytes, err := config.AWS.ReadBytesFromS3(config.Cluster.Bucket, prevAPISpec.ProjectKey)
+		if err != nil {
+			return nil, "", err
+		}
+
 		projectFileMap, err := archive.UnzipMemToMem(bytes)
 		if err != nil {
 			return nil, "", err

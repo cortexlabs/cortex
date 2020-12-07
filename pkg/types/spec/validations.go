@@ -669,7 +669,7 @@ func ExtractAPIConfigs(
 		api.Index = i
 		api.FileName = configFileName
 
-		interfaceMap, ok := cast.InterfaceToStrInterfaceMapRecursive(data)
+		interfaceMap, ok := cast.JSONMarshallable(data)
 		if !ok {
 			return nil, errors.ErrorUnexpected("unable to cast api spec to json") // unexpected
 		}

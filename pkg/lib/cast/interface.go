@@ -694,51 +694,38 @@ func InterfaceToStrInterfaceMap(in interface{}) (map[string]interface{}, bool) {
 	return out, true
 }
 
-// Expects to receive a map[string]interface{}
-func InterfaceToStrInterfaceMapRecursive(in interface{}) (map[string]interface{}, bool) {
+// Recursively casts interface->interface maps to string->interface maps
+func JSONMarshallable(in interface{}) (interface{}, bool) {
 	if in == nil {
 		return nil, true
 	}
 
-	inMap, ok := InterfaceToInterfaceInterfaceMap(in)
-	if !ok {
-		return nil, false
-	}
-
-	out := map[string]interface{}{}
-
-	for key, value := range inMap {
-		casted, ok := key.(string)
-		if !ok {
-			return nil, false
-		}
-
-		if value == nil {
-			out[casted] = value
-			continue
-		}
-
-		if intToIntMap, ok := InterfaceToInterfaceInterfaceMap(value); ok {
-			castedStrMap, ok := InterfaceToStrInterfaceMapRecursive(intToIntMap)
+	if inMap, ok := InterfaceToInterfaceInterfaceMap(in); ok {
+		out := map[string]interface{}{}
+		for key, value := range inMap {
+			castedKey, ok := key.(string)
 			if !ok {
 				return nil, false
 			}
-			out[casted] = castedStrMap
-		} else if interSlice, ok := InterfaceToStrInterfaceMapSlice(value); ok {
-			result := make([]map[string]interface{}, 0, len(interSlice))
-			for _, interMap := range interSlice {
-				castedStrMap, ok := InterfaceToStrInterfaceMapRecursive(interMap)
-				if !ok {
-					return nil, false
-				}
-				result = append(result, castedStrMap)
+			castedValue, ok := JSONMarshallable(value)
+			if !ok {
+				return nil, false
 			}
-			out[casted] = result
-		} else {
-			out[casted] = value
+			out[castedKey] = castedValue
 		}
+		return out, true
+	} else if inSlice, ok := InterfaceToInterfaceSlice(in); ok {
+		result := make([]interface{}, 0, len(inSlice))
+		for _, inValue := range inSlice {
+			castedInValue, ok := JSONMarshallable(inValue)
+			if !ok {
+				return nil, false
+			}
+			result = append(result, castedInValue)
+		}
+		return result, true
 	}
-	return out, true
+	return in, true
 }
 
 func InterfaceToStrStrMap(in interface{}) (map[string]string, bool) {
