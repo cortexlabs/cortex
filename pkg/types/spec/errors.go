@@ -87,6 +87,7 @@ const (
 	ErrInvalidNumberOfInfs                  = "spec.invalid_number_of_infs"
 	ErrInsufficientBatchConcurrencyLevel    = "spec.insufficient_batch_concurrency_level"
 	ErrInsufficientBatchConcurrencyLevelInf = "spec.insufficient_batch_concurrency_level_inf"
+	ErrConcurrencyLevelBatchSizeMismatch    = "spec.mismatch_batch_concurrency_level"
 	ErrIncorrectTrafficSplitterWeight       = "spec.incorrect_traffic_splitter_weight"
 	ErrTrafficSplitterAPIsNotUnique         = "spec.traffic_splitter_apis_not_unique"
 	ErrUnexpectedDockerSecretData           = "spec.unexpected_docker_secret_data"
@@ -584,6 +585,18 @@ func ErrorInsufficientBatchConcurrencyLevelInf(maxBatchSize int32, threadsPerPro
 			userconfig.MaxBatchSizeKey, maxBatchSize, userconfig.ThreadsPerProcessKey, threadsPerProcess,
 		),
 	})
+}
+
+func ErrorConcurrencyLevelBatchSizeMismatch(maxBatchsize int32, threadsPerProcess int32) error {
+	return errors.WithStack(
+		&errors.Error{
+			Kind: ErrConcurrencyLevelBatchSizeMismatch,
+			Message: fmt.Sprintf(
+				"%s (%d) must be equal to %s (%d)",
+				userconfig.ThreadsPerProcessKey, threadsPerProcess, userconfig.MaxBatchSizeKey, maxBatchsize,
+			),
+		},
+	)
 }
 
 func ErrorIncorrectTrafficSplitterWeightTotal(totalWeight int32) error {
