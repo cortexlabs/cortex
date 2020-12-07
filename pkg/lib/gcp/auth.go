@@ -40,7 +40,7 @@ func (g *googleAuthProvider) Login() error { return nil }
 
 func NewGoogleAuthProvider(addr string, config map[string]string, persister rest.AuthProviderConfigPersister) (rest.AuthProvider, error) {
 	ts, err := google.DefaultTokenSource(
-		context.TODO(),
+		context.Background(),
 		"https://www.googleapis.com/auth/cloud-platform",
 		"https://www.googleapis.com/auth/userinfo.email",
 	)
