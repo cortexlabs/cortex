@@ -25,12 +25,13 @@ import (
 )
 
 type Client struct {
-	ProjectID    string
-	ClientEmail  string
-	ClientID     string
-	PrivateKey   string
-	PrivateKeyID string
-	clients      clients
+	ProjectID       string
+	ClientEmail     string
+	ClientID        string
+	PrivateKey      string
+	PrivateKeyID    string
+	credentialsJSON []byte
+	clients         clients
 }
 
 type credentialsFile struct {
@@ -74,10 +75,11 @@ func NewFromEnv() (*Client, error) {
 	}
 
 	return &Client{
-		ProjectID:    credsFile.ProjectID,
-		ClientEmail:  credsFile.ClientEmail,
-		ClientID:     credsFile.ClientID,
-		PrivateKey:   credsFile.PrivateKey,
-		PrivateKeyID: credsFile.PrivateKeyID,
+		ProjectID:       credsFile.ProjectID,
+		ClientEmail:     credsFile.ClientEmail,
+		ClientID:        credsFile.ClientID,
+		PrivateKey:      credsFile.PrivateKey,
+		PrivateKeyID:    credsFile.PrivateKeyID,
+		credentialsJSON: credsBytes,
 	}, nil
 }
