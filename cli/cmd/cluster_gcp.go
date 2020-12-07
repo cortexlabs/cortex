@@ -23,7 +23,6 @@ import (
 	"strings"
 	"time"
 
-	container "cloud.google.com/go/container/apiv1"
 	"github.com/cortexlabs/cortex/cli/cluster"
 	"github.com/cortexlabs/cortex/cli/types/cliconfig"
 	"github.com/cortexlabs/cortex/pkg/lib/console"
@@ -108,7 +107,7 @@ var _clusterGCPCmd = &cobra.Command{
 
 var _clusterGCPUpCmd = &cobra.Command{
 	Use:   "up",
-	Short: "spin up a cluster",
+	Short: "spin up a cluster on gcp",
 	Args:  cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
 		telemetry.EventNotify("cli.cluster.up", map[string]interface{}{"provider": types.GCPProviderType})
@@ -270,7 +269,7 @@ var _clusterGCPDownCmd = &cobra.Command{
 			fmt.Println("✓")
 		}
 
-		clusterManager, err := container.NewClusterManagerClient(context.Background())
+		clusterManager, err := gcpClient.GKE()
 		if err != nil {
 			exit.Error(err)
 		}
@@ -425,7 +424,7 @@ func updateGCPCLIEnv(envName string, operatorEndpoint string, disallowPrompt boo
 }
 
 func createGKECluster(clusterConfig *clusterconfig.GCPConfig, gcpClient *gcp.Client) error {
-	fmt.Print("￮ creating GKE cluster .")
+	fmt.Print("￮ creating GKE cluster ")
 
 	nodeLabels := map[string]string{"workload": "true"}
 	var accelerators []*containerpb.AcceleratorConfig
@@ -438,7 +437,7 @@ func createGKECluster(clusterConfig *clusterconfig.GCPConfig, gcpClient *gcp.Cli
 		nodeLabels["nvidia.com/gpu"] = "present"
 	}
 
-	clusterManager, err := container.NewClusterManagerClient(context.Background())
+	clusterManager, err := gcpClient.GKE()
 	if err != nil {
 		return errors.WithStack(err)
 	}
@@ -488,7 +487,7 @@ func createGKECluster(clusterConfig *clusterconfig.GCPConfig, gcpClient *gcp.Cli
 						MinNodeCount: int32(*clusterConfig.MinInstances),
 						MaxNodeCount: int32(*clusterConfig.MaxInstances),
 					},
-					InitialNodeCount: 1,
+					InitialNodeCount: int32(*clusterConfig.MinInstances),
 				},
 			},
 			Locations: []string{*clusterConfig.Zone},
@@ -499,6 +498,7 @@ func createGKECluster(clusterConfig *clusterconfig.GCPConfig, gcpClient *gcp.Cli
 	}
 
 	for {
+		fmt.Print(".")
 		time.Sleep(5 * time.Second)
 
 		resp, err := clusterManager.GetCluster(context.Background(), &containerpb.GetClusterRequest{
@@ -520,8 +520,6 @@ func createGKECluster(clusterConfig *clusterconfig.GCPConfig, gcpClient *gcp.Cli
 			fmt.Println(" ✓")
 			break
 		}
-
-		fmt.Print(".")
 	}
 
 	return nil

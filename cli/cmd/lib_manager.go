@@ -308,6 +308,9 @@ func runManagerAccessCommand(entrypoint string, accessConfig clusterconfig.Acces
 			"CLUSTER_AWS_SECRET_ACCESS_KEY=" + awsCreds.ClusterAWSSecretAccessKey,
 			"CORTEX_CLUSTER_NAME=" + *accessConfig.ClusterName,
 			"CORTEX_REGION=" + *accessConfig.Region,
+			"CORTEX_TELEMETRY_DISABLE=" + os.Getenv("CORTEX_TELEMETRY_DISABLE"),
+			"CORTEX_TELEMETRY_SENTRY_DSN=" + os.Getenv("CORTEX_TELEMETRY_SENTRY_DSN"),
+			"CORTEX_TELEMETRY_SEGMENT_WRITE_KEY=" + os.Getenv("CORTEX_TELEMETRY_SEGMENT_WRITE_KEY"),
 		},
 	}
 
@@ -349,6 +352,9 @@ func runGCPManagerAccessCommand(entrypoint string, accessConfig clusterconfig.GC
 			"CORTEX_CLUSTER_NAME=" + *accessConfig.ClusterName,
 			"CORTEX_GCP_PROJECT=" + *accessConfig.Project,
 			"CORTEX_GCP_ZONE=" + *accessConfig.Zone,
+			"CORTEX_TELEMETRY_DISABLE=" + os.Getenv("CORTEX_TELEMETRY_DISABLE"),
+			"CORTEX_TELEMETRY_SENTRY_DSN=" + os.Getenv("CORTEX_TELEMETRY_SENTRY_DSN"),
+			"CORTEX_TELEMETRY_SEGMENT_WRITE_KEY=" + os.Getenv("CORTEX_TELEMETRY_SEGMENT_WRITE_KEY"),
 		},
 	}
 

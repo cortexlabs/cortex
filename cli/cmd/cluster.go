@@ -138,7 +138,7 @@ var _clusterCmd = &cobra.Command{
 
 var _clusterUpCmd = &cobra.Command{
 	Use:   "up",
-	Short: "spin up a cluster",
+	Short: "spin up a cluster on aws",
 	Args:  cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
 		telemetry.EventNotify("cli.cluster.up", map[string]interface{}{"provider": types.AWSProviderType})

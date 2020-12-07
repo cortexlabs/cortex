@@ -260,7 +260,7 @@ func promptAWSEnvName() string {
 	}
 
 	if len(configuredEnvNames) > 0 {
-		fmt.Printf("your currently configured AWS environments are: %s\n\n", strings.Join(configuredEnvNames, ", "))
+		fmt.Printf("your currently configured aws environments are: %s\n\n", strings.Join(configuredEnvNames, ", "))
 	}
 
 	envNameContainer := &struct {
@@ -272,7 +272,7 @@ func promptAWSEnvName() string {
 			{
 				StructField: "EnvironmentName",
 				PromptOpts: &prompt.Options{
-					Prompt: "name of AWS environment to update or create",
+					Prompt: "name of aws environment to update or create",
 				},
 				StringValidation: &cr.StringValidation{
 					Required: true,
@@ -294,7 +294,7 @@ func promptGCPEnvName() string {
 	}
 
 	if len(configuredEnvNames) > 0 {
-		fmt.Printf("your currently configured GCP environments are: %s\n\n", strings.Join(configuredEnvNames, ", "))
+		fmt.Printf("your currently configured gcp environments are: %s\n\n", strings.Join(configuredEnvNames, ", "))
 	}
 
 	envNameContainer := &struct {
@@ -306,7 +306,7 @@ func promptGCPEnvName() string {
 			{
 				StructField: "EnvironmentName",
 				PromptOpts: &prompt.Options{
-					Prompt: "name of GCP environment to update or create",
+					Prompt: "name of gcp environment to update or create",
 				},
 				StringValidation: &cr.StringValidation{
 					Required: true,

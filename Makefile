@@ -118,22 +118,22 @@ cluster-configure-aws:
 	@$(MAKE) cli
 	@kill $(shell pgrep -f rerun) >/dev/null 2>&1 || true
 	@eval $$(python3 ./manager/cluster_config_env.py ./dev/config/cluster-aws.yaml) && ./bin/cortex cluster configure --config=./dev/config/cluster-aws.yaml --configure-env="$$CORTEX_CLUSTER_NAME-aws" --aws-key=$$AWS_ACCESS_KEY_ID --aws-secret=$$AWS_SECRET_ACCESS_KEY --cluster-aws-key=$$CLUSTER_AWS_ACCESS_KEY_ID --cluster-aws-secret=$$CLUSTER_AWS_SECRET_ACCESS_KEY && ./bin/cortex env default "$$CORTEX_CLUSTER_NAME-aws"
-cluster-configure-gcp:
-	@$(MAKE) images-all-gcp
-	@$(MAKE) cli
-	@kill $(shell pgrep -f rerun) >/dev/null 2>&1 || true
-	@eval $$(python3 ./manager/cluster_config_env.py ./dev/config/cluster-gcp.yaml) && ./bin/cortex cluster-gcp configure --config=./dev/config/cluster-gcp.yaml --configure-env="$$CORTEX_CLUSTER_NAME-gcp" && ./bin/cortex env default "$$CORTEX_CLUSTER_NAME-gcp"
+# cluster-configure-gcp:
+# 	@$(MAKE) images-all-gcp
+# 	@$(MAKE) cli
+# 	@kill $(shell pgrep -f rerun) >/dev/null 2>&1 || true
+# 	@eval $$(python3 ./manager/cluster_config_env.py ./dev/config/cluster-gcp.yaml) && ./bin/cortex cluster-gcp configure --config=./dev/config/cluster-gcp.yaml --configure-env="$$CORTEX_CLUSTER_NAME-gcp" && ./bin/cortex env default "$$CORTEX_CLUSTER_NAME-gcp"
 
 cluster-configure-aws-y:
 	@$(MAKE) images-all-aws
 	@$(MAKE) cli
 	@kill $(shell pgrep -f rerun) >/dev/null 2>&1 || true
 	@eval $$(python3 ./manager/cluster_config_env.py ./dev/config/cluster-aws.yaml) && ./bin/cortex cluster configure --config=./dev/config/cluster-aws.yaml --configure-env="$$CORTEX_CLUSTER_NAME-aws" --aws-key=$$AWS_ACCESS_KEY_ID --aws-secret=$$AWS_SECRET_ACCESS_KEY --cluster-aws-key=$$CLUSTER_AWS_ACCESS_KEY_ID --cluster-aws-secret=$$CLUSTER_AWS_SECRET_ACCESS_KEY --yes && ./bin/cortex env default "$$CORTEX_CLUSTER_NAME-aws"
-cluster-configure-gcp-y:
-	@$(MAKE) images-all-gcp
-	@$(MAKE) cli
-	@kill $(shell pgrep -f rerun) >/dev/null 2>&1 || true
-	@eval $$(python3 ./manager/cluster_config_env.py ./dev/config/cluster-gcp.yaml) && ./bin/cortex cluster-gcp configure --config=./dev/config/cluster-gcp.yaml --configure-env="$$CORTEX_CLUSTER_NAME-gcp" --yes && ./bin/cortex env default "$$CORTEX_CLUSTER_NAME-gcp"
+# cluster-configure-gcp-y:
+# 	@$(MAKE) images-all-gcp
+# 	@$(MAKE) cli
+# 	@kill $(shell pgrep -f rerun) >/dev/null 2>&1 || true
+# 	@eval $$(python3 ./manager/cluster_config_env.py ./dev/config/cluster-gcp.yaml) && ./bin/cortex cluster-gcp configure --config=./dev/config/cluster-gcp.yaml --configure-env="$$CORTEX_CLUSTER_NAME-gcp" --yes && ./bin/cortex env default "$$CORTEX_CLUSTER_NAME-gcp"
 
 # stop the in-cluster operator
 operator-stop-aws:
@@ -227,10 +227,6 @@ test-python:
 
 lint:
 	@./build/lint.sh
-
-test-examples:
-	@$(MAKE) images-all
-	@./build/test-examples.sh
 
 ###############
 # CI Commands #
