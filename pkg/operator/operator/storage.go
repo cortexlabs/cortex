@@ -19,17 +19,11 @@ package operator
 import (
 	"github.com/cortexlabs/cortex/pkg/lib/parallel"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
-	"github.com/cortexlabs/cortex/pkg/types"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 )
 
 func DownloadAPISpec(apiName string, apiID string) (*spec.API, error) {
-	bucketKey := ""
-	if config.Provider == types.AWSProviderType {
-		bucketKey = spec.Key(apiName, apiID, config.Cluster.ClusterName)
-	} else {
-		bucketKey = spec.Key(apiName, apiID, config.GCPCluster.ClusterName)
-	}
+	bucketKey := spec.Key(apiName, apiID, config.ClusterName())
 
 	var api spec.API
 	if err := config.ReadJSONFromBucket(&api, bucketKey); err != nil {

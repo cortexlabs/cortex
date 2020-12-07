@@ -704,7 +704,7 @@ func neuronRuntimeDaemonContainer(api *spec.API, volumeMounts []kcore.VolumeMoun
 
 func RequestMonitorContainer(api *spec.API) kcore.Container {
 	imageRequestMonitor := config.Cluster.ImageRequestMonitor
-	clusterName := config.Cluster.ClusterName
+	clusterName := config.ClusterName()
 
 	return kcore.Container{
 		Name:            "request-monitor",

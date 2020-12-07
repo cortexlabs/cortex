@@ -53,14 +53,7 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string, force bool) (*spec.A
 		deploymentID = prevDeployment.Labels["deploymentID"]
 	}
 
-	clusterName := ""
-	if config.Provider == types.AWSProviderType {
-		clusterName = config.Cluster.ClusterName
-	} else {
-		clusterName = config.GCPCluster.ClusterName
-	}
-
-	api := spec.GetAPISpec(apiConfig, projectID, deploymentID, clusterName)
+	api := spec.GetAPISpec(apiConfig, projectID, deploymentID, config.ClusterName())
 
 	if prevDeployment == nil {
 		if err := config.UploadJSONToBucket(api, api.Key); err != nil {
@@ -167,14 +160,7 @@ func RefreshAPI(apiName string, force bool) (string, error) {
 		return "", err
 	}
 
-	clusterName := ""
-	if config.Provider == types.AWSProviderType {
-		clusterName = config.Cluster.ClusterName
-	} else {
-		clusterName = config.GCPCluster.ClusterName
-	}
-
-	api = spec.GetAPISpec(api.API, api.ProjectID, deploymentID(), clusterName)
+	api = spec.GetAPISpec(api.API, api.ProjectID, deploymentID(), config.ClusterName())
 
 	if err := config.UploadJSONToBucket(api, api.Key); err != nil {
 		return "", errors.Wrap(err, "upload api spec")
