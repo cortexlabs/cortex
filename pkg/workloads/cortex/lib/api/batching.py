@@ -47,12 +47,12 @@ class DynamicBatcher:
             self.waiter.clear()
             self.predictions = {}
 
-            batch = self._make_batch(self.samples)
-            predictions = self.predictor_impl.predict(**batch)
+            if self.samples:
+                batch = self._make_batch(self.samples)
+                predictions = self.predictor_impl.predict(**batch)
+                self.predictions = dict(zip(self.samples.keys(), predictions))
+                self.samples = {}
 
-            self.predictions = dict(zip(self.samples.keys(), predictions))
-
-            self.samples = {}
             self.barrier.reset()
             self.waiter.set()
 
@@ -95,6 +95,7 @@ class DynamicBatcher:
         thread_id = td.get_ident()
         while thread_id not in self.predictions:
             time.sleep(0.001)
+
         prediction = self.predictions[thread_id]
         del self.predictions[thread_id]
 
