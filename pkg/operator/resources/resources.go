@@ -206,9 +206,7 @@ func patchAPI(apiConfig *userconfig.API, configFileName string, force bool) (*sp
 		return nil, "", err
 	}
 
-	if deployedResource.Kind == userconfig.TrafficSplitterKind {
-		return trafficsplitter.UpdateAPI(apiConfig, force)
-	} else if deployedResource.Kind != userconfig.BatchAPIKind && deployedResource.Kind != userconfig.RealtimeAPIKind {
+	if deployedResource.Kind != userconfig.BatchAPIKind && deployedResource.Kind != userconfig.RealtimeAPIKind {
 		return nil, "", ErrorOperationIsOnlySupportedForKind(*deployedResource, userconfig.RealtimeAPIKind, userconfig.BatchAPIKind, userconfig.TrafficSplitterKind) // unexpected
 	}
 
@@ -222,16 +220,20 @@ func patchAPI(apiConfig *userconfig.API, configFileName string, force bool) (*sp
 		return nil, "", err
 	}
 
-	projectFileMap, err := archive.UnzipMemToMem(bytes)
-	if err != nil {
-		return nil, "", err
-	}
-
-	projectFiles := ProjectFiles{
-		ProjectByteMap: projectFileMap,
-	}
-
+	var projectFiles ProjectFiles
 	models := []spec.CuratedModelResource{}
+
+	if deployedResource.Kind != userconfig.TrafficSplitterKind {
+		projectFileMap, err := archive.UnzipMemToMem(bytes)
+		if err != nil {
+			return nil, "", err
+		}
+
+		projectFiles = ProjectFiles{
+			ProjectByteMap: projectFileMap,
+		}
+	}
+
 	err = ValidateClusterAPIs([]userconfig.API{*apiConfig}, &models, projectFiles)
 	if err != nil {
 		err = errors.Append(err, fmt.Sprintf("\n\napi configuration schema can be found here:\n  → Realtime API: https://docs.cortex.dev/v/%s/deployments/realtime-api/api-configuration\n  → Batch API: https://docs.cortex.dev/v/%s/deployments/batch-api/api-configuration\n  → Traffic Splitter: https://docs.cortex.dev/v/%s/deployments/realtime-api/traffic-splitter", consts.CortexVersionMinor, consts.CortexVersionMinor, consts.CortexVersionMinor))
@@ -241,8 +243,10 @@ func patchAPI(apiConfig *userconfig.API, configFileName string, force bool) (*sp
 	switch deployedResource.Kind {
 	case userconfig.RealtimeAPIKind:
 		return realtimeapi.UpdateAPI(apiConfig, models, prevAPISpec.ProjectID, force)
-	default:
+	case userconfig.BatchAPIKind:
 		return batchapi.UpdateAPI(apiConfig, models, prevAPISpec.ProjectID)
+	default:
+		return trafficsplitter.UpdateAPI(apiConfig, force)
 	}
 }
 

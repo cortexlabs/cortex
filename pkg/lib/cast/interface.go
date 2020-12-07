@@ -724,6 +724,16 @@ func InterfaceToStrInterfaceMapRecursive(in interface{}) (map[string]interface{}
 				return nil, false
 			}
 			out[casted] = castedStrMap
+		} else if interSlice, ok := InterfaceToStrInterfaceMapSlice(value); ok {
+			result := make([]map[string]interface{}, 0, len(interSlice))
+			for _, interMap := range interSlice {
+				castedStrMap, ok := InterfaceToStrInterfaceMapRecursive(interMap)
+				if !ok {
+					return nil, false
+				}
+				result = append(result, castedStrMap)
+			}
+			out[casted] = result
 		} else {
 			out[casted] = value
 		}

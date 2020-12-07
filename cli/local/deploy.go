@@ -32,7 +32,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 )
 
-func Deploy(env cliconfig.Environment, configPath string, projectFileList []string, _disallowPrompt bool) ([]schema.DeployResult, error) {
+func Deploy(env cliconfig.Environment, configPath string, projectFileList []string, deployDisallowPrompt bool) ([]schema.DeployResult, error) {
 	configFileName := filepath.Base(configPath)
 
 	_, err := docker.GetDockerClient()
@@ -60,10 +60,10 @@ func Deploy(env cliconfig.Environment, configPath string, projectFileList []stri
 		return nil, err
 	}
 
-	return deploy(env, apiConfigs, projectFiles, _disallowPrompt)
+	return deploy(env, apiConfigs, projectFiles, deployDisallowPrompt)
 }
 
-func deploy(env cliconfig.Environment, apiConfigs []userconfig.API, projectFiles ProjectFiles, _disallowPrompt bool) ([]schema.DeployResult, error) {
+func deploy(env cliconfig.Environment, apiConfigs []userconfig.API, projectFiles ProjectFiles, deployDisallowPrompt bool) ([]schema.DeployResult, error) {
 	var err error
 	var awsClient *aws.Client
 	if env.AWSAccessKeyID != nil {
@@ -94,7 +94,7 @@ func deploy(env cliconfig.Environment, apiConfigs []userconfig.API, projectFiles
 	results := make([]schema.DeployResult, len(apiConfigs))
 	for i := range apiConfigs {
 		apiConfig := apiConfigs[i]
-		api, msg, err := UpdateAPI(&apiConfig, models, projectFiles.projectRoot, projectID, _disallowPrompt, awsClient)
+		api, msg, err := UpdateAPI(&apiConfig, models, projectFiles.projectRoot, projectID, deployDisallowPrompt, awsClient)
 		results[i].Message = msg
 		if err != nil {
 			results[i].Error = errors.Message(err)
