@@ -73,7 +73,7 @@ Create a new environment to connect to an existing Cortex Cluster, and initializ
 - `name` - Name of the environment to create.
 - `provider` - The provider of your Cortex cluster. Can be "aws" or "gcp".
 - `operator_endpoint` - The endpoint for the operator of your Cortex Cluster. You can get this endpoint by running the CLI command `cortex cluster info` for an AWS provider or `cortex cluster-gcp info` for a GCP provider.
-- `aws_access_key_id` - AWS access key ID. Required when `provider` is set to "aws".s
+- `aws_access_key_id` - AWS access key ID. Required when `provider` is set to "aws".
 - `aws_secret_access_key` - AWS secret access key. Required when `provider` is set to "aws".
 
 
