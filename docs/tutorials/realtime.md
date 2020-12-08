@@ -1,12 +1,24 @@
 # Deploy a realtime API
 
-## Install cortex
+Deploy models as realtime APIs that can respond to prediction requests on demand. For example, an object detection web service that receives an image and returns a list of objects in the image.
+
+## Key features
+
+* Request-based autoscaling
+* Multi-model endpoints
+* Server-side batching
+* Metrics and log aggregation
+* Rolling updates
+
+## How it works
+
+### Install cortex
 
 ```bash
 $ pip install cortex
 ```
 
-## Define a realtime API
+### Define a realtime API
 
 ```python
 # text_generator.py
@@ -27,65 +39,65 @@ requirements = ["tensorflow", "transformers"]
 api_spec = {"name": "text-generator", "kind": "RealtimeAPI"}
 
 cx = cortex.client("local")
-cx.deploy(api_spec, predictor=PythonPredictor, requirements=requirements)
+cx.create_api(api_spec, predictor=PythonPredictor, requirements=requirements)
 ```
 
-## Test locally (requires Docker)
+### Test locally (requires Docker)
 
 ```bash
 $ python text_generator.py
 ```
 
-## Monitor
+### Monitor
 
 ```bash
 $ cortex get text-generator --watch
 ```
 
-## Make a request
+### Make a request
 
 ```bash
 $ curl http://localhost:8889 -X POST -H "Content-Type: application/json" -d '{"text": "hello world"}'
 ```
 
-## Stream logs
+### Stream logs
 
 ```bash
 $ cortex logs text-generator
 ```
 
-## Spin up a cluster on AWS
+### Spin up a cluster on AWS
 
 ```bash
 $ cortex cluster up
 ```
 
-## Edit `text_generator.py`
+### Edit `text_generator.py`
 
 ```python
 # cx = cortex.client("local")
 cx = cortex.client("aws")
 ```
 
-## Deploy to AWS
+### Deploy to AWS
 
 ```bash
 $ python text_generator.py
 ```
 
-## Monitor
+### Monitor
 
 ```bash
 $ cortex get text-generator --env aws --watch
 ```
 
-## Make a request
+### Make a request
 
 ```bash
 $ curl https://***.execute-api.us-west-2.amazonaws.com/text-generator -X POST -H "Content-Type: application/json" -d '{"text": "hello world"}'
 ```
 
-## Delete the APIs
+### Delete the APIs
 
 ```bash
 $ cortex delete text-generator --env local
