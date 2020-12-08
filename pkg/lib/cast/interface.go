@@ -715,15 +715,15 @@ func JSONMarshallable(in interface{}) (interface{}, bool) {
 		}
 		return out, true
 	} else if inSlice, ok := InterfaceToInterfaceSlice(in); ok {
-		result := make([]interface{}, 0, len(inSlice))
+		out := make([]interface{}, 0, len(inSlice))
 		for _, inValue := range inSlice {
 			castedInValue, ok := JSONMarshallable(inValue)
 			if !ok {
 				return nil, false
 			}
-			result = append(result, castedInValue)
+			out = append(out, castedInValue)
 		}
-		return result, true
+		return out, true
 	}
 	return in, true
 }
