@@ -1,5 +1,7 @@
 # Table of contents
 
+* [Get started](tutorials/realtime.md)
+
 ## Tutorials
 
 * [Realtime API](tutorials/realtime.md)
