@@ -122,7 +122,7 @@ func getAPIEnv(api *spec.API, awsClient *aws.Client, gcpClient *gcp.Client) []st
 		}
 	}
 	if gcpClient != nil {
-		envs = append(envs, "GOOGLE_APPLICATION_CREDENTIALS="+"/var/google_key.json")
+		envs = append(envs, "GOOGLE_APPLICATION_CREDENTIALS=/var/google_key.json")
 	}
 
 	return envs
@@ -536,16 +536,14 @@ func retryWithNvidiaRuntime(err error, containerConfig *container.Config, hostCo
 			return errors.Wrap(err, "failed to request a GPU")
 		}
 		if gcpClient != nil {
-			if gcpClient != nil {
-				docker.CopyToContainer(containerCreateRequest.ID, &archive.Input{
-					Bytes: []archive.BytesInput{
-						{
-							Content: gcpClient.CredentialsJSON,
-							Dest:    "/var/google_key.json",
-						},
+			docker.CopyToContainer(containerCreateRequest.ID, &archive.Input{
+				Bytes: []archive.BytesInput{
+					{
+						Content: gcpClient.CredentialsJSON,
+						Dest:    "/var/google_key.json",
 					},
-				}, "/")
-			}
+				},
+			}, "/")
 		}
 		err = docker.MustDockerClient().ContainerStart(context.Background(), containerCreateRequest.ID, dockertypes.ContainerStartOptions{})
 		if err != nil {
