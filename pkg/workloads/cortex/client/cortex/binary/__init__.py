@@ -68,9 +68,11 @@ def run_cli(
     output = ""
     result = ""
     processing_result = False
+    processed_result = False
 
     for c in iter(lambda: process.stdout.read(1), ""):
         output += c
+
         if mixed_output:
             if output[-2:] == "\n~" or output == "~":
                 processing_result = True
@@ -84,13 +86,16 @@ def run_cli(
                 ):
                     result = result[len(MIXED_CORTEX_MARKER) : -len(MIXED_CORTEX_MARKER)]
                     result = base64.b64decode(result).decode("utf8")
-                    processing_result = False
+                    processed_result = True
 
                 output = output[:-1]
         if not hide_output:
             if (not mixed_output) or (mixed_output and not processing_result):
                 sys.stdout.write(c)
                 sys.stdout.flush()
+
+        if processed_result == True:
+            processing_result = False
 
     process.wait()
 
