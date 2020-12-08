@@ -64,13 +64,13 @@ var _patchCmd = &cobra.Command{
 		configPath := getConfigPath(args)
 
 		var deployResults []schema.DeployResult
-		if env.Provider == types.AWSProviderType {
-			deployResults, err = cluster.Patch(MustGetOperatorConfig(env.Name), configPath, _flagPatchForce)
+		if env.Provider == types.LocalProviderType {
+			deployResults, err = local.Patch(env, configPath)
 			if err != nil {
 				exit.Error(err)
 			}
 		} else {
-			deployResults, err = local.Patch(env, configPath)
+			deployResults, err = cluster.Patch(MustGetOperatorConfig(env.Name), configPath, _flagPatchForce)
 			if err != nil {
 				exit.Error(err)
 			}
