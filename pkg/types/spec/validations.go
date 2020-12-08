@@ -652,8 +652,8 @@ func ExtractAPIConfigs(
 			}
 		}
 
-		if provider == types.LocalProviderType || provider == types.GCPProviderType {
-			if resourceStruct.Kind == userconfig.BatchAPIKind || resourceStruct.Kind == userconfig.TrafficSplitterKind {
+		if resourceStruct.Kind == userconfig.BatchAPIKind || resourceStruct.Kind == userconfig.TrafficSplitterKind {
+			if provider == types.LocalProviderType || provider == types.GCPProviderType {
 				return nil, errors.Wrap(ErrorKindIsNotSupportedByProvider(resourceStruct.Kind, provider), userconfig.IdentifyAPI(configFileName, resourceStruct.Name, resourceStruct.Kind, i))
 			}
 		}
@@ -1129,7 +1129,7 @@ func validateONNXPredictor(api *userconfig.API, models *[]CuratedModelResource, 
 }
 
 func validateBucketProviders(predictor *userconfig.Predictor, providerType types.ProviderType) error {
-	isIncorrectBucketProvider := func(modelPath string) error {
+	checkForIncorrectBucketProvider := func(modelPath string) error {
 		isS3Path := strings.HasPrefix(modelPath, "s3://")
 		isGCSPath := strings.HasPrefix(modelPath, "gs://")
 		if (providerType == types.AWSProviderType && !isS3Path) || (providerType == types.GCPProviderType && !isGCSPath) || (providerType == types.LocalProviderType && isGCSPath) {
@@ -1139,18 +1139,18 @@ func validateBucketProviders(predictor *userconfig.Predictor, providerType types
 	}
 
 	if predictor.ModelPath != nil {
-		return errors.Wrap(isIncorrectBucketProvider(*predictor.ModelPath), userconfig.ModelPathKey)
+		return errors.Wrap(checkForIncorrectBucketProvider(*predictor.ModelPath), userconfig.ModelPathKey)
 	}
 
 	if predictor.Models != nil {
 		if predictor.Models.Dir != nil {
-			return errors.Wrap(isIncorrectBucketProvider(*predictor.Models.Dir), userconfig.ModelsKey, userconfig.ModelsDirKey)
+			return errors.Wrap(checkForIncorrectBucketProvider(*predictor.Models.Dir), userconfig.ModelsKey, userconfig.ModelsDirKey)
 		}
 		for _, model := range predictor.Models.Paths {
 			if model == nil {
 				continue
 			}
-			err := isIncorrectBucketProvider(model.ModelPath)
+			err := checkForIncorrectBucketProvider(model.ModelPath)
 			if err != nil {
 				return errors.Wrap(err, userconfig.ModelsKey, userconfig.ModelsPathsKey, model.Name)
 			}

@@ -141,4 +141,4 @@ else
 fi
 
 # create the python initialization service
-create_s6_service "py_init" "cd /mnt/project && $source_env_file_cmd && /opt/conda/envs/env/bin/python /src/cortex/serve/init/script.py"
+create_s6_service "py_init" "cd /mnt/project && /opt/conda/envs/env/bin/python /src/cortex/serve/init/script.py"
