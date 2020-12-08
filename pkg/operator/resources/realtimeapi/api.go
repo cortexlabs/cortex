@@ -24,6 +24,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/parallel"
+	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 	"github.com/cortexlabs/cortex/pkg/operator/operator"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
@@ -301,9 +302,9 @@ func GetAPIByName(deployedResource *operator.DeployedResource) ([]schema.APIResp
 		return nil, err
 	}
 
-	var dashboardURL string
+	var dashboardURL *string
 	if config.Provider == types.AWSProviderType {
-		dashboardURL = DashboardURL()
+		dashboardURL = pointer.String(DashboardURL())
 	}
 
 	return []schema.APIResponse{
@@ -312,7 +313,7 @@ func GetAPIByName(deployedResource *operator.DeployedResource) ([]schema.APIResp
 			Status:       status,
 			Metrics:      metrics,
 			Endpoint:     apiEndpoint,
-			DashboardURL: &dashboardURL,
+			DashboardURL: dashboardURL,
 		},
 	}, nil
 }

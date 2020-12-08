@@ -22,6 +22,46 @@ import (
 	"github.com/cortexlabs/cortex/pkg/types"
 )
 
+func OperatorID() string {
+	switch Provider {
+	case types.AWSProviderType:
+		return Cluster.OperatorID
+	case types.GCPProviderType:
+		return GCPCluster.OperatorID
+	}
+	return ""
+}
+
+func ClusterID() string {
+	switch Provider {
+	case types.AWSProviderType:
+		return Cluster.ClusterID
+	case types.GCPProviderType:
+		return GCPCluster.ClusterID
+	}
+	return ""
+}
+
+func IsOperatorInCluster() bool {
+	switch Provider {
+	case types.AWSProviderType:
+		return Cluster.IsOperatorInCluster
+	case types.GCPProviderType:
+		return GCPCluster.IsOperatorInCluster
+	}
+	return false
+}
+
+func Telemetry() bool {
+	switch Provider {
+	case types.AWSProviderType:
+		return Cluster.Telemetry
+	case types.GCPProviderType:
+		return GCPCluster.Telemetry
+	}
+	return false
+}
+
 func ClusterName() string {
 	switch Provider {
 	case types.AWSProviderType:
@@ -110,4 +150,14 @@ func DeleteBucketDir(dir string, continueIfFailure bool) error {
 		return GCP.DeleteGCSDir(GCPCluster.Bucket, dir, continueIfFailure)
 	}
 	return nil
+}
+
+func ImageDownloader() string {
+	switch Provider {
+	case types.AWSProviderType:
+		return Cluster.ImageDownloader
+	case types.GCPProviderType:
+		return GCPCluster.ImageDownloader
+	}
+	return ""
 }

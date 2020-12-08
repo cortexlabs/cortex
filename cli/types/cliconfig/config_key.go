@@ -17,15 +17,12 @@ limitations under the License.
 package cliconfig
 
 const (
-	EnvironmentsKey           = "environments"
-	DefaultEnvironmentKey     = "default_environment"
-	NameKey                   = "name"
-	ProviderKey               = "provider"
-	OperatorEndpointKey       = "operator_endpoint"
-	AWSAccessKeyIDKey         = "aws_access_key_id"
-	AWSSecretAccessKeyKey     = "aws_secret_access_key"
-	AWSRegionKey              = "aws_region"
-	GCPCredentialsFilePathKey = "gcp_credentials_file_path"
-	GCPProjectIDKey           = "gcp_project_id"
-	GCPRegionKey              = "gcp_region"
+	EnvironmentsKey       = "environments"
+	DefaultEnvironmentKey = "default_environment"
+	NameKey               = "name"
+	ProviderKey           = "provider"
+	OperatorEndpointKey   = "operator_endpoint"
+	AWSAccessKeyIDKey     = "aws_access_key_id"
+	AWSSecretAccessKeyKey = "aws_secret_access_key"
+	AWSRegionKey          = "aws_region"
 )

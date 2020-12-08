@@ -53,17 +53,8 @@ func ClientIDMiddleware(next http.Handler) http.Handler {
 			r = r.WithContext(ctx)
 
 			if !_cachedClientIDs.Has(clientID) {
-				var hashedAccountID string
-				var err error
-				if config.Provider == types.AWSProviderType {
-					_, hashedAccountID, err = config.AWS.GetCachedAccountID()
-				} else {
-					hashedAccountID = config.GCP.HashedProjectID
-				}
-				if err == nil && hashedAccountID != "" {
-					telemetry.RecordOperatorID(clientID, hashedAccountID)
-					_cachedClientIDs.Add(clientID)
-				}
+				telemetry.RecordOperatorID(clientID, config.OperatorID())
+				_cachedClientIDs.Add(clientID)
 			}
 		}
 		next.ServeHTTP(w, r)

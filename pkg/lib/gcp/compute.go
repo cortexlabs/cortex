@@ -22,7 +22,6 @@ import (
 	"strings"
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
-	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	"google.golang.org/api/compute/v1"
 )
@@ -36,7 +35,7 @@ func (c *Client) IsProjectIDValid() (bool, error) {
 	_, err = compClient.Projects.Get(c.ProjectID).Do()
 	if err != nil {
 		errorMessage := fmt.Sprintf("The resource 'projects/%s' was not found", c.ProjectID)
-		if IsErrCode(err, 404, pointer.String(errorMessage)) {
+		if IsErrCode(err, 404, &errorMessage) {
 			return false, nil
 		}
 		return false, errors.WithStack(err)
@@ -54,7 +53,7 @@ func (c *Client) IsZoneValid(zone string) (bool, error) {
 	_, err = compClient.Zones.Get(c.ProjectID, zone).Do()
 	if err != nil {
 		errorMessage := fmt.Sprintf("The resource 'projects/%s/zones/%s' was not found", c.ProjectID, zone)
-		if IsErrCode(err, 404, pointer.String(errorMessage)) {
+		if IsErrCode(err, 404, &errorMessage) {
 			return false, nil
 		}
 		return false, errors.WithStack(err)
@@ -72,7 +71,7 @@ func (c *Client) IsInstanceTypeAvailable(instanceType string, zone string) (bool
 	_, err = compClient.MachineTypes.Get(c.ProjectID, zone, instanceType).Do()
 	if err != nil {
 		errorMessage := fmt.Sprintf("The resource 'projects/%s/zones/%s/machineTypes/%s' was not found", c.ProjectID, zone, instanceType)
-		if IsErrCode(err, 404, pointer.String(errorMessage)) {
+		if IsErrCode(err, 404, &errorMessage) {
 			return false, nil
 		}
 		return false, errors.WithStack(err)
@@ -89,8 +88,8 @@ func (c *Client) IsAcceleratorTypeAvailable(acceleratorType string, zone string)
 
 	_, err = compClient.AcceleratorTypes.Get(c.ProjectID, zone, acceleratorType).Do()
 	if err != nil {
-		resource := fmt.Sprintf("projects/%s/zones/%s/acceleratorTypes/%s", c.ProjectID, zone, acceleratorType)
-		if IsErrCode(err, 404, pointer.String(fmt.Sprintf("The resource '%s' was not found", resource))) {
+		errorMessage := fmt.Sprintf("The resource 'projects/%s/zones/%s/acceleratorTypes/%s' was not found", c.ProjectID, zone, acceleratorType)
+		if IsErrCode(err, 404, &errorMessage) {
 			return false, nil
 		}
 		return false, errors.WithStack(err)

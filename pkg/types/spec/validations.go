@@ -644,17 +644,17 @@ func ExtractAPIConfigs(
 			err = errors.Wrap(errors.FirstError(errs...), userconfig.IdentifyAPI(configFileName, name, kind, i))
 			switch provider {
 			case types.LocalProviderType:
-				return nil, errors.Append(err, fmt.Sprintf("\n\napi configuration schema for Realtime API can be found at https://docs.cortex.dev/v/%s/deployments/realtime-api/api-configuration", consts.CortexVersionMinor))
+				return nil, errors.Append(err, fmt.Sprintf("\n\napi configuration schema for Realtime APIs can be found at https://docs.cortex.dev/v/%s/deployments/realtime-api/api-configuration", consts.CortexVersionMinor))
 			case types.AWSProviderType:
 				return nil, errors.Append(err, fmt.Sprintf("\n\napi configuration schema can be found here:\n  → Realtime API: https://docs.cortex.dev/v/%s/deployments/realtime-api/api-configuration\n  → Batch API: https://docs.cortex.dev/v/%s/deployments/batch-api/api-configuration\n  → Traffic Splitter: https://docs.cortex.dev/v/%s/deployments/realtime-api/traffic-splitter", consts.CortexVersionMinor, consts.CortexVersionMinor, consts.CortexVersionMinor))
 			case types.GCPProviderType:
-				return nil, errors.Append(err, fmt.Sprintf("\n\nto add api configuration schema"))
+				return nil, errors.Append(err, fmt.Sprintf("\n\napi configuration schema for Realtime APIs can be found at https://docs.cortex.dev/v/%s/deployments/realtime-api/api-configuration", consts.CortexVersionMinor))
 			}
 		}
 
-		if resourceStruct.Kind == userconfig.BatchAPIKind || resourceStruct.Kind == userconfig.TrafficSplitterKind {
-			if provider == types.LocalProviderType {
-				return nil, errors.Wrap(ErrorKindIsNotSupportedByProvider(resourceStruct.Kind, types.LocalProviderType), userconfig.IdentifyAPI(configFileName, resourceStruct.Name, resourceStruct.Kind, i))
+		if provider == types.LocalProviderType || provider == types.GCPProviderType {
+			if resourceStruct.Kind == userconfig.BatchAPIKind || resourceStruct.Kind == userconfig.TrafficSplitterKind {
+				return nil, errors.Wrap(ErrorKindIsNotSupportedByProvider(resourceStruct.Kind, provider), userconfig.IdentifyAPI(configFileName, resourceStruct.Name, resourceStruct.Kind, i))
 			}
 		}
 
@@ -702,11 +702,7 @@ func ValidateAPI(
 	k8sClient *k8s.Client, // will be nil for local provider
 ) error {
 
-	if providerType == types.GCPProviderType && api.Kind != userconfig.RealtimeAPIKind {
-		return ErrorKindIsNotSupportedByProvider(api.Kind, providerType)
-	}
-
-	if api.Networking.Endpoint == nil {
+	if providerType != types.LocalProviderType && api.Networking.Endpoint == nil {
 		api.Networking.Endpoint = pointer.String("/" + api.Name)
 	}
 
@@ -739,10 +735,6 @@ func ValidateTrafficSplitter(
 	awsClient *aws.Client,
 ) error {
 
-	if providerType == types.LocalProviderType {
-		return ErrorKindIsNotSupportedByProvider(userconfig.TrafficSplitterKind, providerType)
-	}
-
 	if api.Networking.Endpoint == nil {
 		api.Networking.Endpoint = pointer.String("/" + api.Name)
 	}
@@ -767,14 +759,12 @@ func validatePredictor(
 ) error {
 	predictor := api.Predictor
 
-	if providerType == types.AWSProviderType {
-		if predictor.Models != nil && predictor.ModelPath != nil {
-			return ErrorConflictingFields(userconfig.ModelPathKey, userconfig.ModelsKey)
-		}
-		if predictor.Models != nil {
-			if err := validateMultiModelsFields(api); err != nil {
-				return err
-			}
+	if predictor.Models != nil && predictor.ModelPath != nil {
+		return ErrorConflictingFields(userconfig.ModelPathKey, userconfig.ModelsKey)
+	}
+	if predictor.Models != nil {
+		if err := validateMultiModelsFields(api); err != nil {
+			return err
 		}
 	}
 

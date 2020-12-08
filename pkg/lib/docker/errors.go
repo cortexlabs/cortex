@@ -83,10 +83,6 @@ func ErrorImageInaccessible(image string, providerType types.ProviderType, cause
 		if strings.Contains(cause.Error(), "authorized") || strings.Contains(cause.Error(), "authentication") {
 			message += fmt.Sprintf("\n\nif you would like to use a private docker registry, see https://docs.cortex.dev/v/%s/guides/private-docker", consts.CortexVersionMinor)
 		}
-	case types.GCPProviderType:
-		if strings.Contains(cause.Error(), "authorized") || strings.Contains(cause.Error(), "authentication") {
-			message += "\n\nprivate docker registries are not currently supported on GCP"
-		}
 	}
 
 	return errors.WithStack(&errors.Error{

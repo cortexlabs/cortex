@@ -103,13 +103,14 @@ type InternalConfig struct {
 	Config
 
 	// Populated by operator
-	ID                 string                    `json:"id"`
-	APIVersion         string                    `json:"api_version"`
-	OperatorInCluster  bool                      `json:"operator_in_cluster"`
-	InstanceMetadata   aws.InstanceMetadata      `json:"instance_metadata"`
-	APIGateway         *apigatewayv2.Api         `json:"api_gateway"`
-	VPCLink            *apigatewayv2.VpcLink     `json:"vpc_link"`
-	VPCLinkIntegration *apigatewayv2.Integration `json:"vpc_link_integration"`
+	APIVersion          string                    `json:"api_version"`
+	OperatorID          string                    `json:"operator_id"`
+	ClusterID           string                    `json:"cluster_id"`
+	IsOperatorInCluster bool                      `json:"is_operator_in_cluster"`
+	InstanceMetadata    aws.InstanceMetadata      `json:"instance_metadata"`
+	APIGateway          *apigatewayv2.Api         `json:"api_gateway"`
+	VPCLink             *apigatewayv2.VpcLink     `json:"vpc_link"`
+	VPCLinkIntegration  *apigatewayv2.Integration `json:"vpc_link_integration"`
 }
 
 // The bare minimum to identify a cluster

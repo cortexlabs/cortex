@@ -24,7 +24,6 @@ import (
 
 func DownloadAPISpec(apiName string, apiID string) (*spec.API, error) {
 	bucketKey := spec.Key(apiName, apiID, config.ClusterName())
-
 	var api spec.API
 	if err := config.ReadJSONFromBucket(&api, bucketKey); err != nil {
 		return nil, err

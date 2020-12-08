@@ -18,6 +18,7 @@ package gcp
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
@@ -29,17 +30,7 @@ const (
 	ErrInvalidGCSPath              = "gcp.invalid_gcs_path"
 	ErrCredentialsFileEnvVarNotSet = "gcp.credentials_file_env_var_not_set"
 	ErrProjectIDMismatch           = "gcp.project_id_mismatch"
-
-	YouAlreadyOwnThisBucketErrorMessage = "You already own this bucket. Please select another name."
-	InvalidBucketNameErrorMessage       = "Sorry, that name is not available. Please try a different one."
 )
-
-func ErrorInvalidGCSPath(provided string) error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrInvalidGCSPath,
-		Message: fmt.Sprintf("%s is not a valid GCS path (e.g. gs://cortex-examples/pytorch/iris-classifier/weights.pth is a valid GCS path)", s.UserStr(provided)),
-	})
-}
 
 func IsGCPError(err error) bool {
 	_, ok := errors.CauseOrSelf(err).(*googleapi.Error)
@@ -51,24 +42,28 @@ func IsErrCode(err error, errorCode int, errorMessage *string) bool {
 	if !ok {
 		return false
 	}
-	if gcpError.Code == errorCode {
-		if errorMessage != nil && gcpError.Message == *errorMessage {
-			return true
-		}
-		if errorMessage != nil && gcpError.Message != *errorMessage {
-			return false
-		}
-		return true
+	if gcpError.Code != errorCode {
+		return false
 	}
-	return false
+	if errorMessage != nil && strings.ToLower(gcpError.Message) != strings.ToLower(*errorMessage) {
+		return false
+	}
+	return true
 }
 
-func DoesBucketAlreadyExistError(err error) bool {
-	return IsErrCode(err, 409, pointer.String(YouAlreadyOwnThisBucketErrorMessage))
+func IsBucketAlreadyExistsError(err error) bool {
+	return IsErrCode(err, 409, pointer.String("You already own this bucket. Please select another name."))
 }
 
 func IsInvalidBucketNameError(err error) bool {
-	return IsErrCode(err, 409, pointer.String(InvalidBucketNameErrorMessage))
+	return IsErrCode(err, 409, pointer.String("Sorry, that name is not available. Please try a different one."))
+}
+
+func ErrorInvalidGCSPath(provided string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrInvalidGCSPath,
+		Message: fmt.Sprintf("%s is not a valid GCS path (e.g. gs://cortex-examples/pytorch/iris-classifier/weights.pth is a valid GCS path)", s.UserStr(provided)),
+	})
 }
 
 func ErrorCredentialsFileEnvVarNotSet() error {

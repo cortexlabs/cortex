@@ -80,8 +80,6 @@ const (
 	ErrRegistryAccountIDMismatch            = "spec.registry_account_id_mismatch"
 	ErrCannotAccessECRWithAnonymousAWSCreds = "spec.cannot_access_ecr_with_anonymous_aws_creds"
 	ErrKindIsNotSupportedByProvider         = "spec.kind_is_not_supported_by_provider"
-	ErrPredictorIsNotSupportedByProvider    = "spec.predictor_is_not_supported_by_provider"
-	ErrFieldNotSupportedByProvider          = "spec.field_not_supported_by_provider"
 	ErrKeyIsNotSupportedForKind             = "spec.key_is_not_supported_for_kind"
 	ErrComputeResourceConflict              = "spec.compute_resource_conflict"
 	ErrInvalidNumberOfInfProcesses          = "spec.invalid_number_of_inf_processes"
@@ -531,20 +529,6 @@ func ErrorKindIsNotSupportedByProvider(kind userconfig.Kind, provider types.Prov
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrKindIsNotSupportedByProvider,
 		Message: fmt.Sprintf("%s kind is not supported on %s provider", kind.String(), provider.String()),
-	})
-}
-
-func ErrorPredictorIsNotSupportedByProvider(predictor userconfig.PredictorType, provider types.ProviderType) error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrPredictorIsNotSupportedByProvider,
-		Message: fmt.Sprintf("%s predictor is not supported on %s provider", predictor.String(), provider.String()),
-	})
-}
-
-func ErrorFieldNotSupportedByProvider(fieldKey string, provider types.ProviderType) error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrFieldNotSupportedByProvider,
-		Message: fmt.Sprintf("%s is not a supported field for the %s provider", fieldKey, provider),
 	})
 }
 

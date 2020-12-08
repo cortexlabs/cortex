@@ -72,10 +72,10 @@ class GCS:
         """
         Upload file to bucket.
         """
-        blob = self.gcs.get_blob(blob_name=key)
         if not pathlib.Path(local_path).is_file():
             raise CortexException(f'file "{key}" doesn\'t exist')
 
+        blob = self.gcs.get_blob(blob_name=key)
         blob.upload_from_filename(local_path)
 
     def download_file(self, key: str, local_path: str):

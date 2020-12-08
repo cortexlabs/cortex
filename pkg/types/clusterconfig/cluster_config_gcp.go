@@ -54,10 +54,11 @@ type InternalGCPConfig struct {
 	GCPConfig
 
 	// Populated by operator
-	ID                string `json:"id"`
-	APIVersion        string `json:"api_version"`
-	Bucket            string `json:"bucket"`
-	OperatorInCluster bool   `json:"operator_in_cluster"`
+	APIVersion          string `json:"api_version"`
+	OperatorID          string `json:"operator_id"`
+	ClusterID           string `json:"cluster_id"`
+	IsOperatorInCluster bool   `json:"is_operator_in_cluster"`
+	Bucket              string `json:"bucket"`
 }
 
 // The bare minimum to identify a cluster
@@ -233,7 +234,7 @@ var GCPAccessPromptValidation = &cr.PromptValidation{
 				Prompt: ZoneUserKey,
 			},
 			StringPtrValidation: &cr.StringPtrValidation{
-				Default: pointer.String("us-east1"),
+				Default: pointer.String("us-central1-a"),
 			},
 		},
 		{
@@ -325,7 +326,7 @@ func (cc *GCPConfig) Validate(GCP *gcp.Client) error {
 
 func applyGCPPromptDefaults(defaults GCPConfig) *GCPConfig {
 	defaultConfig := &GCPConfig{
-		Zone:         pointer.String("us-east1"),
+		Zone:         pointer.String("us-central1-a"),
 		InstanceType: pointer.String("n1-standard-2"),
 		MinInstances: pointer.Int64(1),
 		MaxInstances: pointer.Int64(5),
@@ -373,16 +374,6 @@ func InstallGCPPrompt(clusterConfig *GCPConfig, disallowPrompt bool) error {
 	remainingPrompts := &cr.PromptValidation{
 		SkipNonEmptyFields: true,
 		PromptItemValidations: []*cr.PromptItemValidation{
-			{
-				StructField: "InstanceType",
-				PromptOpts: &prompt.Options{
-					Prompt: "instance type",
-				},
-				StringPtrValidation: &cr.StringPtrValidation{
-					Required: true,
-					Default:  defaults.InstanceType,
-				},
-			},
 			{
 				StructField: "InstanceType",
 				PromptOpts: &prompt.Options{
@@ -488,6 +479,7 @@ func (cc *GCPConfig) UserTable() table.KeyValuePairs {
 	items.Add(ImageDownloaderUserKey, cc.ImageDownloader)
 	items.Add(ImageIstioProxyUserKey, cc.ImageIstioProxy)
 	items.Add(ImageIstioPilotUserKey, cc.ImageIstioPilot)
+	items.Add(ImageGooglePauseUserKey, cc.ImageGooglePause)
 
 	return items
 }

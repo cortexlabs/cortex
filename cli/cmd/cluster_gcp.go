@@ -17,7 +17,6 @@ limitations under the License.
 package cmd
 
 import (
-	"context"
 	"fmt"
 	"os"
 	"strings"
@@ -172,7 +171,7 @@ var _clusterGCPUpCmd = &cobra.Command{
 		gkeClusterName := fmt.Sprintf("projects/%s/locations/%s/clusters/%s", *clusterConfig.Project, *clusterConfig.Zone, clusterConfig.ClusterName)
 		operatorLoadBalancerIP, err := getGCPOperatorLoadBalancerIP(gkeClusterName, gcpClient)
 		if err != nil {
-			exit.Error(err)
+			exit.Error(errors.Append(err, fmt.Sprintf("\n\nyou can attempt to resolve this issue and configure your cli environment by running `cortex cluster info --configure-env %s`", _flagClusterGCPUpEnv)))
 		}
 
 		newEnvironment := cliconfig.Environment{
@@ -183,7 +182,7 @@ var _clusterGCPUpCmd = &cobra.Command{
 
 		err = addEnvToCLIConfig(newEnvironment)
 		if err != nil {
-			exit.Error(err)
+			exit.Error(errors.Append(err, fmt.Sprintf("\n\nyou can attempt to resolve this issue and configure your cli environment by running `cortex cluster info --configure-env %s`", _flagClusterGCPUpEnv)))
 		}
 
 		if envExists {
@@ -269,16 +268,9 @@ var _clusterGCPDownCmd = &cobra.Command{
 			fmt.Println("✓")
 		}
 
-		clusterManager, err := gcpClient.GKE()
-		if err != nil {
-			exit.Error(err)
-		}
-
 		fmt.Print("￮ spinning down the cluster ")
 
-		_, err = clusterManager.DeleteCluster(context.Background(), &containerpb.DeleteClusterRequest{
-			Name: gkeClusterName,
-		})
+		_, err = gcpClient.DeleteCluster(gkeClusterName)
 		if err != nil {
 			fmt.Print("\n\n")
 			exit.Error(err)
@@ -437,15 +429,10 @@ func createGKECluster(clusterConfig *clusterconfig.GCPConfig, gcpClient *gcp.Cli
 		nodeLabels["nvidia.com/gpu"] = "present"
 	}
 
-	clusterManager, err := gcpClient.GKE()
-	if err != nil {
-		return errors.WithStack(err)
-	}
-
 	gkeClusterParent := fmt.Sprintf("projects/%s/locations/%s", *clusterConfig.Project, *clusterConfig.Zone)
 	gkeClusterName := fmt.Sprintf("%s/clusters/%s", gkeClusterParent, clusterConfig.ClusterName)
 
-	_, err = clusterManager.CreateCluster(context.Background(), &containerpb.CreateClusterRequest{
+	_, err := gcpClient.CreateCluster(&containerpb.CreateClusterRequest{
 		Parent: gkeClusterParent,
 		Cluster: &containerpb.Cluster{
 			Name:                  clusterConfig.ClusterName,
@@ -494,29 +481,27 @@ func createGKECluster(clusterConfig *clusterconfig.GCPConfig, gcpClient *gcp.Cli
 		},
 	})
 	if err != nil {
-		return errors.WithStack(err)
+		return err
 	}
 
 	for {
 		fmt.Print(".")
 		time.Sleep(5 * time.Second)
 
-		resp, err := clusterManager.GetCluster(context.Background(), &containerpb.GetClusterRequest{
-			Name: gkeClusterName,
-		})
+		cluster, err := gcpClient.GetCluster(gkeClusterName)
 		if err != nil {
-			return errors.WithStack(err)
+			return err
 		}
 
-		if resp.Status == containerpb.Cluster_ERROR {
+		if cluster.Status == containerpb.Cluster_ERROR {
 			fmt.Println(" ✗")
-			helpStr := fmt.Sprintf("\nyour cluster couldn't be spun up; here is the error that was encountered: %s", resp.StatusMessage)
+			helpStr := fmt.Sprintf("\nyour cluster couldn't be spun up; here is the error that was encountered: %s", cluster.StatusMessage)
 			helpStr += fmt.Sprintf("\nadditional error information may be found on the cluster's page in the GCP console: https://console.cloud.google.com/kubernetes/clusters/details/%s/%s?project=%s", *clusterConfig.Zone, clusterConfig.ClusterName, *clusterConfig.Project)
 			fmt.Println(helpStr)
-			exit.Error(ErrorClusterUp(resp.StatusMessage))
+			exit.Error(ErrorClusterUp(cluster.StatusMessage))
 		}
 
-		if resp.Status != containerpb.Cluster_PROVISIONING {
+		if cluster.Status != containerpb.Cluster_PROVISIONING {
 			fmt.Println(" ✓")
 			break
 		}

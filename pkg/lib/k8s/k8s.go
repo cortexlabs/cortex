@@ -70,10 +70,10 @@ func New(namespace string, inCluster bool, restConfig *kclientrest.Config) (*Cli
 	client := &Client{
 		Namespace: namespace,
 	}
-	if inCluster {
-		client.RestConfig, err = kclientrest.InClusterConfig()
-	} else if restConfig != nil {
+	if restConfig != nil {
 		client.RestConfig = restConfig
+	} else if inCluster {
+		client.RestConfig, err = kclientrest.InClusterConfig()
 	} else {
 		kubeConfig := path.Join(_home, ".kube", "config")
 		client.RestConfig, err = kclientcmd.BuildConfigFromFlags("", kubeConfig)

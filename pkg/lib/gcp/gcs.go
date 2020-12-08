@@ -26,7 +26,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/json"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
-	"github.com/cortexlabs/cortex/pkg/lib/slices"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"google.golang.org/api/iterator"
 )
@@ -73,7 +72,7 @@ func (c *Client) CreateBucket(bucket string, location string, ignoreErrorIfBucke
 		Location: location,
 	})
 	if err != nil {
-		if DoesBucketAlreadyExistError(err) {
+		if IsBucketAlreadyExistsError(err) {
 			if !ignoreErrorIfBucketExists {
 				return errors.WithStack(err)
 			}
@@ -106,10 +105,10 @@ func (c *Client) IsGCSFile(bucket string, key string) (bool, error) {
 		return false, err
 	}
 	_, err = gcsClient.Bucket(bucket).Object(key).Attrs(context.Background())
-	if err != nil && err == storage.ErrObjectNotExist {
-		return false, nil
-	}
 	if err != nil {
+		if err == storage.ErrObjectNotExist {
+			return false, nil
+		}
 		return false, errors.WithStack(err)
 	}
 	return true, nil
@@ -162,23 +161,26 @@ func (c *Client) DeleteGCSPrefix(bucket string, gcsDir string, continueIfFailure
 		Prefix: gcsDir,
 	})
 
-	var attrs *storage.ObjectAttrs
+	var subErr error
 	for {
-		attrs, err = objectIterator.Next()
-		if err == iterator.Done {
-			break
-		}
-		if err != nil && !continueIfFailure {
-			break
+		attrs, err := objectIterator.Next()
+		if err != nil {
+			if err == iterator.Done {
+				break
+			}
+			return errors.WithStack(err)
 		}
 		err = bkt.Object(attrs.Name).Delete(context.Background())
-		if err != nil && !continueIfFailure {
-			break
+		if err != nil {
+			subErr = errors.WithStack(err)
+			if !continueIfFailure {
+				break
+			}
 		}
 	}
 
-	if err != nil && err != iterator.Done && !continueIfFailure {
-		return errors.WithStack(err)
+	if subErr != nil {
+		return subErr
 	}
 	return nil
 }
@@ -228,10 +230,10 @@ func (c *Client) ListGCSDir(bucket string, gcsDir string, maxResults *int64) ([]
 
 	for {
 		attrs, err := objectIterator.Next()
-		if err == iterator.Done {
-			break
-		}
 		if err != nil {
+			if err == iterator.Done {
+				break
+			}
 			return nil, errors.WithStack(err)
 		}
 		allNames.Add(attrs.Name)
@@ -251,18 +253,38 @@ func (c *Client) ListGCSPathDir(gcsDirPath string, maxResults *int64) ([]string,
 	return c.ListGCSDir(bucket, gcsDir, maxResults)
 }
 
+// This behaves like you'd expect `ls` to behave on a local file system
+// "directory" names will be returned even if S3 directory objects don't exist
 func (c *Client) ListGCSDirOneLevel(bucket string, gcsDir string, maxResults *int64) ([]string, error) {
-	objects, err := c.ListGCSDir(bucket, gcsDir, maxResults)
+	gcsClient, err := c.GCS()
 	if err != nil {
 		return nil, err
 	}
+	gcsDir = s.EnsureSuffix(gcsDir, "/")
 
-	filteredObjects := strset.New()
-	for _, object := range objects {
-		relativePath := strings.TrimPrefix(object, gcsDir)
-		oneLevelPath := slices.UniqueStrings(strings.Split(relativePath, "/"))[0]
-		filteredObjects.Add(oneLevelPath)
+	objectIterator := gcsClient.Bucket(bucket).Objects(context.Background(), &storage.Query{
+		Prefix: gcsDir,
+	})
+
+	allNames := strset.New()
+
+	for {
+		attrs, err := objectIterator.Next()
+		if err != nil {
+			if err == iterator.Done {
+				break
+			}
+			return nil, errors.WithStack(err)
+		}
+
+		relativePath := strings.TrimPrefix(attrs.Name, gcsDir)
+		oneLevelPath := strings.Split(relativePath, "/")[0]
+		allNames.Add(oneLevelPath)
+
+		if maxResults != nil && int64(len(allNames)) >= *maxResults {
+			break
+		}
 	}
 
-	return filteredObjects.SliceSorted(), nil
+	return allNames.SliceSorted(), nil
 }

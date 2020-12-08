@@ -416,14 +416,14 @@ func validateModels(models []userconfig.ModelResource, api userconfig.API, proje
 func onnxModelValidator(paths []string, prefix string, versionedPrefix *string) error {
 	var filteredFilePaths []string
 	if versionedPrefix != nil {
-		filteredFilePaths = files.FilterPathsWithPrefix(paths, *versionedPrefix)
+		filteredFilePaths = files.FilterPathsWithDirPrefix(paths, *versionedPrefix)
 	} else {
-		filteredFilePaths = files.FilterPathsWithPrefix(paths, prefix)
+		filteredFilePaths = files.FilterPathsWithDirPrefix(paths, prefix)
 	}
 
 	errFunc := func() error {
 		if versionedPrefix != nil {
-			return ErrorInvalidONNXModelPath(prefix, files.FilterPathsWithPrefix(paths, prefix))
+			return ErrorInvalidONNXModelPath(prefix, files.FilterPathsWithDirPrefix(paths, prefix))
 		}
 		return ErrorInvalidONNXModelPath(prefix, filteredFilePaths)
 	}
@@ -442,14 +442,14 @@ func onnxModelValidator(paths []string, prefix string, versionedPrefix *string) 
 func tensorflowModelValidator(paths []string, prefix string, versionedPrefix *string) error {
 	var filteredFilePaths []string
 	if versionedPrefix != nil {
-		filteredFilePaths = files.FilterPathsWithPrefix(paths, *versionedPrefix)
+		filteredFilePaths = files.FilterPathsWithDirPrefix(paths, *versionedPrefix)
 	} else {
-		filteredFilePaths = files.FilterPathsWithPrefix(paths, prefix)
+		filteredFilePaths = files.FilterPathsWithDirPrefix(paths, prefix)
 	}
 
 	errFunc := func() error {
 		if versionedPrefix != nil {
-			return ErrorInvalidTensorFlowModelPath(prefix, false, files.FilterPathsWithPrefix(paths, prefix))
+			return ErrorInvalidTensorFlowModelPath(prefix, false, files.FilterPathsWithDirPrefix(paths, prefix))
 		}
 		return ErrorInvalidTensorFlowModelPath(prefix, false, filteredFilePaths)
 	}
@@ -489,14 +489,14 @@ func tensorflowModelValidator(paths []string, prefix string, versionedPrefix *st
 func tensorflowNeuronModelValidator(paths []string, prefix string, versionedPrefix *string) error {
 	var filteredFilePaths []string
 	if versionedPrefix != nil {
-		filteredFilePaths = files.FilterPathsWithPrefix(paths, *versionedPrefix)
+		filteredFilePaths = files.FilterPathsWithDirPrefix(paths, *versionedPrefix)
 	} else {
-		filteredFilePaths = files.FilterPathsWithPrefix(paths, prefix)
+		filteredFilePaths = files.FilterPathsWithDirPrefix(paths, prefix)
 	}
 
 	errFunc := func() error {
 		if versionedPrefix != nil {
-			return ErrorInvalidTensorFlowModelPath(prefix, true, files.FilterPathsWithPrefix(paths, prefix))
+			return ErrorInvalidTensorFlowModelPath(prefix, true, files.FilterPathsWithDirPrefix(paths, prefix))
 		}
 		return ErrorInvalidTensorFlowModelPath(prefix, true, filteredFilePaths)
 	}
@@ -518,7 +518,7 @@ func tensorflowNeuronModelValidator(paths []string, prefix string, versionedPref
 }
 
 func determineBaseModelStructure(paths []string, prefix string) userconfig.ModelStructureType {
-	filteredPaths := files.FilterPathsWithPrefix(paths, prefix)
+	filteredPaths := files.FilterPathsWithDirPrefix(paths, prefix)
 	prefixLength := len(slices.RemoveEmpties(strings.Split(prefix, "/")))
 
 	numFailedVersionChecks := 0
@@ -550,7 +550,7 @@ func determineBaseModelStructure(paths []string, prefix string) userconfig.Model
 }
 
 func getModelVersionsFromPaths(paths []string, prefix string) []string {
-	filteredPaths := files.FilterPathsWithPrefix(paths, prefix)
+	filteredPaths := files.FilterPathsWithDirPrefix(paths, prefix)
 	prefixLength := len(slices.RemoveEmpties(strings.Split(prefix, "/")))
 
 	versions := []string{}

@@ -60,15 +60,10 @@ func Init() error {
 		return err
 	}
 
-	var hashedAccountID string
-	var clusterID string
-	var useTelemetry bool
-	var operatorInCluster bool
-
 	if Provider == types.AWSProviderType {
 		Cluster = &clusterconfig.InternalConfig{
-			APIVersion:        consts.CortexVersion,
-			OperatorInCluster: strings.ToLower(os.Getenv("CORTEX_OPERATOR_IN_CLUSTER")) != "false",
+			APIVersion:          consts.CortexVersion,
+			IsOperatorInCluster: strings.ToLower(os.Getenv("CORTEX_OPERATOR_IN_CLUSTER")) != "false",
 		}
 
 		errs := cr.ParseYAMLFile(Cluster, clusterconfig.Validation, clusterConfigPath)
@@ -83,11 +78,12 @@ func Init() error {
 			return err
 		}
 
-		_, hashedAccountID, err = AWS.CheckCredentials()
+		_, hashedAccountID, err := AWS.CheckCredentials()
 		if err != nil {
 			return err
 		}
-		Cluster.ID = hash.String(Cluster.ClusterName + *Cluster.Region + hashedAccountID)
+		Cluster.OperatorID = hashedAccountID
+		Cluster.ClusterID = hash.String(Cluster.ClusterName + *Cluster.Region + hashedAccountID)
 
 		if Cluster.APIGatewaySetting == clusterconfig.PublicAPIGatewaySetting {
 			apiGateway, err := AWS.GetAPIGatewayByTag(clusterconfig.ClusterNameTag, Cluster.ClusterName)
@@ -116,16 +112,12 @@ func Init() error {
 				Cluster.VPCLinkIntegration = integration
 			}
 		}
-
-		clusterID = Cluster.ID
-		useTelemetry = Cluster.Telemetry
-		operatorInCluster = Cluster.OperatorInCluster
 	}
 
 	if Provider == types.GCPProviderType {
 		GCPCluster = &clusterconfig.InternalGCPConfig{
-			APIVersion:        consts.CortexVersion,
-			OperatorInCluster: strings.ToLower(os.Getenv("CORTEX_OPERATOR_IN_CLUSTER")) != "false",
+			APIVersion:          consts.CortexVersion,
+			IsOperatorInCluster: strings.ToLower(os.Getenv("CORTEX_OPERATOR_IN_CLUSTER")) != "false",
 		}
 
 		errs := cr.ParseYAMLFile(GCPCluster, clusterconfig.GCPValidation, clusterConfigPath)
@@ -133,26 +125,23 @@ func Init() error {
 			return errors.FirstError(errs...)
 		}
 
-		GCPCluster.ID = hash.String(GCPCluster.ClusterName + *GCPCluster.Project + *GCPCluster.Zone)
-		GCPCluster.Bucket = clusterconfig.GCPBucketName(GCPCluster.ClusterName, *GCPCluster.Project, *GCPCluster.Zone)
-
 		GCP, err = gcp.NewFromEnvCheckProjectID(*GCPCluster.Project)
 		if err != nil {
 			return err
 		}
 
-		hashedAccountID = GCP.HashedProjectID
-		clusterID = GCPCluster.ID
-		useTelemetry = GCPCluster.Telemetry
-		operatorInCluster = GCPCluster.OperatorInCluster
+		GCPCluster.OperatorID = GCP.HashedProjectID
+		GCPCluster.ClusterID = hash.String(GCPCluster.ClusterName + *GCPCluster.Project + *GCPCluster.Zone)
+
+		GCPCluster.Bucket = clusterconfig.GCPBucketName(GCPCluster.ClusterName, *GCPCluster.Project, *GCPCluster.Zone)
 	}
 
 	err = telemetry.Init(telemetry.Config{
-		Enabled: useTelemetry,
-		UserID:  hashedAccountID,
+		Enabled: Telemetry(),
+		UserID:  OperatorID(),
 		Properties: map[string]string{
-			"cluster_id":  clusterID,
-			"operator_id": hashedAccountID,
+			"cluster_id":  ClusterID(),
+			"operator_id": OperatorID(),
 		},
 		Environment: "operator",
 		LogErrors:   true,
@@ -162,15 +151,15 @@ func Init() error {
 		fmt.Println(errors.Message(err))
 	}
 
-	if K8s, err = k8s.New("default", operatorInCluster, nil); err != nil {
+	if K8s, err = k8s.New("default", IsOperatorInCluster(), nil); err != nil {
 		return err
 	}
 
-	if K8sIstio, err = k8s.New("istio-system", operatorInCluster, nil); err != nil {
+	if K8sIstio, err = k8s.New("istio-system", IsOperatorInCluster(), nil); err != nil {
 		return err
 	}
 
-	if K8sAllNamspaces, err = k8s.New("", operatorInCluster, nil); err != nil {
+	if K8sAllNamspaces, err = k8s.New("", IsOperatorInCluster(), nil); err != nil {
 		return err
 	}
 

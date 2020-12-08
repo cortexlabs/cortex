@@ -20,6 +20,7 @@ import (
 	"context"
 	"encoding/base64"
 
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	containerpb "google.golang.org/genproto/googleapis/container/v1"
 	"k8s.io/client-go/rest"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
@@ -34,9 +35,35 @@ func (c *Client) GetCluster(clusterName string) (*containerpb.Cluster, error) {
 		Name: clusterName,
 	})
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 	return cluster, nil
+}
+
+func (c *Client) DeleteCluster(clusterName string) (*containerpb.Operation, error) {
+	gke, err := c.GKE()
+	if err != nil {
+		return nil, err
+	}
+	resp, err := gke.DeleteCluster(context.Background(), &containerpb.DeleteClusterRequest{
+		Name: clusterName,
+	})
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+	return resp, nil
+}
+
+func (c *Client) CreateCluster(req *containerpb.CreateClusterRequest) (*containerpb.Operation, error) {
+	gke, err := c.GKE()
+	if err != nil {
+		return nil, err
+	}
+	resp, err := gke.CreateCluster(context.Background(), req)
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+	return resp, nil
 }
 
 func (c *Client) CreateK8SConfigFromCluster(cluster *containerpb.Cluster) (*rest.Config, error) {

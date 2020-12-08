@@ -226,10 +226,7 @@ def get_spec(
 
     local_spec_path = os.path.join(cache_dir, "api_spec.json")
     if not os.path.isfile(local_spec_path):
-        if provider == "aws":
-            storage.download_file(key, local_spec_path)
-        else:
-            storage.download_file(key, local_spec_path)
+        storage.download_file(key, local_spec_path)
 
     return storage, read_json(local_spec_path)
 

@@ -252,6 +252,7 @@ function setup_configmap() {
 
   kubectl -n=default create configmap 'env-vars' \
     --from-literal='CORTEX_VERSION'=$CORTEX_VERSION \
+    --from-literal='CORTEX_PROVIDER'=$CORTEX_PROVIDER \
     --from-literal='CORTEX_REGION'=$CORTEX_REGION \
     --from-literal='AWS_REGION'=$CORTEX_REGION \
     --from-literal='CORTEX_TELEMETRY_DISABLE'=$CORTEX_TELEMETRY_DISABLE \
@@ -268,7 +269,7 @@ function setup_configmap_gcp() {
 
   kubectl -n=default create configmap 'env-vars' \
     --from-literal='CORTEX_VERSION'=$CORTEX_VERSION \
-    --from-literal='CORTEX_REGION'=$CORTEX_REGION \
+    --from-literal='CORTEX_PROVIDER'=$CORTEX_PROVIDER \
     --from-literal='CORTEX_GCP_PROJECT'=$CORTEX_GCP_PROJECT \
     --from-literal='CORTEX_GCP_ZONE'=$CORTEX_GCP_ZONE \
     --from-literal='CORTEX_TELEMETRY_DISABLE'=$CORTEX_TELEMETRY_DISABLE \
@@ -276,8 +277,6 @@ function setup_configmap_gcp() {
     --from-literal='CORTEX_TELEMETRY_SEGMENT_WRITE_KEY'=$CORTEX_TELEMETRY_SEGMENT_WRITE_KEY \
     --from-literal='CORTEX_DEV_DEFAULT_PREDICTOR_IMAGE_REGISTRY'=$CORTEX_DEV_DEFAULT_PREDICTOR_IMAGE_REGISTRY \
     --from-literal='GOOGLE_APPLICATION_CREDENTIALS'='/var/secrets/google/key.json' \
-    --from-literal='GCP_PROJECT'=$CORTEX_GCP_PROJECT \
-    --from-literal='GKE_CLUSTER_NAME'=$CORTEX_CLUSTER_NAME \
     -o yaml --dry-run=client | kubectl apply -f - >/dev/null
 }
 

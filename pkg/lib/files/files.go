@@ -691,10 +691,10 @@ func LongestCommonPath(paths ...string) string {
 	return commonPath
 }
 
-func FilterPathsWithPrefix(paths []string, prefix string) []string {
+func FilterPathsWithDirPrefix(paths []string, prefix string) []string {
 	prefix = s.EnsureSuffix(prefix, "/")
 
-	filteredPaths := []string{}
+	var filteredPaths []string
 	for _, path := range paths {
 		if strings.HasPrefix(path, prefix) {
 			filteredPaths = append(filteredPaths, path)
