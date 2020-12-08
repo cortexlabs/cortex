@@ -696,17 +696,17 @@ func ValidateAPI(
 	api *userconfig.API,
 	models *[]CuratedModelResource,
 	projectFiles ProjectFiles,
-	providerType types.ProviderType,
+	provider types.ProviderType,
 	awsClient *aws.Client,
 	gcpClient *gcp.Client,
 	k8sClient *k8s.Client, // will be nil for local provider
 ) error {
 
-	if providerType != types.LocalProviderType && api.Networking.Endpoint == nil {
+	if provider != types.LocalProviderType && api.Networking.Endpoint == nil {
 		api.Networking.Endpoint = pointer.String("/" + api.Name)
 	}
 
-	if err := validatePredictor(api, models, projectFiles, providerType, awsClient, gcpClient, k8sClient); err != nil {
+	if err := validatePredictor(api, models, projectFiles, provider, awsClient, gcpClient, k8sClient); err != nil {
 		return errors.Wrap(err, userconfig.PredictorKey)
 	}
 
@@ -716,7 +716,7 @@ func ValidateAPI(
 		}
 	}
 
-	if err := validateCompute(api, providerType); err != nil {
+	if err := validateCompute(api, provider); err != nil {
 		return errors.Wrap(err, userconfig.ComputeKey)
 	}
 
@@ -731,7 +731,7 @@ func ValidateAPI(
 
 func ValidateTrafficSplitter(
 	api *userconfig.API,
-	providerType types.ProviderType,
+	provider types.ProviderType,
 	awsClient *aws.Client,
 ) error {
 
@@ -752,7 +752,7 @@ func validatePredictor(
 	api *userconfig.API,
 	models *[]CuratedModelResource,
 	projectFiles ProjectFiles,
-	providerType types.ProviderType,
+	provider types.ProviderType,
 	awsClient *aws.Client,
 	gcpClient *gcp.Client,
 	k8sClient *k8s.Client, // will be nil for local provider
@@ -768,25 +768,25 @@ func validatePredictor(
 		}
 	}
 
-	err := validateBucketProviders(api.Predictor, providerType)
+	err := validateBucketProviders(api.Predictor, provider)
 	if err != nil {
 		return err
 	}
 
 	switch predictor.Type {
 	case userconfig.PythonPredictorType:
-		if err := validatePythonPredictor(api, models, providerType, projectFiles, awsClient, gcpClient); err != nil {
+		if err := validatePythonPredictor(api, models, provider, projectFiles, awsClient, gcpClient); err != nil {
 			return err
 		}
 	case userconfig.TensorFlowPredictorType:
-		if err := validateTensorFlowPredictor(api, models, providerType, projectFiles, awsClient, gcpClient); err != nil {
+		if err := validateTensorFlowPredictor(api, models, provider, projectFiles, awsClient, gcpClient); err != nil {
 			return err
 		}
-		if err := validateDockerImagePath(predictor.TensorFlowServingImage, providerType, awsClient, k8sClient); err != nil {
+		if err := validateDockerImagePath(predictor.TensorFlowServingImage, provider, awsClient, k8sClient); err != nil {
 			return errors.Wrap(err, userconfig.TensorFlowServingImageKey)
 		}
 	case userconfig.ONNXPredictorType:
-		if err := validateONNXPredictor(api, models, providerType, projectFiles, awsClient, gcpClient); err != nil {
+		if err := validateONNXPredictor(api, models, provider, projectFiles, awsClient, gcpClient); err != nil {
 			return err
 		}
 	}
@@ -801,7 +801,7 @@ func validatePredictor(
 		}
 	}
 
-	if err := validateDockerImagePath(predictor.Image, providerType, awsClient, k8sClient); err != nil {
+	if err := validateDockerImagePath(predictor.Image, provider, awsClient, k8sClient); err != nil {
 		return errors.Wrap(err, userconfig.ImageKey)
 	}
 
@@ -859,7 +859,7 @@ func validateMultiModelsFields(api *userconfig.API) error {
 	return nil
 }
 
-func validatePythonPredictor(api *userconfig.API, models *[]CuratedModelResource, providerType types.ProviderType, projectFiles ProjectFiles, awsClient *aws.Client, gcpClient *gcp.Client) error {
+func validatePythonPredictor(api *userconfig.API, models *[]CuratedModelResource, provider types.ProviderType, projectFiles ProjectFiles, awsClient *aws.Client, gcpClient *gcp.Client) error {
 	predictor := api.Predictor
 
 	if predictor.SignatureKey != nil {
@@ -946,7 +946,7 @@ func validatePythonPredictor(api *userconfig.API, models *[]CuratedModelResource
 	return nil
 }
 
-func validateTensorFlowPredictor(api *userconfig.API, models *[]CuratedModelResource, providerType types.ProviderType, projectFiles ProjectFiles, awsClient *aws.Client, gcpClient *gcp.Client) error {
+func validateTensorFlowPredictor(api *userconfig.API, models *[]CuratedModelResource, provider types.ProviderType, projectFiles ProjectFiles, awsClient *aws.Client, gcpClient *gcp.Client) error {
 	predictor := api.Predictor
 
 	if predictor.ServerSideBatching != nil {
@@ -1035,7 +1035,7 @@ func validateTensorFlowPredictor(api *userconfig.API, models *[]CuratedModelReso
 	return nil
 }
 
-func validateONNXPredictor(api *userconfig.API, models *[]CuratedModelResource, providerType types.ProviderType, projectFiles ProjectFiles, awsClient *aws.Client, gcpClient *gcp.Client) error {
+func validateONNXPredictor(api *userconfig.API, models *[]CuratedModelResource, provider types.ProviderType, projectFiles ProjectFiles, awsClient *aws.Client, gcpClient *gcp.Client) error {
 	predictor := api.Predictor
 
 	if predictor.SignatureKey != nil {
@@ -1128,12 +1128,12 @@ func validateONNXPredictor(api *userconfig.API, models *[]CuratedModelResource, 
 	return nil
 }
 
-func validateBucketProviders(predictor *userconfig.Predictor, providerType types.ProviderType) error {
+func validateBucketProviders(predictor *userconfig.Predictor, provider types.ProviderType) error {
 	checkForIncorrectBucketProvider := func(modelPath string) error {
 		isS3Path := strings.HasPrefix(modelPath, "s3://")
 		isGCSPath := strings.HasPrefix(modelPath, "gs://")
-		if (providerType == types.AWSProviderType && !isS3Path) || (providerType == types.GCPProviderType && !isGCSPath) || (providerType == types.LocalProviderType && isGCSPath) {
-			return ErrorIncorrectBucketProvider(providerType)
+		if (provider == types.AWSProviderType && !isS3Path) || (provider == types.GCPProviderType && !isGCSPath) || (provider == types.LocalProviderType && isGCSPath) {
+			return ErrorIncorrectBucketProvider(provider)
 		}
 		return nil
 	}
@@ -1203,11 +1203,11 @@ func validateAutoscaling(api *userconfig.API) error {
 	return nil
 }
 
-func validateCompute(api *userconfig.API, providerType types.ProviderType) error {
+func validateCompute(api *userconfig.API, provider types.ProviderType) error {
 	compute := api.Compute
 
-	if compute.Inf > 0 && providerType != types.AWSProviderType {
-		return ErrorUnsupportedComputeResourceForProvider(userconfig.InfKey, providerType)
+	if compute.Inf > 0 && provider != types.AWSProviderType {
+		return ErrorUnsupportedComputeResourceForProvider(userconfig.InfKey, provider)
 	}
 
 	if compute.Inf > 0 && api.Predictor.Type == userconfig.ONNXPredictorType {
@@ -1235,7 +1235,7 @@ func validateUpdateStrategy(updateStrategy *userconfig.UpdateStrategy) error {
 
 func validateDockerImagePath(
 	image string,
-	providerType types.ProviderType,
+	provider types.ProviderType,
 	awsClient *aws.Client,
 	k8sClient *k8s.Client, // will be nil for local provider)
 ) error {
@@ -1247,7 +1247,7 @@ func validateDockerImagePath(
 	}
 
 	// skip the docker auth check on GCP
-	if providerType == types.GCPProviderType {
+	if provider == types.GCPProviderType {
 		return nil
 	}
 
@@ -1256,7 +1256,7 @@ func validateDockerImagePath(
 		return err
 	}
 
-	if providerType == types.LocalProviderType {
+	if provider == types.LocalProviderType {
 		// short circuit if the image is already available locally
 		if err := docker.CheckImageExistsLocally(dockerClient, image); err == nil {
 			return nil
@@ -1304,7 +1304,7 @@ func validateDockerImagePath(
 		}
 	}
 
-	if err := docker.CheckImageAccessible(dockerClient, image, dockerAuthStr, providerType); err != nil {
+	if err := docker.CheckImageAccessible(dockerClient, image, dockerAuthStr, provider); err != nil {
 		return err
 	}
 
