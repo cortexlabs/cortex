@@ -30,7 +30,7 @@ class API:
     def __init__(
         self,
         provider: str,
-        storage: Union[LocalStorage, S3],
+        storage: Union[LocalStorage, S3, GCS],
         api_spec: Dict[str, Any],
         model_dir: str,
         cache_dir: str = ".",
