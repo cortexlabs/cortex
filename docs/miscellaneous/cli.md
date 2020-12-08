@@ -75,6 +75,21 @@ Flags:
   -h, --help         help for logs
 ```
 
+### patch
+
+```text
+update API configuration for a deployed API
+
+Usage:
+  cortex patch [CONFIG_FILE] [flags]
+
+Flags:
+  -e, --env string      environment to use (default "local")
+  -f, --force           override the in-progress api update
+  -o, --output string   output format: one of pretty|json (default "pretty")
+  -h, --help            help for patch
+```
+
 ### refresh
 
 ```text

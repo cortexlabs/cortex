@@ -127,8 +127,8 @@ func init() {
 	envInit()
 	getInit()
 	logsInit()
-	predictInit()
 	patchInit()
+	predictInit()
 	refreshInit()
 	versionInit()
 }
