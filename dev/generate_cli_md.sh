@@ -57,7 +57,7 @@ for cmd in "${commands[@]}"; do
   echo '' >> $out_file
   echo "### ${cmd}" >> $out_file
   echo '' >> $out_file
-  echo -n '```text' >> $out_file
+  echo '```text' >> $out_file
   $ROOT/bin/cortex help ${cmd} >> $out_file
   echo '```' >> $out_file
 done
