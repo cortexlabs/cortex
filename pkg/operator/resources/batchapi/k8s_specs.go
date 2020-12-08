@@ -186,7 +186,7 @@ func onnxPredictorJobSpec(api *spec.API, job *spec.Job) (*kbatch.Job, error) {
 					"workload": "true",
 				},
 				Tolerations:        operator.Tolerations,
-				Volumes:            operator.DefaultVolumes,
+				Volumes:            operator.DefaultVolumes(),
 				ServiceAccountName: "default",
 			},
 		},

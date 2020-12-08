@@ -75,10 +75,10 @@ func UpdateAPI(apiConfig *userconfig.API, models []spec.CuratedModelResource, pr
 		return nil, "", err
 	}
 
-	newAPISpec := spec.GetAPISpec(apiConfig, models, projectID, _deploymentID, "")
+	newAPISpec := spec.GetAPISpec(apiConfig, projectID, _deploymentID, "")
 
-	if newAPISpec != nil && newAPISpec.TotalLocalModelVersions() > 0 {
-		if err := CacheLocalModels(newAPISpec); err != nil {
+	if newAPISpec != nil && TotalLocalModelVersions(models) > 0 {
+		if err := CacheLocalModels(newAPISpec, models); err != nil {
 			return nil, "", err
 		}
 	}
@@ -271,4 +271,19 @@ func GetVersionFromAPISpec(apiName string) (string, error) {
 func GetVersionFromAPISpecFilePath(path string) string {
 	fileName := filepath.Base(path)
 	return strings.Split(fileName, "-")[0]
+}
+
+func TotalLocalModelVersions(models []spec.CuratedModelResource) int {
+	totalLocalModelVersions := 0
+	for _, model := range models {
+		if !model.LocalPath {
+			continue
+		}
+		if len(model.Versions) > 0 {
+			totalLocalModelVersions += len(model.Versions)
+		} else {
+			totalLocalModelVersions++
+		}
+	}
+	return totalLocalModelVersions
 }

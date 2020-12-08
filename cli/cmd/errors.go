@@ -41,40 +41,41 @@ func errStrFailedToConnect(u url.URL) string {
 }
 
 const (
-	ErrInvalidProvider                      = "cli.invalid_provider"
-	ErrNotSupportedInLocalEnvironment       = "cli.not_supported_in_local_environment"
-	ErrLocalEnvironmentCantUseAWSProvider   = "cli.local_environment_cant_use_aws_provider"
-	ErrCommandNotSupportedForKind           = "cli.command_not_supported_for_kind"
-	ErrEnvironmentNotFound                  = "cli.environment_not_found"
-	ErrOperatorEndpointInLocalEnvironment   = "cli.operator_endpoint_in_local_environment"
-	ErrOperatorConfigFromLocalEnvironment   = "cli.operater_config_from_local_environment"
-	ErrFieldNotFoundInEnvironment           = "cli.field_not_found_in_environment"
-	ErrInvalidOperatorEndpoint              = "cli.invalid_operator_endpoint"
-	ErrNoOperatorLoadBalancer               = "cli.no_operator_load_balancer"
-	ErrCortexYAMLNotFound                   = "cli.cortex_yaml_not_found"
-	ErrConnectToDockerDaemon                = "cli.connect_to_docker_daemon"
-	ErrDockerPermissions                    = "cli.docker_permissions"
-	ErrDockerCtrlC                          = "cli.docker_ctrl_c"
-	ErrResponseUnknown                      = "cli.response_unknown"
-	ErrAPINotReady                          = "cli.api_not_ready"
-	ErrOneAWSEnvVarSet                      = "cli.one_aws_env_var_set"
-	ErrOneAWSFlagSet                        = "cli.one_aws_flag_set"
-	ErrOnlyAWSClusterEnvVarSet              = "cli.only_aws_cluster_env_var_set"
-	ErrOnlyAWSClusterFlagSet                = "cli.only_aws_cluster_flag_set"
-	ErrMissingAWSCredentials                = "cli.missing_aws_credentials"
-	ErrCredentialsInClusterConfig           = "cli.credentials_in_cluster_config"
-	ErrClusterUp                            = "cli.cluster_up"
-	ErrClusterConfigure                     = "cli.cluster_configure"
-	ErrClusterInfo                          = "cli.cluster_info"
-	ErrClusterDebug                         = "cli.cluster_debug"
-	ErrClusterRefresh                       = "cli.cluster_refresh"
-	ErrClusterDown                          = "cli.cluster_down"
-	ErrDuplicateCLIEnvNames                 = "cli.duplicate_cli_env_names"
-	ErrClusterConfigOrPromptsRequired       = "cli.cluster_config_or_prompts_required"
-	ErrClusterAccessConfigOrPromptsRequired = "cli.cluster_access_config_or_prompts_required"
-	ErrShellCompletionNotSupported          = "cli.shell_completion_not_supported"
-	ErrNoTerminalWidth                      = "cli.no_terminal_width"
-	ErrDeployFromTopLevelDir                = "cli.deploy_from_top_level_dir"
+	ErrInvalidProvider                         = "cli.invalid_provider"
+	ErrNotSupportedInLocalEnvironment          = "cli.not_supported_in_local_environment"
+	ErrLocalEnvironmentCantUseClusterProvider  = "cli.local_environment_cant_use_cluster_provider"
+	ErrCommandNotSupportedForKind              = "cli.command_not_supported_for_kind"
+	ErrEnvironmentNotFound                     = "cli.environment_not_found"
+	ErrOperatorEndpointInLocalEnvironment      = "cli.operator_endpoint_in_local_environment"
+	ErrOperatorConfigFromLocalEnvironment      = "cli.operater_config_from_local_environment"
+	ErrFieldNotFoundInEnvironment              = "cli.field_not_found_in_environment"
+	ErrInvalidOperatorEndpoint                 = "cli.invalid_operator_endpoint"
+	ErrNoOperatorLoadBalancer                  = "cli.no_operator_load_balancer"
+	ErrCortexYAMLNotFound                      = "cli.cortex_yaml_not_found"
+	ErrConnectToDockerDaemon                   = "cli.connect_to_docker_daemon"
+	ErrDockerPermissions                       = "cli.docker_permissions"
+	ErrDockerCtrlC                             = "cli.docker_ctrl_c"
+	ErrResponseUnknown                         = "cli.response_unknown"
+	ErrAPINotReady                             = "cli.api_not_ready"
+	ErrOneAWSEnvVarSet                         = "cli.one_aws_env_var_set"
+	ErrOneAWSFlagSet                           = "cli.one_aws_flag_set"
+	ErrOnlyAWSClusterEnvVarSet                 = "cli.only_aws_cluster_env_var_set"
+	ErrOnlyAWSClusterFlagSet                   = "cli.only_aws_cluster_flag_set"
+	ErrMissingAWSCredentials                   = "cli.missing_aws_credentials"
+	ErrCredentialsInClusterConfig              = "cli.credentials_in_cluster_config"
+	ErrClusterUp                               = "cli.cluster_up"
+	ErrClusterConfigure                        = "cli.cluster_configure"
+	ErrClusterInfo                             = "cli.cluster_info"
+	ErrClusterDebug                            = "cli.cluster_debug"
+	ErrClusterRefresh                          = "cli.cluster_refresh"
+	ErrClusterDown                             = "cli.cluster_down"
+	ErrDuplicateCLIEnvNames                    = "cli.duplicate_cli_env_names"
+	ErrClusterConfigOrPromptsRequired          = "cli.cluster_config_or_prompts_required"
+	ErrClusterAccessConfigOrPromptsRequired    = "cli.cluster_access_config_or_prompts_required"
+	ErrGCPClusterAccessConfigOrPromptsRequired = "cli.gcp_cluster_access_config_or_prompts_required"
+	ErrShellCompletionNotSupported             = "cli.shell_completion_not_supported"
+	ErrNoTerminalWidth                         = "cli.no_terminal_width"
+	ErrDeployFromTopLevelDir                   = "cli.deploy_from_top_level_dir"
 )
 
 func ErrorInvalidProvider(providerStr string) error {
@@ -91,10 +92,10 @@ func ErrorNotSupportedInLocalEnvironment() error {
 	})
 }
 
-func ErrorLocalEnvironmentCantUseAWSProvider() error {
+func ErrorLocalEnvironmentCantUseClusterProvider(provider types.ProviderType) error {
 	return errors.WithStack(&errors.Error{
-		Kind:    ErrLocalEnvironmentCantUseAWSProvider,
-		Message: "the environment named \"local\" cannot be configured to point to a cortex cluster in aws",
+		Kind:    ErrLocalEnvironmentCantUseClusterProvider,
+		Message: fmt.Sprintf("the environment named \"local\" cannot be configured to point to a cortex cluster in %s", provider),
 	})
 }
 
@@ -303,14 +304,21 @@ func ErrorClusterDown(out string) error {
 func ErrorClusterConfigOrPromptsRequired() error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrClusterConfigOrPromptsRequired,
-		Message: "this command requires either a cluster configuration file (e.g. `--config cluster.yaml`) or prompts to be enabled (i.e. omit the `--yes` flag)",
+		Message: "this command requires either a cluster configuration file (e.g. via `--config cluster.yaml`) or prompts to be enabled (i.e. omit the `--yes` flag)",
 	})
 }
 
 func ErrorClusterAccessConfigOrPromptsRequired() error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrClusterAccessConfigOrPromptsRequired,
-		Message: fmt.Sprintf("please provide a cluster configuration file which specifies `%s` and `%s` (e.g. `--config cluster.yaml`) or enable prompts (i.e. omit the `--yes` flag)", clusterconfig.ClusterNameKey, clusterconfig.RegionKey),
+		Message: fmt.Sprintf("please provide a cluster configuration file which specifies `%s` and `%s` (e.g. via `--config cluster.yaml`) or enable prompts (i.e. omit the `--yes` flag)", clusterconfig.ClusterNameKey, clusterconfig.RegionKey),
+	})
+}
+
+func ErrorGCPClusterAccessConfigOrPromptsRequired() error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrGCPClusterAccessConfigOrPromptsRequired,
+		Message: fmt.Sprintf("please provide a cluster configuration file which specifies `%s`, `%s`, and `%s` (e.g. via `--config cluster.yaml`) or enable prompts (i.e. omit the `--yes` flag)", clusterconfig.ClusterNameKey, clusterconfig.ZoneKey, clusterconfig.ProjectKey),
 	})
 }
 

@@ -63,7 +63,7 @@ from S3 and authenticate to ECR, and will be set in your Predictor.
 ## cluster\_client
 
 ```python
-cluster_client(name: str, operator_endpoint: str, aws_access_key_id: str, aws_secret_access_key: str) -> Client
+cluster_client(name: str, provider: str, operator_endpoint: str, aws_access_key_id: str, aws_secret_access_key: str) -> Client
 ```
 
 Create a new environment to connect to an existing Cortex Cluster, and initialize a client to deploy and manage APIs on that cluster.
@@ -71,9 +71,10 @@ Create a new environment to connect to an existing Cortex Cluster, and initializ
 **Arguments**:
 
 - `name` - Name of the environment to create.
-- `operator_endpoint` - The endpoint for the operator of your Cortex Cluster. You can get this endpoint by running the CLI command `cortex cluster info`.
-- `aws_access_key_id` - AWS access key ID.
-- `aws_secret_access_key` - AWS secret access key.
+- `provider` - The provider of your Cortex cluster. Can be "aws" or "gcp".
+- `operator_endpoint` - The endpoint for the operator of your Cortex Cluster. You can get this endpoint by running the CLI command `cortex cluster info` for an AWS provider or `cortex cluster-gcp info` for a GCP provider.
+- `aws_access_key_id` - AWS access key ID. Required when `provider` is set to "aws".
+- `aws_secret_access_key` - AWS secret access key. Required when `provider` is set to "aws".
 
 
 **Returns**:

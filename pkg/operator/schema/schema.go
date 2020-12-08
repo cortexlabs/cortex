@@ -31,6 +31,10 @@ type InfoResponse struct {
 	NumPendingReplicas   int                          `json:"num_pending_replicas"`
 }
 
+type InfoGCPResponse struct {
+	ClusterConfig clusterconfig.InternalGCPConfig `json:"cluster_config"`
+}
+
 type NodeInfo struct {
 	Name                 string             `json:"name"`
 	InstanceType         string             `json:"instance_type"`
@@ -75,6 +79,10 @@ type RefreshResponse struct {
 type ErrorResponse struct {
 	Kind    string `json:"kind"`
 	Message string `json:"message"`
+}
+
+type GCPLogsResponse struct {
+	QueryParams map[string]string `json:"query_params"`
 }
 
 type APITFLiveReloadingSummary struct {

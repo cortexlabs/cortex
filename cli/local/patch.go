@@ -36,7 +36,7 @@ func Patch(env cliconfig.Environment, configPath string) ([]schema.DeployResult,
 		return nil, err
 	}
 
-	apiConfigs, err := spec.ExtractAPIConfigs(configBytes, types.LocalProviderType, configFileName, nil)
+	apiConfigs, err := spec.ExtractAPIConfigs(configBytes, types.LocalProviderType, configFileName, nil, nil)
 	if err != nil {
 		return nil, err
 	}

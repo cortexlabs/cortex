@@ -122,7 +122,7 @@ Flags:
 ### cluster up
 
 ```text
-spin up a cluster
+spin up a cluster on aws
 
 Usage:
   cortex cluster up [flags]
@@ -148,7 +148,7 @@ Usage:
 
 Flags:
   -c, --config string          path to a cluster configuration file
-  -n, --name string            aws name of the cluster
+  -n, --name string            name of the cluster
   -r, --region string          aws region of the cluster
       --aws-key string         aws access key id
       --aws-secret string      aws secret access key
@@ -187,7 +187,7 @@ Usage:
 
 Flags:
   -c, --config string       path to a cluster configuration file
-  -n, --name string         aws name of the cluster
+  -n, --name string         name of the cluster
   -r, --region string       aws region of the cluster
       --aws-key string      aws access key id
       --aws-secret string   aws secret access key
@@ -205,7 +205,7 @@ Usage:
 
 Flags:
   -c, --config string       path to a cluster configuration file
-  -n, --name string         aws name of the cluster
+  -n, --name string         name of the cluster
   -r, --region string       aws region of the cluster
       --aws-key string      aws access key id
       --aws-secret string   aws secret access key
