@@ -26,6 +26,7 @@ type BoolListValidation struct {
 	Default           []bool
 	AllowExplicitNull bool
 	AllowEmpty        bool
+	CantBeSpecified   string // if provided, returns an error with the provided message if the field is specified
 	CastSingleItem    bool
 	MinLength         int
 	MaxLength         int
@@ -73,6 +74,10 @@ func ValidateBoolListMissing(v *BoolListValidation) ([]bool, error) {
 }
 
 func ValidateBoolListProvided(val []bool, v *BoolListValidation) ([]bool, error) {
+	if v.CantBeSpecified != "" {
+		return nil, ErrorFieldCantBeSpecified(v.CantBeSpecified)
+	}
+
 	if !v.AllowExplicitNull && val == nil {
 		return nil, ErrorCannotBeNull(v.Required)
 	}

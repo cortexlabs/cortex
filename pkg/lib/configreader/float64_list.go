@@ -26,6 +26,7 @@ type Float64ListValidation struct {
 	Default           []float64
 	AllowExplicitNull bool
 	AllowEmpty        bool
+	CantBeSpecified   string // if provided, returns an error with the provided message if the field is specified
 	CastSingleItem    bool
 	MinLength         int
 	MaxLength         int
@@ -73,6 +74,10 @@ func ValidateFloat64ListMissing(v *Float64ListValidation) ([]float64, error) {
 }
 
 func ValidateFloat64ListProvided(val []float64, v *Float64ListValidation) ([]float64, error) {
+	if v.CantBeSpecified != "" {
+		return nil, ErrorFieldCantBeSpecified(v.CantBeSpecified)
+	}
+
 	if !v.AllowExplicitNull && val == nil {
 		return nil, ErrorCannotBeNull(v.Required)
 	}

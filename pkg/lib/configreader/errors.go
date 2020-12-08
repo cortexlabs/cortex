@@ -71,6 +71,7 @@ const (
 	ErrCortexResourceOnlyAllowed     = "configreader.cortex_resource_only_allowed"
 	ErrCortexResourceNotAllowed      = "configreader.cortex_resource_not_allowed"
 	ErrImageVersionMismatch          = "configreader.image_version_mismatch"
+	ErrFieldCantBeSpecified          = "configreader.field_cant_be_specified"
 )
 
 func ErrorParseConfig() error {
@@ -421,5 +422,12 @@ func ErrorImageVersionMismatch(image, tag, cortexVersion string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrImageVersionMismatch,
 		Message: fmt.Sprintf("the specified image (%s) has a tag (%s) which does not match your Cortex version (%s); please update the image tag, remove the image registry path from your configuration file (to use the default value), or update your CLI (pip install cortex==%s)", image, tag, cortexVersion, cortexVersion),
+	})
+}
+
+func ErrorFieldCantBeSpecified(errMsg string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrFieldCantBeSpecified,
+		Message: errMsg,
 	})
 }

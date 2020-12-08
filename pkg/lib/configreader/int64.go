@@ -32,6 +32,7 @@ type Int64Validation struct {
 	TreatNullAsZero      bool // `<field>: ` and `<field>: null` will be read as `<field>: 0`
 	AllowedValues        []int64
 	DisallowedValues     []int64
+	CantBeSpecified      string // if provided, returns an error with the provided message if the field is specified
 	GreaterThan          *int64
 	GreaterThanOrEqualTo *int64
 	LessThan             *int64
@@ -165,6 +166,10 @@ func ValidateInt64Missing(v *Int64Validation) (int64, error) {
 }
 
 func ValidateInt64(val int64, v *Int64Validation) (int64, error) {
+	if v.CantBeSpecified != "" {
+		return 0, ErrorFieldCantBeSpecified(v.CantBeSpecified)
+	}
+
 	err := ValidateInt64Val(val, v)
 	if err != nil {
 		return 0, err

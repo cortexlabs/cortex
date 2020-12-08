@@ -30,6 +30,7 @@ type Int64PtrValidation struct {
 	AllowExplicitNull    bool
 	AllowedValues        []int64
 	DisallowedValues     []int64
+	CantBeSpecified      string // if provided, returns an error with the provided message if the field is specified
 	GreaterThan          *int64
 	GreaterThanOrEqualTo *int64
 	LessThan             *int64
@@ -173,6 +174,10 @@ func ValidateInt64PtrMissing(v *Int64PtrValidation) (*int64, error) {
 }
 
 func ValidateInt64PtrProvided(val *int64, v *Int64PtrValidation) (*int64, error) {
+	if v.CantBeSpecified != "" {
+		return nil, ErrorFieldCantBeSpecified(v.CantBeSpecified)
+	}
+
 	if !v.AllowExplicitNull && val == nil {
 		return nil, ErrorCannotBeNull(v.Required)
 	}

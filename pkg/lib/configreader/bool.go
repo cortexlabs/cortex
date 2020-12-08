@@ -30,6 +30,7 @@ type BoolValidation struct {
 	Required         bool
 	Default          bool
 	TreatNullAsFalse bool            // `<field>: ` and `<field>: null` will be read as `<field>: false`
+	CantBeSpecified  string          // if provided, returns an error with the provided message if the field is specified
 	StrToBool        map[string]bool // lowercase
 }
 
@@ -173,6 +174,10 @@ func ValidateBoolMissing(v *BoolValidation) (bool, error) {
 }
 
 func ValidateBool(val bool, v *BoolValidation) (bool, error) {
+	if v.CantBeSpecified != "" {
+		return false, ErrorFieldCantBeSpecified(v.CantBeSpecified)
+	}
+
 	return val, nil
 }
 

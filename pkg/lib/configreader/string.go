@@ -38,6 +38,7 @@ type StringValidation struct {
 	TreatNullAsEmpty                     bool // `<field>: ` and `<field>: null` will be read as `<field>: ""`
 	AllowedValues                        []string
 	DisallowedValues                     []string
+	CantBeSpecified                      string // if provided, returns an error with the provided message if the field is specified
 	Prefix                               string
 	InvalidPrefixes                      []string
 	MaxLength                            int
@@ -199,6 +200,10 @@ func ValidateStringMissing(v *StringValidation) (string, error) {
 }
 
 func ValidateString(val string, v *StringValidation) (string, error) {
+	if v.CantBeSpecified != "" {
+		return "", ErrorFieldCantBeSpecified(v.CantBeSpecified)
+	}
+
 	err := ValidateStringVal(val, v)
 	if err != nil {
 		return "", err

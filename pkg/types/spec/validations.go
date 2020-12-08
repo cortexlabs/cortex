@@ -64,7 +64,7 @@ func apiValidation(
 	case userconfig.RealtimeAPIKind:
 		structFieldValidations = append(resourceStructValidations,
 			predictorValidation(),
-			networkingValidation(resource.Kind, awsClusterConfig, gcpClusterConfig),
+			networkingValidation(resource.Kind, provider, awsClusterConfig, gcpClusterConfig),
 			computeValidation(provider),
 			monitoringValidation(),
 			autoscalingValidation(provider),
@@ -73,13 +73,13 @@ func apiValidation(
 	case userconfig.BatchAPIKind:
 		structFieldValidations = append(resourceStructValidations,
 			predictorValidation(),
-			networkingValidation(resource.Kind, awsClusterConfig, gcpClusterConfig),
+			networkingValidation(resource.Kind, provider, awsClusterConfig, gcpClusterConfig),
 			computeValidation(provider),
 		)
 	case userconfig.TrafficSplitterKind:
 		structFieldValidations = append(resourceStructValidations,
 			multiAPIsValidation(),
-			networkingValidation(resource.Kind, awsClusterConfig, gcpClusterConfig),
+			networkingValidation(resource.Kind, provider, awsClusterConfig, gcpClusterConfig),
 		)
 	}
 	return &cr.StructValidation{
@@ -268,14 +268,10 @@ func monitoringValidation() *cr.StructFieldValidation {
 
 func networkingValidation(
 	kind userconfig.Kind,
+	provider types.ProviderType,
 	awsClusterConfig *clusterconfig.Config, // should be omitted if running locally
 	gcpClusterConfig *clusterconfig.GCPConfig, // should be omitted if running locally
 ) *cr.StructFieldValidation {
-
-	defaultAPIGatewayType := userconfig.PublicAPIGatewayType
-	if awsClusterConfig != nil && awsClusterConfig.APIGatewaySetting == clusterconfig.NoneAPIGatewaySetting {
-		defaultAPIGatewayType = userconfig.NoneAPIGatewayType
-	}
 
 	structFieldValidation := []*cr.StructFieldValidation{
 		{
@@ -285,7 +281,16 @@ func networkingValidation(
 				MaxLength: 1000, // no particular reason other than it works
 			},
 		},
-		{
+	}
+
+	// allow api_gateway to be set for local (will be ignored)
+	if provider == types.AWSProviderType || provider == types.LocalProviderType {
+		defaultAPIGatewayType := userconfig.PublicAPIGatewayType
+		if awsClusterConfig != nil && awsClusterConfig.APIGatewaySetting == clusterconfig.NoneAPIGatewaySetting {
+			defaultAPIGatewayType = userconfig.NoneAPIGatewayType
+		}
+
+		structFieldValidation = append(structFieldValidation, &cr.StructFieldValidation{
 			StructField: "APIGateway",
 			StringValidation: &cr.StringValidation{
 				AllowedValues: userconfig.APIGatewayTypeStrings(),
@@ -294,8 +299,16 @@ func networkingValidation(
 			Parser: func(str string) (interface{}, error) {
 				return userconfig.APIGatewayTypeFromString(str), nil
 			},
-		},
+		})
+	} else {
+		structFieldValidation = append(structFieldValidation, &cr.StructFieldValidation{
+			StructField: "APIGateway",
+			StringValidation: &cr.StringValidation{
+				CantBeSpecified: "only supported on AWS clusters",
+			},
+		})
 	}
+
 	if kind == userconfig.RealtimeAPIKind {
 		structFieldValidation = append(structFieldValidation, &cr.StructFieldValidation{
 			StructField: "LocalPort",
@@ -304,7 +317,11 @@ func networkingValidation(
 				LessThanOrEqualTo: pointer.Int(math.MaxUint16),
 			},
 		})
+		// } else {
+		// 	TODO? or let it slide?
+		// 	})
 	}
+
 	return &cr.StructFieldValidation{
 		StructField: "Networking",
 		StructValidation: &cr.StructValidation{

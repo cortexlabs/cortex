@@ -30,6 +30,7 @@ type IntPtrValidation struct {
 	AllowExplicitNull    bool
 	AllowedValues        []int
 	DisallowedValues     []int
+	CantBeSpecified      string // if provided, returns an error with the provided message if the field is specified
 	GreaterThan          *int
 	GreaterThanOrEqualTo *int
 	LessThan             *int
@@ -173,6 +174,10 @@ func ValidateIntPtrMissing(v *IntPtrValidation) (*int, error) {
 }
 
 func ValidateIntPtrProvided(val *int, v *IntPtrValidation) (*int, error) {
+	if v.CantBeSpecified != "" {
+		return nil, ErrorFieldCantBeSpecified(v.CantBeSpecified)
+	}
+
 	if !v.AllowExplicitNull && val == nil {
 		return nil, ErrorCannotBeNull(v.Required)
 	}

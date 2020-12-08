@@ -32,6 +32,7 @@ type IntValidation struct {
 	TreatNullAsZero      bool // `<field>: ` and `<field>: null` will be read as `<field>: 0`
 	AllowedValues        []int
 	DisallowedValues     []int
+	CantBeSpecified      string // if provided, returns an error with the provided message if the field is specified
 	GreaterThan          *int
 	GreaterThanOrEqualTo *int
 	LessThan             *int
@@ -165,6 +166,11 @@ func ValidateIntMissing(v *IntValidation) (int, error) {
 }
 
 func ValidateInt(val int, v *IntValidation) (int, error) {
+	// TODO needs to be fixed for all non-pointer types (won't work with default as is?)
+	if v.CantBeSpecified != "" {
+		return 0, ErrorFieldCantBeSpecified(v.CantBeSpecified)
+	}
+
 	err := ValidateIntVal(val, v)
 	if err != nil {
 		return 0, err

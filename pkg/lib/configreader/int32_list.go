@@ -26,6 +26,7 @@ type Int32ListValidation struct {
 	Default           []int32
 	AllowExplicitNull bool
 	AllowEmpty        bool
+	CantBeSpecified   string // if provided, returns an error with the provided message if the field is specified
 	CastSingleItem    bool
 	MinLength         int
 	MaxLength         int
@@ -73,6 +74,10 @@ func ValidateInt32ListMissing(v *Int32ListValidation) ([]int32, error) {
 }
 
 func ValidateInt32ListProvided(val []int32, v *Int32ListValidation) ([]int32, error) {
+	if v.CantBeSpecified != "" {
+		return nil, ErrorFieldCantBeSpecified(v.CantBeSpecified)
+	}
+
 	if !v.AllowExplicitNull && val == nil {
 		return nil, ErrorCannotBeNull(v.Required)
 	}

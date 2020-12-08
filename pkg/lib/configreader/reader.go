@@ -78,24 +78,29 @@ type StructFieldValidation struct {
 	Parser func(string) (interface{}, error)
 }
 
+// TODO
 type StructValidation struct {
 	StructFieldValidations []*StructFieldValidation
 	Required               bool
 	AllowExplicitNull      bool
-	TreatNullAsEmpty       bool // If explicit null or if it's top level and the file is empty, treat as empty map
-	DefaultNil             bool // If this struct is nested and its key is not defined, set it to nil instead of defaults or erroring (e.g. if any subfields are required)
+	TreatNullAsEmpty       bool   // If explicit null or if it's top level and the file is empty, treat as empty map
+	DefaultNil             bool   // If this struct is nested and its key is not defined, set it to nil instead of defaults or erroring (e.g. if any subfields are required)
+	CantBeSpecified        string // if provided, returns an error with the provided message if the field is specified
 	ShortCircuit           bool
 	AllowExtraFields       bool
 }
 
+// TODO
 type StructListValidation struct {
 	StructValidation  *StructValidation
 	Required          bool
 	AllowExplicitNull bool
-	TreatNullAsEmpty  bool // If explicit null or if it's top level and the file is empty, treat as empty map
+	TreatNullAsEmpty  bool   // If explicit null or if it's top level and the file is empty, treat as empty map
+	CantBeSpecified   string // if provided, returns an error with the provided message if the field is specified
 	ShortCircuit      bool
 }
 
+// TODO
 type InterfaceStructValidation struct {
 	TypeKey                    string                               // required
 	TypeStructField            string                               // optional (will set this field if present)
@@ -104,7 +109,8 @@ type InterfaceStructValidation struct {
 	Parser                     func(string) (interface{}, error)
 	Required                   bool
 	AllowExplicitNull          bool
-	TreatNullAsEmpty           bool // If explicit null or if it's top level and the file is empty, treat as empty map
+	TreatNullAsEmpty           bool   // If explicit null or if it's top level and the file is empty, treat as empty map
+	CantBeSpecified            string // if provided, returns an error with the provided message if the field is specified
 	ShortCircuit               bool
 	AllowExtraFields           bool
 }
@@ -114,11 +120,13 @@ type InterfaceStructType struct {
 	StructFieldValidations []*StructFieldValidation
 }
 
+// TODO
 type InterfaceStructListValidation struct {
 	InterfaceStructValidation *InterfaceStructValidation
 	Required                  bool
 	AllowExplicitNull         bool
-	TreatNullAsEmpty          bool // If explicit null or if it's top level and the file is empty, treat as empty map
+	TreatNullAsEmpty          bool   // If explicit null or if it's top level and the file is empty, treat as empty map
+	CantBeSpecified           string // if provided, returns an error with the provided message if the field is specified
 	ShortCircuit              bool
 }
 

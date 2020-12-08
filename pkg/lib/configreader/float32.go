@@ -32,6 +32,7 @@ type Float32Validation struct {
 	TreatNullAsZero      bool // `<field>: ` and `<field>: null` will be read as `<field>: 0.0`
 	AllowedValues        []float32
 	DisallowedValues     []float32
+	CantBeSpecified      string // if provided, returns an error with the provided message if the field is specified
 	GreaterThan          *float32
 	GreaterThanOrEqualTo *float32
 	LessThan             *float32
@@ -165,6 +166,10 @@ func ValidateFloat32Missing(v *Float32Validation) (float32, error) {
 }
 
 func ValidateFloat32(val float32, v *Float32Validation) (float32, error) {
+	if v.CantBeSpecified != "" {
+		return 0, ErrorFieldCantBeSpecified(v.CantBeSpecified)
+	}
+
 	err := ValidateFloat32Val(val, v)
 	if err != nil {
 		return 0, err

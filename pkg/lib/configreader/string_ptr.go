@@ -31,6 +31,7 @@ type StringPtrValidation struct {
 	AllowEmpty                           bool
 	AllowedValues                        []string
 	DisallowedValues                     []string
+	CantBeSpecified                      string // if provided, returns an error with the provided message if the field is specified
 	Prefix                               string
 	InvalidPrefixes                      []string
 	MaxLength                            int
@@ -214,6 +215,10 @@ func ValidateStringPtrMissing(v *StringPtrValidation) (*string, error) {
 }
 
 func ValidateStringPtrProvided(val *string, v *StringPtrValidation) (*string, error) {
+	if v.CantBeSpecified != "" {
+		return nil, ErrorFieldCantBeSpecified(v.CantBeSpecified)
+	}
+
 	if !v.AllowExplicitNull && val == nil {
 		return nil, ErrorCannotBeNull(v.Required)
 	}

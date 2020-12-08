@@ -26,6 +26,7 @@ type Float32ListValidation struct {
 	Default           []float32
 	AllowExplicitNull bool
 	AllowEmpty        bool
+	CantBeSpecified   string // if provided, returns an error with the provided message if the field is specified
 	CastSingleItem    bool
 	MinLength         int
 	MaxLength         int
@@ -73,6 +74,10 @@ func ValidateFloat32ListMissing(v *Float32ListValidation) ([]float32, error) {
 }
 
 func ValidateFloat32ListProvided(val []float32, v *Float32ListValidation) ([]float32, error) {
+	if v.CantBeSpecified != "" {
+		return nil, ErrorFieldCantBeSpecified(v.CantBeSpecified)
+	}
+
 	if !v.AllowExplicitNull && val == nil {
 		return nil, ErrorCannotBeNull(v.Required)
 	}

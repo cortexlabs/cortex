@@ -32,6 +32,7 @@ type Int32Validation struct {
 	TreatNullAsZero      bool // `<field>: ` and `<field>: null` will be read as `<field>: 0`
 	AllowedValues        []int32
 	DisallowedValues     []int32
+	CantBeSpecified      string // if provided, returns an error with the provided message if the field is specified
 	GreaterThan          *int32
 	GreaterThanOrEqualTo *int32
 	LessThan             *int32
@@ -165,6 +166,10 @@ func ValidateInt32Missing(v *Int32Validation) (int32, error) {
 }
 
 func ValidateInt32(val int32, v *Int32Validation) (int32, error) {
+	if v.CantBeSpecified != "" {
+		return 0, ErrorFieldCantBeSpecified(v.CantBeSpecified)
+	}
+
 	err := ValidateInt32Val(val, v)
 	if err != nil {
 		return 0, err

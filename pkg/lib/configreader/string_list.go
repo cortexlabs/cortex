@@ -27,6 +27,7 @@ type StringListValidation struct {
 	Default                []string
 	AllowExplicitNull      bool
 	AllowEmpty             bool
+	CantBeSpecified        string // if provided, returns an error with the provided message if the field is specified
 	CastSingleItem         bool
 	DisallowDups           bool
 	MinLength              int
@@ -77,6 +78,10 @@ func ValidateStringListMissing(v *StringListValidation) ([]string, error) {
 }
 
 func ValidateStringListProvided(val []string, v *StringListValidation) ([]string, error) {
+	if v.CantBeSpecified != "" {
+		return nil, ErrorFieldCantBeSpecified(v.CantBeSpecified)
+	}
+
 	if !v.AllowExplicitNull && val == nil {
 		return nil, ErrorCannotBeNull(v.Required)
 	}

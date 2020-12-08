@@ -30,6 +30,7 @@ type Float32PtrValidation struct {
 	AllowExplicitNull    bool
 	AllowedValues        []float32
 	DisallowedValues     []float32
+	CantBeSpecified      string // if provided, returns an error with the provided message if the field is specified
 	GreaterThan          *float32
 	GreaterThanOrEqualTo *float32
 	LessThan             *float32
@@ -173,6 +174,10 @@ func ValidateFloat32PtrMissing(v *Float32PtrValidation) (*float32, error) {
 }
 
 func ValidateFloat32PtrProvided(val *float32, v *Float32PtrValidation) (*float32, error) {
+	if v.CantBeSpecified != "" {
+		return nil, ErrorFieldCantBeSpecified(v.CantBeSpecified)
+	}
+
 	if !v.AllowExplicitNull && val == nil {
 		return nil, ErrorCannotBeNull(v.Required)
 	}
