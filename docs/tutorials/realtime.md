@@ -1,6 +1,6 @@
 # Deploy a realtime API
 
-Deploy models as realtime APIs that can respond to prediction requests on demand. For example, an object detection web service that receives an image and returns a list of objects in the image.
+Deploy models as realtime APIs that can respond to prediction requests on demand.
 
 ## Key features
 
