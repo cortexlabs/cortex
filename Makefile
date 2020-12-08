@@ -50,11 +50,24 @@ operator-local-gcp:
 	@$(MAKE) operator-stop-gcp || true
 	@./dev/operator_local.sh --operator-only --gcp || true
 
+# start local operator and attach the delve debugger to it (in server mode)
+operator-local-dbg-aws:
+	@$(MAKE) operator-stop || true
+	@./dev/operator_local_debugger.sh --aws || true
+operator-local-dbg-gcp:
+	@$(MAKE) operator-stop || true
+	@./dev/operator_local_debugger.sh --gcp || true
+
 # configure kubectl to point to the cluster specified in dev/config/cluster-[aws|gcp].yaml
 kubectl-aws:
 	@eval $$(python3 ./manager/cluster_config_env.py ./dev/config/cluster-aws.yaml) && eksctl utils write-kubeconfig --cluster="$$CORTEX_CLUSTER_NAME" --region="$$CORTEX_REGION" | grep -v "saved kubeconfig as" | grep -v "using region" | grep -v "eksctl version" || true
 kubectl-gcp:
 	@eval $$(python3 ./manager/cluster_config_env.py ./dev/config/cluster-gcp.yaml) && gcloud container clusters get-credentials "$$CORTEX_CLUSTER_NAME" --zone "$$CORTEX_ZONE" --project "$$CORTEX_PROJECT" 2>&1 | grep -v "Fetching cluster" | grep -v "kubeconfig entry generated" || true
+
+# configure kubectl to point to the cluster specified in dev/config/cluster.yaml
+.PHONY: kubectl
+kubectl:
+	@eval $$(python3 ./manager/cluster_config_env.py ./dev/config/cluster.yaml) && eksctl utils write-kubeconfig --cluster="$$CORTEX_CLUSTER_NAME" --region="$$CORTEX_REGION" | grep -v "saved kubeconfig as" | grep -v "using region" | grep -v "eksctl version" || true
 
 cluster-up-aws:
 	@$(MAKE) images-all-aws
@@ -206,6 +219,7 @@ registry-clean-local:
 tools:
 	@go get -u -v golang.org/x/lint/golint
 	@go get -u -v github.com/VojtechVitek/rerun/cmd/rerun
+	@go get -u -v github.com/go-delve/delve/cmd/dlv
 	@python3 -m pip install black 'pydoc-markdown>=3.0.0,<4.0.0'
 	@if [[ "$$OSTYPE" == "darwin"* ]]; then brew install parallel; elif [[ "$$OSTYPE" == "linux"* ]]; then sudo apt-get install -y parallel; else echo "your operating system is not supported"; fi
 
