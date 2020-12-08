@@ -476,7 +476,17 @@ func parseAPITFLiveReloadingSummary(summary *schema.APITFLiveReloadingSummary) (
 		}
 	}
 
-	_, usesCortexDefaultModelName := summary.ModelMetadata[consts.SingleModelName]
+	usesCortexDefaultModelName := false
+	for modelID := range summary.ModelMetadata {
+		modelName, _, err := getModelFromModelID(modelID)
+		if err != nil {
+			return "", err
+		}
+		if modelName == consts.SingleModelName {
+			usesCortexDefaultModelName = true
+			break
+		}
+	}
 
 	t := table.Table{
 		Headers: []table.Header{
