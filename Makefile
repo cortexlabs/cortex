@@ -51,10 +51,10 @@ operator-local-gcp:
 	@./dev/operator_local.sh --operator-only --gcp || true
 
 # start local operator and attach the delve debugger to it (in server mode)
-operator-local-aws-dbg:
+operator-local-dbg-aws:
 	@$(MAKE) operator-stop || true
 	@./dev/operator_local_debugger.sh --aws || true
-operator-local-gcp-dbg:
+operator-local-dbg-gcp:
 	@$(MAKE) operator-stop || true
 	@./dev/operator_local_debugger.sh --gcp || true
 
