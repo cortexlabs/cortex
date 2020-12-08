@@ -82,7 +82,7 @@ func deploy(env cliconfig.Environment, apiConfigs []userconfig.API, projectFiles
 		}
 	}
 
-	if hasAnyModelThePrefix(apiConfigs, "gs://") {
+	if hasAnyModelWithPrefix(apiConfigs, "gs://") {
 		gcpClient, err = gcp.NewFromEnv()
 		if err != nil {
 			return nil, err
@@ -117,7 +117,7 @@ func deploy(env cliconfig.Environment, apiConfigs []userconfig.API, projectFiles
 	return results, nil
 }
 
-func hasAnyModelThePrefix(apiConfigs []userconfig.API, modelPrefix string) bool {
+func hasAnyModelWithPrefix(apiConfigs []userconfig.API, modelPrefix string) bool {
 	for _, apiConfig := range apiConfigs {
 		if apiConfig.Predictor.ModelPath != nil && strings.HasPrefix(*apiConfig.Predictor.ModelPath, modelPrefix) {
 			return true
