@@ -86,3 +86,7 @@ func NewFromEnv() (*Client, error) {
 		credentialsJSON: credsBytes,
 	}, nil
 }
+
+func (c *Client) GetCredentialsJSON() []byte {
+	return c.credentialsJSON
+}

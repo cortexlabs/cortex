@@ -5,6 +5,7 @@
   predictor:
     type: tensorflow
     path: predictor.py
-    model_path: s3://cortex-examples/tensorflow/iris-classifier/nn/
+#    model_path: s3://cortex-examples/tensorflow/iris-classifier/nn/
+    model_path: gs://cortex-0/models/tensorflow/iris/
   monitoring:
     model_type: classification
