@@ -43,7 +43,6 @@ class Client:
         """
         self.env = env
         self.env_name = env["name"]
-        print(self.env)
 
     # CORTEX_VERSION_MINOR x5
     def deploy(
