@@ -37,7 +37,7 @@ import (
 
 var _deploymentID = "local"
 
-func UpdateAPI(apiConfig *userconfig.API, models []spec.CuratedModelResource, configPath string, projectID string, deployDisallowPrompt bool, awsClient *aws.Client) (*schema.APIResponse, string, error) {
+func UpdateAPI(apiConfig *userconfig.API, models []spec.CuratedModelResource, projectRoot string, projectID string, deployDisallowPrompt bool, awsClient *aws.Client) (*schema.APIResponse, string, error) {
 	telemetry.Event("operator.deploy", apiConfig.TelemetryEvent(types.LocalProviderType))
 
 	var incompatibleVersion string
@@ -83,7 +83,7 @@ func UpdateAPI(apiConfig *userconfig.API, models []spec.CuratedModelResource, co
 		}
 	}
 
-	newAPISpec.LocalProjectDir = files.Dir(configPath)
+	newAPISpec.LocalProjectDir = projectRoot
 
 	if areAPIsEqual(newAPISpec, prevAPISpec) {
 		return toAPIResponse(newAPISpec), fmt.Sprintf("%s is up to date", newAPISpec.Resource.UserString()), nil

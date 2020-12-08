@@ -195,6 +195,7 @@ func findProjectFiles(provider types.ProviderType, configPath string) ([]string,
 		return nil, err
 	}
 
+	// Include .env file containing environment variables
 	dotEnvPath := path.Join(projectRoot, ".env")
 	if files.IsFile(dotEnvPath) {
 		projectPaths = append(projectPaths, dotEnvPath)

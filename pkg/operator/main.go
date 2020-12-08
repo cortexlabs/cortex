@@ -96,6 +96,7 @@ func main() {
 
 	routerWithAuth.HandleFunc("/info", endpoints.Info).Methods("GET")
 	routerWithAuth.HandleFunc("/deploy", endpoints.Deploy).Methods("POST")
+	routerWithAuth.HandleFunc("/patch", endpoints.Patch).Methods("POST")
 	routerWithAuth.HandleFunc("/refresh/{apiName}", endpoints.Refresh).Methods("POST")
 	routerWithAuth.HandleFunc("/delete/{apiName}", endpoints.Delete).Methods("DELETE")
 	routerWithAuth.HandleFunc("/get", endpoints.GetAPIs).Methods("GET")
