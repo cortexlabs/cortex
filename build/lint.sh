@@ -71,6 +71,8 @@ fi
 output=$(cd "$ROOT" && find . -type f \
 ! -path "./vendor/*" \
 ! -path "**/.vscode/*" \
+! -path "**/.idea/*" \
+! -path "**/.history/*" \
 ! -path "**/__pycache__/*" \
 ! -path "./examples/*" \
 ! -path "./dev/config/*" \
@@ -97,6 +99,8 @@ if [ "$is_release_branch" = "true" ]; then
   ! -path "./build/lint.sh" \
   ! -path "./vendor/*" \
   ! -path "**/.vscode/*" \
+  ! -path "**/.idea/*" \
+  ! -path "**/.history/*" \
   ! -path "**/__pycache__/*" \
   ! -path "./docs/contributing/development.md" \
   ! -path "./dev/config/*" \
@@ -118,6 +122,8 @@ if [ "$is_release_branch" = "true" ]; then
   ! -path "./dev/*" \
   ! -path "./vendor/*" \
   ! -path "**/.vscode/*" \
+  ! -path "**/.idea/*" \
+  ! -path "**/.history/*" \
   ! -path "**/__pycache__/*" \
   ! -path "./dev/config/*" \
   ! -path "./bin/*" \
@@ -181,6 +187,8 @@ fi
 # Check for trailing whitespace
 output=$(cd "$ROOT" && find . -type f \
 ! -path "./vendor/*" \
+! -path "**/.idea/*" \
+! -path "**/.history/*" \
 ! -path "**/.vscode/*" \
 ! -path "**/__pycache__/*" \
 ! -path "./dev/config/*" \
@@ -198,6 +206,8 @@ fi
 # Check for missing new line at end of file
 output=$(cd "$ROOT" && find . -type f \
 ! -path "./vendor/*" \
+! -path "**/.idea/*" \
+! -path "**/.history/*" \
 ! -path "**/.vscode/*" \
 ! -path "**/__pycache__/*" \
 ! -path "./dev/config/*" \
@@ -216,6 +226,8 @@ fi
 output=$(cd "$ROOT" && find . -type f \
 ! -path "./vendor/*" \
 ! -path "**/.vscode/*" \
+! -path "**/.idea/*" \
+! -path "**/.history/*" \
 ! -path "**/__pycache__/*" \
 ! -path "./dev/config/*" \
 ! -path "./bin/*" \
@@ -232,6 +244,8 @@ fi
 # Check for new line(s) at beginning of file
 output=$(cd "$ROOT" && find . -type f \
 ! -path "./vendor/*" \
+! -path "**/.idea/*" \
+! -path "**/.history/*" \
 ! -path "**/.vscode/*" \
 ! -path "**/__pycache__/*" \
 ! -path "./dev/config/*" \
