@@ -18,8 +18,8 @@ package local
 
 import (
 	"fmt"
+	"os"
 	"path/filepath"
-	"strings"
 
 	"github.com/cortexlabs/cortex/cli/types/cliconfig"
 	"github.com/cortexlabs/cortex/pkg/consts"
@@ -82,7 +82,7 @@ func deploy(env cliconfig.Environment, apiConfigs []userconfig.API, projectFiles
 		}
 	}
 
-	if hasAnyModelWithPrefix(apiConfigs, "gs://") {
+	if os.Getenv("GOOGLE_APPLICATION_CREDENTIALS") != "" {
 		gcpClient, err = gcp.NewFromEnv()
 		if err != nil {
 			return nil, err
@@ -115,27 +115,4 @@ func deploy(env cliconfig.Environment, apiConfigs []userconfig.API, projectFiles
 	}
 
 	return results, nil
-}
-
-func hasAnyModelWithPrefix(apiConfigs []userconfig.API, modelPrefix string) bool {
-	for _, apiConfig := range apiConfigs {
-		if apiConfig.Predictor.ModelPath != nil && strings.HasPrefix(*apiConfig.Predictor.ModelPath, modelPrefix) {
-			return true
-		}
-		if apiConfig.Predictor.Models != nil {
-			if apiConfig.Predictor.Models.Dir != nil && strings.HasPrefix(*apiConfig.Predictor.ModelPath, modelPrefix) {
-				return true
-			}
-			for _, model := range apiConfig.Predictor.Models.Paths {
-				if model == nil {
-					continue
-				}
-				if strings.HasPrefix(model.ModelPath, modelPrefix) {
-					return true
-				}
-			}
-		}
-	}
-
-	return false
 }
