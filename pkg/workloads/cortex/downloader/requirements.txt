@@ -1,2 +1,3 @@
 boto3==1.14.53
+google-cloud-storage==1.32.0
 msgpack==1.0.0

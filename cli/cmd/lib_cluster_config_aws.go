@@ -149,17 +149,7 @@ func getClusterAccessConfigWithCache(disallowPrompt bool) (*clusterconfig.Access
 	}
 
 	if disallowPrompt {
-		if len(cachedPaths) > 1 && (accessConfig.ClusterName == nil || accessConfig.Region == nil) {
-			return nil, ErrorClusterAccessConfigOrPromptsRequired()
-		}
-
-		if accessConfig.ClusterName == nil {
-			accessConfig.ClusterName = pointer.String("cortex")
-		}
-		if accessConfig.Region == nil {
-			accessConfig.Region = pointer.String("us-east-1")
-		}
-		return accessConfig, nil
+		return nil, ErrorClusterAccessConfigOrPromptsRequired()
 	}
 
 	err = cr.ReadPrompt(accessConfig, clusterconfig.AccessPromptValidation)
@@ -170,7 +160,7 @@ func getClusterAccessConfigWithCache(disallowPrompt bool) (*clusterconfig.Access
 	return accessConfig, nil
 }
 
-func getInstallClusterConfig(awsCreds AWSCredentials, accessConfig clusterconfig.AccessConfig, disallowPrompt bool) (*clusterconfig.Config, error) {
+func getInstallClusterConfig(awsClient *aws.Client, awsCreds AWSCredentials, accessConfig clusterconfig.AccessConfig, disallowPrompt bool) (*clusterconfig.Config, error) {
 	clusterConfig := &clusterconfig.Config{}
 
 	err := clusterconfig.SetDefaults(clusterConfig)
@@ -188,10 +178,6 @@ func getInstallClusterConfig(awsCreds AWSCredentials, accessConfig clusterconfig
 	clusterConfig.ClusterName = *accessConfig.ClusterName
 	clusterConfig.Region = accessConfig.Region
 
-	awsClient, err := newAWSClient(*clusterConfig.Region, awsCreds)
-	if err != nil {
-		return nil, err
-	}
 	promptIfNotAdmin(awsClient, disallowPrompt)
 
 	err = clusterconfig.InstallPrompt(clusterConfig, disallowPrompt)

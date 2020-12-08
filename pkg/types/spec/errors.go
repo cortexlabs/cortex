@@ -60,6 +60,8 @@ const (
 	ErrS3DirNotFound  = "spec.s3_dir_not_found"
 	ErrS3DirIsEmpty   = "spec.s3_dir_is_empty"
 
+	ErrIncorrectBucketProvider    = "spec.incorrect_bucket_provider"
+	ErrMixedBucketProviders       = "spec.mixed_bucket_providers"
 	ErrModelPathNotDirectory      = "spec.model_path_not_directory"
 	ErrInvalidPythonModelPath     = "spec.invalid_python_model_path"
 	ErrInvalidTensorFlowModelPath = "spec.invalid_tensorflow_model_path"
@@ -277,6 +279,27 @@ func ErrorS3DirIsEmpty(path string) error {
 	})
 }
 
+func ErrorIncorrectBucketProvider(provider types.ProviderType) error {
+	var errorMessage string
+	if provider == types.AWSProviderType {
+		errorMessage = fmt.Sprintf("for %s provider type, only s3 buckets are accepted", provider)
+	}
+	if provider == types.GCPProviderType {
+		errorMessage = fmt.Sprintf("for %s provider type, only gs buckets are accepted", provider)
+	}
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrIncorrectBucketProvider,
+		Message: errorMessage,
+	})
+}
+
+func ErrorMixedBucketProviders() error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrMixedBucketProviders,
+		Message: "cannot mix bucket providers; must only provider s3 or gs buckets",
+	})
+}
+
 func ErrorModelPathNotDirectory(modelPath string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrModelPathNotDirectory,
@@ -479,10 +502,10 @@ func ErrorLocalModelPathNotSupportedByAWSProvider() error {
 	})
 }
 
-func ErrorUnsupportedLocalComputeResource(resourceType string) error {
+func ErrorUnsupportedComputeResourceForProvider(resourceType string, provider types.ProviderType) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrUnsupportedLocalComputeResource,
-		Message: fmt.Sprintf("%s compute resources cannot be used locally", resourceType),
+		Message: fmt.Sprintf("%s compute resources cannot be used for the %s provider", resourceType, provider.String()),
 	})
 }
 

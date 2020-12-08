@@ -64,13 +64,13 @@ var _predictCmd = &cobra.Command{
 		jsonPath := args[1]
 
 		var apisRes []schema.APIResponse
-		if env.Provider == types.AWSProviderType {
-			apisRes, err = cluster.GetAPI(MustGetOperatorConfig(env.Name), apiName)
+		if env.Provider == types.LocalProviderType {
+			apisRes, err = local.GetAPI(apiName)
 			if err != nil {
 				exit.Error(err)
 			}
 		} else {
-			apisRes, err = local.GetAPI(apiName)
+			apisRes, err = cluster.GetAPI(MustGetOperatorConfig(env.Name), apiName)
 			if err != nil {
 				exit.Error(err)
 			}

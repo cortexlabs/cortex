@@ -24,37 +24,45 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
+	"github.com/cortexlabs/cortex/pkg/types"
 )
 
 const (
-	ErrInvalidRegion                          = "clusterconfig.invalid_region"
-	ErrInstanceTypeTooSmall                   = "clusterconfig.instance_type_too_small"
-	ErrMinInstancesGreaterThanMax             = "clusterconfig.min_instances_greater_than_max"
-	ErrInstanceTypeNotSupportedInRegion       = "clusterconfig.instance_type_not_supported_in_region"
-	ErrIncompatibleSpotInstanceTypeMemory     = "clusterconfig.incompatible_spot_instance_type_memory"
-	ErrIncompatibleSpotInstanceTypeCPU        = "clusterconfig.incompatible_spot_instance_type_cpu"
-	ErrIncompatibleSpotInstanceTypeGPU        = "clusterconfig.incompatible_spot_instance_type_gpu"
-	ErrIncompatibleSpotInstanceTypeInf        = "clusterconfig.incompatible_spot_instance_type_inf"
-	ErrSpotPriceGreaterThanTargetOnDemand     = "clusterconfig.spot_price_greater_than_target_on_demand"
-	ErrSpotPriceGreaterThanMaxPrice           = "clusterconfig.spot_price_greater_than_max_price"
-	ErrInstanceTypeNotSupported               = "clusterconfig.instance_type_not_supported"
-	ErrARMInstancesNotSupported               = "clusterconfig.arm_instances_not_supported"
-	ErrAtLeastOneInstanceDistribution         = "clusterconfig.at_least_one_instance_distribution"
-	ErrNoCompatibleSpotInstanceFound          = "clusterconfig.no_compatible_spot_instance_found"
-	ErrConfiguredWhenSpotIsNotEnabled         = "clusterconfig.configured_when_spot_is_not_enabled"
-	ErrOnDemandBaseCapacityGreaterThanMax     = "clusterconfig.on_demand_base_capacity_greater_than_max"
-	ErrConfigCannotBeChangedOnUpdate          = "clusterconfig.config_cannot_be_changed_on_update"
-	ErrInvalidAvailabilityZone                = "clusterconfig.invalid_availability_zone"
-	ErrUnsupportedAvailabilityZone            = "clusterconfig.unsupported_availability_zone"
-	ErrNotEnoughValidDefaultAvailibilityZones = "clusterconfig.not_enough_valid_default_availability_zones"
-	ErrDidNotMatchStrictS3Regex               = "clusterconfig.did_not_match_strict_s3_regex"
-	ErrNATRequiredWithPrivateSubnetVisibility = "clusterconfig.nat_required_with_private_subnet_visibility"
-	ErrS3RegionDiffersFromCluster             = "clusterconfig.s3_region_differs_from_cluster"
-	ErrInvalidInstanceType                    = "clusterconfig.invalid_instance_type"
-	ErrIOPSNotSupported                       = "clusterconfig.iops_not_supported"
-	ErrIOPSTooLarge                           = "clusterconfig.iops_too_large"
-	ErrCantOverrideDefaultTag                 = "clusterconfig.cant_override_default_tag"
-	ErrSSLCertificateARNNotFound              = "clusterconfig.ssl_certificate_arn_not_found"
+	ErrInvalidRegion                              = "clusterconfig.invalid_region"
+	ErrInstanceTypeTooSmall                       = "clusterconfig.instance_type_too_small"
+	ErrMinInstancesGreaterThanMax                 = "clusterconfig.min_instances_greater_than_max"
+	ErrInstanceTypeNotSupportedInRegion           = "clusterconfig.instance_type_not_supported_in_region"
+	ErrIncompatibleSpotInstanceTypeMemory         = "clusterconfig.incompatible_spot_instance_type_memory"
+	ErrIncompatibleSpotInstanceTypeCPU            = "clusterconfig.incompatible_spot_instance_type_cpu"
+	ErrIncompatibleSpotInstanceTypeGPU            = "clusterconfig.incompatible_spot_instance_type_gpu"
+	ErrIncompatibleSpotInstanceTypeInf            = "clusterconfig.incompatible_spot_instance_type_inf"
+	ErrSpotPriceGreaterThanTargetOnDemand         = "clusterconfig.spot_price_greater_than_target_on_demand"
+	ErrSpotPriceGreaterThanMaxPrice               = "clusterconfig.spot_price_greater_than_max_price"
+	ErrInstanceTypeNotSupported                   = "clusterconfig.instance_type_not_supported"
+	ErrARMInstancesNotSupported                   = "clusterconfig.arm_instances_not_supported"
+	ErrAtLeastOneInstanceDistribution             = "clusterconfig.at_least_one_instance_distribution"
+	ErrNoCompatibleSpotInstanceFound              = "clusterconfig.no_compatible_spot_instance_found"
+	ErrConfiguredWhenSpotIsNotEnabled             = "clusterconfig.configured_when_spot_is_not_enabled"
+	ErrOnDemandBaseCapacityGreaterThanMax         = "clusterconfig.on_demand_base_capacity_greater_than_max"
+	ErrConfigCannotBeChangedOnUpdate              = "clusterconfig.config_cannot_be_changed_on_update"
+	ErrInvalidAvailabilityZone                    = "clusterconfig.invalid_availability_zone"
+	ErrUnsupportedAvailabilityZone                = "clusterconfig.unsupported_availability_zone"
+	ErrNotEnoughValidDefaultAvailibilityZones     = "clusterconfig.not_enough_valid_default_availability_zones"
+	ErrDidNotMatchStrictS3Regex                   = "clusterconfig.did_not_match_strict_s3_regex"
+	ErrNATRequiredWithPrivateSubnetVisibility     = "clusterconfig.nat_required_with_private_subnet_visibility"
+	ErrS3RegionDiffersFromCluster                 = "clusterconfig.s3_region_differs_from_cluster"
+	ErrInvalidInstanceType                        = "clusterconfig.invalid_instance_type"
+	ErrIOPSNotSupported                           = "clusterconfig.iops_not_supported"
+	ErrIOPSTooLarge                               = "clusterconfig.iops_too_large"
+	ErrCantOverrideDefaultTag                     = "clusterconfig.cant_override_default_tag"
+	ErrSSLCertificateARNNotFound                  = "clusterconfig.ssl_certificate_arn_not_found"
+	ErrProviderMismatch                           = "clusterconfig.provider_mismatch"
+	ErrGCPInvalidProjectID                        = "clusterconfig.gcp_invalid_project_id"
+	ErrGCPProjectMustBeSpecified                  = "clusterconfig.gcp_project_must_be_specified"
+	ErrGCPInvalidZone                             = "clusterconfig.gcp_invalid_zone"
+	ErrGCPInvalidInstanceType                     = "clusterconfig.gcp_invalid_instance_type"
+	ErrGCPInvalidAcceleratorType                  = "clusterconfig.gcp_invalid_accelerator_type"
+	ErrGCPIncompatibleInstanceTypeWithAccelerator = "clusterconfig.gcp_incompatible_instance_type_with_accelerator"
 )
 
 func ErrorInvalidRegion(region string) error {
@@ -165,7 +173,7 @@ func ErrorConfigCannotBeChangedOnUpdate(configKey string, prevVal interface{}) e
 func ErrorInvalidAvailabilityZone(userZone string, allZones strset.Set, region string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrInvalidAvailabilityZone,
-		Message: fmt.Sprintf("%s is not an availability zone in %s; please choose from the following availability zones: %s", s.UserStr(userZone), region, s.UserStrsOr(allZones.SliceSorted())),
+		Message: fmt.Sprintf("%s is not an availability zone in %s; please choose from the following availability zones: %s", userZone, region, s.StrsOr(allZones.SliceSorted())),
 	})
 }
 
@@ -255,5 +263,75 @@ func ErrorSSLCertificateARNNotFound(sslCertificateARN string, region string) err
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrSSLCertificateARNNotFound,
 		Message: fmt.Sprintf("unable to find the specified ssl certificate in %s: %s", region, sslCertificateARN),
+	})
+}
+
+func ErrorProviderMismatch(expectedProvider types.ProviderType, actualProvider string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrProviderMismatch,
+		Message: fmt.Sprintf("expected \"%s\" provider, but got \"%s\"; please use `cortex cluster` commands for aws clusters, and `cortex cluster-gcp` commands for gcp clusters", expectedProvider, actualProvider),
+	})
+}
+
+func ErrorGCPInvalidProjectID(projectID string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrGCPInvalidProjectID,
+		Message: fmt.Sprintf("invalid project ID '%s'", projectID),
+	})
+}
+
+func ErrorGCPProjectMustBeSpecified() error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrGCPProjectMustBeSpecified,
+		Message: fmt.Sprintf("please provide a cluster configuration file which specifies `%s` (e.g. via `--config cluster.yaml`) or enable prompts (i.e. omit the `--yes` flag)", ProjectKey),
+	})
+}
+
+func ErrorGCPInvalidZone(zone string, suggestedZones ...string) error {
+	errorMessage := fmt.Sprintf("invalid zone '%s'", zone)
+	if len(suggestedZones) == 1 {
+		errorMessage += fmt.Sprintf("; use zone '%s' instead", suggestedZones[0])
+	}
+	if len(suggestedZones) > 1 {
+		errorMessage += fmt.Sprintf("; choose one of the following zones: %s", s.StrsOr(suggestedZones))
+	}
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrGCPInvalidZone,
+		Message: errorMessage,
+	})
+}
+
+func ErrorGCPInvalidInstanceType(instanceType string, suggestedInstanceTypes ...string) error {
+	errorMessage := fmt.Sprintf("invalid instance type '%s'", instanceType)
+	if len(suggestedInstanceTypes) == 1 {
+		errorMessage += fmt.Sprintf("; use instance type '%s' instead", suggestedInstanceTypes[0])
+	}
+	if len(suggestedInstanceTypes) > 1 {
+		errorMessage += fmt.Sprintf("; choose one of the following instance types: %s", s.StrsOr(suggestedInstanceTypes))
+	}
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrGCPInvalidInstanceType,
+		Message: errorMessage,
+	})
+}
+
+func ErrorGCPInvalidAcceleratorType(acceleratorType string, zone string, suggestedAcceleratorsInZone []string, suggestedZonesForAccelerator []string) error {
+	errorMessage := fmt.Sprintf("invalid accelerator type '%s'", acceleratorType)
+	if len(suggestedAcceleratorsInZone) > 0 {
+		errorMessage += fmt.Sprintf("\n\nfor zone %s, the following accelerators are available: %s", zone, s.StrsAnd(suggestedAcceleratorsInZone))
+	}
+	if len(suggestedZonesForAccelerator) > 0 {
+		errorMessage += fmt.Sprintf("\n\nfor accelerator %s, the following zones are accepted: %s", acceleratorType, s.StrsAnd(suggestedZonesForAccelerator))
+	}
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrGCPInvalidAcceleratorType,
+		Message: errorMessage,
+	})
+}
+
+func ErrorGCPIncompatibleInstanceTypeWithAccelerator(instanceType, acceleratorType, zone string, compatibleInstances []string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrGCPIncompatibleInstanceTypeWithAccelerator,
+		Message: fmt.Sprintf("instance type %s is incompatible with the %s accelerator; the following instance types are compatible with the %s accelerator in zone %s: %s", instanceType, acceleratorType, acceleratorType, zone, s.StrsOr(compatibleInstances)),
 	})
 }

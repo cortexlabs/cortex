@@ -3,8 +3,3 @@ root: ./docs/
 structure:
   readme: ./tutorials/realtime.md
   summary: summary.md
-
-redirects:
-  install: ./aws/install.md
-  uninstall: ./aws/uninstall.md
-  update: ./aws/update.md

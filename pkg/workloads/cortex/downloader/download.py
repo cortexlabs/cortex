@@ -18,7 +18,7 @@ import base64
 import json
 
 from cortex.lib import util
-from cortex.lib.storage import S3
+from cortex.lib.storage import S3, GCS
 from cortex.lib.log import cx_logger as logger
 
 
@@ -28,8 +28,15 @@ def start(args):
         from_path = download_arg["from"]
         to_path = download_arg["to"]
         item_name = download_arg.get("item_name", "")
-        bucket_name, prefix = S3.deconstruct_s3_path(from_path)
-        s3_client = S3(bucket_name, client_config={})
+
+        if from_path.startswith("s3://"):
+            bucket_name, prefix = S3.deconstruct_s3_path(from_path)
+            client = S3(bucket_name, client_config={})
+        elif from_path.startswith("gs://"):
+            bucket_name, prefix = GCS.deconstruct_gcs_path(from_path)
+            client = GCS(bucket_name)
+        else:
+            raise ValueError('"from" download arg can either have the "s3://" or "gs://" prefixes')
 
         if item_name != "":
             if download_arg.get("hide_from_log", False):
@@ -38,9 +45,9 @@ def start(args):
                 logger().info("downloading {} from {}".format(item_name, from_path))
 
         if download_arg.get("to_file", False):
-            s3_client.download_file(prefix, to_path)
+            client.download_file(prefix, to_path)
         else:
-            s3_client.download(prefix, to_path)
+            client.download(prefix, to_path)
 
         if download_arg.get("unzip", False):
             if item_name != "" and not download_arg.get("hide_unzipping_log", False):

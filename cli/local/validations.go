@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"math"
 	"net"
+	"path"
 	"path/filepath"
 	"strings"
 
@@ -28,6 +29,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/docker"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
+	"github.com/cortexlabs/cortex/pkg/lib/gcp"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/regex"
@@ -46,12 +48,7 @@ type ProjectFiles struct {
 	projectRoot  string
 }
 
-func newProjectFiles(projectFileList []string, configPath string) (ProjectFiles, error) {
-	if !files.IsAbsOrTildePrefixed(configPath) {
-		return ProjectFiles{}, errors.ErrorUnexpected(fmt.Sprintf("%s is not an absolute path", configPath))
-	}
-	projectRoot := files.Dir(configPath)
-
+func newProjectFiles(projectFileList []string, projectRoot string) (ProjectFiles, error) {
 	relFilePaths := make([]string, len(projectFileList))
 	for i, projectFilePath := range projectFileList {
 		if !files.IsAbsOrTildePrefixed(projectFilePath) {
@@ -71,6 +68,15 @@ func newProjectFiles(projectFileList []string, configPath string) (ProjectFiles,
 
 func (projectFiles ProjectFiles) AllPaths() []string {
 	return projectFiles.relFilePaths
+}
+
+func (projectFiles ProjectFiles) AllAbsPaths() []string {
+	absPaths := make([]string, 0, len(projectFiles.relFilePaths))
+	for _, relPath := range projectFiles.relFilePaths {
+		absPaths = append(absPaths, path.Join(projectFiles.projectRoot, relPath))
+	}
+
+	return absPaths
 }
 
 func (projectFiles ProjectFiles) GetFile(path string) ([]byte, error) {
@@ -106,7 +112,7 @@ func (projectFiles ProjectFiles) ProjectDir() string {
 	return projectFiles.projectRoot
 }
 
-func ValidateLocalAPIs(apis []userconfig.API, models *[]spec.CuratedModelResource, projectFiles ProjectFiles, awsClient *aws.Client) error {
+func ValidateLocalAPIs(apis []userconfig.API, models *[]spec.CuratedModelResource, projectFiles ProjectFiles, awsClient *aws.Client, gcpClient *gcp.Client) error {
 	if len(apis) == 0 {
 		return spec.ErrorNoAPIs()
 	}
@@ -119,7 +125,7 @@ func ValidateLocalAPIs(apis []userconfig.API, models *[]spec.CuratedModelResourc
 	for i := range apis {
 		api := &apis[i]
 
-		if err := spec.ValidateAPI(api, models, projectFiles, types.LocalProviderType, awsClient, nil); err != nil {
+		if err := spec.ValidateAPI(api, models, projectFiles, types.LocalProviderType, awsClient, gcpClient, nil); err != nil {
 			return errors.Wrap(err, api.Identify())
 		}
 
