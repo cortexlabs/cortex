@@ -187,6 +187,22 @@ function cleanup_ecr() {
   done
 }
 
+function validate_env() {
+  local provider=$1
+
+  if [ "$provider" = "aws" ]; then
+    if [[ -z ${AWS_REGION} ]] || [[ -z ${AWS_ACCOUNT_ID} ]]; then
+      echo "error: environment variables AWS_REGION and AWS_ACCOUNT_ID should be exported in dev/config/env.sh"
+      exit 1
+    fi
+  elif [ "$provider" = "gcp" ]; then
+    if [[ -z ${GCP_PROJECT_ID} ]]; then
+      echo "error: environment variables GCP_PROJECT_ID should be exported in dev/config/env.sh"
+      exit 1
+    fi
+  fi
+}
+
 # export functions for parallel command
 export -f build_and_push
 export -f push
@@ -194,6 +210,9 @@ export -f build
 export -f blue_echo
 export -f green_echo
 export -f registry_login
+
+# validate environment is correctly set on env.sh
+validate_env "$provider"
 
 # usage: registry.sh clean --provider aws|gcp|local
 if [ "$cmd" = "clean" ]; then
