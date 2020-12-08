@@ -24,29 +24,27 @@
 * [Update](aws/update.md)
 * [Uninstall](aws/uninstall.md)
 
-## Deployments
+## Workloads
 
-* [Realtime API](deployments/realtime-api.md)
-  * [Predictor implementation](deployments/realtime-api/predictors.md)
-  * [API configuration](deployments/realtime-api/api-configuration.md)
-  * [API deployment](deployments/realtime-api/deployment.md)
-  * [API statuses](deployments/realtime-api/statuses.md)
-  * [Models](deployments/realtime-api/models.md)
-  * [Parallelism](deployments/realtime-api/parallelism.md)
-  * [Autoscaling](deployments/realtime-api/autoscaling.md)
-  * [Prediction monitoring](deployments/realtime-api/prediction-monitoring.md)
-  * [Traffic Splitter](deployments/realtime-api/traffic-splitter.md)
-* [Batch API](deployments/batch-api.md)
-  * [Predictor implementation](deployments/batch-api/predictors.md)
-  * [API configuration](deployments/batch-api/api-configuration.md)
-  * [API deployment](deployments/batch-api/deployment.md)
-  * [Endpoints](deployments/batch-api/endpoints.md)
-  * [Job statuses](deployments/batch-api/statuses.md)
-* [Python client](deployments/python-client.md)
-* [Python packages](deployments/python-packages.md)
-* [System packages](deployments/system-packages.md)
-* [Environments](deployments/environments.md)
-* [Telemetry](deployments/telemetry.md)
+* [Realtime API](workloads/realtime.md)
+  * [Predictor implementation](workloads/realtime/predictors.md)
+  * [API configuration](workloads/realtime/configuration.md)
+  * [API statuses](workloads/realtime/statuses.md)
+  * [Models](workloads/realtime/models.md)
+  * [Parallelism](workloads/realtime/parallelism.md)
+  * [Autoscaling](workloads/realtime/autoscaling.md)
+  * [Prediction monitoring](workloads/realtime/prediction-monitoring.md)
+  * [Traffic Splitter](workloads/realtime/traffic-splitter.md)
+* [Batch API](workloads/batch.md)
+  * [Predictor implementation](workloads/batch/predictors.md)
+  * [API configuration](workloads/batch/configuration.md)
+  * [Endpoints](workloads/batch/endpoints.md)
+  * [Job statuses](workloads/batch/statuses.md)
+* [Python client](workloads/python-client.md)
+* [Python packages](workloads/python-packages.md)
+* [System packages](workloads/system-packages.md)
+* [Environments](workloads/environments.md)
+* [Telemetry](workloads/telemetry.md)
 
 ## Troubleshooting
 
@@ -54,7 +52,7 @@
 * [404/503 API responses](troubleshooting/api-request-errors.md)
 * [NVIDIA runtime not found](troubleshooting/nvidia-container-runtime-not-found.md)
 * [TF session in predict()](troubleshooting/tf-session-in-predict.md)
-* [Serving-side batching errors](troubleshooting/server-side-batching-errors.md)
+* [Server-side batching errors](troubleshooting/server-side-batching-errors.md)
 
 ## Guides
 

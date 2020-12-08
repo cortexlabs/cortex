@@ -86,7 +86,7 @@ $ python batch.py
 ## Describe the Batch API
 
 ```bash
-$ cortex get image-classifier -e aws
+$ cortex get image-classifier --env aws
 ```
 
 ## Submit a job
