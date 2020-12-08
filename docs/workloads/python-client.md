@@ -9,11 +9,12 @@ _WARNING: you are on the master branch, please refer to the docs on the branch t
   * [env\_list](#env_list)
   * [env\_delete](#env_delete)
 * [cortex.client.Client](#cortex-client-client)
-  * [deploy](#deploy)
+  * [create\_api](#create_api)
   * [get\_api](#get_api)
   * [list\_apis](#list_apis)
   * [get\_job](#get_job)
   * [refresh](#refresh)
+  * [patch](#patch)
   * [delete\_api](#delete_api)
   * [stop\_job](#stop_job)
   * [stream\_api\_logs](#stream_api_logs)
@@ -63,7 +64,7 @@ from S3 and authenticate to ECR, and will be set in your Predictor.
 ## cluster\_client
 
 ```python
-cluster_client(name: str, operator_endpoint: str, aws_access_key_id: str, aws_secret_access_key: str) -> Client
+cluster_client(name: str, provider: str, operator_endpoint: str, aws_access_key_id: Optional[str] = None, aws_secret_access_key: Optional[str] = None) -> Client
 ```
 
 Create a new environment to connect to an existing Cortex Cluster, and initialize a client to deploy and manage APIs on that cluster.
@@ -71,9 +72,10 @@ Create a new environment to connect to an existing Cortex Cluster, and initializ
 **Arguments**:
 
 - `name` - Name of the environment to create.
-- `operator_endpoint` - The endpoint for the operator of your Cortex Cluster. You can get this endpoint by running the CLI command `cortex cluster info`.
-- `aws_access_key_id` - AWS access key ID.
-- `aws_secret_access_key` - AWS secret access key.
+- `provider` - The provider of your Cortex cluster. Can be "aws" or "gcp".
+- `operator_endpoint` - The endpoint for the operator of your Cortex Cluster. You can get this endpoint by running the CLI command `cortex cluster info` for an AWS provider or `cortex cluster-gcp info` for a GCP provider.
+- `aws_access_key_id` - AWS access key ID. Required when `provider` is set to "aws".
+- `aws_secret_access_key` - AWS secret access key. Required when `provider` is set to "aws".
 
 
 **Returns**:
@@ -102,12 +104,12 @@ Delete an environment configured on this machine.
 
 # cortex.client.Client
 
-## deploy
+## create\_api
 
 <!-- CORTEX_VERSION_MINOR x5 -->
 
 ```python
- | deploy(api_spec: dict, predictor=None, requirements=[], conda_packages=[], project_dir: Optional[str] = None, force: bool = True, wait: bool = False) -> list
+ | create_api(api_spec: dict, predictor=None, requirements=[], conda_packages=[], project_dir: Optional[str] = None, force: bool = True, wait: bool = False) -> list
 ```
 
 Deploy an API.
@@ -190,6 +192,19 @@ Restart all of the replicas for a Realtime API without downtime.
 **Arguments**:
 
 - `api_name` - Name of the API to refresh.
+- `force` - Override an already in-progress API update.
+
+## patch
+
+```python
+ | patch(api_spec: dict, force: bool = False) -> dict
+```
+
+Update the api specification for an API that has already been deployed.
+
+**Arguments**:
+
+- `api_spec` - The new api specification to apply
 - `force` - Override an already in-progress API update.
 
 ## delete\_api

@@ -27,6 +27,12 @@
 * [Update](aws/update.md)
 * [Uninstall](aws/uninstall.md)
 
+## Running on GCP
+
+* [Install](gcp/install.md)
+* [Credentials](gcp/credentials.md)
+* [Uninstall](gcp/uninstall.md)
+
 ## Workloads
 
 * [Realtime API](workloads/realtime.md)

@@ -32,7 +32,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/print"
 	"github.com/cortexlabs/cortex/pkg/lib/prompt"
-	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/urls"
 	"github.com/cortexlabs/cortex/pkg/types"
@@ -221,7 +220,7 @@ func convertOldCLIConfig() (cliconfig.CLIConfig, bool) {
 	return cliConfig, true
 }
 
-func promptExistingEnvName(promptMsg string) string {
+func promptForExistingEnvName(promptMsg string) string {
 	configuredEnvNames, err := listConfiguredEnvNames()
 	if err != nil {
 		exit.Error(err)
@@ -255,15 +254,13 @@ func promptExistingEnvName(promptMsg string) string {
 }
 
 func promptAWSEnvName() string {
-	configuredEnvNames, err := listConfiguredEnvNames()
+	configuredEnvNames, err := listConfiguredEnvNamesForProvider(types.AWSProviderType)
 	if err != nil {
 		exit.Error(err)
 	}
 
-	envNamesSet := strset.New(configuredEnvNames...)
-	envNamesSet.Remove("local")
-	if len(envNamesSet) > 0 {
-		fmt.Printf("your currently configured AWS environments are: %s\n\n", strings.Join(envNamesSet.Slice(), ", "))
+	if len(configuredEnvNames) > 0 {
+		fmt.Printf("your currently configured aws environments are: %s\n\n", strings.Join(configuredEnvNames, ", "))
 	}
 
 	envNameContainer := &struct {
@@ -275,7 +272,41 @@ func promptAWSEnvName() string {
 			{
 				StructField: "EnvironmentName",
 				PromptOpts: &prompt.Options{
-					Prompt: "name of AWS environment to update or create",
+					Prompt: "name of aws environment to update or create",
+				},
+				StringValidation: &cr.StringValidation{
+					Required: true,
+				},
+			},
+		},
+	})
+	if err != nil {
+		exit.Error(err)
+	}
+
+	return envNameContainer.EnvironmentName
+}
+
+func promptGCPEnvName() string {
+	configuredEnvNames, err := listConfiguredEnvNamesForProvider(types.GCPProviderType)
+	if err != nil {
+		exit.Error(err)
+	}
+
+	if len(configuredEnvNames) > 0 {
+		fmt.Printf("your currently configured gcp environments are: %s\n\n", strings.Join(configuredEnvNames, ", "))
+	}
+
+	envNameContainer := &struct {
+		EnvironmentName string
+	}{}
+
+	err = cr.ReadPrompt(envNameContainer, &cr.PromptValidation{
+		PromptItemValidations: []*cr.PromptItemValidation{
+			{
+				StructField: "EnvironmentName",
+				PromptOpts: &prompt.Options{
+					Prompt: "name of gcp environment to update or create",
 				},
 				StringValidation: &cr.StringValidation{
 					Required: true,
@@ -292,11 +323,17 @@ func promptAWSEnvName() string {
 
 func promptProvider(env *cliconfig.Environment) error {
 	if env.Name != "" {
-		if env.Name == types.LocalProviderType.String() {
+		switch env.Name {
+		case types.LocalProviderType.String():
 			env.Provider = types.LocalProviderType
-		} else {
+		case types.AWSProviderType.String():
 			env.Provider = types.AWSProviderType
+		case types.GCPProviderType.String():
+			env.Provider = types.GCPProviderType
 		}
+	}
+
+	if env.Provider != types.UnknownProviderType {
 		fmt.Printf("provider: %s\n\n", env.Provider)
 		return nil
 	}
@@ -414,6 +451,7 @@ func promptAWSEnv(env *cliconfig.Environment, defaults cliconfig.Environment) er
 	if env.OperatorEndpoint == nil {
 		fmt.Print("you can get your cortex operator endpoint using `cortex cluster info` if you already have a cortex cluster running, otherwise run `cortex cluster up` to create a cortex cluster\n\n")
 	}
+
 	for true {
 		err := cr.ReadPrompt(env, &cr.PromptValidation{
 			SkipNonEmptyFields: true,
@@ -474,6 +512,34 @@ func promptAWSEnv(env *cliconfig.Environment, defaults cliconfig.Environment) er
 	return nil
 }
 
+func promptGCPEnv(env *cliconfig.Environment, defaults cliconfig.Environment) error {
+	if env.OperatorEndpoint == nil {
+		fmt.Print("you can get your cortex operator endpoint using `cortex cluster-gcp info` if you already have a cortex cluster running, otherwise run `cortex cluster-gcp up` to create a cortex cluster\n\n")
+	}
+
+	err := cr.ReadPrompt(env, &cr.PromptValidation{
+		SkipNonEmptyFields: true,
+		PromptItemValidations: []*cr.PromptItemValidation{
+			{
+				StructField: "OperatorEndpoint",
+				PromptOpts: &prompt.Options{
+					Prompt: "cortex operator endpoint",
+				},
+				StringPtrValidation: &cr.StringPtrValidation{
+					Required:  true,
+					Default:   defaults.OperatorEndpoint,
+					Validator: validateOperatorEndpoint,
+				},
+			},
+		},
+	})
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // Only validate this during prompt, not when reading from file
 func validateOperatorEndpoint(endpoint string) (string, error) {
 	url, err := cr.GetURLValidator(false, false)(endpoint)
@@ -516,7 +582,6 @@ func validateOperatorEndpoint(endpoint string) (string, error) {
 	return url, nil
 }
 
-// Returns "local" if default value is not set
 func getDefaultEnv(cmdType commandType) string {
 	defaultEnv := types.LocalProviderType.String()
 
@@ -526,6 +591,10 @@ func getDefaultEnv(cmdType commandType) string {
 
 	if cmdType == _clusterCommandType && defaultEnv == types.LocalProviderType.String() {
 		defaultEnv = types.AWSProviderType.String()
+	}
+
+	if cmdType == _clusterGCPCommandType && defaultEnv == types.LocalProviderType.String() {
+		defaultEnv = types.GCPProviderType.String()
 	}
 
 	return defaultEnv
@@ -609,16 +678,12 @@ func ReadOrConfigureEnv(envName string) (cliconfig.Environment, error) {
 		return *existingEnv, nil
 	}
 
-	promptStr := fmt.Sprintf("the %s environment is not configured; do you already have a Cortex cluster running on AWS?", envName)
+	promptStr := fmt.Sprintf("the %s environment is not configured; do you already have a Cortex cluster running?", envName)
 	yesMsg := fmt.Sprintf("please configure the %s environment to point to your running cluster:\n", envName)
-	noMsg := "you can create a cluster on AWS by running the `cortex cluster up` command"
+	noMsg := "you can create a cluster on AWS by running the `cortex cluster up` or `cortex cluster-gcp up` command"
 	prompt.YesOrExit(promptStr, yesMsg, noMsg)
 
-	fieldsToSkipPrompt := cliconfig.Environment{
-		Provider: types.AWSProviderType,
-	}
-
-	env, err := configureEnv(envName, fieldsToSkipPrompt)
+	env, err := configureEnv(envName, cliconfig.Environment{})
 	if err != nil {
 		return cliconfig.Environment{}, err
 	}
@@ -702,10 +767,13 @@ func configureEnv(envName string, fieldsToSkipPrompt cliconfig.Environment) (cli
 	}
 
 	if envName == "" {
-		if env.Provider == types.LocalProviderType {
+		switch env.Provider {
+		case types.LocalProviderType:
 			env.Name = types.LocalProviderType.String()
-		} else {
+		case types.AWSProviderType:
 			env.Name = promptAWSEnvName()
+		case types.GCPProviderType:
+			env.Name = promptGCPEnvName()
 		}
 	}
 
@@ -724,6 +792,11 @@ func configureEnv(envName string, fieldsToSkipPrompt cliconfig.Environment) (cli
 		}
 	case types.AWSProviderType:
 		err := promptAWSEnv(&env, defaults)
+		if err != nil {
+			return cliconfig.Environment{}, err
+		}
+	case types.GCPProviderType:
+		err := promptGCPEnv(&env, defaults)
 		if err != nil {
 			return cliconfig.Environment{}, err
 		}
@@ -776,7 +849,7 @@ func MustGetOperatorConfig(envName string) cluster.OperatorConfig {
 		exit.Error(ErrorEnvironmentNotFound(envName))
 	}
 
-	if env.Provider != types.AWSProviderType {
+	if env.Provider == types.LocalProviderType {
 		exit.Error(ErrorOperatorConfigFromLocalEnvironment())
 	}
 
@@ -791,15 +864,17 @@ func MustGetOperatorConfig(envName string) cluster.OperatorConfig {
 	}
 	operatorConfig.OperatorEndpoint = *env.OperatorEndpoint
 
-	if env.AWSAccessKeyID == nil {
-		exit.Error(ErrorFieldNotFoundInEnvironment(cliconfig.AWSAccessKeyIDKey, env.Name))
-	}
-	operatorConfig.AWSAccessKeyID = *env.AWSAccessKeyID
+	if env.Provider == types.AWSProviderType {
+		if env.AWSAccessKeyID == nil {
+			exit.Error(ErrorFieldNotFoundInEnvironment(cliconfig.AWSAccessKeyIDKey, env.Name))
+		}
+		operatorConfig.AWSAccessKeyID = *env.AWSAccessKeyID
 
-	if env.AWSSecretAccessKey == nil {
-		exit.Error(ErrorFieldNotFoundInEnvironment(cliconfig.AWSSecretAccessKeyKey, env.Name))
+		if env.AWSSecretAccessKey == nil {
+			exit.Error(ErrorFieldNotFoundInEnvironment(cliconfig.AWSSecretAccessKeyKey, env.Name))
+		}
+		operatorConfig.AWSSecretAccessKey = *env.AWSSecretAccessKey
 	}
-	operatorConfig.AWSSecretAccessKey = *env.AWSSecretAccessKey
 
 	return operatorConfig
 }
@@ -813,8 +888,38 @@ func listConfiguredEnvs() ([]*cliconfig.Environment, error) {
 	return cliConfig.Environments, nil
 }
 
+func listConfiguredEnvsForProvider(provider types.ProviderType) ([]*cliconfig.Environment, error) {
+	cliConfig, err := readCLIConfig()
+	if err != nil {
+		return nil, err
+	}
+
+	var envs []*cliconfig.Environment
+	for i := range cliConfig.Environments {
+		if cliConfig.Environments[i].Provider == provider {
+			envs = append(envs, cliConfig.Environments[i])
+		}
+	}
+
+	return envs, nil
+}
+
 func listConfiguredEnvNames() ([]string, error) {
 	envList, err := listConfiguredEnvs()
+	if err != nil {
+		return nil, err
+	}
+
+	envNames := make([]string, len(envList))
+	for i, env := range envList {
+		envNames[i] = env.Name
+	}
+
+	return envNames, nil
+}
+
+func listConfiguredEnvNamesForProvider(provider types.ProviderType) ([]string, error) {
+	envList, err := listConfiguredEnvsForProvider(provider)
 	if err != nil {
 		return nil, err
 	}

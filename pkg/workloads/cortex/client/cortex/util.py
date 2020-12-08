@@ -20,6 +20,7 @@ import shutil
 
 @contextmanager
 def open_temporarily(path, mode):
+    Path(path).parent.mkdir(parents=True, exist_ok=True)
     file = open(path, mode)
 
     try:

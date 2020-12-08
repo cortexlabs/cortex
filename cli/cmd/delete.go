@@ -66,7 +66,7 @@ var _deleteCmd = &cobra.Command{
 		}
 
 		var deleteResponse schema.DeleteResponse
-		if env.Provider == types.AWSProviderType {
+		if env.Provider != types.LocalProviderType {
 			if len(args) == 2 {
 				deleteResponse, err = cluster.StopJob(MustGetOperatorConfig(env.Name), args[0], args[1])
 				if err != nil {
@@ -95,7 +95,7 @@ var _deleteCmd = &cobra.Command{
 			if err != nil {
 				exit.Error(err)
 			}
-			fmt.Println(string(bytes))
+			fmt.Print(string(bytes))
 			return
 		}
 

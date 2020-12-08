@@ -34,8 +34,7 @@ spec:
           operator: Equal
           effect: NoSchedule
         - key: nvidia.com/gpu
-          value: "true"
-          operator: Equal
+          operator: Exists
           effect: NoSchedule
       terminationGracePeriodSeconds: 0
       containers:

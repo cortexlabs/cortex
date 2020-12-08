@@ -17,7 +17,9 @@ limitations under the License.
 package clusterconfig
 
 const (
+	ProviderKey                            = "provider"
 	InstanceTypeKey                        = "instance_type"
+	AcceleratorTypeKey                     = "accelerator_type"
 	MinInstancesKey                        = "min_instances"
 	MaxInstancesKey                        = "max_instances"
 	TagsKey                                = "tags"
@@ -34,6 +36,8 @@ const (
 	OnDemandBackupKey                      = "on_demand_backup"
 	ClusterNameKey                         = "cluster_name"
 	RegionKey                              = "region"
+	ZoneKey                                = "zone"
+	ProjectKey                             = "project"
 	AvailabilityZonesKey                   = "availability_zones"
 	SSLCertificateARNKey                   = "ssl_certificate_arn"
 	BucketKey                              = "bucket"
@@ -57,16 +61,21 @@ const (
 	ImageStatsdKey                         = "image_statsd"
 	ImageIstioProxyKey                     = "image_istio_proxy"
 	ImageIstioPilotKey                     = "image_istio_pilot"
+	ImageGooglePauseKey                    = "image_google_pause"
 
 	// User facing string
+	ProviderUserKey                            = "provider"
 	APIVersionUserKey                          = "cluster version"
 	ClusterNameUserKey                         = "cluster name"
 	RegionUserKey                              = "aws region"
+	ZoneUserKey                                = "gcp zone"
+	ProjectUserKey                             = "gcp project"
 	AvailabilityZonesUserKey                   = "availability zones"
 	SSLCertificateARNUserKey                   = "ssl certificate arn"
 	BucketUserKey                              = "s3 bucket"
 	SpotUserKey                                = "use spot instances"
 	InstanceTypeUserKey                        = "instance type"
+	AcceleratorTypeUserKey                     = "accelerator type"
 	MinInstancesUserKey                        = "min instances"
 	MaxInstancesUserKey                        = "max instances"
 	TagsUserKey                                = "tags"
@@ -99,4 +108,5 @@ const (
 	ImageStatsdUserKey                         = "statsd image"
 	ImageIstioProxyUserKey                     = "istio proxy image"
 	ImageIstioPilotUserKey                     = "istio pilot image"
+	ImageGooglePauseUserKey                    = "google pause image"
 )

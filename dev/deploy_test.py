@@ -37,7 +37,7 @@ class PythonPredictor:
         return self.model(payload["text"])[0]
 
 
-api = cx.deploy(
+api = cx.create_api(
     api_config,
     predictor=PythonPredictor,
     requirements=["torch", "transformers"],

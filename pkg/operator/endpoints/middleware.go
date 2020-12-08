@@ -26,6 +26,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
+	"github.com/cortexlabs/cortex/pkg/types"
 )
 
 var _cachedClientIDs = strset.New()
@@ -52,11 +53,8 @@ func ClientIDMiddleware(next http.Handler) http.Handler {
 			r = r.WithContext(ctx)
 
 			if !_cachedClientIDs.Has(clientID) {
-				_, hashedAccountID, err := config.AWS.GetCachedAccountID()
-				if err == nil {
-					telemetry.RecordOperatorID(clientID, hashedAccountID)
-					_cachedClientIDs.Add(clientID)
-				}
+				telemetry.RecordOperatorID(clientID, config.OperatorID())
+				_cachedClientIDs.Add(clientID)
 			}
 		}
 		next.ServeHTTP(w, r)
@@ -83,28 +81,30 @@ func AuthMiddleware(next http.Handler) http.Handler {
 			return
 		}
 
-		accessKeyID, secretAccessKey := parts[0], parts[1]
-		awsClient, err := aws.NewFromCreds(*config.Cluster.Region, accessKeyID, secretAccessKey)
-		if err != nil {
-			respondError(w, r, ErrorAuthAPIError())
-			return
-		}
+		if config.Provider == types.AWSProviderType {
+			accessKeyID, secretAccessKey := parts[0], parts[1]
+			awsClient, err := aws.NewFromCreds(*config.Cluster.Region, accessKeyID, secretAccessKey)
+			if err != nil {
+				respondError(w, r, ErrorAuthAPIError())
+				return
+			}
 
-		accountID, _, err := awsClient.CheckCredentials()
-		if err != nil {
-			respondErrorCode(w, r, http.StatusForbidden, ErrorAuthInvalid())
-			return
-		}
+			accountID, _, err := awsClient.CheckCredentials()
+			if err != nil {
+				respondErrorCode(w, r, http.StatusForbidden, ErrorAuthInvalid())
+				return
+			}
 
-		operatorAccountID, _, err := config.AWS.GetCachedAccountID()
-		if err != nil {
-			respondError(w, r, ErrorAuthAPIError())
-			return
-		}
+			operatorAccountID, _, err := config.AWS.GetCachedAccountID()
+			if err != nil {
+				respondError(w, r, ErrorAuthAPIError())
+				return
+			}
 
-		if accountID != operatorAccountID {
-			respondErrorCode(w, r, http.StatusForbidden, ErrorAuthOtherAccount())
-			return
+			if accountID != operatorAccountID {
+				respondErrorCode(w, r, http.StatusForbidden, ErrorAuthOtherAccount())
+				return
+			}
 		}
 
 		next.ServeHTTP(w, r)

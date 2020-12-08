@@ -134,7 +134,7 @@ var _envListCmd = &cobra.Command{
 			if err != nil {
 				exit.Error(err)
 			}
-			fmt.Println(string(bytes))
+			fmt.Print(string(bytes))
 			return
 		}
 
@@ -161,7 +161,7 @@ var _envDefaultCmd = &cobra.Command{
 		var envName string
 		if len(args) == 0 {
 			fmt.Printf("current default environment: %s\n\n", defaultEnv)
-			envName = promptExistingEnvName("name of environment to set as default")
+			envName = promptForExistingEnvName("name of environment to set as default")
 		} else {
 			envName = args[0]
 		}
@@ -190,7 +190,7 @@ var _envDeleteCmd = &cobra.Command{
 		if len(args) == 1 {
 			envName = args[0]
 		} else {
-			envName = promptExistingEnvName("name of environment to delete")
+			envName = promptForExistingEnvName("name of environment to delete")
 		}
 
 		prevDefault := getDefaultEnv(_generalCommandType)
