@@ -41,6 +41,20 @@ func StreamJobLogs(operatorConfig OperatorConfig, apiName string, jobID string) 
 	return streamLogs(operatorConfig, "/logs/"+apiName, map[string]string{"jobID": jobID})
 }
 
+func GetGCPLogsURL(operatorConfig OperatorConfig, apiName string) (schema.GCPLogsResponse, error) {
+	httpRes, err := HTTPGet(operatorConfig, "/logs/"+apiName)
+	if err != nil {
+		return schema.GCPLogsResponse{}, err
+	}
+
+	var gcpLogsResponse schema.GCPLogsResponse
+	if err = json.Unmarshal(httpRes, &gcpLogsResponse); err != nil {
+		return schema.GCPLogsResponse{}, errors.Wrap(err, "/logs/"+apiName, string(httpRes))
+	}
+
+	return gcpLogsResponse, nil
+}
+
 func streamLogs(operatorConfig OperatorConfig, path string, qParams ...map[string]string) error {
 	interrupt := make(chan os.Signal, 1)
 	signal.Notify(interrupt, os.Interrupt)

@@ -23,6 +23,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
+	"github.com/cortexlabs/cortex/pkg/types"
 )
 
 func addAPIToDashboard(dashboardName string, apiName string) error {
@@ -145,5 +146,8 @@ func statusCodeMetric(dashboardName string, apiName string) []interface{} {
 }
 
 func DashboardURL() string {
-	return fmt.Sprintf("https://%s.console.aws.amazon.com/cloudwatch/home#dashboards:name=%s", *config.Cluster.Region, config.Cluster.ClusterName)
+	if config.Provider == types.AWSProviderType {
+		return fmt.Sprintf("https://%s.console.aws.amazon.com/cloudwatch/home#dashboards:name=%s", *config.Cluster.Region, config.Cluster.ClusterName)
+	}
+	return ""
 }

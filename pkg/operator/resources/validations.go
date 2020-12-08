@@ -77,7 +77,7 @@ func (projectFiles ProjectFiles) ProjectDir() string {
 	return "./"
 }
 
-func ValidateClusterAPIs(apis []userconfig.API, models *[]spec.CuratedModelResource, projectFiles spec.ProjectFiles) error {
+func ValidateClusterAPIs(apis []userconfig.API, projectFiles spec.ProjectFiles) error {
 	if len(apis) == 0 {
 		return spec.ErrorNoAPIs()
 	}
@@ -102,7 +102,8 @@ func ValidateClusterAPIs(apis []userconfig.API, models *[]spec.CuratedModelResou
 	for i := range apis {
 		api := &apis[i]
 		if api.Kind == userconfig.RealtimeAPIKind || api.Kind == userconfig.BatchAPIKind {
-			if err := spec.ValidateAPI(api, models, projectFiles, types.AWSProviderType, config.AWS, config.K8s); err != nil {
+			models := []spec.CuratedModelResource{}
+			if err := spec.ValidateAPI(api, &models, projectFiles, config.Provider, config.AWS, config.GCP, config.K8s); err != nil {
 				return errors.Wrap(err, api.Identify())
 			}
 			if err := validateK8s(api, virtualServices, maxMem); err != nil {
@@ -116,7 +117,7 @@ func ValidateClusterAPIs(apis []userconfig.API, models *[]spec.CuratedModelResou
 		}
 
 		if api.Kind == userconfig.TrafficSplitterKind {
-			if err := spec.ValidateTrafficSplitter(api, types.AWSProviderType, config.AWS); err != nil {
+			if err := spec.ValidateTrafficSplitter(api, config.Provider, config.AWS); err != nil {
 				return errors.Wrap(err, api.Identify())
 			}
 			if err := checkIfAPIExists(api.APIs, realtimeAPIs, deployedRealtimeAPIs); err != nil {
@@ -127,7 +128,7 @@ func ValidateClusterAPIs(apis []userconfig.API, models *[]spec.CuratedModelResou
 			}
 		}
 
-		if api.Networking.APIGateway != userconfig.NoneAPIGatewayType && config.Cluster.APIGatewaySetting == clusterconfig.NoneAPIGatewaySetting {
+		if config.Provider == types.AWSProviderType && api.Networking.APIGateway != userconfig.NoneAPIGatewayType && config.Cluster.APIGatewaySetting == clusterconfig.NoneAPIGatewaySetting {
 			return errors.Wrap(ErrorAPIGatewayDisabled(api.Networking.APIGateway), api.Identify(), userconfig.NetworkingKey, userconfig.APIGatewayKey)
 		}
 	}
@@ -183,6 +184,10 @@ var _inferentiaCPUReserve = kresource.MustParse("100m")
 var _inferentiaMemReserve = kresource.MustParse("100Mi")
 
 func validateK8sCompute(compute *userconfig.Compute, maxMem kresource.Quantity) error {
+	if config.Provider != types.AWSProviderType {
+		return nil
+	}
+
 	maxMem.Sub(_cortexMemReserve)
 
 	maxCPU := config.Cluster.InstanceMetadata.CPU
@@ -214,6 +219,7 @@ func validateK8sCompute(compute *userconfig.Compute, maxMem kresource.Quantity) 
 	if compute.Inf > maxInf {
 		return ErrorNoAvailableNodeComputeLimit("Inf", fmt.Sprintf("%d", compute.Inf), fmt.Sprintf("%d", maxInf))
 	}
+
 	return nil
 }
 

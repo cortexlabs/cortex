@@ -15,25 +15,29 @@
 # limitations under the License.
 
 
-set -euo pipefail
+set -eo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")"/.. >/dev/null && pwd)"
 
 source $ROOT/build/images.sh
-source $ROOT/dev/config/build.sh
+source $ROOT/dev/config/env.sh
 source $ROOT/dev/util.sh
 
-flag_include_slim="false"
-flag_skip_push="false"
+GCR_HOST=${GCR_HOST:-"gcr.io"}
+
+provider="local"
+include_slim="false"
+positional_args=()
 while [[ $# -gt 0 ]]; do
   key="$1"
   case $key in
-    --include-slim)
-    flag_include_slim="true"
+    -p|--provider)
+    provider="$2"
+    shift
     shift
     ;;
-    --skip-push)
-    flag_skip_push="true"
+    --include-slim)
+    include_slim="true"
     shift
     ;;
     *)
@@ -43,25 +47,57 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 set -- "${positional_args[@]}"
+positional_args=()
+for i in "$@"; do
+  case $i in
+    -p=*|--provider=*)
+    provider="${i#*=}"
+    shift
+    ;;
+    *)
+    positional_args+=("$1")
+    shift
+    ;;
+  esac
+done
+set -- "${positional_args[@]}"
+for arg in "$@"; do
+  if [[ "$arg" == -* ]]; then
+    echo "unknown flag: $arg"
+    exit 1
+  fi
+done
 
 cmd=${1:-""}
 sub_cmd=${2:-""}
 
-ecr_logged_in=false
+registry_push_url=""
+if [ "$provider" = "aws" ]; then
+  registry_push_url="$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com"
+elif [ "$provider" = "gcp" ]; then
+  registry_push_url="$GCR_HOST/$GCP_PROJECT_ID"
+fi
 
-function ecr_login() {
-  if [ "$ecr_logged_in" = false ]; then
-    blue_echo "Logging in to ECR..."
-    aws ecr get-login-password --region $REGISTRY_REGION | docker login --username AWS --password-stdin $REGISTRY_URL
-    aws ecr get-login-password --region us-west-2 | docker login --username AWS --password-stdin 790709498068.dkr.ecr.us-west-2.amazonaws.com  # this is for the inferentia device plugin image
-    ecr_logged_in=true
+is_registry_logged_in="false"
+
+function registry_login() {
+  if [ "$is_registry_logged_in" = "false" ]; then
+    if [ "$provider" = "aws" ]; then
+      blue_echo "Logging in to ECR..."
+      aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $registry_push_url
+      aws ecr get-login-password --region us-west-2 | docker login --username AWS --password-stdin 790709498068.dkr.ecr.us-west-2.amazonaws.com  # this is for the inferentia device plugin image
+    elif [ "$provider" = "gcp" ]; then
+      blue_echo "Logging in to GCS..."
+      gcloud auth configure-docker $GCR_HOST
+    fi
+    is_registry_logged_in="true"
     green_echo "Success\n"
   fi
 }
 
-function create_registry() {
-  for image in "${all_images[@]}"; do
-    aws ecr create-repository --repository-name=cortexlabs/$image --region=$REGISTRY_REGION || true
+function create_aws_registry() {
+  for image in "${aws_images[@]}"; do
+    aws ecr create-repository --repository-name=cortexlabs/$image --region=$AWS_REGION || true
   done
 }
 
@@ -77,8 +113,16 @@ function build() {
     build_args="--build-arg SLIM=true"
   fi
 
+  tag_args=""
+  if [ -n "$GCP_PROJECT_ID" ]; then
+    tag_args+=" -t $GCR_HOST/$GCP_PROJECT_ID/cortexlabs/$image:$tag"
+  fi
+  if [ -n "$AWS_ACCOUNT_ID" ] && [ -n "$AWS_REGION" ]; then
+    tag_args+=" -t $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/cortexlabs/$image:$tag"
+  fi
+
   blue_echo "Building $image:$tag..."
-  docker build $ROOT -f $dir/Dockerfile -t cortexlabs/$image:$tag -t $REGISTRY_URL/cortexlabs/$image:$tag $build_args
+  docker build $ROOT -f $dir/Dockerfile -t cortexlabs/$image:$tag $tag_args $build_args
   green_echo "Built $image:$tag\n"
 }
 
@@ -92,17 +136,17 @@ function cache_builder() {
 }
 
 function push() {
-  if [ "$flag_skip_push" == "true" ]; then
+  if [ "$provider" = "local" ]; then
     return
   fi
 
-  ecr_login
+  registry_login
 
   local image=$1
   local tag=$2
 
   blue_echo "Pushing $image:$tag..."
-  docker push $REGISTRY_URL/cortexlabs/$image:$tag
+  docker push $registry_push_url/cortexlabs/$image:$tag
   green_echo "Pushed $image:$tag\n"
 }
 
@@ -144,41 +188,86 @@ export -f push
 export -f build
 export -f blue_echo
 export -f green_echo
-export -f ecr_login
+export -f registry_login
 
+# usage: registry.sh clean --provider aws|gcp|local
 if [ "$cmd" = "clean" ]; then
-  cleanup_local
-  cleanup_ecr
+  if [ "$provider" = "aws" ]; then
+    cleanup_ecr
+  elif [ "$provider" = "local" ]; then
+    cleanup_local
+  fi
 
+# usage: registry.sh create --provider/-p aws|gcp|local
 elif [ "$cmd" = "create" ]; then
-  create_registry
+  if [ "$provider" = "aws" ]; then
+    create_aws_registry
+  fi
 
-elif [ "$cmd" = "update-manager-local" ]; then
-  build manager latest
+# usage: registry.sh update-single IMAGE --provider/-p aws|gcp|local
+elif [ "$cmd" = "update-single" ]; then
+  image=$sub_cmd
+  if [ "$image" = "operator" ] || [ "$image" = "request-monitor" ]; then
+    cache_builder $image
+  fi
+  build_and_push $image latest
 
-# usage: registry.sh update all|dev|api [--include-slim] [--skip-push]
+# usage: registry.sh update all|dev|api --provider/-p aws|gcp|local [--include-slim]
 # if parallel utility is installed, the docker build commands will be parallelized
 elif [ "$cmd" = "update" ]; then
   images_to_build=()
 
   if [ "$sub_cmd" == "all" ]; then
-    cache_builder operator
-    images_to_build+=( "${non_dev_images[@]}" )
+    images_to_build+=( "${non_dev_images_local[@]}" )
+    if [ "$provider" == "aws" ]; then
+      images_to_build+=( "${non_dev_images_cluster[@]}" )
+      images_to_build+=( "${non_dev_images_aws[@]}" )
+    elif [ "$provider" == "gcp" ]; then
+      images_to_build+=( "${non_dev_images_cluster[@]}" )
+      images_to_build+=( "${non_dev_images_gcp[@]}" )
+    fi
   fi
 
   if [[ "$sub_cmd" == "all" || "$sub_cmd" == "dev" ]]; then
-    cache_builder request-monitor
-    images_to_build+=( "${dev_images[@]}" )
+    images_to_build+=( "${dev_images_local[@]}" )
+    if [ "$provider" == "aws" ]; then
+      images_to_build+=( "${dev_images_cluster[@]}" )
+      images_to_build+=( "${dev_images_aws[@]}" )
+    elif [ "$provider" == "gcp" ]; then
+      images_to_build+=( "${dev_images_cluster[@]}" )
+      images_to_build+=( "${dev_images_gcp[@]}" )
+    fi
   fi
 
-  images_to_build+=( "${user_facing_images[@]}" )
+  images_to_build+=( "${api_images_local[@]}" )
+  if [ "$provider" == "aws" ]; then
+    images_to_build+=( "${api_images_cluster[@]}" )
+    images_to_build+=( "${api_images_aws[@]}" )
+  elif [ "$provider" == "gcp" ]; then
+    images_to_build+=( "${api_images_cluster[@]}" )
+    images_to_build+=( "${api_images_gcp[@]}" )
+  fi
 
-  if [ "$flag_include_slim" == "true" ]; then
-    images_to_build+=( "${user_facing_slim_images[@]}" )
+  if [ "$include_slim" == "true" ]; then
+    images_to_build+=( "${api_slim_images_local[@]}" )
+    if [ "$provider" == "aws" ]; then
+      images_to_build+=( "${api_slim_images_cluster[@]}" )
+      images_to_build+=( "${api_slim_images_aws[@]}" )
+    elif [ "$provider" == "gcp" ]; then
+      images_to_build+=( "${api_slim_images_cluster[@]}" )
+      images_to_build+=( "${api_slim_images_gcp[@]}" )
+    fi
+  fi
+
+  if [[ " ${images_to_build[@]} " =~ " operator " ]]; then
+    cache_builder operator
+  fi
+  if [[ " ${images_to_build[@]} " =~ " request-monitor " ]]; then
+    cache_builder request-monitor
   fi
 
   if command -v parallel &> /dev/null && [ -n "${NUM_BUILD_PROCS+set}" ] && [ "$NUM_BUILD_PROCS" != "1" ]; then
-    flag_skip_push=$flag_skip_push ecr_logged_in=$ecr_logged_in ROOT=$ROOT REGISTRY_URL=$REGISTRY_URL SHELL=$(type -p /bin/bash) parallel --will-cite --halt now,fail=1 --eta --jobs $NUM_BUILD_PROCS build_and_push "{} latest" ::: "${images_to_build[@]}"
+    provider=$provider is_registry_logged_in=$is_registry_logged_in ROOT=$ROOT registry_push_url=$registry_push_url SHELL=$(type -p /bin/bash) parallel --will-cite --halt now,fail=1 --eta --jobs $NUM_BUILD_PROCS build_and_push "{} latest" ::: "${images_to_build[@]}"
   else
     for image in "${images_to_build[@]}"; do
       build_and_push $image latest
@@ -186,4 +275,8 @@ elif [ "$cmd" = "update" ]; then
   fi
 
   cleanup_local
+
+else
+  echo "unknown command: $cmd"
+  exit 1
 fi

@@ -35,19 +35,18 @@ import (
 
 type API struct {
 	*userconfig.API
-	ID                    string                 `json:"id"`
-	SpecID                string                 `json:"spec_id"`
-	PredictorID           string                 `json:"predictor_id"`
-	DeploymentID          string                 `json:"deployment_id"`
-	Key                   string                 `json:"key"`
-	PredictorKey          string                 `json:"predictor_key"`
-	LastUpdated           int64                  `json:"last_updated"`
-	MetadataRoot          string                 `json:"metadata_root"`
-	ProjectID             string                 `json:"project_id"`
-	ProjectKey            string                 `json:"project_key"`
-	CuratedModelResources []CuratedModelResource `json:"curated_model_resources"`
-	LocalModelCaches      []*LocalModelCache     `json:"local_model_cache"` // local only
-	LocalProjectDir       string                 `json:"local_project_dir"`
+	ID               string             `json:"id"`
+	SpecID           string             `json:"spec_id"`
+	PredictorID      string             `json:"predictor_id"`
+	DeploymentID     string             `json:"deployment_id"`
+	Key              string             `json:"key"`
+	PredictorKey     string             `json:"predictor_key"`
+	LastUpdated      int64              `json:"last_updated"`
+	MetadataRoot     string             `json:"metadata_root"`
+	ProjectID        string             `json:"project_id"`
+	ProjectKey       string             `json:"project_key"`
+	LocalModelCaches []*LocalModelCache `json:"local_model_cache"` // local only
+	LocalProjectDir  string             `json:"local_project_dir"`
 }
 
 type LocalModelCache struct {
@@ -58,8 +57,10 @@ type LocalModelCache struct {
 
 type CuratedModelResource struct {
 	*userconfig.ModelResource
-	S3Path   bool    `json:"s3_path"`
-	Versions []int64 `json:"versions"`
+	S3Path    bool    `json:"s3_path"`
+	GCSPath   bool    `json:"gcs_path"`
+	LocalPath bool    `json:"local_path"`
+	Versions  []int64 `json:"versions"`
 }
 
 /*
@@ -77,7 +78,7 @@ APIID (uniquely identifies an api configuration for a given deployment)
 		* APIs
 	* DeploymentID (used for refreshing a deployment)
 */
-func GetAPISpec(apiConfig *userconfig.API, models []CuratedModelResource, projectID string, deploymentID string, clusterName string) *API {
+func GetAPISpec(apiConfig *userconfig.API, projectID string, deploymentID string, clusterName string) *API {
 	var buf bytes.Buffer
 
 	buf.WriteString(s.Obj(apiConfig.Resource))
@@ -100,54 +101,18 @@ func GetAPISpec(apiConfig *userconfig.API, models []CuratedModelResource, projec
 	apiID := fmt.Sprintf("%s-%s-%s", MonotonicallyDecreasingID(), deploymentID, specID) // should be up to 60 characters long
 
 	return &API{
-		API:                   apiConfig,
-		CuratedModelResources: models,
-		ID:                    apiID,
-		SpecID:                specID,
-		PredictorID:           predictorID,
-		Key:                   Key(apiConfig.Name, apiID, clusterName),
-		PredictorKey:          PredictorKey(apiConfig.Name, predictorID, clusterName),
-		DeploymentID:          deploymentID,
-		LastUpdated:           time.Now().Unix(),
-		MetadataRoot:          MetadataRoot(apiConfig.Name, clusterName),
-		ProjectID:             projectID,
-		ProjectKey:            ProjectKey(projectID, clusterName),
+		API:          apiConfig,
+		ID:           apiID,
+		SpecID:       specID,
+		PredictorID:  predictorID,
+		Key:          Key(apiConfig.Name, apiID, clusterName),
+		PredictorKey: PredictorKey(apiConfig.Name, predictorID, clusterName),
+		DeploymentID: deploymentID,
+		LastUpdated:  time.Now().Unix(),
+		MetadataRoot: MetadataRoot(apiConfig.Name, clusterName),
+		ProjectID:    projectID,
+		ProjectKey:   ProjectKey(projectID, clusterName),
 	}
-}
-
-func TotalLocalModelVersions(models []CuratedModelResource) int {
-	totalLocalModelVersions := 0
-	for _, model := range models {
-		if model.S3Path {
-			continue
-		}
-		if len(model.Versions) > 0 {
-			totalLocalModelVersions += len(model.Versions)
-		} else {
-			totalLocalModelVersions++
-		}
-	}
-	return totalLocalModelVersions
-}
-
-func TotalModelVersions(models []CuratedModelResource) int {
-	totalModelVersions := 0
-	for _, model := range models {
-		if len(model.Versions) > 0 {
-			totalModelVersions += len(model.Versions)
-		} else {
-			totalModelVersions++
-		}
-	}
-	return totalModelVersions
-}
-
-func (api *API) TotalLocalModelVersions() int {
-	return TotalLocalModelVersions(api.CuratedModelResources)
-}
-
-func (api *API) TotalModelVersions() int {
-	return TotalModelVersions(api.CuratedModelResources)
 }
 
 // Keep track of models in the model cache used by this API (local only)
@@ -157,15 +122,6 @@ func (api *API) ModelIDs() []string {
 		models = append(models, localModelCache.ID)
 	}
 	return models
-}
-
-func (api *API) ModelNames() []string {
-	names := []string{}
-	for _, model := range api.CuratedModelResources {
-		names = append(names, model.Name)
-	}
-
-	return names
 }
 
 func (api *API) SubtractModelIDs(apis ...*API) []string {

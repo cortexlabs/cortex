@@ -222,7 +222,6 @@ def start():
     tf_serving_port = os.getenv("CORTEX_TF_BASE_SERVING_PORT", "9000")
     tf_serving_host = os.getenv("CORTEX_TF_SERVING_HOST", "localhost")
 
-    bucket = os.getenv("CORTEX_BUCKET")
     region = os.getenv("AWS_REGION")
 
     has_multiple_servers = os.getenv("CORTEX_MULTIPLE_TF_SERVERS")
@@ -238,8 +237,8 @@ def start():
             json.dump(used_ports, f)
             f.truncate()
 
-    api = get_api(provider, api_spec_path, model_dir, cache_dir, bucket, region)
-    storage, api_spec = get_spec(provider, api_spec_path, cache_dir, bucket, region)
+    api = get_api(provider, api_spec_path, model_dir, cache_dir, region)
+    storage, api_spec = get_spec(provider, api_spec_path, cache_dir, region)
     job_spec = get_job_spec(storage, cache_dir, job_spec_path)
 
     client = api.predictor.initialize_client(
