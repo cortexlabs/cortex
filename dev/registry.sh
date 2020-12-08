@@ -25,6 +25,11 @@ source $ROOT/dev/util.sh
 
 GCR_HOST=${GCR_HOST:-"gcr.io"}
 
+# set variables to empty strings if they do not exist
+GCP_PROJECT_ID=${GCP_PROJECT_ID:-}
+AWS_ACCOUNT_ID=${AWS_ACCOUNT_ID:-}
+AWS_REGION=${AWS_REGION:-}
+
 provider="local"
 include_slim="false"
 positional_args=()
