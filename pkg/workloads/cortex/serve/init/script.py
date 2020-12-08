@@ -112,9 +112,8 @@ def main():
     provider = os.environ["CORTEX_PROVIDER"]
     spec_path = os.environ["CORTEX_API_SPEC"]
     cache_dir = os.getenv("CORTEX_CACHE_DIR")  # when it's deployed locally
-    bucket = os.getenv("CORTEX_BUCKET")  # when it's deployed to AWS
     region = os.getenv("AWS_REGION")  # when it's deployed to AWS
-    _, api_spec = get_spec(provider, spec_path, cache_dir, bucket, region)
+    _, api_spec = get_spec(provider, spec_path, cache_dir, region)
 
     predictor_type = predictor_type_from_api_spec(api_spec)
     multiple_processes = api_spec["predictor"]["processes_per_replica"] > 1

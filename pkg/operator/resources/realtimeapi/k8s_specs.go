@@ -19,7 +19,9 @@ package realtimeapi
 import (
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
+	"github.com/cortexlabs/cortex/pkg/operator/config"
 	"github.com/cortexlabs/cortex/pkg/operator/operator"
+	"github.com/cortexlabs/cortex/pkg/types"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	istioclientnetworking "istio.io/client-go/pkg/apis/networking/v1beta1"
@@ -45,7 +47,10 @@ func deploymentSpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Depl
 func tensorflowAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deployment {
 
 	containers, volumes := operator.TensorFlowPredictorContainers(api)
-	containers = append(containers, operator.RequestMonitorContainer(api))
+
+	if config.Provider == types.AWSProviderType {
+		containers = append(containers, operator.RequestMonitorContainer(api))
+	}
 
 	return k8s.Deployment(&k8s.DeploymentSpec{
 		Name:           operator.K8sName(api.Name),
@@ -95,7 +100,10 @@ func tensorflowAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.D
 
 func pythonAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deployment {
 	containers, volumes := operator.PythonPredictorContainers(api)
-	containers = append(containers, operator.RequestMonitorContainer(api))
+
+	if config.Provider == types.AWSProviderType {
+		containers = append(containers, operator.RequestMonitorContainer(api))
+	}
 
 	return k8s.Deployment(&k8s.DeploymentSpec{
 		Name:           operator.K8sName(api.Name),
@@ -145,7 +153,10 @@ func pythonAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deplo
 
 func onnxAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deployment {
 	containers := operator.ONNXPredictorContainers(api)
-	containers = append(containers, operator.RequestMonitorContainer(api))
+
+	if config.Provider == types.AWSProviderType {
+		containers = append(containers, operator.RequestMonitorContainer(api))
+	}
 
 	return k8s.Deployment(&k8s.DeploymentSpec{
 		Name:           operator.K8sName(api.Name),
@@ -185,7 +196,7 @@ func onnxAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deploym
 					"workload": "true",
 				},
 				Tolerations:        operator.Tolerations,
-				Volumes:            operator.DefaultVolumes,
+				Volumes:            operator.DefaultVolumes(),
 				ServiceAccountName: "default",
 			},
 		},

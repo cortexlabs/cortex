@@ -26,6 +26,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/docker"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
+	"github.com/cortexlabs/cortex/pkg/lib/gcp"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
 	"github.com/cortexlabs/cortex/pkg/types"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
@@ -50,25 +51,34 @@ func Deploy(env cliconfig.Environment, configPath string, projectFileList []stri
 	}
 
 	var awsClient *aws.Client
-	if env.AWSAccessKeyID != nil {
-		awsClient, err = aws.NewFromCreds(*env.AWSRegion, *env.AWSAccessKeyID, *env.AWSSecretAccessKey)
+	var gcpClient *gcp.Client
+
+	if env.Provider == types.GCPProviderType {
+		gcpClient, err = gcp.NewFromEnv()
 		if err != nil {
 			return nil, err
 		}
 	} else {
-		awsClient, err = aws.NewAnonymousClient()
-		if err != nil {
-			return nil, err
+		if env.AWSAccessKeyID != nil {
+			awsClient, err = aws.NewFromCreds(*env.AWSRegion, *env.AWSAccessKeyID, *env.AWSSecretAccessKey)
+			if err != nil {
+				return nil, err
+			}
+		} else {
+			awsClient, err = aws.NewAnonymousClient()
+			if err != nil {
+				return nil, err
+			}
 		}
 	}
 
-	apiConfigs, err := spec.ExtractAPIConfigs(configBytes, types.LocalProviderType, configFileName, nil)
+	apiConfigs, err := spec.ExtractAPIConfigs(configBytes, types.LocalProviderType, configFileName, nil, nil)
 	if err != nil {
 		return nil, err
 	}
 
 	models := []spec.CuratedModelResource{}
-	err = ValidateLocalAPIs(apiConfigs, &models, projectFiles, awsClient)
+	err = ValidateLocalAPIs(apiConfigs, &models, projectFiles, awsClient, gcpClient)
 	if err != nil {
 		err = errors.Append(err, fmt.Sprintf("\n\napi configuration schema for Realtime API can be found at https://docs.cortex.dev/v/%s/deployments/realtime-api/api-configuration", consts.CortexVersionMinor))
 		return nil, err

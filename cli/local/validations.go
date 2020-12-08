@@ -28,6 +28,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/docker"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
+	"github.com/cortexlabs/cortex/pkg/lib/gcp"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/regex"
@@ -106,7 +107,7 @@ func (projectFiles ProjectFiles) ProjectDir() string {
 	return projectFiles.projectRoot
 }
 
-func ValidateLocalAPIs(apis []userconfig.API, models *[]spec.CuratedModelResource, projectFiles ProjectFiles, awsClient *aws.Client) error {
+func ValidateLocalAPIs(apis []userconfig.API, models *[]spec.CuratedModelResource, projectFiles ProjectFiles, awsClient *aws.Client, gcpClient *gcp.Client) error {
 	if len(apis) == 0 {
 		return spec.ErrorNoAPIs()
 	}
@@ -119,7 +120,7 @@ func ValidateLocalAPIs(apis []userconfig.API, models *[]spec.CuratedModelResourc
 	for i := range apis {
 		api := &apis[i]
 
-		if err := spec.ValidateAPI(api, models, projectFiles, types.LocalProviderType, awsClient, nil); err != nil {
+		if err := spec.ValidateAPI(api, models, projectFiles, types.LocalProviderType, awsClient, gcpClient, nil); err != nil {
 			return errors.Wrap(err, api.Identify())
 		}
 

@@ -25,7 +25,7 @@ from cortex.lib.model import (
     ModelsTree,
     LockedModel,
     LockedModelsTree,
-    CuratedModelResources,
+    get_models_from_api_spec,
 )
 from cortex.lib.log import cx_logger as logger
 from cortex import consts
@@ -59,7 +59,7 @@ class TensorFlowClient:
         self._models_tree = models_tree
         self._model_dir = model_dir
 
-        self._spec_models = CuratedModelResources(api_spec["curated_model_resources"])
+        self._spec_models = get_models_from_api_spec(api_spec)
 
         if (
             self._api_spec["predictor"]["models"]
@@ -278,9 +278,10 @@ class TensorFlowClient:
 
                         # download model
                         logger().info(
-                            f"downloading model {model_name} of version {model_version} from the S3 upstream"
+                            f"downloading model {model_name} of version {model_version} from the {upstream_model['provider']} upstream"
                         )
                         date = self._models.download_model(
+                            upstream_model["provider"],
                             upstream_model["bucket"],
                             model_name,
                             model_version,
@@ -288,7 +289,7 @@ class TensorFlowClient:
                         )
                         if not date:
                             raise WithBreak
-                        current_upstream_ts = date.timestamp()
+                        current_upstream_ts = int(date.timestamp())
 
                     # load model
                     try:

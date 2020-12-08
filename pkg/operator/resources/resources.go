@@ -77,7 +77,6 @@ func GetDeployedResourceByNameOrNil(resourceName string) (*operator.DeployedReso
 
 func Deploy(projectBytes []byte, configFileName string, configBytes []byte, force bool) ([]schema.DeployResult, error) {
 	projectID := hash.Bytes(projectBytes)
-	projectKey := spec.ProjectKey(projectID, config.Cluster.ClusterName)
 	projectFileMap, err := archive.UnzipMemToMem(projectBytes)
 	if err != nil {
 		return nil, err
@@ -88,24 +87,32 @@ func Deploy(projectBytes []byte, configFileName string, configBytes []byte, forc
 		ConfigFileName: configFileName,
 	}
 
-	apiConfigs, err := spec.ExtractAPIConfigs(configBytes, types.AWSProviderType, configFileName, &config.Cluster.Config)
-	if err != nil {
-		return nil, err
+	var apiConfigs []userconfig.API
+	if config.Provider == types.AWSProviderType {
+		apiConfigs, err = spec.ExtractAPIConfigs(configBytes, config.Provider, configFileName, &config.Cluster.Config, nil)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		apiConfigs, err = spec.ExtractAPIConfigs(configBytes, config.Provider, configFileName, nil, &config.GCPCluster.GCPConfig)
+		if err != nil {
+			return nil, err
+		}
 	}
 
-	models := []spec.CuratedModelResource{}
-	err = ValidateClusterAPIs(apiConfigs, &models, projectFiles)
+	err = ValidateClusterAPIs(apiConfigs, projectFiles)
 	if err != nil {
 		err = errors.Append(err, fmt.Sprintf("\n\napi configuration schema can be found here:\n  → Realtime API: https://docs.cortex.dev/v/%s/deployments/realtime-api/api-configuration\n  → Batch API: https://docs.cortex.dev/v/%s/deployments/batch-api/api-configuration\n  → Traffic Splitter: https://docs.cortex.dev/v/%s/deployments/realtime-api/traffic-splitter", consts.CortexVersionMinor, consts.CortexVersionMinor, consts.CortexVersionMinor))
 		return nil, err
 	}
 
-	isProjectUploaded, err := config.AWS.IsS3File(config.Cluster.Bucket, projectKey)
+	projectKey := spec.ProjectKey(projectID, config.ClusterName())
+	isProjectUploaded, err := config.IsBucketFile(projectKey)
 	if err != nil {
 		return nil, err
 	}
 	if !isProjectUploaded {
-		if err = config.AWS.UploadBytesToS3(projectBytes, config.Cluster.Bucket, projectKey); err != nil {
+		if err = config.UploadBytesToBucket(projectBytes, projectKey); err != nil {
 			return nil, err
 		}
 	}
@@ -116,7 +123,7 @@ func Deploy(projectBytes []byte, configFileName string, configBytes []byte, forc
 	results := make([]schema.DeployResult, 0, len(apiConfigs))
 	for i := range apiConfigs {
 		apiConfig := apiConfigs[i]
-		api, msg, err := UpdateAPI(&apiConfig, models, projectID, force)
+		api, msg, err := UpdateAPI(&apiConfig, projectID, force)
 
 		result := schema.DeployResult{
 			Message: msg,
@@ -133,7 +140,7 @@ func Deploy(projectBytes []byte, configFileName string, configBytes []byte, forc
 	return results, nil
 }
 
-func UpdateAPI(apiConfig *userconfig.API, models []spec.CuratedModelResource, projectID string, force bool) (*schema.APIResponse, string, error) {
+func UpdateAPI(apiConfig *userconfig.API, projectID string, force bool) (*schema.APIResponse, string, error) {
 	deployedResource, err := GetDeployedResourceByNameOrNil(apiConfig.Name)
 	if err != nil {
 		return nil, "", err
@@ -143,15 +150,15 @@ func UpdateAPI(apiConfig *userconfig.API, models []spec.CuratedModelResource, pr
 		return nil, "", ErrorCannotChangeKindOfDeployedAPI(apiConfig.Name, apiConfig.Kind, deployedResource.Kind)
 	}
 
-	telemetry.Event("operator.deploy", apiConfig.TelemetryEvent(types.AWSProviderType))
+	telemetry.Event("operator.deploy", apiConfig.TelemetryEvent(config.Provider))
 
 	var api *spec.API
 	var msg string
 	switch apiConfig.Kind {
 	case userconfig.RealtimeAPIKind:
-		api, msg, err = realtimeapi.UpdateAPI(apiConfig, models, projectID, force)
+		api, msg, err = realtimeapi.UpdateAPI(apiConfig, projectID, force)
 	case userconfig.BatchAPIKind:
-		api, msg, err = batchapi.UpdateAPI(apiConfig, models, projectID)
+		api, msg, err = batchapi.UpdateAPI(apiConfig, projectID)
 	case userconfig.TrafficSplitterKind:
 		api, msg, err = trafficsplitter.UpdateAPI(apiConfig, force)
 	default:
@@ -299,9 +306,12 @@ func GetAPIs() ([]schema.APIResponse, error) {
 		return nil, err
 	}
 
-	batchAPIList, err := batchapi.GetAllAPIs(batchAPIVirtualServices, k8sJobs, batchAPIPods)
-	if err != nil {
-		return nil, err
+	var batchAPIList []schema.APIResponse
+	if config.Provider == types.AWSProviderType {
+		batchAPIList, err = batchapi.GetAllAPIs(batchAPIVirtualServices, k8sJobs, batchAPIPods)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	trafficSplitterList, err := trafficsplitter.GetAllAPIs(trafficSplitterVirtualServices)
@@ -383,7 +393,7 @@ func GetAPIByID(apiName string, apiID string) ([]schema.APIResponse, error) {
 func getPastAPIDeploys(apiName string) ([]schema.APIVersion, error) {
 	var apiVersions []schema.APIVersion
 
-	apiIDs, err := config.AWS.ListS3DirOneLevel(config.Cluster.Bucket, spec.KeysPrefix(apiName, config.Cluster.ClusterName), pointer.Int64(10))
+	apiIDs, err := config.ListBucketDirOneLevel(spec.KeysPrefix(apiName, config.ClusterName()), pointer.Int64(10))
 	if err != nil {
 		return nil, err
 	}
