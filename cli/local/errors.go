@@ -35,6 +35,7 @@ const (
 	ErrPortAlreadyInUse              = "local.port_already_in_use"
 	ErrUnableToFindAvailablePorts    = "local.unable_to_find_available_ports"
 	ErrBindDockerInDocker            = "local.bind_docker_in_docker"
+	ErrMustSpecifyLocalAWSCreds      = "local.must_specify_local_aws_creds"
 )
 
 func ErrorAPINotDeployed(apiName string) error {
@@ -123,5 +124,12 @@ func ErrorBindDockerInDocker(err error) error {
 		Kind:    ErrBindDockerInDocker,
 		Message: err.Error() + "\n\nnote: deploying an API locally from within a docker container is not supported (although deploying to AWS from within a container is supported)",
 		Cause:   err,
+	})
+}
+
+func ErrorMustSpecifyLocalAWSCreds() error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrMustSpecifyLocalAWSCreds,
+		Message: "you must configure your local environment with AWS credentials; please run `cortex env configure local`",
 	})
 }

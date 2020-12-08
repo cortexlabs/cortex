@@ -456,6 +456,20 @@ function setup_istio() {
 }
 
 function start_pre_download_images() {
+  registry="quay.io/cortexlabs"
+  tag="$CORTEX_VERSION"
+  if [ -n "$CORTEX_DEV_DEFAULT_PREDICTOR_IMAGE_REGISTRY" ]; then
+    registry="$CORTEX_DEV_DEFAULT_PREDICTOR_IMAGE_REGISTRY"
+    tag="latest"
+  fi
+  export CORTEX_IMAGE_PYTHON_PREDICTOR_CPU="${registry}/python-predictor-cpu:${tag}"
+  export CORTEX_IMAGE_PYTHON_PREDICTOR_GPU="${registry}/python-predictor-gpu:${tag}"
+  export CORTEX_IMAGE_PYTHON_PREDICTOR_INF="${registry}/python-predictor-inf:${tag}"
+  export CORTEX_IMAGE_TENSORFLOW_SERVING_CPU="${registry}/tensorflow-serving-cpu:${tag}"
+  export CORTEX_IMAGE_TENSORFLOW_SERVING_GPU="${registry}/tensorflow-serving-gpu:${tag}"
+  export CORTEX_IMAGE_TENSORFLOW_SERVING_INF="${registry}/tensorflow-serving-inf:${tag}"
+  export CORTEX_IMAGE_TENSORFLOW_PREDICTOR="${registry}/tensorflow-predictor:${tag}"
+
   if [[ "$CORTEX_INSTANCE_TYPE" == p* ]] || [[ "$CORTEX_INSTANCE_TYPE" == g* ]]; then
     envsubst < manifests/image-downloader-gpu.yaml | kubectl apply -f - &>/dev/null
   elif [[ "$CORTEX_INSTANCE_TYPE" == inf* ]]; then

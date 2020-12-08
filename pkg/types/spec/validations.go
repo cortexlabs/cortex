@@ -1137,7 +1137,7 @@ func validateBucketProviders(predictor *userconfig.Predictor, provider types.Pro
 	checkForIncorrectBucketProvider := func(modelPath string) error {
 		isS3Path := strings.HasPrefix(modelPath, "s3://")
 		isGCSPath := strings.HasPrefix(modelPath, "gs://")
-		if (provider == types.AWSProviderType && !isS3Path) || (provider == types.GCPProviderType && !isGCSPath) || (provider == types.LocalProviderType && isGCSPath) {
+		if (provider == types.AWSProviderType && !isS3Path) || (provider == types.GCPProviderType && !isGCSPath) {
 			return ErrorIncorrectBucketProvider(provider)
 		}
 		return nil
@@ -1146,6 +1146,9 @@ func validateBucketProviders(predictor *userconfig.Predictor, provider types.Pro
 	if predictor.ModelPath != nil {
 		return errors.Wrap(checkForIncorrectBucketProvider(*predictor.ModelPath), userconfig.ModelPathKey)
 	}
+
+	numS3Models := 0
+	numGSModels := 0
 
 	if predictor.Models != nil {
 		if predictor.Models.Dir != nil {
@@ -1159,7 +1162,17 @@ func validateBucketProviders(predictor *userconfig.Predictor, provider types.Pro
 			if err != nil {
 				return errors.Wrap(err, userconfig.ModelsKey, userconfig.ModelsPathsKey, model.Name)
 			}
+			if strings.HasPrefix(model.ModelPath, "s3://") {
+				numS3Models++
+			}
+			if strings.HasPrefix(model.ModelPath, "gs://") {
+				numGSModels++
+			}
 		}
+	}
+
+	if numS3Models > 0 && numGSModels > 0 {
+		return ErrorMixedBucketProviders()
 	}
 
 	return nil
