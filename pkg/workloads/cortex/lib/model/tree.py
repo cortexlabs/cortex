@@ -98,8 +98,8 @@ class ModelsTree:
             model_paths: Cloud model paths to each model.
             sub_paths: A list of filepaths lists for each file of each model.
             timestamps: When was each versioned model updated the last time on the upstream. When no versions are passed, a timestamp is still expected.
-            bucket_providers: A list with the bucket providers for each model ("s3" or "gs").
-            bucket_names: A list with the bucket_names required for each model.
+            bucket_providers: A list with the bucket providers for each model ("s3" or "gs"). Empty elements if none are used.
+            bucket_names: A list with the bucket_names required for each model. Empty elements if no bucket is used.
 
         Returns:
             The loaded model IDs ("<model-name>-<model-version") that haven't been found in the passed parameters.
@@ -181,8 +181,8 @@ class ModelsTree:
         Locking is required.
 
         Args:
-            provider: The bucket provider for the model ("s3" or "gs").
-            bucket: The cloud bucket on which the model is stored.
+            provider: The bucket provider for the model ("s3" or "gs"). Empty if no bucket was used.
+            bucket: The cloud bucket on which the model is stored. Empty if there's no bucket.
             model_name: The unique name of the model as discovered in models:dir or specified in models:paths.
             model_version: A detected version of the model.
             model_path: The model path to the versioned model.

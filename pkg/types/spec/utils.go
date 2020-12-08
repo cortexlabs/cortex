@@ -17,7 +17,6 @@ limitations under the License.
 package spec
 
 import (
-	"fmt"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -86,63 +85,29 @@ func surgeOrUnavailableValidator(str string) (string, error) {
 	return str, nil
 }
 
-// Verifies if modelName is found in models slice.
-func isModelNameIn(models []userconfig.ModelResource, modelName string) bool {
-	for _, model := range models {
-		if model.Name == modelName {
-			return true
-		}
+func getErrorForPredictorType(api userconfig.API, modelPrefix string, modelPaths []string) error {
+	switch api.Predictor.Type {
+	case userconfig.PythonPredictorType:
+		return ErrorInvalidPythonModelPath(modelPrefix, modelPaths)
+	case userconfig.ONNXPredictorType:
+		return ErrorInvalidONNXModelPath(modelPrefix, modelPaths)
+	case userconfig.TensorFlowPredictorType:
+		return ErrorInvalidTensorFlowModelPath(modelPrefix, api.Compute.Inf > 0, modelPaths)
 	}
-	return false
-}
-
-func modelResourceToCurated(modelResources []userconfig.ModelResource, projectDir string) ([]CuratedModelResource, error) {
-	models := []CuratedModelResource{}
-	for _, model := range modelResources {
-		isS3Path := strings.HasPrefix(model.ModelPath, "s3://")
-		isGCSPath := strings.HasPrefix(model.ModelPath, "gs://")
-		if !isS3Path && !isGCSPath {
-			model.ModelPath = files.RelToAbsPath(model.ModelPath, projectDir)
-		}
-
-		model.ModelPath = s.EnsureSuffix(model.ModelPath, "/")
-
-		models = append(models, CuratedModelResource{
-			ModelResource: &userconfig.ModelResource{
-				Name:         model.Name,
-				ModelPath:    model.ModelPath,
-				SignatureKey: model.SignatureKey,
-			},
-			S3Path:  isS3Path,
-			GCSPath: isGCSPath,
-		})
-	}
-
-	return models, nil
+	return nil
 }
 
 func validateDirModels(modelPath string, api userconfig.API, projectDir string, awsClient *aws.Client, gcpClient *gcp.Client, extraValidators []modelValidator) ([]CuratedModelResource, error) {
 	var bucket string
 	var dirPrefix string
 	var modelDirPaths []string
+	var err error
 
 	modelPath = s.EnsureSuffix(modelPath, "/")
 
 	s3Path := strings.HasPrefix(modelPath, "s3://")
 	gcsPath := strings.HasPrefix(modelPath, "gs://")
 	localPath := !s3Path && !gcsPath
-
-	errFunc := func(modelPrefix string, modelPaths []string) error {
-		switch api.Predictor.Type {
-		case userconfig.PythonPredictorType:
-			return ErrorInvalidPythonModelPath(modelPrefix, modelPaths)
-		case userconfig.ONNXPredictorType:
-			return ErrorInvalidONNXModelPath(modelPrefix, modelPaths)
-		case userconfig.TensorFlowPredictorType:
-			return ErrorInvalidTensorFlowModelPath(modelPrefix, api.Compute.Inf > 0, modelPaths)
-		}
-		return nil
-	}
 
 	if s3Path {
 		awsClientForBucket, err := aws.NewFromClientS3Path(modelPath, awsClient)
@@ -162,8 +127,6 @@ func validateDirModels(modelPath string, api userconfig.API, projectDir string, 
 		modelDirPaths = aws.ConvertS3ObjectsToKeys(s3Objects...)
 	}
 	if gcsPath {
-		var err error
-
 		bucket, dirPrefix, err = gcp.SplitGCSPath(modelPath)
 		if err != nil {
 			return nil, err
@@ -189,7 +152,7 @@ func validateDirModels(modelPath string, api userconfig.API, projectDir string, 
 		}
 	}
 	if len(modelDirPaths) == 0 {
-		return nil, errFunc(dirPrefix, modelDirPaths)
+		return nil, getErrorForPredictorType(api, dirPrefix, modelDirPaths)
 	}
 
 	modelNames := []string{}
@@ -207,10 +170,8 @@ func validateDirModels(modelPath string, api userconfig.API, projectDir string, 
 
 		modelStructureType := determineBaseModelStructure(modelDirPaths, modelPrefix)
 		if modelStructureType == userconfig.UnknownModelStructureType {
-			return nil, errors.Wrap(errFunc(modelPrefix, nil), modelName)
+			return nil, errors.Wrap(getErrorForPredictorType(api, modelPrefix, nil), modelName)
 		}
-
-		fmt.Println("we got", modelStructureType, "for", modelName, "of", aws.S3Path(bucket, modelPrefix))
 
 		var versions []string
 		if modelStructureType == userconfig.VersionedModelType {
@@ -271,18 +232,7 @@ func validateModels(models []userconfig.ModelResource, api userconfig.API, proje
 	var bucket string
 	var modelPrefix string
 	var modelPaths []string
-
-	errFunc := func(modelPrefix string, modelPaths []string) error {
-		switch api.Predictor.Type {
-		case userconfig.PythonPredictorType:
-			return ErrorInvalidPythonModelPath(modelPrefix, modelPaths)
-		case userconfig.ONNXPredictorType:
-			return ErrorInvalidONNXModelPath(modelPrefix, modelPaths)
-		case userconfig.TensorFlowPredictorType:
-			return ErrorInvalidTensorFlowModelPath(modelPrefix, api.Compute.Inf > 0, modelPaths)
-		}
-		return nil
-	}
+	var err error
 
 	modelResources := make([]CuratedModelResource, len(models))
 	for i, model := range models {
@@ -312,8 +262,6 @@ func validateModels(models []userconfig.ModelResource, api userconfig.API, proje
 		}
 
 		if gcsPath {
-			var err error
-
 			bucket, modelPrefix, err = gcp.SplitGCSPath(model.ModelPath)
 			if err != nil {
 				return nil, errors.Wrap(err, model.Name)
@@ -341,15 +289,13 @@ func validateModels(models []userconfig.ModelResource, api userconfig.API, proje
 			}
 		}
 		if len(modelPaths) == 0 {
-			return nil, errors.Wrap(errFunc(modelPrefix, modelPaths), model.Name)
+			return nil, errors.Wrap(getErrorForPredictorType(api, modelPrefix, modelPaths), model.Name)
 		}
 
 		modelStructureType := determineBaseModelStructure(modelPaths, modelPrefix)
 		if modelStructureType == userconfig.UnknownModelStructureType {
 			return nil, errors.Wrap(ErrorInvalidPythonModelPath(modelPath, []string{}), model.Name)
 		}
-
-		fmt.Println("we got", modelStructureType, "for", model.Name, "of", modelPath)
 
 		var versions []string
 		if modelStructureType == userconfig.VersionedModelType {

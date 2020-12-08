@@ -509,7 +509,7 @@ def model_downloader(
         bucket_name: Name of the bucket where the model is stored.
         model_name: Name of the model. Is part of the model's local path.
         model_version: Version of the model. Is part of the model's local path.
-        model_path: Model prefix to the versioned model.
+        model_path: Model prefix of the versioned model.
         temp_dir: Where to temporarily store the model for validation.
         model_dir: The top directory of where all models are stored locally.
 

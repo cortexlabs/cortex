@@ -385,7 +385,6 @@ class FileBasedModelsTreeUpdater(mp.Process):
                     passed_validation = False
                     shutil.rmtree(temp_dest)
 
-                    cloud_path = ""
                     if bucket_provider == "s3":
                         cloud_path = S3.construct_s3_path(bucket_name, cloud_src)
                     if bucket_provider == "gs":
@@ -487,7 +486,6 @@ class FileBasedModelsTreeUpdater(mp.Process):
                 passed_validation = False
                 shutil.rmtree(temp_dest)
 
-                cloud_path = ""
                 if bucket_provider == "s3":
                     cloud_path = S3.construct_s3_path(bucket_name, model_path)
                 if bucket_provider == "gs":
@@ -1007,7 +1005,6 @@ class TFSModelLoader(mp.Process):
                     passed_validation = False
                     shutil.rmtree(temp_dest)
 
-                    cloud_path = ""
                     if bucket_provider == "s3":
                         cloud_path = S3.construct_s3_path(bucket_name, model_path)
                     if bucket_provider == "gs":
@@ -1094,7 +1091,6 @@ class TFSModelLoader(mp.Process):
                 passed_validation = False
                 shutil.rmtree(temp_dest)
 
-                cloud_path = ""
                 if bucket_provider == "s3":
                     cloud_path = S3.construct_s3_path(bucket_name, model_path)
                 if bucket_provider == "gs":
