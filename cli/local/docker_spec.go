@@ -122,7 +122,7 @@ func getAPIEnv(api *spec.API, awsClient *aws.Client, gcpClient *gcp.Client) []st
 		}
 	}
 	if gcpClient != nil {
-		envs = append(envs, "GOOGLE_APPLICATION_CREDENTIALS="+"/var/secrets/google/key.json")
+		envs = append(envs, "GOOGLE_APPLICATION_CREDENTIALS="+"/var/google_key.json")
 	}
 
 	return envs
@@ -211,8 +211,8 @@ func deployPythonContainer(api *spec.API, awsClient *aws.Client, gcpClient *gcp.
 		docker.CopyToContainer(containerInfo.ID, &archive.Input{
 			Bytes: []archive.BytesInput{
 				{
-					Content: gcpClient.GetCredentialsJSON(),
-					Dest:    "/var/secrets/google/key.json",
+					Content: gcpClient.CredentialsJSON,
+					Dest:    "/var/google_key.json",
 				},
 			},
 		}, "/")
@@ -315,8 +315,8 @@ func deployONNXContainer(api *spec.API, awsClient *aws.Client, gcpClient *gcp.Cl
 		docker.CopyToContainer(containerInfo.ID, &archive.Input{
 			Bytes: []archive.BytesInput{
 				{
-					Content: gcpClient.GetCredentialsJSON(),
-					Dest:    "/var/secrets/google/key.json",
+					Content: gcpClient.CredentialsJSON,
+					Dest:    "/var/google_key.json",
 				},
 			},
 		}, "/")
@@ -502,11 +502,11 @@ func deployTensorFlowContainers(api *spec.API, awsClient *aws.Client, gcpClient 
 	}
 
 	if gcpClient != nil {
-		docker.CopyToContainer(containerInfo.ID, &archive.Input{
+		docker.CopyToContainer(containerCreateRequest.ID, &archive.Input{
 			Bytes: []archive.BytesInput{
 				{
-					Content: gcpClient.GetCredentialsJSON(),
-					Dest:    "/var/secrets/google/key.json",
+					Content: gcpClient.CredentialsJSON,
+					Dest:    "/var/google_key.json",
 				},
 			},
 		}, "/")
@@ -540,8 +540,8 @@ func retryWithNvidiaRuntime(err error, containerConfig *container.Config, hostCo
 				docker.CopyToContainer(containerCreateRequest.ID, &archive.Input{
 					Bytes: []archive.BytesInput{
 						{
-							Content: gcpClient.GetCredentialsJSON(),
-							Dest:    "/var/secrets/google/key.json",
+							Content: gcpClient.CredentialsJSON,
+							Dest:    "/var/google_key.json",
 						},
 					},
 				}, "/")
