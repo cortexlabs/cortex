@@ -45,7 +45,7 @@ class Client:
         self.env_name = env["name"]
 
     # CORTEX_VERSION_MINOR x5
-    def deploy(
+    def create_api(
         self,
         api_spec: dict,
         predictor=None,

@@ -9,7 +9,7 @@ _WARNING: you are on the master branch, please refer to the docs on the branch t
   * [env\_list](#env_list)
   * [env\_delete](#env_delete)
 * [cortex.client.Client](#cortex-client-client)
-  * [deploy](#deploy)
+  * [create\_api](#create_api)
   * [get\_api](#get_api)
   * [list\_apis](#list_apis)
   * [get\_job](#get_job)
@@ -104,12 +104,12 @@ Delete an environment configured on this machine.
 
 # cortex.client.Client
 
-## deploy
+## create\_api
 
 <!-- CORTEX_VERSION_MINOR x5 -->
 
 ```python
- | deploy(api_spec: dict, predictor=None, requirements=[], conda_packages=[], project_dir: Optional[str] = None, force: bool = True, wait: bool = False) -> list
+ | create_api(api_spec: dict, predictor=None, requirements=[], conda_packages=[], project_dir: Optional[str] = None, force: bool = True, wait: bool = False) -> list
 ```
 
 Deploy an API.

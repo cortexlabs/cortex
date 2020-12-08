@@ -59,7 +59,7 @@ api_spec = {
   }
 }
 
-cx_local.deploy(api_spec, project_dir=".", wait=True)
+cx_local.create_api(api_spec, project_dir=".", wait=True)
 ```
 
 ## Consume your API
@@ -126,7 +126,7 @@ api_spec = {
   }
 }
 
-cx_aws.deploy(api_spec, project_dir=".")
+cx_aws.create_api(api_spec, project_dir=".")
 ```
 
 Monitor the status of your APIs using `cortex get` using your CLI:
@@ -169,7 +169,7 @@ api_spec = {
   }
 }
 
-cx_aws.deploy(api_spec, project_dir=".")
+cx_aws.create_api(api_spec, project_dir=".")
 ```
 
 As your new API is initializing, the old API will continue to respond to prediction requests. Once the API's status becomes "live" (with one up-to-date replica), traffic will be routed to the updated version. You can track the status of your API using `cortex get`:
