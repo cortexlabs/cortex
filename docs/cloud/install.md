@@ -8,4 +8,8 @@ To spin up Cortex using AWS as the cloud provider, follow [these instructions](.
 
 ## GCP
 
-To spin up Cortex using AWS as the cloud provider, follow [these instructions](../gcp/install.md).
+To spin up Cortex using GCP as the cloud provider, follow [these instructions](../gcp/install.md).
+
+## Local
+
+If you'll only be using Cortex locally, install it with `pip install cortex`.

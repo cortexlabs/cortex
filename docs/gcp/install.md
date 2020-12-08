@@ -6,21 +6,21 @@ _WARNING: you are on the master branch, please refer to the docs on the branch t
 
 Make sure [Docker](https://docs.docker.com/install) is running on your machine.
 
-If you're using GPUs, make sure your GPU quota is within the desirable values. More on GPU quotas [here](https://cloud.google.com/compute/quotas).
+If you're using GPUs, make sure your GPU quota is sufficient (see [here](https://cloud.google.com/compute/quotas)).
 
 ```bash
 # install the CLI
 pip install cortex
 
 # spin up Cortex on your GCP account
-cortex cluster up  # or: cortex cluster up --config cluster.yaml (see configuration options below)
+cortex cluster-gcp up  # or: cortex cluster-gcp up --config cluster.yaml (see configuration options below)
 
 # set the default environment
 cortex env default gcp
 ```
 
 <!-- CORTEX_VERSION_MINOR -->
-Try the [tutorial](../../examples/pytorch/text-generator/README.md) or deploy one of our [examples](https://github.com/cortexlabs/cortex/tree/master/examples).
+Try the [tutorial](../../examples/pytorch/text-generator/README.md).
 
 ## Configure Cortex
 
@@ -31,13 +31,16 @@ Try the [tutorial](../../examples/pytorch/text-generator/README.md) or deploy on
 # GKE cluster name
 cluster_name: cortex
 
-# GCP one
-zone: us-east1-d
+# GCP project ID
+project: <your GCP project ID>
+
+# GCP zone for your cluster
+zone: us-central1-a
 
 # instance type
 instance_type: n1-standard-2
 
-# GPU to attach to your instance
+# GPU to attach to your instance (optional)
 accelerator_type: nvidia-tesla-t4
 
 # minimum number of instances
