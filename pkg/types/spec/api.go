@@ -164,17 +164,6 @@ func KeysPrefix(apiName string, clusterName string) string {
 	) + "/"
 }
 
-func (api API) RawAPIKey(clusterName string) string {
-	return filepath.Join(
-		clusterName,
-		"apis",
-		api.Name,
-		"raw_api",
-		api.ID,
-		consts.CortexVersion+"-cortex.yaml",
-	)
-}
-
 func MetadataRoot(apiName string, clusterName string) string {
 	return filepath.Join(
 		clusterName,
