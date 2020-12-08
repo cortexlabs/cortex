@@ -45,7 +45,7 @@ sed -i "/\* \[Client](#cortex\.client\.Client)/d" $ROOT/docs/miscellaneous/pytho
 sed -i "s/\* \[cortex\.client](#cortex\.client)/\* [cortex\.client\.Client](#cortex-client-client)/g" $ROOT/docs/miscellaneous/python-client.md
 sed -i "s/# cortex\.client/# cortex\.client\.Client/g" $ROOT/docs/miscellaneous/python-client.md
 # delete unnecessary section body
-sed -i "/# cortex.client.Client/,/## deploy/{//!d}" $ROOT/docs/miscellaneous/python-client.md
+sed -i "/# cortex.client.Client/,/## create\\\_api/{//!d}" $ROOT/docs/miscellaneous/python-client.md
 sed -i "s/# cortex.client.Client/# cortex.client.Client\n/g" $ROOT/docs/miscellaneous/python-client.md
 
 # fix table of contents links
@@ -61,7 +61,7 @@ sed -i 's/[[:space:]]*$//' $ROOT/docs/miscellaneous/python-client.md
 truncate -s -1 $ROOT/docs/miscellaneous/python-client.md
 
 # Cortex version comment
-sed -i "s/^## deploy/## deploy\n\n<!-- CORTEX_VERSION_MINOR x5 -->/g" $ROOT/docs/miscellaneous/python-client.md
+sed -i "s/^## create\\\_api/## create\\\_api\n\n<!-- CORTEX_VERSION_MINOR x5 -->/g" $ROOT/docs/miscellaneous/python-client.md
 
 pip3 uninstall -y cortex
 rm -rf $ROOT/pkg/workloads/cortex/client/cortex.egg-info

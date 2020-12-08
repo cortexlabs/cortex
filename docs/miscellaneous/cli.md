@@ -75,6 +75,21 @@ Flags:
   -h, --help         help for logs
 ```
 
+### patch
+
+```text
+update API configuration for a deployed API
+
+Usage:
+  cortex patch [CONFIG_FILE] [flags]
+
+Flags:
+  -e, --env string      environment to use (default "local")
+  -f, --force           override the in-progress api update
+  -o, --output string   output format: one of pretty|json (default "pretty")
+  -h, --help            help for patch
+```
+
 ### refresh
 
 ```text
@@ -122,7 +137,7 @@ Flags:
 ### cluster up
 
 ```text
-spin up a cluster
+spin up a cluster on aws
 
 Usage:
   cortex cluster up [flags]
@@ -148,7 +163,7 @@ Usage:
 
 Flags:
   -c, --config string          path to a cluster configuration file
-  -n, --name string            aws name of the cluster
+  -n, --name string            name of the cluster
   -r, --region string          aws region of the cluster
       --aws-key string         aws access key id
       --aws-secret string      aws secret access key
@@ -187,7 +202,7 @@ Usage:
 
 Flags:
   -c, --config string       path to a cluster configuration file
-  -n, --name string         aws name of the cluster
+  -n, --name string         name of the cluster
   -r, --region string       aws region of the cluster
       --aws-key string      aws access key id
       --aws-secret string   aws secret access key
@@ -205,7 +220,7 @@ Usage:
 
 Flags:
   -c, --config string       path to a cluster configuration file
-  -n, --name string         aws name of the cluster
+  -n, --name string         name of the cluster
   -r, --region string       aws region of the cluster
       --aws-key string      aws access key id
       --aws-secret string   aws secret access key

@@ -90,17 +90,7 @@ var _deployCmd = &cobra.Command{
 		}
 
 		var deployResults []schema.DeployResult
-		if env.Provider == types.AWSProviderType {
-			deploymentBytes, err := getDeploymentBytes(env.Provider, configPath)
-			if err != nil {
-				exit.Error(err)
-			}
-
-			deployResults, err = cluster.Deploy(MustGetOperatorConfig(env.Name), configPath, deploymentBytes, _flagDeployForce)
-			if err != nil {
-				exit.Error(err)
-			}
-		} else {
+		if env.Provider == types.LocalProviderType {
 			projectFiles, err := findProjectFiles(env.Provider, configPath)
 			if err != nil {
 				exit.Error(err)
@@ -108,6 +98,16 @@ var _deployCmd = &cobra.Command{
 
 			local.OutputType = _flagOutput // Set output type for the Local package
 			deployResults, err = local.Deploy(env, configPath, projectFiles, _flagDeployDisallowPrompt)
+			if err != nil {
+				exit.Error(err)
+			}
+		} else {
+			deploymentBytes, err := getDeploymentBytes(env.Provider, configPath)
+			if err != nil {
+				exit.Error(err)
+			}
+
+			deployResults, err = cluster.Deploy(MustGetOperatorConfig(env.Name), configPath, deploymentBytes, _flagDeployForce)
 			if err != nil {
 				exit.Error(err)
 			}
@@ -119,7 +119,7 @@ var _deployCmd = &cobra.Command{
 			if err != nil {
 				exit.Error(err)
 			}
-			fmt.Println(string(bytes))
+			fmt.Print(string(bytes))
 		case flags.MixedOutputType:
 			err := mixedPrint(deployResults)
 			if err != nil {
@@ -195,6 +195,7 @@ func findProjectFiles(provider types.ProviderType, configPath string) ([]string,
 		return nil, err
 	}
 
+	// Include .env file containing environment variables
 	dotEnvPath := path.Join(projectRoot, ".env")
 	if files.IsFile(dotEnvPath) {
 		projectPaths = append(projectPaths, dotEnvPath)

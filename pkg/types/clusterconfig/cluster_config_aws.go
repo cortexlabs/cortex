@@ -41,8 +41,6 @@ import (
 )
 
 const (
-	ClusterNameTag = "cortex.dev/cluster-name"
-
 	// the s3 url should be used (rather than the cloudfront URL) to avoid caching
 	_cniSupportedInstancesURL = "https://cortex-public.s3-us-west-2.amazonaws.com/cli-assets/cni_supported_instances.txt"
 )
@@ -52,10 +50,10 @@ var (
 	_cachedCNISupportedInstances *string
 	// This regex is stricter than the actual S3 rules
 	_strictS3BucketRegex = regexp.MustCompile(`^([a-z0-9])+(-[a-z0-9]+)*$`)
-	_invalidTagPrefixes  = []string{"kubernetes.io/", "k8s.io/", "eksctl.", "alpha.eksctl.", "beta.eksctl.", "aws:", "Aws:", "aWs:", "awS:", "aWS:", "AwS:", "aWS:", "AWS:"}
 )
 
 type Config struct {
+	Provider                   types.ProviderType `json:"provider" yaml:"provider"`
 	InstanceType               *string            `json:"instance_type" yaml:"instance_type"`
 	MinInstances               *int64             `json:"min_instances" yaml:"min_instances"`
 	MaxInstances               *int64             `json:"max_instances" yaml:"max_instances"`
@@ -105,13 +103,14 @@ type InternalConfig struct {
 	Config
 
 	// Populated by operator
-	ID                 string                    `json:"id"`
-	APIVersion         string                    `json:"api_version"`
-	OperatorInCluster  bool                      `json:"operator_in_cluster"`
-	InstanceMetadata   aws.InstanceMetadata      `json:"instance_metadata"`
-	APIGateway         *apigatewayv2.Api         `json:"api_gateway"`
-	VPCLink            *apigatewayv2.VpcLink     `json:"vpc_link"`
-	VPCLinkIntegration *apigatewayv2.Integration `json:"vpc_link_integration"`
+	APIVersion          string                    `json:"api_version"`
+	OperatorID          string                    `json:"operator_id"`
+	ClusterID           string                    `json:"cluster_id"`
+	IsOperatorInCluster bool                      `json:"is_operator_in_cluster"`
+	InstanceMetadata    aws.InstanceMetadata      `json:"instance_metadata"`
+	APIGateway          *apigatewayv2.Api         `json:"api_gateway"`
+	VPCLink             *apigatewayv2.VpcLink     `json:"vpc_link"`
+	VPCLinkIntegration  *apigatewayv2.Integration `json:"vpc_link_integration"`
 }
 
 // The bare minimum to identify a cluster
@@ -124,6 +123,16 @@ type AccessConfig struct {
 var UserValidation = &cr.StructValidation{
 	Required: true,
 	StructFieldValidations: []*cr.StructFieldValidation{
+		{
+			StructField: "Provider",
+			StringValidation: &cr.StringValidation{
+				Validator: specificProviderTypeValidator(types.AWSProviderType),
+				Default:   types.AWSProviderType.String(),
+			},
+			Parser: func(str string) (interface{}, error) {
+				return types.ProviderTypeFromString(str), nil
+			},
+		},
 		{
 			StructField: "InstanceType",
 			StringPtrValidation: &cr.StringPtrValidation{
@@ -457,10 +466,6 @@ func RegionValidator(region string) (string, error) {
 		return "", err
 	}
 	return region, nil
-}
-
-func validateImageVersion(image string) (string, error) {
-	return cr.ValidateImageVersion(image, consts.CortexVersion)
 }
 
 var Validation = &cr.StructValidation{
@@ -807,39 +812,6 @@ func applyPromptDefaults(defaults Config) *Config {
 	return defaultConfig
 }
 
-func RegionPrompt(clusterConfig *Config, disallowPrompt bool) error {
-	defaults := applyPromptDefaults(*clusterConfig)
-
-	if disallowPrompt {
-		if clusterConfig.Region == nil {
-			clusterConfig.Region = defaults.Region
-		}
-		return nil
-	}
-
-	regionPrompt := &cr.PromptValidation{
-		SkipNonNilFields: true,
-		PromptItemValidations: []*cr.PromptItemValidation{
-			{
-				StructField: "Region",
-				PromptOpts: &prompt.Options{
-					Prompt: RegionUserKey,
-				},
-				StringPtrValidation: &cr.StringPtrValidation{
-					Validator: RegionValidator,
-					Default:   defaults.Region,
-				},
-			},
-		},
-	}
-	err := cr.ReadPrompt(clusterConfig, regionPrompt)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
 func InstallPrompt(clusterConfig *Config, disallowPrompt bool) error {
 	defaults := applyPromptDefaults(*clusterConfig)
 
@@ -865,7 +837,7 @@ func InstallPrompt(clusterConfig *Config, disallowPrompt bool) error {
 			{
 				StructField: "InstanceType",
 				PromptOpts: &prompt.Options{
-					Prompt: "aws instance type",
+					Prompt: "instance type",
 				},
 				StringPtrValidation: &cr.StringPtrValidation{
 					Required:  true,
@@ -989,13 +961,6 @@ var AccessPromptValidation = &cr.PromptValidation{
 			},
 		},
 	},
-}
-
-func validateClusterName(clusterName string) (string, error) {
-	if !_strictS3BucketRegex.MatchString(clusterName) {
-		return "", errors.Wrap(ErrorDidNotMatchStrictS3Regex(), clusterName)
-	}
-	return clusterName, nil
 }
 
 func validateBucketNameOrEmpty(bucket string) (string, error) {

@@ -25,17 +25,23 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/gcp"
 	"github.com/cortexlabs/cortex/pkg/lib/hash"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
+	"github.com/cortexlabs/cortex/pkg/types"
 	"github.com/cortexlabs/cortex/pkg/types/clusterconfig"
 )
 
 const _clusterConfigPath = "/configs/cluster/cluster.yaml"
+const _clusterConfigBackupPath = "/configs/cluster-aws/cluster-aws.yaml"
 
 var (
+	Provider        types.ProviderType
 	Cluster         *clusterconfig.InternalConfig
+	GCPCluster      *clusterconfig.InternalGCPConfig
 	AWS             *aws.Client
+	GCP             *gcp.Client
 	K8s             *k8s.Client
 	K8sIstio        *k8s.Client
 	K8sAllNamspaces *k8s.Client
@@ -44,41 +50,98 @@ var (
 func Init() error {
 	var err error
 
-	Cluster = &clusterconfig.InternalConfig{
-		APIVersion:        consts.CortexVersion,
-		OperatorInCluster: strings.ToLower(os.Getenv("CORTEX_OPERATOR_IN_CLUSTER")) != "false",
-	}
-
 	clusterConfigPath := os.Getenv("CORTEX_CLUSTER_CONFIG_PATH")
 	if clusterConfigPath == "" {
 		clusterConfigPath = _clusterConfigPath
 	}
 
-	errs := cr.ParseYAMLFile(Cluster, clusterconfig.Validation, clusterConfigPath)
-	if errors.HasError(errs) {
-		return errors.FirstError(errs...)
-	}
-
-	Cluster.InstanceMetadata = aws.InstanceMetadatas[*Cluster.Region][*Cluster.InstanceType]
-
-	AWS, err = aws.NewFromEnv(*Cluster.Region)
+	Provider, err = clusterconfig.GetClusterProviderType(clusterConfigPath)
 	if err != nil {
 		return err
 	}
 
-	_, hashedAccountID, err := AWS.CheckCredentials()
-	if err != nil {
-		return err
+	if Provider == types.AWSProviderType {
+		Cluster = &clusterconfig.InternalConfig{
+			APIVersion:          consts.CortexVersion,
+			IsOperatorInCluster: strings.ToLower(os.Getenv("CORTEX_OPERATOR_IN_CLUSTER")) != "false",
+		}
+
+		errs := cr.ParseYAMLFile(Cluster, clusterconfig.Validation, clusterConfigPath)
+		if errors.HasError(errs) {
+			return errors.FirstError(errs...)
+		}
+
+		Cluster.InstanceMetadata = aws.InstanceMetadatas[*Cluster.Region][*Cluster.InstanceType]
+
+		AWS, err = aws.NewFromEnv(*Cluster.Region)
+		if err != nil {
+			return err
+		}
+
+		_, hashedAccountID, err := AWS.CheckCredentials()
+		if err != nil {
+			return err
+		}
+		Cluster.OperatorID = hashedAccountID
+		Cluster.ClusterID = hash.String(Cluster.ClusterName + *Cluster.Region + hashedAccountID)
+
+		if Cluster.APIGatewaySetting == clusterconfig.PublicAPIGatewaySetting {
+			apiGateway, err := AWS.GetAPIGatewayByTag(clusterconfig.ClusterNameTag, Cluster.ClusterName)
+			if err != nil {
+				return err
+			} else if apiGateway == nil {
+				return ErrorNoAPIGateway()
+			}
+			Cluster.APIGateway = apiGateway
+
+			if Cluster.APILoadBalancerScheme == clusterconfig.InternalLoadBalancerScheme {
+				vpcLink, err := AWS.GetVPCLinkByTag(clusterconfig.ClusterNameTag, Cluster.ClusterName)
+				if err != nil {
+					return err
+				} else if vpcLink == nil {
+					return ErrorNoVPCLink()
+				}
+				Cluster.VPCLink = vpcLink
+
+				integration, err := AWS.GetVPCLinkIntegration(*Cluster.APIGateway.ApiId, *Cluster.VPCLink.VpcLinkId)
+				if err != nil {
+					return err
+				} else if integration == nil {
+					return ErrorNoVPCLinkIntegration()
+				}
+				Cluster.VPCLinkIntegration = integration
+			}
+		}
 	}
 
-	Cluster.ID = hash.String(Cluster.ClusterName + *Cluster.Region + hashedAccountID)
+	if Provider == types.GCPProviderType {
+		GCPCluster = &clusterconfig.InternalGCPConfig{
+			APIVersion:          consts.CortexVersion,
+			IsOperatorInCluster: strings.ToLower(os.Getenv("CORTEX_OPERATOR_IN_CLUSTER")) != "false",
+		}
+
+		errs := cr.ParseYAMLFile(GCPCluster, clusterconfig.GCPValidation, clusterConfigPath)
+		if errors.HasError(errs) {
+			return errors.FirstError(errs...)
+		}
+
+		GCP, err = gcp.NewFromEnvCheckProjectID(*GCPCluster.Project)
+		if err != nil {
+			return err
+		}
+
+		GCPCluster.OperatorID = GCP.HashedProjectID
+		GCPCluster.ClusterID = hash.String(GCPCluster.ClusterName + *GCPCluster.Project + *GCPCluster.Zone)
+
+		GCPCluster.Bucket = clusterconfig.GCPBucketName(GCPCluster.ClusterName, *GCPCluster.Project, *GCPCluster.Zone)
+	}
 
 	err = telemetry.Init(telemetry.Config{
-		Enabled: Cluster.Telemetry,
-		UserID:  hashedAccountID,
+		Enabled: Telemetry(),
+		UserID:  OperatorID(),
 		Properties: map[string]string{
-			"cluster_id":  Cluster.ID,
-			"operator_id": hashedAccountID,
+			"cluster_id":  ClusterID(),
+			"operator_id": OperatorID(),
 		},
 		Environment: "operator",
 		LogErrors:   true,
@@ -88,43 +151,15 @@ func Init() error {
 		fmt.Println(errors.Message(err))
 	}
 
-	if Cluster.APIGatewaySetting == clusterconfig.PublicAPIGatewaySetting {
-		apiGateway, err := AWS.GetAPIGatewayByTag(clusterconfig.ClusterNameTag, Cluster.ClusterName)
-		if err != nil {
-			return err
-		} else if apiGateway == nil {
-			return ErrorNoAPIGateway()
-		}
-		Cluster.APIGateway = apiGateway
-
-		if Cluster.APILoadBalancerScheme == clusterconfig.InternalLoadBalancerScheme {
-			vpcLink, err := AWS.GetVPCLinkByTag(clusterconfig.ClusterNameTag, Cluster.ClusterName)
-			if err != nil {
-				return err
-			} else if vpcLink == nil {
-				return ErrorNoVPCLink()
-			}
-			Cluster.VPCLink = vpcLink
-
-			integration, err := AWS.GetVPCLinkIntegration(*Cluster.APIGateway.ApiId, *Cluster.VPCLink.VpcLinkId)
-			if err != nil {
-				return err
-			} else if integration == nil {
-				return ErrorNoVPCLinkIntegration()
-			}
-			Cluster.VPCLinkIntegration = integration
-		}
-	}
-
-	if K8s, err = k8s.New("default", Cluster.OperatorInCluster); err != nil {
+	if K8s, err = k8s.New("default", IsOperatorInCluster(), nil); err != nil {
 		return err
 	}
 
-	if K8sIstio, err = k8s.New("istio-system", Cluster.OperatorInCluster); err != nil {
+	if K8sIstio, err = k8s.New("istio-system", IsOperatorInCluster(), nil); err != nil {
 		return err
 	}
 
-	if K8sAllNamspaces, err = k8s.New("", Cluster.OperatorInCluster); err != nil {
+	if K8sAllNamspaces, err = k8s.New("", IsOperatorInCluster(), nil); err != nil {
 		return err
 	}
 

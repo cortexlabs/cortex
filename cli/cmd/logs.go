@@ -18,9 +18,12 @@ package cmd
 
 import (
 	"fmt"
+	"net/http"
+	"net/url"
 
 	"github.com/cortexlabs/cortex/cli/cluster"
 	"github.com/cortexlabs/cortex/cli/local"
+	"github.com/cortexlabs/cortex/pkg/lib/console"
 	"github.com/cortexlabs/cortex/pkg/lib/exit"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	"github.com/cortexlabs/cortex/pkg/types"
@@ -65,7 +68,32 @@ var _logsCmd = &cobra.Command{
 					exit.Error(err)
 				}
 			}
-		} else {
+		}
+
+		if env.Provider == types.GCPProviderType {
+			gcpLogsResponse, err := cluster.GetGCPLogsURL(MustGetOperatorConfig(env.Name), apiName)
+			if err != nil {
+				exit.Error(err)
+			}
+
+			gcpReq, err := http.NewRequest("GET", "https://console.cloud.google.com/logs/query", nil)
+			if err != nil {
+				exit.Error(err)
+			}
+			query := ""
+			for q, v := range gcpLogsResponse.QueryParams {
+				query += fmt.Sprintf("%s=\"%s\"\n", q, v)
+			}
+			queryValues := make(url.Values)
+			queryValues.Add("query", query)
+			gcpReq.URL.RawQuery = queryValues.Encode()
+
+			gcpLogsURL := gcpReq.URL.String()
+			consoleOutput := console.Bold(fmt.Sprintf("visit the following link to view logs for api %s: ", apiName)) + gcpLogsURL
+			fmt.Println(consoleOutput)
+		}
+
+		if env.Provider == types.LocalProviderType {
 			if len(args) == 2 {
 				exit.Error(ErrorNotSupportedInLocalEnvironment(), fmt.Sprintf("cannot stream logs for job %s for api %s", args[1], args[0]))
 			}

@@ -24,7 +24,6 @@ import (
 	"strings"
 
 	"github.com/cortexlabs/cortex/pkg/consts"
-	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
@@ -106,19 +105,19 @@ func InitContainer(api *spec.API) kcore.Container {
 
 	return kcore.Container{
 		Name:            _downloaderInitContainerName,
-		Image:           config.Cluster.ImageDownloader,
+		Image:           config.ImageDownloader(),
 		ImagePullPolicy: "Always",
 		Args:            []string{"--download=" + downloadArgs},
-		EnvFrom:         BaseEnvVars,
-		VolumeMounts:    DefaultVolumeMounts,
+		EnvFrom:         baseEnvVars(),
+		VolumeMounts:    defaultVolumeMounts(),
 	}
 }
 
 func PythonPredictorContainers(api *spec.API) ([]kcore.Container, []kcore.Volume) {
 	apiPodResourceList := kcore.ResourceList{}
 	apiPodResourceLimitsList := kcore.ResourceList{}
-	apiPodVolumeMounts := DefaultVolumeMounts
-	volumes := DefaultVolumes
+	apiPodVolumeMounts := defaultVolumeMounts()
+	volumes := DefaultVolumes()
 	containers := []kcore.Container{}
 
 	if api.Compute.Inf == 0 {
@@ -176,7 +175,7 @@ func PythonPredictorContainers(api *spec.API) ([]kcore.Container, []kcore.Volume
 		Image:           api.Predictor.Image,
 		ImagePullPolicy: kcore.PullAlways,
 		Env:             getEnvVars(api, APIContainerName),
-		EnvFrom:         BaseEnvVars,
+		EnvFrom:         baseEnvVars(),
 		VolumeMounts:    apiPodVolumeMounts,
 		ReadinessProbe:  FileExistsProbe(_apiReadinessFile),
 		LivenessProbe:   _apiLivenessProbe,
@@ -200,8 +199,8 @@ func TensorFlowPredictorContainers(api *spec.API) ([]kcore.Container, []kcore.Vo
 	apiResourceList := kcore.ResourceList{}
 	tfServingResourceList := kcore.ResourceList{}
 	tfServingLimitsList := kcore.ResourceList{}
-	volumeMounts := DefaultVolumeMounts
-	volumes := DefaultVolumes
+	volumeMounts := defaultVolumeMounts()
+	volumes := DefaultVolumes()
 	containers := []kcore.Container{}
 
 	if api.Compute.Inf == 0 {
@@ -265,7 +264,7 @@ func TensorFlowPredictorContainers(api *spec.API) ([]kcore.Container, []kcore.Vo
 		Image:           api.Predictor.Image,
 		ImagePullPolicy: kcore.PullAlways,
 		Env:             getEnvVars(api, APIContainerName),
-		EnvFrom:         BaseEnvVars,
+		EnvFrom:         baseEnvVars(),
 		VolumeMounts:    volumeMounts,
 		ReadinessProbe:  FileExistsProbe(_apiReadinessFile),
 		LivenessProbe:   _apiLivenessProbe,
@@ -319,8 +318,8 @@ func ONNXPredictorContainers(api *spec.API) []kcore.Container {
 		Image:           api.Predictor.Image,
 		ImagePullPolicy: kcore.PullAlways,
 		Env:             getEnvVars(api, APIContainerName),
-		EnvFrom:         BaseEnvVars,
-		VolumeMounts:    DefaultVolumeMounts,
+		EnvFrom:         baseEnvVars(),
+		VolumeMounts:    defaultVolumeMounts(),
 		ReadinessProbe:  FileExistsProbe(_apiReadinessFile),
 		LivenessProbe:   _apiLivenessProbe,
 		Lifecycle:       nginxGracefulStopper(api.Kind),
@@ -341,10 +340,6 @@ func ONNXPredictorContainers(api *spec.API) []kcore.Container {
 
 func getEnvVars(api *spec.API, container string) []kcore.EnvVar {
 	envVars := []kcore.EnvVar{
-		{
-			Name:  "CORTEX_PROVIDER",
-			Value: types.AWSProviderType.String(),
-		},
 		{
 			Name:  "CORTEX_KIND",
 			Value: api.Kind.String(),
@@ -391,18 +386,17 @@ func getEnvVars(api *spec.API, container string) []kcore.EnvVar {
 		)
 
 		if api.Kind == userconfig.RealtimeAPIKind {
-			// Use api spec indexed by PredictorID for realtime apis to prevent rolling updates when SpecID changes without PredictorID changing
 			envVars = append(envVars,
 				kcore.EnvVar{
 					Name:  "CORTEX_API_SPEC",
-					Value: aws.S3Path(config.Cluster.Bucket, api.PredictorKey),
+					Value: config.BucketPath(api.PredictorKey),
 				},
 			)
 		} else {
 			envVars = append(envVars,
 				kcore.EnvVar{
 					Name:  "CORTEX_API_SPEC",
-					Value: aws.S3Path(config.Cluster.Bucket, api.Key),
+					Value: config.BucketPath(api.Key),
 				},
 			)
 		}
@@ -542,7 +536,7 @@ func tfDownloadArgs(api *spec.API) string {
 		LastLog: fmt.Sprintf(_downloaderLastLog, "tensorflow"),
 		DownloadArgs: []downloadContainerArg{
 			{
-				From:             aws.S3Path(config.Cluster.Bucket, api.ProjectKey),
+				From:             config.BucketPath(api.ProjectKey),
 				To:               path.Join(_emptyDirMountPath, "project"),
 				Unzip:            true,
 				ItemName:         "the project code",
@@ -561,7 +555,7 @@ func pythonDownloadArgs(api *spec.API) string {
 		LastLog: fmt.Sprintf(_downloaderLastLog, "python"),
 		DownloadArgs: []downloadContainerArg{
 			{
-				From:             aws.S3Path(config.Cluster.Bucket, api.ProjectKey),
+				From:             config.BucketPath(api.ProjectKey),
 				To:               path.Join(_emptyDirMountPath, "project"),
 				Unzip:            true,
 				ItemName:         "the project code",
@@ -580,7 +574,7 @@ func onnxDownloadArgs(api *spec.API) string {
 		LastLog: fmt.Sprintf(_downloaderLastLog, "onnx"),
 		DownloadArgs: []downloadContainerArg{
 			{
-				From:             aws.S3Path(config.Cluster.Bucket, api.ProjectKey),
+				From:             config.BucketPath(api.ProjectKey),
 				To:               path.Join(_emptyDirMountPath, "project"),
 				Unzip:            true,
 				ItemName:         "the project code",
@@ -651,7 +645,7 @@ func tensorflowServingContainer(api *spec.API, volumeMounts []kcore.VolumeMount,
 		ImagePullPolicy: kcore.PullAlways,
 		Args:            cmdArgs,
 		Env:             getEnvVars(api, _tfServingContainerName),
-		EnvFrom:         BaseEnvVars,
+		EnvFrom:         baseEnvVars(),
 		VolumeMounts:    volumeMounts,
 		ReadinessProbe: &kcore.Probe{
 			InitialDelaySeconds: 5,
@@ -702,9 +696,9 @@ func RequestMonitorContainer(api *spec.API) kcore.Container {
 		Name:            "request-monitor",
 		Image:           config.Cluster.ImageRequestMonitor,
 		ImagePullPolicy: kcore.PullAlways,
-		Args:            []string{api.Name, config.Cluster.ClusterName},
-		EnvFrom:         BaseEnvVars,
-		VolumeMounts:    DefaultVolumeMounts,
+		Args:            []string{api.Name, config.ClusterName()},
+		EnvFrom:         baseEnvVars(),
+		VolumeMounts:    defaultVolumeMounts(),
 		ReadinessProbe:  FileExistsProbe(_requestMonitorReadinessFile),
 		Resources: kcore.ResourceRequirements{
 			Requests: kcore.ResourceList{
@@ -786,29 +780,63 @@ func waitAPIContainerToStop(apiKind userconfig.Kind) *kcore.Lifecycle {
 	return nil
 }
 
-var BaseEnvVars = []kcore.EnvFromSource{
-	{
-		ConfigMapRef: &kcore.ConfigMapEnvSource{
-			LocalObjectReference: kcore.LocalObjectReference{
-				Name: "env-vars",
+func baseEnvVars() []kcore.EnvFromSource {
+	envVars := []kcore.EnvFromSource{
+		{
+			ConfigMapRef: &kcore.ConfigMapEnvSource{
+				LocalObjectReference: kcore.LocalObjectReference{
+					Name: "env-vars",
+				},
 			},
 		},
-	},
-	{
-		SecretRef: &kcore.SecretEnvSource{
-			LocalObjectReference: kcore.LocalObjectReference{
-				Name: "aws-credentials",
+	}
+
+	if config.Provider == types.AWSProviderType {
+		envVars = append(envVars, kcore.EnvFromSource{
+			SecretRef: &kcore.SecretEnvSource{
+				LocalObjectReference: kcore.LocalObjectReference{
+					Name: "aws-credentials",
+				},
 			},
-		},
-	},
+		})
+	}
+
+	return envVars
 }
 
-var DefaultVolumes = []kcore.Volume{
-	k8s.EmptyDirVolume(_emptyDirVolumeName),
+func DefaultVolumes() []kcore.Volume {
+	var defaultVolumes = []kcore.Volume{
+		k8s.EmptyDirVolume(_emptyDirVolumeName),
+	}
+
+	if config.Provider == types.GCPProviderType {
+		defaultVolumes = append(defaultVolumes, kcore.Volume{
+			Name: "gcp-credentials",
+			VolumeSource: kcore.VolumeSource{
+				Secret: &kcore.SecretVolumeSource{
+					SecretName: "gcp-credentials",
+				},
+			},
+		})
+	}
+
+	return defaultVolumes
 }
 
-var DefaultVolumeMounts = []kcore.VolumeMount{
-	k8s.EmptyDirVolumeMount(_emptyDirVolumeName, _emptyDirMountPath),
+func defaultVolumeMounts() []kcore.VolumeMount {
+	var volumeMounts = []kcore.VolumeMount{
+		k8s.EmptyDirVolumeMount(_emptyDirVolumeName, _emptyDirMountPath),
+	}
+
+	if config.Provider == types.GCPProviderType {
+		volumeMounts = append(volumeMounts, kcore.VolumeMount{
+			Name:      "gcp-credentials",
+			ReadOnly:  true,
+			MountPath: "/var/secrets/google",
+		})
+	}
+
+	return volumeMounts
 }
 
 var Tolerations = []kcore.Toleration{
@@ -820,8 +848,7 @@ var Tolerations = []kcore.Toleration{
 	},
 	{
 		Key:      "nvidia.com/gpu",
-		Operator: kcore.TolerationOpEqual,
-		Value:    "true",
+		Operator: kcore.TolerationOpExists,
 		Effect:   kcore.TaintEffectNoSchedule,
 	},
 	{
@@ -836,7 +863,7 @@ func K8sName(apiName string) string {
 	return "api-" + apiName
 }
 
-// APILoadBalancerURL returns http endpoint of cluster ingress elb
+// APILoadBalancerURL returns http endpoint of cluster ingress load balancer
 func APILoadBalancerURL() (string, error) {
 	service, err := config.K8sIstio.GetService("ingressgateway-apis")
 	if err != nil {
@@ -848,14 +875,17 @@ func APILoadBalancerURL() (string, error) {
 	if len(service.Status.LoadBalancer.Ingress) == 0 {
 		return "", ErrorLoadBalancerInitializing()
 	}
-	return "http://" + service.Status.LoadBalancer.Ingress[0].Hostname, nil
+	if service.Status.LoadBalancer.Ingress[0].Hostname != "" {
+		return "http://" + service.Status.LoadBalancer.Ingress[0].Hostname, nil
+	}
+	return "http://" + service.Status.LoadBalancer.Ingress[0].IP, nil
 }
 
 func APIEndpoint(api *spec.API) (string, error) {
 	var err error
 	baseAPIEndpoint := ""
 
-	if api.Networking.APIGateway == userconfig.PublicAPIGatewayType && config.Cluster.APIGateway != nil {
+	if config.Provider == types.AWSProviderType && api.Networking.APIGateway == userconfig.PublicAPIGatewayType && config.Cluster.APIGateway != nil {
 		baseAPIEndpoint = *config.Cluster.APIGateway.ApiEndpoint
 	} else {
 		baseAPIEndpoint, err = APILoadBalancerURL()

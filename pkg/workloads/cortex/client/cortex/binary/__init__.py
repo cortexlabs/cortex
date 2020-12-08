@@ -67,28 +67,35 @@ def run_cli(
 
     output = ""
     result = ""
-    result_found = False
+    processing_result = False
+    processed_result = False
 
     for c in iter(lambda: process.stdout.read(1), ""):
         output += c
+
         if mixed_output:
-            if output[-2:] == "\n~":
-                result_found = True
-                result = "~"
+            if output[-2:] == "\n~" or output == "~":
+                processing_result = True
                 output = output[:-1]
-            if result_found:
-                output = output[:-1]
-                if c == "\n":
-                    result_found = False
+            if processing_result:
+                result += c
+                if (
+                    result[: len(MIXED_CORTEX_MARKER)] == MIXED_CORTEX_MARKER
+                    and result[-len(MIXED_CORTEX_MARKER) :] == MIXED_CORTEX_MARKER
+                    and len(result) > len(MIXED_CORTEX_MARKER)
+                ):
                     result = result[len(MIXED_CORTEX_MARKER) : -len(MIXED_CORTEX_MARKER)]
                     result = base64.b64decode(result).decode("utf8")
-                else:
-                    result += c
+                    processed_result = True
 
+                output = output[:-1]
         if not hide_output:
-            if (not mixed_output) or (mixed_output and not result_found):
+            if (not mixed_output) or (mixed_output and not processing_result):
                 sys.stdout.write(c)
                 sys.stdout.flush()
+
+        if processed_result == True:
+            processing_result = False
 
     process.wait()
 
@@ -137,7 +144,7 @@ def get_cli_path() -> str:
             cli_path = p
     except FileNotFoundError as e:
         raise Exception(
-            f"unable to find cortex binary at {cli_path}, please reinstall the cortex client by running `pip uninstall cortex` and then `pip install cortex`"
+            "unable to find cortex binary, please reinstall the cortex client by running `pip uninstall cortex` and then `pip install cortex`"
         ) from e
 
     return str(cli_path)

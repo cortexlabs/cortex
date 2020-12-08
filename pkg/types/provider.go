@@ -22,15 +22,17 @@ const (
 	UnknownProviderType ProviderType = iota
 	LocalProviderType
 	AWSProviderType
+	GCPProviderType
 )
 
 var _providerTypes = []string{
 	"unknown",
 	"local",
 	"aws",
+	"gcp",
 }
 
-var _ = [1]int{}[int(AWSProviderType)-(len(_providerTypes)-1)] // Ensure list length matches
+var _ = [1]int{}[int(GCPProviderType)-(len(_providerTypes)-1)] // Ensure list length matches
 
 func ProviderTypeFromString(s string) ProviderType {
 	for i := 0; i < len(_providerTypes); i++ {
@@ -43,6 +45,10 @@ func ProviderTypeFromString(s string) ProviderType {
 
 func ProviderTypeStrings() []string {
 	return _providerTypes[1:]
+}
+
+func ClusterProviderTypeStrings() []string {
+	return _providerTypes[2:]
 }
 
 func (t ProviderType) String() string {

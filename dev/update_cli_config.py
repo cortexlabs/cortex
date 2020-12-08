@@ -14,18 +14,24 @@
 
 import sys
 import yaml
+import os
 
 
-def update_cli_config(
-    cli_config_file_path, env_name, operator_endpoint, aws_access_key_id, aws_secret_access_key
-):
-    new_env = {
-        "name": env_name,
-        "provider": "aws",
-        "operator_endpoint": operator_endpoint,
-        "aws_access_key_id": aws_access_key_id,
-        "aws_secret_access_key": aws_secret_access_key,
-    }
+def update_cli_config(cli_config_file_path, env_name, provider, operator_endpoint):
+    if provider == "aws":
+        new_env = {
+            "name": env_name,
+            "provider": provider,
+            "operator_endpoint": operator_endpoint,
+            "aws_access_key_id": os.getenv("AWS_ACCESS_KEY_ID"),
+            "aws_secret_access_key": os.getenv("AWS_SECRET_ACCESS_KEY"),
+        }
+    else:
+        new_env = {
+            "name": env_name,
+            "provider": provider,
+            "operator_endpoint": operator_endpoint,
+        }
 
     try:
         with open(cli_config_file_path, "r") as f:
@@ -62,7 +68,6 @@ if __name__ == "__main__":
     update_cli_config(
         cli_config_file_path=sys.argv[1],
         env_name=sys.argv[2],
-        operator_endpoint=sys.argv[3],
-        aws_access_key_id=sys.argv[4],
-        aws_secret_access_key=sys.argv[5],
+        provider=sys.argv[3],
+        operator_endpoint=sys.argv[4],
     )
