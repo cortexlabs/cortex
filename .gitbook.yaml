@@ -1,6 +1,7 @@
 root: ./docs/
 
 structure:
+  readme: ./tutorials/realtime.md
   summary: summary.md
 
 redirects:
