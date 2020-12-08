@@ -24,8 +24,6 @@ source $ROOT/dev/config/env.sh
 source $ROOT/dev/util.sh
 
 GCR_HOST=${GCR_HOST:-"gcr.io"}
-
-# set variables to empty strings if they do not exist
 GCP_PROJECT_ID=${GCP_PROJECT_ID:-}
 AWS_ACCOUNT_ID=${AWS_ACCOUNT_ID:-}
 AWS_REGION=${AWS_REGION:-}
@@ -191,12 +189,12 @@ function validate_env() {
   local provider=$1
 
   if [ "$provider" = "aws" ]; then
-    if [[ -z ${AWS_REGION} ]] || [[ -z ${AWS_ACCOUNT_ID} ]]; then
+    if [ -z ${AWS_REGION} ] || [ -z ${AWS_ACCOUNT_ID} ]; then
       echo "error: environment variables AWS_REGION and AWS_ACCOUNT_ID should be exported in dev/config/env.sh"
       exit 1
     fi
   elif [ "$provider" = "gcp" ]; then
-    if [[ -z ${GCP_PROJECT_ID} ]]; then
+    if [ -z ${GCP_PROJECT_ID} ]; then
       echo "error: environment variables GCP_PROJECT_ID should be exported in dev/config/env.sh"
       exit 1
     fi
