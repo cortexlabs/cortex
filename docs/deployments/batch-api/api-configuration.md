@@ -6,6 +6,8 @@ Once your model is [exported](../../guides/exporting.md) and you've implemented 
 
 Reference the section below which corresponds to your Predictor type: [Python](#python-predictor), [TensorFlow](#tensorflow-predictor), or [ONNX](#onnx-predictor).
 
+**Batch APIs are only supported on a Cortex cluster (in AWS).**
+
 ## Python Predictor
 
 <!-- CORTEX_VERSION_BRANCH_STABLE x2 -->
