@@ -702,6 +702,11 @@ func ValidateAPI(
 	k8sClient *k8s.Client, // will be nil for local provider
 ) error {
 
+	// if models is nil, we need to set it to an empty slice to avoid nil pointer exceptions
+	if models == nil {
+		models = &[]CuratedModelResource{}
+	}
+
 	if provider != types.LocalProviderType && api.Networking.Endpoint == nil {
 		api.Networking.Endpoint = pointer.String("/" + api.Name)
 	}

@@ -137,7 +137,7 @@ def get_cli_path() -> str:
             cli_path = p
     except FileNotFoundError as e:
         raise Exception(
-            f"unable to find cortex binary at {cli_path}, please reinstall the cortex client by running `pip uninstall cortex` and then `pip install cortex`"
+            "unable to find cortex binary, please reinstall the cortex client by running `pip uninstall cortex` and then `pip install cortex`"
         ) from e
 
     return str(cli_path)
