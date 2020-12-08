@@ -29,7 +29,7 @@ else
 fi
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")"/.. >/dev/null && pwd)"
-DEBUG_CMD="dlv --listen=:2345 --headless=true --api-version=2 debug $ROOT/pkg/operator"
+DEBUG_CMD="dlv --listen=:2345 --headless=true --api-version=2 debug $ROOT/pkg/operator --output ${ROOT}/bin/__debug_bin"
 
 kill $(pgrep -f "${DEBUG_CMD}") >/dev/null 2>&1 || true
 kill $(pgrep -f __debug_bin) >/dev/null 2>&1 || true
@@ -56,5 +56,4 @@ export CORTEX_OPERATOR_IN_CLUSTER=false
 export CORTEX_CLUSTER_CONFIG_PATH=~/.cortex/cluster-dev.yaml
 
 mkdir -p $ROOT/bin
-
 echo 'starting local operator in debug mode...' && eval "${DEBUG_CMD}"
