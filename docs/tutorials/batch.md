@@ -72,7 +72,7 @@ api_spec = {
 }
 
 cx = cortex.client("aws")
-cx.deploy(api_spec, predictor=PythonPredictor, requirements=requirements)
+cx.create_api(api_spec, predictor=PythonPredictor, requirements=requirements)
 ```
 
 ## Deploy to your Cortex cluster on AWS
@@ -140,5 +140,5 @@ Once the job is complete, you should be able to find the results of the batch jo
 ## Delete the Batch API
 
 ```bash
-$ cortex delete image-classifier --env local 
+$ cortex delete image-classifier --env local
 ```

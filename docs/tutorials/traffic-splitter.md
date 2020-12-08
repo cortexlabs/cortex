@@ -1,29 +1,17 @@
-# Deploy a traffic splitter
+# Traffic splitter
 
-## Install cortex
+A Traffic Splitter can be used expose multiple APIs as a single endpoint. The percentage of traffic routed to each API can be controlled. This can be useful when performing A/B tests, setting up multi-armed bandits or performing canary deployments.
 
-```bash
-$ pip install cortex
-```
+**Note: Traffic Splitter is only supported on a Cortex cluster**
 
-## Spin up a cluster on AWS (requires AWS credentials)
-
-```bash
-$ cortex cluster up
-```
-
-## Define 2 realtime APIs and a traffic splitter
+## Deploy APIs
 
 ```python
-# traffic_splitter.py
-
-import cortex
-
 class PythonPredictor:
     def __init__(self, config):
         from transformers import pipeline
 
-        self.model = pipeline(task="text-generation")
+        self.model = pipeline(task="text-generation", model=config["model"])
 
     def predict(self, payload):
         return self.model(payload["text"])[0]
@@ -46,47 +34,34 @@ api_spec_gpu = {
     },
 }
 
-traffic_splitter = {
-    "name": "text-generator",
+cx = cortex.client("aws")
+cx.create_api(api_spec_cpu, predictor=PythonPredictor, requirements=requirements)
+cx.create_api(api_spec_gpu, predictor=PythonPredictor, requirements=requirements)
+```
+
+## Deploy a traffic splitter
+
+```python
+traffic_splitter_spec = {
+    "name": "classifier",
     "kind": "TrafficSplitter",
     "apis": [
-        {"name": "text-generator-cpu", "weight": 30},
-        {"name": "text-generator-gpu", "weight": 70},
+        {"name": "text-generator-cpu", "weight": 50},
+        {"name": "text-generator-gpu", "weight": 50},
     ],
 }
 
-cx = cortex.client("aws")
-cx.deploy(api_spec_cpu, predictor=PythonPredictor, requirements=requirements)
-cx.deploy(api_spec_gpu, predictor=PythonPredictor, requirements=requirements)
-cx.deploy(traffic_splitter)
+cx.create_api(traffic_splitter_spec)
 ```
 
-## Deploy to AWS
+## Update the weights of the traffic splitter
 
-```bash
-$ python traffic_splitter.py
-```
+```python
+traffic_splitter_spec = cx.get_api("classifier")["spec"]["submitted_api_spec"]
 
-## Monitor
+# send 99% of the traffic to text-generator-gpu
+traffic_splitter_spec["api"][0]["weight"] = 1
+traffic_splitter_spec["api"][1]["weight"] = 99
 
-```bash
-$ cortex get text-generator --watch
-```
-
-## Stream logs
-
-```bash
-$ cortex logs text-generator
-```
-
-## Make a request
-
-```bash
-$ curl https://***.execute-api.us-west-2.amazonaws.com/text-generator -X POST -H "Content-Type: application/json" -d '{"text": "hello world"}'
-```
-
-## Delete the API
-
-```bash
-$ cortex delete text-generator
+cx.patch(traffic_splitter_spec)
 ```
