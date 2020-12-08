@@ -18,7 +18,9 @@ package local
 
 import (
 	"fmt"
+	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/cortexlabs/cortex/cli/types/cliconfig"
 	"github.com/cortexlabs/cortex/pkg/consts"
@@ -69,23 +71,31 @@ func deploy(env cliconfig.Environment, apiConfigs []userconfig.API, projectFiles
 	var awsClient *aws.Client
 	var gcpClient *gcp.Client
 
-	if env.Provider == types.GCPProviderType {
-		gcpClient, err = gcp.NewFromEnv()
+	if env.AWSAccessKeyID != nil {
+		awsClient, err = aws.NewFromCreds(*env.AWSRegion, *env.AWSAccessKeyID, *env.AWSSecretAccessKey)
 		if err != nil {
 			return nil, err
 		}
 	} else {
-		if env.AWSAccessKeyID != nil {
-			awsClient, err = aws.NewFromCreds(*env.AWSRegion, *env.AWSAccessKeyID, *env.AWSSecretAccessKey)
-			if err != nil {
-				return nil, err
-			}
-		} else {
-			awsClient, err = aws.NewAnonymousClient()
-			if err != nil {
-				return nil, err
-			}
+		awsClient, err = aws.NewAnonymousClient()
+		if err != nil {
+			return nil, err
 		}
+	}
+
+	if os.Getenv("GOOGLE_APPLICATION_CREDENTIALS") != "" {
+		gcpClient, err = gcp.NewFromEnv()
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	if awsClient == nil && hasAnyModelWithPrefix(apiConfigs, "s3://") {
+		return nil, ErrorMustSpecifyLocalAWSCreds()
+	}
+
+	if gcpClient == nil && hasAnyModelWithPrefix(apiConfigs, "gs://") {
+		return nil, gcp.ErrorCredentialsFileEnvVarNotSet()
 	}
 
 	models := []spec.CuratedModelResource{}
@@ -104,7 +114,7 @@ func deploy(env cliconfig.Environment, apiConfigs []userconfig.API, projectFiles
 	results := make([]schema.DeployResult, len(apiConfigs))
 	for i := range apiConfigs {
 		apiConfig := apiConfigs[i]
-		api, msg, err := UpdateAPI(&apiConfig, models, projectFiles.projectRoot, projectID, disallowPrompt, awsClient)
+		api, msg, err := UpdateAPI(&apiConfig, models, projectFiles.projectRoot, projectID, disallowPrompt, awsClient, gcpClient)
 		results[i].Message = msg
 		if err != nil {
 			results[i].Error = errors.Message(err)
@@ -114,4 +124,27 @@ func deploy(env cliconfig.Environment, apiConfigs []userconfig.API, projectFiles
 	}
 
 	return results, nil
+}
+
+func hasAnyModelWithPrefix(apiConfigs []userconfig.API, modelPrefix string) bool {
+	for _, apiConfig := range apiConfigs {
+		if apiConfig.Predictor.ModelPath != nil && strings.HasPrefix(*apiConfig.Predictor.ModelPath, modelPrefix) {
+			return true
+		}
+		if apiConfig.Predictor.Models != nil {
+			if apiConfig.Predictor.Models.Dir != nil && strings.HasPrefix(*apiConfig.Predictor.ModelPath, modelPrefix) {
+				return true
+			}
+			for _, model := range apiConfig.Predictor.Models.Paths {
+				if model == nil {
+					continue
+				}
+				if strings.HasPrefix(model.ModelPath, modelPrefix) {
+					return true
+				}
+			}
+		}
+	}
+
+	return false
 }

@@ -23,9 +23,11 @@ import (
 	"strings"
 
 	"github.com/cortexlabs/cortex/pkg/consts"
+	"github.com/cortexlabs/cortex/pkg/lib/archive"
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/docker"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/gcp"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
@@ -63,18 +65,18 @@ func (modelCaches ModelCaches) IDs() string {
 	return strings.Join(ids, ", ")
 }
 
-func DeployContainers(api *spec.API, awsClient *aws.Client) error {
+func DeployContainers(api *spec.API, awsClient *aws.Client, gcpClient *gcp.Client) error {
 	switch api.Predictor.Type {
 	case userconfig.TensorFlowPredictorType:
-		return deployTensorFlowContainers(api, awsClient)
+		return deployTensorFlowContainers(api, awsClient, gcpClient)
 	case userconfig.ONNXPredictorType:
-		return deployONNXContainer(api, awsClient)
+		return deployONNXContainer(api, awsClient, gcpClient)
 	default:
-		return deployPythonContainer(api, awsClient)
+		return deployPythonContainer(api, awsClient, gcpClient)
 	}
 }
 
-func getAPIEnv(api *spec.API, awsClient *aws.Client) []string {
+func getAPIEnv(api *spec.API, awsClient *aws.Client, gcpClient *gcp.Client) []string {
 	envs := []string{}
 
 	for envName, envVal := range api.Predictor.Env {
@@ -92,7 +94,6 @@ func getAPIEnv(api *spec.API, awsClient *aws.Client) []string {
 		"CORTEX_PROCESSES_PER_REPLICA="+s.Int32(api.Predictor.ProcessesPerReplica),
 		"CORTEX_THREADS_PER_PROCESS="+s.Int32(api.Predictor.ThreadsPerProcess),
 		"CORTEX_MAX_REPLICA_CONCURRENCY="+s.Int32(api.Predictor.ProcessesPerReplica*api.Predictor.ThreadsPerProcess+1024), // allow a queue of 1024
-		"AWS_REGION="+awsClient.Region,
 	)
 
 	if api.Predictor.ModelPath != nil || api.Predictor.Models != nil {
@@ -105,21 +106,29 @@ func getAPIEnv(api *spec.API, awsClient *aws.Client) []string {
 	}
 	envs = append(envs, "CORTEX_PYTHON_PATH="+cortexPythonPath)
 
-	if awsAccessKeyID := awsClient.AccessKeyID(); awsAccessKeyID != nil {
-		envs = append(envs, "AWS_ACCESS_KEY_ID="+*awsAccessKeyID)
+	if awsClient != nil {
+		envs = append(envs, "AWS_REGION="+awsClient.Region)
+
+		if awsAccessKeyID := awsClient.AccessKeyID(); awsAccessKeyID != nil {
+			envs = append(envs, "AWS_ACCESS_KEY_ID="+*awsAccessKeyID)
+		}
+
+		if awsSecretAccessKey := awsClient.SecretAccessKey(); awsSecretAccessKey != nil {
+			envs = append(envs, "AWS_SECRET_ACCESS_KEY="+*awsSecretAccessKey)
+		}
+
+		if _, ok := api.Predictor.Env["PYTHONDONTWRITEBYTECODE"]; !ok {
+			envs = append(envs, "PYTHONDONTWRITEBYTECODE=1")
+		}
+	}
+	if gcpClient != nil {
+		envs = append(envs, "GOOGLE_APPLICATION_CREDENTIALS=/var/google_key.json")
 	}
 
-	if awsSecretAccessKey := awsClient.SecretAccessKey(); awsSecretAccessKey != nil {
-		envs = append(envs, "AWS_SECRET_ACCESS_KEY="+*awsSecretAccessKey)
-	}
-
-	if _, ok := api.Predictor.Env["PYTHONDONTWRITEBYTECODE"]; !ok {
-		envs = append(envs, "PYTHONDONTWRITEBYTECODE=1")
-	}
 	return envs
 }
 
-func deployPythonContainer(api *spec.API, awsClient *aws.Client) error {
+func deployPythonContainer(api *spec.API, awsClient *aws.Client, gcpClient *gcp.Client) error {
 	portBinding := nat.PortBinding{}
 	if api.Networking.LocalPort != nil {
 		portBinding.HostPort = s.Int(*api.Networking.LocalPort)
@@ -176,7 +185,7 @@ func deployPythonContainer(api *spec.API, awsClient *aws.Client) error {
 		Image: api.Predictor.Image,
 		Tty:   true,
 		Env: append(
-			getAPIEnv(api, awsClient),
+			getAPIEnv(api, awsClient, gcpClient),
 		),
 		ExposedPorts: nat.PortSet{
 			_defaultPortStr + "/tcp": struct{}{},
@@ -198,12 +207,23 @@ func deployPythonContainer(api *spec.API, awsClient *aws.Client) error {
 		return errors.Wrap(err, api.Identify())
 	}
 
+	if gcpClient != nil {
+		docker.CopyToContainer(containerInfo.ID, &archive.Input{
+			Bytes: []archive.BytesInput{
+				{
+					Content: gcpClient.CredentialsJSON,
+					Dest:    "/var/google_key.json",
+				},
+			},
+		}, "/")
+	}
+
 	err = docker.MustDockerClient().ContainerStart(context.Background(), containerInfo.ID, dockertypes.ContainerStartOptions{})
 	if err != nil {
 		if api.Compute.GPU == 0 {
 			return errors.Wrap(err, api.Identify())
 		}
-		err := retryWithNvidiaRuntime(err, containerConfig, hostConfig)
+		err := retryWithNvidiaRuntime(err, containerConfig, hostConfig, gcpClient)
 		if err != nil {
 			return errors.Wrap(err, api.Identify())
 		}
@@ -212,7 +232,7 @@ func deployPythonContainer(api *spec.API, awsClient *aws.Client) error {
 	return nil
 }
 
-func deployONNXContainer(api *spec.API, awsClient *aws.Client) error {
+func deployONNXContainer(api *spec.API, awsClient *aws.Client, gcpClient *gcp.Client) error {
 	portBinding := nat.PortBinding{}
 	if api.Networking.LocalPort != nil {
 		portBinding.HostPort = s.Int(*api.Networking.LocalPort)
@@ -268,7 +288,7 @@ func deployONNXContainer(api *spec.API, awsClient *aws.Client) error {
 		Image: api.Predictor.Image,
 		Tty:   true,
 		Env: append(
-			getAPIEnv(api, awsClient),
+			getAPIEnv(api, awsClient, gcpClient),
 		),
 		ExposedPorts: nat.PortSet{
 			_defaultPortStr + "/tcp": struct{}{},
@@ -291,12 +311,23 @@ func deployONNXContainer(api *spec.API, awsClient *aws.Client) error {
 		return errors.Wrap(err, api.Identify())
 	}
 
+	if gcpClient != nil {
+		docker.CopyToContainer(containerInfo.ID, &archive.Input{
+			Bytes: []archive.BytesInput{
+				{
+					Content: gcpClient.CredentialsJSON,
+					Dest:    "/var/google_key.json",
+				},
+			},
+		}, "/")
+	}
+
 	err = docker.MustDockerClient().ContainerStart(context.Background(), containerInfo.ID, dockertypes.ContainerStartOptions{})
 	if err != nil {
 		if api.Compute.GPU == 0 {
 			return errors.Wrap(err, api.Identify())
 		}
-		err := retryWithNvidiaRuntime(err, containerConfig, hostConfig)
+		err := retryWithNvidiaRuntime(err, containerConfig, hostConfig, gcpClient)
 		if err != nil {
 			return errors.Wrap(err, api.Identify())
 		}
@@ -305,7 +336,7 @@ func deployONNXContainer(api *spec.API, awsClient *aws.Client) error {
 	return nil
 }
 
-func deployTensorFlowContainers(api *spec.API, awsClient *aws.Client) error {
+func deployTensorFlowContainers(api *spec.API, awsClient *aws.Client, gcpClient *gcp.Client) error {
 	serveResources := container.Resources{}
 	apiResources := container.Resources{}
 
@@ -400,13 +431,12 @@ func deployTensorFlowContainers(api *spec.API, awsClient *aws.Client) error {
 		}
 		return errors.Wrap(err, api.Identify())
 	}
-
 	err = docker.MustDockerClient().ContainerStart(context.Background(), containerCreateRequest.ID, dockertypes.ContainerStartOptions{})
 	if err != nil {
 		if api.Compute.GPU == 0 {
 			return errors.Wrap(err, api.Identify())
 		}
-		err := retryWithNvidiaRuntime(err, serveContainerConfig, serveHostConfig)
+		err := retryWithNvidiaRuntime(err, serveContainerConfig, serveHostConfig, nil)
 		if err != nil {
 			return errors.Wrap(err, api.Identify())
 		}
@@ -446,7 +476,7 @@ func deployTensorFlowContainers(api *spec.API, awsClient *aws.Client) error {
 		Image: api.Predictor.Image,
 		Tty:   true,
 		Env: append(
-			getAPIEnv(api, awsClient),
+			getAPIEnv(api, awsClient, gcpClient),
 			"CORTEX_TF_BASE_SERVING_PORT="+_tfServingPortStr,
 			"CORTEX_TF_SERVING_HOST="+tfContainerHost,
 		),
@@ -471,6 +501,17 @@ func deployTensorFlowContainers(api *spec.API, awsClient *aws.Client) error {
 		return errors.Wrap(err, api.Identify())
 	}
 
+	if gcpClient != nil {
+		docker.CopyToContainer(containerCreateRequest.ID, &archive.Input{
+			Bytes: []archive.BytesInput{
+				{
+					Content: gcpClient.CredentialsJSON,
+					Dest:    "/var/google_key.json",
+				},
+			},
+		}, "/")
+	}
+
 	err = docker.MustDockerClient().ContainerStart(context.Background(), containerCreateRequest.ID, dockertypes.ContainerStartOptions{})
 	if err != nil {
 		return errors.Wrap(err, api.Identify())
@@ -480,7 +521,7 @@ func deployTensorFlowContainers(api *spec.API, awsClient *aws.Client) error {
 }
 
 // Retries deploying a container requiring GPU using nvidia runtime, returns original error if isn't relevant, nil if successful and new error if a retry was attempted but failed
-func retryWithNvidiaRuntime(err error, containerConfig *container.Config, hostConfig *container.HostConfig) error {
+func retryWithNvidiaRuntime(err error, containerConfig *container.Config, hostConfig *container.HostConfig, gcpClient *gcp.Client) error {
 	// error message if device driver may look like 'could not select device driver "" with capabilities: [[gpu]]'
 	if !(strings.Contains(err.Error(), "could not select device driver") && strings.Contains(err.Error(), "gpu")) {
 		return err
@@ -493,6 +534,16 @@ func retryWithNvidiaRuntime(err error, containerConfig *container.Config, hostCo
 		containerCreateRequest, err := docker.MustDockerClient().ContainerCreate(context.Background(), containerConfig, hostConfig, nil, "")
 		if err != nil {
 			return errors.Wrap(err, "failed to request a GPU")
+		}
+		if gcpClient != nil {
+			docker.CopyToContainer(containerCreateRequest.ID, &archive.Input{
+				Bytes: []archive.BytesInput{
+					{
+						Content: gcpClient.CredentialsJSON,
+						Dest:    "/var/google_key.json",
+					},
+				},
+			}, "/")
 		}
 		err = docker.MustDockerClient().ContainerStart(context.Background(), containerCreateRequest.ID, dockertypes.ContainerStartOptions{})
 		if err != nil {
