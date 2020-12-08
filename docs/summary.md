@@ -1,6 +1,7 @@
 # Table of contents
 
 * [Get started](tutorials/realtime.md)
+* [Chat with us](https://gitter.im/cortexlabs/cortex)
 
 ## Tutorials
 

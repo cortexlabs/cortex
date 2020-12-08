@@ -9,7 +9,7 @@ $ pip install cortex
 ## Define a realtime API
 
 ```python
-# realtime.py
+# text_generator.py
 
 import cortex
 
@@ -33,7 +33,7 @@ cx.deploy(api_spec, predictor=PythonPredictor, requirements=requirements)
 ## Test locally (requires Docker)
 
 ```bash
-$ python realtime.py
+$ python text_generator.py
 ```
 
 ## Monitor
@@ -54,13 +54,13 @@ $ curl http://localhost:8889 -X POST -H "Content-Type: application/json" -d '{"t
 $ cortex logs text-generator
 ```
 
-## Spin up a cluster on AWS (requires AWS credentials)
+## Spin up a cluster on AWS
 
 ```bash
 $ cortex cluster up
 ```
 
-## Edit `realtime.py`
+## Edit `text_generator.py`
 
 ```python
 # cx = cortex.client("local")
@@ -70,7 +70,7 @@ cx = cortex.client("aws")
 ## Deploy to AWS
 
 ```bash
-$ python realtime.py
+$ python text_generator.py
 ```
 
 ## Monitor
@@ -88,7 +88,7 @@ $ curl https://***.execute-api.us-west-2.amazonaws.com/text-generator -X POST -H
 ## Delete the APIs
 
 ```bash
-$ cortex delete --env local text-generator
+$ cortex delete text-generator --env local
 
-$ cortex delete --env aws text-generator
+$ cortex delete text-generator --env aws
 ```

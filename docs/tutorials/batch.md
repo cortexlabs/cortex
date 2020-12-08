@@ -1,14 +1,12 @@
 # Deploy a batch API
 
-**Note: at this time, batch APIs are only supported on AWS.**
-
 ## Install cortex
 
 ```bash
 $ pip install cortex
 ```
 
-## Spin up a cluster on AWS (requires AWS credentials)
+## Spin up a cluster on AWS
 
 ```bash
 $ cortex cluster up
@@ -142,5 +140,5 @@ Once the job is complete, you should be able to find the results of the batch jo
 ## Delete the Batch API
 
 ```bash
-$ cortex delete --env local image-classifier
+$ cortex delete image-classifier --env local 
 ```
