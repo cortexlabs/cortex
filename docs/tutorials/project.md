@@ -1,4 +1,4 @@
-# Deploy a realtime API
+# Deploy a project
 
 ## Install cortex
 
@@ -6,12 +6,18 @@
 $ pip install cortex
 ```
 
-## Define a realtime API
+## Create a directory
+
+```bash
+$ mkdir text-generator && cd text-generator
+
+$ touch predictor.py requirements.txt realtime.py
+```
+
+## Define a Predictor
 
 ```python
-# realtime.py
-
-import cortex
+# predictor.py
 
 class PythonPredictor:
     def __init__(self, config):
@@ -21,13 +27,30 @@ class PythonPredictor:
 
     def predict(self, payload):
         return self.model(payload["text"])[0]
+```
 
-requirements = ["tensorflow", "transformers"]
+## Specify Python dependencies
 
-api_spec = {"name": "text-generator", "kind": "RealtimeAPI"}
+```text
+tensorflow
+transformers
+```
+
+## Configure an API
+
+```python
+# realtime.py
+
+import cortex
+
+api_spec = {
+    "name": "text-generator",
+    "kind": "RealtimeAPI",
+    "predictor": {"type": "python", "path": "predictor.py"},
+}
 
 cx = cortex.client("local")
-cx.deploy(api_spec, predictor=PythonPredictor, requirements=requirements)
+cx.deploy(api_spec, project_dir=".")
 ```
 
 ## Test locally (requires Docker)
