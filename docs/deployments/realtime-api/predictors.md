@@ -202,6 +202,7 @@ cloudpickle==1.6.0
 Cython==0.29.21
 dill==0.3.2
 fastapi==0.61.1
+google-cloud-storage==1.32.0
 joblib==0.16.0
 Keras==2.4.3
 msgpack==1.0.0
@@ -236,6 +237,7 @@ cloudpickle==1.6.0
 Cython==0.29.21
 dill==0.3.1.1
 fastapi==0.54.1
+google-cloud-storage==1.32.0
 joblib==0.16.0
 msgpack==1.0.0
 neuron-cc==1.0.20600.0+0.b426b885f
@@ -362,6 +364,7 @@ The following Python packages are pre-installed in TensorFlow Predictors and can
 boto3==1.14.53
 dill==0.3.2
 fastapi==0.61.1
+google-cloud-storage==1.32.0
 msgpack==1.0.0
 numpy==1.19.1
 opencv-python==4.4.0.42
@@ -478,6 +481,7 @@ The following Python packages are pre-installed in ONNX Predictors and can be us
 boto3==1.14.53
 dill==0.3.2
 fastapi==0.61.1
+google-cloud-storage==1.32.0
 msgpack==1.0.0
 numpy==1.19.1
 onnxruntime==1.4.0

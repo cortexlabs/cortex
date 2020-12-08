@@ -1,7 +1,7 @@
 # Table of contents
 
 * [Deploy machine learning models to production](../README.md)
-* [Install](aws/install.md)
+* [Install](cloud/install.md)
 * [Tutorial](https://docs.cortex.dev/v/master/deployments/realtime-api/text-generator)  <!-- CORTEX_VERSION_MINOR -->
 * [GitHub](https://github.com/cortexlabs/cortex)
 * [Examples](https://github.com/cortexlabs/cortex/tree/master/examples)  <!-- CORTEX_VERSION_MINOR -->
@@ -9,6 +9,7 @@
 
 ## Running Cortex on AWS
 
+* [Install](aws/install.md)
 * [Credentials](aws/credentials.md)
 * [Security](aws/security.md)
 * [Spot instances](aws/spot.md)
@@ -19,6 +20,12 @@
 * [REST API Gateway](aws/rest-api-gateway.md)
 * [Update](aws/update.md)
 * [Uninstall](aws/uninstall.md)
+
+## Running Cortex on GCP
+
+* [Install](gcp/install.md)
+* [Credentials](gcp/credentials.md)
+* [Uninstall](gcp/uninstall.md)
 
 ## Deployments
 
