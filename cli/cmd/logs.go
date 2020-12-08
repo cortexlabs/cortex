@@ -89,7 +89,7 @@ var _logsCmd = &cobra.Command{
 			gcpReq.URL.RawQuery = queryValues.Encode()
 
 			gcpLogsURL := gcpReq.URL.String()
-			consoleOutput := console.Bold(fmt.Sprintf("api %s logs: ", apiName)) + gcpLogsURL
+			consoleOutput := console.Bold(fmt.Sprintf("visit the following link to view logs for api %s: ", apiName)) + gcpLogsURL
 			fmt.Println(consoleOutput)
 		}
 
