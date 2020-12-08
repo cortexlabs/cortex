@@ -44,7 +44,7 @@ def client(env: str):
             f"can't find environment {env}, create one by calling `cortex.cluster_client()`"
         )
 
-    return Client(env)
+    return Client(environment)
 
 
 def local_client(

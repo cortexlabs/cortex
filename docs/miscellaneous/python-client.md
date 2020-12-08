@@ -14,6 +14,7 @@ _WARNING: you are on the master branch, please refer to the docs on the branch t
   * [list\_apis](#list_apis)
   * [get\_job](#get_job)
   * [refresh](#refresh)
+  * [patch](#patch)
   * [delete\_api](#delete_api)
   * [stop\_job](#stop_job)
   * [stream\_api\_logs](#stream_api_logs)
@@ -63,7 +64,7 @@ from S3 and authenticate to ECR, and will be set in your Predictor.
 ## cluster\_client
 
 ```python
-cluster_client(name: str, provider: str, operator_endpoint: str, aws_access_key_id: str, aws_secret_access_key: str) -> Client
+cluster_client(name: str, provider: str, operator_endpoint: str, aws_access_key_id: Optional[str] = None, aws_secret_access_key: Optional[str] = None) -> Client
 ```
 
 Create a new environment to connect to an existing Cortex Cluster, and initialize a client to deploy and manage APIs on that cluster.
@@ -191,6 +192,19 @@ Restart all of the replicas for a Realtime API without downtime.
 **Arguments**:
 
 - `api_name` - Name of the API to refresh.
+- `force` - Override an already in-progress API update.
+
+## patch
+
+```python
+ | patch(api_spec: dict, force: bool = False) -> dict
+```
+
+Update the api specification for an API that has already been deployed.
+
+**Arguments**:
+
+- `api_spec` - The new api specification to apply
 - `force` - Override an already in-progress API update.
 
 ## delete\_api

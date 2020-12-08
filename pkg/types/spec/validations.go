@@ -43,7 +43,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/types"
 	"github.com/cortexlabs/cortex/pkg/types/clusterconfig"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
-	"github.com/cortexlabs/yaml"
 	dockertypes "github.com/docker/docker/api/types"
 	kresource "k8s.io/apimachinery/pkg/api/resource"
 )
@@ -693,11 +692,12 @@ func ExtractAPIConfigs(
 		api.Index = i
 		api.FileName = configFileName
 
-		rawYAMLBytes, err := yaml.Marshal([]map[string]interface{}{data})
-		if err != nil {
-			return nil, errors.Wrap(err, api.Identify())
+		interfaceMap, ok := cast.JSONMarshallable(data)
+		if !ok {
+			return nil, errors.ErrorUnexpected("unable to cast api spec to json") // unexpected
 		}
-		api.RawYAMLBytes = rawYAMLBytes
+
+		api.SubmittedAPISpec = interfaceMap
 
 		if resourceStruct.Kind == userconfig.RealtimeAPIKind || resourceStruct.Kind == userconfig.BatchAPIKind {
 			api.ApplyDefaultDockerPaths()

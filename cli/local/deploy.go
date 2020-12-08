@@ -30,6 +30,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
 	"github.com/cortexlabs/cortex/pkg/types"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
+	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 )
 
 func Deploy(env cliconfig.Environment, configPath string, projectFileList []string, deployDisallowPrompt bool) ([]schema.DeployResult, error) {
@@ -45,11 +46,26 @@ func Deploy(env cliconfig.Environment, configPath string, projectFileList []stri
 		return nil, err
 	}
 
-	projectFiles, err := newProjectFiles(projectFileList, configPath)
+	if !files.IsAbsOrTildePrefixed(configPath) {
+		return nil, errors.ErrorUnexpected(fmt.Sprintf("%s is not an absolute path", configPath))
+	}
+	projectRoot := files.Dir(configPath)
+
+	projectFiles, err := newProjectFiles(projectFileList, projectRoot)
 	if err != nil {
 		return nil, err
 	}
 
+	apiConfigs, err := spec.ExtractAPIConfigs(configBytes, types.LocalProviderType, configFileName, nil, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return deploy(env, apiConfigs, projectFiles, deployDisallowPrompt)
+}
+
+func deploy(env cliconfig.Environment, apiConfigs []userconfig.API, projectFiles ProjectFiles, deployDisallowPrompt bool) ([]schema.DeployResult, error) {
+	var err error
 	var awsClient *aws.Client
 	var gcpClient *gcp.Client
 
@@ -72,11 +88,6 @@ func Deploy(env cliconfig.Environment, configPath string, projectFileList []stri
 		}
 	}
 
-	apiConfigs, err := spec.ExtractAPIConfigs(configBytes, types.LocalProviderType, configFileName, nil, nil)
-	if err != nil {
-		return nil, err
-	}
-
 	models := []spec.CuratedModelResource{}
 	err = ValidateLocalAPIs(apiConfigs, &models, projectFiles, awsClient, gcpClient)
 	if err != nil {
@@ -84,15 +95,16 @@ func Deploy(env cliconfig.Environment, configPath string, projectFileList []stri
 		return nil, err
 	}
 
-	projectID, err := files.HashFile(projectFileList[0], projectFileList[1:]...)
+	projectRelFilePaths := projectFiles.AllAbsPaths()
+	projectID, err := files.HashFile(projectRelFilePaths[0], projectRelFilePaths[1:]...)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to hash directory", filepath.Dir(configPath))
+		return nil, errors.Wrap(err, "failed to hash directory", projectFiles.projectRoot)
 	}
 
 	results := make([]schema.DeployResult, len(apiConfigs))
 	for i := range apiConfigs {
 		apiConfig := apiConfigs[i]
-		api, msg, err := UpdateAPI(&apiConfig, models, configPath, projectID, deployDisallowPrompt, awsClient)
+		api, msg, err := UpdateAPI(&apiConfig, models, projectFiles.projectRoot, projectID, deployDisallowPrompt, awsClient)
 		results[i].Message = msg
 		if err != nil {
 			results[i].Error = errors.Message(err)

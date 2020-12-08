@@ -694,6 +694,40 @@ func InterfaceToStrInterfaceMap(in interface{}) (map[string]interface{}, bool) {
 	return out, true
 }
 
+// Recursively casts interface->interface maps to string->interface maps
+func JSONMarshallable(in interface{}) (interface{}, bool) {
+	if in == nil {
+		return nil, true
+	}
+
+	if inMap, ok := InterfaceToInterfaceInterfaceMap(in); ok {
+		out := map[string]interface{}{}
+		for key, value := range inMap {
+			castedKey, ok := key.(string)
+			if !ok {
+				return nil, false
+			}
+			castedValue, ok := JSONMarshallable(value)
+			if !ok {
+				return nil, false
+			}
+			out[castedKey] = castedValue
+		}
+		return out, true
+	} else if inSlice, ok := InterfaceToInterfaceSlice(in); ok {
+		result := make([]interface{}, 0, len(inSlice))
+		for _, inValue := range inSlice {
+			castedInValue, ok := JSONMarshallable(inValue)
+			if !ok {
+				return nil, false
+			}
+			result = append(result, castedInValue)
+		}
+		return result, true
+	}
+	return in, true
+}
+
 func InterfaceToStrStrMap(in interface{}) (map[string]string, bool) {
 	if in == nil {
 		return nil, true

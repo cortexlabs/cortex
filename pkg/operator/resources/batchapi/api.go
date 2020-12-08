@@ -49,10 +49,6 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string) (*spec.API, string, 
 			return nil, "", errors.Wrap(err, "upload api spec")
 		}
 
-		if err := config.AWS.UploadBytesToS3(api.RawYAMLBytes, config.Cluster.Bucket, api.RawAPIKey(config.Cluster.ClusterName)); err != nil {
-			return nil, "", errors.Wrap(err, "upload raw api spec")
-		}
-
 		err = applyK8sResources(api, prevVirtualService)
 		if err != nil {
 			go deleteK8sResources(api.Name)
@@ -77,10 +73,6 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string) (*spec.API, string, 
 	if prevVirtualService.Labels["specID"] != api.SpecID {
 		if err := config.AWS.UploadJSONToS3(api, config.Cluster.Bucket, api.Key); err != nil {
 			return nil, "", errors.Wrap(err, "upload api spec")
-		}
-
-		if err := config.AWS.UploadBytesToS3(api.RawYAMLBytes, config.Cluster.Bucket, api.RawAPIKey(config.Cluster.ClusterName)); err != nil {
-			return nil, "", errors.Wrap(err, "upload raw api spec")
 		}
 
 		err = applyK8sResources(api, prevVirtualService)
