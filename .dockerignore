@@ -2,6 +2,7 @@
 /bin/
 /dev/
 /docs/
+/test/
 
 **/.*
 **/*.md

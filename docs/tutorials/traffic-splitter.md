@@ -70,7 +70,7 @@ $ python traffic_splitter.py
 ## Monitor
 
 ```bash
-$ cortex get text-generator --env aws --watch
+$ cortex get text-generator --watch
 ```
 
 ## Stream logs
@@ -82,9 +82,7 @@ $ cortex logs text-generator
 ## Make a request
 
 ```bash
-$ curl https:// \
-    -X POST -H "Content-Type: application/json" \
-    -d '{"text": "hello world"}'
+$ curl https://***.execute-api.us-west-2.amazonaws.com/text-generator -X POST -H "Content-Type: application/json" -d '{"text": "hello world"}'
 ```
 
 ## Delete the API

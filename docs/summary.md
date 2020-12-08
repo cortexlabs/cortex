@@ -1,7 +1,12 @@
 # Table of contents
 
-* [Deploy a realtime API](tutorials/realtime.md)
-* [Deploy a batch API](tutorials/batch.md)
+## Tutorials
+
+* [Realtime API](tutorials/realtime.md)
+* [Batch API](tutorials/batch.md)
+* [Multi-model API](tutorials/multi-model.md)
+* [Traffic splitter](tutorials/traffic-splitter.md)
+* [Project directory](tutorials/project.md)
 
 ## Running on AWS
 
@@ -9,6 +14,8 @@
 * [Credentials](aws/credentials.md)
 * [Security](aws/security.md)
 * [Spot instances](aws/spot.md)
+* [GPUs](aws/gpus.md)
+* [Inferentia](aws/inferentia.md)
 * [Networking](aws/networking.md)
 * [VPC peering](aws/vpc-peering.md)
 * [Custom domain](aws/custom-domain.md)
@@ -36,16 +43,10 @@
   * [Endpoints](deployments/batch-api/endpoints.md)
   * [Job statuses](deployments/batch-api/statuses.md)
 * [Python client](deployments/python-client.md)
-* [Environments](deployments/environments.md)
-* [Telemetry](deployments/telemetry.md)
-
-## Advanced
-
-* [Compute](deployments/compute.md)
-* [Using GPUs](deployments/gpus.md)
-* [Using Inferentia](deployments/inferentia.md)
 * [Python packages](deployments/python-packages.md)
 * [System packages](deployments/system-packages.md)
+* [Environments](deployments/environments.md)
+* [Telemetry](deployments/telemetry.md)
 
 ## Troubleshooting
 

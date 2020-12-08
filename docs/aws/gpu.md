@@ -5,9 +5,9 @@ _WARNING: you are on the master branch, please refer to the docs on the branch t
 To use GPUs:
 
 1. Make sure your AWS account is subscribed to the [EKS-optimized AMI with GPU Support](https://aws.amazon.com/marketplace/pp/B07GRHFXGM).
-2. You may need to [request a limit increase](https://console.aws.amazon.com/servicequotas/home?#!/services/ec2/quotas) for your desired instance type.
-3. Set instance type to an AWS GPU instance (e.g. `g4dn.xlarge`) when installing Cortex.
-4. Set the `gpu` field in the `compute` configuration for your API. One unit of GPU corresponds to one virtual GPU. Fractional requests are not allowed.
+1. You may need to [request a limit increase](https://console.aws.amazon.com/servicequotas/home?#!/services/ec2/quotas) for your desired instance type.
+1. Set instance type to an AWS GPU instance (e.g. `g4dn.xlarge`) when installing Cortex.
+1. Set the `gpu` field in the `compute` configuration for your API. One unit of GPU corresponds to one virtual GPU. Fractional requests are not allowed.
 
 ## Tips
 
