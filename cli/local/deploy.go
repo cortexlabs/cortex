@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/cortexlabs/cortex/cli/types/cliconfig"
 	"github.com/cortexlabs/cortex/pkg/consts"
@@ -89,6 +90,14 @@ func deploy(env cliconfig.Environment, apiConfigs []userconfig.API, projectFiles
 		}
 	}
 
+	if awsClient == nil && hasAnyModelWithPrefix(apiConfigs, "s3://") {
+		return nil, ErrorMustSpecifyLocalAWSCreds()
+	}
+
+	if gcpClient == nil && hasAnyModelWithPrefix(apiConfigs, "gs://") {
+		return nil, gcp.ErrorCredentialsFileEnvVarNotSet()
+	}
+
 	models := []spec.CuratedModelResource{}
 	err = ValidateLocalAPIs(apiConfigs, &models, projectFiles, awsClient, gcpClient)
 	if err != nil {
@@ -115,4 +124,27 @@ func deploy(env cliconfig.Environment, apiConfigs []userconfig.API, projectFiles
 	}
 
 	return results, nil
+}
+
+func hasAnyModelWithPrefix(apiConfigs []userconfig.API, modelPrefix string) bool {
+	for _, apiConfig := range apiConfigs {
+		if apiConfig.Predictor.ModelPath != nil && strings.HasPrefix(*apiConfig.Predictor.ModelPath, modelPrefix) {
+			return true
+		}
+		if apiConfig.Predictor.Models != nil {
+			if apiConfig.Predictor.Models.Dir != nil && strings.HasPrefix(*apiConfig.Predictor.ModelPath, modelPrefix) {
+				return true
+			}
+			for _, model := range apiConfig.Predictor.Models.Paths {
+				if model == nil {
+					continue
+				}
+				if strings.HasPrefix(model.ModelPath, modelPrefix) {
+					return true
+				}
+			}
+		}
+	}
+
+	return false
 }
