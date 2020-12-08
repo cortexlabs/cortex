@@ -1236,7 +1236,9 @@ class TFSModelLoader(mp.Process):
                             )
                         self._reset_when_tfs_unresponsive()
                         return None
-                self._old_ts_state[f"{model_name}-{model_version}"] = int(datetime.datetime.now(datetime.timezone.utc).timestamp())
+                self._old_ts_state[f"{model_name}-{model_version}"] = int(
+                    datetime.datetime.now(datetime.timezone.utc).timestamp()
+                )
 
     def _is_this_a_newer_model_id(self, model_id: str, timestamp: int) -> bool:
         return model_id in self._old_ts_state and self._old_ts_state[model_id] < timestamp
