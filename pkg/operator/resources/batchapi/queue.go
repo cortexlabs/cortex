@@ -72,7 +72,7 @@ func createFIFOQueue(jobKey spec.JobKey, tags map[string]string) (string, error)
 		&sqs.CreateQueueInput{
 			Attributes: map[string]*string{
 				"FifoQueue":         aws.String("true"),
-				"VisibilityTimeout": aws.String("120"),
+				"VisibilityTimeout": aws.String("60"),
 			},
 			QueueName: aws.String(queueName),
 			Tags:      aws.StringMap(tags),
