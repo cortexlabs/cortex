@@ -116,23 +116,27 @@ def remove_non_empty_directory_paths(paths: List[str]) -> List[str]:
     Then after calling this function, it will look like:
     models/tensorflow/iris/1569001258/saved_model.pb
     """
-    new_paths = []
 
+    path_map = {}
     split_paths = [list(filter(lambda x: x != "", path.split("/"))) for path in paths]
-    create_set_from_list = lambda l: set([(idx, split) for idx, split in enumerate(l)])
-    split_set_paths = [create_set_from_list(split_path) for split_path in split_paths]
 
-    for id_a, a in enumerate(split_set_paths):
-        matches = 0
-        for id_b, b in enumerate(split_set_paths):
-            if id_a == id_b:
-                continue
-            if a.issubset(b):
-                matches += 1
-        if matches == 0:
-            new_paths.append(paths[id_a])
+    for split_path in split_paths:
+        composed_path = ""
+        for path_level in split_path:
+            if composed_path != "":
+                composed_path += "/"
+            composed_path += path_level
+            if composed_path not in path_map:
+                path_map[composed_path] = 1
+            else:
+                path_map[composed_path] += 1
+    
+    file_paths = []
+    for file_path, appearances in path_map.items():
+        if appearances == 1:
+            file_paths.append(file_path)
 
-    return new_paths
+    return file_paths
 
 
 def merge_dicts_in_place_overwrite(*dicts):
