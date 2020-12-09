@@ -17,7 +17,7 @@
 * [Credentials](aws/credentials.md)
 * [Security](aws/security.md)
 * [Spot instances](aws/spot.md)
-* [GPUs](aws/gpus.md)
+* [GPUs](aws/gpu.md)
 * [Inferentia](aws/inferentia.md)
 * [Networking](aws/networking.md)
 * [VPC peering](aws/vpc-peering.md)
