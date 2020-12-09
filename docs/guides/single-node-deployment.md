@@ -101,7 +101,7 @@ $ sudo groupadd docker; sudo gpasswd -a $USER docker
 $ logout
 ```
 
-If you have installed Docker correctly, you should be able to run docker commands such as `docker run hello-world` without running into permission issues or needing `sudo`.
+If you have installed Docker correctly, you should be able to run docker commands such as `docker run hello-world/python` without running into permission issues or needing `sudo`.
 
 ### Step 12
 
@@ -114,26 +114,4 @@ $ bash -c "$(curl -sS https://raw.githubusercontent.com/cortexlabs/cortex/master
 
 ### Step 13
 
-You can now use Cortex to deploy your model:
-
-<!-- CORTEX_VERSION_MINOR -->
-```bash
-$ git clone -b master https://github.com/cortexlabs/cortex.git
-
-$ cd cortex/examples/pytorch/text-generator
-
-$ cortex deploy
-
-# take note of the curl command
-$ cortex get text-generator
-```
-
-### Step 14
-
-Make requests by replacing "localhost" in the curl command with your instance's public DNS:
-
-```bash
-$ curl <instance public DNS>:<Port> \
-    -X POST -H "Content-Type: application/json" \
-    -d '{"text": "machine learning is"}'
-```
+You can now use Cortex to deploy your model.

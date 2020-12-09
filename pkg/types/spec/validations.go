@@ -43,7 +43,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/types"
 	"github.com/cortexlabs/cortex/pkg/types/clusterconfig"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
-	"github.com/cortexlabs/yaml"
 	dockertypes "github.com/docker/docker/api/types"
 	kresource "k8s.io/apimachinery/pkg/api/resource"
 )
@@ -642,14 +641,7 @@ func ExtractAPIConfigs(
 			kindString, _ := data[userconfig.KindKey].(string)
 			kind := userconfig.KindFromString(kindString)
 			err = errors.Wrap(errors.FirstError(errs...), userconfig.IdentifyAPI(configFileName, name, kind, i))
-			switch provider {
-			case types.LocalProviderType:
-				return nil, errors.Append(err, fmt.Sprintf("\n\napi configuration schema for Realtime APIs can be found at https://docs.cortex.dev/v/%s/deployments/realtime-api/api-configuration", consts.CortexVersionMinor))
-			case types.AWSProviderType:
-				return nil, errors.Append(err, fmt.Sprintf("\n\napi configuration schema can be found here:\n  → Realtime API: https://docs.cortex.dev/v/%s/deployments/realtime-api/api-configuration\n  → Batch API: https://docs.cortex.dev/v/%s/deployments/batch-api/api-configuration\n  → Traffic Splitter: https://docs.cortex.dev/v/%s/deployments/realtime-api/traffic-splitter", consts.CortexVersionMinor, consts.CortexVersionMinor, consts.CortexVersionMinor))
-			case types.GCPProviderType:
-				return nil, errors.Append(err, fmt.Sprintf("\n\napi configuration schema for Realtime APIs can be found at https://docs.cortex.dev/v/%s/deployments/realtime-api/api-configuration", consts.CortexVersionMinor))
-			}
+			return nil, errors.Append(err, fmt.Sprintf("\n\napi configuration schema can be found at https://docs.cortex.dev/v/%s/", consts.CortexVersionMinor))
 		}
 
 		if resourceStruct.Kind == userconfig.BatchAPIKind || resourceStruct.Kind == userconfig.TrafficSplitterKind {
@@ -664,23 +656,17 @@ func ExtractAPIConfigs(
 			kindString, _ := data[userconfig.KindKey].(string)
 			kind := userconfig.KindFromString(kindString)
 			err = errors.Wrap(errors.FirstError(errs...), userconfig.IdentifyAPI(configFileName, name, kind, i))
-			switch kind {
-			case userconfig.RealtimeAPIKind:
-				return nil, errors.Append(err, fmt.Sprintf("\n\napi configuration schema for Realtime API can be found at https://docs.cortex.dev/v/%s/deployments/realtime-api/api-configuration", consts.CortexVersionMinor))
-			case userconfig.BatchAPIKind:
-				return nil, errors.Append(err, fmt.Sprintf("\n\napi configuration schema for Batch API can be found at https://docs.cortex.dev/v/%s/deployments/batch-api/api-configuration", consts.CortexVersionMinor))
-			case userconfig.TrafficSplitterKind:
-				return nil, errors.Append(err, fmt.Sprintf("\n\napi configuration schema for Traffic Splitter can be found at https://docs.cortex.dev/v/%s/deployments/realtime-api/traffic-splitter", consts.CortexVersionMinor))
-			}
+			return nil, errors.Append(err, fmt.Sprintf("\n\napi configuration schema can be found at https://docs.cortex.dev/v/%s/", consts.CortexVersionMinor))
 		}
 		api.Index = i
 		api.FileName = configFileName
 
-		rawYAMLBytes, err := yaml.Marshal([]map[string]interface{}{data})
-		if err != nil {
-			return nil, errors.Wrap(err, api.Identify())
+		interfaceMap, ok := cast.JSONMarshallable(data)
+		if !ok {
+			return nil, errors.ErrorUnexpected("unable to cast api spec to json") // unexpected
 		}
-		api.RawYAMLBytes = rawYAMLBytes
+
+		api.SubmittedAPISpec = interfaceMap
 
 		if resourceStruct.Kind == userconfig.RealtimeAPIKind || resourceStruct.Kind == userconfig.BatchAPIKind {
 			api.ApplyDefaultDockerPaths()
@@ -1141,7 +1127,7 @@ func validateBucketProviders(predictor *userconfig.Predictor, provider types.Pro
 	checkForIncorrectBucketProvider := func(modelPath string) error {
 		isS3Path := strings.HasPrefix(modelPath, "s3://")
 		isGCSPath := strings.HasPrefix(modelPath, "gs://")
-		if (provider == types.AWSProviderType && !isS3Path) || (provider == types.GCPProviderType && !isGCSPath) || (provider == types.LocalProviderType && isGCSPath) {
+		if (provider == types.AWSProviderType && !isS3Path) || (provider == types.GCPProviderType && !isGCSPath) {
 			return ErrorIncorrectBucketProvider(provider)
 		}
 		return nil
@@ -1150,6 +1136,9 @@ func validateBucketProviders(predictor *userconfig.Predictor, provider types.Pro
 	if predictor.ModelPath != nil {
 		return errors.Wrap(checkForIncorrectBucketProvider(*predictor.ModelPath), userconfig.ModelPathKey)
 	}
+
+	numS3Models := 0
+	numGSModels := 0
 
 	if predictor.Models != nil {
 		if predictor.Models.Dir != nil {
@@ -1163,7 +1152,17 @@ func validateBucketProviders(predictor *userconfig.Predictor, provider types.Pro
 			if err != nil {
 				return errors.Wrap(err, userconfig.ModelsKey, userconfig.ModelsPathsKey, model.Name)
 			}
+			if strings.HasPrefix(model.ModelPath, "s3://") {
+				numS3Models++
+			}
+			if strings.HasPrefix(model.ModelPath, "gs://") {
+				numGSModels++
+			}
 		}
+	}
+
+	if numS3Models > 0 && numGSModels > 0 {
+		return ErrorMixedBucketProviders()
 	}
 
 	return nil

@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"math"
 	"net"
+	"path"
 	"path/filepath"
 	"strings"
 
@@ -47,12 +48,7 @@ type ProjectFiles struct {
 	projectRoot  string
 }
 
-func newProjectFiles(projectFileList []string, configPath string) (ProjectFiles, error) {
-	if !files.IsAbsOrTildePrefixed(configPath) {
-		return ProjectFiles{}, errors.ErrorUnexpected(fmt.Sprintf("%s is not an absolute path", configPath))
-	}
-	projectRoot := files.Dir(configPath)
-
+func newProjectFiles(projectFileList []string, projectRoot string) (ProjectFiles, error) {
 	relFilePaths := make([]string, len(projectFileList))
 	for i, projectFilePath := range projectFileList {
 		if !files.IsAbsOrTildePrefixed(projectFilePath) {
@@ -72,6 +68,15 @@ func newProjectFiles(projectFileList []string, configPath string) (ProjectFiles,
 
 func (projectFiles ProjectFiles) AllPaths() []string {
 	return projectFiles.relFilePaths
+}
+
+func (projectFiles ProjectFiles) AllAbsPaths() []string {
+	absPaths := make([]string, 0, len(projectFiles.relFilePaths))
+	for _, relPath := range projectFiles.relFilePaths {
+		absPaths = append(absPaths, path.Join(projectFiles.projectRoot, relPath))
+	}
+
+	return absPaths
 }
 
 func (projectFiles ProjectFiles) GetFile(path string) ([]byte, error) {

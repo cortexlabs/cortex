@@ -134,7 +134,7 @@ var _envListCmd = &cobra.Command{
 			if err != nil {
 				exit.Error(err)
 			}
-			fmt.Println(string(bytes))
+			fmt.Print(string(bytes))
 			return
 		}
 

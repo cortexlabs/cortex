@@ -18,7 +18,9 @@ package local
 
 import (
 	"fmt"
+	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/cortexlabs/cortex/cli/types/cliconfig"
 	"github.com/cortexlabs/cortex/pkg/consts"
@@ -30,9 +32,10 @@ import (
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
 	"github.com/cortexlabs/cortex/pkg/types"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
+	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 )
 
-func Deploy(env cliconfig.Environment, configPath string, projectFileList []string, deployDisallowPrompt bool) ([]schema.DeployResult, error) {
+func Deploy(env cliconfig.Environment, configPath string, projectFileList []string, disallowPrompt bool) ([]schema.DeployResult, error) {
 	configFileName := filepath.Base(configPath)
 
 	_, err := docker.GetDockerClient()
@@ -45,31 +48,14 @@ func Deploy(env cliconfig.Environment, configPath string, projectFileList []stri
 		return nil, err
 	}
 
-	projectFiles, err := newProjectFiles(projectFileList, configPath)
+	if !files.IsAbsOrTildePrefixed(configPath) {
+		return nil, errors.ErrorUnexpected(fmt.Sprintf("%s is not an absolute path", configPath))
+	}
+	projectRoot := files.Dir(configPath)
+
+	projectFiles, err := newProjectFiles(projectFileList, projectRoot)
 	if err != nil {
 		return nil, err
-	}
-
-	var awsClient *aws.Client
-	var gcpClient *gcp.Client
-
-	if env.Provider == types.GCPProviderType {
-		gcpClient, err = gcp.NewFromEnv()
-		if err != nil {
-			return nil, err
-		}
-	} else {
-		if env.AWSAccessKeyID != nil {
-			awsClient, err = aws.NewFromCreds(*env.AWSRegion, *env.AWSAccessKeyID, *env.AWSSecretAccessKey)
-			if err != nil {
-				return nil, err
-			}
-		} else {
-			awsClient, err = aws.NewAnonymousClient()
-			if err != nil {
-				return nil, err
-			}
-		}
 	}
 
 	apiConfigs, err := spec.ExtractAPIConfigs(configBytes, types.LocalProviderType, configFileName, nil, nil)
@@ -77,22 +63,58 @@ func Deploy(env cliconfig.Environment, configPath string, projectFileList []stri
 		return nil, err
 	}
 
+	return deploy(env, apiConfigs, projectFiles, disallowPrompt)
+}
+
+func deploy(env cliconfig.Environment, apiConfigs []userconfig.API, projectFiles ProjectFiles, disallowPrompt bool) ([]schema.DeployResult, error) {
+	var err error
+	var awsClient *aws.Client
+	var gcpClient *gcp.Client
+
+	if env.AWSAccessKeyID != nil {
+		awsClient, err = aws.NewFromCreds(*env.AWSRegion, *env.AWSAccessKeyID, *env.AWSSecretAccessKey)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		awsClient, err = aws.NewAnonymousClient()
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	if os.Getenv("GOOGLE_APPLICATION_CREDENTIALS") != "" {
+		gcpClient, err = gcp.NewFromEnv()
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	if awsClient == nil && hasAnyModelWithPrefix(apiConfigs, "s3://") {
+		return nil, ErrorMustSpecifyLocalAWSCreds()
+	}
+
+	if gcpClient == nil && hasAnyModelWithPrefix(apiConfigs, "gs://") {
+		return nil, gcp.ErrorCredentialsFileEnvVarNotSet()
+	}
+
 	models := []spec.CuratedModelResource{}
 	err = ValidateLocalAPIs(apiConfigs, &models, projectFiles, awsClient, gcpClient)
 	if err != nil {
-		err = errors.Append(err, fmt.Sprintf("\n\napi configuration schema for Realtime API can be found at https://docs.cortex.dev/v/%s/deployments/realtime-api/api-configuration", consts.CortexVersionMinor))
+		err = errors.Append(err, fmt.Sprintf("\n\napi configuration schema for Realtime API can be found at https://docs.cortex.dev/v/%s/", consts.CortexVersionMinor))
 		return nil, err
 	}
 
-	projectID, err := files.HashFile(projectFileList[0], projectFileList[1:]...)
+	projectRelFilePaths := projectFiles.AllAbsPaths()
+	projectID, err := files.HashFile(projectRelFilePaths[0], projectRelFilePaths[1:]...)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to hash directory", filepath.Dir(configPath))
+		return nil, errors.Wrap(err, "failed to hash directory", projectFiles.projectRoot)
 	}
 
 	results := make([]schema.DeployResult, len(apiConfigs))
 	for i := range apiConfigs {
 		apiConfig := apiConfigs[i]
-		api, msg, err := UpdateAPI(&apiConfig, models, configPath, projectID, deployDisallowPrompt, awsClient)
+		api, msg, err := UpdateAPI(&apiConfig, models, projectFiles.projectRoot, projectID, disallowPrompt, awsClient, gcpClient)
 		results[i].Message = msg
 		if err != nil {
 			results[i].Error = errors.Message(err)
@@ -102,4 +124,27 @@ func Deploy(env cliconfig.Environment, configPath string, projectFileList []stri
 	}
 
 	return results, nil
+}
+
+func hasAnyModelWithPrefix(apiConfigs []userconfig.API, modelPrefix string) bool {
+	for _, apiConfig := range apiConfigs {
+		if apiConfig.Predictor.ModelPath != nil && strings.HasPrefix(*apiConfig.Predictor.ModelPath, modelPrefix) {
+			return true
+		}
+		if apiConfig.Predictor.Models != nil {
+			if apiConfig.Predictor.Models.Dir != nil && strings.HasPrefix(*apiConfig.Predictor.ModelPath, modelPrefix) {
+				return true
+			}
+			for _, model := range apiConfig.Predictor.Models.Paths {
+				if model == nil {
+					continue
+				}
+				if strings.HasPrefix(model.ModelPath, modelPrefix) {
+					return true
+				}
+			}
+		}
+	}
+
+	return false
 }

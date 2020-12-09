@@ -127,6 +127,7 @@ func init() {
 	envInit()
 	getInit()
 	logsInit()
+	patchInit()
 	predictInit()
 	refreshInit()
 	versionInit()
@@ -166,6 +167,7 @@ func Execute() {
 
 	_rootCmd.AddCommand(_deployCmd)
 	_rootCmd.AddCommand(_getCmd)
+	_rootCmd.AddCommand(_patchCmd)
 	_rootCmd.AddCommand(_logsCmd)
 	_rootCmd.AddCommand(_refreshCmd)
 	_rootCmd.AddCommand(_predictCmd)
@@ -180,7 +182,6 @@ func Execute() {
 
 	updateRootUsage()
 
-	printLeadingNewLine()
 	_rootCmd.Execute()
 
 	exit.Ok()
@@ -248,18 +249,11 @@ func envStringIfNotSpecified(envName string, cmd *cobra.Command) (string, error)
 	return "", nil
 }
 
-func printLeadingNewLine() {
-	if len(os.Args) == 3 && os.Args[1] == "completion" {
-		return
-	}
-	fmt.Println("")
-}
-
 func mixedPrint(a interface{}) error {
 	jsonBytes, err := libjson.Marshal(a)
 	if err != nil {
 		return err
 	}
-	fmt.Println(fmt.Sprintf("~~cortex~~%s~~cortex~~", base64.StdEncoding.EncodeToString(jsonBytes)))
+	fmt.Print(fmt.Sprintf("~~cortex~~%s~~cortex~~", base64.StdEncoding.EncodeToString(jsonBytes)))
 	return nil
 }

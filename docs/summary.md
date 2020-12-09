@@ -1,17 +1,24 @@
 # Table of contents
 
-* [Deploy machine learning models to production](../README.md)
+* [Get started](tutorials/realtime.md)
+* [Chat with us](https://gitter.im/cortexlabs/cortex)
+
+## Tutorials
+
+* [Realtime API](tutorials/realtime.md)
+* [Batch API](tutorials/batch.md)
+* [Multi-model API](tutorials/multi-model.md)
+* [Traffic splitter](tutorials/traffic-splitter.md)
+* [Project directory](tutorials/project.md)
+
+## Running on AWS
+
 * [Install](aws/install.md)
-* [Tutorial](https://docs.cortex.dev/v/master/deployments/realtime-api/text-generator)  <!-- CORTEX_VERSION_MINOR -->
-* [GitHub](https://github.com/cortexlabs/cortex)
-* [Examples](https://github.com/cortexlabs/cortex/tree/master/examples)  <!-- CORTEX_VERSION_MINOR -->
-* [Contact us](contact.md)
-
-## Running Cortex on AWS
-
 * [Credentials](aws/credentials.md)
 * [Security](aws/security.md)
 * [Spot instances](aws/spot.md)
+* [GPUs](aws/gpu.md)
+* [Inferentia](aws/inferentia.md)
 * [Networking](aws/networking.md)
 * [VPC peering](aws/vpc-peering.md)
 * [Custom domain](aws/custom-domain.md)
@@ -20,42 +27,33 @@
 * [Update](aws/update.md)
 * [Uninstall](aws/uninstall.md)
 
-## Deployments
+## Running on GCP
 
-* [Realtime API](deployments/realtime-api.md)
-  * [Predictor implementation](deployments/realtime-api/predictors.md)
-  * [API configuration](deployments/realtime-api/api-configuration.md)
-  * [API deployment](deployments/realtime-api/deployment.md)
-  * [API statuses](deployments/realtime-api/statuses.md)
-  * [Models](deployments/realtime-api/models.md)
-  * [Parallelism](deployments/realtime-api/parallelism.md)
-  * [Autoscaling](deployments/realtime-api/autoscaling.md)
-  * [Prediction monitoring](deployments/realtime-api/prediction-monitoring.md)
-  * [Traffic Splitter](deployments/realtime-api/traffic-splitter.md)
-  * [Realtime API tutorial](../examples/pytorch/text-generator/README.md)
-* [Batch API](deployments/batch-api.md)
-  * [Predictor implementation](deployments/batch-api/predictors.md)
-  * [API configuration](deployments/batch-api/api-configuration.md)
-  * [API deployment](deployments/batch-api/deployment.md)
-  * [Endpoints](deployments/batch-api/endpoints.md)
-  * [Job statuses](deployments/batch-api/statuses.md)
-  * [Batch API tutorial](../examples/batch/image-classifier/README.md)
+* [Install](gcp/install.md)
+* [Credentials](gcp/credentials.md)
+* [Uninstall](gcp/uninstall.md)
 
-## Advanced
+## Workloads
 
-* [Compute](deployments/compute.md)
-* [Using GPUs](deployments/gpus.md)
-* [Using Inferentia](deployments/inferentia.md)
-* [Python packages](deployments/python-packages.md)
-* [System packages](deployments/system-packages.md)
-
-## Miscellaneous
-
-* [CLI commands](miscellaneous/cli.md)
-* [Python client](miscellaneous/python-client.md)
-* [Environments](miscellaneous/environments.md)
-* [Architecture diagram](miscellaneous/architecture.md)
-* [Telemetry](miscellaneous/telemetry.md)
+* [Realtime API](workloads/realtime.md)
+  * [Predictor implementation](workloads/realtime/predictors.md)
+  * [API configuration](workloads/realtime/configuration.md)
+  * [API statuses](workloads/realtime/statuses.md)
+  * [Models](workloads/realtime/models.md)
+  * [Parallelism](workloads/realtime/parallelism.md)
+  * [Autoscaling](workloads/realtime/autoscaling.md)
+  * [Prediction monitoring](workloads/realtime/prediction-monitoring.md)
+  * [Traffic Splitter](workloads/realtime/traffic-splitter.md)
+* [Batch API](workloads/batch.md)
+  * [Predictor implementation](workloads/batch/predictors.md)
+  * [API configuration](workloads/batch/configuration.md)
+  * [Endpoints](workloads/batch/endpoints.md)
+  * [Job statuses](workloads/batch/statuses.md)
+* [Python client](workloads/python-client.md)
+* [Python packages](workloads/python-packages.md)
+* [System packages](workloads/system-packages.md)
+* [Environments](workloads/environments.md)
+* [Telemetry](workloads/telemetry.md)
 
 ## Troubleshooting
 
@@ -63,7 +61,7 @@
 * [404/503 API responses](troubleshooting/api-request-errors.md)
 * [NVIDIA runtime not found](troubleshooting/nvidia-container-runtime-not-found.md)
 * [TF session in predict()](troubleshooting/tf-session-in-predict.md)
-* [Serving-side batching errors](troubleshooting/server-side-batching-errors.md)
+* [Server-side batching errors](troubleshooting/server-side-batching-errors.md)
 
 ## Guides
 
@@ -78,7 +76,4 @@
 * [Docker Hub rate limiting](guides/docker-hub-rate-limiting.md)
 * [Private docker registry](guides/private-docker.md)
 * [Install CLI on Windows](guides/windows-cli.md)
-
-## Contributing
-
-* [Development](contributing/development.md)
+* [Contributing](guides/contributing.md)
