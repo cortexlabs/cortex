@@ -1,5 +1,7 @@
 # Contributing
 
+_WARNING: you are on the master branch, please refer to the docs on the branch that matches your `cortex version`_
+
 ## Remote development
 
 We recommend that you run your development environment on a cloud instance due to frequent docker registry pushing, e.g. an AWS EC2 instance or GCP VM. We've had a good experience using [Mutagen](https://mutagen.io/documentation/introduction) to synchronize local / remote file systems. Feel free to reach out to us on [gitter](https://gitter.im/cortexlabs/cortex) if you have any questions about this.
