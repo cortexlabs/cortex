@@ -19,12 +19,8 @@ cortex cluster-gcp up  # or: cortex cluster-gcp up --config cluster.yaml (see co
 cortex env default gcp
 ```
 
-<!-- CORTEX_VERSION_MINOR -->
-Try the [tutorial](../../examples/pytorch/text-generator/README.md).
-
 ## Configure Cortex
 
-<!-- CORTEX_VERSION_MINOR -->
 ```yaml
 # cluster.yaml
 
@@ -62,5 +58,3 @@ image_istio_proxy: quay.io/cortexlabs/istio-proxy:master
 image_istio_pilot: quay.io/cortexlabs/istio-pilot:master
 image_pause: quay.io/cortexlabs/pause:master
 ```
-
-The default docker images used for your Predictors are listed in the instructions for [system packages](../deployments/system-packages.md), and can be overridden in your [Realtime API configuration](../deployments/realtime-api/api-configuration.md).
