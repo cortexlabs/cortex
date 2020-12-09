@@ -13,7 +13,12 @@ class PythonPredictor:
         return MarianMTModel.from_pretrained(model_path, local_files_only=True)
 
     def predict(self, payload):
-        model_name = "opus-mt-" + payload["source_language"] + "-" + payload["destination_language"]
+        model_name = (
+            "opus-mt-"
+            + payload["source_language"]
+            + "-"
+            + payload["destination_language"]
+        )
         tokenizer_path = "Helsinki-NLP/" + model_name
         model = self.client.get_model(model_name)
         tokenizer = MarianTokenizer.from_pretrained(tokenizer_path)
@@ -24,4 +29,3 @@ class PythonPredictor:
         result = inf_pipeline(payload["text"])
 
         return result[0]
-        
