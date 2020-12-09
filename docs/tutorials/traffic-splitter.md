@@ -12,8 +12,7 @@ import cortex
 class PythonPredictor:
     def __init__(self, config):
         from transformers import pipeline
-
-        self.model = pipeline(task="text-generation", model=config["model"])
+        self.model = pipeline(task="text-generation")
 
     def predict(self, payload):
         return self.model(payload["text"])[0]
