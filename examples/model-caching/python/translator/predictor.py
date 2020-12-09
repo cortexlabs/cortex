@@ -24,3 +24,4 @@ class PythonPredictor:
         result = inf_pipeline(payload["text"])
 
         return result[0]
+        
