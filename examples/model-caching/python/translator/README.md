@@ -1,7 +1,5 @@
 # Translator API
 
-_WARNING: you are on the master branch; please refer to examples on the branch corresponding to your `cortex version` (e.g. for version 0.22.*, run `git checkout -b 0.22` or switch to the `0.22` branch on GitHub)_
-
 This project implements a multi-lingual translation API, supporting translations between over 150 languages, using +1,000 large pre-trained models served from a single EC2 instance via Cortex:
 
 
