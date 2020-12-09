@@ -1,5 +1,3 @@
-# WARNING: you are on the master branch; please refer to examples on the branch corresponding to your `cortex version` (e.g. for version 0.22.*, run `git checkout -b 0.22` or switch to the `0.22` branch on GitHub)
-
 # EKS cluster name for cortex (default: cortex)
 cluster_name: cortex
 
