@@ -1,8 +1,3 @@
-<!-- Delete on release branches -->
-<img src='https://s3-us-west-2.amazonaws.com/cortex-public/logo.png' height='42'>
-
-<br>
-
 # Deploy machine learning models to production
 
 Cortex is an open source platform for deploying, managing, and scaling machine learning in production.
