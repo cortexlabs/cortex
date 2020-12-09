@@ -18,7 +18,9 @@ class PythonPredictor:
         model = self.client.get_model(model_name)
         tokenizer = MarianTokenizer.from_pretrained(tokenizer_path)
 
-        inf_pipeline = pipeline("text2text-generation", model=model, tokenizer=tokenizer, device=self.device)
+        inf_pipeline = pipeline(
+            "text2text-generation", model=model, tokenizer=tokenizer, device=self.device
+            )
         result = inf_pipeline(payload["text"])
 
         return result[0]
