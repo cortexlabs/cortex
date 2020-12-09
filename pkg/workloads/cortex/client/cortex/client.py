@@ -44,7 +44,7 @@ class Client:
         self.env = env
         self.env_name = env["name"]
 
-    # CORTEX_VERSION_MINOR x5
+    # CORTEX_VERSION_MINOR
     def create_api(
         self,
         api_spec: dict,
@@ -59,13 +59,8 @@ class Client:
         Deploy an API.
 
         Args:
-            api_spec: A dictionary defining a single Cortex API. Schema can be found here:
-                → Realtime API: https://docs.cortex.dev/v/master/deployments/realtime-api/api-configuration
-                → Batch API: https://docs.cortex.dev/v/master/deployments/batch-api/api-configuration
-                → Traffic Splitter: https://docs.cortex.dev/v/master/deployments/realtime-api/traffic-splitter
+            api_spec: A dictionary defining a single Cortex API. See https://docs.cortex.dev/v/master/ for schema.
             predictor: A Cortex Predictor class implementation. Not required when deploying a traffic splitter.
-                → Realtime API: https://docs.cortex.dev/v/master/deployments/realtime-api/predictors
-                → Batch API: https://docs.cortex.dev/v/master/deployments/batch-api/predictors
             requirements: A list of PyPI dependencies that will be installed before the predictor class implementation is invoked.
             conda_packages: A list of Conda dependencies that will be installed before the predictor class implementation is invoked.
             project_dir: Path to a python project.

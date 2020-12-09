@@ -2,10 +2,6 @@
 
 _WARNING: you are on the master branch, please refer to the docs on the branch that matches your `cortex version`_
 
-Once your model is [exported](../../guides/exporting.md) and you've implemented a [Predictor](predictors.md), you can configure your API via a YAML file (typically named `cortex.yaml`).
-
-Reference the section below which corresponds to your Predictor type: [Python](#python-predictor), [TensorFlow](#tensorflow-predictor), or [ONNX](#onnx-predictor).
-
 ## Python Predictor
 
 <!-- CORTEX_VERSION_BRANCH_STABLE x2 -->
@@ -59,8 +55,6 @@ Reference the section below which corresponds to your Predictor type: [Python](#
     max_surge: <string | int>  # maximum number of replicas that can be scheduled above the desired number of replicas during an update; can be an absolute number, e.g. 5, or a percentage of desired replicas, e.g. 10% (default: 25%) (set to 0 to disable rolling updates)
     max_unavailable: <string | int>  # maximum number of replicas that can be unavailable during an update; can be an absolute number, e.g. 5, or a percentage of desired replicas, e.g. 10% (default: 25%)
 ```
-
-See additional documentation for [models](models.md), [parallelism](parallelism.md), [autoscaling](autoscaling.md), [compute](../compute.md), [networking](../../aws/networking.md), [prediction monitoring](prediction-monitoring.md), and [overriding API images](../system-packages.md).
 
 ## TensorFlow Predictor
 
@@ -123,8 +117,6 @@ See additional documentation for [models](models.md), [parallelism](parallelism.
     max_unavailable: <string | int>  # maximum number of replicas that can be unavailable during an update; can be an absolute number, e.g. 5, or a percentage of desired replicas, e.g. 10% (default: 25%)
 ```
 
-See additional documentation for [models](models.md), [parallelism](parallelism.md), [autoscaling](autoscaling.md), [compute](../compute.md), [networking](../../aws/networking.md), [prediction monitoring](prediction-monitoring.md), and [overriding API images](../system-packages.md).
-
 ## ONNX Predictor
 
 <!-- CORTEX_VERSION_BRANCH_STABLE x2 -->
@@ -178,5 +170,3 @@ See additional documentation for [models](models.md), [parallelism](parallelism.
     max_surge: <string | int>  # maximum number of replicas that can be scheduled above the desired number of replicas during an update; can be an absolute number, e.g. 5, or a percentage of desired replicas, e.g. 10% (default: 25%) (set to 0 to disable rolling updates)
     max_unavailable: <string | int>  # maximum number of replicas that can be unavailable during an update; can be an absolute number, e.g. 5, or a percentage of desired replicas, e.g. 10% (default: 25%)
 ```
-
-See additional documentation for [models](models.md), [parallelism](parallelism.md), [autoscaling](autoscaling.md), [compute](../compute.md), [networking](../../aws/networking.md), [prediction monitoring](prediction-monitoring.md), and [overriding API images](../system-packages.md).

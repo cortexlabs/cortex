@@ -19,9 +19,6 @@ cortex cluster up  # or: cortex cluster up --config cluster.yaml (see configurat
 cortex env default aws
 ```
 
-<!-- CORTEX_VERSION_MINOR -->
-Try the [tutorial](../../examples/pytorch/text-generator/README.md) or deploy one of our [examples](https://github.com/cortexlabs/cortex/tree/master/examples).
-
 ## Configure Cortex
 
 <!-- CORTEX_VERSION_MINOR -->
@@ -65,7 +62,7 @@ nat_gateway: none
 api_load_balancer_scheme: internet-facing
 
 # operator load balancer scheme [internet-facing | internal]
-# note: if using "internal", you must configure VPC Peering to connect your CLI to your cluster operator (https://docs.cortex.dev/v/master/aws/vpc-peering)
+# note: if using "internal", you must configure VPC Peering to connect your CLI to your cluster operator
 operator_load_balancer_scheme: internet-facing
 
 # API Gateway [public (API Gateway will be used by default, can be disabled per API) | none (API Gateway will be disabled for all APIs)]
@@ -102,8 +99,6 @@ image_statsd: quay.io/cortexlabs/statsd:master
 image_istio_proxy: quay.io/cortexlabs/istio-proxy:master
 image_istio_pilot: quay.io/cortexlabs/istio-pilot:master
 ```
-
-The default docker images used for your Predictors are listed in the instructions for [system packages](../deployments/system-packages.md), and can be overridden in your [Realtime API configuration](../deployments/realtime-api/api-configuration.md) and in your [Batch API configuration](../deployments/batch-api/api-configuration.md).
 
 ## Advanced
 

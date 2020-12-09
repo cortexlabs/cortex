@@ -2,7 +2,7 @@
 /bin/
 /dev/
 /docs/
-/examples/
+/test/
 
 **/.*
 **/*.md

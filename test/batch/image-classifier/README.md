@@ -105,7 +105,7 @@ class PythonPredictor:
         )
 ```
 
-Here are the complete [Predictor docs](../../../docs/deployments/batch-api/predictors.md).
+Here are the complete [Predictor docs](../../../docs/workloads/batch/predictors.md).
 
 <br>
 
@@ -140,7 +140,7 @@ Create a `cortex.yaml` file and add the configuration below. An `api` with `kind
     cpu: 1
 ```
 
-Here are the complete [API configuration docs](../../../docs/deployments/batch-api/api-configuration.md).
+Here are the complete [API configuration docs](../../../docs/workloads/batch/configuration.md).
 
 <br>
 

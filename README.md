@@ -3,10 +3,6 @@
 
 <br>
 
-<!-- Delete on release branches -->
-<!-- CORTEX_VERSION_README_MINOR -->
-[install](https://docs.cortex.dev/install) • [documentation](https://docs.cortex.dev) • [examples](https://github.com/cortexlabs/cortex/tree/0.23/examples) • [community](https://gitter.im/cortexlabs/cortex)
-
 # Deploy machine learning models to production
 
 Cortex is an open source platform for deploying, managing, and scaling machine learning in production.
@@ -56,8 +52,6 @@ cortex is ready!
 #### Implement a predictor
 
 ```python
-# predictor.py
-
 from transformers import pipeline
 
 class PythonPredictor:
@@ -74,20 +68,13 @@ class PythonPredictor:
 api_spec = {
   "name": "text-generator",
   "kind": "RealtimeAPI",
-  "predictor": {
-    "type": "python",
-    "path": "predictor.py"
-  },
   "compute": {
     "gpu": 1,
-    "mem": "8Gi",
+    "mem": "8Gi"
   },
   "autoscaling": {
     "min_replicas": 1,
     "max_replicas": 10
-  },
-  "networking": {
-    "api_gateway": "public"
   }
 }
 ```
@@ -108,19 +95,15 @@ api_spec = {
 import cortex
 
 cx = cortex.client("aws")
-cx.deploy(api_spec, project_dir=".")
+cx.create_api(api_spec, predictor=PythonPredictor)
 
 # creating https://example.com/text-generator
 ```
 
 #### Consume your API
 
-```python
-import requests
-
-endpoint = "https://example.com/text-generator"
-payload = {"text": "hello world"}
-prediction = requests.post(endpoint, payload)
+```bash
+$ curl https://example.com/text-generator -X POST -H "Content-Type: application/json" -d '{"text": "hello world"}'
 ```
 
 <br>
@@ -131,4 +114,4 @@ prediction = requests.post(endpoint, payload)
 pip install cortex
 ```
 
-See the [installation guide](https://docs.cortex.dev/install) for next steps.
+[Deploy models](https://docs.cortex.dev) and [join our community](https://gitter.im/cortexlabs/cortex).

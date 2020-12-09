@@ -1,12 +1,6 @@
-# API configuration
+# Batch API configuration
 
 _WARNING: you are on the master branch, please refer to the docs on the branch that matches your `cortex version`_
-
-Once your model is [exported](../../guides/exporting.md) and you've implemented a [Predictor](predictors.md), you can configure your API via a YAML file (typically named `cortex.yaml`).
-
-Reference the section below which corresponds to your Predictor type: [Python](#python-predictor), [TensorFlow](#tensorflow-predictor), or [ONNX](#onnx-predictor).
-
-**Batch APIs are only supported on a Cortex cluster (in AWS).**
 
 ## Python Predictor
 
@@ -30,8 +24,6 @@ Reference the section below which corresponds to your Predictor type: [Python](#
     inf: <int> # Inferentia ASIC request per worker (default: 0)
     mem: <string>  # memory request per worker, e.g. 200Mi or 1Gi (default: Null)
 ```
-
-See additional documentation for [compute](../compute.md), [networking](../../aws/networking.md), and [overriding API images](../system-packages.md).
 
 ## TensorFlow Predictor
 
@@ -67,8 +59,6 @@ See additional documentation for [compute](../compute.md), [networking](../../aw
     mem: <string>  # memory request per worker, e.g. 200Mi or 1Gi (default: Null)
 ```
 
-See additional documentation for [compute](../compute.md), [networking](../../aws/networking.md), and [overriding API images](../system-packages.md).
-
 ## ONNX Predictor
 
 <!-- CORTEX_VERSION_BRANCH_STABLE x2 -->
@@ -96,5 +86,3 @@ See additional documentation for [compute](../compute.md), [networking](../../aw
     gpu: <int>  # GPU request per worker (default: 0)
     mem: <string>  # memory request per worker, e.g. 200Mi or 1Gi (default: Null)
 ```
-
-See additional documentation for [compute](../compute.md), [networking](../../aws/networking.md), and [overriding API images](../system-packages.md).
