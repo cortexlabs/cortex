@@ -20,7 +20,7 @@ class PythonPredictor:
 
         inf_pipeline = pipeline(
             "text2text-generation", model=model, tokenizer=tokenizer, device=self.device
-            )
+        )
         result = inf_pipeline(payload["text"])
 
         return result[0]
