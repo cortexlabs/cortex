@@ -1,7 +1,5 @@
 # Python client
 
-_WARNING: you are on the master branch, please refer to the docs on the branch that matches your `cortex version`_
-
 * [cortex](#cortex)
   * [client](#client)
   * [local\_client](#local_client)

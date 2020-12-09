@@ -1,7 +1,5 @@
 # Install CLI on Windows
 
-_WARNING: you are on the master branch, please refer to the docs on the branch that matches your `cortex version`_
-
 This guide walks you through installing the Cortex CLI on a Windows 10 machine using the Linux Subsystem.
 
 The requirement is an x64 system with Windows 10 of **Version 1903** or higher, with **Build 18362** or higher.

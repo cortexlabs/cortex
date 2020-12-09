@@ -1,7 +1,5 @@
 # Using Inferentia
 
-_WARNING: you are on the master branch, please refer to the docs on the branch that matches your `cortex version`_
-
 To use [Inferentia ASICs](https://aws.amazon.com/machine-learning/inferentia/):
 
 1. You may need to [request a limit increase](https://console.aws.amazon.com/servicequotas/home?#!/services/ec2/quotas) for running Inferentia instances.
