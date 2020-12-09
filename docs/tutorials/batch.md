@@ -129,7 +129,7 @@ job_spec = {
 
 response = requests.post(batch_endpoint, json=job_spec)
 
-print(response)
+print(response.text)
 # > {"job_id":"69b183ed6bdf3e9b","api_name":"image-classifier", "config": {"dest_s3_dir": ...}}
 ```
 
