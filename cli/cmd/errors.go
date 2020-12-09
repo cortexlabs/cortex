@@ -249,7 +249,7 @@ func ErrorMissingAWSCredentials() error {
 func ErrorCredentialsInClusterConfig(cmd string, path string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrCredentialsInClusterConfig,
-		Message: fmt.Sprintf("specifying credentials in the cluster configuration is no longer supported, please specify aws credentials using flags (e.g. cortex cluster %s --config %s --aws-key <AWS_ACCESS_KEY_ID> --aws-secret <AWS_SECRET_ACCESS_KEY>) or set environment variables; see https://docs.cortex.dev/v/%s/aws/security#iam-permissions for more information", cmd, path, consts.CortexVersionMinor),
+		Message: fmt.Sprintf("specifying credentials in the cluster configuration is no longer supported, please specify aws credentials using flags (e.g. cortex cluster %s --config %s --aws-key <AWS_ACCESS_KEY_ID> --aws-secret <AWS_SECRET_ACCESS_KEY>) or set environment variables; see https://docs.cortex.dev/v/%s/ for more information", cmd, path, consts.CortexVersionMinor),
 	})
 }
 
@@ -343,6 +343,6 @@ func ErrorDeployFromTopLevelDir(genericDirName string, providerType types.Provid
 	}
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrDeployFromTopLevelDir,
-		Message: fmt.Sprintf("cannot deploy from your %s directory - when deploying your API, cortex sends all files in your project directory (i.e. the directory which contains cortex.yaml) to your %s (see https://docs.cortex.dev/v/%s/deployments/realtime-api/predictors#project-files for Realtime API and https://docs.cortex.dev/v/%s/deployments/batch-api/predictors#project-files for Batch API); therefore it is recommended to create a subdirectory for your project files", genericDirName, targetStr, consts.CortexVersionMinor, consts.CortexVersionMinor),
+		Message: fmt.Sprintf("cannot deploy from your %s directory - when deploying your API, cortex sends all files in your project directory (i.e. the directory which contains cortex.yaml) to your %s (see https://docs.cortex.dev/v/%s/); therefore it is recommended to create a subdirectory for your project files", genericDirName, targetStr, consts.CortexVersionMinor),
 	})
 }

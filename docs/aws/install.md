@@ -62,7 +62,7 @@ nat_gateway: none
 api_load_balancer_scheme: internet-facing
 
 # operator load balancer scheme [internet-facing | internal]
-# note: if using "internal", you must configure VPC Peering to connect your CLI to your cluster operator (https://docs.cortex.dev/v/master/aws/vpc-peering)
+# note: if using "internal", you must configure VPC Peering to connect your CLI to your cluster operator (https://docs.cortex.dev/v/master/)
 operator_load_balancer_scheme: internet-facing
 
 # API Gateway [public (API Gateway will be used by default, can be disabled per API) | none (API Gateway will be disabled for all APIs)]
