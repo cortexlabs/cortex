@@ -152,5 +152,5 @@ Once the job is complete, you should be able to find the results of the batch jo
 ### Delete the Batch API
 
 ```bash
-$ cortex delete image-classifier --env local
+$ cortex delete image-classifier --env aws
 ```

@@ -46,8 +46,6 @@ cx.create_api(api_spec, project_dir=".")
 
 ## Deploy using the CLI
 
-Navigate to your project directory and define a yaml with the api specification:
-
 ```yaml
 # api.yaml
 
