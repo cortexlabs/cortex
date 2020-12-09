@@ -125,11 +125,10 @@ The API, as currently defined, uses the two-letter codes used by the Helsinki NL
 
 The first time you request a specific language-to-language translation, the model will be downloaded from S3, which may take some time (~60s, depending on bandwidth). Every subsequent request will be much faster, as the API is defined as being able to hold 250 models on disk and 5 in memory. Models already loaded into memory will serve predictions fastest (a couple seconds at most with GPU), while those on disk will take slightly longer as they need to be swapped into memory. Instances with more memory and disk space can naturally hold more models.
 
-
 As for caching logic, when space is full, models are removed from both memory and disk according to which model was used last. You can read more about how caching works in the [Cortex docs.](https://docs.cortex.dev/)
 
 Finally, note that this project places a heavy emphasis on cost savings, to the detriment of optimal performance. If you are interested in improving performance, there are a number of changes you can make. For example, if you know which models are most likely to be needed, you can "warm up" the API by calling them immediately after deploy. Alternatively, if you have a handful of translation requests that comprise the bulk of your workload, you can deploy a separate API containing just those models, and route traffic accordingly. You will increase cost (though still benefit greatly from multi-model caching), but you will also significantly improve the overall latency of your system.
- 
+
  ## Projects to thank
 
-This project is built on top of many free and open source tools. If you enjoy it, please consider supporting them by leaving a Star on their GitHub repo. These projects include Cortex, Transformers, and Helsinki NLP's Opus MT, as well as the many tools used under the hood by each. 
+This project is built on top of many free and open source tools. If you enjoy it, please consider supporting them by leaving a Star on their GitHub repo. These projects include Cortex, Transformers, and Helsinki NLP's Opus MT, as well as the many tools used under the hood by each.
