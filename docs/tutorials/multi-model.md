@@ -12,19 +12,23 @@ import cortex
 class PythonPredictor:
     def __init__(self, config):
         from transformers import pipeline
+        self.analyzer = pipeline(task="sentiment-analysis")
 
-        self.analyzer = pipeline(task="sentiment-analysis", device=device)
-        self.summarizer = pipeline(task="summarization", device=device)
+        import wget
+        import fasttext
+        wget.download(
+            "https://dl.fbaipublicfiles.com/fasttext/supervised-models/lid.176.bin", "/tmp/model"
+        )
+        self.language_identifier = fasttext.load_model("/tmp/model")
 
     def predict(self, query_params, payload):
         model = query_params.get("model")
-
         if model == "sentiment":
             return self.analyzer(payload["text"])[0]
-        elif model == "summarizer":
-            return self.summarizer(payload["text"])[0]["summary_text"]
+        elif model == "language":
+            return self.language_identifier.predict(payload["text"])[0][0][-2:]
 
-requirements = ["tensorflow", "transformers"]
+requirements = ["tensorflow", "transformers", "wget", "fasttext"]
 
 api_spec = {"name": "multi-model", "kind": "RealtimeAPI"}
 
