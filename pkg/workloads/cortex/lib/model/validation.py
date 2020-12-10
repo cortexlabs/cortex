@@ -306,7 +306,6 @@ def validate_model_paths(
             f"{predictor_type} predictor at '{common_prefix}'", "model path can't be empty"
         )
 
-    @profile
     def _validate_model_paths(pattern: Any, paths: List[str], common_prefix: str) -> None:
         rel_paths = [util.trim_prefix(path, common_prefix) for path in paths]
 
