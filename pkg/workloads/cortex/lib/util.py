@@ -87,22 +87,12 @@ def get_leftmost_part_of_path(path: str) -> str:
     Gets the leftmost part of a path.
 
     If a path looks like
-    /models/tensorflow/iris/15559399
+    models/tensorflow/iris/15559399
 
     Then this function will return
-    /models/
+    models
     """
-    has_leading_slash = False
-    if path.startswith("/"):
-        path = path[1:]
-        has_leading_slash = True
-
-    basename = ""
-    while path:
-        path, basename = os.path.split(path)
-
-    return "/" * has_leading_slash + basename
-
+    return pathlib.PurePath(path).parts[0]
 
 def remove_non_empty_directory_paths(paths: List[str]) -> List[str]:
     """
