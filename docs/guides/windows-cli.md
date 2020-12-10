@@ -48,6 +48,6 @@ $ bash -c "$(curl -sS https://raw.githubusercontent.com/cortexlabs/cortex/v0.18.
 
 ## Step 5
 
-Start using the Cortex CLI. The CLI commands are documented [here](../miscellaneous/cli.md#command-overview).
+Start using the Cortex CLI.
 
 ![step-5](https://user-images.githubusercontent.com/26958764/96927485-ca48a680-14bf-11eb-909c-f15dbc52af08.png)
