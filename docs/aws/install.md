@@ -21,7 +21,6 @@ cortex env default aws
 
 ## Configure Cortex
 
-<!-- CORTEX_VERSION_MINOR -->
 ```yaml
 # cluster.yaml
 
