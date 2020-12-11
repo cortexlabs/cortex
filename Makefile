@@ -64,11 +64,6 @@ kubectl-aws:
 kubectl-gcp:
 	@eval $$(python3 ./manager/cluster_config_env.py ./dev/config/cluster-gcp.yaml) && gcloud container clusters get-credentials "$$CORTEX_CLUSTER_NAME" --zone "$$CORTEX_ZONE" --project "$$CORTEX_PROJECT" 2>&1 | grep -v "Fetching cluster" | grep -v "kubeconfig entry generated" || true
 
-# configure kubectl to point to the cluster specified in dev/config/cluster.yaml
-.PHONY: kubectl
-kubectl:
-	@eval $$(python3 ./manager/cluster_config_env.py ./dev/config/cluster.yaml) && eksctl utils write-kubeconfig --cluster="$$CORTEX_CLUSTER_NAME" --region="$$CORTEX_REGION" | grep -v "saved kubeconfig as" | grep -v "using region" | grep -v "eksctl version" || true
-
 cluster-up-aws:
 	@$(MAKE) images-all-aws
 	@$(MAKE) cli
