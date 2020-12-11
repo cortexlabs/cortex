@@ -29,10 +29,10 @@ export BASH_ENV=./dev/config/env.sh
 # build cli, start local operator, and watch for changes
 devstart-aws:
 	@$(MAKE) operator-stop-aws || true
-	@./dev/operator_local.sh --aws || true
+	@./dev/operator_local.sh -p aws || true
 devstart-gcp:
 	@$(MAKE) operator-stop-gcp || true
-	@./dev/operator_local.sh --gcp || true
+	@./dev/operator_local.sh -p gcp || true
 
 cli:
 	@mkdir -p ./bin
@@ -45,18 +45,18 @@ cli-watch:
 # start local operator and watch for changes
 operator-local-aws:
 	@$(MAKE) operator-stop-aws || true
-	@./dev/operator_local.sh --operator-only --aws || true
+	@./dev/operator_local.sh --operator-only -p aws || true
 operator-local-gcp:
 	@$(MAKE) operator-stop-gcp || true
-	@./dev/operator_local.sh --operator-only --gcp || true
+	@./dev/operator_local.sh --operator-only -p gcp || true
 
 # start local operator and attach the delve debugger to it (in server mode)
 operator-local-dbg-aws:
 	@$(MAKE) operator-stop || true
-	@./dev/operator_local_debugger.sh --aws || true
+	@./dev/operator_local.sh --debug -p aws || true
 operator-local-dbg-gcp:
 	@$(MAKE) operator-stop || true
-	@./dev/operator_local_debugger.sh --gcp || true
+	@./dev/operator_local.sh --debug -p gcp || true
 
 # configure kubectl to point to the cluster specified in dev/config/cluster-[aws|gcp].yaml
 kubectl-aws:
