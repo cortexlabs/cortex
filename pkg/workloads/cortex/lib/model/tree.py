@@ -514,9 +514,7 @@ def find_all_cloud_models(
             continue
 
         model_sub_paths = [os.path.relpath(sub_path, model_path) for sub_path in bucket_sub_paths]
-        model_versions_paths = [
-            path for path in model_sub_paths if not path.startswith("../")
-        ]
+        model_versions_paths = [path for path in model_sub_paths if not path.startswith("../")]
         model_versions = [
             util.get_leftmost_part_of_path(model_version_path)
             for model_version_path in model_versions_paths
