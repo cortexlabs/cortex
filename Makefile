@@ -52,10 +52,10 @@ operator-local-gcp:
 
 # start local operator and attach the delve debugger to it (in server mode)
 operator-local-dbg-aws:
-	@$(MAKE) operator-stop || true
+	@$(MAKE) operator-stop-aws || true
 	@./dev/operator_local.sh --debug -p aws || true
 operator-local-dbg-gcp:
-	@$(MAKE) operator-stop || true
+	@$(MAKE) operator-stop-gcp || true
 	@./dev/operator_local.sh --debug -p gcp || true
 
 # configure kubectl to point to the cluster specified in dev/config/cluster-[aws|gcp].yaml
