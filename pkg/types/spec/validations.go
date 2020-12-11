@@ -783,6 +783,10 @@ func validatePredictor(
 	}
 
 	if api.Kind == userconfig.BatchAPIKind {
+		if predictor.ServerSideBatching != nil {
+			return ErrorKeyIsNotSupportedForKind(userconfig.ServerSideBatchingKey, userconfig.BatchAPIKind)
+		}
+
 		if predictor.ProcessesPerReplica > 1 {
 			return ErrorKeyIsNotSupportedForKind(userconfig.ProcessesPerReplicaKey, userconfig.BatchAPIKind)
 		}
