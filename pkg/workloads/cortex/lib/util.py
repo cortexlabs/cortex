@@ -109,6 +109,8 @@ def get_leftmost_part_of_path(path: str) -> str:
     Then this function will return
     models
     """
+    if path == "." or path == "./":
+        return "."
     return pathlib.PurePath(path).parts[0]
 
 

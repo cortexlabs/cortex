@@ -267,7 +267,7 @@ def validate_models_dir_paths(
         )
 
     rel_paths = [os.path.relpath(top_path, common_prefix) for top_path in paths]
-    rel_paths = [path for path in rel_paths if not path.startswith("../") and not path == "."]
+    rel_paths = [path for path in rel_paths if not path.startswith("../")]
 
     model_names = [util.get_leftmost_part_of_path(path) for path in rel_paths]
     model_names = list(set(model_names))
@@ -315,7 +315,7 @@ def validate_model_paths(
         paths = paths_by_prefix_cache[common_prefix]
 
         rel_paths = [os.path.relpath(path, common_prefix) for path in paths]
-        rel_paths = [path for path in rel_paths if not path.startswith("../") and not path == "."]
+        rel_paths = [path for path in rel_paths if not path.startswith("../")]
 
         objects = [util.get_leftmost_part_of_path(path) for path in rel_paths]
         objects = list(set(objects))
