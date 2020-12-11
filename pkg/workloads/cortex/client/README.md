@@ -1,1 +1,1 @@
-Deploy machine learning models to production - [cortex.dev](https://www.cortex.dev)
+Deploy machine learning models to production - [docs.cortex.dev](https://www.docs.cortex.dev)
