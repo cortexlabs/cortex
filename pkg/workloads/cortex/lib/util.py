@@ -21,7 +21,7 @@ import pathlib
 import inspect
 from inspect import Parameter
 from copy import deepcopy
-from typing import List, Any
+from typing import List, Dict, Any
 
 
 def has_method(object, method: str):
@@ -82,6 +82,23 @@ def ensure_suffix(string, suffix):
     return string + suffix
 
 
+def get_paths_with_prefix(paths: List[str], prefix: str) -> List[str]:
+    return list(filter(lambda path: path.startswith(prefix), paths))
+
+
+def get_paths_by_prefixes(paths: List[str], prefixes: List[str]) -> Dict[str, List[str]]:
+    paths_by_prefix = {}
+    for path in paths:
+        for prefix in prefixes:
+            if not path.startswith(prefix):
+                continue
+            if prefix not in paths_by_prefix:
+                paths_by_prefix[prefix] = [path]
+            else:
+                paths_by_prefix[prefix].append(path)
+    return paths_by_prefix
+
+
 def get_leftmost_part_of_path(path: str) -> str:
     """
     Gets the leftmost part of a path.
@@ -93,6 +110,7 @@ def get_leftmost_part_of_path(path: str) -> str:
     models
     """
     return pathlib.PurePath(path).parts[0]
+
 
 def remove_non_empty_directory_paths(paths: List[str]) -> List[str]:
     """
@@ -112,15 +130,18 @@ def remove_non_empty_directory_paths(paths: List[str]) -> List[str]:
 
     for split_path in split_paths:
         composed_path = ""
-        for path_level in split_path:
+        split_path_length = len(split_path)
+        for depth, path_level in enumerate(split_path):
             if composed_path != "":
                 composed_path += "/"
             composed_path += path_level
             if composed_path not in path_map:
                 path_map[composed_path] = 1
+                if depth < split_path_length - 1:
+                    path_map[composed_path] += 1
             else:
                 path_map[composed_path] += 1
-    
+
     file_paths = []
     for file_path, appearances in path_map.items():
         if appearances == 1:

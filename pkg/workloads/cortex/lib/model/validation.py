@@ -266,9 +266,10 @@ def validate_models_dir_paths(
             f"{predictor_type} predictor at '{common_prefix}'", "model top path can't be empty"
         )
 
-    rel_paths = [util.trim_prefix(top_path, common_prefix) for top_path in paths]
+    rel_paths = [os.path.relpath(top_path, common_prefix) for top_path in paths]
+    rel_paths = [path for path in rel_paths if not path.startswith("../") and not path == "."]
 
-    model_names = [path.split("/")[0] for path in rel_paths]
+    model_names = [util.get_leftmost_part_of_path(path) for path in rel_paths]
     model_names = list(set(model_names))
 
     valid_model_prefixes = []
@@ -306,10 +307,17 @@ def validate_model_paths(
             f"{predictor_type} predictor at '{common_prefix}'", "model path can't be empty"
         )
 
-    def _validate_model_paths(pattern: Any, paths: List[str], common_prefix: str) -> None:
-        rel_paths = [util.trim_prefix(path, common_prefix) for path in paths]
+    paths_by_prefix_cache = {}
 
-        objects = [path.split("/")[0] for path in rel_paths]
+    def _validate_model_paths(pattern: Any, paths: List[str], common_prefix: str) -> None:
+        if common_prefix not in paths_by_prefix_cache:
+            paths_by_prefix_cache[common_prefix] = util.get_paths_with_prefix(paths, common_prefix)
+        paths = paths_by_prefix_cache[common_prefix]
+
+        rel_paths = [os.path.relpath(path, common_prefix) for path in paths]
+        rel_paths = [path for path in rel_paths if not path.startswith("../") and not path == "."]
+
+        objects = [util.get_leftmost_part_of_path(path) for path in rel_paths]
         objects = list(set(objects))
         visited_objects = len(objects) * [False]
 
