@@ -28,4 +28,4 @@ def client():
 
 @pytest.mark.parametrize("api", TEST_APIS)
 def test_realtime_apis(client: cx.Client, api: str):
-    e2e.tests.test_realtime_apis(client=client, api=api, timeout=DEPLOY_TIMEOUT)
+    e2e.tests.test_realtime_api(client=client, api=api, timeout=DEPLOY_TIMEOUT)

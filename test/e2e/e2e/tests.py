@@ -30,7 +30,7 @@ def delete_apis(client: cx.Client, api_names: List[str]):
         client.delete_api(name)
 
 
-def test_realtime_apis(client: cx.Client, api: str, timeout: int = None):
+def test_realtime_api(client: cx.Client, api: str, timeout: int = None):
     api_dir = TEST_APIS_DIR / api
     with open(str(api_dir / "cortex.yaml")) as f:
         api_specs = yaml.safe_load(f)
@@ -45,7 +45,9 @@ def test_realtime_apis(client: cx.Client, api: str, timeout: int = None):
         client.create_api(api_spec=api_spec, project_dir=api_dir)
 
     try:
-        assert apis_ready(client=client, api_names=api_names, timeout=timeout), f"apis {api_names} not ready"
+        assert apis_ready(
+            client=client, api_names=api_names, timeout=timeout
+        ), f"apis {api_names} not ready"
 
         with open(str(api_dir / "sample.json")) as f:
             payload = json.load(f)
