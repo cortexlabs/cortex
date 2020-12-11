@@ -21,7 +21,7 @@ from e2e.exceptions import ClusterCreationException, ClusterDeletionException
 def create_cluster(cluster_config: str):
     """Create a cortex cluster from a cluster config"""
     p = subprocess.run(
-        ["cortex", "cluster", "up", "--config", cluster_config],
+        ["cortex", "cluster", "up", "-y", "--config", cluster_config],
         stdout=sys.stdout,
         stderr=sys.stderr,
     )
@@ -33,7 +33,7 @@ def create_cluster(cluster_config: str):
 def delete_cluster(cluster_config: str):
     """Delete a cortex cluster from a cluster config"""
     p = subprocess.run(
-        ["cortex", "cluster", "down", "--config", cluster_config],
+        ["cortex", "cluster", "down", "-y", "--config", cluster_config],
         stdout=sys.stdout,
         stderr=sys.stderr,
     )
