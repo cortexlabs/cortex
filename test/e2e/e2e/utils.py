@@ -17,6 +17,7 @@ from typing import List, Optional, Dict, Union
 
 import cortex as cx
 import requests
+import yaml
 
 
 def apis_ready(client: cx.Client, api_names: List[str], timeout: Optional[int] = None) -> bool:
@@ -43,3 +44,13 @@ def request_prediction(
     response = requests.post(api_info["endpoint"], json=payload)
 
     return response
+
+
+def client_from_config(config_path: str) -> cx.Client:
+    with open(config_path) as f:
+        config = yaml.safe_load(f)
+
+    cluster_name = config["cluster_name"]
+    provider = config["provider"]
+
+    return cx.client(f"{cluster_name}-{provider}")

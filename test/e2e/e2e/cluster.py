@@ -15,13 +15,30 @@
 import subprocess
 import sys
 
+import yaml
+
 from e2e.exceptions import ClusterCreationException, ClusterDeletionException
 
 
 def create_cluster(cluster_config: str):
     """Create a cortex cluster from a cluster config"""
+    with open(cluster_config) as f:
+        config = yaml.safe_load(f)
+
+    cluster_name = config["cluster_name"]
+    provider = config["provider"]
+
     p = subprocess.run(
-        ["cortex", "cluster", "up", "-y", "--config", cluster_config],
+        [
+            "cortex",
+            "cluster",
+            "up",
+            "-y",
+            "--config",
+            cluster_config,
+            "--configure-env",
+            f"{cluster_name}-{provider}",
+        ],
         stdout=sys.stdout,
         stderr=sys.stderr,
     )
