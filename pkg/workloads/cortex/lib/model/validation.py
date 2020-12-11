@@ -398,18 +398,24 @@ def validate_model_paths(
                 "unexpected path(s) for " + str(unvisited_paths),
             )
 
-        aggregated_ooa_valid_key_ids = []
+        new_common_prefixes = []
+        sub_patterns = []
+        paths_by_prefix = {}
         for obj_id, key_id in enumerate(visited_objects):
             obj = objects[obj_id]
             key = keys[key_id]
-
-            new_common_prefix = os.path.join(common_prefix, obj)
-            sub_pattern = pattern[key]
-
             if key != AnyPlaceholder:
-                aggregated_ooa_valid_key_ids += _validate_model_paths(
-                    sub_pattern, paths, new_common_prefix
-                )
+                new_common_prefixes.append(os.path.join(common_prefix, obj))
+                sub_patterns.append(pattern[key])
+
+        if len(new_common_prefixes) > 0:
+            paths_by_prefix = util.get_paths_by_prefixes(paths, new_common_prefixes)
+
+        aggregated_ooa_valid_key_ids = []
+        for sub_pattern, new_common_prefix in zip(sub_patterns, new_common_prefixes):
+            aggregated_ooa_valid_key_ids += _validate_model_paths(
+                sub_pattern, paths_by_prefix[new_common_prefix], new_common_prefix
+            )
 
         return aggregated_ooa_valid_key_ids
 
