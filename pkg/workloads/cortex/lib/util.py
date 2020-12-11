@@ -127,6 +127,8 @@ def remove_non_empty_directory_paths(paths: List[str]) -> List[str]:
     models/tensorflow/iris/1569001258/saved_model.pb
     """
 
+    all_paths_start_with_leading_slash = all([path.startswith("/") for path in paths])
+
     path_map = {}
     split_paths = [list(filter(lambda x: x != "", path.split("/"))) for path in paths]
 
@@ -147,7 +149,7 @@ def remove_non_empty_directory_paths(paths: List[str]) -> List[str]:
     file_paths = []
     for file_path, appearances in path_map.items():
         if appearances == 1:
-            file_paths.append(file_path)
+            file_paths.append(all_paths_start_with_leading_slash * "/" + file_path)
 
     return file_paths
 
