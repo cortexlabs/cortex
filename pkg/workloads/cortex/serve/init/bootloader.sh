@@ -95,7 +95,10 @@ create_s6_service() {
     # https://skarnet.org/software/s6/s6-svscanctl.html
     # http://skarnet.org/software/s6/s6-svc.html
     # http://skarnet.org/software/s6/servicedir.html
+
+    # good pages to read about execline
     # http://www.troubleshooters.com/linux/execline.htm
+    # https://danyspin97.org/blog/getting-started-with-execline-scripting/
 
     service_name=$1
     cmd=$2
