@@ -862,7 +862,7 @@ func validatePythonPredictor(api *userconfig.API, models *[]CuratedModelResource
 	}
 	if predictor.ServerSideBatching != nil {
 		if predictor.ServerSideBatching.MaxBatchSize != predictor.ThreadsPerProcess {
-			return ErrorConcurrencyLevelBatchSizeMismatch(
+			return ErrorConcurrencyMismatchServerSideBatchingPython(
 				predictor.ServerSideBatching.MaxBatchSize,
 				predictor.ThreadsPerProcess,
 			)

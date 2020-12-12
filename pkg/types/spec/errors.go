@@ -587,12 +587,12 @@ func ErrorInsufficientBatchConcurrencyLevelInf(maxBatchSize int32, threadsPerPro
 	})
 }
 
-func ErrorConcurrencyLevelBatchSizeMismatch(maxBatchsize int32, threadsPerProcess int32) error {
+func ErrorConcurrencyMismatchServerSideBatchingPython(maxBatchsize int32, threadsPerProcess int32) error {
 	return errors.WithStack(
 		&errors.Error{
 			Kind: ErrConcurrencyLevelBatchSizeMismatch,
 			Message: fmt.Sprintf(
-				"%s (%d) must be equal to %s (%d)",
+				"%s (%d) must be equal to %s (%d) when using server side batching with the python predictor",
 				userconfig.ThreadsPerProcessKey, threadsPerProcess, userconfig.MaxBatchSizeKey, maxBatchsize,
 			),
 		},
