@@ -146,10 +146,38 @@ cluster-configure-aws-y:
 # stop the in-cluster operator
 operator-stop-aws:
 	@$(MAKE) kubectl-aws
-	@kubectl delete --namespace=default --ignore-not-found=true deployment operator
+	@kubectl scale --namespace=default deployments/operator --replicas=0
 operator-stop-gcp:
 	@$(MAKE) kubectl-gcp
-	@kubectl delete --namespace=default --ignore-not-found=true deployment operator
+	@kubectl scale --namespace=default deployments/operator --replicas=0
+
+# start the in-cluster operator
+operator-start-aws:
+	@$(MAKE) kubectl-aws
+	@kubectl scale --namespace=default deployments/operator --replicas=1
+operator-start-gcp:
+	@$(MAKE) kubectl-gcp
+	@kubectl scale --namespace=default deployments/operator --replicas=1
+
+# restart the in-cluster operator
+operator-restart-aws:
+	@$(MAKE) kubectl-aws
+	@kubectl delete pods -l workloadID=operator --namespace=default
+operator-restart-gcp:
+	@$(MAKE) kubectl-gcp
+	@kubectl delete pods -l workloadID=operator --namespace=default
+
+# build and update the in-cluster operator
+operator-update-aws:
+	@$(MAKE) kubectl-aws
+	@kubectl scale --namespace=default deployments/operator --replicas=0
+	@./dev/registry.sh update-single operator -p aws
+	@kubectl scale --namespace=default deployments/operator --replicas=1
+operator-update-gcp:
+	@$(MAKE) kubectl-gcp
+	@kubectl scale --namespace=default deployments/operator --replicas=0
+	@./dev/registry.sh update-single operator -p gcp
+	@kubectl scale --namespace=default deployments/operator --replicas=1
 
 # Docker images
 
