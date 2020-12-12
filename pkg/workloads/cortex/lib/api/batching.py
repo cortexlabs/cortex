@@ -14,7 +14,14 @@
 
 import threading as td
 import time
+import traceback
+from http import HTTPStatus
 from typing import Any, Callable, Dict, List
+
+from starlette.responses import Response
+
+from ..exceptions import UserRuntimeException
+from ..log import cx_logger as logger
 
 
 class DynamicBatcher:
@@ -47,14 +54,25 @@ class DynamicBatcher:
             self.waiter.clear()
             self.predictions = {}
 
-            if self.samples:
-                batch = self._make_batch(self.samples)
-                predictions = self.predictor_impl.predict(**batch)
-                self.predictions = dict(zip(self.samples.keys(), predictions))
-                self.samples = {}
+            try:
+                if self.samples:
+                    batch = self._make_batch(self.samples)
 
-            self.barrier.reset()
-            self.waiter.set()
+                    predictions = self.predictor_impl.predict(**batch)
+                    if not isinstance(predictions, list):
+                        raise UserRuntimeException(
+                            f"please return a list when using server side batching, got {type(predictions)}"
+                        )
+
+                    self.predictions = dict(zip(self.samples.keys(), predictions))
+            except Exception as e:
+                self.predictions = {thread_id: e for thread_id in self.samples}
+                logger().error(traceback.format_exc())
+                continue
+            finally:
+                self.samples = {}
+                self.barrier.reset()
+                self.waiter.set()
 
     @staticmethod
     def _make_batch(samples: Dict[int, Dict[str, Any]]) -> Dict[str, List[Any]]:
@@ -98,5 +116,12 @@ class DynamicBatcher:
 
         prediction = self.predictions[thread_id]
         del self.predictions[thread_id]
+
+        if isinstance(prediction, Exception):
+            return Response(
+                content=str(prediction),
+                status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
+                media_type="text/plain",
+            )
 
         return prediction
