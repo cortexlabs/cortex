@@ -78,7 +78,7 @@ with open("README.md") as f:
 
 setup(
     name="cortex",
-    version="0.24.0",  # CORTEX_VERSION
+    version="0.24.1",  # CORTEX_VERSION
     description="Deploy machine learning models to production",
     author="cortex.dev",
     author_email="dev@cortex.dev",
