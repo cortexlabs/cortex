@@ -110,7 +110,7 @@ create_s6_service() {
 
     dest_script="$dest_dir/finish"
     echo "#!/usr/bin/execlineb -S0" > $dest_script
-    echo "ifelse { s6-test \${1} -ne 0 } { s6-svscanctl -t /var/run/s6/services }" >> $dest_script
+    echo "ifelse { s6-test \${1} -ne 0 } { foreground { redirfd -w 1 /var/run/s6/env-stage3/S6_STAGE2_EXITED s6-echo -n -- \${1} } s6-svscanctl -t /var/run/s6/services }" >> $dest_script
     echo "s6-svc -O /var/run/s6/services/$service_name" >> $dest_script
     chmod +x $dest_script
 }
