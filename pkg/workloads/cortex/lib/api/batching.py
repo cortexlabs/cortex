@@ -31,6 +31,8 @@ class DynamicBatcher:
         self.batch_max_size = max_batch_size
         self.batch_interval = batch_interval  # measured in seconds
 
+        # waiter synchronizes threads and prevents that extra threads
+        # modify the batch while prediction is in process
         self.waiter = td.Event()
         self.waiter.set()
 
