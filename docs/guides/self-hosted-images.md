@@ -32,7 +32,7 @@ set -euo pipefail
 # user set variables
 ecr_region="us-west-2"
 aws_account_id="620970939130"  # example account ID
-cortex_version="0.24.0"
+cortex_version="0.24.1"
 
 source_registry="quay.io/cortexlabs"
 destination_ecr_prefix="cortexlabs"
