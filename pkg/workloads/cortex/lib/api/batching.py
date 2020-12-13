@@ -15,6 +15,7 @@
 import threading as td
 import time
 import traceback
+from collections import defaultdict
 from http import HTTPStatus
 from typing import Any, Callable, Dict, List
 
@@ -78,13 +79,12 @@ class DynamicBatcher:
 
     @staticmethod
     def _make_batch(samples: Dict[int, Dict[str, Any]]) -> Dict[str, List[Any]]:
-        # TODO: seems a bit inefficient to me, but there is a possibility each request contains different keys
-        batched_samples = {key: [] for sample in samples.values() for key in sample}
-        for sample in samples.values():
-            for key in batched_samples:
-                batched_samples[key].append(sample.get(key))
+        batched_samples = defaultdict(list)
+        for thread_id in samples:
+            for key, sample in samples[thread_id].items():
+                batched_samples[key].append(sample)
 
-        return batched_samples
+        return dict(batched_samples)
 
     def _enqueue_request(self, **kwargs):
         """
