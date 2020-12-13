@@ -11,7 +11,7 @@
     path: <string>  # path to a python file with a PythonPredictor class definition, relative to the Cortex root (required)
     config: <string: value>  # arbitrary dictionary passed to the constructor of the Predictor (can be overridden by config passed in job submission) (optional)
     python_path: <string>  # path to the root of your Python folder that will be appended to PYTHONPATH (default: folder containing cortex.yaml)
-    image: <string> # docker image to use for the Predictor (default: quay.io/cortexlabs/python-predictor-cpu:0.24.0 or quay.io/cortexlabs/python-predictor-gpu:0.24.0 based on compute)
+    image: <string> # docker image to use for the Predictor (default: quay.io/cortexlabs/python-predictor-cpu:0.24.1 or quay.io/cortexlabs/python-predictor-gpu:0.24.1 based on compute)
     env: <string: string>  # dictionary of environment variables
   networking:
     endpoint: <string>  # the endpoint for the API (default: <api_name>)
@@ -44,8 +44,8 @@
       batch_interval: <duration>  # the maximum amount of time to spend waiting for additional requests before running inference on the batch of requests
     config: <string: value>  # arbitrary dictionary passed to the constructor of the Predictor (can be overridden by config passed in job submission) (optional)
     python_path: <string>  # path to the root of your Python folder that will be appended to PYTHONPATH (default: folder containing cortex.yaml)
-    image: <string> # docker image to use for the Predictor (default: quay.io/cortexlabs/tensorflow-predictor:0.24.0)
-    tensorflow_serving_image: <string> # docker image to use for the TensorFlow Serving container (default: quay.io/cortexlabs/tensorflow-serving-gpu:0.24.0 or quay.io/cortexlabs/tensorflow-serving-cpu:0.24.0 based on compute)
+    image: <string> # docker image to use for the Predictor (default: quay.io/cortexlabs/tensorflow-predictor:0.24.1)
+    tensorflow_serving_image: <string> # docker image to use for the TensorFlow Serving container (default: quay.io/cortexlabs/tensorflow-serving-gpu:0.24.1 or quay.io/cortexlabs/tensorflow-serving-cpu:0.24.1 based on compute)
     env: <string: string>  # dictionary of environment variables
   networking:
     endpoint: <string>  # the endpoint for the API (default: <api_name>)
@@ -74,7 +74,7 @@
       ...
     config: <string: value>  # arbitrary dictionary passed to the constructor of the Predictor (can be overridden by config passed in job submission) (optional)
     python_path: <string>  # path to the root of your Python folder that will be appended to PYTHONPATH (default: folder containing cortex.yaml)
-    image: <string> # docker image to use for the Predictor (default: quay.io/cortexlabs/onnx-predictor-gpu:0.24.0 or quay.io/cortexlabs/onnx-predictor-cpu:0.24.0 based on compute)
+    image: <string> # docker image to use for the Predictor (default: quay.io/cortexlabs/onnx-predictor-gpu:0.24.1 or quay.io/cortexlabs/onnx-predictor-cpu:0.24.1 based on compute)
     env: <string: string>  # dictionary of environment variables
   networking:
     endpoint: <string>  # the endpoint for the API (default: <api_name>)

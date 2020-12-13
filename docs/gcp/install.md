@@ -48,11 +48,11 @@ The docker images used by the Cortex cluster can also be overridden, although th
 
 <!-- CORTEX_VERSION_BRANCH_STABLE -->
 ```yaml
-image_operator: quay.io/cortexlabs/operator:0.24.0
-image_manager: quay.io/cortexlabs/manager:0.24.0
-image_downloader: quay.io/cortexlabs/downloader:0.24.0
-image_statsd: quay.io/cortexlabs/statsd:0.24.0
-image_istio_proxy: quay.io/cortexlabs/istio-proxy:0.24.0
-image_istio_pilot: quay.io/cortexlabs/istio-pilot:0.24.0
-image_pause: quay.io/cortexlabs/pause:0.24.0
+image_operator: quay.io/cortexlabs/operator:0.24.1
+image_manager: quay.io/cortexlabs/manager:0.24.1
+image_downloader: quay.io/cortexlabs/downloader:0.24.1
+image_statsd: quay.io/cortexlabs/statsd:0.24.1
+image_istio_proxy: quay.io/cortexlabs/istio-proxy:0.24.1
+image_istio_pilot: quay.io/cortexlabs/istio-pilot:0.24.1
+image_pause: quay.io/cortexlabs/pause:0.24.1
 ```

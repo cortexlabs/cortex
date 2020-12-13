@@ -47,19 +47,19 @@ mkdir my-api && cd my-api && touch Dockerfile
 Cortex's base Docker images are listed below. Depending on the Cortex Predictor and compute type specified in your API configuration, choose one of these images to use as the base for your Docker image:
 
 <!-- CORTEX_VERSION_BRANCH_STABLE x12 -->
-* Python Predictor (CPU): `quay.io/cortexlabs/python-predictor-cpu-slim:0.24.0`
+* Python Predictor (CPU): `quay.io/cortexlabs/python-predictor-cpu-slim:0.24.1`
 * Python Predictor (GPU): choose one of the following:
-  * `quay.io/cortexlabs/python-predictor-gpu-slim:0.24.0-cuda10.0-cudnn7`
-  * `quay.io/cortexlabs/python-predictor-gpu-slim:0.24.0-cuda10.1-cudnn7`
-  * `quay.io/cortexlabs/python-predictor-gpu-slim:0.24.0-cuda10.1-cudnn8`
-  * `quay.io/cortexlabs/python-predictor-gpu-slim:0.24.0-cuda10.2-cudnn7`
-  * `quay.io/cortexlabs/python-predictor-gpu-slim:0.24.0-cuda10.2-cudnn8`
-  * `quay.io/cortexlabs/python-predictor-gpu-slim:0.24.0-cuda11.0-cudnn8`
-  * `quay.io/cortexlabs/python-predictor-gpu-slim:0.24.0-cuda11.1-cudnn8`
-* Python Predictor (Inferentia): `quay.io/cortexlabs/python-predictor-inf-slim:0.24.0`
-* TensorFlow Predictor (CPU, GPU, Inferentia): `quay.io/cortexlabs/tensorflow-predictor-slim:0.24.0`
-* ONNX Predictor (CPU): `quay.io/cortexlabs/onnx-predictor-cpu-slim:0.24.0`
-* ONNX Predictor (GPU): `quay.io/cortexlabs/onnx-predictor-gpu-slim:0.24.0`
+  * `quay.io/cortexlabs/python-predictor-gpu-slim:0.24.1-cuda10.0-cudnn7`
+  * `quay.io/cortexlabs/python-predictor-gpu-slim:0.24.1-cuda10.1-cudnn7`
+  * `quay.io/cortexlabs/python-predictor-gpu-slim:0.24.1-cuda10.1-cudnn8`
+  * `quay.io/cortexlabs/python-predictor-gpu-slim:0.24.1-cuda10.2-cudnn7`
+  * `quay.io/cortexlabs/python-predictor-gpu-slim:0.24.1-cuda10.2-cudnn8`
+  * `quay.io/cortexlabs/python-predictor-gpu-slim:0.24.1-cuda11.0-cudnn8`
+  * `quay.io/cortexlabs/python-predictor-gpu-slim:0.24.1-cuda11.1-cudnn8`
+* Python Predictor (Inferentia): `quay.io/cortexlabs/python-predictor-inf-slim:0.24.1`
+* TensorFlow Predictor (CPU, GPU, Inferentia): `quay.io/cortexlabs/tensorflow-predictor-slim:0.24.1`
+* ONNX Predictor (CPU): `quay.io/cortexlabs/onnx-predictor-cpu-slim:0.24.1`
+* ONNX Predictor (GPU): `quay.io/cortexlabs/onnx-predictor-gpu-slim:0.24.1`
 
 Note: the images listed above use the `-slim` suffix; Cortex's default API images are not `-slim`, since they have additional dependencies installed to cover common use cases. If you are building your own Docker image, starting with a `-slim` Predictor image will result in a smaller image size.
 
@@ -69,7 +69,7 @@ The sample Dockerfile below inherits from Cortex's Python CPU serving image, and
 ```dockerfile
 # Dockerfile
 
-FROM quay.io/cortexlabs/python-predictor-cpu-slim:0.24.0
+FROM quay.io/cortexlabs/python-predictor-cpu-slim:0.24.1
 
 RUN apt-get update \
     && apt-get install -y tree \

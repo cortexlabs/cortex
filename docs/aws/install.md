@@ -82,19 +82,19 @@ The docker images used by the Cortex cluster can also be overridden, although th
 
 <!-- CORTEX_VERSION_BRANCH_STABLE -->
 ```yaml
-image_operator: quay.io/cortexlabs/operator:0.24.0
-image_manager: quay.io/cortexlabs/manager:0.24.0
-image_downloader: quay.io/cortexlabs/downloader:0.24.0
-image_request_monitor: quay.io/cortexlabs/request-monitor:0.24.0
-image_cluster_autoscaler: quay.io/cortexlabs/cluster-autoscaler:0.24.0
-image_metrics_server: quay.io/cortexlabs/metrics-server:0.24.0
-image_inferentia: quay.io/cortexlabs/inferentia:0.24.0
-image_neuron_rtd: quay.io/cortexlabs/neuron-rtd:0.24.0
-image_nvidia: quay.io/cortexlabs/nvidia:0.24.0
-image_fluentd: quay.io/cortexlabs/fluentd:0.24.0
-image_statsd: quay.io/cortexlabs/statsd:0.24.0
-image_istio_proxy: quay.io/cortexlabs/istio-proxy:0.24.0
-image_istio_pilot: quay.io/cortexlabs/istio-pilot:0.24.0
+image_operator: quay.io/cortexlabs/operator:0.24.1
+image_manager: quay.io/cortexlabs/manager:0.24.1
+image_downloader: quay.io/cortexlabs/downloader:0.24.1
+image_request_monitor: quay.io/cortexlabs/request-monitor:0.24.1
+image_cluster_autoscaler: quay.io/cortexlabs/cluster-autoscaler:0.24.1
+image_metrics_server: quay.io/cortexlabs/metrics-server:0.24.1
+image_inferentia: quay.io/cortexlabs/inferentia:0.24.1
+image_neuron_rtd: quay.io/cortexlabs/neuron-rtd:0.24.1
+image_nvidia: quay.io/cortexlabs/nvidia:0.24.1
+image_fluentd: quay.io/cortexlabs/fluentd:0.24.1
+image_statsd: quay.io/cortexlabs/statsd:0.24.1
+image_istio_proxy: quay.io/cortexlabs/istio-proxy:0.24.1
+image_istio_pilot: quay.io/cortexlabs/istio-pilot:0.24.1
 ```
 
 ## Advanced
