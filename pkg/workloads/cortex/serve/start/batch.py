@@ -21,6 +21,7 @@ import json
 import threading
 import math
 import pathlib
+import uuid
 
 import boto3
 import botocore
@@ -38,9 +39,10 @@ import asyncio
 from typing import Any
 
 API_LIVENESS_UPDATE_PERIOD = 5  # seconds
+SQS_POLL_WAIT_TIME = 10  # seconds
+MESSAGE_NOT_FOUND_SLEEP = 10  # seconds
 INITIAL_MESSAGE_VISIBILITY = 60  # seconds
-MESSAGE_RENEWAL_PERIOD = 60  # seconds
-MAXIMUM_MESSAGE_VISIBILITY = 60 * 1  # 12 hours is the maximum message visibility
+MESSAGE_RENEWAL_PERIOD = 30  # seconds
 
 local_cache = {
     "api_spec": None,
@@ -52,23 +54,6 @@ local_cache = {
     "class_set": set(),
     "sqs_client": None,
 }
-
-
-class PeriodicGeneratorRunner:
-    def __init__(self, interval, func, *args, **kwargs):
-        self.interval = interval
-        self.func = func
-        self.args = args
-        self.kwargs = kwargs
-        self.generator = self.func(*self.args, **self.kwargs)
-
-    def start(self):
-        self.timer = threading.Timer(self.interval, self.start)
-        self.timer.start()
-        next(self.generator)
-
-    def stop(self):
-        self.timer.cancel()
 
 
 def dimensions():
@@ -102,10 +87,25 @@ def startup():
     update_api_liveness()
 
 
-def renew_message_visibility(queue_url, receipt_handle, initial_offset, interval, *args, **kwargs):
-    new_timeout = initial_offset + interval
+stop_renewal = set()
+
+
+def renew_message_visibility(receipt_handle: str):
+    queue_url = local_cache["job_spec"]["sqs_url"]
+    interval = MESSAGE_RENEWAL_PERIOD
+    new_timeout = INITIAL_MESSAGE_VISIBILITY
+    cur_time = time.time()
+
     while True:
-        yield
+        time.sleep((cur_time + interval) - time.time())
+        print("executing renew_message_visibility")
+        cur_time += interval
+        new_timeout += interval
+
+        if receipt_handle in stop_renewal:
+            stop_renewal.remove(receipt_handle)
+            break
+
         try:
             local_cache["sqs"].change_message_visibility(
                 QueueUrl=queue_url, ReceiptHandle=receipt_handle, VisibilityTimeout=new_timeout
@@ -118,11 +118,10 @@ def renew_message_visibility(queue_url, receipt_handle, initial_offset, interval
                     "failed to renew message visibility because the queue was not found"
                 )
             else:
+                stop_renewal.remove(receipt_handle)
                 raise e
 
         new_timeout += interval
-
-        # TODO: Also handle on job complete renewal
 
 
 def build_predict_args(payload, batch_id):
@@ -160,61 +159,6 @@ def get_total_messages_in_queue():
     return visible_count, not_visible_count
 
 
-def handle_on_complete(message):
-    job_spec = local_cache["job_spec"]
-    predictor_impl = local_cache["predictor_impl"]
-    sqs_client = local_cache["sqs_client"]
-    queue_url = job_spec["sqs_url"]
-    receipt_handle = message["ReceiptHandle"]
-
-    total_message_visibility = INITIAL_MESSAGE_VISIBILITY
-
-    try:
-        if not getattr(predictor_impl, "on_job_complete", None):
-            sqs_client.delete_message(QueueUrl=queue_url, ReceiptHandle=receipt_handle)
-            return True
-
-        should_run_on_job_complete = False
-
-        while True:
-            visible_count, not_visible_count = get_total_messages_in_queue()
-
-            # if there are other messages that are visible, release this message and get the other ones (should rarely happen for FIFO)
-            if visible_count > 0:
-                sqs_client.change_message_visibility(
-                    QueueUrl=queue_url, ReceiptHandle=receipt_handle, VisibilityTimeout=0
-                )
-                return False
-
-            total_in_queue = visible_count + not_visible_count
-
-            if total_in_queue <= 1:
-                should_run_on_job_complete = True
-
-            if should_run_on_job_complete:
-                # double check that the queue is still empty (except for the job_complete message)
-                # TODO: Remove current on_job_complete message and add a new one
-                if not_visible_count <= 1:
-                    logger().info("executing on_job_complete")
-                    predictor_impl.on_job_complete()
-                    sqs_client.delete_message(QueueUrl=queue_url, ReceiptHandle=receipt_handle)
-                    return True
-                else:
-                    should_run_on_job_complete = False
-
-            # check queue state every 20 seconds (give time for queue metrics to achieve consistency)
-            total_message_visibility += 20
-            sqs_client.change_message_visibility(
-                QueueUrl=queue_url,
-                ReceiptHandle=receipt_handle,
-                VisibilityTimeout=total_message_visibility,
-            )
-            time.sleep(20)
-    except:
-        sqs_client.delete_message(QueueUrl=queue_url, ReceiptHandle=receipt_handle)
-        raise
-
-
 def sqs_loop():
     job_spec = local_cache["job_spec"]
     api_spec = local_cache["api_spec"]
@@ -236,61 +180,84 @@ def sqs_loop():
         )
 
         if response.get("Messages") is None or len(response["Messages"]) == 0:
-            # TODO if queue is empty for 2-3 iterations in a row then exit
-            if no_messages_found_in_previous_iteration:
-                logger().info("no batches left in queue, exiting...")
-                return
-            else:
+            visible_messages, invisible_messages = get_total_messages_in_queue()
+            if visible_messages + invisible_messages == 0:
+                if no_messages_found_in_previous_iteration:
+                    logger().info("no batches left in queue, exiting...")
+                    return
                 no_messages_found_in_previous_iteration = True
-                continue
-        else:
-            no_messages_found_in_previous_iteration = False
 
+            time.sleep(MESSAGE_NOT_FOUND_SLEEP)
+            continue
+
+        no_messages_found_in_previous_iteration = False
         message = response["Messages"][0]
-
         receipt_handle = message["ReceiptHandle"]
 
-        if "MessageAttributes" in message and "job_complete" in message["MessageAttributes"]:
-            handled_on_complete = handle_on_complete(message)
-            if handled_on_complete:
-                logger().info("no batches left in queue, job has been completed")
-                return
-            else:
-                # sometimes on_job_complete message will be released if there are other messages still to be processed
-                continue
-        
         try:
-            logger().info(f"processing batch {message['MessageId']}")
-
-            start_time = time.time()
-
-            renewer = PeriodicGeneratorRunner(
-                MESSAGE_RENEWAL_PERIOD,
-                renew_message_visibility,
-                queue_url,
-                receipt_handle,
-                INITIAL_MESSAGE_VISIBILITY,
-                MESSAGE_RENEWAL_PERIOD,
+            renewer = threading.Thread(
+                target=renew_message_visibility, args=(receipt_handle,), daemon=True
             )
             renewer.start()
+            start_time = time.time()
 
-            payload = json.loads(message["Body"])
-            batch_id = message["MessageId"]
-            predictor_impl.predict(**build_predict_args(payload, batch_id))
+            if is_on_job_complete(message):
+                handle_on_job_complete(message)
+            else:
+                logger().info(f"processing batch {message['MessageId']}")
+                payload = json.loads(message["Body"])
+                batch_id = message["MessageId"]
+                predictor_impl.predict(**build_predict_args(payload, batch_id))
 
-            api_spec.post_metrics(
-                [success_counter_metric(), time_per_batch_metric(time.time() - start_time)]
-            )
+                api_spec.post_metrics(
+                    [success_counter_metric(), time_per_batch_metric(time.time() - start_time)]
+                )
         except Exception:
-            api_spec.post_metrics(
-                [failed_counter_metric(), time_per_batch_metric(time.time() - start_time)]
-            )
-            # TODO: What if I just resend current message with the same body here?
-            # and probably some counter for retries
-            logger().exception("failed to process batch")
+            if is_on_job_complete(message):
+                logger().exception("failed to execute on_job_complete")
+            else:
+                api_spec.post_metrics(
+                    [failed_counter_metric(), time_per_batch_metric(time.time() - start_time)]
+                )
+                logger().exception("failed to process batch")
         finally:
-            renewer.stop()
+            stop_renewal.add(receipt_handle)
             sqs_client.delete_message(QueueUrl=queue_url, ReceiptHandle=receipt_handle)
+
+
+def is_on_job_complete(message) -> bool:
+    return "MessageAttributes" in message and "job_complete" in message["MessageAttributes"]
+
+
+def handle_on_job_complete(message):
+    job_spec = local_cache["job_spec"]
+    predictor_impl = local_cache["predictor_impl"]
+    sqs_client = local_cache["sqs_client"]
+    queue_url = job_spec["sqs_url"]
+
+    should_run_on_job_complete = False
+
+    while True:
+        visible_messages, invisible_messages = get_total_messages_in_queue()
+        total_messages = visible_messages + invisible_messages
+        if total_messages > 1:
+            new_message_id = uuid.uuid4()
+            sqs_client.send_message(
+                QueueUrl=queue_url,
+                MessageBody='"job_complete"',
+                MessageAttributes={"job_complete": {"StringValue": "true", "DataType": "string"}},
+                MessageDeduplicationId=new_message_id,
+                MessageGroupId=new_message_id,
+            )
+            return
+        else:
+            if should_run_on_job_complete:
+                if getattr(predictor_impl, "on_job_complete", None):
+                    logger().info("executing on_job_complete")
+                    predictor_impl.on_job_complete()
+                    return
+            should_run_on_job_complete = True
+        time.sleep(10)  # verify that the queue is empty one more time
 
 
 def start():
@@ -343,7 +310,9 @@ def start():
 
     logger().info("polling for batches...")
     sqs_loop()
+    logger().info("done")
 
 
 if __name__ == "__main__":
     start()
+    logger().info("completed main")
