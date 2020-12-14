@@ -26,7 +26,7 @@ from cortex.lib import util
 from cortex.lib.exceptions import CortexException
 
 
-class S3(object):
+class S3:
     def __init__(self, bucket=None, region=None, client_config={}):
         self.bucket = bucket
         self.region = region
@@ -47,11 +47,11 @@ class S3(object):
         return f"s3://{bucket_name}/{prefix}"
 
     @staticmethod
-    def deconstruct_s3_path(s3_path) -> Tuple[str, str]:
+    def deconstruct_s3_path(s3_path: str) -> Tuple[str, str]:
         path = util.trim_prefix(s3_path, "s3://")
         bucket = path.split("/")[0]
         key = os.path.join(*path.split("/")[1:])
-        return (bucket, key)
+        return bucket, key
 
     @staticmethod
     def is_valid_s3_path(path: str) -> bool:

@@ -64,7 +64,7 @@ Once you've updated your cluster configuration file, you can spin up your cluste
 
 ### Update your API configuration file(s)
 
-To configure your APIs to use the Quay images, you cna update your [API configuration files](../deployments/realtime-api/api-configuration.md). The image paths are specified in `predictor.image` (and `predictor.tensorflow_serving_image` for APIs with `kind: tensorflow`). Be advised that by default, the Docker Hub images are used for your predictors, so you will need to specify the Quay image paths for all of your APIs.
+To configure your APIs to use the Quay images, you can update your [API configuration files](../workloads/realtime/configuration.md). The image paths are specified in `predictor.image` (and `predictor.tensorflow_serving_image` for APIs with `kind: tensorflow`). Be advised that by default, the Docker Hub images are used for your predictors, so you will need to specify the Quay image paths for all of your APIs.
 
 Here is a list of available images (make sure to set `<VERSION>` to your cluster's version):
 

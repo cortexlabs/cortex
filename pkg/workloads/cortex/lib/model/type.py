@@ -12,21 +12,25 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os
 from typing import List, Optional
+
+import cortex.consts
+from cortex.lib.model import find_all_cloud_models
+from cortex.lib.type import predictor_type_from_api_spec
 
 
 class CuratedModelResources:
     def __init__(self, curated_model_resources: List[dict]):
         """
-        curated_model_resources must have the format enforced by the CLI's validation process of cortex.yaml.
-        curated_model_resources is an identical copy of pkg.type.spec.api.API.CuratedModelResources.
-
         An example of curated_model_resources object:
         [
             {
                 'model_path': 's3://cortex-examples/models/tensorflow/transformer/',
                 'name': 'modelB',
                 's3_path': True,
+                'gs_path': False,
+                'local_path': False,
                 'signature_key': None,
                 'versions': [1554540232]
             },
@@ -53,7 +57,7 @@ class CuratedModelResources:
         """
         for model in self._models:
             if model["name"] == name:
-                return not model["s3_path"]
+                return model["local_path"]
         return None
 
     def get_field(self, field: str) -> List[str]:
@@ -61,7 +65,7 @@ class CuratedModelResources:
         Get a list of the values of each models' specified field.
 
         Args:
-            field: name, s3_path, signature_key or versions.
+            field: name, s3_path, gs_path, local_path, signature_key or versions.
 
         Returns:
             A list with the specified value of each model.
@@ -104,19 +108,19 @@ class CuratedModelResources:
 
         return local_model_names
 
-    def get_s3_model_names(self) -> List[str]:
+    def get_cloud_model_names(self) -> List[str]:
         """
-        Get S3-provided models as specified with predictor:model_path, predictor:models:paths or predictor:models:dir.
+        Get cloud-provided models as specified with predictor:model_path or predictor:models:paths.
 
         Returns:
-            A list of names of all models available from S3.
+            A list of names of all models available from the cloud bucket(s).
         """
-        s3_model_names = []
+        cloud_model_names = []
         for model_name in self.get_field("name"):
             if not self.is_local(model_name):
-                s3_model_names.append(model_name)
+                cloud_model_names.append(model_name)
 
-        return s3_model_names
+        return cloud_model_names
 
     def __getitem__(self, name: str) -> dict:
         """
@@ -137,3 +141,90 @@ class CuratedModelResources:
             return True
         except KeyError:
             return False
+
+
+def get_models_from_api_spec(
+    api_spec: dict, model_dir: str = "/mnt/model"
+) -> CuratedModelResources:
+    """
+    Only effective for predictor:model_path, predictor:models:paths or for predictor:models:dir when the dir is a local path.
+    It does not apply for when predictor:models:dir is set to an S3 model path.
+    """
+
+    predictor = api_spec["predictor"]
+
+    if not predictor["model_path"] and not predictor["models"]:
+        return CuratedModelResources([])
+
+    predictor_type = predictor_type_from_api_spec(api_spec)
+
+    # for predictor.model_path
+    models = []
+    if predictor["model_path"]:
+        model = {
+            "name": cortex.consts.SINGLE_MODEL_NAME,
+            "model_path": predictor["model_path"],
+            "signature_key": predictor["signature_key"],
+        }
+        models.append(model)
+
+    # for predictor.models.paths
+    if predictor["models"] and predictor["models"]["paths"]:
+        for model in predictor["models"]["paths"]:
+            models.append(
+                {
+                    "name": model["name"],
+                    "model_path": model["model_path"],
+                    "signature_key": model["signature_key"],
+                }
+            )
+
+    # building model resources for predictor.model_path or predictor.models.paths
+    model_resources = []
+    for model in models:
+        model_resource = {}
+        model_resource["name"] = model["name"]
+        model_resource["s3_path"] = model["model_path"].startswith("s3://")
+        model_resource["gcs_path"] = model["model_path"].startswith("gs://")
+        model_resource["local_path"] = (
+            not model_resource["s3_path"] and not model_resource["gcs_path"]
+        )
+
+        if not model["signature_key"] and predictor["models"]:
+            model_resource["signature_key"] = predictor["models"]["signature_key"]
+        else:
+            model_resource["signature_key"] = model["signature_key"]
+
+        if model_resource["s3_path"] or model_resource["gcs_path"]:
+            model_resource["model_path"] = model["model_path"]
+            _, versions, _, _, _, _, _ = find_all_cloud_models(
+                False, "", predictor_type, [model_resource["model_path"]], [model_resource["name"]]
+            )
+            if model_resource["name"] not in versions:
+                continue
+            model_resource["versions"] = versions[model_resource["name"]]
+        else:
+            model_resource["model_path"] = os.path.join(model_dir, model_resource["name"])
+            model_resource["versions"] = os.listdir(model_resource["model_path"])
+
+        model_resources.append(model_resource)
+
+    # building model resources for predictor.models.dir
+    if (
+        predictor["models"]
+        and predictor["models"]["dir"]
+        and not predictor["models"]["dir"].startswith("s3://")
+        and not predictor["models"]["dir"].startswith("gs://")
+    ):
+        for model_name in os.listdir(model_dir):
+            model_resource = {}
+            model_resource["name"] = model_name
+            model_resource["s3_path"] = False
+            model_resource["gcs_path"] = False
+            model_resource["local_path"] = True
+            model_resource["signature_key"] = predictor["models"]["signature_key"]
+            model_resource["model_path"] = os.path.join(model_dir, model_name)
+            model_resource["versions"] = os.listdir(model_resource["model_path"])
+            model_resources.append(model_resource)
+
+    return CuratedModelResources(model_resources)

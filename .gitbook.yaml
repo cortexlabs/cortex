@@ -1,13 +1,5 @@
 root: ./docs/
 
 structure:
-  readme: ../README.md
+  readme: ./tutorials/realtime.md
   summary: summary.md
-
-redirects:
-  tutorial: ../examples/pytorch/text-generator/README.md
-  tutorial/realtime: ../examples/pytorch/text-generator/README.md
-  tutorial/batch: ../examples/batch/image-classifier/README.md
-  install: ./aws/install.md
-  uninstall: ./aws/uninstall.md
-  update: ./aws/update.md

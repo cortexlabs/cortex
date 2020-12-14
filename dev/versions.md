@@ -179,7 +179,7 @@ Note: it's ok if example training notebooks aren't upgraded, as long as the expo
 ## Python packages
 
 1. Update versions in `images/python-predictor-*/Dockerfile`, `images/tensorflow-predictor/Dockerfile`, and `images/onnx-predictor-*/Dockerfile`
-1. Update versions in `pkg/workloads/cortex/serve/requirements.txt` and `pkg/workloads/cortex/downloader/requirements.txt`
+1. Update versions in `pkg/workloads/cortex/serve/*requirements.txt` and `pkg/workloads/cortex/downloader/requirements.txt`
 1. Update the versions listed in "Pre-installed packages" in `realtime-api/predictors.md` and `batch-api/predictors.md`
     * look at the diff carefully since some packages are not shown, and e.g. `tensorflow-cpu` -> `tensorflow`
     * be careful not to update any of the versions for Inferentia that are not latest in `images/python-predictor-inf/Dockerfile`
@@ -204,6 +204,11 @@ Note: it's ok if example training notebooks aren't upgraded, as long as the expo
 1. Update the version in all `images/istio-*` Dockerfiles
 1. Update `istio.yaml.j2`, `apis.yaml.j2`, `operator.yaml.j2`, and `pkg/lib/k8s` as necessary
 1. Update `install.sh` as necessary
+
+## Google Pause
+
+1. Find the version of google pause used in the nvidia device driver yaml file referenced [here](https://cloud.google.com/kubernetes-engine/docs/how-to/gpus#installing_drivers)
+1. Update the version in `images/google-pause/Dockerfile`
 
 ## Metrics server
 

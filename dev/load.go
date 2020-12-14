@@ -23,16 +23,33 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"sync"
 	"time"
 
 	"github.com/cortexlabs/cortex/pkg/lib/debug"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
 )
 
-const _numConcurrent = 5
-const _numRequestsPerThread = -1
-const _requestDelay = 0 * time.Second
-const _numMainLoops = 10 // only relevant if _numRequestsPerThread != -1
+// either set _numConcurrent > 0 or _requestInterval > 0 (and configure the corresponding sections)
+
+// constant in-flight requests
+const (
+	_numConcurrent        = 5
+	_numRequestsPerThread = -1
+	_requestDelay         = 0 * time.Second
+	_numMainLoops         = 10 // only relevant if _numRequestsPerThread != -1
+)
+
+// constant requests per second
+const (
+	_requestInterval = 0 * time.Millisecond
+	_maxInFlight     = 5
+)
+
+type Counter struct {
+	sync.Mutex
+	count int
+}
 
 var _client = &http.Client{
 	Timeout: 600 * time.Second,
@@ -42,10 +59,69 @@ var _client = &http.Client{
 }
 
 func main() {
+	if _numConcurrent > 0 && _requestInterval > 0 {
+		fmt.Println("error: you must set either _numConcurrent or _requestInterval, but not both")
+		os.Exit(1)
+	}
+
+	if _numConcurrent == 0 && _requestInterval == 0 {
+		fmt.Println("error: you must set either _numConcurrent or _requestInterval")
+		os.Exit(1)
+	}
+
+	url, jsonPath := mustExtractArgs()
+	jsonBytes := mustReadJSONBytes(jsonPath)
+
+	if _numConcurrent > 0 {
+		runConstantInFlight(url, jsonBytes)
+	}
+
+	if _requestInterval > 0 {
+		runConstantRequestsPerSecond(url, jsonBytes)
+	}
+}
+
+func runConstantRequestsPerSecond(url string, jsonBytes []byte) {
+	inFlightCount := Counter{}
+	ticker := time.NewTicker(_requestInterval)
+	done := make(chan bool)
+
+	for {
+		select {
+		case <-done:
+			return
+		case <-ticker.C:
+			go runConstantRequestsPerSecondIteration(url, jsonBytes, &inFlightCount)
+		}
+	}
+}
+
+func runConstantRequestsPerSecondIteration(url string, jsonBytes []byte, inFlightCount *Counter) {
+	if _maxInFlight > 0 {
+		inFlightCount.Lock()
+		if inFlightCount.count >= _maxInFlight {
+			inFlightCount.Unlock()
+			fmt.Printf("\nreached max in-flight (%d)\n", _maxInFlight)
+			return
+		}
+		inFlightCount.count++
+		inFlightCount.Unlock()
+	}
+
+	makeRequest(url, jsonBytes)
+
+	if _maxInFlight > 0 {
+		inFlightCount.Lock()
+		inFlightCount.count--
+		inFlightCount.Unlock()
+	}
+}
+
+func runConstantInFlight(url string, jsonBytes []byte) {
 	start := time.Now()
 	loopNum := 1
 	for true {
-		run()
+		runConstantInFlightIteration(url, jsonBytes)
 		if loopNum >= _numMainLoops {
 			break
 		}
@@ -54,7 +130,7 @@ func main() {
 	fmt.Println("total elapsed time:", time.Now().Sub(start))
 }
 
-func run() {
+func runConstantInFlightIteration(url string, jsonBytes []byte) {
 	start := time.Now()
 
 	if _numRequestsPerThread > 0 {
@@ -62,9 +138,6 @@ func run() {
 	} else {
 		fmt.Printf("spawning %d infinite threads, %s delay on each\n", _numConcurrent, _requestDelay.String())
 	}
-
-	url, jsonPath := mustExtractArgs()
-	jsonBytes := mustReadJSONBytes(jsonPath)
 
 	doneChans := make([]chan struct{}, _numConcurrent)
 	for i := range doneChans {
@@ -104,33 +177,37 @@ func makeRequestLoop(url string, jsonBytes []byte) {
 			i++
 		}
 
-		request, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonBytes))
-		if err != nil {
-			fmt.Print("\n" + debug.Sppg(err))
-			continue
-		}
-
-		request.Header.Set("Content-Type", "application/json")
-		response, err := _client.Do(request)
-		if err != nil {
-			fmt.Print("\n" + debug.Sppg(err))
-			continue
-		}
-
-		body, bodyReadErr := ioutil.ReadAll(response.Body)
-		response.Body.Close()
-
-		if response.StatusCode != 200 {
-			if bodyReadErr == nil {
-				fmt.Printf("\nstatus code: %d; body: %s\n", response.StatusCode, string(body))
-			} else {
-				fmt.Printf("\nstatus code: %d; error reading body: %s\n", response.StatusCode, bodyReadErr.Error())
-			}
-			continue
-		}
-
-		fmt.Print(".")
+		makeRequest(url, jsonBytes)
 	}
+}
+
+func makeRequest(url string, jsonBytes []byte) {
+	request, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonBytes))
+	if err != nil {
+		fmt.Print("\n" + debug.Sppg(err))
+		return
+	}
+
+	request.Header.Set("Content-Type", "application/json")
+	response, err := _client.Do(request)
+	if err != nil {
+		fmt.Print("\n" + debug.Sppg(err))
+		return
+	}
+
+	body, bodyReadErr := ioutil.ReadAll(response.Body)
+	response.Body.Close()
+
+	if response.StatusCode != 200 {
+		if bodyReadErr == nil {
+			fmt.Printf("\nstatus code: %d; body: %s\n", response.StatusCode, string(body))
+		} else {
+			fmt.Printf("\nstatus code: %d; error reading body: %s\n", response.StatusCode, bodyReadErr.Error())
+		}
+		return
+	}
+
+	fmt.Print(".")
 }
 
 func mustReadJSONBytes(jsonPath string) []byte {

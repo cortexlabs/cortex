@@ -17,7 +17,6 @@ limitations under the License.
 package cmd
 
 import (
-	"fmt"
 	"strings"
 	"time"
 
@@ -50,8 +49,7 @@ func trafficSplitterTable(trafficSplitter schema.APIResponse, env cliconfig.Envi
 	out += t.MustFormat()
 
 	out += "\n" + console.Bold("last updated: ") + libtime.SinceStr(&lastUpdated)
-	out += "\n" + console.Bold("endpoint: ") + trafficSplitter.Endpoint
-	out += fmt.Sprintf("\n%s curl %s -X POST -H \"Content-Type: application/json\" -d @sample.json\n", console.Bold("example curl:"), trafficSplitter.Endpoint)
+	out += "\n" + console.Bold("endpoint: ") + trafficSplitter.Endpoint + "\n"
 
 	out += "\n" + apiHistoryTable(trafficSplitter.APIVersions)
 

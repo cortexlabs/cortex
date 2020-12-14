@@ -71,8 +71,10 @@ fi
 output=$(cd "$ROOT" && find . -type f \
 ! -path "./vendor/*" \
 ! -path "**/.vscode/*" \
+! -path "**/.idea/*" \
+! -path "**/.history/*" \
 ! -path "**/__pycache__/*" \
-! -path "./examples/*" \
+! -path "./test/*" \
 ! -path "./dev/config/*" \
 ! -path "./bin/*" \
 ! -path "./.circleci/*" \
@@ -97,6 +99,8 @@ if [ "$is_release_branch" = "true" ]; then
   ! -path "./build/lint.sh" \
   ! -path "./vendor/*" \
   ! -path "**/.vscode/*" \
+  ! -path "**/.idea/*" \
+  ! -path "**/.history/*" \
   ! -path "**/__pycache__/*" \
   ! -path "./docs/contributing/development.md" \
   ! -path "./dev/config/*" \
@@ -118,6 +122,8 @@ if [ "$is_release_branch" = "true" ]; then
   ! -path "./dev/*" \
   ! -path "./vendor/*" \
   ! -path "**/.vscode/*" \
+  ! -path "**/.idea/*" \
+  ! -path "**/.history/*" \
   ! -path "**/__pycache__/*" \
   ! -path "./dev/config/*" \
   ! -path "./bin/*" \
@@ -131,25 +137,12 @@ if [ "$is_release_branch" = "true" ]; then
     exit 1
   fi
 
-  # Check for version warning comments in examples
-  output=$(cd "$ROOT/examples" && find . -type f \
-  ! -name "README.md" \
-  ! -name "*.json" \
-  ! -name "*.txt" \
-  ! -name ".*" \
-  ! -name "*.bin" \
-  -exec grep -L -e "this is an example for cortex release ${git_branch} and may not deploy correctly on other releases of cortex" {} \;)
-  if [[ $output ]]; then
-    echo "examples file(s) are missing appropriate version comment:"
-    echo "$output"
-    exit 1
-  fi
-
 else
   # Check for version warning comments in docs
   output=$(cd "$ROOT/docs" && find . -type f \
   ! -path "./README.md" \
   ! -name "summary.md" \
+  ! -path "./tutorials/*" \
   ! -name "development.md" \
   ! -name "*.json" \
   ! -name "*.txt" \
@@ -161,26 +154,13 @@ else
     echo "$output"
     exit 1
   fi
-
-  # Check for version warning comments in examples
-  output=$(cd "$ROOT/examples" && find . -type f \
-  ! -path "./README.md" \
-  ! -path "**/__pycache__/*" \
-  ! -name "*.json" \
-  ! -name "*.txt" \
-  ! -name ".*" \
-  ! -name "*.bin" \
-  -exec grep -L "WARNING: you are on the master branch; please refer to examples on the branch corresponding to your \`cortex version\` (e\.g\. for version [0-9]*\.[0-9]*\.\*, run \`git checkout -b [0-9]*\.[0-9]*\` or switch to the \`[0-9]*\.[0-9]*\` branch on GitHub)" {} \;)
-  if [[ $output ]]; then
-    echo "example file(s) are missing version appropriate comment:"
-    echo "$output"
-    exit 1
-  fi
 fi
 
 # Check for trailing whitespace
 output=$(cd "$ROOT" && find . -type f \
 ! -path "./vendor/*" \
+! -path "**/.idea/*" \
+! -path "**/.history/*" \
 ! -path "**/.vscode/*" \
 ! -path "**/__pycache__/*" \
 ! -path "./dev/config/*" \
@@ -198,6 +178,8 @@ fi
 # Check for missing new line at end of file
 output=$(cd "$ROOT" && find . -type f \
 ! -path "./vendor/*" \
+! -path "**/.idea/*" \
+! -path "**/.history/*" \
 ! -path "**/.vscode/*" \
 ! -path "**/__pycache__/*" \
 ! -path "./dev/config/*" \
@@ -216,6 +198,8 @@ fi
 output=$(cd "$ROOT" && find . -type f \
 ! -path "./vendor/*" \
 ! -path "**/.vscode/*" \
+! -path "**/.idea/*" \
+! -path "**/.history/*" \
 ! -path "**/__pycache__/*" \
 ! -path "./dev/config/*" \
 ! -path "./bin/*" \
@@ -232,6 +216,8 @@ fi
 # Check for new line(s) at beginning of file
 output=$(cd "$ROOT" && find . -type f \
 ! -path "./vendor/*" \
+! -path "**/.idea/*" \
+! -path "**/.history/*" \
 ! -path "**/.vscode/*" \
 ! -path "**/__pycache__/*" \
 ! -path "./dev/config/*" \

@@ -26,6 +26,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
+	"github.com/cortexlabs/cortex/pkg/lib/gcp"
 	"github.com/cortexlabs/cortex/pkg/lib/prompt"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
@@ -37,7 +38,7 @@ import (
 
 var _deploymentID = "local"
 
-func UpdateAPI(apiConfig *userconfig.API, models []spec.CuratedModelResource, configPath string, projectID string, deployDisallowPrompt bool, awsClient *aws.Client) (*schema.APIResponse, string, error) {
+func UpdateAPI(apiConfig *userconfig.API, models []spec.CuratedModelResource, projectRoot string, projectID string, deployDisallowPrompt bool, awsClient *aws.Client, gcpClient *gcp.Client) (*schema.APIResponse, string, error) {
 	telemetry.Event("operator.deploy", apiConfig.TelemetryEvent(types.LocalProviderType))
 
 	var incompatibleVersion string
@@ -75,15 +76,15 @@ func UpdateAPI(apiConfig *userconfig.API, models []spec.CuratedModelResource, co
 		return nil, "", err
 	}
 
-	newAPISpec := spec.GetAPISpec(apiConfig, models, projectID, _deploymentID, "")
+	newAPISpec := spec.GetAPISpec(apiConfig, projectID, _deploymentID, "")
 
-	if newAPISpec != nil && newAPISpec.TotalLocalModelVersions() > 0 {
-		if err := CacheLocalModels(newAPISpec); err != nil {
+	if newAPISpec != nil && TotalLocalModelVersions(models) > 0 {
+		if err := CacheLocalModels(newAPISpec, models); err != nil {
 			return nil, "", err
 		}
 	}
 
-	newAPISpec.LocalProjectDir = files.Dir(configPath)
+	newAPISpec.LocalProjectDir = projectRoot
 
 	if areAPIsEqual(newAPISpec, prevAPISpec) {
 		return toAPIResponse(newAPISpec), fmt.Sprintf("%s is up to date", newAPISpec.Resource.UserString()), nil
@@ -106,7 +107,7 @@ func UpdateAPI(apiConfig *userconfig.API, models []spec.CuratedModelResource, co
 		return nil, "", err
 	}
 
-	if err := DeployContainers(newAPISpec, awsClient); err != nil {
+	if err := DeployContainers(newAPISpec, awsClient, gcpClient); err != nil {
 		DeleteAPI(newAPISpec.Name)
 		deleteCachedModels(newAPISpec.Name, newAPISpec.ModelIDs())
 		return nil, "", err
@@ -271,4 +272,19 @@ func GetVersionFromAPISpec(apiName string) (string, error) {
 func GetVersionFromAPISpecFilePath(path string) string {
 	fileName := filepath.Base(path)
 	return strings.Split(fileName, "-")[0]
+}
+
+func TotalLocalModelVersions(models []spec.CuratedModelResource) int {
+	totalLocalModelVersions := 0
+	for _, model := range models {
+		if !model.LocalPath {
+			continue
+		}
+		if len(model.Versions) > 0 {
+			totalLocalModelVersions += len(model.Versions)
+		} else {
+			totalLocalModelVersions++
+		}
+	}
+	return totalLocalModelVersions
 }

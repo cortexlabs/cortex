@@ -21,9 +21,9 @@ export EXPECTED_CORTEX_VERSION=master
 
 if [ "$CORTEX_VERSION" != "$EXPECTED_CORTEX_VERSION" ]; then
     if [ "$CORTEX_PROVIDER" == "local" ]; then
-        echo "error: your Cortex CLI version ($CORTEX_VERSION) doesn't match your predictor image version ($EXPECTED_CORTEX_VERSION); please update your predictor image by modifying the \`image\` field in your API configuration file (e.g. cortex.yaml) and re-running \`cortex deploy\`, or update your CLI by following the instructions at https://docs.cortex.dev/update"
+        echo "error: your Cortex CLI version ($CORTEX_VERSION) doesn't match your predictor image version ($EXPECTED_CORTEX_VERSION); please update your predictor image by modifying the \`image\` field in your API configuration file (e.g. cortex.yaml) and re-running \`cortex deploy\`, or update your CLI by following the instructions at https://docs.cortex.dev/"
     else
-        echo "error: your Cortex operator version ($CORTEX_VERSION) doesn't match your predictor image version ($EXPECTED_CORTEX_VERSION); please update your predictor image by modifying the \`image\` field in your API configuration file (e.g. cortex.yaml) and re-running \`cortex deploy\`, or update your cluster by following the instructions at https://docs.cortex.dev/update"
+        echo "error: your Cortex operator version ($CORTEX_VERSION) doesn't match your predictor image version ($EXPECTED_CORTEX_VERSION); please update your predictor image by modifying the \`image\` field in your API configuration file (e.g. cortex.yaml) and re-running \`cortex deploy\`, or update your cluster by following the instructions at https://docs.cortex.dev/"
     fi
     exit 1
 fi
@@ -56,10 +56,6 @@ fi
 if [ -f "/mnt/project/dependencies.sh" ]; then
     eval $source_env_file_cmd
     bash -e /mnt/project/dependencies.sh
-    status=$?
-    if [ $status -ne 0 ]; then
-        exit $status
-    fi
 fi
 
 # install from conda-packages.txt
@@ -67,14 +63,23 @@ if [ -f "/mnt/project/conda-packages.txt" ]; then
     py_version_cmd='echo $(python -c "import sys; v=sys.version_info[:2]; print(\"{}.{}\".format(*v));")'
     old_py_version=$(eval $py_version_cmd)
 
+    # look for packages in defaults and then conda-forge to improve chances of finding the package (specifically for python reinstalls)
+    conda config --append channels conda-forge
+
     conda install -y --file /mnt/project/conda-packages.txt
+
     new_py_version=$(eval $py_version_cmd)
 
     # reinstall core packages if Python version has changed
     if [ $old_py_version != $new_py_version ]; then
         echo "warning: you have changed the Python version from $old_py_version to $new_py_version; this may break Cortex's web server"
         echo "reinstalling core packages ..."
+
         pip --no-cache-dir install -r /src/cortex/serve/requirements.txt
+        if [ -f "/src/cortex/serve/image.requirements.txt" ]; then
+            pip --no-cache-dir install -r /src/cortex/serve/image.requirements.txt
+        fi
+
         rm -rf $CONDA_PREFIX/lib/python${old_py_version}  # previous python is no longer needed
     fi
 fi
@@ -90,7 +95,10 @@ create_s6_service() {
     # https://skarnet.org/software/s6/s6-svscanctl.html
     # http://skarnet.org/software/s6/s6-svc.html
     # http://skarnet.org/software/s6/servicedir.html
+
+    # good pages to read about execline
     # http://www.troubleshooters.com/linux/execline.htm
+    # https://danyspin97.org/blog/getting-started-with-execline-scripting/
 
     service_name=$1
     cmd=$2
@@ -105,7 +113,7 @@ create_s6_service() {
 
     dest_script="$dest_dir/finish"
     echo "#!/usr/bin/execlineb -S0" > $dest_script
-    echo "ifelse { s6-test \${1} -ne 0 } { s6-svscanctl -t /var/run/s6/services }" >> $dest_script
+    echo "ifelse { s6-test \${1} -ne 0 } { foreground { redirfd -w 1 /var/run/s6/env-stage3/S6_STAGE2_EXITED s6-echo -n -- \${1} } s6-svscanctl -t /var/run/s6/services }" >> $dest_script
     echo "s6-svc -O /var/run/s6/services/$service_name" >> $dest_script
     chmod +x $dest_script
 }

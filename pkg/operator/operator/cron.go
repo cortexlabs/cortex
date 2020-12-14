@@ -58,9 +58,14 @@ type instanceInfo struct {
 	Price         float64 `json:"price" yaml:"price"`
 	OnDemandPrice float64 `json:"on_demand_price" yaml:"on_demand_price"`
 	Count         int32   `json:"count" yaml:"count"`
+	Memory        int64   `json:"memory" yaml:"memory"`
+	CPU           float64 `json:"cpu" yaml:"cpu"`
+	GPU           int64   `json:"gpu" yaml:"gpu"`
+	Inf           int64   `json:"inf" yaml:"inf"`
+	GPUType       string  `json:"gpu_type" yaml:"gpu_type"` // currently only used in GCP
 }
 
-func InstanceTelemetry() error {
+func InstanceTelemetryAWS() error {
 	nodes, err := config.K8s.ListNodes(nil)
 	if err != nil {
 		return err
@@ -105,12 +110,26 @@ func InstanceTelemetry() error {
 			}
 		}
 
+		gpuQty := node.Status.Capacity["nvidia.com/gpu"]
+		infQty := node.Status.Capacity["aws.amazon.com/neuron"]
+
+		// For AWS, use the instance type as the GPU type
+		gpuType := ""
+		if gpuQty.Value() > 0 {
+			gpuType = instanceType
+		}
+
 		info := instanceInfo{
 			InstanceType:  instanceType,
 			IsSpot:        isSpot,
 			Price:         price,
 			OnDemandPrice: onDemandPrice,
 			Count:         1,
+			Memory:        node.Status.Capacity.Memory().Value(),
+			CPU:           float64(node.Status.Capacity.Cpu().MilliValue()) / 1000,
+			GPU:           gpuQty.Value(),
+			Inf:           infQty.Value(),
+			GPUType:       gpuType,
 		}
 
 		instanceInfos[instanceInfosKey] = &info
@@ -128,7 +147,7 @@ func InstanceTelemetry() error {
 		totalInstancePriceIfOnDemand += (info.OnDemandPrice + apiEBSPrice) * float64(info.Count)
 	}
 
-	fixedPrice := clusterFixedPrice()
+	fixedPrice := clusterFixedPriceAWS()
 
 	properties := map[string]interface{}{
 		"region":                      *config.Cluster.Region,
@@ -146,7 +165,7 @@ func InstanceTelemetry() error {
 	return nil
 }
 
-func clusterFixedPrice() float64 {
+func clusterFixedPriceAWS() float64 {
 	eksPrice := aws.EKSPrices[*config.Cluster.Region]
 	operatorInstancePrice := aws.InstanceMetadatas[*config.Cluster.Region]["t3.medium"].Price
 	operatorEBSPrice := aws.EBSMetadatas[*config.Cluster.Region]["gp2"].PriceGB * 20 / 30 / 24
@@ -161,6 +180,60 @@ func clusterFixedPrice() float64 {
 	}
 
 	return eksPrice + operatorInstancePrice + operatorEBSPrice + 2*nlbPrice + natTotalPrice
+}
+
+func InstanceTelemetryGCP() error {
+	nodes, err := config.K8s.ListNodes(nil)
+	if err != nil {
+		return err
+	}
+
+	instanceInfos := make(map[string]*instanceInfo)
+	var totalInstances int
+
+	for _, node := range nodes {
+		if node.Labels["workload"] != "true" {
+			continue
+		}
+
+		instanceType := node.Labels["beta.kubernetes.io/instance-type"]
+		if instanceType == "" {
+			instanceType = "unknown"
+		}
+
+		totalInstances++
+
+		instanceInfosKey := instanceType + "_ondemand"
+
+		if info, ok := instanceInfos[instanceInfosKey]; ok {
+			info.Count++
+			continue
+		}
+
+		gpuQty := node.Status.Capacity["nvidia.com/gpu"]
+
+		info := instanceInfo{
+			InstanceType: instanceType,
+			IsSpot:       false,
+			Count:        1,
+			Memory:       node.Status.Capacity.Memory().Value(),
+			CPU:          float64(node.Status.Capacity.Cpu().MilliValue()) / 1000,
+			GPU:          gpuQty.Value(),
+			GPUType:      node.Labels["cloud.google.com/gke-accelerator"],
+		}
+
+		instanceInfos[instanceInfosKey] = &info
+	}
+
+	properties := map[string]interface{}{
+		"zone":           *config.GCPCluster.Zone,
+		"instance_count": totalInstances,
+		"instances":      instanceInfos,
+	}
+
+	telemetry.Event("operator.cron", properties, config.GCPCluster.TelemetryEvent())
+
+	return nil
 }
 
 func ErrorHandler(cronName string) func(error) {
