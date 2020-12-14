@@ -112,6 +112,11 @@ func Init() error {
 				Cluster.VPCLinkIntegration = integration
 			}
 		}
+	} else {
+		AWS, err = aws.NewAnonymousClient()
+		if err != nil {
+			return err
+		}
 	}
 
 	if Provider == types.GCPProviderType {
@@ -134,6 +139,11 @@ func Init() error {
 		GCPCluster.ClusterID = hash.String(GCPCluster.ClusterName + *GCPCluster.Project + *GCPCluster.Zone)
 
 		GCPCluster.Bucket = clusterconfig.GCPBucketName(GCPCluster.ClusterName, *GCPCluster.Project, *GCPCluster.Zone)
+	} else {
+		GCP, err = gcp.NewAnonymousClient()
+		if err != nil {
+			return nil
+		}
 	}
 
 	err = telemetry.Init(telemetry.Config{
