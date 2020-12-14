@@ -12,7 +12,26 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import cortex as cx
+import pytest
+
 import e2e
+from e2e.utils import client_from_config
+
+
+@pytest.fixture
+def client(request):
+    env_name = request.config.getoption("--gcp-env")
+    if env_name:
+        return cx.client(env_name)
+
+    config_path = request.config.getoption("--gcp-config")
+    if config_path is None:
+        raise ValueError(
+            "missing arguments: --env-name <name> or --gcp-config <gcp_cluster_config>"
+        )
+
+    return client_from_config(config_path)
 
 
 def pytest_configure(config):

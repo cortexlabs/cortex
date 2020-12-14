@@ -16,27 +16,12 @@ import cortex as cx
 import pytest
 
 import e2e.tests
-from e2e.utils import client_from_config
 
-TEST_APIS = ["pytorch/iris-classifier", "pytorch/image-classifier-resnet50"]
+TEST_APIS = ["pytorch/iris-classifier", "onnx/iris-classifier", "tensorflow/iris-classifier"]
 DEPLOY_TIMEOUT = 30  # seconds
 
 
-@pytest.fixture
-def client(request):
-    env_name = request.config.getoption("--aws-env")
-    if env_name:
-        return cx.client(env_name)
-
-    config_path = request.config.getoption("--aws-config")
-    if config_path is None:
-        raise ValueError(
-            "missing arguments: --env-name <name> or --aws-config <aws_cluster_config>"
-        )
-
-    return client_from_config(config_path)
-
-
+@pytest.mark.usefixtures("client")
 @pytest.mark.parametrize("api", TEST_APIS)
 def test_realtime_api(client: cx.Client, api: str):
     e2e.tests.test_realtime_api(client=client, api=api, timeout=DEPLOY_TIMEOUT)

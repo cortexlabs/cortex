@@ -17,7 +17,7 @@ import pytest
 
 import e2e.tests
 
-TEST_APIS = ["pytorch/iris-classifier", "pytorch/image-classifier-resnet50"]
+TEST_APIS = ["pytorch/iris-classifier", "onnx/iris-classifier", "tensorflow/iris-classifier"]
 DEPLOY_TIMEOUT = 30  # seconds
 
 
