@@ -1,4 +1,4 @@
-# Batching errors when max_batch_size/batch_interval are set
+# Server-side batching errors
 
 _WARNING: you are on the master branch, please refer to the docs on the branch that matches your `cortex version`_
 
