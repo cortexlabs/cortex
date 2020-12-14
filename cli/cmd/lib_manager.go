@@ -196,15 +196,6 @@ func runManagerWithClusterConfig(entrypoint string, clusterConfig *clusterconfig
 			"CORTEX_TELEMETRY_SEGMENT_WRITE_KEY=" + os.Getenv("CORTEX_TELEMETRY_SEGMENT_WRITE_KEY"),
 			"CORTEX_DEV_DEFAULT_PREDICTOR_IMAGE_REGISTRY=" + os.Getenv("CORTEX_DEV_DEFAULT_PREDICTOR_IMAGE_REGISTRY_AWS"),
 			"CORTEX_CLUSTER_CONFIG_FILE=" + containerClusterConfigPath,
-			"CORTEX_IMAGE_PYTHON_PREDICTOR_CPU=" + consts.DefaultImagePythonPredictorCPU,
-			"CORTEX_IMAGE_PYTHON_PREDICTOR_GPU=" + consts.DefaultImagePythonPredictorGPU,
-			"CORTEX_IMAGE_PYTHON_PREDICTOR_INF=" + consts.DefaultImagePythonPredictorInf,
-			"CORTEX_IMAGE_TENSORFLOW_SERVING_CPU=" + consts.DefaultImageTensorFlowServingCPU,
-			"CORTEX_IMAGE_TENSORFLOW_SERVING_GPU=" + consts.DefaultImageTensorFlowServingGPU,
-			"CORTEX_IMAGE_TENSORFLOW_SERVING_INF=" + consts.DefaultImageTensorFlowServingInf,
-			"CORTEX_IMAGE_TENSORFLOW_PREDICTOR=" + consts.DefaultImageTensorFlowPredictor,
-			"CORTEX_IMAGE_ONNX_PREDICTOR_CPU=" + consts.DefaultImageONNXPredictorCPU,
-			"CORTEX_IMAGE_ONNX_PREDICTOR_GPU=" + consts.DefaultImageONNXPredictorGPU,
 		},
 	}
 
@@ -272,15 +263,6 @@ func runGCPManagerWithClusterConfig(entrypoint string, clusterConfig *clustercon
 			"CORTEX_TELEMETRY_SEGMENT_WRITE_KEY=" + os.Getenv("CORTEX_TELEMETRY_SEGMENT_WRITE_KEY"),
 			"CORTEX_DEV_DEFAULT_PREDICTOR_IMAGE_REGISTRY=" + os.Getenv("CORTEX_DEV_DEFAULT_PREDICTOR_IMAGE_REGISTRY_GCP"),
 			"CORTEX_CLUSTER_CONFIG_FILE=" + containerClusterConfigPath,
-			"CORTEX_IMAGE_PYTHON_PREDICTOR_CPU=" + consts.DefaultImagePythonPredictorCPU,
-			"CORTEX_IMAGE_PYTHON_PREDICTOR_GPU=" + consts.DefaultImagePythonPredictorGPU,
-			"CORTEX_IMAGE_PYTHON_PREDICTOR_INF=" + consts.DefaultImagePythonPredictorInf,
-			"CORTEX_IMAGE_TENSORFLOW_SERVING_CPU=" + consts.DefaultImageTensorFlowServingCPU,
-			"CORTEX_IMAGE_TENSORFLOW_SERVING_GPU=" + consts.DefaultImageTensorFlowServingGPU,
-			"CORTEX_IMAGE_TENSORFLOW_SERVING_INF=" + consts.DefaultImageTensorFlowServingInf,
-			"CORTEX_IMAGE_TENSORFLOW_PREDICTOR=" + consts.DefaultImageTensorFlowPredictor,
-			"CORTEX_IMAGE_ONNX_PREDICTOR_CPU=" + consts.DefaultImageONNXPredictorCPU,
-			"CORTEX_IMAGE_ONNX_PREDICTOR_GPU=" + consts.DefaultImageONNXPredictorGPU,
 		},
 	}
 

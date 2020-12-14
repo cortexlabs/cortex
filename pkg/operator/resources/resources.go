@@ -101,7 +101,7 @@ func Deploy(projectBytes []byte, configFileName string, configBytes []byte, forc
 
 	err = ValidateClusterAPIs(apiConfigs, projectFiles)
 	if err != nil {
-		err = errors.Append(err, fmt.Sprintf("\n\napi configuration schema can be found here:\n  → Realtime API: https://docs.cortex.dev/v/%s/deployments/realtime-api/api-configuration\n  → Batch API: https://docs.cortex.dev/v/%s/deployments/batch-api/api-configuration\n  → Traffic Splitter: https://docs.cortex.dev/v/%s/deployments/realtime-api/traffic-splitter", consts.CortexVersionMinor, consts.CortexVersionMinor, consts.CortexVersionMinor))
+		err = errors.Append(err, fmt.Sprintf("\n\napi configuration schema can be found at https://docs.cortex.dev/v/%s/", consts.CortexVersionMinor))
 		return nil, err
 	}
 
@@ -252,7 +252,7 @@ func patchAPI(apiConfig *userconfig.API, configFileName string, force bool) (*sp
 
 	err = ValidateClusterAPIs([]userconfig.API{*apiConfig}, projectFiles)
 	if err != nil {
-		err = errors.Append(err, fmt.Sprintf("\n\napi configuration schema can be found here:\n  → Realtime API: https://docs.cortex.dev/v/%s/deployments/realtime-api/api-configuration\n  → Batch API: https://docs.cortex.dev/v/%s/deployments/batch-api/api-configuration\n  → Traffic Splitter: https://docs.cortex.dev/v/%s/deployments/realtime-api/traffic-splitter", consts.CortexVersionMinor, consts.CortexVersionMinor, consts.CortexVersionMinor))
+		err = errors.Append(err, fmt.Sprintf("\n\napi configuration schema can be found at https://docs.cortex.dev/v/%s/", consts.CortexVersionMinor))
 		return nil, "", err
 	}
 

@@ -32,7 +32,7 @@ type Client struct {
 	ClientID        string
 	PrivateKey      string
 	PrivateKeyID    string
-	credentialsJSON []byte
+	CredentialsJSON []byte
 	clients         clients
 }
 
@@ -83,6 +83,6 @@ func NewFromEnv() (*Client, error) {
 		ClientID:        credsFile.ClientID,
 		PrivateKey:      credsFile.PrivateKey,
 		PrivateKeyID:    credsFile.PrivateKeyID,
-		credentialsJSON: credsBytes,
+		CredentialsJSON: credsBytes,
 	}, nil
 }

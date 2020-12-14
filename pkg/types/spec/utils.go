@@ -158,7 +158,7 @@ func validateDirModels(modelPath string, api userconfig.API, projectDir string, 
 	modelNames := []string{}
 	modelDirPathLength := len(slices.RemoveEmpties(strings.Split(dirPrefix, "/")))
 	for _, path := range modelDirPaths {
-		splitPath := strings.Split(path, "/")
+		splitPath := slices.RemoveEmpties(strings.Split(path, "/"))
 		modelNames = append(modelNames, splitPath[modelDirPathLength])
 	}
 	modelNames = slices.UniqueStrings(modelNames)

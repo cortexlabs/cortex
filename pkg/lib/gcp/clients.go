@@ -34,7 +34,7 @@ type clients struct {
 
 func (c *Client) GCS() (*storage.Client, error) {
 	if c.clients.gcs == nil {
-		gcs, err := storage.NewClient(context.Background(), option.WithCredentialsJSON(c.credentialsJSON))
+		gcs, err := storage.NewClient(context.Background(), option.WithCredentialsJSON(c.CredentialsJSON))
 		if err != nil {
 			return nil, errors.WithStack(err)
 		}
@@ -45,7 +45,7 @@ func (c *Client) GCS() (*storage.Client, error) {
 
 func (c *Client) Compute() (*compute.Service, error) {
 	if c.clients.compute == nil {
-		comp, err := compute.NewService(context.Background(), option.WithCredentialsJSON(c.credentialsJSON))
+		comp, err := compute.NewService(context.Background(), option.WithCredentialsJSON(c.CredentialsJSON))
 		if err != nil {
 			return nil, errors.WithStack(err)
 		}
@@ -56,7 +56,7 @@ func (c *Client) Compute() (*compute.Service, error) {
 
 func (c *Client) GKE() (*container.ClusterManagerClient, error) {
 	if c.clients.gke == nil {
-		gke, err := container.NewClusterManagerClient(context.Background(), option.WithCredentialsJSON(c.credentialsJSON))
+		gke, err := container.NewClusterManagerClient(context.Background(), option.WithCredentialsJSON(c.CredentialsJSON))
 		if err != nil {
 			return nil, errors.WithStack(err)
 		}

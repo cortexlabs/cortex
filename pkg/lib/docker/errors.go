@@ -81,7 +81,7 @@ func ErrorImageInaccessible(image string, providerType types.ProviderType, cause
 		}
 	case types.AWSProviderType:
 		if strings.Contains(cause.Error(), "authorized") || strings.Contains(cause.Error(), "authentication") {
-			message += fmt.Sprintf("\n\nif you would like to use a private docker registry, see https://docs.cortex.dev/v/%s/guides/private-docker", consts.CortexVersionMinor)
+			message += fmt.Sprintf("\n\nif you would like to use a private docker registry, see https://docs.cortex.dev/v/%s/", consts.CortexVersionMinor)
 		}
 	}
 

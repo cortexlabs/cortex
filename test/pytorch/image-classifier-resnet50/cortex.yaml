@@ -1,0 +1,15 @@
+# WARNING: you are on the master branch; please refer to examples on the branch corresponding to your `cortex version` (e.g. for version 0.24.*, run `git checkout -b 0.24` or switch to the `0.24` branch on GitHub)
+
+- name: image-classifier-resnet50
+  kind: RealtimeAPI
+  predictor:
+    type: python
+    path: predictor.py
+    config:
+      model_path: s3://cortex-examples/pytorch/image-classifier-resnet50
+      model_name: resnet50.pt
+      device: cpu
+      classes: https://s3.amazonaws.com/deep-learning-models/image-models/imagenet_class_index.json
+      input_shape: [224, 224]
+  compute:
+    cpu: 1

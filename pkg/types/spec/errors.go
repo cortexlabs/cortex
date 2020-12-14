@@ -61,6 +61,7 @@ const (
 	ErrS3DirIsEmpty   = "spec.s3_dir_is_empty"
 
 	ErrIncorrectBucketProvider    = "spec.incorrect_bucket_provider"
+	ErrMixedBucketProviders       = "spec.mixed_bucket_providers"
 	ErrModelPathNotDirectory      = "spec.model_path_not_directory"
 	ErrInvalidPythonModelPath     = "spec.invalid_python_model_path"
 	ErrInvalidTensorFlowModelPath = "spec.invalid_tensorflow_model_path"
@@ -99,14 +100,14 @@ var _modelCurrentStructure = `
 func ErrorMalformedConfig() error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrMalformedConfig,
-		Message: fmt.Sprintf("cortex YAML configuration files must contain a list of maps (see https://docs.cortex.dev/v/%s/deployments/realtime-api/api-configuration for Realtime API documentation and see https://docs.cortex.dev/v/%s/deployments/batch-api/api-configuration for Batch API documentation)", consts.CortexVersionMinor, consts.CortexVersionMinor),
+		Message: fmt.Sprintf("cortex YAML configuration files must contain a list of maps (see https://docs.cortex.dev/v/%s/ for api configuration schema)", consts.CortexVersionMinor),
 	})
 }
 
 func ErrorNoAPIs() error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrNoAPIs,
-		Message: fmt.Sprintf("at least one API must be configured (see https://docs.cortex.dev/v/%s/deployments/realtime-api/api-configuration for Realtime API documentation and see https://docs.cortex.dev/v/%s/deployments/batch-api/api-configuration for Batch API documentation)", consts.CortexVersionMinor, consts.CortexVersionMinor),
+		Message: fmt.Sprintf("at least one API must be configured (see https://docs.cortex.dev/v/%s/ for api configuration schema)", consts.CortexVersionMinor),
 	})
 }
 
@@ -286,12 +287,16 @@ func ErrorIncorrectBucketProvider(provider types.ProviderType) error {
 	if provider == types.GCPProviderType {
 		errorMessage = fmt.Sprintf("for %s provider type, only gs buckets are accepted", provider)
 	}
-	if provider == types.LocalProviderType {
-		errorMessage = fmt.Sprintf("for %s provider type, only s3 buckets and local paths are accepted", provider)
-	}
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrIncorrectBucketProvider,
 		Message: errorMessage,
+	})
+}
+
+func ErrorMixedBucketProviders() error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrMixedBucketProviders,
+		Message: "cannot mix bucket providers; must only provider s3 or gs buckets",
 	})
 }
 

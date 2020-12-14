@@ -66,9 +66,7 @@ func realtimeAPITable(realtimeAPI schema.APIResponse, env cliconfig.Environment)
 		out += "\n" + console.Bold("metrics dashboard: ") + *realtimeAPI.DashboardURL + "\n"
 	}
 
-	out += "\n" + console.Bold("endpoint: ") + realtimeAPI.Endpoint
-
-	out += fmt.Sprintf("\n%s curl %s -X POST -H \"Content-Type: application/json\" -d @sample.json\n", console.Bold("example curl:"), realtimeAPI.Endpoint)
+	out += "\n" + console.Bold("endpoint: ") + realtimeAPI.Endpoint + "\n"
 
 	if !(realtimeAPI.Spec.Predictor.Type == userconfig.PythonPredictorType && realtimeAPI.Spec.Predictor.ModelPath == nil && realtimeAPI.Spec.Predictor.Models == nil) {
 		out += "\n" + describeModelInput(realtimeAPI.Status, realtimeAPI.Spec.Predictor, realtimeAPI.Endpoint)
@@ -476,7 +474,17 @@ func parseAPITFLiveReloadingSummary(summary *schema.APITFLiveReloadingSummary) (
 		}
 	}
 
-	_, usesCortexDefaultModelName := summary.ModelMetadata[consts.SingleModelName]
+	usesCortexDefaultModelName := false
+	for modelID := range summary.ModelMetadata {
+		modelName, _, err := getModelFromModelID(modelID)
+		if err != nil {
+			return "", err
+		}
+		if modelName == consts.SingleModelName {
+			usesCortexDefaultModelName = true
+			break
+		}
+	}
 
 	t := table.Table{
 		Headers: []table.Header{

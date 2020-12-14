@@ -29,10 +29,10 @@ export BASH_ENV=./dev/config/env.sh
 # build cli, start local operator, and watch for changes
 devstart-aws:
 	@$(MAKE) operator-stop-aws || true
-	@./dev/operator_local.sh --aws || true
+	@./dev/operator_local.sh -p aws || true
 devstart-gcp:
 	@$(MAKE) operator-stop-gcp || true
-	@./dev/operator_local.sh --gcp || true
+	@./dev/operator_local.sh -p gcp || true
 
 cli:
 	@mkdir -p ./bin
@@ -45,29 +45,24 @@ cli-watch:
 # start local operator and watch for changes
 operator-local-aws:
 	@$(MAKE) operator-stop-aws || true
-	@./dev/operator_local.sh --operator-only --aws || true
+	@./dev/operator_local.sh --operator-only -p aws || true
 operator-local-gcp:
 	@$(MAKE) operator-stop-gcp || true
-	@./dev/operator_local.sh --operator-only --gcp || true
+	@./dev/operator_local.sh --operator-only -p gcp || true
 
 # start local operator and attach the delve debugger to it (in server mode)
 operator-local-dbg-aws:
-	@$(MAKE) operator-stop || true
-	@./dev/operator_local_debugger.sh --aws || true
+	@$(MAKE) operator-stop-aws || true
+	@./dev/operator_local.sh --debug -p aws || true
 operator-local-dbg-gcp:
-	@$(MAKE) operator-stop || true
-	@./dev/operator_local_debugger.sh --gcp || true
+	@$(MAKE) operator-stop-gcp || true
+	@./dev/operator_local.sh --debug -p gcp || true
 
 # configure kubectl to point to the cluster specified in dev/config/cluster-[aws|gcp].yaml
 kubectl-aws:
 	@eval $$(python3 ./manager/cluster_config_env.py ./dev/config/cluster-aws.yaml) && eksctl utils write-kubeconfig --cluster="$$CORTEX_CLUSTER_NAME" --region="$$CORTEX_REGION" | grep -v "saved kubeconfig as" | grep -v "using region" | grep -v "eksctl version" || true
 kubectl-gcp:
 	@eval $$(python3 ./manager/cluster_config_env.py ./dev/config/cluster-gcp.yaml) && gcloud container clusters get-credentials "$$CORTEX_CLUSTER_NAME" --zone "$$CORTEX_ZONE" --project "$$CORTEX_PROJECT" 2>&1 | grep -v "Fetching cluster" | grep -v "kubeconfig entry generated" || true
-
-# configure kubectl to point to the cluster specified in dev/config/cluster.yaml
-.PHONY: kubectl
-kubectl:
-	@eval $$(python3 ./manager/cluster_config_env.py ./dev/config/cluster.yaml) && eksctl utils write-kubeconfig --cluster="$$CORTEX_CLUSTER_NAME" --region="$$CORTEX_REGION" | grep -v "saved kubeconfig as" | grep -v "using region" | grep -v "eksctl version" || true
 
 cluster-up-aws:
 	@$(MAKE) images-all-aws
@@ -151,10 +146,38 @@ cluster-configure-aws-y:
 # stop the in-cluster operator
 operator-stop-aws:
 	@$(MAKE) kubectl-aws
-	@kubectl delete --namespace=default --ignore-not-found=true deployment operator
+	@kubectl scale --namespace=default deployments/operator --replicas=0
 operator-stop-gcp:
 	@$(MAKE) kubectl-gcp
-	@kubectl delete --namespace=default --ignore-not-found=true deployment operator
+	@kubectl scale --namespace=default deployments/operator --replicas=0
+
+# start the in-cluster operator
+operator-start-aws:
+	@$(MAKE) kubectl-aws
+	@kubectl scale --namespace=default deployments/operator --replicas=1
+operator-start-gcp:
+	@$(MAKE) kubectl-gcp
+	@kubectl scale --namespace=default deployments/operator --replicas=1
+
+# restart the in-cluster operator
+operator-restart-aws:
+	@$(MAKE) kubectl-aws
+	@kubectl delete pods -l workloadID=operator --namespace=default
+operator-restart-gcp:
+	@$(MAKE) kubectl-gcp
+	@kubectl delete pods -l workloadID=operator --namespace=default
+
+# build and update the in-cluster operator
+operator-update-aws:
+	@$(MAKE) kubectl-aws
+	@kubectl scale --namespace=default deployments/operator --replicas=0
+	@./dev/registry.sh update-single operator -p aws
+	@kubectl scale --namespace=default deployments/operator --replicas=1
+operator-update-gcp:
+	@$(MAKE) kubectl-gcp
+	@kubectl scale --namespace=default deployments/operator --replicas=0
+	@./dev/registry.sh update-single operator -p gcp
+	@kubectl scale --namespace=default deployments/operator --replicas=1
 
 # Docker images
 

@@ -21,9 +21,9 @@ export EXPECTED_CORTEX_VERSION=master
 
 if [ "$CORTEX_VERSION" != "$EXPECTED_CORTEX_VERSION" ]; then
     if [ "$CORTEX_PROVIDER" == "local" ]; then
-        echo "error: your Cortex CLI version ($CORTEX_VERSION) doesn't match your predictor image version ($EXPECTED_CORTEX_VERSION); please update your predictor image by modifying the \`image\` field in your API configuration file (e.g. cortex.yaml) and re-running \`cortex deploy\`, or update your CLI by following the instructions at https://docs.cortex.dev/update"
+        echo "error: your Cortex CLI version ($CORTEX_VERSION) doesn't match your predictor image version ($EXPECTED_CORTEX_VERSION); please update your predictor image by modifying the \`image\` field in your API configuration file (e.g. cortex.yaml) and re-running \`cortex deploy\`, or update your CLI by following the instructions at https://docs.cortex.dev/"
     else
-        echo "error: your Cortex operator version ($CORTEX_VERSION) doesn't match your predictor image version ($EXPECTED_CORTEX_VERSION); please update your predictor image by modifying the \`image\` field in your API configuration file (e.g. cortex.yaml) and re-running \`cortex deploy\`, or update your cluster by following the instructions at https://docs.cortex.dev/update"
+        echo "error: your Cortex operator version ($CORTEX_VERSION) doesn't match your predictor image version ($EXPECTED_CORTEX_VERSION); please update your predictor image by modifying the \`image\` field in your API configuration file (e.g. cortex.yaml) and re-running \`cortex deploy\`, or update your cluster by following the instructions at https://docs.cortex.dev/"
     fi
     exit 1
 fi
@@ -95,7 +95,10 @@ create_s6_service() {
     # https://skarnet.org/software/s6/s6-svscanctl.html
     # http://skarnet.org/software/s6/s6-svc.html
     # http://skarnet.org/software/s6/servicedir.html
+
+    # good pages to read about execline
     # http://www.troubleshooters.com/linux/execline.htm
+    # https://danyspin97.org/blog/getting-started-with-execline-scripting/
 
     service_name=$1
     cmd=$2
@@ -110,7 +113,7 @@ create_s6_service() {
 
     dest_script="$dest_dir/finish"
     echo "#!/usr/bin/execlineb -S0" > $dest_script
-    echo "ifelse { s6-test \${1} -ne 0 } { s6-svscanctl -t /var/run/s6/services }" >> $dest_script
+    echo "ifelse { s6-test \${1} -ne 0 } { foreground { redirfd -w 1 /var/run/s6/env-stage3/S6_STAGE2_EXITED s6-echo -n -- \${1} } s6-svscanctl -t /var/run/s6/services }" >> $dest_script
     echo "s6-svc -O /var/run/s6/services/$service_name" >> $dest_script
     chmod +x $dest_script
 }

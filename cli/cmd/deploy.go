@@ -119,7 +119,7 @@ var _deployCmd = &cobra.Command{
 			if err != nil {
 				exit.Error(err)
 			}
-			fmt.Println(string(bytes))
+			fmt.Print(string(bytes))
 		case flags.MixedOutputType:
 			err := mixedPrint(deployResults)
 			if err != nil {

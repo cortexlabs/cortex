@@ -60,7 +60,7 @@ func SubmitJob(w http.ResponseWriter, r *http.Request) {
 
 	err = json.Unmarshal(bodyBytes, &submission)
 	if err != nil {
-		respondError(w, r, errors.Append(err, fmt.Sprintf("\n\njob submission schema can be found at https://docs.cortex.dev/v/%s/deployments/batch-api/endpoints", consts.CortexVersionMinor)))
+		respondError(w, r, errors.Append(err, fmt.Sprintf("\n\njob submission schema can be found at https://docs.cortex.dev/v/%s/", consts.CortexVersionMinor)))
 		return
 	}
 
