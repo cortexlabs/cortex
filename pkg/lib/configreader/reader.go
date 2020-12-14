@@ -599,7 +599,7 @@ func ReadPrompt(dest interface{}, promptValidation *PromptValidation) error {
 			v := reflect.ValueOf(dest).Elem().FieldByName(promptItemValidation.StructField)
 			if !v.IsZero() {
 				if promptItemValidation.StringValidation != nil && promptItemValidation.Parser == nil {
-					if _, err := ValidateString(v.Interface().(string), promptItemValidation.StringValidation); err != nil {
+					if _, err := ValidateStringProvided(v.Interface().(string), promptItemValidation.StringValidation); err != nil {
 						return errors.Wrap(err, inferPromptFieldName(reflect.TypeOf(dest), promptItemValidation.StructField))
 					}
 				} else if promptItemValidation.StringPtrValidation != nil && promptItemValidation.Parser == nil {
@@ -607,7 +607,7 @@ func ReadPrompt(dest interface{}, promptValidation *PromptValidation) error {
 						return errors.Wrap(err, inferPromptFieldName(reflect.TypeOf(dest), promptItemValidation.StructField))
 					}
 				} else if promptItemValidation.BoolValidation != nil {
-					if _, err := ValidateBool(v.Interface().(bool), promptItemValidation.BoolValidation); err != nil {
+					if _, err := ValidateBoolProvided(v.Interface().(bool), promptItemValidation.BoolValidation); err != nil {
 						return errors.Wrap(err, inferPromptFieldName(reflect.TypeOf(dest), promptItemValidation.StructField))
 					}
 				} else if promptItemValidation.BoolPtrValidation != nil {
@@ -623,7 +623,7 @@ func ReadPrompt(dest interface{}, promptValidation *PromptValidation) error {
 						return errors.Wrap(err, inferPromptFieldName(reflect.TypeOf(dest), promptItemValidation.StructField))
 					}
 				} else if promptItemValidation.Int32Validation != nil {
-					if _, err := ValidateInt32(v.Interface().(int32), promptItemValidation.Int32Validation); err != nil {
+					if _, err := ValidateInt32Provided(v.Interface().(int32), promptItemValidation.Int32Validation); err != nil {
 						return errors.Wrap(err, inferPromptFieldName(reflect.TypeOf(dest), promptItemValidation.StructField))
 					}
 				} else if promptItemValidation.Int32PtrValidation != nil {
@@ -631,7 +631,7 @@ func ReadPrompt(dest interface{}, promptValidation *PromptValidation) error {
 						return errors.Wrap(err, inferPromptFieldName(reflect.TypeOf(dest), promptItemValidation.StructField))
 					}
 				} else if promptItemValidation.Int64Validation != nil {
-					if _, err := ValidateInt64(v.Interface().(int64), promptItemValidation.Int64Validation); err != nil {
+					if _, err := ValidateInt64Provided(v.Interface().(int64), promptItemValidation.Int64Validation); err != nil {
 						return errors.Wrap(err, inferPromptFieldName(reflect.TypeOf(dest), promptItemValidation.StructField))
 					}
 				} else if promptItemValidation.Int64PtrValidation != nil {
@@ -639,7 +639,7 @@ func ReadPrompt(dest interface{}, promptValidation *PromptValidation) error {
 						return errors.Wrap(err, inferPromptFieldName(reflect.TypeOf(dest), promptItemValidation.StructField))
 					}
 				} else if promptItemValidation.Float32Validation != nil {
-					if _, err := ValidateFloat32(v.Interface().(float32), promptItemValidation.Float32Validation); err != nil {
+					if _, err := ValidateFloat32Provided(v.Interface().(float32), promptItemValidation.Float32Validation); err != nil {
 						return errors.Wrap(err, inferPromptFieldName(reflect.TypeOf(dest), promptItemValidation.StructField))
 					}
 				} else if promptItemValidation.Float32PtrValidation != nil {
@@ -647,7 +647,7 @@ func ReadPrompt(dest interface{}, promptValidation *PromptValidation) error {
 						return errors.Wrap(err, inferPromptFieldName(reflect.TypeOf(dest), promptItemValidation.StructField))
 					}
 				} else if promptItemValidation.Float64Validation != nil {
-					if _, err := ValidateFloat64(v.Interface().(float64), promptItemValidation.Float64Validation); err != nil {
+					if _, err := ValidateFloat64Provided(v.Interface().(float64), promptItemValidation.Float64Validation); err != nil {
 						return errors.Wrap(err, inferPromptFieldName(reflect.TypeOf(dest), promptItemValidation.StructField))
 					}
 				} else if promptItemValidation.Float64PtrValidation != nil {

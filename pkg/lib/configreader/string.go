@@ -67,7 +67,7 @@ func EnvVar(envVarName string) string {
 func String(inter interface{}, v *StringValidation) (string, error) {
 	if inter == nil {
 		if v.TreatNullAsEmpty {
-			return ValidateString("", v)
+			return ValidateStringProvided("", v)
 		}
 		return "", ErrorCannotBeNull(v.Required)
 	}
@@ -92,7 +92,7 @@ func String(inter interface{}, v *StringValidation) (string, error) {
 			return "", ErrorInvalidPrimitiveType(inter, PrimTypeString)
 		}
 	}
-	return ValidateString(casted, v)
+	return ValidateStringProvided(casted, v)
 }
 
 func StringFromInterfaceMap(key string, iMap map[string]interface{}, v *StringValidation) (string, error) {
@@ -128,7 +128,7 @@ func StringFromStrMap(key string, sMap map[string]string, v *StringValidation) (
 }
 
 func StringFromStr(valStr string, v *StringValidation) (string, error) {
-	return ValidateString(valStr, v)
+	return ValidateStringProvided(valStr, v)
 }
 
 func StringFromEnv(envVarName string, v *StringValidation) (string, error) {
@@ -196,14 +196,17 @@ func ValidateStringMissing(v *StringValidation) (string, error) {
 	if v.Required {
 		return "", ErrorMustBeDefined(v.AllowedValues)
 	}
-	return ValidateString(v.Default, v)
+	return validateString(v.Default, v)
 }
 
-func ValidateString(val string, v *StringValidation) (string, error) {
+func ValidateStringProvided(val string, v *StringValidation) (string, error) {
 	if v.CantBeSpecified != "" {
 		return "", ErrorFieldCantBeSpecified(v.CantBeSpecified)
 	}
+	return validateString(val, v)
+}
 
+func validateString(val string, v *StringValidation) (string, error) {
 	err := ValidateStringVal(val, v)
 	if err != nil {
 		return "", err

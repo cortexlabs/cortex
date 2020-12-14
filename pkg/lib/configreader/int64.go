@@ -43,7 +43,7 @@ type Int64Validation struct {
 func Int64(inter interface{}, v *Int64Validation) (int64, error) {
 	if inter == nil {
 		if v.TreatNullAsZero {
-			return ValidateInt64(0, v)
+			return ValidateInt64Provided(0, v)
 		}
 		return 0, ErrorCannotBeNull(v.Required)
 	}
@@ -51,7 +51,7 @@ func Int64(inter interface{}, v *Int64Validation) (int64, error) {
 	if !castOk {
 		return 0, ErrorInvalidPrimitiveType(inter, PrimTypeInt)
 	}
-	return ValidateInt64(casted, v)
+	return ValidateInt64Provided(casted, v)
 }
 
 func Int64FromInterfaceMap(key string, iMap map[string]interface{}, v *Int64Validation) (int64, error) {
@@ -94,7 +94,7 @@ func Int64FromStr(valStr string, v *Int64Validation) (int64, error) {
 	if !castOk {
 		return 0, ErrorInvalidPrimitiveType(valStr, PrimTypeInt)
 	}
-	return ValidateInt64(casted, v)
+	return ValidateInt64Provided(casted, v)
 }
 
 func Int64FromEnv(envVarName string, v *Int64Validation) (int64, error) {
@@ -162,14 +162,17 @@ func ValidateInt64Missing(v *Int64Validation) (int64, error) {
 	if v.Required {
 		return 0, ErrorMustBeDefined(v.AllowedValues)
 	}
-	return ValidateInt64(v.Default, v)
+	return validateInt64(v.Default, v)
 }
 
-func ValidateInt64(val int64, v *Int64Validation) (int64, error) {
+func ValidateInt64Provided(val int64, v *Int64Validation) (int64, error) {
 	if v.CantBeSpecified != "" {
 		return 0, ErrorFieldCantBeSpecified(v.CantBeSpecified)
 	}
+	return validateInt64(val, v)
+}
 
+func validateInt64(val int64, v *Int64Validation) (int64, error) {
 	err := ValidateInt64Val(val, v)
 	if err != nil {
 		return 0, err

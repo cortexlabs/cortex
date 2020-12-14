@@ -43,7 +43,7 @@ type Float64Validation struct {
 func Float64(inter interface{}, v *Float64Validation) (float64, error) {
 	if inter == nil {
 		if v.TreatNullAsZero {
-			return ValidateFloat64(0, v)
+			return ValidateFloat64Provided(0, v)
 		}
 		return 0, ErrorCannotBeNull(v.Required)
 	}
@@ -51,7 +51,7 @@ func Float64(inter interface{}, v *Float64Validation) (float64, error) {
 	if !castOk {
 		return 0, ErrorInvalidPrimitiveType(inter, PrimTypeFloat)
 	}
-	return ValidateFloat64(casted, v)
+	return ValidateFloat64Provided(casted, v)
 }
 
 func Float64FromInterfaceMap(key string, iMap map[string]interface{}, v *Float64Validation) (float64, error) {
@@ -94,7 +94,7 @@ func Float64FromStr(valStr string, v *Float64Validation) (float64, error) {
 	if !castOk {
 		return 0, ErrorInvalidPrimitiveType(valStr, PrimTypeFloat)
 	}
-	return ValidateFloat64(casted, v)
+	return ValidateFloat64Provided(casted, v)
 }
 
 func Float64FromEnv(envVarName string, v *Float64Validation) (float64, error) {
@@ -162,14 +162,17 @@ func ValidateFloat64Missing(v *Float64Validation) (float64, error) {
 	if v.Required {
 		return 0, ErrorMustBeDefined(v.AllowedValues)
 	}
-	return ValidateFloat64(v.Default, v)
+	return validateFloat64(v.Default, v)
 }
 
-func ValidateFloat64(val float64, v *Float64Validation) (float64, error) {
+func ValidateFloat64Provided(val float64, v *Float64Validation) (float64, error) {
 	if v.CantBeSpecified != "" {
 		return 0, ErrorFieldCantBeSpecified(v.CantBeSpecified)
 	}
+	return validateFloat64(val, v)
+}
 
+func validateFloat64(val float64, v *Float64Validation) (float64, error) {
 	err := ValidateFloat64Val(val, v)
 	if err != nil {
 		return 0, err
