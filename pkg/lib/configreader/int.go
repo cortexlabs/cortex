@@ -43,7 +43,7 @@ type IntValidation struct {
 func Int(inter interface{}, v *IntValidation) (int, error) {
 	if inter == nil {
 		if v.TreatNullAsZero {
-			return ValidateInt(0, v)
+			return ValidateIntProvided(0, v)
 		}
 		return 0, ErrorCannotBeNull(v.Required)
 	}
@@ -51,7 +51,7 @@ func Int(inter interface{}, v *IntValidation) (int, error) {
 	if !castOk {
 		return 0, ErrorInvalidPrimitiveType(inter, PrimTypeInt)
 	}
-	return ValidateInt(casted, v)
+	return ValidateIntProvided(casted, v)
 }
 
 func IntFromInterfaceMap(key string, iMap map[string]interface{}, v *IntValidation) (int, error) {
@@ -94,7 +94,7 @@ func IntFromStr(valStr string, v *IntValidation) (int, error) {
 	if !castOk {
 		return 0, ErrorInvalidPrimitiveType(valStr, PrimTypeInt)
 	}
-	return ValidateInt(casted, v)
+	return ValidateIntProvided(casted, v)
 }
 
 func IntFromEnv(envVarName string, v *IntValidation) (int, error) {
@@ -162,15 +162,17 @@ func ValidateIntMissing(v *IntValidation) (int, error) {
 	if v.Required {
 		return 0, ErrorMustBeDefined(v.AllowedValues)
 	}
-	return ValidateInt(v.Default, v)
+	return validateInt(v.Default, v)
 }
 
-func ValidateInt(val int, v *IntValidation) (int, error) {
-	// TODO needs to be fixed for all non-pointer types (won't work with default as is?)
+func ValidateIntProvided(val int, v *IntValidation) (int, error) {
 	if v.CantBeSpecified != "" {
 		return 0, ErrorFieldCantBeSpecified(v.CantBeSpecified)
 	}
+	return validateInt(val, v)
+}
 
+func validateInt(val int, v *IntValidation) (int, error) {
 	err := ValidateIntVal(val, v)
 	if err != nil {
 		return 0, err

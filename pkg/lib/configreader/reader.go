@@ -615,7 +615,7 @@ func ReadPrompt(dest interface{}, promptValidation *PromptValidation) error {
 						return errors.Wrap(err, inferPromptFieldName(reflect.TypeOf(dest), promptItemValidation.StructField))
 					}
 				} else if promptItemValidation.IntValidation != nil {
-					if _, err := ValidateInt(v.Interface().(int), promptItemValidation.IntValidation); err != nil {
+					if _, err := ValidateIntProvided(v.Interface().(int), promptItemValidation.IntValidation); err != nil {
 						return errors.Wrap(err, inferPromptFieldName(reflect.TypeOf(dest), promptItemValidation.StructField))
 					}
 				} else if promptItemValidation.IntPtrValidation != nil {
