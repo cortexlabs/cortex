@@ -140,10 +140,7 @@ func Init() error {
 
 		GCPCluster.Bucket = clusterconfig.GCPBucketName(GCPCluster.ClusterName, *GCPCluster.Project, *GCPCluster.Zone)
 	} else {
-		GCP, err = gcp.NewAnonymousClient()
-		if err != nil {
-			return nil
-		}
+		GCP = gcp.NewAnonymousClient()
 	}
 
 	err = telemetry.Init(telemetry.Config{

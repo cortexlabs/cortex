@@ -88,6 +88,6 @@ func NewFromEnv() (*Client, error) {
 	}, nil
 }
 
-func NewAnonymousClient() (*Client, error) {
-	return &Client{IsAnonymous: true}, nil
+func NewAnonymousClient() *Client {
+	return &Client{IsAnonymous: true}
 }
