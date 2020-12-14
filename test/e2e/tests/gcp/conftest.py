@@ -15,11 +15,6 @@
 import e2e
 
 
-def pytest_addoption(parser):
-    parser.addoption("--gcp-env", action="store", default=None)
-    parser.addoption("--gcp-config", action="store", default=None)
-
-
 def pytest_configure(config):
     aws_config = config.getoption("--gcp-config")
     if aws_config:

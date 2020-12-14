@@ -11,17 +11,3 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-import e2e
-
-
-def pytest_configure(config):
-    aws_config = config.getoption("--aws-config")
-    if aws_config:
-        e2e.create_cluster(aws_config)
-
-
-def pytest_unconfigure(config):
-    aws_config = config.getoption("--aws-config")
-    if aws_config:
-        e2e.delete_cluster(aws_config)
