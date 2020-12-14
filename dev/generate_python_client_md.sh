@@ -61,7 +61,7 @@ sed -i 's/[[:space:]]*$//' $ROOT/docs/workloads/python-client.md
 truncate -s -1 $ROOT/docs/workloads/python-client.md
 
 # Cortex version comment
-sed -i "s/^## create\\\_api/## create\\\_api\n\n<!-- CORTEX_VERSION_MINOR x5 -->/g" $ROOT/docs/workloads/python-client.md
+sed -i "s/^## create\\\_api/## create\\\_api\n\n<!-- CORTEX_VERSION_MINOR -->/g" $ROOT/docs/workloads/python-client.md
 
 pip3 uninstall -y cortex
 rm -rf $ROOT/pkg/workloads/cortex/client/cortex.egg-info
