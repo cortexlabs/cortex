@@ -374,15 +374,13 @@ class PythonClient:
 
     def _is_model_caching_enabled(self) -> bool:
         """
-        Checks if model caching is enabled (dynamic_model_caching:models:cache_size and dynamic_model_caching:models:disk_cache_size).
+        Checks if model caching is enabled (models:cache_size and models:disk_cache_size).
         """
         return (
-            self._api_spec["predictor"]["dynamic_model_caching"]
-            and self._api_spec["predictor"]["dynamic_model_caching"]["models"]
-            and self._api_spec["predictor"]["dynamic_model_caching"]["models"]["cache_size"]
-            is not None
-            and self._api_spec["predictor"]["dynamic_model_caching"]["models"]["disk_cache_size"]
-            is not None
+            self._api_spec["predictor"]["dynamic_model_loading"]
+            and self._api_spec["predictor"]["dynamic_model_loading"]["models"]
+            and self._api_spec["predictor"]["dynamic_model_loading"]["models"]["cache_size"]
+            and self._api_spec["predictor"]["dynamic_model_loading"]["models"]["disk_cache_size"]
         )
 
     @property

@@ -868,9 +868,16 @@ func validateMultiModelsFields(api *userconfig.API) error {
 func validatePythonPredictor(api *userconfig.API, models *[]CuratedModelResource, provider types.ProviderType, projectFiles ProjectFiles, awsClient *aws.Client, gcpClient *gcp.Client) error {
 	predictor := api.Predictor
 
+	if predictor.ModelPath != nil {
+		return ErrorFieldNotSupportedByPredictorType(userconfig.ModelPathKey, predictor.Type)
+	}
 	if predictor.SignatureKey != nil {
 		return ErrorFieldNotSupportedByPredictorType(userconfig.SignatureKeyKey, predictor.Type)
 	}
+	if predictor.Models != nil {
+		return ErrorFieldNotSupportedByPredictorType(userconfig.ModelsKey, predictor.Type)
+	}
+
 	if predictor.ServerSideBatching != nil {
 		return ErrorFieldNotSupportedByPredictorType(userconfig.ServerSideBatchingKey, predictor.Type)
 	}
@@ -882,6 +889,9 @@ func validatePythonPredictor(api *userconfig.API, models *[]CuratedModelResource
 		return nil
 	}
 	dml := predictor.DynamicModelLoading
+	if dml.SignatureKey != nil {
+		return errors.Wrap(ErrorFieldNotSupportedByPredictorType(userconfig.SignatureKeyKey, predictor.Type), userconfig.DynamicModelLoadingKey)
+	}
 
 	hasSingleModel := dml.ModelPath != nil
 	hasMultiModels := dml.Models != nil

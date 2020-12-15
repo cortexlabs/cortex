@@ -410,7 +410,7 @@ func getEnvVars(api *spec.API, container string) []kcore.EnvVar {
 			)
 		}
 
-		if api.Predictor.ModelPath != nil || api.Predictor.Models != nil {
+		if api.Predictor.ModelPath != nil || api.Predictor.Models != nil || (api.Predictor.DynamicModelLoading != nil && (api.Predictor.DynamicModelLoading.ModelPath != nil || api.Predictor.DynamicModelLoading.Models != nil)) {
 			envVars = append(envVars,
 				kcore.EnvVar{
 					Name:  "CORTEX_MODEL_DIR",
