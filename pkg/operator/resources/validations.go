@@ -115,7 +115,7 @@ func ValidateClusterAPIs(apis []userconfig.API, projectFiles spec.ProjectFiles) 
 		}
 
 		if api.Kind == userconfig.TrafficSplitterKind {
-			if err := spec.ValidateTrafficSplitter(api, config.Provider, config.AWS); err != nil {
+			if err := spec.ValidateTrafficSplitter(api); err != nil {
 				return errors.Wrap(err, api.Identify())
 			}
 			if err := checkIfAPIExists(api.APIs, realtimeAPIs, deployedRealtimeAPIs); err != nil {

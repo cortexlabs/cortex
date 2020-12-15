@@ -720,12 +720,7 @@ func ValidateAPI(
 	return nil
 }
 
-func ValidateTrafficSplitter(
-	api *userconfig.API,
-	provider types.ProviderType,
-	awsClient *aws.Client,
-) error {
-
+func ValidateTrafficSplitter(api *userconfig.API) error {
 	if api.Networking.Endpoint == nil {
 		api.Networking.Endpoint = pointer.String("/" + api.Name)
 	}
