@@ -45,11 +45,14 @@ type API struct {
 }
 
 type Predictor struct {
-	Type                   PredictorType          `json:"type" yaml:"type"`
-	Path                   string                 `json:"path" yaml:"path"`
-	ModelPath              *string                `json:"model_path" yaml:"model_path"`
-	SignatureKey           *string                `json:"signature_key" yaml:"signature_key"`
-	Models                 *MultiModels           `json:"models" yaml:"models"`
+	Type PredictorType `json:"type" yaml:"type"`
+	Path string        `json:"path" yaml:"path"`
+
+	DynamicModelLoading *DynamicModelLoading `json:"dynamic_model_loading" yaml:"dynamic_model_loading"`
+	ModelPath           *string              `json:"model_path" yaml:"model_path"`
+	SignatureKey        *string              `json:"signature_key" yaml:"signature_key"`
+	Models              *MultiModels         `json:"models" yaml:"models"`
+
 	ServerSideBatching     *ServerSideBatching    `json:"server_side_batching" yaml:"server_side_batching"`
 	ProcessesPerReplica    int32                  `json:"processes_per_replica" yaml:"processes_per_replica"`
 	ThreadsPerProcess      int32                  `json:"threads_per_process" yaml:"threads_per_process"`
@@ -58,6 +61,12 @@ type Predictor struct {
 	TensorFlowServingImage string                 `json:"tensorflow_serving_image" yaml:"tensorflow_serving_image"`
 	Config                 map[string]interface{} `json:"config" yaml:"config"`
 	Env                    map[string]string      `json:"env" yaml:"env"`
+}
+
+type DynamicModelLoading struct {
+	ModelPath    *string      `json:"model_path" yaml:"model_path"`
+	SignatureKey *string      `json:"signature_key" yaml:"signature_key"`
+	Models       *MultiModels `json:"models" yaml:"models"`
 }
 
 type MultiModels struct {
@@ -372,6 +381,10 @@ func (predictor *Predictor) UserStr() string {
 	if predictor.SignatureKey != nil {
 		sb.WriteString(fmt.Sprintf("%s: %s\n", SignatureKeyKey, *predictor.SignatureKey))
 	}
+	if predictor.DynamicModelLoading != nil {
+		sb.WriteString(fmt.Sprintf("%s:\n", DynamicModelLoadingKey))
+		sb.WriteString(s.Indent(predictor.DynamicModelLoading.UserStr(), "  "))
+	}
 
 	if predictor.Type == TensorFlowPredictorType && predictor.ServerSideBatching != nil {
 		sb.WriteString(fmt.Sprintf("%s:\n", ServerSideBatchingKey))
@@ -398,6 +411,23 @@ func (predictor *Predictor) UserStr() string {
 		d, _ := yaml.Marshal(&predictor.Env)
 		sb.WriteString(s.Indent(string(d), "  "))
 	}
+	return sb.String()
+}
+
+func (dml *DynamicModelLoading) UserStr() string {
+	var sb strings.Builder
+
+	if dml.ModelPath != nil {
+		sb.WriteString(fmt.Sprintf("%s: %s\n", ModelPathKey, *dml.ModelPath))
+	}
+	if dml.ModelPath == nil && dml.Models != nil {
+		sb.WriteString(fmt.Sprintf("%s:\n", ModelsKey))
+		sb.WriteString(s.Indent(dml.Models.UserStr(), "  "))
+	}
+	if dml.SignatureKey != nil {
+		sb.WriteString(fmt.Sprintf("%s: %s\n", SignatureKeyKey, *dml.SignatureKey))
+	}
+
 	return sb.String()
 }
 

@@ -878,8 +878,13 @@ func validatePythonPredictor(api *userconfig.API, models *[]CuratedModelResource
 		return ErrorFieldNotSupportedByPredictorType(userconfig.TensorFlowServingImageKey, predictor.Type)
 	}
 
-	hasSingleModel := predictor.ModelPath != nil
-	hasMultiModels := predictor.Models != nil
+	if predictor.DynamicModelLoading == nil {
+		return nil
+	}
+	dml := predictor.DynamicModelLoading
+
+	hasSingleModel := dml.ModelPath != nil
+	hasMultiModels := dml.Models != nil
 
 	var modelWrapError func(error) error
 	var modelResources []userconfig.ModelResource
@@ -888,28 +893,29 @@ func validatePythonPredictor(api *userconfig.API, models *[]CuratedModelResource
 		modelResources = []userconfig.ModelResource{
 			{
 				Name:      consts.SingleModelName,
-				ModelPath: *predictor.ModelPath,
+				ModelPath: *dml.ModelPath,
 			},
 		}
-		*predictor.ModelPath = s.EnsureSuffix(*predictor.ModelPath, "/")
+		*dml.ModelPath = s.EnsureSuffix(*dml.ModelPath, "/")
 		modelWrapError = func(err error) error {
-			return errors.Wrap(err, userconfig.ModelPathKey)
+			return errors.Wrap(err, userconfig.DynamicModelLoadingKey, userconfig.ModelPathKey)
 		}
 	}
 	if hasMultiModels {
-		if predictor.Models.SignatureKey != nil {
-			return errors.Wrap(ErrorFieldNotSupportedByPredictorType(userconfig.SignatureKeyKey, predictor.Type), userconfig.ModelsKey)
+		if dml.Models.SignatureKey != nil {
+			return errors.Wrap(ErrorFieldNotSupportedByPredictorType(userconfig.SignatureKeyKey, predictor.Type), userconfig.DynamicModelLoadingKey, userconfig.ModelsKey)
 		}
 
-		if len(predictor.Models.Paths) > 0 {
+		if len(dml.Models.Paths) > 0 {
 			modelWrapError = func(err error) error {
-				return errors.Wrap(err, userconfig.ModelsKey, userconfig.ModelsPathsKey)
+				return errors.Wrap(err, userconfig.DynamicModelLoadingKey, userconfig.ModelsKey, userconfig.ModelsPathsKey)
 			}
 
-			for _, path := range predictor.Models.Paths {
+			for _, path := range dml.Models.Paths {
 				if path.SignatureKey != nil {
 					return errors.Wrap(
 						ErrorFieldNotSupportedByPredictorType(userconfig.SignatureKeyKey, predictor.Type),
+						userconfig.DynamicModelLoadingKey,
 						userconfig.ModelsKey,
 						userconfig.ModelsPathsKey,
 						path.Name,
@@ -920,18 +926,18 @@ func validatePythonPredictor(api *userconfig.API, models *[]CuratedModelResource
 			}
 		}
 
-		if predictor.Models.Dir != nil {
+		if dml.Models.Dir != nil {
 			modelWrapError = func(err error) error {
-				return errors.Wrap(err, userconfig.ModelsKey, userconfig.ModelsDirKey)
+				return errors.Wrap(err, userconfig.DynamicModelLoadingKey, userconfig.ModelsKey, userconfig.ModelsDirKey)
 			}
 		}
 	}
 
 	var err error
-	if hasMultiModels && predictor.Models.Dir != nil {
-		*models, err = validateDirModels(*predictor.Models.Dir, *api, projectFiles.ProjectDir(), awsClient, gcpClient, nil)
+	if hasMultiModels && dml.Models.Dir != nil {
+		*models, err = validateDirModels(*dml.Models.Dir, dml.SignatureKey, projectFiles.ProjectDir(), awsClient, gcpClient, defaultErrorForPredictorTypeFn(api), nil)
 	} else {
-		*models, err = validateModels(modelResources, *api, projectFiles.ProjectDir(), awsClient, gcpClient, nil)
+		*models, err = validateModels(modelResources, dml.SignatureKey, projectFiles.ProjectDir(), awsClient, gcpClient, defaultErrorForPredictorTypeFn(api), nil)
 	}
 	if err != nil {
 		return modelWrapError(err)
@@ -962,6 +968,10 @@ func validateTensorFlowPredictor(api *userconfig.API, models *[]CuratedModelReso
 		if api.Compute.Inf > 0 && predictor.ServerSideBatching.MaxBatchSize > predictor.ThreadsPerProcess {
 			return ErrorInsufficientBatchConcurrencyLevelInf(predictor.ServerSideBatching.MaxBatchSize, predictor.ThreadsPerProcess)
 		}
+	}
+
+	if predictor.DynamicModelLoading != nil {
+		return ErrorFieldNotSupportedByPredictorType(userconfig.DynamicModelLoadingKey, userconfig.PythonPredictorType)
 	}
 
 	hasSingleModel := predictor.ModelPath != nil
@@ -1018,9 +1028,9 @@ func validateTensorFlowPredictor(api *userconfig.API, models *[]CuratedModelReso
 
 	var err error
 	if hasMultiModels && predictor.Models.Dir != nil {
-		*models, err = validateDirModels(*predictor.Models.Dir, *api, projectFiles.ProjectDir(), awsClient, gcpClient, validators)
+		*models, err = validateDirModels(*predictor.Models.Dir, predictor.SignatureKey, projectFiles.ProjectDir(), awsClient, gcpClient, defaultErrorForPredictorTypeFn(api), validators)
 	} else {
-		*models, err = validateModels(modelResources, *api, projectFiles.ProjectDir(), awsClient, gcpClient, validators)
+		*models, err = validateModels(modelResources, predictor.SignatureKey, projectFiles.ProjectDir(), awsClient, gcpClient, defaultErrorForPredictorTypeFn(api), validators)
 	}
 	if err != nil {
 		return modelWrapError(err)
@@ -1052,6 +1062,10 @@ func validateONNXPredictor(api *userconfig.API, models *[]CuratedModelResource, 
 	}
 	if predictor.TensorFlowServingImage != "" {
 		return ErrorFieldNotSupportedByPredictorType(userconfig.TensorFlowServingImageKey, predictor.Type)
+	}
+
+	if predictor.DynamicModelLoading != nil {
+		return ErrorFieldNotSupportedByPredictorType(userconfig.DynamicModelLoadingKey, userconfig.PythonPredictorType)
 	}
 
 	hasSingleModel := predictor.ModelPath != nil
@@ -1111,9 +1125,9 @@ func validateONNXPredictor(api *userconfig.API, models *[]CuratedModelResource, 
 
 	var err error
 	if hasMultiModels && predictor.Models.Dir != nil {
-		*models, err = validateDirModels(*predictor.Models.Dir, *api, projectFiles.ProjectDir(), awsClient, gcpClient, validators)
+		*models, err = validateDirModels(*predictor.Models.Dir, predictor.SignatureKey, projectFiles.ProjectDir(), awsClient, gcpClient, defaultErrorForPredictorTypeFn(api), validators)
 	} else {
-		*models, err = validateModels(modelResources, *api, projectFiles.ProjectDir(), awsClient, gcpClient, validators)
+		*models, err = validateModels(modelResources, predictor.SignatureKey, projectFiles.ProjectDir(), awsClient, gcpClient, defaultErrorForPredictorTypeFn(api), validators)
 	}
 	if err != nil {
 		return modelWrapError(err)

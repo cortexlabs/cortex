@@ -34,9 +34,7 @@ const (
 	// Predictor
 	TypeKey                   = "type"
 	PathKey                   = "path"
-	ModelPathKey              = "model_path"
 	ServerSideBatchingKey     = "server_side_batching"
-	ModelsKey                 = "models"
 	PythonPathKey             = "python_path"
 	ImageKey                  = "image"
 	TensorFlowServingImageKey = "tensorflow_serving_image"
@@ -44,7 +42,12 @@ const (
 	ThreadsPerProcessKey      = "threads_per_process"
 	ConfigKey                 = "config"
 	EnvKey                    = "env"
-	SignatureKeyKey           = "signature_key"
+
+	// DynamicModelLoading
+	DynamicModelLoadingKey = "dynamic_model_loading"
+	ModelPathKey           = "model_path"
+	SignatureKeyKey        = "signature_key"
+	ModelsKey              = "models"
 
 	// MultiModels
 	ModelsPathsKey         = "paths"
