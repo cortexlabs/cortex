@@ -41,8 +41,9 @@ from typing import Any
 API_LIVENESS_UPDATE_PERIOD = 5  # seconds
 SQS_POLL_WAIT_TIME = 10  # seconds
 MESSAGE_NOT_FOUND_SLEEP = 10  # seconds
-INITIAL_MESSAGE_VISIBILITY = 60  # seconds
-MESSAGE_RENEWAL_PERIOD = 30  # seconds
+INITIAL_MESSAGE_VISIBILITY = 30  # seconds
+MESSAGE_RENEWAL_PERIOD = 15  # seconds
+JOB_COMPLETE_MESSAGE_RENEWAL = 10  # seconds
 
 local_cache = {
     "api_spec": None,
@@ -105,7 +106,7 @@ def renew_message_visibility(receipt_handle: str):
             stop_renewal.remove(receipt_handle)
             break
 
-        print("executing renew_message_visibility")
+        print(f"executing renew_message_visibility: {receipt_handle}")
 
         try:
             local_cache["sqs_client"].change_message_visibility(
@@ -194,6 +195,7 @@ def sqs_loop():
         no_messages_found_in_previous_iteration = False
         message = response["Messages"][0]
         receipt_handle = message["ReceiptHandle"]
+        print(message)
 
         try:
             renewer = threading.Thread(
@@ -243,6 +245,7 @@ def handle_on_job_complete(message):
         total_messages = visible_messages + invisible_messages
         if total_messages > 1:
             new_message_id = uuid.uuid4()
+            time.sleep(JOB_COMPLETE_MESSAGE_RENEWAL)
             sqs_client.send_message(
                 QueueUrl=queue_url,
                 MessageBody='"job_complete"',
