@@ -1,7 +1,17 @@
 # Table of contents
 
 * [Get started](tutorials/realtime.md)
-* [Chat with us](https://gitter.im/cortexlabs/cortex)
+* [Community](https://gitter.im/cortexlabs/cortex)
+* [Contributing](contributing.md)
+
+## CLI
+
+* [Install](cli/install.md)
+* [Commands](cli/commands.md)
+* [Python client](cli/python-client.md)
+* [Environments](cli/environments.md)
+* [Telemetry](cli/telemetry.md)
+* [Uninstall](cli/uninstall.md)
 
 ## Tutorials
 
@@ -69,9 +79,6 @@
 * [Exporting models](guides/exporting.md)
 * [Multi-model endpoints](guides/multi-model.md)
 * [View API metrics](guides/metrics.md)
-* [Single node deployment](guides/single-node-deployment.md)
 * [Setting up kubectl](guides/kubectl.md)
 * [Self-hosted Docker images](guides/self-hosted-images.md)
-* [Docker Hub rate limiting](guides/docker-hub-rate-limiting.md)
 * [Private docker registry](guides/private-docker.md)
-* [Contributing](guides/contributing.md)
