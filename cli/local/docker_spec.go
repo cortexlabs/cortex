@@ -121,7 +121,7 @@ func getAPIEnv(api *spec.API, awsClient *aws.Client, gcpClient *gcp.Client) []st
 			envs = append(envs, "PYTHONDONTWRITEBYTECODE=1")
 		}
 	}
-	if gcpClient != nil {
+	if gcpClient != nil && !gcpClient.IsAnonymous {
 		envs = append(envs, "GOOGLE_APPLICATION_CREDENTIALS=/var/google_key.json")
 	}
 
@@ -207,7 +207,7 @@ func deployPythonContainer(api *spec.API, awsClient *aws.Client, gcpClient *gcp.
 		return errors.Wrap(err, api.Identify())
 	}
 
-	if gcpClient != nil {
+	if gcpClient != nil && !gcpClient.IsAnonymous {
 		docker.CopyToContainer(containerInfo.ID, &archive.Input{
 			Bytes: []archive.BytesInput{
 				{
@@ -311,7 +311,7 @@ func deployONNXContainer(api *spec.API, awsClient *aws.Client, gcpClient *gcp.Cl
 		return errors.Wrap(err, api.Identify())
 	}
 
-	if gcpClient != nil {
+	if gcpClient != nil && !gcpClient.IsAnonymous {
 		docker.CopyToContainer(containerInfo.ID, &archive.Input{
 			Bytes: []archive.BytesInput{
 				{
@@ -501,7 +501,7 @@ func deployTensorFlowContainers(api *spec.API, awsClient *aws.Client, gcpClient 
 		return errors.Wrap(err, api.Identify())
 	}
 
-	if gcpClient != nil {
+	if gcpClient != nil && !gcpClient.IsAnonymous {
 		docker.CopyToContainer(containerCreateRequest.ID, &archive.Input{
 			Bytes: []archive.BytesInput{
 				{
@@ -535,7 +535,7 @@ func retryWithNvidiaRuntime(err error, containerConfig *container.Config, hostCo
 		if err != nil {
 			return errors.Wrap(err, "failed to request a GPU")
 		}
-		if gcpClient != nil {
+		if gcpClient != nil && !gcpClient.IsAnonymous {
 			docker.CopyToContainer(containerCreateRequest.ID, &archive.Input{
 				Bytes: []archive.BytesInput{
 					{

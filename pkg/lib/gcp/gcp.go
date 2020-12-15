@@ -32,6 +32,7 @@ type Client struct {
 	ClientID        string
 	PrivateKey      string
 	PrivateKeyID    string
+	IsAnonymous     bool
 	CredentialsJSON []byte
 	clients         clients
 }
@@ -85,4 +86,8 @@ func NewFromEnv() (*Client, error) {
 		PrivateKeyID:    credsFile.PrivateKeyID,
 		CredentialsJSON: credsBytes,
 	}, nil
+}
+
+func NewAnonymousClient() *Client {
+	return &Client{IsAnonymous: true}
 }
