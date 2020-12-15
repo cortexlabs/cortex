@@ -65,7 +65,7 @@ func apiValidation(
 			predictorValidation(),
 			networkingValidation(resource.Kind, provider, awsClusterConfig, gcpClusterConfig),
 			computeValidation(provider),
-			monitoringValidation(),
+			monitoringValidation(provider),
 			autoscalingValidation(provider),
 			updateStrategyValidation(provider),
 		)
@@ -238,7 +238,16 @@ func predictorValidation() *cr.StructFieldValidation {
 	}
 }
 
-func monitoringValidation() *cr.StructFieldValidation {
+func monitoringValidation(provider types.ProviderType) *cr.StructFieldValidation {
+	if provider != types.AWSProviderType && provider != types.LocalProviderType {
+		return &cr.StructFieldValidation{
+			StructField: "Monitoring",
+			StructValidation: &cr.StructValidation{
+				CantBeSpecified: "only supported on AWS clusters",
+			},
+		}
+	}
+
 	return &cr.StructFieldValidation{
 		StructField: "Monitoring",
 		StructValidation: &cr.StructValidation{
@@ -282,7 +291,6 @@ func networkingValidation(
 		},
 	}
 
-	// allow api_gateway to be set for local (will be ignored)
 	if provider == types.AWSProviderType || provider == types.LocalProviderType {
 		defaultAPIGatewayType := userconfig.PublicAPIGatewayType
 		if awsClusterConfig != nil && awsClusterConfig.APIGatewaySetting == clusterconfig.NoneAPIGatewaySetting {
@@ -304,6 +312,10 @@ func networkingValidation(
 			StructField: "APIGateway",
 			StringValidation: &cr.StringValidation{
 				CantBeSpecified: "only supported on AWS clusters",
+				Default:         userconfig.NoneAPIGatewayType.String(),
+			},
+			Parser: func(str string) (interface{}, error) {
+				return userconfig.APIGatewayTypeFromString(str), nil
 			},
 		})
 	}
@@ -316,9 +328,6 @@ func networkingValidation(
 				LessThanOrEqualTo: pointer.Int(math.MaxUint16),
 			},
 		})
-		// } else {
-		// 	TODO? or let it slide?
-		// 	})
 	}
 
 	return &cr.StructFieldValidation{
@@ -334,7 +343,8 @@ func computeValidation(provider types.ProviderType) *cr.StructFieldValidation {
 	if provider == types.LocalProviderType {
 		cpuDefault = nil
 	}
-	return &cr.StructFieldValidation{
+
+	structFieldValidation := &cr.StructFieldValidation{
 		StructField: "Compute",
 		StructValidation: &cr.StructValidation{
 			StructFieldValidations: []*cr.StructFieldValidation{
@@ -366,22 +376,40 @@ func computeValidation(provider types.ProviderType) *cr.StructFieldValidation {
 						GreaterThanOrEqualTo: pointer.Int64(0),
 					},
 				},
-				{
-					StructField: "Inf",
-					Int64Validation: &cr.Int64Validation{
-						Default:              0,
-						GreaterThanOrEqualTo: pointer.Int64(0),
-					},
-				},
 			},
 		},
 	}
+
+	// TODO remove other inf check
+	if provider == types.AWSProviderType {
+		structFieldValidation.StructValidation.StructFieldValidations = append(structFieldValidation.StructValidation.StructFieldValidations,
+			&cr.StructFieldValidation{
+				StructField: "Inf",
+				Int64Validation: &cr.Int64Validation{
+					Default:              0,
+					GreaterThanOrEqualTo: pointer.Int64(0),
+				},
+			},
+		)
+	} else {
+		structFieldValidation.StructValidation.StructFieldValidations = append(structFieldValidation.StructValidation.StructFieldValidations,
+			&cr.StructFieldValidation{
+				StructField: "Inf",
+				Int64Validation: &cr.Int64Validation{
+					CantBeSpecified: "only supported on AWS clusters",
+				},
+			},
+		)
+	}
+
+	return structFieldValidation
 }
 
 func autoscalingValidation(provider types.ProviderType) *cr.StructFieldValidation {
 	defaultNil := provider == types.LocalProviderType
 	allowExplicitNull := provider == types.LocalProviderType
-	return &cr.StructFieldValidation{
+
+	structFieldValidation := &cr.StructFieldValidation{
 		StructField: "Autoscaling",
 		StructValidation: &cr.StructValidation{
 			DefaultNil:        defaultNil,
@@ -409,12 +437,6 @@ func autoscalingValidation(provider types.ProviderType) *cr.StructFieldValidatio
 					},
 				},
 				{
-					StructField: "TargetReplicaConcurrency",
-					Float64PtrValidation: &cr.Float64PtrValidation{
-						GreaterThan: pointer.Float64(0),
-					},
-				},
-				{
 					StructField: "MaxReplicaConcurrency",
 					Int64Validation: &cr.Int64Validation{
 						Default:     consts.DefaultMaxReplicaConcurrency,
@@ -424,67 +446,135 @@ func autoscalingValidation(provider types.ProviderType) *cr.StructFieldValidatio
 						LessThanOrEqualTo: pointer.Int64(30000),
 					},
 				},
-				{
-					StructField: "Window",
-					StringValidation: &cr.StringValidation{
-						Default: "60s",
-					},
-					Parser: cr.DurationParser(&cr.DurationValidation{
-						GreaterThanOrEqualTo: &AutoscalingTickInterval,
-						MultipleOf:           &AutoscalingTickInterval,
-					}),
-				},
-				{
-					StructField: "DownscaleStabilizationPeriod",
-					StringValidation: &cr.StringValidation{
-						Default: "5m",
-					},
-					Parser: cr.DurationParser(&cr.DurationValidation{
-						GreaterThanOrEqualTo: pointer.Duration(libtime.MustParseDuration("0s")),
-					}),
-				},
-				{
-					StructField: "UpscaleStabilizationPeriod",
-					StringValidation: &cr.StringValidation{
-						Default: "1m",
-					},
-					Parser: cr.DurationParser(&cr.DurationValidation{
-						GreaterThanOrEqualTo: pointer.Duration(libtime.MustParseDuration("0s")),
-					}),
-				},
-				{
-					StructField: "MaxDownscaleFactor",
-					Float64Validation: &cr.Float64Validation{
-						Default:              0.75,
-						GreaterThanOrEqualTo: pointer.Float64(0),
-						LessThan:             pointer.Float64(1),
-					},
-				},
-				{
-					StructField: "MaxUpscaleFactor",
-					Float64Validation: &cr.Float64Validation{
-						Default:     1.5,
-						GreaterThan: pointer.Float64(1),
-					},
-				},
-				{
-					StructField: "DownscaleTolerance",
-					Float64Validation: &cr.Float64Validation{
-						Default:              0.05,
-						GreaterThanOrEqualTo: pointer.Float64(0),
-						LessThan:             pointer.Float64(1),
-					},
-				},
-				{
-					StructField: "UpscaleTolerance",
-					Float64Validation: &cr.Float64Validation{
-						Default:              0.05,
-						GreaterThanOrEqualTo: pointer.Float64(0),
-					},
-				},
 			},
 		},
 	}
+
+	if provider == types.AWSProviderType {
+		structFieldValidation.StructValidation.StructFieldValidations = append(structFieldValidation.StructValidation.StructFieldValidations,
+			&cr.StructFieldValidation{
+				StructField: "TargetReplicaConcurrency",
+				Float64PtrValidation: &cr.Float64PtrValidation{
+					GreaterThan: pointer.Float64(0),
+				},
+			},
+			&cr.StructFieldValidation{
+				StructField: "Window",
+				StringValidation: &cr.StringValidation{
+					Default: "60s",
+				},
+				Parser: cr.DurationParser(&cr.DurationValidation{
+					GreaterThanOrEqualTo: &AutoscalingTickInterval,
+					MultipleOf:           &AutoscalingTickInterval,
+				}),
+			},
+			&cr.StructFieldValidation{
+				StructField: "DownscaleStabilizationPeriod",
+				StringValidation: &cr.StringValidation{
+					Default: "5m",
+				},
+				Parser: cr.DurationParser(&cr.DurationValidation{
+					GreaterThanOrEqualTo: pointer.Duration(libtime.MustParseDuration("0s")),
+				}),
+			},
+			&cr.StructFieldValidation{
+				StructField: "UpscaleStabilizationPeriod",
+				StringValidation: &cr.StringValidation{
+					Default: "1m",
+				},
+				Parser: cr.DurationParser(&cr.DurationValidation{
+					GreaterThanOrEqualTo: pointer.Duration(libtime.MustParseDuration("0s")),
+				}),
+			},
+			&cr.StructFieldValidation{
+				StructField: "MaxDownscaleFactor",
+				Float64Validation: &cr.Float64Validation{
+					Default:              0.75,
+					GreaterThanOrEqualTo: pointer.Float64(0),
+					LessThan:             pointer.Float64(1),
+				},
+			},
+			&cr.StructFieldValidation{
+				StructField: "MaxUpscaleFactor",
+				Float64Validation: &cr.Float64Validation{
+					Default:     1.5,
+					GreaterThan: pointer.Float64(1),
+				},
+			},
+			&cr.StructFieldValidation{
+				StructField: "DownscaleTolerance",
+				Float64Validation: &cr.Float64Validation{
+					Default:              0.05,
+					GreaterThanOrEqualTo: pointer.Float64(0),
+					LessThan:             pointer.Float64(1),
+				},
+			},
+			&cr.StructFieldValidation{
+				StructField: "UpscaleTolerance",
+				Float64Validation: &cr.Float64Validation{
+					Default:              0.05,
+					GreaterThanOrEqualTo: pointer.Float64(0),
+				},
+			},
+		)
+	} else {
+		structFieldValidation.StructValidation.StructFieldValidations = append(structFieldValidation.StructValidation.StructFieldValidations,
+			&cr.StructFieldValidation{
+				StructField: "TargetReplicaConcurrency",
+				Float64PtrValidation: &cr.Float64PtrValidation{
+					CantBeSpecified: "only supported on AWS clusters",
+				},
+			},
+			&cr.StructFieldValidation{
+				StructField: "Window",
+				StringValidation: &cr.StringValidation{
+					CantBeSpecified: "only supported on AWS clusters",
+				},
+				// TODO check these parsers
+				Parser: cr.DurationParser(nil),
+			},
+			&cr.StructFieldValidation{
+				StructField: "DownscaleStabilizationPeriod",
+				StringValidation: &cr.StringValidation{
+					CantBeSpecified: "only supported on AWS clusters",
+				},
+				Parser: cr.DurationParser(nil),
+			},
+			&cr.StructFieldValidation{
+				StructField: "UpscaleStabilizationPeriod",
+				StringValidation: &cr.StringValidation{
+					CantBeSpecified: "only supported on AWS clusters",
+				},
+				Parser: cr.DurationParser(nil),
+			},
+			&cr.StructFieldValidation{
+				StructField: "MaxDownscaleFactor",
+				Float64Validation: &cr.Float64Validation{
+					CantBeSpecified: "only supported on AWS clusters",
+				},
+			},
+			&cr.StructFieldValidation{
+				StructField: "MaxUpscaleFactor",
+				Float64Validation: &cr.Float64Validation{
+					CantBeSpecified: "only supported on AWS clusters",
+				},
+			},
+			&cr.StructFieldValidation{
+				StructField: "DownscaleTolerance",
+				Float64Validation: &cr.Float64Validation{
+					CantBeSpecified: "only supported on AWS clusters",
+				},
+			},
+			&cr.StructFieldValidation{
+				StructField: "UpscaleTolerance",
+				Float64Validation: &cr.Float64Validation{
+					CantBeSpecified: "only supported on AWS clusters",
+				},
+			},
+		)
+	}
+
+	return structFieldValidation
 }
 
 func updateStrategyValidation(provider types.ProviderType) *cr.StructFieldValidation {

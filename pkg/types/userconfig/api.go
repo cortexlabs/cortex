@@ -457,7 +457,7 @@ func (networking *Networking) UserStr(provider types.ProviderType) string {
 	if provider == types.LocalProviderType && networking.LocalPort != nil {
 		sb.WriteString(fmt.Sprintf("%s: %d\n", LocalPortKey, *networking.LocalPort))
 	}
-	if provider == types.AWSProviderType && networking.Endpoint != nil {
+	if provider != types.LocalProviderType && networking.Endpoint != nil {
 		sb.WriteString(fmt.Sprintf("%s: %s\n", EndpointKey, *networking.Endpoint))
 	}
 	if provider == types.AWSProviderType {
