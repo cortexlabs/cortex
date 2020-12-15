@@ -99,7 +99,7 @@ $ sudo groupadd docker; sudo gpasswd -a $USER docker
 $ logout
 ```
 
-If you have installed Docker correctly, you should be able to run docker commands such as `docker run hello-world/python` without running into permission issues or needing `sudo`.
+If you have installed Docker correctly, you should be able to run docker commands such as `docker run hello-world` without running into permission issues or needing `sudo`.
 
 ### Step 12
 
