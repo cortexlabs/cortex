@@ -219,13 +219,13 @@ func predictorValidation() *cr.StructFieldValidation {
 		},
 		serverSideBatchingValidation(),
 	}
-	structFieldValidations = append(structFieldValidations, dynamicModelLoading()...)
+	structFieldValidations = append(structFieldValidations, dynamicModelLoadingValidation()...)
 	structFieldValidations = append(structFieldValidations, &cr.StructFieldValidation{
 		StructField: "DynamicModelLoading",
 		StructValidation: &cr.StructValidation{
 			Required:               false,
 			DefaultNil:             true,
-			StructFieldValidations: dynamicModelLoading(),
+			StructFieldValidations: dynamicModelLoadingValidation(),
 		},
 	})
 
@@ -500,7 +500,7 @@ func updateStrategyValidation(provider types.ProviderType) *cr.StructFieldValida
 	}
 }
 
-func dynamicModelLoading() []*cr.StructFieldValidation {
+func dynamicModelLoadingValidation() []*cr.StructFieldValidation {
 	return []*cr.StructFieldValidation{
 		{
 			StructField: "ModelPath",
@@ -945,9 +945,9 @@ func validatePythonPredictor(api *userconfig.API, models *[]CuratedModelResource
 
 	var err error
 	if hasMultiModels && dml.Models.Dir != nil {
-		*models, err = validateDirModels(*dml.Models.Dir, dml.SignatureKey, projectFiles.ProjectDir(), awsClient, gcpClient, defaultErrorForPredictorTypeFn(api), nil)
+		*models, err = validateDirModels(*dml.Models.Dir, dml.SignatureKey, projectFiles.ProjectDir(), awsClient, gcpClient, generateErrorForPredictorTypeFn(api), nil)
 	} else {
-		*models, err = validateModels(modelResources, dml.SignatureKey, projectFiles.ProjectDir(), awsClient, gcpClient, defaultErrorForPredictorTypeFn(api), nil)
+		*models, err = validateModels(modelResources, dml.SignatureKey, projectFiles.ProjectDir(), awsClient, gcpClient, generateErrorForPredictorTypeFn(api), nil)
 	}
 	if err != nil {
 		return modelWrapError(err)
@@ -1042,9 +1042,9 @@ func validateTensorFlowPredictor(api *userconfig.API, models *[]CuratedModelReso
 
 	var err error
 	if hasMultiModels && predictor.Models.Dir != nil {
-		*models, err = validateDirModels(*predictor.Models.Dir, predictor.SignatureKey, projectFiles.ProjectDir(), awsClient, gcpClient, defaultErrorForPredictorTypeFn(api), validators)
+		*models, err = validateDirModels(*predictor.Models.Dir, predictor.SignatureKey, projectFiles.ProjectDir(), awsClient, gcpClient, generateErrorForPredictorTypeFn(api), validators)
 	} else {
-		*models, err = validateModels(modelResources, predictor.SignatureKey, projectFiles.ProjectDir(), awsClient, gcpClient, defaultErrorForPredictorTypeFn(api), validators)
+		*models, err = validateModels(modelResources, predictor.SignatureKey, projectFiles.ProjectDir(), awsClient, gcpClient, generateErrorForPredictorTypeFn(api), validators)
 	}
 	if err != nil {
 		return modelWrapError(err)
@@ -1139,9 +1139,9 @@ func validateONNXPredictor(api *userconfig.API, models *[]CuratedModelResource, 
 
 	var err error
 	if hasMultiModels && predictor.Models.Dir != nil {
-		*models, err = validateDirModels(*predictor.Models.Dir, predictor.SignatureKey, projectFiles.ProjectDir(), awsClient, gcpClient, defaultErrorForPredictorTypeFn(api), validators)
+		*models, err = validateDirModels(*predictor.Models.Dir, predictor.SignatureKey, projectFiles.ProjectDir(), awsClient, gcpClient, generateErrorForPredictorTypeFn(api), validators)
 	} else {
-		*models, err = validateModels(modelResources, predictor.SignatureKey, projectFiles.ProjectDir(), awsClient, gcpClient, defaultErrorForPredictorTypeFn(api), validators)
+		*models, err = validateModels(modelResources, predictor.SignatureKey, projectFiles.ProjectDir(), awsClient, gcpClient, generateErrorForPredictorTypeFn(api), validators)
 	}
 	if err != nil {
 		return modelWrapError(err)

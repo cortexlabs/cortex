@@ -87,7 +87,7 @@ func surgeOrUnavailableValidator(str string) (string, error) {
 
 type errorForPredictorTypeFn func(string, []string) error
 
-func defaultErrorForPredictorTypeFn(api *userconfig.API) errorForPredictorTypeFn {
+func generateErrorForPredictorTypeFn(api *userconfig.API) errorForPredictorTypeFn {
 	return func(modelPrefix string, modelPaths []string) error {
 		switch api.Predictor.Type {
 		case userconfig.PythonPredictorType:
