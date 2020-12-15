@@ -78,7 +78,6 @@ type StructFieldValidation struct {
 	Parser func(string) (interface{}, error)
 }
 
-// TODO
 type StructValidation struct {
 	StructFieldValidations []*StructFieldValidation
 	Required               bool
@@ -90,7 +89,6 @@ type StructValidation struct {
 	AllowExtraFields       bool
 }
 
-// TODO
 type StructListValidation struct {
 	StructValidation  *StructValidation
 	Required          bool
@@ -100,7 +98,6 @@ type StructListValidation struct {
 	ShortCircuit      bool
 }
 
-// TODO
 type InterfaceStructValidation struct {
 	TypeKey                    string                               // required
 	TypeStructField            string                               // optional (will set this field if present)
@@ -120,7 +117,6 @@ type InterfaceStructType struct {
 	StructFieldValidations []*StructFieldValidation
 }
 
-// TODO
 type InterfaceStructListValidation struct {
 	InterfaceStructValidation *InterfaceStructValidation
 	Required                  bool
@@ -288,7 +284,9 @@ func Struct(dest interface{}, inter interface{}, v *StructValidation) []error {
 			updateValidation(&validation, dest, structFieldValidation)
 			nestedType := reflect.ValueOf(dest).Elem().FieldByName(structFieldValidation.StructField).Type()
 			interMapVal, ok := ReadInterfaceMapValue(key, interMap)
-			if !ok && validation.Required {
+			if ok && validation.CantBeSpecified != "" {
+				err = errors.Wrap(ErrorFieldCantBeSpecified(validation.CantBeSpecified), key)
+			} else if !ok && validation.Required {
 				err = errors.Wrap(ErrorMustBeDefined(), key)
 			} else if !ok && validation.DefaultNil {
 				val = nil
@@ -309,7 +307,9 @@ func Struct(dest interface{}, inter interface{}, v *StructValidation) []error {
 			updateValidation(&validation, dest, structFieldValidation)
 			nestedType := reflect.ValueOf(dest).Elem().FieldByName(structFieldValidation.StructField).Type()
 			interMapVal, ok := ReadInterfaceMapValue(key, interMap)
-			if !ok && validation.Required {
+			if ok && validation.CantBeSpecified != "" {
+				err = errors.Wrap(ErrorFieldCantBeSpecified(validation.CantBeSpecified), key)
+			} else if !ok && validation.Required {
 				err = errors.Wrap(ErrorMustBeDefined(), key)
 			} else {
 				val = reflect.Indirect(reflect.New(nestedType)).Interface()
@@ -321,7 +321,9 @@ func Struct(dest interface{}, inter interface{}, v *StructValidation) []error {
 			validation := *structFieldValidation.InterfaceStructValidation
 			updateValidation(&validation, dest, structFieldValidation)
 			interMapVal, ok := ReadInterfaceMapValue(key, interMap)
-			if !ok && validation.Required {
+			if ok && validation.CantBeSpecified != "" {
+				err = errors.Wrap(ErrorFieldCantBeSpecified(validation.CantBeSpecified), key)
+			} else if !ok && validation.Required {
 				err = errors.Wrap(ErrorMustBeDefined(), key)
 			} else {
 				val, errs = InterfaceStruct(interMapVal, &validation)
@@ -333,7 +335,9 @@ func Struct(dest interface{}, inter interface{}, v *StructValidation) []error {
 			updateValidation(&validation, dest, structFieldValidation)
 			nestedType := reflect.ValueOf(dest).Elem().FieldByName(structFieldValidation.StructField).Type()
 			interMapVal, ok := ReadInterfaceMapValue(key, interMap)
-			if !ok && validation.Required {
+			if ok && validation.CantBeSpecified != "" {
+				err = errors.Wrap(ErrorFieldCantBeSpecified(validation.CantBeSpecified), key)
+			} else if !ok && validation.Required {
 				err = errors.Wrap(ErrorMustBeDefined(), key)
 			} else {
 				val = reflect.Indirect(reflect.New(nestedType)).Interface()
