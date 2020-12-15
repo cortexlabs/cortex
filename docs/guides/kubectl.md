@@ -1,4 +1,4 @@
-# Set up kubectl
+# Setting up kubectl
 
 Although it is not necessary to use `kubectl` to interact with Cortex clusters, advanced users can use `kubectl` to get more granular visibility into the cluster (since Cortex is built on top of Kubernetes).
 
