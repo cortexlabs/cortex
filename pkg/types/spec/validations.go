@@ -892,6 +892,9 @@ func validatePythonPredictor(api *userconfig.API, models *[]CuratedModelResource
 	if dml.SignatureKey != nil {
 		return errors.Wrap(ErrorFieldNotSupportedByPredictorType(userconfig.SignatureKeyKey, predictor.Type), userconfig.DynamicModelLoadingKey)
 	}
+	if dml.ModelPath == nil && dml.Models == nil {
+		return errors.Wrap(ErrorSpecifyOneOrTheOther(userconfig.ModelPathKey, userconfig.ModelsPathsKey), userconfig.DynamicModelLoadingKey)
+	}
 
 	hasSingleModel := dml.ModelPath != nil
 	hasMultiModels := dml.Models != nil
@@ -982,10 +985,6 @@ func validateTensorFlowPredictor(api *userconfig.API, models *[]CuratedModelReso
 
 	if predictor.DynamicModelLoading != nil {
 		return ErrorFieldNotSupportedByPredictorType(userconfig.DynamicModelLoadingKey, userconfig.PythonPredictorType)
-	}
-
-	if predictor.DynamicModelLoading.ModelPath == nil && predictor.DynamicModelLoading.Models == nil {
-		return errors.Wrap(ErrorSpecifyOneOrTheOther(userconfig.ModelPathKey, userconfig.ModelsPathsKey), userconfig.DynamicModelLoadingKey)
 	}
 
 	hasSingleModel := predictor.ModelPath != nil

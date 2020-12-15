@@ -719,14 +719,14 @@ func (api *API) TelemetryEvent(provider types.ProviderType) map[string]interface
 					event["predictor.dynamic_model_loading.models.paths._is_defined"] = true
 					event["predictor.dynamic_model_loading.models.paths._len"] = len(api.Predictor.DynamicModelLoading.Models.Paths)
 				}
-				if api.Predictor.Models.Dir != nil {
+				if api.Predictor.DynamicModelLoading.Models.Dir != nil {
 					event["predictor.models.dir._is_defined"] = true
 				}
-				if api.Predictor.Models.CacheSize != nil {
+				if api.Predictor.DynamicModelLoading.Models.CacheSize != nil {
 					event["predictor.models.cache_size._is_defined"] = true
 					event["predictor.models.cache_size"] = *api.Predictor.DynamicModelLoading.Models.CacheSize
 				}
-				if api.Predictor.Models.DiskCacheSize != nil {
+				if api.Predictor.DynamicModelLoading.Models.DiskCacheSize != nil {
 					event["predictor.models.disk_cache_size._is_defined"] = true
 					event["predictor.models.disk_cache_size"] = *api.Predictor.DynamicModelLoading.Models.DiskCacheSize
 				}

@@ -256,7 +256,7 @@ class FileBasedModelsTreeUpdater(mp.Process):
             if idx + 1 < len(self._local_model_names):
                 message += ", "
             else:
-                message += "now available on disk"
+                message += " now available on disk"
 
         logger().info(message)
 

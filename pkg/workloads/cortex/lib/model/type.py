@@ -174,7 +174,7 @@ def get_models_from_api_spec(
 
     # for models.paths
     if models_spec["models"] and models_spec["models"]["paths"]:
-        for model in predictor["models"]["paths"]:
+        for model in models_spec["models"]["paths"]:
             models.append(
                 {
                     "name": model["name"],
