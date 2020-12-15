@@ -759,11 +759,6 @@ func validatePredictor(
 		}
 	}
 
-	err := validateBucketProviders(api.Predictor, provider)
-	if err != nil {
-		return err
-	}
-
 	switch predictor.Type {
 	case userconfig.PythonPredictorType:
 		if err := validatePythonPredictor(api, models, provider, projectFiles, awsClient, gcpClient); err != nil {
@@ -1118,51 +1113,6 @@ func validateONNXPredictor(api *userconfig.API, models *[]CuratedModelResource, 
 
 	if err := checkDuplicateModelNames(*models); err != nil {
 		return modelWrapError(err)
-	}
-
-	return nil
-}
-
-func validateBucketProviders(predictor *userconfig.Predictor, provider types.ProviderType) error {
-	checkForIncorrectBucketProvider := func(modelPath string) error {
-		isS3Path := strings.HasPrefix(modelPath, "s3://")
-		isGCSPath := strings.HasPrefix(modelPath, "gs://")
-		if (provider == types.AWSProviderType && !isS3Path) || (provider == types.GCPProviderType && !isGCSPath) {
-			return ErrorIncorrectBucketProvider(provider)
-		}
-		return nil
-	}
-
-	if predictor.ModelPath != nil {
-		return errors.Wrap(checkForIncorrectBucketProvider(*predictor.ModelPath), userconfig.ModelPathKey)
-	}
-
-	numS3Models := 0
-	numGSModels := 0
-
-	if predictor.Models != nil {
-		if predictor.Models.Dir != nil {
-			return errors.Wrap(checkForIncorrectBucketProvider(*predictor.Models.Dir), userconfig.ModelsKey, userconfig.ModelsDirKey)
-		}
-		for _, model := range predictor.Models.Paths {
-			if model == nil {
-				continue
-			}
-			err := checkForIncorrectBucketProvider(model.ModelPath)
-			if err != nil {
-				return errors.Wrap(err, userconfig.ModelsKey, userconfig.ModelsPathsKey, model.Name)
-			}
-			if strings.HasPrefix(model.ModelPath, "s3://") {
-				numS3Models++
-			}
-			if strings.HasPrefix(model.ModelPath, "gs://") {
-				numGSModels++
-			}
-		}
-	}
-
-	if numS3Models > 0 && numGSModels > 0 {
-		return ErrorMixedBucketProviders()
 	}
 
 	return nil
