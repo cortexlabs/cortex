@@ -34,6 +34,8 @@ type API struct {
 	Resource
 	APIs             []*TrafficSplit `json:"apis" yaml:"apis"`
 	Predictor        *Predictor      `json:"predictor" yaml:"predictor"`
+	TaskDefinition   *TaskDefinition `json:"task_definition" yaml:"task_definition"`
+	Monitoring       *Monitoring     `json:"monitoring" yaml:"monitoring"`
 	Networking       *Networking     `json:"networking" yaml:"networking"`
 	Compute          *Compute        `json:"compute" yaml:"compute"`
 	Autoscaling      *Autoscaling    `json:"autoscaling" yaml:"autoscaling"`
@@ -60,6 +62,14 @@ type Predictor struct {
 	TensorFlowServingImage string                 `json:"tensorflow_serving_image" yaml:"tensorflow_serving_image"`
 	Config                 map[string]interface{} `json:"config" yaml:"config"`
 	Env                    map[string]string      `json:"env" yaml:"env"`
+}
+
+type TaskDefinition struct {
+	Path       string                 `json:"path" yaml:"path"`
+	PythonPath *string                `json:"python_path" yaml:"python_path"`
+	Image      string                 `json:"image" yaml:"image"`
+	Config     map[string]interface{} `json:"config" yaml:"config"`
+	Env        map[string]string      `json:"env" yaml:"env"`
 }
 
 type MultiModels struct {
