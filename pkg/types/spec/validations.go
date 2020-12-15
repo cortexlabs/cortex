@@ -137,103 +137,103 @@ func multiAPIsValidation() *cr.StructFieldValidation {
 }
 
 func predictorValidation() *cr.StructFieldValidation {
+	structFieldValidations := []*cr.StructFieldValidation{
+		{
+			StructField: "Type",
+			StringValidation: &cr.StringValidation{
+				Required:      true,
+				AllowedValues: userconfig.PredictorTypeStrings(),
+			},
+			Parser: func(str string) (interface{}, error) {
+				return userconfig.PredictorTypeFromString(str), nil
+			},
+		},
+		{
+			StructField: "Path",
+			StringValidation: &cr.StringValidation{
+				Required: true,
+			},
+		},
+		{
+			StructField: "PythonPath",
+			StringPtrValidation: &cr.StringPtrValidation{
+				AllowEmpty:       false,
+				DisallowedValues: []string{".", "./", "./."},
+				Validator: func(path string) (string, error) {
+					if files.IsAbsOrTildePrefixed(path) {
+						return "", ErrorMustBeRelativeProjectPath(path)
+					}
+					path = strings.TrimPrefix(path, "./")
+					path = s.EnsureSuffix(path, "/")
+					return path, nil
+				},
+			},
+		},
+		{
+			StructField: "Image",
+			StringValidation: &cr.StringValidation{
+				Required:           false,
+				AllowEmpty:         true,
+				DockerImageOrEmpty: true,
+			},
+		},
+		{
+			StructField: "TensorFlowServingImage",
+			StringValidation: &cr.StringValidation{
+				Required:           false,
+				AllowEmpty:         true,
+				DockerImageOrEmpty: true,
+			},
+		},
+		{
+			StructField: "ProcessesPerReplica",
+			Int32Validation: &cr.Int32Validation{
+				Default:              1,
+				GreaterThanOrEqualTo: pointer.Int32(1),
+				LessThanOrEqualTo:    pointer.Int32(100),
+			},
+		},
+		{
+			StructField: "ThreadsPerProcess",
+			Int32Validation: &cr.Int32Validation{
+				Default:              1,
+				GreaterThanOrEqualTo: pointer.Int32(1),
+			},
+		},
+		{
+			StructField: "Config",
+			InterfaceMapValidation: &cr.InterfaceMapValidation{
+				StringKeysOnly:     true,
+				AllowEmpty:         true,
+				AllowExplicitNull:  true,
+				ConvertNullToEmpty: true,
+				Default:            map[string]interface{}{},
+			},
+		},
+		{
+			StructField: "Env",
+			StringMapValidation: &cr.StringMapValidation{
+				Default:    map[string]string{},
+				AllowEmpty: true,
+			},
+		},
+		serverSideBatchingValidation(),
+	}
+	structFieldValidations = append(structFieldValidations, dynamicModelLoading()...)
+	structFieldValidations = append(structFieldValidations, &cr.StructFieldValidation{
+		StructField: "DynamicModelLoading",
+		StructValidation: &cr.StructValidation{
+			Required:               false,
+			DefaultNil:             true,
+			StructFieldValidations: dynamicModelLoading(),
+		},
+	})
+
 	return &cr.StructFieldValidation{
 		StructField: "Predictor",
 		StructValidation: &cr.StructValidation{
-			Required: true,
-			StructFieldValidations: []*cr.StructFieldValidation{
-				{
-					StructField: "Type",
-					StringValidation: &cr.StringValidation{
-						Required:      true,
-						AllowedValues: userconfig.PredictorTypeStrings(),
-					},
-					Parser: func(str string) (interface{}, error) {
-						return userconfig.PredictorTypeFromString(str), nil
-					},
-				},
-				{
-					StructField: "Path",
-					StringValidation: &cr.StringValidation{
-						Required: true,
-					},
-				},
-				{
-					StructField: "ModelPath",
-					StringPtrValidation: &cr.StringPtrValidation{
-						Required: false,
-					},
-				},
-				{
-					StructField: "PythonPath",
-					StringPtrValidation: &cr.StringPtrValidation{
-						AllowEmpty:       false,
-						DisallowedValues: []string{".", "./", "./."},
-						Validator: func(path string) (string, error) {
-							if files.IsAbsOrTildePrefixed(path) {
-								return "", ErrorMustBeRelativeProjectPath(path)
-							}
-							path = strings.TrimPrefix(path, "./")
-							path = s.EnsureSuffix(path, "/")
-							return path, nil
-						},
-					},
-				},
-				{
-					StructField: "Image",
-					StringValidation: &cr.StringValidation{
-						Required:           false,
-						AllowEmpty:         true,
-						DockerImageOrEmpty: true,
-					},
-				},
-				{
-					StructField: "TensorFlowServingImage",
-					StringValidation: &cr.StringValidation{
-						Required:           false,
-						AllowEmpty:         true,
-						DockerImageOrEmpty: true,
-					},
-				},
-				{
-					StructField: "ProcessesPerReplica",
-					Int32Validation: &cr.Int32Validation{
-						Default:              1,
-						GreaterThanOrEqualTo: pointer.Int32(1),
-						LessThanOrEqualTo:    pointer.Int32(100),
-					},
-				},
-				{
-					StructField: "ThreadsPerProcess",
-					Int32Validation: &cr.Int32Validation{
-						Default:              1,
-						GreaterThanOrEqualTo: pointer.Int32(1),
-					},
-				},
-				{
-					StructField: "Config",
-					InterfaceMapValidation: &cr.InterfaceMapValidation{
-						StringKeysOnly:     true,
-						AllowEmpty:         true,
-						AllowExplicitNull:  true,
-						ConvertNullToEmpty: true,
-						Default:            map[string]interface{}{},
-					},
-				},
-				{
-					StructField: "Env",
-					StringMapValidation: &cr.StringMapValidation{
-						Default:    map[string]string{},
-						AllowEmpty: true,
-					},
-				},
-				{
-					StructField:         "SignatureKey",
-					StringPtrValidation: &cr.StringPtrValidation{},
-				},
-				multiModelValidation(),
-				serverSideBatchingValidation(),
-			},
+			Required:               true,
+			StructFieldValidations: structFieldValidations,
 		},
 	}
 }
@@ -497,6 +497,22 @@ func updateStrategyValidation(provider types.ProviderType) *cr.StructFieldValida
 				},
 			},
 		},
+	}
+}
+
+func dynamicModelLoading() []*cr.StructFieldValidation {
+	return []*cr.StructFieldValidation{
+		{
+			StructField: "ModelPath",
+			StringPtrValidation: &cr.StringPtrValidation{
+				Required: false,
+			},
+		},
+		{
+			StructField:         "SignatureKey",
+			StringPtrValidation: &cr.StringPtrValidation{},
+		},
+		multiModelValidation(),
 	}
 }
 
