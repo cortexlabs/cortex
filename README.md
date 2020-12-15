@@ -1,11 +1,10 @@
-<!-- Delete on release branches -->
 <img src='https://s3-us-west-2.amazonaws.com/cortex-public/logo.png' height='42'>
 
 <br>
 
-# Deploy machine learning models to production
+# Run inference at scale
 
-Cortex is an open source platform for deploying, managing, and scaling machine learning in production.
+Cortex is an open source platform for large-scale inference workloads.
 
 <br>
 
@@ -13,10 +12,10 @@ Cortex is an open source platform for deploying, managing, and scaling machine l
 
 * Supports deploying TensorFlow, PyTorch, sklearn and other models as realtime or batch APIs.
 * Ensures high availability with availability zones and automated instance restarts.
-* Runs inference on spot instances with on-demand backups.
-* Autoscales to handle production workloads.
+* Runs inference on on-demand instances or spot instances with on-demand backups.
+* Autoscales to handle production workloads with support for overprovisioning.
 
-#### Configure Cortex
+#### Configure a cluster
 
 ```yaml
 # cluster.yaml
@@ -28,7 +27,7 @@ max_instances: 100
 spot: true
 ```
 
-#### Spin up Cortex on your AWS account
+#### Spin up on your AWS or GCP account
 
 ```text
 $ cortex cluster up --config cluster.yaml
@@ -47,19 +46,22 @@ cortex is ready!
 * Package dependencies, code, and configuration for reproducible deployments.
 * Configure compute, autoscaling, and networking for each API.
 * Integrate with your data science platform or CI/CD system.
-* Test locally before deploying to your cluster.
+* Deploy custom Docker images or use the pre-built defaults.
+* Test locally before deploying to a cluster.
 
-#### Implement a predictor
+#### Define an API
 
 ```python
-from transformers import pipeline
-
 class PythonPredictor:
   def __init__(self, config):
+    from transformers import pipeline
+
     self.model = pipeline(task="text-generation")
 
   def predict(self, payload):
     return self.model(payload["text"])[0]
+
+requirements = ["tensorflow", "transformers"]
 ```
 
 #### Configure an API
@@ -85,9 +87,9 @@ api_spec = {
 
 * Scale to handle production workloads with request-based autoscaling.
 * Stream performance metrics and logs to any monitoring tool.
-* Serve many models efficiently with multi model caching.
+* Serve many models efficiently with multi-model caching.
+* Use rolling updates to update APIs without downtime.
 * Configure traffic splitting for A/B testing.
-* Update APIs without downtime.
 
 #### Deploy to your cluster
 
@@ -95,7 +97,7 @@ api_spec = {
 import cortex
 
 cx = cortex.client("aws")
-cx.create_api(api_spec, predictor=PythonPredictor)
+cx.create_api(api_spec, predictor=PythonPredictor, requirements=requirements)
 
 # creating https://example.com/text-generator
 ```
@@ -110,8 +112,6 @@ $ curl https://example.com/text-generator -X POST -H "Content-Type: application/
 
 ## Get started
 
-```bash
-pip install cortex
-```
-
-[Deploy models](https://docs.cortex.dev) and [join our community](https://gitter.im/cortexlabs/cortex).
+* [Read the docs](https://docs.cortex.dev)
+* [Report an issue](https://github.com/cortexlabs/cortex/issues)
+* [Join our community](https://gitter.im/cortexlabs/cortex)
