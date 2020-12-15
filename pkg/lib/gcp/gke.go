@@ -19,11 +19,15 @@ package gcp
 import (
 	"context"
 	"encoding/base64"
+	"fmt"
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	containerpb "google.golang.org/genproto/googleapis/container/v1"
 	"k8s.io/client-go/rest"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
+
+	grpcCodes "google.golang.org/grpc/codes"
+	grpcStatus "google.golang.org/grpc/status"
 )
 
 func (c *Client) GetCluster(clusterName string) (*containerpb.Cluster, error) {
@@ -38,6 +42,23 @@ func (c *Client) GetCluster(clusterName string) (*containerpb.Cluster, error) {
 		return nil, errors.WithStack(err)
 	}
 	return cluster, nil
+}
+
+func (c *Client) ClusterExists(clusterName string) (bool, error) {
+	if cluster, err := c.GetCluster(clusterName); err != nil {
+		if errors.Cause(err) == nil {
+			return false, err
+		}
+		if grpcError, ok := grpcStatus.FromError(errors.Cause(err)); ok {
+			if grpcError.Code() == grpcCodes.NotFound {
+				return false, nil
+			}
+		}
+		return false, err
+	} else if cluster != nil {
+		return true, nil
+	}
+	return false, nil
 }
 
 func (c *Client) DeleteCluster(clusterName string) (*containerpb.Operation, error) {
@@ -58,6 +79,11 @@ func (c *Client) CreateCluster(req *containerpb.CreateClusterRequest) (*containe
 	gke, err := c.GKE()
 	if err != nil {
 		return nil, err
+	}
+	if exists, err := c.ClusterExists(fmt.Sprintf("%s/clusters/%s", req.Parent, req.Cluster.Name)); err != nil {
+		return nil, err
+	} else if exists {
+		return nil, ErrorClusterAlreadyExists(req.Cluster.Name)
 	}
 	resp, err := gke.CreateCluster(context.Background(), req)
 	if err != nil {

@@ -158,7 +158,9 @@ var _clusterGCPUpCmd = &cobra.Command{
 
 		err = createGKECluster(clusterConfig, gcpClient)
 		if err != nil {
-			gcpClient.DeleteBucket(bucketName)
+			if errors.GetKind(err) != gcp.ErrClusterAlreadyExists {
+				gcpClient.DeleteBucket(bucketName)
+			}
 			exit.Error(err)
 		}
 
