@@ -246,7 +246,7 @@ def handle_on_job_complete(message):
             sqs_client.send_message(
                 QueueUrl=queue_url,
                 MessageBody='"job_complete"',
-                MessageAttributes={"job_complete": {"StringValue": "true", "DataType": "string"}},
+                MessageAttributes={"job_complete": {"StringValue": "true", "DataType": "String"}},
                 MessageDeduplicationId=str(new_message_id),
                 MessageGroupId=str(new_message_id),
             )
