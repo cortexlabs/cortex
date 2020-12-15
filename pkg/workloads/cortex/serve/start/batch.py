@@ -107,7 +107,7 @@ def renew_message_visibility(receipt_handle: str):
             break
 
         try:
-            local_cache["sqs"].change_message_visibility(
+            local_cache["sqs_client"].change_message_visibility(
                 QueueUrl=queue_url, ReceiptHandle=receipt_handle, VisibilityTimeout=new_timeout
             )
         except botocore.exceptions.ClientError as e:
