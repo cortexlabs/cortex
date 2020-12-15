@@ -89,18 +89,18 @@ if [ -f "/mnt/project/requirements.txt" ]; then
     pip --no-cache-dir install -r /mnt/project/requirements.txt
 fi
 
+# good pages to read about s6-overlay used in create_s6_service and create_s6_task
+# https://wiki.gentoo.org/wiki/S6#Process_supervision
+# https://skarnet.org/software/s6/s6-svscanctl.html
+# http://skarnet.org/software/s6/s6-svc.html
+# http://skarnet.org/software/s6/servicedir.html
+
+# good pages to read about execline
+# http://www.troubleshooters.com/linux/execline.htm
+# https://danyspin97.org/blog/getting-started-with-execline-scripting/
+
 # only terminate pod if this process exits with non-zero exit code
 create_s6_service() {
-    # good pages to read about s6-overlay
-    # https://wiki.gentoo.org/wiki/S6#Process_supervision
-    # https://skarnet.org/software/s6/s6-svscanctl.html
-    # http://skarnet.org/software/s6/s6-svc.html
-    # http://skarnet.org/software/s6/servicedir.html
-
-    # good pages to read about execline
-    # http://www.troubleshooters.com/linux/execline.htm
-    # https://danyspin97.org/blog/getting-started-with-execline-scripting/
-
     service_name=$1
     cmd=$2
 
@@ -121,20 +121,10 @@ create_s6_service() {
 
 # terminate pod if this process exits (zero or non-zero exit code)
 create_s6_task() {
-    # good pages to read about s6-overlay
-    # https://wiki.gentoo.org/wiki/S6#Process_supervision
-    # https://skarnet.org/software/s6/s6-svscanctl.html
-    # http://skarnet.org/software/s6/s6-svc.html
-    # http://skarnet.org/software/s6/servicedir.html
-
-    # good pages to read about execline
-    # http://www.troubleshooters.com/linux/execline.htm
-    # https://danyspin97.org/blog/getting-started-with-execline-scripting/
-
-    service_name=$1
+    task_name=$1
     cmd=$2
 
-    dest_dir="/etc/services.d/$service_name"
+    dest_dir="/etc/services.d/$task_name"
     mkdir $dest_dir
 
     dest_script="$dest_dir/run"
