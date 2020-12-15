@@ -10,4 +10,4 @@ If telemetry is enabled, events and errors are collected. Each time you run a co
 
 ## How do I opt out?
 
-If you'd like to disable telemetry, modify your `~/.cortex/cli.yaml` file (or create it if it doesn't exist) and add `telemetry: false`.
+If you'd like to disable telemetry, modify your `~/.cortex/cli.yaml` file (or create it if it doesn't exist) and add `telemetry: false` before spinning up your cluster.
