@@ -30,7 +30,7 @@ RUN apt-get update -qq && apt-get install -y -q \
     && apt-get clean -qq && rm -rf /var/lib/apt/lists/*
 
 RUN locale-gen en_US.UTF-8
-ENV LANG=en_US.UTF-8 LANGUAGE=en_US.en LC_ALL=en_US.UTF-8
+ENV LANG=en_US.UTF-8 LANGUAGE=en_US.UTF-8 LC_ALL=en_US.UTF-8 LC_MESSAGES=en_US.UTF-8
 
 ENV PYTHONPATH="${PYTHONPATH}:/src"
 ENV PATH=/opt/conda/bin:$PATH
