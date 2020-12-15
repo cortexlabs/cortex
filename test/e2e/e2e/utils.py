@@ -36,6 +36,21 @@ def apis_ready(client: cx.Client, api_names: List[str], timeout: Optional[int] =
         count += 1
 
 
+def job_done(client: cx.Client, api_name: str, job_id: str, timeout: int = None):
+    count = 0
+    while True:
+        if timeout is not None and count > timeout:
+            return False
+
+        # FIXME
+        client.get_job(api_name, job_id)
+        if ready:
+            return True
+
+        time.sleep(1)
+        count += 1
+
+
 def request_prediction(
     client: cx.Client, api_name: str, payload: Union[List, Dict]
 ) -> requests.Response:
