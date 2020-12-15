@@ -17,7 +17,7 @@ from typing import List, Optional
 
 import cortex.consts
 from cortex.lib.model import find_all_cloud_models
-from cortex.lib.type import predictor_type_from_api_spec
+from cortex.lib.type import predictor_type_from_api_spec, PythonPredictorType
 
 
 class CuratedModelResources:
@@ -147,29 +147,33 @@ def get_models_from_api_spec(
     api_spec: dict, model_dir: str = "/mnt/model"
 ) -> CuratedModelResources:
     """
-    Only effective for predictor:model_path, predictor:models:paths or for predictor:models:dir when the dir is a local path.
-    It does not apply for when predictor:models:dir is set to an S3 model path.
+    Only effective for model_path, models:paths or for models:dir fields when the dir is a local path.
+    It does not apply for when models:dir field is set to an S3 model path.
     """
-
-    predictor = api_spec["predictor"]
-
-    if not predictor["model_path"] and not predictor["models"]:
-        return CuratedModelResources([])
-
     predictor_type = predictor_type_from_api_spec(api_spec)
 
-    # for predictor.model_path
+    if predictor_type == PythonPredictorType and api_spec["predictor"]["dynamic_model_loading"]:
+        models_spec = api_spec["predictor"]["dynamic_model_loading"]
+    elif predictor_type != PythonPredictorType:
+        models_spec = api_spec["predictor"]
+    else:
+        return CuratedModelResources([])
+
+    if not models_spec["model_path"] and not models_spec["models"]:
+        return CuratedModelResources([])
+
+    # for model_path
     models = []
-    if predictor["model_path"]:
+    if models_spec["model_path"]:
         model = {
             "name": cortex.consts.SINGLE_MODEL_NAME,
-            "model_path": predictor["model_path"],
-            "signature_key": predictor["signature_key"],
+            "model_path": models_spec["model_path"],
+            "signature_key": models_spec["signature_key"],
         }
         models.append(model)
 
-    # for predictor.models.paths
-    if predictor["models"] and predictor["models"]["paths"]:
+    # for models.paths
+    if models_spec["models"] and models_spec["models"]["paths"]:
         for model in predictor["models"]["paths"]:
             models.append(
                 {
@@ -179,7 +183,7 @@ def get_models_from_api_spec(
                 }
             )
 
-    # building model resources for predictor.model_path or predictor.models.paths
+    # building model resources for model_path or models.paths
     model_resources = []
     for model in models:
         model_resource = {}
@@ -190,8 +194,8 @@ def get_models_from_api_spec(
             not model_resource["s3_path"] and not model_resource["gcs_path"]
         )
 
-        if not model["signature_key"] and predictor["models"]:
-            model_resource["signature_key"] = predictor["models"]["signature_key"]
+        if not model["signature_key"] and models_spec["models"]:
+            model_resource["signature_key"] = models_spec["models"]["signature_key"]
         else:
             model_resource["signature_key"] = model["signature_key"]
 
@@ -209,12 +213,12 @@ def get_models_from_api_spec(
 
         model_resources.append(model_resource)
 
-    # building model resources for predictor.models.dir
+    # building model resources for models.dir
     if (
-        predictor["models"]
-        and predictor["models"]["dir"]
-        and not predictor["models"]["dir"].startswith("s3://")
-        and not predictor["models"]["dir"].startswith("gs://")
+        models_spec["models"]
+        and models_spec["models"]["dir"]
+        and not models_spec["models"]["dir"].startswith("s3://")
+        and not models_spec["models"]["dir"].startswith("gs://")
     ):
         for model_name in os.listdir(model_dir):
             model_resource = {}
@@ -222,7 +226,7 @@ def get_models_from_api_spec(
             model_resource["s3_path"] = False
             model_resource["gcs_path"] = False
             model_resource["local_path"] = True
-            model_resource["signature_key"] = predictor["models"]["signature_key"]
+            model_resource["signature_key"] = models_spec["models"]["signature_key"]
             model_resource["model_path"] = os.path.join(model_dir, model_name)
             model_resource["versions"] = os.listdir(model_resource["model_path"])
             model_resources.append(model_resource)

@@ -98,11 +98,21 @@ class Predictor:
         # model side-reloading is supported for any number of processes_per_replica
 
         if self.caching_enabled:
+            if self.type == PythonPredictorType:
+                mem_cache_size = self.api_spec["predictor"]["dynamic_model_loading"]["models"][
+                    "cache_size"
+                ]
+                disk_cache_size = self.api_spec["predictor"]["dynamic_model_loading"]["models"][
+                    "disk_cache_size"
+                ]
+            else:
+                mem_cache_size = self.api_spec["predictor"]["models"]["cache_size"]
+                disk_cache_size = self.api_spec["predictor"]["models"]["disk_cache_size"]
             self.models = ModelsHolder(
                 self.type,
                 self.model_dir,
-                mem_cache_size=self.api_spec["predictor"]["models"]["cache_size"],
-                disk_cache_size=self.api_spec["predictor"]["models"]["disk_cache_size"],
+                mem_cache_size=mem_cache_size,
+                disk_cache_size=disk_cache_size,
                 on_download_callback=model_downloader,
             )
         elif not self.caching_enabled and self.type not in [
@@ -289,13 +299,18 @@ class Predictor:
 
     def _is_model_caching_enabled(self) -> bool:
         """
-        Checks if model caching is enabled (models:cache_size and models:disk_cache_size).
+        Checks if model caching is enabled.
         """
+        models = None
+        if self.type != PythonPredictorType and self.api_spec["predictor"]["models"]:
+            models = self.api_spec["predictor"]["models"]
         if (
-            self.api_spec["predictor"]["models"]
-            and self.api_spec["predictor"]["models"]["cache_size"] is not None
-            and self.api_spec["predictor"]["models"]["disk_cache_size"] is not None
+            self.type == PythonPredictorType
+            and self.api_spec["predictor"]["dynamic_model_loading"]
+            and self.api_spec["predictor"]["dynamic_model_loading"]["models"]
         ):
+            models = self.api_spec["predictor"]["dynamic_model_loading"]["models"]
+        if models and models["cache_size"] and models["disk_cache_size"]:
             return True
         return False
 
@@ -313,12 +328,20 @@ def _are_models_specified(api_spec: dict) -> bool:
     Args:
         api_spec: API configuration.
     """
-    if api_spec["predictor"]["model_path"] is not None:
+    predictor_type = predictor_type_from_api_spec(api_spec)
+
+    if predictor_type == PythonPredictorType and api_spec["predictor"]["dynamic_model_loading"]:
+        models = api_spec["predictor"]["dynamic_model_loading"]
+    elif predictor_type != PythonPredictorType:
+        models = api_spec["predictor"]
+    else:
+        return False
+
+    if models["model_path"]:
         return True
 
-    if api_spec["predictor"]["models"] and (
-        api_spec["predictor"]["models"]["dir"] is not None
-        or len(api_spec["predictor"]["models"]["paths"]) > 0
+    if models["models"] and (
+        models["models"]["dir"] is not None or len(models["models"]["paths"]) > 0
     ):
         return True
     return False
