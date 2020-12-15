@@ -673,7 +673,9 @@ func ExtractAPIConfigs(
 			return nil, errors.Append(err, fmt.Sprintf("\n\napi configuration schema can be found at https://docs.cortex.dev/v/%s/", consts.CortexVersionMinor))
 		}
 
-		if resourceStruct.Kind == userconfig.BatchAPIKind || resourceStruct.Kind == userconfig.TrafficSplitterKind {
+		if resourceStruct.Kind == userconfig.BatchAPIKind ||
+			resourceStruct.Kind == userconfig.TrafficSplitterKind ||
+			resourceStruct.Kind == userconfig.TaskAPIKind {
 			if provider == types.GCPProviderType {
 				return nil, errors.Wrap(ErrorKindIsNotSupportedByProvider(resourceStruct.Kind, provider), userconfig.IdentifyAPI(configFileName, resourceStruct.Name, resourceStruct.Kind, i))
 			}
@@ -730,6 +732,10 @@ func ValidateAPI(
 		return errors.Wrap(err, userconfig.PredictorKey)
 	}
 
+	if err := validateTaskDefinition(api, projectFiles, provider, awsClient, k8sClient); err != nil {
+		return errors.Wrap(err, userconfig.TaskDefinitionKey)
+	}
+
 	if api.Autoscaling != nil {
 		if err := validateAutoscaling(api); err != nil {
 			return errors.Wrap(err, userconfig.AutoscalingKey)
@@ -749,6 +755,41 @@ func ValidateAPI(
 	if api.Predictor != nil && api.Predictor.ShmSize != nil && api.Compute.Mem != nil {
 		if api.Predictor.ShmSize.Cmp(api.Compute.Mem.Quantity) > 0 {
 			return ErrorShmSizeCannotExceedMem(*api.Predictor.ShmSize, *api.Compute.Mem)
+		}
+	}
+
+	return nil
+}
+
+func validateTaskDefinition(
+	api *userconfig.API,
+	projectFiles ProjectFiles,
+	provider types.ProviderType,
+	awsClient *aws.Client,
+	k8sClient *k8s.Client,
+) error {
+	taskDefinition := api.TaskDefinition
+
+	if err := validateDockerImagePath(taskDefinition.Image, provider, awsClient, k8sClient); err != nil {
+		return errors.Wrap(err, userconfig.ImageKey)
+	}
+
+	for key := range taskDefinition.Env {
+		if strings.HasPrefix(key, "CORTEX_") {
+			return errors.Wrap(ErrorCortexPrefixedEnvVarNotAllowed(), userconfig.EnvKey, key)
+		}
+	}
+
+	if !projectFiles.HasFile(taskDefinition.Path) {
+		return errors.Wrap(files.ErrorFileDoesNotExist(taskDefinition.Path), userconfig.PathKey)
+	}
+
+	if taskDefinition.PythonPath != nil {
+		if !projectFiles.HasDir(*taskDefinition.PythonPath) {
+			return errors.Wrap(
+				ErrorPythonPathNotFound(*taskDefinition.PythonPath),
+				userconfig.PythonPathKey,
+			)
 		}
 	}
 
