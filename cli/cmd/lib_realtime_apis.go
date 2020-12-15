@@ -68,7 +68,7 @@ func realtimeAPITable(realtimeAPI schema.APIResponse, env cliconfig.Environment)
 
 	out += "\n" + console.Bold("endpoint: ") + realtimeAPI.Endpoint + "\n"
 
-	if !(realtimeAPI.Spec.Predictor.Type == userconfig.PythonPredictorType && realtimeAPI.Spec.Predictor.ModelPath == nil && realtimeAPI.Spec.Predictor.Models == nil) {
+	if !(realtimeAPI.Spec.Predictor.Type == userconfig.PythonPredictorType && realtimeAPI.Spec.Predictor.DynamicModelLoading == nil) {
 		out += "\n" + describeModelInput(realtimeAPI.Status, realtimeAPI.Spec.Predictor, realtimeAPI.Endpoint)
 	}
 

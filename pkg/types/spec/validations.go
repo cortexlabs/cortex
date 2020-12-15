@@ -984,6 +984,10 @@ func validateTensorFlowPredictor(api *userconfig.API, models *[]CuratedModelReso
 		return ErrorFieldNotSupportedByPredictorType(userconfig.DynamicModelLoadingKey, userconfig.PythonPredictorType)
 	}
 
+	if predictor.DynamicModelLoading.ModelPath == nil && predictor.DynamicModelLoading.Models == nil {
+		return errors.Wrap(ErrorSpecifyOneOrTheOther(userconfig.ModelPathKey, userconfig.ModelsPathsKey), userconfig.DynamicModelLoadingKey)
+	}
+
 	hasSingleModel := predictor.ModelPath != nil
 	hasMultiModels := predictor.Models != nil
 
