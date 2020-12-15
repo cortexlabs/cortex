@@ -98,13 +98,14 @@ def renew_message_visibility(receipt_handle: str):
 
     while True:
         time.sleep((cur_time + interval) - time.time())
-        print("executing renew_message_visibility")
         cur_time += interval
         new_timeout += interval
 
         if receipt_handle in stop_renewal:
             stop_renewal.remove(receipt_handle)
             break
+
+        print("executing renew_message_visibility")
 
         try:
             local_cache["sqs_client"].change_message_visibility(
