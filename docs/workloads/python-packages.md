@@ -16,7 +16,7 @@ You can install your required PyPI packages and import them in your Python files
 
 If you want to use `conda` to install your python packages, see the [Conda section](#conda-packages) below.
 
-Note that some packages are pre-installed by default (see "pre-installed packages" for your Predictor type in the [Realtime API Predictor documentation](realtime-api/predictors.md) and [Batch API Predictor documentation](batch-api/predictors.md)).
+Note that some packages are pre-installed by default (see "pre-installed packages" for your Predictor type in the Realtime API Predictor documentation and Batch API Predictor documentation).
 
 ## Private PyPI packages
 
