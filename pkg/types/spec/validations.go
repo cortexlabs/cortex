@@ -794,6 +794,10 @@ func validatePredictor(
 	}
 
 	if api.Kind == userconfig.BatchAPIKind {
+		if predictor.DynamicModelLoading != nil {
+			return ErrorKeyIsNotSupportedForKind(userconfig.DynamicModelLoadingKey, userconfig.BatchAPIKind)
+		}
+
 		if predictor.ServerSideBatching != nil {
 			return ErrorKeyIsNotSupportedForKind(userconfig.ServerSideBatchingKey, userconfig.BatchAPIKind)
 		}
