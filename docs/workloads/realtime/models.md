@@ -116,7 +116,7 @@ The most common pattern is to serve a single model per API. The path to the mode
     model_path: s3://my-bucket/models/text-generator/
 ```
 
-Note: for the Python predictor type, it is not necessary to specify the path to your model in `model_path`, since you can download and load it in your predictor's `__init__()` function. That said, it is necessary to use the `model_path` field to take advantage of [live model reloading](#live-model-reloading).
+For the Python predictor type, the `model_path` field must be nested within the `dynamic_model_loading` section in the `predictor` section. It is also not necessary to specify the `dynamic_model_loading` section at all, since you can download and load the model in your predictor's `__init__()` function. That said, it is necessary to use the `model_path` field to take advantage of [live model reloading](#live-model-reloading).
 
 ## Multiple models
 
@@ -149,7 +149,8 @@ or:
       dir: s3://my-bucket/models/
 ```
 
-Note: for the Python predictor type, it is not necessary to specify the paths to your models in `models`, since you can download and load them in your predictor's `__init__()` function. That said, it is necessary to use the `models` field to take advantage of live reloading or multi model caching (see below).
+
+For the Python predictor type, the `models` field must be nested within the `dynamic_model_loading` section in the `predictor` section. It is also not necessary to specify the `dynamic_model_loading` section at all, since you can download and load the model in your predictor's `__init__()` function. That said, it is necessary to use the `models` field to take advantage of [live model reloading](#live-model-reloading) or [multi model caching](#multi-model-caching).
 
 When using the `models.paths` field, each path must be a valid model directory (see above for valid model directory structures).
 

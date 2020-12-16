@@ -11,15 +11,16 @@ _WARNING: you are on the master branch, please refer to the docs on the branch t
   predictor:
     type: python
     path: <string>  # path to a python file with a PythonPredictor class definition, relative to the Cortex root (required)
-    model_path: <string>  # S3 path to an exported model directory (e.g. s3://my-bucket/exported_model/) (optional, cannot be provided along with 'models')
-    models:  # use this to serve multiple models in a single API (optional, cannot be provided along with 'model_path')
-      dir: <string>  # S3 path to a directory containing multiple models (e.g. s3://my-bucket/models/) (either this or 'paths' must be provided)
-      paths:  # list of S3 paths to exported model directories (either this or 'dir' must be provided)
-        - name: <string>  # unique name for the model (e.g. text-generator) (required)
-          model_path: <string>  # S3 path to an exported model directory (e.g. s3://my-bucket/exported_model/) (required)
-        ...
-      cache_size: <int>  # the number models to keep in memory (optional; all models are kept in memory by default)
-      disk_cache_size: <int>  # the number of models to keep on disk (optional; all models are kept on disk by default)
+    dynamic_model_loading:  # optional
+      model_path: <string>  # S3 path to an exported model directory (e.g. s3://my-bucket/exported_model/) (optional, cannot be provided along with 'models')
+      models:  # use this to serve multiple models in a single API (optional, cannot be provided along with 'model_path')
+        dir: <string>  # S3 path to a directory containing multiple models (e.g. s3://my-bucket/models/) (either this or 'paths' must be provided)
+        paths:  # list of S3 paths to exported model directories (either this or 'dir' must be provided)
+          - name: <string>  # unique name for the model (e.g. text-generator) (required)
+            model_path: <string>  # S3 path to an exported model directory (e.g. s3://my-bucket/exported_model/) (required)
+          ...
+        cache_size: <int>  # the number models to keep in memory (optional; all models are kept in memory by default)
+        disk_cache_size: <int>  # the number of models to keep on disk (optional; all models are kept on disk by default)
     processes_per_replica: <int>  # the number of parallel serving processes to run on each replica (default: 1)
     threads_per_process: <int>  # the number of threads per process (default: 1)
     config: <string: value>  # arbitrary dictionary passed to the constructor of the Predictor (optional)
