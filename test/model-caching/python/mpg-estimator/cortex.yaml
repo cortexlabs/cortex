@@ -5,9 +5,10 @@
   predictor:
     type: python
     path: predictor.py
-    models:
-      paths:
-        - name: mpg-estimator
-          model_path: s3://cortex-examples/sklearn/mpg-estimator/linreg/
-      cache_size: 1
-      disk_cache_size: 2
+    dynamic_model_loading:
+      models:
+        paths:
+          - name: mpg-estimator
+            model_path: s3://cortex-examples/sklearn/mpg-estimator/linreg/
+        cache_size: 1
+        disk_cache_size: 2
