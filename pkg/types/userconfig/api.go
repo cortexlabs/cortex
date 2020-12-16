@@ -34,7 +34,7 @@ type API struct {
 	Resource
 	APIs             []*TrafficSplit `json:"apis" yaml:"apis"`
 	Predictor        *Predictor      `json:"predictor" yaml:"predictor"`
-	TaskDefinition   *TaskDefinition `json:"task_definition" yaml:"task_definition"`
+	TaskDefinition   *TaskDefinition `json:"definition" yaml:"definition"`
 	Monitoring       *Monitoring     `json:"monitoring" yaml:"monitoring"`
 	Networking       *Networking     `json:"networking" yaml:"networking"`
 	Compute          *Compute        `json:"compute" yaml:"compute"`
@@ -147,6 +147,15 @@ func (api *API) ApplyDefaultDockerPaths() {
 	usesGPU := api.Compute.GPU > 0
 	usesInf := api.Compute.Inf > 0
 
+	switch api.Kind {
+	case RealtimeAPIKind, BatchAPIKind:
+		api.applyPredictorDefaultDockerPaths(usesGPU, usesInf)
+	case TaskAPIKind:
+		api.applyTaskDefaultDockerPaths(usesGPU, usesInf)
+	}
+}
+
+func (api *API) applyPredictorDefaultDockerPaths(usesGPU, usesInf bool) {
 	predictor := api.Predictor
 	switch predictor.Type {
 	case PythonPredictorType:
@@ -179,6 +188,19 @@ func (api *API) ApplyDefaultDockerPaths() {
 			} else {
 				predictor.Image = consts.DefaultImageONNXPredictorCPU
 			}
+		}
+	}
+}
+
+func (api *API) applyTaskDefaultDockerPaths(usesGPU, usesInf bool) {
+	task := api.TaskDefinition
+	if task.Image == "" {
+		if usesGPU {
+			task.Image = consts.DefaultImagePythonPredictorGPU
+		} else if usesInf {
+			task.Image = consts.DefaultImagePythonPredictorInf
+		} else {
+			task.Image = consts.DefaultImagePythonPredictorCPU
 		}
 	}
 }

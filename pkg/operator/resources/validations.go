@@ -41,11 +41,11 @@ type ProjectFiles struct {
 }
 
 func (projectFiles ProjectFiles) AllPaths() []string {
-	files := make([]string, 0, len(projectFiles.ProjectByteMap))
+	pFiles := make([]string, 0, len(projectFiles.ProjectByteMap))
 	for path := range projectFiles.ProjectByteMap {
-		files = append(files, path)
+		pFiles = append(pFiles, path)
 	}
-	return files
+	return pFiles
 }
 
 func (projectFiles ProjectFiles) GetFile(path string) ([]byte, error) {
@@ -100,7 +100,7 @@ func ValidateClusterAPIs(apis []userconfig.API, projectFiles spec.ProjectFiles) 
 
 	for i := range apis {
 		api := &apis[i]
-		if api.Kind == userconfig.RealtimeAPIKind || api.Kind == userconfig.BatchAPIKind {
+		if api.Kind == userconfig.RealtimeAPIKind || api.Kind == userconfig.BatchAPIKind || api.Kind == userconfig.TaskAPIKind {
 			if err := spec.ValidateAPI(api, nil, projectFiles, config.Provider, config.AWS, config.GCP, config.K8s); err != nil {
 				return errors.Wrap(err, api.Identify())
 			}
