@@ -23,6 +23,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	libmath "github.com/cortexlabs/cortex/pkg/lib/math"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	libtime "github.com/cortexlabs/cortex/pkg/lib/time"
@@ -185,8 +186,7 @@ func autoscaleFn(initialDeployment *kapps.Deployment) (func() error, error) {
 			}
 
 			if deployment == nil {
-				log.Printf("%s autoscaler: unable to find k8s deployment", apiName)
-				return nil
+				return errors.ErrorUnexpected("unable to find k8s deployment", apiName)
 			}
 
 			deployment.Spec.Replicas = &request
