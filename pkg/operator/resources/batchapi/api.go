@@ -141,7 +141,7 @@ func deleteS3Resources(apiName string) error {
 	)
 }
 
-// Returns all batch apis, for each API returning the most recently submitted job and all running jobs
+// GetAllAPIs returns all batch apis, for each API returning the most recently submitted job and all running jobs
 func GetAllAPIs(virtualServices []istioclientnetworking.VirtualService, k8sJobs []kbatch.Job, pods []kcore.Pod) ([]schema.APIResponse, error) {
 	batchAPIsMap := map[string]*schema.APIResponse{}
 

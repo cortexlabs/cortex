@@ -393,6 +393,7 @@ func GetAPIs() ([]schema.APIResponse, error) {
 	}
 
 	var batchAPIVirtualServices []istioclientnetworking.VirtualService
+	var taskAPIVirtualServices []istioclientnetworking.VirtualService
 	var trafficSplitterVirtualServices []istioclientnetworking.VirtualService
 
 	for _, vs := range virtualServices {
@@ -401,6 +402,8 @@ func GetAPIs() ([]schema.APIResponse, error) {
 			batchAPIVirtualServices = append(batchAPIVirtualServices, vs)
 		case userconfig.TrafficSplitterKind.String():
 			trafficSplitterVirtualServices = append(trafficSplitterVirtualServices, vs)
+		case userconfig.TaskAPIKind.String():
+			taskAPIVirtualServices = append(taskAPIVirtualServices, vs)
 		}
 	}
 
@@ -410,8 +413,14 @@ func GetAPIs() ([]schema.APIResponse, error) {
 	}
 
 	var batchAPIList []schema.APIResponse
+	var taskAPIList []schema.APIResponse
 	if config.Provider == types.AWSProviderType {
 		batchAPIList, err = batchapi.GetAllAPIs(batchAPIVirtualServices, k8sJobs, batchAPIPods)
+		if err != nil {
+			return nil, err
+		}
+
+		taskAPIList, err = taskapi.GetAllAPIs(taskAPIVirtualServices)
 		if err != nil {
 			return nil, err
 		}
@@ -426,6 +435,7 @@ func GetAPIs() ([]schema.APIResponse, error) {
 
 	response = append(response, realtimeAPIList...)
 	response = append(response, batchAPIList...)
+	response = append(response, taskAPIList...)
 	response = append(response, trafficSplitterList...)
 
 	return response, nil

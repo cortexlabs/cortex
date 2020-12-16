@@ -189,6 +189,8 @@ func getAPIsInAllEnvironments() (string, error) {
 	var allRealtimeAPIEnvs []string
 	var allBatchAPIs []schema.APIResponse
 	var allBatchAPIEnvs []string
+	var allTaskAPIs []schema.APIResponse
+	var allTaskAPIEnvs []string
 	var allTrafficSplitters []schema.APIResponse
 	var allTrafficSplitterEnvs []string
 
@@ -219,6 +221,9 @@ func getAPIsInAllEnvironments() (string, error) {
 				case userconfig.RealtimeAPIKind:
 					allRealtimeAPIEnvs = append(allRealtimeAPIEnvs, env.Name)
 					allRealtimeAPIs = append(allRealtimeAPIs, api)
+				case userconfig.TaskAPIKind:
+					allTaskAPIEnvs = append(allTaskAPIEnvs, env.Name)
+					allTaskAPIs = append(allTaskAPIs, api)
 				case userconfig.TrafficSplitterKind:
 					allTrafficSplitterEnvs = append(allTrafficSplitterEnvs, env.Name)
 					allTrafficSplitters = append(allTrafficSplitters, api)
@@ -243,7 +248,7 @@ func getAPIsInAllEnvironments() (string, error) {
 
 	out := ""
 
-	if len(allRealtimeAPIs) == 0 && len(allBatchAPIs) == 0 && len(allTrafficSplitters) == 0 {
+	if len(allRealtimeAPIs) == 0 && len(allBatchAPIs) == 0 && len(allTrafficSplitters) == 0 && len(allTaskAPIs) == 0 {
 		// check if any environments errorred
 		if len(errorsMap) != len(cliConfig.Environments) {
 			if len(errorsMap) == 0 {
@@ -268,6 +273,11 @@ func getAPIsInAllEnvironments() (string, error) {
 	} else {
 		if len(allBatchAPIs) > 0 {
 			t := batchAPIsTable(allBatchAPIs, allBatchAPIEnvs)
+			out += t.MustFormat()
+		}
+
+		if len(allTaskAPIs) > 0 {
+			t := taskAPIsTable(allTaskAPIs, allTaskAPIEnvs)
 			out += t.MustFormat()
 		}
 
