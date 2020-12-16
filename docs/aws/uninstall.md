@@ -1,17 +1,8 @@
 # Uninstall
 
-## Spin down Cortex
-
 ```bash
-# spin down Cortex
 cortex cluster down
-
-# uninstall the CLI
-pip uninstall cortex
-rm -rf ~/.cortex
 ```
-
-If you modified your bash profile, you may wish to remove `source <(cortex completion bash)` from it (or remove `source <(cortex completion zsh)` for `zsh`).
 
 ## Delete metadata and log groups
 

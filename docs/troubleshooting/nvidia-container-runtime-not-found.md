@@ -4,9 +4,7 @@ When attempting to deploy a model to a GPU in the local environment, you may enc
 
 ## Check Compatibility
 
-Please ensure that your local machine has an NVIDIA GPU card installed. If you don't have a local machine with an NVIDIA GPU, you can find instructions for spinning up a single GPU instance to try out model serving on a GPU with Cortex [here](../guides/single-node-deployment.md).
-
-Mac and Windows are currently not supported by the NVIDIA container runtime. You can find the complete list of supported operating system and architectures [here](https://nvidia.github.io/nvidia-container-runtime/).
+Please ensure that your local machine has an NVIDIA GPU card installed. Mac and Windows are currently not supported by the NVIDIA container runtime. You can find the complete list of supported operating system and architectures [here](https://nvidia.github.io/nvidia-container-runtime).
 
 ## Install NVIDIA container runtime
 

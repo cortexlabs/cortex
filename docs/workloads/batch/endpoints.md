@@ -1,7 +1,5 @@
 # Batch API endpoint
 
-Once your model is [exported](../../guides/exporting.md), you've implemented a [Predictor](predictors.md), you've [configured your API](api-configuration.md), and you've [deployed an api](deployment.md), you can submit and manage jobs by making HTTP requests to your Batch API endpoint.
-
 A deployed Batch API endpoint supports the following:
 
 1. Submitting a batch job

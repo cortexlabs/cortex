@@ -2,7 +2,7 @@
 
 The Traffic Splitter feature allows you to split traffic between multiple Realtime APIs on your Cortex Cluster. This can be useful for A/B testing models in production.
 
-After [deploying Realtime APIs](deployment.md), you can deploy an Traffic Splitter to provide a single endpoint that can route a request randomly to one of the target Realtime APIs. Weights can be assigned to Realtime APIs to control the percentage of requests routed to each API.
+You can deploy an Traffic Splitter to provide a single endpoint that can route a request randomly to one of the target Realtime APIs. Weights can be assigned to Realtime APIs to control the percentage of requests routed to each API.
 
 **Traffic Splitters are only supported on a Cortex cluster (in AWS).**
 

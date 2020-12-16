@@ -7,7 +7,7 @@ This example shows how to split traffic between 2 different iris-classifiers dep
 To deploy this example:
 
 1. Determine your CLI Version `cortex version`
-1. Clone the repo and switch to the current version by replacing `<CORTEX_VERSION>` with your CLI version: `git clone -b v<CORTEX_VERSION> https://github.com/cortexlabs/cortex` (e.g. if the output of `cortex version` is 0.24.1, the clone command would be `git clone -b v0.24.1 https://github.com/cortexlabs/cortex`)
+1. Clone the repo and switch to the current version; for example, if your cortex version is 0.24.1, run `git clone -b v0.24.1 https://github.com/cortexlabs/cortex`
 1. Navigate to this example directory
 
 ## `cortex deploy`
