@@ -1,6 +1,6 @@
 # Table of contents
 
-* [Get started](tutorials/realtime.md)
+* [Get started](workloads/realtime/deploy.md)
 * [Community](https://gitter.im/cortexlabs/cortex)
 * [Contributing](contributing.md)
 
@@ -12,14 +12,6 @@
 * [Environments](cli/environments.md)
 * [Telemetry](cli/telemetry.md)
 * [Uninstall](cli/uninstall.md)
-
-## Tutorials
-
-* [Realtime API](tutorials/realtime.md)
-* [Batch API](tutorials/batch.md)
-* [Multi-model API](tutorials/multi-model.md)
-* [Traffic splitter](tutorials/traffic-splitter.md)
-* [Project directory](tutorials/project.md)
 
 ## Running on AWS
 
@@ -46,20 +38,27 @@
 ## Workloads
 
 * Realtime
-  * [Predictor implementation](workloads/realtime/predictors.md)
-  * [API configuration](workloads/realtime/configuration.md)
-  * [API statuses](workloads/realtime/statuses.md)
+  * [Deploy](workloads/realtime/deploy.md)
+  * [Predictor](workloads/realtime/predictors.md)
+  * [Configuration](workloads/realtime/configuration.md)
+  * [Statuses](workloads/realtime/statuses.md)
   * [Models](workloads/realtime/models.md)
   * [Parallelism](workloads/realtime/parallelism.md)
   * [Autoscaling](workloads/realtime/autoscaling.md)
-  * [Traffic Splitter](workloads/realtime/traffic-splitter.md)
 * Batch
-  * [Predictor implementation](workloads/batch/predictors.md)
-  * [API configuration](workloads/batch/configuration.md)
+  * [Deploy](workloads/batch/deploy.md)
+  * [Predictor](workloads/batch/predictors.md)
+  * [Configuration](workloads/batch/configuration.md)
+  * [Statuses](workloads/batch/statuses.md)
   * [Endpoints](workloads/batch/endpoints.md)
-  * [Job statuses](workloads/batch/statuses.md)
-* [Python packages](workloads/python-packages.md)
-* [System packages](workloads/system-packages.md)
+* Traffic Splitter
+  * [Deploy](workloads/traffic-splitter/deploy.md)
+  * [Python packages](workloads/traffic-splitter/configuration.md)
+* Dependencies
+  * [Deploy](workloads/dependencies/deploy.md)
+  * [Python packages](workloads/dependencies/python-packages.md)
+  * [System packages](workloads/dependencies/system-packages.md)
+* [Exporting models](workloads/exporting.md)
 
 ## Troubleshooting
 
@@ -71,8 +70,6 @@
 
 ## Guides
 
-* [Exporting models](guides/exporting.md)
-* [Multi-model endpoints](guides/multi-model.md)
 * [View API metrics](guides/metrics.md)
 * [Setting up kubectl](guides/kubectl.md)
 * [Self-hosted Docker images](guides/self-hosted-images.md)
