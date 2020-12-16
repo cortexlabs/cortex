@@ -1,6 +1,6 @@
-# Deploy a batch API
+# BatchAPI
 
-Deploy models as batch APIs that can orchestrate distributed batch inference jobs on large datasets.
+Deploy batch APIs that can orchestrate distributed batch inference jobs on large datasets.
 
 ## Key features
 
