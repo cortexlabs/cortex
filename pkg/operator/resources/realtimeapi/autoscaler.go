@@ -184,6 +184,11 @@ func autoscaleFn(initialDeployment *kapps.Deployment) (func() error, error) {
 				return err
 			}
 
+			if deployment == nil {
+				log.Printf("%s autoscaler: unable to find k8s deployment", apiName)
+				return nil
+			}
+
 			deployment.Spec.Replicas = &request
 
 			if _, err := config.K8s.UpdateDeployment(deployment); err != nil {
