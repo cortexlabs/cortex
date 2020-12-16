@@ -32,6 +32,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/operator/operator"
 	"github.com/cortexlabs/cortex/pkg/operator/resources/batchapi"
 	"github.com/cortexlabs/cortex/pkg/operator/resources/realtimeapi"
+	"github.com/cortexlabs/cortex/pkg/operator/resources/taskapi"
 	"github.com/cortexlabs/cortex/pkg/operator/resources/trafficsplitter"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
 	"github.com/cortexlabs/cortex/pkg/types"
@@ -159,10 +160,16 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string, force bool) (*schema
 		api, msg, err = realtimeapi.UpdateAPI(apiConfig, projectID, force)
 	case userconfig.BatchAPIKind:
 		api, msg, err = batchapi.UpdateAPI(apiConfig, projectID)
+	case userconfig.TaskAPIKind:
+		api, msg, err = taskapi.UpdateAPI(apiConfig, projectID)
 	case userconfig.TrafficSplitterKind:
 		api, msg, err = trafficsplitter.UpdateAPI(apiConfig, force)
 	default:
-		return nil, "", ErrorOperationIsOnlySupportedForKind(*deployedResource, userconfig.RealtimeAPIKind, userconfig.BatchAPIKind, userconfig.TrafficSplitterKind) // unexpected
+		return nil, "", ErrorOperationIsOnlySupportedForKind(
+			*deployedResource, userconfig.RealtimeAPIKind,
+			userconfig.BatchAPIKind,
+			userconfig.TrafficSplitterKind,
+		) // unexpected
 	}
 
 	if err == nil && api != nil {
@@ -471,7 +478,7 @@ func GetAPIByID(apiName string, apiID string) ([]schema.APIResponse, error) {
 	}
 
 	// search for the API spec with the old ID
-	spec, err := operator.DownloadAPISpec(apiName, apiID)
+	apiSpec, err := operator.DownloadAPISpec(apiName, apiID)
 	if err != nil {
 		if aws.IsGenericNotFoundErr(err) {
 			return nil, ErrorAPIIDNotFound(apiName, apiID)
@@ -481,7 +488,7 @@ func GetAPIByID(apiName string, apiID string) ([]schema.APIResponse, error) {
 
 	return []schema.APIResponse{
 		{
-			Spec: *spec,
+			Spec: *apiSpec,
 		},
 	}, nil
 }
