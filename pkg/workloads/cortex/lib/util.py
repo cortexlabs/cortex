@@ -127,7 +127,12 @@ def remove_non_empty_directory_paths(paths: List[str]) -> List[str]:
     models/tensorflow/iris/1569001258/saved_model.pb
     """
 
-    all_paths_start_with_leading_slash = all([path.startswith("/") for path in paths])
+    leading_slash_paths_mask = [path.startswith("/") for path in paths]
+    all_paths_start_with_leading_slash = all(leading_slash_paths_mask)
+    some_paths_start_with_leading_slash = any(leading_slash_paths_mask)
+
+    if not all_paths_start_with_leading_slash and some_paths_start_with_leading_slash:
+        raise ValueError("can only either pass in absolute paths or relative paths")
 
     path_map = {}
     split_paths = [list(filter(lambda x: x != "", path.split("/"))) for path in paths]
