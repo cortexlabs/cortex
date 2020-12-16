@@ -3,3 +3,29 @@ root: ./docs/
 structure:
   readme: ./tutorials/realtime.md
   summary: summary.md
+
+redirects:
+  contact: ./summary.md
+  miscellaneous/security: ./running-on-aws/security
+  workloads/telemetry: ./cli/telemetry
+  guides/production: ./tutorials/realtime
+  deployments/compute: ./workloads/realtime/configuration
+  advanced/compute: ./running-on-aws/gpu
+  miscellaneous/environments: ./cli/environments
+  miscellaneous/cli: ./cli/commands
+  contributing/development: contributing
+  workloads/realtime-api: ./tutorials/realtime
+  deployments/realtime-api: ./tutorials/realtime
+  workloads/batch-api: ./tutorials/batch
+  guides/ssh-instance: ./running-on-aws/ssh
+  guides/windows-cli: ./cli/install
+  troubleshooting/cluster-down: ./summary.md
+  miscellaneous/python-client: ./cli/python-client
+  guides/kubectl-setup: ./guides/kubectl
+  */install: ./cli/install
+  */miscellaneous/cli: ./cli/install
+  */advanced/inferentia: ./running-on-aws/inferentia
+  v/master/advanced/networking: ./running-on-aws/networking
+  guides/single-node-deployment: ./tutorials/realtime
+  */advanced/gpus: ./running-on-aws/gpu
+  deployments/realtime-api/parallelism: ./workloads/realtime/parallelism
