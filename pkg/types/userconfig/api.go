@@ -48,10 +48,8 @@ type Predictor struct {
 	Type PredictorType `json:"type" yaml:"type"`
 	Path string        `json:"path" yaml:"path"`
 
-	DynamicModelLoading *DynamicModelLoading `json:"dynamic_model_loading" yaml:"dynamic_model_loading"`
-	ModelPath           *string              `json:"model_path" yaml:"model_path"`
-	SignatureKey        *string              `json:"signature_key" yaml:"signature_key"`
-	Models              *MultiModels         `json:"models" yaml:"models"`
+	MultiModelReloading *MultiModels `json:"dynamic_model_loading" yaml:"dynamic_model_loading"`
+	Models              *MultiModels `json:"models" yaml:"models"`
 
 	ServerSideBatching     *ServerSideBatching    `json:"server_side_batching" yaml:"server_side_batching"`
 	ProcessesPerReplica    int32                  `json:"processes_per_replica" yaml:"processes_per_replica"`
@@ -63,13 +61,8 @@ type Predictor struct {
 	Env                    map[string]string      `json:"env" yaml:"env"`
 }
 
-type DynamicModelLoading struct {
-	ModelPath    *string      `json:"model_path" yaml:"model_path"`
-	SignatureKey *string      `json:"signature_key" yaml:"signature_key"`
-	Models       *MultiModels `json:"models" yaml:"models"`
-}
-
 type MultiModels struct {
+	ModelPath     *string          `json:"model_path" yaml:"model_path"`
 	Paths         []*ModelResource `json:"paths" yaml:"paths"`
 	Dir           *string          `json:"dir" yaml:"dir"`
 	CacheSize     *int32           `json:"cache_size" yaml:"cache_size"`
@@ -371,19 +364,13 @@ func (predictor *Predictor) UserStr() string {
 	sb.WriteString(fmt.Sprintf("%s: %s\n", TypeKey, predictor.Type))
 	sb.WriteString(fmt.Sprintf("%s: %s\n", PathKey, predictor.Path))
 
-	if predictor.ModelPath != nil {
-		sb.WriteString(fmt.Sprintf("%s: %s\n", ModelPathKey, *predictor.ModelPath))
-	}
-	if predictor.ModelPath == nil && predictor.Models != nil {
+	if predictor.Models != nil {
 		sb.WriteString(fmt.Sprintf("%s:\n", ModelsKey))
 		sb.WriteString(s.Indent(predictor.Models.UserStr(), "  "))
 	}
-	if predictor.SignatureKey != nil {
-		sb.WriteString(fmt.Sprintf("%s: %s\n", SignatureKeyKey, *predictor.SignatureKey))
-	}
-	if predictor.DynamicModelLoading != nil {
-		sb.WriteString(fmt.Sprintf("%s:\n", DynamicModelLoadingKey))
-		sb.WriteString(s.Indent(predictor.DynamicModelLoading.UserStr(), "  "))
+	if predictor.MultiModelReloading != nil {
+		sb.WriteString(fmt.Sprintf("%s:\n", MultiModelReloadingKey))
+		sb.WriteString(s.Indent(predictor.Models.UserStr(), "  "))
 	}
 
 	if predictor.Type == TensorFlowPredictorType && predictor.ServerSideBatching != nil {
@@ -414,35 +401,20 @@ func (predictor *Predictor) UserStr() string {
 	return sb.String()
 }
 
-func (dml *DynamicModelLoading) UserStr() string {
-	var sb strings.Builder
-
-	if dml.ModelPath != nil {
-		sb.WriteString(fmt.Sprintf("%s: %s\n", ModelPathKey, *dml.ModelPath))
-	}
-	if dml.ModelPath == nil && dml.Models != nil {
-		sb.WriteString(fmt.Sprintf("%s:\n", ModelsKey))
-		sb.WriteString(s.Indent(dml.Models.UserStr(), "  "))
-	}
-	if dml.SignatureKey != nil {
-		sb.WriteString(fmt.Sprintf("%s: %s\n", SignatureKeyKey, *dml.SignatureKey))
-	}
-
-	return sb.String()
-}
-
 func (models *MultiModels) UserStr() string {
 	var sb strings.Builder
 
-	if models.Dir != nil {
-		sb.WriteString(fmt.Sprintf("%s: %s\n", ModelsDirKey, *models.Dir))
-	} else if len(models.Paths) > 0 {
+	if len(models.Paths) > 0 {
 		sb.WriteString(fmt.Sprintf("%s:\n", ModelsPathsKey))
 		for _, model := range models.Paths {
 			modelUserStr := s.Indent(model.UserStr(), "    ")
 			modelUserStr = modelUserStr[:2] + "-" + modelUserStr[3:]
 			sb.WriteString(modelUserStr)
 		}
+	} else if models.ModelPath != nil {
+		sb.WriteString(fmt.Sprintf("%s: %s\n", ModelsPathKey, *models.Dir))
+	} else {
+		sb.WriteString(fmt.Sprintf("%s: %s\n", ModelsDirKey, *models.Dir))
 	}
 	if models.SignatureKey != nil {
 		sb.WriteString(fmt.Sprintf("%s: %s\n", ModelsDirKey, *models.SignatureKey))
@@ -459,9 +431,9 @@ func (models *MultiModels) UserStr() string {
 func (model *ModelResource) UserStr() string {
 	var sb strings.Builder
 	sb.WriteString(fmt.Sprintf("%s: %s\n", ModelsNameKey, model.Name))
-	sb.WriteString(fmt.Sprintf("%s: %s\n", ModelPathKey, model.ModelPath))
+	sb.WriteString(fmt.Sprintf("%s: %s\n", ModelsPathKey, model.ModelPath))
 	if model.SignatureKey != nil {
-		sb.WriteString(fmt.Sprintf("%s: %s\n", SignatureKeyKey, *model.SignatureKey))
+		sb.WriteString(fmt.Sprintf("%s: %s\n", ModelsSignatureKeyKey, *model.SignatureKey))
 	}
 	return sb.String()
 }
@@ -653,12 +625,6 @@ func (api *API) TelemetryEvent(provider types.ProviderType) map[string]interface
 		event["predictor.processes_per_replica"] = api.Predictor.ProcessesPerReplica
 		event["predictor.threads_per_process"] = api.Predictor.ThreadsPerProcess
 
-		if api.Predictor.ModelPath != nil {
-			event["predictor.model_path._is_defined"] = true
-		}
-		if api.Predictor.SignatureKey != nil {
-			event["predictor.signature_key._is_defined"] = true
-		}
 		if api.Predictor.PythonPath != nil {
 			event["predictor.python_path._is_defined"] = true
 		}
@@ -677,59 +643,43 @@ func (api *API) TelemetryEvent(provider types.ProviderType) map[string]interface
 			event["predictor.env._len"] = len(api.Predictor.Env)
 		}
 
+		var models *MultiModels
 		if api.Predictor.Models != nil {
+			models = api.Predictor.Models
+		}
+		if api.Predictor.MultiModelReloading != nil {
+			models = api.Predictor.MultiModelReloading
+		}
+
+		if models != nil {
 			event["predictor.models._is_defined"] = true
-			if len(api.Predictor.Models.Paths) > 0 {
+			if models.ModelPath != nil {
+				event["predictor.models.model_path._is_defined"] = true
+			}
+			if len(models.Paths) > 0 {
 				event["predictor.models.paths._is_defined"] = true
-				event["predictor.models.paths._len"] = len(api.Predictor.Models.Paths)
+				event["predictor.models.paths._len"] = len(models.Paths)
 				var numSignatureKeysDefined int
-				for _, mmPath := range api.Predictor.Models.Paths {
+				for _, mmPath := range models.Paths {
 					if mmPath.SignatureKey != nil {
 						numSignatureKeysDefined++
 					}
 				}
 				event["predictor.models.paths._num_signature_keys_defined"] = numSignatureKeysDefined
 			}
-			if api.Predictor.Models.Dir != nil {
+			if models.Dir != nil {
 				event["predictor.models.dir._is_defined"] = true
 			}
-			if api.Predictor.Models.CacheSize != nil {
+			if models.CacheSize != nil {
 				event["predictor.models.cache_size._is_defined"] = true
-				event["predictor.models.cache_size"] = *api.Predictor.Models.CacheSize
+				event["predictor.models.cache_size"] = *models.CacheSize
 			}
-			if api.Predictor.Models.DiskCacheSize != nil {
+			if models.DiskCacheSize != nil {
 				event["predictor.models.disk_cache_size._is_defined"] = true
-				event["predictor.models.disk_cache_size"] = *api.Predictor.Models.DiskCacheSize
+				event["predictor.models.disk_cache_size"] = *models.DiskCacheSize
 			}
-			if api.Predictor.Models.SignatureKey != nil {
+			if models.SignatureKey != nil {
 				event["predictor.models.signature_key._is_defined"] = true
-			}
-		}
-
-		if api.Predictor.DynamicModelLoading != nil {
-			event["predictor.dynamic_model_loading._is_defined"] = true
-
-			if api.Predictor.DynamicModelLoading.ModelPath != nil {
-				event["predictor.dynamic_model_loading.model_path._is_defined"] = true
-			}
-			if api.Predictor.DynamicModelLoading.Models != nil {
-				event["predictor.dynamic_model_loading.models._is_defined"] = true
-
-				if len(api.Predictor.DynamicModelLoading.Models.Paths) > 0 {
-					event["predictor.dynamic_model_loading.models.paths._is_defined"] = true
-					event["predictor.dynamic_model_loading.models.paths._len"] = len(api.Predictor.DynamicModelLoading.Models.Paths)
-				}
-				if api.Predictor.DynamicModelLoading.Models.Dir != nil {
-					event["predictor.models.dir._is_defined"] = true
-				}
-				if api.Predictor.DynamicModelLoading.Models.CacheSize != nil {
-					event["predictor.models.cache_size._is_defined"] = true
-					event["predictor.models.cache_size"] = *api.Predictor.DynamicModelLoading.Models.CacheSize
-				}
-				if api.Predictor.DynamicModelLoading.Models.DiskCacheSize != nil {
-					event["predictor.models.disk_cache_size._is_defined"] = true
-					event["predictor.models.disk_cache_size"] = *api.Predictor.DynamicModelLoading.Models.DiskCacheSize
-				}
 			}
 		}
 

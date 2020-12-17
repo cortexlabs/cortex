@@ -66,9 +66,9 @@ class PythonClient:
         self._spec_models = get_models_from_api_spec(api_spec)
 
         if (
-            self._api_spec["predictor"]["dynamic_model_loading"]
-            and self._api_spec["predictor"]["dynamic_model_loading"]["models"]
-            and self._api_spec["predictor"]["dynamic_model_loading"]["models"]["dir"]
+            self._api_spec["predictor"]["multi_model_reloading"]
+            and self._api_spec["predictor"]["multi_model_reloading"]["models"]
+            and self._api_spec["predictor"]["multi_model_reloading"]["models"]["dir"]
         ):
             self._models_dir = True
         else:
@@ -377,10 +377,10 @@ class PythonClient:
         Checks if model caching is enabled (models:cache_size and models:disk_cache_size).
         """
         return (
-            self._api_spec["predictor"]["dynamic_model_loading"]
-            and self._api_spec["predictor"]["dynamic_model_loading"]["models"]
-            and self._api_spec["predictor"]["dynamic_model_loading"]["models"]["cache_size"]
-            and self._api_spec["predictor"]["dynamic_model_loading"]["models"]["disk_cache_size"]
+            self._api_spec["predictor"]["multi_model_reloading"]
+            and self._api_spec["predictor"]["multi_model_reloading"]["models"]
+            and self._api_spec["predictor"]["multi_model_reloading"]["models"]["cache_size"]
+            and self._api_spec["predictor"]["multi_model_reloading"]["models"]["disk_cache_size"]
         )
 
     @property

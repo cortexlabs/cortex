@@ -152,8 +152,8 @@ def get_models_from_api_spec(
     """
     predictor_type = predictor_type_from_api_spec(api_spec)
 
-    if predictor_type == PythonPredictorType and api_spec["predictor"]["dynamic_model_loading"]:
-        models_spec = api_spec["predictor"]["dynamic_model_loading"]
+    if predictor_type == PythonPredictorType and api_spec["predictor"]["multi_model_reloading"]:
+        models_spec = api_spec["predictor"]["multi_model_reloading"]
     elif predictor_type != PythonPredictorType:
         models_spec = api_spec["predictor"]
     else:

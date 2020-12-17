@@ -148,9 +148,9 @@ class FileBasedModelsTreeUpdater(mp.Process):
 
         if (
             self._predictor_type == PythonPredictorType
-            and self._api_spec["predictor"]["dynamic_model_loading"]
+            and self._api_spec["predictor"]["multi_model_reloading"]
         ):
-            models = self._api_spec["predictor"]["dynamic_model_loading"]
+            models = self._api_spec["predictor"]["multi_model_reloading"]
         elif self._predictor_type != PythonPredictorType:
             models = self._api_spec["predictor"]
         else:
@@ -1548,9 +1548,9 @@ class ModelTreeUpdater(AbstractLoopingThread):
 
         if (
             self._predictor_type == PythonPredictorType
-            and self._api_spec["predictor"]["dynamic_model_loading"]
+            and self._api_spec["predictor"]["multi_model_reloading"]
         ):
-            models = self._api_spec["predictor"]["dynamic_model_loading"]
+            models = self._api_spec["predictor"]["multi_model_reloading"]
         elif self._predictor_type != PythonPredictorType:
             models = self._api_spec["predictor"]
         else:

@@ -99,10 +99,10 @@ class Predictor:
 
         if self.caching_enabled:
             if self.type == PythonPredictorType:
-                mem_cache_size = self.api_spec["predictor"]["dynamic_model_loading"]["models"][
+                mem_cache_size = self.api_spec["predictor"]["multi_model_reloading"]["models"][
                     "cache_size"
                 ]
-                disk_cache_size = self.api_spec["predictor"]["dynamic_model_loading"]["models"][
+                disk_cache_size = self.api_spec["predictor"]["multi_model_reloading"]["models"][
                     "disk_cache_size"
                 ]
             else:
@@ -306,10 +306,10 @@ class Predictor:
             models = self.api_spec["predictor"]["models"]
         if (
             self.type == PythonPredictorType
-            and self.api_spec["predictor"]["dynamic_model_loading"]
-            and self.api_spec["predictor"]["dynamic_model_loading"]["models"]
+            and self.api_spec["predictor"]["multi_model_reloading"]
+            and self.api_spec["predictor"]["multi_model_reloading"]["models"]
         ):
-            models = self.api_spec["predictor"]["dynamic_model_loading"]["models"]
+            models = self.api_spec["predictor"]["multi_model_reloading"]["models"]
         if models and models["cache_size"] and models["disk_cache_size"]:
             return True
         return False
@@ -330,8 +330,8 @@ def _are_models_specified(api_spec: dict) -> bool:
     """
     predictor_type = predictor_type_from_api_spec(api_spec)
 
-    if predictor_type == PythonPredictorType and api_spec["predictor"]["dynamic_model_loading"]:
-        models = api_spec["predictor"]["dynamic_model_loading"]
+    if predictor_type == PythonPredictorType and api_spec["predictor"]["multi_model_reloading"]:
+        models = api_spec["predictor"]["multi_model_reloading"]
     elif predictor_type != PythonPredictorType:
         models = api_spec["predictor"]
     else:
