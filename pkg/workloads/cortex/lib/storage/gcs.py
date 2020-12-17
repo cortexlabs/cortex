@@ -26,7 +26,10 @@ from cortex.lib.exceptions import CortexException
 
 class GCS:
     def __init__(self, bucket: str, project: Optional[str] = None):
-        self.client = storage.Client(project=project)
+        if os.getenv("GOOGLE_APPLICATION_CREDENTIALS"):
+            self.client = storage.Client(project=project)
+        else:
+            self.client = storage.Client.create_anonymous_client()
         self.gcs = self.client.bucket(bucket, project)
 
     @staticmethod

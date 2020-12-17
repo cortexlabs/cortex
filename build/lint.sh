@@ -102,7 +102,7 @@ if [ "$is_release_branch" = "true" ]; then
   ! -path "**/.idea/*" \
   ! -path "**/.history/*" \
   ! -path "**/__pycache__/*" \
-  ! -path "./docs/contributing/development.md" \
+  ! -path "./docs/guides/contributing.md" \
   ! -path "./dev/config/*" \
   ! -path "./bin/*" \
   ! -path "./.git/*" \
@@ -143,7 +143,7 @@ else
   ! -path "./README.md" \
   ! -name "summary.md" \
   ! -path "./tutorials/*" \
-  ! -name "development.md" \
+  ! -name "contributing.md" \
   ! -name "*.json" \
   ! -name "*.txt" \
   ! -name ".*" \

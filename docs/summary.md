@@ -1,7 +1,17 @@
 # Table of contents
 
 * [Get started](tutorials/realtime.md)
-* [Chat with us](https://gitter.im/cortexlabs/cortex)
+* [Community](https://gitter.im/cortexlabs/cortex)
+* [Contributing](contributing.md)
+
+## CLI
+
+* [Install](cli/install.md)
+* [Commands](cli/commands.md)
+* [Python client](cli/python-client.md)
+* [Environments](cli/environments.md)
+* [Telemetry](cli/telemetry.md)
+* [Uninstall](cli/uninstall.md)
 
 ## Tutorials
 
@@ -35,25 +45,21 @@
 
 ## Workloads
 
-* [Realtime API](workloads/realtime.md)
+* Realtime
   * [Predictor implementation](workloads/realtime/predictors.md)
   * [API configuration](workloads/realtime/configuration.md)
   * [API statuses](workloads/realtime/statuses.md)
   * [Models](workloads/realtime/models.md)
   * [Parallelism](workloads/realtime/parallelism.md)
   * [Autoscaling](workloads/realtime/autoscaling.md)
-  * [Prediction monitoring](workloads/realtime/prediction-monitoring.md)
   * [Traffic Splitter](workloads/realtime/traffic-splitter.md)
-* [Batch API](workloads/batch.md)
+* Batch
   * [Predictor implementation](workloads/batch/predictors.md)
   * [API configuration](workloads/batch/configuration.md)
   * [Endpoints](workloads/batch/endpoints.md)
   * [Job statuses](workloads/batch/statuses.md)
-* [Python client](workloads/python-client.md)
 * [Python packages](workloads/python-packages.md)
 * [System packages](workloads/system-packages.md)
-* [Environments](workloads/environments.md)
-* [Telemetry](workloads/telemetry.md)
 
 ## Troubleshooting
 
@@ -68,12 +74,6 @@
 * [Exporting models](guides/exporting.md)
 * [Multi-model endpoints](guides/multi-model.md)
 * [View API metrics](guides/metrics.md)
-* [Running in production](guides/production.md)
-* [Low-cost clusters](guides/low-cost-clusters.md)
-* [Single node deployment](guides/single-node-deployment.md)
-* [Set up kubectl](guides/kubectl-setup.md)
+* [Setting up kubectl](guides/kubectl.md)
 * [Self-hosted Docker images](guides/self-hosted-images.md)
-* [Docker Hub rate limiting](guides/docker-hub-rate-limiting.md)
 * [Private docker registry](guides/private-docker.md)
-* [Install CLI on Windows](guides/windows-cli.md)
-* [Contributing](guides/contributing.md)

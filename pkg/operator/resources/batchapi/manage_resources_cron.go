@@ -105,15 +105,9 @@ func ManageJobResources() error {
 
 		if !jobState.Status.IsInProgress() {
 			// best effort cleanup
-			err := errors.FirstError(
-				deleteInProgressFile(jobKey),
-				deleteJobRuntimeResources(jobKey),
-			)
-			if err != nil {
-				telemetry.Error(err)
-				errors.PrintError(err)
-				continue
-			}
+			deleteInProgressFile(jobKey)
+			deleteJobRuntimeResources(jobKey)
+			continue
 		}
 
 		newStatusCode, msg, err := reconcileInProgressJob(jobState, queueURL, k8sJob)
@@ -201,10 +195,6 @@ func ManageJobResources() error {
 // verifies that queue exists for an in progress job and k8s job exists for a job in running status, if verification fails return the a job code to reflect the state
 func reconcileInProgressJob(jobState *JobState, queueURL *string, k8sJob *kbatch.Job) (status.JobCode, string, error) {
 	jobKey := jobState.JobKey
-
-	if !jobState.Status.IsInProgress() {
-		return jobState.Status, "", nil
-	}
 
 	if queueURL == nil {
 		if time.Now().Sub(jobState.LastUpdatedMap[status.JobEnqueuing.String()]) <= _doesQueueExistGracePeriod {

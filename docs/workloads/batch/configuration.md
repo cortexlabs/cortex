@@ -72,7 +72,6 @@ _WARNING: you are on the master branch, please refer to the docs on the branch t
     models:  # use this when multiple models per API are desired (either this or 'model_path' must be provided)
       - name: <string> # unique name for the model (e.g. text-generator) (required)
         model_path: <string>  # S3 path to an exported model (e.g. s3://my-bucket/exported_model.onnx) (required)
-        signature_key: <string>  # name of the signature def to use for prediction (required if your model has more than one signature def)
       ...
     config: <string: value>  # arbitrary dictionary passed to the constructor of the Predictor (can be overridden by config passed in job submission) (optional)
     python_path: <string>  # path to the root of your Python folder that will be appended to PYTHONPATH (default: folder containing cortex.yaml)

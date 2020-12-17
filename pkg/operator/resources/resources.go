@@ -252,7 +252,7 @@ func patchAPI(apiConfig *userconfig.API, configFileName string, force bool) (*sp
 
 	err = ValidateClusterAPIs([]userconfig.API{*apiConfig}, projectFiles)
 	if err != nil {
-		err = errors.Append(err, fmt.Sprintf("\n\napi configuration schema can be found here:\n  → Realtime API: https://docs.cortex.dev/v/%s/", consts.CortexVersionMinor))
+		err = errors.Append(err, fmt.Sprintf("\n\napi configuration schema can be found at https://docs.cortex.dev/v/%s/", consts.CortexVersionMinor))
 		return nil, "", err
 	}
 
