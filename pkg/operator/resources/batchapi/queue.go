@@ -22,6 +22,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/sqs"
+	awslib "github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
@@ -105,6 +106,14 @@ func deleteQueueByJobKey(jobKey spec.JobKey) error {
 	}
 
 	return deleteQueueByURL(queueURL)
+}
+
+func deleteQueueByJobKeyIfExists(jobKey spec.JobKey) error {
+	err := deleteQueueByJobKey(jobKey)
+	if err != nil && awslib.IsNonExistentQueueErr(errors.CauseOrSelf(err)) {
+		return nil
+	}
+	return err
 }
 
 func deleteQueueByURL(queueURL string) error {
