@@ -380,7 +380,6 @@ func computeValidation(provider types.ProviderType) *cr.StructFieldValidation {
 		},
 	}
 
-	// TODO remove other inf check
 	if provider == types.AWSProviderType {
 		structFieldValidation.StructValidation.StructFieldValidations = append(structFieldValidation.StructValidation.StructFieldValidations,
 			&cr.StructFieldValidation{
