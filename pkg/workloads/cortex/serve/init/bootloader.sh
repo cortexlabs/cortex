@@ -77,8 +77,7 @@ if [ -f "/mnt/project/conda-packages.txt" ]; then
 
         pip --no-cache-dir install -r \
             /src/cortex/serve/requirements.txt -r \
-            /src/cortex/internal/requirements.txt
-        pip install --no-deps -e /src/cortex/internal/
+            /src/cortex/internal/
         if [ -f "/src/cortex/serve/image.requirements.txt" ]; then
             pip --no-cache-dir install -r /src/cortex/serve/image.requirements.txt
         fi

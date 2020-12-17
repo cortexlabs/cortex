@@ -75,7 +75,7 @@ RUN test "${SLIM}" = "true" || ( \
     )
 
 COPY pkg/workloads/cortex/ /src/cortex/
-RUN pip install --no-deps -e /src/cortex/internal/
+RUN pip install --no-deps /src/cortex/internal/
 RUN mv /src/cortex/serve/init/bootloader.sh /etc/cont-init.d/bootloader.sh
 
 ENTRYPOINT ["/init"]

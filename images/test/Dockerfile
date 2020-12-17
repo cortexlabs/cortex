@@ -10,7 +10,7 @@ RUN pip install --upgrade pip && \
 COPY pkg/workloads /src
 COPY images/test/run.sh /src/run.sh
 
-RUN pip install --no-deps -e /src/cortex/internal/ && \
+RUN pip install --no-deps /src/cortex/internal/ && \
     rm -rf /root/.cache/pip*
 
 WORKDIR /src/cortex/internal/cortex/

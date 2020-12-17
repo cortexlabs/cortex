@@ -18,7 +18,7 @@ RUN pip install --no-cache-dir -r \
     rm -rf /root/.cache/pip*
 
 COPY pkg/workloads/cortex/internal/ /src/cortex/internal
-RUN pip install --no-deps -e /src/cortex/internal/ && \
+RUN pip install --no-deps /src/cortex/internal/ && \
     rm -rf /root/.cache/pip*
 
 ENTRYPOINT ["/usr/bin/python3.6", "/src/cortex/downloader/download.py"]
