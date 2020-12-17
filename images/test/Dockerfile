@@ -1,19 +1,19 @@
 FROM python:3.6
 
-ENV PYTHONPATH="${PYTHONPATH}:/src"
-
-COPY pkg/workloads/cortex/serve/requirements.txt /src/cortex/serve/requirements.txt
+COPY pkg/workloads/cortex/internal/requirements.txt /src/cortex/internal/requirements.txt
 
 RUN pip install --upgrade pip && \
-    pip install -r /src/cortex/serve/requirements.txt && \
+    pip install --no-cache-dir -r /src/cortex/internal/requirements.txt && \
     pip install pytest mock && \
     rm -rf /root/.cache/pip*
 
 COPY pkg/workloads /src
-
 COPY images/test/run.sh /src/run.sh
 
-WORKDIR /src/cortex
+RUN pip install --no-deps -e /src/cortex/internal/ && \
+    rm -rf /root/.cache/pip*
+
+WORKDIR /src/cortex/internal/cortex/
 
 ENTRYPOINT ["/bin/bash"]
 CMD ["/src/run.sh"]

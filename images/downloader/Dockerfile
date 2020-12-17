@@ -1,7 +1,5 @@
 FROM ubuntu:18.04
 
-ENV PYTHONPATH="${PYTHONPATH}:/src"
-
 RUN apt-get update -qq && apt-get install -y -q \
         curl \
         python3.6 \
@@ -12,12 +10,15 @@ RUN apt-get update -qq && apt-get install -y -q \
     pip install --upgrade pip && \
     rm -rf /root/.cache/pip*
 
-COPY pkg/workloads/cortex/downloader/requirements.txt /src/cortex/downloader/requirements.txt
-RUN pip install -r /src/cortex/downloader/requirements.txt && \
+COPY pkg/workloads/cortex/internal/requirements.txt /src/cortex/internal/requirements.txt
+COPY pkg/workloads/cortex/downloader /src/cortex/downloader
+
+RUN pip install --no-cache-dir -r \
+    /src/cortex/internal/requirements.txt && \
     rm -rf /root/.cache/pip*
 
-COPY pkg/workloads/cortex/consts.py /src/cortex/
-COPY pkg/workloads/cortex/lib /src/cortex/lib
-COPY pkg/workloads/cortex/downloader /src/cortex/downloader
+COPY pkg/workloads/cortex/internal/ /src/cortex/internal
+RUN pip install --no-deps -e /src/cortex/internal/ && \
+    rm -rf /root/.cache/pip*
 
 ENTRYPOINT ["/usr/bin/python3.6", "/src/cortex/downloader/download.py"]
