@@ -13,7 +13,7 @@ COPY images/test/run.sh /src/run.sh
 RUN pip install --no-deps /src/cortex/internal/ && \
     rm -rf /root/.cache/pip*
 
-WORKDIR /src/cortex/internal/cortex/
+WORKDIR /src/cortex/internal/cortex_internal/
 
 ENTRYPOINT ["/bin/bash"]
 CMD ["/src/run.sh"]
