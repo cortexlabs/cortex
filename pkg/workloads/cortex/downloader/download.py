@@ -31,7 +31,7 @@ def start(args):
 
         if from_path.startswith("s3://"):
             bucket_name, prefix = S3.deconstruct_s3_path(from_path)
-            client = S3(bucket_name, client_config={})
+            client = S3(bucket_name)
         elif from_path.startswith("gs://"):
             bucket_name, prefix = GCS.deconstruct_gcs_path(from_path)
             client = GCS(bucket_name)

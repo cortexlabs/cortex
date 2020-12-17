@@ -1094,17 +1094,30 @@ func validateONNXPredictor(api *userconfig.API, models *[]CuratedModelResource, 
 
 	var modelWrapError func(error) error
 	var modelResources []userconfig.ModelResource
+	var modelFileResources []userconfig.ModelResource
 
 	if hasSingleModel {
-		modelResources = []userconfig.ModelResource{
-			{
-				Name:      consts.SingleModelName,
-				ModelPath: *predictor.ModelPath,
-			},
-		}
-		*predictor.ModelPath = s.EnsureSuffix(*predictor.ModelPath, "/")
 		modelWrapError = func(err error) error {
 			return errors.Wrap(err, userconfig.ModelPathKey)
+		}
+		if strings.HasSuffix(*predictor.ModelPath, ".onnx") {
+			if err := validateONNXModelFilePath(*predictor.ModelPath, projectFiles.ProjectDir(), awsClient, gcpClient); err != nil {
+				return modelWrapError(err)
+			}
+			modelFileResources = []userconfig.ModelResource{
+				{
+					Name:      consts.SingleModelName,
+					ModelPath: *predictor.ModelPath,
+				},
+			}
+		} else {
+			modelResources = []userconfig.ModelResource{
+				{
+					Name:      consts.SingleModelName,
+					ModelPath: *predictor.ModelPath,
+				},
+			}
+			*predictor.ModelPath = s.EnsureSuffix(*predictor.ModelPath, "/")
 		}
 	}
 	if hasMultiModels {
@@ -1126,8 +1139,15 @@ func validateONNXPredictor(api *userconfig.API, models *[]CuratedModelResource, 
 						path.Name,
 					)
 				}
-				(*path).ModelPath = s.EnsureSuffix((*path).ModelPath, "/")
-				modelResources = append(modelResources, *path)
+				if strings.HasSuffix((*path).ModelPath, ".onnx") {
+					if err := validateONNXModelFilePath((*path).ModelPath, projectFiles.ProjectDir(), awsClient, gcpClient); err != nil {
+						return errors.Wrap(modelWrapError(err), path.Name)
+					}
+					modelFileResources = append(modelFileResources, *path)
+				} else {
+					(*path).ModelPath = s.EnsureSuffix((*path).ModelPath, "/")
+					modelResources = append(modelResources, *path)
+				}
 			}
 		}
 
@@ -1150,6 +1170,23 @@ func validateONNXPredictor(api *userconfig.API, models *[]CuratedModelResource, 
 		return modelWrapError(err)
 	}
 
+	for _, modelFileResource := range modelFileResources {
+		s3Path := strings.HasPrefix(modelFileResource.ModelPath, "s3://")
+		gcsPath := strings.HasPrefix(modelFileResource.ModelPath, "gs://")
+		localPath := !s3Path && !gcsPath
+
+		*models = append(*models, CuratedModelResource{
+			ModelResource: &userconfig.ModelResource{
+				Name:      modelFileResource.Name,
+				ModelPath: modelFileResource.ModelPath,
+			},
+			S3Path:     s3Path,
+			GCSPath:    gcsPath,
+			LocalPath:  localPath,
+			IsFilePath: true,
+		})
+	}
+
 	if hasMultiModels {
 		for _, model := range *models {
 			if model.Name == consts.SingleModelName {
@@ -1160,6 +1197,58 @@ func validateONNXPredictor(api *userconfig.API, models *[]CuratedModelResource, 
 
 	if err := checkDuplicateModelNames(*models); err != nil {
 		return modelWrapError(err)
+	}
+
+	return nil
+}
+
+func validateONNXModelFilePath(modelPath string, projectDir string, awsClient *aws.Client, gcpClient *gcp.Client) error {
+	s3Path := strings.HasPrefix(modelPath, "s3://")
+	gcsPath := strings.HasPrefix(modelPath, "gs://")
+	localPath := !s3Path && !gcsPath
+
+	if s3Path {
+		awsClientForBucket, err := aws.NewFromClientS3Path(modelPath, awsClient)
+		if err != nil {
+			return err
+		}
+
+		bucket, modelPrefix, err := aws.SplitS3Path(modelPath)
+		if err != nil {
+			return err
+		}
+
+		yes, err := awsClientForBucket.IsS3Prefix(bucket, modelPrefix)
+		if err != nil {
+			return err
+		}
+
+		if !yes {
+			return ErrorInvalidONNXModelFilePath(modelPrefix)
+		}
+	}
+
+	if gcsPath {
+		bucket, modelPrefix, err := gcp.SplitGCSPath(modelPath)
+		if err != nil {
+			return err
+		}
+
+		yes, err := gcpClient.IsGCSFile(bucket, modelPrefix)
+		if err != nil {
+			return err
+		}
+
+		if !yes {
+			return ErrorInvalidONNXModelFilePath(modelPrefix)
+		}
+	}
+
+	if localPath {
+		expandedLocalPath := files.RelToAbsPath(modelPath, projectDir)
+		if err := files.CheckFile(expandedLocalPath); err != nil {
+			return err
+		}
 	}
 
 	return nil

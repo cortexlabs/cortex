@@ -54,7 +54,7 @@ func CacheLocalModels(apiSpec *spec.API, models []spec.CuratedModelResource) err
 		if wasAlreadyCached {
 			modelsThatWereCachedAlready++
 		}
-		if len(model.Versions) == 0 {
+		if model.IsFilePath || len(model.Versions) == 0 {
 			localModelCache.TargetPath = filepath.Join(model.Name, "1")
 		} else {
 			localModelCache.TargetPath = model.Name
@@ -88,7 +88,7 @@ func cacheLocalModel(model spec.CuratedModelResource) (*spec.LocalModelCache, bo
 	destModelDir := filepath.Join(_modelCacheDir, localModelCache.ID)
 
 	if files.IsDir(destModelDir) {
-		if len(model.Versions) == 0 {
+		if model.IsFilePath || len(model.Versions) == 0 {
 			localModelCache.HostPath = filepath.Join(destModelDir, "1")
 		} else {
 			localModelCache.HostPath = destModelDir
@@ -100,7 +100,7 @@ func cacheLocalModel(model spec.CuratedModelResource) (*spec.LocalModelCache, bo
 	if err != nil {
 		return nil, false, err
 	}
-	if len(model.Versions) == 0 {
+	if model.IsFilePath || len(model.Versions) == 0 {
 		if _, err := files.CreateDirIfMissing(filepath.Join(destModelDir, "1")); err != nil {
 			return nil, false, err
 		}
@@ -127,10 +127,16 @@ func cacheLocalModel(model spec.CuratedModelResource) (*spec.LocalModelCache, bo
 		}
 	}
 
-	if len(model.Versions) == 0 {
+	if model.IsFilePath || len(model.Versions) == 0 {
 		destModelDir = filepath.Join(destModelDir, "1")
 	}
-	if err := files.CopyDirOverwrite(strings.TrimSuffix(model.ModelPath, "/"), s.EnsureSuffix(destModelDir, "/")); err != nil {
+
+	if model.IsFilePath {
+		err = files.CopyFileOverwrite(model.ModelPath, filepath.Join(destModelDir, filepath.Base(model.ModelPath)))
+	} else {
+		err = files.CopyDirOverwrite(strings.TrimSuffix(model.ModelPath, "/"), s.EnsureSuffix(destModelDir, "/"))
+	}
+	if err != nil {
 		return nil, false, err
 	}
 

@@ -64,6 +64,7 @@ const (
 	ErrInvalidPythonModelPath     = "spec.invalid_python_model_path"
 	ErrInvalidTensorFlowModelPath = "spec.invalid_tensorflow_model_path"
 	ErrInvalidONNXModelPath       = "spec.invalid_onnx_model_path"
+	ErrInvalidONNXModelFilePath   = "spec.invalid_onnx_model_file_path"
 
 	ErrMissingModel        = "spec.missing_model"
 	ErrDuplicateModelNames = "spec.duplicate_model_names"
@@ -426,6 +427,17 @@ func ErrorInvalidONNXModelPath(modelPath string, modelSubPaths []string) error {
 
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrInvalidONNXModelPath,
+		Message: message,
+	})
+}
+
+func ErrorInvalidONNXModelFilePath(filePath string) error {
+	message := fmt.Sprintf("%s: invalid %s model file path; specify an ONNX file path or provide a directory with one of the following structures:\n", filePath, userconfig.ONNXPredictorType.CasedString())
+	templateModelPath := "path/to/model/directory/"
+	message += fmt.Sprintf(_onnxVersionedExpectedStructMessage, templateModelPath, templateModelPath)
+
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrInvalidONNXModelFilePath,
 		Message: message,
 	})
 }

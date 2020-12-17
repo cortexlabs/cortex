@@ -48,6 +48,7 @@ const (
 
 const (
 	_specCacheDir                                  = "/mnt/spec"
+	_modelDir                                      = "/mnt/model"
 	_emptyDirMountPath                             = "/mnt"
 	_emptyDirVolumeName                            = "mnt"
 	_tfServingContainerName                        = "serve"
@@ -570,18 +571,39 @@ func pythonDownloadArgs(api *spec.API) string {
 }
 
 func onnxDownloadArgs(api *spec.API) string {
-	downloadConfig := downloadContainerConfig{
-		LastLog: fmt.Sprintf(_downloaderLastLog, "onnx"),
-		DownloadArgs: []downloadContainerArg{
-			{
-				From:             config.BucketPath(api.ProjectKey),
-				To:               path.Join(_emptyDirMountPath, "project"),
-				Unzip:            true,
-				ItemName:         "the project code",
-				HideFromLog:      true,
-				HideUnzippingLog: true,
-			},
+	downloadContainerArs := []downloadContainerArg{
+		{
+			From:             config.BucketPath(api.ProjectKey),
+			To:               path.Join(_emptyDirMountPath, "project"),
+			Unzip:            true,
+			ItemName:         "the project code",
+			HideFromLog:      true,
+			HideUnzippingLog: true,
 		},
+	}
+
+	if api.Predictor.ModelPath != nil && strings.HasSuffix(*api.Predictor.ModelPath, ".onnx") {
+		downloadContainerArs = append(downloadContainerArs, downloadContainerArg{
+			From: *api.Predictor.ModelPath,
+			To:   path.Join(_modelDir, consts.SingleModelName, "1"),
+		})
+	} else if api.Predictor.Models != nil {
+		for _, model := range api.Predictor.Models.Paths {
+			if model == nil {
+				continue
+			}
+			if strings.HasSuffix(model.ModelPath, ".onnx") {
+				downloadContainerArs = append(downloadContainerArs, downloadContainerArg{
+					From: model.ModelPath,
+					To:   path.Join(_modelDir, model.Name, "1"),
+				})
+			}
+		}
+	}
+
+	downloadConfig := downloadContainerConfig{
+		LastLog:      fmt.Sprintf(_downloaderLastLog, "onnx"),
+		DownloadArgs: downloadContainerArs,
 	}
 
 	downloadArgsBytes, _ := json.Marshal(downloadConfig)
