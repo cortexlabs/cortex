@@ -422,6 +422,8 @@ func getAPI(env cliconfig.Environment, apiName string) (string, error) {
 		return trafficSplitterTable(apiRes, env)
 	case userconfig.BatchAPIKind:
 		return batchAPITable(apiRes), nil
+	case userconfig.TaskAPIKind:
+		return taskAPITable(apiRes), nil
 	default:
 		return "", errors.ErrorUnexpected(fmt.Sprintf("encountered unexpected kind %s for api %s", apiRes.Spec.Kind, apiRes.Spec.Name))
 	}

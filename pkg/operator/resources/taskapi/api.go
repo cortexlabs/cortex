@@ -174,6 +174,90 @@ func GetAllAPIs(virtualServices []istioclientnetworking.VirtualService) ([]schem
 	return batchAPIList, nil
 }
 
+// GetAllAPIs returns a single task API and its most recently submitted job along with all running task jobs
+func GetAPIByName(deployedResource *operator.DeployedResource) ([]schema.APIResponse, error) {
+	virtualService := deployedResource.VirtualService
+
+	apiID := virtualService.Labels["apiID"]
+	api, err := operator.DownloadAPISpec(deployedResource.Name, apiID)
+	if err != nil {
+		return nil, err
+	}
+
+	//k8sJobs, err := config.K8s.ListJobsByLabel("apiName", deployedResource.Name)
+	//if err != nil {
+	//	return nil, err
+	//}
+	//
+	//jobIDToK8sJobMap := map[string]*kbatch.Job{}
+	//for _, job := range k8sJobs {
+	//	jobIDToK8sJobMap[job.Labels["jobID"]] = &job
+	//}
+
+	endpoint, err := operator.APIEndpoint(api)
+	if err != nil {
+		return nil, err
+	}
+
+	//pods, err := config.K8s.ListPodsByLabel("apiName", deployedResource.Name)
+	//if err != nil {
+	//	return nil, err
+	//}
+	//
+	//jobIDToPodsMap := map[string][]kcore.Pod{}
+	//for _, pod := range pods {
+	//	jobIDToPodsMap[pod.Labels["jobID"]] = append(jobIDToPodsMap[pod.Labels["jobID"]], pod)
+	//}
+	//
+	//inProgressJobKeys, err := listAllInProgressJobKeysByAPI(deployedResource.Name)
+	//if err != nil {
+	//	return nil, err
+	//}
+	//
+	//jobStatuses := []status.JobStatus{}
+	//jobIDSet := strset.New()
+	//for _, jobKey := range inProgressJobKeys {
+	//	jobStatus, err := getJobStatusFromK8sJob(jobKey, jobIDToK8sJobMap[jobKey.ID], jobIDToPodsMap[jobKey.ID])
+	//	if err != nil {
+	//		return nil, err
+	//	}
+	//
+	//	jobStatuses = append(jobStatuses, *jobStatus)
+	//	jobIDSet.Add(jobKey.ID)
+	//}
+	//
+	//if len(jobStatuses) < 10 {
+	//	jobStates, err := getMostRecentlySubmittedJobStates(deployedResource.Name, 10+len(jobStatuses))
+	//	if err != nil {
+	//		return nil, err
+	//	}
+	//	for _, jobState := range jobStates {
+	//		if jobIDSet.Has(jobState.ID) {
+	//			continue
+	//		}
+	//		jobIDSet.Add(jobState.ID)
+	//
+	//		jobStatus, err := getJobStatusFromJobState(jobState, nil, nil)
+	//		if err != nil {
+	//			return nil, err
+	//		}
+	//
+	//		jobStatuses = append(jobStatuses, *jobStatus)
+	//		if len(jobStatuses) == 10 {
+	//			break
+	//		}
+	//	}
+	//}
+
+	return []schema.APIResponse{
+		{
+			Spec: *api,
+			//JobStatuses: jobStatuses,
+			Endpoint: endpoint,
+		},
+	}, nil
+}
+
 // DeleteAPI deletes a task api
 func DeleteAPI(apiName string, keepCache bool) error {
 	// best effort deletion, so don't handle error yet
