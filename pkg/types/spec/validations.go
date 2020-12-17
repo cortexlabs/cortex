@@ -529,14 +529,15 @@ func autoscalingValidation(provider types.ProviderType) *cr.StructFieldValidatio
 				StructField: "Window",
 				StringValidation: &cr.StringValidation{
 					CantBeSpecified: "only supported on AWS clusters",
+					Default:         "0",
 				},
-				// TODO check these parsers
 				Parser: cr.DurationParser(nil),
 			},
 			&cr.StructFieldValidation{
 				StructField: "DownscaleStabilizationPeriod",
 				StringValidation: &cr.StringValidation{
 					CantBeSpecified: "only supported on AWS clusters",
+					Default:         "0",
 				},
 				Parser: cr.DurationParser(nil),
 			},
@@ -544,6 +545,7 @@ func autoscalingValidation(provider types.ProviderType) *cr.StructFieldValidatio
 				StructField: "UpscaleStabilizationPeriod",
 				StringValidation: &cr.StringValidation{
 					CantBeSpecified: "only supported on AWS clusters",
+					Default:         "0",
 				},
 				Parser: cr.DurationParser(nil),
 			},
