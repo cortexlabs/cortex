@@ -231,3 +231,11 @@ if [[ $output ]]; then
   echo "$output"
   exit 1
 fi
+
+# Check docs links
+output=$(python3 $ROOT/dev/find_missing_docs_links.py)
+if [[ $output ]]; then
+  echo "docs file(s) have broken links:"
+  echo "$output"
+  exit 1
+fi
