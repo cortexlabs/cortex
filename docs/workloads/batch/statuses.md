@@ -1,7 +1,5 @@
 # Job statuses
 
-_WARNING: you are on the master branch, please refer to the docs on the branch that matches your `cortex version`_
-
 | Status                   | Meaning |
 | :--- | :--- |
 | enqueuing                | Job is being split into batches and placed into a queue |

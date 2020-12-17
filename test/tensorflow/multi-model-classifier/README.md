@@ -1,7 +1,5 @@
 # Multi-Model Classifier API
 
-_WARNING: you are on the master branch; please refer to examples on the branch corresponding to your `cortex version` (e.g. for version 0.24.*, run `git checkout -b 0.24` or switch to the `0.24` branch on GitHub)_
-
 This example deploys Iris, ResNet50 and Inception models in one API. Query parameters are used for selecting the model.
 
 The example can be run on both CPU and on GPU hardware.

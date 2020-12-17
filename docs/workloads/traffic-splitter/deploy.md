@@ -1,7 +1,5 @@
 # TrafficSplitter
 
-_WARNING: you are on the master branch, please refer to the docs on the branch that matches your `cortex version`_
-
 Expose multiple RealtimeAPIs as a single endpoint for A/B tests, multi-armed bandits, or canary deployments.
 
 **Note: TrafficSplitter is only supported on a Cortex cluster**
