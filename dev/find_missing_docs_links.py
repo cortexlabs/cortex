@@ -72,6 +72,10 @@ def get_links_from_file(file):
                         target = os.path.normpath(os.path.join(file, "..", parts[0]))
                         link_infos.append((file, n, link, target, parts[1]))
                     continue
+
+                # Unexpected link format, will be handled later
+                link_infos.append((file, n, link, None, None))
+
             n += 1
 
     return link_infos
@@ -85,6 +89,10 @@ def check_links(link_infos):
         src_file, line_num, original_link_text, target_file, header = link_info
         if original_link_text.startswith("http"):
             http_link_infos.append(link_info)
+            continue
+
+        if not target_file and not header:
+            errors.append(err_str(src_file, line_num, original_link_text, "unknown link format")),
             continue
 
         error = check_local_link(src_file, line_num, original_link_text, target_file, header)
@@ -123,23 +131,20 @@ async def check_http_link(session, src_file, line_num, link, errors):
         try:
             async with session.get(link, timeout=4) as resp:
                 if resp.status != 200:
-                    clean_src_file = src_file.split("cortexlabs/cortex/")[-1]
                     errors.append(
-                        f"{clean_src_file}:{line_num}: {link} (http response code {resp.status})"
+                        err_str(src_file, line_num, link, f"http response code {resp.status}")
                     )
                 return
         except asyncio.TimeoutError:
             if num_tries > 1:
-                clean_src_file = src_file.split("cortexlabs/cortex/")[-1]
-                errors.append(f"{clean_src_file}:{line_num}: {link} (http timeout)")
+                errors.append(err_str(src_file, line_num, link, "http timeout"))
                 return
             num_tries += 1
 
 
 def check_local_link(src_file, line_num, original_link_text, target_file, header):
     if not os.path.isfile(target_file):
-        clean_src_file = src_file.split("cortexlabs/cortex/")[-1]
-        return f"{clean_src_file}:{line_num}: {original_link_text} (file does not exist)"
+        return err_str(src_file, line_num, original_link_text, "file does not exist")
 
     if header:
         found_header = False
@@ -151,8 +156,7 @@ def check_local_link(src_file, line_num, original_link_text, target_file, header
                     found_header = True
                     break
         if not found_header:
-            clean_src_file = src_file.split("cortexlabs/cortex/")[-1]
-            return f"{clean_src_file}:{line_num}: {original_link_text} (header does not exist)"
+            return err_str(src_file, line_num, original_link_text, "header does not exist")
 
     return None
 
@@ -163,6 +167,11 @@ def header_matches(text, header):
         if word not in text_words:
             return False
     return True
+
+
+def err_str(src_file, line_num, original_link_text, reason):
+    clean_src_file = src_file.split("cortexlabs/cortex/")[-1]
+    return f"{clean_src_file}:{line_num}: {original_link_text} ({reason})"
 
 
 if __name__ == "__main__":
