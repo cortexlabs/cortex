@@ -51,7 +51,12 @@ func UpdateAPI(apiConfig *userconfig.API, models []spec.CuratedModelResource, pr
 				return nil, "", err
 			}
 
-			incompatibleMinorVersion := strings.Join(strings.Split(incompatibleVersion, ".")[:2], ".")
+			incompatibleMinorVersion := incompatibleVersion
+			split := strings.Split(incompatibleVersion, ".")
+			if len(split) == 3 {
+				incompatibleMinorVersion = strings.Join(strings.Split(incompatibleVersion, ".")[:2], ".")
+			}
+
 			if consts.CortexVersionMinor != incompatibleMinorVersion && !deployDisallowPrompt {
 				prompt.YesOrExit(
 					fmt.Sprintf(
