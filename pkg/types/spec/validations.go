@@ -815,13 +815,19 @@ func validateMultiModelsFields(api *userconfig.API) error {
 
 	var models *userconfig.MultiModels
 	if api.Predictor.Models != nil {
+		if api.Predictor.Type == userconfig.PythonPredictorType {
+			return ErrorFieldNotSupportedByPredictorType(userconfig.ModelsKey, api.Predictor.Type)
+		}
 		models = api.Predictor.Models
 	}
 	if api.Predictor.MultiModelReloading != nil {
+		if api.Predictor.Type != userconfig.PythonPredictorType {
+			return ErrorFieldNotSupportedByPredictorType(userconfig.MultiModelReloadingKey, api.Predictor.Type)
+		}
 		models = api.Predictor.MultiModelReloading
 	}
-	if models == nil {
-		return nil
+	if models == nil && api.Predictor.Type != userconfig.PythonPredictorType {
+		return ErrorFieldMustBeDefinedForPredictorType(userconfig.ModelsKey, api.Predictor.Type)
 	}
 
 	if models.ModelPath == nil && len(models.Paths) == 0 && models.Dir == nil {

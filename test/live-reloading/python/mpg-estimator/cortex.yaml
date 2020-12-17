@@ -5,5 +5,5 @@
   predictor:
     type: python
     path: predictor.py
-    dynamic_model_loading:
+    multi_model_reloading:
       model_path: s3://cortex-examples/sklearn/mpg-estimator/linreg/

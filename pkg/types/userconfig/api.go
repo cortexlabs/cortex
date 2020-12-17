@@ -48,7 +48,7 @@ type Predictor struct {
 	Type PredictorType `json:"type" yaml:"type"`
 	Path string        `json:"path" yaml:"path"`
 
-	MultiModelReloading *MultiModels `json:"dynamic_model_loading" yaml:"dynamic_model_loading"`
+	MultiModelReloading *MultiModels `json:"multi_model_reloading" yaml:"multi_model_reloading"`
 	Models              *MultiModels `json:"models" yaml:"models"`
 
 	ServerSideBatching     *ServerSideBatching    `json:"server_side_batching" yaml:"server_side_batching"`
@@ -370,7 +370,7 @@ func (predictor *Predictor) UserStr() string {
 	}
 	if predictor.MultiModelReloading != nil {
 		sb.WriteString(fmt.Sprintf("%s:\n", MultiModelReloadingKey))
-		sb.WriteString(s.Indent(predictor.Models.UserStr(), "  "))
+		sb.WriteString(s.Indent(predictor.MultiModelReloading.UserStr(), "  "))
 	}
 
 	if predictor.Type == TensorFlowPredictorType && predictor.ServerSideBatching != nil {
@@ -412,7 +412,7 @@ func (models *MultiModels) UserStr() string {
 			sb.WriteString(modelUserStr)
 		}
 	} else if models.ModelPath != nil {
-		sb.WriteString(fmt.Sprintf("%s: %s\n", ModelsPathKey, *models.Dir))
+		sb.WriteString(fmt.Sprintf("%s: %s\n", ModelsPathKey, *models.ModelPath))
 	} else {
 		sb.WriteString(fmt.Sprintf("%s: %s\n", ModelsDirKey, *models.Dir))
 	}

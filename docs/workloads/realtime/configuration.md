@@ -11,7 +11,7 @@ _WARNING: you are on the master branch, please refer to the docs on the branch t
   predictor:
     type: python
     path: <string>  # path to a python file with a PythonPredictor class definition, relative to the Cortex root (required)
-    dynamic_model_loading:  # optional
+    multi_model_reloading:  # optional
       model_path: <string>  # S3 path to an exported model directory (e.g. s3://my-bucket/exported_model/) (optional, cannot be provided along with 'models')
       models:  # use this to serve multiple models in a single API (optional, cannot be provided along with 'model_path')
         dir: <string>  # S3 path to a directory containing multiple models (e.g. s3://my-bucket/models/) (either this or 'paths' must be provided)
