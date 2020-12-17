@@ -92,7 +92,7 @@ docker build . -t org/my-api:latest
 
 _If you are only running Cortex locally, you can skip this section_
 
-You can push your built Docker image to a public registry of your choice (e.g. Docker Hub), or to a private registry on ECR or Docker Hub (for private Docker Hub, also follow [this guide](../guides/private-docker.md) to configure access in your cluster).
+You can push your built Docker image to a public registry of your choice (e.g. Docker Hub), or to a private registry on ECR or Docker Hub (for private Docker Hub, also follow [this guide](../../guides/private-docker.md) to configure access in your cluster).
 
 For example, to use ECR, first create a repository to store your image:
 

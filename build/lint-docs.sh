@@ -32,7 +32,6 @@ fi
 output=$(cd "$ROOT/docs" && find . -type f \
 ! -path "./README.md" \
 ! -name "summary.md" \
-! -path "./tutorials/*" \
 ! -name "contributing.md" \
 -exec grep -L "WARNING: you are on the master branch, please refer to the docs on the branch that matches your \`cortex version\`" {} \;)
 if [[ $output ]]; then

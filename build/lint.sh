@@ -142,7 +142,6 @@ else
   output=$(cd "$ROOT/docs" && find . -type f \
   ! -path "./README.md" \
   ! -name "summary.md" \
-  ! -path "./tutorials/*" \
   ! -name "contributing.md" \
   ! -name "*.json" \
   ! -name "*.txt" \

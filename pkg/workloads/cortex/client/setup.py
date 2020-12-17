@@ -115,8 +115,8 @@ setup(
     ],
     project_urls={
         "Bug Reports": "https://github.com/cortexlabs/cortex/issues",
-        "Chat with us": "https://gitter.im/cortexlabs/cortex",
-        "Documentation": "https://docs.cortex.dev",
+        "Community": "https://gitter.im/cortexlabs/cortex",
+        "Docs": "https://docs.cortex.dev",
         "Source Code": "https://github.com/cortexlabs/cortex",
     },
 )
