@@ -21,6 +21,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/aws/aws-sdk-go/service/sqs"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 )
@@ -51,6 +52,10 @@ func IsNoSuchKeyErr(err error) bool {
 
 func IsNoSuchBucketErr(err error) bool {
 	return IsErrCode(err, s3.ErrCodeNoSuchBucket)
+}
+
+func IsNonExistentQueueErr(err error) bool {
+	return IsErrCode(err, sqs.ErrCodeQueueDoesNotExist)
 }
 
 func IsGenericNotFoundErr(err error) bool {
