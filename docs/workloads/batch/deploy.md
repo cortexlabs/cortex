@@ -1,5 +1,7 @@
 # BatchAPI
 
+_WARNING: you are on the master branch, please refer to the docs on the branch that matches your `cortex version`_
+
 Deploy batch APIs that can orchestrate distributed batch inference jobs on large datasets.
 
 ## Key features
