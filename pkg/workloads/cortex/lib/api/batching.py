@@ -32,12 +32,11 @@ class DynamicBatcher:
         self.batch_max_size = max_batch_size
         self.batch_interval = batch_interval  # measured in seconds
 
-        # waiter synchronizes threads and prevents that extra threads
-        # modify the batch while prediction is in process
+        # waiter prevents new threads from modifying the input batch while a batch prediction is in progress
         self.waiter = td.Event()
         self.waiter.set()
 
-        self.barrier = td.Barrier(self.batch_max_size + 1)
+        self.barrier = td.Barrier(self.batch_max_size + 1, action=self.waiter.clear)
 
         self.samples = {}
         self.predictions = {}
@@ -54,7 +53,6 @@ class DynamicBatcher:
             except td.BrokenBarrierError:
                 pass
 
-            self.waiter.clear()
             self.predictions = {}
 
             try:
@@ -71,7 +69,6 @@ class DynamicBatcher:
             except Exception as e:
                 self.predictions = {thread_id: e for thread_id in self.samples}
                 logger().error(traceback.format_exc())
-                continue
             finally:
                 self.samples = {}
                 self.barrier.reset()
