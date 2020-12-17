@@ -27,4 +27,5 @@ const (
 	IncludesKey       = "includes"
 	ExcludesKey       = "excludes"
 	WorkersKey        = "workers"
+	TimeoutKey        = "timeout"
 )

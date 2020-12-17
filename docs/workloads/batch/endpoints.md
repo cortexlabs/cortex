@@ -34,6 +34,7 @@ Submitting data in the request can be useful in the following scenarios:
 POST <batch_api_endpoint>:
 {
     "workers": <int>,         # the number of workers to allocate for this job (required)
+    "timeout": <int>,         # duration in seconds for the job to complete before it is forcefully terminated (optional)
     "item_list": {
         "items": [            # a list items that can be of any type (required)
             <any>,
@@ -54,6 +55,7 @@ RESPONSE:
     "config": {<string>: <any>},
     "api_id": <string>,
     "sqs_url": <string>,
+    "timeout": <int>,
     "created_time": <string>  # e.g. 2020-07-16T14:56:10.276007415Z
 }
 ```
@@ -75,6 +77,7 @@ If a single S3 file contains a lot of samples/rows, try the next submission stra
 POST <batch_api_endpoint>:
 {
     "workers": <int>,            # the number of workers to allocate for this job (required)
+    "timeout": <int>,         # duration in seconds for the job to complete before it is forcefully terminated (optional)
     "file_path_lister": {
         "s3_paths": [<string>],  # can be S3 prefixes or complete S3 paths (required)
         "includes": [<string>],  # glob patterns (optional)
@@ -94,6 +97,7 @@ RESPONSE:
     "config": {<string>: <any>},
     "api_id": <string>,
     "sqs_url": <string>,
+    "timeout": <int>,
     "created_time": <string>  # e.g. 2020-07-16T14:56:10.276007415Z
 }
 ```
@@ -114,6 +118,7 @@ This submission pattern is useful in the following scenarios:
 POST <batch_api_endpoint>:
 {
     "workers": <int>,            # the number of workers to allocate for this job (required)
+    "timeout": <int>,         # duration in seconds for the job to complete before it is forcefully terminated (optional)
     "delimited_files": {
         "s3_paths": [<string>],  # can be S3 prefixes or complete S3 paths (required)
         "includes": [<string>],  # glob patterns (optional)
@@ -133,6 +138,7 @@ RESPONSE:
     "config": {<string>: <any>},
     "api_id": <string>,
     "sqs_url": <string>,
+    "timeout": <int>,
     "created_time": <string>  # e.g. 2020-07-16T14:56:10.276007415Z
 }
 ```

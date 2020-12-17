@@ -54,10 +54,27 @@ func (j JobState) GetLastUpdated() time.Time {
 	return lastUpdated
 }
 
+func (j JobState) GetFirstCreated() time.Time {
+	// https://stackoverflow.com/questions/25065055/what-is-the-maximum-time-time-in-go
+	firstCreated := time.Unix(1<<63-62135596801, 999999999)
+
+	for _, fileLastUpdated := range j.LastUpdatedMap {
+		if firstCreated.After(fileLastUpdated) {
+			firstCreated = fileLastUpdated
+		}
+	}
+
+	return firstCreated
+}
+
 // Doesn't assume only status files are present. The order below matters.
 func getStatusCode(lastUpdatedMap map[string]time.Time) status.JobCode {
 	if _, ok := lastUpdatedMap[status.JobStopped.String()]; ok {
 		return status.JobStopped
+	}
+
+	if _, ok := lastUpdatedMap[status.JobTimedOut.String()]; ok {
+		return status.JobTimedOut
 	}
 
 	if _, ok := lastUpdatedMap[status.JobWorkerOOM.String()]; ok {
@@ -190,6 +207,8 @@ func setStatusForJob(jobKey spec.JobKey, jobStatus status.JobCode) error {
 		return setWorkerErrorStatus(jobKey)
 	case status.JobWorkerOOM:
 		return setWorkerOOMStatus(jobKey)
+	case status.JobTimedOut:
+		return setTimedOutStatus(jobKey)
 	case status.JobStopped:
 		return setStoppedStatus(jobKey)
 	}
@@ -310,6 +329,20 @@ func setEnqueueFailedStatus(jobKey spec.JobKey) error {
 
 func setUnexpectedErrorStatus(jobKey spec.JobKey) error {
 	err := config.AWS.UploadStringToS3("", config.Cluster.Bucket, path.Join(jobKey.Prefix(config.Cluster.ClusterName), status.JobUnexpectedError.String()))
+	if err != nil {
+		return err
+	}
+
+	err = deleteInProgressFile(jobKey)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func setTimedOutStatus(jobKey spec.JobKey) error {
+	err := config.AWS.UploadStringToS3("", config.Cluster.Bucket, path.Join(jobKey.Prefix(config.Cluster.ClusterName), status.JobTimedOut.String()))
 	if err != nil {
 		return err
 	}
