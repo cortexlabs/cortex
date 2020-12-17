@@ -449,7 +449,7 @@ func autoscalingValidation(provider types.ProviderType) *cr.StructFieldValidatio
 		},
 	}
 
-	if provider == types.AWSProviderType {
+	if provider == types.AWSProviderType || provider == types.LocalProviderType {
 		structFieldValidation.StructValidation.StructFieldValidations = append(structFieldValidation.StructValidation.StructFieldValidations,
 			&cr.StructFieldValidation{
 				StructField: "TargetReplicaConcurrency",
