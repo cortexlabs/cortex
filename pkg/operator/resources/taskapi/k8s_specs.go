@@ -25,6 +25,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 	"github.com/cortexlabs/cortex/pkg/operator/operator"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
+	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	istioclientnetworking "istio.io/client-go/pkg/apis/networking/v1beta1"
 	kmeta "k8s.io/apimachinery/pkg/apis/meta/v1"
 	klabels "k8s.io/apimachinery/pkg/labels"
@@ -70,7 +71,11 @@ func deleteK8sResources(apiName string) error {
 	return parallel.RunFirstErr(
 		func() error {
 			_, err := config.K8s.DeleteJobs(&kmeta.ListOptions{
-				LabelSelector: klabels.SelectorFromSet(map[string]string{"apiName": apiName}).String(),
+				LabelSelector: klabels.SelectorFromSet(
+					map[string]string{
+						"apiName": apiName,
+						"apiKind": userconfig.TaskAPIKind.String(),
+					}).String(),
 			})
 			return err
 		},

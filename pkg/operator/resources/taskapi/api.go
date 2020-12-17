@@ -18,8 +18,10 @@ package taskapi
 
 import (
 	"fmt"
+	"path/filepath"
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/parallel"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 	"github.com/cortexlabs/cortex/pkg/operator/operator"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
@@ -170,4 +172,59 @@ func GetAllAPIs(virtualServices []istioclientnetworking.VirtualService) ([]schem
 	}
 
 	return batchAPIList, nil
+}
+
+// DeleteAPI deletes a task api
+func DeleteAPI(apiName string, keepCache bool) error {
+	// best effort deletion, so don't handle error yet
+	virtualService, vsErr := config.K8s.GetVirtualService(operator.K8sName(apiName))
+
+	err := parallel.RunFirstErr(
+		func() error {
+			return vsErr
+		},
+		func() error {
+			return deleteK8sResources(apiName)
+		},
+		func() error {
+			if keepCache {
+				return nil
+			}
+			return deleteS3Resources(apiName)
+		},
+		func() error {
+			err := operator.RemoveAPIFromAPIGatewayK8s(virtualService)
+			if err != nil {
+				return err
+			}
+
+			return nil
+		},
+	)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func deleteS3Resources(apiName string) error {
+	return parallel.RunFirstErr(
+		func() error {
+			prefix := filepath.Join(config.Cluster.ClusterName, "apis", apiName)
+			return config.AWS.DeleteS3Dir(config.Cluster.Bucket, prefix, true)
+		},
+		//func() error {
+		//	prefix := spec.BatchAPIJobPrefix(apiName, config.Cluster.ClusterName)
+		//	go func() {
+		//		_ = config.AWS.DeleteS3Dir(config.Cluster.Bucket, prefix, true) // deleting job files may take a while
+		//	}()
+		//	return nil
+		//},
+		//func() error {
+		//	deleteAllInProgressFilesByAPI(apiName) // not useful xml error is thrown, swallow the error
+		//	return nil
+		//},
+	)
 }

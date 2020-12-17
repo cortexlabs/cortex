@@ -340,6 +340,11 @@ func DeleteAPI(apiName string, keepCache bool) (*schema.DeleteResponse, error) {
 		if err != nil {
 			return nil, err
 		}
+	case userconfig.TaskAPIKind:
+		err := taskapi.DeleteAPI(apiName, keepCache)
+		if err != nil {
+			return nil, err
+		}
 	default:
 		return nil, ErrorOperationIsOnlySupportedForKind(*deployedResource, userconfig.RealtimeAPIKind, userconfig.BatchAPIKind, userconfig.TrafficSplitterKind) // unexpected
 	}
