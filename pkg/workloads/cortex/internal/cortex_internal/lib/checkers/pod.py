@@ -12,32 +12,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import sys
-import pathlib
-import time
+import os, stat, time
 
-import uvicorn
-import yaml
+from cortex_internal import consts
 
 
-def main():
-    uds = sys.argv[1]
-
-    with open("/src/cortex/serve/log_config.yaml", "r") as f:
-        log_config = yaml.load(f, yaml.FullLoader)
-
-    while not pathlib.Path("/mnt/workspace/init_script_run.txt").is_file():
-        time.sleep(0.2)
-
-    uvicorn.run(
-        "cortex_internal.serve.wsgi:app",
-        uds=uds,
-        forwarded_allow_ips="*",
-        proxy_headers=True,
-        log_config=log_config,
-        log_level="info",
-    )
+def neuron_socket_exists():
+    if not os.path.exists(consts.INFERENTIA_NEURON_SOCKET):
+        return False
+    else:
+        mode = os.stat(consts.INFERENTIA_NEURON_SOCKET)
+        return stat.S_ISSOCK(mode.st_mode)
 
 
-if __name__ == "__main__":
-    main()
+def wait_neuron_rtd():
+    while not neuron_socket_exists():
+        time.sleep(0.1)

@@ -25,13 +25,13 @@ import pathlib
 import boto3
 import botocore
 
-from cortex import consts
-from cortex.lib import util
-from cortex.lib.api import API, get_spec, get_api
-from cortex.lib.log import cx_logger as logger
-from cortex.lib.concurrency import LockedFile
-from cortex.lib.storage import S3, LocalStorage
-from cortex.lib.exceptions import UserRuntimeException
+from cortex_internal import consts
+from cortex_internal.lib import util
+from cortex_internal.lib.api import API, get_spec, get_api
+from cortex_internal.lib.log import cx_logger as logger
+from cortex_internal.lib.concurrency import LockedFile
+from cortex_internal.lib.storage import S3, LocalStorage
+from cortex_internal.lib.exceptions import UserRuntimeException
 
 API_LIVENESS_UPDATE_PERIOD = 5  # seconds
 MAXIMUM_MESSAGE_VISIBILITY = 60 * 60 * 12  # 12 hours is the maximum message visibility

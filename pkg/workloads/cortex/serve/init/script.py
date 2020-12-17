@@ -17,19 +17,19 @@ import time
 import json
 import sys
 
-from cortex.lib.type import (
+from cortex_internal.lib.type import (
     predictor_type_from_api_spec,
     PythonPredictorType,
     TensorFlowPredictorType,
     TensorFlowNeuronPredictorType,
     ONNXPredictorType,
 )
-from cortex.lib.model import (
+from cortex_internal.lib.model import (
     FileBasedModelsTreeUpdater,  # only when num workers > 1
     TFSModelLoader,
 )
-from cortex.lib.api import get_spec
-from cortex.lib.checkers.pod import wait_neuron_rtd
+from cortex_internal.lib.api import get_spec
+from cortex_internal.lib.checkers.pod import wait_neuron_rtd
 
 
 def prepare_tfs_servers_api(api_spec: dict, model_dir: str) -> TFSModelLoader:

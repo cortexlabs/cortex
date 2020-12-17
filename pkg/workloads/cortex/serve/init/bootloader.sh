@@ -158,7 +158,7 @@ if [ "$CORTEX_KIND" = "RealtimeAPI" ]; then
     chmod +x $dest_dir/run
 
     # generate nginx conf
-    /opt/conda/envs/env/bin/python -c 'from cortex.lib import util; import os; generated = util.render_jinja_template("/src/cortex/serve/nginx.conf.j2", os.environ); print(generated);' > /run/nginx.conf
+    /opt/conda/envs/env/bin/python -c 'from cortex_internal.lib import util; import os; generated = util.render_jinja_template("/src/cortex/serve/nginx.conf.j2", os.environ); print(generated);' > /run/nginx.conf
 
 # prepare batch otherwise
 else

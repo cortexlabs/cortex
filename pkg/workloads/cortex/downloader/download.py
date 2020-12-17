@@ -17,9 +17,9 @@ import os
 import base64
 import json
 
-from cortex.lib import util
-from cortex.lib.storage import S3, GCS
-from cortex.lib.log import cx_logger as logger
+from cortex_internal.lib import util
+from cortex_internal.lib.storage import S3, GCS
+from cortex_internal.lib.log import cx_logger as logger
 
 
 def start(args):

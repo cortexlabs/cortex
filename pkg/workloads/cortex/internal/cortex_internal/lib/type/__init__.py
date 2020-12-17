@@ -12,32 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import sys
-import pathlib
-import time
-
-import uvicorn
-import yaml
-
-
-def main():
-    uds = sys.argv[1]
-
-    with open("/src/cortex/serve/log_config.yaml", "r") as f:
-        log_config = yaml.load(f, yaml.FullLoader)
-
-    while not pathlib.Path("/mnt/workspace/init_script_run.txt").is_file():
-        time.sleep(0.2)
-
-    uvicorn.run(
-        "cortex_internal.serve.wsgi:app",
-        uds=uds,
-        forwarded_allow_ips="*",
-        proxy_headers=True,
-        log_config=log_config,
-        log_level="info",
-    )
-
-
-if __name__ == "__main__":
-    main()
+from cortex_internal.lib.type.type import (
+    PythonPredictorType,
+    TensorFlowPredictorType,
+    TensorFlowNeuronPredictorType,
+    ONNXPredictorType,
+    PredictorType,
+    predictor_type_from_string,
+    predictor_type_from_api_spec,
+)

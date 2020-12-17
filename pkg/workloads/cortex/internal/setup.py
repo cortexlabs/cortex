@@ -16,15 +16,13 @@ import pathlib
 import pkg_resources
 from setuptools import setup, find_packages
 
-with pathlib.Path('requirements.txt').open() as requirements_txt:
+with pathlib.Path("requirements.txt").open() as requirements_txt:
     install_requires = [
-        str(requirement)
-        for requirement
-        in pkg_resources.parse_requirements(requirements_txt)
+        str(requirement) for requirement in pkg_resources.parse_requirements(requirements_txt)
     ]
 
 setup(
-    name="cortex",
+    name="cortex-internal",
     version="master",  # CORTEX_VERSION
     description="Internal package for Cortex containers",
     author="cortex.dev",
