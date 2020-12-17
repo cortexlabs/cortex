@@ -51,6 +51,9 @@
   * [Configuration](workloads/batch/configuration.md)
   * [Statuses](workloads/batch/statuses.md)
   * [Endpoints](workloads/batch/endpoints.md)
+* Multi-model
+  * [Deploy](workloads/multi-model/deploy.md)
+  * [Configuration](workloads/multi-model/configuration.md)
 * Traffic Splitter
   * [Deploy](workloads/traffic-splitter/deploy.md)
   * [Python packages](workloads/traffic-splitter/configuration.md)
