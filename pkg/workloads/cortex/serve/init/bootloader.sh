@@ -89,17 +89,18 @@ if [ -f "/mnt/project/requirements.txt" ]; then
     pip --no-cache-dir install -r /mnt/project/requirements.txt
 fi
 
+# good pages to read about s6-overlay used in create_s6_service and create_s6_task
+# https://wiki.gentoo.org/wiki/S6#Process_supervision
+# https://skarnet.org/software/s6/s6-svscanctl.html
+# http://skarnet.org/software/s6/s6-svc.html
+# http://skarnet.org/software/s6/servicedir.html
+
+# good pages to read about execline
+# http://www.troubleshooters.com/linux/execline.htm
+# https://danyspin97.org/blog/getting-started-with-execline-scripting/
+
+# only terminate pod if this process exits with non-zero exit code
 create_s6_service() {
-    # good pages to read about s6-overlay
-    # https://wiki.gentoo.org/wiki/S6#Process_supervision
-    # https://skarnet.org/software/s6/s6-svscanctl.html
-    # http://skarnet.org/software/s6/s6-svc.html
-    # http://skarnet.org/software/s6/servicedir.html
-
-    # good pages to read about execline
-    # http://www.troubleshooters.com/linux/execline.htm
-    # https://danyspin97.org/blog/getting-started-with-execline-scripting/
-
     service_name=$1
     cmd=$2
 
@@ -115,6 +116,27 @@ create_s6_service() {
     echo "#!/usr/bin/execlineb -S0" > $dest_script
     echo "ifelse { s6-test \${1} -ne 0 } { foreground { redirfd -w 1 /var/run/s6/env-stage3/S6_STAGE2_EXITED s6-echo -n -- \${1} } s6-svscanctl -t /var/run/s6/services }" >> $dest_script
     echo "s6-svc -O /var/run/s6/services/$service_name" >> $dest_script
+    chmod +x $dest_script
+}
+
+# terminate pod if this process exits (zero or non-zero exit code)
+create_s6_task() {
+    task_name=$1
+    cmd=$2
+
+    dest_dir="/etc/services.d/$task_name"
+    mkdir $dest_dir
+
+    dest_script="$dest_dir/run"
+    echo "#!/usr/bin/with-contenv bash" > $dest_script
+    echo $cmd >> $dest_script
+    chmod +x $dest_script
+
+    dest_script="$dest_dir/finish"
+    echo "#!/usr/bin/execlineb -S0" > $dest_script
+    echo "ifelse { s6-test \${1} -ne 0 } { foreground { redirfd -w 1 /var/run/s6/env-stage3/S6_STAGE2_EXITED s6-echo -n -- \${1} } s6-svscanctl -t /var/run/s6/services }" >> $dest_script
+    echo "s6-svscanctl -t /var/run/s6/services" >> $dest_script
+
     chmod +x $dest_script
 }
 
@@ -140,7 +162,7 @@ if [ "$CORTEX_KIND" = "RealtimeAPI" ]; then
 
 # prepare batch otherwise
 else
-    create_s6_service "batch" "cd /mnt/project && $source_env_file_cmd && exec env PYTHONUNBUFFERED=TRUE env PYTHONPATH=$PYTHONPATH:$CORTEX_PYTHON_PATH /opt/conda/envs/env/bin/python /src/cortex/serve/start/batch.py"
+    create_s6_task "batch" "cd /mnt/project && $source_env_file_cmd && PYTHONUNBUFFERED=TRUE PYTHONPATH=$PYTHONPATH:$CORTEX_PYTHON_PATH /opt/conda/envs/env/bin/python /src/cortex/serve/start/batch.py"
 fi
 
 # create the python initialization service

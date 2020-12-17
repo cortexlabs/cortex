@@ -16,8 +16,8 @@ cortex cluster configure  # or: cortex cluster configure --config cluster.yaml
 # spin down your cluster
 cortex cluster down
 
-# update your CLI
-bash -c "$(curl -sS https://raw.githubusercontent.com/cortexlabs/cortex/master/get-cli.sh)"
+# update your CLI to the latest version
+pip install --upgrade cortex
 
 # confirm version
 cortex version

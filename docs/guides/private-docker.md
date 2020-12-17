@@ -12,7 +12,7 @@ When running Cortex locally, you can use private Docker images by running `docke
 
 ### Step 1
 
-Install and configure kubectl ([instructions](kubectl-setup.md)).
+Install and configure kubectl ([instructions](kubectl.md)).
 
 ### Step 2
 

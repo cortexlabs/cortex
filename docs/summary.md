@@ -1,7 +1,17 @@
 # Table of contents
 
 * [Get started](tutorials/realtime.md)
-* [Chat with us](https://gitter.im/cortexlabs/cortex)
+* [Community](https://gitter.im/cortexlabs/cortex)
+* [Contributing](contributing.md)
+
+## CLI
+
+* [Install](cli/install.md)
+* [Commands](cli/commands.md)
+* [Python client](cli/python-client.md)
+* [Environments](cli/environments.md)
+* [Telemetry](cli/telemetry.md)
+* [Uninstall](cli/uninstall.md)
 
 ## Tutorials
 
@@ -35,7 +45,7 @@
 
 ## Workloads
 
-* [Realtime API](workloads/realtime.md)
+* Realtime
   * [Predictor implementation](workloads/realtime/predictors.md)
   * [API configuration](workloads/realtime/configuration.md)
   * [API statuses](workloads/realtime/statuses.md)
@@ -43,17 +53,13 @@
   * [Parallelism](workloads/realtime/parallelism.md)
   * [Autoscaling](workloads/realtime/autoscaling.md)
   * [Traffic Splitter](workloads/realtime/traffic-splitter.md)
-* [Batch API](workloads/batch.md)
+* Batch
   * [Predictor implementation](workloads/batch/predictors.md)
   * [API configuration](workloads/batch/configuration.md)
   * [Endpoints](workloads/batch/endpoints.md)
   * [Job statuses](workloads/batch/statuses.md)
-* [CLI reference](workloads/cli.md)
-* [Python client](workloads/python-client.md)
 * [Python packages](workloads/python-packages.md)
 * [System packages](workloads/system-packages.md)
-* [Environments](workloads/environments.md)
-* [Telemetry](workloads/telemetry.md)
 
 ## Troubleshooting
 
@@ -65,13 +71,9 @@
 
 ## Guides
 
-* [Installing the CLI](guides/cli.md)
 * [Exporting models](guides/exporting.md)
 * [Multi-model endpoints](guides/multi-model.md)
 * [View API metrics](guides/metrics.md)
-* [Single node deployment](guides/single-node-deployment.md)
 * [Setting up kubectl](guides/kubectl.md)
 * [Self-hosted Docker images](guides/self-hosted-images.md)
-* [Docker Hub rate limiting](guides/docker-hub-rate-limiting.md)
 * [Private docker registry](guides/private-docker.md)
-* [Contributing](guides/contributing.md)
