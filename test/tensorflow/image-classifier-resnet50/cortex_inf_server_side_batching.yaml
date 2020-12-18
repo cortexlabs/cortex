@@ -4,7 +4,7 @@
     type: tensorflow
     path: predictor.py
     models:
-      model_path: s3://cortex-examples/tensorflow/resnet50_neuron_batch_size_5/
+      path: s3://cortex-examples/tensorflow/resnet50_neuron_batch_size_5/
     server_side_batching:
       max_batch_size: 5
       batch_interval: 0.1s

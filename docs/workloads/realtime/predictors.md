@@ -59,8 +59,7 @@ class PythonPredictor:
                 the model and/or metadata.
             python_client (optional): Python client which is used to retrieve
                 models for prediction. This should be saved for use in predict().
-                Required when `predictor.model_path` or `predictor.models` is
-                specified in the api configuration.
+                Required when `predictor.models` is specified in the api configuration.
         """
         self.client = python_client # optional
 
@@ -103,7 +102,7 @@ class PythonPredictor:
     def load_model(self, model_path):
         """(Optional) Called by Cortex to load a model when necessary.
 
-        This method is required when `predictor.model_path` or `predictor.models`
+        This method is required when `predictor.models`
         field is specified in the api configuration.
 
         Warning: this method must not make any modification to the model's

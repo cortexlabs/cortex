@@ -43,7 +43,7 @@ const (
 	ConfigKey                 = "config"
 	EnvKey                    = "env"
 
-	// DynamicModelLoading
+	// MultiModelReloading
 	MultiModelReloadingKey = "multi_model_reloading"
 
 	// MultiModels

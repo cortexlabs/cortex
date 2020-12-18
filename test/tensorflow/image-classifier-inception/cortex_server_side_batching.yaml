@@ -4,7 +4,7 @@
     type: tensorflow
     path: predictor.py
     models:
-      model_path: s3://cortex-examples/tensorflow/image-classifier/inception/
+      path: s3://cortex-examples/tensorflow/image-classifier/inception/
     server_side_batching:
       max_batch_size: 2
       batch_interval: 0.2s

@@ -218,7 +218,7 @@ class FileBasedModelsTreeUpdater(mp.Process):
 
     def _make_local_models_available(self) -> None:
         """
-        Make local models (provided through model_path, models:paths or models:dir fields) available on disk.
+        Make local models (provided through models:path, models:paths or models:dir fields) available on disk.
         """
 
         timestamp_utc = datetime.datetime.now(datetime.timezone.utc).timestamp()
