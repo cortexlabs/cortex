@@ -126,10 +126,3 @@ func ErrorBindDockerInDocker(err error) error {
 		Cause:   err,
 	})
 }
-
-func ErrorMustSpecifyLocalAWSCreds() error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrMustSpecifyLocalAWSCreds,
-		Message: "you must configure your local environment with AWS credentials; please run `cortex env configure local`",
-	})
-}

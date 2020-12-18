@@ -1,13 +1,11 @@
 # Splitting traffic between APIs
 
-_WARNING: you are on the master branch; please refer to examples on the branch corresponding to your `cortex version` (e.g. for version 0.24.*, run `git checkout -b 0.24` or switch to the `0.24` branch on GitHub)_
-
 This example shows how to split traffic between 2 different iris-classifiers deployed as Realtime APIs.
 
 To deploy this example:
 
 1. Determine your CLI Version `cortex version`
-1. Clone the repo and switch to the current version by replacing `<CORTEX_VERSION>` with your CLI version: `git clone -b v<CORTEX_VERSION> https://github.com/cortexlabs/cortex` (e.g. if the output of `cortex version` is 0.18.1, the clone command would be `git clone -b v0.18.1 https://github.com/cortexlabs/cortex`)
+1. Clone the repo and switch to the current version; for example, if your cortex version is 0.18.1, run `git clone -b v0.18.1 https://github.com/cortexlabs/cortex`
 1. Navigate to this example directory
 
 ## `cortex deploy`

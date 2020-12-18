@@ -1,7 +1,5 @@
 # Self-hosted Docker images
 
-_WARNING: you are on the master branch, please refer to the docs on the branch that matches your `cortex version`_
-
 Self-hosted Docker images can be useful for reducing the ingress costs, for accelerating image pulls, or for eliminating the dependency on Cortex's public container registry.
 
 In this guide, we'll use [ECR](https://aws.amazon.com/ecr/) as the destination container registry. When an ECR repository resides in the same region as your Cortex cluster, there are no costs incurred when pulling images.
@@ -32,7 +30,7 @@ set -euo pipefail
 # user set variables
 ecr_region="us-west-2"
 aws_account_id="620970939130"  # example account ID
-cortex_version="0.24.0"
+cortex_version="0.24.1"
 
 source_registry="quay.io/cortexlabs"
 destination_ecr_prefix="cortexlabs"
@@ -129,9 +127,9 @@ done
 echo "-----------------------------------------------"
 ```
 
-The first list of images that were printed (the cluster images) can be directly copy-pasted in your [cluster configuration file](../aws/install.md) before spinning up your cluster.
+The first list of images that were printed (the cluster images) can be directly copy-pasted in your cluster configuration file before spinning up your cluster.
 
-The second list of images that were printed (the API images) can be used in your [API configuration files](../workloads/realtime/api-configuration.md). The image paths are specified in `predictor.image` (and `predictor.tensorflow_serving_image` for APIs with `kind: tensorflow`). Be advised that by default, the public images offered by Cortex are used for your predictors, so you will need to specify your ECR image paths for all of your APIs.
+The second list of images that were printed (the API images) can be used in your API configuration files. The image paths are specified in `predictor.image` (and `predictor.tensorflow_serving_image` for APIs with `kind: tensorflow`). Be advised that by default, the public images offered by Cortex are used for your predictors, so you will need to specify your ECR image paths for all of your APIs.
 
 ## Step 5
 

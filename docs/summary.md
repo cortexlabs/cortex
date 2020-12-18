@@ -1,15 +1,17 @@
 # Table of contents
 
-* [Get started](tutorials/realtime.md)
-* [Chat with us](https://gitter.im/cortexlabs/cortex)
+* [Get started](workloads/realtime/deploy.md)
+* [Community](https://gitter.im/cortexlabs/cortex)
+* [Contributing](contributing.md)
 
-## Tutorials
+## CLI
 
-* [Realtime API](tutorials/realtime.md)
-* [Batch API](tutorials/batch.md)
-* [Multi-model API](tutorials/multi-model.md)
-* [Traffic splitter](tutorials/traffic-splitter.md)
-* [Project directory](tutorials/project.md)
+* [Install](cli/install.md)
+* [Commands](cli/commands.md)
+* [Python client](cli/python-client.md)
+* [Environments](cli/environments.md)
+* [Telemetry](cli/telemetry.md)
+* [Uninstall](cli/uninstall.md)
 
 ## Running on AWS
 
@@ -35,25 +37,31 @@
 
 ## Workloads
 
-* [Realtime API](workloads/realtime.md)
-  * [Predictor implementation](workloads/realtime/predictors.md)
-  * [API configuration](workloads/realtime/configuration.md)
-  * [API statuses](workloads/realtime/statuses.md)
+* Realtime
+  * [Deploy](workloads/realtime/deploy.md)
+  * [Predictor](workloads/realtime/predictors.md)
+  * [Configuration](workloads/realtime/configuration.md)
+  * [Statuses](workloads/realtime/statuses.md)
   * [Models](workloads/realtime/models.md)
   * [Parallelism](workloads/realtime/parallelism.md)
   * [Autoscaling](workloads/realtime/autoscaling.md)
-  * [Prediction monitoring](workloads/realtime/prediction-monitoring.md)
-  * [Traffic Splitter](workloads/realtime/traffic-splitter.md)
-* [Batch API](workloads/batch.md)
-  * [Predictor implementation](workloads/batch/predictors.md)
-  * [API configuration](workloads/batch/configuration.md)
+* Batch
+  * [Deploy](workloads/batch/deploy.md)
+  * [Predictor](workloads/batch/predictors.md)
+  * [Configuration](workloads/batch/configuration.md)
+  * [Statuses](workloads/batch/statuses.md)
   * [Endpoints](workloads/batch/endpoints.md)
-  * [Job statuses](workloads/batch/statuses.md)
-* [Python client](workloads/python-client.md)
-* [Python packages](workloads/python-packages.md)
-* [System packages](workloads/system-packages.md)
-* [Environments](workloads/environments.md)
-* [Telemetry](workloads/telemetry.md)
+* Multi-model
+  * [Deploy](workloads/multi-model/deploy.md)
+  * [Configuration](workloads/multi-model/configuration.md)
+* Traffic Splitter
+  * [Deploy](workloads/traffic-splitter/deploy.md)
+  * [Python packages](workloads/traffic-splitter/configuration.md)
+* Dependencies
+  * [Deploy](workloads/dependencies/deploy.md)
+  * [Python packages](workloads/dependencies/python-packages.md)
+  * [System packages](workloads/dependencies/system-packages.md)
+* [Exporting models](workloads/exporting.md)
 
 ## Troubleshooting
 
@@ -65,15 +73,7 @@
 
 ## Guides
 
-* [Exporting models](guides/exporting.md)
-* [Multi-model endpoints](guides/multi-model.md)
 * [View API metrics](guides/metrics.md)
-* [Running in production](guides/production.md)
-* [Low-cost clusters](guides/low-cost-clusters.md)
-* [Single node deployment](guides/single-node-deployment.md)
-* [Set up kubectl](guides/kubectl-setup.md)
+* [Setting up kubectl](guides/kubectl.md)
 * [Self-hosted Docker images](guides/self-hosted-images.md)
-* [Docker Hub rate limiting](guides/docker-hub-rate-limiting.md)
 * [Private docker registry](guides/private-docker.md)
-* [Install CLI on Windows](guides/windows-cli.md)
-* [Contributing](guides/contributing.md)

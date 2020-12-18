@@ -1,9 +1,5 @@
 # Using Inferentia
 
-_WARNING: you are on the master branch, please refer to the docs on the branch that matches your `cortex version`_
-
-To use [Inferentia ASICs](https://aws.amazon.com/machine-learning/inferentia/):
-
 1. You may need to [request a limit increase](https://console.aws.amazon.com/servicequotas/home?#!/services/ec2/quotas) for running Inferentia instances.
 1. Set the instance type to an AWS Inferentia instance (e.g. `inf1.xlarge`) when creating your Cortex cluster.
 1. Set the `inf` field in the `compute` configuration for your API. One unit of `inf` corresponds to one Inferentia ASIC with 4 NeuronCores *(not the same thing as `cpu`)* and 8GB of cache memory *(not the same thing as `mem`)*. Fractional requests are not allowed.
@@ -20,9 +16,9 @@ Each Inferentia ASIC comes with 4 NeuronCores and 8GB of cache memory. To better
 
 ### NeuronCore Groups
 
-A [NeuronCore Group](https://github.com/aws/aws-neuron-sdk/blob/master/docs/tensorflow-neuron/tutorial-NeuronCore-Group.md) (NCG) is a set of NeuronCores that is used to load and run a compiled model. NCGs exist to aggregate NeuronCores to improve hardware performance. Models can be shared within an NCG, but this would require the device driver to dynamically context switch between each model, which degrades performance. Therefore we've decided to only allow one model per NCG (unless you are using a [multi-model endpoint](../guides/multi-model.md), in which case there will be multiple models on a single NCG, and there will be context switching).
+A [NeuronCore Group](https://github.com/aws/aws-neuron-sdk/blob/master/docs/tensorflow-neuron/tutorial-NeuronCore-Group.md) (NCG) is a set of NeuronCores that is used to load and run a compiled model. NCGs exist to aggregate NeuronCores to improve hardware performance. Models can be shared within an NCG, but this would require the device driver to dynamically context switch between each model, which degrades performance. Therefore we've decided to only allow one model per NCG (unless you are using a multi-model endpoint, in which case there will be multiple models on a single NCG, and there will be context switching).
 
-Each Cortex API process will have its own copy of the model and will run on its own NCG (the number of API processes is configured by the [`processes_per_replica`](realtime-api/autoscaling.md#replica-parallelism) for Realtime APIs field in the API configuration). Each NCG will have an equal share of NeuronCores. Therefore, the size of each NCG will be `4 * inf / processes_per_replica` (`inf` refers to your API's `compute` request, and it's multiplied by 4 because there are 4 NeuronCores per Inferentia chip).
+Each Cortex API process will have its own copy of the model and will run on its own NCG (the number of API processes is configured by the `processes_per_replica` for Realtime APIs field in the API configuration). Each NCG will have an equal share of NeuronCores. Therefore, the size of each NCG will be `4 * inf / processes_per_replica` (`inf` refers to your API's `compute` request, and it's multiplied by 4 because there are 4 NeuronCores per Inferentia chip).
 
 For example, if your API requests 2 `inf` chips, there will be 8 NeuronCores available. If you set `processes_per_replica` to 1, there will be one copy of your model running on a single NCG of size 8 NeuronCores. If `processes_per_replica` is 2, there will be two copies of your model, each running on a separate NCG of size 4 NeuronCores. If `processes_per_replica` is 4, there will be 4 NCGs of size 2 NeuronCores, and if If `processes_per_replica` is 8, there will be 8 NCGs of size 1 NeuronCores. In this scenario, these are the only valid values for `processes_per_replica`. In other words the total number of requested NeuronCores (which equals 4 * the number of requested Inferentia chips) must be divisible by `processes_per_replica`.
 
@@ -34,7 +30,7 @@ Before a model can be deployed on Inferentia chips, it must be compiled for Infe
 
 By default, the Neuron compiler will compile a model to use 1 NeuronCore, but can be manually set to a different size (1, 2, 4, etc).
 
-For optimal performance, your model should be compiled to run on the number of NeuronCores available to it. The number of NeuronCores will be `4 * inf / processes_per_replica` (`inf` refers to your API's `compute` request, and it's multiplied by 4 because there are 4 NeuronCores per Inferentia chip). See [NeuronCore Groups](#neuron-core-groups) above for an example, and see [Improving performance](#improving-performance) below for a discussion of choosing the appropriate number of NeuronCores.
+For optimal performance, your model should be compiled to run on the number of NeuronCores available to it. The number of NeuronCores will be `4 * inf / processes_per_replica` (`inf` refers to your API's `compute` request, and it's multiplied by 4 because there are 4 NeuronCores per Inferentia chip). See [NeuronCore Groups](#neuroncore-groups) above for an example, and see [Improving performance](#improving-performance) below for a discussion of choosing the appropriate number of NeuronCores.
 
 Here is an example of compiling a TensorFlow SavedModel for Inferentia:
 
@@ -64,7 +60,7 @@ model_neuron = torch.neuron.trace(
 model_neuron.save(compiled_model)
 ```
 
-The versions of `tensorflow-neuron` and `torch-neuron` that are used by Cortex are found in the [Realtime API pre-installed packages list](realtime-api/predictors.md#inferentia-equipped-apis) and [Batch API pre-installed packages list](batch-api/predictors.md#inferentia-equipped-apis). When installing these packages with `pip` to compile models of your own, use the extra index URL `--extra-index-url=https://pip.repos.neuron.amazonaws.com`.
+The versions of `tensorflow-neuron` and `torch-neuron` that are used by Cortex are found in the [Realtime API pre-installed packages list and Batch API pre-installed packages list. When installing these packages with `pip` to compile models of your own, use the extra index URL `--extra-index-url=https://pip.repos.neuron.amazonaws.com`.
 
 A list of model compilation examples for Inferentia can be found on the [`aws/aws-neuron-sdk`](https://github.com/aws/aws-neuron-sdk) repo for [TensorFlow](https://github.com/aws/aws-neuron-sdk/blob/master/docs/tensorflow-neuron/) and for [PyTorch](https://github.com/aws/aws-neuron-sdk/blob/master/docs/pytorch-neuron/README.md).
 

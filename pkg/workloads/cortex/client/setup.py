@@ -79,7 +79,7 @@ with open("README.md") as f:
 setup(
     name="cortex",
     version="master",  # CORTEX_VERSION
-    description="Deploy machine learning models to production",
+    description="Run inference at scale",
     author="cortex.dev",
     author_email="dev@cortex.dev",
     license="Apache License 2.0",
@@ -115,8 +115,8 @@ setup(
     ],
     project_urls={
         "Bug Reports": "https://github.com/cortexlabs/cortex/issues",
-        "Chat with us": "https://gitter.im/cortexlabs/cortex",
-        "Documentation": "https://docs.cortex.dev",
+        "Community": "https://gitter.im/cortexlabs/cortex",
+        "Docs": "https://docs.cortex.dev",
         "Source Code": "https://github.com/cortexlabs/cortex",
     },
 )

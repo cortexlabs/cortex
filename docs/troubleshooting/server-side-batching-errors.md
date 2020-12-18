@@ -1,6 +1,4 @@
-# Batching errors when max_batch_size/batch_interval are set
-
-_WARNING: you are on the master branch, please refer to the docs on the branch that matches your `cortex version`_
+# Server-side batching errors
 
 When `max_batch_size` and `batch_interval` fields are set for the [Realtime API TensorFlow Predictor](../workloads/realtime/predictors.md#tensorflow-predictor), errors can be encountered if the associated model hasn't been built for batching.
 

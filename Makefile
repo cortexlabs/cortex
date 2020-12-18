@@ -115,11 +115,11 @@ cluster-down-gcp-y:
 cluster-info-aws:
 	@$(MAKE) images-manager-local
 	@$(MAKE) cli
-	@eval $$(python3 ./manager/cluster_config_env.py ./dev/config/cluster-aws.yaml) && ./bin/cortex cluster info --config=./dev/config/cluster-aws.yaml --configure-env="$$CORTEX_CLUSTER_NAME-aws" --aws-key=$$AWS_ACCESS_KEY_ID --aws-secret=$$AWS_SECRET_ACCESS_KEY && ./bin/cortex env default "$$CORTEX_CLUSTER_NAME-aws"
+	@eval $$(python3 ./manager/cluster_config_env.py ./dev/config/cluster-aws.yaml) && ./bin/cortex cluster info --config=./dev/config/cluster-aws.yaml --configure-env="$$CORTEX_CLUSTER_NAME-aws" --aws-key=$$AWS_ACCESS_KEY_ID --aws-secret=$$AWS_SECRET_ACCESS_KEY --yes && ./bin/cortex env default "$$CORTEX_CLUSTER_NAME-aws"
 cluster-info-gcp:
 	@$(MAKE) images-manager-local
 	@$(MAKE) cli
-	@eval $$(python3 ./manager/cluster_config_env.py ./dev/config/cluster-gcp.yaml) && ./bin/cortex cluster-gcp info --config=./dev/config/cluster-gcp.yaml --configure-env="$$CORTEX_CLUSTER_NAME-gcp" && ./bin/cortex env default "$$CORTEX_CLUSTER_NAME-gcp"
+	@eval $$(python3 ./manager/cluster_config_env.py ./dev/config/cluster-gcp.yaml) && ./bin/cortex cluster-gcp info --config=./dev/config/cluster-gcp.yaml --configure-env="$$CORTEX_CLUSTER_NAME-gcp" --yes && ./bin/cortex env default "$$CORTEX_CLUSTER_NAME-gcp"
 
 cluster-configure-aws:
 	@$(MAKE) images-all-aws
@@ -243,7 +243,7 @@ tools:
 	@go get -u -v golang.org/x/lint/golint
 	@go get -u -v github.com/VojtechVitek/rerun/cmd/rerun
 	@go get -u -v github.com/go-delve/delve/cmd/dlv
-	@python3 -m pip install black 'pydoc-markdown>=3.0.0,<4.0.0'
+	@python3 -m pip install aiohttp black 'pydoc-markdown>=3.0.0,<4.0.0'
 	@if [[ "$$OSTYPE" == "darwin"* ]]; then brew install parallel; elif [[ "$$OSTYPE" == "linux"* ]]; then sudo apt-get install -y parallel; else echo "your operating system is not supported"; fi
 
 format:
@@ -264,6 +264,10 @@ test-python:
 
 lint:
 	@./build/lint.sh
+
+# this is a subset of lint.sh, and is only meant to be run on master
+lint-docs:
+	@./build/lint-docs.sh
 
 ###############
 # CI Commands #

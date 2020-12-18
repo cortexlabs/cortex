@@ -60,8 +60,6 @@ const (
 	ErrS3DirNotFound  = "spec.s3_dir_not_found"
 	ErrS3DirIsEmpty   = "spec.s3_dir_is_empty"
 
-	ErrIncorrectBucketProvider    = "spec.incorrect_bucket_provider"
-	ErrMixedBucketProviders       = "spec.mixed_bucket_providers"
 	ErrModelPathNotDirectory      = "spec.model_path_not_directory"
 	ErrInvalidPythonModelPath     = "spec.invalid_python_model_path"
 	ErrInvalidTensorFlowModelPath = "spec.invalid_tensorflow_model_path"
@@ -71,25 +69,26 @@ const (
 	ErrDuplicateModelNames = "spec.duplicate_model_names"
 	ErrReservedModelName   = "spec.reserved_model_name"
 
-	ErrFieldMustBeDefinedForPredictorType   = "spec.field_must_be_defined_for_predictor_type"
-	ErrFieldNotSupportedByPredictorType     = "spec.field_not_supported_by_predictor_type"
-	ErrNoAvailableNodeComputeLimit          = "spec.no_available_node_compute_limit"
-	ErrCortexPrefixedEnvVarNotAllowed       = "spec.cortex_prefixed_env_var_not_allowed"
-	ErrLocalPathNotSupportedByAWSProvider   = "spec.local_path_not_supported_by_aws_provider"
-	ErrUnsupportedLocalComputeResource      = "spec.unsupported_local_compute_resource"
-	ErrRegistryInDifferentRegion            = "spec.registry_in_different_region"
-	ErrRegistryAccountIDMismatch            = "spec.registry_account_id_mismatch"
-	ErrCannotAccessECRWithAnonymousAWSCreds = "spec.cannot_access_ecr_with_anonymous_aws_creds"
-	ErrKindIsNotSupportedByProvider         = "spec.kind_is_not_supported_by_provider"
-	ErrKeyIsNotSupportedForKind             = "spec.key_is_not_supported_for_kind"
-	ErrComputeResourceConflict              = "spec.compute_resource_conflict"
-	ErrInvalidNumberOfInfProcesses          = "spec.invalid_number_of_inf_processes"
-	ErrInvalidNumberOfInfs                  = "spec.invalid_number_of_infs"
-	ErrInsufficientBatchConcurrencyLevel    = "spec.insufficient_batch_concurrency_level"
-	ErrInsufficientBatchConcurrencyLevelInf = "spec.insufficient_batch_concurrency_level_inf"
-	ErrIncorrectTrafficSplitterWeight       = "spec.incorrect_traffic_splitter_weight"
-	ErrTrafficSplitterAPIsNotUnique         = "spec.traffic_splitter_apis_not_unique"
-	ErrUnexpectedDockerSecretData           = "spec.unexpected_docker_secret_data"
+	ErrFieldMustBeDefinedForPredictorType          = "spec.field_must_be_defined_for_predictor_type"
+	ErrFieldNotSupportedByPredictorType            = "spec.field_not_supported_by_predictor_type"
+	ErrNoAvailableNodeComputeLimit                 = "spec.no_available_node_compute_limit"
+	ErrCortexPrefixedEnvVarNotAllowed              = "spec.cortex_prefixed_env_var_not_allowed"
+	ErrLocalPathNotSupportedByAWSProvider          = "spec.local_path_not_supported_by_aws_provider"
+	ErrUnsupportedLocalComputeResource             = "spec.unsupported_local_compute_resource"
+	ErrRegistryInDifferentRegion                   = "spec.registry_in_different_region"
+	ErrRegistryAccountIDMismatch                   = "spec.registry_account_id_mismatch"
+	ErrCannotAccessECRWithAnonymousAWSCreds        = "spec.cannot_access_ecr_with_anonymous_aws_creds"
+	ErrKindIsNotSupportedByProvider                = "spec.kind_is_not_supported_by_provider"
+	ErrKeyIsNotSupportedForKind                    = "spec.key_is_not_supported_for_kind"
+	ErrComputeResourceConflict                     = "spec.compute_resource_conflict"
+	ErrInvalidNumberOfInfProcesses                 = "spec.invalid_number_of_inf_processes"
+	ErrInvalidNumberOfInfs                         = "spec.invalid_number_of_infs"
+	ErrInsufficientBatchConcurrencyLevel           = "spec.insufficient_batch_concurrency_level"
+	ErrInsufficientBatchConcurrencyLevelInf        = "spec.insufficient_batch_concurrency_level_inf"
+	ErrConcurrencyMismatchServerSideBatchingPython = "spec.concurrency_mismatch_server_side_batching_python"
+	ErrIncorrectTrafficSplitterWeight              = "spec.incorrect_traffic_splitter_weight"
+	ErrTrafficSplitterAPIsNotUnique                = "spec.traffic_splitter_apis_not_unique"
+	ErrUnexpectedDockerSecretData                  = "spec.unexpected_docker_secret_data"
 )
 
 var _modelCurrentStructure = `
@@ -276,27 +275,6 @@ func ErrorS3DirIsEmpty(path string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrS3DirIsEmpty,
 		Message: fmt.Sprintf("%s: S3 directory is empty", path),
-	})
-}
-
-func ErrorIncorrectBucketProvider(provider types.ProviderType) error {
-	var errorMessage string
-	if provider == types.AWSProviderType {
-		errorMessage = fmt.Sprintf("for %s provider type, only s3 buckets are accepted", provider)
-	}
-	if provider == types.GCPProviderType {
-		errorMessage = fmt.Sprintf("for %s provider type, only gs buckets are accepted", provider)
-	}
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrIncorrectBucketProvider,
-		Message: errorMessage,
-	})
-}
-
-func ErrorMixedBucketProviders() error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrMixedBucketProviders,
-		Message: "cannot mix bucket providers; must only provider s3 or gs buckets",
 	})
 }
 
@@ -584,6 +562,18 @@ func ErrorInsufficientBatchConcurrencyLevelInf(maxBatchSize int32, threadsPerPro
 			userconfig.MaxBatchSizeKey, maxBatchSize, userconfig.ThreadsPerProcessKey, threadsPerProcess,
 		),
 	})
+}
+
+func ErrorConcurrencyMismatchServerSideBatchingPython(maxBatchsize int32, threadsPerProcess int32) error {
+	return errors.WithStack(
+		&errors.Error{
+			Kind: ErrConcurrencyMismatchServerSideBatchingPython,
+			Message: fmt.Sprintf(
+				"%s (%d) must be equal to %s (%d) when using server side batching with the python predictor",
+				userconfig.ThreadsPerProcessKey, threadsPerProcess, userconfig.MaxBatchSizeKey, maxBatchsize,
+			),
+		},
+	)
 }
 
 func ErrorIncorrectTrafficSplitterWeightTotal(totalWeight int32) error {

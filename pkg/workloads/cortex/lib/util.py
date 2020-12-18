@@ -21,7 +21,7 @@ import pathlib
 import inspect
 from inspect import Parameter
 from copy import deepcopy
-from typing import List, Any
+from typing import List, Dict, Any
 
 
 def has_method(object, method: str):
@@ -82,26 +82,36 @@ def ensure_suffix(string, suffix):
     return string + suffix
 
 
+def get_paths_with_prefix(paths: List[str], prefix: str) -> List[str]:
+    return list(filter(lambda path: path.startswith(prefix), paths))
+
+
+def get_paths_by_prefixes(paths: List[str], prefixes: List[str]) -> Dict[str, List[str]]:
+    paths_by_prefix = {}
+    for path in paths:
+        for prefix in prefixes:
+            if not path.startswith(prefix):
+                continue
+            if prefix not in paths_by_prefix:
+                paths_by_prefix[prefix] = [path]
+            else:
+                paths_by_prefix[prefix].append(path)
+    return paths_by_prefix
+
+
 def get_leftmost_part_of_path(path: str) -> str:
     """
     Gets the leftmost part of a path.
 
     If a path looks like
-    /models/tensorflow/iris/15559399
+    models/tensorflow/iris/15559399
 
     Then this function will return
-    /models/
+    models
     """
-    has_leading_slash = False
-    if path.startswith("/"):
-        path = path[1:]
-        has_leading_slash = True
-
-    basename = ""
-    while path:
-        path, basename = os.path.split(path)
-
-    return "/" * has_leading_slash + basename
+    if path == "." or path == "./":
+        return "."
+    return pathlib.PurePath(path).parts[0]
 
 
 def remove_non_empty_directory_paths(paths: List[str]) -> List[str]:
@@ -116,23 +126,37 @@ def remove_non_empty_directory_paths(paths: List[str]) -> List[str]:
     Then after calling this function, it will look like:
     models/tensorflow/iris/1569001258/saved_model.pb
     """
-    new_paths = []
 
+    leading_slash_paths_mask = [path.startswith("/") for path in paths]
+    all_paths_start_with_leading_slash = all(leading_slash_paths_mask)
+    some_paths_start_with_leading_slash = any(leading_slash_paths_mask)
+
+    if not all_paths_start_with_leading_slash and some_paths_start_with_leading_slash:
+        raise ValueError("can only either pass in absolute paths or relative paths")
+
+    path_map = {}
     split_paths = [list(filter(lambda x: x != "", path.split("/"))) for path in paths]
-    create_set_from_list = lambda l: set([(idx, split) for idx, split in enumerate(l)])
-    split_set_paths = [create_set_from_list(split_path) for split_path in split_paths]
 
-    for id_a, a in enumerate(split_set_paths):
-        matches = 0
-        for id_b, b in enumerate(split_set_paths):
-            if id_a == id_b:
-                continue
-            if a.issubset(b):
-                matches += 1
-        if matches == 0:
-            new_paths.append(paths[id_a])
+    for split_path in split_paths:
+        composed_path = ""
+        split_path_length = len(split_path)
+        for depth, path_level in enumerate(split_path):
+            if composed_path != "":
+                composed_path += "/"
+            composed_path += path_level
+            if composed_path not in path_map:
+                path_map[composed_path] = 1
+                if depth < split_path_length - 1:
+                    path_map[composed_path] += 1
+            else:
+                path_map[composed_path] += 1
 
-    return new_paths
+    file_paths = []
+    for file_path, appearances in path_map.items():
+        if appearances == 1:
+            file_paths.append(all_paths_start_with_leading_slash * "/" + file_path)
+
+    return file_paths
 
 
 def merge_dicts_in_place_overwrite(*dicts):

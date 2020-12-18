@@ -1,7 +1,5 @@
 # Install
 
-_WARNING: you are on the master branch, please refer to the docs on the branch that matches your `cortex version`_
-
 ## Spin up Cortex on your AWS account
 
 Make sure [Docker](https://docs.docker.com/install) is running on your machine.
@@ -21,7 +19,6 @@ cortex env default aws
 
 ## Configure Cortex
 
-<!-- CORTEX_VERSION_MINOR -->
 ```yaml
 # cluster.yaml
 

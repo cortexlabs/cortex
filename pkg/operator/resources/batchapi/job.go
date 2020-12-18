@@ -243,7 +243,7 @@ func deleteK8sJob(jobKey spec.JobKey) error {
 func deleteJobRuntimeResources(jobKey spec.JobKey) error {
 	err := errors.FirstError(
 		deleteK8sJob(jobKey),
-		deleteQueueByJobKey(jobKey),
+		deleteQueueByJobKeyIfExists(jobKey),
 	)
 
 	if err != nil {
