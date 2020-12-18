@@ -24,7 +24,7 @@
   * [REST API Gateway](cluster/aws/rest-api-gateway.md)
   * [Setting up kubectl](cluster/aws/kubectl.md)
   * [Uninstall](cluster/aws/uninstall.md)
-*GCP
+* GCP
   * [Install](cluster/gcp/install.md)
   * [Credentials](cluster/gcp/credentials.md)
   * [Uninstall](cluster/gcp/uninstall.md)
