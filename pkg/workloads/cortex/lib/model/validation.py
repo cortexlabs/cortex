@@ -240,7 +240,7 @@ def json_model_template_representation(model_template) -> dict:
 
 def _single_model_pattern(predictor_type: PredictorType) -> dict:
     """
-    To be used when predictor:model_path or predictor:models:paths in cortex.yaml is used.
+    To be used when predictor:models:path or predictor:models:paths in cortex.yaml is used.
     """
     return ModelTemplate[predictor_type]
 
@@ -289,7 +289,7 @@ def validate_model_paths(
     paths: List[str], predictor_type: PredictorType, common_prefix: str
 ) -> List[int]:
     """
-    To be used when predictor:model_path or predictor:models:paths in cortex.yaml is used.
+    To be used when predictor:models:path or predictor:models:paths in cortex.yaml is used.
 
     Args:
         paths: A list of all paths for a given cloud/local prefix. Must be the top directory of a model.

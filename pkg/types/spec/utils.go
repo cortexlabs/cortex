@@ -227,7 +227,7 @@ func validateDirModels(
 		modelResources[i] = CuratedModelResource{
 			ModelResource: &userconfig.ModelResource{
 				Name:         modelName,
-				ModelPath:    fullModelPath,
+				Path:         fullModelPath,
 				SignatureKey: signatureKey,
 			},
 			S3Path:    s3Path,
@@ -256,19 +256,19 @@ func validateModels(
 
 	modelResources := make([]CuratedModelResource, len(models))
 	for i, model := range models {
-		modelPath := s.EnsureSuffix(model.ModelPath, "/")
+		modelPath := s.EnsureSuffix(model.Path, "/")
 
-		s3Path := strings.HasPrefix(model.ModelPath, "s3://")
-		gcsPath := strings.HasPrefix(model.ModelPath, "gs://")
+		s3Path := strings.HasPrefix(model.Path, "s3://")
+		gcsPath := strings.HasPrefix(model.Path, "gs://")
 		localPath := !s3Path && !gcsPath
 
 		if s3Path {
-			awsClientForBucket, err := aws.NewFromClientS3Path(model.ModelPath, awsClient)
+			awsClientForBucket, err := aws.NewFromClientS3Path(model.Path, awsClient)
 			if err != nil {
 				return nil, errors.Wrap(err, model.Name)
 			}
 
-			bucket, modelPrefix, err = aws.SplitS3Path(model.ModelPath)
+			bucket, modelPrefix, err = aws.SplitS3Path(model.Path)
 			if err != nil {
 				return nil, errors.Wrap(err, model.Name)
 			}
@@ -282,7 +282,7 @@ func validateModels(
 		}
 
 		if gcsPath {
-			bucket, modelPrefix, err = gcp.SplitGCSPath(model.ModelPath)
+			bucket, modelPrefix, err = gcp.SplitGCSPath(model.Path)
 			if err != nil {
 				return nil, errors.Wrap(err, model.Name)
 			}
@@ -295,7 +295,7 @@ func validateModels(
 		}
 
 		if localPath {
-			expandedLocalPath := files.RelToAbsPath(model.ModelPath, projectDir)
+			expandedLocalPath := files.RelToAbsPath(model.Path, projectDir)
 			modelPrefix = s.EnsureSuffix(expandedLocalPath, "/")
 
 			err := files.CheckDir(modelPrefix)
@@ -366,7 +366,7 @@ func validateModels(
 		modelResources[i] = CuratedModelResource{
 			ModelResource: &userconfig.ModelResource{
 				Name:         model.Name,
-				ModelPath:    fullModelPath,
+				Path:         fullModelPath,
 				SignatureKey: signatureKey,
 			},
 			S3Path:    s3Path,

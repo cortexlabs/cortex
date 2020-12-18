@@ -499,7 +499,7 @@ func multiModelValidation(fieldName string) *cr.StructFieldValidation {
 			DefaultNil: true,
 			StructFieldValidations: []*cr.StructFieldValidation{
 				{
-					StructField: "ModelPath",
+					StructField: "Path",
 					StringPtrValidation: &cr.StringPtrValidation{
 						Required: false,
 					},
@@ -554,7 +554,7 @@ func multiModelPathsValidation() *cr.StructFieldValidation {
 						},
 					},
 					{
-						StructField: "ModelPath",
+						StructField: "Path",
 						StringValidation: &cr.StringValidation{
 							Required:   true,
 							AllowEmpty: false,
@@ -830,10 +830,10 @@ func validateMultiModelsFields(api *userconfig.API) error {
 		return ErrorFieldMustBeDefinedForPredictorType(userconfig.ModelsKey, api.Predictor.Type)
 	}
 
-	if models.ModelPath == nil && len(models.Paths) == 0 && models.Dir == nil {
+	if models.Path == nil && len(models.Paths) == 0 && models.Dir == nil {
 		return errors.Wrap(ErrorSpecifyOnlyOneField(userconfig.ModelsPathKey, userconfig.ModelsPathsKey, userconfig.ModelsDirKey), userconfig.ModelsKey)
 	}
-	if models.ModelPath != nil && (len(models.Paths) > 0 || models.Dir != nil) {
+	if models.Path != nil && (len(models.Paths) > 0 || models.Dir != nil) {
 		if len(models.Paths) > 0 {
 			return errors.Wrap(ErrorConflictingFields(userconfig.ModelsPathKey, userconfig.ModelsPathsKey), userconfig.ModelsKey)
 		}
@@ -897,7 +897,7 @@ func validatePythonPredictor(api *userconfig.API, models *[]CuratedModelResource
 		return errors.Wrap(ErrorFieldNotSupportedByPredictorType(userconfig.ModelsSignatureKeyKey, predictor.Type), userconfig.MultiModelReloadingKey)
 	}
 
-	hasSingleModel := dml.ModelPath != nil
+	hasSingleModel := dml.Path != nil
 	hasMultiModels := !hasSingleModel
 
 	var modelWrapError func(error) error
@@ -909,11 +909,11 @@ func validatePythonPredictor(api *userconfig.API, models *[]CuratedModelResource
 		}
 		modelResources = []userconfig.ModelResource{
 			{
-				Name:      consts.SingleModelName,
-				ModelPath: *dml.ModelPath,
+				Name: consts.SingleModelName,
+				Path: *dml.Path,
 			},
 		}
-		*dml.ModelPath = s.EnsureSuffix(*dml.ModelPath, "/")
+		*dml.Path = s.EnsureSuffix(*dml.Path, "/")
 	}
 	if hasMultiModels {
 		if dml.SignatureKey != nil {
@@ -935,7 +935,7 @@ func validatePythonPredictor(api *userconfig.API, models *[]CuratedModelResource
 						path.Name,
 					)
 				}
-				(*path).ModelPath = s.EnsureSuffix((*path).ModelPath, "/")
+				(*path).Path = s.EnsureSuffix((*path).Path, "/")
 				modelResources = append(modelResources, *path)
 			}
 		}
@@ -988,7 +988,7 @@ func validateTensorFlowPredictor(api *userconfig.API, models *[]CuratedModelReso
 		return ErrorFieldNotSupportedByPredictorType(userconfig.MultiModelReloadingKey, userconfig.PythonPredictorType)
 	}
 
-	hasSingleModel := predictor.Models.ModelPath != nil
+	hasSingleModel := predictor.Models.Path != nil
 	hasMultiModels := !hasSingleModel
 
 	var modelWrapError func(error) error
@@ -1001,11 +1001,11 @@ func validateTensorFlowPredictor(api *userconfig.API, models *[]CuratedModelReso
 		modelResources = []userconfig.ModelResource{
 			{
 				Name:         consts.SingleModelName,
-				ModelPath:    *predictor.Models.ModelPath,
+				Path:         *predictor.Models.Path,
 				SignatureKey: predictor.Models.SignatureKey,
 			},
 		}
-		*predictor.Models.ModelPath = s.EnsureSuffix(*predictor.Models.ModelPath, "/")
+		*predictor.Models.Path = s.EnsureSuffix(*predictor.Models.Path, "/")
 	}
 	if hasMultiModels {
 		if len(predictor.Models.Paths) > 0 {
@@ -1017,7 +1017,7 @@ func validateTensorFlowPredictor(api *userconfig.API, models *[]CuratedModelReso
 				if path.SignatureKey == nil && predictor.Models.SignatureKey != nil {
 					path.SignatureKey = predictor.Models.SignatureKey
 				}
-				(*path).ModelPath = s.EnsureSuffix((*path).ModelPath, "/")
+				(*path).Path = s.EnsureSuffix((*path).Path, "/")
 				modelResources = append(modelResources, *path)
 			}
 		}
@@ -1078,7 +1078,7 @@ func validateONNXPredictor(api *userconfig.API, models *[]CuratedModelResource, 
 		return ErrorFieldNotSupportedByPredictorType(userconfig.MultiModelReloadingKey, userconfig.PythonPredictorType)
 	}
 
-	hasSingleModel := predictor.Models.ModelPath != nil
+	hasSingleModel := predictor.Models.Path != nil
 	hasMultiModels := !hasSingleModel
 
 	var modelWrapError func(error) error
@@ -1090,11 +1090,11 @@ func validateONNXPredictor(api *userconfig.API, models *[]CuratedModelResource, 
 		}
 		modelResources = []userconfig.ModelResource{
 			{
-				Name:      consts.SingleModelName,
-				ModelPath: *predictor.Models.ModelPath,
+				Name: consts.SingleModelName,
+				Path: *predictor.Models.Path,
 			},
 		}
-		*predictor.Models.ModelPath = s.EnsureSuffix(*predictor.Models.ModelPath, "/")
+		*predictor.Models.Path = s.EnsureSuffix(*predictor.Models.Path, "/")
 	}
 	if hasMultiModels {
 		if len(predictor.Models.Paths) > 0 {
@@ -1111,7 +1111,7 @@ func validateONNXPredictor(api *userconfig.API, models *[]CuratedModelResource, 
 						path.Name,
 					)
 				}
-				(*path).ModelPath = s.EnsureSuffix((*path).ModelPath, "/")
+				(*path).Path = s.EnsureSuffix((*path).Path, "/")
 				modelResources = append(modelResources, *path)
 			}
 		}

@@ -142,7 +142,7 @@ class FileBasedModelsTreeUpdater(mp.Process):
         self._local_model_names = self._spec_models.get_local_model_names()
         self._cloud_model_names = self._spec_models.get_cloud_model_names()
         for model_name in self._cloud_model_names:
-            self._s3_paths.append(self._spec_models[model_name]["model_path"])
+            self._s3_paths.append(self._spec_models[model_name]["path"])
 
         self._predictor_type = predictor_type_from_api_spec(self._api_spec)
 
@@ -656,7 +656,7 @@ def find_ondisk_model_info(lock_dir: str, model_name: str) -> Tuple[List[str], L
 
     Args:
         lock_dir: Path to where the resource locks are stored.
-        model_name: Name of the model as specified in predictor:models:paths:name, _cortex_default when predictor:model_path is set or the discovered model names when predictor:models:dir is used.
+        model_name: Name of the model as specified in predictor:models:paths:name, _cortex_default when predictor:models:path is set or the discovered model names when predictor:models:dir is used.
 
     Returns:
         2-element tuple made of a list with the available versions and a list with the corresponding timestamps for each model. Empty when the model is not available.
@@ -737,7 +737,7 @@ class TFSModelLoader(mp.Process):
         self._local_model_names = self._spec_models.get_local_model_names()
         self._cloud_model_names = self._spec_models.get_cloud_model_names()
         for model_name in self._cloud_model_names:
-            self._cloud_paths.append(self._spec_models[model_name]["model_path"])
+            self._cloud_paths.append(self._spec_models[model_name]["path"])
 
         if (
             self._api_spec["predictor"]["models"] is not None
@@ -1537,7 +1537,7 @@ class ModelTreeUpdater(AbstractLoopingThread):
         self._spec_models = get_models_from_api_spec(self._api_spec)
         self._cloud_model_names = self._spec_models.get_cloud_model_names()
         for model_name in self._cloud_model_names:
-            self._cloud_paths.append(self._spec_models[model_name]["model_path"])
+            self._cloud_paths.append(self._spec_models[model_name]["path"])
 
         self._predictor_type = predictor_type_from_api_spec(self._api_spec)
 
