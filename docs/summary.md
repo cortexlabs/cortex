@@ -1,5 +1,7 @@
 # Summary
 
+* [Get started](workloads/realtime/example.md)
+
 ## Client
 
 * [Install](client/install.md)
