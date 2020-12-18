@@ -18,6 +18,7 @@ import json
 import math
 import os
 import sys
+import re
 import threading
 import time
 import uuid
@@ -158,7 +159,17 @@ async def parse_payload(request: Request, call_next):
 
     content_type = request.headers.get("content-type", "").lower()
 
-    if content_type.startswith("multipart/form") or content_type.startswith(
+    if content_type.startswith("text/plain"):
+        try:
+            charset = "utf-8"
+            matches = re.findall(r"charset=(\S+)", content_type)
+            if len(matches) > 0:
+                charset = matches[-1]
+            body = await request.body()
+            request.state.payload = body.decode(charset)
+        except Exception as e:
+            return PlainTextResponse(content=str(e), status_code=400)
+    elif content_type.startswith("multipart/form") or content_type.startswith(
         "application/x-www-form-urlencoded"
     ):
         try:
