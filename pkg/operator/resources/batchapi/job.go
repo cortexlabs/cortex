@@ -88,7 +88,7 @@ func SubmitJob(apiName string, submission *schema.JobSubmission) (*spec.Job, err
 		"jobID":   jobID,
 	}
 
-	queueURL, err := createFIFOQueue(jobKey, tags)
+	queueURL, err := createFIFOQueue(jobKey, submission.SQSDeadLetterQueue, tags)
 	if err != nil {
 		return nil, err
 	}

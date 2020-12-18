@@ -23,6 +23,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/sqs"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	libjson "github.com/cortexlabs/cortex/pkg/lib/json"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 	"github.com/cortexlabs/cortex/pkg/types/metrics"
@@ -61,21 +62,37 @@ func jobKeyFromQueueURL(queueURL string) spec.JobKey {
 	return spec.JobKey{APIName: apiName, ID: jobID}
 }
 
-func createFIFOQueue(jobKey spec.JobKey, tags map[string]string) (string, error) {
+func createFIFOQueue(jobKey spec.JobKey, deadLetterQueue *spec.SQSDeadLetterQueue, tags map[string]string) (string, error) {
 	for key, value := range config.Cluster.Tags {
 		tags[key] = value
 	}
 
 	queueName := getJobQueueName(jobKey)
 
+	attributes := map[string]string{
+		sqs.QueueAttributeNameFifoQueue:         "true",
+		sqs.QueueAttributeNameVisibilityTimeout: "60",
+	}
+
+	if deadLetterQueue != nil {
+		redrivePolicy := map[string]string{
+			"deadLetterTargetArn": deadLetterQueue.ARN,
+			"maxReceiveCount":     s.Int(deadLetterQueue.MaxReceiveCount),
+		}
+
+		redrivePolicyJSONBytes, err := libjson.Marshal(redrivePolicy)
+		if err != nil {
+			return "", err
+		}
+
+		attributes[sqs.QueueAttributeNameRedrivePolicy] = string(redrivePolicyJSONBytes)
+	}
+
 	output, err := config.AWS.SQS().CreateQueue(
 		&sqs.CreateQueueInput{
-			Attributes: map[string]*string{
-				"FifoQueue":         aws.String("true"),
-				"VisibilityTimeout": aws.String("60"),
-			},
-			QueueName: aws.String(queueName),
-			Tags:      aws.StringMap(tags),
+			Attributes: aws.StringMap(attributes),
+			QueueName:  aws.String(queueName),
+			Tags:       aws.StringMap(tags),
 		},
 	)
 	if err != nil {

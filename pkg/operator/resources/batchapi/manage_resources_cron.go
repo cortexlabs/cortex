@@ -270,17 +270,16 @@ func checkIfJobCompleted(jobKey spec.JobKey, queueURL string, k8sJob *kbatch.Job
 		return err
 	}
 
-	if jobSpec.TotalBatchCount == batchMetrics.TotalCompleted() {
+	if jobSpec.TotalBatchCount == batchMetrics.Succeeded {
 		jobsToDelete.Remove(jobKey.ID)
-		if batchMetrics.Failed != 0 {
-			return errors.FirstError(
-				setCompletedWithFailuresStatus(jobKey),
-				deleteJobRuntimeResources(jobKey),
-			)
-		}
-
 		return errors.FirstError(
 			setSucceededStatus(jobKey),
+			deleteJobRuntimeResources(jobKey),
+		)
+	} else {
+		jobsToDelete.Remove(jobKey.ID)
+		return errors.FirstError(
+			setCompletedWithFailuresStatus(jobKey),
 			deleteJobRuntimeResources(jobKey),
 		)
 	}

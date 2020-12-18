@@ -57,6 +57,10 @@ local_cache = {
 }
 
 
+receipt_handle_mutex = threading.Lock()
+stop_renewal = set()
+
+
 def dimensions():
     return [
         {"Name": "APIName", "Value": local_cache["api_spec"].name},
@@ -88,9 +92,6 @@ def startup():
     update_api_liveness()
 
 
-stop_renewal = set()
-
-
 def renew_message_visibility(receipt_handle: str):
     queue_url = local_cache["job_spec"]["sqs_url"]
     interval = MESSAGE_RENEWAL_PERIOD
@@ -102,9 +103,10 @@ def renew_message_visibility(receipt_handle: str):
         cur_time += interval
         new_timeout += interval
 
-        if receipt_handle in stop_renewal:
-            stop_renewal.remove(receipt_handle)
-            break
+        with receipt_handle_mutex:
+            if receipt_handle in stop_renewal:
+                stop_renewal.remove(receipt_handle)
+                break
 
         print(f"executing renew_message_visibility: {receipt_handle}")
 
@@ -197,39 +199,56 @@ def sqs_loop():
         receipt_handle = message["ReceiptHandle"]
         print(message)
 
-        try:
-            renewer = threading.Thread(
-                target=renew_message_visibility, args=(receipt_handle,), daemon=True
-            )
-            renewer.start()
-            start_time = time.time()
+        renewer = threading.Thread(
+            target=renew_message_visibility, args=(receipt_handle,), daemon=True
+        )
+        renewer.start()
 
-            if is_on_job_complete(message):
-                handle_on_job_complete(message)
-            else:
-                logger().info(f"processing batch {message['MessageId']}")
-                payload = json.loads(message["Body"])
-                batch_id = message["MessageId"]
-                predictor_impl.predict(**build_predict_args(payload, batch_id))
-
-                api_spec.post_metrics(
-                    [success_counter_metric(), time_per_batch_metric(time.time() - start_time)]
-                )
-        except Exception:
-            if is_on_job_complete(message):
-                logger().exception("failed to execute on_job_complete")
-            else:
-                api_spec.post_metrics(
-                    [failed_counter_metric(), time_per_batch_metric(time.time() - start_time)]
-                )
-                logger().exception("failed to process batch")
-        finally:
-            stop_renewal.add(receipt_handle)
-            sqs_client.delete_message(QueueUrl=queue_url, ReceiptHandle=receipt_handle)
+        if is_on_job_complete(message):
+            handle_on_job_complete(message)
+        else:
+            handle_batch_message(message)
 
 
 def is_on_job_complete(message) -> bool:
     return "MessageAttributes" in message and "job_complete" in message["MessageAttributes"]
+
+
+def handle_batch_message(message):
+    job_spec = local_cache["job_spec"]
+    predictor_impl = local_cache["predictor_impl"]
+    sqs_client = local_cache["sqs_client"]
+    queue_url = job_spec["sqs_url"]
+    receipt_handle = message["ReceiptHandle"]
+    api_spec = local_cache["api_spec"]
+
+    start_time = time.time()
+
+    try:
+        logger().info(f"processing batch {message['MessageId']}")
+        payload = json.loads(message["Body"])
+        batch_id = message["MessageId"]
+        predictor_impl.predict(**build_predict_args(payload, batch_id))
+
+        api_spec.post_metrics(
+            [success_counter_metric(), time_per_batch_metric(time.time() - start_time)]
+        )
+    except:
+        api_spec.post_metrics([failed_counter_metric()])
+        logger().exception(f"failed processing batch {message['MessageId']}")
+        with receipt_handle_mutex:
+            stop_renewal.add(receipt_handle)
+            print(local_cache["job_spec"].get("sqs_dead_letter_queue"))
+            if local_cache["job_spec"].get("sqs_dead_letter_queue") is not None:
+                local_cache["sqs_client"].change_message_visibility(  # return message
+                    QueueUrl=queue_url, ReceiptHandle=receipt_handle, VisibilityTimeout=0
+                )
+            else:
+                sqs_client.delete_message(QueueUrl=queue_url, ReceiptHandle=receipt_handle)
+    else:
+        with receipt_handle_mutex:
+            stop_renewal.add(receipt_handle)
+            sqs_client.delete_message(QueueUrl=queue_url, ReceiptHandle=receipt_handle)
 
 
 def handle_on_job_complete(message):
@@ -237,31 +256,45 @@ def handle_on_job_complete(message):
     predictor_impl = local_cache["predictor_impl"]
     sqs_client = local_cache["sqs_client"]
     queue_url = job_spec["sqs_url"]
+    receipt_handle = message["ReceiptHandle"]
 
     should_run_on_job_complete = False
-
-    while True:
-        visible_messages, invisible_messages = get_total_messages_in_queue()
-        total_messages = visible_messages + invisible_messages
-        if total_messages > 1:
-            new_message_id = uuid.uuid4()
-            time.sleep(JOB_COMPLETE_MESSAGE_RENEWAL)
-            sqs_client.send_message(
-                QueueUrl=queue_url,
-                MessageBody='"job_complete"',
-                MessageAttributes={"job_complete": {"StringValue": "true", "DataType": "String"}},
-                MessageDeduplicationId=str(new_message_id),
-                MessageGroupId=str(new_message_id),
-            )
-            return
-        else:
-            if should_run_on_job_complete:
-                if getattr(predictor_impl, "on_job_complete", None):
-                    logger().info("executing on_job_complete")
-                    predictor_impl.on_job_complete()
-                    return
-            should_run_on_job_complete = True
-        time.sleep(10)  # verify that the queue is empty one more time
+    attempted_to_execute_job_complete = False
+    try:
+        while True:
+            visible_messages, invisible_messages = get_total_messages_in_queue()
+            total_messages = visible_messages + invisible_messages
+            if total_messages > 1:
+                new_message_id = uuid.uuid4()
+                time.sleep(JOB_COMPLETE_MESSAGE_RENEWAL)
+                sqs_client.send_message(
+                    QueueUrl=queue_url,
+                    MessageBody='"job_complete"',
+                    MessageAttributes={
+                        "job_complete": {"StringValue": "true", "DataType": "String"},
+                        "api_name": {"StringValue": job_spec["api_name"], "DataType": "string"},
+                        "job_id": {"StringValue": job_spec["id"], "DataType": "string"},
+                    },
+                    MessageDeduplicationId=str(new_message_id),
+                    MessageGroupId=str(new_message_id),
+                )
+                break
+            else:
+                if should_run_on_job_complete:
+                    if getattr(predictor_impl, "on_job_complete", None):
+                        attempted_to_execute_job_complete = True
+                        logger().info("executing on_job_complete")
+                        predictor_impl.on_job_complete()
+                    break
+                should_run_on_job_complete = True
+            time.sleep(10)  # verify that the queue is empty one more time
+    except:
+        if attempted_to_execute_job_complete:
+            raise
+    finally:
+        with receipt_handle_mutex:
+            stop_renewal.add(receipt_handle)
+            sqs_client.delete_message(QueueUrl=queue_url, ReceiptHandle=receipt_handle)
 
 
 def start():
