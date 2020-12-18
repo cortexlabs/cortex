@@ -1,7 +1,5 @@
 # Deploy a project
 
-_WARNING: you are on the master branch, please refer to the docs on the branch that matches your `cortex version`_
-
 You can deploy an API by providing a project directory. Cortex will save the project directory and make it available during API initialization.
 
 ```bash

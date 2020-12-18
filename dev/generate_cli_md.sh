@@ -29,8 +29,6 @@ cli_config_backup_path=$HOME/.cortex/cli-bak-$RANDOM.yaml
 mv $HOME/.cortex/cli.yaml $cli_config_backup_path
 
 echo "# Commands" >> $out_file
-echo "" >> $out_file
-echo '_WARNING: you are on the master branch, please refer to the docs on the branch that matches your `cortex version`_' >> $out_file
 
 commands=(
   "deploy"

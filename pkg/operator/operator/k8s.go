@@ -590,22 +590,22 @@ func onnxDownloadArgs(api *spec.API) string {
 		},
 	}
 
-	if api.Predictor.ModelPath != nil && strings.HasSuffix(*api.Predictor.ModelPath, ".onnx") {
+	if api.Predictor.Models.Path != nil && strings.HasSuffix(*api.Predictor.Models.Path, ".onnx") {
 		downloadContainerArs = append(downloadContainerArs, downloadContainerArg{
-			From: *api.Predictor.ModelPath,
+			From: *api.Predictor.Models.Path,
 			To:   path.Join(_modelDir, consts.SingleModelName, "1"),
 		})
-	} else if api.Predictor.Models != nil {
-		for _, model := range api.Predictor.Models.Paths {
-			if model == nil {
-				continue
-			}
-			if strings.HasSuffix(model.ModelPath, ".onnx") {
-				downloadContainerArs = append(downloadContainerArs, downloadContainerArg{
-					From: model.ModelPath,
-					To:   path.Join(_modelDir, model.Name, "1"),
-				})
-			}
+	}
+
+	for _, model := range api.Predictor.Models.Paths {
+		if model == nil {
+			continue
+		}
+		if strings.HasSuffix(model.Path, ".onnx") {
+			downloadContainerArs = append(downloadContainerArs, downloadContainerArg{
+				From: model.Path,
+				To:   path.Join(_modelDir, model.Name, "1"),
+			})
 		}
 	}
 

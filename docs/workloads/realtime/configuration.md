@@ -1,7 +1,5 @@
 # API configuration
 
-_WARNING: you are on the master branch, please refer to the docs on the branch that matches your `cortex version`_
-
 ## Python Predictor
 
 <!-- CORTEX_VERSION_BRANCH_STABLE x2 -->
@@ -11,10 +9,10 @@ _WARNING: you are on the master branch, please refer to the docs on the branch t
   predictor:
     type: python
     path: <string>  # path to a python file with a PythonPredictor class definition, relative to the Cortex root (required)
-    model_path: <string>  # S3 path to an exported model directory (e.g. s3://my-bucket/exported_model/) (optional, cannot be provided along with 'models')
-    models:  # use this to serve multiple models in a single API (optional, cannot be provided along with 'model_path')
-      dir: <string>  # S3 path to a directory containing multiple models (e.g. s3://my-bucket/models/) (either this or 'paths' must be provided)
-      paths:  # list of S3 paths to exported model directories (either this or 'dir' must be provided)
+    multi_model_reloading:  # use this to serve a single model or multiple ones (optional)
+      dir: <string>  # S3 path to a directory containing multiple models (e.g. s3://my-bucket/models/)
+      model_path: <string> # S3 path to an exported model directory (e.g. s3://my-bucket/exported_model/)
+      paths:  # list of S3 paths to exported model directories
         - name: <string>  # unique name for the model (e.g. text-generator) (required)
           model_path: <string>  # S3 path to an exported model directory (e.g. s3://my-bucket/exported_model/) (required)
         ...
@@ -68,14 +66,13 @@ _WARNING: you are on the master branch, please refer to the docs on the branch t
   predictor:
     type: tensorflow
     path: <string>  # path to a python file with a TensorFlowPredictor class definition, relative to the Cortex root (required)
-    model_path: <string>  # S3 path to an exported model directory (e.g. s3://my-bucket/exported_model/) (either this or 'models' must be provided)
-    signature_key: <string>  # name of the signature def to use for prediction (required if your model has more than one signature def)
-    models:  # use this to serve multiple models in a single API (either this or 'model_path' must be provided)
-      dir: <string>  # S3 path to a directory containing multiple models (e.g. s3://my-bucket/models/) (either this or 'paths' must be provided)
-      paths:  # list of S3 paths to exported model directories (either this or 'dir' must be provided)
+    models:  # use this to serve a single model or multiple ones
+      dir: <string>  # S3 path to a directory containing multiple models (e.g. s3://my-bucket/models/)
+      model_path: <string> # S3 path to an exported model directory (e.g. s3://my-bucket/exported_model/)
+      paths:  # list of S3 paths to exported model directories
         - name: <string>  # unique name for the model (e.g. text-generator) (required)
           model_path: <string>  # S3 path to an exported model directory (e.g. s3://my-bucket/exported_model/) (required)
-          signature_key: <string>  # name of the signature def to use for prediction (required if your model has more than one signature def)
+          signature_key: <string>  # name of the signature def to use for prediction (optional)
         ...
       signature_key:  # name of the signature def to use for prediction for 'dir'-specified models or for models specified using 'paths' that haven't had a signature key set
       cache_size: <int>  # the number models to keep in memory (optional; all models are kept in memory by default)
@@ -129,10 +126,10 @@ _WARNING: you are on the master branch, please refer to the docs on the branch t
   predictor:
     type: onnx
     path: <string>  # path to a python file with an ONNXPredictor class definition, relative to the Cortex root (required)
-    model_path: <string>  # S3 path to an exported model directory (e.g. s3://my-bucket/exported_model/) (either this or 'models' must be provided)
-    models:  # use this to serve multiple models in a single API (either this or 'model_path' must be provided)
-      dir: <string>  # S3 path to a directory containing multiple models (e.g. s3://my-bucket/models/) (either this or 'paths' must be provided)
-      paths:  # list of S3 paths to exported model directories (either this or 'dir' must be provided)
+    models:  # use this to serve a single model or multiple ones
+      dir: <string>  # S3 path to a directory containing multiple models (e.g. s3://my-bucket/models/)
+      model_path: <string> # S3 path to an exported model directory (e.g. s3://my-bucket/exported_model/)
+      paths:  # list of S3 paths to exported model directories
         - name: <string>  # unique name for the model (e.g. text-generator) (required)
           model_path: <string>  # S3 path to an exported model directory (e.g. s3://my-bucket/exported_model/) (required)
         ...

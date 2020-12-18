@@ -62,7 +62,7 @@ type Predictor struct {
 }
 
 type MultiModels struct {
-	ModelPath     *string          `json:"model_path" yaml:"model_path"`
+	Path          *string          `json:"path" yaml:"path"`
 	Paths         []*ModelResource `json:"paths" yaml:"paths"`
 	Dir           *string          `json:"dir" yaml:"dir"`
 	CacheSize     *int32           `json:"cache_size" yaml:"cache_size"`
@@ -77,7 +77,7 @@ type TrafficSplit struct {
 
 type ModelResource struct {
 	Name         string  `json:"name" yaml:"name"`
-	ModelPath    string  `json:"model_path" yaml:"model_path"`
+	Path         string  `json:"path" yaml:"path"`
 	SignatureKey *string `json:"signature_key" yaml:"signature_key"`
 }
 
@@ -411,8 +411,8 @@ func (models *MultiModels) UserStr() string {
 			modelUserStr = modelUserStr[:2] + "-" + modelUserStr[3:]
 			sb.WriteString(modelUserStr)
 		}
-	} else if models.ModelPath != nil {
-		sb.WriteString(fmt.Sprintf("%s: %s\n", ModelsPathKey, *models.ModelPath))
+	} else if models.Path != nil {
+		sb.WriteString(fmt.Sprintf("%s: %s\n", ModelsPathKey, *models.Path))
 	} else {
 		sb.WriteString(fmt.Sprintf("%s: %s\n", ModelsDirKey, *models.Dir))
 	}
@@ -431,7 +431,7 @@ func (models *MultiModels) UserStr() string {
 func (model *ModelResource) UserStr() string {
 	var sb strings.Builder
 	sb.WriteString(fmt.Sprintf("%s: %s\n", ModelsNameKey, model.Name))
-	sb.WriteString(fmt.Sprintf("%s: %s\n", ModelsPathKey, model.ModelPath))
+	sb.WriteString(fmt.Sprintf("%s: %s\n", ModelsPathKey, model.Path))
 	if model.SignatureKey != nil {
 		sb.WriteString(fmt.Sprintf("%s: %s\n", ModelsSignatureKeyKey, *model.SignatureKey))
 	}
@@ -653,7 +653,7 @@ func (api *API) TelemetryEvent(provider types.ProviderType) map[string]interface
 
 		if models != nil {
 			event["predictor.models._is_defined"] = true
-			if models.ModelPath != nil {
+			if models.Path != nil {
 				event["predictor.models.model_path._is_defined"] = true
 			}
 			if len(models.Paths) > 0 {

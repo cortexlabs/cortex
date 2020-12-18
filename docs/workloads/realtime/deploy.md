@@ -1,7 +1,5 @@
 # RealtimeAPI
 
-_WARNING: you are on the master branch, please refer to the docs on the branch that matches your `cortex version`_
-
 Deploy realtime APIs that can respond to prediction requests on demand.
 
 ## Key features

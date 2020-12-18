@@ -1,7 +1,5 @@
 # Batch API configuration
 
-_WARNING: you are on the master branch, please refer to the docs on the branch that matches your `cortex version`_
-
 ## Python Predictor
 
 <!-- CORTEX_VERSION_BRANCH_STABLE x2 -->
@@ -34,13 +32,14 @@ _WARNING: you are on the master branch, please refer to the docs on the branch t
   predictor:
     type: tensorflow
     path: <string>  # path to a python file with a TensorFlowPredictor class definition, relative to the Cortex root (required)
-    model_path: <string>  # S3 path to an exported model (e.g. s3://my-bucket/exported_model) (either this or 'models' must be provided)
-    signature_key: <string>  # name of the signature def to use for prediction (required if your model has more than one signature def)
-    models:  # use this when multiple models per API are desired (either this or 'model_path' must be provided)
-      - name: <string> # unique name for the model (e.g. text-generator) (required)
-        model_path: <string>  # S3 path to an exported model (e.g. s3://my-bucket/exported_model) (required)
-        signature_key: <string>  # name of the signature def to use for prediction (required if your model has more than one signature def)
-      ...
+    models:  # use this to serve a single model or multiple ones
+      model_path: <string>  # S3 path to an exported model (e.g. s3://my-bucket/exported_model)
+      paths:
+        - name: <string> # unique name for the model (e.g. text-generator) (required)
+          model_path: <string>  # S3 path to an exported model (e.g. s3://my-bucket/exported_model) (required)
+          signature_key: <string>  # name of the signature def to use for prediction (required if your model has more than one signature def)
+        ...
+      signature_key: <string>  # name of the signature def to use for prediction (required if your model has more than one signature def)
     server_side_batching:  # (optional)
       max_batch_size: <int>  # the maximum number of requests to aggregate before running inference
       batch_interval: <duration>  # the maximum amount of time to spend waiting for additional requests before running inference on the batch of requests
@@ -69,10 +68,12 @@ _WARNING: you are on the master branch, please refer to the docs on the branch t
     type: onnx
     path: <string>  # path to a python file with an ONNXPredictor class definition, relative to the Cortex root (required)
     model_path: <string>  # S3 path to an exported model (e.g. s3://my-bucket/exported_model.onnx) (either this or 'models' must be provided)
-    models:  # use this when multiple models per API are desired (either this or 'model_path' must be provided)
-      - name: <string> # unique name for the model (e.g. text-generator) (required)
-        model_path: <string>  # S3 path to an exported model (e.g. s3://my-bucket/exported_model.onnx) (required)
-      ...
+    models:  # use this to serve a single model or multiple ones
+      model_path: <string>  # S3 path to an exported model (e.g. s3://my-bucket/exported_model)
+      paths:
+        - name: <string> # unique name for the model (e.g. text-generator) (required)
+          model_path: <string>  # S3 path to an exported model (e.g. s3://my-bucket/exported_model.onnx) (required)
+        ...
     config: <string: value>  # arbitrary dictionary passed to the constructor of the Predictor (can be overridden by config passed in job submission) (optional)
     python_path: <string>  # path to the root of your Python folder that will be appended to PYTHONPATH (default: folder containing cortex.yaml)
     image: <string> # docker image to use for the Predictor (default: quay.io/cortexlabs/onnx-predictor-gpu:master or quay.io/cortexlabs/onnx-predictor-cpu:master based on compute)

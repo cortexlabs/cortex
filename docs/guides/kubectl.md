@@ -1,7 +1,5 @@
 # Setting up kubectl
 
-_WARNING: you are on the master branch, please refer to the docs on the branch that matches your `cortex version`_
-
 Although it is not necessary to use `kubectl` to interact with Cortex clusters, advanced users can use `kubectl` to get more granular visibility into the cluster (since Cortex is built on top of Kubernetes).
 
 Here's how to set up `kubectl` and connect it to your existing Cortex cluster:

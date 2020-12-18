@@ -54,7 +54,7 @@ func CacheLocalModels(apiSpec *spec.API, models []spec.CuratedModelResource) err
 
 		localModelCache, wasAlreadyCached, err = cacheLocalModel(model)
 		if err != nil {
-			if predictorModels.ModelPath != nil {
+			if predictorModels.Path != nil {
 				return errors.Wrap(err, apiSpec.Identify(), userconfig.PredictorKey, predictorModelsKey, userconfig.ModelsPathKey)
 			} else if predictorModels.Dir != nil {
 				return errors.Wrap(err, apiSpec.Identify(), userconfig.PredictorKey, predictorModelsKey, userconfig.ModelsDirKey, model.Name, *apiSpec.Predictor.Models.Dir)
@@ -89,7 +89,7 @@ func cacheLocalModel(model spec.CuratedModelResource) (*spec.LocalModelCache, bo
 		return nil, false, nil
 	}
 
-	hash, err := localModelHash(model.ModelPath)
+	hash, err := localModelHash(model.Path)
 	if err != nil {
 		return nil, false, err
 	}
@@ -142,9 +142,9 @@ func cacheLocalModel(model spec.CuratedModelResource) (*spec.LocalModelCache, bo
 	}
 
 	if model.IsFilePath {
-		err = files.CopyFileOverwrite(model.ModelPath, filepath.Join(destModelDir, filepath.Base(model.ModelPath)))
+		err = files.CopyFileOverwrite(model.Path, filepath.Join(destModelDir, filepath.Base(model.Path)))
 	} else {
-		err = files.CopyDirOverwrite(strings.TrimSuffix(model.ModelPath, "/"), s.EnsureSuffix(destModelDir, "/"))
+		err = files.CopyDirOverwrite(strings.TrimSuffix(model.Path, "/"), s.EnsureSuffix(destModelDir, "/"))
 	}
 	if err != nil {
 		return nil, false, err

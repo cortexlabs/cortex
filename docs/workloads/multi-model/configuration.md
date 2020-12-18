@@ -1,7 +1,5 @@
 # Configuration
 
-_WARNING: you are on the master branch, please refer to the docs on the branch that matches your `cortex version`_
-
 ## `PythonPredictor`
 
 ### Specifying models in API configuration
@@ -16,7 +14,8 @@ The directory `s3://cortex-examples/sklearn/mpg-estimator/linreg/` contains 4 di
   predictor:
     type: python
     path: predictor.py
-    model_path: s3://cortex-examples/sklearn/mpg-estimator/linreg/
+    models:
+      model_path: s3://cortex-examples/sklearn/mpg-estimator/linreg/
 ```
 
 #### `predictor.py`

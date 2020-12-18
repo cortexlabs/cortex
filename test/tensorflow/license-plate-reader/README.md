@@ -1,7 +1,5 @@
 # Real-Time License Plate Identification System
 
-_WARNING: you are on the master branch; please refer to examples on the branch corresponding to your `cortex version` (e.g. for version 0.24.*, run `git checkout -b 0.24` or switch to the `0.24` branch on GitHub)_
-
 This project implements a license plate identification system. On resource-constrained systems, running inferences may prove to be too computationally expensive. One solution is to run the ML in the cloud and have the local (embedded) system act as a client of these services.
 
 ![Demo GIF](https://i.imgur.com/jgkJB59.gif)

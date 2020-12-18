@@ -1,7 +1,5 @@
 # Models
 
-_WARNING: you are on the master branch, please refer to the docs on the branch that matches your `cortex version`_
-
 ## Model directory format
 
 Whenever a model path is specified in an API configuration file, it should be a path to an S3 prefix (or a local directory if deploying locally) which contains your exported model. Directories may include a single model, or multiple folders each with a single model (note that a "single model" need not be a single file; there can be multiple files for a single model). When multiple folders are used, the folder names must be integer values, and will be interpreted as the model version. Model versions can be any integer, but are typically integer timestamps. It is always assumed that the highest version number is the latest version of your model.
@@ -113,10 +111,11 @@ The most common pattern is to serve a single model per API. The path to the mode
   kind: RealtimeAPI
   predictor:
     # ...
-    model_path: s3://my-bucket/models/text-generator/
+    models:
+      model_path: s3://my-bucket/models/text-generator/
 ```
 
-For the Python predictor type, the `model_path` field must be nested within the `multi_model_reloading` section in the `predictor` section. It is also not necessary to specify the `multi_model_reloading` section at all, since you can download and load the model in your predictor's `__init__()` function. That said, it is necessary to use the `model_path` field to take advantage of [live model reloading](#live-model-reloading).
+For the Python predictor type, the `models` field comes under the name of `multi_model_reloading`. It is also not necessary to specify the `multi_model_reloading` section at all, since you can download and load the model in your predictor's `__init__()` function. That said, it is necessary to use the `model_path` field to take advantage of [live model reloading](#live-model-reloading).
 
 ## Multiple models
 
@@ -150,7 +149,7 @@ or:
 ```
 
 
-For the Python predictor type, the `models` field must be nested within the `multi_model_reloading` section in the `predictor` section. It is also not necessary to specify the `multi_model_reloading` section at all, since you can download and load the model in your predictor's `__init__()` function. That said, it is necessary to use the `models` field to take advantage of [live model reloading](#live-model-reloading) or [multi model caching](#multi-model-caching).
+For the Python predictor type, the `models` field comes under the name of `multi_model_reloading`. It is also not necessary to specify the `multi_model_reloading` section at all, since you can download and load the model in your predictor's `__init__()` function. That said, it is necessary to use the `models` field to take advantage of [live model reloading](#live-model-reloading) or [multi model caching](#multi-model-caching).
 
 When using the `models.paths` field, each path must be a valid model directory (see above for valid model directory structures).
 
@@ -184,7 +183,7 @@ Usage varies based on the predictor type:
 
 ### Python
 
-To use live model reloading with the Python predictor, the model path(s) must be specified in the API's `predictor` configuration (via the `model_path` or `models` field). When models are specified in this manner, your `PythonPredictor` class must implement the `load_model()` function, and models can be retrieved by using the `get_model()` method of the `python_client` that's passed into your predictor's constructor.
+To use live model reloading with the Python predictor, the model path(s) must be specified in the API's `predictor` configuration, via the `models` field. When models are specified in this manner, your `PythonPredictor` class must implement the `load_model()` function, and models can be retrieved by using the `get_model()` method of the `python_client` that's passed into your predictor's constructor.
 
 The `load_model()` function that you implement in your `PythonPredictor` can return anything that you need to make a prediction. There is one caveat: whatever the return value is, it must be unloadable from memory via the `del` keyword. The following frameworks have been tested to work:
 

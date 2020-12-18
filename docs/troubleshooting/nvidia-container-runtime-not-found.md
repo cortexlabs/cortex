@@ -1,7 +1,5 @@
 # NVIDIA container runtime not found
 
-_WARNING: you are on the master branch, please refer to the docs on the branch that matches your `cortex version`_
-
 When attempting to deploy a model to a GPU in the local environment, you may encounter NVIDIA container runtime not found. Since Cortex uses Docker to deploy APIs in the local environment, your Docker engine must have the NVIDIA container runtime installed (the NVIDIA container runtime is responsible for exposing your GPU to the Docker engine).
 
 ## Check Compatibility
