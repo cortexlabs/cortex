@@ -1,7 +1,5 @@
 # Environments
 
-_WARNING: you are on the master branch, please refer to the docs on the branch that matches your `cortex version`_
-
 By default, the CLI has a single environment named `local`. When you create a cluster with `cortex cluster up`, an environment named `aws` or `gcp` is automatically created to point to your cluster. You can name the environment something else via the `--configure-env` flag, e.g. `cortex cluster up --configure-env prod`. You can also use the `--configure-env` flag with `cortex cluster info` and `cortex cluster configure` to create / update the specified environment.
 
 You can list your environments with `cortex env list`, change the default environment with `cortex env default`, delete an environment with `cortex env delete`, and create/update an environment with `cortex env configure`.

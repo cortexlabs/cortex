@@ -1,7 +1,5 @@
 # Predictor implementation
 
-_WARNING: you are on the master branch, please refer to the docs on the branch that matches your `cortex version`_
-
 Which Predictor you use depends on how your model is exported:
 
 * [TensorFlow Predictor](#tensorflow-predictor) if your model is exported as a TensorFlow `SavedModel`
