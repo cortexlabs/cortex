@@ -878,7 +878,12 @@ func validatePythonPredictor(api *userconfig.API, models *[]CuratedModelResource
 	}
 
 	if predictor.ServerSideBatching != nil {
-		return ErrorFieldNotSupportedByPredictorType(userconfig.ServerSideBatchingKey, predictor.Type)
+		if predictor.ServerSideBatching.MaxBatchSize != predictor.ThreadsPerProcess {
+			return ErrorConcurrencyMismatchServerSideBatchingPython(
+				predictor.ServerSideBatching.MaxBatchSize,
+				predictor.ThreadsPerProcess,
+			)
+		}
 	}
 	if predictor.TensorFlowServingImage != "" {
 		return ErrorFieldNotSupportedByPredictorType(userconfig.TensorFlowServingImageKey, predictor.Type)

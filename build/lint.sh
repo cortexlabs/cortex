@@ -142,7 +142,6 @@ else
   output=$(cd "$ROOT/docs" && find . -type f \
   ! -path "./README.md" \
   ! -name "summary.md" \
-  ! -path "./tutorials/*" \
   ! -name "contributing.md" \
   ! -name "*.json" \
   ! -name "*.txt" \
@@ -228,6 +227,14 @@ output=$(cd "$ROOT" && find . -type f \
 -print0 | \
 xargs -0 -L1 bash -c 'test "$(head -c 1 "$0")" || echo "New line at beginning of $0"' || true)
 if [[ $output ]]; then
+  echo "$output"
+  exit 1
+fi
+
+# Check docs links
+output=$(python3 $ROOT/dev/find_missing_docs_links.py)
+if [[ $output ]]; then
+  echo "docs file(s) have broken links:"
   echo "$output"
   exit 1
 fi
