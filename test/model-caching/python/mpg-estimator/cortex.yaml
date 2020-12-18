@@ -6,9 +6,8 @@
     type: python
     path: predictor.py
     multi_model_reloading:
-      models:
-        paths:
-          - name: mpg-estimator
-            model_path: s3://cortex-examples/sklearn/mpg-estimator/linreg/
-        cache_size: 1
-        disk_cache_size: 2
+      paths:
+        - name: mpg-estimator
+          model_path: s3://cortex-examples/sklearn/mpg-estimator/linreg/
+      cache_size: 1
+      disk_cache_size: 2

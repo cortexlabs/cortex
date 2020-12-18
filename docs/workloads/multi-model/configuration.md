@@ -16,7 +16,8 @@ The directory `s3://cortex-examples/sklearn/mpg-estimator/linreg/` contains 4 di
   predictor:
     type: python
     path: predictor.py
-    model_path: s3://cortex-examples/sklearn/mpg-estimator/linreg/
+    models:
+      model_path: s3://cortex-examples/sklearn/mpg-estimator/linreg/
 ```
 
 #### `predictor.py`
