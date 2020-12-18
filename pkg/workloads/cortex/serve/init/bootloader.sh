@@ -16,6 +16,9 @@
 
 set -e
 
+# set log level for python scripts
+envsubst < /src/cortex/serve/log_config.yaml | echo "$(</dev/stdin)" > /src/cortex/serve/log_config.yaml
+
 # CORTEX_VERSION
 export EXPECTED_CORTEX_VERSION=master
 

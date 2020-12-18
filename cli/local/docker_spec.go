@@ -29,6 +29,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/gcp"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
+	"github.com/cortexlabs/cortex/pkg/lib/tensorflow"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	"github.com/docker/docker/api/types"
@@ -94,6 +95,7 @@ func getAPIEnv(api *spec.API, awsClient *aws.Client, gcpClient *gcp.Client) []st
 		"CORTEX_PROCESSES_PER_REPLICA="+s.Int32(api.Predictor.ProcessesPerReplica),
 		"CORTEX_THREADS_PER_PROCESS="+s.Int32(api.Predictor.ThreadsPerProcess),
 		"CORTEX_MAX_REPLICA_CONCURRENCY="+s.Int32(api.Predictor.ProcessesPerReplica*api.Predictor.ThreadsPerProcess+1024), // allow a queue of 1024
+		"CORTEX_LOG_LEVEL="+api.Predictor.LogLevel.String(),
 	)
 
 	if api.Predictor.ModelPath != nil || api.Predictor.Models != nil {
@@ -385,7 +387,10 @@ func deployTensorFlowContainers(api *spec.API, awsClient *aws.Client, gcpClient 
 		Mounts:    mounts,
 	}
 
-	envVars := []string{}
+	envVars := []string{
+		"TF_CPP_MIN_LOG_LEVEL=" + s.Int(tensorflow.NumericLogLevelFromLogLevel(api.Predictor.LogLevel.String())),
+	}
+
 	cmdArgs := []string{
 		"--port=" + _tfServingPortStr,
 		"--model_config_file=" + _tfServingEmptyModelConfig,

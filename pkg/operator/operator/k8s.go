@@ -28,6 +28,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
+	"github.com/cortexlabs/cortex/pkg/lib/tensorflow"
 	"github.com/cortexlabs/cortex/pkg/lib/urls"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 	"github.com/cortexlabs/cortex/pkg/types"
@@ -52,6 +53,7 @@ const (
 	_emptyDirVolumeName                            = "mnt"
 	_tfServingContainerName                        = "serve"
 	_tfServingModelName                            = "model"
+	_requestMonitorContainerName                   = "request-monitor"
 	_downloaderInitContainerName                   = "downloader"
 	_downloaderLastLog                             = "downloading the %s serving image"
 	_neuronRTDContainerName                        = "neuron-rtd"
@@ -339,6 +341,15 @@ func ONNXPredictorContainers(api *spec.API) []kcore.Container {
 }
 
 func getEnvVars(api *spec.API, container string) []kcore.EnvVar {
+	if container == _requestMonitorContainerName {
+		return []kcore.EnvVar{
+			{
+				Name:  "CORTEX_LOG_LEVEL",
+				Value: api.Predictor.LogLevel.String(),
+			},
+		}
+	}
+
 	envVars := []kcore.EnvVar{
 		{
 			Name:  "CORTEX_KIND",
@@ -355,6 +366,10 @@ func getEnvVars(api *spec.API, container string) []kcore.EnvVar {
 
 	if container == APIContainerName {
 		envVars = append(envVars,
+			kcore.EnvVar{
+				Name:  "CORTEX_LOG_LEVEL",
+				Value: api.Predictor.LogLevel.String(),
+			},
 			kcore.EnvVar{
 				Name: "HOST_IP",
 				ValueFrom: &kcore.EnvVarSource{
@@ -443,6 +458,11 @@ func getEnvVars(api *spec.API, container string) []kcore.EnvVar {
 	}
 
 	if container == _tfServingContainerName {
+		envVars = append(envVars, kcore.EnvVar{
+			Name:  "TF_CPP_MIN_LOG_LEVEL=",
+			Value: s.Int(tensorflow.NumericLogLevelFromLogLevel(api.Predictor.LogLevel.String())),
+		})
+
 		if api.Predictor.ServerSideBatching != nil {
 			var numBatchedThreads int32
 			if api.Compute.Inf > 0 {
@@ -693,10 +713,11 @@ func neuronRuntimeDaemonContainer(api *spec.API, volumeMounts []kcore.VolumeMoun
 
 func RequestMonitorContainer(api *spec.API) kcore.Container {
 	return kcore.Container{
-		Name:            "request-monitor",
+		Name:            _requestMonitorContainerName,
 		Image:           config.Cluster.ImageRequestMonitor,
 		ImagePullPolicy: kcore.PullAlways,
 		Args:            []string{api.Name, config.ClusterName()},
+		Env:             getEnvVars(api, _requestMonitorContainerName),
 		EnvFrom:         baseEnvVars(),
 		VolumeMounts:    defaultVolumeMounts(),
 		ReadinessProbe:  FileExistsProbe(_requestMonitorReadinessFile),
