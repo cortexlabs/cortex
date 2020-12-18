@@ -4,4 +4,4 @@
     type: python
     path: predictor.py
     multi_model_reloading:
-      model_path: s3://cortex-examples/sklearn/mpg-estimator/linreg/
+      path: s3://cortex-examples/sklearn/mpg-estimator/linreg/

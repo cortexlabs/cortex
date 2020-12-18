@@ -102,7 +102,7 @@ or for a versioned model:
 
 ## Single model
 
-The most common pattern is to serve a single model per API. The path to the model is specified in the `model_path` field in the `predictor` configuration. For example:
+The most common pattern is to serve a single model per API. The path to the model is specified in the `path` field in the `predictor.models` configuration. For example:
 
 ```yaml
 # cortex.yaml
@@ -112,10 +112,10 @@ The most common pattern is to serve a single model per API. The path to the mode
   predictor:
     # ...
     models:
-      model_path: s3://my-bucket/models/text-generator/
+      path: s3://my-bucket/models/text-generator/
 ```
 
-For the Python predictor type, the `models` field comes under the name of `multi_model_reloading`. It is also not necessary to specify the `multi_model_reloading` section at all, since you can download and load the model in your predictor's `__init__()` function. That said, it is necessary to use the `model_path` field to take advantage of [live model reloading](#live-model-reloading).
+For the Python predictor type, the `models` field comes under the name of `multi_model_reloading`. It is also not necessary to specify the `multi_model_reloading` section at all, since you can download and load the model in your predictor's `__init__()` function. That said, it is necessary to use the `path` field to take advantage of [live model reloading](#live-model-reloading).
 
 ## Multiple models
 
@@ -170,7 +170,7 @@ In this case, there are two models in the directory, one of which is named "text
 
 ## Live model reloading
 
-Live model reloading is a mechanism that periodically checks for updated models in the model path(s) provided in `predictor.model_path` or `predictor.models`. It is automatically enabled for all predictor types, including the Python predictor type (as long as model paths are specified via `model_path` or `models` in the `predictor` configuration).
+Live model reloading is a mechanism that periodically checks for updated models in the model path(s) provided in `predictor.models`. It is automatically enabled for all predictor types, including the Python predictor type (as long as model paths are specified via `models` in the `predictor` configuration).
 
 The following is a list of events that will trigger the API to update its model(s):
 

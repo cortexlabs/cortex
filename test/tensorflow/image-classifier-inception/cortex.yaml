@@ -4,7 +4,7 @@
     type: tensorflow
     path: predictor.py
     models:
-      model_path: s3://cortex-examples/tensorflow/image-classifier/inception/
+      path: s3://cortex-examples/tensorflow/image-classifier/inception/
   monitoring:
     model_type: classification
   compute:
