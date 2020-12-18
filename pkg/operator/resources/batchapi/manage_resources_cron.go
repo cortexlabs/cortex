@@ -21,7 +21,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/cortexlabs/cortex/pkg/lib/debug"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
@@ -134,12 +133,9 @@ func ManageJobResources() error {
 		}
 
 		if jobState.Status == status.JobRunning {
-
 			if timeoutStr, ok := k8sJob.Annotations[_timeoutAnnotationKey]; ok {
 				timeout, _ := s.ParseInt(timeoutStr)
 
-				debug.Pp(jobState.GetFirstCreated())
-				debug.Pp(time.Now())
 				if time.Now().After(jobState.GetFirstCreated().Add(time.Second * time.Duration(timeout))) {
 					err := errors.FirstError(
 						setTimedOutStatus(jobKey),
@@ -313,10 +309,6 @@ func checkIfJobCompleted(jobKey spec.JobKey, queueURL string, k8sJob *kbatch.Job
 
 func investigateJobFailure(jobKey spec.JobKey, k8sJob *kbatch.Job) error {
 	reasonFound := false
-
-	if len(k8sJob.Status.Conditions) > 0 {
-		debug.Ppg(k8sJob.Status.Conditions[0])
-	}
 
 	pods, _ := config.K8s.ListPodsByLabel("jobID", jobKey.ID)
 	for _, pod := range pods {

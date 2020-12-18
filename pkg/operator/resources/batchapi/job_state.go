@@ -55,8 +55,7 @@ func (j JobState) GetLastUpdated() time.Time {
 }
 
 func (j JobState) GetFirstCreated() time.Time {
-	// https://stackoverflow.com/questions/25065055/what-is-the-maximum-time-time-in-go
-	firstCreated := time.Unix(1<<63-62135596801, 999999999)
+	firstCreated := time.Unix(1<<63-62135596801, 999999999) // Max time
 
 	for _, fileLastUpdated := range j.LastUpdatedMap {
 		if firstCreated.After(fileLastUpdated) {

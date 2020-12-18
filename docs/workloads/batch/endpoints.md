@@ -34,7 +34,7 @@ Submitting data in the request can be useful in the following scenarios:
 POST <batch_api_endpoint>:
 {
     "workers": <int>,         # the number of workers to allocate for this job (required)
-    "timeout": <int>,         # duration in seconds for the job to complete before it is forcefully terminated (optional)
+    "timeout": <int>,         # duration in seconds since the submission of a job before it is terminated (optional)
     "item_list": {
         "items": [            # a list items that can be of any type (required)
             <any>,
@@ -77,7 +77,7 @@ If a single S3 file contains a lot of samples/rows, try the next submission stra
 POST <batch_api_endpoint>:
 {
     "workers": <int>,            # the number of workers to allocate for this job (required)
-    "timeout": <int>,         # duration in seconds for the job to complete before it is forcefully terminated (optional)
+    "timeout": <int>,            # duration in seconds since the submission of a job before it is terminated (optional)
     "file_path_lister": {
         "s3_paths": [<string>],  # can be S3 prefixes or complete S3 paths (required)
         "includes": [<string>],  # glob patterns (optional)
@@ -118,7 +118,7 @@ This submission pattern is useful in the following scenarios:
 POST <batch_api_endpoint>:
 {
     "workers": <int>,            # the number of workers to allocate for this job (required)
-    "timeout": <int>,         # duration in seconds for the job to complete before it is forcefully terminated (optional)
+    "timeout": <int>,            # duration in seconds since the submission of a job before it is terminated (optional)
     "delimited_files": {
         "s3_paths": [<string>],  # can be S3 prefixes or complete S3 paths (required)
         "includes": [<string>],  # glob patterns (optional)
