@@ -631,47 +631,6 @@ The response of your `predict()` function may be:
 
 4. An instance of [starlette.responses.Response](https://www.starlette.io/responses/#response)
 
-Here are some examples:
-
-### json-serializable object
-
-```python
-def predict(self, payload):
-    response = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
-    return response
-```
-
-### string object
-
-```python
-def predict(self, payload):
-    response = "class 1"
-    return response
-```
-
-### bytes-like object
-
-```python
-import numpy as np
-
-def predict(self, payload):
-    array = np.random.randn(3, 3)
-    response = pickle.dumps(array)
-    return response
-```
-
-### starlette.responses.Response
-
-```python
-from starlette.responses import Response
-
-def predict(self, payload):
-    if not isinstance(payload, str) and not isinstance(payload, bytes):
-        return Response(f"invalid payload ({type(payload)})", status_code=400)
-
-    return Response(content=payload, media_type="text/plain")
-```
-
 ## Chaining APIs
 
 It is possible to make requests from one API to another within a Cortex cluster. All running APIs are accessible from within the predictor at `http://api-<api_name>:8888/predict`, where `<api_name>` is the name of the API you are making a request to.
