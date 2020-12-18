@@ -80,18 +80,6 @@ def time_per_batch_metric(total_time_seconds):
     return {"MetricName": "TimePerBatch", "Dimensions": dimensions(), "Value": total_time_seconds}
 
 
-def update_api_liveness():
-    threading.Timer(API_LIVENESS_UPDATE_PERIOD, update_api_liveness).start()
-    with open("/mnt/workspace/api_liveness.txt", "w") as f:
-        f.write(str(math.ceil(time.time())))
-
-
-# TODO Take a look at usage scenario
-def startup():
-    open("/mnt/workspace/api_readiness.txt", "a").close()
-    update_api_liveness()
-
-
 def renew_message_visibility(receipt_handle: str):
     queue_url = local_cache["job_spec"]["sqs_url"]
     interval = MESSAGE_RENEWAL_PERIOD
@@ -179,7 +167,6 @@ def sqs_loop():
             MaxNumberOfMessages=1,
             WaitTimeSeconds=10,
             VisibilityTimeout=INITIAL_MESSAGE_VISIBILITY,
-            # VisibilityTimeout=MAXIMUM_MESSAGE_VISIBILITY,
             MessageAttributeNames=["All"],
         )
 

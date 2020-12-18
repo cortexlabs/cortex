@@ -27,7 +27,7 @@ import (
 )
 
 const (
-	_messageSizeLimit    = 250 * 1024 // normally its 256 * 1024 but reserve 6k for labels
+	_messageSizeLimit    = 250 * 1024 // normally its 256 * 1024 but reserve 6k for message attributes
 	_maxMessagesPerBatch = 10
 )
 
