@@ -1,5 +1,3 @@
-# WARNING: you are on the master branch; please refer to examples on the branch corresponding to your `cortex version` (e.g. for version 0.24.*, run `git checkout -b 0.24` or switch to the `0.24` branch on GitHub)
-
 import boto3, base64, cv2, re, os, requests
 from botocore import UNSIGNED
 from botocore.client import Config
