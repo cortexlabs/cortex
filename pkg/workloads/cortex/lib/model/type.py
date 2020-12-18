@@ -152,14 +152,14 @@ def get_models_from_api_spec(
     """
     predictor_type = predictor_type_from_api_spec(api_spec)
 
-    if predictor_type == PythonPredictorType and api_spec["predictor"]["dynamic_model_loading"]:
-        models_spec = api_spec["predictor"]["dynamic_model_loading"]
+    if predictor_type == PythonPredictorType and api_spec["predictor"]["multi_model_reloading"]:
+        models_spec = api_spec["predictor"]["multi_model_reloading"]
     elif predictor_type != PythonPredictorType:
-        models_spec = api_spec["predictor"]
+        models_spec = api_spec["predictor"]["models"]
     else:
         return CuratedModelResources([])
 
-    if not models_spec["model_path"] and not models_spec["models"]:
+    if not models_spec["model_path"] and models_spec["paths"]:
         return CuratedModelResources([])
 
     # for model_path
@@ -173,7 +173,7 @@ def get_models_from_api_spec(
         models.append(model)
 
     # for models.paths
-    if models_spec["models"] and models_spec["models"]["paths"]:
+    if models_spec["paths"]:
         for model in models_spec["models"]["paths"]:
             models.append(
                 {
@@ -189,8 +189,8 @@ def get_models_from_api_spec(
         model_resource = {}
         model_resource["name"] = model["name"]
 
-        if not model["signature_key"] and models_spec["models"]:
-            model_resource["signature_key"] = models_spec["models"]["signature_key"]
+        if not model["signature_key"]:
+            model_resource["signature_key"] = models_spec["signature_key"]
         else:
             model_resource["signature_key"] = model["signature_key"]
 
@@ -234,10 +234,10 @@ def get_models_from_api_spec(
 
     # building model resources for models.dir
     if (
-        models_spec["models"]
-        and models_spec["models"]["dir"]
-        and not models_spec["models"]["dir"].startswith("s3://")
-        and not models_spec["models"]["dir"].startswith("gs://")
+        models_spec
+        and models_spec["dir"]
+        and not models_spec["dir"].startswith("s3://")
+        and not models_spec["dir"].startswith("gs://")
     ):
         for model_name in os.listdir(model_dir):
             model_resource = {}
@@ -245,7 +245,7 @@ def get_models_from_api_spec(
             model_resource["s3_path"] = False
             model_resource["gcs_path"] = False
             model_resource["local_path"] = True
-            model_resource["signature_key"] = models_spec["models"]["signature_key"]
+            model_resource["signature_key"] = models_spec["signature_key"]
             model_resource["model_path"] = os.path.join(model_dir, model_name)
             model_resource["versions"] = os.listdir(model_resource["model_path"])
             model_resources.append(model_resource)

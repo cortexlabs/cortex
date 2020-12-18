@@ -37,6 +37,7 @@ const (
 	ErrDuplicateEndpointInOneDeploy = "spec.duplicate_endpoint_in_one_deploy"
 	ErrDuplicateEndpoint            = "spec.duplicate_endpoint"
 	ErrConflictingFields            = "spec.conflicting_fields"
+	ErrSpecifyOnlyOneField          = "spec.specify_only_one_field"
 	ErrSpecifyOneOrTheOther         = "spec.specify_one_or_the_other"
 	ErrSpecifyAllOrNone             = "spec.specify_all_or_none"
 	ErrOneOfPrerequisitesNotDefined = "spec.one_of_prerequisites_not_defined"
@@ -66,29 +67,29 @@ const (
 	ErrInvalidONNXModelPath       = "spec.invalid_onnx_model_path"
 	ErrInvalidONNXModelFilePath   = "spec.invalid_onnx_model_file_path"
 
-	ErrMissingModel        = "spec.missing_model"
 	ErrDuplicateModelNames = "spec.duplicate_model_names"
 	ErrReservedModelName   = "spec.reserved_model_name"
 
-	ErrFieldMustBeDefinedForPredictorType   = "spec.field_must_be_defined_for_predictor_type"
-	ErrFieldNotSupportedByPredictorType     = "spec.field_not_supported_by_predictor_type"
-	ErrNoAvailableNodeComputeLimit          = "spec.no_available_node_compute_limit"
-	ErrCortexPrefixedEnvVarNotAllowed       = "spec.cortex_prefixed_env_var_not_allowed"
-	ErrLocalPathNotSupportedByAWSProvider   = "spec.local_path_not_supported_by_aws_provider"
-	ErrUnsupportedLocalComputeResource      = "spec.unsupported_local_compute_resource"
-	ErrRegistryInDifferentRegion            = "spec.registry_in_different_region"
-	ErrRegistryAccountIDMismatch            = "spec.registry_account_id_mismatch"
-	ErrCannotAccessECRWithAnonymousAWSCreds = "spec.cannot_access_ecr_with_anonymous_aws_creds"
-	ErrKindIsNotSupportedByProvider         = "spec.kind_is_not_supported_by_provider"
-	ErrKeyIsNotSupportedForKind             = "spec.key_is_not_supported_for_kind"
-	ErrComputeResourceConflict              = "spec.compute_resource_conflict"
-	ErrInvalidNumberOfInfProcesses          = "spec.invalid_number_of_inf_processes"
-	ErrInvalidNumberOfInfs                  = "spec.invalid_number_of_infs"
-	ErrInsufficientBatchConcurrencyLevel    = "spec.insufficient_batch_concurrency_level"
-	ErrInsufficientBatchConcurrencyLevelInf = "spec.insufficient_batch_concurrency_level_inf"
-	ErrIncorrectTrafficSplitterWeight       = "spec.incorrect_traffic_splitter_weight"
-	ErrTrafficSplitterAPIsNotUnique         = "spec.traffic_splitter_apis_not_unique"
-	ErrUnexpectedDockerSecretData           = "spec.unexpected_docker_secret_data"
+	ErrFieldMustBeDefinedForPredictorType          = "spec.field_must_be_defined_for_predictor_type"
+	ErrFieldNotSupportedByPredictorType            = "spec.field_not_supported_by_predictor_type"
+	ErrNoAvailableNodeComputeLimit                 = "spec.no_available_node_compute_limit"
+	ErrCortexPrefixedEnvVarNotAllowed              = "spec.cortex_prefixed_env_var_not_allowed"
+	ErrLocalPathNotSupportedByAWSProvider          = "spec.local_path_not_supported_by_aws_provider"
+	ErrUnsupportedLocalComputeResource             = "spec.unsupported_local_compute_resource"
+	ErrRegistryInDifferentRegion                   = "spec.registry_in_different_region"
+	ErrRegistryAccountIDMismatch                   = "spec.registry_account_id_mismatch"
+	ErrCannotAccessECRWithAnonymousAWSCreds        = "spec.cannot_access_ecr_with_anonymous_aws_creds"
+	ErrKindIsNotSupportedByProvider                = "spec.kind_is_not_supported_by_provider"
+	ErrKeyIsNotSupportedForKind                    = "spec.key_is_not_supported_for_kind"
+	ErrComputeResourceConflict                     = "spec.compute_resource_conflict"
+	ErrInvalidNumberOfInfProcesses                 = "spec.invalid_number_of_inf_processes"
+	ErrInvalidNumberOfInfs                         = "spec.invalid_number_of_infs"
+	ErrInsufficientBatchConcurrencyLevel           = "spec.insufficient_batch_concurrency_level"
+	ErrInsufficientBatchConcurrencyLevelInf        = "spec.insufficient_batch_concurrency_level_inf"
+	ErrConcurrencyMismatchServerSideBatchingPython = "spec.concurrency_mismatch_server_side_batching_python"
+	ErrIncorrectTrafficSplitterWeight              = "spec.incorrect_traffic_splitter_weight"
+	ErrTrafficSplitterAPIsNotUnique                = "spec.traffic_splitter_apis_not_unique"
+	ErrUnexpectedDockerSecretData                  = "spec.unexpected_docker_secret_data"
 )
 
 var _modelCurrentStructure = `
@@ -145,6 +146,13 @@ func ErrorConflictingFields(fieldKeyA, fieldKeyB string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrConflictingFields,
 		Message: fmt.Sprintf("please specify either the %s or %s field (both cannot be specified at the same time)", fieldKeyA, fieldKeyB),
+	})
+}
+
+func ErrorSpecifyOnlyOneField(fields ...string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrSpecifyOnlyOneField,
+		Message: fmt.Sprintf("please specify only one of the following fields %s", s.UserStrsOr(fields)),
 	})
 }
 
@@ -442,13 +450,6 @@ func ErrorInvalidONNXModelFilePath(filePath string) error {
 	})
 }
 
-func ErrorMissingModel(predictorType userconfig.PredictorType) error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrMissingModel,
-		Message: fmt.Sprintf("at least one model must be specified for the %s predictor type; use fields %s.%s or %s.%s to add model(s)", predictorType, userconfig.PredictorKey, userconfig.ModelPathKey, userconfig.PredictorKey, userconfig.ModelsKey),
-	})
-}
-
 func ErrorDuplicateModelNames(duplicateModel string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrDuplicateModelNames,
@@ -573,6 +574,18 @@ func ErrorInsufficientBatchConcurrencyLevelInf(maxBatchSize int32, threadsPerPro
 			userconfig.MaxBatchSizeKey, maxBatchSize, userconfig.ThreadsPerProcessKey, threadsPerProcess,
 		),
 	})
+}
+
+func ErrorConcurrencyMismatchServerSideBatchingPython(maxBatchsize int32, threadsPerProcess int32) error {
+	return errors.WithStack(
+		&errors.Error{
+			Kind: ErrConcurrencyMismatchServerSideBatchingPython,
+			Message: fmt.Sprintf(
+				"%s (%d) must be equal to %s (%d) when using server side batching with the python predictor",
+				userconfig.ThreadsPerProcessKey, threadsPerProcess, userconfig.MaxBatchSizeKey, maxBatchsize,
+			),
+		},
+	)
 }
 
 func ErrorIncorrectTrafficSplitterWeightTotal(totalWeight int32) error {

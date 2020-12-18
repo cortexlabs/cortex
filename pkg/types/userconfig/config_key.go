@@ -44,14 +44,14 @@ const (
 	EnvKey                    = "env"
 
 	// DynamicModelLoading
-	DynamicModelLoadingKey = "dynamic_model_loading"
-	ModelPathKey           = "model_path"
-	SignatureKeyKey        = "signature_key"
-	ModelsKey              = "models"
+	MultiModelReloadingKey = "multi_model_reloading"
 
 	// MultiModels
+	ModelsKey              = "models"
+	ModelsPathKey          = "path"
 	ModelsPathsKey         = "paths"
 	ModelsDirKey           = "dir"
+	ModelsSignatureKeyKey  = "signature_key"
 	ModelsCacheSizeKey     = "cache_size"
 	ModelsDiskCacheSizeKey = "disk_cache_size"
 

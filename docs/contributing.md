@@ -2,7 +2,7 @@
 
 ## Remote development
 
-We recommend that you run your development environment on a cloud instance due to frequent docker registry pushing, e.g. an AWS EC2 instance or GCP VM. We've had a good experience using [Mutagen](https://mutagen.io/documentation/introduction) to synchronize local / remote file systems. Feel free to reach out to us on [gitter](https://gitter.im/cortexlabs/cortex) if you have any questions about this.
+We recommend that you run your development environment on a cloud instance due to frequent docker registry pushing, e.g. an AWS EC2 instance or GCP VM. We've had a good experience using [Mutagen](https://mutagen.io/documentation/introduction) to synchronize local / remote file systems.
 
 ## Prerequisites
 
@@ -248,5 +248,3 @@ If you are only modifying the operator, `make operator-local-aws` will build and
 If you are modifying code in the API images (i.e. any of the Python serving code), `make images-dev-aws` may build more images than you need during testing. For example, if you are only testing using the `python-predictor-cpu` image, you can run `./dev/registry.sh update-single python-predictor-cpu --provider aws` (or use `--provider local` if testing locally).
 
 See `Makefile` for additional dev commands.
-
-Feel free to [chat with us](https://gitter.im/cortexlabs/cortex) if you have any questions.

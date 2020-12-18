@@ -116,7 +116,7 @@ The most common pattern is to serve a single model per API. The path to the mode
     model_path: s3://my-bucket/models/text-generator/
 ```
 
-For the Python predictor type, the `model_path` field must be nested within the `dynamic_model_loading` section in the `predictor` section. It is also not necessary to specify the `dynamic_model_loading` section at all, since you can download and load the model in your predictor's `__init__()` function. That said, it is necessary to use the `model_path` field to take advantage of [live model reloading](#live-model-reloading).
+For the Python predictor type, the `model_path` field must be nested within the `multi_model_reloading` section in the `predictor` section. It is also not necessary to specify the `multi_model_reloading` section at all, since you can download and load the model in your predictor's `__init__()` function. That said, it is necessary to use the `model_path` field to take advantage of [live model reloading](#live-model-reloading).
 
 ## Multiple models
 
@@ -150,7 +150,7 @@ or:
 ```
 
 
-For the Python predictor type, the `models` field must be nested within the `dynamic_model_loading` section in the `predictor` section. It is also not necessary to specify the `dynamic_model_loading` section at all, since you can download and load the model in your predictor's `__init__()` function. That said, it is necessary to use the `models` field to take advantage of [live model reloading](#live-model-reloading) or [multi model caching](#multi-model-caching).
+For the Python predictor type, the `models` field must be nested within the `multi_model_reloading` section in the `predictor` section. It is also not necessary to specify the `multi_model_reloading` section at all, since you can download and load the model in your predictor's `__init__()` function. That said, it is necessary to use the `models` field to take advantage of [live model reloading](#live-model-reloading) or [multi model caching](#multi-model-caching).
 
 When using the `models.paths` field, each path must be a valid model directory (see above for valid model directory structures).
 

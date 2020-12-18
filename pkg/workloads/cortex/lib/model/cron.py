@@ -148,24 +148,20 @@ class FileBasedModelsTreeUpdater(mp.Process):
 
         if (
             self._predictor_type == PythonPredictorType
-            and self._api_spec["predictor"]["dynamic_model_loading"]
+            and self._api_spec["predictor"]["multi_model_reloading"]
         ):
-            models = self._api_spec["predictor"]["dynamic_model_loading"]
+            models = self._api_spec["predictor"]["multi_model_reloading"]
         elif self._predictor_type != PythonPredictorType:
-            models = self._api_spec["predictor"]
+            models = self._api_spec["predictor"]["models"]
         else:
             models = None
 
         if models is None:
             raise CortexException("no specified model")
 
-        if (
-            models["model_path"] is None
-            and models["models"] is not None
-            and models["models"]["dir"] is not None
-        ):
+        if models["dir"] is not None:
             self._is_dir_used = True
-            self._models_dir = models["models"]["dir"]
+            self._models_dir = models["dir"]
         else:
             self._is_dir_used = False
             self._models_dir = None
@@ -744,8 +740,7 @@ class TFSModelLoader(mp.Process):
             self._cloud_paths.append(self._spec_models[model_name]["model_path"])
 
         if (
-            self._api_spec["predictor"]["model_path"] is None
-            and self._api_spec["predictor"]["models"] is not None
+            self._api_spec["predictor"]["models"] is not None
             and self._api_spec["predictor"]["models"]["dir"] is not None
         ):
             self._is_dir_used = True
@@ -1548,25 +1543,20 @@ class ModelTreeUpdater(AbstractLoopingThread):
 
         if (
             self._predictor_type == PythonPredictorType
-            and self._api_spec["predictor"]["dynamic_model_loading"]
+            and self._api_spec["predictor"]["multi_model_reloading"]
         ):
-            models = self._api_spec["predictor"]["dynamic_model_loading"]
+            models = self._api_spec["predictor"]["multi_model_reloading"]
         elif self._predictor_type != PythonPredictorType:
-            models = self._api_spec["predictor"]
+            models = self._api_spec["predictor"]["models"]
         else:
             models = None
 
         if models is None:
             raise CortexException("no specified model")
 
-        if (
-            models
-            and models["model_path"] is None
-            and models["models"] is not None
-            and models["models"]["dir"] is not None
-        ):
+        if models and models["dir"] is not None:
             self._is_dir_used = True
-            self._models_dir = models["models"]["dir"]
+            self._models_dir = models["dir"]
         else:
             self._is_dir_used = False
             self._models_dir = None

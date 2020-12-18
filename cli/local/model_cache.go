@@ -36,6 +36,16 @@ func CacheLocalModels(apiSpec *spec.API, models []spec.CuratedModelResource) err
 	var localModelCache *spec.LocalModelCache
 	localModelCaches := make([]*spec.LocalModelCache, 0)
 
+	var predictorModels *userconfig.MultiModels
+	var predictorModelsKey string
+	if apiSpec.Predictor.Models != nil {
+		predictorModels = apiSpec.Predictor.Models
+		predictorModelsKey = userconfig.ModelsKey
+	} else if apiSpec.Predictor.MultiModelReloading != nil {
+		predictorModels = apiSpec.Predictor.MultiModelReloading
+		predictorModelsKey = userconfig.MultiModelReloadingKey
+	}
+
 	modelsThatWereCachedAlready := 0
 	for _, model := range models {
 		if !model.LocalPath {
@@ -44,12 +54,12 @@ func CacheLocalModels(apiSpec *spec.API, models []spec.CuratedModelResource) err
 
 		localModelCache, wasAlreadyCached, err = cacheLocalModel(model)
 		if err != nil {
-			if apiSpec.Predictor.ModelPath != nil {
-				return errors.Wrap(err, apiSpec.Identify(), userconfig.PredictorKey, userconfig.ModelPathKey)
-			} else if apiSpec.Predictor.Models != nil && apiSpec.Predictor.Models.Dir != nil {
-				return errors.Wrap(err, apiSpec.Identify(), userconfig.PredictorKey, userconfig.ModelsKey, userconfig.ModelsDirKey, model.Name, *apiSpec.Predictor.Models.Dir)
+			if predictorModels.ModelPath != nil {
+				return errors.Wrap(err, apiSpec.Identify(), userconfig.PredictorKey, predictorModelsKey, userconfig.ModelsPathKey)
+			} else if predictorModels.Dir != nil {
+				return errors.Wrap(err, apiSpec.Identify(), userconfig.PredictorKey, predictorModelsKey, userconfig.ModelsDirKey, model.Name, *apiSpec.Predictor.Models.Dir)
 			}
-			return errors.Wrap(err, apiSpec.Identify(), userconfig.PredictorKey, userconfig.ModelsKey, userconfig.ModelsPathsKey, model.Name, userconfig.ModelPathKey)
+			return errors.Wrap(err, apiSpec.Identify(), userconfig.PredictorKey, predictorModelsKey, userconfig.ModelsPathsKey, model.Name, userconfig.ModelsPathKey)
 		}
 		if wasAlreadyCached {
 			modelsThatWereCachedAlready++

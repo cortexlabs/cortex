@@ -5,7 +5,7 @@
   predictor:
     type: python
     path: predictor.py
-    dynamic_model_loading:
+    multi_model_reloading:
       models:
         paths:
           - name: mpg-estimator
