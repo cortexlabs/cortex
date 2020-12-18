@@ -48,9 +48,6 @@ local_cache = {
     "job_spec": None,
     "provider": None,
     "predictor_impl": None,
-    "predict_route": None,
-    "client": None,
-    "class_set": set(),
     "sqs_client": None,
 }
 
