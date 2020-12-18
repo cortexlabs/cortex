@@ -28,7 +28,7 @@ setup(
     author="cortex.dev",
     author_email="dev@cortex.dev",
     license="Apache License 2.0",
-    url="https://www.cortex.dev",
+    url="https:/github.com/cortexlabs/cortex",
     setup_requires=(["setuptools", "wheel"]),
     packages=find_packages(),
     install_requires=install_requires,
