@@ -18,7 +18,7 @@ set -e
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")"/.. >/dev/null && pwd)"
 
-out_file=$ROOT/docs/cli/commands.md
+out_file=$ROOT/docs/cli/cli.md
 rm -f $out_file
 
 echo "building cli ..."
