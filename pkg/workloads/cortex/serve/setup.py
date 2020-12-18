@@ -16,7 +16,7 @@ import pathlib
 import pkg_resources
 from setuptools import setup, find_packages
 
-with pathlib.Path("requirements.txt").open() as requirements_txt:
+with pathlib.Path("cortex_internal.requirements.txt").open() as requirements_txt:
     install_requires = [
         str(requirement) for requirement in pkg_resources.parse_requirements(requirements_txt)
     ]
@@ -37,8 +37,6 @@ setup(
         "Operating System :: MacOS",
         "Operating System :: POSIX :: Linux",
         "Programming Language :: Python :: 3.6",
-        "Programming Language :: Python :: 3.7",
-        "Programming Language :: Python :: 3.8",
         "Intended Audience :: Developers",
     ],
     project_urls={

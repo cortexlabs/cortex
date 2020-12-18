@@ -75,9 +75,9 @@ if [ -f "/mnt/project/conda-packages.txt" ]; then
         echo "warning: you have changed the Python version from $old_py_version to $new_py_version; this may break Cortex's web server"
         echo "reinstalling core packages ..."
 
-        pip --no-cache-dir install -r \
-            /src/cortex/serve/requirements.txt -r \
-            /src/cortex/internal/
+        pip --no-cache-dir install \
+            -r /src/cortex/serve/serve.requirements.txt \
+            /src/cortex/serve/
         if [ -f "/src/cortex/serve/image.requirements.txt" ]; then
             pip --no-cache-dir install -r /src/cortex/serve/image.requirements.txt
         fi
