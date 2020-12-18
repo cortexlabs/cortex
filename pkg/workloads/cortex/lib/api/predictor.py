@@ -99,10 +99,8 @@ class Predictor:
 
         if self.caching_enabled:
             if self.type == PythonPredictorType:
-                mem_cache_size = self.api_spec["predictor"]["multi_model_reloading"]["models"][
-                    "cache_size"
-                ]
-                disk_cache_size = self.api_spec["predictor"]["multi_model_reloading"]["models"][
+                mem_cache_size = self.api_spec["predictor"]["multi_model_reloading"]["cache_size"]
+                disk_cache_size = self.api_spec["predictor"]["multi_model_reloading"][
                     "disk_cache_size"
                 ]
             else:
@@ -304,15 +302,10 @@ class Predictor:
         models = None
         if self.type != PythonPredictorType and self.api_spec["predictor"]["models"]:
             models = self.api_spec["predictor"]["models"]
-        if (
-            self.type == PythonPredictorType
-            and self.api_spec["predictor"]["multi_model_reloading"]
-            and self.api_spec["predictor"]["multi_model_reloading"]["models"]
-        ):
-            models = self.api_spec["predictor"]["multi_model_reloading"]["models"]
-        if models and models["cache_size"] and models["disk_cache_size"]:
-            return True
-        return False
+        if self.type == PythonPredictorType and self.api_spec["predictor"]["multi_model_reloading"]:
+            models = self.api_spec["predictor"]["multi_model_reloading"]
+
+        return models and models["cache_size"] and models["disk_cache_size"]
 
     def __del__(self) -> None:
         for cron in self.crons:
@@ -333,18 +326,11 @@ def _are_models_specified(api_spec: dict) -> bool:
     if predictor_type == PythonPredictorType and api_spec["predictor"]["multi_model_reloading"]:
         models = api_spec["predictor"]["multi_model_reloading"]
     elif predictor_type != PythonPredictorType:
-        models = api_spec["predictor"]
+        models = api_spec["predictor"]["models"]
     else:
         return False
 
-    if models["model_path"]:
-        return True
-
-    if models["models"] and (
-        models["models"]["dir"] is not None or len(models["models"]["paths"]) > 0
-    ):
-        return True
-    return False
+    return models is not None
 
 
 PYTHON_CLASS_VALIDATION = {

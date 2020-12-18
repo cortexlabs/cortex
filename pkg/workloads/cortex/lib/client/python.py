@@ -67,8 +67,7 @@ class PythonClient:
 
         if (
             self._api_spec["predictor"]["multi_model_reloading"]
-            and self._api_spec["predictor"]["multi_model_reloading"]["models"]
-            and self._api_spec["predictor"]["multi_model_reloading"]["models"]["dir"]
+            and self._api_spec["predictor"]["multi_model_reloading"]["dir"]
         ):
             self._models_dir = True
         else:
@@ -378,9 +377,8 @@ class PythonClient:
         """
         return (
             self._api_spec["predictor"]["multi_model_reloading"]
-            and self._api_spec["predictor"]["multi_model_reloading"]["models"]
-            and self._api_spec["predictor"]["multi_model_reloading"]["models"]["cache_size"]
-            and self._api_spec["predictor"]["multi_model_reloading"]["models"]["disk_cache_size"]
+            and self._api_spec["predictor"]["multi_model_reloading"]["cache_size"]
+            and self._api_spec["predictor"]["multi_model_reloading"]["disk_cache_size"]
         )
 
     @property

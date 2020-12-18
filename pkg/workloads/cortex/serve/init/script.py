@@ -77,23 +77,18 @@ def are_models_specified(api_spec: dict) -> bool:
     if predictor_type == PythonPredictorType and api_spec["predictor"]["multi_model_reloading"]:
         models = api_spec["predictor"]["multi_model_reloading"]
     elif predictor_type != PythonPredictorType:
-        models = api_spec["predictor"]
+        models = api_spec["predictor"]["models"]
     else:
         return False
 
-    if models["model_path"]:
-        return True
-
-    if models["models"] and (models["models"]["dir"] or len(models["models"]["paths"]) > 0):
-        return True
-    return False
+    return models is not None
 
 
 def is_model_caching_enabled(api_spec: dir) -> bool:
     predictor_type = predictor_type_from_api_spec(api_spec)
 
     if predictor_type == PythonPredictorType and api_spec["predictor"]["multi_model_reloading"]:
-        models = api_spec["predictor"]["multi_model_reloading"]["models"]
+        models = api_spec["predictor"]["multi_model_reloading"]
     elif predictor_type != PythonPredictorType:
         models = api_spec["predictor"]["models"]
     else:

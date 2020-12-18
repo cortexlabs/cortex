@@ -5,6 +5,7 @@
   predictor:
     type: onnx
     path: predictor.py
-    model_path: s3://cortex-examples/onnx/iris-classifier/
+    models:
+     model_path: s3://cortex-examples/onnx/iris-classifier/
   monitoring:
     model_type: classification
