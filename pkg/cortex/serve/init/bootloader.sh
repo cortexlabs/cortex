@@ -192,7 +192,3 @@ elif [ "$CORTEX_KIND" = "BatchAPI" ]; then
 elif [ "$CORTEX_KIND" = "TaskAPI" ]; then
     create_s6_service "task" "cd /mnt/project && $source_env_file_cmd && exec env PYTHONUNBUFFERED=TRUE env PYTHONPATH=$PYTHONPATH:$CORTEX_PYTHON_PATH /opt/conda/envs/env/bin/python /src/cortex/serve/start/task.py"
 fi
-
-
-
-
