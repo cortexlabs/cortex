@@ -1,7 +1,5 @@
 # View API metrics
 
-_WARNING: you are on the master branch, please refer to the docs on the branch that matches your `cortex version`_
-
 The `cortex get` and `cortex get API_NAME` commands display the request time (averaged over the past 2 weeks) and response code counts (summed over the past 2 weeks) for your API(s):
 
 ```text
