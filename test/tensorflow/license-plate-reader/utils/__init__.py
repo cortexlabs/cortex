@@ -1,1 +1,1 @@
-# this file is intiontionally blank
+# this file is intentionally blank
