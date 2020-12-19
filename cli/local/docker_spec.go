@@ -95,7 +95,7 @@ func getAPIEnv(api *spec.API, awsClient *aws.Client, gcpClient *gcp.Client) []st
 		"CORTEX_PROCESSES_PER_REPLICA="+s.Int32(api.Predictor.ProcessesPerReplica),
 		"CORTEX_THREADS_PER_PROCESS="+s.Int32(api.Predictor.ThreadsPerProcess),
 		"CORTEX_MAX_REPLICA_CONCURRENCY="+s.Int32(api.Predictor.ProcessesPerReplica*api.Predictor.ThreadsPerProcess+1024), // allow a queue of 1024
-		"CORTEX_LOG_LEVEL="+api.Predictor.LogLevel.String(),
+		"CORTEX_LOG_LEVEL="+strings.ToUpper(api.Predictor.LogLevel.String()),
 	)
 
 	if api.Predictor.ModelPath != nil || api.Predictor.Models != nil {

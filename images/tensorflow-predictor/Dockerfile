@@ -81,6 +81,8 @@ COPY pkg/workloads/cortex/consts.py /src/cortex
 COPY pkg/workloads/cortex/lib /src/cortex/lib
 COPY pkg/workloads/cortex/serve /src/cortex/serve
 
+ENV CORTEX_LOG_CONFIG_FILE /src/cortex/serve/log_config.yaml
+
 RUN mv /src/cortex/serve/init/bootloader.sh /etc/cont-init.d/bootloader.sh
 
 ENTRYPOINT ["/init"]

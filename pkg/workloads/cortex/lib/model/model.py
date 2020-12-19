@@ -19,7 +19,7 @@ import datetime
 import threading as td
 from typing import Dict, List, Any, Tuple, Callable, AbstractSet, Optional
 
-from cortex.lib.log import cx_logger as logger
+from cortex.lib.log import logger
 from cortex.lib.concurrency import ReadWriteLock
 from cortex.lib.exceptions import WithBreak, CortexException
 from cortex.lib.type import PredictorType
@@ -446,10 +446,10 @@ class ModelsHolder:
         ]
 
         if not dry_run:
-            logger().info(
+            logger.info(
                 f"unloading models {stale_mem_model_ids} from memory using the garbage collector"
             )
-            logger().info(
+            logger.info(
                 f"unloading models {stale_disk_model_ids} from disk using the garbage collector"
             )
             for model_id in stale_mem_model_ids:

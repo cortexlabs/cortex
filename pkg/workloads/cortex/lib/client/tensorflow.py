@@ -27,7 +27,7 @@ from cortex.lib.model import (
     LockedModelsTree,
     get_models_from_api_spec,
 )
-from cortex.lib.log import cx_logger as logger
+from cortex.lib.log import logger
 from cortex import consts
 
 
@@ -178,20 +178,20 @@ class TensorFlowClient:
 
             # grab shared access to model tree
             available_model = True
-            logger().info(f"grabbing access to model {model_name} of version {model_version}")
+            logger.info(f"grabbing access to model {model_name} of version {model_version}")
             with LockedModelsTree(self._models_tree, "r", model_name, model_version):
 
                 # check if the versioned model exists
                 model_id = model_name + "-" + model_version
                 if model_id not in self._models_tree:
                     available_model = False
-                    logger().info(f"model {model_name} of version {model_version} is not available")
+                    logger.info(f"model {model_name} of version {model_version} is not available")
                     raise WithBreak
 
                 # retrieve model tree's metadata
                 upstream_model = self._models_tree[model_id]
                 current_upstream_ts = int(upstream_model["timestamp"].timestamp())
-                logger().info(f"model {model_name} of version {model_version} is available")
+                logger.info(f"model {model_name} of version {model_version} is available")
 
             if not available_model:
                 if tag == "":
@@ -207,19 +207,19 @@ class TensorFlowClient:
             prediction = None
             tfs_was_unresponsive = False
             with LockedModel(self._models, "r", model_name, model_version):
-                logger().info(f"checking the {model_name} {model_version} status")
+                logger.info(f"checking the {model_name} {model_version} status")
                 status, local_ts = self._models.has_model(model_name, model_version)
                 if status in ["not-available", "on-disk"] or (
                     status != "not-available" and local_ts != current_upstream_ts
                 ):
-                    logger().info(
+                    logger.info(
                         f"model {model_name} of version {model_version} is not loaded (with status {status} or different timestamp)"
                     )
                     update_model = True
                     raise WithBreak
 
                 # run prediction
-                logger().info(
+                logger.info(
                     f"run the prediction on model {model_name} of version {model_version}"
                 )
                 self._models.get_model(model_name, model_version, tag)
@@ -239,7 +239,7 @@ class TensorFlowClient:
                     if not (status == "in-memory" and model_version not in available_versions):
                         raise WithBreak
 
-                    logger().info(
+                    logger.info(
                         f"removing model {model_name} of version {model_version} because TFS got unresponsive"
                     )
                     self._models.remove_model(model_name, model_version)
@@ -259,26 +259,26 @@ class TensorFlowClient:
                         # unload model from TFS
                         if status == "in-memory":
                             try:
-                                logger().info(
+                                logger.info(
                                     f"unloading model {model_name} of version {model_version} from TFS"
                                 )
                                 self._models.unload_model(model_name, model_version)
                             except Exception:
-                                logger().info(
+                                logger.info(
                                     f"failed unloading model {model_name} of version {model_version} from TFS"
                                 )
                                 raise
 
                         # remove model from disk and references
                         if status in ["on-disk", "in-memory"]:
-                            logger().info(
+                            logger.info(
                                 f"removing model references from memory and from disk for model {model_name} of version {model_version}"
                             )
                             self._models.remove_model(model_name, model_version)
 
                         # download model
                         if model_name not in self._spec_models.get_local_model_names():
-                            logger().info(
+                            logger.info(
                                 f"downloading model {model_name} of version {model_version} from the {upstream_model['provider']} upstream"
                             )
                             date = self._models.download_model(
@@ -294,7 +294,7 @@ class TensorFlowClient:
 
                     # load model
                     try:
-                        logger().info(
+                        logger.info(
                             f"loading model {model_name} of version {model_version} into memory"
                         )
                         self._models.load_model(
@@ -344,7 +344,7 @@ class TensorFlowClient:
         Remove models from TFS.
         Must only be used when caching enabled.
         """
-        logger().info(f"unloading models with model IDs {model_ids} from TFS")
+        logger.info(f"unloading models with model IDs {model_ids} from TFS")
 
         models = {}
         for model_id in model_ids:

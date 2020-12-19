@@ -28,5 +28,6 @@ func NumericLogLevelFromLogLevel(logLevel string) int {
 		tfLogLevelNumber = 1
 	case "error":
 		tfLogLevelNumber = 2
+	}
 	return tfLogLevelNumber
 }

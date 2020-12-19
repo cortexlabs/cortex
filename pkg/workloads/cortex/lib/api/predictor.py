@@ -58,7 +58,7 @@ from cortex.lib.model import validate_model_paths
 # misc
 from cortex.lib.storage import S3, GCS
 from cortex.lib import util
-from cortex.lib.log import refresh_logger, cx_logger as logger
+from cortex.lib.log import logger
 from cortex.lib.exceptions import CortexException, UserException, UserRuntimeException
 from cortex import consts
 
@@ -199,8 +199,6 @@ class Predictor:
                 initialized_impl = class_impl(**args)
         except Exception as e:
             raise UserRuntimeException(self.path, "__init__", str(e)) from e
-        finally:
-            refresh_logger()
 
         # initialize the crons if models have been specified and if the API kind is RealtimeAPI
         if _are_models_specified(self.api_spec) and self.api_spec["kind"] == "RealtimeAPI":
@@ -248,8 +246,6 @@ class Predictor:
         except CortexException as e:
             e.wrap("error in " + self.path)
             raise
-        finally:
-            refresh_logger()
 
         try:
             _validate_impl(predictor_class, validations, self.api_spec)
@@ -517,7 +513,7 @@ def model_downloader(
         The model's timestamp. None if the model didn't pass the validation, if it doesn't exist or if there are not enough permissions.
     """
 
-    logger().info(
+    logger.info(
         f"downloading from bucket {bucket_name}/{model_path}, model {model_name} of version {model_version}, temporarily to {temp_dir} and then finally to {model_dir}"
     )
 
@@ -531,7 +527,7 @@ def model_downloader(
     try:
         validate_model_paths(sub_paths, predictor_type, model_path)
     except CortexException:
-        logger().info(f"failed validating model {model_name} of version {model_version}")
+        logger.info(f"failed validating model {model_name} of version {model_version}")
         return None
 
     # download model to temp dir
@@ -539,7 +535,7 @@ def model_downloader(
     try:
         client.download_dir_contents(model_path, temp_dest)
     except CortexException:
-        logger().info(
+        logger.info(
             f"failed downloading model {model_name} of version {model_version} to temp dir {temp_dest}"
         )
         shutil.rmtree(temp_dest)
@@ -551,7 +547,7 @@ def model_downloader(
     try:
         validate_model_paths(model_contents, predictor_type, temp_dest)
     except CortexException:
-        logger().info(
+        logger.info(
             f"failed validating model {model_name} of version {model_version} from temp dir"
         )
         shutil.rmtree(temp_dest)
@@ -560,7 +556,7 @@ def model_downloader(
     # move model to dest dir
     model_top_dir = os.path.join(model_dir, model_name)
     ondisk_model_version = os.path.join(model_top_dir, model_version)
-    logger().info(
+    logger.info(
         f"moving model {model_name} of version {model_version} to final dir {ondisk_model_version}"
     )
     if os.path.isdir(ondisk_model_version):

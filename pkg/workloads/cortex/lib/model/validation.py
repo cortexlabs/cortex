@@ -22,7 +22,7 @@ from fnmatch import fnmatchcase
 
 from cortex.lib import util
 from cortex.lib.storage import S3, LocalStorage
-from cortex.lib.log import cx_logger as logger
+from cortex.lib.log import logger
 from cortex.lib.exceptions import CortexException
 from cortex.lib.type import (
     PythonPredictorType,
@@ -279,7 +279,7 @@ def validate_models_dir_paths(
             ooa_valid_key_ids.append(validate_model_paths(rel_paths, predictor_type, model_name))
             valid_model_prefixes.append(os.path.join(common_prefix, model_name))
         except CortexException as e:
-            logger().debug(f"failed validating model {model_name}: {str(e)}")
+            logger.debug(f"failed validating model {model_name}: {str(e)}")
             continue
 
     return valid_model_prefixes, ooa_valid_key_ids

@@ -345,7 +345,7 @@ func getEnvVars(api *spec.API, container string) []kcore.EnvVar {
 		return []kcore.EnvVar{
 			{
 				Name:  "CORTEX_LOG_LEVEL",
-				Value: api.Predictor.LogLevel.String(),
+				Value: strings.ToUpper(api.Predictor.LogLevel.String()),
 			},
 		}
 	}
@@ -368,7 +368,7 @@ func getEnvVars(api *spec.API, container string) []kcore.EnvVar {
 		envVars = append(envVars,
 			kcore.EnvVar{
 				Name:  "CORTEX_LOG_LEVEL",
-				Value: api.Predictor.LogLevel.String(),
+				Value: strings.ToUpper(api.Predictor.LogLevel.String()),
 			},
 			kcore.EnvVar{
 				Name: "HOST_IP",

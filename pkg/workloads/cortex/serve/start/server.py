@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os
 import sys
 import pathlib
 import time
@@ -23,7 +24,7 @@ import yaml
 def main():
     uds = sys.argv[1]
 
-    with open("/src/cortex/serve/log_config.yaml", "r") as f:
+    with open(os.environ["CORTEX_LOG_CONFIG_FILE"], "r") as f:
         log_config = yaml.load(f, yaml.FullLoader)
 
     while not pathlib.Path("/mnt/workspace/init_script_run.txt").is_file():

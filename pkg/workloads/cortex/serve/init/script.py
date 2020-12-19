@@ -17,6 +17,9 @@ import time
 import json
 import sys
 
+from cortex.lib.log import configure_logger
+logger = configure_logger("cortex_with_pid", os.environ["CORTEX_LOG_CONFIG_FILE"])
+
 from cortex.lib.type import (
     predictor_type_from_api_spec,
     PythonPredictorType,

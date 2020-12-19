@@ -25,10 +25,12 @@ import pathlib
 import boto3
 import botocore
 
+from cortex.lib.log import configure_logger
+logger = configure_logger("cortex_with_pid", os.environ["CORTEX_LOG_CONFIG_FILE"])
+
 from cortex import consts
 from cortex.lib import util
 from cortex.lib.api import API, get_spec, get_api
-from cortex.lib.log import cx_logger as logger
 from cortex.lib.concurrency import LockedFile
 from cortex.lib.storage import S3, LocalStorage
 from cortex.lib.exceptions import UserRuntimeException
@@ -129,7 +131,7 @@ def handle_on_complete(message):
             if should_run_on_job_complete:
                 # double check that the queue is still empty (except for the job_complete message)
                 if not_visible_count <= 1:
-                    logger().info("executing on_job_complete")
+                    logger.info("executing on_job_complete")
                     predictor_impl.on_job_complete()
                     sqs_client.delete_message(QueueUrl=queue_url, ReceiptHandle=receipt_handle)
                     return True
@@ -166,7 +168,7 @@ def sqs_loop():
 
         if response.get("Messages") is None or len(response["Messages"]) == 0:
             if no_messages_found_in_previous_iteration:
-                logger().info("no batches left in queue, exiting...")
+                logger.info("no batches left in queue, exiting...")
                 return
             else:
                 no_messages_found_in_previous_iteration = True
@@ -181,14 +183,14 @@ def sqs_loop():
         if "MessageAttributes" in message and "job_complete" in message["MessageAttributes"]:
             handled_on_complete = handle_on_complete(message)
             if handled_on_complete:
-                logger().info("no batches left in queue, job has been completed")
+                logger.info("no batches left in queue, job has been completed")
                 return
             else:
                 # sometimes on_job_complete message will be released if there are other messages still to be processed
                 continue
 
         try:
-            logger().info(f"processing batch {message['MessageId']}")
+            logger.info(f"processing batch {message['MessageId']}")
 
             start_time = time.time()
 
@@ -203,7 +205,7 @@ def sqs_loop():
             api_spec.post_metrics(
                 [failed_counter_metric(), time_per_batch_metric(time.time() - start_time)]
             )
-            logger().exception("failed to process batch")
+            logger.exception("failed to process batch")
         finally:
             sqs_client.delete_message(QueueUrl=queue_url, ReceiptHandle=receipt_handle)
 
@@ -244,7 +246,7 @@ def start():
     client = api.predictor.initialize_client(
         tf_serving_host=tf_serving_host, tf_serving_port=tf_serving_port
     )
-    logger().info("loading the predictor from {}".format(api.predictor.path))
+    logger.info("loading the predictor from {}".format(api.predictor.path))
     predictor_impl = api.predictor.initialize_impl(project_dir, client, job_spec)
 
     local_cache["api_spec"] = api
@@ -256,7 +258,7 @@ def start():
 
     open("/mnt/workspace/api_readiness.txt", "a").close()
 
-    logger().info("polling for batches...")
+    logger.info("polling for batches...")
     sqs_loop()
 
 

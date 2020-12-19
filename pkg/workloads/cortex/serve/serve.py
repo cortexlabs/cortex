@@ -24,12 +24,14 @@ import uuid
 from concurrent.futures import ThreadPoolExecutor
 from typing import Any, Dict
 
+from cortex.lib.log import configure_logger
+logger = configure_logger("cortex_with_pid", os.environ["CORTEX_LOG_CONFIG_FILE"])
+
 from cortex.lib import util
 from cortex.lib.api import get_api
 from cortex.lib.api.batching import DynamicBatcher
 from cortex.lib.concurrency import FileLock, LockedFile
 from cortex.lib.exceptions import UserRuntimeException
-from cortex.lib.log import cx_logger as logger
 from fastapi import FastAPI
 from fastapi.exceptions import RequestValidationError
 from starlette.background import BackgroundTasks
@@ -216,7 +218,7 @@ def predict(request: Request):
                 tasks.add_task(api.upload_class, class_name=predicted_value)
                 local_cache["class_set"].add(predicted_value)
         except:
-            logger().warn("unable to record prediction metric", exc_info=True)
+            logger.warn("unable to record prediction metric", exc_info=True)
 
     if util.has_method(predictor_impl, "post_predict"):
         kwargs = build_post_predict_kwargs(prediction, request)
@@ -310,7 +312,7 @@ def start_fn():
         )
 
         with FileLock("/run/init_stagger.lock"):
-            logger().info("loading the predictor from {}".format(api.predictor.path))
+            logger.info("loading the predictor from {}".format(api.predictor.path))
             predictor_impl = api.predictor.initialize_impl(project_dir, client)
 
         local_cache["api"] = api
@@ -338,7 +340,7 @@ def start_fn():
             predict_route = "/predict"
         local_cache["predict_route"] = predict_route
     except:
-        logger().exception("failed to start api")
+        logger.exception("failed to start api")
         sys.exit(1)
 
     if (
@@ -349,7 +351,7 @@ def start_fn():
         try:
             local_cache["class_set"] = api.get_cached_classes()
         except:
-            logger().warn("an error occurred while attempting to load classes", exc_info=True)
+            logger.warn("an error occurred while attempting to load classes", exc_info=True)
 
     app.add_api_route(local_cache["predict_route"], predict, methods=["POST"])
     app.add_api_route(local_cache["predict_route"], get_summary, methods=["GET"])

@@ -16,7 +16,10 @@ COPY pkg/workloads/cortex/downloader/requirements.txt /src/cortex/downloader/req
 RUN pip install -r /src/cortex/downloader/requirements.txt && \
     rm -rf /root/.cache/pip*
 
+ENV CORTEX_LOG_CONFIG_FILE /src/cortex/serve/log_config.yaml
+
 COPY pkg/workloads/cortex/consts.py /src/cortex/
+COPY pkg/workloads/cortex/serve/log_config.yaml /src/cortex/serve/
 COPY pkg/workloads/cortex/lib /src/cortex/lib
 COPY pkg/workloads/cortex/downloader /src/cortex/downloader
 
