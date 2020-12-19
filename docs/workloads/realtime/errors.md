@@ -1,12 +1,23 @@
-# API is stuck updating
+# Errors
+
+## 404 or 503 error responses from API requests
+
+When making prediction requests to your API, it's possible to get a `{"message":"Not Found"}` error message (with HTTP status code `404`), or a `no healthy upstream` error message (with HTTP status code `503`). This means that there are currently no live replicas running for your API. This could happen for a few reasons:
+
+1. It's possible that your API is simply not ready yet. You can check the status of your API with `cortex get API_NAME`, and stream the logs with `cortex logs API_NAME`.
+1. Your API may have errored during initialization or while responding to a previous request. `cortex get API_NAME` will show the status of your API, and you can view the logs with `cortex logs API_NAME`.
+
+It is also possible to receive a `{"message":"Service Unavailable"}` error message (with HTTP status code `503`) if you are using an API Gateway endpoint for your API and if your request exceeds API Gateway's 29 second timeout. If you don't know whether you are using API Gateway, you can run `cortex get <api_name>` and check if `networking.api_gateway` is not set to `none` in the api configuration. If the request is exceeding the API Gateway timeout, your client should receive the `{"message":"Service Unavailable"}` response ~29 seconds after making the request. To confirm that this is the issue, you can modify your `predict()` function to immediately return a response (e.g. `return "ok"`), re-deploy your API, wait for the update to complete, and try making a request. If your client successfully receives the "ok" response, it is likely that the API Gateway timeout is occurring. You can either modify your `predict()` implementation to take less time, run on faster hardware (e.g. GPUs), or disable API Gateway for this API by setting `api_gateway: none` in the `networking` field of the API configuration.
+
+## API is stuck updating
 
 If your API is stuck in the "updating" or "compute unavailable" state (which is displayed when running `cortex get`), there are a few possible causes. Here are some things to check:
 
-## Check `cortex logs API_NAME`
+### Check `cortex logs API_NAME`
 
 If no logs appear (e.g. it just says "fetching logs..."), continue down this list.
 
-## Check `max_instances` for your cluster
+### Check `max_instances` for your cluster
 
 When you created your Cortex cluster, you configured `max_instances` (either from the command prompts or via a cluster configuration file, e.g. `cluster.yaml`). If your cluster already has `min_instances` running instances, additional instances cannot be created and APIs may not be able to deploy, scale, or update.
 
@@ -35,11 +46,11 @@ On the old UI:
 
 ![old ui](https://user-images.githubusercontent.com/808475/78153350-7e9eb480-742a-11ea-9221-1f6559db45fd.png)
 
-The most common reason AWS is unable to provision instances is that you have reached your instance limit. There is an instance limit associated with your AWS account for each instance family in each region, for on-demand and for spot instances. You can check your current limit and request an increase [here](https://console.aws.amazon.com/servicequotas/home?#!/services/ec2/quotas) (set the region in the upper right corner to your desired region, type "on-demand" or "spot" in the search bar, and click on the quota that matches your instance type). Note that the quota values indicate the number of vCPUs available, not the number of instances; different instances have a different numbers of vCPUs, which can be seen [here](https://aws.amazon.com/ec2/instance-types/).
+The most common reason AWS is unable to provision instances is that you have reached your instance limit. There is an instance limit associated with your AWS account for each instance family in each region, for on-demand and for spot instances. You can check your current limit and request an increase [here](https://console.aws.amazon.com/servicequotas/home?#!/services/ec2/quotas) (set the region in the upper right corner to your desired region, type "on-demand" or "spot" in the search bar, and click on the quota that matches your instance type). Note that the quota values indicate the number of vCPUs available, not the number of instances; different instances have a different numbers of vCPUs, which can be seen [here](https://aws.amazon.com/ec2/instance-types).
 
 If you are using spot instances and don't have `on_demand_backup` set to true, it is also possible that AWS has run out of spot instances for your requested instance type and region. You can enable `on_demand_backup` to allow Cortex to fall back to on-demand instances when spot instances are unavailable, or you can try adding additional alternative instance types in `instance_distribution`.
 
-## Disabling rolling updates
+### Disabling rolling updates
 
 By default, cortex performs rolling updates on all APIs. This is to ensure that traffic can continue to be served during updates, and that there is no downtime if there's an error in the new version. However, this can lead to APIs getting stuck in the "updating" state when the cluster is unable to increase its instance count (e.g. for one of the reasons above).
 

@@ -94,7 +94,7 @@ docker pull <your_image>
 
 #### Install and configure kubectl
 
-Follow these [instructions](../../cluster/aws/kubectl.md).
+Follow these [instructions](../../clusters/aws/kubectl.md).
 
 #### Setting credentials
 
