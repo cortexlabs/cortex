@@ -21,7 +21,6 @@ import (
 
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
-	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 	"github.com/cortexlabs/cortex/pkg/operator/operator"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
@@ -32,7 +31,6 @@ import (
 )
 
 const _operatorService = "operator"
-const _timeoutAnnotationKey = "batch.cortex.dev/timeout"
 
 func k8sJobSpec(api *spec.API, job *spec.Job) (*kbatch.Job, error) {
 	switch api.Predictor.Type {
@@ -58,12 +56,6 @@ func pythonPredictorJobSpec(api *spec.API, job *spec.Job) (*kbatch.Job, error) {
 		}
 	}
 
-	annotations := map[string]string{}
-
-	if job.Timeout != nil {
-		annotations[_timeoutAnnotationKey] = s.Int(*job.Timeout)
-	}
-
 	return k8s.Job(&k8s.JobSpec{
 		Name:        job.JobKey.K8sName(),
 		Parallelism: int32(job.Workers),
@@ -75,7 +67,6 @@ func pythonPredictorJobSpec(api *spec.API, job *spec.Job) (*kbatch.Job, error) {
 			"jobID":       job.ID,
 			"apiKind":     api.Kind.String(),
 		},
-		Annotations: annotations,
 		PodSpec: k8s.PodSpec{
 			Labels: map[string]string{
 				"apiName":     api.Name,
@@ -114,12 +105,6 @@ func tensorFlowPredictorJobSpec(api *spec.API, job *spec.Job) (*kbatch.Job, erro
 		}
 	}
 
-	annotations := map[string]string{}
-
-	if job.Timeout != nil {
-		annotations[_timeoutAnnotationKey] = s.Int(*job.Timeout)
-	}
-
 	return k8s.Job(&k8s.JobSpec{
 		Name:        job.JobKey.K8sName(),
 		Parallelism: int32(job.Workers),
@@ -131,7 +116,6 @@ func tensorFlowPredictorJobSpec(api *spec.API, job *spec.Job) (*kbatch.Job, erro
 			"jobID":       job.ID,
 			"apiKind":     api.Kind.String(),
 		},
-		Annotations: annotations,
 		PodSpec: k8s.PodSpec{
 			Labels: map[string]string{
 				"apiName":     api.Name,
@@ -171,12 +155,6 @@ func onnxPredictorJobSpec(api *spec.API, job *spec.Job) (*kbatch.Job, error) {
 		}
 	}
 
-	annotations := map[string]string{}
-
-	if job.Timeout != nil {
-		annotations[_timeoutAnnotationKey] = s.Int(*job.Timeout)
-	}
-
 	return k8s.Job(&k8s.JobSpec{
 		Name:        job.JobKey.K8sName(),
 		Parallelism: int32(job.Workers),
@@ -188,7 +166,6 @@ func onnxPredictorJobSpec(api *spec.API, job *spec.Job) (*kbatch.Job, error) {
 			"jobID":       job.ID,
 			"apiKind":     api.Kind.String(),
 		},
-		Annotations: annotations,
 		PodSpec: k8s.PodSpec{
 			Labels: map[string]string{
 				"apiName":     api.Name,
