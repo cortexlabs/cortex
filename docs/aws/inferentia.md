@@ -1,7 +1,5 @@
 # Using Inferentia
 
-_WARNING: you are on the master branch, please refer to the docs on the branch that matches your `cortex version`_
-
 1. You may need to [request a limit increase](https://console.aws.amazon.com/servicequotas/home?#!/services/ec2/quotas) for running Inferentia instances.
 1. Set the instance type to an AWS Inferentia instance (e.g. `inf1.xlarge`) when creating your Cortex cluster.
 1. Set the `inf` field in the `compute` configuration for your API. One unit of `inf` corresponds to one Inferentia ASIC with 4 NeuronCores *(not the same thing as `cpu`)* and 8GB of cache memory *(not the same thing as `mem`)*. Fractional requests are not allowed.
@@ -32,7 +30,7 @@ Before a model can be deployed on Inferentia chips, it must be compiled for Infe
 
 By default, the Neuron compiler will compile a model to use 1 NeuronCore, but can be manually set to a different size (1, 2, 4, etc).
 
-For optimal performance, your model should be compiled to run on the number of NeuronCores available to it. The number of NeuronCores will be `4 * inf / processes_per_replica` (`inf` refers to your API's `compute` request, and it's multiplied by 4 because there are 4 NeuronCores per Inferentia chip). See [NeuronCore Groups](#neuron-core-groups) above for an example, and see [Improving performance](#improving-performance) below for a discussion of choosing the appropriate number of NeuronCores.
+For optimal performance, your model should be compiled to run on the number of NeuronCores available to it. The number of NeuronCores will be `4 * inf / processes_per_replica` (`inf` refers to your API's `compute` request, and it's multiplied by 4 because there are 4 NeuronCores per Inferentia chip). See [NeuronCore Groups](#neuroncore-groups) above for an example, and see [Improving performance](#improving-performance) below for a discussion of choosing the appropriate number of NeuronCores.
 
 Here is an example of compiling a TensorFlow SavedModel for Inferentia:
 

@@ -1,7 +1,5 @@
 # Uninstall
 
-_WARNING: you are on the master branch, please refer to the docs on the branch that matches your `cortex version`_
-
 ```bash
 cortex cluster down
 ```
@@ -43,6 +41,6 @@ On rare occasions, `cortex cluster down` may not be able to spin down your Corte
 
 1. Select the final stack (the one that ends in "-cluster") and click "Delete".
 
-    If deleting the stack fails, navigate to the EC2 dashboard in the AWS console, delete the load balancers that are associated with the cluster, and try again (you can determine which load balancers are associated with the cluster by setting the correct region in the console and checking the `cortex.dev/cluster-name` tag on all load balancers). If the problem still persists, delete any other AWS resources that are blocking the stack deletion and try again. Feel free to reach out to us on [gitter](https://gitter.im/cortexlabs/cortex) if you still aren't able to delete the stacks.
+    If deleting the stack fails, navigate to the EC2 dashboard in the AWS console, delete the load balancers that are associated with the cluster, and try again (you can determine which load balancers are associated with the cluster by setting the correct region in the console and checking the `cortex.dev/cluster-name` tag on all load balancers). If the problem still persists, delete any other AWS resources that are blocking the stack deletion and try again.
 
 1. In rare cases, you may need to delete other AWS resources associated with your Cortex cluster. For each the following resources, go to the appropriate AWS Dashboard (in the region that your cluster was in), and confirm that there are no resources left behind by the cluster: API Gateway API, API Gateway VPC Link, CloudWatch Dashboard, SQS Queues, S3 Bucket, and CloudWatch LogGroups (the Cortex bucket and log groups are not deleted by `cluster down` in order to preserve your data).

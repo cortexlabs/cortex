@@ -1,5 +1,3 @@
-# WARNING: you are on the master branch; please refer to examples on the branch corresponding to your `cortex version` (e.g. for version 0.24.*, run `git checkout -b 0.24` or switch to the `0.24` branch on GitHub)
-
 import cv2
 import numpy as np
 import keras_ocr

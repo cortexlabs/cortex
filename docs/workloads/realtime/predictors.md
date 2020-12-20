@@ -1,9 +1,5 @@
 # Predictor implementation
 
-_WARNING: you are on the master branch, please refer to the docs on the branch that matches your `cortex version`_
-
-Once your model is [exported](../../guides/exporting.md), you can implement one of Cortex's Predictor classes to deploy your model. A Predictor is a Python class that describes how to initialize your model and use it to make predictions.
-
 Which Predictor you use depends on how your model is exported:
 
 * [TensorFlow Predictor](#tensorflow-predictor) if your model is exported as a TensorFlow `SavedModel`
@@ -126,7 +122,7 @@ class PythonPredictor:
 <!-- CORTEX_VERSION_MINOR -->
 When explicit model paths are specified in the Python predictor's API configuration, Cortex provides a `python_client` to your Predictor's constructor. `python_client` is an instance of [PythonClient](https://github.com/cortexlabs/cortex/tree/master/pkg/workloads/cortex/lib/client/python.py) that is used to load model(s) (it calls the `load_model()` method of your predictor, which must be defined when using explicit model paths). It should be saved as an instance variable in your Predictor, and your `predict()` function should call `python_client.get_model()` to load your model for inference. Preprocessing of the JSON payload and postprocessing of predictions can be implemented in your `predict()` function as well.
 
-When multiple models are defined using the Predictor's `models` field, the `python_client.get_model()` method expects an argument `model_name` which must hold the name of the model that you want to load (for example: `self.client.get_model("text-generator")`). There is also an optional second argument to specify the model version. See [models](models.md) and the [multi model guide](../../guides/multi-model.md#python-predictor) for more information.
+When multiple models are defined using the Predictor's `models` field, the `python_client.get_model()` method expects an argument `model_name` which must hold the name of the model that you want to load (for example: `self.client.get_model("text-generator")`). There is also an optional second argument to specify the model version.
 
 For proper separation of concerns, it is recommended to use the constructor's `config` parameter for information such as from where to download the model and initialization files, or any configurable model parameters. You define `config` in your API configuration, and it is passed through to your Predictor's constructor.
 
@@ -207,8 +203,6 @@ torchvision==0.6.1
 <!-- CORTEX_VERSION_MINOR x3 -->
 The pre-installed system packages are listed in [images/python-predictor-cpu/Dockerfile](https://github.com/cortexlabs/cortex/tree/master/images/python-predictor-cpu/Dockerfile) (for CPU), [images/python-predictor-gpu/Dockerfile](https://github.com/cortexlabs/cortex/tree/master/images/python-predictor-gpu/Dockerfile) (for GPU), or [images/python-predictor-inf/Dockerfile](https://github.com/cortexlabs/cortex/tree/master/images/python-predictor-inf/Dockerfile) (for Inferentia).
 
-If your application requires additional dependencies, you can install additional [Python packages](../python-packages.md) and [system packages](../system-packages.md).
-
 ## TensorFlow Predictor
 
 ### Interface
@@ -269,7 +263,7 @@ class TensorFlowPredictor:
 <!-- CORTEX_VERSION_MINOR -->
 Cortex provides a `tensorflow_client` to your Predictor's constructor. `tensorflow_client` is an instance of [TensorFlowClient](https://github.com/cortexlabs/cortex/tree/master/pkg/workloads/cortex/lib/client/tensorflow.py) that manages a connection to a TensorFlow Serving container to make predictions using your model. It should be saved as an instance variable in your Predictor, and your `predict()` function should call `tensorflow_client.predict()` to make an inference with your exported TensorFlow model. Preprocessing of the JSON payload and postprocessing of predictions can be implemented in your `predict()` function as well.
 
-When multiple models are defined using the Predictor's `models` field, the `tensorflow_client.predict()` method expects a second argument `model_name` which must hold the name of the model that you want to use for inference (for example: `self.client.predict(payload, "text-generator")`). There is also an optional third argument to specify the model version. See [models](models.md) and the [multi model guide](../../guides/multi-model.md#tensorflow-predictor) for more information.
+When multiple models are defined using the Predictor's `models` field, the `tensorflow_client.predict()` method expects a second argument `model_name` which must hold the name of the model that you want to use for inference (for example: `self.client.predict(payload, "text-generator")`). There is also an optional third argument to specify the model version.
 
 For proper separation of concerns, it is recommended to use the constructor's `config` parameter for information such as configurable model parameters or download links for initialization files. You define `config` in your [API configuration](configuration.md), and it is passed through to your Predictor's constructor.
 
@@ -298,8 +292,6 @@ tensorflow==2.3.0
 
 <!-- CORTEX_VERSION_MINOR -->
 The pre-installed system packages are listed in [images/tensorflow-predictor/Dockerfile](https://github.com/cortexlabs/cortex/tree/master/images/tensorflow-predictor/Dockerfile).
-
-If your application requires additional dependencies, you can install additional [Python packages](../python-packages.md) and [system packages](../system-packages.md).
 
 ## ONNX Predictor
 
@@ -361,7 +353,7 @@ class ONNXPredictor:
 <!-- CORTEX_VERSION_MINOR -->
 Cortex provides an `onnx_client` to your Predictor's constructor. `onnx_client` is an instance of [ONNXClient](https://github.com/cortexlabs/cortex/tree/master/pkg/workloads/cortex/lib/client/onnx.py) that manages an ONNX Runtime session to make predictions using your model. It should be saved as an instance variable in your Predictor, and your `predict()` function should call `onnx_client.predict()` to make an inference with your exported ONNX model. Preprocessing of the JSON payload and postprocessing of predictions can be implemented in your `predict()` function as well.
 
-When multiple models are defined using the Predictor's `models` field, the `onnx_client.predict()` method expects a second argument `model_name` which must hold the name of the model that you want to use for inference (for example: `self.client.predict(model_input, "text-generator")`). There is also an optional third argument to specify the model version. See [models](models.md) and the [multi model guide](../../guides/multi-model.md#onnx-predictor) for more information.
+When multiple models are defined using the Predictor's `models` field, the `onnx_client.predict()` method expects a second argument `model_name` which must hold the name of the model that you want to use for inference (for example: `self.client.predict(model_input, "text-generator")`). There is also an optional third argument to specify the model version.
 
 For proper separation of concerns, it is recommended to use the constructor's `config` parameter for information such as configurable model parameters or download links for initialization files. You define `config` in your [API configuration](configuration.md), and it is passed through to your Predictor's constructor.
 
@@ -388,14 +380,13 @@ requests==2.24.0
 <!-- CORTEX_VERSION_MINOR x2 -->
 The pre-installed system packages are listed in [images/onnx-predictor-cpu/Dockerfile](https://github.com/cortexlabs/cortex/tree/master/images/onnx-predictor-cpu/Dockerfile) (for CPU) or [images/onnx-predictor-gpu/Dockerfile](https://github.com/cortexlabs/cortex/tree/master/images/onnx-predictor-gpu/Dockerfile) (for GPU).
 
-If your application requires additional dependencies, you can install additional [Python packages](../python-packages.md) and [system packages](../system-packages.md).
-
 ## API requests
 
 The type of the `payload` parameter in `predict(self, payload)` can vary based on the content type of the request. The `payload` parameter is parsed according to the `Content-Type` header in the request. Here are the parsing rules (see below for examples):
 
 1. For `Content-Type: application/json`, `payload` will be the parsed JSON body.
 1. For `Content-Type: multipart/form-data` / `Content-Type: application/x-www-form-urlencoded`, `payload` will be `starlette.datastructures.FormData` (key-value pairs where the values are strings for text data, or `starlette.datastructures.UploadFile` for file uploads; see [Starlette's documentation](https://www.starlette.io/requests/#request-files)).
+1. For `Content-Type: text/plain`, `payload` will be a string. `utf-8` encoding is assumed, unless specified otherwise (e.g. via `Content-Type: text/plain; charset=us-ascii`)
 1. For all other `Content-Type` values, `payload` will be the raw `bytes` of the request body.
 
 Here are some examples:
@@ -594,6 +585,40 @@ class PythonPredictor:
         print(payload["key"])  # will print "value"
 ```
 
+### Text data
+
+#### Making the request
+
+##### Curl
+
+```bash
+$ curl https://***.amazonaws.com/my-api \
+    -X POST -H "Content-Type: text/plain" \
+    -d "hello world"
+```
+
+##### Python
+
+```python
+import requests
+
+url = "https://***.amazonaws.com/my-api"
+requests.post(url, "hello world", headers={"Content-Type": "text/plain"})
+```
+
+#### Reading the payload
+
+Since the `Content-Type: text/plain` header is used, the `payload` parameter will be a `string` object:
+
+```python
+class PythonPredictor:
+    def __init__(self, config):
+        pass
+
+    def predict(self, payload):
+        print(payload)  # prints "hello world"
+```
+
 ## API responses
 
 The response of your `predict()` function may be:
@@ -605,39 +630,6 @@ The response of your `predict()` function may be:
 3. A `bytes` object (e.g. `bytes(4)` or `pickle.dumps(obj)`)
 
 4. An instance of [starlette.responses.Response](https://www.starlette.io/responses/#response)
-
-Here are some examples:
-
-```python
-def predict(self, payload):
-    # json-serializable object
-    response = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
-    return response
-```
-
-```python
-def predict(self, payload):
-    # string object
-    response = "class 1"
-    return response
-```
-
-```python
-def predict(self, payload):
-    # bytes-like object
-    array = np.random.randn(3, 3)
-    response = pickle.dumps(array)
-    return response
-```
-
-```python
-def predict(self, payload):
-    # starlette.responses.Response
-    data = "class 1"
-    response = starlette.responses.Response(
-        content=data, media_type="text/plain")
-    return response
-```
 
 ## Chaining APIs
 

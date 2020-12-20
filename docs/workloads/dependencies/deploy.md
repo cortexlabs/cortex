@@ -57,5 +57,5 @@ cx.create_api(api_spec, project_dir=".")
 ```
 
 ```bash
-$ cortex deploy api.yaml -e aws
+$ cortex deploy api.yaml --env aws
 ```

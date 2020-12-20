@@ -1,4 +1,4 @@
-# Deploy a multi-model API
+# Multi-model API
 
 Deploy several models in a single API to improve resource utilization efficiency.
 

@@ -1,6 +1,6 @@
-# Deploy a realtime API
+# RealtimeAPI
 
-Deploy models as realtime APIs that can respond to prediction requests on demand.
+Deploy realtime APIs that can respond to prediction requests on demand.
 
 ## Key features
 

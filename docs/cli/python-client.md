@@ -1,7 +1,5 @@
 # Python client
 
-_WARNING: you are on the master branch, please refer to the docs on the branch that matches your `cortex version`_
-
 * [cortex](#cortex)
   * [client](#client)
   * [local\_client](#local_client)
@@ -106,7 +104,7 @@ Delete an environment configured on this machine.
 
 ## create\_api
 
-<!-- CORTEX_VERSION_MINOR x5 -->
+<!-- CORTEX_VERSION_MINOR -->
 
 ```python
  | create_api(api_spec: dict, predictor=None, requirements=[], conda_packages=[], project_dir: Optional[str] = None, force: bool = True, wait: bool = False) -> list
