@@ -164,7 +164,7 @@ async def parse_payload(request: Request, call_next):
             charset = "utf-8"
             matches = re.findall(r"charset=(\S+)", content_type)
             if len(matches) > 0:
-                charset = matches[-1]
+                charset = matches[-1].rstrip(";")
             body = await request.body()
             request.state.payload = body.decode(charset)
         except Exception as e:
