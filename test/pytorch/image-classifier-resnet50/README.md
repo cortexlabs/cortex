@@ -1,7 +1,5 @@
 # Image Classifier with ResNet50
 
-_WARNING: you are on the master branch; please refer to examples on the branch corresponding to your `cortex version` (e.g. for version 0.24.*, run `git checkout -b 0.24` or switch to the `0.24` branch on GitHub)_
-
 This example implements an image recognition system using ResNet50, which allows for the recognition of up to 1000 classes.
 
 ## Deploying

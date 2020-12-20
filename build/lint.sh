@@ -102,7 +102,6 @@ if [ "$is_release_branch" = "true" ]; then
   ! -path "**/.idea/*" \
   ! -path "**/.history/*" \
   ! -path "**/__pycache__/*" \
-  ! -path "./docs/guides/contributing.md" \
   ! -path "./dev/config/*" \
   ! -path "./bin/*" \
   ! -path "./.git/*" \
@@ -112,45 +111,6 @@ if [ "$is_release_branch" = "true" ]; then
   output=$(echo "$output" | grep -e "master" || true)
   if [[ $output ]]; then
     echo 'occurrences of "master" which should be changed to the version number:'
-    echo "$output"
-    exit 1
-  fi
-
-  # Check for no master version warnings
-  output=$(cd "$ROOT" && find . -type f \
-  ! -path "./build/lint.sh" \
-  ! -path "./dev/*" \
-  ! -path "./vendor/*" \
-  ! -path "**/.vscode/*" \
-  ! -path "**/.idea/*" \
-  ! -path "**/.history/*" \
-  ! -path "**/__pycache__/*" \
-  ! -path "./dev/config/*" \
-  ! -path "./bin/*" \
-  ! -path "./.git/*" \
-  ! -name ".*" \
-  ! -name "*.bin" \
-  -exec grep -l "WARNING: you are on the master branch" {} \;)
-  if [[ $output ]]; then
-    echo "file(s) have the master version warning:"
-    echo "$output"
-    exit 1
-  fi
-
-else
-  # Check for version warning comments in docs
-  output=$(cd "$ROOT/docs" && find . -type f \
-  ! -path "./README.md" \
-  ! -name "summary.md" \
-  ! -path "./tutorials/*" \
-  ! -name "contributing.md" \
-  ! -name "*.json" \
-  ! -name "*.txt" \
-  ! -name ".*" \
-  ! -name "*.bin" \
-  -exec grep -L "WARNING: you are on the master branch, please refer to the docs on the branch that matches your \`cortex version\`" {} \;)
-  if [[ $output ]]; then
-    echo "docs file(s) are missing appropriate version comment:"
     echo "$output"
     exit 1
   fi
@@ -207,7 +167,7 @@ output=$(cd "$ROOT" && find . -type f \
 ! -name ".*" \
 ! -name "*.bin" \
 -print0 | \
-xargs -0 -L1 bash -c 'test "$(tail -c 2 "$0")" || echo "Multiple new lines at end of $0"' || true)
+xargs -0 -L1 bash -c 'test "$(tail -c 2 "$0")" || [ ! -s "$0" ] || echo "Multiple new lines at end of $0"' || true)
 if [[ $output ]]; then
   echo "$output"
   exit 1
@@ -226,8 +186,16 @@ output=$(cd "$ROOT" && find . -type f \
 ! -name ".*" \
 ! -name "*.bin" \
 -print0 | \
-xargs -0 -L1 bash -c 'test "$(head -c 1 "$0")" || echo "New line at beginning of $0"' || true)
+xargs -0 -L1 bash -c 'test "$(head -c 1 "$0")" || [ ! -s "$0" ] || echo "New line at beginning of $0"' || true)
 if [[ $output ]]; then
+  echo "$output"
+  exit 1
+fi
+
+# Check docs links
+output=$(python3 $ROOT/dev/find_missing_docs_links.py)
+if [[ $output ]]; then
+  echo "docs file(s) have broken links:"
   echo "$output"
   exit 1
 fi

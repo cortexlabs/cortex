@@ -1,7 +1,5 @@
 # Parallelism
 
-_WARNING: you are on the master branch, please refer to the docs on the branch that matches your `cortex version`_
-
 ## Concurrency
 
 Replica parallelism can be configured with the following fields in the `predictor` configuration:

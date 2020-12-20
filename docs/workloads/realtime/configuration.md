@@ -1,7 +1,5 @@
 # API configuration
 
-_WARNING: you are on the master branch, please refer to the docs on the branch that matches your `cortex version`_
-
 ## Python Predictor
 
 <!-- CORTEX_VERSION_BRANCH_STABLE x2 -->
@@ -20,6 +18,9 @@ _WARNING: you are on the master branch, please refer to the docs on the branch t
         ...
       cache_size: <int>  # the number models to keep in memory (optional; all models are kept in memory by default)
       disk_cache_size: <int>  # the number of models to keep on disk (optional; all models are kept on disk by default)
+    server_side_batching:  # (optional)
+      max_batch_size: <int>  # the maximum number of requests to aggregate before running inference
+      batch_interval: <duration>  # the maximum amount of time to spend waiting for additional requests before running inference on the batch of requests
     processes_per_replica: <int>  # the number of parallel serving processes to run on each replica (default: 1)
     threads_per_process: <int>  # the number of threads per process (default: 1)
     config: <string: value>  # arbitrary dictionary passed to the constructor of the Predictor (optional)
@@ -132,7 +133,6 @@ _WARNING: you are on the master branch, please refer to the docs on the branch t
       paths:  # list of S3 paths to exported model directories (either this or 'dir' must be provided)
         - name: <string>  # unique name for the model (e.g. text-generator) (required)
           model_path: <string>  # S3 path to an exported model directory (e.g. s3://my-bucket/exported_model/) (required)
-          signature_key: <string>  # name of the signature def to use for prediction (required if your model has more than one signature def)
         ...
       cache_size: <int>  # the number models to keep in memory (optional; all models are kept in memory by default)
       disk_cache_size: <int>  # the number of models to keep on disk (optional; all models are kept on disk by default)

@@ -1,6 +1,4 @@
-# Python/Conda packages
-
-_WARNING: you are on the master branch, please refer to the docs on the branch that matches your `cortex version`_
+# Python / Conda packages
 
 ## PyPI packages
 

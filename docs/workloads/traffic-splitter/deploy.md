@@ -1,8 +1,8 @@
-# Traffic splitter
+# TrafficSplitter
 
-A Traffic Splitter can be used expose multiple APIs as a single endpoint. The percentage of traffic routed to each API can be controlled. This can be useful when performing A/B tests, setting up multi-armed bandits or performing canary deployments.
+Expose multiple RealtimeAPIs as a single endpoint for A/B tests, multi-armed bandits, or canary deployments.
 
-**Note: Traffic Splitter is only supported on a Cortex cluster**
+**Note: TrafficSplitter is only supported on a Cortex cluster**
 
 ## Deploy APIs
 
