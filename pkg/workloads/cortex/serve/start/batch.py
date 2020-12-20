@@ -96,8 +96,6 @@ def renew_message_visibility(receipt_handle: str):
                 stop_renewal.remove(receipt_handle)
                 break
 
-        print(f"executing renew_message_visibility: {receipt_handle}")
-
         try:
             local_cache["sqs_client"].change_message_visibility(
                 QueueUrl=queue_url, ReceiptHandle=receipt_handle, VisibilityTimeout=new_timeout
@@ -184,7 +182,6 @@ def sqs_loop():
         no_messages_found_in_previous_iteration = False
         message = response["Messages"][0]
         receipt_handle = message["ReceiptHandle"]
-        print(message)
 
         renewer = threading.Thread(
             target=renew_message_visibility, args=(receipt_handle,), daemon=True
@@ -225,7 +222,6 @@ def handle_batch_message(message):
         logger().exception(f"failed processing batch {message['MessageId']}")
         with receipt_handle_mutex:
             stop_renewal.add(receipt_handle)
-            print(local_cache["job_spec"].get("sqs_dead_letter_queue"))
             if local_cache["job_spec"].get("sqs_dead_letter_queue") is not None:
                 local_cache["sqs_client"].change_message_visibility(  # return message
                     QueueUrl=queue_url, ReceiptHandle=receipt_handle, VisibilityTimeout=0
