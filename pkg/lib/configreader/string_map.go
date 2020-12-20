@@ -22,15 +22,15 @@ import (
 )
 
 type StringMapValidation struct {
-	Required             bool
-	Default              map[string]string
-	AllowExplicitNull    bool
-	AllowEmpty           bool
-	ConvertNullToEmpty   bool
-	CantBeSpecified      string // if provided, returns an error with the provided message if the field is specified
-	KeyStringValidator   *StringValidation
-	ValueStringValidator *StringValidation
-	Validator            func(map[string]string) (map[string]string, error)
+	Required              bool
+	Default               map[string]string
+	AllowExplicitNull     bool
+	AllowEmpty            bool
+	ConvertNullToEmpty    bool
+	CantBeSpecifiedErrStr *string
+	KeyStringValidator    *StringValidation
+	ValueStringValidator  *StringValidation
+	Validator             func(map[string]string) (map[string]string, error)
 }
 
 func StringMap(inter interface{}, v *StringMapValidation) (map[string]string, error) {
@@ -65,8 +65,8 @@ func ValidateStringMapMissing(v *StringMapValidation) (map[string]string, error)
 }
 
 func ValidateStringMapProvided(val map[string]string, v *StringMapValidation) (map[string]string, error) {
-	if v.CantBeSpecified != "" {
-		return nil, ErrorFieldCantBeSpecified(v.CantBeSpecified)
+	if v.CantBeSpecifiedErrStr != nil {
+		return nil, ErrorFieldCantBeSpecified(*v.CantBeSpecifiedErrStr)
 	}
 
 	if !v.AllowExplicitNull && val == nil {

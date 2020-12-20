@@ -25,17 +25,17 @@ import (
 )
 
 type Float64PtrValidation struct {
-	Required             bool
-	Default              *float64
-	AllowExplicitNull    bool
-	AllowedValues        []float64
-	DisallowedValues     []float64
-	CantBeSpecified      string // if provided, returns an error with the provided message if the field is specified
-	GreaterThan          *float64
-	GreaterThanOrEqualTo *float64
-	LessThan             *float64
-	LessThanOrEqualTo    *float64
-	Validator            func(float64) (float64, error)
+	Required              bool
+	Default               *float64
+	AllowExplicitNull     bool
+	AllowedValues         []float64
+	DisallowedValues      []float64
+	CantBeSpecifiedErrStr *string
+	GreaterThan           *float64
+	GreaterThanOrEqualTo  *float64
+	LessThan              *float64
+	LessThanOrEqualTo     *float64
+	Validator             func(float64) (float64, error)
 }
 
 func makeFloat64ValValidation(v *Float64PtrValidation) *Float64Validation {
@@ -174,8 +174,8 @@ func ValidateFloat64PtrMissing(v *Float64PtrValidation) (*float64, error) {
 }
 
 func ValidateFloat64PtrProvided(val *float64, v *Float64PtrValidation) (*float64, error) {
-	if v.CantBeSpecified != "" {
-		return nil, ErrorFieldCantBeSpecified(v.CantBeSpecified)
+	if v.CantBeSpecifiedErrStr != nil {
+		return nil, ErrorFieldCantBeSpecified(*v.CantBeSpecifiedErrStr)
 	}
 
 	if !v.AllowExplicitNull && val == nil {

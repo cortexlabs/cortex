@@ -27,17 +27,17 @@ import (
 )
 
 type IntValidation struct {
-	Required             bool
-	Default              int
-	TreatNullAsZero      bool // `<field>: ` and `<field>: null` will be read as `<field>: 0`
-	AllowedValues        []int
-	DisallowedValues     []int
-	CantBeSpecified      string // if provided, returns an error with the provided message if the field is specified
-	GreaterThan          *int
-	GreaterThanOrEqualTo *int
-	LessThan             *int
-	LessThanOrEqualTo    *int
-	Validator            func(int) (int, error)
+	Required              bool
+	Default               int
+	TreatNullAsZero       bool // `<field>: ` and `<field>: null` will be read as `<field>: 0`
+	AllowedValues         []int
+	DisallowedValues      []int
+	CantBeSpecifiedErrStr *string
+	GreaterThan           *int
+	GreaterThanOrEqualTo  *int
+	LessThan              *int
+	LessThanOrEqualTo     *int
+	Validator             func(int) (int, error)
 }
 
 func Int(inter interface{}, v *IntValidation) (int, error) {
@@ -166,8 +166,8 @@ func ValidateIntMissing(v *IntValidation) (int, error) {
 }
 
 func ValidateIntProvided(val int, v *IntValidation) (int, error) {
-	if v.CantBeSpecified != "" {
-		return 0, ErrorFieldCantBeSpecified(v.CantBeSpecified)
+	if v.CantBeSpecifiedErrStr != nil {
+		return 0, ErrorFieldCantBeSpecified(*v.CantBeSpecifiedErrStr)
 	}
 	return validateInt(val, v)
 }

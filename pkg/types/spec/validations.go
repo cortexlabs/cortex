@@ -243,7 +243,7 @@ func monitoringValidation(provider types.ProviderType) *cr.StructFieldValidation
 		return &cr.StructFieldValidation{
 			StructField: "Monitoring",
 			StructValidation: &cr.StructValidation{
-				CantBeSpecified: "only supported on AWS clusters",
+				CantBeSpecifiedErrStr: pointer.String("only supported on AWS clusters"),
 			},
 		}
 	}
@@ -311,8 +311,8 @@ func networkingValidation(
 		structFieldValidation = append(structFieldValidation, &cr.StructFieldValidation{
 			StructField: "APIGateway",
 			StringValidation: &cr.StringValidation{
-				CantBeSpecified: "only supported on AWS clusters",
-				Default:         userconfig.NoneAPIGatewayType.String(),
+				CantBeSpecifiedErrStr: pointer.String("only supported on AWS clusters"),
+				Default:               userconfig.NoneAPIGatewayType.String(),
 			},
 			Parser: func(str string) (interface{}, error) {
 				return userconfig.APIGatewayTypeFromString(str), nil
@@ -395,7 +395,7 @@ func computeValidation(provider types.ProviderType) *cr.StructFieldValidation {
 			&cr.StructFieldValidation{
 				StructField: "Inf",
 				Int64Validation: &cr.Int64Validation{
-					CantBeSpecified: "only supported on AWS clusters",
+					CantBeSpecifiedErrStr: pointer.String("only supported on AWS clusters"),
 				},
 			},
 		)
@@ -521,55 +521,55 @@ func autoscalingValidation(provider types.ProviderType) *cr.StructFieldValidatio
 			&cr.StructFieldValidation{
 				StructField: "TargetReplicaConcurrency",
 				Float64PtrValidation: &cr.Float64PtrValidation{
-					CantBeSpecified: "only supported on AWS clusters",
+					CantBeSpecifiedErrStr: pointer.String("only supported on AWS clusters"),
 				},
 			},
 			&cr.StructFieldValidation{
 				StructField: "Window",
 				StringValidation: &cr.StringValidation{
-					CantBeSpecified: "only supported on AWS clusters",
-					Default:         "0",
+					CantBeSpecifiedErrStr: pointer.String("only supported on AWS clusters"),
+					Default:               "0",
 				},
 				Parser: cr.DurationParser(nil),
 			},
 			&cr.StructFieldValidation{
 				StructField: "DownscaleStabilizationPeriod",
 				StringValidation: &cr.StringValidation{
-					CantBeSpecified: "only supported on AWS clusters",
-					Default:         "0",
+					CantBeSpecifiedErrStr: pointer.String("only supported on AWS clusters"),
+					Default:               "0",
 				},
 				Parser: cr.DurationParser(nil),
 			},
 			&cr.StructFieldValidation{
 				StructField: "UpscaleStabilizationPeriod",
 				StringValidation: &cr.StringValidation{
-					CantBeSpecified: "only supported on AWS clusters",
-					Default:         "0",
+					CantBeSpecifiedErrStr: pointer.String("only supported on AWS clusters"),
+					Default:               "0",
 				},
 				Parser: cr.DurationParser(nil),
 			},
 			&cr.StructFieldValidation{
 				StructField: "MaxDownscaleFactor",
 				Float64Validation: &cr.Float64Validation{
-					CantBeSpecified: "only supported on AWS clusters",
+					CantBeSpecifiedErrStr: pointer.String("only supported on AWS clusters"),
 				},
 			},
 			&cr.StructFieldValidation{
 				StructField: "MaxUpscaleFactor",
 				Float64Validation: &cr.Float64Validation{
-					CantBeSpecified: "only supported on AWS clusters",
+					CantBeSpecifiedErrStr: pointer.String("only supported on AWS clusters"),
 				},
 			},
 			&cr.StructFieldValidation{
 				StructField: "DownscaleTolerance",
 				Float64Validation: &cr.Float64Validation{
-					CantBeSpecified: "only supported on AWS clusters",
+					CantBeSpecifiedErrStr: pointer.String("only supported on AWS clusters"),
 				},
 			},
 			&cr.StructFieldValidation{
 				StructField: "UpscaleTolerance",
 				Float64Validation: &cr.Float64Validation{
-					CantBeSpecified: "only supported on AWS clusters",
+					CantBeSpecifiedErrStr: pointer.String("only supported on AWS clusters"),
 				},
 			},
 		)

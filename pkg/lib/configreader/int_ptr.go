@@ -25,17 +25,17 @@ import (
 )
 
 type IntPtrValidation struct {
-	Required             bool
-	Default              *int
-	AllowExplicitNull    bool
-	AllowedValues        []int
-	DisallowedValues     []int
-	CantBeSpecified      string // if provided, returns an error with the provided message if the field is specified
-	GreaterThan          *int
-	GreaterThanOrEqualTo *int
-	LessThan             *int
-	LessThanOrEqualTo    *int
-	Validator            func(int) (int, error)
+	Required              bool
+	Default               *int
+	AllowExplicitNull     bool
+	AllowedValues         []int
+	DisallowedValues      []int
+	CantBeSpecifiedErrStr *string
+	GreaterThan           *int
+	GreaterThanOrEqualTo  *int
+	LessThan              *int
+	LessThanOrEqualTo     *int
+	Validator             func(int) (int, error)
 }
 
 func makeIntValValidation(v *IntPtrValidation) *IntValidation {
@@ -174,8 +174,8 @@ func ValidateIntPtrMissing(v *IntPtrValidation) (*int, error) {
 }
 
 func ValidateIntPtrProvided(val *int, v *IntPtrValidation) (*int, error) {
-	if v.CantBeSpecified != "" {
-		return nil, ErrorFieldCantBeSpecified(v.CantBeSpecified)
+	if v.CantBeSpecifiedErrStr != nil {
+		return nil, ErrorFieldCantBeSpecified(*v.CantBeSpecifiedErrStr)
 	}
 
 	if !v.AllowExplicitNull && val == nil {

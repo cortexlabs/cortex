@@ -22,16 +22,16 @@ import (
 )
 
 type BoolListValidation struct {
-	Required          bool
-	Default           []bool
-	AllowExplicitNull bool
-	AllowEmpty        bool
-	CantBeSpecified   string // if provided, returns an error with the provided message if the field is specified
-	CastSingleItem    bool
-	MinLength         int
-	MaxLength         int
-	InvalidLengths    []int
-	Validator         func([]bool) ([]bool, error)
+	Required              bool
+	Default               []bool
+	AllowExplicitNull     bool
+	AllowEmpty            bool
+	CantBeSpecifiedErrStr *string
+	CastSingleItem        bool
+	MinLength             int
+	MaxLength             int
+	InvalidLengths        []int
+	Validator             func([]bool) ([]bool, error)
 }
 
 func BoolList(inter interface{}, v *BoolListValidation) ([]bool, error) {
@@ -74,8 +74,8 @@ func ValidateBoolListMissing(v *BoolListValidation) ([]bool, error) {
 }
 
 func ValidateBoolListProvided(val []bool, v *BoolListValidation) ([]bool, error) {
-	if v.CantBeSpecified != "" {
-		return nil, ErrorFieldCantBeSpecified(v.CantBeSpecified)
+	if v.CantBeSpecifiedErrStr != nil {
+		return nil, ErrorFieldCantBeSpecified(*v.CantBeSpecifiedErrStr)
 	}
 
 	if !v.AllowExplicitNull && val == nil {

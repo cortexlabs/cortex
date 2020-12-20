@@ -22,16 +22,16 @@ import (
 )
 
 type Int32ListValidation struct {
-	Required          bool
-	Default           []int32
-	AllowExplicitNull bool
-	AllowEmpty        bool
-	CantBeSpecified   string // if provided, returns an error with the provided message if the field is specified
-	CastSingleItem    bool
-	MinLength         int
-	MaxLength         int
-	InvalidLengths    []int
-	Validator         func([]int32) ([]int32, error)
+	Required              bool
+	Default               []int32
+	AllowExplicitNull     bool
+	AllowEmpty            bool
+	CantBeSpecifiedErrStr *string
+	CastSingleItem        bool
+	MinLength             int
+	MaxLength             int
+	InvalidLengths        []int
+	Validator             func([]int32) ([]int32, error)
 }
 
 func Int32List(inter interface{}, v *Int32ListValidation) ([]int32, error) {
@@ -74,8 +74,8 @@ func ValidateInt32ListMissing(v *Int32ListValidation) ([]int32, error) {
 }
 
 func ValidateInt32ListProvided(val []int32, v *Int32ListValidation) ([]int32, error) {
-	if v.CantBeSpecified != "" {
-		return nil, ErrorFieldCantBeSpecified(v.CantBeSpecified)
+	if v.CantBeSpecifiedErrStr != nil {
+		return nil, ErrorFieldCantBeSpecified(*v.CantBeSpecifiedErrStr)
 	}
 
 	if !v.AllowExplicitNull && val == nil {

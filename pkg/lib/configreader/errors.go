@@ -426,8 +426,12 @@ func ErrorImageVersionMismatch(image, tag, cortexVersion string) error {
 }
 
 func ErrorFieldCantBeSpecified(errMsg string) error {
+	message := errMsg
+	if message == "" {
+		message = "cannot be specified"
+	}
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrFieldCantBeSpecified,
-		Message: errMsg,
+		Message: message,
 	})
 }

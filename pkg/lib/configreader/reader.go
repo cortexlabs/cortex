@@ -82,20 +82,20 @@ type StructValidation struct {
 	StructFieldValidations []*StructFieldValidation
 	Required               bool
 	AllowExplicitNull      bool
-	TreatNullAsEmpty       bool   // If explicit null or if it's top level and the file is empty, treat as empty map
-	DefaultNil             bool   // If this struct is nested and its key is not defined, set it to nil instead of defaults or erroring (e.g. if any subfields are required)
-	CantBeSpecified        string // if provided, returns an error with the provided message if the field is specified
+	TreatNullAsEmpty       bool // If explicit null or if it's top level and the file is empty, treat as empty map
+	DefaultNil             bool // If this struct is nested and its key is not defined, set it to nil instead of defaults or erroring (e.g. if any subfields are required)
+	CantBeSpecifiedErrStr  *string
 	ShortCircuit           bool
 	AllowExtraFields       bool
 }
 
 type StructListValidation struct {
-	StructValidation  *StructValidation
-	Required          bool
-	AllowExplicitNull bool
-	TreatNullAsEmpty  bool   // If explicit null or if it's top level and the file is empty, treat as empty map
-	CantBeSpecified   string // if provided, returns an error with the provided message if the field is specified
-	ShortCircuit      bool
+	StructValidation      *StructValidation
+	Required              bool
+	AllowExplicitNull     bool
+	TreatNullAsEmpty      bool // If explicit null or if it's top level and the file is empty, treat as empty map
+	CantBeSpecifiedErrStr *string
+	ShortCircuit          bool
 }
 
 type InterfaceStructValidation struct {
@@ -106,8 +106,8 @@ type InterfaceStructValidation struct {
 	Parser                     func(string) (interface{}, error)
 	Required                   bool
 	AllowExplicitNull          bool
-	TreatNullAsEmpty           bool   // If explicit null or if it's top level and the file is empty, treat as empty map
-	CantBeSpecified            string // if provided, returns an error with the provided message if the field is specified
+	TreatNullAsEmpty           bool // If explicit null or if it's top level and the file is empty, treat as empty map
+	CantBeSpecifiedErrStr      *string
 	ShortCircuit               bool
 	AllowExtraFields           bool
 }
@@ -121,8 +121,8 @@ type InterfaceStructListValidation struct {
 	InterfaceStructValidation *InterfaceStructValidation
 	Required                  bool
 	AllowExplicitNull         bool
-	TreatNullAsEmpty          bool   // If explicit null or if it's top level and the file is empty, treat as empty map
-	CantBeSpecified           string // if provided, returns an error with the provided message if the field is specified
+	TreatNullAsEmpty          bool // If explicit null or if it's top level and the file is empty, treat as empty map
+	CantBeSpecifiedErrStr     *string
 	ShortCircuit              bool
 }
 
@@ -284,8 +284,8 @@ func Struct(dest interface{}, inter interface{}, v *StructValidation) []error {
 			updateValidation(&validation, dest, structFieldValidation)
 			nestedType := reflect.ValueOf(dest).Elem().FieldByName(structFieldValidation.StructField).Type()
 			interMapVal, ok := ReadInterfaceMapValue(key, interMap)
-			if ok && validation.CantBeSpecified != "" {
-				err = errors.Wrap(ErrorFieldCantBeSpecified(validation.CantBeSpecified), key)
+			if ok && validation.CantBeSpecifiedErrStr != nil {
+				err = errors.Wrap(ErrorFieldCantBeSpecified(*validation.CantBeSpecifiedErrStr), key)
 			} else if !ok && validation.Required {
 				err = errors.Wrap(ErrorMustBeDefined(), key)
 			} else if !ok && validation.DefaultNil {
@@ -307,8 +307,8 @@ func Struct(dest interface{}, inter interface{}, v *StructValidation) []error {
 			updateValidation(&validation, dest, structFieldValidation)
 			nestedType := reflect.ValueOf(dest).Elem().FieldByName(structFieldValidation.StructField).Type()
 			interMapVal, ok := ReadInterfaceMapValue(key, interMap)
-			if ok && validation.CantBeSpecified != "" {
-				err = errors.Wrap(ErrorFieldCantBeSpecified(validation.CantBeSpecified), key)
+			if ok && validation.CantBeSpecifiedErrStr != nil {
+				err = errors.Wrap(ErrorFieldCantBeSpecified(*validation.CantBeSpecifiedErrStr), key)
 			} else if !ok && validation.Required {
 				err = errors.Wrap(ErrorMustBeDefined(), key)
 			} else {
@@ -321,8 +321,8 @@ func Struct(dest interface{}, inter interface{}, v *StructValidation) []error {
 			validation := *structFieldValidation.InterfaceStructValidation
 			updateValidation(&validation, dest, structFieldValidation)
 			interMapVal, ok := ReadInterfaceMapValue(key, interMap)
-			if ok && validation.CantBeSpecified != "" {
-				err = errors.Wrap(ErrorFieldCantBeSpecified(validation.CantBeSpecified), key)
+			if ok && validation.CantBeSpecifiedErrStr != nil {
+				err = errors.Wrap(ErrorFieldCantBeSpecified(*validation.CantBeSpecifiedErrStr), key)
 			} else if !ok && validation.Required {
 				err = errors.Wrap(ErrorMustBeDefined(), key)
 			} else {
@@ -335,8 +335,8 @@ func Struct(dest interface{}, inter interface{}, v *StructValidation) []error {
 			updateValidation(&validation, dest, structFieldValidation)
 			nestedType := reflect.ValueOf(dest).Elem().FieldByName(structFieldValidation.StructField).Type()
 			interMapVal, ok := ReadInterfaceMapValue(key, interMap)
-			if ok && validation.CantBeSpecified != "" {
-				err = errors.Wrap(ErrorFieldCantBeSpecified(validation.CantBeSpecified), key)
+			if ok && validation.CantBeSpecifiedErrStr != nil {
+				err = errors.Wrap(ErrorFieldCantBeSpecified(*validation.CantBeSpecifiedErrStr), key)
 			} else if !ok && validation.Required {
 				err = errors.Wrap(ErrorMustBeDefined(), key)
 			} else {

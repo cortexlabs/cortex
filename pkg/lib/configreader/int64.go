@@ -27,17 +27,17 @@ import (
 )
 
 type Int64Validation struct {
-	Required             bool
-	Default              int64
-	TreatNullAsZero      bool // `<field>: ` and `<field>: null` will be read as `<field>: 0`
-	AllowedValues        []int64
-	DisallowedValues     []int64
-	CantBeSpecified      string // if provided, returns an error with the provided message if the field is specified
-	GreaterThan          *int64
-	GreaterThanOrEqualTo *int64
-	LessThan             *int64
-	LessThanOrEqualTo    *int64
-	Validator            func(int64) (int64, error)
+	Required              bool
+	Default               int64
+	TreatNullAsZero       bool // `<field>: ` and `<field>: null` will be read as `<field>: 0`
+	AllowedValues         []int64
+	DisallowedValues      []int64
+	CantBeSpecifiedErrStr *string
+	GreaterThan           *int64
+	GreaterThanOrEqualTo  *int64
+	LessThan              *int64
+	LessThanOrEqualTo     *int64
+	Validator             func(int64) (int64, error)
 }
 
 func Int64(inter interface{}, v *Int64Validation) (int64, error) {
@@ -166,8 +166,8 @@ func ValidateInt64Missing(v *Int64Validation) (int64, error) {
 }
 
 func ValidateInt64Provided(val int64, v *Int64Validation) (int64, error) {
-	if v.CantBeSpecified != "" {
-		return 0, ErrorFieldCantBeSpecified(v.CantBeSpecified)
+	if v.CantBeSpecifiedErrStr != nil {
+		return 0, ErrorFieldCantBeSpecified(*v.CantBeSpecifiedErrStr)
 	}
 	return validateInt64(val, v)
 }

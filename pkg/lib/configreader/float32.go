@@ -27,17 +27,17 @@ import (
 )
 
 type Float32Validation struct {
-	Required             bool
-	Default              float32
-	TreatNullAsZero      bool // `<field>: ` and `<field>: null` will be read as `<field>: 0.0`
-	AllowedValues        []float32
-	DisallowedValues     []float32
-	CantBeSpecified      string // if provided, returns an error with the provided message if the field is specified
-	GreaterThan          *float32
-	GreaterThanOrEqualTo *float32
-	LessThan             *float32
-	LessThanOrEqualTo    *float32
-	Validator            func(float32) (float32, error)
+	Required              bool
+	Default               float32
+	TreatNullAsZero       bool // `<field>: ` and `<field>: null` will be read as `<field>: 0.0`
+	AllowedValues         []float32
+	DisallowedValues      []float32
+	CantBeSpecifiedErrStr *string
+	GreaterThan           *float32
+	GreaterThanOrEqualTo  *float32
+	LessThan              *float32
+	LessThanOrEqualTo     *float32
+	Validator             func(float32) (float32, error)
 }
 
 func Float32(inter interface{}, v *Float32Validation) (float32, error) {
@@ -166,8 +166,8 @@ func ValidateFloat32Missing(v *Float32Validation) (float32, error) {
 }
 
 func ValidateFloat32Provided(val float32, v *Float32Validation) (float32, error) {
-	if v.CantBeSpecified != "" {
-		return 0, ErrorFieldCantBeSpecified(v.CantBeSpecified)
+	if v.CantBeSpecifiedErrStr != nil {
+		return 0, ErrorFieldCantBeSpecified(*v.CantBeSpecifiedErrStr)
 	}
 	return validateFloat32(val, v)
 }

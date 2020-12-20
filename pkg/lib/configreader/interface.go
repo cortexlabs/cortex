@@ -30,7 +30,7 @@ type InterfaceValidation struct {
 	Required               bool
 	Default                interface{}
 	AllowExplicitNull      bool
-	CantBeSpecified        string // if provided, returns an error with the provided message if the field is specified
+	CantBeSpecifiedErrStr  *string
 	AllowCortexResources   bool
 	RequireCortexResources bool
 	Validator              func(interface{}) (interface{}, error)
@@ -64,8 +64,8 @@ func ValidateInterfaceMissing(v *InterfaceValidation) (interface{}, error) {
 }
 
 func ValidateInterfaceProvided(val interface{}, v *InterfaceValidation) (interface{}, error) {
-	if v.CantBeSpecified != "" {
-		return nil, ErrorFieldCantBeSpecified(v.CantBeSpecified)
+	if v.CantBeSpecifiedErrStr != nil {
+		return nil, ErrorFieldCantBeSpecified(*v.CantBeSpecifiedErrStr)
 	}
 
 	if !v.AllowExplicitNull && val == nil {

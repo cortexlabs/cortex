@@ -27,17 +27,17 @@ import (
 )
 
 type Int32Validation struct {
-	Required             bool
-	Default              int32
-	TreatNullAsZero      bool // `<field>: ` and `<field>: null` will be read as `<field>: 0`
-	AllowedValues        []int32
-	DisallowedValues     []int32
-	CantBeSpecified      string // if provided, returns an error with the provided message if the field is specified
-	GreaterThan          *int32
-	GreaterThanOrEqualTo *int32
-	LessThan             *int32
-	LessThanOrEqualTo    *int32
-	Validator            func(int32) (int32, error)
+	Required              bool
+	Default               int32
+	TreatNullAsZero       bool // `<field>: ` and `<field>: null` will be read as `<field>: 0`
+	AllowedValues         []int32
+	DisallowedValues      []int32
+	CantBeSpecifiedErrStr *string
+	GreaterThan           *int32
+	GreaterThanOrEqualTo  *int32
+	LessThan              *int32
+	LessThanOrEqualTo     *int32
+	Validator             func(int32) (int32, error)
 }
 
 func Int32(inter interface{}, v *Int32Validation) (int32, error) {
@@ -166,8 +166,8 @@ func ValidateInt32Missing(v *Int32Validation) (int32, error) {
 }
 
 func ValidateInt32Provided(val int32, v *Int32Validation) (int32, error) {
-	if v.CantBeSpecified != "" {
-		return 0, ErrorFieldCantBeSpecified(v.CantBeSpecified)
+	if v.CantBeSpecifiedErrStr != nil {
+		return 0, ErrorFieldCantBeSpecified(*v.CantBeSpecifiedErrStr)
 	}
 	return validateInt32(val, v)
 }

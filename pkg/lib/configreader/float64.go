@@ -27,17 +27,17 @@ import (
 )
 
 type Float64Validation struct {
-	Required             bool
-	Default              float64
-	TreatNullAsZero      bool // `<field>: ` and `<field>: null` will be read as `<field>: 0.0`
-	AllowedValues        []float64
-	DisallowedValues     []float64
-	CantBeSpecified      string // if provided, returns an error with the provided message if the field is specified
-	GreaterThan          *float64
-	GreaterThanOrEqualTo *float64
-	LessThan             *float64
-	LessThanOrEqualTo    *float64
-	Validator            func(float64) (float64, error)
+	Required              bool
+	Default               float64
+	TreatNullAsZero       bool // `<field>: ` and `<field>: null` will be read as `<field>: 0.0`
+	AllowedValues         []float64
+	DisallowedValues      []float64
+	CantBeSpecifiedErrStr *string
+	GreaterThan           *float64
+	GreaterThanOrEqualTo  *float64
+	LessThan              *float64
+	LessThanOrEqualTo     *float64
+	Validator             func(float64) (float64, error)
 }
 
 func Float64(inter interface{}, v *Float64Validation) (float64, error) {
@@ -166,8 +166,8 @@ func ValidateFloat64Missing(v *Float64Validation) (float64, error) {
 }
 
 func ValidateFloat64Provided(val float64, v *Float64Validation) (float64, error) {
-	if v.CantBeSpecified != "" {
-		return 0, ErrorFieldCantBeSpecified(v.CantBeSpecified)
+	if v.CantBeSpecifiedErrStr != nil {
+		return 0, ErrorFieldCantBeSpecified(*v.CantBeSpecifiedErrStr)
 	}
 	return validateFloat64(val, v)
 }

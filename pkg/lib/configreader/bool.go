@@ -27,11 +27,11 @@ import (
 )
 
 type BoolValidation struct {
-	Required         bool
-	Default          bool
-	TreatNullAsFalse bool            // `<field>: ` and `<field>: null` will be read as `<field>: false`
-	CantBeSpecified  string          // if provided, returns an error with the provided message if the field is specified
-	StrToBool        map[string]bool // lowercase
+	Required              bool
+	Default               bool
+	TreatNullAsFalse      bool // `<field>: ` and `<field>: null` will be read as `<field>: false`
+	CantBeSpecifiedErrStr *string
+	StrToBool             map[string]bool // lowercase
 }
 
 func Bool(inter interface{}, v *BoolValidation) (bool, error) {
@@ -174,8 +174,8 @@ func ValidateBoolMissing(v *BoolValidation) (bool, error) {
 }
 
 func ValidateBoolProvided(val bool, v *BoolValidation) (bool, error) {
-	if v.CantBeSpecified != "" {
-		return false, ErrorFieldCantBeSpecified(v.CantBeSpecified)
+	if v.CantBeSpecifiedErrStr != nil {
+		return false, ErrorFieldCantBeSpecified(*v.CantBeSpecifiedErrStr)
 	}
 	return validateBool(val, v)
 }
