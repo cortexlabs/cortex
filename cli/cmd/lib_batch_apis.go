@@ -193,7 +193,7 @@ func getJob(env cliconfig.Environment, apiName string, jobID string) (string, er
 		}
 
 		succeeded = s.Int(job.BatchMetrics.Succeeded)
-		failed = s.Int(job.TotalBatchCount - job.BatchMetrics.Succeeded)
+		failed = s.Int(job.BatchMetrics.Failed)
 	}
 
 	t := table.Table{

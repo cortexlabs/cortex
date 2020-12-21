@@ -330,9 +330,7 @@ def start():
 
     logger().info("polling for batches...")
     sqs_loop()
-    logger().info("done")
 
 
 if __name__ == "__main__":
     start()
-    logger().info("completed main")

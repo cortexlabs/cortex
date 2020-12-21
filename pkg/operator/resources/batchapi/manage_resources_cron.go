@@ -283,8 +283,16 @@ func checkIfJobCompleted(jobKey spec.JobKey, queueURL string, k8sJob *kbatch.Job
 				jobsToDelete.Remove(jobKey.ID)
 				return investigateJobFailure(jobKey, k8sJob)
 			}
-			jobsToDelete.Add(jobKey.ID)
-			return nil
+			if jobsToDelete.Has(jobKey.ID) {
+				jobsToDelete.Remove(jobKey.ID)
+				return errors.FirstError(
+					writeToJobLogStream(jobKey, "unexpected job status because cluster state indicates job has completed but metrics indicate that job is still in progress"),
+					setUnexpectedErrorStatus(jobKey),
+					deleteJobRuntimeResources(jobKey),
+				)
+			} else {
+				jobsToDelete.Add(jobKey.ID)
+			}
 		}
 		return nil
 	}
@@ -299,30 +307,37 @@ func checkIfJobCompleted(jobKey spec.JobKey, queueURL string, k8sJob *kbatch.Job
 		return err
 	}
 
-	if jobSpec.TotalBatchCount == batchMetrics.Succeeded {
-		jobsToDelete.Remove(jobKey.ID)
-		return errors.FirstError(
-			setSucceededStatus(jobKey),
-			deleteJobRuntimeResources(jobKey),
-		)
+	if jobSpec.Workers == k8sJob.Status.Succeeded {
+		if jobSpec.TotalBatchCount == batchMetrics.Succeeded {
+			jobsToDelete.Remove(jobKey.ID)
+			return errors.FirstError(
+				setSucceededStatus(jobKey),
+				deleteJobRuntimeResources(jobKey),
+			)
+		}
+
+		// wait one more cycle for the success metrics to reach consistency
+		if jobsToDelete.Has(jobKey.ID) {
+			jobsToDelete.Remove(jobKey.ID)
+			return errors.FirstError(
+				setCompletedWithFailuresStatus(jobKey),
+				deleteJobRuntimeResources(jobKey),
+			)
+		}
 	} else {
-		jobsToDelete.Remove(jobKey.ID)
-		return errors.FirstError(
-			setCompletedWithFailuresStatus(jobKey),
-			deleteJobRuntimeResources(jobKey),
-		)
+		if jobsToDelete.Has(jobKey.ID) {
+			jobsToDelete.Remove(jobKey.ID)
+			return errors.FirstError(
+				writeToJobLogStream(jobKey, "unexpected job state; queue is empty but cluster state still indicates that the job is still in progress"),
+				setUnexpectedErrorStatus(jobKey),
+				deleteJobRuntimeResources(jobKey),
+			)
+		}
 	}
 
-	if jobsToDelete.Has(jobKey.ID) {
-		jobsToDelete.Remove(jobKey.ID)
-		return errors.FirstError(
-			writeToJobLogStream(jobKey, "unexpected job status because cluster state indicates job has completed but metrics indicate that job is still in progress"),
-			setUnexpectedErrorStatus(jobKey),
-			deleteJobRuntimeResources(jobKey),
-		)
-	}
-
-	// Determine the status of the job in the next iteration to give time for cloudwatch metrics to settle down and determine if the job succeeded or failed
+	// It takes at least 20 seconds for a worker to exit after determining that the queue is empty.
+	// Queue metrics and cloud metrics both take a few seconds to achieve consistency.
+	// Wait one more cycle for the workers to exit and metrics to acheive consistency before determining job status.
 	jobsToDelete.Add(jobKey.ID)
 
 	return nil
