@@ -14,8 +14,7 @@
   * [Autoscaling](workloads/realtime/autoscaling.md)
   * [Metrics](workloads/realtime/metrics.md)
   * [Statuses](workloads/realtime/statuses.md)
-  * [Errors](workloads/realtime/errors.md)
-  * [TensorFlow session](workloads/realtime/tensorflow-session.md)
+  * [Troubleshooting](workloads/realtime/troubleshooting.md)
 * Batch
   * [Example](workloads/batch/example.md)
   * [Predictor](workloads/batch/predictors.md)
