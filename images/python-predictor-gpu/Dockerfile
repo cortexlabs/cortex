@@ -46,9 +46,9 @@ SHELL ["/bin/bash", "-c"]
 
 COPY pkg/workloads/cortex/serve/serve.requirements.txt /src/cortex/serve/serve.requirements.txt
 COPY pkg/workloads/cortex/serve/cortex_internal.requirements.txt /src/cortex/serve/cortex_internal.requirements.txt
-RUN pip install --no-cache-dir -r \
-    /src/cortex/serve/serve.requirements.txt -r \
-    /src/cortex/serve/cortex_internal.requirements.txt
+RUN pip install --no-cache-dir \
+    -r /src/cortex/serve/serve.requirements.txt \
+    -r /src/cortex/serve/cortex_internal.requirements.txt
 
 ARG SLIM="false"
 RUN test "${SLIM}" = "true" || ( \
