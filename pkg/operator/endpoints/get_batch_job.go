@@ -22,14 +22,14 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/urls"
 	"github.com/cortexlabs/cortex/pkg/operator/operator"
 	"github.com/cortexlabs/cortex/pkg/operator/resources"
-	"github.com/cortexlabs/cortex/pkg/operator/resources/batchapi"
+	"github.com/cortexlabs/cortex/pkg/operator/resources/job/batchapi"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	"github.com/gorilla/mux"
 )
 
-func GetJob(w http.ResponseWriter, r *http.Request) {
+func GetBatchJob(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	apiName := vars["apiName"]
 	jobID, err := getRequiredQueryParam("jobID", r)
@@ -56,13 +56,13 @@ func GetJob(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	spec, err := operator.DownloadAPISpec(jobStatus.APIName, jobStatus.APIID)
+	apiSpec, err := operator.DownloadAPISpec(jobStatus.APIName, jobStatus.APIID)
 	if err != nil {
 		respondError(w, r, err)
 		return
 	}
 
-	endpoint, err := operator.APIEndpoint(spec)
+	endpoint, err := operator.APIEndpoint(apiSpec)
 	if err != nil {
 		respondError(w, r, err)
 		return
@@ -70,7 +70,7 @@ func GetJob(w http.ResponseWriter, r *http.Request) {
 
 	response := schema.JobResponse{
 		JobStatus: *jobStatus,
-		APISpec:   *spec,
+		APISpec:   *apiSpec,
 		Endpoint:  urls.Join(endpoint, jobKey.ID),
 	}
 

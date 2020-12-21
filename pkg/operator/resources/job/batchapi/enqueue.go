@@ -57,7 +57,7 @@ func updateLiveness(jobKey spec.JobKey) error {
 	return nil
 }
 
-func enqueue(jobSpec *spec.Job, submission *schema.JobSubmission) (int, error) {
+func enqueue(jobSpec *spec.BatchJob, submission *schema.BatchJobSubmission) (int, error) {
 	livenessUpdater := func() error {
 		return updateLiveness(jobSpec.JobKey)
 	}
@@ -112,7 +112,7 @@ func enqueue(jobSpec *spec.Job, submission *schema.JobSubmission) (int, error) {
 	return totalBatches, nil
 }
 
-func enqueueItems(jobSpec *spec.Job, itemList *schema.ItemList) (int, error) {
+func enqueueItems(jobSpec *spec.BatchJob, itemList *schema.ItemList) (int, error) {
 	batchCount := len(itemList.Items) / itemList.BatchSize
 	if len(itemList.Items)%itemList.BatchSize != 0 {
 		batchCount++
@@ -157,7 +157,7 @@ func enqueueItems(jobSpec *spec.Job, itemList *schema.ItemList) (int, error) {
 	return uploader.TotalBatches, nil
 }
 
-func enqueueS3Paths(jobSpec *spec.Job, s3PathsLister *schema.FilePathLister) (int, error) {
+func enqueueS3Paths(jobSpec *spec.BatchJob, s3PathsLister *schema.FilePathLister) (int, error) {
 	var s3PathList []string
 	uploader := newSQSBatchUploader(jobSpec.SQSUrl, jobSpec.JobKey)
 
@@ -235,7 +235,7 @@ func (j *jsonBuffer) Length() int {
 	return len(j.messageList)
 }
 
-func enqueueS3FileContents(jobSpec *spec.Job, delimitedFiles *schema.DelimitedFiles) (int, error) {
+func enqueueS3FileContents(jobSpec *spec.BatchJob, delimitedFiles *schema.DelimitedFiles) (int, error) {
 	jsonMessageList := newJSONBuffer(delimitedFiles.BatchSize)
 	uploader := newSQSBatchUploader(jobSpec.SQSUrl, jobSpec.JobKey)
 
@@ -287,7 +287,7 @@ func enqueueS3FileContents(jobSpec *spec.Job, delimitedFiles *schema.DelimitedFi
 	return uploader.TotalBatches, nil
 }
 
-func streamJSONToQueue(jobSpec *spec.Job, uploader *sqsBatchUploader, bytesBuffer *bytes.Buffer, jsonMessageList *jsonBuffer, itemIndex *int) error {
+func streamJSONToQueue(jobSpec *spec.BatchJob, uploader *sqsBatchUploader, bytesBuffer *bytes.Buffer, jsonMessageList *jsonBuffer, itemIndex *int) error {
 	dec := json.NewDecoder(bytesBuffer)
 	for {
 		var doc json.RawMessage

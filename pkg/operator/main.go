@@ -28,7 +28,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 	"github.com/cortexlabs/cortex/pkg/operator/endpoints"
 	"github.com/cortexlabs/cortex/pkg/operator/operator"
-	"github.com/cortexlabs/cortex/pkg/operator/resources/batchapi"
+	"github.com/cortexlabs/cortex/pkg/operator/resources/job/batchapi"
 	"github.com/cortexlabs/cortex/pkg/operator/resources/realtimeapi"
 	"github.com/cortexlabs/cortex/pkg/types"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
@@ -82,9 +82,13 @@ func main() {
 	routerWithoutAuth.HandleFunc("/verifycortex", endpoints.VerifyCortex).Methods("GET")
 
 	if config.Provider == types.AWSProviderType {
-		routerWithoutAuth.HandleFunc("/batch/{apiName}", endpoints.SubmitJob).Methods("POST")
-		routerWithoutAuth.HandleFunc("/batch/{apiName}", endpoints.GetJob).Methods("GET")
-		routerWithoutAuth.HandleFunc("/batch/{apiName}", endpoints.StopJob).Methods("DELETE")
+		routerWithoutAuth.HandleFunc("/batch/{apiName}", endpoints.SubmitBatchJob).Methods("POST")
+		routerWithoutAuth.HandleFunc("/batch/{apiName}", endpoints.GetBatchJob).Methods("GET")
+		routerWithoutAuth.HandleFunc("/batch/{apiName}", endpoints.StopBatchJob).Methods("DELETE")
+
+		routerWithoutAuth.HandleFunc("/tasks/{apiName}", endpoints.SubmitTaskJob).Methods("POST")
+		//routerWithoutAuth.HandleFunc("/tasks/{apiName}", endpoints.GetTaskJob).Methods("GET")
+		//routerWithoutAuth.HandleFunc("/tasks/{apiName}", endpoints.StopTaskJob).Methods("DELETE")
 	}
 
 	routerWithAuth := router.NewRoute().Subrouter()

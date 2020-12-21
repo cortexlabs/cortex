@@ -20,13 +20,13 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/cortexlabs/cortex/pkg/operator/resources/batchapi"
+	"github.com/cortexlabs/cortex/pkg/operator/resources/job/batchapi"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/gorilla/mux"
 )
 
-func StopJob(w http.ResponseWriter, r *http.Request) {
+func StopBatchJob(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	apiName := vars["apiName"]
 	jobID, err := getRequiredQueryParam("jobID", r)

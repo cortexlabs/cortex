@@ -32,7 +32,7 @@ import (
 
 const _operatorService = "operator"
 
-func k8sJobSpec(api *spec.API, job *spec.Job) (*kbatch.Job, error) {
+func k8sJobSpec(api *spec.API, job *spec.BatchJob) (*kbatch.Job, error) {
 	switch api.Predictor.Type {
 	case userconfig.TensorFlowPredictorType:
 		return tensorFlowPredictorJobSpec(api, job)
@@ -45,7 +45,7 @@ func k8sJobSpec(api *spec.API, job *spec.Job) (*kbatch.Job, error) {
 	}
 }
 
-func pythonPredictorJobSpec(api *spec.API, job *spec.Job) (*kbatch.Job, error) {
+func pythonPredictorJobSpec(api *spec.API, job *spec.BatchJob) (*kbatch.Job, error) {
 	containers, volumes := operator.PythonPredictorContainers(api)
 	for i, container := range containers {
 		if container.Name == operator.APIContainerName {
@@ -94,7 +94,7 @@ func pythonPredictorJobSpec(api *spec.API, job *spec.Job) (*kbatch.Job, error) {
 	}), nil
 }
 
-func tensorFlowPredictorJobSpec(api *spec.API, job *spec.Job) (*kbatch.Job, error) {
+func tensorFlowPredictorJobSpec(api *spec.API, job *spec.BatchJob) (*kbatch.Job, error) {
 	containers, volumes := operator.TensorFlowPredictorContainers(api)
 	for i, container := range containers {
 		if container.Name == operator.APIContainerName {
@@ -143,7 +143,7 @@ func tensorFlowPredictorJobSpec(api *spec.API, job *spec.Job) (*kbatch.Job, erro
 	}), nil
 }
 
-func onnxPredictorJobSpec(api *spec.API, job *spec.Job) (*kbatch.Job, error) {
+func onnxPredictorJobSpec(api *spec.API, job *spec.BatchJob) (*kbatch.Job, error) {
 	containers, volumes := operator.ONNXPredictorContainers(api)
 
 	for i, container := range containers {

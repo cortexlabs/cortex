@@ -30,9 +30,9 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 	"github.com/cortexlabs/cortex/pkg/operator/operator"
-	"github.com/cortexlabs/cortex/pkg/operator/resources/batchapi"
+	"github.com/cortexlabs/cortex/pkg/operator/resources/job/batchapi"
+	"github.com/cortexlabs/cortex/pkg/operator/resources/job/taskapi"
 	"github.com/cortexlabs/cortex/pkg/operator/resources/realtimeapi"
-	"github.com/cortexlabs/cortex/pkg/operator/resources/taskapi"
 	"github.com/cortexlabs/cortex/pkg/operator/resources/trafficsplitter"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
 	"github.com/cortexlabs/cortex/pkg/types"
@@ -205,7 +205,7 @@ func Patch(configBytes []byte, configFileName string, force bool) ([]schema.Depl
 		apiConfig := &apiConfigs[i]
 		result := schema.DeployResult{}
 
-		apiSpec, msg, err := patchAPI(apiConfig, configFileName, force)
+		apiSpec, msg, err := patchAPI(apiConfig, force)
 		if err == nil && apiSpec != nil {
 			apiEndpoint, _ := operator.APIEndpoint(apiSpec)
 
@@ -225,7 +225,7 @@ func Patch(configBytes []byte, configFileName string, force bool) ([]schema.Depl
 	return results, nil
 }
 
-func patchAPI(apiConfig *userconfig.API, configFileName string, force bool) (*spec.API, string, error) {
+func patchAPI(apiConfig *userconfig.API, force bool) (*spec.API, string, error) {
 	deployedResource, err := GetDeployedResourceByName(apiConfig.Name)
 	if err != nil {
 		return nil, "", err

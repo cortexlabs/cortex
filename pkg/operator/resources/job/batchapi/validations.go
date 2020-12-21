@@ -28,7 +28,7 @@ import (
 	"github.com/gobwas/glob"
 )
 
-func validateJobSubmissionSchema(submission *schema.JobSubmission) error {
+func validateJobSubmissionSchema(submission *schema.BatchJobSubmission) error {
 	providedKeys := []string{}
 	if submission.ItemList != nil {
 		providedKeys = append(providedKeys, schema.ItemListKey)
@@ -96,7 +96,7 @@ func validateJobSubmissionSchema(submission *schema.JobSubmission) error {
 	return nil
 }
 
-func validateJobSubmission(submission *schema.JobSubmission) error {
+func validateJobSubmission(submission *schema.BatchJobSubmission) error {
 	err := validateJobSubmissionSchema(submission)
 	if err != nil {
 		return errors.Append(err, fmt.Sprintf("\n\njob submission schema can be found at https://docs.cortex.dev/v/%s/", consts.CortexVersionMinor))

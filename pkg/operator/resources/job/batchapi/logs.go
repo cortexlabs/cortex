@@ -125,7 +125,7 @@ func fetchLogsFromCloudWatch(jobStatus *status.JobStatus, podCheckCancel chan st
 
 func streamFromCloudWatch(jobStatus *status.JobStatus, podCheckCancel chan struct{}, socket *websocket.Conn) {
 	jobKey := jobStatus.JobKey
-	jobSpec := jobStatus.Job
+	jobSpec := jobStatus.BatchJob
 	logGroupName := logGroupNameForJob(jobStatus.JobKey)
 	eventCache := cache.NewFifoCache(_maxCacheSize)
 	lastLogStreamRefresh := time.Time{}

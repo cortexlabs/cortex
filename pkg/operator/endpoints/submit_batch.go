@@ -26,13 +26,13 @@ import (
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/operator/resources"
-	"github.com/cortexlabs/cortex/pkg/operator/resources/batchapi"
+	"github.com/cortexlabs/cortex/pkg/operator/resources/job/batchapi"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	"github.com/gorilla/mux"
 )
 
-func SubmitJob(w http.ResponseWriter, r *http.Request) {
+func SubmitBatchJob(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	apiName := vars["apiName"]
 	dryRun := getOptionalBoolQParam("dryRun", false, r)
@@ -56,7 +56,7 @@ func SubmitJob(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	submission := schema.JobSubmission{}
+	submission := schema.BatchJobSubmission{}
 
 	err = json.Unmarshal(bodyBytes, &submission)
 	if err != nil {
@@ -71,7 +71,7 @@ func SubmitJob(w http.ResponseWriter, r *http.Request) {
 		fileNames, err := batchapi.DryRun(&submission)
 		if err != nil {
 			w.WriteHeader(http.StatusBadRequest)
-			io.WriteString(w, "\n"+err.Error()+"\n")
+			_, _ = io.WriteString(w, "\n"+err.Error()+"\n")
 			return
 		}
 
@@ -79,12 +79,12 @@ func SubmitJob(w http.ResponseWriter, r *http.Request) {
 			_, err := io.WriteString(w, fileName+"\n")
 			if err != nil {
 				w.WriteHeader(http.StatusBadRequest)
-				io.WriteString(w, "\n"+err.Error()+"\n")
+				_, _ = io.WriteString(w, "\n"+err.Error()+"\n")
 				return
 			}
 		}
 
-		io.WriteString(w, "validations passed")
+		_, _ = io.WriteString(w, "validations passed")
 		return
 	}
 

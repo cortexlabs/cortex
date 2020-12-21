@@ -1,5 +1,5 @@
 /*
-Copyright 2021 Cortex Labs, Inc.
+Copyright 2020 Cortex Labs, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,20 +14,16 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package status
+package job
 
-import (
-	"time"
+import "github.com/cortexlabs/cortex/pkg/types/userconfig"
 
-	"github.com/cortexlabs/cortex/pkg/types/metrics"
-	"github.com/cortexlabs/cortex/pkg/types/spec"
+const (
+	_jobsPrefix           = "jobs"
+	_inProgressFilePrefix = "in_progress"
 )
 
-type JobStatus struct {
-	spec.BatchJob
-	EndTime        *time.Time            `json:"end_time"`
-	Status         JobCode               `json:"status"`
-	BatchesInQueue int                   `json:"batches_in_queue"`
-	BatchMetrics   *metrics.BatchMetrics `json:"batch_metrics"`
-	WorkerCounts   *WorkerCounts         `json:"worker_counts"`
+var _jobKinds = map[userconfig.Kind]bool{
+	userconfig.TaskAPIKind:  true,
+	userconfig.BatchAPIKind: true,
 }

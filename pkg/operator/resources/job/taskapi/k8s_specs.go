@@ -27,6 +27,8 @@ import (
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	istioclientnetworking "istio.io/client-go/pkg/apis/networking/v1beta1"
+	kbatch "k8s.io/api/batch/v1"
+	kcore "k8s.io/api/core/v1"
 	kmeta "k8s.io/apimachinery/pkg/apis/meta/v1"
 	klabels "k8s.io/apimachinery/pkg/labels"
 )
@@ -43,7 +45,7 @@ func virtualServiceSpec(api *spec.API) *istioclientnetworking.VirtualService {
 			Port:        uint32(operator.DefaultPortInt32),
 		}},
 		PrefixPath:  api.Networking.Endpoint,
-		Rewrite:     pointer.String(path.Join("task", api.Name)),
+		Rewrite:     pointer.String(path.Join("tasks", api.Name)),
 		Annotations: api.ToK8sAnnotations(),
 		Labels: map[string]string{
 			"apiName":     api.Name,
@@ -53,6 +55,55 @@ func virtualServiceSpec(api *spec.API) *istioclientnetworking.VirtualService {
 			"apiKind":     api.Kind.String(),
 		},
 	})
+}
+
+func k8sJobSpec(api *spec.API, job *spec.TaskJob) (*kbatch.Job, error) {
+	containers, volumes := operator.PythonPredictorContainers(api)
+	for i, container := range containers {
+		if container.Name == operator.APIContainerName {
+			containers[i].Env = append(container.Env, kcore.EnvVar{
+				Name:  "CORTEX_TASK_SPEC",
+				Value: "s3://" + config.Cluster.Bucket + "/" + job.SpecFilePath(config.Cluster.ClusterName),
+			})
+		}
+	}
+
+	return k8s.Job(&k8s.JobSpec{
+		Name:        job.JobKey.K8sName(),
+		Parallelism: int32(job.Workers),
+		Labels: map[string]string{
+			"apiName":     api.Name,
+			"apiID":       api.ID,
+			"specID":      api.SpecID,
+			"predictorID": api.PredictorID,
+			"jobID":       job.ID,
+			"apiKind":     api.Kind.String(),
+		},
+		PodSpec: k8s.PodSpec{
+			Labels: map[string]string{
+				"apiName":     api.Name,
+				"predictorID": api.PredictorID,
+				"jobID":       job.ID,
+				"apiKind":     api.Kind.String(),
+			},
+			Annotations: map[string]string{
+				"traffic.sidecar.istio.io/excludeOutboundIPRanges": "0.0.0.0/0",
+			},
+			K8sPodSpec: kcore.PodSpec{
+				RestartPolicy: "Never",
+				InitContainers: []kcore.Container{
+					operator.InitContainer(api),
+				},
+				Containers: containers,
+				NodeSelector: map[string]string{
+					"workload": "true",
+				},
+				Tolerations:        operator.Tolerations,
+				Volumes:            volumes,
+				ServiceAccountName: "default",
+			},
+		},
+	}), nil
 }
 
 func applyK8sResources(api *spec.API, prevVirtualService *istioclientnetworking.VirtualService) error {
@@ -70,18 +121,34 @@ func applyK8sResources(api *spec.API, prevVirtualService *istioclientnetworking.
 func deleteK8sResources(apiName string) error {
 	return parallel.RunFirstErr(
 		func() error {
-			_, err := config.K8s.DeleteJobs(&kmeta.ListOptions{
-				LabelSelector: klabels.SelectorFromSet(
-					map[string]string{
-						"apiName": apiName,
-						"apiKind": userconfig.TaskAPIKind.String(),
-					}).String(),
-			})
-			return err
+			return deleteAllK8sJobs(apiName)
 		},
 		func() error {
 			_, err := config.K8s.DeleteVirtualService(operator.K8sName(apiName))
 			return err
 		},
 	)
+}
+
+func deleteK8sJob(jobKey spec.JobKey) error {
+	_, err := config.K8s.DeleteJobs(&kmeta.ListOptions{
+		LabelSelector: klabels.SelectorFromSet(
+			map[string]string{
+				"apiName": jobKey.APIName,
+				"apiKind": userconfig.TaskAPIKind.String(),
+				"jobID":   jobKey.ID,
+			}).String(),
+	})
+	return err
+}
+
+func deleteAllK8sJobs(apiName string) error {
+	_, err := config.K8s.DeleteJobs(&kmeta.ListOptions{
+		LabelSelector: klabels.SelectorFromSet(
+			map[string]string{
+				"apiName": apiName,
+				"apiKind": userconfig.TaskAPIKind.String(),
+			}).String(),
+	})
+	return err
 }
