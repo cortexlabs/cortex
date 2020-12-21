@@ -96,10 +96,7 @@ func getAPIEnv(api *spec.API, awsClient *aws.Client, gcpClient *gcp.Client) []st
 		"CORTEX_MAX_REPLICA_CONCURRENCY="+s.Int32(api.Predictor.ProcessesPerReplica*api.Predictor.ThreadsPerProcess+1024), // allow a queue of 1024
 	)
 
-	if api.Predictor.Type == userconfig.PythonPredictorType && api.Predictor.MultiModelReloading != nil {
-		envs = append(envs, "CORTEX_MODEL_DIR="+_modelDir)
-	}
-	if api.Predictor.Type != userconfig.PythonPredictorType {
+	if api.Predictor.Type != userconfig.PythonPredictorType || api.Predictor.MultiModelReloading != nil {
 		envs = append(envs, "CORTEX_MODEL_DIR="+_modelDir)
 	}
 

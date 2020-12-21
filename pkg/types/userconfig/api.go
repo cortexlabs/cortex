@@ -660,7 +660,7 @@ func (api *API) TelemetryEvent(provider types.ProviderType) map[string]interface
 		if models != nil {
 			event["predictor.models._is_defined"] = true
 			if models.Path != nil {
-				event["predictor.models.model_path._is_defined"] = true
+				event["predictor.models.path._is_defined"] = true
 			}
 			if len(models.Paths) > 0 {
 				event["predictor.models.paths._is_defined"] = true

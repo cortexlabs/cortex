@@ -934,23 +934,29 @@ func validateMultiModelsFields(api *userconfig.API) error {
 		}
 		models = api.Predictor.MultiModelReloading
 	}
-	if models == nil && api.Predictor.Type != userconfig.PythonPredictorType {
-		return ErrorFieldMustBeDefinedForPredictorType(userconfig.ModelsKey, api.Predictor.Type)
+
+	if models == nil {
+		if api.Predictor.Type != userconfig.PythonPredictorType {
+			return ErrorFieldMustBeDefinedForPredictorType(userconfig.ModelsKey, api.Predictor.Type)
+		}
+		return nil
 	}
 
 	if models.Path == nil && len(models.Paths) == 0 && models.Dir == nil {
 		return errors.Wrap(ErrorSpecifyOnlyOneField(userconfig.ModelsPathKey, userconfig.ModelsPathsKey, userconfig.ModelsDirKey), userconfig.ModelsKey)
 	}
-	if models.Path != nil && (len(models.Paths) > 0 || models.Dir != nil) {
-		if len(models.Paths) > 0 {
-			return errors.Wrap(ErrorConflictingFields(userconfig.ModelsPathKey, userconfig.ModelsPathsKey), userconfig.ModelsKey)
-		}
-		if models.Dir != nil {
-			return errors.Wrap(ErrorConflictingFields(userconfig.ModelsPathKey, userconfig.ModelsDirKey), userconfig.ModelsKey)
-		}
+	if models.Path != nil && len(models.Paths) > 0 && models.Dir != nil {
+		return errors.Wrap(ErrorSpecifyOnlyOneField(userconfig.ModelsPathKey, userconfig.ModelsPathsKey, userconfig.ModelsDirKey), userconfig.ModelsKey)
 	}
-	if len(models.Paths) > 0 && models.Dir != nil {
+
+	if models.Path != nil && len(models.Paths) > 0 {
+		return errors.Wrap(ErrorConflictingFields(userconfig.ModelsPathKey, userconfig.ModelsPathsKey), userconfig.ModelsKey)
+	}
+	if models.Dir != nil && len(models.Paths) > 0 {
 		return errors.Wrap(ErrorConflictingFields(userconfig.ModelsPathsKey, userconfig.ModelsDirKey), userconfig.ModelsKey)
+	}
+	if models.Dir != nil && models.Path != nil {
+		return errors.Wrap(ErrorConflictingFields(userconfig.ModelsPathKey, userconfig.ModelsDirKey), userconfig.ModelsKey)
 	}
 
 	if models.CacheSize != nil && api.Kind != userconfig.RealtimeAPIKind {
@@ -1000,12 +1006,12 @@ func validatePythonPredictor(api *userconfig.API, models *[]CuratedModelResource
 	if predictor.MultiModelReloading == nil {
 		return nil
 	}
-	dml := predictor.MultiModelReloading
-	if dml.SignatureKey != nil {
+	mmr := predictor.MultiModelReloading
+	if mmr.SignatureKey != nil {
 		return errors.Wrap(ErrorFieldNotSupportedByPredictorType(userconfig.ModelsSignatureKeyKey, predictor.Type), userconfig.MultiModelReloadingKey)
 	}
 
-	hasSingleModel := dml.Path != nil
+	hasSingleModel := mmr.Path != nil
 	hasMultiModels := !hasSingleModel
 
 	var modelWrapError func(error) error
@@ -1018,22 +1024,22 @@ func validatePythonPredictor(api *userconfig.API, models *[]CuratedModelResource
 		modelResources = []userconfig.ModelResource{
 			{
 				Name: consts.SingleModelName,
-				Path: *dml.Path,
+				Path: *mmr.Path,
 			},
 		}
-		*dml.Path = s.EnsureSuffix(*dml.Path, "/")
+		*mmr.Path = s.EnsureSuffix(*mmr.Path, "/")
 	}
 	if hasMultiModels {
-		if dml.SignatureKey != nil {
+		if mmr.SignatureKey != nil {
 			return errors.Wrap(ErrorFieldNotSupportedByPredictorType(userconfig.ModelsSignatureKeyKey, predictor.Type), userconfig.MultiModelReloadingKey)
 		}
 
-		if len(dml.Paths) > 0 {
+		if len(mmr.Paths) > 0 {
 			modelWrapError = func(err error) error {
 				return errors.Wrap(err, userconfig.MultiModelReloadingKey, userconfig.ModelsPathsKey)
 			}
 
-			for _, path := range dml.Paths {
+			for _, path := range mmr.Paths {
 				if path.SignatureKey != nil {
 					return errors.Wrap(
 						ErrorFieldNotSupportedByPredictorType(userconfig.ModelsSignatureKeyKey, predictor.Type),
@@ -1048,7 +1054,7 @@ func validatePythonPredictor(api *userconfig.API, models *[]CuratedModelResource
 			}
 		}
 
-		if dml.Dir != nil {
+		if mmr.Dir != nil {
 			modelWrapError = func(err error) error {
 				return errors.Wrap(err, userconfig.MultiModelReloadingKey, userconfig.ModelsDirKey)
 			}
@@ -1056,8 +1062,8 @@ func validatePythonPredictor(api *userconfig.API, models *[]CuratedModelResource
 	}
 
 	var err error
-	if hasMultiModels && dml.Dir != nil {
-		*models, err = validateDirModels(*dml.Dir, nil, projectFiles.ProjectDir(), awsClient, gcpClient, generateErrorForPredictorTypeFn(api), nil)
+	if hasMultiModels && mmr.Dir != nil {
+		*models, err = validateDirModels(*mmr.Dir, nil, projectFiles.ProjectDir(), awsClient, gcpClient, generateErrorForPredictorTypeFn(api), nil)
 	} else {
 		*models, err = validateModels(modelResources, nil, projectFiles.ProjectDir(), awsClient, gcpClient, generateErrorForPredictorTypeFn(api), nil)
 	}
