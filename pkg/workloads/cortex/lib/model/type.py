@@ -147,7 +147,7 @@ def get_models_from_api_spec(
     api_spec: dict, model_dir: str = "/mnt/model"
 ) -> CuratedModelResources:
     """
-    Only effective for models.path, models:paths or for models:dir fields when the dir is a local path.
+    Only effective for models:path, models:paths or for models:dir fields when the dir is a local path.
     It does not apply for when models:dir field is set to an S3 model path.
     """
     predictor_type = predictor_type_from_api_spec(api_spec)

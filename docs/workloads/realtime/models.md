@@ -170,7 +170,7 @@ In this case, there are two models in the directory, one of which is named "text
 
 ## Live model reloading
 
-Live model reloading is a mechanism that periodically checks for updated models in the model path(s) provided in `predictor.models`. It is automatically enabled for all predictor types, including the Python predictor type (as long as model paths are specified via `models` in the `predictor` configuration).
+Live model reloading is a mechanism that periodically checks for updated models in the model path(s) provided in `predictor.models`. It is automatically enabled for all predictor types, including the Python predictor type (as long as model paths are specified via `multi_model_reloading` in the `predictor` configuration).
 
 The following is a list of events that will trigger the API to update its model(s):
 
