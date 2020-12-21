@@ -17,7 +17,6 @@ limitations under the License.
 package batchapi
 
 import (
-	"fmt"
 	"path"
 	"path/filepath"
 	"time"
@@ -354,50 +353,21 @@ func setTimedOutStatus(jobKey spec.JobKey) error {
 	return nil
 }
 
-func getJobStatusFromJobState(initialJobState *JobState, k8sJob *kbatch.Job, pods []kcore.Pod) (*status.JobStatus, error) {
-	jobKey := initialJobState.JobKey
+func getJobStatusFromJobState(jobState *JobState, k8sJob *kbatch.Job, pods []kcore.Pod) (*status.JobStatus, error) {
+	jobKey := jobState.JobKey
 
 	jobSpec, err := downloadJobSpec(jobKey)
 	if err != nil {
 		return nil, err
 	}
 
-	latestJobState := initialJobState // Refetch the state of an in progress job in case the cron modifies the job state between the time the initial fetch and now
-
-	if initialJobState.Status.IsInProgress() {
-		queueURL, err := getJobQueueURL(jobKey)
-		if err != nil {
-			return nil, err
-		}
-
-		latestJobCode, message, err := reconcileInProgressJob(initialJobState, &queueURL, k8sJob)
-		if err != nil {
-			return nil, err
-		}
-
-		if latestJobCode != initialJobState.Status {
-			err := errors.FirstError(
-				writeToJobLogStream(jobKey, message),
-				setStatusForJob(jobKey, latestJobCode),
-			)
-			if err != nil {
-				return nil, err
-			}
-		}
-
-		latestJobState, err = getJobState(jobKey)
-		if err != nil {
-			return nil, err
-		}
-	}
-
 	jobStatus := status.JobStatus{
 		Job:     *jobSpec,
-		EndTime: latestJobState.EndTime,
-		Status:  latestJobState.Status,
+		EndTime: jobState.EndTime,
+		Status:  jobState.Status,
 	}
 
-	if latestJobState.Status.IsInProgress() {
+	if jobState.Status.IsInProgress() {
 		queueMetrics, err := getQueueMetrics(jobKey)
 		if err != nil {
 			return nil, err
@@ -405,37 +375,27 @@ func getJobStatusFromJobState(initialJobState *JobState, k8sJob *kbatch.Job, pod
 
 		jobStatus.BatchesInQueue = queueMetrics.TotalUserMessages()
 
-		if latestJobState.Status == status.JobEnqueuing {
+		if jobState.Status == status.JobEnqueuing {
 			jobStatus.TotalBatchCount = queueMetrics.TotalUserMessages()
 		}
 
-		if latestJobState.Status == status.JobRunning {
+		if jobState.Status == status.JobRunning {
 			metrics, err := getRealTimeBatchMetrics(jobKey)
 			if err != nil {
 				return nil, err
 			}
 			jobStatus.BatchMetrics = metrics
 
-			if k8sJob == nil {
-				err := setUnexpectedErrorStatus(jobKey)
-				if err != nil {
-					return nil, err
-				}
-
-				writeToJobLogStream(jobKey, fmt.Sprintf("unexpected: kubernetes job not found"))
-				deleteJobRuntimeResources(jobKey)
-
-				jobStatus.Status = status.JobUnexpectedError
-				return &jobStatus, nil
+			// There can be race conditions where the job state is temporarily out of sync with the cluster state
+			if k8sJob != nil {
+				workerCounts := getWorkerCountsForJob(*k8sJob, pods)
+				jobStatus.WorkerCounts = &workerCounts
 			}
-
-			workerCounts := getWorkerCountsForJob(*k8sJob, pods)
-			jobStatus.WorkerCounts = &workerCounts
 		}
 	}
 
-	if latestJobState.Status.IsCompleted() {
-		metrics, err := getCompletedBatchMetrics(jobKey, jobSpec.StartTime, *latestJobState.EndTime)
+	if jobState.Status.IsCompleted() {
+		metrics, err := getCompletedBatchMetrics(jobKey, jobSpec.StartTime, *jobState.EndTime)
 		if err != nil {
 			return nil, err
 		}
