@@ -117,6 +117,10 @@ func DurationParser(v *DurationValidation) func(string) (interface{}, error) {
 			return nil, err
 		}
 
+		if v == nil {
+			return d, nil
+		}
+
 		if v.GreaterThan != nil {
 			if d <= *v.GreaterThan {
 				return nil, ErrorMustBeGreaterThan(str, *v.GreaterThan)

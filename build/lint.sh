@@ -167,7 +167,7 @@ output=$(cd "$ROOT" && find . -type f \
 ! -name ".*" \
 ! -name "*.bin" \
 -print0 | \
-xargs -0 -L1 bash -c 'test "$(tail -c 2 "$0")" || echo "Multiple new lines at end of $0"' || true)
+xargs -0 -L1 bash -c 'test "$(tail -c 2 "$0")" || [ ! -s "$0" ] || echo "Multiple new lines at end of $0"' || true)
 if [[ $output ]]; then
   echo "$output"
   exit 1
@@ -186,7 +186,7 @@ output=$(cd "$ROOT" && find . -type f \
 ! -name ".*" \
 ! -name "*.bin" \
 -print0 | \
-xargs -0 -L1 bash -c 'test "$(head -c 1 "$0")" || echo "New line at beginning of $0"' || true)
+xargs -0 -L1 bash -c 'test "$(head -c 1 "$0")" || [ ! -s "$0" ] || echo "New line at beginning of $0"' || true)
 if [[ $output ]]; then
   echo "$output"
   exit 1

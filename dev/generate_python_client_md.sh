@@ -26,7 +26,7 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")"/.. >/dev/null && pwd)"
 
 pip3 uninstall -y cortex
 
-cd $ROOT/pkg/workloads/cortex/client
+cd $ROOT/pkg/cortex/client
 
 pip3 install -e .
 
@@ -64,4 +64,4 @@ truncate -s -1 $ROOT/docs/cli/python-client.md
 sed -i "s/^## create\\\_api/## create\\\_api\n\n<!-- CORTEX_VERSION_MINOR -->/g" $ROOT/docs/cli/python-client.md
 
 pip3 uninstall -y cortex
-rm -rf $ROOT/pkg/workloads/cortex/client/cortex.egg-info
+rm -rf $ROOT/pkg/cortex/client/cortex.egg-info

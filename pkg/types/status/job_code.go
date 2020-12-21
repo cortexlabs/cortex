@@ -28,6 +28,7 @@ const (
 	JobUnexpectedError
 	JobWorkerError
 	JobWorkerOOM
+	JobTimedOut
 	JobStopped
 )
 
@@ -41,6 +42,7 @@ var _jobCodes = []string{
 	"status_unexpected_error",
 	"status_worker_error",
 	"status_worker_oom",
+	"status_timed_out",
 	"status_stopped",
 }
 
@@ -56,6 +58,7 @@ var _jobCodeMessages = []string{
 	"unexpected error",
 	"worker error",
 	"out of memory",
+	"timed out",
 	"stopped",
 }
 
@@ -66,7 +69,7 @@ func (code JobCode) IsInProgress() bool {
 }
 
 func (code JobCode) IsCompleted() bool {
-	return code == JobEnqueueFailed || code == JobCompletedWithFailures || code == JobSucceeded || code == JobUnexpectedError || code == JobWorkerError || code == JobWorkerOOM || code == JobStopped
+	return code == JobEnqueueFailed || code == JobCompletedWithFailures || code == JobSucceeded || code == JobUnexpectedError || code == JobWorkerError || code == JobWorkerOOM || code == JobStopped || code == JobTimedOut
 }
 
 func (code JobCode) String() string {
