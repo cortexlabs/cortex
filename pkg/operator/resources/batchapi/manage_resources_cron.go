@@ -34,7 +34,7 @@ import (
 )
 
 const (
-	ManageJobResourcesCronPeriod = 60 * time.Second
+	ManageJobResourcesCronPeriod = 60 * time.Second // If this is going to be updated (made smaller), update the batch worker implementation
 	_doesQueueExistGracePeriod   = 30 * time.Second
 	_enqueuingLivenessBuffer     = 30 * time.Second
 	_k8sJobExistenceGracePeriod  = 10 * time.Second
@@ -290,9 +290,8 @@ func checkIfJobCompleted(jobKey spec.JobKey, queueURL string, k8sJob *kbatch.Job
 					setUnexpectedErrorStatus(jobKey),
 					deleteJobRuntimeResources(jobKey),
 				)
-			} else {
-				jobsToDelete.Add(jobKey.ID)
 			}
+			jobsToDelete.Add(jobKey.ID)
 		}
 		return nil
 	}
@@ -307,7 +306,7 @@ func checkIfJobCompleted(jobKey spec.JobKey, queueURL string, k8sJob *kbatch.Job
 		return err
 	}
 
-	if jobSpec.Workers == k8sJob.Status.Succeeded {
+	if jobSpec.Workers == int(k8sJob.Status.Succeeded) {
 		if jobSpec.TotalBatchCount == batchMetrics.Succeeded {
 			jobsToDelete.Remove(jobKey.ID)
 			return errors.FirstError(
