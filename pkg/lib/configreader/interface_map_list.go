@@ -26,6 +26,7 @@ type InterfaceMapListValidation struct {
 	Default                []map[string]interface{}
 	AllowExplicitNull      bool
 	AllowEmpty             bool
+	CantBeSpecifiedErrStr  *string
 	CastSingleItem         bool
 	MinLength              int
 	MaxLength              int
@@ -75,6 +76,10 @@ func ValidateInterfaceMapListMissing(v *InterfaceMapListValidation) ([]map[strin
 }
 
 func ValidateInterfaceMapListProvided(val []map[string]interface{}, v *InterfaceMapListValidation) ([]map[string]interface{}, error) {
+	if v.CantBeSpecifiedErrStr != nil {
+		return nil, ErrorFieldCantBeSpecified(*v.CantBeSpecifiedErrStr)
+	}
+
 	if !v.AllowExplicitNull && val == nil {
 		return nil, ErrorCannotBeNull(v.Required)
 	}

@@ -1,7 +1,5 @@
 # API is stuck updating
 
-_WARNING: you are on the master branch, please refer to the docs on the branch that matches your `cortex version`_
-
 If your API is stuck in the "updating" or "compute unavailable" state (which is displayed when running `cortex get`), there are a few possible causes. Here are some things to check:
 
 ## Check `cortex logs API_NAME`

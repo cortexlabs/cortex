@@ -1,7 +1,5 @@
 # Credentials
 
-_WARNING: you are on the master branch, please refer to the docs on the branch that matches your `cortex version`_
-
 1. Create a service account for your GCP project as described [here](https://cloud.google.com/iam/docs/creating-managing-service-accounts#iam-service-accounts-create-console) with the following roles (these roles could be more restrictive if required):
     1. `Editor` role.
     1. `Kubernetes Engine Admin` role.

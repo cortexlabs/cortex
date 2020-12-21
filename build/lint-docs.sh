@@ -28,18 +28,6 @@ if [[ $output ]]; then
   exit 1
 fi
 
-# Check for version warning comments in docs
-output=$(cd "$ROOT/docs" && find . -type f \
-! -path "./README.md" \
-! -name "summary.md" \
-! -name "contributing.md" \
--exec grep -L "WARNING: you are on the master branch, please refer to the docs on the branch that matches your \`cortex version\`" {} \;)
-if [[ $output ]]; then
-  echo "docs file(s) are missing appropriate version comment:"
-  echo "$output"
-  exit 1
-fi
-
 # Check for trailing whitespace
 output=$(cd "$ROOT/docs" && find . -type f \
 -exec egrep -l " +$" {} \;)

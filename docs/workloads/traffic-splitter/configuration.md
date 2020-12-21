@@ -1,7 +1,5 @@
 # Configuration
 
-_WARNING: you are on the master branch, please refer to the docs on the branch that matches your `cortex version`_
-
 ```yaml
 - name: <string>  # Traffic Splitter name (required)
   kind: TrafficSplitter
