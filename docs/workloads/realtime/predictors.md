@@ -385,6 +385,7 @@ The type of the `payload` parameter in `predict(self, payload)` can vary based o
 
 1. For `Content-Type: application/json`, `payload` will be the parsed JSON body.
 1. For `Content-Type: multipart/form-data` / `Content-Type: application/x-www-form-urlencoded`, `payload` will be `starlette.datastructures.FormData` (key-value pairs where the values are strings for text data, or `starlette.datastructures.UploadFile` for file uploads; see [Starlette's documentation](https://www.starlette.io/requests/#request-files)).
+1. For `Content-Type: text/plain`, `payload` will be a string. `utf-8` encoding is assumed, unless specified otherwise (e.g. via `Content-Type: text/plain; charset=us-ascii`)
 1. For all other `Content-Type` values, `payload` will be the raw `bytes` of the request body.
 
 Here are some examples:
@@ -583,6 +584,40 @@ class PythonPredictor:
         print(payload["key"])  # will print "value"
 ```
 
+### Text data
+
+#### Making the request
+
+##### Curl
+
+```bash
+$ curl https://***.amazonaws.com/my-api \
+    -X POST -H "Content-Type: text/plain" \
+    -d "hello world"
+```
+
+##### Python
+
+```python
+import requests
+
+url = "https://***.amazonaws.com/my-api"
+requests.post(url, "hello world", headers={"Content-Type": "text/plain"})
+```
+
+#### Reading the payload
+
+Since the `Content-Type: text/plain` header is used, the `payload` parameter will be a `string` object:
+
+```python
+class PythonPredictor:
+    def __init__(self, config):
+        pass
+
+    def predict(self, payload):
+        print(payload)  # prints "hello world"
+```
+
 ## API responses
 
 The response of your `predict()` function may be:
@@ -594,39 +629,6 @@ The response of your `predict()` function may be:
 3. A `bytes` object (e.g. `bytes(4)` or `pickle.dumps(obj)`)
 
 4. An instance of [starlette.responses.Response](https://www.starlette.io/responses/#response)
-
-Here are some examples:
-
-```python
-def predict(self, payload):
-    # json-serializable object
-    response = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
-    return response
-```
-
-```python
-def predict(self, payload):
-    # string object
-    response = "class 1"
-    return response
-```
-
-```python
-def predict(self, payload):
-    # bytes-like object
-    array = np.random.randn(3, 3)
-    response = pickle.dumps(array)
-    return response
-```
-
-```python
-def predict(self, payload):
-    # starlette.responses.Response
-    data = "class 1"
-    response = starlette.responses.Response(
-        content=data, media_type="text/plain")
-    return response
-```
 
 ## Chaining APIs
 
