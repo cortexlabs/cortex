@@ -10,15 +10,15 @@ RUN apt-get update -qq && apt-get install -y -q \
     pip install --upgrade pip && \
     rm -rf /root/.cache/pip*
 
-COPY pkg/workloads/cortex/serve/cortex_internal.requirements.txt /src/cortex/serve/cortex_internal.requirements.txt
+COPY pkg/cortex/serve/cortex_internal.requirements.txt /src/cortex/serve/cortex_internal.requirements.txt
 
 RUN pip install --no-cache-dir \
     -r /src/cortex/serve/cortex_internal.requirements.txt && \
     rm -rf /root/.cache/pip*
 
-COPY pkg/workloads/cortex/downloader /src/cortex/downloader
+COPY pkg/cortex/downloader /src/cortex/downloader
 
-COPY pkg/workloads/cortex/serve/ /src/cortex/serve
+COPY pkg/cortex/serve/ /src/cortex/serve
 RUN pip install --no-deps /src/cortex/serve/ && \
     rm -rf /root/.cache/pip*
 

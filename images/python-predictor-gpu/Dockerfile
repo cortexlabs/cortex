@@ -44,8 +44,8 @@ RUN /opt/conda/bin/conda create -n env -c conda-forge python=$PYTHONVERSION pip=
 ENV BASH_ENV=~/.env
 SHELL ["/bin/bash", "-c"]
 
-COPY pkg/workloads/cortex/serve/serve.requirements.txt /src/cortex/serve/serve.requirements.txt
-COPY pkg/workloads/cortex/serve/cortex_internal.requirements.txt /src/cortex/serve/cortex_internal.requirements.txt
+COPY pkg/cortex/serve/serve.requirements.txt /src/cortex/serve/serve.requirements.txt
+COPY pkg/cortex/serve/cortex_internal.requirements.txt /src/cortex/serve/cortex_internal.requirements.txt
 RUN pip install --no-cache-dir \
     -r /src/cortex/serve/serve.requirements.txt \
     -r /src/cortex/serve/cortex_internal.requirements.txt
@@ -98,7 +98,7 @@ RUN test "${SLIM}" = "true" || ( \
             xgboost==1.2.0 \
     )
 
-COPY pkg/workloads/cortex/serve/ /src/cortex/serve
+COPY pkg/cortex/serve/ /src/cortex/serve
 RUN pip install --no-deps /src/cortex/serve/
 RUN mv /src/cortex/serve/init/bootloader.sh /etc/cont-init.d/bootloader.sh
 
