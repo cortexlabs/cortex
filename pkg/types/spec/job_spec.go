@@ -58,6 +58,7 @@ type RuntimeJobConfig struct {
 	Workers            int                    `json:"workers"`
 	SQSDeadLetterQueue *SQSDeadLetterQueue    `json:"sqs_dead_letter_queue"`
 	Config             map[string]interface{} `json:"config"`
+	Timeout            *int                   `json:"timeout"`
 }
 
 type Job struct {

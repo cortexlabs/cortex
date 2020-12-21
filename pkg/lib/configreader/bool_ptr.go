@@ -26,10 +26,11 @@ import (
 )
 
 type BoolPtrValidation struct {
-	Required          bool
-	Default           *bool
-	AllowExplicitNull bool
-	StrToBool         map[string]bool // lowercase
+	Required              bool
+	Default               *bool
+	AllowExplicitNull     bool
+	CantBeSpecifiedErrStr *string
+	StrToBool             map[string]bool // lowercase
 }
 
 func BoolPtr(inter interface{}, v *BoolPtrValidation) (*bool, error) {
@@ -172,6 +173,10 @@ func ValidateBoolPtrMissing(v *BoolPtrValidation) (*bool, error) {
 }
 
 func ValidateBoolPtrProvided(val *bool, v *BoolPtrValidation) (*bool, error) {
+	if v.CantBeSpecifiedErrStr != nil {
+		return nil, ErrorFieldCantBeSpecified(*v.CantBeSpecifiedErrStr)
+	}
+
 	if !v.AllowExplicitNull && val == nil {
 		return nil, ErrorCannotBeNull(v.Required)
 	}

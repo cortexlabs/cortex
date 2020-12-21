@@ -80,6 +80,10 @@ func validateJobSubmissionSchema(submission *schema.JobSubmission) error {
 		return errors.Wrap(cr.ErrorMustBeGreaterThanOrEqualTo(submission.Workers, 1), schema.WorkersKey)
 	}
 
+	if submission.Timeout != nil && *submission.Timeout <= 0 {
+		return errors.Wrap(cr.ErrorMustBeGreaterThanOrEqualTo(submission.Timeout, 1), schema.TimeoutKey)
+	}
+
 	return nil
 }
 
