@@ -41,6 +41,7 @@ const (
 )
 
 var jobsToDelete strset.Set = strset.New()
+var inProgressJobSpecMap = map[string]*spec.Job{}
 
 func ManageJobResources() error {
 	inProgressJobKeys, err := listAllInProgressJobKeys()
@@ -49,10 +50,15 @@ func ManageJobResources() error {
 	}
 
 	inProgressJobIDSet := strset.Set{}
-	inProgressIDMap := map[string]spec.JobKey{}
 	for _, jobKey := range inProgressJobKeys {
 		inProgressJobIDSet.Add(jobKey.ID)
-		inProgressIDMap[jobKey.ID] = jobKey
+	}
+
+	// Remove completed jobs from local cache
+	for jobID := range inProgressJobSpecMap {
+		if !inProgressJobIDSet.Has(jobID) {
+			delete(inProgressJobSpecMap, jobID)
+		}
 	}
 
 	queues, err := listQueueURLsForAllAPIs()
@@ -129,6 +135,39 @@ func ManageJobResources() error {
 		}
 		if queueURL == nil {
 			// job has been submitted within the grace period, it may take a while for a newly created queue to be listed in SQS api response
+			continue
+		}
+
+		if _, ok := inProgressJobSpecMap[jobKey.ID]; !ok {
+			jobSpec, err := downloadJobSpec(jobKey)
+			if err != nil {
+				writeToJobLogStream(jobKey, err.Error(), "terminating job and cleaning up job resources")
+				err := errors.FirstError(
+					deleteInProgressFile(jobKey),
+					deleteJobRuntimeResources(jobKey),
+				)
+				if err != nil {
+					telemetry.Error(err)
+					errors.PrintError(err)
+					continue
+				}
+				continue
+			}
+			inProgressJobSpecMap[jobKey.ID] = jobSpec
+		}
+
+		jobSpec := inProgressJobSpecMap[jobKey.ID]
+
+		if jobSpec.Timeout != nil && time.Since(jobSpec.StartTime) > time.Second*time.Duration(*jobSpec.Timeout) {
+			err := errors.FirstError(
+				setTimedOutStatus(jobKey),
+				deleteJobRuntimeResources(jobKey),
+				writeToJobLogStream(jobKey, fmt.Sprintf("terminating job after exceeding the specified timeout of %d seconds", *jobSpec.Timeout)),
+			)
+			if err != nil {
+				telemetry.Error(err)
+				errors.PrintError(err)
+			}
 			continue
 		}
 

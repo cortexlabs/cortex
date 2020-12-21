@@ -52,6 +52,7 @@ func (j JobKey) K8sName() string {
 type RuntimeJobConfig struct {
 	Workers int                    `json:"workers"`
 	Config  map[string]interface{} `json:"config"`
+	Timeout *int                   `json:"timeout"`
 }
 
 type Job struct {
