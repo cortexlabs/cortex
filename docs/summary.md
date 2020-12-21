@@ -33,15 +33,6 @@
   * [System packages](workloads/dependencies/system-packages.md)
   * [Docker images](workloads/dependencies/docker-images.md)
 
-## Clients
-
-* [Install](clients/install.md)
-* [CLI](clients/cli.md)
-* [Python](clients/python.md)
-* [Environments](clients/environments.md)
-* [Telemetry](clients/telemetry.md)
-* [Uninstall](clients/uninstall.md)
-
 ## Clusters
 
 * AWS
@@ -61,3 +52,12 @@
   * [Install](clusters/gcp/install.md)
   * [Credentials](clusters/gcp/credentials.md)
   * [Uninstall](clusters/gcp/uninstall.md)
+
+## Clients
+
+* [Install](clients/install.md)
+* [CLI](clients/cli.md)
+* [Python](clients/python.md)
+* [Environments](clients/environments.md)
+* [Telemetry](clients/telemetry.md)
+* [Uninstall](clients/uninstall.md)
