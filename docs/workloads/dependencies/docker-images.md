@@ -52,8 +52,6 @@ docker build . -t org/my-api:latest
 
 ## Push your image to a container registry
 
-_If you are only running Cortex locally, you can skip this section_
-
 You can push your built Docker image to a public registry of your choice (e.g. Docker Hub), or to a private registry on ECR or Docker Hub.
 
 For example, to use ECR, first create a repository to store your image:
@@ -82,21 +80,11 @@ docker push <repository_url>:latest
 
 ## Private Docker registry
 
-### Local
-
-```bash
-docker login
-
-docker pull <your_image>
-```
-
-### Cluster
-
-#### Install and configure kubectl
+### Install and configure kubectl
 
 Follow these [instructions](../../clusters/aws/kubectl.md).
 
-#### Setting credentials
+### Setting credentials
 
 ```bash
 DOCKER_USERNAME=***
@@ -111,7 +99,7 @@ kubectl patch serviceaccount default --namespace default \
   -p "{\"imagePullSecrets\": [{\"name\": \"registry-credentials\"}]}"
 ```
 
-#### Deleting credentials
+### Deleting credentials
 
 ```bash
 kubectl delete secret --namespace default registry-credentials

@@ -38,45 +38,14 @@ requirements = ["tensorflow", "transformers"]
 
 api_spec = {"name": "text-generator", "kind": "RealtimeAPI"}
 
-cx = cortex.client("local")
+cx = cortex.client("aws")
 cx.create_api(api_spec, predictor=PythonPredictor, requirements=requirements)
-```
-
-### Test locally (requires Docker)
-
-```bash
-$ python text_generator.py
-```
-
-### Monitor
-
-```bash
-$ cortex get text-generator --watch
-```
-
-### Make a request
-
-```bash
-$ curl http://localhost:8889 -X POST -H "Content-Type: application/json" -d '{"text": "hello world"}'
-```
-
-### Stream logs
-
-```bash
-$ cortex logs text-generator
 ```
 
 ### Spin up a cluster on AWS
 
 ```bash
 $ cortex cluster up
-```
-
-### Edit `text_generator.py`
-
-```python
-# cx = cortex.client("local")
-cx = cortex.client("aws")
 ```
 
 ### Deploy to AWS
@@ -91,6 +60,12 @@ $ python text_generator.py
 $ cortex get text-generator --env aws --watch
 ```
 
+### Stream logs
+
+```bash
+$ cortex logs text-generator
+```
+
 ### Make a request
 
 ```bash
@@ -100,7 +75,5 @@ $ curl https://***.execute-api.us-west-2.amazonaws.com/text-generator -X POST -H
 ### Delete the APIs
 
 ```bash
-$ cortex delete text-generator --env local
-
 $ cortex delete text-generator --env aws
 ```
