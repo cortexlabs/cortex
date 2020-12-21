@@ -214,7 +214,12 @@ func setStatusForJob(jobKey spec.JobKey, jobStatus status.JobCode) error {
 }
 
 func setEnqueuingStatus(jobKey spec.JobKey) error {
-	err := config.AWS.UploadStringToS3("", config.Cluster.Bucket, path.Join(jobKey.Prefix(config.Cluster.ClusterName), status.JobEnqueuing.String()))
+	err := updateLiveness(jobKey)
+	if err != nil {
+		return err
+	}
+
+	err = config.AWS.UploadStringToS3("", config.Cluster.Bucket, path.Join(jobKey.Prefix(config.Cluster.ClusterName), status.JobEnqueuing.String()))
 	if err != nil {
 		return err
 	}
