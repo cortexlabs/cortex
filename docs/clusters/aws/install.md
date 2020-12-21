@@ -4,7 +4,7 @@
 
 1. [Docker](https://docs.docker.com/install)
 1. [EKS-optimized AMI with GPU Support](https://aws.amazon.com/marketplace/pp/B07GRHFXGM) (for GPU clusters)
-1. An IAM user with `AdministratorAccess` and programmatic access
+1. An IAM user with `AdministratorAccess` and programmatic access (see [security](security.md) if you'd like to use less privileged credentials after spinning up your cluster)
 
 ## Spin up Cortex on your AWS account
 
