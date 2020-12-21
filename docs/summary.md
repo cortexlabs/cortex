@@ -27,7 +27,7 @@
 * Traffic Splitter
   * [Example](workloads/traffic-splitter/example.md)
   * [Configuration](workloads/traffic-splitter/configuration.md)
-* Dependencies
+* Managing dependencies
   * [Example](workloads/dependencies/example.md)
   * [Python packages](workloads/dependencies/python-packages.md)
   * [System packages](workloads/dependencies/system-packages.md)
@@ -56,8 +56,8 @@
 ## Clients
 
 * [Install](clients/install.md)
-* [CLI](clients/cli.md)
-* [Python](clients/python.md)
+* [CLI commands](clients/cli.md)
+* [Python API](clients/python.md)
 * [Environments](clients/environments.md)
 * [Telemetry](clients/telemetry.md)
 * [Uninstall](clients/uninstall.md)

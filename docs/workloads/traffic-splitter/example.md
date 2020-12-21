@@ -2,8 +2,6 @@
 
 Expose multiple RealtimeAPIs as a single endpoint for A/B tests, multi-armed bandits, or canary deployments.
 
-**Note: TrafficSplitter is only supported on a Cortex cluster**
-
 ## Deploy APIs
 
 ```python
