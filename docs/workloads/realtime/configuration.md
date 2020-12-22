@@ -28,18 +28,18 @@
     image: <string>  # docker image to use for the Predictor (default: quay.io/cortexlabs/python-predictor-cpu:master or quay.io/cortexlabs/python-predictor-gpu:master based on compute)
     env: <string: string>  # dictionary of environment variables
   networking:
-    endpoint: <string>  # the endpoint for the API (aws and gcp only) (default: <api_name>)
+    endpoint: <string>  # the endpoint for the API (default: <api_name>)
     api_gateway: public | none  # whether to create a public API Gateway endpoint for this API (if not, the API will still be accessible via the load balancer) (default: public, unless disabled cluster-wide) (aws only)
   compute:
     cpu: <string | int | float>  # CPU request per replica, e.g. 200m or 1 (200m is equivalent to 0.2) (default: 200m)
     gpu: <int>  # GPU request per replica (default: 0)
     inf: <int>  # Inferentia ASIC request per replica (default: 0) (aws only)
     mem: <string>  # memory request per replica, e.g. 200Mi or 1Gi (default: Null)
-  autoscaling:  # (aws and gcp only)
-    min_replicas: <int>  # minimum number of replicas (default: 1) (aws and gcp only)
-    max_replicas: <int>  # maximum number of replicas (default: 100) (aws and gcp only)
-    init_replicas: <int>  # initial number of replicas (default: <min_replicas>) (aws and gcp only)
-    max_replica_concurrency: <int>  # the maximum number of in-flight requests per replica before requests are rejected with error code 503 (default: 1024) (aws and gcp only)
+  autoscaling:
+    min_replicas: <int>  # minimum number of replicas (default: 1)
+    max_replicas: <int>  # maximum number of replicas (default: 100)
+    init_replicas: <int>  # initial number of replicas (default: <min_replicas>)
+    max_replica_concurrency: <int>  # the maximum number of in-flight requests per replica before requests are rejected with error code 503 (default: 1024)
     target_replica_concurrency: <float>  # the desired number of in-flight requests per replica, which the autoscaler tries to maintain (default: processes_per_replica * threads_per_process) (aws only)
     window: <duration>  # the time over which to average the API's concurrency (default: 60s) (aws only)
     downscale_stabilization_period: <duration>  # the API will not scale below the highest recommendation made during this period (default: 5m) (aws only)
@@ -48,7 +48,7 @@
     max_upscale_factor: <float>  # the maximum factor by which to scale up the API on a single scaling event (default: 1.5) (aws only)
     downscale_tolerance: <float>  # any recommendation falling within this factor below the current number of replicas will not trigger a scale down event (default: 0.05) (aws only)
     upscale_tolerance: <float>  # any recommendation falling within this factor above the current number of replicas will not trigger a scale up event (default: 0.05) (aws only)
-  update_strategy:  # (aws and gcp only)
+  update_strategy:
     max_surge: <string | int>  # maximum number of replicas that can be scheduled above the desired number of replicas during an update; can be an absolute number, e.g. 5, or a percentage of desired replicas, e.g. 10% (default: 25%) (set to 0 to disable rolling updates)
     max_unavailable: <string | int>  # maximum number of replicas that can be unavailable during an update; can be an absolute number, e.g. 5, or a percentage of desired replicas, e.g. 10% (default: 25%)
 ```
@@ -84,18 +84,18 @@
     tensorflow_serving_image: <string>  # docker image to use for the TensorFlow Serving container (default: quay.io/cortexlabs/tensorflow-serving-gpu:master or quay.io/cortexlabs/tensorflow-serving-cpu:master based on compute)
     env: <string: string>  # dictionary of environment variables
   networking:
-    endpoint: <string>  # the endpoint for the API (aws and gcp only) (default: <api_name>)
+    endpoint: <string>  # the endpoint for the API (default: <api_name>)
     api_gateway: public | none  # whether to create a public API Gateway endpoint for this API (if not, the API will still be accessible via the load balancer) (default: public, unless disabled cluster-wide) (aws only)
   compute:
     cpu: <string | int | float>  # CPU request per replica, e.g. 200m or 1 (200m is equivalent to 0.2) (default: 200m)
     gpu: <int>  # GPU request per replica (default: 0)
     inf: <int>  # Inferentia ASIC request per replica (default: 0) (aws only)
     mem: <string>  # memory request per replica, e.g. 200Mi or 1Gi (default: Null)
-  autoscaling:  # (aws and gcp only)
-    min_replicas: <int>  # minimum number of replicas (default: 1) (aws and gcp only)
-    max_replicas: <int>  # maximum number of replicas (default: 100) (aws and gcp only)
-    init_replicas: <int>  # initial number of replicas (default: <min_replicas>) (aws and gcp only)
-    max_replica_concurrency: <int>  # the maximum number of in-flight requests per replica before requests are rejected with error code 503 (default: 1024) (aws and gcp only)
+  autoscaling:
+    min_replicas: <int>  # minimum number of replicas (default: 1)
+    max_replicas: <int>  # maximum number of replicas (default: 100)
+    init_replicas: <int>  # initial number of replicas (default: <min_replicas>)
+    max_replica_concurrency: <int>  # the maximum number of in-flight requests per replica before requests are rejected with error code 503 (default: 1024)
     target_replica_concurrency: <float>  # the desired number of in-flight requests per replica, which the autoscaler tries to maintain (default: processes_per_replica * threads_per_process) (aws only)
     window: <duration>  # the time over which to average the API's concurrency (default: 60s) (aws only)
     downscale_stabilization_period: <duration>  # the API will not scale below the highest recommendation made during this period (default: 5m) (aws only)
@@ -104,7 +104,7 @@
     max_upscale_factor: <float>  # the maximum factor by which to scale up the API on a single scaling event (default: 1.5) (aws only)
     downscale_tolerance: <float>  # any recommendation falling within this factor below the current number of replicas will not trigger a scale down event (default: 0.05) (aws only)
     upscale_tolerance: <float>  # any recommendation falling within this factor above the current number of replicas will not trigger a scale up event (default: 0.05) (aws only)
-  update_strategy:  # (aws and gcp only)
+  update_strategy:
     max_surge: <string | int>  # maximum number of replicas that can be scheduled above the desired number of replicas during an update; can be an absolute number, e.g. 5, or a percentage of desired replicas, e.g. 10% (default: 25%) (set to 0 to disable rolling updates)
     max_unavailable: <string | int>  # maximum number of replicas that can be unavailable during an update; can be an absolute number, e.g. 5, or a percentage of desired replicas, e.g. 10% (default: 25%)
 ```
@@ -134,17 +134,17 @@
     image: <string>  # docker image to use for the Predictor (default: quay.io/cortexlabs/onnx-predictor-gpu:master or quay.io/cortexlabs/onnx-predictor-cpu:master based on compute)
     env: <string: string>  # dictionary of environment variables
   networking:
-    endpoint: <string>  # the endpoint for the API (aws and gcp only) (default: <api_name>)
+    endpoint: <string>  # the endpoint for the API (default: <api_name>)
     api_gateway: public | none  # whether to create a public API Gateway endpoint for this API (if not, the API will still be accessible via the load balancer) (default: public, unless disabled cluster-wide) (aws only)
   compute:
     cpu: <string | int | float>  # CPU request per replica, e.g. 200m or 1 (200m is equivalent to 0.2) (default: 200m)
     gpu: <int>  # GPU request per replica (default: 0)
     mem: <string>  # memory request per replica, e.g. 200Mi or 1Gi (default: Null)
-  autoscaling:  # (aws and gcp only)
-    min_replicas: <int>  # minimum number of replicas (default: 1) (aws and gcp only)
-    max_replicas: <int>  # maximum number of replicas (default: 100) (aws and gcp only)
-    init_replicas: <int>  # initial number of replicas (default: <min_replicas>) (aws and gcp only)
-    max_replica_concurrency: <int>  # the maximum number of in-flight requests per replica before requests are rejected with error code 503 (default: 1024) (aws and gcp only)
+  autoscaling:
+    min_replicas: <int>  # minimum number of replicas (default: 1)
+    max_replicas: <int>  # maximum number of replicas (default: 100)
+    init_replicas: <int>  # initial number of replicas (default: <min_replicas>)
+    max_replica_concurrency: <int>  # the maximum number of in-flight requests per replica before requests are rejected with error code 503 (default: 1024)
     target_replica_concurrency: <float>  # the desired number of in-flight requests per replica, which the autoscaler tries to maintain (default: processes_per_replica * threads_per_process) (aws only)
     window: <duration>  # the time over which to average the API's concurrency (default: 60s) (aws only)
     downscale_stabilization_period: <duration>  # the API will not scale below the highest recommendation made during this period (default: 5m) (aws only)
@@ -153,7 +153,7 @@
     max_upscale_factor: <float>  # the maximum factor by which to scale up the API on a single scaling event (default: 1.5) (aws only)
     downscale_tolerance: <float>  # any recommendation falling within this factor below the current number of replicas will not trigger a scale down event (default: 0.05) (aws only)
     upscale_tolerance: <float>  # any recommendation falling within this factor above the current number of replicas will not trigger a scale up event (default: 0.05) (aws only)
-  update_strategy:  # (aws and gcp only)
+  update_strategy:
     max_surge: <string | int>  # maximum number of replicas that can be scheduled above the desired number of replicas during an update; can be an absolute number, e.g. 5, or a percentage of desired replicas, e.g. 10% (default: 25%) (set to 0 to disable rolling updates)
     max_unavailable: <string | int>  # maximum number of replicas that can be unavailable during an update; can be an absolute number, e.g. 5, or a percentage of desired replicas, e.g. 10% (default: 25%)
 ```
