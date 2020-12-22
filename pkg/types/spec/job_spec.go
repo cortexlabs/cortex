@@ -49,10 +49,16 @@ func (j JobKey) K8sName() string {
 	return fmt.Sprintf("%s-%s", j.APIName, j.ID)
 }
 
+type SQSDeadLetterQueue struct {
+	ARN             string `json:"arn"`
+	MaxReceiveCount int    `json:"max_receive_count"`
+}
+
 type RuntimeJobConfig struct {
-	Workers int                    `json:"workers"`
-	Config  map[string]interface{} `json:"config"`
-	Timeout *int                   `json:"timeout"`
+	Workers            int                    `json:"workers"`
+	SQSDeadLetterQueue *SQSDeadLetterQueue    `json:"sqs_dead_letter_queue"`
+	Config             map[string]interface{} `json:"config"`
+	Timeout            *int                   `json:"timeout"`
 }
 
 type Job struct {
