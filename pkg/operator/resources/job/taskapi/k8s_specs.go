@@ -58,7 +58,7 @@ func virtualServiceSpec(api *spec.API) *istioclientnetworking.VirtualService {
 }
 
 func k8sJobSpec(api *spec.API, job *spec.TaskJob) (*kbatch.Job, error) {
-	containers, volumes := operator.PythonPredictorContainers(api)
+	containers, volumes := operator.TaskContainers(api)
 	for i, container := range containers {
 		if container.Name == operator.APIContainerName {
 			containers[i].Env = append(container.Env, kcore.EnvVar{
@@ -92,7 +92,7 @@ func k8sJobSpec(api *spec.API, job *spec.TaskJob) (*kbatch.Job, error) {
 			K8sPodSpec: kcore.PodSpec{
 				RestartPolicy: "Never",
 				InitContainers: []kcore.Container{
-					operator.InitContainer(api),
+					operator.TaskInitContainer(api),
 				},
 				Containers: containers,
 				NodeSelector: map[string]string{

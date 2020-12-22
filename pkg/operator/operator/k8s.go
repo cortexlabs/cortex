@@ -91,6 +91,17 @@ type downloadContainerArg struct {
 	HideUnzippingLog bool   `json:"hide_unzipping_log"` // if true, don't log when unzipping
 }
 
+func TaskInitContainer(api *spec.API) kcore.Container {
+	return kcore.Container{
+		Name:            _downloaderInitContainerName,
+		Image:           config.ImageDownloader(),
+		ImagePullPolicy: "Always",
+		Args:            []string{"--download=" + pythonDownloadArgs(api)},
+		EnvFrom:         baseEnvVars(),
+		VolumeMounts:    defaultVolumeMounts(),
+	}
+}
+
 func InitContainer(api *spec.API) kcore.Container {
 	downloadArgs := ""
 
@@ -114,12 +125,94 @@ func InitContainer(api *spec.API) kcore.Container {
 	}
 }
 
+func TaskContainers(api *spec.API) ([]kcore.Container, []kcore.Volume) {
+	apiPodResourceList := kcore.ResourceList{}
+	apiPodResourceLimitsList := kcore.ResourceList{}
+	apiPodVolumeMounts := defaultVolumeMounts()
+	volumes := DefaultVolumes()
+	var containers []kcore.Container
+
+	if api.Compute.Inf == 0 {
+		if api.Compute.CPU != nil {
+			userPodCPURequest := k8s.QuantityPtr(api.Compute.CPU.Quantity.DeepCopy())
+			userPodCPURequest.Sub(_requestMonitorCPURequest)
+			apiPodResourceList[kcore.ResourceCPU] = *userPodCPURequest
+		}
+
+		if api.Compute.Mem != nil {
+			userPodMemRequest := k8s.QuantityPtr(api.Compute.Mem.Quantity.DeepCopy())
+			userPodMemRequest.Sub(_requestMonitorMemRequest)
+			apiPodResourceList[kcore.ResourceMemory] = *userPodMemRequest
+		}
+
+		if api.Compute.GPU > 0 {
+			apiPodResourceList["nvidia.com/gpu"] = *kresource.NewQuantity(api.Compute.GPU, kresource.DecimalSI)
+			apiPodResourceLimitsList["nvidia.com/gpu"] = *kresource.NewQuantity(api.Compute.GPU, kresource.DecimalSI)
+		}
+
+	} else {
+		volumes = append(volumes, kcore.Volume{
+			Name: "neuron-sock",
+		})
+		rtdVolumeMounts := []kcore.VolumeMount{
+			{
+				Name:      "neuron-sock",
+				MountPath: "/sock",
+			},
+		}
+		apiPodVolumeMounts = append(apiPodVolumeMounts, rtdVolumeMounts...)
+		neuronContainer := *neuronRuntimeDaemonContainer(api, rtdVolumeMounts)
+
+		if api.Compute.CPU != nil {
+			userPodCPURequest := k8s.QuantityPtr(api.Compute.CPU.Quantity.DeepCopy())
+			userPodCPURequest.Sub(_requestMonitorCPURequest)
+			q1, q2 := k8s.SplitInTwo(userPodCPURequest)
+			apiPodResourceList[kcore.ResourceCPU] = *q1
+			neuronContainer.Resources.Requests[kcore.ResourceCPU] = *q2
+		}
+
+		if api.Compute.Mem != nil {
+			userPodMemRequest := k8s.QuantityPtr(api.Compute.Mem.Quantity.DeepCopy())
+			userPodMemRequest.Sub(_requestMonitorMemRequest)
+			q1, q2 := k8s.SplitInTwo(userPodMemRequest)
+			apiPodResourceList[kcore.ResourceMemory] = *q1
+			neuronContainer.Resources.Requests[kcore.ResourceMemory] = *q2
+		}
+
+		containers = append(containers, neuronContainer)
+	}
+
+	containers = append(containers, kcore.Container{
+		Name:            APIContainerName,
+		Image:           api.TaskDefinition.Image,
+		ImagePullPolicy: kcore.PullAlways,
+		Env:             getTaskEnvVars(api, APIContainerName),
+		EnvFrom:         baseEnvVars(),
+		VolumeMounts:    apiPodVolumeMounts,
+		ReadinessProbe:  FileExistsProbe(_apiReadinessFile),
+		LivenessProbe:   _apiLivenessProbe,
+		Lifecycle:       nginxGracefulStopper(api.Kind),
+		Resources: kcore.ResourceRequirements{
+			Requests: apiPodResourceList,
+			Limits:   apiPodResourceLimitsList,
+		},
+		Ports: []kcore.ContainerPort{
+			{ContainerPort: DefaultPortInt32},
+		},
+		SecurityContext: &kcore.SecurityContext{
+			Privileged: pointer.Bool(true),
+		}},
+	)
+
+	return containers, volumes
+}
+
 func PythonPredictorContainers(api *spec.API) ([]kcore.Container, []kcore.Volume) {
 	apiPodResourceList := kcore.ResourceList{}
 	apiPodResourceLimitsList := kcore.ResourceList{}
 	apiPodVolumeMounts := defaultVolumeMounts()
 	volumes := DefaultVolumes()
-	containers := []kcore.Container{}
+	var containers []kcore.Container
 
 	if api.Compute.Inf == 0 {
 		if api.Compute.CPU != nil {
@@ -216,7 +309,7 @@ func TensorFlowPredictorContainers(api *spec.API) ([]kcore.Container, []kcore.Vo
 	tfServingLimitsList := kcore.ResourceList{}
 	volumeMounts := defaultVolumeMounts()
 	volumes := DefaultVolumes()
-	containers := []kcore.Container{}
+	var containers []kcore.Container
 
 	if api.Compute.Inf == 0 {
 		if api.Compute.CPU != nil {
@@ -326,7 +419,7 @@ func ONNXPredictorContainers(api *spec.API) ([]kcore.Container, []kcore.Volume) 
 	resourceLimitsList := kcore.ResourceList{}
 	apiPodVolumeMounts := defaultVolumeMounts()
 	volumes := DefaultVolumes()
-	containers := []kcore.Container{}
+	var containers []kcore.Container
 
 	if api.Compute.CPU != nil {
 		userPodCPURequest := k8s.QuantityPtr(api.Compute.CPU.Quantity.DeepCopy())
@@ -593,6 +686,66 @@ func getEnvVars(api *spec.API, container string) []kcore.EnvVar {
 		}
 	}
 
+	return envVars
+}
+
+func getTaskEnvVars(api *spec.API, container string) []kcore.EnvVar {
+	envVars := []kcore.EnvVar{
+		{
+			Name:  "CORTEX_KIND",
+			Value: api.Kind.String(),
+		},
+	}
+
+	for name, val := range api.TaskDefinition.Env {
+		envVars = append(envVars, kcore.EnvVar{
+			Name:  name,
+			Value: val,
+		})
+	}
+
+	if container == APIContainerName {
+		envVars = append(envVars,
+			kcore.EnvVar{
+				Name: "HOST_IP",
+				ValueFrom: &kcore.EnvVarSource{
+					FieldRef: &kcore.ObjectFieldSelector{
+						FieldPath: "status.hostIP",
+					},
+				},
+			},
+			kcore.EnvVar{
+				Name:  "CORTEX_PROJECT_DIR",
+				Value: path.Join(_emptyDirMountPath, "project"),
+			},
+			kcore.EnvVar{
+				Name:  "CORTEX_TASK_SPEC",
+				Value: config.BucketPath(api.Key),
+			},
+		)
+
+		cortexPythonPath := path.Join(_emptyDirMountPath, "project")
+		if api.TaskDefinition.PythonPath != nil {
+			cortexPythonPath = path.Join(_emptyDirMountPath, "project", *api.TaskDefinition.PythonPath)
+		}
+		envVars = append(envVars, kcore.EnvVar{
+			Name:  "CORTEX_PYTHON_PATH",
+			Value: cortexPythonPath,
+		})
+
+		if api.Compute.Inf > 0 {
+			envVars = append(envVars,
+				kcore.EnvVar{
+					Name:  "NEURONCORE_GROUP_SIZES",
+					Value: s.Int64(api.Compute.Inf * consts.NeuronCoresPerInf / int64(api.Predictor.ProcessesPerReplica)),
+				},
+				kcore.EnvVar{
+					Name:  "NEURON_RTD_ADDRESS",
+					Value: fmt.Sprintf("unix:%s", _neuronRTDSocket),
+				},
+			)
+		}
+	}
 	return envVars
 }
 
