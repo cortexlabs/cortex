@@ -14,9 +14,6 @@ pip install cortex
 
 # spin up Cortex on your AWS account
 cortex cluster up  # or: cortex cluster up --config cluster.yaml (see configuration options below)
-
-# set the default environment
-cortex env default aws
 ```
 
 ## Configure Cortex
