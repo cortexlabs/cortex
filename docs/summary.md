@@ -1,79 +1,63 @@
-# Table of contents
+# Summary
 
-* [Get started](workloads/realtime/deploy.md)
-* [Community](https://gitter.im/cortexlabs/cortex)
-* [Contributing](contributing.md)
-
-## CLI
-
-* [Install](cli/install.md)
-* [Commands](cli/commands.md)
-* [Python client](cli/python-client.md)
-* [Environments](cli/environments.md)
-* [Telemetry](cli/telemetry.md)
-* [Uninstall](cli/uninstall.md)
-
-## Running on AWS
-
-* [Install](aws/install.md)
-* [Credentials](aws/credentials.md)
-* [Security](aws/security.md)
-* [Spot instances](aws/spot.md)
-* [GPUs](aws/gpu.md)
-* [Inferentia](aws/inferentia.md)
-* [Networking](aws/networking.md)
-* [VPC peering](aws/vpc-peering.md)
-* [Custom domain](aws/custom-domain.md)
-* [SSH into instances](aws/ssh.md)
-* [REST API Gateway](aws/rest-api-gateway.md)
-* [Update](aws/update.md)
-* [Uninstall](aws/uninstall.md)
-
-## Running on GCP
-
-* [Install](gcp/install.md)
-* [Credentials](gcp/credentials.md)
-* [Uninstall](gcp/uninstall.md)
+* [Get started](workloads/realtime/example.md)
 
 ## Workloads
 
 * Realtime
-  * [Deploy](workloads/realtime/deploy.md)
+  * [Example](workloads/realtime/example.md)
   * [Predictor](workloads/realtime/predictors.md)
   * [Configuration](workloads/realtime/configuration.md)
-  * [Statuses](workloads/realtime/statuses.md)
   * [Models](workloads/realtime/models.md)
   * [Parallelism](workloads/realtime/parallelism.md)
+  * [Server-side batching](workloads/realtime/server-side-batching.md)
   * [Autoscaling](workloads/realtime/autoscaling.md)
+  * [Metrics](workloads/realtime/metrics.md)
+  * [Statuses](workloads/realtime/statuses.md)
+  * [Troubleshooting](workloads/realtime/troubleshooting.md)
 * Batch
-  * [Deploy](workloads/batch/deploy.md)
+  * [Example](workloads/batch/example.md)
   * [Predictor](workloads/batch/predictors.md)
   * [Configuration](workloads/batch/configuration.md)
-  * [Statuses](workloads/batch/statuses.md)
   * [Endpoints](workloads/batch/endpoints.md)
+  * [Statuses](workloads/batch/statuses.md)
 * Multi-model
-  * [Deploy](workloads/multi-model/deploy.md)
+  * [Example](workloads/multi-model/example.md)
   * [Configuration](workloads/multi-model/configuration.md)
 * Traffic Splitter
-  * [Deploy](workloads/traffic-splitter/deploy.md)
-  * [Python packages](workloads/traffic-splitter/configuration.md)
-* Dependencies
-  * [Deploy](workloads/dependencies/deploy.md)
+  * [Example](workloads/traffic-splitter/example.md)
+  * [Configuration](workloads/traffic-splitter/configuration.md)
+* Managing dependencies
+  * [Example](workloads/dependencies/example.md)
   * [Python packages](workloads/dependencies/python-packages.md)
   * [System packages](workloads/dependencies/system-packages.md)
-* [Exporting models](workloads/exporting.md)
+  * [Docker images](workloads/dependencies/docker-images.md)
 
-## Troubleshooting
+## Clusters
 
-* [API is stuck updating](troubleshooting/stuck-updating.md)
-* [404/503 API responses](troubleshooting/api-request-errors.md)
-* [NVIDIA runtime not found](troubleshooting/nvidia-container-runtime-not-found.md)
-* [TF session in predict()](troubleshooting/tf-session-in-predict.md)
-* [Server-side batching errors](troubleshooting/server-side-batching-errors.md)
+* AWS
+  * [Install](clusters/aws/install.md)
+  * [Update](clusters/aws/update.md)
+  * [Security](clusters/aws/security.md)
+  * [Spot instances](clusters/aws/spot.md)
+  * [GPUs](clusters/aws/gpu.md)
+  * [Inferentia](clusters/aws/inferentia.md)
+  * [Networking](clusters/aws/networking.md)
+  * [VPC peering](clusters/aws/vpc-peering.md)
+  * [Custom domain](clusters/aws/custom-domain.md)
+  * [REST API Gateway](clusters/aws/rest-api-gateway.md)
+  * [Setting up kubectl](clusters/aws/kubectl.md)
+  * [Uninstall](clusters/aws/uninstall.md)
+* GCP
+  * [Install](clusters/gcp/install.md)
+  * [Credentials](clusters/gcp/credentials.md)
+  * [Uninstall](clusters/gcp/uninstall.md)
 
-## Guides
+## Clients
 
-* [View API metrics](guides/metrics.md)
-* [Setting up kubectl](guides/kubectl.md)
-* [Self-hosted Docker images](guides/self-hosted-images.md)
-* [Private docker registry](guides/private-docker.md)
+* [Install](clients/install.md)
+* [CLI commands](clients/cli.md)
+* [Python API](clients/python.md)
+* [Environments](clients/environments.md)
+* [Telemetry](clients/telemetry.md)
+* [Uninstall](clients/uninstall.md)

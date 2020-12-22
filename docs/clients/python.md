@@ -1,4 +1,4 @@
-# Python client
+# Python API
 
 * [cortex](#cortex)
   * [client](#client)
