@@ -6,7 +6,7 @@ Deploy batch APIs that can orchestrate distributed batch inference jobs on large
 
 * Distributed inference
 * Automatic batch retries
-* Collect failed batches for easy debugging and retries
+* Collect failed batches for debugging
 * Metrics and log aggregation
 * `on_job_complete` webhook
 * Scale to 0

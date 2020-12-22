@@ -34,10 +34,6 @@ from cortex.lib.concurrency import LockedFile
 from cortex.lib.storage import S3, LocalStorage
 from cortex.lib.exceptions import UserRuntimeException
 
-from concurrent.futures import ThreadPoolExecutor
-import asyncio
-from typing import Any
-
 API_LIVENESS_UPDATE_PERIOD = 5  # seconds
 SQS_POLL_WAIT_TIME = 10  # seconds
 MESSAGE_NOT_FOUND_SLEEP = 10  # seconds
@@ -96,22 +92,22 @@ def renew_message_visibility(receipt_handle: str):
                 stop_renewal.remove(receipt_handle)
                 break
 
-        try:
-            local_cache["sqs_client"].change_message_visibility(
-                QueueUrl=queue_url, ReceiptHandle=receipt_handle, VisibilityTimeout=new_timeout
-            )
-        except botocore.exceptions.ClientError as e:
-            if e.response["Error"]["Code"] == "InvalidParameterValue":
-                continue
-            elif e.response["Error"]["Code"] == "AWS.SimpleQueueService.NonExistentQueue":
-                cx_logger().info(
-                    "failed to renew message visibility because the queue was not found"
+            try:
+                local_cache["sqs_client"].change_message_visibility(
+                    QueueUrl=queue_url, ReceiptHandle=receipt_handle, VisibilityTimeout=new_timeout
                 )
-            else:
-                stop_renewal.remove(receipt_handle)
-                raise e
-
-        new_timeout += interval
+            except botocore.exceptions.ClientError as e:
+                if e.response["Error"]["Code"] == "InvalidParameterValue":
+                    # unexpected; this error is thrown when attempting to renew a message that has been deleted
+                    continue
+                elif e.response["Error"]["Code"] == "AWS.SimpleQueueService.NonExistentQueue":
+                    # there may be a delay between the cron may deleting the queue and this worker stopping
+                    cx_logger().info(
+                        "failed to renew message visibility because the queue was not found"
+                    )
+                else:
+                    stop_renewal.remove(receipt_handle)
+                    raise e
 
 
 def build_predict_args(payload, batch_id):
@@ -163,7 +159,7 @@ def sqs_loop():
         response = sqs_client.receive_message(
             QueueUrl=queue_url,
             MaxNumberOfMessages=1,
-            WaitTimeSeconds=10,
+            WaitTimeSeconds=SQS_POLL_WAIT_TIME,
             VisibilityTimeout=INITIAL_MESSAGE_VISIBILITY,
             MessageAttributeNames=["All"],
         )
@@ -222,8 +218,8 @@ def handle_batch_message(message):
         logger().exception(f"failed processing batch {message['MessageId']}")
         with receipt_handle_mutex:
             stop_renewal.add(receipt_handle)
-            if local_cache["job_spec"].get("sqs_dead_letter_queue") is not None:
-                local_cache["sqs_client"].change_message_visibility(  # return message
+            if job_spec.get("sqs_dead_letter_queue") is not None:
+                sqs_client.change_message_visibility(  # return message
                     QueueUrl=queue_url, ReceiptHandle=receipt_handle, VisibilityTimeout=0
                 )
             else:
@@ -242,7 +238,6 @@ def handle_on_job_complete(message):
     receipt_handle = message["ReceiptHandle"]
 
     should_run_on_job_complete = False
-    attempted_to_execute_job_complete = False
     try:
         while True:
             visible_messages, invisible_messages = get_total_messages_in_queue()
@@ -265,15 +260,14 @@ def handle_on_job_complete(message):
             else:
                 if should_run_on_job_complete:
                     if getattr(predictor_impl, "on_job_complete", None):
-                        attempted_to_execute_job_complete = True
                         logger().info("executing on_job_complete")
                         predictor_impl.on_job_complete()
                     break
                 should_run_on_job_complete = True
             time.sleep(10)  # verify that the queue is empty one more time
     except:
-        if attempted_to_execute_job_complete:
-            raise
+        logger.exception("failed to handle on_job_complete")
+        raise
     finally:
         with receipt_handle_mutex:
             stop_renewal.add(receipt_handle)

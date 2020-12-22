@@ -58,7 +58,10 @@ RESPONSE:
     "api_id": <string>,
     "sqs_url": <string>,
     "timeout": <int>,
-    "sqs_dead_letter_queue": {},
+    "sqs_dead_letter_queue": {
+        "arn": <string>,
+        "max_receive_count": <int>
+    },
     "created_time": <string>  # e.g. 2020-07-16T14:56:10.276007415Z
 }
 ```
@@ -105,7 +108,10 @@ RESPONSE:
     "api_id": <string>,
     "sqs_url": <string>,
     "timeout": <int>,
-    "sqs_dead_letter_queue": {},
+    "sqs_dead_letter_queue": {
+        "arn": <string>,
+        "max_receive_count": <int>
+    },
     "created_time": <string>  # e.g. 2020-07-16T14:56:10.276007415Z
 }
 ```
@@ -151,7 +157,10 @@ RESPONSE:
     "api_id": <string>,
     "sqs_url": <string>,
     "timeout": <int>,
-    "sqs_dead_letter_queue": {},
+    "sqs_dead_letter_queue": {
+        "arn": <string>,
+        "max_receive_count": <int>
+    },
     "created_time": <string>  # e.g. 2020-07-16T14:56:10.276007415Z
 }
 ```
