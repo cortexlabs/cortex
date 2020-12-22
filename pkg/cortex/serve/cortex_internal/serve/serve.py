@@ -216,7 +216,7 @@ def predict(request: Request):
             ) from e
         response = Response(content=json_string, media_type="application/json")
 
-    if local_cache["provider"] != "local" and api.monitoring is not None:
+    if local_cache["provider"] not in ["local", "gcp"] and api.monitoring is not None:
         try:
             predicted_value = api.monitoring.extract_predicted_value(prediction)
             api.post_monitoring_metrics(predicted_value)
