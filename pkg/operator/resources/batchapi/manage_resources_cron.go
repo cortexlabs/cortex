@@ -81,7 +81,8 @@ func ManageJobResources() error {
 
 	k8sJobMap := map[string]*kbatch.Job{}
 	k8sJobIDSet := strset.Set{}
-	for _, job := range jobs {
+	for i := range jobs {
+		job := jobs[i]
 		k8sJobMap[job.Labels["jobID"]] = &job
 		k8sJobIDSet.Add(job.Labels["jobID"])
 	}
@@ -302,32 +303,21 @@ func checkIfJobCompleted(jobKey spec.JobKey, queueURL string, k8sJob *kbatch.Job
 		return err
 	}
 
-	if jobSpec.Workers == int(k8sJob.Status.Succeeded) {
-		if jobSpec.TotalBatchCount == batchMetrics.Succeeded {
-			_jobsToDelete.Remove(jobKey.ID)
-			return errors.FirstError(
-				setSucceededStatus(jobKey),
-				deleteJobRuntimeResources(jobKey),
-			)
-		}
+	if jobSpec.TotalBatchCount == batchMetrics.Succeeded {
+		_jobsToDelete.Remove(jobKey.ID)
+		return errors.FirstError(
+			setSucceededStatus(jobKey),
+			deleteJobRuntimeResources(jobKey),
+		)
+	}
 
-		// wait one more cycle for the success metrics to reach consistency
-		if _jobsToDelete.Has(jobKey.ID) {
-			_jobsToDelete.Remove(jobKey.ID)
-			return errors.FirstError(
-				setCompletedWithFailuresStatus(jobKey),
-				deleteJobRuntimeResources(jobKey),
-			)
-		}
-	} else {
-		if _jobsToDelete.Has(jobKey.ID) {
-			_jobsToDelete.Remove(jobKey.ID)
-			return errors.FirstError(
-				writeToJobLogStream(jobKey, "unexpected job state; queue is empty but cluster state still indicates that the job is still in progress"),
-				setUnexpectedErrorStatus(jobKey),
-				deleteJobRuntimeResources(jobKey),
-			)
-		}
+	// wait one more cycle for the success metrics to reach consistency
+	if _jobsToDelete.Has(jobKey.ID) {
+		_jobsToDelete.Remove(jobKey.ID)
+		return errors.FirstError(
+			setCompletedWithFailuresStatus(jobKey),
+			deleteJobRuntimeResources(jobKey),
+		)
 	}
 
 	// It takes at least 20 seconds for a worker to exit after determining that the queue is empty.

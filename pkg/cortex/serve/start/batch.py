@@ -102,7 +102,7 @@ def renew_message_visibility(receipt_handle: str):
                     continue
                 elif e.response["Error"]["Code"] == "AWS.SimpleQueueService.NonExistentQueue":
                     # there may be a delay between the cron may deleting the queue and this worker stopping
-                    cx_logger().info(
+                    logger().info(
                         "failed to renew message visibility because the queue was not found"
                     )
                 else:
@@ -266,7 +266,7 @@ def handle_on_job_complete(message):
                 should_run_on_job_complete = True
             time.sleep(10)  # verify that the queue is empty one more time
     except:
-        logger.exception("failed to handle on_job_complete")
+        logger().exception("failed to handle on_job_complete")
         raise
     finally:
         with receipt_handle_mutex:

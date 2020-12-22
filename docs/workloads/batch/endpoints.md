@@ -183,7 +183,7 @@ RESPONSE:
         "config": {<string>: <any>},
         "api_id": <string>,
         "sqs_url": <string>,
-        "status": <string>,   # will be one of the following values: status_unknown|status_enqueuing|status_running|status_enqueue_failed|status_completed_with_failures|status_succeeded|status_unexpected_error|status_worker_error|status_worker_oom|status_stopped
+        "status": <string>,   # will be one of the following values: status_unknown|status_enqueuing|status_running|status_enqueue_failed|status_completed_with_failures|status_succeeded|status_unexpected_error|status_worker_error|status_worker_oom|status_timed_out|status_stopped
         "batches_in_queue": <int>        # number of batches remaining in the queue
         "batch_metrics": {
             "succeeded": <int>           # number of succeeded batches
