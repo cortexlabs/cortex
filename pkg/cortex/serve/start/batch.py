@@ -250,8 +250,8 @@ def handle_on_job_complete(message):
                     MessageBody='"job_complete"',
                     MessageAttributes={
                         "job_complete": {"StringValue": "true", "DataType": "String"},
-                        "api_name": {"StringValue": job_spec["api_name"], "DataType": "string"},
-                        "job_id": {"StringValue": job_spec["id"], "DataType": "string"},
+                        "api_name": {"StringValue": job_spec["api_name"], "DataType": "String"},
+                        "job_id": {"StringValue": job_spec["job_id"], "DataType": "String"},
                     },
                     MessageDeduplicationId=str(new_message_id),
                     MessageGroupId=str(new_message_id),
