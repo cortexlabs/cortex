@@ -92,6 +92,16 @@ func BucketPath(key string) string {
 	return ""
 }
 
+func ReadBytesFromBucket(key string) ([]byte, error) {
+	switch Provider {
+	case types.AWSProviderType:
+		return AWS.ReadBytesFromS3(Cluster.Bucket, key)
+	case types.GCPProviderType:
+		return GCP.ReadBytesFromGCS(GCPCluster.Bucket, key)
+	}
+	return nil, nil
+}
+
 func ReadJSONFromBucket(objPtr interface{}, key string) error {
 	switch Provider {
 	case types.AWSProviderType:
