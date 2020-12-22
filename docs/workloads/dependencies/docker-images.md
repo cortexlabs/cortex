@@ -1,6 +1,6 @@
 # Docker images
 
-You can build a custom Docker image for use in your APIs, e.g. to avoid installing dependencies during replica initialization.
+You can build a custom Docker image for use in your APIs, e.g. to avoid installing dependencies during replica initialization or to have smaller images.
 
 ## Create a Dockerfile
 
