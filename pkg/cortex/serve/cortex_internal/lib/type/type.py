@@ -59,6 +59,8 @@ def predictor_type_from_api_spec(api_spec: dict) -> PredictorType:
     """
     Get predictor type from API spec.
     """
-    if api_spec["compute"]["inf"] > 0 and api_spec["predictor"]["type"] == TensorFlowPredictorType:
+    if api_spec["compute"]["inf"] > 0 and api_spec["predictor"]["type"] == str(
+        TensorFlowPredictorType
+    ):
         return predictor_type_from_string("tensorflow-neuron")
     return predictor_type_from_string(api_spec["predictor"]["type"])
