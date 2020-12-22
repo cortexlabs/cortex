@@ -148,7 +148,6 @@ or:
       dir: s3://my-bucket/models/
 ```
 
-
 For the Python predictor type, the `models` field comes under the name of `multi_model_reloading`. It is also not necessary to specify the `multi_model_reloading` section at all, since you can download and load the model in your predictor's `__init__()` function. That said, it is necessary to use the `models` field to take advantage of [live model reloading](#live-model-reloading) or [multi model caching](#multi-model-caching).
 
 When using the `models.paths` field, each path must be a valid model directory (see above for valid model directory structures).
