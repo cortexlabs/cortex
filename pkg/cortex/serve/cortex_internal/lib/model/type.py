@@ -196,9 +196,7 @@ def get_models_from_api_spec(
 
         ends_as_file_path = model["path"].endswith(".onnx")
         if ends_as_file_path and os.path.exists(
-            os.path.join(
-                model_dir, model_resource["name"], "1", os.path.basename(model["path"])
-            )
+            os.path.join(model_dir, model_resource["name"], "1", os.path.basename(model["path"]))
         ):
             model_resource["is_file_path"] = True
             model_resource["s3_path"] = False

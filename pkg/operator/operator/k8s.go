@@ -584,8 +584,9 @@ func onnxDownloadArgs(api *spec.API) string {
 
 	if api.Predictor.Models.Path != nil && strings.HasSuffix(*api.Predictor.Models.Path, ".onnx") {
 		downloadContainerArs = append(downloadContainerArs, downloadContainerArg{
-			From: *api.Predictor.Models.Path,
-			To:   path.Join(_modelDir, consts.SingleModelName, "1"),
+			From:     *api.Predictor.Models.Path,
+			To:       path.Join(_modelDir, consts.SingleModelName, "1"),
+			ItemName: "the onnx model",
 		})
 	}
 
@@ -595,8 +596,9 @@ func onnxDownloadArgs(api *spec.API) string {
 		}
 		if strings.HasSuffix(model.Path, ".onnx") {
 			downloadContainerArs = append(downloadContainerArs, downloadContainerArg{
-				From: model.Path,
-				To:   path.Join(_modelDir, model.Name, "1"),
+				From:     model.Path,
+				To:       path.Join(_modelDir, model.Name, "1"),
+				ItemName: fmt.Sprintf("%s onnx model", model.Name),
 			})
 		}
 	}

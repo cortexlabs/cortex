@@ -1204,20 +1204,14 @@ func validateONNXPredictor(api *userconfig.API, models *[]CuratedModelResource, 
 			if err := validateONNXModelFilePath(*predictor.Models.Path, projectFiles.ProjectDir(), awsClient, gcpClient); err != nil {
 				return modelWrapError(err)
 			}
-			modelFileResources = []userconfig.ModelResource{
-				{
-					Name: consts.SingleModelName,
-					Path: *predictor.Models.Path,
-				},
-			}
 		} else {
-			modelResources = []userconfig.ModelResource{
-				{
-					Name: consts.SingleModelName,
-					Path: *predictor.Models.Path,
-				},
-			}
 			*predictor.Models.Path = s.EnsureSuffix(*predictor.Models.Path, "/")
+		}
+		modelFileResources = []userconfig.ModelResource{
+			{
+				Name: consts.SingleModelName,
+				Path: *predictor.Models.Path,
+			},
 		}
 		modelWrapError = func(err error) error {
 			return errors.Wrap(err, userconfig.ModelsKey, userconfig.ModelsPathKey)
@@ -1317,12 +1311,12 @@ func validateONNXModelFilePath(modelPath string, projectDir string, awsClient *a
 			return err
 		}
 
-		yes, err := awsClientForBucket.IsS3Prefix(bucket, modelPrefix)
+		isS3File, err := awsClientForBucket.IsS3File(bucket, modelPrefix)
 		if err != nil {
 			return err
 		}
 
-		if !yes {
+		if !isS3File {
 			return ErrorInvalidONNXModelFilePath(modelPrefix)
 		}
 	}
@@ -1333,12 +1327,12 @@ func validateONNXModelFilePath(modelPath string, projectDir string, awsClient *a
 			return err
 		}
 
-		yes, err := gcpClient.IsGCSFile(bucket, modelPrefix)
+		isGCSFile, err := gcpClient.IsGCSFile(bucket, modelPrefix)
 		if err != nil {
 			return err
 		}
 
-		if !yes {
+		if !isGCSFile {
 			return ErrorInvalidONNXModelFilePath(modelPrefix)
 		}
 	}
