@@ -806,7 +806,7 @@ func configureEnv(envName string, fieldsToSkipPrompt cliconfig.Environment) (cli
 		return cliconfig.Environment{}, err
 	}
 
-	if err := addEnvToCLIConfig(env); err != nil {
+	if err := addEnvToCLIConfig(env, false); err != nil {
 		return cliconfig.Environment{}, err
 	}
 
@@ -947,7 +947,7 @@ func isEnvConfigured(envName string) (bool, error) {
 	return false, nil
 }
 
-func addEnvToCLIConfig(newEnv cliconfig.Environment) error {
+func addEnvToCLIConfig(newEnv cliconfig.Environment, setAsDefault bool) error {
 	cliConfig, err := readCLIConfig()
 	if err != nil {
 		return errors.Wrap(err, "unable to configure cli environment")
@@ -964,6 +964,10 @@ func addEnvToCLIConfig(newEnv cliconfig.Environment) error {
 
 	if !replaced {
 		cliConfig.Environments = append(cliConfig.Environments, &newEnv)
+	}
+
+	if setAsDefault {
+		cliConfig.DefaultEnvironment = newEnv.Name
 	}
 
 	if err := writeCLIConfig(cliConfig); err != nil {
