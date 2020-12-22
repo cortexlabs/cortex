@@ -424,8 +424,8 @@ def find_all_cloud_models(
         is_dir_used: Whether predictor:models:dir is used or not.
         models_dir: The value of predictor:models:dir in case it's present. Ignored when not required.
         predictor_type: The predictor type.
-        cloud_paths: The cloud model paths as they are specified in predictor:model_path/predictor:models:dir/predictor:models:paths is used. Ignored when not required.
-        cloud_model_names: The cloud model names as they are specified in predictor:models:paths:name when predictor:models:paths is used or the default name of the model when predictor:model_path is used. Ignored when not required.
+        cloud_paths: The cloud model paths as they are specified in predictor:models:path/predictor:models:paths/predictor:models:dir is used. Ignored when not required.
+        cloud_model_names: The cloud model names as they are specified in predictor:models:paths:name when predictor:models:paths is used or the default name of the model when predictor:models:path is used. Ignored when not required.
 
     Returns: The tuple with the following elements:
         model_names - a list with the names of the models (i.e. bert, gpt-2, etc) and they are unique

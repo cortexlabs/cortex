@@ -13,7 +13,8 @@
   predictor:
     type: onnx
     path: onnx_predictor.py
-    model_path: s3://cortex-examples/onnx/iris-classifier/
+    models:
+      path: s3://cortex-examples/onnx/iris-classifier/
   monitoring:
     model_type: classification
 

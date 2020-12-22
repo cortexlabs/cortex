@@ -6,11 +6,11 @@
     models:
       paths:
         - name: resnet50
-          model_path: s3://cortex-examples/onnx/resnet50/
+          path: s3://cortex-examples/onnx/resnet50/
         - name: mobilenet
-          model_path: s3://cortex-examples/onnx/mobilenet/
+          path: s3://cortex-examples/onnx/mobilenet/
         - name: shufflenet
-          model_path: s3://cortex-examples/onnx/shufflenet/
+          path: s3://cortex-examples/onnx/shufflenet/
       cache_size: 2
       disk_cache_size: 3
     config:

@@ -3,7 +3,8 @@
   predictor:
     type: tensorflow
     path: predictor.py
-    model_path: s3://cortex-examples/tensorflow/resnet50/
+    models:
+      path: s3://cortex-examples/tensorflow/resnet50/
     server_side_batching:
       max_batch_size: 32
       batch_interval: 0.1s

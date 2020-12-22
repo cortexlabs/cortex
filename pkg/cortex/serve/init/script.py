@@ -72,23 +72,29 @@ def are_models_specified(api_spec: dict) -> bool:
     Args:
         api_spec: API configuration.
     """
-    if api_spec["predictor"]["model_path"] is not None:
-        return True
+    predictor_type = predictor_type_from_api_spec(api_spec)
 
-    if api_spec["predictor"]["models"] and (
-        api_spec["predictor"]["models"]["dir"] is not None
-        or len(api_spec["predictor"]["models"]["paths"]) > 0
-    ):
-        return True
-    return False
+    if predictor_type == PythonPredictorType and api_spec["predictor"]["multi_model_reloading"]:
+        models = api_spec["predictor"]["multi_model_reloading"]
+    elif predictor_type != PythonPredictorType:
+        models = api_spec["predictor"]["models"]
+    else:
+        return False
+
+    return models is not None
 
 
 def is_model_caching_enabled(api_spec: dir) -> bool:
-    return (
-        api_spec["predictor"]["models"]
-        and api_spec["predictor"]["models"]["cache_size"] is not None
-        and api_spec["predictor"]["models"]["disk_cache_size"] is not None
-    )
+    predictor_type = predictor_type_from_api_spec(api_spec)
+
+    if predictor_type == PythonPredictorType and api_spec["predictor"]["multi_model_reloading"]:
+        models = api_spec["predictor"]["multi_model_reloading"]
+    elif predictor_type != PythonPredictorType:
+        models = api_spec["predictor"]["models"]
+    else:
+        return False
+
+    return models and models["cache_size"] and models["disk_cache_size"]
 
 
 def main():
