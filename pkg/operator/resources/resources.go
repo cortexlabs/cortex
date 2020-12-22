@@ -293,10 +293,16 @@ func DeleteAPI(apiName string, keepCache bool) (*schema.DeleteResponse, error) {
 					return realtimeapi.DeleteAPI(apiName, keepCache)
 				},
 				func() error {
-					return batchapi.DeleteAPI(apiName, keepCache)
+					if config.Provider == types.AWSProviderType {
+						return batchapi.DeleteAPI(apiName, keepCache)
+					}
+					return nil
 				},
 				func() error {
-					return trafficsplitter.DeleteAPI(apiName, keepCache)
+					if config.Provider == types.AWSProviderType {
+						return trafficsplitter.DeleteAPI(apiName, keepCache)
+					}
+					return nil
 				},
 			)
 			if err != nil {

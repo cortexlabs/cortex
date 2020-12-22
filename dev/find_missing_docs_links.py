@@ -129,14 +129,14 @@ async def check_http_link(session, src_file, line_num, link, errors):
     num_tries = 1
     while True:
         try:
-            async with session.get(link, timeout=4) as resp:
+            async with session.get(link, timeout=5) as resp:
                 if resp.status != 200:
                     errors.append(
                         err_str(src_file, line_num, link, f"http response code {resp.status}")
                     )
                 return
         except asyncio.TimeoutError:
-            if num_tries > 1:
+            if num_tries > 2:
                 errors.append(err_str(src_file, line_num, link, "http timeout"))
                 return
             num_tries += 1
