@@ -1,4 +1,4 @@
-# Job statuses
+# Statuses
 
 | Status                   | Meaning |
 | :--- | :--- |
