@@ -33,8 +33,8 @@
     type: tensorflow
     path: <string>  # path to a python file with a TensorFlowPredictor class definition, relative to the Cortex root (required)
     models:  # use this to serve a single model or multiple ones
-      path: <string>  # S3 path to an exported model (e.g. s3://my-bucket/exported_model)
-      paths:
+      path: <string>  # S3 path to an exported model (e.g. s3://my-bucket/exported_model) (either this or 'paths' field must be provided)
+      paths:  # (either this or 'path' must be provided)
         - name: <string> # unique name for the model (e.g. text-generator) (required)
           path: <string>  # S3 path to an exported model (e.g. s3://my-bucket/exported_model) (required)
           signature_key: <string>  # name of the signature def to use for prediction (required if your model has more than one signature def)
@@ -68,8 +68,8 @@
     type: onnx
     path: <string>  # path to a python file with an ONNXPredictor class definition, relative to the Cortex root (required)
     models:  # use this to serve a single model or multiple ones
-      path: <string>  # S3 path to an exported model (e.g. s3://my-bucket/exported_model)
-      paths:
+      path: <string>  # S3 path to an exported model (e.g. s3://my-bucket/exported_model) (either this or 'paths' must be provided)
+      paths:  # (either this or 'path' must be provided)
         - name: <string> # unique name for the model (e.g. text-generator) (required)
           path: <string>  # S3 path to an exported model (e.g. s3://my-bucket/exported_model.onnx) (required)
         ...

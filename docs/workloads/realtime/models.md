@@ -2,7 +2,7 @@
 
 ## Model directory format
 
-Whenever a model path is specified in an API configuration file, it should be a path to an S3 prefix (or a local directory if deploying locally) which contains your exported model. Directories may include a single model, or multiple folders each with a single model (note that a "single model" need not be a single file; there can be multiple files for a single model). When multiple folders are used, the folder names must be integer values, and will be interpreted as the model version. Model versions can be any integer, but are typically integer timestamps. It is always assumed that the highest version number is the latest version of your model.
+Whenever a model path is specified in an API configuration file, it should be a path to an S3 prefix which contains your exported model. Directories may include a single model, or multiple folders each with a single model (note that a "single model" need not be a single file; there can be multiple files for a single model). When multiple folders are used, the folder names must be integer values, and will be interpreted as the model version. Model versions can be any integer, but are typically integer timestamps. It is always assumed that the highest version number is the latest version of your model.
 
 Each predictor type expects a different model format:
 
@@ -170,7 +170,7 @@ In this case, there are two models in the directory, one of which is named "text
 
 ## Live model reloading
 
-Live model reloading is a mechanism that periodically checks for updated models in the model path(s) provided in `predictor.models`. It is automatically enabled for all predictor types, including the Python predictor type (as long as model paths are specified via `models` in the `predictor` configuration).
+Live model reloading is a mechanism that periodically checks for updated models in the model path(s) provided in `predictor.models`. It is automatically enabled for all predictor types, including the Python predictor type (as long as model paths are specified via `multi_model_reloading` in the `predictor` configuration).
 
 The following is a list of events that will trigger the API to update its model(s):
 

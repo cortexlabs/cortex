@@ -47,7 +47,6 @@ cortex is ready!
 * Configure compute, autoscaling, and networking for each API.
 * Integrate with your data science platform or CI/CD system.
 * Deploy custom Docker images or use the pre-built defaults.
-* Test locally before deploying to a cluster.
 
 #### Define an API
 

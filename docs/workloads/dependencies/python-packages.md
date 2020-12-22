@@ -25,7 +25,7 @@ To install packages from a private PyPI index, create a `pip.conf` inside the sa
 extra-index-url = https://<username>:<password>@<my-private-index>.com/pip
 ```
 
-In same directory, create a [`dependencies.sh` script](system-packages.md#bash-script) and add the following contents:
+In same directory, create a [`dependencies.sh` script](system-packages.md) and add the following:
 
 ```bash
 cp pip.conf /etc/pip.conf

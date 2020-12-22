@@ -27,6 +27,7 @@ type InterfaceMapValidation struct {
 	Default                map[string]interface{}
 	AllowExplicitNull      bool
 	AllowEmpty             bool
+	CantBeSpecifiedErrStr  *string
 	ConvertNullToEmpty     bool
 	ScalarsOnly            bool
 	StringLeavesOnly       bool
@@ -69,6 +70,10 @@ func ValidateInterfaceMapMissing(v *InterfaceMapValidation) (map[string]interfac
 }
 
 func ValidateInterfaceMapProvided(val map[string]interface{}, v *InterfaceMapValidation) (map[string]interface{}, error) {
+	if v.CantBeSpecifiedErrStr != nil {
+		return nil, ErrorFieldCantBeSpecified(*v.CantBeSpecifiedErrStr)
+	}
+
 	if !v.AllowExplicitNull && val == nil {
 		return nil, ErrorCannotBeNull(v.Required)
 	}
