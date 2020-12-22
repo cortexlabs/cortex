@@ -3,7 +3,8 @@
   predictor:
     type: tensorflow
     path: predictor.py
-    model_path: s3://cortex-examples/tensorflow/sentiment-analyzer/bert/
+    models:
+      path: s3://cortex-examples/tensorflow/sentiment-analyzer/bert/
   monitoring:
     model_type: classification
   compute:

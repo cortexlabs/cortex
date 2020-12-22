@@ -27,7 +27,7 @@ export ENDPOINT=your-api-endpoint
 Make a request version `1` of the `mpg-estimator` model:
 
 ```bash
-curl "${ENDPOINT}?model=resnet50&version=1" -X POST -H "Content-Type: application/json" -d @sample.json
+curl "${ENDPOINT}?version=1" -X POST -H "Content-Type: application/json" -d @sample.json
 ```
 
 The expected response is:
@@ -43,13 +43,13 @@ At this point, there is one model loaded into memory (as specified by `cache_siz
 Make a request version `2` of the `mpg-estimator` model:
 
 ```bash
-curl "${ENDPOINT}?model=mobilenet" -X POST -H "Content-Type: application/json" -d @sample.json
+curl "${ENDPOINT}?version=2" -X POST -H "Content-Type: application/json" -d @sample.json
 ```
 
 The expected response is:
 
 ```json
-{"prediction": 26.929889872154185, "model": {"name": "mpg-estimator", "version": "1"}}
+{"prediction": 26.929889872154185, "model": {"name": "mpg-estimator", "version": "2"}}
 ```
 
 ### Version 3
@@ -59,13 +59,13 @@ With the following request, version 2 of the model will have to be evicted from 
 Make a request version `3` of the `mpg-estimator` model:
 
 ```bash
-curl "${ENDPOINT}?model=shufflenet" -X POST -H "Content-Type: application/json" -d @sample.json
+curl "${ENDPOINT}?version=3" -X POST -H "Content-Type: application/json" -d @sample.json
 ```
 
 The expected response is:
 
 ```json
-{"prediction": 26.929889872154185, "model": {"name": "mpg-estimator", "version": "1"}}
+{"prediction": 26.929889872154185, "model": {"name": "mpg-estimator", "version": "3"}}
 ```
 
 ---
