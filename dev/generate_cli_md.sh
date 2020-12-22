@@ -28,7 +28,7 @@ make --no-print-directory -C $ROOT cli
 cli_config_backup_path=$HOME/.cortex/cli-bak-$RANDOM.yaml
 mv $HOME/.cortex/cli.yaml $cli_config_backup_path
 
-echo "# Commands" >> $out_file
+echo "# CLI commands" >> $out_file
 
 commands=(
   "deploy"

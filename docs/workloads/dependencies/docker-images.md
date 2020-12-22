@@ -78,6 +78,20 @@ docker build . -t org/my-api:latest -t <repository_url>:latest
 docker push <repository_url>:latest
 ```
 
+## Configure your API
+
+```yaml
+# cortex.yaml
+
+- name: my-api
+  ...
+  predictor:
+    image: <repository_url>:latest
+  ...
+```
+
+Note: for TensorFlow Predictors, two containers run together to serve predictions: one runs your Predictor code (`quay.io/cortexlabs/tensorflow-predictor`), and the other is TensorFlow serving to load the SavedModel (`quay.io/cortexlabs/tensorflow-serving-gpu` or `quay.io/cortexlabs/tensorflow-serving-cpu`). There's a second available field `tensorflow_serving_image` that can be used to override the TensorFlow Serving image. Both of the default serving images (`quay.io/cortexlabs/tensorflow-serving-gpu` and `quay.io/cortexlabs/tensorflow-serving-cpu`) are based on the official TensorFlow Serving image (`tensorflow/serving`). Unless a different version of TensorFlow Serving is required, the TensorFlow Serving image shouldn't have to be overridden, since it's only used to load the SavedModel and does not run your Predictor code.
+
 ## Private Docker registry
 
 ### Install and configure kubectl
@@ -107,17 +121,3 @@ kubectl delete secret --namespace default registry-credentials
 kubectl patch serviceaccount default --namespace default \
   -p "{\"imagePullSecrets\": []}"
 ```
-
-## Configure your API
-
-```yaml
-# cortex.yaml
-
-- name: my-api
-  ...
-  predictor:
-    image: <repository_url>:latest
-  ...
-```
-
-*Note: for TensorFlow Predictors, two containers run together to serve predictions: one runs your Predictor code (`quay.io/cortexlabs/tensorflow-predictor`), and the other is TensorFlow serving to load the SavedModel (`quay.io/cortexlabs/tensorflow-serving-gpu` or `quay.io/cortexlabs/tensorflow-serving-cpu`). There's a second available field `tensorflow_serving_image` that can be used to override the TensorFlow Serving image. Both of the default serving images (`quay.io/cortexlabs/tensorflow-serving-gpu` and `quay.io/cortexlabs/tensorflow-serving-cpu`) are based on the official TensorFlow Serving image (`tensorflow/serving`). Unless a different version of TensorFlow Serving is required, the TensorFlow Serving image shouldn't have to be overridden, since it's only used to load the SavedModel and does not run your Predictor code.*
