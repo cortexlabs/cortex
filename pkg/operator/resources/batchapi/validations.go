@@ -84,6 +84,15 @@ func validateJobSubmissionSchema(submission *schema.JobSubmission) error {
 		return errors.Wrap(cr.ErrorMustBeGreaterThanOrEqualTo(submission.Timeout, 1), schema.TimeoutKey)
 	}
 
+	if submission.SQSDeadLetterQueue != nil {
+		if len(submission.SQSDeadLetterQueue.ARN) == 0 {
+			return errors.Wrap(cr.ErrorCannotBeEmpty(), schema.SQSDeadLetterQueueKey, schema.ARNKey)
+		}
+		if submission.SQSDeadLetterQueue.MaxReceiveCount < 1 {
+			return errors.Wrap(cr.ErrorMustBeGreaterThanOrEqualTo(submission.SQSDeadLetterQueue.MaxReceiveCount, 1), schema.SQSDeadLetterQueueKey, schema.MaxReceiveCountKey)
+		}
+	}
+
 	return nil
 }
 

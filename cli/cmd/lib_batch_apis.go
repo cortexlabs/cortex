@@ -121,7 +121,7 @@ func batchAPITable(batchAPI schema.APIResponse) string {
 				{Title: "job id"},
 				{Title: "status"},
 				{Title: "progress"}, // (succeeded/total)
-				{Title: "failed", Hidden: totalFailed == 0},
+				{Title: "failed attempts", Hidden: totalFailed == 0},
 				{Title: "start time"},
 				{Title: "duration"},
 			},
@@ -200,7 +200,7 @@ func getJob(env cliconfig.Environment, apiName string, jobID string) (string, er
 		Headers: []table.Header{
 			{Title: "total"},
 			{Title: "succeeded"},
-			{Title: "failed"},
+			{Title: "failed attempts"},
 			{Title: "avg time per batch"},
 		},
 		Rows: [][]interface{}{
