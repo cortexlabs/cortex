@@ -51,6 +51,7 @@
 * GCP
   * [Install](clusters/gcp/install.md)
   * [Credentials](clusters/gcp/credentials.md)
+  * [Setting up kubectl](clusters/gcp/kubectl.md)
   * [Uninstall](clusters/gcp/uninstall.md)
 
 ## Clients

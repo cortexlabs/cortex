@@ -96,7 +96,7 @@ Note: for TensorFlow Predictors, two containers run together to serve prediction
 
 ### Install and configure kubectl
 
-Follow these [instructions](../../clusters/aws/kubectl.md).
+Follow the instructions for [aws](../../clusters/aws/kubectl.md) or [gcp](../../clusters/gcp/kubectl.md).
 
 ### Setting credentials
 
