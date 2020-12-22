@@ -2,7 +2,7 @@
 
 This example shows how to deploy a batch image classification api that accepts a list of image urls as input, downloads the images, classifies them, and writes the results to S3.
 
-**Batch APIs are only supported on a Cortex cluster (in AWS).** You can find cluster installation documentation [here](../../../docs/aws/install.md).
+**Batch APIs are only supported in AWS.** You can find cluster installation documentation [here](../../../docs/aws/install.md).
 
 ## Pre-requisites
 

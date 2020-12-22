@@ -29,16 +29,12 @@
     env: <string: string>  # dictionary of environment variables
   networking:
     endpoint: <string>  # the endpoint for the API (aws and gcp only) (default: <api_name>)
-    local_port: <int>  # specify the port for API (local only) (default: 8888)
     api_gateway: public | none  # whether to create a public API Gateway endpoint for this API (if not, the API will still be accessible via the load balancer) (default: public, unless disabled cluster-wide) (aws only)
   compute:
     cpu: <string | int | float>  # CPU request per replica, e.g. 200m or 1 (200m is equivalent to 0.2) (default: 200m)
     gpu: <int>  # GPU request per replica (default: 0)
     inf: <int>  # Inferentia ASIC request per replica (default: 0) (aws only)
     mem: <string>  # memory request per replica, e.g. 200Mi or 1Gi (default: Null)
-  monitoring:  # (aws only)
-    model_type: <string>  # must be "classification" or "regression", so responses can be interpreted correctly (i.e. categorical vs continuous) (required)
-    key: <string>  # the JSON key in the response payload of the value to monitor (required if the response payload is a JSON object)
   autoscaling:  # (aws and gcp only)
     min_replicas: <int>  # minimum number of replicas (default: 1) (aws and gcp only)
     max_replicas: <int>  # maximum number of replicas (default: 100) (aws and gcp only)
@@ -89,16 +85,12 @@
     env: <string: string>  # dictionary of environment variables
   networking:
     endpoint: <string>  # the endpoint for the API (aws and gcp only) (default: <api_name>)
-    local_port: <int>  # specify the port for API (local only) (default: 8888)
     api_gateway: public | none  # whether to create a public API Gateway endpoint for this API (if not, the API will still be accessible via the load balancer) (default: public, unless disabled cluster-wide) (aws only)
   compute:
     cpu: <string | int | float>  # CPU request per replica, e.g. 200m or 1 (200m is equivalent to 0.2) (default: 200m)
     gpu: <int>  # GPU request per replica (default: 0)
     inf: <int>  # Inferentia ASIC request per replica (default: 0) (aws only)
     mem: <string>  # memory request per replica, e.g. 200Mi or 1Gi (default: Null)
-  monitoring:  # (aws only)
-    model_type: <string>  # must be "classification" or "regression", so responses can be interpreted correctly (i.e. categorical vs continuous) (required)
-    key: <string>  # the JSON key in the response payload of the value to monitor (required if the response payload is a JSON object)
   autoscaling:  # (aws and gcp only)
     min_replicas: <int>  # minimum number of replicas (default: 1) (aws and gcp only)
     max_replicas: <int>  # maximum number of replicas (default: 100) (aws and gcp only)
@@ -143,15 +135,11 @@
     env: <string: string>  # dictionary of environment variables
   networking:
     endpoint: <string>  # the endpoint for the API (aws and gcp only) (default: <api_name>)
-    local_port: <int>  # specify the port for API (local only) (default: 8888)
     api_gateway: public | none  # whether to create a public API Gateway endpoint for this API (if not, the API will still be accessible via the load balancer) (default: public, unless disabled cluster-wide) (aws only)
   compute:
     cpu: <string | int | float>  # CPU request per replica, e.g. 200m or 1 (200m is equivalent to 0.2) (default: 200m)
     gpu: <int>  # GPU request per replica (default: 0)
     mem: <string>  # memory request per replica, e.g. 200Mi or 1Gi (default: Null)
-  monitoring:  # (aws only)
-    model_type: <string>  # must be "classification" or "regression", so responses can be interpreted correctly (i.e. categorical vs continuous) (required)
-    key: <string>  # the JSON key in the response payload of the value to monitor (required if the response payload is a JSON object)
   autoscaling:  # (aws and gcp only)
     min_replicas: <int>  # minimum number of replicas (default: 1) (aws and gcp only)
     max_replicas: <int>  # maximum number of replicas (default: 100) (aws and gcp only)

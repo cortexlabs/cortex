@@ -23,6 +23,7 @@ if [[ "$OSTYPE" != "linux"* ]]; then
 fi
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")"/.. >/dev/null && pwd)"
+docs_path="$ROOT/docs/clients/python.md"
 
 pip3 uninstall -y cortex
 
@@ -30,38 +31,38 @@ cd $ROOT/pkg/cortex/client
 
 pip3 install -e .
 
-pydoc-markdown -m cortex -m cortex.client --render-toc > $ROOT/docs/cli/python-client.md
+pydoc-markdown -m cortex -m cortex.client --render-toc > $docs_path
 
 # title
-sed -i "s/# Table of Contents/# Python client/g" $ROOT/docs/cli/python-client.md
+sed -i "s/# Table of Contents/# Python API/g" $docs_path
 
 # delete links
-sed -i "/<a name=/d" $ROOT/docs/cli/python-client.md
+sed -i "/<a name=/d" $docs_path
 
 # delete unnecessary section headers
-sed -i "/_](#cortex\.client\.Client\.__init__)/d" $ROOT/docs/cli/python-client.md
-sed -i "/\* \[Client](#cortex\.client\.Client)/d" $ROOT/docs/cli/python-client.md
+sed -i "/_](#cortex\.client\.Client\.__init__)/d" $docs_path
+sed -i "/\* \[Client](#cortex\.client\.Client)/d" $docs_path
 # fix section link/header
-sed -i "s/\* \[cortex\.client](#cortex\.client)/\* [cortex\.client\.Client](#cortex-client-client)/g" $ROOT/docs/cli/python-client.md
-sed -i "s/# cortex\.client/# cortex\.client\.Client/g" $ROOT/docs/cli/python-client.md
+sed -i "s/\* \[cortex\.client](#cortex\.client)/\* [cortex\.client\.Client](#cortex-client-client)/g" $docs_path
+sed -i "s/# cortex\.client/# cortex\.client\.Client/g" $docs_path
 # delete unnecessary section body
-sed -i "/# cortex.client.Client/,/## create\\\_api/{//!d}" $ROOT/docs/cli/python-client.md
-sed -i "s/# cortex.client.Client/# cortex.client.Client\n/g" $ROOT/docs/cli/python-client.md
+sed -i "/# cortex.client.Client/,/## create\\\_api/{//!d}" $docs_path
+sed -i "s/# cortex.client.Client/# cortex.client.Client\n/g" $docs_path
 
 # fix table of contents links
-sed -i "s/](#cortex\./](#/g" $ROOT/docs/cli/python-client.md
-sed -i "s/](#client\.Client\./](#/g" $ROOT/docs/cli/python-client.md
+sed -i "s/](#cortex\./](#/g" $docs_path
+sed -i "s/](#client\.Client\./](#/g" $docs_path
 
 # indentation
-sed -i "s/    \* /  \* /g" $ROOT/docs/cli/python-client.md
-sed -i "s/#### /## /g" $ROOT/docs/cli/python-client.md
+sed -i "s/    \* /  \* /g" $docs_path
+sed -i "s/#### /## /g" $docs_path
 
 # whitespace
-sed -i 's/[[:space:]]*$//' $ROOT/docs/cli/python-client.md
-truncate -s -1 $ROOT/docs/cli/python-client.md
+sed -i 's/[[:space:]]*$//' $docs_path
+truncate -s -1 $docs_path
 
 # Cortex version comment
-sed -i "s/^## create\\\_api/## create\\\_api\n\n<!-- CORTEX_VERSION_MINOR -->/g" $ROOT/docs/cli/python-client.md
+sed -i "s/^## create\\\_api/## create\\\_api\n\n<!-- CORTEX_VERSION_MINOR -->/g" $docs_path
 
 pip3 uninstall -y cortex
 rm -rf $ROOT/pkg/cortex/client/cortex.egg-info

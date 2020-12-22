@@ -1,10 +1,12 @@
 # Install
 
+## Prerequisites
+
+1. [Docker](https://docs.docker.com/install)
+1. Subscribe to the [EKS-optimized AMI with GPU Support](https://aws.amazon.com/marketplace/pp/B07GRHFXGM) (for GPU clusters)
+1. An IAM user with `AdministratorAccess` and programmatic access (see [security](security.md) if you'd like to use less privileged credentials after spinning up your cluster)
+
 ## Spin up Cortex on your AWS account
-
-Make sure [Docker](https://docs.docker.com/install) is running on your machine.
-
-If you're using GPUs, subscribe to the [EKS-optimized AMI with GPU Support](https://aws.amazon.com/marketplace/pp/B07GRHFXGM) before creating your cluster.
 
 ```bash
 # install the CLI
@@ -96,12 +98,3 @@ image_statsd: quay.io/cortexlabs/statsd:master
 image_istio_proxy: quay.io/cortexlabs/istio-proxy:master
 image_istio_pilot: quay.io/cortexlabs/istio-pilot:master
 ```
-
-## Advanced
-
-* [Security](security.md)
-* [VPC peering](vpc-peering.md)
-* [Custom domain](custom-domain.md)
-* [REST API Gateway](rest-api-gateway.md)
-* [Spot instances](spot.md)
-* [SSH into instances](ssh.md)

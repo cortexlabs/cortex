@@ -18,7 +18,7 @@ set -e
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")"/.. >/dev/null && pwd)"
 
-out_file=$ROOT/docs/cli/commands.md
+out_file=$ROOT/docs/clients/cli.md
 rm -f $out_file
 
 echo "building cli ..."
@@ -28,7 +28,7 @@ make --no-print-directory -C $ROOT cli
 cli_config_backup_path=$HOME/.cortex/cli-bak-$RANDOM.yaml
 mv $HOME/.cortex/cli.yaml $cli_config_backup_path
 
-echo "# Commands" >> $out_file
+echo "# CLI commands" >> $out_file
 
 commands=(
   "deploy"
