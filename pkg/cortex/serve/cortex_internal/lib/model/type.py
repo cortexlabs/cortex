@@ -159,7 +159,7 @@ def get_models_from_api_spec(
     else:
         return CuratedModelResources([])
 
-    if not models_spec["path"] and models_spec["paths"]:
+    if not models_spec["path"] and len(models_spec["paths"]) == 0:
         return CuratedModelResources([])
 
     # for models.path
@@ -174,7 +174,7 @@ def get_models_from_api_spec(
 
     # for models.paths
     if models_spec["paths"]:
-        for model in models_spec["models"]["paths"]:
+        for model in models_spec["paths"]:
             models.append(
                 {
                     "name": model["name"],
