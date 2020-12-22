@@ -12,9 +12,6 @@ pip install cortex
 
 # spin up Cortex on your GCP account
 cortex cluster-gcp up  # or: cortex cluster-gcp up --config cluster.yaml (see configuration options below)
-
-# set the default environment
-cortex env default gcp
 ```
 
 ## Configure Cortex

@@ -56,7 +56,7 @@ $ python text_generator.py
 ### Monitor
 
 ```bash
-$ cortex get text-generator --env aws --watch
+$ cortex get text-generator --watch
 ```
 
 ### Stream logs
@@ -74,5 +74,5 @@ $ curl https://***.execute-api.us-west-2.amazonaws.com/text-generator -X POST -H
 ### Delete the API
 
 ```bash
-$ cortex delete text-generator --env aws
+$ cortex delete text-generator
 ```

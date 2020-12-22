@@ -97,7 +97,7 @@ $ python batch.py
 ### Describe the Batch API
 
 ```bash
-$ cortex get image-classifier --env aws
+$ cortex get image-classifier
 ```
 
 ### Submit a job
@@ -153,5 +153,5 @@ Once the job is complete, you should be able to find the results of the batch jo
 ### Delete the Batch API
 
 ```bash
-$ cortex delete image-classifier --env aws
+$ cortex delete image-classifier
 ```
