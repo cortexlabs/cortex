@@ -71,8 +71,8 @@ class PythonClient:
         self._spec_models = get_models_from_api_spec(api_spec)
 
         if (
-            self._api_spec["predictor"]["models"]
-            and self._api_spec["predictor"]["models"]["dir"] is not None
+            self._api_spec["predictor"]["multi_model_reloading"]
+            and self._api_spec["predictor"]["multi_model_reloading"]["dir"]
         ):
             self._models_dir = True
         else:
@@ -111,10 +111,10 @@ class PythonClient:
                 "model_version must be either a parse-able numeric value or 'latest'"
             )
 
-        # when predictor:model_path or predictor:models:paths is specified
+        # when predictor:models:path or predictor:models:paths is specified
         if not self._models_dir:
 
-            # when predictor:model_path is provided
+            # when predictor:models:path is provided
             if consts.SINGLE_MODEL_NAME in self._spec_model_names:
                 model_name = consts.SINGLE_MODEL_NAME
                 model = self._get_model(model_name, model_version)
@@ -381,9 +381,9 @@ class PythonClient:
         Checks if model caching is enabled (models:cache_size and models:disk_cache_size).
         """
         return (
-            self._api_spec["predictor"]["models"]
-            and self._api_spec["predictor"]["models"]["cache_size"] is not None
-            and self._api_spec["predictor"]["models"]["disk_cache_size"] is not None
+            self._api_spec["predictor"]["multi_model_reloading"]
+            and self._api_spec["predictor"]["multi_model_reloading"]["cache_size"]
+            and self._api_spec["predictor"]["multi_model_reloading"]["disk_cache_size"]
         )
 
     @property

@@ -159,12 +159,6 @@ func predictorValidation() *cr.StructFieldValidation {
 					},
 				},
 				{
-					StructField: "ModelPath",
-					StringPtrValidation: &cr.StringPtrValidation{
-						Required: false,
-					},
-				},
-				{
 					StructField: "PythonPath",
 					StringPtrValidation: &cr.StringPtrValidation{
 						AllowEmpty:       false,
@@ -227,11 +221,8 @@ func predictorValidation() *cr.StructFieldValidation {
 						AllowEmpty: true,
 					},
 				},
-				{
-					StructField:         "SignatureKey",
-					StringPtrValidation: &cr.StringPtrValidation{},
-				},
-				multiModelValidation(),
+				multiModelValidation("Models"),
+				multiModelValidation("MultiModelReloading"),
 				serverSideBatchingValidation(),
 			},
 		},
@@ -608,13 +599,19 @@ func updateStrategyValidation(provider types.ProviderType) *cr.StructFieldValida
 	}
 }
 
-func multiModelValidation() *cr.StructFieldValidation {
+func multiModelValidation(fieldName string) *cr.StructFieldValidation {
 	return &cr.StructFieldValidation{
-		StructField: "Models",
+		StructField: fieldName,
 		StructValidation: &cr.StructValidation{
 			Required:   false,
 			DefaultNil: true,
 			StructFieldValidations: []*cr.StructFieldValidation{
+				{
+					StructField: "Path",
+					StringPtrValidation: &cr.StringPtrValidation{
+						Required: false,
+					},
+				},
 				multiModelPathsValidation(),
 				{
 					StructField: "Dir",
@@ -665,7 +662,7 @@ func multiModelPathsValidation() *cr.StructFieldValidation {
 						},
 					},
 					{
-						StructField: "ModelPath",
+						StructField: "Path",
 						StringValidation: &cr.StringValidation{
 							Required:   true,
 							AllowEmpty: false,
@@ -858,13 +855,8 @@ func validatePredictor(
 ) error {
 	predictor := api.Predictor
 
-	if predictor.Models != nil && predictor.ModelPath != nil {
-		return ErrorConflictingFields(userconfig.ModelPathKey, userconfig.ModelsKey)
-	}
-	if predictor.Models != nil {
-		if err := validateMultiModelsFields(api); err != nil {
-			return err
-		}
+	if err := validateMultiModelsFields(api); err != nil {
+		return err
 	}
 
 	switch predictor.Type {
@@ -886,6 +878,10 @@ func validatePredictor(
 	}
 
 	if api.Kind == userconfig.BatchAPIKind {
+		if predictor.MultiModelReloading != nil {
+			return ErrorKeyIsNotSupportedForKind(userconfig.MultiModelReloadingKey, userconfig.BatchAPIKind)
+		}
+
 		if predictor.ServerSideBatching != nil {
 			return ErrorKeyIsNotSupportedForKind(userconfig.ServerSideBatchingKey, userconfig.BatchAPIKind)
 		}
@@ -925,28 +921,59 @@ func validatePredictor(
 func validateMultiModelsFields(api *userconfig.API) error {
 	predictor := api.Predictor
 
-	if len(predictor.Models.Paths) == 0 && predictor.Models.Dir == nil {
-		return errors.Wrap(ErrorSpecifyOneOrTheOther(userconfig.ModelsPathsKey, userconfig.ModelsDirKey), userconfig.ModelsKey)
+	var models *userconfig.MultiModels
+	if api.Predictor.Models != nil {
+		if api.Predictor.Type == userconfig.PythonPredictorType {
+			return ErrorFieldNotSupportedByPredictorType(userconfig.ModelsKey, api.Predictor.Type)
+		}
+		models = api.Predictor.Models
 	}
-	if len(predictor.Models.Paths) > 0 && predictor.Models.Dir != nil {
-		return errors.Wrap(ErrorConflictingFields(userconfig.ModelsPathsKey, userconfig.ModelsDirKey), userconfig.ModelsKey)
+	if api.Predictor.MultiModelReloading != nil {
+		if api.Predictor.Type != userconfig.PythonPredictorType {
+			return ErrorFieldNotSupportedByPredictorType(userconfig.MultiModelReloadingKey, api.Predictor.Type)
+		}
+		models = api.Predictor.MultiModelReloading
 	}
 
-	if predictor.Models.CacheSize != nil && api.Kind != userconfig.RealtimeAPIKind {
+	if models == nil {
+		if api.Predictor.Type != userconfig.PythonPredictorType {
+			return ErrorFieldMustBeDefinedForPredictorType(userconfig.ModelsKey, api.Predictor.Type)
+		}
+		return nil
+	}
+
+	if models.Path == nil && len(models.Paths) == 0 && models.Dir == nil {
+		return errors.Wrap(ErrorSpecifyOnlyOneField(userconfig.ModelsPathKey, userconfig.ModelsPathsKey, userconfig.ModelsDirKey), userconfig.ModelsKey)
+	}
+	if models.Path != nil && len(models.Paths) > 0 && models.Dir != nil {
+		return errors.Wrap(ErrorSpecifyOnlyOneField(userconfig.ModelsPathKey, userconfig.ModelsPathsKey, userconfig.ModelsDirKey), userconfig.ModelsKey)
+	}
+
+	if models.Path != nil && len(models.Paths) > 0 {
+		return errors.Wrap(ErrorConflictingFields(userconfig.ModelsPathKey, userconfig.ModelsPathsKey), userconfig.ModelsKey)
+	}
+	if models.Dir != nil && len(models.Paths) > 0 {
+		return errors.Wrap(ErrorConflictingFields(userconfig.ModelsPathsKey, userconfig.ModelsDirKey), userconfig.ModelsKey)
+	}
+	if models.Dir != nil && models.Path != nil {
+		return errors.Wrap(ErrorConflictingFields(userconfig.ModelsPathKey, userconfig.ModelsDirKey), userconfig.ModelsKey)
+	}
+
+	if models.CacheSize != nil && api.Kind != userconfig.RealtimeAPIKind {
 		return errors.Wrap(ErrorKeyIsNotSupportedForKind(userconfig.ModelsCacheSizeKey, api.Kind), userconfig.ModelsKey)
 	}
-	if predictor.Models.DiskCacheSize != nil && api.Kind != userconfig.RealtimeAPIKind {
+	if models.DiskCacheSize != nil && api.Kind != userconfig.RealtimeAPIKind {
 		return errors.Wrap(ErrorKeyIsNotSupportedForKind(userconfig.ModelsDiskCacheSizeKey, api.Kind), userconfig.ModelsKey)
 	}
 
-	if (predictor.Models.CacheSize == nil && predictor.Models.DiskCacheSize != nil) ||
-		(predictor.Models.CacheSize != nil && predictor.Models.DiskCacheSize == nil) {
+	if (models.CacheSize == nil && models.DiskCacheSize != nil) ||
+		(models.CacheSize != nil && models.DiskCacheSize == nil) {
 		return errors.Wrap(ErrorSpecifyAllOrNone(userconfig.ModelsCacheSizeKey, userconfig.ModelsDiskCacheSizeKey), userconfig.ModelsKey)
 	}
 
-	if predictor.Models.CacheSize != nil && predictor.Models.DiskCacheSize != nil {
-		if *predictor.Models.CacheSize > *predictor.Models.DiskCacheSize {
-			return errors.Wrap(ErrorConfigGreaterThanOtherConfig(userconfig.ModelsCacheSizeKey, *predictor.Models.CacheSize, userconfig.ModelsDiskCacheSizeKey, *predictor.Models.DiskCacheSize), userconfig.ModelsKey)
+	if models.CacheSize != nil && models.DiskCacheSize != nil {
+		if *models.CacheSize > *models.DiskCacheSize {
+			return errors.Wrap(ErrorConfigGreaterThanOtherConfig(userconfig.ModelsCacheSizeKey, *models.CacheSize, userconfig.ModelsDiskCacheSizeKey, *models.DiskCacheSize), userconfig.ModelsKey)
 		}
 
 		if predictor.ProcessesPerReplica > 1 {
@@ -960,9 +987,10 @@ func validateMultiModelsFields(api *userconfig.API) error {
 func validatePythonPredictor(api *userconfig.API, models *[]CuratedModelResource, provider types.ProviderType, projectFiles ProjectFiles, awsClient *aws.Client, gcpClient *gcp.Client) error {
 	predictor := api.Predictor
 
-	if predictor.SignatureKey != nil {
-		return ErrorFieldNotSupportedByPredictorType(userconfig.SignatureKeyKey, predictor.Type)
+	if predictor.Models != nil {
+		return ErrorFieldNotSupportedByPredictorType(userconfig.ModelsKey, predictor.Type)
 	}
+
 	if predictor.ServerSideBatching != nil {
 		if predictor.ServerSideBatching.MaxBatchSize != predictor.ThreadsPerProcess {
 			return ErrorConcurrencyMismatchServerSideBatchingPython(
@@ -975,60 +1003,69 @@ func validatePythonPredictor(api *userconfig.API, models *[]CuratedModelResource
 		return ErrorFieldNotSupportedByPredictorType(userconfig.TensorFlowServingImageKey, predictor.Type)
 	}
 
-	hasSingleModel := predictor.ModelPath != nil
-	hasMultiModels := predictor.Models != nil
+	if predictor.MultiModelReloading == nil {
+		return nil
+	}
+	mmr := predictor.MultiModelReloading
+	if mmr.SignatureKey != nil {
+		return errors.Wrap(ErrorFieldNotSupportedByPredictorType(userconfig.ModelsSignatureKeyKey, predictor.Type), userconfig.MultiModelReloadingKey)
+	}
+
+	hasSingleModel := mmr.Path != nil
+	hasMultiModels := !hasSingleModel
 
 	var modelWrapError func(error) error
 	var modelResources []userconfig.ModelResource
 
 	if hasSingleModel {
+		modelWrapError = func(err error) error {
+			return errors.Wrap(err, userconfig.MultiModelReloadingKey, userconfig.ModelsPathKey)
+		}
 		modelResources = []userconfig.ModelResource{
 			{
-				Name:      consts.SingleModelName,
-				ModelPath: *predictor.ModelPath,
+				Name: consts.SingleModelName,
+				Path: *mmr.Path,
 			},
 		}
-		*predictor.ModelPath = s.EnsureSuffix(*predictor.ModelPath, "/")
-		modelWrapError = func(err error) error {
-			return errors.Wrap(err, userconfig.ModelPathKey)
-		}
+		*mmr.Path = s.EnsureSuffix(*mmr.Path, "/")
 	}
 	if hasMultiModels {
-		if predictor.Models.SignatureKey != nil {
-			return errors.Wrap(ErrorFieldNotSupportedByPredictorType(userconfig.SignatureKeyKey, predictor.Type), userconfig.ModelsKey)
+		if mmr.SignatureKey != nil {
+			return errors.Wrap(ErrorFieldNotSupportedByPredictorType(userconfig.ModelsSignatureKeyKey, predictor.Type), userconfig.MultiModelReloadingKey)
 		}
 
-		if len(predictor.Models.Paths) > 0 {
+		if len(mmr.Paths) > 0 {
 			modelWrapError = func(err error) error {
-				return errors.Wrap(err, userconfig.ModelsKey, userconfig.ModelsPathsKey)
+				return errors.Wrap(err, userconfig.MultiModelReloadingKey, userconfig.ModelsPathsKey)
 			}
 
-			for _, path := range predictor.Models.Paths {
+			for _, path := range mmr.Paths {
 				if path.SignatureKey != nil {
 					return errors.Wrap(
-						ErrorFieldNotSupportedByPredictorType(userconfig.SignatureKeyKey, predictor.Type),
+						ErrorFieldNotSupportedByPredictorType(userconfig.ModelsSignatureKeyKey, predictor.Type),
+						userconfig.MultiModelReloadingKey,
 						userconfig.ModelsKey,
 						userconfig.ModelsPathsKey,
 						path.Name,
 					)
 				}
-				(*path).ModelPath = s.EnsureSuffix((*path).ModelPath, "/")
+				(*path).Path = s.EnsureSuffix((*path).Path, "/")
 				modelResources = append(modelResources, *path)
 			}
 		}
 
-		if predictor.Models.Dir != nil {
+		if mmr.Dir != nil {
 			modelWrapError = func(err error) error {
-				return errors.Wrap(err, userconfig.ModelsKey, userconfig.ModelsDirKey)
+				return errors.Wrap(err, userconfig.MultiModelReloadingKey, userconfig.ModelsDirKey)
 			}
 		}
 	}
 
 	var err error
-	if hasMultiModels && predictor.Models.Dir != nil {
-		*models, err = validateDirModels(*predictor.Models.Dir, *api, projectFiles.ProjectDir(), awsClient, gcpClient, nil)
+	if hasMultiModels && mmr.Dir != nil {
+		*models, err = validateDirModels(*mmr.Dir, nil, projectFiles.ProjectDir(), awsClient, gcpClient, generateErrorForPredictorTypeFn(api), nil)
 	} else {
-		*models, err = validateModels(modelResources, *api, projectFiles.ProjectDir(), awsClient, gcpClient, nil)
+		*models, err = validateModels(modelResources, nil, projectFiles.ProjectDir(), awsClient, gcpClient, generateErrorForPredictorTypeFn(api), nil)
 	}
 	if err != nil {
 		return modelWrapError(err)
@@ -1061,28 +1098,28 @@ func validateTensorFlowPredictor(api *userconfig.API, models *[]CuratedModelReso
 		}
 	}
 
-	hasSingleModel := predictor.ModelPath != nil
-	hasMultiModels := predictor.Models != nil
-
-	if !hasSingleModel && !hasMultiModels {
-		return ErrorMissingModel(predictor.Type)
+	if predictor.MultiModelReloading != nil {
+		return ErrorFieldNotSupportedByPredictorType(userconfig.MultiModelReloadingKey, userconfig.PythonPredictorType)
 	}
+
+	hasSingleModel := predictor.Models.Path != nil
+	hasMultiModels := !hasSingleModel
 
 	var modelWrapError func(error) error
 	var modelResources []userconfig.ModelResource
 
 	if hasSingleModel {
+		modelWrapError = func(err error) error {
+			return errors.Wrap(err, userconfig.ModelsPathKey)
+		}
 		modelResources = []userconfig.ModelResource{
 			{
 				Name:         consts.SingleModelName,
-				ModelPath:    *predictor.ModelPath,
-				SignatureKey: predictor.SignatureKey,
+				Path:         *predictor.Models.Path,
+				SignatureKey: predictor.Models.SignatureKey,
 			},
 		}
-		*predictor.ModelPath = s.EnsureSuffix(*predictor.ModelPath, "/")
-		modelWrapError = func(err error) error {
-			return errors.Wrap(err, userconfig.ModelPathKey)
-		}
+		*predictor.Models.Path = s.EnsureSuffix(*predictor.Models.Path, "/")
 	}
 	if hasMultiModels {
 		if len(predictor.Models.Paths) > 0 {
@@ -1094,7 +1131,7 @@ func validateTensorFlowPredictor(api *userconfig.API, models *[]CuratedModelReso
 				if path.SignatureKey == nil && predictor.Models.SignatureKey != nil {
 					path.SignatureKey = predictor.Models.SignatureKey
 				}
-				(*path).ModelPath = s.EnsureSuffix((*path).ModelPath, "/")
+				(*path).Path = s.EnsureSuffix((*path).Path, "/")
 				modelResources = append(modelResources, *path)
 			}
 		}
@@ -1115,9 +1152,9 @@ func validateTensorFlowPredictor(api *userconfig.API, models *[]CuratedModelReso
 
 	var err error
 	if hasMultiModels && predictor.Models.Dir != nil {
-		*models, err = validateDirModels(*predictor.Models.Dir, *api, projectFiles.ProjectDir(), awsClient, gcpClient, validators)
+		*models, err = validateDirModels(*predictor.Models.Dir, predictor.Models.SignatureKey, projectFiles.ProjectDir(), awsClient, gcpClient, generateErrorForPredictorTypeFn(api), validators)
 	} else {
-		*models, err = validateModels(modelResources, *api, projectFiles.ProjectDir(), awsClient, gcpClient, validators)
+		*models, err = validateModels(modelResources, predictor.Models.SignatureKey, projectFiles.ProjectDir(), awsClient, gcpClient, generateErrorForPredictorTypeFn(api), validators)
 	}
 	if err != nil {
 		return modelWrapError(err)
@@ -1141,8 +1178,8 @@ func validateTensorFlowPredictor(api *userconfig.API, models *[]CuratedModelReso
 func validateONNXPredictor(api *userconfig.API, models *[]CuratedModelResource, provider types.ProviderType, projectFiles ProjectFiles, awsClient *aws.Client, gcpClient *gcp.Client) error {
 	predictor := api.Predictor
 
-	if predictor.SignatureKey != nil {
-		return ErrorFieldNotSupportedByPredictorType(userconfig.SignatureKeyKey, predictor.Type)
+	if predictor.Models.SignatureKey != nil {
+		return errors.Wrap(ErrorFieldNotSupportedByPredictorType(userconfig.ModelsSignatureKeyKey, predictor.Type), userconfig.ModelsKey)
 	}
 	if predictor.ServerSideBatching != nil {
 		return ErrorFieldNotSupportedByPredictorType(userconfig.ServerSideBatchingKey, predictor.Type)
@@ -1151,33 +1188,29 @@ func validateONNXPredictor(api *userconfig.API, models *[]CuratedModelResource, 
 		return ErrorFieldNotSupportedByPredictorType(userconfig.TensorFlowServingImageKey, predictor.Type)
 	}
 
-	hasSingleModel := predictor.ModelPath != nil
-	hasMultiModels := predictor.Models != nil
-
-	if !hasSingleModel && !hasMultiModels {
-		return ErrorMissingModel(predictor.Type)
+	if predictor.MultiModelReloading != nil {
+		return ErrorFieldNotSupportedByPredictorType(userconfig.MultiModelReloadingKey, userconfig.PythonPredictorType)
 	}
+
+	hasSingleModel := predictor.Models.Path != nil
+	hasMultiModels := !hasSingleModel
 
 	var modelWrapError func(error) error
 	var modelResources []userconfig.ModelResource
 
 	if hasSingleModel {
+		modelWrapError = func(err error) error {
+			return errors.Wrap(err, userconfig.ModelsPathKey)
+		}
 		modelResources = []userconfig.ModelResource{
 			{
-				Name:      consts.SingleModelName,
-				ModelPath: *predictor.ModelPath,
+				Name: consts.SingleModelName,
+				Path: *predictor.Models.Path,
 			},
 		}
-		*predictor.ModelPath = s.EnsureSuffix(*predictor.ModelPath, "/")
-		modelWrapError = func(err error) error {
-			return errors.Wrap(err, userconfig.ModelPathKey)
-		}
+		*predictor.Models.Path = s.EnsureSuffix(*predictor.Models.Path, "/")
 	}
 	if hasMultiModels {
-		if predictor.Models.SignatureKey != nil {
-			return errors.Wrap(ErrorFieldNotSupportedByPredictorType(userconfig.SignatureKeyKey, predictor.Type), userconfig.ModelsKey)
-		}
-
 		if len(predictor.Models.Paths) > 0 {
 			modelWrapError = func(err error) error {
 				return errors.Wrap(err, userconfig.ModelsKey, userconfig.ModelsPathsKey)
@@ -1186,13 +1219,13 @@ func validateONNXPredictor(api *userconfig.API, models *[]CuratedModelResource, 
 			for _, path := range predictor.Models.Paths {
 				if path.SignatureKey != nil {
 					return errors.Wrap(
-						ErrorFieldNotSupportedByPredictorType(userconfig.SignatureKeyKey, predictor.Type),
+						ErrorFieldNotSupportedByPredictorType(userconfig.ModelsSignatureKeyKey, predictor.Type),
 						userconfig.ModelsKey,
 						userconfig.ModelsPathsKey,
 						path.Name,
 					)
 				}
-				(*path).ModelPath = s.EnsureSuffix((*path).ModelPath, "/")
+				(*path).Path = s.EnsureSuffix((*path).Path, "/")
 				modelResources = append(modelResources, *path)
 			}
 		}
@@ -1208,9 +1241,9 @@ func validateONNXPredictor(api *userconfig.API, models *[]CuratedModelResource, 
 
 	var err error
 	if hasMultiModels && predictor.Models.Dir != nil {
-		*models, err = validateDirModels(*predictor.Models.Dir, *api, projectFiles.ProjectDir(), awsClient, gcpClient, validators)
+		*models, err = validateDirModels(*predictor.Models.Dir, nil, projectFiles.ProjectDir(), awsClient, gcpClient, generateErrorForPredictorTypeFn(api), validators)
 	} else {
-		*models, err = validateModels(modelResources, *api, projectFiles.ProjectDir(), awsClient, gcpClient, validators)
+		*models, err = validateModels(modelResources, nil, projectFiles.ProjectDir(), awsClient, gcpClient, generateErrorForPredictorTypeFn(api), validators)
 	}
 	if err != nil {
 		return modelWrapError(err)

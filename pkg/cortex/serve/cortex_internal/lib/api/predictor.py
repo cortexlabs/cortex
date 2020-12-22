@@ -98,11 +98,19 @@ class Predictor:
         # model side-reloading is supported for any number of processes_per_replica
 
         if self.caching_enabled:
+            if self.type == PythonPredictorType:
+                mem_cache_size = self.api_spec["predictor"]["multi_model_reloading"]["cache_size"]
+                disk_cache_size = self.api_spec["predictor"]["multi_model_reloading"][
+                    "disk_cache_size"
+                ]
+            else:
+                mem_cache_size = self.api_spec["predictor"]["models"]["cache_size"]
+                disk_cache_size = self.api_spec["predictor"]["models"]["disk_cache_size"]
             self.models = ModelsHolder(
                 self.type,
                 self.model_dir,
-                mem_cache_size=self.api_spec["predictor"]["models"]["cache_size"],
-                disk_cache_size=self.api_spec["predictor"]["models"]["disk_cache_size"],
+                mem_cache_size=mem_cache_size,
+                disk_cache_size=disk_cache_size,
                 on_download_callback=model_downloader,
             )
         elif not self.caching_enabled and self.type not in [
@@ -289,15 +297,15 @@ class Predictor:
 
     def _is_model_caching_enabled(self) -> bool:
         """
-        Checks if model caching is enabled (models:cache_size and models:disk_cache_size).
+        Checks if model caching is enabled.
         """
-        if (
-            self.api_spec["predictor"]["models"]
-            and self.api_spec["predictor"]["models"]["cache_size"] is not None
-            and self.api_spec["predictor"]["models"]["disk_cache_size"] is not None
-        ):
-            return True
-        return False
+        models = None
+        if self.type != PythonPredictorType and self.api_spec["predictor"]["models"]:
+            models = self.api_spec["predictor"]["models"]
+        if self.type == PythonPredictorType and self.api_spec["predictor"]["multi_model_reloading"]:
+            models = self.api_spec["predictor"]["multi_model_reloading"]
+
+        return models and models["cache_size"] and models["disk_cache_size"]
 
     def __del__(self) -> None:
         for cron in self.crons:
@@ -313,15 +321,16 @@ def _are_models_specified(api_spec: dict) -> bool:
     Args:
         api_spec: API configuration.
     """
-    if api_spec["predictor"]["model_path"] is not None:
-        return True
+    predictor_type = predictor_type_from_api_spec(api_spec)
 
-    if api_spec["predictor"]["models"] and (
-        api_spec["predictor"]["models"]["dir"] is not None
-        or len(api_spec["predictor"]["models"]["paths"]) > 0
-    ):
-        return True
-    return False
+    if predictor_type == PythonPredictorType and api_spec["predictor"]["multi_model_reloading"]:
+        models = api_spec["predictor"]["multi_model_reloading"]
+    elif predictor_type != PythonPredictorType:
+        models = api_spec["predictor"]["models"]
+    else:
+        return False
+
+    return models is not None
 
 
 PYTHON_CLASS_VALIDATION = {

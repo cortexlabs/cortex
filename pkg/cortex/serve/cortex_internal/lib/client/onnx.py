@@ -119,10 +119,10 @@ class ONNXClient:
                 "model_version must be either a parse-able numeric value or 'latest'"
             )
 
-        # when predictor:model_path or predictor:models:paths is specified
+        # when predictor:models:path or predictor:models:paths is specified
         if not self._models_dir:
 
-            # when predictor:model_path is provided
+            # when when predictor:models:path is provided
             if consts.SINGLE_MODEL_NAME in self._spec_model_names:
                 return consts.SINGLE_MODEL_NAME, model_version
 
