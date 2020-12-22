@@ -27,6 +27,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/operator/resources"
 	"github.com/cortexlabs/cortex/pkg/operator/resources/job/taskapi"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
+	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	"github.com/gorilla/mux"
 )
@@ -54,11 +55,16 @@ func SubmitTaskJob(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	submission := schema.TaskJobSubmission{}
+	submission := schema.TaskJobSubmission{
+		RuntimeJobConfig: spec.RuntimeJobConfig{Workers: 1},
+	}
 
 	err = json.Unmarshal(bodyBytes, &submission)
 	if err != nil {
-		respondError(w, r, errors.Append(err, fmt.Sprintf("\n\ntask job submission schema can be found at https://docs.cortex.dev/v/%s/", consts.CortexVersionMinor)))
+		respondError(w, r, errors.Append(err,
+			fmt.Sprintf("\n\ntask job submission schema can be found at https://docs.cortex.dev/v/%s/",
+				consts.CortexVersionMinor)),
+		)
 		return
 	}
 

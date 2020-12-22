@@ -12,27 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import sys
-import os
-import argparse
-import inspect
-import time
 import json
-import threading
-import math
-import pathlib
+import os
 
-import boto3
-import botocore
-
-from cortex import consts
-from cortex.lib import util
-from cortex.lib.api import API, get_spec, get_api
+from cortex.lib.api import get_spec
 from cortex.lib.log import cx_logger as logger
-from cortex.lib.concurrency import LockedFile
-from cortex.lib.storage import S3, LocalStorage
-from cortex.lib.exceptions import UserRuntimeException
-
+from cortex.lib.storage import S3
 
 local_cache = {
     "api_spec": None,
