@@ -1200,21 +1200,22 @@ func validateONNXPredictor(api *userconfig.API, models *[]CuratedModelResource, 
 	var modelFileResources []userconfig.ModelResource
 
 	if hasSingleModel {
-		if strings.HasSuffix(*predictor.Models.Path, ".onnx") {
+		modelWrapError = func(err error) error {
+			return errors.Wrap(err, userconfig.ModelsKey, userconfig.ModelsPathKey)
+		}
+		modelResource := userconfig.ModelResource{
+			Name: consts.SingleModelName,
+			Path: *predictor.Models.Path,
+		}
+
+		if strings.HasSuffix(*predictor.Models.Path, ".onnx") && provider != types.LocalProviderType {
 			if err := validateONNXModelFilePath(*predictor.Models.Path, projectFiles.ProjectDir(), awsClient, gcpClient); err != nil {
 				return modelWrapError(err)
 			}
+			modelFileResources = append(modelFileResources, modelResource)
 		} else {
+			modelResources = append(modelResources, modelResource)
 			*predictor.Models.Path = s.EnsureSuffix(*predictor.Models.Path, "/")
-		}
-		modelFileResources = []userconfig.ModelResource{
-			{
-				Name: consts.SingleModelName,
-				Path: *predictor.Models.Path,
-			},
-		}
-		modelWrapError = func(err error) error {
-			return errors.Wrap(err, userconfig.ModelsKey, userconfig.ModelsPathKey)
 		}
 	}
 	if hasMultiModels {
@@ -1232,7 +1233,7 @@ func validateONNXPredictor(api *userconfig.API, models *[]CuratedModelResource, 
 						path.Name,
 					)
 				}
-				if strings.HasSuffix((*path).Path, ".onnx") {
+				if strings.HasSuffix((*path).Path, ".onnx") && provider != types.LocalProviderType {
 					if err := validateONNXModelFilePath((*path).Path, projectFiles.ProjectDir(), awsClient, gcpClient); err != nil {
 						return errors.Wrap(modelWrapError(err), path.Name)
 					}
