@@ -1197,18 +1197,26 @@ func validateONNXPredictor(api *userconfig.API, models *[]CuratedModelResource, 
 
 	var modelWrapError func(error) error
 	var modelResources []userconfig.ModelResource
+	var modelFileResources []userconfig.ModelResource
 
 	if hasSingleModel {
 		modelWrapError = func(err error) error {
-			return errors.Wrap(err, userconfig.ModelsPathKey)
+			return errors.Wrap(err, userconfig.ModelsKey, userconfig.ModelsPathKey)
 		}
-		modelResources = []userconfig.ModelResource{
-			{
-				Name: consts.SingleModelName,
-				Path: *predictor.Models.Path,
-			},
+		modelResource := userconfig.ModelResource{
+			Name: consts.SingleModelName,
+			Path: *predictor.Models.Path,
 		}
-		*predictor.Models.Path = s.EnsureSuffix(*predictor.Models.Path, "/")
+
+		if strings.HasSuffix(*predictor.Models.Path, ".onnx") && provider != types.LocalProviderType {
+			if err := validateONNXModelFilePath(*predictor.Models.Path, projectFiles.ProjectDir(), awsClient, gcpClient); err != nil {
+				return modelWrapError(err)
+			}
+			modelFileResources = append(modelFileResources, modelResource)
+		} else {
+			modelResources = append(modelResources, modelResource)
+			*predictor.Models.Path = s.EnsureSuffix(*predictor.Models.Path, "/")
+		}
 	}
 	if hasMultiModels {
 		if len(predictor.Models.Paths) > 0 {
@@ -1225,8 +1233,15 @@ func validateONNXPredictor(api *userconfig.API, models *[]CuratedModelResource, 
 						path.Name,
 					)
 				}
-				(*path).Path = s.EnsureSuffix((*path).Path, "/")
-				modelResources = append(modelResources, *path)
+				if strings.HasSuffix((*path).Path, ".onnx") && provider != types.LocalProviderType {
+					if err := validateONNXModelFilePath((*path).Path, projectFiles.ProjectDir(), awsClient, gcpClient); err != nil {
+						return errors.Wrap(modelWrapError(err), path.Name)
+					}
+					modelFileResources = append(modelFileResources, *path)
+				} else {
+					(*path).Path = s.EnsureSuffix((*path).Path, "/")
+					modelResources = append(modelResources, *path)
+				}
 			}
 		}
 
@@ -1249,6 +1264,23 @@ func validateONNXPredictor(api *userconfig.API, models *[]CuratedModelResource, 
 		return modelWrapError(err)
 	}
 
+	for _, modelFileResource := range modelFileResources {
+		s3Path := strings.HasPrefix(modelFileResource.Path, "s3://")
+		gcsPath := strings.HasPrefix(modelFileResource.Path, "gs://")
+		localPath := !s3Path && !gcsPath
+
+		*models = append(*models, CuratedModelResource{
+			ModelResource: &userconfig.ModelResource{
+				Name: modelFileResource.Name,
+				Path: modelFileResource.Path,
+			},
+			S3Path:     s3Path,
+			GCSPath:    gcsPath,
+			LocalPath:  localPath,
+			IsFilePath: true,
+		})
+	}
+
 	if hasMultiModels {
 		for _, model := range *models {
 			if model.Name == consts.SingleModelName {
@@ -1259,6 +1291,58 @@ func validateONNXPredictor(api *userconfig.API, models *[]CuratedModelResource, 
 
 	if err := checkDuplicateModelNames(*models); err != nil {
 		return modelWrapError(err)
+	}
+
+	return nil
+}
+
+func validateONNXModelFilePath(modelPath string, projectDir string, awsClient *aws.Client, gcpClient *gcp.Client) error {
+	s3Path := strings.HasPrefix(modelPath, "s3://")
+	gcsPath := strings.HasPrefix(modelPath, "gs://")
+	localPath := !s3Path && !gcsPath
+
+	if s3Path {
+		awsClientForBucket, err := aws.NewFromClientS3Path(modelPath, awsClient)
+		if err != nil {
+			return err
+		}
+
+		bucket, modelPrefix, err := aws.SplitS3Path(modelPath)
+		if err != nil {
+			return err
+		}
+
+		isS3File, err := awsClientForBucket.IsS3File(bucket, modelPrefix)
+		if err != nil {
+			return err
+		}
+
+		if !isS3File {
+			return ErrorInvalidONNXModelFilePath(modelPrefix)
+		}
+	}
+
+	if gcsPath {
+		bucket, modelPrefix, err := gcp.SplitGCSPath(modelPath)
+		if err != nil {
+			return err
+		}
+
+		isGCSFile, err := gcpClient.IsGCSFile(bucket, modelPrefix)
+		if err != nil {
+			return err
+		}
+
+		if !isGCSFile {
+			return ErrorInvalidONNXModelFilePath(modelPrefix)
+		}
+	}
+
+	if localPath {
+		expandedLocalPath := files.RelToAbsPath(modelPath, projectDir)
+		if err := files.CheckFile(expandedLocalPath); err != nil {
+			return err
+		}
 	}
 
 	return nil

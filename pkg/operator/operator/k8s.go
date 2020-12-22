@@ -48,6 +48,7 @@ const (
 
 const (
 	_specCacheDir                                  = "/mnt/spec"
+	_modelDir                                      = "/mnt/model"
 	_emptyDirMountPath                             = "/mnt"
 	_emptyDirVolumeName                            = "mnt"
 	_tfServingContainerName                        = "serve"
@@ -570,18 +571,41 @@ func pythonDownloadArgs(api *spec.API) string {
 }
 
 func onnxDownloadArgs(api *spec.API) string {
-	downloadConfig := downloadContainerConfig{
-		LastLog: fmt.Sprintf(_downloaderLastLog, "onnx"),
-		DownloadArgs: []downloadContainerArg{
-			{
-				From:             config.BucketPath(api.ProjectKey),
-				To:               path.Join(_emptyDirMountPath, "project"),
-				Unzip:            true,
-				ItemName:         "the project code",
-				HideFromLog:      true,
-				HideUnzippingLog: true,
-			},
+	downloadContainerArs := []downloadContainerArg{
+		{
+			From:             config.BucketPath(api.ProjectKey),
+			To:               path.Join(_emptyDirMountPath, "project"),
+			Unzip:            true,
+			ItemName:         "the project code",
+			HideFromLog:      true,
+			HideUnzippingLog: true,
 		},
+	}
+
+	if api.Predictor.Models.Path != nil && strings.HasSuffix(*api.Predictor.Models.Path, ".onnx") {
+		downloadContainerArs = append(downloadContainerArs, downloadContainerArg{
+			From:     *api.Predictor.Models.Path,
+			To:       path.Join(_modelDir, consts.SingleModelName, "1"),
+			ItemName: "the onnx model",
+		})
+	}
+
+	for _, model := range api.Predictor.Models.Paths {
+		if model == nil {
+			continue
+		}
+		if strings.HasSuffix(model.Path, ".onnx") {
+			downloadContainerArs = append(downloadContainerArs, downloadContainerArg{
+				From:     model.Path,
+				To:       path.Join(_modelDir, model.Name, "1"),
+				ItemName: fmt.Sprintf("%s onnx model", model.Name),
+			})
+		}
+	}
+
+	downloadConfig := downloadContainerConfig{
+		LastLog:      fmt.Sprintf(_downloaderLastLog, "onnx"),
+		DownloadArgs: downloadContainerArs,
 	}
 
 	downloadArgsBytes, _ := json.Marshal(downloadConfig)

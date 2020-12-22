@@ -188,16 +188,33 @@ def get_models_from_api_spec(
     for model in models:
         model_resource = {}
         model_resource["name"] = model["name"]
-        model_resource["s3_path"] = model["path"].startswith("s3://")
-        model_resource["gcs_path"] = model["path"].startswith("gs://")
-        model_resource["local_path"] = (
-            not model_resource["s3_path"] and not model_resource["gcs_path"]
-        )
 
         if not model["signature_key"]:
             model_resource["signature_key"] = models_spec["signature_key"]
         else:
             model_resource["signature_key"] = model["signature_key"]
+
+        ends_as_file_path = model["path"].endswith(".onnx")
+        if ends_as_file_path and os.path.exists(
+            os.path.join(model_dir, model_resource["name"], "1", os.path.basename(model["path"]))
+        ):
+            model_resource["is_file_path"] = True
+            model_resource["s3_path"] = False
+            model_resource["gcs_path"] = False
+            model_resource["local_path"] = True
+            model_resource["versions"] = []
+            model_resource["path"] = os.path.join(
+                model_dir, model_resource["name"], "1", os.path.basename(model["path"])
+            )
+            model_resources.append(model_resource)
+            continue
+        model_resource["is_file_path"] = False
+
+        model_resource["s3_path"] = model["path"].startswith("s3://")
+        model_resource["gcs_path"] = model["path"].startswith("gs://")
+        model_resource["local_path"] = (
+            not model_resource["s3_path"] and not model_resource["gcs_path"]
+        )
 
         if model_resource["s3_path"] or model_resource["gcs_path"]:
             model_resource["path"] = model["path"]
