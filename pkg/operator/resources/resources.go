@@ -235,7 +235,16 @@ func patchAPI(apiConfig *userconfig.API, configFileName string, force bool) (*sp
 	}
 
 	if deployedResource.Kind != userconfig.TrafficSplitterKind {
-		bytes, err := config.AWS.ReadBytesFromS3(config.Cluster.Bucket, prevAPISpec.ProjectKey)
+		var bytes []byte
+		var err error
+		if config.Provider == types.AWSProviderType {
+			bytes, err = config.AWS.ReadBytesFromS3(config.Cluster.Bucket, prevAPISpec.ProjectKey)
+		} else if config.Provider == types.GCPProviderType {
+			bytes, err = config.GCP.ReadBytesFromGCS(config.GCPCluster.Bucket, prevAPISpec.ProjectKey)
+		} else {
+			return nil, "", errors.ErrorUnexpected(fmt.Sprintf("unexpected provider type %s", config.Provider))
+		}
+
 		if err != nil {
 			return nil, "", err
 		}
