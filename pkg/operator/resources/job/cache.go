@@ -42,7 +42,7 @@ func DeleteInProgressFile(jobKey spec.JobKey) error {
 }
 
 func DeleteAllInProgressFilesByAPI(apiName string, kind userconfig.Kind) error {
-	err := config.AWS.DeleteS3Prefix(config.Cluster.Bucket, allInProgressS3Key(apiName, kind), true)
+	err := config.AWS.DeleteS3Prefix(config.Cluster.Bucket, allInProgressForAPIS3Key(apiName, kind), true)
 	if err != nil {
 		return err
 	}
@@ -57,9 +57,9 @@ func listAllInProgressJobKeysByAPI(apiName *string, kind userconfig.Kind) ([]spe
 
 	var jobPath string
 	if apiName != nil {
-		jobPath = path.Join(config.Cluster.ClusterName, _inProgressFilePrefix, *apiName)
+		jobPath = allInProgressForAPIS3Key(*apiName, kind)
 	} else {
-		jobPath = path.Join(config.Cluster.ClusterName, _inProgressFilePrefix)
+		jobPath = allInProgressS3Key(kind)
 	}
 
 	s3Objects, err := config.AWS.ListS3Dir(config.Cluster.Bucket, jobPath, false, nil)
@@ -83,18 +83,21 @@ func uploadInProgressFile(jobKey spec.JobKey) error {
 	return nil
 }
 
-// e.g. <cluster_name>/jobs/<job_api_kind>/in_progress/<api_name>
-func allInProgressS3Key(apiName string, kind userconfig.Kind) string {
+// e.g. <cluster_name>/jobs/<job_api_kind>/in_progress
+func allInProgressS3Key(kind userconfig.Kind) string {
 	return path.Join(
-		config.Cluster.ClusterName, _jobsPrefix, kind.String(), _inProgressFilePrefix, apiName,
+		config.Cluster.ClusterName, _jobsPrefix, kind.String(), _inProgressFilePrefix,
 	)
+}
+
+// e.g. <cluster_name>/jobs/<job_api_kind>/in_progress/<api_name>
+func allInProgressForAPIS3Key(apiName string, kind userconfig.Kind) string {
+	return path.Join(allInProgressS3Key(kind), apiName)
 }
 
 // e.g. <cluster_name>/jobs/<job_api_kind>/in_progress/<api_name>/<job_id>
 func inProgressS3Key(jobKey spec.JobKey) string {
-	return path.Join(
-		allInProgressS3Key(jobKey.APIName, jobKey.Kind), jobKey.ID,
-	)
+	return path.Join(allInProgressForAPIS3Key(jobKey.APIName, jobKey.Kind), jobKey.ID)
 }
 
 func jobKeyFromInProgressS3Key(s3Key string) spec.JobKey {

@@ -33,6 +33,8 @@ import (
 	"github.com/cortexlabs/cortex/pkg/types/status"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	kbatch "k8s.io/api/batch/v1"
+	kmeta "k8s.io/apimachinery/pkg/apis/meta/v1"
+	klabels "k8s.io/apimachinery/pkg/labels"
 )
 
 const (
@@ -76,7 +78,13 @@ func ManageJobResources() error {
 		queueURLMap[jobKey.ID] = queueURL
 	}
 
-	jobs, err := config.K8s.ListJobs(nil)
+	jobs, err := config.K8s.ListJobs(
+		&kmeta.ListOptions{
+			LabelSelector: klabels.SelectorFromSet(
+				map[string]string{"apiKind": userconfig.BatchAPIKind.String()},
+			).String(),
+		},
+	)
 	if err != nil {
 		return err
 	}
