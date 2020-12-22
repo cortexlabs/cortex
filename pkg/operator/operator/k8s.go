@@ -719,7 +719,7 @@ func getTaskEnvVars(api *spec.API, container string) []kcore.EnvVar {
 				Value: path.Join(_emptyDirMountPath, "project"),
 			},
 			kcore.EnvVar{
-				Name:  "CORTEX_TASK_SPEC",
+				Name:  "CORTEX_API_SPEC",
 				Value: config.BucketPath(api.Key),
 			},
 		)
