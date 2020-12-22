@@ -159,7 +159,7 @@ def get_models_from_api_spec(
     else:
         return CuratedModelResources([])
 
-    if not models_spec["path"] and len(models_spec["paths"]) == 0:
+    if not models_spec["path"] and not models_spec["paths"]:
         return CuratedModelResources([])
 
     # for models.path
