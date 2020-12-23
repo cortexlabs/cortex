@@ -8,8 +8,6 @@ cortex cluster configure  # or: cortex cluster configure --config cluster.yaml
 
 ## Upgrade to a newer version of Cortex
 
-<!-- CORTEX_VERSION_MINOR -->
-
 ```bash
 # spin down your cluster
 cortex cluster down
