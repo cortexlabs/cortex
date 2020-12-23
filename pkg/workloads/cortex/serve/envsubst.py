@@ -12,32 +12,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os
 import sys
-import pathlib
-import time
-
-import uvicorn
-import yaml
-
+import os
 
 def main():
-    uds = sys.argv[1]
+    in_file = sys.argv[1]
+    out_file = sys.argv[2]
 
-    with open(os.environ["CORTEX_LOG_CONFIG_FILE"], "r") as f:
-        log_config = yaml.load(f, yaml.FullLoader)
+    with open(in_file, "r") as f:
+        data = f.read()
 
-    while not pathlib.Path("/mnt/workspace/init_script_run.txt").is_file():
-        time.sleep(0.2)
+    expanded_data = os.path.expandvars(data)
 
-    uvicorn.run(
-        "cortex.serve.wsgi:app",
-        uds=uds,
-        forwarded_allow_ips="*",
-        proxy_headers=True,
-        log_config=log_config,
-    )
-
+    with open(out_file, "w") as f:
+        f.write(expanded_data)
 
 if __name__ == "__main__":
     main()

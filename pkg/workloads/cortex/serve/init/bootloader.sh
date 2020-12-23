@@ -16,9 +16,6 @@
 
 set -e
 
-# set log level for python scripts
-envsubst < /src/cortex/serve/log_config.yaml | echo "$(</dev/stdin)" > /src/cortex/serve/log_config.yaml
-
 # CORTEX_VERSION
 export EXPECTED_CORTEX_VERSION=master
 
@@ -30,6 +27,9 @@ if [ "$CORTEX_VERSION" != "$EXPECTED_CORTEX_VERSION" ]; then
     fi
     exit 1
 fi
+
+# set log level for python scripts
+/opt/conda/envs/env/bin/python /src/cortex/serve/envsubst.py /src/cortex/serve/log_config.yaml /src/cortex/serve/log_config.yaml
 
 mkdir -p /mnt/workspace
 mkdir -p /mnt/requests
