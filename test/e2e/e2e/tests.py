@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 import json
 from http import HTTPStatus
 from pathlib import Path
@@ -20,7 +21,7 @@ import cortex as cx
 import yaml
 
 from e2e.expectations import parse_expectations, assert_response_expectations
-from e2e.utils import apis_ready, request_prediction, job_done
+from e2e.utils import apis_ready, request_prediction, job_done, request_batch_prediction
 
 TEST_APIS_DIR = Path(__file__).parent.parent.parent / "apis"
 
@@ -66,7 +67,11 @@ def test_realtime_api(client: cx.Client, api: str, timeout: int = None):
 
 
 def test_batch_api(
-    client: cx.Client, api: str, deploy_timeout: int = None, job_timeout: int = None
+    client: cx.Client,
+    api: str,
+    test_bucket: str,
+    deploy_timeout: int = None,
+    job_timeout: int = None,
 ):
     api_dir = TEST_APIS_DIR / api
     with open(str(api_dir / "cortex.yaml")) as f:
@@ -85,7 +90,9 @@ def test_batch_api(
             payload = json.load(f)
 
         api_name = api_names[0]
-        response = request_prediction(client, api_name, payload)
+        response = request_batch_prediction(
+            client, api_name, item_list=payload, batch_size=2, config={"dest_s3_dir": test_bucket}
+        )
 
         assert (
             response.status_code == HTTPStatus.OK

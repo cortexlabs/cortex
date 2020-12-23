@@ -26,12 +26,10 @@ def client(request):
         return cx.client(env_name)
 
     config_path = request.config.getoption("--aws-config")
-    if config_path is None:
-        raise ValueError(
-            "missing arguments: --env-name <name> or --aws-config <aws_cluster_config>"
-        )
+    if config_path is not None:
+        return client_from_config(config_path)
 
-    return client_from_config(config_path)
+    pytest.skip("--aws-env or --aws-config must be passed to run aws tests")
 
 
 def pytest_configure(config):

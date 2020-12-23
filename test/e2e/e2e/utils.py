@@ -61,6 +61,28 @@ def request_prediction(
     return response
 
 
+def request_batch_prediction(
+    client: cx.Client,
+    api_name: str,
+    item_list: List,
+    batch_size: int,
+    workers: int = 1,
+    config: Dict = None,
+) -> requests.Response:
+
+    api_info = client.get_api(api_name)
+    endpoint = api_info["endpoint"]
+
+    batch_payload = {
+        "workers": workers,
+        "item_list": {"items": item_list, "batch_size": batch_size},
+        "config": config,
+    }
+    response = requests.post(endpoint, json=batch_payload)
+
+    return response
+
+
 def client_from_config(config_path: str) -> cx.Client:
     with open(config_path) as f:
         config = yaml.safe_load(f)

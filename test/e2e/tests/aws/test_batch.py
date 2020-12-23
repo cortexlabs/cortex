@@ -18,10 +18,21 @@ import pytest
 import e2e.tests
 
 TIMEOUT_DEPLOY = 10  # seconds
-TEST_APIS = ["batch/onnx", "batch/tensorflow", "batch/image-classifier"]
+JOB_TIMEOUT = 30  # seconds
+TEST_APIS = ["batch/image-classifier"]
+
+
+@pytest.fixture
+def s3_bucket(request):
+    s3_bucket = request.config.getoption("--s3-bucket")
+    if not s3_bucket:
+        pytest.skip("--s3-bucket option is required to run batch tests")
+
+    return s3_bucket
 
 
 @pytest.mark.usefixtures("client")
 @pytest.mark.parametrize("api", TEST_APIS)
-def test_batch_api(client: cx.Client, api: str):
-    e2e.tests.test_batch_api(client, api, timeout=TIMEOUT_DEPLOY)
+def test_batch_api(client: cx.Client, api: str, s3_bucket: str):
+    e2e.tests.test_batch_api(client, api, deploy_timeout=TIMEOUT_DEPLOY, job_timeout=JOB_TIMEOUT)
+

@@ -26,12 +26,10 @@ def client(request):
         return cx.client(env_name)
 
     config_path = request.config.getoption("--gcp-config")
-    if config_path is None:
-        raise ValueError(
-            "missing arguments: --env-name <name> or --gcp-config <gcp_cluster_config>"
-        )
+    if config_path is not None:
+        return client_from_config(config_path)
 
-    return client_from_config(config_path)
+    pytest.skip("--gcp-env or --gcp-config must be passed to run gcp tests")
 
 
 def pytest_configure(config):

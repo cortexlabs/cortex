@@ -38,3 +38,10 @@ def pytest_addoption(parser):
         default=None,
         help="set cortex GCP cluster config, to test on a new GCP cluster",
     )
+
+    parser.addoption(
+        "--s3-bucket",
+        action="store",
+        default=None,
+        help="set s3 bucket where batch jobs results will be stored",
+    )
