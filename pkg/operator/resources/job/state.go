@@ -191,34 +191,43 @@ func GetMostRecentlySubmittedJobStates(apiName string, count int, kind userconfi
 	return jobStates, nil
 }
 
-func setStatusForJob(jobKey spec.JobKey, jobStatus status.JobCode) error {
+func SetStatusForJob(jobKey spec.JobKey, jobStatus status.JobCode) error {
 	switch jobStatus {
 	case status.JobEnqueuing:
-		return setEnqueuingStatus(jobKey)
+		return SetEnqueuingStatus(jobKey)
 	case status.JobRunning:
-		return setRunningStatus(jobKey)
+		return SetRunningStatus(jobKey)
 	case status.JobEnqueueFailed:
-		return setEnqueueFailedStatus(jobKey)
+		return SetEnqueueFailedStatus(jobKey)
 	case status.JobCompletedWithFailures:
-		return setCompletedWithFailuresStatus(jobKey)
+		return SetCompletedWithFailuresStatus(jobKey)
 	case status.JobSucceeded:
-		return setSucceededStatus(jobKey)
+		return SetSucceededStatus(jobKey)
 	case status.JobUnexpectedError:
-		return setUnexpectedErrorStatus(jobKey)
+		return SetUnexpectedErrorStatus(jobKey)
 	case status.JobWorkerError:
-		return setWorkerErrorStatus(jobKey)
+		return SetWorkerErrorStatus(jobKey)
 	case status.JobWorkerOOM:
-		return setWorkerOOMStatus(jobKey)
+		return SetWorkerOOMStatus(jobKey)
 	case status.JobTimedOut:
-		return setTimedOutStatus(jobKey)
+		return SetTimedOutStatus(jobKey)
 	case status.JobStopped:
-		return setStoppedStatus(jobKey)
+		return SetStoppedStatus(jobKey)
+	}
+	return nil
+}
+
+func UpdateLiveness(jobKey spec.JobKey) error {
+	s3Key := path.Join(jobKey.Prefix(config.Cluster.ClusterName), _enqueuingLivenessFile)
+	err := config.AWS.UploadJSONToS3(time.Now(), config.Cluster.Bucket, s3Key)
+	if err != nil {
+		return errors.Wrap(err, "failed to update liveness", jobKey.UserString())
 	}
 	return nil
 }
 
 func SetEnqueuingStatus(jobKey spec.JobKey) error {
-	err := updateLiveness(jobKey)
+	err := UpdateLiveness(jobKey)
 	if err != nil {
 		return err
 	}
@@ -374,84 +383,4 @@ func SetTimedOutStatus(jobKey spec.JobKey) error {
 	}
 
 	return nil
-}
-
-func getJobStatusFromJobState(jobState *JobState, k8sJob *kbatch.Job, pods []kcore.Pod) (*status.JobStatus, error) {
-	jobKey := jobState.JobKey
-
-	jobSpec, err := downloadJobSpec(jobKey)
-	if err != nil {
-		return nil, err
-	}
-
-	jobStatus := status.JobStatus{
-		Job:     *jobSpec,
-		EndTime: jobState.EndTime,
-		Status:  jobState.Status,
-	}
-
-	if jobState.Status.IsInProgress() {
-		queueMetrics, err := getQueueMetrics(jobKey)
-		if err != nil {
-			return nil, err
-		}
-
-		jobStatus.BatchesInQueue = queueMetrics.TotalUserMessages()
-
-		if jobState.Status == status.JobEnqueuing {
-			jobStatus.TotalBatchCount = queueMetrics.TotalUserMessages()
-		}
-
-		if jobState.Status == status.JobRunning {
-			metrics, err := getRealTimeBatchMetrics(jobKey)
-			if err != nil {
-				return nil, err
-			}
-			jobStatus.BatchMetrics = metrics
-
-			// There can be race conditions where the job state is temporarily out of sync with the cluster state
-			if k8sJob != nil {
-				workerCounts := getWorkerCountsForJob(*k8sJob, pods)
-				jobStatus.WorkerCounts = &workerCounts
-			}
-		}
-	}
-
-	if jobState.Status.IsCompleted() {
-		metrics, err := getCompletedBatchMetrics(jobKey, jobSpec.StartTime, *jobState.EndTime)
-		if err != nil {
-			return nil, err
-		}
-		jobStatus.BatchMetrics = metrics
-	}
-
-	return &jobStatus, nil
-}
-
-func GetJobStatus(jobKey spec.JobKey) (*status.JobStatus, error) {
-	jobState, err := getJobState(jobKey)
-	if err != nil {
-		return nil, err
-	}
-
-	k8sJob, err := config.K8s.GetJob(jobKey.K8sName())
-	if err != nil {
-		return nil, err
-	}
-
-	pods, err := config.K8s.ListPodsByLabels(map[string]string{"apiName": jobKey.APIName, "jobID": jobKey.ID})
-	if err != nil {
-		return nil, err
-	}
-
-	return getJobStatusFromJobState(jobState, k8sJob, pods)
-}
-
-func getJobStatusFromK8sJob(jobKey spec.JobKey, k8sJob *kbatch.Job, pods []kcore.Pod) (*status.JobStatus, error) {
-	jobState, err := getJobState(jobKey)
-	if err != nil {
-		return nil, err
-	}
-
-	return getJobStatusFromJobState(jobState, k8sJob, pods)
 }

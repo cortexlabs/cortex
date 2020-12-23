@@ -19,11 +19,16 @@ package job
 import "github.com/cortexlabs/cortex/pkg/types/userconfig"
 
 const (
-	_jobsPrefix           = "jobs"
-	_inProgressFilePrefix = "in_progress"
+	_jobsPrefix            = "jobs"
+	_inProgressFilePrefix  = "in_progress"
+	_enqueuingLivenessFile = "enqueuing_liveness"
 )
 
 var _jobKinds = map[userconfig.Kind]bool{
 	userconfig.TaskAPIKind:  true,
 	userconfig.BatchAPIKind: true,
+}
+
+func LivenessFile() string {
+	return _enqueuingLivenessFile
 }

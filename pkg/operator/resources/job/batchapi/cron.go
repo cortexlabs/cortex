@@ -45,7 +45,7 @@ const (
 )
 
 var _jobsToDelete = strset.New()
-var _inProgressJobSpecMap = map[string]*spec.Job{}
+var _inProgressJobSpecMap = map[string]*spec.BatchJob{}
 
 func ManageJobResources() error {
 	inProgressJobKeys, err := job.ListAllInProgressJobKeys(userconfig.BatchAPIKind)
@@ -121,8 +121,8 @@ func ManageJobResources() error {
 
 		if !jobState.Status.IsInProgress() {
 			// best effort cleanup
-			job.DeleteInProgressFile(jobKey)
-			deleteJobRuntimeResources(jobKey)
+			_ = job.DeleteInProgressFile(jobKey)
+			_ = deleteJobRuntimeResources(jobKey)
 			continue
 		}
 
@@ -170,7 +170,7 @@ func ManageJobResources() error {
 
 		if jobSpec.Timeout != nil && time.Since(jobSpec.StartTime) > time.Second*time.Duration(*jobSpec.Timeout) {
 			err := errors.FirstError(
-				setTimedOutStatus(jobKey),
+				job.SetTimedOutStatus(jobKey),
 				deleteJobRuntimeResources(jobKey),
 				writeToJobLogStream(jobKey, fmt.Sprintf("terminating job after exceeding the specified timeout of %d seconds", *jobSpec.Timeout)),
 			)
@@ -259,7 +259,7 @@ func reconcileInProgressJob(jobState *job.State, queueURL *string, k8sJob *kbatc
 		return status.JobUnexpectedError, fmt.Sprintf("terminating job %s; sqs queue with url %s was not found", jobKey.UserString(), expectedQueueURL), nil
 	}
 
-	if jobState.Status == status.JobEnqueuing && time.Since(jobState.LastUpdatedMap[_enqueuingLivenessFile]) >= _enqueuingLivenessPeriod+_enqueuingLivenessBuffer {
+	if jobState.Status == status.JobEnqueuing && time.Since(jobState.LastUpdatedMap[job.LivenessFile()]) >= _enqueuingLivenessPeriod+_enqueuingLivenessBuffer {
 		return status.JobEnqueueFailed, fmt.Sprintf("terminating job %s; enqueuing liveness check failed", jobKey.UserString()), nil
 	}
 
@@ -293,7 +293,7 @@ func checkIfJobCompleted(jobKey spec.JobKey, queueURL string, k8sJob *kbatch.Job
 				_jobsToDelete.Remove(jobKey.ID)
 				return errors.FirstError(
 					writeToJobLogStream(jobKey, "unexpected job status because cluster state indicates job has completed but metrics indicate that job is still in progress"),
-					setUnexpectedErrorStatus(jobKey),
+					job.SetUnexpectedErrorStatus(jobKey),
 					deleteJobRuntimeResources(jobKey),
 				)
 			}

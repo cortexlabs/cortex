@@ -15,9 +15,9 @@
 import json
 import os
 
-from cortex.lib.api import get_spec
-from cortex.lib.log import cx_logger as logger
-from cortex.lib.storage import S3
+from cortex_internal.lib.api import get_spec
+from cortex_internal.lib.log import cx_logger as logger
+from cortex_internal.lib.storage import S3
 
 local_cache = {
     "api_spec": None,
@@ -38,7 +38,7 @@ def start():
     provider = os.environ["CORTEX_PROVIDER"]
     api_spec_path = os.environ["CORTEX_API_SPEC"]
     task_spec_path = os.environ["CORTEX_TASK_SPEC"]
-    project_dir = os.environ["CORTEX_PROJECT_DIR"]
+    # project_dir = os.environ["CORTEX_PROJECT_DIR"]
 
     region = os.getenv("AWS_REGION")
 

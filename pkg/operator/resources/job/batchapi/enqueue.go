@@ -21,7 +21,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"path"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -34,12 +33,12 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/random"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 	"github.com/cortexlabs/cortex/pkg/operator/operator"
+	"github.com/cortexlabs/cortex/pkg/operator/resources/job"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 )
 
 const (
-	_enqueuingLivenessFile   = "enqueuing_liveness"
 	_enqueuingLivenessPeriod = 20 * time.Second
 	_s3DownloadChunkSize     = 32 * 1024 * 1024
 )
@@ -48,18 +47,9 @@ func randomMessageID() string {
 	return random.String(40) // maximum is 80 (for sqs.SendMessageBatchRequestEntry.Id) but this ID may show up in a user error message
 }
 
-func updateLiveness(jobKey spec.JobKey) error {
-	s3Key := path.Join(jobKey.Prefix(config.Cluster.ClusterName), _enqueuingLivenessFile)
-	err := config.AWS.UploadJSONToS3(time.Now(), config.Cluster.Bucket, s3Key)
-	if err != nil {
-		return errors.Wrap(err, "failed to update liveness", jobKey.UserString())
-	}
-	return nil
-}
-
 func enqueue(jobSpec *spec.BatchJob, submission *schema.BatchJobSubmission) (int, error) {
 	livenessUpdater := func() error {
-		return updateLiveness(jobSpec.JobKey)
+		return job.UpdateLiveness(jobSpec.JobKey)
 	}
 
 	livenessCron := cron.Run(livenessUpdater, operator.ErrorHandler(fmt.Sprintf("liveness check for %s", jobSpec.UserString())), _enqueuingLivenessPeriod)
