@@ -21,7 +21,13 @@ import cortex as cx
 import yaml
 
 from e2e.expectations import parse_expectations, assert_response_expectations
-from e2e.utils import apis_ready, request_prediction, job_done, request_batch_prediction
+from e2e.utils import (
+    apis_ready,
+    endpoint_ready,
+    request_prediction,
+    job_done,
+    request_batch_prediction,
+)
 
 TEST_APIS_DIR = Path(__file__).parent.parent.parent / "apis"
 
@@ -77,13 +83,15 @@ def test_batch_api(
     with open(str(api_dir / "cortex.yaml")) as f:
         api_specs = yaml.safe_load(f)
 
+    assert len(api_specs) == 1
+
     api_names = [api_spec["name"] for api_spec in api_specs]
     for api_spec in api_specs:
         client.create_api(api_spec=api_spec, project_dir=api_dir)
 
     try:
-        assert apis_ready(
-            client=client, api_names=api_names, timeout=deploy_timeout
+        assert endpoint_ready(
+            client=client, api_name=api_names[0], timeout=deploy_timeout
         ), f"apis {api_names} not ready"
 
         with open(str(api_dir / "sample.json")) as f:
@@ -96,7 +104,7 @@ def test_batch_api(
 
         assert (
             response.status_code == HTTPStatus.OK
-        ), f"status code: got {response.status_code}, expected {HTTPStatus.OK}"
+        ), f"status code: got {response.status_code}, expected {HTTPStatus.OK} ({response.text})"
 
         job_spec = response.json()
 
@@ -106,7 +114,7 @@ def test_batch_api(
             api_name=job_spec["api_name"],
             job_id=job_spec["job_id"],
             timeout=job_timeout,
-        )
+        ), f"job did not succeed (api_name: {api_name}, job_id: {job_spec['job_id']})"
 
     finally:
         delete_apis(client, api_names)

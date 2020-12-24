@@ -18,7 +18,7 @@ import pytest
 import e2e.tests
 
 TIMEOUT_DEPLOY = 10  # seconds
-JOB_TIMEOUT = 30  # seconds
+JOB_TIMEOUT = 60  # seconds
 TEST_APIS = ["batch/image-classifier"]
 
 
@@ -34,5 +34,6 @@ def s3_bucket(request):
 @pytest.mark.usefixtures("client")
 @pytest.mark.parametrize("api", TEST_APIS)
 def test_batch_api(client: cx.Client, api: str, s3_bucket: str):
-    e2e.tests.test_batch_api(client, api, deploy_timeout=TIMEOUT_DEPLOY, job_timeout=JOB_TIMEOUT)
-
+    e2e.tests.test_batch_api(
+        client, api, test_bucket=s3_bucket, deploy_timeout=TIMEOUT_DEPLOY, job_timeout=JOB_TIMEOUT
+    )

@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import time
+from http import HTTPStatus
 from typing import List, Optional, Dict, Union
 
 import cortex as cx
@@ -36,15 +37,30 @@ def apis_ready(client: cx.Client, api_names: List[str], timeout: Optional[int] =
         count += 1
 
 
+def endpoint_ready(client: cx.Client, api_name: str, timeout: int = None) -> bool:
+    count = 0
+    while True:
+        if timeout is not None and count > timeout:
+            return False
+
+        endpoint = client.get_api(api_name)["endpoint"]
+        response = requests.post(endpoint)
+        if response.status_code == HTTPStatus.BAD_REQUEST:
+            return True
+
+        time.sleep(1)
+        count += 1
+
+
 def job_done(client: cx.Client, api_name: str, job_id: str, timeout: int = None):
     count = 0
     while True:
         if timeout is not None and count > timeout:
             return False
 
-        # FIXME
-        client.get_job(api_name, job_id)
-        if ready:
+        job_info = client.get_job(api_name, job_id)
+        done = job_info["job_status"]["status"] == "status_succeeded"
+        if done:
             return True
 
         time.sleep(1)
