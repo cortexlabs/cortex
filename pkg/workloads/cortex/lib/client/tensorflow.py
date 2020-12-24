@@ -219,9 +219,7 @@ class TensorFlowClient:
                     raise WithBreak
 
                 # run prediction
-                logger.info(
-                    f"run the prediction on model {model_name} of version {model_version}"
-                )
+                logger.info(f"run the prediction on model {model_name} of version {model_version}")
                 self._models.get_model(model_name, model_version, tag)
                 try:
                     prediction = self._client.predict(model_input, model_name, model_version)

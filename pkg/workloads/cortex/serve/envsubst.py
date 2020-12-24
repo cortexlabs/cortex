@@ -15,6 +15,7 @@
 import sys
 import os
 
+
 def main():
     in_file = sys.argv[1]
     out_file = sys.argv[2]
@@ -26,6 +27,7 @@ def main():
 
     with open(out_file, "w") as f:
         f.write(expanded_data)
+
 
 if __name__ == "__main__":
     main()

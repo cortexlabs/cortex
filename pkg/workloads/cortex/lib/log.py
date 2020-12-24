@@ -60,12 +60,15 @@ class CortexAccessFormatter(CortexFormatter):
         )
         return super().formatMessage(record)
 
+
 logger = None
+
 
 def configure_logger(name: str, config_file: str):
     global logger
     logger = retrieve_logger(name, config_file)
     return logger
+
 
 def retrieve_logger(name: str, config_file: str):
     with open(config_file, "r") as f:
