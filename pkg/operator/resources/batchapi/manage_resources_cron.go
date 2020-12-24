@@ -34,13 +34,14 @@ import (
 )
 
 const (
-	ManageJobResourcesCronPeriod = 60 * time.Second
+	ManageJobResourcesCronPeriod = 60 * time.Second // If this is going to be updated (made smaller), update the batch worker implementation
 	_doesQueueExistGracePeriod   = 30 * time.Second
 	_enqueuingLivenessBuffer     = 30 * time.Second
 	_k8sJobExistenceGracePeriod  = 10 * time.Second
 )
 
-var jobsToDelete strset.Set = strset.New()
+var _jobsToDelete strset.Set = strset.New()
+var _inProgressJobSpecMap = map[string]*spec.Job{}
 
 func ManageJobResources() error {
 	inProgressJobKeys, err := listAllInProgressJobKeys()
@@ -49,10 +50,15 @@ func ManageJobResources() error {
 	}
 
 	inProgressJobIDSet := strset.Set{}
-	inProgressIDMap := map[string]spec.JobKey{}
 	for _, jobKey := range inProgressJobKeys {
 		inProgressJobIDSet.Add(jobKey.ID)
-		inProgressIDMap[jobKey.ID] = jobKey
+	}
+
+	// Remove completed jobs from local cache
+	for jobID := range _inProgressJobSpecMap {
+		if !inProgressJobIDSet.Has(jobID) {
+			delete(_inProgressJobSpecMap, jobID)
+		}
 	}
 
 	queues, err := listQueueURLsForAllAPIs()
@@ -75,7 +81,8 @@ func ManageJobResources() error {
 
 	k8sJobMap := map[string]*kbatch.Job{}
 	k8sJobIDSet := strset.Set{}
-	for _, job := range jobs {
+	for i := range jobs {
+		job := jobs[i]
 		k8sJobMap[job.Labels["jobID"]] = &job
 		k8sJobIDSet.Add(job.Labels["jobID"])
 	}
@@ -132,6 +139,39 @@ func ManageJobResources() error {
 			continue
 		}
 
+		if _, ok := _inProgressJobSpecMap[jobKey.ID]; !ok {
+			jobSpec, err := downloadJobSpec(jobKey)
+			if err != nil {
+				writeToJobLogStream(jobKey, err.Error(), "terminating job and cleaning up job resources")
+				err := errors.FirstError(
+					deleteInProgressFile(jobKey),
+					deleteJobRuntimeResources(jobKey),
+				)
+				if err != nil {
+					telemetry.Error(err)
+					errors.PrintError(err)
+					continue
+				}
+				continue
+			}
+			_inProgressJobSpecMap[jobKey.ID] = jobSpec
+		}
+
+		jobSpec := _inProgressJobSpecMap[jobKey.ID]
+
+		if jobSpec.Timeout != nil && time.Since(jobSpec.StartTime) > time.Second*time.Duration(*jobSpec.Timeout) {
+			err := errors.FirstError(
+				setTimedOutStatus(jobKey),
+				deleteJobRuntimeResources(jobKey),
+				writeToJobLogStream(jobKey, fmt.Sprintf("terminating job after exceeding the specified timeout of %d seconds", *jobSpec.Timeout)),
+			)
+			if err != nil {
+				telemetry.Error(err)
+				errors.PrintError(err)
+			}
+			continue
+		}
+
 		if jobState.Status == status.JobRunning {
 			err = checkIfJobCompleted(jobKey, *queueURL, k8sJob)
 			if err != nil {
@@ -183,9 +223,9 @@ func ManageJobResources() error {
 	}
 
 	// Clear old jobs to delete if they are no longer considered to in progress
-	for jobID := range jobsToDelete {
+	for jobID := range _jobsToDelete {
 		if !inProgressJobIDSet.Has(jobID) {
-			jobsToDelete.Remove(jobID)
+			_jobsToDelete.Remove(jobID)
 		}
 	}
 
@@ -210,7 +250,7 @@ func reconcileInProgressJob(jobState *JobState, queueURL *string, k8sJob *kbatch
 		return status.JobUnexpectedError, fmt.Sprintf("terminating job %s; sqs queue with url %s was not found", jobKey.UserString(), expectedQueueURL), nil
 	}
 
-	if jobState.Status == status.JobEnqueuing && time.Now().Sub(jobState.LastUpdatedMap[_enqueuingLivenessFile]) >= _enqueuingLivenessPeriod+_enqueuingLivenessBuffer {
+	if jobState.Status == status.JobEnqueuing && time.Since(jobState.LastUpdatedMap[_enqueuingLivenessFile]) >= _enqueuingLivenessPeriod+_enqueuingLivenessBuffer {
 		return status.JobEnqueueFailed, fmt.Sprintf("terminating job %s; enqueuing liveness check failed", jobKey.UserString()), nil
 	}
 
@@ -240,12 +280,15 @@ func checkIfJobCompleted(jobKey spec.JobKey, queueURL string, k8sJob *kbatch.Job
 	if !queueMessages.IsEmpty() {
 		// Give time for queue metrics to reach consistency
 		if int(k8sJob.Status.Active) == 0 {
-			if jobsToDelete.Has(jobKey.ID) {
-				jobsToDelete.Remove(jobKey.ID)
-				return investigateJobFailure(jobKey, k8sJob)
+			if _jobsToDelete.Has(jobKey.ID) {
+				_jobsToDelete.Remove(jobKey.ID)
+				return errors.FirstError(
+					writeToJobLogStream(jobKey, "unexpected job status because cluster state indicates job has completed but metrics indicate that job is still in progress"),
+					setUnexpectedErrorStatus(jobKey),
+					deleteJobRuntimeResources(jobKey),
+				)
 			}
-			jobsToDelete.Add(jobKey.ID)
-			return nil
+			_jobsToDelete.Add(jobKey.ID)
 		}
 		return nil
 	}
@@ -260,32 +303,27 @@ func checkIfJobCompleted(jobKey spec.JobKey, queueURL string, k8sJob *kbatch.Job
 		return err
 	}
 
-	if jobSpec.TotalBatchCount == batchMetrics.TotalCompleted() {
-		jobsToDelete.Remove(jobKey.ID)
-		if batchMetrics.Failed != 0 {
-			return errors.FirstError(
-				setCompletedWithFailuresStatus(jobKey),
-				deleteJobRuntimeResources(jobKey),
-			)
-		}
-
+	if jobSpec.TotalBatchCount == batchMetrics.Succeeded {
+		_jobsToDelete.Remove(jobKey.ID)
 		return errors.FirstError(
 			setSucceededStatus(jobKey),
 			deleteJobRuntimeResources(jobKey),
 		)
 	}
 
-	if jobsToDelete.Has(jobKey.ID) {
-		jobsToDelete.Remove(jobKey.ID)
+	// wait one more cycle for the success metrics to reach consistency
+	if _jobsToDelete.Has(jobKey.ID) {
+		_jobsToDelete.Remove(jobKey.ID)
 		return errors.FirstError(
-			writeToJobLogStream(jobKey, "unexpected job status because cluster state indicates job has completed but metrics indicate that job is still in progress"),
-			setUnexpectedErrorStatus(jobKey),
+			setCompletedWithFailuresStatus(jobKey),
 			deleteJobRuntimeResources(jobKey),
 		)
 	}
 
-	// Determine the status of the job in the next iteration to give time for cloudwatch metrics to settle down and determine if the job succeeded or failed
-	jobsToDelete.Add(jobKey.ID)
+	// It takes at least 20 seconds for a worker to exit after determining that the queue is empty.
+	// Queue metrics and cloud metrics both take a few seconds to achieve consistency.
+	// Wait one more cycle for the workers to exit and metrics to acheive consistency before determining job status.
+	_jobsToDelete.Add(jobKey.ID)
 
 	return nil
 }

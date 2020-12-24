@@ -47,7 +47,7 @@ function build_and_upload() {
 }
 
 function build_python {
-  pushd $ROOT/pkg/workloads/cortex/client
+  pushd $ROOT/pkg/cortex/client
   python setup.py sdist
 
   if [ "$upload" == "true" ]; then

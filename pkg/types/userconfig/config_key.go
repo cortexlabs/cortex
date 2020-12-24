@@ -34,9 +34,7 @@ const (
 	// Predictor
 	TypeKey                   = "type"
 	PathKey                   = "path"
-	ModelPathKey              = "model_path"
 	ServerSideBatchingKey     = "server_side_batching"
-	ModelsKey                 = "models"
 	PythonPathKey             = "python_path"
 	ImageKey                  = "image"
 	TensorFlowServingImageKey = "tensorflow_serving_image"
@@ -45,11 +43,16 @@ const (
 	LogLevelKey               = "log_level"
 	ConfigKey                 = "config"
 	EnvKey                    = "env"
-	SignatureKeyKey           = "signature_key"
+
+	// MultiModelReloading
+	MultiModelReloadingKey = "multi_model_reloading"
 
 	// MultiModels
+	ModelsKey              = "models"
+	ModelsPathKey          = "path"
 	ModelsPathsKey         = "paths"
 	ModelsDirKey           = "dir"
+	ModelsSignatureKeyKey  = "signature_key"
 	ModelsCacheSizeKey     = "cache_size"
 	ModelsDiskCacheSizeKey = "disk_cache_size"
 

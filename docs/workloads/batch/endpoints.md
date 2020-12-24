@@ -32,6 +32,11 @@ Submitting data in the request can be useful in the following scenarios:
 POST <batch_api_endpoint>:
 {
     "workers": <int>,         # the number of workers to allocate for this job (required)
+    "timeout": <int>,         # duration in seconds since the submission of a job before it is terminated (optional)
+    "sqs_dead_letter_queue": {      # specify a queue to redirect failed batches (optional)
+        "arn": <string>,            # arn of dead letter queue e.g. arn:aws:sqs:us-west-2:123456789:failed.fifo
+        "max_receive_count": <int>  # number of a times a batch is allowed to be handled by a worker before it is considered to be failed and transferred to the dead letter queue (must be >= 1)
+    },
     "item_list": {
         "items": [            # a list items that can be of any type (required)
             <any>,
@@ -52,6 +57,11 @@ RESPONSE:
     "config": {<string>: <any>},
     "api_id": <string>,
     "sqs_url": <string>,
+    "timeout": <int>,
+    "sqs_dead_letter_queue": {
+        "arn": <string>,
+        "max_receive_count": <int>
+    },
     "created_time": <string>  # e.g. 2020-07-16T14:56:10.276007415Z
 }
 ```
@@ -73,6 +83,11 @@ If a single S3 file contains a lot of samples/rows, try the next submission stra
 POST <batch_api_endpoint>:
 {
     "workers": <int>,            # the number of workers to allocate for this job (required)
+    "timeout": <int>,            # duration in seconds since the submission of a job before it is terminated (optional)
+    "sqs_dead_letter_queue": {      # specify a queue to redirect failed batches (optional)
+        "arn": <string>,            # arn of dead letter queue e.g. arn:aws:sqs:us-west-2:123456789:failed.fifo
+        "max_receive_count": <int>  # number of a times a batch is allowed to be handled by a worker before it is considered to be failed and transferred to the dead letter queue (must be >= 1)
+    },
     "file_path_lister": {
         "s3_paths": [<string>],  # can be S3 prefixes or complete S3 paths (required)
         "includes": [<string>],  # glob patterns (optional)
@@ -92,6 +107,11 @@ RESPONSE:
     "config": {<string>: <any>},
     "api_id": <string>,
     "sqs_url": <string>,
+    "timeout": <int>,
+    "sqs_dead_letter_queue": {
+        "arn": <string>,
+        "max_receive_count": <int>
+    },
     "created_time": <string>  # e.g. 2020-07-16T14:56:10.276007415Z
 }
 ```
@@ -112,6 +132,11 @@ This submission pattern is useful in the following scenarios:
 POST <batch_api_endpoint>:
 {
     "workers": <int>,            # the number of workers to allocate for this job (required)
+    "timeout": <int>,            # duration in seconds since the submission of a job before it is terminated (optional)
+    "sqs_dead_letter_queue": {      # specify a queue to redirect failed batches (optional)
+        "arn": <string>,            # arn of dead letter queue e.g. arn:aws:sqs:us-west-2:123456789:failed.fifo
+        "max_receive_count": <int>  # number of a times a batch is allowed to be handled by a worker before it is considered to be failed and transferred to the dead letter queue (must be >= 1)
+    },
     "delimited_files": {
         "s3_paths": [<string>],  # can be S3 prefixes or complete S3 paths (required)
         "includes": [<string>],  # glob patterns (optional)
@@ -131,6 +156,11 @@ RESPONSE:
     "config": {<string>: <any>},
     "api_id": <string>,
     "sqs_url": <string>,
+    "timeout": <int>,
+    "sqs_dead_letter_queue": {
+        "arn": <string>,
+        "max_receive_count": <int>
+    },
     "created_time": <string>  # e.g. 2020-07-16T14:56:10.276007415Z
 }
 ```
@@ -153,12 +183,12 @@ RESPONSE:
         "config": {<string>: <any>},
         "api_id": <string>,
         "sqs_url": <string>,
-        "status": <string>,   # will be one of the following values: status_unknown|status_enqueuing|status_running|status_enqueue_failed|status_completed_with_failures|status_succeeded|status_unexpected_error|status_worker_error|status_worker_oom|status_stopped
+        "status": <string>,   # will be one of the following values: status_unknown|status_enqueuing|status_running|status_enqueue_failed|status_completed_with_failures|status_succeeded|status_unexpected_error|status_worker_error|status_worker_oom|status_timed_out|status_stopped
         "batches_in_queue": <int>        # number of batches remaining in the queue
         "batch_metrics": {
             "succeeded": <int>           # number of succeeded batches
-            "failed": int                # number of failed batches
-            "avg_time_per_batch": <float> (optional)  # only available if batches have been completed
+            "failed": int                # number of failed attempts
+            "avg_time_per_batch": <float> (optional)  # average time spent working on a batch (only considers successful attempts)
         },
         "worker_counts": {               # worker counts are only available while a job is running
             "pending": <int>,            # number of workers that are waiting for compute resources to be provisioned

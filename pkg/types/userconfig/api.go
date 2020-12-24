@@ -45,11 +45,12 @@ type API struct {
 }
 
 type Predictor struct {
-	Type                   PredictorType          `json:"type" yaml:"type"`
-	Path                   string                 `json:"path" yaml:"path"`
-	ModelPath              *string                `json:"model_path" yaml:"model_path"`
-	SignatureKey           *string                `json:"signature_key" yaml:"signature_key"`
-	Models                 *MultiModels           `json:"models" yaml:"models"`
+	Type PredictorType `json:"type" yaml:"type"`
+	Path string        `json:"path" yaml:"path"`
+
+	MultiModelReloading *MultiModels `json:"multi_model_reloading" yaml:"multi_model_reloading"`
+	Models              *MultiModels `json:"models" yaml:"models"`
+
 	ServerSideBatching     *ServerSideBatching    `json:"server_side_batching" yaml:"server_side_batching"`
 	ProcessesPerReplica    int32                  `json:"processes_per_replica" yaml:"processes_per_replica"`
 	ThreadsPerProcess      int32                  `json:"threads_per_process" yaml:"threads_per_process"`
@@ -62,6 +63,7 @@ type Predictor struct {
 }
 
 type MultiModels struct {
+	Path          *string          `json:"path" yaml:"path"`
 	Paths         []*ModelResource `json:"paths" yaml:"paths"`
 	Dir           *string          `json:"dir" yaml:"dir"`
 	CacheSize     *int32           `json:"cache_size" yaml:"cache_size"`
@@ -76,7 +78,7 @@ type TrafficSplit struct {
 
 type ModelResource struct {
 	Name         string  `json:"name" yaml:"name"`
-	ModelPath    string  `json:"model_path" yaml:"model_path"`
+	Path         string  `json:"path" yaml:"path"`
 	SignatureKey *string `json:"signature_key" yaml:"signature_key"`
 }
 
@@ -331,19 +333,21 @@ func (api *API) UserStr(provider types.ProviderType) string {
 	}
 
 	if provider != types.LocalProviderType {
-		if api.Monitoring != nil {
-			sb.WriteString(fmt.Sprintf("%s:\n", MonitoringKey))
-			sb.WriteString(s.Indent(api.Monitoring.UserStr(), "  "))
-		}
-
 		if api.Autoscaling != nil {
 			sb.WriteString(fmt.Sprintf("%s:\n", AutoscalingKey))
-			sb.WriteString(s.Indent(api.Autoscaling.UserStr(), "  "))
+			sb.WriteString(s.Indent(api.Autoscaling.UserStr(provider), "  "))
 		}
 
 		if api.UpdateStrategy != nil {
 			sb.WriteString(fmt.Sprintf("%s:\n", UpdateStrategyKey))
 			sb.WriteString(s.Indent(api.UpdateStrategy.UserStr(), "  "))
+		}
+
+		if provider == types.AWSProviderType {
+			if api.Monitoring != nil {
+				sb.WriteString(fmt.Sprintf("%s:\n", MonitoringKey))
+				sb.WriteString(s.Indent(api.Monitoring.UserStr(), "  "))
+			}
 		}
 	}
 	return sb.String()
@@ -362,15 +366,13 @@ func (predictor *Predictor) UserStr() string {
 	sb.WriteString(fmt.Sprintf("%s: %s\n", TypeKey, predictor.Type))
 	sb.WriteString(fmt.Sprintf("%s: %s\n", PathKey, predictor.Path))
 
-	if predictor.ModelPath != nil {
-		sb.WriteString(fmt.Sprintf("%s: %s\n", ModelPathKey, *predictor.ModelPath))
-	}
-	if predictor.ModelPath == nil && predictor.Models != nil {
+	if predictor.Models != nil {
 		sb.WriteString(fmt.Sprintf("%s:\n", ModelsKey))
 		sb.WriteString(s.Indent(predictor.Models.UserStr(), "  "))
 	}
-	if predictor.SignatureKey != nil {
-		sb.WriteString(fmt.Sprintf("%s: %s\n", SignatureKeyKey, *predictor.SignatureKey))
+	if predictor.MultiModelReloading != nil {
+		sb.WriteString(fmt.Sprintf("%s:\n", MultiModelReloadingKey))
+		sb.WriteString(s.Indent(predictor.MultiModelReloading.UserStr(), "  "))
 	}
 
 	if predictor.Type == TensorFlowPredictorType && predictor.ServerSideBatching != nil {
@@ -407,15 +409,17 @@ func (predictor *Predictor) UserStr() string {
 func (models *MultiModels) UserStr() string {
 	var sb strings.Builder
 
-	if models.Dir != nil {
-		sb.WriteString(fmt.Sprintf("%s: %s\n", ModelsDirKey, *models.Dir))
-	} else if len(models.Paths) > 0 {
+	if len(models.Paths) > 0 {
 		sb.WriteString(fmt.Sprintf("%s:\n", ModelsPathsKey))
 		for _, model := range models.Paths {
 			modelUserStr := s.Indent(model.UserStr(), "    ")
 			modelUserStr = modelUserStr[:2] + "-" + modelUserStr[3:]
 			sb.WriteString(modelUserStr)
 		}
+	} else if models.Path != nil {
+		sb.WriteString(fmt.Sprintf("%s: %s\n", ModelsPathKey, *models.Path))
+	} else {
+		sb.WriteString(fmt.Sprintf("%s: %s\n", ModelsDirKey, *models.Dir))
 	}
 	if models.SignatureKey != nil {
 		sb.WriteString(fmt.Sprintf("%s: %s\n", ModelsDirKey, *models.SignatureKey))
@@ -432,9 +436,9 @@ func (models *MultiModels) UserStr() string {
 func (model *ModelResource) UserStr() string {
 	var sb strings.Builder
 	sb.WriteString(fmt.Sprintf("%s: %s\n", ModelsNameKey, model.Name))
-	sb.WriteString(fmt.Sprintf("%s: %s\n", ModelPathKey, model.ModelPath))
+	sb.WriteString(fmt.Sprintf("%s: %s\n", ModelsPathKey, model.Path))
 	if model.SignatureKey != nil {
-		sb.WriteString(fmt.Sprintf("%s: %s\n", SignatureKeyKey, *model.SignatureKey))
+		sb.WriteString(fmt.Sprintf("%s: %s\n", ModelsSignatureKeyKey, *model.SignatureKey))
 	}
 	return sb.String()
 }
@@ -460,7 +464,7 @@ func (networking *Networking) UserStr(provider types.ProviderType) string {
 	if provider == types.LocalProviderType && networking.LocalPort != nil {
 		sb.WriteString(fmt.Sprintf("%s: %d\n", LocalPortKey, *networking.LocalPort))
 	}
-	if provider == types.AWSProviderType && networking.Endpoint != nil {
+	if provider != types.LocalProviderType && networking.Endpoint != nil {
 		sb.WriteString(fmt.Sprintf("%s: %s\n", EndpointKey, *networking.Endpoint))
 	}
 	if provider == types.AWSProviderType {
@@ -540,20 +544,24 @@ func (compute Compute) Equals(c2 *Compute) bool {
 	return true
 }
 
-func (autoscaling *Autoscaling) UserStr() string {
+func (autoscaling *Autoscaling) UserStr(provider types.ProviderType) string {
 	var sb strings.Builder
 	sb.WriteString(fmt.Sprintf("%s: %s\n", MinReplicasKey, s.Int32(autoscaling.MinReplicas)))
 	sb.WriteString(fmt.Sprintf("%s: %s\n", MaxReplicasKey, s.Int32(autoscaling.MaxReplicas)))
 	sb.WriteString(fmt.Sprintf("%s: %s\n", InitReplicasKey, s.Int32(autoscaling.InitReplicas)))
-	sb.WriteString(fmt.Sprintf("%s: %s\n", TargetReplicaConcurrencyKey, s.Float64(*autoscaling.TargetReplicaConcurrency)))
 	sb.WriteString(fmt.Sprintf("%s: %s\n", MaxReplicaConcurrencyKey, s.Int64(autoscaling.MaxReplicaConcurrency)))
-	sb.WriteString(fmt.Sprintf("%s: %s\n", WindowKey, autoscaling.Window.String()))
-	sb.WriteString(fmt.Sprintf("%s: %s\n", DownscaleStabilizationPeriodKey, autoscaling.DownscaleStabilizationPeriod.String()))
-	sb.WriteString(fmt.Sprintf("%s: %s\n", UpscaleStabilizationPeriodKey, autoscaling.UpscaleStabilizationPeriod.String()))
-	sb.WriteString(fmt.Sprintf("%s: %s\n", MaxDownscaleFactorKey, s.Float64(autoscaling.MaxDownscaleFactor)))
-	sb.WriteString(fmt.Sprintf("%s: %s\n", MaxUpscaleFactorKey, s.Float64(autoscaling.MaxUpscaleFactor)))
-	sb.WriteString(fmt.Sprintf("%s: %s\n", DownscaleToleranceKey, s.Float64(autoscaling.DownscaleTolerance)))
-	sb.WriteString(fmt.Sprintf("%s: %s\n", UpscaleToleranceKey, s.Float64(autoscaling.UpscaleTolerance)))
+
+	if provider == types.AWSProviderType {
+		sb.WriteString(fmt.Sprintf("%s: %s\n", TargetReplicaConcurrencyKey, s.Float64(*autoscaling.TargetReplicaConcurrency)))
+		sb.WriteString(fmt.Sprintf("%s: %s\n", WindowKey, autoscaling.Window.String()))
+		sb.WriteString(fmt.Sprintf("%s: %s\n", DownscaleStabilizationPeriodKey, autoscaling.DownscaleStabilizationPeriod.String()))
+		sb.WriteString(fmt.Sprintf("%s: %s\n", UpscaleStabilizationPeriodKey, autoscaling.UpscaleStabilizationPeriod.String()))
+		sb.WriteString(fmt.Sprintf("%s: %s\n", MaxDownscaleFactorKey, s.Float64(autoscaling.MaxDownscaleFactor)))
+		sb.WriteString(fmt.Sprintf("%s: %s\n", MaxUpscaleFactorKey, s.Float64(autoscaling.MaxUpscaleFactor)))
+		sb.WriteString(fmt.Sprintf("%s: %s\n", DownscaleToleranceKey, s.Float64(autoscaling.DownscaleTolerance)))
+		sb.WriteString(fmt.Sprintf("%s: %s\n", UpscaleToleranceKey, s.Float64(autoscaling.UpscaleTolerance)))
+	}
+
 	return sb.String()
 }
 
@@ -627,12 +635,6 @@ func (api *API) TelemetryEvent(provider types.ProviderType) map[string]interface
 		event["predictor.threads_per_process"] = api.Predictor.ThreadsPerProcess
 		event["predictor.log_level"] = api.Predictor.LogLevel
 
-		if api.Predictor.ModelPath != nil {
-			event["predictor.model_path._is_defined"] = true
-		}
-		if api.Predictor.SignatureKey != nil {
-			event["predictor.signature_key._is_defined"] = true
-		}
 		if api.Predictor.PythonPath != nil {
 			event["predictor.python_path._is_defined"] = true
 		}
@@ -651,31 +653,42 @@ func (api *API) TelemetryEvent(provider types.ProviderType) map[string]interface
 			event["predictor.env._len"] = len(api.Predictor.Env)
 		}
 
+		var models *MultiModels
 		if api.Predictor.Models != nil {
+			models = api.Predictor.Models
+		}
+		if api.Predictor.MultiModelReloading != nil {
+			models = api.Predictor.MultiModelReloading
+		}
+
+		if models != nil {
 			event["predictor.models._is_defined"] = true
-			if len(api.Predictor.Models.Paths) > 0 {
+			if models.Path != nil {
+				event["predictor.models.path._is_defined"] = true
+			}
+			if len(models.Paths) > 0 {
 				event["predictor.models.paths._is_defined"] = true
-				event["predictor.models.paths._len"] = len(api.Predictor.Models.Paths)
+				event["predictor.models.paths._len"] = len(models.Paths)
 				var numSignatureKeysDefined int
-				for _, mmPath := range api.Predictor.Models.Paths {
+				for _, mmPath := range models.Paths {
 					if mmPath.SignatureKey != nil {
 						numSignatureKeysDefined++
 					}
 				}
 				event["predictor.models.paths._num_signature_keys_defined"] = numSignatureKeysDefined
 			}
-			if api.Predictor.Models.Dir != nil {
+			if models.Dir != nil {
 				event["predictor.models.dir._is_defined"] = true
 			}
-			if api.Predictor.Models.CacheSize != nil {
+			if models.CacheSize != nil {
 				event["predictor.models.cache_size._is_defined"] = true
-				event["predictor.models.cache_size"] = *api.Predictor.Models.CacheSize
+				event["predictor.models.cache_size"] = *models.CacheSize
 			}
-			if api.Predictor.Models.DiskCacheSize != nil {
+			if models.DiskCacheSize != nil {
 				event["predictor.models.disk_cache_size._is_defined"] = true
-				event["predictor.models.disk_cache_size"] = *api.Predictor.Models.DiskCacheSize
+				event["predictor.models.disk_cache_size"] = *models.DiskCacheSize
 			}
-			if api.Predictor.Models.SignatureKey != nil {
+			if models.SignatureKey != nil {
 				event["predictor.models.signature_key._is_defined"] = true
 			}
 		}

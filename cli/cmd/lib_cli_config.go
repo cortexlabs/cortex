@@ -112,114 +112,6 @@ var _cliConfigValidation = &cr.StructValidation{
 	},
 }
 
-// This is a copy of _cliConfigValidation except for Provider; it can be deleted when removing the old CLI config conversion check
-var _oldCLIConfigValidation = &cr.StructValidation{
-	TreatNullAsEmpty: true,
-	StructFieldValidations: []*cr.StructFieldValidation{
-		{
-			StructField: "Telemetry",
-			BoolPtrValidation: &cr.BoolPtrValidation{
-				Required: false,
-			},
-		},
-		{
-			StructField: "DefaultEnvironment",
-			StringValidation: &cr.StringValidation{
-				Default:    "local",
-				Required:   false,
-				AllowEmpty: true, // will get set to "local" in validate() if empty
-			},
-		},
-		{
-			StructField: "Environments",
-			StructListValidation: &cr.StructListValidation{
-				AllowExplicitNull: true,
-				StructValidation: &cr.StructValidation{
-					StructFieldValidations: []*cr.StructFieldValidation{
-						{
-							StructField: "Name",
-							StringValidation: &cr.StringValidation{
-								Required:  true,
-								MaxLength: 63,
-							},
-						},
-						{
-							StructField: "Provider",
-							StringValidation: &cr.StringValidation{
-								Required:   false,
-								AllowEmpty: true,
-							},
-							Parser: func(str string) (interface{}, error) {
-								return types.ProviderTypeFromString(str), nil
-							},
-						},
-						{
-							StructField: "OperatorEndpoint",
-							StringPtrValidation: &cr.StringPtrValidation{
-								Required:  false,
-								Validator: cr.GetURLValidator(false, false),
-							},
-						},
-						{
-							StructField: "AWSAccessKeyID",
-							StringPtrValidation: &cr.StringPtrValidation{
-								Required: false,
-							},
-						},
-						{
-							StructField: "AWSSecretAccessKey",
-							StringPtrValidation: &cr.StringPtrValidation{
-								Required: false,
-							},
-						},
-					},
-				},
-			},
-		},
-	},
-}
-
-// this checks for the old CLI configuration schema and updates it to the new one
-// can be removed for 0.23 or 0.24 release
-func convertOldCLIConfig() (cliconfig.CLIConfig, bool) {
-	cliConfig := cliconfig.CLIConfig{}
-	errs := cr.ParseYAMLFile(&cliConfig, _oldCLIConfigValidation, _cliConfigPath)
-	if errors.HasError(errs) {
-		return cliconfig.CLIConfig{}, false
-	}
-
-	if cliConfig.Telemetry != nil && *cliConfig.Telemetry == true {
-		cliConfig.Telemetry = nil
-	}
-
-	var hasEnvNamedAWS bool
-	for _, env := range cliConfig.Environments {
-		if env.Name == types.AWSProviderType.String() {
-			hasEnvNamedAWS = true
-			break
-		}
-	}
-
-	for _, env := range cliConfig.Environments {
-		if env.Name == "default" && !hasEnvNamedAWS {
-			env.Name = types.AWSProviderType.String()
-		}
-
-		// if provider is set, this is not an old CLI config
-		if env.Provider != types.UnknownProviderType {
-			return cliconfig.CLIConfig{}, false
-		}
-
-		env.Provider = types.AWSProviderType
-	}
-
-	if err := writeCLIConfig(cliConfig); err != nil {
-		return cliconfig.CLIConfig{}, false
-	}
-
-	return cliConfig, true
-}
-
 func promptForExistingEnvName(promptMsg string) string {
 	configuredEnvNames, err := listConfiguredEnvNames()
 	if err != nil {
@@ -806,7 +698,7 @@ func configureEnv(envName string, fieldsToSkipPrompt cliconfig.Environment) (cli
 		return cliconfig.Environment{}, err
 	}
 
-	if err := addEnvToCLIConfig(env); err != nil {
+	if err := addEnvToCLIConfig(env, false); err != nil {
 		return cliconfig.Environment{}, err
 	}
 
@@ -947,7 +839,7 @@ func isEnvConfigured(envName string) (bool, error) {
 	return false, nil
 }
 
-func addEnvToCLIConfig(newEnv cliconfig.Environment) error {
+func addEnvToCLIConfig(newEnv cliconfig.Environment, setAsDefault bool) error {
 	cliConfig, err := readCLIConfig()
 	if err != nil {
 		return errors.Wrap(err, "unable to configure cli environment")
@@ -964,6 +856,10 @@ func addEnvToCLIConfig(newEnv cliconfig.Environment) error {
 
 	if !replaced {
 		cliConfig.Environments = append(cliConfig.Environments, &newEnv)
+	}
+
+	if setAsDefault {
+		cliConfig.DefaultEnvironment = newEnv.Name
 	}
 
 	if err := writeCLIConfig(cliConfig); err != nil {
@@ -1057,11 +953,7 @@ func readCLIConfig() (cliconfig.CLIConfig, error) {
 	cliConfig := cliconfig.CLIConfig{}
 	errs := cr.ParseYAMLFile(&cliConfig, _cliConfigValidation, _cliConfigPath)
 	if errors.HasError(errs) {
-		var succeeded bool
-		cliConfig, succeeded = convertOldCLIConfig()
-		if !succeeded {
-			return cliconfig.CLIConfig{}, errors.FirstError(errs...)
-		}
+		return cliconfig.CLIConfig{}, errors.FirstError(errs...)
 	}
 
 	if err := cliConfig.Validate(); err != nil {

@@ -182,15 +182,15 @@ var _clusterGCPUpCmd = &cobra.Command{
 			OperatorEndpoint: &operatorLoadBalancerIP,
 		}
 
-		err = addEnvToCLIConfig(newEnvironment)
+		err = addEnvToCLIConfig(newEnvironment, true)
 		if err != nil {
 			exit.Error(errors.Append(err, fmt.Sprintf("\n\nyou can attempt to resolve this issue and configure your cli environment by running `cortex cluster info --configure-env %s`", _flagClusterGCPUpEnv)))
 		}
 
 		if envExists {
-			fmt.Printf(console.Bold("\nthe environment named \"%s\" has been updated to point to this cluster; append `--env %s` to cortex commands to use this cluster (e.g. `cortex deploy --env %s`), or set it as your default with `cortex env default %s`\n"), _flagClusterGCPUpEnv, _flagClusterGCPUpEnv, _flagClusterGCPUpEnv, _flagClusterGCPUpEnv)
+			fmt.Printf(console.Bold("\nthe environment named \"%s\" has been updated to point to this cluster (and was set as the default environment)\n"), _flagClusterGCPUpEnv)
 		} else {
-			fmt.Printf(console.Bold("\nan environment named \"%s\" has been configured to point to this cluster; append `--env %s` to cortex commands to use this cluster (e.g. `cortex deploy --env %s`), or set it as your default with `cortex env default %s`\n"), _flagClusterGCPUpEnv, _flagClusterGCPUpEnv, _flagClusterGCPUpEnv, _flagClusterGCPUpEnv)
+			fmt.Printf(console.Bold("\nan environment named \"%s\" has been configured to point to this cluster (and was set as the default environment)\n"), _flagClusterGCPUpEnv)
 		}
 	},
 }
@@ -402,15 +402,15 @@ func updateGCPCLIEnv(envName string, operatorEndpoint string, disallowPrompt boo
 	}
 
 	if shouldWriteEnv {
-		err := addEnvToCLIConfig(newEnvironment)
+		err := addEnvToCLIConfig(newEnvironment, true)
 		if err != nil {
 			return err
 		}
 
 		if envWasUpdated {
-			fmt.Printf(console.Bold("the environment named \"%s\" has been updated to point to this cluster; append `--env %s` to cortex commands to use this cluster (e.g. `cortex deploy --env %s`), or set it as your default with `cortex env default %s`\n"), envName, envName, envName, envName)
+			fmt.Printf(console.Bold("the environment named \"%s\" has been updated to point to this cluster (and was set as the default environment)\n"), envName)
 		} else {
-			fmt.Printf(console.Bold("an environment named \"%s\" has been configured to point to this cluster; append `--env %s` to cortex commands to use this cluster (e.g. `cortex deploy --env %s`), or set it as your default with `cortex env default %s`\n"), envName, envName, envName, envName)
+			fmt.Printf(console.Bold("an environment named \"%s\" has been configured to point to this cluster (and was set as the default environment)\n"), envName)
 		}
 	}
 

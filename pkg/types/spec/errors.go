@@ -37,6 +37,7 @@ const (
 	ErrDuplicateEndpointInOneDeploy = "spec.duplicate_endpoint_in_one_deploy"
 	ErrDuplicateEndpoint            = "spec.duplicate_endpoint"
 	ErrConflictingFields            = "spec.conflicting_fields"
+	ErrSpecifyOnlyOneField          = "spec.specify_only_one_field"
 	ErrSpecifyOneOrTheOther         = "spec.specify_one_or_the_other"
 	ErrSpecifyAllOrNone             = "spec.specify_all_or_none"
 	ErrOneOfPrerequisitesNotDefined = "spec.one_of_prerequisites_not_defined"
@@ -64,8 +65,8 @@ const (
 	ErrInvalidPythonModelPath     = "spec.invalid_python_model_path"
 	ErrInvalidTensorFlowModelPath = "spec.invalid_tensorflow_model_path"
 	ErrInvalidONNXModelPath       = "spec.invalid_onnx_model_path"
+	ErrInvalidONNXModelFilePath   = "spec.invalid_onnx_model_file_path"
 
-	ErrMissingModel        = "spec.missing_model"
 	ErrDuplicateModelNames = "spec.duplicate_model_names"
 	ErrReservedModelName   = "spec.reserved_model_name"
 
@@ -145,6 +146,13 @@ func ErrorConflictingFields(fieldKeyA, fieldKeyB string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrConflictingFields,
 		Message: fmt.Sprintf("please specify either the %s or %s field (both cannot be specified at the same time)", fieldKeyA, fieldKeyB),
+	})
+}
+
+func ErrorSpecifyOnlyOneField(fields ...string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrSpecifyOnlyOneField,
+		Message: fmt.Sprintf("please specify only one of the following fields %s", s.UserStrsOr(fields)),
 	})
 }
 
@@ -431,10 +439,14 @@ func ErrorInvalidONNXModelPath(modelPath string, modelSubPaths []string) error {
 	})
 }
 
-func ErrorMissingModel(predictorType userconfig.PredictorType) error {
+func ErrorInvalidONNXModelFilePath(filePath string) error {
+	message := fmt.Sprintf("%s: invalid %s model file path; specify an ONNX file path or provide a directory with one of the following structures:\n", filePath, userconfig.ONNXPredictorType.CasedString())
+	templateModelPath := "path/to/model/directory/"
+	message += fmt.Sprintf(_onnxVersionedExpectedStructMessage, templateModelPath, templateModelPath)
+
 	return errors.WithStack(&errors.Error{
-		Kind:    ErrMissingModel,
-		Message: fmt.Sprintf("at least one model must be specified for the %s predictor type; use fields %s.%s or %s.%s to add model(s)", predictorType, userconfig.PredictorKey, userconfig.ModelPathKey, userconfig.PredictorKey, userconfig.ModelsKey),
+		Kind:    ErrInvalidONNXModelFilePath,
+		Message: message,
 	})
 }
 

@@ -18,13 +18,17 @@ package schema
 
 const (
 	// Job Submission
-	BatchSizeKey      = "batch_size"
-	ItemsKey          = "items"
-	ItemListKey       = "item_list"
-	FilePathListerKey = "file_path_lister"
-	DelimitedFilesKey = "delimited_files"
-	S3PathsKey        = "s3_paths"
-	IncludesKey       = "includes"
-	ExcludesKey       = "excludes"
-	WorkersKey        = "workers"
+	BatchSizeKey          = "batch_size"
+	ItemsKey              = "items"
+	ItemListKey           = "item_list"
+	FilePathListerKey     = "file_path_lister"
+	DelimitedFilesKey     = "delimited_files"
+	S3PathsKey            = "s3_paths"
+	IncludesKey           = "includes"
+	ExcludesKey           = "excludes"
+	WorkersKey            = "workers"
+	TimeoutKey            = "timeout"
+	MaxReceiveCountKey    = "max_receive_count"
+	ARNKey                = "arn"
+	SQSDeadLetterQueueKey = "sqs_dead_letter_queue"
 )

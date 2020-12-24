@@ -98,7 +98,7 @@ func getAPIEnv(api *spec.API, awsClient *aws.Client, gcpClient *gcp.Client) []st
 		"CORTEX_LOG_LEVEL="+strings.ToUpper(api.Predictor.LogLevel.String()),
 	)
 
-	if api.Predictor.ModelPath != nil || api.Predictor.Models != nil {
+	if api.Predictor.Type != userconfig.PythonPredictorType || api.Predictor.MultiModelReloading != nil {
 		envs = append(envs, "CORTEX_MODEL_DIR="+_modelDir)
 	}
 

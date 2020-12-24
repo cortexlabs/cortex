@@ -235,7 +235,7 @@ func patchAPI(apiConfig *userconfig.API, configFileName string, force bool) (*sp
 	}
 
 	if deployedResource.Kind != userconfig.TrafficSplitterKind {
-		bytes, err := config.AWS.ReadBytesFromS3(config.Cluster.Bucket, prevAPISpec.ProjectKey)
+		bytes, err := config.ReadBytesFromBucket(prevAPISpec.ProjectKey)
 		if err != nil {
 			return nil, "", err
 		}
@@ -293,10 +293,16 @@ func DeleteAPI(apiName string, keepCache bool) (*schema.DeleteResponse, error) {
 					return realtimeapi.DeleteAPI(apiName, keepCache)
 				},
 				func() error {
-					return batchapi.DeleteAPI(apiName, keepCache)
+					if config.Provider == types.AWSProviderType {
+						return batchapi.DeleteAPI(apiName, keepCache)
+					}
+					return nil
 				},
 				func() error {
-					return trafficsplitter.DeleteAPI(apiName, keepCache)
+					if config.Provider == types.AWSProviderType {
+						return trafficsplitter.DeleteAPI(apiName, keepCache)
+					}
+					return nil
 				},
 			)
 			if err != nil {

@@ -23,14 +23,16 @@ import (
 	"github.com/aws/aws-sdk-go/service/sqs"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
+	"github.com/cortexlabs/cortex/pkg/types/spec"
 )
 
 const (
-	_messageSizeLimit    = 256 * 1024
+	_messageSizeLimit    = 250 * 1024 // normally its 256 * 1024 but reserve 6k for message attributes
 	_maxMessagesPerBatch = 10
 )
 
 type sqsBatchUploader struct {
+	messageAttributes    map[string]*sqs.MessageAttributeValue
 	queueURL             string
 	retries              int // default 3 times
 	messageList          []*sqs.SendMessageBatchRequestEntry
@@ -39,8 +41,20 @@ type sqsBatchUploader struct {
 	TotalBatches         int
 }
 
-func newSQSBatchUploader(queueURL string) *sqsBatchUploader {
+func newSQSBatchUploader(queueURL string, jobKey spec.JobKey) *sqsBatchUploader {
+	messageAttributes := map[string]*sqs.MessageAttributeValue{
+		"api_name": {
+			DataType:    aws.String("String"),
+			StringValue: aws.String(jobKey.APIName),
+		},
+		"job_id": {
+			DataType:    aws.String("String"),
+			StringValue: aws.String(jobKey.ID),
+		},
+	}
+
 	return &sqsBatchUploader{
+		messageAttributes:    messageAttributes,
 		queueURL:             queueURL,
 		retries:              3,
 		messageIDToListIndex: map[string]int{},
@@ -53,6 +67,7 @@ func (uploader *sqsBatchUploader) AddToBatch(id string, body *string) error {
 	}
 
 	message := &sqs.SendMessageBatchRequestEntry{
+		MessageAttributes:      uploader.messageAttributes,
 		Id:                     aws.String(id),
 		MessageBody:            body,
 		MessageDeduplicationId: aws.String(id), // prevent content based deduping

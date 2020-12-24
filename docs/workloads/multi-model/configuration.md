@@ -14,7 +14,8 @@ The directory `s3://cortex-examples/sklearn/mpg-estimator/linreg/` contains 4 di
   predictor:
     type: python
     path: predictor.py
-    model_path: s3://cortex-examples/sklearn/mpg-estimator/linreg/
+    models:
+      path: s3://cortex-examples/sklearn/mpg-estimator/linreg/
 ```
 
 #### `predictor.py`
@@ -94,11 +95,11 @@ class PythonPredictor:
     models:
       paths:
         - name: inception
-          model_path: s3://cortex-examples/tensorflow/image-classifier/inception/
+          path: s3://cortex-examples/tensorflow/image-classifier/inception/
         - name: iris
-          model_path: s3://cortex-examples/tensorflow/iris-classifier/nn/
+          path: s3://cortex-examples/tensorflow/iris-classifier/nn/
         - name: resnet50
-          model_path: s3://cortex-examples/tensorflow/resnet50/
+          path: s3://cortex-examples/tensorflow/resnet50/
       ...
 ```
 
@@ -130,11 +131,11 @@ class TensorFlowPredictor:
     models:
       paths:
         - name: resnet50
-          model_path: s3://cortex-examples/onnx/resnet50/
+          path: s3://cortex-examples/onnx/resnet50/
         - name: mobilenet
-          model_path: s3://cortex-examples/onnx/mobilenet/
+          path: s3://cortex-examples/onnx/mobilenet/
         - name: shufflenet
-          model_path: s3://cortex-examples/onnx/shufflenet/
+          path: s3://cortex-examples/onnx/shufflenet/
       ...
 ```
 

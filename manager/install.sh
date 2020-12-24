@@ -107,6 +107,8 @@ function cluster_up_gcp() {
   gcloud auth activate-service-account --key-file $GOOGLE_APPLICATION_CREDENTIALS > /dev/null 2>&1
   gcloud container clusters get-credentials $CORTEX_CLUSTER_NAME --project $CORTEX_GCP_PROJECT --region $CORTEX_GCP_ZONE > /dev/null 2>&1 # write both stderr and stdout to dev/null
 
+  start_pre_download_images
+
   echo -n "￮ updating cluster configuration "
   setup_configmap_gcp
   setup_secrets_gcp
@@ -127,6 +129,8 @@ function cluster_up_gcp() {
   restart_operator
 
   validate_cortex_gcp
+
+  await_pre_download_images
 
   echo -e "\ncortex is ready!"
 
@@ -470,7 +474,7 @@ function start_pre_download_images() {
   export CORTEX_IMAGE_TENSORFLOW_SERVING_INF="${registry}/tensorflow-serving-inf:${tag}"
   export CORTEX_IMAGE_TENSORFLOW_PREDICTOR="${registry}/tensorflow-predictor:${tag}"
 
-  if [[ "$CORTEX_INSTANCE_TYPE" == p* ]] || [[ "$CORTEX_INSTANCE_TYPE" == g* ]]; then
+  if [[ "$CORTEX_INSTANCE_TYPE" == p* ]] || [[ "$CORTEX_INSTANCE_TYPE" == g* ]] || [ -n "$CORTEX_ACCELERATOR_TYPE" ]; then
     envsubst < manifests/image-downloader-gpu.yaml | kubectl apply -f - &>/dev/null
   elif [[ "$CORTEX_INSTANCE_TYPE" == inf* ]]; then
     envsubst < manifests/image-downloader-inf.yaml | kubectl apply -f - &>/dev/null
@@ -485,7 +489,7 @@ function await_pre_download_images() {
     printed_dot="false"
     i=0
     until [ "$(kubectl get daemonset image-downloader -n=default -o 'jsonpath={.status.numberReady}')" == "$(kubectl get daemonset image-downloader -n=default -o 'jsonpath={.status.desiredNumberScheduled}')" ]; do
-      if [ $i -eq 100 ]; then break; fi  # give up after 5 minutes
+      if [ $i -eq 120 ]; then break; fi  # give up after 6 minutes
       echo -n "."
       printed_dot="true"
       ((i=i+1))

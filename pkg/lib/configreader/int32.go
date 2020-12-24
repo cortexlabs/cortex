@@ -27,22 +27,23 @@ import (
 )
 
 type Int32Validation struct {
-	Required             bool
-	Default              int32
-	TreatNullAsZero      bool // `<field>: ` and `<field>: null` will be read as `<field>: 0`
-	AllowedValues        []int32
-	DisallowedValues     []int32
-	GreaterThan          *int32
-	GreaterThanOrEqualTo *int32
-	LessThan             *int32
-	LessThanOrEqualTo    *int32
-	Validator            func(int32) (int32, error)
+	Required              bool
+	Default               int32
+	TreatNullAsZero       bool // `<field>: ` and `<field>: null` will be read as `<field>: 0`
+	AllowedValues         []int32
+	DisallowedValues      []int32
+	CantBeSpecifiedErrStr *string
+	GreaterThan           *int32
+	GreaterThanOrEqualTo  *int32
+	LessThan              *int32
+	LessThanOrEqualTo     *int32
+	Validator             func(int32) (int32, error)
 }
 
 func Int32(inter interface{}, v *Int32Validation) (int32, error) {
 	if inter == nil {
 		if v.TreatNullAsZero {
-			return ValidateInt32(0, v)
+			return ValidateInt32Provided(0, v)
 		}
 		return 0, ErrorCannotBeNull(v.Required)
 	}
@@ -50,7 +51,7 @@ func Int32(inter interface{}, v *Int32Validation) (int32, error) {
 	if !castOk {
 		return 0, ErrorInvalidPrimitiveType(inter, PrimTypeInt)
 	}
-	return ValidateInt32(casted, v)
+	return ValidateInt32Provided(casted, v)
 }
 
 func Int32FromInterfaceMap(key string, iMap map[string]interface{}, v *Int32Validation) (int32, error) {
@@ -93,7 +94,7 @@ func Int32FromStr(valStr string, v *Int32Validation) (int32, error) {
 	if !castOk {
 		return 0, ErrorInvalidPrimitiveType(valStr, PrimTypeInt)
 	}
-	return ValidateInt32(casted, v)
+	return ValidateInt32Provided(casted, v)
 }
 
 func Int32FromEnv(envVarName string, v *Int32Validation) (int32, error) {
@@ -161,10 +162,17 @@ func ValidateInt32Missing(v *Int32Validation) (int32, error) {
 	if v.Required {
 		return 0, ErrorMustBeDefined(v.AllowedValues)
 	}
-	return ValidateInt32(v.Default, v)
+	return validateInt32(v.Default, v)
 }
 
-func ValidateInt32(val int32, v *Int32Validation) (int32, error) {
+func ValidateInt32Provided(val int32, v *Int32Validation) (int32, error) {
+	if v.CantBeSpecifiedErrStr != nil {
+		return 0, ErrorFieldCantBeSpecified(*v.CantBeSpecifiedErrStr)
+	}
+	return validateInt32(val, v)
+}
+
+func validateInt32(val int32, v *Int32Validation) (int32, error) {
 	err := ValidateInt32Val(val, v)
 	if err != nil {
 		return 0, err

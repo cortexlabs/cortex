@@ -110,7 +110,8 @@ func (env *Environment) Validate() error {
 			return errors.Wrap(cr.ErrorMustBeDefined(), env.Name, AWSSecretAccessKeyKey)
 		}
 		if env.AWSRegion != nil {
-			return errors.Wrap(cr.ErrorMustBeEmpty(), env.Name, AWSRegionKey)
+			err := errors.Append(cr.ErrorMustBeEmpty(), " (it's only used for the local environment, since it can be inferred in aws)")
+			return errors.Wrap(err, env.Name, AWSRegionKey)
 		}
 	}
 

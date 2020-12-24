@@ -63,6 +63,9 @@ func runManager(containerConfig *container.Config, addNewLineAfterPull bool, cop
 
 	pulledImage, err := docker.PullImage(containerConfig.Image, docker.NoAuth, docker.PrintDots)
 	if err != nil {
+		if strings.Contains(err.Error(), "auth") {
+			err = errors.Append(err, fmt.Sprintf("\n\nif your manager image is stored in a private repository: run `docker login` (if you haven't already), download your image with `docker pull %s`, and try this command again)", containerConfig.Image))
+		}
 		return "", nil, err
 	}
 

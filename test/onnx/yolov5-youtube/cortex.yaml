@@ -3,7 +3,8 @@
   predictor:
     type: onnx
     path: predictor.py
-    model_path: s3://cortex-examples/onnx/yolov5-youtube/
+    models:
+      path: s3://cortex-examples/onnx/yolov5-youtube/
     config:
       iou_threshold: 0.5
       confidence_threshold: 0.6

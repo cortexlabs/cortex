@@ -17,7 +17,6 @@ limitations under the License.
 package batchapi
 
 import (
-	"fmt"
 	"path"
 	"path/filepath"
 	"time"
@@ -54,10 +53,26 @@ func (j JobState) GetLastUpdated() time.Time {
 	return lastUpdated
 }
 
+func (j JobState) GetFirstCreated() time.Time {
+	firstCreated := time.Unix(1<<63-62135596801, 999999999) // Max time
+
+	for _, fileLastUpdated := range j.LastUpdatedMap {
+		if firstCreated.After(fileLastUpdated) {
+			firstCreated = fileLastUpdated
+		}
+	}
+
+	return firstCreated
+}
+
 // Doesn't assume only status files are present. The order below matters.
 func getStatusCode(lastUpdatedMap map[string]time.Time) status.JobCode {
 	if _, ok := lastUpdatedMap[status.JobStopped.String()]; ok {
 		return status.JobStopped
+	}
+
+	if _, ok := lastUpdatedMap[status.JobTimedOut.String()]; ok {
+		return status.JobTimedOut
 	}
 
 	if _, ok := lastUpdatedMap[status.JobWorkerOOM.String()]; ok {
@@ -190,6 +205,8 @@ func setStatusForJob(jobKey spec.JobKey, jobStatus status.JobCode) error {
 		return setWorkerErrorStatus(jobKey)
 	case status.JobWorkerOOM:
 		return setWorkerOOMStatus(jobKey)
+	case status.JobTimedOut:
+		return setTimedOutStatus(jobKey)
 	case status.JobStopped:
 		return setStoppedStatus(jobKey)
 	}
@@ -197,7 +214,12 @@ func setStatusForJob(jobKey spec.JobKey, jobStatus status.JobCode) error {
 }
 
 func setEnqueuingStatus(jobKey spec.JobKey) error {
-	err := config.AWS.UploadStringToS3("", config.Cluster.Bucket, path.Join(jobKey.Prefix(config.Cluster.ClusterName), status.JobEnqueuing.String()))
+	err := updateLiveness(jobKey)
+	if err != nil {
+		return err
+	}
+
+	err = config.AWS.UploadStringToS3("", config.Cluster.Bucket, path.Join(jobKey.Prefix(config.Cluster.ClusterName), status.JobEnqueuing.String()))
 	if err != nil {
 		return err
 	}
@@ -322,50 +344,35 @@ func setUnexpectedErrorStatus(jobKey spec.JobKey) error {
 	return nil
 }
 
-func getJobStatusFromJobState(initialJobState *JobState, k8sJob *kbatch.Job, pods []kcore.Pod) (*status.JobStatus, error) {
-	jobKey := initialJobState.JobKey
+func setTimedOutStatus(jobKey spec.JobKey) error {
+	err := config.AWS.UploadStringToS3("", config.Cluster.Bucket, path.Join(jobKey.Prefix(config.Cluster.ClusterName), status.JobTimedOut.String()))
+	if err != nil {
+		return err
+	}
+
+	err = deleteInProgressFile(jobKey)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func getJobStatusFromJobState(jobState *JobState, k8sJob *kbatch.Job, pods []kcore.Pod) (*status.JobStatus, error) {
+	jobKey := jobState.JobKey
 
 	jobSpec, err := downloadJobSpec(jobKey)
 	if err != nil {
 		return nil, err
 	}
 
-	latestJobState := initialJobState // Refetch the state of an in progress job in case the cron modifies the job state between the time the initial fetch and now
-
-	if initialJobState.Status.IsInProgress() {
-		queueURL, err := getJobQueueURL(jobKey)
-		if err != nil {
-			return nil, err
-		}
-
-		latestJobCode, message, err := reconcileInProgressJob(initialJobState, &queueURL, k8sJob)
-		if err != nil {
-			return nil, err
-		}
-
-		if latestJobCode != initialJobState.Status {
-			err := errors.FirstError(
-				writeToJobLogStream(jobKey, message),
-				setStatusForJob(jobKey, latestJobCode),
-			)
-			if err != nil {
-				return nil, err
-			}
-		}
-
-		latestJobState, err = getJobState(jobKey)
-		if err != nil {
-			return nil, err
-		}
-	}
-
 	jobStatus := status.JobStatus{
 		Job:     *jobSpec,
-		EndTime: latestJobState.EndTime,
-		Status:  latestJobState.Status,
+		EndTime: jobState.EndTime,
+		Status:  jobState.Status,
 	}
 
-	if latestJobState.Status.IsInProgress() {
+	if jobState.Status.IsInProgress() {
 		queueMetrics, err := getQueueMetrics(jobKey)
 		if err != nil {
 			return nil, err
@@ -373,37 +380,27 @@ func getJobStatusFromJobState(initialJobState *JobState, k8sJob *kbatch.Job, pod
 
 		jobStatus.BatchesInQueue = queueMetrics.TotalUserMessages()
 
-		if latestJobState.Status == status.JobEnqueuing {
+		if jobState.Status == status.JobEnqueuing {
 			jobStatus.TotalBatchCount = queueMetrics.TotalUserMessages()
 		}
 
-		if latestJobState.Status == status.JobRunning {
+		if jobState.Status == status.JobRunning {
 			metrics, err := getRealTimeBatchMetrics(jobKey)
 			if err != nil {
 				return nil, err
 			}
 			jobStatus.BatchMetrics = metrics
 
-			if k8sJob == nil {
-				err := setUnexpectedErrorStatus(jobKey)
-				if err != nil {
-					return nil, err
-				}
-
-				writeToJobLogStream(jobKey, fmt.Sprintf("unexpected: kubernetes job not found"))
-				deleteJobRuntimeResources(jobKey)
-
-				jobStatus.Status = status.JobUnexpectedError
-				return &jobStatus, nil
+			// There can be race conditions where the job state is temporarily out of sync with the cluster state
+			if k8sJob != nil {
+				workerCounts := getWorkerCountsForJob(*k8sJob, pods)
+				jobStatus.WorkerCounts = &workerCounts
 			}
-
-			workerCounts := getWorkerCountsForJob(*k8sJob, pods)
-			jobStatus.WorkerCounts = &workerCounts
 		}
 	}
 
-	if latestJobState.Status.IsCompleted() {
-		metrics, err := getCompletedBatchMetrics(jobKey, jobSpec.StartTime, *latestJobState.EndTime)
+	if jobState.Status.IsCompleted() {
+		metrics, err := getCompletedBatchMetrics(jobKey, jobSpec.StartTime, *jobState.EndTime)
 		if err != nil {
 			return nil, err
 		}

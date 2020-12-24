@@ -2,7 +2,7 @@
 
 Cortex autoscales your web services on a per-API basis based on your configuration.
 
-## Autoscaling Replicas
+## Autoscaling replicas
 
 **`min_replicas`**: The lower bound on how many replicas can be running for an API.
 
@@ -56,9 +56,9 @@ For example, setting `target_replica_concurrency` to `processes_per_replica` * `
 
 <br>
 
-## Autoscaling Instances
+## Autoscaling instances
 
-Cortex spins up and down instances based on the aggregate resource requests of all APIs. The number of instances will be at least `min_instances` and no more than `max_instances` ([configured during installation](../../aws/install.md) and modifiable via `cortex cluster configure`).
+Cortex spins up and down instances based on the aggregate resource requests of all APIs. The number of instances will be at least `min_instances` and no more than `max_instances` (configured during installation and modifiable via `cortex cluster configure`).
 
 ## Overprovisioning
 
@@ -66,7 +66,7 @@ The default value for `target_replica_concurrency` is `processes_per_replica` * 
 
 For example, if you've determined that each replica in your API can handle 2 requests, you would set `target_replica_concurrency` to 2. In a scenario where your API is receiving 8 concurrent requests on average, the autoscaler would maintain 4 live replicas (8/2 = 4). If you wanted to overprovision by 25%, you can set `target_replica_concurrency` to 1.6 causing the autoscaler maintain 5 live replicas (8/1.6 = 5).
 
-## A note about autoscaling responsiveness
+## Autoscaling responsiveness
 
 Assuming that `window` and `upscale_stabilization_period` are set to their default values (1 minute), it could take up to 2 minutes of increased traffic before an extra replica is requested. As soon as the additional replica is requested, the replica request will be visible in the output of `cortex get`, but the replica won't yet be running. If an extra instance is required to schedule the newly requested replica, it could take a few minutes for AWS to provision the instance (depending on the instance type), plus a few minutes for the newly provisioned instance to download your api image and for the api to initialize (via its `__init__()` method).
 
