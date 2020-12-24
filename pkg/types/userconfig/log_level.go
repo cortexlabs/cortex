@@ -59,8 +59,8 @@ func (t LogLevel) MarshalText() ([]byte, error) {
 // UnmarshalText satisfies TextUnmarshaler
 func (t *LogLevel) UnmarshalText(text []byte) error {
 	enum := string(text)
-	for i := 0; i < len(_predictorTypes); i++ {
-		if enum == _predictorTypes[i] {
+	for i := 0; i < len(_logLevels); i++ {
+		if enum == _logLevels[i] {
 			*t = LogLevel(i)
 			return nil
 		}
