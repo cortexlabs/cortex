@@ -102,7 +102,11 @@ def test_batch_api(
 
         for i in range(retry_attempts + 1):
             response = request_batch_prediction(
-                client, api_name, item_list=payload, batch_size=2, config={"dest_s3_dir": test_bucket}
+                client,
+                api_name,
+                item_list=payload,
+                batch_size=2,
+                config={"dest_s3_dir": test_bucket},
             )
             if response.status_code == HTTPStatus.OK:
                 break
