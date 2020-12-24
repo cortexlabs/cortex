@@ -14,63 +14,55 @@
 
 import time
 from http import HTTPStatus
-from typing import List, Optional, Dict, Union
+from typing import List, Optional, Dict, Union, Callable
 
 import cortex as cx
 import requests
 import yaml
 
 
-def apis_ready(client: cx.Client, api_names: List[str], timeout: Optional[int] = None) -> bool:
-    count = 0
+def wait_for(fn: Callable[[], bool], timeout=None) -> bool:
+    deadline = time.time() + timeout if timeout else None
     while True:
-        if timeout is not None and count > timeout:
+        if deadline is not None and time.time() > deadline:
             return False
 
-        ready = all(
-            [client.get_api(name)["status"]["status_code"] == "status_live" for name in api_names]
-        )
-        if ready:
-            return True
-
-        time.sleep(1)
-        count += 1
-
-
-def endpoint_ready(client: cx.Client, api_name: str, timeout: int = None) -> bool:
-    count = 0
-    while True:
-        if timeout is not None and count > timeout:
-            return False
-
-        endpoint = client.get_api(api_name)["endpoint"]
-        response = requests.post(endpoint)
-        if response.status_code == HTTPStatus.BAD_REQUEST:
-            return True
-
-        time.sleep(1)
-        count += 1
-
-
-def job_done(client: cx.Client, api_name: str, job_id: str, timeout: int = None):
-    count = 0
-    while True:
-        if timeout is not None and count > timeout:
-            return False
-
-        job_info = client.get_job(api_name, job_id)
-        done = job_info["job_status"]["status"] == "status_succeeded"
+        done = fn()
         if done:
             return True
 
         time.sleep(1)
-        count += 1
+
+
+def apis_ready(client: cx.Client, api_names: List[str], timeout: Optional[int] = None) -> bool:
+    def _is_ready():
+        return all(
+            [client.get_api(name)["status"]["status_code"] == "status_live" for name in api_names]
+        )
+
+    return wait_for(_is_ready, timeout=timeout)
+
+
+def endpoint_ready(client: cx.Client, api_name: str, timeout: int = None) -> bool:
+    def _is_ready():
+        endpoint = client.get_api(api_name)["endpoint"]
+        response = requests.post(endpoint)
+        return response.status_code == HTTPStatus.BAD_REQUEST
+
+    return wait_for(_is_ready, timeout=timeout)
+
+
+def job_done(client: cx.Client, api_name: str, job_id: str, timeout: int = None):
+    def _is_ready():
+        job_info = client.get_job(api_name, job_id)
+        return job_info["job_status"]["status"] == "status_succeeded"
+
+    return wait_for(_is_ready, timeout=timeout)
 
 
 def request_prediction(
     client: cx.Client, api_name: str, payload: Union[List, Dict]
 ) -> requests.Response:
-
     api_info = client.get_api(api_name)
     response = requests.post(api_info["endpoint"], json=payload)
 
@@ -85,7 +77,6 @@ def request_batch_prediction(
     workers: int = 1,
     config: Dict = None,
 ) -> requests.Response:
-
     api_info = client.get_api(api_name)
     endpoint = api_info["endpoint"]
 

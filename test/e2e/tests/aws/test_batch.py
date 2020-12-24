@@ -11,22 +11,27 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import os
 
 import cortex as cx
 import pytest
 
 import e2e.tests
 
-TIMEOUT_DEPLOY = 10  # seconds
-JOB_TIMEOUT = 60  # seconds
-TEST_APIS = ["batch/image-classifier"]
+DEPLOY_TIMEOUT = int(os.environ.get("CORTEX_TEST_BATCH_DEPLOY_TIMEOUT", 30))  # seconds
+JOB_TIMEOUT = int(os.environ.get("CORTEX_TEST_BATCH_JOB_TIMEOUT", 120))  # seconds
+TEST_APIS = ["batch/image-classifier", "batch/onnx", "batch/tensorflow"]
 
 
 @pytest.fixture
 def s3_bucket(request):
-    s3_bucket = request.config.getoption("--s3-bucket")
+    s3_bucket = os.environ.get("CORTEX_TEST_BATCH_S3_BUCKET_DIR")
+    s3_bucket = request.config.getoption("--s3-bucket") if s3_bucket is None else s3_bucket
     if not s3_bucket:
-        pytest.skip("--s3-bucket option is required to run batch tests")
+        pytest.skip(
+            "--s3-bucket option is required to run batch tests (alternatively set the "
+            "CORTEX_TEST_BATCH_S3_BUCKET_DIR env var) )"
+        )
 
     return s3_bucket
 
@@ -35,5 +40,10 @@ def s3_bucket(request):
 @pytest.mark.parametrize("api", TEST_APIS)
 def test_batch_api(client: cx.Client, api: str, s3_bucket: str):
     e2e.tests.test_batch_api(
-        client, api, test_bucket=s3_bucket, deploy_timeout=TIMEOUT_DEPLOY, job_timeout=JOB_TIMEOUT
+        client,
+        api,
+        test_bucket=s3_bucket,
+        deploy_timeout=DEPLOY_TIMEOUT,
+        job_timeout=JOB_TIMEOUT,
+        retry_attempts=5,
     )

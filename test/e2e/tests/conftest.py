@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from dotenv import load_dotenv
+
 
 def pytest_addoption(parser):
     parser.addoption(
@@ -45,3 +47,7 @@ def pytest_addoption(parser):
         default=None,
         help="set s3 bucket where batch jobs results will be stored",
     )
+
+
+def pytest_configure(config):
+    load_dotenv(".env")

@@ -78,6 +78,7 @@ def test_batch_api(
     test_bucket: str,
     deploy_timeout: int = None,
     job_timeout: int = None,
+    retry_attempts: int = 0,
 ):
     api_dir = TEST_APIS_DIR / api
     with open(str(api_dir / "cortex.yaml")) as f:
@@ -98,9 +99,13 @@ def test_batch_api(
             payload = json.load(f)
 
         api_name = api_names[0]
-        response = request_batch_prediction(
-            client, api_name, item_list=payload, batch_size=2, config={"dest_s3_dir": test_bucket}
-        )
+
+        for i in range(retry_attempts + 1):
+            response = request_batch_prediction(
+                client, api_name, item_list=payload, batch_size=2, config={"dest_s3_dir": test_bucket}
+            )
+            if response.status_code == HTTPStatus.OK:
+                break
 
         assert (
             response.status_code == HTTPStatus.OK

@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import os
 
 import cortex as cx
 import pytest
@@ -18,7 +19,7 @@ import pytest
 import e2e.tests
 
 TEST_APIS = ["pytorch/iris-classifier", "onnx/iris-classifier", "tensorflow/iris-classifier"]
-DEPLOY_TIMEOUT = 30  # seconds
+DEPLOY_TIMEOUT = int(os.environ.get("CORTEX_TEST_REALTIME_DEPLOY_TIMEOUT", 60))  # seconds
 
 
 @pytest.fixture
