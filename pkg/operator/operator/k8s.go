@@ -461,7 +461,7 @@ func getEnvVars(api *spec.API, container string) []kcore.EnvVar {
 
 	if container == _tfServingContainerName {
 		envVars = append(envVars, kcore.EnvVar{
-			Name:  "TF_CPP_MIN_LOG_LEVEL=",
+			Name:  "TF_CPP_MIN_LOG_LEVEL",
 			Value: s.Int(tensorflow.NumericLogLevelFromLogLevel(api.Predictor.LogLevel.String())),
 		})
 
