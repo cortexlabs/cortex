@@ -104,7 +104,7 @@ func InstanceTelemetryAWS() error {
 		onDemandPrice := aws.InstanceMetadatas[*config.Cluster.Region][instanceType].Price
 		price := onDemandPrice
 		if isSpot {
-			spotPrice, err := config.AWS.SpotInstancePrice(*config.Cluster.Region, instanceType)
+			spotPrice, err := config.AWS.SpotInstancePrice(instanceType)
 			if err == nil && spotPrice != 0 {
 				price = spotPrice
 			}
