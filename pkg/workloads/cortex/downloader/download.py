@@ -17,12 +17,21 @@ import os
 import base64
 import json
 
-from cortex.lib.log import configure_logger
-
-logger = configure_logger("cortex_with_pid", os.environ["CORTEX_LOG_CONFIG_FILE"])
-
 from cortex.lib import util
 from cortex.lib.storage import S3, GCS
+
+
+def expand_config_file(config_file_name):
+    with open(config_file_name, "r") as f:
+        data = f.read()
+    with open(config_file_name, "w") as f:
+        f.write(os.path.expandvars(data))
+
+
+from cortex.lib.log import configure_logger
+
+expand_config_file(os.environ["CORTEX_LOG_CONFIG_FILE"])
+logger = configure_logger("cortex_with_pid", os.environ["CORTEX_LOG_CONFIG_FILE"])
 
 
 def start(args):

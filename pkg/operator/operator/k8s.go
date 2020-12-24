@@ -111,6 +111,7 @@ func InitContainer(api *spec.API) kcore.Container {
 		ImagePullPolicy: "Always",
 		Args:            []string{"--download=" + downloadArgs},
 		EnvFrom:         baseEnvVars(),
+		Env:             getEnvVars(api, _downloaderInitContainerName),
 		VolumeMounts:    defaultVolumeMounts(),
 	}
 }
@@ -341,7 +342,7 @@ func ONNXPredictorContainers(api *spec.API) []kcore.Container {
 }
 
 func getEnvVars(api *spec.API, container string) []kcore.EnvVar {
-	if container == _requestMonitorContainerName {
+	if container == _requestMonitorContainerName || container == _downloaderInitContainerName {
 		return []kcore.EnvVar{
 			{
 				Name:  "CORTEX_LOG_LEVEL",
