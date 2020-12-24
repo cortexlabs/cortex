@@ -20,15 +20,15 @@ version: 1
 disable_existing_loggers: False
 formatters:
   default_without_pid:
-    "()": cortex.lib.log.CortexFormatter
+    "()": cortex_internal.lib.log.CortexFormatter
     format: "%(asctime)s:cortex:%(levelname)s:%(message)s"
     datefmt: "%Y-%m-%d %H:%M:%S.%f"
   default_with_pid:
-    "()": cortex.lib.log.CortexFormatter
+    "()": cortex_internal.lib.log.CortexFormatter
     format: "%(asctime)s:cortex:pid-%(process)d:%(levelname)s:%(message)s"
     datefmt: "%Y-%m-%d %H:%M:%S.%f"
   uvicorn_access:
-    "()": cortex.lib.log.CortexAccessFormatter
+    "()": cortex_internal.lib.log.CortexAccessFormatter
     format: "%(asctime)s:cortex:pid-%(process)d:%(levelname)s:%(status_code)s %(method)s %(path)s"
     datefmt: "%Y-%m-%d %H:%M:%S.%f"
 handlers:

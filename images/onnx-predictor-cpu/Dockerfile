@@ -1,4 +1,4 @@
-ENV CORTEX_LOG_CONFIG_FILE /src/cortex/serve/log_config.yamlFROM ubuntu:18.04
+FROM ubuntu:18.04
 
 RUN apt-get update -qq && apt-get install -y -q \
         build-essential \
