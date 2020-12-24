@@ -61,7 +61,20 @@ func (c *Counter) GetAllAndDelete() []int {
 	return output
 }
 
-func init() {
+// ./request-monitor api_name cluster_name
+func main() {
+	apiName = os.Args[1]
+	clusterName = os.Args[2]
+	region = os.Getenv("CORTEX_REGION")
+
+	sess, err := session.NewSession(&aws.Config{
+		Credentials: nil,
+		Region:      aws.String(region),
+	})
+	if err != nil {
+		panic(err)
+	}
+
 	logLevelEnv := os.Getenv("CORTEX_LOG_LEVEL")
 	var logLevelZap zapcore.Level
 	switch logLevelEnv {
@@ -75,33 +88,17 @@ func init() {
 		logLevelZap = zapcore.ErrorLevel
 	}
 
-	var err error
 	logger, err = zap.Config{
 		Level:            zap.NewAtomicLevelAt(logLevelZap),
 		Encoding:         "console",
+		EncoderConfig:    zap.NewProductionEncoderConfig(),
 		OutputPaths:      []string{"stdout"},
 		ErrorOutputPaths: []string{"stderr"},
 	}.Build()
 	if err != nil {
 		panic(err)
 	}
-}
-
-// ./request-monitor api_name cluster_name
-func main() {
 	defer logger.Sync()
-
-	apiName = os.Args[1]
-	clusterName = os.Args[2]
-	region = os.Getenv("CORTEX_REGION")
-
-	sess, err := session.NewSession(&aws.Config{
-		Credentials: nil,
-		Region:      aws.String(region),
-	})
-	if err != nil {
-		panic(err)
-	}
 
 	client = cloudwatch.New(sess)
 	requestCounter := Counter{}
