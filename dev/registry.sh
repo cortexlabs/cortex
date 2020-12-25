@@ -20,8 +20,11 @@ set -eo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")"/.. >/dev/null && pwd)"
 
 source $ROOT/build/images.sh
-source $ROOT/dev/config/env.sh
 source $ROOT/dev/util.sh
+
+if [ -f "$ROOT/dev/config/env.sh" ]; then
+  source $ROOT/dev/config/env.sh
+fi
 
 GCR_HOST=${GCR_HOST:-"gcr.io"}
 GCP_PROJECT_ID=${GCP_PROJECT_ID:-}
