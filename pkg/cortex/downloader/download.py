@@ -19,18 +19,9 @@ import json
 
 from cortex_internal.lib import util
 from cortex_internal.lib.storage import S3, GCS
-
-
-def expand_config_file(config_file_name):
-    with open(config_file_name, "r") as f:
-        data = f.read()
-    with open(config_file_name, "w") as f:
-        f.write(os.path.expandvars(data))
-
-
 from cortex_internal.lib.log import configure_logger
 
-expand_config_file(os.environ["CORTEX_LOG_CONFIG_FILE"])
+util.expand_environment_vars_on_file(os.environ["CORTEX_LOG_CONFIG_FILE"])
 logger = configure_logger("cortex_with_pid", os.environ["CORTEX_LOG_CONFIG_FILE"])
 
 

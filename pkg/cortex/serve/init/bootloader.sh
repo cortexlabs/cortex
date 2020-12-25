@@ -28,8 +28,8 @@ if [ "$CORTEX_VERSION" != "$EXPECTED_CORTEX_VERSION" ]; then
     exit 1
 fi
 
-# set log level for python scripts
-/opt/conda/envs/env/bin/python /src/cortex/serve/envsubst.py /src/cortex/serve/log_config.yaml /src/cortex/serve/log_config.yaml
+# configure log level for python scripts
+/opt/conda/envs/env/bin/python -c "from cortex_internal.lib import util; import os; util.expand_environment_vars_on_file(os.environ['CORTEX_LOG_CONFIG_FILE'])"
 
 mkdir -p /mnt/workspace
 mkdir -p /mnt/requests
