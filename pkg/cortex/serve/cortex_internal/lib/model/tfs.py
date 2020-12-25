@@ -362,8 +362,8 @@ class TensorFlowServingAPI:
         for input_name, _ in input_signatures.items():
             if input_name not in model_input:
                 raise UserException(
-                    "missing key '{}' for model '{}' of version '{}'".format(
-                        input_name, model_name, model_version
+                    "missing key '{}' for model '{}' of version '{}' for signature key '{}'".format(
+                        input_name, model_name, model_version, signature_key
                     )
                 )
 
