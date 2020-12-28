@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import os
+from typing import Dict
 
 import cortex as cx
 import pytest
@@ -19,10 +19,11 @@ import pytest
 import e2e.tests
 
 TEST_APIS = ["pytorch/iris-classifier", "onnx/iris-classifier", "tensorflow/iris-classifier"]
-DEPLOY_TIMEOUT = int(os.environ.get("CORTEX_TEST_REALTIME_DEPLOY_TIMEOUT", 60))  # seconds
 
 
 @pytest.mark.usefixtures("client")
 @pytest.mark.parametrize("api", TEST_APIS)
-def test_realtime_api(client: cx.Client, api: str):
-    e2e.tests.test_realtime_api(client=client, api=api, timeout=DEPLOY_TIMEOUT)
+def test_realtime_api(config: Dict, client: cx.Client, api: str):
+    e2e.tests.test_realtime_api(
+        client=client, api=api, timeout=config["global"]["realtime_deploy_timeout"]
+    )

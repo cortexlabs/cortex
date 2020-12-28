@@ -20,12 +20,12 @@ from e2e.utils import client_from_config
 
 
 @pytest.fixture
-def client(request):
-    env_name = request.config.getoption("--aws-env")
+def client(config):
+    env_name = config["aws"]["env"]
     if env_name:
         return cx.client(env_name)
 
-    config_path = request.config.getoption("--aws-config")
+    config_path = config["aws"]["config"]
     if config_path is not None:
         return client_from_config(config_path)
 

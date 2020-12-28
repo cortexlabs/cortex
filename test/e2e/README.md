@@ -15,13 +15,13 @@ pip install -e test/e2e
 From an existing cluster:
 
 ```shell
-pytest test/e2e/tests/aws --aws-env <cortex_aws_env>
+pytest test/e2e/tests -k aws --aws-env <cortex_aws_env>
 ```
 
 Using a new cluster, created for testing only and deleted afterwards:
 
 ```shell
-pytest test/e2e/tests/aws --aws-config <cortex_aws_cluster_config.yaml>
+pytest test/e2e/tests -k aws --aws-config <cortex_aws_cluster_config.yaml>
 ```
 
 **Note:** For the BatchAPI tests, the `--s3-bucket` option should be provided with an 
@@ -33,19 +33,18 @@ this bucket through an environment variable, see [configuration](#configuration)
 From an existing cluster:
 
 ```shell
-pytest test/e2e/tests/gcp --gcp-env <cortex_gcp_env>
+pytest test/e2e/tests -k gcp --gcp-env <cortex_gcp_env>
 ```
 
 Using a new cluster, created for testing only and deleted afterwards:
 
 ```shell
-pytest test/e2e/tests/aws --gcp-config <cortex_gcp_cluster_config.yaml>
+pytest test/e2e/tests -k gcp --gcp-config <cortex_gcp_cluster_config.yaml>
 ```
 
 ### All Tests
 
-You can run all tests at once, by running them from the parent 
-directory `test/e2e/tests`. The provider specific options should be provided 
+You can run all tests at once, however the provider specific options should be passed 
 accordingly, or the test cases will be skipped.
 
 e.g.

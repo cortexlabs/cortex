@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from typing import Dict
 
 import cortex as cx
 import pytest
@@ -20,12 +21,12 @@ from e2e.utils import client_from_config
 
 
 @pytest.fixture
-def client(request):
-    env_name = request.config.getoption("--gcp-env")
+def client(config: Dict):
+    env_name = config["gcp"]["env"]
     if env_name:
         return cx.client(env_name)
 
-    config_path = request.config.getoption("--gcp-config")
+    config_path = config["gcp"]["config"]
     if config_path is not None:
         return client_from_config(config_path)
 
