@@ -99,18 +99,25 @@ function install_deps() {
 # install user dependencies
 if [ "$CORTEX_LOG_LEVEL" = "DEBUG" ] || [ "$CORTEX_LOG_LEVEL" = "INFO" ]; then
     install_deps
+# if log level is set to warning/error
 else
+    # buffer install_deps stdout/stderr to a file
     tempf=$(mktemp)
     set +e
     (
         set -e
         install_deps
     ) > $tempf 2>&1
+
+    # if there was an error while running install_deps
+    # print the stdout/stderr and exit
     exit_code=$?
     if [ $exit_code -ne 0 ]; then
         cat $tempf
         exit $exit_code
     fi
+
+    # otherwise proceed further and don't print anything
     rm $tempf
     set -e
 fi
