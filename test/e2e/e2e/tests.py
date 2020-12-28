@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import json
+import time
 from http import HTTPStatus
 from pathlib import Path
 from typing import List
@@ -110,6 +111,8 @@ def test_batch_api(
             )
             if response.status_code == HTTPStatus.OK:
                 break
+
+            time.sleep(1)
 
         assert (
             response.status_code == HTTPStatus.OK
