@@ -27,7 +27,7 @@ from typing import Any, Dict
 
 from cortex_internal.lib.log import configure_logger
 
-logger = configure_logger("cortex_with_pid", os.environ["CORTEX_LOG_CONFIG_FILE"])
+logger = configure_logger("cortex", os.environ["CORTEX_LOG_CONFIG_FILE"])
 
 from cortex_internal.lib import util
 from cortex_internal.lib.api import get_api

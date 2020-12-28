@@ -22,7 +22,7 @@ from cortex_internal.lib.storage import S3, GCS
 from cortex_internal.lib.log import configure_logger
 
 util.expand_environment_vars_on_file(os.environ["CORTEX_LOG_CONFIG_FILE"])
-logger = configure_logger("cortex_with_pid", os.environ["CORTEX_LOG_CONFIG_FILE"])
+logger = configure_logger("cortex", os.environ["CORTEX_LOG_CONFIG_FILE"])
 
 
 def start(args):

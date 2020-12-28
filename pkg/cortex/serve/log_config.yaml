@@ -19,11 +19,7 @@
 version: 1
 disable_existing_loggers: False
 formatters:
-  default_without_pid:
-    "()": cortex_internal.lib.log.CortexFormatter
-    format: "%(asctime)s:cortex:%(levelname)s:%(message)s"
-    datefmt: "%Y-%m-%d %H:%M:%S.%f"
-  default_with_pid:
+  default:
     "()": cortex_internal.lib.log.CortexFormatter
     format: "%(asctime)s:cortex:pid-%(process)d:%(levelname)s:%(message)s"
     datefmt: "%Y-%m-%d %H:%M:%S.%f"
@@ -32,12 +28,8 @@ formatters:
     format: "%(asctime)s:cortex:pid-%(process)d:%(levelname)s:%(status_code)s %(method)s %(path)s"
     datefmt: "%Y-%m-%d %H:%M:%S.%f"
 handlers:
-  default_without_pid:
-    formatter: default_without_pid
-    class: logging.StreamHandler
-    stream: ext://sys.stdout
-  default_with_pid:
-    formatter: default_with_pid
+  default:
+    formatter: default
     class: logging.StreamHandler
     stream: ext://sys.stdout
   uvicorn_access:
@@ -45,25 +37,20 @@ handlers:
     class: logging.StreamHandler
     stream: ext://sys.stdout
 loggers:
-  cortex_without_pid:
+  cortex:
     level: $CORTEX_LOG_LEVEL
     handlers:
-      - default_without_pid
-    propagate: no
-  cortex_with_pid:
-    level: $CORTEX_LOG_LEVEL
-    handlers:
-      - default_with_pid
+      - default
     propagate: no
   uvicorn:
     level: $CORTEX_LOG_LEVEL
     handlers:
-      - default_with_pid
+      - default
     propagate: no
   uvicorn.error:
     level: $CORTEX_LOG_LEVEL
     handlers:
-      - default_with_pid
+      - default
     propagate: no
   uvicorn.uvicorn_access:
     level: $CORTEX_LOG_LEVEL
