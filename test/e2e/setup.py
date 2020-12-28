@@ -27,7 +27,7 @@ setup(
     version="master",
     packages=find_packages(exclude=["tests"]),
     url="https://github.com/cortexlabs/cortex",
-    license="Apache 2.0 Licence",
+    license="Apache License 2.0",
     python_requires=">=3.6",
     install_requires=[
         "requests==2.24.0",
@@ -38,6 +38,6 @@ setup(
     ],
     dependency_links=[f"file://{cortex_client_dir}#egg=cortex"],
     author="Cortex Labs",
-    author_email="hello@cortexlabs.com",
+    author_email="dev@cortex.dev",
     description="Cortex E2E tests package",
 )
