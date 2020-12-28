@@ -26,7 +26,7 @@ except ImportError:
     onnx_dependencies_installed = False
 import numpy as np
 
-from cortex_internal.lib.log import cx_logger as logger
+from cortex_internal.lib.log import logger
 from cortex_internal.lib import util
 from cortex_internal.lib.exceptions import (
     UserRuntimeException,
@@ -273,11 +273,11 @@ class ONNXClient:
                             status == "in-memory" and local_ts != current_upstream_ts
                         ):
                             if status == "not-available":
-                                logger().info(
+                                logger.info(
                                     f"loading model {model_name} of version {model_version} (thread {td.get_ident()})"
                                 )
                             else:
-                                logger().info(
+                                logger.info(
                                     f"reloading model {model_name} of version {model_version} (thread {td.get_ident()})"
                                 )
                             try:
@@ -351,32 +351,32 @@ class ONNXClient:
                         or (status in ["on-disk", "in-memory"] and local_ts != current_upstream_ts)
                     ):
                         if status == "not-available":
-                            logger().info(
+                            logger.info(
                                 f"model {model_name} of version {model_version} not found locally; continuing with the download..."
                             )
                         elif status == "on-disk":
-                            logger().info(
+                            logger.info(
                                 f"found newer model {model_name} of vesion {model_version} on the {upstream_model['provider']} upstream than the one on the disk"
                             )
                         else:
-                            logger().info(
+                            logger.info(
                                 f"found newer model {model_name} of vesion {model_version} on the {upstream_model['provider']} upstream than the one loaded into memory"
                             )
 
                         # remove model from disk and memory
                         if status == "on-disk":
-                            logger().info(
+                            logger.info(
                                 f"removing model from disk for model {model_name} of version {model_version}"
                             )
                             self._models.remove_model(model_name, model_version)
                         if status == "in-memory":
-                            logger().info(
+                            logger.info(
                                 f"removing model from disk and memory for model {model_name} of version {model_version}"
                             )
                             self._models.remove_model(model_name, model_version)
 
                         # download model
-                        logger().info(
+                        logger.info(
                             f"downloading model {model_name} of version {model_version} from the {upstream_model['provider']} upstream"
                         )
                         date = self._models.download_model(
@@ -396,7 +396,7 @@ class ONNXClient:
 
                     # load model
                     try:
-                        logger().info(
+                        logger.info(
                             f"loading model {model_name} of version {model_version} into memory"
                         )
                         self._models.load_model(

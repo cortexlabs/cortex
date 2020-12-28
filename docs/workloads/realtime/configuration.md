@@ -27,6 +27,7 @@
     python_path: <string>  # path to the root of your Python folder that will be appended to PYTHONPATH (default: folder containing cortex.yaml)
     image: <string>  # docker image to use for the Predictor (default: quay.io/cortexlabs/python-predictor-cpu:master or quay.io/cortexlabs/python-predictor-gpu:master based on compute)
     env: <string: string>  # dictionary of environment variables
+    log_level: <string>  # log level that can be "debug", "info", "warning" or "error" (default: "info")
   networking:
     endpoint: <string>  # the endpoint for the API (default: <api_name>)
     api_gateway: public | none  # whether to create a public API Gateway endpoint for this API (if not, the API will still be accessible via the load balancer) (default: public, unless disabled cluster-wide) (aws only)
@@ -83,6 +84,7 @@
     image: <string>  # docker image to use for the Predictor (default: quay.io/cortexlabs/tensorflow-predictor:master)
     tensorflow_serving_image: <string>  # docker image to use for the TensorFlow Serving container (default: quay.io/cortexlabs/tensorflow-serving-gpu:master or quay.io/cortexlabs/tensorflow-serving-cpu:master based on compute)
     env: <string: string>  # dictionary of environment variables
+    log_level: <string>  # log level that can be "debug", "info", "warning" or "error" (default: "info")
   networking:
     endpoint: <string>  # the endpoint for the API (default: <api_name>)
     api_gateway: public | none  # whether to create a public API Gateway endpoint for this API (if not, the API will still be accessible via the load balancer) (default: public, unless disabled cluster-wide) (aws only)
@@ -133,6 +135,7 @@
     python_path: <string>  # path to the root of your Python folder that will be appended to PYTHONPATH (default: folder containing cortex.yaml)
     image: <string>  # docker image to use for the Predictor (default: quay.io/cortexlabs/onnx-predictor-gpu:master or quay.io/cortexlabs/onnx-predictor-cpu:master based on compute)
     env: <string: string>  # dictionary of environment variables
+    log_level: <string>  # log level that can be "debug", "info", "warning" or "error" (default: "info")
   networking:
     endpoint: <string>  # the endpoint for the API (default: <api_name>)
     api_gateway: public | none  # whether to create a public API Gateway endpoint for this API (if not, the API will still be accessible via the load balancer) (default: public, unless disabled cluster-wide) (aws only)

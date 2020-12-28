@@ -76,6 +76,8 @@ RUN test "${SLIM}" = "true" || ( \
     )
 
 COPY pkg/cortex/serve/ /src/cortex/serve
+ENV CORTEX_LOG_CONFIG_FILE /src/cortex/serve/log_config.yaml
+
 RUN pip install --no-deps /src/cortex/serve/
 RUN mv /src/cortex/serve/init/bootloader.sh /etc/cont-init.d/bootloader.sh
 

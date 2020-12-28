@@ -23,7 +23,7 @@ import datadog
 from cortex_internal.lib.api import Monitoring, Predictor
 from cortex_internal.lib.exceptions import CortexException
 from cortex_internal.lib.storage import LocalStorage, S3, GCS
-from cortex_internal.lib.log import cx_logger as logger
+from cortex_internal.lib.log import logger
 
 
 class API:
@@ -126,7 +126,7 @@ class API:
                 else:
                     self.statsd.histogram(metric["MetricName"], value=metric["Value"], tags=tags)
         except:
-            logger().warn("failure encountered while publishing metrics", exc_info=True)
+            logger.warn("failure encountered while publishing metrics", exc_info=True)
 
     def store_metrics_locally(self, status_code, total_time):
         status_code_series = int(status_code / 100)

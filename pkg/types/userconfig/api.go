@@ -55,6 +55,7 @@ type Predictor struct {
 	ProcessesPerReplica    int32                  `json:"processes_per_replica" yaml:"processes_per_replica"`
 	ThreadsPerProcess      int32                  `json:"threads_per_process" yaml:"threads_per_process"`
 	PythonPath             *string                `json:"python_path" yaml:"python_path"`
+	LogLevel               LogLevel               `json:"log_level" yaml:"log_level"`
 	Image                  string                 `json:"image" yaml:"image"`
 	TensorFlowServingImage string                 `json:"tensorflow_serving_image" yaml:"tensorflow_serving_image"`
 	Config                 map[string]interface{} `json:"config" yaml:"config"`
@@ -201,7 +202,6 @@ func (api *API) ToK8sAnnotations() map[string]string {
 	if api.Predictor != nil {
 		annotations[ProcessesPerReplicaAnnotationKey] = s.Int32(api.Predictor.ProcessesPerReplica)
 		annotations[ThreadsPerProcessAnnotationKey] = s.Int32(api.Predictor.ThreadsPerProcess)
-
 	}
 
 	if api.Networking != nil {
@@ -395,6 +395,9 @@ func (predictor *Predictor) UserStr() string {
 	if predictor.PythonPath != nil {
 		sb.WriteString(fmt.Sprintf("%s: %s\n", PythonPathKey, *predictor.PythonPath))
 	}
+
+	sb.WriteString(fmt.Sprintf("%s: %s\n", LogLevelKey, predictor.LogLevel))
+
 	if len(predictor.Env) > 0 {
 		sb.WriteString(fmt.Sprintf("%s:\n", EnvKey))
 		d, _ := yaml.Marshal(&predictor.Env)
@@ -630,6 +633,7 @@ func (api *API) TelemetryEvent(provider types.ProviderType) map[string]interface
 		event["predictor.type"] = api.Predictor.Type
 		event["predictor.processes_per_replica"] = api.Predictor.ProcessesPerReplica
 		event["predictor.threads_per_process"] = api.Predictor.ThreadsPerProcess
+		event["predictor.log_level"] = api.Predictor.LogLevel
 
 		if api.Predictor.PythonPath != nil {
 			event["predictor.python_path._is_defined"] = true
