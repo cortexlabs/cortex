@@ -108,6 +108,7 @@ else
         set -e
         install_deps
     ) > $tempf 2>&1
+    set -e
 
     # if there was an error while running install_deps
     # print the stdout/stderr and exit
@@ -116,10 +117,7 @@ else
         cat $tempf
         exit $exit_code
     fi
-
-    # otherwise proceed further and don't print anything
     rm $tempf
-    set -e
 fi
 
 # good pages to read about s6-overlay used in create_s6_service and create_s6_task
