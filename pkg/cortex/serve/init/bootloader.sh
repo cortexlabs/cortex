@@ -97,23 +97,23 @@ function install_deps() {
 }
 
 # install user dependencies
-tempf=$(mktemp)
-set +e
-(
-    set -e
+if [ "$CORTEX_LOG_LEVEL" = "DEBUG" ] || [ "$CORTEX_LOG_LEVEL" = "INFO" ]; then
     install_deps
-) > $tempf 2>&1
-exit_code=$?
-if [ $exit_code -ne 0 ]; then
-    cat $tempf
-    exit $exit_code
 else
-    if [ "$CORTEX_LOG_LEVEL" = "DEBUG" ] || [ "$CORTEX_LOG_LEVEL" = "INFO" ]; then
+    tempf=$(mktemp)
+    set +e
+    (
+        set -e
+        install_deps
+    ) > $tempf 2>&1
+    exit_code=$?
+    if [ $exit_code -ne 0 ]; then
         cat $tempf
+        exit $exit_code
     fi
+    rm $tempf
+    set -e
 fi
-rm $tempf
-set -e
 
 # good pages to read about s6-overlay used in create_s6_service and create_s6_task
 # https://wiki.gentoo.org/wiki/S6#Process_supervision
