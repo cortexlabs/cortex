@@ -29,7 +29,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/gcp"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
-	"github.com/cortexlabs/cortex/pkg/lib/tensorflow"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	"github.com/docker/docker/api/types"
@@ -388,7 +387,7 @@ func deployTensorFlowContainers(api *spec.API, awsClient *aws.Client, gcpClient 
 	}
 
 	envVars := []string{
-		"TF_CPP_MIN_LOG_LEVEL=" + s.Int(tensorflow.NumericLogLevelFromLogLevel(api.Predictor.LogLevel.String())),
+		"TF_CPP_MIN_LOG_LEVEL=" + s.Int(userconfig.TFNumericLogLevelFromLogLevel(api.Predictor.LogLevel)),
 	}
 
 	cmdArgs := []string{

@@ -28,7 +28,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
-	"github.com/cortexlabs/cortex/pkg/lib/tensorflow"
 	"github.com/cortexlabs/cortex/pkg/lib/urls"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 	"github.com/cortexlabs/cortex/pkg/types"
@@ -462,7 +461,7 @@ func getEnvVars(api *spec.API, container string) []kcore.EnvVar {
 	if container == _tfServingContainerName {
 		envVars = append(envVars, kcore.EnvVar{
 			Name:  "TF_CPP_MIN_LOG_LEVEL",
-			Value: s.Int(tensorflow.NumericLogLevelFromLogLevel(api.Predictor.LogLevel.String())),
+			Value: s.Int(userconfig.TFNumericLogLevelFromLogLevel(api.Predictor.LogLevel)),
 		})
 
 		if api.Predictor.ServerSideBatching != nil {
