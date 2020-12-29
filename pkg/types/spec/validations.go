@@ -205,6 +205,16 @@ func predictorValidation() *cr.StructFieldValidation {
 					},
 				},
 				{
+					StructField: "LogLevel",
+					StringValidation: &cr.StringValidation{
+						Default:       "info",
+						AllowedValues: userconfig.LogLevelTypes(),
+					},
+					Parser: func(str string) (interface{}, error) {
+						return userconfig.LogLevelFromString(str), nil
+					},
+				},
+				{
 					StructField: "Config",
 					InterfaceMapValidation: &cr.InterfaceMapValidation{
 						StringKeysOnly:     true,

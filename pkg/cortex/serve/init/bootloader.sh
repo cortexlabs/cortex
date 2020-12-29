@@ -28,6 +28,9 @@ if [ "$CORTEX_VERSION" != "$EXPECTED_CORTEX_VERSION" ]; then
     exit 1
 fi
 
+# configure log level for python scripts
+/opt/conda/envs/env/bin/python -c "from cortex_internal.lib import util; import os; util.expand_environment_vars_on_file(os.environ['CORTEX_LOG_CONFIG_FILE'])"
+
 mkdir -p /mnt/workspace
 mkdir -p /mnt/requests
 
@@ -41,9 +44,6 @@ rm -rf /mnt/workspace/proc-*-ready.txt
 # allow for the liveness check to pass until the API is running
 echo "9999999999" > /mnt/workspace/api_liveness.txt
 
-# to export user-specified environment files
-source_env_file_cmd="if [ -f \"/mnt/project/.env\" ]; then set -a; source /mnt/project/.env; set +a; fi"
-
 if [ "$CORTEX_PROVIDER" != "local" ]; then
     if [ "$CORTEX_KIND" == "RealtimeAPI" ]; then
         sysctl -w net.core.somaxconn="65535" >/dev/null
@@ -52,43 +52,72 @@ if [ "$CORTEX_PROVIDER" != "local" ]; then
     fi
 fi
 
-# execute script if present in project's directory
-if [ -f "/mnt/project/dependencies.sh" ]; then
+# to export user-specified environment files
+source_env_file_cmd="if [ -f \"/mnt/project/.env\" ]; then set -a; source /mnt/project/.env; set +a; fi"
+
+function install_deps() {
     eval $source_env_file_cmd
-    bash -e /mnt/project/dependencies.sh
-fi
 
-# install from conda-packages.txt
-if [ -f "/mnt/project/conda-packages.txt" ]; then
-    py_version_cmd='echo $(python -c "import sys; v=sys.version_info[:2]; print(\"{}.{}\".format(*v));")'
-    old_py_version=$(eval $py_version_cmd)
-
-    # look for packages in defaults and then conda-forge to improve chances of finding the package (specifically for python reinstalls)
-    conda config --append channels conda-forge
-
-    conda install -y --file /mnt/project/conda-packages.txt
-
-    new_py_version=$(eval $py_version_cmd)
-
-    # reinstall core packages if Python version has changed
-    if [ $old_py_version != $new_py_version ]; then
-        echo "warning: you have changed the Python version from $old_py_version to $new_py_version; this may break Cortex's web server"
-        echo "reinstalling core packages ..."
-
-        pip --no-cache-dir install \
-            -r /src/cortex/serve/serve.requirements.txt \
-            /src/cortex/serve/
-        if [ -f "/src/cortex/serve/image.requirements.txt" ]; then
-            pip --no-cache-dir install -r /src/cortex/serve/image.requirements.txt
-        fi
-
-        rm -rf $CONDA_PREFIX/lib/python${old_py_version}  # previous python is no longer needed
+    # execute script if present in project's directory
+    if [ -f "/mnt/project/dependencies.sh" ]; then
+        bash -e /mnt/project/dependencies.sh
     fi
-fi
 
-# install pip packages
-if [ -f "/mnt/project/requirements.txt" ]; then
-    pip --no-cache-dir install -r /mnt/project/requirements.txt
+    # install from conda-packages.txt
+    if [ -f "/mnt/project/conda-packages.txt" ]; then
+        py_version_cmd='echo $(python -c "import sys; v=sys.version_info[:2]; print(\"{}.{}\".format(*v));")'
+        old_py_version=$(eval $py_version_cmd)
+
+        # look for packages in defaults and then conda-forge to improve chances of finding the package (specifically for python reinstalls)
+        conda config --append channels conda-forge
+
+        conda install -y --file /mnt/project/conda-packages.txt
+
+        new_py_version=$(eval $py_version_cmd)
+
+        # reinstall core packages if Python version has changed
+        if [ $old_py_version != $new_py_version ]; then
+            echo "warning: you have changed the Python version from $old_py_version to $new_py_version; this may break Cortex's web server"
+            echo "reinstalling core packages ..."
+
+            pip --no-cache-dir install \
+                -r /src/cortex/serve/serve.requirements.txt \
+                /src/cortex/serve/
+            if [ -f "/src/cortex/serve/image.requirements.txt" ]; then
+                pip --no-cache-dir install -r /src/cortex/serve/image.requirements.txt
+            fi
+        fi
+    fi
+
+    # install pip packages
+    if [ -f "/mnt/project/requirements.txt" ]; then
+        pip --no-cache-dir install -r /mnt/project/requirements.txt
+    fi
+
+}
+
+# install user dependencies
+if [ "$CORTEX_LOG_LEVEL" = "DEBUG" ] || [ "$CORTEX_LOG_LEVEL" = "INFO" ]; then
+    install_deps
+# if log level is set to warning/error
+else
+    # buffer install_deps stdout/stderr to a file
+    tempf=$(mktemp)
+    set +e
+    (
+        set -e
+        install_deps
+    ) > $tempf 2>&1
+    set -e
+
+    # if there was an error while running install_deps
+    # print the stdout/stderr and exit
+    exit_code=$?
+    if [ $exit_code -ne 0 ]; then
+        cat $tempf
+        exit $exit_code
+    fi
+    rm $tempf
 fi
 
 # good pages to read about s6-overlay used in create_s6_service and create_s6_task

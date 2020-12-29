@@ -94,6 +94,7 @@ func getAPIEnv(api *spec.API, awsClient *aws.Client, gcpClient *gcp.Client) []st
 		"CORTEX_PROCESSES_PER_REPLICA="+s.Int32(api.Predictor.ProcessesPerReplica),
 		"CORTEX_THREADS_PER_PROCESS="+s.Int32(api.Predictor.ThreadsPerProcess),
 		"CORTEX_MAX_REPLICA_CONCURRENCY="+s.Int32(api.Predictor.ProcessesPerReplica*api.Predictor.ThreadsPerProcess+1024), // allow a queue of 1024
+		"CORTEX_LOG_LEVEL="+strings.ToUpper(api.Predictor.LogLevel.String()),
 	)
 
 	if api.Predictor.Type != userconfig.PythonPredictorType || api.Predictor.MultiModelReloading != nil {
@@ -385,7 +386,10 @@ func deployTensorFlowContainers(api *spec.API, awsClient *aws.Client, gcpClient 
 		Mounts:    mounts,
 	}
 
-	envVars := []string{}
+	envVars := []string{
+		"TF_CPP_MIN_LOG_LEVEL=" + s.Int(userconfig.TFNumericLogLevelFromLogLevel(api.Predictor.LogLevel)),
+	}
+
 	cmdArgs := []string{
 		"--port=" + _tfServingPortStr,
 		"--model_config_file=" + _tfServingEmptyModelConfig,
