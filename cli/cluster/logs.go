@@ -29,6 +29,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/exit"
 	"github.com/cortexlabs/cortex/pkg/lib/json"
+	"github.com/cortexlabs/cortex/pkg/lib/routines"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
 	"github.com/gorilla/websocket"
 )
@@ -112,7 +113,7 @@ func streamLogs(operatorConfig OperatorConfig, path string, qParams ...map[strin
 }
 
 func handleConnection(connection *websocket.Conn, done chan struct{}) {
-	go func() {
+	routines.GoRoutineWithPanicHandler(func() {
 		defer close(done)
 		for {
 			_, message, err := connection.ReadMessage()
@@ -121,7 +122,7 @@ func handleConnection(connection *websocket.Conn, done chan struct{}) {
 			}
 			fmt.Println(string(message))
 		}
-	}()
+	})
 }
 
 func closeConnection(connection *websocket.Conn, done chan struct{}, interrupt chan os.Signal) {

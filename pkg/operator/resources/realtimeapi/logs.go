@@ -25,6 +25,7 @@ import (
 	awslib "github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/cache"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/routines"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
@@ -56,7 +57,9 @@ type fluentdLog struct {
 func ReadLogs(apiName string, socket *websocket.Conn) {
 	podCheckCancel := make(chan struct{})
 	defer close(podCheckCancel)
-	go streamFromCloudWatch(apiName, podCheckCancel, socket)
+	routines.GoRoutineWithPanicHandler(func() {
+		streamFromCloudWatch(apiName, podCheckCancel, socket)
+	})
 	pumpStdin(socket)
 	podCheckCancel <- struct{}{}
 }

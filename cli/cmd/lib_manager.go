@@ -34,6 +34,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/exit"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
+	"github.com/cortexlabs/cortex/pkg/lib/routines"
 	"github.com/cortexlabs/cortex/pkg/types/clusterconfig"
 	"github.com/cortexlabs/yaml"
 	dockertypes "github.com/docker/docker/api/types"
@@ -91,12 +92,13 @@ func runManager(containerConfig *container.Config, addNewLineAfterPull bool, cop
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 	caughtCtrlC := false
-	go func() {
+
+	routines.GoRoutineWithPanicHandler(func() {
 		<-c
 		caughtCtrlC = true
 		removeContainer()
 		exit.Error(ErrorDockerCtrlC())
-	}()
+	})
 
 	for _, copyPath := range copyToPaths {
 		err = docker.CopyToContainer(containerInfo.ID, copyPath.input, copyPath.containerPath)

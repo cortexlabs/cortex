@@ -14,16 +14,21 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package telemetry
+package routines
 
-func GoRoutineWithPanicHandler(f func()) {
-	go func() {
-		defer func() {
-			if r := recover(); r != nil {
-				err := r.(error)
-				Error(ErrorUnexpectedError(err.Error()))
-			}
-		}()
-		f()
-	}()
+import (
+	"fmt"
+
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
+)
+
+const (
+	ErrUnexpectedError = "routines.unexpected_error"
+)
+
+func ErrorUnexpectedError(msg string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrUnexpectedError,
+		Message: fmt.Sprintf("unexpected error occurred: %s", msg),
+	})
 }

@@ -25,6 +25,7 @@ import (
 	awslib "github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/cache"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/routines"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
@@ -63,9 +64,13 @@ func ReadLogs(jobKey spec.JobKey, socket *websocket.Conn) {
 	defer close(podCheckCancel)
 
 	if jobStatus.Status.IsInProgress() {
-		go streamFromCloudWatch(jobStatus, podCheckCancel, socket)
+		routines.GoRoutineWithPanicHandler(func() {
+			streamFromCloudWatch(jobStatus, podCheckCancel, socket)
+		})
 	} else {
-		go fetchLogsFromCloudWatch(jobStatus, podCheckCancel, socket)
+		routines.GoRoutineWithPanicHandler(func() {
+			fetchLogsFromCloudWatch(jobStatus, podCheckCancel, socket)
+		})
 	}
 
 	pumpStdin(socket)

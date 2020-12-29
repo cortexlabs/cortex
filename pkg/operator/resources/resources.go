@@ -26,6 +26,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/hash"
 	"github.com/cortexlabs/cortex/pkg/lib/parallel"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
+	"github.com/cortexlabs/cortex/pkg/lib/routines"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 	"github.com/cortexlabs/cortex/pkg/operator/operator"
@@ -287,7 +288,7 @@ func DeleteAPI(apiName string, keepCache bool) (*schema.DeleteResponse, error) {
 	}
 	if deployedResource == nil {
 		// Delete anyways just to be sure everything is deleted
-		go func() {
+		routines.GoRoutineWithPanicHandler(func() {
 			err := parallel.RunFirstErr(
 				func() error {
 					return realtimeapi.DeleteAPI(apiName, keepCache)
@@ -308,7 +309,7 @@ func DeleteAPI(apiName string, keepCache bool) (*schema.DeleteResponse, error) {
 			if err != nil {
 				telemetry.Error(err)
 			}
-		}()
+		})
 		return nil, ErrorAPINotDeployed(apiName)
 	}
 

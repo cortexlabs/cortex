@@ -14,27 +14,22 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package telemetry
+package routines
 
 import (
-	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"fmt"
+
+	"github.com/cortexlabs/cortex/pkg/lib/exit"
 )
 
-const (
-	ErrUserIDNotSpecified         = "telemetry.user_id_not_specified"
-	ErrSentryFlushTimeoutExceeded = "telemetry.sentry_flush_timeout_exceeded"
-)
-
-func ErrorUserIDNotSpecified() error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrUserIDNotSpecified,
-		Message: "user ID must be specified to enable telemetry",
-	})
-}
-
-func ErrorSentryFlushTimeoutExceeded() error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrSentryFlushTimeoutExceeded,
-		Message: "sentry flush timout exceeded",
-	})
+func GoRoutineWithPanicHandler(f func()) {
+	go func() {
+		defer func() {
+			if r := recover(); r != nil {
+				err := ErrorUnexpectedError(fmt.Sprintf("%v", r))
+				exit.Error(err)
+			}
+		}()
+		f()
+	}()
 }

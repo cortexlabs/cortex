@@ -23,6 +23,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/parallel"
+	"github.com/cortexlabs/cortex/pkg/lib/routines"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 	"github.com/cortexlabs/cortex/pkg/operator/operator"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
@@ -44,13 +45,17 @@ func UpdateAPI(apiConfig *userconfig.API, force bool) (*spec.API, string, error)
 		}
 
 		if err := applyK8sVirtualService(api, prevVirtualService); err != nil {
-			go deleteK8sResources(api.Name)
+			routines.GoRoutineWithPanicHandler(func() {
+				deleteK8sResources(api.Name)
+			})
 			return nil, "", err
 		}
 
 		err = operator.AddAPIToAPIGateway(*api.Networking.Endpoint, api.Networking.APIGateway)
 		if err != nil {
-			go deleteK8sResources(api.Name)
+			routines.GoRoutineWithPanicHandler(func() {
+				deleteK8sResources(api.Name)
+			})
 			return nil, "", err
 		}
 		return api, fmt.Sprintf("created %s", api.Resource.UserString()), nil
