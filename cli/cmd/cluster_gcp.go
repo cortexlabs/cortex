@@ -111,10 +111,6 @@ var _clusterGCPUpCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		telemetry.EventNotify("cli.cluster.up", map[string]interface{}{"provider": types.GCPProviderType})
 
-		if _flagClusterGCPUpEnv == "local" {
-			exit.Error(ErrorLocalEnvironmentCantUseClusterProvider(types.GCPProviderType))
-		}
-
 		envExists, err := isEnvConfigured(_flagClusterGCPUpEnv)
 		if err != nil {
 			exit.Error(err)
@@ -202,10 +198,6 @@ var _clusterGCPInfoCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		telemetry.Event("cli.cluster.info", map[string]interface{}{"provider": types.GCPProviderType})
 
-		if _flagClusterGCPInfoEnv == "local" {
-			exit.Error(ErrorLocalEnvironmentCantUseClusterProvider(types.GCPProviderType))
-		}
-
 		if _, err := docker.GetDockerClient(); err != nil {
 			exit.Error(err)
 		}
@@ -229,10 +221,6 @@ var _clusterGCPDownCmd = &cobra.Command{
 	Args:  cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
 		telemetry.Event("cli.cluster.down", map[string]interface{}{"provider": types.GCPProviderType})
-
-		if _flagClusterGCPUpEnv == "local" {
-			exit.Error(ErrorLocalEnvironmentCantUseClusterProvider(types.GCPProviderType))
-		}
 
 		if _, err := docker.GetDockerClient(); err != nil {
 			exit.Error(err)

@@ -42,12 +42,8 @@ func errStrFailedToConnect(u url.URL) string {
 
 const (
 	ErrInvalidProvider                         = "cli.invalid_provider"
-	ErrNotSupportedInLocalEnvironment          = "cli.not_supported_in_local_environment"
-	ErrLocalEnvironmentCantUseClusterProvider  = "cli.local_environment_cant_use_cluster_provider"
 	ErrCommandNotSupportedForKind              = "cli.command_not_supported_for_kind"
 	ErrEnvironmentNotFound                     = "cli.environment_not_found"
-	ErrOperatorEndpointInLocalEnvironment      = "cli.operator_endpoint_in_local_environment"
-	ErrOperatorConfigFromLocalEnvironment      = "cli.operater_config_from_local_environment"
 	ErrFieldNotFoundInEnvironment              = "cli.field_not_found_in_environment"
 	ErrInvalidOperatorEndpoint                 = "cli.invalid_operator_endpoint"
 	ErrNoOperatorLoadBalancer                  = "cli.no_operator_load_balancer"
@@ -85,20 +81,6 @@ func ErrorInvalidProvider(providerStr string) error {
 	})
 }
 
-func ErrorNotSupportedInLocalEnvironment() error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrNotSupportedInLocalEnvironment,
-		Message: "this command is not supported in local environment",
-	})
-}
-
-func ErrorLocalEnvironmentCantUseClusterProvider(provider types.ProviderType) error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrLocalEnvironmentCantUseClusterProvider,
-		Message: fmt.Sprintf("the environment named \"local\" cannot be configured to point to a cortex cluster in %s", provider),
-	})
-}
-
 func ErrorCommandNotSupportedForKind(kind userconfig.Kind, command string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrCommandNotSupportedForKind,
@@ -113,26 +95,10 @@ func ErrorEnvironmentNotFound(envName string) error {
 	})
 }
 
-// unexpected error if code tries to create operator config from local environment
-func ErrorOperatorConfigFromLocalEnvironment() error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrOperatorConfigFromLocalEnvironment,
-		Message: "attempting to retrieve cluster operator config from local environment",
-	})
-}
-
-// unexpected error if code tries to create operator config from local environment
 func ErrorFieldNotFoundInEnvironment(fieldName string, envName string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrFieldNotFoundInEnvironment,
 		Message: fmt.Sprintf("%s was not found in %s environment", fieldName, envName),
-	})
-}
-
-func ErrorOperatorEndpointInLocalEnvironment() error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrOperatorEndpointInLocalEnvironment,
-		Message: fmt.Sprintf("operator_endpoint should not be specified (it's not used in local environment)"),
 	})
 }
 

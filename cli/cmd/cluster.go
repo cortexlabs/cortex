@@ -144,10 +144,6 @@ var _clusterUpCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		telemetry.EventNotify("cli.cluster.up", map[string]interface{}{"provider": types.AWSProviderType})
 
-		if _flagClusterUpEnv == "local" {
-			exit.Error(ErrorLocalEnvironmentCantUseClusterProvider(types.AWSProviderType))
-		}
-
 		envExists, err := isEnvConfigured(_flagClusterUpEnv)
 		if err != nil {
 			exit.Error(err)
@@ -342,10 +338,6 @@ var _clusterConfigureCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		telemetry.Event("cli.cluster.configure", map[string]interface{}{"provider": types.AWSProviderType})
 
-		if _flagClusterConfigureEnv == "local" {
-			exit.Error(ErrorLocalEnvironmentCantUseClusterProvider(types.AWSProviderType))
-		}
-
 		if _, err := docker.GetDockerClient(); err != nil {
 			exit.Error(err)
 		}
@@ -422,10 +414,6 @@ var _clusterInfoCmd = &cobra.Command{
 	Args:  cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
 		telemetry.Event("cli.cluster.info", map[string]interface{}{"provider": types.AWSProviderType})
-
-		if _flagClusterInfoEnv == "local" {
-			exit.Error(ErrorLocalEnvironmentCantUseClusterProvider(types.AWSProviderType))
-		}
 
 		if _, err := docker.GetDockerClient(); err != nil {
 			exit.Error(err)

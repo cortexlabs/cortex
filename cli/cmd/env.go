@@ -201,11 +201,7 @@ var _envDeleteCmd = &cobra.Command{
 
 		newDefault := getDefaultEnv(_generalCommandType)
 
-		if envName == types.LocalProviderType.String() {
-			print.BoldFirstLine(fmt.Sprintf("cleared the %s environment configuration", envName))
-		} else {
-			print.BoldFirstLine(fmt.Sprintf("deleted the %s environment configuration", envName))
-		}
+		print.BoldFirstLine(fmt.Sprintf("deleted the %s environment configuration", envName))
 		if prevDefault != newDefault {
 			print.BoldFirstLine(fmt.Sprintf("set the default environment to %s", newDefault))
 		}

@@ -21,14 +21,12 @@ import (
 	"strings"
 
 	"github.com/cortexlabs/cortex/cli/cluster"
-	"github.com/cortexlabs/cortex/cli/local"
 	"github.com/cortexlabs/cortex/cli/types/flags"
 	"github.com/cortexlabs/cortex/pkg/lib/exit"
 	libjson "github.com/cortexlabs/cortex/pkg/lib/json"
 	"github.com/cortexlabs/cortex/pkg/lib/print"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
-	"github.com/cortexlabs/cortex/pkg/types"
 	"github.com/spf13/cobra"
 )
 
@@ -42,7 +40,6 @@ func deleteInit() {
 	_deleteCmd.Flags().SortFlags = false
 	_deleteCmd.Flags().StringVarP(&_flagDeleteEnv, "env", "e", getDefaultEnv(_generalCommandType), "environment to use")
 
-	// only applies to aws provider because local doesn't support multiple replicas
 	_deleteCmd.Flags().BoolVarP(&_flagDeleteForce, "force", "f", false, "delete the api without confirmation")
 	_deleteCmd.Flags().BoolVarP(&_flagDeleteKeepCache, "keep-cache", "c", false, "keep cached data for the api")
 	_deleteCmd.Flags().VarP(&_flagOutput, "output", "o", fmt.Sprintf("output format: one of %s", strings.Join(flags.UserOutputTypeStrings(), "|")))
@@ -66,25 +63,13 @@ var _deleteCmd = &cobra.Command{
 		}
 
 		var deleteResponse schema.DeleteResponse
-		if env.Provider != types.LocalProviderType {
-			if len(args) == 2 {
-				deleteResponse, err = cluster.StopJob(MustGetOperatorConfig(env.Name), args[0], args[1])
-				if err != nil {
-					exit.Error(err)
-				}
-			} else {
-				deleteResponse, err = cluster.Delete(MustGetOperatorConfig(env.Name), args[0], _flagDeleteKeepCache, _flagDeleteForce)
-				if err != nil {
-					exit.Error(err)
-				}
+		if len(args) == 2 {
+			deleteResponse, err = cluster.StopJob(MustGetOperatorConfig(env.Name), args[0], args[1])
+			if err != nil {
+				exit.Error(err)
 			}
 		} else {
-			if len(args) == 2 {
-				exit.Error(ErrorNotSupportedInLocalEnvironment(), fmt.Sprintf("cannot delete job %s for api %s", args[1], args[0]))
-			}
-
-			// local only supports deploying 1 replica at a time, so _flagDeleteForce is only useful when attempting to delete an API that has been deployed with different CLI version
-			deleteResponse, err = local.Delete(args[0], _flagDeleteKeepCache, _flagDeleteForce)
+			deleteResponse, err = cluster.Delete(MustGetOperatorConfig(env.Name), args[0], _flagDeleteKeepCache, _flagDeleteForce)
 			if err != nil {
 				exit.Error(err)
 			}

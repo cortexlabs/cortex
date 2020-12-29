@@ -22,7 +22,6 @@ import (
 	"strings"
 
 	"github.com/cortexlabs/cortex/cli/cluster"
-	"github.com/cortexlabs/cortex/cli/local"
 	"github.com/cortexlabs/cortex/cli/types/flags"
 	"github.com/cortexlabs/cortex/pkg/lib/archive"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
@@ -89,28 +88,14 @@ var _deployCmd = &cobra.Command{
 			exit.Error(ErrorDeployFromTopLevelDir("root", env.Provider))
 		}
 
-		var deployResults []schema.DeployResult
-		if env.Provider == types.LocalProviderType {
-			projectFiles, err := findProjectFiles(env.Provider, configPath)
-			if err != nil {
-				exit.Error(err)
-			}
+		deploymentBytes, err := getDeploymentBytes(env.Provider, configPath)
+		if err != nil {
+			exit.Error(err)
+		}
 
-			local.OutputType = _flagOutput // Set output type for the Local package
-			deployResults, err = local.Deploy(env, configPath, projectFiles, _flagDeployDisallowPrompt)
-			if err != nil {
-				exit.Error(err)
-			}
-		} else {
-			deploymentBytes, err := getDeploymentBytes(env.Provider, configPath)
-			if err != nil {
-				exit.Error(err)
-			}
-
-			deployResults, err = cluster.Deploy(MustGetOperatorConfig(env.Name), configPath, deploymentBytes, _flagDeployForce)
-			if err != nil {
-				exit.Error(err)
-			}
+		deployResults, err := cluster.Deploy(MustGetOperatorConfig(env.Name), configPath, deploymentBytes, _flagDeployForce)
+		if err != nil {
+			exit.Error(err)
 		}
 
 		switch _flagOutput {
@@ -179,16 +164,14 @@ func findProjectFiles(provider types.ProviderType, configPath string) ([]string,
 		ignoreFns = append(ignoreFns, cortexIgnore)
 	}
 
-	if provider != types.LocalProviderType {
-		if !_flagDeployDisallowPrompt {
-			ignoreFns = append(ignoreFns, files.PromptForFilesAboveSize(_warningFileBytes, "do you want to upload %s (%s)?"))
-		}
-		ignoreFns = append(ignoreFns,
-			files.ErrorOnBigFilesFn(_maxFileSizeBytes),
-			// must be the last appended IgnoreFn
-			files.ErrorOnProjectSizeLimit(_maxProjectSizeBytes),
-		)
+	if !_flagDeployDisallowPrompt {
+		ignoreFns = append(ignoreFns, files.PromptForFilesAboveSize(_warningFileBytes, "do you want to upload %s (%s)?"))
 	}
+	ignoreFns = append(ignoreFns,
+		files.ErrorOnBigFilesFn(_maxFileSizeBytes),
+		// must be the last appended IgnoreFn
+		files.ErrorOnProjectSizeLimit(_maxProjectSizeBytes),
+	)
 
 	projectPaths, err := files.ListDirRecursive(projectRoot, false, ignoreFns...)
 	if err != nil {

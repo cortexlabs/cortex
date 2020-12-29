@@ -20,14 +20,12 @@ type ProviderType int
 
 const (
 	UnknownProviderType ProviderType = iota
-	LocalProviderType
 	AWSProviderType
 	GCPProviderType
 )
 
 var _providerTypes = []string{
 	"unknown",
-	"local",
 	"aws",
 	"gcp",
 }
@@ -48,7 +46,7 @@ func ProviderTypeStrings() []string {
 }
 
 func ClusterProviderTypeStrings() []string {
-	return _providerTypes[2:]
+	return _providerTypes[1:]
 }
 
 func (t ProviderType) String() string {

@@ -50,10 +50,9 @@ var _cliConfigValidation = &cr.StructValidation{
 		},
 		{
 			StructField: "DefaultEnvironment",
-			StringValidation: &cr.StringValidation{
-				Default:    "local",
+			StringPtrValidation: &cr.StringPtrValidation{
 				Required:   false,
-				AllowEmpty: true, // will get set to "local" in validate() if empty
+				AllowEmpty: true,
 			},
 		},
 		{
@@ -216,8 +215,6 @@ func promptGCPEnvName() string {
 func promptProvider(env *cliconfig.Environment) error {
 	if env.Name != "" {
 		switch env.Name {
-		case types.LocalProviderType.String():
-			env.Provider = types.LocalProviderType
 		case types.AWSProviderType.String():
 			env.Provider = types.AWSProviderType
 		case types.GCPProviderType.String():
@@ -249,94 +246,6 @@ func promptProvider(env *cliconfig.Environment) error {
 			},
 		},
 	})
-}
-
-func promptLocalEnv(env *cliconfig.Environment, defaults cliconfig.Environment) error {
-	accessKeyIDPrompt := "aws access key id"
-	if defaults.AWSAccessKeyID == nil {
-		accessKeyIDPrompt += " [press ENTER to skip]"
-		fmt.Print("if you have an AWS account and wish to access resources in it when running locally (e.g. S3 files), you can provide AWS credentials now\n\n")
-	}
-
-	for true {
-		err := cr.ReadPrompt(env, &cr.PromptValidation{
-			SkipNonEmptyFields: true,
-			PromptItemValidations: []*cr.PromptItemValidation{
-				{
-					StructField: "AWSAccessKeyID",
-					PromptOpts: &prompt.Options{
-						Prompt: accessKeyIDPrompt,
-					},
-					StringPtrValidation: &cr.StringPtrValidation{
-						Required:   false,
-						AllowEmpty: true,
-						Default:    defaults.AWSAccessKeyID,
-					},
-				},
-			},
-		})
-		if err != nil {
-			return err
-		}
-
-		// Don't prompt for secret access key if access key ID was not provided
-		if env.AWSAccessKeyID == nil {
-			env.AWSSecretAccessKey = nil
-			env.AWSRegion = nil
-			return nil
-		}
-
-		err = cr.ReadPrompt(env, &cr.PromptValidation{
-			SkipNonEmptyFields: true,
-			PromptItemValidations: []*cr.PromptItemValidation{
-				{
-					StructField: "AWSSecretAccessKey",
-					PromptOpts: &prompt.Options{
-						Prompt:      "aws secret access key",
-						MaskDefault: true,
-						HideTyping:  true,
-					},
-					StringPtrValidation: &cr.StringPtrValidation{
-						Required: true,
-						Default:  defaults.AWSSecretAccessKey,
-					},
-				},
-				{
-					StructField: "AWSRegion",
-					PromptOpts: &prompt.Options{
-						Prompt: "aws region",
-					},
-					StringPtrValidation: &cr.StringPtrValidation{
-						Required:  true,
-						Default:   defaults.AWSRegion,
-						Validator: clusterconfig.RegionValidator,
-					},
-				},
-			},
-		})
-		if err != nil {
-			return err
-		}
-
-		if err := validateAWSCreds(*env); err != nil {
-			errors.PrintError(err)
-			fmt.Println()
-
-			// reset fields so they get re-prompted
-			env.AWSAccessKeyID = nil
-			env.AWSSecretAccessKey = nil
-			if env.AWSRegion != nil {
-				defaults.AWSRegion = env.AWSRegion // update default since we know a valid region was provided
-			}
-			env.AWSRegion = nil
-
-			continue
-		}
-
-		return nil
-	}
-
-	return nil
 }
 
 func promptAWSEnv(env *cliconfig.Environment, defaults cliconfig.Environment) error {
@@ -474,19 +383,19 @@ func validateOperatorEndpoint(endpoint string) (string, error) {
 	return url, nil
 }
 
-func getDefaultEnv(cmdType commandType) string {
-	defaultEnv := types.LocalProviderType.String()
+func getDefaultEnv(cmdType commandType) *string {
+	var defaultEnv *string
 
 	if cliConfig, err := readCLIConfig(); err == nil {
 		defaultEnv = cliConfig.DefaultEnvironment
 	}
 
-	if cmdType == _clusterCommandType && defaultEnv == types.LocalProviderType.String() {
-		defaultEnv = types.AWSProviderType.String()
+	if cmdType == _clusterCommandType && defaultEnv == nil {
+		defaultEnv = pointer.String(types.AWSProviderType.String())
 	}
 
-	if cmdType == _clusterGCPCommandType && defaultEnv == types.LocalProviderType.String() {
-		defaultEnv = types.GCPProviderType.String()
+	if cmdType == _clusterGCPCommandType && defaultEnv == nil {
+		defaultEnv = pointer.String(types.GCPProviderType.String())
 	}
 
 	return defaultEnv
@@ -506,7 +415,7 @@ func setDefaultEnv(envName string) error {
 		return cliconfig.ErrorEnvironmentNotConfigured(envName)
 	}
 
-	cliConfig.DefaultEnvironment = envName
+	cliConfig.DefaultEnvironment = &envName
 
 	if err := writeCLIConfig(cliConfig); err != nil {
 		return err
@@ -548,13 +457,6 @@ func readEnv(envName string) (*cliconfig.Environment, error) {
 		if env.Name == envName {
 			return env, nil
 		}
-	}
-
-	if envName == types.LocalProviderType.String() {
-		return &cliconfig.Environment{
-			Name:     types.LocalProviderType.String(),
-			Provider: types.LocalProviderType,
-		}, nil
 	}
 
 	return nil, nil
@@ -660,8 +562,6 @@ func configureEnv(envName string, fieldsToSkipPrompt cliconfig.Environment) (cli
 
 	if envName == "" {
 		switch env.Provider {
-		case types.LocalProviderType:
-			env.Name = types.LocalProviderType.String()
 		case types.AWSProviderType:
 			env.Name = promptAWSEnvName()
 		case types.GCPProviderType:
@@ -677,11 +577,6 @@ func configureEnv(envName string, fieldsToSkipPrompt cliconfig.Environment) (cli
 	defaults := getEnvConfigDefaults(env.Name)
 
 	switch env.Provider {
-	case types.LocalProviderType:
-		err := promptLocalEnv(&env, defaults)
-		if err != nil {
-			return cliconfig.Environment{}, err
-		}
 	case types.AWSProviderType:
 		err := promptAWSEnv(&env, defaults)
 		if err != nil {
@@ -739,10 +634,6 @@ func MustGetOperatorConfig(envName string) cluster.OperatorConfig {
 
 	if env == nil {
 		exit.Error(ErrorEnvironmentNotFound(envName))
-	}
-
-	if env.Provider == types.LocalProviderType {
-		exit.Error(ErrorOperatorConfigFromLocalEnvironment())
 	}
 
 	operatorConfig := cluster.OperatorConfig{
@@ -859,7 +750,7 @@ func addEnvToCLIConfig(newEnv cliconfig.Environment, setAsDefault bool) error {
 	}
 
 	if setAsDefault {
-		cliConfig.DefaultEnvironment = newEnv.Name
+		cliConfig.DefaultEnvironment = &newEnv.Name
 	}
 
 	if err := writeCLIConfig(cliConfig); err != nil {
@@ -887,14 +778,17 @@ func removeEnvFromCLIConfig(envName string) error {
 		updatedEnvs = append(updatedEnvs, env)
 	}
 
-	if !deleted && envName != types.LocalProviderType.String() {
+	if !deleted {
 		return cliconfig.ErrorEnvironmentNotConfigured(envName)
 	}
 
 	cliConfig.Environments = updatedEnvs
 
-	if envName == prevDefault {
-		cliConfig.DefaultEnvironment = types.LocalProviderType.String()
+	if prevDefault != nil && envName == *prevDefault {
+		cliConfig.DefaultEnvironment = nil
+	}
+	if len(cliConfig.Environments) == 1 {
+		cliConfig.DefaultEnvironment = &cliConfig.Environments[0].Name
 	}
 
 	if err := writeCLIConfig(cliConfig); err != nil {
@@ -917,7 +811,7 @@ func getEnvNamesByOperatorEndpoint(operatorEndpoint string) ([]string, bool, err
 	for _, env := range cliConfig.Environments {
 		if env.OperatorEndpoint != nil && s.LastSplit(*env.OperatorEndpoint, "//") == s.LastSplit(operatorEndpoint, "//") {
 			envNames = append(envNames, env.Name)
-			if env.Name == cliConfig.DefaultEnvironment {
+			if cliConfig.DefaultEnvironment != nil && env.Name == *cliConfig.DefaultEnvironment {
 				isDefaultEnv = true
 			}
 		}
@@ -928,15 +822,7 @@ func getEnvNamesByOperatorEndpoint(operatorEndpoint string) ([]string, bool, err
 
 func readCLIConfig() (cliconfig.CLIConfig, error) {
 	if !files.IsFile(_cliConfigPath) {
-		cliConfig := cliconfig.CLIConfig{
-			DefaultEnvironment: types.LocalProviderType.String(),
-			Environments: []*cliconfig.Environment{
-				{
-					Name:     types.LocalProviderType.String(),
-					Provider: types.LocalProviderType,
-				},
-			},
-		}
+		cliConfig := cliconfig.CLIConfig{}
 
 		if err := cliConfig.Validate(); err != nil {
 			return cliconfig.CLIConfig{}, err // unexpected
