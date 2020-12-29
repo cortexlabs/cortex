@@ -19,7 +19,10 @@ import json
 
 from cortex_internal.lib import util
 from cortex_internal.lib.storage import S3, GCS
-from cortex_internal.lib.log import cx_logger as logger
+from cortex_internal.lib.log import configure_logger
+
+util.expand_environment_vars_on_file(os.environ["CORTEX_LOG_CONFIG_FILE"])
+logger = configure_logger("cortex", os.environ["CORTEX_LOG_CONFIG_FILE"])
 
 
 def start(args):
@@ -40,9 +43,9 @@ def start(args):
 
         if item_name != "":
             if download_arg.get("hide_from_log", False):
-                logger().info("downloading {}".format(item_name))
+                logger.info("downloading {}".format(item_name))
             else:
-                logger().info("downloading {} from {}".format(item_name, from_path))
+                logger.info("downloading {} from {}".format(item_name, from_path))
 
         if download_arg.get("to_file", False):
             client.download_file(prefix, to_path)
@@ -51,7 +54,7 @@ def start(args):
 
         if download_arg.get("unzip", False):
             if item_name != "" and not download_arg.get("hide_unzipping_log", False):
-                logger().info("unzipping {}".format(item_name))
+                logger.info("unzipping {}".format(item_name))
             if download_arg.get("to_file", False):
                 util.extract_zip(to_path, delete_zip_file=True)
             else:
@@ -60,7 +63,7 @@ def start(args):
                 )
 
     if download_config.get("last_log", "") != "":
-        logger().info(download_config["last_log"])
+        logger.info(download_config["last_log"])
 
 
 def main():

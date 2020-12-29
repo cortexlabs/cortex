@@ -26,7 +26,7 @@ from concurrent.futures import ThreadPoolExecutor
 from typing import Dict, List, Tuple, Any, Union, Callable, Optional
 
 from cortex_internal.lib import util
-from cortex_internal.lib.log import cx_logger as logger
+from cortex_internal.lib.log import logger
 from cortex_internal.lib.concurrency import LockedFile, get_locked_files
 from cortex_internal.lib.storage import S3, GCS, LocalStorage
 from cortex_internal.lib.exceptions import CortexException, WithBreak
@@ -254,7 +254,7 @@ class FileBasedModelsTreeUpdater(mp.Process):
             else:
                 message += " now available on disk"
 
-        logger().info(message)
+        logger.info(message)
 
     def _update_models_tree(self) -> None:
         # don't update when the models:dir is a local path
@@ -319,7 +319,7 @@ class FileBasedModelsTreeUpdater(mp.Process):
                     f.write("not-available")
             shutil.rmtree(os.path.join(self._download_dir, model_name))
 
-        logger().debug(f"{self.__class__.__name__} cron heartbeat")
+        logger.debug(f"{self.__class__.__name__} cron heartbeat")
 
     def _refresh_model(
         self,
@@ -398,7 +398,7 @@ class FileBasedModelsTreeUpdater(mp.Process):
                         cloud_path = S3.construct_s3_path(bucket_name, cloud_src)
                     if bucket_provider == "gs":
                         cloud_path = GCS.construct_gcs_path(bucket_name, cloud_src)
-                    logger().debug(
+                    logger.debug(
                         f"failed validating model {model_name} of version {version} found at {cloud_path} path"
                     )
 
@@ -499,7 +499,7 @@ class FileBasedModelsTreeUpdater(mp.Process):
                     cloud_path = S3.construct_s3_path(bucket_name, model_path)
                 if bucket_provider == "gs":
                     cloud_path = GCS.construct_gcs_path(bucket_name, model_path)
-                logger().debug(
+                logger.debug(
                     f"failed validating model {model_name} of version {version} found at {cloud_path} path"
                 )
 
@@ -547,7 +547,7 @@ class FileBasedModelsGC(AbstractLoopingThread):
         on_disk_model_ids = find_ondisk_model_ids_with_lock(self._lock_dir)
         in_memory_model_ids = self._models.get_model_ids()
 
-        logger().debug(f"{self.__class__.__name__} cron heartbeat")
+        logger.debug(f"{self.__class__.__name__} cron heartbeat")
 
         for in_memory_id in in_memory_model_ids:
             if in_memory_id in on_disk_model_ids:
@@ -555,7 +555,7 @@ class FileBasedModelsGC(AbstractLoopingThread):
             with LockedModel(self._models, "w", model_id=in_memory_id):
                 if self._models.has_model_id(in_memory_id)[0] == "in-memory":
                     model_name, model_version = in_memory_id.rsplit("-", maxsplit=1)
-                    logger().info(
+                    logger.info(
                         f"removing model {model_name} of version {model_version} from memory as it's no longer present on disk/S3/GS (thread {td.get_ident()})"
                     )
                     self._models.remove_model_by_id(
@@ -787,7 +787,7 @@ class TFSModelLoader(mp.Process):
             success = self._update_models()
             if success and not self._ran_once.is_set():
                 self._ran_once.set()
-            logger().debug(f"{self.__class__.__name__} cron heartbeat")
+            logger.debug(f"{self.__class__.__name__} cron heartbeat")
             time.sleep(self._interval)
         self._stopped.set()
 
@@ -895,14 +895,14 @@ class TFSModelLoader(mp.Process):
                 try:
                     model_name, model_version = tfs_model_id.rsplit("-", maxsplit=1)
                     self._client.remove_single_model(model_name, model_version)
-                    logger().info(
+                    logger.info(
                         "model '{}' of version '{}' has been unloaded".format(
                             model_name, model_version
                         )
                     )
                 except gprc.RpcError as error:
                     if error.code() == grpc.StatusCode.UNAVAILABLE:
-                        logger().warning(
+                        logger.warning(
                             "TFS server unresponsive after trying to load model '{}' of version '{}': {}".format(
                                 model_name, model_version, str(e)
                             )
@@ -1017,7 +1017,7 @@ class TFSModelLoader(mp.Process):
                         cloud_path = S3.construct_s3_path(bucket_name, model_path)
                     if bucket_provider == "gs":
                         cloud_path = GCS.construct_gcs_path(bucket_name, model_path)
-                    logger().debug(
+                    logger.debug(
                         f"failed validating model {model_name} of version {version} found at {cloud_path} path"
                     )
 
@@ -1103,7 +1103,7 @@ class TFSModelLoader(mp.Process):
                     cloud_path = S3.construct_s3_path(bucket_name, model_path)
                 if bucket_provider == "gs":
                     cloud_path = GCS.construct_gcs_path(bucket_name, model_path)
-                logger().debug(
+                logger.debug(
                     f"failed validating model {model_name} of version {version} found at {cloud_path} path"
                 )
 
@@ -1157,12 +1157,12 @@ class TFSModelLoader(mp.Process):
                     self._client.remove_single_model(model_name, model_version)
                 except gprc.RpcError as error:
                     if error.code() == grpc.StatusCode.UNAVAILABLE:
-                        logger().warning(
+                        logger.warning(
                             "TFS server unresponsive after trying to unload model '{}' of version '{}': {}".format(
                                 model_name, model_version, str(e)
                             )
                         )
-                    logger().warning("TFS server is unresponsive")
+                    logger.warning("TFS server is unresponsive")
                     raise
                 is_model_outdated = True
             elif model_id not in self._old_ts_state:
@@ -1184,14 +1184,14 @@ class TFSModelLoader(mp.Process):
             except Exception as e:
                 try:
                     self._client.remove_single_model(model_name, model_version)
-                    logger().warning(
+                    logger.warning(
                         "model '{}' of version '{}' couldn't be loaded: {}".format(
                             model_name, model_version, str(e)
                         )
                     )
                 except grpc.RpcError as error:
                     if error.code() == grpc.StatusCode.UNAVAILABLE:
-                        logger().warning(
+                        logger.warning(
                             "TFS server unresponsive after trying to load model '{}' of version '{}': {}".format(
                                 model_name, model_version, str(e)
                             )
@@ -1205,11 +1205,11 @@ class TFSModelLoader(mp.Process):
             # save timestamp of loaded model
             current_ts_state[model_id] = model_ts
             if is_model_outdated:
-                logger().info(
+                logger.info(
                     "model '{}' of version '{}' has been reloaded".format(model_name, model_version)
                 )
             elif first_time_load:
-                logger().info(
+                logger.info(
                     "model '{}' of version '{}' has been loaded".format(model_name, model_version)
                 )
 
@@ -1230,14 +1230,14 @@ class TFSModelLoader(mp.Process):
                 except Exception as e:
                     try:
                         self._client.remove_single_model(model_name, model_version)
-                        logger().warning(
+                        logger.warning(
                             "model '{}' of version '{}' couldn't be loaded: {}".format(
                                 model_name, model_version, str(e)
                             )
                         )
                     except grpc.RpcError as error:
                         if error.code() == grpc.StatusCode.UNAVAILABLE:
-                            logger().warning(
+                            logger.warning(
                                 "TFS server unresponsive after trying to load model '{}' of version '{}': {}".format(
                                     model_name, model_version, str(e)
                                 )
@@ -1260,7 +1260,7 @@ class TFSModelLoader(mp.Process):
         return signature_key
 
     def _reset_when_tfs_unresponsive(self):
-        logger().warning("TFS server is unresponsive")
+        logger.warning("TFS server is unresponsive")
 
         if self._tfs_address:
             self._client = TensorFlowServingAPI(self._tfs_address)
@@ -1471,12 +1471,12 @@ class ModelsGC(AbstractLoopingThread):
             with LockedModel(self._models, "w", model_name, model_version):
                 status, ts = self._models.has_model(model_name, model_version)
                 if status == "in-memory":
-                    logger().info(
+                    logger.info(
                         f"unloading stale model {model_name} of version {model_version} using the garbage collector"
                     )
                     self._models.unload_model(model_name, model_version)
                 if status in ["in-memory", "on-disk"]:
-                    logger().info(
+                    logger.info(
                         f"removing stale model {model_name} of version {model_version} using the garbage collector"
                     )
                     self._models.remove_model(model_name, model_version)
@@ -1510,7 +1510,7 @@ class ModelsGC(AbstractLoopingThread):
                 if disk:
                     message += " removed from the disk cache using the garbage collector"
 
-        logger().info(message)
+        logger.info(message)
 
 
 class ModelTreeUpdater(AbstractLoopingThread):
@@ -1643,4 +1643,4 @@ class ModelTreeUpdater(AbstractLoopingThread):
             bucket_names,
         )
 
-        logger().debug(f"{self.__class__.__name__} cron heartbeat")
+        logger.debug(f"{self.__class__.__name__} cron heartbeat")

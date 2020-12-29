@@ -19,7 +19,7 @@ import copy
 from typing import Any, Optional, Dict, List, Tuple
 
 from cortex_internal.lib.exceptions import CortexException, UserException
-from cortex_internal.lib.log import cx_logger as logger
+from cortex_internal.lib.log import logger
 
 # TensorFlow types
 def _define_types() -> Tuple[Dict[str, Any], Dict[str, str]]:
@@ -479,7 +479,7 @@ class TensorFlowServingAPI:
     def _extract_signatures(
         self, signature_def, signature_key, model_name: str, model_version: str
     ):
-        logger().info(
+        logger.info(
             "signature defs found in model '{}' for version '{}': {}".format(
                 model_name, model_version, signature_def
             )
@@ -495,7 +495,7 @@ class TensorFlowServingAPI:
 
         if signature_key is None:
             if len(available_keys) == 1:
-                logger().info(
+                logger.info(
                     "signature_key was not configured by user, using signature key '{}' for model '{}' of version '{}' (found in the signature def map)".format(
                         available_keys[0],
                         model_name,
@@ -504,7 +504,7 @@ class TensorFlowServingAPI:
                 )
                 signature_key = available_keys[0]
             elif "predict" in signature_def:
-                logger().info(
+                logger.info(
                     "signature_key was not configured by user, using signature key 'predict' for model '{}' of version '{}' (found in the signature def map)".format(
                         model_name,
                         model_version,

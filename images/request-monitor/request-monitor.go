@@ -18,7 +18,6 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"sync"
 	"time"
@@ -26,6 +25,8 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
+	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 )
 
 const _tickOffset = 1 * time.Second
@@ -33,6 +34,7 @@ const _tickInterval = 10 * time.Second
 const _requestSampleInterval = 1 * time.Second
 
 var (
+	logger      *zap.Logger
 	client      *cloudwatch.CloudWatch
 	apiName     string
 	region      string
@@ -73,6 +75,31 @@ func main() {
 		panic(err)
 	}
 
+	logLevelEnv := os.Getenv("CORTEX_LOG_LEVEL")
+	var logLevelZap zapcore.Level
+	switch logLevelEnv {
+	case "DEBUG":
+		logLevelZap = zapcore.DebugLevel
+	case "INFO":
+		logLevelZap = zapcore.InfoLevel
+	case "WARNING":
+		logLevelZap = zapcore.WarnLevel
+	case "ERROR":
+		logLevelZap = zapcore.ErrorLevel
+	}
+
+	logger, err = zap.Config{
+		Level:            zap.NewAtomicLevelAt(logLevelZap),
+		Encoding:         "console",
+		EncoderConfig:    zap.NewProductionEncoderConfig(),
+		OutputPaths:      []string{"stdout"},
+		ErrorOutputPaths: []string{"stderr"},
+	}.Build()
+	if err != nil {
+		panic(err)
+	}
+	defer logger.Sync()
+
 	client = cloudwatch.New(sess)
 	requestCounter := Counter{}
 
@@ -82,10 +109,10 @@ func main() {
 		if _, err := os.Stat("/mnt/workspace/api_readiness.txt"); err == nil {
 			break
 		} else if os.IsNotExist(err) {
-			fmt.Println("waiting for replica to be ready ...")
+			logger.Info("waiting for replica to be ready ...")
 			time.Sleep(_tickInterval)
 		} else {
-			log.Printf("error encountered while looking for /mnt/workspace/api_readiness.txt") // unexpected
+			logger.Error("error encountered while looking for /mnt/workspace/api_readiness.txt") // unexpected
 			time.Sleep(_tickInterval)
 		}
 	}
@@ -137,7 +164,7 @@ func publishStats(apiName string, counter *Counter, client *cloudwatch.CloudWatc
 
 		total /= float64(len(requestCounts))
 	}
-	log.Printf("recorded %.2f in-flight requests on replica", total)
+	logger.Info(fmt.Sprintf("recorded %.2f in-flight requests on replica", total))
 	curTime := time.Now()
 	metricData := cloudwatch.PutMetricDataInput{
 		Namespace: aws.String(clusterName),
@@ -159,7 +186,7 @@ func publishStats(apiName string, counter *Counter, client *cloudwatch.CloudWatc
 	}
 	_, err := client.PutMetricData(&metricData)
 	if err != nil {
-		log.Printf("error: publishing metrics: %s", err.Error())
+		logger.Error(fmt.Sprintf("error: publishing metrics: %s", err.Error()))
 	}
 }
 

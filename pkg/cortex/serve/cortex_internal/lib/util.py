@@ -21,11 +21,20 @@ import pathlib
 import inspect
 from inspect import Parameter
 from copy import deepcopy
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 
 
 def has_method(object, method: str):
     return callable(getattr(object, method, None))
+
+
+def expand_environment_vars_on_file(in_file: str, out_file: Optional[str] = None):
+    if out_file is None:
+        out_file = in_file
+    with open(in_file, "r") as f:
+        data = f.read()
+    with open(out_file, "w") as f:
+        f.write(os.path.expandvars(data))
 
 
 def extract_zip(zip_path, dest_dir=None, delete_zip_file=False):
