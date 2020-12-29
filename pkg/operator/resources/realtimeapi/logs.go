@@ -57,7 +57,7 @@ type fluentdLog struct {
 func ReadLogs(apiName string, socket *websocket.Conn) {
 	podCheckCancel := make(chan struct{})
 	defer close(podCheckCancel)
-	routines.GoRoutineWithPanicHandler(func() {
+	routines.RunWithPanicHandler(func() {
 		streamFromCloudWatch(apiName, podCheckCancel, socket)
 	})
 	pumpStdin(socket)

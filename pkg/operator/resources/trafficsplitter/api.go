@@ -45,7 +45,7 @@ func UpdateAPI(apiConfig *userconfig.API, force bool) (*spec.API, string, error)
 		}
 
 		if err := applyK8sVirtualService(api, prevVirtualService); err != nil {
-			routines.GoRoutineWithPanicHandler(func() {
+			routines.RunWithPanicHandler(func() {
 				deleteK8sResources(api.Name)
 			})
 			return nil, "", err
@@ -53,7 +53,7 @@ func UpdateAPI(apiConfig *userconfig.API, force bool) (*spec.API, string, error)
 
 		err = operator.AddAPIToAPIGateway(*api.Networking.Endpoint, api.Networking.APIGateway)
 		if err != nil {
-			routines.GoRoutineWithPanicHandler(func() {
+			routines.RunWithPanicHandler(func() {
 				deleteK8sResources(api.Name)
 			})
 			return nil, "", err

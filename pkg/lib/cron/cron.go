@@ -40,7 +40,7 @@ func Run(f func() error, errHandler func(error), delay time.Duration) Cron {
 		}
 	}
 
-	routines.GoRoutineWithPanicHandler(func() {
+	routines.RunWithPanicHandler(func() {
 		timer := time.NewTimer(0)
 		defer timer.Stop()
 		for {

@@ -52,7 +52,7 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string) (*spec.API, string, 
 
 		err = applyK8sResources(api, prevVirtualService)
 		if err != nil {
-			routines.GoRoutineWithPanicHandler(func() {
+			routines.RunWithPanicHandler(func() {
 				deleteK8sResources(api.Name)
 			})
 			return nil, "", err
@@ -60,10 +60,10 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string) (*spec.API, string, 
 
 		err = operator.AddAPIToAPIGateway(*api.Networking.Endpoint, api.Networking.APIGateway)
 		if err != nil {
-			routines.GoRoutineWithPanicHandler(func() {
+			routines.RunWithPanicHandler(func() {
 				deleteK8sResources(api.Name)
 			})
-			routines.GoRoutineWithPanicHandler(func() {
+			routines.RunWithPanicHandler(func() {
 				operator.RemoveAPIFromAPIGateway(*api.Networking.Endpoint, api.Networking.APIGateway)
 			})
 			return nil, "", err
@@ -157,7 +157,7 @@ func deleteS3Resources(apiName string) error {
 		},
 		func() error {
 			prefix := spec.BatchAPIJobPrefix(apiName, config.Cluster.ClusterName)
-			routines.GoRoutineWithPanicHandler(func() {
+			routines.RunWithPanicHandler(func() {
 				config.AWS.DeleteS3Dir(config.Cluster.Bucket, prefix, true) // deleting job files may take a while
 			})
 			return nil

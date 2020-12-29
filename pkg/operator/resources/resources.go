@@ -288,7 +288,7 @@ func DeleteAPI(apiName string, keepCache bool) (*schema.DeleteResponse, error) {
 	}
 	if deployedResource == nil {
 		// Delete anyways just to be sure everything is deleted
-		routines.GoRoutineWithPanicHandler(func() {
+		routines.RunWithPanicHandler(func() {
 			err := parallel.RunFirstErr(
 				func() error {
 					return realtimeapi.DeleteAPI(apiName, keepCache)

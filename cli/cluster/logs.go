@@ -113,7 +113,7 @@ func streamLogs(operatorConfig OperatorConfig, path string, qParams ...map[strin
 }
 
 func handleConnection(connection *websocket.Conn, done chan struct{}) {
-	routines.GoRoutineWithPanicHandler(func() {
+	routines.RunWithPanicHandler(func() {
 		defer close(done)
 		for {
 			_, message, err := connection.ReadMessage()

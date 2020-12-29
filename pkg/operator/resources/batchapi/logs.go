@@ -64,11 +64,11 @@ func ReadLogs(jobKey spec.JobKey, socket *websocket.Conn) {
 	defer close(podCheckCancel)
 
 	if jobStatus.Status.IsInProgress() {
-		routines.GoRoutineWithPanicHandler(func() {
+		routines.RunWithPanicHandler(func() {
 			streamFromCloudWatch(jobStatus, podCheckCancel, socket)
 		})
 	} else {
-		routines.GoRoutineWithPanicHandler(func() {
+		routines.RunWithPanicHandler(func() {
 			fetchLogsFromCloudWatch(jobStatus, podCheckCancel, socket)
 		})
 	}

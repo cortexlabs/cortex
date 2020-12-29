@@ -22,7 +22,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/exit"
 )
 
-func GoRoutineWithPanicHandler(f func()) {
+func RunWithPanicHandler(f func()) {
 	go func() {
 		defer func() {
 			if r := recover(); r != nil {

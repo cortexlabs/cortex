@@ -93,7 +93,7 @@ func runManager(containerConfig *container.Config, addNewLineAfterPull bool, cop
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 	caughtCtrlC := false
 
-	routines.GoRoutineWithPanicHandler(func() {
+	routines.RunWithPanicHandler(func() {
 		<-c
 		caughtCtrlC = true
 		removeContainer()
