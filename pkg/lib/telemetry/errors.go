@@ -17,13 +17,23 @@ limitations under the License.
 package telemetry
 
 import (
+	"fmt"
+
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 )
 
 const (
+	ErrUnexpectedError            = "telemetry.unexpected_error"
 	ErrUserIDNotSpecified         = "telemetry.user_id_not_specified"
 	ErrSentryFlushTimeoutExceeded = "telemetry.sentry_flush_timeout_exceeded"
 )
+
+func ErrorUnexpectedError(msg string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrUnexpectedError,
+		Message: fmt.Sprintf("unexpected error occurred: %s", msg),
+	})
+}
 
 func ErrorUserIDNotSpecified() error {
 	return errors.WithStack(&errors.Error{
