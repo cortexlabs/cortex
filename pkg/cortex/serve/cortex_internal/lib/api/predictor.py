@@ -551,7 +551,7 @@ def model_downloader(
         return None
 
     # validate model
-    model_contents = glob.glob(temp_dest + "*/**", recursive=True)
+    model_contents = glob.glob(os.path.join(temp_dest, "**"), recursive=True)
     model_contents = util.remove_non_empty_directory_paths(model_contents)
     try:
         validate_model_paths(model_contents, predictor_type, temp_dest)
