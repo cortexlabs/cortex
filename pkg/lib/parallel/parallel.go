@@ -17,8 +17,6 @@ limitations under the License.
 package parallel
 
 import (
-	"fmt"
-
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 )
 
@@ -45,7 +43,7 @@ func Run(fn func() error, fns ...func() error) []error {
 		go func() {
 			defer func() {
 				if r := recover(); r != nil {
-					errChannel <- ErrorUnexpectedError(fmt.Sprintf("%v", r))
+					errChannel <- errors.CastRecoverError(r)
 				}
 			}()
 			errChannel <- fn()
