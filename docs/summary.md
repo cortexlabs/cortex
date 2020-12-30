@@ -31,7 +31,7 @@
   * [Example](workloads/dependencies/example.md)
   * [Python packages](workloads/dependencies/python-packages.md)
   * [System packages](workloads/dependencies/system-packages.md)
-  * [Custom images](workloads/dependencies/docker-images.md)
+  * [Custom images](workloads/dependencies/images.md)
 
 ## Clusters
 
