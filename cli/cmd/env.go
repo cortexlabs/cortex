@@ -35,7 +35,6 @@ var (
 	_flagEnvOperatorEndpoint   string
 	_flagEnvAWSAccessKeyID     string
 	_flagEnvAWSSecretAccessKey string
-	_flagEnvAWSRegion          string
 )
 
 func envInit() {
@@ -44,7 +43,6 @@ func envInit() {
 	_envConfigureCmd.Flags().StringVarP(&_flagEnvOperatorEndpoint, "operator-endpoint", "o", "", "set the operator endpoint without prompting")
 	_envConfigureCmd.Flags().StringVarP(&_flagEnvAWSAccessKeyID, "aws-access-key-id", "k", "", "set the aws access key id without prompting")
 	_envConfigureCmd.Flags().StringVarP(&_flagEnvAWSSecretAccessKey, "aws-secret-access-key", "s", "", "set the aws secret access key without prompting")
-	_envConfigureCmd.Flags().StringVarP(&_flagEnvAWSRegion, "aws-region", "r", "", "set the aws region without prompting")
 	_envCmd.AddCommand(_envConfigureCmd)
 
 	_envListCmd.Flags().SortFlags = false
@@ -98,17 +96,11 @@ var _envConfigureCmd = &cobra.Command{
 			skipAWSSecretAccessKey = &_flagEnvAWSSecretAccessKey
 		}
 
-		var skipAWSRegion *string
-		if _flagEnvAWSRegion != "" {
-			skipAWSRegion = &_flagEnvAWSRegion
-		}
-
 		fieldsToSkipPrompt := cliconfig.Environment{
 			Provider:           skipProvider,
 			OperatorEndpoint:   skipOperatorEndpoint,
 			AWSAccessKeyID:     skipAWSAccessKeyID,
 			AWSSecretAccessKey: skipAWSSecretAccessKey,
-			AWSRegion:          skipAWSRegion,
 		}
 
 		if _, err := configureEnv(envName, fieldsToSkipPrompt); err != nil {

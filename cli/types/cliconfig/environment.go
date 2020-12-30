@@ -31,7 +31,6 @@ type Environment struct {
 	OperatorEndpoint   *string            `json:"operator_endpoint,omitempty" yaml:"operator_endpoint,omitempty"`
 	AWSAccessKeyID     *string            `json:"aws_access_key_id,omitempty" yaml:"aws_access_key_id,omitempty"`
 	AWSSecretAccessKey *string            `json:"aws_secret_access_key,omitempty" yaml:"aws_secret_access_key,omitempty"`
-	AWSRegion          *string            `json:"aws_region,omitempty" yaml:"aws_region,omitempty"`
 }
 
 func (env Environment) String(isDefault bool) string {
@@ -53,9 +52,6 @@ func (env Environment) String(isDefault bool) string {
 	}
 	if env.AWSSecretAccessKey != nil {
 		items.Add("aws secret access key", s.MaskString(*env.AWSSecretAccessKey, 4))
-	}
-	if env.AWSRegion != nil {
-		items.Add("aws region", *env.AWSRegion)
 	}
 
 	return items.String(&table.KeyValuePairOpts{
@@ -99,10 +95,6 @@ func (env *Environment) Validate() error {
 		if env.AWSSecretAccessKey == nil {
 			return errors.Wrap(cr.ErrorMustBeDefined(), env.Name, AWSSecretAccessKeyKey)
 		}
-		if env.AWSRegion != nil {
-			err := errors.Append(cr.ErrorMustBeEmpty(), " (it's only used for the local environment, since it can be inferred in aws)")
-			return errors.Wrap(err, env.Name, AWSRegionKey)
-		}
 	}
 
 	if env.Provider == types.GCPProviderType {
@@ -114,9 +106,6 @@ func (env *Environment) Validate() error {
 		}
 		if env.AWSSecretAccessKey != nil {
 			return errors.Wrap(cr.ErrorMustBeEmpty(), env.Name, AWSSecretAccessKeyKey)
-		}
-		if env.AWSRegion != nil {
-			return errors.Wrap(cr.ErrorMustBeEmpty(), env.Name, AWSRegionKey)
 		}
 	}
 

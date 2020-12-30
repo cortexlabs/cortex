@@ -35,7 +35,6 @@ import (
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/urls"
 	"github.com/cortexlabs/cortex/pkg/types"
-	"github.com/cortexlabs/cortex/pkg/types/clusterconfig"
 	"github.com/cortexlabs/yaml"
 )
 
@@ -95,13 +94,6 @@ var _cliConfigValidation = &cr.StructValidation{
 							StructField: "AWSSecretAccessKey",
 							StringPtrValidation: &cr.StringPtrValidation{
 								Required: false,
-							},
-						},
-						{
-							StructField: "AWSRegion",
-							StringPtrValidation: &cr.StringPtrValidation{
-								Required:  false,
-								Validator: clusterconfig.RegionValidator,
 							},
 						},
 					},
@@ -507,30 +499,19 @@ func getEnvConfigDefaults(envName string) cliconfig.Environment {
 	if defaults.AWSSecretAccessKey == nil && os.Getenv("AWS_SECRET_ACCESS_KEY") != "" {
 		defaults.AWSSecretAccessKey = pointer.String(os.Getenv("AWS_SECRET_ACCESS_KEY"))
 	}
-	if defaults.AWSRegion == nil && os.Getenv("AWS_REGION") != "" {
-		defaults.AWSRegion = pointer.String(os.Getenv("AWS_REGION"))
-	}
 
 	if defaults.AWSAccessKeyID == nil && defaults.AWSSecretAccessKey == nil {
 		// search other envs for credentials (favoring the env named "aws", or the last entry in the list)
-		regionWasNil := defaults.AWSRegion == nil
 		cliConfig, _ := readCLIConfig()
 		for _, env := range cliConfig.Environments {
 			if env.AWSAccessKeyID != nil && env.AWSSecretAccessKey != nil {
 				defaults.AWSAccessKeyID = env.AWSAccessKeyID
 				defaults.AWSSecretAccessKey = env.AWSSecretAccessKey
 			}
-			if regionWasNil && env.AWSRegion != nil {
-				defaults.AWSRegion = env.AWSRegion
-			}
 			if env.Name == "aws" {
 				break // favor the env named "aws"
 			}
 		}
-	}
-
-	if defaults.AWSRegion == nil {
-		defaults.AWSRegion = pointer.String("us-east-1")
 	}
 
 	if defaults.OperatorEndpoint == nil && os.Getenv("CORTEX_OPERATOR_ENDPOINT") != "" {
@@ -552,7 +533,6 @@ func configureEnv(envName string, fieldsToSkipPrompt cliconfig.Environment) (cli
 		OperatorEndpoint:   fieldsToSkipPrompt.OperatorEndpoint,
 		AWSAccessKeyID:     fieldsToSkipPrompt.AWSAccessKeyID,
 		AWSSecretAccessKey: fieldsToSkipPrompt.AWSSecretAccessKey,
-		AWSRegion:          fieldsToSkipPrompt.AWSRegion,
 	}
 
 	if env.Provider == types.UnknownProviderType {
@@ -609,18 +589,12 @@ func validateAWSCreds(env cliconfig.Environment) error {
 		return nil
 	}
 
-	// region is not applicable for the AWS provider, so we can use a default if it's missing
-	region := "us-east-1"
-	if env.AWSRegion != nil {
-		region = *env.AWSRegion
-	}
-
 	awsCreds := AWSCredentials{
 		AWSAccessKeyID:     *env.AWSAccessKeyID,
 		AWSSecretAccessKey: *env.AWSSecretAccessKey,
 	}
 
-	if _, err := newAWSClient(region, awsCreds); err != nil {
+	if _, err := newAWSClient("us-east-1", awsCreds); err != nil {
 		return err
 	}
 
