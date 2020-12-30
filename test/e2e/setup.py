@@ -32,7 +32,7 @@ setup(
     install_requires=[
         "requests==2.24.0",
         "jsonschema==3.2.0",
-        "pytest>=6.1.2",
+        "pytest==6.1.*",
         "python-dotenv==0.15.0",
         "pyyaml>=5.3.1",
         "cortex",
