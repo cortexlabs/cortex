@@ -383,22 +383,24 @@ func validateOperatorEndpoint(endpoint string) (string, error) {
 	return url, nil
 }
 
-func getDefaultEnv(cmdType commandType) *string {
+func getDefaultEnv() (*string, error) {
 	var defaultEnv *string
 
 	if cliConfig, err := readCLIConfig(); err == nil {
-		defaultEnv = cliConfig.DefaultEnvironment
+		if cliConfig.DefaultEnvironment == nil {
+			if len(cliConfig.Environments) == 1 {
+				defaultEnv = &cliConfig.Environments[0].Name
+				err := setDefaultEnv(*defaultEnv)
+				if err != nil {
+					return nil, err
+				}
+			}
+		} else {
+			defaultEnv = cliConfig.DefaultEnvironment
+		}
 	}
 
-	if cmdType == _clusterCommandType && defaultEnv == nil {
-		defaultEnv = pointer.String(types.AWSProviderType.String())
-	}
-
-	if cmdType == _clusterGCPCommandType && defaultEnv == nil {
-		defaultEnv = pointer.String(types.GCPProviderType.String())
-	}
-
-	return defaultEnv
+	return defaultEnv, nil
 }
 
 func setDefaultEnv(envName string) error {
@@ -766,7 +768,10 @@ func removeEnvFromCLIConfig(envName string) error {
 		return err
 	}
 
-	prevDefault := getDefaultEnv(_generalCommandType)
+	prevDefault, err := getDefaultEnv()
+	if err != nil {
+		return err
+	}
 
 	var updatedEnvs []*cliconfig.Environment
 	deleted := false

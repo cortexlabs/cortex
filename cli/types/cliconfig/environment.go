@@ -64,10 +64,6 @@ func (env Environment) String(isDefault bool) string {
 }
 
 func CheckProviderEnvironmentNameCompatibility(envName string, provider types.ProviderType) error {
-	if provider == types.LocalProviderType && envName != types.LocalProviderType.String() {
-		return ErrorLocalEnvironmentMustBeNamedLocal(envName)
-	}
-
 	envNameProvider := types.ProviderTypeFromString(envName)
 	if envNameProvider == types.UnknownProviderType {
 		return nil
@@ -91,12 +87,6 @@ func (env *Environment) Validate() error {
 
 	if err := CheckProviderEnvironmentNameCompatibility(env.Name, env.Provider); err != nil {
 		return err
-	}
-
-	if env.Provider == types.LocalProviderType {
-		if env.OperatorEndpoint != nil {
-			return errors.Wrap(ErrorOperatorEndpointInLocalEnvironment(), env.Name)
-		}
 	}
 
 	if env.Provider == types.AWSProviderType {

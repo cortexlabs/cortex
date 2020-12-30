@@ -55,8 +55,7 @@ var (
 type commandType int
 
 const (
-	_generalCommandType commandType = iota
-	_clusterCommandType
+	_clusterCommandType commandType = iota
 	_clusterGCPCommandType
 )
 
@@ -215,7 +214,7 @@ func addVerboseFlag(cmd *cobra.Command) {
 func wasEnvFlagProvided(cmd *cobra.Command) bool {
 	envFlagProvided := false
 	cmd.Flags().VisitAll(func(flag *pflag.Flag) {
-		if flag.Shorthand == "e" && flag.Changed {
+		if flag.Shorthand == "e" && flag.Changed && flag.Value.String() != "" {
 			envFlagProvided = true
 		}
 	})

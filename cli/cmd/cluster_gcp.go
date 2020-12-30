@@ -54,8 +54,7 @@ var (
 func clusterGCPInit() {
 	_clusterGCPUpCmd.Flags().SortFlags = false
 	addClusterGCPConfigFlag(_clusterGCPUpCmd)
-	defaultEnv := getDefaultEnv(_clusterGCPCommandType)
-	_clusterGCPUpCmd.Flags().StringVarP(&_flagClusterGCPUpEnv, "configure-env", "e", defaultEnv, "name of environment to configure")
+	_clusterGCPUpCmd.Flags().StringVarP(&_flagClusterGCPUpEnv, "configure-env", "e", "", "name of environment to configure")
 	addClusterGCPDisallowPromptFlag(_clusterGCPUpCmd)
 	_clusterGCPCmd.AddCommand(_clusterGCPUpCmd)
 
@@ -111,15 +110,29 @@ var _clusterGCPUpCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		telemetry.EventNotify("cli.cluster.up", map[string]interface{}{"provider": types.GCPProviderType})
 
+		var envName string
+		if _flagClusterGCPUpEnv == "" {
+			defaultEnv, err := getDefaultEnv()
+			if err != nil {
+				exit.Error(err)
+			}
+			if defaultEnv != nil {
+				envName = *defaultEnv
+			}
+		}
+		if envName == "" {
+			envName = "gcp"
+		}
+
 		envExists, err := isEnvConfigured(_flagClusterGCPUpEnv)
 		if err != nil {
 			exit.Error(err)
 		}
 		if envExists {
 			if _flagClusterGCPDisallowPrompt {
-				fmt.Printf("found an existing environment named \"%s\", which will be overwritten to connect to this cluster once it's created\n\n", _flagClusterGCPUpEnv)
+				fmt.Printf("found an existing environment named \"%s\", which will be overwritten to connect to this cluster once it's created\n\n", envName)
 			} else {
-				prompt.YesOrExit(fmt.Sprintf("found an existing environment named \"%s\"; would you like to overwrite it to connect to this cluster once it's created?", _flagClusterGCPUpEnv), "", "you can specify a different environment name to be configured to connect to this cluster by specifying the --configure-env flag (e.g. `cortex cluster up --configure-env prod`); or you can list your environments with `cortex env list` and delete an environment with `cortex env delete ENV_NAME`")
+				prompt.YesOrExit(fmt.Sprintf("found an existing environment named \"%s\"; would you like to overwrite it to connect to this cluster once it's created?", envName), "", "you can specify a different environment name to be configured to connect to this cluster by specifying the --configure-env flag (e.g. `cortex cluster up --configure-env prod`); or you can list your environments with `cortex env list` and delete an environment with `cortex env delete ENV_NAME`")
 			}
 		}
 
@@ -169,24 +182,24 @@ var _clusterGCPUpCmd = &cobra.Command{
 		gkeClusterName := fmt.Sprintf("projects/%s/locations/%s/clusters/%s", *clusterConfig.Project, *clusterConfig.Zone, clusterConfig.ClusterName)
 		operatorLoadBalancerIP, err := getGCPOperatorLoadBalancerIP(gkeClusterName, gcpClient)
 		if err != nil {
-			exit.Error(errors.Append(err, fmt.Sprintf("\n\nyou can attempt to resolve this issue and configure your cli environment by running `cortex cluster info --configure-env %s`", _flagClusterGCPUpEnv)))
+			exit.Error(errors.Append(err, fmt.Sprintf("\n\nyou can attempt to resolve this issue and configure your cli environment by running `cortex cluster info --configure-env %s`", envName)))
 		}
 
 		newEnvironment := cliconfig.Environment{
-			Name:             _flagClusterGCPUpEnv,
+			Name:             envName,
 			Provider:         types.GCPProviderType,
 			OperatorEndpoint: &operatorLoadBalancerIP,
 		}
 
 		err = addEnvToCLIConfig(newEnvironment, true)
 		if err != nil {
-			exit.Error(errors.Append(err, fmt.Sprintf("\n\nyou can attempt to resolve this issue and configure your cli environment by running `cortex cluster info --configure-env %s`", _flagClusterGCPUpEnv)))
+			exit.Error(errors.Append(err, fmt.Sprintf("\n\nyou can attempt to resolve this issue and configure your cli environment by running `cortex cluster info --configure-env %s`", envName)))
 		}
 
 		if envExists {
-			fmt.Printf(console.Bold("\nthe environment named \"%s\" has been updated to point to this cluster (and was set as the default environment)\n"), _flagClusterGCPUpEnv)
+			fmt.Printf(console.Bold("\nthe environment named \"%s\" has been updated to point to this cluster (and was set as the default environment)\n"), envName)
 		} else {
-			fmt.Printf(console.Bold("\nan environment named \"%s\" has been configured to point to this cluster (and was set as the default environment)\n"), _flagClusterGCPUpEnv)
+			fmt.Printf(console.Bold("\nan environment named \"%s\" has been configured to point to this cluster (and was set as the default environment)\n"), envName)
 		}
 	},
 }
@@ -273,11 +286,20 @@ var _clusterGCPDownCmd = &cobra.Command{
 			envNames, isDefaultEnv, _ := getEnvNamesByOperatorEndpoint(operatorLoadBalancerIP)
 			if len(envNames) > 0 {
 				for _, envName := range envNames {
-					removeEnvFromCLIConfig(envName)
+					err := removeEnvFromCLIConfig(envName)
+					if err != nil {
+						exit.Error(err)
+					}
 				}
 				fmt.Printf("✓ deleted the %s environment configuration%s\n", s.StrsAnd(envNames), s.SIfPlural(len(envNames)))
 				if isDefaultEnv {
-					fmt.Println("✓ set the default environment to local")
+					newDefaultEnv, err := getDefaultEnv()
+					if err != nil {
+						exit.Error(err)
+					}
+					if newDefaultEnv != nil {
+						fmt.Println(fmt.Sprintf("✓ set the default environment to %s", *newDefaultEnv))
+					}
 				}
 			}
 		}

@@ -55,7 +55,7 @@ var (
 
 func deployInit() {
 	_deployCmd.Flags().SortFlags = false
-	_deployCmd.Flags().StringVarP(&_flagDeployEnv, "env", "e", getDefaultEnv(_generalCommandType), "environment to use")
+	_deployCmd.Flags().StringVarP(&_flagDeployEnv, "env", "e", "", "environment to use")
 	_deployCmd.Flags().BoolVarP(&_flagDeployForce, "force", "f", false, "override the in-progress api update")
 	_deployCmd.Flags().BoolVarP(&_flagDeployDisallowPrompt, "yes", "y", false, "skip prompts")
 	_deployCmd.Flags().VarP(&_flagOutput, "output", "o", fmt.Sprintf("output format: one of %s", strings.Join(flags.UserOutputTypeStrings(), "|")))
@@ -66,14 +66,28 @@ var _deployCmd = &cobra.Command{
 	Short: "create or update apis",
 	Args:  cobra.RangeArgs(0, 1),
 	Run: func(cmd *cobra.Command, args []string) {
-		env, err := ReadOrConfigureEnv(_flagDeployEnv)
+		var envName string
+		if _flagDeployEnv == "" {
+			defaultEnv, err := getDefaultEnv()
+			if err != nil {
+				telemetry.Event("cli.deploy")
+				exit.Error(err)
+			}
+			if defaultEnv == nil {
+				telemetry.Event("cli.deploy")
+				exit.Error(ErrorEnvironmentNotSet())
+			}
+			envName = *defaultEnv
+		}
+
+		env, err := ReadOrConfigureEnv(envName)
 		if err != nil {
 			telemetry.Event("cli.deploy")
 			exit.Error(err)
 		}
 		telemetry.Event("cli.deploy", map[string]interface{}{"provider": env.Provider.String(), "env_name": env.Name})
 
-		err = printEnvIfNotSpecified(_flagDeployEnv, cmd)
+		err = printEnvIfNotSpecified(envName, cmd)
 		if err != nil {
 			exit.Error(err)
 		}
@@ -111,7 +125,10 @@ var _deployCmd = &cobra.Command{
 				exit.Error(err)
 			}
 		case flags.PrettyOutputType:
-			message := deployMessage(deployResults, env.Name)
+			message, err := deployMessage(deployResults, env.Name)
+			if err != nil {
+				exit.Error(err)
+			}
 			if didAnyResultsError(deployResults) {
 				print.StderrBoldFirstBlock(message)
 			} else {
@@ -238,16 +255,19 @@ func getDeploymentBytes(provider types.ProviderType, configPath string) (map[str
 	return uploadBytes, nil
 }
 
-func deployMessage(results []schema.DeployResult, envName string) string {
+func deployMessage(results []schema.DeployResult, envName string) (string, error) {
 	statusMessage := mergeResultMessages(results)
 
 	if didAllResultsError(results) {
-		return statusMessage
+		return statusMessage, nil
 	}
 
-	apiCommandsMessage := getAPICommandsMessage(results, envName)
+	apiCommandsMessage, err := getAPICommandsMessage(results, envName)
+	if err != nil {
+		return "", err
+	}
 
-	return statusMessage + "\n\n" + apiCommandsMessage
+	return statusMessage + "\n\n" + apiCommandsMessage, nil
 }
 
 func mergeResultMessages(results []schema.DeployResult) string {
@@ -296,15 +316,18 @@ func didAnyResultsError(results []schema.DeployResult) bool {
 	return false
 }
 
-func getAPICommandsMessage(results []schema.DeployResult, envName string) string {
+func getAPICommandsMessage(results []schema.DeployResult, envName string) (string, error) {
 	apiName := "<api_name>"
 	if len(results) == 1 {
 		apiName = results[0].API.Spec.Name
 	}
 
-	defaultEnv := getDefaultEnv(_generalCommandType)
+	defaultEnv, err := getDefaultEnv()
+	if err != nil {
+		return "", err
+	}
 	var envArg string
-	if envName != defaultEnv {
+	if defaultEnv != nil && envName != *defaultEnv {
 		envArg = " --env " + envName
 	}
 
@@ -325,5 +348,5 @@ func getAPICommandsMessage(results []schema.DeployResult, envName string) string
 	return strings.TrimSpace(items.String(&table.KeyValuePairOpts{
 		Delimiter: pointer.String(""),
 		NumSpaces: pointer.Int(2),
-	}))
+	})), nil
 }

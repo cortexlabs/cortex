@@ -35,7 +35,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/table"
 	libtime "github.com/cortexlabs/cortex/pkg/lib/time"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
-	"github.com/cortexlabs/cortex/pkg/types"
 	"github.com/cortexlabs/cortex/pkg/types/metrics"
 	"github.com/cortexlabs/cortex/pkg/types/status"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
@@ -47,13 +46,10 @@ func realtimeAPITable(realtimeAPI schema.APIResponse, env cliconfig.Environment)
 	t := realtimeAPIsTable([]schema.APIResponse{realtimeAPI}, []string{env.Name})
 	t.FindHeaderByTitle(_titleEnvironment).Hidden = true
 	t.FindHeaderByTitle(_titleRealtimeAPI).Hidden = true
-	if env.Provider == types.LocalProviderType {
-		hideReplicaCountColumns(&t)
-	}
 
 	out += t.MustFormat()
 
-	if env.Provider != types.LocalProviderType && realtimeAPI.Spec.Monitoring != nil {
+	if realtimeAPI.Spec.Monitoring != nil {
 		switch realtimeAPI.Spec.Monitoring.ModelType {
 		case userconfig.ClassificationModelType:
 			out += "\n" + classificationMetricsStr(realtimeAPI.Metrics)
@@ -72,9 +68,7 @@ func realtimeAPITable(realtimeAPI schema.APIResponse, env cliconfig.Environment)
 		out += "\n" + describeModelInput(realtimeAPI.Status, realtimeAPI.Spec.Predictor, realtimeAPI.Endpoint)
 	}
 
-	if env.Provider != types.LocalProviderType {
-		out += "\n" + apiHistoryTable(realtimeAPI.APIVersions)
-	}
+	out += "\n" + apiHistoryTable(realtimeAPI.APIVersions)
 
 	if !_flagVerbose {
 		return out, nil

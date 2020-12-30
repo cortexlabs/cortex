@@ -60,7 +60,7 @@ var (
 
 func getInit() {
 	_getCmd.Flags().SortFlags = false
-	_getCmd.Flags().StringVarP(&_flagGetEnv, "env", "e", getDefaultEnv(_generalCommandType), "environment to use")
+	_getCmd.Flags().StringVarP(&_flagGetEnv, "env", "e", "", "environment to use")
 	_getCmd.Flags().BoolVarP(&_flagWatch, "watch", "w", false, "re-run the command every 2 seconds")
 	_getCmd.Flags().VarP(&_flagOutput, "output", "o", fmt.Sprintf("output format: one of %s", strings.Join(flags.UserOutputTypeStrings(), "|")))
 	addVerboseFlag(_getCmd)

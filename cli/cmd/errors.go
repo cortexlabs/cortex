@@ -43,6 +43,7 @@ func errStrFailedToConnect(u url.URL) string {
 const (
 	ErrInvalidProvider                         = "cli.invalid_provider"
 	ErrCommandNotSupportedForKind              = "cli.command_not_supported_for_kind"
+	ErrEnvironmentNotSet                       = "cli.environment_not_set"
 	ErrEnvironmentNotFound                     = "cli.environment_not_found"
 	ErrFieldNotFoundInEnvironment              = "cli.field_not_found_in_environment"
 	ErrInvalidOperatorEndpoint                 = "cli.invalid_operator_endpoint"
@@ -85,6 +86,13 @@ func ErrorCommandNotSupportedForKind(kind userconfig.Kind, command string) error
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrCommandNotSupportedForKind,
 		Message: fmt.Sprintf("the `%s` command is not supported for %s kind", command, kind),
+	})
+}
+
+func ErrorEnvironmentNotSet() error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrEnvironmentNotSet,
+		Message: fmt.Sprintf("no default environment could be found and no environment was provided; run `cortex env default` to configure a default environment or run `cortex env configure` to configure a new environment or run `cortex cluster up`/`cortex cluster-gcp up` command to create one"),
 	})
 }
 
@@ -303,12 +311,8 @@ func ErrorNoTerminalWidth() error {
 }
 
 func ErrorDeployFromTopLevelDir(genericDirName string, providerType types.ProviderType) error {
-	targetStr := "cluster"
-	if providerType == types.LocalProviderType {
-		targetStr = "API container"
-	}
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrDeployFromTopLevelDir,
-		Message: fmt.Sprintf("cannot deploy from your %s directory - when deploying your API, cortex sends all files in your project directory (i.e. the directory which contains cortex.yaml) to your %s (see https://docs.cortex.dev/v/%s/); therefore it is recommended to create a subdirectory for your project files", genericDirName, targetStr, consts.CortexVersionMinor),
+		Message: fmt.Sprintf("cannot deploy from your %s directory - when deploying your API, cortex sends all files in your project directory (i.e. the directory which contains cortex.yaml) to your cluster (see https://docs.cortex.dev/v/%s/); therefore it is recommended to create a subdirectory for your project files", genericDirName, consts.CortexVersionMinor),
 	})
 }

@@ -38,7 +38,7 @@ var (
 
 func deleteInit() {
 	_deleteCmd.Flags().SortFlags = false
-	_deleteCmd.Flags().StringVarP(&_flagDeleteEnv, "env", "e", getDefaultEnv(_generalCommandType), "environment to use")
+	_deleteCmd.Flags().StringVarP(&_flagDeleteEnv, "env", "e", "", "environment to use")
 
 	_deleteCmd.Flags().BoolVarP(&_flagDeleteForce, "force", "f", false, "delete the api without confirmation")
 	_deleteCmd.Flags().BoolVarP(&_flagDeleteKeepCache, "keep-cache", "c", false, "keep cached data for the api")
@@ -50,14 +50,28 @@ var _deleteCmd = &cobra.Command{
 	Short: "delete any kind of api or stop a batch job",
 	Args:  cobra.RangeArgs(1, 2),
 	Run: func(cmd *cobra.Command, args []string) {
-		env, err := ReadOrConfigureEnv(_flagDeleteEnv)
+		var envName string
+		if _flagDeleteEnv == "" {
+			defaultEnv, err := getDefaultEnv()
+			if err != nil {
+				telemetry.Event("cli.delete")
+				exit.Error(err)
+			}
+			if defaultEnv == nil {
+				telemetry.Event("cli.delete")
+				exit.Error(ErrorEnvironmentNotSet())
+			}
+			envName = *defaultEnv
+		}
+
+		env, err := ReadOrConfigureEnv(envName)
 		if err != nil {
 			telemetry.Event("cli.delete")
 			exit.Error(err)
 		}
 		telemetry.Event("cli.delete", map[string]interface{}{"provider": env.Provider.String(), "env_name": env.Name})
 
-		err = printEnvIfNotSpecified(_flagDeleteEnv, cmd)
+		err = printEnvIfNotSpecified(envName, cmd)
 		if err != nil {
 			exit.Error(err)
 		}

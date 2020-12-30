@@ -22,7 +22,6 @@ import (
 	"net/url"
 
 	"github.com/cortexlabs/cortex/cli/cluster"
-	"github.com/cortexlabs/cortex/cli/local"
 	"github.com/cortexlabs/cortex/pkg/lib/console"
 	"github.com/cortexlabs/cortex/pkg/lib/exit"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
@@ -34,7 +33,7 @@ var _flagLogsEnv string
 
 func logsInit() {
 	_logsCmd.Flags().SortFlags = false
-	_logsCmd.Flags().StringVarP(&_flagLogsEnv, "env", "e", getDefaultEnv(_generalCommandType), "environment to use")
+	_logsCmd.Flags().StringVarP(&_flagLogsEnv, "env", "e", "", "environment to use")
 }
 
 var _logsCmd = &cobra.Command{
@@ -42,14 +41,28 @@ var _logsCmd = &cobra.Command{
 	Short: "stream logs from an api",
 	Args:  cobra.RangeArgs(1, 2),
 	Run: func(cmd *cobra.Command, args []string) {
-		env, err := ReadOrConfigureEnv(_flagLogsEnv)
+		var envName string
+		if _flagLogsEnv == "" {
+			defaultEnv, err := getDefaultEnv()
+			if err != nil {
+				telemetry.Event("cli.logs")
+				exit.Error(err)
+			}
+			if defaultEnv == nil {
+				telemetry.Event("cli.logs")
+				exit.Error(ErrorEnvironmentNotSet())
+			}
+			envName = *defaultEnv
+		}
+
+		env, err := ReadOrConfigureEnv(envName)
 		if err != nil {
 			telemetry.Event("cli.logs")
 			exit.Error(err)
 		}
 		telemetry.Event("cli.logs", map[string]interface{}{"provider": env.Provider.String(), "env_name": env.Name})
 
-		err = printEnvIfNotSpecified(_flagLogsEnv, cmd)
+		err = printEnvIfNotSpecified(envName, cmd)
 		if err != nil {
 			exit.Error(err)
 		}
@@ -91,16 +104,6 @@ var _logsCmd = &cobra.Command{
 			gcpLogsURL := gcpReq.URL.String()
 			consoleOutput := console.Bold(fmt.Sprintf("visit the following link to view logs for api %s: ", apiName)) + gcpLogsURL
 			fmt.Println(consoleOutput)
-		}
-
-		if env.Provider == types.LocalProviderType {
-			if len(args) == 2 {
-				exit.Error(ErrorNotSupportedInLocalEnvironment(), fmt.Sprintf("cannot stream logs for job %s for api %s", args[1], args[0]))
-			}
-			err := local.StreamLogs(apiName)
-			if err != nil {
-				exit.Error(err)
-			}
 		}
 	},
 }

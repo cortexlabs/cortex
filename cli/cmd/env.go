@@ -138,10 +138,13 @@ var _envListCmd = &cobra.Command{
 			return
 		}
 
-		defaultEnv := getDefaultEnv(_generalCommandType)
+		defaultEnv, err := getDefaultEnv()
+		if err != nil {
+			exit.Error(err)
+		}
 
 		for i, env := range cliConfig.Environments {
-			fmt.Print(env.String(defaultEnv == env.Name))
+			fmt.Print(env.String(defaultEnv != nil && *defaultEnv == env.Name))
 			if i+1 < len(cliConfig.Environments) {
 				fmt.Println()
 			}
@@ -156,17 +159,22 @@ var _envDefaultCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		telemetry.Event("cli.env.default")
 
-		defaultEnv := getDefaultEnv(_generalCommandType)
+		defaultEnv, err := getDefaultEnv()
+		if err != nil {
+			exit.Error(err)
+		}
 
 		var envName string
 		if len(args) == 0 {
-			fmt.Printf("current default environment: %s\n\n", defaultEnv)
+			if defaultEnv != nil {
+				fmt.Printf("current default environment: %s\n\n", *defaultEnv)
+			}
 			envName = promptForExistingEnvName("name of environment to set as default")
 		} else {
 			envName = args[0]
 		}
 
-		if envName == defaultEnv {
+		if defaultEnv != nil && *defaultEnv == envName {
 			print.BoldFirstLine(fmt.Sprintf("%s is already the default environment", envName))
 			exit.Ok()
 		}
@@ -193,17 +201,23 @@ var _envDeleteCmd = &cobra.Command{
 			envName = promptForExistingEnvName("name of environment to delete")
 		}
 
-		prevDefault := getDefaultEnv(_generalCommandType)
+		prevDefault, err := getDefaultEnv()
+		if err != nil {
+			exit.Error(err)
+		}
 
 		if err := removeEnvFromCLIConfig(envName); err != nil {
 			exit.Error(err)
 		}
 
-		newDefault := getDefaultEnv(_generalCommandType)
+		newDefault, err := getDefaultEnv()
 
 		print.BoldFirstLine(fmt.Sprintf("deleted the %s environment configuration", envName))
-		if prevDefault != newDefault {
-			print.BoldFirstLine(fmt.Sprintf("set the default environment to %s", newDefault))
+		if newDefault == nil {
+			print.BoldFirstLine(fmt.Sprintf("warning; no default environment configured"))
+		}
+		if prevDefault != nil && newDefault != nil && *prevDefault != *newDefault {
+			print.BoldFirstLine(fmt.Sprintf("set the default environment to %s", *newDefault))
 		}
 	},
 }
