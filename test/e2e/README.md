@@ -8,7 +8,15 @@ Install the `e2e` package, from the project directory:
 pip install -e test/e2e
 ```
 
+This only needs to be installed once (not on every code change).
+
 ## Running the tests
+
+Before running tests, instruct the Python client to use your development CLI binary:
+
+```shell
+export CORTEX_CLI_PATH=~/src/github.com/cortexlabs/cortex/bin/cortex
+```
 
 ### AWS
 
