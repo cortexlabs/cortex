@@ -31,7 +31,7 @@
   * [Example](workloads/dependencies/example.md)
   * [Python packages](workloads/dependencies/python-packages.md)
   * [System packages](workloads/dependencies/system-packages.md)
-  * [Docker images](workloads/dependencies/docker-images.md)
+  * [Custom images](workloads/dependencies/docker-images.md)
 
 ## Clusters
 
@@ -40,7 +40,6 @@
   * [Update](clusters/aws/update.md)
   * [Security](clusters/aws/security.md)
   * [Spot instances](clusters/aws/spot.md)
-  * [GPUs](clusters/aws/gpu.md)
   * [Inferentia](clusters/aws/inferentia.md)
   * [Networking](clusters/aws/networking.md)
   * [VPC peering](clusters/aws/vpc-peering.md)

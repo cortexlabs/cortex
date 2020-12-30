@@ -18,10 +18,10 @@
     endpoint: <string>  # the endpoint for the API (default: <api_name>)
     api_gateway: public | none  # whether to create a public API Gateway endpoint for this API (if not, the API will still be accessible via the load balancer) (default: public, unless disabled cluster-wide)
   compute:
-    cpu: <string | int | float>  # CPU request per worker, e.g. 200m or 1 (200m is equivalent to 0.2) (default: 200m)
-    gpu: <int>  # GPU request per worker (default: 0)
-    inf: <int> # Inferentia ASIC request per worker (default: 0)
-    mem: <string>  # memory request per worker, e.g. 200Mi or 1Gi (default: Null)
+    cpu: <string | int | float>  # CPU request per worker. One unit of CPU corresponds to one virtual CPU; fractional requests are allowed, and can be specified as a floating point number or via the "m" suffix (default: 200m)
+    gpu: <int>  # GPU request per worker. One unit of GPU corresponds to one virtual GPU (default: 0)
+    inf: <int> # Inferentia request per worker. One unit corresponds to one Inferentia ASIC with 4 NeuronCores and 8GB of cache memory (default: 0) (aws only)
+    mem: <string>  # memory request per worker. One unit of memory is one byte and can be expressed as an integer or by using one of these suffixes: K, M, G, T (or their power-of two counterparts: Ki, Mi, Gi, Ti) (default: Null)
 ```
 
 ## TensorFlow Predictor
@@ -54,10 +54,10 @@
     endpoint: <string>  # the endpoint for the API (default: <api_name>)
     api_gateway: public | none  # whether to create a public API Gateway endpoint for this API (if not, the API will still be accessible via the load balancer) (default: public, unless disabled cluster-wide)
   compute:
-    cpu: <string | int | float>  # CPU request per worker, e.g. 200m or 1 (200m is equivalent to 0.2) (default: 200m)
-    gpu: <int>  # GPU request per worker (default: 0)
-    inf: <int> # Inferentia ASIC request per worker (default: 0)
-    mem: <string>  # memory request per worker, e.g. 200Mi or 1Gi (default: Null)
+    cpu: <string | int | float>  # CPU request per worker. One unit of CPU corresponds to one virtual CPU; fractional requests are allowed, and can be specified as a floating point number or via the "m" suffix (default: 200m)
+    gpu: <int>  # GPU request per worker. One unit of GPU corresponds to one virtual GPU (default: 0)
+    inf: <int> # Inferentia request per worker. One unit corresponds to one Inferentia ASIC with 4 NeuronCores and 8GB of cache memory (default: 0) (aws only)
+    mem: <string>  # memory request per worker. One unit of memory is one byte and can be expressed as an integer or by using one of these suffixes: K, M, G, T (or their power-of two counterparts: Ki, Mi, Gi, Ti) (default: Null)
 ```
 
 ## ONNX Predictor
@@ -84,7 +84,7 @@
     endpoint: <string>  # the endpoint for the API (default: <api_name>)
     api_gateway: public | none  # whether to create a public API Gateway endpoint for this API (if not, the API will still be accessible via the load balancer) (default: public, unless disabled cluster-wide)
   compute:
-    cpu: <string | int | float>  # CPU request per worker, e.g. 200m or 1 (200m is equivalent to 0.2) (default: 200m)
-    gpu: <int>  # GPU request per worker (default: 0)
-    mem: <string>  # memory request per worker, e.g. 200Mi or 1Gi (default: Null)
+    cpu: <string | int | float>  # CPU request per worker. One unit of CPU corresponds to one virtual CPU; fractional requests are allowed, and can be specified as a floating point number or via the "m" suffix (default: 200m)
+    gpu: <int>  # GPU request per worker. One unit of GPU corresponds to one virtual GPU (default: 0)
+    mem: <string>  # memory request per worker. One unit of memory is one byte and can be expressed as an integer or by using one of these suffixes: K, M, G, T (or their power-of two counterparts: Ki, Mi, Gi, Ti) (default: Null)
 ```

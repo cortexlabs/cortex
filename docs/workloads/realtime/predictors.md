@@ -129,80 +129,9 @@ Your API can accept requests with different types of payloads such as `JSON`-par
 
 Your `predictor` method can return different types of objects such as `JSON`-parseable, `string`, and `bytes` objects. Navigate to the [API responses](#api-responses) section to learn about how to configure your `predictor` method to respond with different response codes and content-types.
 
-### Pre-installed packages
-
-The following Python packages are pre-installed in Python Predictors and can be used in your implementations:
-
-```text
-boto3==1.14.53
-cloudpickle==1.6.0
-Cython==0.29.21
-dill==0.3.2
-fastapi==0.61.1
-google-cloud-storage==1.32.0
-joblib==0.16.0
-Keras==2.4.3
-msgpack==1.0.0
-nltk==3.5
-np-utils==0.5.12.1
-numpy==1.19.1
-opencv-python==4.4.0.42
-pandas==1.1.1
-Pillow==7.2.0
-pyyaml==5.3.1
-requests==2.24.0
-scikit-image==0.17.2
-scikit-learn==0.23.2
-scipy==1.5.2
-six==1.15.0
-statsmodels==0.12.0
-sympy==1.6.2
-tensorflow-hub==0.9.0
-tensorflow==2.3.0
-torch==1.6.0
-torchvision==0.7.0
-xgboost==1.2.0
-```
-
-#### Inferentia-equipped APIs
-
-The list is slightly different for inferentia-equipped APIs:
-
-```text
-boto3==1.13.7
-cloudpickle==1.6.0
-Cython==0.29.21
-dill==0.3.1.1
-fastapi==0.54.1
-google-cloud-storage==1.32.0
-joblib==0.16.0
-msgpack==1.0.0
-neuron-cc==1.0.20600.0+0.b426b885f
-nltk==3.5
-np-utils==0.5.12.1
-numpy==1.18.2
-opencv-python==4.4.0.42
-pandas==1.1.1
-Pillow==7.2.0
-pyyaml==5.3.1
-requests==2.23.0
-scikit-image==0.17.2
-scikit-learn==0.23.2
-scipy==1.3.2
-six==1.15.0
-statsmodels==0.12.0
-sympy==1.6.2
-tensorflow==1.15.4
-tensorflow-neuron==1.15.3.1.0.2043.0
-torch==1.5.1
-torch-neuron==1.5.1.1.0.1721.0
-torchvision==0.6.1
-```
-
-<!-- CORTEX_VERSION_MINOR x3 -->
-The pre-installed system packages are listed in [images/python-predictor-cpu/Dockerfile](https://github.com/cortexlabs/cortex/tree/master/images/python-predictor-cpu/Dockerfile) (for CPU), [images/python-predictor-gpu/Dockerfile](https://github.com/cortexlabs/cortex/tree/master/images/python-predictor-gpu/Dockerfile) (for GPU), or [images/python-predictor-inf/Dockerfile](https://github.com/cortexlabs/cortex/tree/master/images/python-predictor-inf/Dockerfile) (for Inferentia).
-
 ## TensorFlow Predictor
+
+**Uses TensorFlow version 2.3.0 by default**
 
 ### Interface
 
@@ -270,29 +199,9 @@ Your API can accept requests with different types of payloads such as `JSON`-par
 
 Your `predictor` method can return different types of objects such as `JSON`-parseable, `string`, and `bytes` objects. Navigate to the [API responses](#api-responses) section to learn about how to configure your `predictor` method to respond with different response codes and content-types.
 
-### Pre-installed packages
-
-The following Python packages are pre-installed in TensorFlow Predictors and can be used in your implementations:
-
-```text
-boto3==1.14.53
-dill==0.3.2
-fastapi==0.61.1
-google-cloud-storage==1.32.0
-msgpack==1.0.0
-numpy==1.19.1
-opencv-python==4.4.0.42
-pyyaml==5.3.1
-requests==2.24.0
-tensorflow-hub==0.9.0
-tensorflow-serving-api==2.3.0
-tensorflow==2.3.0
-```
-
-<!-- CORTEX_VERSION_MINOR -->
-The pre-installed system packages are listed in [images/tensorflow-predictor/Dockerfile](https://github.com/cortexlabs/cortex/tree/master/images/tensorflow-predictor/Dockerfile).
-
 ## ONNX Predictor
+
+**Uses ONNX Runtime version 1.4.0 by default**
 
 ### Interface
 
@@ -360,25 +269,6 @@ Your API can accept requests with different types of payloads such as `JSON`-par
 
 Your `predictor` method can return different types of objects such as `JSON`-parseable, `string`, and `bytes` objects. Navigate to the [API responses](#api-responses) section to learn about how to configure your `predictor` method to respond with different response codes and content-types.
 
-### Pre-installed packages
-
-The following Python packages are pre-installed in ONNX Predictors and can be used in your implementations:
-
-```text
-boto3==1.14.53
-dill==0.3.2
-fastapi==0.61.1
-google-cloud-storage==1.32.0
-msgpack==1.0.0
-numpy==1.19.1
-onnxruntime==1.4.0
-pyyaml==5.3.1
-requests==2.24.0
-```
-
-<!-- CORTEX_VERSION_MINOR x2 -->
-The pre-installed system packages are listed in [images/onnx-predictor-cpu/Dockerfile](https://github.com/cortexlabs/cortex/tree/master/images/onnx-predictor-cpu/Dockerfile) (for CPU) or [images/onnx-predictor-gpu/Dockerfile](https://github.com/cortexlabs/cortex/tree/master/images/onnx-predictor-gpu/Dockerfile) (for GPU).
-
 ## API requests
 
 The type of the `payload` parameter in `predict(self, payload)` can vary based on the content type of the request. The `payload` parameter is parsed according to the `Content-Type` header in the request. Here are the parsing rules (see below for examples):
@@ -394,40 +284,10 @@ Here are some examples:
 
 #### Making the request
 
-##### Curl
-
 ```bash
 $ curl https://***.amazonaws.com/my-api \
     -X POST -H "Content-Type: application/json" \
     -d '{"key": "value"}'
-```
-
-Or if you have a json file:
-
-```bash
-$ curl https://***.amazonaws.com/my-api \
-    -X POST -H "Content-Type: application/json" \
-    -d @file.json
-```
-
-##### Python
-
-```python
-import requests
-
-url = "https://***.amazonaws.com/my-api"
-requests.post(url, json={"key": "value"})
-```
-
-Or if you have a json string:
-
-```python
-import requests
-import json
-
-url = "https://***.amazonaws.com/my-api"
-jsonStr = json.dumps({"key": "value"})
-requests.post(url, data=jsonStr, headers={"Content-Type": "application/json"})
 ```
 
 #### Reading the payload
@@ -447,23 +307,10 @@ class PythonPredictor:
 
 #### Making the request
 
-##### Curl
-
 ```bash
 $ curl https://***.amazonaws.com/my-api \
     -X POST -H "Content-Type: application/octet-stream" \
     --data-binary @object.pkl
-```
-
-##### Python
-
-```python
-import requests
-import pickle
-
-url = "https://***.amazonaws.com/my-api"
-pklBytes = pickle.dumps({"key": "value"})
-requests.post(url, data=pklBytes, headers={"Content-Type": "application/octet-stream"})
 ```
 
 #### Reading the payload
@@ -501,30 +348,12 @@ class PythonPredictor:
 
 #### Making the request
 
-##### Curl
-
 ```bash
 $ curl https://***.amazonaws.com/my-api \
     -X POST \
     -F "text=@text.txt" \
     -F "object=@object.pkl" \
     -F "image=@image.png"
-```
-
-##### Python
-
-```python
-import requests
-import pickle
-
-url = "https://***.amazonaws.com/my-api"
-files = {
-    "text": open("text.txt", "rb"),
-    "object": open("object.pkl", "rb"),
-    "image": open("image.png", "rb"),
-}
-
-requests.post(url, files=files)
 ```
 
 #### Reading the payload
@@ -554,21 +383,10 @@ class PythonPredictor:
 
 #### Making the request
 
-##### Curl
-
 ```bash
 $ curl https://***.amazonaws.com/my-api \
     -X POST \
     -d "key=value"
-```
-
-##### Python
-
-```python
-import requests
-
-url = "https://***.amazonaws.com/my-api"
-requests.post(url, data={"key": "value"})
 ```
 
 #### Reading the payload
@@ -588,21 +406,10 @@ class PythonPredictor:
 
 #### Making the request
 
-##### Curl
-
 ```bash
 $ curl https://***.amazonaws.com/my-api \
     -X POST -H "Content-Type: text/plain" \
     -d "hello world"
-```
-
-##### Python
-
-```python
-import requests
-
-url = "https://***.amazonaws.com/my-api"
-requests.post(url, "hello world", headers={"Content-Type": "text/plain"})
 ```
 
 #### Reading the payload
@@ -624,11 +431,11 @@ The response of your `predict()` function may be:
 
 1. A JSON-serializable object (*lists*, *dictionaries*, *numbers*, etc.)
 
-2. A `string` object (e.g. `"class 1"`)
+1. A `string` object (e.g. `"class 1"`)
 
-3. A `bytes` object (e.g. `bytes(4)` or `pickle.dumps(obj)`)
+1. A `bytes` object (e.g. `bytes(4)` or `pickle.dumps(obj)`)
 
-4. An instance of [starlette.responses.Response](https://www.starlette.io/responses/#response)
+1. An instance of [starlette.responses.Response](https://www.starlette.io/responses/#response)
 
 ## Chaining APIs
 
