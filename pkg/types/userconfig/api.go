@@ -94,7 +94,6 @@ type ServerSideBatching struct {
 
 type Networking struct {
 	Endpoint   *string        `json:"endpoint" yaml:"endpoint"`
-	LocalPort  *int           `json:"local_port" yaml:"local_port"`
 	APIGateway APIGatewayType `json:"api_gateway" yaml:"api_gateway"`
 }
 
@@ -332,22 +331,20 @@ func (api *API) UserStr(provider types.ProviderType) string {
 		sb.WriteString(s.Indent(api.Compute.UserStr(), "  "))
 	}
 
-	if provider != types.LocalProviderType {
-		if api.Autoscaling != nil {
-			sb.WriteString(fmt.Sprintf("%s:\n", AutoscalingKey))
-			sb.WriteString(s.Indent(api.Autoscaling.UserStr(provider), "  "))
-		}
+	if api.Autoscaling != nil {
+		sb.WriteString(fmt.Sprintf("%s:\n", AutoscalingKey))
+		sb.WriteString(s.Indent(api.Autoscaling.UserStr(provider), "  "))
+	}
 
-		if api.UpdateStrategy != nil {
-			sb.WriteString(fmt.Sprintf("%s:\n", UpdateStrategyKey))
-			sb.WriteString(s.Indent(api.UpdateStrategy.UserStr(), "  "))
-		}
+	if api.UpdateStrategy != nil {
+		sb.WriteString(fmt.Sprintf("%s:\n", UpdateStrategyKey))
+		sb.WriteString(s.Indent(api.UpdateStrategy.UserStr(), "  "))
+	}
 
-		if provider == types.AWSProviderType {
-			if api.Monitoring != nil {
-				sb.WriteString(fmt.Sprintf("%s:\n", MonitoringKey))
-				sb.WriteString(s.Indent(api.Monitoring.UserStr(), "  "))
-			}
+	if provider == types.AWSProviderType {
+		if api.Monitoring != nil {
+			sb.WriteString(fmt.Sprintf("%s:\n", MonitoringKey))
+			sb.WriteString(s.Indent(api.Monitoring.UserStr(), "  "))
 		}
 	}
 	return sb.String()
@@ -461,10 +458,7 @@ func (monitoring *Monitoring) UserStr() string {
 
 func (networking *Networking) UserStr(provider types.ProviderType) string {
 	var sb strings.Builder
-	if provider == types.LocalProviderType && networking.LocalPort != nil {
-		sb.WriteString(fmt.Sprintf("%s: %d\n", LocalPortKey, *networking.LocalPort))
-	}
-	if provider != types.LocalProviderType && networking.Endpoint != nil {
+	if networking.Endpoint != nil {
 		sb.WriteString(fmt.Sprintf("%s: %s\n", EndpointKey, *networking.Endpoint))
 	}
 	if provider == types.AWSProviderType {
@@ -607,10 +601,6 @@ func (api *API) TelemetryEvent(provider types.ProviderType) map[string]interface
 			if urls.CanonicalizeEndpoint(api.Name) != *api.Networking.Endpoint {
 				event["networking.endpoint._is_custom"] = true
 			}
-		}
-		if api.Networking.LocalPort != nil {
-			event["networking.local_port._is_defined"] = true
-			event["networking.local_port"] = *api.Networking.LocalPort
 		}
 	}
 

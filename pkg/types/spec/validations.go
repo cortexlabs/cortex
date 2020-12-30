@@ -19,7 +19,6 @@ package spec
 import (
 	"context"
 	"fmt"
-	"math"
 	"strings"
 	"time"
 
@@ -54,8 +53,8 @@ const _dockerPullSecretName = "registry-credentials"
 func apiValidation(
 	provider types.ProviderType,
 	resource userconfig.Resource,
-	awsClusterConfig *clusterconfig.Config, // should be omitted if running locally
-	gcpClusterConfig *clusterconfig.GCPConfig, // should be omitted if running locally
+	awsClusterConfig *clusterconfig.Config,
+	gcpClusterConfig *clusterconfig.GCPConfig,
 ) *cr.StructValidation {
 
 	structFieldValidations := []*cr.StructFieldValidation{}
@@ -240,7 +239,7 @@ func predictorValidation() *cr.StructFieldValidation {
 }
 
 func monitoringValidation(provider types.ProviderType) *cr.StructFieldValidation {
-	if provider != types.AWSProviderType && provider != types.LocalProviderType {
+	if provider != types.AWSProviderType {
 		return &cr.StructFieldValidation{
 			StructField: "Monitoring",
 			StructValidation: &cr.StructValidation{
@@ -278,8 +277,8 @@ func monitoringValidation(provider types.ProviderType) *cr.StructFieldValidation
 func networkingValidation(
 	kind userconfig.Kind,
 	provider types.ProviderType,
-	awsClusterConfig *clusterconfig.Config, // should be omitted if running locally
-	gcpClusterConfig *clusterconfig.GCPConfig, // should be omitted if running locally
+	awsClusterConfig *clusterconfig.Config,
+	gcpClusterConfig *clusterconfig.GCPConfig,
 ) *cr.StructFieldValidation {
 
 	structFieldValidation := []*cr.StructFieldValidation{
@@ -292,7 +291,7 @@ func networkingValidation(
 		},
 	}
 
-	if provider == types.AWSProviderType || provider == types.LocalProviderType {
+	if provider == types.AWSProviderType {
 		defaultAPIGatewayType := userconfig.PublicAPIGatewayType
 		if awsClusterConfig != nil && awsClusterConfig.APIGatewaySetting == clusterconfig.NoneAPIGatewaySetting {
 			defaultAPIGatewayType = userconfig.NoneAPIGatewayType
@@ -321,16 +320,6 @@ func networkingValidation(
 		})
 	}
 
-	if kind == userconfig.RealtimeAPIKind {
-		structFieldValidation = append(structFieldValidation, &cr.StructFieldValidation{
-			StructField: "LocalPort",
-			IntPtrValidation: &cr.IntPtrValidation{
-				GreaterThan:       pointer.Int(0),
-				LessThanOrEqualTo: pointer.Int(math.MaxUint16),
-			},
-		})
-	}
-
 	return &cr.StructFieldValidation{
 		StructField: "Networking",
 		StructValidation: &cr.StructValidation{
@@ -340,11 +329,6 @@ func networkingValidation(
 }
 
 func computeValidation(provider types.ProviderType) *cr.StructFieldValidation {
-	cpuDefault := pointer.String("200m")
-	if provider == types.LocalProviderType {
-		cpuDefault = nil
-	}
-
 	structFieldValidation := &cr.StructFieldValidation{
 		StructField: "Compute",
 		StructValidation: &cr.StructValidation{
@@ -352,7 +336,7 @@ func computeValidation(provider types.ProviderType) *cr.StructFieldValidation {
 				{
 					StructField: "CPU",
 					StringPtrValidation: &cr.StringPtrValidation{
-						Default:           cpuDefault,
+						Default:           pointer.String("200m"),
 						AllowExplicitNull: true,
 						CastNumeric:       true,
 					},
@@ -406,14 +390,9 @@ func computeValidation(provider types.ProviderType) *cr.StructFieldValidation {
 }
 
 func autoscalingValidation(provider types.ProviderType) *cr.StructFieldValidation {
-	defaultNil := provider == types.LocalProviderType
-	allowExplicitNull := provider == types.LocalProviderType
-
 	structFieldValidation := &cr.StructFieldValidation{
 		StructField: "Autoscaling",
 		StructValidation: &cr.StructValidation{
-			DefaultNil:        defaultNil,
-			AllowExplicitNull: allowExplicitNull,
 			StructFieldValidations: []*cr.StructFieldValidation{
 				{
 					StructField: "MinReplicas",
@@ -450,7 +429,7 @@ func autoscalingValidation(provider types.ProviderType) *cr.StructFieldValidatio
 		},
 	}
 
-	if provider == types.AWSProviderType || provider == types.LocalProviderType {
+	if provider == types.AWSProviderType {
 		structFieldValidation.StructValidation.StructFieldValidations = append(structFieldValidation.StructValidation.StructFieldValidations,
 			&cr.StructFieldValidation{
 				StructField: "TargetReplicaConcurrency",
@@ -580,13 +559,9 @@ func autoscalingValidation(provider types.ProviderType) *cr.StructFieldValidatio
 }
 
 func updateStrategyValidation(provider types.ProviderType) *cr.StructFieldValidation {
-	defaultNil := provider == types.LocalProviderType
-	allowExplicitNull := provider == types.LocalProviderType
 	return &cr.StructFieldValidation{
 		StructField: "UpdateStrategy",
 		StructValidation: &cr.StructValidation{
-			DefaultNil:        defaultNil,
-			AllowExplicitNull: allowExplicitNull,
 			StructFieldValidations: []*cr.StructFieldValidation{
 				{
 					StructField: "MaxSurge",
@@ -730,8 +705,8 @@ func ExtractAPIConfigs(
 	configBytes []byte,
 	provider types.ProviderType,
 	configFileName string,
-	awsClusterConfig *clusterconfig.Config, // should be omitted if running locally
-	gcpClusterConfig *clusterconfig.GCPConfig, // should be omitted if running locally
+	awsClusterConfig *clusterconfig.Config,
+	gcpClusterConfig *clusterconfig.GCPConfig,
 ) ([]userconfig.API, error) {
 
 	var err error
@@ -760,7 +735,7 @@ func ExtractAPIConfigs(
 		}
 
 		if resourceStruct.Kind == userconfig.BatchAPIKind || resourceStruct.Kind == userconfig.TrafficSplitterKind {
-			if provider == types.LocalProviderType || provider == types.GCPProviderType {
+			if provider == types.GCPProviderType {
 				return nil, errors.Wrap(ErrorKindIsNotSupportedByProvider(resourceStruct.Kind, provider), userconfig.IdentifyAPI(configFileName, resourceStruct.Name, resourceStruct.Kind, i))
 			}
 		}
@@ -800,7 +775,7 @@ func ValidateAPI(
 	provider types.ProviderType,
 	awsClient *aws.Client,
 	gcpClient *gcp.Client,
-	k8sClient *k8s.Client, // will be nil for local provider
+	k8sClient *k8s.Client,
 ) error {
 
 	// if models is nil, we need to set it to an empty slice to avoid nil pointer exceptions
@@ -808,7 +783,7 @@ func ValidateAPI(
 		models = &[]CuratedModelResource{}
 	}
 
-	if provider != types.LocalProviderType && api.Networking.Endpoint == nil {
+	if api.Networking.Endpoint == nil {
 		api.Networking.Endpoint = pointer.String("/" + api.Name)
 	}
 
@@ -816,7 +791,7 @@ func ValidateAPI(
 		return errors.Wrap(err, userconfig.PredictorKey)
 	}
 
-	if api.Autoscaling != nil { // should only be nil for local provider
+	if api.Autoscaling != nil {
 		if err := validateAutoscaling(api); err != nil {
 			return errors.Wrap(err, userconfig.AutoscalingKey)
 		}
@@ -826,7 +801,7 @@ func ValidateAPI(
 		return errors.Wrap(err, userconfig.ComputeKey)
 	}
 
-	if api.UpdateStrategy != nil { // should only be nil for local provider
+	if api.UpdateStrategy != nil {
 		if err := validateUpdateStrategy(api.UpdateStrategy); err != nil {
 			return errors.Wrap(err, userconfig.UpdateStrategyKey)
 		}
@@ -861,7 +836,7 @@ func validatePredictor(
 	provider types.ProviderType,
 	awsClient *aws.Client,
 	gcpClient *gcp.Client,
-	k8sClient *k8s.Client, // will be nil for local provider
+	k8sClient *k8s.Client,
 ) error {
 	predictor := api.Predictor
 
@@ -1218,7 +1193,7 @@ func validateONNXPredictor(api *userconfig.API, models *[]CuratedModelResource, 
 			Path: *predictor.Models.Path,
 		}
 
-		if strings.HasSuffix(*predictor.Models.Path, ".onnx") && provider != types.LocalProviderType {
+		if strings.HasSuffix(*predictor.Models.Path, ".onnx") {
 			if err := validateONNXModelFilePath(*predictor.Models.Path, projectFiles.ProjectDir(), awsClient, gcpClient); err != nil {
 				return modelWrapError(err)
 			}
@@ -1243,7 +1218,7 @@ func validateONNXPredictor(api *userconfig.API, models *[]CuratedModelResource, 
 						path.Name,
 					)
 				}
-				if strings.HasSuffix((*path).Path, ".onnx") && provider != types.LocalProviderType {
+				if strings.HasSuffix((*path).Path, ".onnx") {
 					if err := validateONNXModelFilePath((*path).Path, projectFiles.ProjectDir(), awsClient, gcpClient); err != nil {
 						return errors.Wrap(modelWrapError(err), path.Name)
 					}
@@ -1277,7 +1252,6 @@ func validateONNXPredictor(api *userconfig.API, models *[]CuratedModelResource, 
 	for _, modelFileResource := range modelFileResources {
 		s3Path := strings.HasPrefix(modelFileResource.Path, "s3://")
 		gcsPath := strings.HasPrefix(modelFileResource.Path, "gs://")
-		localPath := !s3Path && !gcsPath
 
 		*models = append(*models, CuratedModelResource{
 			ModelResource: &userconfig.ModelResource{
@@ -1286,7 +1260,6 @@ func validateONNXPredictor(api *userconfig.API, models *[]CuratedModelResource, 
 			},
 			S3Path:     s3Path,
 			GCSPath:    gcsPath,
-			LocalPath:  localPath,
 			IsFilePath: true,
 		})
 	}
@@ -1309,7 +1282,6 @@ func validateONNXPredictor(api *userconfig.API, models *[]CuratedModelResource, 
 func validateONNXModelFilePath(modelPath string, projectDir string, awsClient *aws.Client, gcpClient *gcp.Client) error {
 	s3Path := strings.HasPrefix(modelPath, "s3://")
 	gcsPath := strings.HasPrefix(modelPath, "gs://")
-	localPath := !s3Path && !gcsPath
 
 	if s3Path {
 		awsClientForBucket, err := aws.NewFromClientS3Path(modelPath, awsClient)
@@ -1345,13 +1317,6 @@ func validateONNXModelFilePath(modelPath string, projectDir string, awsClient *a
 
 		if !isGCSFile {
 			return ErrorInvalidONNXModelFilePath(modelPrefix)
-		}
-	}
-
-	if localPath {
-		expandedLocalPath := files.RelToAbsPath(modelPath, projectDir)
-		if err := files.CheckFile(expandedLocalPath); err != nil {
-			return err
 		}
 	}
 
@@ -1435,7 +1400,7 @@ func validateDockerImagePath(
 	image string,
 	provider types.ProviderType,
 	awsClient *aws.Client,
-	k8sClient *k8s.Client, // will be nil for local provider)
+	k8sClient *k8s.Client,
 ) error {
 	if consts.DefaultImagePathsSet.Has(image) {
 		return nil
@@ -1452,13 +1417,6 @@ func validateDockerImagePath(
 	dockerClient, err := docker.GetDockerClient()
 	if err != nil {
 		return err
-	}
-
-	if provider == types.LocalProviderType {
-		// short circuit if the image is already available locally
-		if err := docker.CheckImageExistsLocally(dockerClient, image); err == nil {
-			return nil
-		}
 	}
 
 	dockerAuthStr := docker.NoAuth

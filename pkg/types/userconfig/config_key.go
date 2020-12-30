@@ -70,7 +70,6 @@ const (
 	// Networking
 	APIGatewayKey = "api_gateway"
 	EndpointKey   = "endpoint"
-	LocalPortKey  = "local_port"
 
 	// Compute
 	CPUKey = "cpu"
