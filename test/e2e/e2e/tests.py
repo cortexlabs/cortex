@@ -48,19 +48,18 @@ def test_realtime_api(client: cx.Client, api: str, timeout: int = None):
     if expectations_file.exists():
         expectations = parse_expectations(str(expectations_file))
 
-    api_names = [api_spec["name"] for api_spec in api_specs]
+    api_name = api_specs[0]["name"]
     for api_spec in api_specs:
         client.create_api(api_spec=api_spec, project_dir=api_dir)
 
     try:
         assert apis_ready(
-            client=client, api_names=api_names, timeout=timeout
-        ), f"apis {api_names} not ready"
+            client=client, api_names=[api_name], timeout=timeout
+        ), f"apis {api_name} not ready"
 
         with open(str(api_dir / "sample.json")) as f:
             payload = json.load(f)
 
-        api_name = api_names[0]
         response = request_prediction(client, api_name, payload)
 
         assert (
@@ -70,7 +69,7 @@ def test_realtime_api(client: cx.Client, api: str, timeout: int = None):
         if expectations and "response" in expectations:
             assert_response_expectations(response, expectations["response"])
     finally:
-        delete_apis(client, api_names)
+        delete_apis(client, [api_name])
 
 
 def test_batch_api(
@@ -87,19 +86,16 @@ def test_batch_api(
 
     assert len(api_specs) == 1
 
-    api_names = [api_spec["name"] for api_spec in api_specs]
-    for api_spec in api_specs:
-        client.create_api(api_spec=api_spec, project_dir=api_dir)
+    api_name = api_specs[0]["name"]
+    client.create_api(api_spec=api_specs[0], project_dir=api_dir)
 
     try:
         assert endpoint_ready(
-            client=client, api_name=api_names[0], timeout=deploy_timeout
-        ), f"apis {api_names} not ready"
+            client=client, api_name=api_name, timeout=deploy_timeout
+        ), f"api {api_name} not ready"
 
         with open(str(api_dir / "sample.json")) as f:
             payload = json.load(f)
-
-        api_name = api_names[0]
 
         for i in range(retry_attempts + 1):
             response = request_batch_prediction(
@@ -129,4 +125,4 @@ def test_batch_api(
         ), f"job did not succeed (api_name: {api_name}, job_id: {job_spec['job_id']})"
 
     finally:
-        delete_apis(client, api_names)
+        delete_apis(client, [api_name])

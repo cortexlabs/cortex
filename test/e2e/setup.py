@@ -34,6 +34,7 @@ setup(
         "jsonschema==3.2.0",
         "pytest>=6.1.2",
         "python-dotenv==0.15.0",
+        "pyyaml>=5.3.1",
         "cortex",
     ],
     dependency_links=[f"file://{cortex_client_dir}#egg=cortex"],

@@ -31,7 +31,7 @@ def assert_response_expectations(response: requests.Response, expectations: Dict
     expected = expectations.get("expected")
     if expected:
         output = _get_response_content(response, content_type)
-        assert output == expected, f"expected response: got {output}, expected {expected}"
+        assert output == expected, f"unexpected response: got {output}, expected {expected}"
 
     expected_json_schema = expectations.get("json_schema")
     if expected_json_schema:

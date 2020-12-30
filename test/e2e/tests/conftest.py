@@ -55,7 +55,7 @@ def pytest_configure(config):
     load_dotenv(".env")
 
     s3_bucket = os.environ.get("CORTEX_TEST_BATCH_S3_BUCKET_DIR")
-    s3_bucket = config.getoption("--s3-bucket") if s3_bucket is None else s3_bucket
+    s3_bucket = config.getoption("--s3-bucket") if not s3_bucket else s3_bucket
 
     configuration = {
         "aws": {
@@ -69,7 +69,7 @@ def pytest_configure(config):
         },
         "global": {
             "realtime_deploy_timeout": int(
-                os.environ.get("CORTEX_TEST_REALTIME_DEPLOY_TIMEOUT", 60)
+                os.environ.get("CORTEX_TEST_REALTIME_DEPLOY_TIMEOUT", 120)
             ),
             "batch_deploy_timeout": int(os.environ.get("CORTEX_TEST_BATCH_DEPLOY_TIMEOUT", 30)),
             "batch_job_timeout": int(os.environ.get("CORTEX_TEST_BATCH_JOB_TIMEOUT", 120)),

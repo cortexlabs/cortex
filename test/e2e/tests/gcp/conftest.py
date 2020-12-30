@@ -34,12 +34,12 @@ def client(config: Dict):
 
 
 def pytest_configure(config):
-    aws_config = config.getoption("--gcp-config")
-    if aws_config:
-        e2e.create_cluster(aws_config)
+    gcp_config = config.getoption("--gcp-config")
+    if gcp_config:
+        e2e.create_cluster(gcp_config)
 
 
 def pytest_unconfigure(config):
-    aws_config = config.getoption("--gcp-config")
-    if aws_config:
-        e2e.delete_cluster(aws_config)
+    gcp_config = config.getoption("--gcp-config")
+    if gcp_config:
+        e2e.delete_cluster(gcp_config)
