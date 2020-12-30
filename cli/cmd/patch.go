@@ -50,11 +50,11 @@ var _patchCmd = &cobra.Command{
 		if _flagPatchEnv == "" {
 			defaultEnv, err := getDefaultEnv()
 			if err != nil {
-				telemetry.Event("cli.deploy")
+				telemetry.Event("cli.patch")
 				exit.Error(err)
 			}
 			if defaultEnv == nil {
-				telemetry.Event("cli.deploy")
+				telemetry.Event("cli.patch")
 				exit.Error(ErrorEnvironmentNotSet())
 			}
 			envName = *defaultEnv
@@ -67,7 +67,7 @@ var _patchCmd = &cobra.Command{
 		}
 		telemetry.Event("cli.patch", map[string]interface{}{"provider": env.Provider.String(), "env_name": env.Name})
 
-		err = printEnvIfNotSpecified(envName, cmd)
+		err = printEnvIfNotSpecified(env.Name, cmd)
 		if err != nil {
 			exit.Error(err)
 		}

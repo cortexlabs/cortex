@@ -50,11 +50,11 @@ var _refreshCmd = &cobra.Command{
 		if _flagRefreshEnv == "" {
 			defaultEnv, err := getDefaultEnv()
 			if err != nil {
-				telemetry.Event("cli.predict")
+				telemetry.Event("cli.refresh")
 				exit.Error(err)
 			}
 			if defaultEnv == nil {
-				telemetry.Event("cli.predict")
+				telemetry.Event("cli.refresh")
 				exit.Error(ErrorEnvironmentNotSet())
 			}
 			envName = *defaultEnv
@@ -67,7 +67,7 @@ var _refreshCmd = &cobra.Command{
 		}
 		telemetry.Event("cli.refresh", map[string]interface{}{"provider": env.Provider.String(), "env_name": env.Name})
 
-		err = printEnvIfNotSpecified(envName, cmd)
+		err = printEnvIfNotSpecified(env.Name, cmd)
 		if err != nil {
 			exit.Error(err)
 		}

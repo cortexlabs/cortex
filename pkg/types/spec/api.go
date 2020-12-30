@@ -28,31 +28,22 @@ import (
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/hash"
-	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 )
 
 type API struct {
 	*userconfig.API
-	ID               string             `json:"id"`
-	SpecID           string             `json:"spec_id"`
-	PredictorID      string             `json:"predictor_id"`
-	DeploymentID     string             `json:"deployment_id"`
-	Key              string             `json:"key"`
-	PredictorKey     string             `json:"predictor_key"`
-	LastUpdated      int64              `json:"last_updated"`
-	MetadataRoot     string             `json:"metadata_root"`
-	ProjectID        string             `json:"project_id"`
-	ProjectKey       string             `json:"project_key"`
-	LocalModelCaches []*LocalModelCache `json:"local_model_cache"` // local only
-	LocalProjectDir  string             `json:"local_project_dir"`
-}
-
-type LocalModelCache struct {
-	ID         string `json:"id"`
-	HostPath   string `json:"host_path"`
-	TargetPath string `json:"target_path"`
+	ID           string `json:"id"`
+	SpecID       string `json:"spec_id"`
+	PredictorID  string `json:"predictor_id"`
+	DeploymentID string `json:"deployment_id"`
+	Key          string `json:"key"`
+	PredictorKey string `json:"predictor_key"`
+	LastUpdated  int64  `json:"last_updated"`
+	MetadataRoot string `json:"metadata_root"`
+	ProjectID    string `json:"project_id"`
+	ProjectKey   string `json:"project_key"`
 }
 
 type CuratedModelResource struct {
@@ -118,23 +109,6 @@ func GetAPISpec(apiConfig *userconfig.API, projectID string, deploymentID string
 		ProjectID:    projectID,
 		ProjectKey:   ProjectKey(projectID, clusterName),
 	}
-}
-
-// Keep track of models in the model cache used by this API (local only)
-func (api *API) ModelIDs() []string {
-	models := []string{}
-	for _, localModelCache := range api.LocalModelCaches {
-		models = append(models, localModelCache.ID)
-	}
-	return models
-}
-
-func (api *API) SubtractModelIDs(apis ...*API) []string {
-	modelIDs := strset.FromSlice(api.ModelIDs())
-	for _, a := range apis {
-		modelIDs.Remove(a.ModelIDs()...)
-	}
-	return modelIDs.Slice()
 }
 
 func PredictorKey(apiName string, predictorID string, clusterName string) string {

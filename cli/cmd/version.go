@@ -42,11 +42,11 @@ var _versionCmd = &cobra.Command{
 		if _flagVersionEnv == "" {
 			defaultEnv, err := getDefaultEnv()
 			if err != nil {
-				telemetry.Event("cli.predict")
+				telemetry.Event("cli.version")
 				exit.Error(err)
 			}
 			if defaultEnv == nil {
-				telemetry.Event("cli.predict")
+				telemetry.Event("cli.version")
 				exit.Error(ErrorEnvironmentNotSet())
 			}
 			envName = *defaultEnv
@@ -59,7 +59,7 @@ var _versionCmd = &cobra.Command{
 		}
 		telemetry.Event("cli.version", map[string]interface{}{"provider": env.Provider.String(), "env_name": env.Name})
 
-		err = printEnvIfNotSpecified(envName, cmd)
+		err = printEnvIfNotSpecified(env.Name, cmd)
 		if err != nil {
 			exit.Error(err)
 		}
