@@ -29,7 +29,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 	"github.com/cortexlabs/cortex/pkg/operator/operator"
 	"github.com/cortexlabs/cortex/pkg/types"
-	"github.com/cortexlabs/cortex/pkg/types/clusterconfig"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	istioclientnetworking "istio.io/client-go/pkg/apis/networking/v1beta1"
@@ -124,10 +123,6 @@ func ValidateClusterAPIs(apis []userconfig.API, projectFiles spec.ProjectFiles) 
 			if err := validateEndpointCollisions(api, virtualServices); err != nil {
 				return errors.Wrap(err, api.Identify())
 			}
-		}
-
-		if config.Provider == types.AWSProviderType && api.Networking.APIGateway != userconfig.NoneAPIGatewayType && config.Cluster.APIGatewaySetting == clusterconfig.NoneAPIGatewaySetting {
-			return errors.Wrap(ErrorAPIGatewayDisabled(api.Networking.APIGateway), api.Identify(), userconfig.NetworkingKey, userconfig.APIGatewayKey)
 		}
 	}
 

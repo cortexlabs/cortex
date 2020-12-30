@@ -1,3 +1,4 @@
+
 # REST API Gateway
 
 When `api_gateway: public` is set in your API's `networking` configuration (which is the default setting), Cortex will create an "HTTP" API Gateway in AWS for your API (see the [networking docs](networking.md) for more information).

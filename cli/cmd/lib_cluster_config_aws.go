@@ -333,11 +333,6 @@ func setConfigFieldsFromCached(userClusterConfig *clusterconfig.Config, cachedCl
 	}
 	userClusterConfig.OperatorLoadBalancerScheme = cachedClusterConfig.OperatorLoadBalancerScheme
 
-	if userClusterConfig.APIGatewaySetting != cachedClusterConfig.APIGatewaySetting {
-		return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.APIGatewaySettingKey, cachedClusterConfig.APIGatewaySetting)
-	}
-	userClusterConfig.APIGatewaySetting = cachedClusterConfig.APIGatewaySetting
-
 	if s.Obj(cachedClusterConfig.VPCCIDR) != s.Obj(userClusterConfig.VPCCIDR) {
 		return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.VPCCIDRKey, cachedClusterConfig.VPCCIDR)
 	}
@@ -404,10 +399,7 @@ func setConfigFieldsFromCached(userClusterConfig *clusterconfig.Config, cachedCl
 	userClusterConfig.Spot = cachedClusterConfig.Spot
 
 	if userClusterConfig.Spot != nil && *userClusterConfig.Spot {
-		err := userClusterConfig.FillEmptySpotFields(awsClient)
-		if err != nil {
-			return err
-		}
+		userClusterConfig.FillEmptySpotFields()
 	}
 
 	if userClusterConfig.SpotConfig != nil && s.Obj(userClusterConfig.SpotConfig) != s.Obj(cachedClusterConfig.SpotConfig) {
@@ -541,10 +533,6 @@ func confirmInstallClusterConfig(clusterConfig *clusterconfig.Config, awsCreds A
 	}
 	fmt.Printf("cortex will also create an s3 bucket (%s) and a cloudwatch log group (%s)%s\n\n", clusterConfig.Bucket, clusterConfig.ClusterName, privateSubnetMsg)
 
-	if clusterConfig.APIGatewaySetting == clusterconfig.NoneAPIGatewaySetting {
-		fmt.Print(fmt.Sprintf("warning: you've disabled API Gateway cluster-wide, so APIs will not be able to create API Gateway endpoints (they will still be reachable via the API load balancer; see https://docs.cortex.dev/v/%s/ for more information)\n\n", consts.CortexVersionMinor))
-	}
-
 	if clusterConfig.OperatorLoadBalancerScheme == clusterconfig.InternalLoadBalancerScheme {
 		fmt.Print(fmt.Sprintf("warning: you've configured the operator load balancer to be internal; you must configure VPC Peering to connect your CLI to your cluster operator (see https://docs.cortex.dev/v/%s/)\n\n", consts.CortexVersionMinor))
 	}
@@ -618,16 +606,13 @@ func clusterConfigConfirmationStr(clusterConfig clusterconfig.Config, awsCreds A
 	if clusterConfig.OperatorLoadBalancerScheme != defaultConfig.OperatorLoadBalancerScheme {
 		items.Add(clusterconfig.OperatorLoadBalancerSchemeUserKey, clusterConfig.OperatorLoadBalancerScheme)
 	}
-	if clusterConfig.APIGatewaySetting != defaultConfig.APIGatewaySetting {
-		items.Add(clusterconfig.APIGatewaySettingUserKey, clusterConfig.APIGatewaySetting)
-	}
 
 	if clusterConfig.Spot != nil && *clusterConfig.Spot != *defaultConfig.Spot {
 		items.Add(clusterconfig.SpotUserKey, s.YesNo(clusterConfig.Spot != nil && *clusterConfig.Spot))
 
 		if clusterConfig.SpotConfig != nil {
 			defaultSpotConfig := clusterconfig.SpotConfig{}
-			clusterconfig.AutoGenerateSpotConfig(awsClient, &defaultSpotConfig, *clusterConfig.Region, *clusterConfig.InstanceType)
+			clusterconfig.AutoGenerateSpotConfig(&defaultSpotConfig, *clusterConfig.Region, *clusterConfig.InstanceType)
 
 			if !strset.New(clusterConfig.SpotConfig.InstanceDistribution...).IsEqual(strset.New(defaultSpotConfig.InstanceDistribution...)) {
 				items.Add(clusterconfig.InstanceDistributionUserKey, clusterConfig.SpotConfig.InstanceDistribution)

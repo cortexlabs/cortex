@@ -222,27 +222,11 @@ var _clusterUpCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
-		if clusterConfig.APIGatewaySetting == clusterconfig.PublicAPIGatewaySetting {
-			err = createOrReplaceAPIGateway(awsClient, clusterConfig.ClusterName, clusterConfig.Tags)
-			if err != nil {
-				exit.Error(err)
-			}
-		}
-
 		out, exitCode, err := runManagerWithClusterConfig("/root/install.sh", clusterConfig, awsCreds, nil, nil)
 		if err != nil {
-			if clusterConfig.APIGatewaySetting == clusterconfig.PublicAPIGatewaySetting {
-				awsClient.DeleteAPIGatewayByTag(clusterconfig.ClusterNameTag, clusterConfig.ClusterName) // best effort deletion
-				awsClient.DeleteVPCLinkByTag(clusterconfig.ClusterNameTag, clusterConfig.ClusterName)    // best effort deletion
-			}
 			exit.Error(err)
 		}
 		if exitCode == nil || *exitCode != 0 {
-			if clusterConfig.APIGatewaySetting == clusterconfig.PublicAPIGatewaySetting {
-				awsClient.DeleteAPIGatewayByTag(clusterconfig.ClusterNameTag, clusterConfig.ClusterName) // best effort deletion
-				awsClient.DeleteVPCLinkByTag(clusterconfig.ClusterNameTag, clusterConfig.ClusterName)    // best effort deletion
-			}
-
 			eksCluster, err := awsClient.EKSClusterOrNil(clusterConfig.ClusterName)
 			if err != nil {
 				helpStr := "\ndebugging tips (may or may not apply to this error):"
@@ -514,27 +498,6 @@ var _clusterDownCmd = &cobra.Command{
 			fmt.Printf("your cluster named \"%s\" in %s will be spun down and all apis will be deleted\n\n", *accessConfig.ClusterName, *accessConfig.Region)
 		} else {
 			prompt.YesOrExit(fmt.Sprintf("your cluster named \"%s\" in %s will be spun down and all apis will be deleted, are you sure you want to continue?", *accessConfig.ClusterName, *accessConfig.Region), "", "")
-		}
-
-		fmt.Print("￮ deleting api gateway ")
-		deletedAPIGateway, errAPIGateway := awsClient.DeleteAPIGatewayByTag(clusterconfig.ClusterNameTag, *accessConfig.ClusterName)
-		_, errVPCLink := awsClient.DeleteVPCLinkByTag(clusterconfig.ClusterNameTag, *accessConfig.ClusterName)
-		if errAPIGateway != nil {
-			fmt.Printf("\n\nunable to delete cortex's api gateway (see error below); if it still exists after the cluster has been deleted, please delete it via the api gateway console: https://%s.console.aws.amazon.com/apigateway/main/apis\n", *accessConfig.Region)
-			errors.PrintError(errAPIGateway)
-		}
-		if errVPCLink != nil {
-			fmt.Printf("\n\nunable to delete cortex's vpc link (see error below); if it still exists after the cluster has been deleted, please delete it via the api gateway console: https://%s.console.aws.amazon.com/apigateway/main/vpc-links\n", *accessConfig.Region)
-			errors.PrintError(errVPCLink)
-		}
-		if errAPIGateway == nil && errVPCLink == nil {
-			if deletedAPIGateway != nil {
-				fmt.Println("✓")
-			} else {
-				fmt.Println("(n/a)")
-			}
-		} else {
-			fmt.Println()
 		}
 
 		fmt.Print("￮ deleting dashboard ")
@@ -1108,32 +1071,6 @@ func createOrClearDashboard(awsClient *aws.Client, dashboardName string) error {
 
 	fmt.Println(" ✓")
 
-	return nil
-}
-
-// createOrReplaceAPIGateway creates an API gateway for the cluster (or clears an existing one if it already exists)
-func createOrReplaceAPIGateway(awsClient *aws.Client, clusterName string, tags map[string]string) error {
-	fmt.Print("￮ creating api gateway: ", clusterName)
-
-	_, err := awsClient.DeleteVPCLinkByTag(clusterconfig.ClusterNameTag, clusterName)
-	if err != nil {
-		fmt.Print("\n\n")
-		return errors.Append(err, fmt.Sprintf("\n\nunable to delete existing vpc link with tag %s=%s; please delete it via the api gateway console: https://%s.console.aws.amazon.com/apigateway/main/vpc-links", clusterconfig.ClusterNameTag, clusterName, awsClient.Region))
-	}
-
-	_, err = awsClient.DeleteAPIGatewayByTag(clusterconfig.ClusterNameTag, clusterName)
-	if err != nil {
-		fmt.Print("\n\n")
-		return errors.Append(err, fmt.Sprintf("\n\nunable to delete existing api gateway with tag %s=%s; please delete it via the api gateway console: https://%s.console.aws.amazon.com/apigateway/main/apis", clusterconfig.ClusterNameTag, clusterName, awsClient.Region))
-	}
-
-	_, err = awsClient.CreateAPIGateway(clusterName, tags)
-	if err != nil {
-		fmt.Print("\n\n")
-		return err
-	}
-
-	fmt.Println(" ✓")
 	return nil
 }
 
