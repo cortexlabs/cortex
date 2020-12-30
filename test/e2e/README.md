@@ -15,7 +15,7 @@ This only needs to be installed once (not on every code change).
 Before running tests, instruct the Python client to use your development CLI binary:
 
 ```shell
-export CORTEX_CLI_PATH=~/src/github.com/cortexlabs/cortex/bin/cortex
+export CORTEX_CLI_PATH=<cortex_repo_path>/bin/cortex
 ```
 
 ### AWS
