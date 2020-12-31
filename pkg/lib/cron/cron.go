@@ -54,7 +54,7 @@ func Run(f func() error, errHandler func(error), delay time.Duration) Cron {
 			}
 			timer.Reset(delay)
 		}
-	})
+	}, false)
 
 	return Cron{
 		cronRun:    cronRun,

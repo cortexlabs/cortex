@@ -59,7 +59,7 @@ func ReadLogs(apiName string, socket *websocket.Conn) {
 	defer close(podCheckCancel)
 	routines.RunWithPanicHandler(func() {
 		streamFromCloudWatch(apiName, podCheckCancel, socket)
-	})
+	}, false)
 	pumpStdin(socket)
 	podCheckCancel <- struct{}{}
 }

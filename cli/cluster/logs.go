@@ -122,7 +122,7 @@ func handleConnection(connection *websocket.Conn, done chan struct{}) {
 			}
 			fmt.Println(string(message))
 		}
-	})
+	}, false)
 }
 
 func closeConnection(connection *websocket.Conn, done chan struct{}, interrupt chan os.Signal) {

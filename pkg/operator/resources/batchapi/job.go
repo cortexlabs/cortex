@@ -130,7 +130,7 @@ func SubmitJob(apiName string, submission *schema.JobSubmission) (*spec.Job, err
 
 	routines.RunWithPanicHandler(func() {
 		deployJob(apiSpec, &jobSpec, submission)
-	})
+	}, false)
 
 	return &jobSpec, nil
 }
@@ -261,14 +261,14 @@ func StopJob(jobKey spec.JobKey) error {
 	if err != nil {
 		routines.RunWithPanicHandler(func() {
 			deleteJobRuntimeResources(jobKey)
-		})
+		}, false)
 		return err
 	}
 
 	if !jobState.Status.IsInProgress() {
 		routines.RunWithPanicHandler(func() {
 			deleteJobRuntimeResources(jobKey)
-		})
+		}, false)
 		return errors.Wrap(ErrorJobIsNotInProgress(), jobKey.UserString())
 	}
 

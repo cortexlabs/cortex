@@ -98,7 +98,7 @@ func runManager(containerConfig *container.Config, addNewLineAfterPull bool, cop
 		caughtCtrlC = true
 		removeContainer()
 		exit.Error(ErrorDockerCtrlC())
-	})
+	}, false)
 
 	for _, copyPath := range copyToPaths {
 		err = docker.CopyToContainer(containerInfo.ID, copyPath.input, copyPath.containerPath)

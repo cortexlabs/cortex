@@ -17,17 +17,20 @@ limitations under the License.
 package routines
 
 import (
-	"fmt"
-
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/exit"
+	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 )
 
-func RunWithPanicHandler(f func()) {
+func RunWithPanicHandler(f func(), exitOnPanic bool) {
 	go func() {
 		defer func() {
 			if r := recover(); r != nil {
-				err := ErrorUnexpectedError(fmt.Sprintf("%v", r))
-				exit.Error(err)
+				err := errors.CastRecoverError(r)
+				if exitOnPanic {
+					exit.Error(err)
+				}
+				telemetry.Error(err)
 			}
 		}()
 		f()

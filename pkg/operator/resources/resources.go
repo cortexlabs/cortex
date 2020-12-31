@@ -309,7 +309,7 @@ func DeleteAPI(apiName string, keepCache bool) (*schema.DeleteResponse, error) {
 			if err != nil {
 				telemetry.Error(err)
 			}
-		})
+		}, false)
 		return nil, ErrorAPINotDeployed(apiName)
 	}
 

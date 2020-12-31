@@ -70,7 +70,7 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string, force bool) (*spec.A
 		if err := applyK8sResources(api, prevDeployment, prevService, prevVirtualService); err != nil {
 			routines.RunWithPanicHandler(func() {
 				deleteK8sResources(api.Name)
-			})
+			}, false)
 			return nil, "", err
 		}
 
@@ -79,7 +79,7 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string, force bool) (*spec.A
 			if err != nil {
 				routines.RunWithPanicHandler(func() {
 					deleteK8sResources(api.Name)
-				})
+				}, false)
 				return nil, "", err
 			}
 			err = addAPIToDashboard(config.Cluster.ClusterName, api.Name)
