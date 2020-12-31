@@ -25,7 +25,7 @@ aws s3 rb --force s3://<bucket>
 aws logs describe-log-groups --log-group-name-prefix=<cluster_name> --query logGroups[*].[logGroupName] --output text | xargs -I {} aws logs delete-log-group --log-group-name {}
 ```
 
-If you've configured a custom domain for your APIs, you can remove the SSL Certificate and Hosted Zone for the domain by following these [instructions](custom-domain.md#cleanup).
+If you've configured a custom domain for your APIs, you can remove the SSL Certificate and Hosted Zone for the domain by following these [instructions](networking/custom_domain/original.md#cleanup).
 
 ## Troubleshooting
 

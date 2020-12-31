@@ -61,9 +61,6 @@ api_load_balancer_scheme: internet-facing
 # note: if using "internal", you must configure VPC Peering to connect your CLI to your cluster operator
 operator_load_balancer_scheme: internet-facing
 
-# API Gateway [public (API Gateway will be used by default, can be disabled per API) | none (API Gateway will be disabled for all APIs)]
-api_gateway: public
-
 # additional tags to assign to AWS resources (all resources will automatically be tagged with cortex.dev/cluster-name: <cluster_name>)
 tags:  # <string>: <string> map of key/value pairs
 
