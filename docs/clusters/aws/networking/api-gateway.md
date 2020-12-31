@@ -82,7 +82,7 @@ Go to the [API Gateway console](https://console.aws.amazon.com/apigateway/home),
 
 ![](https://user-images.githubusercontent.com/808475/80142466-0c6c4c00-8560-11ea-8293-eb5e5572b797.png)
 
-Select "VPC link for REST APIs", name your VPC link (e.g. "cortex"), select the API load balancer (identified in Step 1), and click "Create"
+Select "VPC link for REST APIs", name your VPC link (e.g. "cortex"), select the API load balancer, and click "Create".
 
 ![](https://user-images.githubusercontent.com/808475/80143027-03c84580-8561-11ea-92de-9ed0a5dfa593.png)
 

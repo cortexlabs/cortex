@@ -6,7 +6,7 @@ If you are using an internal API load balancer (i.e. you set `api_load_balancer_
 
 This guide illustrates how to create a VPC Peering connection between a VPC of your choice and the Cortex load balancers.
 
-## Step 1
+## Gather Cortex's VPC information
 
 Navigate to AWS's EC2 Load Balancer dashboard and locate the Cortex operator's load balancer. You can determine which is the operator load balancer by inspecting the `kubernetes.io/service-name` tag:
 
@@ -22,7 +22,7 @@ Navigate to AWS's VPC dashboard and identify the ID and CIDR block of Cortex's V
 
 The VPC ID here should match that of the load balancer.
 
-## Step 2
+## Create peering connection
 
 Identify the ID and CIDR block of the VPC from which you'd like to connect to the Cortex VPC.
 
@@ -30,13 +30,11 @@ In my case, I have a VPC in the same AWS account and region, and I can locate it
 
 ![](https://user-images.githubusercontent.com/808475/80125729-eb4b3180-8546-11ea-8d20-6bc2478747ae.png)
 
-## Step 3
-
 From AWS's VPC dashboard, navigate to the "Peering Connections" page, and click "Create Peering Connection":
 
 ![](https://user-images.githubusercontent.com/808475/80127600-67df0f80-8549-11ea-9e10-765a6e273b54.png)
 
-Name your new VPC Peering Connection (I used "cortex-operator", but "cortex" or "cortex-api" may make more sense depending on your use case). Then configure the connection such that the "Requester" is the VPC from which you'll connect to the Cortex VPC, and the "Accepter" is Cortex's VPC (from step 1).
+Name your new VPC Peering Connection (I used "cortex-operator", but "cortex" or "cortex-api" may make more sense depending on your use case). Then configure the connection such that the "Requester" is the VPC from which you'll connect to the Cortex VPC, and the "Accepter" is Cortex's VPC.
 
 ![](https://user-images.githubusercontent.com/808475/80131545-3f5a1400-854f-11ea-9ca0-c51433d3fa3d.png)
 
@@ -46,25 +44,23 @@ Click "Create Peering Connection", navigate back to the Peering Connections dash
 
 ![](https://user-images.githubusercontent.com/808475/80132179-26059780-8550-11ea-80fc-6670fcab7026.png)
 
-## Step 4
+## Update route tables
 
 Navigate to the VPC Route Tables page. Select the route table for the VPC from which you'd like to connect to the Cortex cluster (in my case, I just have one route table for this VPC). Select the "Routes" tab, and click "Edit routes":
 
 ![](https://user-images.githubusercontent.com/808475/80135180-b940cc00-8554-11ea-8162-c7409090897b.png)
 
-Add a route where the "Destination" is the CIDR block for Cortex's VPC (identified in Step 1), and the "Target" is the newly-created Peering Connection:
+Add a route where the "Destination" is the CIDR block for Cortex's VPC, and the "Target" is the newly-created Peering Connection:
 
 ![](https://user-images.githubusercontent.com/808475/80137033-78968200-8557-11ea-9d84-9221b772f0fc.png)
 
 Do not create new route tables or change subnet associations.
 
-## Step 5
-
-Navigate back to the VPC Route Tables page. There will be a route table for each of the subnets associated with the Cortex operator load balancer (identified in Step 1):
+Navigate back to the VPC Route Tables page. There will be a route table for each of the subnets associated with the Cortex operator load balancer:
 
 ![](https://user-images.githubusercontent.com/808475/80138244-5dc50d00-8559-11ea-9248-fc201d011530.png)
 
-For each of these route tables, click "Edit routes" and add a new route where the "Destination" is the CIDR block for the VPC from which you will be connecting to the Cortex cluster (identified in Step 2), and the "Target" is the newly-created Peering Connection:
+For each of these route tables, click "Edit routes" and add a new route where the "Destination" is the CIDR block for the VPC from which you will be connecting to the Cortex cluster, and the "Target" is the newly-created Peering Connection:
 
 ![](https://user-images.githubusercontent.com/808475/80138653-f78cba00-8559-11ea-8444-406e218c3bab.png)
 
