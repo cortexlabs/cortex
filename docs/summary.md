@@ -39,10 +39,9 @@
   * [Install](clusters/aws/install.md)
   * [Update](clusters/aws/update.md)
   * [Security](clusters/aws/security.md)
-  * Compute
-    * [Spot instances](clusters/aws/compute/spot.md)
-    * [GPUs](clusters/aws/compute/gpu.md)
-    * [Inferentia](clusters/aws/compute/inferentia.md)
+  * [Spot instances](clusters/aws/spot.md)
+  * [GPUs](clusters/aws/gpu.md)
+  * [Inferentia](clusters/aws/inferentia.md)
   * [Networking](clusters/aws/networking/index.md)
     * [Custom domain](clusters/aws/networking/custom-domain.md)
     * [API Gateway (HTTPS)](clusters/aws/networking/api-gateway.md)
