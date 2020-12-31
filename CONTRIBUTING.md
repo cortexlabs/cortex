@@ -228,7 +228,11 @@ export CORTEX_DEV_DEFAULT_PREDICTOR_IMAGE_REGISTRY="cortexlabs"
 export CORTEX_TELEMETRY_SENTRY_DSN="https://c334df915c014ffa93f2076769e5b334@sentry.io/1848098"
 export CORTEX_TELEMETRY_SEGMENT_WRITE_KEY="0WvoJyCey9z1W2EW7rYTPJUMRYat46dl"
 
-alias cortex='$HOME/bin/cortex'  # your path may be different depending on where you cloned the repo
+# instruct the Python client to use your development CLI binary (update the path to point to your cortex repo)
+export CORTEX_CLI_PATH="<cortex_repo_path>/bin/cortex"
+
+# create a cortex alias which runs your development CLI
+alias cortex="$CORTEX_CLI_PATH"
 ```
 
 Refresh your bash profile:
