@@ -27,6 +27,7 @@ func RunWithPanicHandler(f func(), exitOnPanic bool) {
 		defer func() {
 			if r := recover(); r != nil {
 				err := errors.CastRecoverError(r)
+				errors.PrintStacktrace(err)
 				if exitOnPanic {
 					exit.Error(err)
 				}
