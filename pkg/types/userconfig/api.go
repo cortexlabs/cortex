@@ -93,8 +93,8 @@ type ServerSideBatching struct {
 }
 
 type Networking struct {
-	Endpoint   *string        `json:"endpoint" yaml:"endpoint"`
-	LocalPort  *int           `json:"local_port" yaml:"local_port"`
+	Endpoint  *string `json:"endpoint" yaml:"endpoint"`
+	LocalPort *int    `json:"local_port" yaml:"local_port"`
 }
 
 type Compute struct {

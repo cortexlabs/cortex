@@ -101,11 +101,11 @@ type InternalConfig struct {
 	Config
 
 	// Populated by operator
-	APIVersion          string                    `json:"api_version"`
-	OperatorID          string                    `json:"operator_id"`
-	ClusterID           string                    `json:"cluster_id"`
-	IsOperatorInCluster bool                      `json:"is_operator_in_cluster"`
-	InstanceMetadata    aws.InstanceMetadata      `json:"instance_metadata"`
+	APIVersion          string               `json:"api_version"`
+	OperatorID          string               `json:"operator_id"`
+	ClusterID           string               `json:"cluster_id"`
+	IsOperatorInCluster bool                 `json:"is_operator_in_cluster"`
+	InstanceMetadata    aws.InstanceMetadata `json:"instance_metadata"`
 }
 
 // The bare minimum to identify a cluster

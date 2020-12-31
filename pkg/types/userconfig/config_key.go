@@ -68,8 +68,8 @@ const (
 	ModelTypeKey = "model_type"
 
 	// Networking
-	EndpointKey   = "endpoint"
-	LocalPortKey  = "local_port"
+	EndpointKey  = "endpoint"
+	LocalPortKey = "local_port"
 
 	// Compute
 	CPUKey = "cpu"
