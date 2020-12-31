@@ -8,7 +8,7 @@ If your API load balancer is internal (i.e. you set `api_load_balancer_scheme: i
 
 ## Internet-facing load balancer
 
-_This section applies if your API load balancer is internet-facing (which is the default, or you set `api_load_balancer_scheme: internet-facing` in your cluster configuration file before creating your cluster). If your API load balancer is internal (i.e. you set `api_load_balancer_scheme: internal` in your cluster configuration file), see the [internal load balancer](#internal-load-balancer) section below._
+_This section applies if your API load balancer is internet-facing (which is the default, or you set `api_load_balancer_scheme: internet-facing` in your cluster configuration file before creating your cluster). If your API load balancer is internal, see the [internal load balancer](#internal-load-balancer) section below._
 
 ### Create an API Gateway
 
@@ -68,7 +68,7 @@ Delete the API Gateway before spinning down your Cortex cluster:
 
 ## Internal load balancer
 
-_This section applies if your API load balancer is internal (i.e. you set `api_load_balancer_scheme: internal` in your cluster configuration file before creating your cluster). If your API load balancer is internet-facing (which is the default, or you set `api_load_balancer_scheme: internet-facing` in your cluster configuration file), see the [internet-facing load balancer](#internet-facing-load-balancer) section above._
+_This section applies if your API load balancer is internal (i.e. you set `api_load_balancer_scheme: internal` in your cluster configuration file before creating your cluster). If your API load balancer is internet-facing, see the [internet-facing load balancer](#internet-facing-load-balancer) section above._
 
 ### Create a VPC Link
 

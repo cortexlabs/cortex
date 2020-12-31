@@ -1,6 +1,6 @@
 # Custom domain
 
-You can use any custom domain (that you own) for your prediction endpoints. For example, you can make your API accessible via `api.example.com/text-generator`. This guide will demonstrate how to create a dedicated subdomain in AWS Route 53 and use an SSL certificate provisioned by AWS Certificate Manager (if desired).
+You can use any custom domain (that you own) for your prediction endpoints. For example, you can make your API accessible via `api.example.com/text-generator`. This guide will demonstrate how to create a dedicated subdomain in AWS Route 53 and, if desired, configure your API load balancer to use an SSL certificate provisioned by AWS Certificate Manager.
 
 ## Configure DNS
 
