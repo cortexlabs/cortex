@@ -57,6 +57,8 @@ var _predictCmd = &cobra.Command{
 				exit.Error(ErrorEnvironmentNotSet())
 			}
 			envName = *defaultEnv
+		} else {
+			envName = _flagPredictEnv
 		}
 
 		env, err := ReadOrConfigureEnv(envName)

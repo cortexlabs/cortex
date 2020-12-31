@@ -62,6 +62,8 @@ var _deleteCmd = &cobra.Command{
 				exit.Error(ErrorEnvironmentNotSet())
 			}
 			envName = *defaultEnv
+		} else {
+			envName = _flagDeleteEnv
 		}
 
 		env, err := ReadOrConfigureEnv(envName)

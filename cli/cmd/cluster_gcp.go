@@ -119,8 +119,7 @@ var _clusterGCPUpCmd = &cobra.Command{
 			if defaultEnv != nil {
 				envName = *defaultEnv
 			}
-		}
-		if envName == "" {
+		} else {
 			envName = "gcp"
 		}
 

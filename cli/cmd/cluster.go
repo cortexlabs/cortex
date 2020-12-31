@@ -152,8 +152,7 @@ var _clusterUpCmd = &cobra.Command{
 			if defaultEnv != nil {
 				envName = *defaultEnv
 			}
-		}
-		if envName == "" {
+		} else {
 			envName = "aws"
 		}
 

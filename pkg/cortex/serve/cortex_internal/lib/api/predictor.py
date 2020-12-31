@@ -72,7 +72,7 @@ class Predictor:
     def __init__(self, provider: str, api_spec: dict, model_dir: str):
         """
         Args:
-            provider: "local" or "aws".
+            provider: "aws" or "gcp".
             api_spec: API configuration.
             model_dir: Where the models are stored on disk.
         """

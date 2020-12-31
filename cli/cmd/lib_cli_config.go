@@ -50,8 +50,8 @@ var _cliConfigValidation = &cr.StructValidation{
 		{
 			StructField: "DefaultEnvironment",
 			StringPtrValidation: &cr.StringPtrValidation{
-				Required:   false,
-				AllowEmpty: true,
+				Required:          false,
+				AllowExplicitNull: true,
 			},
 		},
 		{
@@ -468,7 +468,7 @@ func ReadOrConfigureEnv(envName string) (cliconfig.Environment, error) {
 
 	promptStr := fmt.Sprintf("the %s environment is not configured; do you already have a Cortex cluster running?", envName)
 	yesMsg := fmt.Sprintf("please configure the %s environment to point to your running cluster:\n", envName)
-	noMsg := "you can create a cluster on AWS by running the `cortex cluster up` or `cortex cluster-gcp up` command"
+	noMsg := "you can create a cluster on AWS/GCP by running the `cortex cluster up` or `cortex cluster-gcp up` command respectively"
 	prompt.YesOrExit(promptStr, yesMsg, noMsg)
 
 	env, err := configureEnv(envName, cliconfig.Environment{})

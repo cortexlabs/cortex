@@ -78,6 +78,8 @@ var _deployCmd = &cobra.Command{
 				exit.Error(ErrorEnvironmentNotSet())
 			}
 			envName = *defaultEnv
+		} else {
+			envName = _flagDeployEnv
 		}
 
 		env, err := ReadOrConfigureEnv(envName)

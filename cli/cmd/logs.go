@@ -53,6 +53,8 @@ var _logsCmd = &cobra.Command{
 				exit.Error(ErrorEnvironmentNotSet())
 			}
 			envName = *defaultEnv
+		} else {
+			envName = _flagLogsEnv
 		}
 
 		env, err := ReadOrConfigureEnv(envName)

@@ -92,7 +92,7 @@ func ErrorCommandNotSupportedForKind(kind userconfig.Kind, command string) error
 func ErrorEnvironmentNotSet() error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrEnvironmentNotSet,
-		Message: fmt.Sprintf("no default environment could be found and no environment was provided; run `cortex env default` to configure a default environment, `cortex env configure` to configure a new environment or run `cortex cluster up`/`cortex cluster-gcp up` command to create one"),
+		Message: fmt.Sprintf("no default environment could be found and no environment was provided; run `cortex env default` to configure a default environment, or pass the environment name by using the `-e/--environment` flag"),
 	})
 }
 

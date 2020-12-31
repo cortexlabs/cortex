@@ -58,6 +58,8 @@ var _refreshCmd = &cobra.Command{
 				exit.Error(ErrorEnvironmentNotSet())
 			}
 			envName = *defaultEnv
+		} else {
+			envName = _flagRefreshEnv
 		}
 
 		env, err := ReadOrConfigureEnv(envName)

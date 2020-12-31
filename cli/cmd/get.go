@@ -71,9 +71,26 @@ var _getCmd = &cobra.Command{
 	Short: "get information about apis or jobs",
 	Args:  cobra.RangeArgs(0, 2),
 	Run: func(cmd *cobra.Command, args []string) {
+
+		var envName string
+		if wasEnvFlagProvided(cmd) {
+			envName = _flagGetEnv
+		} else if len(args) > 0 {
+			defaultEnv, err := getDefaultEnv()
+			if err != nil {
+				telemetry.Event("cli.get")
+				exit.Error(err)
+			}
+			if defaultEnv == nil {
+				telemetry.Event("cli.get")
+				exit.Error(ErrorEnvironmentNotSet())
+			}
+			envName = *defaultEnv
+		}
+
 		// if API_NAME is specified or env name is provided then the provider is known, otherwise provider isn't because all apis from all environments will be fetched
 		if len(args) == 1 || wasEnvFlagProvided(cmd) {
-			env, err := ReadOrConfigureEnv(_flagGetEnv)
+			env, err := ReadOrConfigureEnv(envName)
 			if err != nil {
 				telemetry.Event("cli.get")
 				exit.Error(err)
@@ -85,12 +102,12 @@ var _getCmd = &cobra.Command{
 
 		rerun(func() (string, error) {
 			if len(args) == 1 {
-				env, err := ReadOrConfigureEnv(_flagGetEnv)
+				env, err := ReadOrConfigureEnv(envName)
 				if err != nil {
 					exit.Error(err)
 				}
 
-				out, err := envStringIfNotSpecified(_flagGetEnv, cmd)
+				out, err := envStringIfNotSpecified(envName, cmd)
 				if err != nil {
 					return "", err
 				}
@@ -105,12 +122,12 @@ var _getCmd = &cobra.Command{
 
 				return out + apiTable, nil
 			} else if len(args) == 2 {
-				env, err := ReadOrConfigureEnv(_flagGetEnv)
+				env, err := ReadOrConfigureEnv(envName)
 				if err != nil {
 					exit.Error(err)
 				}
 
-				out, err := envStringIfNotSpecified(_flagGetEnv, cmd)
+				out, err := envStringIfNotSpecified(envName, cmd)
 				if err != nil {
 					return "", err
 				}
@@ -126,12 +143,12 @@ var _getCmd = &cobra.Command{
 				return out + jobTable, nil
 			} else {
 				if wasEnvFlagProvided(cmd) {
-					env, err := ReadOrConfigureEnv(_flagGetEnv)
+					env, err := ReadOrConfigureEnv(envName)
 					if err != nil {
 						exit.Error(err)
 					}
 
-					out, err := envStringIfNotSpecified(_flagGetEnv, cmd)
+					out, err := envStringIfNotSpecified(envName, cmd)
 					if err != nil {
 						return "", err
 					}

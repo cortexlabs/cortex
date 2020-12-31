@@ -58,6 +58,8 @@ var _patchCmd = &cobra.Command{
 				exit.Error(ErrorEnvironmentNotSet())
 			}
 			envName = *defaultEnv
+		} else {
+			envName = _flagPatchEnv
 		}
 
 		env, err := ReadOrConfigureEnv(envName)

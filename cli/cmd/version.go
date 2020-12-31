@@ -50,6 +50,8 @@ var _versionCmd = &cobra.Command{
 				exit.Error(ErrorEnvironmentNotSet())
 			}
 			envName = *defaultEnv
+		} else {
+			envName = _flagVersionEnv
 		}
 
 		env, err := ReadOrConfigureEnv(envName)
