@@ -69,6 +69,7 @@ type Config struct {
 	SSLCertificateARN          *string            `json:"ssl_certificate_arn,omitempty" yaml:"ssl_certificate_arn,omitempty"`
 	Bucket                     string             `json:"bucket" yaml:"bucket"`
 	SubnetVisibility           SubnetVisibility   `json:"subnet_visibility" yaml:"subnet_visibility"`
+	Subnets                    []*Subnet          `json:"subnets" yaml:"subnets"`
 	NATGateway                 NATGateway         `json:"nat_gateway" yaml:"nat_gateway"`
 	APILoadBalancerScheme      LoadBalancerScheme `json:"api_load_balancer_scheme" yaml:"api_load_balancer_scheme"`
 	OperatorLoadBalancerScheme LoadBalancerScheme `json:"operator_load_balancer_scheme" yaml:"operator_load_balancer_scheme"`
@@ -97,6 +98,11 @@ type SpotConfig struct {
 	MaxPrice                            *float64 `json:"max_price" yaml:"max_price"`
 	InstancePools                       *int64   `json:"instance_pools" yaml:"instance_pools"`
 	OnDemandBackup                      *bool    `json:"on_demand_backup" yaml:"on_demand_backup"`
+}
+
+type Subnet struct {
+	AvailabilityZone string `json:"availability_zone" yaml:"availability_zone"`
+	SubnetID         string `json:"subnet_id" yaml:"subnet_id"`
 }
 
 type InternalConfig struct {
@@ -309,16 +315,42 @@ var UserValidation = &cr.StructValidation{
 			},
 		},
 		{
+			StructField: "Subnets",
+			StructListValidation: &cr.StructListValidation{
+				AllowExplicitNull: true,
+				MinLength:         2,
+				StructValidation: &cr.StructValidation{
+					StructFieldValidations: []*cr.StructFieldValidation{
+						{
+							StructField:      "AvailabilityZone",
+							StringValidation: &cr.StringValidation{},
+						},
+						{
+							StructField:      "SubnetID",
+							StringValidation: &cr.StringValidation{},
+						},
+					},
+				},
+			},
+		},
+		{
 			StructField: "NATGateway",
 			StringValidation: &cr.StringValidation{
 				AllowedValues: NATGatewayStrings(),
+				Default:       NoneNATGateway.String(),
 			},
 			Parser: func(str string) (interface{}, error) {
 				return NATGatewayFromString(str), nil
 			},
-			DefaultField: "SubnetVisibility",
-			DefaultFieldFunc: func(val interface{}) interface{} {
-				if val.(SubnetVisibility) == PublicSubnetVisibility {
+			DefaultDependentFields: []string{"SubnetVisibility", "Subnets"},
+			DefaultDependentFieldsFunc: func(vals []interface{}) interface{} {
+				subnetVisibility := vals[0].(SubnetVisibility)
+				subnets := vals[1].([]*Subnet)
+
+				if len(subnets) > 0 {
+					return NoneNATGateway.String()
+				}
+				if subnetVisibility == PublicSubnetVisibility {
 					return NoneNATGateway.String()
 				}
 				return SingleNATGateway.String()
@@ -534,7 +566,15 @@ func (cc *Config) Validate(awsClient *aws.Client) error {
 		return ErrorMinInstancesGreaterThanMax(*cc.MinInstances, *cc.MaxInstances)
 	}
 
-	if cc.SubnetVisibility == PrivateSubnetVisibility && cc.NATGateway == NoneNATGateway {
+	if len(cc.AvailabilityZones) > 0 && len(cc.Subnets) > 0 {
+		return ErrorSpecifyOneOrNone(AvailabilityZonesKey, SubnetsKey)
+	}
+
+	if len(cc.Subnets) > 0 && cc.NATGateway != NoneNATGateway {
+		return ErrorNoNATGatewayWithSubnets()
+	}
+
+	if cc.SubnetVisibility == PrivateSubnetVisibility && cc.NATGateway == NoneNATGateway && len(cc.Subnets) == 0 {
 		return ErrorNATRequiredWithPrivateSubnetVisibility()
 	}
 
@@ -612,8 +652,14 @@ func (cc *Config) Validate(awsClient *aws.Client) error {
 	}
 	cc.Tags[ClusterNameTag] = cc.ClusterName
 
-	if err := cc.validateAvailabilityZones(awsClient); err != nil {
-		return errors.Wrap(err, AvailabilityZonesKey)
+	if len(cc.Subnets) > 0 {
+		if err := cc.validateSubnets(awsClient); err != nil {
+			return errors.Wrap(err, SubnetsKey)
+		}
+	} else {
+		if err := cc.setAvailabilityZones(awsClient); err != nil {
+			return errors.Wrap(err, AvailabilityZonesKey)
+		}
 	}
 
 	if cc.Spot != nil && *cc.Spot {
@@ -1116,6 +1162,9 @@ func (cc *Config) UserTable() table.KeyValuePairs {
 	if len(cc.AvailabilityZones) > 0 {
 		items.Add(AvailabilityZonesUserKey, cc.AvailabilityZones)
 	}
+	for _, subnetConfig := range cc.Subnets {
+		items.Add(subnetConfig.AvailabilityZone, subnetConfig.SubnetID)
+	}
 	items.Add(BucketUserKey, cc.Bucket)
 	items.Add(InstanceTypeUserKey, *cc.InstanceType)
 	items.Add(MinInstancesUserKey, *cc.MinInstances)
@@ -1205,6 +1254,11 @@ func (cc *Config) TelemetryEvent() map[string]interface{} {
 		event["availability_zones._is_defined"] = true
 		event["availability_zones._len"] = len(cc.AvailabilityZones)
 		event["availability_zones"] = cc.AvailabilityZones
+	}
+	if len(cc.Subnets) > 0 {
+		event["subnets._is_defined"] = true
+		event["subnets._len"] = len(cc.Subnets)
+		event["subnets"] = cc.Subnets
 	}
 	if cc.SSLCertificateARN != nil {
 		event["ssl_certificate_arn._is_defined"] = true
