@@ -1,6 +1,11 @@
-# API Gateway (HTTPS)
+# HTTPS (via API Gateway)
 
-AWS API Gateway can be configured to forward requests to your Cortex APIs. This can be useful as a simple way to support HTTPS traffic (as an alternative to using a [custom domain](custom-domain.md)), or to leverage other features provided by API Gateway. Please note that one limitation of API Gateway is that there is a 30-second time limit for all requests.
+If you would like to support HTTPS endpoints for your Cortex APIs, here are a few options:
+
+* Custom domain with an SSL certificate: See [here](custom-domain.md) for instructions.
+* AWS API Gateway: This is the simplest approach if a custom domain is not required; continue reading this guide for instructions.
+
+Please note that one limitation of API Gateway is that there is a 30-second time limit for all requests.
 
 If your API load balancer is internet-facing (which is the default, or you set `api_load_balancer_scheme: internet-facing` in your cluster configuration file before creating your cluster), use the [first section](#internet-facing-load-balancer) of this guide.
 

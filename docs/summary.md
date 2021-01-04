@@ -44,7 +44,7 @@
   * [Inferentia](clusters/aws/inferentia.md)
   * [Networking](clusters/aws/networking/index.md)
     * [Custom domain](clusters/aws/networking/custom-domain.md)
-    * [API Gateway (HTTPS)](clusters/aws/networking/api-gateway.md)
+    * [HTTPS (via API Gateway)](clusters/aws/networking/https.md)
     * [VPC peering](clusters/aws/networking/vpc-peering.md)
   * [Setting up kubectl](clusters/aws/kubectl.md)
   * [Uninstall](clusters/aws/uninstall.md)
