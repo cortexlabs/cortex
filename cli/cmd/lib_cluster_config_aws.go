@@ -296,8 +296,10 @@ func setConfigFieldsFromCached(userClusterConfig *clusterconfig.Config, cachedCl
 	}
 	userClusterConfig.AvailabilityZones = cachedClusterConfig.AvailabilityZones
 
-	if !reflect.DeepEqual(userClusterConfig.Subnets, cachedClusterConfig.Subnets) {
-		return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.SubnetsKey, cachedClusterConfig.Subnets)
+	if len(userClusterConfig.Subnets) > 0 || len(cachedClusterConfig.Subnets) > 0 {
+		if !reflect.DeepEqual(userClusterConfig.Subnets, cachedClusterConfig.Subnets) {
+			return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.SubnetsKey, cachedClusterConfig.Subnets)
+		}
 	}
 	userClusterConfig.Subnets = cachedClusterConfig.Subnets
 
