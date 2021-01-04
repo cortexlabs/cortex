@@ -31,14 +31,20 @@ zone: us-central1-a
 # instance type
 instance_type: n1-standard-2
 
-# GPU to attach to your instance (optional)
-accelerator_type: nvidia-tesla-t4
-
 # minimum number of instances
 min_instances: 1
 
 # maximum number of instances
 max_instances: 5
+
+# GPU to attach to your instance (optional)
+# accelerator_type: nvidia-tesla-t4
+
+# the name of the network in which to create your cluster
+# network: default
+
+# the name of the subnetwork in which to create your cluster
+# subnet: default
 ```
 
 The docker images used by the Cortex cluster can also be overridden, although this is not common. They can be configured by adding any of these keys to your cluster configuration file (default values are shown):
