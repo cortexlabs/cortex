@@ -78,7 +78,7 @@ func getNodeInfos() ([]schema.NodeInfo, int, error) {
 			if spotPrice, ok := spotPriceCache[instanceType]; ok {
 				price = spotPrice
 			} else {
-				spotPrice, err := config.AWS.SpotInstancePrice(*config.Cluster.Region, instanceType)
+				spotPrice, err := config.AWS.SpotInstancePrice(instanceType)
 				if err == nil && spotPrice != 0 {
 					price = spotPrice
 					spotPriceCache[instanceType] = spotPrice
