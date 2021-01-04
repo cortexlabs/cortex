@@ -596,7 +596,7 @@ func clusterConfigConfirmationStr(clusterConfig clusterconfig.Config, awsCreds A
 		items.Add(clusterconfig.AvailabilityZonesUserKey, clusterConfig.AvailabilityZones)
 	}
 	for _, subnetConfig := range clusterConfig.Subnets {
-		items.Add(subnetConfig.AvailabilityZone, subnetConfig.SubnetID)
+		items.Add("subnet in "+subnetConfig.AvailabilityZone, subnetConfig.SubnetID)
 	}
 	items.Add(clusterconfig.BucketUserKey, clusterConfig.Bucket)
 	items.Add(clusterconfig.ClusterNameUserKey, clusterConfig.ClusterName)

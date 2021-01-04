@@ -1163,7 +1163,7 @@ func (cc *Config) UserTable() table.KeyValuePairs {
 		items.Add(AvailabilityZonesUserKey, cc.AvailabilityZones)
 	}
 	for _, subnetConfig := range cc.Subnets {
-		items.Add(subnetConfig.AvailabilityZone, subnetConfig.SubnetID)
+		items.Add("subnet in "+subnetConfig.AvailabilityZone, subnetConfig.SubnetID)
 	}
 	items.Add(BucketUserKey, cc.Bucket)
 	items.Add(InstanceTypeUserKey, *cc.InstanceType)
