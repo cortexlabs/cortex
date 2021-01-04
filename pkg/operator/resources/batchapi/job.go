@@ -21,6 +21,7 @@ import (
 	"time"
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/routines"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 	"github.com/cortexlabs/cortex/pkg/operator/operator"
@@ -127,7 +128,9 @@ func SubmitJob(apiName string, submission *schema.JobSubmission) (*spec.Job, err
 		return nil, err
 	}
 
-	go deployJob(apiSpec, &jobSpec, submission)
+	routines.RunWithPanicHandler(func() {
+		deployJob(apiSpec, &jobSpec, submission)
+	}, false)
 
 	return &jobSpec, nil
 }
@@ -256,12 +259,16 @@ func deleteJobRuntimeResources(jobKey spec.JobKey) error {
 func StopJob(jobKey spec.JobKey) error {
 	jobState, err := getJobState(jobKey)
 	if err != nil {
-		go deleteJobRuntimeResources(jobKey)
+		routines.RunWithPanicHandler(func() {
+			deleteJobRuntimeResources(jobKey)
+		}, false)
 		return err
 	}
 
 	if !jobState.Status.IsInProgress() {
-		go deleteJobRuntimeResources(jobKey)
+		routines.RunWithPanicHandler(func() {
+			deleteJobRuntimeResources(jobKey)
+		}, false)
 		return errors.Wrap(ErrorJobIsNotInProgress(), jobKey.UserString())
 	}
 
