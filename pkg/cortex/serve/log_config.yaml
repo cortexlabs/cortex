@@ -20,13 +20,13 @@ version: 1
 disable_existing_loggers: False
 formatters:
   default:
-    "()": cortex_internal.lib.log.CortexFormatter
-    format: "%(asctime)s:cortex:pid-%(process)d:%(levelname)s:%(message)s"
-    datefmt: "%Y-%m-%d %H:%M:%S.%f"
+    "()": pythonjsonlogger.jsonlogger.JsonFormatter
+    format: "%(asctime)s %(levelname)s %(msg)s %(process)d"
+    rename_fields: { "message": "msg" }
   uvicorn_access:
     "()": cortex_internal.lib.log.CortexAccessFormatter
-    format: "%(asctime)s:cortex:pid-%(process)d:%(levelname)s:%(status_code)s %(method)s %(path)s"
-    datefmt: "%Y-%m-%d %H:%M:%S.%f"
+    format: "%(asctime)s %(levelname)s %(msg)s %(process)d"
+    rename_fields: { "message": "msg" }
 handlers:
   default:
     formatter: default
@@ -45,12 +45,12 @@ loggers:
   uvicorn:
     level: $CORTEX_LOG_LEVEL
     handlers:
-      - default
+      - uvicorn_access
     propagate: no
   uvicorn.error:
     level: $CORTEX_LOG_LEVEL
     handlers:
-      - default
+      - uvicorn_access
     propagate: no
   uvicorn.uvicorn_access:
     level: $CORTEX_LOG_LEVEL

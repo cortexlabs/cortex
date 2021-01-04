@@ -240,6 +240,6 @@ func ErrorHandler(cronName string) func(error) {
 	return func(err error) {
 		err = errors.Wrap(err, cronName+" cron failed")
 		telemetry.Error(err)
-		errors.PrintError(err)
+		Logger.Error(err)
 	}
 }

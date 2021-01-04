@@ -69,11 +69,6 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string) (*spec.API, string, 
 			return nil, "", err
 		}
 
-		err := ensureLogGroupForAPI(api.Name)
-		if err != nil {
-			return nil, "", err
-		}
-
 		return api, fmt.Sprintf("created %s", api.Resource.UserString()), nil
 	}
 

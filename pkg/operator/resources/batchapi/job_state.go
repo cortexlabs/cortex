@@ -24,6 +24,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
+	"github.com/cortexlabs/cortex/pkg/operator/operator"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/types/status"
 	kbatch "k8s.io/api/batch/v1"
@@ -361,7 +362,7 @@ func setTimedOutStatus(jobKey spec.JobKey) error {
 func getJobStatusFromJobState(jobState *JobState, k8sJob *kbatch.Job, pods []kcore.Pod) (*status.JobStatus, error) {
 	jobKey := jobState.JobKey
 
-	jobSpec, err := downloadJobSpec(jobKey)
+	jobSpec, err := operator.DownloadJobSpec(jobKey)
 	if err != nil {
 		return nil, err
 	}

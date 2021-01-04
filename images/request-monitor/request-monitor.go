@@ -88,10 +88,13 @@ func main() {
 		logLevelZap = zapcore.ErrorLevel
 	}
 
+	encoderConfig := zap.NewProductionEncoderConfig()
+	encoderConfig.MessageKey = "msg"
+
 	logger, err = zap.Config{
 		Level:            zap.NewAtomicLevelAt(logLevelZap),
-		Encoding:         "console",
-		EncoderConfig:    zap.NewProductionEncoderConfig(),
+		Encoding:         "json",
+		EncoderConfig:    encoderConfig,
 		OutputPaths:      []string{"stdout"},
 		ErrorOutputPaths: []string{"stderr"},
 	}.Build()

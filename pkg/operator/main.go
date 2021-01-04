@@ -17,13 +17,11 @@ limitations under the License.
 package main
 
 import (
-	"log"
 	"net/http"
 	"time"
 
 	"github.com/cortexlabs/cortex/pkg/lib/cron"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
-	"github.com/cortexlabs/cortex/pkg/lib/exit"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 	"github.com/cortexlabs/cortex/pkg/operator/endpoints"
@@ -39,7 +37,7 @@ const _operatorPortStr = "8888"
 
 func main() {
 	if err := config.Init(); err != nil {
-		exit.Error(err)
+		operator.Logger.Fatal(err)
 	}
 
 	telemetry.Event("operator.init", map[string]interface{}{"provider": config.Provider})
@@ -56,18 +54,18 @@ func main() {
 	if config.Provider == types.AWSProviderType {
 		_, err := operator.UpdateMemoryCapacityConfigMap()
 		if err != nil {
-			exit.Error(errors.Wrap(err, "init"))
+			operator.Logger.Fatal(errors.Wrap(err, "init"))
 		}
 
 		deployments, err := config.K8s.ListDeploymentsWithLabelKeys("apiName")
 		if err != nil {
-			exit.Error(errors.Wrap(err, "init"))
+			operator.Logger.Fatal(errors.Wrap(err, "init"))
 		}
 
 		for _, deployment := range deployments {
 			if userconfig.KindFromString(deployment.Labels["apiKind"]) == userconfig.RealtimeAPIKind {
 				if err := realtimeapi.UpdateAutoscalerCron(&deployment); err != nil {
-					exit.Error(errors.Wrap(err, "init"))
+					operator.Logger.Fatal(errors.Wrap(err, "init"))
 				}
 			}
 		}
@@ -104,6 +102,6 @@ func main() {
 	routerWithAuth.HandleFunc("/get/{apiName}/{apiID}", endpoints.GetAPIByID).Methods("GET")
 	routerWithAuth.HandleFunc("/logs/{apiName}", endpoints.ReadLogs)
 
-	log.Print("Running on port " + _operatorPortStr)
-	log.Fatal(http.ListenAndServe(":"+_operatorPortStr, router))
+	operator.Logger.Info("Running on port " + _operatorPortStr)
+	operator.Logger.Fatal(http.ListenAndServe(":"+_operatorPortStr, router))
 }

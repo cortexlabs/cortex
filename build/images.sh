@@ -21,17 +21,17 @@ set -euo pipefail
 
 api_images_local=(
   "python-predictor-cpu"
-  "python-predictor-gpu"
-  "tensorflow-predictor"
-  "onnx-predictor-cpu"
-  "onnx-predictor-gpu"
+  # "python-predictor-gpu"
+  # "tensorflow-predictor"
+  # "onnx-predictor-cpu"
+  # "onnx-predictor-gpu"
 )
 api_images_cluster=(
   # includes api_images_local
 )
 api_images_aws=(
   # includes api_images_local and api_images_cluster
-  "python-predictor-inf"
+  # "python-predictor-inf"
 )
 api_images_gcp=(
   # includes api_images_local and api_images_cluster

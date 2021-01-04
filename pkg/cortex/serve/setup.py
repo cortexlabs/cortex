@@ -29,7 +29,7 @@ setup(
     author_email="dev@cortex.dev",
     license="Apache License 2.0",
     url="https:/github.com/cortexlabs/cortex",
-    setup_requires=(["setuptools", "wheel"]),
+    setup_requires=(["setuptools", "wheel", "python-json-logger"]),
     packages=find_packages(),
     install_requires=install_requires,
     python_requires=">=3.6",

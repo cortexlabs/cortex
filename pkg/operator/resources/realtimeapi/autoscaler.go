@@ -17,7 +17,7 @@ limitations under the License.
 package realtimeapi
 
 import (
-	"log"
+	"fmt"
 	"math"
 	"time"
 
@@ -28,6 +28,7 @@ import (
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	libtime "github.com/cortexlabs/cortex/pkg/lib/time"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
+	"github.com/cortexlabs/cortex/pkg/operator/operator"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	kapps "k8s.io/api/apps/v1"
@@ -91,10 +92,18 @@ func autoscaleFn(initialDeployment *kapps.Deployment) (func() error, error) {
 		return nil, err
 	}
 
-	apiName := initialDeployment.Labels["apiName"]
+	apiSpec, err := operator.DownloadAPISpec(initialDeployment.Labels["apiName"], initialDeployment.Labels["apiID"])
+
+	apiName := apiSpec.Name
 	currentReplicas := *initialDeployment.Spec.Replicas
 
-	log.Printf("%s autoscaler init", apiName)
+	logger, err := operator.GetRealtimeAPILoggerFromSpec(apiSpec)
+	if err != nil {
+		return nil, err
+	}
+	defer logger.Sync()
+
+	logger.Infof("%s autoscaler init", apiName)
 
 	var startTime time.Time
 	recs := make(recommendations)
@@ -109,7 +118,7 @@ func autoscaleFn(initialDeployment *kapps.Deployment) (func() error, error) {
 			return err
 		}
 		if avgInFlight == nil {
-			log.Printf("%s autoscaler tick: metrics not available yet", apiName)
+			logger.Infof("%s autoscaler tick: metrics not available yet", apiName)
 			return nil
 		}
 
@@ -175,10 +184,31 @@ func autoscaleFn(initialDeployment *kapps.Deployment) (func() error, error) {
 			request = *upscaleStabilizationCeil
 		}
 
-		log.Printf("%s autoscaler tick: avg_in_flight=%s, target_replica_concurrency=%s, raw_recommendation=%s, current_replicas=%d, downscale_tolerance=%s, upscale_tolerance=%s, max_downscale_factor=%s, downscale_factor_floor=%d, max_upscale_factor=%s, upscale_factor_ceil=%d, min_replicas=%d, max_replicas=%d, recommendation=%d, downscale_stabilization_period=%s, downscale_stabilization_floor=%s, upscale_stabilization_period=%s, upscale_stabilization_ceil=%s, request=%d", apiName, s.Round(*avgInFlight, 2, 0), s.Float64(*autoscalingSpec.TargetReplicaConcurrency), s.Round(rawRecommendation, 2, 0), currentReplicas, s.Float64(autoscalingSpec.DownscaleTolerance), s.Float64(autoscalingSpec.UpscaleTolerance), s.Float64(autoscalingSpec.MaxDownscaleFactor), downscaleFactorFloor, s.Float64(autoscalingSpec.MaxUpscaleFactor), upscaleFactorCeil, autoscalingSpec.MinReplicas, autoscalingSpec.MaxReplicas, recommendation, autoscalingSpec.DownscaleStabilizationPeriod, s.ObjFlatNoQuotes(downscaleStabilizationFloor), autoscalingSpec.UpscaleStabilizationPeriod, s.ObjFlatNoQuotes(upscaleStabilizationCeil), request)
+		logger.Debugw(fmt.Sprintf("%s autoscaler tick", apiName),
+			"autoscaling", map[string]interface{}{
+				"avg_in_flight":                  s.Round(*avgInFlight, 2, 0),
+				"target_replica_concurrency":     s.Float64(*autoscalingSpec.TargetReplicaConcurrency),
+				"raw_recommendation":             s.Round(rawRecommendation, 2, 0),
+				"current_replicas":               currentReplicas,
+				"downscale_tolerance":            s.Float64(autoscalingSpec.DownscaleTolerance),
+				"upscale_tolerance":              s.Float64(autoscalingSpec.UpscaleTolerance),
+				"max_downscale_factor":           s.Float64(autoscalingSpec.MaxDownscaleFactor),
+				"downscale_factor_floor":         downscaleFactorFloor,
+				"max_upscale_factor":             s.Float64(autoscalingSpec.MaxUpscaleFactor),
+				"upscale_factor_ceil":            upscaleFactorCeil,
+				"min_replicas":                   autoscalingSpec.MinReplicas,
+				"max_replicas":                   autoscalingSpec.MaxReplicas,
+				"recommendation":                 recommendation,
+				"downscale_stabilization_period": autoscalingSpec.DownscaleStabilizationPeriod,
+				"downscale_stabilization_floor":  s.ObjFlatNoQuotes(downscaleStabilizationFloor),
+				"upscale_stabilization_period":   autoscalingSpec.UpscaleStabilizationPeriod,
+				"upscale_stabilization_ceil":     s.ObjFlatNoQuotes(upscaleStabilizationCeil),
+				"request":                        request,
+			},
+		)
 
 		if currentReplicas != request {
-			log.Printf("%s autoscaling event: %d -> %d", apiName, currentReplicas, request)
+			logger.Infof("%s autoscaling event: %d -> %d", apiName, currentReplicas, request)
 
 			deployment, err := config.K8s.GetDeployment(initialDeployment.Name)
 			if err != nil {
