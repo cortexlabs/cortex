@@ -396,6 +396,19 @@ function suspend_az_rebalance() {
   fi
 }
 
+function setup_istio() {
+  envsubst < manifests/istio-namespace.yaml | kubectl apply -f - >/dev/null
+
+  if ! grep -q "istio-customgateway-certs" <<< $(kubectl get secret -n istio-system); then
+    WEBSITE=localhost
+    openssl req -subj "/C=US/CN=$WEBSITE" -newkey rsa:2048 -nodes -keyout $WEBSITE.key -x509 -days 3650 -out $WEBSITE.crt >/dev/null 2>&1
+    kubectl create -n istio-system secret tls istio-customgateway-certs --key $WEBSITE.key --cert $WEBSITE.crt >/dev/null
+  fi
+
+  python render_template.py $CORTEX_CLUSTER_CONFIG_FILE manifests/istio.yaml.j2 > /workspace/istio.yaml
+  output_if_error istio-${ISTIO_VERSION}/bin/istioctl install -f /workspace/istio.yaml
+}
+
 function start_pre_download_images() {
   registry="quay.io/cortexlabs"
   tag="$CORTEX_VERSION"
