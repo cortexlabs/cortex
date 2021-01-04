@@ -53,6 +53,7 @@ type Predictor struct {
 	ServerSideBatching     *ServerSideBatching    `json:"server_side_batching" yaml:"server_side_batching"`
 	ProcessesPerReplica    int32                  `json:"processes_per_replica" yaml:"processes_per_replica"`
 	ThreadsPerProcess      int32                  `json:"threads_per_process" yaml:"threads_per_process"`
+	ShmSize                *k8s.Quantity          `json:"shm_size" yaml:"shm_size"`
 	PythonPath             *string                `json:"python_path" yaml:"python_path"`
 	LogLevel               LogLevel               `json:"log_level" yaml:"log_level"`
 	Image                  string                 `json:"image" yaml:"image"`
@@ -368,6 +369,10 @@ func (predictor *Predictor) UserStr() string {
 	sb.WriteString(fmt.Sprintf("%s: %s\n", ProcessesPerReplicaKey, s.Int32(predictor.ProcessesPerReplica)))
 	sb.WriteString(fmt.Sprintf("%s: %s\n", ThreadsPerProcessKey, s.Int32(predictor.ThreadsPerProcess)))
 
+	if predictor.ShmSize != nil {
+		sb.WriteString(fmt.Sprintf("%s: %s\n", ShmSize, predictor.ShmSize.UserString))
+	}
+
 	if len(predictor.Config) > 0 {
 		sb.WriteString(fmt.Sprintf("%s:\n", ConfigKey))
 		d, _ := yaml.Marshal(&predictor.Config)
@@ -594,6 +599,11 @@ func (api *API) TelemetryEvent(provider types.ProviderType) map[string]interface
 		event["predictor.type"] = api.Predictor.Type
 		event["predictor.processes_per_replica"] = api.Predictor.ProcessesPerReplica
 		event["predictor.threads_per_process"] = api.Predictor.ThreadsPerProcess
+
+		if api.Predictor.ShmSize != nil {
+			event["predictor.shm_size"] = api.Predictor.ShmSize.String()
+		}
+
 		event["predictor.log_level"] = api.Predictor.LogLevel
 
 		if api.Predictor.PythonPath != nil {
