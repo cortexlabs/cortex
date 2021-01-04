@@ -70,7 +70,7 @@ func clusterInit() {
 	addClusterConfigFlag(_clusterUpCmd)
 	addAWSCredentialsFlags(_clusterUpCmd)
 	addClusterAWSCredentialsFlags(_clusterUpCmd)
-	_clusterUpCmd.Flags().StringVarP(&_flagClusterUpEnv, "configure-env", "e", "", "name of environment to configure")
+	_clusterUpCmd.Flags().StringVarP(&_flagClusterUpEnv, "configure-env", "e", "aws", "name of environment to configure")
 	_clusterUpCmd.Flags().BoolVarP(&_flagClusterDisallowPrompt, "yes", "y", false, "skip prompts")
 	_clusterCmd.AddCommand(_clusterUpCmd)
 
@@ -143,28 +143,15 @@ var _clusterUpCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		telemetry.EventNotify("cli.cluster.up", map[string]interface{}{"provider": types.AWSProviderType})
 
-		var envName string
-		if _flagClusterUpEnv == "" {
-			defaultEnv, err := getDefaultEnv()
-			if err != nil {
-				exit.Error(err)
-			}
-			if defaultEnv != nil {
-				envName = *defaultEnv
-			}
-		} else {
-			envName = "aws"
-		}
-
-		envExists, err := isEnvConfigured(envName)
+		envExists, err := isEnvConfigured(_flagClusterUpEnv)
 		if err != nil {
 			exit.Error(err)
 		}
 		if envExists {
 			if _flagClusterDisallowPrompt {
-				fmt.Printf("found an existing environment named \"%s\", which will be overwritten to connect to this cluster once it's created\n\n", envName)
+				fmt.Printf("found an existing environment named \"%s\", which will be overwritten to connect to this cluster once it's created\n\n", _flagClusterUpEnv)
 			} else {
-				prompt.YesOrExit(fmt.Sprintf("found an existing environment named \"%s\"; would you like to overwrite it to connect to this cluster once it's created?", envName), "", "you can specify a different environment name to be configured to connect to this cluster by specifying the --configure-env flag (e.g. `cortex cluster up --configure-env prod`); or you can list your environments with `cortex env list` and delete an environment with `cortex env delete ENV_NAME`")
+				prompt.YesOrExit(fmt.Sprintf("found an existing environment named \"%s\"; would you like to overwrite it to connect to this cluster once it's created?", _flagClusterUpEnv), "", "you can specify a different environment name to be configured to connect to this cluster by specifying the --configure-env flag (e.g. `cortex cluster up --configure-env prod`); or you can list your environments with `cortex env list` and delete an environment with `cortex env delete ENV_NAME`")
 			}
 		}
 
@@ -323,7 +310,7 @@ var _clusterUpCmd = &cobra.Command{
 		}
 
 		newEnvironment := cliconfig.Environment{
-			Name:               envName,
+			Name:               _flagClusterUpEnv,
 			Provider:           types.AWSProviderType,
 			OperatorEndpoint:   pointer.String("https://" + *loadBalancer.DNSName),
 			AWSAccessKeyID:     pointer.String(awsCreds.ClusterAWSAccessKeyID),
