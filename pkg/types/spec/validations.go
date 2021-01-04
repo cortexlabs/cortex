@@ -204,6 +204,14 @@ func predictorValidation() *cr.StructFieldValidation {
 					},
 				},
 				{
+					StructField: "ShmSize",
+					StringPtrValidation: &cr.StringPtrValidation{
+						Default:           nil,
+						AllowExplicitNull: true,
+					},
+					Parser: k8s.QuantityParser(&k8s.QuantityValidation{}),
+				},
+				{
 					StructField: "LogLevel",
 					StringValidation: &cr.StringValidation{
 						Default:       "info",
@@ -792,6 +800,12 @@ func ValidateAPI(
 	if api.UpdateStrategy != nil { // should only be nil for local provider
 		if err := validateUpdateStrategy(api.UpdateStrategy); err != nil {
 			return errors.Wrap(err, userconfig.UpdateStrategyKey)
+		}
+	}
+
+	if api.Predictor != nil && api.Predictor.ShmSize != nil && api.Compute.Mem != nil {
+		if api.Predictor.ShmSize.Cmp(api.Compute.Mem.Quantity) > 0 {
+			return ErrorShmSizeCannotExceedMem(*api.Predictor.ShmSize, *api.Compute.Mem)
 		}
 	}
 
