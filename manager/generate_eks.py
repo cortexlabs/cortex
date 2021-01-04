@@ -213,9 +213,9 @@ def generate_eks(cluster_config_path):
             }
 
         if cluster_config.get("subnet_visibility", "public") == "private":
-            eks["vpc"]["subnets"]["private"] = eks_subnet_configs
+            eks["vpc"]["subnets"] = {"private": eks_subnet_configs}
         else:
-            eks["vpc"]["subnets"]["public"] = eks_subnet_configs
+            eks["vpc"]["subnets"] = {"public": eks_subnet_configs}
 
     if cluster_config.get("vpc_cidr", "") != "":
         eks["vpc"]["cidr"] = cluster_config["vpc_cidr"]
