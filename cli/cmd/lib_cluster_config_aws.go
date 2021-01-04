@@ -199,10 +199,6 @@ func getInstallClusterConfig(awsClient *aws.Client, awsCreds AWSCredentials, acc
 		return nil, err
 	}
 
-	debug.Ppg(clusterConfig.Subnets)
-	debug.Ppg(clusterConfig.AvailabilityZones)
-	// os.Exit(0)
-
 	confirmInstallClusterConfig(clusterConfig, awsCreds, awsClient, disallowPrompt)
 
 	return clusterConfig, nil
