@@ -306,7 +306,7 @@ var _clusterUpCmd = &cobra.Command{
 
 		loadBalancer, err := getAWSOperatorLoadBalancer(clusterConfig.ClusterName, awsClient)
 		if err != nil {
-			exit.Error(errors.Append(err, fmt.Sprintf("\n\nyou can attempt to resolve this issue and configure your cli environment by running `cortex cluster info --configure-env %s`", envName)))
+			exit.Error(errors.Append(err, fmt.Sprintf("\n\nyou can attempt to resolve this issue and configure your cli environment by running `cortex cluster info --configure-env %s`", _flagClusterUpEnv)))
 		}
 
 		newEnvironment := cliconfig.Environment{
@@ -319,13 +319,13 @@ var _clusterUpCmd = &cobra.Command{
 
 		err = addEnvToCLIConfig(newEnvironment, true)
 		if err != nil {
-			exit.Error(errors.Append(err, fmt.Sprintf("\n\nyou can attempt to resolve this issue and configure your cli environment by running `cortex cluster info --configure-env %s`", envName)))
+			exit.Error(errors.Append(err, fmt.Sprintf("\n\nyou can attempt to resolve this issue and configure your cli environment by running `cortex cluster info --configure-env %s`", _flagClusterUpEnv)))
 		}
 
 		if envExists {
-			fmt.Printf(console.Bold("\nthe environment named \"%s\" has been updated to point to this cluster (and was set as the default environment)\n"), envName)
+			fmt.Printf(console.Bold("\nthe environment named \"%s\" has been updated to point to this cluster (and was set as the default environment)\n"), _flagClusterUpEnv)
 		} else {
-			fmt.Printf(console.Bold("\nan environment named \"%s\" has been configured to point to this cluster (and was set as the default environment)\n"), envName)
+			fmt.Printf(console.Bold("\nan environment named \"%s\" has been configured to point to this cluster (and was set as the default environment)\n"), _flagClusterUpEnv)
 		}
 	},
 }
