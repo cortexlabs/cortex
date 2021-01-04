@@ -982,7 +982,6 @@ func TestDefaultField(t *testing.T) {
 			},
 			{
 				StructField:            "Key1",
-				DefaultField:           "Key2",
 				DefaultDependentFields: []string{"Key2"},
 				DefaultDependentFieldsFunc: func(vals []interface{}) interface{} {
 					if vals[0].(string) == "key2" {
