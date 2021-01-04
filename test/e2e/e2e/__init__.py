@@ -1,5 +1,3 @@
-#!/usr/bin/with-contenv sh
-
 # Copyright 2020 Cortex Labs, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,11 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-while true; do
-    procs_ready="$(ls /mnt/workspace/proc-*-ready.txt 2>/dev/null | wc -l)"
-    if [ "$CORTEX_PROCESSES_PER_REPLICA" = "$procs_ready" ]; then
-        touch /mnt/workspace/api_readiness.txt
-        break
-    fi
-    sleep 1
-done
+from .cluster import create_cluster, delete_cluster
+
+__all__ = ["create_cluster", "delete_cluster"]

@@ -9,6 +9,7 @@ __pycache__/
 .python-version
 .env
 .venv
+*.egg-info
 
 # OSX
 .DS_Store
