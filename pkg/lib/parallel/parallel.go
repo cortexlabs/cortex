@@ -41,6 +41,11 @@ func Run(fn func() error, fns ...func() error) []error {
 		}
 
 		go func() {
+			defer func() {
+				if r := recover(); r != nil {
+					errChannel <- errors.CastRecoverError(r)
+				}
+			}()
 			errChannel <- fn()
 		}()
 	}

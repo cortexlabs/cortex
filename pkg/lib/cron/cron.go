@@ -20,6 +20,7 @@ import (
 	"time"
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/routines"
 )
 
 type Cron struct {
@@ -39,7 +40,7 @@ func Run(f func() error, errHandler func(error), delay time.Duration) Cron {
 		}
 	}
 
-	go func() {
+	routines.RunWithPanicHandler(func() {
 		timer := time.NewTimer(0)
 		defer timer.Stop()
 		for {
@@ -53,7 +54,7 @@ func Run(f func() error, errHandler func(error), delay time.Duration) Cron {
 			}
 			timer.Reset(delay)
 		}
-	}()
+	}, false)
 
 	return Cron{
 		cronRun:    cronRun,
