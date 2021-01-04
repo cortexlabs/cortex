@@ -140,7 +140,6 @@ func PythonPredictorContainers(api *spec.API) ([]kcore.Container, []kcore.Volume
 			apiPodResourceList["nvidia.com/gpu"] = *kresource.NewQuantity(api.Compute.GPU, kresource.DecimalSI)
 			apiPodResourceLimitsList["nvidia.com/gpu"] = *kresource.NewQuantity(api.Compute.GPU, kresource.DecimalSI)
 		}
-
 	} else {
 		volumes = append(volumes, kcore.Volume{
 			Name: "neuron-sock",
@@ -171,6 +170,22 @@ func PythonPredictorContainers(api *spec.API) ([]kcore.Container, []kcore.Volume
 		}
 
 		containers = append(containers, neuronContainer)
+	}
+
+	if api.Predictor.ShmSize != nil {
+		volumes = append(volumes, kcore.Volume{
+			Name: "dshm",
+			VolumeSource: kcore.VolumeSource{
+				EmptyDir: &kcore.EmptyDirVolumeSource{
+					Medium:    kcore.StorageMediumMemory,
+					SizeLimit: k8s.QuantityPtr(api.Predictor.ShmSize.Quantity),
+				},
+			},
+		})
+		apiPodVolumeMounts = append(apiPodVolumeMounts, kcore.VolumeMount{
+			Name:      "dshm",
+			MountPath: "/dev/shm",
+		})
 	}
 
 	containers = append(containers, kcore.Container{
@@ -262,6 +277,22 @@ func TensorFlowPredictorContainers(api *spec.API) ([]kcore.Container, []kcore.Vo
 		containers = append(containers, neuronContainer)
 	}
 
+	if api.Predictor.ShmSize != nil {
+		volumes = append(volumes, kcore.Volume{
+			Name: "dshm",
+			VolumeSource: kcore.VolumeSource{
+				EmptyDir: &kcore.EmptyDirVolumeSource{
+					Medium:    kcore.StorageMediumMemory,
+					SizeLimit: k8s.QuantityPtr(api.Predictor.ShmSize.Quantity),
+				},
+			},
+		})
+		volumeMounts = append(volumeMounts, kcore.VolumeMount{
+			Name:      "dshm",
+			MountPath: "/dev/shm",
+		})
+	}
+
 	containers = append(containers, kcore.Container{
 		Name:            APIContainerName,
 		Image:           api.Predictor.Image,
@@ -294,10 +325,12 @@ func TensorFlowPredictorContainers(api *spec.API) ([]kcore.Container, []kcore.Vo
 	return containers, volumes
 }
 
-func ONNXPredictorContainers(api *spec.API) []kcore.Container {
+func ONNXPredictorContainers(api *spec.API) ([]kcore.Container, []kcore.Volume) {
 	resourceList := kcore.ResourceList{}
 	resourceLimitsList := kcore.ResourceList{}
 	containers := []kcore.Container{}
+	apiPodVolumeMounts := defaultVolumeMounts()
+	volumes := DefaultVolumes()
 
 	if api.Compute.CPU != nil {
 		userPodCPURequest := k8s.QuantityPtr(api.Compute.CPU.Quantity.DeepCopy())
@@ -316,13 +349,29 @@ func ONNXPredictorContainers(api *spec.API) []kcore.Container {
 		resourceLimitsList["nvidia.com/gpu"] = *kresource.NewQuantity(api.Compute.GPU, kresource.DecimalSI)
 	}
 
+	if api.Predictor.ShmSize != nil {
+		volumes = append(volumes, kcore.Volume{
+			Name: "dshm",
+			VolumeSource: kcore.VolumeSource{
+				EmptyDir: &kcore.EmptyDirVolumeSource{
+					Medium:    kcore.StorageMediumMemory,
+					SizeLimit: k8s.QuantityPtr(api.Predictor.ShmSize.Quantity),
+				},
+			},
+		})
+		apiPodVolumeMounts = append(apiPodVolumeMounts, kcore.VolumeMount{
+			Name:      "dshm",
+			MountPath: "/dev/shm",
+		})
+	}
+
 	containers = append(containers, kcore.Container{
 		Name:            APIContainerName,
 		Image:           api.Predictor.Image,
 		ImagePullPolicy: kcore.PullAlways,
 		Env:             getEnvVars(api, APIContainerName),
 		EnvFrom:         baseEnvVars(),
-		VolumeMounts:    defaultVolumeMounts(),
+		VolumeMounts:    apiPodVolumeMounts,
 		ReadinessProbe:  FileExistsProbe(_apiReadinessFile),
 		LivenessProbe:   _apiLivenessProbe,
 		Lifecycle:       nginxGracefulStopper(api.Kind),
@@ -338,7 +387,7 @@ func ONNXPredictorContainers(api *spec.API) []kcore.Container {
 		},
 	})
 
-	return containers
+	return containers, volumes
 }
 
 func getEnvVars(api *spec.API, container string) []kcore.EnvVar {

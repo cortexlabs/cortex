@@ -144,7 +144,7 @@ func tensorFlowPredictorJobSpec(api *spec.API, job *spec.Job) (*kbatch.Job, erro
 }
 
 func onnxPredictorJobSpec(api *spec.API, job *spec.Job) (*kbatch.Job, error) {
-	containers := operator.ONNXPredictorContainers(api)
+	containers, volumes := operator.ONNXPredictorContainers(api)
 
 	for i, container := range containers {
 		if container.Name == operator.APIContainerName {
@@ -186,7 +186,7 @@ func onnxPredictorJobSpec(api *spec.API, job *spec.Job) (*kbatch.Job, error) {
 					"workload": "true",
 				},
 				Tolerations:        operator.Tolerations,
-				Volumes:            operator.DefaultVolumes(),
+				Volumes:            volumes,
 				ServiceAccountName: "default",
 			},
 		},

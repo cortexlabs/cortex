@@ -23,6 +23,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
+	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	libmath "github.com/cortexlabs/cortex/pkg/lib/math"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
@@ -51,6 +52,8 @@ const (
 	ErrSurgeAndUnavailableBothZero = "spec.surge_and_unavailable_both_zero"
 
 	ErrModelCachingNotSupportedWhenMultiprocessingEnabled = "spec.model_caching_not_supported_when_multiprocessing_enabled"
+
+	ErrShmSizeCannotExceedMem = "spec.shm_size_cannot_exceed_mem"
 
 	ErrFileNotFound              = "spec.file_not_found"
 	ErrDirIsEmpty                = "spec.dir_is_empty"
@@ -225,6 +228,14 @@ func ErrorSurgeAndUnavailableBothZero() error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrSurgeAndUnavailableBothZero,
 		Message: fmt.Sprintf("%s and %s cannot both be zero", userconfig.MaxSurgeKey, userconfig.MaxUnavailableKey),
+	})
+}
+
+func ErrorShmSizeCannotExceedMem(shmSize k8s.Quantity, mem k8s.Quantity) error {
+	const maxNumProcesses int32 = 1
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrShmSizeCannotExceedMem,
+		Message: fmt.Sprintf("predictor.shm_size (%s) cannot exceed compute.mem (%s)", shmSize.UserString, mem.UserString),
 	})
 }
 
