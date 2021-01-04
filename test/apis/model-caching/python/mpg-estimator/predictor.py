@@ -1,5 +1,4 @@
 import mlflow.sklearn
-import numpy as np
 
 
 class PythonPredictor:
@@ -10,9 +9,10 @@ class PythonPredictor:
         return mlflow.sklearn.load_model(model_path)
 
     def predict(self, payload, query_params):
-        model_version = query_params.get("version")
+        model_name = "mpg-estimator"
+        model_version = query_params.get("version", "latest")
 
-        model = self.client.get_model(model_version=model_version)
+        model = self.client.get_model(model_name, model_version)
         model_input = [
             payload["cylinders"],
             payload["displacement"],
@@ -22,4 +22,4 @@ class PythonPredictor:
         ]
         result = model.predict([model_input]).item()
 
-        return {"prediction": result, "model": {"version": model_version}}
+        return {"prediction": result, "model": {"name": model_name, "version": model_version}}

@@ -340,7 +340,9 @@ class FileBasedModelsTreeUpdater(mp.Process):
             update_model = False
             ondisk_model_version_path = os.path.join(ondisk_model_path, version)
             if os.path.exists(ondisk_model_version_path):
-                local_paths = glob.glob(ondisk_model_version_path + "*/**", recursive=True)
+                local_paths = glob.glob(
+                    os.path.join(ondisk_model_version_path, "**"), recursive=True
+                )
                 local_paths = util.remove_non_empty_directory_paths(local_paths)
                 local_paths = [
                     os.path.relpath(local_path, ondisk_model_version_path)
@@ -377,7 +379,7 @@ class FileBasedModelsTreeUpdater(mp.Process):
                 client.download_dir_contents(cloud_src, temp_dest)
 
                 # validate the downloaded model
-                model_contents = glob.glob(temp_dest + "*/**", recursive=True)
+                model_contents = glob.glob(os.path.join(temp_dest, "**"), recursive=True)
                 model_contents = util.remove_non_empty_directory_paths(model_contents)
                 try:
                     validate_model_paths(model_contents, self._predictor_type, temp_dest)
@@ -411,7 +413,7 @@ class FileBasedModelsTreeUpdater(mp.Process):
         # except when the model version found on disk is 1 and the number of detected versions on the upstream is 0,
         # thus indicating the 1-version on-disk model must be a model that came without a version
         if os.path.exists(ondisk_model_path):
-            ondisk_model_versions = glob.glob(ondisk_model_path + "*/**")
+            ondisk_model_versions = glob.glob(os.path.join(ondisk_model_path, "**"))
             ondisk_model_versions = [
                 os.path.relpath(path, ondisk_model_path) for path in ondisk_model_versions
             ]
@@ -426,7 +428,7 @@ class FileBasedModelsTreeUpdater(mp.Process):
                         f.write("not-available")
 
             # remove the model directory if there are no models left
-            if len(glob.glob(ondisk_model_path + "*/**")) == 0:
+            if len(glob.glob(os.path.join(ondisk_model_path, "**"))) == 0:
                 shutil.rmtree(ondisk_model_path)
 
         # if it's a non-versioned model ModelVersion.NOT_PROVIDED
@@ -440,7 +442,9 @@ class FileBasedModelsTreeUpdater(mp.Process):
             update_model = False
             ondisk_model_version_path = os.path.join(ondisk_model_path, "1")
             if os.path.exists(ondisk_model_version_path):
-                local_paths = glob.glob(ondisk_model_version_path + "*/**", recursive=True)
+                local_paths = glob.glob(
+                    os.path.join(ondisk_model_version_path, "**"), recursive=True
+                )
                 local_paths = util.remove_non_empty_directory_paths(local_paths)
                 local_paths = [
                     os.path.relpath(local_path, ondisk_model_version_path)
@@ -478,7 +482,7 @@ class FileBasedModelsTreeUpdater(mp.Process):
             client.download_dir_contents(model_path, temp_dest)
 
             # validate the downloaded model
-            model_contents = glob.glob(temp_dest + "*/**", recursive=True)
+            model_contents = glob.glob(os.path.join(temp_dest, "**"), recursive=True)
             model_contents = util.remove_non_empty_directory_paths(model_contents)
             try:
                 validate_model_paths(model_contents, self._predictor_type, temp_dest)
@@ -957,7 +961,9 @@ class TFSModelLoader(mp.Process):
             update_model = False
             ondisk_model_version_path = os.path.join(ondisk_model_path, version)
             if os.path.exists(ondisk_model_version_path):
-                local_paths = glob.glob(ondisk_model_version_path + "*/**", recursive=True)
+                local_paths = glob.glob(
+                    os.path.join(ondisk_model_version_path, "**"), recursive=True
+                )
                 local_paths = util.remove_non_empty_directory_paths(local_paths)
                 local_paths = [
                     os.path.relpath(local_path, ondisk_model_version_path)
@@ -988,7 +994,7 @@ class TFSModelLoader(mp.Process):
                 client.download_dir_contents(cloud_src, temp_dest)
 
                 # validate the downloaded model
-                model_contents = glob.glob(temp_dest + "*/**", recursive=True)
+                model_contents = glob.glob(os.path.join(temp_dest, "**"), recursive=True)
                 model_contents = util.remove_non_empty_directory_paths(model_contents)
                 try:
                     validate_model_paths(model_contents, self._predictor_type, temp_dest)
@@ -1020,7 +1026,7 @@ class TFSModelLoader(mp.Process):
         # except when the model version found on disk is 1 and the number of detected versions on the upstream is 0,
         # thus indicating the 1-version on-disk model must be a model that came without a version
         if os.path.exists(ondisk_model_path):
-            ondisk_model_versions = glob.glob(ondisk_model_path + "*/**")
+            ondisk_model_versions = glob.glob(os.path.join(ondisk_model_path, "**"))
             ondisk_model_versions = [
                 os.path.relpath(path, ondisk_model_path) for path in ondisk_model_versions
             ]
@@ -1029,7 +1035,7 @@ class TFSModelLoader(mp.Process):
                     ondisk_model_version_path = os.path.join(ondisk_model_path, ondisk_version)
                     shutil.rmtree(ondisk_model_version_path)
 
-            if len(glob.glob(ondisk_model_path + "*/**")) == 0:
+            if len(glob.glob(os.path.join(ondisk_model_path, "**"))) == 0:
                 shutil.rmtree(ondisk_model_path)
 
         # if it's a non-versioned model ModelVersion.NOT_PROVIDED
@@ -1041,7 +1047,9 @@ class TFSModelLoader(mp.Process):
             update_model = False
             ondisk_model_version_path = os.path.join(ondisk_model_path, "1")
             if os.path.exists(ondisk_model_version_path):
-                local_paths = glob.glob(ondisk_model_version_path + "*/**", recursive=True)
+                local_paths = glob.glob(
+                    os.path.join(ondisk_model_version_path, "**"), recursive=True
+                )
                 local_paths = util.remove_non_empty_directory_paths(local_paths)
                 local_paths = [
                     os.path.relpath(local_path, ondisk_model_version_path)
@@ -1074,7 +1082,7 @@ class TFSModelLoader(mp.Process):
             client.download_dir_contents(model_path, temp_dest)
 
             # validate the downloaded model
-            model_contents = glob.glob(temp_dest + "*/**", recursive=True)
+            model_contents = glob.glob(os.path.join(temp_dest, "**"), recursive=True)
             model_contents = util.remove_non_empty_directory_paths(model_contents)
             try:
                 validate_model_paths(model_contents, self._predictor_type, temp_dest)
@@ -1558,7 +1566,9 @@ class ModelTreeUpdater(AbstractLoopingThread):
                 ondisk_model_version_path = os.path.join(
                     self._ondisk_models_dir, model_name, model_version
                 )
-                ondisk_paths = glob.glob(ondisk_model_version_path + "*/**", recursive=True)
+                ondisk_paths = glob.glob(
+                    os.path.join(ondisk_model_version_path, "**"), recursive=True
+                )
                 ondisk_paths = util.remove_non_empty_directory_paths(ondisk_paths)
                 # removable is set to false to prevent the local models from being removed
                 self._tree.update_model(
@@ -1576,7 +1586,9 @@ class ModelTreeUpdater(AbstractLoopingThread):
                 ondisk_model_version_path = os.path.join(
                     self._ondisk_models_dir, model_name, model_version
                 )
-                ondisk_paths = glob.glob(ondisk_model_version_path + "*/**", recursive=True)
+                ondisk_paths = glob.glob(
+                    os.path.join(ondisk_model_version_path, "**"), recursive=True
+                )
                 ondisk_paths = util.remove_non_empty_directory_paths(ondisk_paths)
                 # removable is set to false to prevent the local models from being removed
                 self._tree.update_model(

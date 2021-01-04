@@ -25,6 +25,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/parallel"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
+	"github.com/cortexlabs/cortex/pkg/lib/routines"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 	"github.com/cortexlabs/cortex/pkg/operator/operator"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
@@ -67,14 +68,18 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string, force bool) (*spec.A
 		}
 
 		if err := applyK8sResources(api, prevDeployment, prevService, prevVirtualService); err != nil {
-			go deleteK8sResources(api.Name)
+			routines.RunWithPanicHandler(func() {
+				deleteK8sResources(api.Name)
+			}, false)
 			return nil, "", err
 		}
 
 		if config.Provider == types.AWSProviderType {
 			err = operator.AddAPIToAPIGateway(*api.Networking.Endpoint, api.Networking.APIGateway)
 			if err != nil {
-				go deleteK8sResources(api.Name)
+				routines.RunWithPanicHandler(func() {
+					deleteK8sResources(api.Name)
+				}, false)
 				return nil, "", err
 			}
 			err = addAPIToDashboard(config.Cluster.ClusterName, api.Name)
