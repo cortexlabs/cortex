@@ -24,6 +24,7 @@
 * Multi-model
   * [Example](workloads/multi-model/example.md)
   * [Configuration](workloads/multi-model/configuration.md)
+  * [Caching](workloads/multi-model/caching.md)
 * Traffic Splitter
   * [Example](workloads/traffic-splitter/example.md)
   * [Configuration](workloads/traffic-splitter/configuration.md)
@@ -40,7 +41,6 @@
   * [Update](clusters/aws/update.md)
   * [Security](clusters/aws/security.md)
   * [Spot instances](clusters/aws/spot.md)
-  * [Inferentia](clusters/aws/inferentia.md)
   * [Networking](clusters/aws/networking.md)
   * [VPC peering](clusters/aws/vpc-peering.md)
   * [Custom domain](clusters/aws/custom-domain.md)

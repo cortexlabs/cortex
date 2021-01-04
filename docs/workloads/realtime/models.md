@@ -372,22 +372,3 @@ You can also retrieve information about the model by calling the `onnx_client`'s
     }
 }
 ```
-
-## Multi model caching
-
-Multi model caching allows each API replica to serve more models than would all fit into it's memory. It achieves this by keeping only a specified number of models in memory (and disk) at a time. When the in-memory model limit has been reached, the least recently accessed model is evicted from the cache.
-
-This feature can be useful when you have hundreds or thousands of models, when some models are frequently accessed while a larger portion of them are rarely used, or when running on smaller instances to control costs.
-
-The model cache is a two-layer cache, configured by the following parameters in the `predictor.models` configuration:
-
-* `cache_size` sets the number of models to keep in memory
-* `disk_cache_size` sets the number of models to keep on disk (must be greater than or equal to `cache_size`)
-
-Both of these fields must be specified, in addition to either the `dir` or `paths` field (which specifies the model paths, see above for documentation). Multi model caching is only supported if `predictor.processes_per_replica` is set to 1 (the default value).
-
-### Caveats
-
-Cortex periodically runs a background script (every 10 seconds) that counts the number of models in memory and on disk, and evicts the least recently used models if the count exceeds `cache_size` / `disk_cache_size`.
-
-The benefit of this approach is that there are no added steps on the critical path of the inference. The limitation with this approach in this is that if many new models are requested between exectutions of the script, then until the script runs again, there may be more models in memory and/or on disk than the configured `cache_size` or `disk_cache_size` limits. This has to potential to lead to out-of-memory errors.
