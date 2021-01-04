@@ -6,8 +6,6 @@
     config:
       bucket: cortex-examples
       key: sklearn/iris-classifier/model.pkl
-  monitoring:
-    model_type: classification
   compute:
     cpu: 0.2
     mem: 200M
