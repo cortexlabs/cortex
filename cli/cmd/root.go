@@ -52,13 +52,6 @@ var (
 	_homeDir             string
 )
 
-type commandType int
-
-const (
-	_clusterCommandType commandType = iota
-	_clusterGCPCommandType
-)
-
 func init() {
 	cwd, err := os.Getwd()
 	if err != nil {
