@@ -210,9 +210,7 @@ func predictorValidation() *cr.StructFieldValidation {
 						Default:           nil,
 						AllowExplicitNull: true,
 					},
-					Parser: k8s.QuantityParser(&k8s.QuantityValidation{
-						GreaterThanOrEqualTo: k8s.QuantityPtr(kresource.MustParse("20Mi")),
-					}),
+					Parser: k8s.QuantityParser(&k8s.QuantityValidation{}),
 				},
 				{
 					StructField: "LogLevel",
