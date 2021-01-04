@@ -50,10 +50,9 @@ var (
 		DefaultImageONNXPredictorGPU,
 	)
 
-	MaxClassesPerMonitoringRequest = 20 // cloudwatch.GeMetricData can get up to 100 metrics per request, avoid multiple requests and have room for other stats
-	DashboardTitle                 = "# cortex monitoring dashboard"
-	DefaultMaxReplicaConcurrency   = int64(1024)
-	NeuronCoresPerInf              = int64(4)
+	DashboardTitle               = "# cortex monitoring dashboard"
+	DefaultMaxReplicaConcurrency = int64(1024)
+	NeuronCoresPerInf            = int64(4)
 )
 
 func defaultDockerImage(imageName string) string {
