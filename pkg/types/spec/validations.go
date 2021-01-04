@@ -64,7 +64,6 @@ func apiValidation(
 			predictorValidation(),
 			networkingValidation(resource.Kind, provider, awsClusterConfig, gcpClusterConfig),
 			computeValidation(provider),
-			monitoringValidation(provider),
 			autoscalingValidation(provider),
 			updateStrategyValidation(provider),
 		)
@@ -233,42 +232,6 @@ func predictorValidation() *cr.StructFieldValidation {
 				multiModelValidation("Models"),
 				multiModelValidation("MultiModelReloading"),
 				serverSideBatchingValidation(),
-			},
-		},
-	}
-}
-
-func monitoringValidation(provider types.ProviderType) *cr.StructFieldValidation {
-	if provider != types.AWSProviderType {
-		return &cr.StructFieldValidation{
-			StructField: "Monitoring",
-			StructValidation: &cr.StructValidation{
-				CantBeSpecifiedErrStr: pointer.String("only supported on AWS clusters"),
-			},
-		}
-	}
-
-	return &cr.StructFieldValidation{
-		StructField: "Monitoring",
-		StructValidation: &cr.StructValidation{
-			DefaultNil:        true,
-			AllowExplicitNull: true,
-			StructFieldValidations: []*cr.StructFieldValidation{
-				{
-					StructField:         "Key",
-					StringPtrValidation: &cr.StringPtrValidation{},
-				},
-				{
-					StructField: "ModelType",
-					StringValidation: &cr.StringValidation{
-						Required:      false,
-						AllowEmpty:    true,
-						AllowedValues: userconfig.ModelTypeStrings(),
-					},
-					Parser: func(str string) (interface{}, error) {
-						return userconfig.ModelTypeFromString(str), nil
-					},
-				},
 			},
 		},
 	}

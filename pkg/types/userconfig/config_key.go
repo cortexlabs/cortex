@@ -21,7 +21,6 @@ const (
 	NameKey           = "name"
 	KindKey           = "kind"
 	PredictorKey      = "predictor"
-	MonitoringKey     = "monitoring"
 	NetworkingKey     = "networking"
 	ComputeKey        = "compute"
 	AutoscalingKey    = "autoscaling"
@@ -62,10 +61,6 @@ const (
 
 	// ModelResource
 	ModelsNameKey = "name"
-
-	// Monitoring
-	KeyKey       = "key"
-	ModelTypeKey = "model_type"
 
 	// Networking
 	APIGatewayKey = "api_gateway"

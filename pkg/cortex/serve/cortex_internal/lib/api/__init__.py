@@ -13,5 +13,4 @@
 # limitations under the License.
 
 from cortex_internal.lib.api.predictor import Predictor
-from cortex_internal.lib.api.monitoring import Monitoring
 from cortex_internal.lib.api.api import API, get_api, get_spec

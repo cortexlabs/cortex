@@ -4,4 +4,4 @@
     type: onnx
     path: predictor.py
     models:
-     path: s3://cortex-examples/onnx/iris-classifier/
+      path: s3://cortex-examples/onnx/iris-classifier/
