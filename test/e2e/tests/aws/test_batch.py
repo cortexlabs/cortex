@@ -29,13 +29,13 @@ def test_batch_api(config: Dict, client: cx.Client, api: str):
     if not s3_path:
         pytest.skip(
             "--s3-path option is required to run batch tests (alternatively set the "
-            "CORTEX_TEST_BATCH_S3_BUCKET_DIR env var) )"
+            "CORTEX_TEST_BATCH_S3_PATH env var) )"
         )
 
     e2e.tests.test_batch_api(
         client,
         api,
-        test_bucket=s3_path,
+        test_s3_path=s3_path,
         deploy_timeout=config["global"]["batch_deploy_timeout"],
         job_timeout=config["global"]["batch_job_timeout"],
         retry_attempts=5,

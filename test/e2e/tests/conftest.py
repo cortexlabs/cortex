@@ -54,7 +54,7 @@ def pytest_addoption(parser):
 def pytest_configure(config):
     load_dotenv(".env")
 
-    s3_path = os.environ.get("CORTEX_TEST_BATCH_S3_BUCKET_DIR")
+    s3_path = os.environ.get("CORTEX_TEST_BATCH_S3_PATH")
     s3_path = config.getoption("--s3-path") if not s3_path else s3_path
 
     configuration = {
