@@ -36,7 +36,6 @@ from cortex_internal.lib.concurrency import FileLock, LockedFile
 from cortex_internal.lib.exceptions import UserRuntimeException
 from fastapi import FastAPI
 from fastapi.exceptions import RequestValidationError
-from starlette.background import BackgroundTasks
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.requests import Request
 from starlette.responses import JSONResponse, PlainTextResponse, Response
@@ -190,8 +189,6 @@ async def parse_payload(request: Request, call_next):
 
 
 def predict(request: Request):
-    tasks = BackgroundTasks()
-    api = local_cache["api"]
     predictor_impl = local_cache["predictor_impl"]
     dynamic_batcher = local_cache["dynamic_batcher"]
     kwargs = build_predict_kwargs(request)
@@ -221,9 +218,6 @@ def predict(request: Request):
     if util.has_method(predictor_impl, "post_predict"):
         kwargs = build_post_predict_kwargs(prediction, request)
         request_thread_pool.submit(predictor_impl.post_predict, **kwargs)
-
-    if len(tasks.tasks) > 0:
-        response.background = tasks
 
     return response
 
