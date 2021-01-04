@@ -16,7 +16,6 @@
     log_level: <string>  # log level that can be "debug", "info", "warning" or "error" (default: "info")
   networking:
     endpoint: <string>  # the endpoint for the API (default: <api_name>)
-    api_gateway: public | none  # whether to create a public API Gateway endpoint for this API (if not, the API will still be accessible via the load balancer) (default: public, unless disabled cluster-wide)
   compute:
     cpu: <string | int | float>  # CPU request per worker, e.g. 200m or 1 (200m is equivalent to 0.2) (default: 200m)
     gpu: <int>  # GPU request per worker (default: 0)
@@ -52,7 +51,6 @@
     log_level: <string>  # log level that can be "debug", "info", "warning" or "error" (default: "info")
   networking:
     endpoint: <string>  # the endpoint for the API (default: <api_name>)
-    api_gateway: public | none  # whether to create a public API Gateway endpoint for this API (if not, the API will still be accessible via the load balancer) (default: public, unless disabled cluster-wide)
   compute:
     cpu: <string | int | float>  # CPU request per worker, e.g. 200m or 1 (200m is equivalent to 0.2) (default: 200m)
     gpu: <int>  # GPU request per worker (default: 0)
@@ -82,7 +80,6 @@
     log_level: <string>  # log level that can be "debug", "info", "warning" or "error" (default: "info")
   networking:
     endpoint: <string>  # the endpoint for the API (default: <api_name>)
-    api_gateway: public | none  # whether to create a public API Gateway endpoint for this API (if not, the API will still be accessible via the load balancer) (default: public, unless disabled cluster-wide)
   compute:
     cpu: <string | int | float>  # CPU request per worker, e.g. 200m or 1 (200m is equivalent to 0.2) (default: 200m)
     gpu: <int>  # GPU request per worker (default: 0)
