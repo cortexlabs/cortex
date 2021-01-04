@@ -3,5 +3,3 @@
   predictor:
     type: python
     path: predictor.py
-  monitoring:
-    model_type: classification
