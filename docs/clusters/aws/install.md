@@ -61,9 +61,9 @@ api_load_balancer_scheme: internet-facing
 # note: if using "internal", you must configure VPC Peering to connect your CLI to your cluster operator
 operator_load_balancer_scheme: internet-facing
 
-# list of existing subnets in an existing VPC in which to create the Cortex cluster
-# at least two subnets must be provided, and subnet_visibility (specified above) must be set accordingly
-# this is an advanced feature and requires additional VPC configuration; see https://eksctl.io/usage/vpc-networking/#use-existing-vpc-other-custom-configuration
+# to install Cortex in an existing VPC, you can provide a list of subnets for your cluster to use
+# subnet_visibility (specified above in this file) must match your subnets' visibility
+# this is an advanced feature and requires your VPC to be configured correctly; see https://eksctl.io/usage/vpc-networking/#use-existing-vpc-other-custom-configuration
 # here is an example:
 # subnets:
 #   - availability_zone: us-west-2a
