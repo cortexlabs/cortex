@@ -34,7 +34,7 @@
   compute:
     cpu: <string | int | float>  # CPU request per replica. One unit of CPU corresponds to one virtual CPU; fractional requests are allowed, and can be specified as a floating point number or via the "m" suffix (default: 200m)
     gpu: <int>  # GPU request per replica. One unit of GPU corresponds to one virtual GPU (default: 0)
-    inf: <int> # Inferentia request per replica. One unit corresponds to one Inferentia ASIC with 4 NeuronCores and 8GB of cache memory. One NeuronCore Group per processes_per_replica of size 4 * inf / processes_per_replica (default: 0) (aws only)
+    inf: <int> # Inferentia request per replica. One unit corresponds to one Inferentia ASIC with 4 NeuronCores and 8GB of cache memory. Each process will have one NeuronCore Group with (4 * inf / processes_per_replica) NeuronCores, so your model should be compiled to run on (4 * inf / processes_per_replica) NeuronCores. (default: 0) (aws only)
     mem: <string>  # memory request per replica. One unit of memory is one byte and can be expressed as an integer or by using one of these suffixes: K, M, G, T (or their power-of two counterparts: Ki, Mi, Gi, Ti) (default: Null)
   autoscaling:
     min_replicas: <int>  # minimum number of replicas (default: 1)
@@ -91,7 +91,7 @@
   compute:
     cpu: <string | int | float>  # CPU request per replica. One unit of CPU corresponds to one virtual CPU; fractional requests are allowed, and can be specified as a floating point number or via the "m" suffix (default: 200m)
     gpu: <int>  # GPU request per replica. One unit of GPU corresponds to one virtual GPU (default: 0)
-    inf: <int> # Inferentia request per replica. One unit corresponds to one Inferentia ASIC with 4 NeuronCores and 8GB of cache memory. One NeuronCore Group per processes_per_replica of size 4 * inf / processes_per_replica (default: 0) (aws only)
+    inf: <int> # Inferentia request per replica. One unit corresponds to one Inferentia ASIC with 4 NeuronCores and 8GB of cache memory. Each process will have one NeuronCore Group with (4 * inf / processes_per_replica) NeuronCores, so your model should be compiled to run on (4 * inf / processes_per_replica) NeuronCores. (default: 0) (aws only)
     mem: <string>  # memory request per replica. One unit of memory is one byte and can be expressed as an integer or by using one of these suffixes: K, M, G, T (or their power-of two counterparts: Ki, Mi, Gi, Ti) (default: Null)
   autoscaling:
     min_replicas: <int>  # minimum number of replicas (default: 1)
