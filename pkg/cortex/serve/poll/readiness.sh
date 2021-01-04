@@ -1,4 +1,4 @@
-#!/usr/bin/with-contenv bash
+#!/usr/bin/with-contenv sh
 
 # Copyright 2020 Cortex Labs, Inc.
 #
