@@ -38,6 +38,8 @@ type GCPConfig struct {
 	Zone             *string            `json:"zone" yaml:"zone"`
 	InstanceType     *string            `json:"instance_type" yaml:"instance_type"`
 	AcceleratorType  *string            `json:"accelerator_type" yaml:"accelerator_type"`
+	Network          *string            `json:"network" yaml:"network"`
+	Subnet           *string            `json:"subnet" yaml:"subnet"`
 	MinInstances     *int64             `json:"min_instances" yaml:"min_instances"`
 	MaxInstances     *int64             `json:"max_instances" yaml:"max_instances"`
 	ClusterName      string             `json:"cluster_name" yaml:"cluster_name"`
@@ -129,6 +131,18 @@ var UserGCPValidation = &cr.StructValidation{
 		},
 		{
 			StructField: "AcceleratorType",
+			StringPtrValidation: &cr.StringPtrValidation{
+				AllowExplicitNull: true,
+			},
+		},
+		{
+			StructField: "Network",
+			StringPtrValidation: &cr.StringPtrValidation{
+				AllowExplicitNull: true,
+			},
+		},
+		{
+			StructField: "Subnet",
 			StringPtrValidation: &cr.StringPtrValidation{
 				AllowExplicitNull: true,
 			},
@@ -473,6 +487,12 @@ func (cc *GCPConfig) UserTable() table.KeyValuePairs {
 	if cc.AcceleratorType != nil {
 		items.Add(AcceleratorTypeUserKey, *cc.AcceleratorType)
 	}
+	if cc.Network != nil {
+		items.Add(NetworkUserKey, *cc.Network)
+	}
+	if cc.Subnet != nil {
+		items.Add(SubnetUserKey, *cc.Subnet)
+	}
 	items.Add(TelemetryUserKey, cc.Telemetry)
 	items.Add(ImageOperatorUserKey, cc.ImageOperator)
 	items.Add(ImageManagerUserKey, cc.ImageManager)
@@ -500,6 +520,12 @@ func (cc *GCPConfig) TelemetryEvent() map[string]interface{} {
 	if cc.AcceleratorType != nil {
 		event["accelerator_type._is_defined"] = true
 		event["accelerator_type"] = *cc.AcceleratorType
+	}
+	if cc.Network != nil {
+		event["network._is_defined"] = true
+	}
+	if cc.Subnet != nil {
+		event["subnet._is_defined"] = true
 	}
 	if cc.MinInstances != nil {
 		event["min_instances._is_defined"] = true
