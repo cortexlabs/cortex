@@ -40,7 +40,7 @@ type StructFieldValidation struct {
 	Key                        string                          // Required, defaults to json key or "StructField"
 	StructField                string                          // Required
 	DefaultField               string                          // Optional. Will set the default to the runtime value of this field
-	DefaultDependentFields     []string                        // Optional. Will be passed in to DefaultDependentFieldsFunc
+	DefaultDependentFields     []string                        // Optional. Will be passed in to DefaultDependentFieldsFunc. Dependent fields must be listed first in the `[]*cr.StructFieldValidation`.
 	DefaultDependentFieldsFunc func([]interface{}) interface{} // Optional. Will be called with DefaultDependentFields
 
 	// Provide one of the following:

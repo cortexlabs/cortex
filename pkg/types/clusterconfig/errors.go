@@ -223,7 +223,7 @@ func ErrorNotEnoughDefaultSupportedZones(region string, validZones strset.Set, i
 func ErrorNoNATGatewayWithSubnets() error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrNoNATGatewayWithSubnets,
-		Message: "nat gateway cannot be automatically created when specifying subnets for your cluster",
+		Message: fmt.Sprintf("nat gateway cannot be automatically created when specifying subnets for your cluster; please unset %s or %s", NATGatewayKey, SubnetsKey),
 	})
 }
 
