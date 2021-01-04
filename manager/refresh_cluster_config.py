@@ -119,7 +119,7 @@ def refresh_yaml(configmap_yaml_path, output_yaml_path):
     cluster_config["min_instances"] = asg["MinSize"]
     cluster_config["max_instances"] = asg["MaxSize"]
 
-    if len(cluster_config.get("subnets"), []) > 0:
+    if len(cluster_config.get("subnets", [])) > 0:
         cluster_config["availability_zones"] = []
     else:
         cluster_config["availability_zones"] = asg["AvailabilityZones"]

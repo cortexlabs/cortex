@@ -200,12 +200,12 @@ def generate_eks(cluster_config_path):
     }
 
     if (
-        len(cluster_config.get("availability_zones"), []) > 0
-        and len(cluster_config.get("subnets"), []) == 0
+        len(cluster_config.get("availability_zones", [])) > 0
+        and len(cluster_config.get("subnets", [])) == 0
     ):
         eks["availabilityZones"] = cluster_config["availability_zones"]
 
-    if len(cluster_config.get("subnets"), []) > 0:
+    if len(cluster_config.get("subnets", [])) > 0:
         eks_subnet_configs = {}
         for subnet_config in cluster_config["subnets"]:
             eks_subnet_configs[subnet_config["availability_zone"]] = {
