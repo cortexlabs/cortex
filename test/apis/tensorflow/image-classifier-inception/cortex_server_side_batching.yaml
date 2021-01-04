@@ -9,8 +9,6 @@
       max_batch_size: 2
       batch_interval: 0.2s
     threads_per_process: 2
-  monitoring:
-    model_type: classification
   compute:
     cpu: 1
     gpu: 1

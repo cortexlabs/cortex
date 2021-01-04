@@ -36,7 +36,6 @@ from cortex_internal.lib.concurrency import FileLock, LockedFile
 from cortex_internal.lib.exceptions import UserRuntimeException
 from fastapi import FastAPI
 from fastapi.exceptions import RequestValidationError
-from starlette.background import BackgroundTasks
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.requests import Request
 from starlette.responses import JSONResponse, PlainTextResponse, Response
@@ -62,7 +61,6 @@ local_cache: Dict[str, Any] = {
     "dynamic_batcher": None,
     "predict_route": None,
     "client": None,
-    "class_set": set(),
 }
 
 
@@ -191,8 +189,6 @@ async def parse_payload(request: Request, call_next):
 
 
 def predict(request: Request):
-    tasks = BackgroundTasks()
-    api = local_cache["api"]
     predictor_impl = local_cache["predictor_impl"]
     dynamic_batcher = local_cache["dynamic_batcher"]
     kwargs = build_predict_kwargs(request)
@@ -219,25 +215,9 @@ def predict(request: Request):
             ) from e
         response = Response(content=json_string, media_type="application/json")
 
-    if local_cache["provider"] not in ["local", "gcp"] and api.monitoring is not None:
-        try:
-            predicted_value = api.monitoring.extract_predicted_value(prediction)
-            api.post_monitoring_metrics(predicted_value)
-            if (
-                api.monitoring.model_type == "classification"
-                and predicted_value not in local_cache["class_set"]
-            ):
-                tasks.add_task(api.upload_class, class_name=predicted_value)
-                local_cache["class_set"].add(predicted_value)
-        except:
-            logger.warn("unable to record prediction metric", exc_info=True)
-
     if util.has_method(predictor_impl, "post_predict"):
         kwargs = build_post_predict_kwargs(prediction, request)
         request_thread_pool.submit(predictor_impl.post_predict, **kwargs)
-
-    if len(tasks.tasks) > 0:
-        response.background = tasks
 
     return response
 
@@ -354,16 +334,6 @@ def start_fn():
     except:
         logger.exception("failed to start api")
         sys.exit(1)
-
-    if (
-        provider != "local"
-        and api.monitoring is not None
-        and api.monitoring.model_type == "classification"
-    ):
-        try:
-            local_cache["class_set"] = api.get_cached_classes()
-        except:
-            logger.warn("an error occurred while attempting to load classes", exc_info=True)
 
     app.add_api_route(local_cache["predict_route"], predict, methods=["POST"])
     app.add_api_route(local_cache["predict_route"], get_summary, methods=["GET"])

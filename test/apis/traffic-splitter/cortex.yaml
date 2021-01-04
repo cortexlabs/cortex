@@ -5,8 +5,6 @@
     path: pytorch_predictor.py
     config:
       model: s3://cortex-examples/pytorch/iris-classifier/weights.pth
-  monitoring:
-    model_type: classification
 
 - name: iris-classifier-onnx
   kind: RealtimeAPI
@@ -15,8 +13,6 @@
     path: onnx_predictor.py
     models:
       path: s3://cortex-examples/onnx/iris-classifier/
-  monitoring:
-    model_type: classification
 
 - name: iris-classifier
   kind: TrafficSplitter

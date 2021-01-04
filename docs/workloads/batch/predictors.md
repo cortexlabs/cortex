@@ -88,82 +88,9 @@ class PythonPredictor:
         pass
 ```
 
-For proper separation of concerns, it is recommended to use the constructor's `config` parameter for information such as from where to download the model and initialization files, or any configurable model parameters. You define `config` in your API configuration, and it is passed through to your Predictor's constructor. The `config` parameters in the `API configuration` can be overridden by providing `config` in the job submission requests.
-
-### Pre-installed packages
-
-The following Python packages are pre-installed in Python Predictors and can be used in your implementations:
-
-```text
-boto3==1.14.53
-cloudpickle==1.6.0
-Cython==0.29.21
-dill==0.3.2
-fastapi==0.61.1
-google-cloud-storage==1.32.0
-joblib==0.16.0
-Keras==2.4.3
-msgpack==1.0.0
-nltk==3.5
-np-utils==0.5.12.1
-numpy==1.19.1
-opencv-python==4.4.0.42
-pandas==1.1.1
-Pillow==7.2.0
-pyyaml==5.3.1
-requests==2.24.0
-scikit-image==0.17.2
-scikit-learn==0.23.2
-scipy==1.5.2
-six==1.15.0
-statsmodels==0.12.0
-sympy==1.6.2
-tensorflow-hub==0.9.0
-tensorflow==2.3.0
-torch==1.6.0
-torchvision==0.7.0
-xgboost==1.2.0
-```
-
-#### Inferentia-equipped APIs
-
-The list is slightly different for inferentia-equipped APIs:
-
-```text
-boto3==1.13.7
-cloudpickle==1.6.0
-Cython==0.29.21
-dill==0.3.1.1
-fastapi==0.54.1
-google-cloud-storage==1.32.0
-joblib==0.16.0
-msgpack==1.0.0
-neuron-cc==1.0.20600.0+0.b426b885f
-nltk==3.5
-np-utils==0.5.12.1
-numpy==1.18.2
-opencv-python==4.4.0.42
-pandas==1.1.1
-Pillow==7.2.0
-pyyaml==5.3.1
-requests==2.23.0
-scikit-image==0.17.2
-scikit-learn==0.23.2
-scipy==1.3.2
-six==1.15.0
-statsmodels==0.12.0
-sympy==1.6.2
-tensorflow==1.15.4
-tensorflow-neuron==1.15.3.1.0.2043.0
-torch==1.5.1
-torch-neuron==1.5.1.1.0.1721.0
-torchvision==0.6.1
-```
-
-<!-- CORTEX_VERSION_MINOR x3 -->
-The pre-installed system packages are listed in [images/python-predictor-cpu/Dockerfile](https://github.com/cortexlabs/cortex/tree/master/images/python-predictor-cpu/Dockerfile) (for CPU), [images/python-predictor-gpu/Dockerfile](https://github.com/cortexlabs/cortex/tree/master/images/python-predictor-gpu/Dockerfile) (for GPU), or [images/python-predictor-inf/Dockerfile](https://github.com/cortexlabs/cortex/tree/master/images/python-predictor-inf/Dockerfile) (for Inferentia).
-
 ## TensorFlow Predictor
+
+**Uses TensorFlow version 2.3.0 by default**
 
 ### Interface
 
@@ -220,31 +147,9 @@ Cortex provides a `tensorflow_client` to your Predictor's constructor. `tensorfl
 
 When multiple models are defined using the Predictor's `models` field, the `tensorflow_client.predict()` method expects a second argument `model_name` which must hold the name of the model that you want to use for inference (for example: `self.client.predict(payload, "text-generator")`).
 
-For proper separation of concerns, it is recommended to use the constructor's `config` parameter for information such as from where to download the model and initialization files, or any configurable model parameters. You define `config` in your API configuration, and it is passed through to your Predictor's constructor. The `config` parameters in the `API configuration` can be overridden by providing `config` in the job submission requests.
-
-### Pre-installed packages
-
-The following Python packages are pre-installed in TensorFlow Predictors and can be used in your implementations:
-
-```text
-boto3==1.14.53
-dill==0.3.2
-fastapi==0.61.1
-google-cloud-storage==1.32.0
-msgpack==1.0.0
-numpy==1.19.1
-opencv-python==4.4.0.42
-pyyaml==5.3.1
-requests==2.24.0
-tensorflow-hub==0.9.0
-tensorflow-serving-api==2.3.0
-tensorflow==2.3.0
-```
-
-<!-- CORTEX_VERSION_MINOR -->
-The pre-installed system packages are listed in [images/tensorflow-predictor/Dockerfile](https://github.com/cortexlabs/cortex/tree/master/images/tensorflow-predictor/Dockerfile).
-
 ## ONNX Predictor
+
+**Uses ONNX Runtime version 1.4.0 by default**
 
 ### Interface
 
@@ -300,24 +205,3 @@ class ONNXPredictor:
 Cortex provides an `onnx_client` to your Predictor's constructor. `onnx_client` is an instance of [ONNXClient](https://github.com/cortexlabs/cortex/tree/master/pkg/cortex/serve/cortex_internal/lib/client/onnx.py) that manages an ONNX Runtime session to make predictions using your model. It should be saved as an instance variable in your Predictor, and your `predict()` function should call `onnx_client.predict()` to make an inference with your exported ONNX model. Preprocessing of the JSON payload and postprocessing of predictions can be implemented in your `predict()` function as well.
 
 When multiple models are defined using the Predictor's `models` field, the `onnx_client.predict()` method expects a second argument `model_name` which must hold the name of the model that you want to use for inference (for example: `self.client.predict(model_input, "text-generator")`).
-
-For proper separation of concerns, it is recommended to use the constructor's `config` parameter for information such as from where to download the model and initialization files, or any configurable model parameters. You define `config` in your API configuration, and it is passed through to your Predictor's constructor. The `config` parameters in the `API configuration` can be overridden by providing `config` in the job submission requests.
-
-### Pre-installed packages
-
-The following Python packages are pre-installed in ONNX Predictors and can be used in your implementations:
-
-```text
-boto3==1.14.53
-dill==0.3.2
-fastapi==0.61.1
-google-cloud-storage==1.32.0
-msgpack==1.0.0
-numpy==1.19.1
-onnxruntime==1.4.0
-pyyaml==5.3.1
-requests==2.24.0
-```
-
-<!-- CORTEX_VERSION_MINOR x2 -->
-The pre-installed system packages are listed in [images/onnx-predictor-cpu/Dockerfile](https://github.com/cortexlabs/cortex/tree/master/images/onnx-predictor-cpu/Dockerfile) (for CPU) or [images/onnx-predictor-gpu/Dockerfile](https://github.com/cortexlabs/cortex/tree/master/images/onnx-predictor-gpu/Dockerfile) (for GPU).
