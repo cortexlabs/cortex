@@ -328,9 +328,9 @@ func TensorFlowPredictorContainers(api *spec.API) ([]kcore.Container, []kcore.Vo
 func ONNXPredictorContainers(api *spec.API) ([]kcore.Container, []kcore.Volume) {
 	resourceList := kcore.ResourceList{}
 	resourceLimitsList := kcore.ResourceList{}
-	containers := []kcore.Container{}
 	apiPodVolumeMounts := defaultVolumeMounts()
 	volumes := DefaultVolumes()
+	containers := []kcore.Container{}
 
 	if api.Compute.CPU != nil {
 		userPodCPURequest := k8s.QuantityPtr(api.Compute.CPU.Quantity.DeepCopy())
