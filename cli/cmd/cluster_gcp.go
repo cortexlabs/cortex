@@ -219,6 +219,11 @@ var _clusterGCPInfoCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
+		_, err = gcp.NewFromEnvCheckProjectID(*accessConfig.Project)
+		if err != nil {
+			exit.Error(err)
+		}
+
 		if _flagClusterGCPInfoDebug {
 			cmdDebugGCP(accessConfig)
 		} else {
