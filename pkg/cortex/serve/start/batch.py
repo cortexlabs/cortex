@@ -26,10 +26,13 @@ import uuid
 import boto3
 import botocore
 
+from cortex_internal.lib.log import configure_logger
+
+logger = configure_logger("cortex", os.environ["CORTEX_LOG_CONFIG_FILE"])
+
 from cortex_internal import consts
 from cortex_internal.lib import util
 from cortex_internal.lib.api import API, get_spec, get_api
-from cortex_internal.lib.log import cx_logger as logger
 from cortex_internal.lib.concurrency import LockedFile
 from cortex_internal.lib.storage import S3, LocalStorage
 from cortex_internal.lib.exceptions import UserRuntimeException
@@ -102,7 +105,7 @@ def renew_message_visibility(receipt_handle: str):
                     continue
                 elif e.response["Error"]["Code"] == "AWS.SimpleQueueService.NonExistentQueue":
                     # there may be a delay between the cron may deleting the queue and this worker stopping
-                    logger().info(
+                    logger.info(
                         "failed to renew message visibility because the queue was not found"
                     )
                 else:
@@ -168,7 +171,7 @@ def sqs_loop():
             visible_messages, invisible_messages = get_total_messages_in_queue()
             if visible_messages + invisible_messages == 0:
                 if no_messages_found_in_previous_iteration:
-                    logger().info("no batches left in queue, exiting...")
+                    logger.info("no batches left in queue, exiting...")
                     return
                 no_messages_found_in_previous_iteration = True
 
@@ -205,7 +208,7 @@ def handle_batch_message(message):
     start_time = time.time()
 
     try:
-        logger().info(f"processing batch {message['MessageId']}")
+        logger.info(f"processing batch {message['MessageId']}")
         payload = json.loads(message["Body"])
         batch_id = message["MessageId"]
         predictor_impl.predict(**build_predict_args(payload, batch_id))
@@ -215,7 +218,7 @@ def handle_batch_message(message):
         )
     except:
         api_spec.post_metrics([failed_counter_metric()])
-        logger().exception(f"failed processing batch {message['MessageId']}")
+        logger.exception(f"failed processing batch {message['MessageId']}")
         with receipt_handle_mutex:
             stop_renewal.add(receipt_handle)
             if job_spec.get("sqs_dead_letter_queue") is not None:
@@ -260,13 +263,13 @@ def handle_on_job_complete(message):
             else:
                 if should_run_on_job_complete:
                     if getattr(predictor_impl, "on_job_complete", None):
-                        logger().info("executing on_job_complete")
+                        logger.info("executing on_job_complete")
                         predictor_impl.on_job_complete()
                     break
                 should_run_on_job_complete = True
             time.sleep(10)  # verify that the queue is empty one more time
     except:
-        logger().exception("failed to handle on_job_complete")
+        logger.exception("failed to handle on_job_complete")
         raise
     finally:
         with receipt_handle_mutex:
@@ -310,7 +313,7 @@ def start():
     client = api.predictor.initialize_client(
         tf_serving_host=tf_serving_host, tf_serving_port=tf_serving_port
     )
-    logger().info("loading the predictor from {}".format(api.predictor.path))
+    logger.info("loading the predictor from {}".format(api.predictor.path))
     predictor_impl = api.predictor.initialize_impl(project_dir, client, job_spec)
 
     local_cache["api_spec"] = api
@@ -322,7 +325,7 @@ def start():
 
     open("/mnt/workspace/api_readiness.txt", "a").close()
 
-    logger().info("polling for batches...")
+    logger.info("polling for batches...")
     sqs_loop()
 
 

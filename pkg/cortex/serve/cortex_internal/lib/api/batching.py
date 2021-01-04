@@ -22,7 +22,7 @@ from typing import Any, Callable, Dict, List
 from starlette.responses import Response
 
 from ..exceptions import UserRuntimeException
-from ..log import cx_logger as logger
+from ..log import logger
 
 
 class DynamicBatcher:
@@ -68,7 +68,7 @@ class DynamicBatcher:
                     self.predictions = dict(zip(self.samples.keys(), predictions))
             except Exception as e:
                 self.predictions = {thread_id: e for thread_id in self.samples}
-                logger().error(traceback.format_exc())
+                logger.error(traceback.format_exc())
             finally:
                 self.samples = {}
                 self.barrier.reset()

@@ -17,8 +17,9 @@ RUN pip install --no-cache-dir \
     rm -rf /root/.cache/pip*
 
 COPY pkg/cortex/downloader /src/cortex/downloader
-
 COPY pkg/cortex/serve/ /src/cortex/serve
+ENV CORTEX_LOG_CONFIG_FILE /src/cortex/serve/log_config.yaml
+
 RUN pip install --no-deps /src/cortex/serve/ && \
     rm -rf /root/.cache/pip*
 
