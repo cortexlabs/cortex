@@ -6,11 +6,11 @@ By default, instances are created in public subnets and are assigned public IP a
 
 ## Private APIs
 
-See [networking](networking.md) for a discussion of API visibility.
+See [networking](networking/index.md) for a discussion of API visibility.
 
 ## Private operator
 
-By default, the Cortex cluster operator's load balancer is internet-facing, and therefore publicly accessible (the operator is what the `cortex` CLI connects to). The operator validates that the CLI user is an active IAM user in the same AWS account as the Cortex cluster (see [below](#cli)). Therefore it is usually unnecessary to configure the operator's load balancer to be private, but this can be done by by setting `operator_load_balancer_scheme: internal` in your [cluster configuration](install.md) file. If you do this, you will need to configure [VPC Peering](vpc-peering.md) to allow your CLI to connect to the Cortex operator (this will be necessary to run any `cortex` commands).
+By default, the Cortex cluster operator's load balancer is internet-facing, and therefore publicly accessible (the operator is what the `cortex` CLI connects to). The operator validates that the CLI user is an active IAM user in the same AWS account as the Cortex cluster (see [below](#cli)). Therefore it is usually unnecessary to configure the operator's load balancer to be private, but this can be done by by setting `operator_load_balancer_scheme: internal` in your [cluster configuration](install.md) file. If you do this, you will need to configure [VPC Peering](networking/vpc-peering.md) to allow your CLI to connect to the Cortex operator (this will be necessary to run any `cortex` commands).
 
 ## IAM permissions
 
@@ -42,7 +42,7 @@ It is recommended to use an IAM user with the `AdministratorAccess` policy to cr
 
 A process called the Cortex operator runs on your cluster and is responsible for deploying and managing your APIs on the cluster. The operator will use the designated cluster credentials (e.g. `--cluster-aws-key` or `$CLUSTER_AWS_ACCESS_KEY_ID`) if specified, otherwise it will default to using the credentials used to spin up the cluster (e.g. `--aws-key` or `$AWS_ACCESS_KEY_ID`).
 
-The operator requires read permissions for any S3 bucket containing exported models, read/write permissions for the Cortex S3 bucket, read permissions for ECR, read permissions for ELB, read/write permissions for API Gateway, read/write permissions for CloudWatch metrics, and read/write permissions for the Cortex CloudWatch log group. The policy below may be used to restrict the Operator's access:
+The operator requires read permissions for any S3 bucket containing exported models, read/write permissions for the Cortex S3 bucket, read permissions for ECR, read permissions for ELB, read/write permissions for CloudWatch metrics, and read/write permissions for the Cortex CloudWatch log group. The policy below may be used to restrict the Operator's access:
 
 ```json
 {
@@ -59,7 +59,6 @@ The operator requires read permissions for any S3 bucket containing exported mod
                 "ecr:GetAuthorizationToken",
                 "ecr:BatchGetImage",
                 "elasticloadbalancing:Describe*",
-                "apigateway:*",
                 "cloudwatch:*",
                 "logs:*",
                 "sqs:*"

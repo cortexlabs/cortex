@@ -17,7 +17,6 @@
     shm_size: <string>  # size of shared memory (/dev/shm) for sharing data between multiple processes, e.g. 64Mi or 1Gi (default: Null)
   networking:
     endpoint: <string>  # the endpoint for the API (default: <api_name>)
-    api_gateway: public | none  # whether to create a public API Gateway endpoint for this API (if not, the API will still be accessible via the load balancer) (default: public, unless disabled cluster-wide)
   compute:
     cpu: <string | int | float>  # CPU request per worker. One unit of CPU corresponds to one virtual CPU; fractional requests are allowed, and can be specified as a floating point number or via the "m" suffix (default: 200m)
     gpu: <int>  # GPU request per worker. One unit of GPU corresponds to one virtual GPU (default: 0)
@@ -54,7 +53,6 @@
     shm_size: <string>  # size of shared memory (/dev/shm) for sharing data between multiple processes, e.g. 64Mi or 1Gi (default: Null)
   networking:
     endpoint: <string>  # the endpoint for the API (default: <api_name>)
-    api_gateway: public | none  # whether to create a public API Gateway endpoint for this API (if not, the API will still be accessible via the load balancer) (default: public, unless disabled cluster-wide)
   compute:
     cpu: <string | int | float>  # CPU request per worker. One unit of CPU corresponds to one virtual CPU; fractional requests are allowed, and can be specified as a floating point number or via the "m" suffix (default: 200m)
     gpu: <int>  # GPU request per worker. One unit of GPU corresponds to one virtual GPU (default: 0)
@@ -85,7 +83,6 @@
     shm_size: <string>  # size of shared memory (/dev/shm) for sharing data between multiple processes, e.g. 64Mi or 1Gi (default: Null)
   networking:
     endpoint: <string>  # the endpoint for the API (default: <api_name>)
-    api_gateway: public | none  # whether to create a public API Gateway endpoint for this API (if not, the API will still be accessible via the load balancer) (default: public, unless disabled cluster-wide)
   compute:
     cpu: <string | int | float>  # CPU request per worker. One unit of CPU corresponds to one virtual CPU; fractional requests are allowed, and can be specified as a floating point number or via the "m" suffix (default: 200m)
     gpu: <int>  # GPU request per worker. One unit of GPU corresponds to one virtual GPU (default: 0)

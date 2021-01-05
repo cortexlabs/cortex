@@ -39,67 +39,6 @@ torch
 transformers==3.0.*
 ```
 
-## Deploy your model locally
-
-You can create APIs from any Python runtime that has access to Docker (e.g. the Python shell or a Jupyter notebook):
-
-```python
-import cortex
-
-cx_local = cortex.client("local")
-
-api_spec = {
-  "name": "text-generator",
-  "kind": "RealtimeAPI",
-  "predictor": {
-    "type": "python",
-    "path": "predictor.py"
-  }
-}
-
-cx_local.create_api(api_spec, project_dir=".", wait=True)
-```
-
-## Consume your API
-
-```python
-import requests
-
-endpoint = cx_local.get_api("text-generator")["endpoint"]
-payload = {"text": "hello world"}
-print(requests.post(endpoint, payload).text)
-```
-
-## Manage your APIs using the CLI
-
-Monitor the status of your API using `cortex get`:
-
-```bash
-$ cortex get --watch
-
-env     realtime api     status     last update   avg request   2XX
-local   text-generator   updating   8s            -             -
-```
-
-Show additional information for your API (e.g. its endpoint) using `cortex get <api_name>`:
-
-```bash
-$ cortex get text-generator
-
-status   last update   avg request   2XX
-live     1m            -             -
-
-endpoint: http://localhost:8889
-```
-
-You can also stream logs from your API:
-
-```bash
-$ cortex logs text-generator
-
-...
-```
-
 ## Deploy your model to AWS
 
 Cortex can automatically provision infrastructure on your AWS account and deploy your models as production-ready web services:
@@ -134,7 +73,6 @@ $ cortex get --watch
 
 env     realtime api     status   up-to-date   requested   last update   avg request   2XX
 aws     text-generator   live     1            1           1m            -             -
-local   text-generator   live     1            1           17m           3.1285 s      1
 ```
 
 The output above indicates that one replica of your API was requested and is available to serve predictions. Cortex will automatically launch more replicas if the load increases and will spin down replicas if there is unused capacity.
@@ -152,7 +90,7 @@ endpoint: https://***.execute-api.us-west-2.amazonaws.com/text-generator
 
 ## Run on GPUs
 
-If your cortex cluster is using GPU instances (configured during cluster creation) or if you are running locally with an nvidia GPU, you can run your text generator API on GPUs. Add the `compute` field to your API configuration and re-deploy:
+If your cortex cluster is using GPU instances (configured during cluster creation), you can run your text generator API on GPUs. Add the `compute` field to your API configuration and re-deploy:
 
 ```python
 api_spec = {
@@ -184,7 +122,5 @@ text-generator   updating   0            1       1           29s           -    
 Deleting APIs will free up cluster resources and allow Cortex to scale down to the minimum number of instances you specified during cluster creation:
 
 ```python
-cx_local.delete_api("text-generator")
-
 cx_aws.delete_api("text-generator")
 ```

@@ -22,14 +22,11 @@ import (
 	"net/http"
 
 	"github.com/cortexlabs/cortex/cli/cluster"
-	"github.com/cortexlabs/cortex/cli/local"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/exit"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
 	"github.com/cortexlabs/cortex/pkg/lib/json"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
-	"github.com/cortexlabs/cortex/pkg/operator/schema"
-	"github.com/cortexlabs/cortex/pkg/types"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	"github.com/spf13/cobra"
 )
@@ -40,7 +37,7 @@ var (
 
 func predictInit() {
 	_predictCmd.Flags().SortFlags = false
-	_predictCmd.Flags().StringVarP(&_flagPredictEnv, "env", "e", getDefaultEnv(_generalCommandType), "environment to use")
+	_predictCmd.Flags().StringVarP(&_flagPredictEnv, "env", "e", "", "environment to use")
 }
 
 var _predictCmd = &cobra.Command{
@@ -48,14 +45,20 @@ var _predictCmd = &cobra.Command{
 	Short: "make a prediction request using a json file",
 	Args:  cobra.ExactArgs(2),
 	Run: func(cmd *cobra.Command, args []string) {
-		env, err := ReadOrConfigureEnv(_flagPredictEnv)
+		envName, err := getEnvFromFlag(_flagPredictEnv)
+		if err != nil {
+			telemetry.Event("cli.predict")
+			exit.Error(err)
+		}
+
+		env, err := ReadOrConfigureEnv(envName)
 		if err != nil {
 			telemetry.Event("cli.predict")
 			exit.Error(err)
 		}
 		telemetry.Event("cli.predict", map[string]interface{}{"provider": env.Provider.String(), "env_name": env.Name})
 
-		err = printEnvIfNotSpecified(_flagPredictEnv, cmd)
+		err = printEnvIfNotSpecified(env.Name, cmd)
 		if err != nil {
 			exit.Error(err)
 		}
@@ -63,17 +66,9 @@ var _predictCmd = &cobra.Command{
 		apiName := args[0]
 		jsonPath := args[1]
 
-		var apisRes []schema.APIResponse
-		if env.Provider == types.LocalProviderType {
-			apisRes, err = local.GetAPI(apiName)
-			if err != nil {
-				exit.Error(err)
-			}
-		} else {
-			apisRes, err = cluster.GetAPI(MustGetOperatorConfig(env.Name), apiName)
-			if err != nil {
-				exit.Error(err)
-			}
+		apisRes, err := cluster.GetAPI(MustGetOperatorConfig(env.Name), apiName)
+		if err != nil {
+			exit.Error(err)
 		}
 
 		if len(apisRes) == 0 {

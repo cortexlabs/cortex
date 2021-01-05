@@ -26,7 +26,6 @@ import (
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws/awserr"
-	"github.com/aws/aws-sdk-go/service/apigatewayv2"
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
@@ -73,7 +72,6 @@ type Config struct {
 	NATGateway                 NATGateway         `json:"nat_gateway" yaml:"nat_gateway"`
 	APILoadBalancerScheme      LoadBalancerScheme `json:"api_load_balancer_scheme" yaml:"api_load_balancer_scheme"`
 	OperatorLoadBalancerScheme LoadBalancerScheme `json:"operator_load_balancer_scheme" yaml:"operator_load_balancer_scheme"`
-	APIGatewaySetting          APIGatewaySetting  `json:"api_gateway" yaml:"api_gateway"`
 	VPCCIDR                    *string            `json:"vpc_cidr,omitempty" yaml:"vpc_cidr,omitempty"`
 	Telemetry                  bool               `json:"telemetry" yaml:"telemetry"`
 	ImageOperator              string             `json:"image_operator" yaml:"image_operator"`
@@ -109,14 +107,11 @@ type InternalConfig struct {
 	Config
 
 	// Populated by operator
-	APIVersion          string                    `json:"api_version"`
-	OperatorID          string                    `json:"operator_id"`
-	ClusterID           string                    `json:"cluster_id"`
-	IsOperatorInCluster bool                      `json:"is_operator_in_cluster"`
-	InstanceMetadata    aws.InstanceMetadata      `json:"instance_metadata"`
-	APIGateway          *apigatewayv2.Api         `json:"api_gateway"`
-	VPCLink             *apigatewayv2.VpcLink     `json:"vpc_link"`
-	VPCLinkIntegration  *apigatewayv2.Integration `json:"vpc_link_integration"`
+	APIVersion          string               `json:"api_version"`
+	OperatorID          string               `json:"operator_id"`
+	ClusterID           string               `json:"cluster_id"`
+	IsOperatorInCluster bool                 `json:"is_operator_in_cluster"`
+	InstanceMetadata    aws.InstanceMetadata `json:"instance_metadata"`
 }
 
 // The bare minimum to identify a cluster
@@ -373,16 +368,6 @@ var UserValidation = &cr.StructValidation{
 			},
 			Parser: func(str string) (interface{}, error) {
 				return LoadBalancerSchemeFromString(str), nil
-			},
-		},
-		{
-			StructField: "APIGatewaySetting",
-			StringValidation: &cr.StringValidation{
-				AllowedValues: APIGatewaySettingStrings(),
-				Default:       PublicAPIGatewaySetting.String(),
-			},
-			Parser: func(str string) (interface{}, error) {
-				return APIGatewaySettingFromString(str), nil
 			},
 		},
 		{
@@ -662,7 +647,7 @@ func (cc *Config) Validate(awsClient *aws.Client) error {
 	}
 
 	if cc.Spot != nil && *cc.Spot {
-		cc.FillEmptySpotFields(awsClient)
+		cc.FillEmptySpotFields()
 
 		primaryInstance := aws.InstanceMetadatas[*cc.Region][primaryInstanceType]
 
@@ -785,7 +770,7 @@ func CheckSpotInstancePriceCompatibility(target aws.InstanceMetadata, suggested 
 	return nil
 }
 
-func AutoGenerateSpotConfig(awsClient *aws.Client, spotConfig *SpotConfig, region string, instanceType string) error {
+func AutoGenerateSpotConfig(spotConfig *SpotConfig, region string, instanceType string) {
 	primaryInstance := aws.InstanceMetadatas[region][instanceType]
 	cleanedDistribution := []string{instanceType}
 	for _, spotInstance := range spotConfig.InstanceDistribution {
@@ -818,19 +803,13 @@ func AutoGenerateSpotConfig(awsClient *aws.Client, spotConfig *SpotConfig, regio
 			spotConfig.InstancePools = pointer.Int64(int64(_maxInstancePools))
 		}
 	}
-
-	return nil
 }
 
-func (cc *Config) FillEmptySpotFields(awsClient *aws.Client) error {
+func (cc *Config) FillEmptySpotFields() {
 	if cc.SpotConfig == nil {
 		cc.SpotConfig = &SpotConfig{}
 	}
-	err := AutoGenerateSpotConfig(awsClient, cc.SpotConfig, *cc.Region, *cc.InstanceType)
-	if err != nil {
-		return err
-	}
-	return nil
+	AutoGenerateSpotConfig(cc.SpotConfig, *cc.Region, *cc.InstanceType)
 }
 
 func applyPromptDefaults(defaults Config) *Config {
@@ -1189,7 +1168,6 @@ func (cc *Config) UserTable() table.KeyValuePairs {
 	items.Add(NATGatewayUserKey, cc.NATGateway)
 	items.Add(APILoadBalancerSchemeUserKey, cc.APILoadBalancerScheme)
 	items.Add(OperatorLoadBalancerSchemeUserKey, cc.OperatorLoadBalancerScheme)
-	items.Add(APIGatewaySettingUserKey, cc.APIGatewaySetting)
 	if cc.VPCCIDR != nil {
 		items.Add(VPCCIDRKey, *cc.VPCCIDR)
 	}
@@ -1269,7 +1247,6 @@ func (cc *Config) TelemetryEvent() map[string]interface{} {
 	event["nat_gateway"] = cc.NATGateway
 	event["api_load_balancer_scheme"] = cc.APILoadBalancerScheme
 	event["operator_load_balancer_scheme"] = cc.OperatorLoadBalancerScheme
-	event["api_gateway"] = cc.APIGatewaySetting
 	if cc.VPCCIDR != nil {
 		event["vpc_cidr._is_defined"] = true
 	}

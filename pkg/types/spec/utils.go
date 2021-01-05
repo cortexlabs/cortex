@@ -104,7 +104,6 @@ func generateErrorForPredictorTypeFn(api *userconfig.API) errorForPredictorTypeF
 func validateDirModels(
 	modelPath string,
 	signatureKey *string,
-	projectDir string,
 	awsClient *aws.Client,
 	gcpClient *gcp.Client,
 	errorForPredictorType errorForPredictorTypeFn,
@@ -119,7 +118,6 @@ func validateDirModels(
 
 	s3Path := strings.HasPrefix(modelPath, "s3://")
 	gcsPath := strings.HasPrefix(modelPath, "gs://")
-	localPath := !s3Path && !gcsPath
 
 	if s3Path {
 		awsClientForBucket, err := aws.NewFromClientS3Path(modelPath, awsClient)
@@ -145,20 +143,6 @@ func validateDirModels(
 		}
 
 		modelDirPaths, err = gcpClient.ListGCSPathDir(modelPath, nil)
-		if err != nil {
-			return nil, err
-		}
-	}
-	if localPath {
-		expandedLocalPath := files.RelToAbsPath(modelPath, projectDir)
-		dirPrefix = s.EnsureSuffix(expandedLocalPath, "/")
-
-		err := files.CheckDir(dirPrefix)
-		if err != nil {
-			return nil, err
-		}
-
-		modelDirPaths, err = files.ListDirRecursive(dirPrefix, false, nil...)
 		if err != nil {
 			return nil, err
 		}
@@ -220,9 +204,6 @@ func validateDirModels(
 		if gcsPath {
 			fullModelPath = s.EnsureSuffix(gcp.GCSPath(bucket, modelPrefix), "/")
 		}
-		if localPath {
-			fullModelPath = s.EnsureSuffix(modelPrefix, "/")
-		}
 
 		modelResources[i] = CuratedModelResource{
 			ModelResource: &userconfig.ModelResource{
@@ -230,10 +211,9 @@ func validateDirModels(
 				Path:         fullModelPath,
 				SignatureKey: signatureKey,
 			},
-			S3Path:    s3Path,
-			GCSPath:   gcsPath,
-			LocalPath: localPath,
-			Versions:  intVersions,
+			S3Path:   s3Path,
+			GCSPath:  gcsPath,
+			Versions: intVersions,
 		}
 	}
 
@@ -243,7 +223,6 @@ func validateDirModels(
 func validateModels(
 	models []userconfig.ModelResource,
 	defaultSignatureKey *string,
-	projectDir string,
 	awsClient *aws.Client,
 	gcpClient *gcp.Client,
 	errorForPredictorType errorForPredictorTypeFn,
@@ -260,7 +239,6 @@ func validateModels(
 
 		s3Path := strings.HasPrefix(model.Path, "s3://")
 		gcsPath := strings.HasPrefix(model.Path, "gs://")
-		localPath := !s3Path && !gcsPath
 
 		if s3Path {
 			awsClientForBucket, err := aws.NewFromClientS3Path(model.Path, awsClient)
@@ -280,7 +258,6 @@ func validateModels(
 			}
 			modelPaths = aws.ConvertS3ObjectsToKeys(s3Objects...)
 		}
-
 		if gcsPath {
 			bucket, modelPrefix, err = gcp.SplitGCSPath(model.Path)
 			if err != nil {
@@ -289,21 +266,6 @@ func validateModels(
 			modelPrefix = s.EnsureSuffix(modelPrefix, "/")
 
 			modelPaths, err = gcpClient.ListGCSPathDir(modelPath, nil)
-			if err != nil {
-				return nil, errors.Wrap(err, model.Name)
-			}
-		}
-
-		if localPath {
-			expandedLocalPath := files.RelToAbsPath(model.Path, projectDir)
-			modelPrefix = s.EnsureSuffix(expandedLocalPath, "/")
-
-			err := files.CheckDir(modelPrefix)
-			if err != nil {
-				return nil, errors.Wrap(err, model.Name)
-			}
-
-			modelPaths, err = files.ListDirRecursive(modelPrefix, false, nil...)
 			if err != nil {
 				return nil, errors.Wrap(err, model.Name)
 			}
@@ -359,9 +321,6 @@ func validateModels(
 		if gcsPath {
 			fullModelPath = s.EnsureSuffix(gcp.GCSPath(bucket, modelPrefix), "/")
 		}
-		if localPath {
-			fullModelPath = s.EnsureSuffix(modelPrefix, "/")
-		}
 
 		modelResources[i] = CuratedModelResource{
 			ModelResource: &userconfig.ModelResource{
@@ -369,10 +328,9 @@ func validateModels(
 				Path:         fullModelPath,
 				SignatureKey: signatureKey,
 			},
-			S3Path:    s3Path,
-			GCSPath:   gcsPath,
-			LocalPath: localPath,
-			Versions:  intVersions,
+			S3Path:   s3Path,
+			GCSPath:  gcsPath,
+			Versions: intVersions,
 		}
 	}
 

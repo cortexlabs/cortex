@@ -327,9 +327,7 @@ def start_fn():
                 predictor_impl.post_predict
             ).args
 
-        predict_route = "/"
-        if provider != "local":
-            predict_route = "/predict"
+        predict_route = "/predict"
         local_cache["predict_route"] = predict_route
     except:
         logger.exception("failed to start api")

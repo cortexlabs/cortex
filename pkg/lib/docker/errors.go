@@ -23,7 +23,6 @@ import (
 
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
-	"github.com/cortexlabs/cortex/pkg/types"
 )
 
 const (
@@ -66,23 +65,15 @@ func ErrorImageDoesntExistLocally(image string) error {
 	})
 }
 
-func ErrorImageInaccessible(image string, providerType types.ProviderType, cause error) error {
+func ErrorImageInaccessible(image string, cause error) error {
 	message := fmt.Sprintf("%s is not accessible", image)
 
 	if cause != nil {
 		message += "\n" + errors.Message(cause) // add \n because docker client errors are verbose but useful
 	}
 
-	switch providerType {
-	case types.LocalProviderType:
-		message += fmt.Sprintf("\n\nyou can download your image with `docker pull %s` and try this command again", image)
-		if strings.Contains(cause.Error(), "auth") {
-			message += " (if your registry is private, run `docker login` first)"
-		}
-	case types.AWSProviderType:
-		if strings.Contains(cause.Error(), "auth") {
-			message += fmt.Sprintf("\n\nif you would like to use a private docker registry, see https://docs.cortex.dev/v/%s/", consts.CortexVersionMinor)
-		}
+	if strings.Contains(cause.Error(), "auth") {
+		message += fmt.Sprintf("\n\nif you would like to use a private docker registry, see https://docs.cortex.dev/v/%s/", consts.CortexVersionMinor)
 	}
 
 	return errors.WithStack(&errors.Error{

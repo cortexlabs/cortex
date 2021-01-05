@@ -29,7 +29,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 	"github.com/cortexlabs/cortex/pkg/operator/operator"
 	"github.com/cortexlabs/cortex/pkg/types"
-	"github.com/cortexlabs/cortex/pkg/types/clusterconfig"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	istioclientnetworking "istio.io/client-go/pkg/apis/networking/v1beta1"
@@ -71,11 +70,6 @@ func (projectFiles ProjectFiles) HasDir(path string) bool {
 	return false
 }
 
-// This should not be called, since it's only relevant for the local environment
-func (projectFiles ProjectFiles) ProjectDir() string {
-	return "./"
-}
-
 func ValidateClusterAPIs(apis []userconfig.API, projectFiles spec.ProjectFiles) error {
 	if len(apis) == 0 {
 		return spec.ErrorNoAPIs()
@@ -94,8 +88,6 @@ func ValidateClusterAPIs(apis []userconfig.API, projectFiles spec.ProjectFiles) 
 		}
 	}
 
-	didPrintWarning := false
-
 	realtimeAPIs := InclusiveFilterAPIsByKind(apis, userconfig.RealtimeAPIKind)
 
 	for i := range apis {
@@ -106,11 +98,6 @@ func ValidateClusterAPIs(apis []userconfig.API, projectFiles spec.ProjectFiles) 
 			}
 			if err := validateK8s(api, virtualServices, maxMem); err != nil {
 				return errors.Wrap(err, api.Identify())
-			}
-
-			if !didPrintWarning && api.Networking.LocalPort != nil {
-				fmt.Println(fmt.Sprintf("warning: %s will be ignored because it is not supported in an environment using aws provider\n", userconfig.LocalPortKey))
-				didPrintWarning = true
 			}
 		}
 
@@ -124,10 +111,6 @@ func ValidateClusterAPIs(apis []userconfig.API, projectFiles spec.ProjectFiles) 
 			if err := validateEndpointCollisions(api, virtualServices); err != nil {
 				return errors.Wrap(err, api.Identify())
 			}
-		}
-
-		if config.Provider == types.AWSProviderType && api.Networking.APIGateway != userconfig.NoneAPIGatewayType && config.Cluster.APIGatewaySetting == clusterconfig.NoneAPIGatewaySetting {
-			return errors.Wrap(ErrorAPIGatewayDisabled(api.Networking.APIGateway), api.Identify(), userconfig.NetworkingKey, userconfig.APIGatewayKey)
 		}
 	}
 

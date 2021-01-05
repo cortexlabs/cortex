@@ -23,7 +23,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/exit"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
-	"github.com/cortexlabs/cortex/pkg/types"
 	"github.com/spf13/cobra"
 )
 
@@ -31,7 +30,7 @@ var _flagVersionEnv string
 
 func versionInit() {
 	_versionCmd.Flags().SortFlags = false
-	_versionCmd.Flags().StringVarP(&_flagVersionEnv, "env", "e", getDefaultEnv(_generalCommandType), "environment to use")
+	_versionCmd.Flags().StringVarP(&_flagVersionEnv, "env", "e", "", "environment to use")
 }
 
 var _versionCmd = &cobra.Command{
@@ -39,23 +38,25 @@ var _versionCmd = &cobra.Command{
 	Short: "print the cli and cluster versions",
 	Args:  cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
-		env, err := ReadOrConfigureEnv(_flagVersionEnv)
+		envName, err := getEnvFromFlag(_flagVersionEnv)
+		if err != nil {
+			telemetry.Event("cli.version")
+			exit.Error(err)
+		}
+
+		env, err := ReadOrConfigureEnv(envName)
 		if err != nil {
 			telemetry.Event("cli.version")
 			exit.Error(err)
 		}
 		telemetry.Event("cli.version", map[string]interface{}{"provider": env.Provider.String(), "env_name": env.Name})
 
-		err = printEnvIfNotSpecified(_flagVersionEnv, cmd)
+		err = printEnvIfNotSpecified(env.Name, cmd)
 		if err != nil {
 			exit.Error(err)
 		}
 
 		fmt.Println("cli version: " + consts.CortexVersion)
-
-		if env.Provider == types.LocalProviderType {
-			return
-		}
 
 		infoResponse, err := cluster.Info(MustGetOperatorConfig(env.Name))
 		if err != nil {

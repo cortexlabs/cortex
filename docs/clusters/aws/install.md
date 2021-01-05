@@ -81,7 +81,7 @@ tags:  # <string>: <string> map of key/value pairs
 # enable spot instances
 spot: false
 
-# SSL certificate ARN (only necessary when using a custom domain without API Gateway)
+# SSL certificate ARN (only necessary when using a custom domain)
 ssl_certificate_arn:
 
 # primary CIDR block for the cluster's VPC

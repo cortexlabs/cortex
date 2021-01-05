@@ -54,8 +54,7 @@ var (
 func clusterGCPInit() {
 	_clusterGCPUpCmd.Flags().SortFlags = false
 	addClusterGCPConfigFlag(_clusterGCPUpCmd)
-	defaultEnv := getDefaultEnv(_clusterGCPCommandType)
-	_clusterGCPUpCmd.Flags().StringVarP(&_flagClusterGCPUpEnv, "configure-env", "e", defaultEnv, "name of environment to configure")
+	_clusterGCPUpCmd.Flags().StringVarP(&_flagClusterGCPUpEnv, "configure-env", "e", "gcp", "name of environment to configure")
 	addClusterGCPDisallowPromptFlag(_clusterGCPUpCmd)
 	_clusterGCPCmd.AddCommand(_clusterGCPUpCmd)
 
@@ -111,10 +110,6 @@ var _clusterGCPUpCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		telemetry.EventNotify("cli.cluster.up", map[string]interface{}{"provider": types.GCPProviderType})
 
-		if _flagClusterGCPUpEnv == "local" {
-			exit.Error(ErrorLocalEnvironmentCantUseClusterProvider(types.GCPProviderType))
-		}
-
 		envExists, err := isEnvConfigured(_flagClusterGCPUpEnv)
 		if err != nil {
 			exit.Error(err)
@@ -129,10 +124,6 @@ var _clusterGCPUpCmd = &cobra.Command{
 
 		if _, err := docker.GetDockerClient(); err != nil {
 			exit.Error(err)
-		}
-
-		if !_flagClusterGCPDisallowPrompt {
-			promptForEmail()
 		}
 
 		accessConfig, err := getNewGCPClusterAccessConfig(_flagClusterGCPDisallowPrompt)
@@ -202,15 +193,17 @@ var _clusterGCPInfoCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		telemetry.Event("cli.cluster.info", map[string]interface{}{"provider": types.GCPProviderType})
 
-		if _flagClusterGCPInfoEnv == "local" {
-			exit.Error(ErrorLocalEnvironmentCantUseClusterProvider(types.GCPProviderType))
-		}
-
 		if _, err := docker.GetDockerClient(); err != nil {
 			exit.Error(err)
 		}
 
 		accessConfig, err := getGCPClusterAccessConfigWithCache(_flagClusterGCPDisallowPrompt)
+		if err != nil {
+			exit.Error(err)
+		}
+
+		// need to ensure that the google creds are configured for the manager
+		_, err = gcp.NewFromEnvCheckProjectID(*accessConfig.Project)
 		if err != nil {
 			exit.Error(err)
 		}
@@ -229,10 +222,6 @@ var _clusterGCPDownCmd = &cobra.Command{
 	Args:  cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
 		telemetry.Event("cli.cluster.down", map[string]interface{}{"provider": types.GCPProviderType})
-
-		if _flagClusterGCPUpEnv == "local" {
-			exit.Error(ErrorLocalEnvironmentCantUseClusterProvider(types.GCPProviderType))
-		}
 
 		if _, err := docker.GetDockerClient(); err != nil {
 			exit.Error(err)
@@ -285,11 +274,20 @@ var _clusterGCPDownCmd = &cobra.Command{
 			envNames, isDefaultEnv, _ := getEnvNamesByOperatorEndpoint(operatorLoadBalancerIP)
 			if len(envNames) > 0 {
 				for _, envName := range envNames {
-					removeEnvFromCLIConfig(envName)
+					err := removeEnvFromCLIConfig(envName)
+					if err != nil {
+						exit.Error(err)
+					}
 				}
 				fmt.Printf("✓ deleted the %s environment configuration%s\n", s.StrsAnd(envNames), s.SIfPlural(len(envNames)))
 				if isDefaultEnv {
-					fmt.Println("✓ set the default environment to local")
+					newDefaultEnv, err := getDefaultEnv()
+					if err != nil {
+						exit.Error(err)
+					}
+					if newDefaultEnv != nil {
+						fmt.Println(fmt.Sprintf("✓ set the default environment to %s", *newDefaultEnv))
+					}
 				}
 			}
 		}
