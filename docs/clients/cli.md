@@ -9,7 +9,7 @@ Usage:
   cortex deploy [CONFIG_FILE] [flags]
 
 Flags:
-  -e, --env string      environment to use (default "local")
+  -e, --env string      environment to use
   -f, --force           override the in-progress api update
   -y, --yes             skip prompts
   -o, --output string   output format: one of pretty|json (default "pretty")
@@ -25,7 +25,7 @@ Usage:
   cortex get [API_NAME] [JOB_ID] [flags]
 
 Flags:
-  -e, --env string      environment to use (default "local")
+  -e, --env string      environment to use
   -w, --watch           re-run the command every 2 seconds
   -o, --output string   output format: one of pretty|json (default "pretty")
   -v, --verbose         show additional information (only applies to pretty output format)
@@ -41,7 +41,7 @@ Usage:
   cortex logs API_NAME [JOB_ID] [flags]
 
 Flags:
-  -e, --env string   environment to use (default "local")
+  -e, --env string   environment to use
   -h, --help         help for logs
 ```
 
@@ -54,7 +54,7 @@ Usage:
   cortex patch [CONFIG_FILE] [flags]
 
 Flags:
-  -e, --env string      environment to use (default "local")
+  -e, --env string      environment to use
   -f, --force           override the in-progress api update
   -o, --output string   output format: one of pretty|json (default "pretty")
   -h, --help            help for patch
@@ -69,7 +69,7 @@ Usage:
   cortex refresh API_NAME [flags]
 
 Flags:
-  -e, --env string      environment to use (default "local")
+  -e, --env string      environment to use
   -f, --force           override the in-progress api update
   -o, --output string   output format: one of pretty|json (default "pretty")
   -h, --help            help for refresh
@@ -84,7 +84,7 @@ Usage:
   cortex predict API_NAME JSON_FILE [flags]
 
 Flags:
-  -e, --env string   environment to use (default "local")
+  -e, --env string   environment to use
   -h, --help         help for predict
 ```
 
@@ -97,7 +97,7 @@ Usage:
   cortex delete API_NAME [JOB_ID] [flags]
 
 Flags:
-  -e, --env string      environment to use (default "local")
+  -e, --env string      environment to use
   -f, --force           delete the api without confirmation
   -c, --keep-cache      keep cached data for the api
   -o, --output string   output format: one of pretty|json (default "pretty")
@@ -261,7 +261,6 @@ Flags:
   -o, --operator-endpoint string       set the operator endpoint without prompting
   -k, --aws-access-key-id string       set the aws access key id without prompting
   -s, --aws-secret-access-key string   set the aws secret access key without prompting
-  -r, --aws-region string              set the aws region without prompting
   -h, --help                           help for configure
 ```
 
@@ -311,7 +310,7 @@ Usage:
   cortex version [flags]
 
 Flags:
-  -e, --env string   environment to use (default "local")
+  -e, --env string   environment to use
   -h, --help         help for version
 ```
 

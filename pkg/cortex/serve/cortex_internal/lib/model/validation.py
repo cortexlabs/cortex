@@ -21,7 +21,6 @@ from typing import List, Any, Tuple
 from fnmatch import fnmatchcase
 
 from cortex_internal.lib import util
-from cortex_internal.lib.storage import S3, LocalStorage
 from cortex_internal.lib.log import logger
 from cortex_internal.lib.exceptions import CortexException
 from cortex_internal.lib.type import (

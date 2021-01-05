@@ -49,6 +49,8 @@ class CuratedModelResources:
         """
         Checks if the model has been made available from the local disk.
 
+        Note: Only required for ONNX file paths.
+
         Args:
             name: Name of the model as specified in predictor:models:paths:name or if a single model is specified, _cortex_default.
 
@@ -97,6 +99,8 @@ class CuratedModelResources:
     def get_local_model_names(self) -> List[str]:
         """
         Get locally-provided models as specified with predictor:models:path, predictor:models:paths or predictor:models:dir.
+
+        Note: Only required for ONNX file paths.
 
         Returns:
             A list of names of all local models.

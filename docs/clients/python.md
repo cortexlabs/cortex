@@ -2,7 +2,6 @@
 
 * [cortex](#cortex)
   * [client](#client)
-  * [local\_client](#local_client)
   * [cluster\_client](#cluster_client)
   * [env\_list](#env_list)
   * [env\_delete](#env_delete)
@@ -36,28 +35,6 @@ Initialize a client based on the specified environment.
 **Returns**:
 
   Cortex client that can be used to deploy and manage APIs in the specified environment.
-
-## local\_client
-
-```python
-local_client(aws_access_key_id: str, aws_secret_access_key: str, aws_region: str) -> Client
-```
-
-Initialize a client to deploy and manage APIs locally.
-
-The specified AWS credentials will be used by the CLI to download models
-from S3 and authenticate to ECR, and will be set in your Predictor.
-
-**Arguments**:
-
-- `aws_access_key_id` - AWS access key ID.
-- `aws_secret_access_key` - AWS secret access key.
-- `aws_region` - AWS region.
-
-
-**Returns**:
-
-  Cortex client that can be used to deploy and manage APIs locally.
 
 ## cluster\_client
 

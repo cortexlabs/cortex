@@ -70,11 +70,6 @@ func (projectFiles ProjectFiles) HasDir(path string) bool {
 	return false
 }
 
-// This should not be called, since it's only relevant for the local environment
-func (projectFiles ProjectFiles) ProjectDir() string {
-	return "./"
-}
-
 func ValidateClusterAPIs(apis []userconfig.API, projectFiles spec.ProjectFiles) error {
 	if len(apis) == 0 {
 		return spec.ErrorNoAPIs()
@@ -93,8 +88,6 @@ func ValidateClusterAPIs(apis []userconfig.API, projectFiles spec.ProjectFiles) 
 		}
 	}
 
-	didPrintWarning := false
-
 	realtimeAPIs := InclusiveFilterAPIsByKind(apis, userconfig.RealtimeAPIKind)
 
 	for i := range apis {
@@ -105,11 +98,6 @@ func ValidateClusterAPIs(apis []userconfig.API, projectFiles spec.ProjectFiles) 
 			}
 			if err := validateK8s(api, virtualServices, maxMem); err != nil {
 				return errors.Wrap(err, api.Identify())
-			}
-
-			if !didPrintWarning && api.Networking.LocalPort != nil {
-				fmt.Println(fmt.Sprintf("warning: %s will be ignored because it is not supported in an environment using aws provider\n", userconfig.LocalPortKey))
-				didPrintWarning = true
 			}
 		}
 

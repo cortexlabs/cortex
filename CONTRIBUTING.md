@@ -274,19 +274,12 @@ If you want to switch back to the in-cluster operator:
 1. `<ctrl+c>` to stop your local operator
 2. `make operator-start-aws` to restart the operator in your cluster
 
-If you only want to test Cortex's local environment, here is the common workflow:
-
-1. `make cli-watch` (builds the CLI and re-builds it when files are changed)
-2. Make your changes
-3. `make images-dev-local` (only necessary if API images or the manager are modified)
-4. Test your changes e.g. via `cortex deploy` (and repeat steps 2 and 3 as necessary)
-
 ### Dev workflow optimizations
 
 If you are only modifying the CLI, `make cli-watch` will build the CLI and re-build it when files are changed. When doing this, you can leave the operator running in the cluster instead of running it locally.
 
 If you are only modifying the operator, `make operator-local-aws` will build and start the operator locally, and build/restart it when files are changed.
 
-If you are modifying code in the API images (i.e. any of the Python serving code), `make images-dev-aws` may build more images than you need during testing. For example, if you are only testing using the `python-predictor-cpu` image, you can run `./dev/registry.sh update-single python-predictor-cpu --provider aws` (or use `--provider local` if testing locally).
+If you are modifying code in the API images (i.e. any of the Python serving code), `make images-dev-aws` may build more images than you need during testing. For example, if you are only testing using the `python-predictor-cpu` image, you can run `./dev/registry.sh update-single python-predictor-cpu --provider aws`.
 
 See `Makefile` for additional dev commands.

@@ -64,8 +64,7 @@ const (
 	ModelsNameKey = "name"
 
 	// Networking
-	EndpointKey  = "endpoint"
-	LocalPortKey = "local_port"
+	EndpointKey = "endpoint"
 
 	// Compute
 	CPUKey = "cpu"
