@@ -64,7 +64,7 @@ operator_load_balancer_scheme: internet-facing
 
 # to install Cortex in an existing VPC, you can provide a list of subnets for your cluster to use
 # subnet_visibility (specified above in this file) must match your subnets' visibility
-# this is an advanced feature and requires your VPC to be configured correctly; see https://eksctl.io/usage/vpc-networking/#use-existing-vpc-other-custom-configuration
+# this is an advanced feature (not recommended for first-time users) and requires your VPC to be configured correctly; see https://eksctl.io/usage/vpc-networking/#use-existing-vpc-other-custom-configuration
 # here is an example:
 # subnets:
 #   - availability_zone: us-west-2a
