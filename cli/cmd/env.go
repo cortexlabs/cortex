@@ -203,6 +203,9 @@ var _envDeleteCmd = &cobra.Command{
 		}
 
 		newDefault, err := getDefaultEnv()
+		if err != nil {
+			exit.Error(err)
+		}
 
 		print.BoldFirstLine(fmt.Sprintf("deleted the %s environment configuration", envName))
 		if newDefault == nil {

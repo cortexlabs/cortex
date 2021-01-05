@@ -58,8 +58,16 @@ var _deleteCmd = &cobra.Command{
 				exit.Error(err)
 			}
 			if defaultEnv == nil {
+				envs, err := listConfiguredEnvs()
 				telemetry.Event("cli.delete")
-				exit.Error(ErrorEnvironmentNotSet())
+				if err != nil {
+					exit.Error(err)
+				}
+				if len(envs) == 0 {
+					exit.Error(ErrorNoAvailableEnvironment())
+				} else {
+					exit.Error(ErrorEnvironmentNotSet())
+				}
 			}
 			envName = *defaultEnv
 		} else {

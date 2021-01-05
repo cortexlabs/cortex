@@ -43,6 +43,7 @@ func errStrFailedToConnect(u url.URL) string {
 const (
 	ErrInvalidProvider                         = "cli.invalid_provider"
 	ErrCommandNotSupportedForKind              = "cli.command_not_supported_for_kind"
+	ErrNoAvailableEnvironment                  = "cli.no_available_environment"
 	ErrEnvironmentNotSet                       = "cli.environment_not_set"
 	ErrEnvironmentNotFound                     = "cli.environment_not_found"
 	ErrFieldNotFoundInEnvironment              = "cli.field_not_found_in_environment"
@@ -89,10 +90,17 @@ func ErrorCommandNotSupportedForKind(kind userconfig.Kind, command string) error
 	})
 }
 
+func ErrorNoAvailableEnvironment() error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrNoAvailableEnvironment,
+		Message: "no environments are configured; run `cortex cluster up`/`cortex cluster-gcp up` to create one while spinning up a cluster or `cortex env configure` to configure one for an existing cluster",
+	})
+}
+
 func ErrorEnvironmentNotSet() error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrEnvironmentNotSet,
-		Message: fmt.Sprintf("no default environment could be found and no environment was provided; run `cortex env default` to configure a default environment, or pass the environment name by using the `-e/--environment` flag"),
+		Message: "no default environment could be found and no environment was provided; run `cortex env default` to configure a default environment, or pass the environment name by using the `-e/--environment` flag",
 	})
 }
 

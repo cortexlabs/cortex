@@ -74,8 +74,16 @@ var _deployCmd = &cobra.Command{
 				exit.Error(err)
 			}
 			if defaultEnv == nil {
+				envs, err := listConfiguredEnvs()
 				telemetry.Event("cli.deploy")
-				exit.Error(ErrorEnvironmentNotSet())
+				if err != nil {
+					exit.Error(err)
+				}
+				if len(envs) == 0 {
+					exit.Error(ErrorNoAvailableEnvironment())
+				} else {
+					exit.Error(ErrorEnvironmentNotSet())
+				}
 			}
 			envName = *defaultEnv
 		} else {
@@ -329,8 +337,8 @@ func getAPICommandsMessage(results []schema.DeployResult, envName string) (strin
 		return "", err
 	}
 	var envArg string
-	if defaultEnv != nil && envName != *defaultEnv {
-		envArg = " --env " + envName
+	if defaultEnv == nil || envName != *defaultEnv {
+		envArg = " --env" + envName
 	}
 
 	var items table.KeyValuePairs
