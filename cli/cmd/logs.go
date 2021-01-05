@@ -56,9 +56,8 @@ var _logsCmd = &cobra.Command{
 				}
 				if len(envs) == 0 {
 					exit.Error(ErrorNoAvailableEnvironment())
-				} else {
-					exit.Error(ErrorEnvironmentNotSet())
 				}
+				exit.Error(ErrorEnvironmentNotSet())
 			}
 			envName = *defaultEnv
 		} else {
