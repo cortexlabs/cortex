@@ -142,16 +142,18 @@ function cache_builder() {
 }
 
 function push() {
+  if [ "$provider" == "undefined" ]; then
+    return
+  fi
+
   registry_login
 
   local image=$1
   local tag=$2
 
-  if [ "$provider" != "undefined" ]; then
-    blue_echo "Pushing $image:$tag..."
-    docker push $registry_push_url/cortexlabs/$image:$tag
-    green_echo "Pushed $image:$tag\n"
-  fi
+  blue_echo "Pushing $image:$tag..."
+  docker push $registry_push_url/cortexlabs/$image:$tag
+  green_echo "Pushed $image:$tag\n"
 }
 
 function build_and_push() {
@@ -161,9 +163,7 @@ function build_and_push() {
   set -euo pipefail  # necessary since this is called in a new shell by parallel
 
   build $image $tag
-  if [ "$provider" != "undefined" ]; then
-    push $image $tag
-  fi
+  push $image $tag
 }
 
 function cleanup_local() {
