@@ -206,6 +206,7 @@ var _clusterGCPInfoCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
+		// need to ensure that the google creds are configured for the manager
 		_, err = gcp.NewFromEnvCheckProjectID(*accessConfig.Project)
 		if err != nil {
 			exit.Error(err)
