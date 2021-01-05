@@ -37,7 +37,6 @@ from cortex_internal.lib.concurrency import LockedFile
 from cortex_internal.lib.storage import S3, LocalStorage
 from cortex_internal.lib.exceptions import UserRuntimeException
 
-API_LIVENESS_UPDATE_PERIOD = 5  # seconds
 SQS_POLL_WAIT_TIME = 10  # seconds
 MESSAGE_NOT_FOUND_SLEEP = 10  # seconds
 INITIAL_MESSAGE_VISIBILITY = 30  # seconds

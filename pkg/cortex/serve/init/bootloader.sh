@@ -41,9 +41,6 @@ rm -rf /mnt/workspace/api_readiness.txt
 rm -rf /mnt/workspace/init_script_run.txt
 rm -rf /mnt/workspace/proc-*-ready.txt
 
-# allow for the liveness check to pass until the API is running
-echo "9999999999" > /mnt/workspace/api_liveness.txt
-
 if [ "$CORTEX_PROVIDER" != "local" ]; then
     if [ "$CORTEX_KIND" == "RealtimeAPI" ]; then
         sysctl -w net.core.somaxconn="65535" >/dev/null
