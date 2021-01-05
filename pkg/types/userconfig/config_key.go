@@ -64,9 +64,8 @@ const (
 	ModelsNameKey = "name"
 
 	// Networking
-	APIGatewayKey = "api_gateway"
-	EndpointKey   = "endpoint"
-	LocalPortKey  = "local_port"
+	EndpointKey  = "endpoint"
+	LocalPortKey = "local_port"
 
 	// Compute
 	CPUKey = "cpu"
@@ -94,7 +93,6 @@ const (
 
 	// K8s annotation
 	EndpointAnnotationKey                     = "networking.cortex.dev/endpoint"
-	APIGatewayAnnotationKey                   = "networking.cortex.dev/api-gateway"
 	ProcessesPerReplicaAnnotationKey          = "predictor.cortex.dev/processes-per-replica"
 	ThreadsPerProcessAnnotationKey            = "predictor.cortex.dev/threads-per-process"
 	MinReplicasAnnotationKey                  = "autoscaling.cortex.dev/min-replicas"

@@ -25,7 +25,7 @@ aws s3 rb --force s3://<bucket>
 aws logs describe-log-groups --log-group-name-prefix=<cluster_name> --query logGroups[*].[logGroupName] --output text | xargs -I {} aws logs delete-log-group --log-group-name {}
 ```
 
-If you've configured a custom domain for your APIs, you can remove the SSL Certificate and Hosted Zone for the domain by following these [instructions](custom-domain.md#cleanup).
+If you've configured a custom domain for your APIs, you can remove the SSL Certificate and Hosted Zone for the domain by following these [instructions](networking/custom-domain.md#cleanup).
 
 ## Troubleshooting
 
@@ -43,4 +43,4 @@ On rare occasions, `cortex cluster down` may not be able to spin down your Corte
 
     If deleting the stack fails, navigate to the EC2 dashboard in the AWS console, delete the load balancers that are associated with the cluster, and try again (you can determine which load balancers are associated with the cluster by setting the correct region in the console and checking the `cortex.dev/cluster-name` tag on all load balancers). If the problem still persists, delete any other AWS resources that are blocking the stack deletion and try again.
 
-1. In rare cases, you may need to delete other AWS resources associated with your Cortex cluster. For each the following resources, go to the appropriate AWS Dashboard (in the region that your cluster was in), and confirm that there are no resources left behind by the cluster: API Gateway API, API Gateway VPC Link, CloudWatch Dashboard, SQS Queues, S3 Bucket, and CloudWatch LogGroups (the Cortex bucket and log groups are not deleted by `cluster down` in order to preserve your data).
+1. In rare cases, you may need to delete other AWS resources associated with your Cortex cluster. For each the following resources, go to the appropriate AWS Dashboard (in the region that your cluster was in), and confirm that there are no resources left behind by the cluster: CloudWatch Dashboard, SQS Queues, S3 Bucket, and CloudWatch LogGroups (the Cortex bucket and log groups are not deleted by `cluster down` in order to preserve your data).
