@@ -24,6 +24,7 @@
 * Multi-model
   * [Example](workloads/multi-model/example.md)
   * [Configuration](workloads/multi-model/configuration.md)
+  * [Caching](workloads/multi-model/caching.md)
 * Traffic Splitter
   * [Example](workloads/traffic-splitter/example.md)
   * [Configuration](workloads/traffic-splitter/configuration.md)
@@ -31,7 +32,7 @@
   * [Example](workloads/dependencies/example.md)
   * [Python packages](workloads/dependencies/python-packages.md)
   * [System packages](workloads/dependencies/system-packages.md)
-  * [Docker images](workloads/dependencies/docker-images.md)
+  * [Custom images](workloads/dependencies/images.md)
 
 ## Clusters
 
@@ -40,8 +41,6 @@
   * [Update](clusters/aws/update.md)
   * [Security](clusters/aws/security.md)
   * [Spot instances](clusters/aws/spot.md)
-  * [GPUs](clusters/aws/gpu.md)
-  * [Inferentia](clusters/aws/inferentia.md)
   * [Networking](clusters/aws/networking/index.md)
     * [Custom domain](clusters/aws/networking/custom-domain.md)
     * [HTTPS (via API Gateway)](clusters/aws/networking/https.md)

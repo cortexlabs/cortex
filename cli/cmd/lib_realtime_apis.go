@@ -21,7 +21,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -52,15 +51,6 @@ func realtimeAPITable(realtimeAPI schema.APIResponse, env cliconfig.Environment)
 	}
 
 	out += t.MustFormat()
-
-	if env.Provider != types.LocalProviderType && realtimeAPI.Spec.Monitoring != nil {
-		switch realtimeAPI.Spec.Monitoring.ModelType {
-		case userconfig.ClassificationModelType:
-			out += "\n" + classificationMetricsStr(realtimeAPI.Metrics)
-		case userconfig.RegressionModelType:
-			out += "\n" + regressionMetricsStr(realtimeAPI.Metrics)
-		}
-	}
 
 	if realtimeAPI.DashboardURL != nil && *realtimeAPI.DashboardURL != "" {
 		out += "\n" + console.Bold("metrics dashboard: ") + *realtimeAPI.DashboardURL + "\n"
@@ -167,75 +157,6 @@ func code5XXStr(metrics *metrics.Metrics) string {
 		return "-"
 	}
 	return s.Int(metrics.NetworkStats.Code5XX)
-}
-
-func regressionMetricsStr(metrics *metrics.Metrics) string {
-	minStr := "-"
-	maxStr := "-"
-	avgStr := "-"
-
-	if metrics.RegressionStats != nil {
-		if metrics.RegressionStats.Min != nil {
-			minStr = fmt.Sprintf("%.9g", *metrics.RegressionStats.Min)
-		}
-
-		if metrics.RegressionStats.Max != nil {
-			maxStr = fmt.Sprintf("%.9g", *metrics.RegressionStats.Max)
-		}
-
-		if metrics.RegressionStats.Avg != nil {
-			avgStr = fmt.Sprintf("%.9g", *metrics.RegressionStats.Avg)
-		}
-	}
-
-	t := table.Table{
-		Headers: []table.Header{
-			{Title: "min", MaxWidth: 10},
-			{Title: "max", MaxWidth: 10},
-			{Title: "avg", MaxWidth: 10},
-		},
-		Rows: [][]interface{}{{minStr, maxStr, avgStr}},
-	}
-
-	return t.MustFormat()
-}
-
-func classificationMetricsStr(metrics *metrics.Metrics) string {
-	classList := make([]string, 0, len(metrics.ClassDistribution))
-	for inputName := range metrics.ClassDistribution {
-		classList = append(classList, inputName)
-	}
-	sort.Strings(classList)
-
-	rows := make([][]interface{}, len(classList))
-	for rowNum, className := range classList {
-		rows[rowNum] = []interface{}{
-			className,
-			metrics.ClassDistribution[className],
-		}
-	}
-
-	if len(classList) == 0 {
-		rows = append(rows, []interface{}{
-			"-",
-			"-",
-		})
-	}
-
-	t := table.Table{
-		Headers: []table.Header{
-			{Title: "class", MaxWidth: 40},
-			{Title: "count", MaxWidth: 20},
-		},
-		Rows: rows,
-	}
-
-	out := t.MustFormat()
-
-	if len(classList) == consts.MaxClassesPerMonitoringRequest {
-		out += fmt.Sprintf("\nlisting at most %d classes, the complete list can be found in your cloudwatch dashboard\n", consts.MaxClassesPerMonitoringRequest)
-	}
-	return out
 }
 
 func describeModelInput(status *status.Status, predictor *userconfig.Predictor, apiEndpoint string) string {

@@ -65,7 +65,6 @@ func apiValidation(
 			predictorValidation(),
 			networkingValidation(resource.Kind, provider, awsClusterConfig, gcpClusterConfig),
 			computeValidation(provider),
-			monitoringValidation(provider),
 			autoscalingValidation(provider),
 			updateStrategyValidation(provider),
 		)
@@ -205,6 +204,14 @@ func predictorValidation() *cr.StructFieldValidation {
 					},
 				},
 				{
+					StructField: "ShmSize",
+					StringPtrValidation: &cr.StringPtrValidation{
+						Default:           nil,
+						AllowExplicitNull: true,
+					},
+					Parser: k8s.QuantityParser(&k8s.QuantityValidation{}),
+				},
+				{
 					StructField: "LogLevel",
 					StringValidation: &cr.StringValidation{
 						Default:       "info",
@@ -234,42 +241,6 @@ func predictorValidation() *cr.StructFieldValidation {
 				multiModelValidation("Models"),
 				multiModelValidation("MultiModelReloading"),
 				serverSideBatchingValidation(),
-			},
-		},
-	}
-}
-
-func monitoringValidation(provider types.ProviderType) *cr.StructFieldValidation {
-	if provider != types.AWSProviderType && provider != types.LocalProviderType {
-		return &cr.StructFieldValidation{
-			StructField: "Monitoring",
-			StructValidation: &cr.StructValidation{
-				CantBeSpecifiedErrStr: pointer.String("only supported on AWS clusters"),
-			},
-		}
-	}
-
-	return &cr.StructFieldValidation{
-		StructField: "Monitoring",
-		StructValidation: &cr.StructValidation{
-			DefaultNil:        true,
-			AllowExplicitNull: true,
-			StructFieldValidations: []*cr.StructFieldValidation{
-				{
-					StructField:         "Key",
-					StringPtrValidation: &cr.StringPtrValidation{},
-				},
-				{
-					StructField: "ModelType",
-					StringValidation: &cr.StringValidation{
-						Required:      false,
-						AllowEmpty:    true,
-						AllowedValues: userconfig.ModelTypeStrings(),
-					},
-					Parser: func(str string) (interface{}, error) {
-						return userconfig.ModelTypeFromString(str), nil
-					},
-				},
 			},
 		},
 	}
@@ -800,6 +771,12 @@ func ValidateAPI(
 	if api.UpdateStrategy != nil { // should only be nil for local provider
 		if err := validateUpdateStrategy(api.UpdateStrategy); err != nil {
 			return errors.Wrap(err, userconfig.UpdateStrategyKey)
+		}
+	}
+
+	if api.Predictor != nil && api.Predictor.ShmSize != nil && api.Compute.Mem != nil {
+		if api.Predictor.ShmSize.Cmp(api.Compute.Mem.Quantity) > 0 {
+			return ErrorShmSizeCannotExceedMem(*api.Predictor.ShmSize, *api.Compute.Mem)
 		}
 	}
 

@@ -20,7 +20,7 @@ from pathlib import Path
 from typing import Any, Dict, Optional, Tuple, Union
 
 import datadog
-from cortex_internal.lib.api import Monitoring, Predictor
+from cortex_internal.lib.api import Predictor
 from cortex_internal.lib.exceptions import CortexException
 from cortex_internal.lib.storage import LocalStorage, S3, GCS
 from cortex_internal.lib.log import logger
@@ -49,10 +49,6 @@ class API:
         self.name = api_spec["name"]
         self.predictor = Predictor(provider, api_spec, model_dir)
 
-        self.monitoring = None
-        if self.api_spec.get("monitoring") is not None:
-            self.monitoring = Monitoring(**self.api_spec["monitoring"])
-
         if provider != "local":
             host_ip = os.environ["HOST_IP"]
             datadog.initialize(statsd_host=host_ip, statsd_port="8125")
@@ -64,24 +60,6 @@ class API:
     @property
     def server_side_batching_enabled(self):
         return self.api_spec["predictor"].get("server_side_batching") is not None
-
-    def get_cached_classes(self):
-        prefix = os.path.join(self.metadata_root, "classes") + "/"
-        class_paths, _ = self.storage.search(prefix=prefix)
-        class_set = set()
-        for class_path in class_paths:
-            encoded_class_name = class_path.split("/")[-1]
-            class_set.add(base64.urlsafe_b64decode(encoded_class_name.encode()).decode())
-        return class_set
-
-    def upload_class(self, class_name: str):
-        try:
-            ascii_encoded = class_name.encode("ascii")  # cloudwatch only supports ascii
-            encoded_class_name = base64.urlsafe_b64encode(ascii_encoded)
-            key = os.path.join(self.metadata_root, "classes", encoded_class_name.decode())
-            self.storage.put_json("", key)
-        except Exception as e:
-            raise ValueError("unable to store class {}".format(class_name)) from e
 
     def metric_dimensions_with_id(self):
         return [
@@ -103,14 +81,6 @@ class API:
                 self.status_code_metric(self.metric_dimensions_with_id(), status_code),
                 self.latency_metric(self.metric_dimensions(), total_time_ms),
                 self.latency_metric(self.metric_dimensions_with_id(), total_time_ms),
-            ]
-            self.post_metrics(metrics)
-
-    def post_monitoring_metrics(self, prediction_value=None):
-        if prediction_value is not None:
-            metrics = [
-                self.prediction_metrics(self.metric_dimensions(), prediction_value),
-                self.prediction_metrics(self.metric_dimensions_with_id(), prediction_value),
             ]
             self.post_metrics(metrics)
 
@@ -167,22 +137,6 @@ class API:
             "Dimensions": dimensions,
             "Value": total_time,  # milliseconds
         }
-
-    def prediction_metrics(self, dimensions, prediction_value):
-        if self.monitoring.model_type == "classification":
-            dimensions_with_class = dimensions + [{"Name": "Class", "Value": str(prediction_value)}]
-            return {
-                "MetricName": "Prediction",
-                "Dimensions": dimensions_with_class,
-                "Unit": "Count",
-                "Value": 1,
-            }
-        else:
-            return {
-                "MetricName": "Prediction",
-                "Dimensions": dimensions,
-                "Value": float(prediction_value),
-            }
 
 
 def get_api(
