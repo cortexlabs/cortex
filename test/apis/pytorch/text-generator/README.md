@@ -47,7 +47,7 @@ Cortex can automatically provision infrastructure on your AWS account and deploy
 $ cortex cluster up
 ```
 
-This creates a Cortex cluster in your AWS account, which will take approximately 15 minutes. After your cluster is created, you can deploy to your cluster by using the same code and configuration as before:
+This creates a Cortex cluster in your AWS account, which will take approximately 25 minutes. After your cluster is created, you can deploy to your cluster by using the same code and configuration as before:
 
 ```python
 import cortex
