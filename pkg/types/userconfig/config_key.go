@@ -21,7 +21,6 @@ const (
 	NameKey           = "name"
 	KindKey           = "kind"
 	PredictorKey      = "predictor"
-	MonitoringKey     = "monitoring"
 	NetworkingKey     = "networking"
 	ComputeKey        = "compute"
 	AutoscalingKey    = "autoscaling"
@@ -40,6 +39,7 @@ const (
 	TensorFlowServingImageKey = "tensorflow_serving_image"
 	ProcessesPerReplicaKey    = "processes_per_replica"
 	ThreadsPerProcessKey      = "threads_per_process"
+	ShmSize                   = "shm_size"
 	LogLevelKey               = "log_level"
 	ConfigKey                 = "config"
 	EnvKey                    = "env"
@@ -62,10 +62,6 @@ const (
 
 	// ModelResource
 	ModelsNameKey = "name"
-
-	// Monitoring
-	KeyKey       = "key"
-	ModelTypeKey = "model_type"
 
 	// Networking
 	APIGatewayKey = "api_gateway"

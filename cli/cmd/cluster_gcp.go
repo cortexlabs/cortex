@@ -430,53 +430,62 @@ func createGKECluster(clusterConfig *clusterconfig.GCPConfig, gcpClient *gcp.Cli
 	gkeClusterParent := fmt.Sprintf("projects/%s/locations/%s", *clusterConfig.Project, *clusterConfig.Zone)
 	gkeClusterName := fmt.Sprintf("%s/clusters/%s", gkeClusterParent, clusterConfig.ClusterName)
 
-	_, err := gcpClient.CreateCluster(&containerpb.CreateClusterRequest{
-		Parent: gkeClusterParent,
-		Cluster: &containerpb.Cluster{
-			Name:                  clusterConfig.ClusterName,
-			InitialClusterVersion: "1.17",
-			NodePools: []*containerpb.NodePool{
-				{
-					Name: "ng-cortex-operator",
-					Config: &containerpb.NodeConfig{
-						MachineType: "n1-standard-2",
-						OauthScopes: []string{
-							"https://www.googleapis.com/auth/compute",
-							"https://www.googleapis.com/auth/devstorage.read_only",
-						},
-						ServiceAccount: gcpClient.ClientEmail,
+	gkeClusterConfig := containerpb.Cluster{
+		Name:                  clusterConfig.ClusterName,
+		InitialClusterVersion: "1.17",
+		NodePools: []*containerpb.NodePool{
+			{
+				Name: "ng-cortex-operator",
+				Config: &containerpb.NodeConfig{
+					MachineType: "n1-standard-2",
+					OauthScopes: []string{
+						"https://www.googleapis.com/auth/compute",
+						"https://www.googleapis.com/auth/devstorage.read_only",
 					},
-					InitialNodeCount: 1,
+					ServiceAccount: gcpClient.ClientEmail,
 				},
-				{
-					Name: "ng-cortex-worker-on-demand",
-					Config: &containerpb.NodeConfig{
-						MachineType: *clusterConfig.InstanceType,
-						Labels:      nodeLabels,
-						Taints: []*containerpb.NodeTaint{
-							{
-								Key:    "workload",
-								Value:  "true",
-								Effect: containerpb.NodeTaint_NO_SCHEDULE,
-							},
-						},
-						Accelerators: accelerators,
-						OauthScopes: []string{
-							"https://www.googleapis.com/auth/compute",
-							"https://www.googleapis.com/auth/devstorage.read_only",
-						},
-						ServiceAccount: gcpClient.ClientEmail,
-					},
-					Autoscaling: &containerpb.NodePoolAutoscaling{
-						Enabled:      true,
-						MinNodeCount: int32(*clusterConfig.MinInstances),
-						MaxNodeCount: int32(*clusterConfig.MaxInstances),
-					},
-					InitialNodeCount: int32(*clusterConfig.MinInstances),
-				},
+				InitialNodeCount: 1,
 			},
-			Locations: []string{*clusterConfig.Zone},
+			{
+				Name: "ng-cortex-worker-on-demand",
+				Config: &containerpb.NodeConfig{
+					MachineType: *clusterConfig.InstanceType,
+					Labels:      nodeLabels,
+					Taints: []*containerpb.NodeTaint{
+						{
+							Key:    "workload",
+							Value:  "true",
+							Effect: containerpb.NodeTaint_NO_SCHEDULE,
+						},
+					},
+					Accelerators: accelerators,
+					OauthScopes: []string{
+						"https://www.googleapis.com/auth/compute",
+						"https://www.googleapis.com/auth/devstorage.read_only",
+					},
+					ServiceAccount: gcpClient.ClientEmail,
+				},
+				Autoscaling: &containerpb.NodePoolAutoscaling{
+					Enabled:      true,
+					MinNodeCount: int32(*clusterConfig.MinInstances),
+					MaxNodeCount: int32(*clusterConfig.MaxInstances),
+				},
+				InitialNodeCount: int32(*clusterConfig.MinInstances),
+			},
 		},
+		Locations: []string{*clusterConfig.Zone},
+	}
+
+	if clusterConfig.Network != nil {
+		gkeClusterConfig.Network = *clusterConfig.Network
+	}
+	if clusterConfig.Subnet != nil {
+		gkeClusterConfig.Subnetwork = *clusterConfig.Subnet
+	}
+
+	_, err := gcpClient.CreateCluster(&containerpb.CreateClusterRequest{
+		Parent:  gkeClusterParent,
+		Cluster: &gkeClusterConfig,
 	})
 	if err != nil {
 		return err

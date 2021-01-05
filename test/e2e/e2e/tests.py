@@ -75,7 +75,7 @@ def test_realtime_api(client: cx.Client, api: str, timeout: int = None):
 def test_batch_api(
     client: cx.Client,
     api: str,
-    test_bucket: str,
+    test_s3_path: str,
     deploy_timeout: int = None,
     job_timeout: int = None,
     retry_attempts: int = 0,
@@ -103,7 +103,7 @@ def test_batch_api(
                 api_name,
                 item_list=payload,
                 batch_size=2,
-                config={"dest_s3_dir": test_bucket},
+                config={"dest_s3_dir": test_s3_path},
             )
             if response.status_code == HTTPStatus.OK:
                 break
