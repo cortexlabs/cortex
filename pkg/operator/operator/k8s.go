@@ -979,15 +979,11 @@ func APIEndpoint(api *spec.API) (string, error) {
 	var err error
 	baseAPIEndpoint := ""
 
-	if config.Provider == types.AWSProviderType && api.Networking.APIGateway == userconfig.PublicAPIGatewayType && config.Cluster.APIGateway != nil {
-		baseAPIEndpoint = *config.Cluster.APIGateway.ApiEndpoint
-	} else {
-		baseAPIEndpoint, err = APILoadBalancerURL()
-		if err != nil {
-			return "", err
-		}
-		baseAPIEndpoint = strings.Replace(baseAPIEndpoint, "https://", "http://", 1)
+	baseAPIEndpoint, err = APILoadBalancerURL()
+	if err != nil {
+		return "", err
 	}
+	baseAPIEndpoint = strings.Replace(baseAPIEndpoint, "https://", "http://", 1)
 
 	return urls.Join(baseAPIEndpoint, *api.Networking.Endpoint), nil
 }

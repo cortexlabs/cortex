@@ -56,7 +56,7 @@ def get_links_from_file(file):
     with open(file) as f:
         for line in f:
             for link in re.findall(r"\]\((.+?)\)", line):
-                if link.startswith("http"):
+                if is_external_link(link):
                     link_infos.append((file, n, link, None, None))
                     continue
                 if link.startswith("#"):
@@ -87,7 +87,7 @@ def check_links(link_infos):
 
     for link_info in link_infos:
         src_file, line_num, original_link_text, target_file, header = link_info
-        if original_link_text.startswith("http"):
+        if is_external_link(original_link_text):
             http_link_infos.append(link_info)
             continue
 
@@ -172,6 +172,10 @@ def header_matches(text, header):
 def err_str(src_file, line_num, original_link_text, reason):
     clean_src_file = src_file.split("cortexlabs/cortex/")[-1]
     return f"{clean_src_file}:{line_num}: {original_link_text} ({reason})"
+
+
+def is_external_link(link):
+    return link.startswith("http://") or link.startswith("https://")
 
 
 if __name__ == "__main__":

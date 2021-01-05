@@ -68,7 +68,7 @@ xargs -0 -L1 bash -c 'test "$(tail -c 1 "$0")" && echo "" >> "$0"' || true)
 ! -path "./.git/*" \
 ! -name ".*" \
 -print0 | \
-xargs -0 -L1 bash -c 'test "$(tail -c 2 "$0")" || (trimmed=$(printf "%s" "$(< $0)") && echo "$trimmed" > "$0")' || true)
+xargs -0 -L1 bash -c 'test "$(tail -c 2 "$0")" || [ ! -s "$0" ] || (trimmed=$(printf "%s" "$(< $0)") && echo "$trimmed" > "$0")' || true)
 
 # Remove new lines at beginning of file
 (cd "$ROOT" && find . -type f \
@@ -77,4 +77,4 @@ xargs -0 -L1 bash -c 'test "$(tail -c 2 "$0")" || (trimmed=$(printf "%s" "$(< $0
 ! -path "./.git/*" \
 ! -name ".*" \
 -print0 | \
-xargs -0 -L1 bash -c 'test "$(head -c 1 "$0")" || (trimmed=$(sed '"'"'/./,$!d'"'"' "$0") && echo "$trimmed" > "$0")' || true)
+xargs -0 -L1 bash -c 'test "$(head -c 1 "$0")" || [ ! -s "$0" ] || (trimmed=$(sed '"'"'/./,$!d'"'"' "$0") && echo "$trimmed" > "$0")' || true)

@@ -35,7 +35,6 @@ const (
 	ErrJobIDRequired                    = "resources.job_id_required"
 	ErrRealtimeAPIUsedByTrafficSplitter = "resources.realtime_api_used_by_traffic_splitter"
 	ErrAPIsNotDeployed                  = "resources.apis_not_deployed"
-	ErrAPIGatewayDisabled               = "resources.api_gateway_disabled"
 )
 
 func ErrorOperationIsOnlySupportedForKind(resource operator.DeployedResource, supportedKind userconfig.Kind, supportedKinds ...userconfig.Kind) error {
@@ -99,12 +98,5 @@ func ErrorAPIsNotDeployed(notDeployedAPIs []string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrAPIsNotDeployed,
 		Message: message,
-	})
-}
-
-func ErrorAPIGatewayDisabled(apiGatewayType userconfig.APIGatewayType) error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrAPIGatewayDisabled,
-		Message: fmt.Sprintf("%s is not permitted because api gateway is disabled cluster-wide (valid values are %s)", s.UserStr(apiGatewayType), s.UserStrsAnd(userconfig.APIGatewayTypeStrings())),
 	})
 }

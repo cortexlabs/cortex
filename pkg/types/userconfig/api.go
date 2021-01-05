@@ -88,8 +88,7 @@ type ServerSideBatching struct {
 }
 
 type Networking struct {
-	Endpoint   *string        `json:"endpoint" yaml:"endpoint"`
-	APIGateway APIGatewayType `json:"api_gateway" yaml:"api_gateway"`
+	Endpoint *string `json:"endpoint" yaml:"endpoint"`
 }
 
 type Compute struct {
@@ -200,7 +199,6 @@ func (api *API) ToK8sAnnotations() map[string]string {
 
 	if api.Networking != nil {
 		annotations[EndpointAnnotationKey] = *api.Networking.Endpoint
-		annotations[APIGatewayAnnotationKey] = api.Networking.APIGateway.String()
 	}
 
 	if api.Autoscaling != nil {
@@ -217,14 +215,6 @@ func (api *API) ToK8sAnnotations() map[string]string {
 		annotations[UpscaleToleranceAnnotationKey] = s.Float64(api.Autoscaling.UpscaleTolerance)
 	}
 	return annotations
-}
-
-func APIGatewayFromAnnotations(k8sObj kmeta.Object) (APIGatewayType, error) {
-	apiGatewayType := APIGatewayTypeFromString(k8sObj.GetAnnotations()[APIGatewayAnnotationKey])
-	if apiGatewayType == UnknownAPIGatewayType {
-		return UnknownAPIGatewayType, ErrorUnknownAPIGatewayType()
-	}
-	return apiGatewayType, nil
 }
 
 func AutoscalingFromAnnotations(k8sObj kmeta.Object) (*Autoscaling, error) {
@@ -445,9 +435,6 @@ func (networking *Networking) UserStr(provider types.ProviderType) string {
 	if networking.Endpoint != nil {
 		sb.WriteString(fmt.Sprintf("%s: %s\n", EndpointKey, *networking.Endpoint))
 	}
-	if provider == types.AWSProviderType {
-		sb.WriteString(fmt.Sprintf("%s: %s\n", APIGatewayKey, networking.APIGateway))
-	}
 	return sb.String()
 }
 
@@ -571,7 +558,6 @@ func (api *API) TelemetryEvent(provider types.ProviderType) map[string]interface
 
 	if api.Networking != nil {
 		event["networking._is_defined"] = true
-		event["networking.api_gateway"] = api.Networking.APIGateway
 		if api.Networking.Endpoint != nil {
 			event["networking.endpoint._is_defined"] = true
 			if urls.CanonicalizeEndpoint(api.Name) != *api.Networking.Endpoint {

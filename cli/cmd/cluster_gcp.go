@@ -126,10 +126,6 @@ var _clusterGCPUpCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
-		if !_flagClusterGCPDisallowPrompt {
-			promptForEmail()
-		}
-
 		accessConfig, err := getNewGCPClusterAccessConfig(_flagClusterGCPDisallowPrompt)
 		if err != nil {
 			exit.Error(err)
