@@ -62,6 +62,16 @@ api_load_balancer_scheme: internet-facing
 # note: if using "internal", you must configure VPC Peering to connect your CLI to your cluster operator
 operator_load_balancer_scheme: internet-facing
 
+# to install Cortex in an existing VPC, you can provide a list of subnets for your cluster to use
+# subnet_visibility (specified above in this file) must match your subnets' visibility
+# this is an advanced feature (not recommended for first-time users) and requires your VPC to be configured correctly; see https://eksctl.io/usage/vpc-networking/#use-existing-vpc-other-custom-configuration
+# here is an example:
+# subnets:
+#   - availability_zone: us-west-2a
+#     subnet_id: subnet-060f3961c876872ae
+#   - availability_zone: us-west-2b
+#     subnet_id: subnet-0faed05adf6042ab7
+
 # additional tags to assign to AWS resources (all resources will automatically be tagged with cortex.dev/cluster-name: <cluster_name>)
 tags:  # <string>: <string> map of key/value pairs
 
