@@ -93,14 +93,14 @@ func ErrorCommandNotSupportedForKind(kind userconfig.Kind, command string) error
 func ErrorNoAvailableEnvironment() error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrNoAvailableEnvironment,
-		Message: "no environments are configured; run `cortex cluster up`/`cortex cluster-gcp up` to create one while spinning up a cluster or `cortex env configure` to configure one for an existing cluster",
+		Message: "no environments are configured; run `cortex cluster up` or `cortex cluster-gcp up` to create a cluster, or run `cortex env configure` to connect to an existing cluster",
 	})
 }
 
 func ErrorEnvironmentNotSet() error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrEnvironmentNotSet,
-		Message: "no default environment could be found and no environment was provided; run `cortex env default` to configure a default environment, or pass the environment name by using the `-e/--environment` flag",
+		Message: "no environment was provided and the default environment is not set; specify the environment to use via the `-e/--env` flag, or run `cortex env default` to set the default environment",
 	})
 }
 
