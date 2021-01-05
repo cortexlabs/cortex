@@ -103,6 +103,31 @@ var _cliConfigValidation = &cr.StructValidation{
 	},
 }
 
+func getEnvFromFlag(envFlag string) (string, error) {
+	if envFlag != "" {
+		return envFlag, nil
+	}
+
+	defaultEnv, err := getDefaultEnv()
+	if err != nil {
+		return "", err
+	}
+
+	if defaultEnv != nil && *defaultEnv != "" {
+		return *defaultEnv, nil
+	}
+
+	envs, err := listConfiguredEnvs()
+	if err != nil {
+		return "", err
+	}
+	if len(envs) == 0 {
+		return "", ErrorNoAvailableEnvironment()
+	}
+
+	return "", ErrorEnvironmentNotSet()
+}
+
 func promptForExistingEnvName(promptMsg string) string {
 	configuredEnvNames, err := listConfiguredEnvNames()
 	if err != nil {

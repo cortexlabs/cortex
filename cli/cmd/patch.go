@@ -46,27 +46,10 @@ var _patchCmd = &cobra.Command{
 	Short: "update API configuration for a deployed API",
 	Args:  cobra.RangeArgs(0, 1),
 	Run: func(cmd *cobra.Command, args []string) {
-		var envName string
-		if _flagPatchEnv == "" {
-			defaultEnv, err := getDefaultEnv()
-			if err != nil {
-				telemetry.Event("cli.patch")
-				exit.Error(err)
-			}
-			if defaultEnv == nil {
-				envs, err := listConfiguredEnvs()
-				telemetry.Event("cli.patch")
-				if err != nil {
-					exit.Error(err)
-				}
-				if len(envs) == 0 {
-					exit.Error(ErrorNoAvailableEnvironment())
-				}
-				exit.Error(ErrorEnvironmentNotSet())
-			}
-			envName = *defaultEnv
-		} else {
-			envName = _flagPatchEnv
+		envName, err := getEnvFromFlag(_flagPatchEnv)
+		if err != nil {
+			telemetry.Event("cli.patch")
+			exit.Error(err)
 		}
 
 		env, err := ReadOrConfigureEnv(envName)

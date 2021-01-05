@@ -66,27 +66,10 @@ var _deployCmd = &cobra.Command{
 	Short: "create or update apis",
 	Args:  cobra.RangeArgs(0, 1),
 	Run: func(cmd *cobra.Command, args []string) {
-		var envName string
-		if _flagDeployEnv == "" {
-			defaultEnv, err := getDefaultEnv()
-			if err != nil {
-				telemetry.Event("cli.deploy")
-				exit.Error(err)
-			}
-			if defaultEnv == nil {
-				envs, err := listConfiguredEnvs()
-				telemetry.Event("cli.deploy")
-				if err != nil {
-					exit.Error(err)
-				}
-				if len(envs) == 0 {
-					exit.Error(ErrorNoAvailableEnvironment())
-				}
-				exit.Error(ErrorEnvironmentNotSet())
-			}
-			envName = *defaultEnv
-		} else {
-			envName = _flagDeployEnv
+		envName, err := getEnvFromFlag(_flagDeployEnv)
+		if err != nil {
+			telemetry.Event("cli.deploy")
+			exit.Error(err)
 		}
 
 		env, err := ReadOrConfigureEnv(envName)

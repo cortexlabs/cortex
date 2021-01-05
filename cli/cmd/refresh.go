@@ -46,27 +46,10 @@ var _refreshCmd = &cobra.Command{
 	Short: "restart all replicas for an api (without downtime)",
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		var envName string
-		if _flagRefreshEnv == "" {
-			defaultEnv, err := getDefaultEnv()
-			if err != nil {
-				telemetry.Event("cli.refresh")
-				exit.Error(err)
-			}
-			if defaultEnv == nil {
-				envs, err := listConfiguredEnvs()
-				telemetry.Event("cli.refresh")
-				if err != nil {
-					exit.Error(err)
-				}
-				if len(envs) == 0 {
-					exit.Error(ErrorNoAvailableEnvironment())
-				}
-				exit.Error(ErrorEnvironmentNotSet())
-			}
-			envName = *defaultEnv
-		} else {
-			envName = _flagRefreshEnv
+		envName, err := getEnvFromFlag(_flagRefreshEnv)
+		if err != nil {
+			telemetry.Event("cli.refresh")
+			exit.Error(err)
 		}
 
 		env, err := ReadOrConfigureEnv(envName)

@@ -38,27 +38,10 @@ var _versionCmd = &cobra.Command{
 	Short: "print the cli and cluster versions",
 	Args:  cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
-		var envName string
-		if _flagVersionEnv == "" {
-			defaultEnv, err := getDefaultEnv()
-			if err != nil {
-				telemetry.Event("cli.version")
-				exit.Error(err)
-			}
-			if defaultEnv == nil {
-				envs, err := listConfiguredEnvs()
-				telemetry.Event("cli.version")
-				if err != nil {
-					exit.Error(err)
-				}
-				if len(envs) == 0 {
-					exit.Error(ErrorNoAvailableEnvironment())
-				}
-				exit.Error(ErrorEnvironmentNotSet())
-			}
-			envName = *defaultEnv
-		} else {
-			envName = _flagVersionEnv
+		envName, err := getEnvFromFlag(_flagVersionEnv)
+		if err != nil {
+			telemetry.Event("cli.version")
+			exit.Error(err)
 		}
 
 		env, err := ReadOrConfigureEnv(envName)

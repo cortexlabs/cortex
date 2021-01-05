@@ -45,27 +45,10 @@ var _predictCmd = &cobra.Command{
 	Short: "make a prediction request using a json file",
 	Args:  cobra.ExactArgs(2),
 	Run: func(cmd *cobra.Command, args []string) {
-		var envName string
-		if _flagPredictEnv == "" {
-			defaultEnv, err := getDefaultEnv()
-			if err != nil {
-				telemetry.Event("cli.predict")
-				exit.Error(err)
-			}
-			if defaultEnv == nil {
-				envs, err := listConfiguredEnvs()
-				telemetry.Event("cli.predict")
-				if err != nil {
-					exit.Error(err)
-				}
-				if len(envs) == 0 {
-					exit.Error(ErrorNoAvailableEnvironment())
-				}
-				exit.Error(ErrorEnvironmentNotSet())
-			}
-			envName = *defaultEnv
-		} else {
-			envName = _flagPredictEnv
+		envName, err := getEnvFromFlag(_flagPredictEnv)
+		if err != nil {
+			telemetry.Event("cli.predict")
+			exit.Error(err)
 		}
 
 		env, err := ReadOrConfigureEnv(envName)

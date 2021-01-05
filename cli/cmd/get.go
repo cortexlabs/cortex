@@ -76,23 +76,12 @@ var _getCmd = &cobra.Command{
 		if wasEnvFlagProvided(cmd) {
 			envName = _flagGetEnv
 		} else if len(args) > 0 {
-			defaultEnv, err := getDefaultEnv()
+			var err error
+			envName, err = getEnvFromFlag("")
 			if err != nil {
 				telemetry.Event("cli.get")
 				exit.Error(err)
 			}
-			if defaultEnv == nil {
-				envs, err := listConfiguredEnvs()
-				telemetry.Event("cli.get")
-				if err != nil {
-					exit.Error(err)
-				}
-				if len(envs) == 0 {
-					exit.Error(ErrorNoAvailableEnvironment())
-				}
-				exit.Error(ErrorEnvironmentNotSet())
-			}
-			envName = *defaultEnv
 		}
 
 		// if API_NAME is specified or env name is provided then the provider is known, otherwise provider isn't because all apis from all environments will be fetched
