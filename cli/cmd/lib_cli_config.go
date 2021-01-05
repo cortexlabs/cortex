@@ -113,7 +113,7 @@ func getEnvFromFlag(envFlag string) (string, error) {
 		return "", err
 	}
 
-	if defaultEnv != nil && *defaultEnv != "" {
+	if defaultEnv != nil {
 		return *defaultEnv, nil
 	}
 
@@ -401,23 +401,25 @@ func validateOperatorEndpoint(endpoint string) (string, error) {
 }
 
 func getDefaultEnv() (*string, error) {
-	var defaultEnv *string
-
-	if cliConfig, err := readCLIConfig(); err == nil {
-		if cliConfig.DefaultEnvironment == nil {
-			if len(cliConfig.Environments) == 1 {
-				defaultEnv = &cliConfig.Environments[0].Name
-				err := setDefaultEnv(*defaultEnv)
-				if err != nil {
-					return nil, err
-				}
-			}
-		} else {
-			defaultEnv = cliConfig.DefaultEnvironment
-		}
+	cliConfig, err := readCLIConfig()
+	if err != nil {
+		return nil, err
 	}
 
-	return defaultEnv, nil
+	if cliConfig.DefaultEnvironment != nil {
+		return cliConfig.DefaultEnvironment, nil
+	}
+
+	if len(cliConfig.Environments) == 1 {
+		defaultEnv := cliConfig.Environments[0].Name
+		err := setDefaultEnv(defaultEnv)
+		if err != nil {
+			return nil, err
+		}
+		return &defaultEnv, nil
+	}
+
+	return nil, nil
 }
 
 func setDefaultEnv(envName string) error {
@@ -493,7 +495,7 @@ func ReadOrConfigureEnv(envName string) (cliconfig.Environment, error) {
 
 	promptStr := fmt.Sprintf("the %s environment is not configured; do you already have a Cortex cluster running?", envName)
 	yesMsg := fmt.Sprintf("please configure the %s environment to point to your running cluster:\n", envName)
-	noMsg := "you can create a cluster on AWS/GCP by running the `cortex cluster up` or `cortex cluster-gcp up` command respectively"
+	noMsg := "you can create a cluster on AWS or GCP by running the `cortex cluster up` or `cortex cluster-gcp up` command"
 	prompt.YesOrExit(promptStr, yesMsg, noMsg)
 
 	env, err := configureEnv(envName, cliconfig.Environment{})

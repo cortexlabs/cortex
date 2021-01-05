@@ -71,7 +71,6 @@ var _getCmd = &cobra.Command{
 	Short: "get information about apis or jobs",
 	Args:  cobra.RangeArgs(0, 2),
 	Run: func(cmd *cobra.Command, args []string) {
-
 		var envName string
 		if wasEnvFlagProvided(cmd) {
 			envName = _flagGetEnv
