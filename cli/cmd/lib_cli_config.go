@@ -32,6 +32,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/print"
 	"github.com/cortexlabs/cortex/pkg/lib/prompt"
+	"github.com/cortexlabs/cortex/pkg/lib/slices"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/urls"
 	"github.com/cortexlabs/cortex/pkg/types"
@@ -70,8 +71,16 @@ var _cliConfigValidation = &cr.StructValidation{
 						{
 							StructField: "Provider",
 							StringValidation: &cr.StringValidation{
-								Required:      true,
-								AllowedValues: types.ProviderTypeStrings(),
+								Required: true,
+								Validator: func(provider string) (string, error) {
+									if slices.HasString(types.ProviderTypeStrings(), provider) {
+										return provider, nil
+									}
+									if provider == "local" {
+										return "", ErrorInvalidLegacyProvider(provider, _cliConfigPath)
+									}
+									return "", ErrorInvalidProvider(provider)
+								},
 							},
 							Parser: func(str string) (interface{}, error) {
 								return types.ProviderTypeFromString(str), nil

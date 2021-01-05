@@ -42,6 +42,7 @@ func errStrFailedToConnect(u url.URL) string {
 
 const (
 	ErrInvalidProvider                         = "cli.invalid_provider"
+	ErrInvalidLegacyProvider                   = "cli.invalid_legacy_provider"
 	ErrCommandNotSupportedForKind              = "cli.command_not_supported_for_kind"
 	ErrNoAvailableEnvironment                  = "cli.no_available_environment"
 	ErrEnvironmentNotSet                       = "cli.environment_not_set"
@@ -80,6 +81,13 @@ func ErrorInvalidProvider(providerStr string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrInvalidProvider,
 		Message: fmt.Sprintf("%s is not a valid provider (%s are supported)", providerStr, s.UserStrsAnd(types.ProviderTypeStrings())),
+	})
+}
+
+func ErrorInvalidLegacyProvider(providerStr, cliConfig string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrInvalidLegacyProvider,
+		Message: fmt.Sprintf("%s is a legacy provider that is no longer supported on %s; remove the enviroments of %s type from %s or delete %s entirely", providerStr, consts.CortexVersionMinor, providerStr, cliConfig, cliConfig),
 	})
 }
 
