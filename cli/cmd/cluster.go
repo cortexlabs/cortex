@@ -164,10 +164,6 @@ var _clusterUpCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
-		if !_flagClusterDisallowPrompt {
-			promptForEmail()
-		}
-
 		if _flagClusterConfig != "" {
 			// Deprecation: specifying aws creds in cluster configuration is no longer supported
 			if err := detectAWSCredsInConfigFile(cmd.Use, _flagClusterConfig); err != nil {
