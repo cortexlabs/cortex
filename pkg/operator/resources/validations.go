@@ -70,11 +70,6 @@ func (projectFiles ProjectFiles) HasDir(path string) bool {
 	return false
 }
 
-// This should not be called, since it's only relevant for the local environment
-func (projectFiles ProjectFiles) ProjectDir() string {
-	return "./"
-}
-
 func ValidateClusterAPIs(apis []userconfig.API, projectFiles spec.ProjectFiles) error {
 	if len(apis) == 0 {
 		return spec.ErrorNoAPIs()
