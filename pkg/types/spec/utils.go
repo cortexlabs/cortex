@@ -104,7 +104,6 @@ func generateErrorForPredictorTypeFn(api *userconfig.API) errorForPredictorTypeF
 func validateDirModels(
 	modelPath string,
 	signatureKey *string,
-	projectDir string,
 	awsClient *aws.Client,
 	gcpClient *gcp.Client,
 	errorForPredictorType errorForPredictorTypeFn,
@@ -224,7 +223,6 @@ func validateDirModels(
 func validateModels(
 	models []userconfig.ModelResource,
 	defaultSignatureKey *string,
-	projectDir string,
 	awsClient *aws.Client,
 	gcpClient *gcp.Client,
 	errorForPredictorType errorForPredictorTypeFn,

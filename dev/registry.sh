@@ -31,7 +31,7 @@ GCP_PROJECT_ID=${GCP_PROJECT_ID:-}
 AWS_ACCOUNT_ID=${AWS_ACCOUNT_ID:-}
 AWS_REGION=${AWS_REGION:-}
 
-provider="local"
+provider="undefined"
 include_slim="false"
 positional_args=()
 while [[ $# -gt 0 ]]; do
@@ -142,18 +142,16 @@ function cache_builder() {
 }
 
 function push() {
-  if [ "$provider" = "local" ]; then
-    return
-  fi
-
   registry_login
 
   local image=$1
   local tag=$2
 
-  blue_echo "Pushing $image:$tag..."
-  docker push $registry_push_url/cortexlabs/$image:$tag
-  green_echo "Pushed $image:$tag\n"
+  if [ "$provider" != "undefined" ]; then
+    blue_echo "Pushing $image:$tag..."
+    docker push $registry_push_url/cortexlabs/$image:$tag
+    green_echo "Pushed $image:$tag\n"
+  fi
 }
 
 function build_and_push() {
@@ -163,7 +161,9 @@ function build_and_push() {
   set -euo pipefail  # necessary since this is called in a new shell by parallel
 
   build $image $tag
-  push $image $tag
+  if [ "$provider" != "undefined" ]; then
+    push $image $tag
+  fi
 }
 
 function cleanup_local() {
@@ -215,21 +215,19 @@ export -f registry_login
 # validate environment is correctly set on env.sh
 validate_env "$provider"
 
-# usage: registry.sh clean --provider aws|gcp|local
+# usage: registry.sh clean --provider aws|gcp
 if [ "$cmd" = "clean" ]; then
   if [ "$provider" = "aws" ]; then
     cleanup_ecr
-  elif [ "$provider" = "local" ]; then
-    cleanup_local
   fi
 
-# usage: registry.sh create --provider/-p aws|gcp|local
+# usage: registry.sh create --provider/-p aws|gcp
 elif [ "$cmd" = "create" ]; then
   if [ "$provider" = "aws" ]; then
     create_aws_registry
   fi
 
-# usage: registry.sh update-single IMAGE --provider/-p aws|gcp|local
+# usage: registry.sh update-single IMAGE --provider/-p aws|gcp
 elif [ "$cmd" = "update-single" ]; then
   image=$sub_cmd
   if [ "$image" = "operator" ] || [ "$image" = "request-monitor" ]; then
@@ -248,6 +246,8 @@ elif [ "$cmd" = "update" ]; then
       images_to_build+=( "${non_dev_images_aws[@]}" )
     elif [ "$provider" == "gcp" ]; then
       images_to_build+=( "${non_dev_images_gcp[@]}" )
+    elif [ "$provider" == "undefined" ]; then
+      images_to_build+=( "${non_dev_images_aws[@]}" "${non_dev_images_gcp[@]}" )
     fi
   fi
 
@@ -257,6 +257,8 @@ elif [ "$cmd" = "update" ]; then
       images_to_build+=( "${dev_images_aws[@]}" )
     elif [ "$provider" == "gcp" ]; then
       images_to_build+=( "${dev_images_gcp[@]}" )
+    elif [ "$provider" == "undefined" ]; then
+      images_to_build+=( "${dev_images_aws[@]}" "${dev_images_aws[@]}" )
     fi
   fi
 
@@ -265,6 +267,8 @@ elif [ "$cmd" = "update" ]; then
     images_to_build+=( "${api_images_aws[@]}" )
   elif [ "$provider" == "gcp" ]; then
     images_to_build+=( "${api_images_gcp[@]}" )
+  elif [ "$provider" == "undefined" ]; then
+    images_to_build+=( "${api_images_aws[@]}" "${api_images_gcp[@]}" )
   fi
 
   if [ "$include_slim" == "true" ]; then
@@ -273,6 +277,8 @@ elif [ "$cmd" = "update" ]; then
       images_to_build+=( "${api_slim_images_aws[@]}" )
     elif [ "$provider" == "gcp" ]; then
       images_to_build+=( "${api_slim_images_gcp[@]}" )
+    elif [ "$provider" == "undefined" ]; then
+      images_to_build+=( "${api_slim_images_aws[@]}" "${api_slim_images_gcp[@]}" )
     fi
   fi
 

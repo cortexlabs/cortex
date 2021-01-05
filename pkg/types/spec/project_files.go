@@ -25,6 +25,4 @@ type ProjectFiles interface {
 	HasFile(string) bool
 	// Return whether the project contains a directory path (relative to the project root)
 	HasDir(string) bool
-	// Return the absolute path to the root of the project directory (should only be used in local environment)
-	ProjectDir() string
 }

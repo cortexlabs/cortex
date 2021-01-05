@@ -19,7 +19,6 @@ package spec
 import (
 	"context"
 	"fmt"
-	"math"
 	"strings"
 	"time"
 
@@ -252,31 +251,18 @@ func networkingValidation(
 	awsClusterConfig *clusterconfig.Config,
 	gcpClusterConfig *clusterconfig.GCPConfig,
 ) *cr.StructFieldValidation {
-
-	structFieldValidation := []*cr.StructFieldValidation{
-		{
-			StructField: "Endpoint",
-			StringPtrValidation: &cr.StringPtrValidation{
-				Validator: urls.ValidateEndpoint,
-				MaxLength: 1000, // no particular reason other than it works
-			},
-		},
-	}
-
-	if kind == userconfig.RealtimeAPIKind {
-		structFieldValidation = append(structFieldValidation, &cr.StructFieldValidation{
-			StructField: "LocalPort",
-			IntPtrValidation: &cr.IntPtrValidation{
-				GreaterThan:       pointer.Int(0),
-				LessThanOrEqualTo: pointer.Int(math.MaxUint16),
-			},
-		})
-	}
-
 	return &cr.StructFieldValidation{
 		StructField: "Networking",
 		StructValidation: &cr.StructValidation{
-			StructFieldValidations: structFieldValidation,
+			StructFieldValidations: []*cr.StructFieldValidation{
+				{
+					StructField: "Endpoint",
+					StringPtrValidation: &cr.StringPtrValidation{
+						Validator: urls.ValidateEndpoint,
+						MaxLength: 1000, // no particular reason other than it works
+					},
+				},
+			},
 		},
 	}
 }
@@ -1007,9 +993,9 @@ func validatePythonPredictor(api *userconfig.API, models *[]CuratedModelResource
 
 	var err error
 	if hasMultiModels && mmr.Dir != nil {
-		*models, err = validateDirModels(*mmr.Dir, nil, projectFiles.ProjectDir(), awsClient, gcpClient, generateErrorForPredictorTypeFn(api), nil)
+		*models, err = validateDirModels(*mmr.Dir, nil, awsClient, gcpClient, generateErrorForPredictorTypeFn(api), nil)
 	} else {
-		*models, err = validateModels(modelResources, nil, projectFiles.ProjectDir(), awsClient, gcpClient, generateErrorForPredictorTypeFn(api), nil)
+		*models, err = validateModels(modelResources, nil, awsClient, gcpClient, generateErrorForPredictorTypeFn(api), nil)
 	}
 	if err != nil {
 		return modelWrapError(err)
@@ -1096,9 +1082,9 @@ func validateTensorFlowPredictor(api *userconfig.API, models *[]CuratedModelReso
 
 	var err error
 	if hasMultiModels && predictor.Models.Dir != nil {
-		*models, err = validateDirModels(*predictor.Models.Dir, predictor.Models.SignatureKey, projectFiles.ProjectDir(), awsClient, gcpClient, generateErrorForPredictorTypeFn(api), validators)
+		*models, err = validateDirModels(*predictor.Models.Dir, predictor.Models.SignatureKey, awsClient, gcpClient, generateErrorForPredictorTypeFn(api), validators)
 	} else {
-		*models, err = validateModels(modelResources, predictor.Models.SignatureKey, projectFiles.ProjectDir(), awsClient, gcpClient, generateErrorForPredictorTypeFn(api), validators)
+		*models, err = validateModels(modelResources, predictor.Models.SignatureKey, awsClient, gcpClient, generateErrorForPredictorTypeFn(api), validators)
 	}
 	if err != nil {
 		return modelWrapError(err)
@@ -1153,7 +1139,7 @@ func validateONNXPredictor(api *userconfig.API, models *[]CuratedModelResource, 
 		}
 
 		if strings.HasSuffix(*predictor.Models.Path, ".onnx") {
-			if err := validateONNXModelFilePath(*predictor.Models.Path, projectFiles.ProjectDir(), awsClient, gcpClient); err != nil {
+			if err := validateONNXModelFilePath(*predictor.Models.Path, awsClient, gcpClient); err != nil {
 				return modelWrapError(err)
 			}
 			modelFileResources = append(modelFileResources, modelResource)
@@ -1178,7 +1164,7 @@ func validateONNXPredictor(api *userconfig.API, models *[]CuratedModelResource, 
 					)
 				}
 				if strings.HasSuffix((*path).Path, ".onnx") {
-					if err := validateONNXModelFilePath((*path).Path, projectFiles.ProjectDir(), awsClient, gcpClient); err != nil {
+					if err := validateONNXModelFilePath((*path).Path, awsClient, gcpClient); err != nil {
 						return errors.Wrap(modelWrapError(err), path.Name)
 					}
 					modelFileResources = append(modelFileResources, *path)
@@ -1200,9 +1186,9 @@ func validateONNXPredictor(api *userconfig.API, models *[]CuratedModelResource, 
 
 	var err error
 	if hasMultiModels && predictor.Models.Dir != nil {
-		*models, err = validateDirModels(*predictor.Models.Dir, nil, projectFiles.ProjectDir(), awsClient, gcpClient, generateErrorForPredictorTypeFn(api), validators)
+		*models, err = validateDirModels(*predictor.Models.Dir, nil, awsClient, gcpClient, generateErrorForPredictorTypeFn(api), validators)
 	} else {
-		*models, err = validateModels(modelResources, nil, projectFiles.ProjectDir(), awsClient, gcpClient, generateErrorForPredictorTypeFn(api), validators)
+		*models, err = validateModels(modelResources, nil, awsClient, gcpClient, generateErrorForPredictorTypeFn(api), validators)
 	}
 	if err != nil {
 		return modelWrapError(err)
@@ -1238,7 +1224,7 @@ func validateONNXPredictor(api *userconfig.API, models *[]CuratedModelResource, 
 	return nil
 }
 
-func validateONNXModelFilePath(modelPath string, projectDir string, awsClient *aws.Client, gcpClient *gcp.Client) error {
+func validateONNXModelFilePath(modelPath string, awsClient *aws.Client, gcpClient *gcp.Client) error {
 	s3Path := strings.HasPrefix(modelPath, "s3://")
 	gcsPath := strings.HasPrefix(modelPath, "gs://")
 
@@ -1381,10 +1367,6 @@ func validateDockerImagePath(
 	dockerAuthStr := docker.NoAuth
 
 	if regex.IsValidECRURL(image) {
-		if awsClient.IsAnonymous {
-			return errors.Wrap(ErrorCannotAccessECRWithAnonymousAWSCreds(), image)
-		}
-
 		ecrRegion := aws.GetRegionFromECRURL(image)
 		if ecrRegion != awsClient.Region {
 			return ErrorRegistryInDifferentRegion(ecrRegion, awsClient.Region)

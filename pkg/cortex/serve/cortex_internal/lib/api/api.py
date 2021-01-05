@@ -22,7 +22,7 @@ from typing import Any, Dict, Optional, Tuple, Union
 import datadog
 from cortex_internal.lib.api import Predictor
 from cortex_internal.lib.exceptions import CortexException
-from cortex_internal.lib.storage import LocalStorage, S3, GCS
+from cortex_internal.lib.storage import S3, GCS
 from cortex_internal.lib.log import logger
 
 
@@ -30,7 +30,7 @@ class API:
     def __init__(
         self,
         provider: str,
-        storage: Union[LocalStorage, S3, GCS],
+        storage: Union[S3, GCS],
         api_spec: Dict[str, Any],
         model_dir: str,
         cache_dir: str = ".",
@@ -136,18 +136,16 @@ def get_spec(
     spec_path: str,
     cache_dir: str,
     region: Optional[str] = None,
-) -> Tuple[Union[LocalStorage, S3, GCS], dict]:
+) -> Tuple[Union[S3, GCS], dict]:
     """
     Args:
-        provider: "local", "aws" or "gcp".
+        provider: "aws" or "gcp".
         spec_path: Path to API spec (i.e. "s3://cortex-dev-0/apis/iris-classifier/api/69b93378fa5c0218-jy1fjtyihu-9fcc10739e7fc8050cefa8ca27ece1ee/master-spec.json").
         cache_dir: Local directory where the API spec gets saved to.
         region: Region of the bucket. Only required for "S3" provider.
     """
 
-    if provider == "local":
-        storage = LocalStorage(cache_dir)
-    elif provider == "aws":
+    if provider == "aws":
         bucket, key = S3.deconstruct_s3_path(spec_path)
         storage = S3(bucket=bucket, region=region)
     elif provider == "gcp":
@@ -155,9 +153,6 @@ def get_spec(
         storage = GCS(bucket=bucket)
     else:
         raise ValueError('invalid "provider" argument')
-
-    if provider == "local":
-        return storage, read_json(spec_path)
 
     local_spec_path = os.path.join(cache_dir, "api_spec.json")
     if not os.path.isfile(local_spec_path):
