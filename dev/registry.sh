@@ -237,49 +237,41 @@ elif [ "$cmd" = "update-single" ]; then
   fi
   build_and_push $image latest
 
-# usage: registry.sh update all|dev|api --provider/-p aws|gcp|local [--include-slim]
+# usage: registry.sh update all|dev|api --provider/-p aws|gcp [--include-slim]
 # if parallel utility is installed, the docker build commands will be parallelized
 elif [ "$cmd" = "update" ]; then
   images_to_build=()
 
   if [ "$sub_cmd" == "all" ]; then
-    images_to_build+=( "${non_dev_images_local[@]}" )
+    images_to_build+=( "${non_dev_images_cluster[@]}" )
     if [ "$provider" == "aws" ]; then
-      images_to_build+=( "${non_dev_images_cluster[@]}" )
       images_to_build+=( "${non_dev_images_aws[@]}" )
     elif [ "$provider" == "gcp" ]; then
-      images_to_build+=( "${non_dev_images_cluster[@]}" )
       images_to_build+=( "${non_dev_images_gcp[@]}" )
     fi
   fi
 
   if [[ "$sub_cmd" == "all" || "$sub_cmd" == "dev" ]]; then
-    images_to_build+=( "${dev_images_local[@]}" )
+    images_to_build+=( "${dev_images_cluster[@]}" )
     if [ "$provider" == "aws" ]; then
-      images_to_build+=( "${dev_images_cluster[@]}" )
       images_to_build+=( "${dev_images_aws[@]}" )
     elif [ "$provider" == "gcp" ]; then
-      images_to_build+=( "${dev_images_cluster[@]}" )
       images_to_build+=( "${dev_images_gcp[@]}" )
     fi
   fi
 
-  images_to_build+=( "${api_images_local[@]}" )
+  images_to_build+=( "${api_images_cluster[@]}" )
   if [ "$provider" == "aws" ]; then
-    images_to_build+=( "${api_images_cluster[@]}" )
     images_to_build+=( "${api_images_aws[@]}" )
   elif [ "$provider" == "gcp" ]; then
-    images_to_build+=( "${api_images_cluster[@]}" )
     images_to_build+=( "${api_images_gcp[@]}" )
   fi
 
   if [ "$include_slim" == "true" ]; then
-    images_to_build+=( "${api_slim_images_local[@]}" )
+    images_to_build+=( "${api_slim_images_cluster[@]}" )
     if [ "$provider" == "aws" ]; then
-      images_to_build+=( "${api_slim_images_cluster[@]}" )
       images_to_build+=( "${api_slim_images_aws[@]}" )
     elif [ "$provider" == "gcp" ]; then
-      images_to_build+=( "${api_slim_images_cluster[@]}" )
       images_to_build+=( "${api_slim_images_gcp[@]}" )
     fi
   fi

@@ -185,45 +185,31 @@ images-all-aws:
 	@./dev/registry.sh update all -p aws
 images-all-gcp:
 	@./dev/registry.sh update all -p gcp
-images-all-local:
-	@./dev/registry.sh update all -p local
 images-all-slim-aws:
 	@./dev/registry.sh update all -p aws --include-slim
 images-all-slim-gcp:
 	@./dev/registry.sh update all -p gcp --include-slim
-images-all-slim-local:
-	@./dev/registry.sh update all -p local --include-slim
 
 images-dev-aws:
 	@./dev/registry.sh update dev -p aws
 images-dev-gcp:
 	@./dev/registry.sh update dev -p gcp
-images-dev-local:
-	@./dev/registry.sh update dev -p local
 images-dev-slim-aws:
 	@./dev/registry.sh update dev -p aws --include-slim
 images-dev-slim-gcp:
 	@./dev/registry.sh update dev -p gcp --include-slim
-images-dev-slim-local:
-	@./dev/registry.sh update dev -p local --include-slim
 
 images-api-aws:
 	@./dev/registry.sh update api -p aws
 images-api-gcp:
 	@./dev/registry.sh update api -p gcp
-images-api-local:
-	@./dev/registry.sh update api -p local
 images-api-slim-aws:
 	@./dev/registry.sh update api -p aws --include-slim
 images-api-slim-gcp:
 	@./dev/registry.sh update api -p gcp --include-slim
-images-api-slim-local:
-	@./dev/registry.sh update api -p local --include-slim
 
 images-manager-local:
 	@./dev/registry.sh update-single manager -p local
-images-iris-local:
-	@./dev/registry.sh update-single python-predictor-cpu -p local
 images-iris-aws:
 	@./dev/registry.sh update-single python-predictor-cpu -p aws
 images-iris-gcp:

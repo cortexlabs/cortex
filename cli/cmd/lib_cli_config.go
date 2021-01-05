@@ -467,7 +467,7 @@ func isTelemetryEnabled() bool {
 	return enabled
 }
 
-// Will return nil if not configured, except for local
+// Will return nil if not configured
 func readEnv(envName string) (*cliconfig.Environment, error) {
 	cliConfig, err := readCLIConfig()
 	if err != nil {

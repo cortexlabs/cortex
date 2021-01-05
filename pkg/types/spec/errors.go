@@ -78,7 +78,7 @@ const (
 	ErrNoAvailableNodeComputeLimit                 = "spec.no_available_node_compute_limit"
 	ErrCortexPrefixedEnvVarNotAllowed              = "spec.cortex_prefixed_env_var_not_allowed"
 	ErrLocalPathNotSupportedByAWSProvider          = "spec.local_path_not_supported_by_aws_provider"
-	ErrUnsupportedLocalComputeResource             = "spec.unsupported_local_compute_resource"
+	ErrUnsupportedComputeResourceForProvider       = "spec.unsupported_compute_resource_for_provider"
 	ErrRegistryInDifferentRegion                   = "spec.registry_in_different_region"
 	ErrRegistryAccountIDMismatch                   = "spec.registry_account_id_mismatch"
 	ErrCannotAccessECRWithAnonymousAWSCreds        = "spec.cannot_access_ecr_with_anonymous_aws_creds"
@@ -504,7 +504,7 @@ func ErrorLocalModelPathNotSupportedByAWSProvider() error {
 
 func ErrorUnsupportedComputeResourceForProvider(resourceType string, provider types.ProviderType) error {
 	return errors.WithStack(&errors.Error{
-		Kind:    ErrUnsupportedLocalComputeResource,
+		Kind:    ErrUnsupportedComputeResourceForProvider,
 		Message: fmt.Sprintf("%s compute resources cannot be used for the %s provider", resourceType, provider.String()),
 	})
 }
