@@ -84,10 +84,10 @@ func ErrorInvalidProvider(providerStr string) error {
 	})
 }
 
-func ErrorInvalidLegacyProvider(providerStr, cliConfig string) error {
+func ErrorInvalidLegacyProvider(providerStr, cliConfigPath string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrInvalidLegacyProvider,
-		Message: fmt.Sprintf("%s is a legacy provider that is no longer supported on %s; remove the enviroments of %s type from %s or delete %s entirely", providerStr, consts.CortexVersionMinor, providerStr, cliConfig, cliConfig),
+		Message: fmt.Sprintf("the %s provider is no longer supported on cortex v%s; remove the environment(s) which use the %s provider from %s or delete %s entirely (it will be recreated on subsequent CLI commands)", providerStr, consts.CortexVersionMinor, providerStr, cliConfigPath, cliConfigPath),
 	})
 }
 
