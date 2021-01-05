@@ -75,19 +75,6 @@ Flags:
   -h, --help            help for refresh
 ```
 
-## predict
-
-```text
-make a prediction request using a json file
-
-Usage:
-  cortex predict API_NAME JSON_FILE [flags]
-
-Flags:
-  -e, --env string   environment to use
-  -h, --help         help for predict
-```
-
 ## delete
 
 ```text
