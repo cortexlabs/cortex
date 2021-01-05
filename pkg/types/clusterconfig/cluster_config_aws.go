@@ -69,7 +69,7 @@ type Config struct {
 	SSLCertificateARN          *string            `json:"ssl_certificate_arn,omitempty" yaml:"ssl_certificate_arn,omitempty"`
 	Bucket                     string             `json:"bucket" yaml:"bucket"`
 	SubnetVisibility           SubnetVisibility   `json:"subnet_visibility" yaml:"subnet_visibility"`
-	Subnets                    []*Subnet          `json:"subnets" yaml:"subnets"`
+	Subnets                    []*Subnet          `json:"subnets,omitempty" yaml:"subnets,omitempty"`
 	NATGateway                 NATGateway         `json:"nat_gateway" yaml:"nat_gateway"`
 	APILoadBalancerScheme      LoadBalancerScheme `json:"api_load_balancer_scheme" yaml:"api_load_balancer_scheme"`
 	OperatorLoadBalancerScheme LoadBalancerScheme `json:"operator_load_balancer_scheme" yaml:"operator_load_balancer_scheme"`
@@ -337,7 +337,6 @@ var UserValidation = &cr.StructValidation{
 			StructField: "NATGateway",
 			StringValidation: &cr.StringValidation{
 				AllowedValues: NATGatewayStrings(),
-				Default:       NoneNATGateway.String(),
 			},
 			Parser: func(str string) (interface{}, error) {
 				return NATGatewayFromString(str), nil
