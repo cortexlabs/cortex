@@ -80,6 +80,7 @@ def shutdown():
     except FileNotFoundError:
         pass
 
+
 def is_prediction_request(request):
     return request.url.path == local_cache["predict_route"] and request.method == "POST"
 
