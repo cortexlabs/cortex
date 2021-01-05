@@ -1,4 +1,4 @@
-# Python / Conda packages
+# Python packages
 
 ## PyPI packages
 

@@ -10,7 +10,7 @@ Cortex is an open source platform for large-scale inference workloads.
 
 ## Model serving infrastructure
 
-* Supports deploying TensorFlow, PyTorch, sklearn and other models as realtime or batch APIs.
+* Supports deploying TensorFlow, PyTorch, and other models as realtime or batch APIs.
 * Ensures high availability with availability zones and automated instance restarts.
 * Runs inference on on-demand instances or spot instances with on-demand backups.
 * Autoscales to handle production workloads with support for overprovisioning.
@@ -98,13 +98,13 @@ import cortex
 cx = cortex.client("aws")
 cx.create_api(api_spec, predictor=PythonPredictor, requirements=requirements)
 
-# creating https://example.com/text-generator
+# creating http://example.com/text-generator
 ```
 
 #### Consume your API
 
 ```bash
-$ curl https://example.com/text-generator -X POST -H "Content-Type: application/json" -d '{"text": "hello world"}'
+$ curl http://example.com/text-generator -X POST -H "Content-Type: application/json" -d '{"text": "hello world"}'
 ```
 
 <br>

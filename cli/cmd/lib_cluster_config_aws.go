@@ -503,7 +503,7 @@ func confirmInstallClusterConfig(clusterConfig *clusterconfig.Config, awsCreds A
 	workerPriceStr := s.DollarsMaxPrecision(apiInstancePrice) + " each"
 	isSpot := clusterConfig.Spot != nil && *clusterConfig.Spot
 	if isSpot {
-		spotPrice, err := awsClient.SpotInstancePrice(*clusterConfig.Region, *clusterConfig.InstanceType)
+		spotPrice, err := awsClient.SpotInstancePrice(*clusterConfig.InstanceType)
 		workerPriceStr += " (spot pricing unavailable)"
 		if err == nil && spotPrice != 0 {
 			workerPriceStr = fmt.Sprintf("%s - %s each (varies based on spot price)", s.DollarsMaxPrecision(spotPrice), s.DollarsMaxPrecision(apiInstancePrice))

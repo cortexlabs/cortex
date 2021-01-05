@@ -681,7 +681,7 @@ func (cc *Config) Validate(awsClient *aws.Client) error {
 				return errors.Wrap(err, SpotConfigKey, InstanceDistributionKey)
 			}
 
-			spotInstancePrice, awsErr := awsClient.SpotInstancePrice(instanceMetadata.Region, instanceMetadata.Type)
+			spotInstancePrice, awsErr := awsClient.SpotInstancePrice(instanceMetadata.Type)
 			if awsErr == nil {
 				if err := CheckSpotInstancePriceCompatibility(primaryInstance, instanceMetadata, cc.SpotConfig.MaxPrice, spotInstancePrice); err != nil {
 					return errors.Wrap(err, SpotConfigKey, InstanceDistributionKey)
