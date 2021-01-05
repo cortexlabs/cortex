@@ -210,9 +210,10 @@ var _envDeleteCmd = &cobra.Command{
 		print.BoldFirstLine(fmt.Sprintf("deleted the %s environment configuration", envName))
 		if newDefault == nil {
 			print.BoldFirstLine(fmt.Sprintf("warning; no default environment configured"))
-		}
-		if prevDefault != nil && newDefault != nil && *prevDefault != *newDefault {
-			print.BoldFirstLine(fmt.Sprintf("set the default environment to %s", *newDefault))
+		} else {
+			if prevDefault == nil || *prevDefault != *newDefault {
+				print.BoldFirstLine(fmt.Sprintf("set the default environment to %s", *newDefault))
+			}
 		}
 	},
 }
