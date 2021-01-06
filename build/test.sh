@@ -21,6 +21,7 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")"/.. >/dev/null && pwd)"
 
 provider="undefined"
 cluster_env="undefined"
+create_cluster="no"
 positional_args=()
 while [[ $# -gt 0 ]]; do
   key="$1"
@@ -31,6 +32,10 @@ while [[ $# -gt 0 ]]; do
     ;;
     -e|--cluster-env)
     cluster_env="$2"
+    shift
+    ;;
+    -c|--create-cluster)
+    create_cluster="yes"
     shift
     ;;
     *)
@@ -51,6 +56,10 @@ for i in "$@"; do
     cluster_env="${i#*=}"
     shift
     ;;
+    -c|--create-cluster)
+    create_cluster="yes"
+    shift
+    ;;
     *)
     positional_args+=("$1")
     shift
@@ -66,6 +75,7 @@ for arg in "$@"; do
 done
 
 cmd=${1:-""}
+sub_cmd=${2:-""}
 
 function run_go_tests() {
   (cd $ROOT && go test ./... && echo "go tests passed")
@@ -78,9 +88,17 @@ function run_python_tests() {
 
 function run_e2e_tests() {
   if [ "$provider" = "aws" ]; then
-    pytest $ROOT/test/e2e/tests -k aws --aws-env "$cluster_env"
+    if [ "$create_cluster" = "yes" ]; then
+      pytest $ROOT/test/e2e/tests -k aws --aws-config "$sub_cmd"
+    else
+      pytest $ROOT/test/e2e/tests -k aws --aws-env "$cluster_env"
+    fi
   elif [ "$provider" = "gcp" ]; then
-    pytest $ROOT/test/e2e/tests -k gcp --gcp-env "$cluster_env"
+    if [ "$create_cluster" = "yes" ]; then
+      pytest $ROOT/test/e2e/tests -k gcp --gcp-config "$sub_cmd"
+    else
+      pytest $ROOT/test/e2e/tests -k gcp --gcp-env "$cluster_env"
+    fi
   fi
 }
 
