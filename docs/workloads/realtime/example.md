@@ -68,7 +68,7 @@ $ cortex logs text-generator
 ### Make a request
 
 ```bash
-$ curl https://***.execute-api.us-west-2.amazonaws.com/text-generator -X POST -H "Content-Type: application/json" -d '{"text": "hello world"}'
+$ curl http://***.elb.us-west-2.amazonaws.com/text-generator -X POST -H "Content-Type: application/json" -d '{"text": "hello world"}'
 ```
 
 ### Delete the API
