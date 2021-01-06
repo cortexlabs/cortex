@@ -13,12 +13,10 @@ Deploy realtime APIs that can respond to prediction requests on demand.
 ## Install Cortex
 
 ```bash
-$ pip install cortex && touch cluster.yaml
+$ pip install cortex
 ```
 
-## Spin up a cluster on AWS
-
-### Configure a cluster
+## Create a cluster on AWS
 
 ```yaml
 # cluster.yaml
@@ -30,23 +28,22 @@ max_instances: 3
 spot: true
 ```
 
-### Spin up on your AWS account
-
 ```bash
 $ cortex cluster up --config cluster.yaml
 ```
 
 ## Deploy a realtime API
 
-### Create a directory
+### Implement your API
 
 ```bash
-$ mkdir text-generator && cd text-generator && touch predictor.py requirements.txt text_generator.yaml
+$ mkdir text-generator && cd text-generator
+$ touch predictor.py requirements.txt text_generator.yaml
 ```
 
-### `predictor.py`
-
 ```python
+# predictor.py
+
 from transformers import pipeline
 
 class PythonPredictor:
@@ -57,16 +54,16 @@ class PythonPredictor:
         return self.model(payload["text"])[0]
 ```
 
-### `requirements.txt`
+```python
+# requirements.txt
 
-```text
 transformers
 torch
 ```
 
-### `text_generator.yaml`
-
 ```yaml
+# text_generator.yaml
+
 - name: text-generator
   kind: RealtimeAPI
   predictor:
