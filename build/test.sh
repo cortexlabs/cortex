@@ -19,6 +19,50 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")"/.. >/dev/null && pwd)"
 
+provider="undefined"
+cluster_env="undefined"
+positional_args=()
+while [[ $# -gt 0 ]]; do
+  key="$1"
+  case $key in
+    -p|--provider)
+    provider="$2"
+    shift
+    ;;
+    -e|--cluster-env)
+    cluster_env="$2"
+    shift
+    ;;
+    *)
+    positional_args+=("$1")
+    shift
+    ;;
+  esac
+done
+set -- "${positional_args[@]}"
+positional_args=()
+for i in "$@"; do
+  case $i in
+    -p=*|--provider=*)
+    provider="${i#*=}"
+    shift
+    ;;
+    *)
+    positional_args+=("$1")
+    shift
+    ;;
+  esac
+done
+set -- "${positional_args[@]}"
+for arg in "$@"; do
+  if [[ "$arg" == -* ]]; then
+    echo "unknown flag: $arg"
+    exit 1
+  fi
+done
+
+cmd=${1:-""}
+
 function run_go_tests() {
   (cd $ROOT && go test ./... && echo "go tests passed")
 }
@@ -28,12 +72,20 @@ function run_python_tests() {
   docker run cortexlabs/test
 }
 
-cmd=${1:-""}
+function run_api_tests() {
+  if [ "$provider" = "aws" ]; then
+    pytest $ROOT/test/e2e/tests -k aws --aws-env "$cluster_env"
+  elif [ "$provider" = "gcp" ]; then
+    pytest $ROOT/test/e2e/tests -k gcp --gcp-env "$cluster_env"
+  fi
+}
 
 if [ "$cmd" = "go" ]; then
   run_go_tests
 elif [ "$cmd" = "python" ]; then
   run_python_tests
+elif [ "$cmd" = "apis" ]; then
+  run_api_tests
 else
   run_go_tests
   run_python_tests

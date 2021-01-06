@@ -239,8 +239,9 @@ tools:
 	@go get -u -v golang.org/x/lint/golint
 	@go get -u -v github.com/VojtechVitek/rerun/cmd/rerun
 	@go get -u -v github.com/go-delve/delve/cmd/dlv
-	@python3 -m pip install aiohttp black 'pydoc-markdown>=3.0.0,<4.0.0'
 	@if [[ "$$OSTYPE" == "darwin"* ]]; then brew install parallel; elif [[ "$$OSTYPE" == "linux"* ]]; then sudo apt-get install -y parallel; else echo "your operating system is not supported"; fi
+	@python3 -m pip install aiohttp black 'pydoc-markdown>=3.0.0,<4.0.0'
+	@python3 -m pip install -e test/e2e
 
 format:
 	@./dev/format.sh
@@ -257,6 +258,14 @@ test-go:
 
 test-python:
 	@./build/test.sh python
+
+test-e2e-existing-clusters:
+	@eval $$(python3 ./manager/cluster_config_env.py ./dev/config/cluster-aws.yaml) && CORTEX_CLI_PATH=./bin/cortex ./build/test.sh apis -p aws -e "$$CORTEX_CLUSTER_NAME-aws"
+	@eval $$(python3 ./manager/cluster_config_env.py ./dev/config/cluster-gcp.yaml) && CORTEX_CLI_PATH=./bin/cortex ./build/test.sh apis -p gcp -e "$$CORTEX_CLUSTER_NAME-gcp"
+test-e2e-existing-cluster-aws:
+	@eval $$(python3 ./manager/cluster_config_env.py ./dev/config/cluster-aws.yaml) && CORTEX_CLI_PATH=./bin/cortex ./build/test.sh apis -p aws -e "$$CORTEX_CLUSTER_NAME-aws"
+test-e2e-existing-cluster-gcp:
+	@eval $$(python3 ./manager/cluster_config_env.py ./dev/config/cluster-gcp.yaml) && CORTEX_CLI_PATH=./bin/cortex ./build/test.sh apis -p gcp -e "$$CORTEX_CLUSTER_NAME-gcp"
 
 lint:
 	@./build/lint.sh
