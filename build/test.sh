@@ -72,7 +72,7 @@ function run_python_tests() {
   docker run cortexlabs/test
 }
 
-function run_api_tests() {
+function run_e2e_tests() {
   if [ "$provider" = "aws" ]; then
     pytest $ROOT/test/e2e/tests -k aws --aws-env "$cluster_env"
   elif [ "$provider" = "gcp" ]; then
@@ -84,8 +84,8 @@ if [ "$cmd" = "go" ]; then
   run_go_tests
 elif [ "$cmd" = "python" ]; then
   run_python_tests
-elif [ "$cmd" = "apis" ]; then
-  run_api_tests
+elif [ "$cmd" = "e2e" ]; then
+  run_e2e_tests
 else
   run_go_tests
   run_python_tests
