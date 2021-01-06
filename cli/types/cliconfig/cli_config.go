@@ -42,5 +42,11 @@ func (cliConfig *CLIConfig) Validate() error {
 		}
 	}
 
+	// Backwards compatibility: ignore local default env
+	defaultEnv := cliConfig.DefaultEnvironment
+	if defaultEnv != nil && *defaultEnv == "local" && !envNames.Has(*defaultEnv) {
+		cliConfig.DefaultEnvironment = nil
+	}
+
 	return nil
 }

@@ -285,7 +285,7 @@ Here are some examples:
 #### Making the request
 
 ```bash
-$ curl https://***.amazonaws.com/my-api \
+$ curl http://***.amazonaws.com/my-api \
     -X POST -H "Content-Type: application/json" \
     -d '{"key": "value"}'
 ```
@@ -308,7 +308,7 @@ class PythonPredictor:
 #### Making the request
 
 ```bash
-$ curl https://***.amazonaws.com/my-api \
+$ curl http://***.amazonaws.com/my-api \
     -X POST -H "Content-Type: application/octet-stream" \
     --data-binary @object.pkl
 ```
@@ -349,7 +349,7 @@ class PythonPredictor:
 #### Making the request
 
 ```bash
-$ curl https://***.amazonaws.com/my-api \
+$ curl http://***.amazonaws.com/my-api \
     -X POST \
     -F "text=@text.txt" \
     -F "object=@object.pkl" \
@@ -384,7 +384,7 @@ class PythonPredictor:
 #### Making the request
 
 ```bash
-$ curl https://***.amazonaws.com/my-api \
+$ curl http://***.amazonaws.com/my-api \
     -X POST \
     -d "key=value"
 ```
@@ -407,7 +407,7 @@ class PythonPredictor:
 #### Making the request
 
 ```bash
-$ curl https://***.amazonaws.com/my-api \
+$ curl http://***.amazonaws.com/my-api \
     -X POST -H "Content-Type: text/plain" \
     -d "hello world"
 ```

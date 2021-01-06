@@ -85,7 +85,7 @@ $ cortex get text-generator --env aws
 status   up-to-date   requested   last update   avg request   2XX
 live     1            1           1m            -             -
 
-endpoint: https://***.execute-api.us-west-2.amazonaws.com/text-generator
+endpoint: http://***.elb.us-west-2.amazonaws.com/text-generator
 ```
 
 ## Run on GPUs
