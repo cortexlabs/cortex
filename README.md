@@ -95,7 +95,7 @@ class PythonPredictor:
 ```bash
 $ cortex deploy
 
-# creating http://example.com/text-generator
+# creating text-generator
 ```
 
 #### Consume your API
