@@ -44,7 +44,6 @@ API_SUMMARY_MESSAGE = (
     "make a prediction by sending a post request to this endpoint with a json payload"
 )
 
-API_LIVENESS_UPDATE_PERIOD = 5  # seconds
 NANOSECONDS_IN_SECOND = 1e9
 
 
@@ -64,16 +63,9 @@ local_cache: Dict[str, Any] = {
 }
 
 
-def update_api_liveness():
-    threading.Timer(API_LIVENESS_UPDATE_PERIOD, update_api_liveness).start()
-    with open("/mnt/workspace/api_liveness.txt", "w") as f:
-        f.write(str(math.ceil(time.time())))
-
-
 @app.on_event("startup")
 def startup():
     open(f"/mnt/workspace/proc-{os.getpid()}-ready.txt", "a").close()
-    update_api_liveness()
 
 
 @app.on_event("shutdown")
@@ -85,11 +77,6 @@ def shutdown():
 
     try:
         os.remove(f"/mnt/workspace/proc-{os.getpid()}-ready.txt")
-    except FileNotFoundError:
-        pass
-
-    try:
-        os.remove("/mnt/workspace/api_liveness.txt")
     except FileNotFoundError:
         pass
 

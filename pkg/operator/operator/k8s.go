@@ -64,9 +64,7 @@ const (
 	_tfServingLoadTimeMicros                       = "30000000" // 30 seconds (how much time a model can take to load into memory)
 	_tfServingBatchConfig                          = "/etc/tfs/batch_config.conf"
 	_apiReadinessFile                              = "/mnt/workspace/api_readiness.txt"
-	_apiLivenessFile                               = "/mnt/workspace/api_liveness.txt"
 	_neuronRTDSocket                               = "/sock/neuron.sock"
-	_apiLivenessStalePeriod                        = 7 // seconds (there is a 2-second buffer to be safe)
 	_requestMonitorReadinessFile                   = "/request_monitor_ready.txt"
 )
 
@@ -196,7 +194,6 @@ func PythonPredictorContainers(api *spec.API) ([]kcore.Container, []kcore.Volume
 		EnvFrom:         baseEnvVars(),
 		VolumeMounts:    apiPodVolumeMounts,
 		ReadinessProbe:  FileExistsProbe(_apiReadinessFile),
-		LivenessProbe:   _apiLivenessProbe,
 		Lifecycle:       nginxGracefulStopper(api.Kind),
 		Resources: kcore.ResourceRequirements{
 			Requests: apiPodResourceList,
@@ -301,7 +298,6 @@ func TensorFlowPredictorContainers(api *spec.API) ([]kcore.Container, []kcore.Vo
 		EnvFrom:         baseEnvVars(),
 		VolumeMounts:    volumeMounts,
 		ReadinessProbe:  FileExistsProbe(_apiReadinessFile),
-		LivenessProbe:   _apiLivenessProbe,
 		Lifecycle:       nginxGracefulStopper(api.Kind),
 		Resources: kcore.ResourceRequirements{
 			Requests: apiResourceList,
@@ -373,7 +369,6 @@ func ONNXPredictorContainers(api *spec.API) ([]kcore.Container, []kcore.Volume) 
 		EnvFrom:         baseEnvVars(),
 		VolumeMounts:    apiPodVolumeMounts,
 		ReadinessProbe:  FileExistsProbe(_apiReadinessFile),
-		LivenessProbe:   _apiLivenessProbe,
 		Lifecycle:       nginxGracefulStopper(api.Kind),
 		Resources: kcore.ResourceRequirements{
 			Requests: resourceList,
@@ -801,19 +796,6 @@ func RequestMonitorContainer(api *spec.API) kcore.Container {
 			},
 		},
 	}
-}
-
-var _apiLivenessProbe = &kcore.Probe{
-	InitialDelaySeconds: 5,
-	TimeoutSeconds:      5,
-	PeriodSeconds:       5,
-	SuccessThreshold:    1,
-	FailureThreshold:    3,
-	Handler: kcore.Handler{
-		Exec: &kcore.ExecAction{
-			Command: []string{"/bin/bash", "-c", `now="$(date +%s)" && min="$(($now-` + s.Int(_apiLivenessStalePeriod) + `))" && test "$(cat ` + _apiLivenessFile + ` | tr -d '[:space:]')" -ge "$min"`},
-		},
-	},
 }
 
 func FileExistsProbe(fileName string) *kcore.Probe {
