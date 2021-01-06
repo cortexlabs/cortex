@@ -137,6 +137,14 @@ var _getCmd = &cobra.Command{
 
 				return out + jobTable, nil
 			} else {
+				envs, err := listConfiguredEnvs()
+				if err != nil {
+					return "", err
+				}
+				if len(envs) == 0 {
+					return "", ErrorNoAvailableEnvironment()
+				}
+
 				if wasEnvFlagProvided(cmd) {
 					env, err := ReadOrConfigureEnv(envName)
 					if err != nil {
