@@ -47,6 +47,10 @@ for i in "$@"; do
     provider="${i#*=}"
     shift
     ;;
+    -e=*|--cluster-env=*)
+    cluster_env="${i#*=}"
+    shift
+    ;;
     *)
     positional_args+=("$1")
     shift

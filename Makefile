@@ -260,8 +260,8 @@ test-python:
 	@./build/test.sh python
 
 test-e2e-existing-clusters:
-	@eval $$(python3 ./manager/cluster_config_env.py ./dev/config/cluster-aws.yaml) && CORTEX_CLI_PATH=./bin/cortex ./build/test.sh e2e -p aws -e "$$CORTEX_CLUSTER_NAME-aws"
-	@eval $$(python3 ./manager/cluster_config_env.py ./dev/config/cluster-gcp.yaml) && CORTEX_CLI_PATH=./bin/cortex ./build/test.sh e2e -p gcp -e "$$CORTEX_CLUSTER_NAME-gcp"
+	@$(MAKE) test-e2e-existing-cluster-aws
+	@$(MAKE) test-e2e-existing-cluster-gcp
 test-e2e-existing-cluster-aws:
 	@eval $$(python3 ./manager/cluster_config_env.py ./dev/config/cluster-aws.yaml) && CORTEX_CLI_PATH=./bin/cortex ./build/test.sh e2e -p aws -e "$$CORTEX_CLUSTER_NAME-aws"
 test-e2e-existing-cluster-gcp:
