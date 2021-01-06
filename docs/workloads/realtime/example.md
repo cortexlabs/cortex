@@ -38,6 +38,8 @@ $ cortex cluster up --config cluster.yaml
 
 ## Deploy a realtime API
 
+### Create a directory
+
 ```bash
 $ mkdir text-generator && cd text-generator && touch predictor.py requirements.txt text_generator.yaml
 ```
