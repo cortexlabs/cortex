@@ -74,7 +74,7 @@ torch
     gpu: 1
 ```
 
-### Deploy to AWS
+### Deploy
 
 ```bash
 $ cortex deploy text_generator.yaml
@@ -98,7 +98,7 @@ $ cortex logs text-generator
 $ curl http://***.elb.us-west-2.amazonaws.com/text-generator -X POST -H "Content-Type: application/json" -d '{"text": "hello world"}'
 ```
 
-### Delete the API
+### Delete
 
 ```bash
 $ cortex delete text-generator
