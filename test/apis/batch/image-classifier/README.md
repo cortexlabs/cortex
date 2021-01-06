@@ -159,7 +159,7 @@ $ cortex get image-classifier --env aws
 
 no submitted jobs
 
-endpoint: https://abcdefg.execute-api.us-west-2.amazonaws.com/image-classifier
+endpoint: http://***.elb.us-west-2.amazonaws.com/image-classifier
 ```
 
 <br>
@@ -181,7 +181,7 @@ $ export CORTEX_DEST_S3_DIR=<YOUR_S3_DIRECTORY>  # e.g. export CORTEX_DEST_S3_DI
 Now that you've deployed a Batch API, you are ready to submit jobs. You can provide image urls directly in the request by specifying the urls in `item_list`. The curl command below showcases how to submit image urls in the request.
 
 ```bash
-$ export BATCH_API_ENDPOINT=<BATCH_API_ENDPOINT>  # e.g. export BATCH_API_ENDPOINT=https://abcdefg.execute-api.us-west-2.amazonaws.com/image-classifier
+$ export BATCH_API_ENDPOINT=<BATCH_API_ENDPOINT>  # e.g. export BATCH_API_ENDPOINT=https://***.elb.us-west-2.amazonaws.com/image-classifier
 $ export CORTEX_DEST_S3_DIR=<YOUR_S3_DIRECTORY>  # e.g. export CORTEX_DEST_S3_DIR=s3://my-bucket/dir
 $ curl $BATCH_API_ENDPOINT \
     -X POST -H "Content-Type: application/json" \
@@ -223,15 +223,15 @@ $ cortex get image-classifier --env aws
 job id             status    progress   start time                 duration
 69d6faf82e4660d3   running   0/3        20 Jul 2020 01:07:44 UTC   3m26s
 
-endpoint: https://abcdefg.execute-api.us-west-2.amazonaws.com/image-classifier
+endpoint: http://***.elb.us-west-2.amazonaws.com/image-classifier
 ```
 
 ### Get the job status with an HTTP request
 
-You can make a GET request to your `<BATCH_API_ENDPOINT>/JOB_ID` to get the status of your job.
+You can make a GET request to your `<BATCH_API_ENDPOINT>?JOB_ID` to get the status of your job.
 
 ```bash
-$ curl https://abcdefg.execute-api.us-west-2.amazonaws.com?jobID=69d6faf82e4660d3
+$ curl http://***.elb.us-west-2.amazonaws.com/image-classifier?jobID=69d6faf82e4660d3
 
 {
     "job_status":{
@@ -239,7 +239,7 @@ $ curl https://abcdefg.execute-api.us-west-2.amazonaws.com?jobID=69d6faf82e4660d
         "api_name":"image-classifier",
         ...
     },
-    "endpoint":"https://abcdefg.execute-api.us-west-2.amazonaws.com/image-classifier"
+    "endpoint":"https://***.elb.us-west-2.amazonaws.com/image-classifier"
 }
 ```
 
@@ -265,7 +265,7 @@ worker stats
 requested   initializing   running   failed   succeeded
 1           1              0         0        0
 
-job endpoint: https://abcdefg.execute-api.us-west-2.amazonaws.com/image-classifier/69d6faf82e4660d3
+job endpoint: http://***.elb.us-west-2.amazonaws.com/image-classifier/69d6faf82e4660d3
 ```
 
 ### Stream logs
@@ -328,7 +328,7 @@ Before we submit the job, let's perform a dry run to ensure that only the desire
 Get the endpoint from `cortex get image-classifier` if you haven't done so already.
 
 ```bash
-$ export BATCH_API_ENDPOINT=<BATCH_API_ENDPOINT>  # e.g. export BATCH_API_ENDPOINT=https://abcdefg.execute-api.us-west-2.amazonaws.com/image-classifier
+$ export BATCH_API_ENDPOINT=<BATCH_API_ENDPOINT>  # e.g. export BATCH_API_ENDPOINT=https://***.elb.us-west-2.amazonaws.com/image-classifier
 $ export CORTEX_DEST_S3_DIR=<YOUR_S3_DIRECTORY>  # e.g. export CORTEX_DEST_S3_DIR=s3://my-bucket/dir
 $ curl $BATCH_API_ENDPOINT?dryRun=true \
 -X POST -H "Content-Type: application/json" \
@@ -366,7 +366,7 @@ When you submit a job specifying `delimited_files`, your Batch API will get all 
 In this example `urls_0.json` and `urls_1.json` each contain 8 urls. Let's classify the images from the URLs listed in those 2 files.
 
 ```bash
-$ export BATCH_API_ENDPOINT=<BATCH_API_ENDPOINT>  # e.g. export BATCH_API_ENDPOINT=https://abcdefg.execute-api.us-west-2.amazonaws.com/image-classifier
+$ export BATCH_API_ENDPOINT=<BATCH_API_ENDPOINT>  # e.g. export BATCH_API_ENDPOINT=https://***.elb.us-west-2.amazonaws.com/image-classifier
 $ export CORTEX_DEST_S3_DIR=<YOUR_S3_DIRECTORY>  # e.g. export CORTEX_DEST_S3_DIR=s3://my-bucket/dir
 $ curl $BATCH_API_ENDPOINT \
 -X POST -H "Content-Type: application/json" \
@@ -438,7 +438,7 @@ We'll classify the 16 images that can be found here `s3://cortex-examples/image-
 Let's do a dry run to make sure the correct list of images will be submitted to the job.
 
 ```bash
-$ export BATCH_API_ENDPOINT=<BATCH_API_ENDPOINT>  # e.g. export BATCH_API_ENDPOINT=https://abcdefg.execute-api.us-west-2.amazonaws.com/image-classifier
+$ export BATCH_API_ENDPOINT=<BATCH_API_ENDPOINT>  # e.g. export BATCH_API_ENDPOINT=https://***.elb.us-west-2.amazonaws.com/image-classifier
 $ export CORTEX_DEST_S3_DIR=<YOUR_S3_DIRECTORY>  # e.g. export CORTEX_DEST_S3_DIR=s3://my-bucket/dir
 $ curl $BATCH_API_ENDPOINT?dryRun=true \
 -X POST -H "Content-Type: application/json" \
@@ -475,7 +475,7 @@ validations passed
 Let's actually submit the job now. Your Batch API will get all of the input S3 files based on `s3_paths` and will apply the filters specified in `includes` and `excludes`.
 
 ```bash
-$ export BATCH_API_ENDPOINT=<BATCH_API_ENDPOINT>  # e.g. export BATCH_API_ENDPOINT=https://abcdefg.execute-api.us-west-2.amazonaws.com/image-classifier
+$ export BATCH_API_ENDPOINT=<BATCH_API_ENDPOINT>  # e.g. export BATCH_API_ENDPOINT=https://***.elb.us-west-2.amazonaws.com/image-classifier
 $ export CORTEX_DEST_S3_DIR=<YOUR_S3_DIRECTORY>  # e.g. export CORTEX_DEST_S3_DIR=s3://my-bucket/dir
 $ curl $BATCH_API_ENDPOINT \
 -X POST -H "Content-Type: application/json" \
@@ -541,7 +541,7 @@ You can download the aggregated results file with `aws s3 cp $CORTEX_DEST_S3_DIR
 You can stop a running job by sending a DELETE request to `<BATCH_API_ENDPOINT>/<JOB_ID>`.
 
 ```bash
-$ export BATCH_API_ENDPOINT=<BATCH_API_ENDPOINT>  # e.g. export BATCH_API_ENDPOINT=https://abcdefg.execute-api.us-west-2.amazonaws.com/image-classifier
+$ export BATCH_API_ENDPOINT=<BATCH_API_ENDPOINT>  # e.g. export BATCH_API_ENDPOINT=https://***.elb.us-west-2.amazonaws.com/image-classifier
 $ curl -X DELETE $BATCH_API_ENDPOINT?jobID=69d96a01ea55da8c
 
 stopped job 69d96a01ea55da8c
