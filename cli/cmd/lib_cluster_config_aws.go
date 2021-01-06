@@ -288,10 +288,20 @@ func setConfigFieldsFromCached(userClusterConfig *clusterconfig.Config, cachedCl
 		return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.TagsKey, s.ObjFlat(cachedClusterConfig.Tags))
 	}
 
-	if len(userClusterConfig.AvailabilityZones) > 0 && !strset.New(userClusterConfig.AvailabilityZones...).IsEqual(strset.New(cachedClusterConfig.AvailabilityZones...)) {
-		return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.AvailabilityZonesKey, cachedClusterConfig.AvailabilityZones)
+	// The user doesn't have to specify AZs in their config
+	if len(userClusterConfig.AvailabilityZones) > 0 {
+		if !strset.New(userClusterConfig.AvailabilityZones...).IsEqual(strset.New(cachedClusterConfig.AvailabilityZones...)) {
+			return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.AvailabilityZonesKey, cachedClusterConfig.AvailabilityZones)
+		}
 	}
 	userClusterConfig.AvailabilityZones = cachedClusterConfig.AvailabilityZones
+
+	if len(userClusterConfig.Subnets) > 0 || len(cachedClusterConfig.Subnets) > 0 {
+		if !reflect.DeepEqual(userClusterConfig.Subnets, cachedClusterConfig.Subnets) {
+			return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.SubnetsKey, cachedClusterConfig.Subnets)
+		}
+	}
+	userClusterConfig.Subnets = cachedClusterConfig.Subnets
 
 	if s.Obj(cachedClusterConfig.SSLCertificateARN) != s.Obj(userClusterConfig.SSLCertificateARN) {
 		return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.SSLCertificateARNKey, cachedClusterConfig.SSLCertificateARN)
@@ -537,6 +547,10 @@ func confirmInstallClusterConfig(clusterConfig *clusterconfig.Config, awsCreds A
 		fmt.Print(fmt.Sprintf("warning: you've configured the operator load balancer to be internal; you must configure VPC Peering to connect your CLI to your cluster operator (see https://docs.cortex.dev/v/%s/)\n\n", consts.CortexVersionMinor))
 	}
 
+	if len(clusterConfig.Subnets) > 0 {
+		fmt.Print("warning: you've configured your cluster to be installed in an existing VPC; if your cluster doesn't spin up or function as expected, please double-check your VPC configuration (here are the requirements: https://eksctl.io/usage/vpc-networking/#use-existing-vpc-other-custom-configuration)\n\n")
+	}
+
 	if isSpot && clusterConfig.SpotConfig.OnDemandBackup != nil && !*clusterConfig.SpotConfig.OnDemandBackup {
 		if *clusterConfig.SpotConfig.OnDemandBaseCapacity == 0 && *clusterConfig.SpotConfig.OnDemandPercentageAboveBaseCapacity == 0 {
 			fmt.Printf("warning: you've disabled on-demand instances (%s=0 and %s=0); spot instances are not guaranteed to be available so please take that into account for production clusters; see https://docs.cortex.dev/v/%s/ for more information\n\n", clusterconfig.OnDemandBaseCapacityKey, clusterconfig.OnDemandPercentageAboveBaseCapacityKey, consts.CortexVersionMinor)
@@ -572,6 +586,9 @@ func clusterConfigConfirmationStr(clusterConfig clusterconfig.Config, awsCreds A
 	items.Add(clusterconfig.RegionUserKey, clusterConfig.Region)
 	if len(clusterConfig.AvailabilityZones) > 0 {
 		items.Add(clusterconfig.AvailabilityZonesUserKey, clusterConfig.AvailabilityZones)
+	}
+	for _, subnetConfig := range clusterConfig.Subnets {
+		items.Add("subnet in "+subnetConfig.AvailabilityZone, subnetConfig.SubnetID)
 	}
 	items.Add(clusterconfig.BucketUserKey, clusterConfig.Bucket)
 	items.Add(clusterconfig.ClusterNameUserKey, clusterConfig.ClusterName)

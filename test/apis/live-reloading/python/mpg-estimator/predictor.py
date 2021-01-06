@@ -9,7 +9,7 @@ class PythonPredictor:
         return mlflow.sklearn.load_model(model_path)
 
     def predict(self, payload, query_params):
-        model_version = query_params.get("version")
+        model_version = query_params.get("version", "latest")
 
         model = self.client.get_model(model_version=model_version)
         model_input = [

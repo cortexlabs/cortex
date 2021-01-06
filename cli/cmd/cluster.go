@@ -70,8 +70,7 @@ func clusterInit() {
 	addClusterConfigFlag(_clusterUpCmd)
 	addAWSCredentialsFlags(_clusterUpCmd)
 	addClusterAWSCredentialsFlags(_clusterUpCmd)
-	defaultEnv := getDefaultEnv(_clusterCommandType)
-	_clusterUpCmd.Flags().StringVarP(&_flagClusterUpEnv, "configure-env", "e", defaultEnv, "name of environment to configure")
+	_clusterUpCmd.Flags().StringVarP(&_flagClusterUpEnv, "configure-env", "e", "aws", "name of environment to configure")
 	_clusterUpCmd.Flags().BoolVarP(&_flagClusterDisallowPrompt, "yes", "y", false, "skip prompts")
 	_clusterCmd.AddCommand(_clusterUpCmd)
 
@@ -143,10 +142,6 @@ var _clusterUpCmd = &cobra.Command{
 	Args:  cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
 		telemetry.EventNotify("cli.cluster.up", map[string]interface{}{"provider": types.AWSProviderType})
-
-		if _flagClusterUpEnv == "local" {
-			exit.Error(ErrorLocalEnvironmentCantUseClusterProvider(types.AWSProviderType))
-		}
 
 		envExists, err := isEnvConfigured(_flagClusterUpEnv)
 		if err != nil {
@@ -322,10 +317,6 @@ var _clusterConfigureCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		telemetry.Event("cli.cluster.configure", map[string]interface{}{"provider": types.AWSProviderType})
 
-		if _flagClusterConfigureEnv == "local" {
-			exit.Error(ErrorLocalEnvironmentCantUseClusterProvider(types.AWSProviderType))
-		}
-
 		if _, err := docker.GetDockerClient(); err != nil {
 			exit.Error(err)
 		}
@@ -402,10 +393,6 @@ var _clusterInfoCmd = &cobra.Command{
 	Args:  cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
 		telemetry.Event("cli.cluster.info", map[string]interface{}{"provider": types.AWSProviderType})
-
-		if _flagClusterInfoEnv == "local" {
-			exit.Error(ErrorLocalEnvironmentCantUseClusterProvider(types.AWSProviderType))
-		}
 
 		if _, err := docker.GetDockerClient(); err != nil {
 			exit.Error(err)
@@ -532,11 +519,20 @@ var _clusterDownCmd = &cobra.Command{
 			envNames, isDefaultEnv, _ := getEnvNamesByOperatorEndpoint(*loadBalancer.DNSName)
 			if len(envNames) > 0 {
 				for _, envName := range envNames {
-					removeEnvFromCLIConfig(envName)
+					err := removeEnvFromCLIConfig(envName)
+					if err != nil {
+						exit.Error(err)
+					}
 				}
 				fmt.Printf("✓ deleted the %s environment configuration%s\n", s.StrsAnd(envNames), s.SIfPlural(len(envNames)))
 				if isDefaultEnv {
-					fmt.Println("✓ set the default environment to local")
+					newDefaultEnv, err := getDefaultEnv()
+					if err != nil {
+						exit.Error(err)
+					}
+					if newDefaultEnv != nil {
+						fmt.Println(fmt.Sprintf("✓ set the default environment to %s", *newDefaultEnv))
+					}
 				}
 			}
 		}

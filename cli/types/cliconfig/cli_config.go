@@ -19,12 +19,11 @@ package cliconfig
 import (
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
-	"github.com/cortexlabs/cortex/pkg/types"
 )
 
 type CLIConfig struct {
 	Telemetry          *bool          `json:"telemetry,omitempty" yaml:"telemetry,omitempty"`
-	DefaultEnvironment string         `json:"default_environment" yaml:"default_environment"`
+	DefaultEnvironment *string        `json:"default_environment" yaml:"default_environment"`
 	Environments       []*Environment `json:"environments" yaml:"environments"`
 }
 
@@ -41,21 +40,6 @@ func (cliConfig *CLIConfig) Validate() error {
 		if err := env.Validate(); err != nil {
 			return errors.Wrap(err, EnvironmentsKey)
 		}
-	}
-
-	// Ensure the local env is always present
-	if !envNames.Has(types.LocalProviderType.String()) {
-		localEnv := &Environment{
-			Name:     types.LocalProviderType.String(),
-			Provider: types.LocalProviderType,
-		}
-
-		cliConfig.Environments = append([]*Environment{localEnv}, cliConfig.Environments...)
-		envNames.Add("local")
-	}
-
-	if cliConfig.DefaultEnvironment == "" {
-		cliConfig.DefaultEnvironment = types.LocalProviderType.String()
 	}
 
 	return nil

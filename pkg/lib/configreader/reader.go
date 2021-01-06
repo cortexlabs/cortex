@@ -37,10 +37,11 @@ import (
 )
 
 type StructFieldValidation struct {
-	Key              string                        // Required, defaults to json key or "StructField"
-	StructField      string                        // Required
-	DefaultField     string                        // Optional. Will set the default to the runtime value of this field
-	DefaultFieldFunc func(interface{}) interface{} // Optional. Will call the func with the value of DefaultField
+	Key                        string                          // Required, defaults to json key or "StructField"
+	StructField                string                          // Required
+	DefaultField               string                          // Optional. Will set the default to the runtime value of this field
+	DefaultDependentFields     []string                        // Optional. Will be passed in to DefaultDependentFieldsFunc. Dependent fields must be listed first in the `[]*cr.StructFieldValidation`.
+	DefaultDependentFieldsFunc func([]interface{}) interface{} // Optional. Will be called with DefaultDependentFields
 
 	// Provide one of the following:
 	StringValidation              *StringValidation
@@ -94,6 +95,9 @@ type StructListValidation struct {
 	Required              bool
 	AllowExplicitNull     bool
 	TreatNullAsEmpty      bool // If explicit null or if it's top level and the file is empty, treat as empty map
+	MinLength             int
+	MaxLength             int
+	InvalidLengths        []int
 	CantBeSpecifiedErrStr *string
 	ShortCircuit          bool
 }
@@ -399,6 +403,22 @@ func StructList(dest interface{}, inter interface{}, v *StructListValidation) (i
 		return nil, []error{ErrorInvalidPrimitiveType(inter, PrimTypeList)}
 	}
 
+	if v.MinLength != 0 {
+		if len(interSlice) < v.MinLength {
+			return nil, []error{ErrorTooFewElements(v.MinLength)}
+		}
+	}
+	if v.MaxLength != 0 {
+		if len(interSlice) > v.MaxLength {
+			return nil, []error{ErrorTooManyElements(v.MaxLength)}
+		}
+	}
+	for _, invalidLength := range v.InvalidLengths {
+		if len(interSlice) == invalidLength {
+			return nil, []error{ErrorWrongNumberOfElements(v.InvalidLengths)}
+		}
+	}
+
 	errs := []error{}
 	for i, interItem := range interSlice {
 		val := reflect.New(reflect.ValueOf(dest).Type().Elem().Elem()).Interface()
@@ -538,10 +558,14 @@ func InterfaceStructList(dest interface{}, inter interface{}, v *InterfaceStruct
 func updateValidation(validation interface{}, dest interface{}, structFieldValidation *StructFieldValidation) {
 	if structFieldValidation.DefaultField != "" {
 		runtimeVal := reflect.ValueOf(dest).Elem().FieldByName(structFieldValidation.DefaultField).Interface()
-		if structFieldValidation.DefaultFieldFunc != nil {
-			runtimeVal = structFieldValidation.DefaultFieldFunc(runtimeVal)
-		}
 		setField(runtimeVal, validation, "Default")
+	} else if structFieldValidation.DefaultDependentFieldsFunc != nil {
+		runtimeVals := make([]interface{}, len(structFieldValidation.DefaultDependentFields))
+		for i, fieldName := range structFieldValidation.DefaultDependentFields {
+			runtimeVals[i] = reflect.ValueOf(dest).Elem().FieldByName(fieldName).Interface()
+		}
+		val := structFieldValidation.DefaultDependentFieldsFunc(runtimeVals)
+		setField(val, validation, "Default")
 	}
 }
 

@@ -91,33 +91,33 @@ cluster-up-gcp-y:
 	@$(MAKE) kubectl-gcp
 
 cluster-down-aws:
-	@$(MAKE) images-manager-local
+	@$(MAKE) images-manager-skip-push
 	@$(MAKE) cli
 	@kill $(shell pgrep -f rerun) >/dev/null 2>&1 || true
 	@./bin/cortex cluster down --config=./dev/config/cluster-aws.yaml --aws-key="$$AWS_ACCESS_KEY_ID" --aws-secret=$$AWS_SECRET_ACCESS_KEY
 cluster-down-gcp:
-	@$(MAKE) images-manager-local
+	@$(MAKE) images-manager-skip-push
 	@$(MAKE) cli
 	@kill $(shell pgrep -f rerun) >/dev/null 2>&1 || true
 	@./bin/cortex cluster-gcp down --config=./dev/config/cluster-gcp.yaml
 
 cluster-down-aws-y:
-	@$(MAKE) images-manager-local
+	@$(MAKE) images-manager-skip-push
 	@$(MAKE) cli
 	@kill $(shell pgrep -f rerun) >/dev/null 2>&1 || true
 	@./bin/cortex cluster down --config=./dev/config/cluster-aws.yaml --aws-key="$$AWS_ACCESS_KEY_ID" --aws-secret="$$AWS_SECRET_ACCESS_KEY" --yes
 cluster-down-gcp-y:
-	@$(MAKE) images-manager-local
+	@$(MAKE) images-manager-skip-push
 	@$(MAKE) cli
 	@kill $(shell pgrep -f rerun) >/dev/null 2>&1 || true
 	@./bin/cortex cluster-gcp down --config=./dev/config/cluster-gcp.yaml --yes
 
 cluster-info-aws:
-	@$(MAKE) images-manager-local
+	@$(MAKE) images-manager-skip-push
 	@$(MAKE) cli
 	@eval $$(python3 ./manager/cluster_config_env.py ./dev/config/cluster-aws.yaml) && ./bin/cortex cluster info --config=./dev/config/cluster-aws.yaml --configure-env="$$CORTEX_CLUSTER_NAME-aws" --aws-key="$$AWS_ACCESS_KEY_ID" --aws-secret="$$AWS_SECRET_ACCESS_KEY" --yes
 cluster-info-gcp:
-	@$(MAKE) images-manager-local
+	@$(MAKE) images-manager-skip-push
 	@$(MAKE) cli
 	@eval $$(python3 ./manager/cluster_config_env.py ./dev/config/cluster-gcp.yaml) && ./bin/cortex cluster-gcp info --config=./dev/config/cluster-gcp.yaml --configure-env="$$CORTEX_CLUSTER_NAME-gcp" --yes
 
@@ -181,49 +181,47 @@ operator-update-gcp:
 
 # Docker images
 
+images-all-skip-push:
+	@./dev/registry.sh update all
 images-all-aws:
 	@./dev/registry.sh update all -p aws
 images-all-gcp:
 	@./dev/registry.sh update all -p gcp
-images-all-local:
-	@./dev/registry.sh update all -p local
+images-all-slim-skip-push:
+	@./dev/registry.sh update all --include-slim
 images-all-slim-aws:
 	@./dev/registry.sh update all -p aws --include-slim
 images-all-slim-gcp:
 	@./dev/registry.sh update all -p gcp --include-slim
-images-all-slim-local:
-	@./dev/registry.sh update all -p local --include-slim
 
+images-dev-skip-push:
+	@./dev/registry.sh update dev
 images-dev-aws:
 	@./dev/registry.sh update dev -p aws
 images-dev-gcp:
 	@./dev/registry.sh update dev -p gcp
-images-dev-local:
-	@./dev/registry.sh update dev -p local
+images-dev-slim-skip-push:
+	@./dev/registry.sh update dev --include-slim
 images-dev-slim-aws:
 	@./dev/registry.sh update dev -p aws --include-slim
 images-dev-slim-gcp:
 	@./dev/registry.sh update dev -p gcp --include-slim
-images-dev-slim-local:
-	@./dev/registry.sh update dev -p local --include-slim
 
+images-api-skip-push:
+	@./dev/registry.sh update api
 images-api-aws:
 	@./dev/registry.sh update api -p aws
 images-api-gcp:
 	@./dev/registry.sh update api -p gcp
-images-api-local:
-	@./dev/registry.sh update api -p local
+images-api-slim-skip-push:
+	@./dev/registry.sh update api --include-slim
 images-api-slim-aws:
 	@./dev/registry.sh update api -p aws --include-slim
 images-api-slim-gcp:
 	@./dev/registry.sh update api -p gcp --include-slim
-images-api-slim-local:
-	@./dev/registry.sh update api -p local --include-slim
 
-images-manager-local:
-	@./dev/registry.sh update-single manager -p local
-images-iris-local:
-	@./dev/registry.sh update-single python-predictor-cpu -p local
+images-manager-skip-push:
+	@./dev/registry.sh update-single manager
 images-iris-aws:
 	@./dev/registry.sh update-single python-predictor-cpu -p aws
 images-iris-gcp:
@@ -234,8 +232,6 @@ registry-create-aws:
 
 registry-clean-aws:
 	@./dev/registry.sh clean -p aws
-registry-clean-local:
-	@./dev/registry.sh clean -p local
 
 # Misc
 

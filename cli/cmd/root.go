@@ -52,14 +52,6 @@ var (
 	_homeDir             string
 )
 
-type commandType int
-
-const (
-	_generalCommandType commandType = iota
-	_clusterCommandType
-	_clusterGCPCommandType
-)
-
 func init() {
 	cwd, err := os.Getwd()
 	if err != nil {
@@ -128,7 +120,6 @@ func init() {
 	getInit()
 	logsInit()
 	patchInit()
-	predictInit()
 	refreshInit()
 	versionInit()
 }
@@ -170,7 +161,6 @@ func Execute() {
 	_rootCmd.AddCommand(_patchCmd)
 	_rootCmd.AddCommand(_logsCmd)
 	_rootCmd.AddCommand(_refreshCmd)
-	_rootCmd.AddCommand(_predictCmd)
 	_rootCmd.AddCommand(_deleteCmd)
 
 	_rootCmd.AddCommand(_clusterCmd)
@@ -215,7 +205,7 @@ func addVerboseFlag(cmd *cobra.Command) {
 func wasEnvFlagProvided(cmd *cobra.Command) bool {
 	envFlagProvided := false
 	cmd.Flags().VisitAll(func(flag *pflag.Flag) {
-		if flag.Shorthand == "e" && flag.Changed {
+		if flag.Shorthand == "e" && flag.Changed && flag.Value.String() != "" {
 			envFlagProvided = true
 		}
 	})
