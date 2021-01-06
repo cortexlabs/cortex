@@ -10,17 +10,19 @@ Deploy realtime APIs that can respond to prediction requests on demand.
 * Metrics and log aggregation
 * Rolling updates
 
-## How it works
-
-### Install cortex
+## Install Cortex
 
 ```bash
 $ pip install cortex && touch cluster.yaml
 ```
 
-### `cluster.yaml`
+## Spin up a cluster on AWS
+
+### Configure a cluster
 
 ```yaml
+# cluster.yaml
+
 region: us-east-1
 instance_type: g4dn.xlarge
 min_instances: 1
@@ -28,13 +30,13 @@ max_instances: 3
 spot: true
 ```
 
-#### Spin up a cluster on AWS
+### Spin up on your AWS account
 
 ```bash
 $ cortex cluster up --config cluster.yaml
 ```
 
-### Create a directory
+## Deploy a realtime API
 
 ```bash
 $ mkdir text-generator && cd text-generator && touch predictor.py requirements.txt text_generator.yaml
