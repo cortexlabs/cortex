@@ -30,8 +30,6 @@ spot: true
 #### Spin up on your AWS or GCP account
 
 ```text
-$ pip install cortex
-
 $ cortex cluster up --config cluster.yaml
 
 ￮ configuring autoscaling ✓
@@ -55,9 +53,10 @@ cortex is ready!
 ```python
 # predictor.py
 
+from transformers import pipeline
+
 class PythonPredictor:
     def __init__(self, config):
-        from transformers import pipeline
         self.model = pipeline(task="text-generation")
 
     def predict(self, payload):
@@ -67,6 +66,8 @@ class PythonPredictor:
 #### Configure an API
 
 ```yaml
+# text_generator.yaml
+
 - name: text-generator
   kind: RealtimeAPI
   predictor:
@@ -93,9 +94,9 @@ class PythonPredictor:
 #### Deploy to your cluster
 
 ```bash
-$ cortex deploy
+$ cortex deploy text_generator.yaml
 
-# creating text-generator
+# creating http://example.com/text-generator
 ```
 
 #### Consume your API
