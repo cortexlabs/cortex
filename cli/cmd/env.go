@@ -122,11 +122,20 @@ var _envListCmd = &cobra.Command{
 		}
 
 		if _flagOutput == flags.JSONOutputType {
+			if len(cliConfig.Environments) == 0 {
+				fmt.Print("[]")
+				return
+			}
 			bytes, err := libjson.Marshal(cliConfig.Environments)
 			if err != nil {
 				exit.Error(err)
 			}
 			fmt.Print(string(bytes))
+			return
+		}
+
+		if len(cliConfig.Environments) == 0 {
+			fmt.Println("no environments are configured")
 			return
 		}
 

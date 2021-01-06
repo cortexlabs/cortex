@@ -32,8 +32,8 @@ Using a new cluster, created for testing only and deleted afterwards:
 pytest test/e2e/tests -k aws --aws-config <cortex_aws_cluster_config.yaml>
 ```
 
-**Note:** For the BatchAPI tests, the `--s3-bucket` option should be provided with an
-AWS S3 bucket for testing purposes. It is more convinient however to define
+**Note:** For the BatchAPI tests, the `--s3-path` option should be provided with an
+AWS S3 bucket for testing purposes. It is more convenient however to define
 this bucket through an environment variable, see [configuration](#configuration).
 
 ### GCP

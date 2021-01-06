@@ -41,30 +41,30 @@ iris-classifier-onnx   30        live     1           1m            -           
 iris-classifier-tf     70        live     1           1m            -             -     -
 
 last updated: 1m
-endpoint: https://abcedefg.execute-api.us-west-2.amazonaws.com/iris-classifier
-example curl: curl https://abcedefg.execute-api.us-west-2.amazonaws.com/iris-classifier -X POST -H "Content-Type: application/json" -d @sample.json
+endpoint: http://***.elb.us-west-2.amazonaws.com/iris-classifier
+example curl: curl http://***.elb.us-west-2.amazonaws.com/iris-classifier -X POST -H "Content-Type: application/json" -d @sample.json
 ...
 ```
 
 ## Make multiple requests
 
 ```bash
-$ curl https://abcedefg.execute-api.us-west-2.amazonaws.com/iris-classifier -X POST -H "Content-Type: application/json" -d @sample.json
+$ curl http://***.elb.us-west-2.amazonaws.com/iris-classifier -X POST -H "Content-Type: application/json" -d @sample.json
 setosa
 
-$ curl https://abcedefg.execute-api.us-west-2.amazonaws.com/iris-classifier -X POST -H "Content-Type: application/json" -d @sample.json
+$ curl http://***.elb.us-west-2.amazonaws.com/iris-classifier -X POST -H "Content-Type: application/json" -d @sample.json
 setosa
 
-$ curl https://abcedefg.execute-api.us-west-2.amazonaws.com/iris-classifier -X POST -H "Content-Type: application/json" -d @sample.json
+$ curl http://***.elb.us-west-2.amazonaws.com/iris-classifier -X POST -H "Content-Type: application/json" -d @sample.json
 setosa
 
-$ curl https://abcedefg.execute-api.us-west-2.amazonaws.com/iris-classifier -X POST -H "Content-Type: application/json" -d @sample.json
+$ curl http://***.elb.us-west-2.amazonaws.com/iris-classifier -X POST -H "Content-Type: application/json" -d @sample.json
 setosa
 
-$ curl https://abcedefg.execute-api.us-west-2.amazonaws.com/iris-classifier -X POST -H "Content-Type: application/json" -d @sample.json
+$ curl http://***.elb.us-west-2.amazonaws.com/iris-classifier -X POST -H "Content-Type: application/json" -d @sample.json
 setosa
 
-$ curl https://abcedefg.execute-api.us-west-2.amazonaws.com/iris-classifier -X POST -H "Content-Type: application/json" -d @sample.json
+$ curl http://***.elb.us-west-2.amazonaws.com/iris-classifier -X POST -H "Content-Type: application/json" -d @sample.json
 setosa
 ```
 
@@ -83,8 +83,8 @@ iris-classifier-onnx   30        live     1           4m            6.00791 ms  
 iris-classifier-tf     70        live     1           4m            5.81867 ms    5     -
 
 last updated: 4m
-endpoint: https://comtf6hs64.execute-api.us-west-2.amazonaws.com/iris-classifier
-example curl: curl https://comtf6hs64.execute-api.us-west-2.amazonaws.com/iris-classifier -X POST -H "Content-Type: application/json" -d @sample.json
+endpoint: http://***.elb.us-west-2.amazonaws.com/iris-classifier
+example curl: curl http://***.elb.us-west-2.amazonaws.com/iris-classifier -X POST -H "Content-Type: application/json" -d @sample.json
 ...
 ```
 

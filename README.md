@@ -51,33 +51,34 @@ cortex is ready!
 #### Define an API
 
 ```python
+# predictor.py
+
+from transformers import pipeline
+
 class PythonPredictor:
-  def __init__(self, config):
-    from transformers import pipeline
+    def __init__(self, config):
+        self.model = pipeline(task="text-generation")
 
-    self.model = pipeline(task="text-generation")
-
-  def predict(self, payload):
-    return self.model(payload["text"])[0]
-
-requirements = ["tensorflow", "transformers"]
+    def predict(self, payload):
+        return self.model(payload["text"])[0]
 ```
 
 #### Configure an API
 
-```python
-api_spec = {
-  "name": "text-generator",
-  "kind": "RealtimeAPI",
-  "compute": {
-    "gpu": 1,
-    "mem": "8Gi"
-  },
-  "autoscaling": {
-    "min_replicas": 1,
-    "max_replicas": 10
-  }
-}
+```yaml
+# text_generator.yaml
+
+- name: text-generator
+  kind: RealtimeAPI
+  predictor:
+    type: python
+    path: predictor.py
+  compute:
+    gpu: 1
+    mem: 8Gi
+  autoscaling:
+    min_replicas: 1
+    max_replicas: 10
 ```
 
 <br>
@@ -92,11 +93,8 @@ api_spec = {
 
 #### Deploy to your cluster
 
-```python
-import cortex
-
-cx = cortex.client("aws")
-cx.create_api(api_spec, predictor=PythonPredictor, requirements=requirements)
+```bash
+$ cortex deploy text_generator.yaml
 
 # creating http://example.com/text-generator
 ```
