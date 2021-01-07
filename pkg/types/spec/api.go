@@ -1,5 +1,5 @@
 /*
-Copyright 2020 Cortex Labs, Inc.
+Copyright 2021 Cortex Labs, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -28,38 +28,33 @@ import (
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/hash"
-	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 )
 
 type API struct {
 	*userconfig.API
-	ID               string             `json:"id"`
-	SpecID           string             `json:"spec_id"`
-	PredictorID      string             `json:"predictor_id"`
-	DeploymentID     string             `json:"deployment_id"`
-	Key              string             `json:"key"`
-	PredictorKey     string             `json:"predictor_key"`
-	LastUpdated      int64              `json:"last_updated"`
-	MetadataRoot     string             `json:"metadata_root"`
-	ProjectID        string             `json:"project_id"`
-	ProjectKey       string             `json:"project_key"`
-	LocalModelCaches []*LocalModelCache `json:"local_model_cache"` // local only
-	LocalProjectDir  string             `json:"local_project_dir"`
-}
-
-type LocalModelCache struct {
-	ID         string `json:"id"`
-	HostPath   string `json:"host_path"`
-	TargetPath string `json:"target_path"`
+	ID           string `json:"id"`
+	SpecID       string `json:"spec_id"`
+	PredictorID  string `json:"predictor_id"`
+	DeploymentID string `json:"deployment_id"`
+	Key          string `json:"key"`
+	PredictorKey string `json:"predictor_key"`
+	LastUpdated  int64  `json:"last_updated"`
+	MetadataRoot string `json:"metadata_root"`
+	ProjectID    string `json:"project_id"`
+	ProjectKey   string `json:"project_key"`
 }
 
 type CuratedModelResource struct {
 	*userconfig.ModelResource
-	S3Path     bool    `json:"s3_path"`
-	GCSPath    bool    `json:"gcs_path"`
-	LocalPath  bool    `json:"local_path"`
+	S3Path  bool `json:"s3_path"`
+	GCSPath bool `json:"gcs_path"`
+
+	// has no utility in the go stack, but in the python stack, this is required for
+	// single model paths (ONNX) because models are made available locally to the api pod
+	LocalPath bool `json:"local_path"`
+
 	IsFilePath bool    `json:"file_path"`
 	Versions   []int64 `json:"versions"`
 }
@@ -70,7 +65,6 @@ APIID (uniquely identifies an api configuration for a given deployment)
 		* PredictorID (used to determine when rolling updates need to happen)
 			* Resource
 			* Predictor
-			* Monitoring
 			* Compute
 			* ProjectID
 		* Deployment Strategy
@@ -84,7 +78,6 @@ func GetAPISpec(apiConfig *userconfig.API, projectID string, deploymentID string
 
 	buf.WriteString(s.Obj(apiConfig.Resource))
 	buf.WriteString(s.Obj(apiConfig.Predictor))
-	buf.WriteString(s.Obj(apiConfig.Monitoring))
 	buf.WriteString(projectID)
 	if apiConfig.Compute != nil {
 		buf.WriteString(s.Obj(apiConfig.Compute.Normalized()))
@@ -114,23 +107,6 @@ func GetAPISpec(apiConfig *userconfig.API, projectID string, deploymentID string
 		ProjectID:    projectID,
 		ProjectKey:   ProjectKey(projectID, clusterName),
 	}
-}
-
-// Keep track of models in the model cache used by this API (local only)
-func (api *API) ModelIDs() []string {
-	models := []string{}
-	for _, localModelCache := range api.LocalModelCaches {
-		models = append(models, localModelCache.ID)
-	}
-	return models
-}
-
-func (api *API) SubtractModelIDs(apis ...*API) []string {
-	modelIDs := strset.FromSlice(api.ModelIDs())
-	for _, a := range apis {
-		modelIDs.Remove(a.ModelIDs()...)
-	}
-	return modelIDs.Slice()
 }
 
 func PredictorKey(apiName string, predictorID string, clusterName string) string {

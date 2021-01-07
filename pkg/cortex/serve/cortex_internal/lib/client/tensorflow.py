@@ -1,4 +1,4 @@
-# Copyright 2020 Cortex Labs, Inc.
+# Copyright 2021 Cortex Labs, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -280,20 +280,19 @@ class TensorFlowClient:
                             self._models.remove_model(model_name, model_version)
 
                         # download model
-                        if model_name not in self._spec_models.get_local_model_names():
-                            logger.info(
-                                f"downloading model {model_name} of version {model_version} from the {upstream_model['provider']} upstream"
-                            )
-                            date = self._models.download_model(
-                                upstream_model["provider"],
-                                upstream_model["bucket"],
-                                model_name,
-                                model_version,
-                                upstream_model["path"],
-                            )
-                            if not date:
-                                raise WithBreak
-                            current_upstream_ts = int(date.timestamp())
+                        logger.info(
+                            f"downloading model {model_name} of version {model_version} from the {upstream_model['provider']} upstream"
+                        )
+                        date = self._models.download_model(
+                            upstream_model["provider"],
+                            upstream_model["bucket"],
+                            model_name,
+                            model_version,
+                            upstream_model["path"],
+                        )
+                        if not date:
+                            raise WithBreak
+                        current_upstream_ts = int(date.timestamp())
 
                     # load model
                     try:

@@ -14,14 +14,14 @@
     image: <string> # docker image to use for the Predictor (default: quay.io/cortexlabs/python-predictor-cpu:master or quay.io/cortexlabs/python-predictor-gpu:master based on compute)
     env: <string: string>  # dictionary of environment variables
     log_level: <string>  # log level that can be "debug", "info", "warning" or "error" (default: "info")
+    shm_size: <string>  # size of shared memory (/dev/shm) for sharing data between multiple processes, e.g. 64Mi or 1Gi (default: Null)
   networking:
     endpoint: <string>  # the endpoint for the API (default: <api_name>)
-    api_gateway: public | none  # whether to create a public API Gateway endpoint for this API (if not, the API will still be accessible via the load balancer) (default: public, unless disabled cluster-wide)
   compute:
-    cpu: <string | int | float>  # CPU request per worker, e.g. 200m or 1 (200m is equivalent to 0.2) (default: 200m)
-    gpu: <int>  # GPU request per worker (default: 0)
-    inf: <int> # Inferentia ASIC request per worker (default: 0)
-    mem: <string>  # memory request per worker, e.g. 200Mi or 1Gi (default: Null)
+    cpu: <string | int | float>  # CPU request per worker. One unit of CPU corresponds to one virtual CPU; fractional requests are allowed, and can be specified as a floating point number or via the "m" suffix (default: 200m)
+    gpu: <int>  # GPU request per worker. One unit of GPU corresponds to one virtual GPU (default: 0)
+    inf: <int> # Inferentia request per worker. One unit corresponds to one Inferentia ASIC with 4 NeuronCores and 8GB of cache memory. Each process will have one NeuronCore Group with (4 * inf / processes_per_replica) NeuronCores, so your model should be compiled to run on (4 * inf / processes_per_replica) NeuronCores. (default: 0) (aws only)
+    mem: <string>  # memory request per worker. One unit of memory is one byte and can be expressed as an integer or by using one of these suffixes: K, M, G, T (or their power-of two counterparts: Ki, Mi, Gi, Ti) (default: Null)
 ```
 
 ## TensorFlow Predictor
@@ -50,14 +50,14 @@
     tensorflow_serving_image: <string> # docker image to use for the TensorFlow Serving container (default: quay.io/cortexlabs/tensorflow-serving-gpu:master or quay.io/cortexlabs/tensorflow-serving-cpu:master based on compute)
     env: <string: string>  # dictionary of environment variables
     log_level: <string>  # log level that can be "debug", "info", "warning" or "error" (default: "info")
+    shm_size: <string>  # size of shared memory (/dev/shm) for sharing data between multiple processes, e.g. 64Mi or 1Gi (default: Null)
   networking:
     endpoint: <string>  # the endpoint for the API (default: <api_name>)
-    api_gateway: public | none  # whether to create a public API Gateway endpoint for this API (if not, the API will still be accessible via the load balancer) (default: public, unless disabled cluster-wide)
   compute:
-    cpu: <string | int | float>  # CPU request per worker, e.g. 200m or 1 (200m is equivalent to 0.2) (default: 200m)
-    gpu: <int>  # GPU request per worker (default: 0)
-    inf: <int> # Inferentia ASIC request per worker (default: 0)
-    mem: <string>  # memory request per worker, e.g. 200Mi or 1Gi (default: Null)
+    cpu: <string | int | float>  # CPU request per worker. One unit of CPU corresponds to one virtual CPU; fractional requests are allowed, and can be specified as a floating point number or via the "m" suffix (default: 200m)
+    gpu: <int>  # GPU request per worker. One unit of GPU corresponds to one virtual GPU (default: 0)
+    inf: <int> # Inferentia request per worker. One unit corresponds to one Inferentia ASIC with 4 NeuronCores and 8GB of cache memory. Each process will have one NeuronCore Group with (4 * inf / processes_per_replica) NeuronCores, so your model should be compiled to run on (4 * inf / processes_per_replica) NeuronCores. (default: 0) (aws only)
+    mem: <string>  # memory request per worker. One unit of memory is one byte and can be expressed as an integer or by using one of these suffixes: K, M, G, T (or their power-of two counterparts: Ki, Mi, Gi, Ti) (default: Null)
 ```
 
 ## ONNX Predictor
@@ -80,11 +80,11 @@
     image: <string> # docker image to use for the Predictor (default: quay.io/cortexlabs/onnx-predictor-gpu:master or quay.io/cortexlabs/onnx-predictor-cpu:master based on compute)
     env: <string: string>  # dictionary of environment variables
     log_level: <string>  # log level that can be "debug", "info", "warning" or "error" (default: "info")
+    shm_size: <string>  # size of shared memory (/dev/shm) for sharing data between multiple processes, e.g. 64Mi or 1Gi (default: Null)
   networking:
     endpoint: <string>  # the endpoint for the API (default: <api_name>)
-    api_gateway: public | none  # whether to create a public API Gateway endpoint for this API (if not, the API will still be accessible via the load balancer) (default: public, unless disabled cluster-wide)
   compute:
-    cpu: <string | int | float>  # CPU request per worker, e.g. 200m or 1 (200m is equivalent to 0.2) (default: 200m)
-    gpu: <int>  # GPU request per worker (default: 0)
-    mem: <string>  # memory request per worker, e.g. 200Mi or 1Gi (default: Null)
+    cpu: <string | int | float>  # CPU request per worker. One unit of CPU corresponds to one virtual CPU; fractional requests are allowed, and can be specified as a floating point number or via the "m" suffix (default: 200m)
+    gpu: <int>  # GPU request per worker. One unit of GPU corresponds to one virtual GPU (default: 0)
+    mem: <string>  # memory request per worker. One unit of memory is one byte and can be expressed as an integer or by using one of these suffixes: K, M, G, T (or their power-of two counterparts: Ki, Mi, Gi, Ti) (default: Null)
 ```

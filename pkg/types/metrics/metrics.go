@@ -1,5 +1,5 @@
 /*
-Copyright 2020 Cortex Labs, Inc.
+Copyright 2021 Cortex Labs, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -22,40 +22,11 @@ import (
 )
 
 type Metrics struct {
-	APIName           string           `json:"api_name"`
-	NetworkStats      *NetworkStats    `json:"network_stats"`
-	ClassDistribution map[string]int   `json:"class_distribution"`
-	RegressionStats   *RegressionStats `json:"regression_stats"`
-}
-
-type NetworkStats struct {
-	Latency *float64 `json:"latency"`
-	Code2XX int      `json:"code_2xx"`
-	Code4XX int      `json:"code_4xx"`
-	Code5XX int      `json:"code_5xx"`
-	Total   int      `json:"total"`
-}
-
-type RegressionStats struct {
-	Min         *float64 `json:"min"`
-	Max         *float64 `json:"max"`
-	Avg         *float64 `json:"avg"`
-	SampleCount int      `json:"sample_count"`
+	APIName      string        `json:"api_name"`
+	NetworkStats *NetworkStats `json:"network_stats"`
 }
 
 func (left Metrics) Merge(right Metrics) Metrics {
-	mergedClassDistribution := left.ClassDistribution
-
-	if right.ClassDistribution != nil {
-		if left.ClassDistribution == nil {
-			mergedClassDistribution = right.ClassDistribution
-		} else {
-			for className, count := range right.ClassDistribution {
-				mergedClassDistribution[className] += count
-			}
-		}
-	}
-
 	var mergedNetworkStats *NetworkStats
 	switch {
 	case left.NetworkStats != nil && right.NetworkStats != nil:
@@ -67,22 +38,17 @@ func (left Metrics) Merge(right Metrics) Metrics {
 		mergedNetworkStats = right.NetworkStats
 	}
 
-	var mergedRegressionStats *RegressionStats
-	switch {
-	case left.RegressionStats != nil && right.RegressionStats != nil:
-		merged := (*left.RegressionStats).Merge(*right.RegressionStats)
-		mergedRegressionStats = &merged
-	case left.RegressionStats != nil:
-		mergedRegressionStats = left.RegressionStats
-	case right.RegressionStats != nil:
-		mergedRegressionStats = right.RegressionStats
-	}
-
 	return Metrics{
-		NetworkStats:      mergedNetworkStats,
-		RegressionStats:   mergedRegressionStats,
-		ClassDistribution: mergedClassDistribution,
+		NetworkStats: mergedNetworkStats,
 	}
+}
+
+type NetworkStats struct {
+	Latency *float64 `json:"latency"`
+	Code2XX int      `json:"code_2xx"`
+	Code4XX int      `json:"code_4xx"`
+	Code5XX int      `json:"code_5xx"`
+	Total   int      `json:"total"`
 }
 
 func (left NetworkStats) Merge(right NetworkStats) NetworkStats {
@@ -92,17 +58,6 @@ func (left NetworkStats) Merge(right NetworkStats) NetworkStats {
 		Code4XX: left.Code4XX + right.Code4XX,
 		Code5XX: left.Code5XX + right.Code5XX,
 		Total:   left.Total + right.Total,
-	}
-}
-
-func (left RegressionStats) Merge(right RegressionStats) RegressionStats {
-	totalSampleCount := left.SampleCount + right.SampleCount
-
-	return RegressionStats{
-		Min:         slices.Float64PtrMin(left.Min, right.Min),
-		Max:         slices.Float64PtrMax(left.Max, right.Max),
-		Avg:         mergeAvg(left.Avg, left.SampleCount, right.Avg, right.SampleCount),
-		SampleCount: totalSampleCount,
 	}
 }
 

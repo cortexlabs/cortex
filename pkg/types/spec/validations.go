@@ -1,5 +1,5 @@
 /*
-Copyright 2020 Cortex Labs, Inc.
+Copyright 2021 Cortex Labs, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -19,7 +19,6 @@ package spec
 import (
 	"context"
 	"fmt"
-	"math"
 	"strings"
 	"time"
 
@@ -54,8 +53,8 @@ const _dockerPullSecretName = "registry-credentials"
 func apiValidation(
 	provider types.ProviderType,
 	resource userconfig.Resource,
-	awsClusterConfig *clusterconfig.Config, // should be omitted if running locally
-	gcpClusterConfig *clusterconfig.GCPConfig, // should be omitted if running locally
+	awsClusterConfig *clusterconfig.Config,
+	gcpClusterConfig *clusterconfig.GCPConfig,
 ) *cr.StructValidation {
 
 	structFieldValidations := []*cr.StructFieldValidation{}
@@ -65,7 +64,6 @@ func apiValidation(
 			predictorValidation(),
 			networkingValidation(resource.Kind, provider, awsClusterConfig, gcpClusterConfig),
 			computeValidation(provider),
-			monitoringValidation(provider),
 			autoscalingValidation(provider),
 			updateStrategyValidation(provider),
 		)
@@ -205,6 +203,14 @@ func predictorValidation() *cr.StructFieldValidation {
 					},
 				},
 				{
+					StructField: "ShmSize",
+					StringPtrValidation: &cr.StringPtrValidation{
+						Default:           nil,
+						AllowExplicitNull: true,
+					},
+					Parser: k8s.QuantityParser(&k8s.QuantityValidation{}),
+				},
+				{
 					StructField: "LogLevel",
 					StringValidation: &cr.StringValidation{
 						Default:       "info",
@@ -239,112 +245,29 @@ func predictorValidation() *cr.StructFieldValidation {
 	}
 }
 
-func monitoringValidation(provider types.ProviderType) *cr.StructFieldValidation {
-	if provider != types.AWSProviderType && provider != types.LocalProviderType {
-		return &cr.StructFieldValidation{
-			StructField: "Monitoring",
-			StructValidation: &cr.StructValidation{
-				CantBeSpecifiedErrStr: pointer.String("only supported on AWS clusters"),
-			},
-		}
-	}
-
-	return &cr.StructFieldValidation{
-		StructField: "Monitoring",
-		StructValidation: &cr.StructValidation{
-			DefaultNil:        true,
-			AllowExplicitNull: true,
-			StructFieldValidations: []*cr.StructFieldValidation{
-				{
-					StructField:         "Key",
-					StringPtrValidation: &cr.StringPtrValidation{},
-				},
-				{
-					StructField: "ModelType",
-					StringValidation: &cr.StringValidation{
-						Required:      false,
-						AllowEmpty:    true,
-						AllowedValues: userconfig.ModelTypeStrings(),
-					},
-					Parser: func(str string) (interface{}, error) {
-						return userconfig.ModelTypeFromString(str), nil
-					},
-				},
-			},
-		},
-	}
-}
-
 func networkingValidation(
 	kind userconfig.Kind,
 	provider types.ProviderType,
-	awsClusterConfig *clusterconfig.Config, // should be omitted if running locally
-	gcpClusterConfig *clusterconfig.GCPConfig, // should be omitted if running locally
+	awsClusterConfig *clusterconfig.Config,
+	gcpClusterConfig *clusterconfig.GCPConfig,
 ) *cr.StructFieldValidation {
-
-	structFieldValidation := []*cr.StructFieldValidation{
-		{
-			StructField: "Endpoint",
-			StringPtrValidation: &cr.StringPtrValidation{
-				Validator: urls.ValidateEndpoint,
-				MaxLength: 1000, // no particular reason other than it works
-			},
-		},
-	}
-
-	if provider == types.AWSProviderType || provider == types.LocalProviderType {
-		defaultAPIGatewayType := userconfig.PublicAPIGatewayType
-		if awsClusterConfig != nil && awsClusterConfig.APIGatewaySetting == clusterconfig.NoneAPIGatewaySetting {
-			defaultAPIGatewayType = userconfig.NoneAPIGatewayType
-		}
-
-		structFieldValidation = append(structFieldValidation, &cr.StructFieldValidation{
-			StructField: "APIGateway",
-			StringValidation: &cr.StringValidation{
-				AllowedValues: userconfig.APIGatewayTypeStrings(),
-				Default:       defaultAPIGatewayType.String(),
-			},
-			Parser: func(str string) (interface{}, error) {
-				return userconfig.APIGatewayTypeFromString(str), nil
-			},
-		})
-	} else {
-		structFieldValidation = append(structFieldValidation, &cr.StructFieldValidation{
-			StructField: "APIGateway",
-			StringValidation: &cr.StringValidation{
-				CantBeSpecifiedErrStr: pointer.String("only supported on AWS clusters"),
-				Default:               userconfig.NoneAPIGatewayType.String(),
-			},
-			Parser: func(str string) (interface{}, error) {
-				return userconfig.APIGatewayTypeFromString(str), nil
-			},
-		})
-	}
-
-	if kind == userconfig.RealtimeAPIKind {
-		structFieldValidation = append(structFieldValidation, &cr.StructFieldValidation{
-			StructField: "LocalPort",
-			IntPtrValidation: &cr.IntPtrValidation{
-				GreaterThan:       pointer.Int(0),
-				LessThanOrEqualTo: pointer.Int(math.MaxUint16),
-			},
-		})
-	}
-
 	return &cr.StructFieldValidation{
 		StructField: "Networking",
 		StructValidation: &cr.StructValidation{
-			StructFieldValidations: structFieldValidation,
+			StructFieldValidations: []*cr.StructFieldValidation{
+				{
+					StructField: "Endpoint",
+					StringPtrValidation: &cr.StringPtrValidation{
+						Validator: urls.ValidateEndpoint,
+						MaxLength: 1000, // no particular reason other than it works
+					},
+				},
+			},
 		},
 	}
 }
 
 func computeValidation(provider types.ProviderType) *cr.StructFieldValidation {
-	cpuDefault := pointer.String("200m")
-	if provider == types.LocalProviderType {
-		cpuDefault = nil
-	}
-
 	structFieldValidation := &cr.StructFieldValidation{
 		StructField: "Compute",
 		StructValidation: &cr.StructValidation{
@@ -352,7 +275,7 @@ func computeValidation(provider types.ProviderType) *cr.StructFieldValidation {
 				{
 					StructField: "CPU",
 					StringPtrValidation: &cr.StringPtrValidation{
-						Default:           cpuDefault,
+						Default:           pointer.String("200m"),
 						AllowExplicitNull: true,
 						CastNumeric:       true,
 					},
@@ -406,14 +329,9 @@ func computeValidation(provider types.ProviderType) *cr.StructFieldValidation {
 }
 
 func autoscalingValidation(provider types.ProviderType) *cr.StructFieldValidation {
-	defaultNil := provider == types.LocalProviderType
-	allowExplicitNull := provider == types.LocalProviderType
-
 	structFieldValidation := &cr.StructFieldValidation{
 		StructField: "Autoscaling",
 		StructValidation: &cr.StructValidation{
-			DefaultNil:        defaultNil,
-			AllowExplicitNull: allowExplicitNull,
 			StructFieldValidations: []*cr.StructFieldValidation{
 				{
 					StructField: "MinReplicas",
@@ -450,7 +368,7 @@ func autoscalingValidation(provider types.ProviderType) *cr.StructFieldValidatio
 		},
 	}
 
-	if provider == types.AWSProviderType || provider == types.LocalProviderType {
+	if provider == types.AWSProviderType {
 		structFieldValidation.StructValidation.StructFieldValidations = append(structFieldValidation.StructValidation.StructFieldValidations,
 			&cr.StructFieldValidation{
 				StructField: "TargetReplicaConcurrency",
@@ -580,13 +498,9 @@ func autoscalingValidation(provider types.ProviderType) *cr.StructFieldValidatio
 }
 
 func updateStrategyValidation(provider types.ProviderType) *cr.StructFieldValidation {
-	defaultNil := provider == types.LocalProviderType
-	allowExplicitNull := provider == types.LocalProviderType
 	return &cr.StructFieldValidation{
 		StructField: "UpdateStrategy",
 		StructValidation: &cr.StructValidation{
-			DefaultNil:        defaultNil,
-			AllowExplicitNull: allowExplicitNull,
 			StructFieldValidations: []*cr.StructFieldValidation{
 				{
 					StructField: "MaxSurge",
@@ -730,8 +644,8 @@ func ExtractAPIConfigs(
 	configBytes []byte,
 	provider types.ProviderType,
 	configFileName string,
-	awsClusterConfig *clusterconfig.Config, // should be omitted if running locally
-	gcpClusterConfig *clusterconfig.GCPConfig, // should be omitted if running locally
+	awsClusterConfig *clusterconfig.Config,
+	gcpClusterConfig *clusterconfig.GCPConfig,
 ) ([]userconfig.API, error) {
 
 	var err error
@@ -760,7 +674,7 @@ func ExtractAPIConfigs(
 		}
 
 		if resourceStruct.Kind == userconfig.BatchAPIKind || resourceStruct.Kind == userconfig.TrafficSplitterKind {
-			if provider == types.LocalProviderType || provider == types.GCPProviderType {
+			if provider == types.GCPProviderType {
 				return nil, errors.Wrap(ErrorKindIsNotSupportedByProvider(resourceStruct.Kind, provider), userconfig.IdentifyAPI(configFileName, resourceStruct.Name, resourceStruct.Kind, i))
 			}
 		}
@@ -800,7 +714,7 @@ func ValidateAPI(
 	provider types.ProviderType,
 	awsClient *aws.Client,
 	gcpClient *gcp.Client,
-	k8sClient *k8s.Client, // will be nil for local provider
+	k8sClient *k8s.Client,
 ) error {
 
 	// if models is nil, we need to set it to an empty slice to avoid nil pointer exceptions
@@ -808,7 +722,7 @@ func ValidateAPI(
 		models = &[]CuratedModelResource{}
 	}
 
-	if provider != types.LocalProviderType && api.Networking.Endpoint == nil {
+	if api.Networking.Endpoint == nil {
 		api.Networking.Endpoint = pointer.String("/" + api.Name)
 	}
 
@@ -816,7 +730,7 @@ func ValidateAPI(
 		return errors.Wrap(err, userconfig.PredictorKey)
 	}
 
-	if api.Autoscaling != nil { // should only be nil for local provider
+	if api.Autoscaling != nil {
 		if err := validateAutoscaling(api); err != nil {
 			return errors.Wrap(err, userconfig.AutoscalingKey)
 		}
@@ -826,9 +740,15 @@ func ValidateAPI(
 		return errors.Wrap(err, userconfig.ComputeKey)
 	}
 
-	if api.UpdateStrategy != nil { // should only be nil for local provider
+	if api.UpdateStrategy != nil {
 		if err := validateUpdateStrategy(api.UpdateStrategy); err != nil {
 			return errors.Wrap(err, userconfig.UpdateStrategyKey)
+		}
+	}
+
+	if api.Predictor != nil && api.Predictor.ShmSize != nil && api.Compute.Mem != nil {
+		if api.Predictor.ShmSize.Cmp(api.Compute.Mem.Quantity) > 0 {
+			return ErrorShmSizeCannotExceedMem(*api.Predictor.ShmSize, *api.Compute.Mem)
 		}
 	}
 
@@ -861,7 +781,7 @@ func validatePredictor(
 	provider types.ProviderType,
 	awsClient *aws.Client,
 	gcpClient *gcp.Client,
-	k8sClient *k8s.Client, // will be nil for local provider
+	k8sClient *k8s.Client,
 ) error {
 	predictor := api.Predictor
 
@@ -1073,9 +993,9 @@ func validatePythonPredictor(api *userconfig.API, models *[]CuratedModelResource
 
 	var err error
 	if hasMultiModels && mmr.Dir != nil {
-		*models, err = validateDirModels(*mmr.Dir, nil, projectFiles.ProjectDir(), awsClient, gcpClient, generateErrorForPredictorTypeFn(api), nil)
+		*models, err = validateDirModels(*mmr.Dir, nil, awsClient, gcpClient, generateErrorForPredictorTypeFn(api), nil)
 	} else {
-		*models, err = validateModels(modelResources, nil, projectFiles.ProjectDir(), awsClient, gcpClient, generateErrorForPredictorTypeFn(api), nil)
+		*models, err = validateModels(modelResources, nil, awsClient, gcpClient, generateErrorForPredictorTypeFn(api), nil)
 	}
 	if err != nil {
 		return modelWrapError(err)
@@ -1162,9 +1082,9 @@ func validateTensorFlowPredictor(api *userconfig.API, models *[]CuratedModelReso
 
 	var err error
 	if hasMultiModels && predictor.Models.Dir != nil {
-		*models, err = validateDirModels(*predictor.Models.Dir, predictor.Models.SignatureKey, projectFiles.ProjectDir(), awsClient, gcpClient, generateErrorForPredictorTypeFn(api), validators)
+		*models, err = validateDirModels(*predictor.Models.Dir, predictor.Models.SignatureKey, awsClient, gcpClient, generateErrorForPredictorTypeFn(api), validators)
 	} else {
-		*models, err = validateModels(modelResources, predictor.Models.SignatureKey, projectFiles.ProjectDir(), awsClient, gcpClient, generateErrorForPredictorTypeFn(api), validators)
+		*models, err = validateModels(modelResources, predictor.Models.SignatureKey, awsClient, gcpClient, generateErrorForPredictorTypeFn(api), validators)
 	}
 	if err != nil {
 		return modelWrapError(err)
@@ -1218,8 +1138,8 @@ func validateONNXPredictor(api *userconfig.API, models *[]CuratedModelResource, 
 			Path: *predictor.Models.Path,
 		}
 
-		if strings.HasSuffix(*predictor.Models.Path, ".onnx") && provider != types.LocalProviderType {
-			if err := validateONNXModelFilePath(*predictor.Models.Path, projectFiles.ProjectDir(), awsClient, gcpClient); err != nil {
+		if strings.HasSuffix(*predictor.Models.Path, ".onnx") {
+			if err := validateONNXModelFilePath(*predictor.Models.Path, awsClient, gcpClient); err != nil {
 				return modelWrapError(err)
 			}
 			modelFileResources = append(modelFileResources, modelResource)
@@ -1243,8 +1163,8 @@ func validateONNXPredictor(api *userconfig.API, models *[]CuratedModelResource, 
 						path.Name,
 					)
 				}
-				if strings.HasSuffix((*path).Path, ".onnx") && provider != types.LocalProviderType {
-					if err := validateONNXModelFilePath((*path).Path, projectFiles.ProjectDir(), awsClient, gcpClient); err != nil {
+				if strings.HasSuffix((*path).Path, ".onnx") {
+					if err := validateONNXModelFilePath((*path).Path, awsClient, gcpClient); err != nil {
 						return errors.Wrap(modelWrapError(err), path.Name)
 					}
 					modelFileResources = append(modelFileResources, *path)
@@ -1266,9 +1186,9 @@ func validateONNXPredictor(api *userconfig.API, models *[]CuratedModelResource, 
 
 	var err error
 	if hasMultiModels && predictor.Models.Dir != nil {
-		*models, err = validateDirModels(*predictor.Models.Dir, nil, projectFiles.ProjectDir(), awsClient, gcpClient, generateErrorForPredictorTypeFn(api), validators)
+		*models, err = validateDirModels(*predictor.Models.Dir, nil, awsClient, gcpClient, generateErrorForPredictorTypeFn(api), validators)
 	} else {
-		*models, err = validateModels(modelResources, nil, projectFiles.ProjectDir(), awsClient, gcpClient, generateErrorForPredictorTypeFn(api), validators)
+		*models, err = validateModels(modelResources, nil, awsClient, gcpClient, generateErrorForPredictorTypeFn(api), validators)
 	}
 	if err != nil {
 		return modelWrapError(err)
@@ -1277,7 +1197,6 @@ func validateONNXPredictor(api *userconfig.API, models *[]CuratedModelResource, 
 	for _, modelFileResource := range modelFileResources {
 		s3Path := strings.HasPrefix(modelFileResource.Path, "s3://")
 		gcsPath := strings.HasPrefix(modelFileResource.Path, "gs://")
-		localPath := !s3Path && !gcsPath
 
 		*models = append(*models, CuratedModelResource{
 			ModelResource: &userconfig.ModelResource{
@@ -1286,7 +1205,6 @@ func validateONNXPredictor(api *userconfig.API, models *[]CuratedModelResource, 
 			},
 			S3Path:     s3Path,
 			GCSPath:    gcsPath,
-			LocalPath:  localPath,
 			IsFilePath: true,
 		})
 	}
@@ -1306,10 +1224,9 @@ func validateONNXPredictor(api *userconfig.API, models *[]CuratedModelResource, 
 	return nil
 }
 
-func validateONNXModelFilePath(modelPath string, projectDir string, awsClient *aws.Client, gcpClient *gcp.Client) error {
+func validateONNXModelFilePath(modelPath string, awsClient *aws.Client, gcpClient *gcp.Client) error {
 	s3Path := strings.HasPrefix(modelPath, "s3://")
 	gcsPath := strings.HasPrefix(modelPath, "gs://")
-	localPath := !s3Path && !gcsPath
 
 	if s3Path {
 		awsClientForBucket, err := aws.NewFromClientS3Path(modelPath, awsClient)
@@ -1345,13 +1262,6 @@ func validateONNXModelFilePath(modelPath string, projectDir string, awsClient *a
 
 		if !isGCSFile {
 			return ErrorInvalidONNXModelFilePath(modelPrefix)
-		}
-	}
-
-	if localPath {
-		expandedLocalPath := files.RelToAbsPath(modelPath, projectDir)
-		if err := files.CheckFile(expandedLocalPath); err != nil {
-			return err
 		}
 	}
 
@@ -1435,7 +1345,7 @@ func validateDockerImagePath(
 	image string,
 	provider types.ProviderType,
 	awsClient *aws.Client,
-	k8sClient *k8s.Client, // will be nil for local provider)
+	k8sClient *k8s.Client,
 ) error {
 	if consts.DefaultImagePathsSet.Has(image) {
 		return nil
@@ -1454,20 +1364,9 @@ func validateDockerImagePath(
 		return err
 	}
 
-	if provider == types.LocalProviderType {
-		// short circuit if the image is already available locally
-		if err := docker.CheckImageExistsLocally(dockerClient, image); err == nil {
-			return nil
-		}
-	}
-
 	dockerAuthStr := docker.NoAuth
 
 	if regex.IsValidECRURL(image) {
-		if awsClient.IsAnonymous {
-			return errors.Wrap(ErrorCannotAccessECRWithAnonymousAWSCreds(), image)
-		}
-
 		ecrRegion := aws.GetRegionFromECRURL(image)
 		if ecrRegion != awsClient.Region {
 			return ErrorRegistryInDifferentRegion(ecrRegion, awsClient.Region)

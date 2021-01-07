@@ -1,4 +1,4 @@
-# Copyright 2020 Cortex Labs, Inc.
+# Copyright 2021 Cortex Labs, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -45,43 +45,6 @@ def client(env: str):
         )
 
     return Client(environment)
-
-
-def local_client(
-    aws_access_key_id: str,
-    aws_secret_access_key: str,
-    aws_region: str,
-) -> Client:
-    """
-    Initialize a client to deploy and manage APIs locally.
-
-    The specified AWS credentials will be used by the CLI to download models
-    from S3 and authenticate to ECR, and will be set in your Predictor.
-
-    Args:
-        aws_access_key_id: AWS access key ID.
-        aws_secret_access_key: AWS secret access key.
-        aws_region: AWS region.
-
-    Returns:
-        Cortex client that can be used to deploy and manage APIs locally.
-    """
-    args = [
-        "env",
-        "configure",
-        "--provider",
-        "local",
-        "--aws-region",
-        aws_region,
-        "--aws-access-key-id",
-        aws_access_key_id,
-        "--aws-secret-access-key",
-        aws_secret_access_key,
-    ]
-
-    run_cli(args, hide_output=True)
-
-    return Client("local")
 
 
 def cluster_client(

@@ -1,5 +1,5 @@
 /*
-Copyright 2020 Cortex Labs, Inc.
+Copyright 2021 Cortex Labs, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -34,7 +34,6 @@ type API struct {
 	Resource
 	APIs             []*TrafficSplit `json:"apis" yaml:"apis"`
 	Predictor        *Predictor      `json:"predictor" yaml:"predictor"`
-	Monitoring       *Monitoring     `json:"monitoring" yaml:"monitoring"`
 	Networking       *Networking     `json:"networking" yaml:"networking"`
 	Compute          *Compute        `json:"compute" yaml:"compute"`
 	Autoscaling      *Autoscaling    `json:"autoscaling" yaml:"autoscaling"`
@@ -54,6 +53,7 @@ type Predictor struct {
 	ServerSideBatching     *ServerSideBatching    `json:"server_side_batching" yaml:"server_side_batching"`
 	ProcessesPerReplica    int32                  `json:"processes_per_replica" yaml:"processes_per_replica"`
 	ThreadsPerProcess      int32                  `json:"threads_per_process" yaml:"threads_per_process"`
+	ShmSize                *k8s.Quantity          `json:"shm_size" yaml:"shm_size"`
 	PythonPath             *string                `json:"python_path" yaml:"python_path"`
 	LogLevel               LogLevel               `json:"log_level" yaml:"log_level"`
 	Image                  string                 `json:"image" yaml:"image"`
@@ -82,20 +82,13 @@ type ModelResource struct {
 	SignatureKey *string `json:"signature_key" yaml:"signature_key"`
 }
 
-type Monitoring struct {
-	Key       *string   `json:"key" yaml:"key"`
-	ModelType ModelType `json:"model_type" yaml:"model_type"`
-}
-
 type ServerSideBatching struct {
 	MaxBatchSize  int32         `json:"max_batch_size" yaml:"max_batch_size"`
 	BatchInterval time.Duration `json:"batch_interval" yaml:"batch_interval"`
 }
 
 type Networking struct {
-	Endpoint   *string        `json:"endpoint" yaml:"endpoint"`
-	LocalPort  *int           `json:"local_port" yaml:"local_port"`
-	APIGateway APIGatewayType `json:"api_gateway" yaml:"api_gateway"`
+	Endpoint *string `json:"endpoint" yaml:"endpoint"`
 }
 
 type Compute struct {
@@ -206,7 +199,6 @@ func (api *API) ToK8sAnnotations() map[string]string {
 
 	if api.Networking != nil {
 		annotations[EndpointAnnotationKey] = *api.Networking.Endpoint
-		annotations[APIGatewayAnnotationKey] = api.Networking.APIGateway.String()
 	}
 
 	if api.Autoscaling != nil {
@@ -223,14 +215,6 @@ func (api *API) ToK8sAnnotations() map[string]string {
 		annotations[UpscaleToleranceAnnotationKey] = s.Float64(api.Autoscaling.UpscaleTolerance)
 	}
 	return annotations
-}
-
-func APIGatewayFromAnnotations(k8sObj kmeta.Object) (APIGatewayType, error) {
-	apiGatewayType := APIGatewayTypeFromString(k8sObj.GetAnnotations()[APIGatewayAnnotationKey])
-	if apiGatewayType == UnknownAPIGatewayType {
-		return UnknownAPIGatewayType, ErrorUnknownAPIGatewayType()
-	}
-	return apiGatewayType, nil
 }
 
 func AutoscalingFromAnnotations(k8sObj kmeta.Object) (*Autoscaling, error) {
@@ -332,24 +316,16 @@ func (api *API) UserStr(provider types.ProviderType) string {
 		sb.WriteString(s.Indent(api.Compute.UserStr(), "  "))
 	}
 
-	if provider != types.LocalProviderType {
-		if api.Autoscaling != nil {
-			sb.WriteString(fmt.Sprintf("%s:\n", AutoscalingKey))
-			sb.WriteString(s.Indent(api.Autoscaling.UserStr(provider), "  "))
-		}
-
-		if api.UpdateStrategy != nil {
-			sb.WriteString(fmt.Sprintf("%s:\n", UpdateStrategyKey))
-			sb.WriteString(s.Indent(api.UpdateStrategy.UserStr(), "  "))
-		}
-
-		if provider == types.AWSProviderType {
-			if api.Monitoring != nil {
-				sb.WriteString(fmt.Sprintf("%s:\n", MonitoringKey))
-				sb.WriteString(s.Indent(api.Monitoring.UserStr(), "  "))
-			}
-		}
+	if api.Autoscaling != nil {
+		sb.WriteString(fmt.Sprintf("%s:\n", AutoscalingKey))
+		sb.WriteString(s.Indent(api.Autoscaling.UserStr(provider), "  "))
 	}
+
+	if api.UpdateStrategy != nil {
+		sb.WriteString(fmt.Sprintf("%s:\n", UpdateStrategyKey))
+		sb.WriteString(s.Indent(api.UpdateStrategy.UserStr(), "  "))
+	}
+
 	return sb.String()
 }
 
@@ -382,6 +358,10 @@ func (predictor *Predictor) UserStr() string {
 
 	sb.WriteString(fmt.Sprintf("%s: %s\n", ProcessesPerReplicaKey, s.Int32(predictor.ProcessesPerReplica)))
 	sb.WriteString(fmt.Sprintf("%s: %s\n", ThreadsPerProcessKey, s.Int32(predictor.ThreadsPerProcess)))
+
+	if predictor.ShmSize != nil {
+		sb.WriteString(fmt.Sprintf("%s: %s\n", ShmSize, predictor.ShmSize.UserString))
+	}
 
 	if len(predictor.Config) > 0 {
 		sb.WriteString(fmt.Sprintf("%s:\n", ConfigKey))
@@ -450,25 +430,10 @@ func (batch *ServerSideBatching) UserStr() string {
 	return sb.String()
 }
 
-func (monitoring *Monitoring) UserStr() string {
-	var sb strings.Builder
-	sb.WriteString(fmt.Sprintf("%s: %s\n", ModelTypeKey, monitoring.ModelType.String()))
-	if monitoring.Key != nil {
-		sb.WriteString(fmt.Sprintf("%s: %s\n", KeyKey, *monitoring.Key))
-	}
-	return sb.String()
-}
-
 func (networking *Networking) UserStr(provider types.ProviderType) string {
 	var sb strings.Builder
-	if provider == types.LocalProviderType && networking.LocalPort != nil {
-		sb.WriteString(fmt.Sprintf("%s: %d\n", LocalPortKey, *networking.LocalPort))
-	}
-	if provider != types.LocalProviderType && networking.Endpoint != nil {
+	if networking.Endpoint != nil {
 		sb.WriteString(fmt.Sprintf("%s: %s\n", EndpointKey, *networking.Endpoint))
-	}
-	if provider == types.AWSProviderType {
-		sb.WriteString(fmt.Sprintf("%s: %s\n", APIGatewayKey, networking.APIGateway))
 	}
 	return sb.String()
 }
@@ -591,26 +556,13 @@ func (api *API) TelemetryEvent(provider types.ProviderType) map[string]interface
 		event["apis._len"] = len(api.APIs)
 	}
 
-	if api.Monitoring != nil {
-		event["monitoring._is_defined"] = true
-		event["monitoring.model_type"] = api.Monitoring.ModelType
-		if api.Monitoring.Key != nil {
-			event["monitoring.key._is_defined"] = true
-		}
-	}
-
 	if api.Networking != nil {
 		event["networking._is_defined"] = true
-		event["networking.api_gateway"] = api.Networking.APIGateway
 		if api.Networking.Endpoint != nil {
 			event["networking.endpoint._is_defined"] = true
 			if urls.CanonicalizeEndpoint(api.Name) != *api.Networking.Endpoint {
 				event["networking.endpoint._is_custom"] = true
 			}
-		}
-		if api.Networking.LocalPort != nil {
-			event["networking.local_port._is_defined"] = true
-			event["networking.local_port"] = *api.Networking.LocalPort
 		}
 	}
 
@@ -633,6 +585,11 @@ func (api *API) TelemetryEvent(provider types.ProviderType) map[string]interface
 		event["predictor.type"] = api.Predictor.Type
 		event["predictor.processes_per_replica"] = api.Predictor.ProcessesPerReplica
 		event["predictor.threads_per_process"] = api.Predictor.ThreadsPerProcess
+
+		if api.Predictor.ShmSize != nil {
+			event["predictor.shm_size"] = api.Predictor.ShmSize.String()
+		}
+
 		event["predictor.log_level"] = api.Predictor.LogLevel
 
 		if api.Predictor.PythonPath != nil {

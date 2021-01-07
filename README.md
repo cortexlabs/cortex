@@ -10,7 +10,7 @@ Cortex is an open source platform for large-scale inference workloads.
 
 ## Model serving infrastructure
 
-* Supports deploying TensorFlow, PyTorch, sklearn and other models as realtime or batch APIs.
+* Supports deploying TensorFlow, PyTorch, and other models as realtime or batch APIs.
 * Ensures high availability with availability zones and automated instance restarts.
 * Runs inference on on-demand instances or spot instances with on-demand backups.
 * Autoscales to handle production workloads with support for overprovisioning.
@@ -51,33 +51,34 @@ cortex is ready!
 #### Define an API
 
 ```python
+# predictor.py
+
+from transformers import pipeline
+
 class PythonPredictor:
-  def __init__(self, config):
-    from transformers import pipeline
+    def __init__(self, config):
+        self.model = pipeline(task="text-generation")
 
-    self.model = pipeline(task="text-generation")
-
-  def predict(self, payload):
-    return self.model(payload["text"])[0]
-
-requirements = ["tensorflow", "transformers"]
+    def predict(self, payload):
+        return self.model(payload["text"])[0]
 ```
 
 #### Configure an API
 
-```python
-api_spec = {
-  "name": "text-generator",
-  "kind": "RealtimeAPI",
-  "compute": {
-    "gpu": 1,
-    "mem": "8Gi"
-  },
-  "autoscaling": {
-    "min_replicas": 1,
-    "max_replicas": 10
-  }
-}
+```yaml
+# text_generator.yaml
+
+- name: text-generator
+  kind: RealtimeAPI
+  predictor:
+    type: python
+    path: predictor.py
+  compute:
+    gpu: 1
+    mem: 8Gi
+  autoscaling:
+    min_replicas: 1
+    max_replicas: 10
 ```
 
 <br>
@@ -92,19 +93,16 @@ api_spec = {
 
 #### Deploy to your cluster
 
-```python
-import cortex
+```bash
+$ cortex deploy text_generator.yaml
 
-cx = cortex.client("aws")
-cx.create_api(api_spec, predictor=PythonPredictor, requirements=requirements)
-
-# creating https://example.com/text-generator
+# creating http://example.com/text-generator
 ```
 
 #### Consume your API
 
 ```bash
-$ curl https://example.com/text-generator -X POST -H "Content-Type: application/json" -d '{"text": "hello world"}'
+$ curl http://example.com/text-generator -X POST -H "Content-Type: application/json" -d '{"text": "hello world"}'
 ```
 
 <br>

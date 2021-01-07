@@ -1,5 +1,5 @@
 /*
-Copyright 2020 Cortex Labs, Inc.
+Copyright 2021 Cortex Labs, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -64,9 +64,7 @@ const (
 	_tfServingLoadTimeMicros                       = "30000000" // 30 seconds (how much time a model can take to load into memory)
 	_tfServingBatchConfig                          = "/etc/tfs/batch_config.conf"
 	_apiReadinessFile                              = "/mnt/workspace/api_readiness.txt"
-	_apiLivenessFile                               = "/mnt/workspace/api_liveness.txt"
 	_neuronRTDSocket                               = "/sock/neuron.sock"
-	_apiLivenessStalePeriod                        = 7 // seconds (there is a 2-second buffer to be safe)
 	_requestMonitorReadinessFile                   = "/request_monitor_ready.txt"
 )
 
@@ -140,7 +138,6 @@ func PythonPredictorContainers(api *spec.API) ([]kcore.Container, []kcore.Volume
 			apiPodResourceList["nvidia.com/gpu"] = *kresource.NewQuantity(api.Compute.GPU, kresource.DecimalSI)
 			apiPodResourceLimitsList["nvidia.com/gpu"] = *kresource.NewQuantity(api.Compute.GPU, kresource.DecimalSI)
 		}
-
 	} else {
 		volumes = append(volumes, kcore.Volume{
 			Name: "neuron-sock",
@@ -173,6 +170,22 @@ func PythonPredictorContainers(api *spec.API) ([]kcore.Container, []kcore.Volume
 		containers = append(containers, neuronContainer)
 	}
 
+	if api.Predictor.ShmSize != nil {
+		volumes = append(volumes, kcore.Volume{
+			Name: "dshm",
+			VolumeSource: kcore.VolumeSource{
+				EmptyDir: &kcore.EmptyDirVolumeSource{
+					Medium:    kcore.StorageMediumMemory,
+					SizeLimit: k8s.QuantityPtr(api.Predictor.ShmSize.Quantity),
+				},
+			},
+		})
+		apiPodVolumeMounts = append(apiPodVolumeMounts, kcore.VolumeMount{
+			Name:      "dshm",
+			MountPath: "/dev/shm",
+		})
+	}
+
 	containers = append(containers, kcore.Container{
 		Name:            APIContainerName,
 		Image:           api.Predictor.Image,
@@ -181,7 +194,6 @@ func PythonPredictorContainers(api *spec.API) ([]kcore.Container, []kcore.Volume
 		EnvFrom:         baseEnvVars(),
 		VolumeMounts:    apiPodVolumeMounts,
 		ReadinessProbe:  FileExistsProbe(_apiReadinessFile),
-		LivenessProbe:   _apiLivenessProbe,
 		Lifecycle:       nginxGracefulStopper(api.Kind),
 		Resources: kcore.ResourceRequirements{
 			Requests: apiPodResourceList,
@@ -262,6 +274,22 @@ func TensorFlowPredictorContainers(api *spec.API) ([]kcore.Container, []kcore.Vo
 		containers = append(containers, neuronContainer)
 	}
 
+	if api.Predictor.ShmSize != nil {
+		volumes = append(volumes, kcore.Volume{
+			Name: "dshm",
+			VolumeSource: kcore.VolumeSource{
+				EmptyDir: &kcore.EmptyDirVolumeSource{
+					Medium:    kcore.StorageMediumMemory,
+					SizeLimit: k8s.QuantityPtr(api.Predictor.ShmSize.Quantity),
+				},
+			},
+		})
+		volumeMounts = append(volumeMounts, kcore.VolumeMount{
+			Name:      "dshm",
+			MountPath: "/dev/shm",
+		})
+	}
+
 	containers = append(containers, kcore.Container{
 		Name:            APIContainerName,
 		Image:           api.Predictor.Image,
@@ -270,7 +298,6 @@ func TensorFlowPredictorContainers(api *spec.API) ([]kcore.Container, []kcore.Vo
 		EnvFrom:         baseEnvVars(),
 		VolumeMounts:    volumeMounts,
 		ReadinessProbe:  FileExistsProbe(_apiReadinessFile),
-		LivenessProbe:   _apiLivenessProbe,
 		Lifecycle:       nginxGracefulStopper(api.Kind),
 		Resources: kcore.ResourceRequirements{
 			Requests: apiResourceList,
@@ -294,9 +321,11 @@ func TensorFlowPredictorContainers(api *spec.API) ([]kcore.Container, []kcore.Vo
 	return containers, volumes
 }
 
-func ONNXPredictorContainers(api *spec.API) []kcore.Container {
+func ONNXPredictorContainers(api *spec.API) ([]kcore.Container, []kcore.Volume) {
 	resourceList := kcore.ResourceList{}
 	resourceLimitsList := kcore.ResourceList{}
+	apiPodVolumeMounts := defaultVolumeMounts()
+	volumes := DefaultVolumes()
 	containers := []kcore.Container{}
 
 	if api.Compute.CPU != nil {
@@ -316,15 +345,30 @@ func ONNXPredictorContainers(api *spec.API) []kcore.Container {
 		resourceLimitsList["nvidia.com/gpu"] = *kresource.NewQuantity(api.Compute.GPU, kresource.DecimalSI)
 	}
 
+	if api.Predictor.ShmSize != nil {
+		volumes = append(volumes, kcore.Volume{
+			Name: "dshm",
+			VolumeSource: kcore.VolumeSource{
+				EmptyDir: &kcore.EmptyDirVolumeSource{
+					Medium:    kcore.StorageMediumMemory,
+					SizeLimit: k8s.QuantityPtr(api.Predictor.ShmSize.Quantity),
+				},
+			},
+		})
+		apiPodVolumeMounts = append(apiPodVolumeMounts, kcore.VolumeMount{
+			Name:      "dshm",
+			MountPath: "/dev/shm",
+		})
+	}
+
 	containers = append(containers, kcore.Container{
 		Name:            APIContainerName,
 		Image:           api.Predictor.Image,
 		ImagePullPolicy: kcore.PullAlways,
 		Env:             getEnvVars(api, APIContainerName),
 		EnvFrom:         baseEnvVars(),
-		VolumeMounts:    defaultVolumeMounts(),
+		VolumeMounts:    apiPodVolumeMounts,
 		ReadinessProbe:  FileExistsProbe(_apiReadinessFile),
-		LivenessProbe:   _apiLivenessProbe,
 		Lifecycle:       nginxGracefulStopper(api.Kind),
 		Resources: kcore.ResourceRequirements{
 			Requests: resourceList,
@@ -338,7 +382,7 @@ func ONNXPredictorContainers(api *spec.API) []kcore.Container {
 		},
 	})
 
-	return containers
+	return containers, volumes
 }
 
 func getEnvVars(api *spec.API, container string) []kcore.EnvVar {
@@ -754,19 +798,6 @@ func RequestMonitorContainer(api *spec.API) kcore.Container {
 	}
 }
 
-var _apiLivenessProbe = &kcore.Probe{
-	InitialDelaySeconds: 5,
-	TimeoutSeconds:      5,
-	PeriodSeconds:       5,
-	SuccessThreshold:    1,
-	FailureThreshold:    3,
-	Handler: kcore.Handler{
-		Exec: &kcore.ExecAction{
-			Command: []string{"/bin/bash", "-c", `now="$(date +%s)" && min="$(($now-` + s.Int(_apiLivenessStalePeriod) + `))" && test "$(cat ` + _apiLivenessFile + ` | tr -d '[:space:]')" -ge "$min"`},
-		},
-	},
-}
-
 func FileExistsProbe(fileName string) *kcore.Probe {
 	return &kcore.Probe{
 		InitialDelaySeconds: 3,
@@ -930,15 +961,11 @@ func APIEndpoint(api *spec.API) (string, error) {
 	var err error
 	baseAPIEndpoint := ""
 
-	if config.Provider == types.AWSProviderType && api.Networking.APIGateway == userconfig.PublicAPIGatewayType && config.Cluster.APIGateway != nil {
-		baseAPIEndpoint = *config.Cluster.APIGateway.ApiEndpoint
-	} else {
-		baseAPIEndpoint, err = APILoadBalancerURL()
-		if err != nil {
-			return "", err
-		}
-		baseAPIEndpoint = strings.Replace(baseAPIEndpoint, "https://", "http://", 1)
+	baseAPIEndpoint, err = APILoadBalancerURL()
+	if err != nil {
+		return "", err
 	}
+	baseAPIEndpoint = strings.Replace(baseAPIEndpoint, "https://", "http://", 1)
 
 	return urls.Join(baseAPIEndpoint, *api.Networking.Endpoint), nil
 }

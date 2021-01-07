@@ -1,4 +1,4 @@
-# Copyright 2020 Cortex Labs, Inc.
+# Copyright 2021 Cortex Labs, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -72,7 +72,7 @@ class Predictor:
     def __init__(self, provider: str, api_spec: dict, model_dir: str):
         """
         Args:
-            provider: "local" or "aws".
+            provider: "aws" or "gcp".
             api_spec: API configuration.
             model_dir: Where the models are stored on disk.
         """

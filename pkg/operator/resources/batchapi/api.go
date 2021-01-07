@@ -1,5 +1,5 @@
 /*
-Copyright 2020 Cortex Labs, Inc.
+Copyright 2021 Cortex Labs, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -58,17 +58,6 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string) (*spec.API, string, 
 			return nil, "", err
 		}
 
-		err = operator.AddAPIToAPIGateway(*api.Networking.Endpoint, api.Networking.APIGateway)
-		if err != nil {
-			routines.RunWithPanicHandler(func() {
-				deleteK8sResources(api.Name)
-			}, false)
-			routines.RunWithPanicHandler(func() {
-				operator.RemoveAPIFromAPIGateway(*api.Networking.Endpoint, api.Networking.APIGateway)
-			}, false)
-			return nil, "", err
-		}
-
 		return api, fmt.Sprintf("created %s", api.Resource.UserString()), nil
 	}
 
@@ -82,10 +71,6 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string) (*spec.API, string, 
 			return nil, "", err
 		}
 
-		if err := operator.UpdateAPIGatewayK8s(prevVirtualService, api); err != nil {
-			return nil, "", err
-		}
-
 		return api, fmt.Sprintf("updated %s", api.Resource.UserString()), nil
 	}
 
@@ -94,12 +79,7 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string) (*spec.API, string, 
 
 func DeleteAPI(apiName string, keepCache bool) error {
 	// best effort deletion, so don't handle error yet
-	virtualService, vsErr := config.K8s.GetVirtualService(operator.K8sName(apiName))
-
 	err := parallel.RunFirstErr(
-		func() error {
-			return vsErr
-		},
 		func() error {
 			return deleteK8sResources(apiName)
 		},
@@ -111,14 +91,6 @@ func DeleteAPI(apiName string, keepCache bool) error {
 		},
 		func() error {
 			return config.AWS.DeleteQueuesWithPrefix(apiQueueNamePrefix(apiName))
-		},
-		func() error {
-			err := operator.RemoveAPIFromAPIGatewayK8s(virtualService)
-			if err != nil {
-				return err
-			}
-
-			return nil
 		},
 	)
 

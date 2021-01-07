@@ -1,5 +1,5 @@
 /*
-Copyright 2020 Cortex Labs, Inc.
+Copyright 2021 Cortex Labs, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -19,12 +19,11 @@ package cliconfig
 import (
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
-	"github.com/cortexlabs/cortex/pkg/types"
 )
 
 type CLIConfig struct {
 	Telemetry          *bool          `json:"telemetry,omitempty" yaml:"telemetry,omitempty"`
-	DefaultEnvironment string         `json:"default_environment" yaml:"default_environment"`
+	DefaultEnvironment *string        `json:"default_environment" yaml:"default_environment"`
 	Environments       []*Environment `json:"environments" yaml:"environments"`
 }
 
@@ -43,19 +42,10 @@ func (cliConfig *CLIConfig) Validate() error {
 		}
 	}
 
-	// Ensure the local env is always present
-	if !envNames.Has(types.LocalProviderType.String()) {
-		localEnv := &Environment{
-			Name:     types.LocalProviderType.String(),
-			Provider: types.LocalProviderType,
-		}
-
-		cliConfig.Environments = append([]*Environment{localEnv}, cliConfig.Environments...)
-		envNames.Add("local")
-	}
-
-	if cliConfig.DefaultEnvironment == "" {
-		cliConfig.DefaultEnvironment = types.LocalProviderType.String()
+	// Backwards compatibility: ignore local default env
+	defaultEnv := cliConfig.DefaultEnvironment
+	if defaultEnv != nil && *defaultEnv == "local" && !envNames.Has(*defaultEnv) {
+		cliConfig.DefaultEnvironment = nil
 	}
 
 	return nil

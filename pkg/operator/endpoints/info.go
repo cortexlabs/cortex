@@ -1,5 +1,5 @@
 /*
-Copyright 2020 Cortex Labs, Inc.
+Copyright 2021 Cortex Labs, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -78,7 +78,7 @@ func getNodeInfos() ([]schema.NodeInfo, int, error) {
 			if spotPrice, ok := spotPriceCache[instanceType]; ok {
 				price = spotPrice
 			} else {
-				spotPrice, err := config.AWS.SpotInstancePrice(*config.Cluster.Region, instanceType)
+				spotPrice, err := config.AWS.SpotInstancePrice(instanceType)
 				if err == nil && spotPrice != 0 {
 					price = spotPrice
 					spotPriceCache[instanceType] = spotPrice

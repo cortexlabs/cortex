@@ -1,4 +1,4 @@
-# Copyright 2020 Cortex Labs, Inc.
+# Copyright 2021 Cortex Labs, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -44,24 +44,24 @@ def pytest_addoption(parser):
         help="set cortex GCP cluster config, to test on a new GCP cluster",
     )
     parser.addoption(
-        "--s3-bucket",
+        "--s3-path",
         action="store",
         default=None,
-        help="set s3 bucket where batch jobs results will be stored",
+        help="set s3 path where batch jobs results will be stored",
     )
 
 
 def pytest_configure(config):
     load_dotenv(".env")
 
-    s3_bucket = os.environ.get("CORTEX_TEST_BATCH_S3_BUCKET_DIR")
-    s3_bucket = config.getoption("--s3-bucket") if not s3_bucket else s3_bucket
+    s3_path = os.environ.get("CORTEX_TEST_BATCH_S3_PATH")
+    s3_path = config.getoption("--s3-path") if not s3_path else s3_path
 
     configuration = {
         "aws": {
             "env": config.getoption("--aws-env"),
             "config": config.getoption("--aws-config"),
-            "s3_bucket": s3_bucket,
+            "s3_path": s3_path,
         },
         "gcp": {
             "env": config.getoption("--gcp-env"),

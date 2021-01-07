@@ -1,5 +1,5 @@
 /*
-Copyright 2020 Cortex Labs, Inc.
+Copyright 2021 Cortex Labs, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -23,6 +23,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
+	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	libmath "github.com/cortexlabs/cortex/pkg/lib/math"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
@@ -52,6 +53,8 @@ const (
 
 	ErrModelCachingNotSupportedWhenMultiprocessingEnabled = "spec.model_caching_not_supported_when_multiprocessing_enabled"
 
+	ErrShmSizeCannotExceedMem = "spec.shm_size_cannot_exceed_mem"
+
 	ErrFileNotFound              = "spec.file_not_found"
 	ErrDirIsEmpty                = "spec.dir_is_empty"
 	ErrMustBeRelativeProjectPath = "spec.must_be_relative_project_path"
@@ -74,11 +77,9 @@ const (
 	ErrFieldNotSupportedByPredictorType            = "spec.field_not_supported_by_predictor_type"
 	ErrNoAvailableNodeComputeLimit                 = "spec.no_available_node_compute_limit"
 	ErrCortexPrefixedEnvVarNotAllowed              = "spec.cortex_prefixed_env_var_not_allowed"
-	ErrLocalPathNotSupportedByAWSProvider          = "spec.local_path_not_supported_by_aws_provider"
-	ErrUnsupportedLocalComputeResource             = "spec.unsupported_local_compute_resource"
+	ErrUnsupportedComputeResourceForProvider       = "spec.unsupported_compute_resource_for_provider"
 	ErrRegistryInDifferentRegion                   = "spec.registry_in_different_region"
 	ErrRegistryAccountIDMismatch                   = "spec.registry_account_id_mismatch"
-	ErrCannotAccessECRWithAnonymousAWSCreds        = "spec.cannot_access_ecr_with_anonymous_aws_creds"
 	ErrKindIsNotSupportedByProvider                = "spec.kind_is_not_supported_by_provider"
 	ErrKeyIsNotSupportedForKind                    = "spec.key_is_not_supported_for_kind"
 	ErrComputeResourceConflict                     = "spec.compute_resource_conflict"
@@ -225,6 +226,13 @@ func ErrorSurgeAndUnavailableBothZero() error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrSurgeAndUnavailableBothZero,
 		Message: fmt.Sprintf("%s and %s cannot both be zero", userconfig.MaxSurgeKey, userconfig.MaxUnavailableKey),
+	})
+}
+
+func ErrorShmSizeCannotExceedMem(shmSize k8s.Quantity, mem k8s.Quantity) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrShmSizeCannotExceedMem,
+		Message: fmt.Sprintf("predictor.shm_size (%s) cannot exceed compute.mem (%s)", shmSize.UserString, mem.UserString),
 	})
 }
 
@@ -485,16 +493,9 @@ func ErrorCortexPrefixedEnvVarNotAllowed() error {
 	})
 }
 
-func ErrorLocalModelPathNotSupportedByAWSProvider() error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrLocalPathNotSupportedByAWSProvider,
-		Message: fmt.Sprintf("local model paths are not supported for aws provider, please specify an S3 path"),
-	})
-}
-
 func ErrorUnsupportedComputeResourceForProvider(resourceType string, provider types.ProviderType) error {
 	return errors.WithStack(&errors.Error{
-		Kind:    ErrUnsupportedLocalComputeResource,
+		Kind:    ErrUnsupportedComputeResourceForProvider,
 		Message: fmt.Sprintf("%s compute resources cannot be used for the %s provider", resourceType, provider.String()),
 	})
 }
@@ -510,13 +511,6 @@ func ErrorRegistryAccountIDMismatch(regID, opID string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrRegistryAccountIDMismatch,
 		Message: fmt.Sprintf("registry account ID (%s) doesn't match your AWS account ID (%s), and using an ECR registry in a different AWS account is not supported", regID, opID),
-	})
-}
-
-func ErrorCannotAccessECRWithAnonymousAWSCreds() error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrCannotAccessECRWithAnonymousAWSCreds,
-		Message: fmt.Sprintf("cannot access ECR with anonymous aws credentials; run `cortex env configure local` to specify AWS credentials with access to ECR"),
 	})
 }
 

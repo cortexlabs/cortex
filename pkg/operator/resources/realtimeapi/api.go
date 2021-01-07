@@ -1,5 +1,5 @@
 /*
-Copyright 2020 Cortex Labs, Inc.
+Copyright 2021 Cortex Labs, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -75,13 +75,6 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string, force bool) (*spec.A
 		}
 
 		if config.Provider == types.AWSProviderType {
-			err = operator.AddAPIToAPIGateway(*api.Networking.Endpoint, api.Networking.APIGateway)
-			if err != nil {
-				routines.RunWithPanicHandler(func() {
-					deleteK8sResources(api.Name)
-				}, false)
-				return nil, "", err
-			}
 			err = addAPIToDashboard(config.Cluster.ClusterName, api.Name)
 			if err != nil {
 				errors.PrintError(err)
@@ -111,11 +104,6 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string, force bool) (*spec.A
 
 		if err := applyK8sResources(api, prevDeployment, prevService, prevVirtualService); err != nil {
 			return nil, "", err
-		}
-		if config.Provider == types.AWSProviderType {
-			if err := operator.UpdateAPIGatewayK8s(prevVirtualService, api); err != nil {
-				return nil, "", err
-			}
 		}
 		return api, fmt.Sprintf("updating %s", api.Resource.UserString()), nil
 	}
@@ -177,13 +165,7 @@ func RefreshAPI(apiName string, force bool) (string, error) {
 }
 
 func DeleteAPI(apiName string, keepCache bool) error {
-	// best effort deletion, so don't handle error yet
-	virtualService, vsErr := config.K8s.GetVirtualService(operator.K8sName(apiName))
-
 	err := parallel.RunFirstErr(
-		func() error {
-			return vsErr
-		},
 		func() error {
 			return deleteK8sResources(apiName)
 		},
@@ -193,13 +175,6 @@ func DeleteAPI(apiName string, keepCache bool) error {
 			}
 			// best effort deletion, swallow errors because there could be weird error messages
 			deleteBucketResources(apiName)
-			return nil
-		},
-		// delete API from API Gateway
-		func() error {
-			if config.Provider == types.AWSProviderType {
-				return operator.RemoveAPIFromAPIGatewayK8s(virtualService)
-			}
 			return nil
 		},
 		// delete api from cloudwatch dashboard

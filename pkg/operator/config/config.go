@@ -1,5 +1,5 @@
 /*
-Copyright 2020 Cortex Labs, Inc.
+Copyright 2021 Cortex Labs, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -34,7 +34,6 @@ import (
 )
 
 const _clusterConfigPath = "/configs/cluster/cluster.yaml"
-const _clusterConfigBackupPath = "/configs/cluster-aws/cluster-aws.yaml"
 
 var (
 	Provider        types.ProviderType
@@ -84,34 +83,6 @@ func Init() error {
 		}
 		Cluster.OperatorID = hashedAccountID
 		Cluster.ClusterID = hash.String(Cluster.ClusterName + *Cluster.Region + hashedAccountID)
-
-		if Cluster.APIGatewaySetting == clusterconfig.PublicAPIGatewaySetting {
-			apiGateway, err := AWS.GetAPIGatewayByTag(clusterconfig.ClusterNameTag, Cluster.ClusterName)
-			if err != nil {
-				return err
-			} else if apiGateway == nil {
-				return ErrorNoAPIGateway()
-			}
-			Cluster.APIGateway = apiGateway
-
-			if Cluster.APILoadBalancerScheme == clusterconfig.InternalLoadBalancerScheme {
-				vpcLink, err := AWS.GetVPCLinkByTag(clusterconfig.ClusterNameTag, Cluster.ClusterName)
-				if err != nil {
-					return err
-				} else if vpcLink == nil {
-					return ErrorNoVPCLink()
-				}
-				Cluster.VPCLink = vpcLink
-
-				integration, err := AWS.GetVPCLinkIntegration(*Cluster.APIGateway.ApiId, *Cluster.VPCLink.VpcLinkId)
-				if err != nil {
-					return err
-				} else if integration == nil {
-					return ErrorNoVPCLinkIntegration()
-				}
-				Cluster.VPCLinkIntegration = integration
-			}
-		}
 	} else {
 		AWS, err = aws.NewAnonymousClient()
 		if err != nil {

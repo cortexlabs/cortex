@@ -1,5 +1,5 @@
 /*
-Copyright 2020 Cortex Labs, Inc.
+Copyright 2021 Cortex Labs, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -54,8 +54,7 @@ var (
 func clusterGCPInit() {
 	_clusterGCPUpCmd.Flags().SortFlags = false
 	addClusterGCPConfigFlag(_clusterGCPUpCmd)
-	defaultEnv := getDefaultEnv(_clusterGCPCommandType)
-	_clusterGCPUpCmd.Flags().StringVarP(&_flagClusterGCPUpEnv, "configure-env", "e", defaultEnv, "name of environment to configure")
+	_clusterGCPUpCmd.Flags().StringVarP(&_flagClusterGCPUpEnv, "configure-env", "e", "gcp", "name of environment to configure")
 	addClusterGCPDisallowPromptFlag(_clusterGCPUpCmd)
 	_clusterGCPCmd.AddCommand(_clusterGCPUpCmd)
 
@@ -111,10 +110,6 @@ var _clusterGCPUpCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		telemetry.EventNotify("cli.cluster.up", map[string]interface{}{"provider": types.GCPProviderType})
 
-		if _flagClusterGCPUpEnv == "local" {
-			exit.Error(ErrorLocalEnvironmentCantUseClusterProvider(types.GCPProviderType))
-		}
-
 		envExists, err := isEnvConfigured(_flagClusterGCPUpEnv)
 		if err != nil {
 			exit.Error(err)
@@ -129,10 +124,6 @@ var _clusterGCPUpCmd = &cobra.Command{
 
 		if _, err := docker.GetDockerClient(); err != nil {
 			exit.Error(err)
-		}
-
-		if !_flagClusterGCPDisallowPrompt {
-			promptForEmail()
 		}
 
 		accessConfig, err := getNewGCPClusterAccessConfig(_flagClusterGCPDisallowPrompt)
@@ -202,15 +193,17 @@ var _clusterGCPInfoCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		telemetry.Event("cli.cluster.info", map[string]interface{}{"provider": types.GCPProviderType})
 
-		if _flagClusterGCPInfoEnv == "local" {
-			exit.Error(ErrorLocalEnvironmentCantUseClusterProvider(types.GCPProviderType))
-		}
-
 		if _, err := docker.GetDockerClient(); err != nil {
 			exit.Error(err)
 		}
 
 		accessConfig, err := getGCPClusterAccessConfigWithCache(_flagClusterGCPDisallowPrompt)
+		if err != nil {
+			exit.Error(err)
+		}
+
+		// need to ensure that the google creds are configured for the manager
+		_, err = gcp.NewFromEnvCheckProjectID(*accessConfig.Project)
 		if err != nil {
 			exit.Error(err)
 		}
@@ -229,10 +222,6 @@ var _clusterGCPDownCmd = &cobra.Command{
 	Args:  cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
 		telemetry.Event("cli.cluster.down", map[string]interface{}{"provider": types.GCPProviderType})
-
-		if _flagClusterGCPUpEnv == "local" {
-			exit.Error(ErrorLocalEnvironmentCantUseClusterProvider(types.GCPProviderType))
-		}
 
 		if _, err := docker.GetDockerClient(); err != nil {
 			exit.Error(err)
@@ -285,11 +274,20 @@ var _clusterGCPDownCmd = &cobra.Command{
 			envNames, isDefaultEnv, _ := getEnvNamesByOperatorEndpoint(operatorLoadBalancerIP)
 			if len(envNames) > 0 {
 				for _, envName := range envNames {
-					removeEnvFromCLIConfig(envName)
+					err := removeEnvFromCLIConfig(envName)
+					if err != nil {
+						exit.Error(err)
+					}
 				}
 				fmt.Printf("✓ deleted the %s environment configuration%s\n", s.StrsAnd(envNames), s.SIfPlural(len(envNames)))
 				if isDefaultEnv {
-					fmt.Println("✓ set the default environment to local")
+					newDefaultEnv, err := getDefaultEnv()
+					if err != nil {
+						exit.Error(err)
+					}
+					if newDefaultEnv != nil {
+						fmt.Println(fmt.Sprintf("✓ set the default environment to %s", *newDefaultEnv))
+					}
 				}
 			}
 		}
@@ -434,53 +432,62 @@ func createGKECluster(clusterConfig *clusterconfig.GCPConfig, gcpClient *gcp.Cli
 	gkeClusterParent := fmt.Sprintf("projects/%s/locations/%s", *clusterConfig.Project, *clusterConfig.Zone)
 	gkeClusterName := fmt.Sprintf("%s/clusters/%s", gkeClusterParent, clusterConfig.ClusterName)
 
-	_, err := gcpClient.CreateCluster(&containerpb.CreateClusterRequest{
-		Parent: gkeClusterParent,
-		Cluster: &containerpb.Cluster{
-			Name:                  clusterConfig.ClusterName,
-			InitialClusterVersion: "1.17",
-			NodePools: []*containerpb.NodePool{
-				{
-					Name: "ng-cortex-operator",
-					Config: &containerpb.NodeConfig{
-						MachineType: "n1-standard-2",
-						OauthScopes: []string{
-							"https://www.googleapis.com/auth/compute",
-							"https://www.googleapis.com/auth/devstorage.read_only",
-						},
-						ServiceAccount: gcpClient.ClientEmail,
+	gkeClusterConfig := containerpb.Cluster{
+		Name:                  clusterConfig.ClusterName,
+		InitialClusterVersion: "1.17",
+		NodePools: []*containerpb.NodePool{
+			{
+				Name: "ng-cortex-operator",
+				Config: &containerpb.NodeConfig{
+					MachineType: "n1-standard-2",
+					OauthScopes: []string{
+						"https://www.googleapis.com/auth/compute",
+						"https://www.googleapis.com/auth/devstorage.read_only",
 					},
-					InitialNodeCount: 1,
+					ServiceAccount: gcpClient.ClientEmail,
 				},
-				{
-					Name: "ng-cortex-worker-on-demand",
-					Config: &containerpb.NodeConfig{
-						MachineType: *clusterConfig.InstanceType,
-						Labels:      nodeLabels,
-						Taints: []*containerpb.NodeTaint{
-							{
-								Key:    "workload",
-								Value:  "true",
-								Effect: containerpb.NodeTaint_NO_SCHEDULE,
-							},
-						},
-						Accelerators: accelerators,
-						OauthScopes: []string{
-							"https://www.googleapis.com/auth/compute",
-							"https://www.googleapis.com/auth/devstorage.read_only",
-						},
-						ServiceAccount: gcpClient.ClientEmail,
-					},
-					Autoscaling: &containerpb.NodePoolAutoscaling{
-						Enabled:      true,
-						MinNodeCount: int32(*clusterConfig.MinInstances),
-						MaxNodeCount: int32(*clusterConfig.MaxInstances),
-					},
-					InitialNodeCount: int32(*clusterConfig.MinInstances),
-				},
+				InitialNodeCount: 1,
 			},
-			Locations: []string{*clusterConfig.Zone},
+			{
+				Name: "ng-cortex-worker-on-demand",
+				Config: &containerpb.NodeConfig{
+					MachineType: *clusterConfig.InstanceType,
+					Labels:      nodeLabels,
+					Taints: []*containerpb.NodeTaint{
+						{
+							Key:    "workload",
+							Value:  "true",
+							Effect: containerpb.NodeTaint_NO_SCHEDULE,
+						},
+					},
+					Accelerators: accelerators,
+					OauthScopes: []string{
+						"https://www.googleapis.com/auth/compute",
+						"https://www.googleapis.com/auth/devstorage.read_only",
+					},
+					ServiceAccount: gcpClient.ClientEmail,
+				},
+				Autoscaling: &containerpb.NodePoolAutoscaling{
+					Enabled:      true,
+					MinNodeCount: int32(*clusterConfig.MinInstances),
+					MaxNodeCount: int32(*clusterConfig.MaxInstances),
+				},
+				InitialNodeCount: int32(*clusterConfig.MinInstances),
+			},
 		},
+		Locations: []string{*clusterConfig.Zone},
+	}
+
+	if clusterConfig.Network != nil {
+		gkeClusterConfig.Network = *clusterConfig.Network
+	}
+	if clusterConfig.Subnet != nil {
+		gkeClusterConfig.Subnetwork = *clusterConfig.Subnet
+	}
+
+	_, err := gcpClient.CreateCluster(&containerpb.CreateClusterRequest{
+		Parent:  gkeClusterParent,
+		Cluster: &gkeClusterConfig,
 	})
 	if err != nil {
 		return err

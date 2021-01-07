@@ -1,5 +1,5 @@
 /*
-Copyright 2020 Cortex Labs, Inc.
+Copyright 2021 Cortex Labs, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -25,24 +25,15 @@ import (
 )
 
 const (
-	ErrEnvironmentNotConfigured           = "cliconfig.environment_not_configured"
-	ErrLocalEnvironmentMustBeNamedLocal   = "cliconfig.local_environment_must_be_named_local"
-	ErrEnvironmentProviderNameConflict    = "cliconfig.environment_provider_name_conflict"
-	ErrDuplicateEnvironmentNames          = "cliconfig.duplicate_environment_names"
-	ErrOperatorEndpointInLocalEnvironment = "cliconfig.operator_endpoint_in_local_environment"
+	ErrEnvironmentNotConfigured        = "cliconfig.environment_not_configured"
+	ErrEnvironmentProviderNameConflict = "cliconfig.environment_provider_name_conflict"
+	ErrDuplicateEnvironmentNames       = "cliconfig.duplicate_environment_names"
 )
 
 func ErrorEnvironmentNotConfigured(envName string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrEnvironmentNotConfigured,
 		Message: fmt.Sprintf("%s environment is not configured", envName),
-	})
-}
-
-func ErrorLocalEnvironmentMustBeNamedLocal(envName string) error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrLocalEnvironmentMustBeNamedLocal,
-		Message: fmt.Sprintf("local environment cannot be named \"%s\"; local environment is reserved and must be named \"local\"", envName),
 	})
 }
 
@@ -57,12 +48,5 @@ func ErrorDuplicateEnvironmentNames(envName string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrDuplicateEnvironmentNames,
 		Message: fmt.Sprintf("duplicate environment names (%s is defined more than once)", s.UserStr(envName)),
-	})
-}
-
-func ErrorOperatorEndpointInLocalEnvironment() error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrOperatorEndpointInLocalEnvironment,
-		Message: fmt.Sprintf("operator_endpoint should not be specified (it's not used in the local environment)"),
 	})
 }

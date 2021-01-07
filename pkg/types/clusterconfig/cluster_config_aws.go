@@ -1,5 +1,5 @@
 /*
-Copyright 2020 Cortex Labs, Inc.
+Copyright 2021 Cortex Labs, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -26,7 +26,6 @@ import (
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws/awserr"
-	"github.com/aws/aws-sdk-go/service/apigatewayv2"
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
@@ -69,10 +68,10 @@ type Config struct {
 	SSLCertificateARN          *string            `json:"ssl_certificate_arn,omitempty" yaml:"ssl_certificate_arn,omitempty"`
 	Bucket                     string             `json:"bucket" yaml:"bucket"`
 	SubnetVisibility           SubnetVisibility   `json:"subnet_visibility" yaml:"subnet_visibility"`
+	Subnets                    []*Subnet          `json:"subnets,omitempty" yaml:"subnets,omitempty"`
 	NATGateway                 NATGateway         `json:"nat_gateway" yaml:"nat_gateway"`
 	APILoadBalancerScheme      LoadBalancerScheme `json:"api_load_balancer_scheme" yaml:"api_load_balancer_scheme"`
 	OperatorLoadBalancerScheme LoadBalancerScheme `json:"operator_load_balancer_scheme" yaml:"operator_load_balancer_scheme"`
-	APIGatewaySetting          APIGatewaySetting  `json:"api_gateway" yaml:"api_gateway"`
 	VPCCIDR                    *string            `json:"vpc_cidr,omitempty" yaml:"vpc_cidr,omitempty"`
 	Telemetry                  bool               `json:"telemetry" yaml:"telemetry"`
 	ImageOperator              string             `json:"image_operator" yaml:"image_operator"`
@@ -99,18 +98,20 @@ type SpotConfig struct {
 	OnDemandBackup                      *bool    `json:"on_demand_backup" yaml:"on_demand_backup"`
 }
 
+type Subnet struct {
+	AvailabilityZone string `json:"availability_zone" yaml:"availability_zone"`
+	SubnetID         string `json:"subnet_id" yaml:"subnet_id"`
+}
+
 type InternalConfig struct {
 	Config
 
 	// Populated by operator
-	APIVersion          string                    `json:"api_version"`
-	OperatorID          string                    `json:"operator_id"`
-	ClusterID           string                    `json:"cluster_id"`
-	IsOperatorInCluster bool                      `json:"is_operator_in_cluster"`
-	InstanceMetadata    aws.InstanceMetadata      `json:"instance_metadata"`
-	APIGateway          *apigatewayv2.Api         `json:"api_gateway"`
-	VPCLink             *apigatewayv2.VpcLink     `json:"vpc_link"`
-	VPCLinkIntegration  *apigatewayv2.Integration `json:"vpc_link_integration"`
+	APIVersion          string               `json:"api_version"`
+	OperatorID          string               `json:"operator_id"`
+	ClusterID           string               `json:"cluster_id"`
+	IsOperatorInCluster bool                 `json:"is_operator_in_cluster"`
+	InstanceMetadata    aws.InstanceMetadata `json:"instance_metadata"`
 }
 
 // The bare minimum to identify a cluster
@@ -309,6 +310,25 @@ var UserValidation = &cr.StructValidation{
 			},
 		},
 		{
+			StructField: "Subnets",
+			StructListValidation: &cr.StructListValidation{
+				AllowExplicitNull: true,
+				MinLength:         2,
+				StructValidation: &cr.StructValidation{
+					StructFieldValidations: []*cr.StructFieldValidation{
+						{
+							StructField:      "AvailabilityZone",
+							StringValidation: &cr.StringValidation{},
+						},
+						{
+							StructField:      "SubnetID",
+							StringValidation: &cr.StringValidation{},
+						},
+					},
+				},
+			},
+		},
+		{
 			StructField: "NATGateway",
 			StringValidation: &cr.StringValidation{
 				AllowedValues: NATGatewayStrings(),
@@ -316,9 +336,15 @@ var UserValidation = &cr.StructValidation{
 			Parser: func(str string) (interface{}, error) {
 				return NATGatewayFromString(str), nil
 			},
-			DefaultField: "SubnetVisibility",
-			DefaultFieldFunc: func(val interface{}) interface{} {
-				if val.(SubnetVisibility) == PublicSubnetVisibility {
+			DefaultDependentFields: []string{"SubnetVisibility", "Subnets"},
+			DefaultDependentFieldsFunc: func(vals []interface{}) interface{} {
+				subnetVisibility := vals[0].(SubnetVisibility)
+				subnets := vals[1].([]*Subnet)
+
+				if len(subnets) > 0 {
+					return NoneNATGateway.String()
+				}
+				if subnetVisibility == PublicSubnetVisibility {
 					return NoneNATGateway.String()
 				}
 				return SingleNATGateway.String()
@@ -342,16 +368,6 @@ var UserValidation = &cr.StructValidation{
 			},
 			Parser: func(str string) (interface{}, error) {
 				return LoadBalancerSchemeFromString(str), nil
-			},
-		},
-		{
-			StructField: "APIGatewaySetting",
-			StringValidation: &cr.StringValidation{
-				AllowedValues: APIGatewaySettingStrings(),
-				Default:       PublicAPIGatewaySetting.String(),
-			},
-			Parser: func(str string) (interface{}, error) {
-				return APIGatewaySettingFromString(str), nil
 			},
 		},
 		{
@@ -534,7 +550,15 @@ func (cc *Config) Validate(awsClient *aws.Client) error {
 		return ErrorMinInstancesGreaterThanMax(*cc.MinInstances, *cc.MaxInstances)
 	}
 
-	if cc.SubnetVisibility == PrivateSubnetVisibility && cc.NATGateway == NoneNATGateway {
+	if len(cc.AvailabilityZones) > 0 && len(cc.Subnets) > 0 {
+		return ErrorSpecifyOneOrNone(AvailabilityZonesKey, SubnetsKey)
+	}
+
+	if len(cc.Subnets) > 0 && cc.NATGateway != NoneNATGateway {
+		return ErrorNoNATGatewayWithSubnets()
+	}
+
+	if cc.SubnetVisibility == PrivateSubnetVisibility && cc.NATGateway == NoneNATGateway && len(cc.Subnets) == 0 {
 		return ErrorNATRequiredWithPrivateSubnetVisibility()
 	}
 
@@ -612,12 +636,18 @@ func (cc *Config) Validate(awsClient *aws.Client) error {
 	}
 	cc.Tags[ClusterNameTag] = cc.ClusterName
 
-	if err := cc.validateAvailabilityZones(awsClient); err != nil {
-		return errors.Wrap(err, AvailabilityZonesKey)
+	if len(cc.Subnets) > 0 {
+		if err := cc.validateSubnets(awsClient); err != nil {
+			return errors.Wrap(err, SubnetsKey)
+		}
+	} else {
+		if err := cc.setAvailabilityZones(awsClient); err != nil {
+			return errors.Wrap(err, AvailabilityZonesKey)
+		}
 	}
 
 	if cc.Spot != nil && *cc.Spot {
-		cc.FillEmptySpotFields(awsClient)
+		cc.FillEmptySpotFields()
 
 		primaryInstance := aws.InstanceMetadatas[*cc.Region][primaryInstanceType]
 
@@ -635,7 +665,7 @@ func (cc *Config) Validate(awsClient *aws.Client) error {
 				return errors.Wrap(err, SpotConfigKey, InstanceDistributionKey)
 			}
 
-			spotInstancePrice, awsErr := awsClient.SpotInstancePrice(instanceMetadata.Region, instanceMetadata.Type)
+			spotInstancePrice, awsErr := awsClient.SpotInstancePrice(instanceMetadata.Type)
 			if awsErr == nil {
 				if err := CheckSpotInstancePriceCompatibility(primaryInstance, instanceMetadata, cc.SpotConfig.MaxPrice, spotInstancePrice); err != nil {
 					return errors.Wrap(err, SpotConfigKey, InstanceDistributionKey)
@@ -740,7 +770,7 @@ func CheckSpotInstancePriceCompatibility(target aws.InstanceMetadata, suggested 
 	return nil
 }
 
-func AutoGenerateSpotConfig(awsClient *aws.Client, spotConfig *SpotConfig, region string, instanceType string) error {
+func AutoGenerateSpotConfig(spotConfig *SpotConfig, region string, instanceType string) {
 	primaryInstance := aws.InstanceMetadatas[region][instanceType]
 	cleanedDistribution := []string{instanceType}
 	for _, spotInstance := range spotConfig.InstanceDistribution {
@@ -773,19 +803,13 @@ func AutoGenerateSpotConfig(awsClient *aws.Client, spotConfig *SpotConfig, regio
 			spotConfig.InstancePools = pointer.Int64(int64(_maxInstancePools))
 		}
 	}
-
-	return nil
 }
 
-func (cc *Config) FillEmptySpotFields(awsClient *aws.Client) error {
+func (cc *Config) FillEmptySpotFields() {
 	if cc.SpotConfig == nil {
 		cc.SpotConfig = &SpotConfig{}
 	}
-	err := AutoGenerateSpotConfig(awsClient, cc.SpotConfig, *cc.Region, *cc.InstanceType)
-	if err != nil {
-		return err
-	}
-	return nil
+	AutoGenerateSpotConfig(cc.SpotConfig, *cc.Region, *cc.InstanceType)
 }
 
 func applyPromptDefaults(defaults Config) *Config {
@@ -1116,6 +1140,9 @@ func (cc *Config) UserTable() table.KeyValuePairs {
 	if len(cc.AvailabilityZones) > 0 {
 		items.Add(AvailabilityZonesUserKey, cc.AvailabilityZones)
 	}
+	for _, subnetConfig := range cc.Subnets {
+		items.Add("subnet in "+subnetConfig.AvailabilityZone, subnetConfig.SubnetID)
+	}
 	items.Add(BucketUserKey, cc.Bucket)
 	items.Add(InstanceTypeUserKey, *cc.InstanceType)
 	items.Add(MinInstancesUserKey, *cc.MinInstances)
@@ -1141,7 +1168,6 @@ func (cc *Config) UserTable() table.KeyValuePairs {
 	items.Add(NATGatewayUserKey, cc.NATGateway)
 	items.Add(APILoadBalancerSchemeUserKey, cc.APILoadBalancerScheme)
 	items.Add(OperatorLoadBalancerSchemeUserKey, cc.OperatorLoadBalancerScheme)
-	items.Add(APIGatewaySettingUserKey, cc.APIGatewaySetting)
 	if cc.VPCCIDR != nil {
 		items.Add(VPCCIDRKey, *cc.VPCCIDR)
 	}
@@ -1206,6 +1232,11 @@ func (cc *Config) TelemetryEvent() map[string]interface{} {
 		event["availability_zones._len"] = len(cc.AvailabilityZones)
 		event["availability_zones"] = cc.AvailabilityZones
 	}
+	if len(cc.Subnets) > 0 {
+		event["subnets._is_defined"] = true
+		event["subnets._len"] = len(cc.Subnets)
+		event["subnets"] = cc.Subnets
+	}
 	if cc.SSLCertificateARN != nil {
 		event["ssl_certificate_arn._is_defined"] = true
 	}
@@ -1216,7 +1247,6 @@ func (cc *Config) TelemetryEvent() map[string]interface{} {
 	event["nat_gateway"] = cc.NATGateway
 	event["api_load_balancer_scheme"] = cc.APILoadBalancerScheme
 	event["operator_load_balancer_scheme"] = cc.OperatorLoadBalancerScheme
-	event["api_gateway"] = cc.APIGatewaySetting
 	if cc.VPCCIDR != nil {
 		event["vpc_cidr._is_defined"] = true
 	}

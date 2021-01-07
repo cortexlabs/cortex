@@ -1,4 +1,4 @@
-# Copyright 2020 Cortex Labs, Inc.
+# Copyright 2021 Cortex Labs, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -88,7 +88,7 @@ class ONNXClient:
             self._models_dir = False
             self._spec_model_names = self._spec_models.get_field("name")
 
-        # for when local models are used
+        # only applicable for ONNX file paths (for ONNX filepaths, it must look as if the models are available locally)
         self._spec_local_model_names = self._spec_models.get_local_model_names()
         self._local_model_ts = int(datetime.datetime.now(datetime.timezone.utc).timestamp())
 

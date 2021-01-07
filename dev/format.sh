@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Copyright 2020 Cortex Labs, Inc.
+# Copyright 2021 Cortex Labs, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -68,7 +68,7 @@ xargs -0 -L1 bash -c 'test "$(tail -c 1 "$0")" && echo "" >> "$0"' || true)
 ! -path "./.git/*" \
 ! -name ".*" \
 -print0 | \
-xargs -0 -L1 bash -c 'test "$(tail -c 2 "$0")" || (trimmed=$(printf "%s" "$(< $0)") && echo "$trimmed" > "$0")' || true)
+xargs -0 -L1 bash -c 'test "$(tail -c 2 "$0")" || [ ! -s "$0" ] || (trimmed=$(printf "%s" "$(< $0)") && echo "$trimmed" > "$0")' || true)
 
 # Remove new lines at beginning of file
 (cd "$ROOT" && find . -type f \
@@ -77,4 +77,4 @@ xargs -0 -L1 bash -c 'test "$(tail -c 2 "$0")" || (trimmed=$(printf "%s" "$(< $0
 ! -path "./.git/*" \
 ! -name ".*" \
 -print0 | \
-xargs -0 -L1 bash -c 'test "$(head -c 1 "$0")" || (trimmed=$(sed '"'"'/./,$!d'"'"' "$0") && echo "$trimmed" > "$0")' || true)
+xargs -0 -L1 bash -c 'test "$(head -c 1 "$0")" || [ ! -s "$0" ] || (trimmed=$(sed '"'"'/./,$!d'"'"' "$0") && echo "$trimmed" > "$0")' || true)

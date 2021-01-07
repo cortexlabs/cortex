@@ -1,4 +1,4 @@
-# Copyright 2020 Cortex Labs, Inc.
+# Copyright 2021 Cortex Labs, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -121,7 +121,7 @@ def main():
     # get API spec
     provider = os.environ["CORTEX_PROVIDER"]
     spec_path = os.environ["CORTEX_API_SPEC"]
-    cache_dir = os.getenv("CORTEX_CACHE_DIR")  # when it's deployed locally
+    cache_dir = os.getenv("CORTEX_CACHE_DIR")
     region = os.getenv("AWS_REGION")  # when it's deployed to AWS
     _, api_spec = get_spec(provider, spec_path, cache_dir, region)
 

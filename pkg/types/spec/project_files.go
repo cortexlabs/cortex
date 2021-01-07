@@ -1,5 +1,5 @@
 /*
-Copyright 2020 Cortex Labs, Inc.
+Copyright 2021 Cortex Labs, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -25,6 +25,4 @@ type ProjectFiles interface {
 	HasFile(string) bool
 	// Return whether the project contains a directory path (relative to the project root)
 	HasDir(string) bool
-	// Return the absolute path to the root of the project directory (should only be used in local environment)
-	ProjectDir() string
 }

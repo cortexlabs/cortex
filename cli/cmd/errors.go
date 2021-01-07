@@ -1,5 +1,5 @@
 /*
-Copyright 2020 Cortex Labs, Inc.
+Copyright 2021 Cortex Labs, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -42,12 +42,11 @@ func errStrFailedToConnect(u url.URL) string {
 
 const (
 	ErrInvalidProvider                         = "cli.invalid_provider"
-	ErrNotSupportedInLocalEnvironment          = "cli.not_supported_in_local_environment"
-	ErrLocalEnvironmentCantUseClusterProvider  = "cli.local_environment_cant_use_cluster_provider"
+	ErrInvalidLegacyProvider                   = "cli.invalid_legacy_provider"
 	ErrCommandNotSupportedForKind              = "cli.command_not_supported_for_kind"
+	ErrNoAvailableEnvironment                  = "cli.no_available_environment"
+	ErrEnvironmentNotSet                       = "cli.environment_not_set"
 	ErrEnvironmentNotFound                     = "cli.environment_not_found"
-	ErrOperatorEndpointInLocalEnvironment      = "cli.operator_endpoint_in_local_environment"
-	ErrOperatorConfigFromLocalEnvironment      = "cli.operater_config_from_local_environment"
 	ErrFieldNotFoundInEnvironment              = "cli.field_not_found_in_environment"
 	ErrInvalidOperatorEndpoint                 = "cli.invalid_operator_endpoint"
 	ErrNoOperatorLoadBalancer                  = "cli.no_operator_load_balancer"
@@ -85,17 +84,10 @@ func ErrorInvalidProvider(providerStr string) error {
 	})
 }
 
-func ErrorNotSupportedInLocalEnvironment() error {
+func ErrorInvalidLegacyProvider(providerStr, cliConfigPath string) error {
 	return errors.WithStack(&errors.Error{
-		Kind:    ErrNotSupportedInLocalEnvironment,
-		Message: "this command is not supported in local environment",
-	})
-}
-
-func ErrorLocalEnvironmentCantUseClusterProvider(provider types.ProviderType) error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrLocalEnvironmentCantUseClusterProvider,
-		Message: fmt.Sprintf("the environment named \"local\" cannot be configured to point to a cortex cluster in %s", provider),
+		Kind:    ErrInvalidLegacyProvider,
+		Message: fmt.Sprintf("the %s provider is no longer supported on cortex v%s; remove the environment(s) which use the %s provider from %s, or delete %s (it will be recreated on subsequent CLI commands)", providerStr, consts.CortexVersionMinor, providerStr, cliConfigPath, cliConfigPath),
 	})
 }
 
@@ -106,6 +98,20 @@ func ErrorCommandNotSupportedForKind(kind userconfig.Kind, command string) error
 	})
 }
 
+func ErrorNoAvailableEnvironment() error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrNoAvailableEnvironment,
+		Message: "no environments are configured; run `cortex cluster up` or `cortex cluster-gcp up` to create a cluster, or run `cortex env configure` to connect to an existing cluster",
+	})
+}
+
+func ErrorEnvironmentNotSet() error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrEnvironmentNotSet,
+		Message: "no environment was provided and the default environment is not set; specify the environment to use via the `-e/--env` flag, or run `cortex env default` to set the default environment",
+	})
+}
+
 func ErrorEnvironmentNotFound(envName string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrEnvironmentNotFound,
@@ -113,26 +119,10 @@ func ErrorEnvironmentNotFound(envName string) error {
 	})
 }
 
-// unexpected error if code tries to create operator config from local environment
-func ErrorOperatorConfigFromLocalEnvironment() error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrOperatorConfigFromLocalEnvironment,
-		Message: "attempting to retrieve cluster operator config from local environment",
-	})
-}
-
-// unexpected error if code tries to create operator config from local environment
 func ErrorFieldNotFoundInEnvironment(fieldName string, envName string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrFieldNotFoundInEnvironment,
 		Message: fmt.Sprintf("%s was not found in %s environment", fieldName, envName),
-	})
-}
-
-func ErrorOperatorEndpointInLocalEnvironment() error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrOperatorEndpointInLocalEnvironment,
-		Message: fmt.Sprintf("operator_endpoint should not be specified (it's not used in local environment)"),
 	})
 }
 
@@ -337,12 +327,8 @@ func ErrorNoTerminalWidth() error {
 }
 
 func ErrorDeployFromTopLevelDir(genericDirName string, providerType types.ProviderType) error {
-	targetStr := "cluster"
-	if providerType == types.LocalProviderType {
-		targetStr = "API container"
-	}
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrDeployFromTopLevelDir,
-		Message: fmt.Sprintf("cannot deploy from your %s directory - when deploying your API, cortex sends all files in your project directory (i.e. the directory which contains cortex.yaml) to your %s (see https://docs.cortex.dev/v/%s/); therefore it is recommended to create a subdirectory for your project files", genericDirName, targetStr, consts.CortexVersionMinor),
+		Message: fmt.Sprintf("cannot deploy from your %s directory - when deploying your API, cortex sends all files in your project directory (i.e. the directory which contains cortex.yaml) to your cluster (see https://docs.cortex.dev/v/%s/); therefore it is recommended to create a subdirectory for your project files", genericDirName, consts.CortexVersionMinor),
 	})
 }

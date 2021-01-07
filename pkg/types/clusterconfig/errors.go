@@ -1,5 +1,5 @@
 /*
-Copyright 2020 Cortex Labs, Inc.
+Copyright 2021 Cortex Labs, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -46,8 +46,11 @@ const (
 	ErrOnDemandBaseCapacityGreaterThanMax         = "clusterconfig.on_demand_base_capacity_greater_than_max"
 	ErrConfigCannotBeChangedOnUpdate              = "clusterconfig.config_cannot_be_changed_on_update"
 	ErrInvalidAvailabilityZone                    = "clusterconfig.invalid_availability_zone"
+	ErrAvailabilityZoneSpecifiedTwice             = "clusterconfig.availability_zone_specified_twice"
 	ErrUnsupportedAvailabilityZone                = "clusterconfig.unsupported_availability_zone"
 	ErrNotEnoughValidDefaultAvailibilityZones     = "clusterconfig.not_enough_valid_default_availability_zones"
+	ErrNoNATGatewayWithSubnets                    = "clusterconfig.no_nat_gateway_with_subnets"
+	ErrSpecifyOneOrNone                           = "clusterconfig.specify_one_or_none"
 	ErrDidNotMatchStrictS3Regex                   = "clusterconfig.did_not_match_strict_s3_regex"
 	ErrNATRequiredWithPrivateSubnetVisibility     = "clusterconfig.nat_required_with_private_subnet_visibility"
 	ErrS3RegionDiffersFromCluster                 = "clusterconfig.s3_region_differs_from_cluster"
@@ -177,6 +180,13 @@ func ErrorInvalidAvailabilityZone(userZone string, allZones strset.Set, region s
 	})
 }
 
+func ErrorAvailabilityZoneSpecifiedTwice(zone string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrAvailabilityZoneSpecifiedTwice,
+		Message: fmt.Sprintf("availability zone \"%s\" is specified twice", zone),
+	})
+}
+
 func ErrorUnsupportedAvailabilityZone(userZone string, instanceType string, instanceTypes ...string) error {
 	msg := fmt.Sprintf("the %s availability zone does not support EKS and the %s instance type; please choose a different availability zone, instance type, or region", userZone, instanceType)
 
@@ -207,6 +217,27 @@ func ErrorNotEnoughDefaultSupportedZones(region string, validZones strset.Set, i
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrNotEnoughValidDefaultAvailibilityZones,
 		Message: msg,
+	})
+}
+
+func ErrorNoNATGatewayWithSubnets() error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrNoNATGatewayWithSubnets,
+		Message: fmt.Sprintf("nat gateway cannot be automatically created when specifying subnets for your cluster; please unset %s or %s", NATGatewayKey, SubnetsKey),
+	})
+}
+
+func ErrorSpecifyOneOrNone(fieldName1 string, fieldName2 string, fieldNames ...string) error {
+	fieldNames = append([]string{fieldName1, fieldName2}, fieldNames...)
+
+	message := fmt.Sprintf("specify exactly one or none of the following fields: %s", s.StrsAnd(fieldNames))
+	if len(fieldNames) == 2 {
+		message = fmt.Sprintf("cannot specify both %s and %s; specify only one (or neither)", fieldNames[0], fieldNames[1])
+	}
+
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrSpecifyOneOrNone,
+		Message: message,
 	})
 }
 

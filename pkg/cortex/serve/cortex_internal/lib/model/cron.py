@@ -1,4 +1,4 @@
-# Copyright 2020 Cortex Labs, Inc.
+# Copyright 2021 Cortex Labs, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -28,7 +28,7 @@ from typing import Dict, List, Tuple, Any, Union, Callable, Optional
 from cortex_internal.lib import util
 from cortex_internal.lib.log import logger
 from cortex_internal.lib.concurrency import LockedFile, get_locked_files
-from cortex_internal.lib.storage import S3, GCS, LocalStorage
+from cortex_internal.lib.storage import S3, GCS
 from cortex_internal.lib.exceptions import CortexException, WithBreak
 from cortex_internal.lib.type import (
     predictor_type_from_api_spec,
@@ -257,14 +257,6 @@ class FileBasedModelsTreeUpdater(mp.Process):
         logger.info(message)
 
     def _update_models_tree(self) -> None:
-        # don't update when the models:dir is a local path
-        if (
-            self._is_dir_used
-            and not self._models_dir.startswith("s3://")
-            and not self._models_dir.startswith("gs://")
-        ):
-            return
-
         # get updated/validated paths/versions of the cloud models
         (
             model_names,
@@ -738,7 +730,6 @@ class TFSModelLoader(mp.Process):
 
         self._cloud_paths = []
         self._spec_models = get_models_from_api_spec(self._api_spec)
-        self._local_model_names = self._spec_models.get_local_model_names()
         self._cloud_model_names = self._spec_models.get_cloud_model_names()
         for model_name in self._cloud_model_names:
             self._cloud_paths.append(self._spec_models[model_name]["path"])
@@ -785,8 +776,6 @@ class TFSModelLoader(mp.Process):
             self._reset_when_tfs_unresponsive()
             time.sleep(1.0)
 
-        self._load_local_models()
-
         while not self._event_stopper.is_set():
             success = self._update_models()
             if success and not self._ran_once.is_set():
@@ -823,14 +812,6 @@ class TFSModelLoader(mp.Process):
         return self._ran_once.is_set()
 
     def _update_models(self) -> bool:
-        # don't update when the models:dir is a local path
-        if (
-            self._is_dir_used
-            and not self._models_dir.startswith("s3://")
-            and not self._models_dir.startswith("gs://")
-        ):
-            return True
-
         # get updated/validated paths/versions of the cloud models (S3 or GS)
         (
             model_names,
@@ -872,7 +853,7 @@ class TFSModelLoader(mp.Process):
 
         # remove models that no longer appear in model_names
         for model_name, model_versions in find_ondisk_models(self._download_dir).items():
-            if model_name in model_names or model_name in self._local_model_names:
+            if model_name in model_names:
                 continue
             for ondisk_version in model_versions:
                 ondisk_model_version_path = os.path.join(
@@ -917,8 +898,6 @@ class TFSModelLoader(mp.Process):
         # # update TFS models
         current_ts_state = {}
         for model_name, model_versions in ondisk_models.items():
-            if model_name in self._local_model_names:
-                continue
             try:
                 ts = self._update_tfs_model(
                     model_name, model_versions, timestamps, model_names, versions
@@ -1223,39 +1202,6 @@ class TFSModelLoader(mp.Process):
 
         return current_ts_state
 
-    def _load_local_models(self) -> None:
-        for model_name in self._local_model_names:
-            for model_version in self._spec_models[model_name]["versions"]:
-                model_disk_path = os.path.join(self._tfs_model_dir, model_name)
-                try:
-                    self._client.add_single_model(
-                        model_name,
-                        model_version,
-                        model_disk_path,
-                        self._determine_model_signature_key(model_name),
-                        timeout=30.0,
-                    )
-                except Exception as e:
-                    try:
-                        self._client.remove_single_model(model_name, model_version)
-                        logger.warning(
-                            "model '{}' of version '{}' couldn't be loaded: {}".format(
-                                model_name, model_version, str(e)
-                            )
-                        )
-                    except grpc.RpcError as error:
-                        if error.code() == grpc.StatusCode.UNAVAILABLE:
-                            logger.warning(
-                                "TFS server unresponsive after trying to load model '{}' of version '{}': {}".format(
-                                    model_name, model_version, str(e)
-                                )
-                            )
-                        self._reset_when_tfs_unresponsive()
-                        return None
-                self._old_ts_state[f"{model_name}-{model_version}"] = int(
-                    datetime.datetime.now(datetime.timezone.utc).timestamp()
-                )
-
     def _is_this_a_newer_model_id(self, model_id: str, timestamp: int) -> bool:
         return model_id in self._old_ts_state and self._old_ts_state[model_id] < timestamp
 
@@ -1389,6 +1335,8 @@ class ModelsGC(AbstractLoopingThread):
         self._tree = tree
 
         self._spec_models = get_models_from_api_spec(self._api_spec)
+
+        # only required for ONNX file paths
         self._local_model_names = self._spec_models.get_local_model_names()
         self._local_model_versions = [
             self._spec_models.get_versions_for(model_name) for model_name in self._local_model_names
@@ -1569,6 +1517,7 @@ class ModelTreeUpdater(AbstractLoopingThread):
             self._is_dir_used = False
             self._models_dir = None
 
+        # only required for ONNX file paths
         self._make_local_models_available()
 
     def _make_local_models_available(self):
@@ -1619,14 +1568,6 @@ class ModelTreeUpdater(AbstractLoopingThread):
                 )
 
     def _update_models_tree(self) -> None:
-        # don't update when the models:dir is a local path
-        if (
-            self._is_dir_used
-            and not self._models_dir.startswith("s3://")
-            and not self._models_dir.startswith("gs://")
-        ):
-            return True
-
         # get updated/validated paths/versions of the cloud models (S3 or GS)
         (
             model_names,

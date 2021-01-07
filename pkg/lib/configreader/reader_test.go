@@ -1,5 +1,5 @@
 /*
-Copyright 2020 Cortex Labs, Inc.
+Copyright 2021 Cortex Labs, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -912,10 +912,10 @@ func TestDefaultField(t *testing.T) {
 				StringValidation: &StringValidation{},
 			},
 			{
-				StructField:  "Key3",
-				DefaultField: "Key2",
-				DefaultFieldFunc: func(val interface{}) interface{} {
-					return val.(string) + ".py"
+				StructField:            "Key3",
+				DefaultDependentFields: []string{"Key2"},
+				DefaultDependentFieldsFunc: func(vals []interface{}) interface{} {
+					return vals[0].(string) + ".py"
 				},
 				StringValidation: &StringValidation{},
 			},
@@ -945,10 +945,10 @@ func TestDefaultField(t *testing.T) {
 				StringValidation: &StringValidation{},
 			},
 			{
-				StructField:  "Key3",
-				DefaultField: "Key1",
-				DefaultFieldFunc: func(val interface{}) interface{} {
-					if val.(bool) {
+				StructField:            "Key3",
+				DefaultDependentFields: []string{"Key1"},
+				DefaultDependentFieldsFunc: func(vals []interface{}) interface{} {
+					if vals[0].(bool) {
 						return "It was true"
 					}
 					return "It was false"
@@ -981,10 +981,10 @@ func TestDefaultField(t *testing.T) {
 				StringValidation: &StringValidation{},
 			},
 			{
-				StructField:  "Key1",
-				DefaultField: "Key2",
-				DefaultFieldFunc: func(val interface{}) interface{} {
-					if val.(string) == "key2" {
+				StructField:            "Key1",
+				DefaultDependentFields: []string{"Key2"},
+				DefaultDependentFieldsFunc: func(vals []interface{}) interface{} {
+					if vals[0].(string) == "key2" {
 						return true
 					}
 					return false

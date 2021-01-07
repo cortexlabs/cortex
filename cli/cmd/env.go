@@ -1,5 +1,5 @@
 /*
-Copyright 2020 Cortex Labs, Inc.
+Copyright 2021 Cortex Labs, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -35,7 +35,6 @@ var (
 	_flagEnvOperatorEndpoint   string
 	_flagEnvAWSAccessKeyID     string
 	_flagEnvAWSSecretAccessKey string
-	_flagEnvAWSRegion          string
 )
 
 func envInit() {
@@ -44,7 +43,6 @@ func envInit() {
 	_envConfigureCmd.Flags().StringVarP(&_flagEnvOperatorEndpoint, "operator-endpoint", "o", "", "set the operator endpoint without prompting")
 	_envConfigureCmd.Flags().StringVarP(&_flagEnvAWSAccessKeyID, "aws-access-key-id", "k", "", "set the aws access key id without prompting")
 	_envConfigureCmd.Flags().StringVarP(&_flagEnvAWSSecretAccessKey, "aws-secret-access-key", "s", "", "set the aws secret access key without prompting")
-	_envConfigureCmd.Flags().StringVarP(&_flagEnvAWSRegion, "aws-region", "r", "", "set the aws region without prompting")
 	_envCmd.AddCommand(_envConfigureCmd)
 
 	_envListCmd.Flags().SortFlags = false
@@ -98,17 +96,11 @@ var _envConfigureCmd = &cobra.Command{
 			skipAWSSecretAccessKey = &_flagEnvAWSSecretAccessKey
 		}
 
-		var skipAWSRegion *string
-		if _flagEnvAWSRegion != "" {
-			skipAWSRegion = &_flagEnvAWSRegion
-		}
-
 		fieldsToSkipPrompt := cliconfig.Environment{
 			Provider:           skipProvider,
 			OperatorEndpoint:   skipOperatorEndpoint,
 			AWSAccessKeyID:     skipAWSAccessKeyID,
 			AWSSecretAccessKey: skipAWSSecretAccessKey,
-			AWSRegion:          skipAWSRegion,
 		}
 
 		if _, err := configureEnv(envName, fieldsToSkipPrompt); err != nil {
@@ -130,6 +122,10 @@ var _envListCmd = &cobra.Command{
 		}
 
 		if _flagOutput == flags.JSONOutputType {
+			if len(cliConfig.Environments) == 0 {
+				fmt.Print("[]")
+				return
+			}
 			bytes, err := libjson.Marshal(cliConfig.Environments)
 			if err != nil {
 				exit.Error(err)
@@ -138,10 +134,18 @@ var _envListCmd = &cobra.Command{
 			return
 		}
 
-		defaultEnv := getDefaultEnv(_generalCommandType)
+		if len(cliConfig.Environments) == 0 {
+			fmt.Println("no environments are configured")
+			return
+		}
+
+		defaultEnv, err := getDefaultEnv()
+		if err != nil {
+			exit.Error(err)
+		}
 
 		for i, env := range cliConfig.Environments {
-			fmt.Print(env.String(defaultEnv == env.Name))
+			fmt.Print(env.String(defaultEnv != nil && *defaultEnv == env.Name))
 			if i+1 < len(cliConfig.Environments) {
 				fmt.Println()
 			}
@@ -156,17 +160,22 @@ var _envDefaultCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		telemetry.Event("cli.env.default")
 
-		defaultEnv := getDefaultEnv(_generalCommandType)
+		defaultEnv, err := getDefaultEnv()
+		if err != nil {
+			exit.Error(err)
+		}
 
 		var envName string
 		if len(args) == 0 {
-			fmt.Printf("current default environment: %s\n\n", defaultEnv)
+			if defaultEnv != nil {
+				fmt.Printf("current default environment: %s\n\n", *defaultEnv)
+			}
 			envName = promptForExistingEnvName("name of environment to set as default")
 		} else {
 			envName = args[0]
 		}
 
-		if envName == defaultEnv {
+		if defaultEnv != nil && *defaultEnv == envName {
 			print.BoldFirstLine(fmt.Sprintf("%s is already the default environment", envName))
 			exit.Ok()
 		}
@@ -193,21 +202,25 @@ var _envDeleteCmd = &cobra.Command{
 			envName = promptForExistingEnvName("name of environment to delete")
 		}
 
-		prevDefault := getDefaultEnv(_generalCommandType)
+		prevDefault, err := getDefaultEnv()
+		if err != nil {
+			exit.Error(err)
+		}
 
 		if err := removeEnvFromCLIConfig(envName); err != nil {
 			exit.Error(err)
 		}
 
-		newDefault := getDefaultEnv(_generalCommandType)
-
-		if envName == types.LocalProviderType.String() {
-			print.BoldFirstLine(fmt.Sprintf("cleared the %s environment configuration", envName))
-		} else {
-			print.BoldFirstLine(fmt.Sprintf("deleted the %s environment configuration", envName))
+		newDefault, err := getDefaultEnv()
+		if err != nil {
+			exit.Error(err)
 		}
-		if prevDefault != newDefault {
-			print.BoldFirstLine(fmt.Sprintf("set the default environment to %s", newDefault))
+
+		print.BoldFirstLine(fmt.Sprintf("deleted the %s environment configuration", envName))
+		if prevDefault != nil && newDefault == nil {
+			print.BoldFirstLine("unset the default environment")
+		} else if newDefault != nil && (prevDefault == nil || *prevDefault != *newDefault) {
+			print.BoldFirstLine(fmt.Sprintf("set the default environment to %s", *newDefault))
 		}
 	},
 }

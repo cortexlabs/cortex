@@ -1,5 +1,5 @@
 /*
-Copyright 2020 Cortex Labs, Inc.
+Copyright 2021 Cortex Labs, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -20,6 +20,8 @@ const (
 	ProviderKey                            = "provider"
 	InstanceTypeKey                        = "instance_type"
 	AcceleratorTypeKey                     = "accelerator_type"
+	NetworkKey                             = "network"
+	SubnetKey                              = "subnet"
 	MinInstancesKey                        = "min_instances"
 	MaxInstancesKey                        = "max_instances"
 	TagsKey                                = "tags"
@@ -39,13 +41,15 @@ const (
 	ZoneKey                                = "zone"
 	ProjectKey                             = "project"
 	AvailabilityZonesKey                   = "availability_zones"
+	SubnetsKey                             = "subnets"
+	AvailabilityZoneKey                    = "availability_zone"
+	SubnetIDKey                            = "subnet_id"
 	SSLCertificateARNKey                   = "ssl_certificate_arn"
 	BucketKey                              = "bucket"
 	SubnetVisibilityKey                    = "subnet_visibility"
 	NATGatewayKey                          = "nat_gateway"
 	APILoadBalancerSchemeKey               = "api_load_balancer_scheme"
 	OperatorLoadBalancerSchemeKey          = "operator_load_balancer_scheme"
-	APIGatewaySettingKey                   = "api_gateway"
 	VPCCIDRKey                             = "vpc_cidr"
 	TelemetryKey                           = "telemetry"
 	ImageOperatorKey                       = "image_operator"
@@ -71,11 +75,16 @@ const (
 	ZoneUserKey                                = "gcp zone"
 	ProjectUserKey                             = "gcp project"
 	AvailabilityZonesUserKey                   = "availability zones"
+	SubnetsUserKey                             = "subnets"
+	AvailabilityZoneUserKey                    = "availability zone"
+	SubnetIDUserKey                            = "subnet id"
 	SSLCertificateARNUserKey                   = "ssl certificate arn"
 	BucketUserKey                              = "s3 bucket"
 	SpotUserKey                                = "use spot instances"
 	InstanceTypeUserKey                        = "instance type"
 	AcceleratorTypeUserKey                     = "accelerator type"
+	NetworkUserKey                             = "network"
+	SubnetUserKey                              = "subnet"
 	MinInstancesUserKey                        = "min instances"
 	MaxInstancesUserKey                        = "max instances"
 	TagsUserKey                                = "tags"
@@ -92,7 +101,6 @@ const (
 	NATGatewayUserKey                          = "nat gateway"
 	APILoadBalancerSchemeUserKey               = "api load balancer scheme"
 	OperatorLoadBalancerSchemeUserKey          = "operator load balancer scheme"
-	APIGatewaySettingUserKey                   = "api gateway"
 	VPCCIDRUserKey                             = "vpc cidr"
 	TelemetryUserKey                           = "telemetry"
 	ImageOperatorUserKey                       = "operator image"

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Copyright 2020 Cortex Labs, Inc.
+# Copyright 2021 Cortex Labs, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -86,7 +86,7 @@ output=$(cd "$ROOT" && find . -type f \
 ! -name ".*" \
 ! -name "*.bin" \
 ! -name "Dockerfile" \
--exec grep -L "Copyright 2020 Cortex Labs, Inc" {} \;)
+-exec grep -L "Copyright 2021 Cortex Labs, Inc" {} \;)
 if [[ $output ]]; then
   echo "File(s) are missing Cortex license:"
   echo "$output"

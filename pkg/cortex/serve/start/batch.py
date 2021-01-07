@@ -1,4 +1,4 @@
-# Copyright 2020 Cortex Labs, Inc.
+# Copyright 2021 Cortex Labs, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -34,10 +34,9 @@ from cortex_internal import consts
 from cortex_internal.lib import util
 from cortex_internal.lib.api import API, get_spec, get_api
 from cortex_internal.lib.concurrency import LockedFile
-from cortex_internal.lib.storage import S3, LocalStorage
+from cortex_internal.lib.storage import S3
 from cortex_internal.lib.exceptions import UserRuntimeException
 
-API_LIVENESS_UPDATE_PERIOD = 5  # seconds
 SQS_POLL_WAIT_TIME = 10  # seconds
 MESSAGE_NOT_FOUND_SLEEP = 10  # seconds
 INITIAL_MESSAGE_VISIBILITY = 30  # seconds

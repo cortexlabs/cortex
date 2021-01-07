@@ -1,5 +1,5 @@
 /*
-Copyright 2020 Cortex Labs, Inc.
+Copyright 2021 Cortex Labs, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -317,7 +317,7 @@ func EncodeAuthConfig(authConfig dockertypes.AuthConfig) (string, error) {
 
 func CheckImageAccessible(dockerClient *Client, dockerImage, authConfig string, providerType types.ProviderType) error {
 	if _, err := dockerClient.DistributionInspect(context.Background(), dockerImage, authConfig); err != nil {
-		return ErrorImageInaccessible(dockerImage, providerType, err)
+		return ErrorImageInaccessible(dockerImage, err)
 	}
 	return nil
 }

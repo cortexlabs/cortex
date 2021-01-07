@@ -1,5 +1,5 @@
 /*
-Copyright 2020 Cortex Labs, Inc.
+Copyright 2021 Cortex Labs, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -152,7 +152,7 @@ func pythonAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deplo
 }
 
 func onnxAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deployment {
-	containers := operator.ONNXPredictorContainers(api)
+	containers, volumes := operator.ONNXPredictorContainers(api)
 
 	if config.Provider == types.AWSProviderType {
 		containers = append(containers, operator.RequestMonitorContainer(api))
@@ -196,7 +196,7 @@ func onnxAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deploym
 					"workload": "true",
 				},
 				Tolerations:        operator.Tolerations,
-				Volumes:            operator.DefaultVolumes(),
+				Volumes:            volumes,
 				ServiceAccountName: "default",
 			},
 		},
