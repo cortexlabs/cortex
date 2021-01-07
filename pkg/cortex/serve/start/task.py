@@ -16,8 +16,10 @@ import json
 import os
 
 from cortex_internal.lib.api import get_spec
-from cortex_internal.lib.log import cx_logger as logger
 from cortex_internal.lib.storage import S3
+from cortex_internal.lib.log import configure_logger
+
+logger = configure_logger("cortex", os.environ["CORTEX_LOG_CONFIG_FILE"])
 
 local_cache = {
     "api_spec": None,
@@ -45,7 +47,7 @@ def start():
     storage, api_spec = get_spec(provider, api_spec_path, cache_dir, region)
     task_spec = get_task_spec(storage, cache_dir, task_spec_path)
 
-    logger().info("loading the task definition from {}".format(api_spec["definition"]["path"]))
+    logger.info("loading the task definition from {}".format(api_spec["definition"]["path"]))
 
     # TODO validate the task definition and execute the task
 

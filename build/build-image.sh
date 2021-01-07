@@ -33,7 +33,7 @@ if [[ "$image" == *"-slim" ]]; then
   build_args="--build-arg SLIM=true"
 fi
 
-if [ "${image}" == "python-predictor-gpu-slim" ]; then
+if [ "${image}" == *"gpu-slim" ]; then
   cuda=("10.0" "10.1" "10.1" "10.2" "10.2" "11.0" "11.1")
   cudnn=("7" "7" "8" "7" "8" "8" "8")
   for i in ${!cudnn[@]}; do

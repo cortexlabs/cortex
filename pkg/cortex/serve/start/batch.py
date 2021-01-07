@@ -26,6 +26,7 @@ from cortex_internal.lib.api import get_api, get_spec
 from cortex_internal.lib.concurrency import LockedFile
 from cortex_internal.lib.storage import S3
 from cortex_internal.lib.exceptions import UserRuntimeException
+from cortex_internal.lib.log import configure_logger
 
 logger = configure_logger("cortex", os.environ["CORTEX_LOG_CONFIG_FILE"])
 

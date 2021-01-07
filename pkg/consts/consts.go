@@ -38,6 +38,9 @@ var (
 	DefaultImageTensorFlowPredictor  = defaultDockerImage("tensorflow-predictor")
 	DefaultImageONNXPredictorCPU     = defaultDockerImage("onnx-predictor-cpu")
 	DefaultImageONNXPredictorGPU     = defaultDockerImage("onnx-predictor-gpu")
+	DefaultImagePythonTaskCPU        = defaultDockerImage("python-task-cpu")
+	DefaultImagePythonTaskGPU        = defaultDockerImage("python-task-gpu")
+	DefaultImagePythonTaskInf        = defaultDockerImage("python-task-inf")
 	DefaultImagePathsSet             = strset.New(
 		DefaultImagePythonPredictorCPU,
 		DefaultImagePythonPredictorGPU,
@@ -48,6 +51,9 @@ var (
 		DefaultImageTensorFlowPredictor,
 		DefaultImageONNXPredictorCPU,
 		DefaultImageONNXPredictorGPU,
+		DefaultImagePythonTaskCPU,
+		DefaultImagePythonTaskGPU,
+		DefaultImagePythonTaskInf,
 	)
 
 	DashboardTitle               = "# cortex monitoring dashboard"
