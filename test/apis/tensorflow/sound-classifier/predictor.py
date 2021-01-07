@@ -1,4 +1,4 @@
-from scipy.io.wavfile import read, write
+from scipy.io.wavfile import read
 import numpy as np
 import io
 import csv
