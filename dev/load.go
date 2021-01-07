@@ -30,12 +30,14 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/files"
 )
 
+// usage: go run load.go <url> <sample.json>
+
 // either set _numConcurrent > 0 or _requestInterval > 0 (and configure the corresponding sections)
 
 // constant in-flight requests
 const (
 	_numConcurrent        = 5
-	_numRequestsPerThread = -1
+	_numRequestsPerThread = -1 // -1 means loop infinitely
 	_requestDelay         = 0 * time.Second
 	_numMainLoops         = 10 // only relevant if _numRequestsPerThread != -1
 )
