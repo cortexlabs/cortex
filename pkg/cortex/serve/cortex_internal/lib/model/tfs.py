@@ -113,10 +113,10 @@ class TensorFlowServingAPI:
             {}
         )  # maps the model ID to the model metadata (signature def, signature key and so on)
 
-        # set maximum/receive transmission sizes to 256 MB each
+        # remove limit for maximum/receive transmission sizes
         options = [
-            ("grpc.max_send_message_length", 256 * 1024 * 1024),
-            ("grpc.max_receive_message_length", 256 * 1024 * 1024),
+            ("grpc.max_send_message_length", -1),
+            ("grpc.max_receive_message_length", -1),
         ]
         self.channel = grpc.insecure_channel(self.address, options=options)
 
