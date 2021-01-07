@@ -52,17 +52,6 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string) (*spec.API, string, 
 			return nil, "", err
 		}
 
-		err = operator.AddAPIToAPIGateway(*api.Networking.Endpoint, api.Networking.APIGateway)
-		if err != nil {
-			go func() {
-				_ = deleteK8sResources(api.Name)
-			}()
-			go func() {
-				_ = operator.RemoveAPIFromAPIGateway(*api.Networking.Endpoint, api.Networking.APIGateway)
-			}()
-			return nil, "", err
-		}
-
 		return api, fmt.Sprintf("created %s", api.Resource.UserString()), nil
 	}
 
@@ -73,10 +62,6 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string) (*spec.API, string, 
 
 		err = applyK8sResources(api, prevVirtualService)
 		if err != nil {
-			return nil, "", err
-		}
-
-		if err := operator.UpdateAPIGatewayK8s(prevVirtualService, api); err != nil {
 			return nil, "", err
 		}
 
@@ -260,13 +245,7 @@ func GetAPIByName(deployedResource *operator.DeployedResource) ([]schema.APIResp
 
 // DeleteAPI deletes a task api
 func DeleteAPI(apiName string, keepCache bool) error {
-	// best effort deletion, so don't handle error yet
-	virtualService, vsErr := config.K8s.GetVirtualService(operator.K8sName(apiName))
-
 	err := parallel.RunFirstErr(
-		func() error {
-			return vsErr
-		},
 		func() error {
 			return deleteK8sResources(apiName)
 		},
@@ -275,14 +254,6 @@ func DeleteAPI(apiName string, keepCache bool) error {
 				return nil
 			}
 			return deleteS3Resources(apiName)
-		},
-		func() error {
-			err := operator.RemoveAPIFromAPIGatewayK8s(virtualService)
-			if err != nil {
-				return err
-			}
-
-			return nil
 		},
 	)
 

@@ -35,7 +35,6 @@ type API struct {
 	APIs             []*TrafficSplit `json:"apis" yaml:"apis"`
 	Predictor        *Predictor      `json:"predictor" yaml:"predictor"`
 	TaskDefinition   *TaskDefinition `json:"definition" yaml:"definition"`
-	Monitoring       *Monitoring     `json:"monitoring" yaml:"monitoring"`
 	Networking       *Networking     `json:"networking" yaml:"networking"`
 	Compute          *Compute        `json:"compute" yaml:"compute"`
 	Autoscaling      *Autoscaling    `json:"autoscaling" yaml:"autoscaling"`
