@@ -28,8 +28,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/operator/resources/job"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
-	kmeta "k8s.io/apimachinery/pkg/apis/meta/v1"
-	klabels "k8s.io/apimachinery/pkg/labels"
 )
 
 func DryRun(submission *schema.BatchJobSubmission) ([]string, error) {
@@ -218,31 +216,6 @@ func handleJobSubmissionError(jobKey spec.JobKey, jobErr error) {
 		telemetry.Error(err)
 		errors.PrintError(err)
 	}
-}
-
-func createK8sJob(apiSpec *spec.API, jobSpec *spec.BatchJob) error {
-	kJob, err := k8sJobSpec(apiSpec, jobSpec)
-	if err != nil {
-		return err
-	}
-
-	_, err = config.K8s.CreateJob(kJob)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func deleteK8sJob(jobKey spec.JobKey) error {
-	_, err := config.K8s.DeleteJobs(&kmeta.ListOptions{
-		LabelSelector: klabels.SelectorFromSet(map[string]string{"apiName": jobKey.APIName, "jobID": jobKey.ID}).String(),
-	})
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
 
 func deleteJobRuntimeResources(jobKey spec.JobKey) error {

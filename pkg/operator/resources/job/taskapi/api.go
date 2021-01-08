@@ -22,6 +22,7 @@ import (
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/parallel"
+	"github.com/cortexlabs/cortex/pkg/lib/routines"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 	"github.com/cortexlabs/cortex/pkg/operator/operator"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
@@ -46,11 +47,13 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string) (*spec.API, string, 
 
 		err = applyK8sResources(api, prevVirtualService)
 		if err != nil {
-			go func() {
-				_ = deleteK8sResources(api.Name)
-			}()
+			routines.RunWithPanicHandler(func() {
+				deleteK8sResources(api.Name)
+			}, false)
 			return nil, "", err
 		}
+
+		// TODO: add log group here
 
 		return api, fmt.Sprintf("created %s", api.Resource.UserString()), nil
 	}
@@ -68,9 +71,48 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string) (*spec.API, string, 
 		return api, fmt.Sprintf("updated %s", api.Resource.UserString()), nil
 	}
 
-	// TODO: add log group here
-
 	return api, fmt.Sprintf("%s is up to date", api.Resource.UserString()), nil
+}
+
+// DeleteAPI deletes a task api
+func DeleteAPI(apiName string, keepCache bool) error {
+	err := parallel.RunFirstErr(
+		func() error {
+			return deleteK8sResources(apiName)
+		},
+		func() error {
+			if keepCache {
+				return nil
+			}
+			return deleteS3Resources(apiName)
+		},
+	)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func deleteS3Resources(apiName string) error {
+	return parallel.RunFirstErr(
+		func() error {
+			prefix := filepath.Join(config.Cluster.ClusterName, "apis", apiName)
+			return config.AWS.DeleteS3Dir(config.Cluster.Bucket, prefix, true)
+		},
+		//func() error {
+		//	prefix := spec.JobAPIPrefix(apiName, config.Cluster.ClusterName)
+		//	go func() {
+		//		_ = config.AWS.DeleteS3Dir(config.Cluster.Bucket, prefix, true) // deleting job files may take a while
+		//	}()
+		//	return nil
+		//},
+		//func() error {
+		//	deleteAllInProgressFilesByAPI(apiName) // not useful xml error is thrown, swallow the error
+		//	return nil
+		//},
+	)
 }
 
 // GetAllAPIs returns all task APIs, for each API returning the most recently submitted job and all running jobs
@@ -150,13 +192,13 @@ func GetAllAPIs(virtualServices []istioclientnetworking.VirtualService) ([]schem
 	//	}
 	//}
 
-	batchAPIList := make([]schema.APIResponse, 0, len(taskAPIsMap))
+	taskAPIList := make([]schema.APIResponse, 0, len(taskAPIsMap))
 
 	for _, batchAPI := range taskAPIsMap {
-		batchAPIList = append(batchAPIList, *batchAPI)
+		taskAPIList = append(taskAPIList, *batchAPI)
 	}
 
-	return batchAPIList, nil
+	return taskAPIList, nil
 }
 
 // GetAllAPIs returns a single task API and its most recently submitted job along with all running task jobs
@@ -241,45 +283,4 @@ func GetAPIByName(deployedResource *operator.DeployedResource) ([]schema.APIResp
 			Endpoint: endpoint,
 		},
 	}, nil
-}
-
-// DeleteAPI deletes a task api
-func DeleteAPI(apiName string, keepCache bool) error {
-	err := parallel.RunFirstErr(
-		func() error {
-			return deleteK8sResources(apiName)
-		},
-		func() error {
-			if keepCache {
-				return nil
-			}
-			return deleteS3Resources(apiName)
-		},
-	)
-
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func deleteS3Resources(apiName string) error {
-	return parallel.RunFirstErr(
-		func() error {
-			prefix := filepath.Join(config.Cluster.ClusterName, "apis", apiName)
-			return config.AWS.DeleteS3Dir(config.Cluster.Bucket, prefix, true)
-		},
-		//func() error {
-		//	prefix := spec.JobAPIPrefix(apiName, config.Cluster.ClusterName)
-		//	go func() {
-		//		_ = config.AWS.DeleteS3Dir(config.Cluster.Bucket, prefix, true) // deleting job files may take a while
-		//	}()
-		//	return nil
-		//},
-		//func() error {
-		//	deleteAllInProgressFilesByAPI(apiName) // not useful xml error is thrown, swallow the error
-		//	return nil
-		//},
-	)
 }

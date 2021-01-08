@@ -121,7 +121,14 @@ func applyK8sResources(api *spec.API, prevVirtualService *istioclientnetworking.
 func deleteK8sResources(apiName string) error {
 	return parallel.RunFirstErr(
 		func() error {
-			return deleteAllK8sJobs(apiName)
+			_, err := config.K8s.DeleteJobs(&kmeta.ListOptions{
+				LabelSelector: klabels.SelectorFromSet(
+					map[string]string{
+						"apiName": apiName,
+						"apiKind": userconfig.TaskAPIKind.String(),
+					}).String(),
+			})
+			return err
 		},
 		func() error {
 			_, err := config.K8s.DeleteVirtualService(operator.K8sName(apiName))
@@ -142,13 +149,16 @@ func deleteK8sJob(jobKey spec.JobKey) error {
 	return err
 }
 
-func deleteAllK8sJobs(apiName string) error {
-	_, err := config.K8s.DeleteJobs(&kmeta.ListOptions{
-		LabelSelector: klabels.SelectorFromSet(
-			map[string]string{
-				"apiName": apiName,
-				"apiKind": userconfig.TaskAPIKind.String(),
-			}).String(),
-	})
-	return err
+func createK8sJob(apiSpec *spec.API, jobSpec *spec.TaskJob) error {
+	k8sJob, err := k8sJobSpec(apiSpec, jobSpec)
+	if err != nil {
+		return err
+	}
+
+	_, err = config.K8s.CreateJob(k8sJob)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

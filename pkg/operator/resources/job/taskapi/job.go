@@ -121,17 +121,3 @@ func deleteJobRuntimeResources(jobKey spec.JobKey) error {
 
 	return nil
 }
-
-func createK8sJob(apiSpec *spec.API, jobSpec *spec.TaskJob) error {
-	k8sJob, err := k8sJobSpec(apiSpec, jobSpec)
-	if err != nil {
-		return err
-	}
-
-	_, err = config.K8s.CreateJob(k8sJob)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}

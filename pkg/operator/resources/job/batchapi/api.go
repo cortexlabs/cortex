@@ -34,8 +34,6 @@ import (
 	istioclientnetworking "istio.io/client-go/pkg/apis/networking/v1beta1"
 	kbatch "k8s.io/api/batch/v1"
 	kcore "k8s.io/api/core/v1"
-	kmeta "k8s.io/apimachinery/pkg/apis/meta/v1"
-	klabels "k8s.io/apimachinery/pkg/labels"
 )
 
 func UpdateAPI(apiConfig *userconfig.API, projectID string) (*spec.API, string, error) {
@@ -105,21 +103,6 @@ func DeleteAPI(apiName string, keepCache bool) error {
 	}
 
 	return nil
-}
-
-func deleteK8sResources(apiName string) error {
-	return parallel.RunFirstErr(
-		func() error {
-			_, err := config.K8s.DeleteJobs(&kmeta.ListOptions{
-				LabelSelector: klabels.SelectorFromSet(map[string]string{"apiName": apiName}).String(),
-			})
-			return err
-		},
-		func() error {
-			_, err := config.K8s.DeleteVirtualService(operator.K8sName(apiName))
-			return err
-		},
-	)
 }
 
 func deleteS3Resources(apiName string) error {
