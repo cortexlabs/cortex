@@ -189,7 +189,6 @@ func TaskContainers(api *spec.API) ([]kcore.Container, []kcore.Volume) {
 		EnvFrom:         baseEnvVars(),
 		VolumeMounts:    apiPodVolumeMounts,
 		//ReadinessProbe:  FileExistsProbe(_apiReadinessFile), // TODO: check if it makes sense to have probes
-		//LivenessProbe:   _apiLivenessProbe,
 		Lifecycle: nginxGracefulStopper(api.Kind),
 		Resources: kcore.ResourceRequirements{
 			Requests: apiPodResourceList,

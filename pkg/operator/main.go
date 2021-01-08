@@ -29,6 +29,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/operator/endpoints"
 	"github.com/cortexlabs/cortex/pkg/operator/operator"
 	"github.com/cortexlabs/cortex/pkg/operator/resources/job/batchapi"
+	"github.com/cortexlabs/cortex/pkg/operator/resources/job/taskapi"
 	"github.com/cortexlabs/cortex/pkg/operator/resources/realtimeapi"
 	"github.com/cortexlabs/cortex/pkg/types"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
@@ -72,7 +73,8 @@ func main() {
 			}
 		}
 
-		cron.Run(batchapi.ManageJobResources, operator.ErrorHandler("manage jobs"), batchapi.ManageJobResourcesCronPeriod)
+		cron.Run(batchapi.ManageJobResources, operator.ErrorHandler("manage batch jobs"), batchapi.ManageJobResourcesCronPeriod)
+		cron.Run(taskapi.ManageJobResources, operator.ErrorHandler("manage task jobs"), taskapi.ManageJobResourcesCronPeriod)
 	}
 
 	router := mux.NewRouter()

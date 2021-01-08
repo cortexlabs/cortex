@@ -20,6 +20,7 @@ import (
 	"time"
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/routines"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 	"github.com/cortexlabs/cortex/pkg/operator/operator"
@@ -29,7 +30,10 @@ import (
 )
 
 func SubmitJob(apiName string, submission *schema.TaskJobSubmission) (*spec.TaskJob, error) {
-	// TODO: submission validation, might not be required
+	err := validateJobSubmission(submission)
+	if err != nil {
+		return nil, err
+	}
 
 	virtualService, err := config.K8s.GetVirtualService(operator.K8sName(apiName))
 	if err != nil {
@@ -66,15 +70,30 @@ func SubmitJob(apiName string, submission *schema.TaskJobSubmission) (*spec.Task
 
 	// TODO: create log stream for job
 
-	if err := job.SetEnqueuingStatus(jobKey); err != nil {
-		return nil, err
-	}
-
-	// TODO: write to job log stream
-
-	go deployJob(apiSpec, &jobSpec)
+	routines.RunWithPanicHandler(func() {
+		deployJob(apiSpec, &jobSpec)
+	}, false)
 
 	return &jobSpec, nil
+}
+
+func downloadJobSpec(jobKey spec.JobKey) (*spec.TaskJob, error) {
+	jobSpec := spec.TaskJob{}
+	err := config.AWS.ReadJSONFromS3(&jobSpec, config.Cluster.Bucket, jobKey.SpecFilePath(config.Cluster.ClusterName))
+	if err != nil {
+		return nil, errors.Wrap(err, "unable to download job specification", jobKey.UserString())
+	}
+	return &jobSpec, nil
+}
+
+func uploadJobSpec(jobSpec *spec.TaskJob) error {
+	if err := config.AWS.UploadJSONToS3(
+		jobSpec, config.Cluster.Bucket, jobSpec.SpecFilePath(config.Cluster.ClusterName),
+	); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func deployJob(apiSpec *spec.API, jobSpec *spec.TaskJob) {
@@ -101,16 +120,6 @@ func handleJobSubmissionError(jobKey spec.JobKey, jobErr error) {
 		telemetry.Error(err)
 		errors.PrintError(err)
 	}
-}
-
-func uploadJobSpec(jobSpec *spec.TaskJob) error {
-	if err := config.AWS.UploadJSONToS3(
-		jobSpec, config.Cluster.Bucket, jobSpec.SpecFilePath(config.Cluster.ClusterName),
-	); err != nil {
-		return err
-	}
-
-	return nil
 }
 
 func deleteJobRuntimeResources(jobKey spec.JobKey) error {
