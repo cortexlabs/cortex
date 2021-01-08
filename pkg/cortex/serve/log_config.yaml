@@ -57,3 +57,8 @@ loggers:
     handlers:
       - uvicorn_access
     propagate: no
+  uvicorn.access:
+    level: $CORTEX_LOG_LEVEL
+    handlers:
+      - uvicorn_access
+    propagate: no

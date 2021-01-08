@@ -19,12 +19,15 @@ package k8s
 import (
 	"bytes"
 	"context"
+	"fmt"
+	"io"
 	"regexp"
 	"strings"
 	"time"
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
+	"github.com/gorilla/websocket"
 	kcore "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	kmeta "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -436,4 +439,72 @@ func (c *Client) Exec(podName string, containerName string, command []string) (s
 
 	return buf.String(), nil
 
+}
+
+const (
+	_socketWriteDeadlineWait = 10 * time.Second
+	_socketCloseGracePeriod  = 10 * time.Second
+
+	_pollPeriod = 100 * time.Millisecond
+)
+
+func (c *Client) PodLogs(pod kcore.Pod, podCheckCancel chan struct{}, socket *websocket.Conn) {
+	req := c.podClient.GetLogs(pod.Name, &kcore.PodLogOptions{
+		Container: "api",
+		Follow:    true,
+	})
+	podLogs, err := req.Stream(context.Background())
+	if err != nil {
+		fmt.Println(err.Error())
+	}
+	defer podLogs.Close()
+
+	buf := make([]byte, 1024)
+
+	timer := time.NewTimer(0)
+	for {
+		select {
+		case <-podCheckCancel:
+			fmt.Println("exitting")
+			return
+		case <-timer.C:
+			fmt.Println("iterating")
+			numBytes, err := podLogs.Read(buf)
+			if err == io.EOF {
+				closeSocket(socket)
+				continue
+			}
+			if err != nil {
+				writeAndCloseSocket(socket, "error encountered while reading from pod log stream: "+errors.Message(err))
+				if err != nil {
+					closeSocket(socket)
+				}
+				continue
+			}
+
+			if numBytes != 0 {
+				err := socket.WriteMessage(websocket.TextMessage, buf[:numBytes])
+				if err != nil {
+					writeAndCloseSocket(socket, "error encountered while writing to socket: "+errors.Message(err))
+					continue
+				}
+			}
+			timer.Reset(_pollPeriod)
+		}
+	}
+}
+
+func writeString(socket *websocket.Conn, message string) {
+	socket.WriteMessage(websocket.TextMessage, []byte(message))
+}
+
+func writeAndCloseSocket(socket *websocket.Conn, message string) {
+	writeString(socket, message)
+	closeSocket(socket)
+}
+
+func closeSocket(socket *websocket.Conn) {
+	socket.SetWriteDeadline(time.Now().Add(_socketWriteDeadlineWait))
+	socket.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""))
+	time.Sleep(_socketCloseGracePeriod)
 }

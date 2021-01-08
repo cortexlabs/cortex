@@ -80,9 +80,16 @@ func init() {
 	}()
 }
 
-func defaultZapConfig(level userconfig.LogLevel) zap.Config {
+func defaultZapConfig(level userconfig.LogLevel, fields ...map[string]interface{}) zap.Config {
 	encoderConfig := zap.NewProductionEncoderConfig()
 	encoderConfig.MessageKey = "msg"
+
+	initialFields := map[string]interface{}{}
+	for _, m := range fields {
+		for k, v := range m {
+			initialFields[k] = v
+		}
+	}
 
 	return zap.Config{
 		Level:            zap.NewAtomicLevelAt(toZapLogLevel(level)),
@@ -90,6 +97,7 @@ func defaultZapConfig(level userconfig.LogLevel) zap.Config {
 		EncoderConfig:    encoderConfig,
 		OutputPaths:      []string{"stdout"},
 		ErrorOutputPaths: []string{"stderr"},
+		InitialFields:    initialFields,
 	}
 }
 
@@ -172,7 +180,7 @@ func GetJobLoggerFromSpec(apiSpec *spec.API, jobKey spec.JobKey) (*zap.SugaredLo
 }
 
 func initializeLogger(key string, level userconfig.LogLevel, fields map[string]interface{}) (*zap.SugaredLogger, error) {
-	logger, err := defaultZapConfig(level).Build()
+	logger, err := defaultZapConfig(level, fields).Build()
 	if err != nil {
 		return nil, err
 	}

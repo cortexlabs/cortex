@@ -120,7 +120,7 @@ func handleConnection(connection *websocket.Conn, done chan struct{}) {
 			if err != nil {
 				exit.Error(ErrorOperatorSocketRead(err))
 			}
-			fmt.Println(string(message))
+			fmt.Print(string(message))
 		}
 	}, false)
 }

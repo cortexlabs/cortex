@@ -98,8 +98,14 @@ data:
     [FILTER]
         Name                modify
         Match               k8s_container.*
-        Condition           Key_Exists message
+        Condition           Key_Exists msg
         Hard_rename         msg log
+
+
+    [FILTER]
+        name   grep
+        Match  k8s_container.*
+        Exclude $kubernetes['container_name'] fluent-bit
 
     [FILTER]
         Name                nest
@@ -117,22 +123,28 @@ data:
     [FILTER]
         Name                modify
         Match               k8s_container.*
-        Condition           Key_Does_Not_Exist labels
-        Rename              k8s.labels labels
-
-    [FILTER]
-        Name                modify
-        Match               k8s_container.*
-        Remove_wildcard     k8s.*
+        Remove_wildcard     k8s.
 
   output-elasticsearch.conf: |
-    [OUTPUT]
-        Name              cloudwatch
-        Match             k8s_container.*
-        region            us-west-2
-        log_group_name    cortex-vishal
-        log_stream_prefix kube.
-        auto_create_group true
+    # [OUTPUT]
+    #     Name              cloudwatch
+    #     Match             k8s_container.*
+    #     region            us-west-2
+    #     log_group_name    cortex-vishal
+    #     log_stream_prefix kube.
+    #     auto_create_group true
+
+    # [OUTPUT]
+    #     Name              stackdriver
+    #     Match             k8s_container.*
+    #     resource          k8s_container
+    #     k8s_cluster_name  cortex-vishal
+    #     labels_key        labels
+
+    # [OUTPUT]
+    #     Name stdout
+    #     Match k8s_container.*
+    #     Format msgpack
 
   parsers.conf: |
     [PARSER]

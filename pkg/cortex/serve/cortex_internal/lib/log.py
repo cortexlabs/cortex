@@ -22,15 +22,6 @@ import yaml
 from pythonjsonlogger.jsonlogger import JsonFormatter
 
 
-class CortexFormatter(logging.Formatter):
-    converter = dt.datetime.fromtimestamp
-
-    def formatTime(self, record, datefmt):
-        ct = self.converter(record.created)
-        s = ct.strftime(datefmt)
-        return s
-
-
 # https://github.com/encode/uvicorn/blob/master/uvicorn/logging.py
 class CortexAccessFormatter(JsonFormatter):
     def get_path(self, scope):
@@ -51,10 +42,13 @@ class CortexAccessFormatter(JsonFormatter):
     def format(self, record):
         if "scope" in record.__dict__:
             scope = record.__dict__["scope"]
+            print(record.msg, file=sys.stderr)
+            print(record.args, file=sys.stderr)
+            print(type(record), file=sys.stderr)
             record.__dict__.update(
                 {
-                    "status_code": self.get_status_code(record),
                     "method": scope["method"],
+                    "status_code": self.get_status_code(record),
                     "path": self.get_path(scope),
                 }
             )

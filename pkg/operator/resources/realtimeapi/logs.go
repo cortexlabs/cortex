@@ -55,10 +55,18 @@ type fluentdLog struct {
 }
 
 func ReadLogs(apiName string, socket *websocket.Conn) {
+	pods, err := config.K8s.ListPodsByLabel("apiName", apiName)
+	if err != nil {
+		writeAndCloseSocket(socket, err.Error())
+	}
+	if len(pods) == 0 {
+		writeAndCloseSocket(socket, "replicas are not available for this API")
+	}
+
 	podCheckCancel := make(chan struct{})
 	defer close(podCheckCancel)
 	routines.RunWithPanicHandler(func() {
-		streamFromCloudWatch(apiName, podCheckCancel, socket)
+		config.K8s.PodLogs(pods[0], podCheckCancel, socket)
 	}, false)
 	pumpStdin(socket)
 	podCheckCancel <- struct{}{}

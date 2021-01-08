@@ -21,6 +21,7 @@ set -euo pipefail
 
 api_images_cluster=(
   "python-predictor-cpu"
+  "operator"
   # "python-predictor-gpu"
   # "tensorflow-predictor"
   # "onnx-predictor-cpu"
