@@ -433,7 +433,7 @@ func (models *MultiModels) UserStr() string {
 		sb.WriteString(fmt.Sprintf("%s: %s\n", ModelsDirKey, *models.Dir))
 	}
 	if models.SignatureKey != nil {
-		sb.WriteString(fmt.Sprintf("%s: %s\n", ModelsDirKey, *models.SignatureKey))
+		sb.WriteString(fmt.Sprintf("%s: %s\n", ModelsSignatureKeyKey, *models.SignatureKey))
 	}
 	if models.CacheSize != nil {
 		sb.WriteString(fmt.Sprintf("%s: %s\n", ModelsCacheSizeKey, s.Int32(*models.CacheSize)))
