@@ -4,7 +4,7 @@
     type: tensorflow
     path: predictor.py
     models:
-      path: s3://cortex-0/models/tensorflow/yamnet/
+      path: s3://cortex-examples/tensorflow/sound-classifier/yamnet/
       signature_key: serving_default
   compute:
     cpu: 1
