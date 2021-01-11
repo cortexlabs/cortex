@@ -278,23 +278,24 @@ func getAPIsInAllEnvironments() (string, error) {
 
 		if len(allTaskAPIs) > 0 {
 			t := taskAPIsTable(allTaskAPIs, allTaskAPIEnvs)
+			if len(allBatchAPIs) > 0 {
+				out += "\n"
+			}
 			out += t.MustFormat()
 		}
 
 		if len(allRealtimeAPIs) > 0 {
 			t := realtimeAPIsTable(allRealtimeAPIs, allRealtimeAPIEnvs)
-
-			if len(allBatchAPIs) > 0 {
+			if len(allBatchAPIs) > 0 || len(allTaskAPIs) > 0 {
 				out += "\n"
 			}
-
 			out += t.MustFormat()
 		}
 
 		if len(allTrafficSplitters) > 0 {
 			t := trafficSplitterListTable(allTrafficSplitters, allTrafficSplitterEnvs)
 
-			if len(allRealtimeAPIs) > 0 || len(allBatchAPIs) > 0 {
+			if len(allRealtimeAPIs) > 0 || len(allBatchAPIs) > 0 || len(allTaskAPIs) > 0 {
 				out += "\n"
 			}
 
