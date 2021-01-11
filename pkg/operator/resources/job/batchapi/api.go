@@ -168,9 +168,9 @@ func GetAllAPIs(virtualServices []istioclientnetworking.VirtualService, k8sJobs 
 		}
 
 		batchAPIsMap[apiName] = &schema.APIResponse{
-			Spec:        *api,
-			Endpoint:    endpoint,
-			JobStatuses: jobStatuses,
+			Spec:             *api,
+			Endpoint:         endpoint,
+			BatchJobStatuses: jobStatuses,
 		}
 	}
 
@@ -181,7 +181,7 @@ func GetAllAPIs(virtualServices []istioclientnetworking.VirtualService, k8sJobs 
 
 	for _, jobKey := range inProgressJobKeys {
 		alreadyAdded := false
-		for _, jobStatus := range batchAPIsMap[jobKey.APIName].JobStatuses {
+		for _, jobStatus := range batchAPIsMap[jobKey.APIName].BatchJobStatuses {
 			if jobStatus.ID == jobKey.ID {
 				alreadyAdded = true
 				break
@@ -198,7 +198,7 @@ func GetAllAPIs(virtualServices []istioclientnetworking.VirtualService, k8sJobs 
 		}
 
 		if jobStatus.Status.IsInProgress() {
-			batchAPIsMap[jobKey.APIName].JobStatuses = append(batchAPIsMap[jobKey.APIName].JobStatuses, *jobStatus)
+			batchAPIsMap[jobKey.APIName].BatchJobStatuses = append(batchAPIsMap[jobKey.APIName].BatchJobStatuses, *jobStatus)
 		}
 	}
 
@@ -287,9 +287,9 @@ func GetAPIByName(deployedResource *operator.DeployedResource) ([]schema.APIResp
 
 	return []schema.APIResponse{
 		{
-			Spec:        *api,
-			JobStatuses: jobStatuses,
-			Endpoint:    endpoint,
+			Spec:             *api,
+			BatchJobStatuses: jobStatuses,
+			Endpoint:         endpoint,
 		},
 	}, nil
 }

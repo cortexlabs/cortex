@@ -29,21 +29,20 @@ import (
 
 const (
 	_titleTaskAPI         = "task api"
-	_titleTaskJobCount    = "running task jobs"
-	_titleLatestTaskJobID = "latest task job id"
+	_titleTaskJobCount    = "running jobs"
+	_titleLatestTaskJobID = "latest job id"
 )
 
 func taskAPIsTable(taskAPIs []schema.APIResponse, envNames []string) table.Table {
 	rows := make([][]interface{}, 0, len(taskAPIs))
 
 	for i, taskAPI := range taskAPIs {
-		// FIXME: should iterate over task jobs instead of batch jobs
 		lastAPIUpdated := time.Unix(taskAPI.Spec.LastUpdated, 0)
 		latestStartTime := time.Time{}
 		latestJobID := "-"
 		runningJobs := 0
 
-		for _, job := range taskAPI.JobStatuses {
+		for _, job := range taskAPI.TaskJobStatuses {
 			if job.StartTime.After(latestStartTime) {
 				latestStartTime = job.StartTime
 				latestJobID = job.ID + fmt.Sprintf(" (submitted %s ago)", libtime.SinceStr(&latestStartTime))
@@ -76,22 +75,13 @@ func taskAPIsTable(taskAPIs []schema.APIResponse, envNames []string) table.Table
 }
 
 func taskAPITable(taskAPI schema.APIResponse) string {
-	jobRows := make([][]interface{}, 0, len(taskAPI.JobStatuses))
+	jobRows := make([][]interface{}, 0, len(taskAPI.TaskJobStatuses))
 
 	out := ""
-	if len(taskAPI.JobStatuses) == 0 {
+	if len(taskAPI.TaskJobStatuses) == 0 {
 		out = console.Bold("no submitted task jobs\n")
 	} else {
-		// FIXME: should access task metrics instead of batch metrics
-		totalFailed := 0
-		for _, job := range taskAPI.JobStatuses {
-			failed := 0
-
-			if job.BatchMetrics != nil {
-				failed = job.BatchMetrics.Failed
-				totalFailed += failed
-			}
-
+		for _, job := range taskAPI.TaskJobStatuses {
 			jobEndTime := time.Now()
 			if job.EndTime != nil {
 				jobEndTime = *job.EndTime
@@ -102,7 +92,6 @@ func taskAPITable(taskAPI schema.APIResponse) string {
 			jobRows = append(jobRows, []interface{}{
 				job.ID,
 				job.Status.Message(),
-				failed,
 				job.StartTime.Format(_timeFormat),
 				duration,
 			})
@@ -112,7 +101,6 @@ func taskAPITable(taskAPI schema.APIResponse) string {
 			Headers: []table.Header{
 				{Title: "task job id"},
 				{Title: "status"},
-				{Title: "failed", Hidden: totalFailed == 0},
 				{Title: "start time"},
 				{Title: "duration"},
 			},

@@ -53,13 +53,14 @@ type DeployResult struct {
 }
 
 type APIResponse struct {
-	Spec         spec.API                `json:"spec"`
-	Status       *status.Status          `json:"status,omitempty"`
-	Metrics      *metrics.Metrics        `json:"metrics,omitempty"`
-	Endpoint     string                  `json:"endpoint"`
-	DashboardURL *string                 `json:"dashboard_url,omitempty"`
-	JobStatuses  []status.BatchJobStatus `json:"job_statuses,omitempty"`
-	APIVersions  []APIVersion            `json:"api_versions,omitempty"`
+	Spec             spec.API                `json:"spec"`
+	Status           *status.Status          `json:"status,omitempty"`
+	Metrics          *metrics.Metrics        `json:"metrics,omitempty"`
+	Endpoint         string                  `json:"endpoint"`
+	DashboardURL     *string                 `json:"dashboard_url,omitempty"`
+	BatchJobStatuses []status.BatchJobStatus `json:"batch_job_statuses,omitempty"`
+	TaskJobStatuses  []status.TaskJobStatus  `json:"task_job_statuses,omitempty"`
+	APIVersions      []APIVersion            `json:"api_versions,omitempty"`
 }
 
 type BatchJobResponse struct {

@@ -49,7 +49,7 @@ func batchAPIsTable(batchAPIs []schema.APIResponse, envNames []string) table.Tab
 		latestJobID := "-"
 		runningJobs := 0
 
-		for _, job := range batchAPI.JobStatuses {
+		for _, job := range batchAPI.BatchJobStatuses {
 			if job.StartTime.After(latestStartTime) {
 				latestStartTime = job.StartTime
 				latestJobID = job.ID + fmt.Sprintf(" (submitted %s ago)", libtime.SinceStr(&latestStartTime))
@@ -82,14 +82,14 @@ func batchAPIsTable(batchAPIs []schema.APIResponse, envNames []string) table.Tab
 }
 
 func batchAPITable(batchAPI schema.APIResponse) string {
-	jobRows := make([][]interface{}, 0, len(batchAPI.JobStatuses))
+	jobRows := make([][]interface{}, 0, len(batchAPI.BatchJobStatuses))
 
 	out := ""
-	if len(batchAPI.JobStatuses) == 0 {
-		out = console.Bold("no submitted jobs\n")
+	if len(batchAPI.BatchJobStatuses) == 0 {
+		out = console.Bold("no submitted batch jobs\n")
 	} else {
 		totalFailed := 0
-		for _, job := range batchAPI.JobStatuses {
+		for _, job := range batchAPI.BatchJobStatuses {
 			succeeded := 0
 			failed := 0
 

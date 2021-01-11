@@ -42,6 +42,8 @@ import (
 	kapps "k8s.io/api/apps/v1"
 	kbatch "k8s.io/api/batch/v1"
 	kcore "k8s.io/api/core/v1"
+	kmeta "k8s.io/apimachinery/pkg/apis/meta/v1"
+	klabels "k8s.io/apimachinery/pkg/labels"
 )
 
 // Returns an error if resource doesn't exist
@@ -359,7 +361,8 @@ func DeleteAPI(apiName string, keepCache bool) (*schema.DeleteResponse, error) {
 
 func GetAPIs() ([]schema.APIResponse, error) {
 	var deployments []kapps.Deployment
-	var k8sJobs []kbatch.Job
+	var k8sBatchJobs []kbatch.Job
+	var k8sTaskJobs []kbatch.Job
 	var pods []kcore.Pod
 	var virtualServices []istioclientnetworking.VirtualService
 
@@ -376,7 +379,28 @@ func GetAPIs() ([]schema.APIResponse, error) {
 		},
 		func() error {
 			var err error
-			k8sJobs, err = config.K8s.ListJobsWithLabelKeys("apiName")
+			k8sBatchJobs, err = config.K8s.ListJobs(
+				&kmeta.ListOptions{
+					LabelSelector: klabels.SelectorFromSet(
+						map[string]string{
+							"apiKind": userconfig.BatchAPIKind.String(),
+						},
+					).String(),
+				},
+			)
+			return err
+		},
+		func() error {
+			var err error
+			k8sTaskJobs, err = config.K8s.ListJobs(
+				&kmeta.ListOptions{
+					LabelSelector: klabels.SelectorFromSet(
+						map[string]string{
+							"apiKind": userconfig.TaskAPIKind.String(),
+						},
+					).String(),
+				},
+			)
 			return err
 		},
 		func() error {
@@ -391,12 +415,15 @@ func GetAPIs() ([]schema.APIResponse, error) {
 
 	realtimeAPIPods := []kcore.Pod{}
 	batchAPIPods := []kcore.Pod{}
+	taskAPIPods := []kcore.Pod{}
 	for _, pod := range pods {
 		switch pod.Labels["apiKind"] {
 		case userconfig.RealtimeAPIKind.String():
 			realtimeAPIPods = append(realtimeAPIPods, pod)
 		case userconfig.BatchAPIKind.String():
 			batchAPIPods = append(batchAPIPods, pod)
+		case userconfig.TaskAPIKind.String():
+			taskAPIPods = append(taskAPIPods, pod)
 		}
 	}
 
@@ -423,12 +450,12 @@ func GetAPIs() ([]schema.APIResponse, error) {
 	var batchAPIList []schema.APIResponse
 	var taskAPIList []schema.APIResponse
 	if config.Provider == types.AWSProviderType {
-		batchAPIList, err = batchapi.GetAllAPIs(batchAPIVirtualServices, k8sJobs, batchAPIPods)
+		batchAPIList, err = batchapi.GetAllAPIs(batchAPIVirtualServices, k8sBatchJobs, batchAPIPods)
 		if err != nil {
 			return nil, err
 		}
 
-		taskAPIList, err = taskapi.GetAllAPIs(taskAPIVirtualServices)
+		taskAPIList, err = taskapi.GetAllAPIs(taskAPIVirtualServices, k8sTaskJobs, taskAPIPods)
 		if err != nil {
 			return nil, err
 		}

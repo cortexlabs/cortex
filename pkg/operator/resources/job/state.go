@@ -179,7 +179,11 @@ func GetMostRecentlySubmittedJobStates(apiName string, count int, kind userconfi
 
 	jobStateCount := 0
 	for _, jobID := range jobIDOrder {
-		jobState := getJobStateFromFiles(spec.JobKey{APIName: apiName, ID: jobID}, lastUpdatedMaps[jobID])
+		jobState := getJobStateFromFiles(spec.JobKey{
+			APIName: apiName,
+			ID:      jobID,
+			Kind:    kind,
+		}, lastUpdatedMaps[jobID])
 		jobStates = append(jobStates, &jobState)
 
 		jobStateCount++
