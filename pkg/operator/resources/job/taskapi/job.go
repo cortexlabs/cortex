@@ -56,12 +56,12 @@ func SubmitJob(apiName string, submission *schema.TaskJobSubmission) (*spec.Task
 	}
 
 	jobSpec := spec.TaskJob{
-		JobKey:           jobKey,
-		RuntimeJobConfig: submission.RuntimeJobConfig,
-		APIID:            apiSpec.ID,
-		SpecID:           apiSpec.SpecID,
-		PredictorID:      apiSpec.PredictorID,
-		StartTime:        time.Now(),
+		JobKey:               jobKey,
+		RuntimeTaskJobConfig: submission.RuntimeTaskJobConfig,
+		APIID:                apiSpec.ID,
+		SpecID:               apiSpec.SpecID,
+		PredictorID:          apiSpec.PredictorID,
+		StartTime:            time.Now(),
 	}
 
 	if err := uploadJobSpec(&jobSpec); err != nil {
@@ -128,4 +128,27 @@ func deleteJobRuntimeResources(jobKey spec.JobKey) error {
 	}
 
 	return nil
+}
+
+func StopJob(jobKey spec.JobKey) error {
+	jobState, err := job.GetJobState(jobKey)
+	if err != nil {
+		routines.RunWithPanicHandler(func() {
+			deleteJobRuntimeResources(jobKey)
+		}, false)
+		return err
+	}
+
+	if !jobState.Status.IsInProgress() {
+		routines.RunWithPanicHandler(func() {
+			deleteJobRuntimeResources(jobKey)
+		}, false)
+		return errors.Wrap(job.ErrorJobIsNotInProgress(jobKey.Kind), jobKey.UserString())
+	}
+
+	// writeToJobLogStream(jobKey, "request received to stop job; performing cleanup...")
+	return errors.FirstError(
+		deleteJobRuntimeResources(jobKey),
+		job.SetStoppedStatus(jobKey),
+	)
 }

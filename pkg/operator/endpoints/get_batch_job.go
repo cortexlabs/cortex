@@ -48,7 +48,11 @@ func GetBatchJob(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	jobKey := spec.JobKey{APIName: apiName, ID: jobID}
+	jobKey := spec.JobKey{
+		APIName: apiName,
+		ID:      jobID,
+		Kind:    userconfig.BatchAPIKind,
+	}
 
 	jobStatus, err := batchapi.GetJobStatus(jobKey)
 	if err != nil {
@@ -68,7 +72,7 @@ func GetBatchJob(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response := schema.JobResponse{
+	response := schema.BatchJobResponse{
 		JobStatus: *jobStatus,
 		APISpec:   *apiSpec,
 		Endpoint:  urls.Join(endpoint, jobKey.ID),

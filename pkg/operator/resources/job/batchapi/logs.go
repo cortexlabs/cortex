@@ -87,7 +87,7 @@ func pumpStdin(socket *websocket.Conn) {
 	}
 }
 
-func fetchLogsFromCloudWatch(jobStatus *status.JobStatus, podCheckCancel chan struct{}, socket *websocket.Conn) {
+func fetchLogsFromCloudWatch(jobStatus *status.BatchJobStatus, podCheckCancel chan struct{}, socket *websocket.Conn) {
 	logGroupName := logGroupNameForJob(jobStatus.JobKey)
 
 	logStreamNames, err := getLogStreams(jobStatus.JobKey)
@@ -123,7 +123,7 @@ func fetchLogsFromCloudWatch(jobStatus *status.JobStatus, podCheckCancel chan st
 	closeSocket(socket)
 }
 
-func streamFromCloudWatch(jobStatus *status.JobStatus, podCheckCancel chan struct{}, socket *websocket.Conn) {
+func streamFromCloudWatch(jobStatus *status.BatchJobStatus, podCheckCancel chan struct{}, socket *websocket.Conn) {
 	jobKey := jobStatus.JobKey
 	jobSpec := jobStatus.BatchJob
 	logGroupName := logGroupNameForJob(jobStatus.JobKey)

@@ -20,14 +20,14 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/cortexlabs/cortex/pkg/operator/resources/job/batchapi"
+	"github.com/cortexlabs/cortex/pkg/operator/resources/job/taskapi"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	"github.com/gorilla/mux"
 )
 
-func StopBatchJob(w http.ResponseWriter, r *http.Request) {
+func StopTaskJob(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	apiName := vars["apiName"]
 	jobID, err := getRequiredQueryParam("jobID", r)
@@ -36,10 +36,10 @@ func StopBatchJob(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = batchapi.StopJob(spec.JobKey{
+	err = taskapi.StopJob(spec.JobKey{
 		APIName: apiName,
 		ID:      jobID,
-		Kind:    userconfig.BatchAPIKind,
+		Kind:    userconfig.TaskAPIKind,
 	})
 	if err != nil {
 		respondError(w, r, err)

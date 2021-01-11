@@ -27,9 +27,5 @@ func validateJobSubmission(submission *schema.TaskJobSubmission) error {
 		return errors.Wrap(cr.ErrorInvalidInt(submission.Workers, 1), schema.WorkersKey)
 	}
 
-	if submission.SQSDeadLetterQueue != nil {
-		return errors.Wrap(ErrorInvalidField(schema.SQSDeadLetterQueueKey), schema.SQSDeadLetterQueueKey)
-	}
-
 	return nil
 }

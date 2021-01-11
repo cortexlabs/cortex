@@ -17,13 +17,10 @@ limitations under the License.
 package endpoints
 
 import (
-	"encoding/json"
-	"fmt"
-	"io/ioutil"
 	"net/http"
 
-	"github.com/cortexlabs/cortex/pkg/consts"
-	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/urls"
+	"github.com/cortexlabs/cortex/pkg/operator/operator"
 	"github.com/cortexlabs/cortex/pkg/operator/resources"
 	"github.com/cortexlabs/cortex/pkg/operator/resources/job/taskapi"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
@@ -32,9 +29,14 @@ import (
 	"github.com/gorilla/mux"
 )
 
-func SubmitTaskJob(w http.ResponseWriter, r *http.Request) {
+func GetTaskJob(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	apiName := vars["apiName"]
+	jobID, err := getRequiredQueryParam("jobID", r)
+	if err != nil {
+		respondError(w, r, err)
+		return
+	}
 
 	deployedResource, err := resources.GetDeployedResourceByName(apiName)
 	if err != nil {
@@ -46,33 +48,35 @@ func SubmitTaskJob(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// max payload size, same as API Gateway
-	rw := http.MaxBytesReader(w, r.Body, 10<<20)
+	jobKey := spec.JobKey{
+		APIName: apiName,
+		ID:      jobID,
+		Kind:    userconfig.TaskAPIKind,
+	}
 
-	bodyBytes, err := ioutil.ReadAll(rw)
+	jobStatus, err := taskapi.GetJobStatus(jobKey)
 	if err != nil {
 		respondError(w, r, err)
 		return
 	}
 
-	submission := schema.TaskJobSubmission{
-		RuntimeTaskJobConfig: spec.RuntimeTaskJobConfig{Workers: 1},
-	}
-
-	err = json.Unmarshal(bodyBytes, &submission)
-	if err != nil {
-		respondError(w, r, errors.Append(err,
-			fmt.Sprintf("\n\ntask job submission schema can be found at https://docs.cortex.dev/v/%s/",
-				consts.CortexVersionMinor)),
-		)
-		return
-	}
-
-	jobSpec, err := taskapi.SubmitJob(apiName, &submission)
+	apiSpec, err := operator.DownloadAPISpec(jobStatus.APIName, jobStatus.APIID)
 	if err != nil {
 		respondError(w, r, err)
 		return
 	}
 
-	respond(w, jobSpec)
+	endpoint, err := operator.APIEndpoint(apiSpec)
+	if err != nil {
+		respondError(w, r, err)
+		return
+	}
+
+	response := schema.TaskJobResponse{
+		JobStatus: *jobStatus,
+		APISpec:   *apiSpec,
+		Endpoint:  urls.Join(endpoint, jobKey.ID),
+	}
+
+	respond(w, response)
 }

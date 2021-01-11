@@ -95,13 +95,13 @@ func SubmitJob(apiName string, submission *schema.BatchJobSubmission) (*spec.Bat
 	}
 
 	jobSpec := spec.BatchJob{
-		RuntimeJobConfig: submission.RuntimeJobConfig,
-		JobKey:           jobKey,
-		APIID:            apiSpec.ID,
-		SpecID:           apiSpec.SpecID,
-		PredictorID:      apiSpec.PredictorID,
-		SQSUrl:           queueURL,
-		StartTime:        time.Now(),
+		RuntimeBatchJobConfig: submission.RuntimeBatchJobConfig,
+		JobKey:                jobKey,
+		APIID:                 apiSpec.ID,
+		SpecID:                apiSpec.SpecID,
+		PredictorID:           apiSpec.PredictorID,
+		SQSUrl:                queueURL,
+		StartTime:             time.Now(),
 	}
 
 	err = uploadJobSpec(&jobSpec)
@@ -244,7 +244,7 @@ func StopJob(jobKey spec.JobKey) error {
 		routines.RunWithPanicHandler(func() {
 			deleteJobRuntimeResources(jobKey)
 		}, false)
-		return errors.Wrap(ErrorJobIsNotInProgress(), jobKey.UserString())
+		return errors.Wrap(job.ErrorJobIsNotInProgress(jobKey.Kind), jobKey.UserString())
 	}
 
 	writeToJobLogStream(jobKey, "request received to stop job; performing cleanup...")

@@ -157,7 +157,7 @@ func GetAllAPIs(virtualServices []istioclientnetworking.VirtualService, k8sJobs 
 
 		jobStates, err := job.GetMostRecentlySubmittedJobStates(apiName, 1, userconfig.BatchAPIKind)
 
-		var jobStatuses []status.JobStatus
+		var jobStatuses []status.BatchJobStatus
 		if len(jobStates) > 0 {
 			jobStatus, err := getJobStatusFromJobState(jobStates[0], jobIDToK8sJobMap[jobStates[0].ID], jobIDToPodsMap[jobStates[0].ID])
 			if err != nil {
@@ -250,7 +250,7 @@ func GetAPIByName(deployedResource *operator.DeployedResource) ([]schema.APIResp
 		return nil, err
 	}
 
-	var jobStatuses []status.JobStatus
+	var jobStatuses []status.BatchJobStatus
 	jobIDSet := strset.New()
 	for _, jobKey := range inProgressJobKeys {
 		jobStatus, err := getJobStatusFromK8sJob(jobKey, jobIDToK8sJobMap[jobKey.ID], jobIDToPodsMap[jobKey.ID])

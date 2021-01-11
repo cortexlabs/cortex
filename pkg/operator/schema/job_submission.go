@@ -44,12 +44,12 @@ type DelimitedFiles struct {
 }
 
 type BatchJobSubmission struct {
-	spec.RuntimeJobConfig
+	spec.RuntimeBatchJobConfig
 	ItemList       *ItemList       `json:"item_list"`
 	FilePathLister *FilePathLister `json:"file_path_lister"`
 	DelimitedFiles *DelimitedFiles `json:"delimited_files"`
 }
 
 type TaskJobSubmission struct {
-	spec.RuntimeJobConfig
+	spec.RuntimeTaskJobConfig
 }

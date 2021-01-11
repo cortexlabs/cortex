@@ -20,13 +20,21 @@ import (
 	"fmt"
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 )
 
 const (
-	ErrInvalidJobKind = "job.invalid_kind"
-	ErrJobNotFound    = "job.not_found"
+	ErrInvalidJobKind            = "job.invalid_kind"
+	ErrJobNotFound               = "job.not_found"
+	ErrJobIsNotInProgress        = "batchapi.job_is_not_in_progress"
+	ErrJobHasAlreadyBeenStopped  = "batchapi.job_has_already_been_stopped"
+	ErrFailedToEnqueueMessages   = "batchapi.failed_to_enqueue_messages"
+	ErrMessageExceedsMaxSize     = "batchapi.message_exceeds_max_size"
+	ErrConflictingFields         = "batchapi.conflicting_fields"
+	ErrBatchItemSizeExceedsLimit = "batchapi.item_size_exceeds_limit"
+	ErrSpecifyExactlyOneKey      = "batchapi.specify_exactly_one_key"
 )
 
 func ErrorInvalidJobKind(kind userconfig.Kind) error {
@@ -39,6 +47,37 @@ func ErrorInvalidJobKind(kind userconfig.Kind) error {
 func ErrorJobNotFound(jobKey spec.JobKey) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrJobNotFound,
-		Message: fmt.Sprintf("unable to find job %s", jobKey.UserString()),
+		Message: fmt.Sprintf("unable to find %s job %s", jobKey.Kind.String(), jobKey.UserString()),
+	})
+}
+
+func ErrorJobIsNotInProgress(kind userconfig.Kind) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrJobIsNotInProgress,
+		Message: fmt.Sprintf("cannot stop %s job because it is not in progress", kind.String()),
+	})
+}
+
+func ErrorJobHasAlreadyBeenStopped(kind userconfig.Kind) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrJobHasAlreadyBeenStopped,
+		Message: fmt.Sprintf("%s job has already been stopped", kind.String()),
+	})
+}
+
+func ErrorConflictingFields(key string, keys ...string) error {
+	allKeys := append([]string{key}, keys...)
+
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrConflictingFields,
+		Message: fmt.Sprintf("please specify either the %s field (but not more than one at the same time)", s.StrsOr(allKeys)),
+	})
+}
+
+func ErrorSpecifyExactlyOneKey(key string, keys ...string) error {
+	allKeys := append([]string{key}, keys...)
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrSpecifyExactlyOneKey,
+		Message: fmt.Sprintf("specify exactly one of the following keys: %s", s.StrsOr(allKeys)),
 	})
 }

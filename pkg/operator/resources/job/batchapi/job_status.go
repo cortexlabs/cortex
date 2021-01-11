@@ -25,7 +25,7 @@ import (
 	kcore "k8s.io/api/core/v1"
 )
 
-func GetJobStatus(jobKey spec.JobKey) (*status.JobStatus, error) {
+func GetJobStatus(jobKey spec.JobKey) (*status.BatchJobStatus, error) {
 	jobState, err := job.GetJobState(jobKey)
 	if err != nil {
 		return nil, err
@@ -44,7 +44,7 @@ func GetJobStatus(jobKey spec.JobKey) (*status.JobStatus, error) {
 	return getJobStatusFromJobState(jobState, k8sJob, pods)
 }
 
-func getJobStatusFromJobState(jobState *job.State, k8sJob *kbatch.Job, pods []kcore.Pod) (*status.JobStatus, error) {
+func getJobStatusFromJobState(jobState *job.State, k8sJob *kbatch.Job, pods []kcore.Pod) (*status.BatchJobStatus, error) {
 	jobKey := jobState.JobKey
 
 	jobSpec, err := downloadJobSpec(jobKey)
@@ -52,7 +52,7 @@ func getJobStatusFromJobState(jobState *job.State, k8sJob *kbatch.Job, pods []kc
 		return nil, err
 	}
 
-	jobStatus := status.JobStatus{
+	jobStatus := status.BatchJobStatus{
 		BatchJob: *jobSpec,
 		EndTime:  jobState.EndTime,
 		Status:   jobState.Status,
@@ -96,7 +96,7 @@ func getJobStatusFromJobState(jobState *job.State, k8sJob *kbatch.Job, pods []kc
 	return &jobStatus, nil
 }
 
-func getJobStatusFromK8sJob(jobKey spec.JobKey, k8sJob *kbatch.Job, pods []kcore.Pod) (*status.JobStatus, error) {
+func getJobStatusFromK8sJob(jobKey spec.JobKey, k8sJob *kbatch.Job, pods []kcore.Pod) (*status.BatchJobStatus, error) {
 	jobState, err := job.GetJobState(jobKey)
 	if err != nil {
 		return nil, err

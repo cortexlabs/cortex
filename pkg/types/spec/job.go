@@ -56,16 +56,22 @@ type SQSDeadLetterQueue struct {
 	MaxReceiveCount int    `json:"max_receive_count"`
 }
 
-type RuntimeJobConfig struct {
+type RuntimeBatchJobConfig struct {
 	Workers            int                    `json:"workers"`
 	SQSDeadLetterQueue *SQSDeadLetterQueue    `json:"sqs_dead_letter_queue"`
 	Config             map[string]interface{} `json:"config"`
 	Timeout            *int                   `json:"timeout"`
 }
 
+type RuntimeTaskJobConfig struct {
+	Workers int                    `json:"workers"`
+	Config  map[string]interface{} `json:"config"`
+	Timeout *int                   `json:"timeout"`
+}
+
 type BatchJob struct {
 	JobKey
-	RuntimeJobConfig
+	RuntimeBatchJobConfig
 	APIID           string    `json:"api_id"`
 	SpecID          string    `json:"spec_id"`
 	PredictorID     string    `json:"predictor_id"`
@@ -76,7 +82,7 @@ type BatchJob struct {
 
 type TaskJob struct {
 	JobKey
-	RuntimeJobConfig
+	RuntimeTaskJobConfig
 	APIID       string    `json:"api_id"`
 	SpecID      string    `json:"spec_id"`
 	PredictorID string    `json:"predictor_id"`

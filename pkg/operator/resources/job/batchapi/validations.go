@@ -24,6 +24,7 @@ import (
 	awslib "github.com/cortexlabs/cortex/pkg/lib/aws"
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/operator/resources/job"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
 	"github.com/gobwas/glob"
 )
@@ -41,11 +42,11 @@ func validateJobSubmissionSchema(submission *schema.BatchJobSubmission) error {
 	}
 
 	if len(providedKeys) == 0 {
-		return ErrorSpecifyExactlyOneKey(schema.ItemListKey, schema.FilePathListerKey, schema.DelimitedFilesKey)
+		return job.ErrorSpecifyExactlyOneKey(schema.ItemListKey, schema.FilePathListerKey, schema.DelimitedFilesKey)
 	}
 
 	if len(providedKeys) > 1 {
-		return ErrorConflictingFields(providedKeys[0], providedKeys[1:]...)
+		return job.ErrorConflictingFields(providedKeys[0], providedKeys[1:]...)
 	}
 
 	if submission.ItemList != nil {
