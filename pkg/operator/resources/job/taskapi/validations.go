@@ -31,9 +31,5 @@ func validateJobSubmission(submission *schema.TaskJobSubmission) error {
 		return errors.Wrap(ErrorInvalidField(schema.SQSDeadLetterQueueKey), schema.SQSDeadLetterQueueKey)
 	}
 
-	if submission.Timeout != nil {
-		return errors.Wrap(ErrorInvalidField(schema.TimeoutKey), schema.TimeoutKey)
-	}
-
 	return nil
 }
