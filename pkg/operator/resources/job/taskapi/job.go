@@ -110,7 +110,6 @@ func deployJob(apiSpec *spec.API, jobSpec *spec.TaskJob) {
 }
 
 func handleJobSubmissionError(jobKey spec.JobKey, jobErr error) {
-	// FIXME write error to log stream
 	err := errors.FirstError(
 		//writeToJobLogStream(jobKey, jobErr.Error()),
 		job.SetUnexpectedErrorStatus(jobKey),

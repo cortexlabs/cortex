@@ -97,7 +97,13 @@ func TaskInitContainer(api *spec.API) kcore.Container {
 		ImagePullPolicy: "Always",
 		Args:            []string{"--download=" + pythonDownloadArgs(api)},
 		EnvFrom:         baseEnvVars(),
-		VolumeMounts:    defaultVolumeMounts(),
+		Env: []kcore.EnvVar{
+			{
+				Name:  "CORTEX_LOG_LEVEL",
+				Value: strings.ToUpper(userconfig.DebugLogLevel.String()),
+			},
+		},
+		VolumeMounts: defaultVolumeMounts(),
 	}
 }
 
@@ -188,8 +194,7 @@ func TaskContainers(api *spec.API) ([]kcore.Container, []kcore.Volume) {
 		Env:             getTaskEnvVars(api, APIContainerName),
 		EnvFrom:         baseEnvVars(),
 		VolumeMounts:    apiPodVolumeMounts,
-		//ReadinessProbe:  FileExistsProbe(_apiReadinessFile), // TODO: check if it makes sense to have probes
-		Lifecycle: nginxGracefulStopper(api.Kind),
+		Lifecycle:       nginxGracefulStopper(api.Kind),
 		Resources: kcore.ResourceRequirements{
 			Requests: apiPodResourceList,
 			Limits:   apiPodResourceLimitsList,
@@ -476,6 +481,74 @@ func ONNXPredictorContainers(api *spec.API) ([]kcore.Container, []kcore.Volume) 
 	return containers, volumes
 }
 
+func getTaskEnvVars(api *spec.API, container string) []kcore.EnvVar {
+	envVars := []kcore.EnvVar{
+		{
+			Name:  "CORTEX_KIND",
+			Value: api.Kind.String(),
+		},
+		{
+			Name:  "CORTEX_LOG_LEVEL",
+			Value: strings.ToUpper(userconfig.DebugLogLevel.String()),
+		},
+	}
+
+	for name, val := range api.TaskDefinition.Env {
+		envVars = append(envVars, kcore.EnvVar{
+			Name:  name,
+			Value: val,
+		})
+	}
+
+	if container == APIContainerName {
+		envVars = append(envVars,
+			kcore.EnvVar{
+				Name: "HOST_IP",
+				ValueFrom: &kcore.EnvVarSource{
+					FieldRef: &kcore.ObjectFieldSelector{
+						FieldPath: "status.hostIP",
+					},
+				},
+			},
+			kcore.EnvVar{
+				Name:  "CORTEX_PROJECT_DIR",
+				Value: path.Join(_emptyDirMountPath, "project"),
+			},
+			kcore.EnvVar{
+				Name:  "CORTEX_CACHE_DIR",
+				Value: _specCacheDir,
+			},
+			kcore.EnvVar{
+				Name:  "CORTEX_API_SPEC",
+				Value: config.BucketPath(api.Key),
+			},
+		)
+
+		cortexPythonPath := path.Join(_emptyDirMountPath, "project")
+		if api.TaskDefinition.PythonPath != nil {
+			cortexPythonPath = path.Join(_emptyDirMountPath, "project", *api.TaskDefinition.PythonPath)
+		}
+		envVars = append(envVars, kcore.EnvVar{
+			Name:  "CORTEX_PYTHON_PATH",
+			Value: cortexPythonPath,
+		})
+
+		if api.Compute.Inf > 0 {
+			envVars = append(envVars,
+				kcore.EnvVar{
+					Name:  "NEURONCORE_GROUP_SIZES",
+					Value: s.Int64(api.Compute.Inf * consts.NeuronCoresPerInf / int64(api.Predictor.ProcessesPerReplica)),
+				},
+				kcore.EnvVar{
+					Name:  "NEURON_RTD_ADDRESS",
+					Value: fmt.Sprintf("unix:%s", _neuronRTDSocket),
+				},
+			)
+		}
+	}
+	return envVars
+}
+
 func getEnvVars(api *spec.API, container string) []kcore.EnvVar {
 	if container == _requestMonitorContainerName || container == _downloaderInitContainerName {
 		return []kcore.EnvVar{
@@ -684,70 +757,6 @@ func getEnvVars(api *spec.API, container string) []kcore.EnvVar {
 		}
 	}
 
-	return envVars
-}
-
-func getTaskEnvVars(api *spec.API, container string) []kcore.EnvVar {
-	envVars := []kcore.EnvVar{
-		{
-			Name:  "CORTEX_KIND",
-			Value: api.Kind.String(),
-		},
-	}
-
-	for name, val := range api.TaskDefinition.Env {
-		envVars = append(envVars, kcore.EnvVar{
-			Name:  name,
-			Value: val,
-		})
-	}
-
-	if container == APIContainerName {
-		envVars = append(envVars,
-			kcore.EnvVar{
-				Name: "HOST_IP",
-				ValueFrom: &kcore.EnvVarSource{
-					FieldRef: &kcore.ObjectFieldSelector{
-						FieldPath: "status.hostIP",
-					},
-				},
-			},
-			kcore.EnvVar{
-				Name:  "CORTEX_PROJECT_DIR",
-				Value: path.Join(_emptyDirMountPath, "project"),
-			},
-			kcore.EnvVar{
-				Name:  "CORTEX_CACHE_DIR",
-				Value: _specCacheDir,
-			},
-			kcore.EnvVar{
-				Name:  "CORTEX_API_SPEC",
-				Value: config.BucketPath(api.Key),
-			},
-		)
-
-		cortexPythonPath := path.Join(_emptyDirMountPath, "project")
-		if api.TaskDefinition.PythonPath != nil {
-			cortexPythonPath = path.Join(_emptyDirMountPath, "project", *api.TaskDefinition.PythonPath)
-		}
-		envVars = append(envVars, kcore.EnvVar{
-			Name:  "CORTEX_PYTHON_PATH",
-			Value: cortexPythonPath,
-		})
-
-		if api.Compute.Inf > 0 {
-			envVars = append(envVars,
-				kcore.EnvVar{
-					Name:  "NEURONCORE_GROUP_SIZES",
-					Value: s.Int64(api.Compute.Inf * consts.NeuronCoresPerInf / int64(api.Predictor.ProcessesPerReplica)),
-				},
-				kcore.EnvVar{
-					Name:  "NEURON_RTD_ADDRESS",
-					Value: fmt.Sprintf("unix:%s", _neuronRTDSocket),
-				},
-			)
-		}
-	}
 	return envVars
 }
 
