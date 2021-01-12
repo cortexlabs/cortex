@@ -332,6 +332,11 @@ func (api *API) UserStr(provider types.ProviderType) string {
 		}
 	}
 
+	if api.TaskDefinition != nil {
+		sb.WriteString(fmt.Sprintf("%s:\n", TaskDefinitionKey))
+		sb.WriteString(s.Indent(api.TaskDefinition.UserStr(), "  "))
+	}
+
 	if api.Predictor != nil {
 		sb.WriteString(fmt.Sprintf("%s:\n", PredictorKey))
 		sb.WriteString(s.Indent(api.Predictor.UserStr(), "  "))
@@ -364,6 +369,28 @@ func (trafficSplit *TrafficSplit) UserStr() string {
 	var sb strings.Builder
 	sb.WriteString(fmt.Sprintf("%s: %s\n", NameKey, trafficSplit.Name))
 	sb.WriteString(fmt.Sprintf("%s: %s\n", WeightKey, s.Int32(trafficSplit.Weight)))
+	return sb.String()
+}
+
+func (task *TaskDefinition) UserStr() string {
+	var sb strings.Builder
+
+	sb.WriteString(fmt.Sprintf("%s: %s\n", PathKey, task.Path))
+	if task.PythonPath != nil {
+		sb.WriteString(fmt.Sprintf("%s: %s\n", PythonPathKey, *task.PythonPath))
+	}
+	sb.WriteString(fmt.Sprintf("%s: %s\n", ImageKey, task.Image))
+	if len(task.Config) > 0 {
+		sb.WriteString(fmt.Sprintf("%s:\n", ConfigKey))
+		d, _ := yaml.Marshal(&task.Config)
+		sb.WriteString(s.Indent(string(d), "  "))
+	}
+	if len(task.Env) > 0 {
+		sb.WriteString(fmt.Sprintf("%s:\n", EnvKey))
+		d, _ := yaml.Marshal(&task.Env)
+		sb.WriteString(s.Indent(string(d), "  "))
+	}
+
 	return sb.String()
 }
 

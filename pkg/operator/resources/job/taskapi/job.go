@@ -68,8 +68,6 @@ func SubmitJob(apiName string, submission *schema.TaskJobSubmission) (*spec.Task
 		return nil, err
 	}
 
-	// TODO: create log stream for job
-
 	routines.RunWithPanicHandler(func() {
 		deployJob(apiSpec, &jobSpec)
 	}, false)

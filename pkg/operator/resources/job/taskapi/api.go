@@ -23,6 +23,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/parallel"
 	"github.com/cortexlabs/cortex/pkg/lib/routines"
+	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 	"github.com/cortexlabs/cortex/pkg/operator/operator"
 	"github.com/cortexlabs/cortex/pkg/operator/resources/job"
@@ -56,8 +57,6 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string) (*spec.API, string, 
 			}, false)
 			return nil, "", err
 		}
-
-		// TODO: add log group here
 
 		return api, fmt.Sprintf("created %s", api.Resource.UserString()), nil
 	}
@@ -105,17 +104,17 @@ func deleteS3Resources(apiName string) error {
 			prefix := filepath.Join(config.Cluster.ClusterName, "apis", apiName)
 			return config.AWS.DeleteS3Dir(config.Cluster.Bucket, prefix, true)
 		},
-		//func() error {
-		//	prefix := spec.JobAPIPrefix(apiName, config.Cluster.ClusterName)
-		//	go func() {
-		//		_ = config.AWS.DeleteS3Dir(config.Cluster.Bucket, prefix, true) // deleting job files may take a while
-		//	}()
-		//	return nil
-		//},
-		//func() error {
-		//	deleteAllInProgressFilesByAPI(apiName) // not useful xml error is thrown, swallow the error
-		//	return nil
-		//},
+		func() error {
+			prefix := spec.JobAPIPrefix(apiName, config.Cluster.ClusterName, userconfig.TaskAPIKind)
+			go func() {
+				_ = config.AWS.DeleteS3Dir(config.Cluster.Bucket, prefix, true) // deleting job files may take a while
+			}()
+			return nil
+		},
+		func() error {
+			job.DeleteAllInProgressFilesByAPI(apiName, userconfig.TaskAPIKind) // not useful xml error is thrown, swallow the error
+			return nil
+		},
 	)
 }
 
@@ -215,76 +214,76 @@ func GetAPIByName(deployedResource *operator.DeployedResource) ([]schema.APIResp
 		return nil, err
 	}
 
-	//k8sJobs, err := config.K8s.ListJobsByLabel("apiName", deployedResource.Name)
-	//if err != nil {
-	//	return nil, err
-	//}
-	//
-	//jobIDToK8sJobMap := map[string]*kbatch.Job{}
-	//for _, job := range k8sJobs {
-	//	jobIDToK8sJobMap[job.Labels["jobID"]] = &job
-	//}
+	k8sJobs, err := config.K8s.ListJobsByLabel("apiName", deployedResource.Name)
+	if err != nil {
+		return nil, err
+	}
+
+	jobIDToK8sJobMap := map[string]*kbatch.Job{}
+	for _, job := range k8sJobs {
+		jobIDToK8sJobMap[job.Labels["jobID"]] = &job
+	}
 
 	endpoint, err := operator.APIEndpoint(api)
 	if err != nil {
 		return nil, err
 	}
 
-	//pods, err := config.K8s.ListPodsByLabel("apiName", deployedResource.Name)
-	//if err != nil {
-	//	return nil, err
-	//}
-	//
-	//jobIDToPodsMap := map[string][]kcore.Pod{}
-	//for _, pod := range pods {
-	//	jobIDToPodsMap[pod.Labels["jobID"]] = append(jobIDToPodsMap[pod.Labels["jobID"]], pod)
-	//}
-	//
-	//inProgressJobKeys, err := listAllInProgressJobKeysByAPI(deployedResource.Name)
-	//if err != nil {
-	//	return nil, err
-	//}
-	//
-	//jobStatuses := []status.JobStatus{}
-	//jobIDSet := strset.New()
-	//for _, jobKey := range inProgressJobKeys {
-	//	jobStatus, err := getJobStatusFromK8sJob(jobKey, jobIDToK8sJobMap[jobKey.ID], jobIDToPodsMap[jobKey.ID])
-	//	if err != nil {
-	//		return nil, err
-	//	}
-	//
-	//	jobStatuses = append(jobStatuses, *jobStatus)
-	//	jobIDSet.Add(jobKey.ID)
-	//}
-	//
-	//if len(jobStatuses) < 10 {
-	//	jobStates, err := getMostRecentlySubmittedJobStates(deployedResource.Name, 10+len(jobStatuses))
-	//	if err != nil {
-	//		return nil, err
-	//	}
-	//	for _, jobState := range jobStates {
-	//		if jobIDSet.Has(jobState.ID) {
-	//			continue
-	//		}
-	//		jobIDSet.Add(jobState.ID)
-	//
-	//		jobStatus, err := getJobStatusFromJobState(jobState, nil, nil)
-	//		if err != nil {
-	//			return nil, err
-	//		}
-	//
-	//		jobStatuses = append(jobStatuses, *jobStatus)
-	//		if len(jobStatuses) == 10 {
-	//			break
-	//		}
-	//	}
-	//}
+	pods, err := config.K8s.ListPodsByLabel("apiName", deployedResource.Name)
+	if err != nil {
+		return nil, err
+	}
+
+	jobIDToPodsMap := map[string][]kcore.Pod{}
+	for _, pod := range pods {
+		jobIDToPodsMap[pod.Labels["jobID"]] = append(jobIDToPodsMap[pod.Labels["jobID"]], pod)
+	}
+
+	inProgressJobKeys, err := job.ListAllInProgressJobKeysByAPI(deployedResource.Name, userconfig.TaskAPIKind)
+	if err != nil {
+		return nil, err
+	}
+
+	jobStatuses := []status.TaskJobStatus{}
+	jobIDSet := strset.New()
+	for _, jobKey := range inProgressJobKeys {
+		jobStatus, err := getJobStatusFromK8sJob(jobKey, jobIDToK8sJobMap[jobKey.ID], jobIDToPodsMap[jobKey.ID])
+		if err != nil {
+			return nil, err
+		}
+
+		jobStatuses = append(jobStatuses, *jobStatus)
+		jobIDSet.Add(jobKey.ID)
+	}
+
+	if len(jobStatuses) < 10 {
+		jobStates, err := job.GetMostRecentlySubmittedJobStates(deployedResource.Name, 10+len(jobStatuses), userconfig.TaskAPIKind)
+		if err != nil {
+			return nil, err
+		}
+		for _, jobState := range jobStates {
+			if jobIDSet.Has(jobState.ID) {
+				continue
+			}
+			jobIDSet.Add(jobState.ID)
+
+			jobStatus, err := getJobStatusFromJobState(jobState, nil, nil)
+			if err != nil {
+				return nil, err
+			}
+
+			jobStatuses = append(jobStatuses, *jobStatus)
+			if len(jobStatuses) == 10 {
+				break
+			}
+		}
+	}
 
 	return []schema.APIResponse{
 		{
-			Spec: *api,
-			//JobStatuses: jobStatuses,
-			Endpoint: endpoint,
+			Spec:            *api,
+			TaskJobStatuses: jobStatuses,
+			Endpoint:        endpoint,
 		},
 	}, nil
 }
