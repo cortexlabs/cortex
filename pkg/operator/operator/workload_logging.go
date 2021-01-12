@@ -1,5 +1,5 @@
 /*
-Copyright 2020 Cortex Labs, Inc.
+Copyright 2021 Cortex Labs, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -43,8 +43,7 @@ const (
 	_pollPeriod = 250 * time.Millisecond
 )
 
-// returns whether pod should be logged and if yes, should the logs include previous container logs (only needed if pod fails)
-func waitForPodToBeRunning(podName string, podCheckCancel chan struct{}, socket *websocket.Conn) bool {
+func waitForPodPendingToComplete(podName string, podCheckCancel chan struct{}, socket *websocket.Conn) bool {
 	wrotePending := false
 	timer := time.NewTimer(0)
 
@@ -59,7 +58,7 @@ func waitForPodToBeRunning(podName string, podCheckCancel chan struct{}, socket 
 				return false
 			}
 			if pod == nil {
-				writeAndCloseSocket(socket, fmt.Sprintf("unable to find replica or worker, please try again", podName))
+				writeAndCloseSocket(socket, "unable to find replica or worker, please try again")
 				return false
 			}
 			podStatus := k8s.GetPodStatus(pod)
@@ -70,8 +69,6 @@ func waitForPodToBeRunning(podName string, podCheckCancel chan struct{}, socket 
 				wrotePending = true
 				timer.Reset(_waitForPod)
 				continue
-			} else if podStatus == k8s.PodStatusRunning || podStatus == k8s.PodStatusInitializing {
-				return true
 			}
 			return true
 		}
@@ -79,14 +76,13 @@ func waitForPodToBeRunning(podName string, podCheckCancel chan struct{}, socket 
 	return false
 }
 
-
 type jsonMessage struct {
 	Message string `json:"message"`
 	ExcInfo string `json:"exc_info"`
 }
 
 func startKubectlProcess(podName string, podCheckCancel chan struct{}, socket *websocket.Conn) {
-	shouldContinue := waitForPodToBeRunning(podName, podCheckCancel, socket)
+	shouldContinue := waitForPodPendingToComplete(podName, podCheckCancel, socket)
 	if !shouldContinue {
 		return
 	}
@@ -120,6 +116,7 @@ waitForCancel:
 		cmd.Process.Kill()
 	}()
 	cmd.Process.Wait() // trigger a wait on the process and then kill the process to prevent zombie processes
+}
 
 func pumpStdout(socket *websocket.Conn, reader io.Reader) {
 	scanner := bufio.NewScanner(reader)
@@ -140,20 +137,6 @@ func pumpStdout(socket *websocket.Conn, reader io.Reader) {
 	closeSocket(socket)
 }
 
-// func pumpStdin(socket *websocket.Conn, writer io.Writer) {
-// 	for {
-// 		_, _, err := socket.ReadMessage()
-// 		if err != nil {
-// 			fmt.Println(err.Error())
-// 			break
-// 		}
-
-// 		break
-// 	}
-// 	fmt.Println("pumpStdin")
-// 	writer.Write([]byte{0x03})
-// }
-
 func StreamLogsFromRandomPod(podSearchLabels map[string]string, socket *websocket.Conn) {
 	pods, err := config.K8s.ListPodsByLabels(podSearchLabels)
 	if err != nil {
@@ -164,14 +147,6 @@ func StreamLogsFromRandomPod(podSearchLabels map[string]string, socket *websocke
 		writeAndCloseSocket(socket, "unable to currently running replicas/workers; please visit your logging dashboard for historical logs\n")
 		return
 	}
-
-	// inr, inw, err := os.Pipe()
-	// if err != nil {
-	// 	telemetry.Error(errors.ErrorUnexpected(err.Error()))
-	// 	Logger.Error(err)
-	// }
-	// defer inw.Close()
-	// defer inr.Close()
 
 	podCheckCancel := make(chan struct{})
 	defer close(podCheckCancel)
@@ -190,10 +165,6 @@ func pumpStdin(socket *websocket.Conn) {
 			break
 		}
 	}
-}
-
-func writeBytes(socket *websocket.Conn, message []byte) {
-	socket.WriteMessage(websocket.TextMessage, message)
 }
 
 func writeString(socket *websocket.Conn, message string) {

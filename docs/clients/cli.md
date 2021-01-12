@@ -35,13 +35,14 @@ Flags:
 ## logs
 
 ```text
-stream logs from an api
+stream logs for a single replica of an api
 
 Usage:
   cortex logs API_NAME [JOB_ID] [flags]
 
 Flags:
   -e, --env string   environment to use
+  -y, --yes          skip prompts
   -h, --help         help for logs
 ```
 

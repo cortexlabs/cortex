@@ -1,6 +1,6 @@
 # Logs
 
-A standard cluster on AWS streams logs to [CloudWatch](https://console.cloud.google.com/logs/query) using fluent-bit. A log group with the same name as your cluster will be created to store your logs. API logs are tagged with labels to help with log aggregation and filtering. Below are some sample CloudWatch Log Insight queries:
+By default logs from cluster on AWS  will be pushed to [CloudWatch](https://us-west-2.console.aws.amazon.com/cloudwatch/home) using fluent-bit. A log group with the same name as your cluster will be created to store your logs. API logs are tagged with labels to help with log aggregation and filtering. Below are some sample CloudWatch Log Insight queries:
 
 RealtimeAPI:
 

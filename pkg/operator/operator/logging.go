@@ -1,5 +1,5 @@
 /*
-Copyright 2020 Cortex Labs, Inc.
+Copyright 2021 Cortex Labs, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -24,6 +24,7 @@ import (
 
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
+	"github.com/pkg/errors"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
@@ -47,7 +48,7 @@ type loggerCache struct {
 
 var _loggerCache loggerCache
 
-func (lc loggerCache) GetFromCacheOrNil(key string) *zap.SugaredLogger {
+func (lc *loggerCache) GetFromCacheOrNil(key string) *zap.SugaredLogger {
 	lc.Lock()
 	defer lc.Unlock()
 
@@ -185,7 +186,7 @@ func GetJobLoggerFromSpec(apiSpec *spec.API, jobKey spec.JobKey) (*zap.SugaredLo
 func initializeLogger(key string, level userconfig.LogLevel, fields map[string]interface{}) (*zap.SugaredLogger, error) {
 	logger, err := defaultZapConfig(level, fields).Build()
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 
 	sugarLogger := logger.Sugar()

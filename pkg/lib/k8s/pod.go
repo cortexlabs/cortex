@@ -19,7 +19,6 @@ package k8s
 import (
 	"bytes"
 	"context"
-	"io"
 	"regexp"
 	"strings"
 	"time"
@@ -436,18 +435,4 @@ func (c *Client) Exec(podName string, containerName string, command []string) (s
 	}
 
 	return buf.String(), nil
-
-}
-
-func (c *Client) StreamContainerLogs(podName string, containerName string) (io.ReadCloser, error) {
-	req := c.podClient.GetLogs(podName, &kcore.PodLogOptions{
-		Container: containerName,
-		Follow:    true,
-	})
-
-	logStream, err := req.Stream(context.Background())
-	if err != nil {
-		return nil, err
-	}
-	return logStream, nil
 }

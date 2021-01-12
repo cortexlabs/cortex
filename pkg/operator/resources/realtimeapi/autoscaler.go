@@ -101,7 +101,6 @@ func autoscaleFn(initialDeployment *kapps.Deployment) (func() error, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer logger.Sync()
 
 	logger.Infof("%s autoscaler init", apiName)
 
