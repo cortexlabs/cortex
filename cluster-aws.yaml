@@ -1,0 +1,21 @@
+provider: aws
+instance_type: t3.medium
+min_instances: 0
+max_instances: 5
+cluster_name: cortex-vishal-1
+region: us-west-2
+bucket: cortex-vishal-19b7fe6577
+# spot: true
+# api_gateway: true
+# subnet_visibility: private
+image_operator: 969758392368.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/operator:latest
+image_manager: 969758392368.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/manager:latest
+image_downloader: 969758392368.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/downloader:latest
+image_request_monitor: 969758392368.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/request-monitor:latest
+image_cluster_autoscaler: 969758392368.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/cluster-autoscaler:latest
+image_metrics_server: 969758392368.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/metrics-server:latest
+image_nvidia: 969758392368.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/nvidia:latest
+image_fluentd: 969758392368.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/fluentd:latest
+image_statsd: 969758392368.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/statsd:latest
+image_istio_proxy: 969758392368.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/istio-proxy:latest
+image_istio_pilot: 969758392368.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/istio-pilot:latest

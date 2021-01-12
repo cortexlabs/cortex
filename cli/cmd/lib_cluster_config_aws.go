@@ -388,6 +388,11 @@ func setConfigFieldsFromCached(userClusterConfig *clusterconfig.Config, cachedCl
 	}
 	userClusterConfig.ImageFluentd = cachedClusterConfig.ImageFluentd
 
+	if s.Obj(cachedClusterConfig.ImageFluentBit) != s.Obj(userClusterConfig.ImageFluentBit) {
+		return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.ImageFluentBitKey, cachedClusterConfig.ImageFluentBit)
+	}
+	userClusterConfig.ImageFluentBit = cachedClusterConfig.ImageFluentBit
+
 	if s.Obj(cachedClusterConfig.ImageStatsd) != s.Obj(userClusterConfig.ImageStatsd) {
 		return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.ImageStatsdKey, cachedClusterConfig.ImageStatsd)
 	}
@@ -693,6 +698,9 @@ func clusterConfigConfirmationStr(clusterConfig clusterconfig.Config, awsCreds A
 	}
 	if clusterConfig.ImageFluentd != defaultConfig.ImageFluentd {
 		items.Add(clusterconfig.ImageFluentdUserKey, clusterConfig.ImageFluentd)
+	}
+	if clusterConfig.ImageFluentBit != defaultConfig.ImageFluentBit {
+		items.Add(clusterconfig.ImageFluentBitUserKey, clusterConfig.ImageFluentBit)
 	}
 	if clusterConfig.ImageStatsd != defaultConfig.ImageStatsd {
 		items.Add(clusterconfig.ImageStatsdUserKey, clusterConfig.ImageStatsd)

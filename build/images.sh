@@ -78,6 +78,7 @@ non_dev_images_aws=(
   "neuron-rtd"
   "nvidia"
   "fluentd"
+  "fluent-bit"
   "statsd"
 )
 non_dev_images_gcp=(

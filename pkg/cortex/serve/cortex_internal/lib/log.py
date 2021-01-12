@@ -42,9 +42,6 @@ class CortexAccessFormatter(JsonFormatter):
     def format(self, record):
         if "scope" in record.__dict__:
             scope = record.__dict__["scope"]
-            print(record.msg, file=sys.stderr)
-            print(record.args, file=sys.stderr)
-            print(type(record), file=sys.stderr)
             record.__dict__.update(
                 {
                     "method": scope["method"],

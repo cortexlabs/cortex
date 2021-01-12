@@ -89,7 +89,7 @@ func main() {
 	}
 
 	encoderConfig := zap.NewProductionEncoderConfig()
-	encoderConfig.MessageKey = "msg"
+	encoderConfig.MessageKey = "message"
 
 	logger, err = zap.Config{
 		Level:            zap.NewAtomicLevelAt(logLevelZap),
@@ -112,7 +112,7 @@ func main() {
 		if _, err := os.Stat("/mnt/workspace/api_readiness.txt"); err == nil {
 			break
 		} else if os.IsNotExist(err) {
-			logger.Info("waiting for replica to be ready ...")
+			logger.Debug("waiting for replica to be ready ...")
 			time.Sleep(_tickInterval)
 		} else {
 			logger.Error("error encountered while looking for /mnt/workspace/api_readiness.txt") // unexpected
@@ -167,7 +167,7 @@ func publishStats(apiName string, counter *Counter, client *cloudwatch.CloudWatc
 
 		total /= float64(len(requestCounts))
 	}
-	logger.Info(fmt.Sprintf("recorded %.2f in-flight requests on replica", total))
+	logger.Debug(fmt.Sprintf("recorded %.2f in-flight requests on replica", total))
 	curTime := time.Now()
 	metricData := cloudwatch.PutMetricDataInput{
 		Namespace: aws.String(clusterName),

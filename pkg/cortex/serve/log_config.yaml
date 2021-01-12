@@ -21,12 +21,10 @@ disable_existing_loggers: False
 formatters:
   default:
     "()": pythonjsonlogger.jsonlogger.JsonFormatter
-    format: "%(asctime)s %(levelname)s %(msg)s %(process)d"
-    rename_fields: { "message": "msg" }
+    format: "%(asctime)s %(levelname)s %(message)s %(process)d"
   uvicorn_access:
     "()": cortex_internal.lib.log.CortexAccessFormatter
-    format: "%(asctime)s %(levelname)s %(msg)s %(process)d"
-    rename_fields: { "message": "msg" }
+    format: "%(asctime)s %(levelname)s %(message)s %(process)d"
 handlers:
   default:
     formatter: default

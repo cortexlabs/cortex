@@ -109,12 +109,6 @@ func SubmitJob(apiName string, submission *schema.JobSubmission) (*spec.Job, err
 		return nil, err
 	}
 
-	// err = createOperatorLogStreamForJob(jobSpec.JobKey)
-	// if err != nil {
-	// 	deleteQueueByURL(queueURL)
-	// 	return nil, err
-	// }
-
 	logger, err := operator.GetJobLoggerFromSpec(apiSpec, jobKey)
 	if err != nil {
 		return nil, err

@@ -29,11 +29,9 @@ import (
 )
 
 const (
-	_loggerTTL          = time.Hour
+	_loggerTTL          = time.Hour * 1
 	_evictionCronPeriod = time.Minute * 10
 )
-
-var _loggerCache loggerCache
 
 var Logger *zap.SugaredLogger
 
@@ -44,10 +42,28 @@ type cachedLogger struct {
 
 type loggerCache struct {
 	m map[string]*cachedLogger
-	l sync.Mutex
+	sync.Mutex
+}
+
+var _loggerCache loggerCache
+
+func (lc loggerCache) GetFromCacheOrNil(key string) *zap.SugaredLogger {
+	lc.Lock()
+	defer lc.Unlock()
+
+	item, ok := lc.m[key]
+	if ok {
+		item.lastAccess = time.Now()
+		return item.value
+	}
+	return nil
 }
 
 func init() {
+	_loggerCache = loggerCache{m: map[string]*cachedLogger{}}
+
+	_loggerCache.Lock()
+	_loggerCache.Unlock()
 	operatorLogLevel := os.Getenv("CORTEX_OPERATOR_LOG_LEVEL")
 	if operatorLogLevel == "" {
 		operatorLogLevel = "info"
@@ -66,23 +82,22 @@ func init() {
 
 	Logger = operatorLogger.Sugar()
 
-	_loggerCache = loggerCache{m: make(map[string]*cachedLogger)}
 	go func() {
 		for range time.Tick(_evictionCronPeriod) {
-			_loggerCache.l.Lock()
+			_loggerCache.Lock()
 			for k, v := range _loggerCache.m {
 				if time.Since(v.lastAccess) > _loggerTTL {
 					delete(_loggerCache.m, k)
 				}
 			}
-			_loggerCache.l.Unlock()
+			_loggerCache.Unlock()
 		}
 	}()
 }
 
 func defaultZapConfig(level userconfig.LogLevel, fields ...map[string]interface{}) zap.Config {
 	encoderConfig := zap.NewProductionEncoderConfig()
-	encoderConfig.MessageKey = "msg"
+	encoderConfig.MessageKey = "message"
 
 	initialFields := map[string]interface{}{}
 	for _, m := range fields {
@@ -99,18 +114,6 @@ func defaultZapConfig(level userconfig.LogLevel, fields ...map[string]interface{
 		ErrorOutputPaths: []string{"stderr"},
 		InitialFields:    initialFields,
 	}
-}
-
-func (loggerCache *loggerCache) GetFromCacheOrNil(key string) *zap.SugaredLogger {
-	loggerCache.l.Lock()
-	defer loggerCache.l.Unlock()
-
-	item, ok := loggerCache.m[key]
-	if ok {
-		item.lastAccess = time.Now()
-		return item.value
-	}
-	return nil
 }
 
 func GetRealtimeAPILogger(apiName string, apiID string) (*zap.SugaredLogger, error) {
@@ -187,8 +190,8 @@ func initializeLogger(key string, level userconfig.LogLevel, fields map[string]i
 
 	sugarLogger := logger.Sugar()
 
-	_loggerCache.l.Lock()
-	defer _loggerCache.l.Unlock()
+	_loggerCache.Lock()
+	defer _loggerCache.Unlock()
 
 	_loggerCache.m[key] = &cachedLogger{
 		lastAccess: time.Now(),

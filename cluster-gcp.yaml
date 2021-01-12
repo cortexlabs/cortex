@@ -1,0 +1,12 @@
+project: vishal-295423
+zone: us-central1-c
+cluster_name: cortex-cluster
+instance_type: n1-standard-2
+min_instances: 1
+max_instances: 2
+image_operator: gcr.io/vishal-295423/cortexlabs/operator:latest
+image_manager: gcr.io/vishal-295423/cortexlabs/manager:latest
+image_downloader: gcr.io/vishal-295423/cortexlabs/downloader:latest
+image_istio_proxy: gcr.io/vishal-295423/cortexlabs/istio-proxy:latest
+image_istio_pilot: gcr.io/vishal-295423/cortexlabs/istio-pilot:latest
+image_google_pause: gcr.io/vishal-295423/cortexlabs/google-pause:latest

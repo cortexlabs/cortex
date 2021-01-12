@@ -118,7 +118,7 @@ func autoscaleFn(initialDeployment *kapps.Deployment) (func() error, error) {
 			return err
 		}
 		if avgInFlight == nil {
-			logger.Infof("%s autoscaler tick: metrics not available yet", apiName)
+			logger.Debugf("%s autoscaler tick: metrics not available yet", apiName)
 			return nil
 		}
 

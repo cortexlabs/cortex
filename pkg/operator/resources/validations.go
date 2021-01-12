@@ -141,18 +141,18 @@ func validateK8s(api *userconfig.API, virtualServices []istioclientnetworking.Vi
 /*
 CPU Reservations:
 
-FluentD 200
+FluentBit 100
 StatsD 100
 KubeProxy 100
 AWS cni 10
 Reserved (150 + 150) see eks.yaml for details
 */
-var _cortexCPUReserve = kresource.MustParse("710m")
+var _cortexCPUReserve = kresource.MustParse("610m")
 
 /*
 Memory Reservations:
 
-FluentD 200
+FluentBit 200
 StatsD 100
 Reserved (300 + 300 + 200) see eks.yaml for details
 */

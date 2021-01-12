@@ -242,6 +242,12 @@ Note: overriding horizontal-pod-autoscaler-sync-period on EKS is currently not s
 1. Update record-modifier in `images/fluentd/Dockerfile` to the latest version [here](https://github.com/repeatedly/fluent-plugin-record-modifier/blob/master/VERSION)
 1. Update `fluentd.yaml` as necessary (make sure to maintain all Cortex environment variables)
 
+## FluentBit
+
+1. Find the latest release on [Dockerhub](https://hub.docker.com/r/amazon/aws-for-fluent-bit/tags?page=1&ordering=last_updated)
+1. Update the base image version in `images/fluent-bit/Dockerfile`
+1. Update `fluent-bit.yaml` as necessary (make sure to maintain all Cortex environment variables)
+
 ## Statsd
 
 1. Find the latest release on [Dockerhub](https://hub.docker.com/r/amazon/cloudwatch-agent/tags)

@@ -435,6 +435,7 @@ func createGKECluster(clusterConfig *clusterconfig.GCPConfig, gcpClient *gcp.Cli
 	gkeClusterConfig := containerpb.Cluster{
 		Name:                  clusterConfig.ClusterName,
 		InitialClusterVersion: "1.17",
+		LoggingService:        "none",
 		NodePools: []*containerpb.NodePool{
 			{
 				Name: "ng-cortex-operator",
