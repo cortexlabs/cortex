@@ -127,7 +127,17 @@ var _getCmd = &cobra.Command{
 					return "", err
 				}
 
-				jobTable, err := getJob(env, args[0], args[1])
+				apisRes, err := cluster.GetAPI(MustGetOperatorConfig(envName), args[0])
+				if err != nil {
+					return "", err
+				}
+
+				var jobTable string
+				if apisRes[0].Spec.Kind == userconfig.BatchAPIKind {
+					jobTable, err = getBatchJob(env, args[0], args[1])
+				} else {
+					jobTable, err = getTaskJob(env, args[0], args[1])
+				}
 				if err != nil {
 					return "", err
 				}

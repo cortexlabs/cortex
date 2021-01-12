@@ -144,8 +144,8 @@ func batchAPITable(batchAPI schema.APIResponse) string {
 	return out
 }
 
-func getJob(env cliconfig.Environment, apiName string, jobID string) (string, error) {
-	resp, err := cluster.GetJob(MustGetOperatorConfig(env.Name), apiName, jobID)
+func getBatchJob(env cliconfig.Environment, apiName string, jobID string) (string, error) {
+	resp, err := cluster.GetBatchJob(MustGetOperatorConfig(env.Name), apiName, jobID)
 	if err != nil {
 		return "", err
 	}

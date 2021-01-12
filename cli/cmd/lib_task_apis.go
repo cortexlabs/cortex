@@ -20,7 +20,12 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/cortexlabs/cortex/cli/cluster"
+	"github.com/cortexlabs/cortex/cli/types/cliconfig"
+	"github.com/cortexlabs/cortex/cli/types/flags"
 	"github.com/cortexlabs/cortex/pkg/lib/console"
+	libjson "github.com/cortexlabs/cortex/pkg/lib/json"
+	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/table"
 	libtime "github.com/cortexlabs/cortex/pkg/lib/time"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
@@ -121,4 +126,53 @@ func taskAPITable(taskAPI schema.APIResponse) string {
 	out += titleStr("task api configuration") + taskAPI.Spec.UserStr(types.AWSProviderType)
 
 	return out
+}
+
+func getTaskJob(env cliconfig.Environment, apiName string, jobID string) (string, error) {
+	resp, err := cluster.GetTaskJob(MustGetOperatorConfig(env.Name), apiName, jobID)
+	if err != nil {
+		return "", err
+	}
+
+	if _flagOutput == flags.JSONOutputType {
+		bytes, err := libjson.Marshal(resp)
+		if err != nil {
+			return "", err
+		}
+		return string(bytes), nil
+	}
+
+	job := resp.JobStatus
+
+	out := ""
+
+	jobIntroTable := table.KeyValuePairs{}
+	jobIntroTable.Add("job id", job.ID)
+	jobIntroTable.Add("status", job.Status.Message())
+	out += jobIntroTable.String(&table.KeyValuePairOpts{BoldKeys: pointer.Bool(true)})
+
+	jobTimingTable := table.KeyValuePairs{}
+	jobTimingTable.Add("start time", job.StartTime.Format(_timeFormat))
+
+	jobEndTime := time.Now()
+	if job.EndTime != nil {
+		jobTimingTable.Add("end time", job.EndTime.Format(_timeFormat))
+		jobEndTime = *job.EndTime
+	} else {
+		jobTimingTable.Add("end time", "-")
+	}
+	duration := jobEndTime.Sub(job.StartTime).Truncate(time.Second).String()
+	jobTimingTable.Add("duration", duration)
+
+	out += "\n" + jobTimingTable.String(&table.KeyValuePairOpts{BoldKeys: pointer.Bool(true)})
+	out += "\n" + console.Bold("job endpoint: ") + resp.Endpoint + "\n"
+
+	jobSpecStr, err := libjson.Pretty(job.TaskJob)
+	if err != nil {
+		return "", err
+	}
+
+	out += titleStr("job configuration") + jobSpecStr
+
+	return out, nil
 }
