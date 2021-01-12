@@ -36,7 +36,6 @@ commands=(
   "logs"
   "patch"
   "refresh"
-  "predict"
   "delete"
   "cluster up"
   "cluster info"
