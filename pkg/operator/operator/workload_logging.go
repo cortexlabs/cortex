@@ -58,7 +58,7 @@ func waitForPodPendingToComplete(podName string, podCheckCancel chan struct{}, s
 				return false
 			}
 			if pod == nil {
-				writeAndCloseSocket(socket, "unable to find replica or worker, please try again")
+				writeAndCloseSocket(socket, "unable to find replica/worker")
 				return false
 			}
 			podStatus := k8s.GetPodStatus(pod)
@@ -90,15 +90,14 @@ func startKubectlProcess(podName string, podCheckCancel chan struct{}, socket *w
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	kubectlArgs := []string{"/usr/local/bin/kubectl", "-n=" + "default", "logs", "--all-containers", podName, "--follow"}
-
-	cmd := exec.CommandContext(ctx, kubectlArgs[0], kubectlArgs[1:]...)
+	cmd := exec.CommandContext(ctx, "/usr/local/bin/kubectl", "-n="+"default", "logs", "--all-containers", podName, "--follow")
 
 	logStream, err := cmd.StdoutPipe()
 	if err != nil {
 		telemetry.Error(errors.ErrorUnexpected(err.Error()))
 		Logger.Error(err)
 	}
+
 	cmd.Start()
 
 	go pumpStdout(socket, logStream)
@@ -144,7 +143,7 @@ func StreamLogsFromRandomPod(podSearchLabels map[string]string, socket *websocke
 		return
 	}
 	if len(pods) == 0 {
-		writeAndCloseSocket(socket, "unable to currently running replicas/workers; please visit your logging dashboard for historical logs\n")
+		writeAndCloseSocket(socket, "there are no currently running replicas/workers; please visit your logging dashboard for historical logs\n")
 		return
 	}
 

@@ -1,6 +1,6 @@
 # Logs
 
-By default logs from a cluster on GCP will be pushed to [StackDriver](https://console.cloud.google.com/logs/query) using fluent-bit. API logs are tagged with labels to help with log aggregation and filtering.
+By default, logs will be pushed to [StackDriver](https://console.cloud.google.com/logs/query) using fluent-bit. API logs are tagged with labels to help with log aggregation and filtering.
 
 Example query for a RealtimeAPI:
 
