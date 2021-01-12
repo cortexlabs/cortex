@@ -79,53 +79,6 @@ func waitForPodToBeRunning(podName string, podCheckCancel chan struct{}, socket 
 	return false
 }
 
-// TODO remove
-func streamLogsFromPod(podName string, podCheckCancel chan struct{}, socket *websocket.Conn) {
-	shouldContinue := waitForPodToBeRunning(podName, podCheckCancel, socket)
-	if !shouldContinue {
-		return
-	}
-
-	buf := make([]byte, _readBufferSize)
-
-	timer := time.NewTimer(0)
-
-	logStream, err := config.K8s.StreamContainerLogs(podName, "api")
-	if err != nil {
-		writeAndCloseSocket(socket, "error encountered while reading from pod log stream: "+errors.Message(err))
-		telemetry.Error(err)
-	}
-
-	for true {
-		select {
-		case <-podCheckCancel:
-			return
-		case <-timer.C:
-			numBytes, err := logStream.Read(buf)
-			if err == io.EOF {
-				closeSocket(socket)
-				continue
-			}
-			if err != nil {
-				writeAndCloseSocket(socket, "error encountered while reading from pod log stream: "+errors.Message(err))
-				continue
-			}
-
-			if numBytes != 0 {
-				err := socket.WriteMessage(websocket.TextMessage, buf[:numBytes])
-				if err != nil {
-					writeAndCloseSocket(socket, "error encountered while writing to socket: "+errors.Message(err))
-					continue
-				}
-			}
-			if numBytes == _readBufferSize {
-				timer.Reset(0)
-			} else {
-				timer.Reset(_pollPeriod)
-			}
-		}
-	}
-}
 
 type jsonMessage struct {
 	Message string `json:"message"`
@@ -143,19 +96,8 @@ func startKubectlProcess(podName string, podCheckCancel chan struct{}, socket *w
 
 	kubectlArgs := []string{"/usr/local/bin/kubectl", "-n=" + "default", "logs", "--all-containers", podName, "--follow"}
 
-	// outr, outw, err := os.Pipe()
-	// if err != nil {
-	// 	telemetry.Error(errors.ErrorUnexpected(err.Error()))
-	// 	Logger.Error(err)
-	// }
-	// defer outw.Close()
-	// defer outr.Close()
-
 	cmd := exec.CommandContext(ctx, kubectlArgs[0], kubectlArgs[1:]...)
-	// cmd.Stdin = inr
-	// cmd.Stderr = outw
-	// cmd.Stdout = outw
-	// cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
+
 	logStream, err := cmd.StdoutPipe()
 	if err != nil {
 		telemetry.Error(errors.ErrorUnexpected(err.Error()))
@@ -164,8 +106,6 @@ func startKubectlProcess(podName string, podCheckCancel chan struct{}, socket *w
 	cmd.Start()
 
 	go pumpStdout(socket, logStream)
-
-	// go pumpStdin(socket, inw)
 
 waitForCancel:
 	for true {
@@ -179,8 +119,7 @@ waitForCancel:
 		time.Sleep(1 * time.Second)
 		cmd.Process.Kill()
 	}()
-	cmd.Process.Wait() // activate the monitoring process and then kill the process
-}
+	cmd.Process.Wait() // trigger a wait on the process and then kill the process to prevent zombie processes
 
 func pumpStdout(socket *websocket.Conn, reader io.Reader) {
 	scanner := bufio.NewScanner(reader)
