@@ -179,6 +179,12 @@ spec:
         - name: fluent-bit
           image: amazon/aws-for-fluent-bit:latest
           imagePullPolicy: Always
+          resources:
+            requests:
+              cpu: 200m
+              memory: 200Mi
+            limits:
+              memory: 200Mi
           ports:
             - containerPort: 2020
           {% if env['CORTEX_PROVIDER'] == "gcp" %}

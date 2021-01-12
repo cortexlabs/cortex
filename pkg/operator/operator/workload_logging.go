@@ -23,7 +23,6 @@ import (
 	"fmt"
 	"io"
 	"os/exec"
-	"strings"
 	"time"
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
@@ -68,6 +67,7 @@ func waitForPodToBeRunning(podName string, podCheckCancel chan struct{}, socket 
 				if !wrotePending {
 					writeString(socket, "waiting for replica/worker to initialize ...\n")
 				}
+				wrotePending = true
 				timer.Reset(_waitForPod)
 				continue
 			} else if podStatus == k8s.PodStatusRunning || podStatus == k8s.PodStatusInitializing {
@@ -141,11 +141,21 @@ func startKubectlProcess(podName string, podCheckCancel chan struct{}, socket *w
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	kubectlArgs := []string{"kubectl", "-n=" + "default", "logs", "--all-containers", podName, "--follow"}
+	kubectlArgs := []string{"/usr/local/bin/kubectl", "-n=" + "default", "logs", "--all-containers", podName, "--follow"}
 
-	cmd := exec.CommandContext(ctx, "/bin/bash", "-c", strings.Join(kubectlArgs, " "))
-	cmd.Stderr = cmd.Stdout
+	// outr, outw, err := os.Pipe()
+	// if err != nil {
+	// 	telemetry.Error(errors.ErrorUnexpected(err.Error()))
+	// 	Logger.Error(err)
+	// }
+	// defer outw.Close()
+	// defer outr.Close()
 
+	cmd := exec.CommandContext(ctx, kubectlArgs[0], kubectlArgs[1:]...)
+	// cmd.Stdin = inr
+	// cmd.Stderr = outw
+	// cmd.Stdout = outw
+	// cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
 	logStream, err := cmd.StdoutPipe()
 	if err != nil {
 		telemetry.Error(errors.ErrorUnexpected(err.Error()))
@@ -155,12 +165,21 @@ func startKubectlProcess(podName string, podCheckCancel chan struct{}, socket *w
 
 	go pumpStdout(socket, logStream)
 
+	// go pumpStdin(socket, inw)
+
+waitForCancel:
 	for true {
 		select {
 		case <-podCheckCancel:
-			return
+			break waitForCancel
 		}
 	}
+
+	go func() {
+		time.Sleep(1 * time.Second)
+		cmd.Process.Kill()
+	}()
+	cmd.Process.Wait() // activate the monitoring process and then kill the process
 }
 
 func pumpStdout(socket *websocket.Conn, reader io.Reader) {
@@ -178,13 +197,23 @@ func pumpStdout(socket *websocket.Conn, reader io.Reader) {
 			}
 		}
 	}
-	if err := scanner.Err(); err != nil {
-		telemetry.Error(errors.ErrorUnexpected(err.Error()))
-		Logger.Error(err)
-	}
 
 	closeSocket(socket)
 }
+
+// func pumpStdin(socket *websocket.Conn, writer io.Writer) {
+// 	for {
+// 		_, _, err := socket.ReadMessage()
+// 		if err != nil {
+// 			fmt.Println(err.Error())
+// 			break
+// 		}
+
+// 		break
+// 	}
+// 	fmt.Println("pumpStdin")
+// 	writer.Write([]byte{0x03})
+// }
 
 func StreamLogsFromRandomPod(podSearchLabels map[string]string, socket *websocket.Conn) {
 	pods, err := config.K8s.ListPodsByLabels(podSearchLabels)
@@ -196,6 +225,14 @@ func StreamLogsFromRandomPod(podSearchLabels map[string]string, socket *websocke
 		writeAndCloseSocket(socket, "unable to currently running replicas/workers; please visit your logging dashboard for historical logs\n")
 		return
 	}
+
+	// inr, inw, err := os.Pipe()
+	// if err != nil {
+	// 	telemetry.Error(errors.ErrorUnexpected(err.Error()))
+	// 	Logger.Error(err)
+	// }
+	// defer inw.Close()
+	// defer inr.Close()
 
 	podCheckCancel := make(chan struct{})
 	defer close(podCheckCancel)

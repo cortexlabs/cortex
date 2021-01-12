@@ -58,5 +58,6 @@ func ReadLogs(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer socket.Close()
+
 	operator.StreamLogsFromRandomPod(map[string]string{"apiName": apiName, "deploymentID": deploymentID}, socket)
 }

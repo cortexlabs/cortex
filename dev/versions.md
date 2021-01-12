@@ -235,13 +235,6 @@ Note: overriding horizontal-pod-autoscaler-sync-period on EKS is currently not s
 1. In the [GitHub Repo](https://github.com/kubernetes/autoscaler/blob/master/cluster-autoscaler/cloudprovider/aws), set the tree to the tag for the chosen release, and open `cloudprovider/aws/examples/cluster-autoscaler-autodiscover.yaml` (e.g. <https://github.com/kubernetes/autoscaler/blob/cluster-autoscaler-1.16.5/cluster-autoscaler/cloudprovider/aws/examples/cluster-autoscaler-autodiscover.yaml>)
 1. Resolve merge conflicts with the template in `manager/manifests/cluster-autoscaler.yaml.j2`
 
-## Fluentd
-
-1. Find the latest release on [Dockerhub](https://hub.docker.com/r/fluent/fluentd-kubernetes-daemonset/)
-1. Update the base image version in `images/fluentd/Dockerfile`
-1. Update record-modifier in `images/fluentd/Dockerfile` to the latest version [here](https://github.com/repeatedly/fluent-plugin-record-modifier/blob/master/VERSION)
-1. Update `fluentd.yaml` as necessary (make sure to maintain all Cortex environment variables)
-
 ## FluentBit
 
 1. Find the latest release on [Dockerhub](https://hub.docker.com/r/amazon/aws-for-fluent-bit/tags?page=1&ordering=last_updated)

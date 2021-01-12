@@ -22,10 +22,10 @@ set -euo pipefail
 api_images_cluster=(
   "python-predictor-cpu"
   "operator"
-  # "python-predictor-gpu"
-  # "tensorflow-predictor"
-  # "onnx-predictor-cpu"
-  # "onnx-predictor-gpu"
+  "python-predictor-gpu"
+  "tensorflow-predictor"
+  "onnx-predictor-cpu"
+  "onnx-predictor-gpu"
 )
 api_images_aws=(
   # includes api_images_cluster
@@ -77,7 +77,6 @@ non_dev_images_aws=(
   "inferentia"
   "neuron-rtd"
   "nvidia"
-  "fluentd"
   "fluent-bit"
   "statsd"
 )

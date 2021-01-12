@@ -18,6 +18,7 @@ RUN GO111MODULE=on CGO_ENABLED=0 GOOS=linux go build -installsuffix cgo -o opera
 FROM alpine:3.12
 
 COPY --from=builder /tmp/kubectl /usr/local/bin/kubectl
+RUN chmod +x /usr/local/bin/kubectl
 
 RUN apk --no-cache add ca-certificates bash
 
