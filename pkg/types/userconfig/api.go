@@ -67,6 +67,7 @@ type TaskDefinition struct {
 	Path       string                 `json:"path" yaml:"path"`
 	PythonPath *string                `json:"python_path" yaml:"python_path"`
 	Image      string                 `json:"image" yaml:"image"`
+	LogLevel   LogLevel               `json:"log_level" yaml:"log_level"`
 	Config     map[string]interface{} `json:"config" yaml:"config"`
 	Env        map[string]string      `json:"env" yaml:"env"`
 }
@@ -380,6 +381,7 @@ func (task *TaskDefinition) UserStr() string {
 		sb.WriteString(fmt.Sprintf("%s: %s\n", PythonPathKey, *task.PythonPath))
 	}
 	sb.WriteString(fmt.Sprintf("%s: %s\n", ImageKey, task.Image))
+	sb.WriteString(fmt.Sprintf("%s: %s\n", LogLevelKey, task.LogLevel))
 	if len(task.Config) > 0 {
 		sb.WriteString(fmt.Sprintf("%s:\n", ConfigKey))
 		d, _ := yaml.Marshal(&task.Config)

@@ -14,17 +14,12 @@
 
 import json
 import os
+from copy import deepcopy
 
-from cortex_internal.lib.api import get_spec
-from cortex_internal.lib.storage import S3
+from cortex_internal.lib.api import get_spec, TaskAPI
 from cortex_internal.lib.log import configure_logger
 
 logger = configure_logger("cortex", os.environ["CORTEX_LOG_CONFIG_FILE"])
-
-local_cache = {
-    "api_spec": None,
-    "task_spec": None,
-}
 
 
 def get_task_spec(storage, cache_dir, job_spec_path):
@@ -38,23 +33,26 @@ def get_task_spec(storage, cache_dir, job_spec_path):
 def start():
     cache_dir = os.environ["CORTEX_CACHE_DIR"]
     provider = os.environ["CORTEX_PROVIDER"]
-    api_spec_path = os.environ["CORTEX_API_SPEC"]
-    task_spec_path = os.environ["CORTEX_TASK_SPEC"]
-    # project_dir = os.environ["CORTEX_PROJECT_DIR"]
-
+    project_dir = os.environ["CORTEX_PROJECT_DIR"]
     region = os.getenv("AWS_REGION")
 
-    storage, api_spec = get_spec(provider, api_spec_path, cache_dir, region)
-    task_spec = get_task_spec(storage, cache_dir, task_spec_path)
+    api_spec_path = os.environ["CORTEX_API_SPEC"]
+    task_spec_path = os.environ["CORTEX_TASK_SPEC"]
+
+    _, api_spec = get_spec(provider, api_spec_path, cache_dir, region)
+    _, task_spec = get_spec(provider, task_spec_path, cache_dir, region)
 
     logger.info("loading the task definition from {}".format(api_spec["definition"]["path"]))
+    task_api = TaskAPI(provider, api_spec)
 
-    # TODO validate the task definition and execute the task
+    logger.info("executing the task definition from {}".format(api_spec["definition"]["path"]))
+    callable_fn = task_api.get_callable(project_dir)
 
-    local_cache["api_spec"] = api_spec
-    local_cache["provider"] = provider
-    local_cache["task_spec"] = task_spec
-    print(task_spec)
+    config = deepcopy(api_spec["definition"]["config"])
+    if task_spec is not None and task_spec.get("config") is not None:
+        util.merge_dicts_in_place_overwrite(config, task_spec["config"])
+
+    callable_fn(config)
 
 
 if __name__ == "__main__":

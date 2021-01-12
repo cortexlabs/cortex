@@ -100,7 +100,7 @@ func TaskInitContainer(api *spec.API) kcore.Container {
 		Env: []kcore.EnvVar{
 			{
 				Name:  "CORTEX_LOG_LEVEL",
-				Value: strings.ToUpper(userconfig.DebugLogLevel.String()),
+				Value: strings.ToUpper(api.TaskDefinition.LogLevel.String()),
 			},
 		},
 		VolumeMounts: defaultVolumeMounts(),
@@ -489,7 +489,7 @@ func getTaskEnvVars(api *spec.API, container string) []kcore.EnvVar {
 		},
 		{
 			Name:  "CORTEX_LOG_LEVEL",
-			Value: strings.ToUpper(userconfig.DebugLogLevel.String()),
+			Value: strings.ToUpper(api.TaskDefinition.LogLevel.String()),
 		},
 	}
 

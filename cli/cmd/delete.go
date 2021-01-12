@@ -70,7 +70,12 @@ var _deleteCmd = &cobra.Command{
 
 		var deleteResponse schema.DeleteResponse
 		if len(args) == 2 {
-			deleteResponse, err = cluster.StopJob(MustGetOperatorConfig(env.Name), args[0], args[1])
+			apisRes, err := cluster.GetAPI(MustGetOperatorConfig(env.Name), args[0])
+			if err != nil {
+				exit.Error(err)
+			}
+
+			deleteResponse, err = cluster.StopJob(MustGetOperatorConfig(env.Name), apisRes[0].Spec.Kind, args[0], args[1])
 			if err != nil {
 				exit.Error(err)
 			}

@@ -49,6 +49,7 @@ class Client:
         self,
         api_spec: dict,
         predictor=None,
+        task=None,
         requirements=[],
         conda_packages=[],
         project_dir: Optional[str] = None,
@@ -61,6 +62,7 @@ class Client:
         Args:
             api_spec: A dictionary defining a single Cortex API. See https://docs.cortex.dev/v/master/ for schema.
             predictor: A Cortex Predictor class implementation. Not required when deploying a traffic splitter.
+            task: ...
             requirements: A list of PyPI dependencies that will be installed before the predictor class implementation is invoked.
             conda_packages: A list of Conda dependencies that will be installed before the predictor class implementation is invoked.
             project_dir: Path to a python project.
@@ -76,10 +78,15 @@ class Client:
                 "`wait` flag is not supported for clusters on GCP, please set the `wait` flag to false"
             )
 
-        if project_dir is not None and predictor is not None:
-            raise ValueError(
-                "`predictor` and `project_dir` parameters cannot be specified at the same time, please choose one"
-            )
+        if project_dir is not None:
+            if predictor is not None:
+                raise ValueError(
+                    "`predictor` and `project_dir` parameters cannot be specified at the same time, please choose one"
+                )
+            if task is not None:
+                raise ValueError(
+                    "`task` and `project_dir` parameters cannot be specified at the same time, please choose one"
+                )
 
         if project_dir is not None:
             cortex_yaml_path = os.path.join(project_dir, f".cortex-{uuid.uuid4()}.yaml")
@@ -87,6 +94,12 @@ class Client:
             with util.open_temporarily(cortex_yaml_path, "w") as f:
                 yaml.dump([api_spec], f)  # write a list
                 return self._deploy(cortex_yaml_path, force, wait)
+
+        if api_spec.get("kind") == "TaskAPI":
+            if predictor:
+                raise ValueError("`predictor` parameter cannnot be specified for TaskAPI kind")
+            if task is None:
+                raise ValueError("`task` parameter must be specified for TaskAPI kind")
 
         if api_spec.get("name") is None:
             raise ValueError("`api_spec` must have the `name` key set")
@@ -100,7 +113,7 @@ class Client:
 
         cortex_yaml_path = os.path.join(project_dir, "cortex.yaml")
 
-        if predictor is None:
+        if api_spec.get("kind") == "TrafficSplitter" and predictor is None:
             # for deploying a traffic splitter
             with open(cortex_yaml_path, "w") as f:
                 yaml.dump([api_spec], f)  # write a list
@@ -127,23 +140,33 @@ class Client:
             with open(project_dir / "conda-packages.txt", "w") as conda_file:
                 conda_file.write("\n".join(conda_packages))
 
-        if not inspect.isclass(predictor):
-            raise ValueError("predictor parameter must be a class definition")
+        if predictor:
+            if not inspect.isclass(predictor):
+                raise ValueError("`predictor` parameter must be a class definition")
 
-        with open(project_dir / "predictor.pickle", "wb") as pickle_file:
-            dill.dump(predictor, pickle_file)
-            if api_spec.get("predictor") is None:
-                api_spec["predictor"] = {}
+            with open(project_dir / "predictor.pickle", "wb") as pickle_file:
+                dill.dump(predictor, pickle_file)
+                if api_spec.get("predictor") is None:
+                    api_spec["predictor"] = {}
 
-            if predictor.__name__ == "PythonPredictor":
-                predictor_type = "python"
-            if predictor.__name__ == "TensorFlowPredictor":
-                predictor_type = "tensorflow"
-            if predictor.__name__ == "ONNXPredictor":
-                predictor_type = "onnx"
+                if predictor.__name__ == "PythonPredictor":
+                    predictor_type = "python"
+                if predictor.__name__ == "TensorFlowPredictor":
+                    predictor_type = "tensorflow"
+                if predictor.__name__ == "ONNXPredictor":
+                    predictor_type = "onnx"
 
-            api_spec["predictor"]["path"] = "predictor.pickle"
-            api_spec["predictor"]["type"] = predictor_type
+                api_spec["predictor"]["path"] = "predictor.pickle"
+                api_spec["predictor"]["type"] = predictor_type
+        if task:
+            if not callable(task):
+                raise ValueError("`task` parameter must be a callable")
+
+            with open(project_dir / "task.pickle", "wb") as pickle_file:
+                dill.dump(task, pickle_file)
+                if api_spec.get("definition") is None:
+                    api_spec["definition"] = {}
+                api_spec["definition"]["path"] = "task.pickle"
 
         with open(cortex_yaml_path, "w") as f:
             yaml.dump([api_spec], f)  # write a list
