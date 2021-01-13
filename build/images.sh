@@ -25,13 +25,10 @@ api_images_cluster=(
   "tensorflow-predictor"
   "onnx-predictor-cpu"
   "onnx-predictor-gpu"
-  "python-task-cpu"
-  "python-task-gpu"
 )
 api_images_aws=(
   # includes api_images_cluster
   "python-predictor-inf"
-  "python-task-inf"
 )
 api_images_gcp=(
   # includes api_images_cluster
@@ -43,13 +40,10 @@ api_slim_images_cluster=(
   "tensorflow-predictor-slim"
   "onnx-predictor-cpu-slim"
   "onnx-predictor-gpu-slim"
-  "python-task-cpu-slim"
-  "python-task-gpu-slim"
 )
 api_slim_images_aws=(
   # includes api_slim_images_cluster
   "python-predictor-inf-slim"
-  "python-task-inf-slim"
 )
 api_slim_images_gcp=(
   # includes api_slim_images_cluster
