@@ -21,6 +21,12 @@
   * [Configuration](workloads/batch/configuration.md)
   * [Endpoints](workloads/batch/endpoints.md)
   * [Statuses](workloads/batch/statuses.md)
+* Task
+  * [Example](workloads/task/example.md)
+  * [Definiton](workloads/task/definitions.md)
+  * [Configuration](workloads/task/configuration.md)
+  * [Jobs](workloads/task/jobs.md)
+  * [Statuses](workloads/task/statuses.md)
 * Multi-model
   * [Example](workloads/multi-model/example.md)
   * [Configuration](workloads/multi-model/configuration.md)

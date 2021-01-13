@@ -53,6 +53,7 @@ RESPONSE:
 {
     "job_id": <string>,
     "api_name": <string>,
+    "kind": "BatchAPI",
     "workers": <int>,
     "config": {<string>: <any>},
     "api_id": <string>,
@@ -103,6 +104,7 @@ RESPONSE:
 {
     "job_id": <string>,
     "api_name": <string>,
+    "kind": "BatchAPI",
     "workers": <int>,
     "config": {<string>: <any>},
     "api_id": <string>,
@@ -152,6 +154,7 @@ RESPONSE:
 {
     "job_id": <string>,
     "api_name": <string>,
+    "kind": "BatchAPI",
     "workers": <int>,
     "config": {<string>: <any>},
     "api_id": <string>,
@@ -179,6 +182,7 @@ RESPONSE:
     "job_status": {
         "job_id": <string>,
         "api_name": <string>,
+        "kind": "BatchAPI",
         "workers": <int>,
         "config": {<string>: <any>},
         "api_id": <string>,
