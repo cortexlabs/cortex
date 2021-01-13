@@ -37,7 +37,7 @@ func (j JobKey) UserString() string {
 	return fmt.Sprintf("%s (%s api)", j.ID, j.APIName)
 }
 
-// e.g. /<cluster name>/batch_jobs/<cortex version>/<api_name>/<job_id>/spec.json
+// e.g. /<cluster name>/jobs/<job_api_kind>/<cortex version>/<api_name>/<job_id>/spec.json
 func (j JobKey) SpecFilePath(clusterName string) string {
 	return path.Join(j.Prefix(clusterName), "spec.json")
 }
@@ -89,7 +89,7 @@ type TaskJob struct {
 	StartTime   time.Time `json:"start_time"`
 }
 
-// e.g. <cluster_name>/<job_api_kind>/<cortex_version>/<api_name>
+// e.g. /<cluster name>/jobs/<job_api_kind>/<cortex version>/<api_name>
 func JobAPIPrefix(apiName string, clusterName string, kind userconfig.Kind) string {
 	return filepath.Join(clusterName, "jobs", kind.String(), consts.CortexVersion, apiName)
 }
