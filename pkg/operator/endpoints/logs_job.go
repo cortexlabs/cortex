@@ -21,6 +21,7 @@ import (
 
 	"github.com/cortexlabs/cortex/pkg/operator/resources"
 	"github.com/cortexlabs/cortex/pkg/operator/resources/job/batchapi"
+	"github.com/cortexlabs/cortex/pkg/operator/resources/job/taskapi"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	"github.com/gorilla/mux"
@@ -40,7 +41,7 @@ func ReadJobLogs(w http.ResponseWriter, r *http.Request) {
 		respondError(w, r, err)
 		return
 	}
-	if deployedResource.Kind != userconfig.BatchAPIKind {
+	if deployedResource.Kind != userconfig.BatchAPIKind && deployedResource.Kind != userconfig.TaskAPIKind {
 		respondError(w, r, resources.ErrorOperationIsOnlySupportedForKind(*deployedResource, userconfig.BatchAPIKind))
 		return
 	}
@@ -53,8 +54,14 @@ func ReadJobLogs(w http.ResponseWriter, r *http.Request) {
 	}
 	defer socket.Close()
 
-	batchapi.ReadLogs(spec.JobKey{
+	jobKey := spec.JobKey{
 		APIName: deployedResource.Name,
 		ID:      jobID,
-	}, socket)
+		Kind:    deployedResource.Kind,
+	}
+	if deployedResource.Kind == userconfig.BatchAPIKind {
+		batchapi.ReadLogs(jobKey, socket)
+	} else {
+		taskapi.ReadLogs(jobKey, socket)
+	}
 }

@@ -44,7 +44,7 @@ func ReadLogs(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if deployedResource.Kind == userconfig.BatchAPIKind {
+	if deployedResource.Kind == userconfig.BatchAPIKind || deployedResource.Kind == userconfig.TaskAPIKind {
 		respondError(w, r, ErrorLogsJobIDRequired(*deployedResource))
 		return
 	} else if deployedResource.Kind != userconfig.RealtimeAPIKind {
