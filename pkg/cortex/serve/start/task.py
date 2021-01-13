@@ -16,6 +16,7 @@ import json
 import os
 from copy import deepcopy
 
+from cortex_internal.lib import util
 from cortex_internal.lib.api import get_spec, TaskAPI
 from cortex_internal.lib.log import configure_logger
 
@@ -40,7 +41,7 @@ def start():
     task_spec_path = os.environ["CORTEX_TASK_SPEC"]
 
     _, api_spec = get_spec(provider, api_spec_path, cache_dir, region)
-    _, task_spec = get_spec(provider, task_spec_path, cache_dir, region)
+    _, task_spec = get_spec(provider, task_spec_path, cache_dir, region, spec_name="task-spec.json")
 
     logger.info("loading the task definition from {}".format(api_spec["definition"]["path"]))
     task_api = TaskAPI(provider, api_spec)
