@@ -17,28 +17,31 @@ limitations under the License.
 package main
 
 import (
+	"flag"
 	"fmt"
+	"log"
+	"net/http"
 	"os"
 	"sync"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/cloudwatch"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
 
-const _tickOffset = 1 * time.Second
-const _tickInterval = 10 * time.Second
-const _requestSampleInterval = 1 * time.Second
+const (
+	_tickInterval          = 10 * time.Second
+	_requestSampleInterval = 1 * time.Second
+	_defaultPort           = "15000"
+)
 
 var (
-	logger      *zap.Logger
-	client      *cloudwatch.CloudWatch
-	apiName     string
-	region      string
-	clusterName string
+	logger           *zap.Logger
+	requestCounter   Counter
+	inFlightReqGauge prometheus.Gauge
 )
 
 type Counter struct {
@@ -61,19 +64,22 @@ func (c *Counter) GetAllAndDelete() []int {
 	return output
 }
 
-// ./request-monitor api_name cluster_name
+// ./request-monitor -p port apiName
 func main() {
-	apiName = os.Args[1]
-	clusterName = os.Args[2]
-	region = os.Getenv("CORTEX_REGION")
-
-	sess, err := session.NewSession(&aws.Config{
-		Credentials: nil,
-		Region:      aws.String(region),
-	})
-	if err != nil {
-		panic(err)
+	if len(os.Args) < 2 {
+		log.Fatal("usage: ./request-monitor [-p port] apiName")
 	}
+
+	var (
+		port    = flag.String("p", _defaultPort, "port on which the server runs on")
+		apiName = os.Args[1]
+	)
+
+	inFlightReqGauge = promauto.NewGauge(prometheus.GaugeOpts{
+		Name:        "cortex_in_flight_requests",
+		Help:        "The number of in-flight requests for a cortex API",
+		ConstLabels: prometheus.Labels{"api_name": apiName},
+	})
 
 	logLevelEnv := os.Getenv("CORTEX_LOG_LEVEL")
 	var logLevelZap zapcore.Level
@@ -91,6 +97,7 @@ func main() {
 	encoderConfig := zap.NewProductionEncoderConfig()
 	encoderConfig.MessageKey = "message"
 
+	var err error
 	logger, err = zap.Config{
 		Level:            zap.NewAtomicLevelAt(logLevelZap),
 		Encoding:         "json",
@@ -101,12 +108,13 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	defer logger.Sync()
+	defer func() {
+		_ = logger.Sync()
+	}()
 
-	client = cloudwatch.New(sess)
-	requestCounter := Counter{}
-
-	os.OpenFile("/request_monitor_ready.txt", os.O_RDONLY|os.O_CREATE, 0666)
+	if _, err = os.OpenFile("/request_monitor_ready.txt", os.O_RDONLY|os.O_CREATE, 0666); err != nil {
+		panic(err)
+	}
 
 	for {
 		if _, err := os.Stat("/mnt/workspace/api_readiness.txt"); err == nil {
@@ -120,43 +128,35 @@ func main() {
 		}
 	}
 
-	targetTime := time.Now()
-	roundedTime := targetTime.Round(_tickInterval)
-	if roundedTime.Before(targetTime) {
-		roundedTime = roundedTime.Add(_tickInterval)
+	requestCounter = Counter{}
+	go launchCrons(&requestCounter)
+
+	http.Handle("/metrics", promhttp.Handler())
+
+	logger.Info(fmt.Sprintf("starting request monitor on :%s", *port))
+	if err := http.ListenAndServe(fmt.Sprintf(":%s", *port), nil); err != nil {
+		logger.Fatal(err.Error())
 	}
+}
 
-	targetTime = roundedTime.Add(_tickOffset)
-	startPublishing := time.NewTimer(targetTime.Sub(time.Now()))
-	defer startPublishing.Stop()
+func launchCrons(requestCounter *Counter) {
+	updateGaugeTicker := time.NewTicker(_tickInterval)
+	defer updateGaugeTicker.Stop()
 
-	requestSampler := time.NewTimer(_requestSampleInterval)
-	defer requestSampler.Stop()
+	requestSamplingTimer := time.NewTimer(_requestSampleInterval)
+	defer requestSamplingTimer.Stop()
 
 	for {
 		select {
-		case <-startPublishing.C:
-			go startPublisher(apiName, &requestCounter, client)
-		case <-requestSampler.C:
-			go updateOpenConnections(&requestCounter, requestSampler)
+		case <-updateGaugeTicker.C:
+			go updateGauge(requestCounter)
+		case <-requestSamplingTimer.C:
+			go updateOpenConnections(requestCounter, requestSamplingTimer)
 		}
 	}
 }
 
-func startPublisher(apiName string, requestCounter *Counter, client *cloudwatch.CloudWatch) {
-	metricsPublisher := time.NewTicker(_tickInterval)
-	defer metricsPublisher.Stop()
-
-	go publishStats(apiName, requestCounter, client)
-	for {
-		select {
-		case <-metricsPublisher.C:
-			go publishStats(apiName, requestCounter, client)
-		}
-	}
-}
-
-func publishStats(apiName string, counter *Counter, client *cloudwatch.CloudWatch) {
+func updateGauge(counter *Counter) {
 	requestCounts := counter.GetAllAndDelete()
 
 	total := 0.0
@@ -168,29 +168,7 @@ func publishStats(apiName string, counter *Counter, client *cloudwatch.CloudWatc
 		total /= float64(len(requestCounts))
 	}
 	logger.Debug(fmt.Sprintf("recorded %.2f in-flight requests on replica", total))
-	curTime := time.Now()
-	metricData := cloudwatch.PutMetricDataInput{
-		Namespace: aws.String(clusterName),
-		MetricData: []*cloudwatch.MetricDatum{
-			{
-				MetricName: aws.String("in-flight"),
-				Dimensions: []*cloudwatch.Dimension{
-					{
-						Name:  aws.String("apiName"),
-						Value: aws.String(apiName),
-					},
-				},
-				Timestamp:         &curTime,
-				Value:             aws.Float64(total),
-				Unit:              aws.String("Count"),
-				StorageResolution: aws.Int64(1),
-			},
-		},
-	}
-	_, err := client.PutMetricData(&metricData)
-	if err != nil {
-		logger.Error(fmt.Sprintf("error: publishing metrics: %s", err.Error()))
-	}
+	inFlightReqGauge.Set(total)
 }
 
 func getFileCount() int {
@@ -198,7 +176,10 @@ func getFileCount() int {
 	if err != nil {
 		panic(err)
 	}
-	defer dir.Close()
+	defer func() {
+		_ = dir.Close()
+	}()
+
 	fileNames, err := dir.Readdirnames(0)
 	if err != nil {
 		panic(err)
