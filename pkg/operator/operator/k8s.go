@@ -24,7 +24,6 @@ import (
 	"strings"
 
 	"github.com/cortexlabs/cortex/pkg/consts"
-	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
@@ -33,16 +32,17 @@ import (
 	"github.com/cortexlabs/cortex/pkg/types"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
-	istioclientnetworking "istio.io/client-go/pkg/apis/networking/v1beta1"
 	kcore "k8s.io/api/core/v1"
 	kresource "k8s.io/apimachinery/pkg/api/resource"
 	intstr "k8s.io/apimachinery/pkg/util/intstr"
 )
 
 const (
-	DefaultPortInt32 = int32(8888)
-	DefaultPortStr   = "8888"
-	APIContainerName = "api"
+	DefaultPortInt32               = int32(8888)
+	DefaultPortStr                 = "8888"
+	DefaultRequestMonitorPortStr   = "15000"
+	DefaultRequestMonitorPortInt32 = int32(15000)
+	APIContainerName               = "api"
 )
 
 const (
@@ -51,7 +51,6 @@ const (
 	_emptyDirMountPath                             = "/mnt"
 	_emptyDirVolumeName                            = "mnt"
 	_tfServingContainerName                        = "serve"
-	_tfServingModelName                            = "model"
 	_requestMonitorContainerName                   = "request-monitor"
 	_downloaderInitContainerName                   = "downloader"
 	_downloaderLastLog                             = "downloading the %s serving image"
@@ -935,11 +934,14 @@ func RequestMonitorContainer(api *spec.API) kcore.Container {
 		Name:            _requestMonitorContainerName,
 		Image:           config.Cluster.ImageRequestMonitor,
 		ImagePullPolicy: kcore.PullAlways,
-		Args:            []string{api.Name, config.ClusterName()},
-		Env:             getEnvVars(api, _requestMonitorContainerName),
-		EnvFrom:         baseEnvVars(),
-		VolumeMounts:    defaultVolumeMounts(),
-		ReadinessProbe:  FileExistsProbe(_requestMonitorReadinessFile),
+		Args:            []string{"-p", DefaultRequestMonitorPortStr, api.Name},
+		Ports: []kcore.ContainerPort{
+			{ContainerPort: DefaultRequestMonitorPortInt32},
+		},
+		Env:            getEnvVars(api, _requestMonitorContainerName),
+		EnvFrom:        baseEnvVars(),
+		VolumeMounts:   defaultVolumeMounts(),
+		ReadinessProbe: FileExistsProbe(_requestMonitorReadinessFile),
 		Resources: kcore.ResourceRequirements{
 			Requests: kcore.ResourceList{
 				kcore.ResourceCPU:    _requestMonitorCPURequest,
