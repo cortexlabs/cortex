@@ -35,7 +35,7 @@ import (
 )
 
 const (
-	ManageJobResourcesCronPeriod = 60 * time.Second // If this is going to be updated (made smaller), update the batch worker implementation
+	ManageJobResourcesCronPeriod = 60 * time.Second
 	_k8sJobExistenceGracePeriod  = 10 * time.Second
 )
 
@@ -79,7 +79,6 @@ func ManageJobResources() error {
 	for _, jobKey := range inProgressJobKeys {
 		k8sJob := k8sJobMap[jobKey.ID]
 
-		// get job state
 		jobState, err := job.GetJobState(jobKey)
 		if err != nil {
 			err := errors.FirstError(
@@ -93,7 +92,6 @@ func ManageJobResources() error {
 			continue
 		}
 
-		// check if job is not in progress
 		if !jobState.Status.IsInProgress() {
 			// best effort cleanup
 			_ = job.DeleteInProgressFile(jobKey)
@@ -119,7 +117,6 @@ func ManageJobResources() error {
 			}
 		}
 
-		// add job spec to cached job spec map
 		if _, ok := _inProgressJobSpecMap[jobKey.ID]; !ok {
 			jobSpec, err := downloadJobSpec(jobKey)
 			if err != nil {
@@ -138,7 +135,6 @@ func ManageJobResources() error {
 		}
 		jobSpec := _inProgressJobSpecMap[jobKey.ID]
 
-		// check if timeout was exceeded
 		if jobSpec.Timeout != nil && time.Since(jobSpec.StartTime) > time.Second*time.Duration(*jobSpec.Timeout) {
 			err := errors.FirstError(
 				job.SetTimedOutStatus(jobKey),
@@ -152,7 +148,6 @@ func ManageJobResources() error {
 			continue
 		}
 
-		// check if job has completed
 		if jobState.Status == status.JobRunning {
 			err = checkIfJobCompleted(jobKey, k8sJob)
 			if err != nil {
@@ -169,7 +164,6 @@ func ManageJobResources() error {
 			ID:      k8sJobMap[jobID].Labels["jobID"],
 		}
 
-		// delete K8s job
 		err := deleteJobRuntimeResources(jobKey)
 		if err != nil {
 			telemetry.Error(err)
