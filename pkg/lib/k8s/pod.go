@@ -435,5 +435,4 @@ func (c *Client) Exec(podName string, containerName string, command []string) (s
 	}
 
 	return buf.String(), nil
-
 }

@@ -61,7 +61,8 @@ function cluster_up_aws() {
   echo "✓"
 
   echo -n "￮ configuring logging "
-  envsubst < manifests/fluentd.yaml | kubectl apply -f - >/dev/null
+  python render_template.py $CORTEX_CLUSTER_CONFIG_FILE manifests/fluent-bit.yaml.j2 > /workspace/fluent-bit.yaml
+  kubectl apply -f /workspace/fluent-bit.yaml >/dev/null
   echo "✓"
 
   echo -n "￮ configuring metrics "
@@ -110,6 +111,11 @@ function cluster_up_gcp() {
   setup_istio
   python render_template.py $CORTEX_CLUSTER_CONFIG_FILE manifests/apis.yaml.j2 > /workspace/apis.yaml
   kubectl apply -f /workspace/apis.yaml >/dev/null
+  echo "✓"
+
+  echo -n "￮ configuring logging "
+  python render_template.py $CORTEX_CLUSTER_CONFIG_FILE manifests/fluent-bit.yaml.j2 > /workspace/fluent-bit.yaml
+  kubectl apply -f /workspace/fluent-bit.yaml >/dev/null
   echo "✓"
 
   if [ -n "$CORTEX_ACCELERATOR_TYPE" ]; then

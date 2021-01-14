@@ -98,7 +98,7 @@ image_metrics_server: quay.io/cortexlabs/metrics-server:master
 image_inferentia: quay.io/cortexlabs/inferentia:master
 image_neuron_rtd: quay.io/cortexlabs/neuron-rtd:master
 image_nvidia: quay.io/cortexlabs/nvidia:master
-image_fluentd: quay.io/cortexlabs/fluentd:master
+image_fluent_bit: quay.io/cortexlabs/fluent-bit:master
 image_statsd: quay.io/cortexlabs/statsd:master
 image_istio_proxy: quay.io/cortexlabs/istio-proxy:master
 image_istio_pilot: quay.io/cortexlabs/istio-pilot:master

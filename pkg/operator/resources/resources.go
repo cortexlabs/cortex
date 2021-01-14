@@ -26,9 +26,9 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/hash"
 	"github.com/cortexlabs/cortex/pkg/lib/parallel"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
-	"github.com/cortexlabs/cortex/pkg/lib/routines"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
+	"github.com/cortexlabs/cortex/pkg/operator/lib/routines"
 	"github.com/cortexlabs/cortex/pkg/operator/operator"
 	"github.com/cortexlabs/cortex/pkg/operator/resources/batchapi"
 	"github.com/cortexlabs/cortex/pkg/operator/resources/realtimeapi"
@@ -309,7 +309,7 @@ func DeleteAPI(apiName string, keepCache bool) (*schema.DeleteResponse, error) {
 			if err != nil {
 				telemetry.Error(err)
 			}
-		}, false)
+		})
 		return nil, ErrorAPINotDeployed(apiName)
 	}
 
