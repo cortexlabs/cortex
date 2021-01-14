@@ -66,15 +66,12 @@ data:
 
     @INCLUDE input-kubernetes.conf
     @INCLUDE filter-kubernetes.conf
-    @INCLUDE output-elasticsearch.conf
+    @INCLUDE output.conf
 
   input-kubernetes.conf: |
     [INPUT]
         Name              tail
         Tag               kube.*
-        # Tag               kube.*
-        # Tag_Regex         var.log.containers.(?<pod_name>[a-z0-9](?:[-a-z0-9]*[a-z0-9])?(?:\\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*)_(?<namespace_name>[^_]+)_(?<container_name>.+)-(?<docker_id>[a-z0-9]{64})\.log$
-        # Tag               k8s_container.<namespace_name>.<pod_name>.<container_name>
         Path              /var/log/containers/*.log
         Parser            docker
         DB                /var/log/flb_kube.db
@@ -90,6 +87,8 @@ data:
         Kube_Tag_Prefix     kube.var.log.containers.
         Merge_Log           On
 
+    # this retagging helps stackdriver and it doesn't matter for cloudwatch
+    # https://docs.fluentbit.io/manual/pipeline/outputs/stackdriver#configuration-file
     [FILTER]
         Name rewrite_tag
         Match kube.var.log.containers.*
@@ -100,12 +99,6 @@ data:
         Match               k8s_container.*
         Condition           Key_Exists message
         Hard_rename         message log
-
-
-    [FILTER]
-        name   grep
-        Match  k8s_container.*
-        Exclude $kubernetes['container_name'] fluent-bit
 
     [FILTER]
         Name                nest
@@ -125,7 +118,7 @@ data:
         Match               k8s_container.*
         Remove_wildcard     k8s.
 
-  output-elasticsearch.conf: |
+  output.conf: |
     {% if env['CORTEX_PROVIDER'] == "aws" %}
     [OUTPUT]
         Name              cloudwatch
@@ -153,10 +146,6 @@ data:
         Time_Key    time
         Time_Format %Y-%m-%dT%H:%M:%S.%L
         Time_Keep   On
-        # Command      |  Decoder | Field | Optional Action
-        # =============|==================|=================
-        # Decode_Field_As   escaped_utf8    log    do_next
-        # Decode_Field_As   json       log
 ---
 apiVersion: apps/v1
 kind: DaemonSet
@@ -177,14 +166,14 @@ spec:
     spec:
       containers:
         - name: fluent-bit
-          image: amazon/aws-for-fluent-bit:latest
+          image: {{ config["image_fluent_bit"] }}
           imagePullPolicy: Always
           resources:
             requests:
-              cpu: 200m
-              memory: 200Mi
+              cpu: 100m
+              memory: 150Mi
             limits:
-              memory: 200Mi
+              memory: 150Mi
           ports:
             - containerPort: 2020
           {% if env['CORTEX_PROVIDER'] == "gcp" %}

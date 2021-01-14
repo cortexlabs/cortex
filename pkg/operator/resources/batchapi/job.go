@@ -20,9 +20,10 @@ import (
 	"time"
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
-	"github.com/cortexlabs/cortex/pkg/lib/routines"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
+	"github.com/cortexlabs/cortex/pkg/operator/lib/logging"
+	"github.com/cortexlabs/cortex/pkg/operator/lib/routines"
 	"github.com/cortexlabs/cortex/pkg/operator/operator"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
@@ -111,6 +112,7 @@ func SubmitJob(apiName string, submission *schema.JobSubmission) (*spec.Job, err
 
 	logger, err := operator.GetJobLoggerFromSpec(apiSpec, jobKey)
 	if err != nil {
+		deleteQueueByURL(queueURL)
 		return nil, err
 	}
 
@@ -124,7 +126,7 @@ func SubmitJob(apiName string, submission *schema.JobSubmission) (*spec.Job, err
 
 	routines.RunWithPanicHandler(func() {
 		deployJob(apiSpec, &jobSpec, submission)
-	}, false)
+	})
 
 	return &jobSpec, nil
 }
@@ -141,7 +143,7 @@ func deployJob(apiSpec *spec.API, jobSpec *spec.Job, submission *schema.JobSubmi
 	logger, err := operator.GetJobLoggerFromSpec(apiSpec, jobSpec.JobKey)
 	if err != nil {
 		telemetry.Error(err)
-		operator.Logger.Error(err)
+		logging.Logger.Error(err)
 		return
 	}
 
@@ -155,14 +157,14 @@ func deployJob(apiSpec *spec.API, jobSpec *spec.Job, submission *schema.JobSubmi
 		)
 		if err != nil {
 			telemetry.Error(err)
-			operator.Logger.Error(err)
+			logging.Logger.Error(err)
 		}
 		return
 	}
 
 	if totalBatches == 0 {
 		var errs []error
-		logger.Error(ErrorNoDataFoundInJobSubmission().Error())
+		logger.Error(ErrorNoDataFoundInJobSubmission())
 		if submission.DelimitedFiles != nil {
 			logger.Error("please verify that the files are not empty (the files being read can be retrieved by providing `dryRun=true` query param with your job submission")
 		}
@@ -172,7 +174,7 @@ func deployJob(apiSpec *spec.API, jobSpec *spec.Job, submission *schema.JobSubmi
 		err := errors.FirstError(errs...)
 		if err != nil {
 			telemetry.Error(err)
-			operator.Logger.Error(err)
+			logging.Logger.Error(err)
 		}
 		return
 	}
@@ -204,7 +206,7 @@ func handleJobSubmissionError(jobKey spec.JobKey, jobErr error) {
 	logger, err := operator.GetJobLogger(jobKey)
 	if err != nil {
 		telemetry.Error(err)
-		operator.Logger.Error(err)
+		logging.Logger.Error(err)
 		return
 	}
 
@@ -215,7 +217,7 @@ func handleJobSubmissionError(jobKey spec.JobKey, jobErr error) {
 	)
 	if err != nil {
 		telemetry.Error(err)
-		operator.Logger.Error(err)
+		logging.Logger.Error(err)
 	}
 }
 
@@ -262,14 +264,14 @@ func StopJob(jobKey spec.JobKey) error {
 	if err != nil {
 		routines.RunWithPanicHandler(func() {
 			deleteJobRuntimeResources(jobKey)
-		}, false)
+		})
 		return err
 	}
 
 	if !jobState.Status.IsInProgress() {
 		routines.RunWithPanicHandler(func() {
 			deleteJobRuntimeResources(jobKey)
-		}, false)
+		})
 		return errors.Wrap(ErrorJobIsNotInProgress(), jobKey.UserString())
 	}
 

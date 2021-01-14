@@ -22,7 +22,7 @@ import (
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
-	"github.com/cortexlabs/cortex/pkg/operator/operator"
+	"github.com/cortexlabs/cortex/pkg/operator/lib/logging"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
 )
 
@@ -56,7 +56,7 @@ func respondErrorCode(w http.ResponseWriter, r *http.Request, code int, err erro
 	}
 
 	if !errors.IsNoPrint(err) {
-		operator.Logger.Error(err)
+		logging.Logger.Error(err)
 	}
 
 	w.Header().Set("Content-Type", "application/json")

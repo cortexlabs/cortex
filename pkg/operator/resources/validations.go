@@ -152,11 +152,11 @@ var _cortexCPUReserve = kresource.MustParse("610m")
 /*
 Memory Reservations:
 
-FluentBit 200
+FluentBit 150
 StatsD 100
 Reserved (300 + 300 + 200) see eks.yaml for details
 */
-var _cortexMemReserve = kresource.MustParse("1100Mi")
+var _cortexMemReserve = kresource.MustParse("1050Mi")
 
 var _nvidiaCPUReserve = kresource.MustParse("100m")
 var _nvidiaMemReserve = kresource.MustParse("100Mi")

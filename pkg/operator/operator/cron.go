@@ -24,6 +24,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
+	"github.com/cortexlabs/cortex/pkg/operator/lib/logging"
 	"github.com/cortexlabs/cortex/pkg/types/clusterconfig"
 	kmeta "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -240,6 +241,6 @@ func ErrorHandler(cronName string) func(error) {
 	return func(err error) {
 		err = errors.Wrap(err, cronName+" cron failed")
 		telemetry.Error(err)
-		Logger.Error(err)
+		logging.Logger.Error(err)
 	}
 }

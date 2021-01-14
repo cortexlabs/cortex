@@ -257,7 +257,7 @@ Note: overriding horizontal-pod-autoscaler-sync-period on EKS is currently not s
 ## kubectl
 
 1. Find the latest release [here](https://storage.googleapis.com/kubernetes-release/release/stable.txt)
-1. Update the version in `images/manager/Dockerfile`
+1. Update the version in `images/manager/Dockerfile` and `images/operator/Dockerfile`
 1. Update your local version and alert developers
    * Linux:
      1. `curl -LO https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl`

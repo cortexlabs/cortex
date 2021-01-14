@@ -37,7 +37,7 @@ func logsInit() {
 
 var _logsCmd = &cobra.Command{
 	Use:   "logs API_NAME [JOB_ID]",
-	Short: "stream logs for a single replica of an api",
+	Short: "stream logs for a single replica/worker of an api",
 	Args:  cobra.RangeArgs(1, 2),
 	Run: func(cmd *cobra.Command, args []string) {
 		envName, err := getEnvFromFlag(_flagLogsEnv)
@@ -83,7 +83,7 @@ var _logsCmd = &cobra.Command{
 			}
 
 			if jobResponse.JobStatus.Job.Workers > 1 && !_flagLogsDisallowPrompt {
-				prompt.YesOrExit("logs from a single random replica will be streamed\n\nfor aggregated logs please visit your cloud provider's logging dashboard; see https://docs.cortex.dev for details", "", "")
+				prompt.YesOrExit("logs from a single random worker will be streamed\n\nfor aggregated logs please visit your cloud provider's logging dashboard; see https://docs.cortex.dev for details", "", "")
 			}
 
 			err = cluster.StreamJobLogs(operatorConfig, apiName, args[1])

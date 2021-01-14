@@ -25,6 +25,8 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 	"github.com/cortexlabs/cortex/pkg/operator/endpoints"
+	"github.com/cortexlabs/cortex/pkg/operator/lib/exit"
+	"github.com/cortexlabs/cortex/pkg/operator/lib/logging"
 	"github.com/cortexlabs/cortex/pkg/operator/operator"
 	"github.com/cortexlabs/cortex/pkg/operator/resources/batchapi"
 	"github.com/cortexlabs/cortex/pkg/operator/resources/realtimeapi"
@@ -37,7 +39,7 @@ const _operatorPortStr = "8888"
 
 func main() {
 	if err := config.Init(); err != nil {
-		operator.Logger.Fatal(err)
+		exit.ErrorNoTelemetry(errors.Wrap(err, "init"))
 	}
 
 	telemetry.Event("operator.init", map[string]interface{}{"provider": config.Provider})
@@ -54,18 +56,24 @@ func main() {
 	if config.Provider == types.AWSProviderType {
 		_, err := operator.UpdateMemoryCapacityConfigMap()
 		if err != nil {
-			operator.Logger.Fatal(errors.Wrap(err, "init"))
+			exit.Error(errors.Wrap(err, "init"))
 		}
 
 		deployments, err := config.K8s.ListDeploymentsWithLabelKeys("apiName")
 		if err != nil {
-			operator.Logger.Fatal(errors.Wrap(err, "init"))
+			exit.Error(errors.Wrap(err, "init"))
 		}
 
 		for _, deployment := range deployments {
 			if userconfig.KindFromString(deployment.Labels["apiKind"]) == userconfig.RealtimeAPIKind {
-				if err := realtimeapi.UpdateAutoscalerCron(&deployment); err != nil {
-					operator.Logger.Fatal(errors.Wrap(err, "init"))
+				apiID := deployment.Labels["apiID"]
+				apiName := deployment.Labels["apiName"]
+				api, err := operator.DownloadAPISpec(apiName, apiID)
+				if err != nil {
+					exit.Error(errors.Wrap(err, "init"))
+				}
+				if err := realtimeapi.UpdateAutoscalerCron(&deployment, api); err != nil {
+					logging.Logger.Fatal(errors.Wrap(err, "init"))
 				}
 			}
 		}
@@ -102,6 +110,6 @@ func main() {
 	routerWithAuth.HandleFunc("/get/{apiName}/{apiID}", endpoints.GetAPIByID).Methods("GET")
 	routerWithAuth.HandleFunc("/logs/{apiName}", endpoints.ReadLogs)
 
-	operator.Logger.Info("Running on port " + _operatorPortStr)
-	operator.Logger.Fatal(http.ListenAndServe(":"+_operatorPortStr, router))
+	logging.Logger.Info("Running on port " + _operatorPortStr)
+	logging.Logger.Fatal(http.ListenAndServe(":"+_operatorPortStr, router))
 }

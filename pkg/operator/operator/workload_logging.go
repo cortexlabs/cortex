@@ -18,7 +18,6 @@ package operator
 
 import (
 	"bufio"
-	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -27,9 +26,10 @@ import (
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
-	"github.com/cortexlabs/cortex/pkg/lib/routines"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
+	"github.com/cortexlabs/cortex/pkg/operator/lib/logging"
+	"github.com/cortexlabs/cortex/pkg/operator/lib/routines"
 	"github.com/gorilla/websocket"
 )
 
@@ -39,17 +39,17 @@ const (
 	_socketMaxMessageSize    = 8192
 	_readBufferSize          = 4096
 
-	_waitForPod = 1 * time.Second
-	_pollPeriod = 250 * time.Millisecond
+	_pendingPodCheckInterval = 1 * time.Second
+	_pollPeriod              = 250 * time.Millisecond
 )
 
-func waitForPodPendingToComplete(podName string, podCheckCancel chan struct{}, socket *websocket.Conn) bool {
+func waitForPodToBeNotPending(podName string, cancelListener chan struct{}, socket *websocket.Conn) bool {
 	wrotePending := false
 	timer := time.NewTimer(0)
 
 	for true {
 		select {
-		case <-podCheckCancel:
+		case <-cancelListener:
 			return false
 		case <-timer.C:
 			pod, err := config.K8s.GetPod(podName)
@@ -67,7 +67,7 @@ func waitForPodPendingToComplete(podName string, podCheckCancel chan struct{}, s
 					writeString(socket, "waiting for replica/worker to initialize ...\n")
 				}
 				wrotePending = true
-				timer.Reset(_waitForPod)
+				timer.Reset(_pendingPodCheckInterval)
 				continue
 			}
 			return true
@@ -81,41 +81,39 @@ type jsonMessage struct {
 	ExcInfo string `json:"exc_info"`
 }
 
-func startKubectlProcess(podName string, podCheckCancel chan struct{}, socket *websocket.Conn) {
-	shouldContinue := waitForPodPendingToComplete(podName, podCheckCancel, socket)
+func startKubectlProcess(podName string, cancelListener chan struct{}, socket *websocket.Conn) {
+	shouldContinue := waitForPodToBeNotPending(podName, cancelListener, socket)
 	if !shouldContinue {
 		return
 	}
 
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
 	kubectlArgs := []string{"/usr/local/bin/kubectl", "-n=" + "default", "logs", "--all-containers", podName, "--follow"}
 
-	cmd := exec.CommandContext(ctx, kubectlArgs[0], kubectlArgs[1:]...)
+	cmd := exec.Command(kubectlArgs[0], kubectlArgs[1:]...)
+
+	cleanup := func() {
+		// trigger a wait on the child process and while the process is being waited on,
+		// send the kill signal to allow cleanup to happen correctly and prevent zombie processes
+		time.AfterFunc(1*time.Second, func() {
+			cmd.Process.Kill()
+		})
+
+		cmd.Process.Wait()
+	}
+	defer cleanup()
 
 	logStream, err := cmd.StdoutPipe()
 	if err != nil {
 		telemetry.Error(errors.ErrorUnexpected(err.Error()))
-		Logger.Error(err)
+		logging.Logger.Error(err)
 	}
 	cmd.Start()
 
-	go pumpStdout(socket, logStream)
+	routines.RunWithPanicHandler(func() {
+		pumpStdout(socket, logStream)
+	})
 
-waitForCancel:
-	for true {
-		select {
-		case <-podCheckCancel:
-			break waitForCancel
-		}
-	}
-
-	go func() {
-		time.Sleep(1 * time.Second)
-		cmd.Process.Kill()
-	}()
-	cmd.Process.Wait() // trigger a wait on the process and then kill the process to prevent zombie processes
+	<-cancelListener
 }
 
 func pumpStdout(socket *websocket.Conn, reader io.Reader) {
@@ -148,13 +146,13 @@ func StreamLogsFromRandomPod(podSearchLabels map[string]string, socket *websocke
 		return
 	}
 
-	podCheckCancel := make(chan struct{})
-	defer close(podCheckCancel)
+	cancelListener := make(chan struct{})
+	defer close(cancelListener)
 	routines.RunWithPanicHandler(func() {
-		startKubectlProcess(pods[0].Name, podCheckCancel, socket)
-	}, false)
+		startKubectlProcess(pods[0].Name, cancelListener, socket)
+	})
 	pumpStdin(socket)
-	podCheckCancel <- struct{}{}
+	cancelListener <- struct{}{}
 }
 
 func pumpStdin(socket *websocket.Conn) {

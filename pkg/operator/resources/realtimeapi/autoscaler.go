@@ -86,13 +86,11 @@ func (recs recommendations) minSince(period time.Duration) *int32 {
 	return &min
 }
 
-func autoscaleFn(initialDeployment *kapps.Deployment) (func() error, error) {
+func autoscaleFn(initialDeployment *kapps.Deployment, apiSpec *spec.API) (func() error, error) {
 	autoscalingSpec, err := userconfig.AutoscalingFromAnnotations(initialDeployment)
 	if err != nil {
 		return nil, err
 	}
-
-	apiSpec, err := operator.DownloadAPISpec(initialDeployment.Labels["apiName"], initialDeployment.Labels["apiID"])
 
 	apiName := apiSpec.Name
 	currentReplicas := *initialDeployment.Spec.Replicas

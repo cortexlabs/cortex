@@ -25,11 +25,11 @@ import (
 	"os/signal"
 	"strings"
 
+	"github.com/cortexlabs/cortex/cli/lib/routines"
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/exit"
 	"github.com/cortexlabs/cortex/pkg/lib/json"
-	"github.com/cortexlabs/cortex/pkg/lib/routines"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
 	"github.com/gorilla/websocket"
 )
