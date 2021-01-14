@@ -89,9 +89,5 @@ var _patchCmd = &cobra.Command{
 				print.BoldFirstBlock(message)
 			}
 		}
-
-		if didAnyResultsError(deployResults) {
-			exit.Error(nil)
-		}
 	},
 }
