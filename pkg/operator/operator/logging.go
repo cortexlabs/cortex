@@ -134,30 +134,33 @@ func GetJobLogger(jobKey spec.JobKey) (*zap.SugaredLogger, error) {
 	}
 
 	apiName := jobKey.APIName
-	var apiID string
+	var logLevel userconfig.LogLevel
 	switch jobKey.Kind {
 	case userconfig.BatchAPIKind:
 		jobSpec, err := DownloadBatchJobSpec(jobKey)
 		if err != nil {
 			return nil, err
 		}
-		apiID = jobSpec.APIID
+		apiSpec, err := DownloadAPISpec(apiName, jobSpec.APIID)
+		if err != nil {
+			return nil, err
+		}
+		logLevel = apiSpec.Predictor.LogLevel
 	case userconfig.TaskAPIKind:
 		jobSpec, err := DownloadTaskJobSpec(jobKey)
 		if err != nil {
 			return nil, err
 		}
-		apiID = jobSpec.APIID
+		apiSpec, err := DownloadAPISpec(apiName, jobSpec.APIID)
+		if err != nil {
+			return nil, err
+		}
+		logLevel = apiSpec.TaskDefinition.LogLevel
 	default:
 		return nil, errors.ErrorUnexpected("unexpected kind", jobKey.Kind.String())
 	}
 
-	apiSpec, err := DownloadAPISpec(apiName, apiID)
-	if err != nil {
-		return nil, err
-	}
-
-	return initializeLogger(loggerCacheKey, apiSpec.Predictor.LogLevel, map[string]interface{}{
+	return initializeLogger(loggerCacheKey, logLevel, map[string]interface{}{
 		"apiName": jobKey.APIName,
 		"apiKind": jobKey.Kind.String(),
 		"jobID":   jobKey.ID,
