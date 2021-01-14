@@ -17,6 +17,7 @@ limitations under the License.
 package operator
 
 import (
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/parallel"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
@@ -55,4 +56,22 @@ func DownloadAPISpecs(apiNames []string, apiIDs []string) ([]spec.API, error) {
 	}
 
 	return apis, nil
+}
+
+func DownloadBatchJobSpec(jobKey spec.JobKey) (*spec.BatchJob, error) {
+	jobSpec := spec.BatchJob{}
+	err := config.ReadJSONFromBucket(&jobSpec, jobKey.SpecFilePath(config.Cluster.ClusterName))
+	if err != nil {
+		return nil, errors.Wrap(err, "unable to download job specification", jobKey.UserString())
+	}
+	return &jobSpec, nil
+}
+
+func DownloadTaskJobSpec(jobKey spec.JobKey) (*spec.TaskJob, error) {
+	jobSpec := spec.TaskJob{}
+	err := config.ReadJSONFromBucket(&jobSpec, jobKey.SpecFilePath(config.Cluster.ClusterName))
+	if err != nil {
+		return nil, errors.Wrap(err, "unable to download job specification", jobKey.UserString())
+	}
+	return &jobSpec, nil
 }

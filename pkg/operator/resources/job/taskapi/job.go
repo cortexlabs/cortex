@@ -20,9 +20,9 @@ import (
 	"time"
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
-	"github.com/cortexlabs/cortex/pkg/lib/routines"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
+	"github.com/cortexlabs/cortex/pkg/operator/lib/routines"
 	"github.com/cortexlabs/cortex/pkg/operator/operator"
 	"github.com/cortexlabs/cortex/pkg/operator/resources/job"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
@@ -70,17 +70,8 @@ func SubmitJob(apiName string, submission *schema.TaskJobSubmission) (*spec.Task
 
 	routines.RunWithPanicHandler(func() {
 		deployJob(apiSpec, &jobSpec)
-	}, false)
+	})
 
-	return &jobSpec, nil
-}
-
-func downloadJobSpec(jobKey spec.JobKey) (*spec.TaskJob, error) {
-	jobSpec := spec.TaskJob{}
-	err := config.ReadJSONFromBucket(&jobSpec, jobKey.SpecFilePath(config.ClusterName()))
-	if err != nil {
-		return nil, errors.Wrap(err, "unable to download job specification", jobKey.UserString())
-	}
 	return &jobSpec, nil
 }
 
@@ -133,14 +124,14 @@ func StopJob(jobKey spec.JobKey) error {
 	if err != nil {
 		routines.RunWithPanicHandler(func() {
 			deleteJobRuntimeResources(jobKey)
-		}, false)
+		})
 		return err
 	}
 
 	if !jobState.Status.IsInProgress() {
 		routines.RunWithPanicHandler(func() {
 			deleteJobRuntimeResources(jobKey)
-		}, false)
+		})
 		return errors.Wrap(job.ErrorJobIsNotInProgress(jobKey.Kind), jobKey.UserString())
 	}
 

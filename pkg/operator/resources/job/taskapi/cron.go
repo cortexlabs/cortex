@@ -25,6 +25,8 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
+	"github.com/cortexlabs/cortex/pkg/operator/lib/logging"
+	"github.com/cortexlabs/cortex/pkg/operator/operator"
 	"github.com/cortexlabs/cortex/pkg/operator/resources/job"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/types/status"
@@ -39,6 +41,7 @@ const (
 	_k8sJobExistenceGracePeriod  = 10 * time.Second
 )
 
+var operatorLogger = logging.GetOperatorLogger()
 var _inProgressJobSpecMap = map[string]*spec.TaskJob{}
 
 func ManageJobResources() error {
@@ -77,17 +80,26 @@ func ManageJobResources() error {
 	}
 
 	for _, jobKey := range inProgressJobKeys {
+		jobLogger, err := operator.GetJobLogger(jobKey)
+		if err != nil {
+			telemetry.Error(err)
+			operatorLogger.Error(err)
+			continue
+		}
+
 		k8sJob := k8sJobMap[jobKey.ID]
 
 		jobState, err := job.GetJobState(jobKey)
 		if err != nil {
+			jobLogger.Error(err)
+			jobLogger.Error("terminating job and cleaning up job resources")
 			err := errors.FirstError(
 				job.DeleteInProgressFile(jobKey),
 				deleteJobRuntimeResources(jobKey),
 			)
 			if err != nil {
 				telemetry.Error(err)
-				errors.PrintError(err)
+				operatorLogger.Error(err)
 			}
 			continue
 		}
@@ -100,34 +112,34 @@ func ManageJobResources() error {
 		}
 
 		// reconcile job state and k8s job
-		newStatusCode, _, err := reconcileInProgressJob(jobState, k8sJob)
+		newStatusCode, msg, err := reconcileInProgressJob(jobState, k8sJob)
 		if err != nil {
 			telemetry.Error(err)
-			errors.PrintError(err)
+			operatorLogger.Error(err)
+			continue
 		}
 		if newStatusCode != jobState.Status {
-			err = errors.FirstError(
-				// writeToJobLogStream(jobKey, msg),
-				job.SetStatusForJob(jobKey, newStatusCode),
-			)
+			jobLogger.Error(msg)
+			err := job.SetStatusForJob(jobKey, newStatusCode)
 			if err != nil {
 				telemetry.Error(err)
-				errors.PrintError(err)
+				operatorLogger.Error(err)
 				continue
 			}
 		}
 
 		if _, ok := _inProgressJobSpecMap[jobKey.ID]; !ok {
-			jobSpec, err := downloadJobSpec(jobKey)
+			jobSpec, err := operator.DownloadTaskJobSpec(jobKey)
 			if err != nil {
-				// writeToJobLogStream(jobKey, err.Error(), "terminating job and cleaning up job resources")
+				jobLogger.Error(err)
+				jobLogger.Error("terminating job and cleaning up job resources")
 				err := errors.FirstError(
 					job.DeleteInProgressFile(jobKey),
 					deleteJobRuntimeResources(jobKey),
 				)
 				if err != nil {
 					telemetry.Error(err)
-					errors.PrintError(err)
+					operatorLogger.Error(err)
 				}
 				continue
 			}
@@ -136,14 +148,14 @@ func ManageJobResources() error {
 		jobSpec := _inProgressJobSpecMap[jobKey.ID]
 
 		if jobSpec.Timeout != nil && time.Since(jobSpec.StartTime) > time.Second*time.Duration(*jobSpec.Timeout) {
+			jobLogger.Errorf("terminating job after exceeding the specified timeout of %d seconds", *jobSpec.Timeout)
 			err := errors.FirstError(
 				job.SetTimedOutStatus(jobKey),
 				deleteJobRuntimeResources(jobKey),
-				// writeToJobLogStream(jobKey, fmt.Sprintf("terminating job after exceeding the specified timeout of %d seconds", *jobSpec.Timeout)),
 			)
 			if err != nil {
 				telemetry.Error(err)
-				errors.PrintError(err)
+				operatorLogger.Error(err)
 			}
 			continue
 		}
@@ -152,7 +164,7 @@ func ManageJobResources() error {
 			err = checkIfJobCompleted(jobKey, k8sJob)
 			if err != nil {
 				telemetry.Error(err)
-				errors.PrintError(err)
+				operatorLogger.Error(err)
 			}
 		}
 	}
@@ -167,7 +179,7 @@ func ManageJobResources() error {
 		err := deleteJobRuntimeResources(jobKey)
 		if err != nil {
 			telemetry.Error(err)
-			errors.PrintError(err)
+			operatorLogger.Error(err)
 		}
 	}
 

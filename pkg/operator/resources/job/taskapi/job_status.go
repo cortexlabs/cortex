@@ -18,6 +18,7 @@ package taskapi
 
 import (
 	"github.com/cortexlabs/cortex/pkg/operator/config"
+	"github.com/cortexlabs/cortex/pkg/operator/operator"
 	"github.com/cortexlabs/cortex/pkg/operator/resources/job"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/types/status"
@@ -56,7 +57,7 @@ func getJobStatusFromK8sJob(jobKey spec.JobKey, k8sJob *kbatch.Job, pods []kcore
 func getJobStatusFromJobState(jobState *job.State, k8sJob *kbatch.Job, pods []kcore.Pod) (*status.TaskJobStatus, error) {
 	jobKey := jobState.JobKey
 
-	jobSpec, err := downloadJobSpec(jobKey)
+	jobSpec, err := operator.DownloadTaskJobSpec(jobKey)
 	if err != nil {
 		return nil, err
 	}

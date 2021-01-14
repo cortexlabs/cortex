@@ -17,29 +17,28 @@ limitations under the License.
 package cmd
 
 import (
-	"fmt"
-	"net/http"
-	"net/url"
-
 	"github.com/cortexlabs/cortex/cli/cluster"
-	"github.com/cortexlabs/cortex/pkg/lib/console"
 	"github.com/cortexlabs/cortex/pkg/lib/exit"
+	"github.com/cortexlabs/cortex/pkg/lib/prompt"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
-	"github.com/cortexlabs/cortex/pkg/operator/schema"
-	"github.com/cortexlabs/cortex/pkg/types"
+	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	"github.com/spf13/cobra"
 )
 
-var _flagLogsEnv string
+var (
+	_flagLogsEnv            string
+	_flagLogsDisallowPrompt bool
+)
 
 func logsInit() {
 	_logsCmd.Flags().SortFlags = false
 	_logsCmd.Flags().StringVarP(&_flagLogsEnv, "env", "e", "", "environment to use")
+	_logsCmd.Flags().BoolVarP(&_flagLogsDisallowPrompt, "yes", "y", false, "skip prompts")
 }
 
 var _logsCmd = &cobra.Command{
 	Use:   "logs API_NAME [JOB_ID]",
-	Short: "stream logs from an api",
+	Short: "stream logs from a single replica of an api or a single worker for a job",
 	Args:  cobra.RangeArgs(1, 2),
 	Run: func(cmd *cobra.Command, args []string) {
 		envName, err := getEnvFromFlag(_flagLogsEnv)
@@ -60,50 +59,41 @@ var _logsCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
+		operatorConfig := MustGetOperatorConfig(env.Name)
 		apiName := args[0]
-		if env.Provider == types.AWSProviderType {
-			if len(args) == 1 {
-				err := cluster.StreamLogs(MustGetOperatorConfig(env.Name), apiName)
-				if err != nil {
-					exit.Error(err)
-				}
+
+		apiResponse, err := cluster.GetAPI(operatorConfig, apiName)
+		if err != nil {
+			exit.Error(err)
+		}
+
+		if len(args) == 1 {
+			if apiResponse[0].Status.Requested > 1 && !_flagLogsDisallowPrompt {
+				prompt.YesOrExit("logs from a single random replica will be streamed\n\nfor aggregated logs please visit your cloud provider's logging dashboard; see https://docs.cortex.dev for details", "", "")
 			}
-			if len(args) == 2 {
-				err := cluster.StreamJobLogs(MustGetOperatorConfig(env.Name), apiName, args[1])
-				if err != nil {
-					exit.Error(err)
-				}
+
+			err = cluster.StreamLogs(operatorConfig, apiName)
+			if err != nil {
+				exit.Error(err)
 			}
 		}
 
-		if env.Provider == types.GCPProviderType {
-			var err error
-			var gcpLogsResponse schema.GCPLogsResponse
-			if len(args) == 1 {
-				gcpLogsResponse, err = cluster.GetGCPLogsURL(MustGetOperatorConfig(env.Name), apiName)
+		if len(args) == 2 {
+			if apiResponse[0].Spec.Kind == userconfig.BatchAPIKind {
+				jobResponse, err := cluster.GetBatchJob(operatorConfig, apiName, args[1])
+				if err != nil {
+					exit.Error(err)
+				}
+
+				if jobResponse.JobStatus.Workers > 1 && !_flagLogsDisallowPrompt {
+					prompt.YesOrExit("logs from a single random worker will be streamed\n\nfor aggregated logs please visit your cloud provider's logging dashboard; see https://docs.cortex.dev for details", "", "")
+				}
 			}
-			if len(args) == 2 {
-				gcpLogsResponse, err = cluster.GetGCPJobLogsURL(MustGetOperatorConfig(env.Name), apiName, args[1])
-			}
+
+			err = cluster.StreamJobLogs(operatorConfig, apiName, args[1])
 			if err != nil {
 				exit.Error(err)
 			}
-
-			gcpReq, err := http.NewRequest("GET", "https://console.cloud.google.com/logs/query", nil)
-			if err != nil {
-				exit.Error(err)
-			}
-			query := ""
-			for q, v := range gcpLogsResponse.QueryParams {
-				query += fmt.Sprintf("%s=\"%s\"\n", q, v)
-			}
-			queryValues := make(url.Values)
-			queryValues.Add("query", query)
-			gcpReq.URL.RawQuery = queryValues.Encode()
-
-			gcpLogsURL := gcpReq.URL.String()
-			consoleOutput := console.Bold(fmt.Sprintf("visit the following link to view logs for api %s: ", apiName)) + gcpLogsURL
-			fmt.Println(consoleOutput)
 		}
 	},
 }

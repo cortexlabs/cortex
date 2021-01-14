@@ -47,6 +47,7 @@ type GCPConfig struct {
 	ImageOperator    string             `json:"image_operator" yaml:"image_operator"`
 	ImageManager     string             `json:"image_manager" yaml:"image_manager"`
 	ImageDownloader  string             `json:"image_downloader" yaml:"image_downloader"`
+	ImageFluentBit   string             `json:"image_fluent_bit" yaml:"image_fluent_bit"`
 	ImageIstioProxy  string             `json:"image_istio_proxy" yaml:"image_istio_proxy"`
 	ImageIstioPilot  string             `json:"image_istio_pilot" yaml:"image_istio_pilot"`
 	ImageGooglePause string             `json:"image_google_pause" yaml:"image_google_pause"`
@@ -194,6 +195,13 @@ var UserGCPValidation = &cr.StructValidation{
 			StructField: "ImageDownloader",
 			StringValidation: &cr.StringValidation{
 				Default:   "quay.io/cortexlabs/downloader:" + consts.CortexVersion,
+				Validator: validateImageVersion,
+			},
+		},
+		{
+			StructField: "ImageFluentBit",
+			StringValidation: &cr.StringValidation{
+				Default:   "quay.io/cortexlabs/fluent-bit:" + consts.CortexVersion,
 				Validator: validateImageVersion,
 			},
 		},
@@ -497,6 +505,7 @@ func (cc *GCPConfig) UserTable() table.KeyValuePairs {
 	items.Add(ImageOperatorUserKey, cc.ImageOperator)
 	items.Add(ImageManagerUserKey, cc.ImageManager)
 	items.Add(ImageDownloaderUserKey, cc.ImageDownloader)
+	items.Add(ImageFluentBitUserKey, cc.ImageFluentBit)
 	items.Add(ImageIstioProxyUserKey, cc.ImageIstioProxy)
 	items.Add(ImageIstioPilotUserKey, cc.ImageIstioPilot)
 	items.Add(ImageGooglePauseUserKey, cc.ImageGooglePause)
@@ -550,6 +559,9 @@ func (cc *GCPConfig) TelemetryEvent() map[string]interface{} {
 	}
 	if !strings.HasPrefix(cc.ImageDownloader, "cortexlabs/") {
 		event["image_downloader._is_custom"] = true
+	}
+	if !strings.HasPrefix(cc.ImageFluentBit, "cortexlabs/") {
+		event["image_fluent_bit._is_custom"] = true
 	}
 	if !strings.HasPrefix(cc.ImageIstioProxy, "cortexlabs/") {
 		event["image_istio_proxy._is_custom"] = true

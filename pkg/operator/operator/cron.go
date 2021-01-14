@@ -24,9 +24,12 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
+	"github.com/cortexlabs/cortex/pkg/operator/lib/logging"
 	"github.com/cortexlabs/cortex/pkg/types/clusterconfig"
 	kmeta "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
+
+var operatorLogger = logging.GetOperatorLogger()
 
 func DeleteEvictedPods() error {
 	failedPods, err := config.K8s.ListPods(&kmeta.ListOptions{
@@ -240,6 +243,6 @@ func ErrorHandler(cronName string) func(error) {
 	return func(err error) {
 		err = errors.Wrap(err, cronName+" cron failed")
 		telemetry.Error(err)
-		errors.PrintError(err)
+		operatorLogger.Error(err)
 	}
 }

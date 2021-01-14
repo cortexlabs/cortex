@@ -25,11 +25,11 @@ import (
 	"os/signal"
 	"strings"
 
+	"github.com/cortexlabs/cortex/cli/lib/routines"
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/exit"
 	"github.com/cortexlabs/cortex/pkg/lib/json"
-	"github.com/cortexlabs/cortex/pkg/lib/routines"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
 	"github.com/gorilla/websocket"
 )
@@ -40,34 +40,6 @@ func StreamLogs(operatorConfig OperatorConfig, apiName string) error {
 
 func StreamJobLogs(operatorConfig OperatorConfig, apiName string, jobID string) error {
 	return streamLogs(operatorConfig, "/logs/"+apiName, map[string]string{"jobID": jobID})
-}
-
-func GetGCPLogsURL(operatorConfig OperatorConfig, apiName string) (schema.GCPLogsResponse, error) {
-	httpRes, err := HTTPGet(operatorConfig, "/logs/"+apiName)
-	if err != nil {
-		return schema.GCPLogsResponse{}, err
-	}
-
-	var gcpLogsResponse schema.GCPLogsResponse
-	if err = json.Unmarshal(httpRes, &gcpLogsResponse); err != nil {
-		return schema.GCPLogsResponse{}, errors.Wrap(err, "/logs/"+apiName, string(httpRes))
-	}
-
-	return gcpLogsResponse, nil
-}
-
-func GetGCPJobLogsURL(operatorConfig OperatorConfig, apiName string, jobID string) (schema.GCPLogsResponse, error) {
-	httpRes, err := HTTPGet(operatorConfig, "/logs/"+apiName, map[string]string{"jobID": jobID})
-	if err != nil {
-		return schema.GCPLogsResponse{}, err
-	}
-
-	var gcpLogsResponse schema.GCPLogsResponse
-	if err = json.Unmarshal(httpRes, &gcpLogsResponse); err != nil {
-		return schema.GCPLogsResponse{}, errors.Wrap(err, fmt.Sprintf("/logs/%s?jobID=%s", apiName, jobID), string(httpRes))
-	}
-
-	return gcpLogsResponse, nil
 }
 
 func streamLogs(operatorConfig OperatorConfig, path string, qParams ...map[string]string) error {
@@ -134,7 +106,7 @@ func handleConnection(connection *websocket.Conn, done chan struct{}) {
 			if err != nil {
 				exit.Error(ErrorOperatorSocketRead(err))
 			}
-			fmt.Println(string(message))
+			fmt.Print(string(message))
 		}
 	}, false)
 }

@@ -7,3 +7,4 @@ numpy==1.19.1
 jinja2==2.11.2
 fastapi==0.61.1
 pyyaml==5.3.1
+python-json-logger==2.0.1
