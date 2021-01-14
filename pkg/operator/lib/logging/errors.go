@@ -24,7 +24,7 @@ import (
 )
 
 const (
-	ErrInvalidOperatorLogLevel = "operator.invalid_operator_log_level"
+	ErrInvalidOperatorLogLevel = "logging.invalid_operator_log_level"
 )
 
 func ErrorInvalidOperatorLogLevel(provided string, loglevels []string) error {
