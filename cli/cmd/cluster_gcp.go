@@ -485,11 +485,6 @@ func createGKECluster(clusterConfig *clusterconfig.GCPConfig, gcpClient *gcp.Cli
 	if clusterConfig.Subnet != nil {
 		gkeClusterConfig.Subnetwork = *clusterConfig.Subnet
 	}
-	if clusterConfig.NodeVisibility == clusterconfig.PrivateSubnetVisibility {
-		gkeClusterConfig.PrivateClusterConfig = &containerpb.PrivateClusterConfig{
-			EnablePrivateNodes: true,
-		}
-	}
 
 	_, err := gcpClient.CreateCluster(&containerpb.CreateClusterRequest{
 		Parent:  gkeClusterParent,

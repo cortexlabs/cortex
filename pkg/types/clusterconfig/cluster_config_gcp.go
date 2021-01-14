@@ -40,7 +40,6 @@ type GCPConfig struct {
 	AcceleratorType            *string            `json:"accelerator_type" yaml:"accelerator_type"`
 	Network                    *string            `json:"network" yaml:"network"`
 	Subnet                     *string            `json:"subnet" yaml:"subnet"`
-	NodeVisibility             SubnetVisibility   `json:"node_visibility" yaml:"node_visibility"`
 	APILoadBalancerScheme      LoadBalancerScheme `json:"api_load_balancer_scheme" yaml:"api_load_balancer_scheme"`
 	OperatorLoadBalancerScheme LoadBalancerScheme `json:"operator_load_balancer_scheme" yaml:"operator_load_balancer_scheme"`
 	MinInstances               *int64             `json:"min_instances" yaml:"min_instances"`
@@ -149,16 +148,6 @@ var UserGCPValidation = &cr.StructValidation{
 			StructField: "Subnet",
 			StringPtrValidation: &cr.StringPtrValidation{
 				AllowExplicitNull: true,
-			},
-		},
-		{
-			StructField: "NodeVisibility",
-			StringValidation: &cr.StringValidation{
-				AllowedValues: SubnetVisibilityStrings(),
-				Default:       PublicSubnetVisibility.String(),
-			},
-			Parser: func(str string) (interface{}, error) {
-				return SubnetVisibilityFromString(str), nil
 			},
 		},
 		{
@@ -534,7 +523,6 @@ func (cc *GCPConfig) UserTable() table.KeyValuePairs {
 	if cc.Subnet != nil {
 		items.Add(SubnetUserKey, *cc.Subnet)
 	}
-	items.Add(NodeVisibilityUserKey, cc.NodeVisibility)
 	items.Add(APILoadBalancerSchemeUserKey, cc.APILoadBalancerScheme)
 	items.Add(OperatorLoadBalancerSchemeUserKey, cc.OperatorLoadBalancerScheme)
 	items.Add(TelemetryUserKey, cc.Telemetry)
@@ -572,7 +560,6 @@ func (cc *GCPConfig) TelemetryEvent() map[string]interface{} {
 	if cc.Subnet != nil {
 		event["subnet._is_defined"] = true
 	}
-	event["node_visibility"] = cc.NodeVisibility
 	event["api_load_balancer_scheme"] = cc.APILoadBalancerScheme
 	event["operator_load_balancer_scheme"] = cc.OperatorLoadBalancerScheme
 	if cc.MinInstances != nil {
