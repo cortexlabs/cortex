@@ -110,19 +110,26 @@ func GetStatusCode(lastUpdatedMap map[string]time.Time) status.JobCode {
 }
 
 func GetJobState(jobKey spec.JobKey) (*State, error) {
-	s3Objects, err := config.AWS.ListS3Prefix(config.Cluster.Bucket, jobKey.Prefix(config.Cluster.ClusterName), false, nil)
+	gcsObjects, s3Objects, err := config.ListBucketPrefix(jobKey.Prefix(config.Cluster.ClusterName), nil)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get job state", jobKey.UserString())
 	}
 
-	if len(s3Objects) == 0 {
+	if len(gcsObjects) == 0 && len(s3Objects) == 0 {
 		return nil, errors.Wrap(ErrorJobNotFound(jobKey), "failed to get job state")
 	}
 
 	lastUpdatedMap := map[string]time.Time{}
-
-	for _, s3Object := range s3Objects {
-		lastUpdatedMap[filepath.Base(*s3Object.Key)] = *s3Object.LastModified
+	if len(gcsObjects) > 0 {
+		for _, object := range gcsObjects {
+			if object != nil {
+				lastUpdatedMap[filepath.Base(object.Name)] = object.Updated
+			}
+		}
+	} else {
+		for _, object := range s3Objects {
+			lastUpdatedMap[filepath.Base(*object.Key)] = *object.LastModified
+		}
 	}
 
 	jobState := getJobStateFromFiles(jobKey, lastUpdatedMap)
@@ -149,10 +156,8 @@ func getJobStateFromFiles(jobKey spec.JobKey, lastUpdatedFileMap map[string]time
 
 func GetMostRecentlySubmittedJobStates(apiName string, count int, kind userconfig.Kind) ([]*State, error) {
 	// a single job state may include 5 files on average, overshoot the number of files needed
-	s3Objects, err := config.AWS.ListS3Prefix(
-		config.Cluster.Bucket,
+	gcsObjects, s3Objects, err := config.ListBucketPrefix(
 		spec.JobAPIPrefix(apiName, config.Cluster.ClusterName, kind),
-		false,
 		pointer.Int64(int64(count*_averageFilesPerJobState)),
 	)
 	if err != nil {
@@ -161,17 +166,34 @@ func GetMostRecentlySubmittedJobStates(apiName string, count int, kind userconfi
 
 	// job id -> file name -> last update timestamp
 	lastUpdatedMaps := map[string]map[string]time.Time{}
-
 	jobIDOrder := []string{}
-	for _, s3Object := range s3Objects {
-		fileName := filepath.Base(*s3Object.Key)
-		jobID := filepath.Base(filepath.Dir(*s3Object.Key))
-
-		if _, ok := lastUpdatedMaps[jobID]; !ok {
-			jobIDOrder = append(jobIDOrder, jobID)
-			lastUpdatedMaps[jobID] = map[string]time.Time{fileName: *s3Object.LastModified}
-		} else {
-			lastUpdatedMaps[jobID][fileName] = *s3Object.LastModified
+	if len(gcsObjects) > 0 {
+		for _, object := range gcsObjects {
+			if object == nil {
+				continue
+			}
+			fileName := filepath.Base(object.Name)
+			jobID := filepath.Base(filepath.Dir(object.Name))
+			if _, ok := lastUpdatedMaps[jobID]; !ok {
+				jobIDOrder = append(jobIDOrder, jobID)
+				lastUpdatedMaps[jobID] = map[string]time.Time{fileName: object.Updated}
+			} else {
+				lastUpdatedMaps[jobID][fileName] = object.Updated
+			}
+		}
+	} else {
+		for _, object := range s3Objects {
+			if object == nil {
+				continue
+			}
+			fileName := filepath.Base(*object.Key)
+			jobID := filepath.Base(filepath.Dir(*object.Key))
+			if _, ok := lastUpdatedMaps[jobID]; !ok {
+				jobIDOrder = append(jobIDOrder, jobID)
+				lastUpdatedMaps[jobID] = map[string]time.Time{fileName: *object.LastModified}
+			} else {
+				lastUpdatedMaps[jobID][fileName] = *object.LastModified
+			}
 		}
 	}
 
@@ -223,7 +245,7 @@ func SetStatusForJob(jobKey spec.JobKey, jobStatus status.JobCode) error {
 
 func UpdateLiveness(jobKey spec.JobKey) error {
 	s3Key := path.Join(jobKey.Prefix(config.Cluster.ClusterName), _enqueuingLivenessFile)
-	err := config.AWS.UploadJSONToS3(time.Now(), config.Cluster.Bucket, s3Key)
+	err := config.UploadJSONToBucket(time.Now(), s3Key)
 	if err != nil {
 		return errors.Wrap(err, "failed to update liveness", jobKey.UserString())
 	}
@@ -236,7 +258,7 @@ func SetEnqueuingStatus(jobKey spec.JobKey) error {
 		return err
 	}
 
-	err = config.AWS.UploadStringToS3("", config.Cluster.Bucket, path.Join(jobKey.Prefix(config.Cluster.ClusterName), status.JobEnqueuing.String()))
+	err = config.UploadBucketString("", path.Join(jobKey.Prefix(config.Cluster.ClusterName), status.JobEnqueuing.String()))
 	if err != nil {
 		return err
 	}
@@ -250,7 +272,7 @@ func SetEnqueuingStatus(jobKey spec.JobKey) error {
 }
 
 func SetFailedStatus(jobKey spec.JobKey) error {
-	err := config.AWS.UploadStringToS3("", config.Cluster.Bucket, path.Join(jobKey.Prefix(config.Cluster.ClusterName), status.JobEnqueueFailed.String()))
+	err := config.UploadBucketString("", path.Join(jobKey.Prefix(config.Cluster.ClusterName), status.JobEnqueueFailed.String()))
 	if err != nil {
 		return err
 	}
@@ -264,7 +286,7 @@ func SetFailedStatus(jobKey spec.JobKey) error {
 }
 
 func SetRunningStatus(jobKey spec.JobKey) error {
-	err := config.AWS.UploadStringToS3("", config.Cluster.Bucket, path.Join(jobKey.Prefix(config.Cluster.ClusterName), status.JobRunning.String()))
+	err := config.UploadBucketString("", path.Join(jobKey.Prefix(config.Cluster.ClusterName), status.JobRunning.String()))
 	if err != nil {
 		return err
 	}
@@ -278,7 +300,7 @@ func SetRunningStatus(jobKey spec.JobKey) error {
 }
 
 func SetStoppedStatus(jobKey spec.JobKey) error {
-	err := config.AWS.UploadStringToS3("", config.Cluster.Bucket, path.Join(jobKey.Prefix(config.Cluster.ClusterName), status.JobStopped.String()))
+	err := config.UploadBucketString("", path.Join(jobKey.Prefix(config.Cluster.ClusterName), status.JobStopped.String()))
 	if err != nil {
 		return err
 	}
@@ -292,7 +314,7 @@ func SetStoppedStatus(jobKey spec.JobKey) error {
 }
 
 func SetSucceededStatus(jobKey spec.JobKey) error {
-	err := config.AWS.UploadStringToS3("", config.Cluster.Bucket, path.Join(jobKey.Prefix(config.Cluster.ClusterName), status.JobSucceeded.String()))
+	err := config.UploadBucketString("", path.Join(jobKey.Prefix(config.Cluster.ClusterName), status.JobSucceeded.String()))
 	if err != nil {
 		return err
 	}
@@ -306,7 +328,7 @@ func SetSucceededStatus(jobKey spec.JobKey) error {
 }
 
 func SetCompletedWithFailuresStatus(jobKey spec.JobKey) error {
-	err := config.AWS.UploadStringToS3("", config.Cluster.Bucket, path.Join(jobKey.Prefix(config.Cluster.ClusterName), status.JobCompletedWithFailures.String()))
+	err := config.UploadBucketString("", path.Join(jobKey.Prefix(config.Cluster.ClusterName), status.JobCompletedWithFailures.String()))
 	if err != nil {
 		return err
 	}
@@ -320,7 +342,7 @@ func SetCompletedWithFailuresStatus(jobKey spec.JobKey) error {
 }
 
 func SetWorkerErrorStatus(jobKey spec.JobKey) error {
-	err := config.AWS.UploadStringToS3("", config.Cluster.Bucket, path.Join(jobKey.Prefix(config.Cluster.ClusterName), status.JobWorkerError.String()))
+	err := config.UploadBucketString("", path.Join(jobKey.Prefix(config.Cluster.ClusterName), status.JobWorkerError.String()))
 	if err != nil {
 		return err
 	}
@@ -334,7 +356,7 @@ func SetWorkerErrorStatus(jobKey spec.JobKey) error {
 }
 
 func SetWorkerOOMStatus(jobKey spec.JobKey) error {
-	err := config.AWS.UploadStringToS3("", config.Cluster.Bucket, path.Join(jobKey.Prefix(config.Cluster.ClusterName), status.JobWorkerOOM.String()))
+	err := config.UploadBucketString("", path.Join(jobKey.Prefix(config.Cluster.ClusterName), status.JobWorkerOOM.String()))
 	if err != nil {
 		return err
 	}
@@ -348,7 +370,7 @@ func SetWorkerOOMStatus(jobKey spec.JobKey) error {
 }
 
 func SetEnqueueFailedStatus(jobKey spec.JobKey) error {
-	err := config.AWS.UploadStringToS3("", config.Cluster.Bucket, path.Join(jobKey.Prefix(config.Cluster.ClusterName), status.JobEnqueueFailed.String()))
+	err := config.UploadBucketString("", path.Join(jobKey.Prefix(config.Cluster.ClusterName), status.JobEnqueueFailed.String()))
 	if err != nil {
 		return err
 	}
@@ -362,7 +384,7 @@ func SetEnqueueFailedStatus(jobKey spec.JobKey) error {
 }
 
 func SetUnexpectedErrorStatus(jobKey spec.JobKey) error {
-	err := config.AWS.UploadStringToS3("", config.Cluster.Bucket, path.Join(jobKey.Prefix(config.Cluster.ClusterName), status.JobUnexpectedError.String()))
+	err := config.UploadBucketString("", path.Join(jobKey.Prefix(config.Cluster.ClusterName), status.JobUnexpectedError.String()))
 	if err != nil {
 		return err
 	}
@@ -376,7 +398,7 @@ func SetUnexpectedErrorStatus(jobKey spec.JobKey) error {
 }
 
 func SetTimedOutStatus(jobKey spec.JobKey) error {
-	err := config.AWS.UploadStringToS3("", config.Cluster.Bucket, path.Join(jobKey.Prefix(config.Cluster.ClusterName), status.JobTimedOut.String()))
+	err := config.UploadBucketString("", path.Join(jobKey.Prefix(config.Cluster.ClusterName), status.JobTimedOut.String()))
 	if err != nil {
 		return err
 	}

@@ -34,7 +34,7 @@ func ListAllInProgressJobKeys(kind userconfig.Kind) ([]spec.JobKey, error) {
 }
 
 func DeleteInProgressFile(jobKey spec.JobKey) error {
-	err := config.AWS.DeleteS3File(config.Cluster.Bucket, inProgressS3Key(jobKey))
+	err := config.DeleteBucketFile(inProgressS3Key(jobKey))
 	if err != nil {
 		return err
 	}
@@ -42,7 +42,7 @@ func DeleteInProgressFile(jobKey spec.JobKey) error {
 }
 
 func DeleteAllInProgressFilesByAPI(apiName string, kind userconfig.Kind) error {
-	err := config.AWS.DeleteS3Prefix(config.Cluster.Bucket, allInProgressForAPIS3Key(apiName, kind), true)
+	err := config.DeleteBucketPrefix(allInProgressForAPIS3Key(apiName, kind), true)
 	if err != nil {
 		return err
 	}
@@ -62,21 +62,31 @@ func listAllInProgressJobKeysByAPI(apiName *string, kind userconfig.Kind) ([]spe
 		jobPath = allInProgressS3Key(kind)
 	}
 
-	s3Objects, err := config.AWS.ListS3Dir(config.Cluster.Bucket, jobPath, false, nil)
+	gcsObjects, s3Objects, err := config.ListBucketDir(jobPath, nil)
 	if err != nil {
 		return nil, err
 	}
 
+	if len(gcsObjects) > 0 {
+		jobKeys := make([]spec.JobKey, 0, len(gcsObjects))
+		for _, obj := range gcsObjects {
+			if obj != nil {
+				jobKeys = append(jobKeys, jobKeyFromInProgressS3Key(obj.Name))
+			}
+		}
+		return jobKeys, nil
+	}
 	jobKeys := make([]spec.JobKey, 0, len(s3Objects))
 	for _, obj := range s3Objects {
-		jobKeys = append(jobKeys, jobKeyFromInProgressS3Key(*obj.Key))
+		if obj != nil {
+			jobKeys = append(jobKeys, jobKeyFromInProgressS3Key(*obj.Key))
+		}
 	}
-
 	return jobKeys, nil
 }
 
 func uploadInProgressFile(jobKey spec.JobKey) error {
-	err := config.AWS.UploadStringToS3("", config.Cluster.Bucket, inProgressS3Key(jobKey))
+	err := config.UploadBucketString("", inProgressS3Key(jobKey))
 	if err != nil {
 		return err
 	}
