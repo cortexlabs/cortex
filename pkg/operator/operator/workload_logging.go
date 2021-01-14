@@ -140,7 +140,7 @@ func StreamLogsFromRandomPod(podSearchLabels map[string]string, socket *websocke
 		return
 	}
 	if len(pods) == 0 {
-		writeAndCloseSocket(socket, "there are no currently running replicas/workers; please visit your logging dashboard for historical logs\n")
+		writeAndCloseSocket(socket, "there are currently no replicas/workers running for this api or job; please visit your logging dashboard for historical logs\n")
 		return
 	}
 
