@@ -283,7 +283,7 @@ class Client:
         Get information about a submitted job.
 
         Args:
-            api_name: Name of the Batch API.
+            api_name: Name of the Batch/Task API.
             job_id: Job ID.
 
         Returns:
@@ -360,7 +360,7 @@ class Client:
         Stop a running job.
 
         Args:
-            api_name: Name of the Batch API.
+            api_name: Name of the Batch/Task API.
             job_id: ID of the Job to stop.
         """
         args = [

@@ -84,7 +84,7 @@ Delete an environment configured on this machine.
 <!-- CORTEX_VERSION_MINOR -->
 
 ```python
- | create_api(api_spec: dict, predictor=None, requirements=[], conda_packages=[], project_dir: Optional[str] = None, force: bool = True, wait: bool = False) -> list
+ | create_api(api_spec: dict, predictor=None, task=None, requirements=[], conda_packages=[], project_dir: Optional[str] = None, force: bool = True, wait: bool = False) -> list
 ```
 
 Deploy an API.
@@ -93,6 +93,7 @@ Deploy an API.
 
 - `api_spec` - A dictionary defining a single Cortex API. See https://docs.cortex.dev/v/master/ for schema.
 - `predictor` - A Cortex Predictor class implementation. Not required when deploying a traffic splitter.
+- `task` - A callable class/function implementation. Not required for RealtimeAPI/BatchAPI/TrafficSplitter kinds.
 - `requirements` - A list of PyPI dependencies that will be installed before the predictor class implementation is invoked.
 - `conda_packages` - A list of Conda dependencies that will be installed before the predictor class implementation is invoked.
 - `project_dir` - Path to a python project.
@@ -143,7 +144,7 @@ Get information about a submitted job.
 
 **Arguments**:
 
-- `api_name` - Name of the Batch API.
+- `api_name` - Name of the Batch/Task API.
 - `job_id` - Job ID.
 
 
@@ -200,7 +201,7 @@ Stop a running job.
 
 **Arguments**:
 
-- `api_name` - Name of the Batch API.
+- `api_name` - Name of the Batch/Task API.
 - `job_id` - ID of the Job to stop.
 
 ## stream\_api\_logs
