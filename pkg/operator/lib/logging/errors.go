@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package operator
+package logging
 
 import (
 	"fmt"
@@ -24,28 +24,12 @@ import (
 )
 
 const (
-	ErrCortexInstallationBroken = "operator.cortex_installation_broken"
-	ErrLoadBalancerInitializing = "operator.load_balancer_initializing"
-	ErrInvalidOperatorLogLevel  = "operator.invalid_operator_log_level"
+	ErrInvalidOperatorLogLevel = "logging.invalid_operator_log_level"
 )
-
-func ErrorCortexInstallationBroken() error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrCortexInstallationBroken,
-		Message: "cortex is out of date or not installed properly; run `cortex cluster configure` to repair, or spin down your cluster with `cortex cluster down` and create a new one with `cortex cluster up`",
-	})
-}
-
-func ErrorLoadBalancerInitializing() error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrLoadBalancerInitializing,
-		Message: "load balancer is still initializing",
-	})
-}
 
 func ErrorInvalidOperatorLogLevel(provided string, loglevels []string) error {
 	return errors.WithStack(&errors.Error{
-		Kind:    ErrLoadBalancerInitializing,
+		Kind:    ErrInvalidOperatorLogLevel,
 		Message: fmt.Sprintf("invalid operator log level %s; must be one of %s", provided, s.StrsOr(loglevels)),
 	})
 }

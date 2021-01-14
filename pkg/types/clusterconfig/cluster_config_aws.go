@@ -83,7 +83,7 @@ type Config struct {
 	ImageInferentia            string             `json:"image_inferentia" yaml:"image_inferentia"`
 	ImageNeuronRTD             string             `json:"image_neuron_rtd" yaml:"image_neuron_rtd"`
 	ImageNvidia                string             `json:"image_nvidia" yaml:"image_nvidia"`
-	ImageFluentd               string             `json:"image_fluentd" yaml:"image_fluentd"`
+	ImageFluentBit             string             `json:"image_fluent_bit" yaml:"image_fluent_bit"`
 	ImageStatsd                string             `json:"image_statsd" yaml:"image_statsd"`
 	ImageIstioProxy            string             `json:"image_istio_proxy" yaml:"image_istio_proxy"`
 	ImageIstioPilot            string             `json:"image_istio_pilot" yaml:"image_istio_pilot"`
@@ -440,9 +440,9 @@ var UserValidation = &cr.StructValidation{
 			},
 		},
 		{
-			StructField: "ImageFluentd",
+			StructField: "ImageFluentBit",
 			StringValidation: &cr.StringValidation{
-				Default:   "quay.io/cortexlabs/fluentd:" + consts.CortexVersion,
+				Default:   "quay.io/cortexlabs/fluent-bit:" + consts.CortexVersion,
 				Validator: validateImageVersion,
 			},
 		},
@@ -1181,7 +1181,7 @@ func (cc *Config) UserTable() table.KeyValuePairs {
 	items.Add(ImageInferentiaUserKey, cc.ImageInferentia)
 	items.Add(ImageNeuronRTDUserKey, cc.ImageNeuronRTD)
 	items.Add(ImageNvidiaUserKey, cc.ImageNvidia)
-	items.Add(ImageFluentdUserKey, cc.ImageFluentd)
+	items.Add(ImageFluentBitUserKey, cc.ImageFluentBit)
 	items.Add(ImageStatsdUserKey, cc.ImageStatsd)
 	items.Add(ImageIstioProxyUserKey, cc.ImageIstioProxy)
 	items.Add(ImageIstioPilotUserKey, cc.ImageIstioPilot)
@@ -1277,8 +1277,8 @@ func (cc *Config) TelemetryEvent() map[string]interface{} {
 	if !strings.HasPrefix(cc.ImageNvidia, "cortexlabs/") {
 		event["image_nvidia._is_custom"] = true
 	}
-	if !strings.HasPrefix(cc.ImageFluentd, "cortexlabs/") {
-		event["image_fluentd._is_custom"] = true
+	if !strings.HasPrefix(cc.ImageFluentBit, "cortexlabs/") {
+		event["image_fluent_bit._is_custom"] = true
 	}
 	if !strings.HasPrefix(cc.ImageStatsd, "cortexlabs/") {
 		event["image_statsd._is_custom"] = true
