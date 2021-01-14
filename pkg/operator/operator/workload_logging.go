@@ -58,7 +58,7 @@ func waitForPodToBeNotPending(podName string, cancelListener chan struct{}, sock
 				return false
 			}
 			if pod == nil {
-				writeAndCloseSocket(socket, "unable to find replica or worker, please try again")
+				writeAndCloseSocket(socket, "unable to find replica/worker")
 				return false
 			}
 			podStatus := k8s.GetPodStatus(pod)
@@ -87,9 +87,7 @@ func startKubectlProcess(podName string, cancelListener chan struct{}, socket *w
 		return
 	}
 
-	kubectlArgs := []string{"/usr/local/bin/kubectl", "-n=" + "default", "logs", "--all-containers", podName, "--follow"}
-
-	cmd := exec.Command(kubectlArgs[0], kubectlArgs[1:]...)
+	cmd := exec.Command("/usr/local/bin/kubectl", "-n="+"default", "logs", "--all-containers", podName, "--follow")
 
 	cleanup := func() {
 		// trigger a wait on the child process and while the process is being waited on,
@@ -107,6 +105,7 @@ func startKubectlProcess(podName string, cancelListener chan struct{}, socket *w
 		telemetry.Error(errors.ErrorUnexpected(err.Error()))
 		logging.Logger.Error(err)
 	}
+
 	cmd.Start()
 
 	routines.RunWithPanicHandler(func() {
@@ -142,7 +141,7 @@ func StreamLogsFromRandomPod(podSearchLabels map[string]string, socket *websocke
 		return
 	}
 	if len(pods) == 0 {
-		writeAndCloseSocket(socket, "unable to currently running replicas/workers; please visit your logging dashboard for historical logs\n")
+		writeAndCloseSocket(socket, "there are no currently running replicas/workers; please visit your logging dashboard for historical logs\n")
 		return
 	}
 
