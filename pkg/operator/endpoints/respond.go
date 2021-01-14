@@ -26,6 +26,8 @@ import (
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
 )
 
+var operatorLogger = logging.GetOperatorLogger()
+
 func respond(w http.ResponseWriter, response interface{}) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
@@ -56,7 +58,7 @@ func respondErrorCode(w http.ResponseWriter, r *http.Request, code int, err erro
 	}
 
 	if !errors.IsNoPrint(err) {
-		logging.Logger.Error(err)
+		operatorLogger.Error(err)
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -72,7 +74,7 @@ func respondErrorCode(w http.ResponseWriter, r *http.Request, code int, err erro
 func recoverAndRespond(w http.ResponseWriter, r *http.Request, strs ...string) {
 	if errInterface := recover(); errInterface != nil {
 		err := errors.CastRecoverError(errInterface, strs...)
-		errors.PrintStacktrace(err)
+		operatorLogger.Error(err)
 		telemetry.Error(err)
 		respondError(w, r, err)
 	}

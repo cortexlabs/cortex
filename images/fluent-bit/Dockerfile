@@ -1,1 +1,1 @@
-FROM amazon/aws-for-fluent-bit:2.1.0
+FROM amazon/aws-for-fluent-bit:2.10.1

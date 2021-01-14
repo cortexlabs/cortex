@@ -95,12 +95,12 @@ func autoscaleFn(initialDeployment *kapps.Deployment, apiSpec *spec.API) (func()
 	apiName := apiSpec.Name
 	currentReplicas := *initialDeployment.Spec.Replicas
 
-	logger, err := operator.GetRealtimeAPILoggerFromSpec(apiSpec)
+	apiLogger, err := operator.GetRealtimeAPILoggerFromSpec(apiSpec)
 	if err != nil {
 		return nil, err
 	}
 
-	logger.Infof("%s autoscaler init", apiName)
+	apiLogger.Infof("%s autoscaler init", apiName)
 
 	var startTime time.Time
 	recs := make(recommendations)
@@ -115,7 +115,7 @@ func autoscaleFn(initialDeployment *kapps.Deployment, apiSpec *spec.API) (func()
 			return err
 		}
 		if avgInFlight == nil {
-			logger.Debugf("%s autoscaler tick: metrics not available yet", apiName)
+			apiLogger.Debugf("%s autoscaler tick: metrics not available yet", apiName)
 			return nil
 		}
 
@@ -181,7 +181,7 @@ func autoscaleFn(initialDeployment *kapps.Deployment, apiSpec *spec.API) (func()
 			request = *upscaleStabilizationCeil
 		}
 
-		logger.Debugw(fmt.Sprintf("%s autoscaler tick", apiName),
+		apiLogger.Debugw(fmt.Sprintf("%s autoscaler tick", apiName),
 			"autoscaling", map[string]interface{}{
 				"avg_in_flight":                  s.Round(*avgInFlight, 2, 0),
 				"target_replica_concurrency":     s.Float64(*autoscalingSpec.TargetReplicaConcurrency),
@@ -205,7 +205,7 @@ func autoscaleFn(initialDeployment *kapps.Deployment, apiSpec *spec.API) (func()
 		)
 
 		if currentReplicas != request {
-			logger.Infof("%s autoscaling event: %d -> %d", apiName, currentReplicas, request)
+			apiLogger.Infof("%s autoscaling event: %d -> %d", apiName, currentReplicas, request)
 
 			deployment, err := config.K8s.GetDeployment(initialDeployment.Name)
 			if err != nil {

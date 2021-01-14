@@ -35,6 +35,8 @@ import (
 	"github.com/gorilla/mux"
 )
 
+var operatorLogger = logging.GetOperatorLogger()
+
 const _operatorPortStr = "8888"
 
 func main() {
@@ -73,7 +75,7 @@ func main() {
 					exit.Error(errors.Wrap(err, "init"))
 				}
 				if err := realtimeapi.UpdateAutoscalerCron(&deployment, api); err != nil {
-					logging.Logger.Fatal(errors.Wrap(err, "init"))
+					operatorLogger.Fatal(errors.Wrap(err, "init"))
 				}
 			}
 		}
@@ -110,6 +112,6 @@ func main() {
 	routerWithAuth.HandleFunc("/get/{apiName}/{apiID}", endpoints.GetAPIByID).Methods("GET")
 	routerWithAuth.HandleFunc("/logs/{apiName}", endpoints.ReadLogs)
 
-	logging.Logger.Info("Running on port " + _operatorPortStr)
-	logging.Logger.Fatal(http.ListenAndServe(":"+_operatorPortStr, router))
+	operatorLogger.Info("Running on port " + _operatorPortStr)
+	operatorLogger.Fatal(http.ListenAndServe(":"+_operatorPortStr, router))
 }

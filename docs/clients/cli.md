@@ -35,7 +35,7 @@ Flags:
 ## logs
 
 ```text
-stream logs for a single replica of an api
+stream logs from a single replica of an api or a single worker for a job
 
 Usage:
   cortex logs API_NAME [JOB_ID] [flags]

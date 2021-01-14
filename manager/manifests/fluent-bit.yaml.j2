@@ -136,7 +136,6 @@ data:
         resource              k8s_container
         k8s_cluster_name      {{ config["cluster_name"] }}
         k8s_cluster_location  {{ config["zone"] }}
-        labels_key            labels
     {% endif %}
 
   parsers.conf: |

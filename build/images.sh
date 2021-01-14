@@ -67,6 +67,7 @@ non_dev_images_cluster=(
   "operator"
   "istio-proxy"
   "istio-pilot"
+  "fluent-bit"
 )
 non_dev_images_aws=(
   # includes non_dev_images_cluster
@@ -76,7 +77,6 @@ non_dev_images_aws=(
   "inferentia"
   "neuron-rtd"
   "nvidia"
-  "fluent-bit"
   "statsd"
 )
 non_dev_images_gcp=(

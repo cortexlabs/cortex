@@ -37,7 +37,7 @@ func logsInit() {
 
 var _logsCmd = &cobra.Command{
 	Use:   "logs API_NAME [JOB_ID]",
-	Short: "stream logs for a single replica/worker of an api",
+	Short: "stream logs from a single replica of an api or a single worker for a job",
 	Args:  cobra.RangeArgs(1, 2),
 	Run: func(cmd *cobra.Command, args []string) {
 		envName, err := getEnvFromFlag(_flagLogsEnv)

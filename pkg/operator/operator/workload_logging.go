@@ -28,7 +28,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
-	"github.com/cortexlabs/cortex/pkg/operator/lib/logging"
 	"github.com/cortexlabs/cortex/pkg/operator/lib/routines"
 	"github.com/gorilla/websocket"
 )
@@ -103,7 +102,7 @@ func startKubectlProcess(podName string, cancelListener chan struct{}, socket *w
 	logStream, err := cmd.StdoutPipe()
 	if err != nil {
 		telemetry.Error(errors.ErrorUnexpected(err.Error()))
-		logging.Logger.Error(err)
+		operatorLogger.Error(err)
 	}
 
 	cmd.Start()

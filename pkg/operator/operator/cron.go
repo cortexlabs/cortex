@@ -29,6 +29,8 @@ import (
 	kmeta "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+var operatorLogger = logging.GetOperatorLogger()
+
 func DeleteEvictedPods() error {
 	failedPods, err := config.K8s.ListPods(&kmeta.ListOptions{
 		FieldSelector: "status.phase=Failed",
@@ -241,6 +243,6 @@ func ErrorHandler(cronName string) func(error) {
 	return func(err error) {
 		err = errors.Wrap(err, cronName+" cron failed")
 		telemetry.Error(err)
-		logging.Logger.Error(err)
+		operatorLogger.Error(err)
 	}
 }

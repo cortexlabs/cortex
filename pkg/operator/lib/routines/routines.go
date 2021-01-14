@@ -22,12 +22,14 @@ import (
 	"github.com/cortexlabs/cortex/pkg/operator/lib/logging"
 )
 
+var operatorLogger = logging.GetOperatorLogger()
+
 func RunWithPanicHandler(f func()) {
 	go func() {
 		defer func() {
 			if r := recover(); r != nil {
 				err := errors.CastRecoverError(r)
-				logging.Logger.Error(err)
+				operatorLogger.Error(err)
 				telemetry.Error(err)
 			}
 		}()

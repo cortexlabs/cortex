@@ -24,13 +24,15 @@ import (
 	"github.com/cortexlabs/cortex/pkg/operator/lib/logging"
 )
 
+var operatorLogger = logging.GetOperatorLogger()
+
 func ErrorNoTelemetry(err error, wrapStrs ...string) {
 	for _, str := range wrapStrs {
 		err = errors.Wrap(err, str)
 	}
 
 	if err != nil && !errors.IsNoPrint(err) {
-		logging.Logger.Error(err)
+		operatorLogger.Error(err)
 	}
 
 	telemetry.Close()
@@ -48,7 +50,7 @@ func Error(err error, wrapStrs ...string) {
 	}
 
 	if err != nil && !errors.IsNoPrint(err) {
-		logging.Logger.Error(err)
+		operatorLogger.Error(err)
 	}
 
 	telemetry.Close()

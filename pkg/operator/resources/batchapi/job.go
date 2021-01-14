@@ -22,7 +22,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
-	"github.com/cortexlabs/cortex/pkg/operator/lib/logging"
 	"github.com/cortexlabs/cortex/pkg/operator/lib/routines"
 	"github.com/cortexlabs/cortex/pkg/operator/operator"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
@@ -110,7 +109,7 @@ func SubmitJob(apiName string, submission *schema.JobSubmission) (*spec.Job, err
 		return nil, err
 	}
 
-	logger, err := operator.GetJobLoggerFromSpec(apiSpec, jobKey)
+	jobLogger, err := operator.GetJobLoggerFromSpec(apiSpec, jobKey)
 	if err != nil {
 		deleteQueueByURL(queueURL)
 		return nil, err
@@ -122,7 +121,7 @@ func SubmitJob(apiName string, submission *schema.JobSubmission) (*spec.Job, err
 		return nil, err
 	}
 
-	logger.Info("started enqueuing batches")
+	jobLogger.Info("started enqueuing batches")
 
 	routines.RunWithPanicHandler(func() {
 		deployJob(apiSpec, &jobSpec, submission)
@@ -140,16 +139,16 @@ func uploadJobSpec(jobSpec *spec.Job) error {
 }
 
 func deployJob(apiSpec *spec.API, jobSpec *spec.Job, submission *schema.JobSubmission) {
-	logger, err := operator.GetJobLoggerFromSpec(apiSpec, jobSpec.JobKey)
+	jobLogger, err := operator.GetJobLoggerFromSpec(apiSpec, jobSpec.JobKey)
 	if err != nil {
 		telemetry.Error(err)
-		logging.Logger.Error(err)
+		operatorLogger.Error(err)
 		return
 	}
 
 	totalBatches, err := enqueue(jobSpec, submission)
 	if err != nil {
-		logger.Error(errors.Wrap(err, "failed to enqueue all batches").Error())
+		jobLogger.Error(errors.Wrap(err, "failed to enqueue all batches").Error())
 
 		err := errors.FirstError(
 			setEnqueueFailedStatus(jobSpec.JobKey),
@@ -157,16 +156,16 @@ func deployJob(apiSpec *spec.API, jobSpec *spec.Job, submission *schema.JobSubmi
 		)
 		if err != nil {
 			telemetry.Error(err)
-			logging.Logger.Error(err)
+			operatorLogger.Error(err)
 		}
 		return
 	}
 
 	if totalBatches == 0 {
 		var errs []error
-		logger.Error(ErrorNoDataFoundInJobSubmission())
+		jobLogger.Error(ErrorNoDataFoundInJobSubmission())
 		if submission.DelimitedFiles != nil {
-			logger.Error("please verify that the files are not empty (the files being read can be retrieved by providing `dryRun=true` query param with your job submission")
+			jobLogger.Error("please verify that the files are not empty (the files being read can be retrieved by providing `dryRun=true` query param with your job submission")
 		}
 		errs = append(errs, setEnqueueFailedStatus(jobSpec.JobKey))
 		errs = append(errs, deleteJobRuntimeResources(jobSpec.JobKey))
@@ -174,13 +173,13 @@ func deployJob(apiSpec *spec.API, jobSpec *spec.Job, submission *schema.JobSubmi
 		err := errors.FirstError(errs...)
 		if err != nil {
 			telemetry.Error(err)
-			logging.Logger.Error(err)
+			operatorLogger.Error(err)
 		}
 		return
 	}
 
-	logger.Infof("completed enqueuing a total of %d batches", totalBatches)
-	logger.Infof("spinning up workers...")
+	jobLogger.Infof("completed enqueuing a total of %d batches", totalBatches)
+	jobLogger.Infof("spinning up workers...")
 
 	jobSpec.TotalBatchCount = totalBatches
 
@@ -203,21 +202,21 @@ func deployJob(apiSpec *spec.API, jobSpec *spec.Job, submission *schema.JobSubmi
 }
 
 func handleJobSubmissionError(jobKey spec.JobKey, jobErr error) {
-	logger, err := operator.GetJobLogger(jobKey)
+	jobLogger, err := operator.GetJobLogger(jobKey)
 	if err != nil {
 		telemetry.Error(err)
-		logging.Logger.Error(err)
+		operatorLogger.Error(err)
 		return
 	}
 
-	logger.Error(jobErr.Error())
+	jobLogger.Error(jobErr.Error())
 	err = errors.FirstError(
 		setUnexpectedErrorStatus(jobKey),
 		deleteJobRuntimeResources(jobKey),
 	)
 	if err != nil {
 		telemetry.Error(err)
-		logging.Logger.Error(err)
+		operatorLogger.Error(err)
 	}
 }
 
@@ -275,9 +274,9 @@ func StopJob(jobKey spec.JobKey) error {
 		return errors.Wrap(ErrorJobIsNotInProgress(), jobKey.UserString())
 	}
 
-	logger, err := operator.GetJobLogger(jobKey)
+	jobLogger, err := operator.GetJobLogger(jobKey)
 	if err == nil {
-		logger.Warn("request received to stop job; performing cleanup...")
+		jobLogger.Warn("request received to stop job; performing cleanup...")
 	}
 
 	return errors.FirstError(

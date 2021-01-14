@@ -18,16 +18,16 @@ package logging
 
 import (
 	"os"
+	"sync"
 
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	"go.uber.org/zap"
 )
 
-var (
-	Logger *zap.SugaredLogger
-)
+var logger *zap.SugaredLogger
+var loggerLock sync.Mutex
 
-func init() {
+func initializeLogger() {
 	operatorLogLevel := os.Getenv("CORTEX_OPERATOR_LOG_LEVEL")
 	if operatorLogLevel == "" {
 		operatorLogLevel = "info"
@@ -44,7 +44,17 @@ func init() {
 		panic(err)
 	}
 
-	Logger = operatorLogger.Sugar()
+	logger = operatorLogger.Sugar()
+}
+
+func GetOperatorLogger() *zap.SugaredLogger {
+	loggerLock.Lock()
+	defer loggerLock.Unlock()
+
+	if logger == nil {
+		initializeLogger()
+	}
+	return logger
 }
 
 func DefaultZapConfig(level userconfig.LogLevel, fields ...map[string]interface{}) zap.Config {
@@ -64,6 +74,6 @@ func DefaultZapConfig(level userconfig.LogLevel, fields ...map[string]interface{
 		EncoderConfig:    encoderConfig,
 		OutputPaths:      []string{"stdout"},
 		ErrorOutputPaths: []string{"stderr"},
-		InitialFields:    initialFields,
+		InitialFields:    map[string]interface{}{"labels": initialFields},
 	}
 }
