@@ -447,15 +447,15 @@ func GetAPIs() ([]schema.APIResponse, error) {
 		return nil, err
 	}
 
-	var batchAPIList []schema.APIResponse
 	var taskAPIList []schema.APIResponse
+	taskAPIList, err = taskapi.GetAllAPIs(taskAPIVirtualServices, k8sTaskJobs, taskAPIPods)
+	if err != nil {
+		return nil, err
+	}
+
+	var batchAPIList []schema.APIResponse
 	if config.Provider == types.AWSProviderType {
 		batchAPIList, err = batchapi.GetAllAPIs(batchAPIVirtualServices, k8sBatchJobs, batchAPIPods)
-		if err != nil {
-			return nil, err
-		}
-
-		taskAPIList, err = taskapi.GetAllAPIs(taskAPIVirtualServices, k8sTaskJobs, taskAPIPods)
 		if err != nil {
 			return nil, err
 		}

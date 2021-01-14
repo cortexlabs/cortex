@@ -210,7 +210,7 @@ func getLogStreams(logGroupName string) (strset.Set, error) {
 }
 
 func getLogGroupName(apiName string) string {
-	return config.Cluster.ClusterName + "/" + apiName
+	return config.ClusterName() + "/" + apiName
 }
 
 func writeString(socket *websocket.Conn, message string) {

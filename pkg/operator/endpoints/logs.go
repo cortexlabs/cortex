@@ -33,7 +33,7 @@ func ReadLogs(w http.ResponseWriter, r *http.Request) {
 	apiName := mux.Vars(r)["apiName"]
 	jobID := getOptionalQParam("jobID", r)
 
-	if jobID != "" {
+	if jobID != "" && config.Provider == types.AWSProviderType {
 		ReadJobLogs(w, r)
 		return
 	}
@@ -44,10 +44,10 @@ func ReadLogs(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if deployedResource.Kind == userconfig.BatchAPIKind || deployedResource.Kind == userconfig.TaskAPIKind {
+	if deployedResource.Kind == userconfig.BatchAPIKind || (deployedResource.Kind == userconfig.TaskAPIKind && jobID == "") {
 		respondError(w, r, ErrorLogsJobIDRequired(*deployedResource))
 		return
-	} else if deployedResource.Kind != userconfig.RealtimeAPIKind {
+	} else if deployedResource.Kind != userconfig.RealtimeAPIKind && !(deployedResource.Kind == userconfig.TaskAPIKind && jobID != "") {
 		respondError(w, r, resources.ErrorOperationIsOnlySupportedForKind(*deployedResource, userconfig.RealtimeAPIKind))
 		return
 	}
@@ -64,7 +64,12 @@ func ReadLogs(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if config.Provider == types.GCPProviderType {
-		queryParams := gcpLogsQueryParams(apiName)
+		var queryParams map[string]string
+		if jobID == "" {
+			queryParams = gcpLogsQueryParams(apiName)
+		} else {
+			queryParams = gcpJobLogsQueryParams(apiName, jobID)
+		}
 		respond(w, schema.GCPLogsResponse{QueryParams: queryParams})
 	}
 }

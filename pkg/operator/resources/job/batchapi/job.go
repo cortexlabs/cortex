@@ -137,7 +137,7 @@ func SubmitJob(apiName string, submission *schema.BatchJobSubmission) (*spec.Bat
 
 func downloadJobSpec(jobKey spec.JobKey) (*spec.BatchJob, error) {
 	jobSpec := spec.BatchJob{}
-	err := config.AWS.ReadJSONFromS3(&jobSpec, config.Cluster.Bucket, jobKey.SpecFilePath(config.Cluster.ClusterName))
+	err := config.AWS.ReadJSONFromS3(&jobSpec, config.Cluster.Bucket, jobKey.SpecFilePath(config.ClusterName()))
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to download job specification", jobKey.UserString())
 	}
@@ -145,7 +145,7 @@ func downloadJobSpec(jobKey spec.JobKey) (*spec.BatchJob, error) {
 }
 
 func uploadJobSpec(jobSpec *spec.BatchJob) error {
-	err := config.AWS.UploadJSONToS3(jobSpec, config.Cluster.Bucket, jobSpec.SpecFilePath(config.Cluster.ClusterName))
+	err := config.AWS.UploadJSONToS3(jobSpec, config.Cluster.Bucket, jobSpec.SpecFilePath(config.ClusterName()))
 	if err != nil {
 		return err
 	}

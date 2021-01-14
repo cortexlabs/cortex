@@ -25,6 +25,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/console"
 	"github.com/cortexlabs/cortex/pkg/lib/exit"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
+	"github.com/cortexlabs/cortex/pkg/operator/schema"
 	"github.com/cortexlabs/cortex/pkg/types"
 	"github.com/spf13/cobra"
 )
@@ -76,7 +77,14 @@ var _logsCmd = &cobra.Command{
 		}
 
 		if env.Provider == types.GCPProviderType {
-			gcpLogsResponse, err := cluster.GetGCPLogsURL(MustGetOperatorConfig(env.Name), apiName)
+			var err error
+			var gcpLogsResponse schema.GCPLogsResponse
+			if len(args) == 1 {
+				gcpLogsResponse, err = cluster.GetGCPLogsURL(MustGetOperatorConfig(env.Name), apiName)
+			}
+			if len(args) == 2 {
+				gcpLogsResponse, err = cluster.GetGCPJobLogsURL(MustGetOperatorConfig(env.Name), apiName, args[1])
+			}
 			if err != nil {
 				exit.Error(err)
 			}

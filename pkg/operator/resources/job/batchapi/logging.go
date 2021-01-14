@@ -30,7 +30,7 @@ import (
 )
 
 func logGroupNameForAPI(apiName string) string {
-	return fmt.Sprintf("%s/%s", config.Cluster.ClusterName, apiName)
+	return fmt.Sprintf("%s/%s", config.ClusterName(), apiName)
 }
 
 func logGroupNameForJob(jobKey spec.JobKey) string {

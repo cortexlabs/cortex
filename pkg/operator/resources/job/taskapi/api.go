@@ -43,7 +43,7 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string) (*spec.API, string, 
 		return nil, "", err
 	}
 
-	api := spec.GetAPISpec(apiConfig, projectID, "", config.Cluster.ClusterName) // Deployment ID not needed for TaskAPI spec
+	api := spec.GetAPISpec(apiConfig, projectID, "", config.ClusterName()) // Deployment ID not needed for TaskAPI spec
 
 	if prevVirtualService == nil {
 		if err := config.UploadJSONToBucket(api, api.Key); err != nil {
@@ -101,11 +101,11 @@ func DeleteAPI(apiName string, keepCache bool) error {
 func deleteS3Resources(apiName string) error {
 	return parallel.RunFirstErr(
 		func() error {
-			prefix := filepath.Join(config.Cluster.ClusterName, "apis", apiName)
+			prefix := filepath.Join(config.ClusterName(), "apis", apiName)
 			return config.DeleteBucketDir(prefix, true)
 		},
 		func() error {
-			prefix := spec.JobAPIPrefix(apiName, config.Cluster.ClusterName, userconfig.TaskAPIKind)
+			prefix := spec.JobAPIPrefix(apiName, config.ClusterName(), userconfig.TaskAPIKind)
 			go func() {
 				_ = config.DeleteBucketDir(prefix, true) // deleting job files may take a while
 			}()

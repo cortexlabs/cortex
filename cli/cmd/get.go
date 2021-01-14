@@ -340,12 +340,15 @@ func getAPIsByEnv(env cliconfig.Environment, printEnv bool) (string, error) {
 
 	var allRealtimeAPIs []schema.APIResponse
 	var allBatchAPIs []schema.APIResponse
+	var allTaskAPIs []schema.APIResponse
 	var allTrafficSplitters []schema.APIResponse
 
 	for _, api := range apisRes {
 		switch api.Spec.Kind {
 		case userconfig.BatchAPIKind:
 			allBatchAPIs = append(allBatchAPIs, api)
+		case userconfig.TaskAPIKind:
+			allTaskAPIs = append(allTaskAPIs, api)
 		case userconfig.RealtimeAPIKind:
 			allRealtimeAPIs = append(allRealtimeAPIs, api)
 		case userconfig.TrafficSplitterKind:
@@ -353,7 +356,7 @@ func getAPIsByEnv(env cliconfig.Environment, printEnv bool) (string, error) {
 		}
 	}
 
-	if len(allRealtimeAPIs) == 0 && len(allBatchAPIs) == 0 && len(allTrafficSplitters) == 0 {
+	if len(allRealtimeAPIs) == 0 && len(allBatchAPIs) == 0 && len(allTaskAPIs) == 0 && len(allTrafficSplitters) == 0 {
 		return console.Bold("no apis are deployed"), nil
 	}
 
@@ -371,6 +374,22 @@ func getAPIsByEnv(env cliconfig.Environment, printEnv bool) (string, error) {
 		out += t.MustFormat()
 	}
 
+	if len(allTaskAPIs) > 0 {
+		envNames := []string{}
+		for range allTaskAPIs {
+			envNames = append(envNames, env.Name)
+		}
+
+		t := taskAPIsTable(allTaskAPIs, envNames)
+		t.FindHeaderByTitle(_titleEnvironment).Hidden = true
+
+		if len(allBatchAPIs) > 0 {
+			out += "\n"
+		}
+
+		out += t.MustFormat()
+	}
+
 	if len(allRealtimeAPIs) > 0 {
 		envNames := []string{}
 		for range allRealtimeAPIs {
@@ -380,7 +399,7 @@ func getAPIsByEnv(env cliconfig.Environment, printEnv bool) (string, error) {
 		t := realtimeAPIsTable(allRealtimeAPIs, envNames)
 		t.FindHeaderByTitle(_titleEnvironment).Hidden = true
 
-		if len(allBatchAPIs) > 0 {
+		if len(allBatchAPIs) > 0 || len(allTaskAPIs) > 0 {
 			out += "\n"
 		}
 
@@ -396,7 +415,7 @@ func getAPIsByEnv(env cliconfig.Environment, printEnv bool) (string, error) {
 		t := trafficSplitterListTable(allTrafficSplitters, envNames)
 		t.FindHeaderByTitle(_titleEnvironment).Hidden = true
 
-		if len(allBatchAPIs) > 0 || len(allRealtimeAPIs) > 0 {
+		if len(allBatchAPIs) > 0 || len(allTaskAPIs) > 0 || len(allRealtimeAPIs) > 0 {
 			out += "\n"
 		}
 

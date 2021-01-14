@@ -75,7 +75,7 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string, force bool) (*spec.A
 		}
 
 		if config.Provider == types.AWSProviderType {
-			err = addAPIToDashboard(config.Cluster.ClusterName, api.Name)
+			err = addAPIToDashboard(config.ClusterName(), api.Name)
 			if err != nil {
 				errors.PrintError(err)
 			}
@@ -189,7 +189,7 @@ func DeleteAPI(apiName string, keepCache bool) error {
 				for i, virtualService := range virtualServices {
 					allAPINames[i] = virtualService.Labels["apiName"]
 				}
-				err = removeAPIFromDashboard(allAPINames, config.Cluster.ClusterName, apiName)
+				err = removeAPIFromDashboard(allAPINames, config.ClusterName(), apiName)
 				if err != nil {
 					return errors.Wrap(err, "failed to delete API from dashboard")
 				}

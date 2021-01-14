@@ -221,7 +221,7 @@ func getNetworkStatsDef(api *spec.API, period int64) []*cloudwatch.MetricDataQue
 			Label: aws.String(code),
 			MetricStat: &cloudwatch.MetricStat{
 				Metric: &cloudwatch.Metric{
-					Namespace:  aws.String(config.Cluster.ClusterName),
+					Namespace:  aws.String(config.ClusterName()),
 					MetricName: aws.String("StatusCode"),
 					Dimensions: statusCodeDimensions,
 				},
@@ -236,7 +236,7 @@ func getNetworkStatsDef(api *spec.API, period int64) []*cloudwatch.MetricDataQue
 		Label: aws.String("Latency"),
 		MetricStat: &cloudwatch.MetricStat{
 			Metric: &cloudwatch.Metric{
-				Namespace:  aws.String(config.Cluster.ClusterName),
+				Namespace:  aws.String(config.ClusterName()),
 				MetricName: aws.String("Latency"),
 				Dimensions: getAPIDimensionsHistogram(api),
 			},
@@ -250,7 +250,7 @@ func getNetworkStatsDef(api *spec.API, period int64) []*cloudwatch.MetricDataQue
 		Label: aws.String("RequestCount"),
 		MetricStat: &cloudwatch.MetricStat{
 			Metric: &cloudwatch.Metric{
-				Namespace:  aws.String(config.Cluster.ClusterName),
+				Namespace:  aws.String(config.ClusterName()),
 				MetricName: aws.String("Latency"),
 				Dimensions: getAPIDimensionsHistogram(api),
 			},

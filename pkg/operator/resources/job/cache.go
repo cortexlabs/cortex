@@ -96,7 +96,7 @@ func uploadInProgressFile(jobKey spec.JobKey) error {
 // e.g. <cluster_name>/jobs/<job_api_kind>/in_progress
 func allInProgressS3Key(kind userconfig.Kind) string {
 	return path.Join(
-		config.Cluster.ClusterName, _jobsPrefix, kind.String(), _inProgressFilePrefix,
+		config.ClusterName(), _jobsPrefix, kind.String(), _inProgressFilePrefix,
 	)
 }
 

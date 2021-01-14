@@ -747,8 +747,7 @@ func ExtractAPIConfigs(
 		}
 
 		if resourceStruct.Kind == userconfig.BatchAPIKind ||
-			resourceStruct.Kind == userconfig.TrafficSplitterKind ||
-			resourceStruct.Kind == userconfig.TaskAPIKind {
+			resourceStruct.Kind == userconfig.TrafficSplitterKind {
 			if provider == types.GCPProviderType {
 				return nil, errors.Wrap(ErrorKindIsNotSupportedByProvider(resourceStruct.Kind, provider), userconfig.IdentifyAPI(configFileName, resourceStruct.Name, resourceStruct.Kind, i))
 			}

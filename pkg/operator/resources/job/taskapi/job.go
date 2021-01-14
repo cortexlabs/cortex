@@ -77,7 +77,7 @@ func SubmitJob(apiName string, submission *schema.TaskJobSubmission) (*spec.Task
 
 func downloadJobSpec(jobKey spec.JobKey) (*spec.TaskJob, error) {
 	jobSpec := spec.TaskJob{}
-	err := config.ReadJSONFromBucket(&jobSpec, jobKey.SpecFilePath(config.Cluster.ClusterName))
+	err := config.ReadJSONFromBucket(&jobSpec, jobKey.SpecFilePath(config.ClusterName()))
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to download job specification", jobKey.UserString())
 	}
@@ -86,7 +86,7 @@ func downloadJobSpec(jobKey spec.JobKey) (*spec.TaskJob, error) {
 
 func uploadJobSpec(jobSpec *spec.TaskJob) error {
 	if err := config.UploadJSONToBucket(
-		jobSpec, jobSpec.SpecFilePath(config.Cluster.ClusterName),
+		jobSpec, jobSpec.SpecFilePath(config.ClusterName()),
 	); err != nil {
 		return err
 	}

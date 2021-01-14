@@ -63,7 +63,7 @@ func k8sJobSpec(api *spec.API, job *spec.TaskJob) (*kbatch.Job, error) {
 		if container.Name == operator.APIContainerName {
 			containers[i].Env = append(container.Env, kcore.EnvVar{
 				Name:  "CORTEX_TASK_SPEC",
-				Value: "s3://" + config.Cluster.Bucket + "/" + job.SpecFilePath(config.Cluster.ClusterName),
+				Value: config.BucketPath(job.SpecFilePath(config.ClusterName())),
 			})
 		}
 	}

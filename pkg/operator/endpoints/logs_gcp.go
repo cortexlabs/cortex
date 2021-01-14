@@ -32,3 +32,9 @@ func gcpLogsQueryParams(apiName string) map[string]string {
 
 	return queryParams
 }
+
+func gcpJobLogsQueryParams(apiName string, jobID string) map[string]string {
+	queryParams := gcpLogsQueryParams(apiName)
+	queryParams["labels.k8s-pod/jobID"] = jobID
+	return queryParams
+}
