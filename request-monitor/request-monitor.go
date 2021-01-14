@@ -19,7 +19,6 @@ package main
 import (
 	"flag"
 	"fmt"
-	"log"
 	"net/http"
 	"os"
 	"sync"
@@ -41,7 +40,10 @@ const (
 var (
 	logger           *zap.Logger
 	requestCounter   Counter
-	inFlightReqGauge prometheus.Gauge
+	inFlightReqGauge = promauto.NewGauge(prometheus.GaugeOpts{
+		Name: "cortex_in_flight_requests",
+		Help: "The number of in-flight requests for a cortex API",
+	})
 )
 
 type Counter struct {
@@ -64,22 +66,9 @@ func (c *Counter) GetAllAndDelete() []int {
 	return output
 }
 
-// ./request-monitor -p port apiName
+// ./request-monitor -p port
 func main() {
-	if len(os.Args) < 2 {
-		log.Fatal("usage: ./request-monitor [-p port] apiName")
-	}
-
-	var (
-		port    = flag.String("p", _defaultPort, "port on which the server runs on")
-		apiName = os.Args[1]
-	)
-
-	inFlightReqGauge = promauto.NewGauge(prometheus.GaugeOpts{
-		Name:        "cortex_in_flight_requests",
-		Help:        "The number of in-flight requests for a cortex API",
-		ConstLabels: prometheus.Labels{"api_name": apiName},
-	})
+	var port = flag.String("p", _defaultPort, "port on which the server runs on")
 
 	logLevelEnv := os.Getenv("CORTEX_LOG_LEVEL")
 	var logLevelZap zapcore.Level
