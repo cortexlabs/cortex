@@ -112,6 +112,7 @@ type InternalConfig struct {
 	ClusterID           string               `json:"cluster_id"`
 	IsOperatorInCluster bool                 `json:"is_operator_in_cluster"`
 	InstanceMetadata    aws.InstanceMetadata `json:"instance_metadata"`
+	PrometheusURL       string               `json:"prometheus_url"`
 }
 
 // The bare minimum to identify a cluster

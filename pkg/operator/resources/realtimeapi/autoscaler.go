@@ -17,12 +17,11 @@ limitations under the License.
 package realtimeapi
 
 import (
+	"context"
 	"fmt"
 	"math"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/cloudwatch"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	libmath "github.com/cortexlabs/cortex/pkg/lib/math"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
@@ -31,7 +30,15 @@ import (
 	"github.com/cortexlabs/cortex/pkg/operator/operator"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
+	promapi "github.com/prometheus/client_golang/api"
+	promv1 "github.com/prometheus/client_golang/api/prometheus/v1"
+	"github.com/prometheus/common/model"
 	kapps "k8s.io/api/apps/v1"
+)
+
+const (
+	_inFlightRequestsPrometheusKey = "cortex_in_flight_requests"
+	_prometheusQueryTimeoutSeconds = 10
 )
 
 type recommendations map[time.Time]int32
@@ -230,68 +237,41 @@ func autoscaleFn(initialDeployment *kapps.Deployment, apiSpec *spec.API) (func()
 }
 
 func getInflightRequests(apiName string, window time.Duration) (*float64, error) {
-	endTime := time.Now().Truncate(time.Second)
-	startTime := endTime.Add(-2 * window)
-	metricsDataQuery := cloudwatch.GetMetricDataInput{
-		EndTime:   &endTime,
-		StartTime: &startTime,
-		MetricDataQueries: []*cloudwatch.MetricDataQuery{
-			{
-				Id:    aws.String("inflight"),
-				Label: aws.String("InFlight"),
-				MetricStat: &cloudwatch.MetricStat{
-					Metric: &cloudwatch.Metric{
-						Namespace:  aws.String(config.ClusterName()),
-						MetricName: aws.String("in-flight"),
-						Dimensions: []*cloudwatch.Dimension{
-							{
-								Name:  aws.String("apiName"),
-								Value: aws.String(apiName),
-							},
-						},
-					},
-					Stat:   aws.String("Sum"),
-					Period: aws.Int64(10),
-				},
-			},
-		},
-	}
+	promClient, err := promapi.NewClient(promapi.Config{
+		Address: config.Cluster.PrometheusURL,
+	})
 
-	output, err := config.AWS.CloudWatch().GetMetricData(&metricsDataQuery)
+	promAPIv1 := promv1.NewAPI(promClient)
+	windowSeconds := int64(window.Truncate(time.Second).Seconds())
+
+	// PromQL query:
+	// 	sum(sum_over_time(cortex_in_flight_requests{api_name="<apiName>"}[60s])) /
+	//	sum(count_over_time(cortex_in_flight_requests{api_name="<apiName>"}[60s]))
+	query := fmt.Sprintf(
+		"sum(sum_over_time(%s{api_name=\"%s\"}[%ds])) / sum(count_over_time(%s{api_name=\"%s\"}[%ds]))",
+		_inFlightRequestsPrometheusKey, apiName, windowSeconds,
+		_inFlightRequestsPrometheusKey, apiName, windowSeconds,
+	)
+
+	ctx, cancel := context.WithTimeout(context.Background(), _prometheusQueryTimeoutSeconds*time.Second)
+	defer cancel()
+
+	valuesQuery, err := promAPIv1.Query(ctx, query, time.Now())
 	if err != nil {
 		return nil, err
 	}
-	if len(output.MetricDataResults) == 0 {
+
+	values, ok := valuesQuery.(model.Vector)
+	if !ok {
+		return nil, errors.ErrorUnexpected("failed to convert prometheus metric to vector")
+	}
+
+	// no values available
+	if values.Len() == 0 {
 		return nil, nil
 	}
 
-	timestampCounter := -1
-	for i, timeStamp := range output.MetricDataResults[0].Timestamps {
-		if endTime.Sub(*timeStamp) < 20*time.Second {
-			timestampCounter = i
-		} else {
-			break
-		}
-	}
+	avgInflightRequests := float64(values[0].Value)
 
-	if timestampCounter == -1 {
-		return nil, nil // no metrics were available in the last 2 tick intervals
-	}
-
-	steps := int(window.Nanoseconds() / spec.AutoscalingTickInterval.Nanoseconds())
-
-	endTimeStampCounter := libmath.MinInt(timestampCounter+steps, len(output.MetricDataResults[0].Timestamps))
-
-	values := output.MetricDataResults[0].Values[timestampCounter:endTimeStampCounter]
-	if len(values) == 0 {
-		return nil, nil
-	}
-
-	avg := 0.0
-	for _, val := range values {
-		avg += *val
-	}
-	avg = avg / float64(len(values))
-
-	return &avg, nil
+	return &avgInflightRequests, nil
 }

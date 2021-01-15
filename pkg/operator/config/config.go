@@ -33,7 +33,10 @@ import (
 	"github.com/cortexlabs/cortex/pkg/types/clusterconfig"
 )
 
-const _clusterConfigPath = "/configs/cluster/cluster.yaml"
+const (
+	_clusterConfigPath   = "/configs/cluster/cluster.yaml"
+	DefaultPrometheusURL = "http://prometheus.default.svc.cluster.local"
+)
 
 var (
 	Provider        types.ProviderType
@@ -59,10 +62,16 @@ func Init() error {
 		return err
 	}
 
+	prometheusURL := os.Getenv("CORTEX_PROMETHEUS_URL")
+	if len(prometheusURL) == 0 {
+		prometheusURL = DefaultPrometheusURL
+	}
+
 	if Provider == types.AWSProviderType {
 		Cluster = &clusterconfig.InternalConfig{
 			APIVersion:          consts.CortexVersion,
 			IsOperatorInCluster: strings.ToLower(os.Getenv("CORTEX_OPERATOR_IN_CLUSTER")) != "false",
+			PrometheusURL:       prometheusURL,
 		}
 
 		errs := cr.ParseYAMLFile(Cluster, clusterconfig.Validation, clusterConfigPath)
@@ -94,6 +103,7 @@ func Init() error {
 		GCPCluster = &clusterconfig.InternalGCPConfig{
 			APIVersion:          consts.CortexVersion,
 			IsOperatorInCluster: strings.ToLower(os.Getenv("CORTEX_OPERATOR_IN_CLUSTER")) != "false",
+			PrometheusURL:       prometheusURL,
 		}
 
 		errs := cr.ParseYAMLFile(GCPCluster, clusterconfig.GCPValidation, clusterConfigPath)
