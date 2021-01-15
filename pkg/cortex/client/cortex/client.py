@@ -205,7 +205,7 @@ class Client:
         env = os.environ.copy()
         env["CORTEX_CLI_INVOKER"] = "python"
         process = subprocess.Popen(
-            [get_cli_path(), "logs", "--env", self.env_name, api_name],
+            [get_cli_path(), "logs", "--env", self.env_name, api_name, "-y"],
             stderr=subprocess.STDOUT,
             stdout=subprocess.PIPE,
             encoding="utf8",
@@ -362,7 +362,7 @@ class Client:
         Args:
             api_name: Name of the API.
         """
-        args = ["logs", api_name, "--env", self.env_name]
+        args = ["logs", api_name, "--env", self.env_name, "-y"]
         run_cli(args)
 
     def stream_job_logs(
@@ -377,5 +377,5 @@ class Client:
             api_name: Name of the Batch API.
             job_id: Job ID.
         """
-        args = ["logs", api_name, job_id, "--env", self.env_name]
+        args = ["logs", api_name, job_id, "--env", self.env_name, "-y"]
         run_cli(args)
