@@ -33,24 +33,25 @@ import (
 )
 
 type GCPConfig struct {
-	Provider         types.ProviderType `json:"provider" yaml:"provider"`
-	Project          *string            `json:"project" yaml:"project"`
-	Zone             *string            `json:"zone" yaml:"zone"`
-	InstanceType     *string            `json:"instance_type" yaml:"instance_type"`
-	AcceleratorType  *string            `json:"accelerator_type" yaml:"accelerator_type"`
-	Network          *string            `json:"network" yaml:"network"`
-	Subnet           *string            `json:"subnet" yaml:"subnet"`
-	MinInstances     *int64             `json:"min_instances" yaml:"min_instances"`
-	MaxInstances     *int64             `json:"max_instances" yaml:"max_instances"`
-	ClusterName      string             `json:"cluster_name" yaml:"cluster_name"`
-	Telemetry        bool               `json:"telemetry" yaml:"telemetry"`
-	ImageOperator    string             `json:"image_operator" yaml:"image_operator"`
-	ImageManager     string             `json:"image_manager" yaml:"image_manager"`
-	ImageDownloader  string             `json:"image_downloader" yaml:"image_downloader"`
-	ImageFluentBit   string             `json:"image_fluent_bit" yaml:"image_fluent_bit"`
-	ImageIstioProxy  string             `json:"image_istio_proxy" yaml:"image_istio_proxy"`
-	ImageIstioPilot  string             `json:"image_istio_pilot" yaml:"image_istio_pilot"`
-	ImageGooglePause string             `json:"image_google_pause" yaml:"image_google_pause"`
+	Provider                types.ProviderType `json:"provider" yaml:"provider"`
+	Project                 *string            `json:"project" yaml:"project"`
+	Zone                    *string            `json:"zone" yaml:"zone"`
+	InstanceType            *string            `json:"instance_type" yaml:"instance_type"`
+	AcceleratorType         *string            `json:"accelerator_type" yaml:"accelerator_type"`
+	AcceleratorsPerInstance *int64             `json:"accelerators_per_instance" yaml:"accelerators_per_instance"`
+	Network                 *string            `json:"network" yaml:"network"`
+	Subnet                  *string            `json:"subnet" yaml:"subnet"`
+	MinInstances            *int64             `json:"min_instances" yaml:"min_instances"`
+	MaxInstances            *int64             `json:"max_instances" yaml:"max_instances"`
+	ClusterName             string             `json:"cluster_name" yaml:"cluster_name"`
+	Telemetry               bool               `json:"telemetry" yaml:"telemetry"`
+	ImageOperator           string             `json:"image_operator" yaml:"image_operator"`
+	ImageManager            string             `json:"image_manager" yaml:"image_manager"`
+	ImageDownloader         string             `json:"image_downloader" yaml:"image_downloader"`
+	ImageFluentBit          string             `json:"image_fluent_bit" yaml:"image_fluent_bit"`
+	ImageIstioProxy         string             `json:"image_istio_proxy" yaml:"image_istio_proxy"`
+	ImageIstioPilot         string             `json:"image_istio_pilot" yaml:"image_istio_pilot"`
+	ImageGooglePause        string             `json:"image_google_pause" yaml:"image_google_pause"`
 }
 
 type InternalGCPConfig struct {
@@ -134,6 +135,20 @@ var UserGCPValidation = &cr.StructValidation{
 			StructField: "AcceleratorType",
 			StringPtrValidation: &cr.StringPtrValidation{
 				AllowExplicitNull: true,
+			},
+		},
+		{
+			StructField: "AcceleratorsPerInstance",
+			Int64PtrValidation: &cr.Int64PtrValidation{
+				AllowExplicitNull: true,
+			},
+			DefaultDependentFields: []string{"AcceleratorType"},
+			DefaultDependentFieldsFunc: func(vals []interface{}) interface{} {
+				acceleratorType := vals[0].(*string)
+				if acceleratorType == nil {
+					return nil
+				}
+				return pointer.Int64(1)
 			},
 		},
 		{
@@ -304,7 +319,14 @@ func (cc *GCPConfig) Validate(GCP *gcp.Client) error {
 		return ErrorGCPInvalidInstanceType(*cc.InstanceType, instanceTypes...)
 	}
 
+	if cc.AcceleratorType == nil && cc.AcceleratorsPerInstance != nil {
+		return ErrorDependentFieldMustBeSpecified(AcceleratorsPerInstanceKey, AcceleratorTypeKey)
+	}
+
 	if cc.AcceleratorType != nil {
+		if cc.AcceleratorsPerInstance == nil {
+			return ErrorDependentFieldMustBeSpecified(AcceleratorTypeKey, AcceleratorsPerInstanceKey)
+		}
 		if validAccelerator, err := GCP.IsAcceleratorTypeAvailable(*cc.AcceleratorType, *cc.Zone); err != nil {
 			return err
 		} else if !validAccelerator {
@@ -495,6 +517,9 @@ func (cc *GCPConfig) UserTable() table.KeyValuePairs {
 	if cc.AcceleratorType != nil {
 		items.Add(AcceleratorTypeUserKey, *cc.AcceleratorType)
 	}
+	if cc.AcceleratorsPerInstance != nil {
+		items.Add(AcceleratorsPerInstanceUserKey, *cc.AcceleratorsPerInstance)
+	}
 	if cc.Network != nil {
 		items.Add(NetworkUserKey, *cc.Network)
 	}
@@ -529,6 +554,10 @@ func (cc *GCPConfig) TelemetryEvent() map[string]interface{} {
 	if cc.AcceleratorType != nil {
 		event["accelerator_type._is_defined"] = true
 		event["accelerator_type"] = *cc.AcceleratorType
+	}
+	if cc.AcceleratorsPerInstance != nil {
+		event["accelerators_per_instance._is_defined"] = true
+		event["accelerators_per_instance"] = *cc.AcceleratorsPerInstance
 	}
 	if cc.Network != nil {
 		event["network._is_defined"] = true
