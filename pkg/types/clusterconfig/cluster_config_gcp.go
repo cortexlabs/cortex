@@ -43,8 +43,8 @@ type GCPConfig struct {
 	Subnet                 *string            `json:"subnet" yaml:"subnet"`
 	MinInstances           *int64             `json:"min_instances" yaml:"min_instances"`
 	MaxInstances           *int64             `json:"max_instances" yaml:"max_instances"`
-	Preemptible            *bool              `json:"preemptible" yaml:"preemptible"`
-	PreemptibleConfig      *PreemptibleConfig `json:"preemptible_config" yaml:"preemptible_config"`
+	Preemptible            bool               `json:"preemptible" yaml:"preemptible"`
+	OnDemandBackup         bool               `json:"on_demand_backup" yaml:"on_demand_backup"`
 	ClusterName            string             `json:"cluster_name" yaml:"cluster_name"`
 	Telemetry              bool               `json:"telemetry" yaml:"telemetry"`
 	ImageOperator          string             `json:"image_operator" yaml:"image_operator"`
@@ -55,11 +55,6 @@ type GCPConfig struct {
 	ImageIstioProxy        string             `json:"image_istio_proxy" yaml:"image_istio_proxy"`
 	ImageIstioPilot        string             `json:"image_istio_pilot" yaml:"image_istio_pilot"`
 	ImageGooglePause       string             `json:"image_google_pause" yaml:"image_google_pause"`
-}
-
-type PreemptibleConfig struct {
-	OnDemandBaseCapacity *int64 `json:"on_demand_base_capacity" yaml:"on_demand_base_capacity"`
-	OnDemandBackup       *bool  `json:"on_demand_backup" yaml:"on_demand_backup"`
 }
 
 type InternalGCPConfig struct {
@@ -180,30 +175,14 @@ var UserGCPValidation = &cr.StructValidation{
 		},
 		{
 			StructField: "Preemptible",
-			BoolPtrValidation: &cr.BoolPtrValidation{
-				Default: pointer.Bool(false),
+			BoolValidation: &cr.BoolValidation{
+				Default: false,
 			},
 		},
 		{
-			StructField: "PreemptibleConfig",
-			StructValidation: &cr.StructValidation{
-				DefaultNil:        true,
-				AllowExplicitNull: true,
-				StructFieldValidations: []*cr.StructFieldValidation{
-					{
-						StructField: "OnDemandBaseCapacity",
-						Int64PtrValidation: &cr.Int64PtrValidation{
-							GreaterThanOrEqualTo: pointer.Int64(0),
-							AllowExplicitNull:    true,
-						},
-					},
-					{
-						StructField: "OnDemandBackup",
-						BoolPtrValidation: &cr.BoolPtrValidation{
-							Default: pointer.Bool(true),
-						},
-					},
-				},
+			StructField: "OnDemandBackup",
+			BoolValidation: &cr.BoolValidation{
+				Default: false,
 			},
 		},
 		{
@@ -387,24 +366,8 @@ func (cc *GCPConfig) Validate(GCP *gcp.Client) error {
 		}
 	}
 
-	if cc.Preemptible != nil && *cc.Preemptible {
-		if cc.PreemptibleConfig == nil {
-			cc.PreemptibleConfig = &PreemptibleConfig{}
-		}
-		if cc.PreemptibleConfig.OnDemandBaseCapacity == nil {
-			cc.PreemptibleConfig.OnDemandBaseCapacity = pointer.Int64(0)
-		}
-		if cc.PreemptibleConfig.OnDemandBackup == nil {
-			cc.PreemptibleConfig.OnDemandBackup = pointer.Bool(true)
-		}
-		if *cc.PreemptibleConfig.OnDemandBaseCapacity > *cc.MaxInstances {
-			return ErrorOnDemandBaseCapacityGreaterThanMax(**&cc.PreemptibleConfig.OnDemandBaseCapacity, *cc.MaxInstances)
-		}
-
-	} else {
-		if cc.PreemptibleConfig != nil {
-			return ErrorGCPConfiguredWhenPreemptibleIsNotEnabled(PreemptibleConfigKey)
-		}
+	if !cc.Preemptible && cc.OnDemandBackup {
+		return ErrorGCPConfiguredWhenPreemptibleIsNotEnabled(PreemptibleConfigKey)
 	}
 
 	return nil
@@ -559,13 +522,8 @@ func (cc *GCPConfig) UserTable() table.KeyValuePairs {
 	if cc.AcceleratorType != nil {
 		items.Add(AcceleratorTypeUserKey, *cc.AcceleratorType)
 	}
-	if cc.Preemptible != nil {
-		items.Add(PreemptibleUserKey, s.YesNo(*cc.Preemptible))
-	}
-	if cc.Preemptible != nil && *cc.Preemptible {
-		items.Add(OnDemandBaseCapacityUserKey, *cc.PreemptibleConfig.OnDemandBaseCapacity)
-		items.Add(OnDemandBackupUserKey, s.YesNo(*cc.PreemptibleConfig.OnDemandBackup))
-	}
+	items.Add(PreemptibleUserKey, s.YesNo(cc.Preemptible))
+	items.Add(OnDemandBackupUserKey, s.YesNo(cc.OnDemandBackup))
 	if cc.Network != nil {
 		items.Add(NetworkUserKey, *cc.Network)
 	}
@@ -619,19 +577,8 @@ func (cc *GCPConfig) TelemetryEvent() map[string]interface{} {
 	if cc.ClusterName != "cortex" {
 		event["cluster_name._is_custom"] = true
 	}
-	if cc.Preemptible != nil {
-		event["preemptible._is_defined"] = true
-		event["preemptible"] = *cc.Preemptible
-	}
-	if cc.PreemptibleConfig != nil {
-		event["preemptible_config._is_defined"] = true
-		if cc.PreemptibleConfig.OnDemandBaseCapacity != nil {
-			event["preemptible_config.on_demand_base_capacity"] = *cc.PreemptibleConfig.OnDemandBaseCapacity
-		}
-		if cc.PreemptibleConfig.OnDemandBackup != nil {
-			event["preemptible_config.on_demand_backup"] = *cc.PreemptibleConfig.OnDemandBackup
-		}
-	}
+	event["preemptible"] = cc.Preemptible
+	event["on_demand_backup"] = cc.OnDemandBackup
 	if cc.Zone != nil {
 		event["zone._is_defined"] = true
 		event["zone"] = *cc.Zone

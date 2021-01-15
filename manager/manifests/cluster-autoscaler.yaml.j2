@@ -131,7 +131,7 @@ subjects:
     name: cluster-autoscaler
     namespace: kube-system
 ---
-{% if (config.get('spot_config') and config['spot_config'].get('on_demand_backup', false)) or (config.get('preemptible_config') and config['preemptible_config'].get('on_demand_backup', false)) %}
+{% if (config.get('spot_config') and config['spot_config'].get('on_demand_backup', false)) or config.get('on_demand_backup') %}
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -144,7 +144,7 @@ data:
       - .*ng-cortex-worker-on-demand.*
     50:
       - .*ng-cortex-worker-spot.*
-    {% elif config.get('preemptible_config') %}
+    {% else %}
     10:
       - .*ng-cortex-wk-on-dmd.*
     50:
@@ -192,7 +192,7 @@ spec:
             - --cloud-provider=gce
             {% endif %}
             - --skip-nodes-with-local-storage=false
-            {% if (config.get('spot_config') and config['spot_config'].get('on_demand_backup', false)) or (config.get('preemptible_config') and config['preemptible_config'].get('on_demand_backup', false)) %}
+            {% if (config.get('spot_config') and config['spot_config'].get('on_demand_backup', false)) or config.get('on_demand_backup') %}
             - --expander=priority
             {% else %}
             - --expander=least-waste
