@@ -28,44 +28,46 @@ import (
 )
 
 const (
-	ErrInvalidRegion                              = "clusterconfig.invalid_region"
-	ErrInstanceTypeTooSmall                       = "clusterconfig.instance_type_too_small"
-	ErrMinInstancesGreaterThanMax                 = "clusterconfig.min_instances_greater_than_max"
-	ErrInstanceTypeNotSupportedInRegion           = "clusterconfig.instance_type_not_supported_in_region"
-	ErrIncompatibleSpotInstanceTypeMemory         = "clusterconfig.incompatible_spot_instance_type_memory"
-	ErrIncompatibleSpotInstanceTypeCPU            = "clusterconfig.incompatible_spot_instance_type_cpu"
-	ErrIncompatibleSpotInstanceTypeGPU            = "clusterconfig.incompatible_spot_instance_type_gpu"
-	ErrIncompatibleSpotInstanceTypeInf            = "clusterconfig.incompatible_spot_instance_type_inf"
-	ErrSpotPriceGreaterThanTargetOnDemand         = "clusterconfig.spot_price_greater_than_target_on_demand"
-	ErrSpotPriceGreaterThanMaxPrice               = "clusterconfig.spot_price_greater_than_max_price"
-	ErrInstanceTypeNotSupported                   = "clusterconfig.instance_type_not_supported"
-	ErrARMInstancesNotSupported                   = "clusterconfig.arm_instances_not_supported"
-	ErrAtLeastOneInstanceDistribution             = "clusterconfig.at_least_one_instance_distribution"
-	ErrNoCompatibleSpotInstanceFound              = "clusterconfig.no_compatible_spot_instance_found"
-	ErrConfiguredWhenSpotIsNotEnabled             = "clusterconfig.configured_when_spot_is_not_enabled"
-	ErrOnDemandBaseCapacityGreaterThanMax         = "clusterconfig.on_demand_base_capacity_greater_than_max"
-	ErrConfigCannotBeChangedOnUpdate              = "clusterconfig.config_cannot_be_changed_on_update"
-	ErrInvalidAvailabilityZone                    = "clusterconfig.invalid_availability_zone"
-	ErrAvailabilityZoneSpecifiedTwice             = "clusterconfig.availability_zone_specified_twice"
-	ErrUnsupportedAvailabilityZone                = "clusterconfig.unsupported_availability_zone"
-	ErrNotEnoughValidDefaultAvailibilityZones     = "clusterconfig.not_enough_valid_default_availability_zones"
-	ErrNoNATGatewayWithSubnets                    = "clusterconfig.no_nat_gateway_with_subnets"
-	ErrSpecifyOneOrNone                           = "clusterconfig.specify_one_or_none"
-	ErrDidNotMatchStrictS3Regex                   = "clusterconfig.did_not_match_strict_s3_regex"
-	ErrNATRequiredWithPrivateSubnetVisibility     = "clusterconfig.nat_required_with_private_subnet_visibility"
-	ErrS3RegionDiffersFromCluster                 = "clusterconfig.s3_region_differs_from_cluster"
-	ErrInvalidInstanceType                        = "clusterconfig.invalid_instance_type"
-	ErrIOPSNotSupported                           = "clusterconfig.iops_not_supported"
-	ErrIOPSTooLarge                               = "clusterconfig.iops_too_large"
-	ErrCantOverrideDefaultTag                     = "clusterconfig.cant_override_default_tag"
-	ErrSSLCertificateARNNotFound                  = "clusterconfig.ssl_certificate_arn_not_found"
-	ErrProviderMismatch                           = "clusterconfig.provider_mismatch"
+	ErrInvalidRegion                          = "clusterconfig.invalid_region"
+	ErrInstanceTypeTooSmall                   = "clusterconfig.instance_type_too_small"
+	ErrMinInstancesGreaterThanMax             = "clusterconfig.min_instances_greater_than_max"
+	ErrInstanceTypeNotSupportedInRegion       = "clusterconfig.instance_type_not_supported_in_region"
+	ErrIncompatibleSpotInstanceTypeMemory     = "clusterconfig.incompatible_spot_instance_type_memory"
+	ErrIncompatibleSpotInstanceTypeCPU        = "clusterconfig.incompatible_spot_instance_type_cpu"
+	ErrIncompatibleSpotInstanceTypeGPU        = "clusterconfig.incompatible_spot_instance_type_gpu"
+	ErrIncompatibleSpotInstanceTypeInf        = "clusterconfig.incompatible_spot_instance_type_inf"
+	ErrSpotPriceGreaterThanTargetOnDemand     = "clusterconfig.spot_price_greater_than_target_on_demand"
+	ErrSpotPriceGreaterThanMaxPrice           = "clusterconfig.spot_price_greater_than_max_price"
+	ErrInstanceTypeNotSupported               = "clusterconfig.instance_type_not_supported"
+	ErrARMInstancesNotSupported               = "clusterconfig.arm_instances_not_supported"
+	ErrAtLeastOneInstanceDistribution         = "clusterconfig.at_least_one_instance_distribution"
+	ErrNoCompatibleSpotInstanceFound          = "clusterconfig.no_compatible_spot_instance_found"
+	ErrConfiguredWhenSpotIsNotEnabled         = "clusterconfig.configured_when_spot_is_not_enabled"
+	ErrOnDemandBaseCapacityGreaterThanMax     = "clusterconfig.on_demand_base_capacity_greater_than_max"
+	ErrConfigCannotBeChangedOnUpdate          = "clusterconfig.config_cannot_be_changed_on_update"
+	ErrInvalidAvailabilityZone                = "clusterconfig.invalid_availability_zone"
+	ErrAvailabilityZoneSpecifiedTwice         = "clusterconfig.availability_zone_specified_twice"
+	ErrUnsupportedAvailabilityZone            = "clusterconfig.unsupported_availability_zone"
+	ErrNotEnoughValidDefaultAvailibilityZones = "clusterconfig.not_enough_valid_default_availability_zones"
+	ErrNoNATGatewayWithSubnets                = "clusterconfig.no_nat_gateway_with_subnets"
+	ErrSpecifyOneOrNone                       = "clusterconfig.specify_one_or_none"
+	ErrDidNotMatchStrictS3Regex               = "clusterconfig.did_not_match_strict_s3_regex"
+	ErrNATRequiredWithPrivateSubnetVisibility = "clusterconfig.nat_required_with_private_subnet_visibility"
+	ErrS3RegionDiffersFromCluster             = "clusterconfig.s3_region_differs_from_cluster"
+	ErrInvalidInstanceType                    = "clusterconfig.invalid_instance_type"
+	ErrIOPSNotSupported                       = "clusterconfig.iops_not_supported"
+	ErrIOPSTooLarge                           = "clusterconfig.iops_too_large"
+	ErrCantOverrideDefaultTag                 = "clusterconfig.cant_override_default_tag"
+	ErrSSLCertificateARNNotFound              = "clusterconfig.ssl_certificate_arn_not_found"
+	ErrProviderMismatch                       = "clusterconfig.provider_mismatch"
+
 	ErrGCPInvalidProjectID                        = "clusterconfig.gcp_invalid_project_id"
 	ErrGCPProjectMustBeSpecified                  = "clusterconfig.gcp_project_must_be_specified"
 	ErrGCPInvalidZone                             = "clusterconfig.gcp_invalid_zone"
 	ErrGCPInvalidInstanceType                     = "clusterconfig.gcp_invalid_instance_type"
 	ErrGCPInvalidAcceleratorType                  = "clusterconfig.gcp_invalid_accelerator_type"
 	ErrGCPIncompatibleInstanceTypeWithAccelerator = "clusterconfig.gcp_incompatible_instance_type_with_accelerator"
+	ErrGCPConfiguredWhenPreemptibleIsNotEnabled   = "clusterconfig.gcp_configured_when_preemptible_is_not_enabled"
 )
 
 func ErrorInvalidRegion(region string) error {
@@ -364,5 +366,12 @@ func ErrorGCPIncompatibleInstanceTypeWithAccelerator(instanceType, acceleratorTy
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrGCPIncompatibleInstanceTypeWithAccelerator,
 		Message: fmt.Sprintf("instance type %s is incompatible with the %s accelerator; the following instance types are compatible with the %s accelerator in zone %s: %s", instanceType, acceleratorType, acceleratorType, zone, s.StrsOr(compatibleInstances)),
+	})
+}
+
+func ErrorGCPConfiguredWhenPreemptibleIsNotEnabled(configKey string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrGCPConfiguredWhenPreemptibleIsNotEnabled,
+		Message: fmt.Sprintf("%s cannot be specified unless preemptible is enabled (to enable preemptible instances, set `%s: true` in your cluster configuration file)", configKey, PreemptibleKey),
 	})
 }

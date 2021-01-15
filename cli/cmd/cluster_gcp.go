@@ -432,6 +432,11 @@ func createGKECluster(clusterConfig *clusterconfig.GCPConfig, gcpClient *gcp.Cli
 	gkeClusterParent := fmt.Sprintf("projects/%s/locations/%s", *clusterConfig.Project, *clusterConfig.Zone)
 	gkeClusterName := fmt.Sprintf("%s/clusters/%s", gkeClusterParent, clusterConfig.ClusterName)
 
+	initialNodeCount := int64(1)
+	if *clusterConfig.MinInstances > 0 {
+		initialNodeCount = *clusterConfig.MinInstances
+	}
+
 	gkeClusterConfig := containerpb.Cluster{
 		Name:                  clusterConfig.ClusterName,
 		InitialClusterVersion: "1.17",
@@ -449,34 +454,75 @@ func createGKECluster(clusterConfig *clusterconfig.GCPConfig, gcpClient *gcp.Cli
 				},
 				InitialNodeCount: 1,
 			},
-			{
-				Name: "ng-cortex-worker-on-demand",
-				Config: &containerpb.NodeConfig{
-					MachineType: *clusterConfig.InstanceType,
-					Labels:      nodeLabels,
-					Taints: []*containerpb.NodeTaint{
-						{
-							Key:    "workload",
-							Value:  "true",
-							Effect: containerpb.NodeTaint_NO_SCHEDULE,
-						},
-					},
-					Accelerators: accelerators,
-					OauthScopes: []string{
-						"https://www.googleapis.com/auth/compute",
-						"https://www.googleapis.com/auth/devstorage.read_only",
-					},
-					ServiceAccount: gcpClient.ClientEmail,
-				},
-				Autoscaling: &containerpb.NodePoolAutoscaling{
-					Enabled:      true,
-					MinNodeCount: int32(*clusterConfig.MinInstances),
-					MaxNodeCount: int32(*clusterConfig.MaxInstances),
-				},
-				InitialNodeCount: int32(*clusterConfig.MinInstances),
-			},
 		},
 		Locations: []string{*clusterConfig.Zone},
+	}
+
+	onDemandInitialNodeCount := initialNodeCount
+	onDemandRequired := false
+	if clusterConfig.Preemptible == nil {
+		onDemandRequired = true
+	}
+
+	if clusterConfig.Preemptible != nil && *clusterConfig.Preemptible && clusterConfig.PreemptibleConfig != nil {
+		if clusterConfig.Preemptible != nil && *clusterConfig.Preemptible && clusterConfig.PreemptibleConfig != nil {
+			if clusterConfig.PreemptibleConfig.OnDemandBackup != nil && *clusterConfig.PreemptibleConfig.OnDemandBackup {
+				onDemandRequired = true
+			}
+			if clusterConfig.PreemptibleConfig.OnDemandBaseCapacity != nil && *clusterConfig.PreemptibleConfig.OnDemandBaseCapacity > 0 {
+				onDemandInitialNodeCount = *clusterConfig.PreemptibleConfig.OnDemandBaseCapacity
+			}
+		}
+	}
+	if onDemandRequired || onDemandInitialNodeCount > 0 {
+		gkeClusterConfig.NodePools = append(gkeClusterConfig.NodePools, &containerpb.NodePool{
+			Name: "ng-cortex-wk-on-dmd",
+			Config: &containerpb.NodeConfig{
+				MachineType: *clusterConfig.InstanceType,
+				Labels:      nodeLabels,
+				Taints: []*containerpb.NodeTaint{
+					{
+						Key:    "workload",
+						Value:  "true",
+						Effect: containerpb.NodeTaint_NO_SCHEDULE,
+					},
+				},
+				Accelerators: accelerators,
+				OauthScopes: []string{
+					"https://www.googleapis.com/auth/compute",
+					"https://www.googleapis.com/auth/devstorage.read_only",
+				},
+			},
+			InitialNodeCount: int32(onDemandInitialNodeCount),
+		})
+	}
+
+	if onDemandInitialNodeCount > 0 && initialNodeCount-onDemandInitialNodeCount > 0 {
+		initialNodeCount -= onDemandInitialNodeCount
+	}
+
+	if clusterConfig.Preemptible != nil && *clusterConfig.Preemptible {
+		gkeClusterConfig.NodePools = append(gkeClusterConfig.NodePools, &containerpb.NodePool{
+			Name: "ng-cortex-wk-preemp",
+			Config: &containerpb.NodeConfig{
+				MachineType: *clusterConfig.InstanceType,
+				Labels:      nodeLabels,
+				Taints: []*containerpb.NodeTaint{
+					{
+						Key:    "workload",
+						Value:  "true",
+						Effect: containerpb.NodeTaint_NO_SCHEDULE,
+					},
+				},
+				Accelerators: accelerators,
+				OauthScopes: []string{
+					"https://www.googleapis.com/auth/compute",
+					"https://www.googleapis.com/auth/devstorage.read_only",
+				},
+				ServiceAccount: gcpClient.ClientEmail,
+			},
+			InitialNodeCount: int32(initialNodeCount),
+		})
 	}
 
 	if clusterConfig.Network != nil {

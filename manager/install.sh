@@ -113,6 +113,11 @@ function cluster_up_gcp() {
   kubectl apply -f /workspace/apis.yaml >/dev/null
   echo "✓"
 
+  echo -n "￮ configuring autoscaling "
+  python render_template.py $CORTEX_CLUSTER_CONFIG_FILE manifests/cluster-autoscaler.yaml.j2 > /workspace/cluster-autoscaler.yaml
+  kubectl apply -f /workspace/cluster-autoscaler.yaml >/dev/null
+  echo "✓"
+
   echo -n "￮ configuring logging "
   python render_template.py $CORTEX_CLUSTER_CONFIG_FILE manifests/fluent-bit.yaml.j2 > /workspace/fluent-bit.yaml
   kubectl apply -f /workspace/fluent-bit.yaml >/dev/null

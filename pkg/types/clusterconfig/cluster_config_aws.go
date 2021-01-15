@@ -1154,8 +1154,9 @@ func (cc *Config) UserTable() table.KeyValuePairs {
 	items.Add(InstanceVolumeSizeUserKey, cc.InstanceVolumeSize)
 	items.Add(InstanceVolumeTypeUserKey, cc.InstanceVolumeType)
 	items.Add(InstanceVolumeIOPSUserKey, cc.InstanceVolumeIOPS)
-	items.Add(SpotUserKey, s.YesNo(*cc.Spot))
-
+	if cc.Spot != nil {
+		items.Add(SpotUserKey, s.YesNo(*cc.Spot))
+	}
 	if cc.Spot != nil && *cc.Spot {
 		items.Add(InstanceDistributionUserKey, cc.SpotConfig.InstanceDistribution)
 		items.Add(OnDemandBaseCapacityUserKey, *cc.SpotConfig.OnDemandBaseCapacity)
