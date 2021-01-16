@@ -184,8 +184,6 @@ spec:
             - ./cluster-autoscaler
             - --v=4
             - --stderrthreshold=info
-            - --scale-down-delay-after-add=10s
-            - --scale-down-unneeded-time=20s
             {% if config["provider"] == "aws" %}
             - --cloud-provider=aws
             {% else %}
