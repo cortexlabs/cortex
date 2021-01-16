@@ -458,7 +458,7 @@ func createGKECluster(clusterConfig *clusterconfig.GCPConfig, gcpClient *gcp.Cli
 		Locations: []string{*clusterConfig.Zone},
 	}
 
-	if clusterConfig.Preemptible {
+	if *clusterConfig.Preemptible {
 		gkeClusterConfig.NodePools = append(gkeClusterConfig.NodePools, &containerpb.NodePool{
 			Name: "ng-cortex-wk-preemp",
 			Config: &containerpb.NodeConfig{
@@ -482,7 +482,7 @@ func createGKECluster(clusterConfig *clusterconfig.GCPConfig, gcpClient *gcp.Cli
 			InitialNodeCount: int32(initialNodeCount),
 		})
 	}
-	if clusterConfig.OnDemandBackup || !clusterConfig.Preemptible {
+	if *clusterConfig.OnDemandBackup || !*clusterConfig.Preemptible {
 		gkeClusterConfig.NodePools = append(gkeClusterConfig.NodePools, &containerpb.NodePool{
 			Name: "ng-cortex-wk-on-dmd",
 			Config: &containerpb.NodeConfig{

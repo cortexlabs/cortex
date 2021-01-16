@@ -61,13 +61,13 @@ const (
 	ErrSSLCertificateARNNotFound              = "clusterconfig.ssl_certificate_arn_not_found"
 	ErrProviderMismatch                       = "clusterconfig.provider_mismatch"
 
-	ErrGCPInvalidProjectID                        = "clusterconfig.gcp_invalid_project_id"
-	ErrGCPProjectMustBeSpecified                  = "clusterconfig.gcp_project_must_be_specified"
-	ErrGCPInvalidZone                             = "clusterconfig.gcp_invalid_zone"
-	ErrGCPInvalidInstanceType                     = "clusterconfig.gcp_invalid_instance_type"
-	ErrGCPInvalidAcceleratorType                  = "clusterconfig.gcp_invalid_accelerator_type"
-	ErrGCPIncompatibleInstanceTypeWithAccelerator = "clusterconfig.gcp_incompatible_instance_type_with_accelerator"
-	ErrGCPConfiguredWhenPreemptibleIsNotEnabled   = "clusterconfig.gcp_configured_when_preemptible_is_not_enabled"
+	ErrGCPInvalidProjectID                           = "clusterconfig.gcp_invalid_project_id"
+	ErrGCPProjectMustBeSpecified                     = "clusterconfig.gcp_project_must_be_specified"
+	ErrGCPInvalidZone                                = "clusterconfig.gcp_invalid_zone"
+	ErrGCPInvalidInstanceType                        = "clusterconfig.gcp_invalid_instance_type"
+	ErrGCPInvalidAcceleratorType                     = "clusterconfig.gcp_invalid_accelerator_type"
+	ErrGCPIncompatibleInstanceTypeWithAccelerator    = "clusterconfig.gcp_incompatible_instance_type_with_accelerator"
+	ErrGCPOnDemandEnabledWhenPreemptibleIsNotEnabled = "clusterconfig.gcp_on_demand_enabled_when_preemptible_is_not_enabled"
 )
 
 func ErrorInvalidRegion(region string) error {
@@ -369,9 +369,9 @@ func ErrorGCPIncompatibleInstanceTypeWithAccelerator(instanceType, acceleratorTy
 	})
 }
 
-func ErrorGCPConfiguredWhenPreemptibleIsNotEnabled(configKey string) error {
+func ErrorGCPOnDemandEnabledWhenPreemptibleIsNotEnabled(configKey string) error {
 	return errors.WithStack(&errors.Error{
-		Kind:    ErrGCPConfiguredWhenPreemptibleIsNotEnabled,
-		Message: fmt.Sprintf("%s cannot be specified unless preemptible is enabled (to enable preemptible instances, set `%s: true` in your cluster configuration file)", configKey, PreemptibleKey),
+		Kind:    ErrGCPOnDemandEnabledWhenPreemptibleIsNotEnabled,
+		Message: fmt.Sprintf("%s cannot be enabled unless preemptible is enabled (to enable preemptible instances, set `%s: true` in your cluster configuration file)", configKey, PreemptibleKey),
 	})
 }
