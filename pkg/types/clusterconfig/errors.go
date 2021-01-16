@@ -51,6 +51,7 @@ const (
 	ErrNotEnoughValidDefaultAvailibilityZones = "clusterconfig.not_enough_valid_default_availability_zones"
 	ErrNoNATGatewayWithSubnets                = "clusterconfig.no_nat_gateway_with_subnets"
 	ErrSpecifyOneOrNone                       = "clusterconfig.specify_one_or_none"
+	ErrFieldConfigurationDependentOnCondition = "clusterconfig.field_configuration_dependent_on_condition"
 	ErrDidNotMatchStrictS3Regex               = "clusterconfig.did_not_match_strict_s3_regex"
 	ErrNATRequiredWithPrivateSubnetVisibility = "clusterconfig.nat_required_with_private_subnet_visibility"
 	ErrS3RegionDiffersFromCluster             = "clusterconfig.s3_region_differs_from_cluster"
@@ -61,13 +62,12 @@ const (
 	ErrSSLCertificateARNNotFound              = "clusterconfig.ssl_certificate_arn_not_found"
 	ErrProviderMismatch                       = "clusterconfig.provider_mismatch"
 
-	ErrGCPInvalidProjectID                           = "clusterconfig.gcp_invalid_project_id"
-	ErrGCPProjectMustBeSpecified                     = "clusterconfig.gcp_project_must_be_specified"
-	ErrGCPInvalidZone                                = "clusterconfig.gcp_invalid_zone"
-	ErrGCPInvalidInstanceType                        = "clusterconfig.gcp_invalid_instance_type"
-	ErrGCPInvalidAcceleratorType                     = "clusterconfig.gcp_invalid_accelerator_type"
-	ErrGCPIncompatibleInstanceTypeWithAccelerator    = "clusterconfig.gcp_incompatible_instance_type_with_accelerator"
-	ErrGCPOnDemandEnabledWhenPreemptibleIsNotEnabled = "clusterconfig.gcp_on_demand_enabled_when_preemptible_is_not_enabled"
+	ErrGCPInvalidProjectID                        = "clusterconfig.gcp_invalid_project_id"
+	ErrGCPProjectMustBeSpecified                  = "clusterconfig.gcp_project_must_be_specified"
+	ErrGCPInvalidZone                             = "clusterconfig.gcp_invalid_zone"
+	ErrGCPInvalidInstanceType                     = "clusterconfig.gcp_invalid_instance_type"
+	ErrGCPInvalidAcceleratorType                  = "clusterconfig.gcp_invalid_accelerator_type"
+	ErrGCPIncompatibleInstanceTypeWithAccelerator = "clusterconfig.gcp_incompatible_instance_type_with_accelerator"
 )
 
 func ErrorInvalidRegion(region string) error {
@@ -243,6 +243,13 @@ func ErrorSpecifyOneOrNone(fieldName1 string, fieldName2 string, fieldNames ...s
 	})
 }
 
+func ErrorFieldConfigurationDependentOnCondition(configuredField string, configuredFieldValue string, dependencyField string, dependencyFieldValue string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrFieldConfigurationDependentOnCondition,
+		Message: fmt.Sprintf("cannot set %s = %s when %s = %s", configuredField, configuredFieldValue, dependencyField, dependencyFieldValue),
+	})
+}
+
 func ErrorDidNotMatchStrictS3Regex() error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrDidNotMatchStrictS3Regex,
@@ -366,12 +373,5 @@ func ErrorGCPIncompatibleInstanceTypeWithAccelerator(instanceType, acceleratorTy
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrGCPIncompatibleInstanceTypeWithAccelerator,
 		Message: fmt.Sprintf("instance type %s is incompatible with the %s accelerator; the following instance types are compatible with the %s accelerator in zone %s: %s", instanceType, acceleratorType, acceleratorType, zone, s.StrsOr(compatibleInstances)),
-	})
-}
-
-func ErrorGCPOnDemandEnabledWhenPreemptibleIsNotEnabled() error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrGCPOnDemandEnabledWhenPreemptibleIsNotEnabled,
-		Message: fmt.Sprintf("%s cannot be enabled unless preemptible is enabled (to enable preemptible instances, set `%s: true` in your cluster configuration file)", OnDemandBackupKey, PreemptibleKey),
 	})
 }

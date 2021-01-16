@@ -365,7 +365,7 @@ func (cc *GCPConfig) Validate(GCP *gcp.Client) error {
 	}
 
 	if !*cc.Preemptible && *cc.OnDemandBackup {
-		return ErrorGCPOnDemandEnabledWhenPreemptibleIsNotEnabled()
+		return ErrorFieldConfigurationDependentOnCondition(OnDemandBackupKey, s.Bool(*cc.OnDemandBackup), PreemptibleKey, s.Bool(*cc.Preemptible))
 	}
 
 	return nil
