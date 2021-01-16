@@ -369,9 +369,9 @@ func ErrorGCPIncompatibleInstanceTypeWithAccelerator(instanceType, acceleratorTy
 	})
 }
 
-func ErrorGCPOnDemandEnabledWhenPreemptibleIsNotEnabled(configKey string) error {
+func ErrorGCPOnDemandEnabledWhenPreemptibleIsNotEnabled() error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrGCPOnDemandEnabledWhenPreemptibleIsNotEnabled,
-		Message: fmt.Sprintf("%s cannot be enabled unless preemptible is enabled (to enable preemptible instances, set `%s: true` in your cluster configuration file)", configKey, PreemptibleKey),
+		Message: fmt.Sprintf("%s cannot be enabled unless preemptible is enabled (to enable preemptible instances, set `%s: true` in your cluster configuration file)", OnDemandBackupKey, PreemptibleKey),
 	})
 }

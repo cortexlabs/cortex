@@ -500,6 +500,7 @@ func createGKECluster(clusterConfig *clusterconfig.GCPConfig, gcpClient *gcp.Cli
 					"https://www.googleapis.com/auth/compute",
 					"https://www.googleapis.com/auth/devstorage.read_only",
 				},
+				ServiceAccount: gcpClient.ClientEmail,
 			},
 			InitialNodeCount: int32(initialNodeCount),
 		})
