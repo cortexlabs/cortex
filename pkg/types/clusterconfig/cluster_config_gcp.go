@@ -472,13 +472,6 @@ func SetGCPDefaults(cc *GCPConfig) error {
 		return errors.FirstError(errs...)
 	}
 
-	if *cc.Preemptible && cc.OnDemandBackup == nil {
-		cc.OnDemandBackup = pointer.Bool(true)
-	}
-	if !*cc.Preemptible {
-		cc.OnDemandBackup = pointer.Bool(false)
-	}
-
 	return nil
 }
 
