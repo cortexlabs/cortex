@@ -25,12 +25,12 @@ import (
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 )
 
-func ListAllInProgressJobKeysByAPI(apiName string, kind userconfig.Kind) ([]spec.JobKey, error) {
-	return listAllInProgressJobKeysByAPI(&apiName, kind)
+func ListAllInProgressJobKeysByAPI(kind userconfig.Kind, apiName string) ([]spec.JobKey, error) {
+	return listAllInProgressJobKeysByAPI(kind, &apiName)
 }
 
 func ListAllInProgressJobKeys(kind userconfig.Kind) ([]spec.JobKey, error) {
-	return listAllInProgressJobKeysByAPI(nil, kind)
+	return listAllInProgressJobKeysByAPI(kind, nil)
 }
 
 func DeleteInProgressFile(jobKey spec.JobKey) error {
@@ -41,15 +41,15 @@ func DeleteInProgressFile(jobKey spec.JobKey) error {
 	return nil
 }
 
-func DeleteAllInProgressFilesByAPI(apiName string, kind userconfig.Kind) error {
-	err := config.DeleteBucketPrefix(allInProgressForAPIS3Key(apiName, kind), true)
+func DeleteAllInProgressFilesByAPI(kind userconfig.Kind, apiName string) error {
+	err := config.DeleteBucketPrefix(allInProgressForAPIS3Key(kind, apiName), true)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func listAllInProgressJobKeysByAPI(apiName *string, kind userconfig.Kind) ([]spec.JobKey, error) {
+func listAllInProgressJobKeysByAPI(kind userconfig.Kind, apiName *string) ([]spec.JobKey, error) {
 	_, ok := _jobKinds[kind]
 	if !ok {
 		return nil, ErrorInvalidJobKind(kind)
@@ -57,7 +57,7 @@ func listAllInProgressJobKeysByAPI(apiName *string, kind userconfig.Kind) ([]spe
 
 	var jobPath string
 	if apiName != nil {
-		jobPath = allInProgressForAPIS3Key(*apiName, kind)
+		jobPath = allInProgressForAPIS3Key(kind, *apiName)
 	} else {
 		jobPath = allInProgressS3Key(kind)
 	}
@@ -86,7 +86,7 @@ func listAllInProgressJobKeysByAPI(apiName *string, kind userconfig.Kind) ([]spe
 }
 
 func uploadInProgressFile(jobKey spec.JobKey) error {
-	err := config.UploadBucketString("", inProgressS3Key(jobKey))
+	err := config.UploadStringToBucket("", inProgressS3Key(jobKey))
 	if err != nil {
 		return err
 	}
@@ -101,13 +101,13 @@ func allInProgressS3Key(kind userconfig.Kind) string {
 }
 
 // e.g. <cluster_name>/jobs/<job_api_kind>/in_progress/<api_name>
-func allInProgressForAPIS3Key(apiName string, kind userconfig.Kind) string {
+func allInProgressForAPIS3Key(kind userconfig.Kind, apiName string) string {
 	return path.Join(allInProgressS3Key(kind), apiName)
 }
 
 // e.g. <cluster_name>/jobs/<job_api_kind>/in_progress/<api_name>/<job_id>
 func inProgressS3Key(jobKey spec.JobKey) string {
-	return path.Join(allInProgressForAPIS3Key(jobKey.APIName, jobKey.Kind), jobKey.ID)
+	return path.Join(allInProgressForAPIS3Key(jobKey.Kind, jobKey.APIName), jobKey.ID)
 }
 
 func jobKeyFromInProgressS3Key(s3Key string) spec.JobKey {

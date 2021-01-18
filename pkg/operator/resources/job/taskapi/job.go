@@ -68,9 +68,7 @@ func SubmitJob(apiName string, submission *schema.TaskJobSubmission) (*spec.Task
 		return nil, err
 	}
 
-	routines.RunWithPanicHandler(func() {
-		deployJob(apiSpec, &jobSpec)
-	})
+	deployJob(apiSpec, &jobSpec)
 
 	return &jobSpec, nil
 }
@@ -94,13 +92,18 @@ func deployJob(apiSpec *spec.API, jobSpec *spec.TaskJob) {
 	err = job.SetRunningStatus(jobSpec.JobKey)
 	if err != nil {
 		handleJobSubmissionError(jobSpec.JobKey, err)
-		return
 	}
 }
 
 func handleJobSubmissionError(jobKey spec.JobKey, jobErr error) {
-	err := errors.FirstError(
-		//writeToJobLogStream(jobKey, jobErr.Error()),
+	jobLogger, err := operator.GetJobLogger(jobKey)
+	if err != nil {
+		telemetry.Error(err)
+		operatorLogger.Error(err)
+		return
+	}
+	jobLogger.Error(jobErr.Error())
+	err = errors.FirstError(
 		job.SetUnexpectedErrorStatus(jobKey),
 		deleteJobRuntimeResources(jobKey),
 	)
@@ -135,7 +138,11 @@ func StopJob(jobKey spec.JobKey) error {
 		return errors.Wrap(job.ErrorJobIsNotInProgress(jobKey.Kind), jobKey.UserString())
 	}
 
-	// writeToJobLogStream(jobKey, "request received to stop job; performing cleanup...")
+	jobLogger, err := operator.GetJobLogger(jobKey)
+	if err == nil {
+		jobLogger.Warn("request received to stop job; performing cleanup...")
+	}
+
 	return errors.FirstError(
 		deleteJobRuntimeResources(jobKey),
 		job.SetStoppedStatus(jobKey),

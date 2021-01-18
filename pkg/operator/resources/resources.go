@@ -171,6 +171,7 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string, force bool) (*schema
 			*deployedResource, userconfig.RealtimeAPIKind,
 			userconfig.BatchAPIKind,
 			userconfig.TrafficSplitterKind,
+			userconfig.TaskAPIKind,
 		) // unexpected
 	}
 
@@ -271,6 +272,8 @@ func patchAPI(apiConfig *userconfig.API, force bool) (*spec.API, string, error) 
 		return realtimeapi.UpdateAPI(apiConfig, prevAPISpec.ProjectID, force)
 	case userconfig.BatchAPIKind:
 		return batchapi.UpdateAPI(apiConfig, prevAPISpec.ProjectID)
+	case userconfig.TaskAPIKind:
+		return taskapi.UpdateAPI(apiConfig, prevAPISpec.ProjectID)
 	default:
 		return trafficsplitter.UpdateAPI(apiConfig, force)
 	}

@@ -216,12 +216,11 @@ func getBatchJob(env cliconfig.Environment, apiName string, jobID string) (strin
 	out += titleStr("batch stats") + t.MustFormat(&table.Opts{BoldHeader: pointer.Bool(false)})
 
 	if job.Status == status.JobEnqueuing {
-		out += "\nstill enqueuing, workers have not been allocated for this job yet\n"
+		out += "\n" + "still enqueuing, workers have not been allocated for this job yet\n"
 	} else if job.Status.IsCompleted() {
-		out += "\nworker stats are not available because this job is not currently running\n"
+		out += "\n" + "worker stats are not available because this job is not currently running\n"
 	} else {
 		out += titleStr("worker stats")
-
 		if job.WorkerCounts != nil {
 			t := table.Table{
 				Headers: []table.Header{

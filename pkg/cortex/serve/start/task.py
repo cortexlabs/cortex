@@ -23,14 +23,6 @@ from cortex_internal.lib.log import configure_logger
 logger = configure_logger("cortex", os.environ["CORTEX_LOG_CONFIG_FILE"])
 
 
-def get_task_spec(storage, cache_dir, job_spec_path):
-    local_spec_path = os.path.join(cache_dir, "task_spec.json")
-    _, key = S3.deconstruct_s3_path(job_spec_path)
-    storage.download_file(key, local_spec_path)
-    with open(local_spec_path) as f:
-        return json.load(f)
-
-
 def start():
     cache_dir = os.environ["CORTEX_CACHE_DIR"]
     provider = os.environ["CORTEX_PROVIDER"]

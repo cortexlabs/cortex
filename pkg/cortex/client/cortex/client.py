@@ -61,7 +61,7 @@ class Client:
 
         Args:
             api_spec: A dictionary defining a single Cortex API. See https://docs.cortex.dev/v/master/ for schema.
-            predictor: A Cortex Predictor class implementation. Not required when deploying a traffic splitter.
+            predictor: A Cortex Predictor class implementation. Not required for TaskAPI/TrafficSplitter kinds.
             task: A callable class/function implementation. Not required for RealtimeAPI/BatchAPI/TrafficSplitter kinds.
             requirements: A list of PyPI dependencies that will be installed before the predictor class implementation is invoked.
             conda_packages: A list of Conda dependencies that will be installed before the predictor class implementation is invoked.
@@ -95,11 +95,26 @@ class Client:
                 yaml.dump([api_spec], f)  # write a list
                 return self._deploy(cortex_yaml_path, force, wait)
 
-        if api_spec.get("kind") == "TaskAPI":
+        api_kind = api_spec.get("kind")
+        if api_kind == "TrafficSplitter":
             if predictor:
-                raise ValueError("`predictor` parameter cannnot be specified for TaskAPI kind")
+                raise ValueError(f"`predictor` parameter cannot be specified for {api_kind} kind")
+            if task:
+                raise ValueError(f"`task` parameter cannot be specified for {api_kind} kind")
+        elif api_kind == "TaskAPI":
+            if predictor:
+                raise ValueError(f"`predictor` parameter cannnot be specified for {api_kind} kind")
             if task is None:
-                raise ValueError("`task` parameter must be specified for TaskAPI kind")
+                raise ValueError(f"`task` parameter must be specified for {api_kind} kind")
+        elif api_kind in ["BatchAPI", "RealtimeAPI"]:
+            if not predictor:
+                raise ValueError(f"`predictor` parameter cannot be specified for {api_kind}")
+            if task:
+                raise ValueError(f"`task` parameter must be specified for {api_kind}")
+        else:
+            raise ValueError(
+                f"invalid {api_kind} kind, `api_spec` must have the `kind` field set to one of the following kinds: {['TrafficSplitter', 'TaskAPI', 'BatchAPI', 'RealtimeAPI']}"
+            )
 
         if api_spec.get("name") is None:
             raise ValueError("`api_spec` must have the `name` key set")
@@ -113,7 +128,7 @@ class Client:
 
         cortex_yaml_path = os.path.join(project_dir, "cortex.yaml")
 
-        if api_spec.get("kind") == "TrafficSplitter" and predictor is None:
+        if api_kind == "TrafficSplitter":
             # for deploying a traffic splitter
             with open(cortex_yaml_path, "w") as f:
                 yaml.dump([api_spec], f)  # write a list
@@ -140,7 +155,7 @@ class Client:
             with open(project_dir / "conda-packages.txt", "w") as conda_file:
                 conda_file.write("\n".join(conda_packages))
 
-        if predictor:
+        if api_kind in ["BatchAPI", "RealtimeAPI"]:
             if not inspect.isclass(predictor):
                 raise ValueError("`predictor` parameter must be a class definition")
 
@@ -158,10 +173,12 @@ class Client:
 
                 api_spec["predictor"]["path"] = "predictor.pickle"
                 api_spec["predictor"]["type"] = predictor_type
-        if task:
-            if not callable(task):
-                raise ValueError("`task` parameter must be a callable")
 
+        if api_kind == "TaskAPI":
+            if not callable(task):
+                raise ValueError(
+                    "`task` parameter must be a callable (e.g. a function definition or a class definition called `Task` with a `__call__` method implemented"
+                )
             with open(project_dir / "task.pickle", "wb") as pickle_file:
                 dill.dump(task, pickle_file)
                 if api_spec.get("definition") is None:

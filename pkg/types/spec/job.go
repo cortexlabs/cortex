@@ -44,7 +44,7 @@ func (j JobKey) SpecFilePath(clusterName string) string {
 
 // e.g. /<cluster name>/jobs/<job_api_kind>/<cortex version>/<api_name>/<job_id>
 func (j JobKey) Prefix(clusterName string) string {
-	return s.EnsureSuffix(path.Join(JobAPIPrefix(j.APIName, clusterName, j.Kind), j.ID), "/")
+	return s.EnsureSuffix(path.Join(JobAPIPrefix(clusterName, j.Kind, j.APIName), j.ID), "/")
 }
 
 func (j JobKey) K8sName() string {
@@ -90,6 +90,6 @@ type TaskJob struct {
 }
 
 // e.g. /<cluster name>/jobs/<job_api_kind>/<cortex version>/<api_name>
-func JobAPIPrefix(apiName string, clusterName string, kind userconfig.Kind) string {
+func JobAPIPrefix(clusterName string, kind userconfig.Kind, apiName string) string {
 	return filepath.Join(clusterName, "jobs", kind.String(), consts.CortexVersion, apiName)
 }

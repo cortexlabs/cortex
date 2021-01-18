@@ -34,6 +34,7 @@ type BatchJobStatus struct {
 
 type TaskJobStatus struct {
 	spec.TaskJob
-	EndTime *time.Time `json:"end_time"`
-	Status  JobCode    `json:"status"`
+	EndTime      *time.Time    `json:"end_time"`
+	Status       JobCode       `json:"status"`
+	WorkerCounts *WorkerCounts `json:"worker_counts"`
 }

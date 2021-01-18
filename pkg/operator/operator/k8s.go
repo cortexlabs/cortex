@@ -194,7 +194,6 @@ func TaskContainers(api *spec.API) ([]kcore.Container, []kcore.Volume) {
 		Env:             getTaskEnvVars(api, APIContainerName),
 		EnvFrom:         baseEnvVars(),
 		VolumeMounts:    apiPodVolumeMounts,
-		Lifecycle:       nginxGracefulStopper(api.Kind),
 		Resources: kcore.ResourceRequirements{
 			Requests: apiPodResourceList,
 			Limits:   apiPodResourceLimitsList,
@@ -537,7 +536,7 @@ func getTaskEnvVars(api *spec.API, container string) []kcore.EnvVar {
 			envVars = append(envVars,
 				kcore.EnvVar{
 					Name:  "NEURONCORE_GROUP_SIZES",
-					Value: s.Int64(api.Compute.Inf * consts.NeuronCoresPerInf / int64(api.Predictor.ProcessesPerReplica)),
+					Value: s.Int64(api.Compute.Inf * consts.NeuronCoresPerInf),
 				},
 				kcore.EnvVar{
 					Name:  "NEURON_RTD_ADDRESS",

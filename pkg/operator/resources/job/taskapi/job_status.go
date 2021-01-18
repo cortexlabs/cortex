@@ -68,5 +68,10 @@ func getJobStatusFromJobState(jobState *job.State, k8sJob *kbatch.Job, pods []kc
 		Status:  jobState.Status,
 	}
 
+	if jobState.Status.IsInProgress() && k8sJob != nil {
+		workerCounts := job.GetWorkerCountsForJob(*k8sJob, pods)
+		jobStatus.WorkerCounts = &workerCounts
+	}
+
 	return &jobStatus, nil
 }

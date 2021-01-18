@@ -75,7 +75,7 @@ class TaskAPI:
 
         if len(classes) > 0:
             task_class = None
-            for class_df in inspect.getmembers(impl):
+            for class_df in classes:
                 if class_df[0] == target_class_name:
                     if task_class is not None:
                         raise UserException(

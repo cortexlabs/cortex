@@ -135,7 +135,7 @@ func UploadBytesToBucket(data []byte, key string) error {
 	return nil
 }
 
-func UploadBucketString(str string, key string) error {
+func UploadStringToBucket(str string, key string) error {
 	switch Provider {
 	case types.AWSProviderType:
 		return AWS.UploadStringToS3(str, Cluster.Bucket, key)

@@ -258,7 +258,7 @@ func SetEnqueuingStatus(jobKey spec.JobKey) error {
 		return err
 	}
 
-	err = config.UploadBucketString("", path.Join(jobKey.Prefix(config.ClusterName()), status.JobEnqueuing.String()))
+	err = config.UploadStringToBucket("", path.Join(jobKey.Prefix(config.ClusterName()), status.JobEnqueuing.String()))
 	if err != nil {
 		return err
 	}
@@ -272,7 +272,7 @@ func SetEnqueuingStatus(jobKey spec.JobKey) error {
 }
 
 func SetFailedStatus(jobKey spec.JobKey) error {
-	err := config.UploadBucketString("", path.Join(jobKey.Prefix(config.ClusterName()), status.JobEnqueueFailed.String()))
+	err := config.UploadStringToBucket("", path.Join(jobKey.Prefix(config.ClusterName()), status.JobEnqueueFailed.String()))
 	if err != nil {
 		return err
 	}
@@ -286,7 +286,7 @@ func SetFailedStatus(jobKey spec.JobKey) error {
 }
 
 func SetRunningStatus(jobKey spec.JobKey) error {
-	err := config.UploadBucketString("", path.Join(jobKey.Prefix(config.ClusterName()), status.JobRunning.String()))
+	err := config.UploadStringToBucket("", path.Join(jobKey.Prefix(config.ClusterName()), status.JobRunning.String()))
 	if err != nil {
 		return err
 	}
@@ -300,7 +300,7 @@ func SetRunningStatus(jobKey spec.JobKey) error {
 }
 
 func SetStoppedStatus(jobKey spec.JobKey) error {
-	err := config.UploadBucketString("", path.Join(jobKey.Prefix(config.ClusterName()), status.JobStopped.String()))
+	err := config.UploadStringToBucket("", path.Join(jobKey.Prefix(config.ClusterName()), status.JobStopped.String()))
 	if err != nil {
 		return err
 	}
@@ -314,7 +314,7 @@ func SetStoppedStatus(jobKey spec.JobKey) error {
 }
 
 func SetSucceededStatus(jobKey spec.JobKey) error {
-	err := config.UploadBucketString("", path.Join(jobKey.Prefix(config.ClusterName()), status.JobSucceeded.String()))
+	err := config.UploadStringToBucket("", path.Join(jobKey.Prefix(config.ClusterName()), status.JobSucceeded.String()))
 	if err != nil {
 		return err
 	}
@@ -328,7 +328,7 @@ func SetSucceededStatus(jobKey spec.JobKey) error {
 }
 
 func SetCompletedWithFailuresStatus(jobKey spec.JobKey) error {
-	err := config.UploadBucketString("", path.Join(jobKey.Prefix(config.ClusterName()), status.JobCompletedWithFailures.String()))
+	err := config.UploadStringToBucket("", path.Join(jobKey.Prefix(config.ClusterName()), status.JobCompletedWithFailures.String()))
 	if err != nil {
 		return err
 	}
@@ -342,7 +342,7 @@ func SetCompletedWithFailuresStatus(jobKey spec.JobKey) error {
 }
 
 func SetWorkerErrorStatus(jobKey spec.JobKey) error {
-	err := config.UploadBucketString("", path.Join(jobKey.Prefix(config.ClusterName()), status.JobWorkerError.String()))
+	err := config.UploadStringToBucket("", path.Join(jobKey.Prefix(config.ClusterName()), status.JobWorkerError.String()))
 	if err != nil {
 		return err
 	}
@@ -356,7 +356,7 @@ func SetWorkerErrorStatus(jobKey spec.JobKey) error {
 }
 
 func SetWorkerOOMStatus(jobKey spec.JobKey) error {
-	err := config.UploadBucketString("", path.Join(jobKey.Prefix(config.ClusterName()), status.JobWorkerOOM.String()))
+	err := config.UploadStringToBucket("", path.Join(jobKey.Prefix(config.ClusterName()), status.JobWorkerOOM.String()))
 	if err != nil {
 		return err
 	}
@@ -370,7 +370,7 @@ func SetWorkerOOMStatus(jobKey spec.JobKey) error {
 }
 
 func SetEnqueueFailedStatus(jobKey spec.JobKey) error {
-	err := config.UploadBucketString("", path.Join(jobKey.Prefix(config.ClusterName()), status.JobEnqueueFailed.String()))
+	err := config.UploadStringToBucket("", path.Join(jobKey.Prefix(config.ClusterName()), status.JobEnqueueFailed.String()))
 	if err != nil {
 		return err
 	}
@@ -384,7 +384,7 @@ func SetEnqueueFailedStatus(jobKey spec.JobKey) error {
 }
 
 func SetUnexpectedErrorStatus(jobKey spec.JobKey) error {
-	err := config.UploadBucketString("", path.Join(jobKey.Prefix(config.ClusterName()), status.JobUnexpectedError.String()))
+	err := config.UploadStringToBucket("", path.Join(jobKey.Prefix(config.ClusterName()), status.JobUnexpectedError.String()))
 	if err != nil {
 		return err
 	}
@@ -398,7 +398,7 @@ func SetUnexpectedErrorStatus(jobKey spec.JobKey) error {
 }
 
 func SetTimedOutStatus(jobKey spec.JobKey) error {
-	err := config.UploadBucketString("", path.Join(jobKey.Prefix(config.ClusterName()), status.JobTimedOut.String()))
+	err := config.UploadStringToBucket("", path.Join(jobKey.Prefix(config.ClusterName()), status.JobTimedOut.String()))
 	if err != nil {
 		return err
 	}

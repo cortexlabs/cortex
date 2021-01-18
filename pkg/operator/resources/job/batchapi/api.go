@@ -107,14 +107,14 @@ func deleteS3Resources(apiName string) error {
 			return config.AWS.DeleteS3Dir(config.Cluster.Bucket, prefix, true)
 		},
 		func() error {
-			prefix := spec.JobAPIPrefix(apiName, config.ClusterName(), userconfig.BatchAPIKind)
+			prefix := spec.JobAPIPrefix(config.ClusterName(), userconfig.BatchAPIKind, apiName)
 			routines.RunWithPanicHandler(func() {
 				config.AWS.DeleteS3Dir(config.Cluster.Bucket, prefix, true) // deleting job files may take a while
 			})
 			return nil
 		},
 		func() error {
-			_ = job.DeleteAllInProgressFilesByAPI(apiName, userconfig.BatchAPIKind) // not useful xml error is thrown, swallow the error
+			_ = job.DeleteAllInProgressFilesByAPI(userconfig.BatchAPIKind, apiName) // not useful xml error is thrown, swallow the error
 			return nil
 		},
 	)
@@ -240,7 +240,7 @@ func GetAPIByName(deployedResource *operator.DeployedResource) ([]schema.APIResp
 		jobIDToPodsMap[pod.Labels["jobID"]] = append(jobIDToPodsMap[pod.Labels["jobID"]], pod)
 	}
 
-	inProgressJobKeys, err := job.ListAllInProgressJobKeysByAPI(deployedResource.Name, userconfig.BatchAPIKind)
+	inProgressJobKeys, err := job.ListAllInProgressJobKeysByAPI(userconfig.BatchAPIKind, deployedResource.Name)
 	if err != nil {
 		return nil, err
 	}

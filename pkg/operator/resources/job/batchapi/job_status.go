@@ -80,7 +80,7 @@ func getJobStatusFromJobState(jobState *job.State, k8sJob *kbatch.Job, pods []kc
 
 			// There can be race conditions where the job state is temporarily out of sync with the cluster state
 			if k8sJob != nil {
-				workerCounts := getWorkerCountsForJob(*k8sJob, pods)
+				workerCounts := job.GetWorkerCountsForJob(*k8sJob, pods)
 				jobStatus.WorkerCounts = &workerCounts
 			}
 		}

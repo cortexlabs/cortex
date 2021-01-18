@@ -26,15 +26,12 @@ import (
 )
 
 const (
-	ErrInvalidJobKind            = "job.invalid_kind"
-	ErrJobNotFound               = "job.not_found"
-	ErrJobIsNotInProgress        = "batchapi.job_is_not_in_progress"
-	ErrJobHasAlreadyBeenStopped  = "batchapi.job_has_already_been_stopped"
-	ErrFailedToEnqueueMessages   = "batchapi.failed_to_enqueue_messages"
-	ErrMessageExceedsMaxSize     = "batchapi.message_exceeds_max_size"
-	ErrConflictingFields         = "batchapi.conflicting_fields"
-	ErrBatchItemSizeExceedsLimit = "batchapi.item_size_exceeds_limit"
-	ErrSpecifyExactlyOneKey      = "batchapi.specify_exactly_one_key"
+	ErrInvalidJobKind           = "job.invalid_kind"
+	ErrJobNotFound              = "job.not_found"
+	ErrJobIsNotInProgress       = "job.job_is_not_in_progress"
+	ErrJobHasAlreadyBeenStopped = "job.job_has_already_been_stopped"
+	ErrConflictingFields        = "job.conflicting_fields"
+	ErrSpecifyExactlyOneKey     = "job.specify_exactly_one_key"
 )
 
 func ErrorInvalidJobKind(kind userconfig.Kind) error {

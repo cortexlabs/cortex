@@ -165,6 +165,40 @@ func getTaskJob(env cliconfig.Environment, apiName string, jobID string) (string
 	jobTimingTable.Add("duration", duration)
 
 	out += "\n" + jobTimingTable.String(&table.KeyValuePairOpts{BoldKeys: pointer.Bool(true)})
+
+	if job.Status.IsCompleted() {
+		out += "\n" + "worker stats are not available because this job is not currently running\n"
+	} else {
+		out += titleStr("worker stats")
+		if job.WorkerCounts != nil {
+			t := table.Table{
+				Headers: []table.Header{
+					{Title: "requested"},
+					{Title: "pending", Hidden: job.WorkerCounts.Pending == 0},
+					{Title: "initializing", Hidden: job.WorkerCounts.Initializing == 0},
+					{Title: "stalled", Hidden: job.WorkerCounts.Stalled == 0},
+					{Title: "running"},
+					{Title: "failed", Hidden: job.WorkerCounts.Failed == 0},
+					{Title: "succeeded"},
+				},
+				Rows: [][]interface{}{
+					{
+						job.Workers,
+						job.WorkerCounts.Pending,
+						job.WorkerCounts.Initializing,
+						job.WorkerCounts.Stalled,
+						job.WorkerCounts.Running,
+						job.WorkerCounts.Failed,
+						job.WorkerCounts.Succeeded,
+					},
+				},
+			}
+			out += t.MustFormat(&table.Opts{BoldHeader: pointer.Bool(false)})
+		} else {
+			out += "unable to get worker stats\n"
+		}
+	}
+
 	out += "\n" + console.Bold("job endpoint: ") + resp.Endpoint + "\n"
 
 	jobSpecStr, err := libjson.Pretty(job.TaskJob)
