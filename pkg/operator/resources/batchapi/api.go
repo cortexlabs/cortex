@@ -22,9 +22,9 @@ import (
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/parallel"
-	"github.com/cortexlabs/cortex/pkg/lib/routines"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
+	"github.com/cortexlabs/cortex/pkg/operator/lib/routines"
 	"github.com/cortexlabs/cortex/pkg/operator/operator"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
@@ -54,12 +54,7 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string) (*spec.API, string, 
 		if err != nil {
 			routines.RunWithPanicHandler(func() {
 				deleteK8sResources(api.Name)
-			}, false)
-			return nil, "", err
-		}
-
-		err := ensureLogGroupForAPI(api.Name)
-		if err != nil {
+			})
 			return nil, "", err
 		}
 
@@ -131,7 +126,7 @@ func deleteS3Resources(apiName string) error {
 			prefix := spec.BatchAPIJobPrefix(apiName, config.Cluster.ClusterName)
 			routines.RunWithPanicHandler(func() {
 				config.AWS.DeleteS3Dir(config.Cluster.Bucket, prefix, true) // deleting job files may take a while
-			}, false)
+			})
 			return nil
 		},
 		func() error {
@@ -197,6 +192,11 @@ func GetAllAPIs(virtualServices []istioclientnetworking.VirtualService, k8sJobs 
 
 	for _, jobKey := range inProgressJobKeys {
 		alreadyAdded := false
+		if _, ok := batchAPIsMap[jobKey.APIName]; !ok {
+			// It is possible that the Batch API may have been deleted but the in progress job keys have not been deleted yet
+			continue
+		}
+
 		for _, jobStatus := range batchAPIsMap[jobKey.APIName].JobStatuses {
 			if jobStatus.ID == jobKey.ID {
 				alreadyAdded = true

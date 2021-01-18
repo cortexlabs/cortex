@@ -20,7 +20,7 @@ from cortex.binary import run_cli
 from cortex.exceptions import NotFound
 
 
-def client(env: str):
+def client(env: str) -> Client:
     """
     Initialize a client based on the specified environment.
 
@@ -85,7 +85,7 @@ def cluster_client(
         ]
     run_cli(cli_args, hide_output=True)
 
-    return Client(name)
+    return client(name)
 
 
 def env_list() -> list:
