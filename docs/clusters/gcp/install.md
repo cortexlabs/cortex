@@ -45,6 +45,13 @@ max_instances: 5
 
 # the name of the subnetwork in which to create your cluster
 # subnet: default
+
+# API load balancer scheme [internet-facing | internal]
+api_load_balancer_scheme: internet-facing
+
+# operator load balancer scheme [internet-facing | internal]
+# note: if using "internal", you must be within the cluster's VPC or configure VPC Peering to connect your CLI to your cluster operator
+operator_load_balancer_scheme: internet-facing
 ```
 
 The docker images used by the Cortex cluster can also be overridden, although this is not common. They can be configured by adding any of these keys to your cluster configuration file (default values are shown):
