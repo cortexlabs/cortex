@@ -85,7 +85,7 @@ def cluster_client(
         ]
     run_cli(cli_args, hide_output=True)
 
-    return Client(name)
+    return client(name)
 
 
 def env_list() -> list:

@@ -22,7 +22,7 @@
 ## client
 
 ```python
-client(env: str)
+client(env: str) -> Client
 ```
 
 Initialize a client based on the specified environment.
