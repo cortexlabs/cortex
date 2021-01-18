@@ -65,6 +65,7 @@ APIID (uniquely identifies an api configuration for a given deployment)
 		* PredictorID (used to determine when rolling updates need to happen)
 			* Resource
 			* Predictor
+			* TaskDefinition
 			* Compute
 			* ProjectID
 		* Deployment Strategy
@@ -78,6 +79,7 @@ func GetAPISpec(apiConfig *userconfig.API, projectID string, deploymentID string
 
 	buf.WriteString(s.Obj(apiConfig.Resource))
 	buf.WriteString(s.Obj(apiConfig.Predictor))
+	buf.WriteString(s.Obj(apiConfig.TaskDefinition))
 	buf.WriteString(projectID)
 	if apiConfig.Compute != nil {
 		buf.WriteString(s.Obj(apiConfig.Compute.Normalized()))

@@ -43,9 +43,13 @@ type DelimitedFiles struct {
 	BatchSize int `json:"batch_size"`
 }
 
-type JobSubmission struct {
-	spec.RuntimeJobConfig
+type BatchJobSubmission struct {
+	spec.RuntimeBatchJobConfig
 	ItemList       *ItemList       `json:"item_list"`
 	FilePathLister *FilePathLister `json:"file_path_lister"`
 	DelimitedFiles *DelimitedFiles `json:"delimited_files"`
+}
+
+type TaskJobSubmission struct {
+	spec.RuntimeTaskJobConfig
 }

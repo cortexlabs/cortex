@@ -136,6 +136,7 @@ def get_spec(
     spec_path: str,
     cache_dir: str,
     region: Optional[str] = None,
+    spec_name: str = "api_spec.json",
 ) -> Tuple[Union[S3, GCS], dict]:
     """
     Args:
@@ -143,6 +144,7 @@ def get_spec(
         spec_path: Path to API spec (i.e. "s3://cortex-dev-0/apis/iris-classifier/api/69b93378fa5c0218-jy1fjtyihu-9fcc10739e7fc8050cefa8ca27ece1ee/master-spec.json").
         cache_dir: Local directory where the API spec gets saved to.
         region: Region of the bucket. Only required for "S3" provider.
+        spec_name: File name of the spec as it is saved on disk.
     """
 
     if provider == "aws":
@@ -154,7 +156,7 @@ def get_spec(
     else:
         raise ValueError('invalid "provider" argument')
 
-    local_spec_path = os.path.join(cache_dir, "api_spec.json")
+    local_spec_path = os.path.join(cache_dir, spec_name)
     if not os.path.isfile(local_spec_path):
         storage.download_file(key, local_spec_path)
 

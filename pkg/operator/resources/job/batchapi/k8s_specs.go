@@ -20,6 +20,7 @@ import (
 	"path"
 
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
+	"github.com/cortexlabs/cortex/pkg/lib/parallel"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 	"github.com/cortexlabs/cortex/pkg/operator/operator"
@@ -28,11 +29,13 @@ import (
 	istioclientnetworking "istio.io/client-go/pkg/apis/networking/v1beta1"
 	kbatch "k8s.io/api/batch/v1"
 	kcore "k8s.io/api/core/v1"
+	kmeta "k8s.io/apimachinery/pkg/apis/meta/v1"
+	klabels "k8s.io/apimachinery/pkg/labels"
 )
 
 const _operatorService = "operator"
 
-func k8sJobSpec(api *spec.API, job *spec.Job) (*kbatch.Job, error) {
+func k8sJobSpec(api *spec.API, job *spec.BatchJob) (*kbatch.Job, error) {
 	switch api.Predictor.Type {
 	case userconfig.TensorFlowPredictorType:
 		return tensorFlowPredictorJobSpec(api, job)
@@ -45,13 +48,13 @@ func k8sJobSpec(api *spec.API, job *spec.Job) (*kbatch.Job, error) {
 	}
 }
 
-func pythonPredictorJobSpec(api *spec.API, job *spec.Job) (*kbatch.Job, error) {
+func pythonPredictorJobSpec(api *spec.API, job *spec.BatchJob) (*kbatch.Job, error) {
 	containers, volumes := operator.PythonPredictorContainers(api)
 	for i, container := range containers {
 		if container.Name == operator.APIContainerName {
 			containers[i].Env = append(container.Env, kcore.EnvVar{
 				Name:  "CORTEX_JOB_SPEC",
-				Value: "s3://" + config.Cluster.Bucket + "/" + job.SpecFilePath(config.Cluster.ClusterName),
+				Value: "s3://" + config.Cluster.Bucket + "/" + job.SpecFilePath(config.ClusterName()),
 			})
 		}
 	}
@@ -94,13 +97,13 @@ func pythonPredictorJobSpec(api *spec.API, job *spec.Job) (*kbatch.Job, error) {
 	}), nil
 }
 
-func tensorFlowPredictorJobSpec(api *spec.API, job *spec.Job) (*kbatch.Job, error) {
+func tensorFlowPredictorJobSpec(api *spec.API, job *spec.BatchJob) (*kbatch.Job, error) {
 	containers, volumes := operator.TensorFlowPredictorContainers(api)
 	for i, container := range containers {
 		if container.Name == operator.APIContainerName {
 			containers[i].Env = append(container.Env, kcore.EnvVar{
 				Name:  "CORTEX_JOB_SPEC",
-				Value: "s3://" + config.Cluster.Bucket + "/" + job.SpecFilePath(config.Cluster.ClusterName),
+				Value: "s3://" + config.Cluster.Bucket + "/" + job.SpecFilePath(config.ClusterName()),
 			})
 		}
 	}
@@ -143,14 +146,14 @@ func tensorFlowPredictorJobSpec(api *spec.API, job *spec.Job) (*kbatch.Job, erro
 	}), nil
 }
 
-func onnxPredictorJobSpec(api *spec.API, job *spec.Job) (*kbatch.Job, error) {
+func onnxPredictorJobSpec(api *spec.API, job *spec.BatchJob) (*kbatch.Job, error) {
 	containers, volumes := operator.ONNXPredictorContainers(api)
 
 	for i, container := range containers {
 		if container.Name == operator.APIContainerName {
 			containers[i].Env = append(container.Env, kcore.EnvVar{
 				Name:  "CORTEX_JOB_SPEC",
-				Value: "s3://" + config.Cluster.Bucket + "/" + job.SpecFilePath(config.Cluster.ClusterName),
+				Value: "s3://" + config.Cluster.Bucket + "/" + job.SpecFilePath(config.ClusterName()),
 			})
 		}
 	}
@@ -225,4 +228,44 @@ func applyK8sResources(api *spec.API, prevVirtualService *istioclientnetworking.
 
 	_, err := config.K8s.UpdateVirtualService(prevVirtualService, newVirtualService)
 	return err
+}
+
+func deleteK8sResources(apiName string) error {
+	return parallel.RunFirstErr(
+		func() error {
+			_, err := config.K8s.DeleteJobs(&kmeta.ListOptions{
+				LabelSelector: klabels.SelectorFromSet(map[string]string{"apiName": apiName}).String(),
+			})
+			return err
+		},
+		func() error {
+			_, err := config.K8s.DeleteVirtualService(operator.K8sName(apiName))
+			return err
+		},
+	)
+}
+
+func deleteK8sJob(jobKey spec.JobKey) error {
+	_, err := config.K8s.DeleteJobs(&kmeta.ListOptions{
+		LabelSelector: klabels.SelectorFromSet(map[string]string{"apiName": jobKey.APIName, "jobID": jobKey.ID}).String(),
+	})
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func createK8sJob(apiSpec *spec.API, jobSpec *spec.BatchJob) error {
+	kJob, err := k8sJobSpec(apiSpec, jobSpec)
+	if err != nil {
+		return err
+	}
+
+	_, err = config.K8s.CreateJob(kJob)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

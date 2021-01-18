@@ -56,6 +56,7 @@ class Client:
         self,
         api_spec: dict,
         predictor=None,
+        task=None,
         requirements=[],
         conda_packages=[],
         project_dir: Optional[str] = None,
@@ -67,7 +68,8 @@ class Client:
 
         Args:
             api_spec: A dictionary defining a single Cortex API. See https://docs.cortex.dev/v/master/ for schema.
-            predictor: A Cortex Predictor class implementation. Not required when deploying a traffic splitter.
+            predictor: A Cortex Predictor class implementation. Not required for TaskAPI/TrafficSplitter kinds.
+            task: A callable class/function implementation. Not required for RealtimeAPI/BatchAPI/TrafficSplitter kinds.
             requirements: A list of PyPI dependencies that will be installed before the predictor class implementation is invoked.
             conda_packages: A list of Conda dependencies that will be installed before the predictor class implementation is invoked.
             project_dir: Path to a python project.
@@ -83,10 +85,15 @@ class Client:
                 "`wait` flag is not supported for clusters on GCP, please set the `wait` flag to false"
             )
 
-        if project_dir is not None and predictor is not None:
-            raise ValueError(
-                "`predictor` and `project_dir` parameters cannot be specified at the same time, please choose one"
-            )
+        if project_dir is not None:
+            if predictor is not None:
+                raise ValueError(
+                    "`predictor` and `project_dir` parameters cannot be specified at the same time, please choose one"
+                )
+            if task is not None:
+                raise ValueError(
+                    "`task` and `project_dir` parameters cannot be specified at the same time, please choose one"
+                )
 
         if project_dir is not None:
             cortex_yaml_path = os.path.join(project_dir, f".cortex-{uuid.uuid4()}.yaml")
@@ -94,6 +101,27 @@ class Client:
             with util.open_temporarily(cortex_yaml_path, "w") as f:
                 yaml.dump([api_spec], f)  # write a list
                 return self._deploy(cortex_yaml_path, force, wait)
+
+        api_kind = api_spec.get("kind")
+        if api_kind == "TrafficSplitter":
+            if predictor:
+                raise ValueError(f"`predictor` parameter cannot be specified for {api_kind} kind")
+            if task:
+                raise ValueError(f"`task` parameter cannot be specified for {api_kind} kind")
+        elif api_kind == "TaskAPI":
+            if predictor:
+                raise ValueError(f"`predictor` parameter cannnot be specified for {api_kind} kind")
+            if task is None:
+                raise ValueError(f"`task` parameter must be specified for {api_kind} kind")
+        elif api_kind in ["BatchAPI", "RealtimeAPI"]:
+            if not predictor:
+                raise ValueError(f"`predictor` parameter must be specified for {api_kind}")
+            if task:
+                raise ValueError(f"`task` parameter cannot be specified for {api_kind}")
+        else:
+            raise ValueError(
+                f"invalid {api_kind} kind, `api_spec` must have the `kind` field set to one of the following kinds: {['TrafficSplitter', 'TaskAPI', 'BatchAPI', 'RealtimeAPI']}"
+            )
 
         if api_spec.get("name") is None:
             raise ValueError("`api_spec` must have the `name` key set")
@@ -107,7 +135,7 @@ class Client:
 
         cortex_yaml_path = os.path.join(project_dir, "cortex.yaml")
 
-        if predictor is None:
+        if api_kind == "TrafficSplitter":
             # for deploying a traffic splitter
             with open(cortex_yaml_path, "w") as f:
                 yaml.dump([api_spec], f)  # write a list
@@ -134,23 +162,35 @@ class Client:
             with open(project_dir / "conda-packages.txt", "w") as conda_file:
                 conda_file.write("\n".join(conda_packages))
 
-        if not inspect.isclass(predictor):
-            raise ValueError("predictor parameter must be a class definition")
+        if api_kind in ["BatchAPI", "RealtimeAPI"]:
+            if not inspect.isclass(predictor):
+                raise ValueError("`predictor` parameter must be a class definition")
 
-        with open(project_dir / "predictor.pickle", "wb") as pickle_file:
-            dill.dump(predictor, pickle_file)
-            if api_spec.get("predictor") is None:
-                api_spec["predictor"] = {}
+            with open(project_dir / "predictor.pickle", "wb") as pickle_file:
+                dill.dump(predictor, pickle_file)
+                if api_spec.get("predictor") is None:
+                    api_spec["predictor"] = {}
 
-            if predictor.__name__ == "PythonPredictor":
-                predictor_type = "python"
-            if predictor.__name__ == "TensorFlowPredictor":
-                predictor_type = "tensorflow"
-            if predictor.__name__ == "ONNXPredictor":
-                predictor_type = "onnx"
+                if predictor.__name__ == "PythonPredictor":
+                    predictor_type = "python"
+                if predictor.__name__ == "TensorFlowPredictor":
+                    predictor_type = "tensorflow"
+                if predictor.__name__ == "ONNXPredictor":
+                    predictor_type = "onnx"
 
-            api_spec["predictor"]["path"] = "predictor.pickle"
-            api_spec["predictor"]["type"] = predictor_type
+                api_spec["predictor"]["path"] = "predictor.pickle"
+                api_spec["predictor"]["type"] = predictor_type
+
+        if api_kind == "TaskAPI":
+            if not callable(task):
+                raise ValueError(
+                    "`task` parameter must be a callable (e.g. a function definition or a class definition called `Task` with a `__call__` method implemented"
+                )
+            with open(project_dir / "task.pickle", "wb") as pickle_file:
+                dill.dump(task, pickle_file)
+                if api_spec.get("definition") is None:
+                    api_spec["definition"] = {}
+                api_spec["definition"]["path"] = "task.pickle"
 
         with open(cortex_yaml_path, "w") as f:
             yaml.dump([api_spec], f)  # write a list
@@ -267,7 +307,7 @@ class Client:
         Get information about a submitted job.
 
         Args:
-            api_name: Name of the Batch API.
+            api_name: Name of the Batch/Task API.
             job_id: Job ID.
 
         Returns:
@@ -342,7 +382,7 @@ class Client:
         Stop a running job.
 
         Args:
-            api_name: Name of the Batch API.
+            api_name: Name of the Batch/Task API.
             job_id: ID of the Job to stop.
         """
         args = [

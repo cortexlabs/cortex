@@ -56,8 +56,8 @@ func apiValidation(
 	awsClusterConfig *clusterconfig.Config,
 	gcpClusterConfig *clusterconfig.GCPConfig,
 ) *cr.StructValidation {
+	var structFieldValidations []*cr.StructFieldValidation
 
-	structFieldValidations := []*cr.StructFieldValidation{}
 	switch resource.Kind {
 	case userconfig.RealtimeAPIKind:
 		structFieldValidations = append(resourceStructValidations,
@@ -70,6 +70,12 @@ func apiValidation(
 	case userconfig.BatchAPIKind:
 		structFieldValidations = append(resourceStructValidations,
 			predictorValidation(),
+			networkingValidation(resource.Kind, provider, awsClusterConfig, gcpClusterConfig),
+			computeValidation(provider),
+		)
+	case userconfig.TaskAPIKind:
+		structFieldValidations = append(resourceStructValidations,
+			taskDefinitionValidation(),
 			networkingValidation(resource.Kind, provider, awsClusterConfig, gcpClusterConfig),
 			computeValidation(provider),
 		)
@@ -240,6 +246,73 @@ func predictorValidation() *cr.StructFieldValidation {
 				multiModelValidation("Models"),
 				multiModelValidation("MultiModelReloading"),
 				serverSideBatchingValidation(),
+			},
+		},
+	}
+}
+
+func taskDefinitionValidation() *cr.StructFieldValidation {
+	return &cr.StructFieldValidation{
+		StructField: "TaskDefinition",
+		StructValidation: &cr.StructValidation{
+			Required: true,
+			StructFieldValidations: []*cr.StructFieldValidation{
+				{
+					StructField: "Path",
+					StringValidation: &cr.StringValidation{
+						Required: true,
+					},
+				},
+				{
+					StructField: "PythonPath",
+					StringPtrValidation: &cr.StringPtrValidation{
+						AllowEmpty:       false,
+						DisallowedValues: []string{".", "./", "./."},
+						Validator: func(path string) (string, error) {
+							if files.IsAbsOrTildePrefixed(path) {
+								return "", ErrorMustBeRelativeProjectPath(path)
+							}
+							path = strings.TrimPrefix(path, "./")
+							path = s.EnsureSuffix(path, "/")
+							return path, nil
+						},
+					},
+				},
+				{
+					StructField: "Image",
+					StringValidation: &cr.StringValidation{
+						Required:           false,
+						AllowEmpty:         true,
+						DockerImageOrEmpty: true,
+					},
+				},
+				{
+					StructField: "LogLevel",
+					StringValidation: &cr.StringValidation{
+						Default:       "info",
+						AllowedValues: userconfig.LogLevelTypes(),
+					},
+					Parser: func(str string) (interface{}, error) {
+						return userconfig.LogLevelFromString(str), nil
+					},
+				},
+				{
+					StructField: "Config",
+					InterfaceMapValidation: &cr.InterfaceMapValidation{
+						StringKeysOnly:     true,
+						AllowEmpty:         true,
+						AllowExplicitNull:  true,
+						ConvertNullToEmpty: true,
+						Default:            map[string]interface{}{},
+					},
+				},
+				{
+					StructField: "Env",
+					StringMapValidation: &cr.StringMapValidation{
+						Default:    map[string]string{},
+						AllowEmpty: true,
+					},
+				},
 			},
 		},
 	}
@@ -673,7 +746,8 @@ func ExtractAPIConfigs(
 			return nil, errors.Append(err, fmt.Sprintf("\n\napi configuration schema can be found at https://docs.cortex.dev/v/%s/", consts.CortexVersionMinor))
 		}
 
-		if resourceStruct.Kind == userconfig.BatchAPIKind || resourceStruct.Kind == userconfig.TrafficSplitterKind {
+		if resourceStruct.Kind == userconfig.BatchAPIKind ||
+			resourceStruct.Kind == userconfig.TrafficSplitterKind {
 			if provider == types.GCPProviderType {
 				return nil, errors.Wrap(ErrorKindIsNotSupportedByProvider(resourceStruct.Kind, provider), userconfig.IdentifyAPI(configFileName, resourceStruct.Name, resourceStruct.Kind, i))
 			}
@@ -697,7 +771,9 @@ func ExtractAPIConfigs(
 
 		api.SubmittedAPISpec = interfaceMap
 
-		if resourceStruct.Kind == userconfig.RealtimeAPIKind || resourceStruct.Kind == userconfig.BatchAPIKind {
+		if resourceStruct.Kind == userconfig.RealtimeAPIKind ||
+			resourceStruct.Kind == userconfig.BatchAPIKind ||
+			resourceStruct.Kind == userconfig.TaskAPIKind {
 			api.ApplyDefaultDockerPaths()
 		}
 
@@ -726,8 +802,15 @@ func ValidateAPI(
 		api.Networking.Endpoint = pointer.String("/" + api.Name)
 	}
 
-	if err := validatePredictor(api, models, projectFiles, provider, awsClient, gcpClient, k8sClient); err != nil {
-		return errors.Wrap(err, userconfig.PredictorKey)
+	switch api.Kind {
+	case userconfig.TaskAPIKind:
+		if err := validateTaskDefinition(api, projectFiles, provider, awsClient, k8sClient); err != nil {
+			return errors.Wrap(err, userconfig.TaskDefinitionKey)
+		}
+	default:
+		if err := validatePredictor(api, models, projectFiles, provider, awsClient, gcpClient, k8sClient); err != nil {
+			return errors.Wrap(err, userconfig.PredictorKey)
+		}
 	}
 
 	if api.Autoscaling != nil {
@@ -755,12 +838,42 @@ func ValidateAPI(
 	return nil
 }
 
-func ValidateTrafficSplitter(
+func validateTaskDefinition(
 	api *userconfig.API,
+	projectFiles ProjectFiles,
 	provider types.ProviderType,
 	awsClient *aws.Client,
+	k8sClient *k8s.Client,
 ) error {
+	taskDefinition := api.TaskDefinition
 
+	if err := validateDockerImagePath(taskDefinition.Image, provider, awsClient, k8sClient); err != nil {
+		return errors.Wrap(err, userconfig.ImageKey)
+	}
+
+	for key := range taskDefinition.Env {
+		if strings.HasPrefix(key, "CORTEX_") {
+			return errors.Wrap(ErrorCortexPrefixedEnvVarNotAllowed(), userconfig.EnvKey, key)
+		}
+	}
+
+	if !projectFiles.HasFile(taskDefinition.Path) {
+		return errors.Wrap(files.ErrorFileDoesNotExist(taskDefinition.Path), userconfig.PathKey)
+	}
+
+	if taskDefinition.PythonPath != nil {
+		if !projectFiles.HasDir(*taskDefinition.PythonPath) {
+			return errors.Wrap(
+				ErrorPythonPathNotFound(*taskDefinition.PythonPath),
+				userconfig.PythonPathKey,
+			)
+		}
+	}
+
+	return nil
+}
+
+func ValidateTrafficSplitter(api *userconfig.API) error {
 	if api.Networking.Endpoint == nil {
 		api.Networking.Endpoint = pointer.String("/" + api.Name)
 	}

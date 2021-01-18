@@ -21,7 +21,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"path"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -35,12 +34,12 @@ import (
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 	"github.com/cortexlabs/cortex/pkg/operator/lib/logging"
 	"github.com/cortexlabs/cortex/pkg/operator/operator"
+	"github.com/cortexlabs/cortex/pkg/operator/resources/job"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 )
 
 const (
-	_enqueuingLivenessFile   = "enqueuing_liveness"
 	_enqueuingLivenessPeriod = 20 * time.Second
 	_s3DownloadChunkSize     = 32 * 1024 * 1024
 )
@@ -51,18 +50,9 @@ func randomMessageID() string {
 	return random.String(40) // maximum is 80 (for sqs.SendMessageBatchRequestEntry.Id) but this ID may show up in a user error message
 }
 
-func updateLiveness(jobKey spec.JobKey) error {
-	s3Key := path.Join(jobKey.Prefix(config.Cluster.ClusterName), _enqueuingLivenessFile)
-	err := config.AWS.UploadJSONToS3(time.Now(), config.Cluster.Bucket, s3Key)
-	if err != nil {
-		return errors.Wrap(err, "failed to update liveness", jobKey.UserString())
-	}
-	return nil
-}
-
-func enqueue(jobSpec *spec.Job, submission *schema.JobSubmission) (int, error) {
+func enqueue(jobSpec *spec.BatchJob, submission *schema.BatchJobSubmission) (int, error) {
 	livenessUpdater := func() error {
-		return updateLiveness(jobSpec.JobKey)
+		return job.UpdateLiveness(jobSpec.JobKey)
 	}
 
 	livenessCron := cron.Run(livenessUpdater, operator.ErrorHandler(fmt.Sprintf("liveness check for %s", jobSpec.UserString())), _enqueuingLivenessPeriod)
@@ -115,7 +105,7 @@ func enqueue(jobSpec *spec.Job, submission *schema.JobSubmission) (int, error) {
 	return totalBatches, nil
 }
 
-func enqueueItems(jobSpec *spec.Job, itemList *schema.ItemList) (int, error) {
+func enqueueItems(jobSpec *spec.BatchJob, itemList *schema.ItemList) (int, error) {
 	batchCount := len(itemList.Items) / itemList.BatchSize
 	if len(itemList.Items)%itemList.BatchSize != 0 {
 		batchCount++
@@ -165,7 +155,7 @@ func enqueueItems(jobSpec *spec.Job, itemList *schema.ItemList) (int, error) {
 	return uploader.TotalBatches, nil
 }
 
-func enqueueS3Paths(jobSpec *spec.Job, s3PathsLister *schema.FilePathLister) (int, error) {
+func enqueueS3Paths(jobSpec *spec.BatchJob, s3PathsLister *schema.FilePathLister) (int, error) {
 	jobLogger, err := operator.GetJobLogger(jobSpec.JobKey)
 	if err != nil {
 		return 0, err
@@ -248,7 +238,7 @@ func (j *jsonBuffer) Length() int {
 	return len(j.messageList)
 }
 
-func enqueueS3FileContents(jobSpec *spec.Job, delimitedFiles *schema.DelimitedFiles) (int, error) {
+func enqueueS3FileContents(jobSpec *spec.BatchJob, delimitedFiles *schema.DelimitedFiles) (int, error) {
 	jobLogger, err := operator.GetJobLogger(jobSpec.JobKey)
 	if err != nil {
 		return 0, err
@@ -305,7 +295,7 @@ func enqueueS3FileContents(jobSpec *spec.Job, delimitedFiles *schema.DelimitedFi
 	return uploader.TotalBatches, nil
 }
 
-func streamJSONToQueue(jobSpec *spec.Job, uploader *sqsBatchUploader, bytesBuffer *bytes.Buffer, jsonMessageList *jsonBuffer, itemIndex *int) error {
+func streamJSONToQueue(jobSpec *spec.BatchJob, uploader *sqsBatchUploader, bytesBuffer *bytes.Buffer, jsonMessageList *jsonBuffer, itemIndex *int) error {
 	jobLogger, err := operator.GetJobLogger(jobSpec.JobKey)
 	if err != nil {
 		return err

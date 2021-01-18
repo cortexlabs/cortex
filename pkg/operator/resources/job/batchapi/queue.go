@@ -158,16 +158,16 @@ func getQueueMetricsFromURL(queueURL string) (*metrics.QueueMetrics, error) {
 		return nil, errors.Wrap(err, "failed to get queue metrics")
 	}
 
-	metrics := metrics.QueueMetrics{}
+	qMetrics := metrics.QueueMetrics{}
 	parsedInt, ok := s.ParseInt(attributes["ApproximateNumberOfMessages"])
 	if ok {
-		metrics.Visible = parsedInt
+		qMetrics.Visible = parsedInt
 	}
 
 	parsedInt, ok = s.ParseInt(attributes["ApproximateNumberOfMessagesNotVisible"])
 	if ok {
-		metrics.NotVisible = parsedInt
+		qMetrics.NotVisible = parsedInt
 	}
 
-	return &metrics, nil
+	return &qMetrics, nil
 }
