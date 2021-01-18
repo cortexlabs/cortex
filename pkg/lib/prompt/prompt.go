@@ -70,6 +70,9 @@ func Prompt(opts *Options) string {
 		if errors.Message(err) == "interrupted" {
 			exit.Error(ErrorUserCtrlC())
 		}
+		if strings.Contains(errors.Message(err), "not a terminal") {
+			err = errors.Append(err, "\n\ncheck if you can pass flags into the command you are running to provide all required inputs and/or skip prompts (e.g. via `--yes`)")
+		}
 		exit.Error(err)
 	}
 
