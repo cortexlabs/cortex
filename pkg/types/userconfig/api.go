@@ -34,6 +34,7 @@ type API struct {
 	Resource
 	APIs             []*TrafficSplit `json:"apis" yaml:"apis"`
 	Predictor        *Predictor      `json:"predictor" yaml:"predictor"`
+	TaskDefinition   *TaskDefinition `json:"definition" yaml:"definition"`
 	Networking       *Networking     `json:"networking" yaml:"networking"`
 	Compute          *Compute        `json:"compute" yaml:"compute"`
 	Autoscaling      *Autoscaling    `json:"autoscaling" yaml:"autoscaling"`
@@ -60,6 +61,15 @@ type Predictor struct {
 	TensorFlowServingImage string                 `json:"tensorflow_serving_image" yaml:"tensorflow_serving_image"`
 	Config                 map[string]interface{} `json:"config" yaml:"config"`
 	Env                    map[string]string      `json:"env" yaml:"env"`
+}
+
+type TaskDefinition struct {
+	Path       string                 `json:"path" yaml:"path"`
+	PythonPath *string                `json:"python_path" yaml:"python_path"`
+	Image      string                 `json:"image" yaml:"image"`
+	LogLevel   LogLevel               `json:"log_level" yaml:"log_level"`
+	Config     map[string]interface{} `json:"config" yaml:"config"`
+	Env        map[string]string      `json:"env" yaml:"env"`
 }
 
 type MultiModels struct {
@@ -134,6 +144,15 @@ func (api *API) ApplyDefaultDockerPaths() {
 	usesGPU := api.Compute.GPU > 0
 	usesInf := api.Compute.Inf > 0
 
+	switch api.Kind {
+	case RealtimeAPIKind, BatchAPIKind:
+		api.applyPredictorDefaultDockerPaths(usesGPU, usesInf)
+	case TaskAPIKind:
+		api.applyTaskDefaultDockerPaths(usesGPU, usesInf)
+	}
+}
+
+func (api *API) applyPredictorDefaultDockerPaths(usesGPU, usesInf bool) {
 	predictor := api.Predictor
 	switch predictor.Type {
 	case PythonPredictorType:
@@ -166,6 +185,19 @@ func (api *API) ApplyDefaultDockerPaths() {
 			} else {
 				predictor.Image = consts.DefaultImageONNXPredictorCPU
 			}
+		}
+	}
+}
+
+func (api *API) applyTaskDefaultDockerPaths(usesGPU, usesInf bool) {
+	task := api.TaskDefinition
+	if task.Image == "" {
+		if usesGPU {
+			task.Image = consts.DefaultImagePythonPredictorGPU
+		} else if usesInf {
+			task.Image = consts.DefaultImagePythonPredictorInf
+		} else {
+			task.Image = consts.DefaultImagePythonPredictorCPU
 		}
 	}
 }
@@ -301,6 +333,11 @@ func (api *API) UserStr(provider types.ProviderType) string {
 		}
 	}
 
+	if api.TaskDefinition != nil {
+		sb.WriteString(fmt.Sprintf("%s:\n", TaskDefinitionKey))
+		sb.WriteString(s.Indent(api.TaskDefinition.UserStr(), "  "))
+	}
+
 	if api.Predictor != nil {
 		sb.WriteString(fmt.Sprintf("%s:\n", PredictorKey))
 		sb.WriteString(s.Indent(api.Predictor.UserStr(), "  "))
@@ -333,6 +370,29 @@ func (trafficSplit *TrafficSplit) UserStr() string {
 	var sb strings.Builder
 	sb.WriteString(fmt.Sprintf("%s: %s\n", NameKey, trafficSplit.Name))
 	sb.WriteString(fmt.Sprintf("%s: %s\n", WeightKey, s.Int32(trafficSplit.Weight)))
+	return sb.String()
+}
+
+func (task *TaskDefinition) UserStr() string {
+	var sb strings.Builder
+
+	sb.WriteString(fmt.Sprintf("%s: %s\n", PathKey, task.Path))
+	if task.PythonPath != nil {
+		sb.WriteString(fmt.Sprintf("%s: %s\n", PythonPathKey, *task.PythonPath))
+	}
+	sb.WriteString(fmt.Sprintf("%s: %s\n", ImageKey, task.Image))
+	sb.WriteString(fmt.Sprintf("%s: %s\n", LogLevelKey, task.LogLevel))
+	if len(task.Config) > 0 {
+		sb.WriteString(fmt.Sprintf("%s:\n", ConfigKey))
+		d, _ := yaml.Marshal(&task.Config)
+		sb.WriteString(s.Indent(string(d), "  "))
+	}
+	if len(task.Env) > 0 {
+		sb.WriteString(fmt.Sprintf("%s:\n", EnvKey))
+		d, _ := yaml.Marshal(&task.Env)
+		sb.WriteString(s.Indent(string(d), "  "))
+	}
+
 	return sb.String()
 }
 

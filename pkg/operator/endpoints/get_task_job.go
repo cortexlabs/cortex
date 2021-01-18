@@ -18,18 +18,18 @@ package endpoints
 
 import (
 	"net/http"
+	"net/url"
 
-	"github.com/cortexlabs/cortex/pkg/lib/urls"
 	"github.com/cortexlabs/cortex/pkg/operator/operator"
 	"github.com/cortexlabs/cortex/pkg/operator/resources"
-	"github.com/cortexlabs/cortex/pkg/operator/resources/batchapi"
+	"github.com/cortexlabs/cortex/pkg/operator/resources/job/taskapi"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	"github.com/gorilla/mux"
 )
 
-func GetJob(w http.ResponseWriter, r *http.Request) {
+func GetTaskJob(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	apiName := vars["apiName"]
 	jobID, err := getRequiredQueryParam("jobID", r)
@@ -43,35 +43,47 @@ func GetJob(w http.ResponseWriter, r *http.Request) {
 		respondError(w, r, err)
 		return
 	}
-	if deployedResource.Kind != userconfig.BatchAPIKind {
-		respondError(w, r, resources.ErrorOperationIsOnlySupportedForKind(*deployedResource, userconfig.BatchAPIKind))
+	if deployedResource.Kind != userconfig.TaskAPIKind {
+		respondError(w, r, resources.ErrorOperationIsOnlySupportedForKind(*deployedResource, userconfig.TaskAPIKind))
 		return
 	}
 
-	jobKey := spec.JobKey{APIName: apiName, ID: jobID}
+	jobKey := spec.JobKey{
+		APIName: apiName,
+		ID:      jobID,
+		Kind:    userconfig.TaskAPIKind,
+	}
 
-	jobStatus, err := batchapi.GetJobStatus(jobKey)
+	jobStatus, err := taskapi.GetJobStatus(jobKey)
 	if err != nil {
 		respondError(w, r, err)
 		return
 	}
 
-	spec, err := operator.DownloadAPISpec(jobStatus.APIName, jobStatus.APIID)
+	apiSpec, err := operator.DownloadAPISpec(jobStatus.APIName, jobStatus.APIID)
 	if err != nil {
 		respondError(w, r, err)
 		return
 	}
 
-	endpoint, err := operator.APIEndpoint(spec)
+	endpoint, err := operator.APIEndpoint(apiSpec)
 	if err != nil {
 		respondError(w, r, err)
 		return
 	}
 
-	response := schema.JobResponse{
+	parsedURL, err := url.Parse(endpoint)
+	if err != nil {
+		respondError(w, r, err)
+	}
+	q := parsedURL.Query()
+	q.Add("jobID", jobKey.ID)
+	parsedURL.RawQuery = q.Encode()
+
+	response := schema.TaskJobResponse{
 		JobStatus: *jobStatus,
-		APISpec:   *spec,
-		Endpoint:  urls.Join(endpoint, jobKey.ID),
+		APISpec:   *apiSpec,
+		Endpoint:  parsedURL.String(),
 	}
 
 	respond(w, response)

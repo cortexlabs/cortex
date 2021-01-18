@@ -12,30 +12,23 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import sys
-import os
-import argparse
 import inspect
-import time
 import json
-import threading
-import math
+import os
 import pathlib
+import threading
+import time
 import uuid
 
 import boto3
 import botocore
-
-from cortex_internal.lib.log import configure_logger
-
-logger = configure_logger("cortex", os.environ["CORTEX_LOG_CONFIG_FILE"])
-
-from cortex_internal import consts
-from cortex_internal.lib import util
-from cortex_internal.lib.api import API, get_spec, get_api
+from cortex_internal.lib.api import get_api, get_spec
 from cortex_internal.lib.concurrency import LockedFile
 from cortex_internal.lib.storage import S3
 from cortex_internal.lib.exceptions import UserRuntimeException
+from cortex_internal.lib.log import configure_logger
+
+logger = configure_logger("cortex", os.environ["CORTEX_LOG_CONFIG_FILE"])
 
 SQS_POLL_WAIT_TIME = 10  # seconds
 MESSAGE_NOT_FOUND_SLEEP = 10  # seconds
@@ -48,12 +41,8 @@ local_cache = {
     "job_spec": None,
     "provider": None,
     "predictor_impl": None,
-    "predict_route": None,
-    "client": None,
-    "class_set": set(),
     "sqs_client": None,
 }
-
 
 receipt_handle_mutex = threading.Lock()
 stop_renewal = set()

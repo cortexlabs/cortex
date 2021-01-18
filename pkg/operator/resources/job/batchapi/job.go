@@ -24,13 +24,12 @@ import (
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 	"github.com/cortexlabs/cortex/pkg/operator/lib/routines"
 	"github.com/cortexlabs/cortex/pkg/operator/operator"
+	"github.com/cortexlabs/cortex/pkg/operator/resources/job"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
-	kmeta "k8s.io/apimachinery/pkg/apis/meta/v1"
-	klabels "k8s.io/apimachinery/pkg/labels"
 )
 
-func DryRun(submission *schema.JobSubmission) ([]string, error) {
+func DryRun(submission *schema.BatchJobSubmission) ([]string, error) {
 	err := validateJobSubmission(submission)
 	if err != nil {
 		return nil, err
@@ -57,7 +56,7 @@ func DryRun(submission *schema.JobSubmission) ([]string, error) {
 	return nil, nil
 }
 
-func SubmitJob(apiName string, submission *schema.JobSubmission) (*spec.Job, error) {
+func SubmitJob(apiName string, submission *schema.BatchJobSubmission) (*spec.BatchJob, error) {
 	err := validateJobSubmission(submission)
 	if err != nil {
 		return nil, err
@@ -80,6 +79,7 @@ func SubmitJob(apiName string, submission *schema.JobSubmission) (*spec.Job, err
 	jobKey := spec.JobKey{
 		APIName: apiSpec.Name,
 		ID:      jobID,
+		Kind:    apiSpec.Kind,
 	}
 
 	tags := map[string]string{
@@ -93,14 +93,14 @@ func SubmitJob(apiName string, submission *schema.JobSubmission) (*spec.Job, err
 		return nil, err
 	}
 
-	jobSpec := spec.Job{
-		RuntimeJobConfig: submission.RuntimeJobConfig,
-		JobKey:           jobKey,
-		APIID:            apiSpec.ID,
-		SpecID:           apiSpec.SpecID,
-		PredictorID:      apiSpec.PredictorID,
-		SQSUrl:           queueURL,
-		StartTime:        time.Now(),
+	jobSpec := spec.BatchJob{
+		RuntimeBatchJobConfig: submission.RuntimeBatchJobConfig,
+		JobKey:                jobKey,
+		APIID:                 apiSpec.ID,
+		SpecID:                apiSpec.SpecID,
+		PredictorID:           apiSpec.PredictorID,
+		SQSUrl:                queueURL,
+		StartTime:             time.Now(),
 	}
 
 	err = uploadJobSpec(&jobSpec)
@@ -115,7 +115,7 @@ func SubmitJob(apiName string, submission *schema.JobSubmission) (*spec.Job, err
 		return nil, err
 	}
 
-	err = setEnqueuingStatus(jobKey)
+	err = job.SetEnqueuingStatus(jobKey)
 	if err != nil {
 		deleteQueueByURL(queueURL)
 		return nil, err
@@ -130,15 +130,15 @@ func SubmitJob(apiName string, submission *schema.JobSubmission) (*spec.Job, err
 	return &jobSpec, nil
 }
 
-func uploadJobSpec(jobSpec *spec.Job) error {
-	err := config.AWS.UploadJSONToS3(jobSpec, config.Cluster.Bucket, jobSpec.SpecFilePath(config.Cluster.ClusterName))
+func uploadJobSpec(jobSpec *spec.BatchJob) error {
+	err := config.AWS.UploadJSONToS3(jobSpec, config.Cluster.Bucket, jobSpec.SpecFilePath(config.ClusterName()))
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func deployJob(apiSpec *spec.API, jobSpec *spec.Job, submission *schema.JobSubmission) {
+func deployJob(apiSpec *spec.API, jobSpec *spec.BatchJob, submission *schema.BatchJobSubmission) {
 	jobLogger, err := operator.GetJobLoggerFromSpec(apiSpec, jobSpec.JobKey)
 	if err != nil {
 		telemetry.Error(err)
@@ -151,7 +151,7 @@ func deployJob(apiSpec *spec.API, jobSpec *spec.Job, submission *schema.JobSubmi
 		jobLogger.Error(errors.Wrap(err, "failed to enqueue all batches").Error())
 
 		err := errors.FirstError(
-			setEnqueueFailedStatus(jobSpec.JobKey),
+			job.SetEnqueueFailedStatus(jobSpec.JobKey),
 			deleteJobRuntimeResources(jobSpec.JobKey),
 		)
 		if err != nil {
@@ -167,7 +167,7 @@ func deployJob(apiSpec *spec.API, jobSpec *spec.Job, submission *schema.JobSubmi
 		if submission.DelimitedFiles != nil {
 			jobLogger.Error("please verify that the files are not empty (the files being read can be retrieved by providing `dryRun=true` query param with your job submission")
 		}
-		errs = append(errs, setEnqueueFailedStatus(jobSpec.JobKey))
+		errs = append(errs, job.SetEnqueueFailedStatus(jobSpec.JobKey))
 		errs = append(errs, deleteJobRuntimeResources(jobSpec.JobKey))
 
 		err := errors.FirstError(errs...)
@@ -194,7 +194,7 @@ func deployJob(apiSpec *spec.API, jobSpec *spec.Job, submission *schema.JobSubmi
 		handleJobSubmissionError(jobSpec.JobKey, err)
 	}
 
-	err = setRunningStatus(jobSpec.JobKey)
+	err = job.SetRunningStatus(jobSpec.JobKey)
 	if err != nil {
 		handleJobSubmissionError(jobSpec.JobKey, err)
 		return
@@ -211,38 +211,13 @@ func handleJobSubmissionError(jobKey spec.JobKey, jobErr error) {
 
 	jobLogger.Error(jobErr.Error())
 	err = errors.FirstError(
-		setUnexpectedErrorStatus(jobKey),
+		job.SetUnexpectedErrorStatus(jobKey),
 		deleteJobRuntimeResources(jobKey),
 	)
 	if err != nil {
 		telemetry.Error(err)
 		operatorLogger.Error(err)
 	}
-}
-
-func createK8sJob(apiSpec *spec.API, jobSpec *spec.Job) error {
-	job, err := k8sJobSpec(apiSpec, jobSpec)
-	if err != nil {
-		return err
-	}
-
-	_, err = config.K8s.CreateJob(job)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func deleteK8sJob(jobKey spec.JobKey) error {
-	_, err := config.K8s.DeleteJobs(&kmeta.ListOptions{
-		LabelSelector: klabels.SelectorFromSet(map[string]string{"apiName": jobKey.APIName, "jobID": jobKey.ID}).String(),
-	})
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
 
 func deleteJobRuntimeResources(jobKey spec.JobKey) error {
@@ -259,7 +234,7 @@ func deleteJobRuntimeResources(jobKey spec.JobKey) error {
 }
 
 func StopJob(jobKey spec.JobKey) error {
-	jobState, err := getJobState(jobKey)
+	jobState, err := job.GetJobState(jobKey)
 	if err != nil {
 		routines.RunWithPanicHandler(func() {
 			deleteJobRuntimeResources(jobKey)
@@ -271,7 +246,7 @@ func StopJob(jobKey spec.JobKey) error {
 		routines.RunWithPanicHandler(func() {
 			deleteJobRuntimeResources(jobKey)
 		})
-		return errors.Wrap(ErrorJobIsNotInProgress(), jobKey.UserString())
+		return errors.Wrap(job.ErrorJobIsNotInProgress(jobKey.Kind), jobKey.UserString())
 	}
 
 	jobLogger, err := operator.GetJobLogger(jobKey)
@@ -281,6 +256,6 @@ func StopJob(jobKey spec.JobKey) error {
 
 	return errors.FirstError(
 		deleteJobRuntimeResources(jobKey),
-		setStoppedStatus(jobKey),
+		job.SetStoppedStatus(jobKey),
 	)
 }

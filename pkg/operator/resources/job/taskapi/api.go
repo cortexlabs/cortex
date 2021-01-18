@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package batchapi
+package taskapi
 
 import (
 	"fmt"
@@ -26,6 +26,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 	"github.com/cortexlabs/cortex/pkg/operator/lib/routines"
 	"github.com/cortexlabs/cortex/pkg/operator/operator"
+	"github.com/cortexlabs/cortex/pkg/operator/resources/job"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/types/status"
@@ -33,20 +34,19 @@ import (
 	istioclientnetworking "istio.io/client-go/pkg/apis/networking/v1beta1"
 	kbatch "k8s.io/api/batch/v1"
 	kcore "k8s.io/api/core/v1"
-	kmeta "k8s.io/apimachinery/pkg/apis/meta/v1"
-	klabels "k8s.io/apimachinery/pkg/labels"
 )
 
+// UpdateAPI deploys or update a task api without triggering any task
 func UpdateAPI(apiConfig *userconfig.API, projectID string) (*spec.API, string, error) {
 	prevVirtualService, err := config.K8s.GetVirtualService(operator.K8sName(apiConfig.Name))
 	if err != nil {
 		return nil, "", err
 	}
 
-	api := spec.GetAPISpec(apiConfig, projectID, "", config.Cluster.ClusterName) // Deployment ID not needed for BatchAPI spec
+	api := spec.GetAPISpec(apiConfig, projectID, "", config.ClusterName()) // Deployment ID not needed for TaskAPI spec
 
 	if prevVirtualService == nil {
-		if err := config.AWS.UploadJSONToS3(api, config.Cluster.Bucket, api.Key); err != nil {
+		if err := config.UploadJSONToBucket(api, api.Key); err != nil {
 			return nil, "", errors.Wrap(err, "upload api spec")
 		}
 
@@ -62,7 +62,7 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string) (*spec.API, string, 
 	}
 
 	if prevVirtualService.Labels["specID"] != api.SpecID {
-		if err := config.AWS.UploadJSONToS3(api, config.Cluster.Bucket, api.Key); err != nil {
+		if err := config.UploadJSONToBucket(api, api.Key); err != nil {
 			return nil, "", errors.Wrap(err, "upload api spec")
 		}
 
@@ -77,8 +77,8 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string) (*spec.API, string, 
 	return api, fmt.Sprintf("%s is up to date", api.Resource.UserString()), nil
 }
 
+// DeleteAPI deletes a task api
 func DeleteAPI(apiName string, keepCache bool) error {
-	// best effort deletion, so don't handle error yet
 	err := parallel.RunFirstErr(
 		func() error {
 			return deleteK8sResources(apiName)
@@ -89,9 +89,6 @@ func DeleteAPI(apiName string, keepCache bool) error {
 			}
 			return deleteS3Resources(apiName)
 		},
-		func() error {
-			return config.AWS.DeleteQueuesWithPrefix(apiQueueNamePrefix(apiName))
-		},
 	)
 
 	if err != nil {
@@ -101,44 +98,29 @@ func DeleteAPI(apiName string, keepCache bool) error {
 	return nil
 }
 
-func deleteK8sResources(apiName string) error {
-	return parallel.RunFirstErr(
-		func() error {
-			_, err := config.K8s.DeleteJobs(&kmeta.ListOptions{
-				LabelSelector: klabels.SelectorFromSet(map[string]string{"apiName": apiName}).String(),
-			})
-			return err
-		},
-		func() error {
-			_, err := config.K8s.DeleteVirtualService(operator.K8sName(apiName))
-			return err
-		},
-	)
-}
-
 func deleteS3Resources(apiName string) error {
 	return parallel.RunFirstErr(
 		func() error {
-			prefix := filepath.Join(config.Cluster.ClusterName, "apis", apiName)
-			return config.AWS.DeleteS3Dir(config.Cluster.Bucket, prefix, true)
+			prefix := filepath.Join(config.ClusterName(), "apis", apiName)
+			return config.DeleteBucketDir(prefix, true)
 		},
 		func() error {
-			prefix := spec.BatchAPIJobPrefix(apiName, config.Cluster.ClusterName)
-			routines.RunWithPanicHandler(func() {
-				config.AWS.DeleteS3Dir(config.Cluster.Bucket, prefix, true) // deleting job files may take a while
-			})
+			prefix := spec.JobAPIPrefix(config.ClusterName(), userconfig.TaskAPIKind, apiName)
+			go func() {
+				_ = config.DeleteBucketDir(prefix, true) // deleting job files may take a while
+			}()
 			return nil
 		},
 		func() error {
-			deleteAllInProgressFilesByAPI(apiName) // not useful xml error is thrown, swallow the error
+			job.DeleteAllInProgressFilesByAPI(userconfig.TaskAPIKind, apiName) // not useful xml error is thrown, swallow the error
 			return nil
 		},
 	)
 }
 
-// Returns all batch apis, for each API returning the most recently submitted job and all running jobs
+// GetAllAPIs returns all task APIs, for each API returning the most recently submitted job and all running jobs
 func GetAllAPIs(virtualServices []istioclientnetworking.VirtualService, k8sJobs []kbatch.Job, pods []kcore.Pod) ([]schema.APIResponse, error) {
-	batchAPIsMap := map[string]*schema.APIResponse{}
+	taskAPIsMap := map[string]*schema.APIResponse{}
 
 	jobIDToK8sJobMap := map[string]*kbatch.Job{}
 	for _, job := range k8sJobs {
@@ -166,9 +148,9 @@ func GetAllAPIs(virtualServices []istioclientnetworking.VirtualService, k8sJobs 
 			return nil, err
 		}
 
-		jobStates, err := getMostRecentlySubmittedJobStates(apiName, 1)
+		jobStates, err := job.GetMostRecentlySubmittedJobStates(apiName, 1, userconfig.TaskAPIKind)
 
-		jobStatuses := []status.JobStatus{}
+		jobStatuses := []status.TaskJobStatus{}
 		if len(jobStates) > 0 {
 			jobStatus, err := getJobStatusFromJobState(jobStates[0], jobIDToK8sJobMap[jobStates[0].ID], jobIDToPodsMap[jobStates[0].ID])
 			if err != nil {
@@ -178,26 +160,21 @@ func GetAllAPIs(virtualServices []istioclientnetworking.VirtualService, k8sJobs 
 			jobStatuses = append(jobStatuses, *jobStatus)
 		}
 
-		batchAPIsMap[apiName] = &schema.APIResponse{
-			Spec:        *api,
-			Endpoint:    endpoint,
-			JobStatuses: jobStatuses,
+		taskAPIsMap[apiName] = &schema.APIResponse{
+			Spec:            *api,
+			Endpoint:        endpoint,
+			TaskJobStatuses: jobStatuses,
 		}
 	}
 
-	inProgressJobKeys, err := listAllInProgressJobKeys()
+	inProgressJobKeys, err := job.ListAllInProgressJobKeys(userconfig.TaskAPIKind)
 	if err != nil {
 		return nil, err
 	}
 
 	for _, jobKey := range inProgressJobKeys {
 		alreadyAdded := false
-		if _, ok := batchAPIsMap[jobKey.APIName]; !ok {
-			// It is possible that the Batch API may have been deleted but the in progress job keys have not been deleted yet
-			continue
-		}
-
-		for _, jobStatus := range batchAPIsMap[jobKey.APIName].JobStatuses {
+		for _, jobStatus := range taskAPIsMap[jobKey.APIName].TaskJobStatuses {
 			if jobStatus.ID == jobKey.ID {
 				alreadyAdded = true
 				break
@@ -214,19 +191,20 @@ func GetAllAPIs(virtualServices []istioclientnetworking.VirtualService, k8sJobs 
 		}
 
 		if jobStatus.Status.IsInProgress() {
-			batchAPIsMap[jobKey.APIName].JobStatuses = append(batchAPIsMap[jobKey.APIName].JobStatuses, *jobStatus)
+			taskAPIsMap[jobKey.APIName].TaskJobStatuses = append(taskAPIsMap[jobKey.APIName].TaskJobStatuses, *jobStatus)
 		}
 	}
 
-	batchAPIList := make([]schema.APIResponse, 0, len(batchAPIsMap))
+	taskAPIList := make([]schema.APIResponse, 0, len(taskAPIsMap))
 
-	for _, batchAPI := range batchAPIsMap {
-		batchAPIList = append(batchAPIList, *batchAPI)
+	for _, batchAPI := range taskAPIsMap {
+		taskAPIList = append(taskAPIList, *batchAPI)
 	}
 
-	return batchAPIList, nil
+	return taskAPIList, nil
 }
 
+// GetAllAPIs returns a single task API and its most recently submitted job along with all running task jobs
 func GetAPIByName(deployedResource *operator.DeployedResource) ([]schema.APIResponse, error) {
 	virtualService := deployedResource.VirtualService
 
@@ -261,12 +239,12 @@ func GetAPIByName(deployedResource *operator.DeployedResource) ([]schema.APIResp
 		jobIDToPodsMap[pod.Labels["jobID"]] = append(jobIDToPodsMap[pod.Labels["jobID"]], pod)
 	}
 
-	inProgressJobKeys, err := listAllInProgressJobKeysByAPI(deployedResource.Name)
+	inProgressJobKeys, err := job.ListAllInProgressJobKeysByAPI(userconfig.TaskAPIKind, deployedResource.Name)
 	if err != nil {
 		return nil, err
 	}
 
-	jobStatuses := []status.JobStatus{}
+	jobStatuses := []status.TaskJobStatus{}
 	jobIDSet := strset.New()
 	for _, jobKey := range inProgressJobKeys {
 		jobStatus, err := getJobStatusFromK8sJob(jobKey, jobIDToK8sJobMap[jobKey.ID], jobIDToPodsMap[jobKey.ID])
@@ -279,7 +257,7 @@ func GetAPIByName(deployedResource *operator.DeployedResource) ([]schema.APIResp
 	}
 
 	if len(jobStatuses) < 10 {
-		jobStates, err := getMostRecentlySubmittedJobStates(deployedResource.Name, 10+len(jobStatuses))
+		jobStates, err := job.GetMostRecentlySubmittedJobStates(deployedResource.Name, 10+len(jobStatuses), userconfig.TaskAPIKind)
 		if err != nil {
 			return nil, err
 		}
@@ -303,9 +281,9 @@ func GetAPIByName(deployedResource *operator.DeployedResource) ([]schema.APIResp
 
 	return []schema.APIResponse{
 		{
-			Spec:        *api,
-			JobStatuses: jobStatuses,
-			Endpoint:    endpoint,
+			Spec:            *api,
+			TaskJobStatuses: jobStatuses,
+			Endpoint:        endpoint,
 		},
 	}, nil
 }

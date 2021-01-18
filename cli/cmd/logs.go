@@ -21,6 +21,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/exit"
 	"github.com/cortexlabs/cortex/pkg/lib/prompt"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
+	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	"github.com/spf13/cobra"
 )
 
@@ -61,13 +62,13 @@ var _logsCmd = &cobra.Command{
 		operatorConfig := MustGetOperatorConfig(env.Name)
 		apiName := args[0]
 
-		if len(args) == 1 {
-			apiResponse, err := cluster.GetAPI(operatorConfig, apiName)
-			if err != nil {
-				exit.Error(err)
-			}
+		apiResponse, err := cluster.GetAPI(operatorConfig, apiName)
+		if err != nil {
+			exit.Error(err)
+		}
 
-			if apiResponse[0].Status.Requested > 1 && !_flagLogsDisallowPrompt {
+		if len(args) == 1 {
+			if apiResponse[0].Spec.Kind == userconfig.RealtimeAPIKind && apiResponse[0].Status.Requested > 1 && !_flagLogsDisallowPrompt {
 				prompt.YesOrExit("logs from a single random replica will be streamed\n\nfor aggregated logs please visit your cloud provider's logging dashboard; see https://docs.cortex.dev for details", "", "")
 			}
 
@@ -76,14 +77,17 @@ var _logsCmd = &cobra.Command{
 				exit.Error(err)
 			}
 		}
-		if len(args) == 2 {
-			jobResponse, err := cluster.GetJob(operatorConfig, apiName, args[1])
-			if err != nil {
-				exit.Error(err)
-			}
 
-			if jobResponse.JobStatus.Job.Workers > 1 && !_flagLogsDisallowPrompt {
-				prompt.YesOrExit("logs from a single random worker will be streamed\n\nfor aggregated logs please visit your cloud provider's logging dashboard; see https://docs.cortex.dev for details", "", "")
+		if len(args) == 2 {
+			if apiResponse[0].Spec.Kind == userconfig.BatchAPIKind {
+				jobResponse, err := cluster.GetBatchJob(operatorConfig, apiName, args[1])
+				if err != nil {
+					exit.Error(err)
+				}
+
+				if jobResponse.JobStatus.Workers > 1 && !_flagLogsDisallowPrompt {
+					prompt.YesOrExit("logs from a single random worker will be streamed\n\nfor aggregated logs please visit your cloud provider's logging dashboard; see https://docs.cortex.dev for details", "", "")
+				}
 			}
 
 			err = cluster.StreamJobLogs(operatorConfig, apiName, args[1])
@@ -91,6 +95,5 @@ var _logsCmd = &cobra.Command{
 				exit.Error(err)
 			}
 		}
-
 	},
 }

@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package batchapi
+package job
 
 import (
 	"time"
@@ -27,7 +27,7 @@ import (
 
 const _stalledPodTimeout = 10 * time.Minute
 
-func getWorkerCountsForJob(k8sJob kbatch.Job, pods []kcore.Pod) status.WorkerCounts {
+func GetWorkerCountsForJob(k8sJob kbatch.Job, pods []kcore.Pod) status.WorkerCounts {
 	if k8sJob.Status.Failed > 0 {
 		return status.WorkerCounts{
 			Failed: *k8sJob.Spec.Parallelism, // When one worker fails, the rest of the pods get deleted so you won't be able to get their statuses

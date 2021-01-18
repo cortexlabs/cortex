@@ -58,8 +58,17 @@ func DownloadAPISpecs(apiNames []string, apiIDs []string) ([]spec.API, error) {
 	return apis, nil
 }
 
-func DownloadJobSpec(jobKey spec.JobKey) (*spec.Job, error) {
-	jobSpec := spec.Job{}
+func DownloadBatchJobSpec(jobKey spec.JobKey) (*spec.BatchJob, error) {
+	jobSpec := spec.BatchJob{}
+	err := config.ReadJSONFromBucket(&jobSpec, jobKey.SpecFilePath(config.Cluster.ClusterName))
+	if err != nil {
+		return nil, errors.Wrap(err, "unable to download job specification", jobKey.UserString())
+	}
+	return &jobSpec, nil
+}
+
+func DownloadTaskJobSpec(jobKey spec.JobKey) (*spec.TaskJob, error) {
+	jobSpec := spec.TaskJob{}
 	err := config.ReadJSONFromBucket(&jobSpec, jobKey.SpecFilePath(config.Cluster.ClusterName))
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to download job specification", jobKey.UserString())

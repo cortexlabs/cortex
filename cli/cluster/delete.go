@@ -25,6 +25,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/prompt"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
+	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 )
 
 func Delete(operatorConfig OperatorConfig, apiName string, keepCache bool, force bool) (schema.DeleteResponse, error) {
@@ -73,13 +74,20 @@ func getReadyRealtimeAPIReplicasOrNil(operatorConfig OperatorConfig, apiName str
 	return &totalReady
 }
 
-func StopJob(operatorConfig OperatorConfig, apiName string, jobID string) (schema.DeleteResponse, error) {
+func StopJob(operatorConfig OperatorConfig, kind userconfig.Kind, apiName string, jobID string) (schema.DeleteResponse, error) {
 	params := map[string]string{
 		"apiName": apiName,
 		"jobID":   jobID,
 	}
 
-	httpRes, err := HTTPDelete(operatorConfig, path.Join("/batch", apiName), params)
+	var endpointComponent string
+	if kind == userconfig.BatchAPIKind {
+		endpointComponent = "batch"
+	} else {
+		endpointComponent = "tasks"
+	}
+
+	httpRes, err := HTTPDelete(operatorConfig, path.Join("/"+endpointComponent, apiName), params)
 	if err != nil {
 		return schema.DeleteResponse{}, err
 	}
