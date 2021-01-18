@@ -52,6 +52,7 @@ const (
 	ErrNoNATGatewayWithSubnets                    = "clusterconfig.no_nat_gateway_with_subnets"
 	ErrSpecifyOneOrNone                           = "clusterconfig.specify_one_or_none"
 	ErrDependentFieldMustBeSpecified              = "clusterconfig.dependent_field_must_be_specified"
+	ErrFieldConfigurationDependentOnCondition     = "clusterconfig.field_configuration_dependent_on_condition"
 	ErrDidNotMatchStrictS3Regex                   = "clusterconfig.did_not_match_strict_s3_regex"
 	ErrNATRequiredWithPrivateSubnetVisibility     = "clusterconfig.nat_required_with_private_subnet_visibility"
 	ErrS3RegionDiffersFromCluster                 = "clusterconfig.s3_region_differs_from_cluster"
@@ -246,6 +247,13 @@ func ErrorDependentFieldMustBeSpecified(configuredField string, dependencyField 
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrDependentFieldMustBeSpecified,
 		Message: fmt.Sprintf("%s must be specified when configuring %s", dependencyField, configuredField),
+	})
+}
+
+func ErrorFieldConfigurationDependentOnCondition(configuredField string, configuredFieldValue string, dependencyField string, dependencyFieldValue string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrFieldConfigurationDependentOnCondition,
+		Message: fmt.Sprintf("cannot set %s = %s when %s = %s", configuredField, configuredFieldValue, dependencyField, dependencyFieldValue),
 	})
 }
 
