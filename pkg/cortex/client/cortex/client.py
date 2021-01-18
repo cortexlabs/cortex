@@ -33,6 +33,13 @@ from cortex import util
 EXPECTED_PYTHON_VERSION = "3.6.9"
 
 
+def cli_config_dir() -> Path:
+    cli_config_dir = os.environ.get("CORTEX_CLI_CONFIG_DIR", "")
+    if cli_config_dir == "":
+        return Path.home() / ".cortex"
+    return Path(cli_config_dir).expanduser().resolve()
+
+
 class Client:
     def __init__(self, env: dict):
         """
@@ -91,7 +98,7 @@ class Client:
         if api_spec.get("name") is None:
             raise ValueError("`api_spec` must have the `name` key set")
 
-        project_dir = Path.home() / ".cortex" / "deployments" / api_spec["name"]
+        project_dir = cli_config_dir() / "deployments" / api_spec["name"]
 
         if project_dir.exists():
             shutil.rmtree(str(project_dir))
@@ -205,7 +212,7 @@ class Client:
         env = os.environ.copy()
         env["CORTEX_CLI_INVOKER"] = "python"
         process = subprocess.Popen(
-            [get_cli_path(), "logs", "--env", self.env_name, api_name],
+            [get_cli_path(), "logs", "--env", self.env_name, api_name, "-y"],
             stderr=subprocess.STDOUT,
             stdout=subprocess.PIPE,
             encoding="utf8",
@@ -296,9 +303,7 @@ class Client:
             force: Override an already in-progress API update.
         """
 
-        cortex_yaml_file = (
-            Path.home() / ".cortex" / "deployments" / f"cortex-{str(uuid.uuid4())}.yaml"
-        )
+        cortex_yaml_file = cli_config_dir() / "deployments" / f"cortex-{str(uuid.uuid4())}.yaml"
         with util.open_temporarily(cortex_yaml_file, "w") as f:
             yaml.dump([api_spec], f)
             args = ["patch", cortex_yaml_file, "--env", self.env_name, "-o", "json"]
@@ -362,7 +367,7 @@ class Client:
         Args:
             api_name: Name of the API.
         """
-        args = ["logs", api_name, "--env", self.env_name]
+        args = ["logs", api_name, "--env", self.env_name, "-y"]
         run_cli(args)
 
     def stream_job_logs(
@@ -377,5 +382,5 @@ class Client:
             api_name: Name of the Batch API.
             job_id: Job ID.
         """
-        args = ["logs", api_name, job_id, "--env", self.env_name]
+        args = ["logs", api_name, job_id, "--env", self.env_name, "-y"]
         run_cli(args)

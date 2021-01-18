@@ -37,14 +37,31 @@ min_instances: 1
 # maximum number of instances
 max_instances: 5
 
+# enable the use of preemptible instances
+preemptible: false
+
+# enable the use of on-demand backup instances which will be used when preemptible capacity runs out
+# default is true when preemptible instances are used
+# on_demand_backup: true
+
 # GPU to attach to your instance (optional)
 # accelerator_type: nvidia-tesla-t4
+
+# the number of GPUs to attach to each instance (optional)
+# accelerators_per_instance: 1
 
 # the name of the network in which to create your cluster
 # network: default
 
 # the name of the subnetwork in which to create your cluster
 # subnet: default
+
+# API load balancer scheme [internet-facing | internal]
+api_load_balancer_scheme: internet-facing
+
+# operator load balancer scheme [internet-facing | internal]
+# note: if using "internal", you must be within the cluster's VPC or configure VPC Peering to connect your CLI to your cluster operator
+operator_load_balancer_scheme: internet-facing
 ```
 
 The docker images used by the Cortex cluster can also be overridden, although this is not common. They can be configured by adding any of these keys to your cluster configuration file (default values are shown):

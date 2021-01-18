@@ -1130,11 +1130,24 @@ func setField(val interface{}, destStruct interface{}, fieldName string) error {
 		debug.Ppg(destStruct)
 		return errors.Wrap(ErrorCannotSetStructField(), fieldName)
 	}
+
+	if val == nil {
+		// Check for nil-able types
+		if v.Kind() == reflect.Chan || v.Kind() == reflect.Func || v.Kind() == reflect.Interface || v.Kind() == reflect.Map || v.Kind() == reflect.Ptr || v.Kind() == reflect.Slice {
+			v.Set(reflect.Zero(v.Type()))
+			return nil
+		}
+		debug.Ppg(val)
+		debug.Ppg(destStruct)
+		return errors.Wrap(ErrorCannotSetStructField(), fieldName)
+	}
+
 	if !reflect.ValueOf(val).Type().AssignableTo(v.Type()) {
 		debug.Ppg(val)
 		debug.Ppg(destStruct)
 		return errors.Wrap(ErrorCannotSetStructField(), fieldName)
 	}
+
 	v.Set(reflect.ValueOf(val))
 	return nil
 }

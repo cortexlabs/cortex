@@ -186,7 +186,7 @@ image_metrics_server: <account_id>.dkr.ecr.<region>.amazonaws.com/cortexlabs/met
 image_inferentia: <account_id>.dkr.ecr.<region>.amazonaws.com/cortexlabs/inferentia:latest
 image_neuron_rtd: <account_id>.dkr.ecr.<region>.amazonaws.com/cortexlabs/neuron-rtd:latest
 image_nvidia: <account_id>.dkr.ecr.<region>.amazonaws.com/cortexlabs/nvidia:latest
-image_fluentd: <account_id>.dkr.ecr.<region>.amazonaws.com/cortexlabs/fluentd:latest
+image_fluent_bit: <account_id>.dkr.ecr.<region>.amazonaws.com/cortexlabs/fluent-bit:latest
 image_statsd: <account_id>.dkr.ecr.<region>.amazonaws.com/cortexlabs/statsd:latest
 image_istio_proxy: <account_id>.dkr.ecr.<region>.amazonaws.com/cortexlabs/istio-proxy:latest
 image_istio_pilot: <account_id>.dkr.ecr.<region>.amazonaws.com/cortexlabs/istio-pilot:latest

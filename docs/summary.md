@@ -19,7 +19,7 @@
   * [Example](workloads/batch/example.md)
   * [Predictor](workloads/batch/predictors.md)
   * [Configuration](workloads/batch/configuration.md)
-  * [Endpoints](workloads/batch/endpoints.md)
+  * [Jobs](workloads/batch/jobs.md)
   * [Statuses](workloads/batch/statuses.md)
 * Multi-model
   * [Example](workloads/multi-model/example.md)

@@ -19,11 +19,8 @@ package endpoints
 import (
 	"net/http"
 
-	"github.com/cortexlabs/cortex/pkg/operator/config"
+	"github.com/cortexlabs/cortex/pkg/operator/operator"
 	"github.com/cortexlabs/cortex/pkg/operator/resources"
-	"github.com/cortexlabs/cortex/pkg/operator/resources/realtimeapi"
-	"github.com/cortexlabs/cortex/pkg/operator/schema"
-	"github.com/cortexlabs/cortex/pkg/types"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
@@ -52,19 +49,15 @@ func ReadLogs(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if config.Provider == types.AWSProviderType {
-		upgrader := websocket.Upgrader{}
-		socket, err := upgrader.Upgrade(w, r, nil)
-		if err != nil {
-			respondError(w, r, err)
-			return
-		}
-		defer socket.Close()
-		realtimeapi.ReadLogs(apiName, socket)
-	}
+	deploymentID := deployedResource.VirtualService.Labels["deploymentID"]
 
-	if config.Provider == types.GCPProviderType {
-		queryParams := gcpLogsQueryParams(apiName)
-		respond(w, schema.GCPLogsResponse{QueryParams: queryParams})
+	upgrader := websocket.Upgrader{}
+	socket, err := upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		respondError(w, r, err)
+		return
 	}
+	defer socket.Close()
+
+	operator.StreamLogsFromRandomPod(map[string]string{"apiName": apiName, "deploymentID": deploymentID}, socket)
 }
