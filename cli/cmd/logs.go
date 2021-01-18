@@ -21,6 +21,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/exit"
 	"github.com/cortexlabs/cortex/pkg/lib/prompt"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
+	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	"github.com/spf13/cobra"
 )
 
@@ -67,7 +68,7 @@ var _logsCmd = &cobra.Command{
 				exit.Error(err)
 			}
 
-			if apiResponse[0].Status.Requested > 1 && !_flagLogsDisallowPrompt {
+			if apiResponse[0].Spec.Kind == userconfig.RealtimeAPIKind && apiResponse[0].Status.Requested > 1 && !_flagLogsDisallowPrompt {
 				prompt.YesOrExit("logs from a single random replica will be streamed\n\nfor aggregated logs please visit your cloud provider's logging dashboard; see https://docs.cortex.dev for details", "", "")
 			}
 
