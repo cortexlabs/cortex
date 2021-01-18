@@ -23,11 +23,18 @@ import (
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 )
 
-type JobStatus struct {
-	spec.Job
+type BatchJobStatus struct {
+	spec.BatchJob
 	EndTime        *time.Time            `json:"end_time"`
 	Status         JobCode               `json:"status"`
 	BatchesInQueue int                   `json:"batches_in_queue"`
 	BatchMetrics   *metrics.BatchMetrics `json:"batch_metrics"`
 	WorkerCounts   *WorkerCounts         `json:"worker_counts"`
+}
+
+type TaskJobStatus struct {
+	spec.TaskJob
+	EndTime      *time.Time    `json:"end_time"`
+	Status       JobCode       `json:"status"`
+	WorkerCounts *WorkerCounts `json:"worker_counts"`
 }

@@ -23,4 +23,15 @@ fields @timestamp, log
 | limit 1000
 ```
 
+TaskAPI:
+
+```text
+fields @timestamp, log
+| filter labels.apiName="<INSERT API NAME>"
+| filter labels.jobID="<INSERT JOB ID>"
+| filter labels.apiKind="TaskAPI"
+| sort @timestamp asc
+| limit 1000
+```
+
 Please make sure to select the log group for your cluster and adjust the time range accordingly before running the queries.

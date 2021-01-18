@@ -61,11 +61,16 @@ func DefaultZapConfig(level userconfig.LogLevel, fields ...map[string]interface{
 	encoderConfig := zap.NewProductionEncoderConfig()
 	encoderConfig.MessageKey = "message"
 
-	initialFields := map[string]interface{}{}
+	labels := map[string]interface{}{}
 	for _, m := range fields {
 		for k, v := range m {
-			initialFields[k] = v
+			labels[k] = v
 		}
+	}
+
+	initialFields := map[string]interface{}{}
+	if len(labels) > 0 {
+		initialFields["labels"] = labels
 	}
 
 	return zap.Config{
@@ -74,6 +79,6 @@ func DefaultZapConfig(level userconfig.LogLevel, fields ...map[string]interface{
 		EncoderConfig:    encoderConfig,
 		OutputPaths:      []string{"stdout"},
 		ErrorOutputPaths: []string{"stderr"},
-		InitialFields:    map[string]interface{}{"labels": initialFields},
+		InitialFields:    initialFields,
 	}
 }

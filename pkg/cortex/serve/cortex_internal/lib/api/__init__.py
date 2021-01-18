@@ -14,3 +14,4 @@
 
 from cortex_internal.lib.api.predictor import Predictor
 from cortex_internal.lib.api.api import API, get_api, get_spec
+from cortex_internal.lib.api.task import TaskAPI

@@ -24,11 +24,12 @@ import (
 	awslib "github.com/cortexlabs/cortex/pkg/lib/aws"
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/operator/resources/job"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
 	"github.com/gobwas/glob"
 )
 
-func validateJobSubmissionSchema(submission *schema.JobSubmission) error {
+func validateJobSubmissionSchema(submission *schema.BatchJobSubmission) error {
 	providedKeys := []string{}
 	if submission.ItemList != nil {
 		providedKeys = append(providedKeys, schema.ItemListKey)
@@ -41,11 +42,11 @@ func validateJobSubmissionSchema(submission *schema.JobSubmission) error {
 	}
 
 	if len(providedKeys) == 0 {
-		return ErrorSpecifyExactlyOneKey(schema.ItemListKey, schema.FilePathListerKey, schema.DelimitedFilesKey)
+		return job.ErrorSpecifyExactlyOneKey(schema.ItemListKey, schema.FilePathListerKey, schema.DelimitedFilesKey)
 	}
 
 	if len(providedKeys) > 1 {
-		return ErrorConflictingFields(providedKeys[0], providedKeys[1:]...)
+		return job.ErrorConflictingFields(providedKeys[0], providedKeys[1:]...)
 	}
 
 	if submission.ItemList != nil {
@@ -96,7 +97,7 @@ func validateJobSubmissionSchema(submission *schema.JobSubmission) error {
 	return nil
 }
 
-func validateJobSubmission(submission *schema.JobSubmission) error {
+func validateJobSubmission(submission *schema.BatchJobSubmission) error {
 	err := validateJobSubmissionSchema(submission)
 	if err != nil {
 		return errors.Append(err, fmt.Sprintf("\n\njob submission schema can be found at https://docs.cortex.dev/v/%s/", consts.CortexVersionMinor))

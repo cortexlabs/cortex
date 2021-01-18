@@ -127,7 +127,17 @@ var _getCmd = &cobra.Command{
 					return "", err
 				}
 
-				jobTable, err := getJob(env, args[0], args[1])
+				apisRes, err := cluster.GetAPI(MustGetOperatorConfig(envName), args[0])
+				if err != nil {
+					return "", err
+				}
+
+				var jobTable string
+				if apisRes[0].Spec.Kind == userconfig.BatchAPIKind {
+					jobTable, err = getBatchJob(env, args[0], args[1])
+				} else {
+					jobTable, err = getTaskJob(env, args[0], args[1])
+				}
 				if err != nil {
 					return "", err
 				}
@@ -189,6 +199,8 @@ func getAPIsInAllEnvironments() (string, error) {
 	var allRealtimeAPIEnvs []string
 	var allBatchAPIs []schema.APIResponse
 	var allBatchAPIEnvs []string
+	var allTaskAPIs []schema.APIResponse
+	var allTaskAPIEnvs []string
 	var allTrafficSplitters []schema.APIResponse
 	var allTrafficSplitterEnvs []string
 
@@ -219,6 +231,9 @@ func getAPIsInAllEnvironments() (string, error) {
 				case userconfig.RealtimeAPIKind:
 					allRealtimeAPIEnvs = append(allRealtimeAPIEnvs, env.Name)
 					allRealtimeAPIs = append(allRealtimeAPIs, api)
+				case userconfig.TaskAPIKind:
+					allTaskAPIEnvs = append(allTaskAPIEnvs, env.Name)
+					allTaskAPIs = append(allTaskAPIs, api)
 				case userconfig.TrafficSplitterKind:
 					allTrafficSplitterEnvs = append(allTrafficSplitterEnvs, env.Name)
 					allTrafficSplitters = append(allTrafficSplitters, api)
@@ -243,7 +258,7 @@ func getAPIsInAllEnvironments() (string, error) {
 
 	out := ""
 
-	if len(allRealtimeAPIs) == 0 && len(allBatchAPIs) == 0 && len(allTrafficSplitters) == 0 {
+	if len(allRealtimeAPIs) == 0 && len(allBatchAPIs) == 0 && len(allTrafficSplitters) == 0 && len(allTaskAPIs) == 0 {
 		// check if any environments errorred
 		if len(errorsMap) != len(cliConfig.Environments) {
 			if len(errorsMap) == 0 {
@@ -271,20 +286,26 @@ func getAPIsInAllEnvironments() (string, error) {
 			out += t.MustFormat()
 		}
 
-		if len(allRealtimeAPIs) > 0 {
-			t := realtimeAPIsTable(allRealtimeAPIs, allRealtimeAPIEnvs)
-
+		if len(allTaskAPIs) > 0 {
+			t := taskAPIsTable(allTaskAPIs, allTaskAPIEnvs)
 			if len(allBatchAPIs) > 0 {
 				out += "\n"
 			}
+			out += t.MustFormat()
+		}
 
+		if len(allRealtimeAPIs) > 0 {
+			t := realtimeAPIsTable(allRealtimeAPIs, allRealtimeAPIEnvs)
+			if len(allBatchAPIs) > 0 || len(allTaskAPIs) > 0 {
+				out += "\n"
+			}
 			out += t.MustFormat()
 		}
 
 		if len(allTrafficSplitters) > 0 {
 			t := trafficSplitterListTable(allTrafficSplitters, allTrafficSplitterEnvs)
 
-			if len(allRealtimeAPIs) > 0 || len(allBatchAPIs) > 0 {
+			if len(allRealtimeAPIs) > 0 || len(allBatchAPIs) > 0 || len(allTaskAPIs) > 0 {
 				out += "\n"
 			}
 
@@ -319,12 +340,15 @@ func getAPIsByEnv(env cliconfig.Environment, printEnv bool) (string, error) {
 
 	var allRealtimeAPIs []schema.APIResponse
 	var allBatchAPIs []schema.APIResponse
+	var allTaskAPIs []schema.APIResponse
 	var allTrafficSplitters []schema.APIResponse
 
 	for _, api := range apisRes {
 		switch api.Spec.Kind {
 		case userconfig.BatchAPIKind:
 			allBatchAPIs = append(allBatchAPIs, api)
+		case userconfig.TaskAPIKind:
+			allTaskAPIs = append(allTaskAPIs, api)
 		case userconfig.RealtimeAPIKind:
 			allRealtimeAPIs = append(allRealtimeAPIs, api)
 		case userconfig.TrafficSplitterKind:
@@ -332,7 +356,7 @@ func getAPIsByEnv(env cliconfig.Environment, printEnv bool) (string, error) {
 		}
 	}
 
-	if len(allRealtimeAPIs) == 0 && len(allBatchAPIs) == 0 && len(allTrafficSplitters) == 0 {
+	if len(allRealtimeAPIs) == 0 && len(allBatchAPIs) == 0 && len(allTaskAPIs) == 0 && len(allTrafficSplitters) == 0 {
 		return console.Bold("no apis are deployed"), nil
 	}
 
@@ -350,6 +374,22 @@ func getAPIsByEnv(env cliconfig.Environment, printEnv bool) (string, error) {
 		out += t.MustFormat()
 	}
 
+	if len(allTaskAPIs) > 0 {
+		envNames := []string{}
+		for range allTaskAPIs {
+			envNames = append(envNames, env.Name)
+		}
+
+		t := taskAPIsTable(allTaskAPIs, envNames)
+		t.FindHeaderByTitle(_titleEnvironment).Hidden = true
+
+		if len(allBatchAPIs) > 0 {
+			out += "\n"
+		}
+
+		out += t.MustFormat()
+	}
+
 	if len(allRealtimeAPIs) > 0 {
 		envNames := []string{}
 		for range allRealtimeAPIs {
@@ -359,7 +399,7 @@ func getAPIsByEnv(env cliconfig.Environment, printEnv bool) (string, error) {
 		t := realtimeAPIsTable(allRealtimeAPIs, envNames)
 		t.FindHeaderByTitle(_titleEnvironment).Hidden = true
 
-		if len(allBatchAPIs) > 0 {
+		if len(allBatchAPIs) > 0 || len(allTaskAPIs) > 0 {
 			out += "\n"
 		}
 
@@ -375,7 +415,7 @@ func getAPIsByEnv(env cliconfig.Environment, printEnv bool) (string, error) {
 		t := trafficSplitterListTable(allTrafficSplitters, envNames)
 		t.FindHeaderByTitle(_titleEnvironment).Hidden = true
 
-		if len(allBatchAPIs) > 0 || len(allRealtimeAPIs) > 0 {
+		if len(allBatchAPIs) > 0 || len(allTaskAPIs) > 0 || len(allRealtimeAPIs) > 0 {
 			out += "\n"
 		}
 
@@ -412,6 +452,8 @@ func getAPI(env cliconfig.Environment, apiName string) (string, error) {
 		return trafficSplitterTable(apiRes, env)
 	case userconfig.BatchAPIKind:
 		return batchAPITable(apiRes), nil
+	case userconfig.TaskAPIKind:
+		return taskAPITable(apiRes), nil
 	default:
 		return "", errors.ErrorUnexpected(fmt.Sprintf("encountered unexpected kind %s for api %s", apiRes.Spec.Kind, apiRes.Spec.Name))
 	}

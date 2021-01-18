@@ -19,31 +19,30 @@ package endpoints
 import (
 	"encoding/json"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"net/http"
 
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/operator/resources"
-	"github.com/cortexlabs/cortex/pkg/operator/resources/batchapi"
+	"github.com/cortexlabs/cortex/pkg/operator/resources/job/taskapi"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
+	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	"github.com/gorilla/mux"
 )
 
-func SubmitJob(w http.ResponseWriter, r *http.Request) {
+func SubmitTaskJob(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	apiName := vars["apiName"]
-	dryRun := getOptionalBoolQParam("dryRun", false, r)
 
 	deployedResource, err := resources.GetDeployedResourceByName(apiName)
 	if err != nil {
 		respondError(w, r, err)
 		return
 	}
-	if deployedResource.Kind != userconfig.BatchAPIKind {
-		respondError(w, r, resources.ErrorOperationIsOnlySupportedForKind(*deployedResource, userconfig.BatchAPIKind))
+	if deployedResource.Kind != userconfig.TaskAPIKind {
+		respondError(w, r, resources.ErrorOperationIsOnlySupportedForKind(*deployedResource, userconfig.TaskAPIKind))
 		return
 	}
 
@@ -56,39 +55,20 @@ func SubmitJob(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	submission := schema.JobSubmission{}
+	submission := schema.TaskJobSubmission{
+		RuntimeTaskJobConfig: spec.RuntimeTaskJobConfig{Workers: 1},
+	}
 
 	err = json.Unmarshal(bodyBytes, &submission)
 	if err != nil {
-		respondError(w, r, errors.Append(err, fmt.Sprintf("\n\njob submission schema can be found at https://docs.cortex.dev/v/%s/", consts.CortexVersionMinor)))
+		respondError(w, r, errors.Append(err,
+			fmt.Sprintf("\n\ntask job submission schema can be found at https://docs.cortex.dev/v/%s/",
+				consts.CortexVersionMinor)),
+		)
 		return
 	}
 
-	if dryRun {
-		// plain text response for dry run because it is typically consumed by people
-		w.Header().Set("Content-type", "text/plain")
-
-		fileNames, err := batchapi.DryRun(&submission)
-		if err != nil {
-			w.WriteHeader(http.StatusBadRequest)
-			io.WriteString(w, "\n"+err.Error()+"\n")
-			return
-		}
-
-		for _, fileName := range fileNames {
-			_, err := io.WriteString(w, fileName+"\n")
-			if err != nil {
-				w.WriteHeader(http.StatusBadRequest)
-				io.WriteString(w, "\n"+err.Error()+"\n")
-				return
-			}
-		}
-
-		io.WriteString(w, "validations passed")
-		return
-	}
-
-	jobSpec, err := batchapi.SubmitJob(apiName, &submission)
+	jobSpec, err := taskapi.SubmitJob(apiName, &submission)
 	if err != nil {
 		respondError(w, r, err)
 		return

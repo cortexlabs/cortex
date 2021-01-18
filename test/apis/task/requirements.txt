@@ -1,0 +1,2 @@
+boto3
+scikit-learn==0.21.3
