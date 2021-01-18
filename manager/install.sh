@@ -61,7 +61,8 @@ function cluster_up_aws() {
   echo "✓"
 
   echo -n "￮ configuring logging "
-  envsubst < manifests/fluentd.yaml | kubectl apply -f - >/dev/null
+  python render_template.py $CORTEX_CLUSTER_CONFIG_FILE manifests/fluent-bit.yaml.j2 > /workspace/fluent-bit.yaml
+  kubectl apply -f /workspace/fluent-bit.yaml >/dev/null
   echo "✓"
 
   echo -n "￮ configuring metrics "
@@ -110,6 +111,16 @@ function cluster_up_gcp() {
   setup_istio
   python render_template.py $CORTEX_CLUSTER_CONFIG_FILE manifests/apis.yaml.j2 > /workspace/apis.yaml
   kubectl apply -f /workspace/apis.yaml >/dev/null
+  echo "✓"
+
+  echo -n "￮ configuring autoscaling "
+  python render_template.py $CORTEX_CLUSTER_CONFIG_FILE manifests/cluster-autoscaler.yaml.j2 > /workspace/cluster-autoscaler.yaml
+  kubectl apply -f /workspace/cluster-autoscaler.yaml >/dev/null
+  echo "✓"
+
+  echo -n "￮ configuring logging "
+  python render_template.py $CORTEX_CLUSTER_CONFIG_FILE manifests/fluent-bit.yaml.j2 > /workspace/fluent-bit.yaml
+  kubectl apply -f /workspace/fluent-bit.yaml >/dev/null
   echo "✓"
 
   if [ -n "$CORTEX_ACCELERATOR_TYPE" ]; then
@@ -700,12 +711,14 @@ function validate_cortex_gcp() {
       api_load_balancer_endpoint=$(kubectl -n=istio-system get service ingressgateway-apis -o json | tr -d '[:space:]' | sed 's/.*{\"ip\":\"\(.*\)\".*/\1/')
     fi
 
-    operator_endpoint_reachable="false"  # don't cache this result
-    if ! curl --max-time 3 "${operator_endpoint}/verifycortex" >/dev/null 2>&1; then
-      success_cycles=0
-      continue
+    if [ "$CORTEX_OPERATOR_LOAD_BALANCER_SCHEME" == "internet-facing" ]; then
+      operator_endpoint_reachable="false"  # don't cache this result
+      if ! curl --max-time 3 "${operator_endpoint}/verifycortex" >/dev/null 2>&1; then
+        success_cycles=0
+        continue
+      fi
+      operator_endpoint_reachable="true"
     fi
-    operator_endpoint_reachable="true"
 
     if [[ $success_cycles -lt 1 ]]; then
       ((success_cycles++))

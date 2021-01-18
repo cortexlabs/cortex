@@ -16,6 +16,8 @@ limitations under the License.
 
 package userconfig
 
+import "go.uber.org/zap/zapcore"
+
 type LogLevel int
 
 const (
@@ -95,4 +97,17 @@ func TFNumericLogLevelFromLogLevel(logLevel LogLevel) int {
 		tfLogLevelNumber = 2
 	}
 	return tfLogLevelNumber
+}
+
+func ToZapLogLevel(logLevel LogLevel) zapcore.Level {
+	switch logLevel {
+	case InfoLogLevel:
+		return zapcore.InfoLevel
+	case WarningLogLevel:
+		return zapcore.WarnLevel
+	case ErrorLogLevel:
+		return zapcore.ErrorLevel
+	default:
+		return zapcore.DebugLevel
+	}
 }

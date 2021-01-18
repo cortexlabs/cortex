@@ -25,8 +25,8 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/parallel"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
-	"github.com/cortexlabs/cortex/pkg/lib/routines"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
+	"github.com/cortexlabs/cortex/pkg/operator/lib/routines"
 	"github.com/cortexlabs/cortex/pkg/operator/operator"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
 	"github.com/cortexlabs/cortex/pkg/types"
@@ -70,7 +70,7 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string, force bool) (*spec.A
 		if err := applyK8sResources(api, prevDeployment, prevService, prevVirtualService); err != nil {
 			routines.RunWithPanicHandler(func() {
 				deleteK8sResources(api.Name)
-			}, false)
+			})
 			return nil, "", err
 		}
 
@@ -353,7 +353,7 @@ func applyK8sDeployment(api *spec.API, prevDeployment *kapps.Deployment) error {
 	}
 
 	if config.Provider == types.AWSProviderType {
-		if err := UpdateAutoscalerCron(newDeployment); err != nil {
+		if err := UpdateAutoscalerCron(newDeployment, api); err != nil {
 			return err
 		}
 	}
@@ -361,14 +361,14 @@ func applyK8sDeployment(api *spec.API, prevDeployment *kapps.Deployment) error {
 	return nil
 }
 
-func UpdateAutoscalerCron(deployment *kapps.Deployment) error {
+func UpdateAutoscalerCron(deployment *kapps.Deployment, apiSpec *spec.API) error {
 	apiName := deployment.Labels["apiName"]
 
 	if prevAutoscalerCron, ok := _autoscalerCrons[apiName]; ok {
 		prevAutoscalerCron.Cancel()
 	}
 
-	autoscaler, err := autoscaleFn(deployment)
+	autoscaler, err := autoscaleFn(deployment, apiSpec)
 	if err != nil {
 		return err
 	}

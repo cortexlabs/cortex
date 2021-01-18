@@ -64,19 +64,19 @@ dev_images_gcp=(
 non_dev_images_cluster=(
   "tensorflow-serving-cpu"
   "tensorflow-serving-gpu"
+  "cluster-autoscaler"
   "operator"
   "istio-proxy"
   "istio-pilot"
+  "fluent-bit"
 )
 non_dev_images_aws=(
   # includes non_dev_images_cluster
   "tensorflow-serving-inf"
-  "cluster-autoscaler"
   "metrics-server"
   "inferentia"
   "neuron-rtd"
   "nvidia"
-  "fluentd"
   "statsd"
 )
 non_dev_images_gcp=(

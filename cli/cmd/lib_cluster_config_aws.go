@@ -383,10 +383,10 @@ func setConfigFieldsFromCached(userClusterConfig *clusterconfig.Config, cachedCl
 	}
 	userClusterConfig.ImageNvidia = cachedClusterConfig.ImageNvidia
 
-	if s.Obj(cachedClusterConfig.ImageFluentd) != s.Obj(userClusterConfig.ImageFluentd) {
-		return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.ImageFluentdKey, cachedClusterConfig.ImageFluentd)
+	if s.Obj(cachedClusterConfig.ImageFluentBit) != s.Obj(userClusterConfig.ImageFluentBit) {
+		return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.ImageFluentBitKey, cachedClusterConfig.ImageFluentBit)
 	}
-	userClusterConfig.ImageFluentd = cachedClusterConfig.ImageFluentd
+	userClusterConfig.ImageFluentBit = cachedClusterConfig.ImageFluentBit
 
 	if s.Obj(cachedClusterConfig.ImageStatsd) != s.Obj(userClusterConfig.ImageStatsd) {
 		return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.ImageStatsdKey, cachedClusterConfig.ImageStatsd)
@@ -691,8 +691,8 @@ func clusterConfigConfirmationStr(clusterConfig clusterconfig.Config, awsCreds A
 	if clusterConfig.ImageNvidia != defaultConfig.ImageNvidia {
 		items.Add(clusterconfig.ImageNvidiaUserKey, clusterConfig.ImageNvidia)
 	}
-	if clusterConfig.ImageFluentd != defaultConfig.ImageFluentd {
-		items.Add(clusterconfig.ImageFluentdUserKey, clusterConfig.ImageFluentd)
+	if clusterConfig.ImageFluentBit != defaultConfig.ImageFluentBit {
+		items.Add(clusterconfig.ImageFluentBitUserKey, clusterConfig.ImageFluentBit)
 	}
 	if clusterConfig.ImageStatsd != defaultConfig.ImageStatsd {
 		items.Add(clusterconfig.ImageStatsdUserKey, clusterConfig.ImageStatsd)

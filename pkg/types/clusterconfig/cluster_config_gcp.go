@@ -28,28 +28,36 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/prompt"
 	"github.com/cortexlabs/cortex/pkg/lib/slices"
+	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/table"
 	"github.com/cortexlabs/cortex/pkg/types"
 )
 
 type GCPConfig struct {
-	Provider         types.ProviderType `json:"provider" yaml:"provider"`
-	Project          *string            `json:"project" yaml:"project"`
-	Zone             *string            `json:"zone" yaml:"zone"`
-	InstanceType     *string            `json:"instance_type" yaml:"instance_type"`
-	AcceleratorType  *string            `json:"accelerator_type" yaml:"accelerator_type"`
-	Network          *string            `json:"network" yaml:"network"`
-	Subnet           *string            `json:"subnet" yaml:"subnet"`
-	MinInstances     *int64             `json:"min_instances" yaml:"min_instances"`
-	MaxInstances     *int64             `json:"max_instances" yaml:"max_instances"`
-	ClusterName      string             `json:"cluster_name" yaml:"cluster_name"`
-	Telemetry        bool               `json:"telemetry" yaml:"telemetry"`
-	ImageOperator    string             `json:"image_operator" yaml:"image_operator"`
-	ImageManager     string             `json:"image_manager" yaml:"image_manager"`
-	ImageDownloader  string             `json:"image_downloader" yaml:"image_downloader"`
-	ImageIstioProxy  string             `json:"image_istio_proxy" yaml:"image_istio_proxy"`
-	ImageIstioPilot  string             `json:"image_istio_pilot" yaml:"image_istio_pilot"`
-	ImageGooglePause string             `json:"image_google_pause" yaml:"image_google_pause"`
+	Provider                   types.ProviderType `json:"provider" yaml:"provider"`
+	Project                    *string            `json:"project" yaml:"project"`
+	Zone                       *string            `json:"zone" yaml:"zone"`
+	InstanceType               *string            `json:"instance_type" yaml:"instance_type"`
+	AcceleratorType            *string            `json:"accelerator_type" yaml:"accelerator_type"`
+	AcceleratorsPerInstance    *int64             `json:"accelerators_per_instance" yaml:"accelerators_per_instance"`
+	Network                    *string            `json:"network" yaml:"network"`
+	Subnet                     *string            `json:"subnet" yaml:"subnet"`
+	APILoadBalancerScheme      LoadBalancerScheme `json:"api_load_balancer_scheme" yaml:"api_load_balancer_scheme"`
+	OperatorLoadBalancerScheme LoadBalancerScheme `json:"operator_load_balancer_scheme" yaml:"operator_load_balancer_scheme"`
+	MinInstances               *int64             `json:"min_instances" yaml:"min_instances"`
+	MaxInstances               *int64             `json:"max_instances" yaml:"max_instances"`
+	Preemptible                bool               `json:"preemptible" yaml:"preemptible"`
+	OnDemandBackup             bool               `json:"on_demand_backup" yaml:"on_demand_backup"`
+	ClusterName                string             `json:"cluster_name" yaml:"cluster_name"`
+	Telemetry                  bool               `json:"telemetry" yaml:"telemetry"`
+	ImageOperator              string             `json:"image_operator" yaml:"image_operator"`
+	ImageManager               string             `json:"image_manager" yaml:"image_manager"`
+	ImageDownloader            string             `json:"image_downloader" yaml:"image_downloader"`
+	ImageClusterAutoscaler     string             `json:"image_cluster_autoscaler" yaml:"image_cluster_autoscaler"`
+	ImageFluentBit             string             `json:"image_fluent_bit" yaml:"image_fluent_bit"`
+	ImageIstioProxy            string             `json:"image_istio_proxy" yaml:"image_istio_proxy"`
+	ImageIstioPilot            string             `json:"image_istio_pilot" yaml:"image_istio_pilot"`
+	ImageGooglePause           string             `json:"image_google_pause" yaml:"image_google_pause"`
 }
 
 type InternalGCPConfig struct {
@@ -136,6 +144,20 @@ var UserGCPValidation = &cr.StructValidation{
 			},
 		},
 		{
+			StructField: "AcceleratorsPerInstance",
+			Int64PtrValidation: &cr.Int64PtrValidation{
+				AllowExplicitNull: true,
+			},
+			DefaultDependentFields: []string{"AcceleratorType"},
+			DefaultDependentFieldsFunc: func(vals []interface{}) interface{} {
+				acceleratorType := vals[0].(*string)
+				if acceleratorType == nil {
+					return nil
+				}
+				return pointer.Int64(1)
+			},
+		},
+		{
 			StructField: "Network",
 			StringPtrValidation: &cr.StringPtrValidation{
 				AllowExplicitNull: true,
@@ -145,6 +167,26 @@ var UserGCPValidation = &cr.StructValidation{
 			StructField: "Subnet",
 			StringPtrValidation: &cr.StringPtrValidation{
 				AllowExplicitNull: true,
+			},
+		},
+		{
+			StructField: "APILoadBalancerScheme",
+			StringValidation: &cr.StringValidation{
+				AllowedValues: LoadBalancerSchemeStrings(),
+				Default:       InternetFacingLoadBalancerScheme.String(),
+			},
+			Parser: func(str string) (interface{}, error) {
+				return LoadBalancerSchemeFromString(str), nil
+			},
+		},
+		{
+			StructField: "OperatorLoadBalancerScheme",
+			StringValidation: &cr.StringValidation{
+				AllowedValues: LoadBalancerSchemeStrings(),
+				Default:       InternetFacingLoadBalancerScheme.String(),
+			},
+			Parser: func(str string) (interface{}, error) {
+				return LoadBalancerSchemeFromString(str), nil
 			},
 		},
 		{
@@ -167,6 +209,20 @@ var UserGCPValidation = &cr.StructValidation{
 				MinLength: 3,
 				Validator: validateClusterName,
 			},
+		},
+		{
+			StructField: "Preemptible",
+			BoolValidation: &cr.BoolValidation{
+				Default: false,
+			},
+		},
+		{
+			StructField:            "OnDemandBackup",
+			DefaultDependentFields: []string{"Preemptible"},
+			DefaultDependentFieldsFunc: func(vals []interface{}) interface{} {
+				return vals[0].(bool)
+			},
+			BoolValidation: &cr.BoolValidation{},
 		},
 		{
 			StructField:         "Project",
@@ -194,6 +250,20 @@ var UserGCPValidation = &cr.StructValidation{
 			StructField: "ImageDownloader",
 			StringValidation: &cr.StringValidation{
 				Default:   "quay.io/cortexlabs/downloader:" + consts.CortexVersion,
+				Validator: validateImageVersion,
+			},
+		},
+		{
+			StructField: "ImageClusterAutoscaler",
+			StringValidation: &cr.StringValidation{
+				Default:   "quay.io/cortexlabs/cluster-austoscaler:" + consts.CortexVersion,
+				Validator: validateImageVersion,
+			},
+		},
+		{
+			StructField: "ImageFluentBit",
+			StringValidation: &cr.StringValidation{
+				Default:   "quay.io/cortexlabs/fluent-bit:" + consts.CortexVersion,
 				Validator: validateImageVersion,
 			},
 		},
@@ -240,7 +310,9 @@ var GCPAccessPromptValidation = &cr.PromptValidation{
 			PromptOpts: &prompt.Options{
 				Prompt: ProjectUserKey,
 			},
-			StringPtrValidation: &cr.StringPtrValidation{},
+			StringPtrValidation: &cr.StringPtrValidation{
+				Required: true,
+			},
 		},
 		{
 			StructField: "Zone",
@@ -296,7 +368,14 @@ func (cc *GCPConfig) Validate(GCP *gcp.Client) error {
 		return ErrorGCPInvalidInstanceType(*cc.InstanceType, instanceTypes...)
 	}
 
+	if cc.AcceleratorType == nil && cc.AcceleratorsPerInstance != nil {
+		return ErrorDependentFieldMustBeSpecified(AcceleratorsPerInstanceKey, AcceleratorTypeKey)
+	}
+
 	if cc.AcceleratorType != nil {
+		if cc.AcceleratorsPerInstance == nil {
+			return ErrorDependentFieldMustBeSpecified(AcceleratorTypeKey, AcceleratorsPerInstanceKey)
+		}
 		if validAccelerator, err := GCP.IsAcceleratorTypeAvailable(*cc.AcceleratorType, *cc.Zone); err != nil {
 			return err
 		} else if !validAccelerator {
@@ -333,6 +412,10 @@ func (cc *GCPConfig) Validate(GCP *gcp.Client) error {
 		if !slices.HasString(compatibleInstances, *cc.InstanceType) {
 			return ErrorGCPIncompatibleInstanceTypeWithAccelerator(*cc.InstanceType, *cc.AcceleratorType, *cc.Zone, compatibleInstances)
 		}
+	}
+
+	if !cc.Preemptible && cc.OnDemandBackup {
+		return ErrorFieldConfigurationDependentOnCondition(OnDemandBackupKey, s.Bool(cc.OnDemandBackup), PreemptibleKey, s.Bool(cc.Preemptible))
 	}
 
 	return nil
@@ -438,6 +521,7 @@ func SetGCPDefaults(cc *GCPConfig) error {
 	if errors.HasError(errs) {
 		return errors.FirstError(errs...)
 	}
+
 	return nil
 }
 
@@ -487,16 +571,25 @@ func (cc *GCPConfig) UserTable() table.KeyValuePairs {
 	if cc.AcceleratorType != nil {
 		items.Add(AcceleratorTypeUserKey, *cc.AcceleratorType)
 	}
+	if cc.AcceleratorsPerInstance != nil {
+		items.Add(AcceleratorsPerInstanceUserKey, *cc.AcceleratorsPerInstance)
+	}
+	items.Add(PreemptibleUserKey, s.YesNo(cc.Preemptible))
+	items.Add(OnDemandBackupUserKey, s.YesNo(cc.OnDemandBackup))
 	if cc.Network != nil {
 		items.Add(NetworkUserKey, *cc.Network)
 	}
 	if cc.Subnet != nil {
 		items.Add(SubnetUserKey, *cc.Subnet)
 	}
+	items.Add(APILoadBalancerSchemeUserKey, cc.APILoadBalancerScheme)
+	items.Add(OperatorLoadBalancerSchemeUserKey, cc.OperatorLoadBalancerScheme)
 	items.Add(TelemetryUserKey, cc.Telemetry)
 	items.Add(ImageOperatorUserKey, cc.ImageOperator)
 	items.Add(ImageManagerUserKey, cc.ImageManager)
 	items.Add(ImageDownloaderUserKey, cc.ImageDownloader)
+	items.Add(ImageClusterAutoscalerUserKey, cc.ImageClusterAutoscaler)
+	items.Add(ImageFluentBitUserKey, cc.ImageFluentBit)
 	items.Add(ImageIstioProxyUserKey, cc.ImageIstioProxy)
 	items.Add(ImageIstioPilotUserKey, cc.ImageIstioPilot)
 	items.Add(ImageGooglePauseUserKey, cc.ImageGooglePause)
@@ -521,12 +614,18 @@ func (cc *GCPConfig) TelemetryEvent() map[string]interface{} {
 		event["accelerator_type._is_defined"] = true
 		event["accelerator_type"] = *cc.AcceleratorType
 	}
+	if cc.AcceleratorsPerInstance != nil {
+		event["accelerators_per_instance._is_defined"] = true
+		event["accelerators_per_instance"] = *cc.AcceleratorsPerInstance
+	}
 	if cc.Network != nil {
 		event["network._is_defined"] = true
 	}
 	if cc.Subnet != nil {
 		event["subnet._is_defined"] = true
 	}
+	event["api_load_balancer_scheme"] = cc.APILoadBalancerScheme
+	event["operator_load_balancer_scheme"] = cc.OperatorLoadBalancerScheme
 	if cc.MinInstances != nil {
 		event["min_instances._is_defined"] = true
 		event["min_instances"] = *cc.MinInstances
@@ -538,6 +637,8 @@ func (cc *GCPConfig) TelemetryEvent() map[string]interface{} {
 	if cc.ClusterName != "cortex" {
 		event["cluster_name._is_custom"] = true
 	}
+	event["preemptible"] = cc.Preemptible
+	event["on_demand_backup"] = cc.OnDemandBackup
 	if cc.Zone != nil {
 		event["zone._is_defined"] = true
 		event["zone"] = *cc.Zone
@@ -550,6 +651,12 @@ func (cc *GCPConfig) TelemetryEvent() map[string]interface{} {
 	}
 	if !strings.HasPrefix(cc.ImageDownloader, "cortexlabs/") {
 		event["image_downloader._is_custom"] = true
+	}
+	if !strings.HasPrefix(cc.ImageClusterAutoscaler, "cortexlabs/") {
+		event["image_cluster_autoscaler._is_custom"] = true
+	}
+	if !strings.HasPrefix(cc.ImageFluentBit, "cortexlabs/") {
+		event["image_fluent_bit._is_custom"] = true
 	}
 	if !strings.HasPrefix(cc.ImageIstioProxy, "cortexlabs/") {
 		event["image_istio_proxy._is_custom"] = true
