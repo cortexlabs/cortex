@@ -142,10 +142,11 @@ func validateDirModels(
 			return nil, err
 		}
 
-		modelDirPaths, err = gcpClient.ListGCSPathDir(modelPath, nil)
+		gcsObjects, err := gcpClient.ListGCSPathDir(modelPath, nil)
 		if err != nil {
 			return nil, err
 		}
+		modelDirPaths = gcp.ConvertGCSObjectsToKeys(gcsObjects...)
 	}
 	if len(modelDirPaths) == 0 {
 		return nil, errorForPredictorType(dirPrefix, modelDirPaths)
@@ -265,10 +266,11 @@ func validateModels(
 			}
 			modelPrefix = s.EnsureSuffix(modelPrefix, "/")
 
-			modelPaths, err = gcpClient.ListGCSPathDir(modelPath, nil)
+			gcsObjects, err := gcpClient.ListGCSPathDir(modelPath, nil)
 			if err != nil {
 				return nil, errors.Wrap(err, model.Name)
 			}
+			modelPaths = gcp.ConvertGCSObjectsToKeys(gcsObjects...)
 		}
 		if len(modelPaths) == 0 {
 			return nil, errors.Wrap(errorForPredictorType(modelPrefix, modelPaths), model.Name)

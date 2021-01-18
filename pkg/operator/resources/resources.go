@@ -30,7 +30,8 @@ import (
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 	"github.com/cortexlabs/cortex/pkg/operator/lib/routines"
 	"github.com/cortexlabs/cortex/pkg/operator/operator"
-	"github.com/cortexlabs/cortex/pkg/operator/resources/batchapi"
+	"github.com/cortexlabs/cortex/pkg/operator/resources/job/batchapi"
+	"github.com/cortexlabs/cortex/pkg/operator/resources/job/taskapi"
 	"github.com/cortexlabs/cortex/pkg/operator/resources/realtimeapi"
 	"github.com/cortexlabs/cortex/pkg/operator/resources/trafficsplitter"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
@@ -41,6 +42,8 @@ import (
 	kapps "k8s.io/api/apps/v1"
 	kbatch "k8s.io/api/batch/v1"
 	kcore "k8s.io/api/core/v1"
+	kmeta "k8s.io/apimachinery/pkg/apis/meta/v1"
+	klabels "k8s.io/apimachinery/pkg/labels"
 )
 
 // Returns an error if resource doesn't exist
@@ -159,10 +162,17 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string, force bool) (*schema
 		api, msg, err = realtimeapi.UpdateAPI(apiConfig, projectID, force)
 	case userconfig.BatchAPIKind:
 		api, msg, err = batchapi.UpdateAPI(apiConfig, projectID)
+	case userconfig.TaskAPIKind:
+		api, msg, err = taskapi.UpdateAPI(apiConfig, projectID)
 	case userconfig.TrafficSplitterKind:
 		api, msg, err = trafficsplitter.UpdateAPI(apiConfig, force)
 	default:
-		return nil, "", ErrorOperationIsOnlySupportedForKind(*deployedResource, userconfig.RealtimeAPIKind, userconfig.BatchAPIKind, userconfig.TrafficSplitterKind) // unexpected
+		return nil, "", ErrorOperationIsOnlySupportedForKind(
+			*deployedResource, userconfig.RealtimeAPIKind,
+			userconfig.BatchAPIKind,
+			userconfig.TrafficSplitterKind,
+			userconfig.TaskAPIKind,
+		) // unexpected
 	}
 
 	if err == nil && api != nil {
@@ -198,7 +208,7 @@ func Patch(configBytes []byte, configFileName string, force bool) ([]schema.Depl
 		apiConfig := &apiConfigs[i]
 		result := schema.DeployResult{}
 
-		apiSpec, msg, err := patchAPI(apiConfig, configFileName, force)
+		apiSpec, msg, err := patchAPI(apiConfig, force)
 		if err == nil && apiSpec != nil {
 			apiEndpoint, _ := operator.APIEndpoint(apiSpec)
 
@@ -218,7 +228,7 @@ func Patch(configBytes []byte, configFileName string, force bool) ([]schema.Depl
 	return results, nil
 }
 
-func patchAPI(apiConfig *userconfig.API, configFileName string, force bool) (*spec.API, string, error) {
+func patchAPI(apiConfig *userconfig.API, force bool) (*spec.API, string, error) {
 	deployedResource, err := GetDeployedResourceByName(apiConfig.Name)
 	if err != nil {
 		return nil, "", err
@@ -262,6 +272,8 @@ func patchAPI(apiConfig *userconfig.API, configFileName string, force bool) (*sp
 		return realtimeapi.UpdateAPI(apiConfig, prevAPISpec.ProjectID, force)
 	case userconfig.BatchAPIKind:
 		return batchapi.UpdateAPI(apiConfig, prevAPISpec.ProjectID)
+	case userconfig.TaskAPIKind:
+		return taskapi.UpdateAPI(apiConfig, prevAPISpec.ProjectID)
 	default:
 		return trafficsplitter.UpdateAPI(apiConfig, force)
 	}
@@ -305,6 +317,9 @@ func DeleteAPI(apiName string, keepCache bool) (*schema.DeleteResponse, error) {
 					}
 					return nil
 				},
+				func() error {
+					return taskapi.DeleteAPI(apiName, keepCache)
+				},
 			)
 			if err != nil {
 				telemetry.Error(err)
@@ -333,6 +348,11 @@ func DeleteAPI(apiName string, keepCache bool) (*schema.DeleteResponse, error) {
 		if err != nil {
 			return nil, err
 		}
+	case userconfig.TaskAPIKind:
+		err := taskapi.DeleteAPI(apiName, keepCache)
+		if err != nil {
+			return nil, err
+		}
 	default:
 		return nil, ErrorOperationIsOnlySupportedForKind(*deployedResource, userconfig.RealtimeAPIKind, userconfig.BatchAPIKind, userconfig.TrafficSplitterKind) // unexpected
 	}
@@ -344,7 +364,8 @@ func DeleteAPI(apiName string, keepCache bool) (*schema.DeleteResponse, error) {
 
 func GetAPIs() ([]schema.APIResponse, error) {
 	var deployments []kapps.Deployment
-	var k8sJobs []kbatch.Job
+	var k8sBatchJobs []kbatch.Job
+	var k8sTaskJobs []kbatch.Job
 	var pods []kcore.Pod
 	var virtualServices []istioclientnetworking.VirtualService
 
@@ -361,7 +382,28 @@ func GetAPIs() ([]schema.APIResponse, error) {
 		},
 		func() error {
 			var err error
-			k8sJobs, err = config.K8s.ListJobsWithLabelKeys("apiName")
+			k8sBatchJobs, err = config.K8s.ListJobs(
+				&kmeta.ListOptions{
+					LabelSelector: klabels.SelectorFromSet(
+						map[string]string{
+							"apiKind": userconfig.BatchAPIKind.String(),
+						},
+					).String(),
+				},
+			)
+			return err
+		},
+		func() error {
+			var err error
+			k8sTaskJobs, err = config.K8s.ListJobs(
+				&kmeta.ListOptions{
+					LabelSelector: klabels.SelectorFromSet(
+						map[string]string{
+							"apiKind": userconfig.TaskAPIKind.String(),
+						},
+					).String(),
+				},
+			)
 			return err
 		},
 		func() error {
@@ -376,16 +418,20 @@ func GetAPIs() ([]schema.APIResponse, error) {
 
 	realtimeAPIPods := []kcore.Pod{}
 	batchAPIPods := []kcore.Pod{}
+	taskAPIPods := []kcore.Pod{}
 	for _, pod := range pods {
 		switch pod.Labels["apiKind"] {
 		case userconfig.RealtimeAPIKind.String():
 			realtimeAPIPods = append(realtimeAPIPods, pod)
 		case userconfig.BatchAPIKind.String():
 			batchAPIPods = append(batchAPIPods, pod)
+		case userconfig.TaskAPIKind.String():
+			taskAPIPods = append(taskAPIPods, pod)
 		}
 	}
 
 	var batchAPIVirtualServices []istioclientnetworking.VirtualService
+	var taskAPIVirtualServices []istioclientnetworking.VirtualService
 	var trafficSplitterVirtualServices []istioclientnetworking.VirtualService
 
 	for _, vs := range virtualServices {
@@ -394,6 +440,8 @@ func GetAPIs() ([]schema.APIResponse, error) {
 			batchAPIVirtualServices = append(batchAPIVirtualServices, vs)
 		case userconfig.TrafficSplitterKind.String():
 			trafficSplitterVirtualServices = append(trafficSplitterVirtualServices, vs)
+		case userconfig.TaskAPIKind.String():
+			taskAPIVirtualServices = append(taskAPIVirtualServices, vs)
 		}
 	}
 
@@ -402,9 +450,15 @@ func GetAPIs() ([]schema.APIResponse, error) {
 		return nil, err
 	}
 
+	var taskAPIList []schema.APIResponse
+	taskAPIList, err = taskapi.GetAllAPIs(taskAPIVirtualServices, k8sTaskJobs, taskAPIPods)
+	if err != nil {
+		return nil, err
+	}
+
 	var batchAPIList []schema.APIResponse
 	if config.Provider == types.AWSProviderType {
-		batchAPIList, err = batchapi.GetAllAPIs(batchAPIVirtualServices, k8sJobs, batchAPIPods)
+		batchAPIList, err = batchapi.GetAllAPIs(batchAPIVirtualServices, k8sBatchJobs, batchAPIPods)
 		if err != nil {
 			return nil, err
 		}
@@ -419,6 +473,7 @@ func GetAPIs() ([]schema.APIResponse, error) {
 
 	response = append(response, realtimeAPIList...)
 	response = append(response, batchAPIList...)
+	response = append(response, taskAPIList...)
 	response = append(response, trafficSplitterList...)
 
 	return response, nil
@@ -440,6 +495,11 @@ func GetAPI(apiName string) ([]schema.APIResponse, error) {
 		}
 	case userconfig.BatchAPIKind:
 		apiResponse, err = batchapi.GetAPIByName(deployedResource)
+		if err != nil {
+			return nil, err
+		}
+	case userconfig.TaskAPIKind:
+		apiResponse, err = taskapi.GetAPIByName(deployedResource)
 		if err != nil {
 			return nil, err
 		}
@@ -471,7 +531,7 @@ func GetAPIByID(apiName string, apiID string) ([]schema.APIResponse, error) {
 	}
 
 	// search for the API spec with the old ID
-	spec, err := operator.DownloadAPISpec(apiName, apiID)
+	apiSpec, err := operator.DownloadAPISpec(apiName, apiID)
 	if err != nil {
 		if aws.IsGenericNotFoundErr(err) {
 			return nil, ErrorAPIIDNotFound(apiName, apiID)
@@ -481,7 +541,7 @@ func GetAPIByID(apiName string, apiID string) ([]schema.APIResponse, error) {
 
 	return []schema.APIResponse{
 		{
-			Spec: *spec,
+			Spec: *apiSpec,
 		},
 	}, nil
 }

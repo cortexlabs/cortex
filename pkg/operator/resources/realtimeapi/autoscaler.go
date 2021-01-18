@@ -241,7 +241,7 @@ func getInflightRequests(apiName string, window time.Duration) (*float64, error)
 				Label: aws.String("InFlight"),
 				MetricStat: &cloudwatch.MetricStat{
 					Metric: &cloudwatch.Metric{
-						Namespace:  aws.String(config.Cluster.ClusterName),
+						Namespace:  aws.String(config.ClusterName()),
 						MetricName: aws.String("in-flight"),
 						Dimensions: []*cloudwatch.Dimension{
 							{

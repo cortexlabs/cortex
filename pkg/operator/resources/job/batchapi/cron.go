@@ -29,9 +29,13 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 	"github.com/cortexlabs/cortex/pkg/operator/operator"
+	"github.com/cortexlabs/cortex/pkg/operator/resources/job"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/types/status"
+	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	kbatch "k8s.io/api/batch/v1"
+	kmeta "k8s.io/apimachinery/pkg/apis/meta/v1"
+	klabels "k8s.io/apimachinery/pkg/labels"
 )
 
 const (
@@ -41,11 +45,11 @@ const (
 	_k8sJobExistenceGracePeriod  = 10 * time.Second
 )
 
-var _jobsToDelete strset.Set = strset.New()
-var _inProgressJobSpecMap = map[string]*spec.Job{}
+var _jobsToDelete = strset.New()
+var _inProgressJobSpecMap = map[string]*spec.BatchJob{}
 
 func ManageJobResources() error {
-	inProgressJobKeys, err := listAllInProgressJobKeys()
+	inProgressJobKeys, err := job.ListAllInProgressJobKeys(userconfig.BatchAPIKind)
 	if err != nil {
 		return err
 	}
@@ -75,17 +79,22 @@ func ManageJobResources() error {
 		queueURLMap[jobKey.ID] = queueURL
 	}
 
-	jobs, err := config.K8s.ListJobs(nil)
+	jobs, err := config.K8s.ListJobs(
+		&kmeta.ListOptions{
+			LabelSelector: klabels.SelectorFromSet(
+				map[string]string{"apiKind": userconfig.BatchAPIKind.String()},
+			).String(),
+		},
+	)
 	if err != nil {
 		return err
 	}
 
 	k8sJobMap := map[string]*kbatch.Job{}
 	k8sJobIDSet := strset.Set{}
-	for i := range jobs {
-		job := jobs[i]
-		k8sJobMap[job.Labels["jobID"]] = &job
-		k8sJobIDSet.Add(job.Labels["jobID"])
+	for _, kJob := range jobs {
+		k8sJobMap[kJob.Labels["jobID"]] = &kJob
+		k8sJobIDSet.Add(kJob.Labels["jobID"])
 	}
 
 	for _, jobKey := range inProgressJobKeys {
@@ -103,12 +112,12 @@ func ManageJobResources() error {
 			continue
 		}
 
-		jobState, err := getJobState(jobKey)
+		jobState, err := job.GetJobState(jobKey)
 		if err != nil {
-			jobLogger.Error(err.Error())
+			jobLogger.Error(err)
 			jobLogger.Error("terminating job and cleaning up job resources")
 			err := errors.FirstError(
-				deleteInProgressFile(jobKey),
+				job.DeleteInProgressFile(jobKey),
 				deleteJobRuntimeResources(jobKey),
 			)
 			if err != nil {
@@ -121,8 +130,8 @@ func ManageJobResources() error {
 
 		if !jobState.Status.IsInProgress() {
 			// best effort cleanup
-			deleteInProgressFile(jobKey)
-			deleteJobRuntimeResources(jobKey)
+			_ = job.DeleteInProgressFile(jobKey)
+			_ = deleteJobRuntimeResources(jobKey)
 			continue
 		}
 
@@ -134,7 +143,7 @@ func ManageJobResources() error {
 		}
 		if newStatusCode != jobState.Status {
 			jobLogger.Error(msg)
-			err := setStatusForJob(jobKey, newStatusCode)
+			err := job.SetStatusForJob(jobKey, newStatusCode)
 			if err != nil {
 				telemetry.Error(err)
 				operatorLogger.Error(err)
@@ -147,18 +156,17 @@ func ManageJobResources() error {
 		}
 
 		if _, ok := _inProgressJobSpecMap[jobKey.ID]; !ok {
-			jobSpec, err := operator.DownloadJobSpec(jobKey)
+			jobSpec, err := operator.DownloadBatchJobSpec(jobKey)
 			if err != nil {
-				jobLogger.Error(err.Error())
+				jobLogger.Error(err)
 				jobLogger.Error("terminating job and cleaning up job resources")
 				err := errors.FirstError(
-					deleteInProgressFile(jobKey),
+					job.DeleteInProgressFile(jobKey),
 					deleteJobRuntimeResources(jobKey),
 				)
 				if err != nil {
 					telemetry.Error(err)
 					operatorLogger.Error(err)
-					continue
 				}
 				continue
 			}
@@ -170,7 +178,7 @@ func ManageJobResources() error {
 		if jobSpec.Timeout != nil && time.Since(jobSpec.StartTime) > time.Second*time.Duration(*jobSpec.Timeout) {
 			jobLogger.Errorf("terminating job after exceeding the specified timeout of %d seconds", *jobSpec.Timeout)
 			err := errors.FirstError(
-				setTimedOutStatus(jobKey),
+				job.SetTimedOutStatus(jobKey),
 				deleteJobRuntimeResources(jobKey),
 			)
 			if err != nil {
@@ -241,7 +249,7 @@ func ManageJobResources() error {
 }
 
 // verifies that queue exists for an in progress job and k8s job exists for a job in running status, if verification fails return the a job code to reflect the state
-func reconcileInProgressJob(jobState *JobState, queueURL *string, k8sJob *kbatch.Job) (status.JobCode, string, error) {
+func reconcileInProgressJob(jobState *job.State, queueURL *string, k8sJob *kbatch.Job) (status.JobCode, string, error) {
 	jobKey := jobState.JobKey
 
 	if queueURL == nil {
@@ -258,7 +266,7 @@ func reconcileInProgressJob(jobState *JobState, queueURL *string, k8sJob *kbatch
 		return status.JobUnexpectedError, fmt.Sprintf("terminating job %s; sqs queue with url %s was not found", jobKey.UserString(), expectedQueueURL), nil
 	}
 
-	if jobState.Status == status.JobEnqueuing && time.Since(jobState.LastUpdatedMap[_enqueuingLivenessFile]) >= _enqueuingLivenessPeriod+_enqueuingLivenessBuffer {
+	if jobState.Status == status.JobEnqueuing && time.Since(jobState.LastUpdatedMap[job.LivenessFile()]) >= _enqueuingLivenessPeriod+_enqueuingLivenessBuffer {
 		return status.JobEnqueueFailed, fmt.Sprintf("terminating job %s; enqueuing liveness check failed", jobKey.UserString()), nil
 	}
 
@@ -277,7 +285,7 @@ func reconcileInProgressJob(jobState *JobState, queueURL *string, k8sJob *kbatch
 
 func checkIfJobCompleted(jobKey spec.JobKey, queueURL string, k8sJob *kbatch.Job) error {
 	if int(k8sJob.Status.Failed) > 0 {
-		return investigateJobFailure(jobKey, k8sJob)
+		return investigateJobFailure(jobKey)
 	}
 
 	queueMessages, err := getQueueMetricsFromURL(queueURL)
@@ -297,7 +305,7 @@ func checkIfJobCompleted(jobKey spec.JobKey, queueURL string, k8sJob *kbatch.Job
 				_jobsToDelete.Remove(jobKey.ID)
 				jobLogger.Error("unexpected job status because cluster state indicates job has completed but metrics indicate that job is still in progress")
 				return errors.FirstError(
-					setUnexpectedErrorStatus(jobKey),
+					job.SetUnexpectedErrorStatus(jobKey),
 					deleteJobRuntimeResources(jobKey),
 				)
 			}
@@ -311,7 +319,7 @@ func checkIfJobCompleted(jobKey spec.JobKey, queueURL string, k8sJob *kbatch.Job
 		return err
 	}
 
-	jobSpec, err := operator.DownloadJobSpec(jobKey)
+	jobSpec, err := operator.DownloadBatchJobSpec(jobKey)
 	if err != nil {
 		return err
 	}
@@ -319,7 +327,7 @@ func checkIfJobCompleted(jobKey spec.JobKey, queueURL string, k8sJob *kbatch.Job
 	if jobSpec.TotalBatchCount == batchMetrics.Succeeded {
 		_jobsToDelete.Remove(jobKey.ID)
 		return errors.FirstError(
-			setSucceededStatus(jobKey),
+			job.SetSucceededStatus(jobKey),
 			deleteJobRuntimeResources(jobKey),
 		)
 	}
@@ -328,7 +336,7 @@ func checkIfJobCompleted(jobKey spec.JobKey, queueURL string, k8sJob *kbatch.Job
 	if _jobsToDelete.Has(jobKey.ID) {
 		_jobsToDelete.Remove(jobKey.ID)
 		return errors.FirstError(
-			setCompletedWithFailuresStatus(jobKey),
+			job.SetCompletedWithFailuresStatus(jobKey),
 			deleteJobRuntimeResources(jobKey),
 		)
 	}
@@ -341,7 +349,7 @@ func checkIfJobCompleted(jobKey spec.JobKey, queueURL string, k8sJob *kbatch.Job
 	return nil
 }
 
-func investigateJobFailure(jobKey spec.JobKey, k8sJob *kbatch.Job) error {
+func investigateJobFailure(jobKey spec.JobKey) error {
 	reasonFound := false
 
 	jobLogger, err := operator.GetJobLogger(jobKey)
@@ -354,7 +362,7 @@ func investigateJobFailure(jobKey spec.JobKey, k8sJob *kbatch.Job) error {
 		if k8s.WasPodOOMKilled(&pod) {
 			jobLogger.Error("at least one worker was killed because it ran out of out of memory")
 			return errors.FirstError(
-				setWorkerOOMStatus(jobKey),
+				job.SetWorkerOOMStatus(jobKey),
 				deleteJobRuntimeResources(jobKey),
 			)
 		}
@@ -380,7 +388,7 @@ func investigateJobFailure(jobKey spec.JobKey, k8sJob *kbatch.Job) error {
 
 	return errors.FirstError(
 		err,
-		setWorkerErrorStatus(jobKey),
+		job.SetWorkerErrorStatus(jobKey),
 		deleteJobRuntimeResources(jobKey),
 	)
 }
