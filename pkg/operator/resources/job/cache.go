@@ -34,7 +34,7 @@ func ListAllInProgressJobKeys(kind userconfig.Kind) ([]spec.JobKey, error) {
 }
 
 func DeleteInProgressFile(jobKey spec.JobKey) error {
-	err := config.DeleteBucketFile(inProgressS3Key(jobKey))
+	err := config.DeleteBucketFile(inProgressKey(jobKey))
 	if err != nil {
 		return err
 	}
@@ -42,7 +42,7 @@ func DeleteInProgressFile(jobKey spec.JobKey) error {
 }
 
 func DeleteAllInProgressFilesByAPI(kind userconfig.Kind, apiName string) error {
-	err := config.DeleteBucketPrefix(allInProgressForAPIS3Key(kind, apiName), true)
+	err := config.DeleteBucketPrefix(allInProgressForAPIKey(kind, apiName), true)
 	if err != nil {
 		return err
 	}
@@ -57,9 +57,9 @@ func listAllInProgressJobKeysByAPI(kind userconfig.Kind, apiName *string) ([]spe
 
 	var jobPath string
 	if apiName != nil {
-		jobPath = allInProgressForAPIS3Key(kind, *apiName)
+		jobPath = allInProgressForAPIKey(kind, *apiName)
 	} else {
-		jobPath = allInProgressS3Key(kind)
+		jobPath = allInProgressKey(kind)
 	}
 
 	gcsObjects, s3Objects, err := config.ListBucketDir(jobPath, nil)
@@ -71,7 +71,7 @@ func listAllInProgressJobKeysByAPI(kind userconfig.Kind, apiName *string) ([]spe
 		jobKeys := make([]spec.JobKey, 0, len(gcsObjects))
 		for _, obj := range gcsObjects {
 			if obj != nil {
-				jobKeys = append(jobKeys, jobKeyFromInProgressS3Key(obj.Name))
+				jobKeys = append(jobKeys, jobKeyFromInProgressKey(obj.Name))
 			}
 		}
 		return jobKeys, nil
@@ -79,14 +79,14 @@ func listAllInProgressJobKeysByAPI(kind userconfig.Kind, apiName *string) ([]spe
 	jobKeys := make([]spec.JobKey, 0, len(s3Objects))
 	for _, obj := range s3Objects {
 		if obj != nil {
-			jobKeys = append(jobKeys, jobKeyFromInProgressS3Key(*obj.Key))
+			jobKeys = append(jobKeys, jobKeyFromInProgressKey(*obj.Key))
 		}
 	}
 	return jobKeys, nil
 }
 
 func uploadInProgressFile(jobKey spec.JobKey) error {
-	err := config.UploadStringToBucket("", inProgressS3Key(jobKey))
+	err := config.UploadStringToBucket("", inProgressKey(jobKey))
 	if err != nil {
 		return err
 	}
@@ -94,28 +94,28 @@ func uploadInProgressFile(jobKey spec.JobKey) error {
 }
 
 // e.g. <cluster_name>/jobs/<job_api_kind>/in_progress
-func allInProgressS3Key(kind userconfig.Kind) string {
+func allInProgressKey(kind userconfig.Kind) string {
 	return path.Join(
 		config.ClusterName(), _jobsPrefix, kind.String(), _inProgressFilePrefix,
 	)
 }
 
 // e.g. <cluster_name>/jobs/<job_api_kind>/in_progress/<api_name>
-func allInProgressForAPIS3Key(kind userconfig.Kind, apiName string) string {
-	return path.Join(allInProgressS3Key(kind), apiName)
+func allInProgressForAPIKey(kind userconfig.Kind, apiName string) string {
+	return path.Join(allInProgressKey(kind), apiName)
 }
 
 // e.g. <cluster_name>/jobs/<job_api_kind>/in_progress/<api_name>/<job_id>
-func inProgressS3Key(jobKey spec.JobKey) string {
-	return path.Join(allInProgressForAPIS3Key(jobKey.Kind, jobKey.APIName), jobKey.ID)
+func inProgressKey(jobKey spec.JobKey) string {
+	return path.Join(allInProgressForAPIKey(jobKey.Kind, jobKey.APIName), jobKey.ID)
 }
 
-func jobKeyFromInProgressS3Key(s3Key string) spec.JobKey {
-	s3PathSplit := strings.Split(s3Key, "/")
+func jobKeyFromInProgressKey(s3Key string) spec.JobKey {
+	pathSplit := strings.Split(s3Key, "/")
 
-	kind := s3PathSplit[len(s3PathSplit)-4]
-	apiName := s3PathSplit[len(s3PathSplit)-2]
-	jobID := s3PathSplit[len(s3PathSplit)-1]
+	kind := pathSplit[len(pathSplit)-4]
+	apiName := pathSplit[len(pathSplit)-2]
+	jobID := pathSplit[len(pathSplit)-1]
 
 	return spec.JobKey{APIName: apiName, ID: jobID, Kind: userconfig.KindFromString(kind)}
 }

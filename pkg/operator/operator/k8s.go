@@ -137,24 +137,9 @@ func TaskContainers(api *spec.API) ([]kcore.Container, []kcore.Volume) {
 	volumes := DefaultVolumes()
 	var containers []kcore.Container
 
-	if api.Compute.Inf == 0 {
-		if api.Compute.CPU != nil {
-			userPodCPURequest := k8s.QuantityPtr(api.Compute.CPU.Quantity.DeepCopy())
-			userPodCPURequest.Sub(_requestMonitorCPURequest)
-			apiPodResourceList[kcore.ResourceCPU] = *userPodCPURequest
-		}
-
-		if api.Compute.Mem != nil {
-			userPodMemRequest := k8s.QuantityPtr(api.Compute.Mem.Quantity.DeepCopy())
-			userPodMemRequest.Sub(_requestMonitorMemRequest)
-			apiPodResourceList[kcore.ResourceMemory] = *userPodMemRequest
-		}
-
-		if api.Compute.GPU > 0 {
-			apiPodResourceList["nvidia.com/gpu"] = *kresource.NewQuantity(api.Compute.GPU, kresource.DecimalSI)
-			apiPodResourceLimitsList["nvidia.com/gpu"] = *kresource.NewQuantity(api.Compute.GPU, kresource.DecimalSI)
-		}
-
+	if api.Compute.GPU > 0 {
+		apiPodResourceList["nvidia.com/gpu"] = *kresource.NewQuantity(api.Compute.GPU, kresource.DecimalSI)
+		apiPodResourceLimitsList["nvidia.com/gpu"] = *kresource.NewQuantity(api.Compute.GPU, kresource.DecimalSI)
 	} else {
 		volumes = append(volumes, kcore.Volume{
 			Name: "neuron-sock",
@@ -169,17 +154,13 @@ func TaskContainers(api *spec.API) ([]kcore.Container, []kcore.Volume) {
 		neuronContainer := *neuronRuntimeDaemonContainer(api, rtdVolumeMounts)
 
 		if api.Compute.CPU != nil {
-			userPodCPURequest := k8s.QuantityPtr(api.Compute.CPU.Quantity.DeepCopy())
-			userPodCPURequest.Sub(_requestMonitorCPURequest)
-			q1, q2 := k8s.SplitInTwo(userPodCPURequest)
+			q1, q2 := k8s.SplitInTwo(k8s.QuantityPtr(api.Compute.CPU.Quantity.DeepCopy()))
 			apiPodResourceList[kcore.ResourceCPU] = *q1
 			neuronContainer.Resources.Requests[kcore.ResourceCPU] = *q2
 		}
 
 		if api.Compute.Mem != nil {
-			userPodMemRequest := k8s.QuantityPtr(api.Compute.Mem.Quantity.DeepCopy())
-			userPodMemRequest.Sub(_requestMonitorMemRequest)
-			q1, q2 := k8s.SplitInTwo(userPodMemRequest)
+			q1, q2 := k8s.SplitInTwo(k8s.QuantityPtr(api.Compute.Mem.Quantity.DeepCopy()))
 			apiPodResourceList[kcore.ResourceMemory] = *q1
 			neuronContainer.Resources.Requests[kcore.ResourceMemory] = *q2
 		}
