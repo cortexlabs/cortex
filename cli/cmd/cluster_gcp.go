@@ -519,6 +519,9 @@ func createGKECluster(clusterConfig *clusterconfig.GCPConfig, gcpClient *gcp.Cli
 	})
 	if err != nil {
 		fmt.Print("\n\n")
+		if strings.Contains(errors.Message(err), "has no network named \"default\"") {
+			err = errors.Append(err, "\n\nyou can specify a different network be setting the `network` field in your cluster configuration file (see https://docs.cortex.dev)")
+		}
 		return err
 	}
 
