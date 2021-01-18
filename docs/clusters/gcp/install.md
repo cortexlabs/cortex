@@ -2,7 +2,7 @@
 
 ## Prerequisites
 
-1. [Docker](https://docs.docker.com/install) must be installed and running on your machine
+1. [Docker](https://docs.docker.com/install) must be installed and running on your machine (to verify, check that running `docker ps` does not return an error)
 1. You may need to [request a quota increase](https://cloud.google.com/compute/quotas) for your desired instance type and/or GPU type
 1. Export the `GOOGLE_APPLICATION_CREDENTIALS` environment variable, containing the path to your GCP credentials file (e.g. `export GOOGLE_APPLICATION_CREDENTIALS=~/.config/gcloud/myproject-8a41417a968a.json`)
 1. If you haven't done so already, enable the Kubernetes Engine API in your GCP project ([here](https://console.developers.google.com/apis/api/container.googleapis.com/overview))
