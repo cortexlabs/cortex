@@ -157,7 +157,7 @@ func getJobStateFromFiles(jobKey spec.JobKey, lastUpdatedFileMap map[string]time
 func GetMostRecentlySubmittedJobStates(apiName string, count int, kind userconfig.Kind) ([]*State, error) {
 	// a single job state may include 5 files on average, overshoot the number of files needed
 	gcsObjects, s3Objects, err := config.ListBucketPrefix(
-		spec.JobAPIPrefix(apiName, config.ClusterName(), kind),
+		spec.JobAPIPrefix(config.ClusterName(), kind, apiName),
 		pointer.Int64(int64(count*_averageFilesPerJobState)),
 	)
 	if err != nil {
