@@ -711,12 +711,14 @@ function validate_cortex_gcp() {
       api_load_balancer_endpoint=$(kubectl -n=istio-system get service ingressgateway-apis -o json | tr -d '[:space:]' | sed 's/.*{\"ip\":\"\(.*\)\".*/\1/')
     fi
 
-    operator_endpoint_reachable="false"  # don't cache this result
-    if ! curl --max-time 3 "${operator_endpoint}/verifycortex" >/dev/null 2>&1; then
-      success_cycles=0
-      continue
+    if [ "$CORTEX_OPERATOR_LOAD_BALANCER_SCHEME" == "internet-facing" ]; then
+      operator_endpoint_reachable="false"  # don't cache this result
+      if ! curl --max-time 3 "${operator_endpoint}/verifycortex" >/dev/null 2>&1; then
+        success_cycles=0
+        continue
+      fi
+      operator_endpoint_reachable="true"
     fi
-    operator_endpoint_reachable="true"
 
     if [[ $success_cycles -lt 1 ]]; then
       ((success_cycles++))
