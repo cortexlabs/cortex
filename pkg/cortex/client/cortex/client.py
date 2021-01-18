@@ -108,9 +108,9 @@ class Client:
                 raise ValueError(f"`task` parameter must be specified for {api_kind} kind")
         elif api_kind in ["BatchAPI", "RealtimeAPI"]:
             if not predictor:
-                raise ValueError(f"`predictor` parameter cannot be specified for {api_kind}")
+                raise ValueError(f"`predictor` parameter must be specified for {api_kind}")
             if task:
-                raise ValueError(f"`task` parameter must be specified for {api_kind}")
+                raise ValueError(f"`task` parameter cannot be specified for {api_kind}")
         else:
             raise ValueError(
                 f"invalid {api_kind} kind, `api_spec` must have the `kind` field set to one of the following kinds: {['TrafficSplitter', 'TaskAPI', 'BatchAPI', 'RealtimeAPI']}"
