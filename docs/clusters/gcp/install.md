@@ -37,17 +37,17 @@ min_instances: 1
 # maximum number of instances
 max_instances: 5
 
+# enable the use of preemptible instances
+preemptible: false
+
+# enable the use of on-demand backup instances which will be used when preemptible capacity runs out
+on_demand_backup: false
+
 # GPU to attach to your instance (optional)
 # accelerator_type: nvidia-tesla-t4
 
 # the number of GPUs to attach to each instance (optional)
 # accelerators_per_instance: 1
-
-# enable the use of preemptible instances
-# preemptible: false
-
-# enable the use of on-demand backup instances when the capacity for preemptible instances runs out
-# on_demand_backup: false
 
 # the name of the network in which to create your cluster
 # network: default
