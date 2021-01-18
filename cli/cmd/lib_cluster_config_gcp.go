@@ -180,13 +180,6 @@ func getGCPInstallClusterConfig(gcpClient *gcp.Client, accessConfig clusterconfi
 		}
 	}
 
-	if clusterConfig.OnDemandBackup == nil {
-		if *clusterConfig.Preemptible {
-			clusterConfig.OnDemandBackup = pointer.Bool(true)
-		} else {
-			clusterConfig.OnDemandBackup = pointer.Bool(false)
-		}
-	}
 	clusterConfig.ClusterName = *accessConfig.ClusterName
 	clusterConfig.Zone = accessConfig.Zone
 	clusterConfig.Project = accessConfig.Project

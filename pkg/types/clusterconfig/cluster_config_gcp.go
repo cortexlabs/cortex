@@ -43,8 +43,8 @@ type GCPConfig struct {
 	Subnet                 *string            `json:"subnet" yaml:"subnet"`
 	MinInstances           *int64             `json:"min_instances" yaml:"min_instances"`
 	MaxInstances           *int64             `json:"max_instances" yaml:"max_instances"`
-	Preemptible            *bool              `json:"preemptible" yaml:"preemptible"`
-	OnDemandBackup         *bool              `json:"on_demand_backup" yaml:"on_demand_backup"`
+	Preemptible            bool               `json:"preemptible" yaml:"preemptible"`
+	OnDemandBackup         bool               `json:"on_demand_backup" yaml:"on_demand_backup"`
 	ClusterName            string             `json:"cluster_name" yaml:"cluster_name"`
 	Telemetry              bool               `json:"telemetry" yaml:"telemetry"`
 	ImageOperator          string             `json:"image_operator" yaml:"image_operator"`
@@ -175,13 +175,17 @@ var UserGCPValidation = &cr.StructValidation{
 		},
 		{
 			StructField: "Preemptible",
-			BoolPtrValidation: &cr.BoolPtrValidation{
-				Default: pointer.Bool(false),
+			BoolValidation: &cr.BoolValidation{
+				Default: false,
 			},
 		},
 		{
-			StructField:       "OnDemandBackup",
-			BoolPtrValidation: &cr.BoolPtrValidation{},
+			StructField:            "OnDemandBackup",
+			DefaultDependentFields: []string{"Preemptible"},
+			DefaultDependentFieldsFunc: func(vals []interface{}) interface{} {
+				return vals[0].(bool)
+			},
+			BoolValidation: &cr.BoolValidation{},
 		},
 		{
 			StructField:         "Project",
@@ -364,8 +368,8 @@ func (cc *GCPConfig) Validate(GCP *gcp.Client) error {
 		}
 	}
 
-	if !*cc.Preemptible && *cc.OnDemandBackup {
-		return ErrorFieldConfigurationDependentOnCondition(OnDemandBackupKey, s.Bool(*cc.OnDemandBackup), PreemptibleKey, s.Bool(*cc.Preemptible))
+	if !cc.Preemptible && cc.OnDemandBackup {
+		return ErrorFieldConfigurationDependentOnCondition(OnDemandBackupKey, s.Bool(cc.OnDemandBackup), PreemptibleKey, s.Bool(cc.Preemptible))
 	}
 
 	return nil
@@ -521,8 +525,8 @@ func (cc *GCPConfig) UserTable() table.KeyValuePairs {
 	if cc.AcceleratorType != nil {
 		items.Add(AcceleratorTypeUserKey, *cc.AcceleratorType)
 	}
-	items.Add(PreemptibleUserKey, s.YesNo(*cc.Preemptible))
-	items.Add(OnDemandBackupUserKey, s.YesNo(*cc.OnDemandBackup))
+	items.Add(PreemptibleUserKey, s.YesNo(cc.Preemptible))
+	items.Add(OnDemandBackupUserKey, s.YesNo(cc.OnDemandBackup))
 	if cc.Network != nil {
 		items.Add(NetworkUserKey, *cc.Network)
 	}
@@ -576,8 +580,8 @@ func (cc *GCPConfig) TelemetryEvent() map[string]interface{} {
 	if cc.ClusterName != "cortex" {
 		event["cluster_name._is_custom"] = true
 	}
-	event["preemptible"] = *cc.Preemptible
-	event["on_demand_backup"] = *cc.OnDemandBackup
+	event["preemptible"] = cc.Preemptible
+	event["on_demand_backup"] = cc.OnDemandBackup
 	if cc.Zone != nil {
 		event["zone._is_defined"] = true
 		event["zone"] = *cc.Zone
