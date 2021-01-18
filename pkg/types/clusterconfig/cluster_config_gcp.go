@@ -310,7 +310,9 @@ var GCPAccessPromptValidation = &cr.PromptValidation{
 			PromptOpts: &prompt.Options{
 				Prompt: ProjectUserKey,
 			},
-			StringPtrValidation: &cr.StringPtrValidation{},
+			StringPtrValidation: &cr.StringPtrValidation{
+				Required: true,
+			},
 		},
 		{
 			StructField: "Zone",
