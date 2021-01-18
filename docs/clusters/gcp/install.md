@@ -40,6 +40,9 @@ max_instances: 5
 # GPU to attach to your instance (optional)
 # accelerator_type: nvidia-tesla-t4
 
+# the number of GPUs to attach to each instance (optional)
+# accelerators_per_instance: 1
+
 # the name of the network in which to create your cluster
 # network: default
 

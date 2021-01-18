@@ -51,6 +51,7 @@ const (
 	ErrNotEnoughValidDefaultAvailibilityZones     = "clusterconfig.not_enough_valid_default_availability_zones"
 	ErrNoNATGatewayWithSubnets                    = "clusterconfig.no_nat_gateway_with_subnets"
 	ErrSpecifyOneOrNone                           = "clusterconfig.specify_one_or_none"
+	ErrDependentFieldMustBeSpecified              = "clusterconfig.dependent_field_must_be_specified"
 	ErrDidNotMatchStrictS3Regex                   = "clusterconfig.did_not_match_strict_s3_regex"
 	ErrNATRequiredWithPrivateSubnetVisibility     = "clusterconfig.nat_required_with_private_subnet_visibility"
 	ErrS3RegionDiffersFromCluster                 = "clusterconfig.s3_region_differs_from_cluster"
@@ -238,6 +239,13 @@ func ErrorSpecifyOneOrNone(fieldName1 string, fieldName2 string, fieldNames ...s
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrSpecifyOneOrNone,
 		Message: message,
+	})
+}
+
+func ErrorDependentFieldMustBeSpecified(configuredField string, dependencyField string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrDependentFieldMustBeSpecified,
+		Message: fmt.Sprintf("%s must be specified when configuring %s", dependencyField, configuredField),
 	})
 }
 

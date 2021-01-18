@@ -423,7 +423,7 @@ func createGKECluster(clusterConfig *clusterconfig.GCPConfig, gcpClient *gcp.Cli
 
 	if clusterConfig.AcceleratorType != nil {
 		accelerators = append(accelerators, &containerpb.AcceleratorConfig{
-			AcceleratorCount: 1,
+			AcceleratorCount: *clusterConfig.AcceleratorsPerInstance,
 			AcceleratorType:  *clusterConfig.AcceleratorType,
 		})
 		nodeLabels["nvidia.com/gpu"] = "present"
