@@ -53,6 +53,7 @@ RESPONSE:
 {
     "job_id": <string>,
     "api_name": <string>,
+    "kind": "BatchAPI",
     "workers": <int>,
     "config": {<string>: <any>},
     "api_id": <string>,
@@ -103,6 +104,7 @@ RESPONSE:
 {
     "job_id": <string>,
     "api_name": <string>,
+    "kind": "BatchAPI",
     "workers": <int>,
     "config": {<string>: <any>},
     "api_id": <string>,
@@ -152,6 +154,7 @@ RESPONSE:
 {
     "job_id": <string>,
     "api_name": <string>,
+    "kind": "BatchAPI",
     "workers": <int>,
     "config": {<string>: <any>},
     "api_id": <string>,
@@ -179,6 +182,7 @@ RESPONSE:
     "job_status": {
         "job_id": <string>,
         "api_name": <string>,
+        "kind": "BatchAPI",
         "workers": <int>,
         "config": {<string>: <any>},
         "api_id": <string>,
@@ -202,8 +206,10 @@ RESPONSE:
         "start_time": <string>           # e.g. 2020-07-16T14:56:10.276007415Z
         "end_time": <string> (optional)  # e.g. 2020-07-16T14:56:10.276007415Z (only present if the job has completed)
     },
-    "api_spec": <string>,  # a base64 encoded string of your api configuration YAML that has been encoded in msgpack
     "endpoint": <string>   # endpoint for this job
+    "api_spec": {
+        ...
+    }
 }
 ```
 

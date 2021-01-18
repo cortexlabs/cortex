@@ -20,43 +20,15 @@ import (
 	"fmt"
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
-	s "github.com/cortexlabs/cortex/pkg/lib/strings"
-	"github.com/cortexlabs/cortex/pkg/types/spec"
 )
 
 const (
-	ErrJobNotFound                = "batchapi.job_not_found"
-	ErrJobIsNotInProgress         = "batchapi.job_is_not_in_progress"
-	ErrJobHasAlreadyBeenStopped   = "batchapi.job_has_already_been_stopped"
 	ErrNoS3FilesFound             = "batchapi.no_s3_files_found"
 	ErrNoDataFoundInJobSubmission = "batchapi.no_data_found_in_job_submission"
 	ErrFailedToEnqueueMessages    = "batchapi.failed_to_enqueue_messages"
 	ErrMessageExceedsMaxSize      = "batchapi.message_exceeds_max_size"
-	ErrConflictingFields          = "batchapi.conflicting_fields"
 	ErrBatchItemSizeExceedsLimit  = "batchapi.item_size_exceeds_limit"
-	ErrSpecifyExactlyOneKey       = "batchapi.specify_exactly_one_key"
 )
-
-func ErrorJobNotFound(jobKey spec.JobKey) error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrJobNotFound,
-		Message: fmt.Sprintf("unable to find batch job %s", jobKey.UserString()),
-	})
-}
-
-func ErrorJobIsNotInProgress() error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrJobIsNotInProgress,
-		Message: "cannot stop batch job because it is not in progress",
-	})
-}
-
-func ErrorJobHasAlreadyBeenStopped() error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrJobHasAlreadyBeenStopped,
-		Message: "batch job has already been stopped",
-	})
-}
 
 func ErrorNoS3FilesFound() error {
 	return errors.WithStack(&errors.Error{
@@ -86,26 +58,9 @@ func ErrorMessageExceedsMaxSize(messageSize int, messageLimit int) error {
 	})
 }
 
-func ErrorConflictingFields(key string, keys ...string) error {
-	allKeys := append([]string{key}, keys...)
-
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrConflictingFields,
-		Message: fmt.Sprintf("please specify either the %s field (but not more than one at the same time)", s.StrsOr(allKeys)),
-	})
-}
-
 func ErrorItemSizeExceedsLimit(index int, size int, limit int) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrBatchItemSizeExceedsLimit,
 		Message: fmt.Sprintf("item %d has size %d bytes which exceeds the limit (%d bytes)", index, size, limit),
-	})
-}
-
-func ErrorSpecifyExactlyOneKey(key string, keys ...string) error {
-	allKeys := append([]string{key}, keys...)
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrSpecifyExactlyOneKey,
-		Message: fmt.Sprintf("specify exactly one of the following keys: %s", s.StrsOr(allKeys)),
 	})
 }

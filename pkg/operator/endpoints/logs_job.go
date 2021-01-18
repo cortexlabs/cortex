@@ -39,8 +39,8 @@ func ReadJobLogs(w http.ResponseWriter, r *http.Request) {
 		respondError(w, r, err)
 		return
 	}
-	if deployedResource.Kind != userconfig.BatchAPIKind {
-		respondError(w, r, resources.ErrorOperationIsOnlySupportedForKind(*deployedResource, userconfig.BatchAPIKind))
+	if deployedResource.Kind != userconfig.BatchAPIKind && deployedResource.Kind != userconfig.TaskAPIKind {
+		respondError(w, r, resources.ErrorOperationIsOnlySupportedForKind(*deployedResource, userconfig.BatchAPIKind, userconfig.TaskAPIKind))
 		return
 	}
 

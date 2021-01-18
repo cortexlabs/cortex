@@ -21,6 +21,7 @@ const (
 	NameKey           = "name"
 	KindKey           = "kind"
 	PredictorKey      = "predictor"
+	TaskDefinitionKey = "definition"
 	NetworkingKey     = "networking"
 	ComputeKey        = "compute"
 	AutoscalingKey    = "autoscaling"

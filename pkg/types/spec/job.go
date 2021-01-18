@@ -24,25 +24,27 @@ import (
 
 	"github.com/cortexlabs/cortex/pkg/consts"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
+	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 )
 
 type JobKey struct {
-	ID      string `json:"job_id"`
-	APIName string `json:"api_name"`
+	ID      string          `json:"job_id"`
+	APIName string          `json:"api_name"`
+	Kind    userconfig.Kind `json:"kind"`
 }
 
 func (j JobKey) UserString() string {
 	return fmt.Sprintf("%s (%s api)", j.ID, j.APIName)
 }
 
-// e.g. /<cluster name>/jobs/<cortex version>/<api_name>/<job_id>/spec.json
+// e.g. /<cluster name>/jobs/<job_api_kind>/<cortex version>/<api_name>/<job_id>/spec.json
 func (j JobKey) SpecFilePath(clusterName string) string {
 	return path.Join(j.Prefix(clusterName), "spec.json")
 }
 
-// e.g. /<cluster name>/jobs/<cortex version>/<api_name>/<job_id>
+// e.g. /<cluster name>/jobs/<job_api_kind>/<cortex version>/<api_name>/<job_id>
 func (j JobKey) Prefix(clusterName string) string {
-	return s.EnsureSuffix(path.Join(BatchAPIJobPrefix(j.APIName, clusterName), j.ID), "/")
+	return s.EnsureSuffix(path.Join(JobAPIPrefix(clusterName, j.Kind, j.APIName), j.ID), "/")
 }
 
 func (j JobKey) K8sName() string {
@@ -54,16 +56,22 @@ type SQSDeadLetterQueue struct {
 	MaxReceiveCount int    `json:"max_receive_count"`
 }
 
-type RuntimeJobConfig struct {
+type RuntimeBatchJobConfig struct {
 	Workers            int                    `json:"workers"`
 	SQSDeadLetterQueue *SQSDeadLetterQueue    `json:"sqs_dead_letter_queue"`
 	Config             map[string]interface{} `json:"config"`
 	Timeout            *int                   `json:"timeout"`
 }
 
-type Job struct {
+type RuntimeTaskJobConfig struct {
+	Workers int                    `json:"workers"`
+	Config  map[string]interface{} `json:"config"`
+	Timeout *int                   `json:"timeout"`
+}
+
+type BatchJob struct {
 	JobKey
-	RuntimeJobConfig
+	RuntimeBatchJobConfig
 	APIID           string    `json:"api_id"`
 	SpecID          string    `json:"spec_id"`
 	PredictorID     string    `json:"predictor_id"`
@@ -72,6 +80,16 @@ type Job struct {
 	StartTime       time.Time `json:"start_time"`
 }
 
-func BatchAPIJobPrefix(apiName string, clusterName string) string {
-	return filepath.Join(clusterName, "jobs", consts.CortexVersion, apiName)
+type TaskJob struct {
+	JobKey
+	RuntimeTaskJobConfig
+	APIID       string    `json:"api_id"`
+	SpecID      string    `json:"spec_id"`
+	PredictorID string    `json:"predictor_id"`
+	StartTime   time.Time `json:"start_time"`
+}
+
+// e.g. /<cluster name>/jobs/<job_api_kind>/<cortex version>/<api_name>
+func JobAPIPrefix(clusterName string, kind userconfig.Kind, apiName string) string {
+	return filepath.Join(clusterName, "jobs", kind.String(), consts.CortexVersion, apiName)
 }

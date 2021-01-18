@@ -114,6 +114,20 @@ func (c *Client) IsGCSFile(bucket string, key string) (bool, error) {
 	return true, nil
 }
 
+func (c *Client) UploadStringToGCS(str string, bucket string, key string) error {
+	gcsClient, err := c.GCS()
+	if err != nil {
+		return err
+	}
+	objectWriter := gcsClient.Bucket(bucket).Object(key).NewWriter(context.Background())
+	objectWriter.ContentType = "text/plain"
+	defer objectWriter.Close()
+	if _, err := objectWriter.Write([]byte(str)); err != nil {
+		return errors.WithStack(err)
+	}
+	return nil
+}
+
 func (c *Client) ReadJSONFromGCS(objPtr interface{}, bucket string, key string) error {
 	jsonBytes, err := c.ReadBytesFromGCS(bucket, key)
 	if err != nil {
@@ -215,19 +229,32 @@ func (c *Client) ReadBytesFromGCS(bucket string, key string) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-func (c *Client) ListGCSDir(bucket string, gcsDir string, maxResults *int64) ([]string, error) {
+func ConvertGCSObjectsToKeys(gcsObjects ...*storage.ObjectAttrs) []string {
+	paths := make([]string, 0, len(gcsObjects))
+	for _, object := range gcsObjects {
+		if object != nil {
+			paths = append(paths, object.Name)
+		}
+	}
+	return paths
+}
+
+func (c *Client) ListGCSDir(bucket string, gcsDir string, maxResults *int64) ([]*storage.ObjectAttrs, error) {
+	gcsDir = s.EnsureSuffix(gcsDir, "/")
+	return c.ListGCSPrefix(bucket, gcsDir, maxResults)
+}
+
+func (c *Client) ListGCSPrefix(bucket string, prefix string, maxResults *int64) ([]*storage.ObjectAttrs, error) {
 	gcsClient, err := c.GCS()
 	if err != nil {
 		return nil, err
 	}
-	gcsDir = s.EnsureSuffix(gcsDir, "/")
 
 	objectIterator := gcsClient.Bucket(bucket).Objects(context.Background(), &storage.Query{
-		Prefix: gcsDir,
+		Prefix: prefix,
 	})
 
-	allNames := strset.New()
-
+	var gcsObjects []*storage.ObjectAttrs
 	for {
 		attrs, err := objectIterator.Next()
 		if err != nil {
@@ -236,16 +263,19 @@ func (c *Client) ListGCSDir(bucket string, gcsDir string, maxResults *int64) ([]
 			}
 			return nil, errors.WithStack(err)
 		}
-		allNames.Add(attrs.Name)
-		if maxResults != nil && int64(len(allNames)) >= *maxResults {
+		if attrs == nil {
+			continue
+		}
+		gcsObjects = append(gcsObjects, attrs)
+		if maxResults != nil && int64(len(gcsObjects)) >= *maxResults {
 			break
 		}
 	}
 
-	return allNames.SliceSorted(), nil
+	return gcsObjects, nil
 }
 
-func (c *Client) ListGCSPathDir(gcsDirPath string, maxResults *int64) ([]string, error) {
+func (c *Client) ListGCSPathDir(gcsDirPath string, maxResults *int64) ([]*storage.ObjectAttrs, error) {
 	bucket, gcsDir, err := SplitGCSPath(gcsDirPath)
 	if err != nil {
 		return nil, err

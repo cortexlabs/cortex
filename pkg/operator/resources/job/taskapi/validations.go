@@ -14,34 +14,18 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package endpoints
+package taskapi
 
 import (
-	"fmt"
-	"net/http"
-
-	"github.com/cortexlabs/cortex/pkg/operator/resources/batchapi"
+	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
-	"github.com/cortexlabs/cortex/pkg/types/spec"
-	"github.com/gorilla/mux"
 )
 
-func StopJob(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	apiName := vars["apiName"]
-	jobID, err := getRequiredQueryParam("jobID", r)
-	if err != nil {
-		respondError(w, r, err)
-		return
+func validateJobSubmission(submission *schema.TaskJobSubmission) error {
+	if submission.Workers != 1 {
+		return errors.Wrap(cr.ErrorInvalidInt(submission.Workers, 1), schema.WorkersKey)
 	}
 
-	err = batchapi.StopJob(spec.JobKey{APIName: apiName, ID: jobID})
-	if err != nil {
-		respondError(w, r, err)
-		return
-	}
-
-	respond(w, schema.DeleteResponse{
-		Message: fmt.Sprintf("stopped job %s", jobID),
-	})
+	return nil
 }
