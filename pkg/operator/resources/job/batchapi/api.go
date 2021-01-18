@@ -176,6 +176,11 @@ func GetAllAPIs(virtualServices []istioclientnetworking.VirtualService, k8sJobs 
 
 	for _, jobKey := range inProgressJobKeys {
 		alreadyAdded := false
+		if _, ok := batchAPIsMap[jobKey.APIName]; !ok {
+			// It is possible that the Batch API may have been deleted but the in progress job keys have not been deleted yet
+			continue
+		}
+
 		for _, jobStatus := range batchAPIsMap[jobKey.APIName].BatchJobStatuses {
 			if jobStatus.ID == jobKey.ID {
 				alreadyAdded = true

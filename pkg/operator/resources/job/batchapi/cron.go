@@ -150,8 +150,8 @@ func ManageJobResources() error {
 				continue
 			}
 		}
-		if queueURL == nil {
-			// job has been submitted within the grace period, it may take a while for a newly created queue to be listed in SQS api response
+		if queueURL == nil || k8sJob == nil {
+			// job has been submitted within the grace period, it may take a while for a newly created queues and jobs to show up in list results
 			continue
 		}
 
