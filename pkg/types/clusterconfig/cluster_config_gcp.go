@@ -33,25 +33,27 @@ import (
 )
 
 type GCPConfig struct {
-	Provider                types.ProviderType `json:"provider" yaml:"provider"`
-	Project                 *string            `json:"project" yaml:"project"`
-	Zone                    *string            `json:"zone" yaml:"zone"`
-	InstanceType            *string            `json:"instance_type" yaml:"instance_type"`
-	AcceleratorType         *string            `json:"accelerator_type" yaml:"accelerator_type"`
-	AcceleratorsPerInstance *int64             `json:"accelerators_per_instance" yaml:"accelerators_per_instance"`
-	Network                 *string            `json:"network" yaml:"network"`
-	Subnet                  *string            `json:"subnet" yaml:"subnet"`
-	MinInstances            *int64             `json:"min_instances" yaml:"min_instances"`
-	MaxInstances            *int64             `json:"max_instances" yaml:"max_instances"`
-	ClusterName             string             `json:"cluster_name" yaml:"cluster_name"`
-	Telemetry               bool               `json:"telemetry" yaml:"telemetry"`
-	ImageOperator           string             `json:"image_operator" yaml:"image_operator"`
-	ImageManager            string             `json:"image_manager" yaml:"image_manager"`
-	ImageDownloader         string             `json:"image_downloader" yaml:"image_downloader"`
-	ImageFluentBit          string             `json:"image_fluent_bit" yaml:"image_fluent_bit"`
-	ImageIstioProxy         string             `json:"image_istio_proxy" yaml:"image_istio_proxy"`
-	ImageIstioPilot         string             `json:"image_istio_pilot" yaml:"image_istio_pilot"`
-	ImageGooglePause        string             `json:"image_google_pause" yaml:"image_google_pause"`
+	Provider                   types.ProviderType `json:"provider" yaml:"provider"`
+	Project                    *string            `json:"project" yaml:"project"`
+	Zone                       *string            `json:"zone" yaml:"zone"`
+	InstanceType               *string            `json:"instance_type" yaml:"instance_type"`
+	AcceleratorType            *string            `json:"accelerator_type" yaml:"accelerator_type"`
+	AcceleratorsPerInstance    *int64             `json:"accelerators_per_instance" yaml:"accelerators_per_instance"`
+	Network                    *string            `json:"network" yaml:"network"`
+	Subnet                     *string            `json:"subnet" yaml:"subnet"`
+	APILoadBalancerScheme      LoadBalancerScheme `json:"api_load_balancer_scheme" yaml:"api_load_balancer_scheme"`
+	OperatorLoadBalancerScheme LoadBalancerScheme `json:"operator_load_balancer_scheme" yaml:"operator_load_balancer_scheme"`
+	MinInstances               *int64             `json:"min_instances" yaml:"min_instances"`
+	MaxInstances               *int64             `json:"max_instances" yaml:"max_instances"`
+	ClusterName                string             `json:"cluster_name" yaml:"cluster_name"`
+	Telemetry                  bool               `json:"telemetry" yaml:"telemetry"`
+	ImageOperator              string             `json:"image_operator" yaml:"image_operator"`
+	ImageManager               string             `json:"image_manager" yaml:"image_manager"`
+	ImageDownloader            string             `json:"image_downloader" yaml:"image_downloader"`
+	ImageFluentBit             string             `json:"image_fluent_bit" yaml:"image_fluent_bit"`
+	ImageIstioProxy            string             `json:"image_istio_proxy" yaml:"image_istio_proxy"`
+	ImageIstioPilot            string             `json:"image_istio_pilot" yaml:"image_istio_pilot"`
+	ImageGooglePause           string             `json:"image_google_pause" yaml:"image_google_pause"`
 }
 
 type InternalGCPConfig struct {
@@ -161,6 +163,26 @@ var UserGCPValidation = &cr.StructValidation{
 			StructField: "Subnet",
 			StringPtrValidation: &cr.StringPtrValidation{
 				AllowExplicitNull: true,
+			},
+		},
+		{
+			StructField: "APILoadBalancerScheme",
+			StringValidation: &cr.StringValidation{
+				AllowedValues: LoadBalancerSchemeStrings(),
+				Default:       InternetFacingLoadBalancerScheme.String(),
+			},
+			Parser: func(str string) (interface{}, error) {
+				return LoadBalancerSchemeFromString(str), nil
+			},
+		},
+		{
+			StructField: "OperatorLoadBalancerScheme",
+			StringValidation: &cr.StringValidation{
+				AllowedValues: LoadBalancerSchemeStrings(),
+				Default:       InternetFacingLoadBalancerScheme.String(),
+			},
+			Parser: func(str string) (interface{}, error) {
+				return LoadBalancerSchemeFromString(str), nil
 			},
 		},
 		{
@@ -526,6 +548,8 @@ func (cc *GCPConfig) UserTable() table.KeyValuePairs {
 	if cc.Subnet != nil {
 		items.Add(SubnetUserKey, *cc.Subnet)
 	}
+	items.Add(APILoadBalancerSchemeUserKey, cc.APILoadBalancerScheme)
+	items.Add(OperatorLoadBalancerSchemeUserKey, cc.OperatorLoadBalancerScheme)
 	items.Add(TelemetryUserKey, cc.Telemetry)
 	items.Add(ImageOperatorUserKey, cc.ImageOperator)
 	items.Add(ImageManagerUserKey, cc.ImageManager)
@@ -565,6 +589,8 @@ func (cc *GCPConfig) TelemetryEvent() map[string]interface{} {
 	if cc.Subnet != nil {
 		event["subnet._is_defined"] = true
 	}
+	event["api_load_balancer_scheme"] = cc.APILoadBalancerScheme
+	event["operator_load_balancer_scheme"] = cc.OperatorLoadBalancerScheme
 	if cc.MinInstances != nil {
 		event["min_instances._is_defined"] = true
 		event["min_instances"] = *cc.MinInstances
