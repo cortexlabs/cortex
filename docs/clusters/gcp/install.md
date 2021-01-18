@@ -37,6 +37,13 @@ min_instances: 1
 # maximum number of instances
 max_instances: 5
 
+# enable the use of preemptible instances
+preemptible: false
+
+# enable the use of on-demand backup instances which will be used when preemptible capacity runs out
+# default is true when preemptible instances are used
+# on_demand_backup: true
+
 # GPU to attach to your instance (optional)
 # accelerator_type: nvidia-tesla-t4
 
