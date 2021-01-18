@@ -128,6 +128,7 @@ output=$(cd "$ROOT" && find . -type f \
 ! -path "./.git/*" \
 ! -name ".*" \
 ! -name "*.bin" \
+! -name "*.wav" \
 -exec egrep -l " +$" {} \;)
 if [[ $output ]]; then
   echo "File(s) have lines with trailing whitespace:"
@@ -147,6 +148,7 @@ output=$(cd "$ROOT" && find . -type f \
 ! -path "./.git/*" \
 ! -name ".*" \
 ! -name "*.bin" \
+! -name "*.wav" \
 -print0 | \
 xargs -0 -L1 bash -c 'test "$(tail -c 1 "$0")" && echo "No new line at end of $0"' || true)
 if [[ $output ]]; then
@@ -166,6 +168,7 @@ output=$(cd "$ROOT" && find . -type f \
 ! -path "./.git/*" \
 ! -name ".*" \
 ! -name "*.bin" \
+! -name "*.wav" \
 -print0 | \
 xargs -0 -L1 bash -c 'test "$(tail -c 2 "$0")" || [ ! -s "$0" ] || echo "Multiple new lines at end of $0"' || true)
 if [[ $output ]]; then
@@ -185,6 +188,7 @@ output=$(cd "$ROOT" && find . -type f \
 ! -path "./.git/*" \
 ! -name ".*" \
 ! -name "*.bin" \
+! -name "*.wav" \
 -print0 | \
 xargs -0 -L1 bash -c 'test "$(head -c 1 "$0")" || [ ! -s "$0" ] || echo "New line at beginning of $0"' || true)
 if [[ $output ]]; then
