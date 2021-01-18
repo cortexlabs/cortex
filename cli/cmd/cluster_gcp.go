@@ -518,6 +518,7 @@ func createGKECluster(clusterConfig *clusterconfig.GCPConfig, gcpClient *gcp.Cli
 		Cluster: &gkeClusterConfig,
 	})
 	if err != nil {
+		fmt.Print("\n\n")
 		return err
 	}
 
