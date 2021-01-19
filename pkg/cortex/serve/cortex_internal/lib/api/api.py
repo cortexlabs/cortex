@@ -12,11 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import base64
 import json
 import os
-import threading
-from pathlib import Path
 from typing import Any, Dict, Optional, Tuple, Union
 
 import datadog
@@ -52,7 +49,7 @@ class API:
         self.predictor = Predictor(provider, api_spec, model_dir)
 
         host_ip = os.environ["HOST_IP"]
-        datadog.initialize(statsd_host=host_ip, statsd_port="8125")
+        datadog.initialize(statsd_host=host_ip, statsd_port=9125)
         self.statsd = datadog.statsd
 
     @property
@@ -61,13 +58,13 @@ class API:
 
     def metric_dimensions_with_id(self):
         return [
-            {"Name": "APIName", "Value": self.name},
-            {"Name": "PredictorID", "Value": self.predictor_id},
-            {"Name": "DeploymentID", "Value": self.deployment_id},
+            {"Name": "api_name", "Value": self.name},
+            {"Name": "predictor_id", "Value": self.predictor_id},
+            {"Name": "deployment_id", "Value": self.deployment_id},
         ]
 
     def metric_dimensions(self):
-        return [{"Name": "APIName", "Value": self.name}]
+        return [{"Name": "api_name", "Value": self.name}]
 
     def post_request_metrics(self, status_code, total_time):
         total_time_ms = total_time * 1000
@@ -96,10 +93,10 @@ class API:
     def status_code_metric(self, dimensions, status_code):
         status_code_series = int(status_code / 100)
         status_code_dimensions = dimensions + [
-            {"Name": "Code", "Value": "{}XX".format(status_code_series)}
+            {"Name": "response_code", "Value": "{}XX".format(status_code_series)}
         ]
         return {
-            "MetricName": "StatusCode",
+            "MetricName": "cortex_status_code",
             "Dimensions": status_code_dimensions,
             "Value": 1,
             "Unit": "Count",
@@ -107,7 +104,7 @@ class API:
 
     def latency_metric(self, dimensions, total_time):
         return {
-            "MetricName": "Latency",
+            "MetricName": "cortex_latency",
             "Dimensions": dimensions,
             "Value": total_time,  # milliseconds
         }

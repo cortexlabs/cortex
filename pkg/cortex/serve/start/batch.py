@@ -25,7 +25,6 @@ import botocore
 from cortex_internal.lib.api import get_api, get_spec
 from cortex_internal.lib.concurrency import LockedFile
 from cortex_internal.lib.storage import S3
-from cortex_internal.lib.exceptions import UserRuntimeException
 from cortex_internal.lib.log import configure_logger
 
 logger = configure_logger("cortex", os.environ["CORTEX_LOG_CONFIG_FILE"])
@@ -50,21 +49,21 @@ stop_renewal = set()
 
 def dimensions():
     return [
-        {"Name": "APIName", "Value": local_cache["api_spec"].name},
-        {"Name": "JobID", "Value": local_cache["job_spec"]["job_id"]},
+        {"Name": "api_name", "Value": local_cache["api_spec"].name},
+        {"Name": "job_id", "Value": local_cache["job_spec"]["job_id"]},
     ]
 
 
 def success_counter_metric():
-    return {"MetricName": "Succeeded", "Dimensions": dimensions(), "Unit": "Count", "Value": 1}
+    return {"MetricName": "cortex_batch_job_succeeded", "Dimensions": dimensions(), "Unit": "Count", "Value": 1}
 
 
 def failed_counter_metric():
-    return {"MetricName": "Failed", "Dimensions": dimensions(), "Unit": "Count", "Value": 1}
+    return {"MetricName": "cortex_batch_job_failed", "Dimensions": dimensions(), "Unit": "Count", "Value": 1}
 
 
 def time_per_batch_metric(total_time_seconds):
-    return {"MetricName": "TimePerBatch", "Dimensions": dimensions(), "Value": total_time_seconds}
+    return {"MetricName": "cortex_time_per_batch", "Dimensions": dimensions(), "Value": total_time_seconds}
 
 
 def renew_message_visibility(receipt_handle: str):
