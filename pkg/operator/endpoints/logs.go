@@ -50,6 +50,7 @@ func ReadLogs(w http.ResponseWriter, r *http.Request) {
 	}
 
 	deploymentID := deployedResource.VirtualService.Labels["deploymentID"]
+	predictorID := deployedResource.VirtualService.Labels["predictorID"]
 
 	upgrader := websocket.Upgrader{}
 	socket, err := upgrader.Upgrade(w, r, nil)
@@ -59,5 +60,5 @@ func ReadLogs(w http.ResponseWriter, r *http.Request) {
 	}
 	defer socket.Close()
 
-	operator.StreamLogsFromRandomPod(map[string]string{"apiName": apiName, "deploymentID": deploymentID}, socket)
+	operator.StreamLogsFromRandomPod(map[string]string{"apiName": apiName, "deploymentID": deploymentID, "predictorID": predictorID}, socket)
 }
