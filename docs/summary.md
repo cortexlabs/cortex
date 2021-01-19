@@ -23,7 +23,7 @@
   * [Statuses](workloads/batch/statuses.md)
 * Task
   * [Example](workloads/task/example.md)
-  * [Definiton](workloads/task/definitions.md)
+  * [Definition](workloads/task/definitions.md)
   * [Configuration](workloads/task/configuration.md)
   * [Jobs](workloads/task/jobs.md)
   * [Statuses](workloads/task/statuses.md)
@@ -46,6 +46,7 @@
   * [Install](clusters/aws/install.md)
   * [Update](clusters/aws/update.md)
   * [Security](clusters/aws/security.md)
+  * [Logging](clusters/aws/logging.md)
   * [Spot instances](clusters/aws/spot.md)
   * [Networking](clusters/aws/networking/index.md)
     * [Custom domain](clusters/aws/networking/custom-domain.md)
@@ -55,6 +56,7 @@
   * [Uninstall](clusters/aws/uninstall.md)
 * GCP
   * [Install](clusters/gcp/install.md)
+  * [Logging](clusters/aws/logging.md)
   * [Credentials](clusters/gcp/credentials.md)
   * [Setting up kubectl](clusters/gcp/kubectl.md)
   * [Uninstall](clusters/gcp/uninstall.md)
