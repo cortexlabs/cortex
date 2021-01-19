@@ -22,3 +22,7 @@ jsonPayload.labels.jobID="<INSERT JOB ID>"
 ```
 
 Please make sure to navigate to the project containing your cluster and adjust the time range accordingly before running queries.
+
+## Structured logging
+
+You can use Cortex's logger in your Python code to log in JSON, which will enrich your logs with Cortex's metadata, and enable you to add custom metadata to the logs. See the structured logging docs for [Realtime](../../workloads/realtime/predictors.md#structured-logging) and [Task]((../../workloads/task/definitions.md#structured-logging)) APIs.

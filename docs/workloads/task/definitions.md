@@ -54,7 +54,7 @@ class Task:
 
 ## Structured logging
 
-You can use Cortex's logger in your predictor implemention to log in JSON. You can add custom metadata to the logs by adding key value pairs to the `extra` key when using the logger.
+You can use Cortex's logger in your predictor implemention to log in JSON. This will enrich your logs with Cortex's metadata, and you can add custom metadata to the logs by adding key value pairs to the `extra` key when using the logger. For example:
 
 ```python
 ...
@@ -67,8 +67,9 @@ class Task:
 ```
 
 The dictionary passed in via the `extra` will be flattened by one level. e.g.
+
 ```text
 {"asctime": "2021-01-19 15:14:05,291", "levelname": "INFO", "message": "completed validations", "process": 235, "accuracy": 0.97}
 ```
 
-To avoid overriding essential Cortex metadata please refrain from specifying the following keys: asctime, levelname, message, labels, process. Log lines greater than 5 MB in size will be ignored.
+To avoid overriding essential Cortex metadata, please refrain from specifying the following extra keys: `asctime`, `levelname`, `message`, `labels`, and `process`. Log lines greater than 5 MB in size will be ignored.
