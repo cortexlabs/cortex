@@ -248,7 +248,7 @@ func getInflightRequests(apiName string, window time.Duration) (*float64, error)
 	// 	sum(sum_over_time(cortex_in_flight_requests{api_name="<apiName>"}[60s])) /
 	//	sum(count_over_time(cortex_in_flight_requests{api_name="<apiName>"}[60s]))
 	query := fmt.Sprintf(
-		"sum(sum_over_time(%s{api_name=\"%s\"}[%ds])) / sum(count_over_time(%s{api_name=\"%s\"}[%ds]))",
+		"sum(sum_over_time(%s{api_name=\"%s\"}[%ds])) / avg(count_over_time(%s{api_name=\"%s\"}[%ds]))",
 		_inFlightRequestsPrometheusKey, apiName, windowSeconds,
 		_inFlightRequestsPrometheusKey, apiName, windowSeconds,
 	)
