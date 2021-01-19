@@ -140,7 +140,7 @@ func TaskContainers(api *spec.API) ([]kcore.Container, []kcore.Volume) {
 	if api.Compute.GPU > 0 {
 		apiPodResourceList["nvidia.com/gpu"] = *kresource.NewQuantity(api.Compute.GPU, kresource.DecimalSI)
 		apiPodResourceLimitsList["nvidia.com/gpu"] = *kresource.NewQuantity(api.Compute.GPU, kresource.DecimalSI)
-	} else {
+	} else if api.Compute.Inf > 0 {
 		volumes = append(volumes, kcore.Volume{
 			Name: "neuron-sock",
 		})
