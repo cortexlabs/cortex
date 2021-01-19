@@ -147,6 +147,8 @@ Cortex provides a `tensorflow_client` to your Predictor's constructor. `tensorfl
 
 When multiple models are defined using the Predictor's `models` field, the `tensorflow_client.predict()` method expects a second argument `model_name` which must hold the name of the model that you want to use for inference (for example: `self.client.predict(payload, "text-generator")`).
 
+If you need to share files between your predictor implementation and the TensorFlow Serving container, you can create a new directory within `/mnt` (e.g. `/mnt/user`) and write files to it. The entire `/mnt` directory is shared between containers, but do not write to any of the directories in `/mnt` that already exist (they are used internally by Cortex).
+
 ## ONNX Predictor
 
 **Uses ONNX Runtime version 1.4.0 by default**
