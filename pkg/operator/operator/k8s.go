@@ -166,6 +166,13 @@ func TaskContainers(api *spec.API) ([]kcore.Container, []kcore.Volume) {
 		}
 
 		containers = append(containers, neuronContainer)
+	} else {
+		if api.Compute.CPU != nil {
+			apiPodResourceList[kcore.ResourceCPU] = api.Compute.CPU.DeepCopy()
+		}
+		if api.Compute.Mem != nil {
+			apiPodResourceList[kcore.ResourceMemory] = api.Compute.Mem.DeepCopy()
+		}
 	}
 
 	containers = append(containers, kcore.Container{
