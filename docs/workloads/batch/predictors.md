@@ -207,3 +207,24 @@ class ONNXPredictor:
 Cortex provides an `onnx_client` to your Predictor's constructor. `onnx_client` is an instance of [ONNXClient](https://github.com/cortexlabs/cortex/tree/master/pkg/cortex/serve/cortex_internal/lib/client/onnx.py) that manages an ONNX Runtime session to make predictions using your model. It should be saved as an instance variable in your Predictor, and your `predict()` function should call `onnx_client.predict()` to make an inference with your exported ONNX model. Preprocessing of the JSON payload and postprocessing of predictions can be implemented in your `predict()` function as well.
 
 When multiple models are defined using the Predictor's `models` field, the `onnx_client.predict()` method expects a second argument `model_name` which must hold the name of the model that you want to use for inference (for example: `self.client.predict(model_input, "text-generator")`).
+
+## Structured logging
+
+You can use Cortex's logger in your predictor implemention to log in JSON. This will enrich your logs with Cortex's metadata, and you can add custom metadata to the logs by adding key value pairs to the `extra` key when using the logger. For example:
+
+```python
+...
+from cortex_internal.lib.log import logger as cortex_logger
+
+class PythonPredictor:
+    def predict(self, payload, batch_id):
+        cortex_logger.info("completed processing batch", extra={"batch_id": batch_id, "confidence": confidence})
+```
+
+The dictionary passed in via the `extra` will be flattened by one level. e.g.
+
+```text
+{"asctime": "2021-01-19 15:14:05,291", "levelname": "INFO", "message": "completed processing batch", "process": 235, "batch_id": "iuasyd8f7", "confidence": 0.97}
+```
+
+To avoid overriding essential Cortex metadata, please refrain from specifying the following extra keys: `asctime`, `levelname`, `message`, `labels`, and `process`. Log lines greater than 5 MB in size will be ignored.
