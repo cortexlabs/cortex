@@ -706,10 +706,6 @@ func (c *Client) DeleteS3Dir(bucket string, s3Dir string, continueIfFailure bool
 
 func (c *Client) DeleteS3Prefix(bucket string, prefix string, continueIfFailure bool) error {
 	err := c.S3BatchIterator(bucket, prefix, true, nil, func(objects []*s3.Object) (bool, error) {
-		if len(objects) == 0 {
-			return true, nil
-		}
-
 		deleteObjects := make([]*s3.ObjectIdentifier, len(objects))
 		for i, object := range objects {
 			deleteObjects[i] = &s3.ObjectIdentifier{Key: object.Key}
@@ -812,6 +808,10 @@ func (c *Client) S3BatchIterator(bucket string, prefix string, includeDirObjects
 					}
 				}
 				objects = filtered
+			}
+
+			if len(objects) == 0 {
+				return true
 			}
 
 			shouldContinue, newSubErr := fn(objects)
