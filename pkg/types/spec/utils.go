@@ -21,6 +21,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
@@ -162,12 +163,17 @@ func validateDirModels(
 
 	modelResources := make([]CuratedModelResource, len(modelNames))
 	for i, modelName := range modelNames {
+		modelNameWrapStr := modelName
+		if modelName == consts.SingleModelName {
+			modelNameWrapStr = ""
+		}
+
 		modelPrefix := filepath.Join(dirPrefix, modelName)
 		modelPrefix = s.EnsureSuffix(modelPrefix, "/")
 
 		modelStructureType := determineBaseModelStructure(modelDirPaths, modelPrefix)
 		if modelStructureType == userconfig.UnknownModelStructureType {
-			return nil, errors.Wrap(errorForPredictorType(modelPrefix, nil), modelName)
+			return nil, errors.Wrap(errorForPredictorType(modelPrefix, nil), modelNameWrapStr)
 		}
 
 		var versions []string
@@ -180,7 +186,7 @@ func validateDirModels(
 				for _, validator := range extraValidators {
 					err := validator(modelDirPaths, modelPrefix, pointer.String(versionedModelPrefix))
 					if err != nil {
-						return nil, errors.Wrap(err, modelName)
+						return nil, errors.Wrap(err, modelNameWrapStr)
 					}
 				}
 			}
@@ -188,14 +194,14 @@ func validateDirModels(
 			for _, validator := range extraValidators {
 				err := validator(modelDirPaths, modelPrefix, nil)
 				if err != nil {
-					return nil, errors.Wrap(err, modelName)
+					return nil, errors.Wrap(err, modelNameWrapStr)
 				}
 			}
 		}
 
 		intVersions, err := slices.StringToInt64(versions)
 		if err != nil {
-			return nil, errors.Wrap(err, modelName)
+			return nil, errors.Wrap(err, modelNameWrapStr)
 		}
 
 		fullModelPath := ""
@@ -236,6 +242,11 @@ func validateModels(
 
 	modelResources := make([]CuratedModelResource, len(models))
 	for i, model := range models {
+		modelNameWrapStr := model.Name
+		if model.Name == consts.SingleModelName {
+			modelNameWrapStr = ""
+		}
+
 		modelPath := s.EnsureSuffix(model.Path, "/")
 
 		s3Path := strings.HasPrefix(model.Path, "s3://")
@@ -244,41 +255,41 @@ func validateModels(
 		if s3Path {
 			awsClientForBucket, err := aws.NewFromClientS3Path(model.Path, awsClient)
 			if err != nil {
-				return nil, errors.Wrap(err, model.Name)
+				return nil, errors.Wrap(err, modelNameWrapStr)
 			}
 
 			bucket, modelPrefix, err = aws.SplitS3Path(model.Path)
 			if err != nil {
-				return nil, errors.Wrap(err, model.Name)
+				return nil, errors.Wrap(err, modelNameWrapStr)
 			}
 			modelPrefix = s.EnsureSuffix(modelPrefix, "/")
 
 			s3Objects, err := awsClientForBucket.ListS3PathDir(modelPath, false, nil)
 			if err != nil {
-				return nil, errors.Wrap(err, model.Name)
+				return nil, errors.Wrap(err, modelNameWrapStr)
 			}
 			modelPaths = aws.ConvertS3ObjectsToKeys(s3Objects...)
 		}
 		if gcsPath {
 			bucket, modelPrefix, err = gcp.SplitGCSPath(model.Path)
 			if err != nil {
-				return nil, errors.Wrap(err, model.Name)
+				return nil, errors.Wrap(err, modelNameWrapStr)
 			}
 			modelPrefix = s.EnsureSuffix(modelPrefix, "/")
 
 			gcsObjects, err := gcpClient.ListGCSPathDir(modelPath, nil)
 			if err != nil {
-				return nil, errors.Wrap(err, model.Name)
+				return nil, errors.Wrap(err, modelNameWrapStr)
 			}
 			modelPaths = gcp.ConvertGCSObjectsToKeys(gcsObjects...)
 		}
 		if len(modelPaths) == 0 {
-			return nil, errors.Wrap(errorForPredictorType(modelPrefix, modelPaths), model.Name)
+			return nil, errors.Wrap(errorForPredictorType(modelPrefix, modelPaths), modelNameWrapStr)
 		}
 
 		modelStructureType := determineBaseModelStructure(modelPaths, modelPrefix)
 		if modelStructureType == userconfig.UnknownModelStructureType {
-			return nil, errors.Wrap(ErrorInvalidPythonModelPath(modelPath, []string{}), model.Name)
+			return nil, errors.Wrap(ErrorInvalidPythonModelPath(modelPath, []string{}), modelNameWrapStr)
 		}
 
 		var versions []string
@@ -291,7 +302,7 @@ func validateModels(
 				for _, validator := range extraValidators {
 					err := validator(modelPaths, modelPrefix, pointer.String(versionedModelPrefix))
 					if err != nil {
-						return nil, errors.Wrap(err, model.Name)
+						return nil, errors.Wrap(err, modelNameWrapStr)
 					}
 				}
 			}
@@ -299,14 +310,14 @@ func validateModels(
 			for _, validator := range extraValidators {
 				err := validator(modelPaths, modelPrefix, nil)
 				if err != nil {
-					return nil, errors.Wrap(err, model.Name)
+					return nil, errors.Wrap(err, modelNameWrapStr)
 				}
 			}
 		}
 
 		intVersions, err := slices.StringToInt64(versions)
 		if err != nil {
-			return nil, errors.Wrap(err, model.Name)
+			return nil, errors.Wrap(err, modelNameWrapStr)
 		}
 
 		var signatureKey *string
