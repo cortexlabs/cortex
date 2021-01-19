@@ -265,9 +265,9 @@ test-e2e:
 	@$(MAKE) test-e2e-aws
 	@$(MAKE) test-e2e-gcp
 test-e2e-aws:
-	@eval $$(python3 ./manager/cluster_config_env.py ./dev/config/cluster-aws.yaml) && CORTEX_CLI_PATH=./bin/cortex ./build/test.sh e2e -p aws -e "$$CORTEX_CLUSTER_NAME-aws"
+	@eval $$(python3 ./manager/cluster_config_env.py ./dev/config/cluster-aws.yaml) && CORTEX_CLI_PATH="$$(pwd)/bin/cortex" ./build/test.sh e2e -p aws -e "$$CORTEX_CLUSTER_NAME-aws"
 test-e2e-gcp:
-	@eval $$(python3 ./manager/cluster_config_env.py ./dev/config/cluster-gcp.yaml) && CORTEX_CLI_PATH=./bin/cortex ./build/test.sh e2e -p gcp -e "$$CORTEX_CLUSTER_NAME-gcp"
+	@eval $$(python3 ./manager/cluster_config_env.py ./dev/config/cluster-gcp.yaml) && CORTEX_CLI_PATH="$$(pwd)/bin/cortex" ./build/test.sh e2e -p gcp -e "$$CORTEX_CLUSTER_NAME-gcp"
 
 # run e2e tests with new clusters
 # read test/e2e/README.md for instructions first
@@ -275,9 +275,9 @@ test-e2e-new:
 	@$(MAKE) test-e2e-new-aws
 	@$(MAKE) test-e2e-new-gcp
 test-e2e-new-aws:
-	@eval $$(python3 ./manager/cluster_config_env.py ./dev/config/cluster-aws.yaml) && CORTEX_CLI_PATH=./bin/cortex ./build/test.sh e2e -p aws ./dev/config/cluster-aws.yaml --create-cluster
+	@eval $$(python3 ./manager/cluster_config_env.py ./dev/config/cluster-aws.yaml) && CORTEX_CLI_PATH="$$(pwd)/bin/cortex" ./build/test.sh e2e "$$(pwd)/dev/config/cluster-aws.yaml" -p aws --create-cluster
 test-e2e-new-gcp:
-	@eval $$(python3 ./manager/cluster_config_env.py ./dev/config/cluster-gcp.yaml) && CORTEX_CLI_PATH=./bin/cortex ./build/test.sh e2e -p gcp ./dev/config/cluster-aws.yaml --create-cluster
+	@eval $$(python3 ./manager/cluster_config_env.py ./dev/config/cluster-gcp.yaml) && CORTEX_CLI_PATH="$$(pwd)/bin/cortex" ./build/test.sh e2e "$$(pwd)/dev/config/cluster-gcp.yaml" -p gcp --create-cluster
 
 lint:
 	@./build/lint.sh
