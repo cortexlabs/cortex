@@ -60,9 +60,9 @@ operator-local-dbg-gcp:
 
 # configure kubectl to point to the cluster specified in dev/config/cluster-[aws|gcp].yaml
 kubectl-aws:
-	@eval $$(python3 ./manager/cluster_config_env.py ./dev/config/cluster-aws.yaml) && eksctl utils write-kubeconfig --cluster="$$CORTEX_CLUSTER_NAME" --region="$$CORTEX_REGION" | grep -v "saved kubeconfig as" | grep -v "using region" | grep -v "eksctl version" || true
+	@eval $$(python3 ./manager/cluster_config_env.py ./dev/config/cluster-aws.yaml) && eksctl utils write-kubeconfig --cluster="$$CORTEX_CLUSTER_NAME" --region="$$CORTEX_REGION" | (grep -v "saved kubeconfig as" | grep -v "using region" | grep -v "eksctl version" || true)
 kubectl-gcp:
-	@eval $$(python3 ./manager/cluster_config_env.py ./dev/config/cluster-gcp.yaml) && gcloud container clusters get-credentials "$$CORTEX_CLUSTER_NAME" --zone "$$CORTEX_ZONE" --project "$$CORTEX_PROJECT" 2>&1 | grep -v "Fetching cluster" | grep -v "kubeconfig entry generated" || true
+	@eval $$(python3 ./manager/cluster_config_env.py ./dev/config/cluster-gcp.yaml) && gcloud container clusters get-credentials "$$CORTEX_CLUSTER_NAME" --project "$$CORTEX_PROJECT" --region "$$CORTEX_ZONE" 2> /dev/stdout 1> /dev/null | (grep -v "Fetching cluster" | grep -v "kubeconfig entry generated" || true)
 
 cluster-up-aws:
 	@$(MAKE) images-all-aws
