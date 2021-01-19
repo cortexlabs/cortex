@@ -97,8 +97,8 @@ function cluster_up_aws() {
 }
 
 function cluster_up_gcp() {
-  gcloud auth activate-service-account --key-file $GOOGLE_APPLICATION_CREDENTIALS > /dev/null 2>&1
-  gcloud container clusters get-credentials $CORTEX_CLUSTER_NAME --project $CORTEX_GCP_PROJECT --region $CORTEX_GCP_ZONE > /dev/null 2>&1 # write both stderr and stdout to dev/null
+  gcloud auth activate-service-account --key-file $GOOGLE_APPLICATION_CREDENTIALS 2> /dev/stdout 1> /dev/null | (grep -v "Activated service account credentials" || true)
+  gcloud container clusters get-credentials $CORTEX_CLUSTER_NAME --project $CORTEX_GCP_PROJECT --region $CORTEX_GCP_ZONE 2> /dev/stdout 1> /dev/null | (grep -v "Fetching cluster" | grep -v "kubeconfig entry generated" || true)
 
   start_pre_download_images
 
@@ -248,7 +248,7 @@ function check_eks() {
 }
 
 function write_kubeconfig() {
-  eksctl utils write-kubeconfig --cluster=$CORTEX_CLUSTER_NAME --region=$CORTEX_REGION | grep -v "saved kubeconfig as" | grep -v "using region" | grep -v "eksctl version" || true
+  eksctl utils write-kubeconfig --cluster=$CORTEX_CLUSTER_NAME --region=$CORTEX_REGION | (grep -v "saved kubeconfig as" | grep -v "using region" | grep -v "eksctl version" || true)
   out=$(kubectl get pods 2>&1 || true); if [[ "$out" == *"must be logged in to the server"* ]]; then echo "error: your aws iam user does not have access to this cluster; to grant access, see https://docs.cortex.dev/v/${CORTEX_VERSION_MINOR}/"; exit 1; fi
 }
 

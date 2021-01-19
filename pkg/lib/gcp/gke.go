@@ -19,7 +19,6 @@ package gcp
 import (
 	"context"
 	"encoding/base64"
-	"fmt"
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	containerpb "google.golang.org/genproto/googleapis/container/v1"
@@ -79,11 +78,6 @@ func (c *Client) CreateCluster(req *containerpb.CreateClusterRequest) (*containe
 	gke, err := c.GKE()
 	if err != nil {
 		return nil, err
-	}
-	if exists, err := c.ClusterExists(fmt.Sprintf("%s/clusters/%s", req.Parent, req.Cluster.Name)); err != nil {
-		return nil, err
-	} else if exists {
-		return nil, ErrorClusterAlreadyExists(req.Cluster.Name)
 	}
 	resp, err := gke.CreateCluster(context.Background(), req)
 	if err != nil {

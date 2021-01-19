@@ -30,8 +30,6 @@ const (
 	ErrInvalidGCSPath              = "gcp.invalid_gcs_path"
 	ErrCredentialsFileEnvVarNotSet = "gcp.credentials_file_env_var_not_set"
 	ErrProjectIDMismatch           = "gcp.project_id_mismatch"
-
-	ErrClusterAlreadyExists = "gcp.cluster_already_exists"
 )
 
 func IsGCPError(err error) bool {
@@ -79,12 +77,5 @@ func ErrorProjectIDMismatch(credsFileProject string, providedProject string, cre
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrProjectIDMismatch,
 		Message: fmt.Sprintf("the \"%s\" project was specified in your configuration, but the credentials file at %s (specified via $GOOGLE_APPLICATION_CREDENTIALS) is connected the the project named \"%s\"", providedProject, credsFilePath, credsFileProject),
-	})
-}
-
-func ErrorClusterAlreadyExists(clusterName string) error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrClusterAlreadyExists,
-		Message: fmt.Sprintf("cluster %s already exists", clusterName),
 	})
 }

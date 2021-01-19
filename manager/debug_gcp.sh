@@ -21,8 +21,8 @@ CORTEX_VERSION_MINOR=master
 debug_out_path="$1"
 mkdir -p "$(dirname "$debug_out_path")"
 
-gcloud auth activate-service-account --key-file $GOOGLE_APPLICATION_CREDENTIALS > /dev/null 2>&1
-gcloud container clusters get-credentials $CORTEX_CLUSTER_NAME --project $CORTEX_GCP_PROJECT --region $CORTEX_GCP_ZONE > /dev/null 2>&1 # write both stderr and stdout to dev/null
+gcloud auth activate-service-account --key-file $GOOGLE_APPLICATION_CREDENTIALS 2> /dev/stdout 1> /dev/null | (grep -v "Activated service account credentials" || true)
+gcloud container clusters get-credentials $CORTEX_CLUSTER_NAME --project $CORTEX_GCP_PROJECT --region $CORTEX_GCP_ZONE 2> /dev/stdout 1> /dev/null | (grep -v "Fetching cluster" | grep -v "kubeconfig entry generated" || true)
 out=$(kubectl get pods 2>&1 || true); if [[ "$out" == *"must be logged in to the server"* ]]; then echo "error: your iam user does not have access to this cluster"; exit 1; fi
 
 echo -n "gathering cluster data"

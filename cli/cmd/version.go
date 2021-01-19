@@ -39,9 +39,11 @@ var _versionCmd = &cobra.Command{
 	Args:  cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
 		envName, err := getEnvFromFlag(_flagVersionEnv)
-		if err != nil {
+
+		if err != nil || envName == "" {
 			telemetry.Event("cli.version")
-			exit.Error(err)
+			fmt.Println("cli version: " + consts.CortexVersion)
+			return
 		}
 
 		env, err := ReadOrConfigureEnv(envName)
