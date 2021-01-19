@@ -75,6 +75,8 @@ const (
 	ErrShellCompletionNotSupported             = "cli.shell_completion_not_supported"
 	ErrNoTerminalWidth                         = "cli.no_terminal_width"
 	ErrDeployFromTopLevelDir                   = "cli.deploy_from_top_level_dir"
+	ErrGCPClusterAlreadyExists                 = "cli.gcp_cluster_already_exists"
+	ErrGCPClusterDoesntExist                   = "cli.gcp_cluster_doesnt_exist"
 )
 
 func ErrorInvalidProvider(providerStr string) error {
@@ -330,5 +332,19 @@ func ErrorDeployFromTopLevelDir(genericDirName string, providerType types.Provid
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrDeployFromTopLevelDir,
 		Message: fmt.Sprintf("cannot deploy from your %s directory - when deploying your API, cortex sends all files in your project directory (i.e. the directory which contains cortex.yaml) to your cluster (see https://docs.cortex.dev/v/%s/); therefore it is recommended to create a subdirectory for your project files", genericDirName, consts.CortexVersionMinor),
+	})
+}
+
+func ErrorGCPClusterAlreadyExists(clusterName string, zone string, project string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrGCPClusterAlreadyExists,
+		Message: fmt.Sprintf("there is already a cluster named \"%s\" in %s in the %s project", clusterName, zone, project),
+	})
+}
+
+func ErrorGCPClusterDoesntExist(clusterName string, zone string, project string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrGCPClusterDoesntExist,
+		Message: fmt.Sprintf("there is no cluster named \"%s\" in %s in the %s project", clusterName, zone, project),
 	})
 }

@@ -141,7 +141,17 @@ var _clusterGCPUpCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
-		bucketName := clusterconfig.GCPBucketName(*accessConfig.ClusterName, *accessConfig.Project, *accessConfig.Zone)
+		gkeClusterName := fmt.Sprintf("projects/%s/locations/%s/clusters/%s", *clusterConfig.Project, *clusterConfig.Zone, clusterConfig.ClusterName)
+		bucketName := clusterconfig.GCPBucketName(clusterConfig.ClusterName, *clusterConfig.Project, *clusterConfig.Zone)
+
+		clusterExists, err := gcpClient.ClusterExists(gkeClusterName)
+		if err != nil {
+			exit.Error(err)
+		}
+		if clusterExists {
+			exit.Error(ErrorGCPClusterAlreadyExists(*accessConfig.ClusterName, *accessConfig.Zone, *accessConfig.Project))
+		}
+
 		err = gcpClient.CreateBucket(bucketName, gcp.ZoneToRegion(*accessConfig.Zone), true)
 		if err != nil {
 			exit.Error(err)
@@ -149,9 +159,6 @@ var _clusterGCPUpCmd = &cobra.Command{
 
 		err = createGKECluster(clusterConfig, gcpClient)
 		if err != nil {
-			if errors.GetKind(err) != gcp.ErrClusterAlreadyExists {
-				gcpClient.DeleteBucket(bucketName)
-			}
 			exit.Error(err)
 		}
 
@@ -161,7 +168,6 @@ var _clusterGCPUpCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
-		gkeClusterName := fmt.Sprintf("projects/%s/locations/%s/clusters/%s", *clusterConfig.Project, *clusterConfig.Zone, clusterConfig.ClusterName)
 		operatorLoadBalancerIP, err := getGCPOperatorLoadBalancerIP(gkeClusterName, gcpClient)
 		if err != nil {
 			exit.Error(errors.Append(err, fmt.Sprintf("\n\nyou can attempt to resolve this issue and configure your cli environment by running `cortex cluster info --configure-env %s`", _flagClusterGCPUpEnv)))
@@ -238,6 +244,16 @@ var _clusterGCPDownCmd = &cobra.Command{
 		}
 
 		gkeClusterName := fmt.Sprintf("projects/%s/locations/%s/clusters/%s", *accessConfig.Project, *accessConfig.Zone, *accessConfig.ClusterName)
+		bucketName := clusterconfig.GCPBucketName(*accessConfig.ClusterName, *accessConfig.Project, *accessConfig.Zone)
+
+		clusterExists, err := gcpClient.ClusterExists(gkeClusterName)
+		if err != nil {
+			exit.Error(err)
+		}
+		if !clusterExists {
+			gcpClient.DeleteBucket(bucketName) // silently try to delete the bucket in case it got left behind
+			exit.Error(ErrorGCPClusterDoesntExist(*accessConfig.ClusterName, *accessConfig.Zone, *accessConfig.Project))
+		}
 
 		// updating CLI env is best-effort, so ignore errors
 		operatorLoadBalancerIP, _ := getGCPOperatorLoadBalancerIP(gkeClusterName, gcpClient)
@@ -248,7 +264,6 @@ var _clusterGCPDownCmd = &cobra.Command{
 			prompt.YesOrExit(fmt.Sprintf("your cluster named \"%s\" in %s (zone: %s) will be spun down and all apis will be deleted, are you sure you want to continue?", *accessConfig.ClusterName, *accessConfig.Project, *accessConfig.Zone), "", "")
 		}
 
-		bucketName := clusterconfig.GCPBucketName(*accessConfig.ClusterName, *accessConfig.Project, *accessConfig.Zone)
 		fmt.Printf("￮ deleting bucket %s ", bucketName)
 		err = gcpClient.DeleteBucket(bucketName)
 		if err != nil {
