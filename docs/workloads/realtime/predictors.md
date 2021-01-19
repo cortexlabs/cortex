@@ -199,6 +199,8 @@ Your API can accept requests with different types of payloads such as `JSON`-par
 
 Your `predictor` method can return different types of objects such as `JSON`-parseable, `string`, and `bytes` objects. Navigate to the [API responses](#api-responses) section to learn about how to configure your `predictor` method to respond with different response codes and content-types.
 
+If you need to share files between your predictor implementation and the TensorFlow Serving container, you can create a new directory within `/mnt` (e.g. `/mnt/user`) and write files to it. The entire `/mnt` directory is shared between containers, but do not write to any of the directories in `/mnt` that already exist (they are used internally by Cortex).
+
 ## ONNX Predictor
 
 **Uses ONNX Runtime version 1.4.0 by default**
