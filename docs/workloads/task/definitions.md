@@ -66,7 +66,7 @@ class Task:
         cortex_logger.info("completed validations", extra={"accuracy": accuracy})
 ```
 
-The dictionary passed in via the `extra` will be flattened by one level. e.g. 
+The dictionary passed in via the `extra` will be flattened by one level. e.g.
 ```text
 {"asctime": "2021-01-19 15:14:05,291", "levelname": "INFO", "message": "completed validations", "process": 235, "accuracy": 0.97}
 ```

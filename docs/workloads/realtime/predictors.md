@@ -469,7 +469,7 @@ class PythonPredictor:
         cortex_logger.info("received payload", extra={"payload": payload})
 ```
 
-The dictionary passed in via the `extra` will be flattened by one level. e.g. 
+The dictionary passed in via the `extra` will be flattened by one level. e.g.
 ```text
 {"asctime": "2021-01-19 15:14:05,291", "levelname": "INFO", "message": "received payload", "process": 235, "payload": "this movie is awesome"}
 ```

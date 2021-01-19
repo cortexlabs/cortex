@@ -221,7 +221,7 @@ class PythonPredictor:
         cortex_logger.info("completed processing batch", extra={"batch_id": batch_id, "confidence": confidence})
 ```
 
-The dictionary passed in via the `extra` will be flattened by one level. e.g. 
+The dictionary passed in via the `extra` will be flattened by one level. e.g.
 ```text
 {"asctime": "2021-01-19 15:14:05,291", "levelname": "INFO", "message": "completed processing batch", "process": 235, "batch_id": "iuasyd8f7", "confidence": 0.97}
 ```
