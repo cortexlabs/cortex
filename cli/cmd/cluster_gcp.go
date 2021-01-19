@@ -149,7 +149,7 @@ var _clusterGCPUpCmd = &cobra.Command{
 			exit.Error(err)
 		}
 		if clusterExists {
-			exit.Error(ErrorGCPClusterAlreadyExists(*accessConfig.ClusterName, *accessConfig.Zone, *accessConfig.Project))
+			exit.Error(ErrorGCPClusterAlreadyExists(clusterConfig.ClusterName, *clusterConfig.Zone, *clusterConfig.Project))
 		}
 
 		err = gcpClient.CreateBucket(bucketName, gcp.ZoneToRegion(*accessConfig.Zone), true)

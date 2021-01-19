@@ -71,7 +71,7 @@ func Prompt(opts *Options) string {
 			exit.Error(ErrorUserCtrlC())
 		}
 		if strings.Contains(errors.Message(err), "not a terminal") {
-			err = errors.Append(err, "\n\ncheck if you can pass flags into the command you are running to provide all required inputs and/or skip prompts (e.g. via `--yes`)")
+			err = errors.Append(err, "\n\nyou may be able to pass flags into this command to provide all required inputs and/or skip prompts (e.g. via `--yes`)")
 		}
 		exit.Error(err)
 	}
