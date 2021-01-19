@@ -455,3 +455,23 @@ class PythonPredictor:
 ```
 
 Note that the autoscaling configuration (i.e. `target_replica_concurrency`) for the API that is making the request should be modified with the understanding that requests will still be considered "in-flight" with the first API as the request is being fulfilled in the second API (during which it will also be considered "in-flight" with the second API).
+
+## Structured logging
+
+You can use Cortex's logger in your predictor implemention to log in JSON. You can add custom metadata to the logs by adding key value pairs to the `extra` key when using the logger.
+
+```python
+...
+from cortex_internal.lib.log import logger as cortex_logger
+
+class PythonPredictor:
+    def predict(self, payload):
+        cortex_logger.info("received payload", extra={"payload": payload})
+```
+
+The dictionary passed in via the `extra` will be flattened by one level. e.g. 
+```text
+{"asctime": "2021-01-19 15:14:05,291", "levelname": "INFO", "message": "received payload", "process": 235, "payload": "this movie is awesome"}
+```
+
+To avoid overriding essential Cortex metadata please refrain from specifying the following keys: asctime, levelname, message, labels, process. Log lines greater than 5 MB in size will be ignored.
