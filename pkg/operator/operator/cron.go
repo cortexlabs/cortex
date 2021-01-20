@@ -22,6 +22,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
+	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 	"github.com/cortexlabs/cortex/pkg/operator/lib/logging"
@@ -30,6 +31,7 @@ import (
 )
 
 var operatorLogger = logging.GetOperatorLogger()
+var previousListOfEvictedPods = strset.New()
 
 func DeleteEvictedPods() error {
 	failedPods, err := config.K8s.ListPods(&kmeta.ListOptions{
@@ -40,14 +42,21 @@ func DeleteEvictedPods() error {
 	}
 
 	var errs []error
+	currentEvictedPods := strset.New()
 	for _, pod := range failedPods {
-		if pod.Status.Reason == k8s.ReasonEvicted {
+		if pod.Status.Reason != k8s.ReasonEvicted {
+			continue
+		}
+		if previousListOfEvictedPods.Has(pod.Name) {
 			_, err := config.K8s.DeletePod(pod.Name)
 			if err != nil {
 				errs = append(errs, err)
 			}
+			continue
 		}
+		currentEvictedPods.Add(pod.Name)
 	}
+	previousListOfEvictedPods = currentEvictedPods
 
 	if errors.HasError(errs) {
 		return errors.FirstError(errs...)

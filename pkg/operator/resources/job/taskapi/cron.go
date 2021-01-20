@@ -202,25 +202,29 @@ func reconcileInProgressJob(jobState *job.State, k8sJob *kbatch.Job) (status.Job
 }
 
 func checkIfJobCompleted(jobKey spec.JobKey, k8sJob *kbatch.Job) error {
-	if int(k8sJob.Status.Failed) == 1 {
-		pods, _ := config.K8s.ListPodsByLabel("jobID", jobKey.ID)
-		for _, pod := range pods {
-			if k8s.WasPodOOMKilled(&pod) {
-				return errors.FirstError(
-					job.SetWorkerOOMStatus(jobKey),
-					deleteJobRuntimeResources(jobKey),
-				)
-			}
+	pods, _ := config.K8s.ListPodsByLabel("jobID", jobKey.ID)
+	for _, pod := range pods {
+		if k8s.WasPodOOMKilled(&pod) {
+			return errors.FirstError(
+				job.SetWorkerOOMStatus(jobKey),
+				deleteJobRuntimeResources(jobKey),
+			)
 		}
+	}
+	if int(k8sJob.Status.Failed) == 1 {
 		return errors.FirstError(
 			job.SetWorkerErrorStatus(jobKey),
 			deleteJobRuntimeResources(jobKey),
 		)
-	}
-
-	if int(k8sJob.Status.Succeeded) == 1 {
+	} else if int(k8sJob.Status.Succeeded) == 1 && len(pods) > 0 {
 		return errors.FirstError(
 			job.SetSucceededStatus(jobKey),
+			deleteJobRuntimeResources(jobKey),
+		)
+	} else if int(k8sJob.Status.Succeeded) == 1 && len(pods) == 0 {
+		// really unexpected situation which doesn't hurt if we check
+		return errors.FirstError(
+			job.SetUnexpectedErrorStatus(jobKey),
 			deleteJobRuntimeResources(jobKey),
 		)
 	}

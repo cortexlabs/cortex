@@ -47,7 +47,7 @@ func main() {
 
 	telemetry.Event("operator.init", map[string]interface{}{"provider": config.Provider})
 
-	cron.Run(operator.DeleteEvictedPods, operator.ErrorHandler("delete evicted pods"), 12*time.Hour)
+	cron.Run(operator.DeleteEvictedPods, operator.ErrorHandler("delete evicted pods"), time.Hour)
 
 	switch config.Provider {
 	case types.AWSProviderType:
