@@ -19,6 +19,7 @@ import time
 import http
 import datetime as dt
 import yaml
+import threading
 from pythonjsonlogger.jsonlogger import JsonFormatter
 
 
@@ -55,12 +56,17 @@ class CortexAccessFormatter(JsonFormatter):
 
 
 logger = None
+_logger_initializer_mutex = threading.Lock()
 
 
 def configure_logger(name: str, config_file: str):
-    global logger
-    logger = retrieve_logger(name, config_file)
-    return logger
+    with _logger_initializer_mutex:
+        global logger
+        if logger is not None:
+            return logger
+
+        logger = retrieve_logger(name, config_file)
+        return logger
 
 
 def retrieve_logger(name: str, config_file: str):

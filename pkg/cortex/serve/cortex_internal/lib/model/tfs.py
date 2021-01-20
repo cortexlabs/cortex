@@ -19,7 +19,10 @@ import copy
 from typing import Any, Optional, Dict, List, Tuple
 
 from cortex_internal.lib.exceptions import CortexException, UserException
-from cortex_internal.lib.log import logger
+from cortex_internal.lib.log import configure_logger
+
+logger = configure_logger("cortex", os.environ["CORTEX_LOG_CONFIG_FILE"])
+
 
 # TensorFlow types
 def _define_types() -> Tuple[Dict[str, Any], Dict[str, str]]:

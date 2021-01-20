@@ -32,8 +32,10 @@ from cortex_internal.lib.model import (
     LockedModelsTree,
     get_models_from_api_spec,
 )
-from cortex_internal.lib.log import logger
 from cortex_internal import consts
+from cortex_internal.lib.log import configure_logger
+
+logger = configure_logger("cortex", os.environ["CORTEX_LOG_CONFIG_FILE"])
 
 
 class TensorFlowClient:

@@ -26,7 +26,6 @@ from concurrent.futures import ThreadPoolExecutor
 from typing import Dict, List, Tuple, Any, Union, Callable, Optional
 
 from cortex_internal.lib import util
-from cortex_internal.lib.log import logger
 from cortex_internal.lib.concurrency import LockedFile, get_locked_files
 from cortex_internal.lib.storage import S3, GCS
 from cortex_internal.lib.exceptions import CortexException, WithBreak
@@ -53,7 +52,9 @@ from cortex_internal.lib.model import (
     ModelsTree,
     LockedModelsTree,
 )
+from cortex_internal.lib.log import configure_logger
 
+logger = configure_logger("cortex", os.environ["CORTEX_LOG_CONFIG_FILE"])
 
 class AbstractLoopingThread(td.Thread):
     """
