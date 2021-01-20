@@ -56,6 +56,7 @@ from cortex_internal.lib.log import configure_logger
 
 logger = configure_logger("cortex", os.environ["CORTEX_LOG_CONFIG_FILE"])
 
+
 class AbstractLoopingThread(td.Thread):
     """
     Abstract class of the td.Thread class.
