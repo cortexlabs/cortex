@@ -52,7 +52,6 @@ func DeleteEvictedPods() error {
 			if err != nil {
 				errs = append(errs, err)
 			}
-			previousListOfEvictedPods.Remove(pod.Name)
 			continue
 		}
 		currentEvictedPods.Add(pod.Name)

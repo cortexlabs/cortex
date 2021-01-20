@@ -222,8 +222,7 @@ func checkIfJobCompleted(jobKey spec.JobKey, k8sJob *kbatch.Job) error {
 			deleteJobRuntimeResources(jobKey),
 		)
 	} else if int(k8sJob.Status.Succeeded) == 1 && len(pods) == 0 {
-		// pods could have been marked as evicted and removed by the evicter cron
-		// not ideal, but we can at least mark it as errored
+		// really unexpected situation which doesn't hurt if we check
 		return errors.FirstError(
 			job.SetUnexpectedErrorStatus(jobKey),
 			deleteJobRuntimeResources(jobKey),

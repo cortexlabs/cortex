@@ -240,9 +240,7 @@ func PodStatusFromContainerStatuses(containerStatuses []kcore.ContainerStatus) P
 			reason := containerStatus.State.Terminated.Reason
 			if reason == ReasonOOMKilled {
 				numKilledOOM++
-				continue
-			}
-			if exitCode == 0 {
+			} else if exitCode == 0 {
 				numSucceeded++
 			} else if _killStatuses[exitCode] {
 				numKilled++
@@ -254,9 +252,7 @@ func PodStatusFromContainerStatuses(containerStatuses []kcore.ContainerStatus) P
 			reason := containerStatus.LastTerminationState.Terminated.Reason
 			if reason == ReasonOOMKilled {
 				numKilledOOM++
-				continue
-			}
-			if exitCode == 0 {
+			} else if exitCode == 0 {
 				numSucceeded++
 			} else if _killStatuses[exitCode] {
 				numKilled++

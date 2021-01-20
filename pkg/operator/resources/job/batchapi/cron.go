@@ -284,8 +284,8 @@ func reconcileInProgressJob(jobState *job.State, queueURL *string, k8sJob *kbatc
 }
 
 func checkIfJobCompleted(jobKey spec.JobKey, queueURL string, k8sJob *kbatch.Job) error {
-	err := investigatePossibleJobFailure(jobKey, k8sJob)
-	if err != nil {
+	jobFailed, err := checkForJobFailure(jobKey, k8sJob)
+	if err != nil || jobFailed {
 		return err
 	}
 
@@ -350,10 +350,10 @@ func checkIfJobCompleted(jobKey spec.JobKey, queueURL string, k8sJob *kbatch.Job
 	return nil
 }
 
-func investigatePossibleJobFailure(jobKey spec.JobKey, k8sJob *kbatch.Job) error {
+func checkForJobFailure(jobKey spec.JobKey, k8sJob *kbatch.Job) (bool, error) {
 	jobLogger, err := operator.GetJobLogger(jobKey)
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	reasonFound := false
@@ -361,7 +361,7 @@ func investigatePossibleJobFailure(jobKey spec.JobKey, k8sJob *kbatch.Job) error
 	for _, pod := range pods {
 		if k8s.WasPodOOMKilled(&pod) {
 			jobLogger.Error("at least one worker was killed because it ran out of out of memory")
-			return errors.FirstError(
+			return true, errors.FirstError(
 				job.SetWorkerOOMStatus(jobKey),
 				deleteJobRuntimeResources(jobKey),
 			)
@@ -386,18 +386,17 @@ func investigatePossibleJobFailure(jobKey spec.JobKey, k8sJob *kbatch.Job) error
 		if !reasonFound {
 			jobLogger.Error("workers were killed for unknown reason")
 		}
-		return errors.FirstError(
+		return true, errors.FirstError(
 			job.SetWorkerErrorStatus(jobKey),
 			deleteJobRuntimeResources(jobKey),
 		)
 	} else if int(k8sJob.Status.Succeeded) == 1 && len(pods) == 0 {
-		// pods could have been marked as evicted and removed by the evicter cron
-		// not ideal, but we can at least mark it as errored
-		return errors.FirstError(
+		// really unexpected situation which doesn't hurt if we check
+		return true, errors.FirstError(
 			job.SetUnexpectedErrorStatus(jobKey),
 			deleteJobRuntimeResources(jobKey),
 		)
 	}
 
-	return nil
+	return false, nil
 }
