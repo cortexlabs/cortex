@@ -20,7 +20,6 @@ import (
 	"bytes"
 	"context"
 	"regexp"
-	"strings"
 	"time"
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
@@ -38,7 +37,12 @@ var _podTypeMeta = kmeta.TypeMeta{
 	Kind:       "Pod",
 }
 
-const ReasonEvicted = "Evicted"
+// pod termination reasons
+// https://github.com/kubernetes/kube-state-metrics/blob/master/docs/pod-metrics.md
+const (
+	ReasonEvicted   = "Evicted"
+	ReasonOOMKilled = "OOMKilled"
+)
 
 type PodStatus string
 
@@ -148,22 +152,14 @@ func WasPodOOMKilled(pod *kcore.Pod) bool {
 		return true
 	}
 	for _, containerStatus := range pod.Status.ContainerStatuses {
+		var reason string
 		if containerStatus.LastTerminationState.Terminated != nil {
-			exitCode := containerStatus.LastTerminationState.Terminated.ExitCode
-			reason := strings.ToLower(containerStatus.LastTerminationState.Terminated.Reason)
-			if _killStatuses[exitCode] {
-				if strings.Contains(reason, "oom") {
-					return true
-				}
-			}
+			reason = containerStatus.LastTerminationState.Terminated.Reason
 		} else if containerStatus.State.Terminated != nil {
-			exitCode := containerStatus.State.Terminated.ExitCode
-			reason := strings.ToLower(containerStatus.State.Terminated.Reason)
-			if _killStatuses[exitCode] {
-				if strings.Contains(reason, "oom") {
-					return true
-				}
-			}
+			reason = containerStatus.State.Terminated.Reason
+		}
+		if reason == ReasonOOMKilled {
+			return true
 		}
 	}
 
@@ -194,25 +190,21 @@ func GetPodStatus(pod *kcore.Pod) PodStatus {
 		}
 
 		for _, containerStatus := range pod.Status.ContainerStatuses {
+			var reason string
+			var exitCode int32
 			if containerStatus.LastTerminationState.Terminated != nil {
-				exitCode := containerStatus.LastTerminationState.Terminated.ExitCode
-				reason := strings.ToLower(containerStatus.LastTerminationState.Terminated.Reason)
-				if _killStatuses[exitCode] {
-					if strings.Contains(reason, "oom") {
-						return PodStatusKilledOOM
-					}
-					return PodStatusKilled
-				}
+				reason = containerStatus.LastTerminationState.Terminated.Reason
+				exitCode = containerStatus.LastTerminationState.Terminated.ExitCode
 			} else if containerStatus.State.Terminated != nil {
-				exitCode := containerStatus.State.Terminated.ExitCode
-				reason := strings.ToLower(containerStatus.State.Terminated.Reason)
-				if _killStatuses[exitCode] {
-					if strings.Contains(reason, "oom") {
-						return PodStatusKilledOOM
-					}
-					return PodStatusKilled
-				}
+				reason = containerStatus.State.Terminated.Reason
+				exitCode = containerStatus.State.Terminated.ExitCode
 			}
+			if reason == ReasonOOMKilled {
+				return PodStatusKilledOOM
+			} else if _killStatuses[exitCode] {
+				return PodStatusKilled
+			}
+
 		}
 		return PodStatusFailed
 	case kcore.PodRunning:
@@ -245,29 +237,29 @@ func PodStatusFromContainerStatuses(containerStatuses []kcore.ContainerStatus) P
 			numRunning++
 		} else if containerStatus.State.Terminated != nil {
 			exitCode := containerStatus.State.Terminated.ExitCode
-			reason := strings.ToLower(containerStatus.State.Terminated.Reason)
+			reason := containerStatus.State.Terminated.Reason
+			if reason == ReasonOOMKilled {
+				numKilledOOM++
+				continue
+			}
 			if exitCode == 0 {
 				numSucceeded++
 			} else if _killStatuses[exitCode] {
-				if strings.Contains(reason, "oom") {
-					numKilledOOM++
-				} else {
-					numKilled++
-				}
+				numKilled++
 			} else {
 				numFailed++
 			}
 		} else if containerStatus.LastTerminationState.Terminated != nil {
 			exitCode := containerStatus.LastTerminationState.Terminated.ExitCode
-			reason := strings.ToLower(containerStatus.LastTerminationState.Terminated.Reason)
+			reason := containerStatus.LastTerminationState.Terminated.Reason
+			if reason == ReasonOOMKilled {
+				numKilledOOM++
+				continue
+			}
 			if exitCode == 0 {
 				numSucceeded++
 			} else if _killStatuses[exitCode] {
-				if strings.Contains(reason, "oom") {
-					numKilledOOM++
-				} else {
-					numKilled++
-				}
+				numKilled++
 			} else {
 				numFailed++
 			}
