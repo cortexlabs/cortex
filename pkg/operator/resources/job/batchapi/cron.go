@@ -390,7 +390,7 @@ func checkForJobFailure(jobKey spec.JobKey, k8sJob *kbatch.Job) (bool, error) {
 			job.SetWorkerErrorStatus(jobKey),
 			deleteJobRuntimeResources(jobKey),
 		)
-	} else if int(k8sJob.Status.Succeeded) == 1 && len(pods) == 0 {
+	} else if int(k8sJob.Status.Active) == 0 && int(k8sJob.Status.Failed) == 0 && len(pods) == 0 {
 		// really unexpected situation which doesn't hurt if we check
 		return true, errors.FirstError(
 			job.SetUnexpectedErrorStatus(jobKey),
