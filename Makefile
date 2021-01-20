@@ -266,11 +266,11 @@ test-e2e:
 	@$(MAKE) test-e2e-gcp
 test-e2e-aws:
 	@$(MAKE) images-all-aws
-	@$(MAKE) operator-update-aws
+	@$(MAKE) operator-restart-aws
 	@eval $$(python3 ./manager/cluster_config_env.py ./dev/config/cluster-aws.yaml) && CORTEX_CLI_PATH="$$(pwd)/bin/cortex" ./build/test.sh e2e -p aws -e "$$CORTEX_CLUSTER_NAME-aws"
 test-e2e-gcp:
 	@$(MAKE) images-all-gcp
-	@$(MAKE) operator-update-gcp
+	@$(MAKE) operator-restart-gcp
 	@eval $$(python3 ./manager/cluster_config_env.py ./dev/config/cluster-gcp.yaml) && CORTEX_CLI_PATH="$$(pwd)/bin/cortex" ./build/test.sh e2e -p gcp -e "$$CORTEX_CLUSTER_NAME-gcp"
 
 # run e2e tests with new clusters
