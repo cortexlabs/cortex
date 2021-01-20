@@ -22,7 +22,6 @@ from typing import List, Dict, Any, Tuple, Callable, AbstractSet
 
 from cortex_internal.lib import util
 from cortex_internal.lib.type import PredictorType
-from cortex_internal.lib.log import logger
 from cortex_internal.lib.concurrency import ReadWriteLock
 from cortex_internal.lib.exceptions import CortexException, WithBreak
 from cortex_internal.lib.storage import S3, GCS
@@ -32,6 +31,10 @@ from cortex_internal.lib.model.validation import (
     validate_model_paths,
     ModelVersion,
 )
+
+from cortex_internal.lib.log import configure_logger
+
+logger = configure_logger("cortex", os.environ["CORTEX_LOG_CONFIG_FILE"])
 
 
 class ModelsTree:

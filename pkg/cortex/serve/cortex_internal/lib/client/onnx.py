@@ -26,7 +26,6 @@ except ImportError:
     onnx_dependencies_installed = False
 import numpy as np
 
-from cortex_internal.lib.log import logger
 from cortex_internal.lib import util
 from cortex_internal.lib.exceptions import (
     UserRuntimeException,
@@ -45,6 +44,9 @@ from cortex_internal.lib.model import (
 )
 from cortex_internal.lib.concurrency import LockedFile
 from cortex_internal import consts
+from cortex_internal.lib.log import configure_logger
+
+logger = configure_logger("cortex", os.environ["CORTEX_LOG_CONFIG_FILE"])
 
 
 class ONNXClient:

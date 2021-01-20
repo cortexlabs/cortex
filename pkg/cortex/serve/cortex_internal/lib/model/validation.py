@@ -21,7 +21,6 @@ from typing import List, Any, Tuple
 from fnmatch import fnmatchcase
 
 from cortex_internal.lib import util
-from cortex_internal.lib.log import logger
 from cortex_internal.lib.exceptions import CortexException
 from cortex_internal.lib.type import (
     PythonPredictorType,
@@ -30,6 +29,10 @@ from cortex_internal.lib.type import (
     ONNXPredictorType,
     PredictorType,
 )
+
+from cortex_internal.lib.log import configure_logger
+
+logger = configure_logger("cortex", os.environ["CORTEX_LOG_CONFIG_FILE"])
 
 
 class TemplatePlaceholder(collections.namedtuple("TemplatePlaceholder", "placeholder priority")):

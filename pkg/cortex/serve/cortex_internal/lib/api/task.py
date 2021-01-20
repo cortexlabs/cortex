@@ -17,8 +17,10 @@ import imp
 import inspect
 import dill
 
-from cortex_internal.lib.log import logger
 from cortex_internal.lib.exceptions import CortexException, UserException, UserRuntimeException
+from cortex_internal.lib.log import configure_logger
+
+logger = configure_logger("cortex", os.environ["CORTEX_LOG_CONFIG_FILE"])
 
 
 class TaskAPI:
