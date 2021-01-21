@@ -44,7 +44,7 @@ const (
 
 // constant requests per second
 const (
-	_requestInterval = 0 * time.Millisecond
+	_requestInterval = -1 * time.Millisecond
 	_maxInFlight     = 5
 )
 
