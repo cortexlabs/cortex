@@ -48,6 +48,11 @@ const (
 	_maxInFlight     = 5
 )
 
+// other options
+const (
+	_printSuccessDots = true
+)
+
 type Counter struct {
 	sync.Mutex
 	count int
@@ -209,7 +214,9 @@ func makeRequest(url string, jsonBytes []byte) {
 		return
 	}
 
-	fmt.Print(".")
+	if _printSuccessDots {
+		fmt.Print(".")
+	}
 }
 
 func mustReadJSONBytes(jsonPath string) []byte {
