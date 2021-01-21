@@ -155,17 +155,21 @@ operator-stop-gcp:
 operator-start-aws:
 	@$(MAKE) kubectl-aws
 	@kubectl scale --namespace=default deployments/operator --replicas=1
+	@operator_pod=$$(kubectl get pods -l workloadID=operator --namespace=default -o jsonpath='{.items[0].metadata.name}') && kubectl wait --for=condition=ready pod $$operator_pod --namespace=default
 operator-start-gcp:
 	@$(MAKE) kubectl-gcp
 	@kubectl scale --namespace=default deployments/operator --replicas=1
+	@operator_pod=$$(kubectl get pods -l workloadID=operator --namespace=default -o jsonpath='{.items[0].metadata.name}') && kubectl wait --for=condition=ready pod $$operator_pod --namespace=default
 
 # restart the in-cluster operator
 operator-restart-aws:
 	@$(MAKE) kubectl-aws
 	@kubectl delete pods -l workloadID=operator --namespace=default
+	@operator_pod=$$(kubectl get pods -l workloadID=operator --namespace=default -o jsonpath='{.items[0].metadata.name}') && kubectl wait --for=condition=ready pod $$operator_pod --namespace=default
 operator-restart-gcp:
 	@$(MAKE) kubectl-gcp
 	@kubectl delete pods -l workloadID=operator --namespace=default
+	@operator_pod=$$(kubectl get pods -l workloadID=operator -o jsonpath='{.items[0].metadata.name}') && kubectl wait --for=condition=ready pod $$operator_pod --namespace=default
 
 # build and update the in-cluster operator
 operator-update-aws:
@@ -173,11 +177,13 @@ operator-update-aws:
 	@kubectl scale --namespace=default deployments/operator --replicas=0
 	@./dev/registry.sh update-single operator -p aws
 	@kubectl scale --namespace=default deployments/operator --replicas=1
+	@operator_pod=$$(kubectl get pods -l workloadID=operator --namespace=default -o jsonpath='{.items[0].metadata.name}') && kubectl wait --for=condition=ready pod $$operator_pod --namespace=default
 operator-update-gcp:
 	@$(MAKE) kubectl-gcp
 	@kubectl scale --namespace=default deployments/operator --replicas=0
 	@./dev/registry.sh update-single operator -p gcp
 	@kubectl scale --namespace=default deployments/operator --replicas=1
+	@operator_pod=$$(kubectl get pods -l workloadID=operator --namespace=default -o jsonpath='{.items[0].metadata.name}') && kubectl wait --for=condition=ready pod $$operator_pod --namespace=default
 
 # Docker images
 
