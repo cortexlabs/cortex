@@ -4,7 +4,7 @@
     type: python
     path: predictor.py
     models:
-      dir: "s3://models.huggingface.co/bert/Helsinki-NLP/"
+      dir: s3://models.huggingface.co/bert/Helsinki-NLP/
       cache_size: 5
       disk_cache_size: 250
   compute:
