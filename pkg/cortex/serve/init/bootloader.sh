@@ -24,8 +24,13 @@ if [ "$CORTEX_VERSION" != "$EXPECTED_CORTEX_VERSION" ]; then
     exit 1
 fi
 
-# configure log level for python scripts
-/opt/conda/envs/env/bin/python -c "from cortex_internal.lib import util; import os; util.expand_environment_vars_on_file(os.environ['CORTEX_LOG_CONFIG_FILE'])"
+function substitute_env_vars() {
+    file_to_run_substitution=$1
+    /opt/conda/envs/env/bin/python -c "from cortex_internal.lib import util; import os; util.expand_environment_vars_on_file('$file_to_run_substitution')"
+}
+
+# configure log level for python scripts§
+substitute_env_vars $CORTEX_LOG_CONFIG_FILE
 
 mkdir -p /mnt/workspace
 mkdir -p /mnt/requests
@@ -123,43 +128,46 @@ fi
 
 # only terminate pod if this process exits with non-zero exit code
 create_s6_service() {
-    service_name=$1
-    cmd=$2
+    export SERVICE_NAME=$1
+    export COMMAND_TO_RUN=$2
 
-    dest_dir="/etc/services.d/$service_name"
+    dest_dir="/etc/services.d/$SERVICE_NAME"
     mkdir $dest_dir
 
     dest_script="$dest_dir/run"
-    echo "#!/usr/bin/with-contenv bash" > $dest_script
-    echo $cmd >> $dest_script
+    cp /src/cortex/serve/init/templates/run $dest_script
+    substitute_env_vars $dest_script
     chmod +x $dest_script
 
     dest_script="$dest_dir/finish"
-    echo "#!/usr/bin/execlineb -S0" > $dest_script
-    echo "ifelse { s6-test \${1} -ne 0 } { foreground { redirfd -w 1 /var/run/s6/env-stage3/S6_STAGE2_EXITED s6-echo -n -- \${1} } s6-svscanctl -t /var/run/s6/services }" >> $dest_script
-    echo "s6-svc -O /var/run/s6/services/$service_name" >> $dest_script
+    cp /src/cortex/serve/init/templates/service_finish $dest_script
+    substitute_env_vars $dest_script
     chmod +x $dest_script
+
+    unset SERVICE_NAME
+    unset COMMAND_TO_RUN
 }
 
 # terminate pod if this process exits (zero or non-zero exit code)
 create_s6_task() {
-    task_name=$1
-    cmd=$2
+    export TASK_NAME=$1
+    export COMMAND_TO_RUN=$2
 
-    dest_dir="/etc/services.d/$task_name"
+    dest_dir="/etc/services.d/$TASK_NAME"
     mkdir $dest_dir
 
     dest_script="$dest_dir/run"
-    echo "#!/usr/bin/with-contenv bash" > $dest_script
-    echo $cmd >> $dest_script
+    cp /src/cortex/serve/init/templates/run $dest_script
+    substitute_env_vars $dest_script
     chmod +x $dest_script
 
     dest_script="$dest_dir/finish"
-    echo "#!/usr/bin/execlineb -S0" > $dest_script
-    echo "ifelse { s6-test \${1} -ne 0 } { foreground { redirfd -w 1 /var/run/s6/env-stage3/S6_STAGE2_EXITED s6-echo -n -- \${1} } s6-svscanctl -t /var/run/s6/services }" >> $dest_script
-    echo "s6-svscanctl -t /var/run/s6/services" >> $dest_script
-
+    cp /src/cortex/serve/init/templates/task_finish $dest_script
+    substitute_env_vars $dest_script
     chmod +x $dest_script
+
+    unset TASK_NAME
+    unset COMMAND_TO_RUN
 }
 
 # prepare webserver
@@ -168,7 +176,7 @@ if [ "$CORTEX_KIND" = "RealtimeAPI" ]; then
     # prepare uvicorn workers
     mkdir /run/uvicorn
     for i in $(seq 1 $CORTEX_PROCESSES_PER_REPLICA); do
-        create_s6_service "uvicorn-$((i-1))" "cd /mnt/project && $source_env_file_cmd && exec env PYTHONUNBUFFERED=TRUE env PYTHONPATH=$PYTHONPATH:$CORTEX_PYTHON_PATH /opt/conda/envs/env/bin/python /src/cortex/serve/start/server.py /run/uvicorn/proc-$((i-1)).sock"
+        create_s6_service "uvicorn-$((i-1))" "cd /mnt/project && $source_env_file_cmd && PYTHONUNBUFFERED=TRUE PYTHONPATH=$PYTHONPATH:$CORTEX_PYTHON_PATH exec /opt/conda/envs/env/bin/python /src/cortex/serve/start/server.py /run/uvicorn/proc-$((i-1)).sock"
     done
 
     create_s6_service "nginx" "exec nginx -c /run/nginx.conf"
@@ -183,12 +191,12 @@ if [ "$CORTEX_KIND" = "RealtimeAPI" ]; then
     /opt/conda/envs/env/bin/python -c 'from cortex_internal.lib import util; import os; generated = util.render_jinja_template("/src/cortex/serve/nginx.conf.j2", os.environ); print(generated);' > /run/nginx.conf
 
     # create the python initialization service
-    create_s6_service "py_init" "cd /mnt/project && /opt/conda/envs/env/bin/python /src/cortex/serve/init/script.py"
+    create_s6_service "py_init" "cd /mnt/project && exec /opt/conda/envs/env/bin/python /src/cortex/serve/init/script.py"
 elif [ "$CORTEX_KIND" = "BatchAPI" ]; then
-    create_s6_task "batch" "cd /mnt/project && $source_env_file_cmd && PYTHONUNBUFFERED=TRUE PYTHONPATH=$PYTHONPATH:$CORTEX_PYTHON_PATH /opt/conda/envs/env/bin/python /src/cortex/serve/start/batch.py"
+    create_s6_task "job" "cd /mnt/project && $source_env_file_cmd && PYTHONUNBUFFERED=TRUE PYTHONPATH=$PYTHONPATH:$CORTEX_PYTHON_PATH exec /opt/conda/envs/env/bin/python /src/cortex/serve/start/batch.py"
 
     # create the python initialization service
     create_s6_service "py_init" "cd /mnt/project && /opt/conda/envs/env/bin/python /src/cortex/serve/init/script.py"
 elif [ "$CORTEX_KIND" = "TaskAPI" ]; then
-    create_s6_task "task" "cd /mnt/project && $source_env_file_cmd && PYTHONUNBUFFERED=TRUE PYTHONPATH=$PYTHONPATH:$CORTEX_PYTHON_PATH /opt/conda/envs/env/bin/python /src/cortex/serve/start/task.py"
+    create_s6_task "job" "cd /mnt/project && $source_env_file_cmd && PYTHONUNBUFFERED=TRUE PYTHONPATH=$PYTHONPATH:$CORTEX_PYTHON_PATH exec /opt/conda/envs/env/bin/python /src/cortex/serve/start/task.py"
 fi
