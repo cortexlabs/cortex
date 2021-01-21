@@ -35,7 +35,7 @@ import (
 
 const (
 	_clusterConfigPath   = "/configs/cluster/cluster.yaml"
-	DefaultPrometheusURL = "http://prometheus.default.svc.cluster.local"
+	DefaultPrometheusURL = "http://prometheus.default:9090"
 )
 
 var (
