@@ -84,22 +84,27 @@ func GetMetrics(api *spec.API) (*metrics.Metrics, error) {
 
 	err = parallel.RunFirstErr(
 		func() error {
+			var err error
 			reqCount, err = getRequestCountMetric(promAPIv1, api.Name)
 			return err
 		},
 		func() error {
+			var err error
 			avgLatency, err = getAvgLatencyMetric(promAPIv1, api.Name)
 			return err
 		},
 		func() error {
+			var err error
 			statusCodes2XX, err = getStatusCode2XXMetric(promAPIv1, api.Name)
 			return err
 		},
 		func() error {
+			var err error
 			statusCodes4XX, err = getStatusCode4XXMetric(promAPIv1, api.Name)
 			return err
 		},
 		func() error {
+			var err error
 			statusCodes5XX, err = getStatusCode5XXMetric(promAPIv1, api.Name)
 			return err
 		},
