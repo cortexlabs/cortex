@@ -1,5 +1,5 @@
 /*
-Copyright 2020 Cortex Labs, Inc.
+Copyright 2021 Cortex Labs, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -17,12 +17,16 @@ limitations under the License.
 package operator
 
 import (
+	"fmt"
+
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 )
 
 const (
 	ErrCortexInstallationBroken = "operator.cortex_installation_broken"
 	ErrLoadBalancerInitializing = "operator.load_balancer_initializing"
+	ErrInvalidOperatorLogLevel  = "operator.invalid_operator_log_level"
 )
 
 func ErrorCortexInstallationBroken() error {
@@ -36,5 +40,12 @@ func ErrorLoadBalancerInitializing() error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrLoadBalancerInitializing,
 		Message: "load balancer is still initializing",
+	})
+}
+
+func ErrorInvalidOperatorLogLevel(provided string, loglevels []string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrLoadBalancerInitializing,
+		Message: fmt.Sprintf("invalid operator log level %s; must be one of %s", provided, s.StrsOr(loglevels)),
 	})
 }

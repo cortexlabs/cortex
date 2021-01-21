@@ -1,0 +1,10 @@
+- name: document-denoiser
+  kind: RealtimeAPI
+  predictor:
+    type: python
+    path: predictor.py
+    config:
+      model: s3://cortex-examples/keras/document-denoiser/model.h5
+      resize_shape: [540, 260]
+  compute:
+    cpu: 1

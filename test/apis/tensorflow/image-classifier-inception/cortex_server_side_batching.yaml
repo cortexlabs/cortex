@@ -1,0 +1,14 @@
+- name: image-classifier-inception
+  kind: RealtimeAPI
+  predictor:
+    type: tensorflow
+    path: predictor.py
+    models:
+      path: s3://cortex-examples/tensorflow/image-classifier/inception/
+    server_side_batching:
+      max_batch_size: 2
+      batch_interval: 0.2s
+    threads_per_process: 2
+  compute:
+    cpu: 1
+    gpu: 1

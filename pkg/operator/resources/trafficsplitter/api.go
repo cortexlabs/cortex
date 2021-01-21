@@ -1,5 +1,5 @@
 /*
-Copyright 2020 Cortex Labs, Inc.
+Copyright 2021 Cortex Labs, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -24,6 +24,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/parallel"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
+	"github.com/cortexlabs/cortex/pkg/operator/lib/routines"
 	"github.com/cortexlabs/cortex/pkg/operator/operator"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
@@ -37,22 +38,19 @@ func UpdateAPI(apiConfig *userconfig.API, force bool) (*spec.API, string, error)
 		return nil, "", err
 	}
 
-	api := spec.GetAPISpec(apiConfig, "", "", config.Cluster.ClusterName)
+	api := spec.GetAPISpec(apiConfig, "", "", config.ClusterName())
 	if prevVirtualService == nil {
 		if err := config.AWS.UploadJSONToS3(api, config.Cluster.Bucket, api.Key); err != nil {
 			return nil, "", errors.Wrap(err, "upload api spec")
 		}
 
 		if err := applyK8sVirtualService(api, prevVirtualService); err != nil {
-			go deleteK8sResources(api.Name)
+			routines.RunWithPanicHandler(func() {
+				deleteK8sResources(api.Name)
+			})
 			return nil, "", err
 		}
 
-		err = operator.AddAPIToAPIGateway(*api.Networking.Endpoint, api.Networking.APIGateway)
-		if err != nil {
-			go deleteK8sResources(api.Name)
-			return nil, "", err
-		}
 		return api, fmt.Sprintf("created %s", api.Resource.UserString()), nil
 	}
 
@@ -65,9 +63,6 @@ func UpdateAPI(apiConfig *userconfig.API, force bool) (*spec.API, string, error)
 			return nil, "", err
 		}
 
-		if err := operator.UpdateAPIGatewayK8s(prevVirtualService, api); err != nil {
-			return nil, "", err
-		}
 		return api, fmt.Sprintf("updated %s", api.Resource.UserString()), nil
 	}
 
@@ -75,12 +70,7 @@ func UpdateAPI(apiConfig *userconfig.API, force bool) (*spec.API, string, error)
 }
 
 func DeleteAPI(apiName string, keepCache bool) error {
-	// best effort deletion, so don't handle error yet
-	virtualService, vsErr := config.K8s.GetVirtualService(operator.K8sName(apiName))
 	err := parallel.RunFirstErr(
-		func() error {
-			return vsErr
-		},
 		func() error {
 			return deleteK8sResources(apiName)
 		},
@@ -90,14 +80,6 @@ func DeleteAPI(apiName string, keepCache bool) error {
 			}
 			// best effort deletion
 			deleteS3Resources(apiName)
-			return nil
-		},
-		// delete API from API Gateway
-		func() error {
-			err := operator.RemoveAPIFromAPIGatewayK8s(virtualService)
-			if err != nil {
-				return err
-			}
 			return nil
 		},
 	)
@@ -190,6 +172,6 @@ func deleteK8sResources(apiName string) error {
 }
 
 func deleteS3Resources(apiName string) error {
-	prefix := filepath.Join(config.Cluster.ClusterName, "apis", apiName)
+	prefix := filepath.Join(config.ClusterName(), "apis", apiName)
 	return config.AWS.DeleteS3Dir(config.Cluster.Bucket, prefix, true)
 }

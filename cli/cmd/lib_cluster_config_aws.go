@@ -1,5 +1,5 @@
 /*
-Copyright 2020 Cortex Labs, Inc.
+Copyright 2021 Cortex Labs, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -70,7 +70,7 @@ func readCachedClusterConfigFile(clusterConfig *clusterconfig.Config, filePath s
 func readUserClusterConfigFile(clusterConfig *clusterconfig.Config) error {
 	errs := cr.ParseYAMLFile(clusterConfig, clusterconfig.UserValidation, _flagClusterConfig)
 	if errors.HasError(errs) {
-		return errors.Append(errors.FirstError(errs...), fmt.Sprintf("\n\ncluster configuration schema can be found here: https://docs.cortex.dev/v/%s/aws/install", consts.CortexVersionMinor))
+		return errors.Append(errors.FirstError(errs...), fmt.Sprintf("\n\ncluster configuration schema can be found at https://docs.cortex.dev/v/%s/", consts.CortexVersionMinor))
 	}
 
 	return nil
@@ -85,7 +85,7 @@ func getNewClusterAccessConfig(disallowPrompt bool) (*clusterconfig.AccessConfig
 	if _flagClusterConfig != "" {
 		errs := cr.ParseYAMLFile(accessConfig, clusterconfig.AccessValidation, _flagClusterConfig)
 		if errors.HasError(errs) {
-			return nil, errors.Append(errors.FirstError(errs...), fmt.Sprintf("\n\ncluster configuration schema can be found here: https://docs.cortex.dev/v/%s/aws/install", consts.CortexVersionMinor))
+			return nil, errors.Append(errors.FirstError(errs...), fmt.Sprintf("\n\ncluster configuration schema can be found at https://docs.cortex.dev/v/%s/", consts.CortexVersionMinor))
 		}
 	}
 
@@ -121,7 +121,7 @@ func getClusterAccessConfigWithCache(disallowPrompt bool) (*clusterconfig.Access
 	if _flagClusterConfig != "" {
 		errs := cr.ParseYAMLFile(accessConfig, clusterconfig.AccessValidation, _flagClusterConfig)
 		if errors.HasError(errs) {
-			return nil, errors.Append(errors.FirstError(errs...), fmt.Sprintf("\n\ncluster configuration schema can be found here: https://docs.cortex.dev/v/%s/aws/install", consts.CortexVersionMinor))
+			return nil, errors.Append(errors.FirstError(errs...), fmt.Sprintf("\n\ncluster configuration schema can be found at https://docs.cortex.dev/v/%s/", consts.CortexVersionMinor))
 		}
 	}
 
@@ -192,7 +192,7 @@ func getInstallClusterConfig(awsClient *aws.Client, awsCreds AWSCredentials, acc
 
 	err = clusterConfig.Validate(awsClient)
 	if err != nil {
-		err = errors.Append(err, fmt.Sprintf("\n\ncluster configuration schema can be found here: https://docs.cortex.dev/v/%s/aws/install", consts.CortexVersionMinor))
+		err = errors.Append(err, fmt.Sprintf("\n\ncluster configuration schema can be found at https://docs.cortex.dev/v/%s/", consts.CortexVersionMinor))
 		if _flagClusterConfig != "" {
 			err = errors.Wrap(err, _flagClusterConfig)
 		}
@@ -258,7 +258,7 @@ func getConfigureClusterConfig(cachedClusterConfig clusterconfig.Config, awsCred
 
 	err = userClusterConfig.Validate(awsClient)
 	if err != nil {
-		err = errors.Append(err, fmt.Sprintf("\n\ncluster configuration schema can be found here: https://docs.cortex.dev/v/%s/aws/install", consts.CortexVersionMinor))
+		err = errors.Append(err, fmt.Sprintf("\n\ncluster configuration schema can be found at https://docs.cortex.dev/v/%s/", consts.CortexVersionMinor))
 		if _flagClusterConfig != "" {
 			err = errors.Wrap(err, _flagClusterConfig)
 		}
@@ -288,10 +288,20 @@ func setConfigFieldsFromCached(userClusterConfig *clusterconfig.Config, cachedCl
 		return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.TagsKey, s.ObjFlat(cachedClusterConfig.Tags))
 	}
 
-	if len(userClusterConfig.AvailabilityZones) > 0 && !strset.New(userClusterConfig.AvailabilityZones...).IsEqual(strset.New(cachedClusterConfig.AvailabilityZones...)) {
-		return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.AvailabilityZonesKey, cachedClusterConfig.AvailabilityZones)
+	// The user doesn't have to specify AZs in their config
+	if len(userClusterConfig.AvailabilityZones) > 0 {
+		if !strset.New(userClusterConfig.AvailabilityZones...).IsEqual(strset.New(cachedClusterConfig.AvailabilityZones...)) {
+			return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.AvailabilityZonesKey, cachedClusterConfig.AvailabilityZones)
+		}
 	}
 	userClusterConfig.AvailabilityZones = cachedClusterConfig.AvailabilityZones
+
+	if len(userClusterConfig.Subnets) > 0 || len(cachedClusterConfig.Subnets) > 0 {
+		if !reflect.DeepEqual(userClusterConfig.Subnets, cachedClusterConfig.Subnets) {
+			return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.SubnetsKey, cachedClusterConfig.Subnets)
+		}
+	}
+	userClusterConfig.Subnets = cachedClusterConfig.Subnets
 
 	if s.Obj(cachedClusterConfig.SSLCertificateARN) != s.Obj(userClusterConfig.SSLCertificateARN) {
 		return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.SSLCertificateARNKey, cachedClusterConfig.SSLCertificateARN)
@@ -333,11 +343,6 @@ func setConfigFieldsFromCached(userClusterConfig *clusterconfig.Config, cachedCl
 	}
 	userClusterConfig.OperatorLoadBalancerScheme = cachedClusterConfig.OperatorLoadBalancerScheme
 
-	if userClusterConfig.APIGatewaySetting != cachedClusterConfig.APIGatewaySetting {
-		return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.APIGatewaySettingKey, cachedClusterConfig.APIGatewaySetting)
-	}
-	userClusterConfig.APIGatewaySetting = cachedClusterConfig.APIGatewaySetting
-
 	if s.Obj(cachedClusterConfig.VPCCIDR) != s.Obj(userClusterConfig.VPCCIDR) {
 		return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.VPCCIDRKey, cachedClusterConfig.VPCCIDR)
 	}
@@ -378,10 +383,10 @@ func setConfigFieldsFromCached(userClusterConfig *clusterconfig.Config, cachedCl
 	}
 	userClusterConfig.ImageNvidia = cachedClusterConfig.ImageNvidia
 
-	if s.Obj(cachedClusterConfig.ImageFluentd) != s.Obj(userClusterConfig.ImageFluentd) {
-		return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.ImageFluentdKey, cachedClusterConfig.ImageFluentd)
+	if s.Obj(cachedClusterConfig.ImageFluentBit) != s.Obj(userClusterConfig.ImageFluentBit) {
+		return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.ImageFluentBitKey, cachedClusterConfig.ImageFluentBit)
 	}
-	userClusterConfig.ImageFluentd = cachedClusterConfig.ImageFluentd
+	userClusterConfig.ImageFluentBit = cachedClusterConfig.ImageFluentBit
 
 	if s.Obj(cachedClusterConfig.ImageStatsd) != s.Obj(userClusterConfig.ImageStatsd) {
 		return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.ImageStatsdKey, cachedClusterConfig.ImageStatsd)
@@ -404,10 +409,7 @@ func setConfigFieldsFromCached(userClusterConfig *clusterconfig.Config, cachedCl
 	userClusterConfig.Spot = cachedClusterConfig.Spot
 
 	if userClusterConfig.Spot != nil && *userClusterConfig.Spot {
-		err := userClusterConfig.FillEmptySpotFields(awsClient)
-		if err != nil {
-			return err
-		}
+		userClusterConfig.FillEmptySpotFields()
 	}
 
 	if userClusterConfig.SpotConfig != nil && s.Obj(userClusterConfig.SpotConfig) != s.Obj(cachedClusterConfig.SpotConfig) {
@@ -493,7 +495,7 @@ func confirmInstallClusterConfig(clusterConfig *clusterconfig.Config, awsCreds A
 	workerPriceStr := s.DollarsMaxPrecision(apiInstancePrice) + " each"
 	isSpot := clusterConfig.Spot != nil && *clusterConfig.Spot
 	if isSpot {
-		spotPrice, err := awsClient.SpotInstancePrice(*clusterConfig.Region, *clusterConfig.InstanceType)
+		spotPrice, err := awsClient.SpotInstancePrice(*clusterConfig.InstanceType)
 		workerPriceStr += " (spot pricing unavailable)"
 		if err == nil && spotPrice != 0 {
 			workerPriceStr = fmt.Sprintf("%s - %s each (varies based on spot price)", s.DollarsMaxPrecision(spotPrice), s.DollarsMaxPrecision(apiInstancePrice))
@@ -541,24 +543,24 @@ func confirmInstallClusterConfig(clusterConfig *clusterconfig.Config, awsCreds A
 	}
 	fmt.Printf("cortex will also create an s3 bucket (%s) and a cloudwatch log group (%s)%s\n\n", clusterConfig.Bucket, clusterConfig.ClusterName, privateSubnetMsg)
 
-	if clusterConfig.APIGatewaySetting == clusterconfig.NoneAPIGatewaySetting {
-		fmt.Print(fmt.Sprintf("warning: you've disabled API Gateway cluster-wide, so APIs will not be able to create API Gateway endpoints (they will still be reachable via the API load balancer; see https://docs.cortex.dev/v/%s/aws/networking for more information)\n\n", consts.CortexVersionMinor))
+	if clusterConfig.OperatorLoadBalancerScheme == clusterconfig.InternalLoadBalancerScheme {
+		fmt.Print(fmt.Sprintf("warning: you've configured the operator load balancer to be internal; you must configure VPC Peering to connect your CLI to your cluster operator (see https://docs.cortex.dev/v/%s/)\n\n", consts.CortexVersionMinor))
 	}
 
-	if clusterConfig.OperatorLoadBalancerScheme == clusterconfig.InternalLoadBalancerScheme {
-		fmt.Print(fmt.Sprintf("warning: you've configured the operator load balancer to be internal; you must configure VPC Peering to connect your CLI to your cluster operator (see https://docs.cortex.dev/v/%s/aws/vpc-peering)\n\n", consts.CortexVersionMinor))
+	if len(clusterConfig.Subnets) > 0 {
+		fmt.Print("warning: you've configured your cluster to be installed in an existing VPC; if your cluster doesn't spin up or function as expected, please double-check your VPC configuration (here are the requirements: https://eksctl.io/usage/vpc-networking/#use-existing-vpc-other-custom-configuration)\n\n")
 	}
 
 	if isSpot && clusterConfig.SpotConfig.OnDemandBackup != nil && !*clusterConfig.SpotConfig.OnDemandBackup {
 		if *clusterConfig.SpotConfig.OnDemandBaseCapacity == 0 && *clusterConfig.SpotConfig.OnDemandPercentageAboveBaseCapacity == 0 {
-			fmt.Printf("warning: you've disabled on-demand instances (%s=0 and %s=0); spot instances are not guaranteed to be available so please take that into account for production clusters; see https://docs.cortex.dev/v/%s/aws/spot for more information\n\n", clusterconfig.OnDemandBaseCapacityKey, clusterconfig.OnDemandPercentageAboveBaseCapacityKey, consts.CortexVersionMinor)
+			fmt.Printf("warning: you've disabled on-demand instances (%s=0 and %s=0); spot instances are not guaranteed to be available so please take that into account for production clusters; see https://docs.cortex.dev/v/%s/ for more information\n\n", clusterconfig.OnDemandBaseCapacityKey, clusterconfig.OnDemandPercentageAboveBaseCapacityKey, consts.CortexVersionMinor)
 		} else {
-			fmt.Printf("warning: you've enabled spot instances; spot instances are not guaranteed to be available so please take that into account for production clusters; see https://docs.cortex.dev/v/%s/aws/spot for more information\n\n", consts.CortexVersionMinor)
+			fmt.Printf("warning: you've enabled spot instances; spot instances are not guaranteed to be available so please take that into account for production clusters; see https://docs.cortex.dev/v/%s/ for more information\n\n", consts.CortexVersionMinor)
 		}
 	}
 
 	if !disallowPrompt {
-		exitMessage := fmt.Sprintf("cluster configuration can be modified via the cluster config file; see https://docs.cortex.dev/v/%s/aws/install for more information", consts.CortexVersionMinor)
+		exitMessage := fmt.Sprintf("cluster configuration can be modified via the cluster config file; see https://docs.cortex.dev/v/%s/ for more information", consts.CortexVersionMinor)
 		prompt.YesOrExit("would you like to continue?", "", exitMessage)
 	}
 }
@@ -567,7 +569,7 @@ func confirmConfigureClusterConfig(clusterConfig clusterconfig.Config, awsCreds 
 	fmt.Println(clusterConfigConfirmationStr(clusterConfig, awsCreds, awsClient))
 
 	if !disallowPrompt {
-		exitMessage := fmt.Sprintf("cluster configuration can be modified via the cluster config file; see https://docs.cortex.dev/v/%s/aws/install for more information", consts.CortexVersionMinor)
+		exitMessage := fmt.Sprintf("cluster configuration can be modified via the cluster config file; see https://docs.cortex.dev/v/%s/ for more information", consts.CortexVersionMinor)
 		prompt.YesOrExit(fmt.Sprintf("your cluster named \"%s\" in %s will be updated according to the configuration above, are you sure you want to continue?", clusterConfig.ClusterName, *clusterConfig.Region), "", exitMessage)
 	}
 }
@@ -584,6 +586,9 @@ func clusterConfigConfirmationStr(clusterConfig clusterconfig.Config, awsCreds A
 	items.Add(clusterconfig.RegionUserKey, clusterConfig.Region)
 	if len(clusterConfig.AvailabilityZones) > 0 {
 		items.Add(clusterconfig.AvailabilityZonesUserKey, clusterConfig.AvailabilityZones)
+	}
+	for _, subnetConfig := range clusterConfig.Subnets {
+		items.Add("subnet in "+subnetConfig.AvailabilityZone, subnetConfig.SubnetID)
 	}
 	items.Add(clusterconfig.BucketUserKey, clusterConfig.Bucket)
 	items.Add(clusterconfig.ClusterNameUserKey, clusterConfig.ClusterName)
@@ -618,16 +623,13 @@ func clusterConfigConfirmationStr(clusterConfig clusterconfig.Config, awsCreds A
 	if clusterConfig.OperatorLoadBalancerScheme != defaultConfig.OperatorLoadBalancerScheme {
 		items.Add(clusterconfig.OperatorLoadBalancerSchemeUserKey, clusterConfig.OperatorLoadBalancerScheme)
 	}
-	if clusterConfig.APIGatewaySetting != defaultConfig.APIGatewaySetting {
-		items.Add(clusterconfig.APIGatewaySettingUserKey, clusterConfig.APIGatewaySetting)
-	}
 
 	if clusterConfig.Spot != nil && *clusterConfig.Spot != *defaultConfig.Spot {
 		items.Add(clusterconfig.SpotUserKey, s.YesNo(clusterConfig.Spot != nil && *clusterConfig.Spot))
 
 		if clusterConfig.SpotConfig != nil {
 			defaultSpotConfig := clusterconfig.SpotConfig{}
-			clusterconfig.AutoGenerateSpotConfig(awsClient, &defaultSpotConfig, *clusterConfig.Region, *clusterConfig.InstanceType)
+			clusterconfig.AutoGenerateSpotConfig(&defaultSpotConfig, *clusterConfig.Region, *clusterConfig.InstanceType)
 
 			if !strset.New(clusterConfig.SpotConfig.InstanceDistribution...).IsEqual(strset.New(defaultSpotConfig.InstanceDistribution...)) {
 				items.Add(clusterconfig.InstanceDistributionUserKey, clusterConfig.SpotConfig.InstanceDistribution)
@@ -689,8 +691,8 @@ func clusterConfigConfirmationStr(clusterConfig clusterconfig.Config, awsCreds A
 	if clusterConfig.ImageNvidia != defaultConfig.ImageNvidia {
 		items.Add(clusterconfig.ImageNvidiaUserKey, clusterConfig.ImageNvidia)
 	}
-	if clusterConfig.ImageFluentd != defaultConfig.ImageFluentd {
-		items.Add(clusterconfig.ImageFluentdUserKey, clusterConfig.ImageFluentd)
+	if clusterConfig.ImageFluentBit != defaultConfig.ImageFluentBit {
+		items.Add(clusterconfig.ImageFluentBitUserKey, clusterConfig.ImageFluentBit)
 	}
 	if clusterConfig.ImageStatsd != defaultConfig.ImageStatsd {
 		items.Add(clusterconfig.ImageStatsdUserKey, clusterConfig.ImageStatsd)

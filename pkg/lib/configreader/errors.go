@@ -1,5 +1,5 @@
 /*
-Copyright 2020 Cortex Labs, Inc.
+Copyright 2021 Cortex Labs, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -71,6 +71,7 @@ const (
 	ErrCortexResourceOnlyAllowed     = "configreader.cortex_resource_only_allowed"
 	ErrCortexResourceNotAllowed      = "configreader.cortex_resource_not_allowed"
 	ErrImageVersionMismatch          = "configreader.image_version_mismatch"
+	ErrFieldCantBeSpecified          = "configreader.field_cant_be_specified"
 )
 
 func ErrorParseConfig() error {
@@ -421,5 +422,16 @@ func ErrorImageVersionMismatch(image, tag, cortexVersion string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrImageVersionMismatch,
 		Message: fmt.Sprintf("the specified image (%s) has a tag (%s) which does not match your Cortex version (%s); please update the image tag, remove the image registry path from your configuration file (to use the default value), or update your CLI (pip install cortex==%s)", image, tag, cortexVersion, cortexVersion),
+	})
+}
+
+func ErrorFieldCantBeSpecified(errMsg string) error {
+	message := errMsg
+	if message == "" {
+		message = "cannot be specified"
+	}
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrFieldCantBeSpecified,
+		Message: message,
 	})
 }

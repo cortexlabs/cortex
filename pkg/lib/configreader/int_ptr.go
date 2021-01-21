@@ -1,5 +1,5 @@
 /*
-Copyright 2020 Cortex Labs, Inc.
+Copyright 2021 Cortex Labs, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -25,16 +25,17 @@ import (
 )
 
 type IntPtrValidation struct {
-	Required             bool
-	Default              *int
-	AllowExplicitNull    bool
-	AllowedValues        []int
-	DisallowedValues     []int
-	GreaterThan          *int
-	GreaterThanOrEqualTo *int
-	LessThan             *int
-	LessThanOrEqualTo    *int
-	Validator            func(int) (int, error)
+	Required              bool
+	Default               *int
+	AllowExplicitNull     bool
+	AllowedValues         []int
+	DisallowedValues      []int
+	CantBeSpecifiedErrStr *string
+	GreaterThan           *int
+	GreaterThanOrEqualTo  *int
+	LessThan              *int
+	LessThanOrEqualTo     *int
+	Validator             func(int) (int, error)
 }
 
 func makeIntValValidation(v *IntPtrValidation) *IntValidation {
@@ -173,6 +174,10 @@ func ValidateIntPtrMissing(v *IntPtrValidation) (*int, error) {
 }
 
 func ValidateIntPtrProvided(val *int, v *IntPtrValidation) (*int, error) {
+	if v.CantBeSpecifiedErrStr != nil {
+		return nil, ErrorFieldCantBeSpecified(*v.CantBeSpecifiedErrStr)
+	}
+
 	if !v.AllowExplicitNull && val == nil {
 		return nil, ErrorCannotBeNull(v.Required)
 	}

@@ -20,9 +20,8 @@ RUN cd /tmp/ && \
 ENV S6_BEHAVIOUR_IF_STAGE2_FAILS 2
 
 RUN locale-gen en_US.UTF-8
-ENV LANG=en_US.UTF-8 LANGUAGE=en_US.en LC_ALL=en_US.UTF-8
+ENV LANG=en_US.UTF-8 LANGUAGE=en_US.UTF-8 LC_ALL=en_US.UTF-8
 
-ENV PYTHONPATH="${PYTHONPATH}:/src"
 ENV PATH=/opt/conda/bin:$PATH
 ENV PYTHONVERSION=3.6.9
 
@@ -43,12 +42,13 @@ RUN /opt/conda/bin/conda create -n env -c conda-forge python=$PYTHONVERSION pip=
 ENV BASH_ENV=~/.env
 SHELL ["/bin/bash", "-c"]
 
-COPY pkg/workloads/cortex/serve/requirements.txt /src/cortex/serve/requirements.txt
-COPY pkg/workloads/cortex/serve/onnx-gpu.requirements.txt /src/cortex/serve/image.requirements.txt
-
-RUN pip install --no-cache-dir -r \
-    /src/cortex/serve/requirements.txt \
-    -r /src/cortex/serve/image.requirements.txt
+COPY pkg/cortex/serve/serve.requirements.txt /src/cortex/serve/serve.requirements.txt
+COPY pkg/cortex/serve/onnx-gpu.requirements.txt /src/cortex/serve/image.requirements.txt
+COPY pkg/cortex/serve/cortex_internal.requirements.txt /src/cortex/serve/cortex_internal.requirements.txt
+RUN pip install --no-cache-dir \
+    -r /src/cortex/serve/serve.requirements.txt \
+    -r /src/cortex/serve/image.requirements.txt \
+    -r /src/cortex/serve/cortex_internal.requirements.txt
 
 ARG SLIM="false"
 RUN test "${SLIM}" = "true" || ( \
@@ -74,10 +74,10 @@ RUN test "${SLIM}" = "true" || ( \
         && apt-get clean -qq && rm -rf /var/lib/apt/lists/* \
     )
 
-COPY pkg/workloads/cortex/consts.py /src/cortex
-COPY pkg/workloads/cortex/lib /src/cortex/lib
-COPY pkg/workloads/cortex/serve /src/cortex/serve
+COPY pkg/cortex/serve/ /src/cortex/serve
+ENV CORTEX_LOG_CONFIG_FILE /src/cortex/serve/log_config.yaml
 
+RUN pip install --no-deps /src/cortex/serve/
 RUN mv /src/cortex/serve/init/bootloader.sh /etc/cont-init.d/bootloader.sh
 
 ENTRYPOINT ["/init"]

@@ -1,5 +1,5 @@
 /*
-Copyright 2020 Cortex Labs, Inc.
+Copyright 2021 Cortex Labs, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -25,16 +25,17 @@ import (
 )
 
 type Int64PtrValidation struct {
-	Required             bool
-	Default              *int64
-	AllowExplicitNull    bool
-	AllowedValues        []int64
-	DisallowedValues     []int64
-	GreaterThan          *int64
-	GreaterThanOrEqualTo *int64
-	LessThan             *int64
-	LessThanOrEqualTo    *int64
-	Validator            func(int64) (int64, error)
+	Required              bool
+	Default               *int64
+	AllowExplicitNull     bool
+	AllowedValues         []int64
+	DisallowedValues      []int64
+	CantBeSpecifiedErrStr *string
+	GreaterThan           *int64
+	GreaterThanOrEqualTo  *int64
+	LessThan              *int64
+	LessThanOrEqualTo     *int64
+	Validator             func(int64) (int64, error)
 }
 
 func makeInt64ValValidation(v *Int64PtrValidation) *Int64Validation {
@@ -173,6 +174,10 @@ func ValidateInt64PtrMissing(v *Int64PtrValidation) (*int64, error) {
 }
 
 func ValidateInt64PtrProvided(val *int64, v *Int64PtrValidation) (*int64, error) {
+	if v.CantBeSpecifiedErrStr != nil {
+		return nil, ErrorFieldCantBeSpecified(*v.CantBeSpecifiedErrStr)
+	}
+
 	if !v.AllowExplicitNull && val == nil {
 		return nil, ErrorCannotBeNull(v.Required)
 	}

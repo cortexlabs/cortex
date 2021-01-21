@@ -1,5 +1,5 @@
 /*
-Copyright 2020 Cortex Labs, Inc.
+Copyright 2021 Cortex Labs, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -17,34 +17,37 @@ limitations under the License.
 package main
 
 import (
-	"log"
 	"net/http"
 	"time"
 
 	"github.com/cortexlabs/cortex/pkg/lib/cron"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
-	"github.com/cortexlabs/cortex/pkg/lib/exit"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 	"github.com/cortexlabs/cortex/pkg/operator/endpoints"
+	"github.com/cortexlabs/cortex/pkg/operator/lib/exit"
+	"github.com/cortexlabs/cortex/pkg/operator/lib/logging"
 	"github.com/cortexlabs/cortex/pkg/operator/operator"
-	"github.com/cortexlabs/cortex/pkg/operator/resources/batchapi"
+	"github.com/cortexlabs/cortex/pkg/operator/resources/job/batchapi"
+	"github.com/cortexlabs/cortex/pkg/operator/resources/job/taskapi"
 	"github.com/cortexlabs/cortex/pkg/operator/resources/realtimeapi"
 	"github.com/cortexlabs/cortex/pkg/types"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	"github.com/gorilla/mux"
 )
 
+var operatorLogger = logging.GetOperatorLogger()
+
 const _operatorPortStr = "8888"
 
 func main() {
 	if err := config.Init(); err != nil {
-		exit.Error(err)
+		exit.ErrorNoTelemetry(errors.Wrap(err, "init"))
 	}
 
 	telemetry.Event("operator.init", map[string]interface{}{"provider": config.Provider})
 
-	cron.Run(operator.DeleteEvictedPods, operator.ErrorHandler("delete evicted pods"), 12*time.Hour)
+	cron.Run(operator.DeleteEvictedPods, operator.ErrorHandler("delete evicted pods"), time.Hour)
 
 	switch config.Provider {
 	case types.AWSProviderType:
@@ -66,14 +69,21 @@ func main() {
 
 		for _, deployment := range deployments {
 			if userconfig.KindFromString(deployment.Labels["apiKind"]) == userconfig.RealtimeAPIKind {
-				if err := realtimeapi.UpdateAutoscalerCron(&deployment); err != nil {
+				apiID := deployment.Labels["apiID"]
+				apiName := deployment.Labels["apiName"]
+				api, err := operator.DownloadAPISpec(apiName, apiID)
+				if err != nil {
 					exit.Error(errors.Wrap(err, "init"))
+				}
+				if err := realtimeapi.UpdateAutoscalerCron(&deployment, api); err != nil {
+					operatorLogger.Fatal(errors.Wrap(err, "init"))
 				}
 			}
 		}
 
-		cron.Run(batchapi.ManageJobResources, operator.ErrorHandler("manage jobs"), batchapi.ManageJobResourcesCronPeriod)
+		cron.Run(batchapi.ManageJobResources, operator.ErrorHandler("manage batch jobs"), batchapi.ManageJobResourcesCronPeriod)
 	}
+	cron.Run(taskapi.ManageJobResources, operator.ErrorHandler("manage task jobs"), taskapi.ManageJobResourcesCronPeriod)
 
 	router := mux.NewRouter()
 
@@ -82,10 +92,13 @@ func main() {
 	routerWithoutAuth.HandleFunc("/verifycortex", endpoints.VerifyCortex).Methods("GET")
 
 	if config.Provider == types.AWSProviderType {
-		routerWithoutAuth.HandleFunc("/batch/{apiName}", endpoints.SubmitJob).Methods("POST")
-		routerWithoutAuth.HandleFunc("/batch/{apiName}", endpoints.GetJob).Methods("GET")
-		routerWithoutAuth.HandleFunc("/batch/{apiName}", endpoints.StopJob).Methods("DELETE")
+		routerWithoutAuth.HandleFunc("/batch/{apiName}", endpoints.SubmitBatchJob).Methods("POST")
+		routerWithoutAuth.HandleFunc("/batch/{apiName}", endpoints.GetBatchJob).Methods("GET")
+		routerWithoutAuth.HandleFunc("/batch/{apiName}", endpoints.StopBatchJob).Methods("DELETE")
 	}
+	routerWithoutAuth.HandleFunc("/tasks/{apiName}", endpoints.SubmitTaskJob).Methods("POST")
+	routerWithoutAuth.HandleFunc("/tasks/{apiName}", endpoints.GetTaskJob).Methods("GET")
+	routerWithoutAuth.HandleFunc("/tasks/{apiName}", endpoints.StopTaskJob).Methods("DELETE")
 
 	routerWithAuth := router.NewRoute().Subrouter()
 
@@ -104,6 +117,6 @@ func main() {
 	routerWithAuth.HandleFunc("/get/{apiName}/{apiID}", endpoints.GetAPIByID).Methods("GET")
 	routerWithAuth.HandleFunc("/logs/{apiName}", endpoints.ReadLogs)
 
-	log.Print("Running on port " + _operatorPortStr)
-	log.Fatal(http.ListenAndServe(":"+_operatorPortStr, router))
+	operatorLogger.Info("Running on port " + _operatorPortStr)
+	operatorLogger.Fatal(http.ListenAndServe(":"+_operatorPortStr, router))
 }

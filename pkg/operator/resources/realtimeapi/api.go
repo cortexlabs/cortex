@@ -1,5 +1,5 @@
 /*
-Copyright 2020 Cortex Labs, Inc.
+Copyright 2021 Cortex Labs, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -26,6 +26,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/parallel"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
+	"github.com/cortexlabs/cortex/pkg/operator/lib/routines"
 	"github.com/cortexlabs/cortex/pkg/operator/operator"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
 	"github.com/cortexlabs/cortex/pkg/types"
@@ -67,17 +68,14 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string, force bool) (*spec.A
 		}
 
 		if err := applyK8sResources(api, prevDeployment, prevService, prevVirtualService); err != nil {
-			go deleteK8sResources(api.Name)
+			routines.RunWithPanicHandler(func() {
+				deleteK8sResources(api.Name)
+			})
 			return nil, "", err
 		}
 
 		if config.Provider == types.AWSProviderType {
-			err = operator.AddAPIToAPIGateway(*api.Networking.Endpoint, api.Networking.APIGateway)
-			if err != nil {
-				go deleteK8sResources(api.Name)
-				return nil, "", err
-			}
-			err = addAPIToDashboard(config.Cluster.ClusterName, api.Name)
+			err = addAPIToDashboard(config.ClusterName(), api.Name)
 			if err != nil {
 				errors.PrintError(err)
 			}
@@ -106,11 +104,6 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string, force bool) (*spec.A
 
 		if err := applyK8sResources(api, prevDeployment, prevService, prevVirtualService); err != nil {
 			return nil, "", err
-		}
-		if config.Provider == types.AWSProviderType {
-			if err := operator.UpdateAPIGatewayK8s(prevVirtualService, api); err != nil {
-				return nil, "", err
-			}
 		}
 		return api, fmt.Sprintf("updating %s", api.Resource.UserString()), nil
 	}
@@ -172,13 +165,7 @@ func RefreshAPI(apiName string, force bool) (string, error) {
 }
 
 func DeleteAPI(apiName string, keepCache bool) error {
-	// best effort deletion, so don't handle error yet
-	virtualService, vsErr := config.K8s.GetVirtualService(operator.K8sName(apiName))
-
 	err := parallel.RunFirstErr(
-		func() error {
-			return vsErr
-		},
 		func() error {
 			return deleteK8sResources(apiName)
 		},
@@ -188,13 +175,6 @@ func DeleteAPI(apiName string, keepCache bool) error {
 			}
 			// best effort deletion, swallow errors because there could be weird error messages
 			deleteBucketResources(apiName)
-			return nil
-		},
-		// delete API from API Gateway
-		func() error {
-			if config.Provider == types.AWSProviderType {
-				return operator.RemoveAPIFromAPIGatewayK8s(virtualService)
-			}
 			return nil
 		},
 		// delete api from cloudwatch dashboard
@@ -209,7 +189,7 @@ func DeleteAPI(apiName string, keepCache bool) error {
 				for i, virtualService := range virtualServices {
 					allAPINames[i] = virtualService.Labels["apiName"]
 				}
-				err = removeAPIFromDashboard(allAPINames, config.Cluster.ClusterName, apiName)
+				err = removeAPIFromDashboard(allAPINames, config.ClusterName(), apiName)
 				if err != nil {
 					return errors.Wrap(err, "failed to delete API from dashboard")
 				}
@@ -373,7 +353,7 @@ func applyK8sDeployment(api *spec.API, prevDeployment *kapps.Deployment) error {
 	}
 
 	if config.Provider == types.AWSProviderType {
-		if err := UpdateAutoscalerCron(newDeployment); err != nil {
+		if err := UpdateAutoscalerCron(newDeployment, api); err != nil {
 			return err
 		}
 	}
@@ -381,14 +361,14 @@ func applyK8sDeployment(api *spec.API, prevDeployment *kapps.Deployment) error {
 	return nil
 }
 
-func UpdateAutoscalerCron(deployment *kapps.Deployment) error {
+func UpdateAutoscalerCron(deployment *kapps.Deployment, apiSpec *spec.API) error {
 	apiName := deployment.Labels["apiName"]
 
 	if prevAutoscalerCron, ok := _autoscalerCrons[apiName]; ok {
 		prevAutoscalerCron.Cancel()
 	}
 
-	autoscaler, err := autoscaleFn(deployment)
+	autoscaler, err := autoscaleFn(deployment, apiSpec)
 	if err != nil {
 		return err
 	}

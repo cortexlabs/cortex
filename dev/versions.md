@@ -179,7 +179,7 @@ Note: it's ok if example training notebooks aren't upgraded, as long as the expo
 ## Python packages
 
 1. Update versions in `images/python-predictor-*/Dockerfile`, `images/tensorflow-predictor/Dockerfile`, and `images/onnx-predictor-*/Dockerfile`
-1. Update versions in `pkg/workloads/cortex/serve/*requirements.txt` and `pkg/workloads/cortex/downloader/requirements.txt`
+1. Update versions in `pkg/cortex/serve/*requirements.txt` and `pkg/cortex/downloader/requirements.txt`
 1. Update the versions listed in "Pre-installed packages" in `realtime-api/predictors.md` and `batch-api/predictors.md`
     * look at the diff carefully since some packages are not shown, and e.g. `tensorflow-cpu` -> `tensorflow`
     * be careful not to update any of the versions for Inferentia that are not latest in `images/python-predictor-inf/Dockerfile`
@@ -235,12 +235,11 @@ Note: overriding horizontal-pod-autoscaler-sync-period on EKS is currently not s
 1. In the [GitHub Repo](https://github.com/kubernetes/autoscaler/blob/master/cluster-autoscaler/cloudprovider/aws), set the tree to the tag for the chosen release, and open `cloudprovider/aws/examples/cluster-autoscaler-autodiscover.yaml` (e.g. <https://github.com/kubernetes/autoscaler/blob/cluster-autoscaler-1.16.5/cluster-autoscaler/cloudprovider/aws/examples/cluster-autoscaler-autodiscover.yaml>)
 1. Resolve merge conflicts with the template in `manager/manifests/cluster-autoscaler.yaml.j2`
 
-## Fluentd
+## FluentBit
 
-1. Find the latest release on [Dockerhub](https://hub.docker.com/r/fluent/fluentd-kubernetes-daemonset/)
-1. Update the base image version in `images/fluentd/Dockerfile`
-1. Update record-modifier in `images/fluentd/Dockerfile` to the latest version [here](https://github.com/repeatedly/fluent-plugin-record-modifier/blob/master/VERSION)
-1. Update `fluentd.yaml` as necessary (make sure to maintain all Cortex environment variables)
+1. Find the latest release on [Dockerhub](https://hub.docker.com/r/amazon/aws-for-fluent-bit/tags?page=1&ordering=last_updated)
+1. Update the base image version in `images/fluent-bit/Dockerfile`
+1. Update `fluent-bit.yaml` as necessary (make sure to maintain all Cortex environment variables)
 
 ## Statsd
 
@@ -248,7 +247,7 @@ Note: overriding horizontal-pod-autoscaler-sync-period on EKS is currently not s
 1. Update the version in `images/statsd/Dockerfile`
 1. In this [GitHub Repo](https://github.com/aws-samples/amazon-cloudwatch-container-insights), set the tree to `master` and open [k8s-yaml-templates/cwagent-statsd/cwagent-statsd-daemonset.yaml](https://github.com/aws-samples/amazon-cloudwatch-container-insights/blob/master/k8s-yaml-templates/cwagent-statsd/cwagent-statsd-daemonset.yaml) and [k8s-yaml-templates/cwagent-statsd/cwagent-statsd-configmap.yaml](https://github.com/aws-samples/amazon-cloudwatch-container-insights/blob/master/k8s-yaml-templates/cwagent-statsd/cwagent-statsd-configmap.yaml)
 1. Update `statsd.yaml` as necessary (this wasn't copy-pasted, so you may need to check the diff intelligently)
-1. Update the datadog client version in `pkg/workloads/cortex/serve/requirements.txt`
+1. Update the datadog client version in `pkg/cortex/serve/requirements.txt`
 
 ## aws-iam-authenticator
 
@@ -258,7 +257,7 @@ Note: overriding horizontal-pod-autoscaler-sync-period on EKS is currently not s
 ## kubectl
 
 1. Find the latest release [here](https://storage.googleapis.com/kubernetes-release/release/stable.txt)
-1. Update the version in `images/manager/Dockerfile`
+1. Update the version in `images/manager/Dockerfile` and `images/operator/Dockerfile`
 1. Update your local version and alert developers
    * Linux:
      1. `curl -LO https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl`

@@ -1,5 +1,5 @@
 /*
-Copyright 2020 Cortex Labs, Inc.
+Copyright 2021 Cortex Labs, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -65,16 +65,31 @@ func GetAPIByID(operatorConfig OperatorConfig, apiName string, apiID string) ([]
 	return apiRes, nil
 }
 
-func GetJob(operatorConfig OperatorConfig, apiName string, jobID string) (schema.JobResponse, error) {
+func GetBatchJob(operatorConfig OperatorConfig, apiName string, jobID string) (schema.BatchJobResponse, error) {
 	endpoint := path.Join("/batch", apiName)
 	httpRes, err := HTTPGet(operatorConfig, endpoint, map[string]string{"jobID": jobID})
 	if err != nil {
-		return schema.JobResponse{}, err
+		return schema.BatchJobResponse{}, err
 	}
 
-	var jobRes schema.JobResponse
+	var jobRes schema.BatchJobResponse
 	if err = json.Unmarshal(httpRes, &jobRes); err != nil {
-		return schema.JobResponse{}, errors.Wrap(err, endpoint, string(httpRes))
+		return schema.BatchJobResponse{}, errors.Wrap(err, endpoint, string(httpRes))
+	}
+
+	return jobRes, nil
+}
+
+func GetTaskJob(operatorConfig OperatorConfig, apiName string, jobID string) (schema.TaskJobResponse, error) {
+	endpoint := path.Join("/tasks", apiName)
+	httpRes, err := HTTPGet(operatorConfig, endpoint, map[string]string{"jobID": jobID})
+	if err != nil {
+		return schema.TaskJobResponse{}, err
+	}
+
+	var jobRes schema.TaskJobResponse
+	if err = json.Unmarshal(httpRes, &jobRes); err != nil {
+		return schema.TaskJobResponse{}, errors.Wrap(err, endpoint, string(httpRes))
 	}
 
 	return jobRes, nil

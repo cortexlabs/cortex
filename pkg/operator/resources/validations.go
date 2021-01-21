@@ -1,5 +1,5 @@
 /*
-Copyright 2020 Cortex Labs, Inc.
+Copyright 2021 Cortex Labs, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -29,7 +29,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 	"github.com/cortexlabs/cortex/pkg/operator/operator"
 	"github.com/cortexlabs/cortex/pkg/types"
-	"github.com/cortexlabs/cortex/pkg/types/clusterconfig"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	istioclientnetworking "istio.io/client-go/pkg/apis/networking/v1beta1"
@@ -41,11 +40,11 @@ type ProjectFiles struct {
 }
 
 func (projectFiles ProjectFiles) AllPaths() []string {
-	files := make([]string, 0, len(projectFiles.ProjectByteMap))
+	pFiles := make([]string, 0, len(projectFiles.ProjectByteMap))
 	for path := range projectFiles.ProjectByteMap {
-		files = append(files, path)
+		pFiles = append(pFiles, path)
 	}
-	return files
+	return pFiles
 }
 
 func (projectFiles ProjectFiles) GetFile(path string) ([]byte, error) {
@@ -71,11 +70,6 @@ func (projectFiles ProjectFiles) HasDir(path string) bool {
 	return false
 }
 
-// This should not be called, since it's only relevant for the local environment
-func (projectFiles ProjectFiles) ProjectDir() string {
-	return "./"
-}
-
 func ValidateClusterAPIs(apis []userconfig.API, projectFiles spec.ProjectFiles) error {
 	if len(apis) == 0 {
 		return spec.ErrorNoAPIs()
@@ -94,28 +88,21 @@ func ValidateClusterAPIs(apis []userconfig.API, projectFiles spec.ProjectFiles) 
 		}
 	}
 
-	didPrintWarning := false
-
 	realtimeAPIs := InclusiveFilterAPIsByKind(apis, userconfig.RealtimeAPIKind)
 
 	for i := range apis {
 		api := &apis[i]
-		if api.Kind == userconfig.RealtimeAPIKind || api.Kind == userconfig.BatchAPIKind {
+		if api.Kind == userconfig.RealtimeAPIKind || api.Kind == userconfig.BatchAPIKind || api.Kind == userconfig.TaskAPIKind {
 			if err := spec.ValidateAPI(api, nil, projectFiles, config.Provider, config.AWS, config.GCP, config.K8s); err != nil {
 				return errors.Wrap(err, api.Identify())
 			}
 			if err := validateK8s(api, virtualServices, maxMem); err != nil {
 				return errors.Wrap(err, api.Identify())
 			}
-
-			if !didPrintWarning && api.Networking.LocalPort != nil {
-				fmt.Println(fmt.Sprintf("warning: %s will be ignored because it is not supported in an environment using aws provider\n", userconfig.LocalPortKey))
-				didPrintWarning = true
-			}
 		}
 
 		if api.Kind == userconfig.TrafficSplitterKind {
-			if err := spec.ValidateTrafficSplitter(api, config.Provider, config.AWS); err != nil {
+			if err := spec.ValidateTrafficSplitter(api); err != nil {
 				return errors.Wrap(err, api.Identify())
 			}
 			if err := checkIfAPIExists(api.APIs, realtimeAPIs, deployedRealtimeAPIs); err != nil {
@@ -124,10 +111,6 @@ func ValidateClusterAPIs(apis []userconfig.API, projectFiles spec.ProjectFiles) 
 			if err := validateEndpointCollisions(api, virtualServices); err != nil {
 				return errors.Wrap(err, api.Identify())
 			}
-		}
-
-		if config.Provider == types.AWSProviderType && api.Networking.APIGateway != userconfig.NoneAPIGatewayType && config.Cluster.APIGatewaySetting == clusterconfig.NoneAPIGatewaySetting {
-			return errors.Wrap(ErrorAPIGatewayDisabled(api.Networking.APIGateway), api.Identify(), userconfig.NetworkingKey, userconfig.APIGatewayKey)
 		}
 	}
 
@@ -158,22 +141,22 @@ func validateK8s(api *userconfig.API, virtualServices []istioclientnetworking.Vi
 /*
 CPU Reservations:
 
-FluentD 200
+FluentBit 100
 StatsD 100
 KubeProxy 100
 AWS cni 10
 Reserved (150 + 150) see eks.yaml for details
 */
-var _cortexCPUReserve = kresource.MustParse("710m")
+var _cortexCPUReserve = kresource.MustParse("610m")
 
 /*
 Memory Reservations:
 
-FluentD 200
+FluentBit 150
 StatsD 100
 Reserved (300 + 300 + 200) see eks.yaml for details
 */
-var _cortexMemReserve = kresource.MustParse("1100Mi")
+var _cortexMemReserve = kresource.MustParse("1050Mi")
 
 var _nvidiaCPUReserve = kresource.MustParse("100m")
 var _nvidiaMemReserve = kresource.MustParse("100Mi")

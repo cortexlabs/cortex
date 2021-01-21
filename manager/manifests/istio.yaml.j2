@@ -1,4 +1,4 @@
-# Copyright 2020 Cortex Labs, Inc.
+# Copyright 2021 Cortex Labs, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -47,6 +47,9 @@ spec:
             {% if config.get('operator_load_balancer_scheme') == 'internal' %}
             service.beta.kubernetes.io/aws-load-balancer-internal: "true"
             {% endif %}
+          {% elif env['CORTEX_PROVIDER'] == "gcp" and config.get('operator_load_balancer_scheme') == 'internal' %}
+          serviceAnnotations:
+            cloud.google.com/load-balancer-type: "Internal"
           {% endif %}
           service:
             type: LoadBalancer
@@ -106,6 +109,9 @@ spec:
             {% if config.get('ssl_certificate_arn', '') != '' %}
             service.beta.kubernetes.io/aws-load-balancer-ssl-cert: "{{ config['ssl_certificate_arn'] }}"
             {% endif %}
+          {% elif env['CORTEX_PROVIDER'] == "gcp" and config.get('api_load_balancer_scheme') == 'internal' %}
+          serviceAnnotations:
+            cloud.google.com/load-balancer-type: "Internal"
           {% endif %}
           service:
             type: LoadBalancer

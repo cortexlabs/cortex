@@ -1,0 +1,11 @@
+- name: mpg-estimator
+  kind: RealtimeAPI
+  predictor:
+    type: python
+    path: predictor.py
+    multi_model_reloading:
+      paths:
+        - name: mpg-estimator
+          path: s3://cortex-examples/sklearn/mpg-estimator/linreg/
+      cache_size: 1
+      disk_cache_size: 2

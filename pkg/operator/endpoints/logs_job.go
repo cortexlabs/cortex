@@ -1,5 +1,5 @@
 /*
-Copyright 2020 Cortex Labs, Inc.
+Copyright 2021 Cortex Labs, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -19,9 +19,8 @@ package endpoints
 import (
 	"net/http"
 
+	"github.com/cortexlabs/cortex/pkg/operator/operator"
 	"github.com/cortexlabs/cortex/pkg/operator/resources"
-	"github.com/cortexlabs/cortex/pkg/operator/resources/batchapi"
-	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
@@ -40,8 +39,8 @@ func ReadJobLogs(w http.ResponseWriter, r *http.Request) {
 		respondError(w, r, err)
 		return
 	}
-	if deployedResource.Kind != userconfig.BatchAPIKind {
-		respondError(w, r, resources.ErrorOperationIsOnlySupportedForKind(*deployedResource, userconfig.BatchAPIKind))
+	if deployedResource.Kind != userconfig.BatchAPIKind && deployedResource.Kind != userconfig.TaskAPIKind {
+		respondError(w, r, resources.ErrorOperationIsOnlySupportedForKind(*deployedResource, userconfig.BatchAPIKind, userconfig.TaskAPIKind))
 		return
 	}
 
@@ -53,8 +52,5 @@ func ReadJobLogs(w http.ResponseWriter, r *http.Request) {
 	}
 	defer socket.Close()
 
-	batchapi.ReadLogs(spec.JobKey{
-		APIName: deployedResource.Name,
-		ID:      jobID,
-	}, socket)
+	operator.StreamLogsFromRandomPod(map[string]string{"apiName": apiName, "jobID": jobID}, socket)
 }

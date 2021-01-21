@@ -1,5 +1,5 @@
 /*
-Copyright 2020 Cortex Labs, Inc.
+Copyright 2021 Cortex Labs, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -37,10 +37,11 @@ import (
 )
 
 type StructFieldValidation struct {
-	Key              string                        // Required, defaults to json key or "StructField"
-	StructField      string                        // Required
-	DefaultField     string                        // Optional. Will set the default to the runtime value of this field
-	DefaultFieldFunc func(interface{}) interface{} // Optional. Will call the func with the value of DefaultField
+	Key                        string                          // Required, defaults to json key or "StructField"
+	StructField                string                          // Required
+	DefaultField               string                          // Optional. Will set the default to the runtime value of this field
+	DefaultDependentFields     []string                        // Optional. Will be passed in to DefaultDependentFieldsFunc. Dependent fields must be listed first in the `[]*cr.StructFieldValidation`.
+	DefaultDependentFieldsFunc func([]interface{}) interface{} // Optional. Will be called with DefaultDependentFields
 
 	// Provide one of the following:
 	StringValidation              *StringValidation
@@ -84,16 +85,21 @@ type StructValidation struct {
 	AllowExplicitNull      bool
 	TreatNullAsEmpty       bool // If explicit null or if it's top level and the file is empty, treat as empty map
 	DefaultNil             bool // If this struct is nested and its key is not defined, set it to nil instead of defaults or erroring (e.g. if any subfields are required)
+	CantBeSpecifiedErrStr  *string
 	ShortCircuit           bool
 	AllowExtraFields       bool
 }
 
 type StructListValidation struct {
-	StructValidation  *StructValidation
-	Required          bool
-	AllowExplicitNull bool
-	TreatNullAsEmpty  bool // If explicit null or if it's top level and the file is empty, treat as empty map
-	ShortCircuit      bool
+	StructValidation      *StructValidation
+	Required              bool
+	AllowExplicitNull     bool
+	TreatNullAsEmpty      bool // If explicit null or if it's top level and the file is empty, treat as empty map
+	MinLength             int
+	MaxLength             int
+	InvalidLengths        []int
+	CantBeSpecifiedErrStr *string
+	ShortCircuit          bool
 }
 
 type InterfaceStructValidation struct {
@@ -105,6 +111,7 @@ type InterfaceStructValidation struct {
 	Required                   bool
 	AllowExplicitNull          bool
 	TreatNullAsEmpty           bool // If explicit null or if it's top level and the file is empty, treat as empty map
+	CantBeSpecifiedErrStr      *string
 	ShortCircuit               bool
 	AllowExtraFields           bool
 }
@@ -119,6 +126,7 @@ type InterfaceStructListValidation struct {
 	Required                  bool
 	AllowExplicitNull         bool
 	TreatNullAsEmpty          bool // If explicit null or if it's top level and the file is empty, treat as empty map
+	CantBeSpecifiedErrStr     *string
 	ShortCircuit              bool
 }
 
@@ -280,7 +288,9 @@ func Struct(dest interface{}, inter interface{}, v *StructValidation) []error {
 			updateValidation(&validation, dest, structFieldValidation)
 			nestedType := reflect.ValueOf(dest).Elem().FieldByName(structFieldValidation.StructField).Type()
 			interMapVal, ok := ReadInterfaceMapValue(key, interMap)
-			if !ok && validation.Required {
+			if ok && validation.CantBeSpecifiedErrStr != nil {
+				err = errors.Wrap(ErrorFieldCantBeSpecified(*validation.CantBeSpecifiedErrStr), key)
+			} else if !ok && validation.Required {
 				err = errors.Wrap(ErrorMustBeDefined(), key)
 			} else if !ok && validation.DefaultNil {
 				val = nil
@@ -301,7 +311,9 @@ func Struct(dest interface{}, inter interface{}, v *StructValidation) []error {
 			updateValidation(&validation, dest, structFieldValidation)
 			nestedType := reflect.ValueOf(dest).Elem().FieldByName(structFieldValidation.StructField).Type()
 			interMapVal, ok := ReadInterfaceMapValue(key, interMap)
-			if !ok && validation.Required {
+			if ok && validation.CantBeSpecifiedErrStr != nil {
+				err = errors.Wrap(ErrorFieldCantBeSpecified(*validation.CantBeSpecifiedErrStr), key)
+			} else if !ok && validation.Required {
 				err = errors.Wrap(ErrorMustBeDefined(), key)
 			} else {
 				val = reflect.Indirect(reflect.New(nestedType)).Interface()
@@ -313,7 +325,9 @@ func Struct(dest interface{}, inter interface{}, v *StructValidation) []error {
 			validation := *structFieldValidation.InterfaceStructValidation
 			updateValidation(&validation, dest, structFieldValidation)
 			interMapVal, ok := ReadInterfaceMapValue(key, interMap)
-			if !ok && validation.Required {
+			if ok && validation.CantBeSpecifiedErrStr != nil {
+				err = errors.Wrap(ErrorFieldCantBeSpecified(*validation.CantBeSpecifiedErrStr), key)
+			} else if !ok && validation.Required {
 				err = errors.Wrap(ErrorMustBeDefined(), key)
 			} else {
 				val, errs = InterfaceStruct(interMapVal, &validation)
@@ -325,7 +339,9 @@ func Struct(dest interface{}, inter interface{}, v *StructValidation) []error {
 			updateValidation(&validation, dest, structFieldValidation)
 			nestedType := reflect.ValueOf(dest).Elem().FieldByName(structFieldValidation.StructField).Type()
 			interMapVal, ok := ReadInterfaceMapValue(key, interMap)
-			if !ok && validation.Required {
+			if ok && validation.CantBeSpecifiedErrStr != nil {
+				err = errors.Wrap(ErrorFieldCantBeSpecified(*validation.CantBeSpecifiedErrStr), key)
+			} else if !ok && validation.Required {
 				err = errors.Wrap(ErrorMustBeDefined(), key)
 			} else {
 				val = reflect.Indirect(reflect.New(nestedType)).Interface()
@@ -385,6 +401,22 @@ func StructList(dest interface{}, inter interface{}, v *StructListValidation) (i
 	interSlice, ok := cast.InterfaceToInterfaceSlice(inter)
 	if !ok {
 		return nil, []error{ErrorInvalidPrimitiveType(inter, PrimTypeList)}
+	}
+
+	if v.MinLength != 0 {
+		if len(interSlice) < v.MinLength {
+			return nil, []error{ErrorTooFewElements(v.MinLength)}
+		}
+	}
+	if v.MaxLength != 0 {
+		if len(interSlice) > v.MaxLength {
+			return nil, []error{ErrorTooManyElements(v.MaxLength)}
+		}
+	}
+	for _, invalidLength := range v.InvalidLengths {
+		if len(interSlice) == invalidLength {
+			return nil, []error{ErrorWrongNumberOfElements(v.InvalidLengths)}
+		}
 	}
 
 	errs := []error{}
@@ -526,10 +558,14 @@ func InterfaceStructList(dest interface{}, inter interface{}, v *InterfaceStruct
 func updateValidation(validation interface{}, dest interface{}, structFieldValidation *StructFieldValidation) {
 	if structFieldValidation.DefaultField != "" {
 		runtimeVal := reflect.ValueOf(dest).Elem().FieldByName(structFieldValidation.DefaultField).Interface()
-		if structFieldValidation.DefaultFieldFunc != nil {
-			runtimeVal = structFieldValidation.DefaultFieldFunc(runtimeVal)
-		}
 		setField(runtimeVal, validation, "Default")
+	} else if structFieldValidation.DefaultDependentFieldsFunc != nil {
+		runtimeVals := make([]interface{}, len(structFieldValidation.DefaultDependentFields))
+		for i, fieldName := range structFieldValidation.DefaultDependentFields {
+			runtimeVals[i] = reflect.ValueOf(dest).Elem().FieldByName(fieldName).Interface()
+		}
+		val := structFieldValidation.DefaultDependentFieldsFunc(runtimeVals)
+		setField(val, validation, "Default")
 	}
 }
 
@@ -591,7 +627,7 @@ func ReadPrompt(dest interface{}, promptValidation *PromptValidation) error {
 			v := reflect.ValueOf(dest).Elem().FieldByName(promptItemValidation.StructField)
 			if !v.IsZero() {
 				if promptItemValidation.StringValidation != nil && promptItemValidation.Parser == nil {
-					if _, err := ValidateString(v.Interface().(string), promptItemValidation.StringValidation); err != nil {
+					if _, err := ValidateStringProvided(v.Interface().(string), promptItemValidation.StringValidation); err != nil {
 						return errors.Wrap(err, inferPromptFieldName(reflect.TypeOf(dest), promptItemValidation.StructField))
 					}
 				} else if promptItemValidation.StringPtrValidation != nil && promptItemValidation.Parser == nil {
@@ -599,7 +635,7 @@ func ReadPrompt(dest interface{}, promptValidation *PromptValidation) error {
 						return errors.Wrap(err, inferPromptFieldName(reflect.TypeOf(dest), promptItemValidation.StructField))
 					}
 				} else if promptItemValidation.BoolValidation != nil {
-					if _, err := ValidateBool(v.Interface().(bool), promptItemValidation.BoolValidation); err != nil {
+					if _, err := ValidateBoolProvided(v.Interface().(bool), promptItemValidation.BoolValidation); err != nil {
 						return errors.Wrap(err, inferPromptFieldName(reflect.TypeOf(dest), promptItemValidation.StructField))
 					}
 				} else if promptItemValidation.BoolPtrValidation != nil {
@@ -607,7 +643,7 @@ func ReadPrompt(dest interface{}, promptValidation *PromptValidation) error {
 						return errors.Wrap(err, inferPromptFieldName(reflect.TypeOf(dest), promptItemValidation.StructField))
 					}
 				} else if promptItemValidation.IntValidation != nil {
-					if _, err := ValidateInt(v.Interface().(int), promptItemValidation.IntValidation); err != nil {
+					if _, err := ValidateIntProvided(v.Interface().(int), promptItemValidation.IntValidation); err != nil {
 						return errors.Wrap(err, inferPromptFieldName(reflect.TypeOf(dest), promptItemValidation.StructField))
 					}
 				} else if promptItemValidation.IntPtrValidation != nil {
@@ -615,7 +651,7 @@ func ReadPrompt(dest interface{}, promptValidation *PromptValidation) error {
 						return errors.Wrap(err, inferPromptFieldName(reflect.TypeOf(dest), promptItemValidation.StructField))
 					}
 				} else if promptItemValidation.Int32Validation != nil {
-					if _, err := ValidateInt32(v.Interface().(int32), promptItemValidation.Int32Validation); err != nil {
+					if _, err := ValidateInt32Provided(v.Interface().(int32), promptItemValidation.Int32Validation); err != nil {
 						return errors.Wrap(err, inferPromptFieldName(reflect.TypeOf(dest), promptItemValidation.StructField))
 					}
 				} else if promptItemValidation.Int32PtrValidation != nil {
@@ -623,7 +659,7 @@ func ReadPrompt(dest interface{}, promptValidation *PromptValidation) error {
 						return errors.Wrap(err, inferPromptFieldName(reflect.TypeOf(dest), promptItemValidation.StructField))
 					}
 				} else if promptItemValidation.Int64Validation != nil {
-					if _, err := ValidateInt64(v.Interface().(int64), promptItemValidation.Int64Validation); err != nil {
+					if _, err := ValidateInt64Provided(v.Interface().(int64), promptItemValidation.Int64Validation); err != nil {
 						return errors.Wrap(err, inferPromptFieldName(reflect.TypeOf(dest), promptItemValidation.StructField))
 					}
 				} else if promptItemValidation.Int64PtrValidation != nil {
@@ -631,7 +667,7 @@ func ReadPrompt(dest interface{}, promptValidation *PromptValidation) error {
 						return errors.Wrap(err, inferPromptFieldName(reflect.TypeOf(dest), promptItemValidation.StructField))
 					}
 				} else if promptItemValidation.Float32Validation != nil {
-					if _, err := ValidateFloat32(v.Interface().(float32), promptItemValidation.Float32Validation); err != nil {
+					if _, err := ValidateFloat32Provided(v.Interface().(float32), promptItemValidation.Float32Validation); err != nil {
 						return errors.Wrap(err, inferPromptFieldName(reflect.TypeOf(dest), promptItemValidation.StructField))
 					}
 				} else if promptItemValidation.Float32PtrValidation != nil {
@@ -639,7 +675,7 @@ func ReadPrompt(dest interface{}, promptValidation *PromptValidation) error {
 						return errors.Wrap(err, inferPromptFieldName(reflect.TypeOf(dest), promptItemValidation.StructField))
 					}
 				} else if promptItemValidation.Float64Validation != nil {
-					if _, err := ValidateFloat64(v.Interface().(float64), promptItemValidation.Float64Validation); err != nil {
+					if _, err := ValidateFloat64Provided(v.Interface().(float64), promptItemValidation.Float64Validation); err != nil {
 						return errors.Wrap(err, inferPromptFieldName(reflect.TypeOf(dest), promptItemValidation.StructField))
 					}
 				} else if promptItemValidation.Float64PtrValidation != nil {
@@ -1094,11 +1130,24 @@ func setField(val interface{}, destStruct interface{}, fieldName string) error {
 		debug.Ppg(destStruct)
 		return errors.Wrap(ErrorCannotSetStructField(), fieldName)
 	}
+
+	if val == nil {
+		// Check for nil-able types
+		if v.Kind() == reflect.Chan || v.Kind() == reflect.Func || v.Kind() == reflect.Interface || v.Kind() == reflect.Map || v.Kind() == reflect.Ptr || v.Kind() == reflect.Slice {
+			v.Set(reflect.Zero(v.Type()))
+			return nil
+		}
+		debug.Ppg(val)
+		debug.Ppg(destStruct)
+		return errors.Wrap(ErrorCannotSetStructField(), fieldName)
+	}
+
 	if !reflect.ValueOf(val).Type().AssignableTo(v.Type()) {
 		debug.Ppg(val)
 		debug.Ppg(destStruct)
 		return errors.Wrap(ErrorCannotSetStructField(), fieldName)
 	}
+
 	v.Set(reflect.ValueOf(val))
 	return nil
 }

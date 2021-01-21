@@ -1,0 +1,7 @@
+- name: trainer
+  kind: TaskAPI
+  definition:
+    path: task.py
+  compute:
+    cpu: 200m
+    mem: 500Mi

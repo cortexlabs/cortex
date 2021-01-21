@@ -1,5 +1,5 @@
 /*
-Copyright 2020 Cortex Labs, Inc.
+Copyright 2021 Cortex Labs, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -22,14 +22,15 @@ import (
 )
 
 type StringMapValidation struct {
-	Required             bool
-	Default              map[string]string
-	AllowExplicitNull    bool
-	AllowEmpty           bool
-	ConvertNullToEmpty   bool
-	KeyStringValidator   *StringValidation
-	ValueStringValidator *StringValidation
-	Validator            func(map[string]string) (map[string]string, error)
+	Required              bool
+	Default               map[string]string
+	AllowExplicitNull     bool
+	AllowEmpty            bool
+	ConvertNullToEmpty    bool
+	CantBeSpecifiedErrStr *string
+	KeyStringValidator    *StringValidation
+	ValueStringValidator  *StringValidation
+	Validator             func(map[string]string) (map[string]string, error)
 }
 
 func StringMap(inter interface{}, v *StringMapValidation) (map[string]string, error) {
@@ -64,6 +65,10 @@ func ValidateStringMapMissing(v *StringMapValidation) (map[string]string, error)
 }
 
 func ValidateStringMapProvided(val map[string]string, v *StringMapValidation) (map[string]string, error) {
+	if v.CantBeSpecifiedErrStr != nil {
+		return nil, ErrorFieldCantBeSpecified(*v.CantBeSpecifiedErrStr)
+	}
+
 	if !v.AllowExplicitNull && val == nil {
 		return nil, ErrorCannotBeNull(v.Required)
 	}

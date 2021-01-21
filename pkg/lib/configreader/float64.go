@@ -1,5 +1,5 @@
 /*
-Copyright 2020 Cortex Labs, Inc.
+Copyright 2021 Cortex Labs, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -27,22 +27,23 @@ import (
 )
 
 type Float64Validation struct {
-	Required             bool
-	Default              float64
-	TreatNullAsZero      bool // `<field>: ` and `<field>: null` will be read as `<field>: 0.0`
-	AllowedValues        []float64
-	DisallowedValues     []float64
-	GreaterThan          *float64
-	GreaterThanOrEqualTo *float64
-	LessThan             *float64
-	LessThanOrEqualTo    *float64
-	Validator            func(float64) (float64, error)
+	Required              bool
+	Default               float64
+	TreatNullAsZero       bool // `<field>: ` and `<field>: null` will be read as `<field>: 0.0`
+	AllowedValues         []float64
+	DisallowedValues      []float64
+	CantBeSpecifiedErrStr *string
+	GreaterThan           *float64
+	GreaterThanOrEqualTo  *float64
+	LessThan              *float64
+	LessThanOrEqualTo     *float64
+	Validator             func(float64) (float64, error)
 }
 
 func Float64(inter interface{}, v *Float64Validation) (float64, error) {
 	if inter == nil {
 		if v.TreatNullAsZero {
-			return ValidateFloat64(0, v)
+			return ValidateFloat64Provided(0, v)
 		}
 		return 0, ErrorCannotBeNull(v.Required)
 	}
@@ -50,7 +51,7 @@ func Float64(inter interface{}, v *Float64Validation) (float64, error) {
 	if !castOk {
 		return 0, ErrorInvalidPrimitiveType(inter, PrimTypeFloat)
 	}
-	return ValidateFloat64(casted, v)
+	return ValidateFloat64Provided(casted, v)
 }
 
 func Float64FromInterfaceMap(key string, iMap map[string]interface{}, v *Float64Validation) (float64, error) {
@@ -93,7 +94,7 @@ func Float64FromStr(valStr string, v *Float64Validation) (float64, error) {
 	if !castOk {
 		return 0, ErrorInvalidPrimitiveType(valStr, PrimTypeFloat)
 	}
-	return ValidateFloat64(casted, v)
+	return ValidateFloat64Provided(casted, v)
 }
 
 func Float64FromEnv(envVarName string, v *Float64Validation) (float64, error) {
@@ -161,10 +162,17 @@ func ValidateFloat64Missing(v *Float64Validation) (float64, error) {
 	if v.Required {
 		return 0, ErrorMustBeDefined(v.AllowedValues)
 	}
-	return ValidateFloat64(v.Default, v)
+	return validateFloat64(v.Default, v)
 }
 
-func ValidateFloat64(val float64, v *Float64Validation) (float64, error) {
+func ValidateFloat64Provided(val float64, v *Float64Validation) (float64, error) {
+	if v.CantBeSpecifiedErrStr != nil {
+		return 0, ErrorFieldCantBeSpecified(*v.CantBeSpecifiedErrStr)
+	}
+	return validateFloat64(val, v)
+}
+
+func validateFloat64(val float64, v *Float64Validation) (float64, error) {
 	err := ValidateFloat64Val(val, v)
 	if err != nil {
 		return 0, err

@@ -1,5 +1,5 @@
 /*
-Copyright 2020 Cortex Labs, Inc.
+Copyright 2021 Cortex Labs, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -27,6 +27,7 @@ type StringListValidation struct {
 	Default                []string
 	AllowExplicitNull      bool
 	AllowEmpty             bool
+	CantBeSpecifiedErrStr  *string
 	CastSingleItem         bool
 	DisallowDups           bool
 	MinLength              int
@@ -77,6 +78,10 @@ func ValidateStringListMissing(v *StringListValidation) ([]string, error) {
 }
 
 func ValidateStringListProvided(val []string, v *StringListValidation) ([]string, error) {
+	if v.CantBeSpecifiedErrStr != nil {
+		return nil, ErrorFieldCantBeSpecified(*v.CantBeSpecifiedErrStr)
+	}
+
 	if !v.AllowExplicitNull && val == nil {
 		return nil, ErrorCannotBeNull(v.Required)
 	}

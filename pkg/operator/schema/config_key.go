@@ -1,5 +1,5 @@
 /*
-Copyright 2020 Cortex Labs, Inc.
+Copyright 2021 Cortex Labs, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -18,13 +18,17 @@ package schema
 
 const (
 	// Job Submission
-	BatchSizeKey      = "batch_size"
-	ItemsKey          = "items"
-	ItemListKey       = "item_list"
-	FilePathListerKey = "file_path_lister"
-	DelimitedFilesKey = "delimited_files"
-	S3PathsKey        = "s3_paths"
-	IncludesKey       = "includes"
-	ExcludesKey       = "excludes"
-	WorkersKey        = "workers"
+	BatchSizeKey          = "batch_size"
+	ItemsKey              = "items"
+	ItemListKey           = "item_list"
+	FilePathListerKey     = "file_path_lister"
+	DelimitedFilesKey     = "delimited_files"
+	S3PathsKey            = "s3_paths"
+	IncludesKey           = "includes"
+	ExcludesKey           = "excludes"
+	WorkersKey            = "workers"
+	TimeoutKey            = "timeout"
+	MaxReceiveCountKey    = "max_receive_count"
+	ARNKey                = "arn"
+	SQSDeadLetterQueueKey = "sqs_dead_letter_queue"
 )

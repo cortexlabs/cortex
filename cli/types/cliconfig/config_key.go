@@ -1,5 +1,5 @@
 /*
-Copyright 2020 Cortex Labs, Inc.
+Copyright 2021 Cortex Labs, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -24,5 +24,4 @@ const (
 	OperatorEndpointKey   = "operator_endpoint"
 	AWSAccessKeyIDKey     = "aws_access_key_id"
 	AWSSecretAccessKeyKey = "aws_secret_access_key"
-	AWSRegionKey          = "aws_region"
 )

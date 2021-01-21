@@ -1,5 +1,5 @@
 /*
-Copyright 2020 Cortex Labs, Inc.
+Copyright 2021 Cortex Labs, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -49,7 +49,7 @@ func trafficSplitterTable(trafficSplitter schema.APIResponse, env cliconfig.Envi
 	out += t.MustFormat()
 
 	out += "\n" + console.Bold("last updated: ") + libtime.SinceStr(&lastUpdated)
-	out += "\n" + console.Bold("endpoint: ") + trafficSplitter.Endpoint
+	out += "\n" + console.Bold("endpoint: ") + trafficSplitter.Endpoint + "\n"
 
 	out += "\n" + apiHistoryTable(trafficSplitter.APIVersions)
 

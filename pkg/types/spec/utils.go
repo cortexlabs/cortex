@@ -1,5 +1,5 @@
 /*
-Copyright 2020 Cortex Labs, Inc.
+Copyright 2021 Cortex Labs, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -21,6 +21,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
@@ -85,19 +86,30 @@ func surgeOrUnavailableValidator(str string) (string, error) {
 	return str, nil
 }
 
-func getErrorForPredictorType(api userconfig.API, modelPrefix string, modelPaths []string) error {
-	switch api.Predictor.Type {
-	case userconfig.PythonPredictorType:
-		return ErrorInvalidPythonModelPath(modelPrefix, modelPaths)
-	case userconfig.ONNXPredictorType:
-		return ErrorInvalidONNXModelPath(modelPrefix, modelPaths)
-	case userconfig.TensorFlowPredictorType:
-		return ErrorInvalidTensorFlowModelPath(modelPrefix, api.Compute.Inf > 0, modelPaths)
+type errorForPredictorTypeFn func(string, []string) error
+
+func generateErrorForPredictorTypeFn(api *userconfig.API) errorForPredictorTypeFn {
+	return func(modelPrefix string, modelPaths []string) error {
+		switch api.Predictor.Type {
+		case userconfig.PythonPredictorType:
+			return ErrorInvalidPythonModelPath(modelPrefix, modelPaths)
+		case userconfig.ONNXPredictorType:
+			return ErrorInvalidONNXModelPath(modelPrefix, modelPaths)
+		case userconfig.TensorFlowPredictorType:
+			return ErrorInvalidTensorFlowModelPath(modelPrefix, api.Compute.Inf > 0, modelPaths)
+		}
+		return nil
 	}
-	return nil
 }
 
-func validateDirModels(modelPath string, api userconfig.API, projectDir string, awsClient *aws.Client, gcpClient *gcp.Client, extraValidators []modelValidator) ([]CuratedModelResource, error) {
+func validateDirModels(
+	modelPath string,
+	signatureKey *string,
+	awsClient *aws.Client,
+	gcpClient *gcp.Client,
+	errorForPredictorType errorForPredictorTypeFn,
+	extraValidators []modelValidator) ([]CuratedModelResource, error) {
+
 	var bucket string
 	var dirPrefix string
 	var modelDirPaths []string
@@ -107,7 +119,6 @@ func validateDirModels(modelPath string, api userconfig.API, projectDir string, 
 
 	s3Path := strings.HasPrefix(modelPath, "s3://")
 	gcsPath := strings.HasPrefix(modelPath, "gs://")
-	localPath := !s3Path && !gcsPath
 
 	if s3Path {
 		awsClientForBucket, err := aws.NewFromClientS3Path(modelPath, awsClient)
@@ -132,27 +143,14 @@ func validateDirModels(modelPath string, api userconfig.API, projectDir string, 
 			return nil, err
 		}
 
-		modelDirPaths, err = gcpClient.ListGCSPathDir(modelPath, nil)
+		gcsObjects, err := gcpClient.ListGCSPathDir(modelPath, nil)
 		if err != nil {
 			return nil, err
 		}
-	}
-	if localPath {
-		expandedLocalPath := files.RelToAbsPath(modelPath, projectDir)
-		dirPrefix = s.EnsureSuffix(expandedLocalPath, "/")
-
-		err := files.CheckDir(dirPrefix)
-		if err != nil {
-			return nil, err
-		}
-
-		modelDirPaths, err = files.ListDirRecursive(dirPrefix, false, nil...)
-		if err != nil {
-			return nil, err
-		}
+		modelDirPaths = gcp.ConvertGCSObjectsToKeys(gcsObjects...)
 	}
 	if len(modelDirPaths) == 0 {
-		return nil, getErrorForPredictorType(api, dirPrefix, modelDirPaths)
+		return nil, errorForPredictorType(dirPrefix, modelDirPaths)
 	}
 
 	modelNames := []string{}
@@ -165,12 +163,17 @@ func validateDirModels(modelPath string, api userconfig.API, projectDir string, 
 
 	modelResources := make([]CuratedModelResource, len(modelNames))
 	for i, modelName := range modelNames {
+		modelNameWrapStr := modelName
+		if modelName == consts.SingleModelName {
+			modelNameWrapStr = ""
+		}
+
 		modelPrefix := filepath.Join(dirPrefix, modelName)
 		modelPrefix = s.EnsureSuffix(modelPrefix, "/")
 
 		modelStructureType := determineBaseModelStructure(modelDirPaths, modelPrefix)
 		if modelStructureType == userconfig.UnknownModelStructureType {
-			return nil, errors.Wrap(getErrorForPredictorType(api, modelPrefix, nil), modelName)
+			return nil, errors.Wrap(errorForPredictorType(modelPrefix, nil), modelNameWrapStr)
 		}
 
 		var versions []string
@@ -183,7 +186,7 @@ func validateDirModels(modelPath string, api userconfig.API, projectDir string, 
 				for _, validator := range extraValidators {
 					err := validator(modelDirPaths, modelPrefix, pointer.String(versionedModelPrefix))
 					if err != nil {
-						return nil, errors.Wrap(err, modelName)
+						return nil, errors.Wrap(err, modelNameWrapStr)
 					}
 				}
 			}
@@ -191,14 +194,14 @@ func validateDirModels(modelPath string, api userconfig.API, projectDir string, 
 			for _, validator := range extraValidators {
 				err := validator(modelDirPaths, modelPrefix, nil)
 				if err != nil {
-					return nil, errors.Wrap(err, modelName)
+					return nil, errors.Wrap(err, modelNameWrapStr)
 				}
 			}
 		}
 
 		intVersions, err := slices.StringToInt64(versions)
 		if err != nil {
-			return nil, errors.Wrap(err, modelName)
+			return nil, errors.Wrap(err, modelNameWrapStr)
 		}
 
 		fullModelPath := ""
@@ -208,27 +211,30 @@ func validateDirModels(modelPath string, api userconfig.API, projectDir string, 
 		if gcsPath {
 			fullModelPath = s.EnsureSuffix(gcp.GCSPath(bucket, modelPrefix), "/")
 		}
-		if localPath {
-			fullModelPath = s.EnsureSuffix(modelPrefix, "/")
-		}
 
 		modelResources[i] = CuratedModelResource{
 			ModelResource: &userconfig.ModelResource{
 				Name:         modelName,
-				ModelPath:    fullModelPath,
-				SignatureKey: api.Predictor.SignatureKey,
+				Path:         fullModelPath,
+				SignatureKey: signatureKey,
 			},
-			S3Path:    s3Path,
-			GCSPath:   gcsPath,
-			LocalPath: localPath,
-			Versions:  intVersions,
+			S3Path:   s3Path,
+			GCSPath:  gcsPath,
+			Versions: intVersions,
 		}
 	}
 
 	return modelResources, nil
 }
 
-func validateModels(models []userconfig.ModelResource, api userconfig.API, projectDir string, awsClient *aws.Client, gcpClient *gcp.Client, extraValidators []modelValidator) ([]CuratedModelResource, error) {
+func validateModels(
+	models []userconfig.ModelResource,
+	defaultSignatureKey *string,
+	awsClient *aws.Client,
+	gcpClient *gcp.Client,
+	errorForPredictorType errorForPredictorTypeFn,
+	extraValidators []modelValidator) ([]CuratedModelResource, error) {
+
 	var bucket string
 	var modelPrefix string
 	var modelPaths []string
@@ -236,65 +242,54 @@ func validateModels(models []userconfig.ModelResource, api userconfig.API, proje
 
 	modelResources := make([]CuratedModelResource, len(models))
 	for i, model := range models {
-		modelPath := s.EnsureSuffix(model.ModelPath, "/")
+		modelNameWrapStr := model.Name
+		if model.Name == consts.SingleModelName {
+			modelNameWrapStr = ""
+		}
 
-		s3Path := strings.HasPrefix(model.ModelPath, "s3://")
-		gcsPath := strings.HasPrefix(model.ModelPath, "gs://")
-		localPath := !s3Path && !gcsPath
+		modelPath := s.EnsureSuffix(model.Path, "/")
+
+		s3Path := strings.HasPrefix(model.Path, "s3://")
+		gcsPath := strings.HasPrefix(model.Path, "gs://")
 
 		if s3Path {
-			awsClientForBucket, err := aws.NewFromClientS3Path(model.ModelPath, awsClient)
+			awsClientForBucket, err := aws.NewFromClientS3Path(model.Path, awsClient)
 			if err != nil {
-				return nil, errors.Wrap(err, model.Name)
+				return nil, errors.Wrap(err, modelNameWrapStr)
 			}
 
-			bucket, modelPrefix, err = aws.SplitS3Path(model.ModelPath)
+			bucket, modelPrefix, err = aws.SplitS3Path(model.Path)
 			if err != nil {
-				return nil, errors.Wrap(err, model.Name)
+				return nil, errors.Wrap(err, modelNameWrapStr)
 			}
 			modelPrefix = s.EnsureSuffix(modelPrefix, "/")
 
 			s3Objects, err := awsClientForBucket.ListS3PathDir(modelPath, false, nil)
 			if err != nil {
-				return nil, errors.Wrap(err, model.Name)
+				return nil, errors.Wrap(err, modelNameWrapStr)
 			}
 			modelPaths = aws.ConvertS3ObjectsToKeys(s3Objects...)
 		}
-
 		if gcsPath {
-			bucket, modelPrefix, err = gcp.SplitGCSPath(model.ModelPath)
+			bucket, modelPrefix, err = gcp.SplitGCSPath(model.Path)
 			if err != nil {
-				return nil, errors.Wrap(err, model.Name)
+				return nil, errors.Wrap(err, modelNameWrapStr)
 			}
 			modelPrefix = s.EnsureSuffix(modelPrefix, "/")
 
-			modelPaths, err = gcpClient.ListGCSPathDir(modelPath, nil)
+			gcsObjects, err := gcpClient.ListGCSPathDir(modelPath, nil)
 			if err != nil {
-				return nil, errors.Wrap(err, model.Name)
+				return nil, errors.Wrap(err, modelNameWrapStr)
 			}
-		}
-
-		if localPath {
-			expandedLocalPath := files.RelToAbsPath(model.ModelPath, projectDir)
-			modelPrefix = s.EnsureSuffix(expandedLocalPath, "/")
-
-			err := files.CheckDir(modelPrefix)
-			if err != nil {
-				return nil, errors.Wrap(err, model.Name)
-			}
-
-			modelPaths, err = files.ListDirRecursive(modelPrefix, false, nil...)
-			if err != nil {
-				return nil, errors.Wrap(err, model.Name)
-			}
+			modelPaths = gcp.ConvertGCSObjectsToKeys(gcsObjects...)
 		}
 		if len(modelPaths) == 0 {
-			return nil, errors.Wrap(getErrorForPredictorType(api, modelPrefix, modelPaths), model.Name)
+			return nil, errors.Wrap(errorForPredictorType(modelPrefix, modelPaths), modelNameWrapStr)
 		}
 
 		modelStructureType := determineBaseModelStructure(modelPaths, modelPrefix)
 		if modelStructureType == userconfig.UnknownModelStructureType {
-			return nil, errors.Wrap(ErrorInvalidPythonModelPath(modelPath, []string{}), model.Name)
+			return nil, errors.Wrap(ErrorInvalidPythonModelPath(modelPath, []string{}), modelNameWrapStr)
 		}
 
 		var versions []string
@@ -307,7 +302,7 @@ func validateModels(models []userconfig.ModelResource, api userconfig.API, proje
 				for _, validator := range extraValidators {
 					err := validator(modelPaths, modelPrefix, pointer.String(versionedModelPrefix))
 					if err != nil {
-						return nil, errors.Wrap(err, model.Name)
+						return nil, errors.Wrap(err, modelNameWrapStr)
 					}
 				}
 			}
@@ -315,21 +310,21 @@ func validateModels(models []userconfig.ModelResource, api userconfig.API, proje
 			for _, validator := range extraValidators {
 				err := validator(modelPaths, modelPrefix, nil)
 				if err != nil {
-					return nil, errors.Wrap(err, model.Name)
+					return nil, errors.Wrap(err, modelNameWrapStr)
 				}
 			}
 		}
 
 		intVersions, err := slices.StringToInt64(versions)
 		if err != nil {
-			return nil, errors.Wrap(err, model.Name)
+			return nil, errors.Wrap(err, modelNameWrapStr)
 		}
 
 		var signatureKey *string
 		if model.SignatureKey != nil {
 			signatureKey = model.SignatureKey
-		} else if api.Predictor.Models != nil && api.Predictor.Models.SignatureKey != nil {
-			signatureKey = api.Predictor.SignatureKey
+		} else if defaultSignatureKey != nil {
+			signatureKey = defaultSignatureKey
 		}
 
 		fullModelPath := ""
@@ -339,20 +334,16 @@ func validateModels(models []userconfig.ModelResource, api userconfig.API, proje
 		if gcsPath {
 			fullModelPath = s.EnsureSuffix(gcp.GCSPath(bucket, modelPrefix), "/")
 		}
-		if localPath {
-			fullModelPath = s.EnsureSuffix(modelPrefix, "/")
-		}
 
 		modelResources[i] = CuratedModelResource{
 			ModelResource: &userconfig.ModelResource{
 				Name:         model.Name,
-				ModelPath:    fullModelPath,
+				Path:         fullModelPath,
 				SignatureKey: signatureKey,
 			},
-			S3Path:    s3Path,
-			GCSPath:   gcsPath,
-			LocalPath: localPath,
-			Versions:  intVersions,
+			S3Path:   s3Path,
+			GCSPath:  gcsPath,
+			Versions: intVersions,
 		}
 	}
 

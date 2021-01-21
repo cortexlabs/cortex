@@ -1,0 +1,14 @@
+- name: image-classifier-resnet50
+  kind: RealtimeAPI
+  predictor:
+    type: python
+    path: predictor.py
+    config:
+      path: s3://cortex-examples/pytorch/image-classifier-resnet50
+      model_name: resnet50.pt
+      device: gpu
+      classes: https://s3.amazonaws.com/deep-learning-models/image-models/imagenet_class_index.json
+      input_shape: [224, 224]
+  compute:
+    gpu: 1
+    cpu: 1

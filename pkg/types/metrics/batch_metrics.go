@@ -1,5 +1,5 @@
 /*
-Copyright 2020 Cortex Labs, Inc.
+Copyright 2021 Cortex Labs, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -22,10 +22,6 @@ type BatchMetrics struct {
 	AverageTimePerBatch *float64 `json:"average_time_per_batch"`
 }
 
-func (batchMetrics BatchMetrics) TotalCompleted() int {
-	return batchMetrics.Succeeded + batchMetrics.Failed
-}
-
 func (batchMetrics BatchMetrics) Merge(right BatchMetrics) BatchMetrics {
 	newBatchMetrics := BatchMetrics{}
 	newBatchMetrics.MergeInPlace(batchMetrics)
@@ -34,7 +30,7 @@ func (batchMetrics BatchMetrics) Merge(right BatchMetrics) BatchMetrics {
 }
 
 func (batchMetrics *BatchMetrics) MergeInPlace(right BatchMetrics) {
-	batchMetrics.AverageTimePerBatch = mergeAvg(batchMetrics.AverageTimePerBatch, batchMetrics.TotalCompleted(), right.AverageTimePerBatch, right.TotalCompleted())
+	batchMetrics.AverageTimePerBatch = mergeAvg(batchMetrics.AverageTimePerBatch, batchMetrics.Succeeded, right.AverageTimePerBatch, right.Succeeded)
 	batchMetrics.Succeeded = batchMetrics.Succeeded + right.Succeeded
 	batchMetrics.Failed = batchMetrics.Failed + right.Failed
 }

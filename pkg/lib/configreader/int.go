@@ -1,5 +1,5 @@
 /*
-Copyright 2020 Cortex Labs, Inc.
+Copyright 2021 Cortex Labs, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -27,22 +27,23 @@ import (
 )
 
 type IntValidation struct {
-	Required             bool
-	Default              int
-	TreatNullAsZero      bool // `<field>: ` and `<field>: null` will be read as `<field>: 0`
-	AllowedValues        []int
-	DisallowedValues     []int
-	GreaterThan          *int
-	GreaterThanOrEqualTo *int
-	LessThan             *int
-	LessThanOrEqualTo    *int
-	Validator            func(int) (int, error)
+	Required              bool
+	Default               int
+	TreatNullAsZero       bool // `<field>: ` and `<field>: null` will be read as `<field>: 0`
+	AllowedValues         []int
+	DisallowedValues      []int
+	CantBeSpecifiedErrStr *string
+	GreaterThan           *int
+	GreaterThanOrEqualTo  *int
+	LessThan              *int
+	LessThanOrEqualTo     *int
+	Validator             func(int) (int, error)
 }
 
 func Int(inter interface{}, v *IntValidation) (int, error) {
 	if inter == nil {
 		if v.TreatNullAsZero {
-			return ValidateInt(0, v)
+			return ValidateIntProvided(0, v)
 		}
 		return 0, ErrorCannotBeNull(v.Required)
 	}
@@ -50,7 +51,7 @@ func Int(inter interface{}, v *IntValidation) (int, error) {
 	if !castOk {
 		return 0, ErrorInvalidPrimitiveType(inter, PrimTypeInt)
 	}
-	return ValidateInt(casted, v)
+	return ValidateIntProvided(casted, v)
 }
 
 func IntFromInterfaceMap(key string, iMap map[string]interface{}, v *IntValidation) (int, error) {
@@ -93,7 +94,7 @@ func IntFromStr(valStr string, v *IntValidation) (int, error) {
 	if !castOk {
 		return 0, ErrorInvalidPrimitiveType(valStr, PrimTypeInt)
 	}
-	return ValidateInt(casted, v)
+	return ValidateIntProvided(casted, v)
 }
 
 func IntFromEnv(envVarName string, v *IntValidation) (int, error) {
@@ -161,10 +162,17 @@ func ValidateIntMissing(v *IntValidation) (int, error) {
 	if v.Required {
 		return 0, ErrorMustBeDefined(v.AllowedValues)
 	}
-	return ValidateInt(v.Default, v)
+	return validateInt(v.Default, v)
 }
 
-func ValidateInt(val int, v *IntValidation) (int, error) {
+func ValidateIntProvided(val int, v *IntValidation) (int, error) {
+	if v.CantBeSpecifiedErrStr != nil {
+		return 0, ErrorFieldCantBeSpecified(*v.CantBeSpecifiedErrStr)
+	}
+	return validateInt(val, v)
+}
+
+func validateInt(val int, v *IntValidation) (int, error) {
 	err := ValidateIntVal(val, v)
 	if err != nil {
 		return 0, err

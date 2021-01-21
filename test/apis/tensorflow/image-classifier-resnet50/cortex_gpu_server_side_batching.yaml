@@ -1,0 +1,21 @@
+- name: image-classifier-resnet50
+  kind: RealtimeAPI
+  predictor:
+    type: tensorflow
+    path: predictor.py
+    models:
+      path: s3://cortex-examples/tensorflow/resnet50/
+    server_side_batching:
+      max_batch_size: 32
+      batch_interval: 0.1s
+    processes_per_replica: 4
+    threads_per_process: 192
+    config:
+      classes: https://s3.amazonaws.com/deep-learning-models/image-models/imagenet_class_index.json
+      input_shape: [224, 224]
+      input_key: input
+      output_key: output
+  compute:
+    gpu: 1
+    cpu: 3
+    mem: 4G

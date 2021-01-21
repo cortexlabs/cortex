@@ -1,0 +1,7 @@
+- name: iris-classifier
+  kind: RealtimeAPI
+  predictor:
+    type: onnx
+    path: predictor.py
+    models:
+      path: s3://cortex-examples/onnx/iris-classifier/

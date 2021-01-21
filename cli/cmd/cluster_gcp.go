@@ -1,5 +1,5 @@
 /*
-Copyright 2020 Cortex Labs, Inc.
+Copyright 2021 Cortex Labs, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -54,8 +54,7 @@ var (
 func clusterGCPInit() {
 	_clusterGCPUpCmd.Flags().SortFlags = false
 	addClusterGCPConfigFlag(_clusterGCPUpCmd)
-	defaultEnv := getDefaultEnv(_clusterGCPCommandType)
-	_clusterGCPUpCmd.Flags().StringVarP(&_flagClusterGCPUpEnv, "configure-env", "e", defaultEnv, "name of environment to configure")
+	_clusterGCPUpCmd.Flags().StringVarP(&_flagClusterGCPUpEnv, "configure-env", "e", "gcp", "name of environment to configure")
 	addClusterGCPDisallowPromptFlag(_clusterGCPUpCmd)
 	_clusterGCPCmd.AddCommand(_clusterGCPUpCmd)
 
@@ -111,10 +110,6 @@ var _clusterGCPUpCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		telemetry.EventNotify("cli.cluster.up", map[string]interface{}{"provider": types.GCPProviderType})
 
-		if _flagClusterGCPUpEnv == "local" {
-			exit.Error(ErrorLocalEnvironmentCantUseClusterProvider(types.GCPProviderType))
-		}
-
 		envExists, err := isEnvConfigured(_flagClusterGCPUpEnv)
 		if err != nil {
 			exit.Error(err)
@@ -129,10 +124,6 @@ var _clusterGCPUpCmd = &cobra.Command{
 
 		if _, err := docker.GetDockerClient(); err != nil {
 			exit.Error(err)
-		}
-
-		if !_flagClusterGCPDisallowPrompt {
-			promptForEmail()
 		}
 
 		accessConfig, err := getNewGCPClusterAccessConfig(_flagClusterGCPDisallowPrompt)
@@ -150,7 +141,17 @@ var _clusterGCPUpCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
-		bucketName := clusterconfig.GCPBucketName(*accessConfig.ClusterName, *accessConfig.Project, *accessConfig.Zone)
+		gkeClusterName := fmt.Sprintf("projects/%s/locations/%s/clusters/%s", *clusterConfig.Project, *clusterConfig.Zone, clusterConfig.ClusterName)
+		bucketName := clusterconfig.GCPBucketName(clusterConfig.ClusterName, *clusterConfig.Project, *clusterConfig.Zone)
+
+		clusterExists, err := gcpClient.ClusterExists(gkeClusterName)
+		if err != nil {
+			exit.Error(err)
+		}
+		if clusterExists {
+			exit.Error(ErrorGCPClusterAlreadyExists(clusterConfig.ClusterName, *clusterConfig.Zone, *clusterConfig.Project))
+		}
+
 		err = gcpClient.CreateBucket(bucketName, gcp.ZoneToRegion(*accessConfig.Zone), true)
 		if err != nil {
 			exit.Error(err)
@@ -158,7 +159,6 @@ var _clusterGCPUpCmd = &cobra.Command{
 
 		err = createGKECluster(clusterConfig, gcpClient)
 		if err != nil {
-			gcpClient.DeleteBucket(bucketName)
 			exit.Error(err)
 		}
 
@@ -168,7 +168,6 @@ var _clusterGCPUpCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
-		gkeClusterName := fmt.Sprintf("projects/%s/locations/%s/clusters/%s", *clusterConfig.Project, *clusterConfig.Zone, clusterConfig.ClusterName)
 		operatorLoadBalancerIP, err := getGCPOperatorLoadBalancerIP(gkeClusterName, gcpClient)
 		if err != nil {
 			exit.Error(errors.Append(err, fmt.Sprintf("\n\nyou can attempt to resolve this issue and configure your cli environment by running `cortex cluster info --configure-env %s`", _flagClusterGCPUpEnv)))
@@ -180,15 +179,15 @@ var _clusterGCPUpCmd = &cobra.Command{
 			OperatorEndpoint: &operatorLoadBalancerIP,
 		}
 
-		err = addEnvToCLIConfig(newEnvironment)
+		err = addEnvToCLIConfig(newEnvironment, true)
 		if err != nil {
 			exit.Error(errors.Append(err, fmt.Sprintf("\n\nyou can attempt to resolve this issue and configure your cli environment by running `cortex cluster info --configure-env %s`", _flagClusterGCPUpEnv)))
 		}
 
 		if envExists {
-			fmt.Printf(console.Bold("\nthe environment named \"%s\" has been updated to point to this cluster; append `--env %s` to cortex commands to use this cluster (e.g. `cortex deploy --env %s`), or set it as your default with `cortex env default %s`\n"), _flagClusterGCPUpEnv, _flagClusterGCPUpEnv, _flagClusterGCPUpEnv, _flagClusterGCPUpEnv)
+			fmt.Printf(console.Bold("\nthe environment named \"%s\" has been updated to point to this cluster (and was set as the default environment)\n"), _flagClusterGCPUpEnv)
 		} else {
-			fmt.Printf(console.Bold("\nan environment named \"%s\" has been configured to point to this cluster; append `--env %s` to cortex commands to use this cluster (e.g. `cortex deploy --env %s`), or set it as your default with `cortex env default %s`\n"), _flagClusterGCPUpEnv, _flagClusterGCPUpEnv, _flagClusterGCPUpEnv, _flagClusterGCPUpEnv)
+			fmt.Printf(console.Bold("\nan environment named \"%s\" has been configured to point to this cluster (and was set as the default environment)\n"), _flagClusterGCPUpEnv)
 		}
 	},
 }
@@ -200,15 +199,17 @@ var _clusterGCPInfoCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		telemetry.Event("cli.cluster.info", map[string]interface{}{"provider": types.GCPProviderType})
 
-		if _flagClusterGCPInfoEnv == "local" {
-			exit.Error(ErrorLocalEnvironmentCantUseClusterProvider(types.GCPProviderType))
-		}
-
 		if _, err := docker.GetDockerClient(); err != nil {
 			exit.Error(err)
 		}
 
 		accessConfig, err := getGCPClusterAccessConfigWithCache(_flagClusterGCPDisallowPrompt)
+		if err != nil {
+			exit.Error(err)
+		}
+
+		// need to ensure that the google creds are configured for the manager
+		_, err = gcp.NewFromEnvCheckProjectID(*accessConfig.Project)
 		if err != nil {
 			exit.Error(err)
 		}
@@ -228,10 +229,6 @@ var _clusterGCPDownCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		telemetry.Event("cli.cluster.down", map[string]interface{}{"provider": types.GCPProviderType})
 
-		if _flagClusterGCPUpEnv == "local" {
-			exit.Error(ErrorLocalEnvironmentCantUseClusterProvider(types.GCPProviderType))
-		}
-
 		if _, err := docker.GetDockerClient(); err != nil {
 			exit.Error(err)
 		}
@@ -247,6 +244,16 @@ var _clusterGCPDownCmd = &cobra.Command{
 		}
 
 		gkeClusterName := fmt.Sprintf("projects/%s/locations/%s/clusters/%s", *accessConfig.Project, *accessConfig.Zone, *accessConfig.ClusterName)
+		bucketName := clusterconfig.GCPBucketName(*accessConfig.ClusterName, *accessConfig.Project, *accessConfig.Zone)
+
+		clusterExists, err := gcpClient.ClusterExists(gkeClusterName)
+		if err != nil {
+			exit.Error(err)
+		}
+		if !clusterExists {
+			gcpClient.DeleteBucket(bucketName) // silently try to delete the bucket in case it got left behind
+			exit.Error(ErrorGCPClusterDoesntExist(*accessConfig.ClusterName, *accessConfig.Zone, *accessConfig.Project))
+		}
 
 		// updating CLI env is best-effort, so ignore errors
 		operatorLoadBalancerIP, _ := getGCPOperatorLoadBalancerIP(gkeClusterName, gcpClient)
@@ -257,7 +264,6 @@ var _clusterGCPDownCmd = &cobra.Command{
 			prompt.YesOrExit(fmt.Sprintf("your cluster named \"%s\" in %s (zone: %s) will be spun down and all apis will be deleted, are you sure you want to continue?", *accessConfig.ClusterName, *accessConfig.Project, *accessConfig.Zone), "", "")
 		}
 
-		bucketName := clusterconfig.GCPBucketName(*accessConfig.ClusterName, *accessConfig.Project, *accessConfig.Zone)
 		fmt.Printf("￮ deleting bucket %s ", bucketName)
 		err = gcpClient.DeleteBucket(bucketName)
 		if err != nil {
@@ -283,11 +289,20 @@ var _clusterGCPDownCmd = &cobra.Command{
 			envNames, isDefaultEnv, _ := getEnvNamesByOperatorEndpoint(operatorLoadBalancerIP)
 			if len(envNames) > 0 {
 				for _, envName := range envNames {
-					removeEnvFromCLIConfig(envName)
+					err := removeEnvFromCLIConfig(envName)
+					if err != nil {
+						exit.Error(err)
+					}
 				}
 				fmt.Printf("✓ deleted the %s environment configuration%s\n", s.StrsAnd(envNames), s.SIfPlural(len(envNames)))
 				if isDefaultEnv {
-					fmt.Println("✓ set the default environment to local")
+					newDefaultEnv, err := getDefaultEnv()
+					if err != nil {
+						exit.Error(err)
+					}
+					if newDefaultEnv != nil {
+						fmt.Println(fmt.Sprintf("✓ set the default environment to %s", *newDefaultEnv))
+					}
 				}
 			}
 		}
@@ -400,15 +415,15 @@ func updateGCPCLIEnv(envName string, operatorEndpoint string, disallowPrompt boo
 	}
 
 	if shouldWriteEnv {
-		err := addEnvToCLIConfig(newEnvironment)
+		err := addEnvToCLIConfig(newEnvironment, true)
 		if err != nil {
 			return err
 		}
 
 		if envWasUpdated {
-			fmt.Printf(console.Bold("the environment named \"%s\" has been updated to point to this cluster; append `--env %s` to cortex commands to use this cluster (e.g. `cortex deploy --env %s`), or set it as your default with `cortex env default %s`\n"), envName, envName, envName, envName)
+			fmt.Printf(console.Bold("the environment named \"%s\" has been updated to point to this cluster (and was set as the default environment)\n"), envName)
 		} else {
-			fmt.Printf(console.Bold("an environment named \"%s\" has been configured to point to this cluster; append `--env %s` to cortex commands to use this cluster (e.g. `cortex deploy --env %s`), or set it as your default with `cortex env default %s`\n"), envName, envName, envName, envName)
+			fmt.Printf(console.Bold("an environment named \"%s\" has been configured to point to this cluster (and was set as the default environment)\n"), envName)
 		}
 	}
 
@@ -423,7 +438,7 @@ func createGKECluster(clusterConfig *clusterconfig.GCPConfig, gcpClient *gcp.Cli
 
 	if clusterConfig.AcceleratorType != nil {
 		accelerators = append(accelerators, &containerpb.AcceleratorConfig{
-			AcceleratorCount: 1,
+			AcceleratorCount: *clusterConfig.AcceleratorsPerInstance,
 			AcceleratorType:  *clusterConfig.AcceleratorType,
 		})
 		nodeLabels["nvidia.com/gpu"] = "present"
@@ -432,55 +447,96 @@ func createGKECluster(clusterConfig *clusterconfig.GCPConfig, gcpClient *gcp.Cli
 	gkeClusterParent := fmt.Sprintf("projects/%s/locations/%s", *clusterConfig.Project, *clusterConfig.Zone)
 	gkeClusterName := fmt.Sprintf("%s/clusters/%s", gkeClusterParent, clusterConfig.ClusterName)
 
-	_, err := gcpClient.CreateCluster(&containerpb.CreateClusterRequest{
-		Parent: gkeClusterParent,
-		Cluster: &containerpb.Cluster{
-			Name:                  clusterConfig.ClusterName,
-			InitialClusterVersion: "1.17",
-			NodePools: []*containerpb.NodePool{
-				{
-					Name: "ng-cortex-operator",
-					Config: &containerpb.NodeConfig{
-						MachineType: "n1-standard-2",
-						OauthScopes: []string{
-							"https://www.googleapis.com/auth/compute",
-							"https://www.googleapis.com/auth/devstorage.read_only",
-						},
-						ServiceAccount: gcpClient.ClientEmail,
+	initialNodeCount := int64(1)
+	if *clusterConfig.MinInstances > 0 {
+		initialNodeCount = *clusterConfig.MinInstances
+	}
+
+	gkeClusterConfig := containerpb.Cluster{
+		Name:                  clusterConfig.ClusterName,
+		InitialClusterVersion: "1.17",
+		LoggingService:        "none",
+		NodePools: []*containerpb.NodePool{
+			{
+				Name: "ng-cortex-operator",
+				Config: &containerpb.NodeConfig{
+					MachineType: "n1-standard-2",
+					OauthScopes: []string{
+						"https://www.googleapis.com/auth/compute",
+						"https://www.googleapis.com/auth/devstorage.read_only",
 					},
-					InitialNodeCount: 1,
+					ServiceAccount: gcpClient.ClientEmail,
 				},
-				{
-					Name: "ng-cortex-worker-on-demand",
-					Config: &containerpb.NodeConfig{
-						MachineType: *clusterConfig.InstanceType,
-						Labels:      nodeLabels,
-						Taints: []*containerpb.NodeTaint{
-							{
-								Key:    "workload",
-								Value:  "true",
-								Effect: containerpb.NodeTaint_NO_SCHEDULE,
-							},
-						},
-						Accelerators: accelerators,
-						OauthScopes: []string{
-							"https://www.googleapis.com/auth/compute",
-							"https://www.googleapis.com/auth/devstorage.read_only",
-						},
-						ServiceAccount: gcpClient.ClientEmail,
-					},
-					Autoscaling: &containerpb.NodePoolAutoscaling{
-						Enabled:      true,
-						MinNodeCount: int32(*clusterConfig.MinInstances),
-						MaxNodeCount: int32(*clusterConfig.MaxInstances),
-					},
-					InitialNodeCount: int32(*clusterConfig.MinInstances),
-				},
+				InitialNodeCount: 1,
 			},
-			Locations: []string{*clusterConfig.Zone},
 		},
+		Locations: []string{*clusterConfig.Zone},
+	}
+
+	if clusterConfig.Preemptible {
+		gkeClusterConfig.NodePools = append(gkeClusterConfig.NodePools, &containerpb.NodePool{
+			Name: "ng-cortex-wk-preemp",
+			Config: &containerpb.NodeConfig{
+				MachineType: *clusterConfig.InstanceType,
+				Labels:      nodeLabels,
+				Taints: []*containerpb.NodeTaint{
+					{
+						Key:    "workload",
+						Value:  "true",
+						Effect: containerpb.NodeTaint_NO_SCHEDULE,
+					},
+				},
+				Accelerators: accelerators,
+				OauthScopes: []string{
+					"https://www.googleapis.com/auth/compute",
+					"https://www.googleapis.com/auth/devstorage.read_only",
+				},
+				ServiceAccount: gcpClient.ClientEmail,
+				Preemptible:    true,
+			},
+			InitialNodeCount: int32(initialNodeCount),
+		})
+	}
+	if clusterConfig.OnDemandBackup || !clusterConfig.Preemptible {
+		gkeClusterConfig.NodePools = append(gkeClusterConfig.NodePools, &containerpb.NodePool{
+			Name: "ng-cortex-wk-on-dmd",
+			Config: &containerpb.NodeConfig{
+				MachineType: *clusterConfig.InstanceType,
+				Labels:      nodeLabels,
+				Taints: []*containerpb.NodeTaint{
+					{
+						Key:    "workload",
+						Value:  "true",
+						Effect: containerpb.NodeTaint_NO_SCHEDULE,
+					},
+				},
+				Accelerators: accelerators,
+				OauthScopes: []string{
+					"https://www.googleapis.com/auth/compute",
+					"https://www.googleapis.com/auth/devstorage.read_only",
+				},
+				ServiceAccount: gcpClient.ClientEmail,
+			},
+			InitialNodeCount: int32(initialNodeCount),
+		})
+	}
+
+	if clusterConfig.Network != nil {
+		gkeClusterConfig.Network = *clusterConfig.Network
+	}
+	if clusterConfig.Subnet != nil {
+		gkeClusterConfig.Subnetwork = *clusterConfig.Subnet
+	}
+
+	_, err := gcpClient.CreateCluster(&containerpb.CreateClusterRequest{
+		Parent:  gkeClusterParent,
+		Cluster: &gkeClusterConfig,
 	})
 	if err != nil {
+		fmt.Print("\n\n")
+		if strings.Contains(errors.Message(err), "has no network named \"default\"") {
+			err = errors.Append(err, "\n\nyou can specify a different network be setting the `network` field in your cluster configuration file (see https://docs.cortex.dev)")
+		}
 		return err
 	}
 

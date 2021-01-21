@@ -1,5 +1,5 @@
 /*
-Copyright 2020 Cortex Labs, Inc.
+Copyright 2021 Cortex Labs, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -50,14 +50,6 @@ var (
 	_debugPath           string
 	_cwd                 string
 	_homeDir             string
-)
-
-type commandType int
-
-const (
-	_generalCommandType commandType = iota
-	_clusterCommandType
-	_clusterGCPCommandType
 )
 
 func init() {
@@ -128,7 +120,6 @@ func init() {
 	getInit()
 	logsInit()
 	patchInit()
-	predictInit()
 	refreshInit()
 	versionInit()
 }
@@ -157,7 +148,7 @@ func initTelemetry() {
 var _rootCmd = &cobra.Command{
 	Use:     "cortex",
 	Aliases: []string{"cx"},
-	Short:   "deploy machine learning models to production",
+	Short:   "run inference at scale",
 }
 
 func Execute() {
@@ -170,7 +161,6 @@ func Execute() {
 	_rootCmd.AddCommand(_patchCmd)
 	_rootCmd.AddCommand(_logsCmd)
 	_rootCmd.AddCommand(_refreshCmd)
-	_rootCmd.AddCommand(_predictCmd)
 	_rootCmd.AddCommand(_deleteCmd)
 
 	_rootCmd.AddCommand(_clusterCmd)
@@ -215,7 +205,7 @@ func addVerboseFlag(cmd *cobra.Command) {
 func wasEnvFlagProvided(cmd *cobra.Command) bool {
 	envFlagProvided := false
 	cmd.Flags().VisitAll(func(flag *pflag.Flag) {
-		if flag.Shorthand == "e" && flag.Changed {
+		if flag.Shorthand == "e" && flag.Changed && flag.Value.String() != "" {
 			envFlagProvided = true
 		}
 	})

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Copyright 2020 Cortex Labs, Inc.
+# Copyright 2021 Cortex Labs, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -35,7 +35,7 @@ pip install requests
 export CORTEX_CLI_PATH=$ROOT/bin/cortex
 
 # install cortex
-cd $ROOT/pkg/workloads/cortex/client
+cd $ROOT/pkg/cortex/client
 pip install -e .
 
 # run script.py
@@ -44,4 +44,4 @@ python $ROOT/dev/deploy_test.py $2
 # clean up conda
 conda deactivate
 conda env remove -n env
-rm -rf $ROOT/pkg/workloads/cortex/client/cortex.egg-info
+rm -rf $ROOT/pkg/cortex/client/cortex.egg-info

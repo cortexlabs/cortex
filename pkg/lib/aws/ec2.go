@@ -1,5 +1,5 @@
 /*
-Copyright 2020 Cortex Labs, Inc.
+Copyright 2021 Cortex Labs, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -42,7 +42,7 @@ func IsARMInstance(instanceType string) bool {
 	return _armInstanceRegex.MatchString(instanceType)
 }
 
-func (c *Client) SpotInstancePrice(region string, instanceType string) (float64, error) {
+func (c *Client) SpotInstancePrice(instanceType string) (float64, error) {
 	result, err := c.EC2().DescribeSpotPriceHistory(&ec2.DescribeSpotPriceHistoryInput{
 		InstanceTypes:       []*string{aws.String(instanceType)},
 		ProductDescriptions: []*string{aws.String("Linux/UNIX")},
@@ -70,11 +70,11 @@ func (c *Client) SpotInstancePrice(region string, instanceType string) (float64,
 	}
 
 	if min == math.MaxFloat64 {
-		return 0, ErrorNoValidSpotPrices(instanceType, region)
+		return 0, ErrorNoValidSpotPrices(instanceType, c.Region)
 	}
 
 	if min <= 0 {
-		return 0, ErrorNoValidSpotPrices(instanceType, region)
+		return 0, ErrorNoValidSpotPrices(instanceType, c.Region)
 	}
 
 	return min, nil

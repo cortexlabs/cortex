@@ -1,5 +1,5 @@
 /*
-Copyright 2020 Cortex Labs, Inc.
+Copyright 2021 Cortex Labs, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -19,11 +19,8 @@ package endpoints
 import (
 	"net/http"
 
-	"github.com/cortexlabs/cortex/pkg/operator/config"
+	"github.com/cortexlabs/cortex/pkg/operator/operator"
 	"github.com/cortexlabs/cortex/pkg/operator/resources"
-	"github.com/cortexlabs/cortex/pkg/operator/resources/realtimeapi"
-	"github.com/cortexlabs/cortex/pkg/operator/schema"
-	"github.com/cortexlabs/cortex/pkg/types"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
@@ -44,7 +41,7 @@ func ReadLogs(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if deployedResource.Kind == userconfig.BatchAPIKind {
+	if deployedResource.Kind == userconfig.BatchAPIKind || deployedResource.Kind == userconfig.TaskAPIKind {
 		respondError(w, r, ErrorLogsJobIDRequired(*deployedResource))
 		return
 	} else if deployedResource.Kind != userconfig.RealtimeAPIKind {
@@ -52,19 +49,16 @@ func ReadLogs(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if config.Provider == types.AWSProviderType {
-		upgrader := websocket.Upgrader{}
-		socket, err := upgrader.Upgrade(w, r, nil)
-		if err != nil {
-			respondError(w, r, err)
-			return
-		}
-		defer socket.Close()
-		realtimeapi.ReadLogs(apiName, socket)
-	}
+	deploymentID := deployedResource.VirtualService.Labels["deploymentID"]
+	predictorID := deployedResource.VirtualService.Labels["predictorID"]
 
-	if config.Provider == types.GCPProviderType {
-		queryParams := gcpLogsQueryParams(apiName)
-		respond(w, schema.GCPLogsResponse{QueryParams: queryParams})
+	upgrader := websocket.Upgrader{}
+	socket, err := upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		respondError(w, r, err)
+		return
 	}
+	defer socket.Close()
+
+	operator.StreamLogsFromRandomPod(map[string]string{"apiName": apiName, "deploymentID": deploymentID, "predictorID": predictorID}, socket)
 }

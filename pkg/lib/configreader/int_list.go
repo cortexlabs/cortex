@@ -1,5 +1,5 @@
 /*
-Copyright 2020 Cortex Labs, Inc.
+Copyright 2021 Cortex Labs, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -22,15 +22,16 @@ import (
 )
 
 type IntListValidation struct {
-	Required          bool
-	Default           []int
-	AllowExplicitNull bool
-	AllowEmpty        bool
-	CastSingleItem    bool
-	MinLength         int
-	MaxLength         int
-	InvalidLengths    []int
-	Validator         func([]int) ([]int, error)
+	Required              bool
+	Default               []int
+	AllowExplicitNull     bool
+	AllowEmpty            bool
+	CantBeSpecifiedErrStr *string
+	CastSingleItem        bool
+	MinLength             int
+	MaxLength             int
+	InvalidLengths        []int
+	Validator             func([]int) ([]int, error)
 }
 
 func IntList(inter interface{}, v *IntListValidation) ([]int, error) {
@@ -73,6 +74,10 @@ func ValidateIntListMissing(v *IntListValidation) ([]int, error) {
 }
 
 func ValidateIntListProvided(val []int, v *IntListValidation) ([]int, error) {
+	if v.CantBeSpecifiedErrStr != nil {
+		return nil, ErrorFieldCantBeSpecified(*v.CantBeSpecifiedErrStr)
+	}
+
 	if !v.AllowExplicitNull && val == nil {
 		return nil, ErrorCannotBeNull(v.Required)
 	}

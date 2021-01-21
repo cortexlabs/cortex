@@ -1,0 +1,11 @@
+- name: sound-classifier
+  kind: RealtimeAPI
+  predictor:
+    type: tensorflow
+    path: predictor.py
+    models:
+      path: s3://cortex-examples/tensorflow/sound-classifier/yamnet/
+      signature_key: serving_default
+  compute:
+    cpu: 1
+    mem: 2.5G

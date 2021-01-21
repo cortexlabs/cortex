@@ -1,5 +1,5 @@
 /*
-Copyright 2020 Cortex Labs, Inc.
+Copyright 2021 Cortex Labs, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -22,15 +22,16 @@ import (
 )
 
 type Float32ListValidation struct {
-	Required          bool
-	Default           []float32
-	AllowExplicitNull bool
-	AllowEmpty        bool
-	CastSingleItem    bool
-	MinLength         int
-	MaxLength         int
-	InvalidLengths    []int
-	Validator         func([]float32) ([]float32, error)
+	Required              bool
+	Default               []float32
+	AllowExplicitNull     bool
+	AllowEmpty            bool
+	CantBeSpecifiedErrStr *string
+	CastSingleItem        bool
+	MinLength             int
+	MaxLength             int
+	InvalidLengths        []int
+	Validator             func([]float32) ([]float32, error)
 }
 
 func Float32List(inter interface{}, v *Float32ListValidation) ([]float32, error) {
@@ -73,6 +74,10 @@ func ValidateFloat32ListMissing(v *Float32ListValidation) ([]float32, error) {
 }
 
 func ValidateFloat32ListProvided(val []float32, v *Float32ListValidation) ([]float32, error) {
+	if v.CantBeSpecifiedErrStr != nil {
+		return nil, ErrorFieldCantBeSpecified(*v.CantBeSpecifiedErrStr)
+	}
+
 	if !v.AllowExplicitNull && val == nil {
 		return nil, ErrorCannotBeNull(v.Required)
 	}

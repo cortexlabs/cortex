@@ -1,5 +1,5 @@
 /*
-Copyright 2020 Cortex Labs, Inc.
+Copyright 2021 Cortex Labs, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -26,6 +26,7 @@ type InterfaceMapListValidation struct {
 	Default                []map[string]interface{}
 	AllowExplicitNull      bool
 	AllowEmpty             bool
+	CantBeSpecifiedErrStr  *string
 	CastSingleItem         bool
 	MinLength              int
 	MaxLength              int
@@ -75,6 +76,10 @@ func ValidateInterfaceMapListMissing(v *InterfaceMapListValidation) ([]map[strin
 }
 
 func ValidateInterfaceMapListProvided(val []map[string]interface{}, v *InterfaceMapListValidation) ([]map[string]interface{}, error) {
+	if v.CantBeSpecifiedErrStr != nil {
+		return nil, ErrorFieldCantBeSpecified(*v.CantBeSpecifiedErrStr)
+	}
+
 	if !v.AllowExplicitNull && val == nil {
 		return nil, ErrorCannotBeNull(v.Required)
 	}

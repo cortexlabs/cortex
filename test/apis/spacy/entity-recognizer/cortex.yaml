@@ -1,0 +1,8 @@
+- name: entity-recognizer
+  kind: RealtimeAPI
+  predictor:
+    type: python
+    path: predictor.py
+  compute:
+    cpu: 1
+    mem: 1G

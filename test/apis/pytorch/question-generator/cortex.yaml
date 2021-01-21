@@ -1,0 +1,8 @@
+- name: question-generator
+  kind: RealtimeAPI
+  predictor:
+    type: python
+    path: predictor.py
+  compute:
+    cpu: 1
+    mem: 6G

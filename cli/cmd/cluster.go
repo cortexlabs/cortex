@@ -1,5 +1,5 @@
 /*
-Copyright 2020 Cortex Labs, Inc.
+Copyright 2021 Cortex Labs, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -70,8 +70,7 @@ func clusterInit() {
 	addClusterConfigFlag(_clusterUpCmd)
 	addAWSCredentialsFlags(_clusterUpCmd)
 	addClusterAWSCredentialsFlags(_clusterUpCmd)
-	defaultEnv := getDefaultEnv(_clusterCommandType)
-	_clusterUpCmd.Flags().StringVarP(&_flagClusterUpEnv, "configure-env", "e", defaultEnv, "name of environment to configure")
+	_clusterUpCmd.Flags().StringVarP(&_flagClusterUpEnv, "configure-env", "e", "aws", "name of environment to configure")
 	_clusterUpCmd.Flags().BoolVarP(&_flagClusterDisallowPrompt, "yes", "y", false, "skip prompts")
 	_clusterCmd.AddCommand(_clusterUpCmd)
 
@@ -144,10 +143,6 @@ var _clusterUpCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		telemetry.EventNotify("cli.cluster.up", map[string]interface{}{"provider": types.AWSProviderType})
 
-		if _flagClusterUpEnv == "local" {
-			exit.Error(ErrorLocalEnvironmentCantUseClusterProvider(types.AWSProviderType))
-		}
-
 		envExists, err := isEnvConfigured(_flagClusterUpEnv)
 		if err != nil {
 			exit.Error(err)
@@ -162,10 +157,6 @@ var _clusterUpCmd = &cobra.Command{
 
 		if _, err := docker.GetDockerClient(); err != nil {
 			exit.Error(err)
-		}
-
-		if !_flagClusterDisallowPrompt {
-			promptForEmail()
 		}
 
 		if _flagClusterConfig != "" {
@@ -222,27 +213,11 @@ var _clusterUpCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
-		if clusterConfig.APIGatewaySetting == clusterconfig.PublicAPIGatewaySetting {
-			err = createOrReplaceAPIGateway(awsClient, clusterConfig.ClusterName, clusterConfig.Tags)
-			if err != nil {
-				exit.Error(err)
-			}
-		}
-
 		out, exitCode, err := runManagerWithClusterConfig("/root/install.sh", clusterConfig, awsCreds, nil, nil)
 		if err != nil {
-			if clusterConfig.APIGatewaySetting == clusterconfig.PublicAPIGatewaySetting {
-				awsClient.DeleteAPIGatewayByTag(clusterconfig.ClusterNameTag, clusterConfig.ClusterName) // best effort deletion
-				awsClient.DeleteVPCLinkByTag(clusterconfig.ClusterNameTag, clusterConfig.ClusterName)    // best effort deletion
-			}
 			exit.Error(err)
 		}
 		if exitCode == nil || *exitCode != 0 {
-			if clusterConfig.APIGatewaySetting == clusterconfig.PublicAPIGatewaySetting {
-				awsClient.DeleteAPIGatewayByTag(clusterconfig.ClusterNameTag, clusterConfig.ClusterName) // best effort deletion
-				awsClient.DeleteVPCLinkByTag(clusterconfig.ClusterNameTag, clusterConfig.ClusterName)    // best effort deletion
-			}
-
 			eksCluster, err := awsClient.EKSClusterOrNil(clusterConfig.ClusterName)
 			if err != nil {
 				helpStr := "\ndebugging tips (may or may not apply to this error):"
@@ -322,15 +297,15 @@ var _clusterUpCmd = &cobra.Command{
 			AWSSecretAccessKey: pointer.String(awsCreds.ClusterAWSSecretAccessKey),
 		}
 
-		err = addEnvToCLIConfig(newEnvironment)
+		err = addEnvToCLIConfig(newEnvironment, true)
 		if err != nil {
 			exit.Error(errors.Append(err, fmt.Sprintf("\n\nyou can attempt to resolve this issue and configure your cli environment by running `cortex cluster info --configure-env %s`", _flagClusterUpEnv)))
 		}
 
 		if envExists {
-			fmt.Printf(console.Bold("\nthe environment named \"%s\" has been updated to point to this cluster; append `--env %s` to cortex commands to use this cluster (e.g. `cortex deploy --env %s`), or set it as your default with `cortex env default %s`\n"), _flagClusterUpEnv, _flagClusterUpEnv, _flagClusterUpEnv, _flagClusterUpEnv)
+			fmt.Printf(console.Bold("\nthe environment named \"%s\" has been updated to point to this cluster (and was set as the default environment)\n"), _flagClusterUpEnv)
 		} else {
-			fmt.Printf(console.Bold("\nan environment named \"%s\" has been configured to point to this cluster; append `--env %s` to cortex commands to use this cluster (e.g. `cortex deploy --env %s`), or set it as your default with `cortex env default %s`\n"), _flagClusterUpEnv, _flagClusterUpEnv, _flagClusterUpEnv, _flagClusterUpEnv)
+			fmt.Printf(console.Bold("\nan environment named \"%s\" has been configured to point to this cluster (and was set as the default environment)\n"), _flagClusterUpEnv)
 		}
 	},
 }
@@ -341,10 +316,6 @@ var _clusterConfigureCmd = &cobra.Command{
 	Args:  cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
 		telemetry.Event("cli.cluster.configure", map[string]interface{}{"provider": types.AWSProviderType})
-
-		if _flagClusterConfigureEnv == "local" {
-			exit.Error(ErrorLocalEnvironmentCantUseClusterProvider(types.AWSProviderType))
-		}
 
 		if _, err := docker.GetDockerClient(); err != nil {
 			exit.Error(err)
@@ -422,10 +393,6 @@ var _clusterInfoCmd = &cobra.Command{
 	Args:  cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
 		telemetry.Event("cli.cluster.info", map[string]interface{}{"provider": types.AWSProviderType})
-
-		if _flagClusterInfoEnv == "local" {
-			exit.Error(ErrorLocalEnvironmentCantUseClusterProvider(types.AWSProviderType))
-		}
 
 		if _, err := docker.GetDockerClient(); err != nil {
 			exit.Error(err)
@@ -516,27 +483,6 @@ var _clusterDownCmd = &cobra.Command{
 			prompt.YesOrExit(fmt.Sprintf("your cluster named \"%s\" in %s will be spun down and all apis will be deleted, are you sure you want to continue?", *accessConfig.ClusterName, *accessConfig.Region), "", "")
 		}
 
-		fmt.Print("￮ deleting api gateway ")
-		deletedAPIGateway, errAPIGateway := awsClient.DeleteAPIGatewayByTag(clusterconfig.ClusterNameTag, *accessConfig.ClusterName)
-		_, errVPCLink := awsClient.DeleteVPCLinkByTag(clusterconfig.ClusterNameTag, *accessConfig.ClusterName)
-		if errAPIGateway != nil {
-			fmt.Printf("\n\nunable to delete cortex's api gateway (see error below); if it still exists after the cluster has been deleted, please delete it via the api gateway console: https://%s.console.aws.amazon.com/apigateway/main/apis\n", *accessConfig.Region)
-			errors.PrintError(errAPIGateway)
-		}
-		if errVPCLink != nil {
-			fmt.Printf("\n\nunable to delete cortex's vpc link (see error below); if it still exists after the cluster has been deleted, please delete it via the api gateway console: https://%s.console.aws.amazon.com/apigateway/main/vpc-links\n", *accessConfig.Region)
-			errors.PrintError(errVPCLink)
-		}
-		if errAPIGateway == nil && errVPCLink == nil {
-			if deletedAPIGateway != nil {
-				fmt.Println("✓")
-			} else {
-				fmt.Println("(n/a)")
-			}
-		} else {
-			fmt.Println()
-		}
-
 		fmt.Print("￮ deleting dashboard ")
 		err = awsClient.DeleteDashboard(*accessConfig.ClusterName)
 		if err != nil {
@@ -573,11 +519,20 @@ var _clusterDownCmd = &cobra.Command{
 			envNames, isDefaultEnv, _ := getEnvNamesByOperatorEndpoint(*loadBalancer.DNSName)
 			if len(envNames) > 0 {
 				for _, envName := range envNames {
-					removeEnvFromCLIConfig(envName)
+					err := removeEnvFromCLIConfig(envName)
+					if err != nil {
+						exit.Error(err)
+					}
 				}
 				fmt.Printf("✓ deleted the %s environment configuration%s\n", s.StrsAnd(envNames), s.SIfPlural(len(envNames)))
 				if isDefaultEnv {
-					fmt.Println("✓ set the default environment to local")
+					newDefaultEnv, err := getDefaultEnv()
+					if err != nil {
+						exit.Error(err)
+					}
+					if newDefaultEnv != nil {
+						fmt.Println(fmt.Sprintf("✓ set the default environment to %s", *newDefaultEnv))
+					}
 				}
 			}
 		}
@@ -956,15 +911,15 @@ func updateAWSCLIEnv(envName string, operatorEndpoint string, awsCreds AWSCreden
 	}
 
 	if shouldWriteEnv {
-		err := addEnvToCLIConfig(newEnvironment)
+		err := addEnvToCLIConfig(newEnvironment, true)
 		if err != nil {
 			return err
 		}
 
 		if envWasUpdated {
-			fmt.Printf(console.Bold("the environment named \"%s\" has been updated to point to this cluster; append `--env %s` to cortex commands to use this cluster (e.g. `cortex deploy --env %s`), or set it as your default with `cortex env default %s`\n"), envName, envName, envName, envName)
+			fmt.Printf(console.Bold("the environment named \"%s\" has been updated to point to this cluster (and was set as the default environment)\n"), envName)
 		} else {
-			fmt.Printf(console.Bold("an environment named \"%s\" has been configured to point to this cluster; append `--env %s` to cortex commands to use this cluster (e.g. `cortex deploy --env %s`), or set it as your default with `cortex env default %s`\n"), envName, envName, envName, envName)
+			fmt.Printf(console.Bold("an environment named \"%s\" has been configured to point to this cluster (and was set as the default environment)\n"), envName)
 		}
 	}
 
@@ -1108,32 +1063,6 @@ func createOrClearDashboard(awsClient *aws.Client, dashboardName string) error {
 
 	fmt.Println(" ✓")
 
-	return nil
-}
-
-// createOrReplaceAPIGateway creates an API gateway for the cluster (or clears an existing one if it already exists)
-func createOrReplaceAPIGateway(awsClient *aws.Client, clusterName string, tags map[string]string) error {
-	fmt.Print("￮ creating api gateway: ", clusterName)
-
-	_, err := awsClient.DeleteVPCLinkByTag(clusterconfig.ClusterNameTag, clusterName)
-	if err != nil {
-		fmt.Print("\n\n")
-		return errors.Append(err, fmt.Sprintf("\n\nunable to delete existing vpc link with tag %s=%s; please delete it via the api gateway console: https://%s.console.aws.amazon.com/apigateway/main/vpc-links", clusterconfig.ClusterNameTag, clusterName, awsClient.Region))
-	}
-
-	_, err = awsClient.DeleteAPIGatewayByTag(clusterconfig.ClusterNameTag, clusterName)
-	if err != nil {
-		fmt.Print("\n\n")
-		return errors.Append(err, fmt.Sprintf("\n\nunable to delete existing api gateway with tag %s=%s; please delete it via the api gateway console: https://%s.console.aws.amazon.com/apigateway/main/apis", clusterconfig.ClusterNameTag, clusterName, awsClient.Region))
-	}
-
-	_, err = awsClient.CreateAPIGateway(clusterName, tags)
-	if err != nil {
-		fmt.Print("\n\n")
-		return err
-	}
-
-	fmt.Println(" ✓")
 	return nil
 }
 

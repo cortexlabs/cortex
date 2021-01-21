@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Copyright 2020 Cortex Labs, Inc.
+# Copyright 2021 Cortex Labs, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -20,15 +20,18 @@ set -eo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")"/.. >/dev/null && pwd)"
 
 source $ROOT/build/images.sh
-source $ROOT/dev/config/env.sh
 source $ROOT/dev/util.sh
+
+if [ -f "$ROOT/dev/config/env.sh" ]; then
+  source $ROOT/dev/config/env.sh
+fi
 
 GCR_HOST=${GCR_HOST:-"gcr.io"}
 GCP_PROJECT_ID=${GCP_PROJECT_ID:-}
 AWS_ACCOUNT_ID=${AWS_ACCOUNT_ID:-}
 AWS_REGION=${AWS_REGION:-}
 
-provider="local"
+provider="undefined"
 include_slim="false"
 positional_args=()
 while [[ $# -gt 0 ]]; do
@@ -139,7 +142,7 @@ function cache_builder() {
 }
 
 function push() {
-  if [ "$provider" = "local" ]; then
+  if [ "$provider" == "undefined" ]; then
     return
   fi
 
@@ -212,21 +215,19 @@ export -f registry_login
 # validate environment is correctly set on env.sh
 validate_env "$provider"
 
-# usage: registry.sh clean --provider aws|gcp|local
+# usage: registry.sh clean --provider aws|gcp
 if [ "$cmd" = "clean" ]; then
   if [ "$provider" = "aws" ]; then
     cleanup_ecr
-  elif [ "$provider" = "local" ]; then
-    cleanup_local
   fi
 
-# usage: registry.sh create --provider/-p aws|gcp|local
+# usage: registry.sh create --provider/-p aws|gcp
 elif [ "$cmd" = "create" ]; then
   if [ "$provider" = "aws" ]; then
     create_aws_registry
   fi
 
-# usage: registry.sh update-single IMAGE --provider/-p aws|gcp|local
+# usage: registry.sh update-single IMAGE --provider/-p aws|gcp
 elif [ "$cmd" = "update-single" ]; then
   image=$sub_cmd
   if [ "$image" = "operator" ] || [ "$image" = "request-monitor" ]; then
@@ -234,50 +235,50 @@ elif [ "$cmd" = "update-single" ]; then
   fi
   build_and_push $image latest
 
-# usage: registry.sh update all|dev|api --provider/-p aws|gcp|local [--include-slim]
+# usage: registry.sh update all|dev|api --provider/-p aws|gcp [--include-slim]
 # if parallel utility is installed, the docker build commands will be parallelized
 elif [ "$cmd" = "update" ]; then
   images_to_build=()
 
   if [ "$sub_cmd" == "all" ]; then
-    images_to_build+=( "${non_dev_images_local[@]}" )
+    images_to_build+=( "${non_dev_images_cluster[@]}" )
     if [ "$provider" == "aws" ]; then
-      images_to_build+=( "${non_dev_images_cluster[@]}" )
       images_to_build+=( "${non_dev_images_aws[@]}" )
     elif [ "$provider" == "gcp" ]; then
-      images_to_build+=( "${non_dev_images_cluster[@]}" )
       images_to_build+=( "${non_dev_images_gcp[@]}" )
+    elif [ "$provider" == "undefined" ]; then
+      images_to_build+=( "${non_dev_images_aws[@]}" "${non_dev_images_gcp[@]}" )
     fi
   fi
 
   if [[ "$sub_cmd" == "all" || "$sub_cmd" == "dev" ]]; then
-    images_to_build+=( "${dev_images_local[@]}" )
+    images_to_build+=( "${dev_images_cluster[@]}" )
     if [ "$provider" == "aws" ]; then
-      images_to_build+=( "${dev_images_cluster[@]}" )
       images_to_build+=( "${dev_images_aws[@]}" )
     elif [ "$provider" == "gcp" ]; then
-      images_to_build+=( "${dev_images_cluster[@]}" )
       images_to_build+=( "${dev_images_gcp[@]}" )
+    elif [ "$provider" == "undefined" ]; then
+      images_to_build+=( "${dev_images_aws[@]}" "${dev_images_aws[@]}" )
     fi
   fi
 
-  images_to_build+=( "${api_images_local[@]}" )
+  images_to_build+=( "${api_images_cluster[@]}" )
   if [ "$provider" == "aws" ]; then
-    images_to_build+=( "${api_images_cluster[@]}" )
     images_to_build+=( "${api_images_aws[@]}" )
   elif [ "$provider" == "gcp" ]; then
-    images_to_build+=( "${api_images_cluster[@]}" )
     images_to_build+=( "${api_images_gcp[@]}" )
+  elif [ "$provider" == "undefined" ]; then
+    images_to_build+=( "${api_images_aws[@]}" "${api_images_gcp[@]}" )
   fi
 
   if [ "$include_slim" == "true" ]; then
-    images_to_build+=( "${api_slim_images_local[@]}" )
+    images_to_build+=( "${api_slim_images_cluster[@]}" )
     if [ "$provider" == "aws" ]; then
-      images_to_build+=( "${api_slim_images_cluster[@]}" )
       images_to_build+=( "${api_slim_images_aws[@]}" )
     elif [ "$provider" == "gcp" ]; then
-      images_to_build+=( "${api_slim_images_cluster[@]}" )
       images_to_build+=( "${api_slim_images_gcp[@]}" )
+    elif [ "$provider" == "undefined" ]; then
+      images_to_build+=( "${api_slim_images_aws[@]}" "${api_slim_images_gcp[@]}" )
     fi
   fi
 

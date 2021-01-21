@@ -1,5 +1,5 @@
 /*
-Copyright 2020 Cortex Labs, Inc.
+Copyright 2021 Cortex Labs, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -147,7 +147,7 @@ func statusCodeMetric(dashboardName string, apiName string) []interface{} {
 
 func DashboardURL() string {
 	if config.Provider == types.AWSProviderType {
-		return fmt.Sprintf("https://%s.console.aws.amazon.com/cloudwatch/home#dashboards:name=%s", *config.Cluster.Region, config.Cluster.ClusterName)
+		return fmt.Sprintf("https://%s.console.aws.amazon.com/cloudwatch/home#dashboards:name=%s", *config.Cluster.Region, config.ClusterName())
 	}
 	return ""
 }

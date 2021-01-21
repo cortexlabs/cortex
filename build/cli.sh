@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Copyright 2020 Cortex Labs, Inc.
+# Copyright 2021 Cortex Labs, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -47,7 +47,7 @@ function build_and_upload() {
 }
 
 function build_python {
-  pushd $ROOT/pkg/workloads/cortex/client
+  pushd $ROOT/pkg/cortex/client
   python setup.py sdist
 
   if [ "$upload" == "true" ]; then

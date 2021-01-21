@@ -1,5 +1,5 @@
 /*
-Copyright 2020 Cortex Labs, Inc.
+Copyright 2021 Cortex Labs, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -21,7 +21,7 @@ const (
 	NameKey           = "name"
 	KindKey           = "kind"
 	PredictorKey      = "predictor"
-	MonitoringKey     = "monitoring"
+	TaskDefinitionKey = "definition"
 	NetworkingKey     = "networking"
 	ComputeKey        = "compute"
 	AutoscalingKey    = "autoscaling"
@@ -34,21 +34,26 @@ const (
 	// Predictor
 	TypeKey                   = "type"
 	PathKey                   = "path"
-	ModelPathKey              = "model_path"
 	ServerSideBatchingKey     = "server_side_batching"
-	ModelsKey                 = "models"
 	PythonPathKey             = "python_path"
 	ImageKey                  = "image"
 	TensorFlowServingImageKey = "tensorflow_serving_image"
 	ProcessesPerReplicaKey    = "processes_per_replica"
 	ThreadsPerProcessKey      = "threads_per_process"
+	ShmSize                   = "shm_size"
+	LogLevelKey               = "log_level"
 	ConfigKey                 = "config"
 	EnvKey                    = "env"
-	SignatureKeyKey           = "signature_key"
+
+	// MultiModelReloading
+	MultiModelReloadingKey = "multi_model_reloading"
 
 	// MultiModels
+	ModelsKey              = "models"
+	ModelsPathKey          = "path"
 	ModelsPathsKey         = "paths"
 	ModelsDirKey           = "dir"
+	ModelsSignatureKeyKey  = "signature_key"
 	ModelsCacheSizeKey     = "cache_size"
 	ModelsDiskCacheSizeKey = "disk_cache_size"
 
@@ -59,14 +64,8 @@ const (
 	// ModelResource
 	ModelsNameKey = "name"
 
-	// Monitoring
-	KeyKey       = "key"
-	ModelTypeKey = "model_type"
-
 	// Networking
-	APIGatewayKey = "api_gateway"
-	EndpointKey   = "endpoint"
-	LocalPortKey  = "local_port"
+	EndpointKey = "endpoint"
 
 	// Compute
 	CPUKey = "cpu"
@@ -94,7 +93,6 @@ const (
 
 	// K8s annotation
 	EndpointAnnotationKey                     = "networking.cortex.dev/endpoint"
-	APIGatewayAnnotationKey                   = "networking.cortex.dev/api-gateway"
 	ProcessesPerReplicaAnnotationKey          = "predictor.cortex.dev/processes-per-replica"
 	ThreadsPerProcessAnnotationKey            = "predictor.cortex.dev/threads-per-process"
 	MinReplicasAnnotationKey                  = "autoscaling.cortex.dev/min-replicas"

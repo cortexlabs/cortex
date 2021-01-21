@@ -1,5 +1,5 @@
 /*
-Copyright 2020 Cortex Labs, Inc.
+Copyright 2021 Cortex Labs, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -32,6 +32,7 @@ type Client struct {
 	ClientID        string
 	PrivateKey      string
 	PrivateKeyID    string
+	IsAnonymous     bool
 	CredentialsJSON []byte
 	clients         clients
 }
@@ -85,4 +86,8 @@ func NewFromEnv() (*Client, error) {
 		PrivateKeyID:    credsFile.PrivateKeyID,
 		CredentialsJSON: credsBytes,
 	}, nil
+}
+
+func NewAnonymousClient() *Client {
+	return &Client{IsAnonymous: true}
 }

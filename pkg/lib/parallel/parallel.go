@@ -1,5 +1,5 @@
 /*
-Copyright 2020 Cortex Labs, Inc.
+Copyright 2021 Cortex Labs, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -41,6 +41,11 @@ func Run(fn func() error, fns ...func() error) []error {
 		}
 
 		go func() {
+			defer func() {
+				if r := recover(); r != nil {
+					errChannel <- errors.CastRecoverError(r)
+				}
+			}()
 			errChannel <- fn()
 		}()
 	}

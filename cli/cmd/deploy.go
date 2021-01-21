@@ -1,5 +1,5 @@
 /*
-Copyright 2020 Cortex Labs, Inc.
+Copyright 2021 Cortex Labs, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -22,7 +22,6 @@ import (
 	"strings"
 
 	"github.com/cortexlabs/cortex/cli/cluster"
-	"github.com/cortexlabs/cortex/cli/local"
 	"github.com/cortexlabs/cortex/cli/types/flags"
 	"github.com/cortexlabs/cortex/pkg/lib/archive"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
@@ -56,7 +55,7 @@ var (
 
 func deployInit() {
 	_deployCmd.Flags().SortFlags = false
-	_deployCmd.Flags().StringVarP(&_flagDeployEnv, "env", "e", getDefaultEnv(_generalCommandType), "environment to use")
+	_deployCmd.Flags().StringVarP(&_flagDeployEnv, "env", "e", "", "environment to use")
 	_deployCmd.Flags().BoolVarP(&_flagDeployForce, "force", "f", false, "override the in-progress api update")
 	_deployCmd.Flags().BoolVarP(&_flagDeployDisallowPrompt, "yes", "y", false, "skip prompts")
 	_deployCmd.Flags().VarP(&_flagOutput, "output", "o", fmt.Sprintf("output format: one of %s", strings.Join(flags.UserOutputTypeStrings(), "|")))
@@ -67,14 +66,20 @@ var _deployCmd = &cobra.Command{
 	Short: "create or update apis",
 	Args:  cobra.RangeArgs(0, 1),
 	Run: func(cmd *cobra.Command, args []string) {
-		env, err := ReadOrConfigureEnv(_flagDeployEnv)
+		envName, err := getEnvFromFlag(_flagDeployEnv)
+		if err != nil {
+			telemetry.Event("cli.deploy")
+			exit.Error(err)
+		}
+
+		env, err := ReadOrConfigureEnv(envName)
 		if err != nil {
 			telemetry.Event("cli.deploy")
 			exit.Error(err)
 		}
 		telemetry.Event("cli.deploy", map[string]interface{}{"provider": env.Provider.String(), "env_name": env.Name})
 
-		err = printEnvIfNotSpecified(_flagDeployEnv, cmd)
+		err = printEnvIfNotSpecified(env.Name, cmd)
 		if err != nil {
 			exit.Error(err)
 		}
@@ -89,28 +94,14 @@ var _deployCmd = &cobra.Command{
 			exit.Error(ErrorDeployFromTopLevelDir("root", env.Provider))
 		}
 
-		var deployResults []schema.DeployResult
-		if env.Provider == types.LocalProviderType {
-			projectFiles, err := findProjectFiles(env.Provider, configPath)
-			if err != nil {
-				exit.Error(err)
-			}
+		deploymentBytes, err := getDeploymentBytes(env.Provider, configPath)
+		if err != nil {
+			exit.Error(err)
+		}
 
-			local.OutputType = _flagOutput // Set output type for the Local package
-			deployResults, err = local.Deploy(env, configPath, projectFiles, _flagDeployDisallowPrompt)
-			if err != nil {
-				exit.Error(err)
-			}
-		} else {
-			deploymentBytes, err := getDeploymentBytes(env.Provider, configPath)
-			if err != nil {
-				exit.Error(err)
-			}
-
-			deployResults, err = cluster.Deploy(MustGetOperatorConfig(env.Name), configPath, deploymentBytes, _flagDeployForce)
-			if err != nil {
-				exit.Error(err)
-			}
+		deployResults, err := cluster.Deploy(MustGetOperatorConfig(env.Name), configPath, deploymentBytes, _flagDeployForce)
+		if err != nil {
+			exit.Error(err)
 		}
 
 		switch _flagOutput {
@@ -126,7 +117,10 @@ var _deployCmd = &cobra.Command{
 				exit.Error(err)
 			}
 		case flags.PrettyOutputType:
-			message := deployMessage(deployResults, env.Name)
+			message, err := deployMessage(deployResults, env.Name)
+			if err != nil {
+				exit.Error(err)
+			}
 			if didAnyResultsError(deployResults) {
 				print.StderrBoldFirstBlock(message)
 			} else {
@@ -179,16 +173,14 @@ func findProjectFiles(provider types.ProviderType, configPath string) ([]string,
 		ignoreFns = append(ignoreFns, cortexIgnore)
 	}
 
-	if provider != types.LocalProviderType {
-		if !_flagDeployDisallowPrompt {
-			ignoreFns = append(ignoreFns, files.PromptForFilesAboveSize(_warningFileBytes, "do you want to upload %s (%s)?"))
-		}
-		ignoreFns = append(ignoreFns,
-			files.ErrorOnBigFilesFn(_maxFileSizeBytes),
-			// must be the last appended IgnoreFn
-			files.ErrorOnProjectSizeLimit(_maxProjectSizeBytes),
-		)
+	if !_flagDeployDisallowPrompt {
+		ignoreFns = append(ignoreFns, files.PromptForFilesAboveSize(_warningFileBytes, "do you want to upload %s (%s)?"))
 	}
+	ignoreFns = append(ignoreFns,
+		files.ErrorOnBigFilesFn(_maxFileSizeBytes),
+		// must be the last appended IgnoreFn
+		files.ErrorOnProjectSizeLimit(_maxProjectSizeBytes),
+	)
 
 	projectPaths, err := files.ListDirRecursive(projectRoot, false, ignoreFns...)
 	if err != nil {
@@ -255,16 +247,19 @@ func getDeploymentBytes(provider types.ProviderType, configPath string) (map[str
 	return uploadBytes, nil
 }
 
-func deployMessage(results []schema.DeployResult, envName string) string {
+func deployMessage(results []schema.DeployResult, envName string) (string, error) {
 	statusMessage := mergeResultMessages(results)
 
 	if didAllResultsError(results) {
-		return statusMessage
+		return statusMessage, nil
 	}
 
-	apiCommandsMessage := getAPICommandsMessage(results, envName)
+	apiCommandsMessage, err := getAPICommandsMessage(results, envName)
+	if err != nil {
+		return "", err
+	}
 
-	return statusMessage + "\n\n" + apiCommandsMessage
+	return statusMessage + "\n\n" + apiCommandsMessage, nil
 }
 
 func mergeResultMessages(results []schema.DeployResult) string {
@@ -313,15 +308,18 @@ func didAnyResultsError(results []schema.DeployResult) bool {
 	return false
 }
 
-func getAPICommandsMessage(results []schema.DeployResult, envName string) string {
+func getAPICommandsMessage(results []schema.DeployResult, envName string) (string, error) {
 	apiName := "<api_name>"
 	if len(results) == 1 {
 		apiName = results[0].API.Spec.Name
 	}
 
-	defaultEnv := getDefaultEnv(_generalCommandType)
+	defaultEnv, err := getDefaultEnv()
+	if err != nil {
+		return "", err
+	}
 	var envArg string
-	if envName != defaultEnv {
+	if defaultEnv == nil || envName != *defaultEnv {
 		envArg = " --env " + envName
 	}
 
@@ -342,5 +340,5 @@ func getAPICommandsMessage(results []schema.DeployResult, envName string) string
 	return strings.TrimSpace(items.String(&table.KeyValuePairOpts{
 		Delimiter: pointer.String(""),
 		NumSpaces: pointer.Int(2),
-	}))
+	})), nil
 }

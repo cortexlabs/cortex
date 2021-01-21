@@ -1,0 +1,23 @@
+- name: iris-classifier-pytorch
+  kind: RealtimeAPI
+  predictor:
+    type: python
+    path: pytorch_predictor.py
+    config:
+      model: s3://cortex-examples/pytorch/iris-classifier/weights.pth
+
+- name: iris-classifier-onnx
+  kind: RealtimeAPI
+  predictor:
+    type: onnx
+    path: onnx_predictor.py
+    models:
+      path: s3://cortex-examples/onnx/iris-classifier/
+
+- name: iris-classifier
+  kind: TrafficSplitter
+  apis:
+    - name: iris-classifier-onnx
+      weight: 30
+    - name: iris-classifier-pytorch
+      weight: 70

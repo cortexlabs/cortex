@@ -1,0 +1,12 @@
+- name: yolov5-youtube
+  kind: RealtimeAPI
+  predictor:
+    type: onnx
+    path: predictor.py
+    models:
+      path: s3://cortex-examples/onnx/yolov5-youtube/
+    config:
+      iou_threshold: 0.5
+      confidence_threshold: 0.6
+  compute:
+    gpu: 1 # this is optional, since the api can also run on cpu

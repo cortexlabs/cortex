@@ -1,0 +1,10 @@
+- name: image-classifier-inception
+  kind: RealtimeAPI
+  predictor:
+    type: tensorflow
+    path: predictor.py
+    models:
+      path: s3://cortex-examples/tensorflow/image-classifier/inception/
+  compute:
+    cpu: 1
+    gpu: 1

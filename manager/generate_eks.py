@@ -1,4 +1,4 @@
-# Copyright 2020 Cortex Labs, Inc.
+# Copyright 2021 Cortex Labs, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -63,7 +63,6 @@ def apply_worker_settings(nodegroup):
 def apply_clusterconfig(nodegroup, config):
     clusterconfig_settings = {
         "instanceType": config["instance_type"],
-        "availabilityZones": config["availability_zones"],
         "volumeSize": config["instance_volume_size"],
         "minSize": config["min_instances"],
         "maxSize": config["max_instances"],
@@ -161,7 +160,6 @@ def generate_eks(cluster_config_path):
     operator_settings = {
         "name": "ng-cortex-operator",
         "instanceType": "t3.medium",
-        "availabilityZones": cluster_config["availability_zones"],
         "minSize": 1,
         "maxSize": 1,
         "desiredCapacity": 1,
@@ -198,9 +196,26 @@ def generate_eks(cluster_config_path):
             "tags": cluster_config["tags"],
         },
         "vpc": {"nat": {"gateway": nat_gateway}},
-        "availabilityZones": cluster_config["availability_zones"],
         "nodeGroups": [operator_nodegroup, worker_nodegroup],
     }
+
+    if (
+        len(cluster_config.get("availability_zones", [])) > 0
+        and len(cluster_config.get("subnets", [])) == 0
+    ):
+        eks["availabilityZones"] = cluster_config["availability_zones"]
+
+    if len(cluster_config.get("subnets", [])) > 0:
+        eks_subnet_configs = {}
+        for subnet_config in cluster_config["subnets"]:
+            eks_subnet_configs[subnet_config["availability_zone"]] = {
+                "id": subnet_config["subnet_id"]
+            }
+
+        if cluster_config.get("subnet_visibility", "public") == "private":
+            eks["vpc"]["subnets"] = {"private": eks_subnet_configs}
+        else:
+            eks["vpc"]["subnets"] = {"public": eks_subnet_configs}
 
     if cluster_config.get("vpc_cidr", "") != "":
         eks["vpc"]["cidr"] = cluster_config["vpc_cidr"]

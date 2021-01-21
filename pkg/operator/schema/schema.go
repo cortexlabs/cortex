@@ -1,5 +1,5 @@
 /*
-Copyright 2020 Cortex Labs, Inc.
+Copyright 2021 Cortex Labs, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -53,19 +53,26 @@ type DeployResult struct {
 }
 
 type APIResponse struct {
-	Spec         spec.API           `json:"spec"`
-	Status       *status.Status     `json:"status,omitempty"`
-	Metrics      *metrics.Metrics   `json:"metrics,omitempty"`
-	Endpoint     string             `json:"endpoint"`
-	DashboardURL *string            `json:"dashboard_url,omitempty"`
-	JobStatuses  []status.JobStatus `json:"job_statuses,omitempty"`
-	APIVersions  []APIVersion       `json:"api_versions,omitempty"`
+	Spec             spec.API                `json:"spec"`
+	Status           *status.Status          `json:"status,omitempty"`
+	Metrics          *metrics.Metrics        `json:"metrics,omitempty"`
+	Endpoint         string                  `json:"endpoint"`
+	DashboardURL     *string                 `json:"dashboard_url,omitempty"`
+	BatchJobStatuses []status.BatchJobStatus `json:"batch_job_statuses,omitempty"`
+	TaskJobStatuses  []status.TaskJobStatus  `json:"task_job_statuses,omitempty"`
+	APIVersions      []APIVersion            `json:"api_versions,omitempty"`
 }
 
-type JobResponse struct {
-	APISpec   spec.API         `json:"api_spec"`
-	JobStatus status.JobStatus `json:"job_status"`
-	Endpoint  string           `json:"endpoint"`
+type BatchJobResponse struct {
+	APISpec   spec.API              `json:"api_spec"`
+	JobStatus status.BatchJobStatus `json:"job_status"`
+	Endpoint  string                `json:"endpoint"`
+}
+
+type TaskJobResponse struct {
+	APISpec   spec.API             `json:"api_spec"`
+	JobStatus status.TaskJobStatus `json:"job_status"`
+	Endpoint  string               `json:"endpoint"`
 }
 
 type DeleteResponse struct {

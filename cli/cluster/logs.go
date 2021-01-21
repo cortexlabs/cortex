@@ -1,5 +1,5 @@
 /*
-Copyright 2020 Cortex Labs, Inc.
+Copyright 2021 Cortex Labs, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -25,6 +25,7 @@ import (
 	"os/signal"
 	"strings"
 
+	"github.com/cortexlabs/cortex/cli/lib/routines"
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/exit"
@@ -39,20 +40,6 @@ func StreamLogs(operatorConfig OperatorConfig, apiName string) error {
 
 func StreamJobLogs(operatorConfig OperatorConfig, apiName string, jobID string) error {
 	return streamLogs(operatorConfig, "/logs/"+apiName, map[string]string{"jobID": jobID})
-}
-
-func GetGCPLogsURL(operatorConfig OperatorConfig, apiName string) (schema.GCPLogsResponse, error) {
-	httpRes, err := HTTPGet(operatorConfig, "/logs/"+apiName)
-	if err != nil {
-		return schema.GCPLogsResponse{}, err
-	}
-
-	var gcpLogsResponse schema.GCPLogsResponse
-	if err = json.Unmarshal(httpRes, &gcpLogsResponse); err != nil {
-		return schema.GCPLogsResponse{}, errors.Wrap(err, "/logs/"+apiName, string(httpRes))
-	}
-
-	return gcpLogsResponse, nil
 }
 
 func streamLogs(operatorConfig OperatorConfig, path string, qParams ...map[string]string) error {
@@ -112,16 +99,16 @@ func streamLogs(operatorConfig OperatorConfig, path string, qParams ...map[strin
 }
 
 func handleConnection(connection *websocket.Conn, done chan struct{}) {
-	go func() {
+	routines.RunWithPanicHandler(func() {
 		defer close(done)
 		for {
 			_, message, err := connection.ReadMessage()
 			if err != nil {
 				exit.Error(ErrorOperatorSocketRead(err))
 			}
-			fmt.Println(string(message))
+			fmt.Print(string(message))
 		}
-	}()
+	}, false)
 }
 
 func closeConnection(connection *websocket.Conn, done chan struct{}, interrupt chan os.Signal) {

@@ -1,5 +1,5 @@
 /*
-Copyright 2020 Cortex Labs, Inc.
+Copyright 2021 Cortex Labs, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -38,6 +38,7 @@ type StringValidation struct {
 	TreatNullAsEmpty                     bool // `<field>: ` and `<field>: null` will be read as `<field>: ""`
 	AllowedValues                        []string
 	DisallowedValues                     []string
+	CantBeSpecifiedErrStr                *string
 	Prefix                               string
 	InvalidPrefixes                      []string
 	MaxLength                            int
@@ -66,7 +67,7 @@ func EnvVar(envVarName string) string {
 func String(inter interface{}, v *StringValidation) (string, error) {
 	if inter == nil {
 		if v.TreatNullAsEmpty {
-			return ValidateString("", v)
+			return ValidateStringProvided("", v)
 		}
 		return "", ErrorCannotBeNull(v.Required)
 	}
@@ -91,7 +92,7 @@ func String(inter interface{}, v *StringValidation) (string, error) {
 			return "", ErrorInvalidPrimitiveType(inter, PrimTypeString)
 		}
 	}
-	return ValidateString(casted, v)
+	return ValidateStringProvided(casted, v)
 }
 
 func StringFromInterfaceMap(key string, iMap map[string]interface{}, v *StringValidation) (string, error) {
@@ -127,7 +128,7 @@ func StringFromStrMap(key string, sMap map[string]string, v *StringValidation) (
 }
 
 func StringFromStr(valStr string, v *StringValidation) (string, error) {
-	return ValidateString(valStr, v)
+	return ValidateStringProvided(valStr, v)
 }
 
 func StringFromEnv(envVarName string, v *StringValidation) (string, error) {
@@ -195,10 +196,17 @@ func ValidateStringMissing(v *StringValidation) (string, error) {
 	if v.Required {
 		return "", ErrorMustBeDefined(v.AllowedValues)
 	}
-	return ValidateString(v.Default, v)
+	return validateString(v.Default, v)
 }
 
-func ValidateString(val string, v *StringValidation) (string, error) {
+func ValidateStringProvided(val string, v *StringValidation) (string, error) {
+	if v.CantBeSpecifiedErrStr != nil {
+		return "", ErrorFieldCantBeSpecified(*v.CantBeSpecifiedErrStr)
+	}
+	return validateString(val, v)
+}
+
+func validateString(val string, v *StringValidation) (string, error) {
 	err := ValidateStringVal(val, v)
 	if err != nil {
 		return "", err

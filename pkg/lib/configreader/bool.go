@@ -1,5 +1,5 @@
 /*
-Copyright 2020 Cortex Labs, Inc.
+Copyright 2021 Cortex Labs, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -27,16 +27,17 @@ import (
 )
 
 type BoolValidation struct {
-	Required         bool
-	Default          bool
-	TreatNullAsFalse bool            // `<field>: ` and `<field>: null` will be read as `<field>: false`
-	StrToBool        map[string]bool // lowercase
+	Required              bool
+	Default               bool
+	TreatNullAsFalse      bool // `<field>: ` and `<field>: null` will be read as `<field>: false`
+	CantBeSpecifiedErrStr *string
+	StrToBool             map[string]bool // lowercase
 }
 
 func Bool(inter interface{}, v *BoolValidation) (bool, error) {
 	if inter == nil {
 		if v.TreatNullAsFalse {
-			return ValidateBool(false, v)
+			return ValidateBoolProvided(false, v)
 		}
 		return false, ErrorCannotBeNull(v.Required)
 	}
@@ -44,7 +45,7 @@ func Bool(inter interface{}, v *BoolValidation) (bool, error) {
 	if !castOk {
 		return false, ErrorInvalidPrimitiveType(inter, PrimTypeBool)
 	}
-	return ValidateBool(casted, v)
+	return ValidateBoolProvided(casted, v)
 }
 
 func BoolFromInterfaceMap(key string, iMap map[string]interface{}, v *BoolValidation) (bool, error) {
@@ -94,14 +95,14 @@ func BoolFromStr(valStr string, v *BoolValidation) (bool, error) {
 
 			return false, ErrorInvalidStr(valStr, keys[0], keys[1:]...)
 		}
-		return ValidateBool(casted, v)
+		return ValidateBoolProvided(casted, v)
 	}
 
 	casted, castOk := s.ParseBool(valStr)
 	if !castOk {
 		return false, ErrorInvalidPrimitiveType(valStr, PrimTypeBool)
 	}
-	return ValidateBool(casted, v)
+	return ValidateBoolProvided(casted, v)
 }
 
 func BoolFromEnv(envVarName string, v *BoolValidation) (bool, error) {
@@ -169,10 +170,17 @@ func ValidateBoolMissing(v *BoolValidation) (bool, error) {
 	if v.Required {
 		return false, ErrorMustBeDefined()
 	}
-	return ValidateBool(v.Default, v)
+	return validateBool(v.Default, v)
 }
 
-func ValidateBool(val bool, v *BoolValidation) (bool, error) {
+func ValidateBoolProvided(val bool, v *BoolValidation) (bool, error) {
+	if v.CantBeSpecifiedErrStr != nil {
+		return false, ErrorFieldCantBeSpecified(*v.CantBeSpecifiedErrStr)
+	}
+	return validateBool(val, v)
+}
+
+func validateBool(val bool, v *BoolValidation) (bool, error) {
 	return val, nil
 }
 

@@ -1,0 +1,125 @@
+# Copyright 2021 Cortex Labs, Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# good articles to read
+# https://hub.packtpub.com/fine-tune-nginx-configufine-tune-nginx-configurationfine-tune-nginx-configurationratio/
+# https://www.nginx.com/blog/tuning-nginx/
+# https://www.digitalocean.com/community/tutorials/understanding-nginx-http-proxying-load-balancing-buffering-and-caching
+# https://serverfault.com/a/788703
+# https://stackoverflow.com/questions/59846238/guide-on-how-to-use-regex-in-nginx-location-block-section
+
+daemon off;
+# maximum number of open files per worker
+worker_rlimit_nofile 65535;
+worker_processes 1;
+
+thread_pool pool threads={{ CORTEX_PROCESSES_PER_REPLICA | int }};
+
+events {
+    # max num requests = (worker_processes * worker_connections ) / 2 for reverse proxy
+    # max num requests is also limited by the number of socket connections available on the system (~64k)
+    worker_connections 65535;
+
+    # The multi_accept flag enables an NGINX worker to accept as many connections as possible when it
+    # gets the notification of a new connection. The purpose of this flag is to accept all connections
+    # in the listen queue at once. If the directive is disabled, a worker process will accept connections one by one.
+    multi_accept off;
+
+    # An efficient method of processing connections available on Linux 2.6+. The method is similar to the FreeBSD kqueue.
+    use epoll;
+}
+
+http {
+    # don't enforce a max body size
+    client_max_body_size 0;
+
+    # send headers in one piece, it is better than sending them one by one
+    tcp_nopush on;
+
+    # don't buffer data sent, good for small data bursts in real time
+    tcp_nodelay on;
+
+    # to limit concurrent requests
+    limit_conn_zone 1 zone=inflights:1m;
+
+    # to distribute load
+    aio threads=pool;
+
+    # how much time an inference can take
+    proxy_read_timeout 3600s;
+
+    upstream uvicorn {
+        # load balancing policy
+        least_conn;
+
+        {% for i in range(CORTEX_PROCESSES_PER_REPLICA | int) %}
+        server unix:/run/uvicorn/proc-{{ i }}.sock;
+        {% endfor %}
+    }
+
+    server {
+        listen {{ CORTEX_SERVING_PORT | int }};
+        underscores_in_headers on;
+
+        location /nginx_status {
+            stub_status on;
+            allow 127.0.0.1;
+            deny all;
+        }
+
+        location / {
+            deny all;
+        }
+
+        location ~ ^/(predict/?|)$ {
+            # CORS (inspired by https://enable-cors.org/server_nginx.html)
+            if ($request_method = 'OPTIONS') {
+                add_header 'Access-Control-Allow-Origin' '*';
+                add_header 'Access-Control-Allow-Methods' 'GET, POST, OPTIONS';
+                add_header 'Access-Control-Allow-Headers' '*';
+                add_header 'Access-Control-Allow-Credentials' 'true';
+                add_header 'Access-Control-Max-Age' 1728000;
+                add_header 'Content-Type' 'text/plain; charset=utf-8';
+                add_header 'Content-Length' 0;
+                return 204;
+            }
+            if ($request_method = 'POST') {
+                add_header 'Access-Control-Allow-Origin' '*';
+                add_header 'Access-Control-Allow-Methods' 'GET, POST, OPTIONS';
+                add_header 'Access-Control-Allow-Headers' '*';
+                add_header 'Access-Control-Allow-Credentials' 'true';
+                add_header 'Access-Control-Expose-Headers' 'Content-Length,Content-Range';
+            }
+            if ($request_method = 'GET') {
+                add_header 'Access-Control-Allow-Origin' '*';
+                add_header 'Access-Control-Allow-Methods' 'GET, POST, OPTIONS';
+                add_header 'Access-Control-Allow-Headers' '*';
+                add_header 'Access-Control-Allow-Credentials' 'true';
+                add_header 'Access-Control-Expose-Headers' 'Content-Length,Content-Range';
+            }
+
+            limit_conn inflights {{ CORTEX_MAX_REPLICA_CONCURRENCY | int }};
+
+            proxy_set_header 'HOST' $host;
+            proxy_set_header 'X-Forwarded-For' $proxy_add_x_forwarded_for;
+            proxy_set_header 'X-Real-IP' $remote_addr;
+            proxy_set_header 'X-Forwarded-Proto' $scheme;
+
+            proxy_redirect off;
+            proxy_buffering off;
+
+            proxy_pass http://uvicorn;
+        }
+    }
+}

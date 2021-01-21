@@ -1,5 +1,5 @@
 /*
-Copyright 2020 Cortex Labs, Inc.
+Copyright 2021 Cortex Labs, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -23,6 +23,7 @@ const (
 	RealtimeAPIKind
 	BatchAPIKind
 	TrafficSplitterKind
+	TaskAPIKind
 )
 
 var _kinds = []string{
@@ -30,6 +31,7 @@ var _kinds = []string{
 	"RealtimeAPI",
 	"BatchAPI",
 	"TrafficSplitter",
+	"TaskAPI",
 }
 
 func KindFromString(s string) Kind {

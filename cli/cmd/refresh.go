@@ -1,5 +1,5 @@
 /*
-Copyright 2020 Cortex Labs, Inc.
+Copyright 2021 Cortex Labs, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -22,12 +22,10 @@ import (
 
 	"github.com/cortexlabs/cortex/cli/cluster"
 	"github.com/cortexlabs/cortex/cli/types/flags"
-	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/exit"
 	libjson "github.com/cortexlabs/cortex/pkg/lib/json"
 	"github.com/cortexlabs/cortex/pkg/lib/print"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
-	"github.com/cortexlabs/cortex/pkg/types"
 	"github.com/spf13/cobra"
 )
 
@@ -38,7 +36,7 @@ var (
 
 func refreshInit() {
 	_refreshCmd.Flags().SortFlags = false
-	_refreshCmd.Flags().StringVarP(&_flagRefreshEnv, "env", "e", getDefaultEnv(_generalCommandType), "environment to use")
+	_refreshCmd.Flags().StringVarP(&_flagRefreshEnv, "env", "e", "", "environment to use")
 	_refreshCmd.Flags().BoolVarP(&_flagRefreshForce, "force", "f", false, "override the in-progress api update")
 	_refreshCmd.Flags().VarP(&_flagOutput, "output", "o", fmt.Sprintf("output format: one of %s", strings.Join(flags.UserOutputTypeStrings(), "|")))
 }
@@ -48,21 +46,24 @@ var _refreshCmd = &cobra.Command{
 	Short: "restart all replicas for an api (without downtime)",
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		env, err := ReadOrConfigureEnv(_flagRefreshEnv)
+		envName, err := getEnvFromFlag(_flagRefreshEnv)
+		if err != nil {
+			telemetry.Event("cli.refresh")
+			exit.Error(err)
+		}
+
+		env, err := ReadOrConfigureEnv(envName)
 		if err != nil {
 			telemetry.Event("cli.refresh")
 			exit.Error(err)
 		}
 		telemetry.Event("cli.refresh", map[string]interface{}{"provider": env.Provider.String(), "env_name": env.Name})
 
-		err = printEnvIfNotSpecified(_flagRefreshEnv, cmd)
+		err = printEnvIfNotSpecified(env.Name, cmd)
 		if err != nil {
 			exit.Error(err)
 		}
 
-		if env.Provider == types.LocalProviderType {
-			exit.Error(errors.Append(ErrorNotSupportedInLocalEnvironment(), "; use `cortex deploy` instead"))
-		}
 		refreshResponse, err := cluster.Refresh(MustGetOperatorConfig(env.Name), args[0], _flagRefreshForce)
 		if err != nil {
 			exit.Error(err)

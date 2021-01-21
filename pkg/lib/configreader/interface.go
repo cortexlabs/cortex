@@ -1,5 +1,5 @@
 /*
-Copyright 2020 Cortex Labs, Inc.
+Copyright 2021 Cortex Labs, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -30,6 +30,7 @@ type InterfaceValidation struct {
 	Required               bool
 	Default                interface{}
 	AllowExplicitNull      bool
+	CantBeSpecifiedErrStr  *string
 	AllowCortexResources   bool
 	RequireCortexResources bool
 	Validator              func(interface{}) (interface{}, error)
@@ -63,6 +64,10 @@ func ValidateInterfaceMissing(v *InterfaceValidation) (interface{}, error) {
 }
 
 func ValidateInterfaceProvided(val interface{}, v *InterfaceValidation) (interface{}, error) {
+	if v.CantBeSpecifiedErrStr != nil {
+		return nil, ErrorFieldCantBeSpecified(*v.CantBeSpecifiedErrStr)
+	}
+
 	if !v.AllowExplicitNull && val == nil {
 		return nil, ErrorCannotBeNull(v.Required)
 	}

@@ -1,5 +1,5 @@
 /*
-Copyright 2020 Cortex Labs, Inc.
+Copyright 2021 Cortex Labs, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -31,7 +31,6 @@ type Environment struct {
 	OperatorEndpoint   *string            `json:"operator_endpoint,omitempty" yaml:"operator_endpoint,omitempty"`
 	AWSAccessKeyID     *string            `json:"aws_access_key_id,omitempty" yaml:"aws_access_key_id,omitempty"`
 	AWSSecretAccessKey *string            `json:"aws_secret_access_key,omitempty" yaml:"aws_secret_access_key,omitempty"`
-	AWSRegion          *string            `json:"aws_region,omitempty" yaml:"aws_region,omitempty"`
 }
 
 func (env Environment) String(isDefault bool) string {
@@ -54,9 +53,6 @@ func (env Environment) String(isDefault bool) string {
 	if env.AWSSecretAccessKey != nil {
 		items.Add("aws secret access key", s.MaskString(*env.AWSSecretAccessKey, 4))
 	}
-	if env.AWSRegion != nil {
-		items.Add("aws region", *env.AWSRegion)
-	}
 
 	return items.String(&table.KeyValuePairOpts{
 		BoldFirstLine: pointer.Bool(true),
@@ -64,10 +60,6 @@ func (env Environment) String(isDefault bool) string {
 }
 
 func CheckProviderEnvironmentNameCompatibility(envName string, provider types.ProviderType) error {
-	if provider == types.LocalProviderType && envName != types.LocalProviderType.String() {
-		return ErrorLocalEnvironmentMustBeNamedLocal(envName)
-	}
-
 	envNameProvider := types.ProviderTypeFromString(envName)
 	if envNameProvider == types.UnknownProviderType {
 		return nil
@@ -93,12 +85,6 @@ func (env *Environment) Validate() error {
 		return err
 	}
 
-	if env.Provider == types.LocalProviderType {
-		if env.OperatorEndpoint != nil {
-			return errors.Wrap(ErrorOperatorEndpointInLocalEnvironment(), env.Name)
-		}
-	}
-
 	if env.Provider == types.AWSProviderType {
 		if env.OperatorEndpoint == nil {
 			return errors.Wrap(cr.ErrorMustBeDefined(), env.Name, OperatorEndpointKey)
@@ -108,9 +94,6 @@ func (env *Environment) Validate() error {
 		}
 		if env.AWSSecretAccessKey == nil {
 			return errors.Wrap(cr.ErrorMustBeDefined(), env.Name, AWSSecretAccessKeyKey)
-		}
-		if env.AWSRegion != nil {
-			return errors.Wrap(cr.ErrorMustBeEmpty(), env.Name, AWSRegionKey)
 		}
 	}
 
@@ -123,9 +106,6 @@ func (env *Environment) Validate() error {
 		}
 		if env.AWSSecretAccessKey != nil {
 			return errors.Wrap(cr.ErrorMustBeEmpty(), env.Name, AWSSecretAccessKeyKey)
-		}
-		if env.AWSRegion != nil {
-			return errors.Wrap(cr.ErrorMustBeEmpty(), env.Name, AWSRegionKey)
 		}
 	}
 

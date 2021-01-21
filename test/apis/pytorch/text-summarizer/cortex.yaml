@@ -1,0 +1,9 @@
+- name: text-summarizer
+  kind: RealtimeAPI
+  predictor:
+    type: python
+    path: predictor.py
+  compute:
+    cpu: 1
+    gpu: 1 # this is optional, since the api can also run on cpu
+    mem: 6G

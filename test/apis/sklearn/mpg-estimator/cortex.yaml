@@ -1,0 +1,7 @@
+- name: mpg-estimator
+  kind: RealtimeAPI
+  predictor:
+    type: python
+    path: predictor.py
+    config:
+      model: s3://cortex-examples/sklearn/mpg-estimator/linreg/

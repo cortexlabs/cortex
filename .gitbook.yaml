@@ -1,13 +1,5 @@
 root: ./docs/
 
 structure:
-  readme: ../README.md
+  readme: ./workloads/realtime/example.md
   summary: summary.md
-
-redirects:
-  tutorial: ../examples/pytorch/text-generator/README.md
-  tutorial/realtime: ../examples/pytorch/text-generator/README.md
-  tutorial/batch: ../examples/batch/image-classifier/README.md
-  install: ./cloud/install.md
-  uninstall: ./cloud/uninstall.md
-  update: ./cloud/update.md

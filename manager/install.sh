@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Copyright 2020 Cortex Labs, Inc.
+# Copyright 2021 Cortex Labs, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -44,10 +44,6 @@ function cluster_up_aws() {
 
   start_pre_download_images
 
-  if [ "$CORTEX_API_LOAD_BALANCER_SCHEME" == "internal" ] && [ "$CORTEX_API_GATEWAY" == "public" ]; then
-    create_vpc_link
-  fi
-
   echo -n "￮ updating cluster configuration "
   setup_configmap
   setup_secrets
@@ -65,7 +61,8 @@ function cluster_up_aws() {
   echo "✓"
 
   echo -n "￮ configuring logging "
-  envsubst < manifests/fluentd.yaml | kubectl apply -f - >/dev/null
+  python render_template.py $CORTEX_CLUSTER_CONFIG_FILE manifests/fluent-bit.yaml.j2 > /workspace/fluent-bit.yaml
+  kubectl apply -f /workspace/fluent-bit.yaml >/dev/null
   echo "✓"
 
   echo -n "￮ configuring metrics "
@@ -85,10 +82,6 @@ function cluster_up_aws() {
     echo "✓"
   fi
 
-  if [ "$CORTEX_API_LOAD_BALANCER_SCHEME" == "internal" ] && [ "$CORTEX_API_GATEWAY" == "public" ]; then
-    create_vpc_link_integration
-  fi
-
   restart_operator
 
   validate_cortex
@@ -97,15 +90,17 @@ function cluster_up_aws() {
 
   echo -e "\ncortex is ready!"
   if [ "$CORTEX_OPERATOR_LOAD_BALANCER_SCHEME" == "internal" ]; then
-    echo -e "note: you will need to configure VPC Peering to connect to your cluster: https://docs.cortex.dev/v/${CORTEX_VERSION_MINOR}/aws/vpc-peering"
+    echo -e "note: you will need to configure VPC Peering to connect to your cluster: https://docs.cortex.dev/v/${CORTEX_VERSION_MINOR}/"
   fi
 
   print_endpoints_aws
 }
 
 function cluster_up_gcp() {
-  gcloud auth activate-service-account --key-file $GOOGLE_APPLICATION_CREDENTIALS > /dev/null 2>&1
-  gcloud container clusters get-credentials $CORTEX_CLUSTER_NAME --project $CORTEX_GCP_PROJECT --region $CORTEX_GCP_ZONE > /dev/null 2>&1 # write both stderr and stdout to dev/null
+  gcloud auth activate-service-account --key-file $GOOGLE_APPLICATION_CREDENTIALS 2> /dev/stdout 1> /dev/null | (grep -v "Activated service account credentials" || true)
+  gcloud container clusters get-credentials $CORTEX_CLUSTER_NAME --project $CORTEX_GCP_PROJECT --region $CORTEX_GCP_ZONE 2> /dev/stdout 1> /dev/null | (grep -v "Fetching cluster" | grep -v "kubeconfig entry generated" || true)
+
+  start_pre_download_images
 
   echo -n "￮ updating cluster configuration "
   setup_configmap_gcp
@@ -118,6 +113,16 @@ function cluster_up_gcp() {
   kubectl apply -f /workspace/apis.yaml >/dev/null
   echo "✓"
 
+  echo -n "￮ configuring autoscaling "
+  python render_template.py $CORTEX_CLUSTER_CONFIG_FILE manifests/cluster-autoscaler.yaml.j2 > /workspace/cluster-autoscaler.yaml
+  kubectl apply -f /workspace/cluster-autoscaler.yaml >/dev/null
+  echo "✓"
+
+  echo -n "￮ configuring logging "
+  python render_template.py $CORTEX_CLUSTER_CONFIG_FILE manifests/fluent-bit.yaml.j2 > /workspace/fluent-bit.yaml
+  kubectl apply -f /workspace/fluent-bit.yaml >/dev/null
+  echo "✓"
+
   if [ -n "$CORTEX_ACCELERATOR_TYPE" ]; then
     echo -n "￮ configuring gpu support "
     envsubst < manifests/nvidia_gcp.yaml | kubectl apply -f - >/dev/null
@@ -127,6 +132,8 @@ function cluster_up_gcp() {
   restart_operator
 
   validate_cortex_gcp
+
+  await_pre_download_images
 
   echo -e "\ncortex is ready!"
 
@@ -193,7 +200,7 @@ function create_eks() {
     fi
   fi
 
-  echo -e "￮ spinning up the cluster (this will take about 15 minutes) ...\n"
+  echo -e "￮ spinning up the cluster (this will take about 25 minutes) ...\n"
   python generate_eks.py $CORTEX_CLUSTER_CONFIG_FILE > /workspace/eks.yaml
   eksctl create cluster --timeout=$EKSCTL_TIMEOUT --install-neuron-plugin=false -f /workspace/eks.yaml
   echo
@@ -241,8 +248,8 @@ function check_eks() {
 }
 
 function write_kubeconfig() {
-  eksctl utils write-kubeconfig --cluster=$CORTEX_CLUSTER_NAME --region=$CORTEX_REGION | grep -v "saved kubeconfig as" | grep -v "using region" | grep -v "eksctl version" || true
-  out=$(kubectl get pods 2>&1 || true); if [[ "$out" == *"must be logged in to the server"* ]]; then echo "error: your aws iam user does not have access to this cluster; to grant access, see https://docs.cortex.dev/v/${CORTEX_VERSION_MINOR}/aws/security#running-cortex-cluster-commands-from-different-iam-users"; exit 1; fi
+  eksctl utils write-kubeconfig --cluster=$CORTEX_CLUSTER_NAME --region=$CORTEX_REGION | (grep -v "saved kubeconfig as" | grep -v "using region" | grep -v "eksctl version" || true)
+  out=$(kubectl get pods 2>&1 || true); if [[ "$out" == *"must be logged in to the server"* ]]; then echo "error: your aws iam user does not have access to this cluster; to grant access, see https://docs.cortex.dev/v/${CORTEX_VERSION_MINOR}/"; exit 1; fi
 }
 
 function setup_configmap() {
@@ -400,48 +407,6 @@ function suspend_az_rebalance() {
   fi
 }
 
-function create_vpc_link() {
-  # get VPC ID
-  vpc_id=$(aws ec2 describe-vpcs --region $CORTEX_REGION --filters Name=tag:cortex.dev/cluster-name,Values=$CORTEX_CLUSTER_NAME | jq .Vpcs[0].VpcId | tr -d '"')
-  if [ "$vpc_id" = "" ] || [ "$vpc_id" = "null" ]; then
-    echo "unable to find cortex vpc"
-    exit 1
-  fi
-
-  # filter all private subnets belonging to cortex cluster
-  private_subnets=$(aws ec2 describe-subnets --region $CORTEX_REGION --filters Name=vpc-id,Values=$vpc_id Name=tag:Name,Values=*Private* | jq -s '.[].Subnets[].SubnetId' | tr -d '"')
-  if [ "$private_subnets" = "" ] || [ "$private_subnets" = "null" ]; then
-    echo "unable to find cortex private subnets"
-    exit 1
-  fi
-
-  # get default security group for cortex VPC
-  default_security_group=$(aws ec2 describe-security-groups --region $CORTEX_REGION --filters Name=vpc-id,Values=$vpc_id Name=group-name,Values=default | jq -c .SecurityGroups[].GroupId | tr -d '"')
-  if [ "$default_security_group" = "" ] || [ "$default_security_group" = "null" ]; then
-    echo "unable to find cortex default security group"
-    exit 1
-  fi
-
-  # create VPC Link
-  create_vpc_link_output=$(aws apigatewayv2 create-vpc-link --region $CORTEX_REGION --tags "$CORTEX_TAGS_JSON" --name $CORTEX_CLUSTER_NAME --subnet-ids $private_subnets --security-group-ids $default_security_group)
-  vpc_link_id=$(echo $create_vpc_link_output | jq .VpcLinkId | tr -d '"')
-  if [ "$vpc_link_id" = "" ] || [ "$vpc_link_id" = "null" ]; then
-    echo -e "unable to extract vpc link ID from create-vpc-link output:\n$create_vpc_link_output"
-    exit 1
-  fi
-}
-
-# must be called after create_vpc_link() since $vpc_link_id is reused
-function create_vpc_link_integration() {
-  echo -n "￮ creating api gateway vpc link integration "
-  api_id=$(python get_api_gateway_id.py)
-  python create_gateway_integration.py $api_id $vpc_link_id
-  echo "✓"
-  echo -n "￮ waiting for api gateway vpc link integration "
-  until [ "$(aws apigatewayv2 get-vpc-link --region $CORTEX_REGION --vpc-link-id $vpc_link_id | jq .VpcLinkStatus | tr -d '"')" = "AVAILABLE" ]; do echo -n "."; sleep 3; done
-  echo " ✓"
-}
-
 function setup_istio() {
   envsubst < manifests/istio-namespace.yaml | kubectl apply -f - >/dev/null
 
@@ -470,7 +435,7 @@ function start_pre_download_images() {
   export CORTEX_IMAGE_TENSORFLOW_SERVING_INF="${registry}/tensorflow-serving-inf:${tag}"
   export CORTEX_IMAGE_TENSORFLOW_PREDICTOR="${registry}/tensorflow-predictor:${tag}"
 
-  if [[ "$CORTEX_INSTANCE_TYPE" == p* ]] || [[ "$CORTEX_INSTANCE_TYPE" == g* ]]; then
+  if [[ "$CORTEX_INSTANCE_TYPE" == p* ]] || [[ "$CORTEX_INSTANCE_TYPE" == g* ]] || [ -n "$CORTEX_ACCELERATOR_TYPE" ]; then
     envsubst < manifests/image-downloader-gpu.yaml | kubectl apply -f - &>/dev/null
   elif [[ "$CORTEX_INSTANCE_TYPE" == inf* ]]; then
     envsubst < manifests/image-downloader-inf.yaml | kubectl apply -f - &>/dev/null
@@ -485,7 +450,7 @@ function await_pre_download_images() {
     printed_dot="false"
     i=0
     until [ "$(kubectl get daemonset image-downloader -n=default -o 'jsonpath={.status.numberReady}')" == "$(kubectl get daemonset image-downloader -n=default -o 'jsonpath={.status.desiredNumberScheduled}')" ]; do
-      if [ $i -eq 100 ]; then break; fi  # give up after 5 minutes
+      if [ $i -eq 120 ]; then break; fi  # give up after 6 minutes
       echo -n "."
       printed_dot="true"
       ((i=i+1))
@@ -746,12 +711,14 @@ function validate_cortex_gcp() {
       api_load_balancer_endpoint=$(kubectl -n=istio-system get service ingressgateway-apis -o json | tr -d '[:space:]' | sed 's/.*{\"ip\":\"\(.*\)\".*/\1/')
     fi
 
-    operator_endpoint_reachable="false"  # don't cache this result
-    if ! curl --max-time 3 "${operator_endpoint}/verifycortex" >/dev/null 2>&1; then
-      success_cycles=0
-      continue
+    if [ "$CORTEX_OPERATOR_LOAD_BALANCER_SCHEME" == "internet-facing" ]; then
+      operator_endpoint_reachable="false"  # don't cache this result
+      if ! curl --max-time 3 "${operator_endpoint}/verifycortex" >/dev/null 2>&1; then
+        success_cycles=0
+        continue
+      fi
+      operator_endpoint_reachable="true"
     fi
-    operator_endpoint_reachable="true"
 
     if [[ $success_cycles -lt 1 ]]; then
       ((success_cycles++))
@@ -769,15 +736,9 @@ function print_endpoints_aws() {
 
   operator_endpoint=$(get_operator_endpoint_aws)
   api_load_balancer_endpoint=$(get_api_load_balancer_endpoint_aws)
-  if [ "$CORTEX_API_GATEWAY" == "public" ]; then
-    api_gateway_endpoint=$(get_api_gateway_endpoint)
-  fi
 
   echo "operator:          $operator_endpoint"  # before modifying this, search for this prefix
   echo "api load balancer: $api_load_balancer_endpoint"
-  if [ "$CORTEX_API_GATEWAY" == "public" ]; then
-    echo "api gateway:       $api_gateway_endpoint"
-  fi
 }
 
 function get_operator_endpoint_aws() {
@@ -786,10 +747,6 @@ function get_operator_endpoint_aws() {
 
 function get_api_load_balancer_endpoint_aws() {
   kubectl -n=istio-system get service ingressgateway-apis -o json | tr -d '[:space:]' | sed 's/.*{\"hostname\":\"\(.*\)\".*/\1/'
-}
-
-function get_api_gateway_endpoint() {
-  python get_api_gateway_endpoint.py
 }
 
 function print_endpoints_gcp() {

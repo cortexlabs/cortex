@@ -1,0 +1,10 @@
+boto3==1.14.53
+google-cloud-storage==1.32.0
+datadog==0.39.0
+dill==0.3.2
+msgpack==1.0.0
+numpy==1.19.1
+jinja2==2.11.2
+fastapi==0.61.1
+pyyaml==5.3.1
+python-json-logger==2.0.1

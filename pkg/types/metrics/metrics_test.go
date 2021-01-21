@@ -1,5 +1,5 @@
 /*
-Copyright 2020 Cortex Labs, Inc.
+Copyright 2021 Cortex Labs, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -42,43 +42,6 @@ func TestMergeAvg(t *testing.T) {
 	require.Equal(t, float64(1.25), *mergeAvg(pointer.Float64(2), 1, pointer.Float64(1), 3))
 }
 
-func TestRegressionStatsMerge(t *testing.T) {
-	require.Equal(t, RegressionStats{}, RegressionStats{}.Merge(RegressionStats{}))
-	require.Equal(t, RegressionStats{Min: pointer.Float64(1)}, RegressionStats{Min: pointer.Float64(1)}.Merge(RegressionStats{}))
-	require.Equal(t, RegressionStats{Min: pointer.Float64(1)}, RegressionStats{}.Merge(RegressionStats{Min: pointer.Float64(1)}))
-	require.Equal(t, RegressionStats{Min: pointer.Float64(1)}, RegressionStats{Min: pointer.Float64(2)}.Merge(RegressionStats{Min: pointer.Float64(1)}))
-	require.Equal(t, RegressionStats{Min: pointer.Float64(1)}, RegressionStats{Min: pointer.Float64(1)}.Merge(RegressionStats{Min: pointer.Float64(2)}))
-
-	require.Equal(t, RegressionStats{Max: pointer.Float64(1)}, RegressionStats{Max: pointer.Float64(1)}.Merge(RegressionStats{}))
-	require.Equal(t, RegressionStats{Max: pointer.Float64(1)}, RegressionStats{}.Merge(RegressionStats{Max: pointer.Float64(1)}))
-	require.Equal(t, RegressionStats{Max: pointer.Float64(2)}, RegressionStats{Max: pointer.Float64(2)}.Merge(RegressionStats{Max: pointer.Float64(1)}))
-	require.Equal(t, RegressionStats{Max: pointer.Float64(2)}, RegressionStats{Max: pointer.Float64(1)}.Merge(RegressionStats{Max: pointer.Float64(2)}))
-
-	left := RegressionStats{
-		Max:         pointer.Float64(5),
-		Min:         pointer.Float64(2),
-		Avg:         pointer.Float64(3.5),
-		SampleCount: 4,
-	}
-
-	right := RegressionStats{
-		Max:         pointer.Float64(6),
-		Min:         pointer.Float64(1),
-		Avg:         pointer.Float64(3.5),
-		SampleCount: 6,
-	}
-
-	merged := RegressionStats{
-		Max:         pointer.Float64(6),
-		Min:         pointer.Float64(1),
-		Avg:         pointer.Float64(3.5),
-		SampleCount: 10,
-	}
-
-	require.Equal(t, merged, left.Merge(right))
-	require.Equal(t, merged, right.Merge(left))
-}
-
 func TestNetworkStatsMerge(t *testing.T) {
 	require.Equal(t, NetworkStats{}, NetworkStats{}.Merge(NetworkStats{}))
 
@@ -113,12 +76,6 @@ func TestNetworkStatsMerge(t *testing.T) {
 func TestAPIMetricsMerge(t *testing.T) {
 	require.Equal(t, Metrics{}, Metrics{}.Merge(Metrics{}))
 
-	classDistribution := map[string]int{
-		"class_a": 1,
-		"class_b": 2,
-		"class_c": 4,
-	}
-
 	networkStats := NetworkStats{
 		Code2XX: 3,
 		Code4XX: 4,
@@ -127,35 +84,14 @@ func TestAPIMetricsMerge(t *testing.T) {
 		Total:   12,
 	}
 
-	regressionStats := RegressionStats{
-		Max:         pointer.Float64(6),
-		Min:         pointer.Float64(1),
-		Avg:         pointer.Float64(3.5),
-		SampleCount: 6,
-	}
-
 	mergedNetworkStats := networkStats.Merge(networkStats)
-	mergedRegressionStats := regressionStats.Merge(regressionStats)
-
-	mergedClassDistribution := map[string]int{
-		"class_a": 2,
-		"class_b": 4,
-		"class_c": 8,
-	}
-
-	require.Equal(t, Metrics{ClassDistribution: classDistribution}, Metrics{ClassDistribution: classDistribution}.Merge(Metrics{}))
-	require.Equal(t, Metrics{ClassDistribution: classDistribution}, Metrics{}.Merge(Metrics{ClassDistribution: classDistribution}))
 
 	mergedAPIMetrics := Metrics{
-		ClassDistribution: mergedClassDistribution,
-		NetworkStats:      &mergedNetworkStats,
-		RegressionStats:   &mergedRegressionStats,
+		NetworkStats: &mergedNetworkStats,
 	}
 
 	apiMetrics := Metrics{
-		ClassDistribution: classDistribution,
-		NetworkStats:      &networkStats,
-		RegressionStats:   &regressionStats,
+		NetworkStats: &networkStats,
 	}
 
 	require.Equal(t, mergedAPIMetrics, apiMetrics.Merge(apiMetrics))

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Copyright 2020 Cortex Labs, Inc.
+# Copyright 2021 Cortex Labs, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,17 +18,17 @@ set -e
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")"/.. >/dev/null && pwd)"
 
-out_file=$ROOT/docs/miscellaneous/cli.md
+out_file=$ROOT/docs/clients/cli.md
 rm -f $out_file
 
-echo "building cli..."
+echo "building cli ..."
 make --no-print-directory -C $ROOT cli
 
 # Clear default environments
 cli_config_backup_path=$HOME/.cortex/cli-bak-$RANDOM.yaml
 mv $HOME/.cortex/cli.yaml $cli_config_backup_path
 
-cat $ROOT/dev/cli_md_template.md >> $out_file
+echo "# CLI commands" >> $out_file
 
 commands=(
   "deploy"
@@ -36,13 +36,15 @@ commands=(
   "logs"
   "patch"
   "refresh"
-  "predict"
   "delete"
   "cluster up"
   "cluster info"
   "cluster configure"
   "cluster down"
   "cluster export"
+  "cluster-gcp up"
+  "cluster-gcp info"
+  "cluster-gcp down"
   "env configure"
   "env list"
   "env default"
@@ -51,11 +53,11 @@ commands=(
   "completion"
 )
 
-echo "running help commands..."
+echo "running help commands ..."
 
 for cmd in "${commands[@]}"; do
   echo '' >> $out_file
-  echo "### ${cmd}" >> $out_file
+  echo "## ${cmd}" >> $out_file
   echo '' >> $out_file
   echo '```text' >> $out_file
   $ROOT/bin/cortex help ${cmd} >> $out_file

@@ -1,5 +1,5 @@
 /*
-Copyright 2020 Cortex Labs, Inc.
+Copyright 2021 Cortex Labs, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -28,6 +28,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/cortexlabs/cortex/cli/lib/routines"
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/archive"
 	"github.com/cortexlabs/cortex/pkg/lib/docker"
@@ -63,6 +64,9 @@ func runManager(containerConfig *container.Config, addNewLineAfterPull bool, cop
 
 	pulledImage, err := docker.PullImage(containerConfig.Image, docker.NoAuth, docker.PrintDots)
 	if err != nil {
+		if strings.Contains(err.Error(), "auth") {
+			err = errors.Append(err, fmt.Sprintf("\n\nif your manager image is stored in a private repository: run `docker login` (if you haven't already), download your image with `docker pull %s`, and try this command again)", containerConfig.Image))
+		}
 		return "", nil, err
 	}
 
@@ -88,12 +92,13 @@ func runManager(containerConfig *container.Config, addNewLineAfterPull bool, cop
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 	caughtCtrlC := false
-	go func() {
+
+	routines.RunWithPanicHandler(func() {
 		<-c
 		caughtCtrlC = true
 		removeContainer()
 		exit.Error(ErrorDockerCtrlC())
-	}()
+	}, false)
 
 	for _, copyPath := range copyToPaths {
 		err = docker.CopyToContainer(containerInfo.ID, copyPath.input, copyPath.containerPath)

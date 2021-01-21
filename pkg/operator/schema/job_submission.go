@@ -1,5 +1,5 @@
 /*
-Copyright 2020 Cortex Labs, Inc.
+Copyright 2021 Cortex Labs, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -43,9 +43,13 @@ type DelimitedFiles struct {
 	BatchSize int `json:"batch_size"`
 }
 
-type JobSubmission struct {
-	spec.RuntimeJobConfig
+type BatchJobSubmission struct {
+	spec.RuntimeBatchJobConfig
 	ItemList       *ItemList       `json:"item_list"`
 	FilePathLister *FilePathLister `json:"file_path_lister"`
 	DelimitedFiles *DelimitedFiles `json:"delimited_files"`
+}
+
+type TaskJobSubmission struct {
+	spec.RuntimeTaskJobConfig
 }

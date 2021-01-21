@@ -1,5 +1,5 @@
 /*
-Copyright 2020 Cortex Labs, Inc.
+Copyright 2021 Cortex Labs, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -66,7 +66,7 @@ func readCachedGCPClusterConfigFile(clusterConfig *clusterconfig.GCPConfig, file
 func readUserGCPClusterConfigFile(clusterConfig *clusterconfig.GCPConfig) error {
 	errs := cr.ParseYAMLFile(clusterConfig, clusterconfig.UserGCPValidation, _flagClusterGCPConfig)
 	if errors.HasError(errs) {
-		return errors.Append(errors.FirstError(errs...), fmt.Sprintf("\n\ncluster configuration schema can be found here: https://docs.cortex.dev/v/%s/gcp/install", consts.CortexVersionMinor))
+		return errors.Append(errors.FirstError(errs...), fmt.Sprintf("\n\ncluster configuration schema can be found at https://docs.cortex.dev/v/%s/", consts.CortexVersionMinor))
 	}
 
 	return nil
@@ -81,7 +81,7 @@ func getNewGCPClusterAccessConfig(disallowPrompt bool) (*clusterconfig.GCPAccess
 	if _flagClusterGCPConfig != "" {
 		errs := cr.ParseYAMLFile(accessConfig, clusterconfig.GCPAccessValidation, _flagClusterGCPConfig)
 		if errors.HasError(errs) {
-			return nil, errors.Append(errors.FirstError(errs...), fmt.Sprintf("\n\ncluster configuration schema can be found here: https://docs.cortex.dev/v/%s/gcp/install", consts.CortexVersionMinor))
+			return nil, errors.Append(errors.FirstError(errs...), fmt.Sprintf("\n\ncluster configuration schema can be found at https://docs.cortex.dev/v/%s/", consts.CortexVersionMinor))
 		}
 	}
 
@@ -120,7 +120,7 @@ func getGCPClusterAccessConfigWithCache(disallowPrompt bool) (*clusterconfig.GCP
 	if _flagClusterGCPConfig != "" {
 		errs := cr.ParseYAMLFile(accessConfig, clusterconfig.GCPAccessValidation, _flagClusterGCPConfig)
 		if errors.HasError(errs) {
-			return nil, errors.Append(errors.FirstError(errs...), fmt.Sprintf("\n\ncluster configuration schema can be found here: https://docs.cortex.dev/v/%s/gcp/install", consts.CortexVersionMinor))
+			return nil, errors.Append(errors.FirstError(errs...), fmt.Sprintf("\n\ncluster configuration schema can be found at https://docs.cortex.dev/v/%s/", consts.CortexVersionMinor))
 		}
 	}
 
@@ -196,7 +196,7 @@ func getGCPInstallClusterConfig(gcpClient *gcp.Client, accessConfig clusterconfi
 
 	err = clusterConfig.Validate(gcpClient)
 	if err != nil {
-		err = errors.Append(err, fmt.Sprintf("\n\ncluster configuration schema can be found here: https://docs.cortex.dev/v/%s/gcp/install", consts.CortexVersionMinor))
+		err = errors.Append(err, fmt.Sprintf("\n\ncluster configuration schema can be found at https://docs.cortex.dev/v/%s/", consts.CortexVersionMinor))
 		if _flagClusterGCPConfig != "" {
 			err = errors.Wrap(err, _flagClusterGCPConfig)
 		}
@@ -212,7 +212,7 @@ func confirmGCPInstallClusterConfig(clusterConfig *clusterconfig.GCPConfig, disa
 	fmt.Printf("a cluster named \"%s\" will be created in %s (zone: %s)\n\n", clusterConfig.ClusterName, *clusterConfig.Project, *clusterConfig.Zone)
 
 	if !disallowPrompt {
-		exitMessage := fmt.Sprintf("cluster configuration can be modified via the cluster config file; see https://docs.cortex.dev/v/%s/gcp/install for more information", consts.CortexVersionMinor)
+		exitMessage := fmt.Sprintf("cluster configuration can be modified via the cluster config file; see https://docs.cortex.dev/v/%s/ for more information", consts.CortexVersionMinor)
 		prompt.YesOrExit("would you like to continue?", "", exitMessage)
 	}
 }

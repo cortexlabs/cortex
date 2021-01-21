@@ -1,5 +1,5 @@
 /*
-Copyright 2020 Cortex Labs, Inc.
+Copyright 2021 Cortex Labs, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -27,22 +27,23 @@ import (
 )
 
 type Float32Validation struct {
-	Required             bool
-	Default              float32
-	TreatNullAsZero      bool // `<field>: ` and `<field>: null` will be read as `<field>: 0.0`
-	AllowedValues        []float32
-	DisallowedValues     []float32
-	GreaterThan          *float32
-	GreaterThanOrEqualTo *float32
-	LessThan             *float32
-	LessThanOrEqualTo    *float32
-	Validator            func(float32) (float32, error)
+	Required              bool
+	Default               float32
+	TreatNullAsZero       bool // `<field>: ` and `<field>: null` will be read as `<field>: 0.0`
+	AllowedValues         []float32
+	DisallowedValues      []float32
+	CantBeSpecifiedErrStr *string
+	GreaterThan           *float32
+	GreaterThanOrEqualTo  *float32
+	LessThan              *float32
+	LessThanOrEqualTo     *float32
+	Validator             func(float32) (float32, error)
 }
 
 func Float32(inter interface{}, v *Float32Validation) (float32, error) {
 	if inter == nil {
 		if v.TreatNullAsZero {
-			return ValidateFloat32(0, v)
+			return ValidateFloat32Provided(0, v)
 		}
 		return 0, ErrorCannotBeNull(v.Required)
 	}
@@ -50,7 +51,7 @@ func Float32(inter interface{}, v *Float32Validation) (float32, error) {
 	if !castOk {
 		return 0, ErrorInvalidPrimitiveType(inter, PrimTypeFloat)
 	}
-	return ValidateFloat32(casted, v)
+	return ValidateFloat32Provided(casted, v)
 }
 
 func Float32FromInterfaceMap(key string, iMap map[string]interface{}, v *Float32Validation) (float32, error) {
@@ -93,7 +94,7 @@ func Float32FromStr(valStr string, v *Float32Validation) (float32, error) {
 	if !castOk {
 		return 0, ErrorInvalidPrimitiveType(valStr, PrimTypeFloat)
 	}
-	return ValidateFloat32(casted, v)
+	return ValidateFloat32Provided(casted, v)
 }
 
 func Float32FromEnv(envVarName string, v *Float32Validation) (float32, error) {
@@ -161,10 +162,17 @@ func ValidateFloat32Missing(v *Float32Validation) (float32, error) {
 	if v.Required {
 		return 0, ErrorMustBeDefined(v.AllowedValues)
 	}
-	return ValidateFloat32(v.Default, v)
+	return validateFloat32(v.Default, v)
 }
 
-func ValidateFloat32(val float32, v *Float32Validation) (float32, error) {
+func ValidateFloat32Provided(val float32, v *Float32Validation) (float32, error) {
+	if v.CantBeSpecifiedErrStr != nil {
+		return 0, ErrorFieldCantBeSpecified(*v.CantBeSpecifiedErrStr)
+	}
+	return validateFloat32(val, v)
+}
+
+func validateFloat32(val float32, v *Float32Validation) (float32, error) {
 	err := ValidateFloat32Val(val, v)
 	if err != nil {
 		return 0, err

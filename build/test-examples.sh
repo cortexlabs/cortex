@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Copyright 2020 Cortex Labs, Inc.
+# Copyright 2021 Cortex Labs, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -19,7 +19,7 @@ set -eou pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")"/.. >/dev/null && pwd)"
 CORTEX="$ROOT/bin/cortex"
 
-for example in $ROOT/examples/*/cortex.yaml; do
+for example in $ROOT/test/*/cortex.yaml; do
   timer=1200
   example_base_dir=$(dirname "${example}")
   retry="false"

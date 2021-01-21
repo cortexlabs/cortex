@@ -1,5 +1,5 @@
 /*
-Copyright 2020 Cortex Labs, Inc.
+Copyright 2021 Cortex Labs, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -23,6 +23,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
+	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	libmath "github.com/cortexlabs/cortex/pkg/lib/math"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
@@ -37,6 +38,7 @@ const (
 	ErrDuplicateEndpointInOneDeploy = "spec.duplicate_endpoint_in_one_deploy"
 	ErrDuplicateEndpoint            = "spec.duplicate_endpoint"
 	ErrConflictingFields            = "spec.conflicting_fields"
+	ErrSpecifyOnlyOneField          = "spec.specify_only_one_field"
 	ErrSpecifyOneOrTheOther         = "spec.specify_one_or_the_other"
 	ErrSpecifyAllOrNone             = "spec.specify_all_or_none"
 	ErrOneOfPrerequisitesNotDefined = "spec.one_of_prerequisites_not_defined"
@@ -51,6 +53,8 @@ const (
 
 	ErrModelCachingNotSupportedWhenMultiprocessingEnabled = "spec.model_caching_not_supported_when_multiprocessing_enabled"
 
+	ErrShmSizeCannotExceedMem = "spec.shm_size_cannot_exceed_mem"
+
 	ErrFileNotFound              = "spec.file_not_found"
 	ErrDirIsEmpty                = "spec.dir_is_empty"
 	ErrMustBeRelativeProjectPath = "spec.must_be_relative_project_path"
@@ -60,36 +64,33 @@ const (
 	ErrS3DirNotFound  = "spec.s3_dir_not_found"
 	ErrS3DirIsEmpty   = "spec.s3_dir_is_empty"
 
-	ErrIncorrectBucketProvider    = "spec.incorrect_bucket_provider"
-	ErrMixedBucketProviders       = "spec.mixed_bucket_providers"
 	ErrModelPathNotDirectory      = "spec.model_path_not_directory"
 	ErrInvalidPythonModelPath     = "spec.invalid_python_model_path"
 	ErrInvalidTensorFlowModelPath = "spec.invalid_tensorflow_model_path"
 	ErrInvalidONNXModelPath       = "spec.invalid_onnx_model_path"
+	ErrInvalidONNXModelFilePath   = "spec.invalid_onnx_model_file_path"
 
-	ErrMissingModel        = "spec.missing_model"
 	ErrDuplicateModelNames = "spec.duplicate_model_names"
 	ErrReservedModelName   = "spec.reserved_model_name"
 
-	ErrFieldMustBeDefinedForPredictorType   = "spec.field_must_be_defined_for_predictor_type"
-	ErrFieldNotSupportedByPredictorType     = "spec.field_not_supported_by_predictor_type"
-	ErrNoAvailableNodeComputeLimit          = "spec.no_available_node_compute_limit"
-	ErrCortexPrefixedEnvVarNotAllowed       = "spec.cortex_prefixed_env_var_not_allowed"
-	ErrLocalPathNotSupportedByAWSProvider   = "spec.local_path_not_supported_by_aws_provider"
-	ErrUnsupportedLocalComputeResource      = "spec.unsupported_local_compute_resource"
-	ErrRegistryInDifferentRegion            = "spec.registry_in_different_region"
-	ErrRegistryAccountIDMismatch            = "spec.registry_account_id_mismatch"
-	ErrCannotAccessECRWithAnonymousAWSCreds = "spec.cannot_access_ecr_with_anonymous_aws_creds"
-	ErrKindIsNotSupportedByProvider         = "spec.kind_is_not_supported_by_provider"
-	ErrKeyIsNotSupportedForKind             = "spec.key_is_not_supported_for_kind"
-	ErrComputeResourceConflict              = "spec.compute_resource_conflict"
-	ErrInvalidNumberOfInfProcesses          = "spec.invalid_number_of_inf_processes"
-	ErrInvalidNumberOfInfs                  = "spec.invalid_number_of_infs"
-	ErrInsufficientBatchConcurrencyLevel    = "spec.insufficient_batch_concurrency_level"
-	ErrInsufficientBatchConcurrencyLevelInf = "spec.insufficient_batch_concurrency_level_inf"
-	ErrIncorrectTrafficSplitterWeight       = "spec.incorrect_traffic_splitter_weight"
-	ErrTrafficSplitterAPIsNotUnique         = "spec.traffic_splitter_apis_not_unique"
-	ErrUnexpectedDockerSecretData           = "spec.unexpected_docker_secret_data"
+	ErrFieldMustBeDefinedForPredictorType          = "spec.field_must_be_defined_for_predictor_type"
+	ErrFieldNotSupportedByPredictorType            = "spec.field_not_supported_by_predictor_type"
+	ErrNoAvailableNodeComputeLimit                 = "spec.no_available_node_compute_limit"
+	ErrCortexPrefixedEnvVarNotAllowed              = "spec.cortex_prefixed_env_var_not_allowed"
+	ErrUnsupportedComputeResourceForProvider       = "spec.unsupported_compute_resource_for_provider"
+	ErrRegistryInDifferentRegion                   = "spec.registry_in_different_region"
+	ErrRegistryAccountIDMismatch                   = "spec.registry_account_id_mismatch"
+	ErrKindIsNotSupportedByProvider                = "spec.kind_is_not_supported_by_provider"
+	ErrKeyIsNotSupportedForKind                    = "spec.key_is_not_supported_for_kind"
+	ErrComputeResourceConflict                     = "spec.compute_resource_conflict"
+	ErrInvalidNumberOfInfProcesses                 = "spec.invalid_number_of_inf_processes"
+	ErrInvalidNumberOfInfs                         = "spec.invalid_number_of_infs"
+	ErrInsufficientBatchConcurrencyLevel           = "spec.insufficient_batch_concurrency_level"
+	ErrInsufficientBatchConcurrencyLevelInf        = "spec.insufficient_batch_concurrency_level_inf"
+	ErrConcurrencyMismatchServerSideBatchingPython = "spec.concurrency_mismatch_server_side_batching_python"
+	ErrIncorrectTrafficSplitterWeight              = "spec.incorrect_traffic_splitter_weight"
+	ErrTrafficSplitterAPIsNotUnique                = "spec.traffic_splitter_apis_not_unique"
+	ErrUnexpectedDockerSecretData                  = "spec.unexpected_docker_secret_data"
 )
 
 var _modelCurrentStructure = `
@@ -100,14 +101,14 @@ var _modelCurrentStructure = `
 func ErrorMalformedConfig() error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrMalformedConfig,
-		Message: fmt.Sprintf("cortex YAML configuration files must contain a list of maps (see https://docs.cortex.dev/v/%s/deployments/realtime-api/api-configuration for Realtime API documentation and see https://docs.cortex.dev/v/%s/deployments/batch-api/api-configuration for Batch API documentation)", consts.CortexVersionMinor, consts.CortexVersionMinor),
+		Message: fmt.Sprintf("cortex YAML configuration files must contain a list of maps (see https://docs.cortex.dev/v/%s/ for api configuration schema)", consts.CortexVersionMinor),
 	})
 }
 
 func ErrorNoAPIs() error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrNoAPIs,
-		Message: fmt.Sprintf("at least one API must be configured (see https://docs.cortex.dev/v/%s/deployments/realtime-api/api-configuration for Realtime API documentation and see https://docs.cortex.dev/v/%s/deployments/batch-api/api-configuration for Batch API documentation)", consts.CortexVersionMinor, consts.CortexVersionMinor),
+		Message: fmt.Sprintf("at least one API must be configured (see https://docs.cortex.dev/v/%s/ for api configuration schema)", consts.CortexVersionMinor),
 	})
 }
 
@@ -146,6 +147,13 @@ func ErrorConflictingFields(fieldKeyA, fieldKeyB string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrConflictingFields,
 		Message: fmt.Sprintf("please specify either the %s or %s field (both cannot be specified at the same time)", fieldKeyA, fieldKeyB),
+	})
+}
+
+func ErrorSpecifyOnlyOneField(fields ...string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrSpecifyOnlyOneField,
+		Message: fmt.Sprintf("please specify only one of the following fields %s", s.UserStrsOr(fields)),
 	})
 }
 
@@ -221,6 +229,13 @@ func ErrorSurgeAndUnavailableBothZero() error {
 	})
 }
 
+func ErrorShmSizeCannotExceedMem(shmSize k8s.Quantity, mem k8s.Quantity) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrShmSizeCannotExceedMem,
+		Message: fmt.Sprintf("predictor.shm_size (%s) cannot exceed compute.mem (%s)", shmSize.UserString, mem.UserString),
+	})
+}
+
 func ErrorModelCachingNotSupportedWhenMultiprocessingEnabled(desiredProcesses int32) error {
 	const maxNumProcesses int32 = 1
 	return errors.WithStack(&errors.Error{
@@ -276,27 +291,6 @@ func ErrorS3DirIsEmpty(path string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrS3DirIsEmpty,
 		Message: fmt.Sprintf("%s: S3 directory is empty", path),
-	})
-}
-
-func ErrorIncorrectBucketProvider(provider types.ProviderType) error {
-	var errorMessage string
-	if provider == types.AWSProviderType {
-		errorMessage = fmt.Sprintf("for %s provider type, only s3 buckets are accepted", provider)
-	}
-	if provider == types.GCPProviderType {
-		errorMessage = fmt.Sprintf("for %s provider type, only gs buckets are accepted", provider)
-	}
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrIncorrectBucketProvider,
-		Message: errorMessage,
-	})
-}
-
-func ErrorMixedBucketProviders() error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrMixedBucketProviders,
-		Message: "cannot mix bucket providers; must only provider s3 or gs buckets",
 	})
 }
 
@@ -453,10 +447,14 @@ func ErrorInvalidONNXModelPath(modelPath string, modelSubPaths []string) error {
 	})
 }
 
-func ErrorMissingModel(predictorType userconfig.PredictorType) error {
+func ErrorInvalidONNXModelFilePath(filePath string) error {
+	message := fmt.Sprintf("%s: invalid %s model file path; specify an ONNX file path or provide a directory with one of the following structures:\n", filePath, userconfig.ONNXPredictorType.CasedString())
+	templateModelPath := "path/to/model/directory/"
+	message += fmt.Sprintf(_onnxVersionedExpectedStructMessage, templateModelPath, templateModelPath)
+
 	return errors.WithStack(&errors.Error{
-		Kind:    ErrMissingModel,
-		Message: fmt.Sprintf("at least one model must be specified for the %s predictor type; use fields %s.%s or %s.%s to add model(s)", predictorType, userconfig.PredictorKey, userconfig.ModelPathKey, userconfig.PredictorKey, userconfig.ModelsKey),
+		Kind:    ErrInvalidONNXModelFilePath,
+		Message: message,
 	})
 }
 
@@ -495,16 +493,9 @@ func ErrorCortexPrefixedEnvVarNotAllowed() error {
 	})
 }
 
-func ErrorLocalModelPathNotSupportedByAWSProvider() error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrLocalPathNotSupportedByAWSProvider,
-		Message: fmt.Sprintf("local model paths are not supported for aws provider, please specify an S3 path"),
-	})
-}
-
 func ErrorUnsupportedComputeResourceForProvider(resourceType string, provider types.ProviderType) error {
 	return errors.WithStack(&errors.Error{
-		Kind:    ErrUnsupportedLocalComputeResource,
+		Kind:    ErrUnsupportedComputeResourceForProvider,
 		Message: fmt.Sprintf("%s compute resources cannot be used for the %s provider", resourceType, provider.String()),
 	})
 }
@@ -520,13 +511,6 @@ func ErrorRegistryAccountIDMismatch(regID, opID string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrRegistryAccountIDMismatch,
 		Message: fmt.Sprintf("registry account ID (%s) doesn't match your AWS account ID (%s), and using an ECR registry in a different AWS account is not supported", regID, opID),
-	})
-}
-
-func ErrorCannotAccessECRWithAnonymousAWSCreds() error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrCannotAccessECRWithAnonymousAWSCreds,
-		Message: fmt.Sprintf("cannot access ECR with anonymous aws credentials; run `cortex env configure local` to specify AWS credentials with access to ECR"),
 	})
 }
 
@@ -584,6 +568,18 @@ func ErrorInsufficientBatchConcurrencyLevelInf(maxBatchSize int32, threadsPerPro
 			userconfig.MaxBatchSizeKey, maxBatchSize, userconfig.ThreadsPerProcessKey, threadsPerProcess,
 		),
 	})
+}
+
+func ErrorConcurrencyMismatchServerSideBatchingPython(maxBatchsize int32, threadsPerProcess int32) error {
+	return errors.WithStack(
+		&errors.Error{
+			Kind: ErrConcurrencyMismatchServerSideBatchingPython,
+			Message: fmt.Sprintf(
+				"%s (%d) must be equal to %s (%d) when using server side batching with the python predictor",
+				userconfig.ThreadsPerProcessKey, threadsPerProcess, userconfig.MaxBatchSizeKey, maxBatchsize,
+			),
+		},
+	)
 }
 
 func ErrorIncorrectTrafficSplitterWeightTotal(totalWeight int32) error {

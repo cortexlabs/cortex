@@ -1,5 +1,5 @@
 /*
-Copyright 2020 Cortex Labs, Inc.
+Copyright 2021 Cortex Labs, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -24,6 +24,9 @@ import (
 	containerpb "google.golang.org/genproto/googleapis/container/v1"
 	"k8s.io/client-go/rest"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
+
+	grpcCodes "google.golang.org/grpc/codes"
+	grpcStatus "google.golang.org/grpc/status"
 )
 
 func (c *Client) GetCluster(clusterName string) (*containerpb.Cluster, error) {
@@ -38,6 +41,23 @@ func (c *Client) GetCluster(clusterName string) (*containerpb.Cluster, error) {
 		return nil, errors.WithStack(err)
 	}
 	return cluster, nil
+}
+
+func (c *Client) ClusterExists(clusterName string) (bool, error) {
+	if cluster, err := c.GetCluster(clusterName); err != nil {
+		if errors.Cause(err) == nil {
+			return false, err
+		}
+		if grpcError, ok := grpcStatus.FromError(errors.Cause(err)); ok {
+			if grpcError.Code() == grpcCodes.NotFound {
+				return false, nil
+			}
+		}
+		return false, err
+	} else if cluster != nil {
+		return true, nil
+	}
+	return false, nil
 }
 
 func (c *Client) DeleteCluster(clusterName string) (*containerpb.Operation, error) {

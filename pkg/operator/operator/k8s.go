@@ -1,5 +1,5 @@
 /*
-Copyright 2020 Cortex Labs, Inc.
+Copyright 2021 Cortex Labs, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -36,7 +36,6 @@ import (
 	istioclientnetworking "istio.io/client-go/pkg/apis/networking/v1beta1"
 	kcore "k8s.io/api/core/v1"
 	kresource "k8s.io/apimachinery/pkg/api/resource"
-	kmeta "k8s.io/apimachinery/pkg/apis/meta/v1"
 	intstr "k8s.io/apimachinery/pkg/util/intstr"
 )
 
@@ -48,10 +47,12 @@ const (
 
 const (
 	_specCacheDir                                  = "/mnt/spec"
+	_modelDir                                      = "/mnt/model"
 	_emptyDirMountPath                             = "/mnt"
 	_emptyDirVolumeName                            = "mnt"
 	_tfServingContainerName                        = "serve"
 	_tfServingModelName                            = "model"
+	_requestMonitorContainerName                   = "request-monitor"
 	_downloaderInitContainerName                   = "downloader"
 	_downloaderLastLog                             = "downloading the %s serving image"
 	_neuronRTDContainerName                        = "neuron-rtd"
@@ -62,9 +63,7 @@ const (
 	_tfServingLoadTimeMicros                       = "30000000" // 30 seconds (how much time a model can take to load into memory)
 	_tfServingBatchConfig                          = "/etc/tfs/batch_config.conf"
 	_apiReadinessFile                              = "/mnt/workspace/api_readiness.txt"
-	_apiLivenessFile                               = "/mnt/workspace/api_liveness.txt"
 	_neuronRTDSocket                               = "/sock/neuron.sock"
-	_apiLivenessStalePeriod                        = 7 // seconds (there is a 2-second buffer to be safe)
 	_requestMonitorReadinessFile                   = "/request_monitor_ready.txt"
 )
 
@@ -91,6 +90,23 @@ type downloadContainerArg struct {
 	HideUnzippingLog bool   `json:"hide_unzipping_log"` // if true, don't log when unzipping
 }
 
+func TaskInitContainer(api *spec.API) kcore.Container {
+	return kcore.Container{
+		Name:            _downloaderInitContainerName,
+		Image:           config.ImageDownloader(),
+		ImagePullPolicy: "Always",
+		Args:            []string{"--download=" + pythonDownloadArgs(api)},
+		EnvFrom:         baseEnvVars(),
+		Env: []kcore.EnvVar{
+			{
+				Name:  "CORTEX_LOG_LEVEL",
+				Value: strings.ToUpper(api.TaskDefinition.LogLevel.String()),
+			},
+		},
+		VolumeMounts: defaultVolumeMounts(),
+	}
+}
+
 func InitContainer(api *spec.API) kcore.Container {
 	downloadArgs := ""
 
@@ -109,8 +125,76 @@ func InitContainer(api *spec.API) kcore.Container {
 		ImagePullPolicy: "Always",
 		Args:            []string{"--download=" + downloadArgs},
 		EnvFrom:         baseEnvVars(),
+		Env:             getEnvVars(api, _downloaderInitContainerName),
 		VolumeMounts:    defaultVolumeMounts(),
 	}
+}
+
+func TaskContainers(api *spec.API) ([]kcore.Container, []kcore.Volume) {
+	apiPodResourceList := kcore.ResourceList{}
+	apiPodResourceLimitsList := kcore.ResourceList{}
+	apiPodVolumeMounts := defaultVolumeMounts()
+	volumes := DefaultVolumes()
+	var containers []kcore.Container
+
+	if api.Compute.GPU > 0 {
+		apiPodResourceList["nvidia.com/gpu"] = *kresource.NewQuantity(api.Compute.GPU, kresource.DecimalSI)
+		apiPodResourceLimitsList["nvidia.com/gpu"] = *kresource.NewQuantity(api.Compute.GPU, kresource.DecimalSI)
+	} else if api.Compute.Inf > 0 {
+		volumes = append(volumes, kcore.Volume{
+			Name: "neuron-sock",
+		})
+		rtdVolumeMounts := []kcore.VolumeMount{
+			{
+				Name:      "neuron-sock",
+				MountPath: "/sock",
+			},
+		}
+		apiPodVolumeMounts = append(apiPodVolumeMounts, rtdVolumeMounts...)
+		neuronContainer := *neuronRuntimeDaemonContainer(api, rtdVolumeMounts)
+
+		if api.Compute.CPU != nil {
+			q1, q2 := k8s.SplitInTwo(k8s.QuantityPtr(api.Compute.CPU.Quantity.DeepCopy()))
+			apiPodResourceList[kcore.ResourceCPU] = *q1
+			neuronContainer.Resources.Requests[kcore.ResourceCPU] = *q2
+		}
+
+		if api.Compute.Mem != nil {
+			q1, q2 := k8s.SplitInTwo(k8s.QuantityPtr(api.Compute.Mem.Quantity.DeepCopy()))
+			apiPodResourceList[kcore.ResourceMemory] = *q1
+			neuronContainer.Resources.Requests[kcore.ResourceMemory] = *q2
+		}
+
+		containers = append(containers, neuronContainer)
+	} else {
+		if api.Compute.CPU != nil {
+			apiPodResourceList[kcore.ResourceCPU] = api.Compute.CPU.DeepCopy()
+		}
+		if api.Compute.Mem != nil {
+			apiPodResourceList[kcore.ResourceMemory] = api.Compute.Mem.DeepCopy()
+		}
+	}
+
+	containers = append(containers, kcore.Container{
+		Name:            APIContainerName,
+		Image:           api.TaskDefinition.Image,
+		ImagePullPolicy: kcore.PullAlways,
+		Env:             getTaskEnvVars(api, APIContainerName),
+		EnvFrom:         baseEnvVars(),
+		VolumeMounts:    apiPodVolumeMounts,
+		Resources: kcore.ResourceRequirements{
+			Requests: apiPodResourceList,
+			Limits:   apiPodResourceLimitsList,
+		},
+		Ports: []kcore.ContainerPort{
+			{ContainerPort: DefaultPortInt32},
+		},
+		SecurityContext: &kcore.SecurityContext{
+			Privileged: pointer.Bool(true),
+		}},
+	)
+
+	return containers, volumes
 }
 
 func PythonPredictorContainers(api *spec.API) ([]kcore.Container, []kcore.Volume) {
@@ -118,7 +202,7 @@ func PythonPredictorContainers(api *spec.API) ([]kcore.Container, []kcore.Volume
 	apiPodResourceLimitsList := kcore.ResourceList{}
 	apiPodVolumeMounts := defaultVolumeMounts()
 	volumes := DefaultVolumes()
-	containers := []kcore.Container{}
+	var containers []kcore.Container
 
 	if api.Compute.Inf == 0 {
 		if api.Compute.CPU != nil {
@@ -137,7 +221,6 @@ func PythonPredictorContainers(api *spec.API) ([]kcore.Container, []kcore.Volume
 			apiPodResourceList["nvidia.com/gpu"] = *kresource.NewQuantity(api.Compute.GPU, kresource.DecimalSI)
 			apiPodResourceLimitsList["nvidia.com/gpu"] = *kresource.NewQuantity(api.Compute.GPU, kresource.DecimalSI)
 		}
-
 	} else {
 		volumes = append(volumes, kcore.Volume{
 			Name: "neuron-sock",
@@ -170,6 +253,22 @@ func PythonPredictorContainers(api *spec.API) ([]kcore.Container, []kcore.Volume
 		containers = append(containers, neuronContainer)
 	}
 
+	if api.Predictor.ShmSize != nil {
+		volumes = append(volumes, kcore.Volume{
+			Name: "dshm",
+			VolumeSource: kcore.VolumeSource{
+				EmptyDir: &kcore.EmptyDirVolumeSource{
+					Medium:    kcore.StorageMediumMemory,
+					SizeLimit: k8s.QuantityPtr(api.Predictor.ShmSize.Quantity),
+				},
+			},
+		})
+		apiPodVolumeMounts = append(apiPodVolumeMounts, kcore.VolumeMount{
+			Name:      "dshm",
+			MountPath: "/dev/shm",
+		})
+	}
+
 	containers = append(containers, kcore.Container{
 		Name:            APIContainerName,
 		Image:           api.Predictor.Image,
@@ -178,7 +277,6 @@ func PythonPredictorContainers(api *spec.API) ([]kcore.Container, []kcore.Volume
 		EnvFrom:         baseEnvVars(),
 		VolumeMounts:    apiPodVolumeMounts,
 		ReadinessProbe:  FileExistsProbe(_apiReadinessFile),
-		LivenessProbe:   _apiLivenessProbe,
 		Lifecycle:       nginxGracefulStopper(api.Kind),
 		Resources: kcore.ResourceRequirements{
 			Requests: apiPodResourceList,
@@ -201,7 +299,7 @@ func TensorFlowPredictorContainers(api *spec.API) ([]kcore.Container, []kcore.Vo
 	tfServingLimitsList := kcore.ResourceList{}
 	volumeMounts := defaultVolumeMounts()
 	volumes := DefaultVolumes()
-	containers := []kcore.Container{}
+	var containers []kcore.Container
 
 	if api.Compute.Inf == 0 {
 		if api.Compute.CPU != nil {
@@ -259,6 +357,22 @@ func TensorFlowPredictorContainers(api *spec.API) ([]kcore.Container, []kcore.Vo
 		containers = append(containers, neuronContainer)
 	}
 
+	if api.Predictor.ShmSize != nil {
+		volumes = append(volumes, kcore.Volume{
+			Name: "dshm",
+			VolumeSource: kcore.VolumeSource{
+				EmptyDir: &kcore.EmptyDirVolumeSource{
+					Medium:    kcore.StorageMediumMemory,
+					SizeLimit: k8s.QuantityPtr(api.Predictor.ShmSize.Quantity),
+				},
+			},
+		})
+		volumeMounts = append(volumeMounts, kcore.VolumeMount{
+			Name:      "dshm",
+			MountPath: "/dev/shm",
+		})
+	}
+
 	containers = append(containers, kcore.Container{
 		Name:            APIContainerName,
 		Image:           api.Predictor.Image,
@@ -267,7 +381,6 @@ func TensorFlowPredictorContainers(api *spec.API) ([]kcore.Container, []kcore.Vo
 		EnvFrom:         baseEnvVars(),
 		VolumeMounts:    volumeMounts,
 		ReadinessProbe:  FileExistsProbe(_apiReadinessFile),
-		LivenessProbe:   _apiLivenessProbe,
 		Lifecycle:       nginxGracefulStopper(api.Kind),
 		Resources: kcore.ResourceRequirements{
 			Requests: apiResourceList,
@@ -291,10 +404,12 @@ func TensorFlowPredictorContainers(api *spec.API) ([]kcore.Container, []kcore.Vo
 	return containers, volumes
 }
 
-func ONNXPredictorContainers(api *spec.API) []kcore.Container {
+func ONNXPredictorContainers(api *spec.API) ([]kcore.Container, []kcore.Volume) {
 	resourceList := kcore.ResourceList{}
 	resourceLimitsList := kcore.ResourceList{}
-	containers := []kcore.Container{}
+	apiPodVolumeMounts := defaultVolumeMounts()
+	volumes := DefaultVolumes()
+	var containers []kcore.Container
 
 	if api.Compute.CPU != nil {
 		userPodCPURequest := k8s.QuantityPtr(api.Compute.CPU.Quantity.DeepCopy())
@@ -313,15 +428,30 @@ func ONNXPredictorContainers(api *spec.API) []kcore.Container {
 		resourceLimitsList["nvidia.com/gpu"] = *kresource.NewQuantity(api.Compute.GPU, kresource.DecimalSI)
 	}
 
+	if api.Predictor.ShmSize != nil {
+		volumes = append(volumes, kcore.Volume{
+			Name: "dshm",
+			VolumeSource: kcore.VolumeSource{
+				EmptyDir: &kcore.EmptyDirVolumeSource{
+					Medium:    kcore.StorageMediumMemory,
+					SizeLimit: k8s.QuantityPtr(api.Predictor.ShmSize.Quantity),
+				},
+			},
+		})
+		apiPodVolumeMounts = append(apiPodVolumeMounts, kcore.VolumeMount{
+			Name:      "dshm",
+			MountPath: "/dev/shm",
+		})
+	}
+
 	containers = append(containers, kcore.Container{
 		Name:            APIContainerName,
 		Image:           api.Predictor.Image,
 		ImagePullPolicy: kcore.PullAlways,
 		Env:             getEnvVars(api, APIContainerName),
 		EnvFrom:         baseEnvVars(),
-		VolumeMounts:    defaultVolumeMounts(),
+		VolumeMounts:    apiPodVolumeMounts,
 		ReadinessProbe:  FileExistsProbe(_apiReadinessFile),
-		LivenessProbe:   _apiLivenessProbe,
 		Lifecycle:       nginxGracefulStopper(api.Kind),
 		Resources: kcore.ResourceRequirements{
 			Requests: resourceList,
@@ -335,10 +465,87 @@ func ONNXPredictorContainers(api *spec.API) []kcore.Container {
 		},
 	})
 
-	return containers
+	return containers, volumes
+}
+
+func getTaskEnvVars(api *spec.API, container string) []kcore.EnvVar {
+	envVars := []kcore.EnvVar{
+		{
+			Name:  "CORTEX_KIND",
+			Value: api.Kind.String(),
+		},
+		{
+			Name:  "CORTEX_LOG_LEVEL",
+			Value: strings.ToUpper(api.TaskDefinition.LogLevel.String()),
+		},
+	}
+
+	for name, val := range api.TaskDefinition.Env {
+		envVars = append(envVars, kcore.EnvVar{
+			Name:  name,
+			Value: val,
+		})
+	}
+
+	if container == APIContainerName {
+		envVars = append(envVars,
+			kcore.EnvVar{
+				Name: "HOST_IP",
+				ValueFrom: &kcore.EnvVarSource{
+					FieldRef: &kcore.ObjectFieldSelector{
+						FieldPath: "status.hostIP",
+					},
+				},
+			},
+			kcore.EnvVar{
+				Name:  "CORTEX_PROJECT_DIR",
+				Value: path.Join(_emptyDirMountPath, "project"),
+			},
+			kcore.EnvVar{
+				Name:  "CORTEX_CACHE_DIR",
+				Value: _specCacheDir,
+			},
+			kcore.EnvVar{
+				Name:  "CORTEX_API_SPEC",
+				Value: config.BucketPath(api.Key),
+			},
+		)
+
+		cortexPythonPath := path.Join(_emptyDirMountPath, "project")
+		if api.TaskDefinition.PythonPath != nil {
+			cortexPythonPath = path.Join(_emptyDirMountPath, "project", *api.TaskDefinition.PythonPath)
+		}
+		envVars = append(envVars, kcore.EnvVar{
+			Name:  "CORTEX_PYTHON_PATH",
+			Value: cortexPythonPath,
+		})
+
+		if api.Compute.Inf > 0 {
+			envVars = append(envVars,
+				kcore.EnvVar{
+					Name:  "NEURONCORE_GROUP_SIZES",
+					Value: s.Int64(api.Compute.Inf * consts.NeuronCoresPerInf),
+				},
+				kcore.EnvVar{
+					Name:  "NEURON_RTD_ADDRESS",
+					Value: fmt.Sprintf("unix:%s", _neuronRTDSocket),
+				},
+			)
+		}
+	}
+	return envVars
 }
 
 func getEnvVars(api *spec.API, container string) []kcore.EnvVar {
+	if container == _requestMonitorContainerName || container == _downloaderInitContainerName {
+		return []kcore.EnvVar{
+			{
+				Name:  "CORTEX_LOG_LEVEL",
+				Value: strings.ToUpper(api.Predictor.LogLevel.String()),
+			},
+		}
+	}
+
 	envVars := []kcore.EnvVar{
 		{
 			Name:  "CORTEX_KIND",
@@ -355,6 +562,10 @@ func getEnvVars(api *spec.API, container string) []kcore.EnvVar {
 
 	if container == APIContainerName {
 		envVars = append(envVars,
+			kcore.EnvVar{
+				Name:  "CORTEX_LOG_LEVEL",
+				Value: strings.ToUpper(api.Predictor.LogLevel.String()),
+			},
 			kcore.EnvVar{
 				Name: "HOST_IP",
 				ValueFrom: &kcore.EnvVarSource{
@@ -410,7 +621,7 @@ func getEnvVars(api *spec.API, container string) []kcore.EnvVar {
 			)
 		}
 
-		if api.Predictor.ModelPath != nil || api.Predictor.Models != nil {
+		if api.Predictor.Type != userconfig.PythonPredictorType || api.Predictor.MultiModelReloading != nil {
 			envVars = append(envVars,
 				kcore.EnvVar{
 					Name:  "CORTEX_MODEL_DIR",
@@ -443,6 +654,11 @@ func getEnvVars(api *spec.API, container string) []kcore.EnvVar {
 	}
 
 	if container == _tfServingContainerName {
+		envVars = append(envVars, kcore.EnvVar{
+			Name:  "TF_CPP_MIN_LOG_LEVEL",
+			Value: s.Int(userconfig.TFNumericLogLevelFromLogLevel(api.Predictor.LogLevel)),
+		})
+
 		if api.Predictor.ServerSideBatching != nil {
 			var numBatchedThreads int32
 			if api.Compute.Inf > 0 {
@@ -570,18 +786,41 @@ func pythonDownloadArgs(api *spec.API) string {
 }
 
 func onnxDownloadArgs(api *spec.API) string {
-	downloadConfig := downloadContainerConfig{
-		LastLog: fmt.Sprintf(_downloaderLastLog, "onnx"),
-		DownloadArgs: []downloadContainerArg{
-			{
-				From:             config.BucketPath(api.ProjectKey),
-				To:               path.Join(_emptyDirMountPath, "project"),
-				Unzip:            true,
-				ItemName:         "the project code",
-				HideFromLog:      true,
-				HideUnzippingLog: true,
-			},
+	downloadContainerArs := []downloadContainerArg{
+		{
+			From:             config.BucketPath(api.ProjectKey),
+			To:               path.Join(_emptyDirMountPath, "project"),
+			Unzip:            true,
+			ItemName:         "the project code",
+			HideFromLog:      true,
+			HideUnzippingLog: true,
 		},
+	}
+
+	if api.Predictor.Models.Path != nil && strings.HasSuffix(*api.Predictor.Models.Path, ".onnx") {
+		downloadContainerArs = append(downloadContainerArs, downloadContainerArg{
+			From:     *api.Predictor.Models.Path,
+			To:       path.Join(_modelDir, consts.SingleModelName, "1"),
+			ItemName: "the onnx model",
+		})
+	}
+
+	for _, model := range api.Predictor.Models.Paths {
+		if model == nil {
+			continue
+		}
+		if strings.HasSuffix(model.Path, ".onnx") {
+			downloadContainerArs = append(downloadContainerArs, downloadContainerArg{
+				From:     model.Path,
+				To:       path.Join(_modelDir, model.Name, "1"),
+				ItemName: fmt.Sprintf("%s onnx model", model.Name),
+			})
+		}
+	}
+
+	downloadConfig := downloadContainerConfig{
+		LastLog:      fmt.Sprintf(_downloaderLastLog, "onnx"),
+		DownloadArgs: downloadContainerArs,
 	}
 
 	downloadArgsBytes, _ := json.Marshal(downloadConfig)
@@ -693,10 +932,11 @@ func neuronRuntimeDaemonContainer(api *spec.API, volumeMounts []kcore.VolumeMoun
 
 func RequestMonitorContainer(api *spec.API) kcore.Container {
 	return kcore.Container{
-		Name:            "request-monitor",
+		Name:            _requestMonitorContainerName,
 		Image:           config.Cluster.ImageRequestMonitor,
 		ImagePullPolicy: kcore.PullAlways,
 		Args:            []string{api.Name, config.ClusterName()},
+		Env:             getEnvVars(api, _requestMonitorContainerName),
 		EnvFrom:         baseEnvVars(),
 		VolumeMounts:    defaultVolumeMounts(),
 		ReadinessProbe:  FileExistsProbe(_requestMonitorReadinessFile),
@@ -707,19 +947,6 @@ func RequestMonitorContainer(api *spec.API) kcore.Container {
 			},
 		},
 	}
-}
-
-var _apiLivenessProbe = &kcore.Probe{
-	InitialDelaySeconds: 5,
-	TimeoutSeconds:      5,
-	PeriodSeconds:       5,
-	SuccessThreshold:    1,
-	FailureThreshold:    3,
-	Handler: kcore.Handler{
-		Exec: &kcore.ExecAction{
-			Command: []string{"/bin/bash", "-c", `now="$(date +%s)" && min="$(($now-` + s.Int(_apiLivenessStalePeriod) + `))" && test "$(cat ` + _apiLivenessFile + ` | tr -d '[:space:]')" -ge "$min"`},
-		},
-	},
 }
 
 func FileExistsProbe(fileName string) *kcore.Probe {
@@ -885,15 +1112,11 @@ func APIEndpoint(api *spec.API) (string, error) {
 	var err error
 	baseAPIEndpoint := ""
 
-	if config.Provider == types.AWSProviderType && api.Networking.APIGateway == userconfig.PublicAPIGatewayType && config.Cluster.APIGateway != nil {
-		baseAPIEndpoint = *config.Cluster.APIGateway.ApiEndpoint
-	} else {
-		baseAPIEndpoint, err = APILoadBalancerURL()
-		if err != nil {
-			return "", err
-		}
-		baseAPIEndpoint = strings.Replace(baseAPIEndpoint, "https://", "http://", 1)
+	baseAPIEndpoint, err = APILoadBalancerURL()
+	if err != nil {
+		return "", err
 	}
+	baseAPIEndpoint = strings.Replace(baseAPIEndpoint, "https://", "http://", 1)
 
 	return urls.Join(baseAPIEndpoint, *api.Networking.Endpoint), nil
 }
@@ -906,14 +1129,4 @@ func GetEndpointFromVirtualService(virtualService *istioclientnetworking.Virtual
 	}
 
 	return endpoints.GetOne(), nil
-}
-
-func extractCortexAnnotations(obj kmeta.Object) map[string]string {
-	cortexAnnotations := make(map[string]string)
-	for key, value := range obj.GetAnnotations() {
-		if strings.Contains(key, "cortex.dev/") {
-			cortexAnnotations[key] = value
-		}
-	}
-	return cortexAnnotations
 }

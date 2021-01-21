@@ -1,5 +1,5 @@
 /*
-Copyright 2020 Cortex Labs, Inc.
+Copyright 2021 Cortex Labs, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -34,7 +34,13 @@ type clients struct {
 
 func (c *Client) GCS() (*storage.Client, error) {
 	if c.clients.gcs == nil {
-		gcs, err := storage.NewClient(context.Background(), option.WithCredentialsJSON(c.CredentialsJSON))
+		var clientOption option.ClientOption
+		if c.IsAnonymous {
+			clientOption = option.WithoutAuthentication()
+		} else {
+			clientOption = option.WithCredentialsJSON(c.CredentialsJSON)
+		}
+		gcs, err := storage.NewClient(context.Background(), clientOption)
 		if err != nil {
 			return nil, errors.WithStack(err)
 		}
@@ -45,7 +51,13 @@ func (c *Client) GCS() (*storage.Client, error) {
 
 func (c *Client) Compute() (*compute.Service, error) {
 	if c.clients.compute == nil {
-		comp, err := compute.NewService(context.Background(), option.WithCredentialsJSON(c.CredentialsJSON))
+		var clientOption option.ClientOption
+		if c.IsAnonymous {
+			clientOption = option.WithoutAuthentication()
+		} else {
+			clientOption = option.WithCredentialsJSON(c.CredentialsJSON)
+		}
+		comp, err := compute.NewService(context.Background(), clientOption)
 		if err != nil {
 			return nil, errors.WithStack(err)
 		}
@@ -56,7 +68,13 @@ func (c *Client) Compute() (*compute.Service, error) {
 
 func (c *Client) GKE() (*container.ClusterManagerClient, error) {
 	if c.clients.gke == nil {
-		gke, err := container.NewClusterManagerClient(context.Background(), option.WithCredentialsJSON(c.CredentialsJSON))
+		var clientOption option.ClientOption
+		if c.IsAnonymous {
+			clientOption = option.WithoutAuthentication()
+		} else {
+			clientOption = option.WithCredentialsJSON(c.CredentialsJSON)
+		}
+		gke, err := container.NewClusterManagerClient(context.Background(), clientOption)
 		if err != nil {
 			return nil, errors.WithStack(err)
 		}

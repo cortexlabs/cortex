@@ -1,5 +1,5 @@
 /*
-Copyright 2020 Cortex Labs, Inc.
+Copyright 2021 Cortex Labs, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -49,7 +49,7 @@ func batchAPIsTable(batchAPIs []schema.APIResponse, envNames []string) table.Tab
 		latestJobID := "-"
 		runningJobs := 0
 
-		for _, job := range batchAPI.JobStatuses {
+		for _, job := range batchAPI.BatchJobStatuses {
 			if job.StartTime.After(latestStartTime) {
 				latestStartTime = job.StartTime
 				latestJobID = job.ID + fmt.Sprintf(" (submitted %s ago)", libtime.SinceStr(&latestStartTime))
@@ -82,14 +82,14 @@ func batchAPIsTable(batchAPIs []schema.APIResponse, envNames []string) table.Tab
 }
 
 func batchAPITable(batchAPI schema.APIResponse) string {
-	jobRows := make([][]interface{}, 0, len(batchAPI.JobStatuses))
+	jobRows := make([][]interface{}, 0, len(batchAPI.BatchJobStatuses))
 
 	out := ""
-	if len(batchAPI.JobStatuses) == 0 {
-		out = console.Bold("no submitted jobs\n")
+	if len(batchAPI.BatchJobStatuses) == 0 {
+		out = console.Bold("no submitted batch jobs\n")
 	} else {
 		totalFailed := 0
-		for _, job := range batchAPI.JobStatuses {
+		for _, job := range batchAPI.BatchJobStatuses {
 			succeeded := 0
 			failed := 0
 
@@ -121,7 +121,7 @@ func batchAPITable(batchAPI schema.APIResponse) string {
 				{Title: "job id"},
 				{Title: "status"},
 				{Title: "progress"}, // (succeeded/total)
-				{Title: "failed", Hidden: totalFailed == 0},
+				{Title: "failed attempts", Hidden: totalFailed == 0},
 				{Title: "start time"},
 				{Title: "duration"},
 			},
@@ -144,8 +144,8 @@ func batchAPITable(batchAPI schema.APIResponse) string {
 	return out
 }
 
-func getJob(env cliconfig.Environment, apiName string, jobID string) (string, error) {
-	resp, err := cluster.GetJob(MustGetOperatorConfig(env.Name), apiName, jobID)
+func getBatchJob(env cliconfig.Environment, apiName string, jobID string) (string, error) {
+	resp, err := cluster.GetBatchJob(MustGetOperatorConfig(env.Name), apiName, jobID)
 	if err != nil {
 		return "", err
 	}
@@ -200,7 +200,7 @@ func getJob(env cliconfig.Environment, apiName string, jobID string) (string, er
 		Headers: []table.Header{
 			{Title: "total"},
 			{Title: "succeeded"},
-			{Title: "failed"},
+			{Title: "failed attempts"},
 			{Title: "avg time per batch"},
 		},
 		Rows: [][]interface{}{
@@ -216,12 +216,11 @@ func getJob(env cliconfig.Environment, apiName string, jobID string) (string, er
 	out += titleStr("batch stats") + t.MustFormat(&table.Opts{BoldHeader: pointer.Bool(false)})
 
 	if job.Status == status.JobEnqueuing {
-		out += "\nstill enqueuing, workers have not been allocated for this job yet\n"
+		out += "\n" + "still enqueuing, workers have not been allocated for this job yet\n"
 	} else if job.Status.IsCompleted() {
-		out += "\nworker stats are not available because this job is not currently running\n"
+		out += "\n" + "worker stats are not available because this job is not currently running\n"
 	} else {
 		out += titleStr("worker stats")
-
 		if job.WorkerCounts != nil {
 			t := table.Table{
 				Headers: []table.Header{
@@ -253,7 +252,7 @@ func getJob(env cliconfig.Environment, apiName string, jobID string) (string, er
 
 	out += "\n" + console.Bold("job endpoint: ") + resp.Endpoint + "\n"
 
-	jobSpecStr, err := libjson.Pretty(job.Job)
+	jobSpecStr, err := libjson.Pretty(job.BatchJob)
 	if err != nil {
 		return "", err
 	}
