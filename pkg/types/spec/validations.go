@@ -606,14 +606,18 @@ func multiModelValidation(fieldName string) *cr.StructFieldValidation {
 				{
 					StructField: "Path",
 					StringPtrValidation: &cr.StringPtrValidation{
-						Required: false,
+						Required:        false,
+						InvalidPrefixes: []string{".", "./", "/"},
+						Validator:       checkForInvalidBucketProvider,
 					},
 				},
 				multiModelPathsValidation(),
 				{
 					StructField: "Dir",
 					StringPtrValidation: &cr.StringPtrValidation{
-						Required: false,
+						Required:        false,
+						InvalidPrefixes: []string{".", "./", "/"},
+						Validator:       checkForInvalidBucketProvider,
 					},
 				},
 				{
@@ -661,8 +665,10 @@ func multiModelPathsValidation() *cr.StructFieldValidation {
 					{
 						StructField: "Path",
 						StringValidation: &cr.StringValidation{
-							Required:   true,
-							AllowEmpty: false,
+							Required:        true,
+							AllowEmpty:      false,
+							InvalidPrefixes: []string{".", "./", "/"},
+							Validator:       checkForInvalidBucketProvider,
 						},
 					},
 					{
