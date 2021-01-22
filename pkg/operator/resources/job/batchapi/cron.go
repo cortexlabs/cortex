@@ -371,14 +371,18 @@ func checkForJobFailure(jobKey spec.JobKey, k8sJob *kbatch.Job) (bool, error) {
 			for _, containerStatus := range pod.Status.ContainerStatuses {
 				if containerStatus.LastTerminationState.Terminated != nil {
 					exitCode := containerStatus.LastTerminationState.Terminated.ExitCode
-					reason := strings.ToLower(containerStatus.LastTerminationState.Terminated.Reason)
-					jobLogger.Errorf("at least one worker had status %s and terminated for reason %s (exit_code=%d)", string(podStatus), reason, exitCode)
-					reasonFound = true
+					reason := containerStatus.LastTerminationState.Terminated.Reason
+					if k8s.ReasonCompleted != reason {
+						jobLogger.Errorf("at least one worker had status %s and terminated for reason %s (exit_code=%d)", string(podStatus), strings.ToLower(reason), exitCode)
+						reasonFound = true
+					}
 				} else if containerStatus.State.Terminated != nil {
 					exitCode := containerStatus.State.Terminated.ExitCode
-					reason := strings.ToLower(containerStatus.State.Terminated.Reason)
-					jobLogger.Errorf("at least one worker had status %s and terminated for reason %s (exit_code=%d)", string(podStatus), reason, exitCode)
-					reasonFound = true
+					reason := containerStatus.State.Terminated.Reason
+					if k8s.ReasonCompleted != reason {
+						jobLogger.Errorf("at least one worker had status %s and terminated for reason %s (exit_code=%d)", string(podStatus), strings.ToLower(reason), exitCode)
+						reasonFound = true
+					}
 				}
 			}
 		}
