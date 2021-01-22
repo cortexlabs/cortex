@@ -116,16 +116,6 @@ else
     rm $tempf
 fi
 
-# good pages to read about s6-overlay used in create_s6_service and create_s6_task
-# https://wiki.gentoo.org/wiki/S6#Process_supervision
-# https://skarnet.org/software/s6/s6-svscanctl.html
-# http://skarnet.org/software/s6/s6-svc.html
-# http://skarnet.org/software/s6/servicedir.html
-
-# good pages to read about execline
-# http://www.troubleshooters.com/linux/execline.htm
-# https://danyspin97.org/blog/getting-started-with-execline-scripting/
-
 # only terminate pod if this process exits with non-zero exit code
 create_s6_service() {
     export SERVICE_NAME=$1
@@ -140,7 +130,7 @@ create_s6_service() {
     chmod +x $dest_script
 
     dest_script="$dest_dir/finish"
-    cp /src/cortex/serve/init/templates/service_finish $dest_script
+    cp /src/cortex/serve/init/templates/finish $dest_script
     substitute_env_vars $dest_script
     chmod +x $dest_script
 
@@ -148,26 +138,23 @@ create_s6_service() {
     unset COMMAND_TO_RUN
 }
 
-# terminate pod if this process exits (zero or non-zero exit code)
-create_s6_task() {
-    export TASK_NAME=$1
-    export COMMAND_TO_RUN=$2
+# only terminate pod if this process exits with non-zero exit code
+create_s6_service_from_file() {
+    export SERVICE_NAME=$1
+    runnable=$2
 
-    dest_dir="/etc/services.d/$TASK_NAME"
+    dest_dir="/etc/services.d/$SERVICE_NAME"
     mkdir $dest_dir
 
-    dest_script="$dest_dir/run"
-    cp /src/cortex/serve/init/templates/run $dest_script
-    substitute_env_vars $dest_script
-    chmod +x $dest_script
+    cp $runnable $dest_dir/run
+    chmod +x $dest_dir/run
 
     dest_script="$dest_dir/finish"
-    cp /src/cortex/serve/init/templates/task_finish $dest_script
+    cp /src/cortex/serve/init/templates/finish $dest_script
     substitute_env_vars $dest_script
     chmod +x $dest_script
 
-    unset TASK_NAME
-    unset COMMAND_TO_RUN
+    unset SERVICE_NAME
 }
 
 # prepare webserver
@@ -179,24 +166,17 @@ if [ "$CORTEX_KIND" = "RealtimeAPI" ]; then
         create_s6_service "uvicorn-$((i-1))" "cd /mnt/project && $source_env_file_cmd && PYTHONUNBUFFERED=TRUE PYTHONPATH=$PYTHONPATH:$CORTEX_PYTHON_PATH exec /opt/conda/envs/env/bin/python /src/cortex/serve/start/server.py /run/uvicorn/proc-$((i-1)).sock"
     done
 
-    create_s6_service "nginx" "exec nginx -c /run/nginx.conf"
-
-    # prepare api readiness checker
-    dest_dir="/etc/services.d/api_readiness"
-    mkdir $dest_dir
-    cp /src/cortex/serve/poll/readiness.sh $dest_dir/run
-    chmod +x $dest_dir/run
-
     # generate nginx conf
     /opt/conda/envs/env/bin/python -c 'from cortex_internal.lib import util; import os; generated = util.render_jinja_template("/src/cortex/serve/nginx.conf.j2", os.environ); print(generated);' > /run/nginx.conf
 
-    # create the python initialization service
+    create_s6_service "nginx" "exec nginx -c /run/nginx.conf"
+    create_s6_service_from_file "api_readiness" "/src/cortex/serve/poll/readiness.sh"
     create_s6_service "py_init" "cd /mnt/project && exec /opt/conda/envs/env/bin/python /src/cortex/serve/init/script.py"
-elif [ "$CORTEX_KIND" = "BatchAPI" ]; then
-    create_s6_task "job" "cd /mnt/project && $source_env_file_cmd && PYTHONUNBUFFERED=TRUE PYTHONPATH=$PYTHONPATH:$CORTEX_PYTHON_PATH exec /opt/conda/envs/env/bin/python /src/cortex/serve/start/batch.py"
 
-    # create the python initialization service
+elif [ "$CORTEX_KIND" = "BatchAPI" ]; then
     create_s6_service "py_init" "cd /mnt/project && /opt/conda/envs/env/bin/python /src/cortex/serve/init/script.py"
+    create_s6_service "batch" "cd /mnt/project && $source_env_file_cmd && PYTHONUNBUFFERED=TRUE PYTHONPATH=$PYTHONPATH:$CORTEX_PYTHON_PATH exec /opt/conda/envs/env/bin/python /src/cortex/serve/start/batch.py"
 elif [ "$CORTEX_KIND" = "TaskAPI" ]; then
-    create_s6_task "job" "cd /mnt/project && $source_env_file_cmd && PYTHONUNBUFFERED=TRUE PYTHONPATH=$PYTHONPATH:$CORTEX_PYTHON_PATH exec /opt/conda/envs/env/bin/python /src/cortex/serve/start/task.py"
+    create_s6_service "task" "cd /mnt/project && $source_env_file_cmd && PYTHONUNBUFFERED=TRUE PYTHONPATH=$PYTHONPATH:$CORTEX_PYTHON_PATH exec /opt/conda/envs/env/bin/python /src/cortex/serve/start/task.py"
+    create_s6_service "generic" "exec /opt/conda/envs/env/bin/python -c \"import time; print('started generic task'); time.sleep(60); print('stopped generic task');\""
 fi
