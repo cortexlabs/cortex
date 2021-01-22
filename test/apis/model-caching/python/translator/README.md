@@ -36,7 +36,6 @@ aws access key id ******************** will be used to provision a cluster named
 ￮ using existing s3 bucket: cortex-***** ✓
 ￮ using existing cloudwatch log group: cortex ✓
 ￮ creating cloudwatch dashboard: cortex ✓
-￮ creating api gateway: cortex ✓
 ￮ spinning up the cluster (this will take about 15 minutes) ...
 ￮ updating cluster configuration ✓
 ￮ configuring networking ✓
@@ -51,8 +50,6 @@ aws access key id ******************** will be used to provision a cluster named
 cortex is ready!
 
 ```
-
-Cortex can cluster up without a config file, but for this deployment, we use it to specify that we need to disable API Gateway, as its timeout limits will interfere with our API.
 
 Once the cluster is spun up (roughly 20 minutes), we can deploy by running:
 
@@ -76,8 +73,8 @@ live     1            1           3m            --            --
 
 metrics dashboard: https://us-east-1.console.aws.amazon.com/cloudwatch/home#dashboards:name=***
 
-endpoint: http://***.us-east-1.amazonaws.com/translator
-example: curl: curl http://***.us-east-1.amazonaws.com/translator -X POST -H "Content-Type: application/json" -d @sample.json
+endpoint: http://***.elb.us-east-1.amazonaws.com/translator
+example: curl: curl http://***.elb.us-east-1.amazonaws.com/translator -X POST -H "Content-Type: application/json" -d @sample.json
 
 model name                         model version   edit time
 marian_converted_v1                1 (latest)      24 Aug 20 14:23:41 EDT
