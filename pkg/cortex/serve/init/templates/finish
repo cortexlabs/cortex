@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# good pages to read about s6-overlay used in create_s6_service and create_s6_task
+# good pages to read about s6-overlay
 # https://wiki.gentoo.org/wiki/S6#Process_supervision
 # https://skarnet.org/software/s6/s6-svscanctl.html
 # http://skarnet.org/software/s6/s6-svc.html
@@ -23,6 +23,7 @@
 # good pages to read about execline
 # http://www.troubleshooters.com/linux/execline.htm
 # https://danyspin97.org/blog/getting-started-with-execline-scripting/
+# https://wiki.tcl-lang.org/page/execline
 
 define exit_code ${1}
 define signal ${2}
@@ -32,8 +33,10 @@ define sigterm 15
 # s6 sets the exit code to >= 256 and expects the user to inspect the signal value instead
 ifelse { s6-test ${exit_code} -gt 255 } {
     if -n { s6-test ${signal} -eq ${sigterm} } 
-    foreground { s6-echo "service ${SERVICE_NAME} received exit code >= 256, exiting with signal value ${signal} instead" }
-    foreground { redirfd -w 1 /var/run/s6/env-stage3/S6_STAGE2_EXITED s6-echo -n -- ${signal} }
+    backtick -n new_exit_code { s6-expr 128 + ${signal} }
+    importas -ui new_exit_code new_exit_code
+    foreground { s6-echo "service ${SERVICE_NAME} received exit code >= 256, exiting with ${new_exit_code} exit code from signal value ${signal} instead" }
+    foreground { redirfd -w 1 /var/run/s6/env-stage3/S6_STAGE2_EXITED s6-echo -n -- ${new_exit_code} }
     s6-svscanctl -t /var/run/s6/services
 }
 
