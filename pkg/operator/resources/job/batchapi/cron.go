@@ -301,7 +301,7 @@ func checkIfJobCompleted(jobKey spec.JobKey, queueURL string, k8sJob *kbatch.Job
 
 	if !queueMessages.IsEmpty() {
 		// Give time for queue metrics to reach consistency
-		if int(k8sJob.Status.Active) == 0 {
+		if k8sJob != nil && int(k8sJob.Status.Active) == 0 {
 			if _jobsToDelete.Has(jobKey.ID) {
 				_jobsToDelete.Remove(jobKey.ID)
 				jobLogger.Error("unexpected job status because cluster state indicates job has completed but metrics indicate that job is still in progress")
@@ -382,20 +382,22 @@ func checkForJobFailure(jobKey spec.JobKey, k8sJob *kbatch.Job) (bool, error) {
 		}
 	}
 
-	if int(k8sJob.Status.Failed) > 0 {
-		if !reasonFound {
-			jobLogger.Error("workers were killed for unknown reason")
+	if k8sJob != nil {
+		if int(k8sJob.Status.Failed) > 0 {
+			if !reasonFound {
+				jobLogger.Error("workers were killed for unknown reason")
+			}
+			return true, errors.FirstError(
+				job.SetWorkerErrorStatus(jobKey),
+				deleteJobRuntimeResources(jobKey),
+			)
+		} else if int(k8sJob.Status.Active) == 0 && int(k8sJob.Status.Failed) == 0 && len(pods) == 0 {
+			// really unexpected situation which doesn't hurt if we check
+			return true, errors.FirstError(
+				job.SetUnexpectedErrorStatus(jobKey),
+				deleteJobRuntimeResources(jobKey),
+			)
 		}
-		return true, errors.FirstError(
-			job.SetWorkerErrorStatus(jobKey),
-			deleteJobRuntimeResources(jobKey),
-		)
-	} else if int(k8sJob.Status.Active) == 0 && int(k8sJob.Status.Failed) == 0 && len(pods) == 0 {
-		// really unexpected situation which doesn't hurt if we check
-		return true, errors.FirstError(
-			job.SetUnexpectedErrorStatus(jobKey),
-			deleteJobRuntimeResources(jobKey),
-		)
 	}
 
 	return false, nil
