@@ -64,9 +64,10 @@ func jobKeyFromQueueURL(queueURL string) spec.JobKey {
 }
 
 func createFIFOQueue(jobKey spec.JobKey, deadLetterQueue *spec.SQSDeadLetterQueue, tags map[string]string) (string, error) {
-	for key, value := range config.Cluster.Tags {
-		tags[key] = value
-	}
+	// TODO
+	// for key, value := range config.Cluster.Tags {
+	// 	tags[key] = value
+	// }
 
 	queueName := getJobQueueName(jobKey)
 

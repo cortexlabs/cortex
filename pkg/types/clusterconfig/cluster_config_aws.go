@@ -51,7 +51,40 @@ var (
 	_strictS3BucketRegex = regexp.MustCompile(`^([a-z0-9])+(-[a-z0-9]+)*$`)
 )
 
+type BaseConfig struct {
+	Bucket              string             `json:"bucket" yaml:"bucket"`
+	ClusterName         string             `json:"cluster_name" yaml:"cluster_name"`
+	Region              *string            `json:"region" yaml:"region"`
+	Provider            types.ProviderType `json:"provider" yaml:"provider"`
+	Telemetry           bool               `json:"telemetry" yaml:"telemetry"`
+	ImageDownloader     string             `json:"image_downloader" yaml:"image_downloader"`
+	ImageRequestMonitor string             `json:"image_request_monitor" yaml:"image_request_monitor"`
+	ImageNeuronRTD      string             `json:"image_neuron_rtd" yaml:"image_neuron_rtd"`
+
+	// cluster install
+	ImageManager string `json:"image_manager" yaml:"image_manager"`
+
+	// cluster install
+	APILoadBalancerScheme      LoadBalancerScheme `json:"api_load_balancer_scheme" yaml:"api_load_balancer_scheme"`
+	OperatorLoadBalancerScheme LoadBalancerScheme `json:"operator_load_balancer_scheme" yaml:"operator_load_balancer_scheme"`
+	SSLCertificateARN          *string            `json:"ssl_certificate_arn,omitempty" yaml:"ssl_certificate_arn,omitempty"`
+
+	// cluster install
+	ImageOperator          string `json:"image_operator" yaml:"image_operator"`
+	ImageClusterAutoscaler string `json:"image_cluster_autoscaler" yaml:"image_cluster_autoscaler"`
+	ImageMetricsServer     string `json:"image_metrics_server" yaml:"image_metrics_server"`
+	ImageInferentia        string `json:"image_inferentia" yaml:"image_inferentia"`
+	ImageNvidia            string `json:"image_nvidia" yaml:"image_nvidia"`
+	ImageFluentBit         string `json:"image_fluent_bit" yaml:"image_fluent_bit"`
+	ImageStatsd            string `json:"image_statsd" yaml:"image_statsd"`
+	ImageIstioProxy        string `json:"image_istio_proxy" yaml:"image_istio_proxy"`
+	ImageIstioPilot        string `json:"image_istio_pilot" yaml:"image_istio_pilot"`
+}
+
 type Config struct {
+	Bucket                     string             `json:"bucket" yaml:"bucket"`
+	ClusterName                string             `json:"cluster_name" yaml:"cluster_name"`
+	Region                     *string            `json:"region" yaml:"region"`
 	Provider                   types.ProviderType `json:"provider" yaml:"provider"`
 	InstanceType               *string            `json:"instance_type" yaml:"instance_type"`
 	MinInstances               *int64             `json:"min_instances" yaml:"min_instances"`
@@ -62,11 +95,8 @@ type Config struct {
 	Tags                       map[string]string  `json:"tags" yaml:"tags"`
 	Spot                       *bool              `json:"spot" yaml:"spot"`
 	SpotConfig                 *SpotConfig        `json:"spot_config" yaml:"spot_config"`
-	ClusterName                string             `json:"cluster_name" yaml:"cluster_name"`
-	Region                     *string            `json:"region" yaml:"region"`
 	AvailabilityZones          []string           `json:"availability_zones" yaml:"availability_zones"`
 	SSLCertificateARN          *string            `json:"ssl_certificate_arn,omitempty" yaml:"ssl_certificate_arn,omitempty"`
-	Bucket                     string             `json:"bucket" yaml:"bucket"`
 	SubnetVisibility           SubnetVisibility   `json:"subnet_visibility" yaml:"subnet_visibility"`
 	Subnets                    []*Subnet          `json:"subnets,omitempty" yaml:"subnets,omitempty"`
 	NATGateway                 NATGateway         `json:"nat_gateway" yaml:"nat_gateway"`
@@ -101,6 +131,16 @@ type SpotConfig struct {
 type Subnet struct {
 	AvailabilityZone string `json:"availability_zone" yaml:"availability_zone"`
 	SubnetID         string `json:"subnet_id" yaml:"subnet_id"`
+}
+
+type InternalConfig2 struct {
+	BaseConfig
+
+	// Populated by operator
+	APIVersion          string `json:"api_version"`
+	OperatorID          string `json:"operator_id"`
+	ClusterID           string `json:"cluster_id"`
+	IsOperatorInCluster bool   `json:"is_operator_in_cluster"`
 }
 
 type InternalConfig struct {
@@ -539,6 +579,11 @@ func SQSNamePrefix(clusterName string) string {
 
 // returns hash of cluster name and adds trailing "-"
 func (cc *Config) SQSNamePrefix() string {
+	return SQSNamePrefix(cc.ClusterName)
+}
+
+// returns hash of cluster name and adds trailing "-"
+func (cc *BaseConfig) SQSNamePrefix() string {
 	return SQSNamePrefix(cc.ClusterName)
 }
 
@@ -1124,12 +1169,12 @@ func (cc *InternalConfig) UserTable() table.KeyValuePairs {
 	var items table.KeyValuePairs
 
 	items.Add(APIVersionUserKey, cc.APIVersion)
-	items.AddAll(cc.Config.UserTable())
-	return items
+	// items.AddAll(cc.Config.UserTable())
+	return items // TODO
 }
 
 func (cc *InternalConfig) UserStr() string {
-	return cc.UserTable().String()
+	return *cc.Region // TODO
 }
 
 func (cc *Config) UserTable() table.KeyValuePairs {

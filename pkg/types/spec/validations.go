@@ -53,7 +53,7 @@ const _dockerPullSecretName = "registry-credentials"
 func apiValidation(
 	provider types.ProviderType,
 	resource userconfig.Resource,
-	awsClusterConfig *clusterconfig.Config,
+	awsClusterConfig *clusterconfig.InternalConfig2,
 	gcpClusterConfig *clusterconfig.GCPConfig,
 ) *cr.StructValidation {
 	var structFieldValidations []*cr.StructFieldValidation
@@ -321,7 +321,7 @@ func taskDefinitionValidation() *cr.StructFieldValidation {
 func networkingValidation(
 	kind userconfig.Kind,
 	provider types.ProviderType,
-	awsClusterConfig *clusterconfig.Config,
+	awsClusterConfig *clusterconfig.InternalConfig2,
 	gcpClusterConfig *clusterconfig.GCPConfig,
 ) *cr.StructFieldValidation {
 	return &cr.StructFieldValidation{
@@ -717,7 +717,7 @@ func ExtractAPIConfigs(
 	configBytes []byte,
 	provider types.ProviderType,
 	configFileName string,
-	awsClusterConfig *clusterconfig.Config,
+	awsClusterConfig *clusterconfig.InternalConfig2,
 	gcpClusterConfig *clusterconfig.GCPConfig,
 ) ([]userconfig.API, error) {
 

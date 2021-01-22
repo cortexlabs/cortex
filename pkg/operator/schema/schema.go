@@ -25,10 +25,10 @@ import (
 )
 
 type InfoResponse struct {
-	MaskedAWSAccessKeyID string                       `json:"masked_aws_access_key_id"`
-	ClusterConfig        clusterconfig.InternalConfig `json:"cluster_config"`
-	NodeInfos            []NodeInfo                   `json:"node_infos"`
-	NumPendingReplicas   int                          `json:"num_pending_replicas"`
+	MaskedAWSAccessKeyID string                        `json:"masked_aws_access_key_id"`
+	ClusterConfig        clusterconfig.InternalConfig2 `json:"cluster_config"`
+	NodeInfos            []NodeInfo                    `json:"node_infos"`
+	NumPendingReplicas   int                           `json:"num_pending_replicas"`
 }
 
 type InfoGCPResponse struct {

@@ -74,6 +74,13 @@ func clusterInit() {
 	_clusterUpCmd.Flags().BoolVarP(&_flagClusterDisallowPrompt, "yes", "y", false, "skip prompts")
 	_clusterCmd.AddCommand(_clusterUpCmd)
 
+	_clusterInstallCmd.Flags().SortFlags = false
+	addClusterConfigFlag(_clusterInstallCmd)
+	addAWSCredentialsFlags(_clusterInstallCmd)
+	addClusterAWSCredentialsFlags(_clusterInstallCmd)
+	_clusterInstallCmd.Flags().BoolVarP(&_flagClusterDisallowPrompt, "yes", "y", false, "skip prompts")
+	_clusterCmd.AddCommand(_clusterInstallCmd)
+
 	_clusterInfoCmd.Flags().SortFlags = false
 	addClusterConfigFlag(_clusterInfoCmd)
 	addClusterNameFlag(_clusterInfoCmd)
@@ -134,6 +141,50 @@ func addClusterAWSCredentialsFlags(cmd *cobra.Command) {
 var _clusterCmd = &cobra.Command{
 	Use:   "cluster",
 	Short: "manage AWS clusters (contains subcommands)",
+}
+
+var _clusterInstallCmd = &cobra.Command{
+	Use:   "install",
+	Short: "install cortex on an existing cluster",
+	Args:  cobra.NoArgs,
+	Run: func(cmd *cobra.Command, args []string) {
+		if _, err := docker.GetDockerClient(); err != nil {
+			exit.Error(err)
+		}
+
+		fileBytes, err := files.ReadFileBytes(_flagClusterConfig)
+		if err != nil {
+			exit.Error(err)
+		}
+		fmt.Println(string(fileBytes))
+
+		baseConfig := clusterconfig.BaseConfig{}
+
+		err = yaml.Unmarshal(fileBytes, &baseConfig)
+		if err != nil {
+			exit.Error(err)
+		}
+
+		accessConfig := clusterconfig.AccessConfig{
+			ClusterName:  &baseConfig.ClusterName,
+			Region:       baseConfig.Region,
+			ImageManager: baseConfig.ImageManager,
+		}
+
+		awsCreds, err := awsCredentialsForManagingCluster(accessConfig, _flagClusterDisallowPrompt)
+		if err != nil {
+			exit.Error(err)
+		}
+
+		cacheAWSCredentials(awsCreds, accessConfig)
+
+		out, exitCode, err := runManagerWithBaseConfig("/root/byocluster.sh", &baseConfig, awsCreds, nil, nil)
+		fmt.Println(exitCode)
+		fmt.Println(out)
+		if err != nil {
+			exit.Error(err)
+		}
+	},
 }
 
 var _clusterUpCmd = &cobra.Command{
@@ -752,7 +803,7 @@ func printInfoOperatorResponse(clusterConfig clusterconfig.Config, operatorEndpo
 		fmt.Println(clusterConfig.UserStr())
 		return err
 	}
-	infoResponse.ClusterConfig.Config = clusterConfig
+	// infoResponse.ClusterConfig.Config = clusterConfig // TODO
 
 	printInfoClusterConfig(infoResponse)
 	printInfoPricing(infoResponse, clusterConfig)
@@ -764,7 +815,7 @@ func printInfoOperatorResponse(clusterConfig clusterconfig.Config, operatorEndpo
 func printInfoClusterConfig(infoResponse *schema.InfoResponse) {
 	var items table.KeyValuePairs
 	items.Add("aws access key id", infoResponse.MaskedAWSAccessKeyID)
-	items.AddAll(infoResponse.ClusterConfig.UserTable())
+	// items.AddAll(infoResponse.ClusterConfig.UserTable()) // TODO
 	items.Print()
 }
 

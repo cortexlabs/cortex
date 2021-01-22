@@ -17,7 +17,6 @@ limitations under the License.
 package resources
 
 import (
-	"fmt"
 	"strings"
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
@@ -169,37 +168,38 @@ func validateK8sCompute(compute *userconfig.Compute, maxMem kresource.Quantity) 
 		return nil
 	}
 
-	maxMem.Sub(_cortexMemReserve)
+	// TODO
+	// maxMem.Sub(_cortexMemReserve)
 
-	maxCPU := config.Cluster.InstanceMetadata.CPU
-	maxCPU.Sub(_cortexCPUReserve)
+	// maxCPU := config.Cluster.InstanceMetadata.CPU
+	// maxCPU.Sub(_cortexCPUReserve)
 
-	maxGPU := config.Cluster.InstanceMetadata.GPU
-	if maxGPU > 0 {
-		// Reserve resources for nvidia device plugin daemonset
-		maxCPU.Sub(_nvidiaCPUReserve)
-		maxMem.Sub(_nvidiaMemReserve)
-	}
+	// maxGPU := config.Cluster.InstanceMetadata.GPU
+	// if maxGPU > 0 {
+	// 	// Reserve resources for nvidia device plugin daemonset
+	// 	maxCPU.Sub(_nvidiaCPUReserve)
+	// 	maxMem.Sub(_nvidiaMemReserve)
+	// }
 
-	maxInf := config.Cluster.InstanceMetadata.Inf
-	if maxInf > 0 {
-		// Reserve resources for inferentia device plugin daemonset
-		maxCPU.Sub(_inferentiaCPUReserve)
-		maxMem.Sub(_inferentiaMemReserve)
-	}
+	// maxInf := config.Cluster.InstanceMetadata.Inf
+	// if maxInf > 0 {
+	// 	// Reserve resources for inferentia device plugin daemonset
+	// 	maxCPU.Sub(_inferentiaCPUReserve)
+	// 	maxMem.Sub(_inferentiaMemReserve)
+	// }
 
-	if compute.CPU != nil && maxCPU.Cmp(compute.CPU.Quantity) < 0 {
-		return ErrorNoAvailableNodeComputeLimit("CPU", compute.CPU.String(), maxCPU.String())
-	}
-	if compute.Mem != nil && maxMem.Cmp(compute.Mem.Quantity) < 0 {
-		return ErrorNoAvailableNodeComputeLimit("memory", compute.Mem.String(), maxMem.String())
-	}
-	if compute.GPU > maxGPU {
-		return ErrorNoAvailableNodeComputeLimit("GPU", fmt.Sprintf("%d", compute.GPU), fmt.Sprintf("%d", maxGPU))
-	}
-	if compute.Inf > maxInf {
-		return ErrorNoAvailableNodeComputeLimit("Inf", fmt.Sprintf("%d", compute.Inf), fmt.Sprintf("%d", maxInf))
-	}
+	// if compute.CPU != nil && maxCPU.Cmp(compute.CPU.Quantity) < 0 {
+	// 	return ErrorNoAvailableNodeComputeLimit("CPU", compute.CPU.String(), maxCPU.String())
+	// }
+	// if compute.Mem != nil && maxMem.Cmp(compute.Mem.Quantity) < 0 {
+	// 	return ErrorNoAvailableNodeComputeLimit("memory", compute.Mem.String(), maxMem.String())
+	// }
+	// if compute.GPU > maxGPU {
+	// 	return ErrorNoAvailableNodeComputeLimit("GPU", fmt.Sprintf("%d", compute.GPU), fmt.Sprintf("%d", maxGPU))
+	// }
+	// if compute.Inf > maxInf {
+	// 	return ErrorNoAvailableNodeComputeLimit("Inf", fmt.Sprintf("%d", compute.Inf), fmt.Sprintf("%d", maxInf))
+	// }
 
 	return nil
 }

@@ -28,12 +28,10 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/cortexlabs/cortex/cli/lib/routines"
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/archive"
 	"github.com/cortexlabs/cortex/pkg/lib/docker"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
-	"github.com/cortexlabs/cortex/pkg/lib/exit"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
 	"github.com/cortexlabs/cortex/pkg/types/clusterconfig"
 	"github.com/cortexlabs/yaml"
@@ -79,26 +77,26 @@ func runManager(containerConfig *container.Config, addNewLineAfterPull bool, cop
 		return "", nil, docker.WrapDockerError(err)
 	}
 
-	removeContainer := func() {
-		dockerClient.ContainerRemove(context.Background(), containerInfo.ID, dockertypes.ContainerRemoveOptions{
-			RemoveVolumes: true,
-			Force:         true,
-		})
-	}
+	// removeContainer := func() {
+	// 	dockerClient.ContainerRemove(context.Background(), containerInfo.ID, dockertypes.ContainerRemoveOptions{
+	// 		RemoveVolumes: true,
+	// 		Force:         true,
+	// 	})
+	// }
 
-	defer removeContainer()
+	// defer removeContainer()
 
 	// Make sure to remove container immediately on ctrl+c
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 	caughtCtrlC := false
 
-	routines.RunWithPanicHandler(func() {
-		<-c
-		caughtCtrlC = true
-		removeContainer()
-		exit.Error(ErrorDockerCtrlC())
-	}, false)
+	// routines.RunWithPanicHandler(func() {
+	// 	<-c
+	// 	caughtCtrlC = true
+	// 	removeContainer()
+	// 	exit.Error(ErrorDockerCtrlC())
+	// }, false)
 
 	for _, copyPath := range copyToPaths {
 		err = docker.CopyToContainer(containerInfo.ID, copyPath.input, copyPath.containerPath)
@@ -186,6 +184,60 @@ func runManagerWithClusterConfig(entrypoint string, clusterConfig *clusterconfig
 	containerConfig := &container.Config{
 		Image:        clusterConfig.ImageManager,
 		Entrypoint:   []string{"/bin/bash", "-c"},
+		Cmd:          []string{fmt.Sprintf("eval $(python /root/cluster_config_env.py %s) && %s", containerClusterConfigPath, entrypoint)},
+		Tty:          true,
+		AttachStdout: true,
+		AttachStderr: true,
+		Env: []string{
+			"CORTEX_PROVIDER=" + "aws",
+			"AWS_ACCESS_KEY_ID=" + awsCreds.AWSAccessKeyID,
+			"AWS_SECRET_ACCESS_KEY=" + awsCreds.AWSSecretAccessKey,
+			"CLUSTER_AWS_ACCESS_KEY_ID=" + awsCreds.ClusterAWSAccessKeyID,
+			"CLUSTER_AWS_SECRET_ACCESS_KEY=" + awsCreds.ClusterAWSSecretAccessKey,
+			"CORTEX_TELEMETRY_DISABLE=" + os.Getenv("CORTEX_TELEMETRY_DISABLE"),
+			"CORTEX_TELEMETRY_SENTRY_DSN=" + os.Getenv("CORTEX_TELEMETRY_SENTRY_DSN"),
+			"CORTEX_TELEMETRY_SEGMENT_WRITE_KEY=" + os.Getenv("CORTEX_TELEMETRY_SEGMENT_WRITE_KEY"),
+			"CORTEX_DEV_DEFAULT_PREDICTOR_IMAGE_REGISTRY=" + os.Getenv("CORTEX_DEV_DEFAULT_PREDICTOR_IMAGE_REGISTRY_AWS"),
+			"CORTEX_CLUSTER_CONFIG_FILE=" + containerClusterConfigPath,
+		},
+	}
+
+	output, exitCode, err := runManager(containerConfig, false, copyToPaths, copyFromPaths)
+	if err != nil {
+		return "", nil, err
+	}
+
+	return output, exitCode, nil
+}
+
+func runManagerWithBaseConfig(entrypoint string, clusterConfig *clusterconfig.BaseConfig, awsCreds AWSCredentials, copyToPaths []dockerCopyToPath, copyFromPaths []dockerCopyFromPath) (string, *int, error) {
+	clusterConfigBytes, err := yaml.Marshal(clusterConfig)
+	if err != nil {
+		return "", nil, errors.WithStack(err)
+	}
+
+	cachedClusterConfigPath := cachedClusterConfigPath(clusterConfig.ClusterName, *clusterConfig.Region)
+	if err := files.WriteFile(clusterConfigBytes, cachedClusterConfigPath); err != nil {
+		return "", nil, err
+	}
+
+	containerClusterConfigPath := "/in/" + filepath.Base(cachedClusterConfigPath)
+	copyToPaths = append(copyToPaths, dockerCopyToPath{
+		input: &archive.Input{
+			Files: []archive.FileInput{
+				{
+					Source: cachedClusterConfigPath,
+					Dest:   containerClusterConfigPath,
+				},
+			},
+		},
+		containerPath: "/",
+	})
+
+	containerConfig := &container.Config{
+		Image:      clusterConfig.ImageManager,
+		Entrypoint: []string{"/bin/bash", "-c"},
+		//Cmd:        []string{fmt.Sprintf("python /root/cluster_config_env.py %s", containerClusterConfigPath)},
 		Cmd:          []string{fmt.Sprintf("eval $(python /root/cluster_config_env.py %s) && %s", containerClusterConfigPath, entrypoint)},
 		Tty:          true,
 		AttachStdout: true,

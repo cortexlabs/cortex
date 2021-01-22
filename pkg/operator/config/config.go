@@ -23,21 +23,25 @@ import (
 
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
+	"github.com/cortexlabs/cortex/pkg/lib/debug"
+
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/files"
 	"github.com/cortexlabs/cortex/pkg/lib/gcp"
 	"github.com/cortexlabs/cortex/pkg/lib/hash"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	"github.com/cortexlabs/cortex/pkg/types"
 	"github.com/cortexlabs/cortex/pkg/types/clusterconfig"
+	"gopkg.in/yaml.v2"
 )
 
 const _clusterConfigPath = "/configs/cluster/cluster.yaml"
 
 var (
 	Provider        types.ProviderType
-	Cluster         *clusterconfig.InternalConfig
+	Cluster         *clusterconfig.InternalConfig2
 	GCPCluster      *clusterconfig.InternalGCPConfig
 	AWS             *aws.Client
 	GCP             *gcp.Client
@@ -60,19 +64,34 @@ func Init() error {
 	}
 
 	if Provider == types.AWSProviderType {
-		Cluster = &clusterconfig.InternalConfig{
-			APIVersion:          consts.CortexVersion,
-			IsOperatorInCluster: strings.ToLower(os.Getenv("CORTEX_OPERATOR_IN_CLUSTER")) != "false",
+		// cluster := &clusterconfig.InternalConfig{
+		// 	APIVersion:          consts.CortexVersion,
+		// 	IsOperatorInCluster: strings.ToLower(os.Getenv("CORTEX_OPERATOR_IN_CLUSTER")) != "false",
+		// }
+
+		// errs := cr.ParseYAMLFile(cluster, clusterconfig.Validation, clusterConfigPath)
+		// if errors.HasError(errs) {
+		// 	return errors.FirstError(errs...)
+		// }
+
+		fileBytes, err := files.ReadFileBytes(clusterConfigPath)
+		if err != nil {
+			return err
+		}
+		fmt.Println(string(fileBytes))
+
+		baseConfig := clusterconfig.BaseConfig{}
+
+		err = yaml.Unmarshal(fileBytes, &baseConfig)
+		if err != nil {
+			return err
 		}
 
-		errs := cr.ParseYAMLFile(Cluster, clusterconfig.Validation, clusterConfigPath)
-		if errors.HasError(errs) {
-			return errors.FirstError(errs...)
-		}
+		debug.Pp(baseConfig)
 
-		Cluster.InstanceMetadata = aws.InstanceMetadatas[*Cluster.Region][*Cluster.InstanceType]
+		// Cluster.InstanceMetadata = aws.InstanceMetadatas[*Cluster.Region][*Cluster.InstanceType] // TODO
 
-		AWS, err = aws.NewFromEnv(*Cluster.Region)
+		AWS, err = aws.NewFromEnv(*baseConfig.Region)
 		if err != nil {
 			return err
 		}
@@ -81,8 +100,30 @@ func Init() error {
 		if err != nil {
 			return err
 		}
-		Cluster.OperatorID = hashedAccountID
-		Cluster.ClusterID = hash.String(Cluster.ClusterName + *Cluster.Region + hashedAccountID)
+		internalConfig2 := clusterconfig.InternalConfig2{BaseConfig: baseConfig}
+		internalConfig2.APIVersion = consts.CortexVersion
+		internalConfig2.IsOperatorInCluster = strings.ToLower(os.Getenv("CORTEX_OPERATOR_IN_CLUSTER")) != "false"
+		internalConfig2.OperatorID = hashedAccountID
+		internalConfig2.ClusterID = hash.String(baseConfig.ClusterName + *baseConfig.Region + hashedAccountID)
+		Cluster = &internalConfig2
+		// Cluster = &clusterconfig.InternalConfig2{
+		// 	BaseConfig: clusterconfig.BaseConfig{
+		// 		ClusterName:         cluster.ClusterName,
+		// 		Region:              cluster.Region,
+		// 		Bucket:              cluster.Bucket,
+		// 		Provider:            cluster.Provider,
+		// 		Telemetry:           cluster.Telemetry,
+		// 		ImageDownloader:     cluster.ImageDownloader,
+		// 		ImageNeuronRTD:      cluster.ImageNeuronRTD,
+		// 		ImageRequestMonitor: cluster.ImageRequestMonitor,
+		// 	},
+		// 	APIVersion:          consts.CortexVersion,
+		// 	IsOperatorInCluster: ,
+		// 	OperatorID:          hashedAccountID,
+		// 	ClusterID:           ,
+		// }
+
+		// TODO create cloudwatch dashboard here if it doesn't exist already
 	} else {
 		AWS, err = aws.NewAnonymousClient()
 		if err != nil {

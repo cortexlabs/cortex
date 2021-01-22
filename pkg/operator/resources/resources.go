@@ -92,7 +92,7 @@ func Deploy(projectBytes []byte, configFileName string, configBytes []byte, forc
 
 	var apiConfigs []userconfig.API
 	if config.Provider == types.AWSProviderType {
-		apiConfigs, err = spec.ExtractAPIConfigs(configBytes, config.Provider, configFileName, &config.Cluster.Config, nil)
+		apiConfigs, err = spec.ExtractAPIConfigs(configBytes, config.Provider, configFileName, config.Cluster, nil)
 		if err != nil {
 			return nil, err
 		}
@@ -192,7 +192,7 @@ func Patch(configBytes []byte, configFileName string, force bool) ([]schema.Depl
 	var err error
 
 	if config.Provider == types.AWSProviderType {
-		apiConfigs, err = spec.ExtractAPIConfigs(configBytes, config.Provider, configFileName, &config.Cluster.Config, nil)
+		apiConfigs, err = spec.ExtractAPIConfigs(configBytes, config.Provider, configFileName, config.Cluster, nil)
 		if err != nil {
 			return nil, err
 		}

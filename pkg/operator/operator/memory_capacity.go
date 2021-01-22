@@ -21,7 +21,6 @@ import (
 
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
-	"github.com/cortexlabs/cortex/pkg/types"
 	kresource "k8s.io/apimachinery/pkg/api/resource"
 	kmeta "k8s.io/apimachinery/pkg/apis/meta/v1"
 	klabels "k8s.io/apimachinery/pkg/labels"
@@ -78,11 +77,12 @@ func getMemoryCapacityFromConfigMap() (*kresource.Quantity, error) {
 	return &mem, nil
 }
 
+// TODO
 func UpdateMemoryCapacityConfigMap() (kresource.Quantity, error) {
 	minMem := *kresource.NewQuantity(math.MaxInt64, kresource.DecimalSI)
-	if config.Provider == types.AWSProviderType {
-		minMem = config.Cluster.InstanceMetadata.Memory
-	}
+	// if config.Provider == types.AWSProviderType {
+	// 	minMem = config.Cluster.InstanceMetadata.Memory
+	// }
 
 	nodeMemCapacity, err := getMemoryCapacityFromNodes()
 	if err != nil {
