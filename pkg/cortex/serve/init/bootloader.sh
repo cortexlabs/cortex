@@ -169,14 +169,13 @@ if [ "$CORTEX_KIND" = "RealtimeAPI" ]; then
     # generate nginx conf
     /opt/conda/envs/env/bin/python -c 'from cortex_internal.lib import util; import os; generated = util.render_jinja_template("/src/cortex/serve/nginx.conf.j2", os.environ); print(generated);' > /run/nginx.conf
 
+    create_s6_service "py_init" "cd /mnt/project && exec /opt/conda/envs/env/bin/python /src/cortex/serve/init/script.py"
     create_s6_service "nginx" "exec nginx -c /run/nginx.conf"
     create_s6_service_from_file "api_readiness" "/src/cortex/serve/poll/readiness.sh"
-    create_s6_service "py_init" "cd /mnt/project && exec /opt/conda/envs/env/bin/python /src/cortex/serve/init/script.py"
 
 elif [ "$CORTEX_KIND" = "BatchAPI" ]; then
     create_s6_service "py_init" "cd /mnt/project && /opt/conda/envs/env/bin/python /src/cortex/serve/init/script.py"
     create_s6_service "batch" "cd /mnt/project && $source_env_file_cmd && PYTHONUNBUFFERED=TRUE PYTHONPATH=$PYTHONPATH:$CORTEX_PYTHON_PATH exec /opt/conda/envs/env/bin/python /src/cortex/serve/start/batch.py"
 elif [ "$CORTEX_KIND" = "TaskAPI" ]; then
     create_s6_service "task" "cd /mnt/project && $source_env_file_cmd && PYTHONUNBUFFERED=TRUE PYTHONPATH=$PYTHONPATH:$CORTEX_PYTHON_PATH exec /opt/conda/envs/env/bin/python /src/cortex/serve/start/task.py"
-    create_s6_service "generic" "exec /opt/conda/envs/env/bin/python -c \"import time; print('started generic task'); time.sleep(60); print('stopped generic task');\""
 fi
