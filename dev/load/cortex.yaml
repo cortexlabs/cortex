@@ -1,0 +1,16 @@
+- name: load
+  kind: RealtimeAPI
+  predictor:
+    type: python
+    path: predictor.py
+    log_level: debug
+    config:
+      endpoint: http://a76d3b3343f1a43e8a5dd1f556689215-14bf49c6f95638fb.elb.us-west-2.amazonaws.com/iris-classifier
+      data: { "sepal_length": 2.2, "sepal_width": 3.6, "petal_length": 1.4, "petal_width": 3.3 }
+      sleep: 0.8
+      num_requests: 1000
+  autoscaling:
+    min_replicas: 50
+    max_replicas: 50
+  compute:
+    cpu: 1.3
