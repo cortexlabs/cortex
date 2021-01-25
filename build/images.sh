@@ -69,6 +69,10 @@ non_dev_images_cluster=(
   "istio-proxy"
   "istio-pilot"
   "fluent-bit"
+  "prometheus"
+  "prometheus-config-reloader"
+  "prometheus-operator"
+  "prometheus-statsd-exporter"
 )
 non_dev_images_aws=(
   # includes non_dev_images_cluster
@@ -77,7 +81,6 @@ non_dev_images_aws=(
   "inferentia"
   "neuron-rtd"
   "nvidia"
-  "statsd"
 )
 non_dev_images_gcp=(
   # includes non_dev_images_cluster

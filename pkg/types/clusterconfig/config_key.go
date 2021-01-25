@@ -117,8 +117,11 @@ const (
 	ImageNeuronRTDUserKey                      = "neuron rtd image"
 	ImageNvidiaUserKey                         = "nvidia image"
 	ImageFluentBitUserKey                      = "fluent-bit image"
-	ImageStatsdUserKey                         = "statsd image"
 	ImageIstioProxyUserKey                     = "istio proxy image"
 	ImageIstioPilotUserKey                     = "istio pilot image"
 	ImageGooglePauseUserKey                    = "google pause image"
+	ImagePrometheusKey                         = "prometheus image"
+	ImagePrometheusConfigReloaderKey           = "prometheus config reloader image"
+	ImagePrometheusOperatorKey                 = "prometheus operator image"
+	ImagePrometheusStatsDExporterKey           = "prometheus statsd exporter image"
 )

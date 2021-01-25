@@ -239,7 +239,7 @@ func getConfigureClusterConfig(cachedClusterConfig clusterconfig.Config, awsCred
 		}
 		promptIfNotAdmin(awsClient, disallowPrompt)
 
-		err = setConfigFieldsFromCached(userClusterConfig, &cachedClusterConfig, awsClient)
+		err = setConfigFieldsFromCached(userClusterConfig, &cachedClusterConfig)
 		if err != nil {
 			return nil, err
 		}
@@ -265,12 +265,12 @@ func getConfigureClusterConfig(cachedClusterConfig clusterconfig.Config, awsCred
 		return nil, err
 	}
 
-	confirmConfigureClusterConfig(*userClusterConfig, awsCreds, awsClient, disallowPrompt)
+	confirmConfigureClusterConfig(*userClusterConfig, awsCreds, disallowPrompt)
 
 	return userClusterConfig, nil
 }
 
-func setConfigFieldsFromCached(userClusterConfig *clusterconfig.Config, cachedClusterConfig *clusterconfig.Config, awsClient *aws.Client) error {
+func setConfigFieldsFromCached(userClusterConfig *clusterconfig.Config, cachedClusterConfig *clusterconfig.Config) error {
 	if userClusterConfig.Bucket != "" && userClusterConfig.Bucket != cachedClusterConfig.Bucket {
 		return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.BucketKey, cachedClusterConfig.Bucket)
 	}
@@ -388,11 +388,6 @@ func setConfigFieldsFromCached(userClusterConfig *clusterconfig.Config, cachedCl
 	}
 	userClusterConfig.ImageFluentBit = cachedClusterConfig.ImageFluentBit
 
-	if s.Obj(cachedClusterConfig.ImageStatsd) != s.Obj(userClusterConfig.ImageStatsd) {
-		return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.ImageStatsdKey, cachedClusterConfig.ImageStatsd)
-	}
-	userClusterConfig.ImageStatsd = cachedClusterConfig.ImageStatsd
-
 	if s.Obj(cachedClusterConfig.ImageIstioProxy) != s.Obj(userClusterConfig.ImageIstioProxy) {
 		return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.ImageIstioProxyKey, cachedClusterConfig.ImageIstioProxy)
 	}
@@ -402,6 +397,22 @@ func setConfigFieldsFromCached(userClusterConfig *clusterconfig.Config, cachedCl
 		return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.ImageIstioPilotKey, cachedClusterConfig.ImageIstioPilot)
 	}
 	userClusterConfig.ImageIstioPilot = cachedClusterConfig.ImageIstioPilot
+
+	if s.Obj(cachedClusterConfig.ImagePrometheus) != s.Obj(userClusterConfig.ImagePrometheus) {
+		return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.ImagePrometheusKey, cachedClusterConfig.ImagePrometheus)
+	}
+
+	if s.Obj(cachedClusterConfig.ImagePrometheusConfigReloader) != s.Obj(userClusterConfig.ImagePrometheusConfigReloader) {
+		return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.ImagePrometheusConfigReloaderKey, cachedClusterConfig.ImagePrometheusConfigReloader)
+	}
+
+	if s.Obj(cachedClusterConfig.ImagePrometheusOperator) != s.Obj(userClusterConfig.ImagePrometheusOperator) {
+		return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.ImagePrometheusOperatorKey, cachedClusterConfig.ImagePrometheusOperator)
+	}
+
+	if s.Obj(cachedClusterConfig.ImagePrometheusStatsDExporter) != s.Obj(userClusterConfig.ImagePrometheusStatsDExporter) {
+		return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.ImagePrometheusStatsDExporterKey, cachedClusterConfig.ImagePrometheusStatsDExporter)
+	}
 
 	if userClusterConfig.Spot != nil && *userClusterConfig.Spot != *cachedClusterConfig.Spot {
 		return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.SpotKey, *cachedClusterConfig.Spot)
@@ -476,7 +487,7 @@ func confirmInstallClusterConfig(clusterConfig *clusterconfig.Config, awsCreds A
 		{Title: "cost per hour"},
 	}
 
-	rows := [][]interface{}{}
+	var rows [][]interface{}
 	rows = append(rows, []interface{}{"1 eks cluster", s.DollarsMaxPrecision(eksPrice)})
 
 	instanceStr := "instances"
@@ -565,8 +576,8 @@ func confirmInstallClusterConfig(clusterConfig *clusterconfig.Config, awsCreds A
 	}
 }
 
-func confirmConfigureClusterConfig(clusterConfig clusterconfig.Config, awsCreds AWSCredentials, awsClient *aws.Client, disallowPrompt bool) {
-	fmt.Println(clusterConfigConfirmationStr(clusterConfig, awsCreds, awsClient))
+func confirmConfigureClusterConfig(clusterConfig clusterconfig.Config, awsCreds AWSCredentials, disallowPrompt bool) {
+	fmt.Println(clusterConfigConfirmationStr(clusterConfig, awsCreds))
 
 	if !disallowPrompt {
 		exitMessage := fmt.Sprintf("cluster configuration can be modified via the cluster config file; see https://docs.cortex.dev/v/%s/ for more information", consts.CortexVersionMinor)
@@ -574,7 +585,7 @@ func confirmConfigureClusterConfig(clusterConfig clusterconfig.Config, awsCreds 
 	}
 }
 
-func clusterConfigConfirmationStr(clusterConfig clusterconfig.Config, awsCreds AWSCredentials, awsClient *aws.Client) string {
+func clusterConfigConfirmationStr(clusterConfig clusterconfig.Config, awsCreds AWSCredentials) string {
 	defaultConfig, _ := clusterconfig.GetDefaults()
 
 	var items table.KeyValuePairs
@@ -694,15 +705,23 @@ func clusterConfigConfirmationStr(clusterConfig clusterconfig.Config, awsCreds A
 	if clusterConfig.ImageFluentBit != defaultConfig.ImageFluentBit {
 		items.Add(clusterconfig.ImageFluentBitUserKey, clusterConfig.ImageFluentBit)
 	}
-	if clusterConfig.ImageStatsd != defaultConfig.ImageStatsd {
-		items.Add(clusterconfig.ImageStatsdUserKey, clusterConfig.ImageStatsd)
-	}
 	if clusterConfig.ImageIstioProxy != defaultConfig.ImageIstioProxy {
 		items.Add(clusterconfig.ImageIstioProxyUserKey, clusterConfig.ImageIstioProxy)
 	}
 	if clusterConfig.ImageIstioPilot != defaultConfig.ImageIstioPilot {
 		items.Add(clusterconfig.ImageIstioPilotUserKey, clusterConfig.ImageIstioPilot)
 	}
-
+	if clusterConfig.ImagePrometheus != defaultConfig.ImagePrometheus {
+		items.Add(clusterconfig.ImagePrometheusKey, clusterConfig.ImagePrometheus)
+	}
+	if clusterConfig.ImagePrometheusConfigReloader != defaultConfig.ImagePrometheusConfigReloader {
+		items.Add(clusterconfig.ImagePrometheusConfigReloaderKey, clusterConfig.ImagePrometheusConfigReloader)
+	}
+	if clusterConfig.ImagePrometheusOperator != defaultConfig.ImagePrometheusOperator {
+		items.Add(clusterconfig.ImagePrometheusOperatorKey, clusterConfig.ImagePrometheusOperator)
+	}
+	if clusterConfig.ImagePrometheusStatsDExporter != defaultConfig.ImagePrometheusStatsDExporter {
+		items.Add(clusterconfig.ImagePrometheusStatsDExporterKey, clusterConfig.ImagePrometheusStatsDExporter)
+	}
 	return items.String()
 }

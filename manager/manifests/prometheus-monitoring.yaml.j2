@@ -1,0 +1,233 @@
+# Copyright 2021 Cortex Labs, Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: ssd
+volumeBindingMode: WaitForFirstConsumer
+{% if config['provider'] == "aws" %}
+provisioner: kubernetes.io/aws-ebs
+parameters:
+  type: gp2
+{% elif config['provider'] == "gcp" %}
+provisioner: kubernetes.io/gce-pd
+parameters:
+  type: pd-ssd
+{% endif %}
+
+---
+
+apiVersion: monitoring.coreos.com/v1
+kind: Prometheus
+metadata:
+  name: prometheus
+spec:
+  image: {{ config['image_prometheus'] }}
+  serviceAccountName: prometheus
+  podMonitorSelector:
+    matchExpressions:
+      - key: "monitoring.cortex.dev"
+        operator: "In"
+        values: [ "istio", "request-monitor", "statsd-exporter" ]
+  resources:
+    requests:
+      memory: 400Mi
+  enableAdminAPI: false
+  storage:
+    volumeClaimTemplate:
+      spec:
+        storageClassName: ssd
+        resources:
+          requests:
+            storage: 5Gi  # FIXME
+  retention: 2w
+  retentionSize: 4GB  # FIXME
+  securityContext:
+    fsGroup: 2000
+    runAsNonRoot: true
+    runAsUser: 1000
+  tolerations:
+    - key: workload
+      operator: Exists
+      effect: NoSchedule
+
+---
+
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: prometheus
+
+---
+
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: prometheus
+rules:
+  - apiGroups: [ "" ]
+    resources:
+      - nodes
+      - nodes/metrics
+      - services
+      - endpoints
+      - pods
+    verbs: [ "get", "list", "watch" ]
+  - apiGroups: [ "" ]
+    resources:
+      - configmaps
+    verbs: [ "get" ]
+  - apiGroups:
+      - networking.k8s.io
+    resources:
+      - ingresses
+    verbs: [ "get", "list", "watch" ]
+  - nonResourceURLs: [ "/metrics" ]
+    verbs: [ "get" ]
+
+---
+
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: prometheus
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: prometheus
+subjects:
+  - kind: ServiceAccount
+    name: prometheus
+    namespace: default
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: prometheus
+spec:
+  type: NodePort
+  ports:
+    - port: 9090
+      targetPort: 9090
+  selector:
+    prometheus: prometheus
+
+---
+
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: istio-stats
+  labels:
+    monitoring.cortex.dev: "istio"
+spec:
+  selector:
+    matchExpressions:
+      - { key: prometheus-ignore, operator: DoesNotExist }
+  namespaceSelector:
+    any: true
+  jobLabel: envoy-stats
+  podMetricsEndpoints:
+    - path: /stats/prometheus
+      interval: 15s
+      relabelings:
+        - action: keep
+          sourceLabels: [ __meta_kubernetes_pod_container_name ]
+          regex: "istio-proxy"
+        - action: keep
+          sourceLabels: [ __meta_kubernetes_pod_annotationpresent_prometheus_io_scrape ]
+        - sourceLabels: [ __address__, __meta_kubernetes_pod_annotation_prometheus_io_port ]
+          action: replace
+          regex: ([^:]+)(?::\d+)?;(\d+)
+          replacement: $1:$2
+          targetLabel: __address__
+        - action: labeldrop
+          regex: "__meta_kubernetes_pod_label_(.+)"
+        - sourceLabels: [ __meta_kubernetes_namespace ]
+          action: replace
+          targetLabel: namespace
+        - sourceLabels: [ __meta_kubernetes_pod_name ]
+          action: replace
+          targetLabel: pod_name
+
+---
+
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: request-monitor-stats
+  labels:
+    monitoring.cortex.dev: "request-monitor"
+spec:
+  selector:
+    matchLabels:
+      apiKind: RealtimeAPI
+    matchExpressions:
+      - { key: prometheus-ignore, operator: DoesNotExist }
+  namespaceSelector:
+    any: true
+  jobLabel: request-monitor-stats
+  podMetricsEndpoints:
+    - path: /metrics
+      scheme: http
+      interval: 10s
+      port: metrics
+      relabelings:
+        - action: keep
+          sourceLabels: [ __meta_kubernetes_pod_container_name ]
+          regex: "request-monitor"
+        - sourceLabels: [ __meta_kubernetes_pod_label_apiName ]
+          action: replace
+          targetLabel: api_name
+        - sourceLabels: [ __meta_kubernetes_pod_label_apiKind ]
+          action: replace
+          targetLabel: api_kind
+        - sourceLabels: [ __address__, __meta_kubernetes_pod_annotation_prometheus_io_port ]
+          action: replace
+          regex: ([^:]+)(?::\d+)?;(\d+)
+          replacement: $1:$2
+          targetLabel: __address__
+        - action: labeldrop
+          regex: "__meta_kubernetes_pod_label_(.+)"
+        - sourceLabels: [ __meta_kubernetes_namespace ]
+          action: replace
+          targetLabel: namespace
+        - sourceLabels: [ __meta_kubernetes_pod_name ]
+          action: replace
+          targetLabel: pod_name
+
+---
+
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: prometheus-statsd-exporter
+  labels:
+    name: prometheus-statsd-exporter
+    monitoring.cortex.dev: "statsd-exporter"
+spec:
+  jobLabel: "statsd-exporter"
+  podMetricsEndpoints:
+    - port: metrics
+      scheme: http
+      path: /metrics
+      interval: 30s
+  namespaceSelector:
+    any: true
+  selector:
+    matchLabels:
+      name: prometheus-statsd-exporter

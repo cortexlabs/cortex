@@ -67,7 +67,7 @@ function cluster_up_aws() {
 
   echo -n "￮ configuring metrics "
   envsubst < manifests/metrics-server.yaml | kubectl apply -f - >/dev/null
-  envsubst < manifests/statsd.yaml | kubectl apply -f - >/dev/null
+  setup_prometheus
   echo "✓"
 
   if [[ "$CORTEX_INSTANCE_TYPE" == p* ]] || [[ "$CORTEX_INSTANCE_TYPE" == g* ]]; then
@@ -121,6 +121,11 @@ function cluster_up_gcp() {
   echo -n "￮ configuring logging "
   python render_template.py $CORTEX_CLUSTER_CONFIG_FILE manifests/fluent-bit.yaml.j2 > /workspace/fluent-bit.yaml
   kubectl apply -f /workspace/fluent-bit.yaml >/dev/null
+  echo "✓"
+
+  echo -n "￮ configuring metrics "
+  envsubst < manifests/metrics-server.yaml | kubectl apply -f - >/dev/null
+  setup_prometheus
   echo "✓"
 
   if [ -n "$CORTEX_ACCELERATOR_TYPE" ]; then
@@ -292,6 +297,13 @@ function setup_secrets() {
     --from-literal='AWS_ACCESS_KEY_ID'=$CLUSTER_AWS_ACCESS_KEY_ID \
     --from-literal='AWS_SECRET_ACCESS_KEY'=$CLUSTER_AWS_SECRET_ACCESS_KEY \
     -o yaml --dry-run=client | kubectl apply -f - >/dev/null
+}
+
+function setup_prometheus() {
+  envsubst < manifests/prometheus-operator.yaml | kubectl apply -f - >/dev/null
+  envsubst < manifests/prometheus-statsd-exporter.yaml | kubectl apply -f - >/dev/null
+  python render_template.py $CORTEX_CLUSTER_CONFIG_FILE manifests/prometheus-monitoring.yaml.j2 > /workspace/prometheus-monitoring.yaml
+  kubectl apply -f /workspace/prometheus-monitoring.yaml >/dev/null
 }
 
 function setup_secrets_gcp() {
