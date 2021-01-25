@@ -65,6 +65,7 @@ const (
 	ErrS3DirIsEmpty   = "spec.s3_dir_is_empty"
 
 	ErrModelPathNotDirectory      = "spec.model_path_not_directory"
+	ErrInvalidModelPathProvider   = "spec.invalid_model_path_provider"
 	ErrInvalidPythonModelPath     = "spec.invalid_python_model_path"
 	ErrInvalidTensorFlowModelPath = "spec.invalid_tensorflow_model_path"
 	ErrInvalidONNXModelPath       = "spec.invalid_onnx_model_path"
@@ -298,6 +299,13 @@ func ErrorModelPathNotDirectory(modelPath string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrModelPathNotDirectory,
 		Message: fmt.Sprintf("%s: model path must be a directory", modelPath),
+	})
+}
+
+func ErrorInvalidModelPathProvider(modelPath string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrInvalidModelPathProvider,
+		Message: fmt.Sprintf("%s: model path must be an S3 path (e.g. s3://bucket/my-dir/) or a GCS path (e.g. gs://bucket/my-dir)", modelPath),
 	})
 }
 
