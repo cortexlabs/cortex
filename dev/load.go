@@ -59,7 +59,7 @@ type Counter struct {
 }
 
 var _client = &http.Client{
-	Timeout: 600 * time.Second,
+	Timeout: 0, // no timeout
 	Transport: &http.Transport{
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 	},

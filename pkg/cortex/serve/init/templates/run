@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/with-contenv bash
 
 # Copyright 2021 Cortex Labs, Inc.
 #
@@ -14,27 +14,4 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
-SLEEP="0"  # seconds
-
-# Iris
-URL="http://a4ee971c803e211ea9dd806fb935f8b0-108090235.us-west-2.elb.amazonaws.com/iris/classifier"
-DATA='{ "sepal_length": 5.2, "sepal_width": 3.6, "petal_length": 1.4, "petal_width": 0.3 }'
-
-trap ctrl_c INT
-function ctrl_c() {
-  echo ""
-  exit 0
-}
-
-function make_request() {
-  curl --silent --show-error -k -X POST -H "Content-Type: application/json" -d "${DATA}" "${URL}"
-}
-
-resp=$(make_request)
-echo -n "."
-
-while eval "sleep ${SLEEP}"; do
-  resp=$(make_request)
-  echo -n "."
-done
+${COMMAND_TO_RUN}

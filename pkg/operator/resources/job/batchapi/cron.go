@@ -366,18 +366,24 @@ func checkForJobFailure(jobKey spec.JobKey, k8sJob *kbatch.Job) (bool, error) {
 				deleteJobRuntimeResources(jobKey),
 			)
 		}
-		podStatus := k8s.GetPodStatus(&pod)
-		for _, containerStatus := range pod.Status.ContainerStatuses {
-			if containerStatus.LastTerminationState.Terminated != nil {
-				exitCode := containerStatus.LastTerminationState.Terminated.ExitCode
-				reason := strings.ToLower(containerStatus.LastTerminationState.Terminated.Reason)
-				jobLogger.Errorf("at least one worker had status %s and terminated for reason %s (exit_code=%d)", string(podStatus), reason, exitCode)
-				reasonFound = true
-			} else if containerStatus.State.Terminated != nil {
-				exitCode := containerStatus.State.Terminated.ExitCode
-				reason := strings.ToLower(containerStatus.State.Terminated.Reason)
-				jobLogger.Errorf("at least one worker had status %s and terminated for reason %s (exit_code=%d)", string(podStatus), reason, exitCode)
-				reasonFound = true
+		if k8sJob != nil && int(k8sJob.Status.Failed) > 0 {
+			podStatus := k8s.GetPodStatus(&pod)
+			for _, containerStatus := range pod.Status.ContainerStatuses {
+				if containerStatus.LastTerminationState.Terminated != nil {
+					exitCode := containerStatus.LastTerminationState.Terminated.ExitCode
+					reason := containerStatus.LastTerminationState.Terminated.Reason
+					if reason != k8s.ReasonCompleted || exitCode != 0 {
+						jobLogger.Errorf("at least one worker had status %s and terminated for reason %s (exit_code=%d)", string(podStatus), strings.ToLower(reason), exitCode)
+						reasonFound = true
+					}
+				} else if containerStatus.State.Terminated != nil {
+					exitCode := containerStatus.State.Terminated.ExitCode
+					reason := containerStatus.State.Terminated.Reason
+					if reason != k8s.ReasonCompleted || exitCode != 0 {
+						jobLogger.Errorf("at least one worker had status %s and terminated for reason %s (exit_code=%d)", string(podStatus), strings.ToLower(reason), exitCode)
+						reasonFound = true
+					}
+				}
 			}
 		}
 	}
