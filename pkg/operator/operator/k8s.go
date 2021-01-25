@@ -34,7 +34,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	kcore "k8s.io/api/core/v1"
 	kresource "k8s.io/apimachinery/pkg/api/resource"
-	intstr "k8s.io/apimachinery/pkg/util/intstr"
+	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
 const (
@@ -1121,14 +1121,4 @@ func APIEndpoint(api *spec.API) (string, error) {
 	baseAPIEndpoint = strings.Replace(baseAPIEndpoint, "https://", "http://", 1)
 
 	return urls.Join(baseAPIEndpoint, *api.Networking.Endpoint), nil
-}
-
-func GetEndpointFromVirtualService(virtualService *istioclientnetworking.VirtualService) (string, error) {
-	endpoints := k8s.ExtractVirtualServiceEndpoints(virtualService)
-
-	if len(endpoints) != 1 {
-		return "", errors.ErrorUnexpected("expected 1 endpoint, but got", endpoints)
-	}
-
-	return endpoints.GetOne(), nil
 }
