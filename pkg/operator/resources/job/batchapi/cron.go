@@ -301,7 +301,7 @@ func checkIfJobCompleted(jobKey spec.JobKey, queueURL string, k8sJob *kbatch.Job
 
 	if !queueMessages.IsEmpty() {
 		// Give time for queue metrics to reach consistency
-		if int(k8sJob.Status.Active) == 0 {
+		if k8sJob != nil && int(k8sJob.Status.Active) == 0 {
 			if _jobsToDelete.Has(jobKey.ID) {
 				_jobsToDelete.Remove(jobKey.ID)
 				jobLogger.Error("unexpected job status because cluster state indicates job has completed but metrics indicate that job is still in progress")
@@ -388,6 +388,9 @@ func checkForJobFailure(jobKey spec.JobKey, k8sJob *kbatch.Job) (bool, error) {
 		}
 	}
 
+	if k8sJob == nil {
+		return false, nil
+	}
 	if int(k8sJob.Status.Failed) > 0 {
 		if !reasonFound {
 			jobLogger.Error("workers were killed for unknown reason")
