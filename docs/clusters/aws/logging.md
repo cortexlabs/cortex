@@ -1,6 +1,6 @@
 # Logs
 
-By default, logs will be pushed to [CloudWatch](https://us-west-2.console.aws.amazon.com/cloudwatch/home) using fluent-bit. A log group with the same name as your cluster will be created to store your logs. API logs are tagged with labels to help with log aggregation and filtering. Below are some sample CloudWatch Log Insight queries:
+By default, logs will be pushed to [CloudWatch](https://console.aws.amazon.com/cloudwatch/home) using fluent-bit. A log group with the same name as your cluster will be created to store your logs. API logs are tagged with labels to help with log aggregation and filtering. Below are some sample CloudWatch Log Insight queries:
 
 RealtimeAPI:
 

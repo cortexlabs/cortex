@@ -1,5 +1,3 @@
-#!/bin/bash
-
 # Copyright 2021 Cortex Labs, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,27 +12,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
-SLEEP="0"  # seconds
-
-# Iris
-URL="http://a4ee971c803e211ea9dd806fb935f8b0-108090235.us-west-2.elb.amazonaws.com/iris/classifier"
-DATA='{ "sepal_length": 5.2, "sepal_width": 3.6, "petal_length": 1.4, "petal_width": 0.3 }'
-
-trap ctrl_c INT
-function ctrl_c() {
-  echo ""
-  exit 0
-}
-
-function make_request() {
-  curl --silent --show-error -k -X POST -H "Content-Type: application/json" -d "${DATA}" "${URL}"
-}
-
-resp=$(make_request)
-echo -n "."
-
-while eval "sleep ${SLEEP}"; do
-  resp=$(make_request)
-  echo -n "."
-done
+- name: load
+  kind: RealtimeAPI
+  predictor:
+    type: python
+    path: predictor.py
+    log_level: debug
+    config:
+      endpoint: http://a76d3b3343f1a43e8a5dd1f556689215-14bf49c6f95638fb.elb.us-west-2.amazonaws.com/iris-classifier
+      data: { "sepal_length": 2.2, "sepal_width": 3.6, "petal_length": 1.4, "petal_width": 3.3 }
+      sleep: 0.8
+      num_requests: 1000
+  autoscaling:
+    min_replicas: 50
+    max_replicas: 50
+  compute:
+    cpu: 1.3
