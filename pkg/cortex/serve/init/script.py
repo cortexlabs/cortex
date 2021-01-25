@@ -185,7 +185,7 @@ def main():
 
     # exit if cron has exited with errors
     if cron and isinstance(cron.exitcode, int) and cron.exitcode != 0:
-        # if it was killed by a signal
+        # if it was killed by a catchable signal
         if cron.exitcode < 0:
             sys.exit(-cron.exitcode)
         sys.exit(cron.exitcode)

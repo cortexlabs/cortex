@@ -35,7 +35,7 @@ ifelse { s6-test ${exit_code} -gt 255 } {
     if -n { s6-test ${signal} -eq ${sigterm} }
     backtick -n new_exit_code { s6-expr 128 + ${signal} }
     importas -ui new_exit_code new_exit_code
-    foreground { s6-echo "[finish-manager] service ${SERVICE_NAME} received exit code >= 256, exiting with ${new_exit_code} exit code from signal value ${signal} instead" }
+    foreground { s6-echo "[finish-manager] service ${SERVICE_NAME} received signal value ${signal}, exiting with ${new_exit_code} exit code" }
     foreground { redirfd -w 1 /var/run/s6/env-stage3/S6_STAGE2_EXITED s6-echo -n -- ${new_exit_code} }
     s6-svscanctl -t /var/run/s6/services
 }
