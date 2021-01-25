@@ -212,24 +212,25 @@ func checkIfJobCompleted(jobKey spec.JobKey, k8sJob *kbatch.Job) error {
 		}
 	}
 
-	if k8sJob != nil {
-		if int(k8sJob.Status.Failed) == 1 {
-			return errors.FirstError(
-				job.SetWorkerErrorStatus(jobKey),
-				deleteJobRuntimeResources(jobKey),
-			)
-		} else if int(k8sJob.Status.Succeeded) == 1 && len(pods) > 0 {
-			return errors.FirstError(
-				job.SetSucceededStatus(jobKey),
-				deleteJobRuntimeResources(jobKey),
-			)
-		} else if int(k8sJob.Status.Active) == 0 && int(k8sJob.Status.Failed) == 0 && len(pods) == 0 {
-			// really unexpected situation which doesn't hurt if we check
-			return errors.FirstError(
-				job.SetUnexpectedErrorStatus(jobKey),
-				deleteJobRuntimeResources(jobKey),
-			)
-		}
+	if k8sJob == nil {
+		return nil
+	}
+	if int(k8sJob.Status.Failed) == 1 {
+		return errors.FirstError(
+			job.SetWorkerErrorStatus(jobKey),
+			deleteJobRuntimeResources(jobKey),
+		)
+	} else if int(k8sJob.Status.Succeeded) == 1 && len(pods) > 0 {
+		return errors.FirstError(
+			job.SetSucceededStatus(jobKey),
+			deleteJobRuntimeResources(jobKey),
+		)
+	} else if int(k8sJob.Status.Active) == 0 && int(k8sJob.Status.Failed) == 0 && len(pods) == 0 {
+		// really unexpected situation which doesn't hurt if we check
+		return errors.FirstError(
+			job.SetUnexpectedErrorStatus(jobKey),
+			deleteJobRuntimeResources(jobKey),
+		)
 	}
 
 	return nil

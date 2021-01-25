@@ -388,22 +388,23 @@ func checkForJobFailure(jobKey spec.JobKey, k8sJob *kbatch.Job) (bool, error) {
 		}
 	}
 
-	if k8sJob != nil {
-		if int(k8sJob.Status.Failed) > 0 {
-			if !reasonFound {
-				jobLogger.Error("workers were killed for unknown reason")
-			}
-			return true, errors.FirstError(
-				job.SetWorkerErrorStatus(jobKey),
-				deleteJobRuntimeResources(jobKey),
-			)
-		} else if int(k8sJob.Status.Active) == 0 && int(k8sJob.Status.Failed) == 0 && len(pods) == 0 {
-			// really unexpected situation which doesn't hurt if we check
-			return true, errors.FirstError(
-				job.SetUnexpectedErrorStatus(jobKey),
-				deleteJobRuntimeResources(jobKey),
-			)
+	if k8sJob == nil {
+		return false, nil
+	}
+	if int(k8sJob.Status.Failed) > 0 {
+		if !reasonFound {
+			jobLogger.Error("workers were killed for unknown reason")
 		}
+		return true, errors.FirstError(
+			job.SetWorkerErrorStatus(jobKey),
+			deleteJobRuntimeResources(jobKey),
+		)
+	} else if int(k8sJob.Status.Active) == 0 && int(k8sJob.Status.Failed) == 0 && len(pods) == 0 {
+		// really unexpected situation which doesn't hurt if we check
+		return true, errors.FirstError(
+			job.SetUnexpectedErrorStatus(jobKey),
+			deleteJobRuntimeResources(jobKey),
+		)
 	}
 
 	return false, nil
