@@ -39,6 +39,12 @@ func initializeLogger() {
 	}
 
 	operatorZapConfig := DefaultZapConfig(operatorCortexLogLevel)
+
+	disableJSONLogging := os.Getenv("CORTEX_DISABLE_JSON_LOGGING")
+	if disableJSONLogging == "true" {
+		operatorZapConfig.Encoding = "console"
+	}
+
 	operatorLogger, err := operatorZapConfig.Build()
 	if err != nil {
 		panic(err)
