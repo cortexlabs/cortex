@@ -140,7 +140,6 @@ func validateDirModels(
 		if err != nil {
 			return nil, err
 		}
-		dirPrefix = s.EnsureSuffix(dirPrefix, "/")
 
 		s3Objects, err := awsClientForBucket.ListS3PathDir(modelPath, false, nil)
 		if err != nil {
@@ -153,7 +152,6 @@ func validateDirModels(
 		if err != nil {
 			return nil, err
 		}
-		dirPrefix = s.EnsureSuffix(dirPrefix, "/")
 
 		gcsObjects, err := gcpClient.ListGCSPathDir(modelPath, nil)
 		if err != nil {
@@ -164,6 +162,7 @@ func validateDirModels(
 	if len(modelDirPaths) == 0 {
 		return nil, errorForPredictorType(dirPrefix, modelDirPaths)
 	}
+	dirPrefix = s.EnsureSuffix(dirPrefix, "/")
 	if len(modelDirPaths) != len(slices.RemoveIfHasString(modelDirPaths, dirPrefix)) {
 		return nil, ErrorObjectConflictingWithPrefix(dirPrefix)
 	}
