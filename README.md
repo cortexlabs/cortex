@@ -4,7 +4,7 @@
 
 # Run inference at scale
 
-Cortex is an open source platform for production inference workloads.
+Cortex is an open source platform for large-scale machine learning inference workloads.
 
 <br>
 
@@ -45,12 +45,6 @@ Cortex is an open source platform for production inference workloads.
 <br>
 
 ## How it works
-
-### Install on Kubernetes
-
-```text
-$ helm install cortex
-```
 
 ### Implement a Predictor
 
