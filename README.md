@@ -4,51 +4,55 @@
 
 # Run inference at scale
 
-Cortex is an open source platform for large-scale inference workloads.
+Cortex is an open source platform for production inference workloads.
 
 <br>
 
-## Model serving infrastructure
+## Architecture
 
-* Supports deploying TensorFlow, PyTorch, and other models as realtime or batch APIs.
-* Ensures high availability with availability zones and automated instance restarts.
-* Runs inference on on-demand instances or spot instances with on-demand backups.
-* Autoscales to handle production workloads with support for overprovisioning.
+* Kubernetes - container orchestration
+* Istio - traffic management
+* Prometheus - metric aggregation
+* Fluent Bit - structured logging
+* FastAPI - request handling
+* TensorFlow Serving / ONNX Runtime - model serving
 
-#### Configure a cluster
+<br>
 
-```yaml
-# cluster.yaml
+## Workloads
 
-region: us-east-1
-instance_type: g4dn.xlarge
-min_instances: 10
-max_instances: 100
-spot: true
-```
+### Realtime APIs - respond to prediction requests on demand
 
-#### Spin up on your AWS or GCP account
+* Multi-framework support
+* Request-based autoscaling
+* Server-side batching
+* Multi-model caching
+* Live model reloading
+* Rolling updates
+* Traffic splitting
+* Metric aggregation
+* Structured logging
+
+### Batch APIs - run distributed inference on large datasets
+
+* Multi-framework support
+* Automatic retries
+* Dead letter queues
+* Scale to 0
+* Metric aggregation
+* Structured logging
+
+<br>
+
+## How it works
+
+### Install on Kubernetes
 
 ```text
-$ cortex cluster up --config cluster.yaml
-
-￮ configuring autoscaling ✓
-￮ configuring networking ✓
-￮ configuring logging ✓
-
-cortex is ready!
+$ helm install cortex
 ```
 
-<br>
-
-## Reproducible deployments
-
-* Package dependencies, code, and configuration for reproducible deployments.
-* Configure compute, autoscaling, and networking for each API.
-* Integrate with your data science platform or CI/CD system.
-* Deploy custom Docker images or use the pre-built defaults.
-
-#### Define an API
+### Implement a Predictor
 
 ```python
 # predictor.py
@@ -63,7 +67,7 @@ class PythonPredictor:
         return self.model(payload["text"])[0]
 ```
 
-#### Configure an API
+### Configure a realtime API
 
 ```yaml
 # text_generator.yaml
@@ -81,25 +85,16 @@ class PythonPredictor:
     max_replicas: 10
 ```
 
-<br>
-
-## Scalable machine learning APIs
-
-* Scale to handle production workloads with request-based autoscaling.
-* Stream performance metrics and logs to any monitoring tool.
-* Serve many models efficiently with multi-model caching.
-* Use rolling updates to update APIs without downtime.
-* Configure traffic splitting for A/B testing.
-
-#### Deploy to your cluster
+### Deploy
 
 ```bash
 $ cortex deploy text_generator.yaml
 
 # creating http://example.com/text-generator
+
 ```
 
-#### Consume your API
+### Serve prediction requests
 
 ```bash
 $ curl http://example.com/text-generator -X POST -H "Content-Type: application/json" -d '{"text": "hello world"}'
@@ -109,6 +104,5 @@ $ curl http://example.com/text-generator -X POST -H "Content-Type: application/j
 
 ## Get started
 
-* [Read the docs](https://docs.cortex.dev)
-* [Report an issue](https://github.com/cortexlabs/cortex/issues)
-* [Join our community](https://gitter.im/cortexlabs/cortex)
+* [Cortex Core](https://docs.cortex.dev/core) - free and open source community offering.
+* [Cortex Cloud](https://docs.cortex.dev/cloud) - managed Cortex clusters on AWS and GCP.

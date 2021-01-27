@@ -2,14 +2,6 @@
 
 Deploy realtime APIs that can respond to prediction requests on demand.
 
-## Key features
-
-* Request-based autoscaling
-* Multi-model endpoints
-* Server-side batching
-* Metrics and log aggregation
-* Rolling updates
-
 ## Install Cortex
 
 ```bash

@@ -2,30 +2,19 @@
 
 Deploy batch APIs that can orchestrate distributed batch inference jobs on large datasets.
 
-## Key features
-
-* Distributed inference
-* Automatic batch retries
-* Collect failed batches for debugging
-* Metrics and log aggregation
-* `on_job_complete` webhook
-* Scale to 0
-
-## How it works
-
-### Install cortex
+## Install cortex
 
 ```bash
 $ pip install cortex
 ```
 
-### Spin up a cluster on AWS
+## Spin up a cluster on AWS
 
 ```bash
 $ cortex cluster up
 ```
 
-### Define a batch API
+## Define a batch API
 
 ```python
 # batch.py
@@ -88,19 +77,19 @@ cx = cortex.client("aws")
 cx.create_api(api_spec, predictor=PythonPredictor, requirements=requirements)
 ```
 
-### Deploy to your Cortex cluster on AWS
+## Deploy to your Cortex cluster on AWS
 
 ```bash
 $ python batch.py
 ```
 
-### Describe the Batch API
+## Describe the Batch API
 
 ```bash
 $ cortex get image-classifier
 ```
 
-### Submit a job
+## Submit a job
 
 ```python
 import cortex
@@ -134,23 +123,23 @@ print(response.text)
 # > {"job_id":"69b183ed6bdf3e9b","api_name":"image-classifier", "config": {"dest_s3_dir": ...}}
 ```
 
-### Monitor the job
+## Monitor the job
 
 ```bash
 $ cortex get image-classifier 69b183ed6bdf3e9b
 ```
 
-### Stream job logs
+## Stream job logs
 
 ```bash
 $ cortex logs image-classifier 69b183ed6bdf3e9b
 ```
 
-### View the results
+## View the results
 
 Once the job is complete, you should be able to find the results of the batch job in the S3 directory you've specified.
 
-### Delete the Batch API
+## Delete the Batch API
 
 ```bash
 $ cortex delete image-classifier

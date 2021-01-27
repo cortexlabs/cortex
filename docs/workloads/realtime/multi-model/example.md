@@ -2,7 +2,7 @@
 
 Deploy several models in a single API to improve resource utilization efficiency.
 
-### Define a multi-model API
+## Define a multi-model API
 
 ```python
 # multi_model.py
@@ -36,7 +36,7 @@ cx = cortex.client("aws")
 cx.create_api(api_spec, predictor=PythonPredictor, requirements=requirements)
 ```
 
-### Deploy
+## Deploy
 
 ```bash
 $ python multi_model.py

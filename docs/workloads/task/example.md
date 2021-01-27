@@ -2,27 +2,21 @@
 
 Deploy a task API that trains a model on the iris flower dataset and uploads it to an S3 bucket.
 
-## Key features
-
-* Lambda-style execution
-* Task monitoring
-* Scale to 0
-
 ## How it works
 
-### Install cortex
+## Install cortex
 
 ```bash
 $ pip install cortex
 ```
 
-### Spin up a cluster on AWS
+## Spin up a cluster on AWS
 
 ```bash
 $ cortex cluster up
 ```
 
-### Define a task API
+## Define a task API
 
 ```python
 # task.py
@@ -67,19 +61,19 @@ cx = cortex.client("aws")
 cx.create_api(api_spec, task=train_iris_model, requirements=requirements)
 ```
 
-### Deploy to your Cortex cluster on AWS
+## Deploy to your Cortex cluster on AWS
 
 ```bash
 $ python task.py
 ```
 
-### Describe the task API
+## Describe the task API
 
 ```bash
 $ cortex get trainer
 ```
 
-### Submit a job
+## Submit a job
 
 ```python
 import cortex
@@ -100,17 +94,17 @@ print(response.text)
 # > {"job_id":"69b183ed6bdf3e9b","api_name":"trainer", "config": {"dest_s3_dir": ...}}
 ```
 
-### Monitor the job
+## Monitor the job
 
 ```bash
 $ cortex get trainer 69b183ed6bdf3e9b
 ```
 
-### View the results
+## View the results
 
 Once the job is complete, you should be able to find the trained model of the task job in the S3 directory you've specified.
 
-### Delete the Task API
+## Delete the Task API
 
 ```bash
 $ cortex delete trainer
