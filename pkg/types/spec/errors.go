@@ -55,10 +55,11 @@ const (
 
 	ErrShmSizeCannotExceedMem = "spec.shm_size_cannot_exceed_mem"
 
-	ErrFileNotFound              = "spec.file_not_found"
-	ErrDirIsEmpty                = "spec.dir_is_empty"
-	ErrMustBeRelativeProjectPath = "spec.must_be_relative_project_path"
-	ErrPythonPathNotFound        = "spec.python_path_not_found"
+	ErrFileNotFound                = "spec.file_not_found"
+	ErrDirIsEmpty                  = "spec.dir_is_empty"
+	ErrMustBeRelativeProjectPath   = "spec.must_be_relative_project_path"
+	ErrPythonPathNotFound          = "spec.python_path_not_found"
+	ErrObjectConflictingWithPrefix = "spec.object_conflicting_with_prefix"
 
 	ErrS3FileNotFound = "spec.s3_file_not_found"
 	ErrS3DirNotFound  = "spec.s3_dir_not_found"
@@ -271,6 +272,13 @@ func ErrorPythonPathNotFound(pythonPath string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrPythonPathNotFound,
 		Message: fmt.Sprintf("%s: path does not exist, or has been excluded from your project directory", pythonPath),
+	})
+}
+
+func ErrorObjectConflictingWithPrefix(path string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrObjectConflictingWithPrefix,
+		Message: fmt.Sprintf("%s: path prefix conflicts with object %s; remove object %s to be able to use %s as prefix for other objects", path, path, path, path),
 	})
 }
 

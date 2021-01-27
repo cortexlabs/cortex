@@ -38,7 +38,7 @@ func SplitGCSPath(gcsPath string) (string, string, error) {
 	if !IsValidGCSPath(gcsPath) {
 		return "", "", ErrorInvalidGCSPath(gcsPath)
 	}
-	fullPath := gcsPath[len("s3://"):]
+	fullPath := gcsPath[len("gs://"):]
 	slashIndex := strings.Index(fullPath, "/")
 	if slashIndex == -1 {
 		return fullPath, "", nil

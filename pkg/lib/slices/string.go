@@ -98,6 +98,16 @@ func RemoveEmptiesAndUnique(strs []string) []string {
 	return out
 }
 
+func RemoveIfHasString(strs []string, str string) []string {
+	var filteredStrs []string
+	for _, elem := range strs {
+		if elem != str {
+			filteredStrs = append(filteredStrs, elem)
+		}
+	}
+	return filteredStrs
+}
+
 func HasDuplicateStr(in []string) bool {
 	keys := strset.New()
 	for _, elem := range in {

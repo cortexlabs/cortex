@@ -140,6 +140,7 @@ func validateDirModels(
 		if err != nil {
 			return nil, err
 		}
+		dirPrefix = s.EnsureSuffix(dirPrefix, "/")
 
 		s3Objects, err := awsClientForBucket.ListS3PathDir(modelPath, false, nil)
 		if err != nil {
@@ -152,6 +153,7 @@ func validateDirModels(
 		if err != nil {
 			return nil, err
 		}
+		dirPrefix = s.EnsureSuffix(dirPrefix, "/")
 
 		gcsObjects, err := gcpClient.ListGCSPathDir(modelPath, nil)
 		if err != nil {
@@ -161,6 +163,12 @@ func validateDirModels(
 	}
 	if len(modelDirPaths) == 0 {
 		return nil, errorForPredictorType(dirPrefix, modelDirPaths)
+	}
+	if len(modelDirPaths) != len(slices.RemoveIfHasString(modelDirPaths, dirPrefix)) {
+		return nil, ErrorObjectConflictingWithPrefix(dirPrefix)
+	}
+	if len(modelDirPaths) != len(slices.RemoveIfHasString(modelDirPaths, strings.TrimRight(dirPrefix, "/"))) {
+		return nil, ErrorObjectConflictingWithPrefix(strings.TrimRight(dirPrefix, "/"))
 	}
 
 	modelNames := []string{}
@@ -179,7 +187,13 @@ func validateDirModels(
 		}
 
 		modelPrefix := filepath.Join(dirPrefix, modelName)
+		if len(modelDirPaths) != len(slices.RemoveIfHasString(modelDirPaths, modelPrefix)) {
+			return nil, ErrorObjectConflictingWithPrefix(modelPrefix)
+		}
 		modelPrefix = s.EnsureSuffix(modelPrefix, "/")
+		if len(modelDirPaths) != len(slices.RemoveIfHasString(modelDirPaths, modelPrefix)) {
+			return nil, ErrorObjectConflictingWithPrefix(modelPrefix)
+		}
 
 		modelStructureType := determineBaseModelStructure(modelDirPaths, modelPrefix)
 		if modelStructureType == userconfig.UnknownModelStructureType {
@@ -295,6 +309,12 @@ func validateModels(
 		}
 		if len(modelPaths) == 0 {
 			return nil, errors.Wrap(errorForPredictorType(modelPrefix, modelPaths), modelNameWrapStr)
+		}
+		if len(modelPaths) != len(slices.RemoveIfHasString(modelPaths, modelPrefix)) {
+			return nil, ErrorObjectConflictingWithPrefix(modelPrefix)
+		}
+		if len(modelPaths) != len(slices.RemoveIfHasString(modelPaths, strings.TrimRight(modelPrefix, "/"))) {
+			return nil, ErrorObjectConflictingWithPrefix(strings.TrimRight(modelPrefix, "/"))
 		}
 
 		modelStructureType := determineBaseModelStructure(modelPaths, modelPrefix)
