@@ -13952,16 +13952,6 @@ spec:
         app.kubernetes.io/name: prometheus-operator
         app.kubernetes.io/version: v0.44.1
     spec:
-      tolerations:
-        - key: aws.amazon.com/neuron
-          operator: Exists
-          effect: NoSchedule
-        - key: nvidia.com/gpu
-          operator: Exists
-          effect: NoSchedule
-        - key: workload
-          operator: Exists
-          effect: NoSchedule
       containers:
         - args:
             - --kubelet-service=kube-system/kubelet

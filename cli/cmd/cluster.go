@@ -779,6 +779,7 @@ func printInfoPricing(infoResponse *schema.InfoResponse, clusterConfig clusterco
 	eksPrice := aws.EKSPrices[*clusterConfig.Region]
 	operatorInstancePrice := aws.InstanceMetadatas[*clusterConfig.Region]["t3.medium"].Price
 	operatorEBSPrice := aws.EBSMetadatas[*clusterConfig.Region]["gp2"].PriceGB * 20 / 30 / 24
+	metricsEBSPrice := aws.EBSMetadatas[*clusterConfig.Region]["gp2"].PriceGB * 40 / 30 / 24
 	nlbPrice := aws.NLBMetadatas[*clusterConfig.Region].Price
 	natUnitPrice := aws.NATMetadatas[*clusterConfig.Region].Price
 	apiEBSPrice := aws.EBSMetadatas[*clusterConfig.Region][clusterConfig.InstanceVolumeType.String()].PriceGB * float64(clusterConfig.InstanceVolumeSize) / 30 / 24
@@ -793,7 +794,8 @@ func printInfoPricing(infoResponse *schema.InfoResponse, clusterConfig clusterco
 		natTotalPrice = natUnitPrice * float64(len(clusterConfig.AvailabilityZones))
 	}
 
-	totalPrice := eksPrice + totalAPIInstancePrice + apiEBSPrice*float64(numAPIInstances) + operatorInstancePrice + operatorEBSPrice + nlbPrice*2 + natTotalPrice
+	totalPrice := eksPrice + totalAPIInstancePrice + apiEBSPrice*float64(numAPIInstances) +
+		operatorInstancePrice + operatorEBSPrice*2 + metricsEBSPrice + nlbPrice*2 + natTotalPrice
 	fmt.Printf(console.Bold("\nyour cluster currently costs %s per hour\n\n"), s.DollarsAndCents(totalPrice))
 
 	headers := []table.Header{
@@ -805,8 +807,9 @@ func printInfoPricing(infoResponse *schema.InfoResponse, clusterConfig clusterco
 	rows = append(rows, []interface{}{"1 eks cluster", s.DollarsMaxPrecision(eksPrice)})
 	rows = append(rows, []interface{}{fmt.Sprintf("%d %s for your apis", numAPIInstances, s.PluralS("instance", numAPIInstances)), s.DollarsAndTenthsOfCents(totalAPIInstancePrice) + " total"})
 	rows = append(rows, []interface{}{fmt.Sprintf("%d %dgb ebs %s for your apis", numAPIInstances, clusterConfig.InstanceVolumeSize, s.PluralS("volume", numAPIInstances)), s.DollarsAndTenthsOfCents(apiEBSPrice*float64(numAPIInstances)) + " total"})
-	rows = append(rows, []interface{}{"1 t3.medium instance for the operator", s.DollarsMaxPrecision(operatorInstancePrice)})
+	rows = append(rows, []interface{}{"2 t3.medium instance for the cortex system", s.DollarsMaxPrecision(operatorInstancePrice * 2)})
 	rows = append(rows, []interface{}{"1 20gb ebs volume for the operator", s.DollarsAndTenthsOfCents(operatorEBSPrice)})
+	rows = append(rows, []interface{}{"1 40gb ebs volume for prometheus", s.DollarsAndTenthsOfCents(metricsEBSPrice)})
 	rows = append(rows, []interface{}{"2 network load balancers", s.DollarsMaxPrecision(nlbPrice*2) + " total"})
 
 	if clusterConfig.NATGateway == clusterconfig.SingleNATGateway {

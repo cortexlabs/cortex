@@ -51,17 +51,13 @@ spec:
         storageClassName: ssd
         resources:
           requests:
-            storage: 5Gi  # FIXME
+            storage: 40Gi
   retention: 2w
-  retentionSize: 4GB  # FIXME
+  retentionSize: 35GB
   securityContext:
     fsGroup: 2000
     runAsNonRoot: true
     runAsUser: 1000
-  tolerations:
-    - key: workload
-      operator: Exists
-      effect: NoSchedule
 
 ---
 
@@ -119,7 +115,7 @@ kind: Service
 metadata:
   name: prometheus
 spec:
-  type: NodePort
+  type: ClusterIP
   ports:
     - port: 9090
       targetPort: 9090

@@ -181,6 +181,7 @@ func clusterFixedPriceAWS() float64 {
 	eksPrice := aws.EKSPrices[*config.Cluster.Region]
 	operatorInstancePrice := aws.InstanceMetadatas[*config.Cluster.Region]["t3.medium"].Price
 	operatorEBSPrice := aws.EBSMetadatas[*config.Cluster.Region]["gp2"].PriceGB * 20 / 30 / 24
+	metricsEBSPrice := aws.EBSMetadatas[*config.Cluster.Region]["gp2"].PriceGB * 40 / 30 / 24
 	nlbPrice := aws.NLBMetadatas[*config.Cluster.Region].Price
 	natUnitPrice := aws.NATMetadatas[*config.Cluster.Region].Price
 
@@ -191,7 +192,7 @@ func clusterFixedPriceAWS() float64 {
 		natTotalPrice = natUnitPrice * float64(len(config.Cluster.AvailabilityZones))
 	}
 
-	return eksPrice + operatorInstancePrice + operatorEBSPrice + 2*nlbPrice + natTotalPrice
+	return eksPrice + operatorInstancePrice + 2*operatorEBSPrice + metricsEBSPrice + 2*nlbPrice + natTotalPrice
 }
 
 func InstanceTelemetryGCP() error {

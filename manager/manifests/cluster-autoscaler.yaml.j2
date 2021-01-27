@@ -195,7 +195,7 @@ spec:
             {% else %}
             - --expander=least-waste
             {% endif %}
-            - --max-nodes-total={{ config['max_instances'] + 1 }}
+            - --max-nodes-total={{ config['max_instances'] + 2 }}
             - --max-total-unready-percentage=5
             - --ok-total-unready-count=30
             - --max-node-provision-time=5m
