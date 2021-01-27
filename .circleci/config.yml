@@ -48,6 +48,7 @@ jobs:
       - run:
           name: Python Tests
           command: make test-python
+
   build-and-deploy:
     docker:
       - image: circleci/python:3.6
@@ -68,8 +69,26 @@ jobs:
           no_output_timeout: 20m
       - run: make ci-build-and-upload-cli
 
+  e2e-tests-aws:
+    docker:
+      - image: circleci/python:3.6
+    steps:
+      - checkout
+      - setup_remote_docker
+      - run:
+          name: Install Test Package
+          command: pip install -e ./test/e2e
+      - run:
+          name: Create Cluster
+          command: cortex cluster up --config <cluster_config> --configure-env aws
+      - run:
+          name: Run E2E Tests
+          command: pytest -v test/e2e/tests -k aws --aws-env aws --s3-path s3://<s3_path>
+
+
 workflows:
   version: 2.1
+
   build:
     jobs:
       - test
@@ -90,3 +109,13 @@ workflows:
               only:
                 - master
                 - /^[0-9]+\.[0-9]+$/
+  nightly:
+    triggers:
+      - schedule:
+          cron: "0 0 * * *"
+          filters:
+            branches:
+              only:
+                - master
+    jobs:
+      - e2e-tests-aws
