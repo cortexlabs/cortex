@@ -23,12 +23,12 @@
   * [Metrics](workloads/realtime/metrics.md)
   * [Statuses](workloads/realtime/statuses.md)
   * Multi-model
-    * [Example](workloads/multi-model/example.md)
-    * [Configuration](workloads/multi-model/configuration.md)
-    * [Caching](workloads/multi-model/caching.md)
+    * [Example](workloads/realtime/multi-model/example.md)
+    * [Configuration](workloads/realtime/multi-model/configuration.md)
+    * [Caching](workloads/realtime/multi-model/caching.md)
   * Traffic Splitter
-    * [Example](workloads/traffic-splitter/example.md)
-    * [Configuration](workloads/traffic-splitter/configuration.md)
+    * [Example](workloads/realtime/traffic-splitter/example.md)
+    * [Configuration](workloads/realtime/traffic-splitter/configuration.md)
   * [Troubleshooting](workloads/realtime/troubleshooting.md)
 * Batch APIs
   * [Example](workloads/batch/example.md)
