@@ -64,8 +64,9 @@
   * [Uninstall](cloud/aws/uninstall.md)
 * GCP
   * [Install](cloud/gcp/install.md)
-  * [Logging](cloud/aws/logging.md)
+  * [Logging](cloud/gcp/logging.md)
   * [Credentials](cloud/gcp/credentials.md)
   * [Setting up kubectl](cloud/gcp/kubectl.md)
   * [Uninstall](cloud/gcp/uninstall.md)
 * [Environments](cloud/environments.md)
+* [Private Docker registry](cloud/registry.md)
