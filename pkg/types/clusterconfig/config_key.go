@@ -68,6 +68,11 @@ const (
 	ImageIstioProxyKey                     = "image_istio_proxy"
 	ImageIstioPilotKey                     = "image_istio_pilot"
 	ImageGooglePauseKey                    = "image_google_pause"
+	ImagePrometheusKey                     = "image_prometheus"
+	ImagePrometheusConfigReloaderKey       = "image_prometheus_config_reloader"
+	ImagePrometheusOperatorKey             = "image_prometheus_operator"
+	ImagePrometheusStatsDExporterKey       = "image_prometheus_statsd_exporter"
+	ImagePrometheusToCloudwatchKey         = "image_prometheus_to_cloudwatch"
 
 	// User facing string
 	ProviderUserKey                            = "provider"
@@ -120,8 +125,9 @@ const (
 	ImageIstioProxyUserKey                     = "istio proxy image"
 	ImageIstioPilotUserKey                     = "istio pilot image"
 	ImageGooglePauseUserKey                    = "google pause image"
-	ImagePrometheusKey                         = "prometheus image"
-	ImagePrometheusConfigReloaderKey           = "prometheus config reloader image"
-	ImagePrometheusOperatorKey                 = "prometheus operator image"
-	ImagePrometheusStatsDExporterKey           = "prometheus statsd exporter image"
+	ImagePrometheusUserKey                     = "prometheus image"
+	ImagePrometheusConfigReloaderUserKey       = "prometheus config reloader image"
+	ImagePrometheusOperatorUserKey             = "prometheus operator image"
+	ImagePrometheusStatsDExporterUserKey       = "prometheus statsd exporter image"
+	ImagePrometheusToCloudwatchUserKey         = "prometheus to cloudwatch image"
 )

@@ -90,6 +90,7 @@ type Config struct {
 	ImagePrometheusConfigReloader string             `json:"image_prometheus_config_reloader" yaml:"image_prometheus_config_reloader"`
 	ImagePrometheusOperator       string             `json:"image_prometheus_operator" yaml:"image_prometheus_operator"`
 	ImagePrometheusStatsDExporter string             `json:"image_prometheus_statsd_exporter" yaml:"image_prometheus_statsd_exporter"`
+	ImagePrometheusToCloudWatch   string             `json:"image_prometheus_to_cloudwatch" yaml:"image_prometheus_to_cloudwatch"`
 }
 
 type SpotConfig struct {
@@ -1208,10 +1209,11 @@ func (cc *Config) UserTable() table.KeyValuePairs {
 	items.Add(ImageFluentBitUserKey, cc.ImageFluentBit)
 	items.Add(ImageIstioProxyUserKey, cc.ImageIstioProxy)
 	items.Add(ImageIstioPilotUserKey, cc.ImageIstioPilot)
-	items.Add(ImagePrometheusKey, cc.ImagePrometheus)
-	items.Add(ImagePrometheusConfigReloaderKey, cc.ImagePrometheusConfigReloader)
-	items.Add(ImagePrometheusOperatorKey, cc.ImagePrometheusOperator)
-	items.Add(ImagePrometheusStatsDExporterKey, cc.ImagePrometheusStatsDExporter)
+	items.Add(ImagePrometheusUserKey, cc.ImagePrometheus)
+	items.Add(ImagePrometheusConfigReloaderUserKey, cc.ImagePrometheusConfigReloader)
+	items.Add(ImagePrometheusOperatorUserKey, cc.ImagePrometheusOperator)
+	items.Add(ImagePrometheusStatsDExporterUserKey, cc.ImagePrometheusStatsDExporter)
+	items.Add(ImagePrometheusToCloudwatchUserKey, cc.ImagePrometheusToCloudWatch)
 
 	return items
 }

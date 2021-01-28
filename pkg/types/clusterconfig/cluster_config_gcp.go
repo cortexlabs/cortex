@@ -615,10 +615,10 @@ func (cc *GCPConfig) UserTable() table.KeyValuePairs {
 	items.Add(ImageIstioProxyUserKey, cc.ImageIstioProxy)
 	items.Add(ImageIstioPilotUserKey, cc.ImageIstioPilot)
 	items.Add(ImageGooglePauseUserKey, cc.ImageGooglePause)
-	items.Add(ImagePrometheusKey, cc.ImagePrometheus)
-	items.Add(ImagePrometheusConfigReloaderKey, cc.ImagePrometheusConfigReloader)
-	items.Add(ImagePrometheusOperatorKey, cc.ImagePrometheusOperator)
-	items.Add(ImagePrometheusStatsDExporterKey, cc.ImagePrometheusStatsDExporter)
+	items.Add(ImagePrometheusUserKey, cc.ImagePrometheus)
+	items.Add(ImagePrometheusConfigReloaderUserKey, cc.ImagePrometheusConfigReloader)
+	items.Add(ImagePrometheusOperatorUserKey, cc.ImagePrometheusOperator)
+	items.Add(ImagePrometheusStatsDExporterUserKey, cc.ImagePrometheusStatsDExporter)
 
 	return items
 }

@@ -302,8 +302,8 @@ function setup_secrets() {
 function setup_prometheus() {
   envsubst < manifests/prometheus-operator.yaml | kubectl apply -f - >/dev/null
   envsubst < manifests/prometheus-statsd-exporter.yaml | kubectl apply -f - >/dev/null
-  python render_template.py $CORTEX_CLUSTER_CONFIG_FILE manifests/prometheus-monitoring.yaml.j2 > /workspace/prometheus-monitoring.yaml
-  kubectl apply -f /workspace/prometheus-monitoring.yaml >/dev/null
+  python render_template.py $CORTEX_CLUSTER_CONFIG_FILE manifests/prometheus-monitoring.yaml.j2 | kubectl apply -f - >/dev/null
+  python render_template.py $CORTEX_CLUSTER_CONFIG_FILE manifests/prometheus-to-cloudwatch.yaml.j2 | kubectl apply -f - >/dev/null
 }
 
 function setup_secrets_gcp() {

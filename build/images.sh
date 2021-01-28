@@ -52,10 +52,10 @@ api_slim_images_gcp=(
 dev_images_cluster=(
   "downloader"
   "manager"
+  "request-monitor"
 )
 dev_images_aws=(
   # includes dev_images_cluster
-  "request-monitor"
 )
 dev_images_gcp=(
   # includes dev_images_cluster
@@ -81,6 +81,7 @@ non_dev_images_aws=(
   "inferentia"
   "neuron-rtd"
   "nvidia"
+  "prometheus-to-cloudwatch"
 )
 non_dev_images_gcp=(
   # includes non_dev_images_cluster

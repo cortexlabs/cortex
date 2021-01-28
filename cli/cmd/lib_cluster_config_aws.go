@@ -414,6 +414,10 @@ func setConfigFieldsFromCached(userClusterConfig *clusterconfig.Config, cachedCl
 		return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.ImagePrometheusStatsDExporterKey, cachedClusterConfig.ImagePrometheusStatsDExporter)
 	}
 
+	if s.Obj(cachedClusterConfig.ImagePrometheusToCloudWatch) != s.Obj(userClusterConfig.ImagePrometheusToCloudWatch) {
+		return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.ImagePrometheusToCloudwatchKey, cachedClusterConfig.ImagePrometheusToCloudWatch)
+	}
+
 	if userClusterConfig.Spot != nil && *userClusterConfig.Spot != *cachedClusterConfig.Spot {
 		return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.SpotKey, *cachedClusterConfig.Spot)
 	}
@@ -714,16 +718,19 @@ func clusterConfigConfirmationStr(clusterConfig clusterconfig.Config, awsCreds A
 		items.Add(clusterconfig.ImageIstioPilotUserKey, clusterConfig.ImageIstioPilot)
 	}
 	if clusterConfig.ImagePrometheus != defaultConfig.ImagePrometheus {
-		items.Add(clusterconfig.ImagePrometheusKey, clusterConfig.ImagePrometheus)
+		items.Add(clusterconfig.ImagePrometheusUserKey, clusterConfig.ImagePrometheus)
 	}
 	if clusterConfig.ImagePrometheusConfigReloader != defaultConfig.ImagePrometheusConfigReloader {
-		items.Add(clusterconfig.ImagePrometheusConfigReloaderKey, clusterConfig.ImagePrometheusConfigReloader)
+		items.Add(clusterconfig.ImagePrometheusConfigReloaderUserKey, clusterConfig.ImagePrometheusConfigReloader)
 	}
 	if clusterConfig.ImagePrometheusOperator != defaultConfig.ImagePrometheusOperator {
-		items.Add(clusterconfig.ImagePrometheusOperatorKey, clusterConfig.ImagePrometheusOperator)
+		items.Add(clusterconfig.ImagePrometheusOperatorUserKey, clusterConfig.ImagePrometheusOperator)
 	}
 	if clusterConfig.ImagePrometheusStatsDExporter != defaultConfig.ImagePrometheusStatsDExporter {
-		items.Add(clusterconfig.ImagePrometheusStatsDExporterKey, clusterConfig.ImagePrometheusStatsDExporter)
+		items.Add(clusterconfig.ImagePrometheusStatsDExporterUserKey, clusterConfig.ImagePrometheusStatsDExporter)
+	}
+	if clusterConfig.ImagePrometheusToCloudWatch != defaultConfig.ImagePrometheusToCloudWatch {
+		items.Add(clusterconfig.ImagePrometheusToCloudwatchUserKey, clusterConfig.ImagePrometheusToCloudWatch)
 	}
 	return items.String()
 }
