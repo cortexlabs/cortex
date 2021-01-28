@@ -10,18 +10,18 @@ Cortex is an open source platform for large-scale machine learning inference wor
 
 ## Architecture
 
+* Python Runtime / TensorFlow Serving / ONNX Runtime - model serving
 * Kubernetes - container orchestration
 * Istio - traffic management
 * Prometheus - metric aggregation
 * Fluent Bit - structured logging
 * FastAPI - request handling
-* TensorFlow Serving / ONNX Runtime - model serving
 
 <br>
 
 ## Workloads
 
-### Realtime APIs - respond to prediction requests on demand
+### Realtime APIs - respond to prediction requests in real-time
 
 * Multi-framework support
 * Request-based autoscaling
