@@ -2,7 +2,7 @@
 
 ## Install and configure kubectl
 
-Follow the instructions for [aws](../cloud/aws/kubectl.md) or [gcp](../cloud/gcp/kubectl.md).
+Follow the instructions for [AWS](../cloud/aws/kubectl.md) or [GCP](../cloud/gcp/kubectl.md).
 
 ## Setting credentials
 
