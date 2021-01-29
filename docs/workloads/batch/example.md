@@ -2,7 +2,7 @@
 
 Deploy batch APIs that can orchestrate distributed batch inference jobs on large datasets.
 
-## Install cortex
+## Install Cortex
 
 ```bash
 $ pip install cortex

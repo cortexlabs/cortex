@@ -7,6 +7,7 @@
 * [Install](clients/install.md)
 * [CLI commands](clients/cli.md)
 * [Python API](clients/python.md)
+* [Environments](clients/environments.md)
 * [Telemetry](clients/telemetry.md)
 * [Uninstall](clients/uninstall.md)
 
@@ -68,5 +69,4 @@
   * [Credentials](cloud/gcp/credentials.md)
   * [Setting up kubectl](cloud/gcp/kubectl.md)
   * [Uninstall](cloud/gcp/uninstall.md)
-* [Environments](cloud/environments.md)
 * [Private Docker registry](cloud/registry.md)
