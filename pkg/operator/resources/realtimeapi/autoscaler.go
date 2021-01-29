@@ -30,8 +30,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/operator/operator"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
-	promapi "github.com/prometheus/client_golang/api"
-	promv1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	"github.com/prometheus/common/model"
 	kapps "k8s.io/api/apps/v1"
 )
@@ -237,11 +235,6 @@ func autoscaleFn(initialDeployment *kapps.Deployment, apiSpec *spec.API) (func()
 }
 
 func getInflightRequests(apiName string, window time.Duration) (*float64, error) {
-	promClient, err := promapi.NewClient(promapi.Config{
-		Address: config.Cluster.PrometheusURL,
-	})
-
-	promAPIv1 := promv1.NewAPI(promClient)
 	windowSeconds := int64(window.Truncate(time.Second).Seconds())
 
 	// PromQL query:
@@ -256,7 +249,7 @@ func getInflightRequests(apiName string, window time.Duration) (*float64, error)
 	ctx, cancel := context.WithTimeout(context.Background(), _prometheusQueryTimeoutSeconds*time.Second)
 	defer cancel()
 
-	valuesQuery, err := promAPIv1.Query(ctx, query, time.Now())
+	valuesQuery, err := config.Prometheus.Query(ctx, query, time.Now())
 	if err != nil {
 		return nil, err
 	}

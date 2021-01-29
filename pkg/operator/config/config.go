@@ -31,6 +31,8 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	"github.com/cortexlabs/cortex/pkg/types"
 	"github.com/cortexlabs/cortex/pkg/types/clusterconfig"
+	promapi "github.com/prometheus/client_golang/api"
+	promv1 "github.com/prometheus/client_golang/api/prometheus/v1"
 )
 
 const (
@@ -47,6 +49,7 @@ var (
 	K8s             *k8s.Client
 	K8sIstio        *k8s.Client
 	K8sAllNamspaces *k8s.Client
+	Prometheus      promv1.API
 )
 
 func Init() error {
@@ -71,7 +74,6 @@ func Init() error {
 		Cluster = &clusterconfig.InternalConfig{
 			APIVersion:          consts.CortexVersion,
 			IsOperatorInCluster: strings.ToLower(os.Getenv("CORTEX_OPERATOR_IN_CLUSTER")) != "false",
-			PrometheusURL:       prometheusURL,
 		}
 
 		errs := cr.ParseYAMLFile(Cluster, clusterconfig.Validation, clusterConfigPath)
@@ -103,7 +105,6 @@ func Init() error {
 		GCPCluster = &clusterconfig.InternalGCPConfig{
 			APIVersion:          consts.CortexVersion,
 			IsOperatorInCluster: strings.ToLower(os.Getenv("CORTEX_OPERATOR_IN_CLUSTER")) != "false",
-			PrometheusURL:       prometheusURL,
 		}
 
 		errs := cr.ParseYAMLFile(GCPCluster, clusterconfig.GCPValidation, clusterConfigPath)
@@ -146,6 +147,15 @@ func Init() error {
 	if K8sIstio, err = k8s.New("istio-system", IsOperatorInCluster(), nil); err != nil {
 		return err
 	}
+
+	promClient, err := promapi.NewClient(promapi.Config{
+		Address: prometheusURL,
+	})
+	if err != nil {
+		return err
+	}
+
+	Prometheus = promv1.NewAPI(promClient)
 
 	if K8sAllNamspaces, err = k8s.New("", IsOperatorInCluster(), nil); err != nil {
 		return err

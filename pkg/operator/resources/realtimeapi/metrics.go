@@ -26,7 +26,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 	"github.com/cortexlabs/cortex/pkg/types/metrics"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
-	promapi "github.com/prometheus/client_golang/api"
 	promv1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	"github.com/prometheus/common/model"
 )
@@ -65,15 +64,6 @@ func GetMultipleMetrics(apis []spec.API) ([]metrics.Metrics, error) {
 }
 
 func GetMetrics(api *spec.API) (*metrics.Metrics, error) {
-	client, err := promapi.NewClient(promapi.Config{
-		Address: config.Cluster.PrometheusURL,
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	promAPIv1 := promv1.NewAPI(client)
-
 	var (
 		reqCount       float64
 		avgLatency     *float64
@@ -82,30 +72,30 @@ func GetMetrics(api *spec.API) (*metrics.Metrics, error) {
 		statusCodes5XX float64
 	)
 
-	err = parallel.RunFirstErr(
+	err := parallel.RunFirstErr(
 		func() error {
 			var err error
-			reqCount, err = getRequestCountMetric(promAPIv1, api.Name)
+			reqCount, err = getRequestCountMetric(config.Prometheus, api.Name)
 			return err
 		},
 		func() error {
 			var err error
-			avgLatency, err = getAvgLatencyMetric(promAPIv1, api.Name)
+			avgLatency, err = getAvgLatencyMetric(config.Prometheus, api.Name)
 			return err
 		},
 		func() error {
 			var err error
-			statusCodes2XX, err = getStatusCode2XXMetric(promAPIv1, api.Name)
+			statusCodes2XX, err = getStatusCode2XXMetric(config.Prometheus, api.Name)
 			return err
 		},
 		func() error {
 			var err error
-			statusCodes4XX, err = getStatusCode4XXMetric(promAPIv1, api.Name)
+			statusCodes4XX, err = getStatusCode4XXMetric(config.Prometheus, api.Name)
 			return err
 		},
 		func() error {
 			var err error
-			statusCodes5XX, err = getStatusCode5XXMetric(promAPIv1, api.Name)
+			statusCodes5XX, err = getStatusCode5XXMetric(config.Prometheus, api.Name)
 			return err
 		},
 	)

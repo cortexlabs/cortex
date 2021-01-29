@@ -26,7 +26,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 	"github.com/cortexlabs/cortex/pkg/types/metrics"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
-	promapi "github.com/prometheus/client_golang/api"
 	promv1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	"github.com/prometheus/common/model"
 )
@@ -36,35 +35,26 @@ const (
 )
 
 func getBatchMetrics(jobKey spec.JobKey) (metrics.BatchMetrics, error) {
-	client, err := promapi.NewClient(promapi.Config{
-		Address: config.Cluster.PrometheusURL,
-	})
-	if err != nil {
-		return metrics.BatchMetrics{}, err
-	}
-
-	promAPIv1 := promv1.NewAPI(client)
-
 	var (
 		jobBatchesSucceeded float64
 		jobBatchesFailed    float64
 		avgTimePerBatch     *float64
 	)
 
-	err = parallel.RunFirstErr(
+	err := parallel.RunFirstErr(
 		func() error {
 			var err error
-			jobBatchesSucceeded, err = getSucceededBatchesForJobMetric(promAPIv1, jobKey)
+			jobBatchesSucceeded, err = getSucceededBatchesForJobMetric(config.Prometheus, jobKey)
 			return err
 		},
 		func() error {
 			var err error
-			jobBatchesFailed, err = getFailedBatchesForJobMetric(promAPIv1, jobKey)
+			jobBatchesFailed, err = getFailedBatchesForJobMetric(config.Prometheus, jobKey)
 			return err
 		},
 		func() error {
 			var err error
-			avgTimePerBatch, err = getAvgTimePerBatchMetric(promAPIv1, jobKey)
+			avgTimePerBatch, err = getAvgTimePerBatchMetric(config.Prometheus, jobKey)
 			return err
 		},
 	)

@@ -68,6 +68,7 @@ function cluster_up_aws() {
   echo -n "￮ configuring metrics "
   envsubst < manifests/metrics-server.yaml | kubectl apply -f - >/dev/null
   setup_prometheus
+  python render_template.py $CORTEX_CLUSTER_CONFIG_FILE manifests/prometheus-to-cloudwatch.yaml.j2 | kubectl apply -f - >/dev/null
   echo "✓"
 
   if [[ "$CORTEX_INSTANCE_TYPE" == p* ]] || [[ "$CORTEX_INSTANCE_TYPE" == g* ]]; then
@@ -124,7 +125,6 @@ function cluster_up_gcp() {
   echo "✓"
 
   echo -n "￮ configuring metrics "
-  envsubst < manifests/metrics-server.yaml | kubectl apply -f - >/dev/null
   setup_prometheus
   echo "✓"
 
@@ -303,7 +303,6 @@ function setup_prometheus() {
   envsubst < manifests/prometheus-operator.yaml | kubectl apply -f - >/dev/null
   envsubst < manifests/prometheus-statsd-exporter.yaml | kubectl apply -f - >/dev/null
   python render_template.py $CORTEX_CLUSTER_CONFIG_FILE manifests/prometheus-monitoring.yaml.j2 | kubectl apply -f - >/dev/null
-  python render_template.py $CORTEX_CLUSTER_CONFIG_FILE manifests/prometheus-to-cloudwatch.yaml.j2 | kubectl apply -f - >/dev/null
 }
 
 function setup_secrets_gcp() {

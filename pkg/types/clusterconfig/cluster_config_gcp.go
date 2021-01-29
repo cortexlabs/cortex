@@ -73,7 +73,6 @@ type InternalGCPConfig struct {
 	ClusterID           string `json:"cluster_id"`
 	IsOperatorInCluster bool   `json:"is_operator_in_cluster"`
 	Bucket              string `json:"bucket"`
-	PrometheusURL       string `json:"prometheus_url"`
 }
 
 // The bare minimum to identify a cluster
