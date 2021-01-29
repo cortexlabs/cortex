@@ -1,0 +1,43 @@
+cortex:
+  cluster_name: testing
+  region: us-west-2
+  bucket: cortex-vishal
+
+  # CORTEX_VERSION
+  image_operator: quay.io/cortexlabs/operator:latest
+  image_manager: quay.io/cortexlabs/manager:latest
+  image_downloader: quay.io/cortexlabs/downloader:latest
+  image_request_monitor: quay.io/cortexlabs/request-monitor:latest
+  image_cluster_autoscaler: quay.io/cortexlabs/cluster-autoscaler:latest
+  image_metrics_server: quay.io/cortexlabs/metrics-server:latest
+  image_inferentia: quay.io/cortexlabs/inferentia:latest
+  image_neuron_rtd: quay.io/cortexlabs/neuron-rtd:latest
+  image_nvidia: quay.io/cortexlabs/nvidia:latest
+  image_fluent_bit: quay.io/cortexlabs/fluent-bit:latest
+  image_statsd: quay.io/cortexlabs/statsd:latest
+  image_istio_proxy: quay.io/cortexlabs/istio-proxy:latest
+  image_istio_pilot: quay.io/cortexlabs/istio-pilot:latest
+  image_google_pause: quay.io/cortexlabs/pause:latest
+
+networking:
+  istio-discovery:
+    pilot:
+      hub: quay.io/cortexlabs
+      tag: latest # CORTEX_VERSION
+
+      # Can be a full hub/image:tag
+      image: istio-pilot
+
+global:
+  provider: aws
+
+  # Default hub for Istio images.
+  # Releases are published to docker hub under 'istio' project.
+  # Dev builds from prow are on gcr.io
+  hub: quay.io/cortexlabs
+  
+  # Default tag for Istio images.
+  tag: latest # CORTEX_VERSION
+
+  proxy:
+    image: istio-proxy

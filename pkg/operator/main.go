@@ -57,9 +57,11 @@ func main() {
 	}
 
 	if config.Provider == types.AWSProviderType {
-		_, err := operator.UpdateMemoryCapacityConfigMap()
-		if err != nil {
-			exit.Error(errors.Wrap(err, "init"))
+		if config.IsManaged() {
+			_, err := operator.UpdateMemoryCapacityConfigMap()
+			if err != nil {
+				exit.Error(errors.Wrap(err, "init"))
+			}
 		}
 
 		deployments, err := config.K8s.ListDeploymentsWithLabelKeys("apiName")

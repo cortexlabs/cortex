@@ -19,8 +19,10 @@ package operator
 import (
 	"math"
 
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
+	"github.com/cortexlabs/cortex/pkg/types"
 	kresource "k8s.io/apimachinery/pkg/api/resource"
 	kmeta "k8s.io/apimachinery/pkg/apis/meta/v1"
 	klabels "k8s.io/apimachinery/pkg/labels"
@@ -77,12 +79,20 @@ func getMemoryCapacityFromConfigMap() (*kresource.Quantity, error) {
 	return &mem, nil
 }
 
-// TODO
 func UpdateMemoryCapacityConfigMap() (kresource.Quantity, error) {
+	if !config.IsManaged() {
+		return kresource.Quantity{}, nil
+	}
+
 	minMem := *kresource.NewQuantity(math.MaxInt64, kresource.DecimalSI)
-	// if config.Provider == types.AWSProviderType {
-	// 	minMem = config.Cluster.InstanceMetadata.Memory
-	// }
+
+	if config.Provider == types.AWSProviderType {
+		instanceMetadata := config.AWSInstanceMetadataOrNil()
+		if instanceMetadata == nil {
+			return kresource.Quantity{}, errors.ErrorUnexpected("unable to find instance metadata; likely because this is not a cortex managed cluster")
+		}
+		minMem = instanceMetadata.Memory
+	}
 
 	nodeMemCapacity, err := getMemoryCapacityFromNodes()
 	if err != nil {

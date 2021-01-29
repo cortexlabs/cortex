@@ -1,0 +1,80 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: env-vars
+  namespace: {{ .Release.Namespace }}
+data:
+  CORTEX_VERSION: {{ .Chart.AppVersion }}
+  CORTEX_PROVIDER: {{ .Values.global.provider }}
+  {{- if eq .Values.global.provider "aws" }}
+  CORTEX_REGION:  {{ .Values.cortex.region }}
+  AWS_REGION: {{ .Values.cortex.region  }}
+  {{- else if eq .Values.global.provider "gcp" }}
+  CORTEX_GCP_PROJECT: {{ .Values.cortex.project  }}
+  CORTEX_GCP_ZONE: {{ .Values.cortex.zone  }}
+  GOOGLE_APPLICATION_CREDENTIALS: /var/secrets/google/key.json
+  {{- end}}
+  CORTEX_TELEMETRY_DISABLE: "{{ not ( .Values.cortex.telemetry | default false ) }}"
+  CORTEX_TELEMETRY_SENTRY_DSN: {{ .Values.cortex.telemetry_sentry_dsn | default "https://5cea3d2d67194d028f7191fcc6ebca14@sentry.io/1825326"}}
+  CORTEX_TELEMETRY_SEGMENT_WRITE_KEY: {{ .Values.cortex.segment_write_key | default "BNhXifMk9EyhPICF2zAFpWYPCf4CRpV1" }}
+  CORTEX_DEV_DEFAULT_PREDICTOR_IMAGE_REGISTRY: {{ .Values.cortex.default_predictor_image_registry | default "quay.io/cortexlabs" }}
+---
+{{- if eq .Values.global.provider "aws" }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cluster-config
+  namespace: {{ .Release.Namespace }}
+data:
+  cluster.yaml: |
+    bucket: {{ .Values.cortex.bucket }}
+    cluster_name: {{ .Values.cortex.cluster_name }}
+    region: {{ .Values.cortex.region }}
+    provider: {{ .Values.global.provider }}
+    telemetry: {{ .Values.cortex.telemetry | default true }}
+    is_managed: {{ .Values.cortex.is_managed | default false }}
+    namespace: {{ .Release.Namespace }}
+    istio_namespace: {{ .Release.Namespace }}
+    image_operator: {{ .Values.cortex.image_operator }}
+    image_manager: {{ .Values.cortex.image_manager }}
+    image_downloader: {{ .Values.cortex.image_downloader }}
+    image_request_monitor: {{ .Values.cortex.image_request_monitor }}
+    image_cluster_autoscaler: {{ .Values.cortex.image_cluster_autoscaler }}
+    image_metrics_server: {{ .Values.cortex.image_metrics_server }}
+    image_inferentia: {{ .Values.cortex.image_inferentia }}
+    image_neuron_rtd: {{ .Values.cortex.image_neuron_rtd }}
+    image_nvidia: {{ .Values.cortex.image_nvidia }}
+    image_fluent_bit: {{ .Values.cortex.image_fluent_bit }}
+    image_statsd: {{ .Values.cortex.image_statsd }}
+    image_istio_proxy: {{ .Values.cortex.image_istio_proxy }}
+    image_istio_pilot: {{ .Values.cortex.image_istio_pilot }}
+    image_google_pause: {{ .Values.cortex.image_google_pause }}
+---
+{{- else if eq .Values.global.provider "gcp" }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cluster-config
+  namespace: {{ .Release.Namespace }}
+data:
+  cluster.yaml: |
+    bucket: {{ .Values.cortex.bucket }}
+    cluster_name: {{ .Values.cortex.cluster_name }}
+    zone: {{ .Values.cortex.zone }}
+    project: {{ .Values.cortex.project }}
+    provider: {{ .Values.global.provider }}
+    telemetry: {{ .Values.cortex.telemetry | default true }}
+    is_managed: {{ .Values.cortex.is_managed | default false }}
+    namespace: {{ .Release.Namespace }}
+    istio_namespace: {{ .Release.Namespace }}
+    image_operator: {{ .Values.cortex.image_operator }}
+    image_manager: {{ .Values.cortex.image_manager }}
+    image_downloader: {{ .Values.cortex.image_downloader }}
+    image_request_monitor: {{ .Values.cortex.image_request_monitor }}
+    image_cluster_autoscaler: {{ .Values.cortex.image_cluster_autoscaler }}
+    image_fluent_bit: {{ .Values.cortex.image_fluent_bit }}
+    image_istio_proxy: {{ .Values.cortex.image_istio_proxy }}
+    image_istio_pilot: {{ .Values.cortex.image_istio_pilot }}
+    image_google_pause: {{ .Values.cortex.image_google_pause }}
+---
+{{- end }}

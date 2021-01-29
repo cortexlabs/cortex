@@ -26,31 +26,23 @@ import (
 )
 
 func OperatorID() string {
-	switch Provider {
-	case types.AWSProviderType:
-		return Cluster.OperatorID
-	case types.GCPProviderType:
-		return GCPCluster.OperatorID
-	}
-	return ""
+	return OperatorMetadata.OperatorID
 }
 
 func ClusterID() string {
-	switch Provider {
-	case types.AWSProviderType:
-		return Cluster.ClusterID
-	case types.GCPProviderType:
-		return GCPCluster.ClusterID
-	}
-	return ""
+	return OperatorMetadata.ClusterID
 }
 
 func IsOperatorInCluster() bool {
+	return OperatorMetadata.IsOperatorInCluster
+}
+
+func IsManaged() bool {
 	switch Provider {
 	case types.AWSProviderType:
-		return Cluster.IsOperatorInCluster
+		return Cluster.IsManaged
 	case types.GCPProviderType:
-		return GCPCluster.IsOperatorInCluster
+		return GCPCluster.IsManaged
 	}
 	return false
 }

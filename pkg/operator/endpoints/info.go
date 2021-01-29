@@ -42,14 +42,14 @@ func Info(w http.ResponseWriter, r *http.Request) {
 
 		response := schema.InfoResponse{
 			MaskedAWSAccessKeyID: s.MaskString(os.Getenv("AWS_ACCESS_KEY_ID"), 4),
-			ClusterConfig:        *config.Cluster,
+			ClusterConfig:        *config.FullClusterConfig(),
 			NodeInfos:            nodeInfos,
 			NumPendingReplicas:   numPendingReplicas,
 		}
 		respond(w, response)
 	} else {
 		response := schema.InfoGCPResponse{
-			ClusterConfig: *config.GCPCluster,
+			ClusterConfig: *config.GCPFullClusterConfig(),
 		}
 		respond(w, response)
 	}

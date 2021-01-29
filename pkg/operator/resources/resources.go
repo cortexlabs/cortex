@@ -92,12 +92,12 @@ func Deploy(projectBytes []byte, configFileName string, configBytes []byte, forc
 
 	var apiConfigs []userconfig.API
 	if config.Provider == types.AWSProviderType {
-		apiConfigs, err = spec.ExtractAPIConfigs(configBytes, config.Provider, configFileName, config.Cluster, nil)
+		apiConfigs, err = spec.ExtractAPIConfigs(configBytes, config.Provider, configFileName)
 		if err != nil {
 			return nil, err
 		}
 	} else {
-		apiConfigs, err = spec.ExtractAPIConfigs(configBytes, config.Provider, configFileName, nil, &config.GCPCluster.GCPConfig)
+		apiConfigs, err = spec.ExtractAPIConfigs(configBytes, config.Provider, configFileName)
 		if err != nil {
 			return nil, err
 		}
@@ -105,6 +105,7 @@ func Deploy(projectBytes []byte, configFileName string, configBytes []byte, forc
 
 	err = ValidateClusterAPIs(apiConfigs, projectFiles)
 	if err != nil {
+		errors.PrintStacktrace(err)
 		err = errors.Append(err, fmt.Sprintf("\n\napi configuration schema can be found at https://docs.cortex.dev/v/%s/", consts.CortexVersionMinor))
 		return nil, err
 	}
@@ -192,12 +193,12 @@ func Patch(configBytes []byte, configFileName string, force bool) ([]schema.Depl
 	var err error
 
 	if config.Provider == types.AWSProviderType {
-		apiConfigs, err = spec.ExtractAPIConfigs(configBytes, config.Provider, configFileName, config.Cluster, nil)
+		apiConfigs, err = spec.ExtractAPIConfigs(configBytes, config.Provider, configFileName)
 		if err != nil {
 			return nil, err
 		}
 	} else {
-		apiConfigs, err = spec.ExtractAPIConfigs(configBytes, config.Provider, configFileName, nil, &config.GCPCluster.GCPConfig)
+		apiConfigs, err = spec.ExtractAPIConfigs(configBytes, config.Provider, configFileName)
 		if err != nil {
 			return nil, err
 		}

@@ -42,6 +42,7 @@ func IsErrCode(err error, errorCode int, errorMessage *string) bool {
 	if !ok {
 		return false
 	}
+
 	if gcpError.Code != errorCode {
 		return false
 	}
@@ -49,6 +50,11 @@ func IsErrCode(err error, errorCode int, errorMessage *string) bool {
 		return false
 	}
 	return true
+}
+
+func IsBucketDoesNotExist(err error) bool {
+	// This particular error seems to be an errors.errorString and therefore doesn't cast to googleapi.Error
+	return err.Error() == "storage: bucket doesn't exist"
 }
 
 func IsBucketAlreadyExistsError(err error) bool {

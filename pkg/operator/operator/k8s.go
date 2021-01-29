@@ -1066,6 +1066,14 @@ func defaultVolumeMounts() []kcore.VolumeMount {
 	return volumeMounts
 }
 
+func NodeSelectors() map[string]string {
+	nodeSelectors := map[string]string{}
+	if config.IsManaged() {
+		nodeSelectors["workload"] = "true"
+	}
+	return nodeSelectors
+}
+
 var Tolerations = []kcore.Toleration{
 	{
 		Key:      "workload",

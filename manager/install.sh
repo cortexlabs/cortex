@@ -295,7 +295,7 @@ function setup_secrets() {
 }
 
 function setup_secrets_gcp() {
-  kubectl create secret generic 'gcp-credentials' --from-file=$GOOGLE_APPLICATION_CREDENTIALS >/dev/null
+  kubectl create secret generic 'gcp-credentials' --from-file=key.json=$GOOGLE_APPLICATION_CREDENTIALS >/dev/null
 }
 
 function restart_operator() {

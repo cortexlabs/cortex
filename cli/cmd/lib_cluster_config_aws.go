@@ -59,7 +59,7 @@ func existingCachedClusterConfigPaths() []string {
 }
 
 func readCachedClusterConfigFile(clusterConfig *clusterconfig.Config, filePath string) error {
-	errs := cr.ParseYAMLFile(clusterConfig, clusterconfig.Validation, filePath)
+	errs := cr.ParseYAMLFile(clusterConfig, clusterconfig.UserValidation, filePath)
 	if errors.HasError(errs) {
 		return errors.FirstError(errs...)
 	}

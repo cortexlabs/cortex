@@ -40,7 +40,6 @@ import (
 	libtime "github.com/cortexlabs/cortex/pkg/lib/time"
 	"github.com/cortexlabs/cortex/pkg/lib/urls"
 	"github.com/cortexlabs/cortex/pkg/types"
-	"github.com/cortexlabs/cortex/pkg/types/clusterconfig"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	dockertypes "github.com/docker/docker/api/types"
 	kresource "k8s.io/apimachinery/pkg/api/resource"
@@ -53,8 +52,6 @@ const _dockerPullSecretName = "registry-credentials"
 func apiValidation(
 	provider types.ProviderType,
 	resource userconfig.Resource,
-	awsClusterConfig *clusterconfig.InternalConfig2,
-	gcpClusterConfig *clusterconfig.GCPConfig,
 ) *cr.StructValidation {
 	var structFieldValidations []*cr.StructFieldValidation
 
@@ -62,7 +59,7 @@ func apiValidation(
 	case userconfig.RealtimeAPIKind:
 		structFieldValidations = append(resourceStructValidations,
 			predictorValidation(),
-			networkingValidation(resource.Kind, provider, awsClusterConfig, gcpClusterConfig),
+			networkingValidation(resource.Kind, provider),
 			computeValidation(provider),
 			autoscalingValidation(provider),
 			updateStrategyValidation(provider),
@@ -70,19 +67,19 @@ func apiValidation(
 	case userconfig.BatchAPIKind:
 		structFieldValidations = append(resourceStructValidations,
 			predictorValidation(),
-			networkingValidation(resource.Kind, provider, awsClusterConfig, gcpClusterConfig),
+			networkingValidation(resource.Kind, provider),
 			computeValidation(provider),
 		)
 	case userconfig.TaskAPIKind:
 		structFieldValidations = append(resourceStructValidations,
 			taskDefinitionValidation(),
-			networkingValidation(resource.Kind, provider, awsClusterConfig, gcpClusterConfig),
+			networkingValidation(resource.Kind, provider),
 			computeValidation(provider),
 		)
 	case userconfig.TrafficSplitterKind:
 		structFieldValidations = append(resourceStructValidations,
 			multiAPIsValidation(),
-			networkingValidation(resource.Kind, provider, awsClusterConfig, gcpClusterConfig),
+			networkingValidation(resource.Kind, provider),
 		)
 	}
 	return &cr.StructValidation{
@@ -321,8 +318,6 @@ func taskDefinitionValidation() *cr.StructFieldValidation {
 func networkingValidation(
 	kind userconfig.Kind,
 	provider types.ProviderType,
-	awsClusterConfig *clusterconfig.InternalConfig2,
-	gcpClusterConfig *clusterconfig.GCPConfig,
 ) *cr.StructFieldValidation {
 	return &cr.StructFieldValidation{
 		StructField: "Networking",
@@ -717,8 +712,6 @@ func ExtractAPIConfigs(
 	configBytes []byte,
 	provider types.ProviderType,
 	configFileName string,
-	awsClusterConfig *clusterconfig.InternalConfig2,
-	gcpClusterConfig *clusterconfig.GCPConfig,
 ) ([]userconfig.API, error) {
 
 	var err error
@@ -753,7 +746,7 @@ func ExtractAPIConfigs(
 			}
 		}
 
-		errs = cr.Struct(&api, data, apiValidation(provider, resourceStruct, awsClusterConfig, gcpClusterConfig))
+		errs = cr.Struct(&api, data, apiValidation(provider, resourceStruct))
 		if errors.HasError(errs) {
 			name, _ := data[userconfig.NameKey].(string)
 			kindString, _ := data[userconfig.KindKey].(string)
