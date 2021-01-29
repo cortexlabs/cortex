@@ -96,7 +96,7 @@ export CORTEX_OPERATOR_IN_CLUSTER=false
 export CORTEX_CLUSTER_CONFIG_PATH=~/.cortex/cluster-dev.yaml
 export CORTEX_PROMETHEUS_URL="http://localhost:9090"
 
-portForwardCMD="kubectl port-forward -n default svc/prometheus 9090"
+portForwardCMD="kubectl port-forward -n default prometheus-prometheus-0 9090"
 kill $(pgrep -f "${portForwardCMD}") >/dev/null 2>&1 || true
 
 echo "Port-forwarding Prometheus to localhost:9090"
