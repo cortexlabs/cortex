@@ -94,24 +94,24 @@ func Init() error {
 			APIVersion:          consts.CortexVersion,
 			IsOperatorInCluster: strings.ToLower(os.Getenv("CORTEX_OPERATOR_IN_CLUSTER")) != "false",
 		}
-		cluster3 := &clusterconfig.InternalConfig{
+		fullClusterConfig := &clusterconfig.InternalConfig{
 			OperatorMetadata: *OperatorMetadata,
 		}
 
-		errs := cr.ParseYAMLFile(cluster3, clusterconfig.BaseConfigValidations(true), clusterConfigPath)
+		errs := cr.ParseYAMLFile(fullClusterConfig, clusterconfig.BaseConfigValidations(true), clusterConfigPath)
 		if errors.HasError(errs) {
 			return errors.FirstError(errs...)
 		}
 
-		if cluster3.IsManaged {
-			errs := cr.ParseYAMLFile(cluster3, clusterconfig.ManagedConfigValidations(true), clusterConfigPath)
+		if fullClusterConfig.IsManaged {
+			errs := cr.ParseYAMLFile(fullClusterConfig, clusterconfig.ManagedConfigValidations(true), clusterConfigPath)
 			if errors.HasError(errs) {
 				return errors.FirstError(errs...)
 			}
-			cluster3.InstanceMetadata = aws.InstanceMetadatas[*cluster3.Region][*cluster3.InstanceType]
+			fullClusterConfig.InstanceMetadata = aws.InstanceMetadatas[*fullClusterConfig.Region][*fullClusterConfig.InstanceType]
 		}
 
-		AWS, err = aws.NewFromEnv(*cluster3.Region)
+		AWS, err = aws.NewFromEnv(*fullClusterConfig.Region)
 		if err != nil {
 			return err
 		}
@@ -121,15 +121,14 @@ func Init() error {
 			return err
 		}
 
-		cluster3.OperatorID = hashedAccountID
-		cluster3.ClusterID = hash.String(cluster3.ClusterName + *cluster3.Region + hashedAccountID)
-		Cluster = &cluster3.BaseConfig
-		fullClusterConfig = cluster3
-		err = AWS.CreateDashboard(cluster3.ClusterName, consts.DashboardTitle)
+		fullClusterConfig.OperatorID = hashedAccountID
+		fullClusterConfig.ClusterID = hash.String(fullClusterConfig.ClusterName + *fullClusterConfig.Region + hashedAccountID)
+		Cluster = &fullClusterConfig.BaseConfig
+		err = AWS.CreateDashboard(fullClusterConfig.ClusterName, consts.DashboardTitle)
 		if err != nil {
 			return err
 		}
-		exists, err := AWS.DoesBucketExist(cluster3.Bucket)
+		exists, err := AWS.DoesBucketExist(fullClusterConfig.Bucket)
 		if err != nil {
 			return err
 		}
@@ -150,40 +149,40 @@ func Init() error {
 			APIVersion:          consts.CortexVersion,
 			IsOperatorInCluster: strings.ToLower(os.Getenv("CORTEX_OPERATOR_IN_CLUSTER")) != "false",
 		}
-		cluster3 := &clusterconfig.InternalGCPConfig{
+		gcpFullClusterConfig := &clusterconfig.InternalGCPConfig{
 			OperatorMetadata: *OperatorMetadata,
 		}
 
 		bytes, _ := files.ReadFileBytes(clusterConfigPath)
 		debug.Pp(string(bytes))
 
-		errs := cr.ParseYAMLFile(cluster3, clusterconfig.GCPBaseConfigValidations(true), clusterConfigPath)
+		errs := cr.ParseYAMLFile(gcpFullClusterConfig, clusterconfig.GCPBaseConfigValidations(true), clusterConfigPath)
 		if errors.HasError(errs) {
 			return errors.FirstError(errs...)
 		}
 
-		if cluster3.IsManaged {
-			errs := cr.ParseYAMLFile(cluster3, clusterconfig.GCPManagedConfigValidations(true), clusterConfigPath)
+		if gcpFullClusterConfig.IsManaged {
+			errs := cr.ParseYAMLFile(gcpFullClusterConfig, clusterconfig.GCPManagedConfigValidations(true), clusterConfigPath)
 			if errors.HasError(errs) {
 				return errors.FirstError(errs...)
 			}
 		}
 
 		fmt.Println("before NewFromEnvCheckProjectID")
-		GCP, err = gcp.NewFromEnvCheckProjectID(*cluster3.Project)
+		GCP, err = gcp.NewFromEnvCheckProjectID(*gcpFullClusterConfig.Project)
 		if err != nil {
 			return err
 		}
 
-		cluster3.OperatorID = GCP.HashedProjectID
-		cluster3.ClusterID = hash.String(cluster3.ClusterName + *cluster3.Project + *cluster3.Zone)
+		gcpFullClusterConfig.OperatorID = GCP.HashedProjectID
+		gcpFullClusterConfig.ClusterID = hash.String(gcpFullClusterConfig.ClusterName + *gcpFullClusterConfig.Project + *gcpFullClusterConfig.Zone)
 
-		debug.Pp(cluster3)
+		debug.Pp(gcpFullClusterConfig)
 
-		if cluster3.Bucket == "" {
+		if gcpFullClusterConfig.Bucket == "" {
 			fmt.Println("before CreateBucket")
-			cluster3.Bucket = clusterconfig.GCPBucketName(cluster3.ClusterName, *cluster3.Project, *cluster3.Zone)
-			err := GCP.CreateBucket(cluster3.Bucket, gcp.ZoneToRegion(*cluster3.Zone), true)
+			gcpFullClusterConfig.Bucket = clusterconfig.GCPBucketName(gcpFullClusterConfig.ClusterName, *gcpFullClusterConfig.Project, *gcpFullClusterConfig.Zone)
+			err := GCP.CreateBucket(gcpFullClusterConfig.Bucket, gcp.ZoneToRegion(*gcpFullClusterConfig.Zone), true)
 			if err != nil {
 				return err
 			}
@@ -191,16 +190,15 @@ func Init() error {
 
 		// If the bucket is specified double check that it exists and the operator has access to it
 		fmt.Println("")
-		exists, err := GCP.DoesBucketExist(cluster3.Bucket, gcp.ZoneToRegion(*cluster3.Zone))
+		exists, err := GCP.DoesBucketExist(gcpFullClusterConfig.Bucket, gcp.ZoneToRegion(*gcpFullClusterConfig.Zone))
 		if err != nil {
 			return err
 		}
 		if !exists {
-			return errors.ErrorUnexpected("the specified bucket either does not exist", cluster3.Bucket)
+			return errors.ErrorUnexpected("the specified bucket either does not exist", gcpFullClusterConfig.Bucket)
 		}
 
-		gcpFullClusterConfig = cluster3
-		GCPCluster = &cluster3.GCPBaseConfig
+		GCPCluster = &gcpFullClusterConfig.GCPBaseConfig
 		clusterNamespace = GCPCluster.Namespace
 		istioNamespace = GCPCluster.IstioNamespace
 	} else {

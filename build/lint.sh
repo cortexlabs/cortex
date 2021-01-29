@@ -75,6 +75,7 @@ output=$(cd "$ROOT" && find . -type f \
 ! -path "**/.history/*" \
 ! -path "**/__pycache__/*" \
 ! -path "./test/*" \
+! -path "./helm/*" \
 ! -path "./dev/config/*" \
 ! -path "./bin/*" \
 ! -path "./.circleci/*" \
