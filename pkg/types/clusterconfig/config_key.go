@@ -73,6 +73,7 @@ const (
 	ImagePrometheusOperatorKey             = "image_prometheus_operator"
 	ImagePrometheusStatsDExporterKey       = "image_prometheus_statsd_exporter"
 	ImagePrometheusToCloudwatchKey         = "image_prometheus_to_cloudwatch"
+	ImagePrometheusStackdriverSidecarKey   = "image_prometheus_stackdriver_sidecar"
 
 	// User facing string
 	ProviderUserKey                            = "provider"
@@ -130,4 +131,5 @@ const (
 	ImagePrometheusOperatorUserKey             = "prometheus operator image"
 	ImagePrometheusStatsDExporterUserKey       = "prometheus statsd exporter image"
 	ImagePrometheusToCloudwatchUserKey         = "prometheus to cloudwatch image"
+	ImagePrometheusStackdriverSidecarUserKey   = "prometheus stackdriver sidecar image"
 )

@@ -220,6 +220,7 @@ image_prometheus: gcr.io/<project_id>/cortexlabs/prometheus:latest
 image_prometheus_config_reloader: gcr.io/<project_id>/cortexlabs/prometheus-config-reloader:latest
 image_prometheus_operator: gcr.io/<project_id>/cortexlabs/prometheus-operator:latest
 image_prometheus_statsd_exporter: gcr.io/<project_id>/cortexlabs/prometheus-statsd-exporter:latest
+image_prometheus_stackdriver_sidecar: gcr.io/<project_id>/cortexlabs/prometheus-stackdriver-sidecar:latest
 ```
 
 ### Building

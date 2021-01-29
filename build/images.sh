@@ -86,6 +86,7 @@ non_dev_images_aws=(
 non_dev_images_gcp=(
   # includes non_dev_images_cluster
   "google-pause"
+  "prometheus-stackdriver-sidecar"
 )
 
 all_images=(
