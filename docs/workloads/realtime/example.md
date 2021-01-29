@@ -1,6 +1,6 @@
 # RealtimeAPI
 
-Deploy realtime APIs that can respond to prediction requests on demand.
+Create APIs that can respond to prediction requests in real-time.
 
 ## Install Cortex
 

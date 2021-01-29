@@ -1,29 +1,15 @@
 # TaskAPI
 
-Deploy a task API that trains a model on the iris flower dataset and uploads it to an S3 bucket.
+Create APIs that can perform arbitrary tasks like training or fine-tuning a model.
 
-## How it works
-
-## Install cortex
-
-```bash
-$ pip install cortex
-```
-
-## Spin up a cluster on AWS
-
-```bash
-$ cortex cluster up
-```
-
-## Define a task API
+## Implement
 
 ```python
-# task.py
+# train_iris.py
 
 import cortex
 
-def train_iris_model(config):
+def train_iris(config):
     import os
 
     import boto3, pickle
@@ -34,7 +20,7 @@ def train_iris_model(config):
     s3_filepath = config["dest_s3_dir"]
     bucket, key = s3_filepath.replace("s3://", "").split("/", 1)
 
-    # get iris flower dataset
+    # get the dataset
     iris = load_iris()
     data, labels = iris.data, iris.target
     training_data, test_data, training_labels, test_labels = train_test_split(data, labels)
@@ -49,28 +35,34 @@ def train_iris_model(config):
     pickle.dump(model, open("model.pkl", "wb"))
     s3 = boto3.client("s3")
     s3.upload_file("model.pkl", bucket, os.path.join(key, "model.pkl"))
-
-requirements = ["scikit-learn==0.23.2", "boto3"]
-
-api_spec = {
-    "name": "trainer",
-    "kind": "TaskAPI",
-}
-
-cx = cortex.client("aws")
-cx.create_api(api_spec, task=train_iris_model, requirements=requirements)
 ```
 
-## Deploy to your Cortex cluster on AWS
+```python
+# requirements.txt
+
+boto3
+scikit-learn==0.23.2
+```
+
+```yaml
+# train_iris.yaml
+
+- name: train_iris
+  kind: TaskAPI
+  definition:
+    path: train_iris.py
+```
+
+## Deploy
 
 ```bash
 $ python task.py
 ```
 
-## Describe the task API
+## Describe
 
 ```bash
-$ cortex get trainer
+$ cortex get train_iris
 ```
 
 ## Submit a job
@@ -89,7 +81,6 @@ job_spec = {
     }
 }
 response = requests.post(task_endpoint, json=job_spec)
-
 print(response.text)
 # > {"job_id":"69b183ed6bdf3e9b","api_name":"trainer", "config": {"dest_s3_dir": ...}}
 ```
@@ -102,10 +93,10 @@ $ cortex get trainer 69b183ed6bdf3e9b
 
 ## View the results
 
-Once the job is complete, you should be able to find the trained model of the task job in the S3 directory you've specified.
+Once the job is complete, you should be able to find the trained model in the directory you've specified.
 
-## Delete the Task API
+## Delete
 
 ```bash
-$ cortex delete trainer
+$ cortex delete train_iris
 ```

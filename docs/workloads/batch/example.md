@@ -1,25 +1,16 @@
 # BatchAPI
 
-Deploy batch APIs that can orchestrate distributed batch inference jobs on large datasets.
+Create APIs that can orchestrate distributed batch inference jobs on large datasets.
 
-## Install Cortex
-
-```bash
-$ pip install cortex
-```
-
-## Spin up a cluster on AWS
+## Implement
 
 ```bash
-$ cortex cluster up
+$ mkdir image-classifier && cd image-classifier
+$ touch predictor.py requirements.txt image_classifier.yaml
 ```
-
-## Define a batch API
 
 ```python
-# batch.py
-
-import cortex
+# predictor.py
 
 class PythonPredictor:
     def __init__(self, config, job_spec):
@@ -60,30 +51,37 @@ class PythonPredictor:
 
         results = [{"url": payload[i], "class": self.labels[class_idx]} for i, class_idx in enumerate(indices)]
         self.s3.put_object(Bucket=self.bucket, Key=f"{self.key}/{batch_id}.json", Body=json.dumps(results))
-
-requirements = ["torch", "boto3", "pillow", "torchvision", "requests"]
-
-api_spec = {
-    "name": "image-classifier",
-    "kind": "BatchAPI",
-    "predictor": {
-        "config": {
-            "labels": "https://storage.googleapis.com/download.tensorflow.org/data/ImageNetLabels.txt"
-        }
-    }
-}
-
-cx = cortex.client("aws")
-cx.create_api(api_spec, predictor=PythonPredictor, requirements=requirements)
 ```
 
-## Deploy to your Cortex cluster on AWS
+```python
+# requirements.txt
+
+torch
+boto3
+pillow
+torchvision
+requests
+```
+
+```yaml
+# image_classifier.yaml
+
+- name: image-classifier
+  kind: BatchAPI
+  predictor:
+    type: python
+    path: predictor.py
+    config:
+      labels: "https://storage.googleapis.com/download.tensorflow.org/data/ImageNetLabels.txt"
+```
+
+## Deploy
 
 ```bash
-$ python batch.py
+$ cortex deploy image_classifier.yaml
 ```
 
-## Describe the Batch API
+## Describe
 
 ```bash
 $ cortex get image-classifier
@@ -106,7 +104,6 @@ job_spec = {
         "items": [
             "https://i.imgur.com/PzXprwl.jpg",
             "https://i.imgur.com/E4cOSLw.jpg",
-            "https://user-images.githubusercontent.com/4365343/96516272-d40aa980-1234-11eb-949d-8e7e739b8345.jpg",
             "https://i.imgur.com/jDimNTZ.jpg",
             "https://i.imgur.com/WqeovVj.jpg"
         ],
@@ -118,7 +115,6 @@ job_spec = {
 }
 
 response = requests.post(batch_endpoint, json=job_spec)
-
 print(response.text)
 # > {"job_id":"69b183ed6bdf3e9b","api_name":"image-classifier", "config": {"dest_s3_dir": ...}}
 ```
@@ -129,7 +125,7 @@ print(response.text)
 $ cortex get image-classifier 69b183ed6bdf3e9b
 ```
 
-## Stream job logs
+## Stream logs
 
 ```bash
 $ cortex logs image-classifier 69b183ed6bdf3e9b
@@ -137,9 +133,9 @@ $ cortex logs image-classifier 69b183ed6bdf3e9b
 
 ## View the results
 
-Once the job is complete, you should be able to find the results of the batch job in the S3 directory you've specified.
+Once the job is complete, you should be able to find the results in the directory you've specified.
 
-## Delete the Batch API
+## Delete
 
 ```bash
 $ cortex delete image-classifier
