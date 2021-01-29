@@ -153,7 +153,7 @@ export AWS_ACCESS_KEY_ID="***"
 export AWS_SECRET_ACCESS_KEY="***"
 
 export GCP_PROJECT_ID="***"
-export GOOGLE_APPLICATION_CREDENTIALS="***"
+export GOOGLE_APPLICATION_CREDENTIALS="***"  # the service account must have the following IAM roles: Kubernetes Engine Cluster Admin, Storage Admin, Storage Object Admin
 export GCR_HOST="gcr.io"  # must be "gcr.io", "us.gcr.io", "eu.gcr.io", or "asia.gcr.io"
 
 # export NUM_BUILD_PROCS=2  # optional; can be >2 if you have enough memory
