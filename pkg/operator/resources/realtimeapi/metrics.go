@@ -31,8 +31,8 @@ import (
 )
 
 const (
-	_metricsWindowHours    = 24
-	_metricsRequestTimeout = 10 // seconds
+	_metricsWindowHours    = 336 // 2 weeks
+	_metricsRequestTimeout = 10  // seconds
 	_defaultSvcDomain      = "default.svc.cluster.local"
 )
 

@@ -934,7 +934,7 @@ func RequestMonitorContainer(api *spec.API) kcore.Container {
 		Name:            _requestMonitorContainerName,
 		Image:           config.Cluster.ImageRequestMonitor,
 		ImagePullPolicy: kcore.PullAlways,
-		Args:            []string{"-p", DefaultRequestMonitorPortStr, api.Name},
+		Args:            []string{"-p", DefaultRequestMonitorPortStr},
 		Ports: []kcore.ContainerPort{
 			{Name: "metrics", ContainerPort: DefaultRequestMonitorPortInt32},
 		},

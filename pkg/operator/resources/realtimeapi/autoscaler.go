@@ -35,7 +35,6 @@ import (
 )
 
 const (
-	_inFlightRequestsPrometheusKey = "cortex_in_flight_requests"
 	_prometheusQueryTimeoutSeconds = 10
 )
 
@@ -235,15 +234,15 @@ func autoscaleFn(initialDeployment *kapps.Deployment, apiSpec *spec.API) (func()
 }
 
 func getInflightRequests(apiName string, window time.Duration) (*float64, error) {
-	windowSeconds := int64(window.Truncate(time.Second).Seconds())
+	windowSeconds := int64(window.Seconds())
 
 	// PromQL query:
 	// 	sum(sum_over_time(cortex_in_flight_requests{api_name="<apiName>"}[60s])) /
 	//	sum(count_over_time(cortex_in_flight_requests{api_name="<apiName>"}[60s]))
 	query := fmt.Sprintf(
-		"sum(sum_over_time(%s{api_name=\"%s\"}[%ds])) / avg(count_over_time(%s{api_name=\"%s\"}[%ds]))",
-		_inFlightRequestsPrometheusKey, apiName, windowSeconds,
-		_inFlightRequestsPrometheusKey, apiName, windowSeconds,
+		"sum(sum_over_time(cortex_in_flight_requests{api_name=\"%s\"}[%ds])) / max(count_over_time(%s{api_name=\"%s\"}[%ds]))",
+		apiName, windowSeconds,
+		apiName, windowSeconds,
 	)
 
 	ctx, cancel := context.WithTimeout(context.Background(), _prometheusQueryTimeoutSeconds*time.Second)
