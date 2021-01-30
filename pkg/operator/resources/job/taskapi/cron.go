@@ -211,6 +211,10 @@ func checkIfJobCompleted(jobKey spec.JobKey, k8sJob *kbatch.Job) error {
 			)
 		}
 	}
+
+	if k8sJob == nil {
+		return nil
+	}
 	if int(k8sJob.Status.Failed) == 1 {
 		return errors.FirstError(
 			job.SetWorkerErrorStatus(jobKey),
