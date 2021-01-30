@@ -37,7 +37,7 @@
   * [Configuration](workloads/batch/configuration.md)
   * [Jobs](workloads/batch/jobs.md)
   * [Statuses](workloads/batch/statuses.md)
-* Tasks
+* Task APIs
   * [Example](workloads/task/example.md)
   * [Definition](workloads/task/definitions.md)
   * [Configuration](workloads/task/configuration.md)

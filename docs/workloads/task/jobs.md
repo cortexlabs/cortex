@@ -62,7 +62,7 @@ RESPONSE:
 }
 ```
 
-## Stop a Job
+## Stop a job
 
 ```bash
 $ cortex delete <task_api_name> <job_id>

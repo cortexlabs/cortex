@@ -213,7 +213,7 @@ RESPONSE:
 }
 ```
 
-## Stop a Job
+## Stop a job
 
 ```bash
 $ cortex delete <batch_api_name> <job_id>
