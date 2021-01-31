@@ -290,11 +290,9 @@ var _clusterUpCmd = &cobra.Command{
 		}
 
 		newEnvironment := cliconfig.Environment{
-			Name:               _flagClusterUpEnv,
-			Provider:           types.AWSProviderType,
-			OperatorEndpoint:   pointer.String("https://" + *loadBalancer.DNSName),
-			AWSAccessKeyID:     pointer.String(awsCreds.ClusterAWSAccessKeyID),
-			AWSSecretAccessKey: pointer.String(awsCreds.ClusterAWSSecretAccessKey),
+			Name:             _flagClusterUpEnv,
+			Provider:         types.AWSProviderType,
+			OperatorEndpoint: "http://" + *loadBalancer.DNSName,
 		}
 
 		err = addEnvToCLIConfig(newEnvironment, true)
@@ -378,7 +376,7 @@ var _clusterConfigureCmd = &cobra.Command{
 			if err != nil {
 				exit.Error(errors.Append(err, fmt.Sprintf("\n\nyou can attempt to resolve this issue and configure your cli environment by running `cortex cluster info --configure-env %s`", _flagClusterConfigureEnv)))
 			}
-			operatorEndpoint := "https://" + *loadBalancer.DNSName
+			operatorEndpoint := "http://" + *loadBalancer.DNSName
 			err = updateAWSCLIEnv(_flagClusterConfigureEnv, operatorEndpoint, awsCreds, _flagClusterDisallowPrompt)
 			if err != nil {
 				exit.Error(errors.Append(err, fmt.Sprintf("\n\nyou can attempt to resolve this issue and configure your cli environment by running `cortex cluster info --configure-env %s`", _flagClusterConfigureEnv)))
@@ -592,11 +590,9 @@ var _clusterExportCmd = &cobra.Command{
 		}
 
 		operatorConfig := cluster.OperatorConfig{
-			Telemetry:          isTelemetryEnabled(),
-			ClientID:           clientID(),
-			AWSAccessKeyID:     awsCreds.AWSAccessKeyID,
-			AWSSecretAccessKey: awsCreds.AWSSecretAccessKey,
-			OperatorEndpoint:   "https://" + *loadBalancer.DNSName,
+			Telemetry:        isTelemetryEnabled(),
+			ClientID:         clientID(),
+			OperatorEndpoint: "http://" + *loadBalancer.DNSName,
 		}
 
 		info, err := cluster.Info(operatorConfig)
@@ -700,7 +696,7 @@ func cmdInfo(awsCreds AWSCredentials, accessConfig *clusterconfig.AccessConfig, 
 	for _, line := range strings.Split(out, "\n") {
 		// before modifying this, search for this prefix
 		if strings.HasPrefix(line, "operator: ") {
-			operatorEndpoint = "https://" + strings.TrimSpace(strings.TrimPrefix(line, "operator: "))
+			operatorEndpoint = "http://" + strings.TrimSpace(strings.TrimPrefix(line, "operator: "))
 			break
 		}
 	}
@@ -740,11 +736,9 @@ func printInfoOperatorResponse(clusterConfig clusterconfig.Config, operatorEndpo
 	fmt.Print("fetching cluster status ...\n\n")
 
 	operatorConfig := cluster.OperatorConfig{
-		Telemetry:          isTelemetryEnabled(),
-		ClientID:           clientID(),
-		OperatorEndpoint:   operatorEndpoint,
-		AWSAccessKeyID:     awsCreds.AWSAccessKeyID,
-		AWSSecretAccessKey: awsCreds.AWSSecretAccessKey,
+		Telemetry:        isTelemetryEnabled(),
+		ClientID:         clientID(),
+		OperatorEndpoint: operatorEndpoint,
 	}
 
 	infoResponse, err := cluster.Info(operatorConfig)
@@ -888,11 +882,9 @@ func updateAWSCLIEnv(envName string, operatorEndpoint string, awsCreds AWSCreden
 	}
 
 	newEnvironment := cliconfig.Environment{
-		Name:               envName,
-		Provider:           types.AWSProviderType,
-		OperatorEndpoint:   pointer.String(operatorEndpoint),
-		AWSAccessKeyID:     pointer.String(awsCreds.AWSAccessKeyID),
-		AWSSecretAccessKey: pointer.String(awsCreds.AWSSecretAccessKey),
+		Name:             envName,
+		Provider:         types.AWSProviderType,
+		OperatorEndpoint: operatorEndpoint,
 	}
 
 	shouldWriteEnv := false
@@ -900,7 +892,7 @@ func updateAWSCLIEnv(envName string, operatorEndpoint string, awsCreds AWSCreden
 	if prevEnv == nil {
 		shouldWriteEnv = true
 		fmt.Println()
-	} else if *prevEnv.OperatorEndpoint != operatorEndpoint || !awsCreds.ContainsCreds(*prevEnv.AWSAccessKeyID, *prevEnv.AWSSecretAccessKey) {
+	} else if prevEnv.OperatorEndpoint != operatorEndpoint {
 		envWasUpdated = true
 		if disallowPrompt {
 			shouldWriteEnv = true

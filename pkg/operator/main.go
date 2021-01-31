@@ -107,7 +107,6 @@ func main() {
 	routerWithAuth.Use(endpoints.PanicMiddleware)
 	routerWithAuth.Use(endpoints.ClientIDMiddleware)
 	routerWithAuth.Use(endpoints.APIVersionCheckMiddleware)
-	routerWithAuth.Use(endpoints.AuthMiddleware)
 
 	routerWithAuth.HandleFunc("/info", endpoints.Info).Methods("GET")
 	routerWithAuth.HandleFunc("/deploy", endpoints.Deploy).Methods("POST")

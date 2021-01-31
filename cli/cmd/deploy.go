@@ -35,7 +35,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/table"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
-	"github.com/cortexlabs/cortex/pkg/types"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	"github.com/spf13/cobra"
 )
@@ -88,13 +87,13 @@ var _deployCmd = &cobra.Command{
 
 		projectRoot := files.Dir(configPath)
 		if projectRoot == _homeDir {
-			exit.Error(ErrorDeployFromTopLevelDir("home", env.Provider))
+			exit.Error(ErrorDeployFromTopLevelDir("home"))
 		}
 		if projectRoot == "/" {
-			exit.Error(ErrorDeployFromTopLevelDir("root", env.Provider))
+			exit.Error(ErrorDeployFromTopLevelDir("root"))
 		}
 
-		deploymentBytes, err := getDeploymentBytes(env.Provider, configPath)
+		deploymentBytes, err := getDeploymentBytes(configPath)
 		if err != nil {
 			exit.Error(err)
 		}
@@ -153,7 +152,7 @@ func getConfigPath(args []string) string {
 	return files.RelToAbsPath(configPath, _cwd)
 }
 
-func findProjectFiles(provider types.ProviderType, configPath string) ([]string, error) {
+func findProjectFiles(configPath string) ([]string, error) {
 	projectRoot := files.Dir(configPath)
 
 	ignoreFns := []files.IgnoreFn{
@@ -196,7 +195,7 @@ func findProjectFiles(provider types.ProviderType, configPath string) ([]string,
 	return projectPaths, nil
 }
 
-func getDeploymentBytes(provider types.ProviderType, configPath string) (map[string][]byte, error) {
+func getDeploymentBytes(configPath string) (map[string][]byte, error) {
 	configBytes, err := files.ReadFileBytes(configPath)
 	if err != nil {
 		return nil, err
@@ -208,7 +207,7 @@ func getDeploymentBytes(provider types.ProviderType, configPath string) (map[str
 
 	projectRoot := files.Dir(configPath)
 
-	projectPaths, err := findProjectFiles(provider, configPath)
+	projectPaths, err := findProjectFiles(configPath)
 	if err != nil {
 		return nil, err
 	}

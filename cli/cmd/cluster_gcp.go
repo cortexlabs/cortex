@@ -25,12 +25,12 @@ import (
 	"github.com/cortexlabs/cortex/cli/cluster"
 	"github.com/cortexlabs/cortex/cli/types/cliconfig"
 	"github.com/cortexlabs/cortex/pkg/lib/console"
+	"github.com/cortexlabs/cortex/pkg/lib/debug"
 	"github.com/cortexlabs/cortex/pkg/lib/docker"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/exit"
 	"github.com/cortexlabs/cortex/pkg/lib/gcp"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
-	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/prompt"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
@@ -176,7 +176,7 @@ var _clusterGCPUpCmd = &cobra.Command{
 		newEnvironment := cliconfig.Environment{
 			Name:             _flagClusterGCPUpEnv,
 			Provider:         types.GCPProviderType,
-			OperatorEndpoint: &operatorLoadBalancerIP,
+			OperatorEndpoint: operatorLoadBalancerIP,
 		}
 
 		err = addEnvToCLIConfig(newEnvironment, true)
@@ -328,7 +328,7 @@ func cmdInfoGCP(accessConfig *clusterconfig.GCPAccessConfig, disallowPrompt bool
 	for _, line := range strings.Split(out, "\n") {
 		// before modifying this, search for this prefix
 		if strings.HasPrefix(line, "operator: ") {
-			operatorEndpoint = "https://" + strings.TrimSpace(strings.TrimPrefix(line, "operator: "))
+			operatorEndpoint = "http://" + strings.TrimSpace(strings.TrimPrefix(line, "operator: "))
 			break
 		}
 	}
@@ -396,7 +396,7 @@ func updateGCPCLIEnv(envName string, operatorEndpoint string, disallowPrompt boo
 	newEnvironment := cliconfig.Environment{
 		Name:             envName,
 		Provider:         types.GCPProviderType,
-		OperatorEndpoint: pointer.String(operatorEndpoint),
+		OperatorEndpoint: operatorEndpoint,
 	}
 
 	shouldWriteEnv := false
@@ -404,7 +404,7 @@ func updateGCPCLIEnv(envName string, operatorEndpoint string, disallowPrompt boo
 	if prevEnv == nil {
 		shouldWriteEnv = true
 		fmt.Println()
-	} else if *prevEnv.OperatorEndpoint != operatorEndpoint {
+	} else if prevEnv.OperatorEndpoint != operatorEndpoint {
 		envWasUpdated = true
 		if disallowPrompt {
 			shouldWriteEnv = true
@@ -594,6 +594,8 @@ func getGCPOperatorLoadBalancerIP(clusterName string, gcpClient *gcp.Client) (st
 	if service.Status.LoadBalancer.Ingress[0].IP == "" {
 		return "", errors.ErrorUnexpected("operator's endpoint is missing")
 	}
+
+	debug.Pp(service.Status.LoadBalancer.Ingress[0])
 
 	return service.Status.LoadBalancer.Ingress[0].IP, nil
 }

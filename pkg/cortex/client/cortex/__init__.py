@@ -40,29 +40,21 @@ def client(env: str) -> Client:
             break
 
     if not found:
-        raise NotFound(
-            f"can't find environment {env}, create one by calling `cortex.cluster_client()`"
-        )
+        raise NotFound(f"can't find environment {env}, create one by calling `cortex.new_client()`")
 
     return Client(environment)
 
 
-def cluster_client(
+def new_client(
     name: str,
-    provider: str,
     operator_endpoint: str,
-    aws_access_key_id: Optional[str] = None,
-    aws_secret_access_key: Optional[str] = None,
 ) -> Client:
     """
     Create a new environment to connect to an existing Cortex Cluster, and initialize a client to deploy and manage APIs on that cluster.
 
     Args:
         name: Name of the environment to create.
-        provider: The provider of your Cortex cluster. Can be "aws" or "gcp".
         operator_endpoint: The endpoint for the operator of your Cortex Cluster. You can get this endpoint by running the CLI command `cortex cluster info` for an AWS provider or `cortex cluster-gcp info` for a GCP provider.
-        aws_access_key_id: AWS access key ID. Required when `provider` is set to "aws".
-        aws_secret_access_key: AWS secret access key. Required when `provider` is set to "aws".
 
     Returns:
         Cortex client that can be used to deploy and manage APIs on a Cortex Cluster.
@@ -71,18 +63,10 @@ def cluster_client(
         "env",
         "configure",
         name,
-        "--provider",
-        provider,
         "--operator-endpoint",
         operator_endpoint,
     ]
-    if provider == "aws":
-        cli_args += [
-            "--aws-access-key-id",
-            aws_access_key_id,
-            "--aws-secret-access-key",
-            aws_secret_access_key,
-        ]
+
     run_cli(cli_args, hide_output=True)
 
     return client(name)
