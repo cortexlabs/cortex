@@ -61,16 +61,16 @@ function build_python {
   popd
 }
 
-function upload_helm {
+function upload_manifests {
   set -euo pipefail
 
-  echo -e "\nZipping helm chart"
-  tar -cvzf helm.tar.gz helm/ 
+  echo -e "\nCompressing manifests"
+  tar -cvzf manifests.tar.gz manifests/ 
 
-  echo "Uploading zipped helm chart to s3://$CLI_BUCKET_NAME/$CORTEX_VERSION/helm/cortex-$CORTEX_VERSION.tar.gz"
-  aws s3 cp helm.tar.gz s3://$CLI_BUCKET_NAME/$CORTEX_VERSION/helm/cortex-$CORTEX_VERSION.tar.gz --only-show-errors
+  echo "Uploading compressed manifests to s3://$CLI_BUCKET_NAME/$CORTEX_VERSION/manifests/cortex-$CORTEX_VERSION.tar.gz"
+  aws s3 cp helm.tar.gz s3://$CLI_BUCKET_NAME/$CORTEX_VERSION/manifests/cortex-$CORTEX_VERSION.tar.gz --only-show-errors
 
-  rm -rf helm.tar.gz
+  rm -rf manifests.tar.gz
 }
 
 build_and_upload darwin

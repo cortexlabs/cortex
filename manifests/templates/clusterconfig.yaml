@@ -1,3 +1,7 @@
+{{- if not (mustHas .Values.global.provider (list "aws" "gcp")) }}
+{{ fail "the field `global: provider` is required, valid values are [aws, gcp] " }}
+{{- end }}
+
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -14,9 +18,9 @@ data:
   CORTEX_GCP_ZONE: {{ .Values.cortex.zone  }}
   GOOGLE_APPLICATION_CREDENTIALS: /var/secrets/google/key.json
   {{- end}}
-  CORTEX_TELEMETRY_DISABLE: "{{ not ( .Values.cortex.telemetry | default false ) }}"
+  CORTEX_TELEMETRY_DISABLE: "{{ not ( .Values.cortex.telemetry | default true ) }}"
   CORTEX_TELEMETRY_SENTRY_DSN: {{ .Values.cortex.telemetry_sentry_dsn | default "https://5cea3d2d67194d028f7191fcc6ebca14@sentry.io/1825326"}}
-  CORTEX_TELEMETRY_SEGMENT_WRITE_KEY: {{ .Values.cortex.segment_write_key | default "BNhXifMk9EyhPICF2zAFpWYPCf4CRpV1" }}
+  CORTEX_TELEMETRY_SEGMENT_WRITE_KEY: {{ .Values.cortex.telemetry_segment_write_key | default "BNhXifMk9EyhPICF2zAFpWYPCf4CRpV1" }}
   CORTEX_DEV_DEFAULT_PREDICTOR_IMAGE_REGISTRY: {{ .Values.cortex.default_predictor_image_registry | default "quay.io/cortexlabs" }}
 ---
 {{- if eq .Values.global.provider "aws" }}
@@ -27,9 +31,9 @@ metadata:
   namespace: {{ .Release.Namespace }}
 data:
   cluster.yaml: |
-    bucket: {{ .Values.cortex.bucket }}
-    cluster_name: {{ .Values.cortex.cluster_name }}
-    region: {{ .Values.cortex.region }}
+    bucket: {{ required "`cortex: bucket` is a required field" .Values.cortex.bucket }}
+    cluster_name: {{ required "`cortex: cluster_name` is a required field" .Values.cortex.cluster_name }}
+    region: {{ required "`cortex: region` is a required field" .Values.cortex.region }}
     provider: {{ .Values.global.provider }}
     telemetry: {{ .Values.cortex.telemetry | default true }}
     is_managed: {{ .Values.cortex.is_managed | default false }}
@@ -58,10 +62,10 @@ metadata:
   namespace: {{ .Release.Namespace }}
 data:
   cluster.yaml: |
-    bucket: {{ .Values.cortex.bucket }}
-    cluster_name: {{ .Values.cortex.cluster_name }}
-    zone: {{ .Values.cortex.zone }}
-    project: {{ .Values.cortex.project }}
+    bucket: {{ required "`cortex: bucket` is a required field" .Values.cortex.bucket }}
+    cluster_name: {{ required "`cortex: cluster_name` is a required field" .Values.cortex.cluster_name }}
+    zone: {{ required "`cortex: zone` is a required field" .Values.cortex.zone }}
+    project: {{ required "`cortex: project` is a required field" .Values.cortex.project }}
     provider: {{ .Values.global.provider }}
     telemetry: {{ .Values.cortex.telemetry | default true }}
     is_managed: {{ .Values.cortex.is_managed | default false }}

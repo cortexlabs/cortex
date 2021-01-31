@@ -1,7 +1,14 @@
 cortex:
-  cluster_name: testing
-  region: us-west-2
-  bucket: cortex-vishal
+  # Please provide the following required fields for a cortex installation on AWS
+  # cluster_name:
+  # region:
+  # bucket:
+
+  # Please provide the following required fields for a cortex installation on GCP
+  # cluster_name:
+  # zone:
+  # bucket:
+  # project:
 
   # CORTEX_VERSION
   image_operator: quay.io/cortexlabs/operator:master
@@ -29,7 +36,7 @@ networking:
       image: istio-pilot
 
 global:
-  provider: aws
+  # provider: aws
 
   # Default hub for Istio images.
   # Releases are published to docker hub under 'istio' project.
