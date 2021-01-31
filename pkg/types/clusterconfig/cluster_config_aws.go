@@ -595,8 +595,8 @@ func (cc *Config) SQSNamePrefix() string {
 }
 
 // returns hash of cluster name and adds trailing "-"
-func (cc *BaseConfig) SQSNamePrefix() string {
-	return SQSNamePrefix(cc.ClusterName)
+func (bc *BaseConfig) SQSNamePrefix() string {
+	return SQSNamePrefix(bc.ClusterName)
 }
 
 // this validates the user-provided cluster config

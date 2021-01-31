@@ -2,7 +2,7 @@
 
 * [cortex](#cortex)
   * [client](#client)
-  * [cluster\_client](#cluster_client)
+  * [new\_client](#new_client)
   * [env\_list](#env_list)
   * [env\_delete](#env_delete)
 * [cortex.client.Client](#cortex-client-client)
@@ -36,10 +36,10 @@ Initialize a client based on the specified environment.
 
   Cortex client that can be used to deploy and manage APIs in the specified environment.
 
-## cluster\_client
+## new\_client
 
 ```python
-cluster_client(name: str, provider: str, operator_endpoint: str, aws_access_key_id: Optional[str] = None, aws_secret_access_key: Optional[str] = None) -> Client
+new_client(name: str, operator_endpoint: str) -> Client
 ```
 
 Create a new environment to connect to an existing Cortex Cluster, and initialize a client to deploy and manage APIs on that cluster.
@@ -47,10 +47,7 @@ Create a new environment to connect to an existing Cortex Cluster, and initializ
 **Arguments**:
 
 - `name` - Name of the environment to create.
-- `provider` - The provider of your Cortex cluster. Can be "aws" or "gcp".
 - `operator_endpoint` - The endpoint for the operator of your Cortex Cluster. You can get this endpoint by running the CLI command `cortex cluster info` for an AWS provider or `cortex cluster-gcp info` for a GCP provider.
-- `aws_access_key_id` - AWS access key ID. Required when `provider` is set to "aws".
-- `aws_secret_access_key` - AWS secret access key. Required when `provider` is set to "aws".
 
 
 **Returns**:
@@ -92,7 +89,7 @@ Deploy an API.
 **Arguments**:
 
 - `api_spec` - A dictionary defining a single Cortex API. See https://docs.cortex.dev/v/master/ for schema.
-- `predictor` - A Cortex Predictor class implementation. Not required when deploying a traffic splitter.
+- `predictor` - A Cortex Predictor class implementation. Not required for TaskAPI/TrafficSplitter kinds.
 - `task` - A callable class/function implementation. Not required for RealtimeAPI/BatchAPI/TrafficSplitter kinds.
 - `requirements` - A list of PyPI dependencies that will be installed before the predictor class implementation is invoked.
 - `conda_packages` - A list of Conda dependencies that will be installed before the predictor class implementation is invoked.

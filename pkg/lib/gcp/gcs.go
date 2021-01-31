@@ -73,9 +73,8 @@ func (c *Client) DoesBucketExist(bucket string, location string) (bool, error) {
 	if err != nil {
 		if IsBucketDoesNotExist(err) {
 			return false, nil
-		} else {
-			return false, errors.WithStack(err)
 		}
+		return false, errors.WithStack(err)
 	}
 	return true, nil
 }
