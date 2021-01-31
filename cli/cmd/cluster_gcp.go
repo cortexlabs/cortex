@@ -25,7 +25,6 @@ import (
 	"github.com/cortexlabs/cortex/cli/cluster"
 	"github.com/cortexlabs/cortex/cli/types/cliconfig"
 	"github.com/cortexlabs/cortex/pkg/lib/console"
-	"github.com/cortexlabs/cortex/pkg/lib/debug"
 	"github.com/cortexlabs/cortex/pkg/lib/docker"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/exit"
@@ -594,8 +593,6 @@ func getGCPOperatorLoadBalancerIP(clusterName string, gcpClient *gcp.Client) (st
 	if service.Status.LoadBalancer.Ingress[0].IP == "" {
 		return "", errors.ErrorUnexpected("operator's endpoint is missing")
 	}
-
-	debug.Pp(service.Status.LoadBalancer.Ingress[0])
 
 	return service.Status.LoadBalancer.Ingress[0].IP, nil
 }

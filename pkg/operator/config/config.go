@@ -23,10 +23,8 @@ import (
 
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
-	"github.com/cortexlabs/cortex/pkg/lib/files"
 
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
-	"github.com/cortexlabs/cortex/pkg/lib/debug"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/gcp"
 	"github.com/cortexlabs/cortex/pkg/lib/hash"
@@ -94,9 +92,7 @@ func Init() error {
 			APIVersion:          consts.CortexVersion,
 			IsOperatorInCluster: strings.ToLower(os.Getenv("CORTEX_OPERATOR_IN_CLUSTER")) != "false",
 		}
-		fullClusterConfig := &clusterconfig.InternalConfig{
-			OperatorMetadata: *OperatorMetadata,
-		}
+		fullClusterConfig = &clusterconfig.InternalConfig{}
 
 		errs := cr.ParseYAMLFile(fullClusterConfig, clusterconfig.BaseConfigValidations(true), clusterConfigPath)
 		if errors.HasError(errs) {
@@ -121,8 +117,8 @@ func Init() error {
 			return err
 		}
 
-		fullClusterConfig.OperatorID = hashedAccountID
-		fullClusterConfig.ClusterID = hash.String(fullClusterConfig.ClusterName + *fullClusterConfig.Region + hashedAccountID)
+		OperatorMetadata.OperatorID = hashedAccountID
+		OperatorMetadata.ClusterID = hash.String(fullClusterConfig.ClusterName + *fullClusterConfig.Region + hashedAccountID)
 		Cluster = &fullClusterConfig.BaseConfig
 		err = AWS.CreateDashboard(fullClusterConfig.ClusterName, consts.DashboardTitle)
 		if err != nil {
@@ -133,8 +129,9 @@ func Init() error {
 			return err
 		}
 		if !exists {
-			return errors.ErrorUnexpected("the specified bucket either does not exist", cluster3.Bucket)
+			return errors.ErrorUnexpected("the specified bucket either does not exist", fullClusterConfig.Bucket)
 		}
+		fullClusterConfig.OperatorMetadata = *OperatorMetadata
 		clusterNamespace = Cluster.Namespace
 		istioNamespace = Cluster.IstioNamespace
 	} else {
@@ -149,12 +146,7 @@ func Init() error {
 			APIVersion:          consts.CortexVersion,
 			IsOperatorInCluster: strings.ToLower(os.Getenv("CORTEX_OPERATOR_IN_CLUSTER")) != "false",
 		}
-		gcpFullClusterConfig := &clusterconfig.InternalGCPConfig{
-			OperatorMetadata: *OperatorMetadata,
-		}
-
-		bytes, _ := files.ReadFileBytes(clusterConfigPath)
-		debug.Pp(string(bytes))
+		gcpFullClusterConfig = &clusterconfig.InternalGCPConfig{}
 
 		errs := cr.ParseYAMLFile(gcpFullClusterConfig, clusterconfig.GCPBaseConfigValidations(true), clusterConfigPath)
 		if errors.HasError(errs) {
@@ -168,19 +160,15 @@ func Init() error {
 			}
 		}
 
-		fmt.Println("before NewFromEnvCheckProjectID")
 		GCP, err = gcp.NewFromEnvCheckProjectID(*gcpFullClusterConfig.Project)
 		if err != nil {
 			return err
 		}
 
-		gcpFullClusterConfig.OperatorID = GCP.HashedProjectID
-		gcpFullClusterConfig.ClusterID = hash.String(gcpFullClusterConfig.ClusterName + *gcpFullClusterConfig.Project + *gcpFullClusterConfig.Zone)
-
-		debug.Pp(gcpFullClusterConfig)
+		OperatorMetadata.OperatorID = GCP.HashedProjectID
+		OperatorMetadata.ClusterID = hash.String(gcpFullClusterConfig.ClusterName + *gcpFullClusterConfig.Project + *gcpFullClusterConfig.Zone)
 
 		if gcpFullClusterConfig.Bucket == "" {
-			fmt.Println("before CreateBucket")
 			gcpFullClusterConfig.Bucket = clusterconfig.GCPBucketName(gcpFullClusterConfig.ClusterName, *gcpFullClusterConfig.Project, *gcpFullClusterConfig.Zone)
 			err := GCP.CreateBucket(gcpFullClusterConfig.Bucket, gcp.ZoneToRegion(*gcpFullClusterConfig.Zone), true)
 			if err != nil {
@@ -189,7 +177,6 @@ func Init() error {
 		}
 
 		// If the bucket is specified double check that it exists and the operator has access to it
-		fmt.Println("")
 		exists, err := GCP.DoesBucketExist(gcpFullClusterConfig.Bucket, gcp.ZoneToRegion(*gcpFullClusterConfig.Zone))
 		if err != nil {
 			return err
@@ -199,13 +186,14 @@ func Init() error {
 		}
 
 		GCPCluster = &gcpFullClusterConfig.GCPBaseConfig
+		gcpFullClusterConfig.OperatorMetadata = *OperatorMetadata
 		clusterNamespace = GCPCluster.Namespace
 		istioNamespace = GCPCluster.IstioNamespace
 	} else {
 		GCP = gcp.NewAnonymousClient()
 	}
 
-	err = telemetry.Init(telemetry.Config{
+	telemetryConfig := telemetry.Config{
 		Enabled: Telemetry(),
 		UserID:  OperatorID(),
 		Properties: map[string]string{
@@ -215,7 +203,9 @@ func Init() error {
 		Environment: "operator",
 		LogErrors:   true,
 		BackoffMode: telemetry.BackoffDuplicateMessages,
-	})
+	}
+
+	err = telemetry.Init(telemetryConfig)
 	if err != nil {
 		fmt.Println(errors.Message(err))
 	}

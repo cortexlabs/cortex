@@ -111,16 +111,6 @@ type Subnet struct {
 	SubnetID         string `json:"subnet_id" yaml:"subnet_id"`
 }
 
-type InternalConfig2 struct {
-	BaseConfig
-
-	// Populated by operator
-	APIVersion          string `json:"api_version"`
-	OperatorID          string `json:"operator_id"`
-	ClusterID           string `json:"cluster_id"`
-	IsOperatorInCluster bool   `json:"is_operator_in_cluster"`
-}
-
 type Config struct {
 	BaseConfig    `yaml:",inline"`
 	ManagedConfig `yaml:",inline"`
@@ -213,6 +203,12 @@ var BaseConfigStructFieldValidations = []*cr.StructFieldValidation{
 			AllowEmpty:       true,
 			TreatNullAsEmpty: true,
 			Validator:        validateBucketNameOrEmpty,
+		},
+	},
+	{
+		StructField: "Telemetry",
+		BoolValidation: &cr.BoolValidation{
+			Default: true,
 		},
 	},
 	{
