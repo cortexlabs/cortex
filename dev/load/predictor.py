@@ -24,7 +24,7 @@ class PythonPredictor:
         for i in range(config["num_requests"]):
             if i > 0:
                 time.sleep(config["sleep"])
-            response = requests.post(config["endpoint"], json=config["data"], timeout=3600)
+            response = requests.post(config["endpoint"], json=config["data"])
             if response.status_code == 200:
                 num_success += 1
             else:
