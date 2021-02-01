@@ -23,7 +23,9 @@ data:
   CLOUDWATCH_REGION: "{{ config["region"] }}"
   CLOUDWATCH_PUBLISH_TIMEOUT: "10"
   PROMETHEUS_SCRAPE_INTERVAL: "15"
-  PROMETHEUS_SCRAPE_URL: 'http://prometheus.default:9090/federate?match[]={job=~"default/.*",__name__=~"cortex.*"}'
+  PROMETHEUS_SCRAPE_URL: http://prometheus.default:9090/federate?match[]={job=~"default/.*",__name__=~"cortex.*"}
+  INCLUDE_METRICS: cortex_*
+  EXCLUDE_DIMENSIONS_FOR_METRICS: cortex_*=container,endpoint,instance,job,namespace,pod,prometheus,prometheus_replica
 
 ---
 
