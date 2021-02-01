@@ -492,6 +492,13 @@ var UserValidation = &cr.StructValidation{
 				Validator: validateImageVersion,
 			},
 		},
+		{
+			StructField: "ImagePrometheusToCloudWatch",
+			StringValidation: &cr.StringValidation{
+				Default:   "quay.io/cortexlabs/image_prometheus_to_cloudwatch:" + consts.CortexVersion,
+				Validator: validateImageVersion,
+			},
+		},
 	},
 }
 
@@ -1325,6 +1332,9 @@ func (cc *Config) TelemetryEvent() map[string]interface{} {
 	}
 	if strings.HasPrefix(cc.ImagePrometheusStatsDExporter, "cortexlabs/") {
 		event["image_prometheus_statsd_exporter._is_custom"] = true
+	}
+	if strings.HasPrefix(cc.ImagePrometheusToCloudWatch, "cortexlabs/") {
+		event["image_prometheus_to_cloudwatch._is_custom"] = true
 	}
 	if cc.Spot != nil {
 		event["spot._is_defined"] = true
