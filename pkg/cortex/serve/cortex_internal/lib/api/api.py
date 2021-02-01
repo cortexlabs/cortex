@@ -19,8 +19,8 @@ from typing import Any, Dict, Optional, Tuple, Union
 import datadog
 from cortex_internal.lib.api import Predictor
 from cortex_internal.lib.exceptions import CortexException
-from cortex_internal.lib.storage import S3, GCS
 from cortex_internal.lib.log import configure_logger
+from cortex_internal.lib.storage import S3, GCS
 
 logger = configure_logger("cortex", os.environ["CORTEX_LOG_CONFIG_FILE"])
 
@@ -59,6 +59,7 @@ class API:
     def metric_dimensions_with_id(self):
         return [
             {"Name": "api_name", "Value": self.name},
+            {"Name": "api_id", "Value": self.id},
             {"Name": "predictor_id", "Value": self.predictor_id},
             {"Name": "deployment_id", "Value": self.deployment_id},
         ]
