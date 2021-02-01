@@ -202,9 +202,9 @@ RESPONSE:
             "failed": <int>,             # number of workers that have failed
             "stalled": <int>,            # number of workers that have been stuck in pending for more than 10 minutes
         },
-        "created_time": <string>         # e.g. 2020-07-16T14:56:10.276007415Z
-        "start_time": <string>           # e.g. 2020-07-16T14:56:10.276007415Z
-        "end_time": <string> (optional)  # e.g. 2020-07-16T14:56:10.276007415Z (only present if the job has completed)
+        "created_time": <string>
+        "start_time": <string>
+        "end_time": <string> (optional)
     },
     "endpoint": <string>
     "api_spec": {
