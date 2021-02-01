@@ -82,5 +82,6 @@ $ curl http://example.com/text-generator -X POST -H "Content-Type: application/j
 
 ## Get started
 
-* [Cortex Core](https://docs.cortex.dev/clusters/install) - install on any Kubernetes cluster.
-* [Cortex Cloud](https://docs.cortex.dev/clusters/aws/install) - launch a cluster on AWS or GCP.
+* [Read the docs](https://docs.cortex.dev)
+* [Report an issue](https://github.com/cortexlabs/cortex/issues)
+* [Join our community](https://gitter.im/cortexlabs/cortex)
