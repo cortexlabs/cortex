@@ -1,4 +1,4 @@
-# Task API configuration
+# Configuration
 
 <!-- CORTEX_VERSION_BRANCH_STABLE x3 -->
 ```yaml

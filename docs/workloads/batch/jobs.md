@@ -1,12 +1,10 @@
-# Batch API endpoint
+# BatchAPI jobs
 
-A deployed Batch API endpoint supports the following:
+## Get the TaskAPI endpoint
 
-1. Submitting a batch job
-1. Getting the status of a job
-1. Stopping a job
-
-You can find the url for your Batch API using Cortex CLI command `cortex get <batch_api_name>`.
+```bash
+$ cortex get <batch_api_name>
+```
 
 ## Submit a Job
 
@@ -63,7 +61,7 @@ RESPONSE:
         "arn": <string>,
         "max_receive_count": <int>
     },
-    "created_time": <string>  # e.g. 2020-07-16T14:56:10.276007415Z
+    "created_time": <string>
 }
 ```
 
@@ -114,7 +112,7 @@ RESPONSE:
         "arn": <string>,
         "max_receive_count": <int>
     },
-    "created_time": <string>  # e.g. 2020-07-16T14:56:10.276007415Z
+    "created_time": <string>
 }
 ```
 
@@ -164,15 +162,17 @@ RESPONSE:
         "arn": <string>,
         "max_receive_count": <int>
     },
-    "created_time": <string>  # e.g. 2020-07-16T14:56:10.276007415Z
+    "created_time": <string>
 }
 ```
 
-## Job status
+## Get a job's status
 
-You can get the status of a job by making a GET request to `<batch_api_endpoint>/<job_id>` (note that you can also get a job's status with the Cortex CLI command `cortex get <api_name> <job_id>`).
+```bash
+$ cortex get <batch_api_name> <job_id>
+```
 
-See [Job Status Codes](statuses.md) for a list of the possible job statuses and what they mean.
+Or make a GET request to `<batch_api_endpoint>?jobID=<jobID>`:
 
 ```yaml
 GET <batch_api_endpoint>?jobID=<jobID>:
@@ -187,7 +187,7 @@ RESPONSE:
         "config": {<string>: <any>},
         "api_id": <string>,
         "sqs_url": <string>,
-        "status": <string>,   # will be one of the following values: status_unknown|status_enqueuing|status_running|status_enqueue_failed|status_completed_with_failures|status_succeeded|status_unexpected_error|status_worker_error|status_worker_oom|status_timed_out|status_stopped
+        "status": <string>,
         "batches_in_queue": <int>        # number of batches remaining in the queue
         "batch_metrics": {
             "succeeded": <int>           # number of succeeded batches
@@ -202,22 +202,24 @@ RESPONSE:
             "failed": <int>,             # number of workers that have failed
             "stalled": <int>,            # number of workers that have been stuck in pending for more than 10 minutes
         },
-        "created_time": <string>         # e.g. 2020-07-16T14:56:10.276007415Z
-        "start_time": <string>           # e.g. 2020-07-16T14:56:10.276007415Z
-        "end_time": <string> (optional)  # e.g. 2020-07-16T14:56:10.276007415Z (only present if the job has completed)
+        "created_time": <string>
+        "start_time": <string>
+        "end_time": <string> (optional)
     },
-    "endpoint": <string>   # endpoint for this job
+    "endpoint": <string>
     "api_spec": {
         ...
     }
 }
 ```
 
-## Stop a Job
+## Stop a job
 
-Stop a job in progress. You can also use the Cortex CLI command
+```bash
+$ cortex delete <batch_api_name> <job_id>
+```
 
-You stop a running job by making a DELETE request to `<batch_api_endpoint>/<job_id>` (note that you can also delete a job with the Cortex CLI command `cortex delete <api_name> <job_id>`).
+Or make a DELETE request to `<batch_api_endpoint>?jobID=<jobID>`:
 
 ```yaml
 DELETE <batch_api_endpoint>?jobID=<jobID>:

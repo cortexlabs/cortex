@@ -2,9 +2,18 @@
 
 * [Get started](workloads/realtime/example.md)
 
+## Clients
+
+* [Install](clients/install.md)
+* [CLI commands](clients/cli.md)
+* [Python API](clients/python.md)
+* [Environments](clients/environments.md)
+* [Telemetry](clients/telemetry.md)
+* [Uninstall](clients/uninstall.md)
+
 ## Workloads
 
-* Realtime
+* Realtime APIs
   * [Example](workloads/realtime/example.md)
   * [Predictor](workloads/realtime/predictors.md)
   * [Configuration](workloads/realtime/configuration.md)
@@ -14,27 +23,27 @@
   * [Autoscaling](workloads/realtime/autoscaling.md)
   * [Metrics](workloads/realtime/metrics.md)
   * [Statuses](workloads/realtime/statuses.md)
+  * Multi-model
+    * [Example](workloads/realtime/multi-model/example.md)
+    * [Configuration](workloads/realtime/multi-model/configuration.md)
+    * [Caching](workloads/realtime/multi-model/caching.md)
+  * Traffic Splitter
+    * [Example](workloads/realtime/traffic-splitter/example.md)
+    * [Configuration](workloads/realtime/traffic-splitter/configuration.md)
   * [Troubleshooting](workloads/realtime/troubleshooting.md)
-* Batch
+* Batch APIs
   * [Example](workloads/batch/example.md)
   * [Predictor](workloads/batch/predictors.md)
   * [Configuration](workloads/batch/configuration.md)
   * [Jobs](workloads/batch/jobs.md)
   * [Statuses](workloads/batch/statuses.md)
-* Task
+* Task APIs
   * [Example](workloads/task/example.md)
   * [Definition](workloads/task/definitions.md)
   * [Configuration](workloads/task/configuration.md)
   * [Jobs](workloads/task/jobs.md)
   * [Statuses](workloads/task/statuses.md)
-* Multi-model
-  * [Example](workloads/multi-model/example.md)
-  * [Configuration](workloads/multi-model/configuration.md)
-  * [Caching](workloads/multi-model/caching.md)
-* Traffic Splitter
-  * [Example](workloads/traffic-splitter/example.md)
-  * [Configuration](workloads/traffic-splitter/configuration.md)
-* Managing dependencies
+* Dependencies
   * [Example](workloads/dependencies/example.md)
   * [Python packages](workloads/dependencies/python-packages.md)
   * [System packages](workloads/dependencies/system-packages.md)
@@ -56,16 +65,8 @@
   * [Uninstall](clusters/aws/uninstall.md)
 * GCP
   * [Install](clusters/gcp/install.md)
-  * [Logging](clusters/aws/logging.md)
+  * [Logging](clusters/gcp/logging.md)
   * [Credentials](clusters/gcp/credentials.md)
   * [Setting up kubectl](clusters/gcp/kubectl.md)
   * [Uninstall](clusters/gcp/uninstall.md)
-
-## Clients
-
-* [Install](clients/install.md)
-* [CLI commands](clients/cli.md)
-* [Python API](clients/python.md)
-* [Environments](clients/environments.md)
-* [Telemetry](clients/telemetry.md)
-* [Uninstall](clients/uninstall.md)
+* [Private Docker registry](clusters/registry.md)
