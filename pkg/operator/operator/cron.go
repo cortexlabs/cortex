@@ -192,7 +192,7 @@ func clusterFixedPriceAWS() float64 {
 		natTotalPrice = natUnitPrice * float64(len(config.Cluster.AvailabilityZones))
 	}
 
-	return eksPrice + operatorInstancePrice + 2*operatorEBSPrice + metricsEBSPrice + 2*nlbPrice + natTotalPrice
+	return eksPrice + 2*operatorInstancePrice + operatorEBSPrice + metricsEBSPrice + 2*nlbPrice + natTotalPrice
 }
 
 func InstanceTelemetryGCP() error {

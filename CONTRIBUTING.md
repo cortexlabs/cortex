@@ -193,7 +193,7 @@ image_prometheus: <account_id>.dkr.ecr.<region>.amazonaws.com/cortexlabs/prometh
 image_prometheus_config_reloader: <account_id>.dkr.ecr.<region>.amazonaws.com/cortexlabs/prometheus-config-reloader:latest
 image_prometheus_operator: <account_id>.dkr.ecr.<region>.amazonaws.com/cortexlabs/prometheus-operator:latest
 image_prometheus_statsd_exporter: <account_id>.dkr.ecr.<region>.amazonaws.com/cortexlabs/prometheus-statsd-exporter:latest
-image_prometheus_to_cloud: <account_id>.dkr.ecr.<region>.amazonaws.com/cortexlabs/prometheus-to-cloudwatch:latest
+image_prometheus_to_cloudwatch: <account_id>.dkr.ecr.<region>.amazonaws.com/cortexlabs/prometheus-to-cloudwatch:latest
 ```
 
 Create `dev/config/cluster-gcp.yaml`. Paste the following config, and update `project`, `zone`, and all registry URLs (replace `<project_id>` with your project ID, and update `gcr.io` if you are using a different host):
