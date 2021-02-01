@@ -1,4 +1,4 @@
-# Task implementation
+# Implementation
 
 ## Project files
 
@@ -54,7 +54,7 @@ class Task:
 
 ## Structured logging
 
-You can use Cortex's logger in your predictor implemention to log in JSON. This will enrich your logs with Cortex's metadata, and you can add custom metadata to the logs by adding key value pairs to the `extra` key when using the logger. For example:
+You can use Cortex's logger in your predictor implementation to log in JSON. This will enrich your logs with Cortex's metadata, and you can add custom metadata to the logs by adding key value pairs to the `extra` key when using the logger. For example:
 
 ```python
 ...

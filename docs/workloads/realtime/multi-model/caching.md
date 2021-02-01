@@ -7,7 +7,7 @@ The model cache is a two-layer cache, configured by the following parameters in 
 * `cache_size` sets the number of models to keep in memory
 * `disk_cache_size` sets the number of models to keep on disk (must be greater than or equal to `cache_size`)
 
-Both of these fields must be specified, in addition to either the `dir` or `paths` field (which specifies the model paths, see [models](../realtime/models.md) for documentation). Multi-model caching is only supported if `predictor.processes_per_replica` is set to 1 (the default value).
+Both of these fields must be specified, in addition to either the `dir` or `paths` field (which specifies the model paths, see [models](../../realtime/models.md) for documentation). Multi-model caching is only supported if `predictor.processes_per_replica` is set to 1 (the default value).
 
 ## Out of memory errors
 

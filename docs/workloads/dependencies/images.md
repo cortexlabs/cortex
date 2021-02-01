@@ -91,33 +91,3 @@ docker push <repository_url>:latest
 ```
 
 Note: for TensorFlow Predictors, two containers run together to serve predictions: one runs your Predictor code (`quay.io/cortexlabs/tensorflow-predictor`), and the other is TensorFlow serving to load the SavedModel (`quay.io/cortexlabs/tensorflow-serving-gpu` or `quay.io/cortexlabs/tensorflow-serving-cpu`). There's a second available field `tensorflow_serving_image` that can be used to override the TensorFlow Serving image. Both of the default serving images (`quay.io/cortexlabs/tensorflow-serving-gpu` and `quay.io/cortexlabs/tensorflow-serving-cpu`) are based on the official TensorFlow Serving image (`tensorflow/serving`). Unless a different version of TensorFlow Serving is required, the TensorFlow Serving image shouldn't have to be overridden, since it's only used to load the SavedModel and does not run your Predictor code.
-
-## Private Docker registry
-
-### Install and configure kubectl
-
-Follow the instructions for [aws](../../clusters/aws/kubectl.md) or [gcp](../../clusters/gcp/kubectl.md).
-
-### Setting credentials
-
-```bash
-DOCKER_USERNAME=***
-DOCKER_PASSWORD=***
-
-kubectl create secret docker-registry registry-credentials \
-  --namespace default \
-  --docker-username=$DOCKER_USERNAME \
-  --docker-password=$DOCKER_PASSWORD
-
-kubectl patch serviceaccount default --namespace default \
-  -p "{\"imagePullSecrets\": [{\"name\": \"registry-credentials\"}]}"
-```
-
-### Deleting credentials
-
-```bash
-kubectl delete secret --namespace default registry-credentials
-
-kubectl patch serviceaccount default --namespace default \
-  -p "{\"imagePullSecrets\": []}"
-```
