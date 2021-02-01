@@ -43,7 +43,7 @@
   * [Configuration](workloads/task/configuration.md)
   * [Jobs](workloads/task/jobs.md)
   * [Statuses](workloads/task/statuses.md)
-* Managing dependencies
+* Dependencies
   * [Example](workloads/dependencies/example.md)
   * [Python packages](workloads/dependencies/python-packages.md)
   * [System packages](workloads/dependencies/system-packages.md)
