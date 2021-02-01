@@ -82,5 +82,5 @@ $ curl http://example.com/text-generator -X POST -H "Content-Type: application/j
 
 ## Get started
 
-* [Cortex Core](https://docs.cortex.dev/cortex-core/install) - free and open source community offering.
+* [Cortex Core](https://docs.cortex.dev/cortex-core/install) - open source community offering.
 * [Cortex Cloud](https://docs.cortex.dev/cortex-cloud/aws/install) - managed Cortex clusters on AWS and GCP.

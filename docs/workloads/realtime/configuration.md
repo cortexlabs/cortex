@@ -3,14 +3,16 @@
 ```yaml
 - name: <string>
   kind: RealtimeAPI
-  predictor:
-  compute:
-  autoscaling:
-  update_strategy:
-  networking:  
+  predictor: # detailed configuration below
+  compute: # detailed configuration below
+  autoscaling: # detailed configuration below
+  update_strategy: # detailed configuration below
+  networking: # detailed configuration below
 ```
 
-## Python Predictor
+## Predictor
+
+### Python Predictor
 
 <!-- CORTEX_VERSION_BRANCH_STABLE x3 -->
 ```yaml
@@ -39,7 +41,7 @@ predictor:
   shm_size: <string>  # size of shared memory (/dev/shm) for sharing data between multiple processes, e.g. 64Mi or 1Gi (default: Null)
 ```
 
-## TensorFlow Predictor
+### TensorFlow Predictor
 
 <!-- CORTEX_VERSION_BRANCH_STABLE x4 -->
 ```yaml
@@ -71,7 +73,7 @@ predictor:
   shm_size: <string>  # size of shared memory (/dev/shm) for sharing data between multiple processes, e.g. 64Mi or 1Gi (default: Null)
 ```
 
-## ONNX Predictor
+### ONNX Predictor
 
 <!-- CORTEX_VERSION_BRANCH_STABLE x2 -->
 ```yaml

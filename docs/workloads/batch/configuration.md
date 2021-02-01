@@ -3,12 +3,14 @@
 ```yaml
 - name: <string>
   kind: BatchAPI
-  predictor:
-  compute:  
-  networking:
+  predictor: # detailed configuration below
+  compute: # detailed configuration below
+  networking: # detailed configuration below
 ```
 
-## Python Predictor
+## Predictor
+
+### Python Predictor
 
 <!-- CORTEX_VERSION_BRANCH_STABLE x2 -->
 ```yaml
@@ -23,7 +25,7 @@ predictor:
   shm_size: <string>  # size of shared memory (/dev/shm) for sharing data between multiple processes, e.g. 64Mi or 1Gi (default: Null)
 ```
 
-## TensorFlow Predictor
+### TensorFlow Predictor
 
 <!-- CORTEX_VERSION_BRANCH_STABLE x3 -->
 ```yaml
@@ -50,7 +52,7 @@ predictor:
   shm_size: <string>  # size of shared memory (/dev/shm) for sharing data between multiple processes, e.g. 64Mi or 1Gi (default: Null)
 ```
 
-## ONNX Predictor
+### ONNX Predictor
 
 <!-- CORTEX_VERSION_BRANCH_STABLE x2 -->
 ```yaml
