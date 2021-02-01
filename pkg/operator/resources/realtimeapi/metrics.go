@@ -33,7 +33,6 @@ import (
 const (
 	_metricsWindowHours    = 336 // 2 weeks
 	_metricsRequestTimeout = 10  // seconds
-	_defaultSvcDomain      = "default.svc.cluster.local"
 )
 
 func GetMultipleMetrics(apis []spec.API) ([]metrics.Metrics, error) {
@@ -75,27 +74,27 @@ func GetMetrics(api *spec.API) (*metrics.Metrics, error) {
 	err := parallel.RunFirstErr(
 		func() error {
 			var err error
-			reqCount, err = getRequestCountMetric(config.Prometheus, api.Name)
+			reqCount, err = getRequestCountMetric(config.Prometheus, *api)
 			return err
 		},
 		func() error {
 			var err error
-			avgLatency, err = getAvgLatencyMetric(config.Prometheus, api.Name)
+			avgLatency, err = getAvgLatencyMetric(config.Prometheus, *api)
 			return err
 		},
 		func() error {
 			var err error
-			statusCodes2XX, err = getStatusCode2XXMetric(config.Prometheus, api.Name)
+			statusCodes2XX, err = getStatusCode2XXMetric(config.Prometheus, *api)
 			return err
 		},
 		func() error {
 			var err error
-			statusCodes4XX, err = getStatusCode4XXMetric(config.Prometheus, api.Name)
+			statusCodes4XX, err = getStatusCode4XXMetric(config.Prometheus, *api)
 			return err
 		},
 		func() error {
 			var err error
-			statusCodes5XX, err = getStatusCode5XXMetric(config.Prometheus, api.Name)
+			statusCodes5XX, err = getStatusCode5XXMetric(config.Prometheus, *api)
 			return err
 		},
 	)
@@ -116,10 +115,10 @@ func GetMetrics(api *spec.API) (*metrics.Metrics, error) {
 	}, nil
 }
 
-func getRequestCountMetric(promAPIv1 promv1.API, apiName string) (float64, error) {
+func getRequestCountMetric(promAPIv1 promv1.API, apiSpec spec.API) (float64, error) {
 	query := fmt.Sprintf(
-		"sum(increase(istio_requests_total{destination_service_name=\"api-%s.%s\"}[%dh]) >= 0)",
-		apiName, _defaultSvcDomain, _metricsWindowHours,
+		"sum(cortex_status_code{api_name=\"%s\", api_id=\"%s\"} >= 0)",
+		apiSpec.Name, apiSpec.ID,
 	)
 
 	values, err := queryPrometheusVec(promAPIv1, query)
@@ -135,12 +134,12 @@ func getRequestCountMetric(promAPIv1 promv1.API, apiName string) (float64, error
 	return requestCount, nil
 }
 
-func getAvgLatencyMetric(promAPIv1 promv1.API, apiName string) (*float64, error) {
+func getAvgLatencyMetric(promAPIv1 promv1.API, apiSpec spec.API) (*float64, error) {
 	query := fmt.Sprintf(
-		"rate(istio_request_duration_milliseconds_sum{destination_service_name=\"api-%s.%s\", reporter=\"source\", response_code=\"200\"}[%dh]) "+
-			"/ rate(istio_request_duration_milliseconds_count{destination_service_name=\"api-%s.%s\", reporter=\"source\", response_code=\"200\"}[%dh]) >= 0",
-		apiName, _defaultSvcDomain, _metricsWindowHours,
-		apiName, _defaultSvcDomain, _metricsWindowHours,
+		"rate(cortex_latency_sum{api_name=\"%s\", api_id=\"%s\"}[%dh]) "+
+			"/ rate(cortex_latency_count{api_name=\"%s\", api_id=\"%s\"}[%dh]) >= 0",
+		apiSpec.Name, apiSpec.ID, _metricsWindowHours,
+		apiSpec.Name, apiSpec.ID, _metricsWindowHours,
 	)
 
 	values, err := queryPrometheusVec(promAPIv1, query)
@@ -156,10 +155,10 @@ func getAvgLatencyMetric(promAPIv1 promv1.API, apiName string) (*float64, error)
 	return &avgLatency, nil
 }
 
-func getStatusCode2XXMetric(promAPIv1 promv1.API, apiName string) (float64, error) {
+func getStatusCode2XXMetric(promAPIv1 promv1.API, apiSpec spec.API) (float64, error) {
 	query := fmt.Sprintf(
-		"sum(increase(istio_requests_total{destination_service_name=\"api-%s.%s\", response_code=~\"^2[0-9]{2}$\"}[%dh]) >= 0)",
-		apiName, _defaultSvcDomain, _metricsWindowHours,
+		"sum(cortex_status_code{api_name=\"%s\", api_id=\"%s\", response_code=\"2XX\"} >= 0)",
+		apiSpec.Name, apiSpec.ID,
 	)
 
 	values, err := queryPrometheusVec(promAPIv1, query)
@@ -175,10 +174,10 @@ func getStatusCode2XXMetric(promAPIv1 promv1.API, apiName string) (float64, erro
 	return statusCodes2XX, nil
 }
 
-func getStatusCode4XXMetric(promAPIv1 promv1.API, apiName string) (float64, error) {
+func getStatusCode4XXMetric(promAPIv1 promv1.API, apiSpec spec.API) (float64, error) {
 	query := fmt.Sprintf(
-		"sum(increase(istio_requests_total{destination_service_name=\"api-%s.%s\", response_code=~\"^4[0-9]{2}$\"}[%dh]) >= 0)",
-		apiName, _defaultSvcDomain, _metricsWindowHours,
+		"sum(cortex_status_code{api_name=\"%s\", api_id=\"%s\", response_code=\"4XX\"} >= 0)",
+		apiSpec.Name, apiSpec.ID,
 	)
 
 	values, err := queryPrometheusVec(promAPIv1, query)
@@ -194,10 +193,10 @@ func getStatusCode4XXMetric(promAPIv1 promv1.API, apiName string) (float64, erro
 	return statusCodes4XX, nil
 }
 
-func getStatusCode5XXMetric(promAPIv1 promv1.API, apiName string) (float64, error) {
+func getStatusCode5XXMetric(promAPIv1 promv1.API, apiSpec spec.API) (float64, error) {
 	query := fmt.Sprintf(
-		"sum(increase(istio_requests_total{destination_service_name=\"api-%s.%s\", response_code=~\"^5[0-9]{2}$\"}[%dh]) >= 0)",
-		apiName, _defaultSvcDomain, _metricsWindowHours,
+		"sum(cortex_status_code{api_name=\"%s\", api_id=\"%s\", response_code=\"5XX\"} >= 0)",
+		apiSpec.Name, apiSpec.ID,
 	)
 
 	values, err := queryPrometheusVec(promAPIv1, query)
