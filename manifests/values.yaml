@@ -44,7 +44,7 @@ global:
   hub: quay.io/cortexlabs
 
   # Default tag for Istio images.
-tag: master # CORTEX_VERSION
+  tag: master # CORTEX_VERSION
 
   proxy:
     image: istio-proxy

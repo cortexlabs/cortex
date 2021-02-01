@@ -65,7 +65,7 @@ function upload_manifests {
   set -euo pipefail
 
   echo -e "\nCompressing manifests"
-  tar -cvzf manifests.tar.gz manifests/
+  tar -czf manifests.tar.gz manifests/
 
   echo "Uploading compressed manifests to s3://$CLI_BUCKET_NAME/$CORTEX_VERSION/manifests/cortex-$CORTEX_VERSION.tar.gz"
   aws s3 cp manifests.tar.gz s3://$CLI_BUCKET_NAME/$CORTEX_VERSION/manifests/cortex-$CORTEX_VERSION.tar.gz --only-show-errors

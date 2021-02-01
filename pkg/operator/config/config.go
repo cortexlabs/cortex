@@ -53,11 +53,17 @@ var (
 )
 
 func ManagedConfigOrNil() *clusterconfig.ManagedConfig {
-	return &fullClusterConfig.ManagedConfig
+	if fullClusterConfig != nil {
+		return &fullClusterConfig.ManagedConfig
+	}
+	return nil
 }
 
 func AWSInstanceMetadataOrNil() *aws.InstanceMetadata {
-	return &fullClusterConfig.InstanceMetadata
+	if fullClusterConfig != nil {
+		return &fullClusterConfig.InstanceMetadata
+	}
+	return nil
 }
 
 func FullClusterConfig() *clusterconfig.InternalConfig {
@@ -65,7 +71,10 @@ func FullClusterConfig() *clusterconfig.InternalConfig {
 }
 
 func GCPManagedConfigOrNil() *clusterconfig.GCPManagedConfig {
-	return &gcpFullClusterConfig.GCPManagedConfig
+	if gcpFullClusterConfig != nil {
+		return &gcpFullClusterConfig.GCPManagedConfig
+	}
+	return nil
 }
 
 func GCPFullClusterConfig() *clusterconfig.InternalGCPConfig {
@@ -92,6 +101,7 @@ func Init() error {
 			APIVersion:          consts.CortexVersion,
 			IsOperatorInCluster: strings.ToLower(os.Getenv("CORTEX_OPERATOR_IN_CLUSTER")) != "false",
 		}
+
 		fullClusterConfig = &clusterconfig.InternalConfig{}
 
 		errs := cr.ParseYAMLFile(fullClusterConfig, clusterconfig.BaseConfigValidations(true), clusterConfigPath)
@@ -119,7 +129,12 @@ func Init() error {
 
 		OperatorMetadata.OperatorID = hashedAccountID
 		OperatorMetadata.ClusterID = hash.String(fullClusterConfig.ClusterName + *fullClusterConfig.Region + hashedAccountID)
+		fullClusterConfig.OperatorMetadata = *OperatorMetadata
+
 		Cluster = &fullClusterConfig.BaseConfig
+		clusterNamespace = Cluster.Namespace
+		istioNamespace = Cluster.IstioNamespace
+
 		err = AWS.CreateDashboard(fullClusterConfig.ClusterName, consts.DashboardTitle)
 		if err != nil {
 			return err
@@ -131,9 +146,6 @@ func Init() error {
 		if !exists {
 			return errors.ErrorUnexpected("the specified bucket either does not exist", fullClusterConfig.Bucket)
 		}
-		fullClusterConfig.OperatorMetadata = *OperatorMetadata
-		clusterNamespace = Cluster.Namespace
-		istioNamespace = Cluster.IstioNamespace
 	} else {
 		AWS, err = aws.NewAnonymousClient()
 		if err != nil {
@@ -167,6 +179,11 @@ func Init() error {
 
 		OperatorMetadata.OperatorID = GCP.HashedProjectID
 		OperatorMetadata.ClusterID = hash.String(gcpFullClusterConfig.ClusterName + *gcpFullClusterConfig.Project + *gcpFullClusterConfig.Zone)
+		gcpFullClusterConfig.OperatorMetadata = *OperatorMetadata
+
+		GCPCluster = &gcpFullClusterConfig.GCPBaseConfig
+		clusterNamespace = GCPCluster.Namespace
+		istioNamespace = GCPCluster.IstioNamespace
 
 		if gcpFullClusterConfig.Bucket == "" {
 			gcpFullClusterConfig.Bucket = clusterconfig.GCPBucketName(gcpFullClusterConfig.ClusterName, *gcpFullClusterConfig.Project, *gcpFullClusterConfig.Zone)
@@ -184,16 +201,11 @@ func Init() error {
 		if !exists {
 			return errors.ErrorUnexpected("the specified bucket either does not exist", gcpFullClusterConfig.Bucket)
 		}
-
-		GCPCluster = &gcpFullClusterConfig.GCPBaseConfig
-		gcpFullClusterConfig.OperatorMetadata = *OperatorMetadata
-		clusterNamespace = GCPCluster.Namespace
-		istioNamespace = GCPCluster.IstioNamespace
 	} else {
 		GCP = gcp.NewAnonymousClient()
 	}
 
-	telemetryConfig := telemetry.Config{
+	err = telemetry.Init(telemetry.Config{
 		Enabled: Telemetry(),
 		UserID:  OperatorID(),
 		Properties: map[string]string{
@@ -203,9 +215,7 @@ func Init() error {
 		Environment: "operator",
 		LogErrors:   true,
 		BackoffMode: telemetry.BackoffDuplicateMessages,
-	}
-
-	err = telemetry.Init(telemetryConfig)
+	})
 	if err != nil {
 		fmt.Println(errors.Message(err))
 	}

@@ -39,6 +39,7 @@ func (env Environment) String(isDefault bool) string {
 		items.Add("name", env.Name)
 	}
 
+	items.Add("provider", env.Provider)
 	items.Add("cortex operator endpoint", env.OperatorEndpoint)
 
 	return items.String(&table.KeyValuePairOpts{

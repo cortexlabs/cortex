@@ -78,7 +78,6 @@ type instanceInfo struct {
 }
 
 func InstanceTelemetryAWS() error {
-
 	if config.Cluster.IsManaged && config.ManagedConfigOrNil() != nil {
 		properties, err := managedClusterTelemetry()
 		if err != nil {
@@ -211,7 +210,6 @@ func clusterFixedPriceAWS() float64 {
 }
 
 func InstanceTelemetryGCP() error {
-
 	if config.GCPCluster.IsManaged && config.GCPManagedConfigOrNil() != nil {
 		properties, err := gcpManagedClusterTelemetry()
 		if err != nil {

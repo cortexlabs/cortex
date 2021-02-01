@@ -165,17 +165,17 @@ func promptEnv(env *cliconfig.Environment, defaults cliconfig.Environment) error
 		fmt.Print("you can get your cortex operator endpoint using `cortex cluster info` or `cortex cluster-gcp info` if you already have a cortex cluster running, otherwise run `cortex cluster up` or `cortex cluster-gcp up` to create a cortex cluster\n\n")
 	}
 
-	var cortexProvider types.ProviderType
 	validator := func(endpoint string) (string, error) {
 		operatorURL, provider, err := validateOperatorEndpoint(endpoint)
 		if err != nil {
 			return "", err
 		}
 
-		cortexProvider = provider
+		env.Provider = provider
 		return operatorURL, nil
 	}
 
+	var cortexProvider types.ProviderType
 	for true {
 		err := cr.ReadPrompt(env, &cr.PromptValidation{
 			SkipNonEmptyFields: true,
