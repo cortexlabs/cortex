@@ -467,7 +467,7 @@ func createGKECluster(clusterConfig *clusterconfig.GCPConfig, gcpClient *gcp.Cli
 					},
 					ServiceAccount: gcpClient.ClientEmail,
 				},
-				InitialNodeCount: 1,
+				InitialNodeCount: 2,
 			},
 		},
 		Locations: []string{*clusterConfig.Zone},

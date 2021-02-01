@@ -34,30 +34,35 @@ import (
 )
 
 type GCPConfig struct {
-	Provider                   types.ProviderType `json:"provider" yaml:"provider"`
-	Project                    *string            `json:"project" yaml:"project"`
-	Zone                       *string            `json:"zone" yaml:"zone"`
-	InstanceType               *string            `json:"instance_type" yaml:"instance_type"`
-	AcceleratorType            *string            `json:"accelerator_type" yaml:"accelerator_type"`
-	AcceleratorsPerInstance    *int64             `json:"accelerators_per_instance" yaml:"accelerators_per_instance"`
-	Network                    *string            `json:"network" yaml:"network"`
-	Subnet                     *string            `json:"subnet" yaml:"subnet"`
-	APILoadBalancerScheme      LoadBalancerScheme `json:"api_load_balancer_scheme" yaml:"api_load_balancer_scheme"`
-	OperatorLoadBalancerScheme LoadBalancerScheme `json:"operator_load_balancer_scheme" yaml:"operator_load_balancer_scheme"`
-	MinInstances               *int64             `json:"min_instances" yaml:"min_instances"`
-	MaxInstances               *int64             `json:"max_instances" yaml:"max_instances"`
-	Preemptible                bool               `json:"preemptible" yaml:"preemptible"`
-	OnDemandBackup             bool               `json:"on_demand_backup" yaml:"on_demand_backup"`
-	ClusterName                string             `json:"cluster_name" yaml:"cluster_name"`
-	Telemetry                  bool               `json:"telemetry" yaml:"telemetry"`
-	ImageOperator              string             `json:"image_operator" yaml:"image_operator"`
-	ImageManager               string             `json:"image_manager" yaml:"image_manager"`
-	ImageDownloader            string             `json:"image_downloader" yaml:"image_downloader"`
-	ImageClusterAutoscaler     string             `json:"image_cluster_autoscaler" yaml:"image_cluster_autoscaler"`
-	ImageFluentBit             string             `json:"image_fluent_bit" yaml:"image_fluent_bit"`
-	ImageIstioProxy            string             `json:"image_istio_proxy" yaml:"image_istio_proxy"`
-	ImageIstioPilot            string             `json:"image_istio_pilot" yaml:"image_istio_pilot"`
-	ImageGooglePause           string             `json:"image_google_pause" yaml:"image_google_pause"`
+	Provider                          types.ProviderType `json:"provider" yaml:"provider"`
+	Project                           *string            `json:"project" yaml:"project"`
+	Zone                              *string            `json:"zone" yaml:"zone"`
+	InstanceType                      *string            `json:"instance_type" yaml:"instance_type"`
+	AcceleratorType                   *string            `json:"accelerator_type" yaml:"accelerator_type"`
+	AcceleratorsPerInstance           *int64             `json:"accelerators_per_instance" yaml:"accelerators_per_instance"`
+	Network                           *string            `json:"network" yaml:"network"`
+	Subnet                            *string            `json:"subnet" yaml:"subnet"`
+	APILoadBalancerScheme             LoadBalancerScheme `json:"api_load_balancer_scheme" yaml:"api_load_balancer_scheme"`
+	OperatorLoadBalancerScheme        LoadBalancerScheme `json:"operator_load_balancer_scheme" yaml:"operator_load_balancer_scheme"`
+	MinInstances                      *int64             `json:"min_instances" yaml:"min_instances"`
+	MaxInstances                      *int64             `json:"max_instances" yaml:"max_instances"`
+	Preemptible                       bool               `json:"preemptible" yaml:"preemptible"`
+	OnDemandBackup                    bool               `json:"on_demand_backup" yaml:"on_demand_backup"`
+	ClusterName                       string             `json:"cluster_name" yaml:"cluster_name"`
+	Telemetry                         bool               `json:"telemetry" yaml:"telemetry"`
+	ImageOperator                     string             `json:"image_operator" yaml:"image_operator"`
+	ImageManager                      string             `json:"image_manager" yaml:"image_manager"`
+	ImageDownloader                   string             `json:"image_downloader" yaml:"image_downloader"`
+	ImageClusterAutoscaler            string             `json:"image_cluster_autoscaler" yaml:"image_cluster_autoscaler"`
+	ImageFluentBit                    string             `json:"image_fluent_bit" yaml:"image_fluent_bit"`
+	ImageIstioProxy                   string             `json:"image_istio_proxy" yaml:"image_istio_proxy"`
+	ImageIstioPilot                   string             `json:"image_istio_pilot" yaml:"image_istio_pilot"`
+	ImageGooglePause                  string             `json:"image_google_pause" yaml:"image_google_pause"`
+	ImagePrometheus                   string             `json:"image_prometheus" yaml:"image_prometheus"`
+	ImagePrometheusConfigReloader     string             `json:"image_prometheus_config_reloader" yaml:"image_prometheus_config_reloader"`
+	ImagePrometheusOperator           string             `json:"image_prometheus_operator" yaml:"image_prometheus_operator"`
+	ImagePrometheusStatsDExporter     string             `json:"image_prometheus_statsd_exporter" yaml:"image_prometheus_statsd_exporter"`
+	ImagePrometheusStackdriverSidecar string             `json:"image_prometheus_stackdriver_sidecar" yaml:"image_prometheus_stackdriver_sidecar"`
 }
 
 type InternalGCPConfig struct {
@@ -285,6 +290,34 @@ var UserGCPValidation = &cr.StructValidation{
 			StructField: "ImageGooglePause",
 			StringValidation: &cr.StringValidation{
 				Default:   "quay.io/cortexlabs/google-pause:" + consts.CortexVersion,
+				Validator: validateImageVersion,
+			},
+		},
+		{
+			StructField: "ImagePrometheus",
+			StringValidation: &cr.StringValidation{
+				Default:   "quay.io/cortexlabs/prometheus:" + consts.CortexVersion,
+				Validator: validateImageVersion,
+			},
+		},
+		{
+			StructField: "ImagePrometheusConfigReloader",
+			StringValidation: &cr.StringValidation{
+				Default:   "quay.io/cortexlabs/prometheus-config-reloader:" + consts.CortexVersion,
+				Validator: validateImageVersion,
+			},
+		},
+		{
+			StructField: "ImagePrometheusOperator",
+			StringValidation: &cr.StringValidation{
+				Default:   "quay.io/cortexlabs/prometheus-operator:" + consts.CortexVersion,
+				Validator: validateImageVersion,
+			},
+		},
+		{
+			StructField: "ImagePrometheusStatsDExporter",
+			StringValidation: &cr.StringValidation{
+				Default:   "quay.io/cortexlabs/prometheus-statsd-exporter:" + consts.CortexVersion,
 				Validator: validateImageVersion,
 			},
 		},
@@ -525,17 +558,6 @@ func SetGCPDefaults(cc *GCPConfig) error {
 	return nil
 }
 
-// This does not set defaults for fields that are prompted from the user
-func GetGCPDefaults() (*GCPConfig, error) {
-	cc := &GCPConfig{}
-	err := SetGCPDefaults(cc)
-	if err != nil {
-		return nil, err
-	}
-
-	return cc, nil
-}
-
 func DefaultGCPAccessConfig() (*GCPAccessConfig, error) {
 	accessConfig := &GCPAccessConfig{}
 	var emptyMap interface{} = map[interface{}]interface{}{}
@@ -593,6 +615,11 @@ func (cc *GCPConfig) UserTable() table.KeyValuePairs {
 	items.Add(ImageIstioProxyUserKey, cc.ImageIstioProxy)
 	items.Add(ImageIstioPilotUserKey, cc.ImageIstioPilot)
 	items.Add(ImageGooglePauseUserKey, cc.ImageGooglePause)
+	items.Add(ImagePrometheusUserKey, cc.ImagePrometheus)
+	items.Add(ImagePrometheusConfigReloaderUserKey, cc.ImagePrometheusConfigReloader)
+	items.Add(ImagePrometheusOperatorUserKey, cc.ImagePrometheusOperator)
+	items.Add(ImagePrometheusStatsDExporterUserKey, cc.ImagePrometheusStatsDExporter)
+	items.Add(ImagePrometheusStackdriverSidecarUserKey, cc.ImagePrometheusStackdriverSidecar)
 
 	return items
 }
@@ -667,7 +694,18 @@ func (cc *GCPConfig) TelemetryEvent() map[string]interface{} {
 	if !strings.HasPrefix(cc.ImageGooglePause, "cortexlabs/") {
 		event["image_google_pause._is_custom"] = true
 	}
-
+	if strings.HasPrefix(cc.ImagePrometheus, "cortexlabs/") {
+		event["image_prometheus._is_custom"] = true
+	}
+	if strings.HasPrefix(cc.ImagePrometheusConfigReloader, "cortexlabs/") {
+		event["image_prometheus_config_reloader._is_custom"] = true
+	}
+	if strings.HasPrefix(cc.ImagePrometheusOperator, "cortexlabs/") {
+		event["image_prometheus_operator._is_custom"] = true
+	}
+	if strings.HasPrefix(cc.ImagePrometheusStatsDExporter, "cortexlabs/") {
+		event["image_prometheus_statsd_exporter._is_custom"] = true
+	}
 	return event
 }
 

@@ -52,41 +52,45 @@ var (
 )
 
 type Config struct {
-	Provider                   types.ProviderType `json:"provider" yaml:"provider"`
-	InstanceType               *string            `json:"instance_type" yaml:"instance_type"`
-	MinInstances               *int64             `json:"min_instances" yaml:"min_instances"`
-	MaxInstances               *int64             `json:"max_instances" yaml:"max_instances"`
-	InstanceVolumeSize         int64              `json:"instance_volume_size" yaml:"instance_volume_size"`
-	InstanceVolumeType         VolumeType         `json:"instance_volume_type" yaml:"instance_volume_type"`
-	InstanceVolumeIOPS         *int64             `json:"instance_volume_iops" yaml:"instance_volume_iops"`
-	Tags                       map[string]string  `json:"tags" yaml:"tags"`
-	Spot                       *bool              `json:"spot" yaml:"spot"`
-	SpotConfig                 *SpotConfig        `json:"spot_config" yaml:"spot_config"`
-	ClusterName                string             `json:"cluster_name" yaml:"cluster_name"`
-	Region                     *string            `json:"region" yaml:"region"`
-	AvailabilityZones          []string           `json:"availability_zones" yaml:"availability_zones"`
-	SSLCertificateARN          *string            `json:"ssl_certificate_arn,omitempty" yaml:"ssl_certificate_arn,omitempty"`
-	Bucket                     string             `json:"bucket" yaml:"bucket"`
-	SubnetVisibility           SubnetVisibility   `json:"subnet_visibility" yaml:"subnet_visibility"`
-	Subnets                    []*Subnet          `json:"subnets,omitempty" yaml:"subnets,omitempty"`
-	NATGateway                 NATGateway         `json:"nat_gateway" yaml:"nat_gateway"`
-	APILoadBalancerScheme      LoadBalancerScheme `json:"api_load_balancer_scheme" yaml:"api_load_balancer_scheme"`
-	OperatorLoadBalancerScheme LoadBalancerScheme `json:"operator_load_balancer_scheme" yaml:"operator_load_balancer_scheme"`
-	VPCCIDR                    *string            `json:"vpc_cidr,omitempty" yaml:"vpc_cidr,omitempty"`
-	Telemetry                  bool               `json:"telemetry" yaml:"telemetry"`
-	ImageOperator              string             `json:"image_operator" yaml:"image_operator"`
-	ImageManager               string             `json:"image_manager" yaml:"image_manager"`
-	ImageDownloader            string             `json:"image_downloader" yaml:"image_downloader"`
-	ImageRequestMonitor        string             `json:"image_request_monitor" yaml:"image_request_monitor"`
-	ImageClusterAutoscaler     string             `json:"image_cluster_autoscaler" yaml:"image_cluster_autoscaler"`
-	ImageMetricsServer         string             `json:"image_metrics_server" yaml:"image_metrics_server"`
-	ImageInferentia            string             `json:"image_inferentia" yaml:"image_inferentia"`
-	ImageNeuronRTD             string             `json:"image_neuron_rtd" yaml:"image_neuron_rtd"`
-	ImageNvidia                string             `json:"image_nvidia" yaml:"image_nvidia"`
-	ImageFluentBit             string             `json:"image_fluent_bit" yaml:"image_fluent_bit"`
-	ImageStatsd                string             `json:"image_statsd" yaml:"image_statsd"`
-	ImageIstioProxy            string             `json:"image_istio_proxy" yaml:"image_istio_proxy"`
-	ImageIstioPilot            string             `json:"image_istio_pilot" yaml:"image_istio_pilot"`
+	Provider                      types.ProviderType `json:"provider" yaml:"provider"`
+	InstanceType                  *string            `json:"instance_type" yaml:"instance_type"`
+	MinInstances                  *int64             `json:"min_instances" yaml:"min_instances"`
+	MaxInstances                  *int64             `json:"max_instances" yaml:"max_instances"`
+	InstanceVolumeSize            int64              `json:"instance_volume_size" yaml:"instance_volume_size"`
+	InstanceVolumeType            VolumeType         `json:"instance_volume_type" yaml:"instance_volume_type"`
+	InstanceVolumeIOPS            *int64             `json:"instance_volume_iops" yaml:"instance_volume_iops"`
+	Tags                          map[string]string  `json:"tags" yaml:"tags"`
+	Spot                          *bool              `json:"spot" yaml:"spot"`
+	SpotConfig                    *SpotConfig        `json:"spot_config" yaml:"spot_config"`
+	ClusterName                   string             `json:"cluster_name" yaml:"cluster_name"`
+	Region                        *string            `json:"region" yaml:"region"`
+	AvailabilityZones             []string           `json:"availability_zones" yaml:"availability_zones"`
+	SSLCertificateARN             *string            `json:"ssl_certificate_arn,omitempty" yaml:"ssl_certificate_arn,omitempty"`
+	Bucket                        string             `json:"bucket" yaml:"bucket"`
+	SubnetVisibility              SubnetVisibility   `json:"subnet_visibility" yaml:"subnet_visibility"`
+	Subnets                       []*Subnet          `json:"subnets,omitempty" yaml:"subnets,omitempty"`
+	NATGateway                    NATGateway         `json:"nat_gateway" yaml:"nat_gateway"`
+	APILoadBalancerScheme         LoadBalancerScheme `json:"api_load_balancer_scheme" yaml:"api_load_balancer_scheme"`
+	OperatorLoadBalancerScheme    LoadBalancerScheme `json:"operator_load_balancer_scheme" yaml:"operator_load_balancer_scheme"`
+	VPCCIDR                       *string            `json:"vpc_cidr,omitempty" yaml:"vpc_cidr,omitempty"`
+	Telemetry                     bool               `json:"telemetry" yaml:"telemetry"`
+	ImageOperator                 string             `json:"image_operator" yaml:"image_operator"`
+	ImageManager                  string             `json:"image_manager" yaml:"image_manager"`
+	ImageDownloader               string             `json:"image_downloader" yaml:"image_downloader"`
+	ImageRequestMonitor           string             `json:"image_request_monitor" yaml:"image_request_monitor"`
+	ImageClusterAutoscaler        string             `json:"image_cluster_autoscaler" yaml:"image_cluster_autoscaler"`
+	ImageMetricsServer            string             `json:"image_metrics_server" yaml:"image_metrics_server"`
+	ImageInferentia               string             `json:"image_inferentia" yaml:"image_inferentia"`
+	ImageNeuronRTD                string             `json:"image_neuron_rtd" yaml:"image_neuron_rtd"`
+	ImageNvidia                   string             `json:"image_nvidia" yaml:"image_nvidia"`
+	ImageFluentBit                string             `json:"image_fluent_bit" yaml:"image_fluent_bit"`
+	ImageIstioProxy               string             `json:"image_istio_proxy" yaml:"image_istio_proxy"`
+	ImageIstioPilot               string             `json:"image_istio_pilot" yaml:"image_istio_pilot"`
+	ImagePrometheus               string             `json:"image_prometheus" yaml:"image_prometheus"`
+	ImagePrometheusConfigReloader string             `json:"image_prometheus_config_reloader" yaml:"image_prometheus_config_reloader"`
+	ImagePrometheusOperator       string             `json:"image_prometheus_operator" yaml:"image_prometheus_operator"`
+	ImagePrometheusStatsDExporter string             `json:"image_prometheus_statsd_exporter" yaml:"image_prometheus_statsd_exporter"`
+	ImagePrometheusToCloudWatch   string             `json:"image_prometheus_to_cloudwatch" yaml:"image_prometheus_to_cloudwatch"`
 }
 
 type SpotConfig struct {
@@ -447,13 +451,6 @@ var UserValidation = &cr.StructValidation{
 			},
 		},
 		{
-			StructField: "ImageStatsd",
-			StringValidation: &cr.StringValidation{
-				Default:   "quay.io/cortexlabs/statsd:" + consts.CortexVersion,
-				Validator: validateImageVersion,
-			},
-		},
-		{
 			StructField: "ImageIstioProxy",
 			StringValidation: &cr.StringValidation{
 				Default:   "quay.io/cortexlabs/istio-proxy:" + consts.CortexVersion,
@@ -464,6 +461,34 @@ var UserValidation = &cr.StructValidation{
 			StructField: "ImageIstioPilot",
 			StringValidation: &cr.StringValidation{
 				Default:   "quay.io/cortexlabs/istio-pilot:" + consts.CortexVersion,
+				Validator: validateImageVersion,
+			},
+		},
+		{
+			StructField: "ImagePrometheus",
+			StringValidation: &cr.StringValidation{
+				Default:   "quay.io/cortexlabs/prometheus:" + consts.CortexVersion,
+				Validator: validateImageVersion,
+			},
+		},
+		{
+			StructField: "ImagePrometheusConfigReloader",
+			StringValidation: &cr.StringValidation{
+				Default:   "quay.io/cortexlabs/prometheus-config-reloader:" + consts.CortexVersion,
+				Validator: validateImageVersion,
+			},
+		},
+		{
+			StructField: "ImagePrometheusOperator",
+			StringValidation: &cr.StringValidation{
+				Default:   "quay.io/cortexlabs/prometheus-operator:" + consts.CortexVersion,
+				Validator: validateImageVersion,
+			},
+		},
+		{
+			StructField: "ImagePrometheusStatsDExporter",
+			StringValidation: &cr.StringValidation{
+				Default:   "quay.io/cortexlabs/prometheus-statsd-exporter:" + consts.CortexVersion,
 				Validator: validateImageVersion,
 			},
 		},
@@ -719,10 +744,10 @@ func checkCNISupport(instanceType string) error {
 		}
 
 		body, err := ioutil.ReadAll(res.Body)
-		res.Body.Close()
 		if err != nil {
 			return nil
 		}
+		_ = res.Body.Close()
 
 		_cachedCNISupportedInstances = pointer.String(string(body))
 	}
@@ -1181,9 +1206,13 @@ func (cc *Config) UserTable() table.KeyValuePairs {
 	items.Add(ImageNeuronRTDUserKey, cc.ImageNeuronRTD)
 	items.Add(ImageNvidiaUserKey, cc.ImageNvidia)
 	items.Add(ImageFluentBitUserKey, cc.ImageFluentBit)
-	items.Add(ImageStatsdUserKey, cc.ImageStatsd)
 	items.Add(ImageIstioProxyUserKey, cc.ImageIstioProxy)
 	items.Add(ImageIstioPilotUserKey, cc.ImageIstioPilot)
+	items.Add(ImagePrometheusUserKey, cc.ImagePrometheus)
+	items.Add(ImagePrometheusConfigReloaderUserKey, cc.ImagePrometheusConfigReloader)
+	items.Add(ImagePrometheusOperatorUserKey, cc.ImagePrometheusOperator)
+	items.Add(ImagePrometheusStatsDExporterUserKey, cc.ImagePrometheusStatsDExporter)
+	items.Add(ImagePrometheusToCloudwatchUserKey, cc.ImagePrometheusToCloudWatch)
 
 	return items
 }
@@ -1279,14 +1308,23 @@ func (cc *Config) TelemetryEvent() map[string]interface{} {
 	if !strings.HasPrefix(cc.ImageFluentBit, "cortexlabs/") {
 		event["image_fluent_bit._is_custom"] = true
 	}
-	if !strings.HasPrefix(cc.ImageStatsd, "cortexlabs/") {
-		event["image_statsd._is_custom"] = true
-	}
 	if !strings.HasPrefix(cc.ImageIstioProxy, "cortexlabs/") {
 		event["image_istio_proxy._is_custom"] = true
 	}
 	if !strings.HasPrefix(cc.ImageIstioPilot, "cortexlabs/") {
 		event["image_istio_pilot._is_custom"] = true
+	}
+	if strings.HasPrefix(cc.ImagePrometheus, "cortexlabs/") {
+		event["image_prometheus._is_custom"] = true
+	}
+	if strings.HasPrefix(cc.ImagePrometheusConfigReloader, "cortexlabs/") {
+		event["image_prometheus_config_reloader._is_custom"] = true
+	}
+	if strings.HasPrefix(cc.ImagePrometheusOperator, "cortexlabs/") {
+		event["image_prometheus_operator._is_custom"] = true
+	}
+	if strings.HasPrefix(cc.ImagePrometheusStatsDExporter, "cortexlabs/") {
+		event["image_prometheus_statsd_exporter._is_custom"] = true
 	}
 	if cc.Spot != nil {
 		event["spot._is_defined"] = true

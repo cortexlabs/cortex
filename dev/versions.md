@@ -115,7 +115,7 @@ _note: docker client installation may be able to be improved, see https://github
 
 ### request-monitor
 
-1. `cd images/request-monitor/`
+1. `cd request-monitor/`
 1. `rm -rf go.mod go.sum && go mod init && go clean -modcache`
 1. `go mod tidy`
 1. Check that the diff in `go.mod` is reasonable

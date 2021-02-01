@@ -31,9 +31,14 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	"github.com/cortexlabs/cortex/pkg/types"
 	"github.com/cortexlabs/cortex/pkg/types/clusterconfig"
+	promapi "github.com/prometheus/client_golang/api"
+	promv1 "github.com/prometheus/client_golang/api/prometheus/v1"
 )
 
-const _clusterConfigPath = "/configs/cluster/cluster.yaml"
+const (
+	_clusterConfigPath   = "/configs/cluster/cluster.yaml"
+	DefaultPrometheusURL = "http://prometheus.default:9090"
+)
 
 var (
 	Provider        types.ProviderType
@@ -44,6 +49,7 @@ var (
 	K8s             *k8s.Client
 	K8sIstio        *k8s.Client
 	K8sAllNamspaces *k8s.Client
+	Prometheus      promv1.API
 )
 
 func Init() error {
@@ -57,6 +63,11 @@ func Init() error {
 	Provider, err = clusterconfig.GetClusterProviderType(clusterConfigPath)
 	if err != nil {
 		return err
+	}
+
+	prometheusURL := os.Getenv("CORTEX_PROMETHEUS_URL")
+	if len(prometheusURL) == 0 {
+		prometheusURL = DefaultPrometheusURL
 	}
 
 	if Provider == types.AWSProviderType {
@@ -136,6 +147,15 @@ func Init() error {
 	if K8sIstio, err = k8s.New("istio-system", IsOperatorInCluster(), nil); err != nil {
 		return err
 	}
+
+	promClient, err := promapi.NewClient(promapi.Config{
+		Address: prometheusURL,
+	})
+	if err != nil {
+		return err
+	}
+
+	Prometheus = promv1.NewAPI(promClient)
 
 	if K8sAllNamspaces, err = k8s.New("", IsOperatorInCluster(), nil); err != nil {
 		return err
