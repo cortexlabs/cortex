@@ -1,1 +1,1 @@
-FROM cloudposse/prometheus-to-cloudwatch:0.2.0
+FROM cloudposse/prometheus-to-cloudwatch:0.14.0
