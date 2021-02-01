@@ -542,7 +542,7 @@ func ManagedConfigValidations(allowExtraFields bool) *cr.StructValidation {
 	}
 }
 
-var UserValidation = &cr.StructValidation{
+var ManagedValidation = &cr.StructValidation{
 	Required:               true,
 	StructFieldValidations: append([]*cr.StructFieldValidation{}, append(BaseConfigStructFieldValidations, ManagedConfigStructFieldValidations...)...),
 }
@@ -1105,7 +1105,7 @@ func validateInstanceDistribution(instances []string) ([]string, error) {
 // This does not set defaults for fields that are prompted from the user
 func SetDefaults(cc *Config) error {
 	var emptyMap interface{} = map[interface{}]interface{}{}
-	errs := cr.Struct(cc, emptyMap, UserValidation)
+	errs := cr.Struct(cc, emptyMap, ManagedValidation)
 	if errors.HasError(errs) {
 		return errors.FirstError(errs...)
 	}

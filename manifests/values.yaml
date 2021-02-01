@@ -1,14 +1,14 @@
 cortex:
   # Please provide the following required fields for a cortex installation on AWS
-  # cluster_name:
-  # region:
-  # bucket:
+  cluster_name: ""
+  bucket: ""
 
-  # Please provide the following required fields for a cortex installation on GCP
-  # cluster_name:
-  # zone:
-  # bucket:
-  # project:
+  # AWS only
+  region: ""
+
+  # GCP only
+  zone:
+  project:
 
   # CORTEX_VERSION
   image_operator: quay.io/cortexlabs/operator:master

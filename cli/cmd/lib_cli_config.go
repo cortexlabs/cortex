@@ -175,7 +175,6 @@ func promptEnv(env *cliconfig.Environment, defaults cliconfig.Environment) error
 		return operatorURL, nil
 	}
 
-	var cortexProvider types.ProviderType
 	for true {
 		err := cr.ReadPrompt(env, &cr.PromptValidation{
 			SkipNonEmptyFields: true,
@@ -205,8 +204,6 @@ func promptEnv(env *cliconfig.Environment, defaults cliconfig.Environment) error
 		if err != nil {
 			return err
 		}
-
-		env.Provider = cortexProvider
 
 		return nil
 	}
@@ -239,6 +236,8 @@ func validateOperatorEndpoint(endpoint string) (string, types.ProviderType, erro
 	if err != nil {
 		return "", types.UnknownProviderType, ErrorInvalidOperatorEndpoint(url)
 	}
+	defer response.Body.Close()
+
 	if response.StatusCode != 200 {
 		return "", types.UnknownProviderType, ErrorInvalidOperatorEndpoint(url)
 	}
@@ -382,6 +381,7 @@ func configureEnv(envName string, fieldsToSkipPrompt cliconfig.Environment) (cli
 	env := cliconfig.Environment{
 		Name:             envName,
 		OperatorEndpoint: fieldsToSkipPrompt.OperatorEndpoint,
+		Provider:         fieldsToSkipPrompt.Provider,
 	}
 
 	defaults := getEnvConfigDefaults(env.Name)

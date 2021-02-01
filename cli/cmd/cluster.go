@@ -377,7 +377,7 @@ var _clusterConfigureCmd = &cobra.Command{
 				exit.Error(errors.Append(err, fmt.Sprintf("\n\nyou can attempt to resolve this issue and configure your cli environment by running `cortex cluster info --configure-env %s`", _flagClusterConfigureEnv)))
 			}
 			operatorEndpoint := "http://" + *loadBalancer.DNSName
-			err = updateAWSCLIEnv(_flagClusterConfigureEnv, operatorEndpoint, awsCreds, _flagClusterDisallowPrompt)
+			err = updateAWSCLIEnv(_flagClusterConfigureEnv, operatorEndpoint, _flagClusterDisallowPrompt)
 			if err != nil {
 				exit.Error(errors.Append(err, fmt.Sprintf("\n\nyou can attempt to resolve this issue and configure your cli environment by running `cortex cluster info --configure-env %s`", _flagClusterConfigureEnv)))
 			}
@@ -701,12 +701,12 @@ func cmdInfo(awsCreds AWSCredentials, accessConfig *clusterconfig.AccessConfig, 
 		}
 	}
 
-	if err := printInfoOperatorResponse(clusterConfig, operatorEndpoint, awsCreds); err != nil {
+	if err := printInfoOperatorResponse(clusterConfig, operatorEndpoint); err != nil {
 		exit.Error(err)
 	}
 
 	if _flagClusterInfoEnv != "" {
-		if err := updateAWSCLIEnv(_flagClusterInfoEnv, operatorEndpoint, awsCreds, disallowPrompt); err != nil {
+		if err := updateAWSCLIEnv(_flagClusterInfoEnv, operatorEndpoint, disallowPrompt); err != nil {
 			exit.Error(err)
 		}
 	}
@@ -732,7 +732,7 @@ func printInfoClusterState(awsClient *aws.Client, accessConfig *clusterconfig.Ac
 	return nil
 }
 
-func printInfoOperatorResponse(clusterConfig clusterconfig.Config, operatorEndpoint string, awsCreds AWSCredentials) error {
+func printInfoOperatorResponse(clusterConfig clusterconfig.Config, operatorEndpoint string) error {
 	fmt.Print("fetching cluster status ...\n\n")
 
 	operatorConfig := cluster.OperatorConfig{
@@ -875,7 +875,7 @@ func printInfoNodes(infoResponse *schema.InfoResponse) {
 	t.MustPrint(&table.Opts{Sort: pointer.Bool(false)})
 }
 
-func updateAWSCLIEnv(envName string, operatorEndpoint string, awsCreds AWSCredentials, disallowPrompt bool) error {
+func updateAWSCLIEnv(envName string, operatorEndpoint string, disallowPrompt bool) error {
 	prevEnv, err := readEnv(envName)
 	if err != nil {
 		return err

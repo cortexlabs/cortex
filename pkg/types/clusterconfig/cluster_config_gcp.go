@@ -348,7 +348,7 @@ func GCPManagedConfigValidations(allowExtraFields bool) *cr.StructValidation {
 	}
 }
 
-var GCPUserValidation = &cr.StructValidation{
+var GCPManagedValidation = &cr.StructValidation{
 	Required:               true,
 	StructFieldValidations: append([]*cr.StructFieldValidation{}, append(GCPBaseConfigStructFieldValidations, GCPManagedConfigStructFieldValidations...)...),
 }
@@ -572,7 +572,7 @@ func InstallGCPPrompt(clusterConfig *GCPConfig, disallowPrompt bool) error {
 // This does not set defaults for fields that are prompted from the user
 func SetGCPDefaults(cc *GCPConfig) error {
 	var emptyMap interface{} = map[interface{}]interface{}{}
-	errs := cr.Struct(cc, emptyMap, GCPUserValidation)
+	errs := cr.Struct(cc, emptyMap, GCPManagedValidation)
 	if errors.HasError(errs) {
 		return errors.FirstError(errs...)
 	}

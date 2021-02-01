@@ -40,10 +40,11 @@ var (
 	Provider         types.ProviderType
 	OperatorMetadata *clusterconfig.OperatorMetadata
 
-	Cluster              *clusterconfig.BaseConfig
-	fullClusterConfig    *clusterconfig.InternalConfig
-	GCPCluster           *clusterconfig.GCPBaseConfig
-	gcpFullClusterConfig *clusterconfig.InternalGCPConfig
+	Cluster           *clusterconfig.BaseConfig     // CoreConfig *clusterconfig.CoreConfig
+	fullClusterConfig *clusterconfig.InternalConfig // managedConfig *clusterconfig.managedConfig
+	// instanceMetadata *clusterconfig.InstanceMetadata
+	GCPCluster           *clusterconfig.GCPBaseConfig     // GCPCoreConfig *clusterconfig.GCPCoreConfig
+	gcpFullClusterConfig *clusterconfig.InternalGCPConfig //
 
 	AWS             *aws.Client
 	GCP             *gcp.Client
@@ -53,14 +54,14 @@ var (
 )
 
 func ManagedConfigOrNil() *clusterconfig.ManagedConfig {
-	if fullClusterConfig != nil {
+	if Cluster.IsManaged {
 		return &fullClusterConfig.ManagedConfig
 	}
 	return nil
 }
 
 func AWSInstanceMetadataOrNil() *aws.InstanceMetadata {
-	if fullClusterConfig != nil {
+	if Cluster.IsManaged {
 		return &fullClusterConfig.InstanceMetadata
 	}
 	return nil
@@ -71,7 +72,7 @@ func FullClusterConfig() *clusterconfig.InternalConfig {
 }
 
 func GCPManagedConfigOrNil() *clusterconfig.GCPManagedConfig {
-	if gcpFullClusterConfig != nil {
+	if GCPCluster.IsManaged {
 		return &gcpFullClusterConfig.GCPManagedConfig
 	}
 	return nil
@@ -144,7 +145,7 @@ func Init() error {
 			return err
 		}
 		if !exists {
-			return errors.ErrorUnexpected("the specified bucket either does not exist", fullClusterConfig.Bucket)
+			return errors.ErrorUnexpected("the specified bucket does not exist", fullClusterConfig.Bucket)
 		}
 	} else {
 		AWS, err = aws.NewAnonymousClient()
@@ -185,21 +186,13 @@ func Init() error {
 		clusterNamespace = GCPCluster.Namespace
 		istioNamespace = GCPCluster.IstioNamespace
 
-		if gcpFullClusterConfig.Bucket == "" {
-			gcpFullClusterConfig.Bucket = clusterconfig.GCPBucketName(gcpFullClusterConfig.ClusterName, *gcpFullClusterConfig.Project, *gcpFullClusterConfig.Zone)
-			err := GCP.CreateBucket(gcpFullClusterConfig.Bucket, gcp.ZoneToRegion(*gcpFullClusterConfig.Zone), true)
-			if err != nil {
-				return err
-			}
-		}
-
 		// If the bucket is specified double check that it exists and the operator has access to it
 		exists, err := GCP.DoesBucketExist(gcpFullClusterConfig.Bucket, gcp.ZoneToRegion(*gcpFullClusterConfig.Zone))
 		if err != nil {
 			return err
 		}
 		if !exists {
-			return errors.ErrorUnexpected("the specified bucket either does not exist", gcpFullClusterConfig.Bucket)
+			return errors.ErrorUnexpected("the specified bucket does not exist", gcpFullClusterConfig.Bucket)
 		}
 	} else {
 		GCP = gcp.NewAnonymousClient()
@@ -207,10 +200,10 @@ func Init() error {
 
 	err = telemetry.Init(telemetry.Config{
 		Enabled: Telemetry(),
-		UserID:  OperatorID(),
+		UserID:  OperatorMetadata.OperatorID,
 		Properties: map[string]string{
-			"cluster_id":  ClusterID(),
-			"operator_id": OperatorID(),
+			"cluster_id":  OperatorMetadata.ClusterID,
+			"operator_id": OperatorMetadata.OperatorID,
 		},
 		Environment: "operator",
 		LogErrors:   true,
@@ -220,15 +213,15 @@ func Init() error {
 		fmt.Println(errors.Message(err))
 	}
 
-	if K8s, err = k8s.New(clusterNamespace, IsOperatorInCluster(), nil); err != nil {
+	if K8s, err = k8s.New(clusterNamespace, OperatorMetadata.IsOperatorInCluster, nil); err != nil {
 		return err
 	}
 
-	if K8sIstio, err = k8s.New(istioNamespace, IsOperatorInCluster(), nil); err != nil {
+	if K8sIstio, err = k8s.New(istioNamespace, OperatorMetadata.IsOperatorInCluster, nil); err != nil {
 		return err
 	}
 
-	if K8sAllNamspaces, err = k8s.New("", IsOperatorInCluster(), nil); err != nil {
+	if K8sAllNamspaces, err = k8s.New("", OperatorMetadata.IsOperatorInCluster, nil); err != nil {
 		return err
 	}
 

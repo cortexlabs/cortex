@@ -53,7 +53,7 @@ func ClientIDMiddleware(next http.Handler) http.Handler {
 			r = r.WithContext(ctx)
 
 			if !_cachedClientIDs.Has(clientID) {
-				telemetry.RecordOperatorID(clientID, config.OperatorID())
+				telemetry.RecordOperatorID(clientID, config.OperatorMetadata.OperatorID)
 				_cachedClientIDs.Add(clientID)
 			}
 		}

@@ -25,18 +25,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/types"
 )
 
-func OperatorID() string {
-	return OperatorMetadata.OperatorID
-}
-
-func ClusterID() string {
-	return OperatorMetadata.ClusterID
-}
-
-func IsOperatorInCluster() bool {
-	return OperatorMetadata.IsOperatorInCluster
-}
-
 func IsManaged() bool {
 	switch Provider {
 	case types.AWSProviderType:
