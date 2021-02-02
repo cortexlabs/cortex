@@ -36,6 +36,7 @@ type ServiceSpec struct {
 	Name        string
 	Port        int32
 	TargetPort  int32
+	ServiceType kcore.ServiceType
 	Selector    map[string]string
 	Labels      map[string]string
 	Annotations map[string]string
@@ -51,6 +52,7 @@ func Service(spec *ServiceSpec) *kcore.Service {
 		},
 		Spec: kcore.ServiceSpec{
 			Selector: spec.Selector,
+			Type:     spec.ServiceType,
 			Ports: []kcore.ServicePort{
 				{
 					Protocol: kcore.ProtocolTCP,
