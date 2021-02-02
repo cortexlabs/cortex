@@ -166,23 +166,24 @@ func autoscaleFn(initialDeployment *kapps.Deployment, apiSpec *spec.API) (func()
 		recs.deleteOlderThan(libtime.MaxDuration(autoscalingSpec.DownscaleStabilizationPeriod, autoscalingSpec.UpscaleStabilizationPeriod))
 
 		request := recommendation
+		var downscaleStabilizationFloor *int32
+		var upscaleStabilizationCeil *int32
 
-		downscaleStabilizationFloor := recs.maxSince(autoscalingSpec.DownscaleStabilizationPeriod)
-		if time.Since(startTime) < autoscalingSpec.DownscaleStabilizationPeriod {
-			if request < currentReplicas {
+		if request < currentReplicas {
+			downscaleStabilizationFloor = recs.maxSince(autoscalingSpec.DownscaleStabilizationPeriod)
+			if time.Since(startTime) < autoscalingSpec.DownscaleStabilizationPeriod {
 				request = currentReplicas
+			} else if downscaleStabilizationFloor != nil && request < *downscaleStabilizationFloor {
+				request = *downscaleStabilizationFloor
 			}
-		} else if downscaleStabilizationFloor != nil && request < *downscaleStabilizationFloor {
-			request = *downscaleStabilizationFloor
 		}
-
-		upscaleStabilizationCeil := recs.minSince(autoscalingSpec.UpscaleStabilizationPeriod)
-		if time.Since(startTime) < autoscalingSpec.UpscaleStabilizationPeriod {
-			if request > currentReplicas {
+		if request > currentReplicas {
+			upscaleStabilizationCeil = recs.minSince(autoscalingSpec.UpscaleStabilizationPeriod)
+			if time.Since(startTime) < autoscalingSpec.UpscaleStabilizationPeriod {
 				request = currentReplicas
+			} else if upscaleStabilizationCeil != nil && request > *upscaleStabilizationCeil {
+				request = *upscaleStabilizationCeil
 			}
-		} else if upscaleStabilizationCeil != nil && request > *upscaleStabilizationCeil {
-			request = *upscaleStabilizationCeil
 		}
 
 		apiLogger.Debugw(fmt.Sprintf("%s autoscaler tick", apiName),
