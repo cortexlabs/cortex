@@ -356,6 +356,13 @@ var GCPAccessValidation = &cr.StructValidation{
 				Validator: validateImageVersion,
 			},
 		},
+		{
+			StructField: "ImagePrometheusStackdriverSidecar",
+			StringValidation: &cr.StringValidation{
+				Default:   "quay.io/cortexlabs/prometheus-stackdriver-sidecar:" + consts.CortexVersion,
+				Validator: validateImageVersion,
+			},
+		},
 	},
 }
 
