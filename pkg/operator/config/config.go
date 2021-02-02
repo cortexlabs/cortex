@@ -37,8 +37,7 @@ import (
 )
 
 const (
-	_clusterConfigPath   = "/configs/cluster/cluster.yaml"
-	DefaultPrometheusURL = "http://prometheus.default:9090"
+	_clusterConfigPath = "/configs/cluster/cluster.yaml"
 )
 
 var (
@@ -94,11 +93,6 @@ func Init() error {
 	Provider, err = clusterconfig.GetClusterProviderType(clusterConfigPath)
 	if err != nil {
 		return err
-	}
-
-	prometheusURL := os.Getenv("CORTEX_PROMETHEUS_URL")
-	if len(prometheusURL) == 0 {
-		prometheusURL = DefaultPrometheusURL
 	}
 
 	if Provider == types.AWSProviderType {
@@ -217,6 +211,11 @@ func Init() error {
 
 	if K8sIstio, err = k8s.New(istioNamespace, OperatorMetadata.IsOperatorInCluster, nil); err != nil {
 		return err
+	}
+
+	prometheusURL := os.Getenv("CORTEX_PROMETHEUS_URL")
+	if len(prometheusURL) == 0 {
+		prometheusURL = fmt.Sprintf("http://prometheus.%s:9090", clusterNamespace)
 	}
 
 	promClient, err := promapi.NewClient(promapi.Config{
