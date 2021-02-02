@@ -61,16 +61,16 @@ function build_python {
   popd
 }
 
-function upload_manifests {
+function upload_charts {
   set -euo pipefail
 
-  echo -e "\nCompressing manifests"
-  tar -czf manifests.tar.gz manifests/
+  echo -e "\nCompressing charts"
+  tar -czf charts.tar.gz charts/
 
-  echo "Uploading compressed manifests to s3://$CLI_BUCKET_NAME/$CORTEX_VERSION/manifests/cortex-$CORTEX_VERSION.tar.gz"
-  aws s3 cp manifests.tar.gz s3://$CLI_BUCKET_NAME/$CORTEX_VERSION/manifests/cortex-$CORTEX_VERSION.tar.gz --only-show-errors
+  echo "Uploading compressed charts to s3://$CLI_BUCKET_NAME/$CORTEX_VERSION/charts/cortex-$CORTEX_VERSION.tar.gz"
+  aws s3 cp charts.tar.gz s3://$CLI_BUCKET_NAME/$CORTEX_VERSION/charts/cortex-$CORTEX_VERSION.tar.gz --only-show-errors
 
-  rm -rf manifests.tar.gz
+  rm -rf charts.tar.gz
 }
 
 build_and_upload darwin
@@ -79,4 +79,4 @@ build_and_upload linux
 
 build_python
 
-upload_manifests
+upload_charts
