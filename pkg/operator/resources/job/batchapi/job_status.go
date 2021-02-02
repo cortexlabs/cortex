@@ -72,11 +72,11 @@ func getJobStatusFromJobState(jobState *job.State, k8sJob *kbatch.Job, pods []kc
 		}
 
 		if jobState.Status == status.JobRunning {
-			metrics, err := getRealTimeBatchMetrics(jobKey)
+			metrics, err := getBatchMetrics(jobKey)
 			if err != nil {
 				return nil, err
 			}
-			jobStatus.BatchMetrics = metrics
+			jobStatus.BatchMetrics = &metrics
 
 			// There can be race conditions where the job state is temporarily out of sync with the cluster state
 			if k8sJob != nil {
@@ -87,11 +87,11 @@ func getJobStatusFromJobState(jobState *job.State, k8sJob *kbatch.Job, pods []kc
 	}
 
 	if jobState.Status.IsCompleted() {
-		metrics, err := getCompletedBatchMetrics(jobKey, jobSpec.StartTime, *jobState.EndTime)
+		metrics, err := getBatchMetrics(jobKey)
 		if err != nil {
 			return nil, err
 		}
-		jobStatus.BatchMetrics = metrics
+		jobStatus.BatchMetrics = &metrics
 	}
 
 	return &jobStatus, nil

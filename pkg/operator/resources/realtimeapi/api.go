@@ -24,7 +24,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/parallel"
-	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 	"github.com/cortexlabs/cortex/pkg/operator/lib/routines"
 	"github.com/cortexlabs/cortex/pkg/operator/operator"
@@ -74,12 +73,12 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string, force bool) (*spec.A
 			return nil, "", err
 		}
 
-		if config.Provider == types.AWSProviderType {
-			err = addAPIToDashboard(config.ClusterName(), api.Name)
-			if err != nil {
-				errors.PrintError(err)
-			}
-		}
+		//if config.Provider == types.AWSProviderType {
+		//	err = addAPIToDashboard(config.ClusterName(), api.Name)
+		//	if err != nil {
+		//		errors.PrintError(err)
+		//	}
+		//}
 
 		return api, fmt.Sprintf("creating %s", api.Resource.UserString()), nil
 	}
@@ -178,24 +177,24 @@ func DeleteAPI(apiName string, keepCache bool) error {
 			return nil
 		},
 		// delete api from cloudwatch dashboard
-		func() error {
-			if config.Provider == types.AWSProviderType {
-				virtualServices, err := config.K8s.ListVirtualServicesByLabel("apiKind", userconfig.RealtimeAPIKind.String())
-				if err != nil {
-					return errors.Wrap(err, "failed to get virtual services")
-				}
-				// extract all api names from statuses
-				allAPINames := make([]string, len(virtualServices))
-				for i, virtualService := range virtualServices {
-					allAPINames[i] = virtualService.Labels["apiName"]
-				}
-				err = removeAPIFromDashboard(allAPINames, config.ClusterName(), apiName)
-				if err != nil {
-					return errors.Wrap(err, "failed to delete API from dashboard")
-				}
-			}
-			return nil
-		},
+		//func() error {
+		//	if config.Provider == types.AWSProviderType {
+		//		virtualServices, err := config.K8s.ListVirtualServicesByLabel("apiKind", userconfig.RealtimeAPIKind.String())
+		//		if err != nil {
+		//			return errors.Wrap(err, "failed to get virtual services")
+		//		}
+		//		// extract all api names from statuses
+		//		allAPINames := make([]string, len(virtualServices))
+		//		for i, virtualService := range virtualServices {
+		//			allAPINames[i] = virtualService.Labels["apiName"]
+		//		}
+		//		err = removeAPIFromDashboard(allAPINames, config.ClusterName(), apiName)
+		//		if err != nil {
+		//			return errors.Wrap(err, "failed to delete API from dashboard")
+		//		}
+		//	}
+		//	return nil
+		//},
 	)
 
 	if err != nil {
@@ -274,18 +273,18 @@ func GetAPIByName(deployedResource *operator.DeployedResource) ([]schema.APIResp
 		return nil, err
 	}
 
-	var dashboardURL *string
-	if config.Provider == types.AWSProviderType {
-		dashboardURL = pointer.String(DashboardURL())
-	}
+	//var dashboardURL *string
+	//if config.Provider == types.AWSProviderType {
+	//	dashboardURL = pointer.String(DashboardURL())
+	//}
 
 	return []schema.APIResponse{
 		{
-			Spec:         *api,
-			Status:       status,
-			Metrics:      metrics,
-			Endpoint:     apiEndpoint,
-			DashboardURL: dashboardURL,
+			Spec:     *api,
+			Status:   status,
+			Metrics:  metrics,
+			Endpoint: apiEndpoint,
+			//DashboardURL: dashboardURL,
 		},
 	}, nil
 }

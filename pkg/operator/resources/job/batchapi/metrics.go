@@ -17,216 +17,129 @@ limitations under the License.
 package batchapi
 
 import (
+	"context"
+	"fmt"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/cloudwatch"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/parallel"
-	"github.com/cortexlabs/cortex/pkg/lib/slices"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 	"github.com/cortexlabs/cortex/pkg/types/metrics"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
+	promv1 "github.com/prometheus/client_golang/api/prometheus/v1"
+	"github.com/prometheus/common/model"
 )
 
-// Find data retention period at https://aws.amazon.com/cloudwatch/faqs/
+const (
+	_metricsRequestTimeoutSeconds = 10
+)
 
-func getCompletedBatchMetrics(jobKey spec.JobKey, startTime time.Time, endTime time.Time) (*metrics.BatchMetrics, error) {
-	batchMetrics := metrics.BatchMetrics{}
+func getBatchMetrics(jobKey spec.JobKey) (metrics.BatchMetrics, error) {
+	var (
+		jobBatchesSucceeded float64
+		jobBatchesFailed    float64
+		avgTimePerBatch     *float64
+	)
 
-	if time.Now().Sub(endTime) < 2*time.Hour {
-		return getRealTimeBatchMetrics(jobKey)
-	}
-
-	minimumEndTime := time.Now()
-	if time.Now().Sub(endTime) > 2*time.Minute {
-		minimumEndTime = endTime.Add(2 * time.Minute)
-	}
-
-	err := getMetricsFunc(&jobKey, 60*60, &startTime, &minimumEndTime, &batchMetrics)()
-	if err != nil {
-		return nil, err
-	}
-
-	return &batchMetrics, nil
-}
-
-func getRealTimeBatchMetrics(jobKey spec.JobKey) (*metrics.BatchMetrics, error) {
-	// Get realtime metrics for the seconds elapsed in the latest minute
-	realTimeEnd := time.Now().Truncate(time.Second)
-	realTimeStart := realTimeEnd.Truncate(time.Minute)
-
-	realTimeMetrics := metrics.BatchMetrics{}
-	batchMetrics := metrics.BatchMetrics{}
-	requestList := []func() error{}
-
-	if realTimeStart.Before(realTimeEnd) {
-		requestList = append(requestList, getMetricsFunc(&jobKey, 1, &realTimeStart, &realTimeEnd, &realTimeMetrics))
-	}
-
-	batchEnd := realTimeStart
-	batchStart := batchEnd.Add(-14 * 24 * time.Hour) // two weeks ago
-	requestList = append(requestList, getMetricsFunc(&jobKey, 60*60, &batchStart, &batchEnd, &batchMetrics))
-
-	err := parallel.RunFirstErr(requestList[0], requestList[1:]...)
-	if err != nil {
-		return nil, err
-	}
-
-	mergedMetrics := realTimeMetrics.Merge(batchMetrics)
-	return &mergedMetrics, nil
-}
-
-func getMetricsFunc(jobKey *spec.JobKey, period int64, startTime *time.Time, endTime *time.Time, metrics *metrics.BatchMetrics) func() error {
-	return func() error {
-		metricDataResults, err := queryMetrics(jobKey, period, startTime, endTime)
-		if err != nil {
+	err := parallel.RunFirstErr(
+		func() error {
+			var err error
+			jobBatchesSucceeded, err = getSucceededBatchesForJobMetric(config.Prometheus, jobKey)
 			return err
-		}
-
-		batchMetrics, err := extractJobStats(metricDataResults)
-		if err != nil {
+		},
+		func() error {
+			var err error
+			jobBatchesFailed, err = getFailedBatchesForJobMetric(config.Prometheus, jobKey)
 			return err
-		}
-
-		metrics.MergeInPlace(*batchMetrics)
-
-		return nil
-	}
-}
-
-func queryMetrics(jobKey *spec.JobKey, period int64, startTime *time.Time, endTime *time.Time) ([]*cloudwatch.MetricDataResult, error) {
-	allMetrics := batchMetricsDef(jobKey, period)
-
-	metricsDataQuery := cloudwatch.GetMetricDataInput{
-		EndTime:           endTime,
-		StartTime:         startTime,
-		MetricDataQueries: allMetrics,
-	}
-	output, err := config.AWS.CloudWatch().GetMetricData(&metricsDataQuery)
-	if err != nil {
-		return nil, errors.WithStack(err)
-	}
-	return output.MetricDataResults, nil
-}
-
-func extractJobStats(metricsDataResults []*cloudwatch.MetricDataResult) (*metrics.BatchMetrics, error) {
-	var jobStats metrics.BatchMetrics
-	var batchCounts []*float64
-	var latencyAvgs []*float64
-
-	for _, metricData := range metricsDataResults {
-		if metricData.Values == nil {
-			continue
-		}
-
-		switch {
-		case *metricData.Label == "Succeeded":
-			jobStats.Succeeded = slices.Float64PtrSumInt(metricData.Values...)
-		case *metricData.Label == "Failed":
-			jobStats.Failed = slices.Float64PtrSumInt(metricData.Values...)
-		case *metricData.Label == "AverageTimePerBatch":
-			latencyAvgs = metricData.Values
-		case *metricData.Label == "Total":
-			batchCounts = metricData.Values
-		}
-	}
-
-	avg, err := slices.Float64PtrAvg(latencyAvgs, batchCounts)
-	if err != nil {
-		return nil, err
-	}
-	jobStats.AverageTimePerBatch = avg
-
-	return &jobStats, nil
-}
-
-func getJobDimensions(jobKey *spec.JobKey) []*cloudwatch.Dimension {
-	return []*cloudwatch.Dimension{
-		{
-			Name:  aws.String("APIName"),
-			Value: aws.String(jobKey.APIName),
 		},
-		{
-			Name:  aws.String("JobID"),
-			Value: aws.String(jobKey.ID),
-		},
-	}
-}
-
-func getJobDimensionsCounter(jobKey *spec.JobKey) []*cloudwatch.Dimension {
-	return append(
-		getJobDimensions(jobKey),
-		&cloudwatch.Dimension{
-			Name:  aws.String("metric_type"),
-			Value: aws.String("counter"),
+		func() error {
+			var err error
+			avgTimePerBatch, err = getAvgTimePerBatchMetric(config.Prometheus, jobKey)
+			return err
 		},
 	)
-}
-
-func getJobDimensionsHistogram(jobKey *spec.JobKey) []*cloudwatch.Dimension {
-	return append(
-		getJobDimensions(jobKey),
-		&cloudwatch.Dimension{
-			Name:  aws.String("metric_type"),
-			Value: aws.String("histogram"),
-		},
-	)
-}
-
-func batchMetricsDef(jobKey *spec.JobKey, period int64) []*cloudwatch.MetricDataQuery {
-	return []*cloudwatch.MetricDataQuery{
-		{
-			Id:    aws.String("succeeded"),
-			Label: aws.String("Succeeded"),
-			MetricStat: &cloudwatch.MetricStat{
-				Metric: &cloudwatch.Metric{
-					Namespace:  aws.String(config.ClusterName()),
-					MetricName: aws.String("Succeeded"),
-					Dimensions: getJobDimensionsCounter(jobKey),
-				},
-				Stat:   aws.String("Sum"),
-				Period: aws.Int64(period),
-			},
-		},
-		{
-			Id:    aws.String("failed"),
-			Label: aws.String("Failed"),
-			MetricStat: &cloudwatch.MetricStat{
-				Metric: &cloudwatch.Metric{
-					Namespace:  aws.String(config.ClusterName()),
-					MetricName: aws.String("Failed"),
-					Dimensions: getJobDimensionsCounter(jobKey),
-				},
-				Stat:   aws.String("Sum"),
-				Period: aws.Int64(period),
-			},
-		},
-		{
-			Id:    aws.String("average_time_per_batch"),
-			Label: aws.String("AverageTimePerBatch"),
-			MetricStat: &cloudwatch.MetricStat{
-				Metric: &cloudwatch.Metric{
-					Namespace:  aws.String(config.ClusterName()),
-					MetricName: aws.String("TimePerBatch"),
-					Dimensions: getJobDimensionsHistogram(jobKey),
-				},
-				Stat:   aws.String("Average"),
-				Period: aws.Int64(period),
-			},
-		},
-		{
-			Id:    aws.String("total"),
-			Label: aws.String("Total"),
-			MetricStat: &cloudwatch.MetricStat{
-				Metric: &cloudwatch.Metric{
-					Namespace:  aws.String(config.ClusterName()),
-					MetricName: aws.String("TimePerBatch"),
-					Dimensions: getJobDimensionsHistogram(jobKey),
-				},
-				Stat:   aws.String("SampleCount"),
-				Period: aws.Int64(period),
-			},
-		},
+	if err != nil {
+		return metrics.BatchMetrics{}, err
 	}
+
+	return metrics.BatchMetrics{
+		Succeeded:           int(jobBatchesSucceeded),
+		Failed:              int(jobBatchesFailed),
+		AverageTimePerBatch: avgTimePerBatch,
+	}, nil
+}
+
+func getSucceededBatchesForJobMetric(promAPIv1 promv1.API, jobKey spec.JobKey) (float64, error) {
+	query := fmt.Sprintf(
+		"cortex_batch_succeeded{api_name=\"%s\", job_id=\"%s\"}",
+		jobKey.APIName, jobKey.ID,
+	)
+
+	values, err := queryPrometheusVec(promAPIv1, query)
+	if err != nil {
+		return 0, err
+	}
+
+	if values.Len() == 0 {
+		return 0, nil
+	}
+
+	succeededBatches := float64(values[0].Value)
+	return succeededBatches, nil
+}
+
+func getFailedBatchesForJobMetric(promAPIv1 promv1.API, jobKey spec.JobKey) (float64, error) {
+	query := fmt.Sprintf(
+		"cortex_batch_failed{api_name=\"%s\", job_id=\"%s\"}",
+		jobKey.APIName, jobKey.ID,
+	)
+
+	values, err := queryPrometheusVec(promAPIv1, query)
+	if err != nil {
+		return 0, err
+	}
+
+	if values.Len() == 0 {
+		return 0, nil
+	}
+
+	failedBatches := float64(values[0].Value)
+	return failedBatches, nil
+}
+
+func getAvgTimePerBatchMetric(promAPIv1 promv1.API, jobKey spec.JobKey) (*float64, error) {
+	query := fmt.Sprintf(
+		"cortex_time_per_batch_sum{api_name=\"%s\", job_id=\"%s\"} / cortex_time_per_batch_count{api_name=\"%s\", job_id=\"%s\"}",
+		jobKey.APIName, jobKey.ID,
+		jobKey.APIName, jobKey.ID,
+	)
+
+	values, err := queryPrometheusVec(promAPIv1, query)
+	if err != nil {
+		return nil, err
+	}
+
+	if values.Len() == 0 {
+		return nil, nil
+	}
+
+	avgTimePerBatch := float64(values[0].Value)
+	return &avgTimePerBatch, nil
+}
+
+func queryPrometheusVec(promAPIv1 promv1.API, query string) (model.Vector, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), _metricsRequestTimeoutSeconds*time.Second)
+	defer cancel()
+
+	valuesQuery, err := promAPIv1.Query(ctx, query, time.Now())
+	if err != nil {
+		return nil, err
+	}
+
+	values, ok := valuesQuery.(model.Vector)
+	if !ok {
+		return nil, errors.ErrorUnexpected("failed to convert metric to vector")
+	}
+
+	return values, nil
 }

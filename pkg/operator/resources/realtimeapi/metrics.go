@@ -17,18 +17,22 @@ limitations under the License.
 package realtimeapi
 
 import (
-	"strings"
+	"context"
+	"fmt"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/cloudwatch"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/parallel"
-	"github.com/cortexlabs/cortex/pkg/lib/slices"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
-	"github.com/cortexlabs/cortex/pkg/types"
 	"github.com/cortexlabs/cortex/pkg/types/metrics"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
+	promv1 "github.com/prometheus/client_golang/api/prometheus/v1"
+	"github.com/prometheus/common/model"
+)
+
+const (
+	_metricsWindowHours    = 336 // 2 weeks
+	_metricsRequestTimeout = 10  // seconds
 )
 
 func GetMultipleMetrics(apis []spec.API) ([]metrics.Metrics, error) {
@@ -39,11 +43,11 @@ func GetMultipleMetrics(apis []spec.API) ([]metrics.Metrics, error) {
 		localIdx := i
 		api := apis[i]
 		fns[i] = func() error {
-			metrics, err := GetMetrics(&api)
+			apiMetrics, err := GetMetrics(&api)
 			if err != nil {
 				return err
 			}
-			allMetrics[localIdx] = *metrics
+			allMetrics[localIdx] = *apiMetrics
 			return nil
 		}
 	}
@@ -59,204 +63,168 @@ func GetMultipleMetrics(apis []spec.API) ([]metrics.Metrics, error) {
 }
 
 func GetMetrics(api *spec.API) (*metrics.Metrics, error) {
-	if config.Provider != types.AWSProviderType {
-		return &metrics.Metrics{}, nil
-	}
+	var (
+		reqCount       float64
+		avgLatency     *float64
+		statusCodes2XX float64
+		statusCodes4XX float64
+		statusCodes5XX float64
+	)
 
-	// Get realtime metrics for the seconds elapsed in the latest minute
-	realTimeEnd := time.Now().Truncate(time.Second)
-	realTimeStart := realTimeEnd.Truncate(time.Minute)
+	err := parallel.RunFirstErr(
+		func() error {
+			var err error
+			reqCount, err = getRequestCountMetric(config.Prometheus, *api)
+			return err
+		},
+		func() error {
+			var err error
+			avgLatency, err = getAvgLatencyMetric(config.Prometheus, *api)
+			return err
+		},
+		func() error {
+			var err error
+			statusCodes2XX, err = getStatusCode2XXMetric(config.Prometheus, *api)
+			return err
+		},
+		func() error {
+			var err error
+			statusCodes4XX, err = getStatusCode4XXMetric(config.Prometheus, *api)
+			return err
+		},
+		func() error {
+			var err error
+			statusCodes5XX, err = getStatusCode5XXMetric(config.Prometheus, *api)
+			return err
+		},
+	)
 
-	realTimeMetrics := metrics.Metrics{}
-	batchMetrics := metrics.Metrics{}
-	requestList := []func() error{}
-
-	if realTimeStart.Before(realTimeEnd) {
-		requestList = append(requestList, getMetricsFunc(api, 1, &realTimeStart, &realTimeEnd, &realTimeMetrics))
-	}
-
-	batchEnd := realTimeStart
-	batchStart := batchEnd.Add(-14 * 24 * time.Hour) // two weeks ago
-	requestList = append(requestList, getMetricsFunc(api, 60*60, &batchStart, &batchEnd, &batchMetrics))
-
-	err := parallel.RunFirstErr(requestList[0], requestList[1:]...)
 	if err != nil {
 		return nil, err
 	}
 
-	mergedMetrics := realTimeMetrics.Merge(batchMetrics)
-	mergedMetrics.APIName = api.Name
-	return &mergedMetrics, nil
+	return &metrics.Metrics{
+		APIName: api.Name,
+		NetworkStats: &metrics.NetworkStats{
+			Latency: avgLatency,
+			Code2XX: int(statusCodes2XX),
+			Code4XX: int(statusCodes4XX),
+			Code5XX: int(statusCodes5XX),
+			Total:   int(reqCount),
+		},
+	}, nil
 }
 
-func getMetricsFunc(api *spec.API, period int64, startTime *time.Time, endTime *time.Time, metrics *metrics.Metrics) func() error {
-	return func() error {
-		metricDataResults, err := queryMetrics(api, period, startTime, endTime)
-		if err != nil {
-			return err
-		}
-		networkStats, err := extractNetworkMetrics(metricDataResults)
-		if err != nil {
-			return err
-		}
-		metrics.NetworkStats = networkStats
+func getRequestCountMetric(promAPIv1 promv1.API, apiSpec spec.API) (float64, error) {
+	query := fmt.Sprintf(
+		"sum(cortex_status_code{api_name=\"%s\", api_id=\"%s\"} >= 0)",
+		apiSpec.Name, apiSpec.ID,
+	)
 
-		return nil
-	}
-}
-
-func queryMetrics(api *spec.API, period int64, startTime *time.Time, endTime *time.Time) ([]*cloudwatch.MetricDataResult, error) {
-	allMetrics := getNetworkStatsDef(api, period)
-
-	metricsDataQuery := cloudwatch.GetMetricDataInput{
-		EndTime:           endTime,
-		StartTime:         startTime,
-		MetricDataQueries: allMetrics,
-	}
-	output, err := config.AWS.CloudWatch().GetMetricData(&metricsDataQuery)
+	values, err := queryPrometheusVec(promAPIv1, query)
 	if err != nil {
-		return nil, errors.WithStack(err)
+		return 0, err
 	}
-	return output.MetricDataResults, nil
+
+	if values.Len() == 0 {
+		return 0, nil
+	}
+
+	requestCount := float64(values[0].Value)
+	return requestCount, nil
 }
 
-func extractNetworkMetrics(metricsDataResults []*cloudwatch.MetricDataResult) (*metrics.NetworkStats, error) {
-	var networkStats metrics.NetworkStats
-	var requestCounts []*float64
-	var latencyAvgs []*float64
+func getAvgLatencyMetric(promAPIv1 promv1.API, apiSpec spec.API) (*float64, error) {
+	query := fmt.Sprintf(
+		"rate(cortex_latency_sum{api_name=\"%s\", api_id=\"%s\"}[%dh]) "+
+			"/ rate(cortex_latency_count{api_name=\"%s\", api_id=\"%s\"}[%dh]) >= 0",
+		apiSpec.Name, apiSpec.ID, _metricsWindowHours,
+		apiSpec.Name, apiSpec.ID, _metricsWindowHours,
+	)
 
-	for _, metricData := range metricsDataResults {
-		if metricData.Values == nil {
-			continue
-		}
-
-		switch {
-		case *metricData.Label == "2XX":
-			networkStats.Code2XX = slices.Float64PtrSumInt(metricData.Values...)
-		case *metricData.Label == "4XX":
-			networkStats.Code4XX = slices.Float64PtrSumInt(metricData.Values...)
-		case *metricData.Label == "5XX":
-			networkStats.Code5XX = slices.Float64PtrSumInt(metricData.Values...)
-		case *metricData.Label == "Latency":
-			latencyAvgs = metricData.Values
-		case *metricData.Label == "RequestCount":
-			requestCounts = metricData.Values
-		}
-	}
-
-	avg, err := slices.Float64PtrAvg(latencyAvgs, requestCounts)
+	values, err := queryPrometheusVec(promAPIv1, query)
 	if err != nil {
 		return nil, err
 	}
-	networkStats.Latency = avg
 
-	networkStats.Total = networkStats.Code2XX + networkStats.Code4XX + networkStats.Code5XX
-	return &networkStats, nil
-}
-
-func extractClassificationMetrics(metricsDataResults []*cloudwatch.MetricDataResult) map[string]int {
-	classDistribution := map[string]int{}
-	for _, metricData := range metricsDataResults {
-		if metricData.Values == nil {
-			continue
-		}
-
-		if strings.HasPrefix(*metricData.Label, "class_") {
-			className := (*metricData.Label)[len("class_"):]
-			classDistribution[className] = slices.Float64PtrSumInt(metricData.Values...)
-		}
+	if values.Len() == 0 {
+		return nil, nil
 	}
-	return classDistribution
+
+	avgLatency := float64(values[0].Value)
+	return &avgLatency, nil
 }
 
-func getAPIDimensions(api *spec.API) []*cloudwatch.Dimension {
-	return []*cloudwatch.Dimension{
-		{
-			Name:  aws.String("APIName"),
-			Value: aws.String(api.Name),
-		},
-		{
-			Name:  aws.String("PredictorID"),
-			Value: aws.String(api.PredictorID),
-		},
-		{
-			Name:  aws.String("DeploymentID"),
-			Value: aws.String(api.DeploymentID),
-		},
-	}
-}
-
-func getAPIDimensionsCounter(api *spec.API) []*cloudwatch.Dimension {
-	return append(
-		getAPIDimensions(api),
-		&cloudwatch.Dimension{
-			Name:  aws.String("metric_type"),
-			Value: aws.String("counter"),
-		},
+func getStatusCode2XXMetric(promAPIv1 promv1.API, apiSpec spec.API) (float64, error) {
+	query := fmt.Sprintf(
+		"sum(cortex_status_code{api_name=\"%s\", api_id=\"%s\", response_code=\"2XX\"} >= 0)",
+		apiSpec.Name, apiSpec.ID,
 	)
+
+	values, err := queryPrometheusVec(promAPIv1, query)
+	if err != nil {
+		return 0, err
+	}
+
+	if values.Len() == 0 {
+		return 0, nil
+	}
+
+	statusCodes2XX := float64(values[0].Value)
+	return statusCodes2XX, nil
 }
 
-func getAPIDimensionsHistogram(api *spec.API) []*cloudwatch.Dimension {
-	return append(
-		getAPIDimensions(api),
-		&cloudwatch.Dimension{
-			Name:  aws.String("metric_type"),
-			Value: aws.String("histogram"),
-		},
+func getStatusCode4XXMetric(promAPIv1 promv1.API, apiSpec spec.API) (float64, error) {
+	query := fmt.Sprintf(
+		"sum(cortex_status_code{api_name=\"%s\", api_id=\"%s\", response_code=\"4XX\"} >= 0)",
+		apiSpec.Name, apiSpec.ID,
 	)
+
+	values, err := queryPrometheusVec(promAPIv1, query)
+	if err != nil {
+		return 0, err
+	}
+
+	if values.Len() == 0 {
+		return 0, nil
+	}
+
+	statusCodes4XX := float64(values[0].Value)
+	return statusCodes4XX, nil
 }
 
-func getNetworkStatsDef(api *spec.API, period int64) []*cloudwatch.MetricDataQuery {
-	statusCodes := []string{"2XX", "4XX", "5XX"}
-	networkDataQueries := make([]*cloudwatch.MetricDataQuery, len(statusCodes)+2)
+func getStatusCode5XXMetric(promAPIv1 promv1.API, apiSpec spec.API) (float64, error) {
+	query := fmt.Sprintf(
+		"sum(cortex_status_code{api_name=\"%s\", api_id=\"%s\", response_code=\"5XX\"} >= 0)",
+		apiSpec.Name, apiSpec.ID,
+	)
 
-	for i, code := range statusCodes {
-		dimensions := getAPIDimensionsCounter(api)
-		statusCodeDimensions := append(dimensions, &cloudwatch.Dimension{
-			Name:  aws.String("Code"),
-			Value: aws.String(code),
-		})
-		networkDataQueries[i] = &cloudwatch.MetricDataQuery{
-			Id:    aws.String("datapoints_" + code),
-			Label: aws.String(code),
-			MetricStat: &cloudwatch.MetricStat{
-				Metric: &cloudwatch.Metric{
-					Namespace:  aws.String(config.ClusterName()),
-					MetricName: aws.String("StatusCode"),
-					Dimensions: statusCodeDimensions,
-				},
-				Stat:   aws.String("Sum"),
-				Period: aws.Int64(period),
-			},
-		}
+	values, err := queryPrometheusVec(promAPIv1, query)
+	if err != nil {
+		return 0, err
 	}
 
-	networkDataQueries[3] = &cloudwatch.MetricDataQuery{
-		Id:    aws.String("latency"),
-		Label: aws.String("Latency"),
-		MetricStat: &cloudwatch.MetricStat{
-			Metric: &cloudwatch.Metric{
-				Namespace:  aws.String(config.ClusterName()),
-				MetricName: aws.String("Latency"),
-				Dimensions: getAPIDimensionsHistogram(api),
-			},
-			Stat:   aws.String("Average"),
-			Period: aws.Int64(period),
-		},
+	if values.Len() == 0 {
+		return 0, nil
 	}
 
-	networkDataQueries[4] = &cloudwatch.MetricDataQuery{
-		Id:    aws.String("request_count"),
-		Label: aws.String("RequestCount"),
-		MetricStat: &cloudwatch.MetricStat{
-			Metric: &cloudwatch.Metric{
-				Namespace:  aws.String(config.ClusterName()),
-				MetricName: aws.String("Latency"),
-				Dimensions: getAPIDimensionsHistogram(api),
-			},
-			Stat:   aws.String("SampleCount"),
-			Period: aws.Int64(period),
-		},
+	statusCodes5XX := float64(values[0].Value)
+	return statusCodes5XX, nil
+}
+
+func queryPrometheusVec(promAPIv1 promv1.API, query string) (model.Vector, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), _metricsRequestTimeout*time.Second)
+	defer cancel()
+
+	valuesQuery, err := promAPIv1.Query(ctx, query, time.Now())
+	if err != nil {
+		return nil, err
 	}
-	return networkDataQueries
+
+	values, ok := valuesQuery.(model.Vector)
+	if !ok {
+		return nil, errors.ErrorUnexpected("failed to convert metric to vector")
+	}
+
+	return values, nil
 }

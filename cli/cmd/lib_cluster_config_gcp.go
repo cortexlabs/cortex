@@ -54,15 +54,6 @@ func existingCachedGCPClusterConfigPaths() []string {
 	return matches
 }
 
-func readCachedGCPClusterConfigFile(clusterConfig *clusterconfig.GCPConfig, filePath string) error {
-	errs := cr.ParseYAMLFile(clusterConfig, clusterconfig.GCPManagedValidation, filePath)
-	if errors.HasError(errs) {
-		return errors.FirstError(errs...)
-	}
-
-	return nil
-}
-
 func readUserGCPClusterConfigFile(clusterConfig *clusterconfig.GCPConfig) error {
 	errs := cr.ParseYAMLFile(clusterConfig, clusterconfig.GCPManagedValidation, _flagClusterGCPConfig)
 	if errors.HasError(errs) {

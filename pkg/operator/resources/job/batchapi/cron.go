@@ -301,7 +301,7 @@ func checkIfJobCompleted(jobKey spec.JobKey, queueURL string, k8sJob *kbatch.Job
 
 	if !queueMessages.IsEmpty() {
 		// Give time for queue metrics to reach consistency
-		if int(k8sJob.Status.Active) == 0 {
+		if k8sJob != nil && int(k8sJob.Status.Active) == 0 {
 			if _jobsToDelete.Has(jobKey.ID) {
 				_jobsToDelete.Remove(jobKey.ID)
 				jobLogger.Error("unexpected job status because cluster state indicates job has completed but metrics indicate that job is still in progress")
@@ -315,7 +315,7 @@ func checkIfJobCompleted(jobKey spec.JobKey, queueURL string, k8sJob *kbatch.Job
 		return nil
 	}
 
-	batchMetrics, err := getRealTimeBatchMetrics(jobKey)
+	batchMetrics, err := getBatchMetrics(jobKey)
 	if err != nil {
 		return err
 	}
@@ -366,22 +366,31 @@ func checkForJobFailure(jobKey spec.JobKey, k8sJob *kbatch.Job) (bool, error) {
 				deleteJobRuntimeResources(jobKey),
 			)
 		}
-		podStatus := k8s.GetPodStatus(&pod)
-		for _, containerStatus := range pod.Status.ContainerStatuses {
-			if containerStatus.LastTerminationState.Terminated != nil {
-				exitCode := containerStatus.LastTerminationState.Terminated.ExitCode
-				reason := strings.ToLower(containerStatus.LastTerminationState.Terminated.Reason)
-				jobLogger.Errorf("at least one worker had status %s and terminated for reason %s (exit_code=%d)", string(podStatus), reason, exitCode)
-				reasonFound = true
-			} else if containerStatus.State.Terminated != nil {
-				exitCode := containerStatus.State.Terminated.ExitCode
-				reason := strings.ToLower(containerStatus.State.Terminated.Reason)
-				jobLogger.Errorf("at least one worker had status %s and terminated for reason %s (exit_code=%d)", string(podStatus), reason, exitCode)
-				reasonFound = true
+		if k8sJob != nil && int(k8sJob.Status.Failed) > 0 {
+			podStatus := k8s.GetPodStatus(&pod)
+			for _, containerStatus := range pod.Status.ContainerStatuses {
+				if containerStatus.LastTerminationState.Terminated != nil {
+					exitCode := containerStatus.LastTerminationState.Terminated.ExitCode
+					reason := containerStatus.LastTerminationState.Terminated.Reason
+					if reason != k8s.ReasonCompleted || exitCode != 0 {
+						jobLogger.Errorf("at least one worker had status %s and terminated for reason %s (exit_code=%d)", string(podStatus), strings.ToLower(reason), exitCode)
+						reasonFound = true
+					}
+				} else if containerStatus.State.Terminated != nil {
+					exitCode := containerStatus.State.Terminated.ExitCode
+					reason := containerStatus.State.Terminated.Reason
+					if reason != k8s.ReasonCompleted || exitCode != 0 {
+						jobLogger.Errorf("at least one worker had status %s and terminated for reason %s (exit_code=%d)", string(podStatus), strings.ToLower(reason), exitCode)
+						reasonFound = true
+					}
+				}
 			}
 		}
 	}
 
+	if k8sJob == nil {
+		return false, nil
+	}
 	if int(k8sJob.Status.Failed) > 0 {
 		if !reasonFound {
 			jobLogger.Error("workers were killed for unknown reason")

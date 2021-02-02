@@ -42,6 +42,7 @@ var _podTypeMeta = kmeta.TypeMeta{
 const (
 	ReasonEvicted   = "Evicted"
 	ReasonOOMKilled = "OOMKilled"
+	ReasonCompleted = "Completed"
 )
 
 type PodStatus string

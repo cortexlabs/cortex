@@ -13,12 +13,12 @@
 # limitations under the License.
 
 import sys
+
 import yaml
-import os
-import collections
 
 
-# kubelet config schema: https://github.com/kubernetes/kubernetes/blob/master/staging/src/k8s.io/kubelet/config/v1beta1/types.go
+# kubelet config schema:
+# https://github.com/kubernetes/kubernetes/blob/master/staging/src/k8s.io/kubelet/config/v1beta1/types.go
 def default_nodegroup(cluster_config):
     return {
         "ami": "auto",
@@ -160,9 +160,9 @@ def generate_eks(cluster_config_path):
     operator_settings = {
         "name": "ng-cortex-operator",
         "instanceType": "t3.medium",
-        "minSize": 1,
-        "maxSize": 1,
-        "desiredCapacity": 1,
+        "minSize": 2,
+        "maxSize": 2,
+        "desiredCapacity": 2,
     }
     operator_nodegroup = merge_override(operator_nodegroup, operator_settings)
 
@@ -192,7 +192,7 @@ def generate_eks(cluster_config_path):
         "metadata": {
             "name": cluster_config["cluster_name"],
             "region": cluster_config["region"],
-            "version": "1.17",
+            "version": "1.18",
             "tags": cluster_config["tags"],
         },
         "vpc": {"nat": {"gateway": nat_gateway}},

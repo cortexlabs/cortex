@@ -62,19 +62,23 @@ type BaseConfig struct {
 	Namespace      string             `json:"namespace" yaml:"namespace"`
 	IstioNamespace string             `json:"istio_namespace" yaml:"istio_namespace"`
 
-	ImageOperator          string `json:"image_operator" yaml:"image_operator"`
-	ImageManager           string `json:"image_manager" yaml:"image_manager"`
-	ImageDownloader        string `json:"image_downloader" yaml:"image_downloader"`
-	ImageRequestMonitor    string `json:"image_request_monitor" yaml:"image_request_monitor"`
-	ImageClusterAutoscaler string `json:"image_cluster_autoscaler" yaml:"image_cluster_autoscaler"`
-	ImageMetricsServer     string `json:"image_metrics_server" yaml:"image_metrics_server"`
-	ImageInferentia        string `json:"image_inferentia" yaml:"image_inferentia"`
-	ImageNeuronRTD         string `json:"image_neuron_rtd" yaml:"image_neuron_rtd"`
-	ImageNvidia            string `json:"image_nvidia" yaml:"image_nvidia"`
-	ImageFluentBit         string `json:"image_fluent_bit" yaml:"image_fluent_bit"`
-	ImageStatsd            string `json:"image_statsd" yaml:"image_statsd"`
-	ImageIstioProxy        string `json:"image_istio_proxy" yaml:"image_istio_proxy"`
-	ImageIstioPilot        string `json:"image_istio_pilot" yaml:"image_istio_pilot"`
+	ImageOperator                 string `json:"image_operator" yaml:"image_operator"`
+	ImageManager                  string `json:"image_manager" yaml:"image_manager"`
+	ImageDownloader               string `json:"image_downloader" yaml:"image_downloader"`
+	ImageRequestMonitor           string `json:"image_request_monitor" yaml:"image_request_monitor"`
+	ImageClusterAutoscaler        string `json:"image_cluster_autoscaler" yaml:"image_cluster_autoscaler"`
+	ImageMetricsServer            string `json:"image_metrics_server" yaml:"image_metrics_server"`
+	ImageInferentia               string `json:"image_inferentia" yaml:"image_inferentia"`
+	ImageNeuronRTD                string `json:"image_neuron_rtd" yaml:"image_neuron_rtd"`
+	ImageNvidia                   string `json:"image_nvidia" yaml:"image_nvidia"`
+	ImageFluentBit                string `json:"image_fluent_bit" yaml:"image_fluent_bit"`
+	ImageIstioProxy               string `json:"image_istio_proxy" yaml:"image_istio_proxy"`
+	ImageIstioPilot               string `json:"image_istio_pilot" yaml:"image_istio_pilot"`
+	ImagePrometheus               string `json:"image_prometheus" yaml:"image_prometheus"`
+	ImagePrometheusConfigReloader string `json:"image_prometheus_config_reloader" yaml:"image_prometheus_config_reloader"`
+	ImagePrometheusOperator       string `json:"image_prometheus_operator" yaml:"image_prometheus_operator"`
+	ImagePrometheusStatsDExporter string `json:"image_prometheus_statsd_exporter" yaml:"image_prometheus_statsd_exporter"`
+	ImagePrometheusToCloudWatch   string `json:"image_prometheus_to_cloudwatch" yaml:"image_prometheus_to_cloudwatch"`
 }
 
 type ManagedConfig struct {
@@ -282,9 +286,16 @@ var BaseConfigStructFieldValidations = []*cr.StructFieldValidation{
 		},
 	},
 	{
-		StructField: "ImageStatsd",
+		StructField: "ImageIstioProxy",
 		StringValidation: &cr.StringValidation{
-			Default:   "quay.io/cortexlabs/statsd:" + consts.CortexVersion,
+			Default:   "quay.io/cortexlabs/istio-proxy:" + consts.CortexVersion,
+			Validator: validateImageVersion,
+		},
+	},
+	{
+		StructField: "ImageIstioPilot",
+		StringValidation: &cr.StringValidation{
+			Default:   "quay.io/cortexlabs/istio-pilot:" + consts.CortexVersion,
 			Validator: validateImageVersion,
 		},
 	},
@@ -299,6 +310,41 @@ var BaseConfigStructFieldValidations = []*cr.StructFieldValidation{
 		StructField: "ImageIstioPilot",
 		StringValidation: &cr.StringValidation{
 			Default:   "quay.io/cortexlabs/istio-pilot:" + consts.CortexVersion,
+			Validator: validateImageVersion,
+		},
+	},
+	{
+		StructField: "ImagePrometheus",
+		StringValidation: &cr.StringValidation{
+			Default:   "quay.io/cortexlabs/prometheus:" + consts.CortexVersion,
+			Validator: validateImageVersion,
+		},
+	},
+	{
+		StructField: "ImagePrometheusConfigReloader",
+		StringValidation: &cr.StringValidation{
+			Default:   "quay.io/cortexlabs/prometheus-config-reloader:" + consts.CortexVersion,
+			Validator: validateImageVersion,
+		},
+	},
+	{
+		StructField: "ImagePrometheusOperator",
+		StringValidation: &cr.StringValidation{
+			Default:   "quay.io/cortexlabs/prometheus-operator:" + consts.CortexVersion,
+			Validator: validateImageVersion,
+		},
+	},
+	{
+		StructField: "ImagePrometheusStatsDExporter",
+		StringValidation: &cr.StringValidation{
+			Default:   "quay.io/cortexlabs/prometheus-statsd-exporter:" + consts.CortexVersion,
+			Validator: validateImageVersion,
+		},
+	},
+	{
+		StructField: "ImagePrometheusToCloudWatch",
+		StringValidation: &cr.StringValidation{
+			Default:   "quay.io/cortexlabs/prometheus-to-cloudwatch:" + consts.CortexVersion,
 			Validator: validateImageVersion,
 		},
 	},
@@ -776,10 +822,10 @@ func checkCNISupport(instanceType string) error {
 		}
 
 		body, err := ioutil.ReadAll(res.Body)
-		res.Body.Close()
 		if err != nil {
 			return nil
 		}
+		_ = res.Body.Close()
 
 		_cachedCNISupportedInstances = pointer.String(string(body))
 	}
@@ -1211,9 +1257,13 @@ func (bc *BaseConfig) UserTable() table.KeyValuePairs {
 	items.Add(ImageNeuronRTDUserKey, bc.ImageNeuronRTD)
 	items.Add(ImageNvidiaUserKey, bc.ImageNvidia)
 	items.Add(ImageFluentBitUserKey, bc.ImageFluentBit)
-	items.Add(ImageStatsdUserKey, bc.ImageStatsd)
 	items.Add(ImageIstioProxyUserKey, bc.ImageIstioProxy)
 	items.Add(ImageIstioPilotUserKey, bc.ImageIstioPilot)
+	items.Add(ImagePrometheusUserKey, bc.ImagePrometheus)
+	items.Add(ImagePrometheusConfigReloaderUserKey, bc.ImagePrometheusConfigReloader)
+	items.Add(ImagePrometheusOperatorUserKey, bc.ImagePrometheusOperator)
+	items.Add(ImagePrometheusStatsDExporterUserKey, bc.ImagePrometheusStatsDExporter)
+	items.Add(ImagePrometheusToCloudwatchUserKey, bc.ImagePrometheusToCloudWatch)
 
 	return items
 }
@@ -1327,14 +1377,26 @@ func (bc *BaseConfig) TelemetryEvent() map[string]interface{} {
 	if !strings.HasPrefix(bc.ImageFluentBit, "cortexlabs/") {
 		event["image_fluent_bit._is_custom"] = true
 	}
-	if !strings.HasPrefix(bc.ImageStatsd, "cortexlabs/") {
-		event["image_statsd._is_custom"] = true
-	}
 	if !strings.HasPrefix(bc.ImageIstioProxy, "cortexlabs/") {
 		event["image_istio_proxy._is_custom"] = true
 	}
 	if !strings.HasPrefix(bc.ImageIstioPilot, "cortexlabs/") {
 		event["image_istio_pilot._is_custom"] = true
+	}
+	if strings.HasPrefix(bc.ImagePrometheus, "cortexlabs/") {
+		event["image_prometheus._is_custom"] = true
+	}
+	if strings.HasPrefix(bc.ImagePrometheusConfigReloader, "cortexlabs/") {
+		event["image_prometheus_config_reloader._is_custom"] = true
+	}
+	if strings.HasPrefix(bc.ImagePrometheusOperator, "cortexlabs/") {
+		event["image_prometheus_operator._is_custom"] = true
+	}
+	if strings.HasPrefix(bc.ImagePrometheusStatsDExporter, "cortexlabs/") {
+		event["image_prometheus_statsd_exporter._is_custom"] = true
+	}
+	if strings.HasPrefix(bc.ImagePrometheusToCloudWatch, "cortexlabs/") {
+		event["image_prometheus_to_cloudwatch._is_custom"] = true
 	}
 
 	return event
