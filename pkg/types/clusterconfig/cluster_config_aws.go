@@ -568,13 +568,6 @@ var ManagedConfigStructFieldValidations = []*cr.StructFieldValidation{
 		StringPtrValidation: &cr.StringPtrValidation{
 			Validator: validateVPCCIDR,
 		},
-		{
-			StructField: "ImagePrometheusToCloudWatch",
-			StringValidation: &cr.StringValidation{
-				Default:   "quay.io/cortexlabs/image_prometheus_to_cloudwatch:" + consts.CortexVersion,
-				Validator: validateImageVersion,
-			},
-		},
 	},
 }
 
