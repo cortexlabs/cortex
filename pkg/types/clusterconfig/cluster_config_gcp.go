@@ -321,6 +321,13 @@ var UserGCPValidation = &cr.StructValidation{
 				Validator: validateImageVersion,
 			},
 		},
+		{
+			StructField: "ImagePrometheusStackdriverSidecar",
+			StringValidation: &cr.StringValidation{
+				Default:   "quay.io/cortexlabs/prometheus-stackdriver-sidecar:" + consts.CortexVersion,
+				Validator: validateImageVersion,
+			},
+		},
 	},
 }
 
@@ -705,6 +712,9 @@ func (cc *GCPConfig) TelemetryEvent() map[string]interface{} {
 	}
 	if strings.HasPrefix(cc.ImagePrometheusStatsDExporter, "cortexlabs/") {
 		event["image_prometheus_statsd_exporter._is_custom"] = true
+	}
+	if strings.HasPrefix(cc.ImagePrometheusStackdriverSidecar, "cortexlabs/") {
+		event["image_prometheus_stackdriver_sidecar._is_custom"] = true
 	}
 	return event
 }
