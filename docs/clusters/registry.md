@@ -2,28 +2,28 @@
 
 ## Install and configure kubectl
 
-Follow the instructions for [AWS](../cloud/aws/kubectl.md) or [GCP](../cloud/gcp/kubectl.md).
+Follow the instructions for [AWS](../clusters/aws/kubectl.md) or [GCP](../clusters/gcp/kubectl.md).
 
 ## Setting credentials
 
 ```bash
-DOCKER_USERNAME=***
-DOCKER_PASSWORD=***
+$ DOCKER_USERNAME=***
+$ DOCKER_PASSWORD=***
 
-kubectl create secret docker-registry registry-credentials \
-  --namespace default \
-  --docker-username=$DOCKER_USERNAME \
-  --docker-password=$DOCKER_PASSWORD
+$ kubectl create secret docker-registry registry-credentials \
+    --namespace default \
+    --docker-username=$DOCKER_USERNAME \
+    --docker-password=$DOCKER_PASSWORD
 
-kubectl patch serviceaccount default --namespace default \
-  -p "{\"imagePullSecrets\": [{\"name\": \"registry-credentials\"}]}"
+$ kubectl patch serviceaccount default --namespace default \
+    -p "{\"imagePullSecrets\": [{\"name\": \"registry-credentials\"}]}"
 ```
 
 ## Deleting credentials
 
 ```bash
-kubectl delete secret --namespace default registry-credentials
+$ kubectl delete secret --namespace default registry-credentials
 
-kubectl patch serviceaccount default --namespace default \
-  -p "{\"imagePullSecrets\": []}"
+$ kubectl patch serviceaccount default --namespace default \
+    -p "{\"imagePullSecrets\": []}"
 ```
