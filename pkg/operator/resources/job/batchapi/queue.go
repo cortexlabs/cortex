@@ -32,7 +32,7 @@ import (
 )
 
 func apiQueueNamePrefix(apiName string) string {
-	return config.Cluster.SQSNamePrefix() + apiName + "-"
+	return config.CoreConfig.SQSNamePrefix() + apiName + "-"
 }
 
 // QueueName is <hash of cluster name>-<api_name>-<job_id>.fifo
@@ -64,8 +64,13 @@ func jobKeyFromQueueURL(queueURL string) spec.JobKey {
 }
 
 func createFIFOQueue(jobKey spec.JobKey, deadLetterQueue *spec.SQSDeadLetterQueue, tags map[string]string) (string, error) {
-	for key, value := range config.Cluster.Tags {
-		tags[key] = value
+	if config.CoreConfig.IsManaged {
+		managedConfig := config.ManagedConfigOrNil()
+		if managedConfig != nil {
+			for key, value := range managedConfig.Tags {
+				tags[key] = value
+			}
+		}
 	}
 
 	queueName := getJobQueueName(jobKey)
@@ -108,7 +113,7 @@ func doesQueueExist(jobKey spec.JobKey) (bool, error) {
 }
 
 func listQueueURLsForAllAPIs() ([]string, error) {
-	queueURLs, err := config.AWS.ListQueuesByQueueNamePrefix(config.Cluster.SQSNamePrefix())
+	queueURLs, err := config.AWS.ListQueuesByQueueNamePrefix(config.CoreConfig.SQSNamePrefix())
 	if err != nil {
 		return nil, err
 	}

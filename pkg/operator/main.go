@@ -57,9 +57,11 @@ func main() {
 	}
 
 	if config.Provider == types.AWSProviderType {
-		_, err := operator.UpdateMemoryCapacityConfigMap()
-		if err != nil {
-			exit.Error(errors.Wrap(err, "init"))
+		if config.IsManaged() {
+			_, err := operator.UpdateMemoryCapacityConfigMap()
+			if err != nil {
+				exit.Error(errors.Wrap(err, "init"))
+			}
 		}
 
 		deployments, err := config.K8s.ListDeploymentsWithLabelKeys("apiName")
@@ -105,7 +107,6 @@ func main() {
 	routerWithAuth.Use(endpoints.PanicMiddleware)
 	routerWithAuth.Use(endpoints.ClientIDMiddleware)
 	routerWithAuth.Use(endpoints.APIVersionCheckMiddleware)
-	routerWithAuth.Use(endpoints.AuthMiddleware)
 
 	routerWithAuth.HandleFunc("/info", endpoints.Info).Methods("GET")
 	routerWithAuth.HandleFunc("/deploy", endpoints.Deploy).Methods("POST")

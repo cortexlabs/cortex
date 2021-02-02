@@ -1,0 +1,47 @@
+{{- if eq .Values.global.provider "aws" }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-cwconfig
+  namespace: {{ .Release.Namespace }}
+data:
+  CLOUDWATCH_NAMESPACE: "cortex"
+  CLOUDWATCH_REGION: "{{ .Values.cortex.region }}"
+  CLOUDWATCH_PUBLISH_TIMEOUT: "10"
+  PROMETHEUS_SCRAPE_INTERVAL: "15"
+  PROMETHEUS_SCRAPE_URL: http://prometheus.{{ .Release.Namespace }}:9090/federate?match[]={job=~"{{ .Values.cortex.namespace }}/.*",__name__=~"cortex.*"}
+  INCLUDE_METRICS: cortex_*
+  EXCLUDE_DIMENSIONS_FOR_METRICS: cortex_*=container,endpoint,instance,job,namespace,pod,prometheus,prometheus_replica
+
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: prometheus-to-cloudwatch
+  namespace: {{ .Release.Namespace }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: prometheus-to-cloudwatch
+  template:
+    metadata:
+      labels:
+        app: prometheus-to-cloudwatch
+    spec:
+      containers:
+        - name: prometheus-to-cloudwatch
+          image: {{ .Values.cortex.image_prometheus_to_cloudwatch }}
+          imagePullPolicy: Always
+          envFrom:
+            - configMapRef:
+                name: prometheus-cwconfig
+            - secretRef:
+                name: aws-credentials
+          resources:
+            requests:
+              cpu: 100m
+              memory: 150Mi
+---
+{{- end }}

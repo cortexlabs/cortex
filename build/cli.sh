@@ -61,8 +61,22 @@ function build_python {
   popd
 }
 
+function upload_charts {
+  set -euo pipefail
+
+  echo -e "\nCompressing charts"
+  tar -czf charts.tar.gz charts/
+
+  echo "Uploading compressed charts to s3://$CLI_BUCKET_NAME/$CORTEX_VERSION/charts/cortex-$CORTEX_VERSION.tar.gz"
+  aws s3 cp charts.tar.gz s3://$CLI_BUCKET_NAME/$CORTEX_VERSION/charts/cortex-$CORTEX_VERSION.tar.gz --only-show-errors
+
+  rm -rf charts.tar.gz
+}
+
 build_and_upload darwin
 
 build_and_upload linux
 
 build_python
+
+upload_charts

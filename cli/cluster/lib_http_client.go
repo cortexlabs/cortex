@@ -19,7 +19,6 @@ package cluster
 import (
 	"bytes"
 	"crypto/tls"
-	"fmt"
 	"io"
 	"io/ioutil"
 	"mime/multipart"
@@ -39,16 +38,10 @@ type OperatorClient struct {
 }
 
 type OperatorConfig struct {
-	Telemetry          bool
-	ClientID           string
-	EnvName            string
-	OperatorEndpoint   string
-	AWSAccessKeyID     string
-	AWSSecretAccessKey string
-}
-
-func (oc OperatorConfig) AuthHeader() string {
-	return fmt.Sprintf("CortexAWS %s|%s", oc.AWSAccessKeyID, oc.AWSSecretAccessKey)
+	Telemetry        bool
+	ClientID         string
+	EnvName          string
+	OperatorEndpoint string
 }
 
 func HTTPGet(operatorConfig OperatorConfig, endpoint string, qParams ...map[string]string) ([]byte, error) {
@@ -183,7 +176,6 @@ func makeOperatorRequest(operatorConfig OperatorConfig, request *http.Request) (
 		request.URL.RawQuery = values.Encode()
 	}
 
-	request.Header.Set("Authorization", operatorConfig.AuthHeader())
 	request.Header.Set("CortexAPIVersion", consts.CortexVersion)
 
 	timeout := 600 * time.Second

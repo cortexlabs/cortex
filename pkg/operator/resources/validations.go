@@ -75,7 +75,7 @@ func ValidateClusterAPIs(apis []userconfig.API, projectFiles spec.ProjectFiles) 
 		return spec.ErrorNoAPIs()
 	}
 
-	virtualServices, maxMem, err := getValidationK8sResources()
+	virtualServices, err := config.K8s.ListVirtualServices(nil)
 	if err != nil {
 		return err
 	}
@@ -96,8 +96,9 @@ func ValidateClusterAPIs(apis []userconfig.API, projectFiles spec.ProjectFiles) 
 			if err := spec.ValidateAPI(api, nil, projectFiles, config.Provider, config.AWS, config.GCP, config.K8s); err != nil {
 				return errors.Wrap(err, api.Identify())
 			}
-			if err := validateK8s(api, virtualServices, maxMem); err != nil {
-				return errors.Wrap(err, api.Identify())
+
+			if err := validateEndpointCollisions(api, virtualServices); err != nil {
+				return err
 			}
 		}
 
@@ -114,6 +115,22 @@ func ValidateClusterAPIs(apis []userconfig.API, projectFiles spec.ProjectFiles) 
 		}
 	}
 
+	if config.IsManaged() && config.Provider == types.AWSProviderType {
+		maxMem, err := operator.UpdateMemoryCapacityConfigMap()
+		if err != nil {
+			return err
+		}
+
+		for i := range apis {
+			api := &apis[i]
+			if api.Kind == userconfig.RealtimeAPIKind || api.Kind == userconfig.BatchAPIKind || api.Kind == userconfig.TaskAPIKind {
+				if err := awsManagedValidateK8sCompute(api.Compute, maxMem); err != nil {
+					return err
+				}
+			}
+		}
+	}
+
 	dups := spec.FindDuplicateNames(apis)
 	if len(dups) > 0 {
 		return spec.ErrorDuplicateName(dups)
@@ -121,18 +138,6 @@ func ValidateClusterAPIs(apis []userconfig.API, projectFiles spec.ProjectFiles) 
 	dups = findDuplicateEndpoints(apis)
 	if len(dups) > 0 {
 		return spec.ErrorDuplicateEndpointInOneDeploy(dups)
-	}
-
-	return nil
-}
-
-func validateK8s(api *userconfig.API, virtualServices []istioclientnetworking.VirtualService, maxMem kresource.Quantity) error {
-	if err := validateK8sCompute(api.Compute, maxMem); err != nil {
-		return errors.Wrap(err, userconfig.ComputeKey)
-	}
-
-	if err := validateEndpointCollisions(api, virtualServices); err != nil {
-		return err
 	}
 
 	return nil
@@ -164,24 +169,25 @@ var _nvidiaMemReserve = kresource.MustParse("100Mi")
 var _inferentiaCPUReserve = kresource.MustParse("100m")
 var _inferentiaMemReserve = kresource.MustParse("100Mi")
 
-func validateK8sCompute(compute *userconfig.Compute, maxMem kresource.Quantity) error {
-	if config.Provider != types.AWSProviderType {
-		return nil
+func awsManagedValidateK8sCompute(compute *userconfig.Compute, maxMem kresource.Quantity) error {
+	instanceMetadata := config.AWSInstanceMetadataOrNil()
+	if instanceMetadata == nil {
+		return errors.ErrorUnexpected("unable to find instance metadata; likely because this is not a cortex managed cluster")
 	}
 
 	maxMem.Sub(_cortexMemReserve)
 
-	maxCPU := config.Cluster.InstanceMetadata.CPU
+	maxCPU := instanceMetadata.CPU
 	maxCPU.Sub(_cortexCPUReserve)
 
-	maxGPU := config.Cluster.InstanceMetadata.GPU
+	maxGPU := instanceMetadata.GPU
 	if maxGPU > 0 {
 		// Reserve resources for nvidia device plugin daemonset
 		maxCPU.Sub(_nvidiaCPUReserve)
 		maxMem.Sub(_nvidiaMemReserve)
 	}
 
-	maxInf := config.Cluster.InstanceMetadata.Inf
+	maxInf := instanceMetadata.Inf
 	if maxInf > 0 {
 		// Reserve resources for inferentia device plugin daemonset
 		maxCPU.Sub(_inferentiaCPUReserve)

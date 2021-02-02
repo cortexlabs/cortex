@@ -328,7 +328,7 @@ func ErrorNoTerminalWidth() error {
 	})
 }
 
-func ErrorDeployFromTopLevelDir(genericDirName string, providerType types.ProviderType) error {
+func ErrorDeployFromTopLevelDir(genericDirName string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrDeployFromTopLevelDir,
 		Message: fmt.Sprintf("cannot deploy from your %s directory - when deploying your API, cortex sends all files in your project directory (i.e. the directory which contains cortex.yaml) to your cluster (see https://docs.cortex.dev/v/%s/); therefore it is recommended to create a subdirectory for your project files", genericDirName, consts.CortexVersionMinor),
