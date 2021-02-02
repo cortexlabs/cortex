@@ -1,6 +1,7 @@
-# install
+# Install
 
 Cortex currently relies on cloud provider specific functionality such as load balancers and storage. Kubernetes clusters in the following cloud providers are supported:
+
 * [AWS](#aws)
 * [GCP](#gcp)
 
@@ -49,7 +50,9 @@ kubectl --namespace default create secret generic 'aws-credentials' \
     -o yaml --dry-run=client | kubectl apply -f - >/dev/null
 ```
 
-### Install Cortex on to your kubernetes cluster
+Note: make sure to add credentials to the namespace that cortex will be installed into.
+
+### Install Cortex
 
 Define a `values.yaml` with the following information provided:
 
@@ -146,14 +149,14 @@ gsutil mb gs://CORTEX_GCS_BUCKET
 The credentials need to have at least these [permissions](../gcp/credentials.md).
 
 ```yaml
-export CORTEX_GOOGLE_APPLICATION_CREDENTIALS=
+export CORTEX_GOOGLE_APPLICATION_CREDENTIALS=<PATH_TO_CREDENTIALS>
 
 kubectl create secret generic 'gcp-credentials' --namespace default --from-file=key.json=$CORTEX_GOOGLE_APPLICATION_CREDENTIALS
 ```
 
 Note: make sure to add credentials to the namespace that cortex will be installed into.
 
-### Install cortex
+### Install Cortex
 
 Define a `values.yaml` with the following information provided:
 
@@ -161,7 +164,7 @@ Define a `values.yaml` with the following information provided:
 # values.yaml
 
 cortex:
-  project: <CORTEX_REGION>
+  project: <CORTEX_PROJECT>
   zone: <CORTEX_ZONE>
   bucket: <CORTEX_GCS_BUCKET>
   cluster_name: <CORTEX_CLUSTER_NAME>
@@ -172,7 +175,7 @@ global:
 ### Install with your configuration
 
 ```bash
-helm install cortex manifests/ --namespace default -f values.yaml
+helm install cortex charts/ --namespace default -f values.yaml
 ```
 
 ### Configure Cortex client

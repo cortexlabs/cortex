@@ -1,4 +1,4 @@
-# uninstall
+# Uninstall
 
 Get the Cortex installation's release name
 
