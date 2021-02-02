@@ -76,4 +76,5 @@ image_manager: quay.io/cortexlabs/manager:0.27.0
 image_downloader: quay.io/cortexlabs/downloader:0.27.0
 image_istio_proxy: quay.io/cortexlabs/istio-proxy:0.27.0
 image_istio_pilot: quay.io/cortexlabs/istio-pilot:0.27.0
+image_google_pause: quay.io/cortexlabs/google-pause:0.27.0
 ```
