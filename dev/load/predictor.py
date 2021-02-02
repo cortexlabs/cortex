@@ -24,14 +24,33 @@ class PythonPredictor:
         for i in range(config["num_requests"]):
             if i > 0:
                 time.sleep(config["sleep"])
-            response = requests.post(config["endpoint"], json=config["data"])
+            try:
+                # response = requests.get(config["endpoint"])
+                response = requests.post(config["endpoint"], json=config["data"])
+            except Exception as e:
+                num_fail += 1
+                cortex_logger.error(
+                    e,
+                    extra={
+                        "error": True,
+                        "request_number": i,
+                    },
+                )
+                continue
             if response.status_code == 200:
                 num_success += 1
+                cortex_logger.info(
+                    "successful request", extra={"request_success": True, "request_number": i}
+                )
             else:
                 num_fail += 1
                 cortex_logger.error(
-                    "ERROR",
-                    extra={"error": True, "code": response.status_code, "body": response.text},
+                    response.text,
+                    extra={
+                        "error": True,
+                        "code": response.status_code,
+                        "request_number": i,
+                    },
                 )
 
         cortex_logger.warn(
