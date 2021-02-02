@@ -1,1 +1,30 @@
-1. Get the application URL by running these commands:
+###########################################################################
+
+Cortex {{ .Chart.AppVersion }} is initializing in in your cluster.
+
+Wait for the loadbalancers to be provisioned and connected to your cluster.
+
+1. Get the Cortex operator endpoint:
+
+    {{ if eq .Values.global.provider "aws" }}
+    $ kubectl get service --namespace {{ .Release.Namespace }} ingressgateway-operator -o jsonpath='{.status.loadBalancer.ingress[0].hostname}'
+    {{- else if eq .Values.global.provider "gcp" }}
+    $ kubectl get service --namespace {{ .Release.Namespace }} ingressgateway-operator -o jsonpath='{.status.loadBalancer.ingress[0].ip}'
+    {{- end }}
+
+2. You can use the curl command below to verify loadbalancer set up. It can take between 5 to 10 minutes for the setup to complete. You can expect to encounter `Could not resolve host` or timeouts when running the verification request below during the loadbalancer initialization.
+
+    {{ if eq .Values.global.provider "aws" }}
+    $ export CORTEX_OPERATOR_ENDPOINT=$(kubectl get service --namespace {{ .Release.Namespace }} ingressgateway-operator -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
+    {{- else if eq .Values.global.provider "gcp" }}
+    $ export CORTEX_OPERATOR_ENDPOINT=$(kubectl get service --namespace {{ .Release.Namespace }} ingressgateway-operator -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+    {{- end}}
+    $ curl http://$CORTEX_OPERATOR_ENDPOINT/verifycortex --max-time 5
+
+    A successful response looks like this:
+
+    {"provider":"{{ .Values.global.provider }}"}
+
+3. Once you receive a successful response, configure your Cortex client:
+
+    $ cortex env configure --operator-endpoint $CORTEX_OPERATOR_ENDPOINT
