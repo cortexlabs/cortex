@@ -19,6 +19,7 @@ apiVersion: monitoring.coreos.com/v1
 kind: Prometheus
 metadata:
   name: prometheus
+  namespace: {{ .Release.Namespace }}
 spec:
   image: {{ .Values.cortex.image_prometheus }}
   serviceAccountName: prometheus
@@ -54,7 +55,7 @@ spec:
       - --prometheus.wal-directory=/data/prometheus-db/wal
       - --stackdriver.kubernetes.location={{ .Values.cortex.zone  }}
       - --stackdriver.kubernetes.cluster-name={{ .Values.cortex.cluster_name  }}
-      - --include={job=~"{{ .Values.cortex.namespace }}/.*",__name__=~"cortex.*"}
+      - --include={job=~"{{ .Release.Namespace }}/.*",__name__=~"cortex.*"}
       ports:
       - name: sidecar
         containerPort: 9091
@@ -117,6 +118,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: prometheus
+  namespace: {{ .Release.Namespace }}
 spec:
   type: ClusterIP
   ports:
@@ -131,6 +133,7 @@ apiVersion: monitoring.coreos.com/v1
 kind: PodMonitor
 metadata:
   name: istio-stats
+  namespace: {{ .Release.Namespace }}
   labels:
     monitoring.cortex.dev: "istio"
 spec:
@@ -171,6 +174,7 @@ apiVersion: monitoring.coreos.com/v1
 kind: PodMonitor
 metadata:
   name: request-monitor-stats
+  namespace: {{ .Release.Namespace }}
   labels:
     monitoring.cortex.dev: "request-monitor"
 spec:
@@ -217,6 +221,7 @@ apiVersion: monitoring.coreos.com/v1
 kind: PodMonitor
 metadata:
   name: prometheus-statsd-exporter
+  namespace: {{ .Release.Namespace }}
   labels:
     name: prometheus-statsd-exporter
     monitoring.cortex.dev: "statsd-exporter"
