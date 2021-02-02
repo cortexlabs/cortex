@@ -7,8 +7,8 @@ cortex:
   region: ""
 
   # GCP only
-  zone:
-  project:
+  zone: ""
+  project: ""
 
   # CORTEX_VERSION
   image_operator: quay.io/cortexlabs/operator:master
@@ -41,7 +41,7 @@ networking:
       image: istio-pilot
 
 global:
-  # provider: aws
+  provider: ""
 
   # Default hub for Istio images.
   # Releases are published to docker hub under 'istio' project.
