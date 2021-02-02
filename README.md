@@ -82,6 +82,5 @@ $ curl http://example.com/text-generator -X POST -H "Content-Type: application/j
 
 ## Get started
 
-* [Read the docs](https://docs.cortex.dev)
-* [Report an issue](https://github.com/cortexlabs/cortex/issues)
-* [Join our community](https://gitter.im/cortexlabs/cortex)
+* [Install Cortex](https://docs.cortex.dev)
+* [Join our community](https://join.slack.com/t/cortex-dot-dev/shared_invite/zt-lf58axgy-0QkLZzFSSku5_Jybd9yiZQ)
