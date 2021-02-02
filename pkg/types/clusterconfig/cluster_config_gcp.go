@@ -25,7 +25,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/gcp"
 	"github.com/cortexlabs/cortex/pkg/lib/hash"
-	"github.com/cortexlabs/cortex/pkg/lib/maps"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/prompt"
 	"github.com/cortexlabs/cortex/pkg/lib/slices"
@@ -34,7 +33,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/types"
 )
 
-type GCPBaseConfig struct {
+type GCPCoreConfig struct {
 	Provider       types.ProviderType `json:"provider" yaml:"provider"`
 	Project        *string            `json:"project" yaml:"project"`
 	Zone           *string            `json:"zone" yaml:"zone"`
@@ -75,7 +74,7 @@ type GCPManagedConfig struct {
 }
 
 type GCPConfig struct {
-	GCPBaseConfig    `yaml:",inline"`
+	GCPCoreConfig    `yaml:",inline"`
 	GCPManagedConfig `yaml:",inline"`
 }
 
@@ -94,7 +93,7 @@ type GCPAccessConfig struct {
 	ImageManager string  `json:"image_manager" yaml:"image_manager"`
 }
 
-var GCPBaseConfigStructFieldValidations = []*cr.StructFieldValidation{
+var GCPCoreConfigStructFieldValidations = []*cr.StructFieldValidation{
 	{
 		StructField: "Provider",
 		StringValidation: &cr.StringValidation{
@@ -372,10 +371,10 @@ func (cc *GCPConfig) ToAccessConfig() GCPAccessConfig {
 	}
 }
 
-func GCPBaseConfigValidations(allowExtraFields bool) *cr.StructValidation {
+func GCPCoreConfigValidations(allowExtraFields bool) *cr.StructValidation {
 	return &cr.StructValidation{
 		Required:               true,
-		StructFieldValidations: GCPBaseConfigStructFieldValidations,
+		StructFieldValidations: GCPCoreConfigStructFieldValidations,
 		AllowExtraFields:       allowExtraFields,
 	}
 }
@@ -388,9 +387,9 @@ func GCPManagedConfigValidations(allowExtraFields bool) *cr.StructValidation {
 	}
 }
 
-var GCPManagedValidation = &cr.StructValidation{
+var GCPFullManagedValidation = &cr.StructValidation{
 	Required:               true,
-	StructFieldValidations: append([]*cr.StructFieldValidation{}, append(GCPBaseConfigStructFieldValidations, GCPManagedConfigStructFieldValidations...)...),
+	StructFieldValidations: append([]*cr.StructFieldValidation{}, append(GCPCoreConfigStructFieldValidations, GCPManagedConfigStructFieldValidations...)...),
 }
 
 var GCPAccessPromptValidation = &cr.PromptValidation{
@@ -514,7 +513,7 @@ func (cc *GCPConfig) Validate(GCP *gcp.Client) error {
 
 func applyGCPPromptDefaults(defaults GCPConfig) *GCPConfig {
 	defaultConfig := &GCPConfig{
-		GCPBaseConfig: GCPBaseConfig{
+		GCPCoreConfig: GCPCoreConfig{
 			Zone: pointer.String("us-central1-a"),
 		},
 		GCPManagedConfig: GCPManagedConfig{
@@ -612,7 +611,7 @@ func InstallGCPPrompt(clusterConfig *GCPConfig, disallowPrompt bool) error {
 // This does not set defaults for fields that are prompted from the user
 func SetGCPDefaults(cc *GCPConfig) error {
 	var emptyMap interface{} = map[interface{}]interface{}{}
-	errs := cr.Struct(cc, emptyMap, GCPManagedValidation)
+	errs := cr.Struct(cc, emptyMap, GCPFullManagedValidation)
 	if errors.HasError(errs) {
 		return errors.FirstError(errs...)
 	}
@@ -642,7 +641,7 @@ func (cc *InternalGCPConfig) UserStr() string {
 	return cc.UserTable().String()
 }
 
-func (cc *GCPBaseConfig) UserTable() table.KeyValuePairs {
+func (cc *GCPCoreConfig) UserTable() table.KeyValuePairs {
 	var items table.KeyValuePairs
 
 	items.Add(ClusterNameUserKey, cc.ClusterName)
@@ -694,8 +693,8 @@ func (cc *GCPManagedConfig) UserTable() table.KeyValuePairs {
 
 func (cc *GCPConfig) UserTable() table.KeyValuePairs {
 	var items *table.KeyValuePairs = &table.KeyValuePairs{}
-	items.AddAll(cc.GCPBaseConfig.UserTable())
-	if cc.GCPBaseConfig.IsManaged {
+	items.AddAll(cc.GCPCoreConfig.UserTable())
+	if cc.GCPCoreConfig.IsManaged {
 		items.AddAll(cc.GCPManagedConfig.UserTable())
 	}
 
@@ -706,7 +705,7 @@ func (cc *GCPConfig) UserStr() string {
 	return cc.UserTable().String()
 }
 
-func (cc *GCPBaseConfig) TelemetryEvent() map[string]interface{} {
+func (cc *GCPCoreConfig) TelemetryEvent() map[string]interface{} {
 	event := map[string]interface{}{
 		"provider":   types.GCPProviderType,
 		"is_managed": cc.IsManaged,
@@ -805,13 +804,6 @@ func (cc *GCPManagedConfig) TelemetryEvent() map[string]interface{} {
 	event["on_demand_backup"] = cc.OnDemandBackup
 
 	return event
-}
-
-func (cc *GCPConfig) TelemetryEvent() map[string]interface{} {
-	if cc.GCPBaseConfig.IsManaged {
-		return maps.MergeStrInterfaceMaps(cc.GCPBaseConfig.TelemetryEvent(), cc.GCPManagedConfig.TelemetryEvent())
-	}
-	return cc.GCPBaseConfig.TelemetryEvent()
 }
 
 func GCPBucketName(clusterName string, project string, zone string) string {

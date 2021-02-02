@@ -903,7 +903,7 @@ func neuronRuntimeDaemonContainer(api *spec.API, volumeMounts []kcore.VolumeMoun
 	totalHugePages := api.Compute.Inf * _hugePagesMemPerInf
 	return &kcore.Container{
 		Name:            _neuronRTDContainerName,
-		Image:           config.Cluster.ImageNeuronRTD,
+		Image:           config.CoreConfig.ImageNeuronRTD,
 		ImagePullPolicy: kcore.PullAlways,
 		SecurityContext: &kcore.SecurityContext{
 			Capabilities: &kcore.Capabilities{
@@ -932,7 +932,7 @@ func neuronRuntimeDaemonContainer(api *spec.API, volumeMounts []kcore.VolumeMoun
 func RequestMonitorContainer(api *spec.API) kcore.Container {
 	return kcore.Container{
 		Name:            _requestMonitorContainerName,
-		Image:           config.Cluster.ImageRequestMonitor,
+		Image:           config.CoreConfig.ImageRequestMonitor,
 		ImagePullPolicy: kcore.PullAlways,
 		Args:            []string{"-p", DefaultRequestMonitorPortStr},
 		Ports: []kcore.ContainerPort{

@@ -45,11 +45,12 @@ var (
 	Provider         types.ProviderType
 	OperatorMetadata *clusterconfig.OperatorMetadata
 
-	Cluster           *clusterconfig.BaseConfig     // CoreConfig *clusterconfig.CoreConfig
-	fullClusterConfig *clusterconfig.InternalConfig // managedConfig *clusterconfig.managedConfig
-	// instanceMetadata *clusterconfig.InstanceMetadata
-	GCPCluster           *clusterconfig.GCPBaseConfig     // GCPCoreConfig *clusterconfig.GCPCoreConfig
-	gcpFullClusterConfig *clusterconfig.InternalGCPConfig //
+	CoreConfig       *clusterconfig.CoreConfig
+	managedConfig    *clusterconfig.ManagedConfig
+	instanceMetadata *aws.InstanceMetadata
+
+	GCPCoreConfig    *clusterconfig.GCPCoreConfig
+	gcpManagedConfig *clusterconfig.GCPManagedConfig
 
 	AWS             *aws.Client
 	GCP             *gcp.Client
@@ -60,32 +61,24 @@ var (
 )
 
 func ManagedConfigOrNil() *clusterconfig.ManagedConfig {
-	if Cluster.IsManaged {
-		return &fullClusterConfig.ManagedConfig
+	if CoreConfig.IsManaged {
+		return managedConfig
 	}
 	return nil
 }
 
 func AWSInstanceMetadataOrNil() *aws.InstanceMetadata {
-	if Cluster.IsManaged {
-		return &fullClusterConfig.InstanceMetadata
+	if CoreConfig.IsManaged {
+		return instanceMetadata
 	}
 	return nil
-}
-
-func FullClusterConfig() *clusterconfig.InternalConfig {
-	return fullClusterConfig
 }
 
 func GCPManagedConfigOrNil() *clusterconfig.GCPManagedConfig {
-	if GCPCluster.IsManaged {
-		return &gcpFullClusterConfig.GCPManagedConfig
+	if GCPCoreConfig.IsManaged {
+		return gcpManagedConfig
 	}
 	return nil
-}
-
-func GCPFullClusterConfig() *clusterconfig.InternalGCPConfig {
-	return gcpFullClusterConfig
 }
 
 func Init() error {
@@ -109,27 +102,24 @@ func Init() error {
 	}
 
 	if Provider == types.AWSProviderType {
-		OperatorMetadata = &clusterconfig.OperatorMetadata{
-			APIVersion:          consts.CortexVersion,
-			IsOperatorInCluster: strings.ToLower(os.Getenv("CORTEX_OPERATOR_IN_CLUSTER")) != "false",
-		}
+		CoreConfig = &clusterconfig.CoreConfig{}
 
-		fullClusterConfig = &clusterconfig.InternalConfig{}
-
-		errs := cr.ParseYAMLFile(fullClusterConfig, clusterconfig.BaseConfigValidations(true), clusterConfigPath)
+		errs := cr.ParseYAMLFile(CoreConfig, clusterconfig.CoreConfigValidations(true), clusterConfigPath)
 		if errors.HasError(errs) {
 			return errors.FirstError(errs...)
 		}
 
-		if fullClusterConfig.IsManaged {
-			errs := cr.ParseYAMLFile(fullClusterConfig, clusterconfig.ManagedConfigValidations(true), clusterConfigPath)
+		if CoreConfig.IsManaged {
+			managedConfig = &clusterconfig.ManagedConfig{}
+			errs := cr.ParseYAMLFile(managedConfig, clusterconfig.ManagedConfigValidations(true), clusterConfigPath)
 			if errors.HasError(errs) {
 				return errors.FirstError(errs...)
 			}
-			fullClusterConfig.InstanceMetadata = aws.InstanceMetadatas[*fullClusterConfig.Region][*fullClusterConfig.InstanceType]
+			awsInstanceMetadata := aws.InstanceMetadatas[*CoreConfig.Region][*managedConfig.InstanceType]
+			instanceMetadata = &awsInstanceMetadata
 		}
 
-		AWS, err = aws.NewFromEnv(*fullClusterConfig.Region)
+		AWS, err = aws.NewFromEnv(*CoreConfig.Region)
 		if err != nil {
 			return err
 		}
@@ -139,24 +129,22 @@ func Init() error {
 			return err
 		}
 
-		OperatorMetadata.OperatorID = hashedAccountID
-		OperatorMetadata.ClusterID = hash.String(fullClusterConfig.ClusterName + *fullClusterConfig.Region + hashedAccountID)
-		fullClusterConfig.OperatorMetadata = *OperatorMetadata
-
-		Cluster = &fullClusterConfig.BaseConfig
-		clusterNamespace = Cluster.Namespace
-		istioNamespace = Cluster.IstioNamespace
-
-		err = AWS.CreateDashboard(fullClusterConfig.ClusterName, consts.DashboardTitle)
-		if err != nil {
-			return err
+		OperatorMetadata = &clusterconfig.OperatorMetadata{
+			APIVersion:          consts.CortexVersion,
+			OperatorID:          hashedAccountID,
+			ClusterID:           hash.String(CoreConfig.ClusterName + *CoreConfig.Region + hashedAccountID),
+			IsOperatorInCluster: strings.ToLower(os.Getenv("CORTEX_OPERATOR_IN_CLUSTER")) != "false",
 		}
-		exists, err := AWS.DoesBucketExist(fullClusterConfig.Bucket)
+
+		clusterNamespace = CoreConfig.Namespace
+		istioNamespace = CoreConfig.IstioNamespace
+
+		exists, err := AWS.DoesBucketExist(CoreConfig.Bucket)
 		if err != nil {
 			return err
 		}
 		if !exists {
-			return errors.ErrorUnexpected("the specified bucket does not exist", fullClusterConfig.Bucket)
+			return errors.ErrorUnexpected("the specified bucket does not exist", CoreConfig.Bucket)
 		}
 	} else {
 		AWS, err = aws.NewAnonymousClient()
@@ -166,44 +154,43 @@ func Init() error {
 	}
 
 	if Provider == types.GCPProviderType {
-		OperatorMetadata = &clusterconfig.OperatorMetadata{
-			APIVersion:          consts.CortexVersion,
-			IsOperatorInCluster: strings.ToLower(os.Getenv("CORTEX_OPERATOR_IN_CLUSTER")) != "false",
-		}
-		gcpFullClusterConfig = &clusterconfig.InternalGCPConfig{}
+		GCPCoreConfig = &clusterconfig.GCPCoreConfig{}
 
-		errs := cr.ParseYAMLFile(gcpFullClusterConfig, clusterconfig.GCPBaseConfigValidations(true), clusterConfigPath)
+		errs := cr.ParseYAMLFile(GCPCoreConfig, clusterconfig.GCPCoreConfigValidations(true), clusterConfigPath)
 		if errors.HasError(errs) {
 			return errors.FirstError(errs...)
 		}
 
-		if gcpFullClusterConfig.IsManaged {
-			errs := cr.ParseYAMLFile(gcpFullClusterConfig, clusterconfig.GCPManagedConfigValidations(true), clusterConfigPath)
+		if GCPCoreConfig.IsManaged {
+			gcpManagedConfig = &clusterconfig.GCPManagedConfig{}
+			errs := cr.ParseYAMLFile(gcpManagedConfig, clusterconfig.GCPManagedConfigValidations(true), clusterConfigPath)
 			if errors.HasError(errs) {
 				return errors.FirstError(errs...)
 			}
 		}
 
-		GCP, err = gcp.NewFromEnvCheckProjectID(*gcpFullClusterConfig.Project)
+		GCP, err = gcp.NewFromEnvCheckProjectID(*GCPCoreConfig.Project)
 		if err != nil {
 			return err
 		}
 
-		OperatorMetadata.OperatorID = GCP.HashedProjectID
-		OperatorMetadata.ClusterID = hash.String(gcpFullClusterConfig.ClusterName + *gcpFullClusterConfig.Project + *gcpFullClusterConfig.Zone)
-		gcpFullClusterConfig.OperatorMetadata = *OperatorMetadata
+		OperatorMetadata = &clusterconfig.OperatorMetadata{
+			APIVersion:          consts.CortexVersion,
+			OperatorID:          GCP.HashedProjectID,
+			ClusterID:           hash.String(GCPCoreConfig.ClusterName + *GCPCoreConfig.Project + *GCPCoreConfig.Zone),
+			IsOperatorInCluster: strings.ToLower(os.Getenv("CORTEX_OPERATOR_IN_CLUSTER")) != "false",
+		}
 
-		GCPCluster = &gcpFullClusterConfig.GCPBaseConfig
-		clusterNamespace = GCPCluster.Namespace
-		istioNamespace = GCPCluster.IstioNamespace
+		clusterNamespace = GCPCoreConfig.Namespace
+		istioNamespace = GCPCoreConfig.IstioNamespace
 
 		// If the bucket is specified double check that it exists and the operator has access to it
-		exists, err := GCP.DoesBucketExist(gcpFullClusterConfig.Bucket, gcp.ZoneToRegion(*gcpFullClusterConfig.Zone))
+		exists, err := GCP.DoesBucketExist(GCPCoreConfig.Bucket, gcp.ZoneToRegion(*GCPCoreConfig.Zone))
 		if err != nil {
 			return err
 		}
 		if !exists {
-			return errors.ErrorUnexpected("the specified bucket does not exist", gcpFullClusterConfig.Bucket)
+			return errors.ErrorUnexpected("the specified bucket does not exist", GCPCoreConfig.Bucket)
 		}
 	} else {
 		GCP = gcp.NewAnonymousClient()

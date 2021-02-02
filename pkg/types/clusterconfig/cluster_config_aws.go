@@ -31,7 +31,6 @@ import (
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/hash"
-	"github.com/cortexlabs/cortex/pkg/lib/maps"
 	libmath "github.com/cortexlabs/cortex/pkg/lib/math"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/prompt"
@@ -52,7 +51,7 @@ var (
 	_strictS3BucketRegex = regexp.MustCompile(`^([a-z0-9])+(-[a-z0-9]+)*$`)
 )
 
-type BaseConfig struct {
+type CoreConfig struct {
 	Bucket         string             `json:"bucket" yaml:"bucket"`
 	ClusterName    string             `json:"cluster_name" yaml:"cluster_name"`
 	Region         *string            `json:"region" yaml:"region"`
@@ -116,7 +115,7 @@ type Subnet struct {
 }
 
 type Config struct {
-	BaseConfig    `yaml:",inline"`
+	CoreConfig    `yaml:",inline"`
 	ManagedConfig `yaml:",inline"`
 }
 
@@ -157,7 +156,7 @@ func RegionValidator(region string) (string, error) {
 	return region, nil
 }
 
-var BaseConfigStructFieldValidations = []*cr.StructFieldValidation{
+var CoreConfigStructFieldValidations = []*cr.StructFieldValidation{
 	{
 		StructField: "Provider",
 		StringValidation: &cr.StringValidation{
@@ -572,10 +571,10 @@ var ManagedConfigStructFieldValidations = []*cr.StructFieldValidation{
 	},
 }
 
-func BaseConfigValidations(allowExtraFields bool) *cr.StructValidation {
+func CoreConfigValidations(allowExtraFields bool) *cr.StructValidation {
 	return &cr.StructValidation{
 		Required:               true,
-		StructFieldValidations: BaseConfigStructFieldValidations,
+		StructFieldValidations: CoreConfigStructFieldValidations,
 		AllowExtraFields:       allowExtraFields,
 	}
 }
@@ -588,9 +587,9 @@ func ManagedConfigValidations(allowExtraFields bool) *cr.StructValidation {
 	}
 }
 
-var ManagedValidation = &cr.StructValidation{
+var FullManagedValidation = &cr.StructValidation{
 	Required:               true,
-	StructFieldValidations: append([]*cr.StructFieldValidation{}, append(BaseConfigStructFieldValidations, ManagedConfigStructFieldValidations...)...),
+	StructFieldValidations: append([]*cr.StructFieldValidation{}, append(CoreConfigStructFieldValidations, ManagedConfigStructFieldValidations...)...),
 }
 
 var AccessValidation = &cr.StructValidation{
@@ -641,8 +640,8 @@ func (cc *Config) SQSNamePrefix() string {
 }
 
 // returns hash of cluster name and adds trailing "-"
-func (bc *BaseConfig) SQSNamePrefix() string {
-	return SQSNamePrefix(bc.ClusterName)
+func (cc *CoreConfig) SQSNamePrefix() string {
+	return SQSNamePrefix(cc.ClusterName)
 }
 
 // this validates the user-provided cluster config
@@ -917,7 +916,7 @@ func (cc *Config) FillEmptySpotFields() {
 
 func applyPromptDefaults(defaults Config) *Config {
 	defaultConfig := &Config{
-		BaseConfig: BaseConfig{
+		CoreConfig: CoreConfig{
 			Region: pointer.String("us-east-1"),
 		},
 		ManagedConfig: ManagedConfig{
@@ -1151,7 +1150,7 @@ func validateInstanceDistribution(instances []string) ([]string, error) {
 // This does not set defaults for fields that are prompted from the user
 func SetDefaults(cc *Config) error {
 	var emptyMap interface{} = map[interface{}]interface{}{}
-	errs := cr.Struct(cc, emptyMap, ManagedValidation)
+	errs := cr.Struct(cc, emptyMap, FullManagedValidation)
 	if errors.HasError(errs) {
 		return errors.FirstError(errs...)
 	}
@@ -1240,30 +1239,30 @@ func (cc *InternalConfig) UserStr() string {
 	return cc.UserTable().String()
 }
 
-func (bc *BaseConfig) UserTable() table.KeyValuePairs {
+func (cc *CoreConfig) UserTable() table.KeyValuePairs {
 	var items table.KeyValuePairs
 
-	items.Add(ClusterNameUserKey, bc.ClusterName)
-	items.Add(RegionUserKey, *bc.Region)
-	items.Add(BucketUserKey, bc.Bucket)
-	items.Add(TelemetryUserKey, bc.Telemetry)
-	items.Add(ImageOperatorUserKey, bc.ImageOperator)
-	items.Add(ImageManagerUserKey, bc.ImageManager)
-	items.Add(ImageDownloaderUserKey, bc.ImageDownloader)
-	items.Add(ImageRequestMonitorUserKey, bc.ImageRequestMonitor)
-	items.Add(ImageClusterAutoscalerUserKey, bc.ImageClusterAutoscaler)
-	items.Add(ImageMetricsServerUserKey, bc.ImageMetricsServer)
-	items.Add(ImageInferentiaUserKey, bc.ImageInferentia)
-	items.Add(ImageNeuronRTDUserKey, bc.ImageNeuronRTD)
-	items.Add(ImageNvidiaUserKey, bc.ImageNvidia)
-	items.Add(ImageFluentBitUserKey, bc.ImageFluentBit)
-	items.Add(ImageIstioProxyUserKey, bc.ImageIstioProxy)
-	items.Add(ImageIstioPilotUserKey, bc.ImageIstioPilot)
-	items.Add(ImagePrometheusUserKey, bc.ImagePrometheus)
-	items.Add(ImagePrometheusConfigReloaderUserKey, bc.ImagePrometheusConfigReloader)
-	items.Add(ImagePrometheusOperatorUserKey, bc.ImagePrometheusOperator)
-	items.Add(ImagePrometheusStatsDExporterUserKey, bc.ImagePrometheusStatsDExporter)
-	items.Add(ImagePrometheusToCloudwatchUserKey, bc.ImagePrometheusToCloudWatch)
+	items.Add(ClusterNameUserKey, cc.ClusterName)
+	items.Add(RegionUserKey, *cc.Region)
+	items.Add(BucketUserKey, cc.Bucket)
+	items.Add(TelemetryUserKey, cc.Telemetry)
+	items.Add(ImageOperatorUserKey, cc.ImageOperator)
+	items.Add(ImageManagerUserKey, cc.ImageManager)
+	items.Add(ImageDownloaderUserKey, cc.ImageDownloader)
+	items.Add(ImageRequestMonitorUserKey, cc.ImageRequestMonitor)
+	items.Add(ImageClusterAutoscalerUserKey, cc.ImageClusterAutoscaler)
+	items.Add(ImageMetricsServerUserKey, cc.ImageMetricsServer)
+	items.Add(ImageInferentiaUserKey, cc.ImageInferentia)
+	items.Add(ImageNeuronRTDUserKey, cc.ImageNeuronRTD)
+	items.Add(ImageNvidiaUserKey, cc.ImageNvidia)
+	items.Add(ImageFluentBitUserKey, cc.ImageFluentBit)
+	items.Add(ImageIstioProxyUserKey, cc.ImageIstioProxy)
+	items.Add(ImageIstioPilotUserKey, cc.ImageIstioPilot)
+	items.Add(ImagePrometheusUserKey, cc.ImagePrometheus)
+	items.Add(ImagePrometheusConfigReloaderUserKey, cc.ImagePrometheusConfigReloader)
+	items.Add(ImagePrometheusOperatorUserKey, cc.ImagePrometheusOperator)
+	items.Add(ImagePrometheusStatsDExporterUserKey, cc.ImagePrometheusStatsDExporter)
+	items.Add(ImagePrometheusToCloudwatchUserKey, cc.ImagePrometheusToCloudWatch)
 
 	return items
 }
@@ -1309,13 +1308,10 @@ func (mc *ManagedConfig) UserTable() table.KeyValuePairs {
 
 func (cc *Config) UserTable() table.KeyValuePairs {
 	var items *table.KeyValuePairs = &table.KeyValuePairs{}
+	items.AddAll(cc.CoreConfig.UserTable())
 
-	baseConfigTable := cc.BaseConfig.UserTable()
-	items.AddAll(baseConfigTable)
-
-	if cc.BaseConfig.IsManaged {
-		managedConfigTable := cc.ManagedConfig.UserTable()
-		items.AddAll(managedConfigTable)
+	if cc.CoreConfig.IsManaged {
+		items.AddAll(cc.ManagedConfig.UserTable())
 	}
 
 	return *items
@@ -1325,77 +1321,77 @@ func (cc *Config) UserStr() string {
 	return cc.UserTable().String()
 }
 
-func (bc *BaseConfig) TelemetryEvent() map[string]interface{} {
+func (cc *CoreConfig) TelemetryEvent() map[string]interface{} {
 	event := map[string]interface{}{
 		"provider":   types.AWSProviderType,
-		"is_managed": bc.IsManaged,
+		"is_managed": cc.IsManaged,
 	}
 
-	if bc.ClusterName != "cortex" {
+	if cc.ClusterName != "cortex" {
 		event["cluster_name._is_custom"] = true
 	}
 
-	if bc.Namespace != "default" {
+	if cc.Namespace != "default" {
 		event["namespace._is_custom"] = true
 	}
-	if bc.IstioNamespace != "istio-system" {
+	if cc.IstioNamespace != "istio-system" {
 		event["istio_namespace._is_custom"] = true
 	}
 
-	if bc.Region != nil {
+	if cc.Region != nil {
 		event["region._is_defined"] = true
-		event["region"] = *bc.Region
+		event["region"] = *cc.Region
 	}
 
-	if !strings.HasPrefix(bc.ImageOperator, "cortexlabs/") {
+	if !strings.HasPrefix(cc.ImageOperator, "cortexlabs/") {
 		event["image_operator._is_custom"] = true
 	}
-	if !strings.HasPrefix(bc.ImageManager, "cortexlabs/") {
+	if !strings.HasPrefix(cc.ImageManager, "cortexlabs/") {
 		event["image_manager._is_custom"] = true
 	}
-	if !strings.HasPrefix(bc.ImageDownloader, "cortexlabs/") {
+	if !strings.HasPrefix(cc.ImageDownloader, "cortexlabs/") {
 		event["image_downloader._is_custom"] = true
 	}
-	if !strings.HasPrefix(bc.ImageRequestMonitor, "cortexlabs/") {
+	if !strings.HasPrefix(cc.ImageRequestMonitor, "cortexlabs/") {
 		event["image_request_monitor._is_custom"] = true
 	}
-	if !strings.HasPrefix(bc.ImageClusterAutoscaler, "cortexlabs/") {
+	if !strings.HasPrefix(cc.ImageClusterAutoscaler, "cortexlabs/") {
 		event["image_cluster_autoscaler._is_custom"] = true
 	}
-	if !strings.HasPrefix(bc.ImageMetricsServer, "cortexlabs/") {
+	if !strings.HasPrefix(cc.ImageMetricsServer, "cortexlabs/") {
 		event["image_metrics_server._is_custom"] = true
 	}
-	if !strings.HasPrefix(bc.ImageInferentia, "cortexlabs/") {
+	if !strings.HasPrefix(cc.ImageInferentia, "cortexlabs/") {
 		event["image_inferentia._is_custom"] = true
 	}
-	if !strings.HasPrefix(bc.ImageNeuronRTD, "cortexlabs/") {
+	if !strings.HasPrefix(cc.ImageNeuronRTD, "cortexlabs/") {
 		event["image_neuron_rtd._is_custom"] = true
 	}
-	if !strings.HasPrefix(bc.ImageNvidia, "cortexlabs/") {
+	if !strings.HasPrefix(cc.ImageNvidia, "cortexlabs/") {
 		event["image_nvidia._is_custom"] = true
 	}
-	if !strings.HasPrefix(bc.ImageFluentBit, "cortexlabs/") {
+	if !strings.HasPrefix(cc.ImageFluentBit, "cortexlabs/") {
 		event["image_fluent_bit._is_custom"] = true
 	}
-	if !strings.HasPrefix(bc.ImageIstioProxy, "cortexlabs/") {
+	if !strings.HasPrefix(cc.ImageIstioProxy, "cortexlabs/") {
 		event["image_istio_proxy._is_custom"] = true
 	}
-	if !strings.HasPrefix(bc.ImageIstioPilot, "cortexlabs/") {
+	if !strings.HasPrefix(cc.ImageIstioPilot, "cortexlabs/") {
 		event["image_istio_pilot._is_custom"] = true
 	}
-	if strings.HasPrefix(bc.ImagePrometheus, "cortexlabs/") {
+	if strings.HasPrefix(cc.ImagePrometheus, "cortexlabs/") {
 		event["image_prometheus._is_custom"] = true
 	}
-	if strings.HasPrefix(bc.ImagePrometheusConfigReloader, "cortexlabs/") {
+	if strings.HasPrefix(cc.ImagePrometheusConfigReloader, "cortexlabs/") {
 		event["image_prometheus_config_reloader._is_custom"] = true
 	}
-	if strings.HasPrefix(bc.ImagePrometheusOperator, "cortexlabs/") {
+	if strings.HasPrefix(cc.ImagePrometheusOperator, "cortexlabs/") {
 		event["image_prometheus_operator._is_custom"] = true
 	}
-	if strings.HasPrefix(bc.ImagePrometheusStatsDExporter, "cortexlabs/") {
+	if strings.HasPrefix(cc.ImagePrometheusStatsDExporter, "cortexlabs/") {
 		event["image_prometheus_statsd_exporter._is_custom"] = true
 	}
-	if strings.HasPrefix(bc.ImagePrometheusToCloudWatch, "cortexlabs/") {
+	if strings.HasPrefix(cc.ImagePrometheusToCloudWatch, "cortexlabs/") {
 		event["image_prometheus_to_cloudwatch._is_custom"] = true
 	}
 
@@ -1482,11 +1478,4 @@ func (mc *ManagedConfig) TelemetryEvent() map[string]interface{} {
 	}
 
 	return event
-}
-
-func (cc *Config) TelemetryEvent() map[string]interface{} {
-	if cc.BaseConfig.IsManaged {
-		return maps.MergeStrInterfaceMaps(cc.BaseConfig.TelemetryEvent(), cc.ManagedConfig.TelemetryEvent())
-	}
-	return cc.BaseConfig.TelemetryEvent()
 }

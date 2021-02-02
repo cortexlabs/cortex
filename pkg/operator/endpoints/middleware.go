@@ -83,7 +83,7 @@ func AuthMiddleware(next http.Handler) http.Handler {
 
 		if config.Provider == types.AWSProviderType {
 			accessKeyID, secretAccessKey := parts[0], parts[1]
-			awsClient, err := aws.NewFromCreds(*config.Cluster.Region, accessKeyID, secretAccessKey)
+			awsClient, err := aws.NewFromCreds(*config.CoreConfig.Region, accessKeyID, secretAccessKey)
 			if err != nil {
 				respondError(w, r, ErrorAuthAPIError())
 				return

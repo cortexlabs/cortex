@@ -43,16 +43,16 @@ data:
     image_manager: {{ .Values.cortex.image_manager }}
     image_downloader: {{ .Values.cortex.image_downloader }}
     image_request_monitor: {{ .Values.cortex.image_request_monitor }}
-    image_cluster_autoscaler: {{ .Values.cortex.image_cluster_autoscaler }}
-    image_metrics_server: {{ .Values.cortex.image_metrics_server }}
     image_inferentia: {{ .Values.cortex.image_inferentia }}
     image_neuron_rtd: {{ .Values.cortex.image_neuron_rtd }}
-    image_nvidia: {{ .Values.cortex.image_nvidia }}
     image_fluent_bit: {{ .Values.cortex.image_fluent_bit }}
-    image_statsd: {{ .Values.cortex.image_statsd }}
     image_istio_proxy: {{ .Values.cortex.image_istio_proxy }}
     image_istio_pilot: {{ .Values.cortex.image_istio_pilot }}
-    image_google_pause: {{ .Values.cortex.image_google_pause }}
+    image_prometheus: {{ .Values.cortex.image_prometheus }}
+    image_prometheus_config_reloader: {{ .Values.cortex.image_prometheus_config_reloader }}
+    image_prometheus_operator: {{ .Values.cortex.image_prometheus_operator }}
+    image_prometheus_statsd_exporter: {{ .Values.cortex.image_prometheus_statsd_exporter }}
+    image_prometheus_to_cloudwatch: {{ .Values.cortex.image_prometheus_to_cloudwatch }}
 ---
 {{- else if eq .Values.global.provider "gcp" }}
 apiVersion: v1
@@ -75,10 +75,14 @@ data:
     image_manager: {{ .Values.cortex.image_manager }}
     image_downloader: {{ .Values.cortex.image_downloader }}
     image_request_monitor: {{ .Values.cortex.image_request_monitor }}
-    image_cluster_autoscaler: {{ .Values.cortex.image_cluster_autoscaler }}
     image_fluent_bit: {{ .Values.cortex.image_fluent_bit }}
     image_istio_proxy: {{ .Values.cortex.image_istio_proxy }}
     image_istio_pilot: {{ .Values.cortex.image_istio_pilot }}
     image_google_pause: {{ .Values.cortex.image_google_pause }}
+    image_prometheus: {{ .Values.cortex.image_prometheus }}
+    image_prometheus_config_reloader: {{ .Values.cortex.image_prometheus_config_reloader }}
+    image_prometheus_operator: {{ .Values.cortex.image_prometheus_operator }}
+    image_prometheus_statsd_exporter: {{ .Values.cortex.image_prometheus_statsd_exporter }}
+    image_prometheus_stackdriver_sidecar: {{ .Values.cortex.image_prometheus_stackdriver_sidecar }}
 ---
 {{- end }}
