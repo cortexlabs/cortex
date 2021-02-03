@@ -63,7 +63,7 @@ func IsValidGCSPath(gcsPath string) bool {
 	return true
 }
 
-func (c *Client) DoesBucketExist(bucket string, location string) (bool, error) {
+func (c *Client) DoesBucketExist(bucket string) (bool, error) {
 	gcsClient, err := c.GCS()
 	if err != nil {
 		return false, err
@@ -74,7 +74,7 @@ func (c *Client) DoesBucketExist(bucket string, location string) (bool, error) {
 		if IsBucketDoesNotExist(err) {
 			return false, nil
 		}
-		return false, errors.WithStack(err)
+		return false, errors.Wrap(err, "bucket", bucket)
 	}
 	return true, nil
 }
