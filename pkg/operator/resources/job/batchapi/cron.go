@@ -315,7 +315,7 @@ func checkIfJobCompleted(jobKey spec.JobKey, queueURL string, k8sJob *kbatch.Job
 		return nil
 	}
 
-	batchMetrics, err := getRealTimeBatchMetrics(jobKey)
+	batchMetrics, err := getBatchMetrics(jobKey)
 	if err != nil {
 		return err
 	}

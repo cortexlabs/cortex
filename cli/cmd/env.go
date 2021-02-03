@@ -26,23 +26,16 @@ import (
 	libjson "github.com/cortexlabs/cortex/pkg/lib/json"
 	"github.com/cortexlabs/cortex/pkg/lib/print"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
-	"github.com/cortexlabs/cortex/pkg/types"
 	"github.com/spf13/cobra"
 )
 
 var (
-	_flagEnvProvider           string
-	_flagEnvOperatorEndpoint   string
-	_flagEnvAWSAccessKeyID     string
-	_flagEnvAWSSecretAccessKey string
+	_flagEnvOperatorEndpoint string
 )
 
 func envInit() {
 	_envConfigureCmd.Flags().SortFlags = false
-	_envConfigureCmd.Flags().StringVarP(&_flagEnvProvider, "provider", "p", "", "set the provider without prompting")
 	_envConfigureCmd.Flags().StringVarP(&_flagEnvOperatorEndpoint, "operator-endpoint", "o", "", "set the operator endpoint without prompting")
-	_envConfigureCmd.Flags().StringVarP(&_flagEnvAWSAccessKeyID, "aws-access-key-id", "k", "", "set the aws access key id without prompting")
-	_envConfigureCmd.Flags().StringVarP(&_flagEnvAWSSecretAccessKey, "aws-secret-access-key", "s", "", "set the aws secret access key without prompting")
 	_envCmd.AddCommand(_envConfigureCmd)
 
 	_envListCmd.Flags().SortFlags = false
@@ -73,34 +66,14 @@ var _envConfigureCmd = &cobra.Command{
 			envName = args[0]
 		}
 
-		skipProvider := types.UnknownProviderType
-		if _flagEnvProvider != "" {
-			skipProvider = types.ProviderTypeFromString(_flagEnvProvider)
-			if skipProvider == types.UnknownProviderType {
-				exit.Error(ErrorInvalidProvider(_flagEnvProvider))
-			}
-		}
-
-		var skipOperatorEndpoint *string
+		fieldsToSkipPrompt := cliconfig.Environment{}
 		if _flagEnvOperatorEndpoint != "" {
-			skipOperatorEndpoint = &_flagEnvOperatorEndpoint
-		}
-
-		var skipAWSAccessKeyID *string
-		if _flagEnvAWSAccessKeyID != "" {
-			skipAWSAccessKeyID = &_flagEnvAWSAccessKeyID
-		}
-
-		var skipAWSSecretAccessKey *string
-		if _flagEnvAWSSecretAccessKey != "" {
-			skipAWSSecretAccessKey = &_flagEnvAWSSecretAccessKey
-		}
-
-		fieldsToSkipPrompt := cliconfig.Environment{
-			Provider:           skipProvider,
-			OperatorEndpoint:   skipOperatorEndpoint,
-			AWSAccessKeyID:     skipAWSAccessKeyID,
-			AWSSecretAccessKey: skipAWSSecretAccessKey,
+			operatorEndpoint, provider, err := validateOperatorEndpoint(_flagEnvOperatorEndpoint)
+			if err != nil {
+				exit.Error(err)
+			}
+			fieldsToSkipPrompt.OperatorEndpoint = operatorEndpoint
+			fieldsToSkipPrompt.Provider = provider
 		}
 
 		if _, err := configureEnv(envName, fieldsToSkipPrompt); err != nil {

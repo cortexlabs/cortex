@@ -1,0 +1,136 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: operator
+  namespace: {{ .Release.Namespace }}
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: operator
+  namespace: {{ .Release.Namespace }}
+subjects:
+  - kind: ServiceAccount
+    name: operator
+    namespace: {{ .Release.Namespace }}
+roleRef:
+  kind: ClusterRole
+  name: cluster-admin
+  apiGroup: rbac.authorization.k8s.io
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: operator
+  namespace: {{ .Release.Namespace }}
+  labels:
+    workloadID: operator
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      workloadID: operator
+  template:
+    metadata:
+      labels:
+        workloadID: operator
+    spec:
+      serviceAccountName: operator
+      containers:
+        - name: operator
+          image: {{ .Values.cortex.image_operator }}
+          imagePullPolicy: Always
+          resources:
+            requests:
+              cpu: 200m
+              memory: 128Mi
+            limits:
+              cpu: 2000m
+              memory: 1024Mi
+          ports:
+            - containerPort: 8888
+          envFrom:
+            - configMapRef:
+                name: env-vars
+            {{- if eq .Values.global.provider "aws" }}
+            - secretRef:
+                name: aws-credentials
+            {{- end }}
+          volumeMounts:
+            - name: cluster-config
+              mountPath: /configs/cluster
+            - name: docker-client
+              mountPath: /var/run/docker.sock
+            {{- if eq .Values.global.provider "gcp" }}
+            - name: gcp-credentials
+              mountPath: /var/secrets/google
+            {{- end }}
+      volumes:
+        - name: cluster-config
+          configMap:
+            name: cluster-config
+        - name: docker-client
+          hostPath:
+            path: /var/run/docker.sock
+            type: Socket
+        {{- if eq .Values.global.provider "gcp" }}
+        - name: gcp-credentials
+          secret:
+            secretName: gcp-credentials
+        {{- end }}
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: {{ .Release.Namespace }}
+  name: operator
+spec:
+  selector:
+    workloadID: operator
+  ports:
+    - port: 8888
+      name: http
+
+---
+apiVersion: networking.istio.io/v1beta1
+kind: Gateway
+metadata:
+  name: operator-gateway
+  namespace: {{ .Release.Namespace }}
+spec:
+  selector:
+    istio: ingressgateway-operator
+  servers:
+    - port:
+        number: 80
+        name: http
+        protocol: HTTP
+      hosts:
+        - "*"
+    - port:
+        number: 443
+        name: https
+        protocol: HTTPS
+      hosts:
+        - "*"
+
+---
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: operator
+  namespace: {{ .Release.Namespace }}
+spec:
+  hosts:
+    - "*"
+  gateways:
+    - operator-gateway
+  http:
+    - route:
+        - destination:
+            host: operator
+            port:
+              number: 8888

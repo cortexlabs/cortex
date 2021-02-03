@@ -1,0 +1,90 @@
+{{- if not (mustHas .Values.global.provider (list "aws" "gcp")) }}
+{{ fail "the field `global: provider` is required, valid values are [aws, gcp] " }}
+{{- end }}
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: env-vars
+  namespace: {{ .Release.Namespace }}
+data:
+  CORTEX_VERSION: {{ .Chart.AppVersion }}
+  CORTEX_PROVIDER: {{ .Values.global.provider }}
+  {{- if eq .Values.global.provider "aws" }}
+  CORTEX_REGION:  {{ .Values.cortex.region }}
+  AWS_REGION: {{ .Values.cortex.region  }}
+  {{- else if eq .Values.global.provider "gcp" }}
+  CORTEX_GCP_PROJECT: {{ .Values.cortex.project  }}
+  CORTEX_GCP_ZONE: {{ .Values.cortex.zone  }}
+  GOOGLE_APPLICATION_CREDENTIALS: /var/secrets/google/key.json
+  {{- end}}
+  CORTEX_TELEMETRY_DISABLE: "{{ not ( .Values.cortex.telemetry | default true ) }}"
+  CORTEX_TELEMETRY_SENTRY_DSN: {{ .Values.cortex.telemetry_sentry_dsn | default "https://5cea3d2d67194d028f7191fcc6ebca14@sentry.io/1825326"}}
+  CORTEX_TELEMETRY_SEGMENT_WRITE_KEY: {{ .Values.cortex.telemetry_segment_write_key | default "BNhXifMk9EyhPICF2zAFpWYPCf4CRpV1" }}
+  {{- if .Values.cortex.default_predictor_image_registry }}
+  CORTEX_DEV_DEFAULT_PREDICTOR_IMAGE_REGISTRY: {{ .Values.cortex.default_predictor_image_registry }}
+  {{- end}}
+---
+{{- if eq .Values.global.provider "aws" }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cluster-config
+  namespace: {{ .Release.Namespace }}
+data:
+  cluster.yaml: |
+    bucket: {{ required "`cortex: bucket` is a required field" .Values.cortex.bucket }}
+    cluster_name: {{ required "`cortex: cluster_name` is a required field" .Values.cortex.cluster_name }}
+    region: {{ required "`cortex: region` is a required field" .Values.cortex.region }}
+    provider: {{ .Values.global.provider }}
+    telemetry: {{ .Values.cortex.telemetry | default true }}
+    is_managed: {{ .Values.cortex.is_managed | default false }}
+    namespace: {{ .Release.Namespace }}
+    istio_namespace: {{ .Release.Namespace }}
+    image_operator: {{ .Values.cortex.image_operator }}
+    image_manager: {{ .Values.cortex.image_manager }}
+    image_downloader: {{ .Values.cortex.image_downloader }}
+    image_request_monitor: {{ .Values.cortex.image_request_monitor }}
+    image_inferentia: {{ .Values.cortex.image_inferentia }}
+    image_neuron_rtd: {{ .Values.cortex.image_neuron_rtd }}
+    image_fluent_bit: {{ .Values.cortex.image_fluent_bit }}
+    image_istio_proxy: {{ .Values.cortex.image_istio_proxy }}
+    image_istio_pilot: {{ .Values.cortex.image_istio_pilot }}
+    image_prometheus: {{ .Values.cortex.image_prometheus }}
+    image_prometheus_config_reloader: {{ .Values.cortex.image_prometheus_config_reloader }}
+    image_prometheus_operator: {{ .Values.cortex.image_prometheus_operator }}
+    image_prometheus_statsd_exporter: {{ .Values.cortex.image_prometheus_statsd_exporter }}
+    image_prometheus_to_cloudwatch: {{ .Values.cortex.image_prometheus_to_cloudwatch }}
+---
+{{- else if eq .Values.global.provider "gcp" }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cluster-config
+  namespace: {{ .Release.Namespace }}
+data:
+  cluster.yaml: |
+    bucket: {{ required "`cortex: bucket` is a required field" .Values.cortex.bucket }}
+    cluster_name: {{ required "`cortex: cluster_name` is a required field" .Values.cortex.cluster_name }}
+    zone: {{ required "`cortex: zone` is a required field" .Values.cortex.zone }}
+    project: {{ required "`cortex: project` is a required field" .Values.cortex.project }}
+    provider: {{ .Values.global.provider }}
+    telemetry: {{ .Values.cortex.telemetry | default true }}
+    is_managed: {{ .Values.cortex.is_managed | default false }}
+    namespace: {{ .Release.Namespace }}
+    istio_namespace: {{ .Release.Namespace }}
+    image_operator: {{ .Values.cortex.image_operator }}
+    image_manager: {{ .Values.cortex.image_manager }}
+    image_downloader: {{ .Values.cortex.image_downloader }}
+    image_request_monitor: {{ .Values.cortex.image_request_monitor }}
+    image_fluent_bit: {{ .Values.cortex.image_fluent_bit }}
+    image_istio_proxy: {{ .Values.cortex.image_istio_proxy }}
+    image_istio_pilot: {{ .Values.cortex.image_istio_pilot }}
+    image_google_pause: {{ .Values.cortex.image_google_pause }}
+    image_prometheus: {{ .Values.cortex.image_prometheus }}
+    image_prometheus_config_reloader: {{ .Values.cortex.image_prometheus_config_reloader }}
+    image_prometheus_operator: {{ .Values.cortex.image_prometheus_operator }}
+    image_prometheus_statsd_exporter: {{ .Values.cortex.image_prometheus_statsd_exporter }}
+    image_prometheus_stackdriver_sidecar: {{ .Values.cortex.image_prometheus_stackdriver_sidecar }}
+---
+{{- end }}

@@ -59,7 +59,7 @@ func existingCachedClusterConfigPaths() []string {
 }
 
 func readCachedClusterConfigFile(clusterConfig *clusterconfig.Config, filePath string) error {
-	errs := cr.ParseYAMLFile(clusterConfig, clusterconfig.Validation, filePath)
+	errs := cr.ParseYAMLFile(clusterConfig, clusterconfig.FullManagedValidation, filePath)
 	if errors.HasError(errs) {
 		return errors.FirstError(errs...)
 	}
@@ -68,7 +68,7 @@ func readCachedClusterConfigFile(clusterConfig *clusterconfig.Config, filePath s
 }
 
 func readUserClusterConfigFile(clusterConfig *clusterconfig.Config) error {
-	errs := cr.ParseYAMLFile(clusterConfig, clusterconfig.UserValidation, _flagClusterConfig)
+	errs := cr.ParseYAMLFile(clusterConfig, clusterconfig.FullManagedValidation, _flagClusterConfig)
 	if errors.HasError(errs) {
 		return errors.Append(errors.FirstError(errs...), fmt.Sprintf("\n\ncluster configuration schema can be found at https://docs.cortex.dev/v/%s/", consts.CortexVersionMinor))
 	}
@@ -239,7 +239,7 @@ func getConfigureClusterConfig(cachedClusterConfig clusterconfig.Config, awsCred
 		}
 		promptIfNotAdmin(awsClient, disallowPrompt)
 
-		err = setConfigFieldsFromCached(userClusterConfig, &cachedClusterConfig, awsClient)
+		err = setConfigFieldsFromCached(userClusterConfig, &cachedClusterConfig)
 		if err != nil {
 			return nil, err
 		}
@@ -265,12 +265,12 @@ func getConfigureClusterConfig(cachedClusterConfig clusterconfig.Config, awsCred
 		return nil, err
 	}
 
-	confirmConfigureClusterConfig(*userClusterConfig, awsCreds, awsClient, disallowPrompt)
+	confirmConfigureClusterConfig(*userClusterConfig, awsCreds, disallowPrompt)
 
 	return userClusterConfig, nil
 }
 
-func setConfigFieldsFromCached(userClusterConfig *clusterconfig.Config, cachedClusterConfig *clusterconfig.Config, awsClient *aws.Client) error {
+func setConfigFieldsFromCached(userClusterConfig *clusterconfig.Config, cachedClusterConfig *clusterconfig.Config) error {
 	if userClusterConfig.Bucket != "" && userClusterConfig.Bucket != cachedClusterConfig.Bucket {
 		return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.BucketKey, cachedClusterConfig.Bucket)
 	}
@@ -388,11 +388,6 @@ func setConfigFieldsFromCached(userClusterConfig *clusterconfig.Config, cachedCl
 	}
 	userClusterConfig.ImageFluentBit = cachedClusterConfig.ImageFluentBit
 
-	if s.Obj(cachedClusterConfig.ImageStatsd) != s.Obj(userClusterConfig.ImageStatsd) {
-		return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.ImageStatsdKey, cachedClusterConfig.ImageStatsd)
-	}
-	userClusterConfig.ImageStatsd = cachedClusterConfig.ImageStatsd
-
 	if s.Obj(cachedClusterConfig.ImageIstioProxy) != s.Obj(userClusterConfig.ImageIstioProxy) {
 		return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.ImageIstioProxyKey, cachedClusterConfig.ImageIstioProxy)
 	}
@@ -402,6 +397,26 @@ func setConfigFieldsFromCached(userClusterConfig *clusterconfig.Config, cachedCl
 		return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.ImageIstioPilotKey, cachedClusterConfig.ImageIstioPilot)
 	}
 	userClusterConfig.ImageIstioPilot = cachedClusterConfig.ImageIstioPilot
+
+	if s.Obj(cachedClusterConfig.ImagePrometheus) != s.Obj(userClusterConfig.ImagePrometheus) {
+		return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.ImagePrometheusKey, cachedClusterConfig.ImagePrometheus)
+	}
+
+	if s.Obj(cachedClusterConfig.ImagePrometheusConfigReloader) != s.Obj(userClusterConfig.ImagePrometheusConfigReloader) {
+		return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.ImagePrometheusConfigReloaderKey, cachedClusterConfig.ImagePrometheusConfigReloader)
+	}
+
+	if s.Obj(cachedClusterConfig.ImagePrometheusOperator) != s.Obj(userClusterConfig.ImagePrometheusOperator) {
+		return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.ImagePrometheusOperatorKey, cachedClusterConfig.ImagePrometheusOperator)
+	}
+
+	if s.Obj(cachedClusterConfig.ImagePrometheusStatsDExporter) != s.Obj(userClusterConfig.ImagePrometheusStatsDExporter) {
+		return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.ImagePrometheusStatsDExporterKey, cachedClusterConfig.ImagePrometheusStatsDExporter)
+	}
+
+	if s.Obj(cachedClusterConfig.ImagePrometheusToCloudWatch) != s.Obj(userClusterConfig.ImagePrometheusToCloudWatch) {
+		return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.ImagePrometheusToCloudwatchKey, cachedClusterConfig.ImagePrometheusToCloudWatch)
+	}
 
 	if userClusterConfig.Spot != nil && *userClusterConfig.Spot != *cachedClusterConfig.Spot {
 		return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.SpotKey, *cachedClusterConfig.Spot)
@@ -450,6 +465,7 @@ func confirmInstallClusterConfig(clusterConfig *clusterconfig.Config, awsCreds A
 	eksPrice := aws.EKSPrices[*clusterConfig.Region]
 	operatorInstancePrice := aws.InstanceMetadatas[*clusterConfig.Region]["t3.medium"].Price
 	operatorEBSPrice := aws.EBSMetadatas[*clusterConfig.Region]["gp2"].PriceGB * 20 / 30 / 24
+	metricsEBSPrice := aws.EBSMetadatas[*clusterConfig.Region]["gp2"].PriceGB * 40 / 30 / 24
 	nlbPrice := aws.NLBMetadatas[*clusterConfig.Region].Price
 	natUnitPrice := aws.NATMetadatas[*clusterConfig.Region].Price
 	apiInstancePrice := aws.InstanceMetadatas[*clusterConfig.Region][*clusterConfig.InstanceType].Price
@@ -465,7 +481,7 @@ func confirmInstallClusterConfig(clusterConfig *clusterconfig.Config, awsCreds A
 		natTotalPrice = natUnitPrice * float64(len(clusterConfig.AvailabilityZones))
 	}
 
-	fixedPrice := eksPrice + operatorInstancePrice + operatorEBSPrice + 2*nlbPrice + natTotalPrice
+	fixedPrice := eksPrice + 2*operatorInstancePrice + operatorEBSPrice + metricsEBSPrice + 2*nlbPrice + natTotalPrice
 	totalMinPrice := fixedPrice + float64(*clusterConfig.MinInstances)*(apiInstancePrice+apiEBSPrice)
 	totalMaxPrice := fixedPrice + float64(*clusterConfig.MaxInstances)*(apiInstancePrice+apiEBSPrice)
 
@@ -476,7 +492,7 @@ func confirmInstallClusterConfig(clusterConfig *clusterconfig.Config, awsCreds A
 		{Title: "cost per hour"},
 	}
 
-	rows := [][]interface{}{}
+	var rows [][]interface{}
 	rows = append(rows, []interface{}{"1 eks cluster", s.DollarsMaxPrecision(eksPrice)})
 
 	instanceStr := "instances"
@@ -505,8 +521,9 @@ func confirmInstallClusterConfig(clusterConfig *clusterconfig.Config, awsCreds A
 
 	rows = append(rows, []interface{}{workerInstanceStr, workerPriceStr})
 	rows = append(rows, []interface{}{ebsInstanceStr, s.DollarsAndTenthsOfCents(apiEBSPrice) + " each"})
-	rows = append(rows, []interface{}{"1 t3.medium instance for the operator", s.DollarsMaxPrecision(operatorInstancePrice)})
+	rows = append(rows, []interface{}{"2 t3.medium instances for the cortex system", s.DollarsMaxPrecision(operatorInstancePrice * 2)})
 	rows = append(rows, []interface{}{"1 20gb ebs volume for the operator", s.DollarsAndTenthsOfCents(operatorEBSPrice)})
+	rows = append(rows, []interface{}{"1 40gb ebs volume for prometheus", s.DollarsAndTenthsOfCents(metricsEBSPrice)})
 	rows = append(rows, []interface{}{"2 network load balancers", s.DollarsMaxPrecision(nlbPrice) + " each"})
 
 	if clusterConfig.NATGateway == clusterconfig.SingleNATGateway {
@@ -565,8 +582,8 @@ func confirmInstallClusterConfig(clusterConfig *clusterconfig.Config, awsCreds A
 	}
 }
 
-func confirmConfigureClusterConfig(clusterConfig clusterconfig.Config, awsCreds AWSCredentials, awsClient *aws.Client, disallowPrompt bool) {
-	fmt.Println(clusterConfigConfirmationStr(clusterConfig, awsCreds, awsClient))
+func confirmConfigureClusterConfig(clusterConfig clusterconfig.Config, awsCreds AWSCredentials, disallowPrompt bool) {
+	fmt.Println(clusterConfigConfirmationStr(clusterConfig, awsCreds))
 
 	if !disallowPrompt {
 		exitMessage := fmt.Sprintf("cluster configuration can be modified via the cluster config file; see https://docs.cortex.dev/v/%s/ for more information", consts.CortexVersionMinor)
@@ -574,7 +591,7 @@ func confirmConfigureClusterConfig(clusterConfig clusterconfig.Config, awsCreds 
 	}
 }
 
-func clusterConfigConfirmationStr(clusterConfig clusterconfig.Config, awsCreds AWSCredentials, awsClient *aws.Client) string {
+func clusterConfigConfirmationStr(clusterConfig clusterconfig.Config, awsCreds AWSCredentials) string {
 	defaultConfig, _ := clusterconfig.GetDefaults()
 
 	var items table.KeyValuePairs
@@ -694,15 +711,26 @@ func clusterConfigConfirmationStr(clusterConfig clusterconfig.Config, awsCreds A
 	if clusterConfig.ImageFluentBit != defaultConfig.ImageFluentBit {
 		items.Add(clusterconfig.ImageFluentBitUserKey, clusterConfig.ImageFluentBit)
 	}
-	if clusterConfig.ImageStatsd != defaultConfig.ImageStatsd {
-		items.Add(clusterconfig.ImageStatsdUserKey, clusterConfig.ImageStatsd)
-	}
 	if clusterConfig.ImageIstioProxy != defaultConfig.ImageIstioProxy {
 		items.Add(clusterconfig.ImageIstioProxyUserKey, clusterConfig.ImageIstioProxy)
 	}
 	if clusterConfig.ImageIstioPilot != defaultConfig.ImageIstioPilot {
 		items.Add(clusterconfig.ImageIstioPilotUserKey, clusterConfig.ImageIstioPilot)
 	}
-
+	if clusterConfig.ImagePrometheus != defaultConfig.ImagePrometheus {
+		items.Add(clusterconfig.ImagePrometheusUserKey, clusterConfig.ImagePrometheus)
+	}
+	if clusterConfig.ImagePrometheusConfigReloader != defaultConfig.ImagePrometheusConfigReloader {
+		items.Add(clusterconfig.ImagePrometheusConfigReloaderUserKey, clusterConfig.ImagePrometheusConfigReloader)
+	}
+	if clusterConfig.ImagePrometheusOperator != defaultConfig.ImagePrometheusOperator {
+		items.Add(clusterconfig.ImagePrometheusOperatorUserKey, clusterConfig.ImagePrometheusOperator)
+	}
+	if clusterConfig.ImagePrometheusStatsDExporter != defaultConfig.ImagePrometheusStatsDExporter {
+		items.Add(clusterconfig.ImagePrometheusStatsDExporterUserKey, clusterConfig.ImagePrometheusStatsDExporter)
+	}
+	if clusterConfig.ImagePrometheusToCloudWatch != defaultConfig.ImagePrometheusToCloudWatch {
+		items.Add(clusterconfig.ImagePrometheusToCloudwatchUserKey, clusterConfig.ImagePrometheusToCloudWatch)
+	}
 	return items.String()
 }

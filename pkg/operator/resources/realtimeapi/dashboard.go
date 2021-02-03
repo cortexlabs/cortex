@@ -147,7 +147,7 @@ func statusCodeMetric(dashboardName string, apiName string) []interface{} {
 
 func DashboardURL() string {
 	if config.Provider == types.AWSProviderType {
-		return fmt.Sprintf("https://%s.console.aws.amazon.com/cloudwatch/home#dashboards:name=%s", *config.Cluster.Region, config.ClusterName())
+		return fmt.Sprintf("https://%s.console.aws.amazon.com/cloudwatch/home#dashboards:name=%s", *config.CoreConfig.Region, config.ClusterName())
 	}
 	return ""
 }

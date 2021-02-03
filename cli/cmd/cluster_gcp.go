@@ -30,7 +30,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/exit"
 	"github.com/cortexlabs/cortex/pkg/lib/gcp"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
-	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/prompt"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
@@ -176,7 +175,7 @@ var _clusterGCPUpCmd = &cobra.Command{
 		newEnvironment := cliconfig.Environment{
 			Name:             _flagClusterGCPUpEnv,
 			Provider:         types.GCPProviderType,
-			OperatorEndpoint: &operatorLoadBalancerIP,
+			OperatorEndpoint: operatorLoadBalancerIP,
 		}
 
 		err = addEnvToCLIConfig(newEnvironment, true)
@@ -328,7 +327,7 @@ func cmdInfoGCP(accessConfig *clusterconfig.GCPAccessConfig, disallowPrompt bool
 	for _, line := range strings.Split(out, "\n") {
 		// before modifying this, search for this prefix
 		if strings.HasPrefix(line, "operator: ") {
-			operatorEndpoint = "https://" + strings.TrimSpace(strings.TrimPrefix(line, "operator: "))
+			operatorEndpoint = "http://" + strings.TrimSpace(strings.TrimPrefix(line, "operator: "))
 			break
 		}
 	}
@@ -396,7 +395,7 @@ func updateGCPCLIEnv(envName string, operatorEndpoint string, disallowPrompt boo
 	newEnvironment := cliconfig.Environment{
 		Name:             envName,
 		Provider:         types.GCPProviderType,
-		OperatorEndpoint: pointer.String(operatorEndpoint),
+		OperatorEndpoint: operatorEndpoint,
 	}
 
 	shouldWriteEnv := false
@@ -404,7 +403,7 @@ func updateGCPCLIEnv(envName string, operatorEndpoint string, disallowPrompt boo
 	if prevEnv == nil {
 		shouldWriteEnv = true
 		fmt.Println()
-	} else if *prevEnv.OperatorEndpoint != operatorEndpoint {
+	} else if prevEnv.OperatorEndpoint != operatorEndpoint {
 		envWasUpdated = true
 		if disallowPrompt {
 			shouldWriteEnv = true
@@ -454,7 +453,7 @@ func createGKECluster(clusterConfig *clusterconfig.GCPConfig, gcpClient *gcp.Cli
 
 	gkeClusterConfig := containerpb.Cluster{
 		Name:                  clusterConfig.ClusterName,
-		InitialClusterVersion: "1.17",
+		InitialClusterVersion: "1.18",
 		LoggingService:        "none",
 		NodePools: []*containerpb.NodePool{
 			{
@@ -467,7 +466,7 @@ func createGKECluster(clusterConfig *clusterconfig.GCPConfig, gcpClient *gcp.Cli
 					},
 					ServiceAccount: gcpClient.ClientEmail,
 				},
-				InitialNodeCount: 1,
+				InitialNodeCount: 2,
 			},
 		},
 		Locations: []string{*clusterConfig.Zone},

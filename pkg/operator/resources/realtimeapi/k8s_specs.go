@@ -86,10 +86,8 @@ func tensorflowAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.D
 				InitContainers: []kcore.Container{
 					operator.InitContainer(api),
 				},
-				Containers: containers,
-				NodeSelector: map[string]string{
-					"workload": "true",
-				},
+				Containers:         containers,
+				NodeSelector:       operator.NodeSelectors(),
 				Tolerations:        operator.Tolerations,
 				Volumes:            volumes,
 				ServiceAccountName: "default",
@@ -139,10 +137,8 @@ func pythonAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deplo
 				InitContainers: []kcore.Container{
 					operator.InitContainer(api),
 				},
-				Containers: containers,
-				NodeSelector: map[string]string{
-					"workload": "true",
-				},
+				Containers:         containers,
+				NodeSelector:       operator.NodeSelectors(),
 				Tolerations:        operator.Tolerations,
 				Volumes:            volumes,
 				ServiceAccountName: "default",
@@ -192,12 +188,10 @@ func onnxAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deploym
 				},
 				TerminationGracePeriodSeconds: pointer.Int64(_terminationGracePeriodSeconds),
 				Containers:                    containers,
-				NodeSelector: map[string]string{
-					"workload": "true",
-				},
-				Tolerations:        operator.Tolerations,
-				Volumes:            volumes,
-				ServiceAccountName: "default",
+				NodeSelector:                  operator.NodeSelectors(),
+				Tolerations:                   operator.Tolerations,
+				Volumes:                       volumes,
+				ServiceAccountName:            "default",
 			},
 		},
 	})

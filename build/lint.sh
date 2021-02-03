@@ -75,6 +75,7 @@ output=$(cd "$ROOT" && find . -type f \
 ! -path "**/.history/*" \
 ! -path "**/__pycache__/*" \
 ! -path "./test/*" \
+! -path "./charts/*" \
 ! -path "./dev/config/*" \
 ! -path "./bin/*" \
 ! -path "./.circleci/*" \
@@ -146,6 +147,7 @@ output=$(cd "$ROOT" && find . -type f \
 ! -path "./dev/config/*" \
 ! -path "./bin/*" \
 ! -path "./.git/*" \
+! -path "./charts/charts/networking/charts/*" \
 ! -name ".*" \
 ! -name "*.bin" \
 ! -name "*.wav" \
@@ -166,6 +168,7 @@ output=$(cd "$ROOT" && find . -type f \
 ! -path "./dev/config/*" \
 ! -path "./bin/*" \
 ! -path "./.git/*" \
+! -path "./charts/charts/networking/charts/*" \
 ! -name ".*" \
 ! -name "*.bin" \
 ! -name "*.wav" \
@@ -186,6 +189,7 @@ output=$(cd "$ROOT" && find . -type f \
 ! -path "./dev/config/*" \
 ! -path "./bin/*" \
 ! -path "./.git/*" \
+! -path "./charts/charts/networking/charts/*" \
 ! -name ".*" \
 ! -name "*.bin" \
 ! -name "*.wav" \

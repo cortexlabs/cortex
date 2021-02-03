@@ -20,17 +20,14 @@ import (
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
-	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/table"
 	"github.com/cortexlabs/cortex/pkg/types"
 )
 
 type Environment struct {
-	Name               string             `json:"name" yaml:"name"`
-	Provider           types.ProviderType `json:"provider" yaml:"provider"`
-	OperatorEndpoint   *string            `json:"operator_endpoint,omitempty" yaml:"operator_endpoint,omitempty"`
-	AWSAccessKeyID     *string            `json:"aws_access_key_id,omitempty" yaml:"aws_access_key_id,omitempty"`
-	AWSSecretAccessKey *string            `json:"aws_secret_access_key,omitempty" yaml:"aws_secret_access_key,omitempty"`
+	Name             string             `json:"name" yaml:"name"`
+	Provider         types.ProviderType `json:"provider" yaml:"provider"`
+	OperatorEndpoint string             `json:"operator_endpoint" yaml:"operator_endpoint"`
 }
 
 func (env Environment) String(isDefault bool) string {
@@ -43,33 +40,11 @@ func (env Environment) String(isDefault bool) string {
 	}
 
 	items.Add("provider", env.Provider)
-
-	if env.OperatorEndpoint != nil {
-		items.Add("cortex operator endpoint", *env.OperatorEndpoint)
-	}
-	if env.AWSAccessKeyID != nil {
-		items.Add("aws access key id", *env.AWSAccessKeyID)
-	}
-	if env.AWSSecretAccessKey != nil {
-		items.Add("aws secret access key", s.MaskString(*env.AWSSecretAccessKey, 4))
-	}
+	items.Add("cortex operator endpoint", env.OperatorEndpoint)
 
 	return items.String(&table.KeyValuePairOpts{
 		BoldFirstLine: pointer.Bool(true),
 	})
-}
-
-func CheckProviderEnvironmentNameCompatibility(envName string, provider types.ProviderType) error {
-	envNameProvider := types.ProviderTypeFromString(envName)
-	if envNameProvider == types.UnknownProviderType {
-		return nil
-	}
-
-	if envNameProvider != provider {
-		return ErrorEnvironmentProviderNameConflict(envName, provider)
-	}
-
-	return nil
 }
 
 func (env *Environment) Validate() error {
@@ -77,37 +52,11 @@ func (env *Environment) Validate() error {
 		return errors.Wrap(cr.ErrorMustBeDefined(), NameKey)
 	}
 
-	if env.Provider == types.UnknownProviderType {
-		return errors.Wrap(cr.ErrorMustBeDefined(types.ProviderTypeStrings()), env.Name, ProviderKey)
-	}
-
-	if err := CheckProviderEnvironmentNameCompatibility(env.Name, env.Provider); err != nil {
+	validOperatorURL, err := cr.GetURLValidator(true, false)(env.OperatorEndpoint)
+	if err != nil {
 		return err
 	}
 
-	if env.Provider == types.AWSProviderType {
-		if env.OperatorEndpoint == nil {
-			return errors.Wrap(cr.ErrorMustBeDefined(), env.Name, OperatorEndpointKey)
-		}
-		if env.AWSAccessKeyID == nil {
-			return errors.Wrap(cr.ErrorMustBeDefined(), env.Name, AWSAccessKeyIDKey)
-		}
-		if env.AWSSecretAccessKey == nil {
-			return errors.Wrap(cr.ErrorMustBeDefined(), env.Name, AWSSecretAccessKeyKey)
-		}
-	}
-
-	if env.Provider == types.GCPProviderType {
-		if env.OperatorEndpoint == nil {
-			return errors.Wrap(cr.ErrorMustBeDefined(), env.Name, OperatorEndpointKey)
-		}
-		if env.AWSAccessKeyID != nil {
-			return errors.Wrap(cr.ErrorMustBeEmpty(), env.Name, AWSAccessKeyIDKey)
-		}
-		if env.AWSSecretAccessKey != nil {
-			return errors.Wrap(cr.ErrorMustBeEmpty(), env.Name, AWSSecretAccessKeyKey)
-		}
-	}
-
+	env.OperatorEndpoint = validOperatorURL
 	return nil
 }
