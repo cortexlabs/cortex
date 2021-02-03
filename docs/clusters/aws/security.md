@@ -36,7 +36,7 @@ You can specify credentials for spinning up the cluster in four ways (in order o
 
 5. You can specify the AWS credentials `"aws access key id"` and `"aws secret access key"` at the CLI's prompt when requested.
 
-It is recommended to use an IAM user with the `AdministratorAccess` policy to create your cluster, since the CLI requires many permissions for this step, and the list of permissions is evolving as Cortex adds new features. If it is not possible to use `AdministratorAccess` in your existing AWS account, you could create a separate AWS account for your Cortex cluster, or you could ask someone within your organization to create the Cortex cluster for you (since `AdministratorAccess` is not required to deploy APIs to your cluster; see [CLI](#cli) below).
+It is recommended to use an IAM user with the `AdministratorAccess` policy to create your cluster, since the CLI requires many permissions for this step, and the list of permissions is evolving as Cortex adds new features. If it is not possible to use `AdministratorAccess` in your existing AWS account, you could create a separate AWS account for your Cortex cluster, or you could ask someone within your organization to create the Cortex cluster for you.
 
 ### Operator
 
