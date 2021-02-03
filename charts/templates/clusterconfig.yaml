@@ -21,7 +21,9 @@ data:
   CORTEX_TELEMETRY_DISABLE: "{{ not ( .Values.cortex.telemetry | default true ) }}"
   CORTEX_TELEMETRY_SENTRY_DSN: {{ .Values.cortex.telemetry_sentry_dsn | default "https://5cea3d2d67194d028f7191fcc6ebca14@sentry.io/1825326"}}
   CORTEX_TELEMETRY_SEGMENT_WRITE_KEY: {{ .Values.cortex.telemetry_segment_write_key | default "BNhXifMk9EyhPICF2zAFpWYPCf4CRpV1" }}
-  CORTEX_DEV_DEFAULT_PREDICTOR_IMAGE_REGISTRY: {{ .Values.cortex.default_predictor_image_registry | default "quay.io/cortexlabs" }}
+  {{- if .Values.cortex.default_predictor_image_registry }}
+  CORTEX_DEV_DEFAULT_PREDICTOR_IMAGE_REGISTRY: {{ .Values.cortex.default_predictor_image_registry }}
+  {{- end}}
 ---
 {{- if eq .Values.global.provider "aws" }}
 apiVersion: v1
