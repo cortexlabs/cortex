@@ -179,7 +179,7 @@ func Init() error {
 		istioNamespace = GCPCoreConfig.IstioNamespace
 
 		// If the bucket is specified double check that it exists and the operator has access to it
-		exists, err := GCP.DoesBucketExist(GCPCoreConfig.Bucket, gcp.ZoneToRegion(*GCPCoreConfig.Zone))
+		exists, err := GCP.DoesBucketExist(GCPCoreConfig.Bucket)
 		if err != nil {
 			return err
 		}

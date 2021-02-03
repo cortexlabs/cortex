@@ -448,6 +448,10 @@ func (cc *GCPConfig) Validate(GCP *gcp.Client) error {
 		return ErrorGCPInvalidZone(*cc.Zone, availableZones...)
 	}
 
+	if cc.Bucket == "" {
+		cc.Bucket = GCPBucketName(cc.ClusterName, *cc.Project, *cc.Zone)
+	}
+
 	if validInstanceType, err := GCP.IsInstanceTypeAvailable(*cc.InstanceType, *cc.Zone); err != nil {
 		return err
 	} else if !validInstanceType {

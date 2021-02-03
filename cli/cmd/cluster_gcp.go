@@ -141,7 +141,6 @@ var _clusterGCPUpCmd = &cobra.Command{
 		}
 
 		gkeClusterName := fmt.Sprintf("projects/%s/locations/%s/clusters/%s", *clusterConfig.Project, *clusterConfig.Zone, clusterConfig.ClusterName)
-		bucketName := clusterconfig.GCPBucketName(clusterConfig.ClusterName, *clusterConfig.Project, *clusterConfig.Zone)
 
 		clusterExists, err := gcpClient.ClusterExists(gkeClusterName)
 		if err != nil {
@@ -151,7 +150,7 @@ var _clusterGCPUpCmd = &cobra.Command{
 			exit.Error(ErrorGCPClusterAlreadyExists(clusterConfig.ClusterName, *clusterConfig.Zone, *clusterConfig.Project))
 		}
 
-		err = gcpClient.CreateBucket(bucketName, gcp.ZoneToRegion(*accessConfig.Zone), true)
+		err = createGSBucketIfNotFound(gcpClient, clusterConfig.Bucket, gcp.ZoneToRegion(*accessConfig.Zone))
 		if err != nil {
 			exit.Error(err)
 		}
@@ -161,9 +160,8 @@ var _clusterGCPUpCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
-		_, _, err = runGCPManagerWithClusterConfig("/root/install.sh", clusterConfig, bucketName, nil, nil)
+		_, _, err = runGCPManagerWithClusterConfig("/root/install.sh", clusterConfig, nil, nil)
 		if err != nil {
-			gcpClient.DeleteBucket(bucketName)
 			exit.Error(err)
 		}
 
@@ -595,4 +593,23 @@ func getGCPOperatorLoadBalancerIP(clusterName string, gcpClient *gcp.Client) (st
 	}
 
 	return service.Status.LoadBalancer.Ingress[0].IP, nil
+}
+
+func createGSBucketIfNotFound(gcpClient *gcp.Client, bucket string, location string) error {
+	bucketFound, err := gcpClient.DoesBucketExist(bucket)
+	if err != nil {
+		return err
+	}
+	if !bucketFound {
+		fmt.Print("￮ creating a new gs bucket: ", bucket)
+		err = gcpClient.CreateBucket(bucket, location, false)
+		if err != nil {
+			fmt.Print("\n\n")
+			return err
+		}
+	} else {
+		fmt.Print("￮ using existing gs bucket: ", bucket)
+	}
+	fmt.Println(" ✓")
+	return nil
 }
