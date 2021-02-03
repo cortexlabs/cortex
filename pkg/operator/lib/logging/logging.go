@@ -18,6 +18,7 @@ package logging
 
 import (
 	"os"
+	"strings"
 	"sync"
 
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
@@ -40,7 +41,7 @@ func initializeLogger() {
 
 	operatorZapConfig := DefaultZapConfig(operatorCortexLogLevel)
 
-	disableJSONLogging := os.Getenv("CORTEX_DISABLE_JSON_LOGGING")
+	disableJSONLogging := strings.ToLower(os.Getenv("CORTEX_DISABLE_JSON_LOGGING"))
 	if disableJSONLogging == "true" {
 		operatorZapConfig.Encoding = "console"
 	}
