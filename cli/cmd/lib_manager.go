@@ -212,7 +212,7 @@ func runManagerWithClusterConfig(entrypoint string, clusterConfig *clusterconfig
 	return output, exitCode, nil
 }
 
-func runGCPManagerWithClusterConfig(entrypoint string, clusterConfig *clusterconfig.GCPConfig, bucketName string, copyToPaths []dockerCopyToPath, copyFromPaths []dockerCopyFromPath) (string, *int, error) {
+func runGCPManagerWithClusterConfig(entrypoint string, clusterConfig *clusterconfig.GCPConfig, copyToPaths []dockerCopyToPath, copyFromPaths []dockerCopyFromPath) (string, *int, error) {
 	clusterConfigBytes, err := yaml.Marshal(clusterConfig)
 	if err != nil {
 		return "", nil, errors.WithStack(err)
