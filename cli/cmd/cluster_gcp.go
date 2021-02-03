@@ -30,7 +30,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/exit"
 	"github.com/cortexlabs/cortex/pkg/lib/gcp"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
-	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/prompt"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
@@ -142,7 +141,6 @@ var _clusterGCPUpCmd = &cobra.Command{
 		}
 
 		gkeClusterName := fmt.Sprintf("projects/%s/locations/%s/clusters/%s", *clusterConfig.Project, *clusterConfig.Zone, clusterConfig.ClusterName)
-		bucketName := clusterconfig.GCPBucketName(clusterConfig.ClusterName, *clusterConfig.Project, *clusterConfig.Zone)
 
 		clusterExists, err := gcpClient.ClusterExists(gkeClusterName)
 		if err != nil {
@@ -152,7 +150,7 @@ var _clusterGCPUpCmd = &cobra.Command{
 			exit.Error(ErrorGCPClusterAlreadyExists(clusterConfig.ClusterName, *clusterConfig.Zone, *clusterConfig.Project))
 		}
 
-		err = gcpClient.CreateBucket(bucketName, gcp.ZoneToRegion(*accessConfig.Zone), true)
+		err = createGSBucketIfNotFound(gcpClient, clusterConfig.Bucket, gcp.ZoneToRegion(*accessConfig.Zone))
 		if err != nil {
 			exit.Error(err)
 		}
@@ -162,9 +160,8 @@ var _clusterGCPUpCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
-		_, _, err = runGCPManagerWithClusterConfig("/root/install.sh", clusterConfig, bucketName, nil, nil)
+		_, _, err = runGCPManagerWithClusterConfig("/root/install.sh", clusterConfig, nil, nil)
 		if err != nil {
-			gcpClient.DeleteBucket(bucketName)
 			exit.Error(err)
 		}
 
@@ -176,7 +173,7 @@ var _clusterGCPUpCmd = &cobra.Command{
 		newEnvironment := cliconfig.Environment{
 			Name:             _flagClusterGCPUpEnv,
 			Provider:         types.GCPProviderType,
-			OperatorEndpoint: &operatorLoadBalancerIP,
+			OperatorEndpoint: operatorLoadBalancerIP,
 		}
 
 		err = addEnvToCLIConfig(newEnvironment, true)
@@ -328,7 +325,7 @@ func cmdInfoGCP(accessConfig *clusterconfig.GCPAccessConfig, disallowPrompt bool
 	for _, line := range strings.Split(out, "\n") {
 		// before modifying this, search for this prefix
 		if strings.HasPrefix(line, "operator: ") {
-			operatorEndpoint = "https://" + strings.TrimSpace(strings.TrimPrefix(line, "operator: "))
+			operatorEndpoint = "http://" + strings.TrimSpace(strings.TrimPrefix(line, "operator: "))
 			break
 		}
 	}
@@ -396,7 +393,7 @@ func updateGCPCLIEnv(envName string, operatorEndpoint string, disallowPrompt boo
 	newEnvironment := cliconfig.Environment{
 		Name:             envName,
 		Provider:         types.GCPProviderType,
-		OperatorEndpoint: pointer.String(operatorEndpoint),
+		OperatorEndpoint: operatorEndpoint,
 	}
 
 	shouldWriteEnv := false
@@ -404,7 +401,7 @@ func updateGCPCLIEnv(envName string, operatorEndpoint string, disallowPrompt boo
 	if prevEnv == nil {
 		shouldWriteEnv = true
 		fmt.Println()
-	} else if *prevEnv.OperatorEndpoint != operatorEndpoint {
+	} else if prevEnv.OperatorEndpoint != operatorEndpoint {
 		envWasUpdated = true
 		if disallowPrompt {
 			shouldWriteEnv = true
@@ -596,4 +593,23 @@ func getGCPOperatorLoadBalancerIP(clusterName string, gcpClient *gcp.Client) (st
 	}
 
 	return service.Status.LoadBalancer.Ingress[0].IP, nil
+}
+
+func createGSBucketIfNotFound(gcpClient *gcp.Client, bucket string, location string) error {
+	bucketFound, err := gcpClient.DoesBucketExist(bucket)
+	if err != nil {
+		return err
+	}
+	if !bucketFound {
+		fmt.Print("￮ creating a new gs bucket: ", bucket)
+		err = gcpClient.CreateBucket(bucket, location, false)
+		if err != nil {
+			fmt.Print("\n\n")
+			return err
+		}
+	} else {
+		fmt.Print("￮ using existing gs bucket: ", bucket)
+	}
+	fmt.Println(" ✓")
+	return nil
 }

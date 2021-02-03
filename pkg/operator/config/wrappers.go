@@ -25,32 +25,12 @@ import (
 	"github.com/cortexlabs/cortex/pkg/types"
 )
 
-func OperatorID() string {
+func IsManaged() bool {
 	switch Provider {
 	case types.AWSProviderType:
-		return Cluster.OperatorID
+		return CoreConfig.IsManaged
 	case types.GCPProviderType:
-		return GCPCluster.OperatorID
-	}
-	return ""
-}
-
-func ClusterID() string {
-	switch Provider {
-	case types.AWSProviderType:
-		return Cluster.ClusterID
-	case types.GCPProviderType:
-		return GCPCluster.ClusterID
-	}
-	return ""
-}
-
-func IsOperatorInCluster() bool {
-	switch Provider {
-	case types.AWSProviderType:
-		return Cluster.IsOperatorInCluster
-	case types.GCPProviderType:
-		return GCPCluster.IsOperatorInCluster
+		return GCPCoreConfig.IsManaged
 	}
 	return false
 }
@@ -58,9 +38,9 @@ func IsOperatorInCluster() bool {
 func Telemetry() bool {
 	switch Provider {
 	case types.AWSProviderType:
-		return Cluster.Telemetry
+		return CoreConfig.Telemetry
 	case types.GCPProviderType:
-		return GCPCluster.Telemetry
+		return GCPCoreConfig.Telemetry
 	}
 	return false
 }
@@ -68,9 +48,9 @@ func Telemetry() bool {
 func ClusterName() string {
 	switch Provider {
 	case types.AWSProviderType:
-		return Cluster.ClusterName
+		return CoreConfig.ClusterName
 	case types.GCPProviderType:
-		return GCPCluster.ClusterName
+		return GCPCoreConfig.ClusterName
 	}
 	return ""
 }
@@ -78,9 +58,9 @@ func ClusterName() string {
 func Bucket() string {
 	switch Provider {
 	case types.AWSProviderType:
-		return Cluster.Bucket
+		return CoreConfig.Bucket
 	case types.GCPProviderType:
-		return GCPCluster.Bucket
+		return GCPCoreConfig.Bucket
 	}
 	return ""
 }
@@ -88,9 +68,9 @@ func Bucket() string {
 func BucketPath(key string) string {
 	switch Provider {
 	case types.AWSProviderType:
-		return aws.S3Path(Cluster.Bucket, key)
+		return aws.S3Path(CoreConfig.Bucket, key)
 	case types.GCPProviderType:
-		return gcp.GCSPath(GCPCluster.Bucket, key)
+		return gcp.GCSPath(GCPCoreConfig.Bucket, key)
 	}
 	return ""
 }
@@ -98,9 +78,9 @@ func BucketPath(key string) string {
 func ReadBytesFromBucket(key string) ([]byte, error) {
 	switch Provider {
 	case types.AWSProviderType:
-		return AWS.ReadBytesFromS3(Cluster.Bucket, key)
+		return AWS.ReadBytesFromS3(CoreConfig.Bucket, key)
 	case types.GCPProviderType:
-		return GCP.ReadBytesFromGCS(GCPCluster.Bucket, key)
+		return GCP.ReadBytesFromGCS(GCPCoreConfig.Bucket, key)
 	}
 	return nil, nil
 }
@@ -108,9 +88,9 @@ func ReadBytesFromBucket(key string) ([]byte, error) {
 func ReadJSONFromBucket(objPtr interface{}, key string) error {
 	switch Provider {
 	case types.AWSProviderType:
-		return AWS.ReadJSONFromS3(objPtr, Cluster.Bucket, key)
+		return AWS.ReadJSONFromS3(objPtr, CoreConfig.Bucket, key)
 	case types.GCPProviderType:
-		return GCP.ReadJSONFromGCS(objPtr, GCPCluster.Bucket, key)
+		return GCP.ReadJSONFromGCS(objPtr, GCPCoreConfig.Bucket, key)
 	}
 	return nil
 }
@@ -118,9 +98,9 @@ func ReadJSONFromBucket(objPtr interface{}, key string) error {
 func IsBucketFile(fileKey string) (bool, error) {
 	switch Provider {
 	case types.AWSProviderType:
-		return AWS.IsS3File(Cluster.Bucket, fileKey)
+		return AWS.IsS3File(CoreConfig.Bucket, fileKey)
 	case types.GCPProviderType:
-		return GCP.IsGCSFile(GCPCluster.Bucket, fileKey)
+		return GCP.IsGCSFile(GCPCoreConfig.Bucket, fileKey)
 	}
 	return false, nil
 }
@@ -128,9 +108,9 @@ func IsBucketFile(fileKey string) (bool, error) {
 func UploadBytesToBucket(data []byte, key string) error {
 	switch Provider {
 	case types.AWSProviderType:
-		return AWS.UploadBytesToS3(data, Cluster.Bucket, key)
+		return AWS.UploadBytesToS3(data, CoreConfig.Bucket, key)
 	case types.GCPProviderType:
-		return GCP.UploadBytesToGCS(data, GCPCluster.Bucket, key)
+		return GCP.UploadBytesToGCS(data, GCPCoreConfig.Bucket, key)
 	}
 	return nil
 }
@@ -138,9 +118,9 @@ func UploadBytesToBucket(data []byte, key string) error {
 func UploadStringToBucket(str string, key string) error {
 	switch Provider {
 	case types.AWSProviderType:
-		return AWS.UploadStringToS3(str, Cluster.Bucket, key)
+		return AWS.UploadStringToS3(str, CoreConfig.Bucket, key)
 	case types.GCPProviderType:
-		return GCP.UploadStringToGCS(str, GCPCluster.Bucket, key)
+		return GCP.UploadStringToGCS(str, GCPCoreConfig.Bucket, key)
 	}
 	return nil
 }
@@ -148,9 +128,9 @@ func UploadStringToBucket(str string, key string) error {
 func UploadJSONToBucket(obj interface{}, key string) error {
 	switch Provider {
 	case types.AWSProviderType:
-		return AWS.UploadJSONToS3(obj, Cluster.Bucket, key)
+		return AWS.UploadJSONToS3(obj, CoreConfig.Bucket, key)
 	case types.GCPProviderType:
-		return GCP.UploadJSONToGCS(obj, GCPCluster.Bucket, key)
+		return GCP.UploadJSONToGCS(obj, GCPCoreConfig.Bucket, key)
 	}
 	return nil
 }
@@ -158,9 +138,9 @@ func UploadJSONToBucket(obj interface{}, key string) error {
 func ListBucketDirOneLevel(dir string, maxResults *int64) ([]string, error) {
 	switch Provider {
 	case types.AWSProviderType:
-		return AWS.ListS3DirOneLevel(Cluster.Bucket, dir, maxResults)
+		return AWS.ListS3DirOneLevel(CoreConfig.Bucket, dir, maxResults)
 	case types.GCPProviderType:
-		return GCP.ListGCSDirOneLevel(GCPCluster.Bucket, dir, maxResults)
+		return GCP.ListGCSDirOneLevel(GCPCoreConfig.Bucket, dir, maxResults)
 	}
 	return nil, nil
 }
@@ -173,13 +153,13 @@ func ListBucketDir(dir string, maxResults *int64) ([]*storage.ObjectAttrs, []*s3
 func ListBucketPrefix(prefix string, maxResults *int64) ([]*storage.ObjectAttrs, []*s3.Object, error) {
 	switch Provider {
 	case types.AWSProviderType:
-		s3Objects, err := AWS.ListS3Prefix(Cluster.Bucket, prefix, false, maxResults)
+		s3Objects, err := AWS.ListS3Prefix(CoreConfig.Bucket, prefix, false, maxResults)
 		if err != nil {
 			return nil, nil, err
 		}
 		return nil, s3Objects, nil
 	case types.GCPProviderType:
-		gcsObjects, err := GCP.ListGCSPrefix(GCPCluster.Bucket, prefix, maxResults)
+		gcsObjects, err := GCP.ListGCSPrefix(GCPCoreConfig.Bucket, prefix, maxResults)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -191,9 +171,9 @@ func ListBucketPrefix(prefix string, maxResults *int64) ([]*storage.ObjectAttrs,
 func DeleteBucketFile(file string) error {
 	switch Provider {
 	case types.AWSProviderType:
-		return AWS.DeleteS3File(Cluster.Bucket, file)
+		return AWS.DeleteS3File(CoreConfig.Bucket, file)
 	case types.GCPProviderType:
-		return GCP.DeleteGCSFile(GCPCluster.Bucket, file)
+		return GCP.DeleteGCSFile(GCPCoreConfig.Bucket, file)
 	}
 	return nil
 }
@@ -201,9 +181,9 @@ func DeleteBucketFile(file string) error {
 func DeleteBucketDir(dir string, continueIfFailure bool) error {
 	switch Provider {
 	case types.AWSProviderType:
-		return AWS.DeleteS3Dir(Cluster.Bucket, dir, continueIfFailure)
+		return AWS.DeleteS3Dir(CoreConfig.Bucket, dir, continueIfFailure)
 	case types.GCPProviderType:
-		return GCP.DeleteGCSDir(GCPCluster.Bucket, dir, continueIfFailure)
+		return GCP.DeleteGCSDir(GCPCoreConfig.Bucket, dir, continueIfFailure)
 	}
 	return nil
 }
@@ -211,9 +191,9 @@ func DeleteBucketDir(dir string, continueIfFailure bool) error {
 func DeleteBucketPrefix(prefix string, continueIfFailure bool) error {
 	switch Provider {
 	case types.AWSProviderType:
-		return AWS.DeleteS3Prefix(Cluster.Bucket, prefix, continueIfFailure)
+		return AWS.DeleteS3Prefix(CoreConfig.Bucket, prefix, continueIfFailure)
 	case types.GCPProviderType:
-		return GCP.DeleteGCSPrefix(GCPCluster.Bucket, prefix, continueIfFailure)
+		return GCP.DeleteGCSPrefix(GCPCoreConfig.Bucket, prefix, continueIfFailure)
 	}
 	return nil
 }
@@ -221,9 +201,9 @@ func DeleteBucketPrefix(prefix string, continueIfFailure bool) error {
 func ImageDownloader() string {
 	switch Provider {
 	case types.AWSProviderType:
-		return Cluster.ImageDownloader
+		return CoreConfig.ImageDownloader
 	case types.GCPProviderType:
-		return GCPCluster.ImageDownloader
+		return GCPCoreConfig.ImageDownloader
 	}
 	return ""
 }

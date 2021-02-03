@@ -17,6 +17,7 @@ limitations under the License.
 package schema
 
 import (
+	"github.com/cortexlabs/cortex/pkg/types"
 	"github.com/cortexlabs/cortex/pkg/types/clusterconfig"
 	"github.com/cortexlabs/cortex/pkg/types/metrics"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
@@ -123,4 +124,8 @@ type GenericModelMetadata struct {
 type APIVersion struct {
 	APIID       string `json:"api_id"`
 	LastUpdated int64  `json:"last_updated"`
+}
+
+type VerifyCortexResponse struct {
+	Provider types.ProviderType `json:"provider"`
 }

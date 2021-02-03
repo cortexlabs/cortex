@@ -86,7 +86,7 @@ func startKubectlProcess(podName string, cancelListener chan struct{}, socket *w
 		return
 	}
 
-	cmd := exec.Command("/usr/local/bin/kubectl", "-n="+"default", "logs", "--all-containers", podName, "--follow")
+	cmd := exec.Command("/usr/local/bin/kubectl", "-n="+config.K8s.Namespace, "logs", "--all-containers", podName, "--follow")
 
 	cleanup := func() {
 		// trigger a wait on the child process and while the process is being waited on,

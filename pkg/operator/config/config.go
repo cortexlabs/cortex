@@ -23,6 +23,7 @@ import (
 
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
+
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/gcp"
@@ -36,14 +37,20 @@ import (
 )
 
 const (
-	_clusterConfigPath   = "/configs/cluster/cluster.yaml"
-	DefaultPrometheusURL = "http://prometheus.default:9090"
+	_clusterConfigPath = "/configs/cluster/cluster.yaml"
 )
 
 var (
-	Provider        types.ProviderType
-	Cluster         *clusterconfig.InternalConfig
-	GCPCluster      *clusterconfig.InternalGCPConfig
+	Provider         types.ProviderType
+	OperatorMetadata *clusterconfig.OperatorMetadata
+
+	CoreConfig       *clusterconfig.CoreConfig
+	managedConfig    *clusterconfig.ManagedConfig
+	instanceMetadata *aws.InstanceMetadata
+
+	GCPCoreConfig    *clusterconfig.GCPCoreConfig
+	gcpManagedConfig *clusterconfig.GCPManagedConfig
+
 	AWS             *aws.Client
 	GCP             *gcp.Client
 	K8s             *k8s.Client
@@ -52,8 +59,31 @@ var (
 	Prometheus      promv1.API
 )
 
+func ManagedConfigOrNil() *clusterconfig.ManagedConfig {
+	if CoreConfig.IsManaged {
+		return managedConfig
+	}
+	return nil
+}
+
+func AWSInstanceMetadataOrNil() *aws.InstanceMetadata {
+	if CoreConfig.IsManaged {
+		return instanceMetadata
+	}
+	return nil
+}
+
+func GCPManagedConfigOrNil() *clusterconfig.GCPManagedConfig {
+	if GCPCoreConfig.IsManaged {
+		return gcpManagedConfig
+	}
+	return nil
+}
+
 func Init() error {
 	var err error
+	var clusterNamespace string
+	var istioNamespace string
 
 	clusterConfigPath := os.Getenv("CORTEX_CLUSTER_CONFIG_PATH")
 	if clusterConfigPath == "" {
@@ -65,25 +95,25 @@ func Init() error {
 		return err
 	}
 
-	prometheusURL := os.Getenv("CORTEX_PROMETHEUS_URL")
-	if len(prometheusURL) == 0 {
-		prometheusURL = DefaultPrometheusURL
-	}
-
 	if Provider == types.AWSProviderType {
-		Cluster = &clusterconfig.InternalConfig{
-			APIVersion:          consts.CortexVersion,
-			IsOperatorInCluster: strings.ToLower(os.Getenv("CORTEX_OPERATOR_IN_CLUSTER")) != "false",
-		}
+		CoreConfig = &clusterconfig.CoreConfig{}
 
-		errs := cr.ParseYAMLFile(Cluster, clusterconfig.Validation, clusterConfigPath)
+		errs := cr.ParseYAMLFile(CoreConfig, clusterconfig.CoreConfigValidations(true), clusterConfigPath)
 		if errors.HasError(errs) {
 			return errors.FirstError(errs...)
 		}
 
-		Cluster.InstanceMetadata = aws.InstanceMetadatas[*Cluster.Region][*Cluster.InstanceType]
+		if CoreConfig.IsManaged {
+			managedConfig = &clusterconfig.ManagedConfig{}
+			errs := cr.ParseYAMLFile(managedConfig, clusterconfig.ManagedConfigValidations(true), clusterConfigPath)
+			if errors.HasError(errs) {
+				return errors.FirstError(errs...)
+			}
+			awsInstanceMetadata := aws.InstanceMetadatas[*CoreConfig.Region][*managedConfig.InstanceType]
+			instanceMetadata = &awsInstanceMetadata
+		}
 
-		AWS, err = aws.NewFromEnv(*Cluster.Region)
+		AWS, err = aws.NewFromEnv(*CoreConfig.Region)
 		if err != nil {
 			return err
 		}
@@ -92,8 +122,24 @@ func Init() error {
 		if err != nil {
 			return err
 		}
-		Cluster.OperatorID = hashedAccountID
-		Cluster.ClusterID = hash.String(Cluster.ClusterName + *Cluster.Region + hashedAccountID)
+
+		OperatorMetadata = &clusterconfig.OperatorMetadata{
+			APIVersion:          consts.CortexVersion,
+			OperatorID:          hashedAccountID,
+			ClusterID:           hash.String(CoreConfig.ClusterName + *CoreConfig.Region + hashedAccountID),
+			IsOperatorInCluster: strings.ToLower(os.Getenv("CORTEX_OPERATOR_IN_CLUSTER")) != "false",
+		}
+
+		clusterNamespace = CoreConfig.Namespace
+		istioNamespace = CoreConfig.IstioNamespace
+
+		exists, err := AWS.DoesBucketExist(CoreConfig.Bucket)
+		if err != nil {
+			return err
+		}
+		if !exists {
+			return errors.ErrorUnexpected("the specified bucket does not exist", CoreConfig.Bucket)
+		}
 	} else {
 		AWS, err = aws.NewAnonymousClient()
 		if err != nil {
@@ -102,35 +148,54 @@ func Init() error {
 	}
 
 	if Provider == types.GCPProviderType {
-		GCPCluster = &clusterconfig.InternalGCPConfig{
-			APIVersion:          consts.CortexVersion,
-			IsOperatorInCluster: strings.ToLower(os.Getenv("CORTEX_OPERATOR_IN_CLUSTER")) != "false",
-		}
+		GCPCoreConfig = &clusterconfig.GCPCoreConfig{}
 
-		errs := cr.ParseYAMLFile(GCPCluster, clusterconfig.GCPValidation, clusterConfigPath)
+		errs := cr.ParseYAMLFile(GCPCoreConfig, clusterconfig.GCPCoreConfigValidations(true), clusterConfigPath)
 		if errors.HasError(errs) {
 			return errors.FirstError(errs...)
 		}
 
-		GCP, err = gcp.NewFromEnvCheckProjectID(*GCPCluster.Project)
+		if GCPCoreConfig.IsManaged {
+			gcpManagedConfig = &clusterconfig.GCPManagedConfig{}
+			errs := cr.ParseYAMLFile(gcpManagedConfig, clusterconfig.GCPManagedConfigValidations(true), clusterConfigPath)
+			if errors.HasError(errs) {
+				return errors.FirstError(errs...)
+			}
+		}
+
+		GCP, err = gcp.NewFromEnvCheckProjectID(*GCPCoreConfig.Project)
 		if err != nil {
 			return err
 		}
 
-		GCPCluster.OperatorID = GCP.HashedProjectID
-		GCPCluster.ClusterID = hash.String(GCPCluster.ClusterName + *GCPCluster.Project + *GCPCluster.Zone)
+		OperatorMetadata = &clusterconfig.OperatorMetadata{
+			APIVersion:          consts.CortexVersion,
+			OperatorID:          GCP.HashedProjectID,
+			ClusterID:           hash.String(GCPCoreConfig.ClusterName + *GCPCoreConfig.Project + *GCPCoreConfig.Zone),
+			IsOperatorInCluster: strings.ToLower(os.Getenv("CORTEX_OPERATOR_IN_CLUSTER")) != "false",
+		}
 
-		GCPCluster.Bucket = clusterconfig.GCPBucketName(GCPCluster.ClusterName, *GCPCluster.Project, *GCPCluster.Zone)
+		clusterNamespace = GCPCoreConfig.Namespace
+		istioNamespace = GCPCoreConfig.IstioNamespace
+
+		// If the bucket is specified double check that it exists and the operator has access to it
+		exists, err := GCP.DoesBucketExist(GCPCoreConfig.Bucket)
+		if err != nil {
+			return err
+		}
+		if !exists {
+			return errors.ErrorUnexpected("the specified bucket does not exist", GCPCoreConfig.Bucket)
+		}
 	} else {
 		GCP = gcp.NewAnonymousClient()
 	}
 
 	err = telemetry.Init(telemetry.Config{
 		Enabled: Telemetry(),
-		UserID:  OperatorID(),
+		UserID:  OperatorMetadata.OperatorID,
 		Properties: map[string]string{
-			"cluster_id":  ClusterID(),
-			"operator_id": OperatorID(),
+			"cluster_id":  OperatorMetadata.ClusterID,
+			"operator_id": OperatorMetadata.OperatorID,
 		},
 		Environment: "operator",
 		LogErrors:   true,
@@ -140,12 +205,17 @@ func Init() error {
 		fmt.Println(errors.Message(err))
 	}
 
-	if K8s, err = k8s.New("default", IsOperatorInCluster(), nil); err != nil {
+	if K8s, err = k8s.New(clusterNamespace, OperatorMetadata.IsOperatorInCluster, nil); err != nil {
 		return err
 	}
 
-	if K8sIstio, err = k8s.New("istio-system", IsOperatorInCluster(), nil); err != nil {
+	if K8sIstio, err = k8s.New(istioNamespace, OperatorMetadata.IsOperatorInCluster, nil); err != nil {
 		return err
+	}
+
+	prometheusURL := os.Getenv("CORTEX_PROMETHEUS_URL")
+	if len(prometheusURL) == 0 {
+		prometheusURL = fmt.Sprintf("http://prometheus.%s:9090", clusterNamespace)
 	}
 
 	promClient, err := promapi.NewClient(promapi.Config{
@@ -157,7 +227,7 @@ func Init() error {
 
 	Prometheus = promv1.NewAPI(promClient)
 
-	if K8sAllNamspaces, err = k8s.New("", IsOperatorInCluster(), nil); err != nil {
+	if K8sAllNamspaces, err = k8s.New("", OperatorMetadata.IsOperatorInCluster, nil); err != nil {
 		return err
 	}
 

@@ -28,6 +28,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
 	"github.com/cortexlabs/cortex/pkg/types"
+	"github.com/cortexlabs/cortex/pkg/types/clusterconfig"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	kcore "k8s.io/api/core/v1"
 )
@@ -40,16 +41,39 @@ func Info(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		fullClusterConfig := clusterconfig.InternalConfig{
+			Config: clusterconfig.Config{
+				CoreConfig: *config.CoreConfig,
+			},
+			OperatorMetadata: *config.OperatorMetadata,
+		}
+
+		if config.IsManaged() {
+			fullClusterConfig.Config.ManagedConfig = *config.ManagedConfigOrNil()
+			fullClusterConfig.InstanceMetadata = *config.AWSInstanceMetadataOrNil()
+		}
+
 		response := schema.InfoResponse{
 			MaskedAWSAccessKeyID: s.MaskString(os.Getenv("AWS_ACCESS_KEY_ID"), 4),
-			ClusterConfig:        *config.Cluster,
+			ClusterConfig:        fullClusterConfig,
 			NodeInfos:            nodeInfos,
 			NumPendingReplicas:   numPendingReplicas,
 		}
 		respond(w, response)
 	} else {
+		fullClusterConfig := clusterconfig.InternalGCPConfig{
+			GCPConfig: clusterconfig.GCPConfig{
+				GCPCoreConfig: *config.GCPCoreConfig,
+			},
+			OperatorMetadata: *config.OperatorMetadata,
+		}
+
+		if config.IsManaged() {
+			fullClusterConfig.GCPConfig.GCPManagedConfig = *config.GCPManagedConfigOrNil()
+		}
+
 		response := schema.InfoGCPResponse{
-			ClusterConfig: *config.GCPCluster,
+			ClusterConfig: fullClusterConfig,
 		}
 		respond(w, response)
 	}
@@ -73,7 +97,7 @@ func getNodeInfos() ([]schema.NodeInfo, int, error) {
 		instanceType := node.Labels["beta.kubernetes.io/instance-type"]
 		isSpot := strings.Contains(strings.ToLower(node.Labels["lifecycle"]), "spot")
 
-		price := aws.InstanceMetadatas[*config.Cluster.Region][instanceType].Price
+		price := aws.InstanceMetadatas[*config.CoreConfig.Region][instanceType].Price
 		if isSpot {
 			if spotPrice, ok := spotPriceCache[instanceType]; ok {
 				price = spotPrice
