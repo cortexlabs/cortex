@@ -44,6 +44,19 @@ RUN pip install --no-cache-dir pandas \
     && conda clean -a
 ```
 
+If you need to re-install the core pip dependencies for Cortex onto your custom image in the existing conda environment, run the following command:
+
+<!-- CORTEX_VERSION_BRANCH_STABLE -->
+```Dockerfile
+# Dockerfile
+
+# ...
+
+RUN /usr/local/cortex/install-core-dependencies.sh
+
+# ...
+```
+
 ## Build your image
 
 ```bash
