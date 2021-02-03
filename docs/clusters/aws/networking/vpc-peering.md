@@ -1,6 +1,6 @@
 # VPC peering
 
-If you are using an internal operator load balancer (i.e. you set `operator_load_balancer_scheme: internal` in your cluster configuration file before creating your cluster), you can use VPC Peering to enable your Cortex CLI to connect to your cluster operator from another VPC so that you may run `cortex` commands. Note that because the operator validates that the CLI user is an active IAM user in the same AWS account as the Cortex cluster, it is usually unnecessary to configure the operator's load balancer to be internal.
+If you are using an internal operator load balancer (i.e. you set `operator_load_balancer_scheme: internal` in your cluster configuration file before creating your cluster), you can use VPC Peering to enable your Cortex CLI to connect to your cluster operator from another VPC so that you may run `cortex` commands.
 
 If you are using an internal API load balancer (i.e. you set `api_load_balancer_scheme: internal` in your cluster configuration file before creating your cluster), you can use VPC Peering to make prediction requests from another VPC.
 

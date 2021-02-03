@@ -6,16 +6,16 @@
 $ pip install cortex
 ```
 
-See the detailed installation instructions [here](clients/install.md).
+See [here](clients/install.md) for alternative installation options.
 
-## Connect to a cluster
+## Create a cluster
 
-* [Launch a managed Cortex cluster on your AWS account](clusters/aws/install.md)
-* [Launch a managed Cortex cluster on your GCP account](clusters/gcp/install.md)
+* [Launch a Cortex cluster on your AWS account](clusters/aws/install.md)
+* [Launch a Cortex cluster on your GCP account](clusters/gcp/install.md)
 * [Install Cortex on your Kubernetes cluster](clusters/kubernetes/install.md)
 
 ## Run inference workloads
 
-* [RealtimeAPI](workloads/realtime/example.md)
-* [BatchAPI](workloads/batch/example.md)
-* [TaskAPI](workloads/task/example.md)
+* [Realtime API](workloads/realtime/example.md)
+* [Batch API](workloads/batch/example.md)
+* [Task API](workloads/task/example.md)

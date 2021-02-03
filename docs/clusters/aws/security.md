@@ -10,7 +10,7 @@ See [networking](networking/index.md) for a discussion of API visibility.
 
 ## Private operator
 
-By default, the Cortex cluster operator's load balancer is internet-facing, and therefore publicly accessible (the operator is what the `cortex` CLI connects to). The operator validates that the CLI user is an active IAM user in the same AWS account as the Cortex cluster (see [below](#cli)). Therefore it is usually unnecessary to configure the operator's load balancer to be private, but this can be done by by setting `operator_load_balancer_scheme: internal` in your [cluster configuration](install.md) file. If you do this, you will need to configure [VPC Peering](networking/vpc-peering.md) to allow your CLI to connect to the Cortex operator (this will be necessary to run any `cortex` commands).
+By default, the Cortex cluster operator's load balancer is internet-facing, and therefore publicly accessible (the operator is what the `cortex` CLI connects to). The operator's load balancer can be configured to be private by setting `operator_load_balancer_scheme: internal` in your [cluster configuration](install.md) file. If you do this, you will need to configure [VPC Peering](networking/vpc-peering.md) to allow your CLI to connect to the Cortex operator (this will be necessary to run any `cortex` commands).
 
 ## IAM permissions
 
@@ -36,7 +36,7 @@ You can specify credentials for spinning up the cluster in four ways (in order o
 
 5. You can specify the AWS credentials `"aws access key id"` and `"aws secret access key"` at the CLI's prompt when requested.
 
-It is recommended to use an IAM user with the `AdministratorAccess` policy to create your cluster, since the CLI requires many permissions for this step, and the list of permissions is evolving as Cortex adds new features. If it is not possible to use `AdministratorAccess` in your existing AWS account, you could create a separate AWS account for your Cortex cluster, or you could ask someone within your organization to create the Cortex cluster for you (since `AdministratorAccess` is not required to deploy APIs to your cluster; see [CLI](#cli) below).
+It is recommended to use an IAM user with the `AdministratorAccess` policy to create your cluster, since the CLI requires many permissions for this step, and the list of permissions is evolving as Cortex adds new features. If it is not possible to use `AdministratorAccess` in your existing AWS account, you could create a separate AWS account for your Cortex cluster, or you could ask someone within your organization to create the Cortex cluster for you.
 
 ### Operator
 
@@ -71,10 +71,6 @@ The operator requires read permissions for any S3 bucket containing exported mod
 ```
 
 It is possible to further restrict access by limiting access to particular resources (e.g. allowing access to only the bucket containing your models and the cortex bucket).
-
-### CLI
-
-In order to connect to the operator via the CLI, you must provide valid AWS credentials for any user with access to the account. No special permissions are required. The CLI can be configured using the `cortex env configure ENVIRONMENT_NAME` command (e.g. `cortex env configure aws`).
 
 ### Running `cortex cluster` commands from different IAM users
 

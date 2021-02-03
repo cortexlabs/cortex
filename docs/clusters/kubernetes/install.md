@@ -1,6 +1,7 @@
-# install
+# Install
 
 Cortex currently relies on cloud provider specific functionality such as load balancers and storage. Kubernetes clusters in the following cloud providers are supported:
+
 * [AWS](#aws)
 * [GCP](#gcp)
 
@@ -14,22 +15,23 @@ Cortex uses helm to install the Cortex operator and its dependencies on your Kub
 * aws cli
 * helm 3
 * EKS cluster
-    * kubernetes version >= 1.17
-    * at least 3 t3.medium (2 vCPU, 4 GB mem) instances
+  * at least 3 t3.medium (2 vCPU, 4 GB mem) instances
 
-Note that installing Cortex on your kubernetes cluster will not provide some of the cluster level features such as cluster autoscaling and spot instances with on-demand backup.
+You may install Cortex in any namespace in your cluster. In the guide that follows, the "default" namespace is assumed; if you're using a different namespace, replace all occurrences of "default" with the name of your namespace.
 
-### Download cortex charts
+Note that installing Cortex on your Kubernetes cluster will not provide some of the cluster-level features such as cluster autoscaling and spot instances with on-demand backup.
 
-<!-- CORTEX_VERSION -->
-```
+### Download Cortex charts
+
+<!-- CORTEX_VERSION_BRANCH_STABLE x3 -->
+```bash
 wget https://s3-us-west-2.amazonaws.com/get-cortex/master/charts/cortex-master.tar.gz
 tar -xzf cortex-master.tar.gz
 ```
 
 ### Create a bucket in S3
 
-The Cortex operator will use this bucket to store API states and dependencies.
+The Cortex operator will use this bucket to store API state and dependencies.
 
 ```yaml
 aws s3api create-bucket --bucket <CORTEX_S3_BUCKET> --region <CORTEX_REGION>
@@ -49,7 +51,7 @@ kubectl --namespace default create secret generic 'aws-credentials' \
     -o yaml --dry-run=client | kubectl apply -f - >/dev/null
 ```
 
-### Install Cortex on to your kubernetes cluster
+### Install Cortex
 
 Define a `values.yaml` with the following information provided:
 
@@ -58,7 +60,7 @@ Define a `values.yaml` with the following information provided:
 
 cortex:
   region: <CORTEX_REGION>
-  bucket: <CORTEX_S3_BUCKET>
+  bucket: <CORTEX_S3_BUCKET>  # e.g. "my-cortex-bucket" (without s3://)
   cluster_name: <CORTEX_CLUSTER_NAME>
 global:
   provider: "aws"
@@ -78,7 +80,7 @@ Get the Cortex operator endpoint:
 kubectl get service --namespace default ingressgateway-operator -o jsonpath='{.status.loadBalancer.ingress[0].hostname}'
 ```
 
-You can use the curl command below to verify loadbalancer set up. It can take between 5 to 10 minutes for the setup to complete. You can expect to encounter `Could not resolve host` or timeouts when running the verification request below during the loadbalancer initialization.
+You can use the curl command below to verify that your load balancer is ready. It can take 5-10 minutes for the setup to complete. You can expect to encounter `Could not resolve host` or timeouts when running the verification request before the load balancer is initialized.
 
 ```bash
 export CORTEX_OPERATOR_ENDPOINT=$(kubectl get service --namespace default ingressgateway-operator -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
@@ -120,22 +122,23 @@ The following tolerations are added to Deployments and Jobs orchestrated by Cort
 * gsutil
 * helm 3
 * GKE cluster
-    * kubernetes version >= 1.17
-    * at least 2 n1-standard-2 (2 vCPU, 8 GB mem) (with monitoring and logging disabled)
+  * at least 2 n1-standard-2 (2 vCPU, 8 GB mem) (with monitoring and logging disabled)
 
-Note that installing Cortex on your kubernetes cluster will not provide some of the cluster level features such as cluster autoscaling and spot instances with on-demand backup.
+You may install Cortex in any namespace in your cluster. In the guide that follows, the "default" namespace is assumed; if you're using a different namespace, replace all occurrences of "default" with the name of your namespace.
 
-### Download cortex charts
+Note that installing Cortex on your Kubernetes cluster will not provide some of the cluster-level features such as cluster autoscaling and preemptible instances.
 
-<!-- CORTEX_VERSION -->
-```
+### Download Cortex charts
+
+<!-- CORTEX_VERSION_BRANCH_STABLE x3 -->
+```bash
 wget https://s3-us-west-2.amazonaws.com/get-cortex/master/charts/cortex-master.tar.gz
 tar -xzf cortex-master.tar.gz
 ```
 
 ### Create a bucket in GCS
 
-The Cortex operator will use this bucket to store API states and dependencies.
+The Cortex operator will use this bucket to store API state and dependencies.
 
 ```yaml
 gsutil mb gs://CORTEX_GCS_BUCKET
@@ -146,14 +149,12 @@ gsutil mb gs://CORTEX_GCS_BUCKET
 The credentials need to have at least these [permissions](../gcp/credentials.md).
 
 ```yaml
-export CORTEX_GOOGLE_APPLICATION_CREDENTIALS=
+export CORTEX_GOOGLE_APPLICATION_CREDENTIALS=<PATH_TO_CREDENTIALS>
 
 kubectl create secret generic 'gcp-credentials' --namespace default --from-file=key.json=$CORTEX_GOOGLE_APPLICATION_CREDENTIALS
 ```
 
-Note: make sure to add credentials to the namespace that cortex will be installed into.
-
-### Install cortex
+### Install Cortex
 
 Define a `values.yaml` with the following information provided:
 
@@ -161,31 +162,29 @@ Define a `values.yaml` with the following information provided:
 # values.yaml
 
 cortex:
-  project: <CORTEX_REGION>
+  project: <CORTEX_PROJECT>
   zone: <CORTEX_ZONE>
-  bucket: <CORTEX_GCS_BUCKET>
+  bucket: <CORTEX_GCS_BUCKET>  # e.g. "my-cortex-bucket" (without gs://)
   cluster_name: <CORTEX_CLUSTER_NAME>
 global:
   provider: "gcp"
 ```
 
-### Install with your configuration
-
 ```bash
-helm install cortex manifests/ --namespace default -f values.yaml
+helm install cortex charts/ --namespace default -f values.yaml
 ```
 
 ### Configure Cortex client
 
 Wait for the loadbalancers to be provisioned and connected to your cluster.
 
-Get the Cortex operator endpoint (double check your namespace):
+Get the Cortex operator endpoint:
 
 ```bash
 kubectl get service --namespace default ingressgateway-operator -o jsonpath='{.status.loadBalancer.ingress[0].ip}'
 ```
 
-You can use the curl command below to verify loadbalancer set up. It can take between 5 to 10 minutes for the setup to complete. You can expect to encounter `Could not resolve host` or timeouts when running the verification request below during the loadbalancer initialization.
+You can use the curl command below to verify that your load balancer is ready. It can take 5-10 minutes for the setup to complete. You can expect to encounter `Could not resolve host` or timeouts when running the verification request before the load balancer is initialized.
 
 ```bash
 export CORTEX_OPERATOR_ENDPOINT=$(kubectl get service --namespace default ingressgateway-operator -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
