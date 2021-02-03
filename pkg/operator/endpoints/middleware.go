@@ -19,14 +19,11 @@ package endpoints
 import (
 	"context"
 	"net/http"
-	"strings"
 
 	"github.com/cortexlabs/cortex/pkg/consts"
-	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
-	"github.com/cortexlabs/cortex/pkg/types"
 )
 
 var _cachedClientIDs = strset.New()
@@ -57,56 +54,6 @@ func ClientIDMiddleware(next http.Handler) http.Handler {
 				_cachedClientIDs.Add(clientID)
 			}
 		}
-		next.ServeHTTP(w, r)
-	})
-}
-
-func AuthMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		authHeader := r.Header.Get("Authorization")
-
-		if authHeader == "" {
-			respondError(w, r, ErrorHeaderMissing("Authorization"))
-			return
-		}
-
-		if len(authHeader) < 10 || !strings.HasPrefix(authHeader, "CortexAWS") {
-			respondError(w, r, ErrorHeaderMalformed("Authorization"))
-			return
-		}
-
-		parts := strings.Split(authHeader[10:], "|")
-		if len(parts) != 2 {
-			respondError(w, r, ErrorHeaderMalformed("Authorization"))
-			return
-		}
-
-		if config.Provider == types.AWSProviderType {
-			accessKeyID, secretAccessKey := parts[0], parts[1]
-			awsClient, err := aws.NewFromCreds(*config.CoreConfig.Region, accessKeyID, secretAccessKey)
-			if err != nil {
-				respondError(w, r, ErrorAuthAPIError())
-				return
-			}
-
-			accountID, _, err := awsClient.CheckCredentials()
-			if err != nil {
-				respondErrorCode(w, r, http.StatusForbidden, ErrorAuthInvalid())
-				return
-			}
-
-			operatorAccountID, _, err := config.AWS.GetCachedAccountID()
-			if err != nil {
-				respondError(w, r, ErrorAuthAPIError())
-				return
-			}
-
-			if accountID != operatorAccountID {
-				respondErrorCode(w, r, http.StatusForbidden, ErrorAuthOtherAccount())
-				return
-			}
-		}
-
 		next.ServeHTTP(w, r)
 	})
 }
