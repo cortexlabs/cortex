@@ -1,5 +1,8 @@
 version: 2.1
 
+orbs:
+  slack: circleci/slack@4.2.0
+
 commands:
   return-if-not-deployed-branch:
     description: >-
@@ -72,19 +75,70 @@ jobs:
   e2e-tests-aws:
     docker:
       - image: circleci/python:3.6
+    environment:
+      CORTEX_TEST_REALTIME_DEPLOY_TIMEOUT: 60
+      CORTEX_TEST_BATCH_DEPLOY_TIMEOUT: 30
+      CORTEX_TEST_BATCH_JOB_TIMEOUT: 200
+      NUM_BUILD_PROCS: 2
     steps:
       - checkout
-      - setup_remote_docker
+      - setup_remote_docker:
+          docker_layer_caching: true
+      - install-go
       - run:
-          name: Install Test Package
-          command: pip install -e ./test/e2e
+          name: Generate Cluster Config
+          command: |
+            cat \<< EOF > ./cluster-aws.yaml
+            cluster_name: cortex
+            provider: aws
+            region: ${AWS_REGION}
+            instance_type: t3a.small
+            min_instances: 1
+            max_instances: 5
+            bucket: ${AWS_BUCKET}
+
+            image_operator: ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/cortexlabs/operator:latest
+            image_manager: ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/cortexlabs/manager:latest
+            image_downloader: ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/cortexlabs/downloader:latest
+            image_request_monitor: ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/cortexlabs/request-monitor:latest
+            image_cluster_autoscaler: ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/cortexlabs/cluster-autoscaler:latest
+            image_metrics_server: ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/cortexlabs/metrics-server:latest
+            image_inferentia: ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/cortexlabs/inferentia:latest
+            image_neuron_rtd: ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/cortexlabs/neuron-rtd:latest
+            image_nvidia: ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/cortexlabs/nvidia:latest
+            image_fluent_bit: ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/cortexlabs/fluent-bit:latest
+            image_istio_proxy: ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/cortexlabs/istio-proxy:latest
+            image_istio_pilot: ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/cortexlabs/istio-pilot:latest
+            image_prometheus: ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/cortexlabs/prometheus:latest
+            image_prometheus_config_reloader: ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/cortexlabs/prometheus-config-reloader:latest
+            image_prometheus_operator: ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/cortexlabs/prometheus-operator:latest
+            image_prometheus_statsd_exporter: ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/cortexlabs/prometheus-statsd-exporter:latest
+            image_prometheus_to_cloudwatch: ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/cortexlabs/prometheus-to-cloudwatch:latest
+            EOF
+      - run:
+          name: Install Dependencies
+          command: |
+            pip install awscli
+            pip install -e ./test/e2e
+            make cli
+            echo 'export CORTEX_CLI_PATH="$(pwd)/bin/cortex"' >> $BASH_ENV
+      - run:
+          name: Build Images
+          command: make images-all-aws
       - run:
           name: Create Cluster
-          command: cortex cluster up --config <cluster_config> --configure-env aws
+          command: cortex cluster up --config ./cluster-aws.yaml --configure-env aws -y
       - run:
           name: Run E2E Tests
-          command: pytest -v test/e2e/tests -k aws --aws-env aws --s3-path s3://<s3_path>
-
+          command: pytest -v test/e2e/tests -k aws --aws-env aws
+      - run:
+          name: Delete Cluster
+          command: cortex cluster down --config ./cluster-aws.yaml -y
+          when: always
+      - slack/notify:
+          event: fail
+          channel: "#eng"
+          template: basic_fail_1
 
 workflows:
   version: 2.1
