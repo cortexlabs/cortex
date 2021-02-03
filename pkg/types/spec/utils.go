@@ -162,13 +162,6 @@ func validateDirModels(
 	if len(modelDirPaths) == 0 {
 		return nil, errorForPredictorType(dirPrefix, modelDirPaths)
 	}
-	dirPrefix = s.EnsureSuffix(dirPrefix, "/")
-	if len(modelDirPaths) != len(slices.RemoveIfHasString(modelDirPaths, dirPrefix)) {
-		return nil, ErrorObjectConflictingWithPrefix(dirPrefix)
-	}
-	if len(modelDirPaths) != len(slices.RemoveIfHasString(modelDirPaths, strings.TrimRight(dirPrefix, "/"))) {
-		return nil, ErrorObjectConflictingWithPrefix(strings.TrimRight(dirPrefix, "/"))
-	}
 
 	modelNames := []string{}
 	modelDirPathLength := len(slices.RemoveEmpties(strings.Split(dirPrefix, "/")))
@@ -186,13 +179,7 @@ func validateDirModels(
 		}
 
 		modelPrefix := filepath.Join(dirPrefix, modelName)
-		if len(modelDirPaths) != len(slices.RemoveIfHasString(modelDirPaths, modelPrefix)) {
-			return nil, ErrorObjectConflictingWithPrefix(modelPrefix)
-		}
 		modelPrefix = s.EnsureSuffix(modelPrefix, "/")
-		if len(modelDirPaths) != len(slices.RemoveIfHasString(modelDirPaths, modelPrefix)) {
-			return nil, ErrorObjectConflictingWithPrefix(modelPrefix)
-		}
 
 		modelStructureType := determineBaseModelStructure(modelDirPaths, modelPrefix)
 		if modelStructureType == userconfig.UnknownModelStructureType {
@@ -308,12 +295,6 @@ func validateModels(
 		}
 		if len(modelPaths) == 0 {
 			return nil, errors.Wrap(errorForPredictorType(modelPrefix, modelPaths), modelNameWrapStr)
-		}
-		if len(modelPaths) != len(slices.RemoveIfHasString(modelPaths, modelPrefix)) {
-			return nil, ErrorObjectConflictingWithPrefix(modelPrefix)
-		}
-		if len(modelPaths) != len(slices.RemoveIfHasString(modelPaths, strings.TrimRight(modelPrefix, "/"))) {
-			return nil, ErrorObjectConflictingWithPrefix(strings.TrimRight(modelPrefix, "/"))
 		}
 
 		modelStructureType := determineBaseModelStructure(modelPaths, modelPrefix)
