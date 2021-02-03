@@ -71,15 +71,15 @@ The docker images used by the Cortex cluster can also be overridden, although th
 
 <!-- CORTEX_VERSION_BRANCH_STABLE -->
 ```yaml
-image_operator: quay.io/cortexlabs/operator:master
-image_manager: quay.io/cortexlabs/manager:master
-image_downloader: quay.io/cortexlabs/downloader:master
-image_istio_proxy: quay.io/cortexlabs/istio-proxy:master
-image_istio_pilot: quay.io/cortexlabs/istio-pilot:master
-image_google_pause: quay.io/cortexlabs/google-pause:master
-image_prometheus: quay.io/cortexlabs/prometheus:master
-image_prometheus_config_reloader: quay.io/cortexlabs/prometheus-config-reloader:master
-image_prometheus_operator: quay.io/cortexlabs/prometheus-operator:master
-image_prometheus_statsd_exporter: quay.io/cortexlabs/prometheus-statsd-exporter:master
-image_prometheus_stackdriver_sidecar: quay.io/cortexlabs/prometheus-stackdriver-sidecar:master
+image_operator: quay.io/cortexlabs/operator:0.28.0
+image_manager: quay.io/cortexlabs/manager:0.28.0
+image_downloader: quay.io/cortexlabs/downloader:0.28.0
+image_istio_proxy: quay.io/cortexlabs/istio-proxy:0.28.0
+image_istio_pilot: quay.io/cortexlabs/istio-pilot:0.28.0
+image_google_pause: quay.io/cortexlabs/google-pause:0.28.0
+image_prometheus: quay.io/cortexlabs/prometheus:0.28.0
+image_prometheus_config_reloader: quay.io/cortexlabs/prometheus-config-reloader:0.28.0
+image_prometheus_operator: quay.io/cortexlabs/prometheus-operator:0.28.0
+image_prometheus_statsd_exporter: quay.io/cortexlabs/prometheus-statsd-exporter:0.28.0
+image_prometheus_stackdriver_sidecar: quay.io/cortexlabs/prometheus-stackdriver-sidecar:0.28.0
 ```

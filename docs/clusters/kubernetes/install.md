@@ -23,8 +23,8 @@ Note that installing Cortex on your kubernetes cluster will not provide some of 
 
 <!-- CORTEX_VERSION -->
 ```
-wget https://s3-us-west-2.amazonaws.com/get-cortex/master/charts/cortex-master.tar.gz
-tar -xzf cortex-master.tar.gz
+wget https://s3-us-west-2.amazonaws.com/get-cortex/0.28.0/charts/cortex-0.28.0.tar.gz
+tar -xzf cortex-0.28.0.tar.gz
 ```
 
 ### Create a bucket in S3
@@ -129,8 +129,8 @@ Note that installing Cortex on your kubernetes cluster will not provide some of 
 
 <!-- CORTEX_VERSION -->
 ```
-wget https://s3-us-west-2.amazonaws.com/get-cortex/master/charts/cortex-master.tar.gz
-tar -xzf cortex-master.tar.gz
+wget https://s3-us-west-2.amazonaws.com/get-cortex/0.28.0/charts/cortex-0.28.0.tar.gz
+tar -xzf cortex-0.28.0.tar.gz
 ```
 
 ### Create a bucket in GCS
