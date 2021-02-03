@@ -57,15 +57,33 @@ class GCS:
     def _does_blob_exist(self, prefix: str) -> bool:
         return isinstance(self.gcs.get_blob(blob_name=prefix), storage.blob.Blob)
 
+    def _gcs_matching_blobs_generator(self, max_results=None, prefix="", include_dir_objects=False):
+        for blob in self.gcs.list_blobs(max_results, prefix=prefix):
+            if include_dir_objects or (not include_dir_objects and not blob.name.endswith("/")):
+                yield blob
+
     def _is_gcs_dir(self, dir_path: str) -> bool:
         prefix = util.ensure_suffix(dir_path, "/")
-        return len(list(self.gcs.list_blobs(max_results=2, prefix=prefix))) > 1
+        return (
+            len(
+                list(
+                    self._gcs_matching_blobs_generator(
+                        max_results=2, prefix=prefix, include_dir_objects=True
+                    )
+                )
+            )
+            > 1
+        )
 
-    def search(self, prefix: str = "") -> Tuple[List[str], List[datetime.datetime]]:
+    def search(
+        self, prefix: str = "", include_dir_objects=False
+    ) -> Tuple[List[str], List[datetime.datetime]]:
         paths = []
         timestamps = []
 
-        for blob in self.gcs.list_blobs(prefix=prefix):
+        for blob in self._gcs_matching_blobs_generator(
+            prefix=prefix, include_dir_objects=include_dir_objects
+        ):
             paths.append(blob.name)
             timestamps.append(blob.updated)
 
@@ -112,9 +130,7 @@ class GCS:
     def download_dir_contents(self, prefix: str, local_dir: str):
         util.mkdir_p(local_dir)
         prefix = util.ensure_suffix(prefix, "/")
-        for blob in self.gcs.list_blobs(prefix=prefix):
-            if blob.name.endswith("/"):
-                continue
+        for blob in self._gcs_matching_blobs_generator(prefix=prefix):
             relative_path = util.trim_prefix(blob.name, prefix)
             local_dest_path = os.path.join(local_dir, relative_path)
             self.download_file(blob.name, local_dest_path)
