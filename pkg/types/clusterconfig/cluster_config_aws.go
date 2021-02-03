@@ -51,8 +51,36 @@ var (
 	_strictS3BucketRegex = regexp.MustCompile(`^([a-z0-9])+(-[a-z0-9]+)*$`)
 )
 
-type Config struct {
-	Provider                   types.ProviderType `json:"provider" yaml:"provider"`
+type CoreConfig struct {
+	Bucket         string             `json:"bucket" yaml:"bucket"`
+	ClusterName    string             `json:"cluster_name" yaml:"cluster_name"`
+	Region         *string            `json:"region" yaml:"region"`
+	Provider       types.ProviderType `json:"provider" yaml:"provider"`
+	Telemetry      bool               `json:"telemetry" yaml:"telemetry"`
+	IsManaged      bool               `json:"is_managed" yaml:"is_managed"`
+	Namespace      string             `json:"namespace" yaml:"namespace"`
+	IstioNamespace string             `json:"istio_namespace" yaml:"istio_namespace"`
+
+	ImageOperator                 string `json:"image_operator" yaml:"image_operator"`
+	ImageManager                  string `json:"image_manager" yaml:"image_manager"`
+	ImageDownloader               string `json:"image_downloader" yaml:"image_downloader"`
+	ImageRequestMonitor           string `json:"image_request_monitor" yaml:"image_request_monitor"`
+	ImageClusterAutoscaler        string `json:"image_cluster_autoscaler" yaml:"image_cluster_autoscaler"`
+	ImageMetricsServer            string `json:"image_metrics_server" yaml:"image_metrics_server"`
+	ImageInferentia               string `json:"image_inferentia" yaml:"image_inferentia"`
+	ImageNeuronRTD                string `json:"image_neuron_rtd" yaml:"image_neuron_rtd"`
+	ImageNvidia                   string `json:"image_nvidia" yaml:"image_nvidia"`
+	ImageFluentBit                string `json:"image_fluent_bit" yaml:"image_fluent_bit"`
+	ImageIstioProxy               string `json:"image_istio_proxy" yaml:"image_istio_proxy"`
+	ImageIstioPilot               string `json:"image_istio_pilot" yaml:"image_istio_pilot"`
+	ImagePrometheus               string `json:"image_prometheus" yaml:"image_prometheus"`
+	ImagePrometheusConfigReloader string `json:"image_prometheus_config_reloader" yaml:"image_prometheus_config_reloader"`
+	ImagePrometheusOperator       string `json:"image_prometheus_operator" yaml:"image_prometheus_operator"`
+	ImagePrometheusStatsDExporter string `json:"image_prometheus_statsd_exporter" yaml:"image_prometheus_statsd_exporter"`
+	ImagePrometheusToCloudWatch   string `json:"image_prometheus_to_cloudwatch" yaml:"image_prometheus_to_cloudwatch"`
+}
+
+type ManagedConfig struct {
 	InstanceType               *string            `json:"instance_type" yaml:"instance_type"`
 	MinInstances               *int64             `json:"min_instances" yaml:"min_instances"`
 	MaxInstances               *int64             `json:"max_instances" yaml:"max_instances"`
@@ -62,31 +90,14 @@ type Config struct {
 	Tags                       map[string]string  `json:"tags" yaml:"tags"`
 	Spot                       *bool              `json:"spot" yaml:"spot"`
 	SpotConfig                 *SpotConfig        `json:"spot_config" yaml:"spot_config"`
-	ClusterName                string             `json:"cluster_name" yaml:"cluster_name"`
-	Region                     *string            `json:"region" yaml:"region"`
 	AvailabilityZones          []string           `json:"availability_zones" yaml:"availability_zones"`
 	SSLCertificateARN          *string            `json:"ssl_certificate_arn,omitempty" yaml:"ssl_certificate_arn,omitempty"`
-	Bucket                     string             `json:"bucket" yaml:"bucket"`
 	SubnetVisibility           SubnetVisibility   `json:"subnet_visibility" yaml:"subnet_visibility"`
 	Subnets                    []*Subnet          `json:"subnets,omitempty" yaml:"subnets,omitempty"`
 	NATGateway                 NATGateway         `json:"nat_gateway" yaml:"nat_gateway"`
 	APILoadBalancerScheme      LoadBalancerScheme `json:"api_load_balancer_scheme" yaml:"api_load_balancer_scheme"`
 	OperatorLoadBalancerScheme LoadBalancerScheme `json:"operator_load_balancer_scheme" yaml:"operator_load_balancer_scheme"`
 	VPCCIDR                    *string            `json:"vpc_cidr,omitempty" yaml:"vpc_cidr,omitempty"`
-	Telemetry                  bool               `json:"telemetry" yaml:"telemetry"`
-	ImageOperator              string             `json:"image_operator" yaml:"image_operator"`
-	ImageManager               string             `json:"image_manager" yaml:"image_manager"`
-	ImageDownloader            string             `json:"image_downloader" yaml:"image_downloader"`
-	ImageRequestMonitor        string             `json:"image_request_monitor" yaml:"image_request_monitor"`
-	ImageClusterAutoscaler     string             `json:"image_cluster_autoscaler" yaml:"image_cluster_autoscaler"`
-	ImageMetricsServer         string             `json:"image_metrics_server" yaml:"image_metrics_server"`
-	ImageInferentia            string             `json:"image_inferentia" yaml:"image_inferentia"`
-	ImageNeuronRTD             string             `json:"image_neuron_rtd" yaml:"image_neuron_rtd"`
-	ImageNvidia                string             `json:"image_nvidia" yaml:"image_nvidia"`
-	ImageFluentBit             string             `json:"image_fluent_bit" yaml:"image_fluent_bit"`
-	ImageStatsd                string             `json:"image_statsd" yaml:"image_statsd"`
-	ImageIstioProxy            string             `json:"image_istio_proxy" yaml:"image_istio_proxy"`
-	ImageIstioPilot            string             `json:"image_istio_pilot" yaml:"image_istio_pilot"`
 }
 
 type SpotConfig struct {
@@ -103,15 +114,25 @@ type Subnet struct {
 	SubnetID         string `json:"subnet_id" yaml:"subnet_id"`
 }
 
+type Config struct {
+	CoreConfig    `yaml:",inline"`
+	ManagedConfig `yaml:",inline"`
+}
+
+type OperatorMetadata struct {
+	APIVersion          string `json:"api_version"`
+	OperatorID          string `json:"operator_id"`
+	ClusterID           string `json:"cluster_id"`
+	IsOperatorInCluster bool   `json:"is_operator_in_cluster"`
+}
+
 type InternalConfig struct {
 	Config
 
 	// Populated by operator
-	APIVersion          string               `json:"api_version"`
-	OperatorID          string               `json:"operator_id"`
-	ClusterID           string               `json:"cluster_id"`
-	IsOperatorInCluster bool                 `json:"is_operator_in_cluster"`
-	InstanceMetadata    aws.InstanceMetadata `json:"instance_metadata"`
+	OperatorMetadata
+
+	InstanceMetadata aws.InstanceMetadata `json:"instance_metadata"`
 }
 
 // The bare minimum to identify a cluster
@@ -119,355 +140,6 @@ type AccessConfig struct {
 	ClusterName  *string `json:"cluster_name" yaml:"cluster_name"`
 	Region       *string `json:"region" yaml:"region"`
 	ImageManager string  `json:"image_manager" yaml:"image_manager"`
-}
-
-var UserValidation = &cr.StructValidation{
-	Required: true,
-	StructFieldValidations: []*cr.StructFieldValidation{
-		{
-			StructField: "Provider",
-			StringValidation: &cr.StringValidation{
-				Validator: specificProviderTypeValidator(types.AWSProviderType),
-				Default:   types.AWSProviderType.String(),
-			},
-			Parser: func(str string) (interface{}, error) {
-				return types.ProviderTypeFromString(str), nil
-			},
-		},
-		{
-			StructField: "InstanceType",
-			StringPtrValidation: &cr.StringPtrValidation{
-				Validator: validateInstanceType,
-			},
-		},
-		{
-			StructField: "MinInstances",
-			Int64PtrValidation: &cr.Int64PtrValidation{
-				GreaterThanOrEqualTo: pointer.Int64(0),
-			},
-		},
-		{
-			StructField: "MaxInstances",
-			Int64PtrValidation: &cr.Int64PtrValidation{
-				GreaterThan: pointer.Int64(0),
-			},
-		},
-		{
-			StructField: "InstanceVolumeSize",
-			Int64Validation: &cr.Int64Validation{
-				Default:              50,
-				GreaterThanOrEqualTo: pointer.Int64(20), // large enough to fit docker images and any other overhead
-				LessThanOrEqualTo:    pointer.Int64(16384),
-			},
-		},
-		{
-			StructField: "InstanceVolumeType",
-			StringValidation: &cr.StringValidation{
-				AllowedValues: VolumeTypesStrings(),
-				Default:       GP2VolumeType.String(),
-			},
-			Parser: func(str string) (interface{}, error) {
-				return VolumeTypeFromString(str), nil
-			},
-		},
-		{
-			StructField: "Tags",
-			StringMapValidation: &cr.StringMapValidation{
-				AllowExplicitNull:  true,
-				AllowEmpty:         true,
-				ConvertNullToEmpty: true,
-				KeyStringValidator: &cr.StringValidation{
-					MinLength:                  1,
-					MaxLength:                  127,
-					DisallowLeadingWhitespace:  true,
-					DisallowTrailingWhitespace: true,
-					InvalidPrefixes:            _invalidTagPrefixes,
-					AWSTag:                     true,
-				},
-				ValueStringValidator: &cr.StringValidation{
-					MinLength:                  1,
-					MaxLength:                  255,
-					DisallowLeadingWhitespace:  true,
-					DisallowTrailingWhitespace: true,
-					InvalidPrefixes:            _invalidTagPrefixes,
-					AWSTag:                     true,
-				},
-			},
-		},
-		{
-			StructField: "SSLCertificateARN",
-			StringPtrValidation: &cr.StringPtrValidation{
-				AllowExplicitNull: true,
-			},
-		},
-		{
-			StructField: "InstanceVolumeIOPS",
-			Int64PtrValidation: &cr.Int64PtrValidation{
-				GreaterThanOrEqualTo: pointer.Int64(100),
-				LessThanOrEqualTo:    pointer.Int64(64000),
-				AllowExplicitNull:    true,
-			},
-		},
-		{
-			StructField: "Spot",
-			BoolPtrValidation: &cr.BoolPtrValidation{
-				Default: pointer.Bool(false),
-			},
-		},
-		{
-			StructField: "SpotConfig",
-			StructValidation: &cr.StructValidation{
-				DefaultNil:        true,
-				AllowExplicitNull: true,
-				StructFieldValidations: []*cr.StructFieldValidation{
-					{
-						StructField: "InstanceDistribution",
-						StringListValidation: &cr.StringListValidation{
-							DisallowDups:      true,
-							Validator:         validateInstanceDistribution,
-							AllowExplicitNull: true,
-						},
-					},
-					{
-						StructField: "OnDemandBaseCapacity",
-						Int64PtrValidation: &cr.Int64PtrValidation{
-							GreaterThanOrEqualTo: pointer.Int64(0),
-							AllowExplicitNull:    true,
-						},
-					},
-					{
-						StructField: "OnDemandPercentageAboveBaseCapacity",
-						Int64PtrValidation: &cr.Int64PtrValidation{
-							GreaterThanOrEqualTo: pointer.Int64(0),
-							LessThanOrEqualTo:    pointer.Int64(100),
-							AllowExplicitNull:    true,
-						},
-					},
-					{
-						StructField: "MaxPrice",
-						Float64PtrValidation: &cr.Float64PtrValidation{
-							GreaterThan:       pointer.Float64(0),
-							AllowExplicitNull: true,
-						},
-					},
-					{
-						StructField: "InstancePools",
-						Int64PtrValidation: &cr.Int64PtrValidation{
-							GreaterThanOrEqualTo: pointer.Int64(1),
-							LessThanOrEqualTo:    pointer.Int64(int64(_maxInstancePools)),
-							AllowExplicitNull:    true,
-						},
-					},
-					{
-						StructField: "OnDemandBackup",
-						BoolPtrValidation: &cr.BoolPtrValidation{
-							Default: pointer.Bool(true),
-						},
-					},
-				},
-			},
-		},
-		{
-			StructField: "ClusterName",
-			StringValidation: &cr.StringValidation{
-				Default:   "cortex",
-				MaxLength: 63,
-				MinLength: 3,
-				Validator: validateClusterName,
-			},
-		},
-		{
-			StructField: "Region",
-			StringPtrValidation: &cr.StringPtrValidation{
-				Validator: RegionValidator,
-			},
-		},
-		{
-			StructField: "AvailabilityZones",
-			StringListValidation: &cr.StringListValidation{
-				AllowEmpty:        true,
-				AllowExplicitNull: true,
-				DisallowDups:      true,
-				InvalidLengths:    []int{1},
-			},
-		},
-		{
-			StructField: "Bucket",
-			StringValidation: &cr.StringValidation{
-				AllowEmpty:       true,
-				TreatNullAsEmpty: true,
-				Validator:        validateBucketNameOrEmpty,
-			},
-		},
-		{
-			StructField: "SubnetVisibility",
-			StringValidation: &cr.StringValidation{
-				AllowedValues: SubnetVisibilityStrings(),
-				Default:       PublicSubnetVisibility.String(),
-			},
-			Parser: func(str string) (interface{}, error) {
-				return SubnetVisibilityFromString(str), nil
-			},
-		},
-		{
-			StructField: "Subnets",
-			StructListValidation: &cr.StructListValidation{
-				AllowExplicitNull: true,
-				MinLength:         2,
-				StructValidation: &cr.StructValidation{
-					StructFieldValidations: []*cr.StructFieldValidation{
-						{
-							StructField:      "AvailabilityZone",
-							StringValidation: &cr.StringValidation{},
-						},
-						{
-							StructField:      "SubnetID",
-							StringValidation: &cr.StringValidation{},
-						},
-					},
-				},
-			},
-		},
-		{
-			StructField: "NATGateway",
-			StringValidation: &cr.StringValidation{
-				AllowedValues: NATGatewayStrings(),
-			},
-			Parser: func(str string) (interface{}, error) {
-				return NATGatewayFromString(str), nil
-			},
-			DefaultDependentFields: []string{"SubnetVisibility", "Subnets"},
-			DefaultDependentFieldsFunc: func(vals []interface{}) interface{} {
-				subnetVisibility := vals[0].(SubnetVisibility)
-				subnets := vals[1].([]*Subnet)
-
-				if len(subnets) > 0 {
-					return NoneNATGateway.String()
-				}
-				if subnetVisibility == PublicSubnetVisibility {
-					return NoneNATGateway.String()
-				}
-				return SingleNATGateway.String()
-			},
-		},
-		{
-			StructField: "APILoadBalancerScheme",
-			StringValidation: &cr.StringValidation{
-				AllowedValues: LoadBalancerSchemeStrings(),
-				Default:       InternetFacingLoadBalancerScheme.String(),
-			},
-			Parser: func(str string) (interface{}, error) {
-				return LoadBalancerSchemeFromString(str), nil
-			},
-		},
-		{
-			StructField: "OperatorLoadBalancerScheme",
-			StringValidation: &cr.StringValidation{
-				AllowedValues: LoadBalancerSchemeStrings(),
-				Default:       InternetFacingLoadBalancerScheme.String(),
-			},
-			Parser: func(str string) (interface{}, error) {
-				return LoadBalancerSchemeFromString(str), nil
-			},
-		},
-		{
-			StructField: "VPCCIDR",
-			StringPtrValidation: &cr.StringPtrValidation{
-				Validator: validateVPCCIDR,
-			},
-		},
-		{
-			StructField: "ImageOperator",
-			StringValidation: &cr.StringValidation{
-				Default:   "quay.io/cortexlabs/operator:" + consts.CortexVersion,
-				Validator: validateImageVersion,
-			},
-		},
-		{
-			StructField: "ImageManager",
-			StringValidation: &cr.StringValidation{
-				Default:   "quay.io/cortexlabs/manager:" + consts.CortexVersion,
-				Validator: validateImageVersion,
-			},
-		},
-		{
-			StructField: "ImageDownloader",
-			StringValidation: &cr.StringValidation{
-				Default:   "quay.io/cortexlabs/downloader:" + consts.CortexVersion,
-				Validator: validateImageVersion,
-			},
-		},
-		{
-			StructField: "ImageRequestMonitor",
-			StringValidation: &cr.StringValidation{
-				Default:   "quay.io/cortexlabs/request-monitor:" + consts.CortexVersion,
-				Validator: validateImageVersion,
-			},
-		},
-		{
-			StructField: "ImageClusterAutoscaler",
-			StringValidation: &cr.StringValidation{
-				Default:   "quay.io/cortexlabs/cluster-autoscaler:" + consts.CortexVersion,
-				Validator: validateImageVersion,
-			},
-		},
-		{
-			StructField: "ImageMetricsServer",
-			StringValidation: &cr.StringValidation{
-				Default:   "quay.io/cortexlabs/metrics-server:" + consts.CortexVersion,
-				Validator: validateImageVersion,
-			},
-		},
-		{
-			StructField: "ImageInferentia",
-			StringValidation: &cr.StringValidation{
-				Default:   "quay.io/cortexlabs/inferentia:" + consts.CortexVersion,
-				Validator: validateImageVersion,
-			},
-		},
-		{
-			StructField: "ImageNeuronRTD",
-			StringValidation: &cr.StringValidation{
-				Default:   "quay.io/cortexlabs/neuron-rtd:" + consts.CortexVersion,
-				Validator: validateImageVersion,
-			},
-		},
-		{
-			StructField: "ImageNvidia",
-			StringValidation: &cr.StringValidation{
-				Default:   "quay.io/cortexlabs/nvidia:" + consts.CortexVersion,
-				Validator: validateImageVersion,
-			},
-		},
-		{
-			StructField: "ImageFluentBit",
-			StringValidation: &cr.StringValidation{
-				Default:   "quay.io/cortexlabs/fluent-bit:" + consts.CortexVersion,
-				Validator: validateImageVersion,
-			},
-		},
-		{
-			StructField: "ImageStatsd",
-			StringValidation: &cr.StringValidation{
-				Default:   "quay.io/cortexlabs/statsd:" + consts.CortexVersion,
-				Validator: validateImageVersion,
-			},
-		},
-		{
-			StructField: "ImageIstioProxy",
-			StringValidation: &cr.StringValidation{
-				Default:   "quay.io/cortexlabs/istio-proxy:" + consts.CortexVersion,
-				Validator: validateImageVersion,
-			},
-		},
-		{
-			StructField: "ImageIstioPilot",
-			StringValidation: &cr.StringValidation{
-				Default:   "quay.io/cortexlabs/istio-pilot:" + consts.CortexVersion,
-				Validator: validateImageVersion,
-			},
-		},
-	},
 }
 
 func ValidateRegion(region string) error {
@@ -484,15 +156,440 @@ func RegionValidator(region string) (string, error) {
 	return region, nil
 }
 
-var Validation = &cr.StructValidation{
-	StructFieldValidations: append(UserValidation.StructFieldValidations,
-		&cr.StructFieldValidation{
-			StructField: "Telemetry",
-			BoolValidation: &cr.BoolValidation{
-				Default: true,
+var CoreConfigStructFieldValidations = []*cr.StructFieldValidation{
+	{
+		StructField: "Provider",
+		StringValidation: &cr.StringValidation{
+			Validator: specificProviderTypeValidator(types.AWSProviderType),
+			Default:   types.AWSProviderType.String(),
+		},
+		Parser: func(str string) (interface{}, error) {
+			return types.ProviderTypeFromString(str), nil
+		},
+	},
+	{
+		StructField: "ClusterName",
+		StringValidation: &cr.StringValidation{
+			Default:   "cortex",
+			MaxLength: 63,
+			MinLength: 3,
+			Validator: validateClusterName,
+		},
+	},
+	{
+		StructField: "Region",
+		StringPtrValidation: &cr.StringPtrValidation{
+			Validator: RegionValidator,
+		},
+	},
+	{
+		StructField: "IsManaged",
+		BoolValidation: &cr.BoolValidation{
+			Default: true,
+		},
+	},
+	{
+		StructField: "Namespace",
+		StringValidation: &cr.StringValidation{
+			Default: "default",
+		},
+	},
+	{
+		StructField: "IstioNamespace",
+		StringValidation: &cr.StringValidation{
+			Default: "istio-system",
+		},
+	},
+	{
+		StructField: "Bucket",
+		StringValidation: &cr.StringValidation{
+			AllowEmpty:       true,
+			TreatNullAsEmpty: true,
+			Validator:        validateBucketNameOrEmpty,
+		},
+	},
+	{
+		StructField: "Telemetry",
+		BoolValidation: &cr.BoolValidation{
+			Default: true,
+		},
+	},
+	{
+		StructField: "ImageOperator",
+		StringValidation: &cr.StringValidation{
+			Default:   "quay.io/cortexlabs/operator:" + consts.CortexVersion,
+			Validator: validateImageVersion,
+		},
+	},
+	{
+		StructField: "ImageManager",
+		StringValidation: &cr.StringValidation{
+			Default:   "quay.io/cortexlabs/manager:" + consts.CortexVersion,
+			Validator: validateImageVersion,
+		},
+	},
+	{
+		StructField: "ImageDownloader",
+		StringValidation: &cr.StringValidation{
+			Default:   "quay.io/cortexlabs/downloader:" + consts.CortexVersion,
+			Validator: validateImageVersion,
+		},
+	},
+	{
+		StructField: "ImageRequestMonitor",
+		StringValidation: &cr.StringValidation{
+			Default:   "quay.io/cortexlabs/request-monitor:" + consts.CortexVersion,
+			Validator: validateImageVersion,
+		},
+	},
+	{
+		StructField: "ImageClusterAutoscaler",
+		StringValidation: &cr.StringValidation{
+			Default:   "quay.io/cortexlabs/cluster-autoscaler:" + consts.CortexVersion,
+			Validator: validateImageVersion,
+		},
+	},
+	{
+		StructField: "ImageMetricsServer",
+		StringValidation: &cr.StringValidation{
+			Default:   "quay.io/cortexlabs/metrics-server:" + consts.CortexVersion,
+			Validator: validateImageVersion,
+		},
+	},
+	{
+		StructField: "ImageInferentia",
+		StringValidation: &cr.StringValidation{
+			Default:   "quay.io/cortexlabs/inferentia:" + consts.CortexVersion,
+			Validator: validateImageVersion,
+		},
+	},
+	{
+		StructField: "ImageNeuronRTD",
+		StringValidation: &cr.StringValidation{
+			Default:   "quay.io/cortexlabs/neuron-rtd:" + consts.CortexVersion,
+			Validator: validateImageVersion,
+		},
+	},
+	{
+		StructField: "ImageNvidia",
+		StringValidation: &cr.StringValidation{
+			Default:   "quay.io/cortexlabs/nvidia:" + consts.CortexVersion,
+			Validator: validateImageVersion,
+		},
+	},
+	{
+		StructField: "ImageFluentBit",
+		StringValidation: &cr.StringValidation{
+			Default:   "quay.io/cortexlabs/fluent-bit:" + consts.CortexVersion,
+			Validator: validateImageVersion,
+		},
+	},
+	{
+		StructField: "ImageIstioProxy",
+		StringValidation: &cr.StringValidation{
+			Default:   "quay.io/cortexlabs/istio-proxy:" + consts.CortexVersion,
+			Validator: validateImageVersion,
+		},
+	},
+	{
+		StructField: "ImageIstioPilot",
+		StringValidation: &cr.StringValidation{
+			Default:   "quay.io/cortexlabs/istio-pilot:" + consts.CortexVersion,
+			Validator: validateImageVersion,
+		},
+	},
+	{
+		StructField: "ImageIstioProxy",
+		StringValidation: &cr.StringValidation{
+			Default:   "quay.io/cortexlabs/istio-proxy:" + consts.CortexVersion,
+			Validator: validateImageVersion,
+		},
+	},
+	{
+		StructField: "ImageIstioPilot",
+		StringValidation: &cr.StringValidation{
+			Default:   "quay.io/cortexlabs/istio-pilot:" + consts.CortexVersion,
+			Validator: validateImageVersion,
+		},
+	},
+	{
+		StructField: "ImagePrometheus",
+		StringValidation: &cr.StringValidation{
+			Default:   "quay.io/cortexlabs/prometheus:" + consts.CortexVersion,
+			Validator: validateImageVersion,
+		},
+	},
+	{
+		StructField: "ImagePrometheusConfigReloader",
+		StringValidation: &cr.StringValidation{
+			Default:   "quay.io/cortexlabs/prometheus-config-reloader:" + consts.CortexVersion,
+			Validator: validateImageVersion,
+		},
+	},
+	{
+		StructField: "ImagePrometheusOperator",
+		StringValidation: &cr.StringValidation{
+			Default:   "quay.io/cortexlabs/prometheus-operator:" + consts.CortexVersion,
+			Validator: validateImageVersion,
+		},
+	},
+	{
+		StructField: "ImagePrometheusStatsDExporter",
+		StringValidation: &cr.StringValidation{
+			Default:   "quay.io/cortexlabs/prometheus-statsd-exporter:" + consts.CortexVersion,
+			Validator: validateImageVersion,
+		},
+	},
+	{
+		StructField: "ImagePrometheusToCloudWatch",
+		StringValidation: &cr.StringValidation{
+			Default:   "quay.io/cortexlabs/prometheus-to-cloudwatch:" + consts.CortexVersion,
+			Validator: validateImageVersion,
+		},
+	},
+}
+
+var ManagedConfigStructFieldValidations = []*cr.StructFieldValidation{
+	{
+		StructField: "InstanceType",
+		StringPtrValidation: &cr.StringPtrValidation{
+			Validator: validateInstanceType,
+		},
+	},
+	{
+		StructField: "MinInstances",
+		Int64PtrValidation: &cr.Int64PtrValidation{
+			GreaterThanOrEqualTo: pointer.Int64(0),
+		},
+	},
+	{
+		StructField: "MaxInstances",
+		Int64PtrValidation: &cr.Int64PtrValidation{
+			GreaterThan: pointer.Int64(0),
+		},
+	},
+	{
+		StructField: "InstanceVolumeSize",
+		Int64Validation: &cr.Int64Validation{
+			Default:              50,
+			GreaterThanOrEqualTo: pointer.Int64(20), // large enough to fit docker images and any other overhead
+			LessThanOrEqualTo:    pointer.Int64(16384),
+		},
+	},
+	{
+		StructField: "InstanceVolumeType",
+		StringValidation: &cr.StringValidation{
+			AllowedValues: VolumeTypesStrings(),
+			Default:       GP2VolumeType.String(),
+		},
+		Parser: func(str string) (interface{}, error) {
+			return VolumeTypeFromString(str), nil
+		},
+	},
+	{
+		StructField: "Tags",
+		StringMapValidation: &cr.StringMapValidation{
+			AllowExplicitNull:  true,
+			AllowEmpty:         true,
+			ConvertNullToEmpty: true,
+			KeyStringValidator: &cr.StringValidation{
+				MinLength:                  1,
+				MaxLength:                  127,
+				DisallowLeadingWhitespace:  true,
+				DisallowTrailingWhitespace: true,
+				InvalidPrefixes:            _invalidTagPrefixes,
+				AWSTag:                     true,
+			},
+			ValueStringValidator: &cr.StringValidation{
+				MinLength:                  1,
+				MaxLength:                  255,
+				DisallowLeadingWhitespace:  true,
+				DisallowTrailingWhitespace: true,
+				InvalidPrefixes:            _invalidTagPrefixes,
+				AWSTag:                     true,
 			},
 		},
-	),
+	},
+	{
+		StructField: "SSLCertificateARN",
+		StringPtrValidation: &cr.StringPtrValidation{
+			AllowExplicitNull: true,
+		},
+	},
+	{
+		StructField: "InstanceVolumeIOPS",
+		Int64PtrValidation: &cr.Int64PtrValidation{
+			GreaterThanOrEqualTo: pointer.Int64(100),
+			LessThanOrEqualTo:    pointer.Int64(64000),
+			AllowExplicitNull:    true,
+		},
+	},
+	{
+		StructField: "Spot",
+		BoolPtrValidation: &cr.BoolPtrValidation{
+			Default: pointer.Bool(false),
+		},
+	},
+	{
+		StructField: "SpotConfig",
+		StructValidation: &cr.StructValidation{
+			DefaultNil:        true,
+			AllowExplicitNull: true,
+			StructFieldValidations: []*cr.StructFieldValidation{
+				{
+					StructField: "InstanceDistribution",
+					StringListValidation: &cr.StringListValidation{
+						DisallowDups:      true,
+						Validator:         validateInstanceDistribution,
+						AllowExplicitNull: true,
+					},
+				},
+				{
+					StructField: "OnDemandBaseCapacity",
+					Int64PtrValidation: &cr.Int64PtrValidation{
+						GreaterThanOrEqualTo: pointer.Int64(0),
+						AllowExplicitNull:    true,
+					},
+				},
+				{
+					StructField: "OnDemandPercentageAboveBaseCapacity",
+					Int64PtrValidation: &cr.Int64PtrValidation{
+						GreaterThanOrEqualTo: pointer.Int64(0),
+						LessThanOrEqualTo:    pointer.Int64(100),
+						AllowExplicitNull:    true,
+					},
+				},
+				{
+					StructField: "MaxPrice",
+					Float64PtrValidation: &cr.Float64PtrValidation{
+						GreaterThan:       pointer.Float64(0),
+						AllowExplicitNull: true,
+					},
+				},
+				{
+					StructField: "InstancePools",
+					Int64PtrValidation: &cr.Int64PtrValidation{
+						GreaterThanOrEqualTo: pointer.Int64(1),
+						LessThanOrEqualTo:    pointer.Int64(int64(_maxInstancePools)),
+						AllowExplicitNull:    true,
+					},
+				},
+				{
+					StructField: "OnDemandBackup",
+					BoolPtrValidation: &cr.BoolPtrValidation{
+						Default: pointer.Bool(true),
+					},
+				},
+			},
+		},
+	},
+	{
+		StructField: "AvailabilityZones",
+		StringListValidation: &cr.StringListValidation{
+			AllowEmpty:        true,
+			AllowExplicitNull: true,
+			DisallowDups:      true,
+			InvalidLengths:    []int{1},
+		},
+	},
+	{
+		StructField: "SubnetVisibility",
+		StringValidation: &cr.StringValidation{
+			AllowedValues: SubnetVisibilityStrings(),
+			Default:       PublicSubnetVisibility.String(),
+		},
+		Parser: func(str string) (interface{}, error) {
+			return SubnetVisibilityFromString(str), nil
+		},
+	},
+	{
+		StructField: "Subnets",
+		StructListValidation: &cr.StructListValidation{
+			AllowExplicitNull: true,
+			MinLength:         2,
+			StructValidation: &cr.StructValidation{
+				StructFieldValidations: []*cr.StructFieldValidation{
+					{
+						StructField:      "AvailabilityZone",
+						StringValidation: &cr.StringValidation{},
+					},
+					{
+						StructField:      "SubnetID",
+						StringValidation: &cr.StringValidation{},
+					},
+				},
+			},
+		},
+	},
+	{
+		StructField: "NATGateway",
+		StringValidation: &cr.StringValidation{
+			AllowedValues: NATGatewayStrings(),
+		},
+		Parser: func(str string) (interface{}, error) {
+			return NATGatewayFromString(str), nil
+		},
+		DefaultDependentFields: []string{"SubnetVisibility", "Subnets"},
+		DefaultDependentFieldsFunc: func(vals []interface{}) interface{} {
+			subnetVisibility := vals[0].(SubnetVisibility)
+			subnets := vals[1].([]*Subnet)
+
+			if len(subnets) > 0 {
+				return NoneNATGateway.String()
+			}
+			if subnetVisibility == PublicSubnetVisibility {
+				return NoneNATGateway.String()
+			}
+			return SingleNATGateway.String()
+		},
+	},
+	{
+		StructField: "APILoadBalancerScheme",
+		StringValidation: &cr.StringValidation{
+			AllowedValues: LoadBalancerSchemeStrings(),
+			Default:       InternetFacingLoadBalancerScheme.String(),
+		},
+		Parser: func(str string) (interface{}, error) {
+			return LoadBalancerSchemeFromString(str), nil
+		},
+	},
+	{
+		StructField: "OperatorLoadBalancerScheme",
+		StringValidation: &cr.StringValidation{
+			AllowedValues: LoadBalancerSchemeStrings(),
+			Default:       InternetFacingLoadBalancerScheme.String(),
+		},
+		Parser: func(str string) (interface{}, error) {
+			return LoadBalancerSchemeFromString(str), nil
+		},
+	},
+	{
+		StructField: "VPCCIDR",
+		StringPtrValidation: &cr.StringPtrValidation{
+			Validator: validateVPCCIDR,
+		},
+	},
+}
+
+func CoreConfigValidations(allowExtraFields bool) *cr.StructValidation {
+	return &cr.StructValidation{
+		Required:               true,
+		StructFieldValidations: CoreConfigStructFieldValidations,
+		AllowExtraFields:       allowExtraFields,
+	}
+}
+
+func ManagedConfigValidations(allowExtraFields bool) *cr.StructValidation {
+	return &cr.StructValidation{
+		Required:               true,
+		StructFieldValidations: ManagedConfigStructFieldValidations,
+		AllowExtraFields:       allowExtraFields,
+	}
+}
+
+var FullManagedValidation = &cr.StructValidation{
+	Required:               true,
+	StructFieldValidations: append([]*cr.StructFieldValidation{}, append(CoreConfigStructFieldValidations, ManagedConfigStructFieldValidations...)...),
 }
 
 var AccessValidation = &cr.StructValidation{
@@ -539,6 +636,11 @@ func SQSNamePrefix(clusterName string) string {
 
 // returns hash of cluster name and adds trailing "-"
 func (cc *Config) SQSNamePrefix() string {
+	return SQSNamePrefix(cc.ClusterName)
+}
+
+// returns hash of cluster name and adds trailing "-"
+func (cc *CoreConfig) SQSNamePrefix() string {
 	return SQSNamePrefix(cc.ClusterName)
 }
 
@@ -719,10 +821,10 @@ func checkCNISupport(instanceType string) error {
 		}
 
 		body, err := ioutil.ReadAll(res.Body)
-		res.Body.Close()
 		if err != nil {
 			return nil
 		}
+		_ = res.Body.Close()
 
 		_cachedCNISupportedInstances = pointer.String(string(body))
 	}
@@ -814,10 +916,14 @@ func (cc *Config) FillEmptySpotFields() {
 
 func applyPromptDefaults(defaults Config) *Config {
 	defaultConfig := &Config{
-		Region:       pointer.String("us-east-1"),
-		InstanceType: pointer.String("m5.large"),
-		MinInstances: pointer.Int64(1),
-		MaxInstances: pointer.Int64(5),
+		CoreConfig: CoreConfig{
+			Region: pointer.String("us-east-1"),
+		},
+		ManagedConfig: ManagedConfig{
+			InstanceType: pointer.String("m5.large"),
+			MinInstances: pointer.Int64(1),
+			MaxInstances: pointer.Int64(5),
+		},
 	}
 
 	if defaults.Region != nil {
@@ -1044,7 +1150,7 @@ func validateInstanceDistribution(instances []string) ([]string, error) {
 // This does not set defaults for fields that are prompted from the user
 func SetDefaults(cc *Config) error {
 	var emptyMap interface{} = map[interface{}]interface{}{}
-	errs := cr.Struct(cc, emptyMap, Validation)
+	errs := cr.Struct(cc, emptyMap, FullManagedValidation)
 	if errors.HasError(errs) {
 		return errors.FirstError(errs...)
 	}
@@ -1121,55 +1227,24 @@ func (cc *Config) SpotConfigOnDemandValues() (int64, int64) {
 }
 
 func (cc *InternalConfig) UserTable() table.KeyValuePairs {
-	var items table.KeyValuePairs
+	var items *table.KeyValuePairs = &table.KeyValuePairs{}
 
 	items.Add(APIVersionUserKey, cc.APIVersion)
 	items.AddAll(cc.Config.UserTable())
-	return items
+
+	return *items
 }
 
 func (cc *InternalConfig) UserStr() string {
 	return cc.UserTable().String()
 }
 
-func (cc *Config) UserTable() table.KeyValuePairs {
+func (cc *CoreConfig) UserTable() table.KeyValuePairs {
 	var items table.KeyValuePairs
 
 	items.Add(ClusterNameUserKey, cc.ClusterName)
 	items.Add(RegionUserKey, *cc.Region)
-	if len(cc.AvailabilityZones) > 0 {
-		items.Add(AvailabilityZonesUserKey, cc.AvailabilityZones)
-	}
-	for _, subnetConfig := range cc.Subnets {
-		items.Add("subnet in "+subnetConfig.AvailabilityZone, subnetConfig.SubnetID)
-	}
 	items.Add(BucketUserKey, cc.Bucket)
-	items.Add(InstanceTypeUserKey, *cc.InstanceType)
-	items.Add(MinInstancesUserKey, *cc.MinInstances)
-	items.Add(MaxInstancesUserKey, *cc.MaxInstances)
-	items.Add(TagsUserKey, s.ObjFlat(cc.Tags))
-	if cc.SSLCertificateARN != nil {
-		items.Add(SSLCertificateARNUserKey, *cc.SSLCertificateARN)
-	}
-	items.Add(InstanceVolumeSizeUserKey, cc.InstanceVolumeSize)
-	items.Add(InstanceVolumeTypeUserKey, cc.InstanceVolumeType)
-	items.Add(InstanceVolumeIOPSUserKey, cc.InstanceVolumeIOPS)
-	items.Add(SpotUserKey, s.YesNo(*cc.Spot))
-	if cc.Spot != nil && *cc.Spot {
-		items.Add(InstanceDistributionUserKey, cc.SpotConfig.InstanceDistribution)
-		items.Add(OnDemandBaseCapacityUserKey, *cc.SpotConfig.OnDemandBaseCapacity)
-		items.Add(OnDemandPercentageAboveBaseCapacityUserKey, *cc.SpotConfig.OnDemandPercentageAboveBaseCapacity)
-		items.Add(MaxPriceUserKey, *cc.SpotConfig.MaxPrice)
-		items.Add(InstancePoolsUserKey, *cc.SpotConfig.InstancePools)
-		items.Add(OnDemandBackupUserKey, s.YesNo(*cc.SpotConfig.OnDemandBackup))
-	}
-	items.Add(SubnetVisibilityUserKey, cc.SubnetVisibility)
-	items.Add(NATGatewayUserKey, cc.NATGateway)
-	items.Add(APILoadBalancerSchemeUserKey, cc.APILoadBalancerScheme)
-	items.Add(OperatorLoadBalancerSchemeUserKey, cc.OperatorLoadBalancerScheme)
-	if cc.VPCCIDR != nil {
-		items.Add(VPCCIDRKey, *cc.VPCCIDR)
-	}
 	items.Add(TelemetryUserKey, cc.Telemetry)
 	items.Add(ImageOperatorUserKey, cc.ImageOperator)
 	items.Add(ImageManagerUserKey, cc.ImageManager)
@@ -1181,74 +1256,93 @@ func (cc *Config) UserTable() table.KeyValuePairs {
 	items.Add(ImageNeuronRTDUserKey, cc.ImageNeuronRTD)
 	items.Add(ImageNvidiaUserKey, cc.ImageNvidia)
 	items.Add(ImageFluentBitUserKey, cc.ImageFluentBit)
-	items.Add(ImageStatsdUserKey, cc.ImageStatsd)
 	items.Add(ImageIstioProxyUserKey, cc.ImageIstioProxy)
 	items.Add(ImageIstioPilotUserKey, cc.ImageIstioPilot)
+	items.Add(ImagePrometheusUserKey, cc.ImagePrometheus)
+	items.Add(ImagePrometheusConfigReloaderUserKey, cc.ImagePrometheusConfigReloader)
+	items.Add(ImagePrometheusOperatorUserKey, cc.ImagePrometheusOperator)
+	items.Add(ImagePrometheusStatsDExporterUserKey, cc.ImagePrometheusStatsDExporter)
+	items.Add(ImagePrometheusToCloudwatchUserKey, cc.ImagePrometheusToCloudWatch)
 
 	return items
+}
+
+func (mc *ManagedConfig) UserTable() table.KeyValuePairs {
+	var items table.KeyValuePairs
+
+	if len(mc.AvailabilityZones) > 0 {
+		items.Add(AvailabilityZonesUserKey, mc.AvailabilityZones)
+	}
+	for _, subnetConfig := range mc.Subnets {
+		items.Add("subnet in "+subnetConfig.AvailabilityZone, subnetConfig.SubnetID)
+	}
+	items.Add(InstanceTypeUserKey, *mc.InstanceType)
+	items.Add(MinInstancesUserKey, *mc.MinInstances)
+	items.Add(MaxInstancesUserKey, *mc.MaxInstances)
+	items.Add(TagsUserKey, s.ObjFlat(mc.Tags))
+	if mc.SSLCertificateARN != nil {
+		items.Add(SSLCertificateARNUserKey, *mc.SSLCertificateARN)
+	}
+	items.Add(InstanceVolumeSizeUserKey, mc.InstanceVolumeSize)
+	items.Add(InstanceVolumeTypeUserKey, mc.InstanceVolumeType)
+	items.Add(InstanceVolumeIOPSUserKey, mc.InstanceVolumeIOPS)
+	items.Add(SpotUserKey, s.YesNo(*mc.Spot))
+	if mc.Spot != nil && *mc.Spot {
+		items.Add(InstanceDistributionUserKey, mc.SpotConfig.InstanceDistribution)
+		items.Add(OnDemandBaseCapacityUserKey, *mc.SpotConfig.OnDemandBaseCapacity)
+		items.Add(OnDemandPercentageAboveBaseCapacityUserKey, *mc.SpotConfig.OnDemandPercentageAboveBaseCapacity)
+		items.Add(MaxPriceUserKey, *mc.SpotConfig.MaxPrice)
+		items.Add(InstancePoolsUserKey, *mc.SpotConfig.InstancePools)
+		items.Add(OnDemandBackupUserKey, s.YesNo(*mc.SpotConfig.OnDemandBackup))
+	}
+	items.Add(SubnetVisibilityUserKey, mc.SubnetVisibility)
+	items.Add(NATGatewayUserKey, mc.NATGateway)
+	items.Add(APILoadBalancerSchemeUserKey, mc.APILoadBalancerScheme)
+	items.Add(OperatorLoadBalancerSchemeUserKey, mc.OperatorLoadBalancerScheme)
+	if mc.VPCCIDR != nil {
+		items.Add(VPCCIDRKey, *mc.VPCCIDR)
+	}
+
+	return items
+}
+
+func (cc *Config) UserTable() table.KeyValuePairs {
+	var items *table.KeyValuePairs = &table.KeyValuePairs{}
+	items.AddAll(cc.CoreConfig.UserTable())
+
+	if cc.CoreConfig.IsManaged {
+		items.AddAll(cc.ManagedConfig.UserTable())
+	}
+
+	return *items
 }
 
 func (cc *Config) UserStr() string {
 	return cc.UserTable().String()
 }
 
-func (cc *Config) TelemetryEvent() map[string]interface{} {
+func (cc *CoreConfig) TelemetryEvent() map[string]interface{} {
 	event := map[string]interface{}{
-		"provider": types.AWSProviderType,
+		"provider":   types.AWSProviderType,
+		"is_managed": cc.IsManaged,
 	}
 
-	if cc.InstanceType != nil {
-		event["instance_type._is_defined"] = true
-		event["instance_type"] = *cc.InstanceType
-	}
-	if cc.MinInstances != nil {
-		event["min_instances._is_defined"] = true
-		event["min_instances"] = *cc.MinInstances
-	}
-	if cc.MaxInstances != nil {
-		event["max_instances._is_defined"] = true
-		event["max_instances"] = *cc.MaxInstances
-	}
-	event["instance_volume_size"] = cc.InstanceVolumeSize
-	event["instance_volume_type"] = cc.InstanceVolumeType
-	if cc.InstanceVolumeIOPS != nil {
-		event["instance_volume_iops._is_defined"] = true
-		event["instance_volume_iops"] = *cc.InstanceVolumeIOPS
-	}
-	if len(cc.Tags) > 0 {
-		event["tags._is_defined"] = true
-		event["tags._len"] = len(cc.Tags)
-	}
 	if cc.ClusterName != "cortex" {
 		event["cluster_name._is_custom"] = true
 	}
+
+	if cc.Namespace != "default" {
+		event["namespace._is_custom"] = true
+	}
+	if cc.IstioNamespace != "istio-system" {
+		event["istio_namespace._is_custom"] = true
+	}
+
 	if cc.Region != nil {
 		event["region._is_defined"] = true
 		event["region"] = *cc.Region
 	}
-	if len(cc.AvailabilityZones) > 0 {
-		event["availability_zones._is_defined"] = true
-		event["availability_zones._len"] = len(cc.AvailabilityZones)
-		event["availability_zones"] = cc.AvailabilityZones
-	}
-	if len(cc.Subnets) > 0 {
-		event["subnets._is_defined"] = true
-		event["subnets._len"] = len(cc.Subnets)
-		event["subnets"] = cc.Subnets
-	}
-	if cc.SSLCertificateARN != nil {
-		event["ssl_certificate_arn._is_defined"] = true
-	}
-	if !strings.HasPrefix(cc.Bucket, cc.ClusterName+"-") {
-		event["bucket._is_custom"] = true
-	}
-	event["subnet_visibility"] = cc.SubnetVisibility
-	event["nat_gateway"] = cc.NATGateway
-	event["api_load_balancer_scheme"] = cc.APILoadBalancerScheme
-	event["operator_load_balancer_scheme"] = cc.OperatorLoadBalancerScheme
-	if cc.VPCCIDR != nil {
-		event["vpc_cidr._is_defined"] = true
-	}
+
 	if !strings.HasPrefix(cc.ImageOperator, "cortexlabs/") {
 		event["image_operator._is_custom"] = true
 	}
@@ -1279,45 +1373,107 @@ func (cc *Config) TelemetryEvent() map[string]interface{} {
 	if !strings.HasPrefix(cc.ImageFluentBit, "cortexlabs/") {
 		event["image_fluent_bit._is_custom"] = true
 	}
-	if !strings.HasPrefix(cc.ImageStatsd, "cortexlabs/") {
-		event["image_statsd._is_custom"] = true
-	}
 	if !strings.HasPrefix(cc.ImageIstioProxy, "cortexlabs/") {
 		event["image_istio_proxy._is_custom"] = true
 	}
 	if !strings.HasPrefix(cc.ImageIstioPilot, "cortexlabs/") {
 		event["image_istio_pilot._is_custom"] = true
 	}
-	if cc.Spot != nil {
-		event["spot._is_defined"] = true
-		event["spot"] = *cc.Spot
+	if strings.HasPrefix(cc.ImagePrometheus, "cortexlabs/") {
+		event["image_prometheus._is_custom"] = true
 	}
-	if cc.SpotConfig != nil {
+	if strings.HasPrefix(cc.ImagePrometheusConfigReloader, "cortexlabs/") {
+		event["image_prometheus_config_reloader._is_custom"] = true
+	}
+	if strings.HasPrefix(cc.ImagePrometheusOperator, "cortexlabs/") {
+		event["image_prometheus_operator._is_custom"] = true
+	}
+	if strings.HasPrefix(cc.ImagePrometheusStatsDExporter, "cortexlabs/") {
+		event["image_prometheus_statsd_exporter._is_custom"] = true
+	}
+	if strings.HasPrefix(cc.ImagePrometheusToCloudWatch, "cortexlabs/") {
+		event["image_prometheus_to_cloudwatch._is_custom"] = true
+	}
+
+	return event
+}
+
+func (mc *ManagedConfig) TelemetryEvent() map[string]interface{} {
+	event := map[string]interface{}{}
+
+	if mc.InstanceType != nil {
+		event["instance_type._is_defined"] = true
+		event["instance_type"] = *mc.InstanceType
+	}
+	if mc.MinInstances != nil {
+		event["min_instances._is_defined"] = true
+		event["min_instances"] = *mc.MinInstances
+	}
+	if mc.MaxInstances != nil {
+		event["max_instances._is_defined"] = true
+		event["max_instances"] = *mc.MaxInstances
+	}
+	event["instance_volume_size"] = mc.InstanceVolumeSize
+	event["instance_volume_type"] = mc.InstanceVolumeType
+	if mc.InstanceVolumeIOPS != nil {
+		event["instance_volume_iops._is_defined"] = true
+		event["instance_volume_iops"] = *mc.InstanceVolumeIOPS
+	}
+	if len(mc.Tags) > 0 {
+		event["tags._is_defined"] = true
+		event["tags._len"] = len(mc.Tags)
+	}
+	if len(mc.AvailabilityZones) > 0 {
+		event["availability_zones._is_defined"] = true
+		event["availability_zones._len"] = len(mc.AvailabilityZones)
+		event["availability_zones"] = mc.AvailabilityZones
+	}
+	if len(mc.Subnets) > 0 {
+		event["subnets._is_defined"] = true
+		event["subnets._len"] = len(mc.Subnets)
+		event["subnets"] = mc.Subnets
+	}
+	if mc.SSLCertificateARN != nil {
+		event["ssl_certificate_arn._is_defined"] = true
+	}
+
+	event["subnet_visibility"] = mc.SubnetVisibility
+	event["nat_gateway"] = mc.NATGateway
+	event["api_load_balancer_scheme"] = mc.APILoadBalancerScheme
+	event["operator_load_balancer_scheme"] = mc.OperatorLoadBalancerScheme
+	if mc.VPCCIDR != nil {
+		event["vpc_cidr._is_defined"] = true
+	}
+	if mc.Spot != nil {
+		event["spot._is_defined"] = true
+		event["spot"] = *mc.Spot
+	}
+	if mc.SpotConfig != nil {
 		event["spot_config._is_defined"] = true
-		if len(cc.SpotConfig.InstanceDistribution) > 0 {
+		if len(mc.SpotConfig.InstanceDistribution) > 0 {
 			event["spot_config.instance_distribution._is_defined"] = true
-			event["spot_config.instance_distribution._len"] = len(cc.SpotConfig.InstanceDistribution)
-			event["spot_config.instance_distribution"] = cc.SpotConfig.InstanceDistribution
+			event["spot_config.instance_distribution._len"] = len(mc.SpotConfig.InstanceDistribution)
+			event["spot_config.instance_distribution"] = mc.SpotConfig.InstanceDistribution
 		}
-		if cc.SpotConfig.OnDemandBaseCapacity != nil {
+		if mc.SpotConfig.OnDemandBaseCapacity != nil {
 			event["spot_config.on_demand_base_capacity._is_defined"] = true
-			event["spot_config.on_demand_base_capacity"] = *cc.SpotConfig.OnDemandBaseCapacity
+			event["spot_config.on_demand_base_capacity"] = *mc.SpotConfig.OnDemandBaseCapacity
 		}
-		if cc.SpotConfig.OnDemandPercentageAboveBaseCapacity != nil {
+		if mc.SpotConfig.OnDemandPercentageAboveBaseCapacity != nil {
 			event["spot_config.on_demand_percentage_above_base_capacity._is_defined"] = true
-			event["spot_config.on_demand_percentage_above_base_capacity"] = *cc.SpotConfig.OnDemandPercentageAboveBaseCapacity
+			event["spot_config.on_demand_percentage_above_base_capacity"] = *mc.SpotConfig.OnDemandPercentageAboveBaseCapacity
 		}
-		if cc.SpotConfig.MaxPrice != nil {
+		if mc.SpotConfig.MaxPrice != nil {
 			event["spot_config.max_price._is_defined"] = true
-			event["spot_config.max_price"] = *cc.SpotConfig.MaxPrice
+			event["spot_config.max_price"] = *mc.SpotConfig.MaxPrice
 		}
-		if cc.SpotConfig.InstancePools != nil {
+		if mc.SpotConfig.InstancePools != nil {
 			event["spot_config.instance_pools._is_defined"] = true
-			event["spot_config.instance_pools"] = *cc.SpotConfig.InstancePools
+			event["spot_config.instance_pools"] = *mc.SpotConfig.InstancePools
 		}
-		if cc.SpotConfig.OnDemandBackup != nil {
+		if mc.SpotConfig.OnDemandBackup != nil {
 			event["spot_config.on_demand_backup._is_defined"] = true
-			event["spot_config.on_demand_backup"] = *cc.SpotConfig.OnDemandBackup
+			event["spot_config.on_demand_backup"] = *mc.SpotConfig.OnDemandBackup
 		}
 	}
 

@@ -78,13 +78,29 @@ type instanceInfo struct {
 }
 
 func InstanceTelemetryAWS() error {
+	if config.CoreConfig.IsManaged && config.ManagedConfigOrNil() != nil {
+		properties, err := managedClusterTelemetry()
+		if err != nil {
+			return err
+		}
+		telemetry.Event("operator.cron", properties, config.CoreConfig.TelemetryEvent(), config.ManagedConfigOrNil().TelemetryEvent())
+	} else {
+		telemetry.Event("operator.cron", config.CoreConfig.TelemetryEvent())
+	}
+
+	return nil
+}
+
+func managedClusterTelemetry() (map[string]interface{}, error) {
 	nodes, err := config.K8s.ListNodes(nil)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	instanceInfos := make(map[string]*instanceInfo)
 	var totalInstances int
+
+	managedConfig := config.ManagedConfigOrNil()
 
 	for _, node := range nodes {
 		if node.Labels["workload"] != "true" {
@@ -113,7 +129,7 @@ func InstanceTelemetryAWS() error {
 			continue
 		}
 
-		onDemandPrice := aws.InstanceMetadatas[*config.Cluster.Region][instanceType].Price
+		onDemandPrice := aws.InstanceMetadatas[*config.CoreConfig.Region][instanceType].Price
 		price := onDemandPrice
 		if isSpot {
 			spotPrice, err := config.AWS.SpotInstancePrice(instanceType)
@@ -147,9 +163,9 @@ func InstanceTelemetryAWS() error {
 		instanceInfos[instanceInfosKey] = &info
 	}
 
-	apiEBSPrice := aws.EBSMetadatas[*config.Cluster.Region][config.Cluster.InstanceVolumeType.String()].PriceGB * float64(config.Cluster.InstanceVolumeSize) / 30 / 24
-	if config.Cluster.InstanceVolumeType.String() == "io1" && config.Cluster.InstanceVolumeIOPS != nil {
-		apiEBSPrice += aws.EBSMetadatas[*config.Cluster.Region][config.Cluster.InstanceVolumeType.String()].PriceIOPS * float64(*config.Cluster.InstanceVolumeIOPS) / 30 / 24
+	apiEBSPrice := aws.EBSMetadatas[*config.CoreConfig.Region][managedConfig.InstanceVolumeType.String()].PriceGB * float64(managedConfig.InstanceVolumeSize) / 30 / 24
+	if managedConfig.InstanceVolumeType.String() == "io1" && managedConfig.InstanceVolumeIOPS != nil {
+		apiEBSPrice += aws.EBSMetadatas[*config.CoreConfig.Region][managedConfig.InstanceVolumeType.String()].PriceIOPS * float64(*managedConfig.InstanceVolumeIOPS) / 30 / 24
 	}
 
 	var totalInstancePrice float64
@@ -161,8 +177,8 @@ func InstanceTelemetryAWS() error {
 
 	fixedPrice := clusterFixedPriceAWS()
 
-	properties := map[string]interface{}{
-		"region":                      *config.Cluster.Region,
+	return map[string]interface{}{
+		"region":                      *config.CoreConfig.Region,
 		"instance_count":              totalInstances,
 		"instances":                   instanceInfos,
 		"fixed_price":                 fixedPrice,
@@ -170,34 +186,48 @@ func InstanceTelemetryAWS() error {
 		"workload_price_if_on_demand": totalInstancePriceIfOnDemand,
 		"total_price":                 totalInstancePrice + fixedPrice,
 		"total_price_if_on_demand":    totalInstancePriceIfOnDemand + fixedPrice,
+	}, nil
+}
+
+func clusterFixedPriceAWS() float64 {
+	eksPrice := aws.EKSPrices[*config.CoreConfig.Region]
+	operatorInstancePrice := aws.InstanceMetadatas[*config.CoreConfig.Region]["t3.medium"].Price
+	operatorEBSPrice := aws.EBSMetadatas[*config.CoreConfig.Region]["gp2"].PriceGB * 20 / 30 / 24
+	metricsEBSPrice := aws.EBSMetadatas[*config.CoreConfig.Region]["gp2"].PriceGB * 40 / 30 / 24
+	nlbPrice := aws.NLBMetadatas[*config.CoreConfig.Region].Price
+	natUnitPrice := aws.NATMetadatas[*config.CoreConfig.Region].Price
+	var natTotalPrice float64
+
+	managedConfig := config.ManagedConfigOrNil()
+	if managedConfig != nil {
+		if managedConfig.NATGateway == clusterconfig.SingleNATGateway {
+			natTotalPrice = natUnitPrice
+		} else if managedConfig.NATGateway == clusterconfig.HighlyAvailableNATGateway {
+			natTotalPrice = natUnitPrice * float64(len(managedConfig.AvailabilityZones))
+		}
 	}
 
-	telemetry.Event("operator.cron", properties, config.Cluster.TelemetryEvent())
+	return eksPrice + 2*operatorInstancePrice + operatorEBSPrice + metricsEBSPrice + 2*nlbPrice + natTotalPrice
+}
+
+func InstanceTelemetryGCP() error {
+	if config.GCPCoreConfig.IsManaged && config.GCPManagedConfigOrNil() != nil {
+		properties, err := gcpManagedClusterTelemetry()
+		if err != nil {
+			return err
+		}
+		telemetry.Event("operator.cron", properties, config.GCPCoreConfig.TelemetryEvent(), config.GCPManagedConfigOrNil().TelemetryEvent())
+	} else {
+		telemetry.Event("operator.cron", config.GCPCoreConfig.TelemetryEvent())
+	}
 
 	return nil
 }
 
-func clusterFixedPriceAWS() float64 {
-	eksPrice := aws.EKSPrices[*config.Cluster.Region]
-	operatorInstancePrice := aws.InstanceMetadatas[*config.Cluster.Region]["t3.medium"].Price
-	operatorEBSPrice := aws.EBSMetadatas[*config.Cluster.Region]["gp2"].PriceGB * 20 / 30 / 24
-	nlbPrice := aws.NLBMetadatas[*config.Cluster.Region].Price
-	natUnitPrice := aws.NATMetadatas[*config.Cluster.Region].Price
-
-	var natTotalPrice float64
-	if config.Cluster.NATGateway == clusterconfig.SingleNATGateway {
-		natTotalPrice = natUnitPrice
-	} else if config.Cluster.NATGateway == clusterconfig.HighlyAvailableNATGateway {
-		natTotalPrice = natUnitPrice * float64(len(config.Cluster.AvailabilityZones))
-	}
-
-	return eksPrice + operatorInstancePrice + operatorEBSPrice + 2*nlbPrice + natTotalPrice
-}
-
-func InstanceTelemetryGCP() error {
+func gcpManagedClusterTelemetry() (map[string]interface{}, error) {
 	nodes, err := config.K8s.ListNodes(nil)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	instanceInfos := make(map[string]*instanceInfo)
@@ -238,14 +268,12 @@ func InstanceTelemetryGCP() error {
 	}
 
 	properties := map[string]interface{}{
-		"zone":           *config.GCPCluster.Zone,
+		"zone":           *config.GCPCoreConfig.Zone,
 		"instance_count": totalInstances,
 		"instances":      instanceInfos,
 	}
 
-	telemetry.Event("operator.cron", properties, config.GCPCluster.TelemetryEvent())
-
-	return nil
+	return properties, nil
 }
 
 func ErrorHandler(cronName string) func(error) {

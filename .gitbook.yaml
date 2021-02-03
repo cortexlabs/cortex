@@ -1,5 +1,5 @@
 root: ./docs/
 
 structure:
-  readme: ./workloads/realtime/example.md
+  readme: ./start.md
   summary: summary.md

@@ -18,8 +18,11 @@ package endpoints
 
 import (
 	"net/http"
+
+	"github.com/cortexlabs/cortex/pkg/operator/config"
+	"github.com/cortexlabs/cortex/pkg/operator/schema"
 )
 
 func VerifyCortex(w http.ResponseWriter, r *http.Request) {
-	respondPlainText(w, "ok")
+	respond(w, schema.VerifyCortexResponse{Provider: config.Provider})
 }

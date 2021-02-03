@@ -61,7 +61,6 @@ func streamLogs(operatorConfig OperatorConfig, path string, qParams ...map[strin
 	wsURL = strings.Replace(wsURL, "http", "ws", 1)
 
 	header := http.Header{}
-	header.Set("Authorization", operatorConfig.AuthHeader())
 	header.Set("CortexAPIVersion", consts.CortexVersion)
 
 	var dialer = websocket.Dialer{

@@ -19,13 +19,13 @@ import pathlib
 import threading
 import time
 import uuid
+from typing import Dict, Any
 
 import boto3
 import botocore
 from cortex_internal.lib.api import get_api, get_spec
 from cortex_internal.lib.concurrency import LockedFile
 from cortex_internal.lib.storage import S3
-from cortex_internal.lib.exceptions import UserRuntimeException
 from cortex_internal.lib.log import configure_logger
 
 logger = configure_logger("cortex", os.environ["CORTEX_LOG_CONFIG_FILE"])
@@ -36,7 +36,7 @@ INITIAL_MESSAGE_VISIBILITY = 30  # seconds
 MESSAGE_RENEWAL_PERIOD = 15  # seconds
 JOB_COMPLETE_MESSAGE_RENEWAL = 10  # seconds
 
-local_cache = {
+local_cache: Dict[str, Any] = {
     "api_spec": None,
     "job_spec": None,
     "provider": None,
@@ -50,21 +50,35 @@ stop_renewal = set()
 
 def dimensions():
     return [
-        {"Name": "APIName", "Value": local_cache["api_spec"].name},
-        {"Name": "JobID", "Value": local_cache["job_spec"]["job_id"]},
+        {"Name": "api_name", "Value": local_cache["api_spec"].name},
+        {"Name": "job_id", "Value": local_cache["job_spec"]["job_id"]},
     ]
 
 
 def success_counter_metric():
-    return {"MetricName": "Succeeded", "Dimensions": dimensions(), "Unit": "Count", "Value": 1}
+    return {
+        "MetricName": "cortex_batch_succeeded",
+        "Dimensions": dimensions(),
+        "Unit": "Count",
+        "Value": 1,
+    }
 
 
 def failed_counter_metric():
-    return {"MetricName": "Failed", "Dimensions": dimensions(), "Unit": "Count", "Value": 1}
+    return {
+        "MetricName": "cortex_batch_failed",
+        "Dimensions": dimensions(),
+        "Unit": "Count",
+        "Value": 1,
+    }
 
 
 def time_per_batch_metric(total_time_seconds):
-    return {"MetricName": "TimePerBatch", "Dimensions": dimensions(), "Value": total_time_seconds}
+    return {
+        "MetricName": "cortex_time_per_batch",
+        "Dimensions": dimensions(),
+        "Value": total_time_seconds,
+    }
 
 
 def renew_message_visibility(receipt_handle: str):
@@ -138,8 +152,6 @@ def get_total_messages_in_queue():
 
 def sqs_loop():
     job_spec = local_cache["job_spec"]
-    api_spec = local_cache["api_spec"]
-    predictor_impl = local_cache["predictor_impl"]
     sqs_client = local_cache["sqs_client"]
 
     queue_url = job_spec["sqs_url"]

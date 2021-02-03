@@ -187,9 +187,13 @@ image_inferentia: <account_id>.dkr.ecr.<region>.amazonaws.com/cortexlabs/inferen
 image_neuron_rtd: <account_id>.dkr.ecr.<region>.amazonaws.com/cortexlabs/neuron-rtd:latest
 image_nvidia: <account_id>.dkr.ecr.<region>.amazonaws.com/cortexlabs/nvidia:latest
 image_fluent_bit: <account_id>.dkr.ecr.<region>.amazonaws.com/cortexlabs/fluent-bit:latest
-image_statsd: <account_id>.dkr.ecr.<region>.amazonaws.com/cortexlabs/statsd:latest
 image_istio_proxy: <account_id>.dkr.ecr.<region>.amazonaws.com/cortexlabs/istio-proxy:latest
 image_istio_pilot: <account_id>.dkr.ecr.<region>.amazonaws.com/cortexlabs/istio-pilot:latest
+image_prometheus: <account_id>.dkr.ecr.<region>.amazonaws.com/cortexlabs/prometheus:latest
+image_prometheus_config_reloader: <account_id>.dkr.ecr.<region>.amazonaws.com/cortexlabs/prometheus-config-reloader:latest
+image_prometheus_operator: <account_id>.dkr.ecr.<region>.amazonaws.com/cortexlabs/prometheus-operator:latest
+image_prometheus_statsd_exporter: <account_id>.dkr.ecr.<region>.amazonaws.com/cortexlabs/prometheus-statsd-exporter:latest
+image_prometheus_to_cloudwatch: <account_id>.dkr.ecr.<region>.amazonaws.com/cortexlabs/prometheus-to-cloudwatch:latest
 ```
 
 Create `dev/config/cluster-gcp.yaml`. Paste the following config, and update `project`, `zone`, and all registry URLs (replace `<project_id>` with your project ID, and update `gcr.io` if you are using a different host):
@@ -212,6 +216,11 @@ image_downloader: gcr.io/<project_id>/cortexlabs/downloader:latest
 image_istio_proxy: gcr.io/<project_id>/cortexlabs/istio-proxy:latest
 image_istio_pilot: gcr.io/<project_id>/cortexlabs/istio-pilot:latest
 image_google_pause: gcr.io/<project_id>/cortexlabs/google-pause:latest
+image_prometheus: gcr.io/<project_id>/cortexlabs/prometheus:latest
+image_prometheus_config_reloader: gcr.io/<project_id>/cortexlabs/prometheus-config-reloader:latest
+image_prometheus_operator: gcr.io/<project_id>/cortexlabs/prometheus-operator:latest
+image_prometheus_statsd_exporter: gcr.io/<project_id>/cortexlabs/prometheus-statsd-exporter:latest
+image_prometheus_stackdriver_sidecar: gcr.io/<project_id>/cortexlabs/prometheus-stackdriver-sidecar:latest
 ```
 
 ### Building

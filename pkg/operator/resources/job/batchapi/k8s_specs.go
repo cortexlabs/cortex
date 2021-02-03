@@ -54,7 +54,7 @@ func pythonPredictorJobSpec(api *spec.API, job *spec.BatchJob) (*kbatch.Job, err
 		if container.Name == operator.APIContainerName {
 			containers[i].Env = append(container.Env, kcore.EnvVar{
 				Name:  "CORTEX_JOB_SPEC",
-				Value: "s3://" + config.Cluster.Bucket + "/" + job.SpecFilePath(config.ClusterName()),
+				Value: "s3://" + config.CoreConfig.Bucket + "/" + job.SpecFilePath(config.ClusterName()),
 			})
 		}
 	}
@@ -85,10 +85,8 @@ func pythonPredictorJobSpec(api *spec.API, job *spec.BatchJob) (*kbatch.Job, err
 				InitContainers: []kcore.Container{
 					operator.InitContainer(api),
 				},
-				Containers: containers,
-				NodeSelector: map[string]string{
-					"workload": "true",
-				},
+				Containers:         containers,
+				NodeSelector:       operator.NodeSelectors(),
 				Tolerations:        operator.Tolerations,
 				Volumes:            volumes,
 				ServiceAccountName: "default",
@@ -103,7 +101,7 @@ func tensorFlowPredictorJobSpec(api *spec.API, job *spec.BatchJob) (*kbatch.Job,
 		if container.Name == operator.APIContainerName {
 			containers[i].Env = append(container.Env, kcore.EnvVar{
 				Name:  "CORTEX_JOB_SPEC",
-				Value: "s3://" + config.Cluster.Bucket + "/" + job.SpecFilePath(config.ClusterName()),
+				Value: "s3://" + config.CoreConfig.Bucket + "/" + job.SpecFilePath(config.ClusterName()),
 			})
 		}
 	}
@@ -134,10 +132,8 @@ func tensorFlowPredictorJobSpec(api *spec.API, job *spec.BatchJob) (*kbatch.Job,
 				InitContainers: []kcore.Container{
 					operator.InitContainer(api),
 				},
-				Containers: containers,
-				NodeSelector: map[string]string{
-					"workload": "true",
-				},
+				Containers:         containers,
+				NodeSelector:       operator.NodeSelectors(),
 				Tolerations:        operator.Tolerations,
 				Volumes:            volumes,
 				ServiceAccountName: "default",
@@ -153,7 +149,7 @@ func onnxPredictorJobSpec(api *spec.API, job *spec.BatchJob) (*kbatch.Job, error
 		if container.Name == operator.APIContainerName {
 			containers[i].Env = append(container.Env, kcore.EnvVar{
 				Name:  "CORTEX_JOB_SPEC",
-				Value: "s3://" + config.Cluster.Bucket + "/" + job.SpecFilePath(config.ClusterName()),
+				Value: "s3://" + config.CoreConfig.Bucket + "/" + job.SpecFilePath(config.ClusterName()),
 			})
 		}
 	}
@@ -184,10 +180,8 @@ func onnxPredictorJobSpec(api *spec.API, job *spec.BatchJob) (*kbatch.Job, error
 				InitContainers: []kcore.Container{
 					operator.InitContainer(api),
 				},
-				Containers: containers,
-				NodeSelector: map[string]string{
-					"workload": "true",
-				},
+				Containers:         containers,
+				NodeSelector:       operator.NodeSelectors(),
 				Tolerations:        operator.Tolerations,
 				Volumes:            volumes,
 				ServiceAccountName: "default",

@@ -94,10 +94,8 @@ func k8sJobSpec(api *spec.API, job *spec.TaskJob) (*kbatch.Job, error) {
 				InitContainers: []kcore.Container{
 					operator.TaskInitContainer(api),
 				},
-				Containers: containers,
-				NodeSelector: map[string]string{
-					"workload": "true",
-				},
+				Containers:         containers,
+				NodeSelector:       operator.NodeSelectors(),
 				Tolerations:        operator.Tolerations,
 				Volumes:            volumes,
 				ServiceAccountName: "default",

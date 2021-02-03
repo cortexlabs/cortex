@@ -63,6 +63,22 @@ func IsValidGCSPath(gcsPath string) bool {
 	return true
 }
 
+func (c *Client) DoesBucketExist(bucket string) (bool, error) {
+	gcsClient, err := c.GCS()
+	if err != nil {
+		return false, err
+	}
+
+	_, err = gcsClient.Bucket(bucket).Attrs(context.Background())
+	if err != nil {
+		if IsBucketDoesNotExist(err) {
+			return false, nil
+		}
+		return false, errors.Wrap(err, "bucket", bucket)
+	}
+	return true, nil
+}
+
 func (c *Client) CreateBucket(bucket string, location string, ignoreErrorIfBucketExists bool) error {
 	gcsClient, err := c.GCS()
 	if err != nil {

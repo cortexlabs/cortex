@@ -18,6 +18,8 @@ package operator
 
 import (
 	"fmt"
+	"os"
+	"strings"
 	"sync"
 	"time"
 
@@ -74,7 +76,14 @@ func getFromCacheOrNil(key string) *zap.SugaredLogger {
 }
 
 func initializeLogger(key string, level userconfig.LogLevel, fields map[string]interface{}) (*zap.SugaredLogger, error) {
-	logger, err := logging.DefaultZapConfig(level, fields).Build()
+	loggerConfig := logging.DefaultZapConfig(level, fields)
+
+	disableJSONLogging := strings.ToLower(os.Getenv("CORTEX_DISABLE_JSON_LOGGING"))
+	if disableJSONLogging == "true" {
+		loggerConfig.Encoding = "console"
+	}
+
+	logger, err := loggerConfig.Build()
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}

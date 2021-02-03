@@ -67,7 +67,8 @@ function cluster_up_aws() {
 
   echo -n "￮ configuring metrics "
   envsubst < manifests/metrics-server.yaml | kubectl apply -f - >/dev/null
-  envsubst < manifests/statsd.yaml | kubectl apply -f - >/dev/null
+  setup_prometheus
+  python render_template.py $CORTEX_CLUSTER_CONFIG_FILE manifests/prometheus-to-cloudwatch.yaml.j2 | kubectl apply -f - >/dev/null
   echo "✓"
 
   if [[ "$CORTEX_INSTANCE_TYPE" == p* ]] || [[ "$CORTEX_INSTANCE_TYPE" == g* ]]; then
@@ -121,6 +122,10 @@ function cluster_up_gcp() {
   echo -n "￮ configuring logging "
   python render_template.py $CORTEX_CLUSTER_CONFIG_FILE manifests/fluent-bit.yaml.j2 > /workspace/fluent-bit.yaml
   kubectl apply -f /workspace/fluent-bit.yaml >/dev/null
+  echo "✓"
+
+  echo -n "￮ configuring metrics "
+  setup_prometheus
   echo "✓"
 
   if [ -n "$CORTEX_ACCELERATOR_TYPE" ]; then
@@ -202,7 +207,7 @@ function create_eks() {
 
   echo -e "￮ spinning up the cluster (this will take about 25 minutes) ...\n"
   python generate_eks.py $CORTEX_CLUSTER_CONFIG_FILE > /workspace/eks.yaml
-  eksctl create cluster --timeout=$EKSCTL_TIMEOUT --install-neuron-plugin=false -f /workspace/eks.yaml
+  eksctl create cluster --timeout=$EKSCTL_TIMEOUT --install-neuron-plugin=false --install-nvidia-plugin=false -f /workspace/eks.yaml
   echo
 
   suspend_az_rebalance
@@ -294,8 +299,14 @@ function setup_secrets() {
     -o yaml --dry-run=client | kubectl apply -f - >/dev/null
 }
 
+function setup_prometheus() {
+  envsubst < manifests/prometheus-operator.yaml | kubectl apply -f - >/dev/null
+  envsubst < manifests/prometheus-statsd-exporter.yaml | kubectl apply -f - >/dev/null
+  python render_template.py $CORTEX_CLUSTER_CONFIG_FILE manifests/prometheus-monitoring.yaml.j2 | kubectl apply -f - >/dev/null
+}
+
 function setup_secrets_gcp() {
-  kubectl create secret generic 'gcp-credentials' --from-file=$GOOGLE_APPLICATION_CREDENTIALS >/dev/null
+  kubectl create secret generic 'gcp-credentials' --from-file=key.json=$GOOGLE_APPLICATION_CREDENTIALS >/dev/null
 }
 
 function restart_operator() {

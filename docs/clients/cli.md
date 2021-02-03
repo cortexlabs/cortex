@@ -245,11 +245,8 @@ Usage:
   cortex env configure [ENVIRONMENT_NAME] [flags]
 
 Flags:
-  -p, --provider string                set the provider without prompting
-  -o, --operator-endpoint string       set the operator endpoint without prompting
-  -k, --aws-access-key-id string       set the aws access key id without prompting
-  -s, --aws-secret-access-key string   set the aws secret access key without prompting
-  -h, --help                           help for configure
+  -o, --operator-endpoint string   set the operator endpoint without prompting
+  -h, --help                       help for configure
 ```
 
 ## env list

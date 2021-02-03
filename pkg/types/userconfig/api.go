@@ -345,7 +345,7 @@ func (api *API) UserStr(provider types.ProviderType) string {
 
 	if api.Networking != nil {
 		sb.WriteString(fmt.Sprintf("%s:\n", NetworkingKey))
-		sb.WriteString(s.Indent(api.Networking.UserStr(provider), "  "))
+		sb.WriteString(s.Indent(api.Networking.UserStr(), "  "))
 	}
 
 	if api.Compute != nil {
@@ -490,7 +490,7 @@ func (batch *ServerSideBatching) UserStr() string {
 	return sb.String()
 }
 
-func (networking *Networking) UserStr(provider types.ProviderType) string {
+func (networking *Networking) UserStr() string {
 	var sb strings.Builder
 	if networking.Endpoint != nil {
 		sb.WriteString(fmt.Sprintf("%s: %s\n", EndpointKey, *networking.Endpoint))

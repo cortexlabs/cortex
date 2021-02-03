@@ -99,7 +99,11 @@ image_inferentia: quay.io/cortexlabs/inferentia:master
 image_neuron_rtd: quay.io/cortexlabs/neuron-rtd:master
 image_nvidia: quay.io/cortexlabs/nvidia:master
 image_fluent_bit: quay.io/cortexlabs/fluent-bit:master
-image_statsd: quay.io/cortexlabs/statsd:master
 image_istio_proxy: quay.io/cortexlabs/istio-proxy:master
 image_istio_pilot: quay.io/cortexlabs/istio-pilot:master
+image_prometheus: quay.io/cortexlabs/prometheus:master
+image_prometheus_config_reloader: quay.io/cortexlabs/prometheus-config-reloader:master
+image_prometheus_operator: quay.io/cortexlabs/prometheus-operator:master
+image_prometheus_statsd_exporter: quay.io/cortexlabs/prometheus-statsd-exporter:master
+image_prometheus_to_cloudwatch: quay.io/cortexlabs/prometheus-to-cloudwatch:master
 ```
