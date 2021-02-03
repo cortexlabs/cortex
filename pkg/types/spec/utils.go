@@ -153,7 +153,7 @@ func validateDirModels(
 			return nil, err
 		}
 
-		gcsObjects, err := gcpClient.ListGCSPathDir(modelPath, nil)
+		gcsObjects, err := gcpClient.ListGCSPathDir(modelPath, false, nil)
 		if err != nil {
 			return nil, err
 		}
@@ -287,7 +287,7 @@ func validateModels(
 			}
 			modelPrefix = s.EnsureSuffix(modelPrefix, "/")
 
-			gcsObjects, err := gcpClient.ListGCSPathDir(modelPath, nil)
+			gcsObjects, err := gcpClient.ListGCSPathDir(modelPath, false, nil)
 			if err != nil {
 				return nil, errors.Wrap(err, modelNameWrapStr)
 			}
