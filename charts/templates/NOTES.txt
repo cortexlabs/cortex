@@ -2,9 +2,9 @@
 
 Cortex (version {{ .Chart.AppVersion }}) is initializing in your cluster.
 
-It will take 5 to 10 minutes for the loadbalancers to be provisioned and connected to your cluster.
+It will take 5 to 10 minutes for the load balancers to be provisioned and connected to your cluster.
 
-1. Get the Cortex operator endpoint (it might take a few attempts to the allocated address):
+1. Get the Cortex operator endpoint (it might take 1-2 minutes until the endpoint is allocated):
 
     {{- if eq .Values.global.provider "aws" }}
     $ kubectl get service --namespace {{ .Release.Namespace }} ingressgateway-operator -o jsonpath='{.status.loadBalancer.ingress[0].hostname}'
@@ -12,7 +12,7 @@ It will take 5 to 10 minutes for the loadbalancers to be provisioned and connect
     $ kubectl get service --namespace {{ .Release.Namespace }} ingressgateway-operator -o jsonpath='{.status.loadBalancer.ingress[0].ip}'
     {{- end }}
 
-2. You can use the curl command below to verify loadbalancer set up. You can expect to encounter `Could not resolve host` or timeouts when running the verification request below during the loadbalancer initialization.
+2. You can use the curl command below to verify that your load balancer is ready. You can expect to encounter `Could not resolve host` or timeouts when running the verification request before the load balancer is initialized.
 
     {{- if eq .Values.global.provider "aws" }}
     $ export CORTEX_OPERATOR_ENDPOINT=$(kubectl get service --namespace {{ .Release.Namespace }} ingressgateway-operator -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
