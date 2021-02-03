@@ -98,6 +98,9 @@ RUN test "${SLIM}" = "true" || ( \
             xgboost==1.2.0 \
     )
 
+COPY pkg/cortex/serve/init/install-core-dependencies.sh /usr/local/cortex/install-core-dependencies.sh
+RUN chmod +x /usr/local/cortex/install-core-dependencies.sh
+
 COPY pkg/cortex/serve/ /src/cortex/serve
 ENV CORTEX_LOG_CONFIG_FILE /src/cortex/serve/log_config.yaml
 
