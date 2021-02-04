@@ -263,6 +263,11 @@ var _clusterGCPDownCmd = &cobra.Command{
 
 		fmt.Print("￮ spinning down the cluster ")
 
+		_, _, err = runGCPManagerAccessCommand("/root/uninstall.sh", *accessConfig, nil, nil)
+		if err != nil {
+			exit.Error(err)
+		}
+
 		_, err = gcpClient.DeleteCluster(gkeClusterName)
 		if err != nil {
 			fmt.Print("\n\n")
