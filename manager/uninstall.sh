@@ -36,6 +36,8 @@ function uninstall_gcp() {
 function uninstall_aws() {
   echo
 
+  aws eks --region $CORTEX_REGION update-kubeconfig --name $CORTEX_CLUSTER_NAME >/dev/null
+
   uninstall_prometheus
 
   eksctl delete cluster --wait --name=$CORTEX_CLUSTER_NAME --region=$CORTEX_REGION --timeout=$EKSCTL_TIMEOUT
