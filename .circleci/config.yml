@@ -32,6 +32,42 @@ commands:
           name: Login to Quay
           command: docker login -u=$QUAY_USERNAME -p=$QUAY_PASSWORD quay.io
 
+  install-e2e-dependencies:
+    description: Install E2E Tests Dependencies
+    steps:
+      - run:
+          name: Install Dependencies
+          command: |
+            pip install -e ./test/e2e
+            pip install https://s3-us-west-2.amazonaws.com/get-cortex/master/python/cortex-master.tar.gz
+
+  run-e2e-tests:
+    description: Creates a temporary cluster and runs the cortex E2E tests
+    parameters:
+      provider:
+        description: cloud provider
+        type: enum
+        enum: [gcp, aws]
+      config:
+        description: cluster config file path
+        type: string
+        default: ./cluster.yaml
+    steps:
+      - run:
+          name: Create Cluster
+          command: cortex cluster up --config << parameters.config >> --configure-env << parameters.provider >> -y
+      - run:
+          name: Run E2E Tests
+          command: pytest -v test/e2e/tests -k << parameters.provider >> --<< parameters.provider >>-env << parameters.provider >>
+      - run:
+          name: Delete Cluster
+          command: cortex cluster down --config << parameters.config >> -y
+          when: always
+      - slack/notify:
+          event: fail
+          channel: "#eng"
+          template: basic_fail_1
+
 jobs:
   test:
     docker:
@@ -75,18 +111,14 @@ jobs:
   e2e-tests-aws:
     docker:
       - image: circleci/python:3.6
-    environment:
-      CORTEX_TEST_REALTIME_DEPLOY_TIMEOUT: 60
-      CORTEX_TEST_BATCH_DEPLOY_TIMEOUT: 30
-      CORTEX_TEST_BATCH_JOB_TIMEOUT: 200
-      NUM_BUILD_PROCS: 2
     steps:
       - checkout
       - setup_remote_docker
+      - install-e2e-dependencies
       - run:
           name: Generate Cluster Config
           command: |
-            cat \<< EOF > ./cluster-aws.yaml
+            cat \<< EOF > ./cluster.yaml
             cluster_name: cortex
             provider: aws
             region: ${NIGHTLY_AWS_REGION}
@@ -113,25 +145,44 @@ jobs:
             image_prometheus_statsd_exporter: quay.io/cortexlabs/prometheus-statsd-exporter:master
             image_prometheus_to_cloudwatch: quay.io/cortexlabs/prometheus-to-cloudwatch:master
             EOF
+      - run-e2e-tests:
+          provider: aws
+          config: ./cluster.yaml
+
+  e2e-tests-gcp:
+    docker:
+      - image: circleci/python:3.6
+    steps:
+      - checkout
+      - setup_remote_docker
+      - install-e2e-dependencies
       - run:
-          name: Install Dependencies
+          name: Generate Cluster Config
           command: |
-            pip install -e ./test/e2e
-            pip install https://s3-us-west-2.amazonaws.com/get-cortex/master/python/cortex-master.tar.gz
-      - run:
-          name: Create Cluster
-          command: cortex cluster up --config ./cluster-aws.yaml --configure-env aws -y
-      - run:
-          name: Run E2E Tests
-          command: pytest -v test/e2e/tests -k aws --aws-env aws
-      - run:
-          name: Delete Cluster
-          command: cortex cluster down --config ./cluster-aws.yaml -y
-          when: always
-      - slack/notify:
-          event: fail
-          channel: "#eng"
-          template: basic_fail_1
+            cat \<< EOF > ./cluster.yaml
+            cluster_name: cortex
+            project: ${NIGHTLY_GCP_PROJECT}
+            zone: ${NIGHTLY_GCP_ZONE}
+            provider: gcp
+            instance_type: n1-standard-2
+            min_instances: 1
+            max_instances: 5
+
+            image_operator: quay.io/cortexlabs/operator:master
+            image_manager: quay.io/cortexlabs/manager:master
+            image_downloader: quay.io/cortexlabs/downloader:master
+            image_istio_proxy: quay.io/cortexlabs/istio-proxy:master
+            image_istio_pilot: quay.io/cortexlabs/istio-pilot:master
+            image_google_pause: quay.io/cortexlabs/google-pause:master
+            image_prometheus: quay.io/cortexlabs/prometheus:master
+            image_prometheus_config_reloader: quay.io/cortexlabs/prometheus-config-reloader:master
+            image_prometheus_operator: quay.io/cortexlabs/prometheus-operator:master
+            image_prometheus_statsd_exporter: quay.io/cortexlabs/prometheus-statsd-exporter:master
+            image_prometheus_stackdriver_sidecar: quay.io/cortexlabs/prometheus-stackdriver-sidecar:master
+            EOF
+      - run-e2e-tests:
+          provider: gcp
+          config: ./cluster.yaml
 
 workflows:
   version: 2.1
@@ -166,3 +217,4 @@ workflows:
                 - master
     jobs:
       - e2e-tests-aws
+      - e2e-tests-gcp
