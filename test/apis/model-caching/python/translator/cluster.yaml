@@ -1,0 +1,17 @@
+# EKS cluster name for cortex (default: cortex)
+cluster_name: cortex
+
+# AWS region
+region: us-east-1
+
+# instance type
+instance_type: g4dn.xlarge
+
+# minimum number of instances (must be >= 0)
+min_instances: 1
+
+# maximum number of instances (must be >= 1)
+max_instances: 2
+
+# disk storage size per instance (GB) (default: 50)
+instance_volume_size: 125
