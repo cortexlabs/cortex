@@ -1,0 +1,12 @@
+- name: translator
+  kind: RealtimeAPI
+  predictor:
+    type: python
+    path: predictor.py
+    multi_model_reloading:
+      dir: s3://models.huggingface.co/bert/Helsinki-NLP/
+      cache_size: 5
+      disk_cache_size: 250
+  compute:
+    cpu: 1
+    gpu: 1 # this is optional, since the api can also run on cpu

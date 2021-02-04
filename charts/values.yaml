@@ -1,7 +1,7 @@
 cortex:
   # Please provide the following required fields for a cortex installation on AWS
   cluster_name: ""
-  bucket: ""
+  bucket: "" # e.g. "my-cortex-bucket" (without s3:// or gs://)
 
   # AWS only
   region: ""
