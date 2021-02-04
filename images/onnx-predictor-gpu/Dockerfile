@@ -24,6 +24,7 @@ ENV LANG=en_US.UTF-8 LANGUAGE=en_US.UTF-8 LC_ALL=en_US.UTF-8
 
 ENV PATH=/opt/conda/bin:$PATH
 ENV PYTHONVERSION=3.6.9
+ENV CORTEX_IMAGE_TYPE=onnx-predictor-gpu
 
 # conda needs an untainted base environment to function properly
 # that's why a new separate conda environment is created
@@ -43,12 +44,11 @@ ENV BASH_ENV=~/.env
 SHELL ["/bin/bash", "-c"]
 
 COPY pkg/cortex/serve/serve.requirements.txt /src/cortex/serve/serve.requirements.txt
-COPY pkg/cortex/serve/onnx-gpu.requirements.txt /src/cortex/serve/image.requirements.txt
 COPY pkg/cortex/serve/cortex_internal.requirements.txt /src/cortex/serve/cortex_internal.requirements.txt
 RUN pip install --no-cache-dir \
     -r /src/cortex/serve/serve.requirements.txt \
-    -r /src/cortex/serve/image.requirements.txt \
-    -r /src/cortex/serve/cortex_internal.requirements.txt
+    -r /src/cortex/serve/cortex_internal.requirements.txt \
+    onnxruntime-gpu==1.4.0
 
 ARG SLIM="false"
 RUN test "${SLIM}" = "true" || ( \

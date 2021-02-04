@@ -61,29 +61,18 @@ function install_deps() {
 
     # install from conda-packages.txt
     if [ -f "/mnt/project/conda-packages.txt" ]; then
-        py_version_cmd='echo $(python -c "import sys; v=sys.version_info[:2]; print(\"{}.{}\".format(*v));")'
-        old_py_version=$(eval $py_version_cmd)
-
         # look for packages in defaults and then conda-forge to improve chances of finding the package (specifically for python reinstalls)
         conda config --append channels conda-forge
-
         conda install -y --file /mnt/project/conda-packages.txt
-
-        new_py_version=$(eval $py_version_cmd)
-
-        # reinstall core packages if Python version has changed
-        if [ $old_py_version != $new_py_version ]; then
-            echo "warning: you have changed the Python version from $old_py_version to $new_py_version; this may break Cortex's web server"
-            echo "reinstalling core packages ..."
-            /usr/local/cortex/install-core-dependencies.sh
-        fi
     fi
 
     # install pip packages
     if [ -f "/mnt/project/requirements.txt" ]; then
         pip --no-cache-dir install -r /mnt/project/requirements.txt
     fi
-
+    
+    # install core cortex dependencies if required
+    /usr/local/cortex/install-core-dependencies.sh
 }
 
 # install user dependencies

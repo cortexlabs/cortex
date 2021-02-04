@@ -16,41 +16,32 @@
 
 set -e
 
+function module_exists() {
+    module_name=$1
+    python -c "import importlib, sys; loader = importlib.util.find_spec('$module_name'); sys.exit(1) if loader is None else sys.exit(0)"
+}
+
 temp_freeze=$(mktemp)
-new_reqs=$(mktemp)
 pip freeze > "${temp_freeze}"
 
-while IFS= read -r dependency; do
-    if ! grep -Fxq "${dependency}" "${temp_freeze}"; then
-        echo "${dependency}" >> "${new_reqs}"
-    fi
-done < /src/cortex/serve/serve.requirements.txt
-
-if [ $(cat "${new_reqs}" | wc -l ) -ne 0 ]; then
-    if grep -q "cortex-internal" "${temp_freeze}"; then
-        pip install --no-cache-dir -U \
-            -r "${new_reqs}"
-    else
-        pip install --no-cache-dir -U \
-            -r "${new_reqs}" \
-            /src/cortex/serve/
-    fi
+if ! grep -q "cortex-internal" "${temp_freeze}"; then
+    pip install --no-cache-dir -U \
+        -r /src/cortex/serve/serve.requirements.txt \
+        /src/cortex/serve/
 fi
 
-rm "${new_reqs}"
-new_reqs=$(mktemp)
+rm "${temp_freeze}"
 
-if [ -f "/src/cortex/serve/image.requirements.txt" ]; then
-    while IFS= read -r dependency; do
-        if ! grep -Fxq "${dependency}" "${temp_freeze}"; then
-            echo "${dependency}" >> "${new_reqs}"
-        fi
-    done < /src/cortex/serve/image.requirements.txt
-
-    if [ $(cat "${new_reqs}" | wc -l ) -ne 0 ]; then
+if [ "${CORTEX_IMAGE_TYPE}" = "tensorflow-predictor" ]; then
+    if ! module_exists "tensorflow" || ! module_exists "tensorflow_serving"; then
         pip install --no-cache-dir -U \
-            -r "${new_reqs}"
+            tensorflow-cpu==2.3.0 \
+            tensorflow-serving-api==2.3.0
     fi
+elif [ "${CORTEX_IMAGE_TYPE}" = "onnx-predictor-cpu" ] && ! module_exists "onnxruntime"; then
+    pip install --no-cache-dir -U \
+        onnxruntime==1.4.0
+elif [ "${CORTEX_IMAGE_TYPE}" = "onnx-predictor-gpu" ] && ! module_exists "onnxruntime"; then
+    pip install --no-cache-dir -U \
+        onnxruntime-gpu==1.4.0
 fi
-
-rm "${new_reqs}"
