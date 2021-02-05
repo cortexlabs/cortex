@@ -72,7 +72,7 @@ def pytest_configure(config):
                 os.environ.get("CORTEX_TEST_REALTIME_DEPLOY_TIMEOUT", 120)
             ),
             "batch_deploy_timeout": int(os.environ.get("CORTEX_TEST_BATCH_DEPLOY_TIMEOUT", 30)),
-            "batch_job_timeout": int(os.environ.get("CORTEX_TEST_BATCH_JOB_TIMEOUT", 120)),
+            "batch_job_timeout": int(os.environ.get("CORTEX_TEST_BATCH_JOB_TIMEOUT", 200)),
         },
     }
 
