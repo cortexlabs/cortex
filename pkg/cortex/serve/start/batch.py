@@ -28,6 +28,7 @@ from cortex_internal.lib.api import get_api, get_spec
 from cortex_internal.lib.concurrency import LockedFile
 from cortex_internal.lib.storage import S3
 from cortex_internal.lib.log import configure_logger
+from cortex_internal.lib.exceptions import CortexException
 
 logger = configure_logger("cortex", os.environ["CORTEX_LOG_CONFIG_FILE"])
 
@@ -270,7 +271,7 @@ def handle_on_job_complete(message):
                 should_run_on_job_complete = True
             time.sleep(10)  # verify that the queue is empty one more time
     except:
-        raise Exception("failed to handle on_job_complete")
+        raise CortexException("failed to handle on_job_complete")
     finally:
         with receipt_handle_mutex:
             stop_renewal.add(receipt_handle)
@@ -316,8 +317,12 @@ def start():
         )
         logger.info("loading the predictor from {}".format(api.predictor.path))
         predictor_impl = api.predictor.initialize_impl(project_dir, client, job_spec)
-    except Exception as err:
-        logger.error(f"failed to start job {job_spec['job_id']}: {err.message}", exc_info=True)
+    except CortexException as err:
+        err.wrap(f"failed to start job {job_spec['job_id']}")
+        logger.error(str(err), exc_info=True)
+        sys.exit(1)
+    except:
+        logger.error(f"failed to start job {job_spec['job_id']}", exc_info=True)
         sys.exit(1)
 
     local_cache["api_spec"] = api
@@ -332,8 +337,12 @@ def start():
     logger.info("polling for batches...")
     try:
         sqs_loop()
-    except Exception as err:
-        logger.error(f"failed to run job {job_spec['job_id']}: {err.message}", exc_info=True)
+    except CortexException as err:
+        err.wrap(f"failed to run job {job_spec['job_id']}")
+        logger.error(str(err), exc_info=True)
+        sys.exit(1)
+    except:
+        logger.error(f"failed to run job {job_spec['job_id']}", exc_info=True)
         sys.exit(1)
 
 
