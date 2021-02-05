@@ -95,8 +95,7 @@ spec:
         app: grafana
     spec:
       containers:
-        - env: []
-          image: grafana/grafana:7.4.0
+        - image: grafana/grafana:7.4.0
           name: grafana
           ports:
             - containerPort: 3000
@@ -112,6 +111,11 @@ spec:
             requests:
               cpu: 100m
               memory: 100Mi
+          env:
+            - name: GF_SERVER_ROOT_URL
+              value: "%(protocol)s://%(domain)s:%(http_port)s/dashboard"
+            - name: GF_SERVER_SERVE_FROM_SUB_PATH
+              value: "true"
           volumeMounts:
             - mountPath: /var/lib/grafana
               name: grafana-storage
@@ -160,3 +164,30 @@ spec:
   selector:
     app: grafana
   type: NodePort
+
+---
+
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: grafana
+  namespace: default
+spec:
+  hosts:
+    - "*"
+  gateways:
+    - operator-gateway
+  http:
+    - name: grafana
+      match:
+        - uri:
+            prefix: "/dashboard"
+        - uri:
+            prefix: "/grafana"
+      rewrite:
+        uri: "/dashboard"
+      route:
+        - destination:
+            host: grafana
+            port:
+              number: 3000
