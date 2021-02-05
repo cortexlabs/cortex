@@ -15,6 +15,7 @@
 import inspect
 import json
 import os
+import sys
 import pathlib
 import threading
 import time
@@ -310,11 +311,15 @@ def start():
     storage, api_spec = get_spec(provider, api_spec_path, cache_dir, region)
     job_spec = get_job_spec(storage, cache_dir, job_spec_path)
 
-    client = api.predictor.initialize_client(
-        tf_serving_host=tf_serving_host, tf_serving_port=tf_serving_port
-    )
-    logger.info("loading the predictor from {}".format(api.predictor.path))
-    predictor_impl = api.predictor.initialize_impl(project_dir, client, job_spec)
+    try:
+        client = api.predictor.initialize_client(
+            tf_serving_host=tf_serving_host, tf_serving_port=tf_serving_port
+        )
+        logger.info("loading the predictor from {}".format(api.predictor.path))
+        predictor_impl = api.predictor.initialize_impl(project_dir, client, job_spec)
+    except:
+        logger.error(f"failed to start job {job_spec['job_id']}", exc_info=True)
+        sys.exit(1)
 
     local_cache["api_spec"] = api
     local_cache["provider"] = provider
@@ -326,7 +331,11 @@ def start():
     open("/mnt/workspace/api_readiness.txt", "a").close()
 
     logger.info("polling for batches...")
-    sqs_loop()
+    try:
+        sqs_loop()
+    except:
+        logger.error(f"failed to run job {job_spec['job_id']}", exc_info=True)
+        sys.exit(1)
 
 
 if __name__ == "__main__":
