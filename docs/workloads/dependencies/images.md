@@ -44,13 +44,16 @@ RUN pip install --no-cache-dir pandas \
     && conda clean -a
 ```
 
-If you need to re-install the core pip dependencies for Cortex onto your custom image in the existing conda environment, run the following command:
+If you need to upgrade the Python Runtime version from its current 3.6.9 on your custom image using the existing conda environment, follow this procedure:
 
 ```Dockerfile
 # Dockerfile
 
-# ...
+FROM quay.io/cortexlabs/python-predictor-cpu-slim:master
 
+# upgrade python runtime version
+RUN conda install -n env python=3.8.5
+# re-install cortex core dependencies
 RUN /usr/local/cortex/install-core-dependencies.sh
 
 # ...

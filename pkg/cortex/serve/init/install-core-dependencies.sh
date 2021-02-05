@@ -18,19 +18,14 @@ set -e
 
 function module_exists() {
     module_name=$1
-    python -c "import importlib, sys; loader = importlib.util.find_spec('$module_name'); sys.exit(1) if loader is None else sys.exit(0)"
+    python -c "import importlib.util, sys; loader = importlib.util.find_spec('$module_name'); sys.exit(1) if loader is None else sys.exit(0)"
 }
 
-temp_freeze=$(mktemp)
-pip freeze > "${temp_freeze}"
-
-if ! grep -q "cortex-internal" "${temp_freeze}"; then
+if ! module_exists "cortex_internal"; then
     pip install --no-cache-dir -U \
         -r /src/cortex/serve/serve.requirements.txt \
         /src/cortex/serve/
 fi
-
-rm "${temp_freeze}"
 
 if [ "${CORTEX_IMAGE_TYPE}" = "tensorflow-predictor" ]; then
     if ! module_exists "tensorflow" || ! module_exists "tensorflow_serving"; then
