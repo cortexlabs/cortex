@@ -59,21 +59,18 @@ class GCS:
 
     def _gcs_matching_blobs_generator(self, max_results=None, prefix="", include_dir_objects=False):
         for blob in self.gcs.list_blobs(max_results, prefix=prefix):
-            if include_dir_objects or (not include_dir_objects and not blob.name.endswith("/")):
+            if include_dir_objects or not blob.name.endswith("/"):
                 yield blob
 
     def _is_gcs_dir(self, dir_path: str) -> bool:
         prefix = util.ensure_suffix(dir_path, "/")
-        return (
-            len(
-                list(
-                    self._gcs_matching_blobs_generator(
-                        max_results=2, prefix=prefix, include_dir_objects=True
-                    )
-                )
+        matching_blobs = list(
+            self._gcs_matching_blobs_generator(
+                max_results=2, prefix=prefix, include_dir_objects=True
             )
-            > 1
         )
+
+        return len(matching_blobs) > 1
 
     def search(
         self, prefix: str = "", include_dir_objects=False

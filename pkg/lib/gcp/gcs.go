@@ -283,7 +283,7 @@ func (c *Client) ListGCSPrefix(bucket string, prefix string, includeDirObjects b
 			continue
 		}
 
-		if !includeDirObjects && !strings.HasSuffix(attrs.Name, "/") {
+		if includeDirObjects || !strings.HasSuffix(attrs.Name, "/") {
 			gcsObjects = append(gcsObjects, attrs)
 		}
 

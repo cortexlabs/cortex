@@ -100,7 +100,7 @@ class S3:
                 if (
                     key.startswith(prefix)
                     and key.endswith(suffix)
-                    and (include_dir_objects or (not include_dir_objects and not key.endswith("/")))
+                    and (include_dir_objects or not key.endswith("/"))
                 ):
                     yield obj
 
@@ -156,7 +156,6 @@ class S3:
         paths = []
         timestamps = []
 
-        timestamp_map = {}
         for key, ts in self._get_matching_s3_keys_generator(prefix, suffix, include_dir_objects):
             paths.append(key)
             timestamps.append(ts)
