@@ -270,8 +270,7 @@ def handle_on_job_complete(message):
                 should_run_on_job_complete = True
             time.sleep(10)  # verify that the queue is empty one more time
     except:
-        logger.exception("failed to handle on_job_complete")
-        raise
+        raise Exception("failed to handle on_job_complete")
     finally:
         with receipt_handle_mutex:
             stop_renewal.add(receipt_handle)
@@ -317,8 +316,8 @@ def start():
         )
         logger.info("loading the predictor from {}".format(api.predictor.path))
         predictor_impl = api.predictor.initialize_impl(project_dir, client, job_spec)
-    except:
-        logger.error(f"failed to start job {job_spec['job_id']}", exc_info=True)
+    except Exception as err:
+        logger.error(f"failed to start job {job_spec['job_id']}: {err.message}", exc_info=True)
         sys.exit(1)
 
     local_cache["api_spec"] = api
@@ -333,8 +332,8 @@ def start():
     logger.info("polling for batches...")
     try:
         sqs_loop()
-    except:
-        logger.error(f"failed to run job {job_spec['job_id']}", exc_info=True)
+    except Exception as err:
+        logger.error(f"failed to run job {job_spec['job_id']}: {err.message}", exc_info=True)
         sys.exit(1)
 
 
