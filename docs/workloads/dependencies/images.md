@@ -52,7 +52,9 @@ If you need to upgrade the Python Runtime version from its current 3.6.9 on your
 FROM quay.io/cortexlabs/python-predictor-cpu-slim:master
 
 # upgrade python runtime version
+RUN conda update -n base -c defaults conda
 RUN conda install -n env python=3.8.5
+
 # re-install cortex core dependencies
 RUN /usr/local/cortex/install-core-dependencies.sh
 
