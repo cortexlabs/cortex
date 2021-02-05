@@ -70,7 +70,7 @@ function install_deps() {
     if [ -f "/mnt/project/requirements.txt" ]; then
         pip --no-cache-dir install -r /mnt/project/requirements.txt
     fi
-    
+
     # install core cortex dependencies if required
     /usr/local/cortex/install-core-dependencies.sh
 }
