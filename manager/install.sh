@@ -68,7 +68,7 @@ function cluster_up_aws() {
   echo -n "￮ configuring metrics "
   envsubst < manifests/metrics-server.yaml | kubectl apply -f - >/dev/null
   setup_prometheus
-  python render_template.py $CORTEX_CLUSTER_CONFIG_FILE manifests/prometheus-to-cloudwatch.yaml.j2 | kubectl apply -f - >/dev/null
+  kubectl apply -f /workspace/grafana/ >/dev/null
   echo "✓"
 
   if [[ "$CORTEX_INSTANCE_TYPE" == p* ]] || [[ "$CORTEX_INSTANCE_TYPE" == g* ]]; then
@@ -126,6 +126,7 @@ function cluster_up_gcp() {
 
   echo -n "￮ configuring metrics "
   setup_prometheus
+  kubectl apply -f /workspace/grafana/ >/dev/null
   echo "✓"
 
   if [ -n "$CORTEX_ACCELERATOR_TYPE" ]; then

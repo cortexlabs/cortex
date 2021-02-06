@@ -73,6 +73,7 @@ non_dev_images_cluster=(
   "prometheus-config-reloader"
   "prometheus-operator"
   "prometheus-statsd-exporter"
+  "grafana"
 )
 non_dev_images_aws=(
   # includes non_dev_images_cluster
@@ -81,12 +82,10 @@ non_dev_images_aws=(
   "inferentia"
   "neuron-rtd"
   "nvidia"
-  "prometheus-to-cloudwatch"
 )
 non_dev_images_gcp=(
   # includes non_dev_images_cluster
   "google-pause"
-  "prometheus-stackdriver-sidecar"
 )
 
 all_images=(

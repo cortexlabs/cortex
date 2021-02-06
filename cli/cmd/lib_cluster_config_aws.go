@@ -414,8 +414,8 @@ func setConfigFieldsFromCached(userClusterConfig *clusterconfig.Config, cachedCl
 		return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.ImagePrometheusStatsDExporterKey, cachedClusterConfig.ImagePrometheusStatsDExporter)
 	}
 
-	if s.Obj(cachedClusterConfig.ImagePrometheusToCloudWatch) != s.Obj(userClusterConfig.ImagePrometheusToCloudWatch) {
-		return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.ImagePrometheusToCloudwatchKey, cachedClusterConfig.ImagePrometheusToCloudWatch)
+	if s.Obj(cachedClusterConfig.ImageGrafana) != s.Obj(userClusterConfig.ImageGrafana) {
+		return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.ImageGrafanaKey, cachedClusterConfig.ImageGrafana)
 	}
 
 	if userClusterConfig.Spot != nil && *userClusterConfig.Spot != *cachedClusterConfig.Spot {
@@ -729,8 +729,8 @@ func clusterConfigConfirmationStr(clusterConfig clusterconfig.Config, awsCreds A
 	if clusterConfig.ImagePrometheusStatsDExporter != defaultConfig.ImagePrometheusStatsDExporter {
 		items.Add(clusterconfig.ImagePrometheusStatsDExporterUserKey, clusterConfig.ImagePrometheusStatsDExporter)
 	}
-	if clusterConfig.ImagePrometheusToCloudWatch != defaultConfig.ImagePrometheusToCloudWatch {
-		items.Add(clusterconfig.ImagePrometheusToCloudwatchUserKey, clusterConfig.ImagePrometheusToCloudWatch)
+	if clusterConfig.ImageGrafana != defaultConfig.ImageGrafana {
+		items.Add(clusterconfig.ImageGrafanaUserKey, clusterConfig.ImageGrafana)
 	}
 	return items.String()
 }
