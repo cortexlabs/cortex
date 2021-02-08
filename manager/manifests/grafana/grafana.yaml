@@ -96,7 +96,7 @@ spec:
         app: grafana
     spec:
       containers:
-        - image: grafana/grafana:7.4.0
+        - image: $CORTEX_IMAGE_GRAFANA
           name: grafana
           ports:
             - containerPort: 3000
