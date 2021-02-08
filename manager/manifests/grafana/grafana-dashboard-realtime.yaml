@@ -15,10 +15,10 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: grafana-dashboard-cortex
+  name: grafana-dashboard-realtime
   namespace: default
 data:
-  cortex.json: |-
+  realtime.json: |-
     {
       "annotations": {
         "list": [
@@ -36,7 +36,7 @@ data:
       "editable": true,
       "gnetId": null,
       "graphTooltip": 0,
-      "id": 2,
+      "id": 8,
       "links": [],
       "panels": [
         {
@@ -48,20 +48,20 @@ data:
             "overrides": []
           },
           "gridPos": {
-            "h": 3,
+            "h": 2,
             "w": 24,
             "x": 0,
             "y": 0
           },
           "id": 12,
           "options": {
-            "content": "<h1 style=\"text-align: center\">Cortex Dashboard</h1>",
+            "content": "<h1 style=\"text-align: center\">RealtimeAPI</h1>",
             "mode": "html"
           },
           "pluginVersion": "7.4.0",
           "timeFrom": null,
           "timeShift": null,
-          "title": "Cortex Dashboard",
+          "title": "",
           "transparent": true,
           "type": "text"
         },
@@ -85,7 +85,7 @@ data:
             "h": 9,
             "w": 12,
             "x": 0,
-            "y": 3
+            "y": 2
           },
           "hiddenSeries": false,
           "id": 5,
@@ -191,7 +191,7 @@ data:
             "h": 9,
             "w": 12,
             "x": 12,
-            "y": 3
+            "y": 2
           },
           "hiddenSeries": false,
           "id": 2,
@@ -297,7 +297,7 @@ data:
             "h": 9,
             "w": 12,
             "x": 0,
-            "y": 12
+            "y": 11
           },
           "hiddenSeries": false,
           "id": 3,
@@ -403,7 +403,7 @@ data:
             "h": 9,
             "w": 12,
             "x": 12,
-            "y": 12
+            "y": 11
           },
           "hiddenSeries": false,
           "id": 4,
@@ -509,7 +509,7 @@ data:
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 21
+            "y": 20
           },
           "hiddenSeries": false,
           "id": 7,
@@ -615,7 +615,7 @@ data:
             "h": 8,
             "w": 12,
             "x": 12,
-            "y": 21
+            "y": 20
           },
           "hiddenSeries": false,
           "id": 9,
@@ -721,7 +721,7 @@ data:
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 29
+            "y": 28
           },
           "hiddenSeries": false,
           "id": 8,
@@ -827,7 +827,7 @@ data:
             "h": 8,
             "w": 12,
             "x": 12,
-            "y": 29
+            "y": 28
           },
           "hiddenSeries": false,
           "id": 10,
@@ -912,6 +912,198 @@ data:
             "align": false,
             "alignLevel": null
           }
+        },
+        {
+          "aliasColors": {},
+          "bars": false,
+          "dashLength": 10,
+          "dashes": false,
+          "datasource": null,
+          "description": "Number of in-flight requests per API, for all API IDs",
+          "fieldConfig": {
+            "defaults": {
+              "custom": {}
+            },
+            "overrides": []
+          },
+          "fill": 1,
+          "fillGradient": 0,
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 0,
+            "y": 36
+          },
+          "hiddenSeries": false,
+          "id": 14,
+          "legend": {
+            "avg": false,
+            "current": false,
+            "max": false,
+            "min": false,
+            "show": true,
+            "total": false,
+            "values": false
+          },
+          "lines": true,
+          "linewidth": 1,
+          "nullPointMode": "null",
+          "options": {
+            "alertThreshold": true
+          },
+          "percentage": false,
+          "pluginVersion": "7.4.0",
+          "pointradius": 2,
+          "points": false,
+          "renderer": "flot",
+          "seriesOverrides": [],
+          "spaceLength": 10,
+          "stack": false,
+          "steppedLine": false,
+          "targets": [
+            {
+              "expr": "sum(cortex_in_flight_requests) by (api_name)",
+              "interval": "",
+              "legendFormat": "api-{{api_name}}",
+              "refId": "A"
+            }
+          ],
+          "thresholds": [],
+          "timeRegions": [],
+          "title": "In-Flight Requests",
+          "tooltip": {
+            "shared": true,
+            "sort": 0,
+            "value_type": "individual"
+          },
+          "type": "graph",
+          "xaxis": {
+            "buckets": null,
+            "mode": "time",
+            "name": null,
+            "show": true,
+            "values": []
+          },
+          "yaxes": [
+            {
+              "decimals": 0,
+              "format": "short",
+              "label": null,
+              "logBase": 1,
+              "max": null,
+              "min": "0",
+              "show": true
+            },
+            {
+              "format": "short",
+              "label": null,
+              "logBase": 1,
+              "max": null,
+              "min": null,
+              "show": true
+            }
+          ],
+          "yaxis": {
+            "align": false,
+            "alignLevel": null
+          }
+        },
+        {
+          "aliasColors": {},
+          "bars": false,
+          "dashLength": 10,
+          "dashes": false,
+          "datasource": null,
+          "description": "Number of replicas per API, for all API IDs",
+          "fieldConfig": {
+            "defaults": {
+              "custom": {}
+            },
+            "overrides": []
+          },
+          "fill": 1,
+          "fillGradient": 0,
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 12,
+            "y": 36
+          },
+          "hiddenSeries": false,
+          "id": 15,
+          "legend": {
+            "avg": false,
+            "current": false,
+            "max": false,
+            "min": false,
+            "show": true,
+            "total": false,
+            "values": false
+          },
+          "lines": true,
+          "linewidth": 1,
+          "nullPointMode": "null",
+          "options": {
+            "alertThreshold": true
+          },
+          "percentage": false,
+          "pluginVersion": "7.4.0",
+          "pointradius": 2,
+          "points": false,
+          "renderer": "flot",
+          "seriesOverrides": [],
+          "spaceLength": 10,
+          "stack": false,
+          "steppedLine": false,
+          "targets": [
+            {
+              "expr": "count(cortex_in_flight_requests) by (api_name)",
+              "interval": "",
+              "legendFormat": "api-{{api_name}}",
+              "refId": "A"
+            }
+          ],
+          "thresholds": [],
+          "timeFrom": null,
+          "timeRegions": [],
+          "timeShift": null,
+          "title": "Replicas",
+          "tooltip": {
+            "shared": true,
+            "sort": 0,
+            "value_type": "individual"
+          },
+          "type": "graph",
+          "xaxis": {
+            "buckets": null,
+            "mode": "time",
+            "name": null,
+            "show": true,
+            "values": []
+          },
+          "yaxes": [
+            {
+              "decimals": 0,
+              "format": "short",
+              "label": null,
+              "logBase": 1,
+              "max": null,
+              "min": "0",
+              "show": true
+            },
+            {
+              "format": "short",
+              "label": null,
+              "logBase": 1,
+              "max": null,
+              "min": null,
+              "show": true
+            }
+          ],
+          "yaxis": {
+            "align": false,
+            "alignLevel": null
+          }
         }
       ],
       "refresh": "30s",
@@ -927,7 +1119,7 @@ data:
       },
       "timepicker": {},
       "timezone": "",
-      "title": "Cortex",
+      "title": "RealtimeAPI",
       "uid": "ZQv3auYGk",
       "version": 1
     }

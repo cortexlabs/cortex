@@ -29,7 +29,8 @@ data:
                 "orgId": 1,
                 "type": "prometheus",
                 "url": "http://prometheus.default:9090",
-                "version": 1
+                "version": 1,
+                "isDefault": true
             }
         ]
     }
@@ -47,10 +48,10 @@ data:
         "apiVersion": 1,
         "providers": [
             {
-                "folder": "Default",
-                "name": "0",
+                "folder": "Cortex",
+                "name": "Cortex",
                 "options": {
-                    "path": "/grafana-dashboard-definitions/0"
+                    "path": "/grafana-dashboard-definitions/cortex"
                 },
                 "disableDeletion": true,
                 "orgId": 1,
@@ -116,6 +117,8 @@ spec:
               value: "%(protocol)s://%(domain)s:%(http_port)s/dashboard"
             - name: GF_SERVER_SERVE_FROM_SUB_PATH
               value: "true"
+            - name: GF_USERS_DEFAULT_THEME
+              value: "light"
           volumeMounts:
             - mountPath: /var/lib/grafana
               name: grafana-storage
@@ -126,8 +129,11 @@ spec:
             - mountPath: /etc/grafana/provisioning/dashboards
               name: grafana-dashboards
               readOnly: false
-            - mountPath: /grafana-dashboard-definitions/0/cortex
-              name: grafana-dashboard-cortex
+            - mountPath: /grafana-dashboard-definitions/cortex/realtime
+              name: grafana-dashboard-realtime
+              readOnly: false
+            - mountPath: /grafana-dashboard-definitions/cortex/batch
+              name: grafana-dashboard-batch
               readOnly: false
       securityContext:
         fsGroup: 65534
@@ -143,9 +149,12 @@ spec:
         - name: grafana-dashboards
           configMap:
             name: grafana-dashboards
-        - name: grafana-dashboard-cortex
+        - name: grafana-dashboard-realtime
           configMap:
-            name: grafana-dashboard-cortex
+            name: grafana-dashboard-realtime
+        - name: grafana-dashboard-batch
+          configMap:
+            name: grafana-dashboard-batch
 
 ---
 
