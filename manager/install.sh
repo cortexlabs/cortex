@@ -68,7 +68,7 @@ function cluster_up_aws() {
   echo -n "￮ configuring metrics "
   envsubst < manifests/metrics-server.yaml | kubectl apply -f - >/dev/null
   setup_prometheus
-  kubectl apply -f manifests/grafana/ >/dev/null
+  setup_grafana
   echo "✓"
 
   if [[ "$CORTEX_INSTANCE_TYPE" == p* ]] || [[ "$CORTEX_INSTANCE_TYPE" == g* ]]; then
@@ -126,7 +126,7 @@ function cluster_up_gcp() {
 
   echo -n "￮ configuring metrics "
   setup_prometheus
-  kubectl apply -f /workspace/grafana/ >/dev/null
+  setup_grafana
   echo "✓"
 
   if [ -n "$CORTEX_ACCELERATOR_TYPE" ]; then
@@ -304,6 +304,12 @@ function setup_prometheus() {
   envsubst < manifests/prometheus-operator.yaml | kubectl apply -f - >/dev/null
   envsubst < manifests/prometheus-statsd-exporter.yaml | kubectl apply -f - >/dev/null
   python render_template.py $CORTEX_CLUSTER_CONFIG_FILE manifests/prometheus-monitoring.yaml.j2 | kubectl apply -f - >/dev/null
+}
+
+function setup_grafana() {
+  kubectl manifests/grafana/grafana-dashboard-realtime.yaml >/dev/null
+  kubectl manifests/grafana/grafana-dashboard-batch.yaml >/dev/null
+  envsubst < manifests/grafana/grafana.yaml | kubectl apply -f - >/dev/null
 }
 
 function setup_secrets_gcp() {
