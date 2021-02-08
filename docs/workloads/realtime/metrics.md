@@ -1,6 +1,7 @@
 # Metrics
 
-The `cortex get` and `cortex get API_NAME` commands display the request time (averaged over the past 2 weeks) and response code counts (summed over the past 2 weeks) for your APIs:
+The `cortex get` and `cortex get API_NAME` commands display the request time (averaged over the past 2 weeks) and
+response code counts (summed over the past 2 weeks) for your APIs:
 
 ```bash
 $ cortex get
@@ -42,10 +43,10 @@ The dashboard is displayed once you run a `cortex get <api_name>` command.
 
 The dashboard is protected with username / password authentication, which by default are:
 
- - Username: admin
- - Password: admin
+- Username: admin
+- Password: admin
 
 You will be prompted to change the admin user password in the first time you log in.
 
-Grafana allows managing the access of several users and managing teams. 
-For more information on this topic check the [grafana documentation](https://grafana.com/docs/grafana/latest/manage-users/).
+Grafana allows managing the access of several users and managing teams. For more information on this topic check
+the [grafana documentation](https://grafana.com/docs/grafana/latest/manage-users/).
