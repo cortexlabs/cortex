@@ -11,42 +11,41 @@ aws   text-generator              live     1            1           8m          
 aws   image-classifier-resnet50   live     2            2           1h            32ms          1121126
 ```
 
-The `cortex get API_NAME` command also provides a link to a CloudWatch Metrics dashboard containing this information:
+The `cortex get API_NAME` command also provides a link to a Grafana dashboard:
 
-![dashboard](https://user-images.githubusercontent.com/808475/86186297-8cc5a500-baed-11ea-885f-d5c301b049eb.png)
-
-**responses per minute**
-
-Shows the number of 2XX, 4XX, and 5XX responses per minute.
-
-**median response time**
-
-Shows the median response time for requests, over 1-minute periods (measured in milliseconds).
-
-**p99 response time**
-
-Shows the p99 response time for requests, over 1-minute periods (measured in milliseconds).
-
-**total in-flight requests**
-
-Shows the total number of in-flight requests.
-
-See [metric intervals](#metric-intervals).
-
-**avg in-flight requests per replica**
-
-Shows the average number of in-flight requests per replica.
-
-See [metric intervals](#metric-intervals).
-
-**active replicas**
-
-Shows the number of active replicas.
-
-See [metric intervals](#metric-intervals).
+![dashboard](https://user-images.githubusercontent.com/7456627/107253455-9c6b7b80-6a36-11eb-8600-f36a7bab6d3b.png)
 
 ---
 
-#### Metric intervals
+## Metrics in the dashboard
 
-The referenced widget is aggregated over 10 second intervals because each replica reports its in-flight requests once per 10 seconds. This plot is only available for the last 3 hours (because second-granular data is aggregated to minute-granular data after 3 hours). To plot data older than 3 hours, instead change the period to 1 minute, and divide the y-axis by 6 to (since the metrics are reported every 10 seconds).*
+| Panel             | Description                                                                        | Note                                                                                               |
+|-------------------|------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------|
+| Request Rate      | Request rate, computed over every minute, of an API                                |                                                                                                    |
+| In Flight Request | Active in-flight requests for an API.                                              | In-flight requests are recorded every 10 seconds, which will correspond to the minimum resolution. |
+| Active Replicas   | Active replicas for an API                                                         |                                                                                                    |
+| 2XX Responses     | Request rate, computed over a minute, for responses with status code 2XX of an API |                                                                                                    |
+| 4XX Responses     | Request rate, computed over a minute, for responses with status code 4XX of an API |                                                                                                    |
+| 5XX Responses     | Request rate, computed over a minute, for responses with status code 5XX of an API |                                                                                                    |
+| p99 Latency       | 99th percentile latency, computed over a minute, for an API                        | Value might not be accurate because the histogram buckets are not dynamically set.                 |
+| p90 Latency       | 90th percentile latency, computed over a minute, for an API                        | Value might not be accurate because the histogram buckets are not dynamically set.                 |
+| p50 Latency       | 50th percentile latency, computed over a minute, for an API                        | Value might not be accurate because the histogram buckets are not dynamically set.                 |
+| Average Latency   | Average latency, computed over a minute, for an API                                |                                                                                                    |
+
+---
+
+## Accessing the dashboard
+
+The dashboard is displayed once you run a `cortex get <api_name>` command.
+
+### Default credentials
+
+The dashboard is protected with username / password authentication, which by default are:
+
+ - Username: admin
+ - Password: admin
+
+You will be prompted to change the admin user password in the first time you log in.
+
+Grafana allows managing the access of several users and managing teams. 
+For more information on this topic check the [grafana documentation](https://grafana.com/docs/grafana/latest/manage-users/).
