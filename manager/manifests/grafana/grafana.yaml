@@ -166,13 +166,13 @@ metadata:
   name: grafana
   namespace: default
 spec:
+  type: ClusterIP
   ports:
     - name: http
       port: 3000
       targetPort: http
   selector:
     app: grafana
-  type: NodePort
 
 ---
 
