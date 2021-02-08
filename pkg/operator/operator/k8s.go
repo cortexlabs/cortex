@@ -1100,9 +1100,18 @@ func K8sName(apiName string) string {
 	return "api-" + apiName
 }
 
-// APILoadBalancerURL returns http endpoint of cluster ingress load balancer
+// APILoadBalancerURL returns the http endpoint of the ingress load balancer for deployed APIs
 func APILoadBalancerURL() (string, error) {
-	service, err := config.K8sIstio.GetService("ingressgateway-apis")
+	return getLoadBalancerURL("ingressgateway-apis")
+}
+
+// LoadBalancerURL returns the http endpoint of the ingress load balancer for the operator
+func LoadBalancerURL() (string, error) {
+	return getLoadBalancerURL("ingressgateway-operator")
+}
+
+func getLoadBalancerURL(name string) (string, error) {
+	service, err := config.K8sIstio.GetService(name)
 	if err != nil {
 		return "", err
 	}
