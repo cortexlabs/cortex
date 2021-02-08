@@ -68,7 +68,7 @@ function cluster_up_aws() {
   echo -n "￮ configuring metrics "
   envsubst < manifests/metrics-server.yaml | kubectl apply -f - >/dev/null
   setup_prometheus
-  kubectl apply -f /workspace/grafana/ >/dev/null
+  kubectl apply -f manifests/grafana/ >/dev/null
   echo "✓"
 
   if [[ "$CORTEX_INSTANCE_TYPE" == p* ]] || [[ "$CORTEX_INSTANCE_TYPE" == g* ]]; then
