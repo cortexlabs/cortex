@@ -29,8 +29,6 @@ const (
 	ErrHeaderMissing          = "endpoints.header_missing"
 	ErrHeaderMalformed        = "endpoints.header_malformed"
 	ErrAuthAPIError           = "endpoints.auth_api_error"
-	ErrAuthInvalid            = "endpoints.auth_invalid"
-	ErrAuthOtherAccount       = "endpoints.auth_other_account"
 	ErrFormFileMustBeProvided = "endpoints.form_file_must_be_provided"
 	ErrQueryParamRequired     = "endpoints.query_param_required"
 	ErrPathParamRequired      = "endpoints.path_param_required"
@@ -64,20 +62,6 @@ func ErrorAuthAPIError() error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrAuthAPIError,
 		Message: "the operator is unable to verify user's credentials using AWS STS; export AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY, and run `cortex cluster configure` to update the operator's AWS credentials",
-	})
-}
-
-func ErrorAuthInvalid() error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrAuthInvalid,
-		Message: "invalid AWS credentials; run `cortex env configure` to configure your environment with credentials for any IAM user in the same AWS account as your cluster",
-	})
-}
-
-func ErrorAuthOtherAccount() error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrAuthOtherAccount,
-		Message: "the AWS account associated with your CLI's AWS credentials differs from the AWS account associated with your cluster's AWS credentials; run `cortex env configure` to configure your environment with credentials for any IAM user in the same AWS account as your cluster",
 	})
 }
 
