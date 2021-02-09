@@ -25,11 +25,34 @@ arg1="$1"
 
 function main() {
   if [ "$arg1" = "--update" ]; then
-    cluster_configure
+    cluster_configure_aws
   else
     cluster_up
   fi
 }
+
+function cluster_configure_aws() {
+  check_eks
+
+  resize_nodegroup
+
+  echo -n "￮ updating cluster configuration "
+  setup_secrets_aws
+  echo "✓"
+
+  # this is necessary since max_instances may have been updated
+  echo -n "￮ configuring autoscaling "
+  python render_template.py $CORTEX_CLUSTER_CONFIG_FILE manifests/cluster-autoscaler.yaml.j2 > /workspace/cluster-autoscaler.yaml
+  kubectl apply -f /workspace/cluster-autoscaler.yaml >/dev/null
+  echo "✓"
+
+  validate_cortex_aws
+
+  echo -e "\ncortex is ready!"
+
+  print_endpoints_aws
+}
+
 
 function cluster_up() {
     if [ "$CORTEX_PROVIDER" == "aws" ]; then
@@ -45,31 +68,18 @@ function cluster_up_aws() {
   start_pre_download_images
 
   echo -n "￮ updating cluster configuration "
-  setup_configmap
-  setup_secrets
+  setup_secrets_aws
   echo "✓"
 
-  echo -n "￮ configuring networking (this might take a few minutes) "
-  setup_istio
-  python render_template.py $CORTEX_CLUSTER_CONFIG_FILE manifests/apis.yaml.j2 > /workspace/apis.yaml
-  kubectl apply -f /workspace/apis.yaml >/dev/null
-  echo "✓"
+  # run helm here
 
   echo -n "￮ configuring autoscaling "
   python render_template.py $CORTEX_CLUSTER_CONFIG_FILE manifests/cluster-autoscaler.yaml.j2 > /workspace/cluster-autoscaler.yaml
   kubectl apply -f /workspace/cluster-autoscaler.yaml >/dev/null
   echo "✓"
 
-  echo -n "￮ configuring logging "
-  python render_template.py $CORTEX_CLUSTER_CONFIG_FILE manifests/fluent-bit.yaml.j2 > /workspace/fluent-bit.yaml
-  kubectl apply -f /workspace/fluent-bit.yaml >/dev/null
-  echo "✓"
-
   echo -n "￮ configuring metrics "
   envsubst < manifests/metrics-server.yaml | kubectl apply -f - >/dev/null
-  setup_prometheus
-  python render_template.py $CORTEX_CLUSTER_CONFIG_FILE manifests/prometheus-to-cloudwatch.yaml.j2 | kubectl apply -f - >/dev/null
-  echo "✓"
 
   if [[ "$CORTEX_INSTANCE_TYPE" == p* ]] || [[ "$CORTEX_INSTANCE_TYPE" == g* ]]; then
     echo -n "￮ configuring gpu support "
@@ -83,9 +93,7 @@ function cluster_up_aws() {
     echo "✓"
   fi
 
-  restart_operator
-
-  validate_cortex
+  validate_cortex_aws
 
   await_pre_download_images
 
@@ -104,37 +112,24 @@ function cluster_up_gcp() {
   start_pre_download_images
 
   echo -n "￮ updating cluster configuration "
-  setup_configmap_gcp
   setup_secrets_gcp
   echo "✓"
 
-  echo -n "￮ configuring networking (this will take a few minutes) "
-  setup_istio
-  python render_template.py $CORTEX_CLUSTER_CONFIG_FILE manifests/apis.yaml.j2 > /workspace/apis.yaml
-  kubectl apply -f /workspace/apis.yaml >/dev/null
-  echo "✓"
+  # run helm here
 
   echo -n "￮ configuring autoscaling "
   python render_template.py $CORTEX_CLUSTER_CONFIG_FILE manifests/cluster-autoscaler.yaml.j2 > /workspace/cluster-autoscaler.yaml
   kubectl apply -f /workspace/cluster-autoscaler.yaml >/dev/null
   echo "✓"
 
-  echo -n "￮ configuring logging "
-  python render_template.py $CORTEX_CLUSTER_CONFIG_FILE manifests/fluent-bit.yaml.j2 > /workspace/fluent-bit.yaml
-  kubectl apply -f /workspace/fluent-bit.yaml >/dev/null
-  echo "✓"
-
   echo -n "￮ configuring metrics "
-  setup_prometheus
-  echo "✓"
+  envsubst < manifests/metrics-server.yaml | kubectl apply -f - >/dev/null
 
   if [ -n "$CORTEX_ACCELERATOR_TYPE" ]; then
     echo -n "￮ configuring gpu support "
     envsubst < manifests/nvidia_gcp.yaml | kubectl apply -f - >/dev/null
     echo "✓"
   fi
-
-  restart_operator
 
   validate_cortex_gcp
 
@@ -143,31 +138,6 @@ function cluster_up_gcp() {
   echo -e "\ncortex is ready!"
 
   print_endpoints_gcp
-}
-
-function cluster_configure() {
-  check_eks
-
-  resize_nodegroup
-
-  echo -n "￮ updating cluster configuration "
-  setup_configmap
-  setup_secrets
-  echo "✓"
-
-  # this is necessary since max_instances may have been updated
-  echo -n "￮ configuring autoscaling "
-  python render_template.py $CORTEX_CLUSTER_CONFIG_FILE manifests/cluster-autoscaler.yaml.j2 > /workspace/cluster-autoscaler.yaml
-  kubectl apply -f /workspace/cluster-autoscaler.yaml >/dev/null
-  echo "✓"
-
-  restart_operator
-
-  validate_cortex
-
-  echo -e "\ncortex is ready!"
-
-  print_endpoints_aws
 }
 
 # creates the eks cluster and configures kubectl
@@ -257,66 +227,15 @@ function write_kubeconfig() {
   out=$(kubectl get pods 2>&1 || true); if [[ "$out" == *"must be logged in to the server"* ]]; then echo "error: your aws iam user does not have access to this cluster; to grant access, see https://docs.cortex.dev/v/${CORTEX_VERSION_MINOR}/"; exit 1; fi
 }
 
-function setup_configmap() {
-  kubectl -n=default create configmap 'cluster-config' \
-    --from-file='cluster.yaml'=$CORTEX_CLUSTER_CONFIG_FILE \
-    -o yaml --dry-run=client | kubectl apply -f - >/dev/null
-
-  kubectl -n=default create configmap 'env-vars' \
-    --from-literal='CORTEX_VERSION'=$CORTEX_VERSION \
-    --from-literal='CORTEX_PROVIDER'=$CORTEX_PROVIDER \
-    --from-literal='CORTEX_REGION'=$CORTEX_REGION \
-    --from-literal='AWS_REGION'=$CORTEX_REGION \
-    --from-literal='CORTEX_TELEMETRY_DISABLE'=$CORTEX_TELEMETRY_DISABLE \
-    --from-literal='CORTEX_TELEMETRY_SENTRY_DSN'=$CORTEX_TELEMETRY_SENTRY_DSN \
-    --from-literal='CORTEX_TELEMETRY_SEGMENT_WRITE_KEY'=$CORTEX_TELEMETRY_SEGMENT_WRITE_KEY \
-    --from-literal='CORTEX_DEV_DEFAULT_PREDICTOR_IMAGE_REGISTRY'=$CORTEX_DEV_DEFAULT_PREDICTOR_IMAGE_REGISTRY \
-    -o yaml --dry-run=client | kubectl apply -f - >/dev/null
-}
-
-function setup_configmap_gcp() {
-  kubectl -n=default create configmap 'cluster-config' \
-    --from-file='cluster.yaml'=$CORTEX_CLUSTER_CONFIG_FILE \
-    -o yaml --dry-run=client | kubectl apply -f - >/dev/null
-
-  kubectl -n=default create configmap 'env-vars' \
-    --from-literal='CORTEX_VERSION'=$CORTEX_VERSION \
-    --from-literal='CORTEX_PROVIDER'=$CORTEX_PROVIDER \
-    --from-literal='CORTEX_GCP_PROJECT'=$CORTEX_GCP_PROJECT \
-    --from-literal='CORTEX_GCP_ZONE'=$CORTEX_GCP_ZONE \
-    --from-literal='CORTEX_TELEMETRY_DISABLE'=$CORTEX_TELEMETRY_DISABLE \
-    --from-literal='CORTEX_TELEMETRY_SENTRY_DSN'=$CORTEX_TELEMETRY_SENTRY_DSN \
-    --from-literal='CORTEX_TELEMETRY_SEGMENT_WRITE_KEY'=$CORTEX_TELEMETRY_SEGMENT_WRITE_KEY \
-    --from-literal='CORTEX_DEV_DEFAULT_PREDICTOR_IMAGE_REGISTRY'=$CORTEX_DEV_DEFAULT_PREDICTOR_IMAGE_REGISTRY \
-    --from-literal='GOOGLE_APPLICATION_CREDENTIALS'='/var/secrets/google/key.json' \
-    -o yaml --dry-run=client | kubectl apply -f - >/dev/null
-}
-
-function setup_secrets() {
+function setup_secrets_aws() {
   kubectl -n=default create secret generic 'aws-credentials' \
     --from-literal='AWS_ACCESS_KEY_ID'=$CLUSTER_AWS_ACCESS_KEY_ID \
     --from-literal='AWS_SECRET_ACCESS_KEY'=$CLUSTER_AWS_SECRET_ACCESS_KEY \
     -o yaml --dry-run=client | kubectl apply -f - >/dev/null
 }
 
-function setup_prometheus() {
-  envsubst < manifests/prometheus-operator.yaml | kubectl apply -f - >/dev/null
-  envsubst < manifests/prometheus-statsd-exporter.yaml | kubectl apply -f - >/dev/null
-  python render_template.py $CORTEX_CLUSTER_CONFIG_FILE manifests/prometheus-monitoring.yaml.j2 | kubectl apply -f - >/dev/null
-}
-
 function setup_secrets_gcp() {
   kubectl create secret generic 'gcp-credentials' --from-file=key.json=$GOOGLE_APPLICATION_CREDENTIALS >/dev/null
-}
-
-function restart_operator() {
-  echo -n "￮ starting operator "
-  kubectl -n=default delete --ignore-not-found=true --grace-period=10 deployment operator >/dev/null 2>&1
-  printed_dot="false"
-  until [ "$(kubectl -n=default get pods -l workloadID=operator -o json | jq -j '.items | length')" -eq "0" ]; do echo -n "."; printed_dot="true"; sleep 2; done
-  python render_template.py $CORTEX_CLUSTER_CONFIG_FILE manifests/operator.yaml.j2 > /workspace/operator.yaml
-  kubectl apply -f /workspace/operator.yaml >/dev/null
-  if [ "$printed_dot" == "true" ]; then echo " ✓"; else echo "✓"; fi
 }
 
 function resize_nodegroup() {
@@ -418,19 +337,6 @@ function suspend_az_rebalance() {
   fi
 }
 
-function setup_istio() {
-  envsubst < manifests/istio-namespace.yaml | kubectl apply -f - >/dev/null
-
-  if ! grep -q "istio-customgateway-certs" <<< $(kubectl get secret -n istio-system); then
-    WEBSITE=localhost
-    openssl req -subj "/C=US/CN=$WEBSITE" -newkey rsa:2048 -nodes -keyout $WEBSITE.key -x509 -days 3650 -out $WEBSITE.crt >/dev/null 2>&1
-    kubectl create -n istio-system secret tls istio-customgateway-certs --key $WEBSITE.key --cert $WEBSITE.crt >/dev/null
-  fi
-
-  python render_template.py $CORTEX_CLUSTER_CONFIG_FILE manifests/istio.yaml.j2 > /workspace/istio.yaml
-  output_if_error istio-${ISTIO_VERSION}/bin/istioctl install -f /workspace/istio.yaml
-}
-
 function start_pre_download_images() {
   registry="quay.io/cortexlabs"
   tag="$CORTEX_VERSION"
@@ -472,7 +378,7 @@ function await_pre_download_images() {
   fi
 }
 
-function validate_cortex() {
+function validate_cortex_aws() {
   set +e
 
   validation_start_time="$(date +%s)"
@@ -567,21 +473,21 @@ function validate_cortex() {
     operator_pod_status=""  # reset operator_pod_status since now the operator is active
 
     if [ "$operator_endpoint" == "" ]; then
-      out=$(kubectl -n=istio-system get service ingressgateway-operator -o json | tr -d '[:space:]')
+      out=$(kubectl -n=default get service ingressgateway-operator -o json | tr -d '[:space:]')
       if [[ $out != *'"loadBalancer":{"ingress":[{"'* ]]; then
         success_cycles=0
         continue
       fi
-      operator_endpoint=$(kubectl -n=istio-system get service ingressgateway-operator -o json | tr -d '[:space:]' | sed 's/.*{\"hostname\":\"\(.*\)\".*/\1/')
+      operator_endpoint=$(kubectl -n=default get service ingressgateway-operator -o json | tr -d '[:space:]' | sed 's/.*{\"hostname\":\"\(.*\)\".*/\1/')
     fi
 
     if [ "$api_load_balancer_endpoint" == "" ]; then
-      out=$(kubectl -n=istio-system get service ingressgateway-apis -o json | tr -d '[:space:]')
+      out=$(kubectl -n=default get service ingressgateway-apis -o json | tr -d '[:space:]')
       if [[ $out != *'"loadBalancer":{"ingress":[{"'* ]]; then
         success_cycles=0
         continue
       fi
-      api_load_balancer_endpoint=$(kubectl -n=istio-system get service ingressgateway-apis -o json | tr -d '[:space:]' | sed 's/.*{\"hostname\":\"\(.*\)\".*/\1/')
+      api_load_balancer_endpoint=$(kubectl -n=default get service ingressgateway-apis -o json | tr -d '[:space:]' | sed 's/.*{\"hostname\":\"\(.*\)\".*/\1/')
     fi
 
     operator_load_balancer_state="$(python get_operator_load_balancer_state.py)"  # don't cache this result
@@ -705,21 +611,21 @@ function validate_cortex_gcp() {
     operator_pod_status=""  # reset operator_pod_status since now the operator is active
 
     if [ "$operator_endpoint" == "" ]; then
-      out=$(kubectl -n=istio-system get service ingressgateway-operator -o json | tr -d '[:space:]')
+      out=$(kubectl -n=default get service ingressgateway-operator -o json | tr -d '[:space:]')
       if [[ $out != *'"loadBalancer":{"ingress":[{"'* ]]; then
         success_cycles=0
         continue
       fi
-      operator_endpoint=$(kubectl -n=istio-system get service ingressgateway-operator -o json | tr -d '[:space:]' | sed 's/.*{\"ip\":\"\(.*\)\".*/\1/')
+      operator_endpoint=$(kubectl -n=default get service ingressgateway-operator -o json | tr -d '[:space:]' | sed 's/.*{\"ip\":\"\(.*\)\".*/\1/')
     fi
 
     if [ "$api_load_balancer_endpoint" == "" ]; then
-      out=$(kubectl -n=istio-system get service ingressgateway-apis -o json | tr -d '[:space:]')
+      out=$(kubectl -n=default get service ingressgateway-apis -o json | tr -d '[:space:]')
       if [[ $out != *'"loadBalancer":{"ingress":[{"'* ]]; then
         success_cycles=0
         continue
       fi
-      api_load_balancer_endpoint=$(kubectl -n=istio-system get service ingressgateway-apis -o json | tr -d '[:space:]' | sed 's/.*{\"ip\":\"\(.*\)\".*/\1/')
+      api_load_balancer_endpoint=$(kubectl -n=default get service ingressgateway-apis -o json | tr -d '[:space:]' | sed 's/.*{\"ip\":\"\(.*\)\".*/\1/')
     fi
 
     if [ "$CORTEX_OPERATOR_LOAD_BALANCER_SCHEME" == "internet-facing" ]; then
@@ -753,11 +659,11 @@ function print_endpoints_aws() {
 }
 
 function get_operator_endpoint_aws() {
-  kubectl -n=istio-system get service ingressgateway-operator -o json | tr -d '[:space:]' | sed 's/.*{\"hostname\":\"\(.*\)\".*/\1/'
+  kubectl -n=default get service ingressgateway-operator -o json | tr -d '[:space:]' | sed 's/.*{\"hostname\":\"\(.*\)\".*/\1/'
 }
 
 function get_api_load_balancer_endpoint_aws() {
-  kubectl -n=istio-system get service ingressgateway-apis -o json | tr -d '[:space:]' | sed 's/.*{\"hostname\":\"\(.*\)\".*/\1/'
+  kubectl -n=default get service ingressgateway-apis -o json | tr -d '[:space:]' | sed 's/.*{\"hostname\":\"\(.*\)\".*/\1/'
 }
 
 function print_endpoints_gcp() {
@@ -771,11 +677,11 @@ function print_endpoints_gcp() {
 }
 
 function get_operator_endpoint_gcp() {
-  kubectl -n=istio-system get service ingressgateway-operator -o json | tr -d '[:space:]' | sed 's/.*{\"ip\":\"\(.*\)\".*/\1/'
+  kubectl -n=default get service ingressgateway-operator -o json | tr -d '[:space:]' | sed 's/.*{\"ip\":\"\(.*\)\".*/\1/'
 }
 
 function get_api_load_balancer_endpoint_gcp() {
-  kubectl -n=istio-system get service ingressgateway-apis -o json | tr -d '[:space:]' | sed 's/.*{\"ip\":\"\(.*\)\".*/\1/'
+  kubectl -n=default get service ingressgateway-apis -o json | tr -d '[:space:]' | sed 's/.*{\"ip\":\"\(.*\)\".*/\1/'
 }
 
 function output_if_error() {

@@ -10,6 +10,11 @@ cortex:
   zone: ""
   project: ""
 
+  # where to place the cortex workloads
+  namespace: ""
+  # where to place the istio networking
+  istio_namespace: ""
+
   # CORTEX_VERSION
   image_operator: quay.io/cortexlabs/operator:master
   image_manager: quay.io/cortexlabs/manager:master

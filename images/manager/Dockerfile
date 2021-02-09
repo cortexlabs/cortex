@@ -36,6 +36,15 @@ RUN curl https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud
     rm /tmp/google-cloud-sdk.tar.gz
 ENV PATH $PATH:/usr/local/gcloud/google-cloud-sdk/bin
 
-COPY manager /root
+
+RUN curl https://get.helm.sh/helm-v3.5.2-linux-amd64.tar.gz > /tmp/helm.tar.gz && \
+    mkdir -p /usr/local/bin/helm && \
+    tar -C /tmp/ -xvzf /tmp/helm.tar.gz && \
+    mv /tmp/linux-amd64/helm /usr/local/bin/helm && \
+    rm -r /tmp/linux-amd64 && \
+    rm /tmp/helm.tar.gz
+
+COPY manager /root/manager/
+COPY charts /root/charts/
 
 ENTRYPOINT ["/bin/bash"]

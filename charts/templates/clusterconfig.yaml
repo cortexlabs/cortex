@@ -39,8 +39,8 @@ data:
     provider: {{ .Values.global.provider }}
     telemetry: {{ .Values.cortex.telemetry | default true }}
     is_managed: {{ .Values.cortex.is_managed | default false }}
-    namespace: {{ .Release.Namespace }}
-    istio_namespace: {{ .Release.Namespace }}
+    namespace: {{ .Values.cortex.namespace | default .Release.Namespace }}
+    istio_namespace: {{ .Values.cortex.istio_namespace | default .Release.Namespace }}
     image_operator: {{ .Values.cortex.image_operator }}
     image_manager: {{ .Values.cortex.image_manager }}
     image_downloader: {{ .Values.cortex.image_downloader }}
@@ -71,8 +71,8 @@ data:
     provider: {{ .Values.global.provider }}
     telemetry: {{ .Values.cortex.telemetry | default true }}
     is_managed: {{ .Values.cortex.is_managed | default false }}
-    namespace: {{ .Release.Namespace }}
-    istio_namespace: {{ .Release.Namespace }}
+    namespace: {{ .Values.cortex.namespace | default .Release.Namespace }}
+    istio_namespace: {{ .Values.cortex.istio_namespace | default .Release.Namespace }}
     image_operator: {{ .Values.cortex.image_operator }}
     image_manager: {{ .Values.cortex.image_manager }}
     image_downloader: {{ .Values.cortex.image_downloader }}
