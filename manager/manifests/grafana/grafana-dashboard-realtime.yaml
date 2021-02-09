@@ -1181,18 +1181,7 @@ data:
         "list": [
           {
             "allValue": null,
-            "current": {
-              "selected": true,
-              "tags": [],
-              "text": [
-                "autoscaling",
-                "iris-classifier"
-              ],
-              "value": [
-                "autoscaling",
-                "iris-classifier"
-              ]
-            },
+            "current": {},
             "datasource": null,
             "definition": "label_values(cortex_in_flight_requests{api_kind=\"RealtimeAPI\"}, api_name)",
             "description": null,
@@ -1202,23 +1191,12 @@ data:
             "label": "API Name",
             "multi": true,
             "name": "api_name",
-            "options": [
-              {
-                "selected": true,
-                "text": "autoscaling",
-                "value": "autoscaling"
-              },
-              {
-                "selected": true,
-                "text": "iris-classifier",
-                "value": "iris-classifier"
-              }
-            ],
+            "options": [],
             "query": {
               "query": "label_values(cortex_in_flight_requests{api_kind=\"RealtimeAPI\"}, api_name)",
               "refId": "StandardVariableQuery"
             },
-            "refresh": 0,
+            "refresh": 1,
             "regex": "",
             "skipUrlSync": false,
             "sort": 0,
@@ -1238,5 +1216,5 @@ data:
       "timezone": "",
       "title": "RealtimeAPI",
       "uid": "xvWFsZPGk",
-      "version": 5
+      "version": 1
     }

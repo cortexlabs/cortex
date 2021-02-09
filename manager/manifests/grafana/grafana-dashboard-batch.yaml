@@ -368,16 +368,7 @@ data:
         "list": [
           {
             "allValue": null,
-            "current": {
-              "selected": true,
-              "tags": [],
-              "text": [
-                "image-classifier"
-              ],
-              "value": [
-                "image-classifier"
-              ]
-            },
+            "current": {},
             "datasource": null,
             "definition": "label_values({__name__=~\"cortex_batch_.+\"}, api_name)",
             "description": null,
@@ -387,18 +378,12 @@ data:
             "label": "API Name",
             "multi": true,
             "name": "api_name",
-            "options": [
-              {
-                "selected": true,
-                "text": "image-classifier",
-                "value": "image-classifier"
-              }
-            ],
+            "options": [],
             "query": {
               "query": "label_values({__name__=~\"cortex_batch_.+\"}, api_name)",
               "refId": "StandardVariableQuery"
             },
-            "refresh": 0,
+            "refresh": 1,
             "regex": "",
             "skipUrlSync": false,
             "sort": 0,
