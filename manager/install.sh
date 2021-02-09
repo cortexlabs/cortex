@@ -42,7 +42,7 @@ function cluster_configure_aws() {
 
   # this is necessary since max_instances may have been updated
   echo -n "￮ configuring autoscaling "
-  python render_template.py $CORTEX_CLUSTER_CONFIG_FILE manifests/cluster-autoscaler.yaml.j2 > /workspace/cluster-autoscaler.yaml
+  python render_template.py $CORTEX_CLUSTER_CONFIG_FILE manager/manifests/cluster-autoscaler.yaml.j2 > /workspace/cluster-autoscaler.yaml
   kubectl apply -f /workspace/cluster-autoscaler.yaml >/dev/null
   echo "✓"
 
@@ -71,25 +71,29 @@ function cluster_up_aws() {
   setup_secrets_aws
   echo "✓"
 
-  # run helm here
+  echo -n "￮ installing cortex cluster "
+  python manager/generate_helm_values.py > /workspace/helm_values.yaml
+  helm install cortex charts/ -f /workspace/helm_values.yaml --wait > /dev/null
+  echo "✓"
+
 
   echo -n "￮ configuring autoscaling "
-  python render_template.py $CORTEX_CLUSTER_CONFIG_FILE manifests/cluster-autoscaler.yaml.j2 > /workspace/cluster-autoscaler.yaml
+  python render_template.py $CORTEX_CLUSTER_CONFIG_FILE manager/manifests/cluster-autoscaler.yaml.j2 > /workspace/cluster-autoscaler.yaml
   kubectl apply -f /workspace/cluster-autoscaler.yaml >/dev/null
   echo "✓"
 
   echo -n "￮ configuring metrics "
-  envsubst < manifests/metrics-server.yaml | kubectl apply -f - >/dev/null
+  envsubst < manager/manifests/metrics-server.yaml | kubectl apply -f - >/dev/null
 
   if [[ "$CORTEX_INSTANCE_TYPE" == p* ]] || [[ "$CORTEX_INSTANCE_TYPE" == g* ]]; then
     echo -n "￮ configuring gpu support "
-    envsubst < manifests/nvidia_aws.yaml | kubectl apply -f - >/dev/null
+    envsubst < manager/manifests/nvidia_aws.yaml | kubectl apply -f - >/dev/null
     echo "✓"
   fi
 
   if [[ "$CORTEX_INSTANCE_TYPE" == inf* ]]; then
     echo -n "￮ configuring inf support "
-    envsubst < manifests/inferentia.yaml | kubectl apply -f - >/dev/null
+    envsubst < manager/manifests/inferentia.yaml | kubectl apply -f - >/dev/null
     echo "✓"
   fi
 
@@ -115,19 +119,22 @@ function cluster_up_gcp() {
   setup_secrets_gcp
   echo "✓"
 
-  # run helm here
+  echo -n "￮ installing cortex cluster "
+  python manager/generate_helm_values.py > /workspace/helm_values.yaml
+  helm install cortex charts/ -f /workspace/helm_values.yaml --wait > /dev/null
+  echo "✓"
 
   echo -n "￮ configuring autoscaling "
-  python render_template.py $CORTEX_CLUSTER_CONFIG_FILE manifests/cluster-autoscaler.yaml.j2 > /workspace/cluster-autoscaler.yaml
+  python render_template.py $CORTEX_CLUSTER_CONFIG_FILE manager/manifests/cluster-autoscaler.yaml.j2 > /workspace/cluster-autoscaler.yaml
   kubectl apply -f /workspace/cluster-autoscaler.yaml >/dev/null
   echo "✓"
 
   echo -n "￮ configuring metrics "
-  envsubst < manifests/metrics-server.yaml | kubectl apply -f - >/dev/null
+  envsubst < manager/manifests/metrics-server.yaml | kubectl apply -f - >/dev/null
 
   if [ -n "$CORTEX_ACCELERATOR_TYPE" ]; then
     echo -n "￮ configuring gpu support "
-    envsubst < manifests/nvidia_gcp.yaml | kubectl apply -f - >/dev/null
+    envsubst < manager/manifests/nvidia_gcp.yaml | kubectl apply -f - >/dev/null
     echo "✓"
   fi
 
@@ -353,11 +360,11 @@ function start_pre_download_images() {
   export CORTEX_IMAGE_TENSORFLOW_PREDICTOR="${registry}/tensorflow-predictor:${tag}"
 
   if [[ "$CORTEX_INSTANCE_TYPE" == p* ]] || [[ "$CORTEX_INSTANCE_TYPE" == g* ]] || [ -n "$CORTEX_ACCELERATOR_TYPE" ]; then
-    envsubst < manifests/image-downloader-gpu.yaml | kubectl apply -f - &>/dev/null
+    envsubst < manager/manifests/image-downloader-gpu.yaml | kubectl apply -f - &>/dev/null
   elif [[ "$CORTEX_INSTANCE_TYPE" == inf* ]]; then
-    envsubst < manifests/image-downloader-inf.yaml | kubectl apply -f - &>/dev/null
+    envsubst < manager/manifests/image-downloader-inf.yaml | kubectl apply -f - &>/dev/null
   else
-    envsubst < manifests/image-downloader-cpu.yaml | kubectl apply -f - &>/dev/null
+    envsubst < manager/manifests/image-downloader-cpu.yaml | kubectl apply -f - &>/dev/null
   fi
 }
 
