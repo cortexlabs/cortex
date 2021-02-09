@@ -521,7 +521,7 @@ func confirmInstallClusterConfig(clusterConfig *clusterconfig.Config, awsCreds A
 
 	rows = append(rows, []interface{}{workerInstanceStr, workerPriceStr})
 	rows = append(rows, []interface{}{ebsInstanceStr, s.DollarsAndTenthsOfCents(apiEBSPrice) + " each"})
-	rows = append(rows, []interface{}{"2 t3.medium instances for the cortex system", s.DollarsMaxPrecision(operatorInstancePrice * 2)})
+	rows = append(rows, []interface{}{"2 t3.medium instances for cortex", s.DollarsMaxPrecision(operatorInstancePrice * 2)})
 	rows = append(rows, []interface{}{"1 20gb ebs volume for the operator", s.DollarsAndTenthsOfCents(operatorEBSPrice)})
 	rows = append(rows, []interface{}{"1 40gb ebs volume for prometheus", s.DollarsAndTenthsOfCents(metricsEBSPrice)})
 	rows = append(rows, []interface{}{"2 network load balancers", s.DollarsMaxPrecision(nlbPrice) + " each"})
