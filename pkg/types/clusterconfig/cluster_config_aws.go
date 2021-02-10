@@ -199,7 +199,7 @@ var CoreConfigStructFieldValidations = []*cr.StructFieldValidation{
 	{
 		StructField: "IstioNamespace",
 		StringValidation: &cr.StringValidation{
-			Default: "istio-system",
+			Default: "default",
 		},
 	},
 	{
@@ -620,7 +620,7 @@ var AccessValidation = &cr.StructValidation{
 		{
 			StructField: "IstioNamespace",
 			StringValidation: &cr.StringValidation{
-				Default: "istio-system",
+				Default: "default",
 			},
 		},
 		{

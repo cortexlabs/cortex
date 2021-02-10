@@ -10,9 +10,6 @@ cortex:
   zone: ""
   project: ""
 
-  # where to place the cortex workloads
-  namespace: ""
-
   # CORTEX_VERSION
   image_operator: quay.io/cortexlabs/operator:master
   image_manager: quay.io/cortexlabs/manager:master
@@ -53,12 +50,6 @@ global:
 
   # Default tag for Istio images.
   tag: master # CORTEX_VERSION
-
-  # where to place the istio networking
-  istioNamespace: ""
-  # telemetryNamespace: ""
-  # prometheusNamespace: ""
-  # policyNamespace: ""
 
   proxy:
     image: istio-proxy

@@ -145,7 +145,7 @@ var GCPCoreConfigStructFieldValidations = []*cr.StructFieldValidation{
 	{
 		StructField: "IstioNamespace",
 		StringValidation: &cr.StringValidation{
-			Default: "istio-system",
+			Default: "default",
 		},
 	},
 	{
@@ -367,7 +367,7 @@ var GCPAccessValidation = &cr.StructValidation{
 		{
 			StructField: "IstioNamespace",
 			StringValidation: &cr.StringValidation{
-				Default: "istio-system",
+				Default: "default",
 			},
 		},
 	},

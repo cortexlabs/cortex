@@ -28,6 +28,11 @@ func Ok() {
 	os.Exit(0)
 }
 
+func Exit(code int) {
+	telemetry.Close()
+	os.Exit(1)
+}
+
 func Error(err error, wrapStrs ...string) {
 	for _, str := range wrapStrs {
 		err = errors.Wrap(err, str)

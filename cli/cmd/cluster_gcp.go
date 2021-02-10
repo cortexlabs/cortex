@@ -160,9 +160,14 @@ var _clusterGCPUpCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
-		_, _, err = runGCPManagerWithClusterConfig("/root/manager/install.sh", clusterConfig, nil, nil)
+		out, exit_code, err := runGCPManagerWithClusterConfig("/root/manager/install.sh", clusterConfig, nil, nil)
 		if err != nil {
 			exit.Error(err)
+		}
+		if exit_code != nil && *exit_code > 0 {
+			helpStr := "\nfailed installing cortex; please run `cortex cluster-gcp down` to delete the cluster before trying to create this cluster again"
+			fmt.Println(helpStr)
+			exit.Error(ErrorClusterUp(out + helpStr))
 		}
 
 		operatorLoadBalancerIP, err := getGCPOperatorLoadBalancerIP(gkeClusterName, clusterConfig.IstioNamespace, gcpClient)

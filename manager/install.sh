@@ -65,6 +65,10 @@ function cluster_up() {
 function cluster_up_aws() {
   create_eks
 
+  if [ "${CORTEX_NAMESPACE}" != "default" ]; then
+    kubectl create namespace "${CORTEX_NAMESPACE}" > /dev/null
+  fi
+
   start_pre_download_images
 
   echo -n "￮ updating cluster configuration "
@@ -73,9 +77,10 @@ function cluster_up_aws() {
 
   echo -n "￮ installing cortex cluster "
   python manager/generate_helm_values.py > /workspace/helm_values.yaml
-  helm install cortex charts/ -f /workspace/helm_values.yaml --wait > /dev/null
+  helm install cortex charts/ -f /workspace/helm_values.yaml --namespace "${CORTEX_NAMESPACE}" > /dev/null
   echo "✓"
 
+  wait_operator
 
   echo -n "￮ configuring autoscaling "
   python manager/render_template.py $CORTEX_CLUSTER_CONFIG_FILE manager/manifests/cluster-autoscaler.yaml.j2 > /workspace/cluster-autoscaler.yaml
@@ -112,6 +117,10 @@ function cluster_up_aws() {
 function cluster_up_gcp() {
   gcloud auth activate-service-account --key-file $GOOGLE_APPLICATION_CREDENTIALS 2> /dev/stdout 1> /dev/null | (grep -v "Activated service account credentials" || true)
   gcloud container clusters get-credentials $CORTEX_CLUSTER_NAME --project $CORTEX_GCP_PROJECT --region $CORTEX_GCP_ZONE 2> /dev/stdout 1> /dev/null | (grep -v "Fetching cluster" | grep -v "kubeconfig entry generated" || true)
+  
+  if [ "${CORTEX_NAMESPACE}" != "default" ]; then
+    kubectl create namespace "${CORTEX_NAMESPACE}" > /dev/null
+  fi
 
   start_pre_download_images
 
@@ -122,8 +131,10 @@ function cluster_up_gcp() {
   echo -n "￮ installing cortex cluster "
   cat "$CORTEX_CLUSTER_CONFIG_FILE"
   python manager/generate_helm_values.py > /workspace/helm_values.yaml
-  helm install cortex charts/ -f /workspace/helm_values.yaml --wait > /dev/null
+  helm install cortex charts/ -f /workspace/helm_values.yaml --namespace "${CORTEX_NAMESPACE}" > /dev/null
   echo "✓"
+
+  wait_operator
 
   echo -n "￮ configuring autoscaling "
   python manager/render_template.py $CORTEX_CLUSTER_CONFIG_FILE manager/manifests/cluster-autoscaler.yaml.j2 > /workspace/cluster-autoscaler.yaml
@@ -233,14 +244,14 @@ function write_kubeconfig() {
 }
 
 function setup_secrets_aws() {
-  kubectl -n=default create secret generic 'aws-credentials' \
+  kubectl -n="${CORTEX_NAMESPACE}" create secret generic 'aws-credentials' \
     --from-literal='AWS_ACCESS_KEY_ID'=$CLUSTER_AWS_ACCESS_KEY_ID \
     --from-literal='AWS_SECRET_ACCESS_KEY'=$CLUSTER_AWS_SECRET_ACCESS_KEY \
     -o yaml --dry-run=client | kubectl apply -f - >/dev/null
 }
 
 function setup_secrets_gcp() {
-  kubectl create secret generic 'gcp-credentials' --from-file=key.json=$GOOGLE_APPLICATION_CREDENTIALS >/dev/null
+  kubectl -n="${CORTEX_NAMESPACE}" create secret generic 'gcp-credentials' --from-file=key.json=$GOOGLE_APPLICATION_CREDENTIALS >/dev/null
 }
 
 function resize_nodegroup() {
@@ -367,20 +378,27 @@ function start_pre_download_images() {
 }
 
 function await_pre_download_images() {
-  if kubectl get daemonset image-downloader -n=default &>/dev/null; then
+  if kubectl get daemonset image-downloader -n="${CORTEX_NAMESPACE}" &>/dev/null; then
     echo -n "￮ downloading docker images "
     printed_dot="false"
     i=0
-    until [ "$(kubectl get daemonset image-downloader -n=default -o 'jsonpath={.status.numberReady}')" == "$(kubectl get daemonset image-downloader -n=default -o 'jsonpath={.status.desiredNumberScheduled}')" ]; do
+    until [ "$(kubectl get daemonset image-downloader -n=${CORTEX_NAMESPACE} -o 'jsonpath={.status.numberReady}')" == "$(kubectl get daemonset image-downloader -n=${CORTEX_NAMESPACE} -o 'jsonpath={.status.desiredNumberScheduled}')" ]; do
       if [ $i -eq 120 ]; then break; fi  # give up after 6 minutes
       echo -n "."
       printed_dot="true"
       ((i=i+1))
       sleep 3
     done
-    kubectl -n=default delete --ignore-not-found=true daemonset image-downloader &>/dev/null
+    kubectl -n="${CORTEX_NAMESPACE}" delete --ignore-not-found=true daemonset image-downloader &>/dev/null
     if [ "$printed_dot" == "true" ]; then echo " ✓"; else echo "✓"; fi
   fi
+}
+
+function wait_operator() {
+  echo -n "￮ waiting for the operator "
+  printed_dot="false"
+  until [ "$(kubectl -n=${CORTEX_NAMESPACE} get pods -l workloadID=operator -o json | jq -j '.items | length')" -eq "1" ]; do echo -n "."; printed_dot="true"; sleep 2; done
+  if [ "$printed_dot" == "true" ]; then echo " ✓"; else echo "✓"; fi
 }
 
 function validate_cortex_aws() {
@@ -445,15 +463,15 @@ function validate_cortex_aws() {
     echo -n "."
     sleep 5
 
-    operator_pod_name=$(kubectl -n=default get pods -o=name --sort-by=.metadata.creationTimestamp | (grep "^pod/operator-" || true) | tail -1)
+    operator_pod_name=$(kubectl -n=${CORTEX_NAMESPACE} get pods -o=name --sort-by=.metadata.creationTimestamp | (grep "^pod/operator-" || true) | tail -1)
     if [ "$operator_pod_name" == "" ]; then
       success_cycles=0
       continue
     fi
 
-    operator_pod_is_ready=$(kubectl -n=default get "$operator_pod_name" -o jsonpath='{.status.containerStatuses[0].ready}')
+    operator_pod_is_ready=$(kubectl -n=${CORTEX_NAMESPACE} get "$operator_pod_name" -o jsonpath='{.status.containerStatuses[0].ready}')
     if [ "$operator_pod_is_ready" != "true" ]; then
-      operator_pod_status=$(kubectl -n=default get "$operator_pod_name" -o jsonpath='{.status.containerStatuses[0]}')
+      operator_pod_status=$(kubectl -n=${CORTEX_NAMESPACE} get "$operator_pod_name" -o jsonpath='{.status.containerStatuses[0]}')
       if [[ "$operator_pod_status" == *"ImagePullBackOff"* ]]; then
         echo -e "\nerror: the operator image you specified could not be pulled:"
         echo $operator_pod_status
@@ -461,13 +479,13 @@ function validate_cortex_aws() {
         exit 1
       fi
 
-      num_restarts=$(kubectl -n=default get "$operator_pod_name" -o jsonpath='{.status.containerStatuses[0].restartCount}')
+      num_restarts=$(kubectl -n=${CORTEX_NAMESPACE} get "$operator_pod_name" -o jsonpath='{.status.containerStatuses[0].restartCount}')
       if [[ $num_restarts -ge 2 ]]; then
         echo -e "\n\nan error occurred when starting the cortex operator"
         echo -e "\noperator logs (currently running container):\n"
-        kubectl -n=default logs "$operator_pod_name"
+        kubectl -n="${CORTEX_NAMESPACE}" logs "$operator_pod_name"
         echo -e "\noperator logs (previous container):\n"
-        kubectl -n=default logs "$operator_pod_name" --previous
+        kubectl -n="${CORTEX_NAMESPACE}" logs "$operator_pod_name" --previous
         echo
         exit 1
       fi
@@ -478,21 +496,21 @@ function validate_cortex_aws() {
     operator_pod_status=""  # reset operator_pod_status since now the operator is active
 
     if [ "$operator_endpoint" == "" ]; then
-      out=$(kubectl -n=default get service ingressgateway-operator -o json | tr -d '[:space:]')
+      out=$(kubectl -n=${CORTEX_NAMESPACE} get service ingressgateway-operator -o json | tr -d '[:space:]')
       if [[ $out != *'"loadBalancer":{"ingress":[{"'* ]]; then
         success_cycles=0
         continue
       fi
-      operator_endpoint=$(kubectl -n=default get service ingressgateway-operator -o json | tr -d '[:space:]' | sed 's/.*{\"hostname\":\"\(.*\)\".*/\1/')
+      operator_endpoint=$(kubectl -n=${CORTEX_NAMESPACE} get service ingressgateway-operator -o json | tr -d '[:space:]' | sed 's/.*{\"hostname\":\"\(.*\)\".*/\1/')
     fi
 
     if [ "$api_load_balancer_endpoint" == "" ]; then
-      out=$(kubectl -n=default get service ingressgateway-apis -o json | tr -d '[:space:]')
+      out=$(kubectl -n=${CORTEX_NAMESPACE} get service ingressgateway-apis -o json | tr -d '[:space:]')
       if [[ $out != *'"loadBalancer":{"ingress":[{"'* ]]; then
         success_cycles=0
         continue
       fi
-      api_load_balancer_endpoint=$(kubectl -n=default get service ingressgateway-apis -o json | tr -d '[:space:]' | sed 's/.*{\"hostname\":\"\(.*\)\".*/\1/')
+      api_load_balancer_endpoint=$(kubectl -n=${CORTEX_NAMESPACE} get service ingressgateway-apis -o json | tr -d '[:space:]' | sed 's/.*{\"hostname\":\"\(.*\)\".*/\1/')
     fi
 
     operator_load_balancer_state="$(python get_operator_load_balancer_state.py)"  # don't cache this result
@@ -583,15 +601,15 @@ function validate_cortex_gcp() {
     echo -n "."
     sleep 5
 
-    operator_pod_name=$(kubectl -n=default get pods -o=name --sort-by=.metadata.creationTimestamp | (grep "^pod/operator-" || true) | tail -1)
+    operator_pod_name=$(kubectl -n=${CORTEX_NAMESPACE} get pods -o=name --sort-by=.metadata.creationTimestamp | (grep "^pod/operator-" || true) | tail -1)
     if [ "$operator_pod_name" == "" ]; then
       success_cycles=0
       continue
     fi
 
-    operator_pod_is_ready=$(kubectl -n=default get "$operator_pod_name" -o jsonpath='{.status.containerStatuses[0].ready}')
+    operator_pod_is_ready=$(kubectl -n=${CORTEX_NAMESPACE} get "$operator_pod_name" -o jsonpath='{.status.containerStatuses[0].ready}')
     if [ "$operator_pod_is_ready" != "true" ]; then
-      operator_pod_status=$(kubectl -n=default get "$operator_pod_name" -o jsonpath='{.status.containerStatuses[0]}')
+      operator_pod_status=$(kubectl -n=${CORTEX_NAMESPACE} get "$operator_pod_name" -o jsonpath='{.status.containerStatuses[0]}')
       if [[ "$operator_pod_status" == *"ImagePullBackOff"* ]]; then
         echo -e "\nerror: the operator image you specified could not be pulled:"
         echo $operator_pod_status
@@ -599,13 +617,13 @@ function validate_cortex_gcp() {
         exit 1
       fi
 
-      num_restarts=$(kubectl -n=default get "$operator_pod_name" -o jsonpath='{.status.containerStatuses[0].restartCount}')
+      num_restarts=$(kubectl -n=${CORTEX_NAMESPACE} get "$operator_pod_name" -o jsonpath='{.status.containerStatuses[0].restartCount}')
       if [[ $num_restarts -ge 2 ]]; then
         echo -e "\n\nan error occurred when starting the cortex operator"
         echo -e "\noperator logs (currently running container):\n"
-        kubectl -n=default logs "$operator_pod_name"
+        kubectl -n="${CORTEX_NAMESPACE}" logs "$operator_pod_name"
         echo -e "\noperator logs (previous container):\n"
-        kubectl -n=default logs "$operator_pod_name" --previous
+        kubectl -n="${CORTEX_NAMESPACE}" logs "$operator_pod_name" --previous
         echo
         exit 1
       fi
@@ -616,21 +634,21 @@ function validate_cortex_gcp() {
     operator_pod_status=""  # reset operator_pod_status since now the operator is active
 
     if [ "$operator_endpoint" == "" ]; then
-      out=$(kubectl -n=default get service ingressgateway-operator -o json | tr -d '[:space:]')
+      out=$(kubectl -n=${CORTEX_NAMESPACE} get service ingressgateway-operator -o json | tr -d '[:space:]')
       if [[ $out != *'"loadBalancer":{"ingress":[{"'* ]]; then
         success_cycles=0
         continue
       fi
-      operator_endpoint=$(kubectl -n=default get service ingressgateway-operator -o json | tr -d '[:space:]' | sed 's/.*{\"ip\":\"\(.*\)\".*/\1/')
+      operator_endpoint=$(kubectl -n=${CORTEX_NAMESPACE} get service ingressgateway-operator -o json | tr -d '[:space:]' | sed 's/.*{\"ip\":\"\(.*\)\".*/\1/')
     fi
 
     if [ "$api_load_balancer_endpoint" == "" ]; then
-      out=$(kubectl -n=default get service ingressgateway-apis -o json | tr -d '[:space:]')
+      out=$(kubectl -n=${CORTEX_NAMESPACE} get service ingressgateway-apis -o json | tr -d '[:space:]')
       if [[ $out != *'"loadBalancer":{"ingress":[{"'* ]]; then
         success_cycles=0
         continue
       fi
-      api_load_balancer_endpoint=$(kubectl -n=default get service ingressgateway-apis -o json | tr -d '[:space:]' | sed 's/.*{\"ip\":\"\(.*\)\".*/\1/')
+      api_load_balancer_endpoint=$(kubectl -n=${CORTEX_NAMESPACE} get service ingressgateway-apis -o json | tr -d '[:space:]' | sed 's/.*{\"ip\":\"\(.*\)\".*/\1/')
     fi
 
     if [ "$CORTEX_OPERATOR_LOAD_BALANCER_SCHEME" == "internet-facing" ]; then
@@ -664,11 +682,11 @@ function print_endpoints_aws() {
 }
 
 function get_operator_endpoint_aws() {
-  kubectl -n=default get service ingressgateway-operator -o json | tr -d '[:space:]' | sed 's/.*{\"hostname\":\"\(.*\)\".*/\1/'
+  kubectl -n="${CORTEX_NAMESPACE}" get service ingressgateway-operator -o json | tr -d '[:space:]' | sed 's/.*{\"hostname\":\"\(.*\)\".*/\1/'
 }
 
 function get_api_load_balancer_endpoint_aws() {
-  kubectl -n=default get service ingressgateway-apis -o json | tr -d '[:space:]' | sed 's/.*{\"hostname\":\"\(.*\)\".*/\1/'
+  kubectl -n="${CORTEX_NAMESPACE}" get service ingressgateway-apis -o json | tr -d '[:space:]' | sed 's/.*{\"hostname\":\"\(.*\)\".*/\1/'
 }
 
 function print_endpoints_gcp() {
@@ -682,11 +700,11 @@ function print_endpoints_gcp() {
 }
 
 function get_operator_endpoint_gcp() {
-  kubectl -n=default get service ingressgateway-operator -o json | tr -d '[:space:]' | sed 's/.*{\"ip\":\"\(.*\)\".*/\1/'
+  kubectl -n="${CORTEX_NAMESPACE}" get service ingressgateway-operator -o json | tr -d '[:space:]' | sed 's/.*{\"ip\":\"\(.*\)\".*/\1/'
 }
 
 function get_api_load_balancer_endpoint_gcp() {
-  kubectl -n=default get service ingressgateway-apis -o json | tr -d '[:space:]' | sed 's/.*{\"ip\":\"\(.*\)\".*/\1/'
+  kubectl -n="${CORTEX_NAMESPACE}" get service ingressgateway-apis -o json | tr -d '[:space:]' | sed 's/.*{\"ip\":\"\(.*\)\".*/\1/'
 }
 
 function output_if_error() {

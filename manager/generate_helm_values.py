@@ -24,7 +24,6 @@ def main():
             "bucket": cc["bucket"],
             "telemetry": cc["telemetry"],
             "is_managed": cc["is_managed"],
-            "namespace": cc["namespace"],
             "image_operator": cc["image_operator"],
             "image_manager": cc["image_manager"],
             "image_downloader": cc["image_downloader"],
@@ -39,7 +38,6 @@ def main():
         },
         "global": {
             "provider": cc["provider"],
-            "istioNamespace": cc["istio_namespace"],
         }
     }
 

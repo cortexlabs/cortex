@@ -8,12 +8,12 @@ ENV AWS_MAX_ATTEMPTS 10
 
 COPY manager/requirements.txt /root/manager/requirements.txt
 
+RUN apk add --no-cache bash curl gettext jq openssl
+
 RUN pip install --upgrade pip && \
     pip install awscli --upgrade --user && \
     pip install -r /root/manager/requirements.txt && \
     rm -rf /root/manager/.cache/pip*
-
-RUN apk add --no-cache bash curl gettext jq openssl
 
 RUN curl --location "https://github.com/weaveworks/eksctl/releases/download/0.36.2/eksctl_$(uname -s)_amd64.tar.gz" | tar xz -C /tmp && \
     mv /tmp/eksctl /usr/local/bin
