@@ -55,13 +55,13 @@ commands:
     steps:
       - run:
           name: Create Cluster
-          command: cortex cluster up --config << parameters.config >> --configure-env << parameters.provider >> -y
+          command: cortex cluster up --config << parameters.config >> --configure-env << parameters.provider >> --aws-key $NIGHTLY_AWS_ACCESS_KEY_ID --aws-secret $NIGHTLY_AWS_SECRET_ACCESS_KEY -y
       - run:
           name: Run E2E Tests
           command: pytest -v test/e2e/tests -k << parameters.provider >> --<< parameters.provider >>-env << parameters.provider >>
       - run:
           name: Delete Cluster
-          command: cortex cluster down --config << parameters.config >> -y
+          command: cortex cluster down --config << parameters.config >> --aws-key $NIGHTLY_AWS_ACCESS_KEY_ID --aws-secret $NIGHTLY_AWS_SECRET_ACCESS_KEY -y
           when: always
       - slack/notify:
           event: fail
@@ -121,11 +121,11 @@ jobs:
             cat \<< EOF > ./cluster.yaml
             cluster_name: cortex
             provider: aws
-            region: ${NIGHTLY_AWS_REGION}
-            instance_type: t3a.small
+            region: us-east-1
+            instance_type: g4dn.xlarge
             min_instances: 1
-            max_instances: 5
-            bucket: ${NIGHTLY_AWS_BUCKET}
+            max_instances: 2
+            bucket: cortex-dev-nightly
 
             image_operator: quay.io/cortexlabs/operator:master
             image_manager: quay.io/cortexlabs/manager:master
@@ -161,12 +161,13 @@ jobs:
           command: |
             cat \<< EOF > ./cluster.yaml
             cluster_name: cortex
-            project: ${NIGHTLY_GCP_PROJECT}
-            zone: ${NIGHTLY_GCP_ZONE}
+            project: cortexlabs-dev
+            zone: us-central1-a
             provider: gcp
             instance_type: n1-standard-2
+            accelerator_type: nvidia-tesla-t4
             min_instances: 1
-            max_instances: 5
+            max_instances: 2
 
             image_operator: quay.io/cortexlabs/operator:master
             image_manager: quay.io/cortexlabs/manager:master
