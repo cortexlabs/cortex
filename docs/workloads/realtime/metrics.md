@@ -37,7 +37,7 @@ The `cortex get API_NAME` command also provides a link to a Grafana dashboard:
 
 ## Accessing the dashboard
 
-The dashboard is displayed once you run a `cortex get <api_name>` command.
+The dashboard URL is displayed once you run a `cortex get <api_name>` command.
 
 Alternatively, you can access it on `http://<operator_url>/dashboard`. Run the following command to get the operator
 URL:
