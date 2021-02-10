@@ -47,6 +47,7 @@ type GCPCoreConfig struct {
 	ImageOperator                 string `json:"image_operator" yaml:"image_operator"`
 	ImageManager                  string `json:"image_manager" yaml:"image_manager"`
 	ImageDownloader               string `json:"image_downloader" yaml:"image_downloader"`
+	ImageRequestMonitor               string `json:"image_request_monitor" yaml:"image_request_monitor"`
 	ImageClusterAutoscaler        string `json:"image_cluster_autoscaler" yaml:"image_cluster_autoscaler"`
 	ImageFluentBit                string `json:"image_fluent_bit" yaml:"image_fluent_bit"`
 	ImageIstioProxy               string `json:"image_istio_proxy" yaml:"image_istio_proxy"`
@@ -164,6 +165,13 @@ var GCPCoreConfigStructFieldValidations = []*cr.StructFieldValidation{
 		StructField: "ImageDownloader",
 		StringValidation: &cr.StringValidation{
 			Default:   "quay.io/cortexlabs/downloader:" + consts.CortexVersion,
+			Validator: validateImageVersion,
+		},
+	},
+	{
+		StructField: "ImageRequestMonitor",
+		StringValidation: &cr.StringValidation{
+			Default:   "quay.io/cortexlabs/request-monitor:" + consts.CortexVersion,
 			Validator: validateImageVersion,
 		},
 	},
