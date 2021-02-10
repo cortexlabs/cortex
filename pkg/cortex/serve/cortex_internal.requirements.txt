@@ -1,7 +1,7 @@
 boto3==1.14.53
 google-cloud-storage==1.32.0
 datadog==0.39.0
-dill==0.3.2
+dill>=0.3.1.1
 msgpack==1.0.0
 numpy==1.19.1
 jinja2==2.11.2
