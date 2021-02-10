@@ -58,24 +58,6 @@ spec:
     fsGroup: 2000
     runAsNonRoot: true
     runAsUser: 1000
-  {% if config["provider"] == "gcp" %}
-  containers:
-    - name: stackdriver-sidecar
-      image: {{ config["image_prometheus_stackdriver_sidecar"] }}
-      imagePullPolicy: Always
-      args:
-      - --stackdriver.project-id={{ config["project"] }}
-      - --prometheus.wal-directory=/data/prometheus-db/wal
-      - --stackdriver.kubernetes.location={{ config["zone"] }}
-      - --stackdriver.kubernetes.cluster-name={{ config["cluster_name"] }}
-      - --include={job=~"default/.*",__name__=~"cortex.*"}
-      ports:
-      - name: sidecar
-        containerPort: 9091
-      volumeMounts:
-      - mountPath: /data
-        name: prometheus-prometheus-db
-  {% endif %}
 ---
 
 apiVersion: v1
