@@ -307,8 +307,8 @@ function setup_prometheus() {
 }
 
 function setup_grafana() {
-  kubectl manifests/grafana/grafana-dashboard-realtime.yaml >/dev/null
-  kubectl manifests/grafana/grafana-dashboard-batch.yaml >/dev/null
+  kubectl apply -f manifests/grafana/grafana-dashboard-realtime.yaml >/dev/null
+  kubectl apply -f manifests/grafana/grafana-dashboard-batch.yaml >/dev/null
   envsubst < manifests/grafana/grafana.yaml | kubectl apply -f - >/dev/null
 }
 
