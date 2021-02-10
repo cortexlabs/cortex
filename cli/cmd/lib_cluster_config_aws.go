@@ -414,8 +414,8 @@ func setConfigFieldsFromCached(userClusterConfig *clusterconfig.Config, cachedCl
 		return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.ImagePrometheusStatsDExporterKey, cachedClusterConfig.ImagePrometheusStatsDExporter)
 	}
 
-	if s.Obj(cachedClusterConfig.ImagePrometheusToCloudWatch) != s.Obj(userClusterConfig.ImagePrometheusToCloudWatch) {
-		return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.ImagePrometheusToCloudwatchKey, cachedClusterConfig.ImagePrometheusToCloudWatch)
+	if s.Obj(cachedClusterConfig.ImageGrafana) != s.Obj(userClusterConfig.ImageGrafana) {
+		return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.ImageGrafanaKey, cachedClusterConfig.ImageGrafana)
 	}
 
 	if userClusterConfig.Spot != nil && *userClusterConfig.Spot != *cachedClusterConfig.Spot {
@@ -521,7 +521,7 @@ func confirmInstallClusterConfig(clusterConfig *clusterconfig.Config, awsCreds A
 
 	rows = append(rows, []interface{}{workerInstanceStr, workerPriceStr})
 	rows = append(rows, []interface{}{ebsInstanceStr, s.DollarsAndTenthsOfCents(apiEBSPrice) + " each"})
-	rows = append(rows, []interface{}{"2 t3.medium instances for the cortex system", s.DollarsMaxPrecision(operatorInstancePrice * 2)})
+	rows = append(rows, []interface{}{"2 t3.medium instances for cortex", s.DollarsMaxPrecision(operatorInstancePrice * 2)})
 	rows = append(rows, []interface{}{"1 20gb ebs volume for the operator", s.DollarsAndTenthsOfCents(operatorEBSPrice)})
 	rows = append(rows, []interface{}{"1 40gb ebs volume for prometheus", s.DollarsAndTenthsOfCents(metricsEBSPrice)})
 	rows = append(rows, []interface{}{"2 network load balancers", s.DollarsMaxPrecision(nlbPrice) + " each"})
@@ -729,8 +729,8 @@ func clusterConfigConfirmationStr(clusterConfig clusterconfig.Config, awsCreds A
 	if clusterConfig.ImagePrometheusStatsDExporter != defaultConfig.ImagePrometheusStatsDExporter {
 		items.Add(clusterconfig.ImagePrometheusStatsDExporterUserKey, clusterConfig.ImagePrometheusStatsDExporter)
 	}
-	if clusterConfig.ImagePrometheusToCloudWatch != defaultConfig.ImagePrometheusToCloudWatch {
-		items.Add(clusterconfig.ImagePrometheusToCloudwatchUserKey, clusterConfig.ImagePrometheusToCloudWatch)
+	if clusterConfig.ImageGrafana != defaultConfig.ImageGrafana {
+		items.Add(clusterconfig.ImageGrafanaUserKey, clusterConfig.ImageGrafana)
 	}
 	return items.String()
 }
