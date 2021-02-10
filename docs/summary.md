@@ -22,6 +22,7 @@
   * [Server-side batching](workloads/realtime/server-side-batching.md)
   * [Autoscaling](workloads/realtime/autoscaling.md)
   * [Statuses](workloads/realtime/statuses.md)
+  * [Metrics](workloads/realtime/metrics.md)
   * Multi-model
     * [Example](workloads/realtime/multi-model/example.md)
     * [Configuration](workloads/realtime/multi-model/configuration.md)
