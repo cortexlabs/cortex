@@ -38,7 +38,7 @@ import (
 	kcore "k8s.io/api/core/v1"
 )
 
-const _realtimeDashboardUID = "xvWFsZPGk"
+const _realtimeDashboardUID = "realtimeapi"
 
 var _autoscalerCrons = make(map[string]cron.Cron) // apiName -> cron
 
