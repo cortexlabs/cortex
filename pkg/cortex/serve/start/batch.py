@@ -270,8 +270,8 @@ def handle_on_job_complete(message):
                     break
                 should_run_on_job_complete = True
             time.sleep(10)  # verify that the queue is empty one more time
-    except:
-        raise CortexException("failed to handle on_job_complete")
+    except Exception as err:
+        raise CortexException("failed to handle on_job_complete") from err
     finally:
         with receipt_handle_mutex:
             stop_renewal.add(receipt_handle)
