@@ -34,15 +34,14 @@ import (
 )
 
 type GCPCoreConfig struct {
-	Provider       types.ProviderType `json:"provider" yaml:"provider"`
-	Project        *string            `json:"project" yaml:"project"`
-	Zone           *string            `json:"zone" yaml:"zone"`
-	ClusterName    string             `json:"cluster_name" yaml:"cluster_name"`
-	Telemetry      bool               `json:"telemetry" yaml:"telemetry"`
-	Namespace      string             `json:"namespace" yaml:"namespace"`
-	IstioNamespace string             `json:"istio_namespace" yaml:"istio_namespace"`
-	IsManaged      bool               `json:"is_managed" yaml:"is_managed"`
-	Bucket         string             `json:"bucket" yaml:"bucket"`
+	Provider    types.ProviderType `json:"provider" yaml:"provider"`
+	Project     *string            `json:"project" yaml:"project"`
+	Zone        *string            `json:"zone" yaml:"zone"`
+	ClusterName string             `json:"cluster_name" yaml:"cluster_name"`
+	Telemetry   bool               `json:"telemetry" yaml:"telemetry"`
+	Namespace   string             `json:"namespace" yaml:"namespace"`
+	IsManaged   bool               `json:"is_managed" yaml:"is_managed"`
+	Bucket      string             `json:"bucket" yaml:"bucket"`
 
 	ImageOperator                     string `json:"image_operator" yaml:"image_operator"`
 	ImageManager                      string `json:"image_manager" yaml:"image_manager"`
@@ -87,12 +86,11 @@ type InternalGCPConfig struct {
 
 // The bare minimum to identify a cluster
 type GCPAccessConfig struct {
-	ClusterName    *string `json:"cluster_name" yaml:"cluster_name"`
-	Project        *string `json:"project" yaml:"project"`
-	Zone           *string `json:"zone" yaml:"zone"`
-	Namespace      string  `json:"namespace" yaml:"namespace"`
-	IstioNamespace string  `json:"istio_namespace" yaml:"istio_namespace"`
-	ImageManager   string  `json:"image_manager" yaml:"image_manager"`
+	ClusterName  *string `json:"cluster_name" yaml:"cluster_name"`
+	Project      *string `json:"project" yaml:"project"`
+	Zone         *string `json:"zone" yaml:"zone"`
+	Namespace    string  `json:"namespace" yaml:"namespace"`
+	ImageManager string  `json:"image_manager" yaml:"image_manager"`
 }
 
 var GCPCoreConfigStructFieldValidations = []*cr.StructFieldValidation{
@@ -132,7 +130,8 @@ var GCPCoreConfigStructFieldValidations = []*cr.StructFieldValidation{
 	{
 		StructField: "Namespace",
 		StringValidation: &cr.StringValidation{
-			Default: "default",
+			Default:       "cortex",
+			AllowedValues: []string{"cortex"},
 		},
 	},
 	{
@@ -140,12 +139,6 @@ var GCPCoreConfigStructFieldValidations = []*cr.StructFieldValidation{
 		StringValidation: &cr.StringValidation{
 			AllowEmpty:       true,
 			TreatNullAsEmpty: true,
-		},
-	},
-	{
-		StructField: "IstioNamespace",
-		StringValidation: &cr.StringValidation{
-			Default: "default",
 		},
 	},
 	{
@@ -352,22 +345,17 @@ var GCPAccessValidation = &cr.StructValidation{
 			StringPtrValidation: &cr.StringPtrValidation{},
 		},
 		{
+			StructField: "Namespace",
+			StringValidation: &cr.StringValidation{
+				Default:       "cortex",
+				AllowedValues: []string{"cortex"},
+			},
+		},
+		{
 			StructField: "ImageManager",
 			StringValidation: &cr.StringValidation{
 				Default:   "quay.io/cortexlabs/manager:" + consts.CortexVersion,
 				Validator: validateImageVersion,
-			},
-		},
-		{
-			StructField: "Namespace",
-			StringValidation: &cr.StringValidation{
-				Default: "default",
-			},
-		},
-		{
-			StructField: "IstioNamespace",
-			StringValidation: &cr.StringValidation{
-				Default: "default",
 			},
 		},
 	},
@@ -378,12 +366,11 @@ func (cc *GCPConfig) ToAccessConfig() GCPAccessConfig {
 	zone := *cc.Zone
 	project := *cc.Project
 	return GCPAccessConfig{
-		ClusterName:    &clusterName,
-		Zone:           &zone,
-		Project:        &project,
-		Namespace:      cc.Namespace,
-		IstioNamespace: cc.IstioNamespace,
-		ImageManager:   cc.ImageManager,
+		ClusterName:  &clusterName,
+		Zone:         &zone,
+		Project:      &project,
+		Namespace:    cc.Namespace,
+		ImageManager: cc.ImageManager,
 	}
 }
 
@@ -739,11 +726,9 @@ func (cc *GCPCoreConfig) TelemetryEvent() map[string]interface{} {
 		event["zone._is_defined"] = true
 		event["zone"] = *cc.Zone
 	}
+
 	if cc.Namespace != "default" {
 		event["namespace._is_custom"] = true
-	}
-	if cc.IstioNamespace != "istio-system" {
-		event["istio_namespace._is_custom"] = true
 	}
 
 	if !strings.HasPrefix(cc.ImageOperator, "cortexlabs/") {

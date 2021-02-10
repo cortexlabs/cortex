@@ -52,14 +52,13 @@ var (
 )
 
 type CoreConfig struct {
-	Bucket         string             `json:"bucket" yaml:"bucket"`
-	ClusterName    string             `json:"cluster_name" yaml:"cluster_name"`
-	Region         *string            `json:"region" yaml:"region"`
-	Provider       types.ProviderType `json:"provider" yaml:"provider"`
-	Telemetry      bool               `json:"telemetry" yaml:"telemetry"`
-	IsManaged      bool               `json:"is_managed" yaml:"is_managed"`
-	Namespace      string             `json:"namespace" yaml:"namespace"`
-	IstioNamespace string             `json:"istio_namespace" yaml:"istio_namespace"`
+	Bucket      string             `json:"bucket" yaml:"bucket"`
+	ClusterName string             `json:"cluster_name" yaml:"cluster_name"`
+	Region      *string            `json:"region" yaml:"region"`
+	Provider    types.ProviderType `json:"provider" yaml:"provider"`
+	Telemetry   bool               `json:"telemetry" yaml:"telemetry"`
+	IsManaged   bool               `json:"is_managed" yaml:"is_managed"`
+	Namespace   string             `json:"namespace" yaml:"namespace"`
 
 	ImageOperator                 string `json:"image_operator" yaml:"image_operator"`
 	ImageManager                  string `json:"image_manager" yaml:"image_manager"`
@@ -137,11 +136,10 @@ type InternalConfig struct {
 
 // The bare minimum to identify a cluster
 type AccessConfig struct {
-	ClusterName    *string `json:"cluster_name" yaml:"cluster_name"`
-	Region         *string `json:"region" yaml:"region"`
-	Namespace      string  `json:"namespace" yaml:"namespace"`
-	IstioNamespace string  `json:"istio_namespace" yaml:"istio_namespace"`
-	ImageManager   string  `json:"image_manager" yaml:"image_manager"`
+	ClusterName  *string `json:"cluster_name" yaml:"cluster_name"`
+	Region       *string `json:"region" yaml:"region"`
+	Namespace    string  `json:"namespace" yaml:"namespace"`
+	ImageManager string  `json:"image_manager" yaml:"image_manager"`
 }
 
 func ValidateRegion(region string) error {
@@ -193,13 +191,8 @@ var CoreConfigStructFieldValidations = []*cr.StructFieldValidation{
 	{
 		StructField: "Namespace",
 		StringValidation: &cr.StringValidation{
-			Default: "default",
-		},
-	},
-	{
-		StructField: "IstioNamespace",
-		StringValidation: &cr.StringValidation{
-			Default: "default",
+			Default:       "cortex",
+			AllowedValues: []string{"cortex"},
 		},
 	},
 	{
@@ -614,13 +607,8 @@ var AccessValidation = &cr.StructValidation{
 		{
 			StructField: "Namespace",
 			StringValidation: &cr.StringValidation{
-				Default: "default",
-			},
-		},
-		{
-			StructField: "IstioNamespace",
-			StringValidation: &cr.StringValidation{
-				Default: "default",
+				Default:       "cortex",
+				AllowedValues: []string{"cortex"},
 			},
 		},
 		{
@@ -637,11 +625,10 @@ func (cc *Config) ToAccessConfig() AccessConfig {
 	clusterName := cc.ClusterName
 	region := *cc.Region
 	return AccessConfig{
-		ClusterName:    &clusterName,
-		Region:         &region,
-		Namespace:      cc.Namespace,
-		IstioNamespace: cc.IstioNamespace,
-		ImageManager:   cc.ImageManager,
+		ClusterName:  &clusterName,
+		Region:       &region,
+		Namespace:    cc.Namespace,
+		ImageManager: cc.ImageManager,
 	}
 }
 
@@ -1349,9 +1336,6 @@ func (cc *CoreConfig) TelemetryEvent() map[string]interface{} {
 
 	if cc.Namespace != "default" {
 		event["namespace._is_custom"] = true
-	}
-	if cc.IstioNamespace != "istio-system" {
-		event["istio_namespace._is_custom"] = true
 	}
 
 	if cc.Region != nil {

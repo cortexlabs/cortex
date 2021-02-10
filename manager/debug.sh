@@ -29,7 +29,7 @@ fi
 eksctl utils write-kubeconfig --cluster=$CORTEX_CLUSTER_NAME --region=$CORTEX_REGION | (grep -v "saved kubeconfig as" | grep -v "using region" | grep -v "eksctl version" || true)
 out=$(kubectl get pods 2>&1 || true); if [[ "$out" == *"must be logged in to the server"* ]]; then echo "error: your aws iam user does not have access to this cluster; to grant access, see https://docs.cortex.dev/v/${CORTEX_VERSION_MINOR}/"; exit 1; fi
 
-echo -n "gathering cluster data"
+echo -n "gathering cluster data "
 
 mkdir -p /cortex-debug/k8s
 for resource in pods pods.metrics nodes nodes.metrics daemonsets deployments hpa services virtualservices gateways ingresses configmaps jobs replicasets events; do
@@ -97,13 +97,17 @@ python get_operator_target_group_status.py > "/cortex-debug/aws/operator_load_ba
 echo -n "."
 
 mkdir -p /cortex-debug/misc
-operator_endpoint=$(kubectl -n=istio-system get service ingressgateway-operator -o json 2>/dev/null | tr -d '[:space:]' | sed 's/.*{\"hostname\":\"\(.*\)\".*/\1/')
+operator_endpoint=$(kubectl -n=${CORTEX_NAMESPACE} get service ingressgateway-operator -o json 2>/dev/null | tr -d '[:space:]' | sed 's/.*{\"hostname\":\"\(.*\)\".*/\1/')
 echo "$operator_endpoint" > /cortex-debug/misc/operator_endpoint
 if [ "$operator_endpoint" == "" ]; then
   echo "unable to get operator endpoint" > /cortex-debug/misc/operator_curl
 else
   curl -sv --max-time 5 "${operator_endpoint}/verifycortex" > /cortex-debug/misc/operator_curl 2>&1
 fi
+echo -n "."
+
+mkdir -p /cortex-debug/helm
+helm get all cortex -n=${CORTEX_NAMESPACE} > /cortex-debug/helm/get_all
 echo -n "."
 
 (cd / && tar -czf cortex-debug.tgz cortex-debug)

@@ -83,7 +83,6 @@ func GCPManagedConfigOrNil() *clusterconfig.GCPManagedConfig {
 func Init() error {
 	var err error
 	var clusterNamespace string
-	var istioNamespace string
 
 	clusterConfigPath := os.Getenv("CORTEX_CLUSTER_CONFIG_PATH")
 	if clusterConfigPath == "" {
@@ -131,7 +130,6 @@ func Init() error {
 		}
 
 		clusterNamespace = CoreConfig.Namespace
-		istioNamespace = CoreConfig.IstioNamespace
 
 		exists, err := AWS.DoesBucketExist(CoreConfig.Bucket)
 		if err != nil {
@@ -176,7 +174,6 @@ func Init() error {
 		}
 
 		clusterNamespace = GCPCoreConfig.Namespace
-		istioNamespace = GCPCoreConfig.IstioNamespace
 
 		// If the bucket is specified double check that it exists and the operator has access to it
 		exists, err := GCP.DoesBucketExist(GCPCoreConfig.Bucket)
@@ -209,7 +206,7 @@ func Init() error {
 		return err
 	}
 
-	if K8sIstio, err = k8s.New(istioNamespace, OperatorMetadata.IsOperatorInCluster, nil); err != nil {
+	if K8sIstio, err = k8s.New(clusterNamespace, OperatorMetadata.IsOperatorInCluster, nil); err != nil {
 		return err
 	}
 

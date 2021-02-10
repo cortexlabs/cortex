@@ -25,7 +25,7 @@ gcloud auth activate-service-account --key-file $GOOGLE_APPLICATION_CREDENTIALS 
 gcloud container clusters get-credentials $CORTEX_CLUSTER_NAME --project $CORTEX_GCP_PROJECT --region $CORTEX_GCP_ZONE 2> /dev/stdout 1> /dev/null | (grep -v "Fetching cluster" | grep -v "kubeconfig entry generated" || true)
 out=$(kubectl get pods 2>&1 || true); if [[ "$out" == *"must be logged in to the server"* ]]; then echo "error: your iam user does not have access to this cluster"; exit 1; fi
 
-echo -n "gathering cluster data"
+echo -n "gathering cluster data "
 
 mkdir -p /cortex-debug/k8s
 for resource in pods pods.metrics nodes nodes.metrics daemonsets deployments hpa services virtualservices gateways ingresses configmaps jobs replicasets events; do
@@ -46,13 +46,17 @@ kubectl top nodes > "/cortex-debug/k8s/top_nodes" 2>&1
 echo -n "."
 
 mkdir -p /cortex-debug/misc
-operator_endpoint=$(kubectl -n=istio-system get service ingressgateway-operator -o json 2>/dev/null | tr -d '[:space:]' | sed 's/.*{\"ip\":\"\(.*\)\".*/\1/')
+operator_endpoint=$(kubectl -n=${CORTEX_NAMESPACE} get service ingressgateway-operator -o json 2>/dev/null | tr -d '[:space:]' | sed 's/.*{\"ip\":\"\(.*\)\".*/\1/')
 echo "$operator_endpoint" > /cortex-debug/misc/operator_endpoint
 if [ "$operator_endpoint" == "" ]; then
   echo "unable to get operator endpoint" > /cortex-debug/misc/operator_curl
 else
   curl -sv --max-time 5 "${operator_endpoint}/verifycortex" > /cortex-debug/misc/operator_curl 2>&1
 fi
+echo -n "."
+
+mkdir -p /cortex-debug/helm
+helm get all cortex -n=${CORTEX_NAMESPACE} > /cortex-debug/helm/get_all
 echo -n "."
 
 (cd / && tar -czf cortex-debug.tgz cortex-debug)
