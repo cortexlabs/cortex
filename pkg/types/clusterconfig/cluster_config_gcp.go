@@ -87,10 +87,12 @@ type InternalGCPConfig struct {
 
 // The bare minimum to identify a cluster
 type GCPAccessConfig struct {
-	ClusterName  *string `json:"cluster_name" yaml:"cluster_name"`
-	Project      *string `json:"project" yaml:"project"`
-	Zone         *string `json:"zone" yaml:"zone"`
-	ImageManager string  `json:"image_manager" yaml:"image_manager"`
+	ClusterName    *string `json:"cluster_name" yaml:"cluster_name"`
+	Project        *string `json:"project" yaml:"project"`
+	Zone           *string `json:"zone" yaml:"zone"`
+	Namespace      string  `json:"namespace" yaml:"namespace"`
+	IstioNamespace string  `json:"istio_namespace" yaml:"istio_namespace"`
+	ImageManager   string  `json:"image_manager" yaml:"image_manager"`
 }
 
 var GCPCoreConfigStructFieldValidations = []*cr.StructFieldValidation{
@@ -356,6 +358,18 @@ var GCPAccessValidation = &cr.StructValidation{
 				Validator: validateImageVersion,
 			},
 		},
+		{
+			StructField: "Namespace",
+			StringValidation: &cr.StringValidation{
+				Default: "default",
+			},
+		},
+		{
+			StructField: "IstioNamespace",
+			StringValidation: &cr.StringValidation{
+				Default: "istio-system",
+			},
+		},
 	},
 }
 
@@ -364,10 +378,12 @@ func (cc *GCPConfig) ToAccessConfig() GCPAccessConfig {
 	zone := *cc.Zone
 	project := *cc.Project
 	return GCPAccessConfig{
-		ClusterName:  &clusterName,
-		Zone:         &zone,
-		Project:      &project,
-		ImageManager: cc.ImageManager,
+		ClusterName:    &clusterName,
+		Zone:           &zone,
+		Project:        &project,
+		Namespace:      cc.Namespace,
+		IstioNamespace: cc.IstioNamespace,
+		ImageManager:   cc.ImageManager,
 	}
 }
 

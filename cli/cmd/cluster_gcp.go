@@ -142,30 +142,30 @@ var _clusterGCPUpCmd = &cobra.Command{
 
 		gkeClusterName := fmt.Sprintf("projects/%s/locations/%s/clusters/%s", *clusterConfig.Project, *clusterConfig.Zone, clusterConfig.ClusterName)
 
-		// clusterExists, err := gcpClient.ClusterExists(gkeClusterName)
-		// if err != nil {
-		// 	exit.Error(err)
-		// }
-		// if clusterExists {
-		// 	exit.Error(ErrorGCPClusterAlreadyExists(clusterConfig.ClusterName, *clusterConfig.Zone, *clusterConfig.Project))
-		// }
+		clusterExists, err := gcpClient.ClusterExists(gkeClusterName)
+		if err != nil {
+			exit.Error(err)
+		}
+		if clusterExists {
+			exit.Error(ErrorGCPClusterAlreadyExists(clusterConfig.ClusterName, *clusterConfig.Zone, *clusterConfig.Project))
+		}
 
-		// err = createGSBucketIfNotFound(gcpClient, clusterConfig.Bucket, gcp.ZoneToRegion(*accessConfig.Zone))
-		// if err != nil {
-		// 	exit.Error(err)
-		// }
+		err = createGSBucketIfNotFound(gcpClient, clusterConfig.Bucket, gcp.ZoneToRegion(*accessConfig.Zone))
+		if err != nil {
+			exit.Error(err)
+		}
 
-		// err = createGKECluster(clusterConfig, gcpClient)
-		// if err != nil {
-		// 	exit.Error(err)
-		// }
+		err = createGKECluster(clusterConfig, gcpClient)
+		if err != nil {
+			exit.Error(err)
+		}
 
 		_, _, err = runGCPManagerWithClusterConfig("/root/manager/install.sh", clusterConfig, nil, nil)
 		if err != nil {
 			exit.Error(err)
 		}
 
-		operatorLoadBalancerIP, err := getGCPOperatorLoadBalancerIP(gkeClusterName, gcpClient)
+		operatorLoadBalancerIP, err := getGCPOperatorLoadBalancerIP(gkeClusterName, clusterConfig.IstioNamespace, gcpClient)
 		if err != nil {
 			exit.Error(errors.Append(err, fmt.Sprintf("\n\nyou can attempt to resolve this issue and configure your cli environment by running `cortex cluster info --configure-env %s`", _flagClusterGCPUpEnv)))
 		}
@@ -253,7 +253,7 @@ var _clusterGCPDownCmd = &cobra.Command{
 		}
 
 		// updating CLI env is best-effort, so ignore errors
-		operatorLoadBalancerIP, _ := getGCPOperatorLoadBalancerIP(gkeClusterName, gcpClient)
+		operatorLoadBalancerIP, _ := getGCPOperatorLoadBalancerIP(gkeClusterName, accessConfig.IstioNamespace, gcpClient)
 
 		if _flagClusterGCPDisallowPrompt {
 			fmt.Printf("your cluster named \"%s\" in %s (zone: %s) will be spun down and all apis will be deleted\n\n", *accessConfig.ClusterName, *accessConfig.Project, *accessConfig.Zone)
@@ -563,7 +563,7 @@ func createGKECluster(clusterConfig *clusterconfig.GCPConfig, gcpClient *gcp.Cli
 	return nil
 }
 
-func getGCPOperatorLoadBalancerIP(clusterName string, gcpClient *gcp.Client) (string, error) {
+func getGCPOperatorLoadBalancerIP(clusterName string, istioNamespace string, gcpClient *gcp.Client) (string, error) {
 	cluster, err := gcpClient.GetCluster(clusterName)
 	if err != nil {
 		return "", err
@@ -572,7 +572,7 @@ func getGCPOperatorLoadBalancerIP(clusterName string, gcpClient *gcp.Client) (st
 	if err != nil {
 		return "", err
 	}
-	k8sIstio, err := k8s.New("istio-system", false, restConfig)
+	k8sIstio, err := k8s.New(istioNamespace, false, restConfig)
 	if err != nil {
 		return "", err
 	}

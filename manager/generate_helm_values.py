@@ -25,7 +25,6 @@ def main():
             "telemetry": cc["telemetry"],
             "is_managed": cc["is_managed"],
             "namespace": cc["namespace"],
-            "istio_namespace": cc["istio_namespace"],
             "image_operator": cc["image_operator"],
             "image_manager": cc["image_manager"],
             "image_downloader": cc["image_downloader"],
@@ -35,12 +34,12 @@ def main():
             "image_istio_pilot": cc["image_istio_pilot"],
             "image_prometheus": cc["image_prometheus"],
             "image_prometheus_statsd_exporter": cc["image_prometheus_statsd_exporter"],
-            "image_prometheus_stackdriver_sidecar": cc["image_prometheus_stackdriver_sidecar"],
             "image_prometheus_config_reloader": cc["image_prometheus_config_reloader"],
             "image_prometheus_operator": cc["image_prometheus_operator"],
         },
         "global": {
             "provider": cc["provider"],
+            "istioNamespace": cc["istio_namespace"],
         }
     }
 
@@ -59,6 +58,7 @@ def main():
             "project": cc["project"],
             "zone": cc["zone"],
             "image_google_pause": cc["image_google_pause"],
+            "image_prometheus_stackdriver_sidecar": cc["image_prometheus_stackdriver_sidecar"],
         })
 
     print(yaml.dump(values_config))

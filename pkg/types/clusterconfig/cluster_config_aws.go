@@ -137,9 +137,11 @@ type InternalConfig struct {
 
 // The bare minimum to identify a cluster
 type AccessConfig struct {
-	ClusterName  *string `json:"cluster_name" yaml:"cluster_name"`
-	Region       *string `json:"region" yaml:"region"`
-	ImageManager string  `json:"image_manager" yaml:"image_manager"`
+	ClusterName    *string `json:"cluster_name" yaml:"cluster_name"`
+	Region         *string `json:"region" yaml:"region"`
+	Namespace      string  `json:"namespace" yaml:"namespace"`
+	IstioNamespace string  `json:"istio_namespace" yaml:"istio_namespace"`
+	ImageManager   string  `json:"image_manager" yaml:"image_manager"`
 }
 
 func ValidateRegion(region string) error {
@@ -610,6 +612,18 @@ var AccessValidation = &cr.StructValidation{
 			},
 		},
 		{
+			StructField: "Namespace",
+			StringValidation: &cr.StringValidation{
+				Default: "default",
+			},
+		},
+		{
+			StructField: "IstioNamespace",
+			StringValidation: &cr.StringValidation{
+				Default: "istio-system",
+			},
+		},
+		{
 			StructField: "ImageManager",
 			StringValidation: &cr.StringValidation{
 				Default:   "quay.io/cortexlabs/manager:" + consts.CortexVersion,
@@ -623,9 +637,11 @@ func (cc *Config) ToAccessConfig() AccessConfig {
 	clusterName := cc.ClusterName
 	region := *cc.Region
 	return AccessConfig{
-		ClusterName:  &clusterName,
-		Region:       &region,
-		ImageManager: cc.ImageManager,
+		ClusterName:    &clusterName,
+		Region:         &region,
+		Namespace:      cc.Namespace,
+		IstioNamespace: cc.IstioNamespace,
+		ImageManager:   cc.ImageManager,
 	}
 }
 
