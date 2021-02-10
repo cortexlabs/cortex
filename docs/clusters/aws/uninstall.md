@@ -4,6 +4,11 @@
 cortex cluster down
 ```
 
+## Delete Prometheus Volume
+
+The volume used by Cortex's Prometheus instance is not deleted by default, as it might contain important information.
+If this volume is not required anymore, you can delete it in the AWS console.
+
 ## Delete metadata and log groups
 
 Since you may wish to have access to your data after spinning down your cluster, Cortex's bucket and log groups are not automatically deleted when running `cortex cluster down`.
