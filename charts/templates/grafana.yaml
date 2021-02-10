@@ -178,6 +178,15 @@ spec:
         - name: grafana-dashboard-batch
           configMap:
             name: grafana-dashboard-batch
+      affinity:
+        podAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - podAffinityTerm:
+                labelSelector:
+                  matchLabels:
+                    prometheus: prometheus
+                topologyKey: kubernetes.io/hostname
+              weight: 100
 
 ---
 
