@@ -131,6 +131,10 @@ func batchAPITable(batchAPI schema.APIResponse) string {
 		out += t.MustFormat()
 	}
 
+	if batchAPI.DashboardURL != nil && *batchAPI.DashboardURL != "" {
+		out += "\n" + console.Bold("metrics dashboard: ") + *batchAPI.DashboardURL + "\n"
+	}
+
 	out += "\n" + console.Bold("endpoint: ") + batchAPI.Endpoint + "\n"
 
 	out += "\n" + apiHistoryTable(batchAPI.APIVersions)
