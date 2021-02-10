@@ -22,6 +22,7 @@ import (
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/parallel"
+	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 	"github.com/cortexlabs/cortex/pkg/operator/lib/routines"
@@ -35,6 +36,8 @@ import (
 	kbatch "k8s.io/api/batch/v1"
 	kcore "k8s.io/api/core/v1"
 )
+
+const _batchDashboardUID = "batchapi"
 
 func UpdateAPI(apiConfig *userconfig.API, projectID string) (*spec.API, string, error) {
 	prevVirtualService, err := config.K8s.GetVirtualService(operator.K8sName(apiConfig.Name))
@@ -285,11 +288,28 @@ func GetAPIByName(deployedResource *operator.DeployedResource) ([]schema.APIResp
 		}
 	}
 
+	dashboardURL := pointer.String(getDashboardURL(api.Name))
+
 	return []schema.APIResponse{
 		{
 			Spec:             *api,
 			BatchJobStatuses: jobStatuses,
 			Endpoint:         endpoint,
+			DashboardURL:     dashboardURL,
 		},
 	}, nil
+}
+
+func getDashboardURL(apiName string) string {
+	loadBalancerURL, err := operator.LoadBalancerURL()
+	if err != nil {
+		return ""
+	}
+
+	dashboardURL := fmt.Sprintf(
+		"%s/dashboard/d/%s/batchapi?orgId=1&refresh=30s&var-api_name=%s",
+		loadBalancerURL, _batchDashboardUID, apiName,
+	)
+
+	return dashboardURL
 }

@@ -89,6 +89,8 @@ function cluster_up_aws() {
 
   echo -n "￮ configuring metrics "
   envsubst < manager/manifests/metrics-server.yaml | kubectl apply -f - >/dev/null
+  # setup prometheus and grafana
+  echo "✓"
 
   if [[ "$CORTEX_INSTANCE_TYPE" == p* ]] || [[ "$CORTEX_INSTANCE_TYPE" == g* ]]; then
     echo -n "￮ configuring gpu support "
@@ -139,6 +141,10 @@ function cluster_up_gcp() {
   echo -n "￮ configuring autoscaling "
   python manager/render_template.py $CORTEX_CLUSTER_CONFIG_FILE manager/manifests/cluster-autoscaler.yaml.j2 > /workspace/cluster-autoscaler.yaml
   kubectl apply -f /workspace/cluster-autoscaler.yaml >/dev/null
+  echo "✓"
+
+  echo -n "￮ configuring metrics "
+  # setup prometheus and grafana
   echo "✓"
 
   if [ -n "$CORTEX_ACCELERATOR_TYPE" ]; then
@@ -249,6 +255,18 @@ function setup_secrets_aws() {
     --from-literal='AWS_SECRET_ACCESS_KEY'=$CLUSTER_AWS_SECRET_ACCESS_KEY \
     -o yaml --dry-run=client | kubectl apply -f - >/dev/null
 }
+
+# function setup_prometheus() {
+#   envsubst < manifests/prometheus-operator.yaml | kubectl apply -f - >/dev/null
+#   envsubst < manifests/prometheus-statsd-exporter.yaml | kubectl apply -f - >/dev/null
+#   python render_template.py $CORTEX_CLUSTER_CONFIG_FILE manifests/prometheus-monitoring.yaml.j2 | kubectl apply -f - >/dev/null
+# }
+
+# function setup_grafana() {
+#   kubectl apply -f manifests/grafana/grafana-dashboard-realtime.yaml >/dev/null
+#   kubectl apply -f manifests/grafana/grafana-dashboard-batch.yaml >/dev/null
+#   envsubst < manifests/grafana/grafana.yaml | kubectl apply -f - >/dev/null
+# }
 
 function setup_secrets_gcp() {
   kubectl -n="${CORTEX_NAMESPACE}" create secret generic 'gcp-credentials' --from-file=key.json=$GOOGLE_APPLICATION_CREDENTIALS >/dev/null

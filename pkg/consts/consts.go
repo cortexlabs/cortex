@@ -50,7 +50,6 @@ var (
 		DefaultImageONNXPredictorGPU,
 	)
 
-	DashboardTitle               = "# cortex monitoring dashboard"
 	DefaultMaxReplicaConcurrency = int64(1024)
 	NeuronCoresPerInf            = int64(4)
 )

@@ -28,7 +28,6 @@ import (
 	"github.com/aws/aws-sdk-go/service/elbv2"
 	"github.com/cortexlabs/cortex/cli/cluster"
 	"github.com/cortexlabs/cortex/cli/types/cliconfig"
-	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/archive"
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/console"
@@ -208,12 +207,7 @@ var _clusterUpCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
-		//err = createOrClearDashboard(awsClient, clusterConfig.ClusterName)
-		//if err != nil {
-		//	exit.Error(err)
-		//}
-
-		out, exitCode, err := runManagerWithClusterConfig("/root/manager/install.sh", clusterConfig, awsCreds, nil, nil)
+		out, exitCode, err := runManagerWithClusterConfig("root/manager/install.sh", clusterConfig, awsCreds, nil, nil)
 		if err != nil {
 			exit.Error(err)
 		}
@@ -480,16 +474,6 @@ var _clusterDownCmd = &cobra.Command{
 		} else {
 			prompt.YesOrExit(fmt.Sprintf("your cluster named \"%s\" in %s will be spun down and all apis will be deleted, are you sure you want to continue?", *accessConfig.ClusterName, *accessConfig.Region), "", "")
 		}
-
-		//fmt.Print("￮ deleting dashboard ")
-		//err = awsClient.DeleteDashboard(*accessConfig.ClusterName)
-		//if err != nil {
-		//	fmt.Printf("\n\nunable to delete cortex's api dashboard (see error below); if it still exists after the cluster has been deleted, please delete it via the cloudwatch console: https://%s.console.aws.amazon.com/cloudwatch/home#dashboards:\n", *accessConfig.Region)
-		//	errors.PrintError(err)
-		//	fmt.Println()
-		//} else {
-		//	fmt.Println("✓")
-		//}
 
 		fmt.Print("￮ deleting sqs queues ")
 		err = awsClient.DeleteQueuesWithPrefix(clusterconfig.SQSNamePrefix(*accessConfig.ClusterName))
@@ -1027,30 +1011,6 @@ func createLogGroupIfNotFound(awsClient *aws.Client, logGroup string, tags map[s
 
 	// retry since it's possible that it takes some time for the new log group to be registered by AWS
 	err = awsClient.TagLogGroup(logGroup, tags)
-	if err != nil {
-		fmt.Print("\n\n")
-		return err
-	}
-
-	fmt.Println(" ✓")
-
-	return nil
-}
-
-// createOrClearDashboard creates a new dashboard (or clears an existing one if it already exists)
-func createOrClearDashboard(awsClient *aws.Client, dashboardName string) error {
-	dashboardFound, err := awsClient.DoesDashboardExist(dashboardName)
-	if err != nil {
-		return err
-	}
-
-	if dashboardFound {
-		fmt.Print("￮ using existing cloudwatch dashboard: ", dashboardName)
-	} else {
-		fmt.Print("￮ creating cloudwatch dashboard: ", dashboardName)
-	}
-
-	err = awsClient.CreateDashboard(dashboardName, consts.DashboardTitle)
 	if err != nil {
 		fmt.Print("\n\n")
 		return err
