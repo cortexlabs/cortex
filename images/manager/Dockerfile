@@ -6,12 +6,12 @@ ENV PATH /root/.local/bin:$PATH
 ENV AWS_RETRY_MODE standard
 ENV AWS_MAX_ATTEMPTS 10
 
-COPY manager/requirements.txt /root/requirements.txt
+COPY manager/requirements.txt /root/manager/requirements.txt
 
 RUN pip install --upgrade pip && \
     pip install awscli --upgrade --user && \
-    pip install -r /root/requirements.txt && \
-    rm -rf /root/.cache/pip*
+    pip install -r /root/manager/requirements.txt && \
+    rm -rf /root/manager/.cache/pip*
 
 RUN apk add --no-cache bash curl gettext jq openssl
 
@@ -38,9 +38,8 @@ ENV PATH $PATH:/usr/local/gcloud/google-cloud-sdk/bin
 
 
 RUN curl https://get.helm.sh/helm-v3.5.2-linux-amd64.tar.gz > /tmp/helm.tar.gz && \
-    mkdir -p /usr/local/bin/helm && \
     tar -C /tmp/ -xvzf /tmp/helm.tar.gz && \
-    mv /tmp/linux-amd64/helm /usr/local/bin/helm && \
+    mv /tmp/linux-amd64/helm /usr/local/bin/ && \
     rm -r /tmp/linux-amd64 && \
     rm /tmp/helm.tar.gz
 

@@ -142,25 +142,25 @@ var _clusterGCPUpCmd = &cobra.Command{
 
 		gkeClusterName := fmt.Sprintf("projects/%s/locations/%s/clusters/%s", *clusterConfig.Project, *clusterConfig.Zone, clusterConfig.ClusterName)
 
-		clusterExists, err := gcpClient.ClusterExists(gkeClusterName)
-		if err != nil {
-			exit.Error(err)
-		}
-		if clusterExists {
-			exit.Error(ErrorGCPClusterAlreadyExists(clusterConfig.ClusterName, *clusterConfig.Zone, *clusterConfig.Project))
-		}
+		// clusterExists, err := gcpClient.ClusterExists(gkeClusterName)
+		// if err != nil {
+		// 	exit.Error(err)
+		// }
+		// if clusterExists {
+		// 	exit.Error(ErrorGCPClusterAlreadyExists(clusterConfig.ClusterName, *clusterConfig.Zone, *clusterConfig.Project))
+		// }
 
-		err = createGSBucketIfNotFound(gcpClient, clusterConfig.Bucket, gcp.ZoneToRegion(*accessConfig.Zone))
-		if err != nil {
-			exit.Error(err)
-		}
+		// err = createGSBucketIfNotFound(gcpClient, clusterConfig.Bucket, gcp.ZoneToRegion(*accessConfig.Zone))
+		// if err != nil {
+		// 	exit.Error(err)
+		// }
 
-		err = createGKECluster(clusterConfig, gcpClient)
-		if err != nil {
-			exit.Error(err)
-		}
+		// err = createGKECluster(clusterConfig, gcpClient)
+		// if err != nil {
+		// 	exit.Error(err)
+		// }
 
-		_, _, err = runGCPManagerWithClusterConfig("/root/install.sh", clusterConfig, nil, nil)
+		_, _, err = runGCPManagerWithClusterConfig("/root/manager/install.sh", clusterConfig, nil, nil)
 		if err != nil {
 			exit.Error(err)
 		}
@@ -311,7 +311,7 @@ var _clusterGCPDownCmd = &cobra.Command{
 
 func cmdInfoGCP(accessConfig *clusterconfig.GCPAccessConfig, disallowPrompt bool) {
 	fmt.Print("fetching cluster endpoints ...\n\n")
-	out, exitCode, err := runGCPManagerAccessCommand("/root/info_gcp.sh", *accessConfig, nil, nil)
+	out, exitCode, err := runGCPManagerAccessCommand("/root/manager/info_gcp.sh", *accessConfig, nil, nil)
 	if err != nil {
 		exit.Error(err)
 	}
@@ -372,7 +372,7 @@ func cmdDebugGCP(accessConfig *clusterconfig.GCPAccessConfig) {
 		},
 	}
 
-	out, exitCode, err := runGCPManagerAccessCommand("/root/debug_gcp.sh "+containerDebugPath, *accessConfig, nil, copyFromPaths)
+	out, exitCode, err := runGCPManagerAccessCommand("/root/manager/debug_gcp.sh "+containerDebugPath, *accessConfig, nil, copyFromPaths)
 	if err != nil {
 		exit.Error(err)
 	}

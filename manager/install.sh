@@ -42,7 +42,7 @@ function cluster_configure_aws() {
 
   # this is necessary since max_instances may have been updated
   echo -n "￮ configuring autoscaling "
-  python render_template.py $CORTEX_CLUSTER_CONFIG_FILE manager/manifests/cluster-autoscaler.yaml.j2 > /workspace/cluster-autoscaler.yaml
+  python manager/render_template.py $CORTEX_CLUSTER_CONFIG_FILE manager/manifests/cluster-autoscaler.yaml.j2 > /workspace/cluster-autoscaler.yaml
   kubectl apply -f /workspace/cluster-autoscaler.yaml >/dev/null
   echo "✓"
 
@@ -78,7 +78,7 @@ function cluster_up_aws() {
 
 
   echo -n "￮ configuring autoscaling "
-  python render_template.py $CORTEX_CLUSTER_CONFIG_FILE manager/manifests/cluster-autoscaler.yaml.j2 > /workspace/cluster-autoscaler.yaml
+  python manager/render_template.py $CORTEX_CLUSTER_CONFIG_FILE manager/manifests/cluster-autoscaler.yaml.j2 > /workspace/cluster-autoscaler.yaml
   kubectl apply -f /workspace/cluster-autoscaler.yaml >/dev/null
   echo "✓"
 
@@ -120,17 +120,15 @@ function cluster_up_gcp() {
   echo "✓"
 
   echo -n "￮ installing cortex cluster "
+  cat "$CORTEX_CLUSTER_CONFIG_FILE"
   python manager/generate_helm_values.py > /workspace/helm_values.yaml
   helm install cortex charts/ -f /workspace/helm_values.yaml --wait > /dev/null
   echo "✓"
 
   echo -n "￮ configuring autoscaling "
-  python render_template.py $CORTEX_CLUSTER_CONFIG_FILE manager/manifests/cluster-autoscaler.yaml.j2 > /workspace/cluster-autoscaler.yaml
+  python manager/render_template.py $CORTEX_CLUSTER_CONFIG_FILE manager/manifests/cluster-autoscaler.yaml.j2 > /workspace/cluster-autoscaler.yaml
   kubectl apply -f /workspace/cluster-autoscaler.yaml >/dev/null
   echo "✓"
-
-  echo -n "￮ configuring metrics "
-  envsubst < manager/manifests/metrics-server.yaml | kubectl apply -f - >/dev/null
 
   if [ -n "$CORTEX_ACCELERATOR_TYPE" ]; then
     echo -n "￮ configuring gpu support "

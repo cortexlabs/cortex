@@ -29,9 +29,7 @@ def main():
             "image_operator": cc["image_operator"],
             "image_manager": cc["image_manager"],
             "image_downloader": cc["image_downloader"],
-            "image_request_monitor": cc["image_request_monitor"],
             "image_cluster_autoscaler": cc["image_cluster_autoscaler"],
-            "image_metrics_server": cc["image_metrics_server"],
             "image_fluent_bit": cc["image_fluent_bit"],
             "image_istio_proxy": cc["image_istio_proxy"],
             "image_istio_pilot": cc["image_istio_pilot"],
@@ -43,12 +41,13 @@ def main():
         },
         "global": {
             "provider": cc["provider"],
-
         }
     }
 
     if cc["provider"] == "aws":
         values_config["cortex"] = merge_override(values_config["cortex"], {
+            "region": cc["region"],
+            "image_request_monitor": cc["image_request_monitor"],
             "image_inferentia": cc["image_inferentia"],
             "image_neuron_rtd": cc["image_neuron_rtd"],
             "image_nvidia": cc["image_nvidia"],
@@ -57,6 +56,8 @@ def main():
 
     if cc["provider"] == "gcp":
         values_config["cortex"] = merge_override(values_config["cortex"], {
+            "project": cc["project"],
+            "zone": cc["zone"],
             "image_google_pause": cc["image_google_pause"],
         })
 

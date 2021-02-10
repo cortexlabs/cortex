@@ -55,7 +55,7 @@ func runManager(containerConfig *container.Config, addNewLineAfterPull bool, cop
 	containerConfig.Env = append(containerConfig.Env, "CORTEX_CLI_VERSION="+consts.CortexVersion)
 
 	// Add a slight delay before running the command to ensure logs don't start until after the container is attached
-	containerConfig.Cmd[0] = "sleep 0.1 && /root/check_cortex_version.sh && " + containerConfig.Cmd[0]
+	containerConfig.Cmd[0] = "sleep 0.1 && /root/manager/check_cortex_version.sh && " + containerConfig.Cmd[0]
 
 	dockerClient, err := docker.GetDockerClient()
 	if err != nil {
@@ -186,7 +186,7 @@ func runManagerWithClusterConfig(entrypoint string, clusterConfig *clusterconfig
 	containerConfig := &container.Config{
 		Image:        clusterConfig.ImageManager,
 		Entrypoint:   []string{"/bin/bash", "-c"},
-		Cmd:          []string{fmt.Sprintf("eval $(python /root/cluster_config_env.py %s) && %s", containerClusterConfigPath, entrypoint)},
+		Cmd:          []string{fmt.Sprintf("eval $(python /root/manager/cluster_config_env.py %s) && %s", containerClusterConfigPath, entrypoint)},
 		Tty:          true,
 		AttachStdout: true,
 		AttachStderr: true,
@@ -254,7 +254,7 @@ func runGCPManagerWithClusterConfig(entrypoint string, clusterConfig *clustercon
 	containerConfig := &container.Config{
 		Image:        clusterConfig.ImageManager,
 		Entrypoint:   []string{"/bin/bash", "-c"},
-		Cmd:          []string{fmt.Sprintf("eval $(python /root/cluster_config_env.py %s) && %s", containerClusterConfigPath, entrypoint)},
+		Cmd:          []string{fmt.Sprintf("eval $(python /root/manager/cluster_config_env.py %s) && %s", containerClusterConfigPath, entrypoint)},
 		Tty:          true,
 		AttachStdout: true,
 		AttachStderr: true,

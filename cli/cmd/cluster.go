@@ -213,7 +213,7 @@ var _clusterUpCmd = &cobra.Command{
 		//	exit.Error(err)
 		//}
 
-		out, exitCode, err := runManagerWithClusterConfig("/root/install.sh", clusterConfig, awsCreds, nil, nil)
+		out, exitCode, err := runManagerWithClusterConfig("/root/manager/install.sh", clusterConfig, awsCreds, nil, nil)
 		if err != nil {
 			exit.Error(err)
 		}
@@ -360,7 +360,7 @@ var _clusterConfigureCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
-		out, exitCode, err := runManagerWithClusterConfig("/root/install.sh --update", clusterConfig, awsCreds, nil, nil)
+		out, exitCode, err := runManagerWithClusterConfig("/root/manager/install.sh --update", clusterConfig, awsCreds, nil, nil)
 		if err != nil {
 			exit.Error(err)
 		}
@@ -502,7 +502,7 @@ var _clusterDownCmd = &cobra.Command{
 		}
 
 		fmt.Println("￮ spinning down the cluster ...")
-		out, exitCode, err := runManagerAccessCommand("/root/uninstall.sh", *accessConfig, awsCreds, nil, nil)
+		out, exitCode, err := runManagerAccessCommand("/root/manager/uninstall.sh", *accessConfig, awsCreds, nil, nil)
 		if err != nil {
 			exit.Error(err)
 		}
@@ -682,7 +682,7 @@ func cmdInfo(awsCreds AWSCredentials, accessConfig *clusterconfig.AccessConfig, 
 
 	clusterConfig := refreshCachedClusterConfig(awsCreds, accessConfig, disallowPrompt)
 
-	out, exitCode, err := runManagerWithClusterConfig("/root/info.sh", &clusterConfig, awsCreds, nil, nil)
+	out, exitCode, err := runManagerWithClusterConfig("/root/manager/info.sh", &clusterConfig, awsCreds, nil, nil)
 	if err != nil {
 		exit.Error(err)
 	}
@@ -933,7 +933,7 @@ func cmdDebug(awsCreds AWSCredentials, accessConfig *clusterconfig.AccessConfig)
 		},
 	}
 
-	out, exitCode, err := runManagerAccessCommand("/root/debug.sh "+containerDebugPath, *accessConfig, awsCreds, nil, copyFromPaths)
+	out, exitCode, err := runManagerAccessCommand("/root/manager/debug.sh "+containerDebugPath, *accessConfig, awsCreds, nil, copyFromPaths)
 	if err != nil {
 		exit.Error(err)
 	}
@@ -958,7 +958,7 @@ func refreshCachedClusterConfig(awsCreds AWSCredentials, accessConfig *clusterco
 	}
 
 	fmt.Print("syncing cluster configuration ...\n\n")
-	out, exitCode, err := runManagerAccessCommand("/root/refresh.sh "+containerConfigPath, *accessConfig, awsCreds, nil, copyFromPaths)
+	out, exitCode, err := runManagerAccessCommand("/root/manager/refresh.sh "+containerConfigPath, *accessConfig, awsCreds, nil, copyFromPaths)
 	if err != nil {
 		exit.Error(err)
 	}
