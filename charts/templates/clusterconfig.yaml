@@ -53,7 +53,6 @@ data:
     image_prometheus_config_reloader: {{ .Values.cortex.image_prometheus_config_reloader }}
     image_prometheus_operator: {{ .Values.cortex.image_prometheus_operator }}
     image_prometheus_statsd_exporter: {{ .Values.cortex.image_prometheus_statsd_exporter }}
-    image_prometheus_to_cloudwatch: {{ .Values.cortex.image_prometheus_to_cloudwatch }}
 ---
 {{- else if eq .Values.global.provider "gcp" }}
 apiVersion: v1
@@ -83,6 +82,5 @@ data:
     image_prometheus_config_reloader: {{ .Values.cortex.image_prometheus_config_reloader }}
     image_prometheus_operator: {{ .Values.cortex.image_prometheus_operator }}
     image_prometheus_statsd_exporter: {{ .Values.cortex.image_prometheus_statsd_exporter }}
-    image_prometheus_stackdriver_sidecar: {{ .Values.cortex.image_prometheus_stackdriver_sidecar }}
 ---
 {{- end }}

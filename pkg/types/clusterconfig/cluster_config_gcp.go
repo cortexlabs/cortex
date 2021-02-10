@@ -47,6 +47,7 @@ type GCPCoreConfig struct {
 	ImageManager                  string `json:"image_manager" yaml:"image_manager"`
 	ImageDownloader               string `json:"image_downloader" yaml:"image_downloader"`
 	ImageClusterAutoscaler        string `json:"image_cluster_autoscaler" yaml:"image_cluster_autoscaler"`
+	ImageMetricsServer            string `json:"image_metrics_server" yaml:"image_metrics_server"`
 	ImageFluentBit                string `json:"image_fluent_bit" yaml:"image_fluent_bit"`
 	ImageIstioProxy               string `json:"image_istio_proxy" yaml:"image_istio_proxy"`
 	ImageIstioPilot               string `json:"image_istio_pilot" yaml:"image_istio_pilot"`
@@ -166,6 +167,13 @@ var GCPCoreConfigStructFieldValidations = []*cr.StructFieldValidation{
 		StructField: "ImageClusterAutoscaler",
 		StringValidation: &cr.StringValidation{
 			Default:   "quay.io/cortexlabs/cluster-austoscaler:" + consts.CortexVersion,
+			Validator: validateImageVersion,
+		},
+	},
+	{
+		StructField: "ImageMetricsServer",
+		StringValidation: &cr.StringValidation{
+			Default:   "quay.io/cortexlabs/metrics-server:" + consts.CortexVersion,
 			Validator: validateImageVersion,
 		},
 	},
@@ -659,6 +667,7 @@ func (cc *GCPCoreConfig) UserTable() table.KeyValuePairs {
 	items.Add(ImageManagerUserKey, cc.ImageManager)
 	items.Add(ImageDownloaderUserKey, cc.ImageDownloader)
 	items.Add(ImageClusterAutoscalerUserKey, cc.ImageClusterAutoscaler)
+	items.Add(ImageMetricsServerUserKey, cc.ImageMetricsServer)
 	items.Add(ImageFluentBitUserKey, cc.ImageFluentBit)
 	items.Add(ImageIstioProxyUserKey, cc.ImageIstioProxy)
 	items.Add(ImageIstioPilotUserKey, cc.ImageIstioPilot)
@@ -742,6 +751,9 @@ func (cc *GCPCoreConfig) TelemetryEvent() map[string]interface{} {
 	}
 	if !strings.HasPrefix(cc.ImageClusterAutoscaler, "cortexlabs/") {
 		event["image_cluster_autoscaler._is_custom"] = true
+	}
+	if !strings.HasPrefix(cc.ImageMetricsServer, "cortexlabs/") {
+		event["image_metrics_server._is_custom"] = true
 	}
 	if !strings.HasPrefix(cc.ImageFluentBit, "cortexlabs/") {
 		event["image_fluent_bit._is_custom"] = true

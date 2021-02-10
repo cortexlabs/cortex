@@ -1,5 +1,20 @@
+# Copyright 2021 Cortex Labs, Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import os
 import yaml
+
 
 def merge_override(a, b):
     "merges b into a"
@@ -13,11 +28,12 @@ def merge_override(a, b):
             a[key] = b[key]
     return a
 
+
 def main():
     cluster_config_file = os.environ["CORTEX_CLUSTER_CONFIG_FILE"]
     with open(cluster_config_file, "r") as f:
         cc = yaml.safe_load(f)
-    
+
     values_config = {
         "cortex": {
             "cluster_name": cc["cluster_name"],
@@ -35,29 +51,34 @@ def main():
             "image_prometheus_statsd_exporter": cc["image_prometheus_statsd_exporter"],
             "image_prometheus_config_reloader": cc["image_prometheus_config_reloader"],
             "image_prometheus_operator": cc["image_prometheus_operator"],
+            "image_grafana": cc["image_grafana"],
         },
         "global": {
             "provider": cc["provider"],
-        }
+        },
     }
 
     if cc["provider"] == "aws":
-        values_config["cortex"] = merge_override(values_config["cortex"], {
-            "region": cc["region"],
-            "image_request_monitor": cc["image_request_monitor"],
-            "image_inferentia": cc["image_inferentia"],
-            "image_neuron_rtd": cc["image_neuron_rtd"],
-            "image_nvidia": cc["image_nvidia"],
-            "image_prometheus_to_cloudwatch": cc["image_prometheus_to_cloudwatch"],
-        })
+        values_config["cortex"] = merge_override(
+            values_config["cortex"],
+            {
+                "region": cc["region"],
+                "image_request_monitor": cc["image_request_monitor"],
+                "image_inferentia": cc["image_inferentia"],
+                "image_neuron_rtd": cc["image_neuron_rtd"],
+                "image_nvidia": cc["image_nvidia"],
+            },
+        )
 
     if cc["provider"] == "gcp":
-        values_config["cortex"] = merge_override(values_config["cortex"], {
-            "project": cc["project"],
-            "zone": cc["zone"],
-            "image_google_pause": cc["image_google_pause"],
-            "image_prometheus_stackdriver_sidecar": cc["image_prometheus_stackdriver_sidecar"],
-        })
+        values_config["cortex"] = merge_override(
+            values_config["cortex"],
+            {
+                "project": cc["project"],
+                "zone": cc["zone"],
+                "image_google_pause": cc["image_google_pause"],
+            },
+        )
 
     print(yaml.dump(values_config))
 
