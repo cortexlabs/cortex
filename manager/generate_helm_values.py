@@ -47,6 +47,7 @@ def main():
             "image_fluent_bit": cc["image_fluent_bit"],
             "image_istio_proxy": cc["image_istio_proxy"],
             "image_istio_pilot": cc["image_istio_pilot"],
+            "image_metrics_server": cc["image_metrics_server"],
             "image_prometheus": cc["image_prometheus"],
             "image_prometheus_statsd_exporter": cc["image_prometheus_statsd_exporter"],
             "image_prometheus_config_reloader": cc["image_prometheus_config_reloader"],

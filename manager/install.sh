@@ -87,10 +87,6 @@ function cluster_up_aws() {
   kubectl apply -f /workspace/cluster-autoscaler.yaml >/dev/null
   echo "✓"
 
-  echo -n "￮ configuring metrics "
-  envsubst < manager/manifests/metrics-server.yaml | kubectl apply -f - >/dev/null
-  echo "✓"
-
   if [[ "$CORTEX_INSTANCE_TYPE" == p* ]] || [[ "$CORTEX_INSTANCE_TYPE" == g* ]]; then
     echo -n "￮ configuring gpu support "
     envsubst < manager/manifests/nvidia_aws.yaml | kubectl apply -f - >/dev/null
@@ -140,10 +136,6 @@ function cluster_up_gcp() {
   echo -n "￮ configuring autoscaling "
   python manager/render_template.py $CORTEX_CLUSTER_CONFIG_FILE manager/manifests/cluster-autoscaler.yaml.j2 > /workspace/cluster-autoscaler.yaml
   kubectl apply -f /workspace/cluster-autoscaler.yaml >/dev/null
-  echo "✓"
-
-  echo -n "￮ configuring metrics "
-  envsubst < manager/manifests/metrics-server.yaml | kubectl apply -f - >/dev/null
   echo "✓"
 
   if [ -n "$CORTEX_ACCELERATOR_TYPE" ]; then

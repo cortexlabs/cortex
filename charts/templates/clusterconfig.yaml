@@ -49,6 +49,7 @@ data:
     image_fluent_bit: {{ .Values.cortex.image_fluent_bit }}
     image_istio_proxy: {{ .Values.cortex.image_istio_proxy }}
     image_istio_pilot: {{ .Values.cortex.image_istio_pilot }}
+    image_metrics_server: {{ .Values.cortex.image_metrics_server }}
     image_prometheus: {{ .Values.cortex.image_prometheus }}
     image_prometheus_config_reloader: {{ .Values.cortex.image_prometheus_config_reloader }}
     image_prometheus_operator: {{ .Values.cortex.image_prometheus_operator }}
@@ -78,6 +79,7 @@ data:
     image_istio_proxy: {{ .Values.cortex.image_istio_proxy }}
     image_istio_pilot: {{ .Values.cortex.image_istio_pilot }}
     image_google_pause: {{ .Values.cortex.image_google_pause }}
+    image_metrics_server: {{ .Values.cortex.image_metrics_server }}
     image_prometheus: {{ .Values.cortex.image_prometheus }}
     image_prometheus_config_reloader: {{ .Values.cortex.image_prometheus_config_reloader }}
     image_prometheus_operator: {{ .Values.cortex.image_prometheus_operator }}

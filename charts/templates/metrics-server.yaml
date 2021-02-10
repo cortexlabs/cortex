@@ -14,6 +14,7 @@
 
 # Source: https://github.com/kubernetes-incubator/metrics-server/tree/v0.3.7/deploy/1.8+
 
+{{- if .Values.addons.kubeMetricsServer.enabled }}
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
@@ -27,56 +28,6 @@ rules:
     resources: ["pods", "nodes"]
     verbs: ["get", "list", "watch"]
 
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRoleBinding
-metadata:
-  name: metrics-server:system:auth-delegator
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: ClusterRole
-  name: system:auth-delegator
-subjects:
-  - kind: ServiceAccount
-    name: metrics-server
-    namespace: kube-system
-
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: RoleBinding
-metadata:
-  name: metrics-server-auth-reader
-  namespace: kube-system
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: Role
-  name: extension-apiserver-authentication-reader
-subjects:
-  - kind: ServiceAccount
-    name: metrics-server
-    namespace: kube-system
-
----
-apiVersion: apiregistration.k8s.io/v1beta1
-kind: APIService
-metadata:
-  name: v1beta1.metrics.k8s.io
-spec:
-  service:
-    name: metrics-server
-    namespace: kube-system
-  group: metrics.k8s.io
-  version: v1beta1
-  insecureSkipTLSVerify: true
-  groupPriorityMinimum: 100
-  versionPriority: 100
-
----
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: metrics-server
-  namespace: kube-system
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -102,7 +53,7 @@ spec:
           emptyDir: {}
       containers:
         - name: metrics-server
-          image: $CORTEX_IMAGE_METRICS_SERVER
+          image: {{ .Values.cortex.image_metrics_server }}
           imagePullPolicy: Always
           args:
             - --cert-dir=/tmp
@@ -126,6 +77,66 @@ spec:
         kubernetes.io/os: linux
 
 ---
+{{- if not (lookup "rbac.authorization.k8s.io/v1" "ClusterRoleBinding" "" "metrics-server:system:auth-delegator") }}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: metrics-server:system:auth-delegator
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: system:auth-delegator
+subjects:
+  - kind: ServiceAccount
+    name: metrics-server
+    namespace: kube-system
+{{- end }}
+
+---
+{{- if not (lookup "rbac.authorization.k8s.io/v1" "RoleBinding" "kube-system" "metrics-server-auth-reader") }}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: metrics-server-auth-reader
+  namespace: kube-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: extension-apiserver-authentication-reader
+subjects:
+  - kind: ServiceAccount
+    name: metrics-server
+    namespace: kube-system
+{{- end }}
+
+---
+{{- if not (lookup "apiregistration.k8s.io/v1beta1" "APIService" "" "v1beta1.metrics.k8s.io") }}
+apiVersion: apiregistration.k8s.io/v1beta1
+kind: APIService
+metadata:
+  name: v1beta1.metrics.k8s.io
+spec:
+  service:
+    name: metrics-server
+    namespace: kube-system
+  group: metrics.k8s.io
+  version: v1beta1
+  insecureSkipTLSVerify: true
+  groupPriorityMinimum: 100
+  versionPriority: 100
+{{- end }}
+
+---
+{{- if not (lookup "v1" "ServiceAccount" "kube-system" "metrics-server") }}
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: metrics-server
+  namespace: kube-system
+{{- end }}
+
+---
+{{- if not (lookup "v1" "Service" "kube-system" "metrics-server") }}
 apiVersion: v1
 kind: Service
 metadata:
@@ -141,8 +152,10 @@ spec:
     - port: 443
       protocol: TCP
       targetPort: main-port
+{{- end }}
 
 ---
+{{- if not (lookup "rbac.authorization.k8s.io/v1" "ClusterRole" "" "system:metrics-server") }}
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
@@ -160,7 +173,10 @@ rules:
       - get
       - list
       - watch
+{{- end }}
+
 ---
+{{- if not (lookup "rbac.authorization.k8s.io/v1" "ClusterRoleBinding" "" "system:metrics-server") }}
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
@@ -173,3 +189,6 @@ subjects:
   - kind: ServiceAccount
     name: metrics-server
     namespace: kube-system
+{{- end }}
+
+{{- end }}

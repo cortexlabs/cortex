@@ -69,6 +69,7 @@ non_dev_images_cluster=(
   "istio-proxy"
   "istio-pilot"
   "fluent-bit"
+  "metrics-server"
   "prometheus"
   "prometheus-config-reloader"
   "prometheus-operator"
@@ -78,7 +79,6 @@ non_dev_images_cluster=(
 non_dev_images_aws=(
   # includes non_dev_images_cluster
   "tensorflow-serving-inf"
-  "metrics-server"
   "inferentia"
   "neuron-rtd"
   "nvidia"

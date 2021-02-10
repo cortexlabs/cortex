@@ -56,3 +56,5 @@ global:
 addons:
   grafana:
     enabled: true
+  kubeMetricsServer:
+    enabled: true
