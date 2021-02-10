@@ -207,7 +207,7 @@ var _clusterUpCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
-		out, exitCode, err := runManagerWithClusterConfig("root/manager/install.sh", clusterConfig, awsCreds, nil, nil)
+		out, exitCode, err := runManagerWithClusterConfig("/root/manager/install.sh", clusterConfig, awsCreds, nil, nil)
 		if err != nil {
 			exit.Error(err)
 		}

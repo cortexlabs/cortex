@@ -146,44 +146,44 @@ cluster-configure-aws-y:
 # stop the in-cluster operator
 operator-stop-aws:
 	@$(MAKE) kubectl-aws
-	@kubectl scale --namespace=default deployments/operator --replicas=0
+	@kubectl scale --namespace=cortex deployments/operator --replicas=0
 operator-stop-gcp:
 	@$(MAKE) kubectl-gcp
-	@kubectl scale --namespace=default deployments/operator --replicas=0
+	@kubectl scale --namespace=cortex deployments/operator --replicas=0
 
 # start the in-cluster operator
 operator-start-aws:
 	@$(MAKE) kubectl-aws
-	@kubectl scale --namespace=default deployments/operator --replicas=1
-	@operator_pod=$$(kubectl get pods -l workloadID=operator --namespace=default -o jsonpath='{.items[0].metadata.name}') && kubectl wait --for=condition=ready pod $$operator_pod --namespace=default
+	@kubectl scale --namespace=cortex deployments/operator --replicas=1
+	@operator_pod=$$(kubectl get pods -l workloadID=operator --namespace=cortex -o jsonpath='{.items[0].metadata.name}') && kubectl wait --for=condition=ready pod $$operator_pod --namespace=cortex
 operator-start-gcp:
 	@$(MAKE) kubectl-gcp
-	@kubectl scale --namespace=default deployments/operator --replicas=1
-	@operator_pod=$$(kubectl get pods -l workloadID=operator --namespace=default -o jsonpath='{.items[0].metadata.name}') && kubectl wait --for=condition=ready pod $$operator_pod --namespace=default
+	@kubectl scale --namespace=cortex deployments/operator --replicas=1
+	@operator_pod=$$(kubectl get pods -l workloadID=operator --namespace=cortex -o jsonpath='{.items[0].metadata.name}') && kubectl wait --for=condition=ready pod $$operator_pod --namespace=cortex
 
 # restart the in-cluster operator
 operator-restart-aws:
 	@$(MAKE) kubectl-aws
-	@kubectl delete pods -l workloadID=operator --namespace=default
-	@operator_pod=$$(kubectl get pods -l workloadID=operator --namespace=default -o jsonpath='{.items[0].metadata.name}') && kubectl wait --for=condition=ready pod $$operator_pod --namespace=default
+	@kubectl delete pods -l workloadID=operator --namespace=cortex
+	@operator_pod=$$(kubectl get pods -l workloadID=operator --namespace=cortex -o jsonpath='{.items[0].metadata.name}') && kubectl wait --for=condition=ready pod $$operator_pod --namespace=cortex
 operator-restart-gcp:
 	@$(MAKE) kubectl-gcp
-	@kubectl delete pods -l workloadID=operator --namespace=default
-	@operator_pod=$$(kubectl get pods -l workloadID=operator -o jsonpath='{.items[0].metadata.name}') && kubectl wait --for=condition=ready pod $$operator_pod --namespace=default
+	@kubectl delete pods -l workloadID=operator --namespace=cortex
+	@operator_pod=$$(kubectl get pods -l workloadID=operator -o jsonpath='{.items[0].metadata.name}') && kubectl wait --for=condition=ready pod $$operator_pod --namespace=cortex
 
 # build and update the in-cluster operator
 operator-update-aws:
 	@$(MAKE) kubectl-aws
-	@kubectl scale --namespace=default deployments/operator --replicas=0
+	@kubectl scale --namespace=cortex deployments/operator --replicas=0
 	@./dev/registry.sh update-single operator -p aws
-	@kubectl scale --namespace=default deployments/operator --replicas=1
-	@operator_pod=$$(kubectl get pods -l workloadID=operator --namespace=default -o jsonpath='{.items[0].metadata.name}') && kubectl wait --for=condition=ready pod $$operator_pod --namespace=default
+	@kubectl scale --namespace=cortex deployments/operator --replicas=1
+	@operator_pod=$$(kubectl get pods -l workloadID=operator --namespace=cortex -o jsonpath='{.items[0].metadata.name}') && kubectl wait --for=condition=ready pod $$operator_pod --namespace=cortex
 operator-update-gcp:
 	@$(MAKE) kubectl-gcp
-	@kubectl scale --namespace=default deployments/operator --replicas=0
+	@kubectl scale --namespace=cortex deployments/operator --replicas=0
 	@./dev/registry.sh update-single operator -p gcp
-	@kubectl scale --namespace=default deployments/operator --replicas=1
-	@operator_pod=$$(kubectl get pods -l workloadID=operator --namespace=default -o jsonpath='{.items[0].metadata.name}') && kubectl wait --for=condition=ready pod $$operator_pod --namespace=default
+	@kubectl scale --namespace=cortex deployments/operator --replicas=1
+	@operator_pod=$$(kubectl get pods -l workloadID=operator --namespace=cortex -o jsonpath='{.items[0].metadata.name}') && kubectl wait --for=condition=ready pod $$operator_pod --namespace=cortex
 
 # Docker images
 
