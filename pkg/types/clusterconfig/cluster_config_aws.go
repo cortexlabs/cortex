@@ -77,7 +77,7 @@ type CoreConfig struct {
 	ImagePrometheusConfigReloader string `json:"image_prometheus_config_reloader" yaml:"image_prometheus_config_reloader"`
 	ImagePrometheusOperator       string `json:"image_prometheus_operator" yaml:"image_prometheus_operator"`
 	ImagePrometheusStatsDExporter string `json:"image_prometheus_statsd_exporter" yaml:"image_prometheus_statsd_exporter"`
-	ImagePrometheusToCloudWatch   string `json:"image_prometheus_to_cloudwatch" yaml:"image_prometheus_to_cloudwatch"`
+	ImageGrafana                  string `json:"image_grafana" yaml:"image_grafana"`
 }
 
 type ManagedConfig struct {
@@ -299,20 +299,6 @@ var CoreConfigStructFieldValidations = []*cr.StructFieldValidation{
 		},
 	},
 	{
-		StructField: "ImageIstioProxy",
-		StringValidation: &cr.StringValidation{
-			Default:   "quay.io/cortexlabs/istio-proxy:" + consts.CortexVersion,
-			Validator: validateImageVersion,
-		},
-	},
-	{
-		StructField: "ImageIstioPilot",
-		StringValidation: &cr.StringValidation{
-			Default:   "quay.io/cortexlabs/istio-pilot:" + consts.CortexVersion,
-			Validator: validateImageVersion,
-		},
-	},
-	{
 		StructField: "ImagePrometheus",
 		StringValidation: &cr.StringValidation{
 			Default:   "quay.io/cortexlabs/prometheus:" + consts.CortexVersion,
@@ -341,9 +327,9 @@ var CoreConfigStructFieldValidations = []*cr.StructFieldValidation{
 		},
 	},
 	{
-		StructField: "ImagePrometheusToCloudWatch",
+		StructField: "ImageGrafana",
 		StringValidation: &cr.StringValidation{
-			Default:   "quay.io/cortexlabs/prometheus-to-cloudwatch:" + consts.CortexVersion,
+			Default:   "quay.io/cortexlabs/grafana:" + consts.CortexVersion,
 			Validator: validateImageVersion,
 		},
 	},
@@ -1262,7 +1248,7 @@ func (cc *CoreConfig) UserTable() table.KeyValuePairs {
 	items.Add(ImagePrometheusConfigReloaderUserKey, cc.ImagePrometheusConfigReloader)
 	items.Add(ImagePrometheusOperatorUserKey, cc.ImagePrometheusOperator)
 	items.Add(ImagePrometheusStatsDExporterUserKey, cc.ImagePrometheusStatsDExporter)
-	items.Add(ImagePrometheusToCloudwatchUserKey, cc.ImagePrometheusToCloudWatch)
+	items.Add(ImageGrafanaUserKey, cc.ImageGrafana)
 
 	return items
 }
@@ -1391,8 +1377,8 @@ func (cc *CoreConfig) TelemetryEvent() map[string]interface{} {
 	if strings.HasPrefix(cc.ImagePrometheusStatsDExporter, "cortexlabs/") {
 		event["image_prometheus_statsd_exporter._is_custom"] = true
 	}
-	if strings.HasPrefix(cc.ImagePrometheusToCloudWatch, "cortexlabs/") {
-		event["image_prometheus_to_cloudwatch._is_custom"] = true
+	if strings.HasPrefix(cc.ImageGrafana, "cortexlabs/") {
+		event["image_grafana._is_custom"] = true
 	}
 
 	return event
