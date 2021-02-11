@@ -244,13 +244,13 @@ workflows:
                 - master
                 - /^[0-9]+\.[0-9]+$/
   nightly:
-#    triggers:
-#      - schedule:
-#          cron: "0 0 * * *"
-#          filters:
-#            branches:
-#              only:
-#                - master
+    triggers:
+      - schedule:
+          cron: "0 0 * * *"
+          filters:
+            branches:
+              only:
+                - master
     jobs:
       - e2e-tests-aws
       - e2e-tests-gcp
