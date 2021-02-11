@@ -134,6 +134,11 @@ jobs:
       - setup_remote_docker
       - install-e2e-dependencies
       - run:
+          name: Initialize Credentials
+          command: |
+            echo 'export AWS_ACCESS_KEY_ID=${NIGHTLY_AWS_ACCESS_KEY_ID}' >> $BASH_ENV
+            echo 'export AWS_SECRET_ACCESS_KEY=${NIGHTLY_AWS_SECRET_ACCESS_KEY}' >> $BASH_ENV
+      - run:
           name: Generate Cluster Config
           command: |
             cat \<< EOF > ./cluster.yaml
@@ -161,7 +166,7 @@ jobs:
             image_prometheus_config_reloader: quay.io/cortexlabs/prometheus-config-reloader:master
             image_prometheus_operator: quay.io/cortexlabs/prometheus-operator:master
             image_prometheus_statsd_exporter: quay.io/cortexlabs/prometheus-statsd-exporter:master
-            image_prometheus_to_cloudwatch: quay.io/cortexlabs/prometheus-to-cloudwatch:master
+            image_grafana: quay.io/cortexlabs/grafana:master
             EOF
       - run-e2e-tests:
           provider: aws
@@ -175,7 +180,7 @@ jobs:
       - setup_remote_docker
       - install-e2e-dependencies
       - run:
-          name: Initialize GCP Credentials
+          name: Initialize Credentials
           command: |
             echo ${NIGHTLY_GOOGLE_APPLICATION_CREDENTIALS} > ./google_service_account.json
             echo 'export GOOGLE_APPLICATION_CREDENTIALS=$(pwd)/google_service_account.json' >> $BASH_ENV
@@ -195,6 +200,7 @@ jobs:
             image_operator: quay.io/cortexlabs/operator:master
             image_manager: quay.io/cortexlabs/manager:master
             image_downloader: quay.io/cortexlabs/downloader:master
+            image_request_monitor: quay.io/cortexlabs/request-monitor:master
             image_istio_proxy: quay.io/cortexlabs/istio-proxy:master
             image_istio_pilot: quay.io/cortexlabs/istio-pilot:master
             image_google_pause: quay.io/cortexlabs/google-pause:master
@@ -202,7 +208,7 @@ jobs:
             image_prometheus_config_reloader: quay.io/cortexlabs/prometheus-config-reloader:master
             image_prometheus_operator: quay.io/cortexlabs/prometheus-operator:master
             image_prometheus_statsd_exporter: quay.io/cortexlabs/prometheus-statsd-exporter:master
-            image_prometheus_stackdriver_sidecar: quay.io/cortexlabs/prometheus-stackdriver-sidecar:master
+            image_grafana: quay.io/cortexlabs/grafana:master
             EOF
       - run-e2e-tests:
           provider: gcp
