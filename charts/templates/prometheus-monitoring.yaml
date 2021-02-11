@@ -124,7 +124,6 @@ spec:
     matchExpressions:
       - { key: prometheus-ignore, operator: DoesNotExist }
       - { key: istio, operator: Exists }
-      - { key: release, operator: In, values: [ "istio" ]}
   namespaceSelector:
     any: true
   jobLabel: envoy-stats
