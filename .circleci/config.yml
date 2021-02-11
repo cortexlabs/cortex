@@ -52,6 +52,10 @@ commands:
         description: cluster config file path
         type: string
         default: ./cluster.yaml
+      slack_channel:
+        description: "slack channel where failed builds will be posted (should start with #)"
+        type: string
+        default: "#builds"
     steps:
       - when:
           condition:
@@ -83,7 +87,7 @@ commands:
                 when: always
       - slack/notify:
           event: fail
-          channel: "#eng"
+          channel: << parameters.slack_channel >>
           template: basic_fail_1
 
 jobs:
