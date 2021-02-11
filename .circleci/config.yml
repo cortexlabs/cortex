@@ -53,16 +53,34 @@ commands:
         type: string
         default: ./cluster.yaml
     steps:
-      - run:
-          name: Create Cluster
-          command: cortex cluster up --config << parameters.config >> --configure-env << parameters.provider >> --aws-key $NIGHTLY_AWS_ACCESS_KEY_ID --aws-secret $NIGHTLY_AWS_SECRET_ACCESS_KEY -y
-      - run:
-          name: Run E2E Tests
-          command: pytest -v test/e2e/tests -k << parameters.provider >> --<< parameters.provider >>-env << parameters.provider >>
-      - run:
-          name: Delete Cluster
-          command: cortex cluster down --config << parameters.config >> --aws-key $NIGHTLY_AWS_ACCESS_KEY_ID --aws-secret $NIGHTLY_AWS_SECRET_ACCESS_KEY -y
-          when: always
+      - when:
+          condition:
+            equal: [<< parameters.provider >>, "aws"]
+          steps:
+            - run:
+                name: Create Cluster
+                command: cortex cluster up --config << parameters.config >> --configure-env << parameters.provider >> --aws-key $NIGHTLY_AWS_ACCESS_KEY_ID --aws-secret $NIGHTLY_AWS_SECRET_ACCESS_KEY -y
+            - run:
+                name: Run E2E Tests
+                command: pytest -v test/e2e/tests -k << parameters.provider >> --<< parameters.provider >>-env << parameters.provider >>
+            - run:
+                name: Delete Cluster
+                command: cortex cluster down --config << parameters.config >> --aws-key $NIGHTLY_AWS_ACCESS_KEY_ID --aws-secret $NIGHTLY_AWS_SECRET_ACCESS_KEY -y
+                when: always
+      - when:
+          condition:
+            equal: [ << parameters.provider >>, "gcp" ]
+          steps:
+            - run:
+                name: Create Cluster
+                command: cortex cluster-gcp up --config << parameters.config >> --configure-env << parameters.provider >> -y
+            - run:
+                name: Run E2E Tests
+                command: pytest -v test/e2e/tests -k << parameters.provider >> --<< parameters.provider >>-env << parameters.provider >>
+            - run:
+                name: Delete Cluster
+                command: cortex cluster down --config << parameters.config >> -y
+                when: always
       - slack/notify:
           event: fail
           channel: "#eng"
@@ -157,6 +175,11 @@ jobs:
       - setup_remote_docker
       - install-e2e-dependencies
       - run:
+          name: Initialize GCP Credentials
+          command: |
+            echo ${NIGHTLY_GOOGLE_APPLICATION_CREDENTIALS} > ./google_service_account.json
+            echo 'export GOOGLE_APPLICATION_CREDENTIALS=$(pwd)/google_service_account.json' >> $BASH_ENV
+      - run:
           name: Generate Cluster Config
           command: |
             cat \<< EOF > ./cluster.yaml
@@ -209,13 +232,13 @@ workflows:
                 - master
                 - /^[0-9]+\.[0-9]+$/
   nightly:
-    triggers:
-      - schedule:
-          cron: "0 0 * * *"
-          filters:
-            branches:
-              only:
-                - master
+#    triggers:
+#      - schedule:
+#          cron: "0 0 * * *"
+#          filters:
+#            branches:
+#              only:
+#                - master
     jobs:
       - e2e-tests-aws
       - e2e-tests-gcp
