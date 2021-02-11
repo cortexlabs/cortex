@@ -83,7 +83,7 @@ commands:
                 command: pytest -v test/e2e/tests -k << parameters.provider >> --<< parameters.provider >>-env << parameters.provider >>
             - run:
                 name: Delete Cluster
-                command: cortex cluster down --config << parameters.config >> -y
+                command: cortex cluster-gcp down --config << parameters.config >> -y
                 when: always
       - slack/notify:
           event: fail
