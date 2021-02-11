@@ -4,14 +4,9 @@
 cortex cluster down
 ```
 
-## Delete Prometheus Volume
-
-The volume used by Cortex's Prometheus instance is not deleted by default, as it might contain important information.
-If this volume is not required anymore, you can delete it in the AWS console.
-
 ## Delete metadata and log groups
 
-Since you may wish to have access to your data after spinning down your cluster, Cortex's bucket and log groups are not automatically deleted when running `cortex cluster down`.
+Since you may wish to have access to your data after spinning down your cluster, Cortex's bucket, log groups, and Prometheus volume are not automatically deleted when running `cortex cluster down`.
 
 To delete them:
 
@@ -29,6 +24,8 @@ aws s3 rb --force s3://<bucket>
 # delete the log group (replace <cluster_name> with the name of your cluster, default: cortex)
 aws logs describe-log-groups --log-group-name-prefix=<cluster_name> --query logGroups[*].[logGroupName] --output text | xargs -I {} aws logs delete-log-group --log-group-name {}
 ```
+
+To delete the Prometheus volume, navigate to the [EC2 volumes page](https://console.aws.amazon.com/ec2/v2/home?#Volumes) in the AWS console (be sure to set the appropriate region), select the volume, and click "Actions" and then "Delete Volume". A Prometheus volume that Cortex created has a name that starts with `kubernetes-dynamic-pvc`, the `kubernetes.io/cluster/<cluster name>` tag is set to `owned`, and the `kubernetes.io/created-for/pvc/name` tag starts with `prometheus-`.
 
 If you've configured a custom domain for your APIs, you can remove the SSL Certificate and Hosted Zone for the domain by following these [instructions](networking/custom-domain.md#cleanup).
 
