@@ -133,6 +133,8 @@ jobs:
   e2e-tests-aws:
     docker:
       - image: circleci/python:3.6
+    environment:
+      CORTEX_TEST_BATCH_S3_PATH: s3://cortex-dev-nightly/test/jobs
     steps:
       - checkout
       - setup_remote_docker
