@@ -31,6 +31,20 @@ cortex:
   image_grafana: quay.io/cortexlabs/grafana:master
 
 networking:
+  api-ingress:
+    gateways:
+      istio-ingressgateway:
+        type: LoadBalancer
+        externalTrafficPolicy: Cluster
+        serviceAnnotations: []
+
+  api-ingress:
+    gateways:
+      istio-ingressgateway:
+        type: LoadBalancer
+        externalTrafficPolicy: Cluster
+        serviceAnnotations: []
+
   istio-discovery:
     pilot:
       hub: quay.io/cortexlabs
@@ -38,6 +52,7 @@ networking:
 
       # Can be a full hub/image:tag
       image: istio-pilot
+
 
 global:
   provider: ""
