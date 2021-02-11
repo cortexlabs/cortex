@@ -92,8 +92,7 @@ func tensorflowAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.D
 
 func pythonAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deployment {
 	containers, volumes := operator.PythonPredictorContainers(api)
-	requestMonitorContainer := operator.RequestMonitorContainer(api)
-	containers = append(containers, requestMonitorContainer)
+	containers = append(containers, operator.RequestMonitorContainer(api))
 
 	return k8s.Deployment(&k8s.DeploymentSpec{
 		Name:           operator.K8sName(api.Name),
