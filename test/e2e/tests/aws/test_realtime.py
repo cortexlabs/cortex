@@ -34,7 +34,7 @@ def test_realtime_api(config: Dict, client: cx.Client, api: str):
 @pytest.mark.parametrize("api", TEST_APIS_GPU)
 def test_realtime_api_gpu(config: Dict, client: cx.Client, api: str):
     skip_gpus = config["global"].get("skip_gpus", False)
-    if not skip_gpus:
+    if skip_gpus:
         pytest.skip("--skip-gpus flag detected, skipping GPU tests")
 
     e2e.tests.test_realtime_api(
