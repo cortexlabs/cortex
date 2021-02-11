@@ -59,13 +59,13 @@ commands:
           steps:
             - run:
                 name: Create Cluster
-                command: cortex cluster up --config << parameters.config >> --configure-env << parameters.provider >> --aws-key $NIGHTLY_AWS_ACCESS_KEY_ID --aws-secret $NIGHTLY_AWS_SECRET_ACCESS_KEY -y
+                command: cortex cluster up --config << parameters.config >> --configure-env << parameters.provider >> -y
             - run:
                 name: Run E2E Tests
                 command: pytest -v test/e2e/tests -k << parameters.provider >> --<< parameters.provider >>-env << parameters.provider >>
             - run:
                 name: Delete Cluster
-                command: cortex cluster down --config << parameters.config >> --aws-key $NIGHTLY_AWS_ACCESS_KEY_ID --aws-secret $NIGHTLY_AWS_SECRET_ACCESS_KEY -y
+                command: cortex cluster down --config << parameters.config >> -y
                 when: always
       - when:
           condition:
