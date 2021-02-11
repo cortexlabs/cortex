@@ -23,14 +23,13 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 )
 
-func Ok() {
-	telemetry.Close()
-	os.Exit(0)
-}
-
 func Exit(code int) {
 	telemetry.Close()
-	os.Exit(1)
+	os.Exit(code)
+}
+
+func Ok() {
+	Exit(0)
 }
 
 func Error(err error, wrapStrs ...string) {

@@ -19,11 +19,11 @@ set -eo pipefail
 CORTEX_VERSION_MINOR=master
 
 function get_operator_endpoint() {
-  kubectl -n=default get service ingressgateway-operator -o json | tr -d '[:space:]' | sed 's/.*{\"hostname\":\"\(.*\)\".*/\1/'
+  kubectl -n="${CORTEX_NAMESPACE}" get service ingressgateway-operator -o json | tr -d '[:space:]' | sed 's/.*{\"hostname\":\"\(.*\)\".*/\1/'
 }
 
 function get_api_load_balancer_endpoint() {
-  kubectl -n=default get service ingressgateway-apis -o json | tr -d '[:space:]' | sed 's/.*{\"hostname\":\"\(.*\)\".*/\1/'
+  kubectl -n="${CORTEX_NAMESPACE}" get service ingressgateway-apis -o json | tr -d '[:space:]' | sed 's/.*{\"hostname\":\"\(.*\)\".*/\1/'
 }
 
 if ! eksctl utils describe-stacks --cluster=$CORTEX_CLUSTER_NAME --region=$CORTEX_REGION >/dev/null 2>&1; then

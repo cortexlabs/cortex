@@ -19,11 +19,11 @@ set -eo pipefail
 CORTEX_VERSION_MINOR=master
 
 function get_operator_endpoint() {
-  kubectl -n=default get service ingressgateway-operator -o json | tr -d '[:space:]' | sed 's/.*{\"ip\":\"\(.*\)\".*/\1/'
+  kubectl -n="${CORTEX_NAMESPACE}" get service ingressgateway-operator -o json | tr -d '[:space:]' | sed 's/.*{\"ip\":\"\(.*\)\".*/\1/'
 }
 
 function get_api_load_balancer_endpoint() {
-  kubectl -n=default get service ingressgateway-apis -o json | tr -d '[:space:]' | sed 's/.*{\"ip\":\"\(.*\)\".*/\1/'
+  kubectl -n="${CORTEX_NAMESPACE}" get service ingressgateway-apis -o json | tr -d '[:space:]' | sed 's/.*{\"ip\":\"\(.*\)\".*/\1/'
 }
 
 gcloud auth activate-service-account --key-file $GOOGLE_APPLICATION_CREDENTIALS 2> /dev/stdout 1> /dev/null | (grep -v "Activated service account credentials" || true)
