@@ -510,19 +510,19 @@ function validate_cortex_aws() {
       api_load_balancer_endpoint=$(kubectl -n=${CORTEX_NAMESPACE} get service ingressgateway-apis -o json | tr -d '[:space:]' | sed 's/.*{\"hostname\":\"\(.*\)\".*/\1/')
     fi
 
-    operator_load_balancer_state="$(python get_operator_load_balancer_state.py)"  # don't cache this result
+    operator_load_balancer_state="$(python manager/get_operator_load_balancer_state.py)"  # don't cache this result
     if [ "$operator_load_balancer_state" != "active" ]; then
       success_cycles=0
       continue
     fi
 
-    api_load_balancer_state="$(python get_api_load_balancer_state.py)"  # don't cache this result
+    api_load_balancer_state="$(python manager/get_api_load_balancer_state.py)"  # don't cache this result
     if [ "$api_load_balancer_state" != "active" ]; then
       success_cycles=0
       continue
     fi
 
-    operator_target_group_status="$(python get_operator_target_group_status.py)"  # don't cache this result
+    operator_target_group_status="$(python manager/get_operator_target_group_status.py)"  # don't cache this result
     if [ "$operator_target_group_status" != "healthy" ]; then
       success_cycles=0
       continue

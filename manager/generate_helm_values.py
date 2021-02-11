@@ -40,6 +40,7 @@ def main():
             "bucket": cc["bucket"],
             "telemetry": cc["telemetry"],
             "is_managed": cc["is_managed"],
+            "instance_type": cc["instance_type"],
             "image_operator": cc["image_operator"],
             "image_manager": cc["image_manager"],
             "image_downloader": cc["image_downloader"],

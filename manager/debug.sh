@@ -89,11 +89,11 @@ aws ec2 describe-instance-status --include-all-instances --region=$CORTEX_REGION
 echo -n "."
 aws ec2 describe-instances --filters Name=tag:cortex.dev/cluster-name,Values=$CORTEX_CLUSTER_NAME --region=$CORTEX_REGION --output json | jq "[.Reservations[].Instances[].ImageId] | unique | .[] | \"aws ec2 describe-images --image-ids \(.) --region=$CORTEX_REGION --output json > /cortex-debug/aws/amis/\(.) 2>&1\"" | xargs -n 1 bash -c
 echo -n "."
-python get_operator_load_balancer_state.py > "/cortex-debug/aws/operator_load_balancer_state" 2>&1
+python manager/get_operator_load_balancer_state.py > "/cortex-debug/aws/operator_load_balancer_state" 2>&1
 echo -n "."
-python get_api_load_balancer_state.py > "/cortex-debug/aws/api_load_balancer_state" 2>&1
+python manager/get_api_load_balancer_state.py > "/cortex-debug/aws/api_load_balancer_state" 2>&1
 echo -n "."
-python get_operator_target_group_status.py > "/cortex-debug/aws/operator_load_balancer_target_group_status" 2>&1
+python manager/get_operator_target_group_status.py > "/cortex-debug/aws/operator_load_balancer_target_group_status" 2>&1
 echo -n "."
 
 mkdir -p /cortex-debug/misc
