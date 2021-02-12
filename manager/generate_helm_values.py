@@ -44,6 +44,7 @@ def main():
             "image_operator": cc["image_operator"],
             "image_manager": cc["image_manager"],
             "image_downloader": cc["image_downloader"],
+            "image_request_monitor": cc["image_request_monitor"],
             "image_cluster_autoscaler": cc["image_cluster_autoscaler"],
             "image_fluent_bit": cc["image_fluent_bit"],
             "image_istio_proxy": cc["image_istio_proxy"],
@@ -65,7 +66,6 @@ def main():
             values_config["cortex"],
             {
                 "region": cc["region"],
-                "image_request_monitor": cc["image_request_monitor"],
                 "image_inferentia": cc["image_inferentia"],
                 "image_neuron_rtd": cc["image_neuron_rtd"],
                 "image_nvidia": cc["image_nvidia"],
