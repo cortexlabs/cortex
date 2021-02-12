@@ -213,6 +213,7 @@ max_instances: 5
 image_operator: /cortexlabs/operator:latest
 image_manager: gcr.io/<project_id>/cortexlabs/manager:latest
 image_downloader: gcr.io/<project_id>/cortexlabs/downloader:latest
+image_request_monitor: gcr.io/<project_id>/cortexlabs/request-monitor:latest
 image_istio_proxy: gcr.io/<project_id>/cortexlabs/istio-proxy:latest
 image_istio_pilot: gcr.io/<project_id>/cortexlabs/istio-pilot:latest
 image_google_pause: gcr.io/<project_id>/cortexlabs/google-pause:latest
