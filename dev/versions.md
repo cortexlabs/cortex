@@ -147,7 +147,7 @@ python versions in our pip dependencies (e.g. [tensorflow](https://pypi.org/proj
 
 Note: it's ok if example training notebooks aren't upgraded, as long as the exported model still works
 
-## CUDA/cudnn
+## CUDA/cuDNN
 
 1. Search the codebase for the previous CUDA version and `cudnn`
 
