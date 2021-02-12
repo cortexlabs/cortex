@@ -8,10 +8,10 @@
 * check pod -> cluster autoscaling on cpu or gpu or inferentia
 * check cluster autoscaling on cpu and gpu and inferentia
 * examples
-    * check logs, predictions
-    * check metrics, tracker
-    * make sure to try all 8 base images (tf/onnx/py gpu/cpu, tf/py inferentia)
-    * confirm GPUs are used when requested
+  * check logs, predictions
+  * check metrics, tracker
+  * make sure to try all 8 base images (tf/onnx/py gpu/cpu, tf/py inferentia)
+  * confirm GPUs are used when requested
 
 ## eksctl
 
@@ -147,14 +147,9 @@ python versions in our pip dependencies (e.g. [tensorflow](https://pypi.org/proj
 
 Note: it's ok if example training notebooks aren't upgraded, as long as the exported model still works
 
-## CUDA
+## CUDA/cudnn
 
-1. Update the `nvidia/cuda` base image in `images/python-predictor-gpu/Dockerfile`
-   and `images/onnx-predictor-gpu/Dockerfile` (as well as `libnvinfer` in `images/python-predictor-gpu/Dockerfile`
-   and `images/tensorflow-serving-gpu/Dockerfile`) to the desired version based
-   on [TensorFlow's documentation](https://www.tensorflow.org/install/gpu)
-   / [TensorFlow's compatability table](https://www.tensorflow.org/install/source#gpu) ([Dockerhub](https://hub.docker.com/r/nvidia/cuda)) (
-   it's possible these versions will diverge depending on ONNX runtime support)
+1. Search the codebase for the previous CUDA version and `cudnn`
 
 ## ONNX runtime
 
@@ -210,29 +205,11 @@ Note: it's ok if example training notebooks aren't upgraded, as long as the expo
 1. Check if there are any updates
    to [Dockerfile.tf-serving](https://github.com/aws/aws-neuron-sdk/blob/master/docs/neuron-container-tools/docker-example/Dockerfile.tf-serving)
    which should be brought in to `images/tensorflow-serving-inf/Dockerfile`
-1. Run `docker run --rm -it ubuntu:18.04`
-1. Run `apt-get update && apt-get install -y curl python3.6 python3.6-distutils` (change the python version if
-   necessary)
-1. Run `curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py && python3.6 get-pip.py && pip install --upgrade pip` (
-   change the python version if necessary)
-1. Run `pip install --extra-index-url https://pip.repos.neuron.amazonaws.com neuron-cc tensorflow-neuron torch-neuron`
-1. Run `pip list` to show the versions of all installed dependencies, and
-   update `images/python-predictor-inf/Dockerfile` and the docs accordingly (`realtime-api/predictors.md`
-   and `batch-api/predictors.md`); latest versions of dependencies that aren't shown in `pip list` can be determined on
-   pypi.org (for `torchvision`, go to its pypi page, and use the latest patch version of the minor version which is
-   appropriate for the version of `torch` that's installed)
-1. Take a deep breath, cross your fingers, rebuild all images, and confirm that the Inferentia examples work
+1. Take a deep breath, cross your fingers, rebuild all images, and confirm that the Inferentia examples work. You may need to change the versions of `neuron-cc`, `tensorflow-neuron`, and/or `torch-neuron` in `requirements.txt` files.
 
 ## Python packages
 
-1. Update versions in `images/python-predictor-*/Dockerfile`, `images/tensorflow-predictor/Dockerfile`,
-   and `images/onnx-predictor-*/Dockerfile`
-1. Update versions in `pkg/cortex/serve/*requirements.txt` and `pkg/cortex/downloader/requirements.txt`
-1. Update the versions listed in "Pre-installed packages" in `realtime-api/predictors.md` and `batch-api/predictors.md`
-    * look at the diff carefully since some packages are not shown, and e.g. `tensorflow-cpu` -> `tensorflow`
-    * be careful not to update any of the versions for Inferentia that are not latest
-      in `images/python-predictor-inf/Dockerfile`
-1. Rerun all examples and check their logs
+1. Update versions in `pkg/cortex/serve/*requirements.txt`
 
 ## S6-overlay supervisor
 

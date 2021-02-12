@@ -22,24 +22,20 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")"/.. >/dev/null && pwd)"
 CORTEX_VERSION=master
 
 image=$1
-dir="${ROOT}/images/${image/-slim}"
 
 if [ "$image" == "inferentia" ]; then
   aws ecr get-login-password --region us-west-2 | docker login --username AWS --password-stdin 790709498068.dkr.ecr.us-west-2.amazonaws.com
 fi
 
 build_args=""
-if [[ "$image" == *"-slim" ]]; then
-  build_args="--build-arg SLIM=true"
-fi
 
-if [ "${image}" == "python-predictor-gpu-slim" ]; then
+if [ "${image}" == "python-predictor-gpu" ]; then
   cuda=("10.0" "10.1" "10.1" "10.2" "10.2" "11.0" "11.1")
   cudnn=("7" "7" "8" "7" "8" "8" "8")
   for i in ${!cudnn[@]}; do
     build_args="${build_args} --build-arg CUDA_VERSION=${cuda[$i]} --build-arg CUDNN=${cudnn[$i]}"
-    docker build "$ROOT" -f $dir/Dockerfile $build_args -t quay.io/cortexlabs/${image}:${CORTEX_VERSION}-cuda${cuda[$i]}-cudnn${cudnn[$i]}
+    docker build "$ROOT" -f $ROOT/images/$image/Dockerfile $build_args -t quay.io/cortexlabs/${image}:${CORTEX_VERSION}-cuda${cuda[$i]}-cudnn${cudnn[$i]}
   done
 else
-  docker build "$ROOT" -f $dir/Dockerfile $build_args -t quay.io/cortexlabs/${image}:${CORTEX_VERSION}
+  docker build "$ROOT" -f $ROOT/images/$image/Dockerfile $build_args -t quay.io/cortexlabs/${image}:${CORTEX_VERSION}
 fi

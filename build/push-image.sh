@@ -23,7 +23,7 @@ image=$1
 
 echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
 
-if [ "$image" == "python-predictor-gpu-slim" ]; then
+if [ "$image" == "python-predictor-gpu" ]; then
   cuda=("10.0" "10.1" "10.1" "10.2" "10.2" "11.0" "11.1")
   cudnn=("7" "7" "8" "7" "8" "8" "8")
   for i in ${!cudnn[@]}; do
