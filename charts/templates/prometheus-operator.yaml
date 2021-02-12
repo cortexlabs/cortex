@@ -129,13 +129,15 @@ spec:
           ports:
             - containerPort: 8080
               name: http
+          {{- with .Values.prometheus.operatorResources }}
           resources:
-            limits:
-              cpu: 200m
-              memory: 200Mi
             requests:
-              cpu: 100m
-              memory: 100Mi
+              cpu: {{ .requests.cpu }}
+              memory: {{ .requests.memory }}
+            limits:
+              cpu: {{ .limits.cpu }}
+              memory: {{ .limits.memory }}
+          {{- end }}
           securityContext:
             allowPrivilegeEscalation: false
       nodeSelector:

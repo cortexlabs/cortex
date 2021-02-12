@@ -56,12 +56,15 @@ spec:
               port: metrics
             initialDelaySeconds: 30
             periodSeconds: 30
+          {{- with .Values.prometheusStatsDExporter.resources }}
           resources:
-            limits:
-              memory: 100Mi
             requests:
-              cpu: 100m
-              memory: 100Mi
+              cpu: {{ .requests.cpu }}
+              memory: {{ .requests.memory }}
+            limits:
+              cpu: {{ .limits.cpu }}
+              memory: {{ .limits.memory }}
+          {{- end }}
           volumeMounts:
             - name: statsd-mapping-config
               mountPath: /etc/prometheus-statsd-exporter

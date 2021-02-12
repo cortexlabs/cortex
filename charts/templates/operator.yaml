@@ -42,13 +42,15 @@ spec:
         - name: operator
           image: {{ .Values.cortex.image_operator }}
           imagePullPolicy: Always
+          {{- with .Values.cortex.resources }}
           resources:
             requests:
-              cpu: 200m
-              memory: 128Mi
+              cpu: {{ .requests.cpu }}
+              memory: {{ .requests.memory }}
             limits:
-              cpu: 2000m
-              memory: 1024Mi
+              cpu: {{ .limits.cpu }}
+              memory: {{ .limits.memory }}
+          {{- end }}
           ports:
             - containerPort: 8888
           envFrom:

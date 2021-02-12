@@ -1,3 +1,4 @@
+{{- if .Values.addons.fluentbit.enabled }}
 apiVersion: v1
 kind: ServiceAccount
 metadata:
@@ -155,10 +156,11 @@ spec:
           imagePullPolicy: Always
           resources:
             requests:
-              cpu: 100m
-              memory: 150Mi
+              cpu: {{ .Values.addons.fluentbit.requests.cpu }}
+              memory: {{ .Values.addons.fluentbit.requests.cpu }}
             limits:
-              memory: 150Mi
+              cpu: {{ .Values.addons.fluentbit.limits.cpu }}
+              memory: {{ .Values.addons.fluentbit.limits.memory }}
           ports:
             - containerPort: 2020
           {{- if eq .Values.global.provider "gcp" }}
@@ -220,3 +222,4 @@ spec:
           operator: Exists
           effect: NoSchedule
 ---
+{{- end }}

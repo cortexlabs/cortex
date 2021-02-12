@@ -1,3 +1,18 @@
+global:
+  provider: ""
+
+  # Default hub for Istio images.
+  # Releases are published to docker hub under 'istio' project.
+  # Dev builds from prow are on gcr.io
+  hub: quay.io/cortexlabs
+
+  # Default tag for Istio images.
+  tag: master # CORTEX_VERSION
+
+  # Image for the proxy controller
+  proxy:
+    image: istio-proxy
+
 cortex:
   # Please provide the following required fields for a cortex installation on AWS
   cluster_name: ""
@@ -30,20 +45,28 @@ cortex:
   image_prometheus_statsd_exporter: quay.io/cortexlabs/prometheus-statsd-exporter:master
   image_grafana: quay.io/cortexlabs/grafana:master
 
+  resources:
+    requests:
+      cpu: 200m
+      memory: 128Mi
+    limits:
+      cpu: 2000m
+      memory: 1024Mi
+
 networking:
   api-ingress:
     gateways:
       istio-ingressgateway:
         type: LoadBalancer
         externalTrafficPolicy: Cluster
-        serviceAnnotations: []
+        serviceAnnotations: {}
 
-  api-ingress:
+  operator-ingress:
     gateways:
       istio-ingressgateway:
         type: LoadBalancer
         externalTrafficPolicy: Cluster
-        serviceAnnotations: []
+        serviceAnnotations: {}
 
   istio-discovery:
     pilot:
@@ -54,22 +77,69 @@ networking:
       image: istio-pilot
 
 
-global:
-  provider: ""
+storageType:
+  name: ssd
+  awsType: gp2
+  gcpType: pd-ssd
 
-  # Default hub for Istio images.
-  # Releases are published to docker hub under 'istio' project.
-  # Dev builds from prow are on gcr.io
-  hub: quay.io/cortexlabs
+prometheus:
+  volumeClaimSize: 40GB
+  retentionSize: 35GB
+  retentionWindow: 2w
 
-  # Default tag for Istio images.
-  tag: master # CORTEX_VERSION
+  monitorResources:
+    requests:
+      cpu: null
+      memory: 400Mi
+    limits:
+      cpu: null
+      memory: null
+  operatorResources:
+    requests:
+      cpu: 100m
+      memory: 100Mi
+    limits:
+      cpu: 200m
+      memory: 200Mi
 
-  proxy:
-    image: istio-proxy
+prometheusStatsDExporter:
+  resources:
+    requests:
+      cpu: 100m
+      memory: 100Mi
+    limits:
+      cpu: null
+      memory: 100Mi
 
 addons:
   grafana:
     enabled: true
+    resources:
+      requests:
+        cpu: 100m
+        memory: 100Mi
+      limits:
+        cpu: 200m
+        memory: 200Mi
+      storage: 2Gbi
+
+  fluentbit:
+    enabled: true
+    resources:
+      requests:
+        cpu: 100m
+        memory: 150Mi
+      limits:
+        cpu: null
+        memory: 150Mi
+    # dataOutputConf: |
+    #   [OUTPUT]
+    #       Name              cloudwatch
+    #       Match             k8s_container.*
+    #       region            {{ .Values.cortex.region }}
+    #       log_group_name    {{ .Values.cortex.cluster_name }}
+    #       log_stream_prefix kube.
+    #       auto_create_group true
+
   kubeMetricsServer:
     enabled: false

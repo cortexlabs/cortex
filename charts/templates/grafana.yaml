@@ -91,12 +91,12 @@ metadata:
   name: grafana-storage
   namespace: {{ .Release.Namespace }}
 spec:
-  storageClassName: ssd
+  storageClassName: {{ .Values.storageType.name }}
   accessModes:
     - ReadWriteOnce
   resources:
     requests:
-      storage: 2Gi
+      storage: {{ .Values.addons.grafana.storage }}
 
 ---
 
@@ -128,13 +128,15 @@ spec:
             httpGet:
               path: /api/health
               port: http
+          {{- with .Values.addons.grafana.resources }}
           resources:
-            limits:
-              cpu: 200m
-              memory: 200Mi
             requests:
-              cpu: 100m
-              memory: 100Mi
+              cpu: {{ .requests.cpu }}
+              memory: {{ .requests.memory }}
+            limits:
+              cpu: {{ .limits.cpu }}
+              memory: {{ .limits.memory }}
+          {{- end }}
           env:
             - name: GF_SERVER_ROOT_URL
               value: "%(protocol)s://%(domain)s:%(http_port)s/dashboard"
