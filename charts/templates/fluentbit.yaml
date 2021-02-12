@@ -105,7 +105,7 @@ data:
         Match               k8s_container.*
         Remove_wildcard     k8s.
 
-  {{- if not .Values.fluentbit.dataOutputConf }}
+  {{- if not .Values.addons.fluentbit.dataOutputConf }}
   output.conf: |
     {{- if eq .Values.global.provider "aws" }}
     [OUTPUT]
@@ -125,7 +125,7 @@ data:
         k8s_cluster_location  {{ .Values.cortex.zone }}
     {{- end }}
   {{- else }}
-  output.conf: {{ .Values.fluentbit.dataOutputConf }}
+  output.conf: {{ .Values.addons.fluentbit.dataOutputConf }}
   {{- end }}
 
   parsers.conf: |
@@ -157,13 +157,15 @@ spec:
         - name: fluent-bit
           image: {{ .Values.cortex.image_fluent_bit }}
           imagePullPolicy: Always
+          {{- with .Values.addons.fluentbit.resources }}
           resources:
             requests:
-              cpu: {{ .Values.addons.fluentbit.requests.cpu }}
-              memory: {{ .Values.addons.fluentbit.requests.cpu }}
+              cpu: {{ .requests.cpu }}
+              memory: {{ .requests.cpu }}
             limits:
-              cpu: {{ .Values.addons.fluentbit.limits.cpu }}
-              memory: {{ .Values.addons.fluentbit.limits.memory }}
+              cpu: {{ .limits.cpu }}
+              memory: {{ .limits.memory }}
+          {{- end }}
           ports:
             - containerPort: 2020
           {{- if eq .Values.global.provider "gcp" }}

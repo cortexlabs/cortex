@@ -11,14 +11,14 @@ spec:
       - key: "monitoring.cortex.dev"
         operator: "In"
         values: [ "istio", "request-monitor", "statsd-exporter" ]
-  {{- $prom := .Values.prometheus -}}
+  {{- $prom := .Values.prometheus }}
   resources:
     requests:
       cpu: {{ $prom.monitorResources.requests.cpu }}
       memory: {{ $prom.monitorResources.requests.memory }}
     limits:
       cpu: {{ $prom.monitorResources.limits.cpu }}
-      memory: {{ $prom.monitorResources.limits.cpu }}
+      memory: {{ $prom.monitorResources.limits.memory }}
   storage:
     volumeClaimTemplate:
       spec:

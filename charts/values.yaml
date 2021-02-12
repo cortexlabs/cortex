@@ -59,14 +59,14 @@ networking:
       istio-ingressgateway:
         type: LoadBalancer
         externalTrafficPolicy: Cluster
-        serviceAnnotations: {}
+        serviceAnnotations: []
 
   operator-ingress:
     gateways:
       istio-ingressgateway:
         type: LoadBalancer
         externalTrafficPolicy: Cluster
-        serviceAnnotations: {}
+        serviceAnnotations: []
 
   istio-discovery:
     pilot:
@@ -114,6 +114,7 @@ prometheusStatsDExporter:
 addons:
   grafana:
     enabled: true
+    storage: 2Gbi
     resources:
       requests:
         cpu: 100m
@@ -121,7 +122,6 @@ addons:
       limits:
         cpu: 200m
         memory: 200Mi
-      storage: 2Gbi
 
   fluentbit:
     enabled: true

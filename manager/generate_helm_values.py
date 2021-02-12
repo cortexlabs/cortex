@@ -80,26 +80,26 @@ def main():
             "api-ingress": {
                 "gateways": {
                     "istio-ingressgateway": {
-                        "serviceAnnotations": {
-                            "service.beta.kubernetes.io/aws-load-balancer-type": "nlb",
-                            "service.beta.kubernetes.io/aws-load-balancer-cross-zone-load-balancing-enabled": "true",
-                            "service.beta.kubernetes.io/aws-load-balancer-backend-protocol": "tcp",
-                            "service.beta.kubernetes.io/aws-load-balancer-ssl-ports": "https",  # "https" is the name of the https port below"
-                            "service.beta.kubernetes.io/aws-load-balancer-additional-resource-tags": "cortex.dev/load-balancer=api",
-                        }
+                        "serviceAnnotations": [
+                            "service.beta.kubernetes.io/aws-load-balancer-type=nlb",
+                            "service.beta.kubernetes.io/aws-load-balancer-cross-zone-load-balancing-enabled=true",
+                            "service.beta.kubernetes.io/aws-load-balancer-backend-protocol=tcp",
+                            "service.beta.kubernetes.io/aws-load-balancer-ssl-ports=https",  # "https" is the name of the https port below"
+                            "service.beta.kubernetes.io/aws-load-balancer-additional-resource-tags=cortex.dev/load-balancer=api",
+                        ]
                     }
                 }
             },
             "operator-ingress": {
                 "gateways": {
                     "istio-ingressgateway": {
-                        "serviceAnnotations": {
-                            "service.beta.kubernetes.io/aws-load-balancer-type": "nlb",
-                            "service.beta.kubernetes.io/aws-load-balancer-cross-zone-load-balancing-enabled": "true",
-                            "service.beta.kubernetes.io/aws-load-balancer-backend-protocol": "tcp",
-                            "service.beta.kubernetes.io/aws-load-balancer-ssl-ports": "https",  # "https" is the name of the https port below"
-                            "service.beta.kubernetes.io/aws-load-balancer-additional-resource-tags": "cortex.dev/load-balancer=operator",
-                        }
+                        "serviceAnnotations": [
+                            "service.beta.kubernetes.io/aws-load-balancer-type=nlb",
+                            "service.beta.kubernetes.io/aws-load-balancer-cross-zone-load-balancing-enabled=true",
+                            "service.beta.kubernetes.io/aws-load-balancer-backend-protocol=tcp",
+                            "service.beta.kubernetes.io/aws-load-balancer-ssl-ports=https",  # "https" is the name of the https port below"
+                            "service.beta.kubernetes.io/aws-load-balancer-additional-resource-tags=cortex.dev/load-balancer=operator",
+                        ]
                     }
                 }
             },
@@ -108,15 +108,15 @@ def main():
         if cc.get("api_load_balancer_scheme") == "internal":
             values_config["networking"]["api-ingress"]["gateways"]["istio-ingressgateway"][
                 "serviceAnnotations"
-            ]["service.beta.kubernetes.io/aws-load-balancer-internal"] = "true"
+            ].append("service.beta.kubernetes.io/aws-load-balancer-internal=true")
             values_config["networking"]["operator-ingress"]["gateways"]["istio-ingressgateway"][
                 "serviceAnnotations"
-            ]["service.beta.kubernetes.io/aws-load-balancer-internal"] = "true"
+            ].append("service.beta.kubernetes.io/aws-load-balancer-internal=true")
 
         if cc.get("ssl_certificate_arn", "") != "":
             values_config["networking"]["api-ingress"]["gateways"]["istio-ingressgateway"][
                 "serviceAnnotations"
-            ]["service.beta.kubernetes.io/aws-load-balancer-ssl-cert"] = cc["ssl_certificate_arn"]
+            ].append("service.beta.kubernetes.io/aws-load-balancer-ssl-cert=ssl_certificate_arn")
 
     if cc["provider"] == "gcp":
         values_config["cortex"] = merge_override(
@@ -133,18 +133,18 @@ def main():
                 "api-ingress": {
                     "gateways": {
                         "istio-ingressgateway": {
-                            "serviceAnnotations": {
-                                "cloud.google.com/load-balancer-type": "Internal"
-                            }
+                            "serviceAnnotations": [
+                                "cloud.google.com/load-balancer-type=Internal"
+                            ]
                         }
                     }
                 },
                 "operator-ingress": {
                     "gateways": {
                         "istio-ingressgateway": {
-                            "serviceAnnotations": {
-                                "cloud.google.com/load-balancer-type": "Internal"
-                            }
+                            "serviceAnnotations": [
+                                "cloud.google.com/load-balancer-type=Internal"
+                            ]
                         }
                     }
                 },
