@@ -74,6 +74,7 @@ The docker images used by the Cortex cluster can also be overridden, although th
 image_operator: quay.io/cortexlabs/operator:master
 image_manager: quay.io/cortexlabs/manager:master
 image_downloader: quay.io/cortexlabs/downloader:master
+image_request_monitor: quay.io/cortexlabs/request-monitor:master
 image_istio_proxy: quay.io/cortexlabs/istio-proxy:master
 image_istio_pilot: quay.io/cortexlabs/istio-pilot:master
 image_google_pause: quay.io/cortexlabs/google-pause:master
