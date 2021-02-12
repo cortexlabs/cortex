@@ -44,7 +44,7 @@ RUN pip install --no-cache-dir pandas \
     && conda clean -a
 ```
 
-If you need to upgrade the Python Runtime version from its current 3.6.9 on your custom image using the existing conda environment, follow this procedure:
+If you need to upgrade the Python Runtime version on your image, you can follow this procedure:
 
 <!-- CORTEX_VERSION_BRANCH_STABLE -->
 
