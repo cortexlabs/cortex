@@ -930,9 +930,16 @@ func neuronRuntimeDaemonContainer(api *spec.API, volumeMounts []kcore.VolumeMoun
 }
 
 func RequestMonitorContainer(api *spec.API) kcore.Container {
+	var image string
+	if config.Provider == types.AWSProviderType {
+		image = config.CoreConfig.ImageRequestMonitor
+	} else if config.Provider == types.GCPProviderType {
+		image = config.GCPCoreConfig.ImageRequestMonitor
+	}
+
 	return kcore.Container{
 		Name:            _requestMonitorContainerName,
-		Image:           config.CoreConfig.ImageRequestMonitor,
+		Image:           image,
 		ImagePullPolicy: kcore.PullAlways,
 		Args:            []string{"-p", DefaultRequestMonitorPortStr},
 		Ports: []kcore.ContainerPort{

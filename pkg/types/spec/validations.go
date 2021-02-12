@@ -59,27 +59,27 @@ func apiValidation(
 	case userconfig.RealtimeAPIKind:
 		structFieldValidations = append(resourceStructValidations,
 			predictorValidation(),
-			networkingValidation(resource.Kind, provider),
+			networkingValidation(),
 			computeValidation(provider),
-			autoscalingValidation(provider),
-			updateStrategyValidation(provider),
+			autoscalingValidation(),
+			updateStrategyValidation(),
 		)
 	case userconfig.BatchAPIKind:
 		structFieldValidations = append(resourceStructValidations,
 			predictorValidation(),
-			networkingValidation(resource.Kind, provider),
+			networkingValidation(),
 			computeValidation(provider),
 		)
 	case userconfig.TaskAPIKind:
 		structFieldValidations = append(resourceStructValidations,
 			taskDefinitionValidation(),
-			networkingValidation(resource.Kind, provider),
+			networkingValidation(),
 			computeValidation(provider),
 		)
 	case userconfig.TrafficSplitterKind:
 		structFieldValidations = append(resourceStructValidations,
 			multiAPIsValidation(),
-			networkingValidation(resource.Kind, provider),
+			networkingValidation(),
 		)
 	}
 	return &cr.StructValidation{
@@ -315,10 +315,7 @@ func taskDefinitionValidation() *cr.StructFieldValidation {
 	}
 }
 
-func networkingValidation(
-	kind userconfig.Kind,
-	provider types.ProviderType,
-) *cr.StructFieldValidation {
+func networkingValidation() *cr.StructFieldValidation {
 	return &cr.StructFieldValidation{
 		StructField: "Networking",
 		StructValidation: &cr.StructValidation{
@@ -396,8 +393,8 @@ func computeValidation(provider types.ProviderType) *cr.StructFieldValidation {
 	return structFieldValidation
 }
 
-func autoscalingValidation(provider types.ProviderType) *cr.StructFieldValidation {
-	structFieldValidation := &cr.StructFieldValidation{
+func autoscalingValidation() *cr.StructFieldValidation {
+	return &cr.StructFieldValidation{
 		StructField: "Autoscaling",
 		StructValidation: &cr.StructValidation{
 			StructFieldValidations: []*cr.StructFieldValidation{
@@ -432,140 +429,76 @@ func autoscalingValidation(provider types.ProviderType) *cr.StructFieldValidatio
 						LessThanOrEqualTo: pointer.Int64(30000),
 					},
 				},
+				{
+					StructField: "TargetReplicaConcurrency",
+					Float64PtrValidation: &cr.Float64PtrValidation{
+						GreaterThan: pointer.Float64(0),
+					},
+				},
+				{
+					StructField: "Window",
+					StringValidation: &cr.StringValidation{
+						Default: "60s",
+					},
+					Parser: cr.DurationParser(&cr.DurationValidation{
+						GreaterThanOrEqualTo: &AutoscalingTickInterval,
+						MultipleOf:           &AutoscalingTickInterval,
+					}),
+				},
+				{
+					StructField: "DownscaleStabilizationPeriod",
+					StringValidation: &cr.StringValidation{
+						Default: "5m",
+					},
+					Parser: cr.DurationParser(&cr.DurationValidation{
+						GreaterThanOrEqualTo: pointer.Duration(libtime.MustParseDuration("0s")),
+					}),
+				},
+				{
+					StructField: "UpscaleStabilizationPeriod",
+					StringValidation: &cr.StringValidation{
+						Default: "1m",
+					},
+					Parser: cr.DurationParser(&cr.DurationValidation{
+						GreaterThanOrEqualTo: pointer.Duration(libtime.MustParseDuration("0s")),
+					}),
+				},
+				{
+					StructField: "MaxDownscaleFactor",
+					Float64Validation: &cr.Float64Validation{
+						Default:              0.75,
+						GreaterThanOrEqualTo: pointer.Float64(0),
+						LessThan:             pointer.Float64(1),
+					},
+				},
+				{
+					StructField: "MaxUpscaleFactor",
+					Float64Validation: &cr.Float64Validation{
+						Default:     1.5,
+						GreaterThan: pointer.Float64(1),
+					},
+				},
+				{
+					StructField: "DownscaleTolerance",
+					Float64Validation: &cr.Float64Validation{
+						Default:              0.05,
+						GreaterThanOrEqualTo: pointer.Float64(0),
+						LessThan:             pointer.Float64(1),
+					},
+				},
+				{
+					StructField: "UpscaleTolerance",
+					Float64Validation: &cr.Float64Validation{
+						Default:              0.05,
+						GreaterThanOrEqualTo: pointer.Float64(0),
+					},
+				},
 			},
 		},
 	}
-
-	if provider == types.AWSProviderType {
-		structFieldValidation.StructValidation.StructFieldValidations = append(structFieldValidation.StructValidation.StructFieldValidations,
-			&cr.StructFieldValidation{
-				StructField: "TargetReplicaConcurrency",
-				Float64PtrValidation: &cr.Float64PtrValidation{
-					GreaterThan: pointer.Float64(0),
-				},
-			},
-			&cr.StructFieldValidation{
-				StructField: "Window",
-				StringValidation: &cr.StringValidation{
-					Default: "60s",
-				},
-				Parser: cr.DurationParser(&cr.DurationValidation{
-					GreaterThanOrEqualTo: &AutoscalingTickInterval,
-					MultipleOf:           &AutoscalingTickInterval,
-				}),
-			},
-			&cr.StructFieldValidation{
-				StructField: "DownscaleStabilizationPeriod",
-				StringValidation: &cr.StringValidation{
-					Default: "5m",
-				},
-				Parser: cr.DurationParser(&cr.DurationValidation{
-					GreaterThanOrEqualTo: pointer.Duration(libtime.MustParseDuration("0s")),
-				}),
-			},
-			&cr.StructFieldValidation{
-				StructField: "UpscaleStabilizationPeriod",
-				StringValidation: &cr.StringValidation{
-					Default: "1m",
-				},
-				Parser: cr.DurationParser(&cr.DurationValidation{
-					GreaterThanOrEqualTo: pointer.Duration(libtime.MustParseDuration("0s")),
-				}),
-			},
-			&cr.StructFieldValidation{
-				StructField: "MaxDownscaleFactor",
-				Float64Validation: &cr.Float64Validation{
-					Default:              0.75,
-					GreaterThanOrEqualTo: pointer.Float64(0),
-					LessThan:             pointer.Float64(1),
-				},
-			},
-			&cr.StructFieldValidation{
-				StructField: "MaxUpscaleFactor",
-				Float64Validation: &cr.Float64Validation{
-					Default:     1.5,
-					GreaterThan: pointer.Float64(1),
-				},
-			},
-			&cr.StructFieldValidation{
-				StructField: "DownscaleTolerance",
-				Float64Validation: &cr.Float64Validation{
-					Default:              0.05,
-					GreaterThanOrEqualTo: pointer.Float64(0),
-					LessThan:             pointer.Float64(1),
-				},
-			},
-			&cr.StructFieldValidation{
-				StructField: "UpscaleTolerance",
-				Float64Validation: &cr.Float64Validation{
-					Default:              0.05,
-					GreaterThanOrEqualTo: pointer.Float64(0),
-				},
-			},
-		)
-	} else {
-		structFieldValidation.StructValidation.StructFieldValidations = append(structFieldValidation.StructValidation.StructFieldValidations,
-			&cr.StructFieldValidation{
-				StructField: "TargetReplicaConcurrency",
-				Float64PtrValidation: &cr.Float64PtrValidation{
-					CantBeSpecifiedErrStr: pointer.String("only supported on AWS clusters"),
-				},
-			},
-			&cr.StructFieldValidation{
-				StructField: "Window",
-				StringValidation: &cr.StringValidation{
-					CantBeSpecifiedErrStr: pointer.String("only supported on AWS clusters"),
-					Default:               "0",
-				},
-				Parser: cr.DurationParser(nil),
-			},
-			&cr.StructFieldValidation{
-				StructField: "DownscaleStabilizationPeriod",
-				StringValidation: &cr.StringValidation{
-					CantBeSpecifiedErrStr: pointer.String("only supported on AWS clusters"),
-					Default:               "0",
-				},
-				Parser: cr.DurationParser(nil),
-			},
-			&cr.StructFieldValidation{
-				StructField: "UpscaleStabilizationPeriod",
-				StringValidation: &cr.StringValidation{
-					CantBeSpecifiedErrStr: pointer.String("only supported on AWS clusters"),
-					Default:               "0",
-				},
-				Parser: cr.DurationParser(nil),
-			},
-			&cr.StructFieldValidation{
-				StructField: "MaxDownscaleFactor",
-				Float64Validation: &cr.Float64Validation{
-					CantBeSpecifiedErrStr: pointer.String("only supported on AWS clusters"),
-				},
-			},
-			&cr.StructFieldValidation{
-				StructField: "MaxUpscaleFactor",
-				Float64Validation: &cr.Float64Validation{
-					CantBeSpecifiedErrStr: pointer.String("only supported on AWS clusters"),
-				},
-			},
-			&cr.StructFieldValidation{
-				StructField: "DownscaleTolerance",
-				Float64Validation: &cr.Float64Validation{
-					CantBeSpecifiedErrStr: pointer.String("only supported on AWS clusters"),
-				},
-			},
-			&cr.StructFieldValidation{
-				StructField: "UpscaleTolerance",
-				Float64Validation: &cr.Float64Validation{
-					CantBeSpecifiedErrStr: pointer.String("only supported on AWS clusters"),
-				},
-			},
-		)
-	}
-
-	return structFieldValidation
 }
 
-func updateStrategyValidation(provider types.ProviderType) *cr.StructFieldValidation {
+func updateStrategyValidation() *cr.StructFieldValidation {
 	return &cr.StructFieldValidation{
 		StructField: "UpdateStrategy",
 		StructValidation: &cr.StructValidation{
@@ -900,18 +833,18 @@ func validatePredictor(
 
 	switch predictor.Type {
 	case userconfig.PythonPredictorType:
-		if err := validatePythonPredictor(api, models, provider, projectFiles, awsClient, gcpClient); err != nil {
+		if err := validatePythonPredictor(api, models, awsClient, gcpClient); err != nil {
 			return err
 		}
 	case userconfig.TensorFlowPredictorType:
-		if err := validateTensorFlowPredictor(api, models, provider, projectFiles, awsClient, gcpClient); err != nil {
+		if err := validateTensorFlowPredictor(api, models, awsClient, gcpClient); err != nil {
 			return err
 		}
 		if err := validateDockerImagePath(predictor.TensorFlowServingImage, provider, awsClient, k8sClient); err != nil {
 			return errors.Wrap(err, userconfig.TensorFlowServingImageKey)
 		}
 	case userconfig.ONNXPredictorType:
-		if err := validateONNXPredictor(api, models, provider, projectFiles, awsClient, gcpClient); err != nil {
+		if err := validateONNXPredictor(api, models, awsClient, gcpClient); err != nil {
 			return err
 		}
 	}
@@ -1023,7 +956,7 @@ func validateMultiModelsFields(api *userconfig.API) error {
 	return nil
 }
 
-func validatePythonPredictor(api *userconfig.API, models *[]CuratedModelResource, provider types.ProviderType, projectFiles ProjectFiles, awsClient *aws.Client, gcpClient *gcp.Client) error {
+func validatePythonPredictor(api *userconfig.API, models *[]CuratedModelResource, awsClient *aws.Client, gcpClient *gcp.Client) error {
 	predictor := api.Predictor
 
 	if predictor.Models != nil {
@@ -1125,7 +1058,7 @@ func validatePythonPredictor(api *userconfig.API, models *[]CuratedModelResource
 	return nil
 }
 
-func validateTensorFlowPredictor(api *userconfig.API, models *[]CuratedModelResource, provider types.ProviderType, projectFiles ProjectFiles, awsClient *aws.Client, gcpClient *gcp.Client) error {
+func validateTensorFlowPredictor(api *userconfig.API, models *[]CuratedModelResource, awsClient *aws.Client, gcpClient *gcp.Client) error {
 	predictor := api.Predictor
 
 	if predictor.ServerSideBatching != nil {
@@ -1182,7 +1115,7 @@ func validateTensorFlowPredictor(api *userconfig.API, models *[]CuratedModelReso
 		}
 	}
 
-	validators := []modelValidator{}
+	var validators []modelValidator
 	if api.Compute.Inf == 0 {
 		validators = append(validators, tensorflowModelValidator)
 	} else {
@@ -1214,7 +1147,7 @@ func validateTensorFlowPredictor(api *userconfig.API, models *[]CuratedModelReso
 	return nil
 }
 
-func validateONNXPredictor(api *userconfig.API, models *[]CuratedModelResource, provider types.ProviderType, projectFiles ProjectFiles, awsClient *aws.Client, gcpClient *gcp.Client) error {
+func validateONNXPredictor(api *userconfig.API, models *[]CuratedModelResource, awsClient *aws.Client, gcpClient *gcp.Client) error {
 	predictor := api.Predictor
 
 	if predictor.Models.SignatureKey != nil {

@@ -46,6 +46,7 @@ type GCPCoreConfig struct {
 	ImageOperator                 string `json:"image_operator" yaml:"image_operator"`
 	ImageManager                  string `json:"image_manager" yaml:"image_manager"`
 	ImageDownloader               string `json:"image_downloader" yaml:"image_downloader"`
+	ImageRequestMonitor           string `json:"image_request_monitor" yaml:"image_request_monitor"`
 	ImageClusterAutoscaler        string `json:"image_cluster_autoscaler" yaml:"image_cluster_autoscaler"`
 	ImageMetricsServer            string `json:"image_metrics_server" yaml:"image_metrics_server"`
 	ImageFluentBit                string `json:"image_fluent_bit" yaml:"image_fluent_bit"`
@@ -160,6 +161,13 @@ var GCPCoreConfigStructFieldValidations = []*cr.StructFieldValidation{
 		StructField: "ImageDownloader",
 		StringValidation: &cr.StringValidation{
 			Default:   "quay.io/cortexlabs/downloader:" + consts.CortexVersion,
+			Validator: validateImageVersion,
+		},
+	},
+	{
+		StructField: "ImageRequestMonitor",
+		StringValidation: &cr.StringValidation{
+			Default:   "quay.io/cortexlabs/request-monitor:" + consts.CortexVersion,
 			Validator: validateImageVersion,
 		},
 	},
@@ -666,6 +674,7 @@ func (cc *GCPCoreConfig) UserTable() table.KeyValuePairs {
 	items.Add(ImageOperatorUserKey, cc.ImageOperator)
 	items.Add(ImageManagerUserKey, cc.ImageManager)
 	items.Add(ImageDownloaderUserKey, cc.ImageDownloader)
+	items.Add(ImageRequestMonitorUserKey, cc.ImageRequestMonitor)
 	items.Add(ImageClusterAutoscalerUserKey, cc.ImageClusterAutoscaler)
 	items.Add(ImageMetricsServerUserKey, cc.ImageMetricsServer)
 	items.Add(ImageFluentBitUserKey, cc.ImageFluentBit)
@@ -748,6 +757,9 @@ func (cc *GCPCoreConfig) TelemetryEvent() map[string]interface{} {
 	}
 	if !strings.HasPrefix(cc.ImageDownloader, "cortexlabs/") {
 		event["image_downloader._is_custom"] = true
+	}
+	if !strings.HasPrefix(cc.ImageRequestMonitor, "cortexlabs/") {
+		event["image_request_monitor._is_custom"] = true
 	}
 	if !strings.HasPrefix(cc.ImageClusterAutoscaler, "cortexlabs/") {
 		event["image_cluster_autoscaler._is_custom"] = true
