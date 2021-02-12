@@ -29,7 +29,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/operator/lib/routines"
 	"github.com/cortexlabs/cortex/pkg/operator/operator"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
-	"github.com/cortexlabs/cortex/pkg/types"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/types/status"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
@@ -325,10 +324,8 @@ func applyK8sDeployment(api *spec.API, prevDeployment *kapps.Deployment) error {
 		}
 	}
 
-	if config.Provider == types.AWSProviderType {
-		if err := UpdateAutoscalerCron(newDeployment, api); err != nil {
-			return err
-		}
+	if err := UpdateAutoscalerCron(newDeployment, api); err != nil {
+		return err
 	}
 
 	return nil
