@@ -105,6 +105,7 @@ data:
         Match               k8s_container.*
         Remove_wildcard     k8s.
 
+  {{- if not .Values.fluentbit.dataOutputConf }}
   output.conf: |
     {{- if eq .Values.global.provider "aws" }}
     [OUTPUT]
@@ -115,7 +116,6 @@ data:
         log_stream_prefix kube.
         auto_create_group true
     {{- end }}
-
     {{- if eq .Values.global.provider "gcp" }}
     [OUTPUT]
         Name                  stackdriver
@@ -124,6 +124,9 @@ data:
         k8s_cluster_name      {{ .Values.cortex.cluster_name }}
         k8s_cluster_location  {{ .Values.cortex.zone }}
     {{- end }}
+  {{- else }}
+  output.conf: {{ .Values.fluentbit.dataOutputConf }}
+  {{- end }}
 
   parsers.conf: |
     [PARSER]
