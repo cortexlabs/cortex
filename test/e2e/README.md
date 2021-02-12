@@ -32,9 +32,9 @@ Using a new cluster, created for testing only and deleted afterwards:
 pytest test/e2e/tests -k aws --aws-config <cortex_aws_cluster_config.yaml>
 ```
 
-**Note:** For the BatchAPI tests, the `--s3-path` option should be provided with an
-AWS S3 bucket for testing purposes. It is more convenient however to define
-this bucket through an environment variable, see [configuration](#configuration).
+**Note:** For the BatchAPI tests, the `--s3-path` option should be provided with an AWS S3 bucket for testing purposes.
+It is more convenient however to define this bucket through an environment variable, see [configuration](#configuration)
+.
 
 ### GCP
 
@@ -52,8 +52,8 @@ pytest test/e2e/tests -k gcp --gcp-config <cortex_gcp_cluster_config.yaml>
 
 ### All Tests
 
-You can run all tests at once, however the provider specific options should be passed
-accordingly, or the test cases will be skipped.
+You can run all tests at once, however the provider specific options should be passed accordingly, or the test cases
+will be skipped.
 
 e.g.
 
@@ -61,10 +61,14 @@ e.g.
 pytest test/e2e/tests --aws-env <cortex_aws_env> --gcp-env <cortex_gcp_env>
 ```
 
+### Skip GPU Tests
+
+It is possible to skip GPU tests by passing the `--skip-gpus` flag to the pytest command.
+
 ## Configuration
 
-It is possible to configure the behaviour of the tests by defining
-environment variables or a `.env` file at the project directory.
+It is possible to configure the behaviour of the tests by defining environment variables or a `.env` file at the project
+directory.
 
 ```dotenv
 # .env file
