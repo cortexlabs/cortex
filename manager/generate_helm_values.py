@@ -97,7 +97,7 @@ def main():
                             "service.beta.kubernetes.io/aws-load-balancer-cross-zone-load-balancing-enabled": "true",
                             "service.beta.kubernetes.io/aws-load-balancer-backend-protocol": "tcp",
                             "service.beta.kubernetes.io/aws-load-balancer-ssl-ports": "https",  # "https" is the name of the https port below"
-                            "service.beta.kubernetes.io/aws-load-balancer-additional-resource-tags": "cortex.dev/load-balancer=api",
+                            "service.beta.kubernetes.io/aws-load-balancer-additional-resource-tags": f"cortex.dev/load-balancer=api,cortex.dev/cluster-name={cc['cluster_name']}",
                         }
                     }
                 }
@@ -110,7 +110,7 @@ def main():
                             "service.beta.kubernetes.io/aws-load-balancer-cross-zone-load-balancing-enabled": "true",
                             "service.beta.kubernetes.io/aws-load-balancer-backend-protocol": "tcp",
                             "service.beta.kubernetes.io/aws-load-balancer-ssl-ports": "https",  # "https" is the name of the https port below"
-                            "service.beta.kubernetes.io/aws-load-balancer-additional-resource-tags": "cortex.dev/load-balancer=operator",
+                            "service.beta.kubernetes.io/aws-load-balancer-additional-resource-tags": f"cortex.dev/load-balancer=operator,cortex.dev/cluster-name={cc['cluster_name']}",
                         }
                     }
                 }

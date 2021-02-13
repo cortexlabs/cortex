@@ -72,6 +72,6 @@
 * Cortex Core on Kubernetes
   * [Install](clusters/kubernetes/install.md)
   * [Values](clusters/kubernetes/values.md)
-  * [Load-Balancers](clusters/kubernets/load-balancers.md)
+  * [Load-Balancers](clusters/kubernetes/load-balancers.md)
   * [Uninstall](clusters/kubernetes/uninstall.md)
 * [Private Docker registry](clusters/registry.md)

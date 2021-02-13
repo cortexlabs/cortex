@@ -79,7 +79,7 @@ networking:
     pilot:
       # Hub for pilot
       hub: quay.io/cortexlabs
-      # Tag for pilot 
+      # Tag for pilot
       tag: master # CORTEX_VERSION
 
       # Can be a full hub/image:tag
