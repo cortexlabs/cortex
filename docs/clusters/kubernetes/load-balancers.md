@@ -1,6 +1,6 @@
 ## AWS Load-Balancer
 
-With the default helm configuration, you get a AWS Classic Load Balancer.
+With the default helm configuration, you get an AWS Classic Load Balancer.
 
 To get NLBs (Network Load Balancers), you need the following config:
 
