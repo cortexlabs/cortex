@@ -44,6 +44,25 @@ RUN pip install --no-cache-dir pandas \
     && conda clean -a
 ```
 
+If you need to upgrade the Python Runtime version on your image, you can follow this procedure:
+
+<!-- CORTEX_VERSION_BRANCH_STABLE -->
+
+```Dockerfile
+# Dockerfile
+
+FROM quay.io/cortexlabs/python-predictor-cpu-slim:master
+
+# upgrade python runtime version
+RUN conda update -n base -c defaults conda
+RUN conda install -n env python=3.8.5
+
+# re-install cortex core dependencies
+RUN /usr/local/cortex/install-core-dependencies.sh
+
+# ...
+```
+
 ## Build your image
 
 ```bash

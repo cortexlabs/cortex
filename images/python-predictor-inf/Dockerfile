@@ -34,6 +34,7 @@ ENV LANG=en_US.UTF-8 LANGUAGE=en_US.UTF-8 LC_ALL=en_US.UTF-8
 
 ENV PATH=/opt/conda/bin:$PATH
 ENV PYTHONVERSION=3.6.9
+ENV CORTEX_IMAGE_TYPE=python-predictor-inf
 
 # conda needs an untainted base environment to function properly
 # that's why a new separate conda environment is created
@@ -102,6 +103,9 @@ RUN test "${SLIM}" = "true" || ( \
         && pip install --no-cache-dir --no-deps \
             torchvision==0.6.1 \
     )
+
+COPY pkg/cortex/serve/init/install-core-dependencies.sh /usr/local/cortex/install-core-dependencies.sh
+RUN chmod +x /usr/local/cortex/install-core-dependencies.sh
 
 COPY pkg/cortex/serve/ /src/cortex/serve
 ENV CORTEX_LOG_CONFIG_FILE /src/cortex/serve/log_config.yaml
