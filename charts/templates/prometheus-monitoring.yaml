@@ -1,20 +1,3 @@
-apiVersion: storage.k8s.io/v1
-kind: StorageClass
-metadata:
-  name: ssd
-volumeBindingMode: WaitForFirstConsumer
-{{- if eq .Values.global.provider "aws" }}
-provisioner: kubernetes.io/aws-ebs
-parameters:
-  type: gp2
-{{- else if eq .Values.global.provider "gcp" }}
-provisioner: kubernetes.io/gce-pd
-parameters:
-  type: pd-ssd
-{{- end }}
-
----
-
 apiVersion: monitoring.coreos.com/v1
 kind: Prometheus
 metadata:
@@ -28,19 +11,36 @@ spec:
       - key: "monitoring.cortex.dev"
         operator: "In"
         values: [ "istio", "request-monitor", "statsd-exporter" ]
+  {{- $prom := .Values.prometheus }}
   resources:
+    {{- if and $prom.monitorResources.requests (or $prom.monitorResources.requests.cpu $prom.monitorResources.requests.memory) }}
     requests:
-      memory: 400Mi
-  enableAdminAPI: false
+      {{- if $prom.monitorResources.requests.cpu }}
+      cpu: {{ $prom.monitorResources.requests.cpu }}
+      {{- end }}
+      {{- if $prom.monitorResources.requests.memory }}
+      memory: {{ $prom.monitorResources.requests.memory }}
+      {{- end }}
+    {{- end }}
+    {{- if and $prom.monitorResources.limits (or $prom.monitorResources.limits.cpu $prom.monitorResources.limits.memory) }}
+    limits:
+      {{- if $prom.monitorResources.limits.cpu }}
+      cpu: {{ $prom.monitorResources.limits.cpu }}
+      {{- end }}
+      {{- if $prom.monitorResources.limits.memory }}
+      memory: {{ $prom.monitorResources.limits.memory }}
+      {{- end }}
+    {{- end }}
   storage:
     volumeClaimTemplate:
       spec:
-        storageClassName: ssd
+        storageClassName: "{{ .Release.Name }}-{{ .Release.Namespace }}-ssd"
         resources:
           requests:
-            storage: 40Gi
-  retention: 2w
-  retentionSize: 35GB
+            storage: {{ $prom.volumeClaimSize }}
+  retention: {{ $prom.retentionWindow }}
+  retentionSize: {{ $prom.retentionSize }}
+  enableAdminAPI: false
   securityContext:
     fsGroup: 2000
     runAsNonRoot: true

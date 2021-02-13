@@ -126,7 +126,6 @@ function cluster_up_gcp() {
   echo "✓"
 
   echo -n "￮ installing cortex cluster "
-  cat "$CORTEX_CLUSTER_CONFIG_FILE"
   python manager/generate_helm_values.py > /workspace/helm_values.yaml
   helm install cortex charts/ -f /workspace/helm_values.yaml --namespace "${CORTEX_NAMESPACE}" > /dev/null
   echo "✓"

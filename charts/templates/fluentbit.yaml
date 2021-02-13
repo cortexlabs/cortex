@@ -1,3 +1,4 @@
+{{- if .Values.addons.fluentbit.enabled }}
 apiVersion: v1
 kind: ServiceAccount
 metadata:
@@ -104,6 +105,7 @@ data:
         Match               k8s_container.*
         Remove_wildcard     k8s.
 
+  {{- if not .Values.addons.fluentbit.dataOutputConf }}
   output.conf: |
     {{- if eq .Values.global.provider "aws" }}
     [OUTPUT]
@@ -114,7 +116,6 @@ data:
         log_stream_prefix kube.
         auto_create_group true
     {{- end }}
-
     {{- if eq .Values.global.provider "gcp" }}
     [OUTPUT]
         Name                  stackdriver
@@ -123,6 +124,9 @@ data:
         k8s_cluster_name      {{ .Values.cortex.cluster_name }}
         k8s_cluster_location  {{ .Values.cortex.zone }}
     {{- end }}
+  {{- else }}
+  output.conf: {{ .Values.addons.fluentbit.dataOutputConf }}
+  {{- end }}
 
   parsers.conf: |
     [PARSER]
@@ -153,12 +157,27 @@ spec:
         - name: fluent-bit
           image: {{ .Values.cortex.image_fluent_bit }}
           imagePullPolicy: Always
+          {{- with .Values.addons.fluentbit.resources }}
           resources:
+            {{- if and .requests (or .requests.cpu .requests.memory) }}
             requests:
-              cpu: 100m
-              memory: 150Mi
+              {{- if .requests.cpu }}
+              cpu: {{ .requests.cpu }}
+              {{- end }}
+              {{- if .requests.memory }}
+              memory: {{ .requests.memory }}
+              {{- end }}
+            {{- end }}
+            {{- if and .limits (or .limits.cpu .limits.memory) }}
             limits:
-              memory: 150Mi
+              {{- if .limits.cpu }}
+              cpu: {{ .limits.cpu }}
+              {{- end }}
+              {{- if .limits.memory }}
+              memory: {{ .limits.memory }}
+              {{- end }}
+            {{- end }}
+          {{- end }}
           ports:
             - containerPort: 2020
           {{- if eq .Values.global.provider "gcp" }}
@@ -220,3 +239,4 @@ spec:
           operator: Exists
           effect: NoSchedule
 ---
+{{- end }}

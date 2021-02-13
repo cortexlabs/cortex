@@ -6,14 +6,8 @@ metadata:
   name: {{ $gateway.name | default "istio-ingressgateway" }}
   namespace: {{ .Release.Namespace }}
   annotations:
-    {{- if eq .Values.global.provider "aws" }}
-    {{- range $key, $val := $gateway.aws.serviceAnnotations }}
+    {{- range $key, $val := $gateway.serviceAnnotations }}
     {{ $key }}: {{ $val | quote }}
-    {{- end }}
-    {{- else if eq .Values.global.provider "gcp" }}
-    {{- range $key, $val := $gateway.gcp.serviceAnnotations }}
-    {{ $key }}: {{ $val | quote }}
-    {{- end }}
     {{- end }}
   labels:
 {{ $gateway.labels | toYaml | indent 4 }}

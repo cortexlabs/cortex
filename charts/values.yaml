@@ -1,13 +1,29 @@
-cortex:
-  # Please provide the following required fields for a cortex installation on AWS
-  cluster_name: ""
-  bucket: "" # e.g. "my-cortex-bucket" (without s3:// or gs://)
+global:
+  # -- "aws" or "gcp" (required)
+  provider: ""
 
-  # AWS only
+  # -- Default hub for istio images
+  hub: quay.io/cortexlabs
+
+  # -- Default tag for istio images
+  tag: master # CORTEX_VERSION
+
+  proxy:
+    # -- Image for the istio proxy controller
+    image: istio-proxy
+
+cortex:
+  # -- Name of the cluster (required)
+  cluster_name: ""
+  # -- "my-cortex-bucket" (without s3:// or gs://) (required)
+  bucket: ""
+
+  # -- AWS-only (region where the cluster was provisioned) (required)
   region: ""
 
-  # GCP only
+  # -- GCP-only (zone where the cluster was provisioned) (required)
   zone: ""
+  # -- GCP-only project ID (required)
   project: ""
 
   # CORTEX_VERSION
@@ -30,31 +46,110 @@ cortex:
   image_prometheus_statsd_exporter: quay.io/cortexlabs/prometheus-statsd-exporter:master
   image_grafana: quay.io/cortexlabs/grafana:master
 
+  resources:
+    requests:
+      cpu: 200m
+      memory: 128Mi
+    limits:
+      cpu: 2000m
+      memory: 1024Mi
+
 networking:
+  api-ingress:
+    gateways:
+      istio-ingressgateway:
+        # -- "ClusterIP", "NodePort" or "LoadBalancer"; for API ingress (RealtimeAPI, BatchAPI, TaskAPI, TrafficSplitter)
+        type: LoadBalancer
+        # -- "Local" or "Cluster"
+        externalTrafficPolicy: Cluster
+        # -- Annotations to configure your ingress (specific to aws or gcp)
+        serviceAnnotations: {}
+
+  operator-ingress:
+    gateways:
+      istio-ingressgateway:
+        # -- "ClusterIP", "NodePort" or "LoadBalancer"; for operator ingress (CLI/Python Client)
+        type: LoadBalancer
+        # -- "Local" or "Cluster"
+        externalTrafficPolicy: Cluster
+        # -- Annotations to configure your ingress (specific to aws or gcp)
+        serviceAnnotations: {}
+
   istio-discovery:
     pilot:
+      # Hub for pilot
       hub: quay.io/cortexlabs
+      # Tag for pilot 
       tag: master # CORTEX_VERSION
 
       # Can be a full hub/image:tag
       image: istio-pilot
 
-global:
-  provider: ""
+prometheus:
+  # -- Size of the volume for prometheus
+  volumeClaimSize: 40Gi
+  # -- How much prometheus will store in its volume
+  retentionSize: 35GB
+  # -- Retention time window
+  retentionWindow: 2w
 
-  # Default hub for Istio images.
-  # Releases are published to docker hub under 'istio' project.
-  # Dev builds from prow are on gcr.io
-  hub: quay.io/cortexlabs
+  monitorResources:
+    requests:
+      cpu: null
+      memory: 400Mi
+    limits:
+      cpu: null
+      memory: null
+  operatorResources:
+    requests:
+      cpu: 100m
+      memory: 100Mi
+    limits:
+      cpu: 200m
+      memory: 200Mi
 
-  # Default tag for Istio images.
-  tag: master # CORTEX_VERSION
-
-  proxy:
-    image: istio-proxy
+prometheusStatsDExporter:
+  resources:
+    requests:
+      cpu: 100m
+      memory: 100Mi
+    limits:
+      cpu: null
+      memory: 100Mi
 
 addons:
   grafana:
+    # -- Whether grafana is enabled or not
     enabled: true
+    # -- How much grafana can store in its volume
+    storage: 2Gi
+    resources:
+      requests:
+        cpu: 100m
+        memory: 100Mi
+      limits:
+        cpu: 200m
+        memory: 200Mi
+
+  fluentbit:
+    # -- Whether fluentbit is enabled or not; used for exporting logs to CloudWatch or Stackdriver
+    enabled: true
+    resources:
+      requests:
+        cpu: 100m
+        memory: 150Mi
+      limits:
+        cpu: null
+        memory: 150Mi
+    # dataOutputConf: |
+    #   [OUTPUT]
+    #       Name              cloudwatch
+    #       Match             k8s_container.*
+    #       region            {{ .Values.cortex.region }}
+    #       log_group_name    {{ .Values.cortex.cluster_name }}
+    #       log_stream_prefix kube.
+    #       auto_create_group true
+
   kubeMetricsServer:
+    # -- Whether the kube metrics server is enabled or not; for "kubectl top" command
     enabled: false
