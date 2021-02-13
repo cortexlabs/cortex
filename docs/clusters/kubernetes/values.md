@@ -10,7 +10,7 @@
 | cortex.bucket | string | `""` | "my-cortex-bucket" (without s3:// or gs://) (required) |
 | cortex.region | string | `""` | AWS-only (region where the cluster was provisioned) (required) |
 | cortex.zone | string | `""` | GCP-only (zone where the cluster was provisioned) (required) |
-| cortex.project | string | `""` | The project ID (required) |
+| cortex.project | string | `""` | GCP-only project ID (required) |
 | cortex.image_operator | string | `"quay.io/cortexlabs/operator:master"` |  |
 | cortex.image_manager | string | `"quay.io/cortexlabs/manager:master"` |  |
 | cortex.image_downloader | string | `"quay.io/cortexlabs/downloader:master"` |  |

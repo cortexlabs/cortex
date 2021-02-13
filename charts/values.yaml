@@ -23,7 +23,7 @@ cortex:
 
   # -- GCP-only (zone where the cluster was provisioned) (required)
   zone: ""
-  # -- The project ID (required)
+  # -- GCP-only project ID (required)
   project: ""
 
   # CORTEX_VERSION

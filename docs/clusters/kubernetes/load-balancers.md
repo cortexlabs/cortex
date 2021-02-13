@@ -2,7 +2,7 @@
 
 With the default helm configuration, you get a AWS Classic Load Balancer.
 
-To get an NLB (Network Load Balancer), you need the following config:
+To get NLBs (Network Load Balancers), you need the following config:
 
 ```yaml
 # values.yaml
@@ -26,7 +26,7 @@ networking:
                     - service.beta.kubernetes.io/aws-load-balancer-backend-protocol=tcp
 ```
 
-To get a private load balancer, you need the following config:
+To get private load balancers, you need the following config:
 
 ```yaml
 # values.yaml
@@ -45,10 +45,12 @@ networking:
                 serviceAnnotations:
                     - service.beta.kubernetes.io/aws-load-balancer-internal=true
 ```
+
+*Note: if you make your operator load balancer private, you must be within the cluster's VPC or configure VPC Peering to connect your CLI to your cluster operator.*
 
 ## GCP Load-Balancer
 
-To configure your load balancer to be private, you need the following config:
+To configure your load balancers to be private, you need the following config:
 
 ```yaml
 # values.yaml
@@ -67,3 +69,5 @@ networking:
                 serviceAnnotations:
                     - cloud.google.com/load-balancer-type=Internal
 ```
+
+*Note: if you make your operator load balancer private, you must be within the cluster's VPC or configure VPC Peering to connect your CLI to your cluster operator.*

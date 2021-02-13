@@ -16,7 +16,7 @@ apiVersion: apps/v1
 kind: DaemonSet
 metadata:
   name: image-downloader
-  namespace: default
+  namespace: ${CORTEX_NAMESPACE}
 spec:
   selector:
     matchLabels:
