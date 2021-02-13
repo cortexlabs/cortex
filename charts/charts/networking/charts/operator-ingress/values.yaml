@@ -51,7 +51,7 @@ gateways:
     loadBalancerIP: ""
     loadBalancerSourceRanges: []
     externalIPs: []
-    serviceAnnotations: []
+    serviceAnnotations: {}
 
     domain: ""
 

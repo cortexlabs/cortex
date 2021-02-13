@@ -63,7 +63,7 @@ networking:
         # -- "Local" or "Cluster"
         externalTrafficPolicy: Cluster
         # -- Annotations to configure your ingress (specific to aws or gcp)
-        serviceAnnotations: []
+        serviceAnnotations: {}
 
   operator-ingress:
     gateways:
@@ -73,7 +73,7 @@ networking:
         # -- "Local" or "Cluster"
         externalTrafficPolicy: Cluster
         # -- Annotations to configure your ingress (specific to aws or gcp)
-        serviceAnnotations: []
+        serviceAnnotations: {}
 
   istio-discovery:
     pilot:

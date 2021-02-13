@@ -41,6 +41,10 @@ def main():
             "telemetry": cc["telemetry"],
             "is_managed": cc["is_managed"],
             "instance_type": cc["instance_type"],
+            "min_instances": cc["min_instances"],
+            "max_instances": cc["max_instances"],
+            "api_load_balancer_scheme": cc["api_load_balancer_scheme"],
+            "operator_load_balancer_scheme": cc["operator_load_balancer_scheme"],
             "image_operator": cc["image_operator"],
             "image_manager": cc["image_manager"],
             "image_downloader": cc["image_downloader"],
@@ -70,6 +74,14 @@ def main():
         values_config["cortex"] = merge_override(
             values_config["cortex"],
             {
+                "availability_zones": cc["availability_zones"],
+                "instance_volume_size": cc["instance_volume_size"],
+                "subnet_visibility": cc["subnet_visibility"],
+                "nat_gateway": cc["nat_gateway"],
+                "tags": cc["tags"],
+                "spot": cc["spot"],
+                "ssl_certificate_arn": cc["ssl_certificate_arn"],
+                "vpc_cidr": cc["vpc_cidr"],
                 "region": cc["region"],
                 "image_inferentia": cc["image_inferentia"],
                 "image_neuron_rtd": cc["image_neuron_rtd"],
@@ -80,26 +92,26 @@ def main():
             "api-ingress": {
                 "gateways": {
                     "istio-ingressgateway": {
-                        "serviceAnnotations": [
-                            "service.beta.kubernetes.io/aws-load-balancer-type=nlb",
-                            "service.beta.kubernetes.io/aws-load-balancer-cross-zone-load-balancing-enabled=true",
-                            "service.beta.kubernetes.io/aws-load-balancer-backend-protocol=tcp",
-                            "service.beta.kubernetes.io/aws-load-balancer-ssl-ports=https",  # "https" is the name of the https port below"
-                            "service.beta.kubernetes.io/aws-load-balancer-additional-resource-tags=cortex.dev/load-balancer=api",
-                        ]
+                        "serviceAnnotations": {
+                            "service.beta.kubernetes.io/aws-load-balancer-type": "nlb",
+                            "service.beta.kubernetes.io/aws-load-balancer-cross-zone-load-balancing-enabled": "true",
+                            "service.beta.kubernetes.io/aws-load-balancer-backend-protocol": "tcp",
+                            "service.beta.kubernetes.io/aws-load-balancer-ssl-ports": "https",  # "https" is the name of the https port below"
+                            "service.beta.kubernetes.io/aws-load-balancer-additional-resource-tags": "cortex.dev/load-balancer=api",
+                        }
                     }
                 }
             },
             "operator-ingress": {
                 "gateways": {
                     "istio-ingressgateway": {
-                        "serviceAnnotations": [
-                            "service.beta.kubernetes.io/aws-load-balancer-type=nlb",
-                            "service.beta.kubernetes.io/aws-load-balancer-cross-zone-load-balancing-enabled=true",
-                            "service.beta.kubernetes.io/aws-load-balancer-backend-protocol=tcp",
-                            "service.beta.kubernetes.io/aws-load-balancer-ssl-ports=https",  # "https" is the name of the https port below"
-                            "service.beta.kubernetes.io/aws-load-balancer-additional-resource-tags=cortex.dev/load-balancer=operator",
-                        ]
+                        "serviceAnnotations": {
+                            "service.beta.kubernetes.io/aws-load-balancer-type": "nlb",
+                            "service.beta.kubernetes.io/aws-load-balancer-cross-zone-load-balancing-enabled": "true",
+                            "service.beta.kubernetes.io/aws-load-balancer-backend-protocol": "tcp",
+                            "service.beta.kubernetes.io/aws-load-balancer-ssl-ports": "https",  # "https" is the name of the https port below"
+                            "service.beta.kubernetes.io/aws-load-balancer-additional-resource-tags": "cortex.dev/load-balancer=operator",
+                        }
                     }
                 }
             },
@@ -108,20 +120,21 @@ def main():
         if cc.get("api_load_balancer_scheme") == "internal":
             values_config["networking"]["api-ingress"]["gateways"]["istio-ingressgateway"][
                 "serviceAnnotations"
-            ].append("service.beta.kubernetes.io/aws-load-balancer-internal=true")
+            ]["service.beta.kubernetes.io/aws-load-balancer-internal"] = "true"
             values_config["networking"]["operator-ingress"]["gateways"]["istio-ingressgateway"][
                 "serviceAnnotations"
-            ].append("service.beta.kubernetes.io/aws-load-balancer-internal=true")
+            ]["service.beta.kubernetes.io/aws-load-balancer-internal"] = "true"
 
         if cc.get("ssl_certificate_arn", "") != "":
             values_config["networking"]["api-ingress"]["gateways"]["istio-ingressgateway"][
                 "serviceAnnotations"
-            ].append("service.beta.kubernetes.io/aws-load-balancer-ssl-cert=ssl_certificate_arn")
+            ]["service.beta.kubernetes.io/aws-load-balancer-ssl-cert"] = "ssl_certificate_arn"
 
     if cc["provider"] == "gcp":
         values_config["cortex"] = merge_override(
             values_config["cortex"],
             {
+                "preemptible": cc["preemptible"],
                 "project": cc["project"],
                 "zone": cc["zone"],
                 "image_google_pause": cc["image_google_pause"],
@@ -133,18 +146,18 @@ def main():
                 "api-ingress": {
                     "gateways": {
                         "istio-ingressgateway": {
-                            "serviceAnnotations": [
-                                "cloud.google.com/load-balancer-type=Internal"
-                            ]
+                            "serviceAnnotations": {
+                                "cloud.google.com/load-balancer-type": "Internal"
+                            }
                         }
                     }
                 },
                 "operator-ingress": {
                     "gateways": {
                         "istio-ingressgateway": {
-                            "serviceAnnotations": [
-                                "cloud.google.com/load-balancer-type=Internal"
-                            ]
+                            "serviceAnnotations": {
+                                "cloud.google.com/load-balancer-type": "Internal"
+                            }
                         }
                     }
                 },

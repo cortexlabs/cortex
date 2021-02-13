@@ -41,6 +41,20 @@ data:
     is_managed: {{ .Values.cortex.is_managed | default false }}
     namespace: {{ .Release.Namespace }}
     instance_type: {{ .Values.cortex.instance_type }}
+    {{- if .Values.cortex.is_managed }}
+    min_instances: {{ .Values.cortex.min_instances }}
+    max_instances: {{ .Values.cortex.max_instances }}
+    api_load_balancer_scheme: {{ .Values.cortex.api_load_balancer_scheme }}
+    operator_load_balancer_scheme: {{ .Values.cortex.operator_load_balancer_scheme }}
+    availability_zones: {{ .Values.cortex.availability_zones }}
+    instance_volume_size: {{ .Values.cortex.instance_volume_size }}
+    subnet_visibility: {{ .Values.cortex.subnet_visibility }}
+    nat_gateway: {{ .Values.cortex.nat_gateway }}
+    tags: {{ .Values.cortex.tags }}
+    spot: {{ .Values.cortex.spot }}
+    ssl_certificate_arn: {{ .Values.cortex.ssl_certificate_arn }}
+    vpc_cidr: {{ .Values.cortex.vpc_cidr }}
+    {{- end }}
     image_operator: {{ .Values.cortex.image_operator }}
     image_manager: {{ .Values.cortex.image_manager }}
     image_downloader: {{ .Values.cortex.image_downloader }}
@@ -73,6 +87,13 @@ data:
     is_managed: {{ .Values.cortex.is_managed | default false }}
     namespace: {{ .Release.Namespace }}
     instance_type: {{ .Values.cortex.instance_type }}
+    {{- if .Values.cortex.is_managed }}
+    min_instances: {{ .Values.cortex.min_instances }}
+    max_instances: {{ .Values.cortex.max_instances }}
+    api_load_balancer_scheme: {{ .Values.cortex.api_load_balancer_scheme }}
+    operator_load_balancer_scheme: {{ .Values.cortex.operator_load_balancer_scheme }}
+    preemptible: {{ .Values.cortex.preemptible }}
+    {{- end }}
     image_operator: {{ .Values.cortex.image_operator }}
     image_manager: {{ .Values.cortex.image_manager }}
     image_downloader: {{ .Values.cortex.image_downloader }}
