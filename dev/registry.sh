@@ -186,7 +186,7 @@ function cleanup_ecr() {
 }
 
 function delete_ecr() {
-  echo "cleaning ECR repositories..."
+  echo "deleting ECR repositories..."
   repos=$(aws ecr describe-repositories --output text | awk '{print $6}' | grep -P "\S")
   echo "$repos" |
   while IFS= read -r repo; do
