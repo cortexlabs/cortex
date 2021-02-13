@@ -13,16 +13,28 @@ spec:
         values: [ "istio", "request-monitor", "statsd-exporter" ]
   {{- $prom := .Values.prometheus }}
   resources:
+    {{- if and $prom.monitorResources.requests (or $prom.monitorResources.requests.cpu $prom.monitorResources.requests.memory) }}
     requests:
+      {{- if $prom.monitorResources.requests.cpu }}
       cpu: {{ $prom.monitorResources.requests.cpu }}
+      {{- end }}
+      {{- if $prom.monitorResources.requests.memory }}
       memory: {{ $prom.monitorResources.requests.memory }}
+      {{- end }}
+    {{- end }}
+    {{- if and $prom.monitorResources.limits (or $prom.monitorResources.limits.cpu $prom.monitorResources.limits.memory) }}
     limits:
+      {{- if $prom.monitorResources.limits.cpu }}
       cpu: {{ $prom.monitorResources.limits.cpu }}
+      {{- end }}
+      {{- if $prom.monitorResources.limits.memory }}
       memory: {{ $prom.monitorResources.limits.memory }}
+      {{- end }}
+    {{- end }}
   storage:
     volumeClaimTemplate:
       spec:
-        storageClassName: {{ .Values.storageType.name }}
+        storageClassName: "{{ .Release.Name }}-{{ .Release.Namespace }}-ssd"
         resources:
           requests:
             storage: {{ $prom.volumeClaimSize }}

@@ -91,7 +91,7 @@ metadata:
   name: grafana-storage
   namespace: {{ .Release.Namespace }}
 spec:
-  storageClassName: {{ .Values.storageType.name }}
+  storageClassName: "{{ .Release.Name }}-{{ .Release.Namespace }}-ssd"
   accessModes:
     - ReadWriteOnce
   resources:
@@ -130,12 +130,24 @@ spec:
               port: http
           {{- with .Values.addons.grafana.resources }}
           resources:
+            {{- if and .requests (or .requests.cpu .requests.memory) }}
             requests:
+              {{- if .requests.cpu }}
               cpu: {{ .requests.cpu }}
+              {{- end }}
+              {{- if .requests.memory }}
               memory: {{ .requests.memory }}
+              {{- end }}
+            {{- end }}
+            {{- if and .limits (or .limits.cpu .limits.memory) }}
             limits:
+              {{- if .limits.cpu }}
               cpu: {{ .limits.cpu }}
+              {{- end }}
+              {{- if .limits.memory }}
               memory: {{ .limits.memory }}
+              {{- end }}
+            {{- end }}
           {{- end }}
           env:
             - name: GF_SERVER_ROOT_URL

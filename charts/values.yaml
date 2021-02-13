@@ -76,14 +76,8 @@ networking:
       # Can be a full hub/image:tag
       image: istio-pilot
 
-
-storageType:
-  name: ssd
-  awsType: gp2
-  gcpType: pd-ssd
-
 prometheus:
-  volumeClaimSize: 40GB
+  volumeClaimSize: 40Gi
   retentionSize: 35GB
   retentionWindow: 2w
 
@@ -114,7 +108,7 @@ prometheusStatsDExporter:
 addons:
   grafana:
     enabled: true
-    storage: 2Gbi
+    storage: 2Gi
     resources:
       requests:
         cpu: 100m

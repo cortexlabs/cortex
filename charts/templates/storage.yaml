@@ -1,14 +1,14 @@
 apiVersion: storage.k8s.io/v1
 kind: StorageClass
 metadata:
-  name: {{ .Values.storageType.name }}
+  name: "{{ .Release.Name }}-{{ .Release.Namespace }}-ssd"
 volumeBindingMode: WaitForFirstConsumer
 {{- if eq .Values.global.provider "aws" }}
 provisioner: kubernetes.io/aws-ebs
 parameters:
-  type: {{ .Values.storageType.awsType }}
+  type: gp2
 {{- else if eq .Values.global.provider "gcp" }}
 provisioner: kubernetes.io/gce-pd
 parameters:
-  type: {{ .Values.storageType.gcpType }}
+  type: pd-ssd
 {{- end }}
