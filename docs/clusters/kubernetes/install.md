@@ -5,7 +5,7 @@ Cortex currently relies on cloud provider specific functionality such as load ba
 * [AWS](#aws)
 * [GCP](#gcp)
 
-Cortex uses helm to install the Cortex operator and its dependencies on your Kubernetes cluster.
+Cortex uses helm to install the Cortex operator and its dependencies on your Kubernetes cluster. Check out this [table](#helm-values) for configurable Helm values in `values.yaml`.
 
 ## AWS
 
