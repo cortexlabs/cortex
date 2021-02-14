@@ -30,7 +30,7 @@ var (
 	SingleModelName = "_cortex_default"
 
 	DefaultImagePythonPredictorCPU   = fmt.Sprintf("%s/python-predictor-cpu:%s", defaultRegistry(), CortexVersion)
-	DefaultImagePythonPredictorGPU   = fmt.Sprintf("%s/python-predictor-cpu:%s-cuda10.2-cudnn8", defaultRegistry(), CortexVersion)
+	DefaultImagePythonPredictorGPU   = fmt.Sprintf("%s/python-predictor-gpu:%s-cuda10.2-cudnn8", defaultRegistry(), CortexVersion)
 	DefaultImagePythonPredictorInf   = fmt.Sprintf("%s/python-predictor-inf:%s", defaultRegistry(), CortexVersion)
 	DefaultImageTensorFlowServingCPU = fmt.Sprintf("%s/tensorflow-serving-cpu:%s", defaultRegistry(), CortexVersion)
 	DefaultImageTensorFlowServingGPU = fmt.Sprintf("%s/tensorflow-serving-gpu:%s", defaultRegistry(), CortexVersion)
