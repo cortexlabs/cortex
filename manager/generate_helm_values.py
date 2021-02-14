@@ -80,7 +80,6 @@ def main():
                 "nat_gateway": cc["nat_gateway"],
                 "tags": cc["tags"],
                 "spot": cc["spot"],
-                "ssl_certificate_arn": cc["ssl_certificate_arn"],
                 "vpc_cidr": cc["vpc_cidr"],
                 "region": cc["region"],
                 "image_inferentia": cc["image_inferentia"],
