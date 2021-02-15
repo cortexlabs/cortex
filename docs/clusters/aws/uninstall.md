@@ -28,7 +28,7 @@ aws logs describe-log-groups --log-group-name-prefix=<cluster_name> --query logG
 
 ## Delete Volumes
 
-The volumes used by Cortex's Prometheus and Grafana instances are not deleted by default, as it might contain important
+The volumes used by Cortex's Prometheus and Grafana instances are not deleted by default, as they might contain important
 information. If these volumes are not required anymore, you can delete them in the AWS console.
 
 To delete the volumes, navigate to the [EC2 volumes page](https://console.aws.amazon.com/ec2/v2/home?#Volumes)
