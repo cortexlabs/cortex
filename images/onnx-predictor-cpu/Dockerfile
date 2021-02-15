@@ -48,7 +48,7 @@ COPY pkg/cortex/serve/cortex_internal.requirements.txt /src/cortex/serve/cortex_
 RUN pip install --no-cache-dir \
     -r /src/cortex/serve/serve.requirements.txt \
     -r /src/cortex/serve/cortex_internal.requirements.txt \
-    onnxruntime==1.4.0
+    onnxruntime==1.6.0
 
 COPY pkg/cortex/serve/init/install-core-dependencies.sh /usr/local/cortex/install-core-dependencies.sh
 RUN chmod +x /usr/local/cortex/install-core-dependencies.sh

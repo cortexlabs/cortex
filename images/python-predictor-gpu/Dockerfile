@@ -1,6 +1,6 @@
 ARG CUDA_VERSION=10.2
 ARG CUDNN=8
-FROM nvidia/cuda:$CUDA_VERSION-cudnn$CUDNN-devel-ubuntu18.04
+FROM nvidia/cuda:$CUDA_VERSION-cudnn$CUDNN-runtime-ubuntu18.04
 
 RUN apt-get update -qq && apt-get install -y -q \
         build-essential \
