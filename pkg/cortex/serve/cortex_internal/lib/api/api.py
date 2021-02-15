@@ -53,8 +53,11 @@ class API:
         self.statsd = datadog.statsd
 
     @property
-    def server_side_batching_enabled(self):
-        return self.api_spec["predictor"].get("server_side_batching") is not None
+    def python_server_side_batching_enabled(self):
+        return (
+            self.api_spec["predictor"].get("server_side_batching") is not None
+            and self.api_spec["predictor"]["type"] == "python"
+        )
 
     def metric_dimensions_with_id(self):
         return [
