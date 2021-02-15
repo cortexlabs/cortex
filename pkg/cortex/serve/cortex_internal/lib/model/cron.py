@@ -1151,7 +1151,7 @@ class TFSModelLoader(mp.Process):
                                 model_name, model_version, str(e)
                             )
                         )
-                    logger.warning("TFS server is unresponsive")
+                    logger.warning("waiting for tensorflow serving")
                     raise
                 is_model_outdated = True
             elif model_id not in self._old_ts_state:
@@ -1216,7 +1216,7 @@ class TFSModelLoader(mp.Process):
         return signature_key
 
     def _reset_when_tfs_unresponsive(self):
-        logger.warning("TFS server is unresponsive")
+        logger.warning("waiting for tensorflow serving")
 
         if self._tfs_address:
             self._client = TensorFlowServingAPI(self._tfs_address)
