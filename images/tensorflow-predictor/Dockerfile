@@ -48,35 +48,8 @@ COPY pkg/cortex/serve/cortex_internal.requirements.txt /src/cortex/serve/cortex_
 RUN pip install --no-cache-dir \
     -r /src/cortex/serve/serve.requirements.txt \
     -r /src/cortex/serve/cortex_internal.requirements.txt \
-    tensorflow-cpu==2.3.0 \
-    tensorflow-serving-api==2.3.0
-
-ARG SLIM="false"
-RUN test "${SLIM}" = "true" || ( \
-        # libsm6, libxext6, and libxrender-dev are required for opencv
-        # libpng-dev is required for some image processing libaries
-        # libsndfile1 is required for some audio processing libaries
-        # libgl1-mesa-glx to libxtst6 are for qt (for GUI packages): https://docs.anaconda.com/anaconda/install/linux/
-        apt-get update -qq && apt-get install -y -q \
-            libsm6 \
-            libxext6 \
-            libxrender-dev \
-            libpng-dev \
-            libsndfile1 \
-            libgl1-mesa-glx \
-            libegl1-mesa \
-            libxrandr2 \
-            libxss1 \
-            libxcursor1 \
-            libxcomposite1 \
-            libasound2 \
-            libxi6 \
-            libxtst6 \
-        && apt-get clean -qq && rm -rf /var/lib/apt/lists/* \
-        && pip install --no-cache-dir \
-            opencv-python==4.4.0.42 \
-            tensorflow-hub==0.9.0 \
-    )
+    tensorflow-cpu==2.4.1 \
+    tensorflow-serving-api==2.4.1
 
 COPY pkg/cortex/serve/init/install-core-dependencies.sh /usr/local/cortex/install-core-dependencies.sh
 RUN chmod +x /usr/local/cortex/install-core-dependencies.sh

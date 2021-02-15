@@ -177,23 +177,23 @@ instance_type: m5.large
 min_instances: 1
 max_instances: 5
 
-image_operator: <account_id>.dkr.ecr.<region>.amazonaws.com/cortexlabs/operator:latest
-image_manager: <account_id>.dkr.ecr.<region>.amazonaws.com/cortexlabs/manager:latest
-image_downloader: <account_id>.dkr.ecr.<region>.amazonaws.com/cortexlabs/downloader:latest
-image_request_monitor: <account_id>.dkr.ecr.<region>.amazonaws.com/cortexlabs/request-monitor:latest
-image_cluster_autoscaler: <account_id>.dkr.ecr.<region>.amazonaws.com/cortexlabs/cluster-autoscaler:latest
-image_metrics_server: <account_id>.dkr.ecr.<region>.amazonaws.com/cortexlabs/metrics-server:latest
-image_inferentia: <account_id>.dkr.ecr.<region>.amazonaws.com/cortexlabs/inferentia:latest
-image_neuron_rtd: <account_id>.dkr.ecr.<region>.amazonaws.com/cortexlabs/neuron-rtd:latest
-image_nvidia: <account_id>.dkr.ecr.<region>.amazonaws.com/cortexlabs/nvidia:latest
-image_fluent_bit: <account_id>.dkr.ecr.<region>.amazonaws.com/cortexlabs/fluent-bit:latest
-image_istio_proxy: <account_id>.dkr.ecr.<region>.amazonaws.com/cortexlabs/istio-proxy:latest
-image_istio_pilot: <account_id>.dkr.ecr.<region>.amazonaws.com/cortexlabs/istio-pilot:latest
-image_prometheus: <account_id>.dkr.ecr.<region>.amazonaws.com/cortexlabs/prometheus:latest
-image_prometheus_config_reloader: <account_id>.dkr.ecr.<region>.amazonaws.com/cortexlabs/prometheus-config-reloader:latest
-image_prometheus_operator: <account_id>.dkr.ecr.<region>.amazonaws.com/cortexlabs/prometheus-operator:latest
-image_prometheus_statsd_exporter: <account_id>.dkr.ecr.<region>.amazonaws.com/cortexlabs/prometheus-statsd-exporter:latest
-image_grafana: <account_id>.dkr.ecr.<region>.amazonaws.com/cortexlabs/grafana:latest
+image_operator: <account_id>.dkr.ecr.<region>.amazonaws.com/cortexlabs/operator:master
+image_manager: <account_id>.dkr.ecr.<region>.amazonaws.com/cortexlabs/manager:master
+image_downloader: <account_id>.dkr.ecr.<region>.amazonaws.com/cortexlabs/downloader:master
+image_request_monitor: <account_id>.dkr.ecr.<region>.amazonaws.com/cortexlabs/request-monitor:master
+image_cluster_autoscaler: <account_id>.dkr.ecr.<region>.amazonaws.com/cortexlabs/cluster-autoscaler:master
+image_metrics_server: <account_id>.dkr.ecr.<region>.amazonaws.com/cortexlabs/metrics-server:master
+image_inferentia: <account_id>.dkr.ecr.<region>.amazonaws.com/cortexlabs/inferentia:master
+image_neuron_rtd: <account_id>.dkr.ecr.<region>.amazonaws.com/cortexlabs/neuron-rtd:master
+image_nvidia: <account_id>.dkr.ecr.<region>.amazonaws.com/cortexlabs/nvidia:master
+image_fluent_bit: <account_id>.dkr.ecr.<region>.amazonaws.com/cortexlabs/fluent-bit:master
+image_istio_proxy: <account_id>.dkr.ecr.<region>.amazonaws.com/cortexlabs/istio-proxy:master
+image_istio_pilot: <account_id>.dkr.ecr.<region>.amazonaws.com/cortexlabs/istio-pilot:master
+image_prometheus: <account_id>.dkr.ecr.<region>.amazonaws.com/cortexlabs/prometheus:master
+image_prometheus_config_reloader: <account_id>.dkr.ecr.<region>.amazonaws.com/cortexlabs/prometheus-config-reloader:master
+image_prometheus_operator: <account_id>.dkr.ecr.<region>.amazonaws.com/cortexlabs/prometheus-operator:master
+image_prometheus_statsd_exporter: <account_id>.dkr.ecr.<region>.amazonaws.com/cortexlabs/prometheus-statsd-exporter:master
+image_grafana: <account_id>.dkr.ecr.<region>.amazonaws.com/cortexlabs/grafana:master
 ```
 
 Create `dev/config/cluster-gcp.yaml`. Paste the following config, and update `project`, `zone`, and all registry URLs (replace `<project_id>` with your project ID, and update `gcr.io` if you are using a different host):
@@ -210,18 +210,18 @@ min_instances: 1
 max_instances: 5
 # accelerator_type: nvidia-tesla-k80  # optional
 
-image_operator: /cortexlabs/operator:latest
-image_manager: gcr.io/<project_id>/cortexlabs/manager:latest
-image_downloader: gcr.io/<project_id>/cortexlabs/downloader:latest
-image_request_monitor: gcr.io/<project_id>/cortexlabs/request-monitor:latest
-image_istio_proxy: gcr.io/<project_id>/cortexlabs/istio-proxy:latest
-image_istio_pilot: gcr.io/<project_id>/cortexlabs/istio-pilot:latest
-image_google_pause: gcr.io/<project_id>/cortexlabs/google-pause:latest
-image_prometheus: gcr.io/<project_id>/cortexlabs/prometheus:latest
-image_prometheus_config_reloader: gcr.io/<project_id>/cortexlabs/prometheus-config-reloader:latest
-image_prometheus_operator: gcr.io/<project_id>/cortexlabs/prometheus-operator:latest
-image_prometheus_statsd_exporter: gcr.io/<project_id>/cortexlabs/prometheus-statsd-exporter:latest
-image_grafana: gcr.io/<project_id>/cortexlabs/grafana:latest
+image_operator: /cortexlabs/operator:master
+image_manager: gcr.io/<project_id>/cortexlabs/manager:master
+image_downloader: gcr.io/<project_id>/cortexlabs/downloader:master
+image_request_monitor: gcr.io/<project_id>/cortexlabs/request-monitor:master
+image_istio_proxy: gcr.io/<project_id>/cortexlabs/istio-proxy:master
+image_istio_pilot: gcr.io/<project_id>/cortexlabs/istio-pilot:master
+image_google_pause: gcr.io/<project_id>/cortexlabs/google-pause:master
+image_prometheus: gcr.io/<project_id>/cortexlabs/prometheus:master
+image_prometheus_config_reloader: gcr.io/<project_id>/cortexlabs/prometheus-config-reloader:master
+image_prometheus_operator: gcr.io/<project_id>/cortexlabs/prometheus-operator:master
+image_prometheus_statsd_exporter: gcr.io/<project_id>/cortexlabs/prometheus-statsd-exporter:master
+image_grafana: gcr.io/<project_id>/cortexlabs/grafana:master
 ```
 
 ### Building

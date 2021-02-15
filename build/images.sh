@@ -34,21 +34,6 @@ api_images_gcp=(
   # includes api_images_cluster
 )
 
-api_slim_images_cluster=(
-  "python-predictor-cpu-slim"
-  "python-predictor-gpu-slim"
-  "tensorflow-predictor-slim"
-  "onnx-predictor-cpu-slim"
-  "onnx-predictor-gpu-slim"
-)
-api_slim_images_aws=(
-  # includes api_slim_images_cluster
-  "python-predictor-inf-slim"
-)
-api_slim_images_gcp=(
-  # includes api_slim_images_cluster
-)
-
 dev_images_cluster=(
   "downloader"
   "manager"
@@ -92,9 +77,6 @@ all_images=(
   "${api_images_cluster[@]}"
   "${api_images_aws[@]}"
   "${api_images_gcp[@]}"
-  "${api_slim_images_cluster[@]}"
-  "${api_slim_images_aws[@]}"
-  "${api_slim_images_gcp[@]}"
   "${dev_images_cluster[@]}"
   "${dev_images_aws[@]}"
   "${dev_images_gcp[@]}"
@@ -106,8 +88,6 @@ all_images=(
 aws_images=(
   "${api_images_cluster[@]}"
   "${api_images_aws[@]}"
-  "${api_slim_images_cluster[@]}"
-  "${api_slim_images_aws[@]}"
   "${dev_images_cluster[@]}"
   "${dev_images_aws[@]}"
   "${non_dev_images_cluster[@]}"
@@ -117,8 +97,6 @@ aws_images=(
 gcp_images=(
   "${api_images_cluster[@]}"
   "${api_images_gcp[@]}"
-  "${api_slim_images_cluster[@]}"
-  "${api_slim_images_gcp[@]}"
   "${dev_images_cluster[@]}"
   "${dev_images_gcp[@]}"
   "${non_dev_images_cluster[@]}"
