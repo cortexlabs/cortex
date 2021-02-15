@@ -1,1 +1,1 @@
-FROM nvidia/k8s-device-plugin:v0.6.0
+FROM nvidia/k8s-device-plugin:v0.7.3
