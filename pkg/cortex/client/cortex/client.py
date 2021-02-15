@@ -166,35 +166,59 @@ class Client:
             if not inspect.isclass(predictor):
                 raise ValueError("`predictor` parameter must be a class definition")
 
-            with open(project_dir / "predictor.pickle", "wb") as pickle_file:
-                dill.dump(predictor, pickle_file)
-                if api_spec.get("predictor") is None:
-                    api_spec["predictor"] = {}
+            impl_rel_path = self._save_impl(predictor, project_dir, "predictor")
+            if api_spec.get("predictor") is None:
+                api_spec["predictor"] = {}
 
-                if predictor.__name__ == "PythonPredictor":
-                    predictor_type = "python"
-                if predictor.__name__ == "TensorFlowPredictor":
-                    predictor_type = "tensorflow"
-                if predictor.__name__ == "ONNXPredictor":
-                    predictor_type = "onnx"
+            if predictor.__name__ == "PythonPredictor":
+                predictor_type = "python"
+            if predictor.__name__ == "TensorFlowPredictor":
+                predictor_type = "tensorflow"
+            if predictor.__name__ == "ONNXPredictor":
+                predictor_type = "onnx"
 
-                api_spec["predictor"]["path"] = "predictor.pickle"
-                api_spec["predictor"]["type"] = predictor_type
+            api_spec["predictor"]["path"] = impl_rel_path
+            api_spec["predictor"]["type"] = predictor_type
 
         if api_kind == "TaskAPI":
             if not callable(task):
                 raise ValueError(
                     "`task` parameter must be a callable (e.g. a function definition or a class definition called `Task` with a `__call__` method implemented"
                 )
-            with open(project_dir / "task.pickle", "wb") as pickle_file:
-                dill.dump(task, pickle_file)
-                if api_spec.get("definition") is None:
-                    api_spec["definition"] = {}
-                api_spec["definition"]["path"] = "task.pickle"
+
+            impl_rel_path = self._save_impl(task, project_dir, "task")
+            if api_spec.get("definition") is None:
+                api_spec["definition"] = {}
+            api_spec["definition"]["path"] = impl_rel_path
 
         with open(cortex_yaml_path, "w") as f:
             yaml.dump([api_spec], f)  # write a list
             return self._deploy(cortex_yaml_path, force=force, wait=wait)
+
+    def _save_impl(self, impl, project_dir: Path, filename: str) -> str:
+        import __main__ as main
+
+        is_interactive = not hasattr(main, "__file__")
+
+        if is_interactive and impl.__module__ == "__main__":
+            # class is defined in a REPL (e.g. jupyter)
+            filename += ".pickle"
+            with open(project_dir / filename, "wb") as pickle_file:
+
+                dill.dump(impl, pickle_file)
+                return filename
+
+        filename += ".py"
+        if not is_interactive and impl.__module__ == "__main__":
+            # class is defined in the same file as main
+            with open(project_dir / filename, "w") as f:
+                f.write(dill.source.importable(impl, source=True))
+                return filename
+
+        if not is_interactive and not impl.__module__ == "__main__":
+            # class is imported, copy file containing the class
+            shutil.copy(inspect.getfile(impl), project_dir / filename)
+            return filename
 
     def _deploy(
         self,

@@ -1,8 +1,9 @@
-FROM tensorflow/serving:2.3.0-gpu
+FROM tensorflow/serving:2.4.0-gpu
 
+# https://www.tensorflow.org/install/gpu
 RUN apt-get update -qq && apt-get install -y --no-install-recommends -q \
-        libnvinfer6=6.0.1-1+cuda10.1 \
-        libnvinfer-plugin6=6.0.1-1+cuda10.1 \
+        libnvinfer7=7.1.3-1+cuda11.0 \
+        libnvinfer-plugin7=7.1.3-1+cuda11.0 \
         curl \
     && apt-get clean -qq && rm -rf /var/lib/apt/lists/*
 

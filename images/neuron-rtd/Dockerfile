@@ -9,8 +9,8 @@ enabled=1' > /etc/yum.repos.d/neuron.repo
 RUN rpm --import https://yum.repos.neuron.amazonaws.com/GPG-PUB-KEY-AMAZON-AWS-NEURON.PUB
 
 RUN yum install -y \
-    aws-neuron-tools-1.0.11054.0 \
-    aws-neuron-runtime-1.0.9592.0 \
+    aws-neuron-tools-1.4.2.0 \
+    aws-neuron-runtime-1.4.3.0 \
     procps-ng-3.3.10-26.amzn2.x86_64 \
     gzip \
     tar \
