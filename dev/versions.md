@@ -8,10 +8,10 @@
 * check pod -> cluster autoscaling on cpu or gpu or inferentia
 * check cluster autoscaling on cpu and gpu and inferentia
 * examples
-    * check logs, predictions
-    * check metrics, tracker
-    * make sure to try all 8 base images (tf/onnx/py gpu/cpu, tf/py inferentia)
-    * confirm GPUs are used when requested
+  * check logs, predictions
+  * check metrics, tracker
+  * make sure to try all 8 base images (tf/onnx/py gpu/cpu, tf/py inferentia)
+  * confirm GPUs are used when requested
 
 ## eksctl
 
@@ -143,23 +143,21 @@ python versions in our pip dependencies (e.g. [tensorflow](https://pypi.org/proj
 ## TensorFlow / TensorFlow Serving
 
 1. Find the latest release on [GitHub](https://github.com/tensorflow/tensorflow/releases)
-1. Search the codebase for the current minor TensorFlow version (e.g. `2.3`) and update versions as appropriate
+1. Search the codebase for the current minor TensorFlow version (e.g. `2.4`) and update versions as appropriate
+1. Update the version for libnvinfer in `images/tensorflow-serving-gpu/Dockerfile` dockerfile as appropriate (https://www.tensorflow.org/install/gpu)
 
 Note: it's ok if example training notebooks aren't upgraded, as long as the exported model still works
 
-## CUDA
+## CUDA/cuDNN
 
-1. Update the `nvidia/cuda` base image in `images/python-predictor-gpu/Dockerfile`
-   and `images/onnx-predictor-gpu/Dockerfile` (as well as `libnvinfer` in `images/python-predictor-gpu/Dockerfile`
-   and `images/tensorflow-serving-gpu/Dockerfile`) to the desired version based
-   on [TensorFlow's documentation](https://www.tensorflow.org/install/gpu)
-   / [TensorFlow's compatability table](https://www.tensorflow.org/install/source#gpu) ([Dockerhub](https://hub.docker.com/r/nvidia/cuda)) (
-   it's possible these versions will diverge depending on ONNX runtime support)
+1. Search the codebase for the previous CUDA version and `cudnn`. It might be nice to use the version of CUDA which does not require a special pip command when installing pytorch.
 
 ## ONNX runtime
 
 1. Update the version in `images/onnx-predictor-cpu/Dockerfile`
    and `images/onnx-predictor-gpu/Dockerfile` ([releases](https://github.com/microsoft/onnxruntime/releases))
+   * Use the appropriate CUDA/cuDNN version in `images/onnx-predictor-gpu/Dockerfile` ([docs](https://github.com/microsoft/onnxruntime/blob/master/BUILD.md#CUDA))
+   * Search the codebase for the previous version
 1. Search the codebase for the previous ONNX runtime version
 
 ## Nvidia device plugin
@@ -168,10 +166,11 @@ Note: it's ok if example training notebooks aren't upgraded, as long as the expo
    , [Dockerhub](https://hub.docker.com/r/nvidia/k8s-device-plugin))
 1. In the [GitHub Repo](https://github.com/NVIDIA/k8s-device-plugin), find the latest release and go to this file (
    replacing the version number): <https://github.com/NVIDIA/k8s-device-plugin/blob/v0.6.0/nvidia-device-plugin.yml>
-1. Copy the contents to `manager/manifests/nvidia.yaml`
+1. Copy the contents to `manager/manifests/nvidia_aws.yaml`
     1. Update the link at the top of the file to the URL you copied from
     1. Check that your diff is reasonable (and put back any of our modifications, e.g. the image path, rolling update
        strategy, resource requests, tolerations, node selector, priority class, etc)
+1. For `manager/manifests/nvidia_gcp.yaml` follow the instructions at [here](https://cloud.google.com/kubernetes-engine/docs/how-to/gpus#installing_drivers)
 1. Confirm GPUs work for PyTorch, TensorFlow, and ONNX models
 
 ## Inferentia device plugin
@@ -193,10 +192,10 @@ Note: it's ok if example training notebooks aren't upgraded, as long as the expo
 
 1. `docker run --rm -it amazonlinux:2`
 1. Run the `echo $'[neuron] ...' > /etc/yum.repos.d/neuron.repo` command
-   from [Dockerfile.neuron-rtd](https://github.com/aws/aws-neuron-sdk/blob/master/docs/neuron-container-tools/docker-example/Dockerfile.neuron-rtd) (
-   it needs to be updated to work properly with the new lines)
-1. Run `yum info aws-neuron-tools` and `yum info aws-neuron-runtime` to check the versions that were installed, and use
-   those versions in `images/neuron-rtd/Dockerfile`
+   from [Dockerfile.neuron-rtd](https://github.com/aws/aws-neuron-sdk/blob/master/docs/neuron-container-tools/docker-example/Dockerfile.neuron-rtd) (it needs to be updated to work properly with the new lines)
+   * e.g. `echo $'[neuron] \nname=Neuron YUM Repository \nbaseurl=https://yum.repos.neuron.amazonaws.com \nenabled=1' > /etc/yum.repos.d/neuron.repo`
+1. Run `yum info aws-neuron-tools`, `yum info aws-neuron-runtime`, and `yum info procps-ng` to check the versions
+   that were installed, and use those versions in `images/neuron-rtd/Dockerfile`
 1. Check if there are any updates
    to [Dockerfile.neuron-rtd](https://github.com/aws/aws-neuron-sdk/blob/master/docs/neuron-container-tools/docker-example/Dockerfile.neuron-rtd)
    which should be brought in to `images/neuron-rtd/Dockerfile`
@@ -210,29 +209,16 @@ Note: it's ok if example training notebooks aren't upgraded, as long as the expo
 1. Check if there are any updates
    to [Dockerfile.tf-serving](https://github.com/aws/aws-neuron-sdk/blob/master/docs/neuron-container-tools/docker-example/Dockerfile.tf-serving)
    which should be brought in to `images/tensorflow-serving-inf/Dockerfile`
-1. Run `docker run --rm -it ubuntu:18.04`
-1. Run `apt-get update && apt-get install -y curl python3.6 python3.6-distutils` (change the python version if
-   necessary)
-1. Run `curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py && python3.6 get-pip.py && pip install --upgrade pip` (
-   change the python version if necessary)
-1. Run `pip install --extra-index-url https://pip.repos.neuron.amazonaws.com neuron-cc tensorflow-neuron torch-neuron`
-1. Run `pip list` to show the versions of all installed dependencies, and
-   update `images/python-predictor-inf/Dockerfile` and the docs accordingly (`realtime-api/predictors.md`
-   and `batch-api/predictors.md`); latest versions of dependencies that aren't shown in `pip list` can be determined on
-   pypi.org (for `torchvision`, go to its pypi page, and use the latest patch version of the minor version which is
-   appropriate for the version of `torch` that's installed)
-1. Take a deep breath, cross your fingers, rebuild all images, and confirm that the Inferentia examples work
+1. Take a deep breath, cross your fingers, rebuild all images, and confirm that the Inferentia examples work. You may need to change the versions of `neuron-cc`, `tensorflow-neuron`, and/or `torch-neuron` in `requirements.txt` files:
+   1. Run `docker run --rm -it ubuntu:18.04`
+   1. Run `apt-get update && apt-get install -y curl python3.6 python3.6-distutils` (change the python version if necessary)
+      1. Run `curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py && python3.6 get-pip.py && pip install --upgrade pip` (change the python version if necessary)
+   1. Run `pip install --extra-index-url https://pip.repos.neuron.amazonaws.com neuron-cc tensorflow-neuron torch-neuron`
+   1. Run `pip list` to show the versions of all installed dependencies
 
 ## Python packages
 
-1. Update versions in `images/python-predictor-*/Dockerfile`, `images/tensorflow-predictor/Dockerfile`,
-   and `images/onnx-predictor-*/Dockerfile`
-1. Update versions in `pkg/cortex/serve/*requirements.txt` and `pkg/cortex/downloader/requirements.txt`
-1. Update the versions listed in "Pre-installed packages" in `realtime-api/predictors.md` and `batch-api/predictors.md`
-    * look at the diff carefully since some packages are not shown, and e.g. `tensorflow-cpu` -> `tensorflow`
-    * be careful not to update any of the versions for Inferentia that are not latest
-      in `images/python-predictor-inf/Dockerfile`
-1. Rerun all examples and check their logs
+1. Update versions in `pkg/cortex/serve/*requirements.txt`
 
 ## S6-overlay supervisor
 
@@ -286,19 +272,10 @@ Note: it's ok if example training notebooks aren't upgraded, as long as the expo
 1. Find the latest release on [GitHub](https://github.com/kubernetes-incubator/metrics-server/releases) and check the
    changelog
 1. Update the version in `images/metrics-server/Dockerfile`
-1. In the [GitHub Repo](https://github.com/kubernetes-incubator/metrics-server), find the latest release and go to this
-   directory (replacing the version
-   number): <https://github.com/kubernetes-incubator/metrics-server/tree/v0.3.7/deploy/1.8+>
-1. Copy the contents of all of the files in that directory into `manager/manifests/metrics-server.yaml`
-    1. Update this line of config:
-
-        ```yaml
-        image: $CORTEX_IMAGE_METRICS_SERVER
-        ```
-
-    1. Update the link at the top of the file to the URL you copied from
-    1. Check that your diff is reasonable (there may have been other modifications to the file which should be
-       preserved, like resource requests)
+1. Download the manifest referenced in the latest release in changelog
+1. Copy the contents of the manifest into `manager/manifests/metrics-server.yaml`
+    1. Update accordingly (e.g. image, pull policy, resource request, etc):
+    1. Check that your diff is reasonable
 1. You can confirm the metric server is running by showing the logs of the metrics-server pod, or
    via `kubectl get deployment metrics-server -n kube-system`
    and `kubectl get apiservice v1beta1.metrics.k8s.io -o yaml`

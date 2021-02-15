@@ -654,7 +654,7 @@ data:
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(rate(istio_requests_total{destination_service_name=~\"api-$api_name.+\", response_code=~\"5.+\"}[5m])) by (destination_service_name, response_code)",
+              "expr": "sum(rate(istio_requests_total{destination_service_name=~\"api-$api_name.+\", response_code=~\"5.+\"}[1m])) by (destination_service_name, response_code)",
               "interval": "",
               "legendFormat": "{{destination_service_name}}",
               "refId": "2XX"

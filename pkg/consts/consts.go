@@ -29,15 +29,15 @@ var (
 
 	SingleModelName = "_cortex_default"
 
-	DefaultImagePythonPredictorCPU   = defaultDockerImage("python-predictor-cpu")
-	DefaultImagePythonPredictorGPU   = defaultDockerImage("python-predictor-gpu")
-	DefaultImagePythonPredictorInf   = defaultDockerImage("python-predictor-inf")
-	DefaultImageTensorFlowServingCPU = defaultDockerImage("tensorflow-serving-cpu")
-	DefaultImageTensorFlowServingGPU = defaultDockerImage("tensorflow-serving-gpu")
-	DefaultImageTensorFlowServingInf = defaultDockerImage("tensorflow-serving-inf")
-	DefaultImageTensorFlowPredictor  = defaultDockerImage("tensorflow-predictor")
-	DefaultImageONNXPredictorCPU     = defaultDockerImage("onnx-predictor-cpu")
-	DefaultImageONNXPredictorGPU     = defaultDockerImage("onnx-predictor-gpu")
+	DefaultImagePythonPredictorCPU   = fmt.Sprintf("%s/python-predictor-cpu:%s", defaultRegistry(), CortexVersion)
+	DefaultImagePythonPredictorGPU   = fmt.Sprintf("%s/python-predictor-gpu:%s-cuda10.2-cudnn8", defaultRegistry(), CortexVersion)
+	DefaultImagePythonPredictorInf   = fmt.Sprintf("%s/python-predictor-inf:%s", defaultRegistry(), CortexVersion)
+	DefaultImageTensorFlowServingCPU = fmt.Sprintf("%s/tensorflow-serving-cpu:%s", defaultRegistry(), CortexVersion)
+	DefaultImageTensorFlowServingGPU = fmt.Sprintf("%s/tensorflow-serving-gpu:%s", defaultRegistry(), CortexVersion)
+	DefaultImageTensorFlowServingInf = fmt.Sprintf("%s/tensorflow-serving-inf:%s", defaultRegistry(), CortexVersion)
+	DefaultImageTensorFlowPredictor  = fmt.Sprintf("%s/tensorflow-predictor:%s", defaultRegistry(), CortexVersion)
+	DefaultImageONNXPredictorCPU     = fmt.Sprintf("%s/onnx-predictor-cpu:%s", defaultRegistry(), CortexVersion)
+	DefaultImageONNXPredictorGPU     = fmt.Sprintf("%s/onnx-predictor-gpu:%s", defaultRegistry(), CortexVersion)
 	DefaultImagePathsSet             = strset.New(
 		DefaultImagePythonPredictorCPU,
 		DefaultImagePythonPredictorGPU,
@@ -54,11 +54,9 @@ var (
 	NeuronCoresPerInf            = int64(4)
 )
 
-func defaultDockerImage(imageName string) string {
-	// override default image paths in development
-	if imageOverride := os.Getenv("CORTEX_DEV_DEFAULT_PREDICTOR_IMAGE_REGISTRY"); imageOverride != "" {
-		return fmt.Sprintf("%s/%s:latest", imageOverride, imageName)
+func defaultRegistry() string {
+	if registryOverride, ok := os.LookupEnv("CORTEX_DEV_DEFAULT_PREDICTOR_IMAGE_REGISTRY"); ok {
+		return registryOverride
 	}
-
-	return fmt.Sprintf("quay.io/cortexlabs/%s:%s", imageName, CortexVersion)
+	return "quay.io/cortexlabs"
 }
