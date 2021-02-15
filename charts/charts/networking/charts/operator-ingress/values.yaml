@@ -178,7 +178,7 @@ global:
   hub: quay.io/cortexlabs
 
   # Default tag for Istio images.
-  tag: latest # CORTEX_VERSION
+  tag: master # CORTEX_VERSION
 
   # Specify image pull policy if default behavior isn't desired.
   # Default behavior: latest images will be Always else IfNotPresent.

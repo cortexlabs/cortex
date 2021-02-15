@@ -49,6 +49,11 @@ def pytest_addoption(parser):
         default=None,
         help="set s3 path where batch jobs results will be stored",
     )
+    parser.addoption(
+        "--skip-gpus",
+        action="store_true",
+        help="skip GPU tests",
+    )
 
 
 def pytest_configure(config):
@@ -69,10 +74,11 @@ def pytest_configure(config):
         },
         "global": {
             "realtime_deploy_timeout": int(
-                os.environ.get("CORTEX_TEST_REALTIME_DEPLOY_TIMEOUT", 120)
+                os.environ.get("CORTEX_TEST_REALTIME_DEPLOY_TIMEOUT", 200)
             ),
             "batch_deploy_timeout": int(os.environ.get("CORTEX_TEST_BATCH_DEPLOY_TIMEOUT", 30)),
             "batch_job_timeout": int(os.environ.get("CORTEX_TEST_BATCH_JOB_TIMEOUT", 200)),
+            "skip_gpus": config.getoption("--skip-gpus"),
         },
     }
 

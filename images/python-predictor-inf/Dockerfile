@@ -6,8 +6,8 @@ RUN apt-get update -qq && apt-get install -y -q \
     echo "deb https://apt.repos.neuron.amazonaws.com bionic main" >> /etc/apt/sources.list.d/neuron.list && \
     wget -qO - https://apt.repos.neuron.amazonaws.com/GPG-PUB-KEY-AMAZON-AWS-NEURON.PUB | apt-key add - && \
     apt-get update -qq && apt-get install -y -q \
-    aws-neuron-tools=1.1.228.0 \
-    aws-neuron-runtime=1.1.1402.0 && \
+    aws-neuron-tools=1.4.2.0 \
+    aws-neuron-runtime=1.4.3.0 && \
     apt-get clean -qq && rm -rf /var/lib/apt/lists/*
 
 RUN wget -P /tmp/ https://github.com/just-containers/s6-overlay/releases/download/v2.1.0.2/s6-overlay-amd64-installer && \
@@ -58,51 +58,6 @@ COPY pkg/cortex/serve/cortex_internal.requirements.txt /src/cortex/serve/cortex_
 RUN pip install --no-cache-dir \
     -r /src/cortex/serve/serve.requirements.txt \
     -r /src/cortex/serve/cortex_internal.requirements.txt
-
-ARG SLIM="false"
-RUN test "${SLIM}" = "true" || ( \
-        # libsm6, libxext6, and libxrender-dev are required for opencv
-        # libpng-dev is required for some image processing libaries
-        # libsndfile1 is required for some audio processing libaries
-        # libgl1-mesa-glx to libxtst6 are for qt (for GUI packages): https://docs.anaconda.com/anaconda/install/linux/
-        apt-get update -qq && apt-get install -y -q \
-            libsm6 \
-            libxext6 \
-            libxrender-dev \
-            libpng-dev \
-            libsndfile1 \
-            libgl1-mesa-glx \
-            libegl1-mesa \
-            libxrandr2 \
-            libxss1 \
-            libxcursor1 \
-            libxcomposite1 \
-            libasound2 \
-            libxi6 \
-            libxtst6 \
-        && apt-get clean -qq && rm -rf /var/lib/apt/lists/* \
-        && pip install --no-cache-dir --extra-index-url https://pip.repos.neuron.amazonaws.com \
-            neuron-cc==1.0.20600.0+0.b426b885f \
-            tensorflow-neuron==1.15.3.1.0.2043.0 \
-            torch-neuron==1.5.1.1.0.1721.0 \
-            numpy==1.18.2 \
-            scipy==1.3.2 \
-            six==1.15.0 \
-            cloudpickle==1.6.0 \
-            Cython==0.29.21 \
-            joblib==0.16.0 \
-            nltk==3.5 \
-            np-utils==0.5.12.1 \
-            opencv-python==4.4.0.42 \
-            pandas==1.1.1 \
-            Pillow==7.2.0 \
-            scikit-image==0.17.2 \
-            scikit-learn==0.23.2 \
-            statsmodels==0.12.0 \
-            sympy==1.6.2 \
-        && pip install --no-cache-dir --no-deps \
-            torchvision==0.6.1 \
-    )
 
 COPY pkg/cortex/serve/init/install-core-dependencies.sh /usr/local/cortex/install-core-dependencies.sh
 RUN chmod +x /usr/local/cortex/install-core-dependencies.sh

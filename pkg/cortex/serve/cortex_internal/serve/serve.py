@@ -15,11 +15,9 @@
 import asyncio
 import inspect
 import json
-import math
 import os
-import sys
 import re
-import threading
+import sys
 import time
 import uuid
 from concurrent.futures import ThreadPoolExecutor
@@ -300,7 +298,7 @@ def start_fn():
         local_cache["predictor_impl"] = predictor_impl
         local_cache["predict_fn_args"] = inspect.getfullargspec(predictor_impl.predict).args
 
-        if api.server_side_batching_enabled:
+        if api.python_server_side_batching_enabled:
             dynamic_batching_config = api.api_spec["predictor"]["server_side_batching"]
             local_cache["dynamic_batcher"] = DynamicBatcher(
                 predictor_impl,

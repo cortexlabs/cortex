@@ -1,0 +1,5 @@
+torch==1.7.1
+torchvision==0.8.2
+opencv-python==4.4.0.42
+--extra-index-url https://pip.repos.neuron.amazonaws.com
+torch-neuron==1.7.1.1.2.3.0

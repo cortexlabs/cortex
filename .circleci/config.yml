@@ -1,5 +1,8 @@
 version: 2.1
 
+orbs:
+  slack: circleci/slack@4.2.0
+
 commands:
   return-if-not-deployed-branch:
     description: >-
@@ -29,6 +32,64 @@ commands:
           name: Login to Quay
           command: docker login -u=$QUAY_USERNAME -p=$QUAY_PASSWORD quay.io
 
+  install-e2e-dependencies:
+    description: Install E2E Tests Dependencies
+    steps:
+      - run:
+          name: Install Dependencies
+          command: |
+            pip install -e ./test/e2e
+            pip install https://s3-us-west-2.amazonaws.com/get-cortex/master/python/cortex-master.tar.gz
+
+  run-e2e-tests:
+    description: Creates a temporary cluster and runs the cortex E2E tests
+    parameters:
+      provider:
+        description: cloud provider
+        type: enum
+        enum: [gcp, aws]
+      config:
+        description: cluster config file path
+        type: string
+        default: ./cluster.yaml
+      slack_channel:
+        description: "slack channel where failed builds will be posted (should start with #)"
+        type: string
+        default: "#builds"
+    steps:
+      - when:
+          condition:
+            equal: [<< parameters.provider >>, "aws"]
+          steps:
+            - run:
+                name: Create Cluster
+                command: cortex cluster up --config << parameters.config >> --configure-env << parameters.provider >> -y
+            - run:
+                name: Run E2E Tests
+                command: pytest -v test/e2e/tests -k << parameters.provider >> --<< parameters.provider >>-env << parameters.provider >>
+            - run:
+                name: Delete Cluster
+                command: cortex cluster down --config << parameters.config >> -y
+                when: always
+      - when:
+          condition:
+            equal: [ << parameters.provider >>, "gcp" ]
+          steps:
+            - run:
+                name: Create Cluster
+                command: cortex cluster-gcp up --config << parameters.config >> --configure-env << parameters.provider >> -y
+            - run:
+                name: Run E2E Tests
+                command: pytest -v test/e2e/tests -k << parameters.provider >> --<< parameters.provider >>-env << parameters.provider >>
+            - run:
+                name: Delete Cluster
+                command: cortex cluster-gcp down --config << parameters.config >> -y
+                when: always
+      - slack/notify:
+          event: fail
+          channel: << parameters.slack_channel >>
+          template: basic_fail_1
+
 jobs:
   test:
     docker:
@@ -48,6 +109,7 @@ jobs:
       - run:
           name: Python Tests
           command: make test-python
+
   build-and-deploy:
     docker:
       - image: circleci/python:3.6
@@ -68,8 +130,99 @@ jobs:
           no_output_timeout: 20m
       - run: make ci-build-and-upload-cli
 
+  e2e-tests-aws:
+    docker:
+      - image: circleci/python:3.6
+    environment:
+      CORTEX_TEST_BATCH_S3_PATH: s3://cortex-dev-nightly/test/jobs
+    steps:
+      - checkout
+      - setup_remote_docker
+      - install-e2e-dependencies
+      - run:
+          name: Initialize Credentials
+          command: |
+            echo 'export AWS_ACCESS_KEY_ID=${NIGHTLY_AWS_ACCESS_KEY_ID}' >> $BASH_ENV
+            echo 'export AWS_SECRET_ACCESS_KEY=${NIGHTLY_AWS_SECRET_ACCESS_KEY}' >> $BASH_ENV
+      - run:
+          name: Generate Cluster Config
+          command: |
+            cat \<< EOF > ./cluster.yaml
+            cluster_name: cortex
+            provider: aws
+            region: us-east-1
+            instance_type: g4dn.xlarge
+            min_instances: 1
+            max_instances: 2
+            bucket: cortex-dev-nightly
+
+            image_operator: quay.io/cortexlabs/operator:master
+            image_manager: quay.io/cortexlabs/manager:master
+            image_downloader: quay.io/cortexlabs/downloader:master
+            image_request_monitor: quay.io/cortexlabs/request-monitor:master
+            image_cluster_autoscaler: quay.io/cortexlabs/cluster-autoscaler:master
+            image_metrics_server: quay.io/cortexlabs/metrics-server:master
+            image_inferentia: quay.io/cortexlabs/inferentia:master
+            image_neuron_rtd: quay.io/cortexlabs/neuron-rtd:master
+            image_nvidia: quay.io/cortexlabs/nvidia:master
+            image_fluent_bit: quay.io/cortexlabs/fluent-bit:master
+            image_istio_proxy: quay.io/cortexlabs/istio-proxy:master
+            image_istio_pilot: quay.io/cortexlabs/istio-pilot:master
+            image_prometheus: quay.io/cortexlabs/prometheus:master
+            image_prometheus_config_reloader: quay.io/cortexlabs/prometheus-config-reloader:master
+            image_prometheus_operator: quay.io/cortexlabs/prometheus-operator:master
+            image_prometheus_statsd_exporter: quay.io/cortexlabs/prometheus-statsd-exporter:master
+            image_grafana: quay.io/cortexlabs/grafana:master
+            EOF
+      - run-e2e-tests:
+          provider: aws
+          config: ./cluster.yaml
+
+  e2e-tests-gcp:
+    docker:
+      - image: circleci/python:3.6
+    steps:
+      - checkout
+      - setup_remote_docker
+      - install-e2e-dependencies
+      - run:
+          name: Initialize Credentials
+          command: |
+            echo ${NIGHTLY_GOOGLE_APPLICATION_CREDENTIALS} > ./google_service_account.json
+            echo 'export GOOGLE_APPLICATION_CREDENTIALS=$(pwd)/google_service_account.json' >> $BASH_ENV
+      - run:
+          name: Generate Cluster Config
+          command: |
+            cat \<< EOF > ./cluster.yaml
+            cluster_name: cortex
+            project: cortexlabs-dev
+            zone: us-central1-a
+            provider: gcp
+            instance_type: n1-standard-2
+            accelerator_type: nvidia-tesla-t4
+            min_instances: 1
+            max_instances: 2
+
+            image_operator: quay.io/cortexlabs/operator:master
+            image_manager: quay.io/cortexlabs/manager:master
+            image_downloader: quay.io/cortexlabs/downloader:master
+            image_request_monitor: quay.io/cortexlabs/request-monitor:master
+            image_istio_proxy: quay.io/cortexlabs/istio-proxy:master
+            image_istio_pilot: quay.io/cortexlabs/istio-pilot:master
+            image_google_pause: quay.io/cortexlabs/google-pause:master
+            image_prometheus: quay.io/cortexlabs/prometheus:master
+            image_prometheus_config_reloader: quay.io/cortexlabs/prometheus-config-reloader:master
+            image_prometheus_operator: quay.io/cortexlabs/prometheus-operator:master
+            image_prometheus_statsd_exporter: quay.io/cortexlabs/prometheus-statsd-exporter:master
+            image_grafana: quay.io/cortexlabs/grafana:master
+            EOF
+      - run-e2e-tests:
+          provider: gcp
+          config: ./cluster.yaml
+
 workflows:
   version: 2.1
+
   build:
     jobs:
       - test
@@ -90,3 +243,14 @@ workflows:
               only:
                 - master
                 - /^[0-9]+\.[0-9]+$/
+  nightly:
+    triggers:
+      - schedule:
+          cron: "0 0 * * *"
+          filters:
+            branches:
+              only:
+                - master
+    jobs:
+      - e2e-tests-aws
+      - e2e-tests-gcp
