@@ -20,7 +20,6 @@ Cortex's base Docker images are listed below. Depending on the Cortex Predictor 
   * `quay.io/cortexlabs/python-predictor-gpu:master-cuda10.2-cudnn8`
   * `quay.io/cortexlabs/python-predictor-gpu:master-cuda11.0-cudnn8`
   * `quay.io/cortexlabs/python-predictor-gpu:master-cuda11.1-cudnn8`
-  * `quay.io/cortexlabs/python-predictor-gpu:master-cuda11.2-cudnn8`
 * Python Predictor (Inferentia): `quay.io/cortexlabs/python-predictor-inf:master`
 * TensorFlow Predictor (CPU, GPU, Inferentia): `quay.io/cortexlabs/tensorflow-predictor:master`
 * ONNX Predictor (CPU): `quay.io/cortexlabs/onnx-predictor-cpu:master`
