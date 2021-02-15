@@ -1,3 +1,4 @@
+sentencepiece==0.1.95
 spacy==2.1.8
 -e git+https://github.com/huggingface/transformers.git#egg=transformers
 --find-links https://download.pytorch.org/whl/torch_stable.html
