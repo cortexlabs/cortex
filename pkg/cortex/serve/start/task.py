@@ -14,6 +14,7 @@
 
 import json
 import os
+import sys
 from copy import deepcopy
 
 from cortex_internal.lib import util
@@ -45,7 +46,11 @@ def start():
     if task_spec is not None and task_spec.get("config") is not None:
         util.merge_dicts_in_place_overwrite(config, task_spec["config"])
 
-    callable_fn(config)
+    try:
+        callable_fn(config)
+    except:
+        logger.error(f"failed to run task {task_spec['job_id']}", exc_info=True)
+        sys.exit(1)
 
 
 if __name__ == "__main__":

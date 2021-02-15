@@ -159,7 +159,7 @@ func ListBucketPrefix(prefix string, maxResults *int64) ([]*storage.ObjectAttrs,
 		}
 		return nil, s3Objects, nil
 	case types.GCPProviderType:
-		gcsObjects, err := GCP.ListGCSPrefix(GCPCoreConfig.Bucket, prefix, maxResults)
+		gcsObjects, err := GCP.ListGCSPrefix(GCPCoreConfig.Bucket, prefix, false, maxResults)
 		if err != nil {
 			return nil, nil, err
 		}

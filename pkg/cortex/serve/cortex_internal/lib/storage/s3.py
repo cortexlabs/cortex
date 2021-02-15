@@ -85,7 +85,7 @@ class S3:
         prefix = util.ensure_suffix(dir_path, "/")
         return self._is_s3_prefix(prefix)
 
-    def _get_matching_s3_objects_generator(self, prefix="", suffix=""):
+    def _get_matching_s3_objects_generator(self, prefix="", suffix="", include_dir_objects=False):
         kwargs = {"Bucket": self.bucket, "Prefix": prefix}
 
         while True:
@@ -97,7 +97,11 @@ class S3:
 
             for obj in contents:
                 key = obj["Key"]
-                if key.startswith(prefix) and key.endswith(suffix):
+                if (
+                    key.startswith(prefix)
+                    and key.endswith(suffix)
+                    and (include_dir_objects or not key.endswith("/"))
+                ):
                     yield obj
 
             try:
@@ -105,8 +109,8 @@ class S3:
             except KeyError:
                 break
 
-    def _get_matching_s3_keys_generator(self, prefix="", suffix=""):
-        for obj in self._get_matching_s3_objects_generator(prefix, suffix):
+    def _get_matching_s3_keys_generator(self, prefix="", suffix="", include_dir_objects=False):
+        for obj in self._get_matching_s3_objects_generator(prefix, suffix, include_dir_objects):
             yield obj["Key"], obj["LastModified"]
 
     def put_object(self, body, key):
@@ -146,18 +150,15 @@ class S3:
 
         return byte_array.strip()
 
-    def search(self, prefix="", suffix="") -> Tuple[List[str], List[datetime.datetime]]:
+    def search(
+        self, prefix="", suffix="", include_dir_objects=False
+    ) -> Tuple[List[str], List[datetime.datetime]]:
         paths = []
         timestamps = []
 
-        timestamp_map = {}
-        for key, ts in self._get_matching_s3_keys_generator(prefix, suffix):
-            timestamp_map[key] = ts
-
-        filtered_keys = util.remove_non_empty_directory_paths(list(timestamp_map.keys()))
-        for key in filtered_keys:
+        for key, ts in self._get_matching_s3_keys_generator(prefix, suffix, include_dir_objects):
             paths.append(key)
-            timestamps.append(timestamp_map[key])
+            timestamps.append(ts)
 
         return paths, timestamps
 
@@ -217,12 +218,14 @@ class S3:
     def download_dir_contents(self, prefix, local_dir):
         util.mkdir_p(local_dir)
         prefix = util.ensure_suffix(prefix, "/")
-        for key, _ in self._get_matching_s3_keys_generator(prefix):
-            if key.endswith("/"):
-                continue
+        for key, _ in self._get_matching_s3_keys_generator(prefix, include_dir_objects=True):
             rel_path = util.trim_prefix(key, prefix)
             local_dest_path = os.path.join(local_dir, rel_path)
-            self.download_file(key, local_dest_path)
+
+            if not local_dest_path.endswith("/"):
+                self.download_file(key, local_dest_path)
+            else:
+                util.mkdir_p(os.path.dirname(local_dest_path))
 
     def download_and_unzip(self, key, local_dir):
         util.mkdir_p(local_dir)
