@@ -79,8 +79,6 @@ def main():
                 "subnet_visibility": cc["subnet_visibility"],
                 "nat_gateway": cc["nat_gateway"],
                 "tags": cc["tags"],
-                "spot": cc["spot"],
-                "vpc_cidr": cc["vpc_cidr"],
                 "region": cc["region"],
                 "image_inferentia": cc["image_inferentia"],
                 "image_neuron_rtd": cc["image_neuron_rtd"],
@@ -116,6 +114,12 @@ def main():
             },
         }
 
+        if cc.get("spot", "") != "":
+            values_config["cortex"]["spot"] = cc["spot"]
+
+        if cc.get("vpc_cidr", "") != "":
+            values_config["cortex"]["vpc_cidr"] = cc["vpc_cidr"]
+
         if cc.get("api_load_balancer_scheme") == "internal":
             values_config["networking"]["api-ingress"]["gateways"]["istio-ingressgateway"][
                 "serviceAnnotations"
@@ -139,6 +143,18 @@ def main():
                 "image_google_pause": cc["image_google_pause"],
             },
         )
+
+        if cc.get("accelerator_type", "") != "":
+            values_config["cortex"]["accelerator_type"] = cc.get["accelerator_type"]
+
+        if cc.get("accelerator_per_instance", "") != "":
+            values_config["cortex"]["accelerator_per_instance"] = cc.get["accelerator_per_instance"]
+
+        if cc.get("network", "") != "":
+            values_config["cortex"]["network"] = cc.get["network"]
+
+        if cc.get("subnet", "") != "":
+            values_config["cortex"]["subnet"] = cc.get["subnet"]
 
         if cc.get("api_load_balancer_scheme") == "internal":
             values_config["networking"] = {

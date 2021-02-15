@@ -51,9 +51,27 @@ data:
     subnet_visibility: {{ .Values.cortex.subnet_visibility }}
     nat_gateway: {{ .Values.cortex.nat_gateway }}
     tags: {{ .Values.cortex.tags }}
+    {{- if .Values.cortex.spot }}
     spot: {{ .Values.cortex.spot }}
+    {{- end }}
+    {{- if .Values.cortex.ssl_certificate_arn }}
     ssl_certificate_arn: {{ .Values.cortex.ssl_certificate_arn }}
+    {{- end }}
+    {{- if .Values.cortex.vpc_cidr }}
     vpc_cidr: {{ .Values.cortex.vpc_cidr }}
+    {{- end }}
+    {{- if .Values.cortex.accelerator_type }}
+    accelerator_type: {{ .Values.cortex.accelerator_type }}
+    {{- end }}
+    {{- if .Values.cortex.accelerator_per_instance }}
+    accelerator_per_instance: {{ .Values.cortex.accelerator_per_instance }}
+    {{- end }}
+    {{- if .Values.cortex.network }}
+    network: {{ .Values.cortex.network }}
+    {{- end }}
+    {{- if .Values.cortex.subnet }}
+    subnet: {{ .Values.cortex.subnet }}
+    {{- end }}
     {{- end }}
     image_operator: {{ .Values.cortex.image_operator }}
     image_manager: {{ .Values.cortex.image_manager }}
