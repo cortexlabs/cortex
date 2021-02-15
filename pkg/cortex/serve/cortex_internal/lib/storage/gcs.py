@@ -64,7 +64,11 @@ class GCS:
 
     def _is_gcs_dir(self, dir_path: str) -> bool:
         prefix = util.ensure_suffix(dir_path, "/")
-        matching_blobs = list(self._gcs_matching_blobs_generator(max_results=2, prefix=prefix))
+        matching_blobs = list(
+            self._gcs_matching_blobs_generator(
+                max_results=2, prefix=prefix, include_dir_objects=True
+            )
+        )
 
         return len(matching_blobs) > 0
 
@@ -123,10 +127,14 @@ class GCS:
     def download_dir_contents(self, prefix: str, local_dir: str):
         util.mkdir_p(local_dir)
         prefix = util.ensure_suffix(prefix, "/")
-        for blob in self._gcs_matching_blobs_generator(prefix=prefix):
+        for blob in self._gcs_matching_blobs_generator(prefix=prefix, include_dir_objects=True):
             relative_path = util.trim_prefix(blob.name, prefix)
             local_dest_path = os.path.join(local_dir, relative_path)
-            self.download_file(blob.name, local_dest_path)
+
+            if not local_dest_path.endswith("/"):
+                self.download_file(blob.name, local_dest_path)
+            else:
+                util.mkdir_p(os.path.dirname(local_dest_path))
 
     def download(self, prefix: str, local_dir: str):
         """

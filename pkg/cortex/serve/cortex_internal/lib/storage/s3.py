@@ -218,10 +218,14 @@ class S3:
     def download_dir_contents(self, prefix, local_dir):
         util.mkdir_p(local_dir)
         prefix = util.ensure_suffix(prefix, "/")
-        for key, _ in self._get_matching_s3_keys_generator(prefix):
+        for key, _ in self._get_matching_s3_keys_generator(prefix, include_dir_objects=True):
             rel_path = util.trim_prefix(key, prefix)
             local_dest_path = os.path.join(local_dir, rel_path)
-            self.download_file(key, local_dest_path)
+
+            if not local_dest_path.endswith("/"):
+                self.download_file(key, local_dest_path)
+            else:
+                util.mkdir_p(os.path.dirname(local_dest_path))
 
     def download_and_unzip(self, key, local_dir):
         util.mkdir_p(local_dir)
