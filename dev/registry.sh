@@ -14,6 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+CORTEX_VERSION=master
 
 set -eo pipefail
 
@@ -32,7 +33,6 @@ AWS_ACCOUNT_ID=${AWS_ACCOUNT_ID:-}
 AWS_REGION=${AWS_REGION:-}
 
 provider="undefined"
-include_slim="false"
 positional_args=()
 while [[ $# -gt 0 ]]; do
   key="$1"
@@ -40,10 +40,6 @@ while [[ $# -gt 0 ]]; do
     -p|--provider)
     provider="$2"
     shift
-    shift
-    ;;
-    --include-slim)
-    include_slim="true"
     shift
     ;;
     *)
@@ -112,12 +108,9 @@ function create_aws_registry() {
 function build() {
   local image=$1
   local tag=$2
-  local dir="${ROOT}/images/${image/-slim}"
+  local dir="${ROOT}/images/${image}"
 
   build_args=""
-  if [[ "$image" == *"-slim" ]]; then
-    build_args="--build-arg SLIM=true"
-  fi
 
   tag_args=""
   if [ -n "$GCP_PROJECT_ID" ]; then
@@ -134,10 +127,10 @@ function build() {
 
 function cache_builder() {
   local image=$1
-  local dir="${ROOT}/images/${image/-slim}"
+  local dir="${ROOT}/images/${image}"
 
   blue_echo "Building $image-builder..."
-  docker build $ROOT -f $dir/Dockerfile -t cortexlabs/$image-builder:latest --target builder
+  docker build $ROOT -f $dir/Dockerfile -t cortexlabs/$image-builder:$CORTEX_VERSION --target builder
   green_echo "Built $image-builder\n"
 }
 
@@ -158,9 +151,13 @@ function push() {
 
 function build_and_push() {
   local image=$1
-  local tag=$2
 
   set -euo pipefail  # necessary since this is called in a new shell by parallel
+
+  tag=$CORTEX_VERSION
+  if [ "${image}" == "python-predictor-gpu" ]; then
+    tag="${CORTEX_VERSION}-cuda10.2-cudnn8"
+  fi
 
   build $image $tag
   push $image $tag
@@ -176,15 +173,25 @@ function cleanup_ecr() {
   echo "cleaning ECR repositories..."
   repos=$(aws ecr describe-repositories --output text | awk '{print $6}' | grep -P "\S")
   echo "$repos" |
-  while IFS= read -r line; do
-    imageIDs=$(aws ecr list-images --repository-name "$line" --filter tagStatus=UNTAGGED --query "imageIds[*]" --output text)
+  while IFS= read -r repo; do
+    imageIDs=$(aws ecr list-images --repository-name "$repo" --filter tagStatus=UNTAGGED --query "imageIds[*]" --output text)
     echo "$imageIDs" |
     while IFS= read -r imageId; do
       if [ ! -z "$imageId" ]; then
-        echo "Removing from ECR: $line/$imageId"
-        aws ecr batch-delete-image --repository-name "$line" --image-ids imageDigest="$imageId" >/dev/null;
+        echo "Removing from ECR: $repo/$imageId"
+        aws ecr batch-delete-image --repository-name "$repo" --image-ids imageDigest="$imageId" >/dev/null;
       fi
     done
+  done
+}
+
+function delete_ecr() {
+  echo "deleting ECR repositories..."
+  repos=$(aws ecr describe-repositories --output text | awk '{print $6}' | grep -P "\S")
+  echo "$repos" |
+  while IFS= read -r repo; do
+    imageIDs=$(aws ecr delete-repository --force --repository-name "$repo")
+    echo "deleted: $repo"
   done
 }
 
@@ -218,7 +225,8 @@ validate_env "$provider"
 # usage: registry.sh clean --provider aws|gcp
 if [ "$cmd" = "clean" ]; then
   if [ "$provider" = "aws" ]; then
-    cleanup_ecr
+    delete_ecr
+    create_aws_registry
   fi
 
 # usage: registry.sh create --provider/-p aws|gcp
@@ -233,9 +241,9 @@ elif [ "$cmd" = "update-single" ]; then
   if [ "$image" = "operator" ] || [ "$image" = "request-monitor" ]; then
     cache_builder $image
   fi
-  build_and_push $image latest
+  build_and_push $image
 
-# usage: registry.sh update all|dev|api --provider/-p aws|gcp [--include-slim]
+# usage: registry.sh update all|dev|api --provider/-p aws|gcp
 # if parallel utility is installed, the docker build commands will be parallelized
 elif [ "$cmd" = "update" ]; then
   images_to_build=()
@@ -271,17 +279,6 @@ elif [ "$cmd" = "update" ]; then
     images_to_build+=( "${api_images_aws[@]}" "${api_images_gcp[@]}" )
   fi
 
-  if [ "$include_slim" == "true" ]; then
-    images_to_build+=( "${api_slim_images_cluster[@]}" )
-    if [ "$provider" == "aws" ]; then
-      images_to_build+=( "${api_slim_images_aws[@]}" )
-    elif [ "$provider" == "gcp" ]; then
-      images_to_build+=( "${api_slim_images_gcp[@]}" )
-    elif [ "$provider" == "undefined" ]; then
-      images_to_build+=( "${api_slim_images_aws[@]}" "${api_slim_images_gcp[@]}" )
-    fi
-  fi
-
   if [[ " ${images_to_build[@]} " =~ " operator " ]]; then
     cache_builder operator
   fi
@@ -290,10 +287,10 @@ elif [ "$cmd" = "update" ]; then
   fi
 
   if command -v parallel &> /dev/null && [ -n "${NUM_BUILD_PROCS+set}" ] && [ "$NUM_BUILD_PROCS" != "1" ]; then
-    provider=$provider is_registry_logged_in=$is_registry_logged_in ROOT=$ROOT registry_push_url=$registry_push_url SHELL=$(type -p /bin/bash) parallel --will-cite --halt now,fail=1 --eta --jobs $NUM_BUILD_PROCS build_and_push "{} latest" ::: "${images_to_build[@]}"
+    provider=$provider is_registry_logged_in=$is_registry_logged_in ROOT=$ROOT registry_push_url=$registry_push_url SHELL=$(type -p /bin/bash) parallel --will-cite --halt now,fail=1 --eta --jobs $NUM_BUILD_PROCS build_and_push "{}" ::: "${images_to_build[@]}"
   else
     for image in "${images_to_build[@]}"; do
-      build_and_push $image latest
+      build_and_push $image
     done
   fi
 
