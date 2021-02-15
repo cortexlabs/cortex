@@ -767,7 +767,7 @@ data:
           "steppedLine": false,
           "targets": [
             {
-              "expr": "histogram_quantile(0.99, sum without (response_code) (rate(istio_request_duration_milliseconds_bucket{destination_service_name=~\"api-$api_name.+\"}[1m])))",
+              "expr": "histogram_quantile(0.99, sum by (destination_service_name, le) (rate(istio_request_duration_milliseconds_bucket{destination_service_name=~\"api-$api_name.+\"}[1m])))",
               "interval": "",
               "legendFormat": "{{destination_service_name}}",
               "refId": "A"
@@ -880,7 +880,7 @@ data:
           "steppedLine": false,
           "targets": [
             {
-              "expr": "histogram_quantile(0.90, sum without (response_code) (rate(istio_request_duration_milliseconds_bucket{destination_service_name=~\"api-$api_name.+\"}[1m])))",
+              "expr": "histogram_quantile(0.90, sum by (destination_service_name, le) (rate(istio_request_duration_milliseconds_bucket{destination_service_name=~\"api-$api_name.+\"}[1m])))",
               "hide": false,
               "interval": "",
               "legendFormat": "{{destination_service_name}}",
@@ -994,7 +994,7 @@ data:
           "steppedLine": false,
           "targets": [
             {
-              "expr": "histogram_quantile(0.50, sum without (response_code) (rate(istio_request_duration_milliseconds_bucket{destination_service_name=~\"api-$api_name.+\"}[1m])))",
+              "expr": "histogram_quantile(0.50, sum by (destination_service_name, le) (rate(istio_request_duration_milliseconds_bucket{destination_service_name=~\"api-$api_name.+\"}[1m])))",
               "hide": false,
               "interval": "",
               "legendFormat": "{{destination_service_name}}",
