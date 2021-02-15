@@ -205,7 +205,12 @@ Note: it's ok if example training notebooks aren't upgraded, as long as the expo
 1. Check if there are any updates
    to [Dockerfile.tf-serving](https://github.com/aws/aws-neuron-sdk/blob/master/docs/neuron-container-tools/docker-example/Dockerfile.tf-serving)
    which should be brought in to `images/tensorflow-serving-inf/Dockerfile`
-1. Take a deep breath, cross your fingers, rebuild all images, and confirm that the Inferentia examples work. You may need to change the versions of `neuron-cc`, `tensorflow-neuron`, and/or `torch-neuron` in `requirements.txt` files.
+1. Take a deep breath, cross your fingers, rebuild all images, and confirm that the Inferentia examples work. You may need to change the versions of `neuron-cc`, `tensorflow-neuron`, and/or `torch-neuron` in `requirements.txt` files:
+   1. Run `docker run --rm -it ubuntu:18.04`
+   1. Run `apt-get update && apt-get install -y curl python3.6 python3.6-distutils` (change the python version if necessary)
+      1. Run `curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py && python3.6 get-pip.py && pip install --upgrade pip` (change the python version if necessary)
+   1. Run `pip install --extra-index-url https://pip.repos.neuron.amazonaws.com neuron-cc tensorflow-neuron torch-neuron`
+   1. Run `pip list` to show the versions of all installed dependencies
 
 ## Python packages
 
