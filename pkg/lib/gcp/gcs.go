@@ -255,12 +255,12 @@ func ConvertGCSObjectsToKeys(gcsObjects ...*storage.ObjectAttrs) []string {
 	return paths
 }
 
-func (c *Client) ListGCSDir(bucket string, gcsDir string, maxResults *int64) ([]*storage.ObjectAttrs, error) {
+func (c *Client) ListGCSDir(bucket string, gcsDir string, includeDirObjects bool, maxResults *int64) ([]*storage.ObjectAttrs, error) {
 	gcsDir = s.EnsureSuffix(gcsDir, "/")
-	return c.ListGCSPrefix(bucket, gcsDir, maxResults)
+	return c.ListGCSPrefix(bucket, gcsDir, includeDirObjects, maxResults)
 }
 
-func (c *Client) ListGCSPrefix(bucket string, prefix string, maxResults *int64) ([]*storage.ObjectAttrs, error) {
+func (c *Client) ListGCSPrefix(bucket string, prefix string, includeDirObjects bool, maxResults *int64) ([]*storage.ObjectAttrs, error) {
 	gcsClient, err := c.GCS()
 	if err != nil {
 		return nil, err
@@ -282,7 +282,11 @@ func (c *Client) ListGCSPrefix(bucket string, prefix string, maxResults *int64) 
 		if attrs == nil {
 			continue
 		}
-		gcsObjects = append(gcsObjects, attrs)
+
+		if includeDirObjects || !strings.HasSuffix(attrs.Name, "/") {
+			gcsObjects = append(gcsObjects, attrs)
+		}
+
 		if maxResults != nil && int64(len(gcsObjects)) >= *maxResults {
 			break
 		}
@@ -291,12 +295,12 @@ func (c *Client) ListGCSPrefix(bucket string, prefix string, maxResults *int64) 
 	return gcsObjects, nil
 }
 
-func (c *Client) ListGCSPathDir(gcsDirPath string, maxResults *int64) ([]*storage.ObjectAttrs, error) {
+func (c *Client) ListGCSPathDir(gcsDirPath string, includeDirObjects bool, maxResults *int64) ([]*storage.ObjectAttrs, error) {
 	bucket, gcsDir, err := SplitGCSPath(gcsDirPath)
 	if err != nil {
 		return nil, err
 	}
-	return c.ListGCSDir(bucket, gcsDir, maxResults)
+	return c.ListGCSDir(bucket, gcsDir, includeDirObjects, maxResults)
 }
 
 // This behaves like you'd expect `ls` to behave on a local file system
