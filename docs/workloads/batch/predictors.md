@@ -90,7 +90,7 @@ class PythonPredictor:
 
 ## TensorFlow Predictor
 
-**Uses TensorFlow version 2.3.0 by default**
+**Uses TensorFlow version 2.4.1 by default**
 
 ### Interface
 
@@ -151,7 +151,7 @@ If you need to share files between your predictor implementation and the TensorF
 
 ## ONNX Predictor
 
-**Uses ONNX Runtime version 1.4.0 by default**
+**Uses ONNX Runtime version 1.6.0 by default**
 
 ### Interface
 
