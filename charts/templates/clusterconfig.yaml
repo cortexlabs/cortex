@@ -46,13 +46,14 @@ data:
     max_instances: {{ .Values.cortex.max_instances }}
     api_load_balancer_scheme: {{ .Values.cortex.api_load_balancer_scheme }}
     operator_load_balancer_scheme: {{ .Values.cortex.operator_load_balancer_scheme }}
-    availability_zones: {{ .Values.cortex.availability_zones }}
+    availability_zones: {{ .Values.cortex.availability_zones | toYaml | trim | nindent 6 }}
     instance_volume_size: {{ .Values.cortex.instance_volume_size }}
     subnet_visibility: {{ .Values.cortex.subnet_visibility }}
     nat_gateway: {{ .Values.cortex.nat_gateway }}
-    tags: {{ .Values.cortex.tags }}
+    tags: {{ .Values.cortex.tags | toYaml | trim | nindent 6 }}
     {{- if .Values.cortex.spot }}
     spot: {{ .Values.cortex.spot }}
+    spot_config: {{ .Values.cortex.spot_config | toYaml | trim | nindent 6 }}
     {{- end }}
     {{- if .Values.cortex.ssl_certificate_arn }}
     ssl_certificate_arn: {{ .Values.cortex.ssl_certificate_arn }}
@@ -60,17 +61,8 @@ data:
     {{- if .Values.cortex.vpc_cidr }}
     vpc_cidr: {{ .Values.cortex.vpc_cidr }}
     {{- end }}
-    {{- if .Values.cortex.accelerator_type }}
-    accelerator_type: {{ .Values.cortex.accelerator_type }}
-    {{- end }}
-    {{- if .Values.cortex.accelerator_per_instance }}
-    accelerator_per_instance: {{ .Values.cortex.accelerator_per_instance }}
-    {{- end }}
-    {{- if .Values.cortex.network }}
-    network: {{ .Values.cortex.network }}
-    {{- end }}
-    {{- if .Values.cortex.subnet }}
-    subnet: {{ .Values.cortex.subnet }}
+    {{- if .Values.cortex.subnets }}
+    subnets: {{ .Values.cortex.subnets | toYaml | trim | nindent 6 }}
     {{- end }}
     {{- end }}
     image_operator: {{ .Values.cortex.image_operator }}
@@ -111,6 +103,18 @@ data:
     api_load_balancer_scheme: {{ .Values.cortex.api_load_balancer_scheme }}
     operator_load_balancer_scheme: {{ .Values.cortex.operator_load_balancer_scheme }}
     preemptible: {{ .Values.cortex.preemptible }}
+    {{- if .Values.cortex.accelerator_type }}
+    accelerator_type: {{ .Values.cortex.accelerator_type }}
+    {{- end }}
+    {{- if .Values.cortex.accelerator_per_instance }}
+    accelerator_per_instance: {{ .Values.cortex.accelerator_per_instance }}
+    {{- end }}
+    {{- if .Values.cortex.network }}
+    network: {{ .Values.cortex.network }}
+    {{- end }}
+    {{- if .Values.cortex.subnet }}
+    subnet: {{ .Values.cortex.subnet }}
+    {{- end }}
     {{- end }}
     image_operator: {{ .Values.cortex.image_operator }}
     image_manager: {{ .Values.cortex.image_manager }}

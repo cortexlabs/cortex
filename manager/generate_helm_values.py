@@ -114,8 +114,9 @@ def main():
             },
         }
 
-        if cc.get("spot", "") != "":
+        if cc.get("spot"):
             values_config["cortex"]["spot"] = cc["spot"]
+            values_config["cortex"]["spot_config"] = cc["spot_config"]
 
         if cc.get("vpc_cidr", "") != "":
             values_config["cortex"]["vpc_cidr"] = cc["vpc_cidr"]
@@ -131,7 +132,8 @@ def main():
         if cc.get("ssl_certificate_arn", "") != "":
             values_config["networking"]["api-ingress"]["gateways"]["istio-ingressgateway"][
                 "serviceAnnotations"
-            ]["service.beta.kubernetes.io/aws-load-balancer-ssl-cert"] = "ssl_certificate_arn"
+            ]["service.beta.kubernetes.io/aws-load-balancer-ssl-cert"] = cc["ssl_certificate_arn"]
+            values_config["cortex"]["ssl_certificate_arn"] = cc["ssl_certificate_arn"]
 
     if cc["provider"] == "gcp":
         values_config["cortex"] = merge_override(
