@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Source: https://github.com/NVIDIA/k8s-device-plugin/blob/v0.6.0/nvidia-device-plugin.yml
+# Source: https://github.com/NVIDIA/k8s-device-plugin/blob/v0.7.3/nvidia-device-plugin.yml
 
 apiVersion: apps/v1
 kind: DaemonSet
@@ -55,6 +55,7 @@ spec:
       containers:
         - image: $CORTEX_IMAGE_NVIDIA
           name: nvidia-device-plugin-ctr
+          args: ["--fail-on-init-error=false"]
           securityContext:
             allowPrivilegeEscalation: false
             capabilities:

@@ -6,8 +6,8 @@ RUN apt-get update -qq && apt-get install -y -q \
     echo "deb https://apt.repos.neuron.amazonaws.com bionic main" >> /etc/apt/sources.list.d/neuron.list && \
     wget -qO - https://apt.repos.neuron.amazonaws.com/GPG-PUB-KEY-AMAZON-AWS-NEURON.PUB | apt-key add - && \
     apt-get update -qq && apt-get install -y -q \
-    aws-neuron-tools=1.1.228.0 \
-    aws-neuron-runtime=1.1.1402.0 && \
+    aws-neuron-tools=1.4.2.0 \
+    aws-neuron-runtime=1.4.3.0 && \
     apt-get clean -qq && rm -rf /var/lib/apt/lists/*
 
 RUN wget -P /tmp/ https://github.com/just-containers/s6-overlay/releases/download/v2.1.0.2/s6-overlay-amd64-installer && \
