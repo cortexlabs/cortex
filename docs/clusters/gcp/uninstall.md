@@ -9,7 +9,7 @@ spun down by checking the GKE console.
 
 ## Delete Volumes
 
-The volumes used by Cortex's Prometheus and Grafana instances are not deleted by default, as it might contain important
+The volumes used by Cortex's Prometheus and Grafana instances are not deleted by default, as they might contain important
 information. If these volumes are not required anymore, you can delete them in the GCP console. Navigate to
 the [Disks](https://console.cloud.google.com/compute/disks) page (be sure to set the appropriate project), select the
 volumes, and click "Delete". The Prometheus and Grafana volumes that Cortex created have a name that starts
