@@ -55,7 +55,7 @@ var (
 )
 
 func defaultRegistry() string {
-	if registryOverride, ok := os.LookupEnv("CORTEX_DEV_DEFAULT_PREDICTOR_IMAGE_REGISTRY"); ok {
+	if registryOverride := os.Getenv("CORTEX_DEV_DEFAULT_PREDICTOR_IMAGE_REGISTRY"); registryOverride != "" {
 		return registryOverride
 	}
 	return "quay.io/cortexlabs"
