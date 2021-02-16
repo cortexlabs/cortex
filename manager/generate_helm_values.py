@@ -134,6 +134,10 @@ def main():
                 "serviceAnnotations"
             ]["service.beta.kubernetes.io/aws-load-balancer-ssl-cert"] = cc["ssl_certificate_arn"]
             values_config["cortex"]["ssl_certificate_arn"] = cc["ssl_certificate_arn"]
+        else:
+            values_config["networking"]["api-ingress"]["gateways"]["istio-ingressgateway"][
+                "tls_secret"
+            ] = "ingressgateway-certs"
 
     if cc["provider"] == "gcp":
         values_config["cortex"] = merge_override(
@@ -179,6 +183,15 @@ def main():
                     }
                 },
             }
+
+        values_config["networking"] = merge_override(
+            values_config["networking"],
+            {
+                "api-ingress": {
+                    "gateways": {"istio-ingressgateway": {"tls_secret": "ingressgateway-certs"}}
+                }
+            },
+        )
 
     print(yaml.dump(values_config))
 

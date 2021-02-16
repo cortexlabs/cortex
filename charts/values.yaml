@@ -64,6 +64,8 @@ networking:
         externalTrafficPolicy: Cluster
         # -- Annotations to configure your ingress (specific to aws or gcp)
         serviceAnnotations: {}
+        # -- Secret name for SSL certificate (should only be set to ingressgateway-certs)
+        tls_secret: null
 
   operator-ingress:
     gateways:

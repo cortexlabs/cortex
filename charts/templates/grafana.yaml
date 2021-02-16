@@ -91,7 +91,7 @@ metadata:
   name: grafana-storage
   namespace: {{ .Release.Namespace }}
 spec:
-  storageClassName: "{{ .Release.Name }}-{{ .Release.Namespace }}-ssd"
+  storageClassName: "cortex-{{ .Values.cortex.cluster_name }}-{{ .Release.Namespace }}"
   accessModes:
     - ReadWriteOnce
   resources:

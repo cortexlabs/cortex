@@ -1,7 +1,7 @@
 apiVersion: storage.k8s.io/v1
 kind: StorageClass
 metadata:
-  name: "{{ .Release.Name }}-{{ .Release.Namespace }}-ssd"
+  name: "cortex-{{ .Values.cortex.cluster_name }}-{{ .Release.Namespace }}"
 volumeBindingMode: WaitForFirstConsumer
 {{- if eq .Values.global.provider "aws" }}
 provisioner: kubernetes.io/aws-ebs

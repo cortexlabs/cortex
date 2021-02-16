@@ -34,7 +34,7 @@ spec:
   storage:
     volumeClaimTemplate:
       spec:
-        storageClassName: "{{ .Release.Name }}-{{ .Release.Namespace }}-ssd"
+        storageClassName: "cortex-{{ .Values.cortex.cluster_name }}-{{ .Release.Namespace }}"
         resources:
           requests:
             storage: {{ $prom.volumeClaimSize }}

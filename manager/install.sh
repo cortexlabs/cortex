@@ -75,7 +75,13 @@ function cluster_up_aws() {
   setup_secrets_aws
   echo "✓"
 
-  echo -n "￮ installing cortex cluster "
+  if ! yq -re .ssl_certificate_arn cluster-config.yaml > /dev/null; then
+    echo -n "￮ preparing networking configuration "
+    setup_istio_tls
+    echo "✓"
+  fi
+
+  echo -n "￮ installing cortex "
   python manager/generate_helm_values.py > /workspace/helm_values.yaml
   helm install cortex charts/ -f /workspace/helm_values.yaml --namespace "${CORTEX_NAMESPACE}" > /dev/null
   echo "✓"
@@ -125,7 +131,11 @@ function cluster_up_gcp() {
   setup_secrets_gcp
   echo "✓"
 
-  echo -n "￮ installing cortex cluster "
+  echo -n "￮ preparing networking configuration "
+  setup_istio_tls
+  echo "✓"
+
+  echo -n "￮ installing cortex "
   python manager/generate_helm_values.py > /workspace/helm_values.yaml
   helm install cortex charts/ -f /workspace/helm_values.yaml --namespace "${CORTEX_NAMESPACE}" > /dev/null
   echo "✓"
@@ -248,6 +258,14 @@ function setup_secrets_aws() {
 
 function setup_secrets_gcp() {
   kubectl -n="${CORTEX_NAMESPACE}" create secret generic 'gcp-credentials' --from-file=key.json=$GOOGLE_APPLICATION_CREDENTIALS >/dev/null
+}
+
+function setup_istio_tls() {
+  if ! grep -q "istio-ingressgateway-certs" <<< $(kubectl get secret -n ${CORTEX_NAMESPACE}); then
+    WEBSITE=localhost
+    openssl req -subj "/C=US/CN=$WEBSITE" -newkey rsa:2048 -nodes -keyout $WEBSITE.key -x509 -days 3650 -out $WEBSITE.crt >/dev/null 2>&1
+    kubectl create -n "${CORTEX_NAMESPACE}" secret tls istio-ingressgateway-certs --key $WEBSITE.key --cert $WEBSITE.crt >/dev/null
+  fi
 }
 
 function resize_nodegroup() {
