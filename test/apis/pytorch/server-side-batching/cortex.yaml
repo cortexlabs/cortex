@@ -1,0 +1,11 @@
+- name: iris-classifier
+  kind: RealtimeAPI
+  predictor:
+    type: python
+    path: predictor.py
+    config:
+      model: s3://cortex-examples/pytorch/iris-classifier/weights.pth
+    server_side_batching:
+      max_batch_size: 8
+      batch_interval: 0.1s
+    threads_per_process: 8
