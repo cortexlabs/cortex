@@ -30,8 +30,8 @@ fi
 if [ "${CORTEX_IMAGE_TYPE}" = "tensorflow-predictor" ]; then
     if ! module_exists "tensorflow" || ! module_exists "tensorflow_serving"; then
         pip install --no-cache-dir -U \
-            tensorflow-cpu==2.4.1 \
-            tensorflow-serving-api==2.4.1
+            tensorflow-cpu==2.3.0 \
+            tensorflow-serving-api==2.3.0
     fi
 elif [ "${CORTEX_IMAGE_TYPE}" = "onnx-predictor-cpu" ] && ! module_exists "onnxruntime"; then
     pip install --no-cache-dir -U \
