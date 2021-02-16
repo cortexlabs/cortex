@@ -2,5 +2,5 @@ apiVersion: v2
 name: cortex
 description: A Helm chart for installing Cortex
 type: application
-version: 0.1.0       # CORTEX_VERSION
-appVersion: "master" # CORTEX_VERSION
+version: 0.29.0 # CORTEX_VERSION
+appVersion: "0.29.0" # CORTEX_VERSION

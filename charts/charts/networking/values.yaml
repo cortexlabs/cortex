@@ -89,7 +89,7 @@ istio-discovery:
     rollingMaxUnavailable: 25%
 
     hub: quay.io/cortexlabs
-    tag: master # CORTEX_VERSION
+    tag: "0.29.0" # CORTEX_VERSION
 
     # Can be a full hub/image:tag
     image: istio-pilot
@@ -128,7 +128,7 @@ global:
   hub: quay.io/cortexlabs
 
   # Default tag for Istio images.
-  tag: master # CORTEX_VERSION
+  tag: "0.29.0" # CORTEX_VERSION
 
   # Comma-separated minimum per-scope logging level of messages to output, in the form of <scope>:<level>,<scope>:<level>
   # The control plane has different scopes depending on component, but can configure default log level across all components

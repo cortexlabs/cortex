@@ -11,30 +11,30 @@ cortex:
   project: ""
 
   # CORTEX_VERSION
-  image_operator: quay.io/cortexlabs/operator:master
-  image_manager: quay.io/cortexlabs/manager:master
-  image_downloader: quay.io/cortexlabs/downloader:master
-  image_request_monitor: quay.io/cortexlabs/request-monitor:master
-  image_cluster_autoscaler: quay.io/cortexlabs/cluster-autoscaler:master
-  image_metrics_server: quay.io/cortexlabs/metrics-server:master
-  image_inferentia: quay.io/cortexlabs/inferentia:master
-  image_neuron_rtd: quay.io/cortexlabs/neuron-rtd:master
-  image_nvidia: quay.io/cortexlabs/nvidia:master
-  image_fluent_bit: quay.io/cortexlabs/fluent-bit:master
-  image_istio_proxy: quay.io/cortexlabs/istio-proxy:master
-  image_istio_pilot: quay.io/cortexlabs/istio-pilot:master
-  image_google_pause: quay.io/cortexlabs/pause:master
-  image_prometheus: quay.io/cortexlabs/prometheus:master
-  image_prometheus_config_reloader: quay.io/cortexlabs/prometheus-config-reloader:master
-  image_prometheus_operator: quay.io/cortexlabs/prometheus-operator:master
-  image_prometheus_statsd_exporter: quay.io/cortexlabs/prometheus-statsd-exporter:master
-  image_grafana: quay.io/cortexlabs/grafana:master
+  image_operator: quay.io/cortexlabs/operator:0.29.0
+  image_manager: quay.io/cortexlabs/manager:0.29.0
+  image_downloader: quay.io/cortexlabs/downloader:0.29.0
+  image_request_monitor: quay.io/cortexlabs/request-monitor:0.29.0
+  image_cluster_autoscaler: quay.io/cortexlabs/cluster-autoscaler:0.29.0
+  image_metrics_server: quay.io/cortexlabs/metrics-server:0.29.0
+  image_inferentia: quay.io/cortexlabs/inferentia:0.29.0
+  image_neuron_rtd: quay.io/cortexlabs/neuron-rtd:0.29.0
+  image_nvidia: quay.io/cortexlabs/nvidia:0.29.0
+  image_fluent_bit: quay.io/cortexlabs/fluent-bit:0.29.0
+  image_istio_proxy: quay.io/cortexlabs/istio-proxy:0.29.0
+  image_istio_pilot: quay.io/cortexlabs/istio-pilot:0.29.0
+  image_google_pause: quay.io/cortexlabs/pause:0.29.0
+  image_prometheus: quay.io/cortexlabs/prometheus:0.29.0
+  image_prometheus_config_reloader: quay.io/cortexlabs/prometheus-config-reloader:0.29.0
+  image_prometheus_operator: quay.io/cortexlabs/prometheus-operator:0.29.0
+  image_prometheus_statsd_exporter: quay.io/cortexlabs/prometheus-statsd-exporter:0.29.0
+  image_grafana: quay.io/cortexlabs/grafana:0.29.0
 
 networking:
   istio-discovery:
     pilot:
       hub: quay.io/cortexlabs
-      tag: master # CORTEX_VERSION
+      tag: "0.29.0" # CORTEX_VERSION
 
       # Can be a full hub/image:tag
       image: istio-pilot
@@ -48,7 +48,7 @@ global:
   hub: quay.io/cortexlabs
 
   # Default tag for Istio images.
-  tag: master # CORTEX_VERSION
+  tag: "0.29.0" # CORTEX_VERSION
 
   proxy:
     image: istio-proxy

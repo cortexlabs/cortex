@@ -8,7 +8,7 @@
     path: <string>  # path to a python file with a Task class definition, relative to the Cortex root (required)
     config: <string: value>  # arbitrary dictionary passed to the callable method of the Task class (can be overridden by config passed in job submission) (optional)
     python_path: <string>  # path to the root of your Python folder that will be appended to PYTHONPATH (default: folder containing cortex.yaml)
-    image: <string> # docker image to use for the Task (default: quay.io/cortexlabs/python-predictor-cpu:master, quay.io/cortexlabs/python-predictor-gpu:master-cuda10.2-cudnn8, or quay.io/cortexlabs/python-predictor-inf:master based on compute)
+    image: <string> # docker image to use for the Task (default: quay.io/cortexlabs/python-predictor-cpu:0.29.0, quay.io/cortexlabs/python-predictor-gpu:0.29.0-cuda10.2-cudnn8, or quay.io/cortexlabs/python-predictor-inf:0.29.0 based on compute)
     env: <string: string>  # dictionary of environment variables
     log_level: <string>  # log level that can be "debug", "info", "warning" or "error" (default: "info")
   networking:
