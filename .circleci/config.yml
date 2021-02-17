@@ -196,7 +196,7 @@ jobs:
             cat \<< EOF > ./cluster.yaml
             cluster_name: cortex
             project: cortexlabs-dev
-            zone: us-central1-a
+            zone: us-east1-c
             provider: gcp
             instance_type: n1-standard-2
             accelerator_type: nvidia-tesla-t4

@@ -29,7 +29,7 @@ cluster_name: cortex
 project: <your GCP project ID>
 
 # GCP zone for your cluster
-zone: us-central1-a
+zone: us-east1-c
 
 # instance type
 instance_type: n1-standard-2
