@@ -61,6 +61,7 @@ type Predictor struct {
 	TensorFlowServingImage string                 `json:"tensorflow_serving_image" yaml:"tensorflow_serving_image"`
 	Config                 map[string]interface{} `json:"config" yaml:"config"`
 	Env                    map[string]string      `json:"env" yaml:"env"`
+	DependencyPath         *DependencyPath        `json:"dependency_path" yaml:"dependency_path"`
 }
 
 type TaskDefinition struct {
@@ -95,6 +96,12 @@ type ModelResource struct {
 type ServerSideBatching struct {
 	MaxBatchSize  int32         `json:"max_batch_size" yaml:"max_batch_size"`
 	BatchInterval time.Duration `json:"batch_interval" yaml:"batch_interval"`
+}
+
+type DependencyPath struct {
+	Pip   string `json:"pip" yaml:"pip"`
+	Conda string `json:"conda" yaml:"conda"`
+	Shell string `json:"shell" yaml:"shell"`
 }
 
 type Networking struct {
