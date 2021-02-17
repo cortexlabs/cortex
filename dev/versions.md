@@ -143,7 +143,7 @@ python versions in our pip dependencies (e.g. [tensorflow](https://pypi.org/proj
 ## TensorFlow / TensorFlow Serving
 
 1. Find the latest release on [GitHub](https://github.com/tensorflow/tensorflow/releases)
-1. Search the codebase for the current minor TensorFlow version (e.g. `2.4`) and update versions as appropriate
+1. Search the codebase for the current minor TensorFlow version (e.g. `2.3`) and update versions as appropriate
 1. Update the version for libnvinfer in `images/tensorflow-serving-gpu/Dockerfile` dockerfile as appropriate (https://www.tensorflow.org/install/gpu)
 
 Note: it's ok if example training notebooks aren't upgraded, as long as the exported model still works

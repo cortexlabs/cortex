@@ -48,8 +48,8 @@ COPY pkg/cortex/serve/cortex_internal.requirements.txt /src/cortex/serve/cortex_
 RUN pip install --no-cache-dir \
     -r /src/cortex/serve/serve.requirements.txt \
     -r /src/cortex/serve/cortex_internal.requirements.txt \
-    tensorflow-cpu==2.4.1 \
-    tensorflow-serving-api==2.4.1
+    tensorflow-cpu==2.3.0 \
+    tensorflow-serving-api==2.3.0
 
 COPY pkg/cortex/serve/init/install-core-dependencies.sh /usr/local/cortex/install-core-dependencies.sh
 RUN chmod +x /usr/local/cortex/install-core-dependencies.sh

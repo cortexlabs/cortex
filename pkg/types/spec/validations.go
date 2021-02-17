@@ -705,10 +705,12 @@ func ExtractAPIConfigs(
 			return nil, errors.Append(err, fmt.Sprintf("\n\napi configuration schema can be found at https://docs.cortex.dev/v/%s/", consts.CortexVersionMinor))
 		}
 
-		if resourceStruct.Kind == userconfig.BatchAPIKind ||
-			resourceStruct.Kind == userconfig.TrafficSplitterKind {
+		if resourceStruct.Kind == userconfig.BatchAPIKind {
 			if provider == types.GCPProviderType {
-				return nil, errors.Wrap(ErrorKindIsNotSupportedByProvider(resourceStruct.Kind, provider), userconfig.IdentifyAPI(configFileName, resourceStruct.Name, resourceStruct.Kind, i))
+				return nil, errors.Wrap(
+					ErrorKindIsNotSupportedByProvider(resourceStruct.Kind, provider),
+					userconfig.IdentifyAPI(configFileName, resourceStruct.Name, resourceStruct.Kind, i),
+				)
 			}
 		}
 

@@ -32,7 +32,8 @@ import (
 	istioclientnetworking "istio.io/client-go/pkg/apis/networking/v1beta1"
 )
 
-func UpdateAPI(apiConfig *userconfig.API, force bool) (*spec.API, string, error) {
+// UpdateAPI creates or updates a traffic splitter API kind
+func UpdateAPI(apiConfig *userconfig.API) (*spec.API, string, error) {
 	prevVirtualService, err := config.K8s.GetVirtualService(operator.K8sName(apiConfig.Name))
 	if err != nil {
 		return nil, "", err
@@ -40,13 +41,13 @@ func UpdateAPI(apiConfig *userconfig.API, force bool) (*spec.API, string, error)
 
 	api := spec.GetAPISpec(apiConfig, "", "", config.ClusterName())
 	if prevVirtualService == nil {
-		if err := config.AWS.UploadJSONToS3(api, config.CoreConfig.Bucket, api.Key); err != nil {
-			return nil, "", errors.Wrap(err, "upload api spec")
+		if err := config.UploadJSONToBucket(api, api.Key); err != nil {
+			return nil, "", errors.Wrap(err, "failed to upload api spec")
 		}
 
 		if err := applyK8sVirtualService(api, prevVirtualService); err != nil {
 			routines.RunWithPanicHandler(func() {
-				deleteK8sResources(api.Name)
+				_ = deleteK8sResources(api.Name)
 			})
 			return nil, "", err
 		}
@@ -55,8 +56,8 @@ func UpdateAPI(apiConfig *userconfig.API, force bool) (*spec.API, string, error)
 	}
 
 	if prevVirtualService.Labels["specID"] != api.SpecID {
-		if err := config.AWS.UploadJSONToS3(api, config.CoreConfig.Bucket, api.Key); err != nil {
-			return nil, "", errors.Wrap(err, "upload api spec")
+		if err := config.UploadJSONToBucket(api, api.Key); err != nil {
+			return nil, "", errors.Wrap(err, "failed to upload api spec")
 		}
 
 		if err := applyK8sVirtualService(api, prevVirtualService); err != nil {
@@ -69,6 +70,7 @@ func UpdateAPI(apiConfig *userconfig.API, force bool) (*spec.API, string, error)
 	return api, fmt.Sprintf("%s is up to date", api.Resource.UserString()), nil
 }
 
+// DeleteAPI deletes all the resources related to a given traffic splitter API
 func DeleteAPI(apiName string, keepCache bool) error {
 	err := parallel.RunFirstErr(
 		func() error {
@@ -79,7 +81,7 @@ func DeleteAPI(apiName string, keepCache bool) error {
 				return nil
 			}
 			// best effort deletion
-			deleteS3Resources(apiName)
+			_ = deleteS3Resources(apiName)
 			return nil
 		},
 	)
@@ -115,10 +117,13 @@ func getTrafficSplitterDestinations(trafficSplitter *spec.API) []k8s.Destination
 	return destinations
 }
 
+// GetAllAPIs returns a list of metadata, in the form of schema.APIResponse, about all the created traffic splitter APIs
 func GetAllAPIs(virtualServices []istioclientnetworking.VirtualService) ([]schema.APIResponse, error) {
-	apiNames := []string{}
-	apiIDs := []string{}
-	trafficSplitters := []schema.APIResponse{}
+	var (
+		apiNames         []string
+		apiIDs           []string
+		trafficSplitters []schema.APIResponse
+	)
 
 	for _, virtualService := range virtualServices {
 		if virtualService.Labels["apiKind"] == userconfig.TrafficSplitterKind.String() {
@@ -147,6 +152,7 @@ func GetAllAPIs(virtualServices []istioclientnetworking.VirtualService) ([]schem
 	return trafficSplitters, nil
 }
 
+// GetAPIByName retrieves the metadata, in the form of schema.APIResponse, of a single traffic splitter API
 func GetAPIByName(deployedResource *operator.DeployedResource) ([]schema.APIResponse, error) {
 	api, err := operator.DownloadAPISpec(deployedResource.Name, deployedResource.VirtualService.Labels["apiID"])
 	if err != nil {
@@ -173,5 +179,5 @@ func deleteK8sResources(apiName string) error {
 
 func deleteS3Resources(apiName string) error {
 	prefix := filepath.Join(config.ClusterName(), "apis", apiName)
-	return config.AWS.DeleteS3Dir(config.CoreConfig.Bucket, prefix, true)
+	return config.DeleteBucketDir(prefix, true)
 }

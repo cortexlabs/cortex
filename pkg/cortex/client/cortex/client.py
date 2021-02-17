@@ -204,20 +204,12 @@ class Client:
             # class is defined in a REPL (e.g. jupyter)
             filename += ".pickle"
             with open(project_dir / filename, "wb") as pickle_file:
-
                 dill.dump(impl, pickle_file)
                 return filename
 
         filename += ".py"
-        if not is_interactive and impl.__module__ == "__main__":
-            # class is defined in the same file as main
-            with open(project_dir / filename, "w") as f:
-                f.write(dill.source.importable(impl, source=True))
-                return filename
-
-        if not is_interactive and not impl.__module__ == "__main__":
-            # class is imported, copy file containing the class
-            shutil.copy(inspect.getfile(impl), project_dir / filename)
+        with open(project_dir / filename, "w") as f:
+            f.write(dill.source.importable(impl, source=True))
             return filename
 
     def _deploy(

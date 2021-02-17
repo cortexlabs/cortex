@@ -1,4 +1,4 @@
-FROM tensorflow/serving:2.4.1
+FROM tensorflow/serving:2.3.0
 
 RUN apt-get update -qq && apt-get install -y -q \
     curl \
