@@ -642,7 +642,7 @@ func serverSideBatchingValidation() *cr.StructFieldValidation {
 
 func dependencyPathValidation() *cr.StructFieldValidation {
 	return &cr.StructFieldValidation{
-		StructField: "DependencyPath",
+		StructField: "Dependencies",
 		StructValidation: &cr.StructValidation{
 			Required: false,
 			StructFieldValidations: []*cr.StructFieldValidation{
