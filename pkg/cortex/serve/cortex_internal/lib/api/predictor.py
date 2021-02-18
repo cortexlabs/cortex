@@ -143,7 +143,6 @@ class Predictor:
             The client for the respective predictor type.
         """
 
-        signature_message = None
         client = None
 
         if _are_models_specified(self.api_spec):

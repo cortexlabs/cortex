@@ -128,7 +128,6 @@ def main():
     _, api_spec = get_spec(provider, spec_path, cache_dir, region)
 
     predictor_type = predictor_type_from_api_spec(api_spec)
-    multiple_processes = api_spec["predictor"]["processes_per_replica"] > 1
     caching_enabled = is_model_caching_enabled(api_spec)
     model_dir = os.getenv("CORTEX_MODEL_DIR")
 

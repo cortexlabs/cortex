@@ -16,8 +16,9 @@ import inspect
 import json
 import os
 import sys
-import pathlib
+import signal
 import threading
+import pathlib
 import time
 import uuid
 from typing import Dict, Any
@@ -29,7 +30,7 @@ from cortex_internal.lib.concurrency import LockedFile
 from cortex_internal.lib.storage import S3
 from cortex_internal.lib.telemetry import get_default_tags, init_sentry, capture_exception
 from cortex_internal.lib.log import configure_logger
-from cortex_internal.lib.exceptions import CortexException, UserException, UserRuntimeException
+from cortex_internal.lib.exceptions import UserException, UserRuntimeException
 
 init_sentry(tags=get_default_tags())
 logger = configure_logger("cortex", os.environ["CORTEX_LOG_CONFIG_FILE"])
@@ -41,7 +42,7 @@ MESSAGE_RENEWAL_PERIOD = 15  # seconds
 JOB_COMPLETE_MESSAGE_RENEWAL = 10  # seconds
 
 local_cache: Dict[str, Any] = {
-    "api_spec": None,
+    "api": None,
     "job_spec": None,
     "provider": None,
     "predictor_impl": None,
@@ -54,7 +55,7 @@ stop_renewal = set()
 
 def dimensions():
     return [
-        {"Name": "api_name", "Value": local_cache["api_spec"].name},
+        {"Name": "api_name", "Value": local_cache["api"].name},
         {"Name": "job_id", "Value": local_cache["job_spec"]["job_id"]},
     ]
 
@@ -207,7 +208,7 @@ def handle_batch_message(message):
     sqs_client = local_cache["sqs_client"]
     queue_url = job_spec["sqs_url"]
     receipt_handle = message["ReceiptHandle"]
-    api_spec = local_cache["api_spec"]
+    api = local_cache["api"]
 
     start_time = time.time()
 
@@ -221,14 +222,14 @@ def handle_batch_message(message):
         except Exception as err:
             raise UserRuntimeException from err
 
-        api_spec.post_metrics(
+        api.post_metrics(
             [success_counter_metric(), time_per_batch_metric(time.time() - start_time)]
         )
     except (UserRuntimeException, Exception) as err:
         if not isinstance(err, UserRuntimeException):
             capture_exception(err)
 
-        api_spec.post_metrics([failed_counter_metric()])
+        api.post_metrics([failed_counter_metric()])
         logger.exception(f"failed processing batch {message['MessageId']}")
         with receipt_handle_mutex:
             stop_renewal.add(receipt_handle)
@@ -320,7 +321,7 @@ def start():
             f.truncate()
 
     api = get_api(provider, api_spec_path, model_dir, cache_dir, region)
-    storage, api_spec = get_spec(provider, api_spec_path, cache_dir, region)
+    storage, _ = get_spec(provider, api_spec_path, cache_dir, region)
     job_spec = get_job_spec(storage, cache_dir, job_spec_path)
 
     client = api.predictor.initialize_client(
@@ -339,7 +340,17 @@ def start():
         logger.error(f"failed to start job {job_spec['job_id']}", exc_info=True)
         sys.exit(1)
 
-    local_cache["api_spec"] = api
+    # crons only stop if an unhandled exception occurs
+    def check_if_crons_have_failed():
+        while True:
+            for cron in api.predictor.crons:
+                if cron.is_alive():
+                    continue
+                os.kill(os.getpid(), signal.SIGQUIT)
+            time.sleep(1)
+    threading.Thread(target=check_if_crons_have_failed, daemon=True).start()
+
+    local_cache["api"] = api
     local_cache["provider"] = provider
     local_cache["job_spec"] = job_spec
     local_cache["predictor_impl"] = predictor_impl
@@ -352,11 +363,11 @@ def start():
     try:
         sqs_loop()
     except UserRuntimeException as err:
-        capture_exception(err)
         err.wrap(f"failed to run job {job_spec['job_id']}")
         logger.error(str(err), exc_info=True)
         sys.exit(1)
-    except:
+    except Exception as err:
+        capture_exception(err)
         logger.error(f"failed to run job {job_spec['job_id']}", exc_info=True)
         sys.exit(1)
 

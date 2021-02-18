@@ -16,10 +16,12 @@ import asyncio
 import inspect
 import json
 import os
-import re
+import signal
 import sys
 import time
 import uuid
+import re
+import threading
 from concurrent.futures import ThreadPoolExecutor
 from typing import Any, Dict
 
@@ -293,6 +295,16 @@ def start_fn():
         with FileLock("/run/init_stagger.lock"):
             logger.info("loading the predictor from {}".format(api.predictor.path))
             predictor_impl = api.predictor.initialize_impl(project_dir, client)
+
+        # crons only stop if an unhandled exception occurs
+        def check_if_crons_have_failed():
+            while True:
+                for cron in api.predictor.crons:
+                    if cron.is_alive():
+                        continue
+                    os.kill(os.getpid(), signal.SIGQUIT)
+                time.sleep(1)
+        threading.Thread(target=check_if_crons_have_failed, daemon=True).start()
 
         local_cache["api"] = api
         local_cache["provider"] = provider
