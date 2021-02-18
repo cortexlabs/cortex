@@ -17,8 +17,10 @@ import time
 import json
 import sys
 
+from cortex_internal.lib.telemetry import capture_exception, get_default_tags, init_sentry
 from cortex_internal.lib.log import configure_logger
 
+init_sentry(tags=get_default_tags())
 logger = configure_logger("cortex", os.environ["CORTEX_LOG_CONFIG_FILE"])
 
 from cortex_internal.lib.type import (

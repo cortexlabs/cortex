@@ -27,9 +27,11 @@ import botocore
 from cortex_internal.lib.api import get_api, get_spec
 from cortex_internal.lib.concurrency import LockedFile
 from cortex_internal.lib.storage import S3
+from cortex_internal.lib.telemetry import get_default_tags, init_sentry, capture_exception
 from cortex_internal.lib.log import configure_logger
-from cortex_internal.lib.exceptions import CortexException
+from cortex_internal.lib.exceptions import CortexException, UserException, UserRuntimeException
 
+init_sentry(tags=get_default_tags())
 logger = configure_logger("cortex", os.environ["CORTEX_LOG_CONFIG_FILE"])
 
 SQS_POLL_WAIT_TIME = 10  # seconds
@@ -103,18 +105,18 @@ def renew_message_visibility(receipt_handle: str):
                 local_cache["sqs_client"].change_message_visibility(
                     QueueUrl=queue_url, ReceiptHandle=receipt_handle, VisibilityTimeout=new_timeout
                 )
-            except botocore.exceptions.ClientError as e:
-                if e.response["Error"]["Code"] == "InvalidParameterValue":
+            except botocore.exceptions.ClientError as err:
+                if err.response["Error"]["Code"] == "InvalidParameterValue":
                     # unexpected; this error is thrown when attempting to renew a message that has been deleted
                     continue
-                elif e.response["Error"]["Code"] == "AWS.SimpleQueueService.NonExistentQueue":
+                elif err.response["Error"]["Code"] == "AWS.SimpleQueueService.NonExistentQueue":
                     # there may be a delay between the cron may deleting the queue and this worker stopping
                     logger.info(
                         "failed to renew message visibility because the queue was not found"
                     )
                 else:
                     stop_renewal.remove(receipt_handle)
-                    raise e
+                    raise err
 
 
 def build_predict_args(payload, batch_id):
@@ -213,12 +215,19 @@ def handle_batch_message(message):
         logger.info(f"processing batch {message['MessageId']}")
         payload = json.loads(message["Body"])
         batch_id = message["MessageId"]
-        predictor_impl.predict(**build_predict_args(payload, batch_id))
+
+        try:
+            predictor_impl.predict(**build_predict_args(payload, batch_id))
+        except Exception as err:
+            raise UserRuntimeException from err
 
         api_spec.post_metrics(
             [success_counter_metric(), time_per_batch_metric(time.time() - start_time)]
         )
-    except:
+    except (UserRuntimeException, Exception) as err:
+        if not isinstance(err, UserRuntimeException):
+            capture_exception(err)
+
         api_spec.post_metrics([failed_counter_metric()])
         logger.exception(f"failed processing batch {message['MessageId']}")
         with receipt_handle_mutex:
@@ -266,12 +275,15 @@ def handle_on_job_complete(message):
                 if should_run_on_job_complete:
                     if getattr(predictor_impl, "on_job_complete", None):
                         logger.info("executing on_job_complete")
-                        predictor_impl.on_job_complete()
+                        try:
+                            predictor_impl.on_job_complete()
+                        except Exception as err:
+                            raise UserRuntimeException from err
                     break
                 should_run_on_job_complete = True
             time.sleep(10)  # verify that the queue is empty one more time
-    except Exception as err:
-        raise CortexException("failed to handle on_job_complete") from err
+    except (UserRuntimeException, Exception) as err:
+        raise type(err)("failed to handle on_job_complete") from err
     finally:
         with receipt_handle_mutex:
             stop_renewal.add(receipt_handle)
@@ -311,17 +323,19 @@ def start():
     storage, api_spec = get_spec(provider, api_spec_path, cache_dir, region)
     job_spec = get_job_spec(storage, cache_dir, job_spec_path)
 
+    client = api.predictor.initialize_client(
+        tf_serving_host=tf_serving_host, tf_serving_port=tf_serving_port
+    )
+
     try:
-        client = api.predictor.initialize_client(
-            tf_serving_host=tf_serving_host, tf_serving_port=tf_serving_port
-        )
         logger.info("loading the predictor from {}".format(api.predictor.path))
         predictor_impl = api.predictor.initialize_impl(project_dir, client, job_spec)
-    except CortexException as err:
+    except (UserException, UserRuntimeException) as err:
         err.wrap(f"failed to start job {job_spec['job_id']}")
         logger.error(str(err), exc_info=True)
         sys.exit(1)
-    except:
+    except Exception as err:
+        capture_exception(err)
         logger.error(f"failed to start job {job_spec['job_id']}", exc_info=True)
         sys.exit(1)
 
@@ -337,7 +351,8 @@ def start():
     logger.info("polling for batches...")
     try:
         sqs_loop()
-    except CortexException as err:
+    except UserRuntimeException as err:
+        capture_exception(err)
         err.wrap(f"failed to run job {job_spec['job_id']}")
         logger.error(str(err), exc_info=True)
         sys.exit(1)

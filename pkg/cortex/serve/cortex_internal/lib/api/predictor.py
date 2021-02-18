@@ -253,7 +253,7 @@ class Predictor:
             predictor_class = self._get_class_impl(
                 "cortex_predictor", os.path.join(project_dir, self.path), target_class_name
             )
-        except CortexException as e:
+        except (UserException, CortexException) as e:
             e.wrap("error in " + self.path)
             raise
 
@@ -261,7 +261,7 @@ class Predictor:
             _validate_impl(predictor_class, validations, self.api_spec)
             if self.type == PythonPredictorType:
                 _validate_python_predictor_with_models(predictor_class, self.api_spec)
-        except CortexException as e:
+        except (UserException, CortexException) as e:
             e.wrap("error in " + self.path)
             raise
         return predictor_class

@@ -19,8 +19,11 @@ from copy import deepcopy
 
 from cortex_internal.lib import util
 from cortex_internal.lib.api import get_spec, TaskAPI
+from cortex_internal.lib.exceptions import UserRuntimeException
+from cortex_internal.lib.telemetry import capture_exception, get_default_tags, init_sentry
 from cortex_internal.lib.log import configure_logger
 
+init_sentry(tags=get_default_tags())
 logger = configure_logger("cortex", os.environ["CORTEX_LOG_CONFIG_FILE"])
 
 
@@ -48,7 +51,7 @@ def start():
 
     try:
         callable_fn(config)
-    except:
+    except Exception as err:
         logger.error(f"failed to run task {task_spec['job_id']}", exc_info=True)
         sys.exit(1)
 
