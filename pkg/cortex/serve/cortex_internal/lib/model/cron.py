@@ -48,7 +48,7 @@ from cortex_internal.lib.model import (
     get_models_from_api_spec,
     ModelsTree,
 )
-from cortex_internal.lib.telemetry import capture_exception, get_default_tags, init_sentry
+from cortex_internal.lib.telemetry import get_default_tags, init_sentry
 from cortex_internal.lib.log import configure_logger
 
 logger = configure_logger("cortex", os.environ["CORTEX_LOG_CONFIG_FILE"])
