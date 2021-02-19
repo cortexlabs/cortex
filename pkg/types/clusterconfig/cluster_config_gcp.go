@@ -234,6 +234,20 @@ var GCPCoreConfigStructFieldValidations = []*cr.StructFieldValidation{
 		},
 	},
 	{
+		StructField: "ImagePrometheusNodeExporter",
+		StringValidation: &cr.StringValidation{
+			Default:   "quay.io/cortexlabs/prometheus-node-exporter:" + consts.CortexVersion,
+			Validator: validateImageVersion,
+		},
+	},
+	{
+		StructField: "ImageKubeRBACProxy",
+		StringValidation: &cr.StringValidation{
+			Default:   "quay.io/cortexlabs/kube-rbac-proxy:" + consts.CortexVersion,
+			Validator: validateImageVersion,
+		},
+	},
+	{
 		StructField: "ImagePrometheusStatsDExporter",
 		StringValidation: &cr.StringValidation{
 			Default:   "quay.io/cortexlabs/prometheus-statsd-exporter:" + consts.CortexVersion,
@@ -675,6 +689,8 @@ func (cc *GCPCoreConfig) UserTable() table.KeyValuePairs {
 	items.Add(ImagePrometheusConfigReloaderUserKey, cc.ImagePrometheusConfigReloader)
 	items.Add(ImagePrometheusOperatorUserKey, cc.ImagePrometheusOperator)
 	items.Add(ImagePrometheusStatsDExporterUserKey, cc.ImagePrometheusStatsDExporter)
+	items.Add(ImagePrometheusNodeExporterUserKey, cc.ImagePrometheusNodeExporter)
+	items.Add(ImageKubeRBACProxyUserKey, cc.ImageKubeRBACProxy)
 	items.Add(ImageGrafanaUserKey, cc.ImageGrafana)
 
 	return items
@@ -707,7 +723,7 @@ func (cc *GCPManagedConfig) UserTable() table.KeyValuePairs {
 }
 
 func (cc *GCPConfig) UserTable() table.KeyValuePairs {
-	var items *table.KeyValuePairs = &table.KeyValuePairs{}
+	items := &table.KeyValuePairs{}
 	items.AddAll(cc.GCPCoreConfig.UserTable())
 	if cc.GCPCoreConfig.IsManaged {
 		items.AddAll(cc.GCPManagedConfig.UserTable())
@@ -779,6 +795,12 @@ func (cc *GCPCoreConfig) TelemetryEvent() map[string]interface{} {
 	}
 	if strings.HasPrefix(cc.ImagePrometheusStatsDExporter, "cortexlabs/") {
 		event["image_prometheus_statsd_exporter._is_custom"] = true
+	}
+	if strings.HasPrefix(cc.ImagePrometheusNodeExporter, "cortexlabs/") {
+		event["image_prometheus_node_exporter._is_custom"] = true
+	}
+	if strings.HasPrefix(cc.ImageKubeRBACProxy, "cortexlabs/") {
+		event["image_kube_rbac_proxy._is_custom"] = true
 	}
 	if strings.HasPrefix(cc.ImageGrafana, "cortexlabs/") {
 		event["image_grafana._is_custom"] = true
