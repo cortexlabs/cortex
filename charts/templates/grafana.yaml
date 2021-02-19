@@ -86,6 +86,28 @@ data:
 ---
 
 apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboard-cluster
+  namespace: {{ .Release.Namespace }}
+data:
+  cluster.json: |-
+{{ .Files.Get "dashboards/cluster.json" | indent 4 }}
+
+---
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboard-nodes
+  namespace: {{ .Release.Namespace }}
+data:
+  nodes.json: |-
+{{ .Files.Get "dashboards/nodes.json" | indent 4 }}
+
+---
+
+apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: grafana-storage
