@@ -57,6 +57,8 @@ type GCPCoreConfig struct {
 	ImagePrometheusConfigReloader string `json:"image_prometheus_config_reloader" yaml:"image_prometheus_config_reloader"`
 	ImagePrometheusOperator       string `json:"image_prometheus_operator" yaml:"image_prometheus_operator"`
 	ImagePrometheusStatsDExporter string `json:"image_prometheus_statsd_exporter" yaml:"image_prometheus_statsd_exporter"`
+	ImagePrometheusNodeExporter   string `json:"image_prometheus_node_exporter" yaml:"image_prometheus_node_exporter"`
+	ImageKubeRBACProxy            string `json:"image_kube_rbac_proxy" yaml:"image_kube_rbac_proxy"`
 	ImageGrafana                  string `json:"image_grafana" yaml:"image_grafana"`
 }
 
