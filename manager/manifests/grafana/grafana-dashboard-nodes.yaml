@@ -18,7 +18,7 @@ metadata:
   name: grafana-dashboard-nodes
   namespace: default
 data:
-  cluster.json: |
+  nodes.json: |
     {
       "annotations": {
         "list": [
