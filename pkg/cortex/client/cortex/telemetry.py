@@ -28,7 +28,7 @@ from cortex.consts import (
 )
 
 
-def sentry_client(
+def _sentry_client(
     disabled: bool = False,
 ) -> sentry_sdk.Client:
     """
@@ -70,7 +70,7 @@ def sentry_client(
     return client
 
 
-def create_default_scope(optional_tags: dict = {}) -> sentry_sdk.Scope:
+def _create_default_scope(optional_tags: dict = {}) -> sentry_sdk.Scope:
     """
     Creates default scope. Adds user ID as tag to the reported event.
     Can add optional tags.
@@ -93,7 +93,7 @@ def create_default_scope(optional_tags: dict = {}) -> sentry_sdk.Scope:
 
 
 # only one instance of this is required
-hub = sentry_sdk.Hub(sentry_client(), create_default_scope())
+hub = sentry_sdk.Hub(_sentry_client(), _create_default_scope())
 
 
 def sentry_wrapper(func):
