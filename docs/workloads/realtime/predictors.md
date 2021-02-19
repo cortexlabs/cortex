@@ -131,7 +131,7 @@ Your `predictor` method can return different types of objects such as `JSON`-par
 
 ## TensorFlow Predictor
 
-**Uses TensorFlow version 2.4.1 by default**
+**Uses TensorFlow version 2.3.0 by default**
 
 ### Interface
 

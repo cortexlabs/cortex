@@ -165,7 +165,7 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string, force bool) (*schema
 	case userconfig.TaskAPIKind:
 		api, msg, err = taskapi.UpdateAPI(apiConfig, projectID)
 	case userconfig.TrafficSplitterKind:
-		api, msg, err = trafficsplitter.UpdateAPI(apiConfig, force)
+		api, msg, err = trafficsplitter.UpdateAPI(apiConfig)
 	default:
 		return nil, "", ErrorOperationIsOnlySupportedForKind(
 			*deployedResource, userconfig.RealtimeAPIKind,
@@ -275,7 +275,7 @@ func patchAPI(apiConfig *userconfig.API, force bool) (*spec.API, string, error) 
 	case userconfig.TaskAPIKind:
 		return taskapi.UpdateAPI(apiConfig, prevAPISpec.ProjectID)
 	default:
-		return trafficsplitter.UpdateAPI(apiConfig, force)
+		return trafficsplitter.UpdateAPI(apiConfig)
 	}
 }
 

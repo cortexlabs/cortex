@@ -202,7 +202,7 @@ Create `dev/config/cluster-gcp.yaml`. Paste the following config, and update `pr
 # dev/config/cluster-gcp.yaml
 
 project: <project_id>
-zone: <zone>  # e.g. us-central1-a
+zone: <zone>  # e.g. us-east1-c
 cluster_name: cortex
 provider: gcp
 instance_type: n1-standard-2

@@ -90,7 +90,7 @@ class PythonPredictor:
 
 ## TensorFlow Predictor
 
-**Uses TensorFlow version 2.4.1 by default**
+**Uses TensorFlow version 2.3.0 by default**
 
 ### Interface
 

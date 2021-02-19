@@ -266,16 +266,6 @@ var _clusterGCPDownCmd = &cobra.Command{
 			prompt.YesOrExit(fmt.Sprintf("your cluster named \"%s\" in %s (zone: %s) will be spun down and all apis will be deleted, are you sure you want to continue?", *accessConfig.ClusterName, *accessConfig.Project, *accessConfig.Zone), "", "")
 		}
 
-		fmt.Printf("￮ deleting bucket %s ", bucketName)
-		err = gcpClient.DeleteBucket(bucketName)
-		if err != nil {
-			fmt.Printf("\n\nunable to delete cortex's bucket (see error below); if it still exists after the cluster has been deleted, please delete it via the the GCP console\n")
-			errors.PrintError(err)
-			fmt.Println()
-		} else {
-			fmt.Println("✓")
-		}
-
 		fmt.Print("￮ spinning down the cluster ")
 
 		_, err = gcpClient.DeleteCluster(gkeClusterName)

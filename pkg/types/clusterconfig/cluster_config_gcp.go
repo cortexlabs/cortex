@@ -429,7 +429,7 @@ var GCPAccessPromptValidation = &cr.PromptValidation{
 				Prompt: ZoneUserKey,
 			},
 			StringPtrValidation: &cr.StringPtrValidation{
-				Default: pointer.String("us-central1-a"),
+				Default: pointer.String("us-east1-c"),
 			},
 		},
 		{
@@ -537,7 +537,7 @@ func (cc *GCPConfig) Validate(GCP *gcp.Client) error {
 func applyGCPPromptDefaults(defaults GCPConfig) *GCPConfig {
 	defaultConfig := &GCPConfig{
 		GCPCoreConfig: GCPCoreConfig{
-			Zone: pointer.String("us-central1-a"),
+			Zone: pointer.String("us-east1-c"),
 		},
 		GCPManagedConfig: GCPManagedConfig{
 			InstanceType: pointer.String("n1-standard-2"),

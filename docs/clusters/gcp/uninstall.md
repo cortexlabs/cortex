@@ -1,5 +1,8 @@
 # Uninstall
 
+Since you may wish to have access to your data after spinning down your cluster, Cortex's bucket, stackdriver logs, and
+Prometheus volume are not automatically deleted when running `cortex cluster-gcp down`.
+
 ```bash
 cortex cluster-gcp down
 ```
