@@ -17,10 +17,7 @@ from sklearn.linear_model import LogisticRegression
 
 class Task:
     def __call__(self, config):
-        dest_dir = config["dest_s3_dir"]
-        bucket, key = dest_dir.replace("s3://", "").split("/", 1)
-
-        # get the dataset
+        # get the iris flower dataset
         iris = load_iris()
         data, labels = iris.data, iris.target
         training_data, test_data, training_labels, test_labels = train_test_split(data, labels)
@@ -33,6 +30,8 @@ class Task:
         print("model trained; accuracy: {:.2f}".format(accuracy))
 
         # upload the model
+        dest_dir = config["dest_s3_dir"]
+        bucket, key = dest_dir.replace("s3://", "").split("/", 1)
         pickle.dump(model, open("model.pkl", "wb"))
         s3 = boto3.client("s3")
         s3.upload_file("model.pkl", bucket, os.path.join(key, "model.pkl"))
@@ -91,10 +90,10 @@ Or, using Python `requests`:
 import cortex
 import requests
 
-cx = cortex.client("aws")
+cx = cortex.client("aws")  # "aws" is the name of the Cortex environment used in this example
 task_endpoint = cx.get_api("train-iris")["endpoint"]
 
-dest_s3_dir = # S3 directory where the model will be uploaded, e.g. "s3://my-bucket/dir"
+dest_s3_dir =  # S3 directory where the model will be uploaded, e.g. "s3://my-bucket/dir"
 job_spec = {
     "config": {
         "dest_s3_dir": dest_s3_dir
