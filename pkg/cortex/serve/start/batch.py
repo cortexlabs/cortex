@@ -348,6 +348,7 @@ def start():
                     continue
                 os.kill(os.getpid(), signal.SIGQUIT)
             time.sleep(1)
+
     threading.Thread(target=check_if_crons_have_failed, daemon=True).start()
 
     local_cache["api"] = api
