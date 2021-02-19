@@ -81,7 +81,7 @@ $ export DEST_S3_DIR=<YOUR_S3_DIRECTORY>  # e.g. export DEST_S3_DIR=s3://my-buck
 $ curl $TASK_API_ENDPOINT \
     -X POST -H "Content-Type: application/json" \
     -d "{\"config\": {\"dest_s3_dir\": \"$DEST_S3_DIR\"}}"
-# > {"job_id":"69b183ed6bdf3e9b","api_name":"trainer",...}
+# > {"job_id":"69b183ed6bdf3e9b","api_name":"train-iris",...}
 ```
 
 Or, using Python `requests`:
@@ -101,7 +101,7 @@ job_spec = {
 }
 response = requests.post(task_endpoint, json=job_spec)
 print(response.text)
-# > {"job_id":"69b183ed6bdf3e9b","api_name":"trainer",...}
+# > {"job_id":"69b183ed6bdf3e9b","api_name":"train-iris",...}
 ```
 
 ## Monitor the job
