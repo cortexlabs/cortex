@@ -103,12 +103,15 @@ metadata:
     app.kubernetes.io/instance: dcgm-exporter
     app.kubernetes.io/version: "2.1.1"
     app.kubernetes.io/component: "dcgm-exporter"
+  annotations:
+    prometheus.io/scrape: 'true'
+    prometheus.io/port: '9400'
 spec:
   jobLabel: "dcgm-exporter"
   podMetricsEndpoints:
     - port: metrics
-      scheme: tcp
       path: /metrics
+      scheme: tcp
       interval: 15s
   namespaceSelector:
     any: true
