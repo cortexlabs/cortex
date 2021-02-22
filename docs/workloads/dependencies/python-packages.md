@@ -118,17 +118,17 @@ Check the [best practices](https://www.anaconda.com/using-pip-in-a-conda-environ
 
 ## Customizing Dependency Paths
 
-Cortex allows you to specify different dependency paths other than the default ones. This can be useful to deploy
+Cortex allows you to specify different dependency paths other than the default ones. This can be useful when deploying
 different versions of the same API (e.g. CPU vs GPU dependencies).
 
-To customize the path for your dependencies, add the `dependencies` key in your API's `cortex.yaml` file. You can set
-one or more keys to specify the paths for each dependency type. Every path should be a relative path with respect to the
-project root (where the `cortex.yaml` file is).
+To customize the path for your dependencies, you can specify `predictor.dependencies` in your API's configuration file. You can set
+one or more fields to specify the path for each dependency type. Each path should be a relative path with respect to the current file.
 
-Example:
+For example:
 
 ```yaml
 # cortex.yaml
+
 - name: my-classifier
   kind: RealtimeAPI
   predictor:
