@@ -11,7 +11,7 @@ iris = load_iris()
 data, labels = iris.data, iris.target
 training_data, test_data, training_labels, test_labels = train_test_split(data, labels)
 
-model = LogisticRegression(solver="lbfgs", multi_class="multinomial")
+model = LogisticRegression(solver="lbfgs", multi_class="multinomial", max_iter=1000)
 model.fit(training_data, training_labels)
 accuracy = model.score(test_data, test_labels)
 print("accuracy: {:.2f}".format(accuracy))
