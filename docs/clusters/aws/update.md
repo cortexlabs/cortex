@@ -10,16 +10,16 @@ cortex cluster configure  # or: cortex cluster configure --config cluster.yaml
 
 ```bash
 # spin down your cluster
-cortex cluster down
+$ cortex cluster down
 
 # update your CLI to the latest version
-pip install --upgrade cortex
+$ pip install --upgrade cortex
 
 # confirm version
-cortex version
+$ cortex version
 
 # spin up your cluster
-cortex cluster up
+$ cortex cluster up
 ```
 
 ## Upgrade without downtime

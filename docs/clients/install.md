@@ -5,20 +5,20 @@
 To install the latest version:
 
 ```bash
-pip install cortex
+$ pip install cortex
 ```
 
 <!-- CORTEX_VERSION_README x2 -->
 To install or upgrade to a specific version (e.g. v0.29.0):
 
 ```bash
-pip install cortex==0.29.0
+$ pip install cortex==0.29.0
 ```
 
 To upgrade to the latest version:
 
 ```bash
-pip install --upgrade cortex
+$ pip install --upgrade cortex
 ```
 
 ## Install without the Python client

@@ -51,7 +51,7 @@
 
 ## Clusters
 
-* Cortex Cloud on AWS
+* AWS
   * [Install](clusters/aws/install.md)
   * [Update](clusters/aws/update.md)
   * [Security](clusters/aws/security.md)
@@ -63,13 +63,10 @@
     * [VPC peering](clusters/aws/networking/vpc-peering.md)
   * [Setting up kubectl](clusters/aws/kubectl.md)
   * [Uninstall](clusters/aws/uninstall.md)
-* Cortex Cloud on GCP
+* GCP
   * [Install](clusters/gcp/install.md)
   * [Logging](clusters/gcp/logging.md)
   * [Credentials](clusters/gcp/credentials.md)
   * [Setting up kubectl](clusters/gcp/kubectl.md)
   * [Uninstall](clusters/gcp/uninstall.md)
-* Cortex Core on Kubernetes
-  * [Install](clusters/kubernetes/install.md)
-  * [Uninstall](clusters/kubernetes/uninstall.md)
 * [Private Docker registry](clusters/registry.md)

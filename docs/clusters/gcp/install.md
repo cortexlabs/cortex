@@ -11,10 +11,10 @@
 
 ```bash
 # install the CLI
-pip install cortex
+$ pip install cortex
 
 # spin up Cortex on your GCP account
-cortex cluster-gcp up  # or: cortex cluster-gcp up --config cluster.yaml (see configuration options below)
+$ cortex cluster-gcp up  # or: cortex cluster-gcp up --config cluster.yaml (see configuration options below)
 ```
 
 ## Configure Cortex

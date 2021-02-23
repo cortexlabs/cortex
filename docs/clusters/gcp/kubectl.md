@@ -11,11 +11,11 @@ Follow these [instructions](https://cloud.google.com/sdk/docs/install).
 ## Update kubeconfig
 
 ```bash
-gcloud container clusters get-credentials <cluster_name> --zone <zone> --project <project_id>
+$ gcloud container clusters get-credentials <cluster_name> --zone <zone> --project <project_id>
 ```
 
 ## Test kubectl
 
 ```bash
-kubectl get pods
+$ kubectl get pods
 ```
