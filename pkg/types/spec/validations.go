@@ -243,6 +243,7 @@ func predictorValidation() *cr.StructFieldValidation {
 				multiModelValidation("Models"),
 				multiModelValidation("MultiModelReloading"),
 				serverSideBatchingValidation(),
+				dependencyPathValidation(),
 			},
 		},
 	}
@@ -633,6 +634,35 @@ func serverSideBatchingValidation() *cr.StructFieldValidation {
 					Parser: cr.DurationParser(&cr.DurationValidation{
 						GreaterThan: pointer.Duration(libtime.MustParseDuration("0s")),
 					}),
+				},
+			},
+		},
+	}
+}
+
+func dependencyPathValidation() *cr.StructFieldValidation {
+	return &cr.StructFieldValidation{
+		StructField: "Dependencies",
+		StructValidation: &cr.StructValidation{
+			Required: false,
+			StructFieldValidations: []*cr.StructFieldValidation{
+				{
+					StructField: "Pip",
+					StringValidation: &cr.StringValidation{
+						Default: "requirements.txt",
+					},
+				},
+				{
+					StructField: "Conda",
+					StringValidation: &cr.StringValidation{
+						Default: "conda-packages.txt",
+					},
+				},
+				{
+					StructField: "Shell",
+					StringValidation: &cr.StringValidation{
+						Default: "dependencies.sh",
+					},
 				},
 			},
 		},

@@ -55,20 +55,20 @@ function install_deps() {
     eval $source_env_file_cmd
 
     # execute script if present in project's directory
-    if [ -f "/mnt/project/dependencies.sh" ]; then
-        bash -e /mnt/project/dependencies.sh
+    if [ -f "/mnt/project/${CORTEX_DEPENDENCIES_SHELL}" ]; then
+        bash -e "/mnt/project/${CORTEX_DEPENDENCIES_SHELL}"
     fi
 
     # install from conda-packages.txt
-    if [ -f "/mnt/project/conda-packages.txt" ]; then
+    if [ -f "/mnt/project/${CORTEX_DEPENDENCIES_CONDA}" ]; then
         # look for packages in defaults and then conda-forge to improve chances of finding the package (specifically for python reinstalls)
         conda config --append channels conda-forge
-        conda install -y --file /mnt/project/conda-packages.txt
+        conda install -y --file "/mnt/project/${CORTEX_DEPENDENCIES_CONDA}"
     fi
 
     # install pip packages
-    if [ -f "/mnt/project/requirements.txt" ]; then
-        pip --no-cache-dir install -r /mnt/project/requirements.txt
+    if [ -f "/mnt/project/${CORTEX_DEPENDENCIES_PIP}" ]; then
+        pip --no-cache-dir install -r "/mnt/project/${CORTEX_DEPENDENCIES_PIP}"
     fi
 
     # install core cortex dependencies if required

@@ -40,3 +40,22 @@ conda install -n env python=3.8.5
 # re-install cortex core dependencies
 /usr/local/cortex/install-core-dependencies.sh
 ```
+
+## Customizing Dependency Paths
+
+Cortex allows you to specify a path for this script other than `dependencies.sh`. This can be useful when deploying
+different versions of the same API (e.g. CPU vs GPU dependencies). The path should be a relative path with respect
+to the API configuration file, and is specified via `predictor.dependencies.shell`.
+
+For example:
+
+```yaml
+# cortex.yaml
+
+- name: my-classifier
+  kind: RealtimeAPI
+  predictor:
+    (...)
+    dependencies:
+      shell: dependencies-gpu.sh
+```

@@ -601,6 +601,18 @@ func getEnvVars(api *spec.API, container string) []kcore.EnvVar {
 				Name:  "CORTEX_PROJECT_DIR",
 				Value: path.Join(_emptyDirMountPath, "project"),
 			},
+			kcore.EnvVar{
+				Name:  "CORTEX_DEPENDENCIES_PIP",
+				Value: api.Predictor.Dependencies.Pip,
+			},
+			kcore.EnvVar{
+				Name:  "CORTEX_DEPENDENCIES_CONDA",
+				Value: api.Predictor.Dependencies.Conda,
+			},
+			kcore.EnvVar{
+				Name:  "CORTEX_DEPENDENCIES_SHELL",
+				Value: api.Predictor.Dependencies.Shell,
+			},
 		)
 
 		if api.Kind == userconfig.RealtimeAPIKind {
