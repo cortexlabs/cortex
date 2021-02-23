@@ -65,6 +65,7 @@ data:
     @INCLUDE input-kubernetes.conf
     @INCLUDE filter-kubernetes.conf
     @INCLUDE filter-k8s-events.conf
+    @INCLUDE filter-stackdriver-format.conf
     @INCLUDE output.conf
 
   input-kubernetes.conf: |
@@ -145,6 +146,19 @@ data:
         Nest_under          involvedObject
         Remove_prefix       involvedObject.
 
+  filter-stackdriver-format.conf: |
+    [FILTER]
+        Name                modify
+        Match               k8s_container.*
+        Condition           Key_exists log
+        Rename              log message
+
+    [FILTER]
+        Name                modify
+        Match               k8s_container.*
+        Condition           Key_exists levelname
+        Rename              levelname level
+
   output.conf: |
     {% if config['provider'] == "aws" %}
     [OUTPUT]
@@ -163,6 +177,8 @@ data:
         resource              k8s_container
         k8s_cluster_name      {{ config["cluster_name"] }}
         k8s_cluster_location  {{ config["zone"] }}
+        severity_key          level
+        labels_key            labels
     {% endif %}
 
   parsers.conf: |
