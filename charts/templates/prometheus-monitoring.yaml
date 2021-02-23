@@ -28,6 +28,9 @@ spec:
       - key: "monitoring.cortex.dev"
         operator: "In"
         values: [ "istio", "request-monitor", "statsd-exporter", "dcgm-exporter" ]
+      - key:
+        operator: "In"
+        values: [ "kubelet-monitor" ]
   resources:
     requests:
       memory: 400Mi
