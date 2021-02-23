@@ -23,6 +23,10 @@ predictor:
   env: <string: string>  # dictionary of environment variables
   log_level: <string>  # log level that can be "debug", "info", "warning" or "error" (default: "info")
   shm_size: <string>  # size of shared memory (/dev/shm) for sharing data between multiple processes, e.g. 64Mi or 1Gi (default: Null)
+  dependencies: # (optional)
+    pip: <string>  # relative path to requirements.txt (default: requirements.txt)
+    conda: <string>  # relative path to conda-packages.txt (default: conda-packages.txt)
+    shell: <string>  # relative path to a shell script for system package installation (default: dependencies.sh)
 ```
 
 ### TensorFlow Predictor
@@ -50,6 +54,10 @@ predictor:
   env: <string: string>  # dictionary of environment variables
   log_level: <string>  # log level that can be "debug", "info", "warning" or "error" (default: "info")
   shm_size: <string>  # size of shared memory (/dev/shm) for sharing data between multiple processes, e.g. 64Mi or 1Gi (default: Null)
+  dependencies: # (optional)
+    pip: <string>  # relative path to requirements.txt (default: requirements.txt)
+    conda: <string>  # relative path to conda-packages.txt (default: conda-packages.txt)
+    shell: <string>  # relative path to a shell script for system package installation (default: dependencies.sh)
 ```
 
 ### ONNX Predictor
@@ -71,6 +79,10 @@ predictor:
   env: <string: string>  # dictionary of environment variables
   log_level: <string>  # log level that can be "debug", "info", "warning" or "error" (default: "info")
   shm_size: <string>  # size of shared memory (/dev/shm) for sharing data between multiple processes, e.g. 64Mi or 1Gi (default: Null)
+  dependencies: # (optional)
+    pip: <string>  # relative path to requirements.txt (default: requirements.txt)
+    conda: <string>  # relative path to conda-packages.txt (default: conda-packages.txt)
+    shell: <string>  # relative path to a shell script for system package installation (default: dependencies.sh)
 ```
 
 ## Compute

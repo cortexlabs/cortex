@@ -19,6 +19,10 @@
 predictor:
   type: python
   path: <string>  # path to a python file with a PythonPredictor class definition, relative to the Cortex root (required)
+  dependencies: # (optional)
+    pip: <string>  # relative path to requirements.txt (default: requirements.txt)
+    conda: <string>  # relative path to conda-packages.txt (default: conda-packages.txt)
+    shell: <string>  # relative path to a shell script for system package installation (default: dependencies.sh)
   multi_model_reloading:  # use this to serve one or more models with live reloading (optional)
     path: <string> # S3/GCS path to an exported model directory (e.g. s3://my-bucket/exported_model/) (either this, 'dir', or 'paths' must be provided if 'multi_model_reloading' is specified)
     paths:  # list of S3/GCS paths to exported model directories (either this, 'dir', or 'path' must be provided if 'multi_model_reloading' is specified)
@@ -48,6 +52,10 @@ predictor:
 predictor:
   type: tensorflow
   path: <string>  # path to a python file with a TensorFlowPredictor class definition, relative to the Cortex root (required)
+  dependencies: # (optional)
+    pip: <string>  # relative path to requirements.txt (default: requirements.txt)
+    conda: <string>  # relative path to conda-packages.txt (default: conda-packages.txt)
+    shell: <string>  # relative path to a shell script for system package installation (default: dependencies.sh)
   models:  # (required)
     path: <string> # S3/GCS path to an exported SavedModel directory (e.g. s3://my-bucket/exported_model/) (either this, 'dir', or 'paths' must be provided)
     paths:  # list of S3/GCS paths to exported SavedModel directories (either this, 'dir', or 'path' must be provided)
@@ -80,6 +88,10 @@ predictor:
 predictor:
   type: onnx
   path: <string>  # path to a python file with an ONNXPredictor class definition, relative to the Cortex root (required)
+  dependencies: # (optional)
+    pip: <string>  # relative path to requirements.txt (default: requirements.txt)
+    conda: <string>  # relative path to conda-packages.txt (default: conda-packages.txt)
+    shell: <string>  # relative path to a shell script for system package installation (default: dependencies.sh)
   models:  # (required)
     path: <string> # S3/GCS path to an exported model directory (e.g. s3://my-bucket/exported_model/) (either this, 'dir', or 'paths' must be provided)
     paths:  # list of S3/GCS paths to exported model directories (either this, 'dir', or 'path' must be provided)
