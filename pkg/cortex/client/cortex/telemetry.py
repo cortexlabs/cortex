@@ -15,6 +15,8 @@
 import os
 import pathlib
 
+from uuid import uuid4
+
 import sentry_sdk
 from sentry_sdk.integrations.dedupe import DedupeIntegration
 from sentry_sdk.integrations.stdlib import StdlibIntegration
@@ -41,7 +43,7 @@ def _sentry_client(
     dsn = CORTEX_TELEMETRY_SENTRY_DSN
     environment = CORTEX_TELEMETRY_SENTRY_ENVIRONMENT
 
-    if disabled or os.getenv("CORTEX_TELEMETRY_DISABLE") == "true":
+    if disabled or os.getenv("CORTEX_TELEMETRY_DISABLE", "").lower() == "true":
         return
 
     if os.getenv("CORTEX_TELEMETRY_SENTRY_DSN", "") != "":
@@ -80,8 +82,9 @@ def _create_default_scope(optional_tags: dict = {}) -> sentry_sdk.Scope:
 
     user_id = None
     client_id_file_path = pathlib.Path.home() / ".cortex" / "client-id.txt"
-    if client_id_file_path.is_file():
-        user_id = client_id_file_path.read_text()
+    if not client_id_file_path.is_file():
+        client_id_file_path.write_text(str(uuid4()))
+    user_id = client_id_file_path.read_text()
 
     if user_id:
         scope.set_user({"id": user_id})

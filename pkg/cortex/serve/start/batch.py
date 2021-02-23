@@ -344,9 +344,8 @@ def start():
     def check_if_crons_have_failed():
         while True:
             for cron in api.predictor.crons:
-                if cron.is_alive():
-                    continue
-                os.kill(os.getpid(), signal.SIGQUIT)
+                if not cron.is_alive():
+                    os.kill(os.getpid(), signal.SIGQUIT)
             time.sleep(1)
 
     threading.Thread(target=check_if_crons_have_failed, daemon=True).start()

@@ -884,11 +884,11 @@ class TFSModelLoader(mp.Process):
                             model_name, model_version
                         )
                     )
-                except grpc.RpcError as error:
-                    if error.code() == grpc.StatusCode.UNAVAILABLE:
+                except grpc.RpcError as err:
+                    if err.code() == grpc.StatusCode.UNAVAILABLE:
                         logger.warning(
                             "TFS server unresponsive after trying to load model '{}' of version '{}': {}".format(
-                                model_name, model_version, str(error)
+                                model_name, model_version, str(err)
                             )
                         )
                     self._reset_when_tfs_unresponsive()
@@ -1141,11 +1141,11 @@ class TFSModelLoader(mp.Process):
             if model_id in self._old_ts_state and self._old_ts_state[model_id] != model_ts:
                 try:
                     self._client.remove_single_model(model_name, model_version)
-                except grpc.RpcError as error:
-                    if error.code() == grpc.StatusCode.UNAVAILABLE:
+                except grpc.RpcError as err:
+                    if err.code() == grpc.StatusCode.UNAVAILABLE:
                         logger.warning(
                             "TFS server unresponsive after trying to unload model '{}' of version '{}': {}".format(
-                                model_name, model_version, str(error)
+                                model_name, model_version, str(err)
                             )
                         )
                     logger.warning("waiting for tensorflow serving")
@@ -1175,11 +1175,11 @@ class TFSModelLoader(mp.Process):
                             model_name, model_version, str(e)
                         )
                     )
-                except grpc.RpcError as error:
-                    if error.code() == grpc.StatusCode.UNAVAILABLE:
+                except grpc.RpcError as err:
+                    if err.code() == grpc.StatusCode.UNAVAILABLE:
                         logger.warning(
                             "TFS server unresponsive after trying to load model '{}' of version '{}': {}".format(
-                                model_name, model_version, str(e)
+                                model_name, model_version, str(err)
                             )
                         )
                     self._reset_when_tfs_unresponsive()

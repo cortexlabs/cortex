@@ -12,13 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import List, Dict, Optional, Tuple, Callable, Union
 import json
 
 from cortex.client import Client
 from cortex.binary import run_cli
 from cortex.telemetry import sentry_wrapper
-from cortex.exceptions import NotFound, CortexBinaryException
+from cortex.exceptions import NotFound
 
 
 @sentry_wrapper

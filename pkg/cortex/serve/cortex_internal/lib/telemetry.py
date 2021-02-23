@@ -55,7 +55,7 @@ def init_sentry(
     In addition to that, the user ID tag is added to every reported event.
     """
 
-    if disabled is True or os.getenv("CORTEX_TELEMETRY_DISABLE") == "true":
+    if disabled is True or os.getenv("CORTEX_TELEMETRY_DISABLE", "").lower() == "true":
         return
 
     if dsn == "":
