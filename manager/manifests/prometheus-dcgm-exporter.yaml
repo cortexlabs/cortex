@@ -111,7 +111,7 @@ spec:
   podMetricsEndpoints:
     - port: metrics
       path: /metrics
-      scheme: tcp
+      scheme: http
       interval: 15s
   namespaceSelector:
     any: true
