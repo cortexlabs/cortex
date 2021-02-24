@@ -120,8 +120,8 @@ function cluster_up_gcp() {
   echo "✓"
 
   echo -n "￮ configuring logging "
-  python render_template.py $CORTEX_CLUSTER_CONFIG_FILE manifests/fluent-bit.yaml.j2 > /workspace/fluent-bit.yaml
-  kubectl apply -f /workspace/fluent-bit.yaml >/dev/null
+  python render_template.py $CORTEX_CLUSTER_CONFIG_FILE manifests/fluent-bit.yaml.j2 | kubectl apply -f - >/dev/null
+  envsubst < manifests/event-exporter.yaml | kubectl apply -f - >/dev/null
   echo "✓"
 
   echo -n "￮ configuring metrics "
