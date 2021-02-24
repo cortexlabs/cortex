@@ -186,7 +186,7 @@ func makeOperatorRequest(operatorConfig OperatorConfig, request *http.Request) (
 			return nil, err
 		}
 
-		authHeader, err := awsClient.CreateCallerIdentitySignedRequestParams()
+		authHeader, err := awsClient.CreateGetCallerIdentitySignedArtifacts()
 		if err != nil {
 			return nil, err
 		}

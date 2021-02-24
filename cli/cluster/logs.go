@@ -70,7 +70,7 @@ func streamLogs(operatorConfig OperatorConfig, path string, qParams ...map[strin
 			return err
 		}
 
-		authHeader, err := awsClient.CreateCallerIdentitySignedRequestParams()
+		authHeader, err := awsClient.CreateGetCallerIdentitySignedArtifacts()
 		if err != nil {
 			return err
 		}

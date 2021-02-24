@@ -58,6 +58,7 @@ func CortexEndpointValidator(val string) (string, error) {
 		return "", err
 	}
 
+	// default https
 	if parsedURL.Scheme == "" {
 		parsedURL.Scheme = "https"
 	}

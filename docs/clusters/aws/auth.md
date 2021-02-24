@@ -2,11 +2,11 @@
 
 ## Cortex Client
 
-Cortex Client uses the default credential provider chain to get credentials. Credentials will typically be read in the following read:
+Cortex Client uses the default credential provider chain to get credentials. Credentials will be read in the following order of precedence:
 
 - environment variables
-- profile from `~/.aws/credentials` with the name stored in `AWS_PROFILE` environment variable if it is set
-- profile from `~/.aws/credentials` named `default`
+- the name of the profile specified by `AWS_PROFILE` environtment variable
+- `default` profile from `~/.aws/credentials`
 
 ### API Management
 

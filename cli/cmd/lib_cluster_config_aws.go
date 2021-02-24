@@ -317,7 +317,7 @@ func setConfigFieldsFromCached(userClusterConfig *clusterconfig.Config, cachedCl
 		return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.IAMPolicyARNsKey, cachedClusterConfig.IAMPolicyARNs)
 	}
 
-	userClusterConfig.CortexPolicyARN = cachedClusterConfig.CortexPolicyARN
+	userClusterConfig.IAMPolicyARNs = cachedClusterConfig.IAMPolicyARNs
 
 	if userClusterConfig.InstanceVolumeSize != cachedClusterConfig.InstanceVolumeSize {
 		return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.InstanceVolumeSizeKey, cachedClusterConfig.InstanceVolumeSize)

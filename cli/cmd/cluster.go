@@ -502,7 +502,6 @@ var _clusterDownCmd = &cobra.Command{
 		fmt.Print(fmt.Sprintf("￮ deleting auto-generated iam policy %s ", policyARN))
 		err = awsClient.DeletePolicy(policyARN)
 		if err != nil {
-			err = errors.WithStack(err)
 			fmt.Print(fmt.Sprintf("\n\nfailed to delete auto-generated cortex policy %s; please delete the policy via the iam console: https://us-west-2.console.aws.amazon.com/iam/home#/policies", policyARN))
 			errors.PrintError(err)
 			fmt.Println()

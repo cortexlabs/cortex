@@ -67,7 +67,7 @@ type awsRequest struct {
 	ContentLength int64
 }
 
-func (c *Client) CreateCallerIdentitySignedRequestParams() (string, error) {
+func (c *Client) CreateGetCallerIdentitySignedArtifacts() (string, error) {
 	req, _ := c.STS().GetCallerIdentityRequest(nil)
 
 	err := req.Sign()

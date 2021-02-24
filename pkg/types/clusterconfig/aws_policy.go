@@ -162,6 +162,7 @@ func AddNewPolicyVersion(awsClient *aws.Client, policyARN string, policyDocument
 		}
 	}
 
+	// can only have a max of 5 versions, so delete the oldest non-default version before adding a new policy verion
 	if numPolicies > 4 {
 		_, err := awsClient.IAM().DeletePolicyVersion(&iam.DeletePolicyVersionInput{
 			PolicyArn: &policyARN,
