@@ -166,6 +166,9 @@ var _cortexMemReserve = kresource.MustParse("1050Mi")
 var _nvidiaCPUReserve = kresource.MustParse("100m")
 var _nvidiaMemReserve = kresource.MustParse("100Mi")
 
+var _nvidiaDCGMExporterCPUReserve = kresource.MustParse("50m")
+var _nvidiaDCGMExporterMemReserve = kresource.MustParse("50Mi")
+
 var _inferentiaCPUReserve = kresource.MustParse("100m")
 var _inferentiaMemReserve = kresource.MustParse("100Mi")
 
@@ -185,6 +188,9 @@ func awsManagedValidateK8sCompute(compute *userconfig.Compute, maxMem kresource.
 		// Reserve resources for nvidia device plugin daemonset
 		maxCPU.Sub(_nvidiaCPUReserve)
 		maxMem.Sub(_nvidiaMemReserve)
+		// Reserve resources for nvidia dcgm prometheus exporter
+		maxCPU.Sub(_nvidiaDCGMExporterCPUReserve)
+		maxMem.Sub(_nvidiaDCGMExporterMemReserve)
 	}
 
 	maxInf := instanceMetadata.Inf
