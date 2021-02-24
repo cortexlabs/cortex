@@ -105,5 +105,7 @@ image_prometheus: quay.io/cortexlabs/prometheus:master
 image_prometheus_config_reloader: quay.io/cortexlabs/prometheus-config-reloader:master
 image_prometheus_operator: quay.io/cortexlabs/prometheus-operator:master
 image_prometheus_statsd_exporter: quay.io/cortexlabs/prometheus-statsd-exporter:master
+image_prometheus_dcgm_exporter: quay.io/cortexlabs/prometheus-dcgm-exporter:master
+image_prometheus_kube_state_metrics_exporter: quay.io/cortexlabs/prometheus-kube-state-metrics-exporter:master
 image_grafana: quay.io/cortexlabs/grafana:master
 ```
