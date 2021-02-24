@@ -323,6 +323,18 @@ supported (<https://github.com/awslabs/amazon-eks-ami/issues/176>)
 1. Update the base image version in `images/prometheus-statsd-exporter/Dockerfile`.
 1. Update `prometheus-statsd-exporter.yaml` as necessary, if that's the case.
 
+## Prometheus DCGM Exporter
+
+1. Run `helm template` on the DCGM charts https://github.com/NVIDIA/gpu-monitoring-tools/tree/master/deployment/dcgm-exporter and save the output somewhere temporarily.
+1. Update the base image version in `images/prometheus-dcgm-exporter/Dockerfile`.
+1. Update `prometheus-dcgm-exporter.yaml` as necessary, if that's the case. Keep in mind that in our k8s template, the `ServiceMonitor` was changed to a `PodMonitor`. Remove any unnecessary labels. 
+
+## Prometheus kube-state-metrics Exporter
+
+1. Run `helm template` on the kube-state-metrics charts https://github.com/kubernetes/kube-state-metrics/tree/master/charts/kube-state-metrics and save the output somewhere temporarily.
+1. Update the base image version in `images/prometheus-kube-state-metrics-exporter/Dockerfile`.
+1. Update `prometheus-kube-state-metrics-exporter.yaml` as necessary, if that's the case. Keep in mind that in our k8s template, the `ServiceMonitor` was changed to a `PodMonitor`. Remove any unnecessary labels.
+
 ## Grafana
 
 1. Find the latest release
