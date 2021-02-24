@@ -4,7 +4,7 @@ Since you may wish to have access to your data after spinning down your cluster,
 Prometheus volume are not automatically deleted when running `cortex cluster-gcp down`.
 
 ```bash
-$ cortex cluster-gcp down
+cortex cluster-gcp down
 ```
 
 The `cortex cluster-gcp down` command doesn't wait for the cluster to spin down. You can ensure that the cluster has

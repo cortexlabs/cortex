@@ -3,7 +3,7 @@
 ## Install the CLI
 
 ```bash
-$ pip install cortex
+pip install cortex
 ```
 
 See [here](clients/install.md) for alternative installation options.
