@@ -35,6 +35,7 @@ api_images_gcp=(
 )
 
 dev_images_cluster=(
+  "operator"
   "downloader"
   "manager"
   "request-monitor"
@@ -50,7 +51,6 @@ non_dev_images_cluster=(
   "tensorflow-serving-cpu"
   "tensorflow-serving-gpu"
   "cluster-autoscaler"
-  "operator"
   "istio-proxy"
   "istio-pilot"
   "fluent-bit"
@@ -59,6 +59,7 @@ non_dev_images_cluster=(
   "prometheus-operator"
   "prometheus-statsd-exporter"
   "grafana"
+  "event-exporter"
 )
 non_dev_images_aws=(
   # includes non_dev_images_cluster

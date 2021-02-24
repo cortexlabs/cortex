@@ -69,7 +69,7 @@ spec:
       serviceAccountName: event-exporter
       containers:
         - name: event-exporter
-          image: opsgenie/kubernetes-event-exporter:0.9  # TODO: replace
+          image: $CORTEX_IMAGE_EVENT_EXPORTER
           imagePullPolicy: IfNotPresent
           args:
             - -conf=/data/config.yaml
