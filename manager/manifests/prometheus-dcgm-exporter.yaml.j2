@@ -11,8 +11,7 @@ metadata:
   labels:
     app.kubernetes.io/name: dcgm-exporter
     app.kubernetes.io/instance: dcgm-exporter
-    app.kubernetes.io/version: "2.1.1"
-    app.kubernetes.io/component: "dcgm-exporter"
+    app.kubernetes.io/component: dcgm-exporter
 ---
 apiVersion: apps/v1
 kind: DaemonSet
@@ -22,8 +21,7 @@ metadata:
   labels:
     app.kubernetes.io/name: dcgm-exporter
     app.kubernetes.io/instance: dcgm-exporter
-    app.kubernetes.io/version: "2.1.1"
-    app.kubernetes.io/component: "dcgm-exporter"
+    app.kubernetes.io/component: dcgm-exporter
 spec:
   updateStrategy:
     type: RollingUpdate
@@ -31,13 +29,13 @@ spec:
     matchLabels:
       app.kubernetes.io/name: dcgm-exporter
       app.kubernetes.io/instance: dcgm-exporter
-      app.kubernetes.io/component: "dcgm-exporter"
+      app.kubernetes.io/component: dcgm-exporter
   template:
     metadata:
       labels:
         app.kubernetes.io/name: dcgm-exporter
         app.kubernetes.io/instance: dcgm-exporter
-        app.kubernetes.io/component: "dcgm-exporter"
+        app.kubernetes.io/component: dcgm-exporter
     spec:
       serviceAccountName: dcgm-exporter
       affinity:
@@ -45,16 +43,21 @@ spec:
           requiredDuringSchedulingIgnoredDuringExecution:
             nodeSelectorTerms:
             - matchExpressions:
+              {{% if env['CORTEX_PROVIDER'] == "aws" %}}
               - key: k8s.amazonaws.com/accelerator
                 operator: Exists
+              {{% elif env['CORTEX_PROVIDER'] == "gcp" %}}
+              - key: cloud.google.com/gke-accelerator
+                operator: Exists
+              {% endif %}
       containers:
       - env:
         - name: DCGM_EXPORTER_LISTEN
           value: :9400
         - name: DCGM_EXPORTER_KUBERNETES
           value: "true"
-        image: nvidia/dcgm-exporter:2.0.13-2.1.1-ubuntu18.04
-        imagePullPolicy: IfNotPresent
+        image: {{ env['CORTEX_PROMETHEUS_DCGM_EXPORTER'] }}
+        imagePullPolicy: Always
         name: dcgm-exporter
         ports:
         - containerPort: 9400
@@ -105,8 +108,7 @@ metadata:
     monitoring.cortex.dev: dcgm-exporter
     app.kubernetes.io/name: dcgm-exporter
     app.kubernetes.io/instance: dcgm-exporter
-    app.kubernetes.io/version: "2.1.1"
-    app.kubernetes.io/component: "dcgm-exporter"
+    app.kubernetes.io/component: dcgm-exporter
   annotations:
     prometheus.io/scrape: 'true'
     prometheus.io/port: '9400'

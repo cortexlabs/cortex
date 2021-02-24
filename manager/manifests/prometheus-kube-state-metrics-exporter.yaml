@@ -227,7 +227,7 @@ spec:
         - --collectors=volumeattachments
         - --telemetry-port=8081
         imagePullPolicy: IfNotPresent
-        image: "k8s.gcr.io/kube-state-metrics/kube-state-metrics:v1.9.8"
+        image: $CORTEX_IMAGE_PROMETHEUS_KUBE_STATE_METRICS_EXPORTER
         ports:
         - containerPort: 8080
           name: metrics

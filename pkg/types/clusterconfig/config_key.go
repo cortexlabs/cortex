@@ -64,7 +64,6 @@ const (
 	ImageNeuronRTDKey                      = "image_neuron_rtd"
 	ImageNvidiaKey                         = "image_nvidia"
 	ImageFluentBitKey                      = "image_fluent_bit"
-	ImageStatsdKey                         = "image_statsd"
 	ImageIstioProxyKey                     = "image_istio_proxy"
 	ImageIstioPilotKey                     = "image_istio_pilot"
 	ImageGooglePauseKey                    = "image_google_pause"

@@ -3,7 +3,7 @@ kind: ServiceMonitor
 metadata:
   labels:
     k8s-app: kubelet
-    monitoring.cortex.dev: kubelet-monitor
+    monitoring.cortex.dev: kubelet-exporter
   name: kubelet
   namespace: default
 spec:

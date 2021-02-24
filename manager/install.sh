@@ -74,6 +74,8 @@ function cluster_up_aws() {
   if [[ "$CORTEX_INSTANCE_TYPE" == p* ]] || [[ "$CORTEX_INSTANCE_TYPE" == g* ]]; then
     echo -n "￮ configuring gpu support "
     envsubst < manifests/nvidia_aws.yaml | kubectl apply -f - >/dev/null
+    python render_template.py $CORTEX_CLUSTER_CONFIG_FILE manifests/prometheus-dcgm-exporter.yaml.j2 > /workspace/prometheus-dcgm-exporter.yaml
+    kubectl apply -f /workspace/prometheus-dcgm-exporter.yaml >/dev/null
     echo "✓"
   fi
 
@@ -132,6 +134,8 @@ function cluster_up_gcp() {
   if [ -n "$CORTEX_ACCELERATOR_TYPE" ]; then
     echo -n "￮ configuring gpu support "
     envsubst < manifests/nvidia_gcp.yaml | kubectl apply -f - >/dev/null
+    python render_template.py $CORTEX_CLUSTER_CONFIG_FILE manifests/prometheus-dcgm-exporter.yaml.j2 > /workspace/prometheus-dcgm-exporter.yaml
+    kubectl apply -f /workspace/prometheus-dcgm-exporter.yaml >/dev/null
     echo "✓"
   fi
 
@@ -303,6 +307,8 @@ function setup_secrets() {
 function setup_prometheus() {
   envsubst < manifests/prometheus-operator.yaml | kubectl apply -f - >/dev/null
   envsubst < manifests/prometheus-statsd-exporter.yaml | kubectl apply -f - >/dev/null
+  envsubst < manifests/prometheus-kubelet-exporter.yaml | kubectl apply -f - >/dev/null
+  envsubst < manifests/prometheus-kube-state-metrics-exporter.yaml | kubectl apply -f - >/dev/null
   python render_template.py $CORTEX_CLUSTER_CONFIG_FILE manifests/prometheus-monitoring.yaml.j2 | kubectl apply -f - >/dev/null
 }
 

@@ -32,7 +32,7 @@ spec:
     matchExpressions:
       - key: "monitoring.cortex.dev"
         operator: "In"
-        values: [ "kubelet-monitor" ]
+        values: [ "kubelet-exporter" ]
   resources:
     requests:
       memory: 400Mi
