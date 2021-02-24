@@ -27,8 +27,10 @@ spec:
     matchExpressions:
       - key: "monitoring.cortex.dev"
         operator: "In"
-        values: [ "istio", "request-monitor", "statsd-exporter", "dcgm-exporter" ]
-      - key:
+        values: [ "istio", "request-monitor", "statsd-exporter", "dcgm-exporter", "kube-state-metrics" ]
+  serviceMonitorSelector:
+    matchExpressions:
+      - key: "monitoring.cortex.dev"
         operator: "In"
         values: [ "kubelet-monitor" ]
   resources:

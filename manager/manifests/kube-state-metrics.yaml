@@ -193,6 +193,10 @@ spec:
         runAsUser: 65534
       containers:
       - name: kube-state-metrics
+        resources:
+          requests:
+            cpu: 300m
+            memory: 400Mi
         args:
         - --collectors=certificatesigningrequests
         - --collectors=configmaps

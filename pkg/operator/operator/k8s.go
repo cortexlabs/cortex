@@ -937,6 +937,16 @@ func RequestMonitorContainer(api *spec.API) kcore.Container {
 		image = config.GCPCoreConfig.ImageRequestMonitor
 	}
 
+	requests := kcore.ResourceList{}
+	if api.Compute != nil {
+		if api.Compute.CPU != nil {
+			requests[kcore.ResourceCPU] = _requestMonitorCPURequest
+		}
+		if api.Compute.Mem != nil {
+			requests[kcore.ResourceMemory] = _requestMonitorMemRequest
+		}
+	}
+
 	return kcore.Container{
 		Name:            _requestMonitorContainerName,
 		Image:           image,
@@ -950,10 +960,7 @@ func RequestMonitorContainer(api *spec.API) kcore.Container {
 		VolumeMounts:   defaultVolumeMounts(),
 		ReadinessProbe: FileExistsProbe(_requestMonitorReadinessFile),
 		Resources: kcore.ResourceRequirements{
-			Requests: kcore.ResourceList{
-				kcore.ResourceCPU:    _requestMonitorCPURequest,
-				kcore.ResourceMemory: _requestMonitorMemRequest,
-			},
+			Requests: requests,
 		},
 	}
 }

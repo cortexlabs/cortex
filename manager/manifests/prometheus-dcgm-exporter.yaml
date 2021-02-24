@@ -60,7 +60,10 @@ spec:
         - containerPort: 9400
           name: metrics
           protocol: TCP
-        resources: {}
+        resources:
+          requests:
+            cpu: 50m
+            memory: 50Mi
         securityContext:
           privileged: true
         terminationMessagePath: /dev/termination-log
@@ -77,7 +80,8 @@ spec:
       securityContext: {}
       terminationGracePeriodSeconds: 30
       tolerations:
-      - effect: NoSchedule
+      - key: workload
+        effect: NoSchedule
         operator: Exists
       - key: nvidia.com/gpu
         operator: Exists
