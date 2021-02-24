@@ -36,7 +36,7 @@ data:
       "editable": true,
       "gnetId": null,
       "graphTooltip": 0,
-      "iteration": 1614129102095,
+      "iteration": 1614181096029,
       "links": [],
       "panels": [
         {
@@ -1691,7 +1691,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 0,
-                "y": 50
+                "y": 66
               },
               "hiddenSeries": false,
               "id": 39,
@@ -1720,8 +1720,8 @@ data:
               "scopedVars": {
                 "api_pod_names": {
                   "selected": false,
-                  "text": "api-text-generator-f6bb696c8-p6mh8",
-                  "value": "api-text-generator-f6bb696c8-p6mh8"
+                  "text": "api-iris-classifier-575f67cb55-52bfp",
+                  "value": "api-iris-classifier-575f67cb55-52bfp"
                 }
               },
               "seriesOverrides": [],
@@ -1813,7 +1813,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 6,
-                "y": 50
+                "y": 66
               },
               "hiddenSeries": false,
               "id": 36,
@@ -1842,8 +1842,8 @@ data:
               "scopedVars": {
                 "api_pod_names": {
                   "selected": false,
-                  "text": "api-text-generator-f6bb696c8-p6mh8",
-                  "value": "api-text-generator-f6bb696c8-p6mh8"
+                  "text": "api-iris-classifier-575f67cb55-52bfp",
+                  "value": "api-iris-classifier-575f67cb55-52bfp"
                 }
               },
               "seriesOverrides": [],
@@ -1935,7 +1935,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 12,
-                "y": 50
+                "y": 66
               },
               "hiddenSeries": false,
               "id": 37,
@@ -1964,8 +1964,8 @@ data:
               "scopedVars": {
                 "api_pod_names": {
                   "selected": false,
-                  "text": "api-text-generator-f6bb696c8-p6mh8",
-                  "value": "api-text-generator-f6bb696c8-p6mh8"
+                  "text": "api-iris-classifier-575f67cb55-52bfp",
+                  "value": "api-iris-classifier-575f67cb55-52bfp"
                 }
               },
               "seriesOverrides": [],
@@ -2048,7 +2048,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 18,
-                "y": 50
+                "y": 66
               },
               "hiddenSeries": false,
               "id": 38,
@@ -2077,8 +2077,491 @@ data:
               "scopedVars": {
                 "api_pod_names": {
                   "selected": false,
-                  "text": "api-text-generator-f6bb696c8-p6mh8",
-                  "value": "api-text-generator-f6bb696c8-p6mh8"
+                  "text": "api-iris-classifier-575f67cb55-52bfp",
+                  "value": "api-iris-classifier-575f67cb55-52bfp"
+                }
+              },
+              "seriesOverrides": [],
+              "spaceLength": 10,
+              "stack": false,
+              "steppedLine": false,
+              "targets": [
+                {
+                  "expr": "sum(DCGM_FI_DEV_FB_USED{exported_pod=\"$api_pod_names\"})",
+                  "hide": false,
+                  "interval": "",
+                  "legendFormat": "GPU Used $api_pod_names",
+                  "refId": "GPU Used Memory"
+                },
+                {
+                  "exemplar": false,
+                  "expr": "sum(DCGM_FI_DEV_FB_FREE{exported_pod=\"$api_pod_names\"}) + sum(DCGM_FI_DEV_FB_USED{exported_pod=\"$api_pod_names\"})",
+                  "format": "time_series",
+                  "instant": false,
+                  "interval": "",
+                  "legendFormat": "Capacity GPU Memory  $api_pod_names",
+                  "refId": "CPU Usage"
+                }
+              ],
+              "thresholds": [],
+              "timeFrom": null,
+              "timeRegions": [],
+              "timeShift": null,
+              "title": "GPU Memory Utilization",
+              "tooltip": {
+                "shared": true,
+                "sort": 0,
+                "value_type": "individual"
+              },
+              "type": "graph",
+              "xaxis": {
+                "buckets": null,
+                "mode": "time",
+                "name": null,
+                "show": true,
+                "values": []
+              },
+              "yaxes": [
+                {
+                  "$$hashKey": "object:1404",
+                  "format": "MiB",
+                  "label": "memory",
+                  "logBase": 1,
+                  "max": null,
+                  "min": "0",
+                  "show": true
+                },
+                {
+                  "$$hashKey": "object:1405",
+                  "format": "short",
+                  "label": "",
+                  "logBase": 1,
+                  "max": null,
+                  "min": null,
+                  "show": false
+                }
+              ],
+              "yaxis": {
+                "align": false,
+                "alignLevel": null
+              }
+            },
+            {
+              "aliasColors": {},
+              "bars": false,
+              "dashLength": 10,
+              "dashes": false,
+              "datasource": null,
+              "description": "CPU usage for a given pod",
+              "fieldConfig": {
+                "defaults": {
+                  "color": {},
+                  "custom": {},
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": []
+                  }
+                },
+                "overrides": []
+              },
+              "fill": 1,
+              "fillGradient": 0,
+              "gridPos": {
+                "h": 8,
+                "w": 6,
+                "x": 0,
+                "y": 74
+              },
+              "hiddenSeries": false,
+              "id": 40,
+              "legend": {
+                "avg": false,
+                "current": false,
+                "max": false,
+                "min": false,
+                "show": true,
+                "total": false,
+                "values": false
+              },
+              "lines": true,
+              "linewidth": 1,
+              "nullPointMode": "null",
+              "options": {
+                "alertThreshold": true
+              },
+              "percentage": false,
+              "pluginVersion": "7.4.0",
+              "pointradius": 2,
+              "points": false,
+              "renderer": "flot",
+              "repeatDirection": "v",
+              "repeatIteration": 1614181096027,
+              "repeatPanelId": 39,
+              "scopedVars": {
+                "api_pod_names": {
+                  "selected": false,
+                  "text": "api-iris-classifier-575f67cb55-v7vx6",
+                  "value": "api-iris-classifier-575f67cb55-v7vx6"
+                }
+              },
+              "seriesOverrides": [],
+              "spaceLength": 10,
+              "stack": false,
+              "steppedLine": false,
+              "targets": [
+                {
+                  "expr": "sum(kube_pod_container_resource_requests_cpu_cores{exported_pod=\"$api_pod_names\"})",
+                  "hide": false,
+                  "interval": "",
+                  "legendFormat": "CPU Request $api_pod_names",
+                  "refId": "CPU Request"
+                },
+                {
+                  "exemplar": false,
+                  "expr": "sum(rate(container_cpu_usage_seconds_total{pod=\"$api_pod_names\", container!=\"POD\", name!=\"\"}[1m]))",
+                  "format": "time_series",
+                  "instant": false,
+                  "interval": "",
+                  "legendFormat": "CPU Usage $api_pod_names",
+                  "refId": "CPU Usage"
+                }
+              ],
+              "thresholds": [],
+              "timeFrom": null,
+              "timeRegions": [],
+              "timeShift": null,
+              "title": "CPU Usage",
+              "tooltip": {
+                "shared": true,
+                "sort": 0,
+                "value_type": "individual"
+              },
+              "type": "graph",
+              "xaxis": {
+                "buckets": null,
+                "mode": "time",
+                "name": null,
+                "show": true,
+                "values": []
+              },
+              "yaxes": [
+                {
+                  "$$hashKey": "object:1404",
+                  "format": "core",
+                  "label": "cpu",
+                  "logBase": 1,
+                  "max": null,
+                  "min": null,
+                  "show": true
+                },
+                {
+                  "$$hashKey": "object:1405",
+                  "format": "short",
+                  "label": "",
+                  "logBase": 1,
+                  "max": null,
+                  "min": null,
+                  "show": false
+                }
+              ],
+              "yaxis": {
+                "align": false,
+                "alignLevel": null
+              }
+            },
+            {
+              "aliasColors": {},
+              "bars": false,
+              "dashLength": 10,
+              "dashes": false,
+              "datasource": null,
+              "description": "Memory usage for a given pod",
+              "fieldConfig": {
+                "defaults": {
+                  "color": {},
+                  "custom": {},
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": []
+                  }
+                },
+                "overrides": []
+              },
+              "fill": 1,
+              "fillGradient": 0,
+              "gridPos": {
+                "h": 8,
+                "w": 6,
+                "x": 6,
+                "y": 74
+              },
+              "hiddenSeries": false,
+              "id": 41,
+              "legend": {
+                "avg": false,
+                "current": false,
+                "max": false,
+                "min": false,
+                "show": true,
+                "total": false,
+                "values": false
+              },
+              "lines": true,
+              "linewidth": 1,
+              "nullPointMode": "null",
+              "options": {
+                "alertThreshold": true
+              },
+              "percentage": false,
+              "pluginVersion": "7.4.0",
+              "pointradius": 2,
+              "points": false,
+              "renderer": "flot",
+              "repeatDirection": "v",
+              "repeatIteration": 1614181096027,
+              "repeatPanelId": 36,
+              "scopedVars": {
+                "api_pod_names": {
+                  "selected": false,
+                  "text": "api-iris-classifier-575f67cb55-v7vx6",
+                  "value": "api-iris-classifier-575f67cb55-v7vx6"
+                }
+              },
+              "seriesOverrides": [],
+              "spaceLength": 10,
+              "stack": false,
+              "steppedLine": false,
+              "targets": [
+                {
+                  "expr": "sum(kube_pod_container_resource_requests_memory_bytes{exported_pod=\"$api_pod_names\"}) / 1024^2",
+                  "hide": false,
+                  "interval": "",
+                  "legendFormat": "Memory Request $api_pod_names",
+                  "refId": "Memory Request"
+                },
+                {
+                  "exemplar": false,
+                  "expr": "sum(sum_over_time(container_memory_working_set_bytes{pod=\"$api_pod_names\", name!=\"\", container!=\"POD\"}[1m]))\n/\nsum(count_over_time(container_memory_working_set_bytes{pod=\"$api_pod_names\", name!=\"\", container=\"api\"}[1m])) / 1024^2",
+                  "format": "time_series",
+                  "instant": false,
+                  "interval": "",
+                  "legendFormat": "Memory Usage $api_pod_names",
+                  "refId": "Memory Usage"
+                }
+              ],
+              "thresholds": [],
+              "timeFrom": null,
+              "timeRegions": [],
+              "timeShift": null,
+              "title": "Memory Usage",
+              "tooltip": {
+                "shared": true,
+                "sort": 0,
+                "value_type": "individual"
+              },
+              "type": "graph",
+              "xaxis": {
+                "buckets": null,
+                "mode": "time",
+                "name": null,
+                "show": true,
+                "values": []
+              },
+              "yaxes": [
+                {
+                  "$$hashKey": "object:1404",
+                  "format": "MiB",
+                  "label": "memory",
+                  "logBase": 1,
+                  "max": null,
+                  "min": null,
+                  "show": true
+                },
+                {
+                  "$$hashKey": "object:1405",
+                  "format": "short",
+                  "label": "",
+                  "logBase": 1,
+                  "max": null,
+                  "min": null,
+                  "show": false
+                }
+              ],
+              "yaxis": {
+                "align": false,
+                "alignLevel": null
+              }
+            },
+            {
+              "aliasColors": {},
+              "bars": false,
+              "dashLength": 10,
+              "dashes": false,
+              "datasource": null,
+              "description": "GPU core utilization for a given pod",
+              "fieldConfig": {
+                "defaults": {
+                  "color": {},
+                  "custom": {},
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": []
+                  }
+                },
+                "overrides": []
+              },
+              "fill": 1,
+              "fillGradient": 0,
+              "gridPos": {
+                "h": 8,
+                "w": 6,
+                "x": 12,
+                "y": 74
+              },
+              "hiddenSeries": false,
+              "id": 42,
+              "legend": {
+                "avg": false,
+                "current": false,
+                "max": false,
+                "min": false,
+                "show": true,
+                "total": false,
+                "values": false
+              },
+              "lines": true,
+              "linewidth": 1,
+              "nullPointMode": "null",
+              "options": {
+                "alertThreshold": true
+              },
+              "percentage": false,
+              "pluginVersion": "7.4.0",
+              "pointradius": 2,
+              "points": false,
+              "renderer": "flot",
+              "repeatDirection": "v",
+              "repeatIteration": 1614181096027,
+              "repeatPanelId": 37,
+              "scopedVars": {
+                "api_pod_names": {
+                  "selected": false,
+                  "text": "api-iris-classifier-575f67cb55-v7vx6",
+                  "value": "api-iris-classifier-575f67cb55-v7vx6"
+                }
+              },
+              "seriesOverrides": [],
+              "spaceLength": 10,
+              "stack": false,
+              "steppedLine": false,
+              "targets": [
+                {
+                  "expr": "sum(DCGM_FI_DEV_GPU_UTIL{exported_pod=\"$api_pod_names\"}) / 100",
+                  "hide": false,
+                  "interval": "",
+                  "legendFormat": "GPU Utilization $api_pod_names",
+                  "refId": "GPU Utilization"
+                }
+              ],
+              "thresholds": [],
+              "timeFrom": null,
+              "timeRegions": [],
+              "timeShift": null,
+              "title": "GPU Core Utilization",
+              "tooltip": {
+                "shared": true,
+                "sort": 0,
+                "value_type": "individual"
+              },
+              "type": "graph",
+              "xaxis": {
+                "buckets": null,
+                "mode": "time",
+                "name": null,
+                "show": true,
+                "values": []
+              },
+              "yaxes": [
+                {
+                  "$$hashKey": "object:1404",
+                  "format": "gpuCore",
+                  "label": "gpu",
+                  "logBase": 1,
+                  "max": null,
+                  "min": "0",
+                  "show": true
+                },
+                {
+                  "$$hashKey": "object:1405",
+                  "format": "short",
+                  "label": "",
+                  "logBase": 1,
+                  "max": null,
+                  "min": null,
+                  "show": false
+                }
+              ],
+              "yaxis": {
+                "align": false,
+                "alignLevel": null
+              }
+            },
+            {
+              "aliasColors": {},
+              "bars": false,
+              "dashLength": 10,
+              "dashes": false,
+              "datasource": null,
+              "description": "GPU memory utilization for a given pod",
+              "fieldConfig": {
+                "defaults": {
+                  "color": {},
+                  "custom": {},
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": []
+                  }
+                },
+                "overrides": []
+              },
+              "fill": 1,
+              "fillGradient": 0,
+              "gridPos": {
+                "h": 8,
+                "w": 6,
+                "x": 18,
+                "y": 74
+              },
+              "hiddenSeries": false,
+              "id": 43,
+              "legend": {
+                "avg": false,
+                "current": false,
+                "max": false,
+                "min": false,
+                "show": true,
+                "total": false,
+                "values": false
+              },
+              "lines": true,
+              "linewidth": 1,
+              "nullPointMode": "null",
+              "options": {
+                "alertThreshold": true
+              },
+              "percentage": false,
+              "pluginVersion": "7.4.0",
+              "pointradius": 2,
+              "points": false,
+              "renderer": "flot",
+              "repeatDirection": "v",
+              "repeatIteration": 1614181096027,
+              "repeatPanelId": 38,
+              "scopedVars": {
+                "api_pod_names": {
+                  "selected": false,
+                  "text": "api-iris-classifier-575f67cb55-v7vx6",
+                  "value": "api-iris-classifier-575f67cb55-v7vx6"
                 }
               },
               "seriesOverrides": [],
@@ -2201,7 +2684,7 @@ data:
               ]
             },
             "datasource": null,
-            "definition": "query_result(sum(kube_pod_status_phase{phase=\"Running\"}) by (exported_pod))",
+            "definition": "query_result(cortex_in_flight_requests{api_kind=\"RealtimeAPI\"})",
             "description": null,
             "error": null,
             "hide": 2,
@@ -2211,13 +2694,13 @@ data:
             "name": "api_pod_names",
             "options": [],
             "query": {
-              "query": "query_result(sum(kube_pod_status_phase{phase=\"Running\"}) by (exported_pod))",
+              "query": "query_result(cortex_in_flight_requests{api_kind=\"RealtimeAPI\"})",
               "refId": "StandardVariableQuery"
             },
             "refresh": 1,
-            "regex": "/.*exported_pod=\"(.*${api_name:regex}.*)\".*/",
+            "regex": "/.*pod_name=\"(.*${api_name:regex}.*)\".*/",
             "skipUrlSync": false,
-            "sort": 0,
+            "sort": 1,
             "tagValuesQuery": "",
             "tags": [],
             "tagsQuery": "",
@@ -2234,5 +2717,5 @@ data:
       "timezone": "",
       "title": "RealtimeAPI",
       "uid": "realtimeapi",
-      "version": 23
+      "version": 2
     }

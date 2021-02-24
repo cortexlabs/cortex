@@ -70,7 +70,7 @@ spec:
           value: :9400
         - name: DCGM_EXPORTER_KUBERNETES
           value: "true"
-        image: {{ env['CORTEX_PROMETHEUS_DCGM_EXPORTER'] }}
+        image: {{ env['CORTEX_IMAGE_PROMETHEUS_DCGM_EXPORTER'] }}
         imagePullPolicy: Always
         name: dcgm-exporter
         ports:
