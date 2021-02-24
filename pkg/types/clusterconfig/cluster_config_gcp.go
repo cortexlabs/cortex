@@ -44,20 +44,22 @@ type GCPCoreConfig struct {
 	IsManaged      bool               `json:"is_managed" yaml:"is_managed"`
 	Bucket         string             `json:"bucket" yaml:"bucket"`
 
-	ImageOperator                 string `json:"image_operator" yaml:"image_operator"`
-	ImageManager                  string `json:"image_manager" yaml:"image_manager"`
-	ImageDownloader               string `json:"image_downloader" yaml:"image_downloader"`
-	ImageRequestMonitor           string `json:"image_request_monitor" yaml:"image_request_monitor"`
-	ImageClusterAutoscaler        string `json:"image_cluster_autoscaler" yaml:"image_cluster_autoscaler"`
-	ImageFluentBit                string `json:"image_fluent_bit" yaml:"image_fluent_bit"`
-	ImageIstioProxy               string `json:"image_istio_proxy" yaml:"image_istio_proxy"`
-	ImageIstioPilot               string `json:"image_istio_pilot" yaml:"image_istio_pilot"`
-	ImageGooglePause              string `json:"image_google_pause" yaml:"image_google_pause"`
-	ImagePrometheus               string `json:"image_prometheus" yaml:"image_prometheus"`
-	ImagePrometheusConfigReloader string `json:"image_prometheus_config_reloader" yaml:"image_prometheus_config_reloader"`
-	ImagePrometheusOperator       string `json:"image_prometheus_operator" yaml:"image_prometheus_operator"`
-	ImagePrometheusStatsDExporter string `json:"image_prometheus_statsd_exporter" yaml:"image_prometheus_statsd_exporter"`
-	ImageGrafana                  string `json:"image_grafana" yaml:"image_grafana"`
+	ImageOperator                           string `json:"image_operator" yaml:"image_operator"`
+	ImageManager                            string `json:"image_manager" yaml:"image_manager"`
+	ImageDownloader                         string `json:"image_downloader" yaml:"image_downloader"`
+	ImageRequestMonitor                     string `json:"image_request_monitor" yaml:"image_request_monitor"`
+	ImageClusterAutoscaler                  string `json:"image_cluster_autoscaler" yaml:"image_cluster_autoscaler"`
+	ImageFluentBit                          string `json:"image_fluent_bit" yaml:"image_fluent_bit"`
+	ImageIstioProxy                         string `json:"image_istio_proxy" yaml:"image_istio_proxy"`
+	ImageIstioPilot                         string `json:"image_istio_pilot" yaml:"image_istio_pilot"`
+	ImageGooglePause                        string `json:"image_google_pause" yaml:"image_google_pause"`
+	ImagePrometheus                         string `json:"image_prometheus" yaml:"image_prometheus"`
+	ImagePrometheusConfigReloader           string `json:"image_prometheus_config_reloader" yaml:"image_prometheus_config_reloader"`
+	ImagePrometheusOperator                 string `json:"image_prometheus_operator" yaml:"image_prometheus_operator"`
+	ImagePrometheusStatsDExporter           string `json:"image_prometheus_statsd_exporter" yaml:"image_prometheus_statsd_exporter"`
+	ImagePrometheusDCGMExporter             string `json:"image_prometheus_dcgm_exporter" yaml:"image_prometheus_dcgm_exporter"`
+	ImagePrometheusKubeStateMetricsExporter string `json:"image_prometheus_kube_state_metrics_exporter" yaml:"image_prometheus_kube_state_metrics_exporter"`
+	ImageGrafana                            string `json:"image_grafana" yaml:"image_grafana"`
 }
 
 type GCPManagedConfig struct {
@@ -235,6 +237,20 @@ var GCPCoreConfigStructFieldValidations = []*cr.StructFieldValidation{
 		StructField: "ImagePrometheusStatsDExporter",
 		StringValidation: &cr.StringValidation{
 			Default:   "quay.io/cortexlabs/prometheus-statsd-exporter:" + consts.CortexVersion,
+			Validator: validateImageVersion,
+		},
+	},
+	{
+		StructField: "ImagePrometheusDCGMExporter",
+		StringValidation: &cr.StringValidation{
+			Default:   "quay.io/cortexlabs/prometheus-dcgm-exporter:" + consts.CortexVersion,
+			Validator: validateImageVersion,
+		},
+	},
+	{
+		StructField: "ImagePrometheusKubeStateMetricsExporter",
+		StringValidation: &cr.StringValidation{
+			Default:   "quay.io/cortexlabs/prometheus-kube-state-metrics-exporter:" + consts.CortexVersion,
 			Validator: validateImageVersion,
 		},
 	},
@@ -673,6 +689,8 @@ func (cc *GCPCoreConfig) UserTable() table.KeyValuePairs {
 	items.Add(ImagePrometheusConfigReloaderUserKey, cc.ImagePrometheusConfigReloader)
 	items.Add(ImagePrometheusOperatorUserKey, cc.ImagePrometheusOperator)
 	items.Add(ImagePrometheusStatsDExporterUserKey, cc.ImagePrometheusStatsDExporter)
+	items.Add(ImagePrometheusDCGMExporterUserKey, cc.ImagePrometheusDCGMExporter)
+	items.Add(ImagePrometheusKubeStateMetricsExporterUserKey, cc.ImagePrometheusKubeStateMetricsExporter)
 	items.Add(ImageGrafanaUserKey, cc.ImageGrafana)
 
 	return items
@@ -777,6 +795,12 @@ func (cc *GCPCoreConfig) TelemetryEvent() map[string]interface{} {
 	}
 	if strings.HasPrefix(cc.ImagePrometheusStatsDExporter, "cortexlabs/") {
 		event["image_prometheus_statsd_exporter._is_custom"] = true
+	}
+	if strings.HasPrefix(cc.ImagePrometheusDCGMExporter, "cortexlabs/") {
+		event["image_prometheus_dcgm_exporter._is_custom"] = true
+	}
+	if strings.HasPrefix(cc.ImagePrometheusKubeStateMetricsExporter, "cortexlabs/") {
+		event["image_prometheus_kube_state_metrics_exporter._is_custom"] = true
 	}
 	if strings.HasPrefix(cc.ImageGrafana, "cortexlabs/") {
 		event["image_grafana._is_custom"] = true

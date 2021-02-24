@@ -414,6 +414,14 @@ func setConfigFieldsFromCached(userClusterConfig *clusterconfig.Config, cachedCl
 		return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.ImagePrometheusStatsDExporterKey, cachedClusterConfig.ImagePrometheusStatsDExporter)
 	}
 
+	if s.Obj(cachedClusterConfig.ImagePrometheusDCGMExporter) != s.Obj(userClusterConfig.ImagePrometheusDCGMExporter) {
+		return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.ImagePrometheusDCGMExporterKey, cachedClusterConfig.ImagePrometheusDCGMExporter)
+	}
+
+	if s.Obj(cachedClusterConfig.ImagePrometheusKubeStateMetricsExporter) != s.Obj(userClusterConfig.ImagePrometheusKubeStateMetricsExporter) {
+		return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.ImagePrometheusKubeStateMetricsExporterKey, cachedClusterConfig.ImagePrometheusKubeStateMetricsExporter)
+	}
+
 	if s.Obj(cachedClusterConfig.ImageGrafana) != s.Obj(userClusterConfig.ImageGrafana) {
 		return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.ImageGrafanaKey, cachedClusterConfig.ImageGrafana)
 	}
@@ -728,6 +736,12 @@ func clusterConfigConfirmationStr(clusterConfig clusterconfig.Config, awsCreds A
 	}
 	if clusterConfig.ImagePrometheusStatsDExporter != defaultConfig.ImagePrometheusStatsDExporter {
 		items.Add(clusterconfig.ImagePrometheusStatsDExporterUserKey, clusterConfig.ImagePrometheusStatsDExporter)
+	}
+	if clusterConfig.ImagePrometheusDCGMExporter != defaultConfig.ImagePrometheusDCGMExporter {
+		items.Add(clusterconfig.ImagePrometheusDCGMExporterUserKey, clusterConfig.ImagePrometheusDCGMExporter)
+	}
+	if clusterConfig.ImagePrometheusKubeStateMetricsExporter != defaultConfig.ImagePrometheusKubeStateMetricsExporter {
+		items.Add(clusterconfig.ImagePrometheusKubeStateMetricsExporterUserKey, clusterConfig.ImagePrometheusKubeStateMetricsExporter)
 	}
 	if clusterConfig.ImageGrafana != defaultConfig.ImageGrafana {
 		items.Add(clusterconfig.ImageGrafanaUserKey, clusterConfig.ImageGrafana)
