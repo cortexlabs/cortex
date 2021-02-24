@@ -17,8 +17,6 @@ kind: ServiceAccount
 metadata:
   name: fluent-bit
   namespace: default
-  labels:
-    app: fluent-bit
 ---
 apiVersion: rbac.authorization.k8s.io/v1beta1
 kind: ClusterRole
@@ -179,11 +177,6 @@ spec:
           env:
             - name: GOOGLE_SERVICE_CREDENTIALS
               value: /var/secrets/google/key.json
-          {% endif %}
-          {% if env['CORTEX_PROVIDER'] == "aws" %}
-          envFrom:
-            - secretRef:
-                name: aws-credentials
           {% endif %}
           volumeMounts:
             - name: varlog

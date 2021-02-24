@@ -17,10 +17,13 @@ limitations under the License.
 package cliconfig
 
 import (
+	"strings"
+
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/table"
+	"github.com/cortexlabs/cortex/pkg/lib/urls"
 	"github.com/cortexlabs/cortex/pkg/types"
 )
 
@@ -47,12 +50,27 @@ func (env Environment) String(isDefault bool) string {
 	})
 }
 
+func CortexEndpointValidator(val string) (string, error) {
+	urlStr := strings.TrimSpace(val)
+
+	parsedURL, err := urls.Parse(urlStr)
+	if err != nil {
+		return "", err
+	}
+
+	if parsedURL.Scheme == "" {
+		parsedURL.Scheme = "https"
+	}
+
+	return parsedURL.String(), nil
+}
+
 func (env *Environment) Validate() error {
 	if env.Name == "" {
 		return errors.Wrap(cr.ErrorMustBeDefined(), NameKey)
 	}
 
-	validOperatorURL, err := cr.GetURLValidator(true, false)(env.OperatorEndpoint)
+	validOperatorURL, err := CortexEndpointValidator(env.OperatorEndpoint)
 	if err != nil {
 		return err
 	}

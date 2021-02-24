@@ -21,9 +21,11 @@ import (
 	"net/http"
 
 	"github.com/cortexlabs/cortex/pkg/consts"
+	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
+	"github.com/cortexlabs/cortex/pkg/types"
 )
 
 var _cachedClientIDs = strset.New()
@@ -54,6 +56,38 @@ func ClientIDMiddleware(next http.Handler) http.Handler {
 				_cachedClientIDs.Add(clientID)
 			}
 		}
+		next.ServeHTTP(w, r)
+	})
+}
+
+func AuthMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		authHeader := r.Header.Get("Authorization")
+
+		if authHeader == "" {
+			respondError(w, r, ErrorHeaderMissing("Authorization"))
+			return
+		}
+
+		if config.Provider == types.AWSProviderType {
+			accountID, err := aws.VerifyCallerIdentitySignedRequest(authHeader)
+			if err != nil {
+				respondError(w, r, err)
+				return
+			}
+
+			operatorAccountID, _, err := config.AWS.GetCachedAccountID()
+			if err != nil {
+				respondError(w, r, ErrorAuthAPIError())
+				return
+			}
+
+			if accountID != operatorAccountID {
+				respondErrorCode(w, r, http.StatusForbidden, ErrorAuthOtherAccount())
+				return
+			}
+		}
+
 		next.ServeHTTP(w, r)
 	})
 }

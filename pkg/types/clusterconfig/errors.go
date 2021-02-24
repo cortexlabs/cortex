@@ -61,6 +61,7 @@ const (
 	ErrIOPSTooLarge                               = "clusterconfig.iops_too_large"
 	ErrCantOverrideDefaultTag                     = "clusterconfig.cant_override_default_tag"
 	ErrSSLCertificateARNNotFound                  = "clusterconfig.ssl_certificate_arn_not_found"
+	ErrIAMPolicyARNNotFound                       = "clusterconfig.iam_policy_arn_not_found"
 	ErrProviderMismatch                           = "clusterconfig.provider_mismatch"
 	ErrGCPInvalidProjectID                        = "clusterconfig.gcp_invalid_project_id"
 	ErrGCPProjectMustBeSpecified                  = "clusterconfig.gcp_project_must_be_specified"
@@ -310,6 +311,13 @@ func ErrorSSLCertificateARNNotFound(sslCertificateARN string, region string) err
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrSSLCertificateARNNotFound,
 		Message: fmt.Sprintf("unable to find the specified ssl certificate in %s: %s", region, sslCertificateARN),
+	})
+}
+
+func ErrorIAMPolicyARNNotFound(policyARN string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrIAMPolicyARNNotFound,
+		Message: fmt.Sprintf("unable to find iam policy %s", policyARN),
 	})
 }
 

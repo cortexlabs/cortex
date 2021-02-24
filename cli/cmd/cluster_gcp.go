@@ -173,7 +173,7 @@ var _clusterGCPUpCmd = &cobra.Command{
 		newEnvironment := cliconfig.Environment{
 			Name:             _flagClusterGCPUpEnv,
 			Provider:         types.GCPProviderType,
-			OperatorEndpoint: operatorLoadBalancerIP,
+			OperatorEndpoint: "https://" + operatorLoadBalancerIP,
 		}
 
 		err = addEnvToCLIConfig(newEnvironment, true)
@@ -315,7 +315,7 @@ func cmdInfoGCP(accessConfig *clusterconfig.GCPAccessConfig, disallowPrompt bool
 	for _, line := range strings.Split(out, "\n") {
 		// before modifying this, search for this prefix
 		if strings.HasPrefix(line, "operator: ") {
-			operatorEndpoint = "http://" + strings.TrimSpace(strings.TrimPrefix(line, "operator: "))
+			operatorEndpoint = "https://" + strings.TrimSpace(strings.TrimPrefix(line, "operator: "))
 			break
 		}
 	}
@@ -338,6 +338,7 @@ func printInfoOperatorResponseGCP(accessConfig *clusterconfig.GCPAccessConfig, o
 		Telemetry:        isTelemetryEnabled(),
 		ClientID:         clientID(),
 		OperatorEndpoint: operatorEndpoint,
+		Provider:         types.GCPProviderType,
 	}
 
 	infoResponse, err := cluster.InfoGCP(operatorConfig)

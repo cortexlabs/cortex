@@ -35,21 +35,12 @@ type Client struct {
 	hashedAccountID *string
 }
 
-func NewFromEnv(region string) (*Client, error) {
-	return New(region, nil)
-}
-
-func NewFromCreds(region string, accessKeyID string, secretAccessKey string) (*Client, error) {
-	creds := credentials.NewStaticCredentials(accessKeyID, secretAccessKey, "")
-	return New(region, creds)
-}
-
 func NewFromClientS3Path(s3Path string, awsClient *Client) (*Client, error) {
 	if !awsClient.IsAnonymous {
 		if awsClient.AccessKeyID() == nil || awsClient.SecretAccessKey() == nil {
 			return nil, ErrorUnexpectedMissingCredentials(awsClient.AccessKeyID(), awsClient.SecretAccessKey())
 		}
-		return NewFromCredsS3Path(s3Path, *awsClient.AccessKeyID(), *awsClient.SecretAccessKey())
+		return NewFromS3Path(s3Path)
 	}
 
 	region, err := GetBucketRegionFromS3Path(s3Path)
@@ -60,49 +51,65 @@ func NewFromClientS3Path(s3Path string, awsClient *Client) (*Client, error) {
 	return NewAnonymousClientWithRegion(region)
 }
 
-func NewFromEnvS3Path(s3Path string) (*Client, error) {
+func NewFromS3Path(s3Path string) (*Client, error) {
 	bucket, _, err := SplitS3Path(s3Path)
 	if err != nil {
 		return nil, err
 	}
-	return NewFromEnvS3Bucket(bucket)
+	return NewFromS3Bucket(bucket)
 }
 
-func NewFromEnvS3Bucket(bucket string) (*Client, error) {
+func NewFromS3Bucket(bucket string) (*Client, error) {
 	region, err := GetBucketRegion(bucket)
 	if err != nil {
 		return nil, err
 	}
-	return NewFromEnv(region)
+	return NewForRegion(region)
 }
 
-func NewFromCredsS3Path(s3Path string, accessKeyID string, secretAccessKey string) (*Client, error) {
-	bucket, _, err := SplitS3Path(s3Path)
-	if err != nil {
-		return nil, err
-	}
-	return NewFromCredsS3Bucket(bucket, accessKeyID, secretAccessKey)
-}
-
-func NewFromCredsS3Bucket(bucket string, accessKeyID string, secretAccessKey string) (*Client, error) {
-	region, err := GetBucketRegion(bucket)
-	if err != nil {
-		return nil, err
-	}
-	return NewFromCreds(region, accessKeyID, secretAccessKey)
-}
-
-func New(region string, creds *credentials.Credentials) (*Client, error) {
+func NewForRegion(region string) (*Client, error) {
 	sess, err := session.NewSessionWithOptions(session.Options{
 		Config: aws.Config{
-			Credentials: creds,
-			Region:      aws.String(region),
+			Region: aws.String(region),
 		},
 		SharedConfigState: session.SharedConfigEnable,
 	})
 
 	if err != nil {
 		return nil, errors.WithStack(err)
+	}
+
+	if sess.Config.Credentials == nil {
+		return nil, ErrorUnableToFindCredentials()
+	}
+
+	_, err = sess.Config.Credentials.Get()
+	if err != nil {
+		return nil, ErrorUnableToFindCredentials()
+	}
+
+	return &Client{
+		sess:   sess,
+		Region: region,
+	}, nil
+}
+
+func New() (*Client, error) {
+	sess := session.Must(session.NewSessionWithOptions(session.Options{
+		SharedConfigState: session.SharedConfigEnable,
+	}))
+
+	if sess.Config.Region == nil {
+		return nil, ErrorRegionNotConfigured()
+	}
+
+	if sess.Config.Credentials == nil {
+		return nil, ErrorUnableToFindCredentials()
+	}
+
+	_, err := sess.Config.Credentials.Get()
+	if err != nil {
+		return nil, ErrorUnableToFindCredentials()
 	}
 
 	return &Client{

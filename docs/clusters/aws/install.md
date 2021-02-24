@@ -81,6 +81,9 @@ spot: false
 # SSL certificate ARN (only necessary when using a custom domain)
 ssl_certificate_arn:
 
+# List of IAM policies to authorize the management of your AWS resources for your Cortex Operator and APIs
+iam_policy_arns: ["arn:aws:iam::aws:policy/AmazonS3FullAccess"]
+
 # primary CIDR block for the cluster's VPC
 vpc_cidr: 192.168.0.0/16
 ```

@@ -54,6 +54,7 @@
 * Cortex Cloud on AWS
   * [Install](clusters/aws/install.md)
   * [Update](clusters/aws/update.md)
+  * [Auth](clusters/aws/auth.md)
   * [Security](clusters/aws/security.md)
   * [Logging](clusters/aws/logging.md)
   * [Spot instances](clusters/aws/spot.md)
