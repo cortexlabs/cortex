@@ -58,6 +58,8 @@ non_dev_images_cluster=(
   "prometheus-config-reloader"
   "prometheus-operator"
   "prometheus-statsd-exporter"
+  "prometheus-dcgm-exporter"
+  "prometheus-kube-state-metrics-exporter"
   "grafana"
 )
 non_dev_images_aws=(
