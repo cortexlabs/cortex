@@ -17,6 +17,7 @@ import sys
 import pathlib
 import time
 
+from cortex_internal.lib.telemetry import get_default_tags, init_sentry
 import uvicorn
 import yaml
 
@@ -40,4 +41,5 @@ def main():
 
 
 if __name__ == "__main__":
+    init_sentry(tags=get_default_tags())
     main()

@@ -61,10 +61,20 @@ func k8sJobSpec(api *spec.API, job *spec.TaskJob) (*kbatch.Job, error) {
 	containers, volumes := operator.TaskContainers(api)
 	for i, container := range containers {
 		if container.Name == operator.APIContainerName {
-			containers[i].Env = append(container.Env, kcore.EnvVar{
-				Name:  "CORTEX_TASK_SPEC",
-				Value: config.BucketPath(job.SpecFilePath(config.ClusterName())),
-			})
+			containers[i].Env = append(container.Env,
+				kcore.EnvVar{
+					Name:  "CORTEX_TASK_SPEC",
+					Value: config.BucketPath(job.SpecFilePath(config.ClusterName())),
+				},
+				kcore.EnvVar{
+					Name:  "CORTEX_TELEMETRY_SENTRY_USER_ID",
+					Value: config.OperatorMetadata.OperatorID,
+				},
+				kcore.EnvVar{
+					Name:  "CORTEX_TELEMETRY_SENTRY_ENVIRONMENT",
+					Value: "api",
+				},
+			)
 		}
 	}
 

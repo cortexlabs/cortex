@@ -135,8 +135,8 @@ class TensorFlowServingAPI:
 
         try:
             self._service.GetModelStatus(request, timeout=10.0)
-        except grpc.RpcError as error:
-            if error.code() in [grpc.StatusCode.UNAVAILABLE, grpc.StatusCode.DEADLINE_EXCEEDED]:
+        except grpc.RpcError as err:
+            if err.code() in [grpc.StatusCode.UNAVAILABLE, grpc.StatusCode.DEADLINE_EXCEEDED]:
                 return False
         return True
 

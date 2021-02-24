@@ -71,6 +71,13 @@ func (logger silentSentryLogger) Write(p []byte) (n int, err error) {
 	return len(p), nil
 }
 
+func getSentryDSN() string {
+	if envVar := os.Getenv("CORTEX_TELEMETRY_SENTRY_DSN"); envVar != "" {
+		return envVar
+	}
+	return _sentryDSN
+}
+
 func Init(telemetryConfig Config) error {
 	if !telemetryConfig.Enabled {
 		_config = nil
@@ -81,13 +88,8 @@ func Init(telemetryConfig Config) error {
 		return ErrorUserIDNotSpecified()
 	}
 
-	dsn := _sentryDSN
-	if envVar := os.Getenv("CORTEX_TELEMETRY_SENTRY_DSN"); envVar != "" {
-		dsn = envVar
-	}
-
 	err := sentry.Init(sentry.ClientOptions{
-		Dsn:         dsn,
+		Dsn:         getSentryDSN(),
 		Release:     consts.CortexVersion,
 		Environment: telemetryConfig.Environment,
 	})

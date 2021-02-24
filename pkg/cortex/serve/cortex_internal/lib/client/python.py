@@ -13,15 +13,12 @@
 # limitations under the License.
 
 import os
-import datetime
 import threading as td
 import multiprocessing as mp
 from typing import Any, Optional, Callable
 
 from cortex_internal.lib.exceptions import (
     UserRuntimeException,
-    CortexException,
-    UserException,
     WithBreak,
 )
 from cortex_internal.lib.model import (

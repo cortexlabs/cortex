@@ -550,6 +550,14 @@ func getEnvVars(api *spec.API, container string) []kcore.EnvVar {
 			Name:  "CORTEX_KIND",
 			Value: api.Kind.String(),
 		},
+		{
+			Name:  "CORTEX_TELEMETRY_SENTRY_USER_ID",
+			Value: config.OperatorMetadata.OperatorID,
+		},
+		{
+			Name:  "CORTEX_TELEMETRY_SENTRY_ENVIRONMENT",
+			Value: "api",
+		},
 	}
 
 	for name, val := range api.Predictor.Env {
@@ -592,6 +600,18 @@ func getEnvVars(api *spec.API, container string) []kcore.EnvVar {
 			kcore.EnvVar{
 				Name:  "CORTEX_PROJECT_DIR",
 				Value: path.Join(_emptyDirMountPath, "project"),
+			},
+			kcore.EnvVar{
+				Name:  "CORTEX_DEPENDENCIES_PIP",
+				Value: api.Predictor.Dependencies.Pip,
+			},
+			kcore.EnvVar{
+				Name:  "CORTEX_DEPENDENCIES_CONDA",
+				Value: api.Predictor.Dependencies.Conda,
+			},
+			kcore.EnvVar{
+				Name:  "CORTEX_DEPENDENCIES_SHELL",
+				Value: api.Predictor.Dependencies.Shell,
 			},
 		)
 

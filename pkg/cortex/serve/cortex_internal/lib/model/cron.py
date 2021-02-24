@@ -34,8 +34,6 @@ from cortex_internal.lib.type import (
     PythonPredictorType,
     TensorFlowPredictorType,
     TensorFlowNeuronPredictorType,
-    ONNXPredictorType,
-    PredictorType,
 )
 
 from cortex_internal.lib.model import (
@@ -48,10 +46,9 @@ from cortex_internal.lib.model import (
     LockedGlobalModelsGC,
     LockedModel,
     get_models_from_api_spec,
-    ModelVersion,
     ModelsTree,
-    LockedModelsTree,
 )
+from cortex_internal.lib.telemetry import get_default_tags, init_sentry
 from cortex_internal.lib.log import configure_logger
 
 logger = configure_logger("cortex", os.environ["CORTEX_LOG_CONFIG_FILE"])
@@ -80,7 +77,6 @@ class AbstractLoopingThread(td.Thread):
         """
         td.Thread-specific method.
         """
-
         while not self._event_stopper.is_set():
             self._runnable()
             time.sleep(self._interval)
@@ -182,8 +178,8 @@ class FileBasedModelsTreeUpdater(mp.Process):
         mp.Process-specific method.
         """
 
+        init_sentry(tags=get_default_tags())
         self._make_local_models_available()
-
         while not self._event_stopper.is_set():
             self._update_models_tree()
             if not self._ran_once.is_set():
@@ -768,6 +764,7 @@ class TFSModelLoader(mp.Process):
         mp.Process-specific method.
         """
 
+        init_sentry(tags=get_default_tags())
         if self._tfs_address:
             self._client = TensorFlowServingAPI(self._tfs_address)
         else:
@@ -887,11 +884,11 @@ class TFSModelLoader(mp.Process):
                             model_name, model_version
                         )
                     )
-                except gprc.RpcError as error:
-                    if error.code() == grpc.StatusCode.UNAVAILABLE:
+                except grpc.RpcError as err:
+                    if err.code() == grpc.StatusCode.UNAVAILABLE:
                         logger.warning(
                             "TFS server unresponsive after trying to load model '{}' of version '{}': {}".format(
-                                model_name, model_version, str(e)
+                                model_name, model_version, str(err)
                             )
                         )
                     self._reset_when_tfs_unresponsive()
@@ -1144,11 +1141,11 @@ class TFSModelLoader(mp.Process):
             if model_id in self._old_ts_state and self._old_ts_state[model_id] != model_ts:
                 try:
                     self._client.remove_single_model(model_name, model_version)
-                except gprc.RpcError as error:
-                    if error.code() == grpc.StatusCode.UNAVAILABLE:
+                except grpc.RpcError as err:
+                    if err.code() == grpc.StatusCode.UNAVAILABLE:
                         logger.warning(
                             "TFS server unresponsive after trying to unload model '{}' of version '{}': {}".format(
-                                model_name, model_version, str(e)
+                                model_name, model_version, str(err)
                             )
                         )
                     logger.warning("waiting for tensorflow serving")
@@ -1178,11 +1175,11 @@ class TFSModelLoader(mp.Process):
                             model_name, model_version, str(e)
                         )
                     )
-                except grpc.RpcError as error:
-                    if error.code() == grpc.StatusCode.UNAVAILABLE:
+                except grpc.RpcError as err:
+                    if err.code() == grpc.StatusCode.UNAVAILABLE:
                         logger.warning(
                             "TFS server unresponsive after trying to load model '{}' of version '{}': {}".format(
-                                model_name, model_version, str(e)
+                                model_name, model_version, str(err)
                             )
                         )
                     self._reset_when_tfs_unresponsive()

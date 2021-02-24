@@ -16,8 +16,6 @@
 from setuptools import setup, find_packages
 from setuptools.command.install import install
 
-import sys
-
 
 class InstallBinary(install):
     def run(self):
@@ -99,6 +97,7 @@ setup(
             "importlib-resources; python_version < '3.7'",
             "pyyaml>=5.3.0",
             "dill>=0.3.1.1",  # lines up with dill package version range used in cortex serving code
+            "sentry-sdk>=0.20.2",
         ]
     ),
     python_requires=">=3.6",
