@@ -43,10 +43,10 @@ spec:
           requiredDuringSchedulingIgnoredDuringExecution:
             nodeSelectorTerms:
             - matchExpressions:
-              {{% if env['CORTEX_PROVIDER'] == "aws" %}}
+              {% if env['CORTEX_PROVIDER'] == "aws" %}
               - key: k8s.amazonaws.com/accelerator
                 operator: Exists
-              {{% elif env['CORTEX_PROVIDER'] == "gcp" %}}
+              {% elif env['CORTEX_PROVIDER'] == "gcp" %}
               - key: cloud.google.com/gke-accelerator
                 operator: Exists
               {% endif %}
