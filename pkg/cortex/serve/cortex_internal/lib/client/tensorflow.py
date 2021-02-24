@@ -20,7 +20,6 @@ from typing import Any, Dict, Optional, List
 
 from cortex_internal.lib.exceptions import (
     UserRuntimeException,
-    CortexException,
     UserException,
     WithBreak,
 )
@@ -178,10 +177,6 @@ class TensorFlowClient:
                 raise UserRuntimeException(
                     f"'{model_name}' model of tag {tag} wasn't found in the list of available models"
                 )
-
-            models_stats = []
-            for model_id in self._models.get_model_ids():
-                models_stats = self._models.has_model_id(model_id)
 
             # grab shared access to model tree
             available_model = True

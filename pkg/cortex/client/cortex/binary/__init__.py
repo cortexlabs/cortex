@@ -13,12 +13,10 @@
 # limitations under the License.
 
 import os
-from os import path
 import base64
 import sys
 import subprocess
-from typing import List, Optional, Tuple, Callable
-from io import BytesIO
+from typing import List
 from cortex.exceptions import CortexBinaryException
 
 MIXED_CORTEX_MARKER = "~~cortex~~"

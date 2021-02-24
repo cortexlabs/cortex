@@ -16,15 +16,19 @@ import asyncio
 import inspect
 import json
 import os
-import re
+import signal
 import sys
 import time
 import uuid
+import re
+import threading
 from concurrent.futures import ThreadPoolExecutor
 from typing import Any, Dict
 
+from cortex_internal.lib.telemetry import capture_exception, get_default_tags, init_sentry
 from cortex_internal.lib.log import configure_logger
 
+init_sentry(tags=get_default_tags())
 logger = configure_logger("cortex", os.environ["CORTEX_LOG_CONFIG_FILE"])
 
 from cortex_internal.lib import util
@@ -268,20 +272,20 @@ def start_fn():
     tf_serving_port = os.getenv("CORTEX_TF_BASE_SERVING_PORT", "9000")
     tf_serving_host = os.getenv("CORTEX_TF_SERVING_HOST", "localhost")
 
-    has_multiple_servers = os.getenv("CORTEX_MULTIPLE_TF_SERVERS")
-    if has_multiple_servers:
-        with LockedFile("/run/used_ports.json", "r+") as f:
-            used_ports = json.load(f)
-            for port in used_ports.keys():
-                if not used_ports[port]:
-                    tf_serving_port = port
-                    used_ports[port] = True
-                    break
-            f.seek(0)
-            json.dump(used_ports, f)
-            f.truncate()
-
     try:
+        has_multiple_servers = os.getenv("CORTEX_MULTIPLE_TF_SERVERS")
+        if has_multiple_servers:
+            with LockedFile("/run/used_ports.json", "r+") as f:
+                used_ports = json.load(f)
+                for port in used_ports.keys():
+                    if not used_ports[port]:
+                        tf_serving_port = port
+                        used_ports[port] = True
+                        break
+                f.seek(0)
+                json.dump(used_ports, f)
+                f.truncate()
+
         api = get_api(provider, spec_path, model_dir, cache_dir, region)
 
         client = api.predictor.initialize_client(
@@ -291,6 +295,16 @@ def start_fn():
         with FileLock("/run/init_stagger.lock"):
             logger.info("loading the predictor from {}".format(api.predictor.path))
             predictor_impl = api.predictor.initialize_impl(project_dir, client)
+
+        # crons only stop if an unhandled exception occurs
+        def check_if_crons_have_failed():
+            while True:
+                for cron in api.predictor.crons:
+                    if not cron.is_alive():
+                        os.kill(os.getpid(), signal.SIGQUIT)
+                time.sleep(1)
+
+        threading.Thread(target=check_if_crons_have_failed, daemon=True).start()
 
         local_cache["api"] = api
         local_cache["provider"] = provider
@@ -314,7 +328,10 @@ def start_fn():
 
         predict_route = "/predict"
         local_cache["predict_route"] = predict_route
-    except:
+
+    except (UserRuntimeException, Exception) as err:
+        if not isinstance(err, UserRuntimeException):
+            capture_exception(err)
         logger.exception("failed to start api")
         sys.exit(1)
 

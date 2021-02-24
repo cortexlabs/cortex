@@ -25,12 +25,12 @@ import inspect
 import shutil
 from pathlib import Path
 
-from typing import List, Dict, Optional, Tuple, Callable, Union
-from cortex.binary import run_cli, get_cli_path
-from cortex import util
+from typing import Optional
 
-# Change if PYTHONVERSION changes
-EXPECTED_PYTHON_VERSION = "3.6.9"
+from cortex.binary import run_cli, get_cli_path
+from cortex.telemetry import sentry_wrapper
+from cortex.consts import EXPECTED_PYTHON_VERSION
+from cortex import util
 
 
 def cli_config_dir() -> Path:
@@ -41,6 +41,7 @@ def cli_config_dir() -> Path:
 
 
 class Client:
+    @sentry_wrapper
     def __init__(self, env: dict):
         """
         A client to deploy and manage APIs in the specified environment.
@@ -48,10 +49,12 @@ class Client:
         Args:
             env: Environment config
         """
+
         self.env = env
         self.env_name = env["name"]
 
     # CORTEX_VERSION_MINOR
+    @sentry_wrapper
     def create_api(
         self,
         api_spec: dict,
@@ -290,6 +293,7 @@ class Client:
 
         return api
 
+    @sentry_wrapper
     def get_api(self, api_name: str) -> dict:
         """
         Get information about an API.
@@ -305,6 +309,7 @@ class Client:
         apis = json.loads(output.strip())
         return apis[0]
 
+    @sentry_wrapper
     def list_apis(self) -> list:
         """
         List all APIs in the environment.
@@ -318,6 +323,7 @@ class Client:
 
         return json.loads(output.strip())
 
+    @sentry_wrapper
     def get_job(self, api_name: str, job_id: str) -> dict:
         """
         Get information about a submitted job.
@@ -335,6 +341,7 @@ class Client:
 
         return json.loads(output.strip())
 
+    @sentry_wrapper
     def refresh(self, api_name: str, force: bool = False):
         """
         Restart all of the replicas for a Realtime API without downtime.
@@ -350,6 +357,7 @@ class Client:
 
         run_cli(args, hide_output=True)
 
+    @sentry_wrapper
     def patch(self, api_spec: dict, force: bool = False) -> dict:
         """
         Update the api specification for an API that has already been deployed.
@@ -370,6 +378,7 @@ class Client:
             output = run_cli(args, hide_output=True)
             return json.loads(output.strip())
 
+    @sentry_wrapper
     def delete_api(self, api_name: str, keep_cache: bool = False):
         """
         Delete an API.
@@ -393,6 +402,7 @@ class Client:
 
         run_cli(args, hide_output=True)
 
+    @sentry_wrapper
     def stop_job(self, api_name: str, job_id: str, keep_cache: bool = False):
         """
         Stop a running job.
@@ -413,6 +423,7 @@ class Client:
 
         run_cli(args)
 
+    @sentry_wrapper
     def stream_api_logs(
         self,
         api_name: str,
@@ -426,6 +437,7 @@ class Client:
         args = ["logs", api_name, "--env", self.env_name, "-y"]
         run_cli(args)
 
+    @sentry_wrapper
     def stream_job_logs(
         self,
         api_name: str,
