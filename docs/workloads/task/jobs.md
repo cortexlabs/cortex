@@ -3,7 +3,7 @@
 ## Get the TaskAPI endpoint
 
 ```bash
-$ cortex get <task_api_name>
+cortex get <task_api_name>
 ```
 
 ## Submit a Job
@@ -33,7 +33,7 @@ RESPONSE:
 ## Get a job's status
 
 ```bash
-$ cortex get <task_api_name> <job_id>
+cortex get <task_api_name> <job_id>
 ```
 
 Or make a GET request to `<task_api_endpoint>?jobID=<jobID>`:
@@ -65,7 +65,7 @@ RESPONSE:
 ## Stop a job
 
 ```bash
-$ cortex delete <task_api_name> <job_id>
+cortex delete <task_api_name> <job_id>
 ```
 
 Or make a DELETE request to `<task_api_endpoint>?jobID=<jobID>`:

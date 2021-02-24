@@ -26,7 +26,7 @@ pip install --upgrade cortex
 <!-- CORTEX_VERSION_README x2 -->
 ```bash
 # For example to download CLI version 0.29.0 (Note the "v"):
-$ bash -c "$(curl -sS https://raw.githubusercontent.com/cortexlabs/cortex/v0.29.0/get-cli.sh)"
+bash -c "$(curl -sS https://raw.githubusercontent.com/cortexlabs/cortex/v0.29.0/get-cli.sh)"
 ```
 
 By default, the Cortex CLI is installed at `/usr/local/bin/cortex`. To install the executable elsewhere, export the `CORTEX_INSTALL_PATH` environment variable to your desired location before running the command above.
