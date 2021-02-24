@@ -12,14 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import List, Dict, Optional, Tuple, Callable, Union
 import json
 
 from cortex.client import Client
 from cortex.binary import run_cli
+from cortex.telemetry import sentry_wrapper
 from cortex.exceptions import NotFound
 
 
+@sentry_wrapper
 def client(env: str) -> Client:
     """
     Initialize a client based on the specified environment.
@@ -45,6 +46,7 @@ def client(env: str) -> Client:
     return Client(environment)
 
 
+@sentry_wrapper
 def new_client(
     name: str,
     operator_endpoint: str,
@@ -72,6 +74,7 @@ def new_client(
     return client(name)
 
 
+@sentry_wrapper
 def env_list() -> list:
     """
     List all environments configured on this machine.
@@ -80,6 +83,7 @@ def env_list() -> list:
     return json.loads(output.strip())
 
 
+@sentry_wrapper
 def env_delete(name: str):
     """
     Delete an environment configured on this machine.

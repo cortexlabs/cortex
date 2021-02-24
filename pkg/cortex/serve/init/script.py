@@ -17,8 +17,10 @@ import time
 import json
 import sys
 
+from cortex_internal.lib.telemetry import get_default_tags, init_sentry
 from cortex_internal.lib.log import configure_logger
 
+init_sentry(tags=get_default_tags())
 logger = configure_logger("cortex", os.environ["CORTEX_LOG_CONFIG_FILE"])
 
 from cortex_internal.lib.type import (
@@ -126,7 +128,6 @@ def main():
     _, api_spec = get_spec(provider, spec_path, cache_dir, region)
 
     predictor_type = predictor_type_from_api_spec(api_spec)
-    multiple_processes = api_spec["predictor"]["processes_per_replica"] > 1
     caching_enabled = is_model_caching_enabled(api_spec)
     model_dir = os.getenv("CORTEX_MODEL_DIR")
 
