@@ -203,7 +203,7 @@ func (c *Client) VerifyNetworkQuotas(requiredInternetGateways int, requiredNATGa
 				if _, ok := azToGatewaysInUse[*subnet.AvailabilityZone]; !ok {
 					azToGatewaysInUse[*subnet.AvailabilityZone] = 1
 				} else {
-					azToGatewaysInUse[*subnet.AvailabilityZone] += 1
+					azToGatewaysInUse[*subnet.AvailabilityZone]++
 				}
 			}
 		}
@@ -222,7 +222,7 @@ func (c *Client) VerifyNetworkQuotas(requiredInternetGateways int, requiredNATGa
 	for az, numActiveGatewaysOnAZ := range azToGatewaysInUse {
 		azDeficit := vpcQuotaCodeToValueMap[_natGatewayQuotaCode] - numActiveGatewaysOnAZ - requiredNATGatewaysPerAZ
 		if azDeficit < 0 {
-			numOfExhaustedNATGatewayAZs += 1
+			numOfExhaustedNATGatewayAZs++
 			azsWithQuotaDeficit = append(azsWithQuotaDeficit, az)
 			if -azDeficit > greatestNATGatewayQuotaDeficit {
 				greatestNATGatewayQuotaDeficit = -azDeficit
