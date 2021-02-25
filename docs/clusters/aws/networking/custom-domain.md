@@ -79,7 +79,7 @@ ssl_certificate_arn: <ARN of your certificate>
 Create a Cortex cluster:
 
 ```bash
-$ cortex cluster up --config cluster.yaml
+cortex cluster up --config cluster.yaml
 ```
 
 ## Add DNS record

@@ -5,8 +5,8 @@ Create APIs that can orchestrate distributed batch inference jobs on large datas
 ## Implement
 
 ```bash
-$ mkdir image-classifier && cd image-classifier
-$ touch predictor.py requirements.txt image_classifier.yaml
+mkdir image-classifier && cd image-classifier
+touch predictor.py requirements.txt image_classifier.yaml
 ```
 
 ```python
@@ -78,13 +78,13 @@ requests
 ## Deploy
 
 ```bash
-$ cortex deploy image_classifier.yaml
+cortex deploy image_classifier.yaml
 ```
 
 ## Describe
 
 ```bash
-$ cortex get image-classifier
+cortex get image-classifier
 ```
 
 ## Submit a job
@@ -122,13 +122,13 @@ print(response.text)
 ## Monitor the job
 
 ```bash
-$ cortex get image-classifier 69b183ed6bdf3e9b
+cortex get image-classifier 69b183ed6bdf3e9b
 ```
 
 ## Stream logs
 
 ```bash
-$ cortex logs image-classifier 69b183ed6bdf3e9b
+cortex logs image-classifier 69b183ed6bdf3e9b
 ```
 
 ## View the results
@@ -138,5 +138,5 @@ Once the job is complete, you should be able to find the results in the director
 ## Delete
 
 ```bash
-$ cortex delete image-classifier
+cortex delete image-classifier
 ```

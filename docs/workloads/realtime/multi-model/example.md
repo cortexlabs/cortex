@@ -39,5 +39,5 @@ cx.create_api(api_spec, predictor=PythonPredictor, requirements=requirements)
 ## Deploy
 
 ```bash
-$ python multi_model.py
+python multi_model.py
 ```
