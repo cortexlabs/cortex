@@ -224,3 +224,107 @@ func (c *Client) ListSupportedAvailabilityZones(instanceType string, instanceTyp
 
 	return strset.Intersection(zoneSets...), nil
 }
+
+func (c *Client) ListElasticIPs() ([]string, error) {
+	addresses, err := c.EC2().DescribeAddresses(&ec2.DescribeAddressesInput{})
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+
+	addressesList := []string{}
+	if addresses != nil {
+		for _, address := range addresses.Addresses {
+			if address != nil && address.PublicIp != nil {
+				addressesList = append(addressesList, *address.PublicIp)
+			}
+		}
+	}
+
+	return addressesList, nil
+}
+
+func (c *Client) ListInternetGateways() ([]string, error) {
+	gatewaysList := []string{}
+	var nextToken *string = nil
+
+	for {
+		gateways, err := c.EC2().DescribeInternetGateways(&ec2.DescribeInternetGatewaysInput{
+			NextToken: nextToken,
+		})
+		if err != nil {
+			return nil, errors.WithStack(err)
+		}
+
+		if gateways != nil {
+			for _, gateway := range gateways.InternetGateways {
+				if gateway != nil && gateway.InternetGatewayId != nil {
+					gatewaysList = append(gatewaysList, *gateway.InternetGatewayId)
+				}
+			}
+		}
+
+		if gateways.NextToken == nil {
+			break
+		}
+		nextToken = gateways.NextToken
+	}
+
+	return gatewaysList, nil
+}
+
+func (c *Client) DescribeNATGateways() ([]ec2.NatGateway, error) {
+	var gateways []ec2.NatGateway
+	err := c.EC2().DescribeNatGatewaysPages(&ec2.DescribeNatGatewaysInput{}, func(output *ec2.DescribeNatGatewaysOutput, lastPage bool) bool {
+		if output == nil {
+			return false
+		}
+		for _, gateway := range output.NatGateways {
+			if gateway == nil {
+				continue
+			}
+			gateways = append(gateways, *gateway)
+		}
+
+		return true
+	})
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+
+	return gateways, nil
+}
+
+func SubnetIDsFromNATGateways(gateways []ec2.NatGateway) []string {
+	var subnetIDs []string
+
+	for _, gateway := range gateways {
+		if gateway.SubnetId == nil {
+			continue
+		}
+		subnetIDs = append(subnetIDs, *gateway.SubnetId)
+	}
+
+	return subnetIDs
+}
+
+func (c *Client) DescribeSubnets() ([]ec2.Subnet, error) {
+	var subnets []ec2.Subnet
+	err := c.EC2().DescribeSubnetsPages(&ec2.DescribeSubnetsInput{}, func(output *ec2.DescribeSubnetsOutput, lastPage bool) bool {
+		if output == nil {
+			return false
+		}
+		for _, subnet := range output.Subnets {
+			if subnet == nil {
+				continue
+			}
+			subnets = append(subnets)
+		}
+
+		return true
+	})
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+
+	return subnets, nil
+}

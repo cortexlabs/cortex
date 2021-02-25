@@ -712,6 +712,17 @@ func (cc *Config) Validate(awsClient *aws.Client) error {
 		}
 	}
 
+	var requiredNATGatewaysPerAZ int
+	if cc.NATGateway != NoneNATGateway || cc.SubnetVisibility == PrivateSubnetVisibility {
+		requiredNATGatewaysPerAZ = 1
+	}
+	if err := awsClient.VerifyNetworkQuotas(1, requiredNATGatewaysPerAZ, cc.NATGateway == HighlyAvailableNATGateway, 1); err != nil {
+		// Skip AWS errors, since some regions (e.g. eu-north-1) do not support this API
+		if _, ok := errors.CauseOrSelf(err).(awserr.Error); !ok {
+			return err
+		}
+	}
+
 	for tagName, tagValue := range cc.Tags {
 		if strings.HasPrefix(tagName, "cortex.dev/") {
 			if tagName != ClusterNameTag {

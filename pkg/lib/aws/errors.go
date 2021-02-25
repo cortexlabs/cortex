@@ -40,6 +40,10 @@ const (
 	ErrECRExtractingCredentials     = "aws.ecr_failed_credentials"
 	ErrDashboardWidthOutOfRange     = "aws.dashboard_width_ouf_of_range"
 	ErrDashboardHeightOutOfRange    = "aws.dashboard_height_out_of_range"
+	ErrNATGatewayLimitExceeded      = "aws.nat_gateway_limit_exceeded"
+	ErrEIPLimitExceeded             = "aws.eip_limit_exceeded"
+	ErrInternetGatewayLimitExceeded = "aws.internet_gateway_limit_exceeded"
+	ErrVPCLimitExceeded             = "aws.vpc_limit_exceeded"
 )
 
 func IsNotFoundErr(err error) bool {
@@ -173,5 +177,33 @@ func ErrorDashboardHeightOutOfRange(height int) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrDashboardHeightOutOfRange,
 		Message: fmt.Sprintf("dashboard height %d out of range; height must be between %d and %d", height, _dashboardMinHeightUnits, _dashboardMaxHeightUnits),
+	})
+}
+
+func ErrorNATGatewayLimitExceeded(currentLimit, additionalQuotaRequired int, region string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrNATGatewayLimitExceeded,
+		Message: fmt.Sprintf("NAT gateway limit of %d exceeded in region %s; increase the quota for NAT gateways by at least %d or remove the existing ones", currentLimit, region, additionalQuotaRequired),
+	})
+}
+
+func ErrorEIPLimitExceeded(currentLimit, additionalQuotaRequired int, region string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrEIPLimitExceeded,
+		Message: fmt.Sprintf("elastic IPs limit of %d exceeded in region %s; increase the quota for elastic IPs by at least %d or remove the existing ones", currentLimit, region, additionalQuotaRequired),
+	})
+}
+
+func ErrorInternetGatewayLimitExceeded(currentLimit, additionalQuotaRequired int, region string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrInternetGatewayLimitExceeded,
+		Message: fmt.Sprintf("internet gateway limit of %d exceeded in region %s; increase the quota for internet gateways by at least %d or remove the existing ones", currentLimit, region, additionalQuotaRequired),
+	})
+}
+
+func ErrorVPCLimitExceeded(currentLimit, additionalQuotaRequired int, region string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrVPCLimitExceeded,
+		Message: fmt.Sprintf("VPC limit of %d exceeded in region %s; increase the quota for VPCs by at least %d or remove the existing ones", currentLimit, region, additionalQuotaRequired),
 	})
 }

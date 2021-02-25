@@ -103,3 +103,161 @@ func (c *Client) VerifyInstanceQuota(instanceType string, requiredOnDemandInstan
 
 	return nil
 }
+
+func (c *Client) VerifyNetworkQuotas(requiredInternetGateways int, requiredNATGatewaysPerAZ int, highlyAvailableNATGateway bool, requiredVPCs int) error {
+	ec2QuotaCodeToValueMap := map[string]int{
+		"L-0263D0A3": 0, // elastic IP quota code
+	}
+	vpcQuotaCodeToValueMap := map[string]int{
+		"L-A4707A72": 0, // internet gw quota code
+		"L-FE5A380F": 0, // nat gw quota code
+		"L-F678F1CE": 0, // vpc quota code
+	}
+
+	err := c.ServiceQuotas().ListServiceQuotasPages(
+		&servicequotas.ListServiceQuotasInput{
+			ServiceCode: aws.String("ec2"),
+		},
+		func(page *servicequotas.ListServiceQuotasOutput, lastPage bool) bool {
+			if page == nil {
+				return false
+			}
+			for _, quota := range page.Quotas {
+				if quota == nil || quota.QuotaCode == nil || quota.Value == nil {
+					continue
+				}
+				if _, ok := ec2QuotaCodeToValueMap[*quota.QuotaCode]; ok {
+					ec2QuotaCodeToValueMap[*quota.QuotaCode] += int(*quota.Value)
+					return false
+				}
+			}
+			return true
+		},
+	)
+	if err != nil {
+		return errors.WithStack(err)
+	}
+
+	err = c.ServiceQuotas().ListServiceQuotasPages(
+		&servicequotas.ListServiceQuotasInput{
+			ServiceCode: aws.String("vpc"),
+		},
+		func(page *servicequotas.ListServiceQuotasOutput, lastPage bool) bool {
+			if page == nil {
+				return false
+			}
+			for _, quota := range page.Quotas {
+				if quota == nil || quota.QuotaCode == nil || quota.Value == nil {
+					continue
+				}
+				if _, ok := vpcQuotaCodeToValueMap[*quota.QuotaCode]; ok {
+					vpcQuotaCodeToValueMap[*quota.QuotaCode] += int(*quota.Value)
+				}
+			}
+			return true
+		},
+	)
+	if err != nil {
+		return errors.WithStack(err)
+	}
+
+	// get EIP in use
+	elasticIPsInUse, err := c.ListElasticIPs()
+	if err != nil {
+		return errors.WithStack(err)
+	}
+
+	// get IGW in use
+	internetGatewaysInUse, err := c.ListInternetGateways()
+	if err != nil {
+		return errors.WithStack(err)
+	}
+
+	// get NAT GW in use per AZ
+	gateways, err := c.DescribeNATGateways()
+	if err != nil {
+		return errors.WithStack(err)
+	}
+	subnets, err := c.DescribeSubnets()
+	if err != nil {
+		return errors.WithStack(err)
+	}
+	gatewaysSubnetIDs := SubnetIDsFromNATGateways(gateways)
+	azToGatewaysInUse := make(map[string]int)
+	for _, gatewaySubnetID := range gatewaysSubnetIDs {
+		for _, subnet := range subnets {
+			if subnet.SubnetId == nil || subnet.AvailabilityZone == nil {
+				continue
+			}
+			if *subnet.SubnetId == gatewaySubnetID {
+				if _, ok := azToGatewaysInUse[*subnet.AvailabilityZone]; !ok {
+					azToGatewaysInUse[*subnet.AvailabilityZone] = 1
+				} else {
+					azToGatewaysInUse[*subnet.AvailabilityZone] += 1
+				}
+			}
+		}
+	}
+
+	// get number of AZs
+	azs, err := c.ListAvailabilityZonesInRegion()
+	if err != nil {
+		return errors.WithStack(err)
+	}
+	numberOfAZs := len(azs)
+
+	// get VPC IDs
+	vpcIDs := []string{}
+	for _, subnet := range subnets {
+		if subnet.SubnetId == nil || subnet.VpcId == nil {
+			continue
+		}
+		vpcIDs = append(vpcIDs, *subnet.VpcId)
+	}
+
+	// check NAT GW quota
+	numOfExhaustedNATGatewayAZs := 0
+	greatestNATGatewayQuotaDeficit := 0
+	for _, numActiveGatewaysOnAZ := range azToGatewaysInUse {
+		azDeficit := vpcQuotaCodeToValueMap["L-FE5A380F"] - numActiveGatewaysOnAZ - requiredNATGatewaysPerAZ
+		if azDeficit < 0 {
+			numOfExhaustedNATGatewayAZs += 1
+			if -azDeficit > greatestNATGatewayQuotaDeficit {
+				greatestNATGatewayQuotaDeficit = -azDeficit
+			}
+		}
+	}
+	if highlyAvailableNATGateway && numOfExhaustedNATGatewayAZs > 0 {
+		return ErrorNATGatewayLimitExceeded(vpcQuotaCodeToValueMap["L-FE5A380F"], greatestNATGatewayQuotaDeficit, c.Region)
+	} else if !highlyAvailableNATGateway && numOfExhaustedNATGatewayAZs == numberOfAZs {
+		return ErrorNATGatewayLimitExceeded(vpcQuotaCodeToValueMap["L-FE5A380F"], greatestNATGatewayQuotaDeficit, c.Region)
+	}
+
+	// check EIP quota
+	var requiredElasticIPs int
+	if requiredNATGatewaysPerAZ > 0 {
+		if highlyAvailableNATGateway {
+			requiredElasticIPs = numberOfAZs
+		} else {
+			requiredElasticIPs = 1
+		}
+	}
+	if ec2QuotaCodeToValueMap["L-0263D0A3"]-len(elasticIPsInUse)-requiredElasticIPs < 0 {
+		additionalQuotaRequired := -ec2QuotaCodeToValueMap["L-0263D0A3"] + len(elasticIPsInUse) + requiredElasticIPs
+		return ErrorEIPLimitExceeded(ec2QuotaCodeToValueMap["L-0263D0A3"], additionalQuotaRequired, c.Region)
+	}
+
+	// check internet GW quota
+	if vpcQuotaCodeToValueMap["L-A4707A72"]-len(internetGatewaysInUse)-requiredInternetGateways < 0 {
+		additionalQuotaRequired := -vpcQuotaCodeToValueMap["L-A4707A72"] + len(internetGatewaysInUse) + requiredInternetGateways
+		return ErrorInternetGatewayLimitExceeded(vpcQuotaCodeToValueMap["L-A4707A72"], additionalQuotaRequired, c.Region)
+	}
+
+	// check VPC quota
+	if vpcQuotaCodeToValueMap["L-F678F1CE"]-len(vpcIDs)-requiredVPCs < 0 {
+		additionalQuotaRequired := -vpcQuotaCodeToValueMap["L-F678F1CE"] + len(vpcIDs) + requiredVPCs
+		return ErrorVPCLimitExceeded(vpcQuotaCodeToValueMap["L-F678F1CE"], additionalQuotaRequired, c.Region)
+	}
+
+	return nil
+}
