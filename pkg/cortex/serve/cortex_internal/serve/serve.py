@@ -16,31 +16,31 @@ import asyncio
 import inspect
 import json
 import os
+import re
 import signal
 import sys
+import threading
 import time
 import uuid
-import re
-import threading
 from concurrent.futures import ThreadPoolExecutor
 from typing import Any, Dict
 
-from cortex_internal.lib.telemetry import capture_exception, get_default_tags, init_sentry
-from cortex_internal.lib.log import configure_logger
-
-init_sentry(tags=get_default_tags())
-logger = configure_logger("cortex", os.environ["CORTEX_LOG_CONFIG_FILE"])
+from fastapi import FastAPI
+from fastapi.exceptions import RequestValidationError
+from starlette.exceptions import HTTPException as StarletteHTTPException
+from starlette.requests import Request
+from starlette.responses import JSONResponse, PlainTextResponse, Response
 
 from cortex_internal.lib import util
 from cortex_internal.lib.api import get_api
 from cortex_internal.lib.api.batching import DynamicBatcher
 from cortex_internal.lib.concurrency import FileLock, LockedFile
 from cortex_internal.lib.exceptions import UserRuntimeException
-from fastapi import FastAPI
-from fastapi.exceptions import RequestValidationError
-from starlette.exceptions import HTTPException as StarletteHTTPException
-from starlette.requests import Request
-from starlette.responses import JSONResponse, PlainTextResponse, Response
+from cortex_internal.lib.log import configure_logger
+from cortex_internal.lib.telemetry import capture_exception, get_default_tags, init_sentry
+
+init_sentry(tags=get_default_tags())
+logger = configure_logger("cortex", os.environ["CORTEX_LOG_CONFIG_FILE"])
 
 API_SUMMARY_MESSAGE = (
     "make a prediction by sending a post request to this endpoint with a json payload"
@@ -294,7 +294,9 @@ def start_fn():
 
         with FileLock("/run/init_stagger.lock"):
             logger.info("loading the predictor from {}".format(api.predictor.path))
-            predictor_impl = api.predictor.initialize_impl(project_dir, client)
+            predictor_impl = api.predictor.initialize_impl(
+                project_dir=project_dir, client=client, metrics_client=api.statsd
+            )
 
         # crons only stop if an unhandled exception occurs
         def check_if_crons_have_failed():

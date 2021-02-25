@@ -12,55 +12,33 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os
-import imp
-import inspect
-import dill
-import shutil
 import datetime
 import glob
+import imp
+import inspect
+import os
+import shutil
 from copy import deepcopy
-from typing import Any, Optional, Union
+from typing import Optional, Union, Dict, Any
 
-# types
-from cortex_internal.lib.type import (
-    predictor_type_from_api_spec,
-    PredictorType,
-    PythonPredictorType,
-    TensorFlowPredictorType,
-    TensorFlowNeuronPredictorType,
-    ONNXPredictorType,
-)
+import dill
+from datadog import DogStatsd
 
-# clients
+from cortex_internal.lib import util
+from cortex_internal.lib.client.onnx import ONNXClient
 from cortex_internal.lib.client.python import PythonClient
 from cortex_internal.lib.client.tensorflow import TensorFlowClient
-from cortex_internal.lib.client.onnx import ONNXClient
-
-
-# crons
-from cortex_internal.lib.model import (
-    FileBasedModelsGC,
-    TFSAPIServingThreadUpdater,
-    ModelsGC,
-    ModelTreeUpdater,
-)
-
-# structures
-from cortex_internal.lib.model import (
-    ModelsHolder,
-    ModelsTree,  # only when num workers = 1
-)
-
-# model validation
-from cortex_internal.lib.model import validate_model_paths
-
-# misc
-from cortex_internal.lib.storage import S3, GCS
-from cortex_internal.lib import util
 from cortex_internal.lib.exceptions import CortexException, UserException, UserRuntimeException
-from cortex_internal import consts
 from cortex_internal.lib.log import configure_logger
+from cortex_internal.lib.model import (
+    FileBasedModelsGC, TFSAPIServingThreadUpdater, ModelsGC, ModelTreeUpdater,
+    ModelsHolder, ModelsTree, validate_model_paths
+)
+from cortex_internal.lib.storage import S3, GCS
+from cortex_internal.lib.type import (
+    predictor_type_from_api_spec, PredictorType, PythonPredictorType,
+    TensorFlowPredictorType, TensorFlowNeuronPredictorType, ONNXPredictorType
+)
 
 logger = configure_logger("cortex", os.environ["CORTEX_LOG_CONFIG_FILE"])
 
@@ -171,7 +149,8 @@ class Predictor:
         self,
         project_dir: str,
         client: Union[PythonClient, TensorFlowClient, ONNXClient],
-        job_spec: Optional[dict] = None,
+        metrics_client: DogStatsd,
+        job_spec: Dict[str, Any] = None,
     ):
         """
         Initialize predictor class as provided by the user.
@@ -190,6 +169,8 @@ class Predictor:
             args["config"] = config
         if "job_spec" in constructor_args:
             args["job_spec"] = job_spec
+        if "metrics_client" in constructor_args:
+            args["metrics_client"] = metrics_client
 
         # initialize predictor class
         try:
@@ -247,6 +228,8 @@ class Predictor:
         elif self.type == PythonPredictorType:
             target_class_name = "PythonPredictor"
             validations = PYTHON_CLASS_VALIDATION
+        else:
+            raise CortexException(f"invalid predictor type: {self.type}")
 
         try:
             predictor_class = self._get_class_impl(
@@ -311,7 +294,7 @@ class Predictor:
             cron.join()
 
 
-def _are_models_specified(api_spec: dict) -> bool:
+def _are_models_specified(api_spec: Dict) -> bool:
     """
     Checks if models have been specified in the API spec (cortex.yaml).
 
@@ -335,7 +318,7 @@ PYTHON_CLASS_VALIDATION = {
         {
             "name": "__init__",
             "required_args": ["self", "config"],
-            "optional_args": ["job_spec", "python_client"],
+            "optional_args": ["job_spec", "python_client", "metrics_client"],
         },
         {
             "name": "predict",
@@ -362,7 +345,7 @@ TENSORFLOW_CLASS_VALIDATION = {
         {
             "name": "__init__",
             "required_args": ["self", "tensorflow_client", "config"],
-            "optional_args": ["job_spec"],
+            "optional_args": ["job_spec", "metrics_client"],
         },
         {
             "name": "predict",
@@ -385,7 +368,7 @@ ONNX_CLASS_VALIDATION = {
         {
             "name": "__init__",
             "required_args": ["self", "onnx_client", "config"],
-            "optional_args": ["job_spec"],
+            "optional_args": ["job_spec", "metrics_client"],
         },
         {
             "name": "predict",
@@ -406,18 +389,18 @@ ONNX_CLASS_VALIDATION = {
 
 def _validate_impl(impl, impl_req, api_spec):
     for optional_func_signature in impl_req.get("optional", []):
-        _validate_optional_fn_args(impl, optional_func_signature, api_spec)
+        _validate_optional_fn_args(impl, optional_func_signature)
 
     for required_func_signature in impl_req.get("required", []):
-        _validate_required_fn_args(impl, required_func_signature, api_spec)
+        _validate_required_fn_args(impl, required_func_signature)
 
 
-def _validate_optional_fn_args(impl, func_signature, api_spec):
+def _validate_optional_fn_args(impl, func_signature):
     if getattr(impl, func_signature["name"], None):
-        _validate_required_fn_args(impl, func_signature, api_spec)
+        _validate_required_fn_args(impl, func_signature)
 
 
-def _validate_required_fn_args(impl, func_signature, api_spec):
+def _validate_required_fn_args(impl, func_signature):
     target_class_name = impl.__name__
 
     fn = getattr(impl, func_signature["name"], None)

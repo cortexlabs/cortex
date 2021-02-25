@@ -15,22 +15,23 @@
 import inspect
 import json
 import os
-import sys
-import signal
-import threading
 import pathlib
+import signal
+import sys
+import threading
 import time
 import uuid
 from typing import Dict, Any
 
 import boto3
 import botocore
+
 from cortex_internal.lib.api import get_api, get_spec
 from cortex_internal.lib.concurrency import LockedFile
+from cortex_internal.lib.exceptions import UserException, UserRuntimeException
+from cortex_internal.lib.log import configure_logger
 from cortex_internal.lib.storage import S3
 from cortex_internal.lib.telemetry import get_default_tags, init_sentry, capture_exception
-from cortex_internal.lib.log import configure_logger
-from cortex_internal.lib.exceptions import UserException, UserRuntimeException
 
 init_sentry(tags=get_default_tags())
 logger = configure_logger("cortex", os.environ["CORTEX_LOG_CONFIG_FILE"])
@@ -330,7 +331,9 @@ def start():
 
     try:
         logger.info("loading the predictor from {}".format(api.predictor.path))
-        predictor_impl = api.predictor.initialize_impl(project_dir, client, job_spec)
+        predictor_impl = api.predictor.initialize_impl(
+            project_dir=project_dir, client=client, metrics_client=api.statsd, job_spec=job_spec
+        )
     except (UserException, UserRuntimeException) as err:
         err.wrap(f"failed to start job {job_spec['job_id']}")
         logger.error(str(err), exc_info=True)
