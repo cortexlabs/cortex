@@ -49,15 +49,7 @@ data:
         - match:
             - receiver: "stdout"
               labels:
-                apiKind: RealtimeAPI
-        - match:
-            - receiver: "stdout"
-              labels:
-                apiKind: BatchAPI
-        - match:
-            - receiver: "stdout"
-              labels:
-                apiKind: TaskAPI
+                cortex.dev/api: true
     receivers:
       - name: "stdout"
         file:
