@@ -34,6 +34,7 @@ import (
 	libmath "github.com/cortexlabs/cortex/pkg/lib/math"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/prompt"
+	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/table"
 	"github.com/cortexlabs/cortex/pkg/types"
@@ -712,21 +713,6 @@ func (cc *Config) Validate(awsClient *aws.Client) error {
 		}
 	}
 
-	var requiredNATGatewaysPerAZ int
-	var requiredVPCs int
-	if cc.NATGateway != NoneNATGateway || cc.SubnetVisibility == PrivateSubnetVisibility {
-		requiredNATGatewaysPerAZ = 1
-	}
-	if len(cc.Subnets) == 0 {
-		requiredVPCs = 1
-	}
-	if err := awsClient.VerifyNetworkQuotas(1, requiredNATGatewaysPerAZ, cc.NATGateway == HighlyAvailableNATGateway, requiredVPCs); err != nil {
-		// Skip AWS errors, since some regions (e.g. eu-north-1) do not support this API
-		if _, ok := errors.CauseOrSelf(err).(awserr.Error); !ok {
-			return err
-		}
-	}
-
 	for tagName, tagValue := range cc.Tags {
 		if strings.HasPrefix(tagName, "cortex.dev/") {
 			if tagName != ClusterNameTag {
@@ -746,6 +732,21 @@ func (cc *Config) Validate(awsClient *aws.Client) error {
 	} else {
 		if err := cc.setAvailabilityZones(awsClient); err != nil {
 			return errors.Wrap(err, AvailabilityZonesKey)
+		}
+	}
+
+	var requiredNATGatewaysPerAZ int
+	var requiredVPCs int
+	if cc.NATGateway != NoneNATGateway || cc.SubnetVisibility == PrivateSubnetVisibility {
+		requiredNATGatewaysPerAZ = 1
+	}
+	if len(cc.Subnets) == 0 {
+		requiredVPCs = 1
+	}
+	if err := awsClient.VerifyNetworkQuotas(1, requiredNATGatewaysPerAZ, cc.NATGateway == HighlyAvailableNATGateway, requiredVPCs, strset.FromSlice(cc.AvailabilityZones)); err != nil {
+		// Skip AWS errors, since some regions (e.g. eu-north-1) do not support this API
+		if _, ok := errors.CauseOrSelf(err).(awserr.Error); !ok {
+			return err
 		}
 	}
 

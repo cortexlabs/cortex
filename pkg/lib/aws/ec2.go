@@ -317,7 +317,7 @@ func (c *Client) DescribeSubnets() ([]ec2.Subnet, error) {
 			if subnet == nil {
 				continue
 			}
-			subnets = append(subnets)
+			subnets = append(subnets, *subnet)
 		}
 
 		return true
@@ -327,4 +327,26 @@ func (c *Client) DescribeSubnets() ([]ec2.Subnet, error) {
 	}
 
 	return subnets, nil
+}
+
+func (c *Client) DescribeVpcs() ([]ec2.Vpc, error) {
+	var vpcs []ec2.Vpc
+	err := c.EC2().DescribeVpcsPages(&ec2.DescribeVpcsInput{}, func(output *ec2.DescribeVpcsOutput, lastPage bool) bool {
+		if output == nil {
+			return false
+		}
+		for _, vpc := range output.Vpcs {
+			if vpc == nil {
+				continue
+			}
+			vpcs = append(vpcs, *vpc)
+		}
+
+		return true
+	})
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+
+	return vpcs, nil
 }

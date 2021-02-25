@@ -17,6 +17,7 @@ limitations under the License.
 package aws
 
 import (
+	"fmt"
 	"regexp"
 	"strings"
 
@@ -104,7 +105,7 @@ func (c *Client) VerifyInstanceQuota(instanceType string, requiredOnDemandInstan
 	return nil
 }
 
-func (c *Client) VerifyNetworkQuotas(requiredInternetGateways int, requiredNATGatewaysPerAZ int, highlyAvailableNATGateway bool, requiredVPCs int) error {
+func (c *Client) VerifyNetworkQuotas(requiredInternetGateways int, requiredNATGatewaysPerAZ int, highlyAvailableNATGateway bool, requiredVPCs int, availabilityZones strset.Set) error {
 	ec2QuotaCodeToValueMap := map[string]int{
 		"L-0263D0A3": 0, // elastic IP quota code
 	}
@@ -127,7 +128,7 @@ func (c *Client) VerifyNetworkQuotas(requiredInternetGateways int, requiredNATGa
 					continue
 				}
 				if _, ok := ec2QuotaCodeToValueMap[*quota.QuotaCode]; ok {
-					ec2QuotaCodeToValueMap[*quota.QuotaCode] += int(*quota.Value)
+					ec2QuotaCodeToValueMap[*quota.QuotaCode] = int(*quota.Value)
 					return false
 				}
 			}
@@ -151,7 +152,7 @@ func (c *Client) VerifyNetworkQuotas(requiredInternetGateways int, requiredNATGa
 					continue
 				}
 				if _, ok := vpcQuotaCodeToValueMap[*quota.QuotaCode]; ok {
-					vpcQuotaCodeToValueMap[*quota.QuotaCode] += int(*quota.Value)
+					vpcQuotaCodeToValueMap[*quota.QuotaCode] = int(*quota.Value)
 				}
 			}
 			return true
@@ -166,14 +167,16 @@ func (c *Client) VerifyNetworkQuotas(requiredInternetGateways int, requiredNATGa
 	if err != nil {
 		return errors.WithStack(err)
 	}
+	fmt.Println("eips in use", elasticIPsInUse)
 
 	// get IGW in use
 	internetGatewaysInUse, err := c.ListInternetGateways()
 	if err != nil {
 		return errors.WithStack(err)
 	}
+	fmt.Println("igw in use", internetGatewaysInUse)
 
-	// get NAT GW in use per AZ
+	// get NAT GW in use per selected AZ
 	gateways, err := c.DescribeNATGateways()
 	if err != nil {
 		return errors.WithStack(err)
@@ -189,6 +192,9 @@ func (c *Client) VerifyNetworkQuotas(requiredInternetGateways int, requiredNATGa
 			if subnet.SubnetId == nil || subnet.AvailabilityZone == nil {
 				continue
 			}
+			if !availabilityZones.Has(*subnet.AvailabilityZone) {
+				continue
+			}
 			if *subnet.SubnetId == gatewaySubnetID {
 				if _, ok := azToGatewaysInUse[*subnet.AvailabilityZone]; !ok {
 					azToGatewaysInUse[*subnet.AvailabilityZone] = 1
@@ -199,21 +205,12 @@ func (c *Client) VerifyNetworkQuotas(requiredInternetGateways int, requiredNATGa
 		}
 	}
 
-	// get number of AZs
-	azs, err := c.ListAvailabilityZonesInRegion()
+	// get VPC IDs
+	vpcs, err := c.DescribeVpcs()
 	if err != nil {
 		return errors.WithStack(err)
 	}
-	numberOfAZs := len(azs)
-
-	// get VPC IDs
-	vpcIDs := []string{}
-	for _, subnet := range subnets {
-		if subnet.SubnetId == nil || subnet.VpcId == nil {
-			continue
-		}
-		vpcIDs = append(vpcIDs, *subnet.VpcId)
-	}
+	fmt.Println("number of vpcs", len(vpcs))
 
 	// check NAT GW quota
 	numOfExhaustedNATGatewayAZs := 0
@@ -229,15 +226,15 @@ func (c *Client) VerifyNetworkQuotas(requiredInternetGateways int, requiredNATGa
 	}
 	if highlyAvailableNATGateway && numOfExhaustedNATGatewayAZs > 0 {
 		return ErrorNATGatewayLimitExceeded(vpcQuotaCodeToValueMap["L-FE5A380F"], greatestNATGatewayQuotaDeficit, c.Region)
-	} else if !highlyAvailableNATGateway && numOfExhaustedNATGatewayAZs == numberOfAZs {
-		return ErrorNATGatewayLimitExceeded(vpcQuotaCodeToValueMap["L-FE5A380F"], greatestNATGatewayQuotaDeficit, c.Region)
+	} else if !highlyAvailableNATGateway && numOfExhaustedNATGatewayAZs == len(availabilityZones) {
+		return ErrorNATGatewayLimitExceededInAllAZs(vpcQuotaCodeToValueMap["L-FE5A380F"], greatestNATGatewayQuotaDeficit, c.Region)
 	}
 
 	// check EIP quota
 	var requiredElasticIPs int
 	if requiredNATGatewaysPerAZ > 0 {
 		if highlyAvailableNATGateway {
-			requiredElasticIPs = numberOfAZs
+			requiredElasticIPs = len(availabilityZones)
 		} else {
 			requiredElasticIPs = 1
 		}
@@ -254,8 +251,8 @@ func (c *Client) VerifyNetworkQuotas(requiredInternetGateways int, requiredNATGa
 	}
 
 	// check VPC quota
-	if vpcQuotaCodeToValueMap["L-F678F1CE"]-len(vpcIDs)-requiredVPCs < 0 {
-		additionalQuotaRequired := -vpcQuotaCodeToValueMap["L-F678F1CE"] + len(vpcIDs) + requiredVPCs
+	if vpcQuotaCodeToValueMap["L-F678F1CE"]-len(vpcs)-requiredVPCs < 0 {
+		additionalQuotaRequired := -vpcQuotaCodeToValueMap["L-F678F1CE"] + len(vpcs) + requiredVPCs
 		return ErrorVPCLimitExceeded(vpcQuotaCodeToValueMap["L-F678F1CE"], additionalQuotaRequired, c.Region)
 	}
 
