@@ -45,7 +45,6 @@ var _cortexPolicy = `
 				"sts:GetCallerIdentity",
 				"ecr:GetAuthorizationToken",
 				"ecr:BatchGetImage",
-				"elasticloadbalancing:Describe*",
 				"sqs:ListQueues"
 			],
 			"Effect": "Allow",
@@ -60,6 +59,11 @@ var _cortexPolicy = `
 			"Effect": "Allow",
 			"Action": "s3:*",
 			"Resource": "arn:aws:s3:::{{ .Bucket }}"
+		},
+		{
+			"Effect": "Allow",
+			"Action": "s3:*",
+			"Resource": "arn:aws:s3:::{{ .Bucket }}/*"
 		},
 		{
 			"Effect": "Allow",
