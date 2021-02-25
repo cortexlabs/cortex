@@ -77,7 +77,7 @@ with open("README.md") as f:
 setup(
     name="cortex",
     version="master",  # CORTEX_VERSION
-    description="Run inference at scale",
+    description="Model serving at scale",
     author="cortex.dev",
     author_email="dev@cortex.dev",
     license="Apache License 2.0",
