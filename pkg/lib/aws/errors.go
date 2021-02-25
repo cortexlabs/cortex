@@ -181,10 +181,10 @@ func ErrorDashboardHeightOutOfRange(height int) error {
 	})
 }
 
-func ErrorNATGatewayLimitExceeded(currentLimit, additionalQuotaRequired int, region string) error {
+func ErrorNATGatewayLimitExceeded(currentLimit, additionalQuotaRequired int, availabilityZones []string, region string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrNATGatewayLimitExceeded,
-		Message: fmt.Sprintf("NAT gateway limit of %d exceeded in region %s; increase the quota for NAT gateways by at least %d or remove some of the existing ones", currentLimit, region, additionalQuotaRequired),
+		Message: fmt.Sprintf("NAT gateway limit of %d exceeded in availability zones (%s) of region %s; increase the quota for NAT gateways by at least %d or remove some of the existing ones", currentLimit, s.StrsAnd(availabilityZones), region, additionalQuotaRequired),
 	})
 }
 

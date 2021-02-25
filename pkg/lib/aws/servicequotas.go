@@ -218,17 +218,19 @@ func (c *Client) VerifyNetworkQuotas(requiredInternetGateways int, requiredNATGa
 	// check NAT GW quota
 	numOfExhaustedNATGatewayAZs := 0
 	greatestNATGatewayQuotaDeficit := 0
-	for _, numActiveGatewaysOnAZ := range azToGatewaysInUse {
+	azsWithQuotaDeficit := []string{}
+	for az, numActiveGatewaysOnAZ := range azToGatewaysInUse {
 		azDeficit := vpcQuotaCodeToValueMap[_natGatewayQuotaCode] - numActiveGatewaysOnAZ - requiredNATGatewaysPerAZ
 		if azDeficit < 0 {
 			numOfExhaustedNATGatewayAZs += 1
+			azsWithQuotaDeficit = append(azsWithQuotaDeficit, az)
 			if -azDeficit > greatestNATGatewayQuotaDeficit {
 				greatestNATGatewayQuotaDeficit = -azDeficit
 			}
 		}
 	}
 	if highlyAvailableNATGateway && numOfExhaustedNATGatewayAZs > 0 {
-		return ErrorNATGatewayLimitExceeded(vpcQuotaCodeToValueMap[_natGatewayQuotaCode], greatestNATGatewayQuotaDeficit, c.Region)
+		return ErrorNATGatewayLimitExceeded(vpcQuotaCodeToValueMap[_natGatewayQuotaCode], greatestNATGatewayQuotaDeficit, azsWithQuotaDeficit, c.Region)
 	} else if !highlyAvailableNATGateway && numOfExhaustedNATGatewayAZs == len(availabilityZones) {
 		return ErrorNATGatewayLimitExceededInAllAZs(vpcQuotaCodeToValueMap[_natGatewayQuotaCode], greatestNATGatewayQuotaDeficit, c.Region)
 	}
