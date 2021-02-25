@@ -118,6 +118,8 @@ async def check_all_http_links(http_link_infos, errors):
             src_file, line_num, link, _, _ = link_info
             if link in links:
                 continue
+            if "://localhost:" in link:
+                continue
             links.add(link)
             tasks.append(
                 asyncio.ensure_future(check_http_link(session, src_file, line_num, link, errors))
@@ -175,7 +177,7 @@ def err_str(src_file, line_num, original_link_text, reason):
 
 
 def is_external_link(link):
-    return (link.startswith("http://") or link.startswith("https://")) and not "localhost:" in link
+    return link.startswith("http://") or link.startswith("https://")
 
 
 if __name__ == "__main__":
