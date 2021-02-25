@@ -24,7 +24,7 @@ We are going to add an NS (name server) record that specifies that any traffic t
 
 `cortexlabs.dev` is managed by Google Domains. The image below is a screenshot for adding a DNS record in Google Domains (your UI may differ based on your DNS service provider).
 
-![](https://user-images.githubusercontent.com/4365343/82211959-bcbf3d00-98df-11ea-834d-692b3bcf9332.png)
+![](https://user-images.githubusercontent.com/808475/109039458-abcb0580-7681-11eb-8644-76436328687e.png)
 
 ## Generate an SSL certificate
 
@@ -79,7 +79,7 @@ ssl_certificate_arn: <ARN of your certificate>
 Create a Cortex cluster:
 
 ```bash
-$ cortex cluster up --config cluster.yaml
+cortex cluster up --config cluster.yaml
 ```
 
 ## Add DNS record

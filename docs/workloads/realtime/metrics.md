@@ -4,7 +4,7 @@ The `cortex get` and `cortex get API_NAME` commands display the request time (av
 response code counts (summed over the past 2 weeks) for your APIs:
 
 ```bash
-$ cortex get
+cortex get
 
 env   api                         status   up-to-date   requested   last update   avg request   2XX
 aws   iris-classifier             live     1            1           17m           24ms          1223
@@ -45,6 +45,12 @@ URL:
 ```shell
 cortex env list
 ```
+
+If your operator load balancer is configured to be internal, there are a few options for accessing the dashboard:
+
+1. Access the dashboard from a machine that has VPC Peering configured to your cluster's VPC, or which is inside of your cluster's VPC
+1. Run `kubectl port-forward -n default grafana-0 3000:3000` to forward Grafana's port to your local machine, and access the dashboard on [http://localhost:3000/](http://localhost:3000/) (see instructions for setting up `kubectl` on [AWS](../../clusters/aws/kubectl.md) or [GCP](../../clusters/gcp/kubectl.md))
+1. Set up VPN access to your cluster's VPC ([docs](https://docs.aws.amazon.com/vpc/latest/userguide/vpn-connections.html))
 
 ### Default credentials
 

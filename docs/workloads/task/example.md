@@ -57,13 +57,13 @@ scikit-learn==0.23.2
 ## Deploy
 
 ```bash
-$ cortex deploy
+cortex deploy
 ```
 
 ## Describe
 
 ```bash
-$ cortex get train-iris
+cortex get train-iris
 
 # > endpoint: http://***.elb.us-west-2.amazonaws.com/train-iris
 ```
@@ -75,10 +75,10 @@ You can submit a job by making a POST request to the Task API's endpoint.
 Using `curl`:
 
 ```bash
-$ export TASK_API_ENDPOINT=<TASK_API_ENDPOINT>  # e.g. export TASK_API_ENDPOINT=https://***.elb.us-west-2.amazonaws.com/train-iris
-$ export DEST_S3_DIR=<YOUR_S3_DIRECTORY>  # e.g. export DEST_S3_DIR=s3://my-bucket/dir
+export TASK_API_ENDPOINT=<TASK_API_ENDPOINT>  # e.g. export TASK_API_ENDPOINT=https://***.elb.us-west-2.amazonaws.com/train-iris
+export DEST_S3_DIR=<YOUR_S3_DIRECTORY>  # e.g. export DEST_S3_DIR=s3://my-bucket/dir
 
-$ curl $TASK_API_ENDPOINT \
+curl $TASK_API_ENDPOINT \
     -X POST -H "Content-Type: application/json" \
     -d "{\"config\": {\"dest_s3_dir\": \"$DEST_S3_DIR\"}}"
 # > {"job_id":"69b183ed6bdf3e9b","api_name":"train-iris",...}
@@ -107,7 +107,7 @@ print(response.text)
 ## Monitor the job
 
 ```bash
-$ cortex get train-iris 69b183ed6bdf3e9b
+cortex get train-iris 69b183ed6bdf3e9b
 ```
 
 ## View the results
@@ -117,5 +117,5 @@ Once the job is complete, you should be able to find the trained model in the di
 ## Delete
 
 ```bash
-$ cortex delete train-iris
+cortex delete train-iris
 ```
