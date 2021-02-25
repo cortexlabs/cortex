@@ -5,8 +5,8 @@ Create APIs that can respond to prediction requests in real-time.
 ## Implement
 
 ```bash
-$ mkdir text-generator && cd text-generator
-$ touch predictor.py requirements.txt text_generator.yaml
+mkdir text-generator && cd text-generator
+touch predictor.py requirements.txt text_generator.yaml
 ```
 
 ```python
@@ -44,29 +44,29 @@ torch
 ## Deploy
 
 ```bash
-$ cortex deploy text_generator.yaml
+cortex deploy text_generator.yaml
 ```
 
 ## Monitor
 
 ```bash
-$ cortex get text-generator --watch
+cortex get text-generator --watch
 ```
 
 ## Stream logs
 
 ```bash
-$ cortex logs text-generator
+cortex logs text-generator
 ```
 
 ## Make a request
 
 ```bash
-$ curl http://***.elb.us-west-2.amazonaws.com/text-generator -X POST -H "Content-Type: application/json" -d '{"text": "hello world"}'
+curl http://***.elb.us-west-2.amazonaws.com/text-generator -X POST -H "Content-Type: application/json" -d '{"text": "hello world"}'
 ```
 
 ## Delete
 
 ```bash
-$ cortex delete text-generator
+cortex delete text-generator
 ```
