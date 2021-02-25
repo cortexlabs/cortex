@@ -83,6 +83,7 @@ def _create_default_scope(optional_tags: dict = {}) -> sentry_sdk.Scope:
     user_id = None
     client_id_file_path = pathlib.Path.home() / ".cortex" / "client-id.txt"
     if not client_id_file_path.is_file():
+        client_id_file_path.parent.mkdir(parents=True, exist_ok=True)
         client_id_file_path.write_text(str(uuid4()))
     user_id = client_id_file_path.read_text()
 
