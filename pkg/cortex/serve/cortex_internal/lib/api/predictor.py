@@ -31,13 +31,22 @@ from cortex_internal.lib.client.tensorflow import TensorFlowClient
 from cortex_internal.lib.exceptions import CortexException, UserException, UserRuntimeException
 from cortex_internal.lib.log import configure_logger
 from cortex_internal.lib.model import (
-    FileBasedModelsGC, TFSAPIServingThreadUpdater, ModelsGC, ModelTreeUpdater,
-    ModelsHolder, ModelsTree, validate_model_paths
+    FileBasedModelsGC,
+    TFSAPIServingThreadUpdater,
+    ModelsGC,
+    ModelTreeUpdater,
+    ModelsHolder,
+    ModelsTree,
+    validate_model_paths,
 )
 from cortex_internal.lib.storage import S3, GCS
 from cortex_internal.lib.type import (
-    predictor_type_from_api_spec, PredictorType, PythonPredictorType,
-    TensorFlowPredictorType, TensorFlowNeuronPredictorType, ONNXPredictorType
+    predictor_type_from_api_spec,
+    PredictorType,
+    PythonPredictorType,
+    TensorFlowPredictorType,
+    TensorFlowNeuronPredictorType,
+    ONNXPredictorType,
 )
 
 logger = configure_logger("cortex", os.environ["CORTEX_LOG_CONFIG_FILE"])
