@@ -31,6 +31,13 @@ var _instanceCategoryRegex = regexp.MustCompile(`[a-zA-Z]+`)
 var _standardInstanceCategories = strset.New("a", "c", "d", "h", "i", "m", "r", "t", "z")
 var _knownInstanceCategories = strset.Union(_standardInstanceCategories, strset.New("p", "g", "inf", "x", "f"))
 
+const (
+	_elasticIPsQuotaCode      = "L-0263D0A3"
+	_internetGatewayQuotaCode = "L-A4707A72"
+	_natGatewayQuotaCode      = "L-FE5A380F"
+	_vpcQuotaCode             = "L-F678F1CE"
+)
+
 func (c *Client) VerifyInstanceQuota(instanceType string, requiredOnDemandInstances int64, requiredSpotInstances int64) error {
 	if requiredOnDemandInstances == 0 && requiredSpotInstances == 0 {
 		return nil
@@ -106,12 +113,12 @@ func (c *Client) VerifyInstanceQuota(instanceType string, requiredOnDemandInstan
 
 func (c *Client) VerifyNetworkQuotas(requiredInternetGateways int, requiredNATGatewaysPerAZ int, highlyAvailableNATGateway bool, requiredVPCs int, availabilityZones strset.Set) error {
 	ec2QuotaCodeToValueMap := map[string]int{
-		"L-0263D0A3": 0, // elastic IP quota code
+		_elasticIPsQuotaCode: 0, // elastic IP quota code
 	}
 	vpcQuotaCodeToValueMap := map[string]int{
-		"L-A4707A72": 0, // internet gw quota code
-		"L-FE5A380F": 0, // nat gw quota code
-		"L-F678F1CE": 0, // vpc quota code
+		_internetGatewayQuotaCode: 0, // internet gw quota code
+		_natGatewayQuotaCode:      0, // nat gw quota code
+		_vpcQuotaCode:             0, // vpc quota code
 	}
 
 	err := c.ServiceQuotas().ListServiceQuotasPages(
@@ -212,7 +219,7 @@ func (c *Client) VerifyNetworkQuotas(requiredInternetGateways int, requiredNATGa
 	numOfExhaustedNATGatewayAZs := 0
 	greatestNATGatewayQuotaDeficit := 0
 	for _, numActiveGatewaysOnAZ := range azToGatewaysInUse {
-		azDeficit := vpcQuotaCodeToValueMap["L-FE5A380F"] - numActiveGatewaysOnAZ - requiredNATGatewaysPerAZ
+		azDeficit := vpcQuotaCodeToValueMap[_natGatewayQuotaCode] - numActiveGatewaysOnAZ - requiredNATGatewaysPerAZ
 		if azDeficit < 0 {
 			numOfExhaustedNATGatewayAZs += 1
 			if -azDeficit > greatestNATGatewayQuotaDeficit {
@@ -221,9 +228,9 @@ func (c *Client) VerifyNetworkQuotas(requiredInternetGateways int, requiredNATGa
 		}
 	}
 	if highlyAvailableNATGateway && numOfExhaustedNATGatewayAZs > 0 {
-		return ErrorNATGatewayLimitExceeded(vpcQuotaCodeToValueMap["L-FE5A380F"], greatestNATGatewayQuotaDeficit, c.Region)
+		return ErrorNATGatewayLimitExceeded(vpcQuotaCodeToValueMap[_natGatewayQuotaCode], greatestNATGatewayQuotaDeficit, c.Region)
 	} else if !highlyAvailableNATGateway && numOfExhaustedNATGatewayAZs == len(availabilityZones) {
-		return ErrorNATGatewayLimitExceededInAllAZs(vpcQuotaCodeToValueMap["L-FE5A380F"], greatestNATGatewayQuotaDeficit, c.Region)
+		return ErrorNATGatewayLimitExceededInAllAZs(vpcQuotaCodeToValueMap[_natGatewayQuotaCode], greatestNATGatewayQuotaDeficit, c.Region)
 	}
 
 	// check EIP quota
@@ -235,21 +242,21 @@ func (c *Client) VerifyNetworkQuotas(requiredInternetGateways int, requiredNATGa
 			requiredElasticIPs = 1
 		}
 	}
-	if ec2QuotaCodeToValueMap["L-0263D0A3"]-len(elasticIPsInUse)-requiredElasticIPs < 0 {
-		additionalQuotaRequired := -ec2QuotaCodeToValueMap["L-0263D0A3"] + len(elasticIPsInUse) + requiredElasticIPs
-		return ErrorEIPLimitExceeded(ec2QuotaCodeToValueMap["L-0263D0A3"], additionalQuotaRequired, c.Region)
+	if ec2QuotaCodeToValueMap[_elasticIPsQuotaCode]-len(elasticIPsInUse)-requiredElasticIPs < 0 {
+		additionalQuotaRequired := -ec2QuotaCodeToValueMap[_elasticIPsQuotaCode] + len(elasticIPsInUse) + requiredElasticIPs
+		return ErrorEIPLimitExceeded(ec2QuotaCodeToValueMap[_elasticIPsQuotaCode], additionalQuotaRequired, c.Region)
 	}
 
 	// check internet GW quota
-	if vpcQuotaCodeToValueMap["L-A4707A72"]-len(internetGatewaysInUse)-requiredInternetGateways < 0 {
-		additionalQuotaRequired := -vpcQuotaCodeToValueMap["L-A4707A72"] + len(internetGatewaysInUse) + requiredInternetGateways
-		return ErrorInternetGatewayLimitExceeded(vpcQuotaCodeToValueMap["L-A4707A72"], additionalQuotaRequired, c.Region)
+	if vpcQuotaCodeToValueMap[_internetGatewayQuotaCode]-len(internetGatewaysInUse)-requiredInternetGateways < 0 {
+		additionalQuotaRequired := -vpcQuotaCodeToValueMap[_internetGatewayQuotaCode] + len(internetGatewaysInUse) + requiredInternetGateways
+		return ErrorInternetGatewayLimitExceeded(vpcQuotaCodeToValueMap[_internetGatewayQuotaCode], additionalQuotaRequired, c.Region)
 	}
 
 	// check VPC quota
-	if vpcQuotaCodeToValueMap["L-F678F1CE"]-len(vpcs)-requiredVPCs < 0 {
-		additionalQuotaRequired := -vpcQuotaCodeToValueMap["L-F678F1CE"] + len(vpcs) + requiredVPCs
-		return ErrorVPCLimitExceeded(vpcQuotaCodeToValueMap["L-F678F1CE"], additionalQuotaRequired, c.Region)
+	if vpcQuotaCodeToValueMap[_vpcQuotaCode]-len(vpcs)-requiredVPCs < 0 {
+		additionalQuotaRequired := -vpcQuotaCodeToValueMap[_vpcQuotaCode] + len(vpcs) + requiredVPCs
+		return ErrorVPCLimitExceeded(vpcQuotaCodeToValueMap[_vpcQuotaCode], additionalQuotaRequired, c.Region)
 	}
 
 	return nil
