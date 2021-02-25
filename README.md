@@ -2,29 +2,25 @@
 
 <br>
 
-# Run inference at scale
-
-Cortex is an open source platform for large-scale machine learning inference workloads.
+[Website](https://www.cortex.dev) • [Slack](https://community.cortex.dev) • [Docs](https://docs.cortex.dev)
 
 <br>
 
-## Workloads
+# Model serving at scale
 
-### Realtime APIs - respond to prediction requests in real-time
+Cortex is a platform for deploying, managing, and scaling machine learning in production.
 
-* Deploy TensorFlow, PyTorch, and other models.
+<br>
+
+## Key features
+
+* Run realtime inference, batch inference, and training workloads.
+* Deploy TensorFlow, PyTorch, ONNX, and other models to production.
 * Scale to handle production workloads with server-side batching and request-based autoscaling.
 * Configure rolling updates and live model reloading to update APIs without downtime.
-* Serve many models efficiently with multi-model caching.
+* Serve models efficiently with multi-model caching and spot / preemptible instances.
+* Stream performance metrics and structured logs to any monitoring tool.
 * Perform A/B tests with configurable traffic splitting.
-* Stream performance metrics and structured logs to any monitoring tool.
-
-### Batch APIs - run distributed inference on large datasets
-
-* Deploy TensorFlow, PyTorch, and other models.
-* Configure the number of workers and the compute resources for each worker.
-* Recover from failures with automatic retries and dead letter queues.
-* Stream performance metrics and structured logs to any monitoring tool.
 
 <br>
 
@@ -77,10 +73,3 @@ $ cortex deploy text_generator.yaml
 ```bash
 $ curl http://example.com/text-generator -X POST -H "Content-Type: application/json" -d '{"text": "hello world"}'
 ```
-
-<br>
-
-## Get started
-
-* [Install Cortex](https://docs.cortex.dev)
-* [Join our community](https://join.slack.com/t/cortex-dot-dev/shared_invite/zt-lf58axgy-0QkLZzFSSku5_Jybd9yiZQ)

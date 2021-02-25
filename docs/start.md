@@ -3,7 +3,7 @@
 ## Install the CLI
 
 ```bash
-$ pip install cortex
+pip install cortex
 ```
 
 See [here](clients/install.md) for alternative installation options.
@@ -12,9 +12,8 @@ See [here](clients/install.md) for alternative installation options.
 
 * [Launch a Cortex cluster on your AWS account](clusters/aws/install.md)
 * [Launch a Cortex cluster on your GCP account](clusters/gcp/install.md)
-* [Install Cortex on your Kubernetes cluster](clusters/kubernetes/install.md)
 
-## Run inference workloads
+## Run machine learning workloads
 
 * [Realtime API](workloads/realtime/example.md)
 * [Batch API](workloads/batch/example.md)
