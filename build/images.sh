@@ -35,7 +35,6 @@ api_images_gcp=(
 )
 
 dev_images_cluster=(
-  "operator"
   "downloader"
   "manager"
   "request-monitor"
@@ -51,6 +50,7 @@ non_dev_images_cluster=(
   "tensorflow-serving-cpu"
   "tensorflow-serving-gpu"
   "cluster-autoscaler"
+  "operator"
   "istio-proxy"
   "istio-pilot"
   "fluent-bit"
