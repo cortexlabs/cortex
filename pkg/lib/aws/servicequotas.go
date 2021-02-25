@@ -17,7 +17,6 @@ limitations under the License.
 package aws
 
 import (
-	"fmt"
 	"regexp"
 	"strings"
 
@@ -167,14 +166,12 @@ func (c *Client) VerifyNetworkQuotas(requiredInternetGateways int, requiredNATGa
 	if err != nil {
 		return errors.WithStack(err)
 	}
-	fmt.Println("eips in use", elasticIPsInUse)
 
 	// get IGW in use
 	internetGatewaysInUse, err := c.ListInternetGateways()
 	if err != nil {
 		return errors.WithStack(err)
 	}
-	fmt.Println("igw in use", internetGatewaysInUse)
 
 	// get NAT GW in use per selected AZ
 	gateways, err := c.DescribeNATGateways()
@@ -210,7 +207,6 @@ func (c *Client) VerifyNetworkQuotas(requiredInternetGateways int, requiredNATGa
 	if err != nil {
 		return errors.WithStack(err)
 	}
-	fmt.Println("number of vpcs", len(vpcs))
 
 	// check NAT GW quota
 	numOfExhaustedNATGatewayAZs := 0
