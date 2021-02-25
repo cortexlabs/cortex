@@ -245,28 +245,20 @@ func (c *Client) ListElasticIPs() ([]string, error) {
 
 func (c *Client) ListInternetGateways() ([]string, error) {
 	gatewaysList := []string{}
-	var nextToken *string = nil
-
-	for {
-		gateways, err := c.EC2().DescribeInternetGateways(&ec2.DescribeInternetGatewaysInput{
-			NextToken: nextToken,
-		})
-		if err != nil {
-			return nil, errors.WithStack(err)
+	err := c.EC2().DescribeInternetGatewaysPages(&ec2.DescribeInternetGatewaysInput{}, func(output *ec2.DescribeInternetGatewaysOutput, lastPage bool) bool {
+		if output == nil {
+			return false
 		}
-
-		if gateways != nil {
-			for _, gateway := range gateways.InternetGateways {
-				if gateway != nil && gateway.InternetGatewayId != nil {
-					gatewaysList = append(gatewaysList, *gateway.InternetGatewayId)
-				}
+		for _, gateway := range output.InternetGateways {
+			if gateway != nil && gateway.InternetGatewayId != nil {
+				gatewaysList = append(gatewaysList, *gateway.InternetGatewayId)
 			}
 		}
 
-		if gateways.NextToken == nil {
-			break
-		}
-		nextToken = gateways.NextToken
+		return true
+	})
+	if err != nil {
+		return nil, errors.WithStack(err)
 	}
 
 	return gatewaysList, nil
