@@ -63,14 +63,14 @@ func ErrorHeaderMalformed(header string) error {
 func ErrorAuthAPIError() error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrAuthAPIError,
-		Message: "the operator is unable to verify user's credentials using AWS STS; export AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY, and run `cortex cluster configure` to update the operator's AWS credentials",
+		Message: "the operator is unable to verify user's credentials using AWS STS; run `aws sts get-caller-identity` to view the credentials being used by the cortex client",
 	})
 }
 
 func ErrorAuthInvalid() error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrAuthInvalid,
-		Message: "invalid AWS credentials; run `cortex env configure` to configure your environment with credentials for any IAM user in the same AWS account as your cluster",
+		Message: "invalid AWS credentials; run `aws sts get-caller-identity` to view the credentials being used by the cortex client",
 	})
 }
 

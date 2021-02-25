@@ -106,7 +106,7 @@ func main() {
 
 	routerWithAuth.Use(endpoints.PanicMiddleware)
 	if config.Provider == types.AWSProviderType {
-		routerWithAuth.Use(endpoints.AuthMiddleware)
+		routerWithAuth.Use(endpoints.AWSAuthMiddleware)
 	}
 	routerWithAuth.Use(endpoints.ClientIDMiddleware)
 	routerWithAuth.Use(endpoints.APIVersionCheckMiddleware)

@@ -70,11 +70,11 @@ func streamLogs(operatorConfig OperatorConfig, path string, qParams ...map[strin
 			return err
 		}
 
-		authHeader, err := awsClient.CreateGetCallerIdentitySignedArtifacts()
+		authHeader, err := awsClient.IdentityRequestAsHeader()
 		if err != nil {
 			return err
 		}
-		header.Set("Authorization", authHeader)
+		header.Set(consts.AuthHeader, authHeader)
 	}
 
 	var dialer = websocket.Dialer{

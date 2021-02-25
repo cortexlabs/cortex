@@ -313,10 +313,9 @@ func setConfigFieldsFromCached(userClusterConfig *clusterconfig.Config, cachedCl
 	}
 	userClusterConfig.CortexPolicyARN = cachedClusterConfig.CortexPolicyARN
 
-	if strset.New(cachedClusterConfig.IAMPolicyARNs...).IsEqual(strset.New(userClusterConfig.IAMPolicyARNs...)) {
+	if !strset.New(cachedClusterConfig.IAMPolicyARNs...).IsEqual(strset.New(userClusterConfig.IAMPolicyARNs...)) {
 		return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.IAMPolicyARNsKey, cachedClusterConfig.IAMPolicyARNs)
 	}
-
 	userClusterConfig.IAMPolicyARNs = cachedClusterConfig.IAMPolicyARNs
 
 	if userClusterConfig.InstanceVolumeSize != cachedClusterConfig.InstanceVolumeSize {

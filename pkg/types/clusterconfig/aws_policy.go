@@ -38,49 +38,45 @@ func DefaultPolicyARN(accountID string, clusterName string, region string) strin
 
 var _cortexPolicy = `
 {
-    "Version": "2012-10-17",
-    "Statement": [
-        {
-            "Action": [
-                "sts:GetCallerIdentity",
-                "ecr:GetAuthorizationToken",
-                "ecr:BatchGetImage",
-                "elasticloadbalancing:Describe*",
-				"sqs:ListQueues"
-            ],
-            "Effect": "Allow",
-            "Resource": "*"
-        },
+	"Version": "2012-10-17",
+	"Statement": [
 		{
-            "Effect": "Allow",
-            "Action": "sqs:*",
-            "Resource": "arn:aws:sqs:{{ .Region }}:{{ .AccountID }}:{{ .SQSPrefix }}*"
-        },
-        {
-            "Effect": "Allow",
-            "Action": "s3:*",
-            "Resource": "arn:aws:s3:::{{ .Bucket }}"
-        },
-        {
-            "Effect": "Allow",
-            "Action": "logs:PutLogEvents",
-            "Resource": "arn:aws:logs:{{ .Region }}:{{ .AccountID }}:log-group:{{ .LogGroup }}:*:*"
-        },
-        {
-            "Effect": "Allow",
-            "Action": [
-                "logs:CreateLogStream",
-                "logs:DescribeLogStreams",
-                "logs:PutLogEvents"
-            ],
-            "Resource": "arn:aws:logs:{{ .Region }}:{{ .AccountID }}:log-group:{{ .LogGroup }}:*"
-        },
-        {
-            "Effect": "Allow",
-            "Action": "logs:CreateLogGroup",
-            "Resource": "arn:aws:logs:{{ .Region }}:{{ .AccountID }}:log-group:{{ .LogGroup }}"
-        }
-    ]
+			"Action": [
+				"sts:GetCallerIdentity",
+				"ecr:GetAuthorizationToken",
+				"ecr:BatchGetImage",
+				"elasticloadbalancing:Describe*",
+				"sqs:ListQueues"
+			],
+			"Effect": "Allow",
+			"Resource": "*"
+		},
+		{
+			"Effect": "Allow",
+			"Action": "sqs:*",
+			"Resource": "arn:aws:sqs:{{ .Region }}:{{ .AccountID }}:{{ .SQSPrefix }}*"
+		},
+		{
+			"Effect": "Allow",
+			"Action": "s3:*",
+			"Resource": "arn:aws:s3:::{{ .Bucket }}"
+		},
+		{
+			"Effect": "Allow",
+			"Action": [
+				"logs:CreateLogStream",
+				"logs:DescribeLogStreams",
+				"logs:PutLogEvents",
+				"logs:CreateLogGroup"
+			],
+			"Resource": "arn:aws:logs:{{ .Region }}:{{ .AccountID }}:log-group:{{ .LogGroup }}:*"
+		},
+		{
+			"Effect": "Allow",
+			"Action": "logs:CreateLogGroup",
+			"Resource": "arn:aws:logs:{{ .Region }}:{{ .AccountID }}:log-group:{{ .LogGroup }}"
+		}
+	]
 }
 `
 
@@ -148,7 +144,7 @@ func AddNewPolicyVersion(awsClient *aws.Client, policyARN string, policyDocument
 	}
 
 	if len(policies.Versions) == 0 {
-		return nil
+		return errors.ErrorUnexpected("encountered a policy without any policy versions")
 	}
 
 	numPolicies := len(policies.Versions)

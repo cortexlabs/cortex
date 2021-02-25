@@ -28,7 +28,6 @@ const (
 	ErrEnvironmentNotConfigured        = "cliconfig.environment_not_configured"
 	ErrEnvironmentProviderNameConflict = "cliconfig.environment_provider_name_conflict"
 	ErrDuplicateEnvironmentNames       = "cliconfig.duplicate_environment_names"
-	ErrURLSchemeRequired               = "cliconfig.url_schema_required"
 )
 
 func ErrorEnvironmentNotConfigured(envName string) error {
@@ -49,12 +48,5 @@ func ErrorDuplicateEnvironmentNames(envName string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrDuplicateEnvironmentNames,
 		Message: fmt.Sprintf("duplicate environment names (%s is defined more than once)", s.UserStr(envName)),
-	})
-}
-
-func ErrorURLSchemeRequired() error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrURLSchemeRequired,
-		Message: "the specified url must specify http or https; if you've used `cortex cluster` command to spin up a cluster try prepending https:// to your operator endpoint",
 	})
 }

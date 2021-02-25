@@ -44,7 +44,6 @@ import (
 const (
 	// the s3 url should be used (rather than the cloudfront URL) to avoid caching
 	_cniSupportedInstancesURL = "https://cortex-public.s3-us-west-2.amazonaws.com/cli-assets/cni_supported_instances.txt"
-	_defaultIAMPolicy         = "arn:aws:iam::aws:policy/AmazonS3FullAccess"
 )
 
 var (
@@ -52,6 +51,7 @@ var (
 	_cachedCNISupportedInstances *string
 	// This regex is stricter than the actual S3 rules
 	_strictS3BucketRegex = regexp.MustCompile(`^([a-z0-9])+(-[a-z0-9]+)*$`)
+	_defaultIAMPolicies  = []string{"arn:aws:iam::aws:policy/AmazonS3FullAccess"}
 )
 
 type CoreConfig struct {
@@ -95,7 +95,6 @@ type ManagedConfig struct {
 	SpotConfig                 *SpotConfig        `json:"spot_config" yaml:"spot_config"`
 	AvailabilityZones          []string           `json:"availability_zones" yaml:"availability_zones"`
 	SSLCertificateARN          *string            `json:"ssl_certificate_arn,omitempty" yaml:"ssl_certificate_arn,omitempty"`
-	CortexPolicyARN            string             `json:"cortex_policy_arn" yaml:"cortex_policy_arn"`
 	IAMPolicyARNs              []string           `json:"iam_policy_arns" yaml:"iam_policy_arns"`
 	SubnetVisibility           SubnetVisibility   `json:"subnet_visibility" yaml:"subnet_visibility"`
 	Subnets                    []*Subnet          `json:"subnets,omitempty" yaml:"subnets,omitempty"`
@@ -103,6 +102,7 @@ type ManagedConfig struct {
 	APILoadBalancerScheme      LoadBalancerScheme `json:"api_load_balancer_scheme" yaml:"api_load_balancer_scheme"`
 	OperatorLoadBalancerScheme LoadBalancerScheme `json:"operator_load_balancer_scheme" yaml:"operator_load_balancer_scheme"`
 	VPCCIDR                    *string            `json:"vpc_cidr,omitempty" yaml:"vpc_cidr,omitempty"`
+	CortexPolicyARN            string             `json:"cortex_policy_arn" yaml:"cortex_policy_arn"` // this field is not user facing
 }
 
 type SpotConfig struct {
@@ -418,7 +418,7 @@ var ManagedConfigStructFieldValidations = []*cr.StructFieldValidation{
 	{
 		StructField: "IAMPolicyARNs",
 		StringListValidation: &cr.StringListValidation{
-			Default:           []string{_defaultIAMPolicy},
+			Default:           _defaultIAMPolicies,
 			AllowEmpty:        true,
 			AllowExplicitNull: true,
 		},
@@ -1463,8 +1463,8 @@ func (mc *ManagedConfig) TelemetryEvent() map[string]interface{} {
 
 	// CortexPolicyARN should be managed by cortex
 
-	if !strset.New(_defaultIAMPolicy).IsEqual(strset.New(mc.IAMPolicyARNs...)) {
-		event["iam_policy_arns._is_defined"] = true
+	if !strset.New(_defaultIAMPolicies...).IsEqual(strset.New(mc.IAMPolicyARNs...)) {
+		event["iam_policy_arns._is_custom"] = true
 	}
 	event["iam_policy_arns._len"] = len(mc.IAMPolicyARNs)
 

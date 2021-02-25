@@ -17,6 +17,7 @@ limitations under the License.
 package aws
 
 import (
+	"encoding/base64"
 	"encoding/xml"
 	"io/ioutil"
 	"net/http"
@@ -67,7 +68,7 @@ type awsRequest struct {
 	ContentLength int64
 }
 
-func (c *Client) CreateGetCallerIdentitySignedArtifacts() (string, error) {
+func (c *Client) IdentityRequestAsHeader() (string, error) {
 	req, _ := c.STS().GetCallerIdentityRequest(nil)
 
 	err := req.Sign()
@@ -93,12 +94,18 @@ func (c *Client) CreateGetCallerIdentitySignedArtifacts() (string, error) {
 		return "", err
 	}
 
-	return string(jsonSignedRequestArtifacts), nil
+	return base64.RawURLEncoding.EncodeToString(jsonSignedRequestArtifacts), nil
 }
 
-func VerifyCallerIdentitySignedRequest(jsonSignedRequestArtifacts string) (string, error) {
+// ExecuteIdentityRequestFromHeader executes identity request marshalled from header and returns account id if successful
+func ExecuteIdentityRequestFromHeader(indentityRequestheader string) (string, error) {
+	jsonObj, err := base64.RawURLEncoding.DecodeString(indentityRequestheader)
+	if err != nil {
+		return "", errors.WithStack(err)
+	}
+
 	signedRequestArtifacts := awsRequest{}
-	err := libjson.Unmarshal([]byte(jsonSignedRequestArtifacts), &signedRequestArtifacts)
+	err = libjson.Unmarshal(jsonObj, &signedRequestArtifacts)
 	if err != nil {
 		return "", err
 	}

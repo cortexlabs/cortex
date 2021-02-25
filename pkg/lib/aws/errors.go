@@ -103,13 +103,13 @@ func ErrorInvalidS3Path(provided string) error {
 	})
 }
 
-func ErrorUnexpectedMissingCredentials(awsAccessKeyID *string, awsSecretAccessKey *string) error {
+func ErrorUnexpectedMissingCredentials(awsAccessKeyID string, awsSecretAccessKey string) error {
 	var msg string
-	if awsAccessKeyID == nil && awsSecretAccessKey == nil {
+	if awsAccessKeyID == "" && awsSecretAccessKey == "" {
 		msg = "aws access key id and aws secret access key are missing"
-	} else if awsAccessKeyID == nil {
+	} else if awsAccessKeyID == "" {
 		msg = "aws access key id is missing"
-	} else if awsSecretAccessKey == nil {
+	} else if awsSecretAccessKey == "" {
 		msg = "aws secret access key is missing"
 	}
 
@@ -186,7 +186,7 @@ func ErrorDashboardHeightOutOfRange(height int) error {
 func ErrorRegionNotConfigured() error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrRegionNotConfigured,
-		Message: "aws region has not been configured; please set a default region (e.g. `export AWS_REGION=\"us-west-2\"`)",
+		Message: "aws region has not been configured; please set a default region (e.g. `export AWS_REGION=us-west-2`)",
 	})
 }
 

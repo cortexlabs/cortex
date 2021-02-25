@@ -37,9 +37,6 @@ type Client struct {
 
 func NewFromClientS3Path(s3Path string, awsClient *Client) (*Client, error) {
 	if !awsClient.IsAnonymous {
-		if awsClient.AccessKeyID() == nil || awsClient.SecretAccessKey() == nil {
-			return nil, ErrorUnexpectedMissingCredentials(awsClient.AccessKeyID(), awsClient.SecretAccessKey())
-		}
 		return NewFromS3Path(s3Path)
 	}
 
@@ -83,9 +80,13 @@ func NewForRegion(region string) (*Client, error) {
 		return nil, ErrorUnableToFindCredentials()
 	}
 
-	_, err = sess.Config.Credentials.Get()
+	creds, err := sess.Config.Credentials.Get()
 	if err != nil {
 		return nil, ErrorUnableToFindCredentials()
+	}
+
+	if creds.AccessKeyID == "" || creds.SecretAccessKey == "" {
+		return nil, ErrorUnexpectedMissingCredentials(creds.AccessKeyID, creds.SecretAccessKey)
 	}
 
 	return &Client{
@@ -107,9 +108,14 @@ func New() (*Client, error) {
 		return nil, ErrorUnableToFindCredentials()
 	}
 
-	_, err := sess.Config.Credentials.Get()
+	creds, err := sess.Config.Credentials.Get()
 	if err != nil {
 		return nil, ErrorUnableToFindCredentials()
+	}
+
+	// make sure that credential exists
+	if creds.AccessKeyID == "" || creds.SecretAccessKey == "" {
+		return nil, ErrorUnexpectedMissingCredentials(creds.AccessKeyID, creds.SecretAccessKey)
 	}
 
 	return &Client{

@@ -203,8 +203,8 @@ func runManagerWithClusterConfig(entrypoint string, clusterConfig *clusterconfig
 		},
 	}
 
-	if awsClient.SessionToken() != nil {
-		containerConfig.Env = append(containerConfig.Env, "AWS_SESSION_TOKEN="+*awsClient.SessionToken())
+	if sessionToken := awsClient.SessionToken(); sessionToken != nil {
+		containerConfig.Env = append(containerConfig.Env, "AWS_SESSION_TOKEN="+*sessionToken)
 	}
 
 	output, exitCode, err := runManager(containerConfig, false, copyToPaths, copyFromPaths)
@@ -302,8 +302,8 @@ func runManagerAccessCommand(entrypoint string, accessConfig clusterconfig.Acces
 		},
 	}
 
-	if awsClient.SessionToken() != nil {
-		containerConfig.Env = append(containerConfig.Env, "AWS_SESSION_TOKEN="+*awsClient.SessionToken())
+	if sessionToken := awsClient.SessionToken(); sessionToken != nil {
+		containerConfig.Env = append(containerConfig.Env, "AWS_SESSION_TOKEN="+*sessionToken)
 	}
 
 	output, exitCode, err := runManager(containerConfig, true, copyToPaths, copyFromPaths)

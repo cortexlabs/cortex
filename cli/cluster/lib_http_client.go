@@ -186,11 +186,11 @@ func makeOperatorRequest(operatorConfig OperatorConfig, request *http.Request) (
 			return nil, err
 		}
 
-		authHeader, err := awsClient.CreateGetCallerIdentitySignedArtifacts()
+		authHeader, err := awsClient.IdentityRequestAsHeader()
 		if err != nil {
 			return nil, err
 		}
-		request.Header.Set("Authorization", authHeader)
+		request.Header.Set(consts.AuthHeader, authHeader)
 	}
 
 	timeout := 600 * time.Second

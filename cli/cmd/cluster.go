@@ -499,10 +499,10 @@ var _clusterDownCmd = &cobra.Command{
 
 		// delete policy after spinning down the cluster (which deletes the roles) because policies can't be deleted if they are attached to roles
 		policyARN := clusterconfig.DefaultPolicyARN(accountID, *accessConfig.ClusterName, *accessConfig.Region)
-		fmt.Print(fmt.Sprintf("￮ deleting auto-generated iam policy %s ", policyARN))
+		fmt.Printf("￮ deleting auto-generated iam policy %s ", policyARN)
 		err = awsClient.DeletePolicy(policyARN)
 		if err != nil {
-			fmt.Print(fmt.Sprintf("\n\nfailed to delete auto-generated cortex policy %s; please delete the policy via the iam console: https://us-west-2.console.aws.amazon.com/iam/home#/policies", policyARN))
+			fmt.Printf("\n\nfailed to delete auto-generated cortex policy %s; please delete the policy via the iam console: https://us-west-2.console.aws.amazon.com/iam/home#/policies", policyARN)
 			errors.PrintError(err)
 			fmt.Println()
 		} else {
