@@ -175,7 +175,7 @@ def err_str(src_file, line_num, original_link_text, reason):
 
 
 def is_external_link(link):
-    return link.startswith("http://") or link.startswith("https://")
+    return (link.startswith("http://") or link.startswith("https://")) and not "localhost:" in link
 
 
 if __name__ == "__main__":
