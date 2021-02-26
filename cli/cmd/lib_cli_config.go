@@ -17,6 +17,7 @@ limitations under the License.
 package cmd
 
 import (
+	"crypto/tls"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -92,7 +93,7 @@ var _cliConfigValidation = &cr.StructValidation{
 							StructField: "OperatorEndpoint",
 							StringValidation: &cr.StringValidation{
 								Required:  true,
-								Validator: cr.GetURLValidator(true, false),
+								Validator: cliconfig.CortexEndpointValidator,
 							},
 						},
 					},
@@ -213,7 +214,7 @@ func promptEnv(env *cliconfig.Environment, defaults cliconfig.Environment) error
 
 // Only validate this during prompt, not when reading from file
 func validateOperatorEndpoint(endpoint string) (string, types.ProviderType, error) {
-	url, err := cr.GetURLValidator(true, false)(endpoint)
+	url, err := cliconfig.CortexEndpointValidator(endpoint)
 	if err != nil {
 		return "", types.UnknownProviderType, err
 	}
@@ -230,7 +231,11 @@ func validateOperatorEndpoint(endpoint string) (string, types.ProviderType, erro
 		return "", types.UnknownProviderType, errors.Wrap(err, "verifying operator endpoint", url)
 	}
 
-	client := http.Client{}
+	client := http.Client{
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+		},
+	}
 
 	response, err := client.Do(req)
 	if err != nil {
@@ -419,6 +424,7 @@ func MustGetOperatorConfig(envName string) cluster.OperatorConfig {
 		Telemetry: isTelemetryEnabled(),
 		ClientID:  clientID,
 		EnvName:   env.Name,
+		Provider:  env.Provider,
 	}
 
 	if env.OperatorEndpoint == "" {

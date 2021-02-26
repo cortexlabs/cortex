@@ -43,6 +43,7 @@ const (
 	DefaultRequestMonitorPortStr   = "15000"
 	DefaultRequestMonitorPortInt32 = int32(15000)
 	APIContainerName               = "api"
+	ServiceAccountName             = "default"
 )
 
 const (
@@ -1045,16 +1046,6 @@ func baseEnvVars() []kcore.EnvFromSource {
 				},
 			},
 		},
-	}
-
-	if config.Provider == types.AWSProviderType {
-		envVars = append(envVars, kcore.EnvFromSource{
-			SecretRef: &kcore.SecretEnvSource{
-				LocalObjectReference: kcore.LocalObjectReference{
-					Name: "aws-credentials",
-				},
-			},
-		})
 	}
 
 	return envVars

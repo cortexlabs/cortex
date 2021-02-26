@@ -84,7 +84,7 @@ func tensorflowAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.D
 				NodeSelector:       operator.NodeSelectors(),
 				Tolerations:        operator.Tolerations,
 				Volumes:            volumes,
-				ServiceAccountName: "default",
+				ServiceAccountName: operator.ServiceAccountName,
 			},
 		},
 	})
@@ -132,7 +132,7 @@ func pythonAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deplo
 				NodeSelector:       operator.NodeSelectors(),
 				Tolerations:        operator.Tolerations,
 				Volumes:            volumes,
-				ServiceAccountName: "default",
+				ServiceAccountName: operator.ServiceAccountName,
 			},
 		},
 	})
@@ -179,7 +179,7 @@ func onnxAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deploym
 				NodeSelector:                  operator.NodeSelectors(),
 				Tolerations:                   operator.Tolerations,
 				Volumes:                       volumes,
-				ServiceAccountName:            "default",
+				ServiceAccountName:            operator.ServiceAccountName,
 			},
 		},
 	})
