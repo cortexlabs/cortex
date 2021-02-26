@@ -37,6 +37,7 @@ from cortex_internal.lib.api.batching import DynamicBatcher
 from cortex_internal.lib.concurrency import FileLock, LockedFile
 from cortex_internal.lib.exceptions import UserRuntimeException
 from cortex_internal.lib.log import configure_logger
+from cortex_internal.lib.metrics import MetricsClient
 from cortex_internal.lib.telemetry import capture_exception, get_default_tags, init_sentry
 
 init_sentry(tags=get_default_tags())
@@ -294,8 +295,9 @@ def start_fn():
 
         with FileLock("/run/init_stagger.lock"):
             logger.info("loading the predictor from {}".format(api.predictor.path))
+            metrics_client = MetricsClient(api.statsd)
             predictor_impl = api.predictor.initialize_impl(
-                project_dir=project_dir, client=client, metrics_client=api.statsd
+                project_dir=project_dir, client=client, metrics_client=metrics_client
             )
 
         # crons only stop if an unhandled exception occurs

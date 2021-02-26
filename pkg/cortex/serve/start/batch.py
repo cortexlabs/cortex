@@ -30,6 +30,7 @@ from cortex_internal.lib.api import get_api, get_spec
 from cortex_internal.lib.concurrency import LockedFile
 from cortex_internal.lib.exceptions import UserException, UserRuntimeException
 from cortex_internal.lib.log import configure_logger
+from cortex_internal.lib.metrics import MetricsClient
 from cortex_internal.lib.storage import S3
 from cortex_internal.lib.telemetry import get_default_tags, init_sentry, capture_exception
 
@@ -331,8 +332,12 @@ def start():
 
     try:
         logger.info("loading the predictor from {}".format(api.predictor.path))
+        metrics_client = MetricsClient(api.statsd)
         predictor_impl = api.predictor.initialize_impl(
-            project_dir=project_dir, client=client, metrics_client=api.statsd, job_spec=job_spec
+            project_dir=project_dir,
+            client=client,
+            metrics_client=metrics_client,
+            job_spec=job_spec,
         )
     except (UserException, UserRuntimeException) as err:
         err.wrap(f"failed to start job {job_spec['job_id']}")
