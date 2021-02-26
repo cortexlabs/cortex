@@ -286,19 +286,6 @@ func (c *Client) DescribeNATGateways() ([]ec2.NatGateway, error) {
 	return gateways, nil
 }
 
-func SubnetIDsFromNATGateways(gateways []ec2.NatGateway) []string {
-	var subnetIDs []string
-
-	for _, gateway := range gateways {
-		if gateway.SubnetId == nil {
-			continue
-		}
-		subnetIDs = append(subnetIDs, *gateway.SubnetId)
-	}
-
-	return subnetIDs
-}
-
 func (c *Client) DescribeSubnets() ([]ec2.Subnet, error) {
 	var subnets []ec2.Subnet
 	err := c.EC2().DescribeSubnetsPages(&ec2.DescribeSubnetsInput{}, func(output *ec2.DescribeSubnetsOutput, lastPage bool) bool {

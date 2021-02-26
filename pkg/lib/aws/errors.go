@@ -28,27 +28,33 @@ import (
 )
 
 const (
-	ErrInvalidAWSCredentials           = "aws.invalid_aws_credentials"
-	ErrInvalidS3aPath                  = "aws.invalid_s3a_path"
-	ErrInvalidS3Path                   = "aws.invalid_s3_path"
-	ErrUnexpectedMissingCredentials    = "aws.unexpected_missing_credentials"
-	ErrAuth                            = "aws.auth"
-	ErrBucketInaccessible              = "aws.bucket_inaccessible"
-	ErrBucketNotFound                  = "aws.bucket_not_found"
-	ErrInsufficientInstanceQuota       = "aws.insufficient_instance_quota"
-	ErrNoValidSpotPrices               = "aws.no_valid_spot_prices"
-	ErrReadCredentials                 = "aws.read_credentials"
-	ErrECRExtractingCredentials        = "aws.ecr_failed_credentials"
-	ErrDashboardWidthOutOfRange        = "aws.dashboard_width_ouf_of_range"
-	ErrDashboardHeightOutOfRange       = "aws.dashboard_height_out_of_range"
-	ErrRegionNotConfigured             = "aws.region_not_configured"
-	ErrUnableToFindCredentials         = "aws.unable_to_find_credentials"
-	ErrNATGatewayLimitExceeded         = "aws.nat_gateway_limit_exceeded"
-	ErrNATGatewayLimitExceededInAllAZs = "aws.nat_gateway_limit_exceeded_in_all_azs"
-	ErrEIPLimitExceeded                = "aws.eip_limit_exceeded"
-	ErrInternetGatewayLimitExceeded    = "aws.internet_gateway_limit_exceeded"
-	ErrVPCLimitExceeded                = "aws.vpc_limit_exceeded"
+	ErrInvalidAWSCredentials        = "aws.invalid_aws_credentials"
+	ErrInvalidS3aPath               = "aws.invalid_s3a_path"
+	ErrInvalidS3Path                = "aws.invalid_s3_path"
+	ErrUnexpectedMissingCredentials = "aws.unexpected_missing_credentials"
+	ErrAuth                         = "aws.auth"
+	ErrBucketInaccessible           = "aws.bucket_inaccessible"
+	ErrBucketNotFound               = "aws.bucket_not_found"
+	ErrInsufficientInstanceQuota    = "aws.insufficient_instance_quota"
+	ErrNoValidSpotPrices            = "aws.no_valid_spot_prices"
+	ErrReadCredentials              = "aws.read_credentials"
+	ErrECRExtractingCredentials     = "aws.ecr_failed_credentials"
+	ErrDashboardWidthOutOfRange     = "aws.dashboard_width_ouf_of_range"
+	ErrDashboardHeightOutOfRange    = "aws.dashboard_height_out_of_range"
+	ErrRegionNotConfigured          = "aws.region_not_configured"
+	ErrUnableToFindCredentials      = "aws.unable_to_find_credentials"
+	ErrNATGatewayLimitExceeded      = "aws.nat_gateway_limit_exceeded"
+	ErrEIPLimitExceeded             = "aws.eip_limit_exceeded"
+	ErrInternetGatewayLimitExceeded = "aws.internet_gateway_limit_exceeded"
+	ErrVPCLimitExceeded             = "aws.vpc_limit_exceeded"
 )
+
+func IsAWSError(err error) bool {
+	if _, ok := errors.CauseOrSelf(err).(awserr.Error); ok {
+		return true
+	}
+	return false
+}
 
 func IsNotFoundErr(err error) bool {
 	return IsErrCode(err, "NotFound")
@@ -203,36 +209,33 @@ func ErrorUnableToFindCredentials() error {
 }
 
 func ErrorNATGatewayLimitExceeded(currentLimit, additionalQuotaRequired int, availabilityZones []string, region string) error {
+	url := fmt.Sprintf("https://console.aws.amazon.com/servicequotas/home?#!/services/vpc/quotas")
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrNATGatewayLimitExceeded,
-		Message: fmt.Sprintf("NAT gateway limit of %d exceeded in availability zones (%s) of region %s; increase the quota for NAT gateways by at least %d or remove some of the existing ones", currentLimit, s.StrsAnd(availabilityZones), region, additionalQuotaRequired),
-	})
-}
-
-func ErrorNATGatewayLimitExceededInAllAZs(currentLimit, additionalQuotaRequired int, region string) error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrNATGatewayLimitExceededInAllAZs,
-		Message: fmt.Sprintf("NAT gateway limit of %d exceeded in all availability zones of region %s; increase the quota for NAT gateways by at least %d or remove some of the existing ones", currentLimit, region, additionalQuotaRequired),
+		Message: fmt.Sprintf("NAT gateway limit of %d exceeded in availability zones (%s) of region %s; remove some of the existing NAT gateways or increase your quota for NAT gateways by at least %d here: %s (if your request was recently approved, please allow ~30 minutes for AWS to reflect this change)", currentLimit, s.StrsAnd(availabilityZones), region, additionalQuotaRequired, url),
 	})
 }
 
 func ErrorEIPLimitExceeded(currentLimit, additionalQuotaRequired int, region string) error {
+	url := fmt.Sprintf("https://console.aws.amazon.com/servicequotas/home?#!/services/ec2/quotas")
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrEIPLimitExceeded,
-		Message: fmt.Sprintf("elastic IPs limit of %d exceeded in region %s; increase the quota for elastic IPs by at least %d or remove some of the existing ones", currentLimit, region, additionalQuotaRequired),
+		Message: fmt.Sprintf("elastic IPs limit of %d exceeded in region %s; remove some of the existing elastic IPs or increase your quota for elastic IPs by at least %d here: %s (if your request was recently approved, please allow ~30 minutes for AWS to reflect this change)", currentLimit, region, additionalQuotaRequired, url),
 	})
 }
 
 func ErrorInternetGatewayLimitExceeded(currentLimit, additionalQuotaRequired int, region string) error {
+	url := fmt.Sprintf("https://console.aws.amazon.com/servicequotas/home?#!/services/vpc/quotas")
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrInternetGatewayLimitExceeded,
-		Message: fmt.Sprintf("internet gateway limit of %d exceeded in region %s; increase the quota for internet gateways by at least %d or remove some of the existing ones", currentLimit, region, additionalQuotaRequired),
+		Message: fmt.Sprintf("internet gateway limit of %d exceeded in region %s; remove some of the existing internet gateways or increase your quota for internet gateways by at least %d here: %s (if your request was recently approved, please allow ~30 minutes for AWS to reflect this change)", currentLimit, region, additionalQuotaRequired, url),
 	})
 }
 
 func ErrorVPCLimitExceeded(currentLimit, additionalQuotaRequired int, region string) error {
+	url := fmt.Sprintf("https://console.aws.amazon.com/servicequotas/home?#!/services/vpc/quotas")
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrVPCLimitExceeded,
-		Message: fmt.Sprintf("VPC limit of %d exceeded in region %s; increase the quota for VPCs by at least %d or remove some of the existing ones", currentLimit, region, additionalQuotaRequired),
+		Message: fmt.Sprintf("VPC limit of %d exceeded in region %s; remove some of the existing VPCs or increase your quota for VPCs by at least %d here: %s (if your request was recently approved, please allow ~30 minutes for AWS to reflect this change)", currentLimit, region, additionalQuotaRequired, url),
 	})
 }
