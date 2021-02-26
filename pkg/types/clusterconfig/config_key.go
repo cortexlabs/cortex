@@ -131,6 +131,6 @@ const (
 	ImagePrometheusOperatorUserKey             = "prometheus operator image"
 	ImagePrometheusStatsDExporterUserKey       = "prometheus statsd exporter image"
 	ImagePrometheusDCGMExporterUserKey         = "prometheus dcgm exporter image"
-	ImagePrometheusKubeStateMetricsUserKey     = "prometheus kube-state-metrics exporter image"
+	ImagePrometheusKubeStateMetricsUserKey     = "prometheus kube-state-metrics image"
 	ImageGrafanaUserKey                        = "grafana image"
 )
