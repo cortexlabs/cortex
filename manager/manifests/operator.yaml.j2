@@ -68,10 +68,6 @@ spec:
           envFrom:
             - configMapRef:
                 name: env-vars
-            {% if env['CORTEX_PROVIDER'] == "aws" %}
-            - secretRef:
-                name: aws-credentials
-            {% endif %}
           volumeMounts:
             - name: cluster-config
               mountPath: /configs/cluster

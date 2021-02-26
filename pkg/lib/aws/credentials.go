@@ -57,6 +57,23 @@ func (c *Client) SecretAccessKey() *string {
 	return &sessCreds.SecretAccessKey
 }
 
+func (c *Client) SessionToken() *string {
+	if c.sess.Config.Credentials == nil {
+		return nil
+	}
+
+	sessCreds, err := c.sess.Config.Credentials.Get()
+	if err != nil {
+		return nil
+	}
+
+	if sessCreds.SessionToken == "" {
+		return nil
+	}
+
+	return &sessCreds.SessionToken
+}
+
 func GetCredentialsFromCLIConfigFile() (string, string, error) {
 	creds := credentials.NewSharedCredentials("", "")
 	if creds == nil {
