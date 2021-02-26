@@ -418,8 +418,8 @@ func setConfigFieldsFromCached(userClusterConfig *clusterconfig.Config, cachedCl
 		return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.ImagePrometheusDCGMExporterKey, cachedClusterConfig.ImagePrometheusDCGMExporter)
 	}
 
-	if s.Obj(cachedClusterConfig.ImagePrometheusKubeStateMetricsExporter) != s.Obj(userClusterConfig.ImagePrometheusKubeStateMetricsExporter) {
-		return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.ImagePrometheusKubeStateMetricsExporterKey, cachedClusterConfig.ImagePrometheusKubeStateMetricsExporter)
+	if s.Obj(cachedClusterConfig.ImagePrometheusKubeStateMetrics) != s.Obj(userClusterConfig.ImagePrometheusKubeStateMetrics) {
+		return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.ImagePrometheusKubeStateMetricsKey, cachedClusterConfig.ImagePrometheusKubeStateMetrics)
 	}
 
 	if s.Obj(cachedClusterConfig.ImageGrafana) != s.Obj(userClusterConfig.ImageGrafana) {
@@ -740,8 +740,8 @@ func clusterConfigConfirmationStr(clusterConfig clusterconfig.Config, awsCreds A
 	if clusterConfig.ImagePrometheusDCGMExporter != defaultConfig.ImagePrometheusDCGMExporter {
 		items.Add(clusterconfig.ImagePrometheusDCGMExporterUserKey, clusterConfig.ImagePrometheusDCGMExporter)
 	}
-	if clusterConfig.ImagePrometheusKubeStateMetricsExporter != defaultConfig.ImagePrometheusKubeStateMetricsExporter {
-		items.Add(clusterconfig.ImagePrometheusKubeStateMetricsExporterUserKey, clusterConfig.ImagePrometheusKubeStateMetricsExporter)
+	if clusterConfig.ImagePrometheusKubeStateMetrics != defaultConfig.ImagePrometheusKubeStateMetrics {
+		items.Add(clusterconfig.ImagePrometheusKubeStateMetricsUserKey, clusterConfig.ImagePrometheusKubeStateMetrics)
 	}
 	if clusterConfig.ImageGrafana != defaultConfig.ImageGrafana {
 		items.Add(clusterconfig.ImageGrafanaUserKey, clusterConfig.ImageGrafana)

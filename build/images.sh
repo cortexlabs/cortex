@@ -59,7 +59,7 @@ non_dev_images_cluster=(
   "prometheus-operator"
   "prometheus-statsd-exporter"
   "prometheus-dcgm-exporter"
-  "prometheus-kube-state-metrics-exporter"
+  "prometheus-kube-state-metrics"
   "grafana"
 )
 non_dev_images_aws=(
