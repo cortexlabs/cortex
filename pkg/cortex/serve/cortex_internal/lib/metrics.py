@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 from typing import Dict
 
 from datadog import DogStatsd
@@ -19,12 +20,12 @@ from cortex_internal.lib.exceptions import UserException
 
 
 def validate_metric(fn):
-    def new_fn(metric: str, value: float, tags: Dict[str, str] = None):
+    def _metric_validation(self, metric: str, value: float, tags: Dict[str, str] = None):
         validate_metric_name(metric)
-        return fn(metric, value=value, tags=transform_tags(tags))
+        return fn(self, metric=metric, value=value, tags=transform_tags(tags))
 
-    new_fn.__name__ = fn.__name__
-    return new_fn
+    _metric_validation.__name__ = fn.__name__
+    return _metric_validation
 
 
 class MetricsClient:
