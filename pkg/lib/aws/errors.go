@@ -212,7 +212,7 @@ func ErrorNATGatewayLimitExceeded(currentLimit, additionalQuotaRequired int, ava
 	url := fmt.Sprintf("https://console.aws.amazon.com/servicequotas/home?#!/services/vpc/quotas")
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrNATGatewayLimitExceeded,
-		Message: fmt.Sprintf("NAT gateway limit of %d exceeded in availability zones (%s) of region %s; remove some of the existing NAT gateways or increase your quota for NAT gateways by at least %d here: %s (if your request was recently approved, please allow ~30 minutes for AWS to reflect this change)", currentLimit, s.StrsAnd(availabilityZones), region, additionalQuotaRequired, url),
+		Message: fmt.Sprintf("NAT gateway limit of %d exceeded in availability zones %s of region %s; remove some of the existing NAT gateways or increase your quota for NAT gateways by at least %d here: %s (if your request was recently approved, please allow ~30 minutes for AWS to reflect this change)", currentLimit, s.StrsAnd(availabilityZones), region, additionalQuotaRequired, url),
 	})
 }
 
