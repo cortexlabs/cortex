@@ -17,6 +17,8 @@ limitations under the License.
 package batchapi
 
 import (
+	"time"
+
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 	"github.com/cortexlabs/cortex/pkg/operator/operator"
 	"github.com/cortexlabs/cortex/pkg/operator/resources/job"
@@ -72,7 +74,7 @@ func getJobStatusFromJobState(jobState *job.State, k8sJob *kbatch.Job, pods []kc
 		}
 
 		if jobState.Status == status.JobRunning {
-			metrics, err := getBatchMetrics(jobKey)
+			metrics, err := getBatchMetrics(jobKey, time.Now())
 			if err != nil {
 				return nil, err
 			}
@@ -86,8 +88,8 @@ func getJobStatusFromJobState(jobState *job.State, k8sJob *kbatch.Job, pods []kc
 		}
 	}
 
-	if jobState.Status.IsCompleted() {
-		metrics, err := getBatchMetrics(jobKey)
+	if jobState.Status.IsCompleted() && jobState.EndTime != nil {
+		metrics, err := getBatchMetrics(jobKey, *jobState.EndTime)
 		if err != nil {
 			return nil, err
 		}
