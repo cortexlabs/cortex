@@ -160,7 +160,7 @@ func getClusterAccessConfigWithCache(disallowPrompt bool) (*clusterconfig.Access
 	return accessConfig, nil
 }
 
-func getInstallClusterConfig(awsClient *aws.Client, awsCreds AWSCredentials, accessConfig clusterconfig.AccessConfig, disallowPrompt bool) (*clusterconfig.Config, error) {
+func getInstallClusterConfig(awsClient *aws.Client, accessConfig clusterconfig.AccessConfig, disallowPrompt bool) (*clusterconfig.Config, error) {
 	clusterConfig := &clusterconfig.Config{}
 
 	err := clusterconfig.SetDefaults(clusterConfig)
@@ -199,12 +199,12 @@ func getInstallClusterConfig(awsClient *aws.Client, awsCreds AWSCredentials, acc
 		return nil, err
 	}
 
-	confirmInstallClusterConfig(clusterConfig, awsCreds, awsClient, disallowPrompt)
+	confirmInstallClusterConfig(clusterConfig, awsClient, disallowPrompt)
 
 	return clusterConfig, nil
 }
 
-func getConfigureClusterConfig(cachedClusterConfig clusterconfig.Config, awsCreds AWSCredentials, disallowPrompt bool) (*clusterconfig.Config, error) {
+func getConfigureClusterConfig(cachedClusterConfig clusterconfig.Config, disallowPrompt bool) (*clusterconfig.Config, error) {
 	userClusterConfig := &clusterconfig.Config{}
 	var awsClient *aws.Client
 
@@ -219,7 +219,7 @@ func getConfigureClusterConfig(cachedClusterConfig clusterconfig.Config, awsCred
 			return nil, err
 		}
 
-		awsClient, err = newAWSClient(*userClusterConfig.Region, awsCreds)
+		awsClient, err = newAWSClient(*userClusterConfig.Region)
 		if err != nil {
 			return nil, err
 		}
@@ -233,7 +233,7 @@ func getConfigureClusterConfig(cachedClusterConfig clusterconfig.Config, awsCred
 
 		userClusterConfig.ClusterName = cachedClusterConfig.ClusterName
 		userClusterConfig.Region = cachedClusterConfig.Region
-		awsClient, err = newAWSClient(*userClusterConfig.Region, awsCreds)
+		awsClient, err = newAWSClient(*userClusterConfig.Region)
 		if err != nil {
 			return nil, err
 		}
@@ -265,7 +265,7 @@ func getConfigureClusterConfig(cachedClusterConfig clusterconfig.Config, awsCred
 		return nil, err
 	}
 
-	confirmConfigureClusterConfig(*userClusterConfig, awsCreds, disallowPrompt)
+	confirmConfigureClusterConfig(*userClusterConfig, disallowPrompt)
 
 	return userClusterConfig, nil
 }
@@ -307,6 +307,16 @@ func setConfigFieldsFromCached(userClusterConfig *clusterconfig.Config, cachedCl
 		return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.SSLCertificateARNKey, cachedClusterConfig.SSLCertificateARN)
 	}
 	userClusterConfig.SSLCertificateARN = cachedClusterConfig.SSLCertificateARN
+
+	if cachedClusterConfig.CortexPolicyARN != userClusterConfig.CortexPolicyARN {
+		return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.CortexPolicyARNKey, cachedClusterConfig.CortexPolicyARN)
+	}
+	userClusterConfig.CortexPolicyARN = cachedClusterConfig.CortexPolicyARN
+
+	if !strset.New(cachedClusterConfig.IAMPolicyARNs...).IsEqual(strset.New(userClusterConfig.IAMPolicyARNs...)) {
+		return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.IAMPolicyARNsKey, cachedClusterConfig.IAMPolicyARNs)
+	}
+	userClusterConfig.IAMPolicyARNs = cachedClusterConfig.IAMPolicyARNs
 
 	if userClusterConfig.InstanceVolumeSize != cachedClusterConfig.InstanceVolumeSize {
 		return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.InstanceVolumeSizeKey, cachedClusterConfig.InstanceVolumeSize)
@@ -461,7 +471,7 @@ func setConfigFieldsFromCached(userClusterConfig *clusterconfig.Config, cachedCl
 	return nil
 }
 
-func confirmInstallClusterConfig(clusterConfig *clusterconfig.Config, awsCreds AWSCredentials, awsClient *aws.Client, disallowPrompt bool) {
+func confirmInstallClusterConfig(clusterConfig *clusterconfig.Config, awsClient *aws.Client, disallowPrompt bool) {
 	eksPrice := aws.EKSPrices[*clusterConfig.Region]
 	operatorInstancePrice := aws.InstanceMetadatas[*clusterConfig.Region]["t3.medium"].Price
 	operatorEBSPrice := aws.EBSMetadatas[*clusterConfig.Region]["gp2"].PriceGB * 20 / 30 / 24
@@ -484,8 +494,6 @@ func confirmInstallClusterConfig(clusterConfig *clusterconfig.Config, awsCreds A
 	fixedPrice := eksPrice + 2*operatorInstancePrice + operatorEBSPrice + metricsEBSPrice + 2*nlbPrice + natTotalPrice
 	totalMinPrice := fixedPrice + float64(*clusterConfig.MinInstances)*(apiInstancePrice+apiEBSPrice)
 	totalMaxPrice := fixedPrice + float64(*clusterConfig.MaxInstances)*(apiInstancePrice+apiEBSPrice)
-
-	fmt.Printf("aws access key id %s will be used to provision a cluster named \"%s\" in %s:\n\n", s.MaskString(awsCreds.AWSAccessKeyID, 4), clusterConfig.ClusterName, *clusterConfig.Region)
 
 	headers := []table.Header{
 		{Title: "aws resource"},
@@ -582,8 +590,8 @@ func confirmInstallClusterConfig(clusterConfig *clusterconfig.Config, awsCreds A
 	}
 }
 
-func confirmConfigureClusterConfig(clusterConfig clusterconfig.Config, awsCreds AWSCredentials, disallowPrompt bool) {
-	fmt.Println(clusterConfigConfirmationStr(clusterConfig, awsCreds))
+func confirmConfigureClusterConfig(clusterConfig clusterconfig.Config, disallowPrompt bool) {
+	fmt.Println(clusterConfigConfirmationStr(clusterConfig))
 
 	if !disallowPrompt {
 		exitMessage := fmt.Sprintf("cluster configuration can be modified via the cluster config file; see https://docs.cortex.dev/v/%s/ for more information", consts.CortexVersionMinor)
@@ -591,15 +599,11 @@ func confirmConfigureClusterConfig(clusterConfig clusterconfig.Config, awsCreds 
 	}
 }
 
-func clusterConfigConfirmationStr(clusterConfig clusterconfig.Config, awsCreds AWSCredentials) string {
+func clusterConfigConfirmationStr(clusterConfig clusterconfig.Config) string {
 	defaultConfig, _ := clusterconfig.GetDefaults()
 
 	var items table.KeyValuePairs
 
-	items.Add("aws access key id", s.MaskString(awsCreds.AWSAccessKeyID, 4))
-	if awsCreds.ClusterAWSAccessKeyID != awsCreds.AWSAccessKeyID {
-		items.Add("cluster aws access key id", s.MaskString(awsCreds.ClusterAWSAccessKeyID, 4))
-	}
 	items.Add(clusterconfig.RegionUserKey, clusterConfig.Region)
 	if len(clusterConfig.AvailabilityZones) > 0 {
 		items.Add(clusterconfig.AvailabilityZonesUserKey, clusterConfig.AvailabilityZones)
@@ -617,6 +621,9 @@ func clusterConfigConfirmationStr(clusterConfig clusterconfig.Config, awsCreds A
 	if clusterConfig.SSLCertificateARN != nil {
 		items.Add(clusterconfig.SSLCertificateARNUserKey, *clusterConfig.SSLCertificateARN)
 	}
+
+	items.Add(clusterconfig.CortexPolicyARNUserKey, clusterConfig.CortexPolicyARN)
+	items.Add(clusterconfig.IAMPolicyARNsUserKey, s.ObjFlatNoQuotes(clusterConfig.IAMPolicyARNs))
 
 	if clusterConfig.InstanceVolumeSize != defaultConfig.InstanceVolumeSize {
 		items.Add(clusterconfig.InstanceVolumeSizeUserKey, clusterConfig.InstanceVolumeSize)

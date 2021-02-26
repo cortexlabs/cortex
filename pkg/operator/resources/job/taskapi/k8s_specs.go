@@ -108,7 +108,7 @@ func k8sJobSpec(api *spec.API, job *spec.TaskJob) (*kbatch.Job, error) {
 				NodeSelector:       operator.NodeSelectors(),
 				Tolerations:        operator.Tolerations,
 				Volumes:            volumes,
-				ServiceAccountName: "default",
+				ServiceAccountName: operator.ServiceAccountName,
 			},
 		},
 	}), nil

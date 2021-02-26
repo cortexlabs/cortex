@@ -170,19 +170,12 @@ var _clusterUpCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
-		awsCreds, err := awsCredentialsForManagingCluster(*accessConfig, _flagClusterDisallowPrompt)
+		awsClient, err := newAWSClient(*accessConfig.Region)
 		if err != nil {
 			exit.Error(err)
 		}
 
-		awsClient, err := newAWSClient(*accessConfig.Region, awsCreds)
-		if err != nil {
-			exit.Error(err)
-		}
-
-		cacheAWSCredentials(awsCreds, *accessConfig)
-
-		clusterConfig, err := getInstallClusterConfig(awsClient, awsCreds, *accessConfig, _flagClusterDisallowPrompt)
+		clusterConfig, err := getInstallClusterConfig(awsClient, *accessConfig, _flagClusterDisallowPrompt)
 		if err != nil {
 			exit.Error(err)
 		}
@@ -207,7 +200,24 @@ var _clusterUpCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
-		out, exitCode, err := runManagerWithClusterConfig("/root/install.sh", clusterConfig, awsCreds, nil, nil)
+		accountID, _, err := awsClient.GetCachedAccountID()
+		if err != nil {
+			exit.Error(err)
+		}
+
+		err = clusterconfig.CreateDefaultPolicy(awsClient, clusterconfig.CortexPolicyTemplateArgs{
+			ClusterName: clusterConfig.ClusterName,
+			LogGroup:    clusterConfig.ClusterName,
+			Bucket:      clusterConfig.Bucket,
+			Region:      *clusterConfig.Region,
+			SQSPrefix:   clusterconfig.SQSNamePrefix(clusterConfig.ClusterName),
+			AccountID:   accountID,
+		})
+		if err != nil {
+			exit.Error(err)
+		}
+
+		out, exitCode, err := runManagerWithClusterConfig("/root/install.sh", clusterConfig, awsClient, nil, nil)
 		if err != nil {
 			exit.Error(err)
 		}
@@ -286,7 +296,7 @@ var _clusterUpCmd = &cobra.Command{
 		newEnvironment := cliconfig.Environment{
 			Name:             _flagClusterUpEnv,
 			Provider:         types.AWSProviderType,
-			OperatorEndpoint: "http://" + *loadBalancer.DNSName,
+			OperatorEndpoint: "https://" + *loadBalancer.DNSName,
 		}
 
 		err = addEnvToCLIConfig(newEnvironment, true)
@@ -325,17 +335,10 @@ var _clusterConfigureCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
-		awsCreds, err := awsCredentialsForManagingCluster(*accessConfig, _flagClusterDisallowPrompt)
+		awsClient, err := newAWSClient(*accessConfig.Region)
 		if err != nil {
 			exit.Error(err)
 		}
-
-		awsClient, err := newAWSClient(*accessConfig.Region, awsCreds)
-		if err != nil {
-			exit.Error(err)
-		}
-
-		cacheAWSCredentials(awsCreds, *accessConfig)
 
 		clusterState, err := clusterstate.GetClusterState(awsClient, accessConfig)
 		if err != nil {
@@ -347,14 +350,14 @@ var _clusterConfigureCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
-		cachedClusterConfig := refreshCachedClusterConfig(awsCreds, accessConfig, _flagClusterDisallowPrompt)
+		cachedClusterConfig := refreshCachedClusterConfig(*awsClient, accessConfig, _flagClusterDisallowPrompt)
 
-		clusterConfig, err := getConfigureClusterConfig(cachedClusterConfig, awsCreds, _flagClusterDisallowPrompt)
+		clusterConfig, err := getConfigureClusterConfig(cachedClusterConfig, _flagClusterDisallowPrompt)
 		if err != nil {
 			exit.Error(err)
 		}
 
-		out, exitCode, err := runManagerWithClusterConfig("/root/install.sh --update", clusterConfig, awsCreds, nil, nil)
+		out, exitCode, err := runManagerWithClusterConfig("/root/install.sh --update", clusterConfig, awsClient, nil, nil)
 		if err != nil {
 			exit.Error(err)
 		}
@@ -370,7 +373,7 @@ var _clusterConfigureCmd = &cobra.Command{
 			if err != nil {
 				exit.Error(errors.Append(err, fmt.Sprintf("\n\nyou can attempt to resolve this issue and configure your cli environment by running `cortex cluster info --configure-env %s`", _flagClusterConfigureEnv)))
 			}
-			operatorEndpoint := "http://" + *loadBalancer.DNSName
+			operatorEndpoint := "https://" + *loadBalancer.DNSName
 			err = updateAWSCLIEnv(_flagClusterConfigureEnv, operatorEndpoint, _flagClusterDisallowPrompt)
 			if err != nil {
 				exit.Error(errors.Append(err, fmt.Sprintf("\n\nyou can attempt to resolve this issue and configure your cli environment by running `cortex cluster info --configure-env %s`", _flagClusterConfigureEnv)))
@@ -402,17 +405,15 @@ var _clusterInfoCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
-		awsCreds, err := awsCredentialsForManagingCluster(*accessConfig, _flagClusterDisallowPrompt)
+		awsClient, err := newAWSClient(*accessConfig.Region)
 		if err != nil {
 			exit.Error(err)
 		}
 
-		cacheAWSCredentials(awsCreds, *accessConfig)
-
 		if _flagClusterInfoDebug {
-			cmdDebug(awsCreds, accessConfig)
+			cmdDebug(awsClient, accessConfig)
 		} else {
-			cmdInfo(awsCreds, accessConfig, _flagClusterDisallowPrompt)
+			cmdInfo(awsClient, accessConfig, _flagClusterDisallowPrompt)
 		}
 	},
 }
@@ -440,13 +441,13 @@ var _clusterDownCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
-		awsCreds, err := awsCredentialsForManagingCluster(*accessConfig, _flagClusterDisallowPrompt)
+		// Check AWS access
+		awsClient, err := newAWSClient(*accessConfig.Region)
 		if err != nil {
 			exit.Error(err)
 		}
 
-		// Check AWS access
-		awsClient, err := newAWSClient(*accessConfig.Region, awsCreds)
+		accountID, _, err := awsClient.GetCachedAccountID()
 		if err != nil {
 			exit.Error(err)
 		}
@@ -485,15 +486,27 @@ var _clusterDownCmd = &cobra.Command{
 			fmt.Println("✓")
 		}
 
-		fmt.Println("￮ spinning down the cluster ...")
-		out, exitCode, err := runManagerAccessCommand("/root/uninstall.sh", *accessConfig, awsCreds, nil, nil)
+		fmt.Print("￮ spinning down the cluster ...")
+		out, exitCode, err := runManagerAccessCommand("/root/uninstall.sh", *accessConfig, awsClient, nil, nil)
 		if err != nil {
-			exit.Error(err)
-		}
-		if exitCode == nil || *exitCode != 0 {
+			errors.PrintError(err)
+			fmt.Println()
+		} else if exitCode == nil || *exitCode != 0 {
 			helpStr := fmt.Sprintf("\nNote: if this error cannot be resolved, please ensure that all CloudFormation stacks for this cluster eventually become fully deleted (%s). If the stack deletion process has failed, please delete the stacks directly from the AWS console (this may require manually deleting particular AWS resources that are blocking the stack deletion)", clusterstate.CloudFormationURL(*accessConfig.ClusterName, *accessConfig.Region))
 			fmt.Println(helpStr)
 			exit.Error(ErrorClusterDown(out + helpStr))
+		}
+
+		// delete policy after spinning down the cluster (which deletes the roles) because policies can't be deleted if they are attached to roles
+		policyARN := clusterconfig.DefaultPolicyARN(accountID, *accessConfig.ClusterName, *accessConfig.Region)
+		fmt.Printf("￮ deleting auto-generated iam policy %s ", policyARN)
+		err = awsClient.DeletePolicy(policyARN)
+		if err != nil {
+			fmt.Printf("\n\nfailed to delete auto-generated cortex policy %s; please delete the policy via the iam console: https://us-west-2.console.aws.amazon.com/iam/home#/policies", policyARN)
+			errors.PrintError(err)
+			fmt.Println()
+		} else {
+			fmt.Println("✓")
 		}
 
 		// best-effort deletion of cli environment(s)
@@ -506,14 +519,14 @@ var _clusterDownCmd = &cobra.Command{
 						exit.Error(err)
 					}
 				}
-				fmt.Printf("✓ deleted the %s environment configuration%s\n", s.StrsAnd(envNames), s.SIfPlural(len(envNames)))
+				fmt.Printf("deleted the %s environment configuration%s\n", s.StrsAnd(envNames), s.SIfPlural(len(envNames)))
 				if isDefaultEnv {
 					newDefaultEnv, err := getDefaultEnv()
 					if err != nil {
 						exit.Error(err)
 					}
 					if newDefaultEnv != nil {
-						fmt.Println(fmt.Sprintf("✓ set the default environment to %s", *newDefaultEnv))
+						fmt.Println(fmt.Sprintf("set the default environment to %s", *newDefaultEnv))
 					}
 				}
 			}
@@ -523,7 +536,6 @@ var _clusterDownCmd = &cobra.Command{
 
 		cachedClusterConfigPath := cachedClusterConfigPath(*accessConfig.ClusterName, *accessConfig.Region)
 		os.Remove(cachedClusterConfigPath)
-		uncacheAWSCredentials(*accessConfig)
 	},
 }
 
@@ -546,13 +558,8 @@ var _clusterExportCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
-		awsCreds, err := awsCredentialsForManagingCluster(*accessConfig, _flagClusterDisallowPrompt)
-		if err != nil {
-			exit.Error(err)
-		}
-
 		// Check AWS access
-		awsClient, err := newAWSClient(*accessConfig.Region, awsCreds)
+		awsClient, err := newAWSClient(*accessConfig.Region)
 		if err != nil {
 			exit.Error(err)
 		}
@@ -576,7 +583,8 @@ var _clusterExportCmd = &cobra.Command{
 		operatorConfig := cluster.OperatorConfig{
 			Telemetry:        isTelemetryEnabled(),
 			ClientID:         clientID(),
-			OperatorEndpoint: "http://" + *loadBalancer.DNSName,
+			OperatorEndpoint: "https://" + *loadBalancer.DNSName,
+			Provider:         types.AWSProviderType,
 		}
 
 		info, err := cluster.Info(operatorConfig)
@@ -654,19 +662,14 @@ var _clusterExportCmd = &cobra.Command{
 	},
 }
 
-func cmdInfo(awsCreds AWSCredentials, accessConfig *clusterconfig.AccessConfig, disallowPrompt bool) {
-	awsClient, err := newAWSClient(*accessConfig.Region, awsCreds)
-	if err != nil {
-		exit.Error(err)
-	}
-
+func cmdInfo(awsClient *aws.Client, accessConfig *clusterconfig.AccessConfig, disallowPrompt bool) {
 	if err := printInfoClusterState(awsClient, accessConfig); err != nil {
 		exit.Error(err)
 	}
 
-	clusterConfig := refreshCachedClusterConfig(awsCreds, accessConfig, disallowPrompt)
+	clusterConfig := refreshCachedClusterConfig(*awsClient, accessConfig, disallowPrompt)
 
-	out, exitCode, err := runManagerWithClusterConfig("/root/info.sh", &clusterConfig, awsCreds, nil, nil)
+	out, exitCode, err := runManagerWithClusterConfig("/root/info.sh", &clusterConfig, awsClient, nil, nil)
 	if err != nil {
 		exit.Error(err)
 	}
@@ -680,7 +683,7 @@ func cmdInfo(awsCreds AWSCredentials, accessConfig *clusterconfig.AccessConfig, 
 	for _, line := range strings.Split(out, "\n") {
 		// before modifying this, search for this prefix
 		if strings.HasPrefix(line, "operator: ") {
-			operatorEndpoint = "http://" + strings.TrimSpace(strings.TrimPrefix(line, "operator: "))
+			operatorEndpoint = "https://" + strings.TrimSpace(strings.TrimPrefix(line, "operator: "))
 			break
 		}
 	}
@@ -723,6 +726,7 @@ func printInfoOperatorResponse(clusterConfig clusterconfig.Config, operatorEndpo
 		Telemetry:        isTelemetryEnabled(),
 		ClientID:         clientID(),
 		OperatorEndpoint: operatorEndpoint,
+		Provider:         types.AWSProviderType,
 	}
 
 	infoResponse, err := cluster.Info(operatorConfig)
@@ -905,7 +909,7 @@ func updateAWSCLIEnv(envName string, operatorEndpoint string, disallowPrompt boo
 	return nil
 }
 
-func cmdDebug(awsCreds AWSCredentials, accessConfig *clusterconfig.AccessConfig) {
+func cmdDebug(awsClient *aws.Client, accessConfig *clusterconfig.AccessConfig) {
 	// note: if modifying this string, also change it in files.IgnoreCortexDebug()
 	debugFileName := fmt.Sprintf("cortex-debug-%s.tgz", time.Now().UTC().Format("2006-01-02-15-04-05"))
 
@@ -917,7 +921,7 @@ func cmdDebug(awsCreds AWSCredentials, accessConfig *clusterconfig.AccessConfig)
 		},
 	}
 
-	out, exitCode, err := runManagerAccessCommand("/root/debug.sh "+containerDebugPath, *accessConfig, awsCreds, nil, copyFromPaths)
+	out, exitCode, err := runManagerAccessCommand("/root/debug.sh "+containerDebugPath, *accessConfig, awsClient, nil, copyFromPaths)
 	if err != nil {
 		exit.Error(err)
 	}
@@ -929,7 +933,7 @@ func cmdDebug(awsCreds AWSCredentials, accessConfig *clusterconfig.AccessConfig)
 	return
 }
 
-func refreshCachedClusterConfig(awsCreds AWSCredentials, accessConfig *clusterconfig.AccessConfig, disallowPrompt bool) clusterconfig.Config {
+func refreshCachedClusterConfig(awsClient aws.Client, accessConfig *clusterconfig.AccessConfig, disallowPrompt bool) clusterconfig.Config {
 	// add empty file if cached cluster doesn't exist so that the file output by manager container maintains current user permissions
 	cachedClusterConfigPath := cachedClusterConfigPath(*accessConfig.ClusterName, *accessConfig.Region)
 	containerConfigPath := fmt.Sprintf("/out/%s", filepath.Base(cachedClusterConfigPath))
@@ -942,7 +946,7 @@ func refreshCachedClusterConfig(awsCreds AWSCredentials, accessConfig *clusterco
 	}
 
 	fmt.Print("syncing cluster configuration ...\n\n")
-	out, exitCode, err := runManagerAccessCommand("/root/refresh.sh "+containerConfigPath, *accessConfig, awsCreds, nil, copyFromPaths)
+	out, exitCode, err := runManagerAccessCommand("/root/refresh.sh "+containerConfigPath, *accessConfig, &awsClient, nil, copyFromPaths)
 	if err != nil {
 		exit.Error(err)
 	}

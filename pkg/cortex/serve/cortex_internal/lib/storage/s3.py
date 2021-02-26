@@ -37,7 +37,11 @@ class S3:
         if region is not None:
             client_config["region_name"] = region
 
-        if not (os.getenv("AWS_ACCESS_KEY_ID") and os.getenv("AWS_SECRET_ACCESS_KEY")):
+        session = boto3.Session()
+        credentials = session.get_credentials()
+
+        # use anonymous client if credentials haven't been detected
+        if credentials is None:
             client_config["config"] = botocore.client.Config(signature_version=botocore.UNSIGNED)
 
         self.s3 = boto3.client("s3", **client_config)

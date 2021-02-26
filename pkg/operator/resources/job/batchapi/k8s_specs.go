@@ -89,7 +89,7 @@ func pythonPredictorJobSpec(api *spec.API, job *spec.BatchJob) (*kbatch.Job, err
 				NodeSelector:       operator.NodeSelectors(),
 				Tolerations:        operator.Tolerations,
 				Volumes:            volumes,
-				ServiceAccountName: "default",
+				ServiceAccountName: operator.ServiceAccountName,
 			},
 		},
 	}), nil
@@ -136,7 +136,7 @@ func tensorFlowPredictorJobSpec(api *spec.API, job *spec.BatchJob) (*kbatch.Job,
 				NodeSelector:       operator.NodeSelectors(),
 				Tolerations:        operator.Tolerations,
 				Volumes:            volumes,
-				ServiceAccountName: "default",
+				ServiceAccountName: operator.ServiceAccountName,
 			},
 		},
 	}), nil
@@ -184,7 +184,7 @@ func onnxPredictorJobSpec(api *spec.API, job *spec.BatchJob) (*kbatch.Job, error
 				NodeSelector:       operator.NodeSelectors(),
 				Tolerations:        operator.Tolerations,
 				Volumes:            volumes,
-				ServiceAccountName: "default",
+				ServiceAccountName: operator.ServiceAccountName,
 			},
 		},
 	}), nil

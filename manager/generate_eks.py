@@ -22,7 +22,17 @@ import yaml
 def default_nodegroup(cluster_config):
     return {
         "ami": "auto",
-        "iam": {"withAddonPolicies": {"autoScaler": True}},
+        "iam": {
+            "withAddonPolicies": {"autoScaler": True},
+            "attachPolicyARNs": [
+                "arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy",
+                "arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy",
+                "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly",
+                "arn:aws:iam::aws:policy/ElasticLoadBalancingFullAccess",
+                cluster_config["cortex_policy_arn"],
+            ]
+            + cluster_config.get("iam_policy_arns", []),
+        },
         "privateNetworking": cluster_config.get("subnet_visibility", "public") != "public",
         "kubeletExtraConfig": {
             "kubeReserved": {"cpu": "150m", "memory": "300Mi", "ephemeral-storage": "1Gi"},

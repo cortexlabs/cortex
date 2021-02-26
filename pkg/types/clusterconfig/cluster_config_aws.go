@@ -26,6 +26,7 @@ import (
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
@@ -34,6 +35,7 @@ import (
 	libmath "github.com/cortexlabs/cortex/pkg/lib/math"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/prompt"
+	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/table"
 	"github.com/cortexlabs/cortex/pkg/types"
@@ -49,6 +51,7 @@ var (
 	_cachedCNISupportedInstances *string
 	// This regex is stricter than the actual S3 rules
 	_strictS3BucketRegex = regexp.MustCompile(`^([a-z0-9])+(-[a-z0-9]+)*$`)
+	_defaultIAMPolicies  = []string{"arn:aws:iam::aws:policy/AmazonS3FullAccess"}
 )
 
 type CoreConfig struct {
@@ -92,12 +95,14 @@ type ManagedConfig struct {
 	SpotConfig                 *SpotConfig        `json:"spot_config" yaml:"spot_config"`
 	AvailabilityZones          []string           `json:"availability_zones" yaml:"availability_zones"`
 	SSLCertificateARN          *string            `json:"ssl_certificate_arn,omitempty" yaml:"ssl_certificate_arn,omitempty"`
+	IAMPolicyARNs              []string           `json:"iam_policy_arns" yaml:"iam_policy_arns"`
 	SubnetVisibility           SubnetVisibility   `json:"subnet_visibility" yaml:"subnet_visibility"`
 	Subnets                    []*Subnet          `json:"subnets,omitempty" yaml:"subnets,omitempty"`
 	NATGateway                 NATGateway         `json:"nat_gateway" yaml:"nat_gateway"`
 	APILoadBalancerScheme      LoadBalancerScheme `json:"api_load_balancer_scheme" yaml:"api_load_balancer_scheme"`
 	OperatorLoadBalancerScheme LoadBalancerScheme `json:"operator_load_balancer_scheme" yaml:"operator_load_balancer_scheme"`
 	VPCCIDR                    *string            `json:"vpc_cidr,omitempty" yaml:"vpc_cidr,omitempty"`
+	CortexPolicyARN            string             `json:"cortex_policy_arn" yaml:"cortex_policy_arn"` // this field is not user facing
 }
 
 type SpotConfig struct {
@@ -403,6 +408,22 @@ var ManagedConfigStructFieldValidations = []*cr.StructFieldValidation{
 		},
 	},
 	{
+		StructField: "CortexPolicyARN",
+		StringValidation: &cr.StringValidation{
+			Required:         false,
+			AllowEmpty:       true,
+			TreatNullAsEmpty: true,
+		},
+	},
+	{
+		StructField: "IAMPolicyARNs",
+		StringListValidation: &cr.StringListValidation{
+			Default:           _defaultIAMPolicies,
+			AllowEmpty:        true,
+			AllowExplicitNull: true,
+		},
+	},
+	{
 		StructField: "InstanceVolumeIOPS",
 		Int64PtrValidation: &cr.Int64PtrValidation{
 			GreaterThanOrEqualTo: pointer.Int64(100),
@@ -650,12 +671,12 @@ func (cc *Config) Validate(awsClient *aws.Client) error {
 		return ErrorNATRequiredWithPrivateSubnetVisibility()
 	}
 
-	if cc.Bucket == "" {
-		accountID, _, err := awsClient.GetCachedAccountID()
-		if err != nil {
-			return err
-		}
+	accountID, _, err := awsClient.GetCachedAccountID()
+	if err != nil {
+		return err
+	}
 
+	if cc.Bucket == "" {
 		bucketID := hash.String(accountID + *cc.Region)[:10]
 
 		defaultBucket := cc.ClusterName + "-" + bucketID
@@ -671,6 +692,20 @@ func (cc *Config) Validate(awsClient *aws.Client) error {
 		bucketRegion, _ := aws.GetBucketRegion(cc.Bucket)
 		if bucketRegion != "" && bucketRegion != *cc.Region { // if the bucket didn't exist, we will create it in the correct region, so there is no error
 			return ErrorS3RegionDiffersFromCluster(cc.Bucket, bucketRegion, *cc.Region)
+		}
+	}
+
+	cc.CortexPolicyARN = DefaultPolicyARN(accountID, cc.ClusterName, *cc.Region)
+
+	for _, policyARN := range cc.IAMPolicyARNs {
+		_, err := awsClient.IAM().GetPolicy(&iam.GetPolicyInput{
+			PolicyArn: pointer.String(policyARN),
+		})
+		if err != nil {
+			if aws.IsErrCode(err, iam.ErrCodeNoSuchEntityException) {
+				return errors.Wrap(ErrorIAMPolicyARNNotFound(policyARN), IAMPolicyARNsKey)
+			}
+			return errors.Wrap(err, IAMPolicyARNsKey)
 		}
 	}
 
@@ -1269,6 +1304,9 @@ func (mc *ManagedConfig) UserTable() table.KeyValuePairs {
 	if mc.SSLCertificateARN != nil {
 		items.Add(SSLCertificateARNUserKey, *mc.SSLCertificateARN)
 	}
+	items.Add(CortexPolicyARNUserKey, mc.CortexPolicyARN)
+	items.Add(IAMPolicyARNsUserKey, s.ObjFlatNoQuotes(mc.IAMPolicyARNs))
+
 	items.Add(InstanceVolumeSizeUserKey, mc.InstanceVolumeSize)
 	items.Add(InstanceVolumeTypeUserKey, mc.InstanceVolumeType)
 	items.Add(InstanceVolumeIOPSUserKey, mc.InstanceVolumeIOPS)
@@ -1422,6 +1460,13 @@ func (mc *ManagedConfig) TelemetryEvent() map[string]interface{} {
 	if mc.SSLCertificateARN != nil {
 		event["ssl_certificate_arn._is_defined"] = true
 	}
+
+	// CortexPolicyARN should be managed by cortex
+
+	if !strset.New(_defaultIAMPolicies...).IsEqual(strset.New(mc.IAMPolicyARNs...)) {
+		event["iam_policy_arns._is_custom"] = true
+	}
+	event["iam_policy_arns._len"] = len(mc.IAMPolicyARNs)
 
 	event["subnet_visibility"] = mc.SubnetVisibility
 	event["nat_gateway"] = mc.NATGateway

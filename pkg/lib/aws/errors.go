@@ -20,6 +20,7 @@ import (
 	"fmt"
 
 	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/sqs"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
@@ -40,6 +41,8 @@ const (
 	ErrECRExtractingCredentials     = "aws.ecr_failed_credentials"
 	ErrDashboardWidthOutOfRange     = "aws.dashboard_width_ouf_of_range"
 	ErrDashboardHeightOutOfRange    = "aws.dashboard_height_out_of_range"
+	ErrRegionNotConfigured          = "aws.region_not_configured"
+	ErrUnableToFindCredentials      = "aws.unable_to_find_credentials"
 )
 
 func IsNotFoundErr(err error) bool {
@@ -48,6 +51,10 @@ func IsNotFoundErr(err error) bool {
 
 func IsNoSuchKeyErr(err error) bool {
 	return IsErrCode(err, s3.ErrCodeNoSuchKey)
+}
+
+func IsNoSuchEntityErr(err error) bool {
+	return IsErrCode(err, iam.ErrCodeNoSuchEntityException)
 }
 
 func IsNoSuchBucketErr(err error) bool {
@@ -96,13 +103,13 @@ func ErrorInvalidS3Path(provided string) error {
 	})
 }
 
-func ErrorUnexpectedMissingCredentials(awsAccessKeyID *string, awsSecretAccessKey *string) error {
+func ErrorUnexpectedMissingCredentials(awsAccessKeyID string, awsSecretAccessKey string) error {
 	var msg string
-	if awsAccessKeyID == nil && awsSecretAccessKey == nil {
+	if awsAccessKeyID == "" && awsSecretAccessKey == "" {
 		msg = "aws access key id and aws secret access key are missing"
-	} else if awsAccessKeyID == nil {
+	} else if awsAccessKeyID == "" {
 		msg = "aws access key id is missing"
-	} else if awsSecretAccessKey == nil {
+	} else if awsSecretAccessKey == "" {
 		msg = "aws secret access key is missing"
 	}
 
@@ -173,5 +180,19 @@ func ErrorDashboardHeightOutOfRange(height int) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrDashboardHeightOutOfRange,
 		Message: fmt.Sprintf("dashboard height %d out of range; height must be between %d and %d", height, _dashboardMinHeightUnits, _dashboardMaxHeightUnits),
+	})
+}
+
+func ErrorRegionNotConfigured() error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrRegionNotConfigured,
+		Message: "aws region has not been configured; please set a default region (e.g. `export AWS_REGION=us-west-2`)",
+	})
+}
+
+func ErrorUnableToFindCredentials() error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrUnableToFindCredentials,
+		Message: "unable to find aws credentials; instructions about configuring aws credentials can be found at https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-quickstart.html",
 	})
 }
