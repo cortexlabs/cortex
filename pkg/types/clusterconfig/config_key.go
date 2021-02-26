@@ -77,6 +77,7 @@ const (
 	ImagePrometheusNodeExporterKey         = "image_prometheus_node_exporter"
 	ImageKubeRBACProxyKey                  = "image_kube_rbac_proxy"
 	ImageGrafanaKey                        = "image_grafana"
+	ImageEventExporterKey                  = "image_event_exporter"
 
 	// User facing string
 	ProviderUserKey                            = "provider"
@@ -138,4 +139,5 @@ const (
 	ImagePrometheusNodeExporterUserKey         = "prometheus node exporter image"
 	ImageKubeRBACProxyUserKey                  = "kube rbac proxy image"
 	ImageGrafanaUserKey                        = "grafana image"
+	ImageEventExporterUserKey                  = "event exporter image"
 )

@@ -64,6 +64,8 @@ data:
 
     @INCLUDE input-kubernetes.conf
     @INCLUDE filter-kubernetes.conf
+    @INCLUDE filter-k8s-events.conf
+    @INCLUDE filter-stackdriver-format.conf
     @INCLUDE output.conf
 
   input-kubernetes.conf: |
@@ -116,8 +118,49 @@ data:
         Match               k8s_container.*
         Remove_wildcard     k8s.
 
+  filter-k8s-events.conf: |
+    [FILTER]
+        Name                nest
+        Match               k8s_container.*.event-exporter-*
+        Operation           lift
+        Nested_under        involvedObject
+        Add_prefix          involvedObject.
+
+    [FILTER]
+        Name                modify
+        Match               k8s_container.*.event-exporter-*
+        Condition           Key_exists labels
+        Rename              labels k8s.labels
+
+    [FILTER]
+        Name                modify
+        Match               k8s_container.*.event-exporter-*
+        Condition           Key_exists involvedObject.labels
+        Hard_copy           involvedObject.labels labels
+
+    [FILTER]
+        Name                nest
+        Match               k8s_container.*.event-exporter-*
+        Operation           nest
+        Wildcard            involvedObject.*
+        Nest_under          involvedObject
+        Remove_prefix       involvedObject.
+
+  filter-stackdriver-format.conf: |
+    [FILTER]
+        Name                modify
+        Match               k8s_container.*
+        Condition           Key_exists log
+        Rename              log message
+
+    [FILTER]
+        Name                modify
+        Match               k8s_container.*
+        Condition           Key_exists levelname
+        Rename              levelname level
+
   output.conf: |
-    {% if env['CORTEX_PROVIDER'] == "aws" %}
+    {% if config['provider'] == "aws" %}
     [OUTPUT]
         Name              cloudwatch
         Match             k8s_container.*
@@ -127,13 +170,15 @@ data:
         auto_create_group true
     {% endif %}
 
-    {% if env['CORTEX_PROVIDER'] == "gcp" %}
+    {% if config['provider'] == "gcp" %}
     [OUTPUT]
         Name                  stackdriver
         Match                 k8s_container.*
         resource              k8s_container
         k8s_cluster_name      {{ config["cluster_name"] }}
         k8s_cluster_location  {{ config["zone"] }}
+        severity_key          level
+        labels_key            labels
     {% endif %}
 
   parsers.conf: |
@@ -173,7 +218,7 @@ spec:
               memory: 150Mi
           ports:
             - containerPort: 2020
-          {% if env['CORTEX_PROVIDER'] == "gcp" %}
+          {% if config['provider'] == "gcp" %}
           env:
             - name: GOOGLE_SERVICE_CREDENTIALS
               value: /var/secrets/google/key.json
@@ -186,7 +231,7 @@ spec:
               readOnly: true
             - name: fluent-bit-config
               mountPath: /fluent-bit/etc/
-            {% if env['CORTEX_PROVIDER'] == "gcp" %}
+            {% if config['provider'] == "gcp" %}
             - name: gcp-credentials
               mountPath: /var/secrets/google
             {% endif %}
@@ -201,7 +246,7 @@ spec:
         - name: fluent-bit-config
           configMap:
             name: fluent-bit-config
-        {% if env['CORTEX_PROVIDER'] == "gcp" %}
+        {% if config['provider'] == "gcp" %}
         - name: gcp-credentials
           secret:
             secretName: gcp-credentials
@@ -215,7 +260,7 @@ spec:
           effect: "NoExecute"
         - operator: "Exists"
           effect: "NoSchedule"
-        {% if env['CORTEX_PROVIDER'] == "aws" %}
+        {% if config['provider'] == "aws" %}
         - key: aws.amazon.com/neuron
           operator: Exists
           effect: NoSchedule

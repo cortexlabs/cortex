@@ -60,6 +60,7 @@ type GCPCoreConfig struct {
 	ImagePrometheusNodeExporter   string `json:"image_prometheus_node_exporter" yaml:"image_prometheus_node_exporter"`
 	ImageKubeRBACProxy            string `json:"image_kube_rbac_proxy" yaml:"image_kube_rbac_proxy"`
 	ImageGrafana                  string `json:"image_grafana" yaml:"image_grafana"`
+	ImageEventExporter            string `json:"image_event_exporter" yaml:"image_event_exporter"`
 }
 
 type GCPManagedConfig struct {
@@ -258,6 +259,13 @@ var GCPCoreConfigStructFieldValidations = []*cr.StructFieldValidation{
 		StructField: "ImageGrafana",
 		StringValidation: &cr.StringValidation{
 			Default:   "quay.io/cortexlabs/grafana:" + consts.CortexVersion,
+			Validator: validateImageVersion,
+		},
+	},
+	{
+		StructField: "ImageEventExporter",
+		StringValidation: &cr.StringValidation{
+			Default:   "quay.io/cortexlabs/event-exporter:" + consts.CortexVersion,
 			Validator: validateImageVersion,
 		},
 	},
@@ -692,6 +700,7 @@ func (cc *GCPCoreConfig) UserTable() table.KeyValuePairs {
 	items.Add(ImagePrometheusNodeExporterUserKey, cc.ImagePrometheusNodeExporter)
 	items.Add(ImageKubeRBACProxyUserKey, cc.ImageKubeRBACProxy)
 	items.Add(ImageGrafanaUserKey, cc.ImageGrafana)
+	items.Add(ImageEventExporterUserKey, cc.ImageEventExporter)
 
 	return items
 }
@@ -804,6 +813,9 @@ func (cc *GCPCoreConfig) TelemetryEvent() map[string]interface{} {
 	}
 	if strings.HasPrefix(cc.ImageGrafana, "cortexlabs/") {
 		event["image_grafana._is_custom"] = true
+	}
+	if strings.HasPrefix(cc.ImageEventExporter, "cortexlabs/") {
+		event["image_event_exporter._is_custom"] = true
 	}
 	return event
 }
