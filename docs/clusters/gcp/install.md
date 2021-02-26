@@ -83,4 +83,5 @@ image_prometheus_config_reloader: quay.io/cortexlabs/prometheus-config-reloader:
 image_prometheus_operator: quay.io/cortexlabs/prometheus-operator:master
 image_prometheus_statsd_exporter: quay.io/cortexlabs/prometheus-statsd-exporter:master
 image_grafana: quay.io/cortexlabs/grafana:master
+image_event_exporter: quay.io/cortexlabs/event-exporter:master
 ```

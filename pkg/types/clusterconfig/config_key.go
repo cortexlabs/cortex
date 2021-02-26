@@ -75,6 +75,7 @@ const (
 	ImagePrometheusOperatorKey             = "image_prometheus_operator"
 	ImagePrometheusStatsDExporterKey       = "image_prometheus_statsd_exporter"
 	ImageGrafanaKey                        = "image_grafana"
+	ImageEventExporterKey                  = "image_event_exporter"
 
 	// User facing string
 	ProviderUserKey                            = "provider"
@@ -134,4 +135,5 @@ const (
 	ImagePrometheusOperatorUserKey             = "prometheus operator image"
 	ImagePrometheusStatsDExporterUserKey       = "prometheus statsd exporter image"
 	ImageGrafanaUserKey                        = "grafana image"
+	ImageEventExporterUserKey                  = "event exporter image"
 )

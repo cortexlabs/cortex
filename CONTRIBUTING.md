@@ -194,6 +194,7 @@ image_prometheus_config_reloader: <account_id>.dkr.ecr.<region>.amazonaws.com/co
 image_prometheus_operator: <account_id>.dkr.ecr.<region>.amazonaws.com/cortexlabs/prometheus-operator:master
 image_prometheus_statsd_exporter: <account_id>.dkr.ecr.<region>.amazonaws.com/cortexlabs/prometheus-statsd-exporter:master
 image_grafana: <account_id>.dkr.ecr.<region>.amazonaws.com/cortexlabs/grafana:master
+image_event_exporter: <account_id>.dkr.ecr.<region>.amazonaws.com/cortexlabs/event-exporter:master
 ```
 
 Create `dev/config/cluster-gcp.yaml`. Paste the following config, and update `project`, `zone`, and all registry URLs (replace `<project_id>` with your project ID, and update `gcr.io` if you are using a different host):
@@ -222,6 +223,7 @@ image_prometheus_config_reloader: gcr.io/<project_id>/cortexlabs/prometheus-conf
 image_prometheus_operator: gcr.io/<project_id>/cortexlabs/prometheus-operator:master
 image_prometheus_statsd_exporter: gcr.io/<project_id>/cortexlabs/prometheus-statsd-exporter:master
 image_grafana: gcr.io/<project_id>/cortexlabs/grafana:master
+image_event_exporter: gcr.io/<project_id>/cortexlabs/event-exporter:master
 ```
 
 ### Building
