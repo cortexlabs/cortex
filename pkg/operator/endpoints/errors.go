@@ -30,6 +30,8 @@ const (
 	ErrHeaderMalformed        = "endpoints.header_malformed"
 	ErrAuthAPIError           = "endpoints.auth_api_error"
 	ErrFormFileMustBeProvided = "endpoints.form_file_must_be_provided"
+	ErrAuthInvalid            = "endpoints.auth_invalid"
+	ErrAuthOtherAccount       = "endpoints.auth_other_account"
 	ErrQueryParamRequired     = "endpoints.query_param_required"
 	ErrPathParamRequired      = "endpoints.path_param_required"
 	ErrAnyQueryParamRequired  = "endpoints.any_query_param_required"
@@ -61,7 +63,21 @@ func ErrorHeaderMalformed(header string) error {
 func ErrorAuthAPIError() error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrAuthAPIError,
-		Message: "the operator is unable to verify user's credentials using AWS STS; export AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY, and run `cortex cluster configure` to update the operator's AWS credentials",
+		Message: "the operator is unable to verify user's credentials using AWS STS; run `aws sts get-caller-identity` to view the credentials being used by the cortex client",
+	})
+}
+
+func ErrorAuthInvalid() error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrAuthInvalid,
+		Message: "invalid AWS credentials; run `aws sts get-caller-identity` to view the credentials being used by the cortex client",
+	})
+}
+
+func ErrorAuthOtherAccount() error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrAuthOtherAccount,
+		Message: "the AWS account associated with your CLI's AWS credentials differs from the AWS account associated with your cluster's AWS credentials; run `cortex env configure` to configure your environment with credentials for any IAM user in the same AWS account as your cluster",
 	})
 }
 

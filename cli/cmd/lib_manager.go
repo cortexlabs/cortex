@@ -31,6 +31,7 @@ import (
 	"github.com/cortexlabs/cortex/cli/lib/routines"
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/archive"
+	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/docker"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/exit"
@@ -159,7 +160,7 @@ func runManager(containerConfig *container.Config, addNewLineAfterPull bool, cop
 	return output, &info.State.ExitCode, nil
 }
 
-func runManagerWithClusterConfig(entrypoint string, clusterConfig *clusterconfig.Config, awsCreds AWSCredentials, copyToPaths []dockerCopyToPath, copyFromPaths []dockerCopyFromPath) (string, *int, error) {
+func runManagerWithClusterConfig(entrypoint string, clusterConfig *clusterconfig.Config, awsClient *aws.Client, copyToPaths []dockerCopyToPath, copyFromPaths []dockerCopyFromPath) (string, *int, error) {
 	clusterConfigBytes, err := yaml.Marshal(clusterConfig)
 	if err != nil {
 		return "", nil, errors.WithStack(err)
@@ -192,16 +193,18 @@ func runManagerWithClusterConfig(entrypoint string, clusterConfig *clusterconfig
 		AttachStderr: true,
 		Env: []string{
 			"CORTEX_PROVIDER=" + "aws",
-			"AWS_ACCESS_KEY_ID=" + awsCreds.AWSAccessKeyID,
-			"AWS_SECRET_ACCESS_KEY=" + awsCreds.AWSSecretAccessKey,
-			"CLUSTER_AWS_ACCESS_KEY_ID=" + awsCreds.ClusterAWSAccessKeyID,
-			"CLUSTER_AWS_SECRET_ACCESS_KEY=" + awsCreds.ClusterAWSSecretAccessKey,
+			"AWS_ACCESS_KEY_ID=" + *awsClient.AccessKeyID(),
+			"AWS_SECRET_ACCESS_KEY=" + *awsClient.SecretAccessKey(),
 			"CORTEX_TELEMETRY_DISABLE=" + os.Getenv("CORTEX_TELEMETRY_DISABLE"),
 			"CORTEX_TELEMETRY_SENTRY_DSN=" + os.Getenv("CORTEX_TELEMETRY_SENTRY_DSN"),
 			"CORTEX_TELEMETRY_SEGMENT_WRITE_KEY=" + os.Getenv("CORTEX_TELEMETRY_SEGMENT_WRITE_KEY"),
 			"CORTEX_DEV_DEFAULT_PREDICTOR_IMAGE_REGISTRY=" + os.Getenv("CORTEX_DEV_DEFAULT_PREDICTOR_IMAGE_REGISTRY_AWS"),
 			"CORTEX_CLUSTER_CONFIG_FILE=" + containerClusterConfigPath,
 		},
+	}
+
+	if sessionToken := awsClient.SessionToken(); sessionToken != nil {
+		containerConfig.Env = append(containerConfig.Env, "AWS_SESSION_TOKEN="+*sessionToken)
 	}
 
 	output, exitCode, err := runManager(containerConfig, false, copyToPaths, copyFromPaths)
@@ -279,7 +282,7 @@ func runGCPManagerWithClusterConfig(entrypoint string, clusterConfig *clustercon
 	return output, exitCode, nil
 }
 
-func runManagerAccessCommand(entrypoint string, accessConfig clusterconfig.AccessConfig, awsCreds AWSCredentials, copyToPaths []dockerCopyToPath, copyFromPaths []dockerCopyFromPath) (string, *int, error) {
+func runManagerAccessCommand(entrypoint string, accessConfig clusterconfig.AccessConfig, awsClient *aws.Client, copyToPaths []dockerCopyToPath, copyFromPaths []dockerCopyFromPath) (string, *int, error) {
 	containerConfig := &container.Config{
 		Image:        accessConfig.ImageManager,
 		Entrypoint:   []string{"/bin/bash", "-c"},
@@ -289,16 +292,18 @@ func runManagerAccessCommand(entrypoint string, accessConfig clusterconfig.Acces
 		AttachStderr: true,
 		Env: []string{
 			"CORTEX_PROVIDER=aws",
-			"AWS_ACCESS_KEY_ID=" + awsCreds.AWSAccessKeyID,
-			"AWS_SECRET_ACCESS_KEY=" + awsCreds.AWSSecretAccessKey,
-			"CLUSTER_AWS_ACCESS_KEY_ID=" + awsCreds.ClusterAWSAccessKeyID,
-			"CLUSTER_AWS_SECRET_ACCESS_KEY=" + awsCreds.ClusterAWSSecretAccessKey,
+			"AWS_ACCESS_KEY_ID=" + *awsClient.AccessKeyID(),
+			"AWS_SECRET_ACCESS_KEY=" + *awsClient.SecretAccessKey(),
 			"CORTEX_CLUSTER_NAME=" + *accessConfig.ClusterName,
 			"CORTEX_REGION=" + *accessConfig.Region,
 			"CORTEX_TELEMETRY_DISABLE=" + os.Getenv("CORTEX_TELEMETRY_DISABLE"),
 			"CORTEX_TELEMETRY_SENTRY_DSN=" + os.Getenv("CORTEX_TELEMETRY_SENTRY_DSN"),
 			"CORTEX_TELEMETRY_SEGMENT_WRITE_KEY=" + os.Getenv("CORTEX_TELEMETRY_SEGMENT_WRITE_KEY"),
 		},
+	}
+
+	if sessionToken := awsClient.SessionToken(); sessionToken != nil {
+		containerConfig.Env = append(containerConfig.Env, "AWS_SESSION_TOKEN="+*sessionToken)
 	}
 
 	output, exitCode, err := runManager(containerConfig, true, copyToPaths, copyFromPaths)

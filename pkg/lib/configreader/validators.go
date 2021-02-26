@@ -24,14 +24,11 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/docker"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
-	"github.com/cortexlabs/cortex/pkg/lib/urls"
 )
 
-var _portRe *regexp.Regexp
 var _emailRegex *regexp.Regexp
 
 func init() {
-	_portRe = regexp.MustCompile(`:[0-9]+$`)
 	_emailRegex = regexp.MustCompile("^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$")
 }
 
@@ -69,37 +66,6 @@ func EmailValidator(val string) (string, error) {
 	}
 
 	return val, nil
-}
-
-// uses https unless defaultHTTP == true
-func GetURLValidator(defaultHTTP bool, addPort bool) func(string) (string, error) {
-	return func(val string) (string, error) {
-		urlStr := strings.TrimSpace(val)
-
-		if !strings.HasPrefix(strings.ToLower(urlStr), "http") {
-			if defaultHTTP {
-				urlStr = "http://" + urlStr
-			} else {
-				urlStr = "https://" + urlStr
-			}
-		}
-
-		if addPort {
-			if !_portRe.MatchString(urlStr) {
-				if strings.HasPrefix(strings.ToLower(urlStr), "https") {
-					urlStr = urlStr + ":443"
-				} else {
-					urlStr = urlStr + ":80"
-				}
-			}
-		}
-
-		if _, err := urls.Parse(urlStr); err != nil {
-			return "", err
-		}
-
-		return urlStr, nil
-	}
 }
 
 type DurationValidation struct {

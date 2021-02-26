@@ -113,7 +113,7 @@ func Init() error {
 			instanceMetadata = &awsInstanceMetadata
 		}
 
-		AWS, err = aws.NewFromEnv(*CoreConfig.Region)
+		AWS, err = aws.NewForRegion(*CoreConfig.Region)
 		if err != nil {
 			return err
 		}

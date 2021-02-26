@@ -52,6 +52,7 @@ var (
 
 	DefaultMaxReplicaConcurrency = int64(1024)
 	NeuronCoresPerInf            = int64(4)
+	AuthHeader                   = "X-Cortex-Authorization"
 )
 
 func defaultRegistry() string {

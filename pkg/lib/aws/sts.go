@@ -17,7 +17,21 @@ limitations under the License.
 package aws
 
 import (
+	"encoding/base64"
+	"encoding/xml"
+	"io/ioutil"
+	"net/http"
+	"net/url"
+	"strings"
+
+	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/aws-sdk-go/aws/request"
+	"github.com/aws/aws-sdk-go/private/protocol/query"
+	"github.com/aws/aws-sdk-go/private/protocol/xml/xmlutil"
+	"github.com/aws/aws-sdk-go/service/sts"
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/hash"
+	libjson "github.com/cortexlabs/cortex/pkg/lib/json"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 )
 
@@ -43,4 +57,101 @@ func (c *Client) GetCachedAccountID() (string, string, error) {
 		}
 	}
 	return *c.accountID, *c.hashedAccountID, nil
+}
+
+type awsRequest struct {
+	Header        http.Header
+	URL           string
+	Method        string
+	Host          string
+	Body          string
+	ContentLength int64
+}
+
+func (c *Client) IdentityRequestAsHeader() (string, error) {
+	req, _ := c.STS().GetCallerIdentityRequest(nil)
+
+	err := req.Sign()
+	if err != nil {
+		return "", errors.WithStack(err)
+	}
+
+	reqBody, err := ioutil.ReadAll(req.HTTPRequest.Body)
+	if err != nil {
+		return "", errors.WithStack(err)
+	}
+
+	signedRequestArtifacts := awsRequest{
+		Header:        req.HTTPRequest.Header,
+		URL:           req.HTTPRequest.URL.String(),
+		Method:        req.HTTPRequest.Method,
+		Host:          req.HTTPRequest.Host,
+		Body:          string(reqBody),
+		ContentLength: req.HTTPRequest.ContentLength,
+	}
+	jsonSignedRequestArtifacts, err := libjson.Marshal(signedRequestArtifacts)
+	if err != nil {
+		return "", err
+	}
+
+	return base64.RawURLEncoding.EncodeToString(jsonSignedRequestArtifacts), nil
+}
+
+// ExecuteIdentityRequestFromHeader executes identity request marshalled from header and returns account id if successful
+func ExecuteIdentityRequestFromHeader(indentityRequestheader string) (string, error) {
+	jsonObj, err := base64.RawURLEncoding.DecodeString(indentityRequestheader)
+	if err != nil {
+		return "", errors.WithStack(err)
+	}
+
+	signedRequestArtifacts := awsRequest{}
+	err = libjson.Unmarshal(jsonObj, &signedRequestArtifacts)
+	if err != nil {
+		return "", err
+	}
+
+	httpClient := http.Client{}
+
+	url, err := url.Parse(signedRequestArtifacts.URL)
+	if err != nil {
+		return "", errors.WithStack(err)
+	}
+
+	req := http.Request{
+		Header:        signedRequestArtifacts.Header,
+		Method:        signedRequestArtifacts.Method,
+		URL:           url,
+		Body:          ioutil.NopCloser(strings.NewReader(signedRequestArtifacts.Body)),
+		ContentLength: signedRequestArtifacts.ContentLength,
+		Host:          signedRequestArtifacts.Host,
+	}
+
+	resp, err := httpClient.Do(&req)
+	if err != nil {
+		return "", errors.WithStack(err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode >= 400 {
+		awsReq := request.Request{HTTPResponse: resp}
+		query.UnmarshalError(&awsReq)
+		return "", errors.WithStack(awsReq.Error)
+	}
+
+	decoder := xml.NewDecoder(resp.Body)
+
+	result := sts.GetCallerIdentityOutput{}
+	err = xmlutil.UnmarshalXML(&result, decoder, "GetCallerIdentityResult")
+	if err != nil {
+		return "", awserr.NewRequestFailure(
+			awserr.New(request.ErrCodeSerialization, "failed decoding Query response", err),
+			resp.StatusCode,
+			resp.Header.Get("X-Amzn-Requestid"),
+		)
+	}
+	if result.Account == nil {
+		return "", errors.ErrorUnexpected("GetCallerIdentityResult xml parsing failed")
+	}
+
+	return *result.Account, nil
 }

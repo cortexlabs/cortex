@@ -19,6 +19,7 @@ package aws
 import (
 	"strings"
 
+	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 )
@@ -114,4 +115,34 @@ func (c *Client) IsAdmin() bool {
 	}
 
 	return false
+}
+
+// delete non default policy versions and then delete the policy (as required by aws)
+func (c *Client) DeletePolicy(policyARN string) error {
+	policyVersionList, err := c.IAM().ListPolicyVersions(&iam.ListPolicyVersionsInput{
+		PolicyArn: aws.String(policyARN),
+	})
+	if err != nil {
+		return errors.WithStack(err)
+	}
+
+	for _, policy := range policyVersionList.Versions {
+		if !*policy.IsDefaultVersion {
+			_, err = c.IAM().DeletePolicyVersion(&iam.DeletePolicyVersionInput{
+				PolicyArn: aws.String(policyARN),
+				VersionId: policy.VersionId,
+			})
+			if err != nil {
+				return errors.WithStack(err)
+			}
+		}
+	}
+
+	_, err = c.IAM().DeletePolicy(&iam.DeletePolicyInput{
+		PolicyArn: aws.String(policyARN),
+	})
+	if err != nil {
+		return errors.WithStack(err)
+	}
+	return nil
 }
