@@ -59,6 +59,7 @@ non_dev_images_cluster=(
   "prometheus-operator"
   "prometheus-statsd-exporter"
   "grafana"
+  "event-exporter"
 )
 non_dev_images_aws=(
   # includes non_dev_images_cluster

@@ -330,6 +330,13 @@ supported (<https://github.com/awslabs/amazon-eks-ami/issues/176>)
 1. Update the base image version in `images/grafana/Dockerfile`.
 1. Update `grafana.yaml` as necessary, if that's the case.
 
+## Event Exporter
+
+1. Find the latest release
+   on [GitHub](https://github.com/opsgenie/kubernetes-event-exporter).
+1. Update the base image version in `images/event-exporter/Dockerfile`.
+1. Update `event-exporter.yaml` as necessary, if that's the case.
+
 ## aws-iam-authenticator
 
 1. Find the latest release [here](https://docs.aws.amazon.com/eks/latest/userguide/install-aws-iam-authenticator.html)
