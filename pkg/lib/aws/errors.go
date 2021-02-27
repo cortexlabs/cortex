@@ -209,7 +209,7 @@ func ErrorUnableToFindCredentials() error {
 }
 
 func ErrorNATGatewayLimitExceeded(currentLimit, additionalQuotaRequired int, availabilityZones []string, region string) error {
-	url := fmt.Sprintf("https://console.aws.amazon.com/servicequotas/home?#!/services/vpc/quotas")
+	url := "https://console.aws.amazon.com/servicequotas/home?#!/services/vpc/quotas"
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrNATGatewayLimitExceeded,
 		Message: fmt.Sprintf("NAT gateway limit of %d exceeded in availability zones %s of region %s; remove some of the existing NAT gateways or increase your quota for NAT gateways by at least %d here: %s (if your request was recently approved, please allow ~30 minutes for AWS to reflect this change)", currentLimit, s.StrsAnd(availabilityZones), region, additionalQuotaRequired, url),
@@ -217,7 +217,7 @@ func ErrorNATGatewayLimitExceeded(currentLimit, additionalQuotaRequired int, ava
 }
 
 func ErrorEIPLimitExceeded(currentLimit, additionalQuotaRequired int, region string) error {
-	url := fmt.Sprintf("https://console.aws.amazon.com/servicequotas/home?#!/services/ec2/quotas")
+	url := "https://console.aws.amazon.com/servicequotas/home?#!/services/ec2/quotas"
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrEIPLimitExceeded,
 		Message: fmt.Sprintf("elastic IPs limit of %d exceeded in region %s; remove some of the existing elastic IPs or increase your quota for elastic IPs by at least %d here: %s (if your request was recently approved, please allow ~30 minutes for AWS to reflect this change)", currentLimit, region, additionalQuotaRequired, url),
@@ -225,7 +225,7 @@ func ErrorEIPLimitExceeded(currentLimit, additionalQuotaRequired int, region str
 }
 
 func ErrorInternetGatewayLimitExceeded(currentLimit, additionalQuotaRequired int, region string) error {
-	url := fmt.Sprintf("https://console.aws.amazon.com/servicequotas/home?#!/services/vpc/quotas")
+	url := "https://console.aws.amazon.com/servicequotas/home?#!/services/vpc/quotas"
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrInternetGatewayLimitExceeded,
 		Message: fmt.Sprintf("internet gateway limit of %d exceeded in region %s; remove some of the existing internet gateways or increase your quota for internet gateways by at least %d here: %s (if your request was recently approved, please allow ~30 minutes for AWS to reflect this change)", currentLimit, region, additionalQuotaRequired, url),
@@ -233,7 +233,7 @@ func ErrorInternetGatewayLimitExceeded(currentLimit, additionalQuotaRequired int
 }
 
 func ErrorVPCLimitExceeded(currentLimit, additionalQuotaRequired int, region string) error {
-	url := fmt.Sprintf("https://console.aws.amazon.com/servicequotas/home?#!/services/vpc/quotas")
+	url := "https://console.aws.amazon.com/servicequotas/home?#!/services/vpc/quotas"
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrVPCLimitExceeded,
 		Message: fmt.Sprintf("VPC limit of %d exceeded in region %s; remove some of the existing VPCs or increase your quota for VPCs by at least %d here: %s (if your request was recently approved, please allow ~30 minutes for AWS to reflect this change)", currentLimit, region, additionalQuotaRequired, url),
