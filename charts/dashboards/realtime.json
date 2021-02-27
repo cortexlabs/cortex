@@ -15,7 +15,7 @@
   "editable": true,
   "gnetId": null,
   "graphTooltip": 0,
-  "iteration": 1614294834014,
+  "iteration": 1614370501554,
   "links": [],
   "panels": [
     {
@@ -438,7 +438,7 @@
           "expr": "count(cortex_in_flight_requests{api_name=~\"$api_name\"}) by (api_name)",
           "interval": "",
           "legendFormat": "{{api_name}}",
-          "refId": "A"
+          "refId": "Active Replicas"
         }
       ],
       "thresholds": [],
@@ -2143,10 +2143,9 @@
       {
         "allValue": null,
         "current": {
-          "selected": true,
-          "tags": [],
-          "text": [],
-          "value": []
+          "selected": false,
+          "text": "None",
+          "value": "None"
         },
         "datasource": null,
         "definition": "label_values(cortex_in_flight_requests{api_kind=\"RealtimeAPI\"}, api_name)",
@@ -2182,5 +2181,5 @@
   "timezone": "",
   "title": "RealtimeAPI",
   "uid": "realtimeapi",
-  "version": 1
+  "version": 2
 }
