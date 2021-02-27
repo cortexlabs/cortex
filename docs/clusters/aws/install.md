@@ -111,4 +111,5 @@ image_prometheus_statsd_exporter: quay.io/cortexlabs/prometheus-statsd-exporter:
 image_prometheus_dcgm_exporter: quay.io/cortexlabs/prometheus-dcgm-exporter:master
 image_prometheus_kube_state_metrics_exporter: quay.io/cortexlabs/prometheus-kube-state-metrics-exporter:master
 image_grafana: quay.io/cortexlabs/grafana:master
+image_event_exporter: quay.io/cortexlabs/event-exporter:master
 ```

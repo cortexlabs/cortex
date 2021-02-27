@@ -436,6 +436,10 @@ func setConfigFieldsFromCached(userClusterConfig *clusterconfig.Config, cachedCl
 		return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.ImageGrafanaKey, cachedClusterConfig.ImageGrafana)
 	}
 
+	if s.Obj(cachedClusterConfig.ImageEventExporter) != s.Obj(userClusterConfig.ImageEventExporter) {
+		return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.ImageEventExporterKey, cachedClusterConfig.ImageEventExporter)
+	}
+
 	if userClusterConfig.Spot != nil && *userClusterConfig.Spot != *cachedClusterConfig.Spot {
 		return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.SpotKey, *cachedClusterConfig.Spot)
 	}

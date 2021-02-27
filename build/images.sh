@@ -61,6 +61,7 @@ non_dev_images_cluster=(
   "prometheus-dcgm-exporter"
   "prometheus-kube-state-metrics"
   "grafana"
+  "event-exporter"
 )
 non_dev_images_aws=(
   # includes non_dev_images_cluster

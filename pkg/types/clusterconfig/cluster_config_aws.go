@@ -83,6 +83,7 @@ type CoreConfig struct {
 	ImagePrometheusDCGMExporter     string `json:"image_prometheus_dcgm_exporter" yaml:"image_prometheus_dcgm_exporter"`
 	ImagePrometheusKubeStateMetrics string `json:"image_prometheus_kube_state_metrics" yaml:"image_prometheus_kube_state_metrics"`
 	ImageGrafana                    string `json:"image_grafana" yaml:"image_grafana"`
+	ImageEventExporter              string `json:"image_event_exporter" yaml:"image_event_exporter"`
 }
 
 type ManagedConfig struct {
@@ -351,6 +352,13 @@ var CoreConfigStructFieldValidations = []*cr.StructFieldValidation{
 		StructField: "ImageGrafana",
 		StringValidation: &cr.StringValidation{
 			Default:   "quay.io/cortexlabs/grafana:" + consts.CortexVersion,
+			Validator: validateImageVersion,
+		},
+	},
+	{
+		StructField: "ImageEventExporter",
+		StringValidation: &cr.StringValidation{
+			Default:   "quay.io/cortexlabs/event-exporter:" + consts.CortexVersion,
 			Validator: validateImageVersion,
 		},
 	},
@@ -1302,6 +1310,7 @@ func (cc *CoreConfig) UserTable() table.KeyValuePairs {
 	items.Add(ImagePrometheusDCGMExporterUserKey, cc.ImagePrometheusDCGMExporter)
 	items.Add(ImagePrometheusKubeStateMetricsUserKey, cc.ImagePrometheusKubeStateMetrics)
 	items.Add(ImageGrafanaUserKey, cc.ImageGrafana)
+	items.Add(ImageEventExporterUserKey, cc.ImageEventExporter)
 
 	return items
 }
@@ -1441,6 +1450,9 @@ func (cc *CoreConfig) TelemetryEvent() map[string]interface{} {
 	}
 	if strings.HasPrefix(cc.ImageGrafana, "cortexlabs/") {
 		event["image_grafana._is_custom"] = true
+	}
+	if strings.HasPrefix(cc.ImageEventExporter, "cortexlabs/") {
+		event["image_event_exporter._is_custom"] = true
 	}
 
 	return event

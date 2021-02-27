@@ -52,12 +52,13 @@ func tensorflowAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.D
 		MaxSurge:       pointer.String(api.UpdateStrategy.MaxSurge),
 		MaxUnavailable: pointer.String(api.UpdateStrategy.MaxUnavailable),
 		Labels: map[string]string{
-			"apiName":      api.Name,
-			"apiKind":      api.Kind.String(),
-			"apiID":        api.ID,
-			"specID":       api.SpecID,
-			"deploymentID": api.DeploymentID,
-			"predictorID":  api.PredictorID,
+			"apiName":        api.Name,
+			"apiKind":        api.Kind.String(),
+			"apiID":          api.ID,
+			"specID":         api.SpecID,
+			"deploymentID":   api.DeploymentID,
+			"predictorID":    api.PredictorID,
+			"cortex.dev/api": "true",
 		},
 		Annotations: api.ToK8sAnnotations(),
 		Selector: map[string]string{
@@ -66,10 +67,11 @@ func tensorflowAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.D
 		},
 		PodSpec: k8s.PodSpec{
 			Labels: map[string]string{
-				"apiName":      api.Name,
-				"apiKind":      api.Kind.String(),
-				"deploymentID": api.DeploymentID,
-				"predictorID":  api.PredictorID,
+				"apiName":        api.Name,
+				"apiKind":        api.Kind.String(),
+				"deploymentID":   api.DeploymentID,
+				"predictorID":    api.PredictorID,
+				"cortex.dev/api": "true",
 			},
 			Annotations: map[string]string{
 				"traffic.sidecar.istio.io/excludeOutboundIPRanges": "0.0.0.0/0",
@@ -100,12 +102,13 @@ func pythonAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deplo
 		MaxSurge:       pointer.String(api.UpdateStrategy.MaxSurge),
 		MaxUnavailable: pointer.String(api.UpdateStrategy.MaxUnavailable),
 		Labels: map[string]string{
-			"apiName":      api.Name,
-			"apiKind":      api.Kind.String(),
-			"apiID":        api.ID,
-			"specID":       api.SpecID,
-			"deploymentID": api.DeploymentID,
-			"predictorID":  api.PredictorID,
+			"apiName":        api.Name,
+			"apiKind":        api.Kind.String(),
+			"apiID":          api.ID,
+			"specID":         api.SpecID,
+			"deploymentID":   api.DeploymentID,
+			"predictorID":    api.PredictorID,
+			"cortex.dev/api": "true",
 		},
 		Annotations: api.ToK8sAnnotations(),
 		Selector: map[string]string{
@@ -114,10 +117,11 @@ func pythonAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deplo
 		},
 		PodSpec: k8s.PodSpec{
 			Labels: map[string]string{
-				"apiName":      api.Name,
-				"apiKind":      api.Kind.String(),
-				"deploymentID": api.DeploymentID,
-				"predictorID":  api.PredictorID,
+				"apiName":        api.Name,
+				"apiKind":        api.Kind.String(),
+				"deploymentID":   api.DeploymentID,
+				"predictorID":    api.PredictorID,
+				"cortex.dev/api": "true",
 			},
 			Annotations: map[string]string{
 				"traffic.sidecar.istio.io/excludeOutboundIPRanges": "0.0.0.0/0",
@@ -148,12 +152,13 @@ func onnxAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deploym
 		MaxSurge:       pointer.String(api.UpdateStrategy.MaxSurge),
 		MaxUnavailable: pointer.String(api.UpdateStrategy.MaxUnavailable),
 		Labels: map[string]string{
-			"apiName":      api.Name,
-			"apiKind":      api.Kind.String(),
-			"apiID":        api.ID,
-			"specID":       api.SpecID,
-			"deploymentID": api.DeploymentID,
-			"predictorID":  api.PredictorID,
+			"apiName":        api.Name,
+			"apiKind":        api.Kind.String(),
+			"apiID":          api.ID,
+			"specID":         api.SpecID,
+			"deploymentID":   api.DeploymentID,
+			"predictorID":    api.PredictorID,
+			"cortex.dev/api": "true",
 		},
 		Annotations: api.ToK8sAnnotations(),
 		Selector: map[string]string{
@@ -162,10 +167,11 @@ func onnxAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deploym
 		},
 		PodSpec: k8s.PodSpec{
 			Labels: map[string]string{
-				"apiName":      api.Name,
-				"apiKind":      api.Kind.String(),
-				"deploymentID": api.DeploymentID,
-				"predictorID":  api.PredictorID,
+				"apiName":        api.Name,
+				"apiKind":        api.Kind.String(),
+				"deploymentID":   api.DeploymentID,
+				"predictorID":    api.PredictorID,
+				"cortex.dev/api": "true",
 			},
 			Annotations: map[string]string{
 				"traffic.sidecar.istio.io/excludeOutboundIPRanges": "0.0.0.0/0",
@@ -192,8 +198,9 @@ func serviceSpec(api *spec.API) *kcore.Service {
 		TargetPort:  operator.DefaultPortInt32,
 		Annotations: api.ToK8sAnnotations(),
 		Labels: map[string]string{
-			"apiName": api.Name,
-			"apiKind": api.Kind.String(),
+			"apiName":        api.Name,
+			"apiKind":        api.Kind.String(),
+			"cortex.dev/api": "true",
 		},
 		Selector: map[string]string{
 			"apiName": api.Name,
@@ -215,12 +222,13 @@ func virtualServiceSpec(api *spec.API) *istioclientnetworking.VirtualService {
 		Rewrite:     pointer.String("predict"),
 		Annotations: api.ToK8sAnnotations(),
 		Labels: map[string]string{
-			"apiName":      api.Name,
-			"apiKind":      api.Kind.String(),
-			"apiID":        api.ID,
-			"specID":       api.SpecID,
-			"deploymentID": api.DeploymentID,
-			"predictorID":  api.PredictorID,
+			"apiName":        api.Name,
+			"apiKind":        api.Kind.String(),
+			"apiID":          api.ID,
+			"specID":         api.SpecID,
+			"deploymentID":   api.DeploymentID,
+			"predictorID":    api.PredictorID,
+			"cortex.dev/api": "true",
 		},
 	})
 }

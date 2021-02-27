@@ -76,6 +76,7 @@ const (
 	ImagePrometheusDCGMExporterKey         = "image_prometheus_dcgm_exporter"
 	ImagePrometheusKubeStateMetricsKey     = "image_prometheus_kube_state_metrics"
 	ImageGrafanaKey                        = "image_grafana"
+	ImageEventExporterKey                  = "image_event_exporter"
 
 	// User facing string
 	ProviderUserKey                            = "provider"
@@ -137,4 +138,5 @@ const (
 	ImagePrometheusDCGMExporterUserKey         = "prometheus dcgm exporter image"
 	ImagePrometheusKubeStateMetricsUserKey     = "prometheus kube-state-metrics image"
 	ImageGrafanaUserKey                        = "grafana image"
+	ImageEventExporterUserKey                  = "event exporter image"
 )
