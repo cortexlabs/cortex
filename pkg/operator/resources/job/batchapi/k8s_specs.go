@@ -81,6 +81,7 @@ func pythonPredictorJobSpec(api *spec.API, job *spec.BatchJob) (*kbatch.Job, err
 			},
 			Annotations: map[string]string{
 				"traffic.sidecar.istio.io/excludeOutboundIPRanges": "0.0.0.0/0",
+				"cluster-autoscaler.kubernetes.io/safe-to-evict":   "false",
 			},
 			K8sPodSpec: kcore.PodSpec{
 				RestartPolicy: "Never",
@@ -130,6 +131,7 @@ func tensorFlowPredictorJobSpec(api *spec.API, job *spec.BatchJob) (*kbatch.Job,
 			},
 			Annotations: map[string]string{
 				"traffic.sidecar.istio.io/excludeOutboundIPRanges": "0.0.0.0/0",
+				"cluster-autoscaler.kubernetes.io/safe-to-evict":   "false",
 			},
 			K8sPodSpec: kcore.PodSpec{
 				RestartPolicy: "Never",
@@ -180,6 +182,7 @@ func onnxPredictorJobSpec(api *spec.API, job *spec.BatchJob) (*kbatch.Job, error
 			},
 			Annotations: map[string]string{
 				"traffic.sidecar.istio.io/excludeOutboundIPRanges": "0.0.0.0/0",
+				"cluster-autoscaler.kubernetes.io/safe-to-evict":   "false",
 			},
 			K8sPodSpec: kcore.PodSpec{
 				RestartPolicy: "Never",
