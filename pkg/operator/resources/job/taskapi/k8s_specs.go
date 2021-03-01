@@ -109,6 +109,7 @@ func k8sJobSpec(api *spec.API, job *spec.TaskJob) (*kbatch.Job, error) {
 			},
 			Annotations: map[string]string{
 				"traffic.sidecar.istio.io/excludeOutboundIPRanges": "0.0.0.0/0",
+				"cluster-autoscaler.kubernetes.io/safe-to-evict":   "false",
 			},
 			K8sPodSpec: kcore.PodSpec{
 				RestartPolicy: "Never",
