@@ -245,22 +245,6 @@ Note: it's ok if example training notebooks aren't upgraded, as long as the expo
 1. Update `istio.yaml.j2`, `apis.yaml.j2`, `operator.yaml.j2`, and `pkg/lib/k8s` as necessary
 1. Update `install.sh` as necessary
 
-## Istio charts
-
-1. Download `curl -L https://istio.io/downloadIstio | ISTIO_VERSION=<ISTIO_VERSION_HERE> TARGET_ARCH=x86_64 sh -` and
-   you will find manifests/charts containing helm charts.
-1. Copy the charts containing the istio crds, istio pilot and istio ingress gateway into
-   manifests/charts/networking/charts. As of 1.7.3 these charts are in folders named: `base`
-   , `istio-control/istio-discovery`, `gateways/istio-ingress`. Copy the istio-ingress folder twice except name one of
-   them api-ingress and the other operator-ingress.
-1. Update manifests/charts/networking/values.yaml to override globals and default values.yaml in the istio charts as
-   necessary
-1. Update template files in istio charts to propagate the necessary service annotations to ingress gateways based on
-   config
-1. Test the helm charts for both aws and gcp
-   provider `helm template testing manifests -n default --dry-run -f <values.yaml>` and verify that none of the
-   resources are namespaced to any istio namespaces.
-
 ## Google Pause
 
 1. Find the version of google pause used in the nvidia device driver yaml file
