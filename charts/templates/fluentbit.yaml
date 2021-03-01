@@ -52,6 +52,8 @@ data:
 
     @INCLUDE input-kubernetes.conf
     @INCLUDE filter-kubernetes.conf
+    @INCLUDE filter-k8s-events.conf
+    @INCLUDE filter-stackdriver-format.conf
     @INCLUDE output.conf
 
   input-kubernetes.conf: |
@@ -104,6 +106,47 @@ data:
         Match               k8s_container.*
         Remove_wildcard     k8s.
 
+  filter-k8s-events.conf: |
+    [FILTER]
+        Name                nest
+        Match               k8s_container.*.event-exporter-*
+        Operation           lift
+        Nested_under        involvedObject
+        Add_prefix          involvedObject.
+
+    [FILTER]
+        Name                modify
+        Match               k8s_container.*.event-exporter-*
+        Condition           Key_exists labels
+        Rename              labels k8s.labels
+
+    [FILTER]
+        Name                modify
+        Match               k8s_container.*.event-exporter-*
+        Condition           Key_exists involvedObject.labels
+        Hard_copy           involvedObject.labels labels
+
+    [FILTER]
+        Name                nest
+        Match               k8s_container.*.event-exporter-*
+        Operation           nest
+        Wildcard            involvedObject.*
+        Nest_under          involvedObject
+        Remove_prefix       involvedObject.
+
+  filter-stackdriver-format.conf: |
+    [FILTER]
+        Name                modify
+        Match               k8s_container.*
+        Condition           Key_exists log
+        Rename              log message
+
+    [FILTER]
+        Name                modify
+        Match               k8s_container.*
+        Condition           Key_exists levelname
+        Rename              levelname level
+
   output.conf: |
     {{- if eq .Values.global.provider "aws" }}
     [OUTPUT]
@@ -122,6 +165,8 @@ data:
         resource              k8s_container
         k8s_cluster_name      {{ .Values.cortex.cluster_name }}
         k8s_cluster_location  {{ .Values.cortex.zone }}
+        severity_key          level
+        labels_key            labels
     {{- end }}
 
   parsers.conf: |

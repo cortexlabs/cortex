@@ -58,7 +58,10 @@ non_dev_images_cluster=(
   "prometheus-config-reloader"
   "prometheus-operator"
   "prometheus-statsd-exporter"
+  "prometheus-node-exporter"
+  "kube-rbac-proxy"
   "grafana"
+  "event-exporter"
 )
 non_dev_images_aws=(
   # includes non_dev_images_cluster

@@ -57,7 +57,10 @@ type GCPCoreConfig struct {
 	ImagePrometheusConfigReloader string `json:"image_prometheus_config_reloader" yaml:"image_prometheus_config_reloader"`
 	ImagePrometheusOperator       string `json:"image_prometheus_operator" yaml:"image_prometheus_operator"`
 	ImagePrometheusStatsDExporter string `json:"image_prometheus_statsd_exporter" yaml:"image_prometheus_statsd_exporter"`
+	ImagePrometheusNodeExporter   string `json:"image_prometheus_node_exporter" yaml:"image_prometheus_node_exporter"`
+	ImageKubeRBACProxy            string `json:"image_kube_rbac_proxy" yaml:"image_kube_rbac_proxy"`
 	ImageGrafana                  string `json:"image_grafana" yaml:"image_grafana"`
+	ImageEventExporter            string `json:"image_event_exporter" yaml:"image_event_exporter"`
 }
 
 type GCPManagedConfig struct {
@@ -232,6 +235,20 @@ var GCPCoreConfigStructFieldValidations = []*cr.StructFieldValidation{
 		},
 	},
 	{
+		StructField: "ImagePrometheusNodeExporter",
+		StringValidation: &cr.StringValidation{
+			Default:   "quay.io/cortexlabs/prometheus-node-exporter:" + consts.CortexVersion,
+			Validator: validateImageVersion,
+		},
+	},
+	{
+		StructField: "ImageKubeRBACProxy",
+		StringValidation: &cr.StringValidation{
+			Default:   "quay.io/cortexlabs/kube-rbac-proxy:" + consts.CortexVersion,
+			Validator: validateImageVersion,
+		},
+	},
+	{
 		StructField: "ImagePrometheusStatsDExporter",
 		StringValidation: &cr.StringValidation{
 			Default:   "quay.io/cortexlabs/prometheus-statsd-exporter:" + consts.CortexVersion,
@@ -242,6 +259,13 @@ var GCPCoreConfigStructFieldValidations = []*cr.StructFieldValidation{
 		StructField: "ImageGrafana",
 		StringValidation: &cr.StringValidation{
 			Default:   "quay.io/cortexlabs/grafana:" + consts.CortexVersion,
+			Validator: validateImageVersion,
+		},
+	},
+	{
+		StructField: "ImageEventExporter",
+		StringValidation: &cr.StringValidation{
+			Default:   "quay.io/cortexlabs/event-exporter:" + consts.CortexVersion,
 			Validator: validateImageVersion,
 		},
 	},
@@ -673,7 +697,10 @@ func (cc *GCPCoreConfig) UserTable() table.KeyValuePairs {
 	items.Add(ImagePrometheusConfigReloaderUserKey, cc.ImagePrometheusConfigReloader)
 	items.Add(ImagePrometheusOperatorUserKey, cc.ImagePrometheusOperator)
 	items.Add(ImagePrometheusStatsDExporterUserKey, cc.ImagePrometheusStatsDExporter)
+	items.Add(ImagePrometheusNodeExporterUserKey, cc.ImagePrometheusNodeExporter)
+	items.Add(ImageKubeRBACProxyUserKey, cc.ImageKubeRBACProxy)
 	items.Add(ImageGrafanaUserKey, cc.ImageGrafana)
+	items.Add(ImageEventExporterUserKey, cc.ImageEventExporter)
 
 	return items
 }
@@ -705,7 +732,7 @@ func (cc *GCPManagedConfig) UserTable() table.KeyValuePairs {
 }
 
 func (cc *GCPConfig) UserTable() table.KeyValuePairs {
-	var items *table.KeyValuePairs = &table.KeyValuePairs{}
+	items := &table.KeyValuePairs{}
 	items.AddAll(cc.GCPCoreConfig.UserTable())
 	if cc.GCPCoreConfig.IsManaged {
 		items.AddAll(cc.GCPManagedConfig.UserTable())
@@ -778,8 +805,17 @@ func (cc *GCPCoreConfig) TelemetryEvent() map[string]interface{} {
 	if strings.HasPrefix(cc.ImagePrometheusStatsDExporter, "cortexlabs/") {
 		event["image_prometheus_statsd_exporter._is_custom"] = true
 	}
+	if strings.HasPrefix(cc.ImagePrometheusNodeExporter, "cortexlabs/") {
+		event["image_prometheus_node_exporter._is_custom"] = true
+	}
+	if strings.HasPrefix(cc.ImageKubeRBACProxy, "cortexlabs/") {
+		event["image_kube_rbac_proxy._is_custom"] = true
+	}
 	if strings.HasPrefix(cc.ImageGrafana, "cortexlabs/") {
 		event["image_grafana._is_custom"] = true
+	}
+	if strings.HasPrefix(cc.ImageEventExporter, "cortexlabs/") {
+		event["image_event_exporter._is_custom"] = true
 	}
 	return event
 }

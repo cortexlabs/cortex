@@ -7,8 +7,8 @@ RealtimeAPI:
 ```text
 resource.type="k8s_container"
 resource.labels.cluster_name="<INSERT CLUSTER NAME>"
-jsonPayload.labels.apiKind="RealtimeAPI"
-jsonPayload.labels.apiName="<INSERT API NAME>"
+labels.apiKind="RealtimeAPI"
+labels.apiName="<INSERT API NAME>"
 ```
 
 TaskAPI:
@@ -16,9 +16,9 @@ TaskAPI:
 ```text
 resource.type="k8s_container"
 resource.labels.cluster_name="<INSERT CLUSTER NAME>"
-jsonPayload.labels.apiKind="TaskAPI"
-jsonPayload.labels.apiName="<INSERT API NAME>"
-jsonPayload.labels.jobID="<INSERT JOB ID>"
+labels.apiKind="TaskAPI"
+labels.apiName="<INSERT API NAME>"
+labels.jobID="<INSERT JOB ID>"
 ```
 
 Please make sure to navigate to the project containing your cluster and adjust the time range accordingly before running queries.

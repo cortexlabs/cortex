@@ -1,0 +1,271 @@
+# Copyright 2021 Cortex Labs, Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: node-exporter
+  namespace: default
+
+---
+
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: node-exporter
+rules:
+  - apiGroups:
+      - authentication.k8s.io
+    resources:
+      - tokenreviews
+    verbs:
+      - create
+  - apiGroups:
+      - authorization.k8s.io
+    resources:
+      - subjectaccessreviews
+    verbs:
+      - create
+
+---
+
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: node-exporter
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: node-exporter
+subjects:
+  - kind: ServiceAccount
+    name: node-exporter
+    namespace: default
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app.kubernetes.io/name: node-exporter
+    app.kubernetes.io/version: v0.18.1
+  name: node-exporter
+  namespace: default
+spec:
+  clusterIP: None
+  ports:
+    - name: https
+      port: 9100
+      targetPort: https
+  selector:
+    app.kubernetes.io/name: node-exporter
+
+---
+
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  labels:
+    app.kubernetes.io/name: node-exporter
+    app.kubernetes.io/version: v0.18.1
+  name: node-exporter
+  namespace: default
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: node-exporter
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: node-exporter
+        app.kubernetes.io/version: v0.18.1
+    spec:
+      containers:
+        - args:
+            - --web.listen-address=127.0.0.1:9100
+            - --path.procfs=/host/proc
+            - --path.sysfs=/host/sys
+            - --path.rootfs=/host/root
+            - --no-collector.wifi
+            - --no-collector.hwmon
+            - --collector.filesystem.ignored-mount-points=^/(dev|proc|sys|var/lib/docker/.+|var/lib/kubelet/pods/.+)($|/)
+          image: $CORTEX_IMAGE_PROMETHEUS_NODE_EXPORTER
+          name: node-exporter
+          resources:
+            limits:
+              cpu: 250m
+              memory: 180Mi
+            requests:
+              cpu: 100m
+              memory: 180Mi
+          volumeMounts:
+            - mountPath: /host/proc
+              name: proc
+              readOnly: false
+            - mountPath: /host/sys
+              name: sys
+              readOnly: false
+            - mountPath: /host/root
+              mountPropagation: HostToContainer
+              name: root
+              readOnly: true
+        - args:
+            - --logtostderr
+            - --secure-listen-address=[$(IP)]:9100
+            - --tls-cipher-suites=TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305,TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305
+            - --upstream=http://127.0.0.1:9100/
+          env:
+            - name: IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+          image: $CORTEX_IMAGE_KUBE_RBAC_PROXY
+          name: kube-rbac-proxy
+          ports:
+            - containerPort: 9100
+              hostPort: 9100
+              name: https
+          resources:
+            limits:
+              cpu: 20m
+              memory: 40Mi
+            requests:
+              cpu: 10m
+              memory: 20Mi
+      hostNetwork: true
+      hostPID: true
+      nodeSelector:
+        kubernetes.io/os: linux
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65534
+      serviceAccountName: node-exporter
+      tolerations:
+        - operator: Exists
+      volumes:
+        - hostPath:
+            path: /proc
+          name: proc
+        - hostPath:
+            path: /sys
+          name: sys
+        - hostPath:
+            path: /
+          name: root
+  updateStrategy:
+    rollingUpdate:
+      maxUnavailable: 10%
+
+---
+
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  labels:
+    app.kubernetes.io/name: node-exporter
+    app.kubernetes.io/version: v0.18.1
+    monitoring.cortex.dev: node-exporter
+  name: node-exporter
+  namespace: default
+spec:
+  endpoints:
+    - bearerTokenFile: /var/run/secrets/kubernetes.io/serviceaccount/token
+      interval: 15s
+      port: https
+      relabelings:
+        - action: replace
+          regex: (.*)
+          replacement: $1
+          sourceLabels:
+            - __meta_kubernetes_pod_node_name
+          targetLabel: instance
+      scheme: https
+      tlsConfig:
+        insecureSkipVerify: true
+  jobLabel: app.kubernetes.io/name
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: node-exporter
+
+---
+
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  labels:
+    app.kubernetes.io/name: node-exporter
+    app.kubernetes.io/version: 1.1.0
+    prometheus: k8s
+  name: node-exporter-rules
+  namespace: default
+spec:
+  groups:
+    - name: node-exporter.rules
+      rules:
+        - expr: |
+            count without (cpu) (
+              count without (mode) (
+                node_cpu_seconds_total{job="node-exporter"}
+              )
+            )
+          record: instance:node_num_cpu:sum
+        - expr: |
+            1 - avg without (cpu, mode) (
+              rate(node_cpu_seconds_total{job="node-exporter", mode="idle"}[1m])
+            )
+          record: instance:node_cpu_utilisation:rate1m
+        - expr: |
+            (
+              node_load1{job="node-exporter"}
+            /
+              instance:node_num_cpu:sum{job="node-exporter"}
+            )
+          record: instance:node_load1_per_cpu:ratio
+        - expr: |
+            1 - (
+              node_memory_MemAvailable_bytes{job="node-exporter"}
+            /
+              node_memory_MemTotal_bytes{job="node-exporter"}
+            )
+          record: instance:node_memory_utilisation:ratio
+        - expr: |
+            rate(node_vmstat_pgmajfault{job="node-exporter"}[1m])
+          record: instance:node_vmstat_pgmajfault:rate1m
+        - expr: |
+            rate(node_disk_io_time_seconds_total{job="node-exporter", device=~"mmcblk.p.+|nvme.+|rbd.+|sd.+|vd.+|xvd.+|dm-.+|dasd.+"}[1m])
+          record: instance_device:node_disk_io_time_seconds:rate1m
+        - expr: |
+            rate(node_disk_io_time_weighted_seconds_total{job="node-exporter", device=~"mmcblk.p.+|nvme.+|rbd.+|sd.+|vd.+|xvd.+|dm-.+|dasd.+"}[1m])
+          record: instance_device:node_disk_io_time_weighted_seconds:rate1m
+        - expr: |
+            sum without (device) (
+              rate(node_network_receive_bytes_total{job="node-exporter", device!="lo"}[1m])
+            )
+          record: instance:node_network_receive_bytes_excluding_lo:rate1m
+        - expr: |
+            sum without (device) (
+              rate(node_network_transmit_bytes_total{job="node-exporter", device!="lo"}[1m])
+            )
+          record: instance:node_network_transmit_bytes_excluding_lo:rate1m
+        - expr: |
+            sum without (device) (
+              rate(node_network_receive_drop_total{job="node-exporter", device!="lo"}[1m])
+            )
+          record: instance:node_network_receive_drop_excluding_lo:rate1m
+        - expr: |
+            sum without (device) (
+              rate(node_network_transmit_drop_total{job="node-exporter", device!="lo"}[1m])
+            )
+          record: instance:node_network_transmit_drop_excluding_lo:rate1m

@@ -74,7 +74,10 @@ const (
 	ImagePrometheusConfigReloaderKey       = "image_prometheus_config_reloader"
 	ImagePrometheusOperatorKey             = "image_prometheus_operator"
 	ImagePrometheusStatsDExporterKey       = "image_prometheus_statsd_exporter"
+	ImagePrometheusNodeExporterKey         = "image_prometheus_node_exporter"
+	ImageKubeRBACProxyKey                  = "image_kube_rbac_proxy"
 	ImageGrafanaKey                        = "image_grafana"
+	ImageEventExporterKey                  = "image_event_exporter"
 
 	// User facing string
 	ProviderUserKey                            = "provider"
@@ -133,5 +136,8 @@ const (
 	ImagePrometheusConfigReloaderUserKey       = "prometheus config reloader image"
 	ImagePrometheusOperatorUserKey             = "prometheus operator image"
 	ImagePrometheusStatsDExporterUserKey       = "prometheus statsd exporter image"
+	ImagePrometheusNodeExporterUserKey         = "prometheus node exporter image"
+	ImageKubeRBACProxyUserKey                  = "kube rbac proxy image"
 	ImageGrafanaUserKey                        = "grafana image"
+	ImageEventExporterUserKey                  = "event exporter image"
 )
