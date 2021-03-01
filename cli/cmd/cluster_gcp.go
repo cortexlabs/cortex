@@ -269,9 +269,21 @@ var _clusterGCPDownCmd = &cobra.Command{
 		if _flagClusterGCPDownKeepVolumes {
 			uninstallCmd += " --keep-volumes"
 		}
-		_, _, err = runGCPManagerAccessCommand(uninstallCmd, *accessConfig, nil, nil)
-		if err != nil {
-			exit.Error(err)
+		output, exitCode, err := runGCPManagerAccessCommand(uninstallCmd, *accessConfig, nil, nil)
+		if (exitCode != nil && *exitCode != 0) || err != nil {
+			var errorMessage string
+			if err != nil {
+				errorMessage = err.Error()
+			} else {
+				errorMessage = output
+			}
+
+			fmt.Print("\n\n")
+			fmt.Print(fmt.Sprintf("￮ failed to uninstall components from cluster: %s", errorMessage))
+			telemetry.Error(err)
+
+			fmt.Print("\n\n")
+			fmt.Print("￮ proceeding with best-effort deletion of the cluster ")
 		}
 
 		_, err = gcpClient.DeleteCluster(gkeClusterName)
