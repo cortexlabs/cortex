@@ -15,7 +15,7 @@
   "editable": true,
   "gnetId": null,
   "graphTooltip": 0,
-  "iteration": 1614370501554,
+  "iteration": 1614624509947,
   "links": [],
   "panels": [
     {
@@ -37,7 +37,7 @@
         "content": "<h1 style=\"text-align: center\">RealtimeAPI</h1>",
         "mode": "markdown"
       },
-      "pluginVersion": "7.4.0",
+      "pluginVersion": "7.4.2",
       "timeFrom": null,
       "timeShift": null,
       "title": "",
@@ -99,7 +99,7 @@
         "alertThreshold": true
       },
       "percentage": false,
-      "pluginVersion": "7.4.0",
+      "pluginVersion": "7.4.2",
       "pointradius": 2,
       "points": false,
       "renderer": "flot",
@@ -212,7 +212,7 @@
         "alertThreshold": true
       },
       "percentage": false,
-      "pluginVersion": "7.4.0",
+      "pluginVersion": "7.4.2",
       "pointradius": 2,
       "points": false,
       "renderer": "flot",
@@ -311,7 +311,7 @@
         "alertThreshold": true
       },
       "percentage": false,
-      "pluginVersion": "7.4.0",
+      "pluginVersion": "7.4.2",
       "pointradius": 2,
       "points": false,
       "renderer": "flot",
@@ -425,7 +425,7 @@
         "alertThreshold": true
       },
       "percentage": false,
-      "pluginVersion": "7.4.0",
+      "pluginVersion": "7.4.2",
       "pointradius": 2,
       "points": false,
       "renderer": "flot",
@@ -526,7 +526,7 @@
         "alertThreshold": true
       },
       "percentage": false,
-      "pluginVersion": "7.4.0",
+      "pluginVersion": "7.4.2",
       "pointradius": 2,
       "points": false,
       "renderer": "flot",
@@ -640,7 +640,7 @@
         "alertThreshold": true
       },
       "percentage": false,
-      "pluginVersion": "7.4.0",
+      "pluginVersion": "7.4.2",
       "pointradius": 2,
       "points": false,
       "renderer": "flot",
@@ -753,7 +753,7 @@
         "alertThreshold": true
       },
       "percentage": false,
-      "pluginVersion": "7.4.0",
+      "pluginVersion": "7.4.2",
       "pointradius": 2,
       "points": false,
       "renderer": "flot",
@@ -868,7 +868,7 @@
         "alertThreshold": true
       },
       "percentage": false,
-      "pluginVersion": "7.4.0",
+      "pluginVersion": "7.4.2",
       "pointradius": 2,
       "points": false,
       "renderer": "flot",
@@ -984,7 +984,7 @@
         "alertThreshold": true
       },
       "percentage": false,
-      "pluginVersion": "7.4.0",
+      "pluginVersion": "7.4.2",
       "pointradius": 2,
       "points": false,
       "renderer": "flot",
@@ -1098,7 +1098,7 @@
         "alertThreshold": true
       },
       "percentage": false,
-      "pluginVersion": "7.4.0",
+      "pluginVersion": "7.4.2",
       "pointradius": 2,
       "points": false,
       "renderer": "flot",
@@ -1233,7 +1233,7 @@
         "alertThreshold": true
       },
       "percentage": false,
-      "pluginVersion": "7.4.0",
+      "pluginVersion": "7.4.2",
       "pointradius": 2,
       "points": false,
       "renderer": "flot",
@@ -1349,7 +1349,7 @@
         "alertThreshold": true
       },
       "percentage": false,
-      "pluginVersion": "7.4.0",
+      "pluginVersion": "7.4.2",
       "pointradius": 2,
       "points": false,
       "renderer": "flot",
@@ -1466,7 +1466,7 @@
         "alertThreshold": true
       },
       "percentage": false,
-      "pluginVersion": "7.4.0",
+      "pluginVersion": "7.4.2",
       "pointradius": 2,
       "points": false,
       "renderer": "flot",
@@ -1580,7 +1580,7 @@
         "alertThreshold": true
       },
       "percentage": false,
-      "pluginVersion": "7.4.0",
+      "pluginVersion": "7.4.2",
       "pointradius": 2,
       "points": false,
       "renderer": "flot",
@@ -1712,7 +1712,7 @@
         "alertThreshold": true
       },
       "percentage": false,
-      "pluginVersion": "7.4.0",
+      "pluginVersion": "7.4.2",
       "pointradius": 2,
       "points": false,
       "renderer": "flot",
@@ -1723,7 +1723,7 @@
       "targets": [
         {
           "exemplar": false,
-          "expr": "sum(rate(container_cpu_usage_seconds_total{pod=~\"api-$api_name.+\", container!=\"POD\", name!=\"\"}[1m]))\n/\ncount(cortex_in_flight_requests{api_name=~\"$api_name\"})",
+          "expr": "sum(rate(container_cpu_usage_seconds_total{pod=~\"api-$api_name.+\", container!=\"POD\", name!=\"\"}[1m]))\n/\nsum(kube_pod_info{exported_pod=~\"api-$api_name.+\"})",
           "format": "time_series",
           "instant": false,
           "interval": "",
@@ -1731,7 +1731,7 @@
           "refId": "CPU Usage"
         },
         {
-          "expr": "sum(kube_pod_container_resource_requests_cpu_cores{exported_pod=~\"api-$api_name.+\"})\n/\ncount(cortex_in_flight_requests{api_name=~\"$api_name\"})",
+          "expr": "sum(kube_pod_container_resource_requests_cpu_cores{exported_pod=~\"api-$api_name.+\"})\n/\nsum(kube_pod_info{exported_pod=~\"api-$api_name.+\"})",
           "hide": false,
           "interval": "",
           "legendFormat": "Avg CPU Request",
@@ -1830,7 +1830,7 @@
         "alertThreshold": true
       },
       "percentage": false,
-      "pluginVersion": "7.4.0",
+      "pluginVersion": "7.4.2",
       "pointradius": 2,
       "points": false,
       "renderer": "flot",
@@ -1841,7 +1841,7 @@
       "targets": [
         {
           "exemplar": false,
-          "expr": "sum(sum_over_time(container_memory_working_set_bytes{pod=~\"api-$api_name.+\", name!=\"\", container!=\"POD\"}[1m]))\n/\nsum(count_over_time(container_memory_working_set_bytes{pod=~\"api-$api_name.+\", name!=\"\", container=\"api\"}[1m])) / 1024^2\n/\ncount(cortex_in_flight_requests{api_name=~\"$api_name\"})",
+          "expr": "sum(sum_over_time(container_memory_working_set_bytes{pod=~\"api-$api_name.+\", name!=\"\", container!=\"POD\"}[1m]))\n/\nsum(count_over_time(container_memory_working_set_bytes{pod=~\"api-$api_name.+\", name!=\"\", container=\"api\"}[1m])) / 1024^2\n/\nsum(kube_pod_info{exported_pod=~\"api-$api_name.+\"})",
           "format": "time_series",
           "instant": false,
           "interval": "",
@@ -1849,7 +1849,7 @@
           "refId": "Memory Usage"
         },
         {
-          "expr": "sum(kube_pod_container_resource_requests_memory_bytes{exported_pod=~\"api-$api_name.+\"}) / 1024^2\n/\ncount(cortex_in_flight_requests{api_name=~\"$api_name\"})",
+          "expr": "sum(kube_pod_container_resource_requests_memory_bytes{exported_pod=~\"api-$api_name.+\"}) / 1024^2\n/\nsum(kube_pod_info{exported_pod=~\"api-$api_name.+\"})",
           "hide": false,
           "interval": "",
           "legendFormat": "Avg Memory Request",
@@ -1948,7 +1948,7 @@
         "alertThreshold": true
       },
       "percentage": false,
-      "pluginVersion": "7.4.0",
+      "pluginVersion": "7.4.2",
       "pointradius": 2,
       "points": false,
       "renderer": "flot",
@@ -1958,14 +1958,14 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "sum(DCGM_FI_DEV_GPU_UTIL{exported_pod=~\"api-$api_name.+\"}) / 100\n/\ncount(cortex_in_flight_requests{api_name=~\"$api_name\"})",
+          "expr": "sum(DCGM_FI_DEV_GPU_UTIL{exported_pod=~\"api-$api_name.+\"}) / 100\n/\ncount(DCGM_FI_DEV_GPU_UTIL{exported_pod=~\"api-$api_name.+\"})",
           "hide": false,
           "interval": "",
           "legendFormat": "Avg GPU Usage",
           "refId": "GPU Usage"
         },
         {
-          "expr": "count(DCGM_FI_DEV_GPU_UTIL{exported_pod=~\"api-$api_name.+\"})\n/\ncount(cortex_in_flight_requests{api_name=~\"$api_name\"})",
+          "expr": "count(DCGM_FI_DEV_GPU_UTIL{exported_pod=~\"api-$api_name.+\"})\n/\ncount(count(DCGM_FI_DEV_GPU_UTIL{exported_pod=~\"api-$api_name.+\"}) by (exported_pod))",
           "hide": false,
           "interval": "",
           "legendFormat": "Avg GPU Capacity",
@@ -2064,7 +2064,7 @@
         "alertThreshold": true
       },
       "percentage": false,
-      "pluginVersion": "7.4.0",
+      "pluginVersion": "7.4.2",
       "pointradius": 2,
       "points": false,
       "renderer": "flot",
@@ -2074,7 +2074,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "sum(DCGM_FI_DEV_FB_USED{exported_pod=~\"api-$api_name.+\"})\n/\ncount(cortex_in_flight_requests{api_name=~\"$api_name\"})",
+          "expr": "sum(DCGM_FI_DEV_FB_USED{exported_pod=~\"api-$api_name.+\"})\n/\ncount(DCGM_FI_DEV_FB_USED{exported_pod=~\"api-$api_name.+\"})",
           "hide": false,
           "interval": "",
           "legendFormat": "Avg Used GPU Memory",
@@ -2082,7 +2082,7 @@
         },
         {
           "exemplar": false,
-          "expr": "(sum(DCGM_FI_DEV_FB_FREE{exported_pod=~\"api-$api_name.+\"}) + sum(DCGM_FI_DEV_FB_USED{exported_pod=~\"api-$api_name.+\"}))\n/\ncount(cortex_in_flight_requests{api_name=~\"$api_name\"})",
+          "expr": "(sum(DCGM_FI_DEV_FB_FREE{exported_pod=~\"api-$api_name.+\"}) + sum(DCGM_FI_DEV_FB_USED{exported_pod=~\"api-$api_name.+\"}))\n/\ncount(DCGM_FI_DEV_FB_USED{exported_pod=~\"api-$api_name.+\"})",
           "format": "time_series",
           "instant": false,
           "interval": "",
@@ -2142,11 +2142,7 @@
     "list": [
       {
         "allValue": null,
-        "current": {
-          "selected": false,
-          "text": "None",
-          "value": "None"
-        },
+        "current": {},
         "datasource": null,
         "definition": "label_values(cortex_in_flight_requests{api_kind=\"RealtimeAPI\"}, api_name)",
         "description": null,
@@ -2181,5 +2177,5 @@
   "timezone": "",
   "title": "RealtimeAPI",
   "uid": "realtimeapi",
-  "version": 2
+  "version": 4
 }
