@@ -207,13 +207,17 @@ func PythonPredictorContainers(api *spec.API) ([]kcore.Container, []kcore.Volume
 	if api.Compute.Inf == 0 {
 		if api.Compute.CPU != nil {
 			userPodCPURequest := k8s.QuantityPtr(api.Compute.CPU.Quantity.DeepCopy())
-			userPodCPURequest.Sub(_requestMonitorCPURequest)
+			if api.Kind == userconfig.RealtimeAPIKind {
+				userPodCPURequest.Sub(_requestMonitorCPURequest)
+			}
 			apiPodResourceList[kcore.ResourceCPU] = *userPodCPURequest
 		}
 
 		if api.Compute.Mem != nil {
 			userPodMemRequest := k8s.QuantityPtr(api.Compute.Mem.Quantity.DeepCopy())
-			userPodMemRequest.Sub(_requestMonitorMemRequest)
+			if api.Kind == userconfig.RealtimeAPIKind {
+				userPodMemRequest.Sub(_requestMonitorMemRequest)
+			}
 			apiPodResourceList[kcore.ResourceMemory] = *userPodMemRequest
 		}
 
@@ -236,7 +240,9 @@ func PythonPredictorContainers(api *spec.API) ([]kcore.Container, []kcore.Volume
 
 		if api.Compute.CPU != nil {
 			userPodCPURequest := k8s.QuantityPtr(api.Compute.CPU.Quantity.DeepCopy())
-			userPodCPURequest.Sub(_requestMonitorCPURequest)
+			if api.Kind == userconfig.RealtimeAPIKind {
+				userPodCPURequest.Sub(_requestMonitorCPURequest)
+			}
 			q1, q2 := k8s.SplitInTwo(userPodCPURequest)
 			apiPodResourceList[kcore.ResourceCPU] = *q1
 			neuronContainer.Resources.Requests[kcore.ResourceCPU] = *q2
@@ -244,7 +250,9 @@ func PythonPredictorContainers(api *spec.API) ([]kcore.Container, []kcore.Volume
 
 		if api.Compute.Mem != nil {
 			userPodMemRequest := k8s.QuantityPtr(api.Compute.Mem.Quantity.DeepCopy())
-			userPodMemRequest.Sub(_requestMonitorMemRequest)
+			if api.Kind == userconfig.RealtimeAPIKind {
+				userPodMemRequest.Sub(_requestMonitorMemRequest)
+			}
 			q1, q2 := k8s.SplitInTwo(userPodMemRequest)
 			apiPodResourceList[kcore.ResourceMemory] = *q1
 			neuronContainer.Resources.Requests[kcore.ResourceMemory] = *q2
@@ -304,7 +312,9 @@ func TensorFlowPredictorContainers(api *spec.API) ([]kcore.Container, []kcore.Vo
 	if api.Compute.Inf == 0 {
 		if api.Compute.CPU != nil {
 			userPodCPURequest := k8s.QuantityPtr(api.Compute.CPU.Quantity.DeepCopy())
-			userPodCPURequest.Sub(_requestMonitorCPURequest)
+			if api.Kind == userconfig.RealtimeAPIKind {
+				userPodCPURequest.Sub(_requestMonitorCPURequest)
+			}
 			q1, q2 := k8s.SplitInTwo(userPodCPURequest)
 			apiResourceList[kcore.ResourceCPU] = *q1
 			tfServingResourceList[kcore.ResourceCPU] = *q2
@@ -312,7 +322,9 @@ func TensorFlowPredictorContainers(api *spec.API) ([]kcore.Container, []kcore.Vo
 
 		if api.Compute.Mem != nil {
 			userPodMemRequest := k8s.QuantityPtr(api.Compute.Mem.Quantity.DeepCopy())
-			userPodMemRequest.Sub(_requestMonitorMemRequest)
+			if api.Kind == userconfig.RealtimeAPIKind {
+				userPodMemRequest.Sub(_requestMonitorMemRequest)
+			}
 			q1, q2 := k8s.SplitInTwo(userPodMemRequest)
 			apiResourceList[kcore.ResourceMemory] = *q1
 			tfServingResourceList[kcore.ResourceMemory] = *q2
@@ -338,7 +350,9 @@ func TensorFlowPredictorContainers(api *spec.API) ([]kcore.Container, []kcore.Vo
 
 		if api.Compute.CPU != nil {
 			userPodCPURequest := k8s.QuantityPtr(api.Compute.CPU.Quantity.DeepCopy())
-			userPodCPURequest.Sub(_requestMonitorCPURequest)
+			if api.Kind == userconfig.RealtimeAPIKind {
+				userPodCPURequest.Sub(_requestMonitorCPURequest)
+			}
 			q1, q2, q3 := k8s.SplitInThree(userPodCPURequest)
 			apiResourceList[kcore.ResourceCPU] = *q1
 			tfServingResourceList[kcore.ResourceCPU] = *q2
@@ -347,7 +361,9 @@ func TensorFlowPredictorContainers(api *spec.API) ([]kcore.Container, []kcore.Vo
 
 		if api.Compute.Mem != nil {
 			userPodMemRequest := k8s.QuantityPtr(api.Compute.Mem.Quantity.DeepCopy())
-			userPodMemRequest.Sub(_requestMonitorMemRequest)
+			if api.Kind == userconfig.RealtimeAPIKind {
+				userPodMemRequest.Sub(_requestMonitorMemRequest)
+			}
 			q1, q2, q3 := k8s.SplitInThree(userPodMemRequest)
 			apiResourceList[kcore.ResourceMemory] = *q1
 			tfServingResourceList[kcore.ResourceMemory] = *q2
@@ -413,13 +429,17 @@ func ONNXPredictorContainers(api *spec.API) ([]kcore.Container, []kcore.Volume) 
 
 	if api.Compute.CPU != nil {
 		userPodCPURequest := k8s.QuantityPtr(api.Compute.CPU.Quantity.DeepCopy())
-		userPodCPURequest.Sub(_requestMonitorCPURequest)
+		if api.Kind == userconfig.RealtimeAPIKind {
+			userPodCPURequest.Sub(_requestMonitorCPURequest)
+		}
 		resourceList[kcore.ResourceCPU] = *userPodCPURequest
 	}
 
 	if api.Compute.Mem != nil {
 		userPodMemRequest := k8s.QuantityPtr(api.Compute.Mem.Quantity.DeepCopy())
-		userPodMemRequest.Sub(_requestMonitorMemRequest)
+		if api.Kind == userconfig.RealtimeAPIKind {
+			userPodMemRequest.Sub(_requestMonitorMemRequest)
+		}
 		resourceList[kcore.ResourceMemory] = *userPodMemRequest
 	}
 
@@ -958,6 +978,16 @@ func RequestMonitorContainer(api *spec.API) kcore.Container {
 		image = config.GCPCoreConfig.ImageRequestMonitor
 	}
 
+	requests := kcore.ResourceList{}
+	if api.Compute != nil {
+		if api.Compute.CPU != nil {
+			requests[kcore.ResourceCPU] = _requestMonitorCPURequest
+		}
+		if api.Compute.Mem != nil {
+			requests[kcore.ResourceMemory] = _requestMonitorMemRequest
+		}
+	}
+
 	return kcore.Container{
 		Name:            _requestMonitorContainerName,
 		Image:           image,
@@ -971,10 +1001,7 @@ func RequestMonitorContainer(api *spec.API) kcore.Container {
 		VolumeMounts:   defaultVolumeMounts(),
 		ReadinessProbe: FileExistsProbe(_requestMonitorReadinessFile),
 		Resources: kcore.ResourceRequirements{
-			Requests: kcore.ResourceList{
-				kcore.ResourceCPU:    _requestMonitorCPURequest,
-				kcore.ResourceMemory: _requestMonitorMemRequest,
-			},
+			Requests: requests,
 		},
 	}
 }
