@@ -72,10 +72,10 @@ func ManageJobResources() error {
 		return err
 	}
 
-	k8sJobMap := map[string]*kbatch.Job{}
+	k8sJobMap := map[string]kbatch.Job{}
 	k8sJobIDSet := strset.Set{}
 	for _, kJob := range jobs {
-		k8sJobMap[kJob.Labels["jobID"]] = &kJob
+		k8sJobMap[kJob.Labels["jobID"]] = kJob
 		k8sJobIDSet.Add(kJob.Labels["jobID"])
 	}
 
@@ -87,7 +87,7 @@ func ManageJobResources() error {
 			continue
 		}
 
-		k8sJob := k8sJobMap[jobKey.ID]
+		k8sJob, jobFound := k8sJobMap[jobKey.ID]
 
 		jobState, err := job.GetJobState(jobKey)
 		if err != nil {
@@ -112,7 +112,7 @@ func ManageJobResources() error {
 		}
 
 		// reconcile job state and k8s job
-		newStatusCode, msg, err := reconcileInProgressJob(jobState, k8sJob)
+		newStatusCode, msg, err := reconcileInProgressJob(jobState, jobFound)
 		if err != nil {
 			telemetry.Error(err)
 			operatorLogger.Error(err)
@@ -187,13 +187,13 @@ func ManageJobResources() error {
 }
 
 // verifies k8s job exists for a job in running status, if verification fails return a job code to reflect the state
-func reconcileInProgressJob(jobState *job.State, k8sJob *kbatch.Job) (status.JobCode, string, error) {
+func reconcileInProgressJob(jobState *job.State, jobFound bool) (status.JobCode, string, error) {
 	if jobState.Status == status.JobRunning {
 		if time.Now().Sub(jobState.LastUpdatedMap[status.JobRunning.String()]) <= _k8sJobExistenceGracePeriod {
 			return jobState.Status, "", nil
 		}
 
-		if k8sJob == nil { // unexpected k8s job missing
+		if !jobFound { // unexpected k8s job missing
 			return status.JobUnexpectedError, fmt.Sprintf("terminating job %s; unable to find kubernetes job", jobState.JobKey.UserString()), nil
 		}
 	}
@@ -201,7 +201,7 @@ func reconcileInProgressJob(jobState *job.State, k8sJob *kbatch.Job) (status.Job
 	return jobState.Status, "", nil
 }
 
-func checkIfJobCompleted(jobKey spec.JobKey, k8sJob *kbatch.Job) error {
+func checkIfJobCompleted(jobKey spec.JobKey, k8sJob kbatch.Job) error {
 	pods, _ := config.K8s.ListPodsByLabel("jobID", jobKey.ID)
 	for _, pod := range pods {
 		if k8s.WasPodOOMKilled(&pod) {
@@ -212,9 +212,6 @@ func checkIfJobCompleted(jobKey spec.JobKey, k8sJob *kbatch.Job) error {
 		}
 	}
 
-	if k8sJob == nil {
-		return nil
-	}
 	if int(k8sJob.Status.Failed) == 1 {
 		return errors.FirstError(
 			job.SetWorkerErrorStatus(jobKey),
@@ -223,12 +220,6 @@ func checkIfJobCompleted(jobKey spec.JobKey, k8sJob *kbatch.Job) error {
 	} else if int(k8sJob.Status.Succeeded) == 1 && len(pods) > 0 {
 		return errors.FirstError(
 			job.SetSucceededStatus(jobKey),
-			deleteJobRuntimeResources(jobKey),
-		)
-	} else if int(k8sJob.Status.Active) == 0 && int(k8sJob.Status.Failed) == 0 && len(pods) == 0 {
-		// really unexpected situation which doesn't hurt if we check
-		return errors.FirstError(
-			job.SetUnexpectedErrorStatus(jobKey),
 			deleteJobRuntimeResources(jobKey),
 		)
 	}
