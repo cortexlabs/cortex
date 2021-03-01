@@ -303,12 +303,15 @@ function setup_secrets() {
 function setup_prometheus() {
   envsubst < manifests/prometheus-operator.yaml | kubectl apply -f - >/dev/null
   envsubst < manifests/prometheus-statsd-exporter.yaml | kubectl apply -f - >/dev/null
+  envsubst < manifests/prometheus-node-exporter.yaml | kubectl apply -f - >/dev/null
   python render_template.py $CORTEX_CLUSTER_CONFIG_FILE manifests/prometheus-monitoring.yaml.j2 | kubectl apply -f - >/dev/null
 }
 
 function setup_grafana() {
   kubectl apply -f manifests/grafana/grafana-dashboard-realtime.yaml >/dev/null
   kubectl apply -f manifests/grafana/grafana-dashboard-batch.yaml >/dev/null
+  kubectl apply -f manifests/grafana/grafana-dashboard-cluster.yaml >/dev/null
+  kubectl apply -f manifests/grafana/grafana-dashboard-nodes.yaml >/dev/null
   envsubst < manifests/grafana/grafana.yaml | kubectl apply -f - >/dev/null
 }
 

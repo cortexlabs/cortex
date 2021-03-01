@@ -86,6 +86,28 @@ data:
 ---
 
 apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboard-cluster
+  namespace: {{ .Release.Namespace }}
+data:
+  cluster.json: |-
+{{ .Files.Get "dashboards/cluster.json" | indent 4 }}
+
+---
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboard-nodes
+  namespace: {{ .Release.Namespace }}
+data:
+  nodes.json: |-
+{{ .Files.Get "dashboards/nodes.json" | indent 4 }}
+
+---
+
+apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: grafana-storage
@@ -158,6 +180,12 @@ spec:
             - mountPath: /grafana-dashboard-definitions/cortex/batch
               name: grafana-dashboard-batch
               readOnly: false
+            - mountPath: /grafana-dashboard-definitions/cortex/cluster
+              name: grafana-dashboard-cluster
+              readOnly: false
+            - mountPath: /grafana-dashboard-definitions/cortex/nodes
+              name: grafana-dashboard-nodes
+              readOnly: false
       securityContext:
         fsGroup: 65534
         runAsNonRoot: true
@@ -178,6 +206,12 @@ spec:
         - name: grafana-dashboard-batch
           configMap:
             name: grafana-dashboard-batch
+        - name: grafana-dashboard-cluster
+          configMap:
+            name: grafana-dashboard-cluster
+        - name: grafana-dashboard-nodes
+          configMap:
+            name: grafana-dashboard-nodes
       affinity:
         podAffinity:
           preferredDuringSchedulingIgnoredDuringExecution:

@@ -323,6 +323,14 @@ supported (<https://github.com/awslabs/amazon-eks-ami/issues/176>)
 1. Update the base image version in `images/prometheus-statsd-exporter/Dockerfile`.
 1. Update `prometheus-statsd-exporter.yaml` as necessary, if that's the case.
 
+## Prometheus Node Exporter
+
+1. Find the latest release in the Kube Prometheus [GitHub Repo](https://github.com/prometheus-operator/kube-prometheus/blob/main/manifests/).
+1. Copy the `node-exporter-*.yaml` files contents into `prometheus-node-exporter.yaml`, but keep the prometheus rules resource.
+1. Replace the image in the Deployment resource with a cortex env var.
+1. Update the base image versions in `images/prometheus-node-exporter/Dockerfile`
+   and `images/kube-rbac-proxy/Dockerfile`.
+
 ## Grafana
 
 1. Find the latest release
