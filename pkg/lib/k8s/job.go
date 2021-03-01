@@ -58,8 +58,9 @@ func Job(spec *JobSpec) *kbatch.Job {
 			Parallelism:  &spec.Parallelism,
 			Template: kcore.PodTemplateSpec{
 				ObjectMeta: kmeta.ObjectMeta{
-					Name:   spec.PodSpec.Name,
-					Labels: spec.PodSpec.Labels,
+					Name:        spec.PodSpec.Name,
+					Labels:      spec.PodSpec.Labels,
+					Annotations: spec.PodSpec.Annotations,
 				},
 				Spec: spec.PodSpec.K8sPodSpec,
 			},
