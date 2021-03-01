@@ -100,7 +100,7 @@ def validate_python_predictor_with_models(impl, api_spec):
                 f"class {target_class_name}",
                 f'invalid signature for method "__init__"',
                 f'"python_client" is a required argument, but was not provided',
-                f'when the python predictor type is used and models are specified in the api spec, '
+                f"when the python predictor type is used and models are specified in the api spec, "
                 f'adding the "python_client" argument is required',
             )
 
@@ -108,7 +108,7 @@ def validate_python_predictor_with_models(impl, api_spec):
             raise UserException(
                 f"class {target_class_name}",
                 f'required method "load_model" is not defined',
-                f'when the python predictor type is used and models are specified in the api spec, '
+                f"when the python predictor type is used and models are specified in the api spec, "
                 f'adding the "load_model" method is required',
             )
 

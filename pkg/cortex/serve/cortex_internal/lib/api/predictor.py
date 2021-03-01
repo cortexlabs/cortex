@@ -27,7 +27,8 @@ from datadog import DogStatsd
 from cortex_internal.lib import util
 from cortex_internal.lib.api.validations import (
     validate_class_impl,
-    validate_python_predictor_with_models, are_models_specified,
+    validate_python_predictor_with_models,
+    are_models_specified,
 )
 from cortex_internal.lib.client.onnx import ONNXClient
 from cortex_internal.lib.client.python import PythonClient
