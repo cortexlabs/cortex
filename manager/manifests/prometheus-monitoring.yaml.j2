@@ -45,7 +45,7 @@ spec:
     matchExpressions:
       - key: "monitoring.cortex.dev"
         operator: "In"
-        values: [ "kubelet-exporter" "node-exporter" ]
+        values: [ "kubelet-exporter", "node-exporter" ]
   ruleSelector:
     matchLabels:
       prometheus: k8s
