@@ -20,9 +20,12 @@ import (
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 )
+
+const _administratorAccessARN = "arn:aws:iam::aws:policy/AdministratorAccess"
 
 func (c *Client) GetUser() (iam.User, error) {
 	getUserOutput, err := c.IAM().GetUser(nil)
@@ -87,12 +90,7 @@ func (c *Client) GetManagedPoliciesForUser(userName string) ([]iam.AttachedPolic
 	return policies, nil
 }
 
-func (c *Client) IsAdmin() bool {
-	user, err := c.GetUser()
-	if err != nil {
-		return false
-	}
-
+func (c *Client) isAdminUser(user iam.User) bool {
 	// Root users may not have a user name
 	if user.UserName == nil {
 		return true
@@ -109,12 +107,65 @@ func (c *Client) IsAdmin() bool {
 	}
 
 	for _, policy := range policies {
-		if *policy.PolicyArn == "arn:aws:iam::aws:policy/AdministratorAccess" {
+		if *policy.PolicyArn == _administratorAccessARN {
 			return true
 		}
 	}
 
 	return false
+}
+
+func (c *Client) isRoleAdmin() bool {
+	identity, err := c.STS().GetCallerIdentity(nil)
+	if err != nil {
+		return false
+	}
+
+	arn := identity.Arn
+	if arn == nil {
+		return false
+	}
+
+	if !strings.Contains(*arn, ":assumed-role/") {
+		return false
+	}
+
+	// expected to be in form arn:aws:sts::account-id:assumed-role/role-name/role-session-name
+	arnSplit := strings.Split(*arn, "/")
+	if len(arnSplit) < 2 {
+		return false
+	}
+	roleName := arnSplit[1]
+
+	isAdmin := false
+	c.IAM().ListAttachedRolePoliciesPages(&iam.ListAttachedRolePoliciesInput{
+		RoleName: &roleName,
+	}, func(policies *iam.ListAttachedRolePoliciesOutput, lastPage bool) bool {
+		for _, policy := range policies.AttachedPolicies {
+			if *policy.PolicyArn == _administratorAccessARN {
+				isAdmin = true
+				return false
+			}
+		}
+
+		return !lastPage
+	})
+	return isAdmin
+}
+
+func (c *Client) IsAdmin() bool {
+	user, err := c.GetUser()
+	if err != nil {
+		awsErr, ok := errors.CauseOrSelf(err).(awserr.Error)
+		if !ok {
+			return false
+		}
+		if awsErr.Code() == "ValidationError" && strings.Contains(err.Error(), "calling with non-User credentials") {
+			return c.isRoleAdmin()
+		}
+		return false
+	}
+	return c.isAdminUser(user)
 }
 
 // delete non default policy versions and then delete the policy (as required by aws)
