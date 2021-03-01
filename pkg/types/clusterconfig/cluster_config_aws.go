@@ -25,7 +25,6 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
@@ -782,8 +781,8 @@ func (cc *Config) Validate(awsClient *aws.Client) error {
 
 	if err := awsClient.VerifyInstanceQuota(primaryInstanceType, cc.MaxPossibleOnDemandInstances(), cc.MaxPossibleSpotInstances()); err != nil {
 		// Skip AWS errors, since some regions (e.g. eu-north-1) do not support this API
-		if _, ok := errors.CauseOrSelf(err).(awserr.Error); !ok {
-			return errors.Wrap(err, InstanceTypeKey)
+		if !aws.IsAWSError(err) {
+			return err
 		}
 	}
 
@@ -806,6 +805,17 @@ func (cc *Config) Validate(awsClient *aws.Client) error {
 	} else {
 		if err := cc.setAvailabilityZones(awsClient); err != nil {
 			return errors.Wrap(err, AvailabilityZonesKey)
+		}
+	}
+
+	var requiredVPCs int
+	if len(cc.Subnets) == 0 {
+		requiredVPCs = 1
+	}
+	if err := awsClient.VerifyNetworkQuotas(1, cc.NATGateway != NoneNATGateway, cc.NATGateway == HighlyAvailableNATGateway, requiredVPCs, strset.FromSlice(cc.AvailabilityZones)); err != nil {
+		// Skip AWS errors, since some regions (e.g. eu-north-1) do not support this API
+		if !aws.IsAWSError(err) {
+			return err
 		}
 	}
 
