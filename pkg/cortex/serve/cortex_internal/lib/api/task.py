@@ -37,6 +37,14 @@ class TaskAPI:
         self.config = api_spec["definition"].get("config", {})
         self.api_spec = api_spec
 
+        host_ip = os.environ["HOST_IP"]
+        datadog.initialize(statsd_host=host_ip, statsd_port=9125)
+        self.__statsd = datadog.statsd
+
+    @property
+    def statsd(self):
+        return self.__statsd
+
     def get_callable(self, project_dir: str):
         impl = self._get_impl(project_dir)
         if inspect.isclass(impl):
