@@ -279,7 +279,8 @@ var _clusterGCPDownCmd = &cobra.Command{
 			}
 
 			fmt.Print("\n\n")
-			fmt.Print(fmt.Sprintf("￮ failed to uninstall components from cluster: %s", errorMessage))
+			gkePvcDiskPrefix := fmt.Sprintf("gke-%s", *accessConfig.ClusterName)
+			fmt.Print(fmt.Sprintf("￮ failed to delete persistent disks from storage, please visit https://console.cloud.google.com/compute/disks?project=%s to manually delete the disks starting with the %s prefix: %s", *accessConfig.Project, gkePvcDiskPrefix, errorMessage))
 			telemetry.Error(err)
 
 			fmt.Print("\n\n")
