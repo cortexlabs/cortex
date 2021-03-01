@@ -269,18 +269,11 @@ var _clusterGCPDownCmd = &cobra.Command{
 		if _flagClusterGCPDownKeepVolumes {
 			uninstallCmd += " --keep-volumes"
 		}
-		output, exitCode, err := runGCPManagerAccessCommand(uninstallCmd, *accessConfig, nil, nil)
+		_, exitCode, err := runGCPManagerAccessCommand(uninstallCmd, *accessConfig, nil, nil)
 		if (exitCode != nil && *exitCode != 0) || err != nil {
-			var errorMessage string
-			if err != nil {
-				errorMessage = err.Error()
-			} else {
-				errorMessage = output
-			}
-
 			fmt.Print("\n\n")
 			gkePvcDiskPrefix := fmt.Sprintf("gke-%s", *accessConfig.ClusterName)
-			fmt.Print(fmt.Sprintf("￮ failed to delete persistent disks from storage, please visit https://console.cloud.google.com/compute/disks?project=%s to manually delete the disks starting with the %s prefix: %s", *accessConfig.Project, gkePvcDiskPrefix, errorMessage))
+			fmt.Print(fmt.Sprintf("￮ failed to delete persistent disks from storage, please visit https://console.cloud.google.com/compute/disks?project=%s to manually delete the disks starting with the %s prefix", *accessConfig.Project, gkePvcDiskPrefix))
 			telemetry.Error(err)
 
 			fmt.Print("\n\n")
