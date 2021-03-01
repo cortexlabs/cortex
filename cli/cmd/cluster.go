@@ -58,6 +58,7 @@ var (
 	_flagClusterRegion             string
 	_flagClusterInfoDebug          bool
 	_flagClusterDisallowPrompt     bool
+	_flagClusterDownKeepVolumes    bool
 	_flagAWSAccessKeyID            string
 	_flagAWSSecretAccessKey        string
 	_flagClusterAWSAccessKeyID     string
@@ -97,6 +98,7 @@ func clusterInit() {
 	addClusterRegionFlag(_clusterDownCmd)
 	addAWSCredentialsFlags(_clusterDownCmd)
 	_clusterDownCmd.Flags().BoolVarP(&_flagClusterDisallowPrompt, "yes", "y", false, "skip prompts")
+	_clusterDownCmd.Flags().BoolVar(&_flagClusterDownKeepVolumes, "keep-volumes", false, "keep cortex provisioned persistent volumes")
 	_clusterCmd.AddCommand(_clusterDownCmd)
 
 	_clusterExportCmd.Flags().SortFlags = false
@@ -487,7 +489,13 @@ var _clusterDownCmd = &cobra.Command{
 		}
 
 		fmt.Print("￮ spinning down the cluster ...")
-		out, exitCode, err := runManagerAccessCommand("/root/uninstall.sh", *accessConfig, awsClient, nil, nil)
+
+		uninstallCmd := "/root/uninstall.sh"
+		if _flagClusterDownKeepVolumes {
+			uninstallCmd += " --keep-volumes"
+		}
+
+		out, exitCode, err := runManagerAccessCommand(uninstallCmd, *accessConfig, awsClient, nil, nil)
 		if err != nil {
 			errors.PrintError(err)
 			fmt.Println()
