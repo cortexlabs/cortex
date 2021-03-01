@@ -160,7 +160,9 @@ func (c *Client) IsAdmin() bool {
 		if !ok {
 			return false
 		}
-		if awsErr.Code() == "ValidationError" && strings.Contains(err.Error(), "calling with non-User credentials") {
+
+		// this particular error is returned if GetUser() is invoked using credentials that are not for users
+		if awsErr.Code() == "ValidationError" && strings.Contains(strings.ToLower(err.Error()), strings.ToLower("calling with non-User credentials")) {
 			return c.isRoleAdmin()
 		}
 		return false
