@@ -34,7 +34,7 @@ const (
 	_metricsRequestTimeoutSeconds = 10
 )
 
-func getBatchMetrics(jobKey spec.JobKey) (metrics.BatchMetrics, error) {
+func getBatchMetrics(jobKey spec.JobKey, t time.Time) (metrics.BatchMetrics, error) {
 	var (
 		jobBatchesSucceeded float64
 		jobBatchesFailed    float64
@@ -44,17 +44,17 @@ func getBatchMetrics(jobKey spec.JobKey) (metrics.BatchMetrics, error) {
 	err := parallel.RunFirstErr(
 		func() error {
 			var err error
-			jobBatchesSucceeded, err = getSucceededBatchesForJobMetric(config.Prometheus, jobKey)
+			jobBatchesSucceeded, err = getSucceededBatchesForJobMetric(config.Prometheus, jobKey, t)
 			return err
 		},
 		func() error {
 			var err error
-			jobBatchesFailed, err = getFailedBatchesForJobMetric(config.Prometheus, jobKey)
+			jobBatchesFailed, err = getFailedBatchesForJobMetric(config.Prometheus, jobKey, t)
 			return err
 		},
 		func() error {
 			var err error
-			avgTimePerBatch, err = getAvgTimePerBatchMetric(config.Prometheus, jobKey)
+			avgTimePerBatch, err = getAvgTimePerBatchMetric(config.Prometheus, jobKey, t)
 			return err
 		},
 	)
@@ -69,13 +69,13 @@ func getBatchMetrics(jobKey spec.JobKey) (metrics.BatchMetrics, error) {
 	}, nil
 }
 
-func getSucceededBatchesForJobMetric(promAPIv1 promv1.API, jobKey spec.JobKey) (float64, error) {
+func getSucceededBatchesForJobMetric(promAPIv1 promv1.API, jobKey spec.JobKey, t time.Time) (float64, error) {
 	query := fmt.Sprintf(
-		"cortex_batch_succeeded{api_name=\"%s\", job_id=\"%s\"}",
+		"sum(cortex_batch_succeeded{api_name=\"%s\", job_id=\"%s\"})",
 		jobKey.APIName, jobKey.ID,
 	)
 
-	values, err := queryPrometheusVec(promAPIv1, query)
+	values, err := queryPrometheusVec(promAPIv1, query, t)
 	if err != nil {
 		return 0, err
 	}
@@ -88,13 +88,13 @@ func getSucceededBatchesForJobMetric(promAPIv1 promv1.API, jobKey spec.JobKey) (
 	return succeededBatches, nil
 }
 
-func getFailedBatchesForJobMetric(promAPIv1 promv1.API, jobKey spec.JobKey) (float64, error) {
+func getFailedBatchesForJobMetric(promAPIv1 promv1.API, jobKey spec.JobKey, t time.Time) (float64, error) {
 	query := fmt.Sprintf(
-		"cortex_batch_failed{api_name=\"%s\", job_id=\"%s\"}",
+		"sum(cortex_batch_failed{api_name=\"%s\", job_id=\"%s\"})",
 		jobKey.APIName, jobKey.ID,
 	)
 
-	values, err := queryPrometheusVec(promAPIv1, query)
+	values, err := queryPrometheusVec(promAPIv1, query, t)
 	if err != nil {
 		return 0, err
 	}
@@ -107,14 +107,14 @@ func getFailedBatchesForJobMetric(promAPIv1 promv1.API, jobKey spec.JobKey) (flo
 	return failedBatches, nil
 }
 
-func getAvgTimePerBatchMetric(promAPIv1 promv1.API, jobKey spec.JobKey) (*float64, error) {
+func getAvgTimePerBatchMetric(promAPIv1 promv1.API, jobKey spec.JobKey, t time.Time) (*float64, error) {
 	query := fmt.Sprintf(
-		"cortex_time_per_batch_sum{api_name=\"%s\", job_id=\"%s\"} / cortex_time_per_batch_count{api_name=\"%s\", job_id=\"%s\"}",
+		"sum(cortex_time_per_batch_sum{api_name=\"%s\", job_id=\"%s\"}) / sum(cortex_time_per_batch_count{api_name=\"%s\", job_id=\"%s\"})",
 		jobKey.APIName, jobKey.ID,
 		jobKey.APIName, jobKey.ID,
 	)
 
-	values, err := queryPrometheusVec(promAPIv1, query)
+	values, err := queryPrometheusVec(promAPIv1, query, t)
 	if err != nil {
 		return nil, err
 	}
@@ -127,11 +127,11 @@ func getAvgTimePerBatchMetric(promAPIv1 promv1.API, jobKey spec.JobKey) (*float6
 	return &avgTimePerBatch, nil
 }
 
-func queryPrometheusVec(promAPIv1 promv1.API, query string) (model.Vector, error) {
+func queryPrometheusVec(promAPIv1 promv1.API, query string, t time.Time) (model.Vector, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), _metricsRequestTimeoutSeconds*time.Second)
 	defer cancel()
 
-	valuesQuery, err := promAPIv1.Query(ctx, query, time.Now())
+	valuesQuery, err := promAPIv1.Query(ctx, query, t)
 	if err != nil {
 		return nil, err
 	}
