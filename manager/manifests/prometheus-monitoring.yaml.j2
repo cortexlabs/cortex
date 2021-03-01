@@ -41,6 +41,14 @@ spec:
       - key: "monitoring.cortex.dev"
         operator: "In"
         values: [ "istio", "request-monitor", "statsd-exporter" ]
+  serviceMonitorSelector:
+    matchExpressions:
+      - key: "monitoring.cortex.dev"
+        operator: "In"
+        values: [ "node-exporter" ]
+  ruleSelector:
+    matchLabels:
+      prometheus: k8s
   resources:
     requests:
       memory: 400Mi
