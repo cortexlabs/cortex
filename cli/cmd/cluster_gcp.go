@@ -40,14 +40,15 @@ import (
 )
 
 var (
-	_flagClusterGCPUpEnv          string
-	_flagClusterGCPInfoEnv        string
-	_flagClusterGCPInfoDebug      bool
-	_flagClusterGCPConfig         string
-	_flagClusterGCPName           string
-	_flagClusterGCPZone           string
-	_flagClusterGCPProject        string
-	_flagClusterGCPDisallowPrompt bool
+	_flagClusterGCPUpEnv           string
+	_flagClusterGCPInfoEnv         string
+	_flagClusterGCPInfoDebug       bool
+	_flagClusterGCPConfig          string
+	_flagClusterGCPName            string
+	_flagClusterGCPZone            string
+	_flagClusterGCPProject         string
+	_flagClusterGCPDisallowPrompt  bool
+	_flagClusterGCPDownKeepVolumes bool
 )
 
 func clusterGCPInit() {
@@ -73,6 +74,7 @@ func clusterGCPInit() {
 	addClusterGCPProjectFlag(_clusterGCPDownCmd)
 	addClusterGCPZoneFlag(_clusterGCPDownCmd)
 	addClusterGCPDisallowPromptFlag(_clusterGCPDownCmd)
+	_clusterGCPDownCmd.Flags().BoolVar(&_flagClusterGCPDownKeepVolumes, "keep-volumes", false, "keep cortex provisioned persistent volumes")
 	_clusterGCPCmd.AddCommand(_clusterGCPDownCmd)
 }
 
@@ -262,6 +264,30 @@ var _clusterGCPDownCmd = &cobra.Command{
 		}
 
 		fmt.Print("￮ spinning down the cluster ")
+
+		uninstallCmd := "/root/uninstall.sh"
+		if _flagClusterGCPDownKeepVolumes {
+			uninstallCmd += " --keep-volumes"
+		}
+		output, exitCode, err := runGCPManagerAccessCommand(uninstallCmd, *accessConfig, nil, nil)
+		if (exitCode != nil && *exitCode != 0) || err != nil {
+			if len(output) == 0 {
+				fmt.Printf("\n")
+			}
+			fmt.Print("\n")
+
+			gkePvcDiskPrefix := fmt.Sprintf("gke-%s", *accessConfig.ClusterName)
+			if err != nil {
+				fmt.Print(fmt.Sprintf("￮ failed to delete persistent disks from storage, please visit https://console.cloud.google.com/compute/disks?project=%s to manually delete the disks starting with the %s prefix: %s", *accessConfig.Project, gkePvcDiskPrefix, err.Error()))
+				telemetry.Error(ErrorClusterDown(err.Error()))
+			} else {
+				fmt.Print(fmt.Sprintf("￮ failed to delete persistent disks from storage, please visit https://console.cloud.google.com/compute/disks?project=%s to manually delete the disks starting with the %s prefix", *accessConfig.Project, gkePvcDiskPrefix))
+				telemetry.Error(ErrorClusterDown(output))
+			}
+
+			fmt.Print("\n\n")
+			fmt.Print("￮ proceeding with best-effort deletion of the cluster ")
+		}
 
 		_, err = gcpClient.DeleteCluster(gkeClusterName)
 		if err != nil {
