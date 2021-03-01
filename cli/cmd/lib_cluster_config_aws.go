@@ -308,7 +308,7 @@ func setConfigFieldsFromCached(userClusterConfig *clusterconfig.Config, cachedCl
 	}
 	userClusterConfig.SSLCertificateARN = cachedClusterConfig.SSLCertificateARN
 
-	if cachedClusterConfig.CortexPolicyARN != userClusterConfig.CortexPolicyARN {
+	if userClusterConfig.CortexPolicyARN != "" && cachedClusterConfig.CortexPolicyARN != userClusterConfig.CortexPolicyARN {
 		return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.CortexPolicyARNKey, cachedClusterConfig.CortexPolicyARN)
 	}
 	userClusterConfig.CortexPolicyARN = cachedClusterConfig.CortexPolicyARN
