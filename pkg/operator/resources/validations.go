@@ -147,21 +147,23 @@ func ValidateClusterAPIs(apis []userconfig.API, projectFiles spec.ProjectFiles) 
 CPU Reservations:
 
 FluentBit 100
-StatsD 100
+StatsDExporter 100
+NodeExporter 100
 KubeProxy 100
 AWS cni 10
 Reserved (150 + 150) see eks.yaml for details
 */
-var _cortexCPUReserve = kresource.MustParse("610m")
+var _cortexCPUReserve = kresource.MustParse("710m")
 
 /*
 Memory Reservations:
 
 FluentBit 150
-StatsD 100
+StatsDExporter 100
+NodeExporter 180
 Reserved (300 + 300 + 200) see eks.yaml for details
 */
-var _cortexMemReserve = kresource.MustParse("1050Mi")
+var _cortexMemReserve = kresource.MustParse("1230Mi")
 
 var _nvidiaCPUReserve = kresource.MustParse("100m")
 var _nvidiaMemReserve = kresource.MustParse("100Mi")

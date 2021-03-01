@@ -75,6 +75,8 @@ const (
 	ImagePrometheusStatsDExporterKey       = "image_prometheus_statsd_exporter"
 	ImagePrometheusDCGMExporterKey         = "image_prometheus_dcgm_exporter"
 	ImagePrometheusKubeStateMetricsKey     = "image_prometheus_kube_state_metrics"
+	ImagePrometheusNodeExporterKey         = "image_prometheus_node_exporter"
+	ImageKubeRBACProxyKey                  = "image_kube_rbac_proxy"
 	ImageGrafanaKey                        = "image_grafana"
 	ImageEventExporterKey                  = "image_event_exporter"
 
@@ -137,6 +139,8 @@ const (
 	ImagePrometheusStatsDExporterUserKey       = "prometheus statsd exporter image"
 	ImagePrometheusDCGMExporterUserKey         = "prometheus dcgm exporter image"
 	ImagePrometheusKubeStateMetricsUserKey     = "prometheus kube-state-metrics image"
+	ImagePrometheusNodeExporterUserKey         = "prometheus node exporter image"
+	ImageKubeRBACProxyUserKey                  = "kube rbac proxy image"
 	ImageGrafanaUserKey                        = "grafana image"
 	ImageEventExporterUserKey                  = "event exporter image"
 )

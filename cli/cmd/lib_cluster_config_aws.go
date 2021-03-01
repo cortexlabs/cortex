@@ -432,6 +432,14 @@ func setConfigFieldsFromCached(userClusterConfig *clusterconfig.Config, cachedCl
 		return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.ImagePrometheusKubeStateMetricsKey, cachedClusterConfig.ImagePrometheusKubeStateMetrics)
 	}
 
+	if s.Obj(cachedClusterConfig.ImagePrometheusNodeExporter) != s.Obj(userClusterConfig.ImagePrometheusNodeExporter) {
+		return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.ImagePrometheusNodeExporterKey, cachedClusterConfig.ImagePrometheusNodeExporter)
+	}
+
+	if s.Obj(cachedClusterConfig.ImageKubeRBACProxy) != s.Obj(userClusterConfig.ImageKubeRBACProxy) {
+		return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.ImageKubeRBACProxyKey, cachedClusterConfig.ImageKubeRBACProxy)
+	}
+
 	if s.Obj(cachedClusterConfig.ImageGrafana) != s.Obj(userClusterConfig.ImageGrafana) {
 		return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.ImageGrafanaKey, cachedClusterConfig.ImageGrafana)
 	}
