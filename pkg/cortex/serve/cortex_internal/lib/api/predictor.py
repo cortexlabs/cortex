@@ -27,7 +27,7 @@ from datadog import DogStatsd
 from cortex_internal.lib import util
 from cortex_internal.lib.api.validations import (
     validate_class_impl,
-    validate_python_predictor_with_models, _are_models_specified,
+    validate_python_predictor_with_models, are_models_specified,
 )
 from cortex_internal.lib.client.onnx import ONNXClient
 from cortex_internal.lib.client.python import PythonClient
@@ -152,7 +152,7 @@ class Predictor:
         self.api_spec = api_spec
 
         self.crons = []
-        if not _are_models_specified(self.api_spec):
+        if not are_models_specified(self.api_spec):
             return
 
         self.model_dir = model_dir
@@ -209,7 +209,7 @@ class Predictor:
 
         client = None
 
-        if _are_models_specified(self.api_spec):
+        if are_models_specified(self.api_spec):
             if self.type == PythonPredictorType:
                 client = PythonClient(self.api_spec, self.models, self.model_dir, self.models_tree)
 
@@ -261,7 +261,7 @@ class Predictor:
         # initialize predictor class
         try:
             if self.type == PythonPredictorType:
-                if _are_models_specified(self.api_spec):
+                if are_models_specified(self.api_spec):
                     args["python_client"] = client
                     initialized_impl = class_impl(**args)
                     client.set_load_method(initialized_impl.load_model)
@@ -277,7 +277,7 @@ class Predictor:
             raise UserRuntimeException(self.path, "__init__", str(e)) from e
 
         # initialize the crons if models have been specified and if the API kind is RealtimeAPI
-        if _are_models_specified(self.api_spec) and self.api_spec["kind"] == "RealtimeAPI":
+        if are_models_specified(self.api_spec) and self.api_spec["kind"] == "RealtimeAPI":
             if not self.multiple_processes and self.caching_enabled:
                 self.crons += [
                     ModelTreeUpdater(

@@ -92,7 +92,7 @@ def validate_required_method_args(impl, func_signature):
 def validate_python_predictor_with_models(impl, api_spec):
     target_class_name = impl.__name__
 
-    if _are_models_specified(api_spec):
+    if are_models_specified(api_spec):
         constructor = getattr(impl, "__init__")
         constructor_arg_spec = inspect.getfullargspec(constructor)
         if "python_client" not in constructor_arg_spec.args:
@@ -113,7 +113,7 @@ def validate_python_predictor_with_models(impl, api_spec):
             )
 
 
-def _are_models_specified(api_spec: Dict) -> bool:
+def are_models_specified(api_spec: Dict) -> bool:
     """
     Checks if models have been specified in the API spec (cortex.yaml).
 
