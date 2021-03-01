@@ -189,7 +189,7 @@ func ManageJobResources() error {
 		}
 
 		if jobState.Status == status.JobRunning {
-			err = checkIfJobCompleted(jobKey, *queueURL, k8sJob)
+			err = checkIfJobCompleted(jobState, *queueURL, k8sJob)
 			if err != nil {
 				telemetry.Error(err)
 				operatorLogger.Error(err)
@@ -283,7 +283,9 @@ func reconcileInProgressJob(jobState *job.State, queueURL *string, k8sJob *kbatc
 	return jobState.Status, "", nil
 }
 
-func checkIfJobCompleted(jobKey spec.JobKey, queueURL string, k8sJob *kbatch.Job) error {
+func checkIfJobCompleted(jobState *job.State, queueURL string, k8sJob *kbatch.Job) error {
+	jobKey := jobState.JobKey
+
 	jobFailed, err := checkForJobFailure(jobKey, k8sJob)
 	if err != nil || jobFailed {
 		return err
@@ -315,7 +317,11 @@ func checkIfJobCompleted(jobKey spec.JobKey, queueURL string, k8sJob *kbatch.Job
 		return nil
 	}
 
-	batchMetrics, err := getBatchMetrics(jobKey)
+	t := time.Now()
+	if jobState.EndTime != nil {
+		t = *jobState.EndTime
+	}
+	batchMetrics, err := getBatchMetrics(jobKey, t)
 	if err != nil {
 		return err
 	}
