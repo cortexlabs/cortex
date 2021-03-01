@@ -17,6 +17,7 @@ import os
 from typing import Any, Dict, Optional, Tuple, Union
 
 import datadog
+
 from cortex_internal.lib.api import Predictor
 from cortex_internal.lib.exceptions import CortexException
 from cortex_internal.lib.log import configure_logger
@@ -50,7 +51,11 @@ class API:
 
         host_ip = os.environ["HOST_IP"]
         datadog.initialize(statsd_host=host_ip, statsd_port=9125)
-        self.statsd = datadog.statsd
+        self.__statsd = datadog.statsd
+
+    @property
+    def statsd(self):
+        return self.__statsd
 
     @property
     def python_server_side_batching_enabled(self):
