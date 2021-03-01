@@ -72,7 +72,7 @@ func warnIfNotAdmin(awsClient *aws.Client) {
 	}
 
 	if !awsClient.IsAdmin() {
-		fmt.Println(fmt.Sprintf("warning: your IAM user%s does not have administrator access. This may prevent this command from executing correctly, so it is recommended to attach the AdministratorAccess policy to your IAM user.", accessKeyMsg), "", "")
+		fmt.Println(fmt.Sprintf("warning: your IAM user or assumed role%s does not have administrator access. This may prevent this command from executing correctly, so it is recommended to attach the AdministratorAccess policy to your IAM user or role.", accessKeyMsg), "", "")
 	}
 }
 
