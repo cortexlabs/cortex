@@ -63,26 +63,28 @@ type CoreConfig struct {
 	Namespace      string             `json:"namespace" yaml:"namespace"`
 	IstioNamespace string             `json:"istio_namespace" yaml:"istio_namespace"`
 
-	ImageOperator                 string `json:"image_operator" yaml:"image_operator"`
-	ImageManager                  string `json:"image_manager" yaml:"image_manager"`
-	ImageDownloader               string `json:"image_downloader" yaml:"image_downloader"`
-	ImageRequestMonitor           string `json:"image_request_monitor" yaml:"image_request_monitor"`
-	ImageClusterAutoscaler        string `json:"image_cluster_autoscaler" yaml:"image_cluster_autoscaler"`
-	ImageMetricsServer            string `json:"image_metrics_server" yaml:"image_metrics_server"`
-	ImageInferentia               string `json:"image_inferentia" yaml:"image_inferentia"`
-	ImageNeuronRTD                string `json:"image_neuron_rtd" yaml:"image_neuron_rtd"`
-	ImageNvidia                   string `json:"image_nvidia" yaml:"image_nvidia"`
-	ImageFluentBit                string `json:"image_fluent_bit" yaml:"image_fluent_bit"`
-	ImageIstioProxy               string `json:"image_istio_proxy" yaml:"image_istio_proxy"`
-	ImageIstioPilot               string `json:"image_istio_pilot" yaml:"image_istio_pilot"`
-	ImagePrometheus               string `json:"image_prometheus" yaml:"image_prometheus"`
-	ImagePrometheusConfigReloader string `json:"image_prometheus_config_reloader" yaml:"image_prometheus_config_reloader"`
-	ImagePrometheusOperator       string `json:"image_prometheus_operator" yaml:"image_prometheus_operator"`
-	ImagePrometheusStatsDExporter string `json:"image_prometheus_statsd_exporter" yaml:"image_prometheus_statsd_exporter"`
-	ImagePrometheusNodeExporter   string `json:"image_prometheus_node_exporter" yaml:"image_prometheus_node_exporter"`
-	ImageKubeRBACProxy            string `json:"image_kube_rbac_proxy" yaml:"image_kube_rbac_proxy"`
-	ImageGrafana                  string `json:"image_grafana" yaml:"image_grafana"`
-	ImageEventExporter            string `json:"image_event_exporter" yaml:"image_event_exporter"`
+	ImageOperator                   string `json:"image_operator" yaml:"image_operator"`
+	ImageManager                    string `json:"image_manager" yaml:"image_manager"`
+	ImageDownloader                 string `json:"image_downloader" yaml:"image_downloader"`
+	ImageRequestMonitor             string `json:"image_request_monitor" yaml:"image_request_monitor"`
+	ImageClusterAutoscaler          string `json:"image_cluster_autoscaler" yaml:"image_cluster_autoscaler"`
+	ImageMetricsServer              string `json:"image_metrics_server" yaml:"image_metrics_server"`
+	ImageInferentia                 string `json:"image_inferentia" yaml:"image_inferentia"`
+	ImageNeuronRTD                  string `json:"image_neuron_rtd" yaml:"image_neuron_rtd"`
+	ImageNvidia                     string `json:"image_nvidia" yaml:"image_nvidia"`
+	ImageFluentBit                  string `json:"image_fluent_bit" yaml:"image_fluent_bit"`
+	ImageIstioProxy                 string `json:"image_istio_proxy" yaml:"image_istio_proxy"`
+	ImageIstioPilot                 string `json:"image_istio_pilot" yaml:"image_istio_pilot"`
+	ImagePrometheus                 string `json:"image_prometheus" yaml:"image_prometheus"`
+	ImagePrometheusConfigReloader   string `json:"image_prometheus_config_reloader" yaml:"image_prometheus_config_reloader"`
+	ImagePrometheusOperator         string `json:"image_prometheus_operator" yaml:"image_prometheus_operator"`
+	ImagePrometheusStatsDExporter   string `json:"image_prometheus_statsd_exporter" yaml:"image_prometheus_statsd_exporter"`
+	ImagePrometheusDCGMExporter     string `json:"image_prometheus_dcgm_exporter" yaml:"image_prometheus_dcgm_exporter"`
+	ImagePrometheusKubeStateMetrics string `json:"image_prometheus_kube_state_metrics" yaml:"image_prometheus_kube_state_metrics"`
+	ImagePrometheusNodeExporter     string `json:"image_prometheus_node_exporter" yaml:"image_prometheus_node_exporter"`
+	ImageKubeRBACProxy              string `json:"image_kube_rbac_proxy" yaml:"image_kube_rbac_proxy"`
+	ImageGrafana                    string `json:"image_grafana" yaml:"image_grafana"`
+	ImageEventExporter              string `json:"image_event_exporter" yaml:"image_event_exporter"`
 }
 
 type ManagedConfig struct {
@@ -330,6 +332,20 @@ var CoreConfigStructFieldValidations = []*cr.StructFieldValidation{
 		StructField: "ImagePrometheusStatsDExporter",
 		StringValidation: &cr.StringValidation{
 			Default:   "quay.io/cortexlabs/prometheus-statsd-exporter:" + consts.CortexVersion,
+			Validator: validateImageVersion,
+		},
+	},
+	{
+		StructField: "ImagePrometheusDCGMExporter",
+		StringValidation: &cr.StringValidation{
+			Default:   "quay.io/cortexlabs/prometheus-dcgm-exporter:" + consts.CortexVersion,
+			Validator: validateImageVersion,
+		},
+	},
+	{
+		StructField: "ImagePrometheusKubeStateMetrics",
+		StringValidation: &cr.StringValidation{
+			Default:   "quay.io/cortexlabs/prometheus-kube-state-metrics:" + consts.CortexVersion,
 			Validator: validateImageVersion,
 		},
 	},
@@ -1317,6 +1333,8 @@ func (cc *CoreConfig) UserTable() table.KeyValuePairs {
 	items.Add(ImagePrometheusConfigReloaderUserKey, cc.ImagePrometheusConfigReloader)
 	items.Add(ImagePrometheusOperatorUserKey, cc.ImagePrometheusOperator)
 	items.Add(ImagePrometheusStatsDExporterUserKey, cc.ImagePrometheusStatsDExporter)
+	items.Add(ImagePrometheusDCGMExporterUserKey, cc.ImagePrometheusDCGMExporter)
+	items.Add(ImagePrometheusKubeStateMetricsUserKey, cc.ImagePrometheusKubeStateMetrics)
 	items.Add(ImagePrometheusNodeExporterUserKey, cc.ImagePrometheusNodeExporter)
 	items.Add(ImageKubeRBACProxyUserKey, cc.ImageKubeRBACProxy)
 	items.Add(ImageGrafanaUserKey, cc.ImageGrafana)
@@ -1451,6 +1469,12 @@ func (cc *CoreConfig) TelemetryEvent() map[string]interface{} {
 	}
 	if strings.HasPrefix(cc.ImagePrometheusStatsDExporter, "cortexlabs/") {
 		event["image_prometheus_statsd_exporter._is_custom"] = true
+	}
+	if strings.HasPrefix(cc.ImagePrometheusDCGMExporter, "cortexlabs/") {
+		event["image_prometheus_dcgm_exporter._is_custom"] = true
+	}
+	if strings.HasPrefix(cc.ImagePrometheusKubeStateMetrics, "cortexlabs/") {
+		event["image_prometheus_kube_state_metrics._is_custom"] = true
 	}
 	if strings.HasPrefix(cc.ImagePrometheusNodeExporter, "cortexlabs/") {
 		event["image_prometheus_node_exporter._is_custom"] = true
