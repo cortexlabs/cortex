@@ -12,15 +12,35 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os
 import imp
 import inspect
+import os
+
+import datadog
 import dill
 
-from cortex_internal.lib.exceptions import CortexException, UserException, UserRuntimeException
+from cortex_internal.lib.api.validations import validate_class_impl
+from cortex_internal.lib.exceptions import CortexException, UserException
 from cortex_internal.lib.log import configure_logger
+from cortex_internal.lib.metrics import MetricsClient
 
 logger = configure_logger("cortex", os.environ["CORTEX_LOG_CONFIG_FILE"])
+
+TASK_CLASS_VALIDATION = {
+    "required": [
+        {
+            "name": "__init__",
+            "required_args": ["self"],
+            "optional_args": ["metrics_client"],
+        },
+        {
+            "name": "__call__",
+            "required_args": ["self", "config"],
+            "optional_args": [],
+        },
+    ],
+    "optional": [],
+}
 
 
 class TaskAPI:
@@ -47,8 +67,14 @@ class TaskAPI:
 
     def get_callable(self, project_dir: str):
         impl = self._get_impl(project_dir)
+
         if inspect.isclass(impl):
-            return impl()
+            constructor_args = inspect.getfullargspec(impl.__init__).args
+            args = {}
+            if "metrics_client" in constructor_args:
+                args["metrics_client"] = MetricsClient(self.statsd)
+            return impl(**args)
+
         return impl
 
     def _get_impl(self, project_dir: str):
@@ -67,7 +93,8 @@ class TaskAPI:
             raise
         return task_callable
 
-    def _read_impl(self, module_name: str, impl_path: str, target_class_name: str):
+    @staticmethod
+    def _read_impl(module_name: str, impl_path: str, target_class_name: str):
         if impl_path.endswith(".pickle"):
             try:
                 with open(impl_path, "rb") as pickle_file:
@@ -89,7 +116,9 @@ class TaskAPI:
                 if class_df[0] == target_class_name:
                     if task_class is not None:
                         raise UserException(
-                            f"multiple definitions for {target_class_name} class found; please check your imports and class definitions and ensure that there is only one task class definition"
+                            f"multiple definitions for {target_class_name} class found; please check "
+                            f"your imports and class definitions and ensure that there is only one "
+                            f"task class definition"
                         )
                     task_class = class_df[1]
             if task_class is None:
@@ -100,38 +129,10 @@ class TaskAPI:
         else:
             return callables[0]
 
-    def _validate_impl(self, impl):
+    @staticmethod
+    def _validate_impl(impl):
         if inspect.isclass(impl):
-            target_class_name = impl.__name__
-
-            constructor_fn = getattr(impl, "__init__", None)
-            if constructor_fn:
-                argspec = inspect.getfullargspec(constructor_fn)
-                if not (len(argspec.args) == 1 and argspec.args[0] == "self"):
-                    raise UserException(
-                        f"class {target_class_name}",
-                        f'invalid signature for method "__init__"',
-                        f'only "self" parameter must be present in method\'s signature',
-                    )
-
-            callable_fn = getattr(impl, "__call__", None)
-            if callable_fn:
-                argspec = inspect.getfullargspec(callable_fn)
-                if not (
-                    len(argspec.args) == 2
-                    and argspec.args[0] == "self"
-                    and argspec.args[1] == "config"
-                ):
-                    raise UserException(
-                        f"class {target_class_name}",
-                        f'invalid signature for method "__call__"',
-                        f'the following parameters must be present in method\'s signature: "self", "config"',
-                    )
-            else:
-                raise UserException(
-                    f"class {target_class_name}",
-                    f'"__call__" method not defined',
-                )
+            validate_class_impl(impl, TASK_CLASS_VALIDATION)
         else:
             callable_fn = impl
             argspec = inspect.getfullargspec(callable_fn)
