@@ -21,8 +21,13 @@ from cortex_internal.lib.exceptions import UserException
 
 def validate_metric(fn):
     def _metric_validation(self, metric: str, value: float, tags: Dict[str, str] = None):
-        validate_metric_name(metric)
-        return fn(self, metric=metric, value=value, tags=transform_tags(tags))
+        internal_prefixes = ("cortex_", "istio_")
+        if metric.startswith(internal_prefixes):
+            raise UserException(
+                f"Metric name ({metric}) is invalid because it starts with a cortex exclusive prefix.\n"
+                f"The following are prefixes are exclusive to cortex: {internal_prefixes}."
+            )
+        return fn(self, metric=metric, value=value, tags=tags)
 
     _metric_validation.__name__ = fn.__name__
     return _metric_validation
@@ -40,7 +45,7 @@ class MetricsClient:
         Example:
         >>> metrics.gauge('active_connections', 1001, tags={"protocol": "http"})
         """
-        return self.__statsd.gauge(metric, value=value, tags=tags)
+        return self.__statsd.gauge(metric, value=value, tags=transform_tags(tags))
 
     @validate_metric
     def increment(self, metric: str, value: float = 1, tags: Dict[str, str] = None):
@@ -50,7 +55,7 @@ class MetricsClient:
         Example:
         >>> metrics.increment('model_calls', 1, tags={"model_version": "v1"})
         """
-        return self.__statsd.increment(metric, value=value, tags=tags)
+        return self.__statsd.increment(metric, value=value, tags=transform_tags(tags))
 
     @validate_metric
     def histogram(self, metric: str, value: float, tags: Dict[str, str] = None):
@@ -60,17 +65,8 @@ class MetricsClient:
         Example:
         >>> metrics.histogram('inference_time_milliseconds', 120, tags={"model_version": "v1"})
         """
-        return self.__statsd.histogram(metric, value=value, tags=tags)
+        return self.__statsd.histogram(metric, value=value, tags=transform_tags(tags))
 
 
 def transform_tags(tags: Dict[str, str] = None):
-    return [f"{key}:{value}" for key, value in tags.items()]
-
-
-def validate_metric_name(metric_name: str):
-    internal_prefixes = ("cortex_", "istio_")
-    if metric_name.startswith(internal_prefixes):
-        raise UserException(
-            f"Metric name ({metric_name}) is invalid because it starts with a cortex exclusive prefix.\n"
-            f"The following are prefixes are exclusive to cortex: {internal_prefixes}."
-        )
+    return [f"{key}:{value}" for key, value in tags.items()] if tags else None
