@@ -26,21 +26,16 @@ aws s3 rb --force s3://<bucket>
 aws logs describe-log-groups --log-group-name-prefix=<cluster_name> --query logGroups[*].[logGroupName] --output text | xargs -I {} aws logs delete-log-group --log-group-name {}
 ```
 
-## Delete Volumes
-
-The volumes used by Cortex's Prometheus and Grafana instances are not deleted by default, as they might contain important
-information. If these volumes are not required anymore, you can delete them in the AWS console.
-
-To delete the volumes, navigate to the [EC2 volumes page](https://console.aws.amazon.com/ec2/v2/home?#Volumes)
-in the AWS console (be sure to set the appropriate region), select the volumes, click "Actions" and then "Delete Volume"
-. Both volumes for Prometheus and Grafana that Cortex created have a name that starts with `kubernetes-dynamic-pvc`,
-the `kubernetes.io/cluster/<cluster name>` tag is set to `owned`, and the `kubernetes.io/created-for/pvc/name` tag start
-with `prometheus-` and `grafana-` respectively.
-
 ## Delete Certificates
 
 If you've configured a custom domain for your APIs, you can remove the SSL Certificate and Hosted Zone for the domain by
 following these [instructions](networking/custom-domain.md#cleanup).
+
+## Keep Cortex Volumes
+
+The volumes used by Cortex's Prometheus and Grafana instances are deleted by default on a cluster down operation.
+If you want to keep the metrics and dashboards volumes for any reason,
+you can pass the `--keep-volumes` flag to the `cortex cluster down` command.
 
 ## Troubleshooting
 
