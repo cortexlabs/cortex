@@ -296,11 +296,6 @@ func checkIfJobCompleted(jobState *job.State, queueURL string, k8sJob kbatch.Job
 		return err
 	}
 
-	// job is still in-progress
-	if int(k8sJob.Status.Active) != 0 {
-		return nil
-	}
-
 	queueMessages, err := getQueueMetricsFromURL(queueURL)
 	if err != nil {
 		return err
@@ -308,16 +303,17 @@ func checkIfJobCompleted(jobState *job.State, queueURL string, k8sJob kbatch.Job
 
 	if !queueMessages.IsEmpty() {
 		// Give time for queue metrics to reach consistency
-		if _jobsToDelete.Has(jobKey.ID) {
-			_jobsToDelete.Remove(jobKey.ID)
-			jobLogger.Error("unexpected job status because cluster state indicates job has completed but metrics indicate that job is still in progress")
-			return errors.FirstError(
-				job.SetUnexpectedErrorStatus(jobKey),
-				deleteJobRuntimeResources(jobKey),
-			)
+		if int(k8sJob.Status.Active) == 0 {
+			if _jobsToDelete.Has(jobKey.ID) {
+				_jobsToDelete.Remove(jobKey.ID)
+				jobLogger.Error("unexpected job status because cluster state indicates job has completed but metrics indicate that job is still in progress")
+				return errors.FirstError(
+					job.SetUnexpectedErrorStatus(jobKey),
+					deleteJobRuntimeResources(jobKey),
+				)
+			}
+			_jobsToDelete.Add(jobKey.ID)
 		}
-		_jobsToDelete.Add(jobKey.ID)
-
 		return nil
 	}
 

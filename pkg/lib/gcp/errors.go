@@ -81,6 +81,6 @@ func ErrorCredentialsFileEnvVarNotSet() error {
 func ErrorProjectIDMismatch(credsFileProject string, providedProject string, credsFilePath string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrProjectIDMismatch,
-		Message: fmt.Sprintf("the \"%s\" project was specified in your configuration, but the credentials file at %s (specified via $GOOGLE_APPLICATION_CREDENTIALS) is connected the the project named \"%s\"", providedProject, credsFilePath, credsFileProject),
+		Message: fmt.Sprintf("the \"%s\" project was specified in your configuration, but the credentials file at %s (specified via $GOOGLE_APPLICATION_CREDENTIALS) is connected to the project named \"%s\"", providedProject, credsFilePath, credsFileProject),
 	})
 }
