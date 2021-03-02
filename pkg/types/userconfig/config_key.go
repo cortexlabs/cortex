@@ -45,6 +45,12 @@ const (
 	ConfigKey                 = "config"
 	EnvKey                    = "env"
 
+	// Predictor.Dependencies
+	DependenciesKey = "dependencies"
+	PipKey          = "pip"
+	ShellKey        = "shell"
+	CondaKey        = "conda"
+
 	// MultiModelReloading
 	MultiModelReloadingKey = "multi_model_reloading"
 

@@ -522,6 +522,18 @@ func getTaskEnvVars(api *spec.API, container string) []kcore.EnvVar {
 				Value: path.Join(_emptyDirMountPath, "project"),
 			},
 			kcore.EnvVar{
+				Name:  "CORTEX_DEPENDENCIES_PIP",
+				Value: api.TaskDefinition.Dependencies.Pip,
+			},
+			kcore.EnvVar{
+				Name:  "CORTEX_DEPENDENCIES_CONDA",
+				Value: api.TaskDefinition.Dependencies.Conda,
+			},
+			kcore.EnvVar{
+				Name:  "CORTEX_DEPENDENCIES_SHELL",
+				Value: api.TaskDefinition.Dependencies.Shell,
+			},
+			kcore.EnvVar{
 				Name:  "CORTEX_CACHE_DIR",
 				Value: _specCacheDir,
 			},

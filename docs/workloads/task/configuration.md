@@ -7,6 +7,10 @@
   definition:
     path: <string>  # path to a python file with a Task class definition, relative to the Cortex root (required)
     config: <string: value>  # arbitrary dictionary passed to the callable method of the Task class (can be overridden by config passed in job submission) (optional)
+    dependencies: # (optional)
+      pip: <string>  # relative path to requirements.txt (default: requirements.txt)
+      conda: <string>  # relative path to conda-packages.txt (default: conda-packages.txt)
+      shell: <string>  # relative path to a shell script for system package installation (default: dependencies.sh)
     python_path: <string>  # path to the root of your Python folder that will be appended to PYTHONPATH (default: folder containing cortex.yaml)
     image: <string> # docker image to use for the Task (default: quay.io/cortexlabs/python-predictor-cpu:master, quay.io/cortexlabs/python-predictor-gpu:master-cuda10.2-cudnn8, or quay.io/cortexlabs/python-predictor-inf:master based on compute)
     env: <string: string>  # dictionary of environment variables
