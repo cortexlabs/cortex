@@ -60,3 +60,6 @@ class PythonPredictor:
 
 Refer to the [observability documentation](../observability/metrics.md#custom-user-metrics) for more information on
 custom metrics.
+
+**Note**: The metrics client uses the UDP protocol to push metrics, to be fault tolerant, so if it fails during a
+metrics push there is no exception thrown.
