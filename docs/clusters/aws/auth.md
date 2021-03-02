@@ -10,7 +10,7 @@ Cortex client uses the default credential provider chain to get credentials. Cre
 
 ### API Management
 
-Cortex client relies an AWS IAM to authenticate requests (e.g. `cortex deploy`, `cortex get`) to a cluster on AWS. The client will include a get-caller-identity request that has been signed with the credentials from the default credential provider chain along with original request. The operator executes the presigned request to verify that credentials are valid and belong to the same account as the IAM entity of the cluster.
+Cortex client relies on AWS IAM to authenticate requests (e.g. `cortex deploy`, `cortex get`) to a cluster on AWS. The client will include a get-caller-identity request that has been signed with the credentials from the default credential provider chain along with original request. The operator executes the presigned request to verify that credentials are valid and belong to the same account as the IAM entity of the cluster.
 
 AWS credentials required to authenticate cortex client requests to the operator don't require any permissions. However, managing the cluster using `cortex cluster *` commands do require permissions.
 
@@ -56,7 +56,7 @@ When spinning up a cortex cluster, you can provide additional policies to author
 
 If you already have a cluster running and would like to add additional permissions, you can update the policy that is created automatically during `cortex cluster up`. In [IAM console](https://console.aws.amazon.com/iam/home?policies#/policies) search for `cortex-<cluster_name>-<region>` to find the policy that has been attached to your cluster. Adding more permissions to this policy will automatically give more access to all of your Cortex APIs.
 
-*** NOTE: The policy created during `cortex cluster up` will automatically be deleted during `cortex cluster down`. It is recommended to create your own policies that can be specified in `iam_policy_arns` field in cluster configuration. The precreated policy should only be updated for development and testing purposes. ***
+_NOTE: The policy created during `cortex cluster up` will automatically be deleted during `cortex cluster down`. It is recommended to create your own policies that can be specified in `iam_policy_arns` field in cluster configuration. The precreated policy should only be updated for development and testing purposes._
 
 `cortex cluster up` will create a default policy which is the minimum set of IAM permissions to run your APIs and various processes on the cluster such as the operator and fluent-bit. Fields from your AWS account and cluster configuration will be used to populate the policy below.
 

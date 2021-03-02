@@ -77,16 +77,6 @@ labels.apiKind="RealtimeAPI"
 labels.apiName="<INSERT API NAME>"
 ```
 
-**BatchAPI:**
-
-```text
-resource.type="k8s_container"
-resource.labels.cluster_name="<INSERT CLUSTER NAME>"
-labels.apiKind="BatchAPI"
-labels.apiName="<INSERT API NAME>"
-labels.jobID="<INSERT JOB ID>"
-```
-
 **TaskAPI:**
 
 ```text
