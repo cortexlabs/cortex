@@ -45,7 +45,7 @@ const (
 	ConfigKey                 = "config"
 	EnvKey                    = "env"
 
-	// Predictor.Dependencies
+	// Predictor/TaskDefinition.Dependencies
 	DependenciesKey = "dependencies"
 	PipKey          = "pip"
 	ShellKey        = "shell"
