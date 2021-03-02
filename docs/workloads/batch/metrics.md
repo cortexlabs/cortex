@@ -3,7 +3,7 @@
 ## Custom user metrics
 
 It is possible to export custom user metrics by adding the `metrics_client`
-argument to the predictor constructor. Below there is an example on how to use the metrics client with
+argument to the predictor constructor. Below there is an example of how to use the metrics client with
 the `PythonPredictor` type. The implementation would be similar to other predictor types.
 
 ```python

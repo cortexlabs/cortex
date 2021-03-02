@@ -1,7 +1,7 @@
 ## Custom user metrics
 
 It is possible to export custom user metrics by adding the `metrics_client`
-argument to the task definition constructor. Below there is an example on how to use the metrics client. 
+argument to the task definition constructor. Below there is an example of how to use the metrics client.
 
 Currently, it is only possible to instantiate the metrics client from a class task definition.
 
@@ -13,7 +13,7 @@ class Task:
     def __call__(self, config):
         # --- my task code here ---
         ...
-        
+
         # increment a counter with name "my_metric" and tags model:v1
         self.metrics.increment(metric="my_counter", value=1, tags={"model": "v1"})
 
