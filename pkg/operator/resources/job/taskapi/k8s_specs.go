@@ -75,6 +75,14 @@ func k8sJobSpec(api *spec.API, job *spec.TaskJob) (*kbatch.Job, error) {
 					Name:  "CORTEX_TELEMETRY_SENTRY_ENVIRONMENT",
 					Value: "api",
 				},
+				kcore.EnvVar{
+					Name: "HOST_IP",
+					ValueFrom: &kcore.EnvVarSource{
+						FieldRef: &kcore.ObjectFieldSelector{
+							FieldPath: "status.hostIP",
+						},
+					},
+				},
 			)
 		}
 	}
@@ -101,6 +109,7 @@ func k8sJobSpec(api *spec.API, job *spec.TaskJob) (*kbatch.Job, error) {
 			},
 			Annotations: map[string]string{
 				"traffic.sidecar.istio.io/excludeOutboundIPRanges": "0.0.0.0/0",
+				"cluster-autoscaler.kubernetes.io/safe-to-evict":   "false",
 			},
 			K8sPodSpec: kcore.PodSpec{
 				RestartPolicy: "Never",

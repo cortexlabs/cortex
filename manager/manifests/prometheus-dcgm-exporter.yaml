@@ -1,0 +1,136 @@
+# Copyright 2021 Cortex Labs, Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: monitoring
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: dcgm-exporter
+  namespace: default
+  labels:
+    app.kubernetes.io/name: dcgm-exporter
+    app.kubernetes.io/instance: dcgm-exporter
+    app.kubernetes.io/component: dcgm-exporter
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: dcgm-exporter
+  namespace: default
+  labels:
+    app.kubernetes.io/name: dcgm-exporter
+    app.kubernetes.io/instance: dcgm-exporter
+    app.kubernetes.io/component: dcgm-exporter
+spec:
+  updateStrategy:
+    type: RollingUpdate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: dcgm-exporter
+      app.kubernetes.io/instance: dcgm-exporter
+      app.kubernetes.io/component: dcgm-exporter
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: dcgm-exporter
+        app.kubernetes.io/instance: dcgm-exporter
+        app.kubernetes.io/component: dcgm-exporter
+    spec:
+      serviceAccountName: dcgm-exporter
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: nvidia.com/gpu
+                operator: Exists
+      containers:
+      - env:
+        - name: DCGM_EXPORTER_LISTEN
+          value: :9400
+        - name: DCGM_EXPORTER_KUBERNETES
+          value: "true"
+        image: $CORTEX_IMAGE_PROMETHEUS_DCGM_EXPORTER
+        imagePullPolicy: Always
+        name: dcgm-exporter
+        ports:
+        - containerPort: 9400
+          name: metrics
+          protocol: TCP
+        resources:
+          requests:
+            cpu: 50m
+            memory: 50Mi
+        securityContext:
+          privileged: true
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+        volumeMounts:
+        - mountPath: /var/lib/kubelet/pod-resources
+          name: pod-gpu-resources
+          readOnly: true
+        - mountPath: /usr/local/nvidia
+          name: nvidia-install-dir-host
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      securityContext: {}
+      terminationGracePeriodSeconds: 30
+      tolerations:
+      - key: workload
+        effect: NoSchedule
+        operator: Exists
+      - key: nvidia.com/gpu
+        operator: Exists
+        effect: NoSchedule
+      volumes:
+      - hostPath:
+          path: /var/lib/kubelet/pod-resources
+          type: ""
+        name: pod-gpu-resources
+      - hostPath:
+          path: /home/kubernetes/bin/nvidia
+          type: ""
+        name: nvidia-install-dir-host
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: dcgm-exporter
+  namespace: default
+  labels:
+    monitoring.cortex.dev: dcgm-exporter
+    app.kubernetes.io/name: dcgm-exporter
+    app.kubernetes.io/instance: dcgm-exporter
+    app.kubernetes.io/component: dcgm-exporter
+  annotations:
+    prometheus.io/scrape: 'true'
+    prometheus.io/port: '9400'
+spec:
+  jobLabel: "dcgm-exporter"
+  podMetricsEndpoints:
+    - port: metrics
+      path: /metrics
+      scheme: http
+      interval: 15s
+  namespaceSelector:
+    any: true
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: dcgm-exporter
+      app.kubernetes.io/instance: dcgm-exporter

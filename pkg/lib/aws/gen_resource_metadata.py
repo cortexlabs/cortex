@@ -27,6 +27,7 @@ REGIONS = [
     "af-south-1",  # Cape town
     "ap-east-1",  # Hong Kong
     "ap-south-1",  # Mumbai
+    "ap-northeast-3",  # Osaka
     "ap-northeast-2",  # Seoul
     "ap-southeast-1",  # Singapore
     "ap-southeast-2",  # Sydney

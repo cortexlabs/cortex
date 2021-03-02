@@ -147,24 +147,29 @@ func ValidateClusterAPIs(apis []userconfig.API, projectFiles spec.ProjectFiles) 
 CPU Reservations:
 
 FluentBit 100
-StatsD 100
+StatsDExporter 100
+NodeExporter 100
 KubeProxy 100
 AWS cni 10
 Reserved (150 + 150) see eks.yaml for details
 */
-var _cortexCPUReserve = kresource.MustParse("610m")
+var _cortexCPUReserve = kresource.MustParse("710m")
 
 /*
 Memory Reservations:
 
 FluentBit 150
-StatsD 100
+StatsDExporter 100
+NodeExporter 180
 Reserved (300 + 300 + 200) see eks.yaml for details
 */
-var _cortexMemReserve = kresource.MustParse("1050Mi")
+var _cortexMemReserve = kresource.MustParse("1230Mi")
 
 var _nvidiaCPUReserve = kresource.MustParse("100m")
 var _nvidiaMemReserve = kresource.MustParse("100Mi")
+
+var _nvidiaDCGMExporterCPUReserve = kresource.MustParse("50m")
+var _nvidiaDCGMExporterMemReserve = kresource.MustParse("50Mi")
 
 var _inferentiaCPUReserve = kresource.MustParse("100m")
 var _inferentiaMemReserve = kresource.MustParse("100Mi")
@@ -185,6 +190,9 @@ func awsManagedValidateK8sCompute(compute *userconfig.Compute, maxMem kresource.
 		// Reserve resources for nvidia device plugin daemonset
 		maxCPU.Sub(_nvidiaCPUReserve)
 		maxMem.Sub(_nvidiaMemReserve)
+		// Reserve resources for nvidia dcgm prometheus exporter
+		maxCPU.Sub(_nvidiaDCGMExporterCPUReserve)
+		maxMem.Sub(_nvidiaDCGMExporterMemReserve)
 	}
 
 	maxInf := instanceMetadata.Inf

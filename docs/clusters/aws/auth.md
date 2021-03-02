@@ -2,17 +2,17 @@
 
 ## Cortex Client
 
-Cortex Client uses the default credential provider chain to get credentials. Credentials will be read in the following order of precedence:
+Cortex client uses the default credential provider chain to get credentials. Credentials will be read in the following order of precedence:
 
 - environment variables
-- the name of the profile specified by `AWS_PROFILE` environtment variable
+- the name of the profile specified by `AWS_PROFILE` environment variable
 - `default` profile from `~/.aws/credentials`
 
 ### API Management
 
-Cortex client relies an AWS IAM to authenticate requests (e.g. `cortex deploy`, `cortex get`) to a Cortex cluster on AWS. The client will include a get-caller-identity request signed with the credentials from the default credential provider chain along with original request. The Cortex operator executes the presigned request to verify that credentials are valid and belong to the same account as the IAM entity of the Cortex cluster.
+Cortex client relies on AWS IAM to authenticate requests (e.g. `cortex deploy`, `cortex get`) to a cluster on AWS. The client will include a get-caller-identity request that has been signed with the credentials from the default credential provider chain along with original request. The operator executes the presigned request to verify that credentials are valid and belong to the same account as the IAM entity of the cluster.
 
-AWS credentials required to authenticate Cortex client requests don't require any permissions.
+AWS credentials required to authenticate cortex client requests to the operator don't require any permissions. However, managing the cluster using `cortex cluster *` commands do require permissions.
 
 ### Cluster Management
 
@@ -22,7 +22,7 @@ After spinning up a cluster using `cortex cluster up`, the IAM entity user or ro
 
 #### Running `cortex cluster` commands from different IAM users
 
-By default, the `cortex cluster *` commands can only be executed by the IAM user who created the Cortex cluster. To grant access to additional IAM users, follow these steps:
+By default, the `cortex cluster *` commands can only be executed by the IAM user who created the cluster. To grant access to additional IAM users, follow these steps:
 
 1. Install `eksctl` by following these [instructions](https://eksctl.io/introduction/#installation).
 
@@ -52,58 +52,58 @@ By default, the `cortex cluster *` commands can only be executed by the IAM user
 
 ## Authorizing your APIs
 
-When spinning up a cortex cluster, you can provide additional policies to authorize your Cortex Operator and APIs to access other AWS resources by creating a policy and adding it to the `iam_policy_arns` list.
+When spinning up a cortex cluster, you can provide additional policies to authorize your APIs to access AWS resources by creating a policy and adding it to the `iam_policy_arns` list.
 
-If you already have a cluster running and would like to add additional permissions, you can create new policies and attach them to the instances. Search for roles with prefix `eksctl-<cluster_name>` in [IAM console](https://console.aws.amazon.com/iam/home?roles#/roles) to find the roles to attach your policies to.
+If you already have a cluster running and would like to add additional permissions, you can update the policy that is created automatically during `cortex cluster up`. In [IAM console](https://console.aws.amazon.com/iam/home?policies#/policies) search for `cortex-<cluster_name>-<region>` to find the policy that has been attached to your cluster. Adding more permissions to this policy will automatically give more access to all of your Cortex APIs.
 
-*** NOTE: if you attach policies to a running cluster, the policies need to be deattached before spinning the down cluster, otherwise `cortex cluster down` will fail ***
+_NOTE: The policy created during `cortex cluster up` will automatically be deleted during `cortex cluster down`. It is recommended to create your own policies that can be specified in `iam_policy_arns` field in cluster configuration. The precreated policy should only be updated for development and testing purposes._
 
-`cortex cluster up` will create and default policy which is the minimum set of IAM permissions to run Cortex. Fields from your AWS credentials and cluster configuration will be used to populate the policy below.
+`cortex cluster up` will create a default policy which is the minimum set of IAM permissions to run your APIs and various processes on the cluster such as the operator and fluent-bit. Fields from your AWS account and cluster configuration will be used to populate the policy below.
 
 ```json
 {
-    "Version": "2012-10-17",
-    "Statement": [
-        {
-            "Action": [
-                "sts:GetCallerIdentity",
-                "ecr:GetAuthorizationToken",
-                "ecr:BatchGetImage",
-                "elasticloadbalancing:Describe*",
-				"sqs:ListQueues"
-            ],
-            "Effect": "Allow",
-            "Resource": "*"
-        },
+	"Version": "2012-10-17",
+	"Statement": [
 		{
-            "Effect": "Allow",
-            "Action": "sqs:*",
-            "Resource": "arn:aws:sqs:{{ .Region }}:{{ .AccountID }}:{{ .SQSPrefix }}*"
-        },
-        {
-            "Effect": "Allow",
-            "Action": "s3:*",
-            "Resource": "arn:aws:s3:::{{ .Bucket }}"
-        },
-        {
-            "Effect": "Allow",
-            "Action": "logs:PutLogEvents",
-            "Resource": "arn:aws:logs:{{ .Region }}:{{ .AccountID }}:log-group:{{ .LogGroup }}:*:*"
-        },
-        {
-            "Effect": "Allow",
-            "Action": [
-                "logs:CreateLogStream",
-                "logs:DescribeLogStreams",
-                "logs:PutLogEvents"
-            ],
-            "Resource": "arn:aws:logs:{{ .Region }}:{{ .AccountID }}:log-group:{{ .LogGroup }}:*"
-        },
-        {
-            "Effect": "Allow",
-            "Action": "logs:CreateLogGroup",
-            "Resource": "arn:aws:logs:{{ .Region }}:{{ .AccountID }}:log-group:{{ .LogGroup }}"
-        }
-    ]
+			"Action": [
+				"sts:GetCallerIdentity",
+				"ecr:GetAuthorizationToken",
+				"ecr:BatchGetImage",
+				"sqs:ListQueues"
+			],
+			"Effect": "Allow",
+			"Resource": "*"
+		},
+		{
+			"Effect": "Allow",
+			"Action": "sqs:*",
+			"Resource": "arn:aws:sqs:{{ .Region }}:{{ .AccountID }}:{{ .SQSPrefix }}*"
+		},
+		{
+			"Effect": "Allow",
+			"Action": "s3:*",
+			"Resource": "arn:aws:s3:::{{ .Bucket }}"
+		},
+		{
+			"Effect": "Allow",
+			"Action": "s3:*",
+			"Resource": "arn:aws:s3:::{{ .Bucket }}/*"
+		},
+		{
+			"Effect": "Allow",
+			"Action": [
+				"logs:CreateLogStream",
+				"logs:DescribeLogStreams",
+				"logs:PutLogEvents",
+				"logs:CreateLogGroup"
+			],
+			"Resource": "arn:aws:logs:{{ .Region }}:{{ .AccountID }}:log-group:{{ .LogGroup }}:*"
+		},
+		{
+			"Effect": "Allow",
+			"Action": "logs:CreateLogGroup",
+			"Resource": "arn:aws:logs:{{ .Region }}:{{ .AccountID }}:log-group:{{ .LogGroup }}"
+		}
+	]
 }
 ```

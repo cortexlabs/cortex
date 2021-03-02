@@ -308,7 +308,7 @@ func setConfigFieldsFromCached(userClusterConfig *clusterconfig.Config, cachedCl
 	}
 	userClusterConfig.SSLCertificateARN = cachedClusterConfig.SSLCertificateARN
 
-	if cachedClusterConfig.CortexPolicyARN != userClusterConfig.CortexPolicyARN {
+	if userClusterConfig.CortexPolicyARN != "" && cachedClusterConfig.CortexPolicyARN != userClusterConfig.CortexPolicyARN {
 		return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.CortexPolicyARNKey, cachedClusterConfig.CortexPolicyARN)
 	}
 	userClusterConfig.CortexPolicyARN = cachedClusterConfig.CortexPolicyARN
@@ -422,6 +422,22 @@ func setConfigFieldsFromCached(userClusterConfig *clusterconfig.Config, cachedCl
 
 	if s.Obj(cachedClusterConfig.ImagePrometheusStatsDExporter) != s.Obj(userClusterConfig.ImagePrometheusStatsDExporter) {
 		return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.ImagePrometheusStatsDExporterKey, cachedClusterConfig.ImagePrometheusStatsDExporter)
+	}
+
+	if s.Obj(cachedClusterConfig.ImagePrometheusDCGMExporter) != s.Obj(userClusterConfig.ImagePrometheusDCGMExporter) {
+		return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.ImagePrometheusDCGMExporterKey, cachedClusterConfig.ImagePrometheusDCGMExporter)
+	}
+
+	if s.Obj(cachedClusterConfig.ImagePrometheusKubeStateMetrics) != s.Obj(userClusterConfig.ImagePrometheusKubeStateMetrics) {
+		return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.ImagePrometheusKubeStateMetricsKey, cachedClusterConfig.ImagePrometheusKubeStateMetrics)
+	}
+
+	if s.Obj(cachedClusterConfig.ImagePrometheusNodeExporter) != s.Obj(userClusterConfig.ImagePrometheusNodeExporter) {
+		return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.ImagePrometheusNodeExporterKey, cachedClusterConfig.ImagePrometheusNodeExporter)
+	}
+
+	if s.Obj(cachedClusterConfig.ImageKubeRBACProxy) != s.Obj(userClusterConfig.ImageKubeRBACProxy) {
+		return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.ImageKubeRBACProxyKey, cachedClusterConfig.ImageKubeRBACProxy)
 	}
 
 	if s.Obj(cachedClusterConfig.ImageGrafana) != s.Obj(userClusterConfig.ImageGrafana) {
@@ -739,6 +755,12 @@ func clusterConfigConfirmationStr(clusterConfig clusterconfig.Config) string {
 	}
 	if clusterConfig.ImagePrometheusStatsDExporter != defaultConfig.ImagePrometheusStatsDExporter {
 		items.Add(clusterconfig.ImagePrometheusStatsDExporterUserKey, clusterConfig.ImagePrometheusStatsDExporter)
+	}
+	if clusterConfig.ImagePrometheusDCGMExporter != defaultConfig.ImagePrometheusDCGMExporter {
+		items.Add(clusterconfig.ImagePrometheusDCGMExporterUserKey, clusterConfig.ImagePrometheusDCGMExporter)
+	}
+	if clusterConfig.ImagePrometheusKubeStateMetrics != defaultConfig.ImagePrometheusKubeStateMetrics {
+		items.Add(clusterconfig.ImagePrometheusKubeStateMetricsUserKey, clusterConfig.ImagePrometheusKubeStateMetrics)
 	}
 	if clusterConfig.ImageGrafana != defaultConfig.ImageGrafana {
 		items.Add(clusterconfig.ImageGrafanaUserKey, clusterConfig.ImageGrafana)

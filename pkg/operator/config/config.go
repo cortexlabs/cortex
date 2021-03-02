@@ -196,6 +196,7 @@ func Init() error {
 		Properties: map[string]string{
 			"cluster_id":  OperatorMetadata.ClusterID,
 			"operator_id": OperatorMetadata.OperatorID,
+			"provider":    Provider.String(),
 		},
 		Environment: "operator",
 		LogErrors:   true,

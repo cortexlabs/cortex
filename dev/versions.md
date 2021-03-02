@@ -245,22 +245,6 @@ Note: it's ok if example training notebooks aren't upgraded, as long as the expo
 1. Update `istio.yaml.j2`, `apis.yaml.j2`, `operator.yaml.j2`, and `pkg/lib/k8s` as necessary
 1. Update `install.sh` as necessary
 
-## Istio charts
-
-1. Download `curl -L https://istio.io/downloadIstio | ISTIO_VERSION=<ISTIO_VERSION_HERE> TARGET_ARCH=x86_64 sh -` and
-   you will find manifests/charts containing helm charts.
-1. Copy the charts containing the istio crds, istio pilot and istio ingress gateway into
-   manifests/charts/networking/charts. As of 1.7.3 these charts are in folders named: `base`
-   , `istio-control/istio-discovery`, `gateways/istio-ingress`. Copy the istio-ingress folder twice except name one of
-   them api-ingress and the other operator-ingress.
-1. Update manifests/charts/networking/values.yaml to override globals and default values.yaml in the istio charts as
-   necessary
-1. Update template files in istio charts to propagate the necessary service annotations to ingress gateways based on
-   config
-1. Test the helm charts for both aws and gcp
-   provider `helm template testing manifests -n default --dry-run -f <values.yaml>` and verify that none of the
-   resources are namespaced to any istio namespaces.
-
 ## Google Pause
 
 1. Find the version of google pause used in the nvidia device driver yaml file
@@ -322,6 +306,30 @@ supported (<https://github.com/awslabs/amazon-eks-ami/issues/176>)
    on [Docker Hub](https://registry.hub.docker.com/r/prom/statsd-exporter/tags?page=1&ordering=last_updated).
 1. Update the base image version in `images/prometheus-statsd-exporter/Dockerfile`.
 1. Update `prometheus-statsd-exporter.yaml` as necessary, if that's the case.
+
+## Prometheus DCGM Exporter
+
+1. Run `helm template` on the DCGM charts https://github.com/NVIDIA/gpu-monitoring-tools/tree/master/deployment/dcgm-exporter and save the output somewhere temporarily.
+1. Update the base image version in `images/prometheus-dcgm-exporter/Dockerfile`.
+1. Update `prometheus-dcgm-exporter.yaml` as necessary, if that's the case. Keep in mind that in our k8s template, the `ServiceMonitor` was changed to a `PodMonitor`. Remove any unnecessary labels.
+
+## Prometheus kube-state-metrics Exporter
+
+1. Run `helm template` on the kube-state-metrics charts https://github.com/kubernetes/kube-state-metrics/tree/master/charts/kube-state-metrics and save the output somewhere temporarily.
+1. Update the base image version in `images/prometheus-kube-state-metrics/Dockerfile`.
+1. Update `prometheus-kube-state-metrics.yaml` as necessary, if that's the case. Keep in mind that in our k8s template, the `ServiceMonitor` was changed to a `PodMonitor`. Remove any unnecessary labels. The update can also include adjusting the resource requests.
+
+## Prometheus Kubelet Exporter
+
+1. Check if https://github.com/prometheus-operator/kube-prometheus/blob/main/manifests/kubernetes-serviceMonitorKubelet.yaml has changed when compared to `manager/manifests/prometheus-kubelet-exporter`.
+
+## Prometheus Node Exporter
+
+1. Find the latest release in the Kube Prometheus [GitHub Repo](https://github.com/prometheus-operator/kube-prometheus/blob/main/manifests/).
+1. Copy the `node-exporter-*.yaml` files contents into `prometheus-node-exporter.yaml`, but keep the prometheus rules resource.
+1. Replace the image in the Deployment resource with a cortex env var.
+1. Update the base image versions in `images/prometheus-node-exporter/Dockerfile`
+   and `images/kube-rbac-proxy/Dockerfile`.
 
 ## Grafana
 
