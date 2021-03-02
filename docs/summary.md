@@ -48,6 +48,9 @@
   * [Python packages](workloads/dependencies/python-packages.md)
   * [System packages](workloads/dependencies/system-packages.md)
   * [Custom images](workloads/dependencies/images.md)
+* Observability
+  * [Logging](workloads/observability/logging.md)
+  * [Metrics](workloads/observability/metrics.md)
 
 ## Clusters
 
@@ -56,7 +59,6 @@
   * [Update](clusters/aws/update.md)
   * [Auth](clusters/aws/auth.md)
   * [Security](clusters/aws/security.md)
-  * [Logging](clusters/aws/logging.md)
   * [Spot instances](clusters/aws/spot.md)
   * [Networking](clusters/aws/networking/index.md)
     * [Custom domain](clusters/aws/networking/custom-domain.md)
@@ -66,7 +68,6 @@
   * [Uninstall](clusters/aws/uninstall.md)
 * GCP
   * [Install](clusters/gcp/install.md)
-  * [Logging](clusters/gcp/logging.md)
   * [Credentials](clusters/gcp/credentials.md)
   * [Setting up kubectl](clusters/gcp/kubectl.md)
   * [Uninstall](clusters/gcp/uninstall.md)
