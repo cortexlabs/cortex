@@ -311,6 +311,7 @@ func taskDefinitionValidation() *cr.StructFieldValidation {
 						AllowEmpty: true,
 					},
 				},
+				dependencyPathValidation(),
 			},
 		},
 	}

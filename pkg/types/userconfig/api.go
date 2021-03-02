@@ -65,12 +65,13 @@ type Predictor struct {
 }
 
 type TaskDefinition struct {
-	Path       string                 `json:"path" yaml:"path"`
-	PythonPath *string                `json:"python_path" yaml:"python_path"`
-	Image      string                 `json:"image" yaml:"image"`
-	LogLevel   LogLevel               `json:"log_level" yaml:"log_level"`
-	Config     map[string]interface{} `json:"config" yaml:"config"`
-	Env        map[string]string      `json:"env" yaml:"env"`
+	Path         string                 `json:"path" yaml:"path"`
+	PythonPath   *string                `json:"python_path" yaml:"python_path"`
+	Image        string                 `json:"image" yaml:"image"`
+	LogLevel     LogLevel               `json:"log_level" yaml:"log_level"`
+	Config       map[string]interface{} `json:"config" yaml:"config"`
+	Env          map[string]string      `json:"env" yaml:"env"`
+	Dependencies *Dependencies          `json:"dependencies" yaml:"dependencies"`
 }
 
 type MultiModels struct {
@@ -373,6 +374,14 @@ func (api *API) UserStr(provider types.ProviderType) string {
 	return sb.String()
 }
 
+func (dependencies Dependencies) UserStr() string {
+	var sb strings.Builder
+	sb.WriteString(fmt.Sprintf("%s: %s\n", PipKey, dependencies.Pip))
+	sb.WriteString(fmt.Sprintf("%s: %s\n", CondaKey, dependencies.Conda))
+	sb.WriteString(fmt.Sprintf("%s: %s\n", ShellKey, dependencies.Shell))
+	return sb.String()
+}
+
 func (trafficSplit *TrafficSplit) UserStr() string {
 	var sb strings.Builder
 	sb.WriteString(fmt.Sprintf("%s: %s\n", NameKey, trafficSplit.Name))
@@ -399,6 +408,8 @@ func (task *TaskDefinition) UserStr() string {
 		d, _ := yaml.Marshal(&task.Env)
 		sb.WriteString(s.Indent(string(d), "  "))
 	}
+	sb.WriteString(fmt.Sprintf("%s:\n", DependenciesKey))
+	sb.WriteString(s.Indent(task.Dependencies.UserStr(), "  "))
 
 	return sb.String()
 }
@@ -450,6 +461,9 @@ func (predictor *Predictor) UserStr() string {
 		d, _ := yaml.Marshal(&predictor.Env)
 		sb.WriteString(s.Indent(string(d), "  "))
 	}
+	sb.WriteString(fmt.Sprintf("%s:\n", DependenciesKey))
+	sb.WriteString(s.Indent(predictor.Dependencies.UserStr(), "  "))
+
 	return sb.String()
 }
 
