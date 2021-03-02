@@ -1,12 +1,25 @@
 # Logging
 
 Cortex provides a logging solution, out-of-the-box, without the need to configure anything. By default, logs are
-collected with FluentBit, on every API kind, and are exported to each cloud provider logging solution. 
-It is also possible to view the logs of a single API replica, while developing, through the `cortex logs` command.
+collected with FluentBit, on every API kind, and are exported to each cloud provider logging solution. It is also
+possible to view the logs of a single API replica, while developing, through the `cortex logs` command.
 
 ## Cortex logs command
 
-The cortex CLI tool provides a command to in
+The cortex CLI tool provides a command to quickly check the logs for a single API replica while debugging.
+
+To check the logs of an API run one of the following commands:
+
+```shell
+# RealtimeAPI
+cortex logs <api_name>
+
+# BatchAPI or TaskAPI
+cortex logs <api_name> <job_id>  # the jobs needs to be in a running state
+```
+
+**Important:** this method won't show the logs for all the API replicas and therefore is not a complete logging
+solution.
 
 ## Logs on AWS
 
