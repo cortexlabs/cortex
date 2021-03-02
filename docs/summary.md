@@ -48,6 +48,9 @@
   * [Python packages](workloads/dependencies/python-packages.md)
   * [System packages](workloads/dependencies/system-packages.md)
   * [Custom images](workloads/dependencies/images.md)
+* Observability
+  * [Logging](workloads/observability/logging.md)
+  * [Metrics](workloads/observability/metrics.md)
 
 ## Clusters
 
