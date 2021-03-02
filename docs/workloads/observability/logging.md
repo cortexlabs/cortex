@@ -15,7 +15,7 @@ To check the logs of an API run one of the following commands:
 cortex logs <api_name>
 
 # BatchAPI or TaskAPI
-cortex logs <api_name> <job_id>  # the jobs needs to be in a running state
+cortex logs <api_name> <job_id>  # the job needs to be in a running state
 ```
 
 **Important:** this method won't show the logs for all the API replicas and therefore is not a complete logging
