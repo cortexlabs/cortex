@@ -95,17 +95,17 @@ Currently, we only support 3 different metric types that will be converted to it
 - [Histogram](https://prometheus.io/docs/concepts/metric_types/#histogram) - samples observations (usually things like
   request durations or response sizes) and counts them in configurable buckets. It also provides a sum of all observed
   values.
-  
+
 ### Pushing metrics
 
  - Counter
-    
+
     ```python
     metrics.increment('my_counter', value=1, tags={"tag": "tag_name"})
     ```
 
  - Gauge
-   
+
     ```python
     metrics.gauge('active_connections', value=1001, tags={"tag": "tag_name"})
     ```
