@@ -194,7 +194,7 @@ image_prometheus_config_reloader: <account_id>.dkr.ecr.<region>.amazonaws.com/co
 image_prometheus_operator: <account_id>.dkr.ecr.<region>.amazonaws.com/cortexlabs/prometheus-operator:master
 image_prometheus_statsd_exporter: <account_id>.dkr.ecr.<region>.amazonaws.com/cortexlabs/prometheus-statsd-exporter:master
 image_prometheus_dcgm_exporter: <account_id>.dkr.ecr.<region>.amazonaws.com/cortexlabs/prometheus-dcgm-exporter:master
-image_prometheus_kube_state_metrics_exporter: <account_id>.dkr.ecr.<region>.amazonaws.com/cortexlabs/prometheus-kube-state-metrics-exporter:master
+image_prometheus_kube_state_metrics: <account_id>.dkr.ecr.<region>.amazonaws.com/cortexlabs/prometheus-kube-state-metrics:master
 image_prometheus_node_exporter: <account_id>.dkr.ecr.<region>.amazonaws.com/cortexlabs/prometheus-node-exporter:master
 image_kube_rbac_proxy: <account_id>.dkr.ecr.<region>.amazonaws.com/cortexlabs/kube-rbac-proxy:master
 image_grafana: <account_id>.dkr.ecr.<region>.amazonaws.com/cortexlabs/grafana:master
@@ -227,7 +227,7 @@ image_prometheus_config_reloader: gcr.io/<project_id>/cortexlabs/prometheus-conf
 image_prometheus_operator: gcr.io/<project_id>/cortexlabs/prometheus-operator:master
 image_prometheus_statsd_exporter: gcr.io/<project_id>/cortexlabs/prometheus-statsd-exporter:master
 image_prometheus_dcgm_exporter: gcr.io/<project_id>/cortexlabs/prometheus-dcgm-exporter:master
-image_prometheus_kube_state_metrics_exporter: gcr.io/<project_id>/cortexlabs/prometheus-kube-state-metrics-exporter:master
+image_prometheus_kube_state_metrics: gcr.io/<project_id>/cortexlabs/prometheus-kube-state-metrics:master
 image_prometheus_node_exporter: gcr.io/<project_id>/cortexlabs/prometheus-node-exporter:master
 image_kube_rbac_proxy: gcr.io/<project_id>/cortexlabs/kube-rbac-proxy:master
 image_grafana: gcr.io/<project_id>/cortexlabs/grafana:master
