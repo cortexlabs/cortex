@@ -22,8 +22,8 @@ from typing import Any, Callable, Dict, List
 
 from starlette.responses import Response
 
-from ..exceptions import UserRuntimeException
-from ..log import logger
+from cortex_internal.lib.exceptions import UserRuntimeException
+from cortex_internal.lib.log import logger
 
 
 class DynamicBatcher:
