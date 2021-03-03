@@ -53,8 +53,7 @@ class DynamicBatcher:
                 pass
 
             self.predictions = {}
-            thread_ids = list(self.samples.keys())
-
+            thread_ids = self._get_thread_ids(self.batch_max_size)
             try:
                 if self.samples:
                     batch = self._make_batch(thread_ids)
@@ -73,6 +72,11 @@ class DynamicBatcher:
                 for thread_id in thread_ids:
                     del self.samples[thread_id]
                 self.barrier.reset()
+
+    def _get_thread_ids(self, max_number: int) -> List[int]:
+        if len(self.samples) <= max_number:
+            return list(self.samples.keys())
+        return sorted(self.samples)[:max_number]
 
     def _make_batch(self, thread_ids: List[int]) -> Dict[str, List[Any]]:
         batched_samples = defaultdict(list)
