@@ -28,6 +28,7 @@ import (
 )
 
 const (
+	ErrFieldCannotBeEmpty                         = "clusterconfig.field_cannot_be_empty"
 	ErrInvalidRegion                              = "clusterconfig.invalid_region"
 	ErrInstanceTypeTooSmall                       = "clusterconfig.instance_type_too_small"
 	ErrMinInstancesGreaterThanMax                 = "clusterconfig.min_instances_greater_than_max"
@@ -70,6 +71,13 @@ const (
 	ErrGCPInvalidAcceleratorType                  = "clusterconfig.gcp_invalid_accelerator_type"
 	ErrGCPIncompatibleInstanceTypeWithAccelerator = "clusterconfig.gcp_incompatible_instance_type_with_accelerator"
 )
+
+func ErrorFieldCannotBeEmpty(fieldName string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrFieldCannotBeEmpty,
+		Message: fmt.Sprintf("%s field cannot be empty", fieldName),
+	})
+}
 
 func ErrorInvalidRegion(region string) error {
 	return errors.WithStack(&errors.Error{

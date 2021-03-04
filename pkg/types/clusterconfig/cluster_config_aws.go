@@ -33,7 +33,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/hash"
 	libmath "github.com/cortexlabs/cortex/pkg/lib/math"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
-	"github.com/cortexlabs/cortex/pkg/lib/prompt"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/table"
@@ -56,7 +55,7 @@ var (
 type CoreConfig struct {
 	Bucket         string             `json:"bucket" yaml:"bucket"`
 	ClusterName    string             `json:"cluster_name" yaml:"cluster_name"`
-	Region         *string            `json:"region" yaml:"region"`
+	Region         string             `json:"region" yaml:"region"`
 	Provider       types.ProviderType `json:"provider" yaml:"provider"`
 	Telemetry      bool               `json:"telemetry" yaml:"telemetry"`
 	IsManaged      bool               `json:"is_managed" yaml:"is_managed"`
@@ -88,14 +87,14 @@ type CoreConfig struct {
 }
 
 type ManagedConfig struct {
-	InstanceType               *string            `json:"instance_type" yaml:"instance_type"`
-	MinInstances               *int64             `json:"min_instances" yaml:"min_instances"`
-	MaxInstances               *int64             `json:"max_instances" yaml:"max_instances"`
+	InstanceType               string             `json:"instance_type" yaml:"instance_type"`
+	MinInstances               int64              `json:"min_instances" yaml:"min_instances"`
+	MaxInstances               int64              `json:"max_instances" yaml:"max_instances"`
 	InstanceVolumeSize         int64              `json:"instance_volume_size" yaml:"instance_volume_size"`
 	InstanceVolumeType         VolumeType         `json:"instance_volume_type" yaml:"instance_volume_type"`
 	InstanceVolumeIOPS         *int64             `json:"instance_volume_iops" yaml:"instance_volume_iops"`
 	Tags                       map[string]string  `json:"tags" yaml:"tags"`
-	Spot                       *bool              `json:"spot" yaml:"spot"`
+	Spot                       bool               `json:"spot" yaml:"spot"`
 	SpotConfig                 *SpotConfig        `json:"spot_config" yaml:"spot_config"`
 	AvailabilityZones          []string           `json:"availability_zones" yaml:"availability_zones"`
 	SSLCertificateARN          *string            `json:"ssl_certificate_arn,omitempty" yaml:"ssl_certificate_arn,omitempty"`
@@ -146,9 +145,9 @@ type InternalConfig struct {
 
 // The bare minimum to identify a cluster
 type AccessConfig struct {
-	ClusterName  *string `json:"cluster_name" yaml:"cluster_name"`
-	Region       *string `json:"region" yaml:"region"`
-	ImageManager string  `json:"image_manager" yaml:"image_manager"`
+	ClusterName  string `json:"cluster_name" yaml:"cluster_name"`
+	Region       string `json:"region" yaml:"region"`
+	ImageManager string `json:"image_manager" yaml:"image_manager"`
 }
 
 func ValidateRegion(region string) error {
@@ -159,6 +158,9 @@ func ValidateRegion(region string) error {
 }
 
 func RegionValidator(region string) (string, error) {
+	if region == "" {
+		return "", ErrorFieldCannotBeEmpty(RegionKey)
+	}
 	if err := ValidateRegion(region); err != nil {
 		return "", err
 	}
@@ -187,7 +189,7 @@ var CoreConfigStructFieldValidations = []*cr.StructFieldValidation{
 	},
 	{
 		StructField: "Region",
-		StringPtrValidation: &cr.StringPtrValidation{
+		StringValidation: &cr.StringValidation{
 			Validator: RegionValidator,
 		},
 	},
@@ -382,19 +384,21 @@ var CoreConfigStructFieldValidations = []*cr.StructFieldValidation{
 var ManagedConfigStructFieldValidations = []*cr.StructFieldValidation{
 	{
 		StructField: "InstanceType",
-		StringPtrValidation: &cr.StringPtrValidation{
+		StringValidation: &cr.StringValidation{
 			Validator: validateInstanceType,
 		},
 	},
 	{
 		StructField: "MinInstances",
-		Int64PtrValidation: &cr.Int64PtrValidation{
+		Int64Validation: &cr.Int64Validation{
+			Default:              int64(1),
 			GreaterThanOrEqualTo: pointer.Int64(0),
 		},
 	},
 	{
 		StructField: "MaxInstances",
-		Int64PtrValidation: &cr.Int64PtrValidation{
+		Int64Validation: &cr.Int64Validation{
+			Default:     int64(5),
 			GreaterThan: pointer.Int64(0),
 		},
 	},
@@ -472,8 +476,8 @@ var ManagedConfigStructFieldValidations = []*cr.StructFieldValidation{
 	},
 	{
 		StructField: "Spot",
-		BoolPtrValidation: &cr.BoolPtrValidation{
-			Default: pointer.Bool(false),
+		BoolValidation: &cr.BoolValidation{
+			Default: false,
 		},
 	},
 	{
@@ -643,7 +647,7 @@ var AccessValidation = &cr.StructValidation{
 	StructFieldValidations: []*cr.StructFieldValidation{
 		{
 			StructField: "ClusterName",
-			StringPtrValidation: &cr.StringPtrValidation{
+			StringValidation: &cr.StringValidation{
 				MaxLength: 63,
 				MinLength: 3,
 				Validator: validateClusterName,
@@ -651,7 +655,7 @@ var AccessValidation = &cr.StructValidation{
 		},
 		{
 			StructField: "Region",
-			StringPtrValidation: &cr.StringPtrValidation{
+			StringValidation: &cr.StringValidation{
 				Validator: RegionValidator,
 			},
 		},
@@ -666,11 +670,9 @@ var AccessValidation = &cr.StructValidation{
 }
 
 func (cc *Config) ToAccessConfig() AccessConfig {
-	clusterName := cc.ClusterName
-	region := *cc.Region
 	return AccessConfig{
-		ClusterName:  &clusterName,
-		Region:       &region,
+		ClusterName:  cc.ClusterName,
+		Region:       cc.Region,
 		ImageManager: cc.ImageManager,
 	}
 }
@@ -694,8 +696,8 @@ func (cc *CoreConfig) SQSNamePrefix() string {
 func (cc *Config) Validate(awsClient *aws.Client) error {
 	fmt.Print("verifying your configuration ...\n\n")
 
-	if *cc.MinInstances > *cc.MaxInstances {
-		return ErrorMinInstancesGreaterThanMax(*cc.MinInstances, *cc.MaxInstances)
+	if cc.MinInstances > cc.MaxInstances {
+		return ErrorMinInstancesGreaterThanMax(cc.MinInstances, cc.MaxInstances)
 	}
 
 	if len(cc.AvailabilityZones) > 0 && len(cc.Subnets) > 0 {
@@ -716,7 +718,7 @@ func (cc *Config) Validate(awsClient *aws.Client) error {
 	}
 
 	if cc.Bucket == "" {
-		bucketID := hash.String(accountID + *cc.Region)[:10]
+		bucketID := hash.String(accountID + cc.Region)[:10]
 
 		defaultBucket := cc.ClusterName + "-" + bucketID
 		if len(defaultBucket) > 63 {
@@ -729,12 +731,12 @@ func (cc *Config) Validate(awsClient *aws.Client) error {
 		cc.Bucket = defaultBucket
 	} else {
 		bucketRegion, _ := aws.GetBucketRegion(cc.Bucket)
-		if bucketRegion != "" && bucketRegion != *cc.Region { // if the bucket didn't exist, we will create it in the correct region, so there is no error
-			return ErrorS3RegionDiffersFromCluster(cc.Bucket, bucketRegion, *cc.Region)
+		if bucketRegion != "" && bucketRegion != cc.Region { // if the bucket didn't exist, we will create it in the correct region, so there is no error
+			return ErrorS3RegionDiffersFromCluster(cc.Bucket, bucketRegion, cc.Region)
 		}
 	}
 
-	cc.CortexPolicyARN = DefaultPolicyARN(accountID, cc.ClusterName, *cc.Region)
+	cc.CortexPolicyARN = DefaultPolicyARN(accountID, cc.ClusterName, cc.Region)
 
 	for _, policyARN := range cc.IAMPolicyARNs {
 		_, err := awsClient.IAM().GetPolicy(&iam.GetPolicyInput{
@@ -748,9 +750,9 @@ func (cc *Config) Validate(awsClient *aws.Client) error {
 		}
 	}
 
-	primaryInstanceType := *cc.InstanceType
-	if _, ok := aws.InstanceMetadatas[*cc.Region][primaryInstanceType]; !ok {
-		return errors.Wrap(ErrorInstanceTypeNotSupportedInRegion(primaryInstanceType, *cc.Region), InstanceTypeKey)
+	primaryInstanceType := cc.InstanceType
+	if _, ok := aws.InstanceMetadatas[cc.Region][primaryInstanceType]; !ok {
+		return errors.Wrap(ErrorInstanceTypeNotSupportedInRegion(primaryInstanceType, cc.Region), InstanceTypeKey)
 	}
 
 	if cc.SSLCertificateARN != nil {
@@ -760,7 +762,7 @@ func (cc *Config) Validate(awsClient *aws.Client) error {
 		}
 
 		if !exists {
-			return errors.Wrap(ErrorSSLCertificateARNNotFound(*cc.SSLCertificateARN, *cc.Region), SSLCertificateARNKey)
+			return errors.Wrap(ErrorSSLCertificateARNNotFound(*cc.SSLCertificateARN, cc.Region), SSLCertificateARNKey)
 		}
 	}
 
@@ -775,7 +777,7 @@ func (cc *Config) Validate(awsClient *aws.Client) error {
 		}
 	}
 
-	if aws.EBSMetadatas[*cc.Region][cc.InstanceVolumeType.String()].IOPSConfigurable && cc.InstanceVolumeIOPS == nil {
+	if aws.EBSMetadatas[cc.Region][cc.InstanceVolumeType.String()].IOPSConfigurable && cc.InstanceVolumeIOPS == nil {
 		cc.InstanceVolumeIOPS = pointer.Int64(libmath.MinInt64(cc.InstanceVolumeSize*50, 3000))
 	}
 
@@ -819,20 +821,20 @@ func (cc *Config) Validate(awsClient *aws.Client) error {
 		}
 	}
 
-	if cc.Spot != nil && *cc.Spot {
+	if cc.Spot {
 		cc.FillEmptySpotFields()
 
-		primaryInstance := aws.InstanceMetadatas[*cc.Region][primaryInstanceType]
+		primaryInstance := aws.InstanceMetadatas[cc.Region][primaryInstanceType]
 
 		for _, instanceType := range cc.SpotConfig.InstanceDistribution {
 			if instanceType == primaryInstanceType {
 				continue
 			}
-			if _, ok := aws.InstanceMetadatas[*cc.Region][instanceType]; !ok {
-				return errors.Wrap(ErrorInstanceTypeNotSupportedInRegion(instanceType, *cc.Region), SpotConfigKey, InstanceDistributionKey)
+			if _, ok := aws.InstanceMetadatas[cc.Region][instanceType]; !ok {
+				return errors.Wrap(ErrorInstanceTypeNotSupportedInRegion(instanceType, cc.Region), SpotConfigKey, InstanceDistributionKey)
 			}
 
-			instanceMetadata := aws.InstanceMetadatas[*cc.Region][instanceType]
+			instanceMetadata := aws.InstanceMetadatas[cc.Region][instanceType]
 			err := CheckSpotInstanceCompatibility(primaryInstance, instanceMetadata)
 			if err != nil {
 				return errors.Wrap(err, SpotConfigKey, InstanceDistributionKey)
@@ -846,8 +848,8 @@ func (cc *Config) Validate(awsClient *aws.Client) error {
 			}
 		}
 
-		if cc.SpotConfig.OnDemandBaseCapacity != nil && *cc.SpotConfig.OnDemandBaseCapacity > *cc.MaxInstances {
-			return ErrorOnDemandBaseCapacityGreaterThanMax(*cc.SpotConfig.OnDemandBaseCapacity, *cc.MaxInstances)
+		if cc.SpotConfig.OnDemandBaseCapacity != nil && *cc.SpotConfig.OnDemandBaseCapacity > cc.MaxInstances {
+			return ErrorOnDemandBaseCapacityGreaterThanMax(*cc.SpotConfig.OnDemandBaseCapacity, cc.MaxInstances)
 		}
 	} else {
 		if cc.SpotConfig != nil {
@@ -982,186 +984,7 @@ func (cc *Config) FillEmptySpotFields() {
 	if cc.SpotConfig == nil {
 		cc.SpotConfig = &SpotConfig{}
 	}
-	AutoGenerateSpotConfig(cc.SpotConfig, *cc.Region, *cc.InstanceType)
-}
-
-func applyPromptDefaults(defaults Config) *Config {
-	defaultConfig := &Config{
-		CoreConfig: CoreConfig{
-			Region: pointer.String("us-east-1"),
-		},
-		ManagedConfig: ManagedConfig{
-			InstanceType: pointer.String("m5.large"),
-			MinInstances: pointer.Int64(1),
-			MaxInstances: pointer.Int64(5),
-		},
-	}
-
-	if defaults.Region != nil {
-		defaultConfig.Region = defaults.Region
-	}
-	if defaults.InstanceType != nil {
-		defaultConfig.InstanceType = defaults.InstanceType
-	}
-	if defaults.MinInstances != nil {
-		defaultConfig.MinInstances = defaults.MinInstances
-	}
-	if defaults.MaxInstances != nil {
-		defaultConfig.MaxInstances = defaults.MaxInstances
-	}
-
-	return defaultConfig
-}
-
-func InstallPrompt(clusterConfig *Config, disallowPrompt bool) error {
-	defaults := applyPromptDefaults(*clusterConfig)
-
-	if disallowPrompt {
-		if clusterConfig.Region == nil {
-			clusterConfig.Region = defaults.Region
-		}
-		if clusterConfig.InstanceType == nil {
-			clusterConfig.InstanceType = defaults.InstanceType
-		}
-		if clusterConfig.MinInstances == nil {
-			clusterConfig.MinInstances = defaults.MinInstances
-		}
-		if clusterConfig.MaxInstances == nil {
-			clusterConfig.MaxInstances = defaults.MaxInstances
-		}
-		return nil
-	}
-
-	remainingPrompts := &cr.PromptValidation{
-		SkipNonEmptyFields: true,
-		PromptItemValidations: []*cr.PromptItemValidation{
-			{
-				StructField: "InstanceType",
-				PromptOpts: &prompt.Options{
-					Prompt: "instance type",
-				},
-				StringPtrValidation: &cr.StringPtrValidation{
-					Required:  true,
-					Default:   defaults.InstanceType,
-					Validator: validateInstanceType,
-				},
-			},
-			{
-				StructField: "MinInstances",
-				PromptOpts: &prompt.Options{
-					Prompt: "min instances",
-				},
-				Int64PtrValidation: &cr.Int64PtrValidation{
-					Required:             true,
-					Default:              defaults.MinInstances,
-					GreaterThanOrEqualTo: pointer.Int64(0),
-				},
-			},
-			{
-				StructField: "MaxInstances",
-				PromptOpts: &prompt.Options{
-					Prompt: "max instances",
-				},
-				Int64PtrValidation: &cr.Int64PtrValidation{
-					Required:    true,
-					Default:     defaults.MaxInstances,
-					GreaterThan: pointer.Int64(0),
-				},
-			},
-		},
-	}
-
-	err := cr.ReadPrompt(clusterConfig, remainingPrompts)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func ConfigurePrompt(userClusterConfig *Config, cachedClusterConfig *Config, skipPopulatedFields bool, disallowPrompt bool) error {
-	defaults := applyPromptDefaults(*cachedClusterConfig)
-
-	if disallowPrompt {
-		if userClusterConfig.MinInstances == nil {
-			if cachedClusterConfig.MinInstances != nil {
-				userClusterConfig.MinInstances = cachedClusterConfig.MinInstances
-			} else {
-				userClusterConfig.MinInstances = defaults.MinInstances
-			}
-		}
-		if userClusterConfig.MaxInstances == nil {
-			if cachedClusterConfig.MaxInstances != nil {
-				userClusterConfig.MaxInstances = cachedClusterConfig.MaxInstances
-			} else {
-				userClusterConfig.MaxInstances = defaults.MaxInstances
-			}
-		}
-		return nil
-	}
-
-	remainingPrompts := &cr.PromptValidation{
-		SkipNonNilFields: skipPopulatedFields,
-		PromptItemValidations: []*cr.PromptItemValidation{
-			{
-				StructField: "MinInstances",
-				PromptOpts: &prompt.Options{
-					Prompt: "min instances",
-				},
-				Int64PtrValidation: &cr.Int64PtrValidation{
-					Required:             true,
-					Default:              defaults.MinInstances,
-					GreaterThanOrEqualTo: pointer.Int64(0),
-				},
-			},
-			{
-				StructField: "MaxInstances",
-				PromptOpts: &prompt.Options{
-					Prompt: "max instances",
-				},
-				Int64PtrValidation: &cr.Int64PtrValidation{
-					Required:    true,
-					Default:     defaults.MaxInstances,
-					GreaterThan: pointer.Int64(0),
-				},
-			},
-		},
-	}
-
-	err := cr.ReadPrompt(userClusterConfig, remainingPrompts)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-var AccessPromptValidation = &cr.PromptValidation{
-	SkipNonNilFields: true,
-	PromptItemValidations: []*cr.PromptItemValidation{
-		{
-			StructField: "ClusterName",
-			PromptOpts: &prompt.Options{
-				Prompt: ClusterNameUserKey,
-			},
-			StringPtrValidation: &cr.StringPtrValidation{
-				Default:   pointer.String("cortex"),
-				MaxLength: 63,
-				MinLength: 3,
-				Validator: validateClusterName,
-			},
-		},
-		{
-			StructField: "Region",
-			PromptOpts: &prompt.Options{
-				Prompt: RegionUserKey,
-			},
-			StringPtrValidation: &cr.StringPtrValidation{
-				Validator: RegionValidator,
-				Default:   pointer.String("us-east-1"),
-			},
-		},
-	},
+	AutoGenerateSpotConfig(cc.SpotConfig, cc.Region, cc.InstanceType)
 }
 
 func validateBucketNameOrEmpty(bucket string) (string, error) {
@@ -1188,6 +1011,10 @@ func validateVPCCIDR(cidr string) (string, error) {
 }
 
 func validateInstanceType(instanceType string) (string, error) {
+	if instanceType == "" {
+		return "", ErrorFieldCannotBeEmpty(RegionKey)
+	}
+
 	var foundInstance *aws.InstanceMetadata
 	for _, instanceMap := range aws.InstanceMetadatas {
 		if instanceMetadata, ok := instanceMap[instanceType]; ok {
@@ -1250,35 +1077,25 @@ func DefaultAccessConfig() (*AccessConfig, error) {
 }
 
 func (cc *Config) MaxPossibleOnDemandInstances() int64 {
-	if cc.MaxInstances == nil {
-		return 0 // unexpected
-	}
-
-	if cc.Spot == nil || *cc.Spot == false || cc.SpotConfig == nil || cc.SpotConfig.OnDemandBackup == nil || *cc.SpotConfig.OnDemandBackup == true {
-		return *cc.MaxInstances
+	if cc.Spot == false || cc.SpotConfig == nil || cc.SpotConfig.OnDemandBackup == nil || *cc.SpotConfig.OnDemandBackup == true {
+		return cc.MaxInstances
 	}
 
 	onDemandBaseCap, onDemandPctAboveBaseCap := cc.SpotConfigOnDemandValues()
-
-	return onDemandBaseCap + int64(math.Ceil(float64(onDemandPctAboveBaseCap)/100*float64(*cc.MaxInstances-onDemandBaseCap)))
+	return onDemandBaseCap + int64(math.Ceil(float64(onDemandPctAboveBaseCap)/100*float64(cc.MaxInstances-onDemandBaseCap)))
 }
 
 func (cc *Config) MaxPossibleSpotInstances() int64 {
-	if cc.MaxInstances == nil {
-		return 0 // unexpected
-	}
-
-	if cc.Spot == nil || *cc.Spot == false {
+	if cc.Spot == false {
 		return 0
 	}
 
 	if cc.SpotConfig == nil {
-		return *cc.MaxInstances
+		return cc.MaxInstances
 	}
 
 	onDemandBaseCap, onDemandPctAboveBaseCap := cc.SpotConfigOnDemandValues()
-
-	return *cc.MaxInstances - onDemandBaseCap - int64(math.Floor(float64(onDemandPctAboveBaseCap)/100*float64(*cc.MaxInstances-onDemandBaseCap)))
+	return cc.MaxInstances - onDemandBaseCap - int64(math.Floor(float64(onDemandPctAboveBaseCap)/100*float64(cc.MaxInstances-onDemandBaseCap)))
 }
 
 func (cc *Config) SpotConfigOnDemandValues() (int64, int64) {
@@ -1314,7 +1131,7 @@ func (cc *CoreConfig) UserTable() table.KeyValuePairs {
 	var items table.KeyValuePairs
 
 	items.Add(ClusterNameUserKey, cc.ClusterName)
-	items.Add(RegionUserKey, *cc.Region)
+	items.Add(RegionUserKey, cc.Region)
 	items.Add(BucketUserKey, cc.Bucket)
 	items.Add(TelemetryUserKey, cc.Telemetry)
 	items.Add(ImageOperatorUserKey, cc.ImageOperator)
@@ -1352,9 +1169,9 @@ func (mc *ManagedConfig) UserTable() table.KeyValuePairs {
 	for _, subnetConfig := range mc.Subnets {
 		items.Add("subnet in "+subnetConfig.AvailabilityZone, subnetConfig.SubnetID)
 	}
-	items.Add(InstanceTypeUserKey, *mc.InstanceType)
-	items.Add(MinInstancesUserKey, *mc.MinInstances)
-	items.Add(MaxInstancesUserKey, *mc.MaxInstances)
+	items.Add(InstanceTypeUserKey, mc.InstanceType)
+	items.Add(MinInstancesUserKey, mc.MinInstances)
+	items.Add(MaxInstancesUserKey, mc.MaxInstances)
 	items.Add(TagsUserKey, s.ObjFlat(mc.Tags))
 	if mc.SSLCertificateARN != nil {
 		items.Add(SSLCertificateARNUserKey, *mc.SSLCertificateARN)
@@ -1365,8 +1182,8 @@ func (mc *ManagedConfig) UserTable() table.KeyValuePairs {
 	items.Add(InstanceVolumeSizeUserKey, mc.InstanceVolumeSize)
 	items.Add(InstanceVolumeTypeUserKey, mc.InstanceVolumeType)
 	items.Add(InstanceVolumeIOPSUserKey, mc.InstanceVolumeIOPS)
-	items.Add(SpotUserKey, s.YesNo(*mc.Spot))
-	if mc.Spot != nil && *mc.Spot {
+	items.Add(SpotUserKey, s.YesNo(mc.Spot))
+	if mc.Spot {
 		items.Add(InstanceDistributionUserKey, mc.SpotConfig.InstanceDistribution)
 		items.Add(OnDemandBaseCapacityUserKey, *mc.SpotConfig.OnDemandBaseCapacity)
 		items.Add(OnDemandPercentageAboveBaseCapacityUserKey, *mc.SpotConfig.OnDemandPercentageAboveBaseCapacity)
@@ -1417,10 +1234,7 @@ func (cc *CoreConfig) TelemetryEvent() map[string]interface{} {
 		event["istio_namespace._is_custom"] = true
 	}
 
-	if cc.Region != nil {
-		event["region._is_defined"] = true
-		event["region"] = *cc.Region
-	}
+	event["region"] = cc.Region
 
 	if !strings.HasPrefix(cc.ImageOperator, "cortexlabs/") {
 		event["image_operator._is_custom"] = true
@@ -1495,18 +1309,9 @@ func (cc *CoreConfig) TelemetryEvent() map[string]interface{} {
 func (mc *ManagedConfig) TelemetryEvent() map[string]interface{} {
 	event := map[string]interface{}{}
 
-	if mc.InstanceType != nil {
-		event["instance_type._is_defined"] = true
-		event["instance_type"] = *mc.InstanceType
-	}
-	if mc.MinInstances != nil {
-		event["min_instances._is_defined"] = true
-		event["min_instances"] = *mc.MinInstances
-	}
-	if mc.MaxInstances != nil {
-		event["max_instances._is_defined"] = true
-		event["max_instances"] = *mc.MaxInstances
-	}
+	event["instance_type"] = mc.InstanceType
+	event["min_instances"] = mc.MinInstances
+	event["max_instances"] = mc.MaxInstances
 	event["instance_volume_size"] = mc.InstanceVolumeSize
 	event["instance_volume_type"] = mc.InstanceVolumeType
 	if mc.InstanceVolumeIOPS != nil {
@@ -1545,10 +1350,7 @@ func (mc *ManagedConfig) TelemetryEvent() map[string]interface{} {
 	if mc.VPCCIDR != nil {
 		event["vpc_cidr._is_defined"] = true
 	}
-	if mc.Spot != nil {
-		event["spot._is_defined"] = true
-		event["spot"] = *mc.Spot
-	}
+	event["spot"] = mc.Spot
 	if mc.SpotConfig != nil {
 		event["spot_config._is_defined"] = true
 		if len(mc.SpotConfig.InstanceDistribution) > 0 {

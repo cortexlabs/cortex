@@ -98,10 +98,9 @@ Flags:
 spin up a cluster on aws
 
 Usage:
-  cortex cluster up [flags]
+  cortex cluster up [CLUSTER_CONFIG_FILE] [flags]
 
 Flags:
-  -c, --config string               path to a cluster configuration file
       --aws-key string              aws access key id
       --aws-secret string           aws secret access key
       --cluster-aws-key string      aws access key id to be used by the cluster
@@ -137,10 +136,9 @@ Flags:
 update a cluster's configuration
 
 Usage:
-  cortex cluster configure [flags]
+  cortex cluster configure [CLUSTER_CONFIG_FILE] [flags]
 
 Flags:
-  -c, --config string               path to a cluster configuration file
       --aws-key string              aws access key id
       --aws-secret string           aws secret access key
       --cluster-aws-key string      aws access key id to be used by the cluster
@@ -165,6 +163,7 @@ Flags:
       --aws-key string      aws access key id
       --aws-secret string   aws secret access key
   -y, --yes                 skip prompts
+      --keep-volumes        keep cortex provisioned persistent volumes
   -h, --help                help for down
 ```
 
@@ -233,6 +232,7 @@ Flags:
   -p, --project string   gcp project id
   -z, --zone string      gcp zone of the cluster
   -y, --yes              skip prompts
+      --keep-volumes     keep cortex provisioned persistent volumes
   -h, --help             help for down
 ```
 

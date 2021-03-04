@@ -67,8 +67,8 @@ func readCachedClusterConfigFile(clusterConfig *clusterconfig.Config, filePath s
 	return nil
 }
 
-func readUserClusterConfigFile(clusterConfig *clusterconfig.Config) error {
-	errs := cr.ParseYAMLFile(clusterConfig, clusterconfig.FullManagedValidation, _flagClusterConfig)
+func readUserClusterConfigFile(clusterConfig *clusterconfig.Config, filePath string) error {
+	errs := cr.ParseYAMLFile(clusterConfig, clusterconfig.FullManagedValidation, filePath)
 	if errors.HasError(errs) {
 		return errors.Append(errors.FirstError(errs...), fmt.Sprintf("\n\ncluster configuration schema can be found at https://docs.cortex.dev/v/%s/", consts.CortexVersionMinor))
 	}
@@ -76,46 +76,20 @@ func readUserClusterConfigFile(clusterConfig *clusterconfig.Config) error {
 	return nil
 }
 
-func getNewClusterAccessConfig(disallowPrompt bool) (*clusterconfig.AccessConfig, error) {
-	accessConfig, err := clusterconfig.DefaultAccessConfig()
-	if err != nil {
-		return nil, err
-	}
+func getNewClusterAccessConfig(clusterConfigFile string) (*clusterconfig.AccessConfig, error) {
+	accessConfig := &clusterconfig.AccessConfig{}
 
-	if _flagClusterConfig != "" {
-		errs := cr.ParseYAMLFile(accessConfig, clusterconfig.AccessValidation, _flagClusterConfig)
-		if errors.HasError(errs) {
-			return nil, errors.Append(errors.FirstError(errs...), fmt.Sprintf("\n\ncluster configuration schema can be found at https://docs.cortex.dev/v/%s/", consts.CortexVersionMinor))
-		}
-	}
-
-	if _flagClusterName != "" {
-		accessConfig.ClusterName = pointer.String(_flagClusterName)
-	}
-	if _flagClusterRegion != "" {
-		accessConfig.Region = pointer.String(_flagClusterRegion)
-	}
-
-	if accessConfig.ClusterName != nil && accessConfig.Region != nil {
-		return accessConfig, nil
-	}
-
-	if disallowPrompt {
-		return nil, ErrorClusterAccessConfigOrPromptsRequired()
-	}
-
-	err = cr.ReadPrompt(accessConfig, clusterconfig.AccessPromptValidation)
-	if err != nil {
-		return nil, err
+	errs := cr.ParseYAMLFile(accessConfig, clusterconfig.AccessValidation, clusterConfigFile)
+	if errors.HasError(errs) {
+		return nil, errors.Append(errors.FirstError(errs...), fmt.Sprintf("\n\ncluster configuration schema can be found at https://docs.cortex.dev/v/%s/", consts.CortexVersionMinor))
 	}
 
 	return accessConfig, nil
 }
 
-func getClusterAccessConfigWithCache(disallowPrompt bool) (*clusterconfig.AccessConfig, error) {
-	accessConfig, err := clusterconfig.DefaultAccessConfig()
-	if err != nil {
-		return nil, err
+func getClusterAccessConfigWithCache() (*clusterconfig.AccessConfig, error) {
+	accessConfig := &clusterconfig.AccessConfig{
+		ImageManager: "quay.io/cortexlabs/manager:" + consts.CortexVersion,
 	}
 
 	if _flagClusterConfig != "" {
@@ -126,64 +100,39 @@ func getClusterAccessConfigWithCache(disallowPrompt bool) (*clusterconfig.Access
 	}
 
 	if _flagClusterName != "" {
-		accessConfig.ClusterName = pointer.String(_flagClusterName)
+		accessConfig.ClusterName = _flagClusterName
 	}
 	if _flagClusterRegion != "" {
-		accessConfig.Region = pointer.String(_flagClusterRegion)
-	}
-
-	if accessConfig.ClusterName != nil && accessConfig.Region != nil {
-		return accessConfig, nil
+		accessConfig.Region = _flagClusterRegion
 	}
 
 	cachedPaths := existingCachedClusterConfigPaths()
 	if len(cachedPaths) == 1 {
 		cachedAccessConfig := &clusterconfig.AccessConfig{}
 		cr.ParseYAMLFile(cachedAccessConfig, clusterconfig.AccessValidation, cachedPaths[0])
-		if accessConfig.ClusterName == nil {
-			accessConfig.ClusterName = cachedAccessConfig.ClusterName
-		}
-		if accessConfig.Region == nil {
-			accessConfig.Region = cachedAccessConfig.Region
-		}
+		accessConfig.ClusterName = cachedAccessConfig.ClusterName
+		accessConfig.Region = cachedAccessConfig.Region
 	}
 
-	if disallowPrompt {
-		return nil, ErrorClusterAccessConfigOrPromptsRequired()
+	if accessConfig.ClusterName == "" || accessConfig.Region == "" {
+		// won't execute for cluster configure commands
+		return nil, ErrorClusterAccessConfigRequired()
 	}
-
-	err = cr.ReadPrompt(accessConfig, clusterconfig.AccessPromptValidation)
-	if err != nil {
-		return nil, err
-	}
-
 	return accessConfig, nil
 }
 
-func getInstallClusterConfig(awsClient *aws.Client, accessConfig clusterconfig.AccessConfig, disallowPrompt bool) (*clusterconfig.Config, error) {
+func getInstallClusterConfig(awsClient *aws.Client, accessConfig clusterconfig.AccessConfig, clusterConfigFile string, disallowPrompt bool) (*clusterconfig.Config, error) {
 	clusterConfig := &clusterconfig.Config{}
 
-	err := clusterconfig.SetDefaults(clusterConfig)
+	err := readUserClusterConfigFile(clusterConfig, clusterConfigFile)
 	if err != nil {
 		return nil, err
 	}
 
-	if _flagClusterConfig != "" {
-		err := readUserClusterConfigFile(clusterConfig)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	clusterConfig.ClusterName = *accessConfig.ClusterName
+	clusterConfig.ClusterName = accessConfig.ClusterName
 	clusterConfig.Region = accessConfig.Region
 
 	promptIfNotAdmin(awsClient, disallowPrompt)
-
-	err = clusterconfig.InstallPrompt(clusterConfig, disallowPrompt)
-	if err != nil {
-		return nil, err
-	}
 
 	clusterConfig.Telemetry, err = readTelemetryConfig()
 	if err != nil {
@@ -193,10 +142,7 @@ func getInstallClusterConfig(awsClient *aws.Client, accessConfig clusterconfig.A
 	err = clusterConfig.Validate(awsClient)
 	if err != nil {
 		err = errors.Append(err, fmt.Sprintf("\n\ncluster configuration schema can be found at https://docs.cortex.dev/v/%s/", consts.CortexVersionMinor))
-		if _flagClusterConfig != "" {
-			err = errors.Wrap(err, _flagClusterConfig)
-		}
-		return nil, err
+		return nil, errors.Wrap(err, clusterConfigFile)
 	}
 
 	confirmInstallClusterConfig(clusterConfig, awsClient, disallowPrompt)
@@ -204,53 +150,28 @@ func getInstallClusterConfig(awsClient *aws.Client, accessConfig clusterconfig.A
 	return clusterConfig, nil
 }
 
-func getConfigureClusterConfig(cachedClusterConfig clusterconfig.Config, disallowPrompt bool) (*clusterconfig.Config, error) {
+func getConfigureClusterConfig(cachedClusterConfig clusterconfig.Config, clusterConfigFile string, disallowPrompt bool) (*clusterconfig.Config, error) {
 	userClusterConfig := &clusterconfig.Config{}
 	var awsClient *aws.Client
 
-	if _flagClusterConfig == "" {
-		if disallowPrompt {
-			return nil, ErrorClusterConfigOrPromptsRequired()
-		}
-
-		userClusterConfig = &cachedClusterConfig
-		err := clusterconfig.ConfigurePrompt(userClusterConfig, &cachedClusterConfig, false, disallowPrompt)
-		if err != nil {
-			return nil, err
-		}
-
-		awsClient, err = newAWSClient(*userClusterConfig.Region)
-		if err != nil {
-			return nil, err
-		}
-		promptIfNotAdmin(awsClient, disallowPrompt)
-
-	} else {
-		err := readUserClusterConfigFile(userClusterConfig)
-		if err != nil {
-			return nil, err
-		}
-
-		userClusterConfig.ClusterName = cachedClusterConfig.ClusterName
-		userClusterConfig.Region = cachedClusterConfig.Region
-		awsClient, err = newAWSClient(*userClusterConfig.Region)
-		if err != nil {
-			return nil, err
-		}
-		promptIfNotAdmin(awsClient, disallowPrompt)
-
-		err = setConfigFieldsFromCached(userClusterConfig, &cachedClusterConfig)
-		if err != nil {
-			return nil, err
-		}
-
-		err = clusterconfig.ConfigurePrompt(userClusterConfig, &cachedClusterConfig, true, disallowPrompt)
-		if err != nil {
-			return nil, err
-		}
+	err := readUserClusterConfigFile(userClusterConfig, clusterConfigFile)
+	if err != nil {
+		return nil, err
 	}
 
-	var err error
+	userClusterConfig.ClusterName = cachedClusterConfig.ClusterName
+	userClusterConfig.Region = cachedClusterConfig.Region
+	awsClient, err = newAWSClient(userClusterConfig.Region)
+	if err != nil {
+		return nil, err
+	}
+	promptIfNotAdmin(awsClient, disallowPrompt)
+
+	err = setConfigFieldsFromCached(userClusterConfig, &cachedClusterConfig)
+	if err != nil {
+		return nil, err
+	}
+
 	userClusterConfig.Telemetry, err = readTelemetryConfig()
 	if err != nil {
 		return nil, err
@@ -259,10 +180,7 @@ func getConfigureClusterConfig(cachedClusterConfig clusterconfig.Config, disallo
 	err = userClusterConfig.Validate(awsClient)
 	if err != nil {
 		err = errors.Append(err, fmt.Sprintf("\n\ncluster configuration schema can be found at https://docs.cortex.dev/v/%s/", consts.CortexVersionMinor))
-		if _flagClusterConfig != "" {
-			err = errors.Wrap(err, _flagClusterConfig)
-		}
-		return nil, err
+		return nil, errors.Wrap(err, clusterConfigFile)
 	}
 
 	confirmConfigureClusterConfig(*userClusterConfig, disallowPrompt)
@@ -276,8 +194,8 @@ func setConfigFieldsFromCached(userClusterConfig *clusterconfig.Config, cachedCl
 	}
 	userClusterConfig.Bucket = cachedClusterConfig.Bucket
 
-	if userClusterConfig.InstanceType != nil && *userClusterConfig.InstanceType != *cachedClusterConfig.InstanceType {
-		return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.InstanceTypeKey, *cachedClusterConfig.InstanceType)
+	if userClusterConfig.InstanceType != cachedClusterConfig.InstanceType {
+		return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.InstanceTypeKey, cachedClusterConfig.InstanceType)
 	}
 	userClusterConfig.InstanceType = cachedClusterConfig.InstanceType
 
@@ -448,12 +366,11 @@ func setConfigFieldsFromCached(userClusterConfig *clusterconfig.Config, cachedCl
 		return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.ImageEventExporterKey, cachedClusterConfig.ImageEventExporter)
 	}
 
-	if userClusterConfig.Spot != nil && *userClusterConfig.Spot != *cachedClusterConfig.Spot {
-		return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.SpotKey, *cachedClusterConfig.Spot)
+	if userClusterConfig.Spot != cachedClusterConfig.Spot {
+		return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.SpotKey, cachedClusterConfig.Spot)
 	}
 	userClusterConfig.Spot = cachedClusterConfig.Spot
-
-	if userClusterConfig.Spot != nil && *userClusterConfig.Spot {
+	if userClusterConfig.Spot {
 		userClusterConfig.FillEmptySpotFields()
 	}
 
@@ -492,16 +409,16 @@ func setConfigFieldsFromCached(userClusterConfig *clusterconfig.Config, cachedCl
 }
 
 func confirmInstallClusterConfig(clusterConfig *clusterconfig.Config, awsClient *aws.Client, disallowPrompt bool) {
-	eksPrice := aws.EKSPrices[*clusterConfig.Region]
-	operatorInstancePrice := aws.InstanceMetadatas[*clusterConfig.Region]["t3.medium"].Price
-	operatorEBSPrice := aws.EBSMetadatas[*clusterConfig.Region]["gp2"].PriceGB * 20 / 30 / 24
-	metricsEBSPrice := aws.EBSMetadatas[*clusterConfig.Region]["gp2"].PriceGB * 40 / 30 / 24
-	nlbPrice := aws.NLBMetadatas[*clusterConfig.Region].Price
-	natUnitPrice := aws.NATMetadatas[*clusterConfig.Region].Price
-	apiInstancePrice := aws.InstanceMetadatas[*clusterConfig.Region][*clusterConfig.InstanceType].Price
-	apiEBSPrice := aws.EBSMetadatas[*clusterConfig.Region][clusterConfig.InstanceVolumeType.String()].PriceGB * float64(clusterConfig.InstanceVolumeSize) / 30 / 24
+	eksPrice := aws.EKSPrices[clusterConfig.Region]
+	operatorInstancePrice := aws.InstanceMetadatas[clusterConfig.Region]["t3.medium"].Price
+	operatorEBSPrice := aws.EBSMetadatas[clusterConfig.Region]["gp2"].PriceGB * 20 / 30 / 24
+	metricsEBSPrice := aws.EBSMetadatas[clusterConfig.Region]["gp2"].PriceGB * 40 / 30 / 24
+	nlbPrice := aws.NLBMetadatas[clusterConfig.Region].Price
+	natUnitPrice := aws.NATMetadatas[clusterConfig.Region].Price
+	apiInstancePrice := aws.InstanceMetadatas[clusterConfig.Region][clusterConfig.InstanceType].Price
+	apiEBSPrice := aws.EBSMetadatas[clusterConfig.Region][clusterConfig.InstanceVolumeType.String()].PriceGB * float64(clusterConfig.InstanceVolumeSize) / 30 / 24
 	if clusterConfig.InstanceVolumeType.String() == "io1" && clusterConfig.InstanceVolumeIOPS != nil {
-		apiEBSPrice += aws.EBSMetadatas[*clusterConfig.Region][clusterConfig.InstanceVolumeType.String()].PriceIOPS * float64(*clusterConfig.InstanceVolumeIOPS) / 30 / 24
+		apiEBSPrice += aws.EBSMetadatas[clusterConfig.Region][clusterConfig.InstanceVolumeType.String()].PriceIOPS * float64(*clusterConfig.InstanceVolumeIOPS) / 30 / 24
 	}
 
 	var natTotalPrice float64
@@ -512,8 +429,8 @@ func confirmInstallClusterConfig(clusterConfig *clusterconfig.Config, awsClient 
 	}
 
 	fixedPrice := eksPrice + 2*operatorInstancePrice + operatorEBSPrice + metricsEBSPrice + 2*nlbPrice + natTotalPrice
-	totalMinPrice := fixedPrice + float64(*clusterConfig.MinInstances)*(apiInstancePrice+apiEBSPrice)
-	totalMaxPrice := fixedPrice + float64(*clusterConfig.MaxInstances)*(apiInstancePrice+apiEBSPrice)
+	totalMinPrice := fixedPrice + float64(clusterConfig.MinInstances)*(apiInstancePrice+apiEBSPrice)
+	totalMaxPrice := fixedPrice + float64(clusterConfig.MaxInstances)*(apiInstancePrice+apiEBSPrice)
 
 	headers := []table.Header{
 		{Title: "aws resource"},
@@ -525,25 +442,24 @@ func confirmInstallClusterConfig(clusterConfig *clusterconfig.Config, awsClient 
 
 	instanceStr := "instances"
 	volumeStr := "volumes"
-	if *clusterConfig.MinInstances == 1 && *clusterConfig.MaxInstances == 1 {
+	if clusterConfig.MinInstances == 1 && clusterConfig.MaxInstances == 1 {
 		instanceStr = "instance"
 		volumeStr = "volume"
 	}
-	workerInstanceStr := fmt.Sprintf("%d - %d %s %s for your apis", *clusterConfig.MinInstances, *clusterConfig.MaxInstances, *clusterConfig.InstanceType, instanceStr)
-	ebsInstanceStr := fmt.Sprintf("%d - %d %dgb ebs %s for your apis", *clusterConfig.MinInstances, *clusterConfig.MaxInstances, clusterConfig.InstanceVolumeSize, volumeStr)
-	if *clusterConfig.MinInstances == *clusterConfig.MaxInstances {
-		workerInstanceStr = fmt.Sprintf("%d %s %s for your apis", *clusterConfig.MinInstances, *clusterConfig.InstanceType, instanceStr)
-		ebsInstanceStr = fmt.Sprintf("%d %dgb ebs %s for your apis", *clusterConfig.MinInstances, clusterConfig.InstanceVolumeSize, volumeStr)
+	workerInstanceStr := fmt.Sprintf("%d - %d %s %s for your apis", clusterConfig.MinInstances, clusterConfig.MaxInstances, clusterConfig.InstanceType, instanceStr)
+	ebsInstanceStr := fmt.Sprintf("%d - %d %dgb ebs %s for your apis", clusterConfig.MinInstances, clusterConfig.MaxInstances, clusterConfig.InstanceVolumeSize, volumeStr)
+	if clusterConfig.MinInstances == clusterConfig.MaxInstances {
+		workerInstanceStr = fmt.Sprintf("%d %s %s for your apis", clusterConfig.MinInstances, clusterConfig.InstanceType, instanceStr)
+		ebsInstanceStr = fmt.Sprintf("%d %dgb ebs %s for your apis", clusterConfig.MinInstances, clusterConfig.InstanceVolumeSize, volumeStr)
 	}
 
 	workerPriceStr := s.DollarsMaxPrecision(apiInstancePrice) + " each"
-	isSpot := clusterConfig.Spot != nil && *clusterConfig.Spot
-	if isSpot {
-		spotPrice, err := awsClient.SpotInstancePrice(*clusterConfig.InstanceType)
+	if clusterConfig.Spot {
+		spotPrice, err := awsClient.SpotInstancePrice(clusterConfig.InstanceType)
 		workerPriceStr += " (spot pricing unavailable)"
 		if err == nil && spotPrice != 0 {
 			workerPriceStr = fmt.Sprintf("%s - %s each (varies based on spot price)", s.DollarsMaxPrecision(spotPrice), s.DollarsMaxPrecision(apiInstancePrice))
-			totalMinPrice = fixedPrice + float64(*clusterConfig.MinInstances)*(spotPrice+apiEBSPrice)
+			totalMinPrice = fixedPrice + float64(clusterConfig.MinInstances)*(spotPrice+apiEBSPrice)
 		}
 	}
 
@@ -571,11 +487,11 @@ func confirmInstallClusterConfig(clusterConfig *clusterconfig.Config, awsClient 
 
 	if totalMinPrice != totalMaxPrice {
 		priceStr = fmt.Sprintf("%s - %s", s.DollarsAndCents(totalMinPrice), s.DollarsAndCents(totalMaxPrice))
-		if isSpot && *clusterConfig.MinInstances != *clusterConfig.MaxInstances {
+		if clusterConfig.Spot && clusterConfig.MinInstances != clusterConfig.MaxInstances {
 			suffix = " based on cluster size and spot instance pricing/availability"
-		} else if isSpot && *clusterConfig.MinInstances == *clusterConfig.MaxInstances {
+		} else if clusterConfig.Spot && clusterConfig.MinInstances == clusterConfig.MaxInstances {
 			suffix = " based on spot instance pricing/availability"
-		} else if !isSpot && *clusterConfig.MinInstances != *clusterConfig.MaxInstances {
+		} else if !clusterConfig.Spot && clusterConfig.MinInstances != clusterConfig.MaxInstances {
 			suffix = " based on cluster size"
 		}
 	}
@@ -596,7 +512,7 @@ func confirmInstallClusterConfig(clusterConfig *clusterconfig.Config, awsClient 
 		fmt.Print("warning: you've configured your cluster to be installed in an existing VPC; if your cluster doesn't spin up or function as expected, please double-check your VPC configuration (here are the requirements: https://eksctl.io/usage/vpc-networking/#use-existing-vpc-other-custom-configuration)\n\n")
 	}
 
-	if isSpot && clusterConfig.SpotConfig.OnDemandBackup != nil && !*clusterConfig.SpotConfig.OnDemandBackup {
+	if clusterConfig.Spot && clusterConfig.SpotConfig.OnDemandBackup != nil && !*clusterConfig.SpotConfig.OnDemandBackup {
 		if *clusterConfig.SpotConfig.OnDemandBaseCapacity == 0 && *clusterConfig.SpotConfig.OnDemandPercentageAboveBaseCapacity == 0 {
 			fmt.Printf("warning: you've disabled on-demand instances (%s=0 and %s=0); spot instances are not guaranteed to be available so please take that into account for production clusters; see https://docs.cortex.dev/v/%s/ for more information\n\n", clusterconfig.OnDemandBaseCapacityKey, clusterconfig.OnDemandPercentageAboveBaseCapacityKey, consts.CortexVersionMinor)
 		} else {
@@ -615,7 +531,7 @@ func confirmConfigureClusterConfig(clusterConfig clusterconfig.Config, disallowP
 
 	if !disallowPrompt {
 		exitMessage := fmt.Sprintf("cluster configuration can be modified via the cluster config file; see https://docs.cortex.dev/v/%s/ for more information", consts.CortexVersionMinor)
-		prompt.YesOrExit(fmt.Sprintf("your cluster named \"%s\" in %s will be updated according to the configuration above, are you sure you want to continue?", clusterConfig.ClusterName, *clusterConfig.Region), "", exitMessage)
+		prompt.YesOrExit(fmt.Sprintf("your cluster named \"%s\" in %s will be updated according to the configuration above, are you sure you want to continue?", clusterConfig.ClusterName, clusterConfig.Region), "", exitMessage)
 	}
 }
 
@@ -634,9 +550,9 @@ func clusterConfigConfirmationStr(clusterConfig clusterconfig.Config) string {
 	items.Add(clusterconfig.BucketUserKey, clusterConfig.Bucket)
 	items.Add(clusterconfig.ClusterNameUserKey, clusterConfig.ClusterName)
 
-	items.Add(clusterconfig.InstanceTypeUserKey, *clusterConfig.InstanceType)
-	items.Add(clusterconfig.MinInstancesUserKey, *clusterConfig.MinInstances)
-	items.Add(clusterconfig.MaxInstancesUserKey, *clusterConfig.MaxInstances)
+	items.Add(clusterconfig.InstanceTypeUserKey, clusterConfig.InstanceType)
+	items.Add(clusterconfig.MinInstancesUserKey, clusterConfig.MinInstances)
+	items.Add(clusterconfig.MaxInstancesUserKey, clusterConfig.MaxInstances)
 	items.Add(clusterconfig.TagsUserKey, s.ObjFlatNoQuotes(clusterConfig.Tags))
 	if clusterConfig.SSLCertificateARN != nil {
 		items.Add(clusterconfig.SSLCertificateARNUserKey, *clusterConfig.SSLCertificateARN)
@@ -668,12 +584,12 @@ func clusterConfigConfirmationStr(clusterConfig clusterconfig.Config) string {
 		items.Add(clusterconfig.OperatorLoadBalancerSchemeUserKey, clusterConfig.OperatorLoadBalancerScheme)
 	}
 
-	if clusterConfig.Spot != nil && *clusterConfig.Spot != *defaultConfig.Spot {
-		items.Add(clusterconfig.SpotUserKey, s.YesNo(clusterConfig.Spot != nil && *clusterConfig.Spot))
+	if clusterConfig.Spot != defaultConfig.Spot {
+		items.Add(clusterconfig.SpotUserKey, s.YesNo(clusterConfig.Spot))
 
 		if clusterConfig.SpotConfig != nil {
 			defaultSpotConfig := clusterconfig.SpotConfig{}
-			clusterconfig.AutoGenerateSpotConfig(&defaultSpotConfig, *clusterConfig.Region, *clusterConfig.InstanceType)
+			clusterconfig.AutoGenerateSpotConfig(&defaultSpotConfig, clusterConfig.Region, clusterConfig.InstanceType)
 
 			if !strset.New(clusterConfig.SpotConfig.InstanceDistribution...).IsEqual(strset.New(defaultSpotConfig.InstanceDistribution...)) {
 				items.Add(clusterconfig.InstanceDistributionUserKey, clusterConfig.SpotConfig.InstanceDistribution)

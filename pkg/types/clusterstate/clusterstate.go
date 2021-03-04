@@ -166,10 +166,10 @@ func getStatus(statusMap map[string]string, controlPlane string, clusterName str
 }
 
 func GetClusterState(awsClient *aws.Client, accessConfig *clusterconfig.AccessConfig) (*ClusterState, error) {
-	controlPlaneStackName := fmt.Sprintf(controlPlaneTemplate, *accessConfig.ClusterName)
-	operatorStackName := fmt.Sprintf(operatorTemplate, *accessConfig.ClusterName)
-	spotStackName := fmt.Sprintf(spotTemplate, *accessConfig.ClusterName)
-	onDemandStackName := fmt.Sprintf(onDemandTemplate, *accessConfig.ClusterName)
+	controlPlaneStackName := fmt.Sprintf(controlPlaneTemplate, accessConfig.ClusterName)
+	operatorStackName := fmt.Sprintf(operatorTemplate, accessConfig.ClusterName)
+	spotStackName := fmt.Sprintf(spotTemplate, accessConfig.ClusterName)
+	onDemandStackName := fmt.Sprintf(onDemandTemplate, accessConfig.ClusterName)
 
 	nodeGroupStackNamesSet := strset.New(operatorStackName, spotStackName, onDemandStackName)
 
@@ -200,7 +200,7 @@ func GetClusterState(awsClient *aws.Client, accessConfig *clusterconfig.AccessCo
 		statusMap[operatorStackName] = string(StatusCreateFailedTimedOut)
 	}
 
-	status, err := getStatus(statusMap, controlPlaneStackName, *accessConfig.ClusterName, *accessConfig.Region)
+	status, err := getStatus(statusMap, controlPlaneStackName, accessConfig.ClusterName, accessConfig.Region)
 	if err != nil {
 		return nil, err
 	}
