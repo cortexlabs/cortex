@@ -221,7 +221,7 @@ func runGCPManagerWithClusterConfig(entrypoint string, clusterConfig *clustercon
 		return "", nil, errors.WithStack(err)
 	}
 
-	clusterConfigPath := cachedGCPClusterConfigPath(clusterConfig.ClusterName, *clusterConfig.Project, *clusterConfig.Zone)
+	clusterConfigPath := cachedGCPClusterConfigPath(clusterConfig.ClusterName, clusterConfig.Project, clusterConfig.Zone)
 	if err := files.WriteFile(clusterConfigBytes, clusterConfigPath); err != nil {
 		return "", nil, err
 	}
@@ -264,8 +264,8 @@ func runGCPManagerWithClusterConfig(entrypoint string, clusterConfig *clustercon
 		Env: []string{
 			"CORTEX_PROVIDER=gcp",
 			"GOOGLE_APPLICATION_CREDENTIALS=" + gcpCredsPath,
-			"CORTEX_GCP_PROJECT=" + *clusterConfig.Project,
-			"CORTEX_GCP_ZONE=" + *clusterConfig.Zone,
+			"CORTEX_GCP_PROJECT=" + clusterConfig.Project,
+			"CORTEX_GCP_ZONE=" + clusterConfig.Zone,
 			"CORTEX_TELEMETRY_DISABLE=" + os.Getenv("CORTEX_TELEMETRY_DISABLE"),
 			"CORTEX_TELEMETRY_SENTRY_DSN=" + os.Getenv("CORTEX_TELEMETRY_SENTRY_DSN"),
 			"CORTEX_TELEMETRY_SEGMENT_WRITE_KEY=" + os.Getenv("CORTEX_TELEMETRY_SEGMENT_WRITE_KEY"),
@@ -341,9 +341,9 @@ func runGCPManagerAccessCommand(entrypoint string, accessConfig clusterconfig.GC
 		Env: []string{
 			"CORTEX_PROVIDER=gcp",
 			"GOOGLE_APPLICATION_CREDENTIALS=" + gcpCredsPath,
-			"CORTEX_CLUSTER_NAME=" + *accessConfig.ClusterName,
-			"CORTEX_GCP_PROJECT=" + *accessConfig.Project,
-			"CORTEX_GCP_ZONE=" + *accessConfig.Zone,
+			"CORTEX_CLUSTER_NAME=" + accessConfig.ClusterName,
+			"CORTEX_GCP_PROJECT=" + accessConfig.Project,
+			"CORTEX_GCP_ZONE=" + accessConfig.Zone,
 			"CORTEX_TELEMETRY_DISABLE=" + os.Getenv("CORTEX_TELEMETRY_DISABLE"),
 			"CORTEX_TELEMETRY_SENTRY_DSN=" + os.Getenv("CORTEX_TELEMETRY_SENTRY_DSN"),
 			"CORTEX_TELEMETRY_SEGMENT_WRITE_KEY=" + os.Getenv("CORTEX_TELEMETRY_SEGMENT_WRITE_KEY"),

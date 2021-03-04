@@ -175,7 +175,7 @@ var _clusterUpCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
-		clusterConfig, err := getInstallClusterConfig(awsClient, *accessConfig, clusterConfigFile, _flagClusterDisallowPrompt)
+		clusterConfig, err := getInstallClusterConfig(awsClient, clusterConfigFile, _flagClusterDisallowPrompt)
 		if err != nil {
 			exit.Error(err)
 		}

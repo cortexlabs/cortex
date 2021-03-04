@@ -163,7 +163,7 @@ func Init() error {
 			}
 		}
 
-		GCP, err = gcp.NewFromEnvCheckProjectID(*GCPCoreConfig.Project)
+		GCP, err = gcp.NewFromEnvCheckProjectID(GCPCoreConfig.Project)
 		if err != nil {
 			return err
 		}
@@ -171,7 +171,7 @@ func Init() error {
 		OperatorMetadata = &clusterconfig.OperatorMetadata{
 			APIVersion:          consts.CortexVersion,
 			OperatorID:          GCP.HashedProjectID,
-			ClusterID:           hash.String(GCPCoreConfig.ClusterName + *GCPCoreConfig.Project + *GCPCoreConfig.Zone),
+			ClusterID:           hash.String(GCPCoreConfig.ClusterName + GCPCoreConfig.Project + GCPCoreConfig.Zone),
 			IsOperatorInCluster: strings.ToLower(os.Getenv("CORTEX_OPERATOR_IN_CLUSTER")) != "false",
 		}
 

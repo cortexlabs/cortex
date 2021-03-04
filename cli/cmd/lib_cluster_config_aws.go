@@ -121,16 +121,13 @@ func getClusterAccessConfigWithCache() (*clusterconfig.AccessConfig, error) {
 	return accessConfig, nil
 }
 
-func getInstallClusterConfig(awsClient *aws.Client, accessConfig clusterconfig.AccessConfig, clusterConfigFile string, disallowPrompt bool) (*clusterconfig.Config, error) {
+func getInstallClusterConfig(awsClient *aws.Client, clusterConfigFile string, disallowPrompt bool) (*clusterconfig.Config, error) {
 	clusterConfig := &clusterconfig.Config{}
 
 	err := readUserClusterConfigFile(clusterConfig, clusterConfigFile)
 	if err != nil {
 		return nil, err
 	}
-
-	clusterConfig.ClusterName = accessConfig.ClusterName
-	clusterConfig.Region = accessConfig.Region
 
 	promptIfNotAdmin(awsClient, disallowPrompt)
 

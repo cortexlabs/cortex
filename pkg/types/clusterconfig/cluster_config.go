@@ -75,6 +75,10 @@ func specificProviderTypeValidator(expectedProvider types.ProviderType) func(str
 }
 
 func validateClusterName(clusterName string) (string, error) {
+	if clusterName == "" {
+		return "", ErrorFieldCannotBeEmpty(ClusterNameKey)
+	}
+
 	if !_strictS3BucketRegex.MatchString(clusterName) {
 		return "", errors.Wrap(ErrorDidNotMatchStrictS3Regex(), clusterName)
 	}

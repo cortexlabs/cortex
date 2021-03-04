@@ -190,10 +190,9 @@ Flags:
 spin up a cluster on gcp
 
 Usage:
-  cortex cluster-gcp up [flags]
+  cortex cluster-gcp up [CLUSTER_CONFIG_FILE] [flags]
 
 Flags:
-  -c, --config string          path to a cluster configuration file
   -e, --configure-env string   name of environment to configure (default "gcp")
   -y, --yes                    skip prompts
   -h, --help                   help for up

@@ -27,7 +27,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
 	"github.com/cortexlabs/cortex/pkg/lib/gcp"
-	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/prompt"
 	"github.com/cortexlabs/cortex/pkg/types/clusterconfig"
 )
@@ -54,8 +53,8 @@ func existingCachedGCPClusterConfigPaths() []string {
 	return matches
 }
 
-func readUserGCPClusterConfigFile(clusterConfig *clusterconfig.GCPConfig) error {
-	errs := cr.ParseYAMLFile(clusterConfig, clusterconfig.GCPFullManagedValidation, _flagClusterGCPConfig)
+func readUserGCPClusterConfigFile(clusterConfig *clusterconfig.GCPConfig, filePath string) error {
+	errs := cr.ParseYAMLFile(clusterConfig, clusterconfig.GCPFullManagedValidation, filePath)
 	if errors.HasError(errs) {
 		return errors.Append(errors.FirstError(errs...), fmt.Sprintf("\n\ncluster configuration schema can be found at https://docs.cortex.dev/v/%s/", consts.CortexVersionMinor))
 	}
@@ -63,49 +62,20 @@ func readUserGCPClusterConfigFile(clusterConfig *clusterconfig.GCPConfig) error 
 	return nil
 }
 
-func getNewGCPClusterAccessConfig(disallowPrompt bool) (*clusterconfig.GCPAccessConfig, error) {
-	accessConfig, err := clusterconfig.DefaultGCPAccessConfig()
-	if err != nil {
-		return nil, err
-	}
+func getNewGCPClusterAccessConfig(clusterConfigFile string) (*clusterconfig.GCPAccessConfig, error) {
+	accessConfig := &clusterconfig.GCPAccessConfig{}
 
-	if _flagClusterGCPConfig != "" {
-		errs := cr.ParseYAMLFile(accessConfig, clusterconfig.GCPAccessValidation, _flagClusterGCPConfig)
-		if errors.HasError(errs) {
-			return nil, errors.Append(errors.FirstError(errs...), fmt.Sprintf("\n\ncluster configuration schema can be found at https://docs.cortex.dev/v/%s/", consts.CortexVersionMinor))
-		}
-	}
-
-	if _flagClusterGCPName != "" {
-		accessConfig.ClusterName = pointer.String(_flagClusterGCPName)
-	}
-	if _flagClusterGCPZone != "" {
-		accessConfig.Zone = pointer.String(_flagClusterGCPZone)
-	}
-	if _flagClusterGCPProject != "" {
-		accessConfig.Project = pointer.String(_flagClusterGCPProject)
-	}
-
-	if accessConfig.ClusterName != nil && accessConfig.Zone != nil && accessConfig.Project != nil {
-		return accessConfig, nil
-	}
-
-	if disallowPrompt {
-		return nil, ErrorGCPClusterAccessConfigOrPromptsRequired()
-	}
-
-	err = cr.ReadPrompt(accessConfig, clusterconfig.GCPAccessPromptValidation)
-	if err != nil {
-		return nil, err
+	errs := cr.ParseYAMLFile(accessConfig, clusterconfig.GCPAccessValidation, clusterConfigFile)
+	if errors.HasError(errs) {
+		return nil, errors.Append(errors.FirstError(errs...), fmt.Sprintf("\n\ncluster configuration schema can be found at https://docs.cortex.dev/v/%s/", consts.CortexVersionMinor))
 	}
 
 	return accessConfig, nil
 }
 
 func getGCPClusterAccessConfigWithCache(disallowPrompt bool) (*clusterconfig.GCPAccessConfig, error) {
-	accessConfig, err := clusterconfig.DefaultGCPAccessConfig()
-	if err != nil {
-		return nil, err
+	accessConfig := &clusterconfig.GCPAccessConfig{
+		ImageManager: "quay.io/cortexlabs/manager:" + consts.CortexVersion,
 	}
 
 	if _flagClusterGCPConfig != "" {
@@ -116,66 +86,35 @@ func getGCPClusterAccessConfigWithCache(disallowPrompt bool) (*clusterconfig.GCP
 	}
 
 	if _flagClusterGCPName != "" {
-		accessConfig.ClusterName = pointer.String(_flagClusterGCPName)
+		accessConfig.ClusterName = _flagClusterGCPName
 	}
 	if _flagClusterGCPZone != "" {
-		accessConfig.Zone = pointer.String(_flagClusterGCPZone)
+		accessConfig.Zone = _flagClusterGCPZone
 	}
 	if _flagClusterGCPProject != "" {
-		accessConfig.Project = pointer.String(_flagClusterGCPProject)
-	}
-
-	if accessConfig.ClusterName != nil && accessConfig.Zone != nil && accessConfig.Project != nil {
-		return accessConfig, nil
+		accessConfig.Project = _flagClusterGCPProject
 	}
 
 	cachedPaths := existingCachedGCPClusterConfigPaths()
 	if len(cachedPaths) == 1 {
 		cachedAccessConfig := &clusterconfig.GCPAccessConfig{}
 		cr.ParseYAMLFile(cachedAccessConfig, clusterconfig.GCPAccessValidation, cachedPaths[0])
-		if accessConfig.ClusterName == nil {
-			accessConfig.ClusterName = cachedAccessConfig.ClusterName
-		}
-		if accessConfig.Project == nil {
-			accessConfig.Project = cachedAccessConfig.Project
-		}
-		if accessConfig.Zone == nil {
-			accessConfig.Zone = cachedAccessConfig.Zone
-		}
+		accessConfig.ClusterName = cachedAccessConfig.ClusterName
+		accessConfig.Project = cachedAccessConfig.Project
+		accessConfig.Zone = cachedAccessConfig.Zone
 	}
 
-	if disallowPrompt {
-		return nil, ErrorGCPClusterAccessConfigOrPromptsRequired()
-	}
-
-	err = cr.ReadPrompt(accessConfig, clusterconfig.GCPAccessPromptValidation)
-	if err != nil {
-		return nil, err
+	if accessConfig.ClusterName == "" || accessConfig.Project == "" || accessConfig.Zone == "" {
+		return nil, ErrorClusterAccessConfigRequired()
 	}
 
 	return accessConfig, nil
 }
 
-func getGCPInstallClusterConfig(gcpClient *gcp.Client, accessConfig clusterconfig.GCPAccessConfig, disallowPrompt bool) (*clusterconfig.GCPConfig, error) {
+func getGCPInstallClusterConfig(gcpClient *gcp.Client, clusterConfigFile string, disallowPrompt bool) (*clusterconfig.GCPConfig, error) {
 	clusterConfig := &clusterconfig.GCPConfig{}
 
-	err := clusterconfig.SetGCPDefaults(clusterConfig)
-	if err != nil {
-		return nil, err
-	}
-
-	if _flagClusterGCPConfig != "" {
-		err := readUserGCPClusterConfigFile(clusterConfig)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	clusterConfig.ClusterName = *accessConfig.ClusterName
-	clusterConfig.Zone = accessConfig.Zone
-	clusterConfig.Project = accessConfig.Project
-
-	err = clusterconfig.InstallGCPPrompt(clusterConfig, disallowPrompt)
+	err := readUserGCPClusterConfigFile(clusterConfig, clusterConfigFile)
 	if err != nil {
 		return nil, err
 	}
@@ -188,10 +127,7 @@ func getGCPInstallClusterConfig(gcpClient *gcp.Client, accessConfig clusterconfi
 	err = clusterConfig.Validate(gcpClient)
 	if err != nil {
 		err = errors.Append(err, fmt.Sprintf("\n\ncluster configuration schema can be found at https://docs.cortex.dev/v/%s/", consts.CortexVersionMinor))
-		if _flagClusterGCPConfig != "" {
-			err = errors.Wrap(err, _flagClusterGCPConfig)
-		}
-		return nil, err
+		return nil, errors.Wrap(err, clusterConfigFile)
 	}
 
 	confirmGCPInstallClusterConfig(clusterConfig, disallowPrompt)
@@ -200,7 +136,7 @@ func getGCPInstallClusterConfig(gcpClient *gcp.Client, accessConfig clusterconfi
 }
 
 func confirmGCPInstallClusterConfig(clusterConfig *clusterconfig.GCPConfig, disallowPrompt bool) {
-	fmt.Printf("a cluster named \"%s\" will be created in %s (zone: %s)\n\n", clusterConfig.ClusterName, *clusterConfig.Project, *clusterConfig.Zone)
+	fmt.Printf("a cluster named \"%s\" will be created in %s (zone: %s)\n\n", clusterConfig.ClusterName, clusterConfig.Project, clusterConfig.Zone)
 
 	if !disallowPrompt {
 		exitMessage := fmt.Sprintf("cluster configuration can be modified via the cluster config file; see https://docs.cortex.dev/v/%s/ for more information", consts.CortexVersionMinor)

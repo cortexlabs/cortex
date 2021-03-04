@@ -268,7 +268,7 @@ func gcpManagedClusterTelemetry() (map[string]interface{}, error) {
 	}
 
 	properties := map[string]interface{}{
-		"zone":           *config.GCPCoreConfig.Zone,
+		"zone":           config.GCPCoreConfig.Zone,
 		"instance_count": totalInstances,
 		"instances":      instanceInfos,
 	}

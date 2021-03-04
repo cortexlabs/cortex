@@ -35,8 +35,8 @@ import (
 
 type GCPCoreConfig struct {
 	Provider       types.ProviderType `json:"provider" yaml:"provider"`
-	Project        *string            `json:"project" yaml:"project"`
-	Zone           *string            `json:"zone" yaml:"zone"`
+	Project        string             `json:"project" yaml:"project"`
+	Zone           string             `json:"zone" yaml:"zone"`
 	ClusterName    string             `json:"cluster_name" yaml:"cluster_name"`
 	Telemetry      bool               `json:"telemetry" yaml:"telemetry"`
 	Namespace      string             `json:"namespace" yaml:"namespace"`
@@ -66,15 +66,15 @@ type GCPCoreConfig struct {
 }
 
 type GCPManagedConfig struct {
-	InstanceType               *string            `json:"instance_type" yaml:"instance_type"`
+	InstanceType               string             `json:"instance_type" yaml:"instance_type"`
 	AcceleratorType            *string            `json:"accelerator_type" yaml:"accelerator_type"`
 	AcceleratorsPerInstance    *int64             `json:"accelerators_per_instance" yaml:"accelerators_per_instance"`
 	Network                    *string            `json:"network" yaml:"network"`
 	Subnet                     *string            `json:"subnet" yaml:"subnet"`
 	APILoadBalancerScheme      LoadBalancerScheme `json:"api_load_balancer_scheme" yaml:"api_load_balancer_scheme"`
 	OperatorLoadBalancerScheme LoadBalancerScheme `json:"operator_load_balancer_scheme" yaml:"operator_load_balancer_scheme"`
-	MinInstances               *int64             `json:"min_instances" yaml:"min_instances"`
-	MaxInstances               *int64             `json:"max_instances" yaml:"max_instances"`
+	MinInstances               int64              `json:"min_instances" yaml:"min_instances"`
+	MaxInstances               int64              `json:"max_instances" yaml:"max_instances"`
 	Preemptible                bool               `json:"preemptible" yaml:"preemptible"`
 	OnDemandBackup             bool               `json:"on_demand_backup" yaml:"on_demand_backup"`
 }
@@ -93,10 +93,10 @@ type InternalGCPConfig struct {
 
 // The bare minimum to identify a cluster
 type GCPAccessConfig struct {
-	ClusterName  *string `json:"cluster_name" yaml:"cluster_name"`
-	Project      *string `json:"project" yaml:"project"`
-	Zone         *string `json:"zone" yaml:"zone"`
-	ImageManager string  `json:"image_manager" yaml:"image_manager"`
+	ClusterName  string `json:"cluster_name" yaml:"cluster_name"`
+	Project      string `json:"project" yaml:"project"`
+	Zone         string `json:"zone" yaml:"zone"`
+	ImageManager string `json:"image_manager" yaml:"image_manager"`
 }
 
 var GCPCoreConfigStructFieldValidations = []*cr.StructFieldValidation{
@@ -120,12 +120,12 @@ var GCPCoreConfigStructFieldValidations = []*cr.StructFieldValidation{
 		},
 	},
 	{
-		StructField:         "Project",
-		StringPtrValidation: &cr.StringPtrValidation{},
+		StructField:      "Project",
+		StringValidation: &cr.StringValidation{},
 	},
 	{
-		StructField:         "Zone",
-		StringPtrValidation: &cr.StringPtrValidation{},
+		StructField:      "Zone",
+		StringValidation: &cr.StringValidation{},
 	},
 	{
 		StructField: "IsManaged",
@@ -295,20 +295,16 @@ var GCPCoreConfigStructFieldValidations = []*cr.StructFieldValidation{
 
 var GCPManagedConfigStructFieldValidations = []*cr.StructFieldValidation{
 	{
-		StructField:         "InstanceType",
+		StructField:      "InstanceType",
+		StringValidation: &cr.StringValidation{},
+	},
+	{
+		StructField:         "AcceleratorType",
 		StringPtrValidation: &cr.StringPtrValidation{},
 	},
 	{
-		StructField: "AcceleratorType",
-		StringPtrValidation: &cr.StringPtrValidation{
-			AllowExplicitNull: true,
-		},
-	},
-	{
-		StructField: "AcceleratorsPerInstance",
-		Int64PtrValidation: &cr.Int64PtrValidation{
-			AllowExplicitNull: true,
-		},
+		StructField:            "AcceleratorsPerInstance",
+		Int64PtrValidation:     &cr.Int64PtrValidation{},
 		DefaultDependentFields: []string{"AcceleratorType"},
 		DefaultDependentFieldsFunc: func(vals []interface{}) interface{} {
 			acceleratorType := vals[0].(*string)
@@ -352,13 +348,15 @@ var GCPManagedConfigStructFieldValidations = []*cr.StructFieldValidation{
 	},
 	{
 		StructField: "MinInstances",
-		Int64PtrValidation: &cr.Int64PtrValidation{
+		Int64Validation: &cr.Int64Validation{
+			Default:              int64(1),
 			GreaterThanOrEqualTo: pointer.Int64(0),
 		},
 	},
 	{
 		StructField: "MaxInstances",
-		Int64PtrValidation: &cr.Int64PtrValidation{
+		Int64Validation: &cr.Int64Validation{
+			Default:     int64(5),
 			GreaterThan: pointer.Int64(0),
 		},
 	},
@@ -383,19 +381,19 @@ var GCPAccessValidation = &cr.StructValidation{
 	StructFieldValidations: []*cr.StructFieldValidation{
 		{
 			StructField: "ClusterName",
-			StringPtrValidation: &cr.StringPtrValidation{
+			StringValidation: &cr.StringValidation{
 				MaxLength: 63,
 				MinLength: 3,
 				Validator: validateClusterName,
 			},
 		},
 		{
-			StructField:         "Zone",
-			StringPtrValidation: &cr.StringPtrValidation{},
+			StructField:      "Zone",
+			StringValidation: &cr.StringValidation{},
 		},
 		{
-			StructField:         "Project",
-			StringPtrValidation: &cr.StringPtrValidation{},
+			StructField:      "Project",
+			StringValidation: &cr.StringValidation{},
 		},
 		{
 			StructField: "ImageManager",
@@ -408,13 +406,10 @@ var GCPAccessValidation = &cr.StructValidation{
 }
 
 func (cc *GCPConfig) ToAccessConfig() GCPAccessConfig {
-	clusterName := cc.ClusterName
-	zone := *cc.Zone
-	project := *cc.Project
 	return GCPAccessConfig{
-		ClusterName:  &clusterName,
-		Zone:         &zone,
-		Project:      &project,
+		ClusterName:  cc.ClusterName,
+		Zone:         cc.Zone,
+		Project:      cc.Project,
 		ImageManager: cc.ImageManager,
 	}
 }
@@ -483,31 +478,31 @@ func (cc *GCPConfig) Validate(GCP *gcp.Client) error {
 	if validID, err := GCP.IsProjectIDValid(); err != nil {
 		return err
 	} else if !validID {
-		return ErrorGCPInvalidProjectID(*cc.Project)
+		return ErrorGCPInvalidProjectID(cc.Project)
 	}
 
-	if validZone, err := GCP.IsZoneValid(*cc.Zone); err != nil {
+	if validZone, err := GCP.IsZoneValid(cc.Zone); err != nil {
 		return err
 	} else if !validZone {
 		availableZones, err := GCP.GetAvailableZones()
 		if err != nil {
 			return err
 		}
-		return ErrorGCPInvalidZone(*cc.Zone, availableZones...)
+		return ErrorGCPInvalidZone(cc.Zone, availableZones...)
 	}
 
 	if cc.Bucket == "" {
-		cc.Bucket = GCPBucketName(cc.ClusterName, *cc.Project, *cc.Zone)
+		cc.Bucket = GCPBucketName(cc.ClusterName, cc.Project, cc.Zone)
 	}
 
-	if validInstanceType, err := GCP.IsInstanceTypeAvailable(*cc.InstanceType, *cc.Zone); err != nil {
+	if validInstanceType, err := GCP.IsInstanceTypeAvailable(cc.InstanceType, cc.Zone); err != nil {
 		return err
 	} else if !validInstanceType {
-		instanceTypes, err := GCP.GetAvailableInstanceTypes(*cc.Zone)
+		instanceTypes, err := GCP.GetAvailableInstanceTypes(cc.Zone)
 		if err != nil {
 			return err
 		}
-		return ErrorGCPInvalidInstanceType(*cc.InstanceType, instanceTypes...)
+		return ErrorGCPInvalidInstanceType(cc.InstanceType, instanceTypes...)
 	}
 
 	if cc.AcceleratorType == nil && cc.AcceleratorsPerInstance != nil {
@@ -518,10 +513,10 @@ func (cc *GCPConfig) Validate(GCP *gcp.Client) error {
 		if cc.AcceleratorsPerInstance == nil {
 			return ErrorDependentFieldMustBeSpecified(AcceleratorTypeKey, AcceleratorsPerInstanceKey)
 		}
-		if validAccelerator, err := GCP.IsAcceleratorTypeAvailable(*cc.AcceleratorType, *cc.Zone); err != nil {
+		if validAccelerator, err := GCP.IsAcceleratorTypeAvailable(*cc.AcceleratorType, cc.Zone); err != nil {
 			return err
 		} else if !validAccelerator {
-			availableAcceleratorsInZone, err := GCP.GetAvailableAcceleratorTypes(*cc.Zone)
+			availableAcceleratorsInZone, err := GCP.GetAvailableAcceleratorTypes(cc.Zone)
 			if err != nil {
 				return err
 			}
@@ -537,124 +532,27 @@ func (cc *GCPConfig) Validate(GCP *gcp.Client) error {
 					return err
 				}
 			}
-			return ErrorGCPInvalidAcceleratorType(*cc.AcceleratorType, *cc.Zone, availableAcceleratorsInZone, availableZonesForAccelerator)
+			return ErrorGCPInvalidAcceleratorType(*cc.AcceleratorType, cc.Zone, availableAcceleratorsInZone, availableZonesForAccelerator)
 		}
 
 		// according to https://cloud.google.com/kubernetes-engine/docs/how-to/gpus
 		var compatibleInstances []string
 		var err error
 		if strings.HasSuffix(*cc.AcceleratorType, "a100") {
-			compatibleInstances, err = GCP.GetInstanceTypesWithPrefix("a2", *cc.Zone)
+			compatibleInstances, err = GCP.GetInstanceTypesWithPrefix("a2", cc.Zone)
 		} else {
-			compatibleInstances, err = GCP.GetInstanceTypesWithPrefix("n1", *cc.Zone)
+			compatibleInstances, err = GCP.GetInstanceTypesWithPrefix("n1", cc.Zone)
 		}
 		if err != nil {
 			return err
 		}
-		if !slices.HasString(compatibleInstances, *cc.InstanceType) {
-			return ErrorGCPIncompatibleInstanceTypeWithAccelerator(*cc.InstanceType, *cc.AcceleratorType, *cc.Zone, compatibleInstances)
+		if !slices.HasString(compatibleInstances, cc.InstanceType) {
+			return ErrorGCPIncompatibleInstanceTypeWithAccelerator(cc.InstanceType, *cc.AcceleratorType, cc.Zone, compatibleInstances)
 		}
 	}
 
 	if !cc.Preemptible && cc.OnDemandBackup {
 		return ErrorFieldConfigurationDependentOnCondition(OnDemandBackupKey, s.Bool(cc.OnDemandBackup), PreemptibleKey, s.Bool(cc.Preemptible))
-	}
-
-	return nil
-}
-
-func applyGCPPromptDefaults(defaults GCPConfig) *GCPConfig {
-	defaultConfig := &GCPConfig{
-		GCPCoreConfig: GCPCoreConfig{
-			Zone: pointer.String("us-east1-c"),
-		},
-		GCPManagedConfig: GCPManagedConfig{
-			InstanceType: pointer.String("n1-standard-2"),
-			MinInstances: pointer.Int64(1),
-			MaxInstances: pointer.Int64(5),
-		},
-	}
-
-	if defaults.Zone != nil {
-		defaultConfig.Zone = defaults.Zone
-	}
-	if defaults.InstanceType != nil {
-		defaultConfig.InstanceType = defaults.InstanceType
-	}
-	if defaults.MinInstances != nil {
-		defaultConfig.MinInstances = defaults.MinInstances
-	}
-	if defaults.MaxInstances != nil {
-		defaultConfig.MaxInstances = defaults.MaxInstances
-	}
-
-	return defaultConfig
-}
-
-func InstallGCPPrompt(clusterConfig *GCPConfig, disallowPrompt bool) error {
-	defaults := applyGCPPromptDefaults(*clusterConfig)
-
-	if disallowPrompt {
-		if clusterConfig.Project == nil {
-			return ErrorGCPProjectMustBeSpecified()
-		}
-
-		if clusterConfig.Zone == nil {
-			clusterConfig.Zone = defaults.Zone
-		}
-		if clusterConfig.InstanceType == nil {
-			clusterConfig.InstanceType = defaults.InstanceType
-		}
-		if clusterConfig.MinInstances == nil {
-			clusterConfig.MinInstances = defaults.MinInstances
-		}
-		if clusterConfig.MaxInstances == nil {
-			clusterConfig.MaxInstances = defaults.MaxInstances
-		}
-		return nil
-	}
-
-	remainingPrompts := &cr.PromptValidation{
-		SkipNonEmptyFields: true,
-		PromptItemValidations: []*cr.PromptItemValidation{
-			{
-				StructField: "InstanceType",
-				PromptOpts: &prompt.Options{
-					Prompt: "instance type",
-				},
-				StringPtrValidation: &cr.StringPtrValidation{
-					Required: true,
-					Default:  defaults.InstanceType,
-				},
-			},
-			{
-				StructField: "MinInstances",
-				PromptOpts: &prompt.Options{
-					Prompt: "min instances",
-				},
-				Int64PtrValidation: &cr.Int64PtrValidation{
-					Required:             true,
-					Default:              defaults.MinInstances,
-					GreaterThanOrEqualTo: pointer.Int64(0),
-				},
-			},
-			{
-				StructField: "MaxInstances",
-				PromptOpts: &prompt.Options{
-					Prompt: "max instances",
-				},
-				Int64PtrValidation: &cr.Int64PtrValidation{
-					Required:    true,
-					Default:     defaults.MaxInstances,
-					GreaterThan: pointer.Int64(0),
-				},
-			},
-		},
-	}
-
-	err := cr.ReadPrompt(clusterConfig, remainingPrompts)
-	if err != nil {
-		return err
 	}
 
 	return nil
@@ -697,8 +595,8 @@ func (cc *GCPCoreConfig) UserTable() table.KeyValuePairs {
 	var items table.KeyValuePairs
 
 	items.Add(ClusterNameUserKey, cc.ClusterName)
-	items.Add(ProjectUserKey, *cc.Project)
-	items.Add(ZoneUserKey, *cc.Zone)
+	items.Add(ProjectUserKey, cc.Project)
+	items.Add(ZoneUserKey, cc.Zone)
 	items.Add(TelemetryUserKey, cc.Telemetry)
 	items.Add(ImageOperatorUserKey, cc.ImageOperator)
 	items.Add(ImageManagerUserKey, cc.ImageManager)
@@ -726,9 +624,9 @@ func (cc *GCPCoreConfig) UserTable() table.KeyValuePairs {
 func (cc *GCPManagedConfig) UserTable() table.KeyValuePairs {
 	var items table.KeyValuePairs
 
-	items.Add(InstanceTypeUserKey, *cc.InstanceType)
-	items.Add(MinInstancesUserKey, *cc.MinInstances)
-	items.Add(MaxInstancesUserKey, *cc.MaxInstances)
+	items.Add(InstanceTypeUserKey, cc.InstanceType)
+	items.Add(MinInstancesUserKey, cc.MinInstances)
+	items.Add(MaxInstancesUserKey, cc.MaxInstances)
 	if cc.AcceleratorType != nil {
 		items.Add(AcceleratorTypeUserKey, *cc.AcceleratorType)
 	}
@@ -773,10 +671,8 @@ func (cc *GCPCoreConfig) TelemetryEvent() map[string]interface{} {
 		event["cluster_name._is_custom"] = true
 	}
 
-	if cc.Zone != nil {
-		event["zone._is_defined"] = true
-		event["zone"] = *cc.Zone
-	}
+	event["zone"] = cc.Zone
+
 	if cc.Namespace != "default" {
 		event["namespace._is_custom"] = true
 	}
@@ -847,10 +743,7 @@ func (cc *GCPCoreConfig) TelemetryEvent() map[string]interface{} {
 func (cc *GCPManagedConfig) TelemetryEvent() map[string]interface{} {
 	event := map[string]interface{}{}
 
-	if cc.InstanceType != nil {
-		event["instance_type._is_defined"] = true
-		event["instance_type"] = *cc.InstanceType
-	}
+	event["instance_type"] = cc.InstanceType
 	if cc.AcceleratorType != nil {
 		event["accelerator_type._is_defined"] = true
 		event["accelerator_type"] = *cc.AcceleratorType
@@ -867,14 +760,8 @@ func (cc *GCPManagedConfig) TelemetryEvent() map[string]interface{} {
 	}
 	event["api_load_balancer_scheme"] = cc.APILoadBalancerScheme
 	event["operator_load_balancer_scheme"] = cc.OperatorLoadBalancerScheme
-	if cc.MinInstances != nil {
-		event["min_instances._is_defined"] = true
-		event["min_instances"] = *cc.MinInstances
-	}
-	if cc.MaxInstances != nil {
-		event["max_instances._is_defined"] = true
-		event["max_instances"] = *cc.MaxInstances
-	}
+	event["min_instances"] = cc.MinInstances
+	event["max_instances"] = cc.MaxInstances
 
 	event["preemptible"] = cc.Preemptible
 	event["on_demand_backup"] = cc.OnDemandBackup

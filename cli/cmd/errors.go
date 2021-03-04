@@ -299,13 +299,6 @@ func ErrorClusterAccessConfigRequired() error {
 	})
 }
 
-func ErrorGCPClusterAccessConfigOrPromptsRequired() error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrGCPClusterAccessConfigOrPromptsRequired,
-		Message: fmt.Sprintf("please provide a cluster configuration file which specifies `%s`, `%s`, and `%s` (e.g. via `--config cluster.yaml`) or enable prompts (i.e. omit the `--yes` flag)", clusterconfig.ClusterNameKey, clusterconfig.ZoneKey, clusterconfig.ProjectKey),
-	})
-}
-
 func ErrorShellCompletionNotSupported(shell string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrShellCompletionNotSupported,
