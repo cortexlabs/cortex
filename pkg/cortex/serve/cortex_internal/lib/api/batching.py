@@ -27,17 +27,25 @@ from cortex_internal.lib.log import logger
 
 
 class DynamicBatcher:
-    def __init__(self, predictor_impl: Callable, max_batch_size: int, batch_interval: int):
+    def __init__(
+        self,
+        predictor_impl: Callable,
+        max_batch_size: int,
+        batch_interval: int,
+        test_mode: bool = False,
+    ):
         self.predictor_impl = predictor_impl
 
         self.batch_max_size = max_batch_size
         self.batch_interval = batch_interval  # measured in seconds
+        self.test_mode = test_mode  # only for unit testing
+        self._test_batch_lengths = []  # only when unit testing
 
         self.barrier = td.Barrier(self.batch_max_size + 1)
 
         self.samples = {}
         self.predictions = {}
-        td.Thread(target=self._batch_engine).start()
+        td.Thread(target=self._batch_engine, daemon=True).start()
 
         self.sample_id_generator = itertools.count()
 
@@ -63,6 +71,9 @@ class DynamicBatcher:
                         raise UserRuntimeException(
                             f"please return a list when using server side batching, got {type(predictions)}"
                         )
+
+                    if self.test_mode:
+                        self._test_batch_lengths.append(len(predictions))
 
                     self.predictions = dict(zip(sample_ids, predictions))
             except Exception as e:

@@ -18,6 +18,12 @@
 err=0
 trap 'err=1' ERR
 
+function substitute_env_vars() {
+    file_to_run_substitution=$1
+    python -c "from cortex_internal.lib import util; import os; util.expand_environment_vars_on_file('$file_to_run_substitution')"
+}
+
+substitute_env_vars $CORTEX_LOG_CONFIG_FILE
 pytest lib/test
 
 test $err = 0
