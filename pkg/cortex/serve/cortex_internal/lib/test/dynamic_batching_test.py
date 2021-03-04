@@ -107,6 +107,6 @@ def test_dynamic_batching_while_hitting_max_interval():
     batch_lengths = dynamic_batcher._test_batch_lengths
     batch_lengths = batch_lengths[int(len(batch_lengths) * 0.2) :]
 
-    # verify that the batch size is always equal to number of running threads
+    # verify that the batch size is always equal to the number of running threads
     assert len(set(batch_lengths)) == 1
     assert len(running_threads) in batch_lengths
