@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/gorilla/mux"
 	"go.uber.org/zap"
 )
 
@@ -43,11 +44,13 @@ func (e *Endpoint) CreateWorkload(w http.ResponseWriter, r *http.Request) {
 	requestID := r.Header.Get("x-request-id")
 	if requestID == "" {
 		respondPlainText(w, http.StatusBadRequest, "error: missing x-request-id key in request header")
+		return
 	}
 
 	contentType := r.Header.Get("Content-Type")
 	if contentType == "" {
 		respondPlainText(w, http.StatusBadRequest, "error: missing Content-Type key in request header")
+		return
 	}
 
 	body := r.Body
@@ -58,6 +61,7 @@ func (e *Endpoint) CreateWorkload(w http.ResponseWriter, r *http.Request) {
 	id, err := e.service.CreateWorkload(requestID, body, contentType)
 	if err != nil {
 		respondPlainText(w, http.StatusInternalServerError, fmt.Sprintf("error: %v", err))
+		return
 	}
 
 	if err = respondJSON(w, http.StatusOK, CreateWorkloadResponse{ID: id}); err != nil {
@@ -67,7 +71,22 @@ func (e *Endpoint) CreateWorkload(w http.ResponseWriter, r *http.Request) {
 
 // GetWorkload is a handler for the async-gateway service workload retrieval route
 func (e *Endpoint) GetWorkload(w http.ResponseWriter, r *http.Request) {
-	panic("not implemented")
+	vars := mux.Vars(r)
+	id, ok := vars["id"]
+	if !ok {
+		respondPlainText(w, http.StatusBadRequest, "error: missing request id in url path")
+		return
+	}
+
+	res, err := e.service.GetWorkload(id)
+	if err != nil {
+		respondPlainText(w, http.StatusInternalServerError, fmt.Sprintf("error: %v", err))
+		return
+	}
+
+	if err = respondJSON(w, http.StatusOK, res); err != nil {
+		e.logger.Error("failed to encode json response", zap.Error(err))
+	}
 }
 
 func respondPlainText(w http.ResponseWriter, statusCode int, message string) {

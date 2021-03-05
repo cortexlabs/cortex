@@ -88,8 +88,9 @@ func (s *service) GetWorkload(id string) (GetWorkloadResponse, error) {
 		return GetWorkloadResponse{}, fmt.Errorf("invalid workload status: %s", status)
 	}
 
+	// TODO: make parallel calls
 	// attempt to download user result
-	resultPath := fmt.Sprintf("%s/%s/result", prefix, id)
+	resultPath := fmt.Sprintf("%s/%s/result.json", prefix, id)
 	resultBuf, err := s.storage.Download(resultPath)
 	if err != nil {
 		return GetWorkloadResponse{}, err
