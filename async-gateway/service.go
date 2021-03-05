@@ -20,6 +20,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"strings"
 
 	"go.uber.org/zap"
 )
@@ -51,14 +52,23 @@ func NewService(clusterName, apiName string, queue Queue, storage Storage, logge
 
 // CreateWorkload enqueues an async workload request and uploads the request payload to cloud storage
 func (s *service) CreateWorkload(id string, payload io.Reader, contentType string) (string, error) {
-	path := fmt.Sprintf("%s/%s/payload", s.workloadStoragePrefix(), id)
-	s.logger.Debug("uploading payload", zap.String("contentType", contentType), zap.String("path", path))
-	if err := s.storage.Upload(path, payload, contentType); err != nil {
+	prefix := s.workloadStoragePrefix()
+
+	// TODO: make parallel calls
+	payloadPath := fmt.Sprintf("%s/%s/payload", prefix, id)
+	s.logger.Debug("uploading payload", zap.String("contentType", contentType), zap.String("path", payloadPath))
+	if err := s.storage.Upload(payloadPath, payload, contentType); err != nil {
 		return "", err
 	}
 
 	s.logger.Debug("sending message to queue", zap.String("id", id))
 	if err := s.queue.SendMessage(id, id); err != nil {
+		return "", err
+	}
+
+	statusPath := fmt.Sprintf("%s/%s/status", prefix, id)
+	s.logger.Debug(fmt.Sprintf("setting status to %s", StatusInQueue))
+	if err := s.storage.Upload(statusPath, strings.NewReader(string(StatusInQueue)), "text/plain"); err != nil {
 		return "", err
 	}
 
