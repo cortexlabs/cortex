@@ -17,30 +17,67 @@ limitations under the License.
 package main
 
 import (
+	"encoding/json"
+	"fmt"
 	"net/http"
 
 	"go.uber.org/zap"
 )
 
-type endpoint struct {
+// Endpoint wraps an async-gateway Service with HTTP logic
+type Endpoint struct {
 	service Service
 	logger  *zap.Logger
 }
 
-// NewEndpoint wraps an async-gateway service with HTTP logic
-func NewEndpoint(svc Service, logger *zap.Logger) *endpoint {
-	return &endpoint{
+// NewEndpoint creates and initializes a new Endpoint struct
+func NewEndpoint(svc Service, logger *zap.Logger) *Endpoint {
+	return &Endpoint{
 		service: svc,
 		logger:  logger,
 	}
 }
 
 // CreateWorkload is a handler for the async-gateway service workload creation route
-func (e *endpoint) CreateWorkload(w http.ResponseWriter, r *http.Request) {
-	panic("not implemented")
+func (e *Endpoint) CreateWorkload(w http.ResponseWriter, r *http.Request) {
+	requestID := r.Header.Get("x-request-id")
+	if requestID == "" {
+		respondPlainText(w, http.StatusBadRequest, "error: missing x-request-id key in request header")
+	}
+
+	contentType := r.Header.Get("Content-Type")
+	if contentType == "" {
+		respondPlainText(w, http.StatusBadRequest, "error: missing Content-Type key in request header")
+	}
+
+	body := r.Body
+	defer func() {
+		_ = r.Body.Close()
+	}()
+
+	id, err := e.service.CreateWorkload(requestID, body, contentType)
+	if err != nil {
+		respondPlainText(w, http.StatusInternalServerError, fmt.Sprintf("error: %v", err))
+	}
+
+	if err = respondJSON(w, http.StatusOK, CreateWorkloadResponse{ID: id}); err != nil {
+		e.logger.Error("failed to encode json response", zap.Error(err))
+	}
 }
 
 // GetWorkload is a handler for the async-gateway service workload retrieval route
-func (e *endpoint) GetWorkload(w http.ResponseWriter, r *http.Request) {
+func (e *Endpoint) GetWorkload(w http.ResponseWriter, r *http.Request) {
 	panic("not implemented")
+}
+
+func respondPlainText(w http.ResponseWriter, statusCode int, message string) {
+	w.WriteHeader(statusCode)
+	w.Header().Set("Content-Type", "text/plain")
+	_, _ = w.Write([]byte(message))
+}
+
+func respondJSON(w http.ResponseWriter, statusCode int, s interface{}) error {
+	w.WriteHeader(statusCode)
+	w.Header().Set("Content-Type", "application/json")
+	return json.NewEncoder(w).Encode(s)
 }

@@ -17,6 +17,7 @@ limitations under the License.
 package main
 
 import (
+	"fmt"
 	"io"
 
 	"go.uber.org/zap"
@@ -29,28 +30,33 @@ type Service interface {
 }
 
 type service struct {
-	logger  *zap.Logger
-	queue   Queue
-	storage Storage
+	logger      *zap.Logger
+	queue       Queue
+	storage     Storage
+	clusterName string
+	apiName     string
 }
 
 // NewService creates a new async-gateway service
-func NewService(queue Queue, storage Storage, logger *zap.Logger) Service {
+func NewService(clusterName, apiName string, queue Queue, storage Storage, logger *zap.Logger) Service {
 	return &service{
-		logger:  logger,
-		queue:   queue,
-		storage: storage,
+		logger:      logger,
+		queue:       queue,
+		storage:     storage,
+		clusterName: clusterName,
+		apiName:     apiName,
 	}
 }
 
 // CreateWorkload enqueues an async workload request and uploads the request payload to cloud storage
 func (s *service) CreateWorkload(id string, payload io.Reader, contentType string) (string, error) {
-	s.logger.Debug("uploading payload", zap.Field{Key: "contentType", String: contentType})
-	if err := s.storage.Upload(id, payload, contentType); err != nil {
+	s.logger.Debug("uploading payload", zap.String("contentType", contentType))
+	path := fmt.Sprintf("%s/apis/%s/workloads/%s/payload", s.clusterName, s.apiName, id)
+	if err := s.storage.Upload(path, payload, contentType); err != nil {
 		return "", err
 	}
 
-	s.logger.Debug("sending message to queue", zap.Field{Key: "id", String: id})
+	s.logger.Debug("sending message to queue", zap.String("id", id))
 	if err := s.queue.SendMessage(id, id); err != nil {
 		return "", err
 	}

@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"strings"
 
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/gorilla/mux"
@@ -34,25 +35,31 @@ const (
 
 func createLogger() (*zap.Logger, error) {
 	logLevelEnv := os.Getenv("CORTEX_LOG_LEVEL")
+	disableJSONLogging := os.Getenv("CORTEX_DISABLE_JSON_LOGGING")
 
 	var logLevelZap zapcore.Level
 	switch logLevelEnv {
 	case "DEBUG":
 		logLevelZap = zapcore.DebugLevel
-	case "INFO":
-		logLevelZap = zapcore.InfoLevel
 	case "WARNING":
 		logLevelZap = zapcore.WarnLevel
 	case "ERROR":
 		logLevelZap = zapcore.ErrorLevel
+	default:
+		logLevelZap = zapcore.InfoLevel
 	}
 
 	encoderConfig := zap.NewProductionEncoderConfig()
 	encoderConfig.MessageKey = "message"
 
+	encoding := "json"
+	if strings.ToLower(disableJSONLogging) == "true" {
+		encoding = "console"
+	}
+
 	return zap.Config{
 		Level:            zap.NewAtomicLevelAt(logLevelZap),
-		Encoding:         "json",
+		Encoding:         encoding,
 		EncoderConfig:    encoderConfig,
 		OutputPaths:      []string{"stdout"},
 		ErrorOutputPaths: []string{"stderr"},
@@ -70,11 +77,13 @@ func main() {
 	}()
 
 	var (
-		port      = flag.String("port", _defaultPort, "port on which the gateway server runs on")
-		projectID = flag.String("project", "", "AWS project ID")
-		region    = flag.String("region", "", "AWS region")
-		bucket    = flag.String("bucket", "", "AWS bucket")
+		port        = flag.String("port", _defaultPort, "port on which the gateway server runs on")
+		projectID   = flag.String("project", "", "AWS project ID")
+		region      = flag.String("region", "", "AWS region")
+		bucket      = flag.String("bucket", "", "AWS bucket")
+		clusterName = flag.String("cluster", "", "cluster name")
 	)
+	flag.Parse()
 
 	switch {
 	case *projectID == "":
@@ -83,6 +92,8 @@ func main() {
 		log.Fatal("missing required option: -region")
 	case *bucket == "":
 		log.Fatal("missing required option: -bucket")
+	case *clusterName == "":
+		log.Fatal("missing required option: -cluster")
 	}
 
 	apiName := flag.Arg(0)
@@ -103,7 +114,7 @@ func main() {
 	queueURL := fmt.Sprintf("https://sqs.%s.amazonaws.com/%s/%s.fifo", *region, *projectID, apiName)
 	sqsQueue := NewSQS(queueURL, sess)
 
-	svc := NewService(sqsQueue, s3Storage, log)
+	svc := NewService(*clusterName, apiName, sqsQueue, s3Storage, log)
 	ep := NewEndpoint(svc, log)
 
 	router := mux.NewRouter()
