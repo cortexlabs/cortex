@@ -22,7 +22,7 @@ import (
 	awssqs "github.com/aws/aws-sdk-go/service/sqs"
 )
 
-//Queue is an interface
+// Queue is an interface to abstract communication with event queues
 type Queue interface {
 	SendMessage(message string, uniqueID string) error
 }
