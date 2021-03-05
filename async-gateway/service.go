@@ -17,6 +17,7 @@ limitations under the License.
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 
@@ -50,8 +51,8 @@ func NewService(clusterName, apiName string, queue Queue, storage Storage, logge
 
 // CreateWorkload enqueues an async workload request and uploads the request payload to cloud storage
 func (s *service) CreateWorkload(id string, payload io.Reader, contentType string) (string, error) {
-	s.logger.Debug("uploading payload", zap.String("contentType", contentType))
-	path := fmt.Sprintf("%s/apis/%s/workloads/%s/payload", s.clusterName, s.apiName, id)
+	path := fmt.Sprintf("%s/%s/payload", s.workloadStoragePrefix(), id)
+	s.logger.Debug("uploading payload", zap.String("contentType", contentType), zap.String("path", path))
 	if err := s.storage.Upload(path, payload, contentType); err != nil {
 		return "", err
 	}
@@ -66,5 +67,52 @@ func (s *service) CreateWorkload(id string, payload io.Reader, contentType strin
 
 // GetWorkload retrieves the status and result, if available, of a given workload
 func (s *service) GetWorkload(id string) (GetWorkloadResponse, error) {
-	panic("not implemented")
+	prefix := s.workloadStoragePrefix()
+
+	// download workload status
+	statusPath := fmt.Sprintf("%s/%s/status", prefix, id)
+	statusBuf, err := s.storage.Download(statusPath)
+	if err != nil {
+		return GetWorkloadResponse{}, err
+	}
+
+	status := Status(statusBuf[:])
+	switch status {
+	case StatusFailed, StatusInProgress, StatusInQueue:
+		return GetWorkloadResponse{
+			ID:     id,
+			Status: status,
+		}, nil
+	case StatusCompleted: // continues execution after switch/case, below
+	default:
+		return GetWorkloadResponse{}, fmt.Errorf("invalid workload status: %s", status)
+	}
+
+	// attempt to download user result
+	resultPath := fmt.Sprintf("%s/%s/result", prefix, id)
+	resultBuf, err := s.storage.Download(resultPath)
+	if err != nil {
+		return GetWorkloadResponse{}, err
+	}
+
+	var userResponse UserResponse
+	if err = json.Unmarshal(resultBuf, &userResponse); err != nil {
+		return GetWorkloadResponse{}, err
+	}
+
+	timestamp, err := s.storage.GetLastModified(resultPath)
+	if err != nil {
+		return GetWorkloadResponse{}, err
+	}
+
+	return GetWorkloadResponse{
+		ID:        id,
+		Status:    status,
+		Result:    &userResponse,
+		Timestamp: &timestamp,
+	}, nil
+}
+
+func (s *service) workloadStoragePrefix() string {
+	return fmt.Sprintf("%s/apis/%s/workloads", s.clusterName, s.apiName)
 }

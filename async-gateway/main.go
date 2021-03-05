@@ -119,7 +119,7 @@ func main() {
 
 	router := mux.NewRouter()
 	router.HandleFunc(fmt.Sprintf("/%s", apiName), ep.GetWorkload).Methods("GET")
-	router.HandleFunc(fmt.Sprintf("/%s", apiName), ep.CreateWorkload).Methods("POST")
+	router.HandleFunc(fmt.Sprintf("/%s/{id}", apiName), ep.CreateWorkload).Methods("POST")
 
 	log.Info("Running on port " + *port)
 	if err = http.ListenAndServe(":"+*port, router); err != nil {
