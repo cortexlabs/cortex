@@ -53,9 +53,12 @@ COPY pkg/cortex/serve/init/install-core-dependencies.sh /usr/local/cortex/instal
 RUN chmod +x /usr/local/cortex/install-core-dependencies.sh
 
 COPY pkg/cortex/serve/ /src/cortex/serve
+COPY pkg/cortex/client/ /src/cortex/client
 ENV CORTEX_LOG_CONFIG_FILE /src/cortex/serve/log_config.yaml
 
-RUN pip install --no-deps /src/cortex/serve/
+RUN pip install --no-deps /src/cortex/serve/ && \
+    pip install /src/cortex/client && \
+    rm -r /src/cortex/client
 RUN mv /src/cortex/serve/init/bootloader.sh /etc/cont-init.d/bootloader.sh
 
 ENTRYPOINT ["/init"]
