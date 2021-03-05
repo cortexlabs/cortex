@@ -243,6 +243,8 @@ class Predictor:
         Initialize predictor class as provided by the user.
 
         job_spec is a dictionary when the "kind" of the API is set to "BatchAPI". Otherwise, it's None.
+
+        Can raise UserRuntimeException/UserException/CortexException.
         """
 
         # build args
@@ -306,6 +308,7 @@ class Predictor:
         return initialized_impl
 
     def class_impl(self, project_dir):
+        """Can only raise UserException/CortexException exceptions"""
         if self.type in [TensorFlowPredictorType, TensorFlowNeuronPredictorType]:
             target_class_name = "TensorFlowPredictor"
             validations = TENSORFLOW_CLASS_VALIDATION
@@ -322,7 +325,7 @@ class Predictor:
             predictor_class = self._get_class_impl(
                 "cortex_predictor", os.path.join(project_dir, self.path), target_class_name
             )
-        except (UserException, Exception) as e:
+        except Exception as e:
             e.wrap("error in " + self.path)
             raise
 
@@ -330,12 +333,13 @@ class Predictor:
             validate_class_impl(predictor_class, validations)
             if self.type == PythonPredictorType:
                 validate_python_predictor_with_models(predictor_class, self.api_spec)
-        except (UserException, Exception) as e:
+        except Exception as e:
             e.wrap("error in " + self.path)
             raise
         return predictor_class
 
     def _get_class_impl(self, module_name, impl_path, target_class_name):
+        """Can only raise UserException exception"""
         if impl_path.endswith(".pickle"):
             try:
                 with open(impl_path, "rb") as pickle_file:

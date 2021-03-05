@@ -227,7 +227,7 @@ def handle_batch_message(message):
         api.post_metrics(
             [success_counter_metric(), time_per_batch_metric(time.time() - start_time)]
         )
-    except (UserRuntimeException, Exception) as err:
+    except Exception as err:
         if not isinstance(err, UserRuntimeException):
             capture_exception(err)
 
@@ -285,7 +285,7 @@ def handle_on_job_complete(message):
                     break
                 should_run_on_job_complete = True
             time.sleep(10)  # verify that the queue is empty one more time
-    except (UserRuntimeException, Exception) as err:
+    except Exception as err:
         raise type(err)("failed to handle on_job_complete") from err
     finally:
         with receipt_handle_mutex:
@@ -339,7 +339,7 @@ def start():
             metrics_client=metrics_client,
             job_spec=job_spec,
         )
-    except (UserException, UserRuntimeException) as err:
+    except UserRuntimeException as err:
         err.wrap(f"failed to start job {job_spec['job_id']}")
         logger.error(str(err), exc_info=True)
         sys.exit(1)
