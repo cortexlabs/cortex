@@ -35,8 +35,9 @@ func apiQueueNamePrefix(apiName string) string {
 	return config.CoreConfig.SQSNamePrefix() + apiName + "-"
 }
 
-// QueueName is <hash of cluster name>-<api_name>-<job_id>.fifo
+// QueueName is cortex-<hash of cluster name>-<api_name>-<job_id>.fifo
 func getJobQueueName(jobKey spec.JobKey) string {
+	fmt.Println(apiQueueNamePrefix(jobKey.APIName) + jobKey.ID + ".fifo")
 	return apiQueueNamePrefix(jobKey.APIName) + jobKey.ID + ".fifo"
 }
 
@@ -57,7 +58,7 @@ func jobKeyFromQueueURL(queueURL string) spec.JobKey {
 
 	jobID := strings.TrimSuffix(dashSplit[len(dashSplit)-1], ".fifo")
 
-	apiNameSplit := dashSplit[1 : len(dashSplit)-1]
+	apiNameSplit := dashSplit[2 : len(dashSplit)-1]
 	apiName := strings.Join(apiNameSplit, "-")
 
 	return spec.JobKey{APIName: apiName, ID: jobID}

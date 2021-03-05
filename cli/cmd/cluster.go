@@ -212,7 +212,6 @@ var _clusterUpCmd = &cobra.Command{
 			LogGroup:    clusterConfig.ClusterName,
 			Bucket:      clusterConfig.Bucket,
 			Region:      *clusterConfig.Region,
-			SQSPrefix:   clusterconfig.SQSNamePrefix(clusterConfig.ClusterName),
 			AccountID:   accountID,
 		})
 		if err != nil {
