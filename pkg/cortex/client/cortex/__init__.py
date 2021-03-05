@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import json
+from typing import Optional
 
 from cortex.client import Client
 from cortex.binary import run_cli
@@ -21,7 +22,7 @@ from cortex.exceptions import NotFound
 
 
 @sentry_wrapper
-def client(env: str) -> Client:
+def client(env: Optional[str] = None) -> Client:
     """
     Initialize a client based on the specified environment.
 
@@ -33,13 +34,16 @@ def client(env: str) -> Client:
     """
     environments = env_list()
 
-    found = False
+    if env is None:
+        if not environments["default_environment"]:
+            raise NotFound("no default environment configured")
+        env = environments["default_environment"]
 
-    for environment in environments:
+    found = False
+    for environment in environments["environments"]:
         if environment["name"] == env:
             found = True
             break
-
     if not found:
         raise NotFound(f"can't find environment {env}, create one by calling `cortex.new_client()`")
 

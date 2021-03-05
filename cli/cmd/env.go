@@ -99,7 +99,14 @@ var _envListCmd = &cobra.Command{
 				fmt.Print("[]")
 				return
 			}
-			bytes, err := libjson.Marshal(cliConfig.Environments)
+			bytes, err := libjson.Marshal(
+				struct {
+					DefaultEnvironment *string                  `json:"default_environment" yaml:"default_environment"`
+					Environments       []*cliconfig.Environment `json:"environments" yaml:"environments"`
+				}{
+					DefaultEnvironment: cliConfig.DefaultEnvironment,
+					Environments:       cliConfig.Environments,
+				})
 			if err != nil {
 				exit.Error(err)
 			}

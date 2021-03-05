@@ -476,3 +476,19 @@ The dictionary passed in via the `extra` will be flattened by one level. e.g.
 ```
 
 To avoid overriding essential Cortex metadata, please refrain from specifying the following extra keys: `asctime`, `levelname`, `message`, `labels`, and `process`. Log lines greater than 5 MB in size will be ignored.
+
+## Cortex Python client
+
+A default [Cortex Python client](../../clients/python.md#cortex.client.client) environment has been configured for your API. This can be used for deploying/deleting/updating or submitting jobs to your running cluster based on the execution flow of your predictor. For example:
+
+```python
+import cortex
+
+class PythonPredictor:
+    def __init__(self, config):
+        ...
+        # get client pointing to the default environment
+        client = cortex.client()
+        # get the existing apis in the cluster for something important to you
+        existing_apis = client.list_apis()
+```

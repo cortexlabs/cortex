@@ -218,6 +218,7 @@ from cortex_internal.lib.log import logger as cortex_logger
 
 class PythonPredictor:
     def predict(self, payload, batch_id):
+        ...
         cortex_logger.info("completed processing batch", extra={"batch_id": batch_id, "confidence": confidence})
 ```
 
@@ -228,3 +229,19 @@ The dictionary passed in via the `extra` will be flattened by one level. e.g.
 ```
 
 To avoid overriding essential Cortex metadata, please refrain from specifying the following extra keys: `asctime`, `levelname`, `message`, `labels`, and `process`. Log lines greater than 5 MB in size will be ignored.
+
+## Cortex Python client
+
+A default [Cortex Python client](../../clients/python.md#cortex.client.client) environment has been configured for your API. This can be used for deploying/deleting/updating or submitting jobs to your running cluster based on the execution flow of your batch predictor. For example:
+
+```python
+import cortex
+
+class PythonPredictor:
+    def on_job_complete(self):
+        ...
+        # get client pointing to the default environment
+        client = cortex.client()
+        # deploy API in the existing cluster using the artifacts in the previous step
+        client.create_api(...)
+```
