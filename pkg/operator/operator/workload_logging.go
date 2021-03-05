@@ -115,7 +115,10 @@ func startKubectlProcess(podName string, cancelListener chan struct{}, socket *w
 }
 
 func pumpStdout(socket *websocket.Conn, reader io.Reader) {
+	// increase the buffer used by the scanner to accomadate large log lines such as inline progress printing
+	p := make([]byte, 1024*1024)
 	scanner := bufio.NewScanner(reader)
+	scanner.Buffer(p, 1024*1024)
 	for scanner.Scan() {
 		logBytes := scanner.Bytes()
 		var message jsonMessage
