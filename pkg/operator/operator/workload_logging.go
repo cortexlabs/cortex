@@ -115,7 +115,8 @@ func startKubectlProcess(podName string, cancelListener chan struct{}, socket *w
 }
 
 func pumpStdout(socket *websocket.Conn, reader io.Reader) {
-	// increase the buffer used by the scanner to accomadate large log lines such as inline progress printing
+	// it seems like if the buffer is maxed out with no ending token, the scanner just exits.
+	// increase the buffer used by the scanner to accomadote larger log lines (a common issue when printing progress)
 	p := make([]byte, 1024*1024)
 	scanner := bufio.NewScanner(reader)
 	scanner.Buffer(p, 1024*1024)
