@@ -333,7 +333,7 @@ def start_fn():
         predict_route = "/predict"
         local_cache["predict_route"] = predict_route
 
-    except (UserRuntimeException, Exception) as err:
+    except Exception as err:
         if not isinstance(err, UserRuntimeException):
             capture_exception(err)
         logger.exception("failed to start api")
