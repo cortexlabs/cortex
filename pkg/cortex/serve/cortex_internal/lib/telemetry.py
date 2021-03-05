@@ -73,7 +73,7 @@ def init_sentry(
         dsn=dsn,
         environment=environment,
         release=release,
-        ignore_errors=[cexp.UserException, cexp.UserRuntimeException],
+        ignore_errors=[cexp.UserRuntimeException],
         attach_stacktrace=True,
         integrations=[
             LoggingIntegration(event_level=None, level=None),
