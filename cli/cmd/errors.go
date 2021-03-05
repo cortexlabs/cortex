@@ -70,6 +70,7 @@ const (
 	ErrClusterDown                             = "cli.cluster_down"
 	ErrDuplicateCLIEnvNames                    = "cli.duplicate_cli_env_names"
 	ErrClusterAccessConfigRequired             = "cli.cluster_access_config_or_prompts_required"
+	ErrGCPClusterAccessConfigRequired          = "cli.gcp_cluster_access_config_or_prompts_required"
 	ErrGCPClusterAccessConfigOrPromptsRequired = "cli.gcp_cluster_access_config_or_prompts_required"
 	ErrShellCompletionNotSupported             = "cli.shell_completion_not_supported"
 	ErrNoTerminalWidth                         = "cli.no_terminal_width"
@@ -296,6 +297,13 @@ func ErrorClusterAccessConfigRequired() error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrClusterAccessConfigRequired,
 		Message: fmt.Sprintf("please provide a cluster configuration file which specifies `%s` and `%s` (e.g. via `--config cluster.yaml`) or use the CLI flags to specify the cluster (e.g. via `--name` or `--region`)", clusterconfig.ClusterNameKey, clusterconfig.RegionKey),
+	})
+}
+
+func ErrorGCPClusterAccessConfigRequired() error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrGCPClusterAccessConfigRequired,
+		Message: fmt.Sprintf("please provide a cluster configuration file which specifies `%s` and `%s` (e.g. via `--config cluster.yaml`) or use the CLI flags to specify the cluster (e.g. via `--name`, `--project` or `--zone`)", clusterconfig.ClusterNameKey, clusterconfig.RegionKey),
 	})
 }
 

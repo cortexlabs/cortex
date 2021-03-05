@@ -158,9 +158,6 @@ func ValidateRegion(region string) error {
 }
 
 func RegionValidator(region string) (string, error) {
-	if region == "" {
-		return "", ErrorFieldCannotBeEmpty(RegionKey)
-	}
 	if err := ValidateRegion(region); err != nil {
 		return "", err
 	}
@@ -190,6 +187,7 @@ var CoreConfigStructFieldValidations = []*cr.StructFieldValidation{
 	{
 		StructField: "Region",
 		StringValidation: &cr.StringValidation{
+			MinLength: 1,
 			Validator: RegionValidator,
 		},
 	},
@@ -385,6 +383,7 @@ var ManagedConfigStructFieldValidations = []*cr.StructFieldValidation{
 	{
 		StructField: "InstanceType",
 		StringValidation: &cr.StringValidation{
+			MinLength: 1,
 			Validator: validateInstanceType,
 		},
 	},
@@ -656,6 +655,7 @@ var AccessValidation = &cr.StructValidation{
 		{
 			StructField: "Region",
 			StringValidation: &cr.StringValidation{
+				MinLength: 1,
 				Validator: RegionValidator,
 			},
 		},
@@ -1011,10 +1011,6 @@ func validateVPCCIDR(cidr string) (string, error) {
 }
 
 func validateInstanceType(instanceType string) (string, error) {
-	if instanceType == "" {
-		return "", ErrorFieldCannotBeEmpty(RegionKey)
-	}
-
 	var foundInstance *aws.InstanceMetadata
 	for _, instanceMap := range aws.InstanceMetadatas {
 		if instanceMetadata, ok := instanceMap[instanceType]; ok {

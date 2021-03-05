@@ -105,7 +105,7 @@ func getGCPClusterAccessConfigWithCache(disallowPrompt bool) (*clusterconfig.GCP
 	}
 
 	if accessConfig.ClusterName == "" || accessConfig.Project == "" || accessConfig.Zone == "" {
-		return nil, ErrorClusterAccessConfigRequired()
+		return nil, ErrorGCPClusterAccessConfigRequired()
 	}
 
 	return accessConfig, nil
