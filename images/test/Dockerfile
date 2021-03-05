@@ -10,6 +10,10 @@ RUN pip install --upgrade pip && \
 COPY pkg /src
 COPY images/test/run.sh /src/run.sh
 
+COPY pkg/cortex/serve/log_config.yaml /src/cortex/serve/log_config.yaml
+ENV CORTEX_LOG_LEVEL DEBUG
+ENV CORTEX_LOG_CONFIG_FILE /src/cortex/serve/log_config.yaml
+
 RUN pip install --no-deps /src/cortex/serve/ && \
     rm -rf /root/.cache/pip*
 
