@@ -296,14 +296,14 @@ func ErrorClusterDown(out string) error {
 func ErrorClusterAccessConfigRequired() error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrClusterAccessConfigRequired,
-		Message: fmt.Sprintf("please provide a cluster configuration file which specifies `%s` and `%s` (e.g. via `--config cluster.yaml`) or use the CLI flags to specify the cluster (e.g. via `--name` or `--region`)", clusterconfig.ClusterNameKey, clusterconfig.RegionKey),
+		Message: fmt.Sprintf("please provide a cluster configuration file which specifies `%s` and `%s` (e.g. via `--config cluster.yaml`) or use the CLI flags to specify the cluster (e.g. via `--name` and `--region`)", clusterconfig.ClusterNameKey, clusterconfig.RegionKey),
 	})
 }
 
 func ErrorGCPClusterAccessConfigRequired() error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrGCPClusterAccessConfigRequired,
-		Message: fmt.Sprintf("please provide a cluster configuration file which specifies `%s` and `%s` (e.g. via `--config cluster.yaml`) or use the CLI flags to specify the cluster (e.g. via `--name`, `--project` or `--zone`)", clusterconfig.ClusterNameKey, clusterconfig.RegionKey),
+		Message: fmt.Sprintf("please provide a cluster configuration file which specifies `%s` and `%s` (e.g. via `--config cluster.yaml`) or use the CLI flags to specify the cluster (e.g. via `--name`, `--project` and `--zone`)", clusterconfig.ClusterNameKey, clusterconfig.RegionKey),
 	})
 }
 
