@@ -32,7 +32,7 @@ Below are some sample CloudWatch Log Insight queries:
 **RealtimeAPI:**
 
 ```text
-fields @timestamp, log
+fields @timestamp, message
 | filter labels.apiName="<INSERT API NAME>"
 | filter labels.apiKind="RealtimeAPI"
 | sort @timestamp asc
@@ -42,7 +42,7 @@ fields @timestamp, log
 **BatchAPI:**
 
 ```text
-fields @timestamp, log
+fields @timestamp, message
 | filter labels.apiName="<INSERT API NAME>"
 | filter labels.jobID="<INSERT JOB ID>"
 | filter labels.apiKind="BatchAPI"
@@ -53,7 +53,7 @@ fields @timestamp, log
 **TaskAPI:**
 
 ```text
-fields @timestamp, log
+fields @timestamp, message
 | filter labels.apiName="<INSERT API NAME>"
 | filter labels.jobID="<INSERT JOB ID>"
 | filter labels.apiKind="TaskAPI"
