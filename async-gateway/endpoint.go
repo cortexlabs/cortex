@@ -60,6 +60,7 @@ func (e *Endpoint) CreateWorkload(w http.ResponseWriter, r *http.Request) {
 
 	id, err := e.service.CreateWorkload(requestID, body, contentType)
 	if err != nil {
+		e.logger.Error("failed to create workload", zap.Error(err))
 		respondPlainText(w, http.StatusInternalServerError, fmt.Sprintf("error: %v", err))
 		return
 	}
@@ -80,6 +81,7 @@ func (e *Endpoint) GetWorkload(w http.ResponseWriter, r *http.Request) {
 
 	res, err := e.service.GetWorkload(id)
 	if err != nil {
+		e.logger.Error("failed to get workload", zap.Error(err))
 		respondPlainText(w, http.StatusInternalServerError, fmt.Sprintf("error: %v", err))
 		return
 	}
