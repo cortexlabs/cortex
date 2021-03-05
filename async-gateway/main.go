@@ -118,8 +118,15 @@ func main() {
 	ep := NewEndpoint(svc, log)
 
 	router := mux.NewRouter()
-	router.HandleFunc(fmt.Sprintf("/%s/{id}", apiName), ep.GetWorkload).Methods("GET")
-	router.HandleFunc(fmt.Sprintf("/%s", apiName), ep.CreateWorkload).Methods("POST")
+	router.HandleFunc("/{id}", ep.GetWorkload).Methods("GET")
+	router.HandleFunc("/", ep.CreateWorkload).Methods("POST")
+	router.HandleFunc(
+		"/healthz",
+		func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte("ok"))
+		},
+	)
 
 	log.Info("Running on port " + *port)
 	if err = http.ListenAndServe(":"+*port, router); err != nil {
