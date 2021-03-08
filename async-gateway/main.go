@@ -105,7 +105,7 @@ func main() {
 		SharedConfigState: session.SharedConfigEnable,
 	})
 	if err != nil {
-		log.Fatal(fmt.Sprintf("failed to create AWS session: %s", err.Error()))
+		log.Fatal("failed to create AWS session: %s", zap.Error(err))
 	}
 
 	s3Storage := NewS3(sess, *bucket)
@@ -129,6 +129,6 @@ func main() {
 
 	log.Info("Running on port " + *port)
 	if err = http.ListenAndServe(":"+*port, router); err != nil {
-		log.Fatal(err.Error())
+		log.Fatal("failed to start server", zap.Error(err))
 	}
 }
