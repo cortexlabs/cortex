@@ -66,10 +66,10 @@ type GCPCoreConfig struct {
 
 type GCPManagedConfig struct {
 	InstanceType               string             `json:"instance_type" yaml:"instance_type"`
-	AcceleratorType            *string            `json:"accelerator_type" yaml:"accelerator_type"`
-	AcceleratorsPerInstance    *int64             `json:"accelerators_per_instance" yaml:"accelerators_per_instance"`
-	Network                    *string            `json:"network" yaml:"network"`
-	Subnet                     *string            `json:"subnet" yaml:"subnet"`
+	AcceleratorType            *string            `json:"accelerator_type,omitempty" yaml:"accelerator_type,omitempty"`
+	AcceleratorsPerInstance    *int64             `json:"accelerators_per_instance,omitempty" yaml:"accelerators_per_instance,omitempty"`
+	Network                    *string            `json:"network,omitempty" yaml:"network,omitempty"`
+	Subnet                     *string            `json:"subnet,omitempty" yaml:"subnet,omitempty"`
 	APILoadBalancerScheme      LoadBalancerScheme `json:"api_load_balancer_scheme" yaml:"api_load_balancer_scheme"`
 	OperatorLoadBalancerScheme LoadBalancerScheme `json:"operator_load_balancer_scheme" yaml:"operator_load_balancer_scheme"`
 	MinInstances               int64              `json:"min_instances" yaml:"min_instances"`
