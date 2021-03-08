@@ -109,11 +109,11 @@ func Init() error {
 			if errors.HasError(errs) {
 				return errors.FirstError(errs...)
 			}
-			awsInstanceMetadata := aws.InstanceMetadatas[*CoreConfig.Region][*managedConfig.InstanceType]
+			awsInstanceMetadata := aws.InstanceMetadatas[CoreConfig.Region][managedConfig.InstanceType]
 			instanceMetadata = &awsInstanceMetadata
 		}
 
-		AWS, err = aws.NewForRegion(*CoreConfig.Region)
+		AWS, err = aws.NewForRegion(CoreConfig.Region)
 		if err != nil {
 			return err
 		}
@@ -126,7 +126,7 @@ func Init() error {
 		OperatorMetadata = &clusterconfig.OperatorMetadata{
 			APIVersion:          consts.CortexVersion,
 			OperatorID:          hashedAccountID,
-			ClusterID:           hash.String(CoreConfig.ClusterName + *CoreConfig.Region + hashedAccountID),
+			ClusterID:           hash.String(CoreConfig.ClusterName + CoreConfig.Region + hashedAccountID),
 			IsOperatorInCluster: strings.ToLower(os.Getenv("CORTEX_OPERATOR_IN_CLUSTER")) != "false",
 		}
 
@@ -163,7 +163,7 @@ func Init() error {
 			}
 		}
 
-		GCP, err = gcp.NewFromEnvCheckProjectID(*GCPCoreConfig.Project)
+		GCP, err = gcp.NewFromEnvCheckProjectID(GCPCoreConfig.Project)
 		if err != nil {
 			return err
 		}
@@ -171,7 +171,7 @@ func Init() error {
 		OperatorMetadata = &clusterconfig.OperatorMetadata{
 			APIVersion:          consts.CortexVersion,
 			OperatorID:          GCP.HashedProjectID,
-			ClusterID:           hash.String(GCPCoreConfig.ClusterName + *GCPCoreConfig.Project + *GCPCoreConfig.Zone),
+			ClusterID:           hash.String(GCPCoreConfig.ClusterName + GCPCoreConfig.Project + GCPCoreConfig.Zone),
 			IsOperatorInCluster: strings.ToLower(os.Getenv("CORTEX_OPERATOR_IN_CLUSTER")) != "false",
 		}
 

@@ -22,10 +22,10 @@ This project uses pre-trained Opus MT neural machine translation models, trained
 
 ## How to deploy the API
 
-To deploy the API, first spin up a Cortex cluster by running `$ cortex cluster up --config cortex.yaml`. Note that the configuration file we are providing Cortex with (accessible at `cortex.yaml`) requests a g4dn.xlarge GPU instance. If your AWS account does not have access to GPU instances, you can request an EC2 service quota increase easily [here](https://console.aws.amazon.com/servicequotas), or you can simply use CPU instances (CPU will still work, you will just likely experience higher latency).
+To deploy the API, first spin up a Cortex cluster by running `$ cortex cluster up cortex.yaml`. Note that the configuration file we are providing Cortex with (accessible at `cortex.yaml`) requests a g4dn.xlarge GPU instance. If your AWS account does not have access to GPU instances, you can request an EC2 service quota increase easily [here](https://console.aws.amazon.com/servicequotas), or you can simply use CPU instances (CPU will still work, you will just likely experience higher latency).
 
 ```bash
-$ cortex cluster up --config cortex.yaml
+$ cortex cluster up cortex.yaml
 
 email address [press enter to skip]:
 
