@@ -304,12 +304,16 @@ var GCPManagedConfigStructFieldValidations = []*cr.StructFieldValidation{
 		},
 	},
 	{
-		StructField:         "AcceleratorType",
-		StringPtrValidation: &cr.StringPtrValidation{},
+		StructField: "AcceleratorType",
+		StringPtrValidation: &cr.StringPtrValidation{
+			AllowExplicitNull: true,
+		},
 	},
 	{
-		StructField:            "AcceleratorsPerInstance",
-		Int64PtrValidation:     &cr.Int64PtrValidation{},
+		StructField: "AcceleratorsPerInstance",
+		Int64PtrValidation: &cr.Int64PtrValidation{
+			AllowExplicitNull: true,
+		},
 		DefaultDependentFields: []string{"AcceleratorType"},
 		DefaultDependentFieldsFunc: func(vals []interface{}) interface{} {
 			acceleratorType := vals[0].(*string)
