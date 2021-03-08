@@ -129,7 +129,7 @@ func managedClusterTelemetry() (map[string]interface{}, error) {
 			continue
 		}
 
-		onDemandPrice := aws.InstanceMetadatas[*config.CoreConfig.Region][instanceType].Price
+		onDemandPrice := aws.InstanceMetadatas[config.CoreConfig.Region][instanceType].Price
 		price := onDemandPrice
 		if isSpot {
 			spotPrice, err := config.AWS.SpotInstancePrice(instanceType)
@@ -163,9 +163,9 @@ func managedClusterTelemetry() (map[string]interface{}, error) {
 		instanceInfos[instanceInfosKey] = &info
 	}
 
-	apiEBSPrice := aws.EBSMetadatas[*config.CoreConfig.Region][managedConfig.InstanceVolumeType.String()].PriceGB * float64(managedConfig.InstanceVolumeSize) / 30 / 24
+	apiEBSPrice := aws.EBSMetadatas[config.CoreConfig.Region][managedConfig.InstanceVolumeType.String()].PriceGB * float64(managedConfig.InstanceVolumeSize) / 30 / 24
 	if managedConfig.InstanceVolumeType.String() == "io1" && managedConfig.InstanceVolumeIOPS != nil {
-		apiEBSPrice += aws.EBSMetadatas[*config.CoreConfig.Region][managedConfig.InstanceVolumeType.String()].PriceIOPS * float64(*managedConfig.InstanceVolumeIOPS) / 30 / 24
+		apiEBSPrice += aws.EBSMetadatas[config.CoreConfig.Region][managedConfig.InstanceVolumeType.String()].PriceIOPS * float64(*managedConfig.InstanceVolumeIOPS) / 30 / 24
 	}
 
 	var totalInstancePrice float64
@@ -178,7 +178,7 @@ func managedClusterTelemetry() (map[string]interface{}, error) {
 	fixedPrice := clusterFixedPriceAWS()
 
 	return map[string]interface{}{
-		"region":                      *config.CoreConfig.Region,
+		"region":                      config.CoreConfig.Region,
 		"instance_count":              totalInstances,
 		"instances":                   instanceInfos,
 		"fixed_price":                 fixedPrice,
@@ -190,12 +190,12 @@ func managedClusterTelemetry() (map[string]interface{}, error) {
 }
 
 func clusterFixedPriceAWS() float64 {
-	eksPrice := aws.EKSPrices[*config.CoreConfig.Region]
-	operatorInstancePrice := aws.InstanceMetadatas[*config.CoreConfig.Region]["t3.medium"].Price
-	operatorEBSPrice := aws.EBSMetadatas[*config.CoreConfig.Region]["gp2"].PriceGB * 20 / 30 / 24
-	metricsEBSPrice := aws.EBSMetadatas[*config.CoreConfig.Region]["gp2"].PriceGB * 40 / 30 / 24
-	nlbPrice := aws.NLBMetadatas[*config.CoreConfig.Region].Price
-	natUnitPrice := aws.NATMetadatas[*config.CoreConfig.Region].Price
+	eksPrice := aws.EKSPrices[config.CoreConfig.Region]
+	operatorInstancePrice := aws.InstanceMetadatas[config.CoreConfig.Region]["t3.medium"].Price
+	operatorEBSPrice := aws.EBSMetadatas[config.CoreConfig.Region]["gp2"].PriceGB * 20 / 30 / 24
+	metricsEBSPrice := aws.EBSMetadatas[config.CoreConfig.Region]["gp2"].PriceGB * 40 / 30 / 24
+	nlbPrice := aws.NLBMetadatas[config.CoreConfig.Region].Price
+	natUnitPrice := aws.NATMetadatas[config.CoreConfig.Region].Price
 	var natTotalPrice float64
 
 	managedConfig := config.ManagedConfigOrNil()
@@ -268,7 +268,7 @@ func gcpManagedClusterTelemetry() (map[string]interface{}, error) {
 	}
 
 	properties := map[string]interface{}{
-		"zone":           *config.GCPCoreConfig.Zone,
+		"zone":           config.GCPCoreConfig.Zone,
 		"instance_count": totalInstances,
 		"instances":      instanceInfos,
 	}

@@ -69,8 +69,8 @@ const (
 	ErrClusterRefresh                          = "cli.cluster_refresh"
 	ErrClusterDown                             = "cli.cluster_down"
 	ErrDuplicateCLIEnvNames                    = "cli.duplicate_cli_env_names"
-	ErrClusterConfigOrPromptsRequired          = "cli.cluster_config_or_prompts_required"
-	ErrClusterAccessConfigOrPromptsRequired    = "cli.cluster_access_config_or_prompts_required"
+	ErrClusterAccessConfigRequired             = "cli.cluster_access_config_or_prompts_required"
+	ErrGCPClusterAccessConfigRequired          = "cli.gcp_cluster_access_config_or_prompts_required"
 	ErrGCPClusterAccessConfigOrPromptsRequired = "cli.gcp_cluster_access_config_or_prompts_required"
 	ErrShellCompletionNotSupported             = "cli.shell_completion_not_supported"
 	ErrNoTerminalWidth                         = "cli.no_terminal_width"
@@ -293,24 +293,17 @@ func ErrorClusterDown(out string) error {
 	})
 }
 
-func ErrorClusterConfigOrPromptsRequired() error {
+func ErrorClusterAccessConfigRequired() error {
 	return errors.WithStack(&errors.Error{
-		Kind:    ErrClusterConfigOrPromptsRequired,
-		Message: "this command requires either a cluster configuration file (e.g. via `--config cluster.yaml`) or prompts to be enabled (i.e. omit the `--yes` flag)",
+		Kind:    ErrClusterAccessConfigRequired,
+		Message: fmt.Sprintf("please provide a cluster configuration file which specifies `%s` and `%s` (e.g. via `--config cluster.yaml`) or use the CLI flags to specify the cluster (e.g. via `--name` and `--region`)", clusterconfig.ClusterNameKey, clusterconfig.RegionKey),
 	})
 }
 
-func ErrorClusterAccessConfigOrPromptsRequired() error {
+func ErrorGCPClusterAccessConfigRequired() error {
 	return errors.WithStack(&errors.Error{
-		Kind:    ErrClusterAccessConfigOrPromptsRequired,
-		Message: fmt.Sprintf("please provide a cluster configuration file which specifies `%s` and `%s` (e.g. via `--config cluster.yaml`) or enable prompts (i.e. omit the `--yes` flag)", clusterconfig.ClusterNameKey, clusterconfig.RegionKey),
-	})
-}
-
-func ErrorGCPClusterAccessConfigOrPromptsRequired() error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrGCPClusterAccessConfigOrPromptsRequired,
-		Message: fmt.Sprintf("please provide a cluster configuration file which specifies `%s`, `%s`, and `%s` (e.g. via `--config cluster.yaml`) or enable prompts (i.e. omit the `--yes` flag)", clusterconfig.ClusterNameKey, clusterconfig.ZoneKey, clusterconfig.ProjectKey),
+		Kind:    ErrGCPClusterAccessConfigRequired,
+		Message: fmt.Sprintf("please provide a cluster configuration file which specifies `%s` and `%s` (e.g. via `--config cluster.yaml`) or use the CLI flags to specify the cluster (e.g. via `--name`, `--project` and `--zone`)", clusterconfig.ClusterNameKey, clusterconfig.RegionKey),
 	})
 }
 
