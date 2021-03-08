@@ -479,7 +479,7 @@ To avoid overriding essential Cortex metadata, please refrain from specifying th
 
 ## Cortex Python client
 
-A default [Cortex Python client](../../clients/python.md#cortexclientclient) environment has been configured for your API. This can be used for deploying/deleting/updating or submitting jobs to your running cluster based on the execution flow of your predictor. For example:
+A default [Cortex Python client](../../clients/python.md#cortex.client.client) environment has been configured for your API. This can be used for deploying/deleting/updating or submitting jobs to your running cluster based on the execution flow of your predictor. For example:
 
 ```python
 import cortex
