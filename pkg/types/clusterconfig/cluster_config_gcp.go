@@ -120,12 +120,16 @@ var GCPCoreConfigStructFieldValidations = []*cr.StructFieldValidation{
 		},
 	},
 	{
-		StructField:      "Project",
-		StringValidation: &cr.StringValidation{},
+		StructField: "Project",
+		StringValidation: &cr.StringValidation{
+			Required: true,
+		},
 	},
 	{
-		StructField:      "Zone",
-		StringValidation: &cr.StringValidation{},
+		StructField: "Zone",
+		StringValidation: &cr.StringValidation{
+			Required: true,
+		},
 	},
 	{
 		StructField: "IsManaged",
@@ -295,8 +299,10 @@ var GCPCoreConfigStructFieldValidations = []*cr.StructFieldValidation{
 
 var GCPManagedConfigStructFieldValidations = []*cr.StructFieldValidation{
 	{
-		StructField:      "InstanceType",
-		StringValidation: &cr.StringValidation{},
+		StructField: "InstanceType",
+		StringValidation: &cr.StringValidation{
+			Required: true,
+		},
 	},
 	{
 		StructField:         "AcceleratorType",
@@ -388,12 +394,16 @@ var GCPAccessValidation = &cr.StructValidation{
 			},
 		},
 		{
-			StructField:      "Zone",
-			StringValidation: &cr.StringValidation{},
+			StructField: "Zone",
+			StringValidation: &cr.StringValidation{
+				Required: true,
+			},
 		},
 		{
-			StructField:      "Project",
-			StringValidation: &cr.StringValidation{},
+			StructField: "Project",
+			StringValidation: &cr.StringValidation{
+				Required: true,
+			},
 		},
 		{
 			StructField: "ImageManager",
