@@ -187,6 +187,7 @@ var CoreConfigStructFieldValidations = []*cr.StructFieldValidation{
 	{
 		StructField: "Region",
 		StringValidation: &cr.StringValidation{
+			Required:  true,
 			MinLength: 1,
 			Validator: RegionValidator,
 		},
@@ -383,6 +384,7 @@ var ManagedConfigStructFieldValidations = []*cr.StructFieldValidation{
 	{
 		StructField: "InstanceType",
 		StringValidation: &cr.StringValidation{
+			Required:  true,
 			MinLength: 1,
 			Validator: validateInstanceType,
 		},
@@ -655,6 +657,7 @@ var AccessValidation = &cr.StructValidation{
 		{
 			StructField: "Region",
 			StringValidation: &cr.StringValidation{
+				Required:  true,
 				MinLength: 1,
 				Validator: RegionValidator,
 			},

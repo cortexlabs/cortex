@@ -115,7 +115,6 @@ func getClusterAccessConfigWithCache() (*clusterconfig.AccessConfig, error) {
 	}
 
 	if accessConfig.ClusterName == "" || accessConfig.Region == "" {
-		// won't execute for cluster configure commands
 		return nil, ErrorClusterAccessConfigRequired()
 	}
 	return accessConfig, nil
