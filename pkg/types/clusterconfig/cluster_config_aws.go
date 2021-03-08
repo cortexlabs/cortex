@@ -649,6 +649,7 @@ var AccessValidation = &cr.StructValidation{
 		{
 			StructField: "ClusterName",
 			StringValidation: &cr.StringValidation{
+				Default:   "cortex",
 				MaxLength: 63,
 				MinLength: 3,
 				Validator: validateClusterName,
@@ -1063,16 +1064,6 @@ func GetDefaults() (*Config, error) {
 	}
 
 	return cc, nil
-}
-
-func DefaultAccessConfig() (*AccessConfig, error) {
-	accessConfig := &AccessConfig{}
-	var emptyMap interface{} = map[interface{}]interface{}{}
-	errs := cr.Struct(accessConfig, emptyMap, AccessValidation)
-	if errors.HasError(errs) {
-		return nil, errors.FirstError(errs...)
-	}
-	return accessConfig, nil
 }
 
 func (cc *Config) MaxPossibleOnDemandInstances() int64 {

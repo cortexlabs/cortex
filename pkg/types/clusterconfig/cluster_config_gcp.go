@@ -22,7 +22,6 @@ import (
 
 	"github.com/cortexlabs/cortex/pkg/consts"
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
-	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/gcp"
 	"github.com/cortexlabs/cortex/pkg/lib/hash"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
@@ -388,6 +387,7 @@ var GCPAccessValidation = &cr.StructValidation{
 		{
 			StructField: "ClusterName",
 			StringValidation: &cr.StringValidation{
+				Default:   "cortex",
 				MaxLength: 63,
 				MinLength: 3,
 				Validator: validateClusterName,
@@ -566,27 +566,6 @@ func (cc *GCPConfig) Validate(GCP *gcp.Client) error {
 	}
 
 	return nil
-}
-
-// This does not set defaults for fields that are prompted from the user
-func SetGCPDefaults(cc *GCPConfig) error {
-	var emptyMap interface{} = map[interface{}]interface{}{}
-	errs := cr.Struct(cc, emptyMap, GCPFullManagedValidation)
-	if errors.HasError(errs) {
-		return errors.FirstError(errs...)
-	}
-
-	return nil
-}
-
-func DefaultGCPAccessConfig() (*GCPAccessConfig, error) {
-	accessConfig := &GCPAccessConfig{}
-	var emptyMap interface{} = map[interface{}]interface{}{}
-	errs := cr.Struct(accessConfig, emptyMap, GCPAccessValidation)
-	if errors.HasError(errs) {
-		return nil, errors.FirstError(errs...)
-	}
-	return accessConfig, nil
 }
 
 func (cc *InternalGCPConfig) UserTable() table.KeyValuePairs {

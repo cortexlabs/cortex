@@ -92,6 +92,14 @@ func getClusterAccessConfigWithCache() (*clusterconfig.AccessConfig, error) {
 		ImageManager: "quay.io/cortexlabs/manager:" + consts.CortexVersion,
 	}
 
+	cachedPaths := existingCachedClusterConfigPaths()
+	if len(cachedPaths) == 1 {
+		cachedAccessConfig := &clusterconfig.AccessConfig{}
+		cr.ParseYAMLFile(cachedAccessConfig, clusterconfig.AccessValidation, cachedPaths[0])
+		accessConfig.ClusterName = cachedAccessConfig.ClusterName
+		accessConfig.Region = cachedAccessConfig.Region
+	}
+
 	if _flagClusterConfig != "" {
 		errs := cr.ParseYAMLFile(accessConfig, clusterconfig.AccessValidation, _flagClusterConfig)
 		if errors.HasError(errs) {
@@ -104,14 +112,6 @@ func getClusterAccessConfigWithCache() (*clusterconfig.AccessConfig, error) {
 	}
 	if _flagClusterRegion != "" {
 		accessConfig.Region = _flagClusterRegion
-	}
-
-	cachedPaths := existingCachedClusterConfigPaths()
-	if len(cachedPaths) == 1 {
-		cachedAccessConfig := &clusterconfig.AccessConfig{}
-		cr.ParseYAMLFile(cachedAccessConfig, clusterconfig.AccessValidation, cachedPaths[0])
-		accessConfig.ClusterName = cachedAccessConfig.ClusterName
-		accessConfig.Region = cachedAccessConfig.Region
 	}
 
 	if accessConfig.ClusterName == "" || accessConfig.Region == "" {

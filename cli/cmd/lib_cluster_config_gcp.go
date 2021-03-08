@@ -78,6 +78,15 @@ func getGCPClusterAccessConfigWithCache(disallowPrompt bool) (*clusterconfig.GCP
 		ImageManager: "quay.io/cortexlabs/manager:" + consts.CortexVersion,
 	}
 
+	cachedPaths := existingCachedGCPClusterConfigPaths()
+	if len(cachedPaths) == 1 {
+		cachedAccessConfig := &clusterconfig.GCPAccessConfig{}
+		cr.ParseYAMLFile(cachedAccessConfig, clusterconfig.GCPAccessValidation, cachedPaths[0])
+		accessConfig.ClusterName = cachedAccessConfig.ClusterName
+		accessConfig.Project = cachedAccessConfig.Project
+		accessConfig.Zone = cachedAccessConfig.Zone
+	}
+
 	if _flagClusterGCPConfig != "" {
 		errs := cr.ParseYAMLFile(accessConfig, clusterconfig.GCPAccessValidation, _flagClusterGCPConfig)
 		if errors.HasError(errs) {
@@ -93,15 +102,6 @@ func getGCPClusterAccessConfigWithCache(disallowPrompt bool) (*clusterconfig.GCP
 	}
 	if _flagClusterGCPProject != "" {
 		accessConfig.Project = _flagClusterGCPProject
-	}
-
-	cachedPaths := existingCachedGCPClusterConfigPaths()
-	if len(cachedPaths) == 1 {
-		cachedAccessConfig := &clusterconfig.GCPAccessConfig{}
-		cr.ParseYAMLFile(cachedAccessConfig, clusterconfig.GCPAccessValidation, cachedPaths[0])
-		accessConfig.ClusterName = cachedAccessConfig.ClusterName
-		accessConfig.Project = cachedAccessConfig.Project
-		accessConfig.Zone = cachedAccessConfig.Zone
 	}
 
 	if accessConfig.ClusterName == "" || accessConfig.Project == "" || accessConfig.Zone == "" {
