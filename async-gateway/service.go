@@ -53,21 +53,22 @@ func NewService(clusterName, apiName string, queue Queue, storage Storage, logge
 // CreateWorkload enqueues an async workload request and uploads the request payload to cloud storage
 func (s *service) CreateWorkload(id string, payload io.Reader, contentType string) (string, error) {
 	prefix := s.workloadStoragePrefix()
+	log := s.logger.With(zap.String("id", "id"), zap.String("contentType", contentType))
 
 	// TODO: make parallel calls
 	payloadPath := fmt.Sprintf("%s/%s/payload", prefix, id)
-	s.logger.Debug("uploading payload", zap.String("contentType", contentType), zap.String("path", payloadPath))
+	log.Debug("uploading payload", zap.String("path", payloadPath))
 	if err := s.storage.Upload(payloadPath, payload, contentType); err != nil {
 		return "", err
 	}
 
-	s.logger.Debug("sending message to queue", zap.String("id", id))
+	log.Debug("sending message to queue")
 	if err := s.queue.SendMessage(id, id); err != nil {
 		return "", err
 	}
 
 	statusPath := fmt.Sprintf("%s/%s/status", prefix, id)
-	s.logger.Debug(fmt.Sprintf("setting status to %s", StatusInQueue))
+	log.Debug(fmt.Sprintf("setting status to %s", StatusInQueue))
 	if err := s.storage.Upload(statusPath, strings.NewReader(string(StatusInQueue)), "text/plain"); err != nil {
 		return "", err
 	}
@@ -78,9 +79,11 @@ func (s *service) CreateWorkload(id string, payload io.Reader, contentType strin
 // GetWorkload retrieves the status and result, if available, of a given workload
 func (s *service) GetWorkload(id string) (GetWorkloadResponse, error) {
 	prefix := s.workloadStoragePrefix()
+	log := s.logger.With(zap.String("id", id))
 
 	// download workload status
 	statusPath := fmt.Sprintf("%s/%s/status", prefix, id)
+	log.Debug("downloading status file", zap.String("path", statusPath))
 	statusBuf, err := s.storage.Download(statusPath)
 	if err != nil {
 		return GetWorkloadResponse{}, err
@@ -101,6 +104,7 @@ func (s *service) GetWorkload(id string) (GetWorkloadResponse, error) {
 	// TODO: make parallel calls
 	// attempt to download user result
 	resultPath := fmt.Sprintf("%s/%s/result.json", prefix, id)
+	log.Debug("donwloading user result", zap.String("path", resultPath))
 	resultBuf, err := s.storage.Download(resultPath)
 	if err != nil {
 		return GetWorkloadResponse{}, err
@@ -111,6 +115,7 @@ func (s *service) GetWorkload(id string) (GetWorkloadResponse, error) {
 		return GetWorkloadResponse{}, err
 	}
 
+	log.Debug("getting workload timestamp")
 	timestamp, err := s.storage.GetLastModified(resultPath)
 	if err != nil {
 		return GetWorkloadResponse{}, err

@@ -58,15 +58,18 @@ func (e *Endpoint) CreateWorkload(w http.ResponseWriter, r *http.Request) {
 		_ = r.Body.Close()
 	}()
 
+	log := e.logger.With(zap.String("id", requestID), zap.String("contentType", contentType))
+
 	id, err := e.service.CreateWorkload(requestID, body, contentType)
 	if err != nil {
-		e.logger.Error("failed to create workload", zap.Error(err))
+		log.Error("failed to create workload", zap.Error(err))
 		respondPlainText(w, http.StatusInternalServerError, fmt.Sprintf("error: %v", err))
 		return
 	}
 
 	if err = respondJSON(w, http.StatusOK, CreateWorkloadResponse{ID: id}); err != nil {
-		e.logger.Error("failed to encode json response", zap.Error(err))
+		log.Error("failed to encode json response", zap.Error(err))
+		return
 	}
 }
 
@@ -79,15 +82,18 @@ func (e *Endpoint) GetWorkload(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	log := e.logger.With(zap.String("id", id))
+
 	res, err := e.service.GetWorkload(id)
 	if err != nil {
-		e.logger.Error("failed to get workload", zap.Error(err))
+		log.Error("failed to get workload", zap.Error(err))
 		respondPlainText(w, http.StatusInternalServerError, fmt.Sprintf("error: %v", err))
 		return
 	}
 
 	if err = respondJSON(w, http.StatusOK, res); err != nil {
-		e.logger.Error("failed to encode json response", zap.Error(err))
+		log.Error("failed to encode json response", zap.Error(err))
+		return
 	}
 }
 
