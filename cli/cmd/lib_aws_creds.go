@@ -21,10 +21,6 @@ import (
 
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
-	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
-	"github.com/cortexlabs/cortex/pkg/lib/errors"
-
-	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 
 	"github.com/cortexlabs/cortex/pkg/lib/prompt"
 	"github.com/cortexlabs/cortex/pkg/types/clusterconfig"
@@ -74,21 +70,4 @@ func warnIfNotAdmin(awsClient *aws.Client) {
 	if !awsClient.IsAdmin() {
 		fmt.Println(fmt.Sprintf("warning: your IAM user or assumed role%s does not have administrator access. This may prevent this command from executing correctly, so it is recommended to attach the AdministratorAccess policy to your IAM user or role.", accessKeyMsg), "", "")
 	}
-}
-
-// Deprecation: specifying aws creds in cluster configuration is no longer supported; returns an error if aws credentials were found in cluster configuration yaml
-func detectAWSCredsInConfigFile(cmd, path string) error {
-	credentialFieldKeys := strset.New("aws_access_key_id", "aws_secret_access_key", "cortex_aws_access_key_id", "cortex_aws_secret_access_key")
-	fieldMap, err := cr.ReadYAMLFileStrMap(path)
-	if err != nil {
-		return nil
-	}
-
-	for key := range fieldMap {
-		if credentialFieldKeys.Has(key) {
-			return errors.Wrap(ErrorCredentialsInClusterConfig(cmd, path), path, key)
-		}
-	}
-
-	return nil
 }
