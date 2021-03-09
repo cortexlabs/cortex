@@ -50,7 +50,7 @@ func Info(w http.ResponseWriter, r *http.Request) {
 
 		if config.IsManaged() {
 			fullClusterConfig.Config.ManagedConfig = *config.ManagedConfigOrNil()
-			fullClusterConfig.InstanceMetadata = *config.AWSInstanceMetadataOrNil()
+			fullClusterConfig.InstancesMetadata = *config.AWSInstanceMetadataOrNil()
 		}
 
 		response := schema.InfoResponse{

@@ -163,14 +163,10 @@ func managedClusterTelemetry() (map[string]interface{}, error) {
 		instanceInfos[instanceInfosKey] = &info
 	}
 
-	apiEBSPrice := aws.EBSMetadatas[config.CoreConfig.Region][managedConfig.InstanceVolumeType.String()].PriceGB * float64(managedConfig.InstanceVolumeSize) / 30 / 24
-	if managedConfig.InstanceVolumeType.String() == "io1" && managedConfig.InstanceVolumeIOPS != nil {
-		apiEBSPrice += aws.EBSMetadatas[config.CoreConfig.Region][managedConfig.InstanceVolumeType.String()].PriceIOPS * float64(*managedConfig.InstanceVolumeIOPS) / 30 / 24
-	}
-
 	var totalInstancePrice float64
 	var totalInstancePriceIfOnDemand float64
 	for _, info := range instanceInfos {
+		apiEBSPrice := getEBSPriceForInstanceType(managedConfig.NodeGroups, *info, info.IsSpot)
 		totalInstancePrice += (info.Price + apiEBSPrice) * float64(info.Count)
 		totalInstancePriceIfOnDemand += (info.OnDemandPrice + apiEBSPrice) * float64(info.Count)
 	}
@@ -187,6 +183,21 @@ func managedClusterTelemetry() (map[string]interface{}, error) {
 		"total_price":                 totalInstancePrice + fixedPrice,
 		"total_price_if_on_demand":    totalInstancePriceIfOnDemand + fixedPrice,
 	}, nil
+}
+
+func getEBSPriceForInstanceType(ngs []clusterconfig.NodeGroup, instanceInfo instanceInfo, spot bool) float64 {
+	var ebsPrice float64
+	for _, ng := range ngs {
+		if ng.InstanceType == instanceInfo.InstanceType && ng.Spot == spot {
+			ebsPrice = aws.EBSMetadatas[config.CoreConfig.Region][ng.InstanceVolumeType.String()].PriceGB * float64(ng.InstanceVolumeSize) / 30 / 24
+			if ng.InstanceVolumeType.String() == "io1" && ng.InstanceVolumeIOPS != nil {
+				ebsPrice += aws.EBSMetadatas[config.CoreConfig.Region][ng.InstanceVolumeType.String()].PriceIOPS * float64(*ng.InstanceVolumeIOPS) / 30 / 24
+			}
+			// break because we know there aren't other nodegroups with the same instance type and same spot field value
+			break
+		}
+	}
+	return ebsPrice
 }
 
 func clusterFixedPriceAWS() float64 {

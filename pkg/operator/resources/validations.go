@@ -175,44 +175,59 @@ var _inferentiaCPUReserve = kresource.MustParse("100m")
 var _inferentiaMemReserve = kresource.MustParse("100Mi")
 
 func awsManagedValidateK8sCompute(compute *userconfig.Compute, maxMem kresource.Quantity) error {
-	instanceMetadata := config.AWSInstanceMetadataOrNil()
-	if instanceMetadata == nil {
+	instancesMetadata := config.AWSInstanceMetadataOrNil()
+	if instancesMetadata == nil {
 		return errors.ErrorUnexpected("unable to find instance metadata; likely because this is not a cortex managed cluster")
 	}
 
-	maxMem.Sub(_cortexMemReserve)
+	allErrors := []error{}
+	successfulLoops := 0
+	for _, instanceMetadata := range *instancesMetadata {
+		maxMemLoop := maxMem
+		maxMemLoop.Sub(_cortexMemReserve)
 
-	maxCPU := instanceMetadata.CPU
-	maxCPU.Sub(_cortexCPUReserve)
+		maxCPU := instanceMetadata.CPU
+		maxCPU.Sub(_cortexCPUReserve)
 
-	maxGPU := instanceMetadata.GPU
-	if maxGPU > 0 {
-		// Reserve resources for nvidia device plugin daemonset
-		maxCPU.Sub(_nvidiaCPUReserve)
-		maxMem.Sub(_nvidiaMemReserve)
-		// Reserve resources for nvidia dcgm prometheus exporter
-		maxCPU.Sub(_nvidiaDCGMExporterCPUReserve)
-		maxMem.Sub(_nvidiaDCGMExporterMemReserve)
+		maxGPU := instanceMetadata.GPU
+		if maxGPU > 0 {
+			// Reserve resources for nvidia device plugin daemonset
+			maxCPU.Sub(_nvidiaCPUReserve)
+			maxMemLoop.Sub(_nvidiaMemReserve)
+			// Reserve resources for nvidia dcgm prometheus exporter
+			maxCPU.Sub(_nvidiaDCGMExporterCPUReserve)
+			maxMemLoop.Sub(_nvidiaDCGMExporterMemReserve)
+		}
+
+		maxInf := instanceMetadata.Inf
+		if maxInf > 0 {
+			// Reserve resources for inferentia device plugin daemonset
+			maxCPU.Sub(_inferentiaCPUReserve)
+			maxMemLoop.Sub(_inferentiaMemReserve)
+		}
+
+		loopErrors := []error{}
+		if compute.CPU != nil && maxCPU.Cmp(compute.CPU.Quantity) < 0 {
+			loopErrors = append(loopErrors, ErrorNoAvailableNodeComputeLimit("CPU", compute.CPU.String(), maxCPU.String()))
+		}
+		if compute.Mem != nil && maxMemLoop.Cmp(compute.Mem.Quantity) < 0 {
+			loopErrors = append(loopErrors, ErrorNoAvailableNodeComputeLimit("memory", compute.Mem.String(), maxMem.String()))
+		}
+		if compute.GPU > maxGPU {
+			loopErrors = append(loopErrors, ErrorNoAvailableNodeComputeLimit("GPU", fmt.Sprintf("%d", compute.GPU), fmt.Sprintf("%d", maxGPU)))
+		}
+		if compute.Inf > maxInf {
+			loopErrors = append(loopErrors, ErrorNoAvailableNodeComputeLimit("Inf", fmt.Sprintf("%d", compute.Inf), fmt.Sprintf("%d", maxInf)))
+		}
+		if errors.HasError(loopErrors) {
+			allErrors = append(allErrors, errors.FirstError(loopErrors...))
+		} else {
+			successfulLoops++
+		}
 	}
 
-	maxInf := instanceMetadata.Inf
-	if maxInf > 0 {
-		// Reserve resources for inferentia device plugin daemonset
-		maxCPU.Sub(_inferentiaCPUReserve)
-		maxMem.Sub(_inferentiaMemReserve)
-	}
-
-	if compute.CPU != nil && maxCPU.Cmp(compute.CPU.Quantity) < 0 {
-		return ErrorNoAvailableNodeComputeLimit("CPU", compute.CPU.String(), maxCPU.String())
-	}
-	if compute.Mem != nil && maxMem.Cmp(compute.Mem.Quantity) < 0 {
-		return ErrorNoAvailableNodeComputeLimit("memory", compute.Mem.String(), maxMem.String())
-	}
-	if compute.GPU > maxGPU {
-		return ErrorNoAvailableNodeComputeLimit("GPU", fmt.Sprintf("%d", compute.GPU), fmt.Sprintf("%d", maxGPU))
-	}
-	if compute.Inf > maxInf {
-		return ErrorNoAvailableNodeComputeLimit("Inf", fmt.Sprintf("%d", compute.Inf), fmt.Sprintf("%d", maxInf))
+	if successfulLoops == 0 {
+		return errors.FirstError(allErrors...)
 	}
 
 	return nil

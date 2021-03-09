@@ -20,6 +20,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
+	"github.com/cortexlabs/cortex/pkg/lib/slices"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 )
 
@@ -40,8 +41,15 @@ func (cc *Config) setAvailabilityZones(awsClient *aws.Client) error {
 	return nil
 }
 
-func (cc *Config) setDefaultAvailabilityZones(awsClient *aws.Client, extraInstances ...string) error {
-	zones, err := awsClient.ListSupportedAvailabilityZones(cc.InstanceType, extraInstances...)
+func (cc *Config) setDefaultAvailabilityZones(awsClient *aws.Client) error {
+	instanceTypes := []string{}
+	for _, ng := range cc.NodeGroups {
+		if !slices.HasString(instanceTypes, ng.InstanceType) {
+			instanceTypes = append(instanceTypes, ng.InstanceType)
+		}
+	}
+
+	zones, err := awsClient.ListSupportedAvailabilityZones(instanceTypes...)
 	if err != nil {
 		// Try again without checking instance types
 		zones, err = awsClient.ListAvailabilityZonesInRegion()
@@ -53,7 +61,7 @@ func (cc *Config) setDefaultAvailabilityZones(awsClient *aws.Client, extraInstan
 	zones.Subtract(_azBlacklist)
 
 	if len(zones) < 2 {
-		return ErrorNotEnoughDefaultSupportedZones(awsClient.Region, zones, cc.InstanceType, extraInstances...)
+		return ErrorNotEnoughDefaultSupportedZones(awsClient.Region, zones, instanceTypes...)
 	}
 
 	// See https://github.com/weaveworks/eksctl/blob/master/pkg/eks/api.go
@@ -69,6 +77,13 @@ func (cc *Config) setDefaultAvailabilityZones(awsClient *aws.Client, extraInstan
 }
 
 func (cc *Config) validateUserAvailabilityZones(awsClient *aws.Client, extraInstances ...string) error {
+	instanceTypes := []string{}
+	for _, ng := range cc.NodeGroups {
+		if !slices.HasString(instanceTypes, ng.InstanceType) {
+			instanceTypes = append(instanceTypes, ng.InstanceType)
+		}
+	}
+
 	allZones, err := awsClient.ListAvailabilityZonesInRegion()
 	if err != nil {
 		return nil // Skip validation
@@ -80,7 +95,7 @@ func (cc *Config) validateUserAvailabilityZones(awsClient *aws.Client, extraInst
 		}
 	}
 
-	supportedZones, err := awsClient.ListSupportedAvailabilityZones(cc.InstanceType, extraInstances...)
+	supportedZones, err := awsClient.ListSupportedAvailabilityZones(instanceTypes...)
 	if err != nil {
 		// Skip validation instance-based validation
 		supportedZones = strset.Difference(allZones, _azBlacklist)
@@ -88,7 +103,7 @@ func (cc *Config) validateUserAvailabilityZones(awsClient *aws.Client, extraInst
 
 	for _, userZone := range cc.AvailabilityZones {
 		if !supportedZones.Has(userZone) {
-			return ErrorUnsupportedAvailabilityZone(userZone, cc.InstanceType, extraInstances...)
+			return ErrorUnsupportedAvailabilityZone(userZone, instanceTypes...)
 		}
 	}
 

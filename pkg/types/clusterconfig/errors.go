@@ -18,6 +18,7 @@ package clusterconfig
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
@@ -29,6 +30,9 @@ import (
 
 const (
 	ErrInvalidRegion                              = "clusterconfig.invalid_region"
+	ErrNoNodeGroupSpecified                       = "clusterconfig.no_nodegroup_specified"
+	ErrDuplicateNodeGroupName                     = "clusterconfig.duplicate_nodegroup_name"
+	ErrNodeGroupsWithSameInstanceAndSpot          = "clusterconfig.nodegroups_with_same_instance_and_spot"
 	ErrInstanceTypeTooSmall                       = "clusterconfig.instance_type_too_small"
 	ErrMinInstancesGreaterThanMax                 = "clusterconfig.min_instances_greater_than_max"
 	ErrInstanceTypeNotSupportedInRegion           = "clusterconfig.instance_type_not_supported_in_region"
@@ -36,6 +40,7 @@ const (
 	ErrIncompatibleSpotInstanceTypeCPU            = "clusterconfig.incompatible_spot_instance_type_cpu"
 	ErrIncompatibleSpotInstanceTypeGPU            = "clusterconfig.incompatible_spot_instance_type_gpu"
 	ErrIncompatibleSpotInstanceTypeInf            = "clusterconfig.incompatible_spot_instance_type_inf"
+	ErrOnDemandBackupFieldNotPermitted            = "clusterconfig.on_demand_backup_field_not_permitted"
 	ErrSpotPriceGreaterThanTargetOnDemand         = "clusterconfig.spot_price_greater_than_target_on_demand"
 	ErrSpotPriceGreaterThanMaxPrice               = "clusterconfig.spot_price_greater_than_max_price"
 	ErrInstanceTypeNotSupported                   = "clusterconfig.instance_type_not_supported"
@@ -75,6 +80,27 @@ func ErrorInvalidRegion(region string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrInvalidRegion,
 		Message: fmt.Sprintf("%s is not a valid AWS region, or is an AWS region which is not supported by AWS EKS; please choose one of the following regions: %s", s.UserStr(region), strings.Join(aws.EKSSupportedRegions.SliceSorted(), ", ")),
+	})
+}
+
+func ErrorNoNodeGroupSpecified() error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrNoNodeGroupSpecified,
+		Message: "no nodegroup was specified; please specify at least 1 nodegroup",
+	})
+}
+
+func ErrorDuplicateNodeGroupName(duplicateNgName string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrDuplicateNodeGroupName,
+		Message: fmt.Sprintf("cannot have multiple nodegroups with the same name (%s)", duplicateNgName),
+	})
+}
+
+func ErrorNodeGroupsWithSameInstanceAndSpot(instanceType string, spot bool) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrNodeGroupsWithSameInstanceAndSpot,
+		Message: fmt.Sprintf("cannot have multiple nodegroups with the same instance type %s and same spot configuration (set to %s)", instanceType, strconv.FormatBool(spot)),
 	})
 }
 
@@ -124,6 +150,13 @@ func ErrorIncompatibleSpotInstanceTypeInf(suggested aws.InstanceMetadata) error 
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrIncompatibleSpotInstanceTypeInf,
 		Message: fmt.Sprintf("all instances must have at least 1 Inferentia chip, but %s doesn't have any", suggested.Type),
+	})
+}
+
+func ErrorOnDemandBackupFieldNotPermitted() error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrOnDemandBackupFieldNotPermitted,
+		Message: fmt.Sprintf("%s can only be enabled when a single nodegroup is provided", OnDemandBackupKey),
 	})
 }
 
@@ -190,12 +223,12 @@ func ErrorAvailabilityZoneSpecifiedTwice(zone string) error {
 	})
 }
 
-func ErrorUnsupportedAvailabilityZone(userZone string, instanceType string, instanceTypes ...string) error {
-	msg := fmt.Sprintf("the %s availability zone does not support EKS and the %s instance type; please choose a different availability zone, instance type, or region", userZone, instanceType)
-
-	if len(instanceTypes) > 0 {
-		allInstanceTypes := append([]string{instanceType}, instanceTypes...)
-		msg = fmt.Sprintf("the %s availability zone does not support EKS and %s instance types; please choose a different availability zone, instance types, or region", userZone, s.StrsAnd(allInstanceTypes))
+func ErrorUnsupportedAvailabilityZone(userZone string, instanceTypes ...string) error {
+	var msg string
+	if len(instanceTypes) == 1 {
+		msg = fmt.Sprintf("the %s availability zone does not support EKS and the %s instance type; please choose a different availability zone, instance type, or region", userZone, instanceTypes[0])
+	} else if len(instanceTypes) > 1 {
+		msg = fmt.Sprintf("the %s availability zone does not support EKS and %s instance types; please choose a different availability zone, instance types, or region", userZone, s.StrsAnd(instanceTypes))
 	}
 
 	return errors.WithStack(&errors.Error{
@@ -204,17 +237,17 @@ func ErrorUnsupportedAvailabilityZone(userZone string, instanceType string, inst
 	})
 }
 
-func ErrorNotEnoughDefaultSupportedZones(region string, validZones strset.Set, instanceType string, instanceTypes ...string) error {
+func ErrorNotEnoughDefaultSupportedZones(region string, validZones strset.Set, instanceTypes ...string) error {
 	areNoStr := "are no"
 	if len(validZones) > 0 {
 		areNoStr = "aren't enough"
 	}
 
-	msg := fmt.Sprintf("there %s availability zones in %s which support EKS and the %s instance type; please choose a different instance type or a different region", areNoStr, region, instanceType)
-
-	if len(instanceTypes) > 0 {
-		allInstanceTypes := append([]string{instanceType}, instanceTypes...)
-		msg = fmt.Sprintf("there %s availability zones in %s which support EKS and the %s instance types; please choose different instance types or a different region", areNoStr, region, s.StrsAnd(allInstanceTypes))
+	var msg string
+	if len(instanceTypes) == 1 {
+		msg = fmt.Sprintf("there %s availability zones in %s which support EKS and the %s instance type; please choose a different instance type or a different region", areNoStr, region, instanceTypes[0])
+	} else if len(instanceTypes) > 1 {
+		msg = fmt.Sprintf("there %s availability zones in %s which support EKS and the %s instance types; please choose different instance types or a different region", areNoStr, region, s.StrsAnd(instanceTypes))
 	}
 
 	return errors.WithStack(&errors.Error{
