@@ -27,6 +27,7 @@ import (
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
+	"github.com/cortexlabs/cortex/pkg/lib/maps"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/prompt"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
@@ -410,11 +411,6 @@ func confirmInstallClusterConfig(clusterConfig *clusterconfig.Config, awsClient 
 	metricsEBSPrice := aws.EBSMetadatas[clusterConfig.Region]["gp2"].PriceGB * 40 / 30 / 24
 	nlbPrice := aws.NLBMetadatas[clusterConfig.Region].Price
 	natUnitPrice := aws.NATMetadatas[clusterConfig.Region].Price
-	apiInstancePrice := aws.InstanceMetadatas[clusterConfig.Region][clusterConfig.InstanceType].Price
-	apiEBSPrice := aws.EBSMetadatas[clusterConfig.Region][clusterConfig.InstanceVolumeType.String()].PriceGB * float64(clusterConfig.InstanceVolumeSize) / 30 / 24
-	if clusterConfig.InstanceVolumeType.String() == "io1" && clusterConfig.InstanceVolumeIOPS != nil {
-		apiEBSPrice += aws.EBSMetadatas[clusterConfig.Region][clusterConfig.InstanceVolumeType.String()].PriceIOPS * float64(*clusterConfig.InstanceVolumeIOPS) / 30 / 24
-	}
 
 	var natTotalPrice float64
 	if clusterConfig.NATGateway == clusterconfig.SingleNATGateway {
@@ -422,10 +418,6 @@ func confirmInstallClusterConfig(clusterConfig *clusterconfig.Config, awsClient 
 	} else if clusterConfig.NATGateway == clusterconfig.HighlyAvailableNATGateway {
 		natTotalPrice = natUnitPrice * float64(len(clusterConfig.AvailabilityZones))
 	}
-
-	fixedPrice := eksPrice + 2*operatorInstancePrice + operatorEBSPrice + metricsEBSPrice + 2*nlbPrice + natTotalPrice
-	totalMinPrice := fixedPrice + float64(clusterConfig.MinInstances)*(apiInstancePrice+apiEBSPrice)
-	totalMaxPrice := fixedPrice + float64(clusterConfig.MaxInstances)*(apiInstancePrice+apiEBSPrice)
 
 	headers := []table.Header{
 		{Title: "aws resource"},
@@ -435,31 +427,48 @@ func confirmInstallClusterConfig(clusterConfig *clusterconfig.Config, awsClient 
 	var rows [][]interface{}
 	rows = append(rows, []interface{}{"1 eks cluster", s.DollarsMaxPrecision(eksPrice)})
 
-	instanceStr := "instances"
-	volumeStr := "volumes"
-	if clusterConfig.MinInstances == 1 && clusterConfig.MaxInstances == 1 {
-		instanceStr = "instance"
-		volumeStr = "volume"
-	}
-	workerInstanceStr := fmt.Sprintf("%d - %d %s %s for your apis", clusterConfig.MinInstances, clusterConfig.MaxInstances, clusterConfig.InstanceType, instanceStr)
-	ebsInstanceStr := fmt.Sprintf("%d - %d %dgb ebs %s for your apis", clusterConfig.MinInstances, clusterConfig.MaxInstances, clusterConfig.InstanceVolumeSize, volumeStr)
-	if clusterConfig.MinInstances == clusterConfig.MaxInstances {
-		workerInstanceStr = fmt.Sprintf("%d %s %s for your apis", clusterConfig.MinInstances, clusterConfig.InstanceType, instanceStr)
-		ebsInstanceStr = fmt.Sprintf("%d %dgb ebs %s for your apis", clusterConfig.MinInstances, clusterConfig.InstanceVolumeSize, volumeStr)
-	}
-
-	workerPriceStr := s.DollarsMaxPrecision(apiInstancePrice) + " each"
-	if clusterConfig.Spot {
-		spotPrice, err := awsClient.SpotInstancePrice(clusterConfig.InstanceType)
-		workerPriceStr += " (spot pricing unavailable)"
-		if err == nil && spotPrice != 0 {
-			workerPriceStr = fmt.Sprintf("%s - %s each (varies based on spot price)", s.DollarsMaxPrecision(spotPrice), s.DollarsMaxPrecision(apiInstancePrice))
-			totalMinPrice = fixedPrice + float64(clusterConfig.MinInstances)*(spotPrice+apiEBSPrice)
+	ngNameToSpotInstancesUsed := map[string]int{}
+	fixedPrice := eksPrice + 2*operatorInstancePrice + operatorEBSPrice + metricsEBSPrice + 2*nlbPrice + natTotalPrice
+	totalMinPrice := fixedPrice
+	totalMaxPrice := fixedPrice
+	for _, ng := range clusterConfig.NodeGroups {
+		apiInstancePrice := aws.InstanceMetadatas[clusterConfig.Region][ng.InstanceType].Price
+		apiEBSPrice := aws.EBSMetadatas[clusterConfig.Region][ng.InstanceVolumeType.String()].PriceGB * float64(ng.InstanceVolumeSize) / 30 / 24
+		if ng.InstanceVolumeType.String() == "io1" && ng.InstanceVolumeIOPS != nil {
+			apiEBSPrice += aws.EBSMetadatas[clusterConfig.Region][ng.InstanceVolumeType.String()].PriceIOPS * float64(*ng.InstanceVolumeIOPS) / 30 / 24
 		}
+
+		totalMinPrice += float64(ng.MinInstances) * (apiInstancePrice + apiEBSPrice)
+		totalMaxPrice += float64(ng.MaxInstances) * (apiInstancePrice + apiEBSPrice)
+
+		instanceStr := "instances"
+		volumeStr := "volumes"
+		if ng.MinInstances == 1 && ng.MaxInstances == 1 {
+			instanceStr = "instance"
+			volumeStr = "volume"
+		}
+		workerInstanceStr := fmt.Sprintf("nodegroup %s: %d - %d %s %s for your apis", ng.Name, ng.MinInstances, ng.MaxInstances, ng.InstanceType, instanceStr)
+		ebsInstanceStr := fmt.Sprintf("nodegroup %s: %d - %d %dgb ebs %s for your apis", ng.Name, ng.MinInstances, ng.MaxInstances, ng.InstanceVolumeSize, volumeStr)
+		if ng.MinInstances == ng.MaxInstances {
+			workerInstanceStr = fmt.Sprintf("nodegroup %s: %d %s %s for your apis", ng.Name, ng.MinInstances, ng.InstanceType, instanceStr)
+			ebsInstanceStr = fmt.Sprintf("nodegroup %s:%d %dgb ebs %s for your apis", ng.Name, ng.MinInstances, ng.InstanceVolumeSize, volumeStr)
+		}
+
+		workerPriceStr := s.DollarsMaxPrecision(apiInstancePrice) + " each"
+		if ng.Spot {
+			ngNameToSpotInstancesUsed[ng.Name]++
+			spotPrice, err := awsClient.SpotInstancePrice(ng.InstanceType)
+			workerPriceStr += " (spot pricing unavailable)"
+			if err == nil && spotPrice != 0 {
+				workerPriceStr = fmt.Sprintf("%s - %s each (varies based on spot price)", s.DollarsMaxPrecision(spotPrice), s.DollarsMaxPrecision(apiInstancePrice))
+				totalMinPrice = fixedPrice + float64(ng.MinInstances)*(spotPrice+apiEBSPrice)
+			}
+		}
+
+		rows = append(rows, []interface{}{workerInstanceStr, workerPriceStr})
+		rows = append(rows, []interface{}{ebsInstanceStr, s.DollarsAndTenthsOfCents(apiEBSPrice) + " each"})
 	}
 
-	rows = append(rows, []interface{}{workerInstanceStr, workerPriceStr})
-	rows = append(rows, []interface{}{ebsInstanceStr, s.DollarsAndTenthsOfCents(apiEBSPrice) + " each"})
 	rows = append(rows, []interface{}{"2 t3.medium instances for cortex", s.DollarsMaxPrecision(operatorInstancePrice * 2)})
 	rows = append(rows, []interface{}{"1 20gb ebs volume for the operator", s.DollarsAndTenthsOfCents(operatorEBSPrice)})
 	rows = append(rows, []interface{}{"1 40gb ebs volume for prometheus", s.DollarsAndTenthsOfCents(metricsEBSPrice)})
@@ -477,16 +486,15 @@ func confirmInstallClusterConfig(clusterConfig *clusterconfig.Config, awsClient 
 	}
 	fmt.Println(items.MustFormat(&table.Opts{Sort: pointer.Bool(false)}))
 
-	suffix := ""
 	priceStr := s.DollarsAndCents(totalMaxPrice)
-
+	suffix := ""
 	if totalMinPrice != totalMaxPrice {
 		priceStr = fmt.Sprintf("%s - %s", s.DollarsAndCents(totalMinPrice), s.DollarsAndCents(totalMaxPrice))
-		if clusterConfig.Spot && clusterConfig.MinInstances != clusterConfig.MaxInstances {
+		if len(ngNameToSpotInstancesUsed) > 0 && len(ngNameToSpotInstancesUsed) < len(clusterConfig.NodeGroups) {
 			suffix = " based on cluster size and spot instance pricing/availability"
-		} else if clusterConfig.Spot && clusterConfig.MinInstances == clusterConfig.MaxInstances {
+		} else if len(ngNameToSpotInstancesUsed) == len(clusterConfig.NodeGroups) {
 			suffix = " based on spot instance pricing/availability"
-		} else if !clusterConfig.Spot && clusterConfig.MinInstances != clusterConfig.MaxInstances {
+		} else if len(ngNameToSpotInstancesUsed) == 0 {
 			suffix = " based on cluster size"
 		}
 	}
@@ -507,11 +515,19 @@ func confirmInstallClusterConfig(clusterConfig *clusterconfig.Config, awsClient 
 		fmt.Print("warning: you've configured your cluster to be installed in an existing VPC; if your cluster doesn't spin up or function as expected, please double-check your VPC configuration (here are the requirements: https://eksctl.io/usage/vpc-networking/#use-existing-vpc-other-custom-configuration)\n\n")
 	}
 
-	if clusterConfig.Spot && clusterConfig.SpotConfig.OnDemandBackup != nil && !*clusterConfig.SpotConfig.OnDemandBackup {
-		if *clusterConfig.SpotConfig.OnDemandBaseCapacity == 0 && *clusterConfig.SpotConfig.OnDemandPercentageAboveBaseCapacity == 0 {
-			fmt.Printf("warning: you've disabled on-demand instances (%s=0 and %s=0); spot instances are not guaranteed to be available so please take that into account for production clusters; see https://docs.cortex.dev/v/%s/ for more information\n\n", clusterconfig.OnDemandBaseCapacityKey, clusterconfig.OnDemandPercentageAboveBaseCapacityKey, consts.CortexVersionMinor)
+	if len(clusterConfig.NodeGroups) > 1 && len(ngNameToSpotInstancesUsed) > 0 {
+		nodegroupStr := "nodegroup"
+		if len(ngNameToSpotInstancesUsed) > 1 {
+			nodegroupStr = "nodegroup"
+		}
+		fmt.Printf("warning: you've enabled spot instances for %s %s; spot instances are not guaranteed to be available so please take that into account for production clusters; see https://docs.cortex.dev/v/%s/ for more information\n\n", nodegroupStr, s.StrsAnd(maps.StrMapKeysInt(ngNameToSpotInstancesUsed)), consts.CortexVersionMinor)
+	}
+
+	if len(clusterConfig.NodeGroups) == 1 && len(ngNameToSpotInstancesUsed) == 1 && clusterConfig.NodeGroups[0].SpotConfig != nil && clusterConfig.NodeGroups[0].SpotConfig.OnDemandBackup != nil && !*clusterConfig.NodeGroups[0].SpotConfig.OnDemandBackup {
+		if *clusterConfig.NodeGroups[0].SpotConfig.OnDemandBaseCapacity == 0 && *clusterConfig.NodeGroups[0].SpotConfig.OnDemandPercentageAboveBaseCapacity == 0 {
+			fmt.Printf("warning: you've disabled on-demand instances (%s=0 and %s=0) for nodegroup %s; spot instances are not guaranteed to be available so please take that into account for production clusters; see https://docs.cortex.dev/v/%s/ for more information\n\n", clusterconfig.OnDemandBaseCapacityKey, clusterconfig.OnDemandPercentageAboveBaseCapacityKey, clusterConfig.NodeGroups[0].Name, consts.CortexVersionMinor)
 		} else {
-			fmt.Printf("warning: you've enabled spot instances; spot instances are not guaranteed to be available so please take that into account for production clusters; see https://docs.cortex.dev/v/%s/ for more information\n\n", consts.CortexVersionMinor)
+			fmt.Printf("warning: you've enabled spot instances for nodegroup %s; spot instances are not guaranteed to be available so please take that into account for production clusters; see https://docs.cortex.dev/v/%s/ for more information\n\n", clusterConfig.NodeGroups[0].Name, consts.CortexVersionMinor)
 		}
 	}
 

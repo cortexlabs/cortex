@@ -23,7 +23,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
-	"github.com/cortexlabs/cortex/pkg/lib/parallel"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
@@ -265,26 +264,6 @@ func findDuplicateEndpoints(apis []userconfig.API) []userconfig.API {
 	}
 
 	return nil
-}
-
-func getValidationK8sResources() ([]istioclientnetworking.VirtualService, kresource.Quantity, error) {
-	var virtualServices []istioclientnetworking.VirtualService
-	var maxMem kresource.Quantity
-
-	err := parallel.RunFirstErr(
-		func() error {
-			var err error
-			virtualServices, err = config.K8s.ListVirtualServices(nil)
-			return err
-		},
-		func() error {
-			var err error
-			maxMem, err = operator.UpdateMemoryCapacityConfigMap()
-			return err
-		},
-	)
-
-	return virtualServices, maxMem, err
 }
 
 // InclusiveFilterAPIsByKind includes only provided Kinds
