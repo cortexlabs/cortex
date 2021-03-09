@@ -1,2 +1,2 @@
-torch
+torch==1.7.*
 transformers==3.0.*
