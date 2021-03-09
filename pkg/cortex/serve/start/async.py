@@ -49,7 +49,7 @@ def handle_workload(message):
     predictor_impl = local_cache["predictor_impl"]
 
     request_id = message["Body"]
-    log.info(f"processing workload request_id {request_id}")
+    log.info(f"processing workload...", extra={"id": request_id})
 
     api.update_status(request_id, "in_progress")
     payload = api.get_payload(request_id)
@@ -61,8 +61,13 @@ def handle_workload(message):
 
     # TODO: push metrics
 
+    log.debug("uploading result", extra={"id": request_id})
     api.upload_result(request_id, result)
+
+    log.debug("updating status to completed", extra={"id": request_id})
     api.update_status(request_id, "completed")
+
+    log.info("workload processing complete", extra={"id": request_id})
 
     # TODO: handle post_predict
 
@@ -73,7 +78,7 @@ def handle_workload_failure(message):
 
     # TODO: push metrics
 
-    log.error("failed to process workload", exc_info=True)
+    log.error("failed to process workload", exc_info=True, extra={"id": request_id})
     api.update_status(request_id, "failed")
 
 
