@@ -76,6 +76,7 @@ const (
 
 	ErrFieldMustBeDefinedForPredictorType          = "spec.field_must_be_defined_for_predictor_type"
 	ErrFieldNotSupportedByPredictorType            = "spec.field_not_supported_by_predictor_type"
+	ErrPredictorTypeNotSupportedForKind            = "spec.predictor_type_not_supported_by_kind"
 	ErrNoAvailableNodeComputeLimit                 = "spec.no_available_node_compute_limit"
 	ErrCortexPrefixedEnvVarNotAllowed              = "spec.cortex_prefixed_env_var_not_allowed"
 	ErrUnsupportedComputeResourceForProvider       = "spec.unsupported_compute_resource_for_provider"
@@ -533,6 +534,13 @@ func ErrorKeyIsNotSupportedForKind(key string, kind userconfig.Kind) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrKeyIsNotSupportedForKind,
 		Message: fmt.Sprintf("%s key is not supported for %s kind", key, kind.String()),
+	})
+}
+
+func ErrorPredictorTypeNotSupportedForKind(predictorType userconfig.PredictorType, kind userconfig.Kind) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrPredictorTypeNotSupportedForKind,
+		Message: fmt.Sprintf("%s predictor type is not supported for %s kind", predictorType.String(), kind.String()),
 	})
 }
 

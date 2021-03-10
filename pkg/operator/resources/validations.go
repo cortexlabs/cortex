@@ -92,7 +92,9 @@ func ValidateClusterAPIs(apis []userconfig.API, projectFiles spec.ProjectFiles) 
 
 	for i := range apis {
 		api := &apis[i]
-		if api.Kind == userconfig.RealtimeAPIKind || api.Kind == userconfig.BatchAPIKind || api.Kind == userconfig.TaskAPIKind {
+		if api.Kind == userconfig.RealtimeAPIKind || api.Kind == userconfig.BatchAPIKind ||
+			api.Kind == userconfig.TaskAPIKind || api.Kind == userconfig.AsyncAPIKind {
+
 			if err := spec.ValidateAPI(api, nil, projectFiles, config.Provider, config.AWS, config.GCP, config.K8s); err != nil {
 				return errors.Wrap(err, api.Identify())
 			}

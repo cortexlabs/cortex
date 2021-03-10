@@ -67,6 +67,7 @@ type CoreConfig struct {
 	ImageManager                    string `json:"image_manager" yaml:"image_manager"`
 	ImageDownloader                 string `json:"image_downloader" yaml:"image_downloader"`
 	ImageRequestMonitor             string `json:"image_request_monitor" yaml:"image_request_monitor"`
+	ImageAsyncGateway               string `json:"image_async_gateway" yaml:"image_async_gateway"`
 	ImageClusterAutoscaler          string `json:"image_cluster_autoscaler" yaml:"image_cluster_autoscaler"`
 	ImageMetricsServer              string `json:"image_metrics_server" yaml:"image_metrics_server"`
 	ImageInferentia                 string `json:"image_inferentia" yaml:"image_inferentia"`

@@ -18,7 +18,6 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"net/http"
 	"os"
 	"strings"
@@ -78,7 +77,7 @@ func main() {
 
 	var (
 		port        = flag.String("port", _defaultPort, "port on which the gateway server runs on")
-		projectID   = flag.String("project", "", "AWS project ID")
+		queueURL    = flag.String("queue", "", "SQS queue URL")
 		region      = flag.String("region", "", "AWS region")
 		bucket      = flag.String("bucket", "", "AWS bucket")
 		clusterName = flag.String("cluster", "", "cluster name")
@@ -86,8 +85,8 @@ func main() {
 	flag.Parse()
 
 	switch {
-	case *projectID == "":
-		log.Fatal("missing required option: -project")
+	case *queueURL == "":
+		log.Fatal("missing required option: -queue")
 	case *region == "":
 		log.Fatal("missing required option: -region")
 	case *bucket == "":
@@ -110,9 +109,7 @@ func main() {
 
 	s3Storage := NewS3(sess, *bucket)
 
-	// https://sqs.<region>.amazonaws.com/<projectID>/<apiName>.fifo
-	queueURL := fmt.Sprintf("https://sqs.%s.amazonaws.com/%s/%s.fifo", *region, *projectID, apiName)
-	sqsQueue := NewSQS(queueURL, sess)
+	sqsQueue := NewSQS(*queueURL, sess)
 
 	svc := NewService(*clusterName, apiName, sqsQueue, s3Storage, log)
 	ep := NewEndpoint(svc, log)

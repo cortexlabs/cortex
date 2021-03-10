@@ -183,29 +183,6 @@ func predictorValidation() *cr.StructFieldValidation {
 					},
 				},
 				{
-					StructField: "TensorFlowServingImage",
-					StringValidation: &cr.StringValidation{
-						Required:           false,
-						AllowEmpty:         true,
-						DockerImageOrEmpty: true,
-					},
-				},
-				{
-					StructField: "ProcessesPerReplica",
-					Int32Validation: &cr.Int32Validation{
-						Default:              1,
-						GreaterThanOrEqualTo: pointer.Int32(1),
-						LessThanOrEqualTo:    pointer.Int32(100),
-					},
-				},
-				{
-					StructField: "ThreadsPerProcess",
-					Int32Validation: &cr.Int32Validation{
-						Default:              1,
-						GreaterThanOrEqualTo: pointer.Int32(1),
-					},
-				},
-				{
 					StructField: "ShmSize",
 					StringPtrValidation: &cr.StringPtrValidation{
 						Default:           nil,
@@ -706,7 +683,7 @@ func ExtractAPIConfigs(
 			return nil, errors.Append(err, fmt.Sprintf("\n\napi configuration schema can be found at https://docs.cortex.dev/v/%s/", consts.CortexVersionMinor))
 		}
 
-		if resourceStruct.Kind == userconfig.BatchAPIKind {
+		if resourceStruct.Kind == userconfig.BatchAPIKind || resourceStruct.Kind == userconfig.AsyncAPIKind {
 			if provider == types.GCPProviderType {
 				return nil, errors.Wrap(
 					ErrorKindIsNotSupportedByProvider(resourceStruct.Kind, provider),
@@ -733,9 +710,7 @@ func ExtractAPIConfigs(
 
 		api.SubmittedAPISpec = interfaceMap
 
-		if resourceStruct.Kind == userconfig.RealtimeAPIKind ||
-			resourceStruct.Kind == userconfig.BatchAPIKind ||
-			resourceStruct.Kind == userconfig.TaskAPIKind {
+		if resourceStruct.Kind != userconfig.TrafficSplitterKind {
 			api.ApplyDefaultDockerPaths()
 		}
 
@@ -860,6 +835,12 @@ func validatePredictor(
 ) error {
 	predictor := api.Predictor
 
+	if api.Kind == userconfig.AsyncAPIKind {
+		if predictor.Type != userconfig.PythonPredictorType {
+			return ErrorPredictorTypeNotSupportedForKind(predictor.Type, api.Kind)
+		}
+	}
+
 	if err := validateMultiModelsFields(api); err != nil {
 		return err
 	}
@@ -882,21 +863,21 @@ func validatePredictor(
 		}
 	}
 
-	if api.Kind == userconfig.BatchAPIKind {
+	if api.Kind == userconfig.BatchAPIKind || api.Kind == userconfig.AsyncAPIKind {
 		if predictor.MultiModelReloading != nil {
-			return ErrorKeyIsNotSupportedForKind(userconfig.MultiModelReloadingKey, userconfig.BatchAPIKind)
+			return ErrorKeyIsNotSupportedForKind(userconfig.MultiModelReloadingKey, api.Kind)
 		}
 
 		if predictor.ServerSideBatching != nil {
-			return ErrorKeyIsNotSupportedForKind(userconfig.ServerSideBatchingKey, userconfig.BatchAPIKind)
+			return ErrorKeyIsNotSupportedForKind(userconfig.ServerSideBatchingKey, api.Kind)
 		}
 
 		if predictor.ProcessesPerReplica > 1 {
-			return ErrorKeyIsNotSupportedForKind(userconfig.ProcessesPerReplicaKey, userconfig.BatchAPIKind)
+			return ErrorKeyIsNotSupportedForKind(userconfig.ProcessesPerReplicaKey, api.Kind)
 		}
 
 		if predictor.ThreadsPerProcess > 1 {
-			return ErrorKeyIsNotSupportedForKind(userconfig.ThreadsPerProcessKey, userconfig.BatchAPIKind)
+			return ErrorKeyIsNotSupportedForKind(userconfig.ThreadsPerProcessKey, api.Kind)
 		}
 	}
 
