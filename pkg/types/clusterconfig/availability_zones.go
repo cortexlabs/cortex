@@ -41,7 +41,7 @@ func (cc *Config) setAvailabilityZones(awsClient *aws.Client) error {
 }
 
 func (cc *Config) setDefaultAvailabilityZones(awsClient *aws.Client, extraInstances ...string) error {
-	zones, err := awsClient.ListSupportedAvailabilityZones(*cc.InstanceType, extraInstances...)
+	zones, err := awsClient.ListSupportedAvailabilityZones(cc.InstanceType, extraInstances...)
 	if err != nil {
 		// Try again without checking instance types
 		zones, err = awsClient.ListAvailabilityZonesInRegion()
@@ -53,7 +53,7 @@ func (cc *Config) setDefaultAvailabilityZones(awsClient *aws.Client, extraInstan
 	zones.Subtract(_azBlacklist)
 
 	if len(zones) < 2 {
-		return ErrorNotEnoughDefaultSupportedZones(awsClient.Region, zones, *cc.InstanceType, extraInstances...)
+		return ErrorNotEnoughDefaultSupportedZones(awsClient.Region, zones, cc.InstanceType, extraInstances...)
 	}
 
 	// See https://github.com/weaveworks/eksctl/blob/master/pkg/eks/api.go
@@ -80,7 +80,7 @@ func (cc *Config) validateUserAvailabilityZones(awsClient *aws.Client, extraInst
 		}
 	}
 
-	supportedZones, err := awsClient.ListSupportedAvailabilityZones(*cc.InstanceType, extraInstances...)
+	supportedZones, err := awsClient.ListSupportedAvailabilityZones(cc.InstanceType, extraInstances...)
 	if err != nil {
 		// Skip validation instance-based validation
 		supportedZones = strset.Difference(allZones, _azBlacklist)
@@ -88,7 +88,7 @@ func (cc *Config) validateUserAvailabilityZones(awsClient *aws.Client, extraInst
 
 	for _, userZone := range cc.AvailabilityZones {
 		if !supportedZones.Has(userZone) {
-			return ErrorUnsupportedAvailabilityZone(userZone, *cc.InstanceType, extraInstances...)
+			return ErrorUnsupportedAvailabilityZone(userZone, cc.InstanceType, extraInstances...)
 		}
 	}
 
@@ -109,7 +109,7 @@ func (cc *Config) validateSubnets(awsClient *aws.Client) error {
 
 	for i, subnetConfig := range cc.Subnets {
 		if !allZones.Has(subnetConfig.AvailabilityZone) {
-			return errors.Wrap(ErrorInvalidAvailabilityZone(subnetConfig.AvailabilityZone, allZones, *cc.Region), s.Index(i), AvailabilityZoneKey)
+			return errors.Wrap(ErrorInvalidAvailabilityZone(subnetConfig.AvailabilityZone, allZones, cc.Region), s.Index(i), AvailabilityZoneKey)
 		}
 		if userZones.Has(subnetConfig.AvailabilityZone) {
 			return ErrorAvailabilityZoneSpecifiedTwice(subnetConfig.AvailabilityZone)

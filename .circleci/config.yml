@@ -63,7 +63,7 @@ commands:
           steps:
             - run:
                 name: Create Cluster
-                command: cortex cluster up --config << parameters.config >> --configure-env << parameters.provider >> -y
+                command: cortex cluster up << parameters.config >> --configure-env << parameters.provider >> -y
             - run:
                 name: Run E2E Tests
                 command: pytest -v test/e2e/tests -k << parameters.provider >> --<< parameters.provider >>-env << parameters.provider >>
@@ -77,7 +77,7 @@ commands:
           steps:
             - run:
                 name: Create Cluster
-                command: cortex cluster-gcp up --config << parameters.config >> --configure-env << parameters.provider >> -y
+                command: cortex cluster-gcp up << parameters.config >> --configure-env << parameters.provider >> -y
             - run:
                 name: Run E2E Tests
                 command: pytest -v test/e2e/tests -k << parameters.provider >> --<< parameters.provider >>-env << parameters.provider >>
