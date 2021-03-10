@@ -92,7 +92,7 @@ type CoreConfig struct {
 }
 
 type ManagedConfig struct {
-	NodeGroups                 []NodeGroup        `json:"node_groups" yaml:"node_groups"`
+	NodeGroups                 []*NodeGroup       `json:"node_groups" yaml:"node_groups"`
 	Tags                       map[string]string  `json:"tags" yaml:"tags"`
 	AvailabilityZones          []string           `json:"availability_zones" yaml:"availability_zones"`
 	SSLCertificateARN          *string            `json:"ssl_certificate_arn,omitempty" yaml:"ssl_certificate_arn,omitempty"`
@@ -393,120 +393,122 @@ var CoreConfigStructFieldValidations = []*cr.StructFieldValidation{
 var ManagedConfigStructFieldValidations = []*cr.StructFieldValidation{
 	{
 		StructField: "NodeGroups",
-		StructValidation: &cr.StructValidation{
+		StructListValidation: &cr.StructListValidation{
 			Required: true,
-			StructFieldValidations: []*cr.StructFieldValidation{
-				{
-					StructField: "Name",
-					StringValidation: &cr.StringValidation{
-						AllowEmpty:                 true,
-						TreatNullAsEmpty:           true,
-						AlphaNumericDashUnderscore: true,
-						MaxLength:                  _max_node_group_length,
+			StructValidation: &cr.StructValidation{
+				StructFieldValidations: []*cr.StructFieldValidation{
+					{
+						StructField: "Name",
+						StringValidation: &cr.StringValidation{
+							AllowEmpty:                        true,
+							TreatNullAsEmpty:                  true,
+							AlphaNumericDashUnderscoreOrEmpty: true,
+							MaxLength:                         _max_node_group_length,
+						},
 					},
-				},
-				{
-					StructField: "InstanceType",
-					StringValidation: &cr.StringValidation{
-						Required:  true,
-						MinLength: 1,
-						Validator: validateInstanceType,
+					{
+						StructField: "InstanceType",
+						StringValidation: &cr.StringValidation{
+							Required:  true,
+							MinLength: 1,
+							Validator: validateInstanceType,
+						},
 					},
-				},
-				{
-					StructField: "MinInstances",
-					Int64Validation: &cr.Int64Validation{
-						Default:              int64(1),
-						GreaterThanOrEqualTo: pointer.Int64(0),
+					{
+						StructField: "MinInstances",
+						Int64Validation: &cr.Int64Validation{
+							Default:              int64(1),
+							GreaterThanOrEqualTo: pointer.Int64(0),
+						},
 					},
-				},
-				{
-					StructField: "MaxInstances",
-					Int64Validation: &cr.Int64Validation{
-						Default:     int64(5),
-						GreaterThan: pointer.Int64(0),
+					{
+						StructField: "MaxInstances",
+						Int64Validation: &cr.Int64Validation{
+							Default:     int64(5),
+							GreaterThan: pointer.Int64(0),
+						},
 					},
-				},
-				{
-					StructField: "InstanceVolumeSize",
-					Int64Validation: &cr.Int64Validation{
-						Default:              50,
-						GreaterThanOrEqualTo: pointer.Int64(20), // large enough to fit docker images and any other overhead
-						LessThanOrEqualTo:    pointer.Int64(16384),
+					{
+						StructField: "InstanceVolumeSize",
+						Int64Validation: &cr.Int64Validation{
+							Default:              50,
+							GreaterThanOrEqualTo: pointer.Int64(20), // large enough to fit docker images and any other overhead
+							LessThanOrEqualTo:    pointer.Int64(16384),
+						},
 					},
-				},
-				{
-					StructField: "InstanceVolumeType",
-					StringValidation: &cr.StringValidation{
-						AllowedValues: VolumeTypesStrings(),
-						Default:       GP2VolumeType.String(),
+					{
+						StructField: "InstanceVolumeType",
+						StringValidation: &cr.StringValidation{
+							AllowedValues: VolumeTypesStrings(),
+							Default:       GP2VolumeType.String(),
+						},
+						Parser: func(str string) (interface{}, error) {
+							return VolumeTypeFromString(str), nil
+						},
 					},
-					Parser: func(str string) (interface{}, error) {
-						return VolumeTypeFromString(str), nil
+					{
+						StructField: "InstanceVolumeIOPS",
+						Int64PtrValidation: &cr.Int64PtrValidation{
+							GreaterThanOrEqualTo: pointer.Int64(100),
+							LessThanOrEqualTo:    pointer.Int64(64000),
+							AllowExplicitNull:    true,
+						},
 					},
-				},
-				{
-					StructField: "InstanceVolumeIOPS",
-					Int64PtrValidation: &cr.Int64PtrValidation{
-						GreaterThanOrEqualTo: pointer.Int64(100),
-						LessThanOrEqualTo:    pointer.Int64(64000),
-						AllowExplicitNull:    true,
+					{
+						StructField: "Spot",
+						BoolValidation: &cr.BoolValidation{
+							Default: false,
+						},
 					},
-				},
-				{
-					StructField: "Spot",
-					BoolValidation: &cr.BoolValidation{
-						Default: false,
-					},
-				},
-				{
-					StructField: "SpotConfig",
-					StructValidation: &cr.StructValidation{
-						DefaultNil:        true,
-						AllowExplicitNull: true,
-						StructFieldValidations: []*cr.StructFieldValidation{
-							{
-								StructField: "InstanceDistribution",
-								StringListValidation: &cr.StringListValidation{
-									DisallowDups:      true,
-									Validator:         validateInstanceDistribution,
-									AllowExplicitNull: true,
+					{
+						StructField: "SpotConfig",
+						StructValidation: &cr.StructValidation{
+							DefaultNil:        true,
+							AllowExplicitNull: true,
+							StructFieldValidations: []*cr.StructFieldValidation{
+								{
+									StructField: "InstanceDistribution",
+									StringListValidation: &cr.StringListValidation{
+										DisallowDups:      true,
+										Validator:         validateInstanceDistribution,
+										AllowExplicitNull: true,
+									},
 								},
-							},
-							{
-								StructField: "OnDemandBaseCapacity",
-								Int64PtrValidation: &cr.Int64PtrValidation{
-									GreaterThanOrEqualTo: pointer.Int64(0),
-									AllowExplicitNull:    true,
+								{
+									StructField: "OnDemandBaseCapacity",
+									Int64PtrValidation: &cr.Int64PtrValidation{
+										GreaterThanOrEqualTo: pointer.Int64(0),
+										AllowExplicitNull:    true,
+									},
 								},
-							},
-							{
-								StructField: "OnDemandPercentageAboveBaseCapacity",
-								Int64PtrValidation: &cr.Int64PtrValidation{
-									GreaterThanOrEqualTo: pointer.Int64(0),
-									LessThanOrEqualTo:    pointer.Int64(100),
-									AllowExplicitNull:    true,
+								{
+									StructField: "OnDemandPercentageAboveBaseCapacity",
+									Int64PtrValidation: &cr.Int64PtrValidation{
+										GreaterThanOrEqualTo: pointer.Int64(0),
+										LessThanOrEqualTo:    pointer.Int64(100),
+										AllowExplicitNull:    true,
+									},
 								},
-							},
-							{
-								StructField: "MaxPrice",
-								Float64PtrValidation: &cr.Float64PtrValidation{
-									GreaterThan:       pointer.Float64(0),
-									AllowExplicitNull: true,
+								{
+									StructField: "MaxPrice",
+									Float64PtrValidation: &cr.Float64PtrValidation{
+										GreaterThan:       pointer.Float64(0),
+										AllowExplicitNull: true,
+									},
 								},
-							},
-							{
-								StructField: "InstancePools",
-								Int64PtrValidation: &cr.Int64PtrValidation{
-									GreaterThanOrEqualTo: pointer.Int64(1),
-									LessThanOrEqualTo:    pointer.Int64(int64(_maxInstancePools)),
-									AllowExplicitNull:    true,
+								{
+									StructField: "InstancePools",
+									Int64PtrValidation: &cr.Int64PtrValidation{
+										GreaterThanOrEqualTo: pointer.Int64(1),
+										LessThanOrEqualTo:    pointer.Int64(int64(_maxInstancePools)),
+										AllowExplicitNull:    true,
+									},
 								},
-							},
-							{
-								StructField: "OnDemandBackup",
-								BoolPtrValidation: &cr.BoolPtrValidation{
-									Default: pointer.Bool(false),
+								{
+									StructField: "OnDemandBackup",
+									BoolPtrValidation: &cr.BoolPtrValidation{
+										Default: pointer.Bool(false),
+									},
 								},
 							},
 						},

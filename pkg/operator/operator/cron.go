@@ -185,7 +185,7 @@ func managedClusterTelemetry() (map[string]interface{}, error) {
 	}, nil
 }
 
-func getEBSPriceForInstanceType(ngs []clusterconfig.NodeGroup, instanceInfo instanceInfo, spot bool) float64 {
+func getEBSPriceForInstanceType(ngs []*clusterconfig.NodeGroup, instanceInfo instanceInfo, spot bool) float64 {
 	var ebsPrice float64
 	for _, ng := range ngs {
 		if ng.InstanceType == instanceInfo.InstanceType && ng.Spot == spot {
