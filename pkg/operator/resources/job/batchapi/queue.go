@@ -37,7 +37,6 @@ func apiQueueNamePrefix(apiName string) string {
 
 // QueueName is cortex-<hash of cluster name>-<api_name>-<job_id>.fifo
 func getJobQueueName(jobKey spec.JobKey) string {
-	fmt.Println(apiQueueNamePrefix(jobKey.APIName) + jobKey.ID + ".fifo")
 	return apiQueueNamePrefix(jobKey.APIName) + jobKey.ID + ".fifo"
 }
 
