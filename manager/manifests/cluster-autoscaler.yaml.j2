@@ -131,7 +131,6 @@ subjects:
     name: cluster-autoscaler
     namespace: kube-system
 ---
-{% if (config.get('spot_config') and config['spot_config'].get('on_demand_backup', false)) or config.get('on_demand_backup') %}
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -139,19 +138,19 @@ metadata:
   namespace: kube-system
 data:
   priorities: |-
-    {% if config.get('spot_config') %}
-    10:
-      - .*ng-cortex-worker-on-demand.*
-    50:
-      - .*ng-cortex-worker-spot.*
+  {% config['node_groups'][0].get('spot_config') and config['node_groups'][0]['spot_config'].get('on_demand_backup', false) %}
+    5:
+      - .*{{ 'cx-wd-' + config['node_groups'][0]['name'] }}.*
+  {% endif %}
+  {% for idx, ng in enumerate(config['node_groups'][::-1]) %}
+    {{ int((idx+1) * 10) }}:
+    {% if ng['spot'] %}
+      - .*{{ 'cx-ws-' + ng['name'] }}.*
     {% else %}
-    10:
-      - .*ng-cortex-wk-on-dmd.*
-    50:
-      - .*ng-cortex-wk-preemp.*
+      - .*{{ 'cx-wd-' + ng['name'] }}.*
     {% endif %}
+  {% endfor %}
 ---
-{% endif %}
 apiVersion: apps/v1
 kind: Deployment
 metadata:

@@ -58,7 +58,7 @@ def merge_override(a, b):
 
 def apply_worker_settings(nodegroup, config):
     worker_settings = {
-        "name": config["name"],
+        "name": "ng-wd-"+config["name"],
         "labels": {"workload": "true"},
         "taints": {"workload": "true:NoSchedule"},
         "tags": {
@@ -88,7 +88,7 @@ def apply_clusterconfig(nodegroup, config):
 
 def apply_spot_settings(nodegroup, config):
     spot_settings = {
-        "name": config["name"],
+        "name": "ng-ws-"+config["name"],
         "instanceType": "mixed",
         "instancesDistribution": {
             "instanceTypes": config["spot_config"]["instance_distribution"],

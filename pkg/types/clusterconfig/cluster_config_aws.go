@@ -39,6 +39,7 @@ import (
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/table"
 	"github.com/cortexlabs/cortex/pkg/types"
+	"github.com/google/uuid"
 )
 
 const (
@@ -47,8 +48,10 @@ const (
 )
 
 var (
-	_maxInstancePools            = 20
-	_cachedCNISupportedInstances *string
+	_max_node_group_length_with_prefix = 19                                                 // node pool length name limit on GKE, using the same on AWS for consistency reasons
+	_max_node_group_length             = _max_node_group_length_with_prefix - len("cx-wd-") // or cx-ws-
+	_maxInstancePools                  = 20
+	_cachedCNISupportedInstances       *string
 	// This regex is stricter than the actual S3 rules
 	_strictS3BucketRegex = regexp.MustCompile(`^([a-z0-9])+(-[a-z0-9]+)*$`)
 	_defaultIAMPolicies  = []string{"arn:aws:iam::aws:policy/AmazonS3FullAccess"}
@@ -396,8 +399,10 @@ var ManagedConfigStructFieldValidations = []*cr.StructFieldValidation{
 				{
 					StructField: "Name",
 					StringValidation: &cr.StringValidation{
-						Required:  true,
-						MinLength: 1,
+						AllowEmpty:                 true,
+						TreatNullAsEmpty:           true,
+						AlphaNumericDashUnderscore: true,
+						MaxLength:                  _max_node_group_length,
 					},
 				},
 				{
@@ -730,7 +735,12 @@ func (cc *Config) Validate(awsClient *aws.Client) error {
 	ngNames := []string{}
 	instances := []aws.InstanceTypeRequests{}
 	instanceTypeSpotHashes := []string{}
-	for _, nodeGroup := range cc.NodeGroups {
+	for idx, nodeGroup := range cc.NodeGroups {
+		if nodeGroup.Name == "" {
+			cc.NodeGroups[idx].Name = uuid.New().String()[:_max_node_group_length]
+			nodeGroup.Name = cc.NodeGroups[idx].Name
+		}
+
 		if !slices.HasString(ngNames, nodeGroup.Name) {
 			ngNames = append(ngNames, nodeGroup.Name)
 		} else {
