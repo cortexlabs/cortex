@@ -17,21 +17,19 @@ limitations under the License.
 package operator
 
 import (
-	"math"
-
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
+	"github.com/cortexlabs/cortex/pkg/lib/slices"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
-	"github.com/cortexlabs/cortex/pkg/types"
 	kresource "k8s.io/apimachinery/pkg/api/resource"
 	kmeta "k8s.io/apimachinery/pkg/apis/meta/v1"
 	klabels "k8s.io/apimachinery/pkg/labels"
 )
 
 const _memConfigMapName = "cortex-instance-memory"
-const _memConfigMapKey = "capacity"
+const _configKeyPrefix = "memory-capacity-"
 
-func getMemoryCapacityFromNodes() (*kresource.Quantity, error) {
+func getMemoryCapacityFromNodes(primaryInstances []string) (map[string]*kresource.Quantity, error) {
 	opts := kmeta.ListOptions{
 		LabelSelector: klabels.SelectorFromSet(map[string]string{
 			"workload": "true",
@@ -42,23 +40,40 @@ func getMemoryCapacityFromNodes() (*kresource.Quantity, error) {
 		return nil, err
 	}
 
-	var minMem *kresource.Quantity
+	minMemMap := map[string]*kresource.Quantity{}
+	for _, primaryInstance := range primaryInstances {
+		minMemMap[primaryInstance] = nil
+	}
+
 	for _, node := range nodes {
+		isPrimaryInstance := false
+		var primaryInstanceType string
+		for k, v := range node.Annotations {
+			if k == "alpha.eksctl.io/nodegroup-name" && slices.HasString(primaryInstances, v) {
+				isPrimaryInstance = true
+				primaryInstanceType = v
+				break
+			}
+		}
+		if !isPrimaryInstance {
+			continue
+		}
+
 		curMem := node.Status.Capacity.Memory()
 
 		if curMem == nil || curMem.IsZero() {
 			continue
 		}
 
-		if minMem == nil || minMem.Cmp(*curMem) < 0 {
-			minMem = curMem
+		if minMemMap[primaryInstanceType] == nil || minMemMap[primaryInstanceType].Cmp(*curMem) < 0 {
+			minMemMap[primaryInstanceType] = curMem
 		}
 	}
 
-	return minMem, nil
+	return minMemMap, nil
 }
 
-func getMemoryCapacityFromConfigMap() (*kresource.Quantity, error) {
+func getMemoryCapacityFromConfigMap() (map[string]*kresource.Quantity, error) {
 	configMapData, err := config.K8s.GetConfigMapData(_memConfigMapName)
 	if err != nil {
 		return nil, err
@@ -68,63 +83,80 @@ func getMemoryCapacityFromConfigMap() (*kresource.Quantity, error) {
 		return nil, nil
 	}
 
-	memoryUserStr := configMapData[_memConfigMapKey]
-	mem, err := kresource.ParseQuantity(memoryUserStr)
+	memoryCapacitiesMap := map[string]*kresource.Quantity{}
+	for k := range configMapData {
+		memoryUserStr := configMapData[k]
+		mem, err := kresource.ParseQuantity(memoryUserStr)
+		if err != nil {
+			return nil, err
+		}
+		instanceType := k[len(_configKeyPrefix):]
+		if mem.IsZero() {
+			memoryCapacitiesMap[instanceType] = nil
+		} else {
+			memoryCapacitiesMap[instanceType] = &mem
+		}
+	}
+
+	return memoryCapacitiesMap, nil
+}
+
+func UpdateMemoryCapacityConfigMap() (map[string]kresource.Quantity, error) {
+	if !config.IsManaged() {
+		return nil, nil
+	}
+
+	instancesMetadata := config.AWSInstanceMetadataOrNil()
+	if instancesMetadata == nil {
+		return nil, errors.ErrorUnexpected("unable to find instances metadata; likely because this is not a cortex managed cluster")
+	}
+	primaryInstances := []string{}
+
+	minMemMap := map[string]kresource.Quantity{}
+	for _, instanceMetadata := range *instancesMetadata {
+		minMemMap[instanceMetadata.Type] = instanceMetadata.Memory
+		primaryInstances = append(primaryInstances, instanceMetadata.Type)
+	}
+
+	nodeMemCapacityMap, err := getMemoryCapacityFromNodes(primaryInstances)
 	if err != nil {
 		return nil, err
 	}
-	if mem.IsZero() {
-		return nil, nil
-	}
-	return &mem, nil
-}
 
-func UpdateMemoryCapacityConfigMap() (kresource.Quantity, error) {
-	if !config.IsManaged() {
-		return kresource.Quantity{}, nil
+	previousMinMemMap, err := getMemoryCapacityFromConfigMap()
+	if err != nil {
+		return nil, err
 	}
 
-	minMem := *kresource.NewQuantity(math.MaxInt64, kresource.DecimalSI)
+	configMapData := map[string]string{}
+	for _, primaryInstance := range primaryInstances {
+		minMem := minMemMap[primaryInstance]
 
-	if config.Provider == types.AWSProviderType {
-		instanceMetadata := config.AWSInstanceMetadataOrNil()
-		if instanceMetadata == nil {
-			return kresource.Quantity{}, errors.ErrorUnexpected("unable to find instance metadata; likely because this is not a cortex managed cluster")
+		if nodeMemCapacityMap[primaryInstance] != nil && minMem.Cmp(*nodeMemCapacityMap[primaryInstance]) > 0 {
+			minMemMap[primaryInstance] = *nodeMemCapacityMap[primaryInstance]
 		}
-		minMem = instanceMetadata.Memory
-	}
 
-	nodeMemCapacity, err := getMemoryCapacityFromNodes()
-	if err != nil {
-		return kresource.Quantity{}, err
-	}
+		if previousMinMemMap[primaryInstance] != nil && minMem.Cmp(*previousMinMemMap[primaryInstance]) > 0 {
+			minMemMap[primaryInstance] = *previousMinMemMap[primaryInstance]
+		}
 
-	previousMinMem, err := getMemoryCapacityFromConfigMap()
-	if err != nil {
-		return kresource.Quantity{}, err
-	}
-
-	if nodeMemCapacity != nil && minMem.Cmp(*nodeMemCapacity) > 0 {
-		minMem = *nodeMemCapacity
-	}
-
-	if previousMinMem != nil && minMem.Cmp(*previousMinMem) > 0 {
-		minMem = *previousMinMem
-	}
-
-	if previousMinMem == nil || minMem.Cmp(*previousMinMem) < 0 {
-		configMap := k8s.ConfigMap(&k8s.ConfigMapSpec{
-			Name: _memConfigMapName,
-			Data: map[string]string{
-				_memConfigMapKey: minMem.String(),
-			},
-		})
-
-		_, err := config.K8s.ApplyConfigMap(configMap)
-		if err != nil {
-			return kresource.Quantity{}, err
+		if previousMinMemMap[primaryInstance] == nil || minMem.Cmp(*previousMinMemMap[primaryInstance]) < 0 {
+			minMem = minMemMap[primaryInstance]
+			configMapData[_configKeyPrefix+primaryInstance] = minMem.String()
+		} else {
+			configMapData[_configKeyPrefix+primaryInstance] = kresource.NewQuantity(0, kresource.DecimalSI).String()
 		}
 	}
 
-	return minMem, nil
+	configMap := k8s.ConfigMap(&k8s.ConfigMapSpec{
+		Name: _memConfigMapName,
+		Data: configMapData,
+	})
+
+	_, err = config.K8s.ApplyConfigMap(configMap)
+	if err != nil {
+		return nil, err
+	}
+
+	return minMemMap, nil
 }

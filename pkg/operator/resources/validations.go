@@ -115,7 +115,7 @@ func ValidateClusterAPIs(apis []userconfig.API, projectFiles spec.ProjectFiles) 
 	}
 
 	if config.IsManaged() && config.Provider == types.AWSProviderType {
-		maxMem, err := operator.UpdateMemoryCapacityConfigMap()
+		maxMemMap, err := operator.UpdateMemoryCapacityConfigMap()
 		if err != nil {
 			return err
 		}
@@ -123,7 +123,7 @@ func ValidateClusterAPIs(apis []userconfig.API, projectFiles spec.ProjectFiles) 
 		for i := range apis {
 			api := &apis[i]
 			if api.Kind == userconfig.RealtimeAPIKind || api.Kind == userconfig.BatchAPIKind || api.Kind == userconfig.TaskAPIKind {
-				if err := awsManagedValidateK8sCompute(api.Compute, maxMem); err != nil {
+				if err := awsManagedValidateK8sCompute(api.Compute, maxMemMap); err != nil {
 					return err
 				}
 			}
@@ -173,7 +173,7 @@ var _nvidiaDCGMExporterMemReserve = kresource.MustParse("50Mi")
 var _inferentiaCPUReserve = kresource.MustParse("100m")
 var _inferentiaMemReserve = kresource.MustParse("100Mi")
 
-func awsManagedValidateK8sCompute(compute *userconfig.Compute, maxMem kresource.Quantity) error {
+func awsManagedValidateK8sCompute(compute *userconfig.Compute, maxMemMap map[string]kresource.Quantity) error {
 	instancesMetadata := config.AWSInstanceMetadataOrNil()
 	if instancesMetadata == nil {
 		return errors.ErrorUnexpected("unable to find instance metadata; likely because this is not a cortex managed cluster")
@@ -182,7 +182,7 @@ func awsManagedValidateK8sCompute(compute *userconfig.Compute, maxMem kresource.
 	allErrors := []error{}
 	successfulLoops := 0
 	for _, instanceMetadata := range *instancesMetadata {
-		maxMemLoop := maxMem
+		maxMemLoop := maxMemMap[instanceMetadata.Type]
 		maxMemLoop.Sub(_cortexMemReserve)
 
 		maxCPU := instanceMetadata.CPU
@@ -210,7 +210,7 @@ func awsManagedValidateK8sCompute(compute *userconfig.Compute, maxMem kresource.
 			loopErrors = append(loopErrors, ErrorNoAvailableNodeComputeLimit("CPU", compute.CPU.String(), maxCPU.String()))
 		}
 		if compute.Mem != nil && maxMemLoop.Cmp(compute.Mem.Quantity) < 0 {
-			loopErrors = append(loopErrors, ErrorNoAvailableNodeComputeLimit("memory", compute.Mem.String(), maxMem.String()))
+			loopErrors = append(loopErrors, ErrorNoAvailableNodeComputeLimit("memory", compute.Mem.String(), maxMemLoop.String()))
 		}
 		if compute.GPU > maxGPU {
 			loopErrors = append(loopErrors, ErrorNoAvailableNodeComputeLimit("GPU", fmt.Sprintf("%d", compute.GPU), fmt.Sprintf("%d", maxGPU)))
