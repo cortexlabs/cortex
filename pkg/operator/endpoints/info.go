@@ -95,6 +95,7 @@ func getNodeInfos() ([]schema.NodeInfo, int, error) {
 
 	for _, node := range nodes {
 		instanceType := node.Labels["beta.kubernetes.io/instance-type"]
+		nodeGroupName := node.Labels["alpha.eksctl.io/nodegroup-name"]
 		isSpot := strings.Contains(strings.ToLower(node.Labels["lifecycle"]), "spot")
 
 		price := aws.InstanceMetadatas[config.CoreConfig.Region][instanceType].Price
@@ -114,6 +115,7 @@ func getNodeInfos() ([]schema.NodeInfo, int, error) {
 
 		nodeInfoMap[node.Name] = &schema.NodeInfo{
 			Name:                 node.Name,
+			NodeGroupName:        nodeGroupName,
 			InstanceType:         instanceType,
 			IsSpot:               isSpot,
 			Price:                price,
