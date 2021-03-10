@@ -56,9 +56,9 @@ def merge_override(a, b):
     return a
 
 
-def apply_worker_settings(nodegroup):
+def apply_worker_settings(nodegroup, config):
     worker_settings = {
-        "name": "ng-cortex-worker-on-demand",
+        "name": config["name"],
         "labels": {"workload": "true"},
         "taints": {"workload": "true:NoSchedule"},
         "tags": {
@@ -88,7 +88,7 @@ def apply_clusterconfig(nodegroup, config):
 
 def apply_spot_settings(nodegroup, config):
     spot_settings = {
-        "name": "ng-cortex-worker-spot",
+        "name": config["name"],
         "instanceType": "mixed",
         "instancesDistribution": {
             "instanceTypes": config["spot_config"]["instance_distribution"],
@@ -128,7 +128,6 @@ def is_gpu(instance_type):
 
 def apply_inf_settings(nodegroup, cluster_config):
     instance_type = cluster_config["instance_type"]
-    instance_region = cluster_config["region"]
 
     num_chips, hugepages_mem = get_inf_resources(instance_type)
     inf_settings = {
@@ -162,6 +161,45 @@ def get_inf_resources(instance_type):
     return num_chips, f"{128 * num_chips}Mi"
 
 
+def get_all_worker_nodegroups(cluster_config: dict) -> list:
+    worker_nodegroups = []
+    for ng in cluster_config["node_groups"]:
+        worker_nodegroup = default_nodegroup(cluster_config)
+        apply_worker_settings(worker_nodegroup, ng)
+        apply_clusterconfig(worker_nodegroup, ng)
+
+        if ng["spot"]:
+            apply_spot_settings(worker_nodegroup, ng)
+
+        if is_gpu(ng["instance_type"]):
+            apply_gpu_settings(worker_nodegroup)
+
+        if is_inf(ng["instance_type"]):
+            apply_inf_settings(worker_nodegroup, cluster_config)
+
+        worker_nodegroups.append(worker_nodegroup)
+
+    if len(cluster_config["node_groups"]) == 1:
+        ng = cluster_config["node_groups"][0]
+        if ng.get("spot_config") is not None and ng["spot_config"].get("on_demand_backup", False):
+            backup_nodegroup = default_nodegroup(cluster_config)
+            apply_worker_settings(backup_nodegroup, ng)
+            apply_clusterconfig(backup_nodegroup, ng)
+
+            if is_gpu(ng["instance_type"]):
+                apply_gpu_settings(backup_nodegroup)
+
+            if is_inf(ng["instance_type"]):
+                apply_inf_settings(backup_nodegroup, ng)
+
+            backup_nodegroup["minSize"] = 0
+            backup_nodegroup["desiredCapacity"] = 0
+
+            worker_nodegroups.append(backup_nodegroup)
+
+    return worker_nodegroups
+
+
 def generate_eks(cluster_config_path):
     with open(cluster_config_path, "r") as f:
         cluster_config = yaml.safe_load(f)
@@ -176,19 +214,7 @@ def generate_eks(cluster_config_path):
     }
     operator_nodegroup = merge_override(operator_nodegroup, operator_settings)
 
-    worker_nodegroup = default_nodegroup(cluster_config)
-    apply_worker_settings(worker_nodegroup)
-
-    apply_clusterconfig(worker_nodegroup, cluster_config)
-
-    if cluster_config["spot"]:
-        apply_spot_settings(worker_nodegroup, cluster_config)
-
-    if is_gpu(cluster_config["instance_type"]):
-        apply_gpu_settings(worker_nodegroup)
-
-    if is_inf(cluster_config["instance_type"]):
-        apply_inf_settings(worker_nodegroup, cluster_config)
+    worker_nodegroups = get_all_worker_nodegroups(cluster_config)
 
     nat_gateway = "Disable"
     if cluster_config["nat_gateway"] == "single":
@@ -206,7 +232,7 @@ def generate_eks(cluster_config_path):
             "tags": cluster_config["tags"],
         },
         "vpc": {"nat": {"gateway": nat_gateway}},
-        "nodeGroups": [operator_nodegroup, worker_nodegroup],
+        "nodeGroups": [operator_nodegroup] + worker_nodegroups,
     }
 
     if (
@@ -229,22 +255,6 @@ def generate_eks(cluster_config_path):
 
     if cluster_config.get("vpc_cidr", "") != "":
         eks["vpc"]["cidr"] = cluster_config["vpc_cidr"]
-
-    if cluster_config.get("spot_config") is not None and cluster_config["spot_config"].get(
-        "on_demand_backup", False
-    ):
-        backup_nodegroup = default_nodegroup(cluster_config)
-        apply_worker_settings(backup_nodegroup)
-        apply_clusterconfig(backup_nodegroup, cluster_config)
-        if is_gpu(cluster_config["instance_type"]):
-            apply_gpu_settings(backup_nodegroup)
-        if is_inf(cluster_config["instance_type"]):
-            apply_inf_settings(backup_nodegroup, cluster_config)
-
-        backup_nodegroup["minSize"] = 0
-        backup_nodegroup["desiredCapacity"] = 0
-
-        eks["nodeGroups"].append(backup_nodegroup)
 
     print(yaml.dump(eks, Dumper=IgnoreAliases, default_flow_style=False, default_style=""))
 
