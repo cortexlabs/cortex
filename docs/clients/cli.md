@@ -101,13 +101,9 @@ Usage:
   cortex cluster up [CLUSTER_CONFIG_FILE] [flags]
 
 Flags:
-      --aws-key string              aws access key id
-      --aws-secret string           aws secret access key
-      --cluster-aws-key string      aws access key id to be used by the cluster
-      --cluster-aws-secret string   aws secret access key to be used by the cluster
-  -e, --configure-env string        name of environment to configure (default "aws")
-  -y, --yes                         skip prompts
-  -h, --help                        help for up
+  -e, --configure-env string   name of environment to configure (default "aws")
+  -y, --yes                    skip prompts
+  -h, --help                   help for up
 ```
 
 ## cluster info
@@ -122,8 +118,6 @@ Flags:
   -c, --config string          path to a cluster configuration file
   -n, --name string            name of the cluster
   -r, --region string          aws region of the cluster
-      --aws-key string         aws access key id
-      --aws-secret string      aws secret access key
   -e, --configure-env string   name of environment to configure
   -d, --debug                  save the current cluster state to a file
   -y, --yes                    skip prompts
@@ -139,13 +133,9 @@ Usage:
   cortex cluster configure [CLUSTER_CONFIG_FILE] [flags]
 
 Flags:
-      --aws-key string              aws access key id
-      --aws-secret string           aws secret access key
-      --cluster-aws-key string      aws access key id to be used by the cluster
-      --cluster-aws-secret string   aws secret access key to be used by the cluster
-  -e, --configure-env string        name of environment to configure
-  -y, --yes                         skip prompts
-  -h, --help                        help for configure
+  -e, --configure-env string   name of environment to configure
+  -y, --yes                    skip prompts
+  -h, --help                   help for configure
 ```
 
 ## cluster down
@@ -157,14 +147,12 @@ Usage:
   cortex cluster down [flags]
 
 Flags:
-  -c, --config string       path to a cluster configuration file
-  -n, --name string         name of the cluster
-  -r, --region string       aws region of the cluster
-      --aws-key string      aws access key id
-      --aws-secret string   aws secret access key
-  -y, --yes                 skip prompts
-      --keep-volumes        keep cortex provisioned persistent volumes
-  -h, --help                help for down
+  -c, --config string   path to a cluster configuration file
+  -n, --name string     name of the cluster
+  -r, --region string   aws region of the cluster
+  -y, --yes             skip prompts
+      --keep-volumes    keep cortex provisioned persistent volumes
+  -h, --help            help for down
 ```
 
 ## cluster export
@@ -176,12 +164,10 @@ Usage:
   cortex cluster export [API_NAME] [API_ID] [flags]
 
 Flags:
-  -c, --config string       path to a cluster configuration file
-  -n, --name string         name of the cluster
-  -r, --region string       aws region of the cluster
-      --aws-key string      aws access key id
-      --aws-secret string   aws secret access key
-  -h, --help                help for export
+  -c, --config string   path to a cluster configuration file
+  -n, --name string     name of the cluster
+  -r, --region string   aws region of the cluster
+  -h, --help            help for export
 ```
 
 ## cluster-gcp up
