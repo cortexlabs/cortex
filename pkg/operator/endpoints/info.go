@@ -97,7 +97,7 @@ func getNodeInfos() ([]schema.NodeInfo, int, error) {
 		instanceType := node.Labels["beta.kubernetes.io/instance-type"]
 		isSpot := strings.Contains(strings.ToLower(node.Labels["lifecycle"]), "spot")
 
-		price := aws.InstanceMetadatas[*config.CoreConfig.Region][instanceType].Price
+		price := aws.InstanceMetadatas[config.CoreConfig.Region][instanceType].Price
 		if isSpot {
 			if spotPrice, ok := spotPriceCache[instanceType]; ok {
 				price = spotPrice
