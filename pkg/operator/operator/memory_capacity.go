@@ -48,7 +48,7 @@ func getMemoryCapacityFromNodes(primaryInstances []string) (map[string]*kresourc
 	for _, node := range nodes {
 		isPrimaryInstance := false
 		var primaryInstanceType string
-		for k, v := range node.Annotations {
+		for k, v := range node.Labels {
 			if k == "alpha.eksctl.io/nodegroup-name" && slices.HasString(primaryInstances, v) {
 				isPrimaryInstance = true
 				primaryInstanceType = v
