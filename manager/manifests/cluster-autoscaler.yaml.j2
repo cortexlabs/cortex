@@ -138,10 +138,6 @@ metadata:
   namespace: kube-system
 data:
   priorities: |-
-  {% config['node_groups'][0].get('spot_config') and config['node_groups'][0]['spot_config'].get('on_demand_backup', false) %}
-    5:
-      - .*{{ 'cx-wd-' + config['node_groups'][0]['name'] }}.*
-  {% endif %}
   {% for idx, ng in enumerate(config['node_groups'][::-1]) %}
     {{ int((idx+1) * 10) }}:
     {% if ng['spot'] %}

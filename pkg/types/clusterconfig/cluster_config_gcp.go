@@ -30,7 +30,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/prompt"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	"github.com/cortexlabs/cortex/pkg/lib/slices"
-	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/table"
 	"github.com/cortexlabs/cortex/pkg/types"
 	"github.com/google/uuid"
@@ -89,7 +88,6 @@ type NodePool struct {
 	MinInstances            int64   `json:"min_instances" yaml:"min_instances"`
 	MaxInstances            int64   `json:"max_instances" yaml:"max_instances"`
 	Preemptible             bool    `json:"preemptible" yaml:"preemptible"`
-	OnDemandBackup          bool    `json:"on_demand_backup" yaml:"on_demand_backup"`
 }
 
 type GCPConfig struct {
@@ -372,12 +370,6 @@ var GCPManagedConfigStructFieldValidations = []*cr.StructFieldValidation{
 							Default: false,
 						},
 					},
-					{
-						StructField: "OnDemandBackup",
-						BoolValidation: &cr.BoolValidation{
-							Default: false,
-						},
-					},
 				},
 			},
 		},
@@ -641,10 +633,6 @@ func (np *NodePool) validateNodePool(GCP *gcp.Client, zone string) error {
 		}
 	}
 
-	if !np.Preemptible && np.OnDemandBackup {
-		return ErrorFieldConfigurationDependentOnCondition(OnDemandBackupKey, s.Bool(np.OnDemandBackup), PreemptibleKey, s.Bool(np.Preemptible))
-	}
-
 	return nil
 }
 
@@ -847,7 +835,6 @@ func (cc *GCPManagedConfig) TelemetryEvent() map[string]interface{} {
 		}
 
 		event[nodePoolKey("preemptible")] = np.Preemptible
-		event[nodePoolKey("on_demand_backup")] = np.OnDemandBackup
 
 		totalMinSize += int(np.MinInstances)
 		totalMaxSize += int(np.MaxInstances)

@@ -179,24 +179,6 @@ def get_all_worker_nodegroups(cluster_config: dict) -> list:
 
         worker_nodegroups.append(worker_nodegroup)
 
-    if len(cluster_config["node_groups"]) == 1:
-        ng = cluster_config["node_groups"][0]
-        if ng.get("spot_config") is not None and ng["spot_config"].get("on_demand_backup", False):
-            backup_nodegroup = default_nodegroup(cluster_config)
-            apply_worker_settings(backup_nodegroup, ng)
-            apply_clusterconfig(backup_nodegroup, ng)
-
-            if is_gpu(ng["instance_type"]):
-                apply_gpu_settings(backup_nodegroup)
-
-            if is_inf(ng["instance_type"]):
-                apply_inf_settings(backup_nodegroup, ng)
-
-            backup_nodegroup["minSize"] = 0
-            backup_nodegroup["desiredCapacity"] = 0
-
-            worker_nodegroups.append(backup_nodegroup)
-
     return worker_nodegroups
 
 

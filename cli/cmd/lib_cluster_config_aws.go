@@ -523,14 +523,6 @@ func confirmInstallClusterConfig(clusterConfig *clusterconfig.Config, awsClient 
 		fmt.Printf("warning: you've enabled spot instances for %s %s; spot instances are not guaranteed to be available so please take that into account for production clusters; see https://docs.cortex.dev/v/%s/ for more information\n\n", nodegroupStr, s.StrsAnd(maps.StrMapKeysInt(ngNameToSpotInstancesUsed)), consts.CortexVersionMinor)
 	}
 
-	if len(clusterConfig.NodeGroups) == 1 && len(ngNameToSpotInstancesUsed) == 1 && clusterConfig.NodeGroups[0].SpotConfig != nil && clusterConfig.NodeGroups[0].SpotConfig.OnDemandBackup != nil && !*clusterConfig.NodeGroups[0].SpotConfig.OnDemandBackup {
-		if *clusterConfig.NodeGroups[0].SpotConfig.OnDemandBaseCapacity == 0 && *clusterConfig.NodeGroups[0].SpotConfig.OnDemandPercentageAboveBaseCapacity == 0 {
-			fmt.Printf("warning: you've disabled on-demand instances (%s=0 and %s=0) for nodegroup %s; spot instances are not guaranteed to be available so please take that into account for production clusters; see https://docs.cortex.dev/v/%s/ for more information\n\n", clusterconfig.OnDemandBaseCapacityKey, clusterconfig.OnDemandPercentageAboveBaseCapacityKey, clusterConfig.NodeGroups[0].Name, consts.CortexVersionMinor)
-		} else {
-			fmt.Printf("warning: you've enabled spot instances for nodegroup %s; spot instances are not guaranteed to be available so please take that into account for production clusters; see https://docs.cortex.dev/v/%s/ for more information\n\n", clusterConfig.NodeGroups[0].Name, consts.CortexVersionMinor)
-		}
-	}
-
 	if !disallowPrompt {
 		exitMessage := fmt.Sprintf("cluster configuration can be modified via the cluster config file; see https://docs.cortex.dev/v/%s/ for more information", consts.CortexVersionMinor)
 		prompt.YesOrExit("would you like to continue?", "", exitMessage)

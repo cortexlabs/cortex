@@ -40,7 +40,6 @@ const (
 	ErrIncompatibleSpotInstanceTypeCPU        = "clusterconfig.incompatible_spot_instance_type_cpu"
 	ErrIncompatibleSpotInstanceTypeGPU        = "clusterconfig.incompatible_spot_instance_type_gpu"
 	ErrIncompatibleSpotInstanceTypeInf        = "clusterconfig.incompatible_spot_instance_type_inf"
-	ErrOnDemandBackupFieldNotPermitted        = "clusterconfig.on_demand_backup_field_not_permitted"
 	ErrSpotPriceGreaterThanTargetOnDemand     = "clusterconfig.spot_price_greater_than_target_on_demand"
 	ErrSpotPriceGreaterThanMaxPrice           = "clusterconfig.spot_price_greater_than_max_price"
 	ErrInstanceTypeNotSupported               = "clusterconfig.instance_type_not_supported"
@@ -154,13 +153,6 @@ func ErrorIncompatibleSpotInstanceTypeInf(suggested aws.InstanceMetadata) error 
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrIncompatibleSpotInstanceTypeInf,
 		Message: fmt.Sprintf("all instances must have at least 1 Inferentia chip, but %s doesn't have any", suggested.Type),
-	})
-}
-
-func ErrorOnDemandBackupFieldNotPermitted() error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrOnDemandBackupFieldNotPermitted,
-		Message: fmt.Sprintf("%s can only be enabled when a single nodegroup is provided", OnDemandBackupKey),
 	})
 }
 

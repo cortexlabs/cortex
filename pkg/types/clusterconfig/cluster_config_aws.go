@@ -124,7 +124,6 @@ type SpotConfig struct {
 	OnDemandPercentageAboveBaseCapacity *int64   `json:"on_demand_percentage_above_base_capacity" yaml:"on_demand_percentage_above_base_capacity"`
 	MaxPrice                            *float64 `json:"max_price" yaml:"max_price"`
 	InstancePools                       *int64   `json:"instance_pools" yaml:"instance_pools"`
-	OnDemandBackup                      *bool    `json:"on_demand_backup" yaml:"on_demand_backup"`
 }
 
 type Subnet struct {
@@ -504,12 +503,6 @@ var ManagedConfigStructFieldValidations = []*cr.StructFieldValidation{
 										AllowExplicitNull:    true,
 									},
 								},
-								{
-									StructField: "OnDemandBackup",
-									BoolPtrValidation: &cr.BoolPtrValidation{
-										Default: pointer.Bool(false),
-									},
-								},
 							},
 						},
 					},
@@ -762,10 +755,6 @@ func (cc *Config) Validate(awsClient *aws.Client) error {
 		err := nodeGroup.validateNodeGroup(awsClient, cc.Region)
 		if err != nil {
 			return errors.Wrap(err, NodeGroupsKey, nodeGroupReferenceID)
-		}
-
-		if nodeGroup.SpotConfig != nil && nodeGroup.SpotConfig.OnDemandBackup != nil && *nodeGroup.SpotConfig.OnDemandBackup && len(cc.NodeGroups) > 1 {
-			return errors.Wrap(ErrorOnDemandBackupFieldNotPermitted(), NodeGroupsKey, nodeGroupReferenceID)
 		}
 
 		instances = append(instances, aws.InstanceTypeRequests{
@@ -1050,10 +1039,6 @@ func AutoGenerateSpotConfig(spotConfig *SpotConfig, region string, instanceType 
 		spotConfig.OnDemandPercentageAboveBaseCapacity = pointer.Int64(0)
 	}
 
-	if spotConfig.OnDemandBackup == nil {
-		spotConfig.OnDemandBackup = pointer.Bool(false)
-	}
-
 	if spotConfig.InstancePools == nil {
 		if len(spotConfig.InstanceDistribution) < _maxInstancePools {
 			spotConfig.InstancePools = pointer.Int64(int64(len(spotConfig.InstanceDistribution)))
@@ -1146,10 +1131,6 @@ func GetDefaults() (*Config, error) {
 }
 
 func (ng *NodeGroup) MaxPossibleOnDemandInstances() int64 {
-	if ng.Spot == false || ng.SpotConfig == nil || ng.SpotConfig.OnDemandBackup == nil || *ng.SpotConfig.OnDemandBackup == true {
-		return ng.MaxInstances
-	}
-
 	onDemandBaseCap, onDemandPctAboveBaseCap := ng.SpotConfigOnDemandValues()
 	return onDemandBaseCap + int64(math.Ceil(float64(onDemandPctAboveBaseCap)/100*float64(ng.MaxInstances-onDemandBaseCap)))
 }
@@ -1452,30 +1433,26 @@ func (mc *ManagedConfig) TelemetryEvent() map[string]interface{} {
 		if ng.SpotConfig != nil {
 			event[nodeGroupKey("spot_config._is_defined")] = true
 			if len(ng.SpotConfig.InstanceDistribution) > 0 {
-				event["spot_config.instance_distribution._is_defined"] = true
-				event["spot_config.instance_distribution._len"] = len(ng.SpotConfig.InstanceDistribution)
-				event["spot_config.instance_distribution"] = ng.SpotConfig.InstanceDistribution
+				event[nodeGroupKey("spot_config.instance_distribution._is_defined")] = true
+				event[nodeGroupKey("spot_config.instance_distribution._len")] = len(ng.SpotConfig.InstanceDistribution)
+				event[nodeGroupKey("spot_config.instance_distribution")] = ng.SpotConfig.InstanceDistribution
 				spotInstanceTypes.Add(ng.SpotConfig.InstanceDistribution...)
 			}
 			if ng.SpotConfig.OnDemandBaseCapacity != nil {
-				event["spot_config.on_demand_base_capacity._is_defined"] = true
-				event["spot_config.on_demand_base_capacity"] = *ng.SpotConfig.OnDemandBaseCapacity
+				event[nodeGroupKey("spot_config.on_demand_base_capacity._is_defined")] = true
+				event[nodeGroupKey("spot_config.on_demand_base_capacity")] = *ng.SpotConfig.OnDemandBaseCapacity
 			}
 			if ng.SpotConfig.OnDemandPercentageAboveBaseCapacity != nil {
-				event["spot_config.on_demand_percentage_above_base_capacity._is_defined"] = true
-				event["spot_config.on_demand_percentage_above_base_capacity"] = *ng.SpotConfig.OnDemandPercentageAboveBaseCapacity
+				event[nodeGroupKey("spot_config.on_demand_percentage_above_base_capacity._is_defined")] = true
+				event[nodeGroupKey("spot_config.on_demand_percentage_above_base_capacity")] = *ng.SpotConfig.OnDemandPercentageAboveBaseCapacity
 			}
 			if ng.SpotConfig.MaxPrice != nil {
-				event["spot_config.max_price._is_defined"] = true
-				event["spot_config.max_price"] = *ng.SpotConfig.MaxPrice
+				event[nodeGroupKey("spot_config.max_price._is_defined")] = true
+				event[nodeGroupKey("spot_config.max_price")] = *ng.SpotConfig.MaxPrice
 			}
 			if ng.SpotConfig.InstancePools != nil {
-				event["spot_config.instance_pools._is_defined"] = true
-				event["spot_config.instance_pools"] = *ng.SpotConfig.InstancePools
-			}
-			if ng.SpotConfig.OnDemandBackup != nil {
-				event["spot_config.on_demand_backup._is_defined"] = true
-				event["spot_config.on_demand_backup"] = *ng.SpotConfig.OnDemandBackup
+				event[nodeGroupKey("spot_config.instance_pools._is_defined")] = true
+				event[nodeGroupKey("spot_config.instance_pools")] = *ng.SpotConfig.InstancePools
 			}
 		}
 

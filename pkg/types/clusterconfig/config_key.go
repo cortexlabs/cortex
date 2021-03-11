@@ -34,7 +34,6 @@ const (
 	InstanceVolumeTypeKey                  = "instance_volume_type"
 	InstanceVolumeIOPSKey                  = "instance_volume_iops"
 	InstancePoolsKey                       = "instance_pools"
-	OnDemandBackupKey                      = "on_demand_backup"
 	MaxPriceKey                            = "max_price"
 
 	ProviderKey                        = "provider"
@@ -100,7 +99,6 @@ const (
 	OnDemandPercentageAboveBaseCapacityUserKey = "spot on demand percentage above base capacity"
 	MaxPriceUserKey                            = "spot max price ($ per hour)"
 	InstancePoolsUserKey                       = "spot instance pools"
-	OnDemandBackupUserKey                      = "on demand backup"
 
 	ProviderUserKey                        = "provider"
 	APIVersionUserKey                      = "cluster version"
