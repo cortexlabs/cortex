@@ -1422,6 +1422,7 @@ func (mc *ManagedConfig) TelemetryEvent() map[string]interface{} {
 	spotInstanceTypes := strset.New()
 	var totalMinSize, totalMaxSize int
 	var avgMinSize, avgMaxSize float64
+
 	event["nodegroup._len"] = len(mc.NodeGroups)
 	for _, ng := range mc.NodeGroups {
 		nodeGroupKey := func(field string) string {
