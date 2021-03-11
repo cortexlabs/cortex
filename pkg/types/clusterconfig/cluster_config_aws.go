@@ -48,10 +48,10 @@ const (
 )
 
 var (
-	_max_node_group_length_with_prefix = 19                                                 // node pool length name limit on GKE, using the same on AWS for consistency reasons
-	_max_node_group_length             = _max_node_group_length_with_prefix - len("cx-wd-") // or cx-ws-
-	_maxInstancePools                  = 20
-	_cachedCNISupportedInstances       *string
+	_maxNodeGroupLengthWithPrefix = 19                                            // node pool length name limit on GKE, using the same on AWS for consistency reasons
+	_maxNodeGroupLength           = _maxNodeGroupLengthWithPrefix - len("cx-wd-") // or cx-ws-
+	_maxInstancePools             = 20
+	_cachedCNISupportedInstances  *string
 	// This regex is stricter than the actual S3 rules
 	_strictS3BucketRegex = regexp.MustCompile(`^([a-z0-9])+(-[a-z0-9]+)*$`)
 	_defaultIAMPolicies  = []string{"arn:aws:iam::aws:policy/AmazonS3FullAccess"}
@@ -403,7 +403,7 @@ var ManagedConfigStructFieldValidations = []*cr.StructFieldValidation{
 							AllowEmpty:                        true,
 							TreatNullAsEmpty:                  true,
 							AlphaNumericDashUnderscoreOrEmpty: true,
-							MaxLength:                         _max_node_group_length,
+							MaxLength:                         _maxNodeGroupLength,
 						},
 					},
 					{
@@ -738,13 +738,13 @@ func (cc *Config) Validate(awsClient *aws.Client) error {
 	instances := []aws.InstanceTypeRequests{}
 	instanceTypeSpotHashes := []string{}
 	for idx, nodeGroup := range cc.NodeGroups {
-		var nodeGroupReferenceId string
+		var nodeGroupReferenceID string
 		if nodeGroup.Name == "" {
-			cc.NodeGroups[idx].Name = uuid.New().String()[:_max_node_group_length]
+			cc.NodeGroups[idx].Name = uuid.New().String()[:_maxNodeGroupLength]
 			nodeGroup.Name = cc.NodeGroups[idx].Name
-			nodeGroupReferenceId = strconv.FormatInt(int64(idx), 10)
+			nodeGroupReferenceID = strconv.FormatInt(int64(idx), 10)
 		} else {
-			nodeGroupReferenceId = nodeGroup.Name
+			nodeGroupReferenceID = nodeGroup.Name
 		}
 
 		if !slices.HasString(ngNames, nodeGroup.Name) {
@@ -755,18 +755,17 @@ func (cc *Config) Validate(awsClient *aws.Client) error {
 
 		instanceTypeSpotHash := hash.Strings(nodeGroup.InstanceType, strconv.FormatBool(nodeGroup.Spot))
 		if slices.HasString(instanceTypeSpotHashes, instanceTypeSpotHash) {
-			return errors.Wrap(ErrorNodeGroupsWithSameInstanceAndSpot(nodeGroup.InstanceType, nodeGroup.Spot), NodeGroupsKey, nodeGroupReferenceId)
-		} else {
-			instanceTypeSpotHashes = append(instanceTypeSpotHashes, instanceTypeSpotHash)
+			return errors.Wrap(ErrorNodeGroupsWithSameInstanceAndSpot(nodeGroup.InstanceType, nodeGroup.Spot), NodeGroupsKey, nodeGroupReferenceID)
 		}
+		instanceTypeSpotHashes = append(instanceTypeSpotHashes, instanceTypeSpotHash)
 
 		err := nodeGroup.validateNodeGroup(awsClient, cc.Region)
 		if err != nil {
-			return errors.Wrap(err, NodeGroupsKey, nodeGroupReferenceId)
+			return errors.Wrap(err, NodeGroupsKey, nodeGroupReferenceID)
 		}
 
 		if nodeGroup.SpotConfig != nil && nodeGroup.SpotConfig.OnDemandBackup != nil && *nodeGroup.SpotConfig.OnDemandBackup && len(cc.NodeGroups) > 1 {
-			return errors.Wrap(ErrorOnDemandBackupFieldNotPermitted(), NodeGroupsKey, nodeGroupReferenceId)
+			return errors.Wrap(ErrorOnDemandBackupFieldNotPermitted(), NodeGroupsKey, nodeGroupReferenceID)
 		}
 
 		instances = append(instances, aws.InstanceTypeRequests{
@@ -1064,11 +1063,11 @@ func AutoGenerateSpotConfig(spotConfig *SpotConfig, region string, instanceType 
 	}
 }
 
-func (cc *NodeGroup) FillEmptySpotFields(region string) {
-	if cc.SpotConfig == nil {
-		cc.SpotConfig = &SpotConfig{}
+func (ng *NodeGroup) FillEmptySpotFields(region string) {
+	if ng.SpotConfig == nil {
+		ng.SpotConfig = &SpotConfig{}
 	}
-	AutoGenerateSpotConfig(cc.SpotConfig, region, cc.InstanceType)
+	AutoGenerateSpotConfig(ng.SpotConfig, region, ng.InstanceType)
 }
 
 func validateBucketNameOrEmpty(bucket string) (string, error) {
@@ -1146,39 +1145,39 @@ func GetDefaults() (*Config, error) {
 	return cc, nil
 }
 
-func (cc *NodeGroup) MaxPossibleOnDemandInstances() int64 {
-	if cc.Spot == false || cc.SpotConfig == nil || cc.SpotConfig.OnDemandBackup == nil || *cc.SpotConfig.OnDemandBackup == true {
-		return cc.MaxInstances
+func (ng *NodeGroup) MaxPossibleOnDemandInstances() int64 {
+	if ng.Spot == false || ng.SpotConfig == nil || ng.SpotConfig.OnDemandBackup == nil || *ng.SpotConfig.OnDemandBackup == true {
+		return ng.MaxInstances
 	}
 
-	onDemandBaseCap, onDemandPctAboveBaseCap := cc.SpotConfigOnDemandValues()
-	return onDemandBaseCap + int64(math.Ceil(float64(onDemandPctAboveBaseCap)/100*float64(cc.MaxInstances-onDemandBaseCap)))
+	onDemandBaseCap, onDemandPctAboveBaseCap := ng.SpotConfigOnDemandValues()
+	return onDemandBaseCap + int64(math.Ceil(float64(onDemandPctAboveBaseCap)/100*float64(ng.MaxInstances-onDemandBaseCap)))
 }
 
-func (cc *NodeGroup) MaxPossibleSpotInstances() int64 {
-	if cc.Spot == false {
+func (ng *NodeGroup) MaxPossibleSpotInstances() int64 {
+	if ng.Spot == false {
 		return 0
 	}
 
-	if cc.SpotConfig == nil {
-		return cc.MaxInstances
+	if ng.SpotConfig == nil {
+		return ng.MaxInstances
 	}
 
-	onDemandBaseCap, onDemandPctAboveBaseCap := cc.SpotConfigOnDemandValues()
-	return cc.MaxInstances - onDemandBaseCap - int64(math.Floor(float64(onDemandPctAboveBaseCap)/100*float64(cc.MaxInstances-onDemandBaseCap)))
+	onDemandBaseCap, onDemandPctAboveBaseCap := ng.SpotConfigOnDemandValues()
+	return ng.MaxInstances - onDemandBaseCap - int64(math.Floor(float64(onDemandPctAboveBaseCap)/100*float64(ng.MaxInstances-onDemandBaseCap)))
 }
 
-func (cc *NodeGroup) SpotConfigOnDemandValues() (int64, int64) {
+func (ng *NodeGroup) SpotConfigOnDemandValues() (int64, int64) {
 	// default OnDemandBaseCapacity is 0
 	var onDemandBaseCapacity int64 = 0
-	if cc.SpotConfig.OnDemandBaseCapacity != nil {
-		onDemandBaseCapacity = *cc.SpotConfig.OnDemandBaseCapacity
+	if ng.SpotConfig.OnDemandBaseCapacity != nil {
+		onDemandBaseCapacity = *ng.SpotConfig.OnDemandBaseCapacity
 	}
 
 	// default OnDemandPercentageAboveBaseCapacity is 0
 	var onDemandPercentageAboveBaseCapacity int64 = 0
-	if cc.SpotConfig.OnDemandPercentageAboveBaseCapacity != nil {
-		onDemandPercentageAboveBaseCapacity = *cc.SpotConfig.OnDemandPercentageAboveBaseCapacity
+	if ng.SpotConfig.OnDemandPercentageAboveBaseCapacity != nil {
+		onDemandPercentageAboveBaseCapacity = *ng.SpotConfig.OnDemandPercentageAboveBaseCapacity
 	}
 
 	return onDemandBaseCapacity, onDemandPercentageAboveBaseCapacity

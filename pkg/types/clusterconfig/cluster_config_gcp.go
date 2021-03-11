@@ -37,8 +37,8 @@ import (
 )
 
 var (
-	_max_node_pool_length_with_prefix = 19                                                // node pool length name limit on GKE
-	_max_node_pool_length             = _max_node_pool_length_with_prefix - len("cx-wd-") // or cx-ws-
+	_maxNodePoolLengthWithPrefix = 19                                           // node pool length name limit on GKE
+	_maxNodePoolLength           = _maxNodePoolLengthWithPrefix - len("cx-wd-") // or cx-ws-
 )
 
 type GCPCoreConfig struct {
@@ -323,7 +323,7 @@ var GCPManagedConfigStructFieldValidations = []*cr.StructFieldValidation{
 							AllowEmpty:                        true,
 							TreatNullAsEmpty:                  true,
 							AlphaNumericDashUnderscoreOrEmpty: true,
-							MaxLength:                         _max_node_pool_length,
+							MaxLength:                         _maxNodePoolLength,
 						},
 					},
 					{
@@ -548,13 +548,13 @@ func (cc *GCPConfig) Validate(GCP *gcp.Client) error {
 	npNames := []string{}
 	nodePoolTypeHashes := []string{}
 	for idx, nodePool := range cc.NodePools {
-		var nodePoolReferenceId string
+		var nodePoolReferenceID string
 		if nodePool.Name == "" {
-			cc.NodePools[idx].Name = uuid.New().String()[:_max_node_pool_length]
+			cc.NodePools[idx].Name = uuid.New().String()[:_maxNodePoolLength]
 			nodePool.Name = cc.NodePools[idx].Name
-			nodePoolReferenceId = strconv.FormatInt(int64(idx), 10)
+			nodePoolReferenceID = strconv.FormatInt(int64(idx), 10)
 		} else {
-			nodePoolReferenceId = nodePool.Name
+			nodePoolReferenceID = nodePool.Name
 		}
 
 		if !slices.HasString(npNames, nodePool.Name) {
@@ -570,14 +570,13 @@ func (cc *GCPConfig) Validate(GCP *gcp.Client) error {
 			nodePoolTypeHash = hash.Strings(nodePool.InstanceType, strconv.FormatBool(nodePool.Preemptible))
 		}
 		if slices.HasString(nodePoolTypeHashes, nodePoolTypeHash) {
-			return errors.Wrap(ErrorGCPNodePoolsWithSameInstanceConfig(nodePool.InstanceType, nodePool.AcceleratorType, nodePool.AcceleratorsPerInstance, nodePool.Preemptible), NodePoolsKey, nodePoolReferenceId)
-		} else {
-			nodePoolTypeHashes = append(nodePoolTypeHashes, nodePoolTypeHash)
+			return errors.Wrap(ErrorGCPNodePoolsWithSameInstanceConfig(nodePool.InstanceType, nodePool.AcceleratorType, nodePool.AcceleratorsPerInstance, nodePool.Preemptible), NodePoolsKey, nodePoolReferenceID)
 		}
+		nodePoolTypeHashes = append(nodePoolTypeHashes, nodePoolTypeHash)
 
 		err := nodePool.validateNodePool(GCP, cc.Zone)
 		if err != nil {
-			return errors.Wrap(err, NodeGroupsKey, nodePoolReferenceId)
+			return errors.Wrap(err, NodeGroupsKey, nodePoolReferenceID)
 		}
 
 	}
