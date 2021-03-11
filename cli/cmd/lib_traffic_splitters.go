@@ -73,9 +73,14 @@ func trafficSplitTable(trafficSplitter schema.APIResponse, env cliconfig.Environ
 
 		apiRes := apisRes[0]
 		lastUpdated := time.Unix(apiRes.Spec.LastUpdated, 0)
+
+		apiName := apiRes.Spec.Name
+		if api.Shadow {
+			apiName += " (shadow)"
+		}
 		rows = append(rows, []interface{}{
 			env.Name,
-			apiRes.Spec.Name,
+			apiName,
 			api.Weight,
 			apiRes.Status.Message(),
 			apiRes.Status.Requested,
