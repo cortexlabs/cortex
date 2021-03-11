@@ -1048,7 +1048,7 @@ func AutoGenerateSpotConfig(spotConfig *SpotConfig, region string, instanceType 
 	}
 
 	if spotConfig.OnDemandBackup == nil {
-		spotConfig.OnDemandBackup = pointer.Bool(true)
+		spotConfig.OnDemandBackup = pointer.Bool(false)
 	}
 
 	if spotConfig.InstancePools == nil {
