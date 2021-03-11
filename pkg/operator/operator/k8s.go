@@ -1170,6 +1170,7 @@ func GeneratePreferredNodeAffinities() []kcore.PreferredSchedulingTerm {
 	}
 
 	if config.Provider == types.AWSProviderType {
+		numNodeGroups := len(config.ManagedConfigOrNil().NodeGroups)
 		for idx, nodeGroup := range config.ManagedConfigOrNil().NodeGroups {
 			var nodeGroupPrefix string
 			if nodeGroup.Spot {
@@ -1178,7 +1179,7 @@ func GeneratePreferredNodeAffinities() []kcore.PreferredSchedulingTerm {
 				nodeGroupPrefix = "cx-wd-"
 			}
 			affinities = append(affinities, kcore.PreferredSchedulingTerm{
-				Weight: int32(100 - idx),
+				Weight: int32(100 * (1 - float64(idx)/float64(numNodeGroups))),
 				Preference: kcore.NodeSelectorTerm{
 					MatchExpressions: []kcore.NodeSelectorRequirement{
 						{
@@ -1191,6 +1192,7 @@ func GeneratePreferredNodeAffinities() []kcore.PreferredSchedulingTerm {
 			})
 		}
 	} else {
+		numNodePools := len(config.GCPManagedConfigOrNil().NodePools)
 		for idx, nodePool := range config.GCPManagedConfigOrNil().NodePools {
 			var nodePoolPrefix string
 			if nodePool.Preemptible {
@@ -1199,7 +1201,7 @@ func GeneratePreferredNodeAffinities() []kcore.PreferredSchedulingTerm {
 				nodePoolPrefix = "cx-wd-"
 			}
 			affinities = append(affinities, kcore.PreferredSchedulingTerm{
-				Weight: int32(100 - idx),
+				Weight: int32(100 * (1 - float64(idx)/float64(numNodePools))),
 				Preference: kcore.NodeSelectorTerm{
 					MatchExpressions: []kcore.NodeSelectorRequirement{
 						{
