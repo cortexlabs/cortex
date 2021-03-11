@@ -53,7 +53,7 @@ var _cortexPolicy = `
 		{
 			"Effect": "Allow",
 			"Action": "sqs:*",
-			"Resource": "arn:aws:sqs:{{ .Region }}:{{ .AccountID }}:{{ .SQSPrefix }}*"
+			"Resource": "arn:aws:sqs:{{ .Region }}:{{ .AccountID }}:cortex-*"
 		},
 		{
 			"Effect": "Allow",
@@ -89,7 +89,6 @@ type CortexPolicyTemplateArgs struct {
 	LogGroup    string
 	Region      string
 	Bucket      string
-	SQSPrefix   string
 	AccountID   string
 }
 

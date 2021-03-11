@@ -107,9 +107,6 @@ def apply_spot_settings(nodegroup, config):
 
 def apply_gpu_settings(nodegroup):
     gpu_settings = {
-        "preBootstrapCommands": [
-            "sed -i 's/cgroupDriver:.*/cgroupDriver: cgroupfs/' /etc/eksctl/kubelet.yaml"
-        ],
         "tags": {
             "k8s.io/cluster-autoscaler/node-template/label/nvidia.com/gpu": "true",
             "k8s.io/cluster-autoscaler/node-template/taint/dedicated": "nvidia.com/gpu=true",
