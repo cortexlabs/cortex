@@ -511,8 +511,7 @@ func createGKECluster(clusterConfig *clusterconfig.GCPConfig, gcpClient *gcp.Cli
 				},
 				InitialNodeCount: int32(initialNodeCount),
 			})
-		}
-		if nodePool.OnDemandBackup || !nodePool.Preemptible {
+		} else {
 			gkeClusterConfig.NodePools = append(gkeClusterConfig.NodePools, &containerpb.NodePool{
 				Name: "cx-wd-" + nodePool.Name,
 				Config: &containerpb.NodeConfig{
