@@ -31,6 +31,7 @@ import (
 const (
 	ErrInvalidRegion                          = "clusterconfig.invalid_region"
 	ErrNoNodeGroupSpecified                   = "clusterconfig.no_nodegroup_specified"
+	ErrMaxNumOfNodeGroupsReached              = "clusterconfig.max_num_of_nodegroups_reached"
 	ErrDuplicateNodeGroupName                 = "clusterconfig.duplicate_nodegroup_name"
 	ErrNodeGroupsWithSameInstanceAndSpot      = "clusterconfig.nodegroups_with_same_instance_and_spot"
 	ErrInstanceTypeTooSmall                   = "clusterconfig.instance_type_too_small"
@@ -72,6 +73,7 @@ const (
 	ErrGCPProjectMustBeSpecified                  = "clusterconfig.gcp_project_must_be_specified"
 	ErrGCPInvalidZone                             = "clusterconfig.gcp_invalid_zone"
 	ErrGCPNoNodePoolSpecified                     = "clusterconfig.gcp_no_nodepool_specified"
+	ErrGCPMaxNumOfNodePoolsReached                = "clusterconfig.gcp_max_num_of_nodepools_reached"
 	ErrGCPDuplicateNodePoolName                   = "clusterconfig.gcp_duplicate_nodepool_name"
 	ErrGCPNodePoolsWithSameInstanceConfig         = "clusterconfig.gcp_nodepools_with_same_instance_config"
 	ErrGCPInvalidInstanceType                     = "clusterconfig.gcp_invalid_instance_type"
@@ -90,6 +92,13 @@ func ErrorNoNodeGroupSpecified() error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrNoNodeGroupSpecified,
 		Message: "no nodegroup was specified; please specify at least 1 nodegroup",
+	})
+}
+
+func ErrorMaxNumOfNodeGroupsReached(maxNodeGroups int64) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrMaxNumOfNodeGroupsReached,
+		Message: fmt.Sprintf("cannot have more than %d nodegroups", maxNodeGroups),
 	})
 }
 
@@ -389,6 +398,13 @@ func ErrorGCPNoNodePoolSpecified() error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrGCPNoNodePoolSpecified,
 		Message: "no nodepool was specified; please specify at least 1 nodepool",
+	})
+}
+
+func ErrorGCPMaxNumOfNodePoolsReached(maxNodePools int64) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrGCPMaxNumOfNodePoolsReached,
+		Message: fmt.Sprintf("cannot have more than %d nodepools", maxNodePools),
 	})
 }
 

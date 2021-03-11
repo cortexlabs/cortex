@@ -24,7 +24,8 @@ import (
 )
 
 const (
-	ClusterNameTag = "cortex.dev/cluster-name"
+	ClusterNameTag       = "cortex.dev/cluster-name"
+	MaxNodePoolsOrGroups = 100
 )
 
 var (

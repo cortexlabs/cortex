@@ -726,6 +726,9 @@ func (cc *Config) Validate(awsClient *aws.Client) error {
 	if numNodeGroups == 0 {
 		return ErrorNoNodeGroupSpecified()
 	}
+	if numNodeGroups > MaxNodePoolsOrGroups {
+		return ErrorMaxNumOfNodeGroupsReached(MaxNodePoolsOrGroups)
+	}
 
 	ngNames := []string{}
 	instances := []aws.InstanceTypeRequests{}

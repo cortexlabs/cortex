@@ -116,9 +116,14 @@ func k8sJobSpec(api *spec.API, job *spec.TaskJob) (*kbatch.Job, error) {
 				InitContainers: []kcore.Container{
 					operator.TaskInitContainer(api),
 				},
-				Containers:         containers,
-				NodeSelector:       operator.NodeSelectors(),
-				Tolerations:        operator.GenerateResourceTolerations(api.Compute),
+				Containers:   containers,
+				NodeSelector: operator.NodeSelectors(),
+				Tolerations:  operator.GenerateResourceTolerations(api.Compute),
+				Affinity: &kcore.Affinity{
+					NodeAffinity: &kcore.NodeAffinity{
+						PreferredDuringSchedulingIgnoredDuringExecution: operator.GeneratePreferredNodeAffinities(),
+					},
+				},
 				Volumes:            volumes,
 				ServiceAccountName: operator.ServiceAccountName,
 			},

@@ -1162,6 +1162,60 @@ func GenerateResourceTolerations(compute *userconfig.Compute) []kcore.Toleration
 	return tolerations
 }
 
+func GeneratePreferredNodeAffinities() []kcore.PreferredSchedulingTerm {
+	affinities := []kcore.PreferredSchedulingTerm{}
+
+	if config.GCPManagedConfigOrNil() == nil && config.AWSInstanceMetadataOrNil() == nil {
+		return affinities
+	}
+
+	if config.Provider == types.AWSProviderType {
+		for idx, nodeGroup := range config.ManagedConfigOrNil().NodeGroups {
+			var nodeGroupPrefix string
+			if nodeGroup.Spot {
+				nodeGroupPrefix = "cx-ws-"
+			} else {
+				nodeGroupPrefix = "cx-wd-"
+			}
+			affinities = append(affinities, kcore.PreferredSchedulingTerm{
+				Weight: int32(100 - idx),
+				Preference: kcore.NodeSelectorTerm{
+					MatchExpressions: []kcore.NodeSelectorRequirement{
+						{
+							Key:      "alpha.eksctl.io/nodegroup-name",
+							Operator: kcore.NodeSelectorOpIn,
+							Values:   []string{nodeGroupPrefix + nodeGroup.Name},
+						},
+					},
+				},
+			})
+		}
+	} else {
+		for idx, nodePool := range config.GCPManagedConfigOrNil().NodePools {
+			var nodePoolPrefix string
+			if nodePool.Preemptible {
+				nodePoolPrefix = "cx-ws-"
+			} else {
+				nodePoolPrefix = "cx-wd-"
+			}
+			affinities = append(affinities, kcore.PreferredSchedulingTerm{
+				Weight: int32(100 - idx),
+				Preference: kcore.NodeSelectorTerm{
+					MatchExpressions: []kcore.NodeSelectorRequirement{
+						{
+							Key:      "cloud.google.com/gke-nodepool",
+							Operator: kcore.NodeSelectorOpIn,
+							Values:   []string{nodePoolPrefix + nodePool.Name},
+						},
+					},
+				},
+			})
+		}
+	}
+
+	return affinities
+}
+
 func K8sName(apiName string) string {
 	return "api-" + apiName
 }

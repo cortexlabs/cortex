@@ -82,9 +82,14 @@ func tensorflowAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.D
 				InitContainers: []kcore.Container{
 					operator.InitContainer(api),
 				},
-				Containers:         containers,
-				NodeSelector:       operator.NodeSelectors(),
-				Tolerations:        operator.GenerateResourceTolerations(api.Compute),
+				Containers:   containers,
+				NodeSelector: operator.NodeSelectors(),
+				Tolerations:  operator.GenerateResourceTolerations(api.Compute),
+				Affinity: &kcore.Affinity{
+					NodeAffinity: &kcore.NodeAffinity{
+						PreferredDuringSchedulingIgnoredDuringExecution: operator.GeneratePreferredNodeAffinities(),
+					},
+				},
 				Volumes:            volumes,
 				ServiceAccountName: operator.ServiceAccountName,
 			},
@@ -132,9 +137,14 @@ func pythonAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deplo
 				InitContainers: []kcore.Container{
 					operator.InitContainer(api),
 				},
-				Containers:         containers,
-				NodeSelector:       operator.NodeSelectors(),
-				Tolerations:        operator.GenerateResourceTolerations(api.Compute),
+				Containers:   containers,
+				NodeSelector: operator.NodeSelectors(),
+				Tolerations:  operator.GenerateResourceTolerations(api.Compute),
+				Affinity: &kcore.Affinity{
+					NodeAffinity: &kcore.NodeAffinity{
+						PreferredDuringSchedulingIgnoredDuringExecution: operator.GeneratePreferredNodeAffinities(),
+					},
+				},
 				Volumes:            volumes,
 				ServiceAccountName: operator.ServiceAccountName,
 			},
@@ -184,8 +194,13 @@ func onnxAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deploym
 				Containers:                    containers,
 				NodeSelector:                  operator.NodeSelectors(),
 				Tolerations:                   operator.GenerateResourceTolerations(api.Compute),
-				Volumes:                       volumes,
-				ServiceAccountName:            operator.ServiceAccountName,
+				Affinity: &kcore.Affinity{
+					NodeAffinity: &kcore.NodeAffinity{
+						PreferredDuringSchedulingIgnoredDuringExecution: operator.GeneratePreferredNodeAffinities(),
+					},
+				},
+				Volumes:            volumes,
+				ServiceAccountName: operator.ServiceAccountName,
 			},
 		},
 	})

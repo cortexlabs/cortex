@@ -209,7 +209,13 @@ spec:
             {% if config['provider'] == 'aws' %}
             - --node-group-auto-discovery=asg:tag=k8s.io/cluster-autoscaler/enabled,k8s.io/cluster-autoscaler/{{ config['cluster_name'] }}
             {% else %}
-            - --node-group-auto-discovery=mig:namePrefix=gke-{{ config['cluster_name'] }}-cx,min={{ config['node_pools'] | sum(attribute='min_instances') }},max={{ config['node_pools'] | sum(attribute='max_instances') }}
+            {% for np in config['node_pools'] %}
+            {% if np['preemptile'] %}
+            - --node-group-auto-discovery=mig:namePrefix=gke-{{ config['cluster_name'] }}-cx-ws-{{ np['name'] }},min={{ np['min_instances'] }},max={{ np['max_instances'] }}
+            {% else %}
+            - --node-group-auto-discovery=mig:namePrefix=gke-{{ config['cluster_name'] }}-cx-wd-{{ np['name'] }},min={{ np['min_instances'] }},max={{ np['max_instances'] }}
+            {% endif %}
+            {% endfor %}
             {% endif %}
           volumeMounts:
             - name: ssl-certs

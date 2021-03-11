@@ -536,6 +536,9 @@ func (cc *GCPConfig) Validate(GCP *gcp.Client) error {
 	if numNodePools == 0 {
 		return ErrorGCPNoNodePoolSpecified()
 	}
+	if numNodePools > MaxNodePoolsOrGroups {
+		return ErrorGCPMaxNumOfNodePoolsReached(MaxNodePoolsOrGroups)
+	}
 
 	npNames := []string{}
 	nodePoolTypeHashes := []string{}
