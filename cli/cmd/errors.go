@@ -223,28 +223,6 @@ func ErrorOnlyAWSClusterEnvVarSet() error {
 	})
 }
 
-func ErrorOnlyAWSClusterFlagSet() error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrOnlyAWSClusterFlagSet,
-		Message: "when specifying --cluster-aws-key and --cluster-aws-secret, please also specify --aws-key and --aws-secret",
-	})
-}
-
-func ErrorMissingAWSCredentials() error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrMissingAWSCredentials,
-		Message: "unable to find aws credentials; please specify aws credentials using the flags --aws-key and --aws-secret",
-	})
-}
-
-// Deprecation: specifying aws creds in cluster configuration is no longer supported
-func ErrorCredentialsInClusterConfig(cmd string, path string) error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrCredentialsInClusterConfig,
-		Message: fmt.Sprintf("specifying credentials in the cluster configuration is no longer supported, please specify aws credentials using flags (e.g. cortex cluster %s --config %s --aws-key <AWS_ACCESS_KEY_ID> --aws-secret <AWS_SECRET_ACCESS_KEY>) or set environment variables; see https://docs.cortex.dev/v/%s/ for more information", cmd, path, consts.CortexVersionMinor),
-	})
-}
-
 func ErrorClusterUp(out string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrClusterUp,

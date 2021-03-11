@@ -88,8 +88,8 @@ func getJobStatusFromJobState(jobState *job.State, k8sJob *kbatch.Job, pods []kc
 		}
 	}
 
-	if jobState.Status.IsCompleted() && jobState.EndTime != nil {
-		metrics, err := getBatchMetrics(jobKey, *jobState.EndTime)
+	if _, ok := jobState.LastUpdatedMap[_completedMetricsFileKey]; ok && jobState.Status.IsCompleted() {
+		metrics, err := readMetricsFromCloud(jobKey)
 		if err != nil {
 			return nil, err
 		}
