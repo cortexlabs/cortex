@@ -67,8 +67,6 @@ var (
 
 func clusterInit() {
 	_clusterUpCmd.Flags().SortFlags = false
-	addAWSCredentialsFlags(_clusterUpCmd)
-	addClusterAWSCredentialsFlags(_clusterUpCmd)
 	_clusterUpCmd.Flags().StringVarP(&_flagClusterUpEnv, "configure-env", "e", "aws", "name of environment to configure")
 	_clusterUpCmd.Flags().BoolVarP(&_flagClusterDisallowPrompt, "yes", "y", false, "skip prompts")
 	_clusterCmd.AddCommand(_clusterUpCmd)
@@ -77,15 +75,12 @@ func clusterInit() {
 	addClusterConfigFlag(_clusterInfoCmd)
 	addClusterNameFlag(_clusterInfoCmd)
 	addClusterRegionFlag(_clusterInfoCmd)
-	addAWSCredentialsFlags(_clusterInfoCmd)
 	_clusterInfoCmd.Flags().StringVarP(&_flagClusterInfoEnv, "configure-env", "e", "", "name of environment to configure")
 	_clusterInfoCmd.Flags().BoolVarP(&_flagClusterInfoDebug, "debug", "d", false, "save the current cluster state to a file")
 	_clusterInfoCmd.Flags().BoolVarP(&_flagClusterDisallowPrompt, "yes", "y", false, "skip prompts")
 	_clusterCmd.AddCommand(_clusterInfoCmd)
 
 	_clusterConfigureCmd.Flags().SortFlags = false
-	addAWSCredentialsFlags(_clusterConfigureCmd)
-	addClusterAWSCredentialsFlags(_clusterConfigureCmd)
 	_clusterConfigureCmd.Flags().StringVarP(&_flagClusterConfigureEnv, "configure-env", "e", "", "name of environment to configure")
 	_clusterConfigureCmd.Flags().BoolVarP(&_flagClusterDisallowPrompt, "yes", "y", false, "skip prompts")
 	_clusterCmd.AddCommand(_clusterConfigureCmd)
@@ -94,7 +89,6 @@ func clusterInit() {
 	addClusterConfigFlag(_clusterDownCmd)
 	addClusterNameFlag(_clusterDownCmd)
 	addClusterRegionFlag(_clusterDownCmd)
-	addAWSCredentialsFlags(_clusterDownCmd)
 	_clusterDownCmd.Flags().BoolVarP(&_flagClusterDisallowPrompt, "yes", "y", false, "skip prompts")
 	_clusterDownCmd.Flags().BoolVar(&_flagClusterDownKeepVolumes, "keep-volumes", false, "keep cortex provisioned persistent volumes")
 	_clusterCmd.AddCommand(_clusterDownCmd)
@@ -103,7 +97,6 @@ func clusterInit() {
 	addClusterConfigFlag(_clusterExportCmd)
 	addClusterNameFlag(_clusterExportCmd)
 	addClusterRegionFlag(_clusterExportCmd)
-	addAWSCredentialsFlags(_clusterExportCmd)
 	_clusterCmd.AddCommand(_clusterExportCmd)
 }
 
@@ -118,16 +111,6 @@ func addClusterNameFlag(cmd *cobra.Command) {
 
 func addClusterRegionFlag(cmd *cobra.Command) {
 	cmd.Flags().StringVarP(&_flagClusterRegion, "region", "r", "", "aws region of the cluster")
-}
-
-func addAWSCredentialsFlags(cmd *cobra.Command) {
-	cmd.Flags().StringVar(&_flagAWSAccessKeyID, "aws-key", "", "aws access key id")
-	cmd.Flags().StringVar(&_flagAWSSecretAccessKey, "aws-secret", "", "aws secret access key")
-}
-
-func addClusterAWSCredentialsFlags(cmd *cobra.Command) {
-	cmd.Flags().StringVar(&_flagClusterAWSAccessKeyID, "cluster-aws-key", "", "aws access key id to be used by the cluster")
-	cmd.Flags().StringVar(&_flagClusterAWSSecretAccessKey, "cluster-aws-secret", "", "aws secret access key to be used by the cluster")
 }
 
 var _clusterCmd = &cobra.Command{
@@ -157,11 +140,6 @@ var _clusterUpCmd = &cobra.Command{
 		}
 
 		if _, err := docker.GetDockerClient(); err != nil {
-			exit.Error(err)
-		}
-
-		// Deprecation: specifying aws creds in cluster configuration is no longer supported
-		if err := detectAWSCredsInConfigFile(cmd.Use, clusterConfigFile); err != nil {
 			exit.Error(err)
 		}
 
@@ -325,11 +303,6 @@ var _clusterConfigureCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
-		// Deprecation: specifying aws creds in cluster configuration is no longer supported
-		if err := detectAWSCredsInConfigFile(cmd.Use, clusterConfigFile); err != nil {
-			exit.Error(err)
-		}
-
 		accessConfig, err := getClusterAccessConfigWithCache()
 		if err != nil {
 			exit.Error(err)
@@ -393,11 +366,6 @@ var _clusterInfoCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
-		// Deprecation: specifying aws creds in cluster configuration is no longer supported
-		if err := detectAWSCredsInConfigFile(cmd.Use, _flagClusterConfig); err != nil {
-			exit.Error(err)
-		}
-
 		accessConfig, err := getClusterAccessConfigWithCache()
 		if err != nil {
 			exit.Error(err)
@@ -424,11 +392,6 @@ var _clusterDownCmd = &cobra.Command{
 		telemetry.Event("cli.cluster.down", map[string]interface{}{"provider": types.AWSProviderType})
 
 		if _, err := docker.GetDockerClient(); err != nil {
-			exit.Error(err)
-		}
-
-		// Deprecation: specifying aws creds in cluster configuration is no longer supported
-		if err := detectAWSCredsInConfigFile(cmd.Use, _flagClusterConfig); err != nil {
 			exit.Error(err)
 		}
 
@@ -547,11 +510,6 @@ var _clusterExportCmd = &cobra.Command{
 	Args:  cobra.RangeArgs(0, 2),
 	Run: func(cmd *cobra.Command, args []string) {
 		telemetry.Event("cli.cluster.export", map[string]interface{}{"provider": types.AWSProviderType})
-
-		// Deprecation: specifying aws creds in cluster configuration is no longer supported
-		if err := detectAWSCredsInConfigFile(cmd.Use, _flagClusterConfig); err != nil {
-			exit.Error(err)
-		}
 
 		accessConfig, err := getClusterAccessConfigWithCache()
 		if err != nil {
