@@ -738,9 +738,13 @@ func (cc *Config) Validate(awsClient *aws.Client) error {
 	instances := []aws.InstanceTypeRequests{}
 	instanceTypeSpotHashes := []string{}
 	for idx, nodeGroup := range cc.NodeGroups {
+		var nodeGroupReferenceId string
 		if nodeGroup.Name == "" {
 			cc.NodeGroups[idx].Name = uuid.New().String()[:_max_node_group_length]
 			nodeGroup.Name = cc.NodeGroups[idx].Name
+			nodeGroupReferenceId = strconv.FormatInt(int64(idx), 10)
+		} else {
+			nodeGroupReferenceId = nodeGroup.Name
 		}
 
 		if !slices.HasString(ngNames, nodeGroup.Name) {
@@ -751,18 +755,18 @@ func (cc *Config) Validate(awsClient *aws.Client) error {
 
 		instanceTypeSpotHash := hash.Strings(nodeGroup.InstanceType, strconv.FormatBool(nodeGroup.Spot))
 		if slices.HasString(instanceTypeSpotHashes, instanceTypeSpotHash) {
-			return errors.Wrap(ErrorNodeGroupsWithSameInstanceAndSpot(nodeGroup.InstanceType, nodeGroup.Spot), NodeGroupsKey, nodeGroup.Name)
+			return errors.Wrap(ErrorNodeGroupsWithSameInstanceAndSpot(nodeGroup.InstanceType, nodeGroup.Spot), NodeGroupsKey, nodeGroupReferenceId)
 		} else {
 			instanceTypeSpotHashes = append(instanceTypeSpotHashes, instanceTypeSpotHash)
 		}
 
 		err := nodeGroup.validateNodeGroup(awsClient, cc.Region)
 		if err != nil {
-			return errors.Wrap(err, NodeGroupsKey, nodeGroup.Name)
+			return errors.Wrap(err, NodeGroupsKey, nodeGroupReferenceId)
 		}
 
 		if nodeGroup.SpotConfig != nil && nodeGroup.SpotConfig.OnDemandBackup != nil && *nodeGroup.SpotConfig.OnDemandBackup && len(cc.NodeGroups) > 1 {
-			return errors.Wrap(ErrorOnDemandBackupFieldNotPermitted(), NodeGroupsKey)
+			return errors.Wrap(ErrorOnDemandBackupFieldNotPermitted(), NodeGroupsKey, nodeGroupReferenceId)
 		}
 
 		instances = append(instances, aws.InstanceTypeRequests{
@@ -876,37 +880,37 @@ func (cc *Config) Validate(awsClient *aws.Client) error {
 	return nil
 }
 
-func (cc *NodeGroup) validateNodeGroup(awsClient *aws.Client, region string) error {
-	if cc.MinInstances > cc.MaxInstances {
-		return ErrorMinInstancesGreaterThanMax(cc.MinInstances, cc.MaxInstances)
+func (ng *NodeGroup) validateNodeGroup(awsClient *aws.Client, region string) error {
+	if ng.MinInstances > ng.MaxInstances {
+		return ErrorMinInstancesGreaterThanMax(ng.MinInstances, ng.MaxInstances)
 	}
 
-	primaryInstanceType := cc.InstanceType
+	primaryInstanceType := ng.InstanceType
 	if _, ok := aws.InstanceMetadatas[region][primaryInstanceType]; !ok {
 		return errors.Wrap(ErrorInstanceTypeNotSupportedInRegion(primaryInstanceType, region), InstanceTypeKey)
 	}
 
 	// Throw error if IOPS defined for other storage than io1
-	if cc.InstanceVolumeType != IO1VolumeType && cc.InstanceVolumeIOPS != nil {
-		return ErrorIOPSNotSupported(cc.InstanceVolumeType)
+	if ng.InstanceVolumeType != IO1VolumeType && ng.InstanceVolumeIOPS != nil {
+		return ErrorIOPSNotSupported(ng.InstanceVolumeType)
 	}
 
-	if cc.InstanceVolumeType == IO1VolumeType && cc.InstanceVolumeIOPS != nil {
-		if *cc.InstanceVolumeIOPS > cc.InstanceVolumeSize*50 {
-			return ErrorIOPSTooLarge(*cc.InstanceVolumeIOPS, cc.InstanceVolumeSize)
+	if ng.InstanceVolumeType == IO1VolumeType && ng.InstanceVolumeIOPS != nil {
+		if *ng.InstanceVolumeIOPS > ng.InstanceVolumeSize*50 {
+			return ErrorIOPSTooLarge(*ng.InstanceVolumeIOPS, ng.InstanceVolumeSize)
 		}
 	}
 
-	if aws.EBSMetadatas[region][cc.InstanceVolumeType.String()].IOPSConfigurable && cc.InstanceVolumeIOPS == nil {
-		cc.InstanceVolumeIOPS = pointer.Int64(libmath.MinInt64(cc.InstanceVolumeSize*50, 3000))
+	if aws.EBSMetadatas[region][ng.InstanceVolumeType.String()].IOPSConfigurable && ng.InstanceVolumeIOPS == nil {
+		ng.InstanceVolumeIOPS = pointer.Int64(libmath.MinInt64(ng.InstanceVolumeSize*50, 3000))
 	}
 
-	if cc.Spot {
-		cc.FillEmptySpotFields(region)
+	if ng.Spot {
+		ng.FillEmptySpotFields(region)
 
 		primaryInstance := aws.InstanceMetadatas[region][primaryInstanceType]
 
-		for _, instanceType := range cc.SpotConfig.InstanceDistribution {
+		for _, instanceType := range ng.SpotConfig.InstanceDistribution {
 			if instanceType == primaryInstanceType {
 				continue
 			}
@@ -922,17 +926,17 @@ func (cc *NodeGroup) validateNodeGroup(awsClient *aws.Client, region string) err
 
 			spotInstancePrice, awsErr := awsClient.SpotInstancePrice(instanceMetadata.Type)
 			if awsErr == nil {
-				if err := CheckSpotInstancePriceCompatibility(primaryInstance, instanceMetadata, cc.SpotConfig.MaxPrice, spotInstancePrice); err != nil {
+				if err := CheckSpotInstancePriceCompatibility(primaryInstance, instanceMetadata, ng.SpotConfig.MaxPrice, spotInstancePrice); err != nil {
 					return errors.Wrap(err, SpotConfigKey, InstanceDistributionKey)
 				}
 			}
 		}
 
-		if cc.SpotConfig.OnDemandBaseCapacity != nil && *cc.SpotConfig.OnDemandBaseCapacity > cc.MaxInstances {
-			return ErrorOnDemandBaseCapacityGreaterThanMax(*cc.SpotConfig.OnDemandBaseCapacity, cc.MaxInstances)
+		if ng.SpotConfig.OnDemandBaseCapacity != nil && *ng.SpotConfig.OnDemandBaseCapacity > ng.MaxInstances {
+			return ErrorOnDemandBaseCapacityGreaterThanMax(*ng.SpotConfig.OnDemandBaseCapacity, ng.MaxInstances)
 		}
 	} else {
-		if cc.SpotConfig != nil {
+		if ng.SpotConfig != nil {
 			return ErrorConfiguredWhenSpotIsNotEnabled(SpotConfigKey)
 		}
 	}
