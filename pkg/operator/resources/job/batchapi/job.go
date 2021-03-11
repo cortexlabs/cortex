@@ -220,10 +220,12 @@ func handleJobSubmissionError(jobKey spec.JobKey, jobErr error) {
 	}
 }
 
+// delete k8s job, queue and save batch metrics from prometheus to cloud
 func deleteJobRuntimeResources(jobKey spec.JobKey) error {
 	err := errors.FirstError(
 		deleteK8sJob(jobKey),
 		deleteQueueByJobKeyIfExists(jobKey),
+		saveMetricsToCloud(jobKey),
 	)
 
 	if err != nil {

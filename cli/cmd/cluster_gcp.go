@@ -53,7 +53,6 @@ var (
 
 func clusterGCPInit() {
 	_clusterGCPUpCmd.Flags().SortFlags = false
-	addClusterGCPConfigFlag(_clusterGCPUpCmd)
 	_clusterGCPUpCmd.Flags().StringVarP(&_flagClusterGCPUpEnv, "configure-env", "e", "gcp", "name of environment to configure")
 	addClusterGCPDisallowPromptFlag(_clusterGCPUpCmd)
 	_clusterGCPCmd.AddCommand(_clusterGCPUpCmd)
@@ -105,11 +104,13 @@ var _clusterGCPCmd = &cobra.Command{
 }
 
 var _clusterGCPUpCmd = &cobra.Command{
-	Use:   "up",
+	Use:   "up [CLUSTER_CONFIG_FILE]",
 	Short: "spin up a cluster on gcp",
-	Args:  cobra.NoArgs,
+	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		telemetry.EventNotify("cli.cluster.up", map[string]interface{}{"provider": types.GCPProviderType})
+
+		clusterConfigFile := args[0]
 
 		envExists, err := isEnvConfigured(_flagClusterGCPUpEnv)
 		if err != nil {
@@ -127,32 +128,32 @@ var _clusterGCPUpCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
-		accessConfig, err := getNewGCPClusterAccessConfig(_flagClusterGCPDisallowPrompt)
+		accessConfig, err := getNewGCPClusterAccessConfig(clusterConfigFile)
 		if err != nil {
 			exit.Error(err)
 		}
 
-		gcpClient, err := gcp.NewFromEnvCheckProjectID(*accessConfig.Project)
+		gcpClient, err := gcp.NewFromEnvCheckProjectID(accessConfig.Project)
 		if err != nil {
 			exit.Error(err)
 		}
 
-		clusterConfig, err := getGCPInstallClusterConfig(gcpClient, *accessConfig, _flagClusterGCPDisallowPrompt)
+		clusterConfig, err := getGCPInstallClusterConfig(gcpClient, clusterConfigFile, _flagClusterGCPDisallowPrompt)
 		if err != nil {
 			exit.Error(err)
 		}
 
-		gkeClusterName := fmt.Sprintf("projects/%s/locations/%s/clusters/%s", *clusterConfig.Project, *clusterConfig.Zone, clusterConfig.ClusterName)
+		gkeClusterName := fmt.Sprintf("projects/%s/locations/%s/clusters/%s", clusterConfig.Project, clusterConfig.Zone, clusterConfig.ClusterName)
 
 		clusterExists, err := gcpClient.ClusterExists(gkeClusterName)
 		if err != nil {
 			exit.Error(err)
 		}
 		if clusterExists {
-			exit.Error(ErrorGCPClusterAlreadyExists(clusterConfig.ClusterName, *clusterConfig.Zone, *clusterConfig.Project))
+			exit.Error(ErrorGCPClusterAlreadyExists(clusterConfig.ClusterName, clusterConfig.Zone, clusterConfig.Project))
 		}
 
-		err = createGSBucketIfNotFound(gcpClient, clusterConfig.Bucket, gcp.ZoneToRegion(*accessConfig.Zone))
+		err = createGSBucketIfNotFound(gcpClient, clusterConfig.Bucket, gcp.ZoneToRegion(accessConfig.Zone))
 		if err != nil {
 			exit.Error(err)
 		}
@@ -208,7 +209,7 @@ var _clusterGCPInfoCmd = &cobra.Command{
 		}
 
 		// need to ensure that the google creds are configured for the manager
-		_, err = gcp.NewFromEnvCheckProjectID(*accessConfig.Project)
+		_, err = gcp.NewFromEnvCheckProjectID(accessConfig.Project)
 		if err != nil {
 			exit.Error(err)
 		}
@@ -237,13 +238,13 @@ var _clusterGCPDownCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
-		gcpClient, err := gcp.NewFromEnvCheckProjectID(*accessConfig.Project)
+		gcpClient, err := gcp.NewFromEnvCheckProjectID(accessConfig.Project)
 		if err != nil {
 			exit.Error(err)
 		}
 
-		gkeClusterName := fmt.Sprintf("projects/%s/locations/%s/clusters/%s", *accessConfig.Project, *accessConfig.Zone, *accessConfig.ClusterName)
-		bucketName := clusterconfig.GCPBucketName(*accessConfig.ClusterName, *accessConfig.Project, *accessConfig.Zone)
+		gkeClusterName := fmt.Sprintf("projects/%s/locations/%s/clusters/%s", accessConfig.Project, accessConfig.Zone, accessConfig.ClusterName)
+		bucketName := clusterconfig.GCPBucketName(accessConfig.ClusterName, accessConfig.Project, accessConfig.Zone)
 
 		clusterExists, err := gcpClient.ClusterExists(gkeClusterName)
 		if err != nil {
@@ -251,16 +252,16 @@ var _clusterGCPDownCmd = &cobra.Command{
 		}
 		if !clusterExists {
 			gcpClient.DeleteBucket(bucketName) // silently try to delete the bucket in case it got left behind
-			exit.Error(ErrorGCPClusterDoesntExist(*accessConfig.ClusterName, *accessConfig.Zone, *accessConfig.Project))
+			exit.Error(ErrorGCPClusterDoesntExist(accessConfig.ClusterName, accessConfig.Zone, accessConfig.Project))
 		}
 
 		// updating CLI env is best-effort, so ignore errors
 		operatorLoadBalancerIP, _ := getGCPOperatorLoadBalancerIP(gkeClusterName, gcpClient)
 
 		if _flagClusterGCPDisallowPrompt {
-			fmt.Printf("your cluster named \"%s\" in %s (zone: %s) will be spun down and all apis will be deleted\n\n", *accessConfig.ClusterName, *accessConfig.Project, *accessConfig.Zone)
+			fmt.Printf("your cluster named \"%s\" in %s (zone: %s) will be spun down and all apis will be deleted\n\n", accessConfig.ClusterName, accessConfig.Project, accessConfig.Zone)
 		} else {
-			prompt.YesOrExit(fmt.Sprintf("your cluster named \"%s\" in %s (zone: %s) will be spun down and all apis will be deleted, are you sure you want to continue?", *accessConfig.ClusterName, *accessConfig.Project, *accessConfig.Zone), "", "")
+			prompt.YesOrExit(fmt.Sprintf("your cluster named \"%s\" in %s (zone: %s) will be spun down and all apis will be deleted, are you sure you want to continue?", accessConfig.ClusterName, accessConfig.Project, accessConfig.Zone), "", "")
 		}
 
 		fmt.Print("￮ spinning down the cluster ")
@@ -276,12 +277,12 @@ var _clusterGCPDownCmd = &cobra.Command{
 			}
 			fmt.Print("\n")
 
-			gkePvcDiskPrefix := fmt.Sprintf("gke-%s", *accessConfig.ClusterName)
+			gkePvcDiskPrefix := fmt.Sprintf("gke-%s", accessConfig.ClusterName)
 			if err != nil {
-				fmt.Print(fmt.Sprintf("￮ failed to delete persistent disks from storage, please visit https://console.cloud.google.com/compute/disks?project=%s to manually delete the disks starting with the %s prefix: %s", *accessConfig.Project, gkePvcDiskPrefix, err.Error()))
+				fmt.Print(fmt.Sprintf("￮ failed to delete persistent disks from storage, please visit https://console.cloud.google.com/compute/disks?project=%s to manually delete the disks starting with the %s prefix: %s", accessConfig.Project, gkePvcDiskPrefix, err.Error()))
 				telemetry.Error(ErrorClusterDown(err.Error()))
 			} else {
-				fmt.Print(fmt.Sprintf("￮ failed to delete persistent disks from storage, please visit https://console.cloud.google.com/compute/disks?project=%s to manually delete the disks starting with the %s prefix", *accessConfig.Project, gkePvcDiskPrefix))
+				fmt.Print(fmt.Sprintf("￮ failed to delete persistent disks from storage, please visit https://console.cloud.google.com/compute/disks?project=%s to manually delete the disks starting with the %s prefix", accessConfig.Project, gkePvcDiskPrefix))
 				telemetry.Error(ErrorClusterDown(output))
 			}
 
@@ -320,7 +321,7 @@ var _clusterGCPDownCmd = &cobra.Command{
 			}
 		}
 
-		cachedClusterConfigPath := cachedGCPClusterConfigPath(*accessConfig.ClusterName, *accessConfig.Project, *accessConfig.Zone)
+		cachedClusterConfigPath := cachedGCPClusterConfigPath(accessConfig.ClusterName, accessConfig.Project, accessConfig.Zone)
 		os.Remove(cachedClusterConfigPath)
 	},
 }
@@ -458,12 +459,12 @@ func createGKECluster(clusterConfig *clusterconfig.GCPConfig, gcpClient *gcp.Cli
 		nodeLabels["nvidia.com/gpu"] = "present"
 	}
 
-	gkeClusterParent := fmt.Sprintf("projects/%s/locations/%s", *clusterConfig.Project, *clusterConfig.Zone)
+	gkeClusterParent := fmt.Sprintf("projects/%s/locations/%s", clusterConfig.Project, clusterConfig.Zone)
 	gkeClusterName := fmt.Sprintf("%s/clusters/%s", gkeClusterParent, clusterConfig.ClusterName)
 
 	initialNodeCount := int64(1)
-	if *clusterConfig.MinInstances > 0 {
-		initialNodeCount = *clusterConfig.MinInstances
+	if clusterConfig.MinInstances > 0 {
+		initialNodeCount = clusterConfig.MinInstances
 	}
 
 	gkeClusterConfig := containerpb.Cluster{
@@ -484,14 +485,14 @@ func createGKECluster(clusterConfig *clusterconfig.GCPConfig, gcpClient *gcp.Cli
 				InitialNodeCount: 2,
 			},
 		},
-		Locations: []string{*clusterConfig.Zone},
+		Locations: []string{clusterConfig.Zone},
 	}
 
 	if clusterConfig.Preemptible {
 		gkeClusterConfig.NodePools = append(gkeClusterConfig.NodePools, &containerpb.NodePool{
 			Name: "ng-cortex-wk-preemp",
 			Config: &containerpb.NodeConfig{
-				MachineType: *clusterConfig.InstanceType,
+				MachineType: clusterConfig.InstanceType,
 				Labels:      nodeLabels,
 				Taints: []*containerpb.NodeTaint{
 					{
@@ -515,7 +516,7 @@ func createGKECluster(clusterConfig *clusterconfig.GCPConfig, gcpClient *gcp.Cli
 		gkeClusterConfig.NodePools = append(gkeClusterConfig.NodePools, &containerpb.NodePool{
 			Name: "ng-cortex-wk-on-dmd",
 			Config: &containerpb.NodeConfig{
-				MachineType: *clusterConfig.InstanceType,
+				MachineType: clusterConfig.InstanceType,
 				Labels:      nodeLabels,
 				Taints: []*containerpb.NodeTaint{
 					{
@@ -566,7 +567,7 @@ func createGKECluster(clusterConfig *clusterconfig.GCPConfig, gcpClient *gcp.Cli
 		if cluster.Status == containerpb.Cluster_ERROR {
 			fmt.Println(" ✗")
 			helpStr := fmt.Sprintf("\nyour cluster couldn't be spun up; here is the error that was encountered: %s", cluster.StatusMessage)
-			helpStr += fmt.Sprintf("\nadditional error information may be found on the cluster's page in the GCP console: https://console.cloud.google.com/kubernetes/clusters/details/%s/%s?project=%s", *clusterConfig.Zone, clusterConfig.ClusterName, *clusterConfig.Project)
+			helpStr += fmt.Sprintf("\nadditional error information may be found on the cluster's page in the GCP console: https://console.cloud.google.com/kubernetes/clusters/details/%s/%s?project=%s", clusterConfig.Zone, clusterConfig.ClusterName, clusterConfig.Project)
 			fmt.Println(helpStr)
 			exit.Error(ErrorClusterUp(cluster.StatusMessage))
 		}

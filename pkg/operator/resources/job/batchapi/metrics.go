@@ -19,6 +19,7 @@ package batchapi
 import (
 	"context"
 	"fmt"
+	"path"
 	"time"
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
@@ -32,6 +33,7 @@ import (
 
 const (
 	_metricsRequestTimeoutSeconds = 10
+	_completedMetricsFileKey      = "metrics.json"
 )
 
 func getBatchMetrics(jobKey spec.JobKey, t time.Time) (metrics.BatchMetrics, error) {
@@ -142,4 +144,29 @@ func queryPrometheusVec(promAPIv1 promv1.API, query string, t time.Time) (model.
 	}
 
 	return values, nil
+}
+
+func saveMetricsToCloud(jobKey spec.JobKey) error {
+	t := time.Now()
+	batchMetrics, err := getBatchMetrics(jobKey, t)
+	if err != nil {
+		return err
+	}
+
+	s3Key := path.Join(jobKey.Prefix(config.ClusterName()), _completedMetricsFileKey)
+	err = config.UploadJSONToBucket(batchMetrics, s3Key)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func readMetricsFromCloud(jobKey spec.JobKey) (metrics.BatchMetrics, error) {
+	s3Key := path.Join(jobKey.Prefix(config.ClusterName()), _completedMetricsFileKey)
+	batchMetrics := metrics.BatchMetrics{}
+	err := config.ReadJSONFromBucket(&batchMetrics, s3Key)
+	if err != nil {
+		return batchMetrics, err
+	}
+	return batchMetrics, nil
 }
