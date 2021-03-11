@@ -682,8 +682,8 @@ func (cc *Config) ToAccessConfig() AccessConfig {
 }
 
 func SQSNamePrefix(clusterName string) string {
-	// 10 was chosen to make sure that other identifiers can be added to the full queue name before reaching the 80 char SQS name limit
-	return hash.String(clusterName)[:10] + "-"
+	// 8 was chosen to make sure that other identifiers can be added to the full queue name before reaching the 80 char SQS name limit
+	return "cortex-" + hash.String(clusterName)[:8] + "-"
 }
 
 // returns hash of cluster name and adds trailing "-"
