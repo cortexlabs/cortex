@@ -138,14 +138,25 @@ metadata:
   namespace: kube-system
 data:
   priorities: |-
-  {% for idx, ng in enumerate(config['node_groups'][::-1]) %}
-    {{ int((idx+1) * 10) }}:
+  {% if config['provider'] == 'aws' %}
+  {% for ng in config['node_groups']|reverse %}
+    {{ (loop.index0+1) * 10 }}:
     {% if ng['spot'] %}
       - .*{{ 'cx-ws-' + ng['name'] }}.*
     {% else %}
       - .*{{ 'cx-wd-' + ng['name'] }}.*
     {% endif %}
   {% endfor %}
+  {% else %}
+  {% for np in config['node_pools']|reverse %}
+    {{ (loop.index0+1) * 10 }}:
+    {% if np['preemptible'] %}
+      - .*{{ 'cx-ws-' + np['name'] }}.*
+    {% else %}
+      - .*{{ 'cx-wd-' + np['name'] }}.*
+    {% endif %}
+  {% endfor %}
+  {% endif %}
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -166,7 +177,7 @@ spec:
     spec:
       serviceAccountName: cluster-autoscaler
       containers:
-        - image: {{ config["image_cluster_autoscaler"] }}
+        - image: {{ config['image_cluster_autoscaler'] }}
           name: cluster-autoscaler
           resources:
             limits:
@@ -179,26 +190,26 @@ spec:
             - ./cluster-autoscaler
             - --v=4
             - --stderrthreshold=info
-            {% if config["provider"] == "aws" %}
+            {% if config['provider'] == 'aws' %}
             - --cloud-provider=aws
             {% else %}
             - --cloud-provider=gce
             {% endif %}
             - --skip-nodes-with-local-storage=false
-            {% if (config.get('spot_config') and config['spot_config'].get('on_demand_backup', false)) or config.get('on_demand_backup') %}
             - --expander=priority
+            {% if config['provider'] == 'aws' %}
+            - --max-nodes-total={{ config['node_groups'] | sum(attribute='max_instances') + 2 }}
             {% else %}
-            - --expander=least-waste
+            - --max-nodes-total={{ config['node_pools'] | sum(attribute='max_instances') + 2 }}
             {% endif %}
-            - --max-nodes-total={{ config['max_instances'] + 2 }}
             - --max-total-unready-percentage=5
             - --ok-total-unready-count=30
             - --max-node-provision-time=5m
             - --scan-interval=20s
-            {% if config["provider"] == "aws" %}
+            {% if config['provider'] == 'aws' %}
             - --node-group-auto-discovery=asg:tag=k8s.io/cluster-autoscaler/enabled,k8s.io/cluster-autoscaler/{{ config['cluster_name'] }}
             {% else %}
-            - --node-group-auto-discovery=mig:namePrefix=gke-{{ config['cluster_name'] }}-ng-cortex-wk,min={{ config["min_instances"] }},max={{ config["max_instances"] }}
+            - --node-group-auto-discovery=mig:namePrefix=gke-{{ config['cluster_name'] }}-cx,min={{ config['node_pools'] | sum(attribute='min_instances') }},max={{ config['node_pools'] | sum(attribute='max_instances') }}
             {% endif %}
           volumeMounts:
             - name: ssl-certs
@@ -208,7 +219,7 @@ spec:
       volumes:
         - name: ssl-certs
           hostPath:
-            {% if config["provider"] == "aws" %}
+            {% if config['provider'] == 'aws' %}
             path: "/etc/ssl/certs/ca-bundle.crt"
             {% else %}
             path: "/etc/ssl/certs/ca-certificates.crt"

@@ -1131,6 +1131,10 @@ func GetDefaults() (*Config, error) {
 }
 
 func (ng *NodeGroup) MaxPossibleOnDemandInstances() int64 {
+	if ng.Spot == false || ng.SpotConfig == nil {
+		return ng.MaxInstances
+	}
+
 	onDemandBaseCap, onDemandPctAboveBaseCap := ng.SpotConfigOnDemandValues()
 	return onDemandBaseCap + int64(math.Ceil(float64(onDemandPctAboveBaseCap)/100*float64(ng.MaxInstances-onDemandBaseCap)))
 }
