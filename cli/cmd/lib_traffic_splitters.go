@@ -113,7 +113,11 @@ func trafficSplitterListTable(trafficSplitter []schema.APIResponse, envNames []s
 		lastUpdated := time.Unix(splitAPI.Spec.LastUpdated, 0)
 		var apis []string
 		for _, api := range splitAPI.Spec.APIs {
-			apis = append(apis, api.Name+":"+s.Int32(api.Weight))
+			apiName := api.Name
+			if api.Shadow {
+				apiName += " (shadow)"
+			}
+			apis = append(apis, apiName+":"+s.Int32(api.Weight))
 		}
 		apisStr := s.TruncateEllipses(strings.Join(apis, " "), 50)
 		rows = append(rows, []interface{}{

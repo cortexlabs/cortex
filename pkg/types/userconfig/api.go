@@ -387,7 +387,7 @@ func (trafficSplit *TrafficSplit) UserStr() string {
 	var sb strings.Builder
 	sb.WriteString(fmt.Sprintf("%s: %s\n", NameKey, trafficSplit.Name))
 	sb.WriteString(fmt.Sprintf("%s: %s\n", WeightKey, s.Int32(trafficSplit.Weight)))
-	sb.WriteString(fmt.Sprintf("%s: %s\n", WeightKey, s.Bool(trafficSplit.Shadow)))
+	sb.WriteString(fmt.Sprintf("%s: %s\n", ShadowKey, s.Bool(trafficSplit.Shadow)))
 	return sb.String()
 }
 

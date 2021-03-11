@@ -20,7 +20,6 @@ import (
 	"context"
 	"reflect"
 
-	"github.com/cortexlabs/cortex/pkg/lib/debug"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	"github.com/cortexlabs/cortex/pkg/lib/urls"
@@ -58,7 +57,6 @@ func VirtualService(spec *VirtualServiceSpec) *istioclientnetworking.VirtualServ
 	destinations := []*istionetworking.HTTPRouteDestination{}
 	var mirror *istionetworking.Destination
 	var mirrorWeight *istionetworking.Percent
-	debug.Pp(spec.Destinations)
 
 	for _, destination := range spec.Destinations {
 		if destination.Shadow {
@@ -81,8 +79,6 @@ func VirtualService(spec *VirtualServiceSpec) *istioclientnetworking.VirtualServ
 			})
 		}
 	}
-
-	debug.Pp(destinations)
 
 	var httpRoutes []*istionetworking.HTTPRoute
 
