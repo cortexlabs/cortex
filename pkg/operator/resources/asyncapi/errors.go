@@ -23,7 +23,7 @@ import (
 )
 
 const (
-	ErrAPIUpdating = "realtimeapi.api_updating"
+	ErrAPIUpdating = "ayncapi.api_updating"
 )
 
 func ErrorAPIUpdating(apiName string) error {

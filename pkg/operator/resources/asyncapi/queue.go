@@ -56,6 +56,17 @@ func createFIFOQueue(apiName string, tags map[string]string) (string, error) {
 	return *output.QueueUrl, nil
 }
 
+func deleteQueueByURL(queueURL string) error {
+	_, err := config.AWS.SQS().DeleteQueue(&sqs.DeleteQueueInput{
+		QueueUrl: aws.String(queueURL),
+	})
+	if err != nil {
+		return errors.Wrap(err, "failed to delete queue", queueURL)
+	}
+
+	return err
+}
+
 func getQueueURL(apiName string) (string, error) {
 	operatorAccountID, _, err := config.AWS.GetCachedAccountID()
 	if err != nil {

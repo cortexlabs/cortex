@@ -18,6 +18,7 @@ package asyncapi
 
 import (
 	"fmt"
+	"path/filepath"
 	"time"
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
@@ -26,6 +27,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 	"github.com/cortexlabs/cortex/pkg/operator/lib/routines"
 	"github.com/cortexlabs/cortex/pkg/operator/operator"
+	"github.com/cortexlabs/cortex/pkg/operator/schema"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	istioclientnetworking "istio.io/client-go/pkg/apis/networking/v1beta1"
@@ -80,7 +82,14 @@ func UpdateAPI(apiConfig userconfig.API, projectID string, force bool) (*spec.AP
 
 		if err = applyK8sResources(*api, prevK8sResources, queueURL); err != nil {
 			routines.RunWithPanicHandler(func() {
-				_ = deleteK8sResources(api.Name)
+				_ = parallel.RunFirstErr(
+					func() error {
+						return deleteQueueByURL(queueURL)
+					},
+					func() error {
+						return deleteK8sResources(api.Name)
+					},
+				)
 			})
 			return nil, "", err
 		}
@@ -125,6 +134,107 @@ func UpdateAPI(apiConfig userconfig.API, projectID string, force bool) (*spec.AP
 		return api, fmt.Sprintf("%s is already updating", api.Resource.UserString()), nil
 	}
 	return api, fmt.Sprintf("%s is up to date", api.Resource.UserString()), nil
+}
+
+func DeleteAPI(apiName string, keepCache bool) error {
+	err := parallel.RunFirstErr(
+		func() error {
+			queueURL, err := getQueueURL(apiName)
+			if err != nil {
+				return err
+			}
+			// best effort deletion
+			_ = deleteQueueByURL(queueURL)
+			return nil
+		},
+		func() error {
+			return deleteK8sResources(apiName)
+		},
+		func() error {
+			if keepCache {
+				return nil
+			}
+			// best effort deletion, swallow errors because there could be weird error messages
+			_ = deleteBucketResources(apiName)
+			return nil
+		},
+	)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func GetAPIByName(deployedResource *operator.DeployedResource) ([]schema.APIResponse, error) {
+	status, err := GetStatus(deployedResource.Name)
+	if err != nil {
+		return nil, err
+	}
+
+	api, err := operator.DownloadAPISpec(status.APIName, status.APIID)
+	if err != nil {
+		return nil, err
+	}
+
+	// TODO metrics
+	//metrics, err := GetMetrics(api)
+	//if err != nil {
+	//	return nil, err
+	//}
+
+	apiEndpoint, err := operator.APIEndpoint(api)
+	if err != nil {
+		return nil, err
+	}
+
+	// TODO dashboard
+	//dashboardURL := pointer.String(getDashboardURL(api.Name))
+
+	return []schema.APIResponse{
+		{
+			Spec:     *api,
+			Status:   status,
+			Endpoint: apiEndpoint,
+		},
+	}, nil
+}
+
+func GetAllAPIs(pods []kcore.Pod, deployments []kapps.Deployment) ([]schema.APIResponse, error) {
+	statuses, err := GetAllStatuses(deployments, pods)
+	if err != nil {
+		return nil, err
+	}
+
+	apiNames, apiIDs := namesAndIDsFromStatuses(statuses)
+	apis, err := operator.DownloadAPISpecs(apiNames, apiIDs)
+	if err != nil {
+		return nil, err
+	}
+
+	//allMetrics, err := GetMultipleMetrics(apis)
+	//if err != nil {
+	//	return nil, err
+	//}
+
+	realtimeAPIs := make([]schema.APIResponse, len(apis))
+
+	for i, api := range apis {
+		endpoint, err := operator.APIEndpoint(&api)
+		if err != nil {
+			return nil, err
+		}
+
+		realtimeAPIs[i] = schema.APIResponse{
+			Spec:   api,
+			Status: &statuses[i],
+			//Metrics:  &allMetrics[i],
+			Endpoint: endpoint,
+		}
+	}
+
+	return realtimeAPIs, nil
 }
 
 func getK8sResources(apiConfig userconfig.API) (resources, error) {
@@ -237,12 +347,16 @@ func applyK8sVirtualService(prevVirtualService *istioclientnetworking.VirtualSer
 	return err
 }
 
+func deleteBucketResources(apiName string) error {
+	prefix := filepath.Join(config.ClusterName(), "apis", apiName)
+	return config.DeleteBucketDir(prefix, true)
+}
+
 func deleteK8sResources(apiName string) error {
 	apiK8sName := operator.K8sName(apiName)
 	gatewayK8sName := GatewayK8sName(apiName)
 
 	return parallel.RunFirstErr(
-		// TODO delete SQS queue
 		func() error {
 			// TODO update autoscaler cron
 			//	if autoscalerCron, ok := _autoscalerCrons[apiName]; ok {

@@ -17,18 +17,208 @@ limitations under the License.
 package asyncapi
 
 import (
+	"sort"
 	"time"
 
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
+	"github.com/cortexlabs/cortex/pkg/lib/parallel"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
+	"github.com/cortexlabs/cortex/pkg/operator/operator"
 	"github.com/cortexlabs/cortex/pkg/types/status"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
-	"k8s.io/api/apps/v1"
-	v12 "k8s.io/api/core/v1"
+	kapps "k8s.io/api/apps/v1"
+	kcore "k8s.io/api/core/v1"
 )
 
+type asyncResourceGroup struct {
+	APIDeployment     *kapps.Deployment
+	APIPods           []kcore.Pod
+	GatewayDeployment *kapps.Deployment
+	GatewayPods       []kcore.Pod
+}
+
+func GetStatus(apiName string) (*status.Status, error) {
+	var apiDeployment *kapps.Deployment
+	var gatewayDeployment *kapps.Deployment
+	var gatewayPods []kcore.Pod
+	var apiPods []kcore.Pod
+
+	err := parallel.RunFirstErr(
+		func() error {
+			var err error
+			apiDeployment, err = config.K8s.GetDeployment(operator.K8sName(apiName))
+			return err
+		},
+		func() error {
+			var err error
+			gatewayDeployment, err = config.K8s.GetDeployment(GatewayK8sName(apiName))
+			return err
+		},
+		func() error {
+			var err error
+			gatewayPods, err = config.K8s.ListPodsByLabels(
+				map[string]string{
+					"apiName":          apiName,
+					"cortex.dev/async": "gateway",
+				},
+			)
+			return err
+		},
+		func() error {
+			var err error
+			apiPods, err = config.K8s.ListPodsByLabels(
+				map[string]string{
+					"apiName":          apiName,
+					"cortex.dev/async": "api",
+				},
+			)
+			return err
+		},
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	if apiDeployment == nil {
+		return nil, errors.ErrorUnexpected("unable to find api deployment", apiName)
+	}
+
+	if gatewayDeployment == nil {
+		return nil, errors.ErrorUnexpected("unable to find gateway deployment", apiName)
+	}
+
+	return apiStatus(apiDeployment, apiPods, gatewayDeployment, gatewayPods)
+}
+
+func GetAllStatuses(deployments []kapps.Deployment, pods []kcore.Pod) ([]status.Status, error) {
+	resourcesByAPI := groupResourcesByAPI(deployments, pods)
+	statuses := make([]status.Status, len(resourcesByAPI))
+
+	var i int
+	for _, k8sResources := range resourcesByAPI {
+		st, err := apiStatus(k8sResources.APIDeployment, k8sResources.APIPods, k8sResources.GatewayDeployment, k8sResources.GatewayPods)
+		if err != nil {
+			return nil, err
+		}
+		statuses[i] = *st
+		i++
+	}
+
+	sort.Slice(statuses, func(i, j int) bool {
+		return statuses[i].APIName < statuses[j].APIName
+	})
+
+	return statuses, nil
+}
+
+func namesAndIDsFromStatuses(statuses []status.Status) ([]string, []string) {
+	apiNames := make([]string, len(statuses))
+	apiIDs := make([]string, len(statuses))
+
+	for i, st := range statuses {
+		apiNames[i] = st.APIName
+		apiIDs[i] = st.APIID
+	}
+
+	return apiNames, apiIDs
+}
+
+// let's do CRDs instead, to avoid this
+func groupResourcesByAPI(deployments []kapps.Deployment, pods []kcore.Pod) map[string]asyncResourceGroup {
+	resourcesByAPI := map[string]asyncResourceGroup{}
+	for _, pod := range pods {
+		apiName := pod.Labels["apiName"]
+		asyncType := pod.Labels["cortex.dev/async"]
+		apiResources, exists := resourcesByAPI[apiName]
+		if exists {
+			if asyncType == "api" {
+				apiResources.APIPods = append(resourcesByAPI[apiName].APIPods, pod)
+			} else {
+				apiResources.GatewayPods = append(resourcesByAPI[apiName].GatewayPods, pod)
+			}
+		} else {
+			if asyncType == "api" {
+				resourcesByAPI[apiName] = asyncResourceGroup{APIPods: []kcore.Pod{pod}}
+			} else {
+				resourcesByAPI[apiName] = asyncResourceGroup{GatewayPods: []kcore.Pod{pod}}
+			}
+		}
+	}
+
+	for i, deployment := range deployments {
+		apiName := deployment.Labels["apiName"]
+		asyncType := deployment.Labels["cortex.dev/async"]
+		apiResources, exists := resourcesByAPI[apiName]
+		if exists {
+			if asyncType == "api" {
+				apiResources.APIDeployment = &deployments[i]
+			} else {
+				apiResources.GatewayDeployment = &deployments[i]
+			}
+		} else {
+			if asyncType == "api" {
+				resourcesByAPI[apiName] = asyncResourceGroup{APIDeployment: &deployments[i]}
+			} else {
+				resourcesByAPI[apiName] = asyncResourceGroup{GatewayDeployment: &deployments[i]}
+			}
+		}
+	}
+
+	return resourcesByAPI
+}
+
+func apiStatus(apiDeployment *kapps.Deployment, apiPods []kcore.Pod, gatewayDeployment *kapps.Deployment, gatewayPods []kcore.Pod) (*status.Status, error) {
+	autoscalingSpec, err := userconfig.AutoscalingFromAnnotations(apiDeployment)
+	if err != nil {
+		return nil, err
+	}
+
+	apiReplicaCounts := getReplicaCounts(apiDeployment, apiPods)
+	gatewayReplicaCounts := getReplicaCounts(gatewayDeployment, gatewayPods)
+
+	st := &status.Status{}
+	st.APIName = apiDeployment.Labels["apiName"]
+	st.APIID = apiDeployment.Labels["apiID"]
+	st.ReplicaCounts = apiReplicaCounts
+	st.Code = getStatusCode(apiReplicaCounts, gatewayReplicaCounts, autoscalingSpec.MinReplicas)
+
+	return st, nil
+}
+
+func getStatusCode(apiCounts status.ReplicaCounts, gatewayCounts status.ReplicaCounts, apiMinReplicas int32) status.Code {
+	// TODO verify
+
+	if apiCounts.Updated.Ready >= apiCounts.Requested && gatewayCounts.Updated.Ready >= 1 {
+		return status.Live
+	}
+
+	if apiCounts.Updated.ErrImagePull > 0 || gatewayCounts.Updated.ErrImagePull > 0 {
+		return status.ErrorImagePull
+	}
+
+	if apiCounts.Updated.Failed > 0 || apiCounts.Updated.Killed > 0 ||
+		gatewayCounts.Updated.Failed > 0 || gatewayCounts.Updated.Killed > 0 {
+		return status.Error
+	}
+
+	if apiCounts.Updated.KilledOOM > 0 || gatewayCounts.Updated.KilledOOM > 0 {
+		return status.OOM
+	}
+
+	if apiCounts.Updated.Stalled > 0 || gatewayCounts.Updated.Stalled > 0 {
+		return status.Stalled
+	}
+
+	if apiCounts.Updated.Ready >= apiMinReplicas && gatewayCounts.Updated.Ready >= 1 {
+		return status.Live
+	}
+
+	return status.Updating
+}
+
 // returns true if min_replicas are not ready and no updated replicas have errored
-func isAPIUpdating(deployment *v1.Deployment) (bool, error) {
+func isAPIUpdating(deployment *kapps.Deployment) (bool, error) {
 	pods, err := config.K8s.ListPodsByLabel("apiName", deployment.Labels["apiName"])
 	if err != nil {
 		return false, err
@@ -48,7 +238,7 @@ func isAPIUpdating(deployment *v1.Deployment) (bool, error) {
 	return false, nil
 }
 
-func getReplicaCounts(deployment *v1.Deployment, pods []v12.Pod) status.ReplicaCounts {
+func getReplicaCounts(deployment *kapps.Deployment, pods []kcore.Pod) status.ReplicaCounts {
 	counts := status.ReplicaCounts{}
 	counts.Requested = *deployment.Spec.Replicas
 
@@ -62,7 +252,7 @@ func getReplicaCounts(deployment *v1.Deployment, pods []v12.Pod) status.ReplicaC
 	return counts
 }
 
-func addPodToReplicaCounts(pod *v12.Pod, deployment *v1.Deployment, counts *status.ReplicaCounts) {
+func addPodToReplicaCounts(pod *kcore.Pod, deployment *kapps.Deployment, counts *status.ReplicaCounts) {
 	var subCounts *status.SubReplicaCounts
 	if isPodSpecLatest(deployment, pod) {
 		subCounts = &counts.Updated
@@ -101,7 +291,7 @@ func addPodToReplicaCounts(pod *v12.Pod, deployment *v1.Deployment, counts *stat
 	}
 }
 
-func isPodSpecLatest(deployment *v1.Deployment, pod *v12.Pod) bool {
+func isPodSpecLatest(deployment *kapps.Deployment, pod *kcore.Pod) bool {
 	return deployment.Spec.Template.Labels["predictorID"] == pod.Labels["predictorID"] &&
 		deployment.Spec.Template.Labels["deploymentID"] == pod.Labels["deploymentID"]
 }
