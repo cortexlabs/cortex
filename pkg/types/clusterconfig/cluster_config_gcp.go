@@ -18,18 +18,27 @@ package clusterconfig
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/cortexlabs/cortex/pkg/consts"
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/gcp"
 	"github.com/cortexlabs/cortex/pkg/lib/hash"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/prompt"
+	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	"github.com/cortexlabs/cortex/pkg/lib/slices"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/table"
 	"github.com/cortexlabs/cortex/pkg/types"
+	"github.com/google/uuid"
+)
+
+var (
+	_max_node_pool_length_with_prefix = 19                                                // node pool length name limit on GKE
+	_max_node_pool_length             = _max_node_pool_length_with_prefix - len("cx-wd-") // or cx-ws-
 )
 
 type GCPCoreConfig struct {
@@ -65,17 +74,22 @@ type GCPCoreConfig struct {
 }
 
 type GCPManagedConfig struct {
-	InstanceType               string             `json:"instance_type" yaml:"instance_type"`
-	AcceleratorType            *string            `json:"accelerator_type,omitempty" yaml:"accelerator_type,omitempty"`
-	AcceleratorsPerInstance    *int64             `json:"accelerators_per_instance,omitempty" yaml:"accelerators_per_instance,omitempty"`
+	NodePools                  []*NodePool        `json:"node_pools" yaml:"node_pools"`
 	Network                    *string            `json:"network,omitempty" yaml:"network,omitempty"`
 	Subnet                     *string            `json:"subnet,omitempty" yaml:"subnet,omitempty"`
 	APILoadBalancerScheme      LoadBalancerScheme `json:"api_load_balancer_scheme" yaml:"api_load_balancer_scheme"`
 	OperatorLoadBalancerScheme LoadBalancerScheme `json:"operator_load_balancer_scheme" yaml:"operator_load_balancer_scheme"`
-	MinInstances               int64              `json:"min_instances" yaml:"min_instances"`
-	MaxInstances               int64              `json:"max_instances" yaml:"max_instances"`
-	Preemptible                bool               `json:"preemptible" yaml:"preemptible"`
-	OnDemandBackup             bool               `json:"on_demand_backup" yaml:"on_demand_backup"`
+}
+
+type NodePool struct {
+	Name                    string  `json:"name" yaml:"name"`
+	InstanceType            string  `json:"instance_type" yaml:"instance_type"`
+	AcceleratorType         *string `json:"accelerator_type,omitempty" yaml:"accelerator_type,omitempty"`
+	AcceleratorsPerInstance *int64  `json:"accelerators_per_instance,omitempty" yaml:"accelerators_per_instance,omitempty"`
+	MinInstances            int64   `json:"min_instances" yaml:"min_instances"`
+	MaxInstances            int64   `json:"max_instances" yaml:"max_instances"`
+	Preemptible             bool    `json:"preemptible" yaml:"preemptible"`
+	OnDemandBackup          bool    `json:"on_demand_backup" yaml:"on_demand_backup"`
 }
 
 type GCPConfig struct {
@@ -298,29 +312,74 @@ var GCPCoreConfigStructFieldValidations = []*cr.StructFieldValidation{
 
 var GCPManagedConfigStructFieldValidations = []*cr.StructFieldValidation{
 	{
-		StructField: "InstanceType",
-		StringValidation: &cr.StringValidation{
+		StructField: "NodePools",
+		StructListValidation: &cr.StructListValidation{
 			Required: true,
-		},
-	},
-	{
-		StructField: "AcceleratorType",
-		StringPtrValidation: &cr.StringPtrValidation{
-			AllowExplicitNull: true,
-		},
-	},
-	{
-		StructField: "AcceleratorsPerInstance",
-		Int64PtrValidation: &cr.Int64PtrValidation{
-			AllowExplicitNull: true,
-		},
-		DefaultDependentFields: []string{"AcceleratorType"},
-		DefaultDependentFieldsFunc: func(vals []interface{}) interface{} {
-			acceleratorType := vals[0].(*string)
-			if acceleratorType == nil {
-				return nil
-			}
-			return pointer.Int64(1)
+			StructValidation: &cr.StructValidation{
+				StructFieldValidations: []*cr.StructFieldValidation{
+					{
+						StructField: "Name",
+						StringValidation: &cr.StringValidation{
+							AllowEmpty:                        true,
+							TreatNullAsEmpty:                  true,
+							AlphaNumericDashUnderscoreOrEmpty: true,
+							MaxLength:                         _max_node_pool_length,
+						},
+					},
+					{
+						StructField: "InstanceType",
+						StringValidation: &cr.StringValidation{
+							Required: true,
+						},
+					},
+					{
+						StructField: "AcceleratorType",
+						StringPtrValidation: &cr.StringPtrValidation{
+							AllowExplicitNull: true,
+						},
+					},
+					{
+						StructField: "AcceleratorsPerInstance",
+						Int64PtrValidation: &cr.Int64PtrValidation{
+							AllowExplicitNull: true,
+						},
+						DefaultDependentFields: []string{"AcceleratorType"},
+						DefaultDependentFieldsFunc: func(vals []interface{}) interface{} {
+							acceleratorType := vals[0].(*string)
+							if acceleratorType == nil {
+								return nil
+							}
+							return pointer.Int64(1)
+						},
+					},
+					{
+						StructField: "MinInstances",
+						Int64Validation: &cr.Int64Validation{
+							Default:              int64(1),
+							GreaterThanOrEqualTo: pointer.Int64(0),
+						},
+					},
+					{
+						StructField: "MaxInstances",
+						Int64Validation: &cr.Int64Validation{
+							Default:     int64(5),
+							GreaterThan: pointer.Int64(0),
+						},
+					},
+					{
+						StructField: "Preemptible",
+						BoolValidation: &cr.BoolValidation{
+							Default: false,
+						},
+					},
+					{
+						StructField: "OnDemandBackup",
+						BoolValidation: &cr.BoolValidation{
+							Default: false,
+						},
+					},
+				},
+			},
 		},
 	},
 	{
@@ -354,34 +413,6 @@ var GCPManagedConfigStructFieldValidations = []*cr.StructFieldValidation{
 		Parser: func(str string) (interface{}, error) {
 			return LoadBalancerSchemeFromString(str), nil
 		},
-	},
-	{
-		StructField: "MinInstances",
-		Int64Validation: &cr.Int64Validation{
-			Default:              int64(1),
-			GreaterThanOrEqualTo: pointer.Int64(0),
-		},
-	},
-	{
-		StructField: "MaxInstances",
-		Int64Validation: &cr.Int64Validation{
-			Default:     int64(5),
-			GreaterThan: pointer.Int64(0),
-		},
-	},
-	{
-		StructField: "Preemptible",
-		BoolValidation: &cr.BoolValidation{
-			Default: false,
-		},
-	},
-	{
-		StructField:            "OnDemandBackup",
-		DefaultDependentFields: []string{"Preemptible"},
-		DefaultDependentFieldsFunc: func(vals []interface{}) interface{} {
-			return vals[0].(bool)
-		},
-		BoolValidation: &cr.BoolValidation{},
 	},
 }
 
@@ -509,28 +540,74 @@ func (cc *GCPConfig) Validate(GCP *gcp.Client) error {
 		cc.Bucket = GCPBucketName(cc.ClusterName, cc.Project, cc.Zone)
 	}
 
-	if validInstanceType, err := GCP.IsInstanceTypeAvailable(cc.InstanceType, cc.Zone); err != nil {
+	numNodePools := len(cc.NodePools)
+	if numNodePools == 0 {
+		return ErrorGCPNoNodePoolSpecified()
+	}
+
+	npNames := []string{}
+	nodePoolTypeHashes := []string{}
+	for idx, nodePool := range cc.NodePools {
+		var nodePoolReferenceId string
+		if nodePool.Name == "" {
+			cc.NodePools[idx].Name = uuid.New().String()[:_max_node_pool_length]
+			nodePool.Name = cc.NodePools[idx].Name
+			nodePoolReferenceId = strconv.FormatInt(int64(idx), 10)
+		} else {
+			nodePoolReferenceId = nodePool.Name
+		}
+
+		if !slices.HasString(npNames, nodePool.Name) {
+			npNames = append(npNames, nodePool.Name)
+		} else {
+			return errors.Wrap(ErrorGCPDuplicateNodePoolName(nodePool.Name), NodePoolsKey)
+		}
+
+		var nodePoolTypeHash string
+		if nodePool.AcceleratorType != nil && nodePool.AcceleratorsPerInstance != nil {
+			nodePoolTypeHash = hash.Strings(nodePool.InstanceType, *nodePool.AcceleratorType, strconv.FormatInt(*nodePool.AcceleratorsPerInstance, 10), strconv.FormatBool(nodePool.Preemptible))
+		} else {
+			nodePoolTypeHash = hash.Strings(nodePool.InstanceType, strconv.FormatBool(nodePool.Preemptible))
+		}
+		if slices.HasString(nodePoolTypeHashes, nodePoolTypeHash) {
+			return errors.Wrap(ErrorGCPNodePoolsWithSameInstanceConfig(nodePool.InstanceType, nodePool.AcceleratorType, nodePool.AcceleratorsPerInstance, nodePool.Preemptible), NodePoolsKey, nodePoolReferenceId)
+		} else {
+			nodePoolTypeHashes = append(nodePoolTypeHashes, nodePoolTypeHash)
+		}
+
+		err := nodePool.validateNodePool(GCP, cc.Zone)
+		if err != nil {
+			return errors.Wrap(err, NodeGroupsKey, nodePoolReferenceId)
+		}
+
+	}
+
+	return nil
+}
+
+func (np *NodePool) validateNodePool(GCP *gcp.Client, zone string) error {
+	if validInstanceType, err := GCP.IsInstanceTypeAvailable(np.InstanceType, zone); err != nil {
 		return err
 	} else if !validInstanceType {
-		instanceTypes, err := GCP.GetAvailableInstanceTypes(cc.Zone)
+		instanceTypes, err := GCP.GetAvailableInstanceTypes(zone)
 		if err != nil {
 			return err
 		}
-		return ErrorGCPInvalidInstanceType(cc.InstanceType, instanceTypes...)
+		return ErrorGCPInvalidInstanceType(np.InstanceType, instanceTypes...)
 	}
 
-	if cc.AcceleratorType == nil && cc.AcceleratorsPerInstance != nil {
+	if np.AcceleratorType == nil && np.AcceleratorsPerInstance != nil {
 		return ErrorDependentFieldMustBeSpecified(AcceleratorsPerInstanceKey, AcceleratorTypeKey)
 	}
 
-	if cc.AcceleratorType != nil {
-		if cc.AcceleratorsPerInstance == nil {
+	if np.AcceleratorType != nil {
+		if np.AcceleratorsPerInstance == nil {
 			return ErrorDependentFieldMustBeSpecified(AcceleratorTypeKey, AcceleratorsPerInstanceKey)
 		}
-		if validAccelerator, err := GCP.IsAcceleratorTypeAvailable(*cc.AcceleratorType, cc.Zone); err != nil {
+		if validAccelerator, err := GCP.IsAcceleratorTypeAvailable(*np.AcceleratorType, zone); err != nil {
 			return err
 		} else if !validAccelerator {
-			availableAcceleratorsInZone, err := GCP.GetAvailableAcceleratorTypes(cc.Zone)
+			availableAcceleratorsInZone, err := GCP.GetAvailableAcceleratorTypes(zone)
 			if err != nil {
 				return err
 			}
@@ -540,33 +617,33 @@ func (cc *GCPConfig) Validate(GCP *gcp.Client) error {
 			}
 
 			var availableZonesForAccelerator []string
-			if slices.HasString(allAcceleratorTypes, *cc.AcceleratorType) {
-				availableZonesForAccelerator, err = GCP.GetAvailableZonesForAccelerator(*cc.AcceleratorType)
+			if slices.HasString(allAcceleratorTypes, *np.AcceleratorType) {
+				availableZonesForAccelerator, err = GCP.GetAvailableZonesForAccelerator(*np.AcceleratorType)
 				if err != nil {
 					return err
 				}
 			}
-			return ErrorGCPInvalidAcceleratorType(*cc.AcceleratorType, cc.Zone, availableAcceleratorsInZone, availableZonesForAccelerator)
+			return ErrorGCPInvalidAcceleratorType(*np.AcceleratorType, zone, availableAcceleratorsInZone, availableZonesForAccelerator)
 		}
 
 		// according to https://cloud.google.com/kubernetes-engine/docs/how-to/gpus
 		var compatibleInstances []string
 		var err error
-		if strings.HasSuffix(*cc.AcceleratorType, "a100") {
-			compatibleInstances, err = GCP.GetInstanceTypesWithPrefix("a2", cc.Zone)
+		if strings.HasSuffix(*np.AcceleratorType, "a100") {
+			compatibleInstances, err = GCP.GetInstanceTypesWithPrefix("a2", zone)
 		} else {
-			compatibleInstances, err = GCP.GetInstanceTypesWithPrefix("n1", cc.Zone)
+			compatibleInstances, err = GCP.GetInstanceTypesWithPrefix("n1", zone)
 		}
 		if err != nil {
 			return err
 		}
-		if !slices.HasString(compatibleInstances, cc.InstanceType) {
-			return ErrorGCPIncompatibleInstanceTypeWithAccelerator(cc.InstanceType, *cc.AcceleratorType, cc.Zone, compatibleInstances)
+		if !slices.HasString(compatibleInstances, np.InstanceType) {
+			return ErrorGCPIncompatibleInstanceTypeWithAccelerator(np.InstanceType, *np.AcceleratorType, zone, compatibleInstances)
 		}
 	}
 
-	if !cc.Preemptible && cc.OnDemandBackup {
-		return ErrorFieldConfigurationDependentOnCondition(OnDemandBackupKey, s.Bool(cc.OnDemandBackup), PreemptibleKey, s.Bool(cc.Preemptible))
+	if !np.Preemptible && np.OnDemandBackup {
+		return ErrorFieldConfigurationDependentOnCondition(OnDemandBackupKey, s.Bool(np.OnDemandBackup), PreemptibleKey, s.Bool(np.Preemptible))
 	}
 
 	return nil
@@ -617,17 +694,17 @@ func (cc *GCPCoreConfig) UserTable() table.KeyValuePairs {
 func (cc *GCPManagedConfig) UserTable() table.KeyValuePairs {
 	var items table.KeyValuePairs
 
-	items.Add(InstanceTypeUserKey, cc.InstanceType)
-	items.Add(MinInstancesUserKey, cc.MinInstances)
-	items.Add(MaxInstancesUserKey, cc.MaxInstances)
-	if cc.AcceleratorType != nil {
-		items.Add(AcceleratorTypeUserKey, *cc.AcceleratorType)
-	}
-	if cc.AcceleratorsPerInstance != nil {
-		items.Add(AcceleratorsPerInstanceUserKey, *cc.AcceleratorsPerInstance)
-	}
-	items.Add(PreemptibleUserKey, s.YesNo(cc.Preemptible))
-	items.Add(OnDemandBackupUserKey, s.YesNo(cc.OnDemandBackup))
+	// items.Add(InstanceTypeUserKey, cc.InstanceType)
+	// items.Add(MinInstancesUserKey, cc.MinInstances)
+	// items.Add(MaxInstancesUserKey, cc.MaxInstances)
+	// if cc.AcceleratorType != nil {
+	// 	items.Add(AcceleratorTypeUserKey, *cc.AcceleratorType)
+	// }
+	// if cc.AcceleratorsPerInstance != nil {
+	// 	items.Add(AcceleratorsPerInstanceUserKey, *cc.AcceleratorsPerInstance)
+	// }
+	// items.Add(PreemptibleUserKey, s.YesNo(cc.Preemptible))
+	// items.Add(OnDemandBackupUserKey, s.YesNo(cc.OnDemandBackup))
 	if cc.Network != nil {
 		items.Add(NetworkUserKey, *cc.Network)
 	}
@@ -736,15 +813,57 @@ func (cc *GCPCoreConfig) TelemetryEvent() map[string]interface{} {
 func (cc *GCPManagedConfig) TelemetryEvent() map[string]interface{} {
 	event := map[string]interface{}{}
 
-	event["instance_type"] = cc.InstanceType
-	if cc.AcceleratorType != nil {
-		event["accelerator_type._is_defined"] = true
-		event["accelerator_type"] = *cc.AcceleratorType
+	onDemandInstanceTypes := strset.New()
+	preemptibleInstanceTypes := strset.New()
+	var totalMinSize, totalMaxSize int
+	var avgMinSize, avgMaxSize float64
+
+	event["nodepool._len"] = len(cc.NodePools)
+	for _, np := range cc.NodePools {
+		nodePoolKey := func(field string) string {
+			lifecycle := "on_demand"
+			if np.Preemptible {
+				lifecycle = "preemptible"
+			}
+			return fmt.Sprintf("nodegroup.%s-%s.%s", np.InstanceType, lifecycle, field)
+		}
+		event[nodePoolKey("_is_defined")] = true
+		event[nodePoolKey("name")] = np.Name
+		event[nodePoolKey("instance_type")] = np.InstanceType
+		event[nodePoolKey("min_instances")] = np.MinInstances
+		event[nodePoolKey("max_instances")] = np.MaxInstances
+
+		if !np.Preemptible {
+			onDemandInstanceTypes.Add(np.InstanceType)
+		} else {
+			preemptibleInstanceTypes.Add(np.InstanceType)
+		}
+		if np.AcceleratorType != nil {
+			event[nodePoolKey("accelerator_type._is_defined")] = true
+			event[nodePoolKey("accelerator_type")] = *np.AcceleratorType
+		}
+		if np.AcceleratorsPerInstance != nil {
+			event[nodePoolKey("accelerators_per_instance._is_defined")] = true
+			event[nodePoolKey("accelerators_per_instance")] = *np.AcceleratorsPerInstance
+		}
+
+		event[nodePoolKey("preemptible")] = np.Preemptible
+		event[nodePoolKey("on_demand_backup")] = np.OnDemandBackup
+
+		totalMinSize += int(np.MinInstances)
+		totalMaxSize += int(np.MaxInstances)
 	}
-	if cc.AcceleratorsPerInstance != nil {
-		event["accelerators_per_instance._is_defined"] = true
-		event["accelerators_per_instance"] = *cc.AcceleratorsPerInstance
-	}
+
+	avgMinSize = float64(totalMinSize) / float64(len(cc.NodePools))
+	avgMaxSize = float64(totalMaxSize) / float64(len(cc.NodePools))
+	event["nodepool._total_min_size"] = totalMinSize
+	event["nodepool._total_max_size"] = totalMaxSize
+	event["nodepool._avg_min_size"] = avgMinSize
+	event["nodepool._avg_max_size"] = avgMaxSize
+	event["nodepool._on_demand_instances"] = onDemandInstanceTypes.Slice()
+	event["nodepool._spot_instances"] = preemptibleInstanceTypes.Slice()
+	event["nodepool._instances"] = strset.Union(onDemandInstanceTypes, preemptibleInstanceTypes).Slice()
+
 	if cc.Network != nil {
 		event["network._is_defined"] = true
 	}
@@ -753,11 +872,6 @@ func (cc *GCPManagedConfig) TelemetryEvent() map[string]interface{} {
 	}
 	event["api_load_balancer_scheme"] = cc.APILoadBalancerScheme
 	event["operator_load_balancer_scheme"] = cc.OperatorLoadBalancerScheme
-	event["min_instances"] = cc.MinInstances
-	event["max_instances"] = cc.MaxInstances
-
-	event["preemptible"] = cc.Preemptible
-	event["on_demand_backup"] = cc.OnDemandBackup
 
 	return event
 }
