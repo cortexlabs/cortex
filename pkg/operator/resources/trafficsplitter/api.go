@@ -112,6 +112,7 @@ func getTrafficSplitterDestinations(trafficSplitter *spec.API) []k8s.Destination
 			ServiceName: operator.K8sName(api.Name),
 			Weight:      api.Weight,
 			Port:        uint32(_defaultPortInt32),
+			Shadow:      api.Shadow,
 		}
 	}
 	return destinations

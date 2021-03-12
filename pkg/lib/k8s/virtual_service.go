@@ -50,20 +50,34 @@ type Destination struct {
 	ServiceName string
 	Weight      int32
 	Port        uint32
+	Shadow      bool
 }
 
 func VirtualService(spec *VirtualServiceSpec) *istioclientnetworking.VirtualService {
 	destinations := []*istionetworking.HTTPRouteDestination{}
+	var mirror *istionetworking.Destination
+	var mirrorWeight *istionetworking.Percent
+
 	for _, destination := range spec.Destinations {
-		destinations = append(destinations, &istionetworking.HTTPRouteDestination{
-			Destination: &istionetworking.Destination{
+		if destination.Shadow {
+			mirror = &istionetworking.Destination{
 				Host: destination.ServiceName,
 				Port: &istionetworking.PortSelector{
 					Number: destination.Port,
 				},
-			},
-			Weight: destination.Weight,
-		})
+			}
+			mirrorWeight = &istionetworking.Percent{Value: float64(destination.Weight)}
+		} else {
+			destinations = append(destinations, &istionetworking.HTTPRouteDestination{
+				Destination: &istionetworking.Destination{
+					Host: destination.ServiceName,
+					Port: &istionetworking.PortSelector{
+						Number: destination.Port,
+					},
+				},
+				Weight: destination.Weight,
+			})
+		}
 	}
 
 	var httpRoutes []*istionetworking.HTTPRoute
@@ -79,7 +93,9 @@ func VirtualService(spec *VirtualServiceSpec) *istioclientnetworking.VirtualServ
 					},
 				},
 			},
-			Route: destinations,
+			Route:            destinations,
+			Mirror:           mirror,
+			MirrorPercentage: mirrorWeight,
 		})
 
 		if spec.Rewrite != nil {
@@ -98,7 +114,9 @@ func VirtualService(spec *VirtualServiceSpec) *istioclientnetworking.VirtualServ
 					},
 				},
 			},
-			Route: destinations,
+			Route:            destinations,
+			Mirror:           mirror,
+			MirrorPercentage: mirrorWeight,
 		}
 
 		prefixMatch := &istionetworking.HTTPRoute{
@@ -111,7 +129,9 @@ func VirtualService(spec *VirtualServiceSpec) *istioclientnetworking.VirtualServ
 					},
 				},
 			},
-			Route: destinations,
+			Route:            destinations,
+			Mirror:           mirror,
+			MirrorPercentage: mirrorWeight,
 		}
 
 		if spec.Rewrite != nil {
