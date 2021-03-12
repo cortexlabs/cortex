@@ -75,7 +75,7 @@ func UpdateAPI(apiConfig userconfig.API, projectID string, force bool) (*spec.AP
 			"apiName": apiConfig.Name,
 		}
 
-		queueURL, err := createFIFOQueue(apiConfig.Name, tags)
+		queueURL, err := createFIFOQueue(apiConfig.Name, deployID, tags)
 		if err != nil {
 			return nil, "", err
 		}
@@ -98,9 +98,7 @@ func UpdateAPI(apiConfig userconfig.API, projectID string, force bool) (*spec.AP
 	}
 
 	// resource update
-	if prevK8sResources.apiDeployment.Labels["specID"] != api.SpecID ||
-		prevK8sResources.apiDeployment.Labels["deploymentID"] != api.DeploymentID {
-
+	if prevK8sResources.gatewayVirtualService.Labels["specID"] != api.SpecID {
 		isUpdating, err := isAPIUpdating(prevK8sResources.apiDeployment)
 		if err != nil {
 			return nil, "", err
@@ -113,7 +111,7 @@ func UpdateAPI(apiConfig userconfig.API, projectID string, force bool) (*spec.AP
 			return nil, "", err
 		}
 
-		queueURL, err := getQueueURL(api.Name)
+		queueURL, err := getQueueURL(api.Name, prevK8sResources.gatewayVirtualService.Labels["deploymentID"])
 		if err != nil {
 			return nil, "", err
 		}
@@ -139,7 +137,11 @@ func UpdateAPI(apiConfig userconfig.API, projectID string, force bool) (*spec.AP
 func DeleteAPI(apiName string, keepCache bool) error {
 	err := parallel.RunFirstErr(
 		func() error {
-			queueURL, err := getQueueURL(apiName)
+			deployment, err := config.K8s.GetVirtualService(operator.K8sName(apiName))
+			if err != nil {
+				return err
+			}
+			queueURL, err := getQueueURL(apiName, deployment.Labels["deploymentID"])
 			if err != nil {
 				return err
 			}
