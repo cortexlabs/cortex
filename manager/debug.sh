@@ -51,30 +51,6 @@ echo -n "."
 
 mkdir -p /cortex-debug/aws/amis
 
-asg_on_demand_info=$(aws autoscaling describe-auto-scaling-groups --region $CORTEX_REGION --query "AutoScalingGroups[?contains(Tags[?Key==\`alpha.eksctl.io/cluster-name\`].Value, \`$CORTEX_CLUSTER_NAME\`)]|[?contains(Tags[?Key==\`alpha.eksctl.io/nodegroup-name\`].Value, \`ng-cortex-worker-on-demand\`)]")
-echo -n "."
-asg_on_demand_name=""
-asg_on_demand_length=$(echo "$asg_on_demand_info" | jq -r 'length')
-if (( "$asg_on_demand_length" > "0" )); then
-  asg_on_demand_name=$(echo "$asg_on_demand_info" | jq -r 'first | .AutoScalingGroupName')
-  aws autoscaling describe-auto-scaling-groups --auto-scaling-group-names $asg_on_demand_name --region=$CORTEX_REGION --output json > "/cortex-debug/aws/asg-on-demand" 2>&1
-  echo -n "."
-  aws autoscaling describe-scaling-activities --max-items 1000 --auto-scaling-group-name $asg_on_demand_name --region=$CORTEX_REGION --output json > "/cortex-debug/aws/asg-activities-on-demand" 2>&1
-  echo -n "."
-fi
-
-asg_spot_info=$(aws autoscaling describe-auto-scaling-groups --region $CORTEX_REGION --query "AutoScalingGroups[?contains(Tags[?Key==\`alpha.eksctl.io/cluster-name\`].Value, \`$CORTEX_CLUSTER_NAME\`)]|[?contains(Tags[?Key==\`alpha.eksctl.io/nodegroup-name\`].Value, \`ng-cortex-worker-spot\`)]")
-echo -n "."
-asg_spot_name=""
-asg_spot_length=$(echo "$asg_spot_info" | jq -r 'length')
-if (( "$asg_spot_length" > "0" )); then
-  asg_spot_name=$(echo "$asg_spot_info" | jq -r 'first | .AutoScalingGroupName')
-  aws autoscaling describe-auto-scaling-groups --auto-scaling-group-names $asg_spot_name --region=$CORTEX_REGION --output json > "/cortex-debug/aws/asg-spot" 2>&1
-  echo -n "."
-  aws autoscaling describe-scaling-activities --max-items 1000 --auto-scaling-group-name $asg_spot_name --region=$CORTEX_REGION --output json > "/cortex-debug/aws/asg-activities-spot" 2>&1
-  echo -n "."
-fi
-
 # failsafe in case the asg(s) could not be located
 if [ "$asg_on_demand_name" == "" ] && [ "$asg_spot_name" == "" ]; then
   aws autoscaling describe-auto-scaling-groups --region=$CORTEX_REGION --output json > "/cortex-debug/aws/asgs" 2>&1
