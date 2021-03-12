@@ -594,7 +594,7 @@ func ErrorConcurrencyMismatchServerSideBatchingPython(maxBatchsize int32, thread
 func ErrorIncorrectTrafficSplitterWeightTotal(totalWeight int32) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrIncorrectTrafficSplitterWeight,
-		Message: fmt.Sprintf("expected weights of all non shadow apis to sum to 100 but found %d", totalWeight),
+		Message: fmt.Sprintf("expected weights of all non-shadow apis to sum to 100 but found %d", totalWeight),
 	})
 }
 
