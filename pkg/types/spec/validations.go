@@ -850,13 +850,13 @@ func ValidateTrafficSplitter(api *userconfig.API) error {
 		return err
 	}
 
-	isShadow := false
+	hasShadow := false
 	for _, api := range api.APIs {
 		if api.Shadow {
-			if isShadow {
+			if hasShadow {
 				return ErrorOneShadowPerTrafficSplitter()
 			}
-			isShadow = true
+			hasShadow = true
 		}
 	}
 
