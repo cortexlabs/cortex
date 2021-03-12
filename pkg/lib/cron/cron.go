@@ -32,7 +32,7 @@ func Run(f func() error, errHandler func(error), delay time.Duration) Cron {
 	cronCancel := make(chan struct{}, 1)
 
 	runCron := func() {
-		defer recoverer(errHandler)
+		defer Recoverer(errHandler)
 		err := f()
 		if err != nil && errHandler != nil {
 			errHandler(err)
@@ -69,7 +69,7 @@ func (c *Cron) Cancel() {
 	c.cronCancel <- struct{}{}
 }
 
-func recoverer(errHandler func(error)) {
+func Recoverer(errHandler func(error)) {
 	if errInterface := recover(); errInterface != nil {
 		err := errors.CastRecoverError(errInterface)
 		errors.PrintStacktrace(err)
