@@ -21,10 +21,12 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/cortexlabs/cortex/pkg/lib/cron"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/parallel"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
+	autoscalerlib "github.com/cortexlabs/cortex/pkg/operator/lib/autoscaler"
 	"github.com/cortexlabs/cortex/pkg/operator/lib/routines"
 	"github.com/cortexlabs/cortex/pkg/operator/operator"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
@@ -36,6 +38,8 @@ import (
 )
 
 const _stalledPodTimeout = 10 * time.Minute
+
+var _autoscalerCrons = make(map[string]cron.Cron)
 
 type resources struct {
 	apiDeployment         *kapps.Deployment
@@ -239,6 +243,34 @@ func GetAllAPIs(pods []kcore.Pod, deployments []kapps.Deployment) ([]schema.APIR
 	return realtimeAPIs, nil
 }
 
+func UpdateAutoscalerCron(deployment *kapps.Deployment, apiSpec spec.API) error {
+	// skip gateway deployments
+	if deployment.Labels["cortex.dev/async"] != "api" {
+		return nil
+	}
+
+	apiName := deployment.Labels["apiName"]
+	deployID := deployment.Labels["deploymentID"]
+
+	if prevAutoscalerCron, ok := _autoscalerCrons[apiName]; ok {
+		prevAutoscalerCron.Cancel()
+	}
+
+	queueURL, err := getQueueURL(apiName, deployID)
+	if err != nil {
+		return err
+	}
+
+	autoscaler, err := autoscalerlib.AutoscaleFn(deployment, &apiSpec, getQueueLengthFn(queueURL))
+	if err != nil {
+		return err
+	}
+
+	_autoscalerCrons[apiName] = cron.Run(autoscaler, operator.ErrorHandler(apiName+" autoscaler"), spec.AutoscalingTickInterval)
+
+	return nil
+}
+
 func getK8sResources(apiConfig userconfig.API) (resources, error) {
 	var deployment *kapps.Deployment
 	var gatewayDeployment *kapps.Deployment
@@ -280,8 +312,8 @@ func getK8sResources(apiConfig userconfig.API) (resources, error) {
 }
 
 func applyK8sResources(api spec.API, prevK8sResources resources, queueURL string) error {
-	gatewayDeployment := apiDeploymentSpec(api, prevK8sResources.gatewayDeployment, queueURL)
-	apiDeployment := gatewayDeploymentSpec(api, prevK8sResources.apiDeployment, queueURL)
+	gatewayDeployment := apiDeploymentSpec(api, prevK8sResources.apiDeployment, queueURL)
+	apiDeployment := gatewayDeploymentSpec(api, prevK8sResources.gatewayDeployment, queueURL)
 	gatewayService := gatewayServiceSpec(api)
 	gatewayVirtualService := gatewayVirtualServiceSpec(api)
 
@@ -321,10 +353,9 @@ func applyK8sDeployment(api spec.API, prevDeployment *kapps.Deployment, newDeplo
 		}
 	}
 
-	// TODO update autoscaler cron
-	//if err := UpdateAutoscalerCron(newDeployment, api); err != nil {
-	//	return err
-	//}
+	if err := UpdateAutoscalerCron(newDeployment, api); err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -359,11 +390,10 @@ func deleteK8sResources(apiName string) error {
 
 	err := parallel.RunFirstErr(
 		func() error {
-			// TODO update autoscaler cron
-			//	if autoscalerCron, ok := _autoscalerCrons[apiName]; ok {
-			//		autoscalerCron.Cancel()
-			//		delete(_autoscalerCrons, apiName)
-			//	}
+			if autoscalerCron, ok := _autoscalerCrons[apiName]; ok {
+				autoscalerCron.Cancel()
+				delete(_autoscalerCrons, apiName)
+			}
 			_, err := config.K8s.DeleteDeployment(apiK8sName)
 			return err
 		},
