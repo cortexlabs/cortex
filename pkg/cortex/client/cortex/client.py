@@ -246,7 +246,7 @@ class Client:
         if force:
             args.append("--force")
 
-        output = run_cli(args)
+        output = run_cli(args, hide_output=True)
 
         deploy_results = json.loads(output.strip())
 
