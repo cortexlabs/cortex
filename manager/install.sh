@@ -71,18 +71,14 @@ function cluster_up_aws() {
   setup_grafana
   echo "✓"
 
-  if [[ "$CORTEX_INSTANCE_TYPE" == p* ]] || [[ "$CORTEX_INSTANCE_TYPE" == g* ]]; then
-    echo -n "￮ configuring gpu support "
-    envsubst < manifests/nvidia_aws.yaml | kubectl apply -f - >/dev/null
-    envsubst < manifests/prometheus-dcgm-exporter.yaml | kubectl apply -f - >/dev/null
-    echo "✓"
-  fi
+  echo -n "￮ configuring gpu support (for the nodegroups that may require)"
+  envsubst < manifests/nvidia_aws.yaml | kubectl apply -f - >/dev/null
+  envsubst < manifests/prometheus-dcgm-exporter.yaml | kubectl apply -f - >/dev/null
+  echo "✓"
 
-  if [[ "$CORTEX_INSTANCE_TYPE" == inf* ]]; then
-    echo -n "￮ configuring inf support "
-    envsubst < manifests/inferentia.yaml | kubectl apply -f - >/dev/null
-    echo "✓"
-  fi
+  echo -n "￮ configuring inf support (for the nodegroups that may require)"
+  envsubst < manifests/inferentia.yaml | kubectl apply -f - >/dev/null
+  echo "✓"
 
   restart_operator
 
@@ -130,12 +126,10 @@ function cluster_up_gcp() {
   setup_grafana
   echo "✓"
 
-  if [ -n "$CORTEX_ACCELERATOR_TYPE" ]; then
-    echo -n "￮ configuring gpu support "
-    envsubst < manifests/nvidia_gcp.yaml | kubectl apply -f - >/dev/null
-    envsubst < manifests/prometheus-dcgm-exporter.yaml | kubectl apply -f - >/dev/null
-    echo "✓"
-  fi
+  echo -n "￮ configuring gpu support (for the nodepools that may require it)"
+  envsubst < manifests/nvidia_gcp.yaml | kubectl apply -f - >/dev/null
+  envsubst < manifests/prometheus-dcgm-exporter.yaml | kubectl apply -f - >/dev/null
+  echo "✓"
 
   restart_operator
 
