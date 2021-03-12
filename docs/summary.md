@@ -8,7 +8,6 @@
 * [CLI commands](clients/cli.md)
 * [Python API](clients/python.md)
 * [Environments](clients/environments.md)
-* [Telemetry](clients/telemetry.md)
 * [Uninstall](clients/uninstall.md)
 
 ## Workloads
