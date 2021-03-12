@@ -30,9 +30,8 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/prompt"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	"github.com/cortexlabs/cortex/pkg/lib/slices"
-	"github.com/cortexlabs/cortex/pkg/lib/table"
 	"github.com/cortexlabs/cortex/pkg/types"
-	"github.com/google/uuid"
+	"github.com/cortexlabs/yaml"
 )
 
 var (
@@ -108,6 +107,21 @@ type GCPAccessConfig struct {
 	Project      string `json:"project" yaml:"project"`
 	Zone         string `json:"zone" yaml:"zone"`
 	ImageManager string `json:"image_manager" yaml:"image_manager"`
+}
+
+func (np *NodePool) DeepCopy() (NodePool, error) {
+	bytes, err := yaml.Marshal(np)
+	if err != nil {
+		return NodePool{}, err
+	}
+
+	deepCopied := NodePool{}
+	err = yaml.Unmarshal(bytes, &deepCopied)
+	if err != nil {
+		return NodePool{}, err
+	}
+
+	return deepCopied, nil
 }
 
 var GCPCoreConfigStructFieldValidations = []*cr.StructFieldValidation{
@@ -545,9 +559,23 @@ func (cc *GCPConfig) Validate(GCP *gcp.Client) error {
 	for idx, nodePool := range cc.NodePools {
 		var nodePoolReferenceID string
 		if nodePool.Name == "" {
-			cc.NodePools[idx].Name = uuid.New().String()[:_maxNodePoolLength]
-			nodePool.Name = cc.NodePools[idx].Name
 			nodePoolReferenceID = strconv.FormatInt(int64(idx), 10)
+
+			auxNodePool, err := nodePool.DeepCopy()
+			if err != nil {
+				return errors.Wrap(err, NodePoolsKey, nodePoolReferenceID)
+			}
+			auxNodePool.MinInstances = 0
+			auxNodePool.MaxInstances = 0
+
+			bytes, err := yaml.Marshal(auxNodePool)
+			if err != nil {
+				return errors.Wrap(err, NodePoolsKey, nodePoolReferenceID)
+			}
+			nodePoolHash := hash.Strings(string(bytes), nodePoolReferenceID)
+
+			cc.NodePools[idx].Name = nodePoolHash[:_maxNodeGroupLength]
+			nodePool.Name = cc.NodePools[idx].Name
 		} else {
 			nodePoolReferenceID = nodePool.Name
 		}
@@ -637,62 +665,6 @@ func (np *NodePool) validateNodePool(GCP *gcp.Client, zone string) error {
 	}
 
 	return nil
-}
-
-func (cc *GCPCoreConfig) UserTable() table.KeyValuePairs {
-	var items table.KeyValuePairs
-
-	items.Add(ClusterNameUserKey, cc.ClusterName)
-	items.Add(ProjectUserKey, cc.Project)
-	items.Add(ZoneUserKey, cc.Zone)
-	items.Add(TelemetryUserKey, cc.Telemetry)
-	items.Add(ImageOperatorUserKey, cc.ImageOperator)
-	items.Add(ImageManagerUserKey, cc.ImageManager)
-	items.Add(ImageDownloaderUserKey, cc.ImageDownloader)
-	items.Add(ImageRequestMonitorUserKey, cc.ImageRequestMonitor)
-	items.Add(ImageClusterAutoscalerUserKey, cc.ImageClusterAutoscaler)
-	items.Add(ImageFluentBitUserKey, cc.ImageFluentBit)
-	items.Add(ImageIstioProxyUserKey, cc.ImageIstioProxy)
-	items.Add(ImageIstioPilotUserKey, cc.ImageIstioPilot)
-	items.Add(ImageGooglePauseUserKey, cc.ImageGooglePause)
-	items.Add(ImagePrometheusUserKey, cc.ImagePrometheus)
-	items.Add(ImagePrometheusConfigReloaderUserKey, cc.ImagePrometheusConfigReloader)
-	items.Add(ImagePrometheusOperatorUserKey, cc.ImagePrometheusOperator)
-	items.Add(ImagePrometheusStatsDExporterUserKey, cc.ImagePrometheusStatsDExporter)
-	items.Add(ImagePrometheusDCGMExporterUserKey, cc.ImagePrometheusDCGMExporter)
-	items.Add(ImagePrometheusKubeStateMetricsUserKey, cc.ImagePrometheusKubeStateMetrics)
-	items.Add(ImagePrometheusNodeExporterUserKey, cc.ImagePrometheusNodeExporter)
-	items.Add(ImageKubeRBACProxyUserKey, cc.ImageKubeRBACProxy)
-	items.Add(ImageGrafanaUserKey, cc.ImageGrafana)
-	items.Add(ImageEventExporterUserKey, cc.ImageEventExporter)
-
-	return items
-}
-
-func (cc *GCPManagedConfig) UserTable() table.KeyValuePairs {
-	var items table.KeyValuePairs
-
-	// items.Add(InstanceTypeUserKey, cc.InstanceType)
-	// items.Add(MinInstancesUserKey, cc.MinInstances)
-	// items.Add(MaxInstancesUserKey, cc.MaxInstances)
-	// if cc.AcceleratorType != nil {
-	// 	items.Add(AcceleratorTypeUserKey, *cc.AcceleratorType)
-	// }
-	// if cc.AcceleratorsPerInstance != nil {
-	// 	items.Add(AcceleratorsPerInstanceUserKey, *cc.AcceleratorsPerInstance)
-	// }
-	// items.Add(PreemptibleUserKey, s.YesNo(cc.Preemptible))
-	// items.Add(OnDemandBackupUserKey, s.YesNo(cc.OnDemandBackup))
-	if cc.Network != nil {
-		items.Add(NetworkUserKey, *cc.Network)
-	}
-	if cc.Subnet != nil {
-		items.Add(SubnetUserKey, *cc.Subnet)
-	}
-	items.Add(APILoadBalancerSchemeUserKey, cc.APILoadBalancerScheme)
-	items.Add(OperatorLoadBalancerSchemeUserKey, cc.OperatorLoadBalancerScheme)
-
-	return items
 }
 
 func (cc *GCPCoreConfig) TelemetryEvent() map[string]interface{} {

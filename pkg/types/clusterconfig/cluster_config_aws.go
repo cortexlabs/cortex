@@ -40,7 +40,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/slices"
 	"github.com/cortexlabs/cortex/pkg/types"
 	"github.com/cortexlabs/yaml"
-	"github.com/google/uuid"
 )
 
 const (
@@ -198,6 +197,21 @@ func (cc *Config) Hash() (string, error) {
 	hash := sha256.New()
 	hash.Write(bytes)
 	return hex.EncodeToString(hash.Sum(nil)), nil
+}
+
+func (ng *NodeGroup) DeepCopy() (NodeGroup, error) {
+	bytes, err := yaml.Marshal(ng)
+	if err != nil {
+		return NodeGroup{}, err
+	}
+
+	deepCopied := NodeGroup{}
+	err = yaml.Unmarshal(bytes, &deepCopied)
+	if err != nil {
+		return NodeGroup{}, err
+	}
+
+	return deepCopied, nil
 }
 
 var CoreConfigStructFieldValidations = []*cr.StructFieldValidation{
@@ -763,9 +777,23 @@ func (cc *Config) Validate(awsClient *aws.Client, skipQuotaVerification bool) er
 	for idx, nodeGroup := range cc.NodeGroups {
 		var nodeGroupReferenceID string
 		if nodeGroup.Name == "" {
-			cc.NodeGroups[idx].Name = uuid.New().String()[:_maxNodeGroupLength]
-			nodeGroup.Name = cc.NodeGroups[idx].Name
 			nodeGroupReferenceID = strconv.FormatInt(int64(idx), 10)
+
+			auxNodeGroup, err := nodeGroup.DeepCopy()
+			if err != nil {
+				return errors.Wrap(err, NodeGroupsKey, nodeGroupReferenceID)
+			}
+			auxNodeGroup.MinInstances = 0
+			auxNodeGroup.MaxInstances = 0
+
+			bytes, err := yaml.Marshal(auxNodeGroup)
+			if err != nil {
+				return errors.Wrap(err, NodeGroupsKey, nodeGroupReferenceID)
+			}
+			nodeGroupHash := hash.Strings(string(bytes), nodeGroupReferenceID)
+
+			cc.NodeGroups[idx].Name = nodeGroupHash[:_maxNodeGroupLength]
+			nodeGroup.Name = cc.NodeGroups[idx].Name
 		} else {
 			nodeGroupReferenceID = nodeGroup.Name
 		}

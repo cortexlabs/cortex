@@ -196,7 +196,7 @@ func getConfigureClusterConfig(cachedClusterConfig clusterconfig.Config, cluster
 	if err != nil {
 		return nil, err
 	}
-	h2, err := cachedClusterConfig.Hash()
+	h2, err := cachedConfigCopy.Hash()
 	if err != nil {
 		return nil, err
 	}
