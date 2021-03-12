@@ -204,7 +204,7 @@ func AsyncPythonPredictorContainers(api spec.API, queueURL string) ([]kcore.Cont
 
 func AsyncGatewayContainers(api spec.API, queueURL string) kcore.Container {
 	image := config.CoreConfig.ImageAsyncGateway
-	region := *config.CoreConfig.Region
+	region := config.CoreConfig.Region
 	bucket := config.Bucket()
 	clusterName := config.ClusterName()
 
@@ -217,6 +217,7 @@ func AsyncGatewayContainers(api spec.API, queueURL string) kcore.Container {
 			"-region", region,
 			"-bucket", bucket,
 			"-cluster", clusterName,
+			"-port", s.Int32(DefaultPortInt32),
 			api.Name,
 		},
 		Ports: []kcore.ContainerPort{
@@ -238,6 +239,7 @@ func AsyncGatewayContainers(api spec.API, queueURL string) kcore.Container {
 			Handler: kcore.Handler{
 				HTTPGet: &kcore.HTTPGetAction{
 					Path: "/healthz",
+					Port: intstr.FromInt(8888),
 				},
 			},
 		},
@@ -245,6 +247,7 @@ func AsyncGatewayContainers(api spec.API, queueURL string) kcore.Container {
 			Handler: kcore.Handler{
 				HTTPGet: &kcore.HTTPGetAction{
 					Path: "/healthz",
+					Port: intstr.FromInt(8888),
 				},
 			},
 		},
@@ -707,6 +710,10 @@ func getAsyncEnvVars(api spec.API, container string, queueURL string) []kcore.En
 			kcore.EnvVar{
 				Name:  "CORTEX_API_SPEC",
 				Value: config.BucketPath(api.PredictorKey),
+			},
+			kcore.EnvVar{
+				Name:  "CORTEX_PROCESSES_PER_REPLICA",
+				Value: s.Int32(api.Predictor.ProcessesPerReplica),
 			},
 		)
 

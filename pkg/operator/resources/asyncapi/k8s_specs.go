@@ -31,7 +31,7 @@ var _terminationGracePeriodSeconds int64 = 60 // seconds
 func gatewayDeploymentSpec(api spec.API, prevDeployment *kapps.Deployment, queueURL string) kapps.Deployment {
 	container := operator.AsyncGatewayContainers(api, queueURL)
 	return *k8s.Deployment(&k8s.DeploymentSpec{
-		Name:           GatewayK8sName(api.Name),
+		Name:           gatewayK8sName(api.Name),
 		Replicas:       getRequestedReplicasFromDeployment(api, prevDeployment),
 		MaxSurge:       pointer.String(api.UpdateStrategy.MaxSurge),
 		MaxUnavailable: pointer.String(api.UpdateStrategy.MaxUnavailable),
@@ -73,7 +73,7 @@ func gatewayDeploymentSpec(api spec.API, prevDeployment *kapps.Deployment, queue
 
 func gatewayServiceSpec(api spec.API) kcore.Service {
 	return *k8s.Service(&k8s.ServiceSpec{
-		Name:        GatewayK8sName(api.Name),
+		Name:        operator.K8sName(api.Name),
 		Port:        operator.DefaultPortInt32,
 		TargetPort:  operator.DefaultPortInt32,
 		Annotations: api.ToK8sAnnotations(),
@@ -93,15 +93,15 @@ func gatewayServiceSpec(api spec.API) kcore.Service {
 
 func gatewayVirtualServiceSpec(api spec.API) v1beta1.VirtualService {
 	return *k8s.VirtualService(&k8s.VirtualServiceSpec{
-		Name:     GatewayK8sName(api.Name),
+		Name:     operator.K8sName(api.Name),
 		Gateways: []string{"apis-gateway"},
 		Destinations: []k8s.Destination{{
-			ServiceName: GatewayK8sName(api.Name),
+			ServiceName: operator.K8sName(api.Name),
 			Weight:      100,
 			Port:        uint32(operator.DefaultPortInt32),
 		}},
-		ExactPath:   api.Networking.Endpoint,
-		Rewrite:     pointer.String("predict"),
+		PrefixPath:  api.Networking.Endpoint,
+		Rewrite:     pointer.String("/"),
 		Annotations: api.ToK8sAnnotations(),
 		Labels: map[string]string{
 			"apiName":          api.Name,

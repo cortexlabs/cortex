@@ -27,6 +27,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/cast"
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
+	"github.com/cortexlabs/cortex/pkg/lib/debug"
 	"github.com/cortexlabs/cortex/pkg/lib/docker"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
@@ -57,6 +58,14 @@ func apiValidation(
 
 	switch resource.Kind {
 	case userconfig.RealtimeAPIKind:
+		structFieldValidations = append(resourceStructValidations,
+			predictorValidation(),
+			networkingValidation(),
+			computeValidation(provider),
+			autoscalingValidation(),
+			updateStrategyValidation(),
+		)
+	case userconfig.AsyncAPIKind:
 		structFieldValidations = append(resourceStructValidations,
 			predictorValidation(),
 			networkingValidation(),
@@ -180,6 +189,29 @@ func predictorValidation() *cr.StructFieldValidation {
 						Required:           false,
 						AllowEmpty:         true,
 						DockerImageOrEmpty: true,
+					},
+				},
+				{
+					StructField: "TensorFlowServingImage",
+					StringValidation: &cr.StringValidation{
+						Required:           false,
+						AllowEmpty:         true,
+						DockerImageOrEmpty: true,
+					},
+				},
+				{
+					StructField: "ProcessesPerReplica",
+					Int32Validation: &cr.Int32Validation{
+						Default:              1,
+						GreaterThanOrEqualTo: pointer.Int32(1),
+						LessThanOrEqualTo:    pointer.Int32(100),
+					},
+				},
+				{
+					StructField: "ThreadsPerProcess",
+					Int32Validation: &cr.Int32Validation{
+						Default:              1,
+						GreaterThanOrEqualTo: pointer.Int32(1),
 					},
 				},
 				{
@@ -835,6 +867,8 @@ func validatePredictor(
 ) error {
 	predictor := api.Predictor
 
+	debug.Pp(predictor)
+
 	if api.Kind == userconfig.AsyncAPIKind {
 		if predictor.Type != userconfig.PythonPredictorType {
 			return ErrorPredictorTypeNotSupportedForKind(predictor.Type, api.Kind)
@@ -880,6 +914,8 @@ func validatePredictor(
 			return ErrorKeyIsNotSupportedForKind(userconfig.ThreadsPerProcessKey, api.Kind)
 		}
 	}
+
+	fmt.Println("predictor: " + predictor.Image)
 
 	if err := validateDockerImagePath(predictor.Image, provider, awsClient, k8sClient); err != nil {
 		return errors.Wrap(err, userconfig.ImageKey)

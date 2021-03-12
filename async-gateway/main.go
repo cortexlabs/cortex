@@ -22,6 +22,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/gorilla/mux"
 	"go.uber.org/zap"
@@ -101,6 +102,9 @@ func main() {
 	}
 
 	sess, err := session.NewSessionWithOptions(session.Options{
+		Config: aws.Config{
+			Region: region,
+		},
 		SharedConfigState: session.SharedConfigEnable,
 	})
 	if err != nil {
@@ -115,7 +119,6 @@ func main() {
 	ep := NewEndpoint(svc, log)
 
 	router := mux.NewRouter()
-	router.HandleFunc("/{id}", ep.GetWorkload).Methods("GET")
 	router.HandleFunc("/", ep.CreateWorkload).Methods("POST")
 	router.HandleFunc(
 		"/healthz",
@@ -123,6 +126,7 @@ func main() {
 			respondPlainText(w, http.StatusOK, "ok")
 		},
 	)
+	router.HandleFunc("/{id}", ep.GetWorkload).Methods("GET")
 
 	log.Info("Running on port " + *port)
 	if err = http.ListenAndServe(":"+*port, router); err != nil {

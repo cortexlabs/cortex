@@ -87,6 +87,13 @@ func CanonicalizeEndpoint(str string) string {
 	return strings.TrimSuffix(s.EnsurePrefix(str, "/"), "/")
 }
 
+func CanonicalizeEndpointWithTrailingSlash(str string) string {
+	if str == "" || str == "/" {
+		return "/"
+	}
+	return s.EnsureSuffix(s.EnsurePrefix(str, "/"), "/")
+}
+
 func TrimQueryParamsURL(u url.URL) string {
 	u.RawQuery = ""
 	return u.String()

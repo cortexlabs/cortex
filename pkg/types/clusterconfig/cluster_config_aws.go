@@ -254,6 +254,13 @@ var CoreConfigStructFieldValidations = []*cr.StructFieldValidation{
 		},
 	},
 	{
+		StructField: "ImageAsyncGateway",
+		StringValidation: &cr.StringValidation{
+			Default:   "quay.io/cortexlabs/async-gateway:" + consts.CortexVersion,
+			Validator: validateImageVersion,
+		},
+	},
+	{
 		StructField: "ImageClusterAutoscaler",
 		StringValidation: &cr.StringValidation{
 			Default:   "quay.io/cortexlabs/cluster-autoscaler:" + consts.CortexVersion,
@@ -684,7 +691,7 @@ func (cc *Config) ToAccessConfig() AccessConfig {
 
 func SQSNamePrefix(clusterName string) string {
 	// 8 was chosen to make sure that other identifiers can be added to the full queue name before reaching the 80 char SQS name limit
-	return "cortex-" + hash.String(clusterName)[:8] + "-"
+	return "cx-" + hash.String(clusterName)[:8] + "-"
 }
 
 // returns hash of cluster name and adds trailing "-"

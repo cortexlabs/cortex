@@ -35,7 +35,7 @@ func createFIFOQueue(apiName string, tags map[string]string) (string, error) {
 		}
 	}
 
-	queueName := apiName + ".fifo"
+	queueName := apiQueueName(apiName)
 
 	attributes := map[string]string{
 		sqs.QueueAttributeNameFifoQueue:         "true",
@@ -56,6 +56,10 @@ func createFIFOQueue(apiName string, tags map[string]string) (string, error) {
 	return *output.QueueUrl, nil
 }
 
+func apiQueueName(apiName string) string {
+	return config.CoreConfig.SQSNamePrefix() + apiName + ".fifo"
+}
+
 func deleteQueueByURL(queueURL string) error {
 	_, err := config.AWS.SQS().DeleteQueue(&sqs.DeleteQueueInput{
 		QueueUrl: aws.String(queueURL),
@@ -73,8 +77,5 @@ func getQueueURL(apiName string) (string, error) {
 		return "", errors.Wrap(err, "failed to construct queue url", "unable to get account id")
 	}
 
-	return fmt.Sprintf(
-		"https://sqs.%s.amazonaws.com/%s/%s.fifo",
-		*config.CoreConfig.Region, operatorAccountID, apiName,
-	), nil
+	return fmt.Sprintf("https://sqs.%s.amazonaws.com/%s/%s", config.AWS.Region, operatorAccountID, apiQueueName(apiName)), nil
 }

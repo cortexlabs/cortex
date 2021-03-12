@@ -17,6 +17,7 @@ limitations under the License.
 package asyncapi
 
 import (
+	"fmt"
 	"sort"
 	"time"
 
@@ -52,7 +53,7 @@ func GetStatus(apiName string) (*status.Status, error) {
 		},
 		func() error {
 			var err error
-			gatewayDeployment, err = config.K8s.GetDeployment(GatewayK8sName(apiName))
+			gatewayDeployment, err = config.K8s.GetDeployment(gatewayK8sName(apiName))
 			return err
 		},
 		func() error {
@@ -125,44 +126,49 @@ func namesAndIDsFromStatuses(statuses []status.Status) ([]string, []string) {
 }
 
 // let's do CRDs instead, to avoid this
-func groupResourcesByAPI(deployments []kapps.Deployment, pods []kcore.Pod) map[string]asyncResourceGroup {
-	resourcesByAPI := map[string]asyncResourceGroup{}
-	for _, pod := range pods {
-		apiName := pod.Labels["apiName"]
-		asyncType := pod.Labels["cortex.dev/async"]
-		apiResources, exists := resourcesByAPI[apiName]
-		if exists {
-			if asyncType == "api" {
-				apiResources.APIPods = append(resourcesByAPI[apiName].APIPods, pod)
-			} else {
-				apiResources.GatewayPods = append(resourcesByAPI[apiName].GatewayPods, pod)
-			}
-		} else {
-			if asyncType == "api" {
-				resourcesByAPI[apiName] = asyncResourceGroup{APIPods: []kcore.Pod{pod}}
-			} else {
-				resourcesByAPI[apiName] = asyncResourceGroup{GatewayPods: []kcore.Pod{pod}}
-			}
-		}
-	}
-
-	for i, deployment := range deployments {
+func groupResourcesByAPI(deployments []kapps.Deployment, pods []kcore.Pod) map[string]*asyncResourceGroup {
+	resourcesByAPI := map[string]*asyncResourceGroup{}
+	for i := range deployments {
+		deployment := deployments[i]
+		fmt.Println(deployment.Name)
 		apiName := deployment.Labels["apiName"]
 		asyncType := deployment.Labels["cortex.dev/async"]
 		apiResources, exists := resourcesByAPI[apiName]
 		if exists {
 			if asyncType == "api" {
-				apiResources.APIDeployment = &deployments[i]
+				apiResources.APIDeployment = &deployment
 			} else {
-				apiResources.GatewayDeployment = &deployments[i]
+				apiResources.GatewayDeployment = &deployment
 			}
 		} else {
 			if asyncType == "api" {
-				resourcesByAPI[apiName] = asyncResourceGroup{APIDeployment: &deployments[i]}
+				resourcesByAPI[apiName] = &asyncResourceGroup{APIDeployment: &deployment}
 			} else {
-				resourcesByAPI[apiName] = asyncResourceGroup{GatewayDeployment: &deployments[i]}
+				resourcesByAPI[apiName] = &asyncResourceGroup{GatewayDeployment: &deployment}
 			}
 		}
+	}
+
+	for _, pod := range pods {
+		apiName := pod.Labels["apiName"]
+		asyncType := pod.Labels["cortex.dev/async"]
+		apiResources, exists := resourcesByAPI[apiName]
+		if !exists {
+			// ignore pods that might still be waiting to be deleted while the deployment has already been deleted
+			continue
+		}
+
+		if asyncType == "api" {
+			apiResources.APIPods = append(resourcesByAPI[apiName].APIPods, pod)
+		} else {
+			apiResources.GatewayPods = append(resourcesByAPI[apiName].GatewayPods, pod)
+		}
+	}
+
+	for k, v := range resourcesByAPI {
+		fmt.Println(k)
+		fmt.Println("APIDeployment" + v.APIDeployment.Name)
+		fmt.Println("GatewayDeployment" + v.GatewayDeployment.Name)
 	}
 
 	return resourcesByAPI

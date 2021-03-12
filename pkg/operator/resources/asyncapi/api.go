@@ -44,7 +44,7 @@ type resources struct {
 	gatewayVirtualService *istioclientnetworking.VirtualService
 }
 
-func GatewayK8sName(apiName string) string {
+func gatewayK8sName(apiName string) string {
 	return "gateway-" + apiName
 }
 
@@ -243,7 +243,7 @@ func getK8sResources(apiConfig userconfig.API) (resources, error) {
 	var gatewayService *kcore.Service
 	var gatewayVirtualService *istioclientnetworking.VirtualService
 
-	gatewayK8sName := GatewayK8sName(apiConfig.Name)
+	gatewayK8sName := gatewayK8sName(apiConfig.Name)
 	apiK8sName := operator.K8sName(apiConfig.Name)
 
 	err := parallel.RunFirstErr(
@@ -354,9 +354,8 @@ func deleteBucketResources(apiName string) error {
 
 func deleteK8sResources(apiName string) error {
 	apiK8sName := operator.K8sName(apiName)
-	gatewayK8sName := GatewayK8sName(apiName)
 
-	return parallel.RunFirstErr(
+	err := parallel.RunFirstErr(
 		func() error {
 			// TODO update autoscaler cron
 			//	if autoscalerCron, ok := _autoscalerCrons[apiName]; ok {
@@ -367,18 +366,21 @@ func deleteK8sResources(apiName string) error {
 			return err
 		},
 		func() error {
+			gatewayK8sName := gatewayK8sName(apiName)
 			_, err := config.K8s.DeleteDeployment(gatewayK8sName)
 			return err
 		},
 		func() error {
-			_, err := config.K8s.DeleteService(gatewayK8sName)
+			_, err := config.K8s.DeleteService(apiK8sName)
 			return err
 		},
 		func() error {
-			_, err := config.K8s.DeleteVirtualService(gatewayK8sName)
+			_, err := config.K8s.DeleteVirtualService(apiK8sName)
 			return err
 		},
 	)
+
+	return err
 }
 
 func uploadAPItoS3(api spec.API) error {

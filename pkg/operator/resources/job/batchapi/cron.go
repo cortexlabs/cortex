@@ -74,6 +74,9 @@ func ManageJobResources() error {
 	queueURLMap := map[string]string{}
 	queueJobIDSet := strset.Set{}
 	for _, queueURL := range queues {
+		if !isJobQueueURL(queueURL) {
+			continue
+		}
 		jobKey := jobKeyFromQueueURL(queueURL)
 		queueJobIDSet.Add(jobKey.ID)
 		queueURLMap[jobKey.ID] = queueURL

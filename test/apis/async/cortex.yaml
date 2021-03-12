@@ -1,0 +1,11 @@
+- name: iris-classifier
+  kind: AsyncAPI
+  predictor:
+    type: python
+    path: predictor.py
+    config:
+      bucket: cortex-examples
+      key: sklearn/iris-classifier/model.pkl
+  compute:
+    cpu: 0.2
+    mem: 200M
