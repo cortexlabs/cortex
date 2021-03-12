@@ -303,7 +303,7 @@ var _clusterConfigureCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
-		accessConfig, err := getClusterAccessConfigWithCache()
+		accessConfig, err := getNewClusterAccessConfig(clusterConfigFile)
 		if err != nil {
 			exit.Error(err)
 		}

@@ -17,6 +17,8 @@ limitations under the License.
 package clusterconfig
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"io/ioutil"
 	"math"
@@ -37,6 +39,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	"github.com/cortexlabs/cortex/pkg/lib/slices"
 	"github.com/cortexlabs/cortex/pkg/types"
+	"github.com/cortexlabs/yaml"
 	"github.com/google/uuid"
 )
 
@@ -169,6 +172,32 @@ func RegionValidator(region string) (string, error) {
 		return "", err
 	}
 	return region, nil
+}
+
+func (cc *Config) DeepCopy() (Config, error) {
+	bytes, err := yaml.Marshal(cc)
+	if err != nil {
+		return Config{}, err
+	}
+
+	deepCopied := Config{}
+	err = yaml.Unmarshal(bytes, &deepCopied)
+	if err != nil {
+		return Config{}, err
+	}
+
+	return deepCopied, nil
+}
+
+func (cc *Config) Hash() (string, error) {
+	bytes, err := yaml.Marshal(cc)
+	if err != nil {
+		return "", err
+	}
+
+	hash := sha256.New()
+	hash.Write(bytes)
+	return hex.EncodeToString(hash.Sum(nil)), nil
 }
 
 var CoreConfigStructFieldValidations = []*cr.StructFieldValidation{
@@ -717,7 +746,7 @@ func (cc *CoreConfig) SQSNamePrefix() string {
 }
 
 // this validates the user-provided cluster config
-func (cc *Config) Validate(awsClient *aws.Client) error {
+func (cc *Config) Validate(awsClient *aws.Client, skipQuotaVerification bool) error {
 	fmt.Print("verifying your configuration ...\n\n")
 
 	numNodeGroups := len(cc.NodeGroups)
@@ -765,10 +794,12 @@ func (cc *Config) Validate(awsClient *aws.Client) error {
 		})
 	}
 
-	if err := awsClient.VerifyInstanceQuota(instances); err != nil {
-		// Skip AWS errors, since some regions (e.g. eu-north-1) do not support this API
-		if !aws.IsAWSError(err) {
-			return errors.Wrap(err, NodeGroupsKey)
+	if !skipQuotaVerification {
+		if err := awsClient.VerifyInstanceQuota(instances); err != nil {
+			// Skip AWS errors, since some regions (e.g. eu-north-1) do not support this API
+			if !aws.IsAWSError(err) {
+				return errors.Wrap(err, NodeGroupsKey)
+			}
 		}
 	}
 
@@ -855,14 +886,16 @@ func (cc *Config) Validate(awsClient *aws.Client) error {
 		}
 	}
 
-	var requiredVPCs int
-	if len(cc.Subnets) == 0 {
-		requiredVPCs = 1
-	}
-	if err := awsClient.VerifyNetworkQuotas(1, cc.NATGateway != NoneNATGateway, cc.NATGateway == HighlyAvailableNATGateway, requiredVPCs, strset.FromSlice(cc.AvailabilityZones)); err != nil {
-		// Skip AWS errors, since some regions (e.g. eu-north-1) do not support this API
-		if !aws.IsAWSError(err) {
-			return err
+	if !skipQuotaVerification {
+		var requiredVPCs int
+		if len(cc.Subnets) == 0 {
+			requiredVPCs = 1
+		}
+		if err := awsClient.VerifyNetworkQuotas(1, cc.NATGateway != NoneNATGateway, cc.NATGateway == HighlyAvailableNATGateway, requiredVPCs, strset.FromSlice(cc.AvailabilityZones)); err != nil {
+			// Skip AWS errors, since some regions (e.g. eu-north-1) do not support this API
+			if !aws.IsAWSError(err) {
+				return err
+			}
 		}
 	}
 

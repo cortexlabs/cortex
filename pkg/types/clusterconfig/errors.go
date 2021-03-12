@@ -207,10 +207,10 @@ func ErrorOnDemandBaseCapacityGreaterThanMax(onDemandBaseCapacity int64, max int
 	})
 }
 
-func ErrorConfigCannotBeChangedOnUpdate(configKey string, prevVal interface{}) error {
+func ErrorConfigCannotBeChangedOnUpdate() error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrConfigCannotBeChangedOnUpdate,
-		Message: fmt.Sprintf("modifying %s in a running cluster is not supported, please set %s to its previous value (%s)", configKey, configKey, s.UserStr(prevVal)),
+		Message: fmt.Sprintf("in a running cluster, only the %s and %s fields in the %s section can be modified", MinInstancesKey, MaxInstancesKey, NodeGroupsKey),
 	})
 }
 
