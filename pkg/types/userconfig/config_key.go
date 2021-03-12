@@ -30,6 +30,7 @@ const (
 	// TrafficSplitter
 	APIsKey   = "apis"
 	WeightKey = "weight"
+	ShadowKey = "shadow"
 
 	// Predictor
 	TypeKey                   = "type"
