@@ -161,10 +161,10 @@ func deleteQueueByJobKeyIfExists(jobKey spec.JobKey) error {
 		QueueUrl: aws.String(queueURL),
 	})
 	if err != nil {
-		if awslib.IsNonExistentQueueErr(errors.CauseOrSelf(err)) {
-			return nil
+		if !awslib.IsNonExistentQueueErr(errors.CauseOrSelf(err)) {
+			operatorLogger.Error(err)
 		}
-		operatorLogger.Error(err)
+		return nil
 	}
 
 	if value, exists := output.Tags[_markForDeletion]; exists {
@@ -172,20 +172,20 @@ func deleteQueueByJobKeyIfExists(jobKey spec.JobKey) error {
 		if err != nil {
 			err := deleteQueueByURL(queueURL)
 			if err != nil {
-				if awslib.IsNonExistentQueueErr(errors.CauseOrSelf(err)) {
-					return nil
+				if !awslib.IsNonExistentQueueErr(errors.CauseOrSelf(err)) {
+					operatorLogger.Error(err)
 				}
-				operatorLogger.Error(err)
+				return nil
 			}
 		}
 
 		if time.Since(markedTime) > _queueGraceKillTimePeriod {
 			err := deleteQueueByURL(queueURL)
 			if err != nil {
-				if awslib.IsNonExistentQueueErr(errors.CauseOrSelf(err)) {
-					return nil
+				if !awslib.IsNonExistentQueueErr(errors.CauseOrSelf(err)) {
+					operatorLogger.Error(err)
 				}
-				operatorLogger.Error(err)
+				return nil
 			}
 		}
 	} else {
