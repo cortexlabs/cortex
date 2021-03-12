@@ -31,7 +31,7 @@ var _terminationGracePeriodSeconds int64 = 60 // seconds
 func gatewayDeploymentSpec(api spec.API, prevDeployment *kapps.Deployment, queueURL string) kapps.Deployment {
 	container := operator.AsyncGatewayContainers(api, queueURL)
 	return *k8s.Deployment(&k8s.DeploymentSpec{
-		Name:           gatewayK8sName(api.Name),
+		Name:           getGatewayK8sName(api.Name),
 		Replicas:       getRequestedReplicasFromDeployment(api, prevDeployment),
 		MaxSurge:       pointer.String(api.UpdateStrategy.MaxSurge),
 		MaxUnavailable: pointer.String(api.UpdateStrategy.MaxUnavailable),

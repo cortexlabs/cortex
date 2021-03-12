@@ -44,7 +44,7 @@ type resources struct {
 	gatewayVirtualService *istioclientnetworking.VirtualService
 }
 
-func gatewayK8sName(apiName string) string {
+func getGatewayK8sName(apiName string) string {
 	return "gateway-" + apiName
 }
 
@@ -243,7 +243,7 @@ func getK8sResources(apiConfig userconfig.API) (resources, error) {
 	var gatewayService *kcore.Service
 	var gatewayVirtualService *istioclientnetworking.VirtualService
 
-	gatewayK8sName := gatewayK8sName(apiConfig.Name)
+	gatewayK8sName := getGatewayK8sName(apiConfig.Name)
 	apiK8sName := operator.K8sName(apiConfig.Name)
 
 	err := parallel.RunFirstErr(
@@ -259,12 +259,12 @@ func getK8sResources(apiConfig userconfig.API) (resources, error) {
 		},
 		func() error {
 			var err error
-			gatewayService, err = config.K8s.GetService(gatewayK8sName)
+			gatewayService, err = config.K8s.GetService(apiK8sName)
 			return err
 		},
 		func() error {
 			var err error
-			gatewayVirtualService, err = config.K8s.GetVirtualService(gatewayK8sName)
+			gatewayVirtualService, err = config.K8s.GetVirtualService(apiK8sName)
 			return err
 		},
 	)
@@ -366,7 +366,7 @@ func deleteK8sResources(apiName string) error {
 			return err
 		},
 		func() error {
-			gatewayK8sName := gatewayK8sName(apiName)
+			gatewayK8sName := getGatewayK8sName(apiName)
 			_, err := config.K8s.DeleteDeployment(gatewayK8sName)
 			return err
 		},

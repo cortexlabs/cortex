@@ -53,7 +53,7 @@ func GetStatus(apiName string) (*status.Status, error) {
 		},
 		func() error {
 			var err error
-			gatewayDeployment, err = config.K8s.GetDeployment(gatewayK8sName(apiName))
+			gatewayDeployment, err = config.K8s.GetDeployment(getGatewayK8sName(apiName))
 			return err
 		},
 		func() error {
@@ -164,13 +164,6 @@ func groupResourcesByAPI(deployments []kapps.Deployment, pods []kcore.Pod) map[s
 			apiResources.GatewayPods = append(resourcesByAPI[apiName].GatewayPods, pod)
 		}
 	}
-
-	for k, v := range resourcesByAPI {
-		fmt.Println(k)
-		fmt.Println("APIDeployment" + v.APIDeployment.Name)
-		fmt.Println("GatewayDeployment" + v.GatewayDeployment.Name)
-	}
-
 	return resourcesByAPI
 }
 

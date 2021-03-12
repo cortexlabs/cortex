@@ -1,8 +1,9 @@
 import os
+import pickle
+
 import boto3
 from botocore import UNSIGNED
 from botocore.client import Config
-import pickle
 
 labels = ["setosa", "versicolor", "virginica"]
 
@@ -25,6 +26,8 @@ class PythonPredictor:
             payload["petal_length"],
             payload["petal_width"],
         ]
+
+        print(request_id)
 
         label_id = self.model.predict([measurements])[0]
 
