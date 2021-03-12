@@ -318,7 +318,7 @@ var _clusterConfigureCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
-		err = clusterstate.AssertClusterStatus(accessConfig.ClusterName, accessConfig.Region, clusterState.Status, clusterstate.StatusCreateComplete)
+		err = clusterstate.AssertClusterStatus(accessConfig.ClusterName, accessConfig.Region, clusterState.Status, clusterstate.StatusCreateComplete, clusterstate.StatusUpdateComplete)
 		if err != nil {
 			exit.Error(err)
 		}
@@ -528,7 +528,7 @@ var _clusterExportCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
-		err = clusterstate.AssertClusterStatus(accessConfig.ClusterName, accessConfig.Region, clusterState.Status, clusterstate.StatusCreateComplete)
+		err = clusterstate.AssertClusterStatus(accessConfig.ClusterName, accessConfig.Region, clusterState.Status, clusterstate.StatusCreateComplete, clusterstate.StatusUpdateComplete)
 		if err != nil {
 			exit.Error(err)
 		}
@@ -669,7 +669,7 @@ func printInfoClusterState(awsClient *aws.Client, accessConfig *clusterconfig.Ac
 		fmt.Println()
 	}
 
-	err = clusterstate.AssertClusterStatus(accessConfig.ClusterName, accessConfig.Region, clusterState.Status, clusterstate.StatusCreateComplete)
+	err = clusterstate.AssertClusterStatus(accessConfig.ClusterName, accessConfig.Region, clusterState.Status, clusterstate.StatusCreateComplete, clusterstate.StatusUpdateComplete)
 	if err != nil {
 		return err
 	}

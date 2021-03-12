@@ -147,6 +147,14 @@ func getStatus(statusMap map[string]string, controlPlane string, clusterName str
 		return StatusCreateComplete, nil
 	}
 
+	if all(allStatuses, cloudformation.StackStatusUpdateComplete) {
+		return StatusUpdateComplete, nil
+	}
+
+	if all(allStatuses, cloudformation.StackStatusUpdateRollbackComplete) {
+		return StatusUpdateRollbackComplete, nil
+	}
+
 	if all(allStatuses, cloudformation.StackStatusDeleteComplete) {
 		return StatusDeleteComplete, nil
 	}
@@ -161,6 +169,11 @@ func getStatus(statusMap map[string]string, controlPlane string, clusterName str
 	if controlPlaneStatus == cloudformation.StackStatusCreateComplete &&
 		all(nodeGroupStatuses, cloudformation.StackStatusCreateInProgress, cloudformation.StackStatusCreateComplete) {
 		return StatusCreateInProgress, nil
+	}
+
+	if controlPlaneStatus == cloudformation.StackStatusCreateComplete &&
+		all(nodeGroupStatuses, cloudformation.StackStatusCreateComplete, cloudformation.StackStatusUpdateComplete, cloudformation.StackStatusUpdateRollbackComplete) {
+		return StatusUpdateComplete, nil
 	}
 
 	return StatusNotFound, ErrorUnexpectedCloudFormationStatus(clusterName, region, statusMap)

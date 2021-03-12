@@ -28,6 +28,7 @@ const (
 	ErrClusterCreateFailed            = "clusterstatus.cluster_create_failed"
 	ErrClusterCreateFailedTimeout     = "clusterstatus.cluster_create_failed_timeout"
 	ErrClusterAlreadyCreated          = "clusterstatus.cluster_already_created"
+	ErrClusterAlreadyUpdated          = "clusterstatus.cluster_already_updated"
 	ErrClusterDownInProgress          = "clusterstatus.cluster_down_in_progress"
 	ErrClusterAlreadyDeleted          = "clusterstatus.cluster_already_deleted"
 	ErrClusterDeleteFailed            = "clusterstatus.cluster_delete_failed"
@@ -66,6 +67,13 @@ func ErrorClusterAlreadyCreated(clusterName string, region string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrClusterAlreadyCreated,
 		Message: fmt.Sprintf("a cluster named \"%s\" already exists in %s", clusterName, region),
+	})
+}
+
+func ErrorClusterAlreadyUpdated(clusterName string, region string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrClusterAlreadyUpdated,
+		Message: fmt.Sprintf("a cluster named \"%s\" already created and updated in %s", clusterName, region),
 	})
 }
 
