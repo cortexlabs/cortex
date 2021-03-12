@@ -512,7 +512,9 @@ func getModelVersionsFromPaths(paths []string, prefix string) []string {
 func verifyTotalWeight(apis []*userconfig.TrafficSplit) error {
 	totalWeight := int32(0)
 	for _, api := range apis {
-		totalWeight += api.Weight
+		if !api.Shadow {
+			totalWeight += api.Weight
+		}
 	}
 	if totalWeight == 100 {
 		return nil

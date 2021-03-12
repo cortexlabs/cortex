@@ -14,6 +14,12 @@
     models:
       path: s3://cortex-examples/onnx/iris-classifier/
 
+- name: request-recorder
+  kind: RealtimeAPI
+  predictor:
+    type: python
+    path: request_recorder.py
+
 - name: iris-classifier
   kind: TrafficSplitter
   apis:
@@ -21,3 +27,6 @@
       weight: 30
     - name: iris-classifier-pytorch
       weight: 70
+    - name: request-recorder
+      shadow: true
+      weight: 100

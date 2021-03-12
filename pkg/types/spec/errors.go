@@ -91,6 +91,7 @@ const (
 	ErrConcurrencyMismatchServerSideBatchingPython = "spec.concurrency_mismatch_server_side_batching_python"
 	ErrIncorrectTrafficSplitterWeight              = "spec.incorrect_traffic_splitter_weight"
 	ErrTrafficSplitterAPIsNotUnique                = "spec.traffic_splitter_apis_not_unique"
+	ErrOneShadowPerTrafficSplitter                 = "spec.one_shadow_per_traffic_splitter"
 	ErrUnexpectedDockerSecretData                  = "spec.unexpected_docker_secret_data"
 )
 
@@ -593,7 +594,7 @@ func ErrorConcurrencyMismatchServerSideBatchingPython(maxBatchsize int32, thread
 func ErrorIncorrectTrafficSplitterWeightTotal(totalWeight int32) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrIncorrectTrafficSplitterWeight,
-		Message: fmt.Sprintf("expected weights to sum to 100 but found %d", totalWeight),
+		Message: fmt.Sprintf("expected weights of all non-shadow apis to sum to 100 but found %d", totalWeight),
 	})
 }
 
@@ -601,6 +602,13 @@ func ErrorTrafficSplitterAPIsNotUnique(names []string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrTrafficSplitterAPIsNotUnique,
 		Message: fmt.Sprintf("%s not unique: %s", s.PluralS("api", len(names)), s.StrsSentence(names, "")),
+	})
+}
+
+func ErrorOneShadowPerTrafficSplitter() error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrOneShadowPerTrafficSplitter,
+		Message: fmt.Sprintf("multiple shadow apis detected; only one api is allowed to be marked as a shadow"),
 	})
 }
 
