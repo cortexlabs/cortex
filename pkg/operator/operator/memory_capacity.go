@@ -133,15 +133,14 @@ func UpdateMemoryCapacityConfigMap() (map[string]kresource.Quantity, error) {
 		minMem := minMemMap[primaryInstance]
 
 		if nodeMemCapacityMap[primaryInstance] != nil && minMem.Cmp(*nodeMemCapacityMap[primaryInstance]) > 0 {
-			minMemMap[primaryInstance] = *nodeMemCapacityMap[primaryInstance]
+			minMem = *nodeMemCapacityMap[primaryInstance]
 		}
 
 		if previousMinMemMap[primaryInstance] != nil && minMem.Cmp(*previousMinMemMap[primaryInstance]) > 0 {
-			minMemMap[primaryInstance] = *previousMinMemMap[primaryInstance]
+			minMem = *previousMinMemMap[primaryInstance]
 		}
 
 		if previousMinMemMap[primaryInstance] == nil || minMem.Cmp(*previousMinMemMap[primaryInstance]) < 0 {
-			minMem = minMemMap[primaryInstance]
 			configMapData[_configKeyPrefix+primaryInstance] = minMem.String()
 		} else {
 			configMapData[_configKeyPrefix+primaryInstance] = kresource.NewQuantity(0, kresource.DecimalSI).String()
