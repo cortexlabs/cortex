@@ -77,7 +77,7 @@ _NOTE: The policy created during `cortex cluster up` will automatically be delet
 		{
 			"Effect": "Allow",
 			"Action": "sqs:*",
-			"Resource": "arn:aws:sqs:{{ .Region }}:{{ .AccountID }}:{{ .SQSPrefix }}*"
+			"Resource": "arn:aws:sqs:{{ .Region }}:{{ .AccountID }}:cortex-*"
 		},
 		{
 			"Effect": "Allow",
