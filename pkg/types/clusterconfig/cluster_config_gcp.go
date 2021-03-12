@@ -639,18 +639,6 @@ func (np *NodePool) validateNodePool(GCP *gcp.Client, zone string) error {
 	return nil
 }
 
-func (cc *InternalGCPConfig) UserTable() table.KeyValuePairs {
-	var items table.KeyValuePairs
-
-	items.Add(APIVersionUserKey, cc.APIVersion)
-	items.AddAll(cc.GCPConfig.UserTable())
-	return items
-}
-
-func (cc *InternalGCPConfig) UserStr() string {
-	return cc.UserTable().String()
-}
-
 func (cc *GCPCoreConfig) UserTable() table.KeyValuePairs {
 	var items table.KeyValuePairs
 
@@ -705,20 +693,6 @@ func (cc *GCPManagedConfig) UserTable() table.KeyValuePairs {
 	items.Add(OperatorLoadBalancerSchemeUserKey, cc.OperatorLoadBalancerScheme)
 
 	return items
-}
-
-func (cc *GCPConfig) UserTable() table.KeyValuePairs {
-	items := &table.KeyValuePairs{}
-	items.AddAll(cc.GCPCoreConfig.UserTable())
-	if cc.GCPCoreConfig.IsManaged {
-		items.AddAll(cc.GCPManagedConfig.UserTable())
-	}
-
-	return *items
-}
-
-func (cc *GCPConfig) UserStr() string {
-	return cc.UserTable().String()
 }
 
 func (cc *GCPCoreConfig) TelemetryEvent() map[string]interface{} {

@@ -680,6 +680,12 @@ func printInfoClusterState(awsClient *aws.Client, accessConfig *clusterconfig.Ac
 func printInfoOperatorResponse(clusterConfig clusterconfig.Config, operatorEndpoint string) error {
 	fmt.Print("fetching cluster status ...\n\n")
 
+	yamlBytes, err := yaml.Marshal(clusterConfig)
+	if err != nil {
+		return err
+	}
+	yamlString := string(yamlBytes)
+
 	operatorConfig := cluster.OperatorConfig{
 		Telemetry:        isTelemetryEnabled(),
 		ClientID:         clientID(),
@@ -689,23 +695,23 @@ func printInfoOperatorResponse(clusterConfig clusterconfig.Config, operatorEndpo
 
 	infoResponse, err := cluster.Info(operatorConfig)
 	if err != nil {
-		fmt.Println(clusterConfig.UserStr())
+		fmt.Println(yamlString)
 		return err
 	}
 	infoResponse.ClusterConfig.Config = clusterConfig
 
-	printInfoClusterConfig(infoResponse)
+	fmt.Println(console.Bold("metadata:"))
+	fmt.Println(fmt.Sprintf("aws access key id: %s", infoResponse.MaskedAWSAccessKeyID))
+	fmt.Println(fmt.Sprintf("%s: %s", clusterconfig.APIVersionUserKey, infoResponse.ClusterConfig.APIVersion))
+
+	fmt.Println()
+	fmt.Println(console.Bold("cluster config:"))
+	fmt.Print(yamlString)
+
 	printInfoPricing(infoResponse, clusterConfig)
 	printInfoNodes(infoResponse)
 
 	return nil
-}
-
-func printInfoClusterConfig(infoResponse *schema.InfoResponse) {
-	var items table.KeyValuePairs
-	items.Add("aws access key id", infoResponse.MaskedAWSAccessKeyID)
-	items.AddAll(infoResponse.ClusterConfig.UserTable())
-	items.Print()
 }
 
 func printInfoPricing(infoResponse *schema.InfoResponse, clusterConfig clusterconfig.Config) {
@@ -726,7 +732,13 @@ func printInfoPricing(infoResponse *schema.InfoResponse, clusterConfig clusterco
 
 	var totalNodeGroupsPrice float64
 	for _, ng := range clusterConfig.NodeGroups {
-		nodesInfo := infoResponse.GetNodesWithNodeGroupName(ng.Name)
+		var ngNamePrefix string
+		if ng.Spot {
+			ngNamePrefix = "cx-ws-"
+		} else {
+			ngNamePrefix = "cx-wd-"
+		}
+		nodesInfo := infoResponse.GetNodesWithNodeGroupName(ngNamePrefix + ng.Name)
 		numInstances := len(nodesInfo)
 
 		ebsPrice := aws.EBSMetadatas[clusterConfig.Region][ng.InstanceVolumeType.String()].PriceGB * float64(ng.InstanceVolumeSize) / 30 / 24
@@ -740,8 +752,8 @@ func printInfoPricing(infoResponse *schema.InfoResponse, clusterConfig clusterco
 			totalInstancePrice += nodeInfo.Price
 		}
 
-		rows = append(rows, []interface{}{fmt.Sprintf("nodegroup %s: %d %s (out of %d) for your apis", ng.Name, numInstances, s.PluralS("instance", numInstances), ng.MaxInstances), s.DollarsAndTenthsOfCents(totalInstancePrice) + " total"})
-		rows = append(rows, []interface{}{fmt.Sprintf("nodegroup %s: %d %dgb ebs %s (out of %d) for your apis", ng.Name, numInstances, ng.InstanceVolumeSize, s.PluralS("volume", numInstances), ng.MaxInstances), s.DollarsAndTenthsOfCents(totalEBSPrice) + " total"})
+		rows = append(rows, []interface{}{fmt.Sprintf("nodegroup %s: %d (out of %d) %s for your apis", ng.Name, numInstances, ng.MaxInstances, s.PluralS("instance", numInstances)), s.DollarsAndTenthsOfCents(totalInstancePrice) + " total"})
+		rows = append(rows, []interface{}{fmt.Sprintf("nodegroup %s: %d (out of %d) %dgb ebs %s for your apis", ng.Name, numInstances, ng.MaxInstances, ng.InstanceVolumeSize, s.PluralS("volume", numInstances)), s.DollarsAndTenthsOfCents(totalEBSPrice) + " total"})
 
 		totalNodeGroupsPrice += totalEBSPrice + totalInstancePrice
 	}

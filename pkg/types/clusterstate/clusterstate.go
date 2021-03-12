@@ -30,10 +30,10 @@ import (
 
 const (
 	controlPlaneTemplate = "eksctl-%s-cluster"
-	operatorTemplate     = "eksctl-%s-nodegroup-ng-cx-operator"
+	operatorTemplate     = "eksctl-%s-nodegroup-cx-operator"
 
-	spotTemplatePrefix     = "eksctl-%s-nodegroup-ng-cx-ws"
-	onDemandTemplatePrefix = "eksctl-%s-nodegroup-ng-cx-wd"
+	spotTemplatePrefix     = "eksctl-%s-nodegroup-cx-ws"
+	onDemandTemplatePrefix = "eksctl-%s-nodegroup-cx-wd"
 )
 
 type ClusterState struct {

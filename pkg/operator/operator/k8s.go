@@ -1165,13 +1165,14 @@ func GenerateResourceTolerations(compute *userconfig.Compute) []kcore.Toleration
 func GeneratePreferredNodeAffinities() []kcore.PreferredSchedulingTerm {
 	affinities := []kcore.PreferredSchedulingTerm{}
 
-	if config.GCPManagedConfigOrNil() == nil && config.AWSInstanceMetadataOrNil() == nil {
-		return affinities
-	}
-
 	if config.Provider == types.AWSProviderType {
-		numNodeGroups := len(config.ManagedConfigOrNil().NodeGroups)
-		for idx, nodeGroup := range config.ManagedConfigOrNil().NodeGroups {
+		clusterConfig := config.ManagedConfigOrNil()
+		if clusterConfig == nil {
+			return nil
+		}
+
+		numNodeGroups := len(clusterConfig.NodeGroups)
+		for idx, nodeGroup := range clusterConfig.NodeGroups {
 			var nodeGroupPrefix string
 			if nodeGroup.Spot {
 				nodeGroupPrefix = "cx-ws-"
@@ -1192,8 +1193,13 @@ func GeneratePreferredNodeAffinities() []kcore.PreferredSchedulingTerm {
 			})
 		}
 	} else {
-		numNodePools := len(config.GCPManagedConfigOrNil().NodePools)
-		for idx, nodePool := range config.GCPManagedConfigOrNil().NodePools {
+		clusterConfig := config.GCPManagedConfigOrNil()
+		if clusterConfig == nil {
+			return nil
+		}
+
+		numNodePools := len(clusterConfig.NodePools)
+		for idx, nodePool := range clusterConfig.NodePools {
 			var nodePoolPrefix string
 			if nodePool.Preemptible {
 				nodePoolPrefix = "cx-ws-"

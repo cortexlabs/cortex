@@ -35,6 +35,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	"github.com/cortexlabs/cortex/pkg/types"
 	"github.com/cortexlabs/cortex/pkg/types/clusterconfig"
+	"github.com/cortexlabs/yaml"
 	"github.com/spf13/cobra"
 	containerpb "google.golang.org/genproto/googleapis/container/v1"
 )
@@ -373,7 +374,18 @@ func printInfoOperatorResponseGCP(accessConfig *clusterconfig.GCPAccessConfig, o
 		return err
 	}
 
-	infoResponse.ClusterConfig.UserTable().Print()
+	yamlBytes, err := yaml.Marshal(infoResponse.ClusterConfig.GCPConfig)
+	if err != nil {
+		return err
+	}
+	yamlString := string(yamlBytes)
+
+	fmt.Println(console.Bold("metadata:"))
+	fmt.Println(fmt.Sprintf("%s: %s", clusterconfig.APIVersionUserKey, infoResponse.ClusterConfig.APIVersion))
+
+	fmt.Println()
+	fmt.Println(console.Bold("cluster config:"))
+	fmt.Print(yamlString)
 
 	return nil
 }

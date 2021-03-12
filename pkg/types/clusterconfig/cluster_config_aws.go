@@ -36,8 +36,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	"github.com/cortexlabs/cortex/pkg/lib/slices"
-	s "github.com/cortexlabs/cortex/pkg/lib/strings"
-	"github.com/cortexlabs/cortex/pkg/lib/table"
 	"github.com/cortexlabs/cortex/pkg/types"
 	"github.com/google/uuid"
 )
@@ -1169,116 +1167,6 @@ func (ng *NodeGroup) SpotConfigOnDemandValues() (int64, int64) {
 	}
 
 	return onDemandBaseCapacity, onDemandPercentageAboveBaseCapacity
-}
-
-func (cc *InternalConfig) UserTable() table.KeyValuePairs {
-	var items *table.KeyValuePairs = &table.KeyValuePairs{}
-
-	items.Add(APIVersionUserKey, cc.APIVersion)
-	items.AddAll(cc.Config.UserTable())
-
-	return *items
-}
-
-func (cc *InternalConfig) UserStr() string {
-	return cc.UserTable().String()
-}
-
-func (cc *CoreConfig) UserTable() table.KeyValuePairs {
-	var items table.KeyValuePairs
-
-	items.Add(ClusterNameUserKey, cc.ClusterName)
-	items.Add(RegionUserKey, cc.Region)
-	items.Add(BucketUserKey, cc.Bucket)
-	items.Add(TelemetryUserKey, cc.Telemetry)
-	items.Add(ImageOperatorUserKey, cc.ImageOperator)
-	items.Add(ImageManagerUserKey, cc.ImageManager)
-	items.Add(ImageDownloaderUserKey, cc.ImageDownloader)
-	items.Add(ImageRequestMonitorUserKey, cc.ImageRequestMonitor)
-	items.Add(ImageClusterAutoscalerUserKey, cc.ImageClusterAutoscaler)
-	items.Add(ImageMetricsServerUserKey, cc.ImageMetricsServer)
-	items.Add(ImageInferentiaUserKey, cc.ImageInferentia)
-	items.Add(ImageNeuronRTDUserKey, cc.ImageNeuronRTD)
-	items.Add(ImageNvidiaUserKey, cc.ImageNvidia)
-	items.Add(ImageFluentBitUserKey, cc.ImageFluentBit)
-	items.Add(ImageIstioProxyUserKey, cc.ImageIstioProxy)
-	items.Add(ImageIstioPilotUserKey, cc.ImageIstioPilot)
-	items.Add(ImagePrometheusUserKey, cc.ImagePrometheus)
-	items.Add(ImagePrometheusConfigReloaderUserKey, cc.ImagePrometheusConfigReloader)
-	items.Add(ImagePrometheusOperatorUserKey, cc.ImagePrometheusOperator)
-	items.Add(ImagePrometheusStatsDExporterUserKey, cc.ImagePrometheusStatsDExporter)
-	items.Add(ImagePrometheusDCGMExporterUserKey, cc.ImagePrometheusDCGMExporter)
-	items.Add(ImagePrometheusKubeStateMetricsUserKey, cc.ImagePrometheusKubeStateMetrics)
-	items.Add(ImagePrometheusNodeExporterUserKey, cc.ImagePrometheusNodeExporter)
-	items.Add(ImageKubeRBACProxyUserKey, cc.ImageKubeRBACProxy)
-	items.Add(ImageGrafanaUserKey, cc.ImageGrafana)
-	items.Add(ImageEventExporterUserKey, cc.ImageEventExporter)
-
-	return items
-}
-
-func (mc *ManagedConfig) UserTable() table.KeyValuePairs {
-	var items table.KeyValuePairs
-
-	if len(mc.AvailabilityZones) > 0 {
-		items.Add(AvailabilityZonesUserKey, mc.AvailabilityZones)
-	}
-	for _, subnetConfig := range mc.Subnets {
-		items.Add("subnet in "+subnetConfig.AvailabilityZone, subnetConfig.SubnetID)
-	}
-	// TODO to be modified/removed
-	// items.Add(InstanceTypeUserKey, mc.InstanceType)
-	// items.Add(MinInstancesUserKey, mc.MinInstances)
-	// items.Add(MaxInstancesUserKey, mc.MaxInstances)
-	items.Add(TagsUserKey, s.ObjFlat(mc.Tags))
-	if mc.SSLCertificateARN != nil {
-		items.Add(SSLCertificateARNUserKey, *mc.SSLCertificateARN)
-	}
-	items.Add(CortexPolicyARNUserKey, mc.CortexPolicyARN)
-	items.Add(IAMPolicyARNsUserKey, s.ObjFlatNoQuotes(mc.IAMPolicyARNs))
-
-	// items.Add(InstanceVolumeSizeUserKey, mc.InstanceVolumeSize)
-	// items.Add(InstanceVolumeTypeUserKey, mc.InstanceVolumeType)
-	// items.Add(InstanceVolumeIOPSUserKey, mc.InstanceVolumeIOPS)
-	// items.Add(SpotUserKey, s.YesNo(mc.Spot))
-	// if mc.Spot {
-	// 	items.Add(InstanceDistributionUserKey, mc.SpotConfig.InstanceDistribution)
-	// 	items.Add(OnDemandBaseCapacityUserKey, *mc.SpotConfig.OnDemandBaseCapacity)
-	// 	items.Add(OnDemandPercentageAboveBaseCapacityUserKey, *mc.SpotConfig.OnDemandPercentageAboveBaseCapacity)
-	// 	items.Add(MaxPriceUserKey, *mc.SpotConfig.MaxPrice)
-	// 	items.Add(InstancePoolsUserKey, *mc.SpotConfig.InstancePools)
-	// 	items.Add(OnDemandBackupUserKey, s.YesNo(*mc.SpotConfig.OnDemandBackup))
-	// }
-	items.Add(SubnetVisibilityUserKey, mc.SubnetVisibility)
-	items.Add(NATGatewayUserKey, mc.NATGateway)
-	items.Add(APILoadBalancerSchemeUserKey, mc.APILoadBalancerScheme)
-	items.Add(OperatorLoadBalancerSchemeUserKey, mc.OperatorLoadBalancerScheme)
-	if mc.VPCCIDR != nil {
-		items.Add(VPCCIDRKey, *mc.VPCCIDR)
-	}
-
-	return items
-}
-
-func (ng *NodeGroup) UserTable() table.KeyValuePairs {
-	var items table.KeyValuePairs
-
-	return items
-}
-
-func (cc *Config) UserTable() table.KeyValuePairs {
-	var items *table.KeyValuePairs = &table.KeyValuePairs{}
-	items.AddAll(cc.CoreConfig.UserTable())
-
-	if cc.CoreConfig.IsManaged {
-		items.AddAll(cc.ManagedConfig.UserTable())
-	}
-
-	return *items
-}
-
-func (cc *Config) UserStr() string {
-	return cc.UserTable().String()
 }
 
 func (cc *CoreConfig) TelemetryEvent() map[string]interface{} {
