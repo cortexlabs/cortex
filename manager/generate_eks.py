@@ -126,8 +126,8 @@ def is_gpu(instance_type):
     return instance_type.startswith("g") or instance_type.startswith("p")
 
 
-def apply_inf_settings(nodegroup, cluster_config):
-    instance_type = cluster_config["instance_type"]
+def apply_inf_settings(nodegroup, config):
+    instance_type = config["instance_type"]
 
     num_chips, hugepages_mem = get_inf_resources(instance_type)
     inf_settings = {
@@ -175,7 +175,7 @@ def get_all_worker_nodegroups(cluster_config: dict) -> list:
             apply_gpu_settings(worker_nodegroup)
 
         if is_inf(ng["instance_type"]):
-            apply_inf_settings(worker_nodegroup, cluster_config)
+            apply_inf_settings(worker_nodegroup, ng)
 
         worker_nodegroups.append(worker_nodegroup)
 
