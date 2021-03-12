@@ -331,7 +331,7 @@ function resize_nodegroup() {
   eksctl get nodegroup --cluster=$CORTEX_CLUSTER_NAME --region=$CORTEX_REGION -o json > nodegroups.json
   ng_len=$(cat nodegroups.json | jq -r length)
   num_resizes=0
-  
+
   for idx in $(seq 0 $(($ng_len-1))); do
     stack_ng=$(cat nodegroups.json | jq -r .[$idx].Name)
     if [ "$stack_ng" = "cx-operator" ]; then
