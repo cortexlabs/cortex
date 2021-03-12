@@ -77,6 +77,11 @@ class AsyncAPI:
         self.storage.put_str(status, f"{self.storage_path}/{request_id}/status")
 
     def upload_result(self, request_id: str, result: Dict[str, Any]):
+        if not isinstance(result, dict):
+            raise UserRuntimeException(
+                f"user response must be json serializable dictionary, got {type(result)} instead"
+            )
+
         try:
             result_json = json.dumps(result)
         except Exception:
@@ -93,14 +98,14 @@ class AsyncAPI:
                 f"failed to retrieve async payload (request_id: {request_id}, status_code: {status_code})"
             )
 
-        content_type = obj["ResponseMetadata"]["HTTPHeaders"]["content-type"]
-        payload_bytes = obj["Body"].read()
+        content_type: str = obj["ResponseMetadata"]["HTTPHeaders"]["content-type"]
+        payload_bytes: bytes = obj["Body"].read()
 
         # TODO: discuss
         # decode payload
-        if content_type == "application/json":
+        if content_type.startswith("application/json"):
             return json.loads(payload_bytes)
-        elif content_type == "text/plain":
+        elif content_type.startswith("text/plain"):
             return payload_bytes.decode("utf-8")
         else:
             return payload_bytes
@@ -156,22 +161,21 @@ class AsyncAPI:
 
         classes = inspect.getmembers(impl, inspect.isclass)
 
-        if len(classes) > 0:
-            predictor_class = None
-            for class_df in classes:
-                if class_df[0] == target_class_name:
-                    if predictor_class is not None:
-                        raise UserException(
-                            f"multiple definitions for {target_class_name} class found; please check "
-                            f"your imports and class definitions and ensure that there is only one "
-                            f"predictor class definition"
-                        )
-                    predictor_class = class_df[1]
-            if predictor_class is None:
-                raise UserException(f"{target_class_name} class is not defined")
-            return predictor_class
-        else:
-            raise UserException("no callable class or function were provided")
+        predictor_class = None
+        for class_df in classes:
+            if class_df[0] == target_class_name:
+                if predictor_class is not None:
+                    raise UserException(
+                        f"multiple definitions for {target_class_name} class found; please check "
+                        f"your imports and class definitions and ensure that there is only one "
+                        f"predictor class definition"
+                    )
+                predictor_class = class_df[1]
+
+        if predictor_class is None:
+            raise UserException(f"{target_class_name} class is not defined")
+
+        return predictor_class
 
     @staticmethod
     def _validate_impl(impl):

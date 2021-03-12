@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+import inspect
 import os
 import sys
 from typing import Dict, Any
@@ -39,6 +39,7 @@ local_cache: Dict[str, Any] = {
     "api": None,
     "provider": None,
     "predictor_impl": None,
+    "predict_fn_args": None,
     "sqs_client": None,
     "storage_client": None,
 }
@@ -55,7 +56,7 @@ def handle_workload(message):
     payload = api.get_payload(request_id)
 
     try:
-        result = predictor_impl.predict(payload, request_id)
+        result = predictor_impl.predict(**build_predict_args(payload, request_id))
     except Exception as err:
         raise UserRuntimeException from err
 
@@ -80,6 +81,15 @@ def handle_workload_failure(message):
 
     log.error("failed to process workload", exc_info=True, extra={"id": request_id})
     api.update_status(request_id, "failed")
+
+
+def build_predict_args(payload, request_id):
+    args = {}
+    if "payload" in local_cache["predict_fn_args"]:
+        args["payload"] = payload
+    if "request_id" in local_cache["predict_fn_args"]:
+        args["request_id"] = request_id
+    return args
 
 
 def main():
@@ -122,6 +132,7 @@ def main():
     local_cache["predictor_impl"] = predictor_impl
     local_cache["sqs_client"] = sqs_client
     local_cache["storage_client"] = storage
+    local_cache["predict_fn_args"] = inspect.getfullargspec(predictor_impl.predict).args
 
     open(readiness_file, "a").close()
 
