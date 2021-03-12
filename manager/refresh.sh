@@ -29,12 +29,10 @@ fi
 eksctl utils write-kubeconfig --cluster=$CORTEX_CLUSTER_NAME --region=$CORTEX_REGION | (grep -v "saved kubeconfig as" | grep -v "using region" | grep -v "eksctl version" || true)
 out=$(kubectl get pods 2>&1 || true); if [[ "$out" == *"must be logged in to the server"* ]]; then echo "error: your aws iam user does not have access to this cluster; to grant access, see https://docs.cortex.dev/v/${CORTEX_VERSION_MINOR}/"; exit 1; fi
 
-kubectl get -n=default configmap cluster-config -o json | jq -r '.data."cluster.yaml"' >> cluster_configmap.yaml
+kubectl get -n=default configmap cluster-config -o json | jq -r '.data."cluster.yaml"' >> $cluster_config_out_path
 
 # python refresh_cluster_config.py cluster_configmap.yaml tmp_cluster_config.yaml
 # kubectl -n=default create configmap 'cluster-config' \
 #     --from-file='cluster.yaml'=tmp_cluster_config.yaml \
 #     -o yaml --dry-run=client | kubectl apply -f - >/dev/null
 # cp tmp_cluster_config.yaml $cluster_config_out_path
-
-cp cluster_configmap.yaml $cluster_config_out_path
