@@ -28,6 +28,7 @@ from cortex.consts import (
     CORTEX_TELEMETRY_SENTRY_DSN,
     CORTEX_TELEMETRY_SENTRY_ENVIRONMENT,
 )
+from cortex import util
 
 
 def _sentry_client(
@@ -81,7 +82,7 @@ def _create_default_scope(optional_tags: dict = {}) -> sentry_sdk.Scope:
     scope = sentry_sdk.Scope()
 
     user_id = None
-    client_id_file_path = pathlib.Path.home() / ".cortex" / "client-id.txt"
+    client_id_file_path = util.cli_config_dir() / "client-id.txt"
     if not client_id_file_path.is_file():
         client_id_file_path.parent.mkdir(parents=True, exist_ok=True)
         client_id_file_path.write_text(str(uuid4()))
