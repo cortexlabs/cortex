@@ -205,7 +205,7 @@ func (c *Client) ListSupportedAvailabilityZones(instanceType string, instanceTyp
 	zoneSets := make([]strset.Set, len(allInstanceTypes))
 	fns := make([]func() error, len(allInstanceTypes))
 
-	for i := range instanceTypes {
+	for i := range allInstanceTypes {
 		localIdx := i
 		fns[i] = func() error {
 			zones, err := c.listSupportedAvailabilityZonesSingle(allInstanceTypes[localIdx])

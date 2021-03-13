@@ -324,11 +324,7 @@ func confirmInstallClusterConfig(clusterConfig *clusterconfig.Config, awsClient 
 	}
 
 	if len(clusterConfig.NodeGroups) > 1 && len(ngNameToSpotInstancesUsed) > 0 {
-		nodegroupStr := "nodegroup"
-		if len(ngNameToSpotInstancesUsed) > 1 {
-			nodegroupStr = "nodegroup"
-		}
-		fmt.Printf("warning: you've enabled spot instances for %s %s; spot instances are not guaranteed to be available so please take that into account for production clusters; see https://docs.cortex.dev/v/%s/ for more information\n\n", nodegroupStr, s.StrsAnd(maps.StrMapKeysInt(ngNameToSpotInstancesUsed)), consts.CortexVersionMinor)
+		fmt.Printf("warning: you've enabled spot instances for %s %s; spot instances are not guaranteed to be available so please take that into account for production clusters; see https://docs.cortex.dev/v/%s/ for more information\n\n", s.PluralS("nodegroup", len(ngNameToSpotInstancesUsed)), s.StrsAnd(maps.StrMapKeysInt(ngNameToSpotInstancesUsed)), consts.CortexVersionMinor)
 	}
 
 	if !disallowPrompt {
