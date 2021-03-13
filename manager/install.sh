@@ -71,12 +71,12 @@ function cluster_up_aws() {
   setup_grafana
   echo "✓"
 
-  echo -n "￮ configuring gpu support (for the nodegroups that may require)"
+  echo -n "￮ configuring gpu support (for the nodegroups that may require it)"
   envsubst < manifests/nvidia_aws.yaml | kubectl apply -f - >/dev/null
   envsubst < manifests/prometheus-dcgm-exporter.yaml | kubectl apply -f - >/dev/null
   echo "✓"
 
-  echo -n "￮ configuring inf support (for the nodegroups that may require)"
+  echo -n "￮ configuring inf support (for the nodegroups that may require it)"
   envsubst < manifests/inferentia.yaml | kubectl apply -f - >/dev/null
   echo "✓"
 
@@ -372,7 +372,7 @@ function resize_nodegroup() {
   rm nodegroups.json
 
   if [ "$num_resizes" -eq "0" ]; then
-    echo "no change has been detected in the cluster config; exiting ..."
+    echo "no changes to node group sizes detected in the cluster config"
     exit 0
   fi
 }

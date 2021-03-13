@@ -25,7 +25,6 @@ import (
 	"net"
 	"net/http"
 	"regexp"
-	"strconv"
 	"strings"
 
 	"github.com/aws/aws-sdk-go/service/iam"
@@ -197,21 +196,6 @@ func (cc *Config) Hash() (string, error) {
 	hash := sha256.New()
 	hash.Write(bytes)
 	return hex.EncodeToString(hash.Sum(nil)), nil
-}
-
-func (ng *NodeGroup) DeepCopy() (NodeGroup, error) {
-	bytes, err := yaml.Marshal(ng)
-	if err != nil {
-		return NodeGroup{}, err
-	}
-
-	deepCopied := NodeGroup{}
-	err = yaml.Unmarshal(bytes, &deepCopied)
-	if err != nil {
-		return NodeGroup{}, err
-	}
-
-	return deepCopied, nil
 }
 
 var CoreConfigStructFieldValidations = []*cr.StructFieldValidation{
@@ -440,10 +424,9 @@ var ManagedConfigStructFieldValidations = []*cr.StructFieldValidation{
 					{
 						StructField: "Name",
 						StringValidation: &cr.StringValidation{
-							AllowEmpty:                        true,
-							TreatNullAsEmpty:                  true,
-							AlphaNumericDashUnderscoreOrEmpty: true,
-							MaxLength:                         _maxNodeGroupLength,
+							Required:                   true,
+							AlphaNumericDashUnderscore: true,
+							MaxLength:                  _maxNodeGroupLength,
 						},
 					},
 					{
@@ -773,46 +756,16 @@ func (cc *Config) Validate(awsClient *aws.Client, skipQuotaVerification bool) er
 
 	ngNames := []string{}
 	instances := []aws.InstanceTypeRequests{}
-	instanceTypeSpotHashes := []string{}
-	for idx, nodeGroup := range cc.NodeGroups {
-		var nodeGroupReferenceID string
-		if nodeGroup.Name == "" {
-			nodeGroupReferenceID = strconv.FormatInt(int64(idx), 10)
-
-			auxNodeGroup, err := nodeGroup.DeepCopy()
-			if err != nil {
-				return errors.Wrap(err, NodeGroupsKey, nodeGroupReferenceID)
-			}
-			auxNodeGroup.MinInstances = 0
-			auxNodeGroup.MaxInstances = 0
-
-			bytes, err := yaml.Marshal(auxNodeGroup)
-			if err != nil {
-				return errors.Wrap(err, NodeGroupsKey, nodeGroupReferenceID)
-			}
-			nodeGroupHash := hash.Strings(string(bytes), nodeGroupReferenceID)
-
-			cc.NodeGroups[idx].Name = nodeGroupHash[:_maxNodeGroupLength]
-			nodeGroup.Name = cc.NodeGroups[idx].Name
-		} else {
-			nodeGroupReferenceID = nodeGroup.Name
-		}
-
+	for _, nodeGroup := range cc.NodeGroups {
 		if !slices.HasString(ngNames, nodeGroup.Name) {
 			ngNames = append(ngNames, nodeGroup.Name)
 		} else {
 			return errors.Wrap(ErrorDuplicateNodeGroupName(nodeGroup.Name), NodeGroupsKey)
 		}
 
-		instanceTypeSpotHash := hash.Strings(nodeGroup.InstanceType, strconv.FormatBool(nodeGroup.Spot))
-		if slices.HasString(instanceTypeSpotHashes, instanceTypeSpotHash) {
-			return errors.Wrap(ErrorNodeGroupsWithSameInstanceAndSpot(nodeGroup.InstanceType, nodeGroup.Spot), NodeGroupsKey, nodeGroupReferenceID)
-		}
-		instanceTypeSpotHashes = append(instanceTypeSpotHashes, instanceTypeSpotHash)
-
 		err := nodeGroup.validateNodeGroup(awsClient, cc.Region)
 		if err != nil {
-			return errors.Wrap(err, NodeGroupsKey, nodeGroupReferenceID)
+			return errors.Wrap(err, NodeGroupsKey, nodeGroup.Name)
 		}
 
 		instances = append(instances, aws.InstanceTypeRequests{
@@ -1357,16 +1310,15 @@ func (mc *ManagedConfig) TelemetryEvent() map[string]interface{} {
 	onDemandInstanceTypes := strset.New()
 	spotInstanceTypes := strset.New()
 	var totalMinSize, totalMaxSize int
-	var avgMinSize, avgMaxSize float64
 
-	event["nodegroup._len"] = len(mc.NodeGroups)
+	event["node_groups._len"] = len(mc.NodeGroups)
 	for _, ng := range mc.NodeGroups {
 		nodeGroupKey := func(field string) string {
 			lifecycle := "on_demand"
 			if ng.Spot {
 				lifecycle = "spot"
 			}
-			return fmt.Sprintf("nodegroup.%s-%s.%s", ng.InstanceType, lifecycle, field)
+			return fmt.Sprintf("node_groups.%s-%s.%s", ng.InstanceType, lifecycle, field)
 		}
 		event[nodeGroupKey("_is_defined")] = true
 		event[nodeGroupKey("name")] = ng.Name
@@ -1416,26 +1368,20 @@ func (mc *ManagedConfig) TelemetryEvent() map[string]interface{} {
 		totalMaxSize += int(ng.MaxInstances)
 	}
 
-	avgMinSize = float64(totalMinSize) / float64(len(mc.NodeGroups))
-	avgMaxSize = float64(totalMaxSize) / float64(len(mc.NodeGroups))
-	event["nodegroup._total_min_size"] = totalMinSize
-	event["nodegroup._total_max_size"] = totalMaxSize
-	event["nodegroup._avg_min_size"] = avgMinSize
-	event["nodegroup._avg_max_size"] = avgMaxSize
-	event["nodegroup._on_demand_instances"] = onDemandInstanceTypes.Slice()
-	event["nodegroup._spot_instances"] = spotInstanceTypes.Slice()
-	event["nodegroup._instances"] = strset.Union(onDemandInstanceTypes, spotInstanceTypes).Slice()
+	event["node_groups._total_min_size"] = totalMinSize
+	event["node_groups._total_max_size"] = totalMaxSize
+	event["node_groups._on_demand_instances"] = onDemandInstanceTypes.Slice()
+	event["node_groups._spot_instances"] = spotInstanceTypes.Slice()
+	event["node_groups._instances"] = strset.Union(onDemandInstanceTypes, spotInstanceTypes).Slice()
 
 	return event
 }
 
 func (mc *ManagedConfig) GetAllInstanceTypes() []string {
-	allInstanceTypes := []string{}
+	allInstanceTypes := strset.New()
 	for _, ng := range mc.NodeGroups {
-		if !slices.HasString(allInstanceTypes, ng.InstanceType) {
-			allInstanceTypes = append(allInstanceTypes, ng.InstanceType)
-		}
+		allInstanceTypes.Add(ng.InstanceType)
 	}
 
-	return allInstanceTypes
+	return allInstanceTypes.Slice()
 }

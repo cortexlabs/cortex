@@ -197,11 +197,6 @@ spec:
             {% endif %}
             - --skip-nodes-with-local-storage=false
             - --expander=priority
-            {% if config['provider'] == 'aws' %}
-            - --max-nodes-total={{ config['node_groups'] | sum(attribute='max_instances') + 2 }}
-            {% else %}
-            - --max-nodes-total={{ config['node_pools'] | sum(attribute='max_instances') + 2 }}
-            {% endif %}
             - --max-total-unready-percentage=5
             - --ok-total-unready-count=30
             - --max-node-provision-time=5m

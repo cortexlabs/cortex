@@ -46,7 +46,7 @@ var (
 
 	CoreConfig        *clusterconfig.CoreConfig
 	managedConfig     *clusterconfig.ManagedConfig
-	instancesMetadata *[]aws.InstanceMetadata
+	instancesMetadata []aws.InstanceMetadata
 
 	GCPCoreConfig    *clusterconfig.GCPCoreConfig
 	gcpManagedConfig *clusterconfig.GCPManagedConfig
@@ -66,7 +66,7 @@ func ManagedConfigOrNil() *clusterconfig.ManagedConfig {
 	return nil
 }
 
-func AWSInstanceMetadataOrNil() *[]aws.InstanceMetadata {
+func AWSInstancesMetadata() []aws.InstanceMetadata {
 	if CoreConfig.IsManaged {
 		return instancesMetadata
 	}
@@ -110,11 +110,9 @@ func Init() error {
 				return errors.FirstError(errs...)
 			}
 
-			awsInstancesMetadata := []aws.InstanceMetadata{}
 			for _, instanceType := range managedConfig.GetAllInstanceTypes() {
-				awsInstancesMetadata = append(awsInstancesMetadata, aws.InstanceMetadatas[CoreConfig.Region][instanceType])
+				instancesMetadata = append(instancesMetadata, aws.InstanceMetadatas[CoreConfig.Region][instanceType])
 			}
-			instancesMetadata = &awsInstancesMetadata
 		}
 
 		AWS, err = aws.NewForRegion(CoreConfig.Region)

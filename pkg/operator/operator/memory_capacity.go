@@ -106,14 +106,14 @@ func UpdateMemoryCapacityConfigMap() (map[string]kresource.Quantity, error) {
 		return nil, nil
 	}
 
-	instancesMetadata := config.AWSInstanceMetadataOrNil()
-	if instancesMetadata == nil {
+	instancesMetadata := config.AWSInstancesMetadata()
+	if len(instancesMetadata) == 0 {
 		return nil, errors.ErrorUnexpected("unable to find instances metadata; likely because this is not a cortex managed cluster")
 	}
 	primaryInstances := []string{}
 
 	minMemMap := map[string]kresource.Quantity{}
-	for _, instanceMetadata := range *instancesMetadata {
+	for _, instanceMetadata := range instancesMetadata {
 		minMemMap[instanceMetadata.Type] = instanceMetadata.Memory
 		primaryInstances = append(primaryInstances, instanceMetadata.Type)
 	}

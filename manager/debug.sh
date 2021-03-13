@@ -51,13 +51,10 @@ echo -n "."
 
 mkdir -p /cortex-debug/aws/amis
 
-# failsafe in case the asg(s) could not be located
-if [ "$asg_on_demand_name" == "" ] && [ "$asg_spot_name" == "" ]; then
-  aws autoscaling describe-auto-scaling-groups --region=$CORTEX_REGION --output json > "/cortex-debug/aws/asgs" 2>&1
-  echo -n "."
-  aws autoscaling describe-scaling-activities --max-items 1000 --region=$CORTEX_REGION --output json > "/cortex-debug/aws/asg-activities" 2>&1
-  echo -n "."
-fi
+aws autoscaling describe-auto-scaling-groups --region=$CORTEX_REGION --output json > "/cortex-debug/aws/asgs" 2>&1
+echo -n "."
+aws autoscaling describe-scaling-activities --max-items 1000 --region=$CORTEX_REGION --output json > "/cortex-debug/aws/asg-activities" 2>&1
+echo -n "."
 
 aws ec2 describe-instances --filters Name=tag:cortex.dev/cluster-name,Values=$CORTEX_CLUSTER_NAME --region=$CORTEX_REGION --output json > "/cortex-debug/aws/instances" 2>&1
 echo -n "."

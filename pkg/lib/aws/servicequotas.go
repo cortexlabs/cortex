@@ -135,10 +135,10 @@ func (c *Client) VerifyInstanceQuota(instances []InstanceTypeRequests) error {
 
 	for _, ic := range instanceCategories {
 		if ic.OnDemandCPUQuota != nil && *ic.OnDemandCPUQuota < ic.RequiredOnDemandCPUs {
-			return ErrorInsufficientInstanceQuota(ic.InstanceTypes, "on-demand", c.Region, ic.RequiredOnDemandCPUs, *ic.OnDemandCPUQuota, ic.OnDemandQuotaCode)
+			return ErrorInsufficientInstanceQuota(strset.FromSlice(ic.InstanceTypes).Slice(), "on-demand", c.Region, ic.RequiredOnDemandCPUs, *ic.OnDemandCPUQuota, ic.OnDemandQuotaCode)
 		}
 		if ic.SpotCPUQuota != nil && *ic.SpotCPUQuota < ic.RequiredSpotCPUs {
-			return ErrorInsufficientInstanceQuota(ic.InstanceTypes, "spot", c.Region, ic.RequiredSpotCPUs, *ic.SpotCPUQuota, ic.SpotQuotaCode)
+			return ErrorInsufficientInstanceQuota(strset.FromSlice(ic.InstanceTypes).Slice(), "spot", c.Region, ic.RequiredSpotCPUs, *ic.SpotCPUQuota, ic.SpotQuotaCode)
 		}
 	}
 

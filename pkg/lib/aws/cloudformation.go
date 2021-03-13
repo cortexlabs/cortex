@@ -22,7 +22,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 )
 
-func (c *Client) ListEKSStacks(controlPlaneStackName string, nodegroupStackNames strset.Set, matchString bool) ([]*cloudformation.StackSummary, error) {
+func (c *Client) ListEKSStacks(controlPlaneStackName string, nodegroupStackNames strset.Set) ([]*cloudformation.StackSummary, error) {
 	var stackSummaries []*cloudformation.StackSummary
 	stackSet := strset.Union(nodegroupStackNames, strset.New(controlPlaneStackName))
 
@@ -31,14 +31,8 @@ func (c *Client) ListEKSStacks(controlPlaneStackName string, nodegroupStackNames
 		func(listStackOutput *cloudformation.ListStacksOutput, lastPage bool) bool {
 			for _, stackSummary := range listStackOutput.StackSummaries {
 
-				if matchString {
-					if stackSet.Has(*stackSummary.StackName) {
-						stackSummaries = append(stackSummaries, stackSummary)
-					}
-				} else {
-					if stackSet.HasWithPrefix(*stackSummary.StackName) {
-						stackSummaries = append(stackSummaries, stackSummary)
-					}
+				if stackSet.HasWithPrefix(*stackSummary.StackName) {
+					stackSummaries = append(stackSummaries, stackSummary)
 				}
 
 				if *stackSummary.StackName == controlPlaneStackName {

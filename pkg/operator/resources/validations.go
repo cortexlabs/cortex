@@ -174,14 +174,14 @@ var _inferentiaCPUReserve = kresource.MustParse("100m")
 var _inferentiaMemReserve = kresource.MustParse("100Mi")
 
 func awsManagedValidateK8sCompute(compute *userconfig.Compute, maxMemMap map[string]kresource.Quantity) error {
-	instancesMetadata := config.AWSInstanceMetadataOrNil()
-	if instancesMetadata == nil {
+	instancesMetadata := config.AWSInstancesMetadata()
+	if len(instancesMetadata) == 0 {
 		return errors.ErrorUnexpected("unable to find instance metadata; likely because this is not a cortex managed cluster")
 	}
 
 	allErrors := []error{}
 	successfulLoops := 0
-	for _, instanceMetadata := range *instancesMetadata {
+	for _, instanceMetadata := range instancesMetadata {
 		maxMemLoop := maxMemMap[instanceMetadata.Type]
 		maxMemLoop.Sub(_cortexMemReserve)
 

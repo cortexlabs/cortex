@@ -113,19 +113,14 @@ func (s Set) Has(items ...string) bool {
 // HasWithPrefix checks if at least one element of the set is the prefix of any of the passed items.
 // It returns false if nothing is passed.
 func (s Set) HasWithPrefix(items ...string) bool {
-	has := false
 	for _, prefix := range items {
 		for k := range s {
 			if strings.HasPrefix(prefix, k) {
-				has = true
-				break
+				return true
 			}
 		}
-		if has {
-			break
-		}
 	}
-	return has
+	return false
 }
 
 // HasAny looks for the existence of any of the items passed.

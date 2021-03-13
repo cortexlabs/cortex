@@ -98,9 +98,11 @@ func managedClusterTelemetry() (map[string]interface{}, error) {
 	}
 
 	instanceInfos := make(map[string]*instanceInfo)
-	var totalInstances int
-
 	managedConfig := config.ManagedConfigOrNil()
+
+	var totalInstances int
+	var totalInstancePrice float64
+	var totalInstancePriceIfOnDemand float64
 
 	for _, node := range nodes {
 		if node.Labels["workload"] != "true" {
@@ -138,6 +140,11 @@ func managedClusterTelemetry() (map[string]interface{}, error) {
 			}
 		}
 
+		ngName := node.Labels["alpha.eksctl.io/nodegroup-name"]
+		ebsPricePerVolume := getEBSPriceForNodeGroupInstance(managedConfig.NodeGroups, ngName)
+		onDemandPrice += ebsPricePerVolume
+		price += ebsPricePerVolume
+
 		gpuQty := node.Status.Capacity["nvidia.com/gpu"]
 		infQty := node.Status.Capacity["aws.amazon.com/neuron"]
 
@@ -161,14 +168,8 @@ func managedClusterTelemetry() (map[string]interface{}, error) {
 		}
 
 		instanceInfos[instanceInfosKey] = &info
-	}
-
-	var totalInstancePrice float64
-	var totalInstancePriceIfOnDemand float64
-	for _, info := range instanceInfos {
-		apiEBSPrice := getEBSPriceForInstanceType(managedConfig.NodeGroups, *info, info.IsSpot)
-		totalInstancePrice += (info.Price + apiEBSPrice) * float64(info.Count)
-		totalInstancePriceIfOnDemand += (info.OnDemandPrice + apiEBSPrice) * float64(info.Count)
+		totalInstancePrice += info.Price
+		totalInstancePriceIfOnDemand += info.OnDemandPrice
 	}
 
 	fixedPrice := clusterFixedPriceAWS()
@@ -185,15 +186,20 @@ func managedClusterTelemetry() (map[string]interface{}, error) {
 	}, nil
 }
 
-func getEBSPriceForInstanceType(ngs []*clusterconfig.NodeGroup, instanceInfo instanceInfo, spot bool) float64 {
+func getEBSPriceForNodeGroupInstance(ngs []*clusterconfig.NodeGroup, ngName string) float64 {
 	var ebsPrice float64
 	for _, ng := range ngs {
-		if ng.InstanceType == instanceInfo.InstanceType && ng.Spot == spot {
+		var ngNamePrefix string
+		if ng.Spot {
+			ngNamePrefix = "cx-ws-"
+		} else {
+			ngNamePrefix = "cx-wd-"
+		}
+		if ng.Name == ngNamePrefix+ngName {
 			ebsPrice = aws.EBSMetadatas[config.CoreConfig.Region][ng.InstanceVolumeType.String()].PriceGB * float64(ng.InstanceVolumeSize) / 30 / 24
 			if ng.InstanceVolumeType.String() == "io1" && ng.InstanceVolumeIOPS != nil {
 				ebsPrice += aws.EBSMetadatas[config.CoreConfig.Region][ng.InstanceVolumeType.String()].PriceIOPS * float64(*ng.InstanceVolumeIOPS) / 30 / 24
 			}
-			// break because we know there aren't other nodegroups with the same instance type and same spot field value
 			break
 		}
 	}

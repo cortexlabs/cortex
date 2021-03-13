@@ -18,7 +18,6 @@ package clusterconfig
 
 import (
 	"fmt"
-	"strconv"
 	"strings"
 
 	"github.com/cortexlabs/cortex/pkg/consts"
@@ -31,7 +30,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	"github.com/cortexlabs/cortex/pkg/lib/slices"
 	"github.com/cortexlabs/cortex/pkg/types"
-	"github.com/cortexlabs/yaml"
 )
 
 var (
@@ -107,21 +105,6 @@ type GCPAccessConfig struct {
 	Project      string `json:"project" yaml:"project"`
 	Zone         string `json:"zone" yaml:"zone"`
 	ImageManager string `json:"image_manager" yaml:"image_manager"`
-}
-
-func (np *NodePool) DeepCopy() (NodePool, error) {
-	bytes, err := yaml.Marshal(np)
-	if err != nil {
-		return NodePool{}, err
-	}
-
-	deepCopied := NodePool{}
-	err = yaml.Unmarshal(bytes, &deepCopied)
-	if err != nil {
-		return NodePool{}, err
-	}
-
-	return deepCopied, nil
 }
 
 var GCPCoreConfigStructFieldValidations = []*cr.StructFieldValidation{
@@ -332,10 +315,9 @@ var GCPManagedConfigStructFieldValidations = []*cr.StructFieldValidation{
 					{
 						StructField: "Name",
 						StringValidation: &cr.StringValidation{
-							AllowEmpty:                        true,
-							TreatNullAsEmpty:                  true,
-							AlphaNumericDashUnderscoreOrEmpty: true,
-							MaxLength:                         _maxNodePoolLength,
+							Required:                   true,
+							AlphaNumericDashUnderscore: true,
+							MaxLength:                  _maxNodePoolLength,
 						},
 					},
 					{
@@ -555,51 +537,16 @@ func (cc *GCPConfig) Validate(GCP *gcp.Client) error {
 	}
 
 	npNames := []string{}
-	nodePoolTypeHashes := []string{}
-	for idx, nodePool := range cc.NodePools {
-		var nodePoolReferenceID string
-		if nodePool.Name == "" {
-			nodePoolReferenceID = strconv.FormatInt(int64(idx), 10)
-
-			auxNodePool, err := nodePool.DeepCopy()
-			if err != nil {
-				return errors.Wrap(err, NodePoolsKey, nodePoolReferenceID)
-			}
-			auxNodePool.MinInstances = 0
-			auxNodePool.MaxInstances = 0
-
-			bytes, err := yaml.Marshal(auxNodePool)
-			if err != nil {
-				return errors.Wrap(err, NodePoolsKey, nodePoolReferenceID)
-			}
-			nodePoolHash := hash.Strings(string(bytes), nodePoolReferenceID)
-
-			cc.NodePools[idx].Name = nodePoolHash[:_maxNodeGroupLength]
-			nodePool.Name = cc.NodePools[idx].Name
-		} else {
-			nodePoolReferenceID = nodePool.Name
-		}
-
+	for _, nodePool := range cc.NodePools {
 		if !slices.HasString(npNames, nodePool.Name) {
 			npNames = append(npNames, nodePool.Name)
 		} else {
 			return errors.Wrap(ErrorGCPDuplicateNodePoolName(nodePool.Name), NodePoolsKey)
 		}
 
-		var nodePoolTypeHash string
-		if nodePool.AcceleratorType != nil && nodePool.AcceleratorsPerInstance != nil {
-			nodePoolTypeHash = hash.Strings(nodePool.InstanceType, *nodePool.AcceleratorType, strconv.FormatInt(*nodePool.AcceleratorsPerInstance, 10), strconv.FormatBool(nodePool.Preemptible))
-		} else {
-			nodePoolTypeHash = hash.Strings(nodePool.InstanceType, strconv.FormatBool(nodePool.Preemptible))
-		}
-		if slices.HasString(nodePoolTypeHashes, nodePoolTypeHash) {
-			return errors.Wrap(ErrorGCPNodePoolsWithSameInstanceConfig(nodePool.InstanceType, nodePool.AcceleratorType, nodePool.AcceleratorsPerInstance, nodePool.Preemptible), NodePoolsKey, nodePoolReferenceID)
-		}
-		nodePoolTypeHashes = append(nodePoolTypeHashes, nodePoolTypeHash)
-
 		err := nodePool.validateNodePool(GCP, cc.Zone)
 		if err != nil {
-			return errors.Wrap(err, NodeGroupsKey, nodePoolReferenceID)
+			return errors.Wrap(err, NodeGroupsKey, nodePool.Name)
 		}
 
 	}
@@ -752,16 +699,15 @@ func (cc *GCPManagedConfig) TelemetryEvent() map[string]interface{} {
 	onDemandInstanceTypes := strset.New()
 	preemptibleInstanceTypes := strset.New()
 	var totalMinSize, totalMaxSize int
-	var avgMinSize, avgMaxSize float64
 
-	event["nodepool._len"] = len(cc.NodePools)
+	event["node_pools._len"] = len(cc.NodePools)
 	for _, np := range cc.NodePools {
 		nodePoolKey := func(field string) string {
 			lifecycle := "on_demand"
 			if np.Preemptible {
 				lifecycle = "preemptible"
 			}
-			return fmt.Sprintf("nodegroup.%s-%s.%s", np.InstanceType, lifecycle, field)
+			return fmt.Sprintf("node_pools.%s-%s.%s", np.InstanceType, lifecycle, field)
 		}
 		event[nodePoolKey("_is_defined")] = true
 		event[nodePoolKey("name")] = np.Name
@@ -789,15 +735,11 @@ func (cc *GCPManagedConfig) TelemetryEvent() map[string]interface{} {
 		totalMaxSize += int(np.MaxInstances)
 	}
 
-	avgMinSize = float64(totalMinSize) / float64(len(cc.NodePools))
-	avgMaxSize = float64(totalMaxSize) / float64(len(cc.NodePools))
-	event["nodepool._total_min_size"] = totalMinSize
-	event["nodepool._total_max_size"] = totalMaxSize
-	event["nodepool._avg_min_size"] = avgMinSize
-	event["nodepool._avg_max_size"] = avgMaxSize
-	event["nodepool._on_demand_instances"] = onDemandInstanceTypes.Slice()
-	event["nodepool._spot_instances"] = preemptibleInstanceTypes.Slice()
-	event["nodepool._instances"] = strset.Union(onDemandInstanceTypes, preemptibleInstanceTypes).Slice()
+	event["node_pools._total_min_size"] = totalMinSize
+	event["node_pools._total_max_size"] = totalMaxSize
+	event["node_pools._on_demand_instances"] = onDemandInstanceTypes.Slice()
+	event["node_pools._spot_instances"] = preemptibleInstanceTypes.Slice()
+	event["node_pools._instances"] = strset.Union(onDemandInstanceTypes, preemptibleInstanceTypes).Slice()
 
 	if cc.Network != nil {
 		event["network._is_defined"] = true

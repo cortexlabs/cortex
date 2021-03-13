@@ -185,9 +185,9 @@ func GetClusterState(awsClient *aws.Client, accessConfig *clusterconfig.AccessCo
 	spotStackNamePrefix := fmt.Sprintf(spotTemplatePrefix, accessConfig.ClusterName)
 	onDemandStackNamePrefix := fmt.Sprintf(onDemandTemplatePrefix, accessConfig.ClusterName)
 
-	nodeGroupStackNamesSet := strset.New(operatorStackName, spotStackNamePrefix, onDemandStackNamePrefix)
+	nodeGroupStackPrefixesSet := strset.New(operatorStackName, spotStackNamePrefix, onDemandStackNamePrefix)
 
-	stackSummaries, err := awsClient.ListEKSStacks(controlPlaneStackName, nodeGroupStackNamesSet, false)
+	stackSummaries, err := awsClient.ListEKSStacks(controlPlaneStackName, nodeGroupStackPrefixesSet)
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to get cluster state from cloudformation")
 	}
