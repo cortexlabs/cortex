@@ -49,7 +49,7 @@ func getMemoryCapacityFromNodes(primaryInstances []string) (map[string]*kresourc
 		isPrimaryInstance := false
 		var primaryInstanceType string
 		for k, v := range node.Labels {
-			if k == "alpha.eksctl.io/nodegroup-name" && slices.HasString(primaryInstances, v) {
+			if k == "beta.kubernetes.io/instance-type" && slices.HasString(primaryInstances, v) {
 				isPrimaryInstance = true
 				primaryInstanceType = v
 				break
@@ -65,7 +65,7 @@ func getMemoryCapacityFromNodes(primaryInstances []string) (map[string]*kresourc
 			continue
 		}
 
-		if minMemMap[primaryInstanceType] == nil || minMemMap[primaryInstanceType].Cmp(*curMem) < 0 {
+		if minMemMap[primaryInstanceType] == nil || minMemMap[primaryInstanceType].Cmp(*curMem) > 0 {
 			minMemMap[primaryInstanceType] = curMem
 		}
 	}
@@ -143,8 +143,10 @@ func UpdateMemoryCapacityConfigMap() (map[string]kresource.Quantity, error) {
 		if previousMinMemMap[primaryInstance] == nil || minMem.Cmp(*previousMinMemMap[primaryInstance]) < 0 {
 			configMapData[_configKeyPrefix+primaryInstance] = minMem.String()
 		} else {
-			configMapData[_configKeyPrefix+primaryInstance] = kresource.NewQuantity(0, kresource.DecimalSI).String()
+			configMapData[_configKeyPrefix+primaryInstance] = previousMinMemMap[primaryInstance].String()
 		}
+
+		minMemMap[primaryInstance] = minMem
 	}
 
 	configMap := k8s.ConfigMap(&k8s.ConfigMapSpec{
