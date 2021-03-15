@@ -13,13 +13,10 @@
 # limitations under the License.
 
 import os
-import base64
 import sys
 import subprocess
 from typing import List
 from cortex.exceptions import CortexBinaryException
-
-MIXED_CORTEX_MARKER = "~~cortex~~"
 
 
 def run():
@@ -36,7 +33,6 @@ def run():
 def run_cli(
     args: List[str],
     hide_output: bool = False,
-    mixed_output: bool = False,
 ) -> str:
     """
     Runs the Cortex binary with the specified arguments.
@@ -44,13 +40,12 @@ def run_cli(
     Args:
         args: Arguments to use when invoking the Cortex CLI.
         hide_output: Flag to prevent streaming CLI output to stdout.
-        mixed_output: Used to handle CLI output that both prints to stdout and should be returned.
 
     Raises:
         CortexBinaryException: Cortex CLI command returned an error.
 
     Returns:
-        The stdout from the Cortex CLI command, or the result if mixed_output output.
+        The stdout from the Cortex CLI command.
     """
 
     env = os.environ.copy()
@@ -71,26 +66,9 @@ def run_cli(
     for c in iter(lambda: process.stdout.read(1), ""):
         output += c
 
-        if mixed_output:
-            if output[-2:] == "\n~" or output == "~":
-                processing_result = True
-                output = output[:-1]
-            if processing_result:
-                result += c
-                if (
-                    result[: len(MIXED_CORTEX_MARKER)] == MIXED_CORTEX_MARKER
-                    and result[-len(MIXED_CORTEX_MARKER) :] == MIXED_CORTEX_MARKER
-                    and len(result) > len(MIXED_CORTEX_MARKER)
-                ):
-                    result = result[len(MIXED_CORTEX_MARKER) : -len(MIXED_CORTEX_MARKER)]
-                    result = base64.b64decode(result).decode("utf8")
-                    processed_result = True
-
-                output = output[:-1]
         if not hide_output:
-            if (not mixed_output) or (mixed_output and not processing_result):
-                sys.stdout.write(c)
-                sys.stdout.flush()
+            sys.stdout.write(c)
+            sys.stdout.flush()
 
         if processed_result == True:
             processing_result = False
@@ -98,8 +76,6 @@ def run_cli(
     process.wait()
 
     if process.returncode == 0:
-        if mixed_output:
-            return result
         return output
 
     if result != "":

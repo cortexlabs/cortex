@@ -20,14 +20,12 @@ type OutputType int
 
 const (
 	UnknownOutputType OutputType = iota
-	MixedOutputType              // Internal only
 	PrettyOutputType
 	JSONOutputType
 )
 
 var _outputTypes = []string{
 	"unknown",
-	"mixed",
 	"pretty",
 	"json",
 }

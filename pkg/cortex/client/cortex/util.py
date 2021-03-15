@@ -18,6 +18,13 @@ from pathlib import Path
 import shutil
 
 
+def cli_config_dir() -> Path:
+    cli_config_dir = os.environ.get("CORTEX_CLI_CONFIG_DIR", "")
+    if cli_config_dir == "":
+        return Path.home() / ".cortex"
+    return Path(cli_config_dir).expanduser().resolve()
+
+
 @contextmanager
 def open_temporarily(path, mode):
     Path(path).parent.mkdir(parents=True, exist_ok=True)

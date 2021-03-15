@@ -17,7 +17,6 @@ limitations under the License.
 package cmd
 
 import (
-	"encoding/base64"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -27,7 +26,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/exit"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
-	libjson "github.com/cortexlabs/cortex/pkg/lib/json"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	homedir "github.com/mitchellh/go-homedir"
@@ -237,13 +235,4 @@ func envStringIfNotSpecified(envName string, cmd *cobra.Command) (string, error)
 	}
 
 	return "", nil
-}
-
-func mixedPrint(a interface{}) error {
-	jsonBytes, err := libjson.Marshal(a)
-	if err != nil {
-		return err
-	}
-	fmt.Print(fmt.Sprintf("~~cortex~~%s~~cortex~~", base64.StdEncoding.EncodeToString(jsonBytes)))
-	return nil
 }
