@@ -190,19 +190,10 @@ func GetAPIByName(deployedResource *operator.DeployedResource) ([]schema.APIResp
 		return nil, err
 	}
 
-	// TODO metrics
-	//metrics, err := GetMetrics(api)
-	//if err != nil {
-	//	return nil, err
-	//}
-
 	apiEndpoint, err := operator.APIEndpoint(api)
 	if err != nil {
 		return nil, err
 	}
-
-	// TODO dashboard
-	//dashboardURL := pointer.String(getDashboardURL(api.Name))
 
 	return []schema.APIResponse{
 		{

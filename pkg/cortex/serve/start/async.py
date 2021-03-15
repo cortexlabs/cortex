@@ -60,8 +60,6 @@ def handle_workload(message):
     except Exception as err:
         raise UserRuntimeException from err
 
-    # TODO: push metrics
-
     log.debug("uploading result", extra={"id": request_id})
     api.upload_result(request_id, result)
 
@@ -72,14 +70,11 @@ def handle_workload(message):
     api.delete_payload(request_id=request_id)
 
     log.info("workload processing complete", extra={"id": request_id})
-    # TODO: handle post_predict
 
 
 def handle_workload_failure(message):
     api: AsyncAPI = local_cache["api"]
     request_id = message["Body"]
-
-    # TODO: push metrics
 
     log.error("failed to process workload", exc_info=True, extra={"id": request_id})
     api.update_status(request_id, "failed")

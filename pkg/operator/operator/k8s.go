@@ -72,6 +72,9 @@ var (
 	_requestMonitorCPURequest = kresource.MustParse("10m")
 	_requestMonitorMemRequest = kresource.MustParse("10Mi")
 
+	_asyncGatewayCPURequest = kresource.MustParse("100m")
+	_asyncGatewayMemRequest = kresource.MustParse("100Mi")
+
 	// each Inferentia chip requires 128 HugePages with each HugePage having a size of 2Mi
 	_hugePagesMemPerInf = int64(128 * 2 * 1024 * 1024) // bytes
 )
@@ -231,8 +234,8 @@ func AsyncGatewayContainers(api spec.API, queueURL string) kcore.Container {
 		},
 		Resources: kcore.ResourceRequirements{
 			Requests: kcore.ResourceList{
-				kcore.ResourceCPU:    kresource.Quantity{Format: "100mi"}, // TODO const
-				kcore.ResourceMemory: kresource.Quantity{Format: "100Mi"},
+				kcore.ResourceCPU:    _asyncGatewayCPURequest,
+				kcore.ResourceMemory: _asyncGatewayMemRequest,
 			},
 		},
 		LivenessProbe: &kcore.Probe{

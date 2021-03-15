@@ -184,8 +184,6 @@ func apiStatus(apiDeployment *kapps.Deployment, apiPods []kcore.Pod, gatewayDepl
 }
 
 func getStatusCode(apiCounts status.ReplicaCounts, gatewayCounts status.ReplicaCounts, apiMinReplicas int32) status.Code {
-	// TODO verify
-
 	if apiCounts.Updated.Ready >= apiCounts.Requested && gatewayCounts.Updated.Ready >= 1 {
 		return status.Live
 	}

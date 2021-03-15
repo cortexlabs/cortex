@@ -307,7 +307,7 @@ func getAPIsInAllEnvironments() (string, error) {
 			out += t.MustFormat()
 		}
 		if len(allAsyncAPIs) > 0 {
-			t := asyncAPIsTable(allAsyncAPIs, allAsyncAPIEnvs) // TODO
+			t := asyncAPIsTable(allAsyncAPIs, allAsyncAPIEnvs)
 			if len(allBatchAPIs) > 0 || len(allTaskAPIs) > 0 || len(allRealtimeAPIs) > 0 {
 				out += "\n"
 			}
@@ -427,7 +427,7 @@ func getAPIsByEnv(env cliconfig.Environment, printEnv bool) (string, error) {
 			envNames = append(envNames, env.Name)
 		}
 
-		t := asyncAPIsTable(allAsyncAPIs, envNames) // TODO
+		t := asyncAPIsTable(allAsyncAPIs, envNames)
 		t.FindHeaderByTitle(_titleEnvironment).Hidden = true
 
 		if len(allBatchAPIs) > 0 || len(allTaskAPIs) > 0 || len(allRealtimeAPIs) > 0 {

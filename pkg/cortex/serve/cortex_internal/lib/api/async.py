@@ -94,7 +94,6 @@ class AsyncAPI:
         content_type: str = obj["ResponseMetadata"]["HTTPHeaders"]["content-type"]
         payload_bytes: bytes = obj["Body"].read()
 
-        # TODO: discuss
         # decode payload
         if content_type.startswith("application/json"):
             try:

@@ -55,7 +55,6 @@ func (s *service) CreateWorkload(id string, payload io.Reader, contentType strin
 	prefix := s.workloadStoragePrefix()
 	log := s.logger.With(zap.String("id", "id"), zap.String("contentType", contentType))
 
-	// TODO: make parallel calls
 	payloadPath := fmt.Sprintf("%s/%s/payload", prefix, id)
 	log.Debug("uploading payload", zap.String("path", payloadPath))
 	if err := s.storage.Upload(payloadPath, payload, contentType); err != nil {
@@ -101,7 +100,6 @@ func (s *service) GetWorkload(id string) (GetWorkloadResponse, error) {
 		return GetWorkloadResponse{}, fmt.Errorf("invalid workload status: %s", status)
 	}
 
-	// TODO: make parallel calls
 	// attempt to download user result
 	resultPath := fmt.Sprintf("%s/%s/result.json", prefix, id)
 	log.Debug("donwloading user result", zap.String("path", resultPath))
