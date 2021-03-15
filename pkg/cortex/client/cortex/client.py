@@ -360,7 +360,9 @@ class Client:
             force: Override an already in-progress API update.
         """
 
-        cortex_yaml_file = util.cli_config_dir() / "deployments" / f"cortex-{str(uuid.uuid4())}.yaml"
+        cortex_yaml_file = (
+            util.cli_config_dir() / "deployments" / f"cortex-{str(uuid.uuid4())}.yaml"
+        )
         with util.open_temporarily(cortex_yaml_file, "w") as f:
             yaml.dump([api_spec], f)
             args = ["patch", cortex_yaml_file, "--env", self.env_name, "-o", "json"]
