@@ -56,21 +56,6 @@ func getJobQueueURL(jobKey spec.JobKey) (string, error) {
 	return fmt.Sprintf("https://sqs.%s.amazonaws.com/%s/%s", config.AWS.Region, operatorAccountID, getJobQueueName(jobKey)), nil
 }
 
-func isJobQueueURL(queueURL string) bool {
-	split := strings.Split(queueURL, "/")
-	queueName := split[len(split)-1]
-
-	if !strings.HasSuffix(queueName, ".fifo") {
-		return false
-	}
-
-	dashSplit := strings.Split(queueName, "-")
-	if len(dashSplit) >= 5 {
-		return dashSplit[2] == "b"
-	}
-	return false
-}
-
 func jobKeyFromQueueURL(queueURL string) spec.JobKey {
 	split := strings.Split(queueURL, "/")
 	queueName := split[len(split)-1]
@@ -135,7 +120,7 @@ func doesQueueExist(jobKey spec.JobKey) (bool, error) {
 }
 
 func listQueueURLsForAllAPIs() ([]string, error) {
-	queueURLs, err := config.AWS.ListQueuesByQueueNamePrefix(config.CoreConfig.SQSNamePrefix())
+	queueURLs, err := config.AWS.ListQueuesByQueueNamePrefix(config.CoreConfig.SQSNamePrefix() + "b-")
 	if err != nil {
 		return nil, err
 	}

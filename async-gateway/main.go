@@ -66,7 +66,7 @@ func createLogger() (*zap.Logger, error) {
 	}.Build()
 }
 
-// usage: ./gateway -project <projectID> -bucket <bucket> -region <region> -port <port> <apiName>
+// usage: ./gateway -bucket <bucket> -region <region> -port <port> -queue queue <apiName>
 func main() {
 	log, err := createLogger()
 	if err != nil {

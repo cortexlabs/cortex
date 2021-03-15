@@ -99,9 +99,10 @@ var resourceStructValidations = []*cr.StructFieldValidation{
 	{
 		StructField: "Name",
 		StringValidation: &cr.StringValidation{
-			Required:  true,
-			DNS1035:   true,
-			MaxLength: 42, // k8s adds 21 characters to the pod name, and 63 is the max before it starts to truncate
+			Required:        true,
+			DNS1035:         true,
+			InvalidPrefixes: []string{"b-"}, // collides with our sqs names
+			MaxLength:       42,             // k8s adds 21 characters to the pod name, and 63 is the max before it starts to truncate
 		},
 	},
 	{
@@ -745,7 +746,10 @@ func ExtractAPIConfigs(
 
 		api.SubmittedAPISpec = interfaceMap
 
-		if resourceStruct.Kind != userconfig.TrafficSplitterKind {
+		if resourceStruct.Kind == userconfig.RealtimeAPIKind ||
+			resourceStruct.Kind == userconfig.BatchAPIKind ||
+			resourceStruct.Kind == userconfig.TaskAPIKind ||
+			resourceStruct.Kind == userconfig.AsyncAPIKind {
 			api.ApplyDefaultDockerPaths()
 		}
 
@@ -879,10 +883,8 @@ func validatePredictor(
 	k8sClient *k8s.Client,
 ) error {
 	predictor := api.Predictor
-	if api.Kind == userconfig.AsyncAPIKind {
-		if predictor.Type != userconfig.PythonPredictorType {
-			return ErrorPredictorTypeNotSupportedForKind(predictor.Type, api.Kind)
-		}
+	if api.Kind == userconfig.AsyncAPIKind && predictor.Type != userconfig.PythonPredictorType {
+		return ErrorPredictorTypeNotSupportedForKind(predictor.Type, api.Kind)
 	}
 
 	if err := validateMultiModelsFields(api); err != nil {

@@ -41,13 +41,6 @@ ASYNC_PYTHON_PREDICTOR_VALIDATION = {
             "optional_args": ["payload", "request_id"],
         },
     ],
-    "optional": [
-        {
-            "name": "post_predict",
-            "required_args": ["self"],
-            "optional_args": ["response", "payload", "request_id"],
-        },
-    ],
 }
 
 
@@ -108,14 +101,14 @@ class AsyncAPI:
                 return json.loads(payload_bytes)
             except Exception as err:
                 raise UserRuntimeException(
-                    f"the upladed payload, with content-type {content_type}, could not be decoded to JSON"
+                    f"the uploaded payload, with content-type {content_type}, could not be decoded to JSON"
                 ) from err
         elif content_type.startswith("text/plain"):
             try:
                 return payload_bytes.decode("utf-8")
             except Exception as err:
                 raise UserRuntimeException(
-                    f"the upladed payload, with content-type {content_type}, could not be decoded to a utf-8 string"
+                    f"the uploaded payload, with content-type {content_type}, could not be decoded to a utf-8 string"
                 ) from err
         else:
             return payload_bytes

@@ -50,7 +50,6 @@ func Deploy(w http.ResponseWriter, r *http.Request) {
 
 	response, err := resources.Deploy(projectBytes, configFileName, configBytes, force)
 	if err != nil {
-		errors.PrintStacktrace(err)
 		respondError(w, r, err)
 		return
 	}

@@ -45,7 +45,6 @@ func respondError(w http.ResponseWriter, r *http.Request, err error, strs ...str
 }
 
 func respondErrorCode(w http.ResponseWriter, r *http.Request, code int, err error, strs ...string) {
-	errors.PrintStacktrace(err)
 	err = errors.Wrap(err, strs...)
 
 	if !errors.IsNoTelemetry(err) {

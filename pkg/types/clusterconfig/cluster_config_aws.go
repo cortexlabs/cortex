@@ -694,7 +694,7 @@ func SQSNamePrefix(clusterName string) string {
 	return "cx-" + hash.String(clusterName)[:8] + "-"
 }
 
-// returns hash of cluster name and adds trailing "-"
+// returns hash of cluster name and adds trailing "-" e.g. cx-abcd1234-
 func (cc *CoreConfig) SQSNamePrefix() string {
 	return SQSNamePrefix(cc.ClusterName)
 }
