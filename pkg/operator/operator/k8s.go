@@ -1133,7 +1133,7 @@ func NodeSelectors() map[string]string {
 	return nodeSelectors
 }
 
-func GenerateResourceTolerations(compute *userconfig.Compute) []kcore.Toleration {
+func GenerateResourceTolerations() []kcore.Toleration {
 	tolerations := []kcore.Toleration{
 		{
 			Key:      "workload",
