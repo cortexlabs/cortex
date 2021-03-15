@@ -71,6 +71,7 @@ spec:
               memory: 100Mi
       nodeSelector:
         workload: "true"
+        nvidia.com/gpu: "true"
       volumes:
         - name: device-plugin
           hostPath:

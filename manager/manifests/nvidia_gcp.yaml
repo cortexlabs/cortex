@@ -51,6 +51,7 @@ spec:
       hostPID: true
       nodeSelector:
         workload: "true"
+        nvidia.com/gpu: "true"
       volumes:
         - name: dev
           hostPath:
