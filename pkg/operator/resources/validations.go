@@ -124,7 +124,7 @@ func ValidateClusterAPIs(apis []userconfig.API, projectFiles spec.ProjectFiles) 
 
 		for i := range apis {
 			api := &apis[i]
-			if api.Kind == userconfig.RealtimeAPIKind || api.Kind == userconfig.BatchAPIKind || api.Kind == userconfig.TaskAPIKind {
+			if api.Kind == userconfig.RealtimeAPIKind || api.Kind == userconfig.AsyncAPIKind || api.Kind == userconfig.BatchAPIKind || api.Kind == userconfig.TaskAPIKind {
 				if err := awsManagedValidateK8sCompute(api.Compute, maxMemMap); err != nil {
 					return err
 				}
