@@ -65,6 +65,10 @@ pytest test/e2e/tests --aws-env <cortex_aws_env> --gcp-env <cortex_gcp_env>
 
 It is possible to skip GPU tests by passing the `--skip-gpus` flag to the pytest command.
 
+### Skip Inferentia Tests
+
+It is possible to skip Inferentia tests by passing the `--skip-infs` flag to the pytest command.
+
 ## Configuration
 
 It is possible to configure the behaviour of the tests by defining environment variables or a `.env` file at the project
