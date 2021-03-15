@@ -19,6 +19,7 @@ package hash
 import (
 	"crypto/sha256"
 	"encoding/hex"
+	"strings"
 
 	"github.com/cortexlabs/cortex/pkg/lib/files"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
@@ -34,6 +35,10 @@ func Bytes(bytes []byte) string {
 
 func String(str string) string {
 	return Bytes([]byte(str))
+}
+
+func Strings(strs ...string) string {
+	return String(strings.Join(strs, ","))
 }
 
 func Any(obj interface{}) string {

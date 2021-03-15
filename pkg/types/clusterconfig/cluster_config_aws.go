@@ -17,6 +17,8 @@ limitations under the License.
 package clusterconfig
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"io/ioutil"
 	"math"
@@ -34,9 +36,9 @@ import (
 	libmath "github.com/cortexlabs/cortex/pkg/lib/math"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
-	s "github.com/cortexlabs/cortex/pkg/lib/strings"
-	"github.com/cortexlabs/cortex/pkg/lib/table"
+	"github.com/cortexlabs/cortex/pkg/lib/slices"
 	"github.com/cortexlabs/cortex/pkg/types"
+	"github.com/cortexlabs/yaml"
 )
 
 const (
@@ -45,8 +47,10 @@ const (
 )
 
 var (
-	_maxInstancePools            = 20
-	_cachedCNISupportedInstances *string
+	_maxNodeGroupLengthWithPrefix = 19                                            // node pool length name limit on GKE, using the same on AWS for consistency reasons
+	_maxNodeGroupLength           = _maxNodeGroupLengthWithPrefix - len("cx-wd-") // or cx-ws-
+	_maxInstancePools             = 20
+	_cachedCNISupportedInstances  *string
 	// This regex is stricter than the actual S3 rules
 	_strictS3BucketRegex = regexp.MustCompile(`^([a-z0-9])+(-[a-z0-9]+)*$`)
 	_defaultIAMPolicies  = []string{"arn:aws:iam::aws:policy/AmazonS3FullAccess"}
@@ -88,15 +92,8 @@ type CoreConfig struct {
 }
 
 type ManagedConfig struct {
-	InstanceType               string             `json:"instance_type" yaml:"instance_type"`
-	MinInstances               int64              `json:"min_instances" yaml:"min_instances"`
-	MaxInstances               int64              `json:"max_instances" yaml:"max_instances"`
-	InstanceVolumeSize         int64              `json:"instance_volume_size" yaml:"instance_volume_size"`
-	InstanceVolumeType         VolumeType         `json:"instance_volume_type" yaml:"instance_volume_type"`
-	InstanceVolumeIOPS         *int64             `json:"instance_volume_iops" yaml:"instance_volume_iops"`
+	NodeGroups                 []*NodeGroup       `json:"node_groups" yaml:"node_groups"`
 	Tags                       map[string]string  `json:"tags" yaml:"tags"`
-	Spot                       bool               `json:"spot" yaml:"spot"`
-	SpotConfig                 *SpotConfig        `json:"spot_config" yaml:"spot_config"`
 	AvailabilityZones          []string           `json:"availability_zones" yaml:"availability_zones"`
 	SSLCertificateARN          *string            `json:"ssl_certificate_arn,omitempty" yaml:"ssl_certificate_arn,omitempty"`
 	IAMPolicyARNs              []string           `json:"iam_policy_arns" yaml:"iam_policy_arns"`
@@ -109,13 +106,24 @@ type ManagedConfig struct {
 	CortexPolicyARN            string             `json:"cortex_policy_arn" yaml:"cortex_policy_arn"` // this field is not user facing
 }
 
+type NodeGroup struct {
+	Name               string      `json:"name" yaml:"name"`
+	InstanceType       string      `json:"instance_type" yaml:"instance_type"`
+	MinInstances       int64       `json:"min_instances" yaml:"min_instances"`
+	MaxInstances       int64       `json:"max_instances" yaml:"max_instances"`
+	InstanceVolumeSize int64       `json:"instance_volume_size" yaml:"instance_volume_size"`
+	InstanceVolumeType VolumeType  `json:"instance_volume_type" yaml:"instance_volume_type"`
+	InstanceVolumeIOPS *int64      `json:"instance_volume_iops" yaml:"instance_volume_iops"`
+	Spot               bool        `json:"spot" yaml:"spot"`
+	SpotConfig         *SpotConfig `json:"spot_config" yaml:"spot_config"`
+}
+
 type SpotConfig struct {
 	InstanceDistribution                []string `json:"instance_distribution" yaml:"instance_distribution"`
 	OnDemandBaseCapacity                *int64   `json:"on_demand_base_capacity" yaml:"on_demand_base_capacity"`
 	OnDemandPercentageAboveBaseCapacity *int64   `json:"on_demand_percentage_above_base_capacity" yaml:"on_demand_percentage_above_base_capacity"`
 	MaxPrice                            *float64 `json:"max_price" yaml:"max_price"`
 	InstancePools                       *int64   `json:"instance_pools" yaml:"instance_pools"`
-	OnDemandBackup                      *bool    `json:"on_demand_backup" yaml:"on_demand_backup"`
 }
 
 type Subnet struct {
@@ -141,7 +149,7 @@ type InternalConfig struct {
 	// Populated by operator
 	OperatorMetadata
 
-	InstanceMetadata aws.InstanceMetadata `json:"instance_metadata"`
+	InstancesMetadata []aws.InstanceMetadata `json:"instance_metadata"`
 }
 
 // The bare minimum to identify a cluster
@@ -163,6 +171,32 @@ func RegionValidator(region string) (string, error) {
 		return "", err
 	}
 	return region, nil
+}
+
+func (cc *Config) DeepCopy() (Config, error) {
+	bytes, err := yaml.Marshal(cc)
+	if err != nil {
+		return Config{}, err
+	}
+
+	deepCopied := Config{}
+	err = yaml.Unmarshal(bytes, &deepCopied)
+	if err != nil {
+		return Config{}, err
+	}
+
+	return deepCopied, nil
+}
+
+func (cc *Config) Hash() (string, error) {
+	bytes, err := yaml.Marshal(cc)
+	if err != nil {
+		return "", err
+	}
+
+	hash := sha256.New()
+	hash.Write(bytes)
+	return hex.EncodeToString(hash.Sum(nil)), nil
 }
 
 var CoreConfigStructFieldValidations = []*cr.StructFieldValidation{
@@ -390,43 +424,122 @@ var CoreConfigStructFieldValidations = []*cr.StructFieldValidation{
 
 var ManagedConfigStructFieldValidations = []*cr.StructFieldValidation{
 	{
-		StructField: "InstanceType",
-		StringValidation: &cr.StringValidation{
-			Required:  true,
-			MinLength: 1,
-			Validator: validateInstanceType,
-		},
-	},
-	{
-		StructField: "MinInstances",
-		Int64Validation: &cr.Int64Validation{
-			Default:              int64(1),
-			GreaterThanOrEqualTo: pointer.Int64(0),
-		},
-	},
-	{
-		StructField: "MaxInstances",
-		Int64Validation: &cr.Int64Validation{
-			Default:     int64(5),
-			GreaterThan: pointer.Int64(0),
-		},
-	},
-	{
-		StructField: "InstanceVolumeSize",
-		Int64Validation: &cr.Int64Validation{
-			Default:              50,
-			GreaterThanOrEqualTo: pointer.Int64(20), // large enough to fit docker images and any other overhead
-			LessThanOrEqualTo:    pointer.Int64(16384),
-		},
-	},
-	{
-		StructField: "InstanceVolumeType",
-		StringValidation: &cr.StringValidation{
-			AllowedValues: VolumeTypesStrings(),
-			Default:       GP2VolumeType.String(),
-		},
-		Parser: func(str string) (interface{}, error) {
-			return VolumeTypeFromString(str), nil
+		StructField: "NodeGroups",
+		StructListValidation: &cr.StructListValidation{
+			Required: true,
+			StructValidation: &cr.StructValidation{
+				StructFieldValidations: []*cr.StructFieldValidation{
+					{
+						StructField: "Name",
+						StringValidation: &cr.StringValidation{
+							Required:                   true,
+							AlphaNumericDashUnderscore: true,
+							MaxLength:                  _maxNodeGroupLength,
+						},
+					},
+					{
+						StructField: "InstanceType",
+						StringValidation: &cr.StringValidation{
+							Required:  true,
+							MinLength: 1,
+							Validator: validateInstanceType,
+						},
+					},
+					{
+						StructField: "MinInstances",
+						Int64Validation: &cr.Int64Validation{
+							Default:              int64(1),
+							GreaterThanOrEqualTo: pointer.Int64(0),
+						},
+					},
+					{
+						StructField: "MaxInstances",
+						Int64Validation: &cr.Int64Validation{
+							Default:     int64(5),
+							GreaterThan: pointer.Int64(0),
+						},
+					},
+					{
+						StructField: "InstanceVolumeSize",
+						Int64Validation: &cr.Int64Validation{
+							Default:              50,
+							GreaterThanOrEqualTo: pointer.Int64(20), // large enough to fit docker images and any other overhead
+							LessThanOrEqualTo:    pointer.Int64(16384),
+						},
+					},
+					{
+						StructField: "InstanceVolumeType",
+						StringValidation: &cr.StringValidation{
+							AllowedValues: VolumeTypesStrings(),
+							Default:       GP2VolumeType.String(),
+						},
+						Parser: func(str string) (interface{}, error) {
+							return VolumeTypeFromString(str), nil
+						},
+					},
+					{
+						StructField: "InstanceVolumeIOPS",
+						Int64PtrValidation: &cr.Int64PtrValidation{
+							GreaterThanOrEqualTo: pointer.Int64(100),
+							LessThanOrEqualTo:    pointer.Int64(64000),
+							AllowExplicitNull:    true,
+						},
+					},
+					{
+						StructField: "Spot",
+						BoolValidation: &cr.BoolValidation{
+							Default: false,
+						},
+					},
+					{
+						StructField: "SpotConfig",
+						StructValidation: &cr.StructValidation{
+							DefaultNil:        true,
+							AllowExplicitNull: true,
+							StructFieldValidations: []*cr.StructFieldValidation{
+								{
+									StructField: "InstanceDistribution",
+									StringListValidation: &cr.StringListValidation{
+										DisallowDups:      true,
+										Validator:         validateInstanceDistribution,
+										AllowExplicitNull: true,
+									},
+								},
+								{
+									StructField: "OnDemandBaseCapacity",
+									Int64PtrValidation: &cr.Int64PtrValidation{
+										GreaterThanOrEqualTo: pointer.Int64(0),
+										AllowExplicitNull:    true,
+									},
+								},
+								{
+									StructField: "OnDemandPercentageAboveBaseCapacity",
+									Int64PtrValidation: &cr.Int64PtrValidation{
+										GreaterThanOrEqualTo: pointer.Int64(0),
+										LessThanOrEqualTo:    pointer.Int64(100),
+										AllowExplicitNull:    true,
+									},
+								},
+								{
+									StructField: "MaxPrice",
+									Float64PtrValidation: &cr.Float64PtrValidation{
+										GreaterThan:       pointer.Float64(0),
+										AllowExplicitNull: true,
+									},
+								},
+								{
+									StructField: "InstancePools",
+									Int64PtrValidation: &cr.Int64PtrValidation{
+										GreaterThanOrEqualTo: pointer.Int64(1),
+										LessThanOrEqualTo:    pointer.Int64(int64(_maxInstancePools)),
+										AllowExplicitNull:    true,
+									},
+								},
+							},
+						},
+					},
+				},
+			},
 		},
 	},
 	{
@@ -473,73 +586,6 @@ var ManagedConfigStructFieldValidations = []*cr.StructFieldValidation{
 			Default:           _defaultIAMPolicies,
 			AllowEmpty:        true,
 			AllowExplicitNull: true,
-		},
-	},
-	{
-		StructField: "InstanceVolumeIOPS",
-		Int64PtrValidation: &cr.Int64PtrValidation{
-			GreaterThanOrEqualTo: pointer.Int64(100),
-			LessThanOrEqualTo:    pointer.Int64(64000),
-			AllowExplicitNull:    true,
-		},
-	},
-	{
-		StructField: "Spot",
-		BoolValidation: &cr.BoolValidation{
-			Default: false,
-		},
-	},
-	{
-		StructField: "SpotConfig",
-		StructValidation: &cr.StructValidation{
-			DefaultNil:        true,
-			AllowExplicitNull: true,
-			StructFieldValidations: []*cr.StructFieldValidation{
-				{
-					StructField: "InstanceDistribution",
-					StringListValidation: &cr.StringListValidation{
-						DisallowDups:      true,
-						Validator:         validateInstanceDistribution,
-						AllowExplicitNull: true,
-					},
-				},
-				{
-					StructField: "OnDemandBaseCapacity",
-					Int64PtrValidation: &cr.Int64PtrValidation{
-						GreaterThanOrEqualTo: pointer.Int64(0),
-						AllowExplicitNull:    true,
-					},
-				},
-				{
-					StructField: "OnDemandPercentageAboveBaseCapacity",
-					Int64PtrValidation: &cr.Int64PtrValidation{
-						GreaterThanOrEqualTo: pointer.Int64(0),
-						LessThanOrEqualTo:    pointer.Int64(100),
-						AllowExplicitNull:    true,
-					},
-				},
-				{
-					StructField: "MaxPrice",
-					Float64PtrValidation: &cr.Float64PtrValidation{
-						GreaterThan:       pointer.Float64(0),
-						AllowExplicitNull: true,
-					},
-				},
-				{
-					StructField: "InstancePools",
-					Int64PtrValidation: &cr.Int64PtrValidation{
-						GreaterThanOrEqualTo: pointer.Int64(1),
-						LessThanOrEqualTo:    pointer.Int64(int64(_maxInstancePools)),
-						AllowExplicitNull:    true,
-					},
-				},
-				{
-					StructField: "OnDemandBackup",
-					BoolPtrValidation: &cr.BoolPtrValidation{
-						Default: pointer.Bool(true),
-					},
-				},
-			},
 		},
 	},
 	{
@@ -700,11 +746,45 @@ func (cc *CoreConfig) SQSNamePrefix() string {
 }
 
 // this validates the user-provided cluster config
-func (cc *Config) Validate(awsClient *aws.Client) error {
+func (cc *Config) Validate(awsClient *aws.Client, skipQuotaVerification bool) error {
 	fmt.Print("verifying your configuration ...\n\n")
 
-	if cc.MinInstances > cc.MaxInstances {
-		return ErrorMinInstancesGreaterThanMax(cc.MinInstances, cc.MaxInstances)
+	numNodeGroups := len(cc.NodeGroups)
+	if numNodeGroups == 0 {
+		return ErrorNoNodeGroupSpecified()
+	}
+	if numNodeGroups > MaxNodePoolsOrGroups {
+		return ErrorMaxNumOfNodeGroupsReached(MaxNodePoolsOrGroups)
+	}
+
+	ngNames := []string{}
+	instances := []aws.InstanceTypeRequests{}
+	for _, nodeGroup := range cc.NodeGroups {
+		if !slices.HasString(ngNames, nodeGroup.Name) {
+			ngNames = append(ngNames, nodeGroup.Name)
+		} else {
+			return errors.Wrap(ErrorDuplicateNodeGroupName(nodeGroup.Name), NodeGroupsKey)
+		}
+
+		err := nodeGroup.validateNodeGroup(awsClient, cc.Region)
+		if err != nil {
+			return errors.Wrap(err, NodeGroupsKey, nodeGroup.Name)
+		}
+
+		instances = append(instances, aws.InstanceTypeRequests{
+			InstanceType:              nodeGroup.InstanceType,
+			RequiredOnDemandInstances: nodeGroup.MaxPossibleOnDemandInstances(),
+			RequiredSpotInstances:     nodeGroup.MaxPossibleSpotInstances(),
+		})
+	}
+
+	if !skipQuotaVerification {
+		if err := awsClient.VerifyInstanceQuota(instances); err != nil {
+			// Skip AWS errors, since some regions (e.g. eu-north-1) do not support this API
+			if !aws.IsAWSError(err) {
+				return errors.Wrap(err, NodeGroupsKey)
+			}
+		}
 	}
 
 	if len(cc.AvailabilityZones) > 0 && len(cc.Subnets) > 0 {
@@ -757,11 +837,6 @@ func (cc *Config) Validate(awsClient *aws.Client) error {
 		}
 	}
 
-	primaryInstanceType := cc.InstanceType
-	if _, ok := aws.InstanceMetadatas[cc.Region][primaryInstanceType]; !ok {
-		return errors.Wrap(ErrorInstanceTypeNotSupportedInRegion(primaryInstanceType, cc.Region), InstanceTypeKey)
-	}
-
 	if cc.SSLCertificateARN != nil {
 		exists, err := awsClient.DoesCertificateExist(*cc.SSLCertificateARN)
 		if err != nil {
@@ -770,28 +845,6 @@ func (cc *Config) Validate(awsClient *aws.Client) error {
 
 		if !exists {
 			return errors.Wrap(ErrorSSLCertificateARNNotFound(*cc.SSLCertificateARN, cc.Region), SSLCertificateARNKey)
-		}
-	}
-
-	// Throw error if IOPS defined for other storage than io1
-	if cc.InstanceVolumeType != IO1VolumeType && cc.InstanceVolumeIOPS != nil {
-		return ErrorIOPSNotSupported(cc.InstanceVolumeType)
-	}
-
-	if cc.InstanceVolumeType == IO1VolumeType && cc.InstanceVolumeIOPS != nil {
-		if *cc.InstanceVolumeIOPS > cc.InstanceVolumeSize*50 {
-			return ErrorIOPSTooLarge(*cc.InstanceVolumeIOPS, cc.InstanceVolumeSize)
-		}
-	}
-
-	if aws.EBSMetadatas[cc.Region][cc.InstanceVolumeType.String()].IOPSConfigurable && cc.InstanceVolumeIOPS == nil {
-		cc.InstanceVolumeIOPS = pointer.Int64(libmath.MinInt64(cc.InstanceVolumeSize*50, 3000))
-	}
-
-	if err := awsClient.VerifyInstanceQuota(primaryInstanceType, cc.MaxPossibleOnDemandInstances(), cc.MaxPossibleSpotInstances()); err != nil {
-		// Skip AWS errors, since some regions (e.g. eu-north-1) do not support this API
-		if !aws.IsAWSError(err) {
-			return err
 		}
 	}
 
@@ -817,31 +870,61 @@ func (cc *Config) Validate(awsClient *aws.Client) error {
 		}
 	}
 
-	var requiredVPCs int
-	if len(cc.Subnets) == 0 {
-		requiredVPCs = 1
-	}
-	if err := awsClient.VerifyNetworkQuotas(1, cc.NATGateway != NoneNATGateway, cc.NATGateway == HighlyAvailableNATGateway, requiredVPCs, strset.FromSlice(cc.AvailabilityZones)); err != nil {
-		// Skip AWS errors, since some regions (e.g. eu-north-1) do not support this API
-		if !aws.IsAWSError(err) {
-			return err
+	if !skipQuotaVerification {
+		var requiredVPCs int
+		if len(cc.Subnets) == 0 {
+			requiredVPCs = 1
+		}
+		if err := awsClient.VerifyNetworkQuotas(1, cc.NATGateway != NoneNATGateway, cc.NATGateway == HighlyAvailableNATGateway, requiredVPCs, strset.FromSlice(cc.AvailabilityZones)); err != nil {
+			// Skip AWS errors, since some regions (e.g. eu-north-1) do not support this API
+			if !aws.IsAWSError(err) {
+				return err
+			}
 		}
 	}
 
-	if cc.Spot {
-		cc.FillEmptySpotFields()
+	return nil
+}
 
-		primaryInstance := aws.InstanceMetadatas[cc.Region][primaryInstanceType]
+func (ng *NodeGroup) validateNodeGroup(awsClient *aws.Client, region string) error {
+	if ng.MinInstances > ng.MaxInstances {
+		return ErrorMinInstancesGreaterThanMax(ng.MinInstances, ng.MaxInstances)
+	}
 
-		for _, instanceType := range cc.SpotConfig.InstanceDistribution {
+	primaryInstanceType := ng.InstanceType
+	if _, ok := aws.InstanceMetadatas[region][primaryInstanceType]; !ok {
+		return errors.Wrap(ErrorInstanceTypeNotSupportedInRegion(primaryInstanceType, region), InstanceTypeKey)
+	}
+
+	// Throw error if IOPS defined for other storage than io1
+	if ng.InstanceVolumeType != IO1VolumeType && ng.InstanceVolumeIOPS != nil {
+		return ErrorIOPSNotSupported(ng.InstanceVolumeType)
+	}
+
+	if ng.InstanceVolumeType == IO1VolumeType && ng.InstanceVolumeIOPS != nil {
+		if *ng.InstanceVolumeIOPS > ng.InstanceVolumeSize*50 {
+			return ErrorIOPSTooLarge(*ng.InstanceVolumeIOPS, ng.InstanceVolumeSize)
+		}
+	}
+
+	if aws.EBSMetadatas[region][ng.InstanceVolumeType.String()].IOPSConfigurable && ng.InstanceVolumeIOPS == nil {
+		ng.InstanceVolumeIOPS = pointer.Int64(libmath.MinInt64(ng.InstanceVolumeSize*50, 3000))
+	}
+
+	if ng.Spot {
+		ng.FillEmptySpotFields(region)
+
+		primaryInstance := aws.InstanceMetadatas[region][primaryInstanceType]
+
+		for _, instanceType := range ng.SpotConfig.InstanceDistribution {
 			if instanceType == primaryInstanceType {
 				continue
 			}
-			if _, ok := aws.InstanceMetadatas[cc.Region][instanceType]; !ok {
-				return errors.Wrap(ErrorInstanceTypeNotSupportedInRegion(instanceType, cc.Region), SpotConfigKey, InstanceDistributionKey)
+			if _, ok := aws.InstanceMetadatas[region][instanceType]; !ok {
+				return errors.Wrap(ErrorInstanceTypeNotSupportedInRegion(instanceType, region), SpotConfigKey, InstanceDistributionKey)
 			}
 
-			instanceMetadata := aws.InstanceMetadatas[cc.Region][instanceType]
+			instanceMetadata := aws.InstanceMetadatas[region][instanceType]
 			err := CheckSpotInstanceCompatibility(primaryInstance, instanceMetadata)
 			if err != nil {
 				return errors.Wrap(err, SpotConfigKey, InstanceDistributionKey)
@@ -849,17 +932,17 @@ func (cc *Config) Validate(awsClient *aws.Client) error {
 
 			spotInstancePrice, awsErr := awsClient.SpotInstancePrice(instanceMetadata.Type)
 			if awsErr == nil {
-				if err := CheckSpotInstancePriceCompatibility(primaryInstance, instanceMetadata, cc.SpotConfig.MaxPrice, spotInstancePrice); err != nil {
+				if err := CheckSpotInstancePriceCompatibility(primaryInstance, instanceMetadata, ng.SpotConfig.MaxPrice, spotInstancePrice); err != nil {
 					return errors.Wrap(err, SpotConfigKey, InstanceDistributionKey)
 				}
 			}
 		}
 
-		if cc.SpotConfig.OnDemandBaseCapacity != nil && *cc.SpotConfig.OnDemandBaseCapacity > cc.MaxInstances {
-			return ErrorOnDemandBaseCapacityGreaterThanMax(*cc.SpotConfig.OnDemandBaseCapacity, cc.MaxInstances)
+		if ng.SpotConfig.OnDemandBaseCapacity != nil && *ng.SpotConfig.OnDemandBaseCapacity > ng.MaxInstances {
+			return ErrorOnDemandBaseCapacityGreaterThanMax(*ng.SpotConfig.OnDemandBaseCapacity, ng.MaxInstances)
 		}
 	} else {
-		if cc.SpotConfig != nil {
+		if ng.SpotConfig != nil {
 			return ErrorConfiguredWhenSpotIsNotEnabled(SpotConfigKey)
 		}
 	}
@@ -974,10 +1057,6 @@ func AutoGenerateSpotConfig(spotConfig *SpotConfig, region string, instanceType 
 		spotConfig.OnDemandPercentageAboveBaseCapacity = pointer.Int64(0)
 	}
 
-	if spotConfig.OnDemandBackup == nil {
-		spotConfig.OnDemandBackup = pointer.Bool(true)
-	}
-
 	if spotConfig.InstancePools == nil {
 		if len(spotConfig.InstanceDistribution) < _maxInstancePools {
 			spotConfig.InstancePools = pointer.Int64(int64(len(spotConfig.InstanceDistribution)))
@@ -987,11 +1066,11 @@ func AutoGenerateSpotConfig(spotConfig *SpotConfig, region string, instanceType 
 	}
 }
 
-func (cc *Config) FillEmptySpotFields() {
-	if cc.SpotConfig == nil {
-		cc.SpotConfig = &SpotConfig{}
+func (ng *NodeGroup) FillEmptySpotFields(region string) {
+	if ng.SpotConfig == nil {
+		ng.SpotConfig = &SpotConfig{}
 	}
-	AutoGenerateSpotConfig(cc.SpotConfig, cc.Region, cc.InstanceType)
+	AutoGenerateSpotConfig(ng.SpotConfig, region, ng.InstanceType)
 }
 
 func validateBucketNameOrEmpty(bucket string) (string, error) {
@@ -1069,145 +1148,42 @@ func GetDefaults() (*Config, error) {
 	return cc, nil
 }
 
-func (cc *Config) MaxPossibleOnDemandInstances() int64 {
-	if cc.Spot == false || cc.SpotConfig == nil || cc.SpotConfig.OnDemandBackup == nil || *cc.SpotConfig.OnDemandBackup == true {
-		return cc.MaxInstances
+func (ng *NodeGroup) MaxPossibleOnDemandInstances() int64 {
+	if ng.Spot == false || ng.SpotConfig == nil {
+		return ng.MaxInstances
 	}
 
-	onDemandBaseCap, onDemandPctAboveBaseCap := cc.SpotConfigOnDemandValues()
-	return onDemandBaseCap + int64(math.Ceil(float64(onDemandPctAboveBaseCap)/100*float64(cc.MaxInstances-onDemandBaseCap)))
+	onDemandBaseCap, onDemandPctAboveBaseCap := ng.SpotConfigOnDemandValues()
+	return onDemandBaseCap + int64(math.Ceil(float64(onDemandPctAboveBaseCap)/100*float64(ng.MaxInstances-onDemandBaseCap)))
 }
 
-func (cc *Config) MaxPossibleSpotInstances() int64 {
-	if cc.Spot == false {
+func (ng *NodeGroup) MaxPossibleSpotInstances() int64 {
+	if ng.Spot == false {
 		return 0
 	}
 
-	if cc.SpotConfig == nil {
-		return cc.MaxInstances
+	if ng.SpotConfig == nil {
+		return ng.MaxInstances
 	}
 
-	onDemandBaseCap, onDemandPctAboveBaseCap := cc.SpotConfigOnDemandValues()
-	return cc.MaxInstances - onDemandBaseCap - int64(math.Floor(float64(onDemandPctAboveBaseCap)/100*float64(cc.MaxInstances-onDemandBaseCap)))
+	onDemandBaseCap, onDemandPctAboveBaseCap := ng.SpotConfigOnDemandValues()
+	return ng.MaxInstances - onDemandBaseCap - int64(math.Floor(float64(onDemandPctAboveBaseCap)/100*float64(ng.MaxInstances-onDemandBaseCap)))
 }
 
-func (cc *Config) SpotConfigOnDemandValues() (int64, int64) {
+func (ng *NodeGroup) SpotConfigOnDemandValues() (int64, int64) {
 	// default OnDemandBaseCapacity is 0
 	var onDemandBaseCapacity int64 = 0
-	if cc.SpotConfig.OnDemandBaseCapacity != nil {
-		onDemandBaseCapacity = *cc.SpotConfig.OnDemandBaseCapacity
+	if ng.SpotConfig.OnDemandBaseCapacity != nil {
+		onDemandBaseCapacity = *ng.SpotConfig.OnDemandBaseCapacity
 	}
 
 	// default OnDemandPercentageAboveBaseCapacity is 0
 	var onDemandPercentageAboveBaseCapacity int64 = 0
-	if cc.SpotConfig.OnDemandPercentageAboveBaseCapacity != nil {
-		onDemandPercentageAboveBaseCapacity = *cc.SpotConfig.OnDemandPercentageAboveBaseCapacity
+	if ng.SpotConfig.OnDemandPercentageAboveBaseCapacity != nil {
+		onDemandPercentageAboveBaseCapacity = *ng.SpotConfig.OnDemandPercentageAboveBaseCapacity
 	}
 
 	return onDemandBaseCapacity, onDemandPercentageAboveBaseCapacity
-}
-
-func (cc *InternalConfig) UserTable() table.KeyValuePairs {
-	var items *table.KeyValuePairs = &table.KeyValuePairs{}
-
-	items.Add(APIVersionUserKey, cc.APIVersion)
-	items.AddAll(cc.Config.UserTable())
-
-	return *items
-}
-
-func (cc *InternalConfig) UserStr() string {
-	return cc.UserTable().String()
-}
-
-func (cc *CoreConfig) UserTable() table.KeyValuePairs {
-	var items table.KeyValuePairs
-
-	items.Add(ClusterNameUserKey, cc.ClusterName)
-	items.Add(RegionUserKey, cc.Region)
-	items.Add(BucketUserKey, cc.Bucket)
-	items.Add(TelemetryUserKey, cc.Telemetry)
-	items.Add(ImageOperatorUserKey, cc.ImageOperator)
-	items.Add(ImageManagerUserKey, cc.ImageManager)
-	items.Add(ImageDownloaderUserKey, cc.ImageDownloader)
-	items.Add(ImageRequestMonitorUserKey, cc.ImageRequestMonitor)
-	items.Add(ImageClusterAutoscalerUserKey, cc.ImageClusterAutoscaler)
-	items.Add(ImageMetricsServerUserKey, cc.ImageMetricsServer)
-	items.Add(ImageInferentiaUserKey, cc.ImageInferentia)
-	items.Add(ImageNeuronRTDUserKey, cc.ImageNeuronRTD)
-	items.Add(ImageNvidiaUserKey, cc.ImageNvidia)
-	items.Add(ImageFluentBitUserKey, cc.ImageFluentBit)
-	items.Add(ImageIstioProxyUserKey, cc.ImageIstioProxy)
-	items.Add(ImageIstioPilotUserKey, cc.ImageIstioPilot)
-	items.Add(ImagePrometheusUserKey, cc.ImagePrometheus)
-	items.Add(ImagePrometheusConfigReloaderUserKey, cc.ImagePrometheusConfigReloader)
-	items.Add(ImagePrometheusOperatorUserKey, cc.ImagePrometheusOperator)
-	items.Add(ImagePrometheusStatsDExporterUserKey, cc.ImagePrometheusStatsDExporter)
-	items.Add(ImagePrometheusDCGMExporterUserKey, cc.ImagePrometheusDCGMExporter)
-	items.Add(ImagePrometheusKubeStateMetricsUserKey, cc.ImagePrometheusKubeStateMetrics)
-	items.Add(ImagePrometheusNodeExporterUserKey, cc.ImagePrometheusNodeExporter)
-	items.Add(ImageKubeRBACProxyUserKey, cc.ImageKubeRBACProxy)
-	items.Add(ImageGrafanaUserKey, cc.ImageGrafana)
-	items.Add(ImageEventExporterUserKey, cc.ImageEventExporter)
-
-	return items
-}
-
-func (mc *ManagedConfig) UserTable() table.KeyValuePairs {
-	var items table.KeyValuePairs
-
-	if len(mc.AvailabilityZones) > 0 {
-		items.Add(AvailabilityZonesUserKey, mc.AvailabilityZones)
-	}
-	for _, subnetConfig := range mc.Subnets {
-		items.Add("subnet in "+subnetConfig.AvailabilityZone, subnetConfig.SubnetID)
-	}
-	items.Add(InstanceTypeUserKey, mc.InstanceType)
-	items.Add(MinInstancesUserKey, mc.MinInstances)
-	items.Add(MaxInstancesUserKey, mc.MaxInstances)
-	items.Add(TagsUserKey, s.ObjFlat(mc.Tags))
-	if mc.SSLCertificateARN != nil {
-		items.Add(SSLCertificateARNUserKey, *mc.SSLCertificateARN)
-	}
-	items.Add(CortexPolicyARNUserKey, mc.CortexPolicyARN)
-	items.Add(IAMPolicyARNsUserKey, s.ObjFlatNoQuotes(mc.IAMPolicyARNs))
-
-	items.Add(InstanceVolumeSizeUserKey, mc.InstanceVolumeSize)
-	items.Add(InstanceVolumeTypeUserKey, mc.InstanceVolumeType)
-	items.Add(InstanceVolumeIOPSUserKey, mc.InstanceVolumeIOPS)
-	items.Add(SpotUserKey, s.YesNo(mc.Spot))
-	if mc.Spot {
-		items.Add(InstanceDistributionUserKey, mc.SpotConfig.InstanceDistribution)
-		items.Add(OnDemandBaseCapacityUserKey, *mc.SpotConfig.OnDemandBaseCapacity)
-		items.Add(OnDemandPercentageAboveBaseCapacityUserKey, *mc.SpotConfig.OnDemandPercentageAboveBaseCapacity)
-		items.Add(MaxPriceUserKey, *mc.SpotConfig.MaxPrice)
-		items.Add(InstancePoolsUserKey, *mc.SpotConfig.InstancePools)
-		items.Add(OnDemandBackupUserKey, s.YesNo(*mc.SpotConfig.OnDemandBackup))
-	}
-	items.Add(SubnetVisibilityUserKey, mc.SubnetVisibility)
-	items.Add(NATGatewayUserKey, mc.NATGateway)
-	items.Add(APILoadBalancerSchemeUserKey, mc.APILoadBalancerScheme)
-	items.Add(OperatorLoadBalancerSchemeUserKey, mc.OperatorLoadBalancerScheme)
-	if mc.VPCCIDR != nil {
-		items.Add(VPCCIDRKey, *mc.VPCCIDR)
-	}
-
-	return items
-}
-
-func (cc *Config) UserTable() table.KeyValuePairs {
-	var items *table.KeyValuePairs = &table.KeyValuePairs{}
-	items.AddAll(cc.CoreConfig.UserTable())
-
-	if cc.CoreConfig.IsManaged {
-		items.AddAll(cc.ManagedConfig.UserTable())
-	}
-
-	return *items
-}
-
-func (cc *Config) UserStr() string {
-	return cc.UserTable().String()
 }
 
 func (cc *CoreConfig) TelemetryEvent() map[string]interface{} {
@@ -1301,16 +1277,6 @@ func (cc *CoreConfig) TelemetryEvent() map[string]interface{} {
 
 func (mc *ManagedConfig) TelemetryEvent() map[string]interface{} {
 	event := map[string]interface{}{}
-
-	event["instance_type"] = mc.InstanceType
-	event["min_instances"] = mc.MinInstances
-	event["max_instances"] = mc.MaxInstances
-	event["instance_volume_size"] = mc.InstanceVolumeSize
-	event["instance_volume_type"] = mc.InstanceVolumeType
-	if mc.InstanceVolumeIOPS != nil {
-		event["instance_volume_iops._is_defined"] = true
-		event["instance_volume_iops"] = *mc.InstanceVolumeIOPS
-	}
 	if len(mc.Tags) > 0 {
 		event["tags._is_defined"] = true
 		event["tags._len"] = len(mc.Tags)
@@ -1343,35 +1309,82 @@ func (mc *ManagedConfig) TelemetryEvent() map[string]interface{} {
 	if mc.VPCCIDR != nil {
 		event["vpc_cidr._is_defined"] = true
 	}
-	event["spot"] = mc.Spot
-	if mc.SpotConfig != nil {
-		event["spot_config._is_defined"] = true
-		if len(mc.SpotConfig.InstanceDistribution) > 0 {
-			event["spot_config.instance_distribution._is_defined"] = true
-			event["spot_config.instance_distribution._len"] = len(mc.SpotConfig.InstanceDistribution)
-			event["spot_config.instance_distribution"] = mc.SpotConfig.InstanceDistribution
+
+	onDemandInstanceTypes := strset.New()
+	spotInstanceTypes := strset.New()
+	var totalMinSize, totalMaxSize int
+
+	event["node_groups._len"] = len(mc.NodeGroups)
+	for _, ng := range mc.NodeGroups {
+		nodeGroupKey := func(field string) string {
+			lifecycle := "on_demand"
+			if ng.Spot {
+				lifecycle = "spot"
+			}
+			return fmt.Sprintf("node_groups.%s-%s.%s", ng.InstanceType, lifecycle, field)
 		}
-		if mc.SpotConfig.OnDemandBaseCapacity != nil {
-			event["spot_config.on_demand_base_capacity._is_defined"] = true
-			event["spot_config.on_demand_base_capacity"] = *mc.SpotConfig.OnDemandBaseCapacity
+		event[nodeGroupKey("_is_defined")] = true
+		event[nodeGroupKey("name")] = ng.Name
+		event[nodeGroupKey("instance_type")] = ng.InstanceType
+		event[nodeGroupKey("min_instances")] = ng.MinInstances
+		event[nodeGroupKey("max_instances")] = ng.MaxInstances
+		event[nodeGroupKey("instance_volume_size")] = ng.InstanceVolumeSize
+		event[nodeGroupKey("instance_volume_type")] = ng.InstanceVolumeType
+		if ng.InstanceVolumeIOPS != nil {
+			event[nodeGroupKey("instance_volume_iops.is_defined")] = true
+			event[nodeGroupKey("instance_volume_iops")] = ng.InstanceVolumeIOPS
 		}
-		if mc.SpotConfig.OnDemandPercentageAboveBaseCapacity != nil {
-			event["spot_config.on_demand_percentage_above_base_capacity._is_defined"] = true
-			event["spot_config.on_demand_percentage_above_base_capacity"] = *mc.SpotConfig.OnDemandPercentageAboveBaseCapacity
+
+		event[nodeGroupKey("spot")] = ng.Spot
+		if !ng.Spot {
+			onDemandInstanceTypes.Add(ng.InstanceType)
+		} else {
+			spotInstanceTypes.Add(ng.InstanceType)
 		}
-		if mc.SpotConfig.MaxPrice != nil {
-			event["spot_config.max_price._is_defined"] = true
-			event["spot_config.max_price"] = *mc.SpotConfig.MaxPrice
+		if ng.SpotConfig != nil {
+			event[nodeGroupKey("spot_config._is_defined")] = true
+			if len(ng.SpotConfig.InstanceDistribution) > 0 {
+				event[nodeGroupKey("spot_config.instance_distribution._is_defined")] = true
+				event[nodeGroupKey("spot_config.instance_distribution._len")] = len(ng.SpotConfig.InstanceDistribution)
+				event[nodeGroupKey("spot_config.instance_distribution")] = ng.SpotConfig.InstanceDistribution
+				spotInstanceTypes.Add(ng.SpotConfig.InstanceDistribution...)
+			}
+			if ng.SpotConfig.OnDemandBaseCapacity != nil {
+				event[nodeGroupKey("spot_config.on_demand_base_capacity._is_defined")] = true
+				event[nodeGroupKey("spot_config.on_demand_base_capacity")] = *ng.SpotConfig.OnDemandBaseCapacity
+			}
+			if ng.SpotConfig.OnDemandPercentageAboveBaseCapacity != nil {
+				event[nodeGroupKey("spot_config.on_demand_percentage_above_base_capacity._is_defined")] = true
+				event[nodeGroupKey("spot_config.on_demand_percentage_above_base_capacity")] = *ng.SpotConfig.OnDemandPercentageAboveBaseCapacity
+			}
+			if ng.SpotConfig.MaxPrice != nil {
+				event[nodeGroupKey("spot_config.max_price._is_defined")] = true
+				event[nodeGroupKey("spot_config.max_price")] = *ng.SpotConfig.MaxPrice
+			}
+			if ng.SpotConfig.InstancePools != nil {
+				event[nodeGroupKey("spot_config.instance_pools._is_defined")] = true
+				event[nodeGroupKey("spot_config.instance_pools")] = *ng.SpotConfig.InstancePools
+			}
 		}
-		if mc.SpotConfig.InstancePools != nil {
-			event["spot_config.instance_pools._is_defined"] = true
-			event["spot_config.instance_pools"] = *mc.SpotConfig.InstancePools
-		}
-		if mc.SpotConfig.OnDemandBackup != nil {
-			event["spot_config.on_demand_backup._is_defined"] = true
-			event["spot_config.on_demand_backup"] = *mc.SpotConfig.OnDemandBackup
-		}
+
+		totalMinSize += int(ng.MinInstances)
+		totalMaxSize += int(ng.MaxInstances)
 	}
 
+	event["node_groups._total_min_size"] = totalMinSize
+	event["node_groups._total_max_size"] = totalMaxSize
+	event["node_groups._on_demand_instances"] = onDemandInstanceTypes.Slice()
+	event["node_groups._spot_instances"] = spotInstanceTypes.Slice()
+	event["node_groups._instances"] = strset.Union(onDemandInstanceTypes, spotInstanceTypes).Slice()
+
 	return event
+}
+
+func (mc *ManagedConfig) GetAllInstanceTypes() []string {
+	allInstanceTypes := strset.New()
+	for _, ng := range mc.NodeGroups {
+		allInstanceTypes.Add(ng.InstanceType)
+	}
+
+	return allInstanceTypes.Slice()
 }

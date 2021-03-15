@@ -19,14 +19,16 @@ package clusterstate
 type Status string
 
 const (
-	StatusNotFound             Status = "not_found"
-	StatusCreateInProgress     Status = "create_in_progress"
-	StatusCreateFailed         Status = "create_failed"
-	StatusCreateFailedTimedOut Status = "create_failed_timed_out"
-	StatusCreateComplete       Status = "create_complete"
-	StatusDeleteInProgress     Status = "delete_in_progress"
-	StatusDeleteComplete       Status = "delete_complete"
-	StatusDeleteFailed         Status = "delete_failed"
+	StatusNotFound               Status = "not_found"
+	StatusCreateInProgress       Status = "create_in_progress"
+	StatusCreateFailed           Status = "create_failed"
+	StatusCreateFailedTimedOut   Status = "create_failed_timed_out"
+	StatusCreateComplete         Status = "create_complete"
+	StatusUpdateComplete         Status = "update_complete"
+	StatusUpdateRollbackComplete Status = "update_rollback_complete"
+	StatusDeleteInProgress       Status = "delete_in_progress"
+	StatusDeleteComplete         Status = "delete_complete"
+	StatusDeleteFailed           Status = "delete_failed"
 )
 
 func AssertClusterStatus(clusterName string, region string, status Status, allowedStatuses ...Status) error {
@@ -47,6 +49,10 @@ func AssertClusterStatus(clusterName string, region string, status Status, allow
 		return ErrorClusterCreateFailedTimeout(clusterName, region)
 	case StatusCreateComplete:
 		return ErrorClusterAlreadyCreated(clusterName, region)
+	case StatusUpdateComplete:
+		return ErrorClusterAlreadyUpdated(clusterName, region)
+	case StatusUpdateRollbackComplete:
+		return ErrorClusterAlreadyUpdated(clusterName, region)
 	case StatusDeleteInProgress:
 		return ErrorClusterDownInProgress(clusterName, region)
 	case StatusDeleteComplete:
