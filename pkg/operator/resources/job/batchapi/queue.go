@@ -32,7 +32,7 @@ import (
 )
 
 func apiQueueNamePrefix(apiName string) string {
-	return fmt.Sprintf("%s-b-%s-", config.CoreConfig.SQSNamePrefix(), apiName)
+	return fmt.Sprintf("%sb-%s-", config.CoreConfig.SQSNamePrefix(), apiName)
 }
 
 // QueueName is cx-<hash of cluster name>-b-<api_name>-<job_id>.fifo
@@ -58,8 +58,8 @@ func isJobQueueURL(queueURL string) bool {
 	}
 
 	dashSplit := strings.Split(queueName, "-")
-	if len(dashSplit) >= 4 {
-		return dashSplit[1] == "b"
+	if len(dashSplit) >= 5 {
+		return dashSplit[2] == "b"
 	}
 	return false
 }
