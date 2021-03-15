@@ -128,15 +128,6 @@ func listQueueURLsForAllAPIs() ([]string, error) {
 	return queueURLs, nil
 }
 
-func deleteQueueByJobKey(jobKey spec.JobKey) error {
-	queueURL, err := getJobQueueURL(jobKey)
-	if err != nil {
-		return err
-	}
-
-	return deleteQueueByURL(queueURL)
-}
-
 func markForDeletion(queueURL string) error {
 	_, err := config.AWS.SQS().TagQueue(&sqs.TagQueueInput{
 		QueueUrl: aws.String(queueURL),
@@ -150,8 +141,7 @@ func markForDeletion(queueURL string) error {
 	return nil
 }
 
-func deleteQueueByJobKeyIfExists(jobKey spec.JobKey) error {
-	operatorLogger.Info("scheduling deleting queue " + jobKey.UserString())
+func deleteQueueWithDelay(jobKey spec.JobKey) error {
 	queueURL, err := getJobQueueURL(jobKey)
 	if err != nil {
 		return err
@@ -170,7 +160,7 @@ func deleteQueueByJobKeyIfExists(jobKey spec.JobKey) error {
 	if value, exists := output.Tags[_markForDeletion]; exists {
 		markedTime, err := time.Parse(time.RFC3339Nano, *value)
 		if err != nil {
-			err := deleteQueueByURL(queueURL)
+			err = deleteQueueByURL(queueURL)
 			if err != nil {
 				if !awslib.IsNonExistentQueueErr(errors.CauseOrSelf(err)) {
 					operatorLogger.Error(err)
@@ -189,6 +179,7 @@ func deleteQueueByJobKeyIfExists(jobKey spec.JobKey) error {
 			}
 		}
 	} else {
+		operatorLogger.Info("scheduling deleting queue " + jobKey.UserString())
 		err = markForDeletion(queueURL)
 		if err != nil && awslib.IsNonExistentQueueErr(errors.CauseOrSelf(err)) {
 			return nil
@@ -197,7 +188,7 @@ func deleteQueueByJobKeyIfExists(jobKey spec.JobKey) error {
 		time.AfterFunc(_queueGraceKillTimePeriod, func() {
 			defer cron.Recoverer(nil)
 			operatorLogger.Info("deleting queue " + jobKey.UserString())
-			err := deleteQueueByJobKey(jobKey)
+			err := deleteQueueByURL(queueURL)
 			// ignore non existent queue errors
 			if err != nil && !awslib.IsNonExistentQueueErr(errors.CauseOrSelf(err)) {
 				operatorLogger.Error(err)
