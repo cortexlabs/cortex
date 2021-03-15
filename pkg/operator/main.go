@@ -35,6 +35,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/types"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	"github.com/gorilla/mux"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 var operatorLogger = logging.GetOperatorLogger()
@@ -87,6 +88,10 @@ func main() {
 						operatorLogger.Fatal(errors.Wrap(err, "init"))
 					}
 				case userconfig.AsyncAPIKind.String():
+					if err := asyncapi.UpdateMetricsCron(&deployment); err != nil {
+						operatorLogger.Fatal(errors.Wrap(err, "init"))
+					}
+
 					if err := asyncapi.UpdateAutoscalerCron(&deployment, *api); err != nil {
 						operatorLogger.Fatal(errors.Wrap(err, "init"))
 					}
@@ -112,6 +117,9 @@ func main() {
 	routerWithoutAuth.HandleFunc("/tasks/{apiName}", endpoints.SubmitTaskJob).Methods("POST")
 	routerWithoutAuth.HandleFunc("/tasks/{apiName}", endpoints.GetTaskJob).Methods("GET")
 	routerWithoutAuth.HandleFunc("/tasks/{apiName}", endpoints.StopTaskJob).Methods("DELETE")
+
+	// prometheus metrics
+	routerWithoutAuth.Handle("/metrics", promhttp.Handler()).Methods("GET")
 
 	routerWithAuth := router.NewRoute().Subrouter()
 

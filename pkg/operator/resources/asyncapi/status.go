@@ -17,7 +17,6 @@ limitations under the License.
 package asyncapi
 
 import (
-	"fmt"
 	"sort"
 	"time"
 
@@ -130,7 +129,6 @@ func groupResourcesByAPI(deployments []kapps.Deployment, pods []kcore.Pod) map[s
 	resourcesByAPI := map[string]*asyncResourceGroup{}
 	for i := range deployments {
 		deployment := deployments[i]
-		fmt.Println(deployment.Name)
 		apiName := deployment.Labels["apiName"]
 		asyncType := deployment.Labels["cortex.dev/async"]
 		apiResources, exists := resourcesByAPI[apiName]

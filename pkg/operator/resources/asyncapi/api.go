@@ -37,9 +37,15 @@ import (
 	kcore "k8s.io/api/core/v1"
 )
 
-const _stalledPodTimeout = 10 * time.Minute
+const (
+	_stalledPodTimeout = 10 * time.Minute
+	_tickPeriodMetrics = 10 * time.Second
+)
 
-var _autoscalerCrons = make(map[string]cron.Cron)
+var (
+	_autoscalerCrons = make(map[string]cron.Cron)
+	_metricsCrons    = make(map[string]cron.Cron)
+)
 
 type resources struct {
 	apiDeployment         *kapps.Deployment
@@ -243,7 +249,7 @@ func GetAllAPIs(pods []kcore.Pod, deployments []kapps.Deployment) ([]schema.APIR
 	return realtimeAPIs, nil
 }
 
-func UpdateAutoscalerCron(deployment *kapps.Deployment, apiSpec spec.API) error {
+func UpdateMetricsCron(deployment *kapps.Deployment) error {
 	// skip gateway deployments
 	if deployment.Labels["cortex.dev/async"] != "api" {
 		return nil
@@ -252,8 +258,8 @@ func UpdateAutoscalerCron(deployment *kapps.Deployment, apiSpec spec.API) error 
 	apiName := deployment.Labels["apiName"]
 	deployID := deployment.Labels["deploymentID"]
 
-	if prevAutoscalerCron, ok := _autoscalerCrons[apiName]; ok {
-		prevAutoscalerCron.Cancel()
+	if prevMetricsCron, ok := _metricsCrons[apiName]; ok {
+		prevMetricsCron.Cancel()
 	}
 
 	queueURL, err := getQueueURL(apiName, deployID)
@@ -261,7 +267,25 @@ func UpdateAutoscalerCron(deployment *kapps.Deployment, apiSpec spec.API) error 
 		return err
 	}
 
-	autoscaler, err := autoscalerlib.AutoscaleFn(deployment, &apiSpec, getQueueLengthFn(queueURL))
+	metricsCron := updateQueueLengthMetricsFn(apiName, queueURL)
+
+	_metricsCrons[apiName] = cron.Run(metricsCron, operator.ErrorHandler(apiName+" metrics"), _tickPeriodMetrics)
+
+	return nil
+}
+
+func UpdateAutoscalerCron(deployment *kapps.Deployment, apiSpec spec.API) error {
+	// skip gateway deployments
+	if deployment.Labels["cortex.dev/async"] != "api" {
+		return nil
+	}
+
+	apiName := deployment.Labels["apiName"]
+	if prevAutoscalerCron, ok := _autoscalerCrons[apiName]; ok {
+		prevAutoscalerCron.Cancel()
+	}
+
+	autoscaler, err := autoscalerlib.AutoscaleFn(deployment, &apiSpec, getMessagesInQueue)
 	if err != nil {
 		return err
 	}
@@ -353,6 +377,10 @@ func applyK8sDeployment(api spec.API, prevDeployment *kapps.Deployment, newDeplo
 		}
 	}
 
+	if err := UpdateMetricsCron(newDeployment); err != nil {
+		return err
+	}
+
 	if err := UpdateAutoscalerCron(newDeployment, api); err != nil {
 		return err
 	}
@@ -390,6 +418,11 @@ func deleteK8sResources(apiName string) error {
 
 	err := parallel.RunFirstErr(
 		func() error {
+			if metricsCron, ok := _metricsCrons[apiName]; ok {
+				metricsCron.Cancel()
+				delete(_metricsCrons, apiName)
+			}
+
 			if autoscalerCron, ok := _autoscalerCrons[apiName]; ok {
 				autoscalerCron.Cancel()
 				delete(_autoscalerCrons, apiName)
