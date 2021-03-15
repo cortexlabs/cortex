@@ -1192,7 +1192,8 @@ func GeneratePreferredNodeAffinities() []kcore.PreferredSchedulingTerm {
 				},
 			})
 		}
-	} else {
+	}
+	if config.Provider == types.GCPProviderType {
 		clusterConfig := config.GCPManagedConfigOrNil()
 		if clusterConfig == nil {
 			return nil
