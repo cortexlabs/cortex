@@ -484,8 +484,8 @@ func createGKECluster(clusterConfig *clusterconfig.GCPConfig, gcpClient *gcp.Cli
 		Locations: []string{clusterConfig.Zone},
 	}
 
-	nodeLabels := map[string]string{"workload": "true"}
 	for _, nodePool := range clusterConfig.NodePools {
+		nodeLabels := map[string]string{"workload": "true"}
 		initialNodeCount := int64(1)
 		if nodePool.MinInstances > 0 {
 			initialNodeCount = nodePool.MinInstances

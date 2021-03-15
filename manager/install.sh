@@ -73,7 +73,7 @@ function cluster_up_aws() {
 
   echo -n "￮ configuring gpu support (for the nodegroups that may require it)"
   envsubst < manifests/nvidia_aws.yaml | kubectl apply -f - >/dev/null
-  envsubst < manifests/prometheus-dcgm-exporter.yaml | kubectl apply -f - >/dev/null
+  NVIDIA_COM_GPU_VALUE=true envsubst < manifests/prometheus-dcgm-exporter.yaml | kubectl apply -f - >/dev/null
   echo "✓"
 
   echo -n "￮ configuring inf support (for the nodegroups that may require it)"
@@ -128,7 +128,7 @@ function cluster_up_gcp() {
 
   echo -n "￮ configuring gpu support (for the nodepools that may require it)"
   envsubst < manifests/nvidia_gcp.yaml | kubectl apply -f - >/dev/null
-  envsubst < manifests/prometheus-dcgm-exporter.yaml | kubectl apply -f - >/dev/null
+  NVIDIA_COM_GPU_VALUE=present envsubst < manifests/prometheus-dcgm-exporter.yaml | kubectl apply -f - >/dev/null
   echo "✓"
 
   restart_operator
