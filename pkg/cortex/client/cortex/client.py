@@ -232,14 +232,14 @@ class Client:
             "--env",
             self.env_name,
             "-o",
-            "mixed",
+            "json",
             "-y",
         ]
 
         if force:
             args.append("--force")
 
-        output = run_cli(args, mixed_output=True)
+        output = run_cli(args, hide_output=True)
 
         deploy_results = json.loads(output.strip())
 
