@@ -17,6 +17,7 @@ limitations under the License.
 package aws
 
 import (
+	"fmt"
 	"math"
 	"regexp"
 	"time"
@@ -328,4 +329,55 @@ func (c *Client) DescribeVpcs() ([]ec2.Vpc, error) {
 	}
 
 	return vpcs, nil
+}
+
+func (c *Client) ListVolumes() ([]ec2.Volume, error) {
+	var volumes []ec2.Volume
+	err := c.EC2().DescribeVolumesPages(&ec2.DescribeVolumesInput{}, func(output *ec2.DescribeVolumesOutput, lastPage bool) bool {
+		if output == nil {
+			return false
+		}
+		for _, volume := range output.Volumes {
+			if volume == nil {
+				continue
+			}
+			volumes = append(volumes, *volume)
+		}
+
+		return true
+	})
+
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+
+	return volumes, nil
+}
+
+func (c *Client) ListPVCVolumesForCluster(clusterName string) ([]ec2.Volume, error) {
+	var volumes []ec2.Volume
+	err := c.EC2().DescribeVolumesPages(&ec2.DescribeVolumesInput{}, func(output *ec2.DescribeVolumesOutput, lastPage bool) bool {
+		if output == nil {
+			return false
+		}
+		for _, volume := range output.Volumes {
+			if volume == nil {
+				continue
+			}
+			for _, tag := range volume.Tags {
+				if tag.Key != nil && *tag.Key == fmt.Sprintf("kubernetes.io/cluster/%s", clusterName) {
+					volumes = append(volumes, *volume)
+					continue
+				}
+			}
+		}
+
+		return true
+	})
+
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+
+	return volumes, nil
 }
