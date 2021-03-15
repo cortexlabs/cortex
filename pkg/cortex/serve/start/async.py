@@ -68,8 +68,10 @@ def handle_workload(message):
     log.debug("updating status to completed", extra={"id": request_id})
     api.update_status(request_id, "completed")
 
-    log.info("workload processing complete", extra={"id": request_id})
+    log.debug("deleting payload from s3")
+    api.delete_payload(request_id=request_id)
 
+    log.info("workload processing complete", extra={"id": request_id})
     # TODO: handle post_predict
 
 
@@ -81,6 +83,9 @@ def handle_workload_failure(message):
 
     log.error("failed to process workload", exc_info=True, extra={"id": request_id})
     api.update_status(request_id, "failed")
+
+    log.debug("deleting payload from s3")
+    api.delete_payload(request_id=request_id)
 
 
 def build_predict_args(payload, request_id):
