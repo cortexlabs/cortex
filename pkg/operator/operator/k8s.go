@@ -1141,22 +1141,17 @@ func GenerateResourceTolerations(compute *userconfig.Compute) []kcore.Toleration
 			Value:    "true",
 			Effect:   kcore.TaintEffectNoSchedule,
 		},
-	}
-
-	if compute.GPU > 0 {
-		tolerations = append(tolerations, kcore.Toleration{
+		{
 			Key:      "nvidia.com/gpu",
 			Operator: kcore.TolerationOpExists,
 			Effect:   kcore.TaintEffectNoSchedule,
-		})
-	}
-	if compute.Inf > 0 {
-		tolerations = append(tolerations, kcore.Toleration{
+		},
+		{
 			Key:      "aws.amazon.com/neuron",
 			Operator: kcore.TolerationOpEqual,
 			Value:    "true",
 			Effect:   kcore.TaintEffectNoSchedule,
-		})
+		},
 	}
 
 	return tolerations
