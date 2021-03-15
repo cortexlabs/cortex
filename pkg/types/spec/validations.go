@@ -131,6 +131,10 @@ func multiAPIsValidation() *cr.StructFieldValidation {
 							LessThanOrEqualTo:    pointer.Int32(100),
 						},
 					},
+					{
+						StructField:    "Shadow",
+						BoolValidation: &cr.BoolValidation{},
+					},
 				},
 			},
 		},
@@ -844,6 +848,16 @@ func ValidateTrafficSplitter(api *userconfig.API) error {
 	}
 	if err := areTrafficSplitterAPIsUnique(api.APIs); err != nil {
 		return err
+	}
+
+	hasShadow := false
+	for _, api := range api.APIs {
+		if api.Shadow {
+			if hasShadow {
+				return ErrorOneShadowPerTrafficSplitter()
+			}
+			hasShadow = true
+		}
 	}
 
 	return nil
