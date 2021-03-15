@@ -18,8 +18,7 @@ class PythonPredictor:
         s3.download_file(config["bucket"], config["key"], "/tmp/model.pkl")
         self.model = pickle.load(open("/tmp/model.pkl", "rb"))
 
-    # TODO update mapping function, this fails if request_id is not taken
-    def predict(self, payload, request_id):
+    def predict(self, payload):
         measurements = [
             payload["sepal_length"],
             payload["sepal_width"],
@@ -27,10 +26,5 @@ class PythonPredictor:
             payload["petal_width"],
         ]
 
-        print(request_id)
-
         label_id = self.model.predict([measurements])[0]
-
-        # TODO if this returns a string, it throws the following error:
-        # error: json: cannot unmarshal string into Go value of type map[string]interface {}
         return {"result": labels[label_id]}
