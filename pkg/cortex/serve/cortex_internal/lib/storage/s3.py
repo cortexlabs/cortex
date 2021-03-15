@@ -245,3 +245,6 @@ class S3:
             self.download_dir(prefix, local_dir)
         else:
             self.download_file_to_dir(prefix, local_dir)
+
+    def delete(self, key):
+        self.s3.delete_object(Bucket=self.bucket, Key=key)

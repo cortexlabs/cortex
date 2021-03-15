@@ -110,6 +110,10 @@ class AsyncAPI:
         else:
             return payload_bytes
 
+    def delete_payload(self, request_id: str):
+        key = f"{self.storage_path}/{request_id}/payload"
+        self.storage.delete(key)
+
     def initialize_impl(self, project_dir: str, metrics_client: MetricsClient):
         predictor_impl = self._get_impl(project_dir)
         constructor_args = inspect.getfullargspec(predictor_impl.__init__).args
