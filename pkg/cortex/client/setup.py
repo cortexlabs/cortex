@@ -80,7 +80,7 @@ if pathlib.Path("README.md").is_file():
 setup(
     name="cortex",
     version="master",  # CORTEX_VERSION
-    description="Model serving at scale",
+    description="Deploy machine learning models to production",
     author="cortex.dev",
     author_email="dev@cortex.dev",
     license="Apache License 2.0",

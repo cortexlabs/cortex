@@ -1,1 +1,1 @@
-**Please view our documentation at [docs.cortex.dev](https://docs.cortex.dev/)**
+**Please view our documentation at [docs.cortex.dev](https://docs.cortex.dev)**
