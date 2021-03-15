@@ -172,6 +172,7 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string, force bool) (*schema
 	default:
 		return nil, "", ErrorOperationIsOnlySupportedForKind(
 			*deployedResource, userconfig.RealtimeAPIKind,
+			userconfig.AsyncAPIKind,
 			userconfig.BatchAPIKind,
 			userconfig.TrafficSplitterKind,
 			userconfig.TaskAPIKind,
@@ -238,7 +239,7 @@ func patchAPI(apiConfig *userconfig.API, force bool) (*spec.API, string, error) 
 	}
 
 	if deployedResource.Kind == userconfig.UnknownKind {
-		return nil, "", ErrorOperationIsOnlySupportedForKind(*deployedResource, userconfig.RealtimeAPIKind, userconfig.BatchAPIKind, userconfig.TrafficSplitterKind) // unexpected
+		return nil, "", ErrorOperationIsOnlySupportedForKind(*deployedResource, userconfig.RealtimeAPIKind, userconfig.AsyncAPIKind, userconfig.BatchAPIKind, userconfig.TaskAPIKind, userconfig.TrafficSplitterKind) // unexpected
 	}
 
 	var projectFiles ProjectFiles
@@ -370,7 +371,7 @@ func DeleteAPI(apiName string, keepCache bool) (*schema.DeleteResponse, error) {
 			return nil, err
 		}
 	default:
-		return nil, ErrorOperationIsOnlySupportedForKind(*deployedResource, userconfig.RealtimeAPIKind, userconfig.BatchAPIKind, userconfig.TrafficSplitterKind) // unexpected
+		return nil, ErrorOperationIsOnlySupportedForKind(*deployedResource, userconfig.RealtimeAPIKind, userconfig.AsyncAPIKind, userconfig.BatchAPIKind, userconfig.TrafficSplitterKind) // unexpected
 	}
 
 	return &schema.DeleteResponse{
