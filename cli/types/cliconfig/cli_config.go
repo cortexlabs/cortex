@@ -27,6 +27,11 @@ type CLIConfig struct {
 	Environments       []*Environment `json:"environments" yaml:"environments"`
 }
 
+type UserFacingCLIConfig struct {
+	DefaultEnvironment *string        `json:"default_environment" yaml:"default_environment"`
+	Environments       []*Environment `json:"environments" yaml:"environments"`
+}
+
 func (cliConfig *CLIConfig) Validate() error {
 	envNames := strset.New()
 
@@ -49,4 +54,11 @@ func (cliConfig *CLIConfig) Validate() error {
 	}
 
 	return nil
+}
+
+func (c *CLIConfig) ConvertToUserFacingCLIConfig() UserFacingCLIConfig {
+	return UserFacingCLIConfig{
+		DefaultEnvironment: c.DefaultEnvironment,
+		Environments:       c.Environments,
+	}
 }
