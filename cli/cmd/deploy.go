@@ -110,11 +110,6 @@ var _deployCmd = &cobra.Command{
 				exit.Error(err)
 			}
 			fmt.Print(string(bytes))
-		case flags.MixedOutputType:
-			err := mixedPrint(deployResults)
-			if err != nil {
-				exit.Error(err)
-			}
 		case flags.PrettyOutputType:
 			message, err := deployMessage(deployResults, env.Name)
 			if err != nil {
