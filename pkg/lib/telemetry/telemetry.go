@@ -174,12 +174,12 @@ func Error(err error, tags ...map[string]string) {
 		return
 	}
 
-	mergedTags := maps.MergeStrMaps(tags...)
+	mergedTags := maps.MergeStrMapsString(tags...)
 
 	sentry.WithScope(func(scope *sentry.Scope) {
 		e := EventFromException(err)
 		scope.SetUser(sentry.User{ID: _config.UserID})
-		scope.SetTags(maps.MergeStrMaps(_config.Properties, mergedTags))
+		scope.SetTags(maps.MergeStrMapsString(_config.Properties, mergedTags))
 		scope.SetTags(map[string]string{"error_type": e.Exception[0].Type})
 		sentry.CaptureEvent(e)
 

@@ -82,9 +82,14 @@ func tensorflowAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.D
 				InitContainers: []kcore.Container{
 					operator.InitContainer(api),
 				},
-				Containers:         containers,
-				NodeSelector:       operator.NodeSelectors(),
-				Tolerations:        operator.Tolerations,
+				Containers:   containers,
+				NodeSelector: operator.NodeSelectors(),
+				Tolerations:  operator.GenerateResourceTolerations(),
+				Affinity: &kcore.Affinity{
+					NodeAffinity: &kcore.NodeAffinity{
+						PreferredDuringSchedulingIgnoredDuringExecution: operator.GeneratePreferredNodeAffinities(),
+					},
+				},
 				Volumes:            volumes,
 				ServiceAccountName: operator.ServiceAccountName,
 			},
@@ -132,9 +137,14 @@ func pythonAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deplo
 				InitContainers: []kcore.Container{
 					operator.InitContainer(api),
 				},
-				Containers:         containers,
-				NodeSelector:       operator.NodeSelectors(),
-				Tolerations:        operator.Tolerations,
+				Containers:   containers,
+				NodeSelector: operator.NodeSelectors(),
+				Tolerations:  operator.GenerateResourceTolerations(),
+				Affinity: &kcore.Affinity{
+					NodeAffinity: &kcore.NodeAffinity{
+						PreferredDuringSchedulingIgnoredDuringExecution: operator.GeneratePreferredNodeAffinities(),
+					},
+				},
 				Volumes:            volumes,
 				ServiceAccountName: operator.ServiceAccountName,
 			},
@@ -183,9 +193,14 @@ func onnxAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deploym
 				TerminationGracePeriodSeconds: pointer.Int64(_terminationGracePeriodSeconds),
 				Containers:                    containers,
 				NodeSelector:                  operator.NodeSelectors(),
-				Tolerations:                   operator.Tolerations,
-				Volumes:                       volumes,
-				ServiceAccountName:            operator.ServiceAccountName,
+				Tolerations:                   operator.GenerateResourceTolerations(),
+				Affinity: &kcore.Affinity{
+					NodeAffinity: &kcore.NodeAffinity{
+						PreferredDuringSchedulingIgnoredDuringExecution: operator.GeneratePreferredNodeAffinities(),
+					},
+				},
+				Volumes:            volumes,
+				ServiceAccountName: operator.ServiceAccountName,
 			},
 		},
 	})

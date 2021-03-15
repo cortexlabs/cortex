@@ -25,11 +25,13 @@ import (
 func (c *Client) ListEKSStacks(controlPlaneStackName string, nodegroupStackNames strset.Set) ([]*cloudformation.StackSummary, error) {
 	var stackSummaries []*cloudformation.StackSummary
 	stackSet := strset.Union(nodegroupStackNames, strset.New(controlPlaneStackName))
+
 	err := c.CloudFormation().ListStacksPages(
 		&cloudformation.ListStacksInput{},
 		func(listStackOutput *cloudformation.ListStacksOutput, lastPage bool) bool {
 			for _, stackSummary := range listStackOutput.StackSummaries {
-				if stackSet.Has(*stackSummary.StackName) {
+
+				if stackSet.HasWithPrefix(*stackSummary.StackName) {
 					stackSummaries = append(stackSummaries, stackSummary)
 				}
 

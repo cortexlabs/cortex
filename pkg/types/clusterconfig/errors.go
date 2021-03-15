@@ -28,44 +28,51 @@ import (
 )
 
 const (
-	ErrInvalidRegion                              = "clusterconfig.invalid_region"
-	ErrInstanceTypeTooSmall                       = "clusterconfig.instance_type_too_small"
-	ErrMinInstancesGreaterThanMax                 = "clusterconfig.min_instances_greater_than_max"
-	ErrInstanceTypeNotSupportedInRegion           = "clusterconfig.instance_type_not_supported_in_region"
-	ErrIncompatibleSpotInstanceTypeMemory         = "clusterconfig.incompatible_spot_instance_type_memory"
-	ErrIncompatibleSpotInstanceTypeCPU            = "clusterconfig.incompatible_spot_instance_type_cpu"
-	ErrIncompatibleSpotInstanceTypeGPU            = "clusterconfig.incompatible_spot_instance_type_gpu"
-	ErrIncompatibleSpotInstanceTypeInf            = "clusterconfig.incompatible_spot_instance_type_inf"
-	ErrSpotPriceGreaterThanTargetOnDemand         = "clusterconfig.spot_price_greater_than_target_on_demand"
-	ErrSpotPriceGreaterThanMaxPrice               = "clusterconfig.spot_price_greater_than_max_price"
-	ErrInstanceTypeNotSupported                   = "clusterconfig.instance_type_not_supported"
-	ErrARMInstancesNotSupported                   = "clusterconfig.arm_instances_not_supported"
-	ErrAtLeastOneInstanceDistribution             = "clusterconfig.at_least_one_instance_distribution"
-	ErrNoCompatibleSpotInstanceFound              = "clusterconfig.no_compatible_spot_instance_found"
-	ErrConfiguredWhenSpotIsNotEnabled             = "clusterconfig.configured_when_spot_is_not_enabled"
-	ErrOnDemandBaseCapacityGreaterThanMax         = "clusterconfig.on_demand_base_capacity_greater_than_max"
-	ErrConfigCannotBeChangedOnUpdate              = "clusterconfig.config_cannot_be_changed_on_update"
-	ErrInvalidAvailabilityZone                    = "clusterconfig.invalid_availability_zone"
-	ErrAvailabilityZoneSpecifiedTwice             = "clusterconfig.availability_zone_specified_twice"
-	ErrUnsupportedAvailabilityZone                = "clusterconfig.unsupported_availability_zone"
-	ErrNotEnoughValidDefaultAvailibilityZones     = "clusterconfig.not_enough_valid_default_availability_zones"
-	ErrNoNATGatewayWithSubnets                    = "clusterconfig.no_nat_gateway_with_subnets"
-	ErrSpecifyOneOrNone                           = "clusterconfig.specify_one_or_none"
-	ErrDependentFieldMustBeSpecified              = "clusterconfig.dependent_field_must_be_specified"
-	ErrFieldConfigurationDependentOnCondition     = "clusterconfig.field_configuration_dependent_on_condition"
-	ErrDidNotMatchStrictS3Regex                   = "clusterconfig.did_not_match_strict_s3_regex"
-	ErrNATRequiredWithPrivateSubnetVisibility     = "clusterconfig.nat_required_with_private_subnet_visibility"
-	ErrS3RegionDiffersFromCluster                 = "clusterconfig.s3_region_differs_from_cluster"
-	ErrInvalidInstanceType                        = "clusterconfig.invalid_instance_type"
-	ErrIOPSNotSupported                           = "clusterconfig.iops_not_supported"
-	ErrIOPSTooLarge                               = "clusterconfig.iops_too_large"
-	ErrCantOverrideDefaultTag                     = "clusterconfig.cant_override_default_tag"
-	ErrSSLCertificateARNNotFound                  = "clusterconfig.ssl_certificate_arn_not_found"
-	ErrIAMPolicyARNNotFound                       = "clusterconfig.iam_policy_arn_not_found"
-	ErrProviderMismatch                           = "clusterconfig.provider_mismatch"
+	ErrInvalidRegion                          = "clusterconfig.invalid_region"
+	ErrNoNodeGroupSpecified                   = "clusterconfig.no_nodegroup_specified"
+	ErrMaxNumOfNodeGroupsReached              = "clusterconfig.max_num_of_nodegroups_reached"
+	ErrDuplicateNodeGroupName                 = "clusterconfig.duplicate_nodegroup_name"
+	ErrInstanceTypeTooSmall                   = "clusterconfig.instance_type_too_small"
+	ErrMinInstancesGreaterThanMax             = "clusterconfig.min_instances_greater_than_max"
+	ErrInstanceTypeNotSupportedInRegion       = "clusterconfig.instance_type_not_supported_in_region"
+	ErrIncompatibleSpotInstanceTypeMemory     = "clusterconfig.incompatible_spot_instance_type_memory"
+	ErrIncompatibleSpotInstanceTypeCPU        = "clusterconfig.incompatible_spot_instance_type_cpu"
+	ErrIncompatibleSpotInstanceTypeGPU        = "clusterconfig.incompatible_spot_instance_type_gpu"
+	ErrIncompatibleSpotInstanceTypeInf        = "clusterconfig.incompatible_spot_instance_type_inf"
+	ErrSpotPriceGreaterThanTargetOnDemand     = "clusterconfig.spot_price_greater_than_target_on_demand"
+	ErrSpotPriceGreaterThanMaxPrice           = "clusterconfig.spot_price_greater_than_max_price"
+	ErrInstanceTypeNotSupported               = "clusterconfig.instance_type_not_supported"
+	ErrARMInstancesNotSupported               = "clusterconfig.arm_instances_not_supported"
+	ErrAtLeastOneInstanceDistribution         = "clusterconfig.at_least_one_instance_distribution"
+	ErrNoCompatibleSpotInstanceFound          = "clusterconfig.no_compatible_spot_instance_found"
+	ErrConfiguredWhenSpotIsNotEnabled         = "clusterconfig.configured_when_spot_is_not_enabled"
+	ErrOnDemandBaseCapacityGreaterThanMax     = "clusterconfig.on_demand_base_capacity_greater_than_max"
+	ErrConfigCannotBeChangedOnUpdate          = "clusterconfig.config_cannot_be_changed_on_update"
+	ErrInvalidAvailabilityZone                = "clusterconfig.invalid_availability_zone"
+	ErrAvailabilityZoneSpecifiedTwice         = "clusterconfig.availability_zone_specified_twice"
+	ErrUnsupportedAvailabilityZone            = "clusterconfig.unsupported_availability_zone"
+	ErrNotEnoughValidDefaultAvailibilityZones = "clusterconfig.not_enough_valid_default_availability_zones"
+	ErrNoNATGatewayWithSubnets                = "clusterconfig.no_nat_gateway_with_subnets"
+	ErrSpecifyOneOrNone                       = "clusterconfig.specify_one_or_none"
+	ErrDependentFieldMustBeSpecified          = "clusterconfig.dependent_field_must_be_specified"
+	ErrFieldConfigurationDependentOnCondition = "clusterconfig.field_configuration_dependent_on_condition"
+	ErrDidNotMatchStrictS3Regex               = "clusterconfig.did_not_match_strict_s3_regex"
+	ErrNATRequiredWithPrivateSubnetVisibility = "clusterconfig.nat_required_with_private_subnet_visibility"
+	ErrS3RegionDiffersFromCluster             = "clusterconfig.s3_region_differs_from_cluster"
+	ErrInvalidInstanceType                    = "clusterconfig.invalid_instance_type"
+	ErrIOPSNotSupported                       = "clusterconfig.iops_not_supported"
+	ErrIOPSTooLarge                           = "clusterconfig.iops_too_large"
+	ErrCantOverrideDefaultTag                 = "clusterconfig.cant_override_default_tag"
+	ErrSSLCertificateARNNotFound              = "clusterconfig.ssl_certificate_arn_not_found"
+	ErrIAMPolicyARNNotFound                   = "clusterconfig.iam_policy_arn_not_found"
+	ErrProviderMismatch                       = "clusterconfig.provider_mismatch"
+
 	ErrGCPInvalidProjectID                        = "clusterconfig.gcp_invalid_project_id"
 	ErrGCPProjectMustBeSpecified                  = "clusterconfig.gcp_project_must_be_specified"
 	ErrGCPInvalidZone                             = "clusterconfig.gcp_invalid_zone"
+	ErrGCPNoNodePoolSpecified                     = "clusterconfig.gcp_no_nodepool_specified"
+	ErrGCPMaxNumOfNodePoolsReached                = "clusterconfig.gcp_max_num_of_nodepools_reached"
+	ErrGCPDuplicateNodePoolName                   = "clusterconfig.gcp_duplicate_nodepool_name"
 	ErrGCPInvalidInstanceType                     = "clusterconfig.gcp_invalid_instance_type"
 	ErrGCPInvalidAcceleratorType                  = "clusterconfig.gcp_invalid_accelerator_type"
 	ErrGCPIncompatibleInstanceTypeWithAccelerator = "clusterconfig.gcp_incompatible_instance_type_with_accelerator"
@@ -75,6 +82,27 @@ func ErrorInvalidRegion(region string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrInvalidRegion,
 		Message: fmt.Sprintf("%s is not a valid AWS region, or is an AWS region which is not supported by AWS EKS; please choose one of the following regions: %s", s.UserStr(region), strings.Join(aws.EKSSupportedRegions.SliceSorted(), ", ")),
+	})
+}
+
+func ErrorNoNodeGroupSpecified() error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrNoNodeGroupSpecified,
+		Message: "no nodegroup was specified; please specify at least 1 nodegroup",
+	})
+}
+
+func ErrorMaxNumOfNodeGroupsReached(maxNodeGroups int64) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrMaxNumOfNodeGroupsReached,
+		Message: fmt.Sprintf("cannot have more than %d nodegroups", maxNodeGroups),
+	})
+}
+
+func ErrorDuplicateNodeGroupName(duplicateNgName string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrDuplicateNodeGroupName,
+		Message: fmt.Sprintf("cannot have multiple nodegroups with the same name (%s)", duplicateNgName),
 	})
 }
 
@@ -169,10 +197,10 @@ func ErrorOnDemandBaseCapacityGreaterThanMax(onDemandBaseCapacity int64, max int
 	})
 }
 
-func ErrorConfigCannotBeChangedOnUpdate(configKey string, prevVal interface{}) error {
+func ErrorConfigCannotBeChangedOnUpdate() error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrConfigCannotBeChangedOnUpdate,
-		Message: fmt.Sprintf("modifying %s in a running cluster is not supported, please set %s to its previous value (%s)", configKey, configKey, s.UserStr(prevVal)),
+		Message: fmt.Sprintf("in a running cluster, only the %s and %s fields in the %s section can be modified", MinInstancesKey, MaxInstancesKey, NodeGroupsKey),
 	})
 }
 
@@ -353,6 +381,27 @@ func ErrorGCPInvalidZone(zone string, suggestedZones ...string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrGCPInvalidZone,
 		Message: errorMessage,
+	})
+}
+
+func ErrorGCPNoNodePoolSpecified() error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrGCPNoNodePoolSpecified,
+		Message: "no nodepool was specified; please specify at least 1 nodepool",
+	})
+}
+
+func ErrorGCPMaxNumOfNodePoolsReached(maxNodePools int64) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrGCPMaxNumOfNodePoolsReached,
+		Message: fmt.Sprintf("cannot have more than %d nodepools", maxNodePools),
+	})
+}
+
+func ErrorGCPDuplicateNodePoolName(duplicateNpName string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrGCPDuplicateNodePoolName,
+		Message: fmt.Sprintf("cannot have multiple nodepools with the same name (%s)", duplicateNpName),
 	})
 }
 

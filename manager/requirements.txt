@@ -1,3 +1,4 @@
 boto3
 jinja2
 pyyaml
+yq

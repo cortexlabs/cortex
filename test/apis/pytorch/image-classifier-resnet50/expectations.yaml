@@ -1,0 +1,5 @@
+# this file is used for testing purposes only
+
+response:
+  content_type: "json"
+  expected: ["tabby", "Egyptian_cat", "tiger_cat", "tiger", "plastic_bag"]

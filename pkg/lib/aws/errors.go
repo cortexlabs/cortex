@@ -151,11 +151,12 @@ func ErrorBucketNotFound(bucket string) error {
 	})
 }
 
-func ErrorInsufficientInstanceQuota(instanceType string, lifecycle string, region string, requiredInstances int64, vCPUPerInstance int64, vCPUQuota int64, quotaCode string) error {
+func ErrorInsufficientInstanceQuota(instanceTypes []string, lifecycle string, region string, requiredVCPUs int64, vCPUQuota int64, quotaCode string) error {
 	url := fmt.Sprintf("https://%s.console.aws.amazon.com/servicequotas/home?region=%s#!/services/ec2/quotas/%s", region, region, quotaCode)
+	andInstanceTypes := s.StrsAnd(instanceTypes)
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrInsufficientInstanceQuota,
-		Message: fmt.Sprintf("your cluster may require up to %d %s %s instances, but your AWS quota for %s %s instances in %s is only %d vCPU (there are %d vCPUs per %s instance); please reduce the maximum number of %s %s instances your cluster may use (e.g. by changing max_instances and/or spot_config if applicable), or request a quota increase to at least %d vCPU here: %s (if your request was recently approved, please allow ~30 minutes for AWS to reflect this change)", requiredInstances, lifecycle, instanceType, lifecycle, instanceType, region, vCPUQuota, vCPUPerInstance, instanceType, lifecycle, instanceType, requiredInstances*vCPUPerInstance, url),
+		Message: fmt.Sprintf("your cluster may require up to %d vCPU %s %s instances, but your AWS quota for %s %s instances in %s is only %d vCPU; please reduce the maximum number of %s %s instances your cluster may use (e.g. by changing max_instances and/or spot_config if applicable), or request a quota increase to at least %d vCPU here: %s (if your request was recently approved, please allow ~30 minutes for AWS to reflect this change)", requiredVCPUs, lifecycle, andInstanceTypes, lifecycle, andInstanceTypes, region, vCPUQuota, lifecycle, andInstanceTypes, requiredVCPUs, url),
 	})
 }
 

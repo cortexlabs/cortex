@@ -47,6 +47,7 @@ type StringValidation struct {
 	DisallowTrailingWhitespace           bool
 	AlphaNumericDashDotUnderscoreOrEmpty bool
 	AlphaNumericDashDotUnderscore        bool
+	AlphaNumericDashUnderscoreOrEmpty    bool
 	AlphaNumericDashUnderscore           bool
 	AWSTag                               bool
 	DNS1035                              bool
@@ -287,6 +288,12 @@ func ValidateStringVal(val string, v *StringValidation) error {
 
 	if v.AlphaNumericDashUnderscore {
 		if !regex.IsAlphaNumericDashUnderscore(val) {
+			return ErrorAlphaNumericDashUnderscore(val)
+		}
+	}
+
+	if v.AlphaNumericDashUnderscoreOrEmpty {
+		if !regex.IsAlphaNumericDashUnderscore(val) && val != "" {
 			return ErrorAlphaNumericDashUnderscore(val)
 		}
 	}

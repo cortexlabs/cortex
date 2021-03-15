@@ -98,9 +98,11 @@ func managedClusterTelemetry() (map[string]interface{}, error) {
 	}
 
 	instanceInfos := make(map[string]*instanceInfo)
-	var totalInstances int
-
 	managedConfig := config.ManagedConfigOrNil()
+
+	var totalInstances int
+	var totalInstancePrice float64
+	var totalInstancePriceIfOnDemand float64
 
 	for _, node := range nodes {
 		if node.Labels["workload"] != "true" {
@@ -138,6 +140,11 @@ func managedClusterTelemetry() (map[string]interface{}, error) {
 			}
 		}
 
+		ngName := node.Labels["alpha.eksctl.io/nodegroup-name"]
+		ebsPricePerVolume := getEBSPriceForNodeGroupInstance(managedConfig.NodeGroups, ngName)
+		onDemandPrice += ebsPricePerVolume
+		price += ebsPricePerVolume
+
 		gpuQty := node.Status.Capacity["nvidia.com/gpu"]
 		infQty := node.Status.Capacity["aws.amazon.com/neuron"]
 
@@ -161,18 +168,8 @@ func managedClusterTelemetry() (map[string]interface{}, error) {
 		}
 
 		instanceInfos[instanceInfosKey] = &info
-	}
-
-	apiEBSPrice := aws.EBSMetadatas[config.CoreConfig.Region][managedConfig.InstanceVolumeType.String()].PriceGB * float64(managedConfig.InstanceVolumeSize) / 30 / 24
-	if managedConfig.InstanceVolumeType.String() == "io1" && managedConfig.InstanceVolumeIOPS != nil {
-		apiEBSPrice += aws.EBSMetadatas[config.CoreConfig.Region][managedConfig.InstanceVolumeType.String()].PriceIOPS * float64(*managedConfig.InstanceVolumeIOPS) / 30 / 24
-	}
-
-	var totalInstancePrice float64
-	var totalInstancePriceIfOnDemand float64
-	for _, info := range instanceInfos {
-		totalInstancePrice += (info.Price + apiEBSPrice) * float64(info.Count)
-		totalInstancePriceIfOnDemand += (info.OnDemandPrice + apiEBSPrice) * float64(info.Count)
+		totalInstancePrice += info.Price
+		totalInstancePriceIfOnDemand += info.OnDemandPrice
 	}
 
 	fixedPrice := clusterFixedPriceAWS()
@@ -187,6 +184,26 @@ func managedClusterTelemetry() (map[string]interface{}, error) {
 		"total_price":                 totalInstancePrice + fixedPrice,
 		"total_price_if_on_demand":    totalInstancePriceIfOnDemand + fixedPrice,
 	}, nil
+}
+
+func getEBSPriceForNodeGroupInstance(ngs []*clusterconfig.NodeGroup, ngName string) float64 {
+	var ebsPrice float64
+	for _, ng := range ngs {
+		var ngNamePrefix string
+		if ng.Spot {
+			ngNamePrefix = "cx-ws-"
+		} else {
+			ngNamePrefix = "cx-wd-"
+		}
+		if ng.Name == ngNamePrefix+ngName {
+			ebsPrice = aws.EBSMetadatas[config.CoreConfig.Region][ng.InstanceVolumeType.String()].PriceGB * float64(ng.InstanceVolumeSize) / 30 / 24
+			if ng.InstanceVolumeType.String() == "io1" && ng.InstanceVolumeIOPS != nil {
+				ebsPrice += aws.EBSMetadatas[config.CoreConfig.Region][ng.InstanceVolumeType.String()].PriceIOPS * float64(*ng.InstanceVolumeIOPS) / 30 / 24
+			}
+			break
+		}
+	}
+	return ebsPrice
 }
 
 func clusterFixedPriceAWS() float64 {
