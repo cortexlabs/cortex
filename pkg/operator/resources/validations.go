@@ -23,7 +23,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
-	"github.com/cortexlabs/cortex/pkg/lib/parallel"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
@@ -116,7 +115,7 @@ func ValidateClusterAPIs(apis []userconfig.API, projectFiles spec.ProjectFiles) 
 	}
 
 	if config.IsManaged() && config.Provider == types.AWSProviderType {
-		maxMem, err := operator.UpdateMemoryCapacityConfigMap()
+		maxMemMap, err := operator.UpdateMemoryCapacityConfigMap()
 		if err != nil {
 			return err
 		}
@@ -124,7 +123,7 @@ func ValidateClusterAPIs(apis []userconfig.API, projectFiles spec.ProjectFiles) 
 		for i := range apis {
 			api := &apis[i]
 			if api.Kind == userconfig.RealtimeAPIKind || api.Kind == userconfig.BatchAPIKind || api.Kind == userconfig.TaskAPIKind {
-				if err := awsManagedValidateK8sCompute(api.Compute, maxMem); err != nil {
+				if err := awsManagedValidateK8sCompute(api.Compute, maxMemMap); err != nil {
 					return err
 				}
 			}
@@ -174,45 +173,60 @@ var _nvidiaDCGMExporterMemReserve = kresource.MustParse("50Mi")
 var _inferentiaCPUReserve = kresource.MustParse("100m")
 var _inferentiaMemReserve = kresource.MustParse("100Mi")
 
-func awsManagedValidateK8sCompute(compute *userconfig.Compute, maxMem kresource.Quantity) error {
-	instanceMetadata := config.AWSInstanceMetadataOrNil()
-	if instanceMetadata == nil {
+func awsManagedValidateK8sCompute(compute *userconfig.Compute, maxMemMap map[string]kresource.Quantity) error {
+	instancesMetadata := config.AWSInstancesMetadata()
+	if len(instancesMetadata) == 0 {
 		return errors.ErrorUnexpected("unable to find instance metadata; likely because this is not a cortex managed cluster")
 	}
 
-	maxMem.Sub(_cortexMemReserve)
+	allErrors := []error{}
+	successfulLoops := 0
+	for _, instanceMetadata := range instancesMetadata {
+		maxMemLoop := maxMemMap[instanceMetadata.Type]
+		maxMemLoop.Sub(_cortexMemReserve)
 
-	maxCPU := instanceMetadata.CPU
-	maxCPU.Sub(_cortexCPUReserve)
+		maxCPU := instanceMetadata.CPU
+		maxCPU.Sub(_cortexCPUReserve)
 
-	maxGPU := instanceMetadata.GPU
-	if maxGPU > 0 {
-		// Reserve resources for nvidia device plugin daemonset
-		maxCPU.Sub(_nvidiaCPUReserve)
-		maxMem.Sub(_nvidiaMemReserve)
-		// Reserve resources for nvidia dcgm prometheus exporter
-		maxCPU.Sub(_nvidiaDCGMExporterCPUReserve)
-		maxMem.Sub(_nvidiaDCGMExporterMemReserve)
+		maxGPU := instanceMetadata.GPU
+		if maxGPU > 0 {
+			// Reserve resources for nvidia device plugin daemonset
+			maxCPU.Sub(_nvidiaCPUReserve)
+			maxMemLoop.Sub(_nvidiaMemReserve)
+			// Reserve resources for nvidia dcgm prometheus exporter
+			maxCPU.Sub(_nvidiaDCGMExporterCPUReserve)
+			maxMemLoop.Sub(_nvidiaDCGMExporterMemReserve)
+		}
+
+		maxInf := instanceMetadata.Inf
+		if maxInf > 0 {
+			// Reserve resources for inferentia device plugin daemonset
+			maxCPU.Sub(_inferentiaCPUReserve)
+			maxMemLoop.Sub(_inferentiaMemReserve)
+		}
+
+		loopErrors := []error{}
+		if compute.CPU != nil && maxCPU.Cmp(compute.CPU.Quantity) < 0 {
+			loopErrors = append(loopErrors, ErrorNoAvailableNodeComputeLimit("CPU", compute.CPU.String(), maxCPU.String()))
+		}
+		if compute.Mem != nil && maxMemLoop.Cmp(compute.Mem.Quantity) < 0 {
+			loopErrors = append(loopErrors, ErrorNoAvailableNodeComputeLimit("memory", compute.Mem.String(), maxMemLoop.String()))
+		}
+		if compute.GPU > maxGPU {
+			loopErrors = append(loopErrors, ErrorNoAvailableNodeComputeLimit("GPU", fmt.Sprintf("%d", compute.GPU), fmt.Sprintf("%d", maxGPU)))
+		}
+		if compute.Inf > maxInf {
+			loopErrors = append(loopErrors, ErrorNoAvailableNodeComputeLimit("Inf", fmt.Sprintf("%d", compute.Inf), fmt.Sprintf("%d", maxInf)))
+		}
+		if errors.HasError(loopErrors) {
+			allErrors = append(allErrors, errors.FirstError(loopErrors...))
+		} else {
+			successfulLoops++
+		}
 	}
 
-	maxInf := instanceMetadata.Inf
-	if maxInf > 0 {
-		// Reserve resources for inferentia device plugin daemonset
-		maxCPU.Sub(_inferentiaCPUReserve)
-		maxMem.Sub(_inferentiaMemReserve)
-	}
-
-	if compute.CPU != nil && maxCPU.Cmp(compute.CPU.Quantity) < 0 {
-		return ErrorNoAvailableNodeComputeLimit("CPU", compute.CPU.String(), maxCPU.String())
-	}
-	if compute.Mem != nil && maxMem.Cmp(compute.Mem.Quantity) < 0 {
-		return ErrorNoAvailableNodeComputeLimit("memory", compute.Mem.String(), maxMem.String())
-	}
-	if compute.GPU > maxGPU {
-		return ErrorNoAvailableNodeComputeLimit("GPU", fmt.Sprintf("%d", compute.GPU), fmt.Sprintf("%d", maxGPU))
-	}
-	if compute.Inf > maxInf {
-		return ErrorNoAvailableNodeComputeLimit("Inf", fmt.Sprintf("%d", compute.Inf), fmt.Sprintf("%d", maxInf))
+	if successfulLoops == 0 {
+		return errors.FirstError(allErrors...)
 	}
 
 	return nil
@@ -250,26 +264,6 @@ func findDuplicateEndpoints(apis []userconfig.API) []userconfig.API {
 	}
 
 	return nil
-}
-
-func getValidationK8sResources() ([]istioclientnetworking.VirtualService, kresource.Quantity, error) {
-	var virtualServices []istioclientnetworking.VirtualService
-	var maxMem kresource.Quantity
-
-	err := parallel.RunFirstErr(
-		func() error {
-			var err error
-			virtualServices, err = config.K8s.ListVirtualServices(nil)
-			return err
-		},
-		func() error {
-			var err error
-			maxMem, err = operator.UpdateMemoryCapacityConfigMap()
-			return err
-		},
-	)
-
-	return virtualServices, maxMem, err
 }
 
 // InclusiveFilterAPIsByKind includes only provided Kinds

@@ -71,18 +71,14 @@ function cluster_up_aws() {
   setup_grafana
   echo "✓"
 
-  if [[ "$CORTEX_INSTANCE_TYPE" == p* ]] || [[ "$CORTEX_INSTANCE_TYPE" == g* ]]; then
-    echo -n "￮ configuring gpu support "
-    envsubst < manifests/nvidia_aws.yaml | kubectl apply -f - >/dev/null
-    envsubst < manifests/prometheus-dcgm-exporter.yaml | kubectl apply -f - >/dev/null
-    echo "✓"
-  fi
+  echo -n "￮ configuring gpu support (for the nodegroups that may require it)"
+  envsubst < manifests/nvidia_aws.yaml | kubectl apply -f - >/dev/null
+  NVIDIA_COM_GPU_VALUE=true envsubst < manifests/prometheus-dcgm-exporter.yaml | kubectl apply -f - >/dev/null
+  echo "✓"
 
-  if [[ "$CORTEX_INSTANCE_TYPE" == inf* ]]; then
-    echo -n "￮ configuring inf support "
-    envsubst < manifests/inferentia.yaml | kubectl apply -f - >/dev/null
-    echo "✓"
-  fi
+  echo -n "￮ configuring inf support (for the nodegroups that may require it)"
+  envsubst < manifests/inferentia.yaml | kubectl apply -f - >/dev/null
+  echo "✓"
 
   restart_operator
 
@@ -130,12 +126,10 @@ function cluster_up_gcp() {
   setup_grafana
   echo "✓"
 
-  if [ -n "$CORTEX_ACCELERATOR_TYPE" ]; then
-    echo -n "￮ configuring gpu support "
-    envsubst < manifests/nvidia_gcp.yaml | kubectl apply -f - >/dev/null
-    envsubst < manifests/prometheus-dcgm-exporter.yaml | kubectl apply -f - >/dev/null
-    echo "✓"
-  fi
+  echo -n "￮ configuring gpu support (for the nodepools that may require it)"
+  envsubst < manifests/nvidia_gcp.yaml | kubectl apply -f - >/dev/null
+  NVIDIA_COM_GPU_VALUE=present envsubst < manifests/prometheus-dcgm-exporter.yaml | kubectl apply -f - >/dev/null
+  echo "✓"
 
   restart_operator
 
@@ -334,85 +328,52 @@ function restart_operator() {
 }
 
 function resize_nodegroup() {
-  # check for change in min/max instances
-  asg_on_demand_info=$(aws autoscaling describe-auto-scaling-groups --region $CORTEX_REGION --query "AutoScalingGroups[?contains(Tags[?Key==\`alpha.eksctl.io/cluster-name\`].Value, \`$CORTEX_CLUSTER_NAME\`)]|[?contains(Tags[?Key==\`alpha.eksctl.io/nodegroup-name\`].Value, \`ng-cortex-worker-on-demand\`)]")
-  asg_on_demand_length=$(echo "$asg_on_demand_info" | jq -r 'length')
-  asg_on_demand_name=""
-  if (( "$asg_on_demand_length" > "0" )); then
-    asg_on_demand_name=$(echo "$asg_on_demand_info" | jq -r 'first | .AutoScalingGroupName')
-  fi
+  eksctl get nodegroup --cluster=$CORTEX_CLUSTER_NAME --region=$CORTEX_REGION -o json > nodegroups.json
+  ng_len=$(cat nodegroups.json | jq -r length)
+  num_resizes=0
 
-  asg_spot_info=$(aws autoscaling describe-auto-scaling-groups --region $CORTEX_REGION --query "AutoScalingGroups[?contains(Tags[?Key==\`alpha.eksctl.io/cluster-name\`].Value, \`$CORTEX_CLUSTER_NAME\`)]|[?contains(Tags[?Key==\`alpha.eksctl.io/nodegroup-name\`].Value, \`ng-cortex-worker-spot\`)]")
-  asg_spot_length=$(echo "$asg_spot_info" | jq -r 'length')
-  asg_spot_name=""
-  if (( "$asg_spot_length" > "0" )); then
-    asg_spot_name=$(echo "$asg_spot_info" | jq -r 'first | .AutoScalingGroupName')
-  fi
-
-  if [[ -z "$asg_spot_name" ]] && [[ -z "$asg_on_demand_name" ]]; then
-    echo "error: unable to find valid autoscaling groups"
-    exit 1
-  fi
-
-  if [[ -z $asg_spot_name ]]; then
-    asg_min_size=$(echo "$asg_on_demand_info" | jq -r 'first | .MinSize')
-    asg_max_size=$(echo "$asg_on_demand_info" | jq -r 'first | .MaxSize')
-    if [ "$asg_min_size" = "" ] || [ "$asg_min_size" = "null" ] || [ "$asg_max_size" = "" ] || [ "$asg_max_size" = "null" ]; then
-      echo -e "unable to find on-demand autoscaling group size from info:\n$asg_on_demand_info"
-      exit 1
+  for idx in $(seq 0 $(($ng_len-1))); do
+    stack_ng=$(cat nodegroups.json | jq -r .[$idx].Name)
+    if [ "$stack_ng" = "cx-operator" ]; then
+      continue
     fi
-  else
-    asg_min_size=$(echo "$asg_spot_info" | jq -r 'first | .MinSize')
-    asg_max_size=$(echo "$asg_spot_info" | jq -r 'first | .MaxSize')
-    if [ "$asg_min_size" = "" ] || [ "$asg_min_size" = "null" ] || [ "$asg_max_size" = "" ] || [ "$asg_max_size" = "null" ]; then
-      echo -e "unable to find spot autoscaling group size from info:\n$asg_spot_info"
-      exit 1
+
+    config_ng=$(cat /in/cluster_${CORTEX_CLUSTER_NAME}_${CORTEX_REGION}.yaml | yq -r .node_groups[$idx].name)
+
+    desired=$(cat nodegroups.json | jq -r .[$idx].DesiredCapacity)
+    existing_min=$(cat nodegroups.json | jq -r .[$idx].MinSize)
+    existing_max=$(cat nodegroups.json | jq -r .[$idx].MaxSize)
+    updating_min=$(cat /in/cluster_${CORTEX_CLUSTER_NAME}_${CORTEX_REGION}.yaml | yq -r .node_groups[$idx].min_instances)
+    updating_max=$(cat /in/cluster_${CORTEX_CLUSTER_NAME}_${CORTEX_REGION}.yaml | yq -r .node_groups[$idx].max_instances)
+    if [ $updating_min = "null" ]; then
+      updating_min=1
     fi
-  fi
-
-  asg_on_demand_resize_flags=""
-  asg_spot_resize_flags=""
-
-  if [ "$asg_min_size" != "$CORTEX_MIN_INSTANCES" ]; then
-    # only update min for on-demand nodegroup if it's not a backup
-    if [[ -n $asg_on_demand_name ]] && [[ "$CORTEX_SPOT_CONFIG_ON_DEMAND_BACKUP" != "True" ]]; then
-      asg_on_demand_resize_flags+=" --min-size=$CORTEX_MIN_INSTANCES"
+    if [ $updating_max = "null" ]; then
+      updating_max=5
     fi
-    if [[ -n $asg_spot_name ]]; then
-      asg_spot_resize_flags+=" --min-size=$CORTEX_MIN_INSTANCES"
+
+    if [ "$existing_min" != "$updating_min" ] && [ "$existing_max" != "$updating_max" ]; then
+      echo "￮ nodegroup $idx ($config_ng): updating min instances to $updating_min and max instances to $updating_max "
+      eksctl scale nodegroup --cluster=$CORTEX_CLUSTER_NAME --region=$CORTEX_REGION $stack_ng --nodes $desired --nodes-min $updating_min --nodes-max $updating_max
+      num_resizes=$(($num_resizes+1))
+      echo
+    elif [ "$existing_min" != "$updating_min" ]; then
+      echo "￮ nodegroup $idx ($config_ng): updating min instances to $updating_min "
+      eksctl scale nodegroup --cluster=$CORTEX_CLUSTER_NAME --region=$CORTEX_REGION $stack_ng --nodes $desired --nodes-min $updating_min
+      num_resizes=$(($num_resizes+1))
+      echo
+    elif [ "$existing_max" != "$updating_max" ]; then
+      echo "￮ nodegroup $idx ($config_ng): updating max instances to $updating_max "
+      eksctl scale nodegroup --cluster=$CORTEX_CLUSTER_NAME --region=$CORTEX_REGION $stack_ng --nodes $desired --nodes-max $updating_max
+      num_resizes=$(($num_resizes+1))
+      echo
     fi
-  fi
+  done
+  rm nodegroups.json
 
-  if [ "$asg_max_size" != "$CORTEX_MAX_INSTANCES" ]; then
-    if [[ -n $asg_on_demand_name ]]; then
-      asg_on_demand_resize_flags+=" --max-size=$CORTEX_MAX_INSTANCES"
-    fi
-    if [[ -n $asg_spot_name ]]; then
-      asg_spot_resize_flags+=" --max-size=$CORTEX_MAX_INSTANCES"
-    fi
-  fi
-
-  is_resizing="false"
-  if [ "$asg_min_size" != "$CORTEX_MIN_INSTANCES" ] && [ "$asg_max_size" != "$CORTEX_MAX_INSTANCES" ]; then
-    echo -n "￮ updating min instances to $CORTEX_MIN_INSTANCES and max instances to $CORTEX_MAX_INSTANCES "
-    is_resizing="true"
-  elif [ "$asg_min_size" != "$CORTEX_MIN_INSTANCES" ]; then
-    echo -n "￮ updating min instances to $CORTEX_MIN_INSTANCES "
-    is_resizing="true"
-  elif [ "$asg_max_size" != "$CORTEX_MAX_INSTANCES" ]; then
-    echo -n "￮ updating max instances to $CORTEX_MAX_INSTANCES "
-    is_resizing="true"
-  fi
-
-  if [ "$asg_on_demand_resize_flags" != "" ]; then
-    aws autoscaling update-auto-scaling-group --region $CORTEX_REGION --auto-scaling-group-name $asg_on_demand_name $asg_on_demand_resize_flags
-  fi
-  if [ "$asg_spot_resize_flags" != "" ]; then
-    aws autoscaling update-auto-scaling-group --region $CORTEX_REGION --auto-scaling-group-name $asg_spot_name $asg_spot_resize_flags
-  fi
-
-  if [ "$is_resizing" == "true" ]; then
-    echo "✓"
+  if [ "$num_resizes" -eq "0" ]; then
+    echo "no changes to node group sizes detected in the cluster config"
+    exit 0
   fi
 }
 

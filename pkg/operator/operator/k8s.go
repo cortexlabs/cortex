@@ -1133,24 +1133,91 @@ func NodeSelectors() map[string]string {
 	return nodeSelectors
 }
 
-var Tolerations = []kcore.Toleration{
-	{
-		Key:      "workload",
-		Operator: kcore.TolerationOpEqual,
-		Value:    "true",
-		Effect:   kcore.TaintEffectNoSchedule,
-	},
-	{
-		Key:      "nvidia.com/gpu",
-		Operator: kcore.TolerationOpExists,
-		Effect:   kcore.TaintEffectNoSchedule,
-	},
-	{
-		Key:      "aws.amazon.com/neuron",
-		Operator: kcore.TolerationOpEqual,
-		Value:    "true",
-		Effect:   kcore.TaintEffectNoSchedule,
-	},
+func GenerateResourceTolerations() []kcore.Toleration {
+	tolerations := []kcore.Toleration{
+		{
+			Key:      "workload",
+			Operator: kcore.TolerationOpEqual,
+			Value:    "true",
+			Effect:   kcore.TaintEffectNoSchedule,
+		},
+		{
+			Key:      "nvidia.com/gpu",
+			Operator: kcore.TolerationOpExists,
+			Effect:   kcore.TaintEffectNoSchedule,
+		},
+		{
+			Key:      "aws.amazon.com/neuron",
+			Operator: kcore.TolerationOpEqual,
+			Value:    "true",
+			Effect:   kcore.TaintEffectNoSchedule,
+		},
+	}
+
+	return tolerations
+}
+
+func GeneratePreferredNodeAffinities() []kcore.PreferredSchedulingTerm {
+	affinities := []kcore.PreferredSchedulingTerm{}
+
+	if config.Provider == types.AWSProviderType {
+		clusterConfig := config.ManagedConfigOrNil()
+		if clusterConfig == nil {
+			return nil
+		}
+
+		numNodeGroups := len(clusterConfig.NodeGroups)
+		for idx, nodeGroup := range clusterConfig.NodeGroups {
+			var nodeGroupPrefix string
+			if nodeGroup.Spot {
+				nodeGroupPrefix = "cx-ws-"
+			} else {
+				nodeGroupPrefix = "cx-wd-"
+			}
+			affinities = append(affinities, kcore.PreferredSchedulingTerm{
+				Weight: int32(100 * (1 - float64(idx)/float64(numNodeGroups))),
+				Preference: kcore.NodeSelectorTerm{
+					MatchExpressions: []kcore.NodeSelectorRequirement{
+						{
+							Key:      "alpha.eksctl.io/nodegroup-name",
+							Operator: kcore.NodeSelectorOpIn,
+							Values:   []string{nodeGroupPrefix + nodeGroup.Name},
+						},
+					},
+				},
+			})
+		}
+	}
+	if config.Provider == types.GCPProviderType {
+		clusterConfig := config.GCPManagedConfigOrNil()
+		if clusterConfig == nil {
+			return nil
+		}
+
+		numNodePools := len(clusterConfig.NodePools)
+		for idx, nodePool := range clusterConfig.NodePools {
+			var nodePoolPrefix string
+			if nodePool.Preemptible {
+				nodePoolPrefix = "cx-ws-"
+			} else {
+				nodePoolPrefix = "cx-wd-"
+			}
+			affinities = append(affinities, kcore.PreferredSchedulingTerm{
+				Weight: int32(100 * (1 - float64(idx)/float64(numNodePools))),
+				Preference: kcore.NodeSelectorTerm{
+					MatchExpressions: []kcore.NodeSelectorRequirement{
+						{
+							Key:      "cloud.google.com/gke-nodepool",
+							Operator: kcore.NodeSelectorOpIn,
+							Values:   []string{nodePoolPrefix + nodePool.Name},
+						},
+					},
+				},
+			})
+		}
+	}
+
+	return affinities
 }
 
 func K8sName(apiName string) string {

@@ -107,6 +107,9 @@ spec:
           path: /home/kubernetes/bin/nvidia
           type: ""
         name: nvidia-install-dir-host
+      nodeSelector:
+        workload: "true"
+        nvidia.com/gpu: "$NVIDIA_COM_GPU_VALUE"
 ---
 apiVersion: monitoring.coreos.com/v1
 kind: PodMonitor

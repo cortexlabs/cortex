@@ -20,6 +20,7 @@ import e2e.tests
 
 TEST_APIS = ["pytorch/iris-classifier", "onnx/iris-classifier", "tensorflow/iris-classifier"]
 TEST_APIS_GPU = ["pytorch/text-generator", "tensorflow/text-generator"]
+TEST_APIS_INF = ["pytorch/image-classifier-resnet50"]
 
 
 @pytest.mark.usefixtures("client")
@@ -39,4 +40,19 @@ def test_realtime_api_gpu(config: Dict, client: cx.Client, api: str):
 
     e2e.tests.test_realtime_api(
         client=client, api=api, timeout=config["global"]["realtime_deploy_timeout"]
+    )
+
+
+@pytest.mark.usefixtures("client")
+@pytest.mark.parametrize("api", TEST_APIS_INF)
+def test_realtime_api_inf(config: Dict, client: cx.Client, api: str):
+    skip_infs = config["global"].get("skip_infs", False)
+    if skip_infs:
+        pytest.skip("--skip-infs flag detected, skipping Inferentia tests")
+
+    e2e.tests.test_realtime_api(
+        client=client,
+        api=api,
+        timeout=config["global"]["realtime_deploy_timeout"],
+        api_config_name="cortex_inf.yaml",
     )

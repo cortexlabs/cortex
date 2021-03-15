@@ -20,7 +20,6 @@ import (
 	"fmt"
 	"path"
 	"path/filepath"
-	"reflect"
 	"regexp"
 
 	"github.com/cortexlabs/cortex/pkg/consts"
@@ -28,9 +27,9 @@ import (
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
+	"github.com/cortexlabs/cortex/pkg/lib/maps"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/prompt"
-	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/table"
 	"github.com/cortexlabs/cortex/pkg/types/clusterconfig"
@@ -135,7 +134,7 @@ func getInstallClusterConfig(awsClient *aws.Client, clusterConfigFile string, di
 		return nil, err
 	}
 
-	err = clusterConfig.Validate(awsClient)
+	err = clusterConfig.Validate(awsClient, false)
 	if err != nil {
 		err = errors.Append(err, fmt.Sprintf("\n\ncluster configuration schema can be found at https://docs.cortex.dev/v/%s/", consts.CortexVersionMinor))
 		return nil, errors.Wrap(err, clusterConfigFile)
@@ -163,245 +162,54 @@ func getConfigureClusterConfig(cachedClusterConfig clusterconfig.Config, cluster
 	}
 	promptIfNotAdmin(awsClient, disallowPrompt)
 
-	err = setConfigFieldsFromCached(userClusterConfig, &cachedClusterConfig)
-	if err != nil {
-		return nil, err
-	}
-
 	userClusterConfig.Telemetry, err = readTelemetryConfig()
 	if err != nil {
 		return nil, err
 	}
 
-	err = userClusterConfig.Validate(awsClient)
+	err = userClusterConfig.Validate(awsClient, true)
 	if err != nil {
 		err = errors.Append(err, fmt.Sprintf("\n\ncluster configuration schema can be found at https://docs.cortex.dev/v/%s/", consts.CortexVersionMinor))
 		return nil, errors.Wrap(err, clusterConfigFile)
 	}
 
-	confirmConfigureClusterConfig(*userClusterConfig, disallowPrompt)
+	clusterConfigCopy, err := userClusterConfig.DeepCopy()
+	if err != nil {
+		return nil, err
+	}
+
+	cachedConfigCopy, err := cachedClusterConfig.DeepCopy()
+	if err != nil {
+		return nil, err
+	}
+
+	for idx := range clusterConfigCopy.NodeGroups {
+		clusterConfigCopy.NodeGroups[idx].MinInstances = 0
+		clusterConfigCopy.NodeGroups[idx].MaxInstances = 0
+	}
+	for idx := range cachedConfigCopy.NodeGroups {
+		cachedConfigCopy.NodeGroups[idx].MinInstances = 0
+		cachedConfigCopy.NodeGroups[idx].MaxInstances = 0
+	}
+
+	h1, err := clusterConfigCopy.Hash()
+	if err != nil {
+		return nil, err
+	}
+	h2, err := cachedConfigCopy.Hash()
+	if err != nil {
+		return nil, err
+	}
+	if h1 != h2 {
+		return nil, clusterconfig.ErrorConfigCannotBeChangedOnUpdate()
+	}
+
+	if !disallowPrompt {
+		exitMessage := fmt.Sprintf("cluster configuration can be modified via the cluster config file; see https://docs.cortex.dev/v/%s/ for more information", consts.CortexVersionMinor)
+		prompt.YesOrExit(fmt.Sprintf("your cluster named \"%s\" in %s will be updated according to the configuration above, are you sure you want to continue?", userClusterConfig.ClusterName, userClusterConfig.Region), "", exitMessage)
+	}
 
 	return userClusterConfig, nil
-}
-
-func setConfigFieldsFromCached(userClusterConfig *clusterconfig.Config, cachedClusterConfig *clusterconfig.Config) error {
-	if userClusterConfig.Bucket != "" && userClusterConfig.Bucket != cachedClusterConfig.Bucket {
-		return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.BucketKey, cachedClusterConfig.Bucket)
-	}
-	userClusterConfig.Bucket = cachedClusterConfig.Bucket
-
-	if userClusterConfig.InstanceType != cachedClusterConfig.InstanceType {
-		return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.InstanceTypeKey, cachedClusterConfig.InstanceType)
-	}
-	userClusterConfig.InstanceType = cachedClusterConfig.InstanceType
-
-	if _, ok := userClusterConfig.Tags[clusterconfig.ClusterNameTag]; !ok {
-		userClusterConfig.Tags[clusterconfig.ClusterNameTag] = userClusterConfig.ClusterName
-	}
-	if !reflect.DeepEqual(userClusterConfig.Tags, cachedClusterConfig.Tags) {
-		return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.TagsKey, s.ObjFlat(cachedClusterConfig.Tags))
-	}
-
-	// The user doesn't have to specify AZs in their config
-	if len(userClusterConfig.AvailabilityZones) > 0 {
-		if !strset.New(userClusterConfig.AvailabilityZones...).IsEqual(strset.New(cachedClusterConfig.AvailabilityZones...)) {
-			return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.AvailabilityZonesKey, cachedClusterConfig.AvailabilityZones)
-		}
-	}
-	userClusterConfig.AvailabilityZones = cachedClusterConfig.AvailabilityZones
-
-	if len(userClusterConfig.Subnets) > 0 || len(cachedClusterConfig.Subnets) > 0 {
-		if !reflect.DeepEqual(userClusterConfig.Subnets, cachedClusterConfig.Subnets) {
-			return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.SubnetsKey, cachedClusterConfig.Subnets)
-		}
-	}
-	userClusterConfig.Subnets = cachedClusterConfig.Subnets
-
-	if s.Obj(cachedClusterConfig.SSLCertificateARN) != s.Obj(userClusterConfig.SSLCertificateARN) {
-		return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.SSLCertificateARNKey, cachedClusterConfig.SSLCertificateARN)
-	}
-	userClusterConfig.SSLCertificateARN = cachedClusterConfig.SSLCertificateARN
-
-	if userClusterConfig.CortexPolicyARN != "" && cachedClusterConfig.CortexPolicyARN != userClusterConfig.CortexPolicyARN {
-		return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.CortexPolicyARNKey, cachedClusterConfig.CortexPolicyARN)
-	}
-	userClusterConfig.CortexPolicyARN = cachedClusterConfig.CortexPolicyARN
-
-	if !strset.New(cachedClusterConfig.IAMPolicyARNs...).IsEqual(strset.New(userClusterConfig.IAMPolicyARNs...)) {
-		return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.IAMPolicyARNsKey, cachedClusterConfig.IAMPolicyARNs)
-	}
-	userClusterConfig.IAMPolicyARNs = cachedClusterConfig.IAMPolicyARNs
-
-	if userClusterConfig.InstanceVolumeSize != cachedClusterConfig.InstanceVolumeSize {
-		return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.InstanceVolumeSizeKey, cachedClusterConfig.InstanceVolumeSize)
-	}
-	userClusterConfig.InstanceVolumeSize = cachedClusterConfig.InstanceVolumeSize
-
-	if userClusterConfig.InstanceVolumeType != cachedClusterConfig.InstanceVolumeType {
-		return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.InstanceVolumeTypeKey, cachedClusterConfig.InstanceVolumeType)
-	}
-	userClusterConfig.InstanceVolumeType = cachedClusterConfig.InstanceVolumeType
-
-	if userClusterConfig.InstanceVolumeIOPS != cachedClusterConfig.InstanceVolumeIOPS {
-		return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.InstanceVolumeIOPSKey, cachedClusterConfig.InstanceVolumeIOPS)
-	}
-	userClusterConfig.InstanceVolumeIOPS = cachedClusterConfig.InstanceVolumeIOPS
-
-	if userClusterConfig.SubnetVisibility != cachedClusterConfig.SubnetVisibility {
-		return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.SubnetVisibilityKey, cachedClusterConfig.SubnetVisibility)
-	}
-	userClusterConfig.SubnetVisibility = cachedClusterConfig.SubnetVisibility
-
-	if userClusterConfig.NATGateway != cachedClusterConfig.NATGateway {
-		return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.NATGatewayKey, cachedClusterConfig.NATGateway)
-	}
-	userClusterConfig.NATGateway = cachedClusterConfig.NATGateway
-
-	if userClusterConfig.APILoadBalancerScheme != cachedClusterConfig.APILoadBalancerScheme {
-		return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.APILoadBalancerSchemeKey, cachedClusterConfig.APILoadBalancerScheme)
-	}
-	userClusterConfig.APILoadBalancerScheme = cachedClusterConfig.APILoadBalancerScheme
-
-	if userClusterConfig.OperatorLoadBalancerScheme != cachedClusterConfig.OperatorLoadBalancerScheme {
-		return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.OperatorLoadBalancerSchemeKey, cachedClusterConfig.OperatorLoadBalancerScheme)
-	}
-	userClusterConfig.OperatorLoadBalancerScheme = cachedClusterConfig.OperatorLoadBalancerScheme
-
-	if s.Obj(cachedClusterConfig.VPCCIDR) != s.Obj(userClusterConfig.VPCCIDR) {
-		return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.VPCCIDRKey, cachedClusterConfig.VPCCIDR)
-	}
-	userClusterConfig.VPCCIDR = cachedClusterConfig.VPCCIDR
-
-	if s.Obj(cachedClusterConfig.ImageDownloader) != s.Obj(userClusterConfig.ImageDownloader) {
-		return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.ImageDownloaderKey, cachedClusterConfig.ImageDownloader)
-	}
-	userClusterConfig.ImageDownloader = cachedClusterConfig.ImageDownloader
-
-	if s.Obj(cachedClusterConfig.ImageRequestMonitor) != s.Obj(userClusterConfig.ImageRequestMonitor) {
-		return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.ImageRequestMonitorKey, cachedClusterConfig.ImageRequestMonitor)
-	}
-	userClusterConfig.ImageRequestMonitor = cachedClusterConfig.ImageRequestMonitor
-
-	if s.Obj(cachedClusterConfig.ImageClusterAutoscaler) != s.Obj(userClusterConfig.ImageClusterAutoscaler) {
-		return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.ImageClusterAutoscalerKey, cachedClusterConfig.ImageClusterAutoscaler)
-	}
-	userClusterConfig.ImageClusterAutoscaler = cachedClusterConfig.ImageClusterAutoscaler
-
-	if s.Obj(cachedClusterConfig.ImageMetricsServer) != s.Obj(userClusterConfig.ImageMetricsServer) {
-		return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.ImageMetricsServerKey, cachedClusterConfig.ImageMetricsServer)
-	}
-	userClusterConfig.ImageMetricsServer = cachedClusterConfig.ImageMetricsServer
-
-	if s.Obj(cachedClusterConfig.ImageInferentia) != s.Obj(userClusterConfig.ImageInferentia) {
-		return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.ImageInferentiaKey, cachedClusterConfig.ImageInferentia)
-	}
-	userClusterConfig.ImageInferentia = cachedClusterConfig.ImageInferentia
-
-	if s.Obj(cachedClusterConfig.ImageNeuronRTD) != s.Obj(userClusterConfig.ImageNeuronRTD) {
-		return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.ImageNeuronRTDKey, cachedClusterConfig.ImageNeuronRTD)
-	}
-	userClusterConfig.ImageNeuronRTD = cachedClusterConfig.ImageNeuronRTD
-
-	if s.Obj(cachedClusterConfig.ImageNvidia) != s.Obj(userClusterConfig.ImageNvidia) {
-		return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.ImageNvidiaKey, cachedClusterConfig.ImageNvidia)
-	}
-	userClusterConfig.ImageNvidia = cachedClusterConfig.ImageNvidia
-
-	if s.Obj(cachedClusterConfig.ImageFluentBit) != s.Obj(userClusterConfig.ImageFluentBit) {
-		return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.ImageFluentBitKey, cachedClusterConfig.ImageFluentBit)
-	}
-	userClusterConfig.ImageFluentBit = cachedClusterConfig.ImageFluentBit
-
-	if s.Obj(cachedClusterConfig.ImageIstioProxy) != s.Obj(userClusterConfig.ImageIstioProxy) {
-		return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.ImageIstioProxyKey, cachedClusterConfig.ImageIstioProxy)
-	}
-	userClusterConfig.ImageIstioProxy = cachedClusterConfig.ImageIstioProxy
-
-	if s.Obj(cachedClusterConfig.ImageIstioPilot) != s.Obj(userClusterConfig.ImageIstioPilot) {
-		return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.ImageIstioPilotKey, cachedClusterConfig.ImageIstioPilot)
-	}
-	userClusterConfig.ImageIstioPilot = cachedClusterConfig.ImageIstioPilot
-
-	if s.Obj(cachedClusterConfig.ImagePrometheus) != s.Obj(userClusterConfig.ImagePrometheus) {
-		return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.ImagePrometheusKey, cachedClusterConfig.ImagePrometheus)
-	}
-
-	if s.Obj(cachedClusterConfig.ImagePrometheusConfigReloader) != s.Obj(userClusterConfig.ImagePrometheusConfigReloader) {
-		return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.ImagePrometheusConfigReloaderKey, cachedClusterConfig.ImagePrometheusConfigReloader)
-	}
-
-	if s.Obj(cachedClusterConfig.ImagePrometheusOperator) != s.Obj(userClusterConfig.ImagePrometheusOperator) {
-		return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.ImagePrometheusOperatorKey, cachedClusterConfig.ImagePrometheusOperator)
-	}
-
-	if s.Obj(cachedClusterConfig.ImagePrometheusStatsDExporter) != s.Obj(userClusterConfig.ImagePrometheusStatsDExporter) {
-		return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.ImagePrometheusStatsDExporterKey, cachedClusterConfig.ImagePrometheusStatsDExporter)
-	}
-
-	if s.Obj(cachedClusterConfig.ImagePrometheusDCGMExporter) != s.Obj(userClusterConfig.ImagePrometheusDCGMExporter) {
-		return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.ImagePrometheusDCGMExporterKey, cachedClusterConfig.ImagePrometheusDCGMExporter)
-	}
-
-	if s.Obj(cachedClusterConfig.ImagePrometheusKubeStateMetrics) != s.Obj(userClusterConfig.ImagePrometheusKubeStateMetrics) {
-		return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.ImagePrometheusKubeStateMetricsKey, cachedClusterConfig.ImagePrometheusKubeStateMetrics)
-	}
-
-	if s.Obj(cachedClusterConfig.ImagePrometheusNodeExporter) != s.Obj(userClusterConfig.ImagePrometheusNodeExporter) {
-		return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.ImagePrometheusNodeExporterKey, cachedClusterConfig.ImagePrometheusNodeExporter)
-	}
-
-	if s.Obj(cachedClusterConfig.ImageKubeRBACProxy) != s.Obj(userClusterConfig.ImageKubeRBACProxy) {
-		return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.ImageKubeRBACProxyKey, cachedClusterConfig.ImageKubeRBACProxy)
-	}
-
-	if s.Obj(cachedClusterConfig.ImageGrafana) != s.Obj(userClusterConfig.ImageGrafana) {
-		return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.ImageGrafanaKey, cachedClusterConfig.ImageGrafana)
-	}
-
-	if s.Obj(cachedClusterConfig.ImageEventExporter) != s.Obj(userClusterConfig.ImageEventExporter) {
-		return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.ImageEventExporterKey, cachedClusterConfig.ImageEventExporter)
-	}
-
-	if userClusterConfig.Spot != cachedClusterConfig.Spot {
-		return clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.SpotKey, cachedClusterConfig.Spot)
-	}
-	userClusterConfig.Spot = cachedClusterConfig.Spot
-	if userClusterConfig.Spot {
-		userClusterConfig.FillEmptySpotFields()
-	}
-
-	if userClusterConfig.SpotConfig != nil && s.Obj(userClusterConfig.SpotConfig) != s.Obj(cachedClusterConfig.SpotConfig) {
-		if cachedClusterConfig.SpotConfig == nil {
-			return clusterconfig.ErrorConfiguredWhenSpotIsNotEnabled(clusterconfig.SpotConfigKey)
-		}
-
-		if !strset.New(userClusterConfig.SpotConfig.InstanceDistribution...).IsEqual(strset.New(cachedClusterConfig.SpotConfig.InstanceDistribution...)) {
-			return errors.Wrap(clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.InstanceDistributionKey, cachedClusterConfig.SpotConfig.InstanceDistribution), clusterconfig.SpotConfigKey)
-		}
-
-		if userClusterConfig.SpotConfig.OnDemandBaseCapacity != nil && *userClusterConfig.SpotConfig.OnDemandBaseCapacity != *cachedClusterConfig.SpotConfig.OnDemandBaseCapacity {
-			return errors.Wrap(clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.OnDemandBaseCapacityKey, *cachedClusterConfig.SpotConfig.OnDemandBaseCapacity), clusterconfig.SpotConfigKey)
-		}
-
-		if userClusterConfig.SpotConfig.OnDemandPercentageAboveBaseCapacity != nil && *userClusterConfig.SpotConfig.OnDemandPercentageAboveBaseCapacity != *cachedClusterConfig.SpotConfig.OnDemandPercentageAboveBaseCapacity {
-			return errors.Wrap(clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.OnDemandPercentageAboveBaseCapacityKey, *cachedClusterConfig.SpotConfig.OnDemandPercentageAboveBaseCapacity), clusterconfig.SpotConfigKey)
-		}
-
-		if userClusterConfig.SpotConfig.MaxPrice != nil && *userClusterConfig.SpotConfig.MaxPrice != *cachedClusterConfig.SpotConfig.MaxPrice {
-			return errors.Wrap(clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.MaxPriceKey, *cachedClusterConfig.SpotConfig.MaxPrice), clusterconfig.SpotConfigKey)
-		}
-
-		if userClusterConfig.SpotConfig.InstancePools != nil && *userClusterConfig.SpotConfig.InstancePools != *cachedClusterConfig.SpotConfig.InstancePools {
-			return errors.Wrap(clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.InstancePoolsKey, *cachedClusterConfig.SpotConfig.InstancePools), clusterconfig.SpotConfigKey)
-		}
-
-		if userClusterConfig.SpotConfig.OnDemandBackup != cachedClusterConfig.SpotConfig.OnDemandBackup {
-			return errors.Wrap(clusterconfig.ErrorConfigCannotBeChangedOnUpdate(clusterconfig.OnDemandBackupKey, cachedClusterConfig.SpotConfig.OnDemandBackup), clusterconfig.SpotConfigKey)
-		}
-	}
-	userClusterConfig.SpotConfig = cachedClusterConfig.SpotConfig
-
-	return nil
 }
 
 func confirmInstallClusterConfig(clusterConfig *clusterconfig.Config, awsClient *aws.Client, disallowPrompt bool) {
@@ -411,11 +219,6 @@ func confirmInstallClusterConfig(clusterConfig *clusterconfig.Config, awsClient 
 	metricsEBSPrice := aws.EBSMetadatas[clusterConfig.Region]["gp2"].PriceGB * 40 / 30 / 24
 	nlbPrice := aws.NLBMetadatas[clusterConfig.Region].Price
 	natUnitPrice := aws.NATMetadatas[clusterConfig.Region].Price
-	apiInstancePrice := aws.InstanceMetadatas[clusterConfig.Region][clusterConfig.InstanceType].Price
-	apiEBSPrice := aws.EBSMetadatas[clusterConfig.Region][clusterConfig.InstanceVolumeType.String()].PriceGB * float64(clusterConfig.InstanceVolumeSize) / 30 / 24
-	if clusterConfig.InstanceVolumeType.String() == "io1" && clusterConfig.InstanceVolumeIOPS != nil {
-		apiEBSPrice += aws.EBSMetadatas[clusterConfig.Region][clusterConfig.InstanceVolumeType.String()].PriceIOPS * float64(*clusterConfig.InstanceVolumeIOPS) / 30 / 24
-	}
 
 	var natTotalPrice float64
 	if clusterConfig.NATGateway == clusterconfig.SingleNATGateway {
@@ -423,10 +226,6 @@ func confirmInstallClusterConfig(clusterConfig *clusterconfig.Config, awsClient 
 	} else if clusterConfig.NATGateway == clusterconfig.HighlyAvailableNATGateway {
 		natTotalPrice = natUnitPrice * float64(len(clusterConfig.AvailabilityZones))
 	}
-
-	fixedPrice := eksPrice + 2*operatorInstancePrice + operatorEBSPrice + metricsEBSPrice + 2*nlbPrice + natTotalPrice
-	totalMinPrice := fixedPrice + float64(clusterConfig.MinInstances)*(apiInstancePrice+apiEBSPrice)
-	totalMaxPrice := fixedPrice + float64(clusterConfig.MaxInstances)*(apiInstancePrice+apiEBSPrice)
 
 	headers := []table.Header{
 		{Title: "aws resource"},
@@ -436,31 +235,48 @@ func confirmInstallClusterConfig(clusterConfig *clusterconfig.Config, awsClient 
 	var rows [][]interface{}
 	rows = append(rows, []interface{}{"1 eks cluster", s.DollarsMaxPrecision(eksPrice)})
 
-	instanceStr := "instances"
-	volumeStr := "volumes"
-	if clusterConfig.MinInstances == 1 && clusterConfig.MaxInstances == 1 {
-		instanceStr = "instance"
-		volumeStr = "volume"
-	}
-	workerInstanceStr := fmt.Sprintf("%d - %d %s %s for your apis", clusterConfig.MinInstances, clusterConfig.MaxInstances, clusterConfig.InstanceType, instanceStr)
-	ebsInstanceStr := fmt.Sprintf("%d - %d %dgb ebs %s for your apis", clusterConfig.MinInstances, clusterConfig.MaxInstances, clusterConfig.InstanceVolumeSize, volumeStr)
-	if clusterConfig.MinInstances == clusterConfig.MaxInstances {
-		workerInstanceStr = fmt.Sprintf("%d %s %s for your apis", clusterConfig.MinInstances, clusterConfig.InstanceType, instanceStr)
-		ebsInstanceStr = fmt.Sprintf("%d %dgb ebs %s for your apis", clusterConfig.MinInstances, clusterConfig.InstanceVolumeSize, volumeStr)
-	}
-
-	workerPriceStr := s.DollarsMaxPrecision(apiInstancePrice) + " each"
-	if clusterConfig.Spot {
-		spotPrice, err := awsClient.SpotInstancePrice(clusterConfig.InstanceType)
-		workerPriceStr += " (spot pricing unavailable)"
-		if err == nil && spotPrice != 0 {
-			workerPriceStr = fmt.Sprintf("%s - %s each (varies based on spot price)", s.DollarsMaxPrecision(spotPrice), s.DollarsMaxPrecision(apiInstancePrice))
-			totalMinPrice = fixedPrice + float64(clusterConfig.MinInstances)*(spotPrice+apiEBSPrice)
+	ngNameToSpotInstancesUsed := map[string]int{}
+	fixedPrice := eksPrice + 2*operatorInstancePrice + operatorEBSPrice + metricsEBSPrice + 2*nlbPrice + natTotalPrice
+	totalMinPrice := fixedPrice
+	totalMaxPrice := fixedPrice
+	for _, ng := range clusterConfig.NodeGroups {
+		apiInstancePrice := aws.InstanceMetadatas[clusterConfig.Region][ng.InstanceType].Price
+		apiEBSPrice := aws.EBSMetadatas[clusterConfig.Region][ng.InstanceVolumeType.String()].PriceGB * float64(ng.InstanceVolumeSize) / 30 / 24
+		if ng.InstanceVolumeType.String() == "io1" && ng.InstanceVolumeIOPS != nil {
+			apiEBSPrice += aws.EBSMetadatas[clusterConfig.Region][ng.InstanceVolumeType.String()].PriceIOPS * float64(*ng.InstanceVolumeIOPS) / 30 / 24
 		}
+
+		totalMinPrice += float64(ng.MinInstances) * (apiInstancePrice + apiEBSPrice)
+		totalMaxPrice += float64(ng.MaxInstances) * (apiInstancePrice + apiEBSPrice)
+
+		instanceStr := "instances"
+		volumeStr := "volumes"
+		if ng.MinInstances == 1 && ng.MaxInstances == 1 {
+			instanceStr = "instance"
+			volumeStr = "volume"
+		}
+		workerInstanceStr := fmt.Sprintf("nodegroup %s: %d - %d %s %s for your apis", ng.Name, ng.MinInstances, ng.MaxInstances, ng.InstanceType, instanceStr)
+		ebsInstanceStr := fmt.Sprintf("nodegroup %s: %d - %d %dgb ebs %s for your apis", ng.Name, ng.MinInstances, ng.MaxInstances, ng.InstanceVolumeSize, volumeStr)
+		if ng.MinInstances == ng.MaxInstances {
+			workerInstanceStr = fmt.Sprintf("nodegroup %s: %d %s %s for your apis", ng.Name, ng.MinInstances, ng.InstanceType, instanceStr)
+			ebsInstanceStr = fmt.Sprintf("nodegroup %s:%d %dgb ebs %s for your apis", ng.Name, ng.MinInstances, ng.InstanceVolumeSize, volumeStr)
+		}
+
+		workerPriceStr := s.DollarsMaxPrecision(apiInstancePrice) + " each"
+		if ng.Spot {
+			ngNameToSpotInstancesUsed[ng.Name]++
+			spotPrice, err := awsClient.SpotInstancePrice(ng.InstanceType)
+			workerPriceStr += " (spot pricing unavailable)"
+			if err == nil && spotPrice != 0 {
+				workerPriceStr = fmt.Sprintf("%s - %s each (varies based on spot price)", s.DollarsMaxPrecision(spotPrice), s.DollarsMaxPrecision(apiInstancePrice))
+				totalMinPrice = fixedPrice + float64(ng.MinInstances)*(spotPrice+apiEBSPrice)
+			}
+		}
+
+		rows = append(rows, []interface{}{workerInstanceStr, workerPriceStr})
+		rows = append(rows, []interface{}{ebsInstanceStr, s.DollarsAndTenthsOfCents(apiEBSPrice) + " each"})
 	}
 
-	rows = append(rows, []interface{}{workerInstanceStr, workerPriceStr})
-	rows = append(rows, []interface{}{ebsInstanceStr, s.DollarsAndTenthsOfCents(apiEBSPrice) + " each"})
 	rows = append(rows, []interface{}{"2 t3.medium instances for cortex", s.DollarsMaxPrecision(operatorInstancePrice * 2)})
 	rows = append(rows, []interface{}{"1 20gb ebs volume for the operator", s.DollarsAndTenthsOfCents(operatorEBSPrice)})
 	rows = append(rows, []interface{}{"1 40gb ebs volume for prometheus", s.DollarsAndTenthsOfCents(metricsEBSPrice)})
@@ -478,16 +294,15 @@ func confirmInstallClusterConfig(clusterConfig *clusterconfig.Config, awsClient 
 	}
 	fmt.Println(items.MustFormat(&table.Opts{Sort: pointer.Bool(false)}))
 
-	suffix := ""
 	priceStr := s.DollarsAndCents(totalMaxPrice)
-
+	suffix := ""
 	if totalMinPrice != totalMaxPrice {
 		priceStr = fmt.Sprintf("%s - %s", s.DollarsAndCents(totalMinPrice), s.DollarsAndCents(totalMaxPrice))
-		if clusterConfig.Spot && clusterConfig.MinInstances != clusterConfig.MaxInstances {
+		if len(ngNameToSpotInstancesUsed) > 0 && len(ngNameToSpotInstancesUsed) < len(clusterConfig.NodeGroups) {
 			suffix = " based on cluster size and spot instance pricing/availability"
-		} else if clusterConfig.Spot && clusterConfig.MinInstances == clusterConfig.MaxInstances {
+		} else if len(ngNameToSpotInstancesUsed) == len(clusterConfig.NodeGroups) {
 			suffix = " based on spot instance pricing/availability"
-		} else if !clusterConfig.Spot && clusterConfig.MinInstances != clusterConfig.MaxInstances {
+		} else if len(ngNameToSpotInstancesUsed) == 0 {
 			suffix = " based on cluster size"
 		}
 	}
@@ -508,174 +323,12 @@ func confirmInstallClusterConfig(clusterConfig *clusterconfig.Config, awsClient 
 		fmt.Print("warning: you've configured your cluster to be installed in an existing VPC; if your cluster doesn't spin up or function as expected, please double-check your VPC configuration (here are the requirements: https://eksctl.io/usage/vpc-networking/#use-existing-vpc-other-custom-configuration)\n\n")
 	}
 
-	if clusterConfig.Spot && clusterConfig.SpotConfig.OnDemandBackup != nil && !*clusterConfig.SpotConfig.OnDemandBackup {
-		if *clusterConfig.SpotConfig.OnDemandBaseCapacity == 0 && *clusterConfig.SpotConfig.OnDemandPercentageAboveBaseCapacity == 0 {
-			fmt.Printf("warning: you've disabled on-demand instances (%s=0 and %s=0); spot instances are not guaranteed to be available so please take that into account for production clusters; see https://docs.cortex.dev/v/%s/ for more information\n\n", clusterconfig.OnDemandBaseCapacityKey, clusterconfig.OnDemandPercentageAboveBaseCapacityKey, consts.CortexVersionMinor)
-		} else {
-			fmt.Printf("warning: you've enabled spot instances; spot instances are not guaranteed to be available so please take that into account for production clusters; see https://docs.cortex.dev/v/%s/ for more information\n\n", consts.CortexVersionMinor)
-		}
+	if len(clusterConfig.NodeGroups) > 1 && len(ngNameToSpotInstancesUsed) > 0 {
+		fmt.Printf("warning: you've enabled spot instances for %s %s; spot instances are not guaranteed to be available so please take that into account for production clusters; see https://docs.cortex.dev/v/%s/ for more information\n\n", s.PluralS("nodegroup", len(ngNameToSpotInstancesUsed)), s.StrsAnd(maps.StrMapKeysInt(ngNameToSpotInstancesUsed)), consts.CortexVersionMinor)
 	}
 
 	if !disallowPrompt {
 		exitMessage := fmt.Sprintf("cluster configuration can be modified via the cluster config file; see https://docs.cortex.dev/v/%s/ for more information", consts.CortexVersionMinor)
 		prompt.YesOrExit("would you like to continue?", "", exitMessage)
 	}
-}
-
-func confirmConfigureClusterConfig(clusterConfig clusterconfig.Config, disallowPrompt bool) {
-	fmt.Println(clusterConfigConfirmationStr(clusterConfig))
-
-	if !disallowPrompt {
-		exitMessage := fmt.Sprintf("cluster configuration can be modified via the cluster config file; see https://docs.cortex.dev/v/%s/ for more information", consts.CortexVersionMinor)
-		prompt.YesOrExit(fmt.Sprintf("your cluster named \"%s\" in %s will be updated according to the configuration above, are you sure you want to continue?", clusterConfig.ClusterName, clusterConfig.Region), "", exitMessage)
-	}
-}
-
-func clusterConfigConfirmationStr(clusterConfig clusterconfig.Config) string {
-	defaultConfig, _ := clusterconfig.GetDefaults()
-
-	var items table.KeyValuePairs
-
-	items.Add(clusterconfig.RegionUserKey, clusterConfig.Region)
-	if len(clusterConfig.AvailabilityZones) > 0 {
-		items.Add(clusterconfig.AvailabilityZonesUserKey, clusterConfig.AvailabilityZones)
-	}
-	for _, subnetConfig := range clusterConfig.Subnets {
-		items.Add("subnet in "+subnetConfig.AvailabilityZone, subnetConfig.SubnetID)
-	}
-	items.Add(clusterconfig.BucketUserKey, clusterConfig.Bucket)
-	items.Add(clusterconfig.ClusterNameUserKey, clusterConfig.ClusterName)
-
-	items.Add(clusterconfig.InstanceTypeUserKey, clusterConfig.InstanceType)
-	items.Add(clusterconfig.MinInstancesUserKey, clusterConfig.MinInstances)
-	items.Add(clusterconfig.MaxInstancesUserKey, clusterConfig.MaxInstances)
-	items.Add(clusterconfig.TagsUserKey, s.ObjFlatNoQuotes(clusterConfig.Tags))
-	if clusterConfig.SSLCertificateARN != nil {
-		items.Add(clusterconfig.SSLCertificateARNUserKey, *clusterConfig.SSLCertificateARN)
-	}
-
-	items.Add(clusterconfig.CortexPolicyARNUserKey, clusterConfig.CortexPolicyARN)
-	items.Add(clusterconfig.IAMPolicyARNsUserKey, s.ObjFlatNoQuotes(clusterConfig.IAMPolicyARNs))
-
-	if clusterConfig.InstanceVolumeSize != defaultConfig.InstanceVolumeSize {
-		items.Add(clusterconfig.InstanceVolumeSizeUserKey, clusterConfig.InstanceVolumeSize)
-	}
-	if clusterConfig.InstanceVolumeType != defaultConfig.InstanceVolumeType {
-		items.Add(clusterconfig.InstanceVolumeTypeUserKey, clusterConfig.InstanceVolumeType)
-	}
-	if clusterConfig.InstanceVolumeIOPS != nil {
-		items.Add(clusterconfig.InstanceVolumeIOPSUserKey, *clusterConfig.InstanceVolumeIOPS)
-	}
-
-	if clusterConfig.SubnetVisibility != defaultConfig.SubnetVisibility {
-		items.Add(clusterconfig.SubnetVisibilityUserKey, clusterConfig.SubnetVisibility)
-	}
-	if clusterConfig.NATGateway != defaultConfig.NATGateway {
-		items.Add(clusterconfig.NATGatewayUserKey, clusterConfig.NATGateway)
-	}
-	if clusterConfig.APILoadBalancerScheme != defaultConfig.APILoadBalancerScheme {
-		items.Add(clusterconfig.APILoadBalancerSchemeUserKey, clusterConfig.APILoadBalancerScheme)
-	}
-	if clusterConfig.OperatorLoadBalancerScheme != defaultConfig.OperatorLoadBalancerScheme {
-		items.Add(clusterconfig.OperatorLoadBalancerSchemeUserKey, clusterConfig.OperatorLoadBalancerScheme)
-	}
-
-	if clusterConfig.Spot != defaultConfig.Spot {
-		items.Add(clusterconfig.SpotUserKey, s.YesNo(clusterConfig.Spot))
-
-		if clusterConfig.SpotConfig != nil {
-			defaultSpotConfig := clusterconfig.SpotConfig{}
-			clusterconfig.AutoGenerateSpotConfig(&defaultSpotConfig, clusterConfig.Region, clusterConfig.InstanceType)
-
-			if !strset.New(clusterConfig.SpotConfig.InstanceDistribution...).IsEqual(strset.New(defaultSpotConfig.InstanceDistribution...)) {
-				items.Add(clusterconfig.InstanceDistributionUserKey, clusterConfig.SpotConfig.InstanceDistribution)
-			}
-
-			if *clusterConfig.SpotConfig.OnDemandBaseCapacity != *defaultSpotConfig.OnDemandBaseCapacity {
-				items.Add(clusterconfig.OnDemandBaseCapacityUserKey, *clusterConfig.SpotConfig.OnDemandBaseCapacity)
-			}
-
-			if *clusterConfig.SpotConfig.OnDemandPercentageAboveBaseCapacity != *defaultSpotConfig.OnDemandPercentageAboveBaseCapacity {
-				items.Add(clusterconfig.OnDemandPercentageAboveBaseCapacityUserKey, *clusterConfig.SpotConfig.OnDemandPercentageAboveBaseCapacity)
-			}
-
-			if *clusterConfig.SpotConfig.MaxPrice != *defaultSpotConfig.MaxPrice {
-				items.Add(clusterconfig.MaxPriceUserKey, *clusterConfig.SpotConfig.MaxPrice)
-			}
-
-			if *clusterConfig.SpotConfig.InstancePools != *defaultSpotConfig.InstancePools {
-				items.Add(clusterconfig.InstancePoolsUserKey, *clusterConfig.SpotConfig.InstancePools)
-			}
-
-			if *clusterConfig.SpotConfig.OnDemandBackup != *defaultSpotConfig.OnDemandBackup {
-				items.Add(clusterconfig.OnDemandBackupUserKey, s.YesNo(*clusterConfig.SpotConfig.OnDemandBackup))
-			}
-		}
-	}
-
-	if clusterConfig.VPCCIDR != nil {
-		items.Add(clusterconfig.VPCCIDRUserKey, clusterConfig.VPCCIDR)
-	}
-
-	if clusterConfig.Telemetry != defaultConfig.Telemetry {
-		items.Add(clusterconfig.TelemetryUserKey, clusterConfig.Telemetry)
-	}
-	if clusterConfig.ImageOperator != defaultConfig.ImageOperator {
-		items.Add(clusterconfig.ImageOperatorUserKey, clusterConfig.ImageOperator)
-	}
-	if clusterConfig.ImageManager != defaultConfig.ImageManager {
-		items.Add(clusterconfig.ImageManagerUserKey, clusterConfig.ImageManager)
-	}
-	if clusterConfig.ImageDownloader != defaultConfig.ImageDownloader {
-		items.Add(clusterconfig.ImageDownloaderUserKey, clusterConfig.ImageDownloader)
-	}
-	if clusterConfig.ImageRequestMonitor != defaultConfig.ImageRequestMonitor {
-		items.Add(clusterconfig.ImageRequestMonitorUserKey, clusterConfig.ImageRequestMonitor)
-	}
-	if clusterConfig.ImageClusterAutoscaler != defaultConfig.ImageClusterAutoscaler {
-		items.Add(clusterconfig.ImageClusterAutoscalerUserKey, clusterConfig.ImageClusterAutoscaler)
-	}
-	if clusterConfig.ImageMetricsServer != defaultConfig.ImageMetricsServer {
-		items.Add(clusterconfig.ImageMetricsServerUserKey, clusterConfig.ImageMetricsServer)
-	}
-	if clusterConfig.ImageInferentia != defaultConfig.ImageInferentia {
-		items.Add(clusterconfig.ImageInferentiaUserKey, clusterConfig.ImageInferentia)
-	}
-	if clusterConfig.ImageNeuronRTD != defaultConfig.ImageNeuronRTD {
-		items.Add(clusterconfig.ImageNeuronRTDUserKey, clusterConfig.ImageNeuronRTD)
-	}
-	if clusterConfig.ImageNvidia != defaultConfig.ImageNvidia {
-		items.Add(clusterconfig.ImageNvidiaUserKey, clusterConfig.ImageNvidia)
-	}
-	if clusterConfig.ImageFluentBit != defaultConfig.ImageFluentBit {
-		items.Add(clusterconfig.ImageFluentBitUserKey, clusterConfig.ImageFluentBit)
-	}
-	if clusterConfig.ImageIstioProxy != defaultConfig.ImageIstioProxy {
-		items.Add(clusterconfig.ImageIstioProxyUserKey, clusterConfig.ImageIstioProxy)
-	}
-	if clusterConfig.ImageIstioPilot != defaultConfig.ImageIstioPilot {
-		items.Add(clusterconfig.ImageIstioPilotUserKey, clusterConfig.ImageIstioPilot)
-	}
-	if clusterConfig.ImagePrometheus != defaultConfig.ImagePrometheus {
-		items.Add(clusterconfig.ImagePrometheusUserKey, clusterConfig.ImagePrometheus)
-	}
-	if clusterConfig.ImagePrometheusConfigReloader != defaultConfig.ImagePrometheusConfigReloader {
-		items.Add(clusterconfig.ImagePrometheusConfigReloaderUserKey, clusterConfig.ImagePrometheusConfigReloader)
-	}
-	if clusterConfig.ImagePrometheusOperator != defaultConfig.ImagePrometheusOperator {
-		items.Add(clusterconfig.ImagePrometheusOperatorUserKey, clusterConfig.ImagePrometheusOperator)
-	}
-	if clusterConfig.ImagePrometheusStatsDExporter != defaultConfig.ImagePrometheusStatsDExporter {
-		items.Add(clusterconfig.ImagePrometheusStatsDExporterUserKey, clusterConfig.ImagePrometheusStatsDExporter)
-	}
-	if clusterConfig.ImagePrometheusDCGMExporter != defaultConfig.ImagePrometheusDCGMExporter {
-		items.Add(clusterconfig.ImagePrometheusDCGMExporterUserKey, clusterConfig.ImagePrometheusDCGMExporter)
-	}
-	if clusterConfig.ImagePrometheusKubeStateMetrics != defaultConfig.ImagePrometheusKubeStateMetrics {
-		items.Add(clusterconfig.ImagePrometheusKubeStateMetricsUserKey, clusterConfig.ImagePrometheusKubeStateMetrics)
-	}
-	if clusterConfig.ImageGrafana != defaultConfig.ImageGrafana {
-		items.Add(clusterconfig.ImageGrafanaUserKey, clusterConfig.ImageGrafana)
-	}
-	return items.String()
 }

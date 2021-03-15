@@ -302,7 +302,7 @@ var _clusterConfigureCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
-		accessConfig, err := getClusterAccessConfigWithCache()
+		accessConfig, err := getNewClusterAccessConfig(clusterConfigFile)
 		if err != nil {
 			exit.Error(err)
 		}
@@ -317,7 +317,7 @@ var _clusterConfigureCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
-		err = clusterstate.AssertClusterStatus(accessConfig.ClusterName, accessConfig.Region, clusterState.Status, clusterstate.StatusCreateComplete)
+		err = clusterstate.AssertClusterStatus(accessConfig.ClusterName, accessConfig.Region, clusterState.Status, clusterstate.StatusCreateComplete, clusterstate.StatusUpdateComplete, clusterstate.StatusUpdateRollbackComplete)
 		if err != nil {
 			exit.Error(err)
 		}
@@ -527,7 +527,7 @@ var _clusterExportCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
-		err = clusterstate.AssertClusterStatus(accessConfig.ClusterName, accessConfig.Region, clusterState.Status, clusterstate.StatusCreateComplete)
+		err = clusterstate.AssertClusterStatus(accessConfig.ClusterName, accessConfig.Region, clusterState.Status, clusterstate.StatusCreateComplete, clusterstate.StatusUpdateComplete, clusterstate.StatusUpdateRollbackComplete)
 		if err != nil {
 			exit.Error(err)
 		}
@@ -668,7 +668,7 @@ func printInfoClusterState(awsClient *aws.Client, accessConfig *clusterconfig.Ac
 		fmt.Println()
 	}
 
-	err = clusterstate.AssertClusterStatus(accessConfig.ClusterName, accessConfig.Region, clusterState.Status, clusterstate.StatusCreateComplete)
+	err = clusterstate.AssertClusterStatus(accessConfig.ClusterName, accessConfig.Region, clusterState.Status, clusterstate.StatusCreateComplete, clusterstate.StatusUpdateComplete, clusterstate.StatusUpdateRollbackComplete)
 	if err != nil {
 		return err
 	}
@@ -679,6 +679,12 @@ func printInfoClusterState(awsClient *aws.Client, accessConfig *clusterconfig.Ac
 func printInfoOperatorResponse(clusterConfig clusterconfig.Config, operatorEndpoint string) error {
 	fmt.Print("fetching cluster status ...\n\n")
 
+	yamlBytes, err := yaml.Marshal(clusterConfig)
+	if err != nil {
+		return err
+	}
+	yamlString := string(yamlBytes)
+
 	operatorConfig := cluster.OperatorConfig{
 		Telemetry:        isTelemetryEnabled(),
 		ClientID:         clientID(),
@@ -688,54 +694,32 @@ func printInfoOperatorResponse(clusterConfig clusterconfig.Config, operatorEndpo
 
 	infoResponse, err := cluster.Info(operatorConfig)
 	if err != nil {
-		fmt.Println(clusterConfig.UserStr())
+		fmt.Println(yamlString)
 		return err
 	}
 	infoResponse.ClusterConfig.Config = clusterConfig
 
-	printInfoClusterConfig(infoResponse)
+	fmt.Println(console.Bold("metadata:"))
+	fmt.Println(fmt.Sprintf("aws access key id: %s", infoResponse.MaskedAWSAccessKeyID))
+	fmt.Println(fmt.Sprintf("%s: %s", clusterconfig.APIVersionUserKey, infoResponse.ClusterConfig.APIVersion))
+
+	fmt.Println()
+	fmt.Println(console.Bold("cluster config:"))
+	fmt.Print(yamlString)
+
 	printInfoPricing(infoResponse, clusterConfig)
 	printInfoNodes(infoResponse)
 
 	return nil
 }
 
-func printInfoClusterConfig(infoResponse *schema.InfoResponse) {
-	var items table.KeyValuePairs
-	items.Add("aws access key id", infoResponse.MaskedAWSAccessKeyID)
-	items.AddAll(infoResponse.ClusterConfig.UserTable())
-	items.Print()
-}
-
 func printInfoPricing(infoResponse *schema.InfoResponse, clusterConfig clusterconfig.Config) {
-	numAPIInstances := len(infoResponse.NodeInfos)
-
-	var totalAPIInstancePrice float64
-	for _, nodeInfo := range infoResponse.NodeInfos {
-		totalAPIInstancePrice += nodeInfo.Price
-	}
-
 	eksPrice := aws.EKSPrices[clusterConfig.Region]
 	operatorInstancePrice := aws.InstanceMetadatas[clusterConfig.Region]["t3.medium"].Price
 	operatorEBSPrice := aws.EBSMetadatas[clusterConfig.Region]["gp2"].PriceGB * 20 / 30 / 24
 	metricsEBSPrice := aws.EBSMetadatas[clusterConfig.Region]["gp2"].PriceGB * 40 / 30 / 24
 	nlbPrice := aws.NLBMetadatas[clusterConfig.Region].Price
 	natUnitPrice := aws.NATMetadatas[clusterConfig.Region].Price
-	apiEBSPrice := aws.EBSMetadatas[clusterConfig.Region][clusterConfig.InstanceVolumeType.String()].PriceGB * float64(clusterConfig.InstanceVolumeSize) / 30 / 24
-	if clusterConfig.InstanceVolumeType.String() == "io1" && clusterConfig.InstanceVolumeIOPS != nil {
-		apiEBSPrice += aws.EBSMetadatas[clusterConfig.Region][clusterConfig.InstanceVolumeType.String()].PriceIOPS * float64(*clusterConfig.InstanceVolumeIOPS) / 30 / 24
-	}
-
-	var natTotalPrice float64
-	if clusterConfig.NATGateway == clusterconfig.SingleNATGateway {
-		natTotalPrice = natUnitPrice
-	} else if clusterConfig.NATGateway == clusterconfig.HighlyAvailableNATGateway {
-		natTotalPrice = natUnitPrice * float64(len(clusterConfig.AvailabilityZones))
-	}
-
-	totalPrice := eksPrice + totalAPIInstancePrice + apiEBSPrice*float64(numAPIInstances) +
-		operatorInstancePrice*2 + operatorEBSPrice + metricsEBSPrice + nlbPrice*2 + natTotalPrice
-	fmt.Printf(console.Bold("\nyour cluster currently costs %s per hour\n\n"), s.DollarsAndCents(totalPrice))
 
 	headers := []table.Header{
 		{Title: "aws resource"},
@@ -744,8 +728,44 @@ func printInfoPricing(infoResponse *schema.InfoResponse, clusterConfig clusterco
 
 	var rows [][]interface{}
 	rows = append(rows, []interface{}{"1 eks cluster", s.DollarsMaxPrecision(eksPrice)})
-	rows = append(rows, []interface{}{fmt.Sprintf("%d %s for your apis", numAPIInstances, s.PluralS("instance", numAPIInstances)), s.DollarsAndTenthsOfCents(totalAPIInstancePrice) + " total"})
-	rows = append(rows, []interface{}{fmt.Sprintf("%d %dgb ebs %s for your apis", numAPIInstances, clusterConfig.InstanceVolumeSize, s.PluralS("volume", numAPIInstances)), s.DollarsAndTenthsOfCents(apiEBSPrice*float64(numAPIInstances)) + " total"})
+
+	var totalNodeGroupsPrice float64
+	for _, ng := range clusterConfig.NodeGroups {
+		var ngNamePrefix string
+		if ng.Spot {
+			ngNamePrefix = "cx-ws-"
+		} else {
+			ngNamePrefix = "cx-wd-"
+		}
+		nodesInfo := infoResponse.GetNodesWithNodeGroupName(ngNamePrefix + ng.Name)
+		numInstances := len(nodesInfo)
+
+		ebsPrice := aws.EBSMetadatas[clusterConfig.Region][ng.InstanceVolumeType.String()].PriceGB * float64(ng.InstanceVolumeSize) / 30 / 24
+		if ng.InstanceVolumeType.String() == "io1" && ng.InstanceVolumeIOPS != nil {
+			ebsPrice += aws.EBSMetadatas[clusterConfig.Region][ng.InstanceVolumeType.String()].PriceIOPS * float64(*ng.InstanceVolumeIOPS) / 30 / 24
+		}
+		totalEBSPrice := ebsPrice * float64(numInstances)
+
+		totalInstancePrice := float64(0)
+		for _, nodeInfo := range nodesInfo {
+			totalInstancePrice += nodeInfo.Price
+		}
+
+		rows = append(rows, []interface{}{fmt.Sprintf("nodegroup %s: %d (out of %d) %s for your apis", ng.Name, numInstances, ng.MaxInstances, s.PluralS("instance", numInstances)), s.DollarsAndTenthsOfCents(totalInstancePrice) + " total"})
+		rows = append(rows, []interface{}{fmt.Sprintf("nodegroup %s: %d (out of %d) %dgb ebs %s for your apis", ng.Name, numInstances, ng.MaxInstances, ng.InstanceVolumeSize, s.PluralS("volume", numInstances)), s.DollarsAndTenthsOfCents(totalEBSPrice) + " total"})
+
+		totalNodeGroupsPrice += totalEBSPrice + totalInstancePrice
+	}
+
+	var natTotalPrice float64
+	if clusterConfig.NATGateway == clusterconfig.SingleNATGateway {
+		natTotalPrice = natUnitPrice
+	} else if clusterConfig.NATGateway == clusterconfig.HighlyAvailableNATGateway {
+		natTotalPrice = natUnitPrice * float64(len(clusterConfig.AvailabilityZones))
+	}
+	totalPrice := eksPrice + totalNodeGroupsPrice + operatorInstancePrice*2 + operatorEBSPrice + metricsEBSPrice + nlbPrice*2 + natTotalPrice
+	fmt.Printf(console.Bold("\nyour cluster currently costs %s per hour\n\n"), s.DollarsAndCents(totalPrice))
+
 	rows = append(rows, []interface{}{"2 t3.medium instances for cortex", s.DollarsMaxPrecision(operatorInstancePrice * 2)})
 	rows = append(rows, []interface{}{"1 20gb ebs volume for the operator", s.DollarsAndTenthsOfCents(operatorEBSPrice)})
 	rows = append(rows, []interface{}{"1 40gb ebs volume for prometheus", s.DollarsAndTenthsOfCents(metricsEBSPrice)})

@@ -38,6 +38,7 @@ type InfoGCPResponse struct {
 
 type NodeInfo struct {
 	Name                 string             `json:"name"`
+	NodeGroupName        string             `json:"nodegroup_name"`
 	InstanceType         string             `json:"instance_type"`
 	IsSpot               bool               `json:"is_spot"`
 	Price                float64            `json:"price"`
@@ -128,4 +129,14 @@ type APIVersion struct {
 
 type VerifyCortexResponse struct {
 	Provider types.ProviderType `json:"provider"`
+}
+
+func (ir InfoResponse) GetNodesWithNodeGroupName(ngName string) []NodeInfo {
+	nodesInfo := []NodeInfo{}
+	for _, nodeInfo := range ir.NodeInfos {
+		if nodeInfo.NodeGroupName == ngName {
+			nodesInfo = append(nodesInfo, nodeInfo)
+		}
+	}
+	return nodesInfo
 }
