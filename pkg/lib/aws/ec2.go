@@ -381,3 +381,14 @@ func (c *Client) ListPVCVolumesForCluster(clusterName string) ([]ec2.Volume, err
 
 	return volumes, nil
 }
+
+func (c *Client) DeleteVolume(volumeID string) error {
+	_, err := c.EC2().DeleteVolume(&ec2.DeleteVolumeInput{
+		VolumeId: aws.String(volumeID),
+	})
+	if err != nil {
+		return errors.Wrap(err)
+	}
+
+	return nil
+}
