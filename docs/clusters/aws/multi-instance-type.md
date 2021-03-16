@@ -1,6 +1,6 @@
 # Multi-instance type clusters
 
-The cluster can be configured to provision different instance types depending on resources the APIs request. The multi instance type cluster has the following advantages over the single-instance type cluster:
+The cluster can be configured to provision different instance types depending on what resources the APIs request. The multi instance type cluster has the following advantages over the single-instance type cluster:
 
 * **Lower costs**: Reduced overall compute costs by using the most economical instance for the given workloads.
 * **Simpler logistics**: Managing multiple clusters on your own is no longer required.
@@ -11,7 +11,7 @@ The cluster can be configured to provision different instance types depending on
 When specifying the node groups in your `cluster.yaml` config, keep in mind that node groups with lower indexes have a higher priority over the other ones. With that mind, the best practices that result from this are:
 
 1. Node groups with smaller instances should have the higher priority.
-1. Node groups with CPU-only instances should come before the GPU/Inferentia instances.
+1. Node groups with CPU-only instances should come before the node groups equipped with GPU/Inferentia instances.
 1. The spot node groups should always come first over the ones that have on-demand instances.
 
 ## Example node groups
