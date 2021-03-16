@@ -25,6 +25,7 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go/service/autoscaling"
+	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/elbv2"
 	"github.com/cortexlabs/cortex/cli/cluster"
 	"github.com/cortexlabs/cortex/cli/types/cliconfig"
@@ -425,7 +426,7 @@ var _clusterDownCmd = &cobra.Command{
 				awsClient.DeleteQueuesWithPrefix(clusterconfig.SQSNamePrefix(accessConfig.ClusterName))
 				awsClient.DeletePolicy(clusterconfig.DefaultPolicyARN(accountID, accessConfig.ClusterName, accessConfig.Region))
 				if !_flagClusterDownKeepVolumes {
-					volumes, err := awsClient.ListPVCVolumesForCluster(accessConfig.ClusterName)
+					volumes, err := listPVCVolumesForCluster(awsClient, accessConfig.ClusterName)
 					if err == nil {
 						for _, volume := range volumes {
 							awsClient.DeleteVolume(*volume.VolumeId)
@@ -481,7 +482,7 @@ var _clusterDownCmd = &cobra.Command{
 
 		// delete EBS volumes
 		if !_flagClusterDownKeepVolumes {
-			volumes, err := awsClient.ListPVCVolumesForCluster(accessConfig.ClusterName)
+			volumes, err := listPVCVolumesForCluster(awsClient, accessConfig.ClusterName)
 			if err != nil {
 				fmt.Println("\nfailed to list volumes for deletion; please delete any volumes associated with your cluster via the ec2 console: https://console.aws.amazon.com/ec2/v2/home?#Volumes")
 				errors.PrintError(err)
@@ -1051,4 +1052,11 @@ func getAWSOperatorLoadBalancer(clusterName string, awsClient *aws.Client) (*elb
 	}
 
 	return loadBalancer, nil
+}
+
+func listPVCVolumesForCluster(awsClient *aws.Client, clusterName string) ([]ec2.Volume, error) {
+	return awsClient.ListVolumes(ec2.Tag{
+		Key:   pointer.String(fmt.Sprintf("kubernetes.io/cluster/%s", clusterName)),
+		Value: nil, // any value should be ok as long as the key is present
+	})
 }

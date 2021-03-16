@@ -17,7 +17,6 @@ limitations under the License.
 package aws
 
 import (
-	"fmt"
 	"math"
 	"regexp"
 	"time"
@@ -331,7 +330,7 @@ func (c *Client) DescribeVpcs() ([]ec2.Vpc, error) {
 	return vpcs, nil
 }
 
-func (c *Client) ListVolumes() ([]ec2.Volume, error) {
+func (c *Client) ListVolumes(tags ...ec2.Tag) ([]ec2.Volume, error) {
 	var volumes []ec2.Volume
 	err := c.EC2().DescribeVolumesPages(&ec2.DescribeVolumesInput{}, func(output *ec2.DescribeVolumesOutput, lastPage bool) bool {
 		if output == nil {
@@ -341,34 +340,8 @@ func (c *Client) ListVolumes() ([]ec2.Volume, error) {
 			if volume == nil {
 				continue
 			}
-			volumes = append(volumes, *volume)
-		}
-
-		return true
-	})
-
-	if err != nil {
-		return nil, errors.WithStack(err)
-	}
-
-	return volumes, nil
-}
-
-func (c *Client) ListPVCVolumesForCluster(clusterName string) ([]ec2.Volume, error) {
-	var volumes []ec2.Volume
-	err := c.EC2().DescribeVolumesPages(&ec2.DescribeVolumesInput{}, func(output *ec2.DescribeVolumesOutput, lastPage bool) bool {
-		if output == nil {
-			return false
-		}
-		for _, volume := range output.Volumes {
-			if volume == nil {
-				continue
-			}
-			for _, tag := range volume.Tags {
-				if tag.Key != nil && *tag.Key == fmt.Sprintf("kubernetes.io/cluster/%s", clusterName) {
-					volumes = append(volumes, *volume)
-					break
-				}
+			if hasAllEC2Tags(tags, volume.Tags) {
+				volumes = append(volumes, *volume)
 			}
 		}
 
@@ -391,4 +364,28 @@ func (c *Client) DeleteVolume(volumeID string) error {
 	}
 
 	return nil
+}
+
+func hasAllEC2Tags(queryTags []ec2.Tag, allResourceTags []*ec2.Tag) bool {
+	for _, queryTag := range queryTags {
+		if !hasEC2Tag(queryTag, allResourceTags) {
+			return false
+		}
+	}
+	return true
+}
+
+// if queryTag's value is nil, the tag will match as long as the key is present in the resource's tags
+func hasEC2Tag(queryTag ec2.Tag, allResourceTags []*ec2.Tag) bool {
+	for _, resourceTag := range allResourceTags {
+		if queryTag.Key != nil && resourceTag.Key != nil && *queryTag.Key == *resourceTag.Key {
+			if queryTag.Value == nil {
+				return true
+			}
+			if queryTag.Value != nil && resourceTag.Value != nil && *queryTag.Value == *resourceTag.Value {
+				return true
+			}
+		}
+	}
+	return false
 }
