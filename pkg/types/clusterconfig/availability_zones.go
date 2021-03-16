@@ -40,8 +40,14 @@ func (cc *Config) setAvailabilityZones(awsClient *aws.Client) error {
 	return nil
 }
 
-func (cc *Config) setDefaultAvailabilityZones(awsClient *aws.Client, extraInstances ...string) error {
-	zones, err := awsClient.ListSupportedAvailabilityZones(cc.InstanceType, extraInstances...)
+func (cc *Config) setDefaultAvailabilityZones(awsClient *aws.Client) error {
+	instanceTypes := strset.New()
+	for _, ng := range cc.NodeGroups {
+		instanceTypes.Add(ng.InstanceType)
+	}
+	instanceTypesSlice := instanceTypes.Slice()
+
+	zones, err := awsClient.ListSupportedAvailabilityZones(instanceTypesSlice[0], instanceTypesSlice[1:]...)
 	if err != nil {
 		// Try again without checking instance types
 		zones, err = awsClient.ListAvailabilityZonesInRegion()
@@ -53,7 +59,7 @@ func (cc *Config) setDefaultAvailabilityZones(awsClient *aws.Client, extraInstan
 	zones.Subtract(_azBlacklist)
 
 	if len(zones) < 2 {
-		return ErrorNotEnoughDefaultSupportedZones(awsClient.Region, zones, cc.InstanceType, extraInstances...)
+		return ErrorNotEnoughDefaultSupportedZones(awsClient.Region, zones, instanceTypesSlice[0], instanceTypesSlice[1:]...)
 	}
 
 	// See https://github.com/weaveworks/eksctl/blob/master/pkg/eks/api.go
@@ -69,6 +75,12 @@ func (cc *Config) setDefaultAvailabilityZones(awsClient *aws.Client, extraInstan
 }
 
 func (cc *Config) validateUserAvailabilityZones(awsClient *aws.Client, extraInstances ...string) error {
+	instanceTypes := strset.New()
+	for _, ng := range cc.NodeGroups {
+		instanceTypes.Add(ng.InstanceType)
+	}
+	instanceTypesSlice := instanceTypes.Slice()
+
 	allZones, err := awsClient.ListAvailabilityZonesInRegion()
 	if err != nil {
 		return nil // Skip validation
@@ -80,7 +92,7 @@ func (cc *Config) validateUserAvailabilityZones(awsClient *aws.Client, extraInst
 		}
 	}
 
-	supportedZones, err := awsClient.ListSupportedAvailabilityZones(cc.InstanceType, extraInstances...)
+	supportedZones, err := awsClient.ListSupportedAvailabilityZones(instanceTypesSlice[0], instanceTypesSlice[1:]...)
 	if err != nil {
 		// Skip validation instance-based validation
 		supportedZones = strset.Difference(allZones, _azBlacklist)
@@ -88,7 +100,7 @@ func (cc *Config) validateUserAvailabilityZones(awsClient *aws.Client, extraInst
 
 	for _, userZone := range cc.AvailabilityZones {
 		if !supportedZones.Has(userZone) {
-			return ErrorUnsupportedAvailabilityZone(userZone, cc.InstanceType, extraInstances...)
+			return ErrorUnsupportedAvailabilityZone(userZone, instanceTypesSlice[0], instanceTypesSlice[1:]...)
 		}
 	}
 

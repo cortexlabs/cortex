@@ -35,6 +35,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	"github.com/cortexlabs/cortex/pkg/types"
 	"github.com/cortexlabs/cortex/pkg/types/clusterconfig"
+	"github.com/cortexlabs/yaml"
 	"github.com/spf13/cobra"
 	containerpb "google.golang.org/genproto/googleapis/container/v1"
 )
@@ -373,7 +374,18 @@ func printInfoOperatorResponseGCP(accessConfig *clusterconfig.GCPAccessConfig, o
 		return err
 	}
 
-	infoResponse.ClusterConfig.UserTable().Print()
+	yamlBytes, err := yaml.Marshal(infoResponse.ClusterConfig.GCPConfig)
+	if err != nil {
+		return err
+	}
+	yamlString := string(yamlBytes)
+
+	fmt.Println(console.Bold("metadata:"))
+	fmt.Println(fmt.Sprintf("%s: %s", clusterconfig.APIVersionUserKey, infoResponse.ClusterConfig.APIVersion))
+
+	fmt.Println()
+	fmt.Println(console.Bold("cluster config:"))
+	fmt.Print(yamlString)
 
 	return nil
 }
@@ -448,24 +460,8 @@ func updateGCPCLIEnv(envName string, operatorEndpoint string, disallowPrompt boo
 func createGKECluster(clusterConfig *clusterconfig.GCPConfig, gcpClient *gcp.Client) error {
 	fmt.Print("￮ creating GKE cluster ")
 
-	nodeLabels := map[string]string{"workload": "true"}
-	var accelerators []*containerpb.AcceleratorConfig
-
-	if clusterConfig.AcceleratorType != nil {
-		accelerators = append(accelerators, &containerpb.AcceleratorConfig{
-			AcceleratorCount: *clusterConfig.AcceleratorsPerInstance,
-			AcceleratorType:  *clusterConfig.AcceleratorType,
-		})
-		nodeLabels["nvidia.com/gpu"] = "present"
-	}
-
 	gkeClusterParent := fmt.Sprintf("projects/%s/locations/%s", clusterConfig.Project, clusterConfig.Zone)
 	fullyQualifiedClusterName := fmt.Sprintf("%s/clusters/%s", gkeClusterParent, clusterConfig.ClusterName)
-
-	initialNodeCount := int64(1)
-	if clusterConfig.MinInstances > 0 {
-		initialNodeCount = clusterConfig.MinInstances
-	}
 
 	gkeClusterConfig := containerpb.Cluster{
 		Name:                  clusterConfig.ClusterName,
@@ -488,52 +484,68 @@ func createGKECluster(clusterConfig *clusterconfig.GCPConfig, gcpClient *gcp.Cli
 		Locations: []string{clusterConfig.Zone},
 	}
 
-	if clusterConfig.Preemptible {
-		gkeClusterConfig.NodePools = append(gkeClusterConfig.NodePools, &containerpb.NodePool{
-			Name: "ng-cortex-wk-preemp",
-			Config: &containerpb.NodeConfig{
-				MachineType: clusterConfig.InstanceType,
-				Labels:      nodeLabels,
-				Taints: []*containerpb.NodeTaint{
-					{
-						Key:    "workload",
-						Value:  "true",
-						Effect: containerpb.NodeTaint_NO_SCHEDULE,
+	for _, nodePool := range clusterConfig.NodePools {
+		nodeLabels := map[string]string{"workload": "true"}
+		initialNodeCount := int64(1)
+		if nodePool.MinInstances > 0 {
+			initialNodeCount = nodePool.MinInstances
+		}
+
+		var accelerators []*containerpb.AcceleratorConfig
+		if nodePool.AcceleratorType != nil {
+			accelerators = append(accelerators, &containerpb.AcceleratorConfig{
+				AcceleratorCount: *nodePool.AcceleratorsPerInstance,
+				AcceleratorType:  *nodePool.AcceleratorType,
+			})
+			nodeLabels["nvidia.com/gpu"] = "present"
+		}
+
+		if nodePool.Preemptible {
+			gkeClusterConfig.NodePools = append(gkeClusterConfig.NodePools, &containerpb.NodePool{
+				Name: "cx-ws-" + nodePool.Name,
+				Config: &containerpb.NodeConfig{
+					MachineType: nodePool.InstanceType,
+					Labels:      nodeLabels,
+					Taints: []*containerpb.NodeTaint{
+						{
+							Key:    "workload",
+							Value:  "true",
+							Effect: containerpb.NodeTaint_NO_SCHEDULE,
+						},
 					},
-				},
-				Accelerators: accelerators,
-				OauthScopes: []string{
-					"https://www.googleapis.com/auth/compute",
-					"https://www.googleapis.com/auth/devstorage.read_only",
-				},
-				ServiceAccount: gcpClient.ClientEmail,
-				Preemptible:    true,
-			},
-			InitialNodeCount: int32(initialNodeCount),
-		})
-	}
-	if clusterConfig.OnDemandBackup || !clusterConfig.Preemptible {
-		gkeClusterConfig.NodePools = append(gkeClusterConfig.NodePools, &containerpb.NodePool{
-			Name: "ng-cortex-wk-on-dmd",
-			Config: &containerpb.NodeConfig{
-				MachineType: clusterConfig.InstanceType,
-				Labels:      nodeLabels,
-				Taints: []*containerpb.NodeTaint{
-					{
-						Key:    "workload",
-						Value:  "true",
-						Effect: containerpb.NodeTaint_NO_SCHEDULE,
+					Accelerators: accelerators,
+					OauthScopes: []string{
+						"https://www.googleapis.com/auth/compute",
+						"https://www.googleapis.com/auth/devstorage.read_only",
 					},
+					ServiceAccount: gcpClient.ClientEmail,
+					Preemptible:    true,
 				},
-				Accelerators: accelerators,
-				OauthScopes: []string{
-					"https://www.googleapis.com/auth/compute",
-					"https://www.googleapis.com/auth/devstorage.read_only",
+				InitialNodeCount: int32(initialNodeCount),
+			})
+		} else {
+			gkeClusterConfig.NodePools = append(gkeClusterConfig.NodePools, &containerpb.NodePool{
+				Name: "cx-wd-" + nodePool.Name,
+				Config: &containerpb.NodeConfig{
+					MachineType: nodePool.InstanceType,
+					Labels:      nodeLabels,
+					Taints: []*containerpb.NodeTaint{
+						{
+							Key:    "workload",
+							Value:  "true",
+							Effect: containerpb.NodeTaint_NO_SCHEDULE,
+						},
+					},
+					Accelerators: accelerators,
+					OauthScopes: []string{
+						"https://www.googleapis.com/auth/compute",
+						"https://www.googleapis.com/auth/devstorage.read_only",
+					},
+					ServiceAccount: gcpClient.ClientEmail,
 				},
-				ServiceAccount: gcpClient.ClientEmail,
-			},
-			InitialNodeCount: int32(initialNodeCount),
-		})
+				InitialNodeCount: int32(initialNodeCount),
+			})
+		}
 	}
 
 	if clusterConfig.Network != nil {

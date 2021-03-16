@@ -19,10 +19,12 @@ package batchapi
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/sqs"
 	awslib "github.com/cortexlabs/cortex/pkg/lib/aws"
+	"github.com/cortexlabs/cortex/pkg/lib/cron"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	libjson "github.com/cortexlabs/cortex/pkg/lib/json"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
@@ -31,11 +33,16 @@ import (
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 )
 
+const (
+	_markForDeletion          = "cortex.dev/to-be-deleted"
+	_queueGraceKillTimePeriod = 5 * time.Minute
+)
+
 func apiQueueNamePrefix(apiName string) string {
-	return config.CoreConfig.SQSNamePrefix() + apiName + "-"
+	return fmt.Sprintf("%sb-%s-", config.CoreConfig.SQSNamePrefix(), apiName)
 }
 
-// QueueName is cortex-<hash of cluster name>-<api_name>-<job_id>.fifo
+// QueueName is cx-<hash of cluster name>-b-<api_name>-<job_id>.fifo
 func getJobQueueName(jobKey spec.JobKey) string {
 	return apiQueueNamePrefix(jobKey.APIName) + jobKey.ID + ".fifo"
 }
@@ -57,7 +64,7 @@ func jobKeyFromQueueURL(queueURL string) spec.JobKey {
 
 	jobID := strings.TrimSuffix(dashSplit[len(dashSplit)-1], ".fifo")
 
-	apiNameSplit := dashSplit[2 : len(dashSplit)-1]
+	apiNameSplit := dashSplit[3 : len(dashSplit)-1]
 	apiName := strings.Join(apiNameSplit, "-")
 
 	return spec.JobKey{APIName: apiName, ID: jobID}
@@ -113,7 +120,7 @@ func doesQueueExist(jobKey spec.JobKey) (bool, error) {
 }
 
 func listQueueURLsForAllAPIs() ([]string, error) {
-	queueURLs, err := config.AWS.ListQueuesByQueueNamePrefix(config.CoreConfig.SQSNamePrefix())
+	queueURLs, err := config.AWS.ListQueuesByQueueNamePrefix(config.CoreConfig.SQSNamePrefix() + "b-")
 	if err != nil {
 		return nil, err
 	}
@@ -121,21 +128,75 @@ func listQueueURLsForAllAPIs() ([]string, error) {
 	return queueURLs, nil
 }
 
-func deleteQueueByJobKey(jobKey spec.JobKey) error {
+func markForDeletion(queueURL string) error {
+	_, err := config.AWS.SQS().TagQueue(&sqs.TagQueueInput{
+		QueueUrl: aws.String(queueURL),
+		Tags: aws.StringMap(map[string]string{
+			_markForDeletion: time.Now().Format(time.RFC3339Nano),
+		}),
+	})
+	if err != nil {
+		return errors.WithStack(err)
+	}
+	return nil
+}
+
+func deleteQueueWithDelay(jobKey spec.JobKey) error {
 	queueURL, err := getJobQueueURL(jobKey)
 	if err != nil {
 		return err
 	}
 
-	return deleteQueueByURL(queueURL)
-}
-
-func deleteQueueByJobKeyIfExists(jobKey spec.JobKey) error {
-	err := deleteQueueByJobKey(jobKey)
-	if err != nil && awslib.IsNonExistentQueueErr(errors.CauseOrSelf(err)) {
+	output, err := config.AWS.SQS().ListQueueTags(&sqs.ListQueueTagsInput{
+		QueueUrl: aws.String(queueURL),
+	})
+	if err != nil {
+		if !awslib.IsNonExistentQueueErr(errors.CauseOrSelf(err)) {
+			operatorLogger.Error(err)
+		}
 		return nil
 	}
-	return err
+
+	if value, exists := output.Tags[_markForDeletion]; exists {
+		markedTime, err := time.Parse(time.RFC3339Nano, *value)
+		if err != nil {
+			err = deleteQueueByURL(queueURL)
+			if err != nil {
+				if !awslib.IsNonExistentQueueErr(errors.CauseOrSelf(err)) {
+					operatorLogger.Error(err)
+				}
+				return nil
+			}
+		}
+
+		if time.Since(markedTime) > _queueGraceKillTimePeriod {
+			err := deleteQueueByURL(queueURL)
+			if err != nil {
+				if !awslib.IsNonExistentQueueErr(errors.CauseOrSelf(err)) {
+					operatorLogger.Error(err)
+				}
+				return nil
+			}
+		}
+	} else {
+		operatorLogger.Info("scheduling deleting queue " + jobKey.UserString())
+		err = markForDeletion(queueURL)
+		if err != nil && awslib.IsNonExistentQueueErr(errors.CauseOrSelf(err)) {
+			return nil
+		}
+
+		time.AfterFunc(_queueGraceKillTimePeriod, func() {
+			defer cron.Recoverer(nil)
+			operatorLogger.Info("deleting queue " + jobKey.UserString())
+			err := deleteQueueByURL(queueURL)
+			// ignore non existent queue errors
+			if err != nil && !awslib.IsNonExistentQueueErr(errors.CauseOrSelf(err)) {
+				operatorLogger.Error(err)
+			}
+		})
+	}
+
+	return nil
 }
 
 func deleteQueueByURL(queueURL string) error {

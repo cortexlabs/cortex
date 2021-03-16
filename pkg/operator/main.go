@@ -28,12 +28,14 @@ import (
 	"github.com/cortexlabs/cortex/pkg/operator/lib/exit"
 	"github.com/cortexlabs/cortex/pkg/operator/lib/logging"
 	"github.com/cortexlabs/cortex/pkg/operator/operator"
+	"github.com/cortexlabs/cortex/pkg/operator/resources/asyncapi"
 	"github.com/cortexlabs/cortex/pkg/operator/resources/job/batchapi"
 	"github.com/cortexlabs/cortex/pkg/operator/resources/job/taskapi"
 	"github.com/cortexlabs/cortex/pkg/operator/resources/realtimeapi"
 	"github.com/cortexlabs/cortex/pkg/types"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	"github.com/gorilla/mux"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 var operatorLogger = logging.GetOperatorLogger()
@@ -70,15 +72,29 @@ func main() {
 		}
 
 		for _, deployment := range deployments {
-			if userconfig.KindFromString(deployment.Labels["apiKind"]) == userconfig.RealtimeAPIKind {
+			apiKind := deployment.Labels["apiKind"]
+			if userconfig.KindFromString(apiKind) == userconfig.RealtimeAPIKind ||
+				userconfig.KindFromString(apiKind) == userconfig.AsyncAPIKind {
 				apiID := deployment.Labels["apiID"]
 				apiName := deployment.Labels["apiName"]
 				api, err := operator.DownloadAPISpec(apiName, apiID)
 				if err != nil {
 					exit.Error(errors.Wrap(err, "init"))
 				}
-				if err := realtimeapi.UpdateAutoscalerCron(&deployment, api); err != nil {
-					operatorLogger.Fatal(errors.Wrap(err, "init"))
+
+				switch apiKind {
+				case userconfig.RealtimeAPIKind.String():
+					if err := realtimeapi.UpdateAutoscalerCron(&deployment, api); err != nil {
+						operatorLogger.Fatal(errors.Wrap(err, "init"))
+					}
+				case userconfig.AsyncAPIKind.String():
+					if err := asyncapi.UpdateMetricsCron(&deployment); err != nil {
+						operatorLogger.Fatal(errors.Wrap(err, "init"))
+					}
+
+					if err := asyncapi.UpdateAutoscalerCron(&deployment, *api); err != nil {
+						operatorLogger.Fatal(errors.Wrap(err, "init"))
+					}
 				}
 			}
 		}
@@ -101,6 +117,9 @@ func main() {
 	routerWithoutAuth.HandleFunc("/tasks/{apiName}", endpoints.SubmitTaskJob).Methods("POST")
 	routerWithoutAuth.HandleFunc("/tasks/{apiName}", endpoints.GetTaskJob).Methods("GET")
 	routerWithoutAuth.HandleFunc("/tasks/{apiName}", endpoints.StopTaskJob).Methods("DELETE")
+
+	// prometheus metrics
+	routerWithoutAuth.Handle("/metrics", promhttp.Handler()).Methods("GET")
 
 	routerWithAuth := router.NewRoute().Subrouter()
 

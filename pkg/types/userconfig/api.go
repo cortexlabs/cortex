@@ -154,7 +154,7 @@ func (api *API) ApplyDefaultDockerPaths() {
 	usesInf := api.Compute.Inf > 0
 
 	switch api.Kind {
-	case RealtimeAPIKind, BatchAPIKind:
+	case RealtimeAPIKind, BatchAPIKind, AsyncAPIKind:
 		api.applyPredictorDefaultDockerPaths(usesGPU, usesInf)
 	case TaskAPIKind:
 		api.applyTaskDefaultDockerPaths(usesGPU, usesInf)

@@ -54,6 +54,11 @@ def pytest_addoption(parser):
         action="store_true",
         help="skip GPU tests",
     )
+    parser.addoption(
+        "--skip-infs",
+        action="store_true",
+        help="skip Inferentia tests",
+    )
 
 
 def pytest_configure(config):
@@ -79,6 +84,7 @@ def pytest_configure(config):
             "batch_deploy_timeout": int(os.environ.get("CORTEX_TEST_BATCH_DEPLOY_TIMEOUT", 30)),
             "batch_job_timeout": int(os.environ.get("CORTEX_TEST_BATCH_JOB_TIMEOUT", 200)),
             "skip_gpus": config.getoption("--skip-gpus"),
+            "skip_infs": config.getoption("--skip-infs"),
         },
     }
 

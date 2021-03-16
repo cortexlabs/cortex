@@ -44,7 +44,7 @@ func ReadLogs(w http.ResponseWriter, r *http.Request) {
 	if deployedResource.Kind == userconfig.BatchAPIKind || deployedResource.Kind == userconfig.TaskAPIKind {
 		respondError(w, r, ErrorLogsJobIDRequired(*deployedResource))
 		return
-	} else if deployedResource.Kind != userconfig.RealtimeAPIKind {
+	} else if deployedResource.Kind != userconfig.RealtimeAPIKind && deployedResource.Kind != userconfig.AsyncAPIKind {
 		respondError(w, r, resources.ErrorOperationIsOnlySupportedForKind(*deployedResource, userconfig.RealtimeAPIKind))
 		return
 	}
@@ -60,5 +60,10 @@ func ReadLogs(w http.ResponseWriter, r *http.Request) {
 	}
 	defer socket.Close()
 
-	operator.StreamLogsFromRandomPod(map[string]string{"apiName": apiName, "deploymentID": deploymentID, "predictorID": predictorID}, socket)
+	labels := map[string]string{"apiName": apiName, "deploymentID": deploymentID, "predictorID": predictorID}
+
+	if deployedResource.Kind == userconfig.AsyncAPIKind {
+		labels["cortex.dev/async"] = "api"
+	}
+	operator.StreamLogsFromRandomPod(labels, socket)
 }

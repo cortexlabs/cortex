@@ -54,7 +54,7 @@ spec:
       serviceAccountName: operator
       containers:
         - name: operator
-          image: {{ env['CORTEX_IMAGE_OPERATOR'] }}
+          image: {{ config['image_operator'] }}
           imagePullPolicy: Always
           resources:
             requests:
@@ -73,7 +73,7 @@ spec:
               mountPath: /configs/cluster
             - name: docker-client
               mountPath: /var/run/docker.sock
-            {% if env['CORTEX_PROVIDER'] == "gcp" %}
+            {% if config['provider'] == "gcp" %}
             - name: gcp-credentials
               mountPath: /var/secrets/google
             {% endif %}
@@ -85,7 +85,7 @@ spec:
           hostPath:
             path: /var/run/docker.sock
             type: Socket
-        {% if env['CORTEX_PROVIDER'] == "gcp" %}
+        {% if config['provider'] == "gcp" %}
         - name: gcp-credentials
           secret:
             secretName: gcp-credentials
@@ -97,6 +97,8 @@ kind: Service
 metadata:
   namespace: default
   name: operator
+  labels:
+    cortex.dev/name: operator
 spec:
   selector:
     workloadID: operator

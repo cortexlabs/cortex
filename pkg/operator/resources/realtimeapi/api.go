@@ -26,6 +26,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/parallel"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
+	autoscalerlib "github.com/cortexlabs/cortex/pkg/operator/lib/autoscaler"
 	"github.com/cortexlabs/cortex/pkg/operator/lib/routines"
 	"github.com/cortexlabs/cortex/pkg/operator/operator"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
@@ -338,7 +339,7 @@ func UpdateAutoscalerCron(deployment *kapps.Deployment, apiSpec *spec.API) error
 		prevAutoscalerCron.Cancel()
 	}
 
-	autoscaler, err := autoscaleFn(deployment, apiSpec)
+	autoscaler, err := autoscalerlib.AutoscaleFn(deployment, apiSpec, getInflightRequests)
 	if err != nil {
 		return err
 	}

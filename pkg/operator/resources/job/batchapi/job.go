@@ -224,7 +224,7 @@ func handleJobSubmissionError(jobKey spec.JobKey, jobErr error) {
 func deleteJobRuntimeResources(jobKey spec.JobKey) error {
 	err := errors.FirstError(
 		deleteK8sJob(jobKey),
-		deleteQueueByJobKeyIfExists(jobKey),
+		deleteQueueWithDelay(jobKey),
 		saveMetricsToCloud(jobKey),
 	)
 

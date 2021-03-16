@@ -124,7 +124,7 @@ func VirtualService(spec *VirtualServiceSpec) *istioclientnetworking.VirtualServ
 				{
 					Uri: &istionetworking.StringMatch{
 						MatchType: &istionetworking.StringMatch_Prefix{
-							Prefix: urls.CanonicalizeEndpoint(*spec.PrefixPath) + "/",
+							Prefix: urls.CanonicalizeEndpointWithTrailingSlash(*spec.PrefixPath),
 						},
 					},
 				},
@@ -140,7 +140,7 @@ func VirtualService(spec *VirtualServiceSpec) *istioclientnetworking.VirtualServ
 			}
 
 			prefixMatch.Rewrite = &istionetworking.HTTPRewrite{
-				Uri: urls.CanonicalizeEndpoint(*spec.Rewrite) + "/",
+				Uri: urls.CanonicalizeEndpointWithTrailingSlash(*spec.Rewrite),
 			}
 		}
 

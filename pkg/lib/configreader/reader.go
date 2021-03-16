@@ -975,7 +975,7 @@ func StructFromStringMap(dest interface{}, strMap map[string]string, v *StructVa
 	}
 
 	if !v.AllowExtraFields {
-		extraFields := slices.SubtractStrSlice(maps.StrMapKeys(strMap), allowedFields)
+		extraFields := slices.SubtractStrSlice(maps.StrMapKeysString(strMap), allowedFields)
 		for _, extraField := range extraFields {
 			allErrs = append(allErrs, ErrorUnsupportedKey(extraField))
 		}

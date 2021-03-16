@@ -38,9 +38,11 @@ def delete_apis(client: cx.Client, api_names: List[str]):
         client.delete_api(name)
 
 
-def test_realtime_api(client: cx.Client, api: str, timeout: int = None):
+def test_realtime_api(
+    client: cx.Client, api: str, timeout: int = None, api_config_name: str = "cortex.yaml"
+):
     api_dir = TEST_APIS_DIR / api
-    with open(str(api_dir / "cortex.yaml")) as f:
+    with open(str(api_dir / api_config_name)) as f:
         api_specs = yaml.safe_load(f)
 
     expectations = None
@@ -79,9 +81,10 @@ def test_batch_api(
     deploy_timeout: int = None,
     job_timeout: int = None,
     retry_attempts: int = 0,
+    api_config_name: str = "cortex.yaml",
 ):
     api_dir = TEST_APIS_DIR / api
-    with open(str(api_dir / "cortex.yaml")) as f:
+    with open(str(api_dir / api_config_name)) as f:
         api_specs = yaml.safe_load(f)
 
     assert len(api_specs) == 1

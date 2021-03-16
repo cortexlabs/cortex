@@ -12,15 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import datetime
+import json
 import os
+import time
+from typing import List, Tuple
+
 import boto3
 import botocore
-import pickle
-import json
 import msgpack
-import time
-import datetime
-from typing import Dict, List, Tuple
 
 from cortex_internal.lib import util
 from cortex_internal.lib.exceptions import CortexException
@@ -119,6 +119,9 @@ class S3:
 
     def put_object(self, body, key):
         self.s3.put_object(Bucket=self.bucket, Key=key, Body=body)
+
+    def get_object(self, key):
+        return self.s3.get_object(Bucket=self.bucket, Key=key)
 
     def _read_bytes_from_s3(
         self, key, allow_missing=False, ext_bucket=None, num_retries=0, retry_delay_sec=2
@@ -242,3 +245,6 @@ class S3:
             self.download_dir(prefix, local_dir)
         else:
             self.download_file_to_dir(prefix, local_dir)
+
+    def delete(self, key):
+        self.s3.delete_object(Bucket=self.bucket, Key=key)

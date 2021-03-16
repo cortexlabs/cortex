@@ -30,9 +30,10 @@ import (
 
 const (
 	controlPlaneTemplate = "eksctl-%s-cluster"
-	operatorTemplate     = "eksctl-%s-nodegroup-ng-cortex-operator"
-	spotTemplate         = "eksctl-%s-nodegroup-ng-cortex-worker-spot"
-	onDemandTemplate     = "eksctl-%s-nodegroup-ng-cortex-worker-on-demand"
+	operatorTemplate     = "eksctl-%s-nodegroup-cx-operator"
+
+	spotTemplatePrefix     = "eksctl-%s-nodegroup-cx-ws"
+	onDemandTemplatePrefix = "eksctl-%s-nodegroup-cx-wd"
 )
 
 type ClusterState struct {
@@ -146,6 +147,14 @@ func getStatus(statusMap map[string]string, controlPlane string, clusterName str
 		return StatusCreateComplete, nil
 	}
 
+	if all(allStatuses, cloudformation.StackStatusUpdateComplete) {
+		return StatusUpdateComplete, nil
+	}
+
+	if all(allStatuses, cloudformation.StackStatusUpdateRollbackComplete) {
+		return StatusUpdateRollbackComplete, nil
+	}
+
 	if all(allStatuses, cloudformation.StackStatusDeleteComplete) {
 		return StatusDeleteComplete, nil
 	}
@@ -162,18 +171,23 @@ func getStatus(statusMap map[string]string, controlPlane string, clusterName str
 		return StatusCreateInProgress, nil
 	}
 
+	if controlPlaneStatus == cloudformation.StackStatusCreateComplete &&
+		all(nodeGroupStatuses, cloudformation.StackStatusCreateComplete, cloudformation.StackStatusUpdateComplete, cloudformation.StackStatusUpdateRollbackComplete) {
+		return StatusUpdateComplete, nil
+	}
+
 	return StatusNotFound, ErrorUnexpectedCloudFormationStatus(clusterName, region, statusMap)
 }
 
 func GetClusterState(awsClient *aws.Client, accessConfig *clusterconfig.AccessConfig) (*ClusterState, error) {
 	controlPlaneStackName := fmt.Sprintf(controlPlaneTemplate, accessConfig.ClusterName)
 	operatorStackName := fmt.Sprintf(operatorTemplate, accessConfig.ClusterName)
-	spotStackName := fmt.Sprintf(spotTemplate, accessConfig.ClusterName)
-	onDemandStackName := fmt.Sprintf(onDemandTemplate, accessConfig.ClusterName)
+	spotStackNamePrefix := fmt.Sprintf(spotTemplatePrefix, accessConfig.ClusterName)
+	onDemandStackNamePrefix := fmt.Sprintf(onDemandTemplatePrefix, accessConfig.ClusterName)
 
-	nodeGroupStackNamesSet := strset.New(operatorStackName, spotStackName, onDemandStackName)
+	nodeGroupStackPrefixesSet := strset.New(operatorStackName, spotStackNamePrefix, onDemandStackNamePrefix)
 
-	stackSummaries, err := awsClient.ListEKSStacks(controlPlaneStackName, nodeGroupStackNamesSet)
+	stackSummaries, err := awsClient.ListEKSStacks(controlPlaneStackName, nodeGroupStackPrefixesSet)
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to get cluster state from cloudformation")
 	}
