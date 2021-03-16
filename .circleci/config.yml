@@ -122,13 +122,13 @@ jobs:
       - run: sudo apt update && sudo apt install parallel -y
       - run: sudo pip install awscli
       - run: make ci-build-cli
-      - run: make ci-build-images
       - return-if-not-deployed-branch
+      - run: make ci-build-and-upload-cli
+      - run: make ci-build-images
       - quay-login
       - run:
           command: make ci-push-images
           no_output_timeout: 20m
-      - run: make ci-build-and-upload-cli
 
   e2e-tests-aws:
     docker:
