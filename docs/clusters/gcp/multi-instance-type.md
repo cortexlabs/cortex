@@ -10,8 +10,8 @@ The cluster can be configured to provision different instance types depending on
 
 When specifying the node pools in your `cluster.yaml` config, keep in mind that node pools with lower indexes have a higher priority over the other ones. With that mind, the best practices that result from this are:
 
-1. node pools with smaller instances should have the higher priority.
-1. node pools with CPU-only instances should come before the GPU instances.
+1. Node pools with smaller instances should have the higher priority.
+1. Node pools with CPU-only instances should come before the GPU instances.
 1. The preemptible node pools should always come first over the ones that have on-demand instances.
 
 ## Example node pools
