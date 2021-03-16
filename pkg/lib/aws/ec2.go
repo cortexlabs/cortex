@@ -367,7 +367,7 @@ func (c *Client) ListPVCVolumesForCluster(clusterName string) ([]ec2.Volume, err
 			for _, tag := range volume.Tags {
 				if tag.Key != nil && *tag.Key == fmt.Sprintf("kubernetes.io/cluster/%s", clusterName) {
 					volumes = append(volumes, *volume)
-					continue
+					break
 				}
 			}
 		}
