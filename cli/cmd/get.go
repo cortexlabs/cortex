@@ -197,6 +197,8 @@ func getAPIsInAllEnvironments() (string, error) {
 
 	var allRealtimeAPIs []schema.APIResponse
 	var allRealtimeAPIEnvs []string
+	var allAsyncAPIs []schema.APIResponse
+	var allAsyncAPIEnvs []string
 	var allBatchAPIs []schema.APIResponse
 	var allBatchAPIEnvs []string
 	var allTaskAPIs []schema.APIResponse
@@ -231,6 +233,9 @@ func getAPIsInAllEnvironments() (string, error) {
 				case userconfig.RealtimeAPIKind:
 					allRealtimeAPIEnvs = append(allRealtimeAPIEnvs, env.Name)
 					allRealtimeAPIs = append(allRealtimeAPIs, api)
+				case userconfig.AsyncAPIKind:
+					allAsyncAPIEnvs = append(allAsyncAPIEnvs, env.Name)
+					allAsyncAPIs = append(allAsyncAPIs, api)
 				case userconfig.TaskAPIKind:
 					allTaskAPIEnvs = append(allTaskAPIEnvs, env.Name)
 					allTaskAPIs = append(allTaskAPIs, api)
@@ -258,7 +263,7 @@ func getAPIsInAllEnvironments() (string, error) {
 
 	out := ""
 
-	if len(allRealtimeAPIs) == 0 && len(allBatchAPIs) == 0 && len(allTrafficSplitters) == 0 && len(allTaskAPIs) == 0 {
+	if len(allRealtimeAPIs) == 0 && len(allAsyncAPIs) == 0 && len(allBatchAPIs) == 0 && len(allTrafficSplitters) == 0 && len(allTaskAPIs) == 0 {
 		// check if any environments errorred
 		if len(errorsMap) != len(cliConfig.Environments) {
 			if len(errorsMap) == 0 {
@@ -301,11 +306,18 @@ func getAPIsInAllEnvironments() (string, error) {
 			}
 			out += t.MustFormat()
 		}
+		if len(allAsyncAPIs) > 0 {
+			t := asyncAPIsTable(allAsyncAPIs, allAsyncAPIEnvs)
+			if len(allBatchAPIs) > 0 || len(allTaskAPIs) > 0 || len(allRealtimeAPIs) > 0 {
+				out += "\n"
+			}
+			out += t.MustFormat()
+		}
 
 		if len(allTrafficSplitters) > 0 {
 			t := trafficSplitterListTable(allTrafficSplitters, allTrafficSplitterEnvs)
 
-			if len(allRealtimeAPIs) > 0 || len(allBatchAPIs) > 0 || len(allTaskAPIs) > 0 {
+			if len(allBatchAPIs) > 0 || len(allTaskAPIs) > 0 || len(allRealtimeAPIs) > 0 || len(allAsyncAPIs) > 0 {
 				out += "\n"
 			}
 
@@ -339,6 +351,7 @@ func getAPIsByEnv(env cliconfig.Environment, printEnv bool) (string, error) {
 	}
 
 	var allRealtimeAPIs []schema.APIResponse
+	var allAsyncAPIs []schema.APIResponse
 	var allBatchAPIs []schema.APIResponse
 	var allTaskAPIs []schema.APIResponse
 	var allTrafficSplitters []schema.APIResponse
@@ -351,6 +364,8 @@ func getAPIsByEnv(env cliconfig.Environment, printEnv bool) (string, error) {
 			allTaskAPIs = append(allTaskAPIs, api)
 		case userconfig.RealtimeAPIKind:
 			allRealtimeAPIs = append(allRealtimeAPIs, api)
+		case userconfig.AsyncAPIKind:
+			allAsyncAPIs = append(allAsyncAPIs, api)
 		case userconfig.TrafficSplitterKind:
 			allTrafficSplitters = append(allTrafficSplitters, api)
 		}
@@ -406,6 +421,22 @@ func getAPIsByEnv(env cliconfig.Environment, printEnv bool) (string, error) {
 		out += t.MustFormat()
 	}
 
+	if len(allAsyncAPIs) > 0 {
+		envNames := []string{}
+		for range allRealtimeAPIs {
+			envNames = append(envNames, env.Name)
+		}
+
+		t := asyncAPIsTable(allAsyncAPIs, envNames)
+		t.FindHeaderByTitle(_titleEnvironment).Hidden = true
+
+		if len(allBatchAPIs) > 0 || len(allTaskAPIs) > 0 || len(allRealtimeAPIs) > 0 {
+			out += "\n"
+		}
+
+		out += t.MustFormat()
+	}
+
 	if len(allTrafficSplitters) > 0 {
 		envNames := []string{}
 		for range allTrafficSplitters {
@@ -415,7 +446,7 @@ func getAPIsByEnv(env cliconfig.Environment, printEnv bool) (string, error) {
 		t := trafficSplitterListTable(allTrafficSplitters, envNames)
 		t.FindHeaderByTitle(_titleEnvironment).Hidden = true
 
-		if len(allBatchAPIs) > 0 || len(allTaskAPIs) > 0 || len(allRealtimeAPIs) > 0 {
+		if len(allBatchAPIs) > 0 || len(allTaskAPIs) > 0 || len(allRealtimeAPIs) > 0 || len(allAsyncAPIs) > 0 {
 			out += "\n"
 		}
 
@@ -448,6 +479,8 @@ func getAPI(env cliconfig.Environment, apiName string) (string, error) {
 	switch apiRes.Spec.Kind {
 	case userconfig.RealtimeAPIKind:
 		return realtimeAPITable(apiRes, env)
+	case userconfig.AsyncAPIKind:
+		return asyncAPITable(apiRes, env)
 	case userconfig.TrafficSplitterKind:
 		return trafficSplitterTable(apiRes, env)
 	case userconfig.BatchAPIKind:

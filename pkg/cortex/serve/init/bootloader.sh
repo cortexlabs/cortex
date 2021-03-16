@@ -159,6 +159,9 @@ if [ "$CORTEX_KIND" = "RealtimeAPI" ]; then
 elif [ "$CORTEX_KIND" = "BatchAPI" ]; then
     create_s6_service "py_init" "cd /mnt/project && exec /opt/conda/envs/env/bin/python /src/cortex/serve/init/script.py"
     create_s6_service "batch" "cd /mnt/project && $source_env_file_cmd && PYTHONUNBUFFERED=TRUE PYTHONPATH=$PYTHONPATH:$CORTEX_PYTHON_PATH exec /opt/conda/envs/env/bin/python /src/cortex/serve/start/batch.py"
+elif [ "$CORTEX_KIND" = "AsyncAPI" ]; then
+    create_s6_service "py_init" "cd /mnt/project && exec /opt/conda/envs/env/bin/python /src/cortex/serve/init/script.py"
+    create_s6_service "async" "cd /mnt/project && $source_env_file_cmd && PYTHONUNBUFFERED=TRUE PYTHONPATH=$PYTHONPATH:$CORTEX_PYTHON_PATH exec /opt/conda/envs/env/bin/python /src/cortex/serve/start/async.py"
 elif [ "$CORTEX_KIND" = "TaskAPI" ]; then
     create_s6_service "task" "cd /mnt/project && $source_env_file_cmd && PYTHONUNBUFFERED=TRUE PYTHONPATH=$PYTHONPATH:$CORTEX_PYTHON_PATH exec /opt/conda/envs/env/bin/python /src/cortex/serve/start/task.py"
 fi

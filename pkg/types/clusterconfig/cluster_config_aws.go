@@ -70,6 +70,7 @@ type CoreConfig struct {
 	ImageManager                    string `json:"image_manager" yaml:"image_manager"`
 	ImageDownloader                 string `json:"image_downloader" yaml:"image_downloader"`
 	ImageRequestMonitor             string `json:"image_request_monitor" yaml:"image_request_monitor"`
+	ImageAsyncGateway               string `json:"image_async_gateway" yaml:"image_async_gateway"`
 	ImageClusterAutoscaler          string `json:"image_cluster_autoscaler" yaml:"image_cluster_autoscaler"`
 	ImageMetricsServer              string `json:"image_metrics_server" yaml:"image_metrics_server"`
 	ImageInferentia                 string `json:"image_inferentia" yaml:"image_inferentia"`
@@ -283,6 +284,13 @@ var CoreConfigStructFieldValidations = []*cr.StructFieldValidation{
 		StructField: "ImageRequestMonitor",
 		StringValidation: &cr.StringValidation{
 			Default:   "quay.io/cortexlabs/request-monitor:" + consts.CortexVersion,
+			Validator: validateImageVersion,
+		},
+	},
+	{
+		StructField: "ImageAsyncGateway",
+		StringValidation: &cr.StringValidation{
+			Default:   "quay.io/cortexlabs/async-gateway:" + consts.CortexVersion,
 			Validator: validateImageVersion,
 		},
 	},
@@ -729,15 +737,10 @@ func (cc *Config) ToAccessConfig() AccessConfig {
 
 func SQSNamePrefix(clusterName string) string {
 	// 8 was chosen to make sure that other identifiers can be added to the full queue name before reaching the 80 char SQS name limit
-	return "cortex-" + hash.String(clusterName)[:8] + "-"
+	return "cx-" + hash.String(clusterName)[:8] + "-"
 }
 
-// returns hash of cluster name and adds trailing "-"
-func (cc *Config) SQSNamePrefix() string {
-	return SQSNamePrefix(cc.ClusterName)
-}
-
-// returns hash of cluster name and adds trailing "-"
+// returns hash of cluster name and adds trailing "-" e.g. cx-abcd1234-
 func (cc *CoreConfig) SQSNamePrefix() string {
 	return SQSNamePrefix(cc.ClusterName)
 }

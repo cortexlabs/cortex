@@ -38,6 +38,7 @@ dev_images_cluster=(
   "downloader"
   "manager"
   "request-monitor"
+  "async-gateway"
 )
 dev_images_aws=(
   # includes dev_images_cluster

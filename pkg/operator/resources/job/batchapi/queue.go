@@ -39,10 +39,10 @@ const (
 )
 
 func apiQueueNamePrefix(apiName string) string {
-	return config.CoreConfig.SQSNamePrefix() + apiName + "-"
+	return fmt.Sprintf("%sb-%s-", config.CoreConfig.SQSNamePrefix(), apiName)
 }
 
-// QueueName is cortex-<hash of cluster name>-<api_name>-<job_id>.fifo
+// QueueName is cx-<hash of cluster name>-b-<api_name>-<job_id>.fifo
 func getJobQueueName(jobKey spec.JobKey) string {
 	return apiQueueNamePrefix(jobKey.APIName) + jobKey.ID + ".fifo"
 }
@@ -64,7 +64,7 @@ func jobKeyFromQueueURL(queueURL string) spec.JobKey {
 
 	jobID := strings.TrimSuffix(dashSplit[len(dashSplit)-1], ".fifo")
 
-	apiNameSplit := dashSplit[2 : len(dashSplit)-1]
+	apiNameSplit := dashSplit[3 : len(dashSplit)-1]
 	apiName := strings.Join(apiNameSplit, "-")
 
 	return spec.JobKey{APIName: apiName, ID: jobID}
@@ -120,7 +120,7 @@ func doesQueueExist(jobKey spec.JobKey) (bool, error) {
 }
 
 func listQueueURLsForAllAPIs() ([]string, error) {
-	queueURLs, err := config.AWS.ListQueuesByQueueNamePrefix(config.CoreConfig.SQSNamePrefix())
+	queueURLs, err := config.AWS.ListQueuesByQueueNamePrefix(config.CoreConfig.SQSNamePrefix() + "b-")
 	if err != nil {
 		return nil, err
 	}
