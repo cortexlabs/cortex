@@ -1,6 +1,6 @@
 # Multi-instance type clusters
 
-The cluster can be configured to provision different instance types depending on the resource requests of the APIs. The multi instance type cluster has the following advantages over the single-instance type cluster:
+The cluster can be configured to provision different instance types depending on what resources the APIs request. The multi instance type cluster has the following advantages over the single-instance type cluster:
 
 * **Lower costs**: Reduced overall compute costs by using the most economical instance for the given workloads.
 * **Simpler logistics**: Managing multiple clusters on your own is no longer required.
