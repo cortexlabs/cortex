@@ -167,6 +167,10 @@ jobs:
                 instance_type: g4dn.xlarge
                 min_instances: 1
                 max_instances: 2
+              - name: inferentia
+                instance_type: inf1.xlarge
+                min_instances: 1
+                max_instances: 2
             EOF
       - run-e2e-tests:
           provider: aws
