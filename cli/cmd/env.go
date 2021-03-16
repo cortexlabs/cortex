@@ -99,7 +99,7 @@ var _envListCmd = &cobra.Command{
 				fmt.Print("[]")
 				return
 			}
-			bytes, err := libjson.Marshal(cliConfig.Environments)
+			bytes, err := libjson.Marshal(cliConfig.ConvertToUserFacingCLIConfig())
 			if err != nil {
 				exit.Error(err)
 			}

@@ -255,6 +255,12 @@ function write_kubeconfig() {
 }
 
 function setup_configmap() {
+  envsubst < manifests/default_cortex_cli_config.yaml > tmp_cli_config.yaml
+  kubectl -n=default create configmap 'client-config' \
+    --from-file='cli.yaml'=tmp_cli_config.yaml \
+    -o yaml --dry-run=client | kubectl apply -f - >/dev/null
+  rm tmp_cli_config.yaml
+
   kubectl -n=default create configmap 'cluster-config' \
     --from-file='cluster.yaml'=$CORTEX_CLUSTER_CONFIG_FILE \
     -o yaml --dry-run=client | kubectl apply -f - >/dev/null
@@ -272,6 +278,12 @@ function setup_configmap() {
 }
 
 function setup_configmap_gcp() {
+  envsubst < manifests/default_cortex_cli_config.yaml > tmp_cli_config.yaml
+  kubectl -n=default create configmap 'client-config' \
+    --from-file='cli.yaml'=tmp_cli_config.yaml \
+    -o yaml --dry-run=client | kubectl apply -f - >/dev/null
+  rm tmp_cli_config.yaml
+
   kubectl -n=default create configmap 'cluster-config' \
     --from-file='cluster.yaml'=$CORTEX_CLUSTER_CONFIG_FILE \
     -o yaml --dry-run=client | kubectl apply -f - >/dev/null

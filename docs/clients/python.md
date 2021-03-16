@@ -22,10 +22,11 @@
 ## client
 
 ```python
-client(env: str) -> Client
+client(env: str = None) -> Client
 ```
 
 Initialize a client based on the specified environment.
+If no environment name is passed, it will attempt using the default environment.
 
 **Arguments**:
 

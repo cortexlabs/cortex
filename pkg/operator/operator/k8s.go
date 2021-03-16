@@ -49,6 +49,7 @@ const (
 const (
 	_specCacheDir                                  = "/mnt/spec"
 	_modelDir                                      = "/mnt/model"
+	_clientConfigDir                               = "/mnt/client"
 	_emptyDirMountPath                             = "/mnt"
 	_emptyDirVolumeName                            = "mnt"
 	_tfServingContainerName                        = "serve"
@@ -605,6 +606,10 @@ func getTaskEnvVars(api *spec.API, container string) []kcore.EnvVar {
 				Name:  "CORTEX_API_SPEC",
 				Value: config.BucketPath(api.Key),
 			},
+			kcore.EnvVar{
+				Name:  "CORTEX_CLI_CONFIG_DIR",
+				Value: _clientConfigDir,
+			},
 		)
 
 		cortexPythonPath := path.Join(_emptyDirMountPath, "project")
@@ -832,6 +837,10 @@ func getEnvVars(api *spec.API, container string) []kcore.EnvVar {
 			kcore.EnvVar{
 				Name:  "CORTEX_DEPENDENCIES_SHELL",
 				Value: api.Predictor.Dependencies.Shell,
+			},
+			kcore.EnvVar{
+				Name:  "CORTEX_CLI_CONFIG_DIR",
+				Value: _clientConfigDir,
 			},
 		)
 
@@ -1280,6 +1289,16 @@ func baseEnvVars() []kcore.EnvFromSource {
 func DefaultVolumes() []kcore.Volume {
 	var defaultVolumes = []kcore.Volume{
 		k8s.EmptyDirVolume(_emptyDirVolumeName),
+		{
+			Name: "client-config",
+			VolumeSource: kcore.VolumeSource{
+				ConfigMap: &kcore.ConfigMapVolumeSource{
+					LocalObjectReference: kcore.LocalObjectReference{
+						Name: "client-config",
+					},
+				},
+			},
+		},
 	}
 
 	if config.Provider == types.GCPProviderType {
@@ -1299,6 +1318,11 @@ func DefaultVolumes() []kcore.Volume {
 func defaultVolumeMounts() []kcore.VolumeMount {
 	var volumeMounts = []kcore.VolumeMount{
 		k8s.EmptyDirVolumeMount(_emptyDirVolumeName, _emptyDirMountPath),
+		{
+			Name:      "client-config",
+			MountPath: path.Join(_clientConfigDir, "cli.yaml"),
+			SubPath:   "cli.yaml",
+		},
 	}
 
 	if config.Provider == types.GCPProviderType {
