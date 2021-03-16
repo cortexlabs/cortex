@@ -21,7 +21,7 @@ When specifying the node pools in your `cluster.yaml` config, keep in mind that 
 ```yaml
 # cluster.yaml
 
-node_groups:
+node_pools:
   - name: cpu-preempt
     instance_type: e2-standard-2
     preemptible: true
@@ -37,7 +37,7 @@ node_groups:
 ```yaml
 # cluster.yaml
 
-node_groups:
+node_pools:
   - name: cpu
     instance_type: e2-standard-2
   - name: gpu-small
@@ -54,7 +54,7 @@ node_groups:
 ```yaml
 # cluster.yaml
 
-node_groups:
+node_pools:
   - name: cpu-0
     instance_type: e2-standard-2
     preemptible: true
