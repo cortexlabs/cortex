@@ -70,7 +70,7 @@ The above can also be achieved with the following config.
 # cluster.yaml
 
 node_groups:
-  - name: cpu-small
+  - name: cpu-0
     instance_type: t3.medium
     spot: true
     spot_config:
