@@ -40,6 +40,7 @@ node_pools:
     min_instances: 1 # minimum number of instances
     max_instances: 5 # maximum number of instances
     preemptible: false  # enable the use of preemptible instances
+
   - name: np-gpu
     instance_type: n1-standard-2
     accelerator_type: nvidia-tesla-t4
