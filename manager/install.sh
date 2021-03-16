@@ -342,15 +342,21 @@ function restart_operator() {
 function resize_nodegroup() {
   eksctl get nodegroup --cluster=$CORTEX_CLUSTER_NAME --region=$CORTEX_REGION -o json > nodegroups.json
   ng_len=$(cat nodegroups.json | jq -r length)
+  cluster_config_ng_len=$(cat /in/cluster_${CORTEX_CLUSTER_NAME}_${CORTEX_REGION}.yaml | yq -r .node_groups | jq -r length)
   num_resizes=0
 
-  for idx in $(seq 0 $(($ng_len-1))); do
-    stack_ng=$(cat nodegroups.json | jq -r .[$idx].Name)
-    if [ "$stack_ng" = "cx-operator" ]; then
-      continue
-    fi
-
+  for idx in $(seq 0 $(($cluster_config_ng_len-1))); do
     config_ng=$(cat /in/cluster_${CORTEX_CLUSTER_NAME}_${CORTEX_REGION}.yaml | yq -r .node_groups[$idx].name)
+
+    for eks_idx in $(seq 0 $(($ng_len-1))); do
+      stack_ng=$(cat nodegroups.json | jq -r .[$eks_idx].Name)
+      if [ "$stack_ng" = "cx-operator" ]; then
+        continue
+      fi
+      if [[ "$stack_ng" == *"$config_ng" ]]; then
+        break
+      fi
+    done
 
     desired=$(cat nodegroups.json | jq -r .[$idx].DesiredCapacity)
     existing_min=$(cat nodegroups.json | jq -r .[$idx].MinSize)
