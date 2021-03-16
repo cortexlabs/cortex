@@ -6,7 +6,7 @@
 node_groups:
   - name: node-group-0
 
-    # whether to use spot instances in the cluster (default: false)
+    # whether to use spot instances for this node group (default: false)
     spot: false
 
     spot_config:
@@ -25,9 +25,6 @@ node_groups:
 
       # number of spot instance pools across which to allocate spot instances [1, 20] (default: number of instances in instance distribution)
       instance_pools: 3
-
-      # fallback to on-demand instances if spot instances were unable to be allocated (default: true)
-      on_demand_backup: true
 ```
 
 Spot instances are not guaranteed to be available. The chances of getting spot instances can be improved by providing `instance_distribution`, a list of alternative instance types to the primary `instance_type` you specified. If left blank, Cortex will only include the primary instance type in the `instance_distribution`. When using `instance_distribution`, use the instance type with the fewest compute resources as your primary `instance_type`. Note that the default value for `max_price` is the on-demand price of the primary instance type, but you may wish to set this to the on-demand price of the most expensive instance type in your `instance_distribution`.
