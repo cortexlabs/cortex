@@ -30,6 +30,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 	"github.com/cortexlabs/cortex/pkg/operator/lib/routines"
 	"github.com/cortexlabs/cortex/pkg/operator/operator"
+	"github.com/cortexlabs/cortex/pkg/operator/resources/asyncapi"
 	"github.com/cortexlabs/cortex/pkg/operator/resources/job/batchapi"
 	"github.com/cortexlabs/cortex/pkg/operator/resources/job/taskapi"
 	"github.com/cortexlabs/cortex/pkg/operator/resources/realtimeapi"
@@ -164,11 +165,14 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string, force bool) (*schema
 		api, msg, err = batchapi.UpdateAPI(apiConfig, projectID)
 	case userconfig.TaskAPIKind:
 		api, msg, err = taskapi.UpdateAPI(apiConfig, projectID)
+	case userconfig.AsyncAPIKind:
+		api, msg, err = asyncapi.UpdateAPI(*apiConfig, projectID, force)
 	case userconfig.TrafficSplitterKind:
 		api, msg, err = trafficsplitter.UpdateAPI(apiConfig)
 	default:
 		return nil, "", ErrorOperationIsOnlySupportedForKind(
 			*deployedResource, userconfig.RealtimeAPIKind,
+			userconfig.AsyncAPIKind,
 			userconfig.BatchAPIKind,
 			userconfig.TrafficSplitterKind,
 			userconfig.TaskAPIKind,
@@ -235,7 +239,7 @@ func patchAPI(apiConfig *userconfig.API, force bool) (*spec.API, string, error) 
 	}
 
 	if deployedResource.Kind == userconfig.UnknownKind {
-		return nil, "", ErrorOperationIsOnlySupportedForKind(*deployedResource, userconfig.RealtimeAPIKind, userconfig.BatchAPIKind, userconfig.TrafficSplitterKind) // unexpected
+		return nil, "", ErrorOperationIsOnlySupportedForKind(*deployedResource, userconfig.RealtimeAPIKind, userconfig.AsyncAPIKind, userconfig.BatchAPIKind, userconfig.TaskAPIKind, userconfig.TrafficSplitterKind) // unexpected
 	}
 
 	var projectFiles ProjectFiles
@@ -274,6 +278,8 @@ func patchAPI(apiConfig *userconfig.API, force bool) (*spec.API, string, error) 
 		return batchapi.UpdateAPI(apiConfig, prevAPISpec.ProjectID)
 	case userconfig.TaskAPIKind:
 		return taskapi.UpdateAPI(apiConfig, prevAPISpec.ProjectID)
+	case userconfig.AsyncAPIKind:
+		return asyncapi.UpdateAPI(*apiConfig, prevAPISpec.ProjectID, force)
 	default:
 		return trafficsplitter.UpdateAPI(apiConfig)
 	}
@@ -320,6 +326,12 @@ func DeleteAPI(apiName string, keepCache bool) (*schema.DeleteResponse, error) {
 				func() error {
 					return taskapi.DeleteAPI(apiName, keepCache)
 				},
+				func() error {
+					if config.Provider == types.AWSProviderType {
+						return asyncapi.DeleteAPI(apiName, keepCache)
+					}
+					return nil
+				},
 			)
 			if err != nil {
 				telemetry.Error(err)
@@ -353,8 +365,13 @@ func DeleteAPI(apiName string, keepCache bool) (*schema.DeleteResponse, error) {
 		if err != nil {
 			return nil, err
 		}
+	case userconfig.AsyncAPIKind:
+		err = asyncapi.DeleteAPI(apiName, keepCache)
+		if err != nil {
+			return nil, err
+		}
 	default:
-		return nil, ErrorOperationIsOnlySupportedForKind(*deployedResource, userconfig.RealtimeAPIKind, userconfig.BatchAPIKind, userconfig.TrafficSplitterKind) // unexpected
+		return nil, ErrorOperationIsOnlySupportedForKind(*deployedResource, userconfig.RealtimeAPIKind, userconfig.AsyncAPIKind, userconfig.BatchAPIKind, userconfig.TrafficSplitterKind) // unexpected
 	}
 
 	return &schema.DeleteResponse{
@@ -416,9 +433,21 @@ func GetAPIs() ([]schema.APIResponse, error) {
 		return nil, err
 	}
 
-	realtimeAPIPods := []kcore.Pod{}
-	batchAPIPods := []kcore.Pod{}
-	taskAPIPods := []kcore.Pod{}
+	var realtimeAPIDeployments []kapps.Deployment
+	var asyncAPIDeployments []kapps.Deployment
+	for _, deployment := range deployments {
+		switch deployment.Labels["apiKind"] {
+		case userconfig.RealtimeAPIKind.String():
+			realtimeAPIDeployments = append(realtimeAPIDeployments, deployment)
+		case userconfig.AsyncAPIKind.String():
+			asyncAPIDeployments = append(asyncAPIDeployments, deployment)
+		}
+	}
+
+	var realtimeAPIPods []kcore.Pod
+	var batchAPIPods []kcore.Pod
+	var taskAPIPods []kcore.Pod
+	var asyncAPIPods []kcore.Pod
 	for _, pod := range pods {
 		switch pod.Labels["apiKind"] {
 		case userconfig.RealtimeAPIKind.String():
@@ -427,6 +456,8 @@ func GetAPIs() ([]schema.APIResponse, error) {
 			batchAPIPods = append(batchAPIPods, pod)
 		case userconfig.TaskAPIKind.String():
 			taskAPIPods = append(taskAPIPods, pod)
+		case userconfig.AsyncAPIKind.String():
+			asyncAPIPods = append(asyncAPIPods, pod)
 		}
 	}
 
@@ -445,7 +476,7 @@ func GetAPIs() ([]schema.APIResponse, error) {
 		}
 	}
 
-	realtimeAPIList, err := realtimeapi.GetAllAPIs(realtimeAPIPods, deployments)
+	realtimeAPIList, err := realtimeapi.GetAllAPIs(realtimeAPIPods, realtimeAPIDeployments)
 	if err != nil {
 		return nil, err
 	}
@@ -464,6 +495,11 @@ func GetAPIs() ([]schema.APIResponse, error) {
 		}
 	}
 
+	asyncAPIList, err := asyncapi.GetAllAPIs(asyncAPIPods, asyncAPIDeployments)
+	if err != nil {
+		return nil, err
+	}
+
 	trafficSplitterList, err := trafficsplitter.GetAllAPIs(trafficSplitterVirtualServices)
 	if err != nil {
 		return nil, err
@@ -474,6 +510,7 @@ func GetAPIs() ([]schema.APIResponse, error) {
 	response = append(response, realtimeAPIList...)
 	response = append(response, batchAPIList...)
 	response = append(response, taskAPIList...)
+	response = append(response, asyncAPIList...)
 	response = append(response, trafficSplitterList...)
 
 	return response, nil
@@ -503,13 +540,23 @@ func GetAPI(apiName string) ([]schema.APIResponse, error) {
 		if err != nil {
 			return nil, err
 		}
+	case userconfig.AsyncAPIKind:
+		apiResponse, err = asyncapi.GetAPIByName(deployedResource)
+		if err != nil {
+			return nil, err
+		}
 	case userconfig.TrafficSplitterKind:
 		apiResponse, err = trafficsplitter.GetAPIByName(deployedResource)
 		if err != nil {
 			return nil, err
 		}
 	default:
-		return nil, ErrorOperationIsOnlySupportedForKind(*deployedResource, userconfig.RealtimeAPIKind, userconfig.BatchAPIKind) // unexpected
+		return nil, ErrorOperationIsOnlySupportedForKind(
+			*deployedResource,
+			userconfig.RealtimeAPIKind, userconfig.BatchAPIKind,
+			userconfig.TaskAPIKind, userconfig.TrafficSplitterKind,
+			userconfig.AsyncAPIKind,
+		) // unexpected
 	}
 
 	// Get past API deploy times

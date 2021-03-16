@@ -45,7 +45,7 @@ spec:
     matchExpressions:
       - key: "monitoring.cortex.dev"
         operator: "In"
-        values: [ "kubelet-exporter", "node-exporter" ]
+        values: [ "kubelet-exporter", "node-exporter", "operator" ]
   ruleSelector:
     matchLabels:
       prometheus: k8s
@@ -236,3 +236,25 @@ spec:
   selector:
     matchLabels:
       name: prometheus-statsd-exporter
+
+---
+
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: operator
+  labels:
+    name: operator
+    monitoring.cortex.dev: "operator"
+spec:
+  jobLabel: "operator"
+  endpoints:
+    - port: http
+      scheme: http
+      path: /metrics
+      interval: 10s
+  namespaceSelector:
+    any: true
+  selector:
+    matchLabels:
+      cortex.dev/name: operator

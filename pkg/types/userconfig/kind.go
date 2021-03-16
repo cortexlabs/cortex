@@ -24,6 +24,7 @@ const (
 	BatchAPIKind
 	TrafficSplitterKind
 	TaskAPIKind
+	AsyncAPIKind
 )
 
 var _kinds = []string{
@@ -32,6 +33,7 @@ var _kinds = []string{
 	"BatchAPI",
 	"TrafficSplitter",
 	"TaskAPI",
+	"AsyncAPI",
 }
 
 func KindFromString(s string) Kind {

@@ -25,10 +25,11 @@ from typing import Dict, Any
 
 import boto3
 import botocore
+import botocore.exceptions
 
 from cortex_internal.lib.api import get_api, get_spec
 from cortex_internal.lib.concurrency import LockedFile
-from cortex_internal.lib.exceptions import UserException, UserRuntimeException
+from cortex_internal.lib.exceptions import UserRuntimeException
 from cortex_internal.lib.log import configure_logger
 from cortex_internal.lib.metrics import MetricsClient
 from cortex_internal.lib.storage import S3
