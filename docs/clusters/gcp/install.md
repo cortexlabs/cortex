@@ -31,27 +31,23 @@ project: <your GCP project ID>
 # GCP zone for your cluster
 zone: us-east1-c
 
-# instance type
-instance_type: n1-standard-2
-
-# minimum number of instances
-min_instances: 1
-
-# maximum number of instances
-max_instances: 5
-
-# enable the use of preemptible instances
-preemptible: false
-
-# enable the use of on-demand backup instances which will be used when preemptible capacity runs out
-# default is true when preemptible instances are used
-# on_demand_backup: true
-
-# GPU to attach to your instance (optional)
-# accelerator_type: nvidia-tesla-t4
-
-# the number of GPUs to attach to each instance (optional)
-# accelerators_per_instance: 1
+# list of cluster node pools; the smaller index, the higher the priority of the node pool
+node_pools:
+  - name: np-cpu # name of the node pool
+    instance_type: n1-standard-2 # instance type
+    # accelerator_type: nvidia-tesla-t4 # GPU to attach to your instance (optional)
+    # accelerators_per_instance: 1 # the number of GPUs to attach to each instance (optional)
+    min_instances: 1 # minimum number of instances
+    max_instances: 5 # maximum number of instances
+    preemptible: false  # enable the use of preemptible instances
+  - name: np-gpu
+    instance_type: n1-standard-2
+    accelerator_type: nvidia-tesla-t4
+    accelerators_per_instance: 1
+    min_instances: 1
+    max_instances: 5
+    preemptible: false
+  ...
 
 # the name of the network in which to create your cluster
 # network: default
