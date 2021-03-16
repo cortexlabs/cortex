@@ -56,9 +56,9 @@ func (cliConfig *CLIConfig) Validate() error {
 	return nil
 }
 
-func (c *CLIConfig) ConvertToUserFacingCLIConfig() UserFacingCLIConfig {
+func (cliConfig *CLIConfig) ConvertToUserFacingCLIConfig() UserFacingCLIConfig {
 	return UserFacingCLIConfig{
-		DefaultEnvironment: c.DefaultEnvironment,
-		Environments:       c.Environments,
+		DefaultEnvironment: cliConfig.DefaultEnvironment,
+		Environments:       cliConfig.Environments,
 	}
 }
