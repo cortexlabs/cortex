@@ -16,7 +16,7 @@
 
 set +e
 
-CORTEX_VERSION_MINOR=0.31
+CORTEX_VERSION_MINOR=master
 
 debug_out_path="$1"
 mkdir -p "$(dirname "$debug_out_path")"

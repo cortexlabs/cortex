@@ -16,7 +16,7 @@
 
 set -eo pipefail
 
-CORTEX_VERSION_MINOR=0.31
+CORTEX_VERSION_MINOR=master
 
 function get_operator_endpoint() {
   kubectl -n=istio-system get service ingressgateway-operator -o json | tr -d '[:space:]' | sed 's/.*{\"hostname\":\"\(.*\)\".*/\1/'
