@@ -122,7 +122,7 @@ var GCPCoreConfigStructFieldValidations = []*cr.StructFieldValidation{
 		StructField: "ClusterName",
 		StringValidation: &cr.StringValidation{
 			Default:   "cortex",
-			MaxLength: 63,
+			MaxLength: 40, // this is GKE's limit
 			MinLength: 3,
 			Validator: validateClusterName,
 		},
@@ -411,7 +411,7 @@ var GCPAccessValidation = &cr.StructValidation{
 			StructField: "ClusterName",
 			StringValidation: &cr.StringValidation{
 				Default:   "cortex",
-				MaxLength: 63,
+				MaxLength: 40, // this is GKE's limit
 				MinLength: 3,
 				Validator: validateClusterName,
 			},
@@ -496,7 +496,7 @@ var GCPAccessPromptValidation = &cr.PromptValidation{
 			},
 			StringPtrValidation: &cr.StringPtrValidation{
 				Default:   pointer.String("cortex"),
-				MaxLength: 63,
+				MaxLength: 40, // this is GKE's limit
 				MinLength: 3,
 				Validator: validateClusterName,
 			},
@@ -754,6 +754,6 @@ func (cc *GCPManagedConfig) TelemetryEvent() map[string]interface{} {
 }
 
 func GCPBucketName(clusterName string, project string, zone string) string {
-	bucketID := hash.String(project + zone)[:10]
+	bucketID := hash.String(project + zone)[:8] // this is to "guarantee" a globally unique name
 	return clusterName + "-" + bucketID
 }

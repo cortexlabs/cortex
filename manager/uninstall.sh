@@ -40,14 +40,7 @@ function uninstall_gcp() {
 
 function uninstall_aws() {
   echo
-
   aws eks --region $CORTEX_REGION update-kubeconfig --name $CORTEX_CLUSTER_NAME >/dev/null
-
-  if [ "$arg1" != "--keep-volumes" ]; then
-    uninstall_prometheus
-    uninstall_grafana
-  fi
-
   eksctl delete cluster --wait --name=$CORTEX_CLUSTER_NAME --region=$CORTEX_REGION --timeout=$EKSCTL_TIMEOUT
   echo -e "\n✓ done spinning down the cluster"
 }

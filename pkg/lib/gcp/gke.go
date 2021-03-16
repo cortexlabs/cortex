@@ -29,13 +29,13 @@ import (
 	grpcStatus "google.golang.org/grpc/status"
 )
 
-func (c *Client) GetCluster(clusterName string) (*containerpb.Cluster, error) {
+func (c *Client) GetCluster(fullyQualifiedClusterName string) (*containerpb.Cluster, error) {
 	gke, err := c.GKE()
 	if err != nil {
 		return nil, err
 	}
 	cluster, err := gke.GetCluster(context.Background(), &containerpb.GetClusterRequest{
-		Name: clusterName,
+		Name: fullyQualifiedClusterName,
 	})
 	if err != nil {
 		return nil, errors.WithStack(err)

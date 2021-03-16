@@ -330,3 +330,28 @@ func (c *Client) GetAvailableZonesForAccelerator(acceleratorType string) ([]stri
 
 	return availableAcceleratorZones.SliceSorted(), nil
 }
+
+func (c *Client) ListDisks(zone string) ([]compute.Disk, error) {
+	disksClient, err := c.Disks()
+	if err != nil {
+		return nil, err
+	}
+
+	var disks []compute.Disk
+
+	err = disksClient.List(c.ProjectID, zone).Pages(context.Background(), func(list *compute.DiskList) error {
+		for _, disk := range list.Items {
+			if disk == nil {
+				continue
+			}
+			disks = append(disks, *disk)
+		}
+		return nil
+	})
+
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+
+	return disks, nil
+}
