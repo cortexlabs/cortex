@@ -173,9 +173,12 @@ Create `dev/config/cluster-aws.yaml`. Paste the following config, and update `re
 cluster_name: cortex
 provider: aws
 region: <region>  # e.g. us-west-2
-instance_type: m5.large
-min_instances: 1
-max_instances: 5
+
+node_groups:
+  - name: worker-ng
+    instance_type: m5.large
+    min_instances: 1
+    max_instances: 5
 
 image_operator: <account_id>.dkr.ecr.<region>.amazonaws.com/cortexlabs/operator:master
 image_manager: <account_id>.dkr.ecr.<region>.amazonaws.com/cortexlabs/manager:master
@@ -210,10 +213,13 @@ project: <project_id>
 zone: <zone>  # e.g. us-east1-c
 cluster_name: cortex
 provider: gcp
-instance_type: n1-standard-2
-min_instances: 1
-max_instances: 5
-# accelerator_type: nvidia-tesla-k80  # optional
+
+node_pools:
+  - name: worker-np
+    instance_type: n1-standard-2
+    min_instances: 1
+    max_instances: 5
+    # accelerator_type: nvidia-tesla-k80  # optional
 
 image_operator: /cortexlabs/operator:master
 image_manager: gcr.io/<project_id>/cortexlabs/manager:master

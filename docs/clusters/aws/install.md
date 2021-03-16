@@ -31,23 +31,35 @@ region: us-east-1
 # list of availability zones for your region
 availability_zones:  # default: 3 random availability zones in your region, e.g. [us-east-1a, us-east-1b, us-east-1c]
 
-# instance type
-instance_type: m5.large
+# list of cluster node groups; the smaller index, the higher the priority of the node group
+node_groups:
+  - name: ng-cpu # name of the node group
+    instance_type: m5.large # instance type
+    min_instances: 1 # minimum number of instances
+    max_instances: 5 # maximum number of instances
+    instance_volume_size: 50 # disk storage size per instance (GB)
+    instance_volume_type: gp2 # instance volume type [gp2 | io1 | st1 | sc1]
+    # instance_volume_iops: 3000 # instance volume iops (only applicable to io1)
+    spot: false # enable spot instances
 
-# minimum number of instances
-min_instances: 1
+  - name: ng-gpu
+    instance_type: g4dn.xlarge
+    min_instances: 1
+    max_instances: 5
+    instance_volume_size: 50
+    instance_volume_type: gp2
+    # instance_volume_iops: 3000
+    spot: false
 
-# maximum number of instances
-max_instances: 5
-
-# disk storage size per instance (GB)
-instance_volume_size: 50
-
-# instance volume type [gp2 | io1 | st1 | sc1]
-instance_volume_type: gp2
-
-# instance volume iops (only applicable to io1)
-# instance_volume_iops: 3000
+  - name: ng-inferentia
+    instance_type: inf1.xlarge
+    min_instances: 1
+    max_instances: 5
+    instance_volume_size: 50
+    instance_volume_type: gp2
+    # instance_volume_iops: 3000
+    spot: false
+  ...
 
 # subnet visibility [public (instances will have public IPs) | private (instances will not have public IPs)]
 subnet_visibility: public
@@ -74,9 +86,6 @@ operator_load_balancer_scheme: internet-facing
 
 # additional tags to assign to AWS resources (all resources will automatically be tagged with cortex.dev/cluster-name: <cluster_name>)
 tags:  # <string>: <string> map of key/value pairs
-
-# enable spot instances
-spot: false
 
 # SSL certificate ARN (only necessary when using a custom domain)
 ssl_certificate_arn:
