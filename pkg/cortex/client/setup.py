@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import pathlib
 
 from setuptools import setup, find_packages
 from setuptools.command.install import install
@@ -71,8 +72,10 @@ class InstallBinary(install):
             f.chmod(f.stat().st_mode | stat.S_IEXEC)
 
 
-with open("README.md") as f:
-    long_description = f.read()
+long_description = ""
+if pathlib.Path("README.md").is_file():
+    with open("README.md") as f:
+        long_description = f.read()
 
 setup(
     name="cortex",

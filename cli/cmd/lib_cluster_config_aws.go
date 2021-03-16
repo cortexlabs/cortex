@@ -25,6 +25,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
+	"github.com/cortexlabs/cortex/pkg/lib/console"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
 	"github.com/cortexlabs/cortex/pkg/lib/maps"
@@ -33,6 +34,7 @@ import (
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/table"
 	"github.com/cortexlabs/cortex/pkg/types/clusterconfig"
+	"github.com/cortexlabs/yaml"
 )
 
 var _cachedClusterConfigRegex = regexp.MustCompile(`^cluster_\S+\.yaml$`)
@@ -203,6 +205,15 @@ func getConfigureClusterConfig(cachedClusterConfig clusterconfig.Config, cluster
 	if h1 != h2 {
 		return nil, clusterconfig.ErrorConfigCannotBeChangedOnUpdate()
 	}
+
+	yamlBytes, err := yaml.Marshal(userClusterConfig)
+	if err != nil {
+		return nil, err
+	}
+	yamlString := string(yamlBytes)
+
+	fmt.Println(console.Bold("cluster config:"))
+	fmt.Println(yamlString)
 
 	if !disallowPrompt {
 		exitMessage := fmt.Sprintf("cluster configuration can be modified via the cluster config file; see https://docs.cortex.dev/v/%s/ for more information", consts.CortexVersionMinor)
