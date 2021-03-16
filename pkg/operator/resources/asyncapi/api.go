@@ -130,7 +130,7 @@ func UpdateAPI(apiConfig userconfig.API, projectID string, force bool) (*spec.AP
 			return nil, "", err
 		}
 
-		return api, fmt.Sprintf("%s is up to date", api.Resource.UserString()), nil
+		return api, fmt.Sprintf("updating %s", api.Resource.UserString()), nil
 	}
 
 	// nothing changed
