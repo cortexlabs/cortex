@@ -342,7 +342,7 @@ function restart_operator() {
 function resize_nodegroup() {
   eksctl get nodegroup --cluster=$CORTEX_CLUSTER_NAME --region=$CORTEX_REGION -o json > nodegroups.json
   ng_len=$(cat nodegroups.json | jq -r length)
-  cluster_config_ng_len=$(cat /in/cluster_${CORTEX_CLUSTER_NAME}_${CORTEX_REGION}.yaml | yq -r .node_groups | jq -r length)
+  cluster_config_ng_len=$(cat /in/cluster_${CORTEX_CLUSTER_NAME}_${CORTEX_REGION}.yaml | yq -r .node_groups | yq -r length)
   num_resizes=0
 
   for idx in $(seq 0 $(($cluster_config_ng_len-1))); do
