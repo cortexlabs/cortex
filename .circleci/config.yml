@@ -121,8 +121,8 @@ jobs:
       - install-go
       - run: sudo apt update && sudo apt install parallel -y
       - run: sudo pip install awscli
-      - run: make ci-build-images
       - run: make ci-build-cli
+      - run: make ci-build-images
       - return-if-not-deployed-branch
       - quay-login
       - run:
