@@ -33,18 +33,21 @@
 * Async APIs
   * [Example](workloads/async/example.md)
   * [Configuration](workloads/async/configuration.md)
+  * [Statuses](workloads/async/statuses.md)
 * Batch APIs
   * [Example](workloads/batch/example.md)
   * [Predictor](workloads/batch/predictors.md)
   * [Configuration](workloads/batch/configuration.md)
   * [Jobs](workloads/batch/jobs.md)
   * [Statuses](workloads/batch/statuses.md)
+  * [Metrics](workloads/batch/metrics.md)
 * Task APIs
   * [Example](workloads/task/example.md)
   * [Definition](workloads/task/definitions.md)
   * [Configuration](workloads/task/configuration.md)
   * [Jobs](workloads/task/jobs.md)
   * [Statuses](workloads/task/statuses.md)
+  * [Metrics](workloads/task/metrics.md)
 * Dependencies
   * [Example](workloads/dependencies/example.md)
   * [Python packages](workloads/dependencies/python-packages.md)
