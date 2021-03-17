@@ -1,7 +1,7 @@
 # AsyncAPI
 
-{% hint style="warning" %}
-This feature is still experimental.
+{% hint style="info" %}
+AsyncAPI is still in a beta state.
 {% endhint %}
 
 The AsyncAPI kind is designed for asynchronous workloads, in which the user submits a request to start the processing
