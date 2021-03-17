@@ -4,7 +4,7 @@ Create APIs that process your workloads asynchronously.
 
 ## Implementation
 
-Create a folder for your API. In this case we are deploying an iris-classifier AsyncAPI. This folder will have the
+Create a folder for your API. In this case, we are deploying an iris-classifier AsyncAPI. This folder will have the
 following structure:
 
 ```shell
@@ -78,7 +78,7 @@ boto3
 ## Deploy
 
 We can now deploy our API with the `cortex deploy` command. This command can be re-run to update your API configuration
-or predictior implementation.
+or predictor implementation.
 
 ```bash
 cortex deploy cortex.yaml
@@ -110,7 +110,7 @@ cortex get iris-classifier --watch
 Now we want to submit a workload to our deployed API. We will start by creating a file with a JSON request payload, in
 the format expected by our `iris-classifier` predictor implementation.
 
-This is the json file we will submit to our iris-classifier API.
+This is the JSON file we will submit to our iris-classifier API.
 
 ```bash
 # sample.json
