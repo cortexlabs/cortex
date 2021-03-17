@@ -56,8 +56,8 @@ class PythonPredictor:
             config (required): Dictionary passed from API configuration (if
                 specified). This may contain information on where to download
                 the model and/or metadata.
-            metrics_client (optional): The cortex metrics client, which allows 
-                you to push custom metrics in order to build custom dashboards 
+            metrics_client (optional): The cortex metrics client, which allows
+                you to push custom metrics in order to build custom dashboards
                 in grafana.
         """
         pass
