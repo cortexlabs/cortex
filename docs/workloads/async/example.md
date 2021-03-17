@@ -98,9 +98,9 @@ cortex get iris-classifier --watch
 
 # status     up-to-date   requested   last update
 # live       1            1           10s
-# 
+#
 # endpoint: http://<load_balancer_url>/iris-classifier
-# 
+#
 # api id                                                         last deployed
 # 6992e7e8f84469c5-d5w1gbvrm5-25a7c15c950439c0bb32eebb7dc84125   10s
 ```
@@ -137,13 +137,13 @@ The obtained request id will allow us to check the status of the running payload
 submit a `GET` request to the same endpoint URL with an appended `/<id>`.
 
 ```bash
-curl http://<load_balancer_url>/iris-classifier/<id>  # <id> is the request id that was returned in the previous POST request 
+curl http://<load_balancer_url>/iris-classifier/<id>  # <id> is the request id that was returned in the previous POST request
 
 # {
-#   "id": "659938d2-2ef6-41f4-8983-4e0b7562a986", 
-#   "status": "completed", 
+#   "id": "659938d2-2ef6-41f4-8983-4e0b7562a986",
+#   "status": "completed",
 #   "result": {"label": "setosa"},
-#   "timestamp": "2021-03-16T15:50:50+00:00" 
+#   "timestamp": "2021-03-16T15:50:50+00:00"
 # }
 ```
 

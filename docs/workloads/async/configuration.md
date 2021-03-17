@@ -15,6 +15,7 @@
 ### Python Predictor
 
 <!-- CORTEX_VERSION_BRANCH_STABLE x3 -->
+
 ```yaml
 predictor:
   type: python
