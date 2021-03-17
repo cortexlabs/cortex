@@ -32,6 +32,7 @@
   * [Troubleshooting](workloads/realtime/troubleshooting.md)
 * Async APIs
   * [Example](workloads/async/example.md)
+  * [Predictor](workloads/async/predictors.md)
   * [Configuration](workloads/async/configuration.md)
   * [Statuses](workloads/async/statuses.md)
   * [Metrics](workloads/async/metrics.md)
