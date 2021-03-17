@@ -26,7 +26,7 @@ class PythonPredictor:
 
     def predict(self, payload, request_id):
         try:
-            time.sleep(60)  # simulates a long workload    
+            time.sleep(60)  # simulates a long workload
             self.send_report(request_id, STATUS_COMPLETED, result={"data": "hello"})
         except Exception as err:
             self.send_report(request_id, STATUS_FAILED)

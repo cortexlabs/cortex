@@ -192,7 +192,7 @@ class PythonPredictor:
 
 ## API responses
 
-Currently, AsyncAPI responses of your `predict()` method have to be a JSON-serializable dictionary. 
+Currently, AsyncAPI responses of your `predict()` method have to be a JSON-serializable dictionary.
 
 ## Chaining APIs
 
