@@ -30,7 +30,7 @@
     * [Example](workloads/realtime/traffic-splitter/example.md)
     * [Configuration](workloads/realtime/traffic-splitter/configuration.md)
   * [Troubleshooting](workloads/realtime/troubleshooting.md)
-* Async APIs
+* [Async APIs](workloads/async/introduction.md)
   * [Example](workloads/async/example.md)
   * [Predictor](workloads/async/predictors.md)
   * [Configuration](workloads/async/configuration.md)
