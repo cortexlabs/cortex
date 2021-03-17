@@ -1,7 +1,3 @@
-{% hint style="info" %}
-AsyncAPI is still in a beta state.
-{% endhint %}
-
 # AsyncAPI
 
 The AsyncAPI kind is designed for asynchronous workloads, in which the user submits a request to start the processing
@@ -19,3 +15,7 @@ the API predictor. Autoscaling is provided based on the average number of messag
 
 AsyncAPI matches the use-cases of the users that want to submit longer machine learning workloads, such as video, audio
 or document processing, and do not need the result immediately.
+
+{% hint style="info" %}
+AsyncAPI is still in a beta state.
+{% endhint %}
