@@ -81,6 +81,7 @@ you to create a custom metrics from your deployed API that can be later be used 
 Code examples on how to use custom metrics for each API kind can be found here:
 
 - [RealtimeAPI](../realtime/metrics.md#custom-user-metrics)
+- [RealtimeAPI](../async/metrics.md#custom-user-metrics)
 - [BatchAPI](../batch/metrics.md#custom-user-metrics)
 - [TaskAPI](../task/metrics.md#custom-user-metrics)
 

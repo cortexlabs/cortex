@@ -39,6 +39,16 @@ fields @timestamp, message
 | limit 1000
 ```
 
+**AsyncAPI:**
+
+```text
+fields @timestamp, message
+| filter labels.apiName="<INSERT API NAME>"
+| filter labels.apiKind="AsyncAPI"
+| sort @timestamp asc
+| limit 1000
+```
+
 **BatchAPI:**
 
 ```text
@@ -98,5 +108,6 @@ enable you to add custom metadata to the logs.
 See the structured logging docs for each API kind:
 
 - [RealtimeAPI](../../workloads/realtime/predictors.md#structured-logging)
+- [AsyncAPI](../../workloads/async/predictors.md#structured-logging)
 - [BatchAPI](../../workloads/batch/predictors.md#structured-logging)
 - [TaskAPI](../../workloads/task/definitions.md#structured-logging)
