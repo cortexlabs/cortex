@@ -66,6 +66,7 @@
   * [Update](clusters/aws/update.md)
   * [Auth](clusters/aws/auth.md)
   * [Security](clusters/aws/security.md)
+  * [Multi-instance type](clusters/aws/multi-instance-type.md)
   * [Spot instances](clusters/aws/spot.md)
   * [Networking](clusters/aws/networking/index.md)
     * [Custom domain](clusters/aws/networking/custom-domain.md)
@@ -76,6 +77,7 @@
 * GCP
   * [Install](clusters/gcp/install.md)
   * [Credentials](clusters/gcp/credentials.md)
+  * [Multi-instance type](clusters/gcp/multi-instance-type.md)
   * [Setting up kubectl](clusters/gcp/kubectl.md)
   * [Uninstall](clusters/gcp/uninstall.md)
 * [Private Docker registry](clusters/registry.md)
