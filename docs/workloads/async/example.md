@@ -151,6 +151,9 @@ Depending on the status of your workload, you will get different responses back.
 are `in_queue | in_progress | failed | completed`. The `result` and `timestamp` keys are returned if the status
 is `completed`.
 
+It is also possible to setup a webhook in your predictor to get the response sent to a pre-defined web server once the
+workload completes or fails. You can read more about it in the [webhook documentation](./webhooks.md).
+
 ## Stream logs
 
 If necessary, you can stream the logs from a random running pod from your API with the `cortex logs` command. This is
