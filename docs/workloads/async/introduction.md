@@ -1,8 +1,8 @@
-# AsyncAPI
-
 {% hint style="info" %}
 AsyncAPI is still in a beta state.
 {% endhint %}
+
+# AsyncAPI
 
 The AsyncAPI kind is designed for asynchronous workloads, in which the user submits a request to start the processing
 and retrieves the result later, either by polling or through a webhook.
