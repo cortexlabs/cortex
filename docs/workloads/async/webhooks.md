@@ -6,6 +6,8 @@ order to overcome this problem, we can use webhooks.
 A webhook is a request that is sent to a URL known in advance when an event occurs. In our case, the event is a workload
 completion or failure, and the URL known in advance is some other service that we have already running.
 
+## Example
+
 Below is a guideline for implementing webhooks for an `AsyncAPI` workload.
 
 ```python
@@ -43,6 +45,8 @@ class PythonPredictor:
         except Exception:
             pass
 ```
+
+## Development
 
 For development purposes, you can use a utility website such as https://webhook.site/ to validate that your webhook
 setup is working as intended.
