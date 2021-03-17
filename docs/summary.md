@@ -35,6 +35,7 @@
   * [Predictor](workloads/async/predictors.md)
   * [Configuration](workloads/async/configuration.md)
   * [Statuses](workloads/async/statuses.md)
+  * [Webhooks](workloads/async/webhooks.md)
   * [Metrics](workloads/async/metrics.md)
 * Batch APIs
   * [Example](workloads/batch/example.md)
