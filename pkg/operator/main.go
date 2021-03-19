@@ -71,7 +71,8 @@ func main() {
 			exit.Error(errors.Wrap(err, "init"))
 		}
 
-		for _, deployment := range deployments {
+		for i := range deployments {
+			deployment := deployments[i]
 			apiKind := deployment.Labels["apiKind"]
 			if userconfig.KindFromString(apiKind) == userconfig.RealtimeAPIKind ||
 				userconfig.KindFromString(apiKind) == userconfig.AsyncAPIKind {

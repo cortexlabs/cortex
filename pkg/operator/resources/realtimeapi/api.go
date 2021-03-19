@@ -200,7 +200,8 @@ func GetAllAPIs(pods []kcore.Pod, deployments []kapps.Deployment) ([]schema.APIR
 
 	realtimeAPIs := make([]schema.APIResponse, len(apis))
 
-	for i, api := range apis {
+	for i := range apis {
+		api := apis[i]
 		endpoint, err := operator.APIEndpoint(&api)
 		if err != nil {
 			return nil, err
