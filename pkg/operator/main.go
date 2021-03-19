@@ -71,7 +71,8 @@ func main() {
 			exit.Error(errors.Wrap(err, "init"))
 		}
 
-		for i, deployment := range deployments {
+		for i := range deployments {
+			deployment := deployments[i]
 			apiKind := deployment.Labels["apiKind"]
 			if userconfig.KindFromString(apiKind) == userconfig.RealtimeAPIKind ||
 				userconfig.KindFromString(apiKind) == userconfig.AsyncAPIKind {
@@ -84,15 +85,15 @@ func main() {
 
 				switch apiKind {
 				case userconfig.RealtimeAPIKind.String():
-					if err := realtimeapi.UpdateAutoscalerCron(&deployments[i], api); err != nil {
+					if err := realtimeapi.UpdateAutoscalerCron(&deployment, api); err != nil {
 						operatorLogger.Fatal(errors.Wrap(err, "init"))
 					}
 				case userconfig.AsyncAPIKind.String():
-					if err := asyncapi.UpdateMetricsCron(&deployments[i]); err != nil {
+					if err := asyncapi.UpdateMetricsCron(&deployment); err != nil {
 						operatorLogger.Fatal(errors.Wrap(err, "init"))
 					}
 
-					if err := asyncapi.UpdateAutoscalerCron(&deployments[i], *api); err != nil {
+					if err := asyncapi.UpdateAutoscalerCron(&deployment, *api); err != nil {
 						operatorLogger.Fatal(errors.Wrap(err, "init"))
 					}
 				}

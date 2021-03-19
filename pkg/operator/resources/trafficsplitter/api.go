@@ -138,8 +138,9 @@ func GetAllAPIs(virtualServices []istioclientnetworking.VirtualService) ([]schem
 		return nil, err
 	}
 
-	for _, trafficSplitter := range apis {
-		endpoint, err := operator.APIEndpoint(&trafficSplitter) // nolint:looppointer
+	for i := range apis {
+		trafficSplitter := apis[i]
+		endpoint, err := operator.APIEndpoint(&trafficSplitter)
 		if err != nil {
 			return nil, err
 		}

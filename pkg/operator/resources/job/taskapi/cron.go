@@ -203,8 +203,8 @@ func reconcileInProgressJob(jobState *job.State, jobFound bool) (status.JobCode,
 
 func checkIfJobCompleted(jobKey spec.JobKey, k8sJob kbatch.Job) error {
 	pods, _ := config.K8s.ListPodsByLabel("jobID", jobKey.ID)
-	for _, pod := range pods {
-		if k8s.WasPodOOMKilled(&pod) { // nolint:looppointer
+	for i := range pods {
+		if k8s.WasPodOOMKilled(&pods[i]) {
 			return errors.FirstError(
 				job.SetWorkerOOMStatus(jobKey),
 				deleteJobRuntimeResources(jobKey),

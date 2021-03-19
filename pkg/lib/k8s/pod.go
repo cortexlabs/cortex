@@ -134,12 +134,13 @@ func IsPodReady(pod *kcore.Pod) bool {
 }
 
 func GetPodReadyTime(pod *kcore.Pod) *time.Time {
-	for _, condition := range pod.Status.Conditions {
+	for i := range pod.Status.Conditions {
+		condition := pod.Status.Conditions[i]
+
 		if condition.Type == "Ready" && condition.Status == kcore.ConditionTrue {
 			if condition.LastTransitionTime.Time.IsZero() {
 				return nil
 			}
-			condition := condition
 			return &condition.LastTransitionTime.Time
 		}
 	}
