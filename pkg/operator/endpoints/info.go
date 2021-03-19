@@ -94,6 +94,8 @@ func getNodeInfos() ([]schema.NodeInfo, int, error) {
 	spotPriceCache := make(map[string]float64)                   // instance type -> spot price
 
 	for _, node := range nodes {
+		node := node
+
 		instanceType := node.Labels["beta.kubernetes.io/instance-type"]
 		nodeGroupName := node.Labels["alpha.eksctl.io/nodegroup-name"]
 		isSpot := strings.Contains(strings.ToLower(node.Labels["lifecycle"]), "spot")
@@ -145,7 +147,7 @@ func getNodeInfos() ([]schema.NodeInfo, int, error) {
 			node.NumReplicas++
 		}
 
-		cpu, mem, gpu, inf := k8s.TotalPodCompute(&pod.Spec)
+		cpu, mem, gpu, inf := k8s.TotalPodCompute(&pod.Spec) // nolint: looppointer
 
 		node.ComputeAvailable.CPU.SubQty(cpu)
 		node.ComputeAvailable.Mem.SubQty(mem)

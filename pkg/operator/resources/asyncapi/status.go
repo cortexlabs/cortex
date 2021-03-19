@@ -241,7 +241,7 @@ func getReplicaCounts(deployment *kapps.Deployment, pods []kcore.Pod) status.Rep
 		if pod.Labels["apiName"] != deployment.Labels["apiName"] {
 			continue
 		}
-		addPodToReplicaCounts(&pod, deployment, &counts)
+		addPodToReplicaCounts(&pod, deployment, &counts) // nolint: looppointer
 	}
 
 	return counts

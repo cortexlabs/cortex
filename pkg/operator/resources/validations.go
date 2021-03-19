@@ -236,12 +236,12 @@ func awsManagedValidateK8sCompute(compute *userconfig.Compute, maxMemMap map[str
 
 func validateEndpointCollisions(api *userconfig.API, virtualServices []istioclientnetworking.VirtualService) error {
 	for _, virtualService := range virtualServices {
-		gateways := k8s.ExtractVirtualServiceGateways(&virtualService)
+		gateways := k8s.ExtractVirtualServiceGateways(&virtualService) // nolint: looppointer
 		if !gateways.Has("apis-gateway") {
 			continue
 		}
 
-		endpoints := k8s.ExtractVirtualServiceEndpoints(&virtualService)
+		endpoints := k8s.ExtractVirtualServiceEndpoints(&virtualService) // nolint: looppointer
 		for endpoint := range endpoints {
 			if s.EnsureSuffix(endpoint, "/") == s.EnsureSuffix(*api.Networking.Endpoint, "/") && virtualService.Labels["apiName"] != api.Name {
 				return errors.Wrap(spec.ErrorDuplicateEndpoint(virtualService.Labels["apiName"]), userconfig.NetworkingKey, userconfig.EndpointKey, endpoint)

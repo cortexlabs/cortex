@@ -139,6 +139,7 @@ func GetPodReadyTime(pod *kcore.Pod) *time.Time {
 			if condition.LastTransitionTime.Time.IsZero() {
 				return nil
 			}
+			condition := condition
 			return &condition.LastTransitionTime.Time
 		}
 	}
