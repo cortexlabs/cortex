@@ -127,14 +127,14 @@ func runConstantRequestsPerSecondIteration(url string, jsonBytes []byte, inFligh
 func runConstantInFlight(url string, jsonBytes []byte) {
 	start := time.Now()
 	loopNum := 1
-	for true {
+	for {
 		runConstantInFlightIteration(url, jsonBytes)
 		if loopNum >= _numMainLoops {
 			break
 		}
 		loopNum++
 	}
-	fmt.Println("total elapsed time:", time.Now().Sub(start))
+	fmt.Println("total elapsed time:", time.Since(start))
 }
 
 func runConstantInFlightIteration(url string, jsonBytes []byte) {

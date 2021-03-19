@@ -1140,7 +1140,7 @@ func GetDefaults() (*Config, error) {
 }
 
 func (ng *NodeGroup) MaxPossibleOnDemandInstances() int64 {
-	if ng.Spot == false || ng.SpotConfig == nil {
+	if !ng.Spot || ng.SpotConfig == nil {
 		return ng.MaxInstances
 	}
 
@@ -1149,7 +1149,7 @@ func (ng *NodeGroup) MaxPossibleOnDemandInstances() int64 {
 }
 
 func (ng *NodeGroup) MaxPossibleSpotInstances() int64 {
-	if ng.Spot == false {
+	if !ng.Spot {
 		return 0
 	}
 

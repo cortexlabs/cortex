@@ -311,7 +311,7 @@ func checkIfAPIExists(trafficSplitterAPIs []*userconfig.TrafficSplit, apis []use
 				deployed = true
 			}
 		}
-		if deployed == false {
+		if !deployed {
 			missingAPIs = append(missingAPIs, trafficSplitAPI.Name)
 		}
 	}

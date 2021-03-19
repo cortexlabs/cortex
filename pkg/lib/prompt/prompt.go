@@ -80,7 +80,7 @@ func Prompt(opts *Options) string {
 }
 
 func YesOrExit(prompt string, yesMessage string, noMessage string) {
-	for true {
+	for {
 		str := Prompt(&Options{
 			Prompt:      prompt + " (y/n)",
 			HideDefault: true,

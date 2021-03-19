@@ -18,7 +18,7 @@ package slices
 
 func HasTrue(list []bool) bool {
 	for _, elem := range list {
-		if elem == true {
+		if elem {
 			return true
 		}
 	}

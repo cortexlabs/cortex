@@ -73,7 +73,7 @@ func getNewGCPClusterAccessConfig(clusterConfigFile string) (*clusterconfig.GCPA
 	return accessConfig, nil
 }
 
-func getGCPClusterAccessConfigWithCache(disallowPrompt bool) (*clusterconfig.GCPAccessConfig, error) {
+func getGCPClusterAccessConfigWithCache() (*clusterconfig.GCPAccessConfig, error) {
 	accessConfig := &clusterconfig.GCPAccessConfig{
 		ImageManager: "quay.io/cortexlabs/manager:" + consts.CortexVersion,
 	}
