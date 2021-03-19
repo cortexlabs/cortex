@@ -1,8 +1,11 @@
 import os
+import time
 import boto3
 from botocore import UNSIGNED
 from botocore.client import Config
 import pickle
+
+import iris_classifier_pb2
 
 labels = ["setosa", "versicolor", "virginica"]
 
@@ -19,11 +22,13 @@ class PythonPredictor:
 
     def predict(self, payload):
         measurements = [
-            payload["sepal_length"],
-            payload["sepal_width"],
-            payload["petal_length"],
-            payload["petal_width"],
+            payload.sepal_length,
+            payload.sepal_width,
+            payload.petal_length,
+            payload.petal_width,
         ]
 
+        time.sleep(1)
+
         label_id = self.model.predict([measurements])[0]
-        return labels[label_id]
+        return iris_classifier_pb2.Response(classification=labels[label_id])

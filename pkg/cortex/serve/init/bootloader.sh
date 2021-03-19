@@ -18,6 +18,7 @@ set -e
 
 # CORTEX_VERSION
 export EXPECTED_CORTEX_VERSION=master
+export CORTEX_SERVING_PROTOCOL="grpc"
 
 if [ "$CORTEX_VERSION" != "$EXPECTED_CORTEX_VERSION" ]; then
     echo "error: your Cortex operator version ($CORTEX_VERSION) doesn't match your predictor image version ($EXPECTED_CORTEX_VERSION); please update your predictor image by modifying the \`image\` field in your API configuration file (e.g. cortex.yaml) and re-running \`cortex deploy\`, or update your cluster by following the instructions at https://docs.cortex.dev/"
@@ -142,11 +143,21 @@ create_s6_service_from_file() {
 
 # prepare webserver
 if [ "$CORTEX_KIND" = "RealtimeAPI" ]; then
+    if [ $CORTEX_SERVING_PROTOCOL = "http" ]; then
+        mkdir /run/uvicorn
+    fi
 
-    # prepare uvicorn workers
-    mkdir /run/uvicorn
+    # prepare servers
     for i in $(seq 1 $CORTEX_PROCESSES_PER_REPLICA); do
-        create_s6_service "uvicorn-$((i-1))" "cd /mnt/project && $source_env_file_cmd && PYTHONUNBUFFERED=TRUE PYTHONPATH=$PYTHONPATH:$CORTEX_PYTHON_PATH exec /opt/conda/envs/env/bin/python /src/cortex/serve/start/server.py /run/uvicorn/proc-$((i-1)).sock"
+        # prepare uvicorn workers
+        if [ $CORTEX_SERVING_PROTOCOL = "http" ]; then
+            create_s6_service "uvicorn-$((i-1))" "cd /mnt/project && $source_env_file_cmd && PYTHONUNBUFFERED=TRUE PYTHONPATH=$PYTHONPATH:$CORTEX_PYTHON_PATH exec /opt/conda/envs/env/bin/python /src/cortex/serve/start/server.py /run/uvicorn/proc-$((i-1)).sock"
+        fi
+
+        # prepare grpc workers
+        if [ $CORTEX_SERVING_PROTOCOL = "grpc" ]; then
+            create_s6_service "grpc-$((i-1))" "cd /mnt/project && $source_env_file_cmd && PYTHONUNBUFFERED=TRUE PYTHONPATH=$PYTHONPATH:$CORTEX_PYTHON_PATH exec /opt/conda/envs/env/bin/python /src/cortex/serve/start/server_grpc.py localhost:$((i-1+20000))"
+        fi
     done
 
     # generate nginx conf
@@ -154,6 +165,8 @@ if [ "$CORTEX_KIND" = "RealtimeAPI" ]; then
 
     create_s6_service "py_init" "cd /mnt/project && exec /opt/conda/envs/env/bin/python /src/cortex/serve/init/script.py"
     create_s6_service "nginx" "exec nginx -c /run/nginx.conf"
+
+    touch /mnt/workspace/api_readiness.txt
     create_s6_service_from_file "api_readiness" "/src/cortex/serve/poll/readiness.sh"
 
 elif [ "$CORTEX_KIND" = "BatchAPI" ]; then
