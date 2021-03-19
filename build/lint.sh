@@ -57,7 +57,7 @@ if [[ $output ]]; then
   exit 1
 fi
 
-output=$(looppointer "$ROOT/..." || true)
+output=$(looppointer "$ROOT/...")
 if [[ $output ]]; then
   echo "$output"
   exit 1
