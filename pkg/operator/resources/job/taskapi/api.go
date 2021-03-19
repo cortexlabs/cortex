@@ -123,8 +123,8 @@ func GetAllAPIs(virtualServices []istioclientnetworking.VirtualService, k8sJobs 
 	taskAPIsMap := map[string]*schema.APIResponse{}
 
 	jobIDToK8sJobMap := map[string]*kbatch.Job{}
-	for _, job := range k8sJobs {
-		jobIDToK8sJobMap[job.Labels["jobID"]] = &job
+	for i, kJob := range k8sJobs {
+		jobIDToK8sJobMap[kJob.Labels["jobID"]] = &k8sJobs[i]
 	}
 
 	jobIDToPodsMap := map[string][]kcore.Pod{}
@@ -204,7 +204,7 @@ func GetAllAPIs(virtualServices []istioclientnetworking.VirtualService, k8sJobs 
 	return taskAPIList, nil
 }
 
-// GetAllAPIs returns a single task API and its most recently submitted job along with all running task jobs
+// GetAPIByName returns a single task API and its most recently submitted job along with all running task jobs
 func GetAPIByName(deployedResource *operator.DeployedResource) ([]schema.APIResponse, error) {
 	virtualService := deployedResource.VirtualService
 
@@ -220,8 +220,8 @@ func GetAPIByName(deployedResource *operator.DeployedResource) ([]schema.APIResp
 	}
 
 	jobIDToK8sJobMap := map[string]*kbatch.Job{}
-	for _, job := range k8sJobs {
-		jobIDToK8sJobMap[job.Labels["jobID"]] = &job
+	for i, kJob := range k8sJobs {
+		jobIDToK8sJobMap[kJob.Labels["jobID"]] = &k8sJobs[i]
 	}
 
 	endpoint, err := operator.APIEndpoint(api)

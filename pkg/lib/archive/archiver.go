@@ -46,29 +46,29 @@ func archive(input *Input, arc archiver) (strset.Set, error) {
 	addedPaths := strset.New()
 	var err error
 
-	for _, byteInput := range input.Bytes {
-		err = addBytesToArchive(&byteInput, input, arc, addedPaths)
+	for i := range input.Bytes {
+		err = addBytesToArchive(&input.Bytes[i], input, arc, addedPaths)
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	for _, fileInput := range input.Files {
-		err = addFileToArchive(&fileInput, input, arc, addedPaths)
+	for i := range input.Files {
+		err = addFileToArchive(&input.Files[i], input, arc, addedPaths)
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	for _, dirInput := range input.Dirs {
-		err = addDirToArchive(&dirInput, input, arc, addedPaths)
+	for i := range input.Dirs {
+		err = addDirToArchive(&input.Dirs[i], input, arc, addedPaths)
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	for _, fileListInput := range input.FileLists {
-		err = addFileListToArchive(&fileListInput, input, arc, addedPaths)
+	for i := range input.FileLists {
+		err = addFileListToArchive(&input.FileLists[i], input, arc, addedPaths)
 		if err != nil {
 			return nil, err
 		}
