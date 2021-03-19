@@ -147,7 +147,7 @@ func getNodeInfos() ([]schema.NodeInfo, int, error) {
 			node.NumReplicas++
 		}
 
-		cpu, mem, gpu, inf := k8s.TotalPodCompute(&pod.Spec) // nolint: looppointer
+		cpu, mem, gpu, inf := k8s.TotalPodCompute(&pod.Spec) // nolint:looppointer
 
 		node.ComputeAvailable.CPU.SubQty(cpu)
 		node.ComputeAvailable.Mem.SubQty(mem)
