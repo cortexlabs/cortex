@@ -204,7 +204,7 @@ var _clusterGCPInfoCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
-		accessConfig, err := getGCPClusterAccessConfigWithCache(_flagClusterGCPDisallowPrompt)
+		accessConfig, err := getGCPClusterAccessConfigWithCache()
 		if err != nil {
 			exit.Error(err)
 		}
@@ -234,7 +234,7 @@ var _clusterGCPDownCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
-		accessConfig, err := getGCPClusterAccessConfigWithCache(_flagClusterGCPDisallowPrompt)
+		accessConfig, err := getGCPClusterAccessConfigWithCache()
 		if err != nil {
 			exit.Error(err)
 		}
@@ -348,7 +348,7 @@ func cmdInfoGCP(accessConfig *clusterconfig.GCPAccessConfig, disallowPrompt bool
 		}
 	}
 
-	if err := printInfoOperatorResponseGCP(accessConfig, operatorEndpoint); err != nil {
+	if err := printInfoOperatorResponseGCP(operatorEndpoint); err != nil {
 		exit.Error(err)
 	}
 
@@ -359,7 +359,7 @@ func cmdInfoGCP(accessConfig *clusterconfig.GCPAccessConfig, disallowPrompt bool
 	}
 }
 
-func printInfoOperatorResponseGCP(accessConfig *clusterconfig.GCPAccessConfig, operatorEndpoint string) error {
+func printInfoOperatorResponseGCP(operatorEndpoint string) error {
 	fmt.Print("fetching cluster status ...\n\n")
 
 	operatorConfig := cluster.OperatorConfig{

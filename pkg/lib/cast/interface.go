@@ -772,9 +772,9 @@ func StrMapToStrInterfaceMap(in map[string]string) map[string]interface{} {
 }
 
 func IsIntType(in interface{}) bool {
-	switch in.(type) {
+	switch in := in.(type) {
 	case json.Number:
-		_, err := in.(json.Number).Int64()
+		_, err := in.Int64()
 		return err == nil
 	case int8:
 		return true
@@ -791,10 +791,10 @@ func IsIntType(in interface{}) bool {
 }
 
 func IsFloatType(in interface{}) bool {
-	switch in.(type) {
+	switch in := in.(type) {
 	case json.Number:
-		_, intErr := in.(json.Number).Int64()
-		_, floatErr := in.(json.Number).Float64()
+		_, intErr := in.Int64()
+		_, floatErr := in.Float64()
 		return floatErr == nil && intErr != nil
 	case float32:
 		return true

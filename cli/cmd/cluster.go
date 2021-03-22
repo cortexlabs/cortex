@@ -51,19 +51,15 @@ import (
 )
 
 var (
-	_flagClusterUpEnv              string
-	_flagClusterInfoEnv            string
-	_flagClusterConfigureEnv       string
-	_flagClusterConfig             string
-	_flagClusterName               string
-	_flagClusterRegion             string
-	_flagClusterInfoDebug          bool
-	_flagClusterDisallowPrompt     bool
-	_flagClusterDownKeepVolumes    bool
-	_flagAWSAccessKeyID            string
-	_flagAWSSecretAccessKey        string
-	_flagClusterAWSAccessKeyID     string
-	_flagClusterAWSSecretAccessKey string
+	_flagClusterUpEnv           string
+	_flagClusterInfoEnv         string
+	_flagClusterConfigureEnv    string
+	_flagClusterConfig          string
+	_flagClusterName            string
+	_flagClusterRegion          string
+	_flagClusterInfoDebug       bool
+	_flagClusterDisallowPrompt  bool
+	_flagClusterDownKeepVolumes bool
 )
 
 func clusterInit() {
@@ -323,7 +319,7 @@ var _clusterConfigureCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
-		cachedClusterConfig := refreshCachedClusterConfig(*awsClient, accessConfig, _flagClusterDisallowPrompt)
+		cachedClusterConfig := refreshCachedClusterConfig(*awsClient, accessConfig)
 
 		clusterConfig, err := getConfigureClusterConfig(cachedClusterConfig, clusterConfigFile, _flagClusterDisallowPrompt)
 		if err != nil {
@@ -659,7 +655,7 @@ func cmdInfo(awsClient *aws.Client, accessConfig *clusterconfig.AccessConfig, di
 		exit.Error(err)
 	}
 
-	clusterConfig := refreshCachedClusterConfig(*awsClient, accessConfig, disallowPrompt)
+	clusterConfig := refreshCachedClusterConfig(*awsClient, accessConfig)
 
 	out, exitCode, err := runManagerWithClusterConfig("/root/info.sh", &clusterConfig, awsClient, nil, nil)
 	if err != nil {
@@ -945,7 +941,7 @@ func cmdDebug(awsClient *aws.Client, accessConfig *clusterconfig.AccessConfig) {
 	return
 }
 
-func refreshCachedClusterConfig(awsClient aws.Client, accessConfig *clusterconfig.AccessConfig, disallowPrompt bool) clusterconfig.Config {
+func refreshCachedClusterConfig(awsClient aws.Client, accessConfig *clusterconfig.AccessConfig) clusterconfig.Config {
 	// add empty file if cached cluster doesn't exist so that the file output by manager container maintains current user permissions
 	cachedClusterConfigPath := cachedClusterConfigPath(accessConfig.ClusterName, accessConfig.Region)
 	containerConfigPath := fmt.Sprintf("/out/%s", filepath.Base(cachedClusterConfigPath))
