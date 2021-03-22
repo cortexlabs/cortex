@@ -27,4 +27,4 @@ class PythonPredictor:
         ]
 
         label_id = self.model.predict([measurements])[0]
-        return {"result": labels[label_id]}
+        return {"label": labels[label_id]}
