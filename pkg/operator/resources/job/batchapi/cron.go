@@ -364,7 +364,8 @@ func checkForJobFailure(jobKey spec.JobKey, k8sJob kbatch.Job) (bool, error) {
 
 	reasonFound := false
 	pods, _ := config.K8s.ListPodsByLabel("jobID", jobKey.ID)
-	for _, pod := range pods {
+	for i := range pods {
+		pod := pods[i] // to avoid loop pointer bugs
 		if k8s.WasPodOOMKilled(&pod) {
 			jobLogger.Error("at least one worker was killed because it ran out of out of memory")
 			return true, errors.FirstError(
