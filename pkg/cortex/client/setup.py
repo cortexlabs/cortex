@@ -79,7 +79,7 @@ if pathlib.Path("README.md").is_file():
 
 setup(
     name="cortex",
-    version="0.31.0",  # CORTEX_VERSION
+    version="0.31.1",  # CORTEX_VERSION
     description="Deploy machine learning models to production",
     author="cortex.dev",
     author_email="dev@cortex.dev",
