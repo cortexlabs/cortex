@@ -752,7 +752,7 @@ func (c *Client) HashS3Dir(bucket string, prefix string, maxResults *int64) (str
 		return "", err
 	}
 
-	return hex.EncodeToString((md5Hash.Sum(nil))), nil
+	return hex.EncodeToString(md5Hash.Sum(nil)), nil
 }
 
 // Directory objects are empty objects ending in "/". They are not guaranteed to exists, and there may or may not be files "in" the directory

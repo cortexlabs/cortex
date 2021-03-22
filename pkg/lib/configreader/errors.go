@@ -77,14 +77,14 @@ const (
 func ErrorParseConfig() error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrParseConfig,
-		Message: fmt.Sprintf("failed to parse config file"),
+		Message: "failed to parse config file",
 	})
 }
 
 func ErrorUnsupportedFieldValidation() error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrUnsupportedFieldValidation,
-		Message: fmt.Sprintf("undefined or unsupported field validation"),
+		Message: "undefined or unsupported field validation",
 	})
 }
 

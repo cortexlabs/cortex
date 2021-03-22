@@ -499,7 +499,7 @@ func ErrorFieldNotSupportedByPredictorType(fieldKey string, predictorType userco
 func ErrorCortexPrefixedEnvVarNotAllowed() error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrCortexPrefixedEnvVarNotAllowed,
-		Message: fmt.Sprintf("environment variables starting with CORTEX_ are reserved"),
+		Message: "environment variables starting with CORTEX_ are reserved",
 	})
 }
 

@@ -234,7 +234,7 @@ func PodStatusFromContainerStatuses(containerStatuses []kcore.ContainerStatus) P
 		return PodStatusPending
 	}
 	for _, containerStatus := range containerStatuses {
-		if containerStatus.State.Running != nil && containerStatus.Ready == true {
+		if containerStatus.State.Running != nil && containerStatus.Ready {
 			numRunning++
 		} else if containerStatus.State.Running != nil && containerStatus.RestartCount == 0 {
 			numRunning++

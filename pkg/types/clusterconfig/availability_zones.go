@@ -74,7 +74,7 @@ func (cc *Config) setDefaultAvailabilityZones(awsClient *aws.Client) error {
 	return nil
 }
 
-func (cc *Config) validateUserAvailabilityZones(awsClient *aws.Client, extraInstances ...string) error {
+func (cc *Config) validateUserAvailabilityZones(awsClient *aws.Client) error {
 	instanceTypes := strset.New()
 	for _, ng := range cc.NodeGroups {
 		instanceTypes.Add(ng.InstanceType)

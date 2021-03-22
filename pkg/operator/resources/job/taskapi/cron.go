@@ -112,7 +112,7 @@ func ManageJobResources() error {
 		}
 
 		// reconcile job state and k8s job
-		newStatusCode, msg, err := reconcileInProgressJob(jobState, jobFound)
+		newStatusCode, msg := reconcileInProgressJob(jobState, jobFound)
 		if err != nil {
 			telemetry.Error(err)
 			operatorLogger.Error(err)
@@ -187,18 +187,18 @@ func ManageJobResources() error {
 }
 
 // verifies k8s job exists for a job in running status, if verification fails return a job code to reflect the state
-func reconcileInProgressJob(jobState *job.State, jobFound bool) (status.JobCode, string, error) {
+func reconcileInProgressJob(jobState *job.State, jobFound bool) (status.JobCode, string) {
 	if jobState.Status == status.JobRunning {
-		if time.Now().Sub(jobState.LastUpdatedMap[status.JobRunning.String()]) <= _k8sJobExistenceGracePeriod {
-			return jobState.Status, "", nil
+		if time.Since(jobState.LastUpdatedMap[status.JobRunning.String()]) <= _k8sJobExistenceGracePeriod {
+			return jobState.Status, ""
 		}
 
 		if !jobFound { // unexpected k8s job missing
-			return status.JobUnexpectedError, fmt.Sprintf("terminating job %s; unable to find kubernetes job", jobState.JobKey.UserString()), nil
+			return status.JobUnexpectedError, fmt.Sprintf("terminating job %s; unable to find kubernetes job", jobState.JobKey.UserString())
 		}
 	}
 
-	return jobState.Status, "", nil
+	return jobState.Status, ""
 }
 
 func checkIfJobCompleted(jobKey spec.JobKey, k8sJob kbatch.Job) error {
