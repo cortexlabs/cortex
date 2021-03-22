@@ -34,6 +34,11 @@ if ! command -v golint >/dev/null 2>&1; then
   exit 1
 fi
 
+if ! command -v looppointer >/dev/null 2>&1; then
+  echo "looppointer must be installed"
+  exit 1
+fi
+
 if ! command -v gofmt >/dev/null 2>&1; then
   echo "gofmt must be installed"
   exit 1
@@ -47,6 +52,12 @@ fi
 go vet "$ROOT/..."
 
 output=$(golint "$ROOT/..." | grep -v "comment" || true)
+if [[ $output ]]; then
+  echo "$output"
+  exit 1
+fi
+
+output=$(looppointer "$ROOT/...")
 if [[ $output ]]; then
   echo "$output"
   exit 1
