@@ -9,7 +9,7 @@ The dashboard URL is displayed once you run a `cortex get <api_name>` command.
 Alternatively, you can access it on `http://<operator_url>/dashboard`. Run the following command to get the operator
 URL:
 
-```shell
+```bash
 cortex env list
 ```
 

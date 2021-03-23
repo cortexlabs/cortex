@@ -1,6 +1,6 @@
 # Uninstall
 
-```shell
+```bash
 cortex cluster down
 ```
 
@@ -11,7 +11,7 @@ Prometheus volume are not automatically deleted when running `cortex cluster dow
 
 To delete them:
 
-```shell
+```bash
 # set AWS credentials
 export AWS_ACCESS_KEY_ID=***
 export AWS_SECRET_ACCESS_KEY=***

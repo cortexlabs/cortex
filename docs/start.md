@@ -2,7 +2,7 @@
 
 ## Create a cluster on your AWS account
 
-```shell
+```bash
 # install the CLI
 pip install cortex
 
@@ -16,7 +16,7 @@ cortex cluster up cluster.yaml
 
 ## Run machine learning workloads at scale
 
-```shell
+```bash
 # deploy machine learning APIs
 cortex deploy apis.yaml
 ```

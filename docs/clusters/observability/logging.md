@@ -6,7 +6,7 @@ By default, logs are collected with Fluent Bit, for every workloads, and are exp
 
 The CLI includes a command to get the logs for a single API replica for debugging purposes:
 
-```shell
+```bash
 # RealtimeAPI
 cortex logs <api_name>
 
