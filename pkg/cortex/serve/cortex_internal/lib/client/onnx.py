@@ -12,10 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os
 import datetime
+import os
 import threading as td
-import multiprocessing as mp
 from typing import Any, Tuple, Optional
 
 try:
@@ -55,7 +54,7 @@ class ONNXClient:
         api_spec: dict,
         models: ModelsHolder,
         model_dir: str,
-        models_tree: Optional[ModelsTree],
+        models_tree: Optional[ModelsTree] = None,
         lock_dir: Optional[str] = "/run/cron",
     ):
         """

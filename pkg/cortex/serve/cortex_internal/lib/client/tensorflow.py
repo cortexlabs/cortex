@@ -13,16 +13,18 @@
 # limitations under the License.
 
 import os
-import copy
-import grpc
 import threading as td
-from typing import Any, Dict, Optional, List
+from typing import Any, Optional, List
 
+import grpc
+
+from cortex_internal import consts
 from cortex_internal.lib.exceptions import (
     UserRuntimeException,
     UserException,
     WithBreak,
 )
+from cortex_internal.lib.log import configure_logger
 from cortex_internal.lib.model import (
     TensorFlowServingAPI,
     ModelsHolder,
@@ -31,8 +33,6 @@ from cortex_internal.lib.model import (
     LockedModelsTree,
     get_models_from_api_spec,
 )
-from cortex_internal import consts
-from cortex_internal.lib.log import configure_logger
 
 logger = configure_logger("cortex", os.environ["CORTEX_LOG_CONFIG_FILE"])
 
@@ -42,9 +42,9 @@ class TensorFlowClient:
         self,
         tf_serving_url,
         api_spec: dict,
-        models: Optional[ModelsHolder],
-        model_dir: Optional[str],
-        models_tree: Optional[ModelsTree],
+        models: Optional[ModelsHolder] = None,
+        model_dir: Optional[str] = None,
+        models_tree: Optional[ModelsTree] = None,
     ):
         """
         Setup gRPC connection to TensorFlow Serving container.

@@ -24,15 +24,54 @@ import datadog
 import dill
 
 from cortex_internal.lib.api.validations import validate_class_impl
+from cortex_internal.lib.client.onnx import ONNXClient
+from cortex_internal.lib.client.tensorflow import TensorFlowClient
 from cortex_internal.lib.exceptions import CortexException, UserException, UserRuntimeException
 from cortex_internal.lib.metrics import MetricsClient
 from cortex_internal.lib.storage import S3
+from cortex_internal.lib.type import (
+    predictor_type_from_api_spec,
+    TensorFlowPredictorType,
+    TensorFlowNeuronPredictorType,
+    ONNXPredictorType,
+    PythonPredictorType,
+)
 
 ASYNC_PYTHON_PREDICTOR_VALIDATION = {
     "required": [
         {
             "name": "__init__",
             "required_args": ["self", "config"],
+            "optional_args": ["metrics_client"],
+        },
+        {
+            "name": "predict",
+            "required_args": ["self"],
+            "optional_args": ["payload", "request_id"],
+        },
+    ],
+}
+
+ASYNC_TENSORFLOW_PREDICTOR_VALIDATION = {
+    "required": [
+        {
+            "name": "__init__",
+            "required_args": ["self", "tensorflow_client", "config"],
+            "optional_args": ["metrics_client"],
+        },
+        {
+            "name": "predict",
+            "required_args": ["self"],
+            "optional_args": ["payload", "request_id"],
+        },
+    ],
+}
+
+ASYNC_ONNX_PREDICTOR_VALIDATION = {
+    "required": [
+        {
+            "name": "__init__",
+            "required_args": ["self", "onnx_client", "config"],
             "optional_args": ["metrics_client"],
         },
         {
@@ -58,6 +97,7 @@ class AsyncAPI:
         self.storage_path = storage_path
         self.path = api_spec["predictor"]["path"]
         self.config = api_spec["predictor"].get("config", {})
+        self.type = predictor_type_from_api_spec(api_spec)
 
         datadog.initialize(statsd_host=statsd_host, statsd_port=statsd_port)
         self.__statsd = datadog.statsd
@@ -116,7 +156,13 @@ class AsyncAPI:
         key = f"{self.storage_path}/{request_id}/payload"
         self.storage.delete(key)
 
-    def initialize_impl(self, project_dir: str, metrics_client: MetricsClient):
+    def initialize_impl(
+        self,
+        project_dir: str,
+        metrics_client: MetricsClient,
+        tf_serving_host: str = None,
+        tf_serving_port: str = None,
+    ):
         predictor_impl = self._get_impl(project_dir)
         constructor_args = inspect.getfullargspec(predictor_impl.__init__).args
         config = deepcopy(self.config)
@@ -127,6 +173,17 @@ class AsyncAPI:
         if "metrics_client" in constructor_args:
             args["metrics_client"] = metrics_client
 
+        if self.type in [TensorFlowPredictorType, TensorFlowNeuronPredictorType]:
+            tf_serving_address = tf_serving_host + ":" + tf_serving_port
+            tf_client = TensorFlowClient(
+                tf_serving_url=tf_serving_address,
+                api_spec=self.api_spec,
+            )
+            args["tensorflow_client"] = tf_client
+        elif self.type == ONNXPredictorType:
+            onnx_client = ONNXClient(api_spec=self.api_spec)
+            args["onnx_client"] = onnx_client
+
         try:
             predictor = predictor_impl(**args)
         except Exception as e:
@@ -135,16 +192,28 @@ class AsyncAPI:
         return predictor
 
     def _get_impl(self, project_dir: str):
+        if self.type in [TensorFlowPredictorType, TensorFlowNeuronPredictorType]:
+            target_class_name = "TensorFlowPredictor"
+            validations = ASYNC_TENSORFLOW_PREDICTOR_VALIDATION
+        elif self.type == ONNXPredictorType:
+            target_class_name = "ONNXPredictor"
+            validations = ASYNC_ONNX_PREDICTOR_VALIDATION
+        elif self.type == PythonPredictorType:
+            target_class_name = "PythonPredictor"
+            validations = ASYNC_PYTHON_PREDICTOR_VALIDATION
+        else:
+            raise CortexException(f"invalid predictor type: {self.type}")
+
         try:
             impl = self._read_impl(
-                "cortex_async_predictor", os.path.join(project_dir, self.path), "PythonPredictor"
+                "cortex_async_predictor", os.path.join(project_dir, self.path), target_class_name
             )
         except CortexException as e:
             e.wrap("error in " + self.path)
             raise
 
         try:
-            self._validate_impl(impl)
+            validate_class_impl(impl, validations)
         except CortexException as e:
             e.wrap("error in " + self.path)
             raise
@@ -182,7 +251,3 @@ class AsyncAPI:
             raise UserException(f"{target_class_name} class is not defined")
 
         return predictor_class
-
-    @staticmethod
-    def _validate_impl(impl):
-        return validate_class_impl(impl, ASYNC_PYTHON_PREDICTOR_VALIDATION)
