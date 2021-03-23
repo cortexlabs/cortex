@@ -1,4 +1,4 @@
-- name: iris-classifier
+- name: async-iris-classifier
   kind: AsyncAPI
   predictor:
     type: python
