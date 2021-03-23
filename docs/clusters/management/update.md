@@ -10,7 +10,7 @@ cortex cluster configure cluster.yaml
 
 ```bash
 # spin down your cluster
-cortex cluster down --config cluster.yaml
+cortex cluster down --name <name> --region <region>
 
 # update your CLI to the latest version
 pip install --upgrade cortex
