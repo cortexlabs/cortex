@@ -11,7 +11,7 @@ cortex cluster up cluster.yaml
 ```
 
 * [Client installation](clients/install.md) - customize your client installation.
-* [Cluster configuration](clusters/management/install.md) - optimize your cluster for your workloads.
+* [Cluster configuration](clusters/management/create.md) - optimize your cluster for your workloads.
 * [Environments](clusters/management/environments.md) - manage multiple clusters.
 
 ## Run machine learning workloads at scale
