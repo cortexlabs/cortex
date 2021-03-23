@@ -75,6 +75,13 @@ You can use any of these metrics to set up your own dashboards.
 It is possible to export your own custom metrics by using the `MetricsClient` class in your predictor code. This allows
 you to create a custom metrics from your deployed API that can be later be used on your own custom dashboards.
 
+Code examples on how to use custom metrics for each API kind can be found here:
+
+- [RealtimeAPI](../../workloads/realtime/metrics.md#custom-user-metrics)
+- [RealtimeAPI](../../workloads/async/metrics.md#custom-user-metrics)
+- [BatchAPI](../../workloads/batch/metrics.md#custom-user-metrics)
+- [TaskAPI](../../workloads/task/metrics.md#custom-user-metrics)
+
 ### Metric types
 
 Currently, we only support 3 different metric types that will be converted to its respective Prometheus type:
