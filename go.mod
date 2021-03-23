@@ -20,6 +20,7 @@ require (
 	github.com/docker/docker v0.0.0-00010101000000-000000000000
 	github.com/docker/go-connections v0.4.0 // indirect
 	github.com/docker/go-units v0.4.0 // indirect
+	github.com/emicklei/proto v1.9.0 // indirect
 	github.com/fatih/color v1.10.0
 	github.com/getsentry/sentry-go v0.8.0
 	github.com/go-ole/go-ole v1.2.4 // indirect

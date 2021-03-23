@@ -33,6 +33,7 @@ type StringPtrValidation struct {
 	DisallowedValues                     []string
 	CantBeSpecifiedErrStr                *string
 	Prefix                               string
+	Suffix                               string
 	InvalidPrefixes                      []string
 	MaxLength                            int
 	MinLength                            int
@@ -59,6 +60,7 @@ func makeStringValValidation(v *StringPtrValidation) *StringValidation {
 		AllowedValues:                        v.AllowedValues,
 		DisallowedValues:                     v.DisallowedValues,
 		Prefix:                               v.Prefix,
+		Suffix:                               v.Suffix,
 		InvalidPrefixes:                      v.InvalidPrefixes,
 		MaxLength:                            v.MaxLength,
 		MinLength:                            v.MinLength,

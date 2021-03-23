@@ -43,6 +43,7 @@ const (
 	ErrSpecifyAllOrNone             = "spec.specify_all_or_none"
 	ErrOneOfPrerequisitesNotDefined = "spec.one_of_prerequisites_not_defined"
 	ErrConfigGreaterThanOtherConfig = "spec.config_greater_than_other_config"
+	ErrInvalidFieldValue            = "spec.invalid_field_value"
 
 	ErrMinReplicasGreaterThanMax  = "spec.min_replicas_greater_than_max"
 	ErrInitReplicasGreaterThanMax = "spec.init_replicas_greater_than_max"
@@ -73,6 +74,13 @@ const (
 
 	ErrDuplicateModelNames = "spec.duplicate_model_names"
 	ErrReservedModelName   = "spec.reserved_model_name"
+
+	ErrProtoNumServicesExceeded       = "spec.proto_num_services_exceeded"
+	ErrProtoNumServiceMethodsExceeded = "spec.proto_num_service_methods_exceeded"
+	ErrProtoInvalidServiceMethod      = "spec.proto_invalid_service_method"
+	ErrProtoMissingPackageName        = "spec.proto_missing_package_name"
+	ErrProtoInvalidPackageName        = "spec.proto_invalid_package_name"
+	ErrProtoInvalidNetworkingEndpoint = "spec.proto_invalid_networking_endpoint"
 
 	ErrFieldMustBeDefinedForPredictorType          = "spec.field_must_be_defined_for_predictor_type"
 	ErrFieldNotSupportedByPredictorType            = "spec.field_not_supported_by_predictor_type"
@@ -479,6 +487,48 @@ func ErrorReservedModelName(reservedModel string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrReservedModelName,
 		Message: fmt.Sprintf("%s: is a reserved name; please specify a different model name", reservedModel),
+	})
+}
+
+func ErrorProtoNumServicesExceeded(requested int) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrProtoNumServicesExceeded,
+		Message: fmt.Sprintf("cannot have more than one service defined; there are currently %d services defined", requested),
+	})
+}
+
+func ErrorProtoNumServiceMethodsExceeded(requested int, serviceName string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrProtoNumServiceMethodsExceeded,
+		Message: fmt.Sprintf("cannot have more than one service method for service %s; there are currently %d service methods defined", serviceName, requested),
+	})
+}
+
+func ErrorProtoInvalidServiceMethod(requestedServiceMethodName, allowedServiceMethodName, serviceName string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrProtoInvalidServiceMethod,
+		Message: fmt.Sprintf("found %s service method in service %s; service %s can only have a single service method defined that must be called %s", requestedServiceMethodName, serviceName, serviceName, allowedServiceMethodName),
+	})
+}
+
+func ErrorProtoMissingPackageName(allowedPackageName string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrProtoMissingPackageName,
+		Message: fmt.Sprintf("your protobuf definition must have the %s package defined", allowedPackageName),
+	})
+}
+
+func ErrorProtoInvalidPackageName(requestedPackageName, allowedPackageName string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrProtoInvalidPackageName,
+		Message: fmt.Sprintf("found invalid package %s; your package must be named %s", requestedPackageName, allowedPackageName),
+	})
+}
+
+func ErrorProtoInvalidNetworkingEndpoint(allowedValue string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrProtoInvalidNetworkingEndpoint,
+		Message: fmt.Sprintf("because of the protobuf definition from section %s and field %s, the only permitted value is %s", userconfig.PredictorKey, userconfig.ProtobufPathKey, allowedValue),
 	})
 }
 

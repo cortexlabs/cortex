@@ -45,8 +45,9 @@ type API struct {
 }
 
 type Predictor struct {
-	Type PredictorType `json:"type" yaml:"type"`
-	Path string        `json:"path" yaml:"path"`
+	Type         PredictorType `json:"type" yaml:"type"`
+	Path         string        `json:"path" yaml:"path"`
+	ProtobufPath *string       `json:"protobuf_path" yaml:"protobuf_path"`
 
 	MultiModelReloading *MultiModels `json:"multi_model_reloading" yaml:"multi_model_reloading"`
 	Models              *MultiModels `json:"models" yaml:"models"`
@@ -422,6 +423,10 @@ func (predictor *Predictor) UserStr() string {
 	sb.WriteString(fmt.Sprintf("%s: %s\n", TypeKey, predictor.Type))
 	sb.WriteString(fmt.Sprintf("%s: %s\n", PathKey, predictor.Path))
 
+	if predictor.ProtobufPath != nil {
+		sb.WriteString(fmt.Sprintf("%s: %s\n", ProtobufPathKey, *predictor.ProtobufPath))
+	}
+
 	if predictor.Models != nil {
 		sb.WriteString(fmt.Sprintf("%s:\n", ModelsKey))
 		sb.WriteString(s.Indent(predictor.Models.UserStr(), "  "))
@@ -672,6 +677,9 @@ func (api *API) TelemetryEvent(provider types.ProviderType) map[string]interface
 
 		event["predictor.log_level"] = api.Predictor.LogLevel
 
+		if api.Predictor.ProtobufPath != nil {
+			event["predictor.protobuf_path._is_defined"] = true
+		}
 		if api.Predictor.PythonPath != nil {
 			event["predictor.python_path._is_defined"] = true
 		}

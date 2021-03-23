@@ -39,6 +39,7 @@ const (
 	ErrInvalidAWSTag                 = "configreader.invalid_aws_tag"
 	ErrInvalidDockerImage            = "configreader.invalid_docker_image"
 	ErrMustHavePrefix                = "configreader.must_have_prefix"
+	ErrMustHaveSuffix                = "configreader.must_have_suffix"
 	ErrCantHavePrefix                = "configreader.cant_have_prefix"
 	ErrInvalidInterface              = "configreader.invalid_interface"
 	ErrInvalidFloat64                = "configreader.invalid_float64"
@@ -163,6 +164,13 @@ func ErrorMustHavePrefix(provided string, prefix string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrMustHavePrefix,
 		Message: fmt.Sprintf("%s must start with %s", s.UserStr(provided), s.UserStr(prefix)),
+	})
+}
+
+func ErrorMustHaveSuffix(provided string, suffix string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrMustHaveSuffix,
+		Message: fmt.Sprintf("%s must end with %s", s.UserStr(provided), s.UserStr(suffix)),
 	})
 }
 

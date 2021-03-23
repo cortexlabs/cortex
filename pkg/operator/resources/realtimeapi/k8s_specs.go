@@ -207,15 +207,20 @@ func onnxAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deploym
 }
 
 func serviceSpec(api *spec.API) *kcore.Service {
+	servingProtocol := "http"
+	if api.Predictor != nil && api.Predictor.ProtobufPath != nil {
+		servingProtocol = "grpc"
+	}
 	return k8s.Service(&k8s.ServiceSpec{
 		Name:        operator.K8sName(api.Name),
 		Port:        operator.DefaultPortInt32,
 		TargetPort:  operator.DefaultPortInt32,
 		Annotations: api.ToK8sAnnotations(),
 		Labels: map[string]string{
-			"apiName":        api.Name,
-			"apiKind":        api.Kind.String(),
-			"cortex.dev/api": "true",
+			"apiName":         api.Name,
+			"apiKind":         api.Kind.String(),
+			"servingProtocol": servingProtocol,
+			"cortex.dev/api":  "true",
 		},
 		Selector: map[string]string{
 			"apiName": api.Name,
@@ -225,6 +230,14 @@ func serviceSpec(api *spec.API) *kcore.Service {
 }
 
 func virtualServiceSpec(api *spec.API) *istioclientnetworking.VirtualService {
+	servingProtocol := "http"
+	rewritePath := pointer.String("/")
+
+	if api.Predictor != nil && api.Predictor.ProtobufPath != nil {
+		servingProtocol = "grpc"
+		rewritePath = nil
+	}
+
 	return k8s.VirtualService(&k8s.VirtualServiceSpec{
 		Name:     operator.K8sName(api.Name),
 		Gateways: []string{"apis-gateway"},
@@ -234,16 +247,17 @@ func virtualServiceSpec(api *spec.API) *istioclientnetworking.VirtualService {
 			Port:        uint32(operator.DefaultPortInt32),
 		}},
 		ExactPath:   api.Networking.Endpoint,
-		Rewrite:     pointer.String("/"),
+		Rewrite:     rewritePath,
 		Annotations: api.ToK8sAnnotations(),
 		Labels: map[string]string{
-			"apiName":        api.Name,
-			"apiKind":        api.Kind.String(),
-			"apiID":          api.ID,
-			"specID":         api.SpecID,
-			"deploymentID":   api.DeploymentID,
-			"predictorID":    api.PredictorID,
-			"cortex.dev/api": "true",
+			"apiName":         api.Name,
+			"apiKind":         api.Kind.String(),
+			"servingProtocol": servingProtocol,
+			"apiID":           api.ID,
+			"specID":          api.SpecID,
+			"deploymentID":    api.DeploymentID,
+			"predictorID":     api.PredictorID,
+			"cortex.dev/api":  "true",
 		},
 	})
 }

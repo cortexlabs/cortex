@@ -27,14 +27,15 @@ import (
 )
 
 const (
-	ErrOperationIsOnlySupportedForKind  = "resources.operation_is_only_supported_for_kind"
-	ErrAPINotDeployed                   = "resources.api_not_deployed"
-	ErrAPIIDNotFound                    = "resources.api_id_not_found"
-	ErrCannotChangeTypeOfDeployedAPI    = "resources.cannot_change_kind_of_deployed_api"
-	ErrNoAvailableNodeComputeLimit      = "resources.no_available_node_compute_limit"
-	ErrJobIDRequired                    = "resources.job_id_required"
-	ErrRealtimeAPIUsedByTrafficSplitter = "resources.realtime_api_used_by_traffic_splitter"
-	ErrAPIsNotDeployed                  = "resources.apis_not_deployed"
+	ErrOperationIsOnlySupportedForKind       = "resources.operation_is_only_supported_for_kind"
+	ErrAPINotDeployed                        = "resources.api_not_deployed"
+	ErrAPIIDNotFound                         = "resources.api_id_not_found"
+	ErrCannotChangeTypeOfDeployedAPI         = "resources.cannot_change_kind_of_deployed_api"
+	ErrNoAvailableNodeComputeLimit           = "resources.no_available_node_compute_limit"
+	ErrJobIDRequired                         = "resources.job_id_required"
+	ErrRealtimeAPIUsedByTrafficSplitter      = "resources.realtime_api_used_by_traffic_splitter"
+	ErrAPIsNotDeployed                       = "resources.apis_not_deployed"
+	ErrGrpcAPINotSupportedForTrafficSplitter = "resources.grpc_api_not_supported_for_traffic_splitter"
 )
 
 func ErrorOperationIsOnlySupportedForKind(resource operator.DeployedResource, supportedKind userconfig.Kind, supportedKinds ...userconfig.Kind) error {
@@ -98,5 +99,12 @@ func ErrorAPIsNotDeployed(notDeployedAPIs []string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrAPIsNotDeployed,
 		Message: message,
+	})
+}
+
+func ErrorGrpcAPINotSupportedForTrafficSplitter(grpcAPIName string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrGrpcAPINotSupportedForTrafficSplitter,
+		Message: fmt.Sprintf("api %s (of kind %s) is served using the grpc protocol and therefore, it cannot be used for the %s kind", grpcAPIName, userconfig.RealtimeAPIKind, userconfig.TrafficSplitterKind),
 	})
 }
