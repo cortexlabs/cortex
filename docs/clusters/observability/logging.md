@@ -1,6 +1,6 @@
 # Logging
 
-By default, logs are collected with Fluent Bit, for every workloads, and are exported to CloudWatch. It is also possible to view the logs of a single replica using the `cortex logs` command.
+By default, logs are collected with Fluent Bit and are exported to CloudWatch. It is also possible to view the logs of a single replica using the `cortex logs` command.
 
 ## `cortex logs`
 
