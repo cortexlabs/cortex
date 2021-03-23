@@ -5,11 +5,11 @@
 ## Clusters
 
 * Management
-  * [Create](clusters/management/install.md)
   * [Auth](clusters/management/auth.md)
-  * [Environments](clusters/management/environments.md)
+  * [Create](clusters/management/create.md)
   * [Update](clusters/management/update.md)
-  * [Delete](clusters/management/uninstall.md)
+  * [Delete](clusters/management/delete.md)
+  * [Environments](clusters/management/environments.md)
 * Instances
   * [Multi-instance](clusters/instances/multi.md)
   * [Spot instances](clusters/instances/spot.md)
@@ -19,13 +19,6 @@
 * Advanced
   * [Setting up kubectl](clusters/advanced/kubectl.md)
   * [Private Docker registry](clusters/advanced/registry.md)
-
-## Clients
-
-* [Install](clients/install.md)
-* [CLI commands](clients/cli.md)
-* [Python client](clients/python.md)
-* [Uninstall](clients/uninstall.md)
 
 ## Workloads
 
@@ -73,3 +66,10 @@
   * [Python packages](workloads/dependencies/python-packages.md)
   * [System packages](workloads/dependencies/system-packages.md)
   * [Custom images](workloads/dependencies/images.md)
+
+## Clients
+
+* [Install](clients/install.md)
+* [Uninstall](clients/uninstall.md)
+* [CLI commands](clients/cli.md)
+* [Python client](clients/python.md)

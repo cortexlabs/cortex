@@ -26,6 +26,11 @@ aws s3 rb --force s3://<bucket>
 aws logs describe-log-groups --log-group-name-prefix=<cluster_name> --query logGroups[*].[logGroupName] --output text | xargs -I {} aws logs delete-log-group --log-group-name {}
 ```
 
+## Delete Certificates
+
+If you've configured a custom domain for your APIs, you can remove the SSL Certificate and Hosted Zone for the domain by
+following these [instructions](../networking/custom-domain.md#cleanup).
+
 ## Keep Cortex Volumes
 
 The volumes used by Cortex's Prometheus and Grafana instances are deleted by default on a cluster down operation.
