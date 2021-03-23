@@ -18,7 +18,6 @@ from cortex_internal.lib.exceptions import UserRuntimeException
 from cortex_internal.lib.log import configure_logger
 from cortex_internal.lib.metrics import MetricsClient
 from cortex_internal.lib.telemetry import capture_exception, get_default_tags, init_sentry
-from typing_extensions import final
 
 import iris_classifier_pb2
 import iris_classifier_pb2_grpc
