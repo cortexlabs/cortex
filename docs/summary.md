@@ -4,20 +4,21 @@
 
 ## Clusters
 
-* [Install](clusters/install.md)
-* [Environments](clusters/environments.md)
-* [Update](clusters/update.md)
-* [Auth](clusters/auth.md)
-* [Security](clusters/security.md)
-* [Multi-instance type](clusters/multi-instance.md)
-* [Spot instances](clusters/spot.md)
-* [Networking](clusters/networking/index.md)
-  * [Custom domain](clusters/networking/custom-domain.md)
-  * [HTTPS (via API Gateway)](clusters/networking/https.md)
-  * [VPC peering](clusters/networking/vpc-peering.md)
-* [Setting up kubectl](clusters/kubectl.md)
-* [Private Docker registry](clusters/registry.md)
-* [Uninstall](clusters/uninstall.md)
+* Management
+  * [Create](clusters/management/install.md)
+  * [Auth](clusters/management/auth.md)
+  * [Environments](clusters/management/environments.md)
+  * [Update](clusters/management/update.md)
+  * [Delete](clusters/management/uninstall.md)
+* Instances
+  * [Multi-instance](clusters/instances/multi.md)
+  * [Spot instances](clusters/instances/spot.md)
+* Observability
+  * [Logging](clusters/observability/logging.md)
+  * [Metrics](clusters/observability/metrics.md)
+* Advanced
+  * [Setting up kubectl](clusters/advanced/kubectl.md)
+  * [Private Docker registry](clusters/advanced/registry.md)
 
 ## Clients
 
@@ -72,6 +73,3 @@
   * [Python packages](workloads/dependencies/python-packages.md)
   * [System packages](workloads/dependencies/system-packages.md)
   * [Custom images](workloads/dependencies/images.md)
-* Observability
-  * [Logging](workloads/observability/logging.md)
-  * [Metrics](workloads/observability/metrics.md)

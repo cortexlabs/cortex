@@ -1,16 +1,16 @@
 # Update
 
-## Update Cortex configuration
+## Update configuration
 
 ```bash
 cortex cluster configure cluster.yaml
 ```
 
-## Upgrade to a newer version of Cortex
+## Upgrade to a newer version
 
 ```bash
 # spin down your cluster
-cortex cluster down --config cluster.yaml # or just pass in the name and region of the cluster
+cortex cluster down --config cluster.yaml
 
 # update your CLI to the latest version
 pip install --upgrade cortex

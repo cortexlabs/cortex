@@ -1,6 +1,6 @@
 # Uninstall
 
-```bash
+```shell
 cortex cluster down
 ```
 
@@ -11,7 +11,7 @@ Prometheus volume are not automatically deleted when running `cortex cluster dow
 
 To delete them:
 
-```bash
+```shell
 # set AWS credentials
 export AWS_ACCESS_KEY_ID=***
 export AWS_SECRET_ACCESS_KEY=***
@@ -25,11 +25,6 @@ aws s3 rb --force s3://<bucket>
 # delete the log group (replace <cluster_name> with the name of your cluster, default: cortex)
 aws logs describe-log-groups --log-group-name-prefix=<cluster_name> --query logGroups[*].[logGroupName] --output text | xargs -I {} aws logs delete-log-group --log-group-name {}
 ```
-
-## Delete Certificates
-
-If you've configured a custom domain for your APIs, you can remove the SSL Certificate and Hosted Zone for the domain by
-following these [instructions](networking/custom-domain.md#cleanup).
 
 ## Keep Cortex Volumes
 
