@@ -16,7 +16,7 @@
 
 set -e
 
-CORTEX_VERSION_BRANCH_STABLE=0.31.0
+CORTEX_VERSION_BRANCH_STABLE=0.31.1
 CORTEX_INSTALL_PATH="${CORTEX_INSTALL_PATH:-/usr/local/bin/cortex}"
 
 # replace ~ with the home directory path

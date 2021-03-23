@@ -11,19 +11,19 @@ mkdir my-api && cd my-api && touch Dockerfile
 Cortex's base Docker images are listed below. Depending on the Cortex Predictor and compute type specified in your API configuration, choose one of these images to use as the base for your Docker image:
 
 <!-- CORTEX_VERSION_BRANCH_STABLE x12 -->
-* Python Predictor (CPU): `quay.io/cortexlabs/python-predictor-cpu:0.31.0`
+* Python Predictor (CPU): `quay.io/cortexlabs/python-predictor-cpu:0.31.1`
 * Python Predictor (GPU): choose one of the following:
-  * `quay.io/cortexlabs/python-predictor-gpu:0.31.0-cuda10.0-cudnn7`
-  * `quay.io/cortexlabs/python-predictor-gpu:0.31.0-cuda10.1-cudnn7`
-  * `quay.io/cortexlabs/python-predictor-gpu:0.31.0-cuda10.1-cudnn8`
-  * `quay.io/cortexlabs/python-predictor-gpu:0.31.0-cuda10.2-cudnn7`
-  * `quay.io/cortexlabs/python-predictor-gpu:0.31.0-cuda10.2-cudnn8`
-  * `quay.io/cortexlabs/python-predictor-gpu:0.31.0-cuda11.0-cudnn8`
-  * `quay.io/cortexlabs/python-predictor-gpu:0.31.0-cuda11.1-cudnn8`
-* Python Predictor (Inferentia): `quay.io/cortexlabs/python-predictor-inf:0.31.0`
-* TensorFlow Predictor (CPU, GPU, Inferentia): `quay.io/cortexlabs/tensorflow-predictor:0.31.0`
-* ONNX Predictor (CPU): `quay.io/cortexlabs/onnx-predictor-cpu:0.31.0`
-* ONNX Predictor (GPU): `quay.io/cortexlabs/onnx-predictor-gpu:0.31.0`
+  * `quay.io/cortexlabs/python-predictor-gpu:0.31.1-cuda10.0-cudnn7`
+  * `quay.io/cortexlabs/python-predictor-gpu:0.31.1-cuda10.1-cudnn7`
+  * `quay.io/cortexlabs/python-predictor-gpu:0.31.1-cuda10.1-cudnn8`
+  * `quay.io/cortexlabs/python-predictor-gpu:0.31.1-cuda10.2-cudnn7`
+  * `quay.io/cortexlabs/python-predictor-gpu:0.31.1-cuda10.2-cudnn8`
+  * `quay.io/cortexlabs/python-predictor-gpu:0.31.1-cuda11.0-cudnn8`
+  * `quay.io/cortexlabs/python-predictor-gpu:0.31.1-cuda11.1-cudnn8`
+* Python Predictor (Inferentia): `quay.io/cortexlabs/python-predictor-inf:0.31.1`
+* TensorFlow Predictor (CPU, GPU, Inferentia): `quay.io/cortexlabs/tensorflow-predictor:0.31.1`
+* ONNX Predictor (CPU): `quay.io/cortexlabs/onnx-predictor-cpu:0.31.1`
+* ONNX Predictor (GPU): `quay.io/cortexlabs/onnx-predictor-gpu:0.31.1`
 
 The sample `Dockerfile` below inherits from Cortex's Python CPU serving image, and installs 3 packages. `tree` is a system package and `pandas` and `rdkit` are Python packages.
 
@@ -31,7 +31,7 @@ The sample `Dockerfile` below inherits from Cortex's Python CPU serving image, a
 ```dockerfile
 # Dockerfile
 
-FROM quay.io/cortexlabs/python-predictor-cpu:0.31.0
+FROM quay.io/cortexlabs/python-predictor-cpu:0.31.1
 
 RUN apt-get update \
     && apt-get install -y tree \
@@ -49,7 +49,7 @@ If you need to upgrade the Python Runtime version on your image, you can follow 
 ```Dockerfile
 # Dockerfile
 
-FROM quay.io/cortexlabs/python-predictor-cpu:0.31.0
+FROM quay.io/cortexlabs/python-predictor-cpu:0.31.1
 
 # upgrade python runtime version
 RUN conda update -n base -c defaults conda

@@ -26,7 +26,7 @@ predictor:
     shell: <string>  # relative path to a shell script for system package installation (default: dependencies.sh)
   config: <string: value>  # arbitrary dictionary passed to the constructor of the Predictor (optional)
   python_path: <string>  # path to the root of your Python folder that will be appended to PYTHONPATH (default: folder containing cortex.yaml)
-  image: <string>  # docker image to use for the Predictor (default: quay.io/cortexlabs/python-predictor-cpu:0.31.0, quay.io/cortexlabs/python-predictor-gpu:0.31.0-cuda10.2-cudnn8, or quay.io/cortexlabs/python-predictor-inf:0.31.0 based on compute)
+  image: <string>  # docker image to use for the Predictor (default: quay.io/cortexlabs/python-predictor-cpu:0.31.1, quay.io/cortexlabs/python-predictor-gpu:0.31.1-cuda10.2-cudnn8, or quay.io/cortexlabs/python-predictor-inf:0.31.1 based on compute)
   env: <string: string>  # dictionary of environment variables
   log_level: <string>  # log level that can be "debug", "info", "warning" or "error" (default: "info")
   shm_size: <string>  # size of shared memory (/dev/shm) for sharing data between multiple processes, e.g. 64Mi or 1Gi (default: Null)
