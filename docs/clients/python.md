@@ -25,8 +25,7 @@
 client(env: str = None) -> Client
 ```
 
-Initialize a client based on the specified environment.
-If no environment name is passed, it will attempt using the default environment.
+Initialize a client based on the specified environment. If no environment is specified, it will attempt to use the default environment.
 
 **Arguments**:
 
@@ -43,7 +42,7 @@ If no environment name is passed, it will attempt using the default environment.
 new_client(name: str, operator_endpoint: str) -> Client
 ```
 
-Create a new environment to connect to an existing Cortex Cluster, and initialize a client to deploy and manage APIs on that cluster.
+Create a new environment to connect to an existing cluster, and initialize a client to deploy and manage APIs on that cluster.
 
 **Arguments**:
 
@@ -53,7 +52,7 @@ Create a new environment to connect to an existing Cortex Cluster, and initializ
 
 **Returns**:
 
-  Cortex client that can be used to deploy and manage APIs on a Cortex Cluster.
+  Cortex client that can be used to deploy and manage APIs on a cluster.
 
 ## env\_list
 

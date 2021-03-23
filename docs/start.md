@@ -7,7 +7,7 @@
 pip install cortex
 
 # create a cluster
-cortex cluster up cortex.yaml
+cortex cluster up cluster.yaml
 ```
 
 * [Client installation](clients/install.md) - customize your client installation.
