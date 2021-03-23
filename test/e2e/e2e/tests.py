@@ -32,6 +32,7 @@ from e2e.utils import (
     request_prediction,
     job_done,
     request_batch_prediction,
+    request_task,
     retrieve_async_result,
 )
 
@@ -222,6 +223,52 @@ def test_async_api(
         # assert result expectations
         if expectations:
             assert_json_expectations(result_response_json["result"], expectations["response"])
+
+    finally:
+        delete_apis(client, [api_name])
+
+
+def test_task_api(
+    client: cx.Client,
+    api: str,
+    deploy_timeout: int = None,
+    job_timeout: int = None,
+    retry_attempts: int = 0,
+    api_config_name: str = "cortex.yaml",
+):
+    api_dir = TEST_APIS_DIR / api
+    with open(str(api_dir / api_config_name)) as f:
+        api_specs = yaml.safe_load(f)
+
+    assert len(api_specs) == 1
+
+    api_name = api_specs[0]["name"]
+    client.create_api(api_spec=api_specs[0], project_dir=api_dir)
+
+    try:
+        assert endpoint_ready(
+            client=client, api_name=api_name, timeout=deploy_timeout
+        ), f"api {api_name} not ready"
+
+        response = None
+        for i in range(retry_attempts + 1):
+            response = request_task(
+                client,
+                api_name,
+            )
+            if response.status_code == HTTPStatus.OK:
+                break
+
+            time.sleep(1)
+
+        job_spec = response.json()
+
+        assert job_done(
+            client=client,
+            api_name=api_name,
+            job_id=job_spec["job_id"],
+            timeout=job_timeout,
+        ), f"task job did not succeed (api_name: {api_name}, job_id: {job_spec['job_id']})"
 
     finally:
         delete_apis(client, [api_name])
