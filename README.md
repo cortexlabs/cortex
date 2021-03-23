@@ -6,7 +6,9 @@
 
 Cortex is a cloud native model serving platform for machine learning engineering teams.
 
-[Website](https://www.cortex.dev) • [Slack](https://community.cortex.dev) • [Docs](https://docs.cortex.dev)
+[Website](https://www.cortex.dev)
+[Slack](https://community.cortex.dev)
+[Documentation](https://docs.cortex.dev)
 
 <br>
 
