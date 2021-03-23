@@ -2,12 +2,28 @@
 
 * [Get started](start.md)
 
+## Clusters
+
+* [Install](clusters/install.md)
+* [Environments](clusters/environments.md)
+* [Update](clusters/update.md)
+* [Auth](clusters/auth.md)
+* [Security](clusters/security.md)
+* [Multi-instance type](clusters/multi-instance.md)
+* [Spot instances](clusters/spot.md)
+* [Networking](clusters/networking/index.md)
+  * [Custom domain](clusters/networking/custom-domain.md)
+  * [HTTPS (via API Gateway)](clusters/networking/https.md)
+  * [VPC peering](clusters/networking/vpc-peering.md)
+* [Setting up kubectl](clusters/kubectl.md)
+* [Private Docker registry](clusters/registry.md)
+* [Uninstall](clusters/uninstall.md)
+
 ## Clients
 
 * [Install](clients/install.md)
 * [CLI commands](clients/cli.md)
-* [Python API](clients/python.md)
-* [Environments](clients/environments.md)
+* [Python client](clients/python.md)
 * [Uninstall](clients/uninstall.md)
 
 ## Workloads
@@ -59,26 +75,3 @@
 * Observability
   * [Logging](workloads/observability/logging.md)
   * [Metrics](workloads/observability/metrics.md)
-
-## Clusters
-
-* AWS
-  * [Install](clusters/aws/install.md)
-  * [Update](clusters/aws/update.md)
-  * [Auth](clusters/aws/auth.md)
-  * [Security](clusters/aws/security.md)
-  * [Multi-instance type](clusters/aws/multi-instance-type.md)
-  * [Spot instances](clusters/aws/spot.md)
-  * [Networking](clusters/aws/networking/index.md)
-    * [Custom domain](clusters/aws/networking/custom-domain.md)
-    * [HTTPS (via API Gateway)](clusters/aws/networking/https.md)
-    * [VPC peering](clusters/aws/networking/vpc-peering.md)
-  * [Setting up kubectl](clusters/aws/kubectl.md)
-  * [Uninstall](clusters/aws/uninstall.md)
-* GCP
-  * [Install](clusters/gcp/install.md)
-  * [Credentials](clusters/gcp/credentials.md)
-  * [Multi-instance type](clusters/gcp/multi-instance-type.md)
-  * [Setting up kubectl](clusters/gcp/kubectl.md)
-  * [Uninstall](clusters/gcp/uninstall.md)
-* [Private Docker registry](clusters/registry.md)

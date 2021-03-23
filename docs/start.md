@@ -1,20 +1,27 @@
 # Get started
 
-## Install the CLI
+## Create a cluster on your AWS account
 
-```bash
+```shell
+# install the CLI
 pip install cortex
+
+# create a cluster
+cortex cluster up cortex.yaml
 ```
 
-See [here](clients/install.md) for alternative installation options.
+* [Client installation](clients/install.md) - customize your client installation.
+* [Cluster configuration](clusters/install.md) - optimize your cluster for your workloads.
+* [Environments](clusters/environments.md) - manage multiple clusters.
 
-## Create a cluster
+## Run machine learning workloads at scale
 
-* [Launch a Cortex cluster on your AWS account](clusters/aws/install.md)
-* [Launch a Cortex cluster on your GCP account](clusters/gcp/install.md)
+```shell
+# deploy machine learning APIs
+cortex deploy apis.yaml
+```
 
-## Run machine learning workloads
-
-* [Realtime API](workloads/realtime/example.md)
-* [Batch API](workloads/batch/example.md)
-* [Task API](workloads/task/example.md)
+* [RealtimeAPI](workloads/realtime/example.md) - create APIs that respond to prediction requests in real-time.
+* [AsyncAPI](workloads/async/example.md) - create APIs that respond to prediction requests asynchronously.
+* [BatchAPI](workloads/batch/example.md) - create APIs that run distributed batch inference jobs.
+* [TaskAPI](workloads/task/example.md) - create APIs that run training or fine-tuning jobs.

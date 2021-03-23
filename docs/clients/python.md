@@ -1,4 +1,4 @@
-# Python API
+# Python client
 
 * [cortex](#cortex)
   * [client](#client)
@@ -48,7 +48,7 @@ Create a new environment to connect to an existing Cortex Cluster, and initializ
 **Arguments**:
 
 - `name` - Name of the environment to create.
-- `operator_endpoint` - The endpoint for the operator of your Cortex Cluster. You can get this endpoint by running the CLI command `cortex cluster info` for an AWS provider or `cortex cluster-gcp info` for a GCP provider.
+- `operator_endpoint` - The endpoint for the operator of your Cortex cluster. You can get this endpoint by running the CLI command `cortex cluster info`.
 
 
 **Returns**:

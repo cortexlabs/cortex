@@ -170,57 +170,6 @@ Flags:
   -h, --help            help for export
 ```
 
-## cluster-gcp up
-
-```text
-spin up a cluster on gcp
-
-Usage:
-  cortex cluster-gcp up [CLUSTER_CONFIG_FILE] [flags]
-
-Flags:
-  -e, --configure-env string   name of environment to configure (default "gcp")
-  -y, --yes                    skip prompts
-  -h, --help                   help for up
-```
-
-## cluster-gcp info
-
-```text
-get information about a cluster
-
-Usage:
-  cortex cluster-gcp info [flags]
-
-Flags:
-  -c, --config string          path to a cluster configuration file
-  -n, --name string            name of the cluster
-  -p, --project string         gcp project id
-  -z, --zone string            gcp zone of the cluster
-  -e, --configure-env string   name of environment to configure
-  -d, --debug                  save the current cluster state to a file
-  -y, --yes                    skip prompts
-  -h, --help                   help for info
-```
-
-## cluster-gcp down
-
-```text
-spin down a cluster
-
-Usage:
-  cortex cluster-gcp down [flags]
-
-Flags:
-  -c, --config string    path to a cluster configuration file
-  -n, --name string      name of the cluster
-  -p, --project string   gcp project id
-  -z, --zone string      gcp zone of the cluster
-  -y, --yes              skip prompts
-      --keep-volumes     keep cortex provisioned persistent volumes
-  -h, --help             help for down
-```
-
 ## env configure
 
 ```text
