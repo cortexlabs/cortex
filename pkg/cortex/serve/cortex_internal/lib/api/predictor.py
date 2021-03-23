@@ -149,6 +149,7 @@ class Predictor:
         self.type = predictor_type_from_api_spec(api_spec)
         self.path = api_spec["predictor"]["path"]
         self.config = api_spec["predictor"].get("config", {})
+        self.protobuf_path = api_spec["predictor"].get("protobuf_path")
 
         self.api_spec = api_spec
 

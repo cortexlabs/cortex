@@ -18,7 +18,6 @@ set -e
 
 # CORTEX_VERSION
 export EXPECTED_CORTEX_VERSION=master
-export CORTEX_SERVING_PROTOCOL="grpc"
 
 if [ "$CORTEX_VERSION" != "$EXPECTED_CORTEX_VERSION" ]; then
     echo "error: your Cortex operator version ($CORTEX_VERSION) doesn't match your predictor image version ($EXPECTED_CORTEX_VERSION); please update your predictor image by modifying the \`image\` field in your API configuration file (e.g. cortex.yaml) and re-running \`cortex deploy\`, or update your cluster by following the instructions at https://docs.cortex.dev/"
@@ -145,6 +144,10 @@ create_s6_service_from_file() {
 if [ "$CORTEX_KIND" = "RealtimeAPI" ]; then
     if [ $CORTEX_SERVING_PROTOCOL = "http" ]; then
         mkdir /run/uvicorn
+    fi
+
+    if [ $CORTEX_SERVING_PROTOCOL = "grpc" ]; then
+        /opt/conda/envs/env/bin/python -m grpc_tools.protoc --proto_path=$CORTEX_PROJECT_DIR --python_out=$CORTEX_PYTHON_PATH --grpc_python_out=$CORTEX_PYTHON_PATH $CORTEX_PROTOBUF_FILE
     fi
 
     # prepare servers

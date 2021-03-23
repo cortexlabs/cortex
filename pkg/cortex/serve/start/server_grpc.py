@@ -6,21 +6,20 @@ import uuid
 import signal
 import threading
 import traceback
+import pathlib
+import importlib
+import inspect
 from typing import Dict, Any
 from concurrent import futures
 
 import grpc
 
 from cortex_internal.lib.api import get_api
-from cortex_internal.lib.api.batching import DynamicBatcher
 from cortex_internal.lib.concurrency import FileLock, LockedFile
 from cortex_internal.lib.exceptions import UserRuntimeException
 from cortex_internal.lib.log import configure_logger
 from cortex_internal.lib.metrics import MetricsClient
 from cortex_internal.lib.telemetry import capture_exception, get_default_tags, init_sentry
-
-import iris_classifier_pb2
-import iris_classifier_pb2_grpc
 
 NANOSECONDS_IN_SECOND = 1e9
 
@@ -53,17 +52,20 @@ class ThreadPoolExecutorWithRequestMonitor:
     def shutdown(self, *args, **kwargs):
         return self._thread_pool_executor.shutdown(*args, **kwargs)
 
-class PredictorServicer(iris_classifier_pb2_grpc.PredictorServicer):
-    def __init__(self, config: Dict[str, Any]):
-        self.config = config
 
-    def Predict(self, payload, context):
-        try:
-            response = self.config["predictor_impl"].predict(payload=payload)
-        except Exception:
-            logger.error(traceback.format_exc())
-            context.abort(grpc.StatusCode.INTERNAL, "internal server error")
-        return response
+def get_servicer_from_module(module_proto_pb2_grpc) -> Any:
+    classes = inspect.getmembers(module_proto_pb2_grpc, inspect.isclass)
+    for class_name, class in classes:
+        if class_name.endswith("Servicer"):
+            return class
+    # this will never be reached because we're guaranteed to have one servicer class in the module
+
+def get_servicer_to_server_from_module(module_proto_pb2_grpc):
+    functions = inspect.getmembers(module_proto_pb2_grpc, inspect.isfunction)
+    for function_name, function in functions:
+        if function_name.endswith("_to_server"):
+            return function
+    # this will never be reached because we're guaranteed to have one servicer adder in the module
 
 
 def main():
@@ -75,6 +77,7 @@ def main():
     project_dir = os.environ["CORTEX_PROJECT_DIR"]
     spec_path = os.environ["CORTEX_API_SPEC"]
 
+    python_path = os.getenv("CORTEX_PYTHON_PATH")
     model_dir = os.getenv("CORTEX_MODEL_DIR")
     cache_dir = os.getenv("CORTEX_CACHE_DIR")
     region = os.getenv("AWS_REGION")
@@ -124,7 +127,6 @@ def main():
             "provider": None,
             "client": None,
             "predictor_impl": None,
-            "dynamic_batcher": None,
         }
 
         config["api"] = api
@@ -132,25 +134,34 @@ def main():
         config["client"] = client
         config["predictor_impl"] = predictor_impl
 
-        if api.python_server_side_batching_enabled:
-            dynamic_batching_config = api.api_spec["predictor"]["server_side_batching"]
-            config["dynamic_batcher"] = DynamicBatcher(
-                predictor_impl,
-                max_batch_size=dynamic_batching_config["max_batch_size"],
-                batch_interval=dynamic_batching_config["batch_interval"]
-                / NANOSECONDS_IN_SECOND,  # convert nanoseconds to seconds
-            )
-
     except Exception as err:
         if not isinstance(err, UserRuntimeException):
             capture_exception(err)
         logger.exception("failed to start api")
         sys.exit(1)
 
+    proto_without_ext = pathlib.Path(api.predictor.protobuf_path).stem
+    compiled_proto_pb2_grpc = os.path.join(python_path, proto_without_ext + "_pb2_grpc")
+    module_proto_pb2_grpc = importlib.import_module(compiled_proto_pb2_grpc)
 
-    server = grpc.server(ThreadPoolExecutorWithRequestMonitor(max_workers=int(1)))
-    iris_classifier_pb2_grpc.add_PredictorServicer_to_server(
-        PredictorServicer(config), server)
+    ServicerClass = get_servicer_from_module(module_proto_pb2_grpc)
+    class PredictorServicer(ServicerClass):
+        def __init__(self, config: Dict[str, Any]):
+            self.config = config
+
+        def Predict(self, payload, context):
+            try:
+                response = self.config["predictor_impl"].predict(payload=payload)
+            except Exception:
+                logger.error(traceback.format_exc())
+                context.abort(grpc.StatusCode.INTERNAL, "internal server error")
+            return response
+
+
+    server = grpc.server(ThreadPoolExecutorWithRequestMonitor(max_workers=threads_per_process))
+
+    add_PredictorServicer_to_server = get_servicer_to_server_from_module(module_proto_pb2_grpc)
+    add_PredictorServicer_to_server(PredictorServicer(config), server)
     server.add_insecure_port(address)
     server.start()
 

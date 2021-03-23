@@ -178,9 +178,10 @@ func predictorValidation() *cr.StructFieldValidation {
 				{
 					StructField: "ProtobufPath",
 					StringPtrValidation: &cr.StringPtrValidation{
-						Default:           nil,
-						AllowExplicitNull: true,
-						Suffix:            ".proto",
+						Default:                nil,
+						AllowExplicitNull:      true,
+						AlphaNumericUnderscore: true,
+						Suffix:                 ".proto",
 					},
 				},
 				{

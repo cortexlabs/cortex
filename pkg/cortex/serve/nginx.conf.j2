@@ -84,7 +84,6 @@ http {
             deny all;
         }
 
-        # predictor.Predictor/Predict
         location / {
             limit_conn inflights {{ CORTEX_MAX_REPLICA_CONCURRENCY | int }};
 

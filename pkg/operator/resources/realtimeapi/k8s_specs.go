@@ -46,19 +46,25 @@ func tensorflowAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.D
 	containers, volumes := operator.TensorFlowPredictorContainers(api)
 	containers = append(containers, operator.RequestMonitorContainer(api))
 
+	servingProtocol := "http"
+	if api.Predictor != nil && api.Predictor.ProtobufPath != nil {
+		servingProtocol = "grpc"
+	}
+
 	return k8s.Deployment(&k8s.DeploymentSpec{
 		Name:           operator.K8sName(api.Name),
 		Replicas:       getRequestedReplicasFromDeployment(api, prevDeployment),
 		MaxSurge:       pointer.String(api.UpdateStrategy.MaxSurge),
 		MaxUnavailable: pointer.String(api.UpdateStrategy.MaxUnavailable),
 		Labels: map[string]string{
-			"apiName":        api.Name,
-			"apiKind":        api.Kind.String(),
-			"apiID":          api.ID,
-			"specID":         api.SpecID,
-			"deploymentID":   api.DeploymentID,
-			"predictorID":    api.PredictorID,
-			"cortex.dev/api": "true",
+			"apiName":         api.Name,
+			"apiKind":         api.Kind.String(),
+			"apiID":           api.ID,
+			"specID":          api.SpecID,
+			"deploymentID":    api.DeploymentID,
+			"predictorID":     api.PredictorID,
+			"servingProtocol": servingProtocol,
+			"cortex.dev/api":  "true",
 		},
 		Annotations: api.ToK8sAnnotations(),
 		Selector: map[string]string{
@@ -67,11 +73,12 @@ func tensorflowAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.D
 		},
 		PodSpec: k8s.PodSpec{
 			Labels: map[string]string{
-				"apiName":        api.Name,
-				"apiKind":        api.Kind.String(),
-				"deploymentID":   api.DeploymentID,
-				"predictorID":    api.PredictorID,
-				"cortex.dev/api": "true",
+				"apiName":         api.Name,
+				"apiKind":         api.Kind.String(),
+				"deploymentID":    api.DeploymentID,
+				"predictorID":     api.PredictorID,
+				"servingProtocol": servingProtocol,
+				"cortex.dev/api":  "true",
 			},
 			Annotations: map[string]string{
 				"traffic.sidecar.istio.io/excludeOutboundIPRanges": "0.0.0.0/0",
@@ -101,19 +108,25 @@ func pythonAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deplo
 	containers, volumes := operator.PythonPredictorContainers(api)
 	containers = append(containers, operator.RequestMonitorContainer(api))
 
+	servingProtocol := "http"
+	if api.Predictor != nil && api.Predictor.ProtobufPath != nil {
+		servingProtocol = "grpc"
+	}
+
 	return k8s.Deployment(&k8s.DeploymentSpec{
 		Name:           operator.K8sName(api.Name),
 		Replicas:       getRequestedReplicasFromDeployment(api, prevDeployment),
 		MaxSurge:       pointer.String(api.UpdateStrategy.MaxSurge),
 		MaxUnavailable: pointer.String(api.UpdateStrategy.MaxUnavailable),
 		Labels: map[string]string{
-			"apiName":        api.Name,
-			"apiKind":        api.Kind.String(),
-			"apiID":          api.ID,
-			"specID":         api.SpecID,
-			"deploymentID":   api.DeploymentID,
-			"predictorID":    api.PredictorID,
-			"cortex.dev/api": "true",
+			"apiName":         api.Name,
+			"apiKind":         api.Kind.String(),
+			"apiID":           api.ID,
+			"specID":          api.SpecID,
+			"deploymentID":    api.DeploymentID,
+			"predictorID":     api.PredictorID,
+			"servingProtocol": servingProtocol,
+			"cortex.dev/api":  "true",
 		},
 		Annotations: api.ToK8sAnnotations(),
 		Selector: map[string]string{
@@ -122,11 +135,12 @@ func pythonAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deplo
 		},
 		PodSpec: k8s.PodSpec{
 			Labels: map[string]string{
-				"apiName":        api.Name,
-				"apiKind":        api.Kind.String(),
-				"deploymentID":   api.DeploymentID,
-				"predictorID":    api.PredictorID,
-				"cortex.dev/api": "true",
+				"apiName":         api.Name,
+				"apiKind":         api.Kind.String(),
+				"deploymentID":    api.DeploymentID,
+				"predictorID":     api.PredictorID,
+				"servingProtocol": servingProtocol,
+				"cortex.dev/api":  "true",
 			},
 			Annotations: map[string]string{
 				"traffic.sidecar.istio.io/excludeOutboundIPRanges": "0.0.0.0/0",
@@ -156,19 +170,25 @@ func onnxAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deploym
 	containers, volumes := operator.ONNXPredictorContainers(api)
 	containers = append(containers, operator.RequestMonitorContainer(api))
 
+	servingProtocol := "http"
+	if api.Predictor != nil && api.Predictor.ProtobufPath != nil {
+		servingProtocol = "grpc"
+	}
+
 	return k8s.Deployment(&k8s.DeploymentSpec{
 		Name:           operator.K8sName(api.Name),
 		Replicas:       getRequestedReplicasFromDeployment(api, prevDeployment),
 		MaxSurge:       pointer.String(api.UpdateStrategy.MaxSurge),
 		MaxUnavailable: pointer.String(api.UpdateStrategy.MaxUnavailable),
 		Labels: map[string]string{
-			"apiName":        api.Name,
-			"apiKind":        api.Kind.String(),
-			"apiID":          api.ID,
-			"specID":         api.SpecID,
-			"deploymentID":   api.DeploymentID,
-			"predictorID":    api.PredictorID,
-			"cortex.dev/api": "true",
+			"apiName":         api.Name,
+			"apiKind":         api.Kind.String(),
+			"apiID":           api.ID,
+			"specID":          api.SpecID,
+			"deploymentID":    api.DeploymentID,
+			"predictorID":     api.PredictorID,
+			"servingProtocol": servingProtocol,
+			"cortex.dev/api":  "true",
 		},
 		Annotations: api.ToK8sAnnotations(),
 		Selector: map[string]string{
@@ -177,11 +197,12 @@ func onnxAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deploym
 		},
 		PodSpec: k8s.PodSpec{
 			Labels: map[string]string{
-				"apiName":        api.Name,
-				"apiKind":        api.Kind.String(),
-				"deploymentID":   api.DeploymentID,
-				"predictorID":    api.PredictorID,
-				"cortex.dev/api": "true",
+				"apiName":         api.Name,
+				"apiKind":         api.Kind.String(),
+				"deploymentID":    api.DeploymentID,
+				"predictorID":     api.PredictorID,
+				"servingProtocol": servingProtocol,
+				"cortex.dev/api":  "true",
 			},
 			Annotations: map[string]string{
 				"traffic.sidecar.istio.io/excludeOutboundIPRanges": "0.0.0.0/0",

@@ -845,12 +845,26 @@ func getEnvVars(api *spec.API, container string) []kcore.EnvVar {
 		)
 
 		if api.Kind == userconfig.RealtimeAPIKind {
+			servingProtocol := "http"
+			if api.Predictor != nil && api.Predictor.ProtobufPath != nil {
+				servingProtocol = "grpc"
+			}
 			envVars = append(envVars,
 				kcore.EnvVar{
 					Name:  "CORTEX_API_SPEC",
 					Value: config.BucketPath(api.PredictorKey),
 				},
+				kcore.EnvVar{
+					Name:  "CORTEX_SERVING_PROTOCOL",
+					Value: servingProtocol,
+				},
 			)
+			if servingProtocol == "grpc" {
+				envVars = append(envVars, kcore.EnvVar{
+					Name:  "CORTEX_PROTOBUF_FILE",
+					Value: path.Join(_emptyDirMountPath, "project", *api.Predictor.ProtobufPath),
+				})
+			}
 		} else {
 			envVars = append(envVars,
 				kcore.EnvVar{

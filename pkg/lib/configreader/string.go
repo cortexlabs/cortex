@@ -50,6 +50,7 @@ type StringValidation struct {
 	AlphaNumericDashDotUnderscore        bool
 	AlphaNumericDashUnderscoreOrEmpty    bool
 	AlphaNumericDashUnderscore           bool
+	AlphaNumericUnderscore               bool
 	AWSTag                               bool
 	DNS1035                              bool
 	DNS1123                              bool
@@ -296,6 +297,12 @@ func ValidateStringVal(val string, v *StringValidation) error {
 	if v.AlphaNumericDashUnderscore {
 		if !regex.IsAlphaNumericDashUnderscore(val) {
 			return ErrorAlphaNumericDashUnderscore(val)
+		}
+	}
+
+	if v.AlphaNumericUnderscore {
+		if !regex.IsAlphaNumericUnderscore(val) {
+			return ErrorAlphaNumericUnderscore(val)
 		}
 	}
 
