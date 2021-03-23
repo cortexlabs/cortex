@@ -210,7 +210,9 @@ def test_async_api(
         ), f"timestamp key was not present in result response (response: {result_response_json})"
 
         # validate result json response has valid values
-        assert result_response_json["id"] != "", "result 'id' value was empty"
+        assert (
+            result_response_json["id"] == request_id
+        ), f"result 'id' and request 'id' mismatch ({result_response_json['id']} != {request_id})"
         assert (
             result_response_json["status"] == "completed"
         ), f"async workload did not complete (response: {result_response_json})"
