@@ -7,7 +7,7 @@ Create APIs that process your workloads asynchronously.
 Create a folder for your API. In this case, we are deploying an iris-classifier AsyncAPI. This folder will have the
 following structure:
 
-```bash
+```text
 ./iris-classifier
 ├── cortex.yaml
 ├── predictor.py
