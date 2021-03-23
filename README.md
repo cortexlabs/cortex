@@ -2,11 +2,11 @@
 
 <br>
 
-[Website](https://www.cortex.dev) • [Slack](https://community.cortex.dev) • [Docs](https://docs.cortex.dev)
-
 # Deploy machine learning models to production
 
 Cortex is a cloud native model serving platform for machine learning engineering teams.
+
+[Website](https://www.cortex.dev) • [Slack](https://community.cortex.dev) • [Docs](https://docs.cortex.dev)
 
 <br>
 
@@ -34,6 +34,8 @@ $ cortex deploy apis.yaml
 all APIs are ready!
 ```
 
+<br>
+
 ## Manage
 
 * Create A/B tests and shadow pipelines with configurable traffic splitting.
@@ -48,6 +50,8 @@ text-generator      realtime    32
 image-classifier    batch       64
 video-analyzer      async       16
 ```
+
+<br>
 
 ## Scale
 
