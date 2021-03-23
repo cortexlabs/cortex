@@ -18,9 +18,9 @@
   * [Metrics](clusters/observability/metrics.md)
 * Networking
   * [Load balancers](clusters/networking/load-balancers.md)
-  * [Create](clusters/networking/vpc-peering.md)
-  * [Update](clusters/networking/https.md)
-  * [Delete](clusters/networking/custom-domain.md)
+  * [VPC peering](clusters/networking/vpc-peering.md)
+  * [HTTPS](clusters/networking/https.md)
+  * [Custom domain](clusters/networking/custom-domain.md)
 * Advanced
   * [Setting up kubectl](clusters/advanced/kubectl.md)
   * [Private Docker registry](clusters/advanced/registry.md)
