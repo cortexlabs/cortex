@@ -1,5 +1,4 @@
 import os
-import time
 import boto3
 from botocore import UNSIGNED
 from botocore.client import Config
