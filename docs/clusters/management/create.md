@@ -2,27 +2,25 @@
 
 ## Prerequisites
 
-1. [Docker](https://docs.docker.com/install) must be installed and running on your machine (to verify, check that running `docker ps` does not return an error)
-1. Subscribe to the [EKS-optimized AMI with GPU Support](https://aws.amazon.com/marketplace/pp/B07GRHFXGM) (for GPU clusters)
-1. An IAM user with `AdministratorAccess` and programmatic access (see [security](security.md) if you'd like to use less privileged credentials after spinning up your cluster)
-1. You may need to [request a limit increase](https://console.aws.amazon.com/servicequotas/home?#!/services/ec2/quotas) for your desired instance type
+1. Install and run [Docker](https://docs.docker.com/install) on your machine.
+1. Subscribe to the [AMI with GPU support](https://aws.amazon.com/marketplace/pp/B07GRHFXGM) (for GPU clusters).
+1. Create an IAM user with `AdministratorAccess` and programmatic access.
+1. You may need to [request limit increases](https://console.aws.amazon.com/servicequotas/home?#!/services/ec2/quotas) for your desired instance types.
 
-## Spin up Cortex on your AWS account
+## Create a cluster on your AWS account
 
 ```bash
 # install the CLI
 pip install cortex
 
-# spin up Cortex on your AWS account
-cortex cluster up cluster.yaml # (see configuration options below)
+# create a cluster
+cortex cluster up cluster.yaml
 ```
 
-## Configure Cortex
+## `cluster.yaml`
 
 ```yaml
-# cluster.yaml
-
-# EKS cluster name
+# cluster name
 cluster_name: cortex
 
 # AWS region
@@ -97,7 +95,7 @@ iam_policy_arns: ["arn:aws:iam::aws:policy/AmazonS3FullAccess"]
 vpc_cidr: 192.168.0.0/16
 ```
 
-The docker images used by the Cortex cluster can also be overridden, although this is not common. They can be configured by adding any of these keys to your cluster configuration file (default values are shown):
+The docker images used by the cluster can also be overridden. They can be configured by adding any of these keys to your cluster configuration file (default values are shown):
 
 <!-- CORTEX_VERSION_BRANCH_STABLE -->
 ```yaml

@@ -1,4 +1,4 @@
-# Networking
+# Load balancers
 
 ![api architecture diagram](https://user-images.githubusercontent.com/808475/103417256-dd6e9700-4b3e-11eb-901e-90425f1f8fd4.png)
 

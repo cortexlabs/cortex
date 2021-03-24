@@ -1,6 +1,6 @@
-# Setting up kubectl
+# Setting up `kubectl`
 
-## Install kubectl
+## Install `kubectl`
 
 Follow these [instructions](https://kubernetes.io/docs/tasks/tools/install-kubectl).
 
@@ -16,13 +16,13 @@ aws --version  # should be >= 1.16
 aws configure
 ```
 
-## Update kubeconfig
+## Update `kubeconfig`
 
 ```bash
 aws eks update-kubeconfig --name=<cluster_name> --region=<region>
 ```
 
-## Test kubectl
+## Test `kubectl`
 
 ```bash
 kubectl get pods

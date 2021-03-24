@@ -33,4 +33,4 @@ By default, the Cortex CLI is installed at `/usr/local/bin/cortex`. To install t
 
 ## Changing the CLI/client configuration directory
 
-By default, the Cortex CLI/client creates a directory at `~/.cortex/` and uses it to store environment configuration. To use a different directory, export the `CORTEX_CLI_CONFIG_DIR` environment variable before running any `cortex` commands.
+By default, the CLI/client creates a directory at `~/.cortex/` and uses it to store environment configuration. To use a different directory, export the `CORTEX_CLI_CONFIG_DIR` environment variable before running any `cortex` commands.
