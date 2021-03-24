@@ -4,7 +4,7 @@
 # cluster.yaml
 
 node_groups:
-  - name: node-group-0
+  - name: node-group-1
 
     # whether to use spot instances for this node group (default: false)
     spot: false

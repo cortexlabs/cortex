@@ -2,13 +2,28 @@
 
 * [Get started](start.md)
 
-## Clients
+## Clusters
 
-* [Install](clients/install.md)
-* [CLI commands](clients/cli.md)
-* [Python API](clients/python.md)
-* [Environments](clients/environments.md)
-* [Uninstall](clients/uninstall.md)
+* Management
+  * [Auth](clusters/management/auth.md)
+  * [Create](clusters/management/create.md)
+  * [Update](clusters/management/update.md)
+  * [Delete](clusters/management/delete.md)
+  * [Environments](clusters/management/environments.md)
+* Instances
+  * [Multi-instance](clusters/instances/multi.md)
+  * [Spot instances](clusters/instances/spot.md)
+* Observability
+  * [Logging](clusters/observability/logging.md)
+  * [Metrics](clusters/observability/metrics.md)
+* Networking
+  * [Load balancers](clusters/networking/load-balancers.md)
+  * [VPC peering](clusters/networking/vpc-peering.md)
+  * [HTTPS](clusters/networking/https.md)
+  * [Custom domain](clusters/networking/custom-domain.md)
+* Advanced
+  * [Setting up kubectl](clusters/advanced/kubectl.md)
+  * [Private Docker registry](clusters/advanced/registry.md)
 
 ## Workloads
 
@@ -56,29 +71,10 @@
   * [Python packages](workloads/dependencies/python-packages.md)
   * [System packages](workloads/dependencies/system-packages.md)
   * [Custom images](workloads/dependencies/images.md)
-* Observability
-  * [Logging](workloads/observability/logging.md)
-  * [Metrics](workloads/observability/metrics.md)
 
-## Clusters
+## Clients
 
-* AWS
-  * [Install](clusters/aws/install.md)
-  * [Update](clusters/aws/update.md)
-  * [Auth](clusters/aws/auth.md)
-  * [Security](clusters/aws/security.md)
-  * [Multi-instance type](clusters/aws/multi-instance-type.md)
-  * [Spot instances](clusters/aws/spot.md)
-  * [Networking](clusters/aws/networking/index.md)
-    * [Custom domain](clusters/aws/networking/custom-domain.md)
-    * [HTTPS (via API Gateway)](clusters/aws/networking/https.md)
-    * [VPC peering](clusters/aws/networking/vpc-peering.md)
-  * [Setting up kubectl](clusters/aws/kubectl.md)
-  * [Uninstall](clusters/aws/uninstall.md)
-* GCP
-  * [Install](clusters/gcp/install.md)
-  * [Credentials](clusters/gcp/credentials.md)
-  * [Multi-instance type](clusters/gcp/multi-instance-type.md)
-  * [Setting up kubectl](clusters/gcp/kubectl.md)
-  * [Uninstall](clusters/gcp/uninstall.md)
-* [Private Docker registry](clusters/registry.md)
+* [Install](clients/install.md)
+* [Uninstall](clients/uninstall.md)
+* [CLI commands](clients/cli.md)
+* [Python client](clients/python.md)

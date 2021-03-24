@@ -1,8 +1,8 @@
 # Private Docker registry
 
-## Install and configure kubectl
+## Configuring `kubectl`
 
-Follow the instructions for [AWS](aws/kubectl.md) or [GCP](gcp/kubectl.md).
+Follow the instructions [here](kubectl.md).
 
 ## Setting credentials
 
