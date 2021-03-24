@@ -23,6 +23,7 @@ from cortex_internal.lib.telemetry import capture_exception, get_default_tags, i
 
 NANOSECONDS_IN_SECOND = 1e9
 
+
 class ThreadPoolExecutorWithRequestMonitor:
     def __init__(self, *args, **kwargs):
         self._thread_pool_executor = futures.ThreadPoolExecutor(*args, **kwargs)
@@ -55,24 +56,30 @@ class ThreadPoolExecutorWithRequestMonitor:
 
 def get_servicer_from_module(module_proto_pb2_grpc) -> Any:
     classes = inspect.getmembers(module_proto_pb2_grpc, inspect.isclass)
-    for class_name, class in classes:
+    for class_name, module_class in classes:
         if class_name.endswith("Servicer"):
-            return class
-    # this will never be reached because we're guaranteed to have one servicer class in the module
+            return module_class
+    # this line will never be reached because we're guaranteed to have one servicer class in the module
 
-def get_servicer_to_server_from_module(module_proto_pb2_grpc):
+
+def get_servicer_to_server_from_module(module_proto_pb2_grpc) -> Any:
     functions = inspect.getmembers(module_proto_pb2_grpc, inspect.isfunction)
     for function_name, function in functions:
         if function_name.endswith("_to_server"):
             return function
-    # this will never be reached because we're guaranteed to have one servicer adder in the module
+    # this line will never be reached because we're guaranteed to have one servicer adder in the module
 
 
-def main():
-    address = sys.argv[1]
+def build_predict_kwargs(predict_fn_args, payload, context) -> Dict[str, Any]:
+    predict_kwargs = {}
+    if "payload" in predict_fn_args:
+        predict_kwargs["payload"] = payload
+    if "context" in predict_fn_args:
+        predict_kwargs["context"] = context
+    return predict_fn_args
 
-    threads_per_process = os.environ["CORTEX_THREADS_PER_PROCESS"]
 
+def init():
     provider = os.environ["CORTEX_PROVIDER"]
     project_dir = os.environ["CORTEX_PROJECT_DIR"]
     spec_path = os.environ["CORTEX_API_SPEC"]
@@ -85,78 +92,99 @@ def main():
     tf_serving_port = os.getenv("CORTEX_TF_BASE_SERVING_PORT", "9000")
     tf_serving_host = os.getenv("CORTEX_TF_SERVING_HOST", "localhost")
 
-    try:
-        has_multiple_servers = os.getenv("CORTEX_MULTIPLE_TF_SERVERS")
-        if has_multiple_servers:
-            with LockedFile("/run/used_ports.json", "r+") as f:
-                used_ports = json.load(f)
-                for port in used_ports.keys():
-                    if not used_ports[port]:
-                        tf_serving_port = port
-                        used_ports[port] = True
-                        break
-                f.seek(0)
-                json.dump(used_ports, f)
-                f.truncate()
+    has_multiple_servers = os.getenv("CORTEX_MULTIPLE_TF_SERVERS")
+    if has_multiple_servers:
+        with LockedFile("/run/used_ports.json", "r+") as f:
+            used_ports = json.load(f)
+            for port in used_ports.keys():
+                if not used_ports[port]:
+                    tf_serving_port = port
+                    used_ports[port] = True
+                    break
+            f.seek(0)
+            json.dump(used_ports, f)
+            f.truncate()
 
-        api = get_api(provider, spec_path, model_dir, cache_dir, region)
+    api = get_api(provider, spec_path, model_dir, cache_dir, region)
 
-        client = api.predictor.initialize_client(
-            tf_serving_host=tf_serving_host, tf_serving_port=tf_serving_port
-        )
-
-        with FileLock("/run/init_stagger.lock"):
-            logger.info("loading the predictor from {}".format(api.predictor.path))
-            metrics_client = MetricsClient(api.statsd)
-            predictor_impl = api.predictor.initialize_impl(
-                project_dir=project_dir, client=client, metrics_client=metrics_client
-            )
-
-        # crons only stop if an unhandled exception occurs
-        def check_if_crons_have_failed():
-            while True:
-                for cron in api.predictor.crons:
-                    if not cron.is_alive():
-                        os.kill(os.getpid(), signal.SIGQUIT)
-                time.sleep(1)
-
-        threading.Thread(target=check_if_crons_have_failed, daemon=True).start()
-
-        config: Dict[str, Any] = {
-            "api": None,
-            "provider": None,
-            "client": None,
-            "predictor_impl": None,
-        }
-
-        config["api"] = api
-        config["provider"] = provider
-        config["client"] = client
-        config["predictor_impl"] = predictor_impl
-
-    except Exception as err:
-        if not isinstance(err, UserRuntimeException):
-            capture_exception(err)
-        logger.exception("failed to start api")
-        sys.exit(1)
+    config: Dict[str, Any] = {
+        "api": None,
+        "provider": None,
+        "client": None,
+        "predictor_impl": None,
+        "module_proto_pb2_grpc": None,
+    }
 
     proto_without_ext = pathlib.Path(api.predictor.protobuf_path).stem
+    compiled_proto_pb2 = os.path.join(python_path, proto_without_ext + "_pb2")
     compiled_proto_pb2_grpc = os.path.join(python_path, proto_without_ext + "_pb2_grpc")
+    module_proto_pb2 = importlib.import_module(compiled_proto_pb2)
     module_proto_pb2_grpc = importlib.import_module(compiled_proto_pb2_grpc)
 
+    client = api.predictor.initialize_client(
+        tf_serving_host=tf_serving_host, tf_serving_port=tf_serving_port
+    )
+
+    with FileLock("/run/init_stagger.lock"):
+        logger.info("loading the predictor from {}".format(api.predictor.path))
+        metrics_client = MetricsClient(api.statsd)
+        predictor_impl = api.predictor.initialize_impl(
+            project_dir=project_dir,
+            client=client,
+            metrics_client=metrics_client,
+            proto_module_pb2=module_proto_pb2,
+        )
+
+    # crons only stop if an unhandled exception occurs
+    def check_if_crons_have_failed():
+        while True:
+            for cron in api.predictor.crons:
+                if not cron.is_alive():
+                    os.kill(os.getpid(), signal.SIGQUIT)
+            time.sleep(1)
+
+    threading.Thread(target=check_if_crons_have_failed, daemon=True).start()
+
     ServicerClass = get_servicer_from_module(module_proto_pb2_grpc)
+
     class PredictorServicer(ServicerClass):
         def __init__(self, config: Dict[str, Any]):
             self.config = config
 
         def Predict(self, payload, context):
             try:
-                response = self.config["predictor_impl"].predict(payload=payload)
+                kwargs = build_predict_kwargs(self.config["predict_fn_args"], payload, context)
+                response = self.config["predictor_impl"].predict(**kwargs)
             except Exception:
                 logger.error(traceback.format_exc())
                 context.abort(grpc.StatusCode.INTERNAL, "internal server error")
             return response
 
+    config["api"] = api
+    config["provider"] = provider
+    config["client"] = client
+    config["predictor_impl"] = predictor_impl
+    config["predict_fn_args"] = inspect.getfullargspec(predictor_impl.predict).args
+    config["module_proto_pb2_grpc"] = module_proto_pb2_grpc
+    config["predictor_servicer"] = PredictorServicer
+
+    return config
+
+
+def main():
+    address = sys.argv[1]
+    threads_per_process = os.environ["CORTEX_THREADS_PER_PROCESS"]
+
+    try:
+        config = init()
+    except Exception as err:
+        if not isinstance(err, UserRuntimeException):
+            capture_exception(err)
+        logger.exception("failed to start api")
+        sys.exit(1)
+
+    module_proto_pb2_grpc = config["module_proto_pb2_grpc"]
+    PredictorServicer = config["predictor_servicer"]
 
     server = grpc.server(ThreadPoolExecutorWithRequestMonitor(max_workers=threads_per_process))
 
@@ -169,7 +197,7 @@ def main():
     start_time = time.time()
     while time.time() - start_time < time_to_wait:
         time.sleep(1.0)
-    
+
     open(f"/mnt/workspace/proc-{os.getpid()}-ready.txt", "a").close()
     server.wait_for_termination()
 

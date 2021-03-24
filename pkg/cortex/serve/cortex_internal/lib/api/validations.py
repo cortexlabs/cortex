@@ -90,27 +90,28 @@ def validate_required_method_args(impl, func_signature):
 
 
 def validate_python_predictor_with_models(impl, api_spec):
+    if not are_models_specified(api_spec):
+        return
+
     target_class_name = impl.__name__
+    constructor = getattr(impl, "__init__")
+    constructor_arg_spec = inspect.getfullargspec(constructor)
+    if "python_client" not in constructor_arg_spec.args:
+        raise UserException(
+            f"class {target_class_name}",
+            f'invalid signature for method "__init__"',
+            f'"python_client" is a required argument, but was not provided',
+            f"when the python predictor type is used and models are specified in the api spec, "
+            f'adding the "python_client" argument is required',
+        )
 
-    if are_models_specified(api_spec):
-        constructor = getattr(impl, "__init__")
-        constructor_arg_spec = inspect.getfullargspec(constructor)
-        if "python_client" not in constructor_arg_spec.args:
-            raise UserException(
-                f"class {target_class_name}",
-                f'invalid signature for method "__init__"',
-                f'"python_client" is a required argument, but was not provided',
-                f"when the python predictor type is used and models are specified in the api spec, "
-                f'adding the "python_client" argument is required',
-            )
-
-        if getattr(impl, "load_model", None) is None:
-            raise UserException(
-                f"class {target_class_name}",
-                f'required method "load_model" is not defined',
-                f"when the python predictor type is used and models are specified in the api spec, "
-                f'adding the "load_model" method is required',
-            )
+    if getattr(impl, "load_model", None) is None:
+        raise UserException(
+            f"class {target_class_name}",
+            f'required method "load_model" is not defined',
+            f"when the python predictor type is used and models are specified in the api spec, "
+            f'adding the "load_model" method is required',
+        )
 
 
 def are_models_specified(api_spec: Dict) -> bool:
@@ -130,3 +131,30 @@ def are_models_specified(api_spec: Dict) -> bool:
         return False
 
     return models is not None
+
+
+def is_grpc_enabled(api_spec: Dict) -> bool:
+    """
+    Checks if the API has the grpc protocol enabled (cortex.yaml).
+
+    Args:
+        api_spec: API configuration.
+    """
+    return api_spec["predictor"]["protobuf_path"] is not None
+
+
+def validate_predictor_with_grpc(impl, api_spec):
+    if not is_grpc_enabled(api_spec):
+        return
+
+    target_class_name = impl.__name__
+    constructor = getattr(impl, "__init__")
+    constructor_arg_spec = inspect.getfullargspec(constructor)
+    if "proto_module_pb2" not in constructor_arg_spec.args:
+        raise UserException(
+            f"class {target_class_name}",
+            f'invalid signature for method "__init__"',
+            f'"proto_module_pb2" is a required argument, but was not provided',
+            f"when a protobuf is specified in the api spec, then that means the grpc protocol is enabled, "
+            f'which means that adding the "proto_module_pb2" argument is required',
+        )
