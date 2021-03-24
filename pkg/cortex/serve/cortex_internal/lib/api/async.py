@@ -28,6 +28,7 @@ from cortex_internal.lib.client.onnx import ONNXClient
 from cortex_internal.lib.client.tensorflow import TensorFlowClient
 from cortex_internal.lib.exceptions import CortexException, UserException, UserRuntimeException
 from cortex_internal.lib.metrics import MetricsClient
+from cortex_internal.lib.model import ModelsHolder
 from cortex_internal.lib.storage import S3
 from cortex_internal.lib.type import (
     predictor_type_from_api_spec,
@@ -89,8 +90,10 @@ class AsyncAPI:
         api_spec: Dict[str, Any],
         storage: S3,
         storage_path: str,
+        model_dir: str,
         statsd_host: str,
         statsd_port: int,
+        lock_dir: str = "/run/cron",
     ):
         self.api_spec = api_spec
         self.storage = storage
@@ -98,6 +101,8 @@ class AsyncAPI:
         self.path = api_spec["predictor"]["path"]
         self.config = api_spec["predictor"].get("config", {})
         self.type = predictor_type_from_api_spec(api_spec)
+        self.model_dir = model_dir
+        self.lock_dir = lock_dir
 
         datadog.initialize(statsd_host=statsd_host, statsd_port=statsd_port)
         self.__statsd = datadog.statsd
@@ -179,9 +184,15 @@ class AsyncAPI:
                 tf_serving_url=tf_serving_address,
                 api_spec=self.api_spec,
             )
+            tf_client.sync_models(lock_dir=self.lock_dir)
             args["tensorflow_client"] = tf_client
         elif self.type == ONNXPredictorType:
-            onnx_client = ONNXClient(api_spec=self.api_spec)
+            models = ModelsHolder(self.type, self.model_dir)
+            onnx_client = ONNXClient(
+                api_spec=self.api_spec,
+                models=models,
+                model_dir=self.model_dir,
+            )
             args["onnx_client"] = onnx_client
 
         try:

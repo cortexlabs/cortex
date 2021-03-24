@@ -753,6 +753,15 @@ func getAsyncAPIEnvVars(api spec.API, queueURL string) []kcore.EnvVar {
 		)
 	}
 
+	if api.Predictor.Type != userconfig.PythonPredictorType || api.Predictor.MultiModelReloading != nil {
+		envVars = append(envVars,
+			kcore.EnvVar{
+				Name:  "CORTEX_MODEL_DIR",
+				Value: path.Join(_emptyDirMountPath, "model"),
+			},
+		)
+	}
+
 	cortexPythonPath := path.Join(_emptyDirMountPath, "project")
 	if api.Predictor.PythonPath != nil {
 		cortexPythonPath = path.Join(_emptyDirMountPath, "project", *api.Predictor.PythonPath)

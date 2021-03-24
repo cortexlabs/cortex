@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+import json
 import os
 import threading as td
 from typing import Any, Optional, List
@@ -84,6 +84,34 @@ class TensorFlowClient:
             self._models.set_callback("remove", self._remove_models)
 
         self._client = TensorFlowServingAPI(tf_serving_url)
+
+    def sync_models(self, lock_dir: str = "/run/cron"):
+        resource_models = os.path.join(lock_dir, "models_tfs.json")
+
+        try:
+            with open(resource_models, "r") as f:
+                models = json.load(f)
+        except Exception:
+            return
+
+        resource_ts = os.path.join(lock_dir, "model_timestamps.json")
+        try:
+            with open(resource_ts, "r") as f:
+                timestamps = json.load(f)
+        except Exception:
+            return
+
+        non_intersecting_model_ids = set(models.keys()).symmetric_difference(timestamps.keys())
+        for non_intersecting_model_id in non_intersecting_model_ids:
+            if non_intersecting_model_id in models:
+                del models[non_intersecting_model_id]
+            if non_intersecting_model_id in timestamps:
+                del timestamps[non_intersecting_model_id]
+
+        for model_id in timestamps.keys():
+            models[model_id]["timestamp"] = timestamps[model_id]
+
+        self._client.models = models
 
     def predict(
         self, model_input: Any, model_name: Optional[str] = None, model_version: str = "latest"
