@@ -753,7 +753,7 @@ func getAsyncAPIEnvVars(api spec.API, queueURL string) []kcore.EnvVar {
 		)
 	}
 
-	if api.Predictor.Type != userconfig.PythonPredictorType || api.Predictor.MultiModelReloading != nil {
+	if api.Predictor.Type != userconfig.PythonPredictorType {
 		envVars = append(envVars,
 			kcore.EnvVar{
 				Name:  "CORTEX_MODEL_DIR",
