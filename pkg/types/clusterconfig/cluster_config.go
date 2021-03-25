@@ -48,7 +48,7 @@ const (
 )
 
 var (
-	_maxNodeGroupLengthWithPrefix = 19                                            // node pool length name limit on GKE, using the same on AWS for consistency reasons
+	_maxNodeGroupLengthWithPrefix = 32
 	_maxNodeGroupLength           = _maxNodeGroupLengthWithPrefix - len("cx-wd-") // or cx-ws-
 	_maxInstancePools             = 20
 	_cachedCNISupportedInstances  *string
