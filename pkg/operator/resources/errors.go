@@ -27,15 +27,16 @@ import (
 )
 
 const (
-	ErrOperationIsOnlySupportedForKind       = "resources.operation_is_only_supported_for_kind"
-	ErrAPINotDeployed                        = "resources.api_not_deployed"
-	ErrAPIIDNotFound                         = "resources.api_id_not_found"
-	ErrCannotChangeTypeOfDeployedAPI         = "resources.cannot_change_kind_of_deployed_api"
-	ErrNoAvailableNodeComputeLimit           = "resources.no_available_node_compute_limit"
-	ErrJobIDRequired                         = "resources.job_id_required"
-	ErrRealtimeAPIUsedByTrafficSplitter      = "resources.realtime_api_used_by_traffic_splitter"
-	ErrAPIsNotDeployed                       = "resources.apis_not_deployed"
-	ErrGrpcAPINotSupportedForTrafficSplitter = "resources.grpc_api_not_supported_for_traffic_splitter"
+	ErrOperationIsOnlySupportedForKind                          = "resources.operation_is_only_supported_for_kind"
+	ErrAPINotDeployed                                           = "resources.api_not_deployed"
+	ErrAPIIDNotFound                                            = "resources.api_id_not_found"
+	ErrCannotChangeTypeOfDeployedAPI                            = "resources.cannot_change_kind_of_deployed_api"
+	ErrCannotChangeAPIServingProtocolWhenTrafficSplitterIsInUse = "resources.cannot_change_api_serving_protocol_when_traffic_splitter_is_in_use"
+	ErrNoAvailableNodeComputeLimit                              = "resources.no_available_node_compute_limit"
+	ErrJobIDRequired                                            = "resources.job_id_required"
+	ErrRealtimeAPIUsedByTrafficSplitter                         = "resources.realtime_api_used_by_traffic_splitter"
+	ErrAPIsNotDeployed                                          = "resources.apis_not_deployed"
+	ErrGrpcAPINotSupportedForTrafficSplitter                    = "resources.grpc_api_not_supported_for_traffic_splitter"
 )
 
 func ErrorOperationIsOnlySupportedForKind(resource operator.DeployedResource, supportedKind userconfig.Kind, supportedKinds ...userconfig.Kind) error {
@@ -70,6 +71,13 @@ func ErrorCannotChangeKindOfDeployedAPI(name string, newKind, prevKind userconfi
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrCannotChangeTypeOfDeployedAPI,
 		Message: fmt.Sprintf("cannot change the kind of %s to %s because it has already been deployed with kind %s; please delete it with `cortex delete %s` and redeploy after updating the api configuration appropriately", name, newKind.String(), prevKind.String(), name),
+	})
+}
+
+func ErrorCannotChangeAPIServingProtocolWhenTrafficSplitterIsInUse(protocolChangingAPIName string, trafficSplitters []string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrCannotChangeAPIServingProtocolWhenTrafficSplitterIsInUse,
+		Message: fmt.Sprintf("cannot change the serving protocol (http -> grpc) of api %s because it is used by the following %s: %s", protocolChangingAPIName, strings.PluralS("TrafficSplitter", len(trafficSplitters)), strings.StrsSentence(trafficSplitters, "")),
 	})
 }
 
