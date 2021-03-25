@@ -252,9 +252,10 @@ func GetAPIByName(deployedResource *operator.DeployedResource) ([]schema.APIResp
 
 	dashboardURL := pointer.String(getDashboardURL(api.Name))
 
-	ports := []int64{}
+	ports := map[string]int64{}
 	if api.Predictor != nil && api.Predictor.ProtobufPath != nil {
-		ports = []int64{80, 443}
+		ports["insecure"] = 80
+		ports["secure"] = 443
 	}
 
 	return []schema.APIResponse{

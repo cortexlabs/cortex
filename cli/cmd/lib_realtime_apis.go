@@ -53,12 +53,8 @@ func realtimeAPITable(realtimeAPI schema.APIResponse, env cliconfig.Environment)
 	}
 
 	if realtimeAPI.Spec.Predictor.ProtobufPath != nil {
-		out += "\n" + console.Bold("insecure endpoint: ") + fmt.Sprintf("%s:%d", realtimeAPI.Endpoint, realtimeAPI.Ports[0])
-		out += "\n" + console.Bold("secure endpoint: ") + fmt.Sprintf("%s:%d", realtimeAPI.Endpoint, realtimeAPI.Ports[1])
-		if realtimeAPI.Spec.Networking.Endpoint != nil {
-			out += "\n" + console.Bold("service method: ") + *realtimeAPI.Spec.Networking.Endpoint
-		}
-		out += "\n"
+		out += "\n" + console.Bold("insecure endpoint: ") + fmt.Sprintf("%s:%d", realtimeAPI.Endpoint, realtimeAPI.Ports["insecure"])
+		out += "\n" + console.Bold("secure endpoint: ") + fmt.Sprintf("%s:%d", realtimeAPI.Endpoint, realtimeAPI.Ports["secure"]) + "\n"
 	} else {
 		out += "\n" + console.Bold("endpoint: ") + realtimeAPI.Endpoint + "\n"
 	}
