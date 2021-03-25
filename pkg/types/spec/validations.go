@@ -922,6 +922,9 @@ func validatePredictor(
 			if kind == ErrConflictingFields || kind == ErrProtoInvalidNetworkingEndpoint {
 				return err
 			}
+			if kind == files.ErrFileDoesNotExist {
+				return errors.Wrap(err, userconfig.ProtobufPathKey)
+			}
 			return errors.Wrap(err, userconfig.ProtobufPathKey, *predictor.ProtobufPath)
 		}
 	}
