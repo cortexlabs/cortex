@@ -25,8 +25,8 @@ NANOSECONDS_IN_SECOND = 1e9
 
 
 class ThreadPoolExecutorWithRequestMonitor:
-    def __init__(self, post_metrics_fn: Callable[[int, float], None], *args, **kwargs):
-        self._post_metrics_fn = post_metrics_fn
+    def __init__(self, post_latency_metrics_fn: Callable[[int, float], None], *args, **kwargs):
+        self._post_latency_metrics_fn = post_latency_metrics_fn
         self._thread_pool_executor = futures.ThreadPoolExecutor(*args, **kwargs)
 
     def submit(self, fn, *args, **kwargs):
@@ -37,10 +37,8 @@ class ThreadPoolExecutorWithRequestMonitor:
         start_time = time.time()
 
         def wrapper_fn(*args, **kwargs):
-            successful_execution = False
             try:
                 result = fn(*args, **kwargs)
-                successful_execution = True
             except:
                 raise
             finally:
@@ -48,11 +46,7 @@ class ThreadPoolExecutorWithRequestMonitor:
                     os.remove(file_id)
                 except FileNotFoundError:
                     pass
-                if successful_execution:
-                    status_code = 200
-                else:
-                    status_code = 500
-                self._post_metrics_fn(status_code, time.time() - start_time)
+                self._post_latency_metrics_fn(time.time() - start_time)
 
             return result
 
@@ -163,8 +157,10 @@ def init():
             try:
                 kwargs = build_predict_kwargs(self.config["predict_fn_args"], payload, context)
                 response = self.config["predictor_impl"].predict(**kwargs)
+                api.post_status_code_request_metrics(200)
             except Exception:
                 logger.error(traceback.format_exc())
+                api.post_status_code_request_metrics(500)
                 context.abort(grpc.StatusCode.INTERNAL, "internal server error")
             return response
 
@@ -197,7 +193,7 @@ def main():
 
     server = grpc.server(
         ThreadPoolExecutorWithRequestMonitor(
-            post_metrics_fn=api.post_request_metrics, max_workers=threads_per_process
+            post_latency_metrics_fn=api.post_latency_request_metrics, max_workers=threads_per_process
         )
     )
 
