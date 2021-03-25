@@ -25,7 +25,7 @@ NANOSECONDS_IN_SECOND = 1e9
 
 
 class ThreadPoolExecutorWithRequestMonitor:
-    def __init__(self, post_metrics_fn: Callable[[int, float]], *args, **kwargs):
+    def __init__(self, post_metrics_fn: Callable[[int, float], None], *args, **kwargs):
         self._post_metrics_fn = post_metrics_fn
         self._thread_pool_executor = futures.ThreadPoolExecutor(*args, **kwargs)
 
