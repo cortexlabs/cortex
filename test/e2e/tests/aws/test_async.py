@@ -21,6 +21,8 @@ import e2e.tests
 
 TEST_APIS = [
     {"name": "async/iris-classifier", "poll_retries": 10, "poll_sleep_time": 1},
+    {"name": "async/tensorflow", "poll_retries": 10, "poll_sleep_time": 1},
+    {"name": "async/onnx", "poll_retries": 10, "poll_sleep_time": 1},
 ]
 
 

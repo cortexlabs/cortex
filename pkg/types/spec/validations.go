@@ -883,10 +883,6 @@ func validatePredictor(
 	k8sClient *k8s.Client,
 ) error {
 	predictor := api.Predictor
-	if api.Kind == userconfig.AsyncAPIKind && predictor.Type != userconfig.PythonPredictorType {
-		return ErrorPredictorTypeNotSupportedForKind(predictor.Type, api.Kind)
-	}
-
 	if err := validateMultiModelsFields(api); err != nil {
 		return err
 	}

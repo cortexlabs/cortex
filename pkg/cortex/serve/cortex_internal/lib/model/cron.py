@@ -12,30 +12,25 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os
-import threading as td
-import multiprocessing as mp
-import time
+import copy
 import datetime
 import glob
-import shutil
 import json
-import grpc
-import copy
+import multiprocessing as mp
+import os
+import shutil
+import threading as td
+import time
 from concurrent.futures import ThreadPoolExecutor
 from typing import Dict, List, Tuple, Any, Union, Callable, Optional
 
-from cortex_internal.lib import util
-from cortex_internal.lib.concurrency import LockedFile, get_locked_files
-from cortex_internal.lib.storage import S3, GCS
-from cortex_internal.lib.exceptions import CortexException, WithBreak
-from cortex_internal.lib.type import (
-    predictor_type_from_api_spec,
-    PythonPredictorType,
-    TensorFlowPredictorType,
-    TensorFlowNeuronPredictorType,
-)
+import grpc
 
+from cortex_internal.lib import util
+from cortex_internal.lib.client.tensorflow import TensorFlowClient
+from cortex_internal.lib.concurrency import LockedFile, get_locked_files
+from cortex_internal.lib.exceptions import CortexException, WithBreak
+from cortex_internal.lib.log import configure_logger
 from cortex_internal.lib.model import (
     find_all_cloud_models,
     validate_model_paths,
@@ -48,8 +43,14 @@ from cortex_internal.lib.model import (
     get_models_from_api_spec,
     ModelsTree,
 )
+from cortex_internal.lib.storage import S3, GCS
 from cortex_internal.lib.telemetry import get_default_tags, init_sentry
-from cortex_internal.lib.log import configure_logger
+from cortex_internal.lib.type import (
+    predictor_type_from_api_spec,
+    PythonPredictorType,
+    TensorFlowPredictorType,
+    TensorFlowNeuronPredictorType,
+)
 
 logger = configure_logger("cortex", os.environ["CORTEX_LOG_CONFIG_FILE"])
 
@@ -1236,8 +1237,8 @@ class TFSAPIServingThreadUpdater(AbstractLoopingThread):
 
     def __init__(
         self,
-        interval: int,
-        client: TensorFlowServingAPI,
+        interval: Union[int, float],
+        client: TensorFlowClient,
         lock_dir: str = "/run/cron",
     ):
         AbstractLoopingThread.__init__(self, interval, self._run_tfs)
@@ -1246,32 +1247,7 @@ class TFSAPIServingThreadUpdater(AbstractLoopingThread):
         self._lock_dir = lock_dir
 
     def _run_tfs(self) -> None:
-        resource_models = os.path.join(self._lock_dir, "models_tfs.json")
-
-        try:
-            with open(resource_models, "r") as f:
-                models = json.load(f)
-        except Exception:
-            return
-
-        resource_ts = os.path.join(self._lock_dir, "model_timestamps.json")
-        try:
-            with open(resource_ts, "r") as f:
-                timestamps = json.load(f)
-        except Exception:
-            return
-
-        non_intersecting_model_ids = set(models.keys()).symmetric_difference(timestamps.keys())
-        for non_intersecting_model_id in non_intersecting_model_ids:
-            if non_intersecting_model_id in models:
-                del models[non_intersecting_model_id]
-            if non_intersecting_model_id in timestamps:
-                del timestamps[non_intersecting_model_id]
-
-        for model_id in timestamps.keys():
-            models[model_id]["timestamp"] = timestamps[model_id]
-
-        self._client.models = models
+        self._client.sync_models(self._lock_dir)
 
 
 def find_ondisk_models(models_dir: str) -> Dict[str, List[str]]:
