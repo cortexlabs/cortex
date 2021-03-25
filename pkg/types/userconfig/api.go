@@ -630,7 +630,7 @@ func ZeroCompute() Compute {
 	}
 }
 
-func (api *API) TelemetryEvent(provider types.ProviderType) map[string]interface{} {
+func (api *API) TelemetryEvent(provider types.ProviderType, grpcStreamingEnabled bool) map[string]interface{} {
 	event := map[string]interface{}{
 		"provider": provider,
 		"kind":     api.Kind,
@@ -679,6 +679,7 @@ func (api *API) TelemetryEvent(provider types.ProviderType) map[string]interface
 
 		if api.Predictor.ProtobufPath != nil {
 			event["predictor.protobuf_path._is_defined"] = true
+			event["predictor.protobuf_path._streaming_enabled"] = grpcStreamingEnabled
 		}
 		if api.Predictor.PythonPath != nil {
 			event["predictor.python_path._is_defined"] = true

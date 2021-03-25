@@ -127,7 +127,15 @@ func Deploy(projectBytes []byte, configFileName string, configBytes []byte, forc
 	results := make([]schema.DeployResult, 0, len(apiConfigs))
 	for i := range apiConfigs {
 		apiConfig := apiConfigs[i]
-		api, msg, err := UpdateAPI(&apiConfig, projectID, force)
+
+		protobufBytes := []byte{}
+		if apiConfig.Predictor != nil && apiConfig.Predictor.ProtobufPath != nil {
+			protobufBytes, err = projectFiles.GetFile(*apiConfig.Predictor.ProtobufPath)
+			if err != nil {
+				return nil, err
+			}
+		}
+		api, msg, err := UpdateAPI(&apiConfig, projectID, force, protobufBytes)
 
 		result := schema.DeployResult{
 			Message: msg,
@@ -144,7 +152,7 @@ func Deploy(projectBytes []byte, configFileName string, configBytes []byte, forc
 	return results, nil
 }
 
-func UpdateAPI(apiConfig *userconfig.API, projectID string, force bool) (*schema.APIResponse, string, error) {
+func UpdateAPI(apiConfig *userconfig.API, projectID string, force bool, protobufBytes []byte) (*schema.APIResponse, string, error) {
 	deployedResource, err := GetDeployedResourceByNameOrNil(apiConfig.Name)
 	if err != nil {
 		return nil, "", err
@@ -154,7 +162,12 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string, force bool) (*schema
 		return nil, "", ErrorCannotChangeKindOfDeployedAPI(apiConfig.Name, apiConfig.Kind, deployedResource.Kind)
 	}
 
-	telemetry.Event("operator.deploy", apiConfig.TelemetryEvent(config.Provider))
+	grpcStreamingEnabled, err := isGrpcStreamingEnabledInProto(protobufBytes)
+	if err != nil {
+		return nil, "", err
+	}
+
+	telemetry.Event("operator.deploy", apiConfig.TelemetryEvent(config.Provider, grpcStreamingEnabled))
 
 	var api *spec.API
 	var msg string
