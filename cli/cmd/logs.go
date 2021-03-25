@@ -52,7 +52,7 @@ var _logsCmd = &cobra.Command{
 			telemetry.Event("cli.logs")
 			exit.Error(err)
 		}
-		telemetry.Event("cli.logs", map[string]interface{}{"provider": env.Provider.String(), "env_name": env.Name})
+		telemetry.Event("cli.logs", map[string]interface{}{"env_name": env.Name})
 
 		err = printEnvIfNotSpecified(env.Name, cmd)
 		if err != nil {

@@ -25,7 +25,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
-	"github.com/cortexlabs/cortex/pkg/lib/gcp"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	"github.com/cortexlabs/cortex/pkg/lib/slices"
@@ -87,10 +86,7 @@ func surgeOrUnavailableValidator(str string) (string, error) {
 }
 
 func checkForInvalidBucketProvider(modelPath string) (string, error) {
-	s3Path := strings.HasPrefix(modelPath, "s3://")
-	gcsPath := strings.HasPrefix(modelPath, "gs://")
-
-	if !s3Path && !gcsPath {
+	if !strings.HasPrefix(modelPath, "s3://") {
 		return "", ErrorInvalidModelPathProvider(modelPath)
 	}
 	return modelPath, nil
@@ -116,7 +112,6 @@ func validateDirModels(
 	modelPath string,
 	signatureKey *string,
 	awsClient *aws.Client,
-	gcpClient *gcp.Client,
 	errorForPredictorType errorForPredictorTypeFn,
 	extraValidators []modelValidator) ([]CuratedModelResource, error) {
 
@@ -127,38 +122,22 @@ func validateDirModels(
 
 	modelPath = s.EnsureSuffix(modelPath, "/")
 
-	s3Path := strings.HasPrefix(modelPath, "s3://")
-	gcsPath := strings.HasPrefix(modelPath, "gs://")
-
-	if s3Path {
-		awsClientForBucket, err := aws.NewFromClientS3Path(modelPath, awsClient)
-		if err != nil {
-			return nil, err
-		}
-
-		bucket, dirPrefix, err = aws.SplitS3Path(modelPath)
-		if err != nil {
-			return nil, err
-		}
-
-		s3Objects, err := awsClientForBucket.ListS3PathDir(modelPath, false, nil)
-		if err != nil {
-			return nil, err
-		}
-		modelDirPaths = aws.ConvertS3ObjectsToKeys(s3Objects...)
+	awsClientForBucket, err := aws.NewFromClientS3Path(modelPath, awsClient)
+	if err != nil {
+		return nil, err
 	}
-	if gcsPath {
-		bucket, dirPrefix, err = gcp.SplitGCSPath(modelPath)
-		if err != nil {
-			return nil, err
-		}
 
-		gcsObjects, err := gcpClient.ListGCSPathDir(modelPath, false, nil)
-		if err != nil {
-			return nil, err
-		}
-		modelDirPaths = gcp.ConvertGCSObjectsToKeys(gcsObjects...)
+	bucket, dirPrefix, err = aws.SplitS3Path(modelPath)
+	if err != nil {
+		return nil, err
 	}
+
+	s3Objects, err := awsClientForBucket.ListS3PathDir(modelPath, false, nil)
+	if err != nil {
+		return nil, err
+	}
+	modelDirPaths = aws.ConvertS3ObjectsToKeys(s3Objects...)
+
 	if len(modelDirPaths) == 0 {
 		return nil, errorForPredictorType(dirPrefix, modelDirPaths)
 	}
@@ -214,13 +193,7 @@ func validateDirModels(
 			return nil, errors.Wrap(err, modelNameWrapStr)
 		}
 
-		fullModelPath := ""
-		if s3Path {
-			fullModelPath = s.EnsureSuffix(aws.S3Path(bucket, modelPrefix), "/")
-		}
-		if gcsPath {
-			fullModelPath = s.EnsureSuffix(gcp.GCSPath(bucket, modelPrefix), "/")
-		}
+		fullModelPath := s.EnsureSuffix(aws.S3Path(bucket, modelPrefix), "/")
 
 		modelResources[i] = CuratedModelResource{
 			ModelResource: &userconfig.ModelResource{
@@ -228,8 +201,6 @@ func validateDirModels(
 				Path:         fullModelPath,
 				SignatureKey: signatureKey,
 			},
-			S3Path:   s3Path,
-			GCSPath:  gcsPath,
 			Versions: intVersions,
 		}
 	}
@@ -241,14 +212,12 @@ func validateModels(
 	models []userconfig.ModelResource,
 	defaultSignatureKey *string,
 	awsClient *aws.Client,
-	gcpClient *gcp.Client,
 	errorForPredictorType errorForPredictorTypeFn,
 	extraValidators []modelValidator) ([]CuratedModelResource, error) {
 
 	var bucket string
 	var modelPrefix string
 	var modelPaths []string
-	var err error
 
 	modelResources := make([]CuratedModelResource, len(models))
 	for i, model := range models {
@@ -259,40 +228,23 @@ func validateModels(
 
 		modelPath := s.EnsureSuffix(model.Path, "/")
 
-		s3Path := strings.HasPrefix(model.Path, "s3://")
-		gcsPath := strings.HasPrefix(model.Path, "gs://")
-
-		if s3Path {
-			awsClientForBucket, err := aws.NewFromClientS3Path(model.Path, awsClient)
-			if err != nil {
-				return nil, errors.Wrap(err, modelNameWrapStr)
-			}
-
-			bucket, modelPrefix, err = aws.SplitS3Path(model.Path)
-			if err != nil {
-				return nil, errors.Wrap(err, modelNameWrapStr)
-			}
-			modelPrefix = s.EnsureSuffix(modelPrefix, "/")
-
-			s3Objects, err := awsClientForBucket.ListS3PathDir(modelPath, false, nil)
-			if err != nil {
-				return nil, errors.Wrap(err, modelNameWrapStr)
-			}
-			modelPaths = aws.ConvertS3ObjectsToKeys(s3Objects...)
+		awsClientForBucket, err := aws.NewFromClientS3Path(model.Path, awsClient)
+		if err != nil {
+			return nil, errors.Wrap(err, modelNameWrapStr)
 		}
-		if gcsPath {
-			bucket, modelPrefix, err = gcp.SplitGCSPath(model.Path)
-			if err != nil {
-				return nil, errors.Wrap(err, modelNameWrapStr)
-			}
-			modelPrefix = s.EnsureSuffix(modelPrefix, "/")
 
-			gcsObjects, err := gcpClient.ListGCSPathDir(modelPath, false, nil)
-			if err != nil {
-				return nil, errors.Wrap(err, modelNameWrapStr)
-			}
-			modelPaths = gcp.ConvertGCSObjectsToKeys(gcsObjects...)
+		bucket, modelPrefix, err = aws.SplitS3Path(model.Path)
+		if err != nil {
+			return nil, errors.Wrap(err, modelNameWrapStr)
 		}
+		modelPrefix = s.EnsureSuffix(modelPrefix, "/")
+
+		s3Objects, err := awsClientForBucket.ListS3PathDir(modelPath, false, nil)
+		if err != nil {
+			return nil, errors.Wrap(err, modelNameWrapStr)
+		}
+		modelPaths = aws.ConvertS3ObjectsToKeys(s3Objects...)
+
 		if len(modelPaths) == 0 {
 			return nil, errors.Wrap(errorForPredictorType(modelPrefix, modelPaths), modelNameWrapStr)
 		}
@@ -337,13 +289,7 @@ func validateModels(
 			signatureKey = defaultSignatureKey
 		}
 
-		fullModelPath := ""
-		if s3Path {
-			fullModelPath = s.EnsureSuffix(aws.S3Path(bucket, modelPrefix), "/")
-		}
-		if gcsPath {
-			fullModelPath = s.EnsureSuffix(gcp.GCSPath(bucket, modelPrefix), "/")
-		}
+		fullModelPath := s.EnsureSuffix(aws.S3Path(bucket, modelPrefix), "/")
 
 		modelResources[i] = CuratedModelResource{
 			ModelResource: &userconfig.ModelResource{
@@ -351,8 +297,6 @@ func validateModels(
 				Path:         fullModelPath,
 				SignatureKey: signatureKey,
 			},
-			S3Path:   s3Path,
-			GCSPath:  gcsPath,
 			Versions: intVersions,
 		}
 	}

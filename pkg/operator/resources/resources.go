@@ -36,7 +36,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/operator/resources/realtimeapi"
 	"github.com/cortexlabs/cortex/pkg/operator/resources/trafficsplitter"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
-	"github.com/cortexlabs/cortex/pkg/types"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	istioclientnetworking "istio.io/client-go/pkg/apis/networking/v1beta1"
@@ -91,17 +90,9 @@ func Deploy(projectBytes []byte, configFileName string, configBytes []byte, forc
 		ProjectByteMap: projectFileMap,
 	}
 
-	var apiConfigs []userconfig.API
-	if config.Provider == types.AWSProviderType {
-		apiConfigs, err = spec.ExtractAPIConfigs(configBytes, config.Provider, configFileName)
-		if err != nil {
-			return nil, err
-		}
-	} else {
-		apiConfigs, err = spec.ExtractAPIConfigs(configBytes, config.Provider, configFileName)
-		if err != nil {
-			return nil, err
-		}
+	apiConfigs, err := spec.ExtractAPIConfigs(configBytes, configFileName)
+	if err != nil {
+		return nil, err
 	}
 
 	err = ValidateClusterAPIs(apiConfigs, projectFiles)
@@ -110,13 +101,13 @@ func Deploy(projectBytes []byte, configFileName string, configBytes []byte, forc
 		return nil, err
 	}
 
-	projectKey := spec.ProjectKey(projectID, config.ClusterName())
-	isProjectUploaded, err := config.IsBucketFile(projectKey)
+	projectKey := spec.ProjectKey(projectID, config.CoreConfig.ClusterName)
+	isProjectUploaded, err := config.AWS.IsS3File(config.CoreConfig.Bucket, projectKey)
 	if err != nil {
 		return nil, err
 	}
 	if !isProjectUploaded {
-		if err = config.UploadBytesToBucket(projectBytes, projectKey); err != nil {
+		if err = config.AWS.UploadBytesToS3(projectBytes, config.CoreConfig.Bucket, projectKey); err != nil {
 			return nil, err
 		}
 	}
@@ -154,7 +145,7 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string, force bool) (*schema
 		return nil, "", ErrorCannotChangeKindOfDeployedAPI(apiConfig.Name, apiConfig.Kind, deployedResource.Kind)
 	}
 
-	telemetry.Event("operator.deploy", apiConfig.TelemetryEvent(config.Provider))
+	telemetry.Event("operator.deploy", apiConfig.TelemetryEvent())
 
 	var api *spec.API
 	var msg string
@@ -192,19 +183,9 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string, force bool) (*schema
 }
 
 func Patch(configBytes []byte, configFileName string, force bool) ([]schema.DeployResult, error) {
-	var apiConfigs []userconfig.API
-	var err error
-
-	if config.Provider == types.AWSProviderType {
-		apiConfigs, err = spec.ExtractAPIConfigs(configBytes, config.Provider, configFileName)
-		if err != nil {
-			return nil, err
-		}
-	} else {
-		apiConfigs, err = spec.ExtractAPIConfigs(configBytes, config.Provider, configFileName)
-		if err != nil {
-			return nil, err
-		}
+	apiConfigs, err := spec.ExtractAPIConfigs(configBytes, configFileName)
+	if err != nil {
+		return nil, err
 	}
 
 	results := make([]schema.DeployResult, 0, len(apiConfigs))
@@ -250,7 +231,8 @@ func patchAPI(apiConfig *userconfig.API, force bool) (*spec.API, string, error) 
 	}
 
 	if deployedResource.Kind != userconfig.TrafficSplitterKind {
-		bytes, err := config.ReadBytesFromBucket(prevAPISpec.ProjectKey)
+		// bytes, err := config.ReadBytesFromBucket(prevAPISpec.ProjectKey)
+		bytes, err := config.AWS.ReadBytesFromS3(config.CoreConfig.Bucket, prevAPISpec.ProjectKey)
 		if err != nil {
 			return nil, "", err
 		}
@@ -312,25 +294,16 @@ func DeleteAPI(apiName string, keepCache bool) (*schema.DeleteResponse, error) {
 					return realtimeapi.DeleteAPI(apiName, keepCache)
 				},
 				func() error {
-					if config.Provider == types.AWSProviderType {
-						return batchapi.DeleteAPI(apiName, keepCache)
-					}
-					return nil
+					return batchapi.DeleteAPI(apiName, keepCache)
 				},
 				func() error {
-					if config.Provider == types.AWSProviderType {
-						return trafficsplitter.DeleteAPI(apiName, keepCache)
-					}
-					return nil
+					return trafficsplitter.DeleteAPI(apiName, keepCache)
 				},
 				func() error {
 					return taskapi.DeleteAPI(apiName, keepCache)
 				},
 				func() error {
-					if config.Provider == types.AWSProviderType {
-						return asyncapi.DeleteAPI(apiName, keepCache)
-					}
-					return nil
+					return asyncapi.DeleteAPI(apiName, keepCache)
 				},
 			)
 			if err != nil {
@@ -487,12 +460,9 @@ func GetAPIs() ([]schema.APIResponse, error) {
 		return nil, err
 	}
 
-	var batchAPIList []schema.APIResponse
-	if config.Provider == types.AWSProviderType {
-		batchAPIList, err = batchapi.GetAllAPIs(batchAPIVirtualServices, k8sBatchJobs, batchAPIPods)
-		if err != nil {
-			return nil, err
-		}
+	batchAPIList, err := batchapi.GetAllAPIs(batchAPIVirtualServices, k8sBatchJobs, batchAPIPods)
+	if err != nil {
+		return nil, err
 	}
 
 	asyncAPIList, err := asyncapi.GetAllAPIs(asyncAPIPods, asyncAPIDeployments)
@@ -596,7 +566,7 @@ func GetAPIByID(apiName string, apiID string) ([]schema.APIResponse, error) {
 func getPastAPIDeploys(apiName string) ([]schema.APIVersion, error) {
 	var apiVersions []schema.APIVersion
 
-	apiIDs, err := config.ListBucketDirOneLevel(spec.KeysPrefix(apiName, config.ClusterName()), pointer.Int64(10))
+	apiIDs, err := config.AWS.ListS3DirOneLevel(config.CoreConfig.Bucket, spec.KeysPrefix(apiName, config.CoreConfig.ClusterName), pointer.Int64(10))
 	if err != nil {
 		return nil, err
 	}

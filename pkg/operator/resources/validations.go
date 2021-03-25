@@ -27,7 +27,6 @@ import (
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 	"github.com/cortexlabs/cortex/pkg/operator/operator"
-	"github.com/cortexlabs/cortex/pkg/types"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	istioclientnetworking "istio.io/client-go/pkg/apis/networking/v1beta1"
@@ -94,7 +93,7 @@ func ValidateClusterAPIs(apis []userconfig.API, projectFiles spec.ProjectFiles) 
 		if api.Kind == userconfig.RealtimeAPIKind || api.Kind == userconfig.BatchAPIKind ||
 			api.Kind == userconfig.TaskAPIKind || api.Kind == userconfig.AsyncAPIKind {
 
-			if err := spec.ValidateAPI(api, nil, projectFiles, config.Provider, config.AWS, config.GCP, config.K8s); err != nil {
+			if err := spec.ValidateAPI(api, nil, projectFiles, config.AWS, config.K8s); err != nil {
 				return errors.Wrap(err, api.Identify())
 			}
 
@@ -116,18 +115,16 @@ func ValidateClusterAPIs(apis []userconfig.API, projectFiles spec.ProjectFiles) 
 		}
 	}
 
-	if config.IsManaged() && config.Provider == types.AWSProviderType {
-		maxMemMap, err := operator.UpdateMemoryCapacityConfigMap()
-		if err != nil {
-			return err
-		}
+	maxMemMap, err := operator.UpdateMemoryCapacityConfigMap()
+	if err != nil {
+		return err
+	}
 
-		for i := range apis {
-			api := &apis[i]
-			if api.Kind == userconfig.RealtimeAPIKind || api.Kind == userconfig.AsyncAPIKind || api.Kind == userconfig.BatchAPIKind || api.Kind == userconfig.TaskAPIKind {
-				if err := awsManagedValidateK8sCompute(api.Compute, maxMemMap); err != nil {
-					return err
-				}
+	for i := range apis {
+		api := &apis[i]
+		if api.Kind != userconfig.TrafficSplitterKind {
+			if err := validateK8sCompute(api.Compute, maxMemMap); err != nil {
+				return err
 			}
 		}
 	}
@@ -175,15 +172,10 @@ var _nvidiaDCGMExporterMemReserve = kresource.MustParse("50Mi")
 var _inferentiaCPUReserve = kresource.MustParse("100m")
 var _inferentiaMemReserve = kresource.MustParse("100Mi")
 
-func awsManagedValidateK8sCompute(compute *userconfig.Compute, maxMemMap map[string]kresource.Quantity) error {
-	instancesMetadata := config.AWSInstancesMetadata()
-	if len(instancesMetadata) == 0 {
-		return errors.ErrorUnexpected("unable to find instance metadata; likely because this is not a cortex managed cluster")
-	}
-
+func validateK8sCompute(compute *userconfig.Compute, maxMemMap map[string]kresource.Quantity) error {
 	allErrors := []error{}
 	successfulLoops := 0
-	for _, instanceMetadata := range instancesMetadata {
+	for _, instanceMetadata := range config.InstancesMetadata {
 		maxMemLoop := maxMemMap[instanceMetadata.Type]
 		maxMemLoop.Sub(_cortexMemReserve)
 

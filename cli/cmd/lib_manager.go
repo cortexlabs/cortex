@@ -198,80 +198,13 @@ func runManagerWithClusterConfig(entrypoint string, clusterConfig *clusterconfig
 			"CORTEX_TELEMETRY_DISABLE=" + os.Getenv("CORTEX_TELEMETRY_DISABLE"),
 			"CORTEX_TELEMETRY_SENTRY_DSN=" + os.Getenv("CORTEX_TELEMETRY_SENTRY_DSN"),
 			"CORTEX_TELEMETRY_SEGMENT_WRITE_KEY=" + os.Getenv("CORTEX_TELEMETRY_SEGMENT_WRITE_KEY"),
-			"CORTEX_DEV_DEFAULT_PREDICTOR_IMAGE_REGISTRY=" + os.Getenv("CORTEX_DEV_DEFAULT_PREDICTOR_IMAGE_REGISTRY_AWS"),
+			"CORTEX_DEV_DEFAULT_PREDICTOR_IMAGE_REGISTRY=" + os.Getenv("CORTEX_DEV_DEFAULT_PREDICTOR_IMAGE_REGISTRY"),
 			"CORTEX_CLUSTER_CONFIG_FILE=" + containerClusterConfigPath,
 		},
 	}
 
 	if sessionToken := awsClient.SessionToken(); sessionToken != nil {
 		containerConfig.Env = append(containerConfig.Env, "AWS_SESSION_TOKEN="+*sessionToken)
-	}
-
-	output, exitCode, err := runManager(containerConfig, false, copyToPaths, copyFromPaths)
-	if err != nil {
-		return "", nil, err
-	}
-
-	return output, exitCode, nil
-}
-
-func runGCPManagerWithClusterConfig(entrypoint string, clusterConfig *clusterconfig.GCPConfig, copyToPaths []dockerCopyToPath, copyFromPaths []dockerCopyFromPath) (string, *int, error) {
-	clusterConfigBytes, err := yaml.Marshal(clusterConfig)
-	if err != nil {
-		return "", nil, errors.WithStack(err)
-	}
-
-	clusterConfigPath := cachedGCPClusterConfigPath(clusterConfig.ClusterName, clusterConfig.Project, clusterConfig.Zone)
-	if err := files.WriteFile(clusterConfigBytes, clusterConfigPath); err != nil {
-		return "", nil, err
-	}
-
-	containerClusterConfigPath := "/in/" + filepath.Base(clusterConfigPath)
-	gcpCredsPath := "/in/key.json"
-
-	copyToPaths = append(copyToPaths,
-		dockerCopyToPath{
-			input: &archive.Input{
-				Files: []archive.FileInput{
-					{
-						Source: clusterConfigPath,
-						Dest:   containerClusterConfigPath,
-					},
-				},
-			},
-			containerPath: "/",
-		},
-		dockerCopyToPath{
-			input: &archive.Input{
-				Files: []archive.FileInput{
-					{
-						Source: os.Getenv("GOOGLE_APPLICATION_CREDENTIALS"),
-						Dest:   gcpCredsPath,
-					},
-				},
-			},
-			containerPath: "/",
-		},
-	)
-
-	containerConfig := &container.Config{
-		Image:        clusterConfig.ImageManager,
-		Entrypoint:   []string{"/bin/bash", "-c"},
-		Cmd:          []string{fmt.Sprintf("eval $(python /root/cluster_config_env.py %s) && %s", containerClusterConfigPath, entrypoint)},
-		Tty:          true,
-		AttachStdout: true,
-		AttachStderr: true,
-		Env: []string{
-			"CORTEX_PROVIDER=gcp",
-			"GOOGLE_APPLICATION_CREDENTIALS=" + gcpCredsPath,
-			"CORTEX_GCP_PROJECT=" + clusterConfig.Project,
-			"CORTEX_GCP_ZONE=" + clusterConfig.Zone,
-			"CORTEX_TELEMETRY_DISABLE=" + os.Getenv("CORTEX_TELEMETRY_DISABLE"),
-			"CORTEX_TELEMETRY_SENTRY_DSN=" + os.Getenv("CORTEX_TELEMETRY_SENTRY_DSN"),
-			"CORTEX_TELEMETRY_SEGMENT_WRITE_KEY=" + os.Getenv("CORTEX_TELEMETRY_SEGMENT_WRITE_KEY"),
-			"CORTEX_DEV_DEFAULT_PREDICTOR_IMAGE_REGISTRY=" + os.Getenv("CORTEX_DEV_DEFAULT_PREDICTOR_IMAGE_REGISTRY_GCP"),
-			"CORTEX_CLUSTER_CONFIG_FILE=" + containerClusterConfigPath,
-		},
 	}
 
 	output, exitCode, err := runManager(containerConfig, false, copyToPaths, copyFromPaths)
@@ -307,50 +240,6 @@ func runManagerAccessCommand(entrypoint string, accessConfig clusterconfig.Acces
 	}
 
 	output, exitCode, err := runManager(containerConfig, true, copyToPaths, copyFromPaths)
-	if err != nil {
-		return "", nil, err
-	}
-
-	return output, exitCode, nil
-}
-
-func runGCPManagerAccessCommand(entrypoint string, accessConfig clusterconfig.GCPAccessConfig, copyToPaths []dockerCopyToPath, copyFromPaths []dockerCopyFromPath) (string, *int, error) {
-	gcpCredsPath := "/in/key.json"
-
-	copyToPaths = append(copyToPaths,
-		dockerCopyToPath{
-			input: &archive.Input{
-				Files: []archive.FileInput{
-					{
-						Source: os.Getenv("GOOGLE_APPLICATION_CREDENTIALS"),
-						Dest:   gcpCredsPath,
-					},
-				},
-			},
-			containerPath: "/",
-		},
-	)
-
-	containerConfig := &container.Config{
-		Image:        accessConfig.ImageManager,
-		Entrypoint:   []string{"/bin/bash", "-c"},
-		Cmd:          []string{entrypoint},
-		Tty:          true,
-		AttachStdout: true,
-		AttachStderr: true,
-		Env: []string{
-			"CORTEX_PROVIDER=gcp",
-			"GOOGLE_APPLICATION_CREDENTIALS=" + gcpCredsPath,
-			"CORTEX_CLUSTER_NAME=" + accessConfig.ClusterName,
-			"CORTEX_GCP_PROJECT=" + accessConfig.Project,
-			"CORTEX_GCP_ZONE=" + accessConfig.Zone,
-			"CORTEX_TELEMETRY_DISABLE=" + os.Getenv("CORTEX_TELEMETRY_DISABLE"),
-			"CORTEX_TELEMETRY_SENTRY_DSN=" + os.Getenv("CORTEX_TELEMETRY_SENTRY_DSN"),
-			"CORTEX_TELEMETRY_SEGMENT_WRITE_KEY=" + os.Getenv("CORTEX_TELEMETRY_SEGMENT_WRITE_KEY"),
-		},
-	}
-
-	output, exitCode, err := runManager(containerConfig, false, copyToPaths, copyFromPaths)
 	if err != nil {
 		return "", nil, err
 	}

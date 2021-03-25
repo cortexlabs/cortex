@@ -90,7 +90,7 @@ var _getCmd = &cobra.Command{
 				telemetry.Event("cli.get")
 				exit.Error(err)
 			}
-			telemetry.Event("cli.get", map[string]interface{}{"provider": env.Provider.String(), "env_name": env.Name})
+			telemetry.Event("cli.get", map[string]interface{}{"env_name": env.Name})
 		} else {
 			telemetry.Event("cli.get")
 		}

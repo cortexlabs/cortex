@@ -27,19 +27,16 @@ if [ -f "$ROOT/dev/config/env.sh" ]; then
   source $ROOT/dev/config/env.sh
 fi
 
-GCR_HOST=${GCR_HOST:-"gcr.io"}
-GCP_PROJECT_ID=${GCP_PROJECT_ID:-}
 AWS_ACCOUNT_ID=${AWS_ACCOUNT_ID:-}
 AWS_REGION=${AWS_REGION:-}
 
-provider="undefined"
+skip_push="false"
 positional_args=()
 while [[ $# -gt 0 ]]; do
   key="$1"
   case $key in
-    -p|--provider)
-    provider="$2"
-    shift
+    --skip-push)
+    skip_push="true"
     shift
     ;;
     *)
@@ -52,10 +49,6 @@ set -- "${positional_args[@]}"
 positional_args=()
 for i in "$@"; do
   case $i in
-    -p=*|--provider=*)
-    provider="${i#*=}"
-    shift
-    ;;
     *)
     positional_args+=("$1")
     shift
@@ -74,31 +67,24 @@ cmd=${1:-""}
 sub_cmd=${2:-""}
 
 registry_push_url=""
-if [ "$provider" = "aws" ]; then
+if [ "$skip_push" != "true" ]; then
   registry_push_url="$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com"
-elif [ "$provider" = "gcp" ]; then
-  registry_push_url="$GCR_HOST/$GCP_PROJECT_ID"
 fi
 
 is_registry_logged_in="false"
 
 function registry_login() {
   if [ "$is_registry_logged_in" = "false" ]; then
-    if [ "$provider" = "aws" ]; then
-      blue_echo "Logging in to ECR..."
-      aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $registry_push_url
-      aws ecr get-login-password --region us-west-2 | docker login --username AWS --password-stdin 790709498068.dkr.ecr.us-west-2.amazonaws.com  # this is for the inferentia device plugin image
-    elif [ "$provider" = "gcp" ]; then
-      blue_echo "Logging in to GCS..."
-      gcloud auth configure-docker $GCR_HOST
-    fi
+    blue_echo "Logging in to ECR..."
+    aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $registry_push_url
+    aws ecr get-login-password --region us-west-2 | docker login --username AWS --password-stdin 790709498068.dkr.ecr.us-west-2.amazonaws.com  # this is for the inferentia device plugin image
     is_registry_logged_in="true"
     green_echo "Success\n"
   fi
 }
 
-function create_aws_registry() {
-  for image in "${aws_images[@]}"; do
+function create_ecr_repository() {
+  for image in "${all_images[@]}"; do
     aws ecr create-repository --repository-name=cortexlabs/$image --region=$AWS_REGION || true
   done
 }
@@ -113,9 +99,6 @@ function build() {
   build_args=""
 
   tag_args=""
-  if [ -n "$GCP_PROJECT_ID" ]; then
-    tag_args+=" -t $GCR_HOST/$GCP_PROJECT_ID/cortexlabs/$image:$tag"
-  fi
   if [ -n "$AWS_ACCOUNT_ID" ] && [ -n "$AWS_REGION" ]; then
     tag_args+=" -t $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/cortexlabs/$image:$tag"
   fi
@@ -135,7 +118,7 @@ function cache_builder() {
 }
 
 function push() {
-  if [ "$provider" == "undefined" ]; then
+  if [ "$skip_push" = "true" ]; then
     return
   fi
 
@@ -196,16 +179,9 @@ function delete_ecr() {
 }
 
 function validate_env() {
-  local provider=$1
-
-  if [ "$provider" = "aws" ]; then
+  if [ "$skip_push" != "true" ]; then
     if [ -z ${AWS_REGION} ] || [ -z ${AWS_ACCOUNT_ID} ]; then
       echo "error: environment variables AWS_REGION and AWS_ACCOUNT_ID should be exported in dev/config/env.sh"
-      exit 1
-    fi
-  elif [ "$provider" = "gcp" ]; then
-    if [ -z ${GCP_PROJECT_ID} ]; then
-      echo "error: environment variables GCP_PROJECT_ID should be exported in dev/config/env.sh"
       exit 1
     fi
   fi
@@ -220,22 +196,18 @@ export -f green_echo
 export -f registry_login
 
 # validate environment is correctly set on env.sh
-validate_env "$provider"
+validate_env
 
-# usage: registry.sh clean --provider aws|gcp
+# usage: registry.sh clean
 if [ "$cmd" = "clean" ]; then
-  if [ "$provider" = "aws" ]; then
-    delete_ecr
-    create_aws_registry
-  fi
+  delete_ecr
+  create_ecr_repository
 
-# usage: registry.sh create --provider/-p aws|gcp
+# usage: registry.sh create
 elif [ "$cmd" = "create" ]; then
-  if [ "$provider" = "aws" ]; then
-    create_aws_registry
-  fi
+  create_ecr_repository
 
-# usage: registry.sh update-single IMAGE --provider/-p aws|gcp
+# usage: registry.sh update-single IMAGE
 elif [ "$cmd" = "update-single" ]; then
   image=$sub_cmd
   if [ "$image" = "operator" ] || [ "$image" = "request-monitor" ]; then
@@ -243,41 +215,20 @@ elif [ "$cmd" = "update-single" ]; then
   fi
   build_and_push $image
 
-# usage: registry.sh update all|dev|api --provider/-p aws|gcp
+# usage: registry.sh update all|dev|api
 # if parallel utility is installed, the docker build commands will be parallelized
 elif [ "$cmd" = "update" ]; then
   images_to_build=()
 
   if [ "$sub_cmd" == "all" ]; then
-    images_to_build+=( "${non_dev_images_cluster[@]}" )
-    if [ "$provider" == "aws" ]; then
-      images_to_build+=( "${non_dev_images_aws[@]}" )
-    elif [ "$provider" == "gcp" ]; then
-      images_to_build+=( "${non_dev_images_gcp[@]}" )
-    elif [ "$provider" == "undefined" ]; then
-      images_to_build+=( "${non_dev_images_aws[@]}" "${non_dev_images_gcp[@]}" )
-    fi
+    images_to_build+=( "${non_dev_images[@]}" )
   fi
 
   if [[ "$sub_cmd" == "all" || "$sub_cmd" == "dev" ]]; then
-    images_to_build+=( "${dev_images_cluster[@]}" )
-    if [ "$provider" == "aws" ]; then
-      images_to_build+=( "${dev_images_aws[@]}" )
-    elif [ "$provider" == "gcp" ]; then
-      images_to_build+=( "${dev_images_gcp[@]}" )
-    elif [ "$provider" == "undefined" ]; then
-      images_to_build+=( "${dev_images_aws[@]}" "${dev_images_aws[@]}" )
-    fi
+    images_to_build+=( "${dev_images[@]}" )
   fi
 
-  images_to_build+=( "${api_images_cluster[@]}" )
-  if [ "$provider" == "aws" ]; then
-    images_to_build+=( "${api_images_aws[@]}" )
-  elif [ "$provider" == "gcp" ]; then
-    images_to_build+=( "${api_images_gcp[@]}" )
-  elif [ "$provider" == "undefined" ]; then
-    images_to_build+=( "${api_images_aws[@]}" "${api_images_gcp[@]}" )
-  fi
+  images_to_build+=( "${api_images[@]}" )
 
   if [[ " ${images_to_build[@]} " =~ " operator " ]]; then
     cache_builder operator
@@ -287,7 +238,7 @@ elif [ "$cmd" = "update" ]; then
   fi
 
   if command -v parallel &> /dev/null && [ -n "${NUM_BUILD_PROCS+set}" ] && [ "$NUM_BUILD_PROCS" != "1" ]; then
-    provider=$provider is_registry_logged_in=$is_registry_logged_in ROOT=$ROOT registry_push_url=$registry_push_url SHELL=$(type -p /bin/bash) parallel --will-cite --halt now,fail=1 --eta --jobs $NUM_BUILD_PROCS build_and_push "{}" ::: "${images_to_build[@]}"
+    is_registry_logged_in=$is_registry_logged_in ROOT=$ROOT registry_push_url=$registry_push_url SHELL=$(type -p /bin/bash) parallel --will-cite --halt now,fail=1 --eta --jobs $NUM_BUILD_PROCS build_and_push "{}" ::: "${images_to_build[@]}"
   else
     for image in "${images_to_build[@]}"; do
       build_and_push $image

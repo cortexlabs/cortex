@@ -57,7 +57,7 @@ var _patchCmd = &cobra.Command{
 			telemetry.Event("cli.patch")
 			exit.Error(err)
 		}
-		telemetry.Event("cli.patch", map[string]interface{}{"provider": env.Provider.String(), "env_name": env.Name})
+		telemetry.Event("cli.patch", map[string]interface{}{"env_name": env.Name})
 
 		err = printEnvIfNotSpecified(env.Name, cmd)
 		if err != nil {

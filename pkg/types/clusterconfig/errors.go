@@ -20,14 +20,16 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
-	"github.com/cortexlabs/cortex/pkg/types"
 )
 
 const (
+	ErrInvalidProvider                        = "clusterconfig.invalid_provider"
+	ErrInvalidLegacyProvider                  = "cli.invalid_legacy_provider"
 	ErrInvalidRegion                          = "clusterconfig.invalid_region"
 	ErrNoNodeGroupSpecified                   = "clusterconfig.no_nodegroup_specified"
 	ErrMaxNumOfNodeGroupsReached              = "clusterconfig.max_num_of_nodegroups_reached"
@@ -65,7 +67,6 @@ const (
 	ErrCantOverrideDefaultTag                 = "clusterconfig.cant_override_default_tag"
 	ErrSSLCertificateARNNotFound              = "clusterconfig.ssl_certificate_arn_not_found"
 	ErrIAMPolicyARNNotFound                   = "clusterconfig.iam_policy_arn_not_found"
-	ErrProviderMismatch                       = "clusterconfig.provider_mismatch"
 
 	ErrGCPInvalidProjectID                        = "clusterconfig.gcp_invalid_project_id"
 	ErrGCPProjectMustBeSpecified                  = "clusterconfig.gcp_project_must_be_specified"
@@ -77,6 +78,20 @@ const (
 	ErrGCPInvalidAcceleratorType                  = "clusterconfig.gcp_invalid_accelerator_type"
 	ErrGCPIncompatibleInstanceTypeWithAccelerator = "clusterconfig.gcp_incompatible_instance_type_with_accelerator"
 )
+
+func ErrorInvalidProvider(providerStr string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrInvalidProvider,
+		Message: fmt.Sprintf("\"%s\" is not a supported provider; only aws is supported, so the provider field may be removed from your cluster configuration file", providerStr),
+	})
+}
+
+func ErrorInvalidLegacyProvider(providerStr string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrInvalidLegacyProvider,
+		Message: fmt.Sprintf("the %s provider is no longer supported on cortex v%s; only aws is supported, so the provider field may be removed from your cluster configuration file", providerStr, consts.CortexVersionMinor),
+	})
+}
 
 func ErrorInvalidRegion(region string) error {
 	return errors.WithStack(&errors.Error{
@@ -346,13 +361,6 @@ func ErrorIAMPolicyARNNotFound(policyARN string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrIAMPolicyARNNotFound,
 		Message: fmt.Sprintf("unable to find iam policy %s", policyARN),
-	})
-}
-
-func ErrorProviderMismatch(expectedProvider types.ProviderType, actualProvider string) error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrProviderMismatch,
-		Message: fmt.Sprintf("expected \"%s\" provider, but got \"%s\"; please use `cortex cluster` commands for aws clusters, and `cortex cluster-gcp` commands for gcp clusters", expectedProvider, actualProvider),
 	})
 }
 

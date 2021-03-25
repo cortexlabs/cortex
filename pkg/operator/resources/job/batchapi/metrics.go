@@ -153,8 +153,8 @@ func saveMetricsToCloud(jobKey spec.JobKey) error {
 		return err
 	}
 
-	s3Key := path.Join(jobKey.Prefix(config.ClusterName()), _completedMetricsFileKey)
-	err = config.UploadJSONToBucket(batchMetrics, s3Key)
+	s3Key := path.Join(jobKey.Prefix(config.CoreConfig.ClusterName), _completedMetricsFileKey)
+	err = config.AWS.UploadJSONToS3(batchMetrics, config.CoreConfig.Bucket, s3Key)
 	if err != nil {
 		return err
 	}
@@ -162,9 +162,9 @@ func saveMetricsToCloud(jobKey spec.JobKey) error {
 }
 
 func readMetricsFromCloud(jobKey spec.JobKey) (metrics.BatchMetrics, error) {
-	s3Key := path.Join(jobKey.Prefix(config.ClusterName()), _completedMetricsFileKey)
+	s3Key := path.Join(jobKey.Prefix(config.CoreConfig.ClusterName), _completedMetricsFileKey)
 	batchMetrics := metrics.BatchMetrics{}
-	err := config.ReadJSONFromBucket(&batchMetrics, s3Key)
+	err := config.AWS.ReadJSONFromS3(&batchMetrics, config.CoreConfig.Bucket, s3Key)
 	if err != nil {
 		return batchMetrics, err
 	}

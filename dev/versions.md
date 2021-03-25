@@ -166,7 +166,7 @@ Note: it's ok if example training notebooks aren't upgraded, as long as the expo
    , [Dockerhub](https://hub.docker.com/r/nvidia/k8s-device-plugin))
 1. In the [GitHub Repo](https://github.com/NVIDIA/k8s-device-plugin), find the latest release and go to this file (
    replacing the version number): <https://github.com/NVIDIA/k8s-device-plugin/blob/v0.6.0/nvidia-device-plugin.yml>
-1. Copy the contents to `manager/manifests/nvidia_aws.yaml`
+1. Copy the contents to `manager/manifests/nvidia.yaml`
     1. Update the link at the top of the file to the URL you copied from
     1. Check that your diff is reasonable (and put back any of our modifications, e.g. the image path, rolling update
        strategy, resource requests, tolerations, node selector, priority class, etc)
@@ -244,12 +244,6 @@ Note: it's ok if example training notebooks aren't upgraded, as long as the expo
 1. Update the version in all `images/istio-*` Dockerfiles
 1. Update `istio.yaml.j2`, `apis.yaml.j2`, `operator.yaml.j2`, and `pkg/lib/k8s` as necessary
 1. Update `install.sh` as necessary
-
-## Google Pause
-
-1. Find the version of google pause used in the nvidia device driver yaml file
-   referenced [here](https://cloud.google.com/kubernetes-engine/docs/how-to/gpus#installing_drivers)
-1. Update the version in `images/google-pause/Dockerfile`
 
 ## Metrics server
 

@@ -24,9 +24,7 @@ import (
 
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
-	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/urls"
-	"github.com/cortexlabs/cortex/pkg/types"
 	"github.com/cortexlabs/cortex/pkg/types/clusterconfig"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 )
@@ -79,10 +77,10 @@ const (
 	ErrGCPClusterDoesntExist                   = "cli.gcp_cluster_doesnt_exist"
 )
 
-func ErrorInvalidProvider(providerStr string) error {
+func ErrorInvalidProvider(providerStr, cliConfigPath string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrInvalidProvider,
-		Message: fmt.Sprintf("%s is not a valid provider (%s are supported)", providerStr, s.UserStrsAnd(types.ProviderTypeStrings())),
+		Message: fmt.Sprintf("\"%s\" is not a supported provider (only aws is supported); remove the environment(s) which use the %s provider from %s, or delete %s (it will be recreated on subsequent CLI commands)", providerStr, providerStr, cliConfigPath, cliConfigPath),
 	})
 }
 

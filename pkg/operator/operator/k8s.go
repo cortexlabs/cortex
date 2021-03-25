@@ -24,12 +24,12 @@ import (
 	"strings"
 
 	"github.com/cortexlabs/cortex/pkg/consts"
+	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/urls"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
-	"github.com/cortexlabs/cortex/pkg/types"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	kcore "k8s.io/api/core/v1"
@@ -98,7 +98,7 @@ type downloadContainerArg struct {
 func TaskInitContainer(api *spec.API) kcore.Container {
 	return kcore.Container{
 		Name:            _downloaderInitContainerName,
-		Image:           config.ImageDownloader(),
+		Image:           config.CoreConfig.ImageDownloader,
 		ImagePullPolicy: "Always",
 		Args:            []string{"--download=" + pythonDownloadArgs(api)},
 		EnvFrom:         baseEnvVars(),
@@ -126,7 +126,7 @@ func InitContainer(api *spec.API) kcore.Container {
 
 	return kcore.Container{
 		Name:            _downloaderInitContainerName,
-		Image:           config.ImageDownloader(),
+		Image:           config.CoreConfig.ImageDownloader,
 		ImagePullPolicy: "Always",
 		Args:            []string{"--download=" + downloadArgs},
 		EnvFrom:         baseEnvVars(),
@@ -209,8 +209,8 @@ func AsyncPythonPredictorContainers(api spec.API, queueURL string) ([]kcore.Cont
 func AsyncGatewayContainers(api spec.API, queueURL string) kcore.Container {
 	image := config.CoreConfig.ImageAsyncGateway
 	region := config.CoreConfig.Region
-	bucket := config.Bucket()
-	clusterName := config.ClusterName()
+	bucket := config.CoreConfig.Bucket
+	clusterName := config.CoreConfig.ClusterName
 
 	return kcore.Container{
 		Name:            _gatewayContainerName,
@@ -604,7 +604,7 @@ func getTaskEnvVars(api *spec.API, container string) []kcore.EnvVar {
 			},
 			kcore.EnvVar{
 				Name:  "CORTEX_API_SPEC",
-				Value: config.BucketPath(api.Key),
+				Value: aws.S3Path(config.CoreConfig.Bucket, api.Key),
 			},
 			kcore.EnvVar{
 				Name:  "CORTEX_CLI_CONFIG_DIR",
@@ -713,11 +713,11 @@ func getAsyncEnvVars(api spec.API, container string, queueURL string) []kcore.En
 			},
 			kcore.EnvVar{
 				Name:  "CORTEX_ASYNC_WORKLOAD_PATH",
-				Value: fmt.Sprintf("%s/apis/%s/workloads", config.ClusterName(), api.Name),
+				Value: fmt.Sprintf("%s/apis/%s/workloads", config.CoreConfig.ClusterName, api.Name),
 			},
 			kcore.EnvVar{
 				Name:  "CORTEX_API_SPEC",
-				Value: config.BucketPath(api.PredictorKey),
+				Value: aws.S3Path(config.CoreConfig.Bucket, api.PredictorKey),
 			},
 			kcore.EnvVar{
 				Name:  "CORTEX_PROCESSES_PER_REPLICA",
@@ -848,14 +848,14 @@ func getEnvVars(api *spec.API, container string) []kcore.EnvVar {
 			envVars = append(envVars,
 				kcore.EnvVar{
 					Name:  "CORTEX_API_SPEC",
-					Value: config.BucketPath(api.PredictorKey),
+					Value: aws.S3Path(config.CoreConfig.Bucket, api.PredictorKey),
 				},
 			)
 		} else {
 			envVars = append(envVars,
 				kcore.EnvVar{
 					Name:  "CORTEX_API_SPEC",
-					Value: config.BucketPath(api.Key),
+					Value: aws.S3Path(config.CoreConfig.Bucket, api.Key),
 				},
 			)
 		}
@@ -1000,7 +1000,7 @@ func tfDownloadArgs(api *spec.API) string {
 		LastLog: fmt.Sprintf(_downloaderLastLog, "tensorflow"),
 		DownloadArgs: []downloadContainerArg{
 			{
-				From:             config.BucketPath(api.ProjectKey),
+				From:             aws.S3Path(config.CoreConfig.Bucket, api.ProjectKey),
 				To:               path.Join(_emptyDirMountPath, "project"),
 				Unzip:            true,
 				ItemName:         "the project code",
@@ -1019,7 +1019,7 @@ func pythonDownloadArgs(api *spec.API) string {
 		LastLog: fmt.Sprintf(_downloaderLastLog, "python"),
 		DownloadArgs: []downloadContainerArg{
 			{
-				From:             config.BucketPath(api.ProjectKey),
+				From:             aws.S3Path(config.CoreConfig.Bucket, api.ProjectKey),
 				To:               path.Join(_emptyDirMountPath, "project"),
 				Unzip:            true,
 				ItemName:         "the project code",
@@ -1036,7 +1036,7 @@ func pythonDownloadArgs(api *spec.API) string {
 func onnxDownloadArgs(api *spec.API) string {
 	downloadContainerArs := []downloadContainerArg{
 		{
-			From:             config.BucketPath(api.ProjectKey),
+			From:             aws.S3Path(config.CoreConfig.Bucket, api.ProjectKey),
 			To:               path.Join(_emptyDirMountPath, "project"),
 			Unzip:            true,
 			ItemName:         "the project code",
@@ -1179,13 +1179,6 @@ func neuronRuntimeDaemonContainer(api *spec.API, volumeMounts []kcore.VolumeMoun
 }
 
 func RequestMonitorContainer(api *spec.API) kcore.Container {
-	var image string
-	if config.Provider == types.AWSProviderType {
-		image = config.CoreConfig.ImageRequestMonitor
-	} else if config.Provider == types.GCPProviderType {
-		image = config.GCPCoreConfig.ImageRequestMonitor
-	}
-
 	requests := kcore.ResourceList{}
 	if api.Compute != nil {
 		if api.Compute.CPU != nil {
@@ -1198,7 +1191,7 @@ func RequestMonitorContainer(api *spec.API) kcore.Container {
 
 	return kcore.Container{
 		Name:            _requestMonitorContainerName,
-		Image:           image,
+		Image:           config.CoreConfig.ImageRequestMonitor,
 		ImagePullPolicy: kcore.PullAlways,
 		Args:            []string{"-p", DefaultRequestMonitorPortStr},
 		Ports: []kcore.ContainerPort{
@@ -1301,17 +1294,6 @@ func DefaultVolumes() []kcore.Volume {
 		},
 	}
 
-	if config.Provider == types.GCPProviderType {
-		defaultVolumes = append(defaultVolumes, kcore.Volume{
-			Name: "gcp-credentials",
-			VolumeSource: kcore.VolumeSource{
-				Secret: &kcore.SecretVolumeSource{
-					SecretName: "gcp-credentials",
-				},
-			},
-		})
-	}
-
 	return defaultVolumes
 }
 
@@ -1325,23 +1307,11 @@ func defaultVolumeMounts() []kcore.VolumeMount {
 		},
 	}
 
-	if config.Provider == types.GCPProviderType {
-		volumeMounts = append(volumeMounts, kcore.VolumeMount{
-			Name:      "gcp-credentials",
-			ReadOnly:  true,
-			MountPath: "/var/secrets/google",
-		})
-	}
-
 	return volumeMounts
 }
 
 func NodeSelectors() map[string]string {
-	nodeSelectors := map[string]string{}
-	if config.IsManaged() {
-		nodeSelectors["workload"] = "true"
-	}
-	return nodeSelectors
+	return map[string]string{"workload": "true"}
 }
 
 func GenerateResourceTolerations() []kcore.Toleration {
@@ -1371,61 +1341,26 @@ func GenerateResourceTolerations() []kcore.Toleration {
 func GeneratePreferredNodeAffinities() []kcore.PreferredSchedulingTerm {
 	affinities := []kcore.PreferredSchedulingTerm{}
 
-	if config.Provider == types.AWSProviderType {
-		clusterConfig := config.ManagedConfigOrNil()
-		if clusterConfig == nil {
-			return nil
+	numNodeGroups := len(config.ManagedConfig.NodeGroups)
+	for idx, nodeGroup := range config.ManagedConfig.NodeGroups {
+		var nodeGroupPrefix string
+		if nodeGroup.Spot {
+			nodeGroupPrefix = "cx-ws-"
+		} else {
+			nodeGroupPrefix = "cx-wd-"
 		}
-
-		numNodeGroups := len(clusterConfig.NodeGroups)
-		for idx, nodeGroup := range clusterConfig.NodeGroups {
-			var nodeGroupPrefix string
-			if nodeGroup.Spot {
-				nodeGroupPrefix = "cx-ws-"
-			} else {
-				nodeGroupPrefix = "cx-wd-"
-			}
-			affinities = append(affinities, kcore.PreferredSchedulingTerm{
-				Weight: int32(100 * (1 - float64(idx)/float64(numNodeGroups))),
-				Preference: kcore.NodeSelectorTerm{
-					MatchExpressions: []kcore.NodeSelectorRequirement{
-						{
-							Key:      "alpha.eksctl.io/nodegroup-name",
-							Operator: kcore.NodeSelectorOpIn,
-							Values:   []string{nodeGroupPrefix + nodeGroup.Name},
-						},
+		affinities = append(affinities, kcore.PreferredSchedulingTerm{
+			Weight: int32(100 * (1 - float64(idx)/float64(numNodeGroups))),
+			Preference: kcore.NodeSelectorTerm{
+				MatchExpressions: []kcore.NodeSelectorRequirement{
+					{
+						Key:      "alpha.eksctl.io/nodegroup-name",
+						Operator: kcore.NodeSelectorOpIn,
+						Values:   []string{nodeGroupPrefix + nodeGroup.Name},
 					},
 				},
-			})
-		}
-	}
-	if config.Provider == types.GCPProviderType {
-		clusterConfig := config.GCPManagedConfigOrNil()
-		if clusterConfig == nil {
-			return nil
-		}
-
-		numNodePools := len(clusterConfig.NodePools)
-		for idx, nodePool := range clusterConfig.NodePools {
-			var nodePoolPrefix string
-			if nodePool.Preemptible {
-				nodePoolPrefix = "cx-ws-"
-			} else {
-				nodePoolPrefix = "cx-wd-"
-			}
-			affinities = append(affinities, kcore.PreferredSchedulingTerm{
-				Weight: int32(100 * (1 - float64(idx)/float64(numNodePools))),
-				Preference: kcore.NodeSelectorTerm{
-					MatchExpressions: []kcore.NodeSelectorRequirement{
-						{
-							Key:      "cloud.google.com/gke-nodepool",
-							Operator: kcore.NodeSelectorOpIn,
-							Values:   []string{nodePoolPrefix + nodePool.Name},
-						},
-					},
-				},
-			})
-		}
+			},
+		})
 	}
 
 	return affinities

@@ -27,56 +27,34 @@ import (
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
-	"github.com/cortexlabs/cortex/pkg/types"
 	"github.com/cortexlabs/cortex/pkg/types/clusterconfig"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	kcore "k8s.io/api/core/v1"
 )
 
 func Info(w http.ResponseWriter, r *http.Request) {
-	if config.Provider == types.AWSProviderType {
-		nodeInfos, numPendingReplicas, err := getNodeInfos()
-		if err != nil {
-			respondError(w, r, err)
-			return
-		}
-
-		fullClusterConfig := clusterconfig.InternalConfig{
-			Config: clusterconfig.Config{
-				CoreConfig: *config.CoreConfig,
-			},
-			OperatorMetadata: *config.OperatorMetadata,
-		}
-
-		if config.IsManaged() {
-			fullClusterConfig.Config.ManagedConfig = *config.ManagedConfigOrNil()
-			fullClusterConfig.InstancesMetadata = config.AWSInstancesMetadata()
-		}
-
-		response := schema.InfoResponse{
-			MaskedAWSAccessKeyID: s.MaskString(os.Getenv("AWS_ACCESS_KEY_ID"), 4),
-			ClusterConfig:        fullClusterConfig,
-			NodeInfos:            nodeInfos,
-			NumPendingReplicas:   numPendingReplicas,
-		}
-		respond(w, response)
-	} else {
-		fullClusterConfig := clusterconfig.InternalGCPConfig{
-			GCPConfig: clusterconfig.GCPConfig{
-				GCPCoreConfig: *config.GCPCoreConfig,
-			},
-			OperatorMetadata: *config.OperatorMetadata,
-		}
-
-		if config.IsManaged() {
-			fullClusterConfig.GCPConfig.GCPManagedConfig = *config.GCPManagedConfigOrNil()
-		}
-
-		response := schema.InfoGCPResponse{
-			ClusterConfig: fullClusterConfig,
-		}
-		respond(w, response)
+	nodeInfos, numPendingReplicas, err := getNodeInfos()
+	if err != nil {
+		respondError(w, r, err)
+		return
 	}
+
+	fullClusterConfig := clusterconfig.InternalConfig{
+		Config: clusterconfig.Config{
+			CoreConfig:    *config.CoreConfig,
+			ManagedConfig: *config.ManagedConfig,
+		},
+		OperatorMetadata:  *config.OperatorMetadata,
+		InstancesMetadata: config.InstancesMetadata,
+	}
+
+	response := schema.InfoResponse{
+		MaskedAWSAccessKeyID: s.MaskString(os.Getenv("AWS_ACCESS_KEY_ID"), 4),
+		ClusterConfig:        fullClusterConfig,
+		NodeInfos:            nodeInfos,
+		NumPendingReplicas:   numPendingReplicas,
+	}
+	respond(w, response)
 }
 
 func getNodeInfos() ([]schema.NodeInfo, int, error) {
