@@ -1,8 +1,6 @@
 # Metrics
 
-A cortex cluster includes a deployment of Prometheus for metrics collections and a deployment of Grafana for
-visualization. You can monitor your APIs with the Grafana dashboards that ship with Cortex, or even add custom metrics
-and dashboards.
+Cortex includes Prometheus for metrics collection and Grafana for visualization. You can monitor your APIs with the default Grafana dashboards, or create custom metrics and dashboards.
 
 ## Accessing the dashboard
 
@@ -11,19 +9,18 @@ The dashboard URL is displayed once you run a `cortex get <api_name>` command.
 Alternatively, you can access it on `http://<operator_url>/dashboard`. Run the following command to get the operator
 URL:
 
-```shell
+```bash
 cortex env list
 ```
 
 If your operator load balancer is configured to be internal, there are a few options for accessing the dashboard:
 
 1. Access the dashboard from a machine that has VPC Peering configured to your cluster's VPC, or which is inside of your
-   cluster's VPC
+   cluster's VPC.
 1. Run `kubectl port-forward -n default grafana-0 3000:3000` to forward Grafana's port to your local machine, and access
-   the dashboard on [http://localhost:3000/](http://localhost:3000/) (see instructions for setting up `kubectl`
-   on [AWS](../../clusters/aws/kubectl.md) or [GCP](../../clusters/gcp/kubectl.md))
+   the dashboard on [http://localhost:3000](http://localhost:3000) (see instructions for setting up `kubectl` [here](../advanced/kubectl.md)).
 1. Set up VPN access to your cluster's
-   VPC ([AWS docs](https://docs.aws.amazon.com/vpc/latest/userguide/vpn-connections.html))
+   VPC ([docs](https://docs.aws.amazon.com/vpc/latest/userguide/vpn-connections.html)).
 
 ### Default credentials
 
@@ -35,7 +32,7 @@ The dashboard is protected with username / password authentication, which by def
 You will be prompted to change the admin user password in the first time you log in.
 
 Grafana allows managing the access of several users and managing teams. For more information on this topic check
-the [grafana documentation](https://grafana.com/docs/grafana/latest/manage-users/).
+the [grafana documentation](https://grafana.com/docs/grafana/latest/manage-users).
 
 ### Selecting an API
 
@@ -80,10 +77,10 @@ you to create a custom metrics from your deployed API that can be later be used 
 
 Code examples on how to use custom metrics for each API kind can be found here:
 
-- [RealtimeAPI](../realtime/metrics.md#custom-user-metrics)
-- [RealtimeAPI](../async/metrics.md#custom-user-metrics)
-- [BatchAPI](../batch/metrics.md#custom-user-metrics)
-- [TaskAPI](../task/metrics.md#custom-user-metrics)
+- [RealtimeAPI](../../workloads/realtime/metrics.md#custom-user-metrics)
+- [AsyncAPI](../../workloads/async/metrics.md#custom-user-metrics)
+- [BatchAPI](../../workloads/batch/metrics.md#custom-user-metrics)
+- [TaskAPI](../../workloads/task/metrics.md#custom-user-metrics)
 
 ### Metric types
 

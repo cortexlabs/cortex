@@ -1,16 +1,12 @@
 # Logging
 
-Cortex provides a logging solution, out-of-the-box, without the need to configure anything. By default, logs are
-collected with FluentBit, on every API kind, and are exported to each cloud provider logging solution. It is also
-possible to view the logs of a single API replica, while developing, through the `cortex logs` command.
+By default, logs are collected with Fluent Bit and are exported to CloudWatch. It is also possible to view the logs of a single replica using the `cortex logs` command.
 
-## Cortex logs command
+## `cortex logs`
 
-The cortex CLI tool provides a command to quickly check the logs for a single API replica while debugging.
+The CLI includes a command to get the logs for a single API replica for debugging purposes:
 
-To check the logs of an API run one of the following commands:
-
-```shell
+```bash
 # RealtimeAPI
 cortex logs <api_name>
 
@@ -23,9 +19,7 @@ solution.
 
 ## Logs on AWS
 
-For AWS clusters, logs will be pushed to [CloudWatch](https://console.aws.amazon.com/cloudwatch/home) using fluent-bit.
-A log group with the same name as your cluster will be created to store your logs. API logs are tagged with labels to
-help with log aggregation and filtering.
+Logs will automatically be pushed to CloudWatch and a log group with the same name as your cluster will be created to store your logs. API logs are tagged with labels to help with log aggregation and filtering.
 
 Below are some sample CloudWatch Log Insight queries:
 
@@ -70,35 +64,6 @@ fields @timestamp, message
 | sort @timestamp asc
 | limit 1000
 ```
-
-## Logs on GCP
-
-Logs will be pushed to [StackDriver](https://console.cloud.google.com/logs/query) using fluent-bit. API logs are tagged
-with labels to help with log aggregation and filtering.
-
-Below are some sample Stackdriver queries:
-
-**RealtimeAPI:**
-
-```text
-resource.type="k8s_container"
-resource.labels.cluster_name="<INSERT CLUSTER NAME>"
-labels.apiKind="RealtimeAPI"
-labels.apiName="<INSERT API NAME>"
-```
-
-**TaskAPI:**
-
-```text
-resource.type="k8s_container"
-resource.labels.cluster_name="<INSERT CLUSTER NAME>"
-labels.apiKind="TaskAPI"
-labels.apiName="<INSERT API NAME>"
-labels.jobID="<INSERT JOB ID>"
-```
-
-Please make sure to navigate to the project containing your cluster and adjust the time range accordingly before running
-queries.
 
 ## Structured logging
 

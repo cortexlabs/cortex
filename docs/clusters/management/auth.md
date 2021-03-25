@@ -1,6 +1,6 @@
 # Auth
 
-## Cortex Client
+## Client
 
 Cortex client uses the default credential provider chain to get credentials. Credentials will be read in the following order of precedence:
 
@@ -8,13 +8,13 @@ Cortex client uses the default credential provider chain to get credentials. Cre
 - the name of the profile specified by `AWS_PROFILE` environment variable
 - `default` profile from `~/.aws/credentials`
 
-### API Management
+### API management
 
 Cortex client relies on AWS IAM to authenticate requests (e.g. `cortex deploy`, `cortex get`) to a cluster on AWS. The client will include a get-caller-identity request that has been signed with the credentials from the default credential provider chain along with original request. The operator executes the presigned request to verify that credentials are valid and belong to the same account as the IAM entity of the cluster.
 
 AWS credentials required to authenticate cortex client requests to the operator don't require any permissions. However, managing the cluster using `cortex cluster *` commands do require permissions.
 
-### Cluster Management
+### Cluster management
 
 It is recommended that your AWS credentials have AdminstratorAccess before running `cortex cluster *` commands.
 

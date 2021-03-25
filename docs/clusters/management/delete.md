@@ -29,7 +29,7 @@ aws logs describe-log-groups --log-group-name-prefix=<cluster_name> --query logG
 ## Delete Certificates
 
 If you've configured a custom domain for your APIs, you can remove the SSL Certificate and Hosted Zone for the domain by
-following these [instructions](networking/custom-domain.md#cleanup).
+following these [instructions](../networking/custom-domain.md#cleanup).
 
 ## Keep Cortex Volumes
 
