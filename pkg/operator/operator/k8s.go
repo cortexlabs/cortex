@@ -203,7 +203,15 @@ func TaskContainers(api *spec.API) ([]kcore.Container, []kcore.Volume) {
 }
 
 func AsyncPythonPredictorContainers(api spec.API, queueURL string) ([]kcore.Container, []kcore.Volume) {
-	return pythonPredictorContainers(&api, getAsyncEnvVars(api, APIContainerName, queueURL))
+	return pythonPredictorContainers(&api, getAsyncAPIEnvVars(api, queueURL))
+}
+
+func AsyncTensorflowPredictorContainers(api spec.API, queueURL string) ([]kcore.Container, []kcore.Volume) {
+	return tensorFlowPredictorContainers(&api, getAsyncAPIEnvVars(api, queueURL))
+}
+
+func AsyncONNXPredictorContainers(api spec.API, queueURL string) ([]kcore.Container, []kcore.Volume) {
+	return onnxPredictorContainers(&api, getAsyncAPIEnvVars(api, queueURL))
 }
 
 func AsyncGatewayContainers(api spec.API, queueURL string) kcore.Container {
@@ -367,6 +375,10 @@ func pythonPredictorContainers(api *spec.API, envVars []kcore.EnvVar) ([]kcore.C
 }
 
 func TensorFlowPredictorContainers(api *spec.API) ([]kcore.Container, []kcore.Volume) {
+	return tensorFlowPredictorContainers(api, getEnvVars(api, APIContainerName))
+}
+
+func tensorFlowPredictorContainers(api *spec.API, envVars []kcore.EnvVar) ([]kcore.Container, []kcore.Volume) {
 	apiResourceList := kcore.ResourceList{}
 	tfServingResourceList := kcore.ResourceList{}
 	tfServingLimitsList := kcore.ResourceList{}
@@ -458,7 +470,7 @@ func TensorFlowPredictorContainers(api *spec.API) ([]kcore.Container, []kcore.Vo
 		Name:            APIContainerName,
 		Image:           api.Predictor.Image,
 		ImagePullPolicy: kcore.PullAlways,
-		Env:             getEnvVars(api, APIContainerName),
+		Env:             envVars,
 		EnvFrom:         baseEnvVars(),
 		VolumeMounts:    volumeMounts,
 		ReadinessProbe:  FileExistsProbe(_apiReadinessFile),
@@ -486,6 +498,10 @@ func TensorFlowPredictorContainers(api *spec.API) ([]kcore.Container, []kcore.Vo
 }
 
 func ONNXPredictorContainers(api *spec.API) ([]kcore.Container, []kcore.Volume) {
+	return onnxPredictorContainers(api, getEnvVars(api, APIContainerName))
+}
+
+func onnxPredictorContainers(api *spec.API, envVars []kcore.EnvVar) ([]kcore.Container, []kcore.Volume) {
 	resourceList := kcore.ResourceList{}
 	resourceLimitsList := kcore.ResourceList{}
 	apiPodVolumeMounts := defaultVolumeMounts()
@@ -533,7 +549,7 @@ func ONNXPredictorContainers(api *spec.API) ([]kcore.Container, []kcore.Volume) 
 		Name:            APIContainerName,
 		Image:           api.Predictor.Image,
 		ImagePullPolicy: kcore.PullAlways,
-		Env:             getEnvVars(api, APIContainerName),
+		Env:             envVars,
 		EnvFrom:         baseEnvVars(),
 		VolumeMounts:    apiPodVolumeMounts,
 		ReadinessProbe:  FileExistsProbe(_apiReadinessFile),
@@ -637,16 +653,7 @@ func getTaskEnvVars(api *spec.API, container string) []kcore.EnvVar {
 	return envVars
 }
 
-func getAsyncEnvVars(api spec.API, container string, queueURL string) []kcore.EnvVar {
-	if container == _downloaderInitContainerName {
-		return []kcore.EnvVar{
-			{
-				Name:  "CORTEX_LOG_LEVEL",
-				Value: strings.ToUpper(api.Predictor.LogLevel.String()),
-			},
-		}
-	}
-
+func getAsyncAPIEnvVars(api spec.API, queueURL string) []kcore.EnvVar {
 	envVars := []kcore.EnvVar{
 		{
 			Name:  "CORTEX_KIND",
@@ -669,82 +676,102 @@ func getAsyncEnvVars(api spec.API, container string, queueURL string) []kcore.En
 		})
 	}
 
-	if container == APIContainerName {
+	envVars = append(envVars,
+		kcore.EnvVar{
+			Name:  "CORTEX_LOG_LEVEL",
+			Value: strings.ToUpper(api.Predictor.LogLevel.String()),
+		},
+		kcore.EnvVar{
+			Name: "HOST_IP",
+			ValueFrom: &kcore.EnvVarSource{
+				FieldRef: &kcore.ObjectFieldSelector{
+					FieldPath: "status.hostIP",
+				},
+			},
+		},
+		kcore.EnvVar{
+			Name:  "CORTEX_SERVING_PORT",
+			Value: DefaultPortStr,
+		},
+		kcore.EnvVar{
+			Name:  "CORTEX_CACHE_DIR",
+			Value: _specCacheDir,
+		},
+		kcore.EnvVar{
+			Name:  "CORTEX_PROJECT_DIR",
+			Value: path.Join(_emptyDirMountPath, "project"),
+		},
+		kcore.EnvVar{
+			Name:  "CORTEX_DEPENDENCIES_PIP",
+			Value: api.Predictor.Dependencies.Pip,
+		},
+		kcore.EnvVar{
+			Name:  "CORTEX_DEPENDENCIES_CONDA",
+			Value: api.Predictor.Dependencies.Conda,
+		},
+		kcore.EnvVar{
+			Name:  "CORTEX_DEPENDENCIES_SHELL",
+			Value: api.Predictor.Dependencies.Shell,
+		},
+		kcore.EnvVar{
+			Name:  "CORTEX_QUEUE_URL",
+			Value: queueURL,
+		},
+		kcore.EnvVar{
+			Name:  "CORTEX_ASYNC_WORKLOAD_PATH",
+			Value: fmt.Sprintf("%s/apis/%s/workloads", config.CoreConfig.ClusterName, api.Name),
+		},
+		kcore.EnvVar{
+			Name:  "CORTEX_API_SPEC",
+			Value: aws.S3Path(config.CoreConfig.Bucket, api.PredictorKey),
+		},
+		kcore.EnvVar{
+			Name:  "CORTEX_PROCESSES_PER_REPLICA",
+			Value: s.Int32(api.Predictor.ProcessesPerReplica),
+		},
+	)
+
+	if api.Predictor.Type == userconfig.TensorFlowPredictorType {
 		envVars = append(envVars,
 			kcore.EnvVar{
-				Name:  "CORTEX_LOG_LEVEL",
-				Value: strings.ToUpper(api.Predictor.LogLevel.String()),
+				Name:  "CORTEX_TF_BASE_SERVING_PORT",
+				Value: _tfBaseServingPortStr,
 			},
 			kcore.EnvVar{
-				Name: "HOST_IP",
-				ValueFrom: &kcore.EnvVarSource{
-					FieldRef: &kcore.ObjectFieldSelector{
-						FieldPath: "status.hostIP",
-					},
-				},
-			},
-			kcore.EnvVar{
-				Name:  "CORTEX_SERVING_PORT",
-				Value: DefaultPortStr,
-			},
-			kcore.EnvVar{
-				Name:  "CORTEX_CACHE_DIR",
-				Value: _specCacheDir,
-			},
-			kcore.EnvVar{
-				Name:  "CORTEX_PROJECT_DIR",
-				Value: path.Join(_emptyDirMountPath, "project"),
-			},
-			kcore.EnvVar{
-				Name:  "CORTEX_DEPENDENCIES_PIP",
-				Value: api.Predictor.Dependencies.Pip,
-			},
-			kcore.EnvVar{
-				Name:  "CORTEX_DEPENDENCIES_CONDA",
-				Value: api.Predictor.Dependencies.Conda,
-			},
-			kcore.EnvVar{
-				Name:  "CORTEX_DEPENDENCIES_SHELL",
-				Value: api.Predictor.Dependencies.Shell,
-			},
-			kcore.EnvVar{
-				Name:  "CORTEX_QUEUE_URL",
-				Value: queueURL,
-			},
-			kcore.EnvVar{
-				Name:  "CORTEX_ASYNC_WORKLOAD_PATH",
-				Value: fmt.Sprintf("%s/apis/%s/workloads", config.CoreConfig.ClusterName, api.Name),
-			},
-			kcore.EnvVar{
-				Name:  "CORTEX_API_SPEC",
-				Value: aws.S3Path(config.CoreConfig.Bucket, api.PredictorKey),
-			},
-			kcore.EnvVar{
-				Name:  "CORTEX_PROCESSES_PER_REPLICA",
-				Value: s.Int32(api.Predictor.ProcessesPerReplica),
+				Name:  "CORTEX_TF_SERVING_HOST",
+				Value: _tfServingHost,
 			},
 		)
-
-		if api.Autoscaling != nil {
-			envVars = append(envVars,
-				kcore.EnvVar{
-					Name:  "CORTEX_MAX_REPLICA_CONCURRENCY",
-					Value: s.Int64(api.Autoscaling.MaxReplicaConcurrency),
-				},
-			)
-		}
-
-		cortexPythonPath := path.Join(_emptyDirMountPath, "project")
-		if api.Predictor.PythonPath != nil {
-			cortexPythonPath = path.Join(_emptyDirMountPath, "project", *api.Predictor.PythonPath)
-		}
-		envVars = append(envVars, kcore.EnvVar{
-			Name:  "CORTEX_PYTHON_PATH",
-			Value: cortexPythonPath,
-		})
 	}
 
-	if api.Compute.Inf > 0 && container == APIContainerName {
+	if api.Autoscaling != nil {
+		envVars = append(envVars,
+			kcore.EnvVar{
+				Name:  "CORTEX_MAX_REPLICA_CONCURRENCY",
+				Value: s.Int64(api.Autoscaling.MaxReplicaConcurrency),
+			},
+		)
+	}
+
+	if api.Predictor.Type != userconfig.PythonPredictorType {
+		envVars = append(envVars,
+			kcore.EnvVar{
+				Name:  "CORTEX_MODEL_DIR",
+				Value: path.Join(_emptyDirMountPath, "model"),
+			},
+		)
+	}
+
+	cortexPythonPath := path.Join(_emptyDirMountPath, "project")
+	if api.Predictor.PythonPath != nil {
+		cortexPythonPath = path.Join(_emptyDirMountPath, "project", *api.Predictor.PythonPath)
+	}
+	envVars = append(envVars, kcore.EnvVar{
+		Name:  "CORTEX_PYTHON_PATH",
+		Value: cortexPythonPath,
+	})
+
+	if api.Compute.Inf > 0 {
 		envVars = append(envVars,
 			kcore.EnvVar{
 				Name:  "NEURONCORE_GROUP_SIZES",
@@ -755,6 +782,19 @@ func getAsyncEnvVars(api spec.API, container string, queueURL string) []kcore.En
 				Value: fmt.Sprintf("unix:%s", _neuronRTDSocket),
 			},
 		)
+
+		if api.Predictor.Type == userconfig.TensorFlowPredictorType {
+			envVars = append(envVars,
+				kcore.EnvVar{
+					Name:  "CORTEX_MULTIPLE_TF_SERVERS",
+					Value: "yes",
+				},
+				kcore.EnvVar{
+					Name:  "CORTEX_ACTIVE_NEURON",
+					Value: "yes",
+				},
+			)
+		}
 	}
 
 	return envVars
@@ -1280,7 +1320,7 @@ func baseEnvVars() []kcore.EnvFromSource {
 }
 
 func DefaultVolumes() []kcore.Volume {
-	var defaultVolumes = []kcore.Volume{
+	return []kcore.Volume{
 		k8s.EmptyDirVolume(_emptyDirVolumeName),
 		{
 			Name: "client-config",
@@ -1293,12 +1333,10 @@ func DefaultVolumes() []kcore.Volume {
 			},
 		},
 	}
-
-	return defaultVolumes
 }
 
 func defaultVolumeMounts() []kcore.VolumeMount {
-	var volumeMounts = []kcore.VolumeMount{
+	return []kcore.VolumeMount{
 		k8s.EmptyDirVolumeMount(_emptyDirVolumeName, _emptyDirMountPath),
 		{
 			Name:      "client-config",
@@ -1306,12 +1344,12 @@ func defaultVolumeMounts() []kcore.VolumeMount {
 			SubPath:   "cli.yaml",
 		},
 	}
-
-	return volumeMounts
 }
 
 func NodeSelectors() map[string]string {
-	return map[string]string{"workload": "true"}
+	return map[string]string{
+		"workload": "true",
+	}
 }
 
 func GenerateResourceTolerations() []kcore.Toleration {

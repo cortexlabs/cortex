@@ -11,18 +11,20 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+import json
 import os
-import copy
-import grpc
 import threading as td
-from typing import Any, Dict, Optional, List
+from typing import Any, Optional, List
 
+import grpc
+
+from cortex_internal import consts
 from cortex_internal.lib.exceptions import (
     UserRuntimeException,
     UserException,
     WithBreak,
 )
+from cortex_internal.lib.log import configure_logger
 from cortex_internal.lib.model import (
     TensorFlowServingAPI,
     ModelsHolder,
@@ -31,8 +33,6 @@ from cortex_internal.lib.model import (
     LockedModelsTree,
     get_models_from_api_spec,
 )
-from cortex_internal import consts
-from cortex_internal.lib.log import configure_logger
 
 logger = configure_logger("cortex", os.environ["CORTEX_LOG_CONFIG_FILE"])
 
@@ -42,9 +42,9 @@ class TensorFlowClient:
         self,
         tf_serving_url,
         api_spec: dict,
-        models: Optional[ModelsHolder],
-        model_dir: Optional[str],
-        models_tree: Optional[ModelsTree],
+        models: Optional[ModelsHolder] = None,
+        model_dir: Optional[str] = None,
+        models_tree: Optional[ModelsTree] = None,
     ):
         """
         Setup gRPC connection to TensorFlow Serving container.
@@ -84,6 +84,34 @@ class TensorFlowClient:
             self._models.set_callback("remove", self._remove_models)
 
         self._client = TensorFlowServingAPI(tf_serving_url)
+
+    def sync_models(self, lock_dir: str = "/run/cron"):
+        resource_models = os.path.join(lock_dir, "models_tfs.json")
+
+        try:
+            with open(resource_models, "r") as f:
+                models = json.load(f)
+        except Exception:
+            return
+
+        resource_ts = os.path.join(lock_dir, "model_timestamps.json")
+        try:
+            with open(resource_ts, "r") as f:
+                timestamps = json.load(f)
+        except Exception:
+            return
+
+        non_intersecting_model_ids = set(models.keys()).symmetric_difference(timestamps.keys())
+        for non_intersecting_model_id in non_intersecting_model_ids:
+            if non_intersecting_model_id in models:
+                del models[non_intersecting_model_id]
+            if non_intersecting_model_id in timestamps:
+                del timestamps[non_intersecting_model_id]
+
+        for model_id in timestamps.keys():
+            models[model_id]["timestamp"] = timestamps[model_id]
+
+        self._client.models = models
 
     def predict(
         self, model_input: Any, model_name: Optional[str] = None, model_version: str = "latest"
