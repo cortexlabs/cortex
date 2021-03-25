@@ -18,48 +18,21 @@ Before running tests, instruct the Python client to use your development CLI bin
 export CORTEX_CLI_PATH=<cortex_repo_path>/bin/cortex
 ```
 
-### AWS
-
 From an existing cluster:
 
 ```shell
-pytest test/e2e/tests -k aws --aws-env <cortex_aws_env>
+pytest test/e2e/tests --env <env_name>
 ```
 
 Using a new cluster, created for testing only and deleted afterwards:
 
 ```shell
-pytest test/e2e/tests -k aws --aws-config <cortex_aws_cluster_config.yaml>
+pytest test/e2e/tests --config <cluster.yaml>
 ```
 
-**Note:** For the BatchAPI tests, the `--s3-path` option should be provided with an AWS S3 bucket for testing purposes.
+**Note:** For the BatchAPI tests, the `--s3-path` option should be provided with an S3 bucket for testing purposes.
 It is more convenient however to define this bucket through an environment variable, see [configuration](#configuration)
 .
-
-### GCP
-
-From an existing cluster:
-
-```shell
-pytest test/e2e/tests -k gcp --gcp-env <cortex_gcp_env>
-```
-
-Using a new cluster, created for testing only and deleted afterwards:
-
-```shell
-pytest test/e2e/tests -k gcp --gcp-config <cortex_gcp_cluster_config.yaml>
-```
-
-### All Tests
-
-You can run all tests at once, however the provider specific options should be passed accordingly, or the test cases
-will be skipped.
-
-e.g.
-
-```shell
-pytest test/e2e/tests --aws-env <cortex_aws_env> --gcp-env <cortex_gcp_env>
-```
 
 ### Skip GPU Tests
 

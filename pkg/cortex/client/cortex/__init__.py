@@ -60,7 +60,7 @@ def new_client(
 
     Args:
         name: Name of the environment to create.
-        operator_endpoint: The endpoint for the operator of your Cortex Cluster. You can get this endpoint by running the CLI command `cortex cluster info` for an AWS provider or `cortex cluster-gcp info` for a GCP provider.
+        operator_endpoint: The endpoint for the operator of your Cortex Cluster. You can get this endpoint by running the CLI command `cortex cluster info`.
 
     Returns:
         Cortex client that can be used to deploy and manage APIs on a Cortex Cluster.

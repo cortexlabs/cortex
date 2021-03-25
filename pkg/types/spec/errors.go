@@ -64,7 +64,7 @@ const (
 	ErrS3DirIsEmpty   = "spec.s3_dir_is_empty"
 
 	ErrModelPathNotDirectory      = "spec.model_path_not_directory"
-	ErrInvalidModelPathProvider   = "spec.invalid_model_path_provider"
+	ErrInvalidBucketScheme        = "spec.invalid_bucket_scheme"
 	ErrInvalidPythonModelPath     = "spec.invalid_python_model_path"
 	ErrInvalidTensorFlowModelPath = "spec.invalid_tensorflow_model_path"
 	ErrInvalidONNXModelPath       = "spec.invalid_onnx_model_path"
@@ -301,10 +301,10 @@ func ErrorModelPathNotDirectory(modelPath string) error {
 	})
 }
 
-func ErrorInvalidModelPathProvider(modelPath string) error {
+func ErrorInvalidBucketScheme(path string) error {
 	return errors.WithStack(&errors.Error{
-		Kind:    ErrInvalidModelPathProvider,
-		Message: fmt.Sprintf("%s: model path must be an S3 path (e.g. s3://bucket/my-dir/)", modelPath),
+		Kind:    ErrInvalidBucketScheme,
+		Message: fmt.Sprintf("%s: path must be an S3 path (e.g. s3://bucket/my-dir/)", path),
 	})
 }
 

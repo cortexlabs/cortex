@@ -16,18 +16,12 @@
 
 set -euo pipefail
 
-provider=""
 operator_only="false"
 debug="false"
 positional_args=()
 while [[ $# -gt 0 ]]; do
   key="$1"
   case $key in
-    -p|--provider)
-    provider="$2"
-    shift
-    shift
-    ;;
     --operator-only)
     operator_only="true"
     shift
@@ -46,10 +40,6 @@ set -- "${positional_args[@]}"
 positional_args=()
 for i in "$@"; do
   case $i in
-    -p=*|--provider=*)
-    provider="${i#*=}"
-    shift
-    ;;
     *)
     positional_args+=("$1")
     shift
@@ -63,10 +53,7 @@ for arg in "$@"; do
     exit 1
   fi
 done
-if [ "$provider" != "aws" ] && [ "$provider" != "gcp" ]; then
-  echo "error: provider must be set to aws or gcp"
-  exit 1
-fi
+
 if [ "$operator_only" = "true" ] && [ "$debug" = "true" ]; then
   echo "error: --operator-only and --debug cannot both be set"
   exit 1
@@ -74,15 +61,15 @@ fi
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")"/.. >/dev/null && pwd)"
 
-eval $(python3 $ROOT/manager/cluster_config_env.py "$ROOT/dev/config/cluster-${provider}.yaml")
+eval $(python3 $ROOT/manager/cluster_config_env.py "$ROOT/dev/config/cluster.yaml")
 
 export CORTEX_DEV_DEFAULT_PREDICTOR_IMAGE_REGISTRY="$CORTEX_DEV_DEFAULT_PREDICTOR_IMAGE_REGISTRY"
 export CLUSTER_AWS_ACCESS_KEY_ID="${CLUSTER_AWS_ACCESS_KEY_ID:-$AWS_ACCESS_KEY_ID}"
 export CLUSTER_AWS_SECRET_ACCESS_KEY="${CLUSTER_AWS_SECRET_ACCESS_KEY:-$AWS_SECRET_ACCESS_KEY}"
 
-python3 $ROOT/dev/update_cli_config.py "$HOME/.cortex/cli.yaml" "${CORTEX_CLUSTER_NAME}-${provider}" "$provider" "http://localhost:8888"
+python3 $ROOT/dev/update_cli_config.py "$HOME/.cortex/cli.yaml" "${CORTEX_CLUSTER_NAME}" "http://localhost:8888"
 
-cp -r $ROOT/dev/config/cluster-${provider}.yaml ~/.cortex/cluster-dev.yaml
+cp -r $ROOT/dev/config/cluster.yaml ~/.cortex/cluster-dev.yaml
 
 if grep -qiP '^telemetry:\s*false\s*$' ~/.cortex/cli.yaml; then
   echo "telemetry: false" >> ~/.cortex/cluster-dev.yaml

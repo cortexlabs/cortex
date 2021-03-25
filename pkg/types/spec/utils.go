@@ -85,9 +85,9 @@ func surgeOrUnavailableValidator(str string) (string, error) {
 	return str, nil
 }
 
-func checkForInvalidBucketProvider(modelPath string) (string, error) {
+func checkForInvalidBucketScheme(modelPath string) (string, error) {
 	if !strings.HasPrefix(modelPath, "s3://") {
-		return "", ErrorInvalidModelPathProvider(modelPath)
+		return "", ErrorInvalidBucketScheme(modelPath)
 	}
 	return modelPath, nil
 }

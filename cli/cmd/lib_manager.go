@@ -192,7 +192,6 @@ func runManagerWithClusterConfig(entrypoint string, clusterConfig *clusterconfig
 		AttachStdout: true,
 		AttachStderr: true,
 		Env: []string{
-			"CORTEX_PROVIDER=" + "aws",
 			"AWS_ACCESS_KEY_ID=" + *awsClient.AccessKeyID(),
 			"AWS_SECRET_ACCESS_KEY=" + *awsClient.SecretAccessKey(),
 			"CORTEX_TELEMETRY_DISABLE=" + os.Getenv("CORTEX_TELEMETRY_DISABLE"),
@@ -224,7 +223,6 @@ func runManagerAccessCommand(entrypoint string, accessConfig clusterconfig.Acces
 		AttachStdout: true,
 		AttachStderr: true,
 		Env: []string{
-			"CORTEX_PROVIDER=aws",
 			"AWS_ACCESS_KEY_ID=" + *awsClient.AccessKeyID(),
 			"AWS_SECRET_ACCESS_KEY=" + *awsClient.SecretAccessKey(),
 			"CORTEX_CLUSTER_NAME=" + accessConfig.ClusterName,

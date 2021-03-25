@@ -19,17 +19,12 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")"/.. >/dev/null && pwd)"
 
-provider="undefined"
 cluster_env="undefined"
 create_cluster="no"
 positional_args=()
 while [[ $# -gt 0 ]]; do
   key="$1"
   case $key in
-    -p|--provider)
-    provider="$2"
-    shift
-    ;;
     -e|--cluster-env)
     cluster_env="$2"
     shift
@@ -48,10 +43,6 @@ set -- "${positional_args[@]}"
 positional_args=()
 for i in "$@"; do
   case $i in
-    -p=*|--provider=*)
-    provider="${i#*=}"
-    shift
-    ;;
     -e=*|--cluster-env=*)
     cluster_env="${i#*=}"
     shift
@@ -87,18 +78,10 @@ function run_python_tests() {
 }
 
 function run_e2e_tests() {
-  if [ "$provider" = "aws" ]; then
-    if [ "$create_cluster" = "yes" ]; then
-      pytest $ROOT/test/e2e/tests -k aws --aws-config "$sub_cmd"
-    else
-      pytest $ROOT/test/e2e/tests -k aws --aws-env "$cluster_env"
-    fi
-  elif [ "$provider" = "gcp" ]; then
-    if [ "$create_cluster" = "yes" ]; then
-      pytest $ROOT/test/e2e/tests -k gcp --gcp-config "$sub_cmd"
-    else
-      pytest $ROOT/test/e2e/tests -k gcp --gcp-env "$cluster_env"
-    fi
+  if [ "$create_cluster" = "yes" ]; then
+    pytest $ROOT/test/e2e/tests --config "$sub_cmd"
+  else
+    pytest $ROOT/test/e2e/tests --env "$cluster_env"
   fi
 }
 

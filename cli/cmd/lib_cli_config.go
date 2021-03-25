@@ -158,7 +158,7 @@ func promptForExistingEnvName(promptMsg string) string {
 
 func promptEnv(env *cliconfig.Environment, defaults cliconfig.Environment) error {
 	if env.OperatorEndpoint == "" {
-		fmt.Print("you can get your cortex operator endpoint using `cortex cluster info` or `cortex cluster-gcp info` if you already have a cortex cluster running, otherwise run `cortex cluster up` or `cortex cluster-gcp up` to create a cortex cluster\n\n")
+		fmt.Print("you can get your cortex operator endpoint using `cortex cluster info` if you already have a cortex cluster running, otherwise run `cortex cluster up` to create a cortex cluster\n\n")
 	}
 
 	validator := func(endpoint string) (string, error) {
@@ -349,7 +349,7 @@ func ReadOrConfigureEnv(envName string) (cliconfig.Environment, error) {
 
 	promptStr := fmt.Sprintf("the %s environment is not configured; do you already have a Cortex cluster running?", envName)
 	yesMsg := fmt.Sprintf("please configure the %s environment to point to your running cluster:\n", envName)
-	noMsg := "you can create a cluster on AWS or GCP by running the `cortex cluster up` or `cortex cluster-gcp up` command"
+	noMsg := "you can create a cluster by running the `cortex cluster up` command"
 	prompt.YesOrExit(promptStr, yesMsg, noMsg)
 
 	env, err := configureEnv(envName, cliconfig.Environment{})

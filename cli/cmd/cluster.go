@@ -111,7 +111,7 @@ func addClusterRegionFlag(cmd *cobra.Command) {
 
 var _clusterCmd = &cobra.Command{
 	Use:   "cluster",
-	Short: "manage AWS clusters (contains subcommands)",
+	Short: "manage cortex clusters (contains subcommands)",
 }
 
 var _clusterUpCmd = &cobra.Command{

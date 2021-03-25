@@ -14,6 +14,5 @@
 
 default_environment: default
 environments:
-- name: default
-  provider: $CORTEX_PROVIDER
-  operator_endpoint: http://operator.default.svc.cluster.local:8888
+  - name: default
+    operator_endpoint: http://operator.default.svc.cluster.local:8888

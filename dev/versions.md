@@ -170,7 +170,6 @@ Note: it's ok if example training notebooks aren't upgraded, as long as the expo
     1. Update the link at the top of the file to the URL you copied from
     1. Check that your diff is reasonable (and put back any of our modifications, e.g. the image path, rolling update
        strategy, resource requests, tolerations, node selector, priority class, etc)
-1. For `manager/manifests/nvidia_gcp.yaml` follow the instructions at [here](https://cloud.google.com/kubernetes-engine/docs/how-to/gpus#installing_drivers)
 1. Confirm GPUs work for PyTorch, TensorFlow, and ONNX models
 
 ## Inferentia device plugin

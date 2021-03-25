@@ -69,7 +69,7 @@ var _logsCmd = &cobra.Command{
 
 		if len(args) == 1 {
 			if apiResponse[0].Spec.Kind == userconfig.RealtimeAPIKind && apiResponse[0].Status.Requested > 1 && !_flagLogsDisallowPrompt {
-				prompt.YesOrExit("logs from a single random replica will be streamed\n\nfor aggregated logs please visit your cloud provider's logging dashboard; see https://docs.cortex.dev for details", "", "")
+				prompt.YesOrExit("logs from a single random replica will be streamed\n\nfor aggregated logs please visit your cloudwatch logging dashboard; see https://docs.cortex.dev for details", "", "")
 			}
 
 			err = cluster.StreamLogs(operatorConfig, apiName)
@@ -86,7 +86,7 @@ var _logsCmd = &cobra.Command{
 				}
 
 				if jobResponse.JobStatus.Workers > 1 && !_flagLogsDisallowPrompt {
-					prompt.YesOrExit("logs from a single random worker will be streamed\n\nfor aggregated logs please visit your cloud provider's logging dashboard; see https://docs.cortex.dev for details", "", "")
+					prompt.YesOrExit("logs from a single random worker will be streamed\n\nfor aggregated logs please visit your cloudwatch logging dashboard; see https://docs.cortex.dev for details", "", "")
 				}
 			}
 

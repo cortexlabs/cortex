@@ -529,7 +529,7 @@ func multiModelValidation(fieldName string) *cr.StructFieldValidation {
 					StructField: "Path",
 					StringPtrValidation: &cr.StringPtrValidation{
 						Required:  false,
-						Validator: checkForInvalidBucketProvider,
+						Validator: checkForInvalidBucketScheme,
 					},
 				},
 				multiModelPathsValidation(),
@@ -537,7 +537,7 @@ func multiModelValidation(fieldName string) *cr.StructFieldValidation {
 					StructField: "Dir",
 					StringPtrValidation: &cr.StringPtrValidation{
 						Required:  false,
-						Validator: checkForInvalidBucketProvider,
+						Validator: checkForInvalidBucketScheme,
 					},
 				},
 				{
@@ -587,7 +587,7 @@ func multiModelPathsValidation() *cr.StructFieldValidation {
 						StringValidation: &cr.StringValidation{
 							Required:   true,
 							AllowEmpty: false,
-							Validator:  checkForInvalidBucketProvider,
+							Validator:  checkForInvalidBucketScheme,
 						},
 					},
 					{
@@ -1253,16 +1253,11 @@ func validateONNXPredictor(api *userconfig.API, models *[]CuratedModelResource, 
 	}
 
 	for _, modelFileResource := range modelFileResources {
-		s3Path := strings.HasPrefix(modelFileResource.Path, "s3://")
-		gcsPath := strings.HasPrefix(modelFileResource.Path, "gs://")
-
 		*models = append(*models, CuratedModelResource{
 			ModelResource: &userconfig.ModelResource{
 				Name: modelFileResource.Name,
 				Path: modelFileResource.Path,
 			},
-			S3Path:     s3Path,
-			GCSPath:    gcsPath,
 			IsFilePath: true,
 		})
 	}
