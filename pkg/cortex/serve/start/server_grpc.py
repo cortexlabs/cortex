@@ -9,7 +9,7 @@ import traceback
 import pathlib
 import importlib
 import inspect
-from typing import Dict, Any
+from typing import Callable, Dict, Any
 from concurrent import futures
 
 import grpc
@@ -25,7 +25,8 @@ NANOSECONDS_IN_SECOND = 1e9
 
 
 class ThreadPoolExecutorWithRequestMonitor:
-    def __init__(self, *args, **kwargs):
+    def __init__(self, post_metrics_fn: Callable[[int, float]], *args, **kwargs):
+        self._post_metrics_fn = post_metrics_fn
         self._thread_pool_executor = futures.ThreadPoolExecutor(*args, **kwargs)
 
     def submit(self, fn, *args, **kwargs):
@@ -33,9 +34,13 @@ class ThreadPoolExecutorWithRequestMonitor:
         file_id = f"/mnt/requests/{request_id}"
         open(file_id, "a").close()
 
+        start_time = time.time()
+
         def wrapper_fn(*args, **kwargs):
+            successful_execution = False
             try:
                 result = fn(*args, **kwargs)
+                successful_execution = True
             except:
                 raise
             finally:
@@ -43,6 +48,12 @@ class ThreadPoolExecutorWithRequestMonitor:
                     os.remove(file_id)
                 except FileNotFoundError:
                     pass
+                if successful_execution:
+                    status_code = 200
+                else:
+                    status_code = 500
+                self._post_metrics_fn(status_code, time.time() - start_time)
+
             return result
 
         self._thread_pool_executor.submit(wrapper_fn, *args, **kwargs)
@@ -182,8 +193,13 @@ def main():
 
     module_proto_pb2_grpc = config["module_proto_pb2_grpc"]
     PredictorServicer = config["predictor_servicer"]
+    api = config["api"]
 
-    server = grpc.server(ThreadPoolExecutorWithRequestMonitor(max_workers=threads_per_process))
+    server = grpc.server(
+        ThreadPoolExecutorWithRequestMonitor(
+            post_metrics_fn=api.post_request_metrics, max_workers=threads_per_process
+        )
+    )
 
     add_PredictorServicer_to_server = get_servicer_to_server_from_module(module_proto_pb2_grpc)
     add_PredictorServicer_to_server(PredictorServicer(config), server)

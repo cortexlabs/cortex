@@ -6,6 +6,7 @@ import pickle
 
 labels = ["setosa", "versicolor", "virginica"]
 
+
 class PythonPredictor:
     def __init__(self, config, proto_module_pb2):
         if os.environ.get("AWS_ACCESS_KEY_ID"):
