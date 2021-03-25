@@ -42,7 +42,7 @@ type StringPtrValidation struct {
 	AlphaNumericDashDotUnderscoreOrEmpty bool
 	AlphaNumericDashDotUnderscore        bool
 	AlphaNumericDashUnderscore           bool
-	AlphaNumericUnderscore               bool
+	AlphaNumericDotUnderscore            bool
 	AWSTag                               bool
 	DNS1035                              bool
 	DNS1123                              bool
@@ -70,7 +70,7 @@ func makeStringValValidation(v *StringPtrValidation) *StringValidation {
 		AlphaNumericDashDotUnderscoreOrEmpty: v.AlphaNumericDashDotUnderscoreOrEmpty,
 		AlphaNumericDashDotUnderscore:        v.AlphaNumericDashDotUnderscore,
 		AlphaNumericDashUnderscore:           v.AlphaNumericDashUnderscore,
-		AlphaNumericUnderscore:               v.AlphaNumericUnderscore,
+		AlphaNumericDotUnderscore:            v.AlphaNumericDotUnderscore,
 		AWSTag:                               v.AWSTag,
 		DNS1035:                              v.DNS1035,
 		DNS1123:                              v.DNS1123,

@@ -178,10 +178,10 @@ func predictorValidation() *cr.StructFieldValidation {
 				{
 					StructField: "ProtobufPath",
 					StringPtrValidation: &cr.StringPtrValidation{
-						Default:                nil,
-						AllowExplicitNull:      true,
-						AlphaNumericUnderscore: true,
-						Suffix:                 ".proto",
+						Default:                   nil,
+						AllowExplicitNull:         true,
+						AlphaNumericDotUnderscore: true,
+						Suffix:                    ".proto",
 					},
 				},
 				{
@@ -1435,9 +1435,7 @@ func validateProtobufPath(api *userconfig.API, projectFiles ProjectFiles) error 
 			for _, elem := range service.Elements {
 				if s, ok := elem.(*pbparser.RPC); ok {
 					numRPCs++
-					if s.Name != serviceMethodName {
-						detectedMethodName = serviceMethodName
-					}
+					detectedMethodName = s.Name
 				}
 			}
 		}),

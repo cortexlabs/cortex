@@ -76,7 +76,7 @@ def build_predict_kwargs(predict_fn_args, payload, context) -> Dict[str, Any]:
         predict_kwargs["payload"] = payload
     if "context" in predict_fn_args:
         predict_kwargs["context"] = context
-    return predict_fn_args
+    return predict_kwargs
 
 
 def init():
@@ -84,7 +84,6 @@ def init():
     project_dir = os.environ["CORTEX_PROJECT_DIR"]
     spec_path = os.environ["CORTEX_API_SPEC"]
 
-    python_path = os.getenv("CORTEX_PYTHON_PATH")
     model_dir = os.getenv("CORTEX_MODEL_DIR")
     cache_dir = os.getenv("CORTEX_CACHE_DIR")
     region = os.getenv("AWS_REGION")
@@ -116,10 +115,8 @@ def init():
     }
 
     proto_without_ext = pathlib.Path(api.predictor.protobuf_path).stem
-    compiled_proto_pb2 = os.path.join(python_path, proto_without_ext + "_pb2")
-    compiled_proto_pb2_grpc = os.path.join(python_path, proto_without_ext + "_pb2_grpc")
-    module_proto_pb2 = importlib.import_module(compiled_proto_pb2)
-    module_proto_pb2_grpc = importlib.import_module(compiled_proto_pb2_grpc)
+    module_proto_pb2 = importlib.import_module(proto_without_ext + "_pb2")
+    module_proto_pb2_grpc = importlib.import_module(proto_without_ext + "_pb2_grpc")
 
     client = api.predictor.initialize_client(
         tf_serving_host=tf_serving_host, tf_serving_port=tf_serving_port
@@ -173,7 +170,7 @@ def init():
 
 def main():
     address = sys.argv[1]
-    threads_per_process = os.environ["CORTEX_THREADS_PER_PROCESS"]
+    threads_per_process = int(os.environ["CORTEX_THREADS_PER_PROCESS"])
 
     try:
         config = init()

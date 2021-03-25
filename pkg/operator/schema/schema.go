@@ -59,6 +59,7 @@ type APIResponse struct {
 	Status           *status.Status          `json:"status,omitempty"`
 	Metrics          *metrics.Metrics        `json:"metrics,omitempty"`
 	Endpoint         string                  `json:"endpoint"`
+	Ports            []int64                 `json:"ports,omitempty"`
 	DashboardURL     *string                 `json:"dashboard_url,omitempty"`
 	BatchJobStatuses []status.BatchJobStatus `json:"batch_job_statuses,omitempty"`
 	TaskJobStatuses  []status.TaskJobStatus  `json:"task_job_statuses,omitempty"`

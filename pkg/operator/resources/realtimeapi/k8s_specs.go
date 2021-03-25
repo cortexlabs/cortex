@@ -234,6 +234,7 @@ func serviceSpec(api *spec.API) *kcore.Service {
 	}
 	return k8s.Service(&k8s.ServiceSpec{
 		Name:        operator.K8sName(api.Name),
+		PortName:    servingProtocol,
 		Port:        operator.DefaultPortInt32,
 		TargetPort:  operator.DefaultPortInt32,
 		Annotations: api.ToK8sAnnotations(),

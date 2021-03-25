@@ -11,8 +11,8 @@ python -m grpc_tools.protoc -I. --python_out=. --grpc_python_out=. iris_classifi
 
 ```python
 import cortex
-import grpcio
 import iris_classifier_pb2
+import iris_classifier_pb2_grpc
 
 sample = iris_classifier_pb2.Sample()
 with open("sample.bin", "rb") as f:
@@ -22,7 +22,7 @@ sample.ParseFromString(serialized_sample)
 cx = cortex.client("aws")
 grpc_endpoint = cx.get_api("iris-classifier")["endpoint"]
 channel = grpc.insecure_channel(grpc_endpoint)
-stub = iris_classifier_pb2.PredictorStub(channel)
+stub = iris_classifier_pb2_grpc.PredictorStub(channel)
 
 response = stub.Predict(sample)
 print("prediction:", response.classification)

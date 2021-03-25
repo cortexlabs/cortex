@@ -61,10 +61,10 @@ func IsAlphaNumericDashUnderscore(s string) bool {
 	return _alphaNumericDashUnderscoreRegex.MatchString(s)
 }
 
-var _alphaNumericUnderscoreRegex = regexp.MustCompile(`^[a-zA-Z0-9_]+$`)
+var _alphaNumericDotUnderscoreRegex = regexp.MustCompile(`^[a-zA-Z0-9_\.]+$`)
 
-func IsAlphaNumericUnderscore(s string) bool {
-	return _alphaNumericUnderscoreRegex.MatchString(s)
+func IsAlphaNumericDotUnderscore(s string) bool {
+	return _alphaNumericDotUnderscoreRegex.MatchString(s)
 }
 
 // used the evaluated form of

@@ -140,10 +140,10 @@ func ErrorAlphaNumericDashUnderscore(provided string) error {
 	})
 }
 
-func ErrorAlphaNumericUnderscore(provided string) error {
+func ErrorAlphaNumericDotUnderscore(provided string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrAlphaNumericUnderscore,
-		Message: fmt.Sprintf("%s must contain only letters, numbers, and underscores", s.UserStr(provided)),
+		Message: fmt.Sprintf("%s must contain only letters, numbers, underscores and periods", s.UserStr(provided)),
 	})
 }
 

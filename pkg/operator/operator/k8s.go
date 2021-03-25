@@ -1486,5 +1486,10 @@ func APIEndpoint(api *spec.API) (string, error) {
 	}
 	baseAPIEndpoint = strings.Replace(baseAPIEndpoint, "https://", "http://", 1)
 
+	if api.Predictor != nil && api.Predictor.ProtobufPath != nil {
+		baseAPIEndpoint = strings.Replace(baseAPIEndpoint, "http://", "", 1)
+		return baseAPIEndpoint, nil
+	}
+
 	return urls.Join(baseAPIEndpoint, *api.Networking.Endpoint), nil
 }
