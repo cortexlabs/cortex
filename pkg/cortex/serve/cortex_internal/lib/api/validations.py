@@ -15,6 +15,7 @@
 import inspect
 from typing import Dict
 
+from cortex_internal.lib import util
 from cortex_internal.lib.exceptions import UserException
 from cortex_internal.lib.type import predictor_type_from_api_spec, PythonPredictorType
 
@@ -157,4 +158,16 @@ def validate_predictor_with_grpc(impl, api_spec):
             f'"proto_module_pb2" is a required argument, but was not provided',
             f"when a protobuf is specified in the api spec, then that means the grpc protocol is enabled, "
             f'which means that adding the "proto_module_pb2" argument is required',
+        )
+
+    predictor = getattr(impl, "predict")
+    predictor_arg_spec = inspect.getfullargspec(predictor)
+    disallowed_params = list(
+        set(["query_params", "headers", "batch_id"]).intersection(predictor_arg_spec.args)
+    )
+    if len(disallowed_params) > 0:
+        raise UserException(
+            f"class {target_class_name}",
+            f'invalid signature for method "predict"',
+            f'{util.string_plural_with_s("argument", len(disallowed_params))} {util.and_list_with_quotes(disallowed_params)} cannot be used when the grpc protocol is enabled',
         )
