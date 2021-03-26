@@ -48,7 +48,7 @@ On the old UI:
 
 The most common reason AWS is unable to provision instances is that you have reached your instance limit. There is an instance limit associated with your AWS account for each instance family in each region, for on-demand and for spot instances. You can check your current limit and request an increase [here](https://console.aws.amazon.com/servicequotas/home?#!/services/ec2/quotas) (set the region in the upper right corner to your desired region, type "on-demand" or "spot" in the search bar, and click on the quota that matches your instance type). Note that the quota values indicate the number of vCPUs available, not the number of instances; different instances have a different numbers of vCPUs, which can be seen [here](https://aws.amazon.com/ec2/instance-types).
 
-If you are using spot instances and don't have `on_demand_backup` set to true, it is also possible that AWS has run out of spot instances for your requested instance type and region. You can enable `on_demand_backup` to allow Cortex to fall back to on-demand instances when spot instances are unavailable, or you can try adding additional alternative instance types in `instance_distribution`.
+If you're using spot instances for your node group, it is also possible that AWS has run out of spot instances for your requested instance type and region. To address this, you can try adding additional alternative instance types in `instance_distribution` or changing the cluster's region to one that has a higher availability.
 
 ### Disabling rolling updates
 

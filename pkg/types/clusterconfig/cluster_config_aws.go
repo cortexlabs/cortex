@@ -214,7 +214,7 @@ var CoreConfigStructFieldValidations = []*cr.StructFieldValidation{
 		StructField: "ClusterName",
 		StringValidation: &cr.StringValidation{
 			Default:   "cortex",
-			MaxLength: 63,
+			MaxLength: 54, // leaves room for 8 char uniqueness string (and "-") for bucket name (63 chars max)
 			MinLength: 3,
 			Validator: validateClusterName,
 		},
@@ -704,7 +704,7 @@ var AccessValidation = &cr.StructValidation{
 			StructField: "ClusterName",
 			StringValidation: &cr.StringValidation{
 				Default:   "cortex",
-				MaxLength: 63,
+				MaxLength: 54, // leaves room for 8 char uniqueness string (and "-") for bucket name (63 chars max)
 				MinLength: 3,
 				Validator: validateClusterName,
 			},
@@ -805,17 +805,8 @@ func (cc *Config) Validate(awsClient *aws.Client, skipQuotaVerification bool) er
 	}
 
 	if cc.Bucket == "" {
-		bucketID := hash.String(accountID + cc.Region)[:10]
-
-		defaultBucket := cc.ClusterName + "-" + bucketID
-		if len(defaultBucket) > 63 {
-			defaultBucket = defaultBucket[:63]
-		}
-		if strings.HasSuffix(defaultBucket, "-") {
-			defaultBucket = defaultBucket[:len(defaultBucket)-1]
-		}
-
-		cc.Bucket = defaultBucket
+		bucketID := hash.String(accountID + cc.Region)[:8] // this is to "guarantee" a globally unique name
+		cc.Bucket = cc.ClusterName + "-" + bucketID
 	} else {
 		bucketRegion, _ := aws.GetBucketRegion(cc.Bucket)
 		if bucketRegion != "" && bucketRegion != cc.Region { // if the bucket didn't exist, we will create it in the correct region, so there is no error
@@ -1149,7 +1140,7 @@ func GetDefaults() (*Config, error) {
 }
 
 func (ng *NodeGroup) MaxPossibleOnDemandInstances() int64 {
-	if ng.Spot == false || ng.SpotConfig == nil {
+	if !ng.Spot || ng.SpotConfig == nil {
 		return ng.MaxInstances
 	}
 
@@ -1158,7 +1149,7 @@ func (ng *NodeGroup) MaxPossibleOnDemandInstances() int64 {
 }
 
 func (ng *NodeGroup) MaxPossibleSpotInstances() int64 {
-	if ng.Spot == false {
+	if !ng.Spot {
 		return 0
 	}
 

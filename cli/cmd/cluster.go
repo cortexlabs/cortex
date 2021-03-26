@@ -25,6 +25,7 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go/service/autoscaling"
+	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/elbv2"
 	"github.com/cortexlabs/cortex/cli/cluster"
 	"github.com/cortexlabs/cortex/cli/types/cliconfig"
@@ -50,19 +51,15 @@ import (
 )
 
 var (
-	_flagClusterUpEnv              string
-	_flagClusterInfoEnv            string
-	_flagClusterConfigureEnv       string
-	_flagClusterConfig             string
-	_flagClusterName               string
-	_flagClusterRegion             string
-	_flagClusterInfoDebug          bool
-	_flagClusterDisallowPrompt     bool
-	_flagClusterDownKeepVolumes    bool
-	_flagAWSAccessKeyID            string
-	_flagAWSSecretAccessKey        string
-	_flagClusterAWSAccessKeyID     string
-	_flagClusterAWSSecretAccessKey string
+	_flagClusterUpEnv           string
+	_flagClusterInfoEnv         string
+	_flagClusterConfigureEnv    string
+	_flagClusterConfig          string
+	_flagClusterName            string
+	_flagClusterRegion          string
+	_flagClusterInfoDebug       bool
+	_flagClusterDisallowPrompt  bool
+	_flagClusterDownKeepVolumes bool
 )
 
 func clusterInit() {
@@ -322,7 +319,7 @@ var _clusterConfigureCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
-		cachedClusterConfig := refreshCachedClusterConfig(*awsClient, accessConfig, _flagClusterDisallowPrompt)
+		cachedClusterConfig := refreshCachedClusterConfig(*awsClient, accessConfig)
 
 		clusterConfig, err := getConfigureClusterConfig(cachedClusterConfig, clusterConfigFile, _flagClusterDisallowPrompt)
 		if err != nil {
@@ -421,6 +418,17 @@ var _clusterDownCmd = &cobra.Command{
 			case clusterstate.StatusNotFound:
 				exit.Error(clusterstate.ErrorClusterDoesNotExist(accessConfig.ClusterName, accessConfig.Region))
 			case clusterstate.StatusDeleteComplete:
+				// silently clean up
+				awsClient.DeleteQueuesWithPrefix(clusterconfig.SQSNamePrefix(accessConfig.ClusterName))
+				awsClient.DeletePolicy(clusterconfig.DefaultPolicyARN(accountID, accessConfig.ClusterName, accessConfig.Region))
+				if !_flagClusterDownKeepVolumes {
+					volumes, err := listPVCVolumesForCluster(awsClient, accessConfig.ClusterName)
+					if err == nil {
+						for _, volume := range volumes {
+							awsClient.DeleteVolume(*volume.VolumeId)
+						}
+					}
+				}
 				exit.Error(clusterstate.ErrorClusterAlreadyDeleted(accessConfig.ClusterName, accessConfig.Region))
 			}
 		}
@@ -437,7 +445,7 @@ var _clusterDownCmd = &cobra.Command{
 		fmt.Print("￮ deleting sqs queues ")
 		err = awsClient.DeleteQueuesWithPrefix(clusterconfig.SQSNamePrefix(accessConfig.ClusterName))
 		if err != nil {
-			fmt.Printf("\n\nfailed to delete all sqs queues; please delete queues starting with the name %s via the cloudwatch console: https://%s.console.aws.amazon.com/sqs/v2/home", clusterconfig.SQSNamePrefix(accessConfig.ClusterName), accessConfig.Region)
+			fmt.Printf("\n\nfailed to delete all sqs queues; please delete queues starting with the name %s via the cloudwatch console: https://%s.console.aws.amazon.com/sqs/v2/home\n", clusterconfig.SQSNamePrefix(accessConfig.ClusterName), accessConfig.Region)
 			errors.PrintError(err)
 			fmt.Println()
 		} else {
@@ -446,12 +454,7 @@ var _clusterDownCmd = &cobra.Command{
 
 		fmt.Print("￮ spinning down the cluster ...")
 
-		uninstallCmd := "/root/uninstall.sh"
-		if _flagClusterDownKeepVolumes {
-			uninstallCmd += " --keep-volumes"
-		}
-
-		out, exitCode, err := runManagerAccessCommand(uninstallCmd, *accessConfig, awsClient, nil, nil)
+		out, exitCode, err := runManagerAccessCommand("/root/uninstall.sh", *accessConfig, awsClient, nil, nil)
 		if err != nil {
 			errors.PrintError(err)
 			fmt.Println()
@@ -466,11 +469,39 @@ var _clusterDownCmd = &cobra.Command{
 		fmt.Printf("￮ deleting auto-generated iam policy %s ", policyARN)
 		err = awsClient.DeletePolicy(policyARN)
 		if err != nil {
-			fmt.Printf("\n\nfailed to delete auto-generated cortex policy %s; please delete the policy via the iam console: https://us-west-2.console.aws.amazon.com/iam/home#/policies", policyARN)
+			fmt.Printf("\n\nfailed to delete auto-generated cortex policy %s; please delete the policy via the iam console: https://console.aws.amazon.com/iam/home#/policies\n", policyARN)
 			errors.PrintError(err)
 			fmt.Println()
 		} else {
 			fmt.Println("✓")
+		}
+
+		// delete EBS volumes
+		if !_flagClusterDownKeepVolumes {
+			volumes, err := listPVCVolumesForCluster(awsClient, accessConfig.ClusterName)
+			if err != nil {
+				fmt.Println("\nfailed to list volumes for deletion; please delete any volumes associated with your cluster via the ec2 console: https://console.aws.amazon.com/ec2/v2/home?#Volumes")
+				errors.PrintError(err)
+				fmt.Println()
+			} else {
+				fmt.Print("￮ deleting ebs volumes ")
+				var failedToDeleteVolumes []string
+				var lastErr error
+				for _, volume := range volumes {
+					err := awsClient.DeleteVolume(*volume.VolumeId)
+					if err != nil {
+						failedToDeleteVolumes = append(failedToDeleteVolumes, *volume.VolumeId)
+						lastErr = err
+					}
+				}
+				if lastErr != nil {
+					fmt.Printf("\n\nfailed to delete %s %s; please delete %s via the ec2 console: https://console.aws.amazon.com/ec2/v2/home?#Volumes\n", s.PluralS("volume", len(failedToDeleteVolumes)), s.UserStrsAnd(failedToDeleteVolumes), s.PluralCustom("it", "them", len(failedToDeleteVolumes)))
+					errors.PrintError(lastErr)
+					fmt.Println()
+				} else {
+					fmt.Println("✓")
+				}
+			}
 		}
 
 		// best-effort deletion of cli environment(s)
@@ -624,7 +655,7 @@ func cmdInfo(awsClient *aws.Client, accessConfig *clusterconfig.AccessConfig, di
 		exit.Error(err)
 	}
 
-	clusterConfig := refreshCachedClusterConfig(*awsClient, accessConfig, disallowPrompt)
+	clusterConfig := refreshCachedClusterConfig(*awsClient, accessConfig)
 
 	out, exitCode, err := runManagerWithClusterConfig("/root/info.sh", &clusterConfig, awsClient, nil, nil)
 	if err != nil {
@@ -910,7 +941,7 @@ func cmdDebug(awsClient *aws.Client, accessConfig *clusterconfig.AccessConfig) {
 	return
 }
 
-func refreshCachedClusterConfig(awsClient aws.Client, accessConfig *clusterconfig.AccessConfig, disallowPrompt bool) clusterconfig.Config {
+func refreshCachedClusterConfig(awsClient aws.Client, accessConfig *clusterconfig.AccessConfig) clusterconfig.Config {
 	// add empty file if cached cluster doesn't exist so that the file output by manager container maintains current user permissions
 	cachedClusterConfigPath := cachedClusterConfigPath(accessConfig.ClusterName, accessConfig.Region)
 	containerConfigPath := fmt.Sprintf("/out/%s", filepath.Base(cachedClusterConfigPath))
@@ -1017,4 +1048,11 @@ func getAWSOperatorLoadBalancer(clusterName string, awsClient *aws.Client) (*elb
 	}
 
 	return loadBalancer, nil
+}
+
+func listPVCVolumesForCluster(awsClient *aws.Client, clusterName string) ([]ec2.Volume, error) {
+	return awsClient.ListVolumes(ec2.Tag{
+		Key:   pointer.String(fmt.Sprintf("kubernetes.io/cluster/%s", clusterName)),
+		Value: nil, // any value should be ok as long as the key is present
+	})
 }

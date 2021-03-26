@@ -93,7 +93,9 @@ func getNodeInfos() ([]schema.NodeInfo, int, error) {
 	nodeInfoMap := make(map[string]*schema.NodeInfo, len(nodes)) // node name -> info
 	spotPriceCache := make(map[string]float64)                   // instance type -> spot price
 
-	for _, node := range nodes {
+	for i := range nodes {
+		node := nodes[i]
+
 		instanceType := node.Labels["beta.kubernetes.io/instance-type"]
 		nodeGroupName := node.Labels["alpha.eksctl.io/nodegroup-name"]
 		isSpot := strings.Contains(strings.ToLower(node.Labels["lifecycle"]), "spot")
@@ -128,7 +130,9 @@ func getNodeInfos() ([]schema.NodeInfo, int, error) {
 
 	var numPendingReplicas int
 
-	for _, pod := range pods {
+	for i := range pods {
+		pod := pods[i]
+
 		_, isAPIPod := pod.Labels["apiName"]
 
 		if pod.Spec.NodeName == "" && isAPIPod {

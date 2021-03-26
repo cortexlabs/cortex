@@ -69,6 +69,13 @@ def request_prediction(
     return response
 
 
+def retrieve_async_result(cliett: cx.Client, api_name: str, request_id: str) -> requests.Response:
+    api_info = cliett.get_api(api_name)
+    response = requests.get(f"{api_info['endpoint']}/{request_id}")
+
+    return response
+
+
 def request_batch_prediction(
     client: cx.Client,
     api_name: str,
@@ -87,6 +94,25 @@ def request_batch_prediction(
     }
     response = requests.post(endpoint, json=batch_payload)
 
+    return response
+
+
+def request_task(
+    client: cx.Client,
+    api_name: str,
+    config: Dict = None,
+    timeout: int = None,
+):
+    api_info = client.get_api(api_name)
+    endpoint = api_info["endpoint"]
+
+    payload = {}
+    if config is not None:
+        payload["config"] = config
+    if timeout is not None:
+        payload["timeout"] = timeout
+
+    response = requests.post(endpoint, json=payload)
     return response
 
 

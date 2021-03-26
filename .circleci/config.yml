@@ -98,8 +98,12 @@ jobs:
       - checkout
       - setup_remote_docker
       - install-go
-      - run: go get -u -v golang.org/x/lint/golint
-      - run: sudo pip install black aiohttp
+      - run:
+         name: Install Linting Tools
+         command: |
+           go get -u -v golang.org/x/lint/golint
+           go get -u -v github.com/kyoh86/looppointer/cmd/looppointer
+           sudo pip install black aiohttp
       - run:
           name: Lint
           command: make lint
@@ -121,14 +125,14 @@ jobs:
       - install-go
       - run: sudo apt update && sudo apt install parallel -y
       - run: sudo pip install awscli
-      - run: make ci-build-images
       - run: make ci-build-cli
       - return-if-not-deployed-branch
+      - run: make ci-build-and-upload-cli
+      - run: make ci-build-images
       - quay-login
       - run:
           command: make ci-push-images
           no_output_timeout: 20m
-      - run: make ci-build-and-upload-cli
 
   e2e-tests-aws:
     docker:

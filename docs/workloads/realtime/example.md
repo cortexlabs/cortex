@@ -1,6 +1,6 @@
 # RealtimeAPI
 
-Create APIs that can respond to prediction requests in real-time.
+Create APIs that respond to prediction requests in real-time.
 
 ## Implement
 

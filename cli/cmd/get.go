@@ -166,7 +166,7 @@ var _getCmd = &cobra.Command{
 						return "", err
 					}
 
-					apiTable, err := getAPIsByEnv(env, false)
+					apiTable, err := getAPIsByEnv(env)
 					if err != nil {
 						return "", err
 					}
@@ -336,7 +336,7 @@ func getAPIsInAllEnvironments() (string, error) {
 	return out, nil
 }
 
-func getAPIsByEnv(env cliconfig.Environment, printEnv bool) (string, error) {
+func getAPIsByEnv(env cliconfig.Environment) (string, error) {
 	apisRes, err := cluster.GetAPIs(MustGetOperatorConfig(env.Name))
 	if err != nil {
 		return "", err

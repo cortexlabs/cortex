@@ -144,9 +144,9 @@ var _clusterGCPUpCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
-		gkeClusterName := fmt.Sprintf("projects/%s/locations/%s/clusters/%s", clusterConfig.Project, clusterConfig.Zone, clusterConfig.ClusterName)
+		fullyQualifiedClusterName := fmt.Sprintf("projects/%s/locations/%s/clusters/%s", clusterConfig.Project, clusterConfig.Zone, clusterConfig.ClusterName)
 
-		clusterExists, err := gcpClient.ClusterExists(gkeClusterName)
+		clusterExists, err := gcpClient.ClusterExists(fullyQualifiedClusterName)
 		if err != nil {
 			exit.Error(err)
 		}
@@ -169,7 +169,7 @@ var _clusterGCPUpCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
-		operatorLoadBalancerIP, err := getGCPOperatorLoadBalancerIP(gkeClusterName, gcpClient)
+		operatorLoadBalancerIP, err := getGCPOperatorLoadBalancerIP(fullyQualifiedClusterName, gcpClient)
 		if err != nil {
 			exit.Error(errors.Append(err, fmt.Sprintf("\n\nyou can attempt to resolve this issue and configure your cli environment by running `cortex cluster info --configure-env %s`", _flagClusterGCPUpEnv)))
 		}
@@ -204,7 +204,7 @@ var _clusterGCPInfoCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
-		accessConfig, err := getGCPClusterAccessConfigWithCache(_flagClusterGCPDisallowPrompt)
+		accessConfig, err := getGCPClusterAccessConfigWithCache()
 		if err != nil {
 			exit.Error(err)
 		}
@@ -234,7 +234,7 @@ var _clusterGCPDownCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
-		accessConfig, err := getGCPClusterAccessConfigWithCache(_flagClusterGCPDisallowPrompt)
+		accessConfig, err := getGCPClusterAccessConfigWithCache()
 		if err != nil {
 			exit.Error(err)
 		}
@@ -244,10 +244,10 @@ var _clusterGCPDownCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
-		gkeClusterName := fmt.Sprintf("projects/%s/locations/%s/clusters/%s", accessConfig.Project, accessConfig.Zone, accessConfig.ClusterName)
+		fullyQualifiedClusterName := fmt.Sprintf("projects/%s/locations/%s/clusters/%s", accessConfig.Project, accessConfig.Zone, accessConfig.ClusterName)
 		bucketName := clusterconfig.GCPBucketName(accessConfig.ClusterName, accessConfig.Project, accessConfig.Zone)
 
-		clusterExists, err := gcpClient.ClusterExists(gkeClusterName)
+		clusterExists, err := gcpClient.ClusterExists(fullyQualifiedClusterName)
 		if err != nil {
 			exit.Error(err)
 		}
@@ -257,7 +257,7 @@ var _clusterGCPDownCmd = &cobra.Command{
 		}
 
 		// updating CLI env is best-effort, so ignore errors
-		operatorLoadBalancerIP, _ := getGCPOperatorLoadBalancerIP(gkeClusterName, gcpClient)
+		operatorLoadBalancerIP, _ := getGCPOperatorLoadBalancerIP(fullyQualifiedClusterName, gcpClient)
 
 		if _flagClusterGCPDisallowPrompt {
 			fmt.Printf("your cluster named \"%s\" in %s (zone: %s) will be spun down and all apis will be deleted\n\n", accessConfig.ClusterName, accessConfig.Project, accessConfig.Zone)
@@ -291,7 +291,7 @@ var _clusterGCPDownCmd = &cobra.Command{
 			fmt.Print("￮ proceeding with best-effort deletion of the cluster ")
 		}
 
-		_, err = gcpClient.DeleteCluster(gkeClusterName)
+		_, err = gcpClient.DeleteCluster(fullyQualifiedClusterName)
 		if err != nil {
 			fmt.Print("\n\n")
 			exit.Error(err)
@@ -348,7 +348,7 @@ func cmdInfoGCP(accessConfig *clusterconfig.GCPAccessConfig, disallowPrompt bool
 		}
 	}
 
-	if err := printInfoOperatorResponseGCP(accessConfig, operatorEndpoint); err != nil {
+	if err := printInfoOperatorResponseGCP(operatorEndpoint); err != nil {
 		exit.Error(err)
 	}
 
@@ -359,7 +359,7 @@ func cmdInfoGCP(accessConfig *clusterconfig.GCPAccessConfig, disallowPrompt bool
 	}
 }
 
-func printInfoOperatorResponseGCP(accessConfig *clusterconfig.GCPAccessConfig, operatorEndpoint string) error {
+func printInfoOperatorResponseGCP(operatorEndpoint string) error {
 	fmt.Print("fetching cluster status ...\n\n")
 
 	operatorConfig := cluster.OperatorConfig{
@@ -461,7 +461,7 @@ func createGKECluster(clusterConfig *clusterconfig.GCPConfig, gcpClient *gcp.Cli
 	fmt.Print("￮ creating GKE cluster ")
 
 	gkeClusterParent := fmt.Sprintf("projects/%s/locations/%s", clusterConfig.Project, clusterConfig.Zone)
-	gkeClusterName := fmt.Sprintf("%s/clusters/%s", gkeClusterParent, clusterConfig.ClusterName)
+	fullyQualifiedClusterName := fmt.Sprintf("%s/clusters/%s", gkeClusterParent, clusterConfig.ClusterName)
 
 	gkeClusterConfig := containerpb.Cluster{
 		Name:                  clusterConfig.ClusterName,
@@ -571,7 +571,7 @@ func createGKECluster(clusterConfig *clusterconfig.GCPConfig, gcpClient *gcp.Cli
 		fmt.Print(".")
 		time.Sleep(5 * time.Second)
 
-		cluster, err := gcpClient.GetCluster(gkeClusterName)
+		cluster, err := gcpClient.GetCluster(fullyQualifiedClusterName)
 		if err != nil {
 			return err
 		}
@@ -593,8 +593,8 @@ func createGKECluster(clusterConfig *clusterconfig.GCPConfig, gcpClient *gcp.Cli
 	return nil
 }
 
-func getGCPOperatorLoadBalancerIP(clusterName string, gcpClient *gcp.Client) (string, error) {
-	cluster, err := gcpClient.GetCluster(clusterName)
+func getGCPOperatorLoadBalancerIP(fullyQualifiedClusterName string, gcpClient *gcp.Client) (string, error) {
+	cluster, err := gcpClient.GetCluster(fullyQualifiedClusterName)
 	if err != nil {
 		return "", err
 	}

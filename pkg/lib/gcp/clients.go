@@ -30,6 +30,7 @@ type clients struct {
 	gcs     *storage.Client
 	compute *compute.Service
 	gke     *container.ClusterManagerClient
+	disks   *compute.DisksService
 }
 
 func (c *Client) GCS() (*storage.Client, error) {
@@ -81,4 +82,19 @@ func (c *Client) GKE() (*container.ClusterManagerClient, error) {
 		c.clients.gke = gke
 	}
 	return c.clients.gke, nil
+}
+
+func (c *Client) Disks() (*compute.DisksService, error) {
+	if c.clients.disks == nil {
+		comp, err := c.Compute()
+		if err != nil {
+			return nil, err
+		}
+		disks := compute.NewDisksService(comp)
+		if err != nil {
+			return nil, errors.WithStack(err)
+		}
+		c.clients.disks = disks
+	}
+	return c.clients.disks, nil
 }

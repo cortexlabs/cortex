@@ -66,42 +66,43 @@ func main() {
 			}
 		}
 
-		deployments, err := config.K8s.ListDeploymentsWithLabelKeys("apiName")
-		if err != nil {
-			exit.Error(errors.Wrap(err, "init"))
-		}
-
-		for _, deployment := range deployments {
-			apiKind := deployment.Labels["apiKind"]
-			if userconfig.KindFromString(apiKind) == userconfig.RealtimeAPIKind ||
-				userconfig.KindFromString(apiKind) == userconfig.AsyncAPIKind {
-				apiID := deployment.Labels["apiID"]
-				apiName := deployment.Labels["apiName"]
-				api, err := operator.DownloadAPISpec(apiName, apiID)
-				if err != nil {
-					exit.Error(errors.Wrap(err, "init"))
-				}
-
-				switch apiKind {
-				case userconfig.RealtimeAPIKind.String():
-					if err := realtimeapi.UpdateAutoscalerCron(&deployment, api); err != nil {
-						operatorLogger.Fatal(errors.Wrap(err, "init"))
-					}
-				case userconfig.AsyncAPIKind.String():
-					if err := asyncapi.UpdateMetricsCron(&deployment); err != nil {
-						operatorLogger.Fatal(errors.Wrap(err, "init"))
-					}
-
-					if err := asyncapi.UpdateAutoscalerCron(&deployment, *api); err != nil {
-						operatorLogger.Fatal(errors.Wrap(err, "init"))
-					}
-				}
-			}
-		}
-
 		cron.Run(batchapi.ManageJobResources, operator.ErrorHandler("manage batch jobs"), batchapi.ManageJobResourcesCronPeriod)
 	}
 	cron.Run(taskapi.ManageJobResources, operator.ErrorHandler("manage task jobs"), taskapi.ManageJobResourcesCronPeriod)
+
+	deployments, err := config.K8s.ListDeploymentsWithLabelKeys("apiName")
+	if err != nil {
+		exit.Error(errors.Wrap(err, "init"))
+	}
+
+	for i := range deployments {
+		deployment := deployments[i]
+		apiKind := deployment.Labels["apiKind"]
+		if userconfig.KindFromString(apiKind) == userconfig.RealtimeAPIKind ||
+			userconfig.KindFromString(apiKind) == userconfig.AsyncAPIKind {
+			apiID := deployment.Labels["apiID"]
+			apiName := deployment.Labels["apiName"]
+			api, err := operator.DownloadAPISpec(apiName, apiID)
+			if err != nil {
+				exit.Error(errors.Wrap(err, "init"))
+			}
+
+			switch apiKind {
+			case userconfig.RealtimeAPIKind.String():
+				if err := realtimeapi.UpdateAutoscalerCron(&deployment, api); err != nil {
+					operatorLogger.Fatal(errors.Wrap(err, "init"))
+				}
+			case userconfig.AsyncAPIKind.String():
+				if err := asyncapi.UpdateMetricsCron(&deployment); err != nil {
+					operatorLogger.Fatal(errors.Wrap(err, "init"))
+				}
+
+				if err := asyncapi.UpdateAutoscalerCron(&deployment, *api); err != nil {
+					operatorLogger.Fatal(errors.Wrap(err, "init"))
+				}
+			}
+		}
+	}
 
 	router := mux.NewRouter()
 

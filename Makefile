@@ -225,6 +225,7 @@ registry-clean-aws:
 
 tools:
 	@go get -u -v golang.org/x/lint/golint
+	@go get -u -v github.com/kyoh86/looppointer/cmd/looppointer
 	@go get -u -v github.com/VojtechVitek/rerun/cmd/rerun
 	@go get -u -v github.com/go-delve/delve/cmd/dlv
 	@if [[ "$$OSTYPE" == "darwin"* ]]; then brew install parallel; elif [[ "$$OSTYPE" == "linux"* ]]; then sudo apt-get install -y parallel; else echo "your operating system is not supported"; fi

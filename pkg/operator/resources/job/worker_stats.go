@@ -35,8 +35,8 @@ func GetWorkerCountsForJob(k8sJob kbatch.Job, pods []kcore.Pod) status.WorkerCou
 	}
 
 	workerCounts := status.WorkerCounts{}
-	for _, pod := range pods {
-		addPodToWorkerCounts(&pod, &workerCounts)
+	for i := range pods {
+		addPodToWorkerCounts(&pods[i], &workerCounts)
 	}
 
 	return workerCounts

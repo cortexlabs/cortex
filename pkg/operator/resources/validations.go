@@ -235,7 +235,8 @@ func awsManagedValidateK8sCompute(compute *userconfig.Compute, maxMemMap map[str
 }
 
 func validateEndpointCollisions(api *userconfig.API, virtualServices []istioclientnetworking.VirtualService) error {
-	for _, virtualService := range virtualServices {
+	for i := range virtualServices {
+		virtualService := virtualServices[i]
 		gateways := k8s.ExtractVirtualServiceGateways(&virtualService)
 		if !gateways.Has("apis-gateway") {
 			continue
@@ -311,7 +312,7 @@ func checkIfAPIExists(trafficSplitterAPIs []*userconfig.TrafficSplit, apis []use
 				deployed = true
 			}
 		}
-		if deployed == false {
+		if !deployed {
 			missingAPIs = append(missingAPIs, trafficSplitAPI.Name)
 		}
 	}
