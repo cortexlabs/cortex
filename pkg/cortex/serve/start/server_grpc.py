@@ -13,6 +13,7 @@ from typing import Callable, Dict, Any
 from concurrent import futures
 
 import grpc
+from grpc_reflection.v1alpha import reflection
 
 from cortex_internal.lib.api import get_api
 from cortex_internal.lib.concurrency import FileLock, LockedFile
@@ -58,6 +59,13 @@ class ThreadPoolExecutorWithRequestMonitor:
     def shutdown(self, *args, **kwargs):
         return self._thread_pool_executor.shutdown(*args, **kwargs)
 
+
+def get_service_name_from_module(module_proto_pb2_grpc) -> Any:
+    classes = inspect.getmembers(module_proto_pb2_grpc, inspect.isclass)
+    for class_name, _ in classes:
+        if class_name.endswith("Servicer"):
+            return class_name[:-len("Servicer")]
+    # this line will never be reached because we're guaranteed to have one servicer class in the module
 
 def get_servicer_from_module(module_proto_pb2_grpc) -> Any:
     classes = inspect.getmembers(module_proto_pb2_grpc, inspect.isclass)
@@ -169,6 +177,7 @@ def init():
     config["client"] = client
     config["predictor_impl"] = predictor_impl
     config["predict_fn_args"] = inspect.getfullargspec(predictor_impl.predict).args
+    config["module_proto_pb2"] = module_proto_pb2
     config["module_proto_pb2_grpc"] = module_proto_pb2_grpc
     config["predictor_servicer"] = PredictorServicer
 
@@ -187,6 +196,7 @@ def main():
         logger.exception("failed to start api")
         sys.exit(1)
 
+    module_proto_pb2 = config["module_proto_pb2"]
     module_proto_pb2_grpc = config["module_proto_pb2_grpc"]
     PredictorServicer = config["predictor_servicer"]
     api = config["api"]
@@ -199,6 +209,14 @@ def main():
 
     add_PredictorServicer_to_server = get_servicer_to_server_from_module(module_proto_pb2_grpc)
     add_PredictorServicer_to_server(PredictorServicer(config), server)
+
+    service_name = get_service_name_from_module(module_proto_pb2_grpc)
+    SERVICE_NAMES = (
+        module_proto_pb2.DESCRIPTOR.services_by_name[service_name].full_name,
+        reflection.SERVICE_NAME,
+    )
+    reflection.enable_server_reflection(SERVICE_NAMES, server)
+
     server.add_insecure_port(address)
     server.start()
 

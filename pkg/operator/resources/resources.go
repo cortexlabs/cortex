@@ -162,35 +162,37 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string, force bool, protobuf
 		return nil, "", ErrorCannotChangeKindOfDeployedAPI(apiConfig.Name, apiConfig.Kind, deployedResource.Kind)
 	}
 
-	prevAPISpec, err := operator.DownloadAPISpec(deployedResource.Name, deployedResource.ID())
-	if err != nil {
-		return nil, "", err
-	}
-
-	if deployedResource.Kind == userconfig.RealtimeAPIKind && prevAPISpec.Predictor.ProtobufPath == nil && apiConfig.Predictor.ProtobufPath != nil {
-		realtimeAPIName := deployedResource.Name
-
-		virtualServices, err := config.K8s.ListVirtualServicesByLabel("apiKind", userconfig.TrafficSplitterKind.String())
+	if deployedResource != nil {
+		prevAPISpec, err := operator.DownloadAPISpec(deployedResource.Name, deployedResource.ID())
 		if err != nil {
 			return nil, "", err
 		}
 
-		trafficSplitterList, err := trafficsplitter.GetAllAPIs(virtualServices)
-		if err != nil {
-			return nil, "", err
-		}
+		if deployedResource.Kind == userconfig.RealtimeAPIKind && prevAPISpec != nil && prevAPISpec.Predictor.ProtobufPath == nil && apiConfig.Predictor.ProtobufPath != nil {
+			realtimeAPIName := deployedResource.Name
 
-		dependentTrafficSplitters := []string{}
-		for _, trafficSplitter := range trafficSplitterList {
-			for _, api := range trafficSplitter.Spec.APIs {
-				if realtimeAPIName == api.Name {
-					dependentTrafficSplitters = append(dependentTrafficSplitters, api.Name)
+			virtualServices, err := config.K8s.ListVirtualServicesByLabel("apiKind", userconfig.TrafficSplitterKind.String())
+			if err != nil {
+				return nil, "", err
+			}
+
+			trafficSplitterList, err := trafficsplitter.GetAllAPIs(virtualServices)
+			if err != nil {
+				return nil, "", err
+			}
+
+			dependentTrafficSplitters := []string{}
+			for _, trafficSplitter := range trafficSplitterList {
+				for _, api := range trafficSplitter.Spec.APIs {
+					if realtimeAPIName == api.Name {
+						dependentTrafficSplitters = append(dependentTrafficSplitters, api.Name)
+					}
 				}
 			}
-		}
 
-		if len(dependentTrafficSplitters) > 0 {
-			return nil, "", ErrorCannotChangeAPIServingProtocolWhenTrafficSplitterIsInUse(realtimeAPIName, dependentTrafficSplitters)
+			if len(dependentTrafficSplitters) > 0 {
+				return nil, "", ErrorCannotChangeAPIServingProtocolWhenTrafficSplitterIsInUse(realtimeAPIName, dependentTrafficSplitters)
+			}
 		}
 	}
 
