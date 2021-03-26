@@ -230,11 +230,7 @@ def get_models_from_api_spec(
         model_resources.append(model_resource)
 
     # building model resources for models.dir
-    if (
-        models_spec
-        and models_spec["dir"]
-        and not models_spec["dir"].startswith("s3://")
-    ):
+    if models_spec and models_spec["dir"] and not models_spec["dir"].startswith("s3://"):
         for model_name in os.listdir(model_dir):
             model_resource = {}
             model_resource["name"] = model_name
