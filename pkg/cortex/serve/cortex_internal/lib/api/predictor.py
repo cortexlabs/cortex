@@ -392,7 +392,7 @@ def model_downloader(
     model_dir: str,
 ) -> Optional[datetime.datetime]:
     """
-    Downloads model to disk. Validates the cloud model path and the downloaded model as well.
+    Downloads model to disk. Validates the s3 model path and the downloaded model.
 
     Args:
         predictor_type: The predictor type as implemented by the API.
@@ -413,7 +413,7 @@ def model_downloader(
 
     client = S3(bucket_name)
 
-    # validate upstream cloud model
+    # validate upstream S3 model
     sub_paths, ts = client.search(model_path)
     try:
         validate_model_paths(sub_paths, predictor_type, model_path)

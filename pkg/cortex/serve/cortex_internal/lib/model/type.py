@@ -16,7 +16,7 @@ import os
 from typing import List, Optional
 
 import cortex_internal.consts
-from cortex_internal.lib.model import find_all_cloud_models
+from cortex_internal.lib.model import find_all_s3_models
 from cortex_internal.lib.type import predictor_type_from_api_spec, PythonPredictorType
 
 
@@ -28,7 +28,7 @@ class CuratedModelResources:
             {
                 'path': 's3://cortex-examples/models/tensorflow/transformer/',
                 'name': 'modelB',
-                'cloud_path': True,
+                's3_path': True,
                 'local_path': False,
                 'signature_key': None,
                 'versions': [1554540232]
@@ -66,7 +66,7 @@ class CuratedModelResources:
         Get a list of the values of each models' specified field.
 
         Args:
-            field: name, cloud_path, gs_path, local_path, signature_key or versions.
+            field: name, s3_path, local_path, signature_key or versions.
 
         Returns:
             A list with the specified value of each model.
@@ -111,19 +111,19 @@ class CuratedModelResources:
 
         return local_model_names
 
-    def get_cloud_model_names(self) -> List[str]:
+    def get_s3_model_names(self) -> List[str]:
         """
-        Get cloud-provided models as specified with predictor:models:path or predictor:models:paths.
+        Get S3 models as specified with predictor:models:path or predictor:models:paths.
 
         Returns:
-            A list of names of all models available from the cloud bucket(s).
+            A list of names of all models available from the bucket(s).
         """
-        cloud_model_names = []
+        s3_model_names = []
         for model_name in self.get_field("name"):
             if not self.is_local(model_name):
-                cloud_model_names.append(model_name)
+                s3_model_names.append(model_name)
 
-        return cloud_model_names
+        return s3_model_names
 
     def __getitem__(self, name: str) -> dict:
         """
@@ -202,7 +202,7 @@ def get_models_from_api_spec(
             os.path.join(model_dir, model_resource["name"], "1", os.path.basename(model["path"]))
         ):
             model_resource["is_file_path"] = True
-            model_resource["cloud_path"] = False
+            model_resource["s3_path"] = False
             model_resource["local_path"] = True
             model_resource["versions"] = []
             model_resource["path"] = os.path.join(
@@ -212,12 +212,12 @@ def get_models_from_api_spec(
             continue
         model_resource["is_file_path"] = False
 
-        model_resource["cloud_path"] = model["path"].startswith("s3://")
-        model_resource["local_path"] = not model_resource["cloud_path"]
+        model_resource["s3_path"] = model["path"].startswith("s3://")
+        model_resource["local_path"] = not model_resource["s3_path"]
 
-        if model_resource["cloud_path"]:
+        if model_resource["s3_path"]:
             model_resource["path"] = model["path"]
-            _, versions, _, _, _, _ = find_all_cloud_models(
+            _, versions, _, _, _, _ = find_all_s3_models(
                 False, "", predictor_type, [model_resource["path"]], [model_resource["name"]]
             )
             if model_resource["name"] not in versions:
@@ -234,7 +234,7 @@ def get_models_from_api_spec(
         for model_name in os.listdir(model_dir):
             model_resource = {}
             model_resource["name"] = model_name
-            model_resource["cloud_path"] = False
+            model_resource["s3_path"] = False
             model_resource["local_path"] = True
             model_resource["signature_key"] = models_spec["signature_key"]
             model_resource["path"] = os.path.join(model_dir, model_name)

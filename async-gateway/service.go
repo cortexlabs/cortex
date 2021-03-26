@@ -50,7 +50,7 @@ func NewService(clusterName, apiName string, queue Queue, storage Storage, logge
 	}
 }
 
-// CreateWorkload enqueues an async workload request and uploads the request payload to cloud storage
+// CreateWorkload enqueues an async workload request and uploads the request payload to S3
 func (s *service) CreateWorkload(id string, payload io.Reader, contentType string) (string, error) {
 	prefix := s.workloadStoragePrefix()
 	log := s.logger.With(zap.String("id", "id"), zap.String("contentType", contentType))

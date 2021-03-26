@@ -334,7 +334,7 @@ class ModelsHolder:
         It is assumed that when caching is disabled, an external mechanism is responsible for downloading/removing models to/from disk.
 
         Args:
-            bucket: The upstream model's cloud bucket name.
+            bucket: The upstream model's bucket name.
             model_name: The name of the model.
             model_version: The version of the model.
             model_path: Path to the model as discovered in models:dir or specified in models:paths.

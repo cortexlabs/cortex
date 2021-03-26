@@ -35,7 +35,7 @@ logger = configure_logger("cortex", os.environ["CORTEX_LOG_CONFIG_FILE"])
 
 class ModelsTree:
     """
-    Model tree for cloud-provided models.
+    Model tree for S3 models.
     """
 
     def __init__(self):
@@ -93,7 +93,7 @@ class ModelsTree:
         Args:
             model_names: The unique names of the models as discovered in models:dir or specified in models:paths.
             model_versions: The detected versions of each model. If the list is empty, then version "1" should be assumed. The dictionary keys represent the models' names.
-            model_paths: Cloud model paths to each model.
+            model_paths: S3 model paths to each model.
             sub_paths: A list of filepaths lists for each file of each model.
             timestamps: When was each versioned model updated the last time on the upstream. When no versions are passed, a timestamp is still expected.
             bucket_names: A list with the bucket_names required for each model. Empty elements if no bucket is used.
@@ -175,7 +175,7 @@ class ModelsTree:
         Locking is required.
 
         Args:
-            bucket: The cloud bucket on which the model is stored. Empty if there's no bucket.
+            bucket: The bucket on which the model is stored. Empty if there's no bucket.
             model_name: The unique name of the model as discovered in models:dir or specified in models:paths.
             model_version: A detected version of the model.
             model_path: The model path to the versioned model.
@@ -216,7 +216,7 @@ class ModelsTree:
 
         Returns:
             A dict with keys "bucket", "model_paths, "versions" and "timestamps".
-            "model_paths" contains the cloud prefixes of each versioned model, "versions" represents the available versions of the model,
+            "model_paths" contains the s3 prefixes of each versioned model, "versions" represents the available versions of the model,
             and each "timestamps" element is the corresponding last-edit time of each versioned model.
 
             Empty lists are returned if the model is not found.
@@ -385,12 +385,12 @@ class LockedModelsTree:
         return True
 
 
-def find_all_cloud_models(
+def find_all_s3_models(
     is_dir_used: bool,
     models_dir: str,
     predictor_type: PredictorType,
-    cloud_paths: List[str],
-    cloud_model_names: List[str],
+    s3_paths: List[str],
+    s3_model_names: List[str],
 ) -> Tuple[
     List[str],
     Dict[str, List[str]],
@@ -401,15 +401,15 @@ def find_all_cloud_models(
     List[str],
 ]:
     """
-    Get updated information on all models that are currently present on the cloud upstreams.
+    Get updated information on all models that are currently present on the S3 upstreams.
     Information on the available models, versions, last edit times, the subpaths of each model, and so on.
 
     Args:
         is_dir_used: Whether predictor:models:dir is used or not.
         models_dir: The value of predictor:models:dir in case it's present. Ignored when not required.
         predictor_type: The predictor type.
-        cloud_paths: The cloud model paths as they are specified in predictor:models:path/predictor:models:paths/predictor:models:dir is used. Ignored when not required.
-        cloud_model_names: The cloud model names as they are specified in predictor:models:paths:name when predictor:models:paths is used or the default name of the model when predictor:models:path is used. Ignored when not required.
+        s3_paths: The S3 model paths as they are specified in predictor:models:path/predictor:models:paths/predictor:models:dir is used. Ignored when not required.
+        s3_model_names: The S3 model names as they are specified in predictor:models:paths:name when predictor:models:paths is used or the default name of the model when predictor:models:path is used. Ignored when not required.
 
     Returns: The tuple with the following elements:
         model_names - a list with the names of the models (i.e. bert, gpt-2, etc) and they are unique
@@ -421,7 +421,7 @@ def find_all_cloud_models(
         bucket_names - a list of the bucket names of each model.
     """
 
-    # validate models stored in cloud (S3 only) that were specified with predictor:models:dir field
+    # validate models stored in S3 that were specified with predictor:models:dir field
     if is_dir_used:
         bucket_name, models_path = S3.deconstruct_s3_path(models_dir)
         client = S3(bucket_name)
@@ -442,7 +442,7 @@ def find_all_cloud_models(
         sub_paths = len(model_paths) * [sub_paths]
         timestamps = len(model_paths) * [timestamps]
 
-    # validate models stored in cloud (S3 only) that were specified with predictor:models:paths field
+    # validate models stored in S3 that were specified with predictor:models:paths field
     if not is_dir_used:
         sub_paths = []
         ooa_ids = []
@@ -450,7 +450,7 @@ def find_all_cloud_models(
         model_names = []
         timestamps = []
         bucket_names = []
-        for idx, path in enumerate(cloud_paths):
+        for idx, path in enumerate(s3_paths):
             if S3.is_valid_s3_path(path):
                 bucket_name, model_path = S3.deconstruct_s3_path(path)
                 client = S3(bucket_name)
@@ -463,12 +463,12 @@ def find_all_cloud_models(
             except CortexException:
                 continue
             model_paths.append(model_path)
-            model_names.append(cloud_model_names[idx])
+            model_names.append(s3_model_names[idx])
             bucket_names.append(bucket_name)
             sub_paths += [sb]
             timestamps += [model_path_ts]
 
-    # determine the detected versions for each cloud model
+    # determine the detected versions for each s3 model
     # if the model was not versioned, then leave the version list empty
     versions = {}
     for model_path, model_name, model_ooa_ids, bucket_sub_paths in zip(

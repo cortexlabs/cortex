@@ -146,7 +146,7 @@ func queryPrometheusVec(promAPIv1 promv1.API, query string, t time.Time) (model.
 	return values, nil
 }
 
-func saveMetricsToCloud(jobKey spec.JobKey) error {
+func saveMetricsToS3(jobKey spec.JobKey) error {
 	t := time.Now()
 	batchMetrics, err := getBatchMetrics(jobKey, t)
 	if err != nil {
@@ -161,7 +161,7 @@ func saveMetricsToCloud(jobKey spec.JobKey) error {
 	return nil
 }
 
-func readMetricsFromCloud(jobKey spec.JobKey) (metrics.BatchMetrics, error) {
+func readMetricsFromS3(jobKey spec.JobKey) (metrics.BatchMetrics, error) {
 	s3Key := path.Join(jobKey.Prefix(config.CoreConfig.ClusterName), _completedMetricsFileKey)
 	batchMetrics := metrics.BatchMetrics{}
 	err := config.AWS.ReadJSONFromS3(&batchMetrics, config.CoreConfig.Bucket, s3Key)
