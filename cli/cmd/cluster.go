@@ -21,6 +21,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
 
@@ -61,6 +62,8 @@ var (
 	_flagClusterDisallowPrompt  bool
 	_flagClusterDownKeepVolumes bool
 )
+
+var _eksctlPrefixRegex = regexp.MustCompile("^[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2} \\[\\W\\]")
 
 func clusterInit() {
 	_clusterUpCmd.Flags().SortFlags = false
@@ -196,6 +199,7 @@ var _clusterUpCmd = &cobra.Command{
 			exit.Error(err)
 		}
 		if exitCode == nil || *exitCode != 0 {
+			out = strings.Join(s.RemoveDuplicates(strings.Split(out, "\n"), _eksctlPrefixRegex), "\n")
 			eksCluster, err := awsClient.EKSClusterOrNil(clusterConfig.ClusterName)
 			if err != nil {
 				helpStr := "\ndebugging tips (may or may not apply to this error):"

@@ -17,6 +17,7 @@ limitations under the License.
 package strings
 
 import (
+	"regexp"
 	"strings"
 	"unicode"
 
@@ -225,4 +226,24 @@ func PluralCustom(singular string, plural string, count interface{}) string {
 		return singular
 	}
 	return plural
+}
+
+func RemoveDuplicates(strs []string, ignorePrefixRegex *regexp.Regexp) []string {
+	var result []string
+	counter := map[string]int64{}
+
+	for _, str := range strs {
+		strNoPrefix := str
+		if ignorePrefixRegex != nil {
+			strNoPrefix = ignorePrefixRegex.ReplaceAllString(str, "")
+		}
+
+		counter[strNoPrefix] += 1
+		if counter[strNoPrefix] > 1 {
+			continue
+		}
+		result = append(result, str)
+	}
+
+	return result
 }
