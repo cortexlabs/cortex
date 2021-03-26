@@ -253,7 +253,7 @@ func serviceSpec(api *spec.API) *kcore.Service {
 
 func virtualServiceSpec(api *spec.API) *istioclientnetworking.VirtualService {
 	servingProtocol := "http"
-	rewritePath := pointer.String("/")
+	rewritePath := pointer.String("predict")
 
 	if api.Predictor != nil && api.Predictor.ProtobufPath != nil {
 		servingProtocol = "grpc"
