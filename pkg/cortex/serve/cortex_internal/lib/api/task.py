@@ -65,14 +65,12 @@ class TaskAPI:
     def get_callable(self, project_dir: str):
         impl = self._get_impl(project_dir)
 
-        if inspect.isclass(impl):
-            constructor_args = inspect.getfullargspec(impl.__init__).args
-            args = {}
-            if "metrics_client" in constructor_args:
-                args["metrics_client"] = MetricsClient(self.statsd)
-            return impl(**args)
+        constructor_args = inspect.getfullargspec(impl.__init__).args
+        args = {}
+        if "metrics_client" in constructor_args:
+            args["metrics_client"] = MetricsClient(self.statsd)
 
-        return impl
+        return impl(**args)
 
     def _get_impl(self, project_dir: str):
         try:
@@ -105,7 +103,6 @@ class TaskAPI:
             raise UserException(str(e)) from e
 
         classes = inspect.getmembers(impl, inspect.isclass)
-        callables = inspect.getmembers(impl, callable)
 
         if len(classes) > 0:
             task_class = None
@@ -121,19 +118,9 @@ class TaskAPI:
             if task_class is None:
                 raise UserException(f"{target_class_name} class is not defined")
             return task_class
-        elif len(callables) == 0:
-            raise UserException("no callable class or function were provided")
         else:
-            return callables[0]
+            raise UserException("no callable class was provided")
 
     @staticmethod
     def _validate_impl(impl):
-        if inspect.isclass(impl):
-            validate_class_impl(impl, TASK_CLASS_VALIDATION)
-        else:
-            callable_fn = impl
-            argspec = inspect.getfullargspec(callable_fn)
-            if not (len(argspec.args) == 1 and argspec.args[0] == "config"):
-                raise UserException(
-                    f'callable function must have the "config" parameter in its signature',
-                )
+        validate_class_impl(impl, TASK_CLASS_VALIDATION)
