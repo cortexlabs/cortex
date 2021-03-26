@@ -121,6 +121,5 @@ def client_from_config(config_path: str) -> cx.Client:
         config = yaml.safe_load(f)
 
     cluster_name = config["cluster_name"]
-    provider = config["provider"]
 
-    return cx.client(f"{cluster_name}-{provider}")
+    return cx.client(f"{cluster_name}")

@@ -62,7 +62,6 @@ video-analyzer      async       16
 ```text
 $ cortex cluster info
 
-provider: aws
 region: us-east-1
 instance_types: [c5.xlarge, g4dn.xlarge]
 spot_instances: true

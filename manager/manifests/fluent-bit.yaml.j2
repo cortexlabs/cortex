@@ -160,7 +160,6 @@ data:
         Rename              levelname level
 
   output.conf: |
-    {% if config['provider'] == "aws" %}
     [OUTPUT]
         Name              cloudwatch
         Match             k8s_container.*
@@ -168,18 +167,6 @@ data:
         log_group_name    {{ config["cluster_name"] }}
         log_stream_prefix kube.
         auto_create_group true
-    {% endif %}
-
-    {% if config['provider'] == "gcp" %}
-    [OUTPUT]
-        Name                  stackdriver
-        Match                 k8s_container.*
-        resource              k8s_container
-        k8s_cluster_name      {{ config["cluster_name"] }}
-        k8s_cluster_location  {{ config["zone"] }}
-        severity_key          level
-        labels_key            labels
-    {% endif %}
 
   parsers.conf: |
     [PARSER]
@@ -218,11 +205,6 @@ spec:
               memory: 150Mi
           ports:
             - containerPort: 2020
-          {% if config['provider'] == "gcp" %}
-          env:
-            - name: GOOGLE_SERVICE_CREDENTIALS
-              value: /var/secrets/google/key.json
-          {% endif %}
           volumeMounts:
             - name: varlog
               mountPath: /var/log
@@ -231,10 +213,6 @@ spec:
               readOnly: true
             - name: fluent-bit-config
               mountPath: /fluent-bit/etc/
-            {% if config['provider'] == "gcp" %}
-            - name: gcp-credentials
-              mountPath: /var/secrets/google
-            {% endif %}
       terminationGracePeriodSeconds: 60
       volumes:
         - name: varlog
@@ -246,11 +224,6 @@ spec:
         - name: fluent-bit-config
           configMap:
             name: fluent-bit-config
-        {% if config['provider'] == "gcp" %}
-        - name: gcp-credentials
-          secret:
-            secretName: gcp-credentials
-        {% endif %}
       serviceAccountName: fluent-bit
       tolerations:
         - key: node-role.kubernetes.io/master
@@ -260,11 +233,9 @@ spec:
           effect: "NoExecute"
         - operator: "Exists"
           effect: "NoSchedule"
-        {% if config['provider'] == "aws" %}
         - key: aws.amazon.com/neuron
           operator: Exists
           effect: NoSchedule
-        {% endif %}
         - key: nvidia.com/gpu
           operator: Exists
           effect: NoSchedule

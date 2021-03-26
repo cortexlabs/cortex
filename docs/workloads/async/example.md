@@ -157,8 +157,7 @@ workload completes or fails. You can read more about it in the [webhook document
 ## Stream logs
 
 If necessary, you can stream the logs from a random running pod from your API with the `cortex logs` command. This is
-intended for debugging purposes only. For production logs, you can view the logs in the logging solution of the cloud
-provider your cluster is deployed in.
+intended for debugging purposes only. For production logs, you can view the logs in cloudwatch logs.
 
 ```bash
 cortex logs iris-classifier

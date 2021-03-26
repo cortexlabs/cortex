@@ -20,28 +20,16 @@ from dotenv import load_dotenv
 
 def pytest_addoption(parser):
     parser.addoption(
-        "--aws-env",
+        "--env",
         action="store",
         default=None,
-        help="set cortex AWS environment, to test on an existing AWS cluster",
+        help="set cortex environment, to test on an existing cluster",
     )
     parser.addoption(
-        "--aws-config",
+        "--config",
         action="store",
         default=None,
-        help="set cortex AWS cluster config, to test on a new AWS cluster",
-    )
-    parser.addoption(
-        "--gcp-env",
-        action="store",
-        default=None,
-        help="set cortex GCP environment, to test on an existing GCP cluster",
-    )
-    parser.addoption(
-        "--gcp-config",
-        action="store",
-        default=None,
-        help="set cortex GCP cluster config, to test on a new GCP cluster",
+        help="set cortex cluster config, to test on a new cluster",
     )
     parser.addoption(
         "--s3-path",
@@ -69,13 +57,9 @@ def pytest_configure(config):
 
     configuration = {
         "aws": {
-            "env": config.getoption("--aws-env"),
-            "config": config.getoption("--aws-config"),
+            "env": config.getoption("--env"),
+            "config": config.getoption("--config"),
             "s3_path": s3_path,
-        },
-        "gcp": {
-            "env": config.getoption("--gcp-env"),
-            "config": config.getoption("--gcp-config"),
         },
         "global": {
             "realtime_deploy_timeout": int(
@@ -103,7 +87,4 @@ def pytest_configure(config):
     print(yaml.dump(configuration, indent=2))
 
     if configuration["aws"]["env"] and configuration["aws"]["config"]:
-        raise ValueError("--aws-env and --aws-config are mutually exclusive")
-
-    if configuration["gcp"]["env"] and configuration["gcp"]["config"]:
-        raise ValueError("--gcp-env and --gcp-config are mutually exclusive")
+        raise ValueError("--env and --config are mutually exclusive")

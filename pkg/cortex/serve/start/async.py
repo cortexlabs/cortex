@@ -39,7 +39,6 @@ JOB_COMPLETE_MESSAGE_RENEWAL = 10  # seconds
 
 local_cache: Dict[str, Any] = {
     "api": None,
-    "provider": None,
     "predictor_impl": None,
     "predict_fn_args": None,
     "sqs_client": None,
@@ -100,7 +99,6 @@ def main():
 
     model_dir = os.getenv("CORTEX_MODEL_DIR")
     cache_dir = os.environ["CORTEX_CACHE_DIR"]
-    provider = os.environ["CORTEX_PROVIDER"]
     api_spec_path = os.environ["CORTEX_API_SPEC"]
     workload_path = os.environ["CORTEX_ASYNC_WORKLOAD_PATH"]
     project_dir = os.environ["CORTEX_PROJECT_DIR"]
@@ -112,7 +110,7 @@ def main():
     tf_serving_host = os.getenv("CORTEX_TF_SERVING_HOST")
     tf_serving_port = os.getenv("CORTEX_TF_BASE_SERVING_PORT")
 
-    storage, api_spec = get_spec(provider, api_spec_path, cache_dir, region)
+    storage, api_spec = get_spec(api_spec_path, cache_dir, region)
     sqs_client = boto3.client("sqs", region_name=region)
     api = AsyncAPI(
         api_spec=api_spec,
@@ -142,7 +140,6 @@ def main():
         sys.exit(1)
 
     local_cache["api"] = api
-    local_cache["provider"] = provider
     local_cache["predictor_impl"] = predictor_impl
     local_cache["sqs_client"] = sqs_client
     local_cache["storage_client"] = storage

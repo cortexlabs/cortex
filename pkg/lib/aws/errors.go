@@ -37,7 +37,6 @@ const (
 	ErrBucketNotFound               = "aws.bucket_not_found"
 	ErrInsufficientInstanceQuota    = "aws.insufficient_instance_quota"
 	ErrNoValidSpotPrices            = "aws.no_valid_spot_prices"
-	ErrReadCredentials              = "aws.read_credentials"
 	ErrECRExtractingCredentials     = "aws.ecr_failed_credentials"
 	ErrDashboardWidthOutOfRange     = "aws.dashboard_width_ouf_of_range"
 	ErrDashboardHeightOutOfRange    = "aws.dashboard_height_out_of_range"
@@ -164,13 +163,6 @@ func ErrorNoValidSpotPrices(instanceType string, region string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrNoValidSpotPrices,
 		Message: fmt.Sprintf("no spot prices were found for %s instances in %s", instanceType, region),
-	})
-}
-
-func ErrorReadCredentials() error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrReadCredentials,
-		Message: "unable to read AWS credentials from credentials file",
 	})
 }
 

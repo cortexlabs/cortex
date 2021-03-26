@@ -14,4 +14,3 @@
 
 from cortex_internal.lib.storage.local import LocalStorage
 from cortex_internal.lib.storage.s3 import S3
-from cortex_internal.lib.storage.gcs import GCS

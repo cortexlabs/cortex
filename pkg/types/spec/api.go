@@ -48,8 +48,6 @@ type API struct {
 
 type CuratedModelResource struct {
 	*userconfig.ModelResource
-	S3Path  bool `json:"s3_path"`
-	GCSPath bool `json:"gcs_path"`
 
 	// has no utility in the go stack, but in the python stack, this is required for
 	// single model paths (ONNX) because models are made available locally to the api pod

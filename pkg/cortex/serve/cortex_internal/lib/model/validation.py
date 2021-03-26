@@ -255,7 +255,7 @@ def validate_models_dir_paths(
     To be used when predictor:models:dir in cortex.yaml is used.
 
     Args:
-        paths: A list of all paths for a given cloud/local prefix. Must be underneath the common prefix.
+        paths: A list of all paths for a given s3/local prefix. Must be underneath the common prefix.
         predictor_type: The predictor type.
         common_prefix: The common prefix of the directory which holds all models. AKA predictor:models:dir.
 
@@ -294,7 +294,7 @@ def validate_model_paths(
     To be used when predictor:models:path or predictor:models:paths in cortex.yaml is used.
 
     Args:
-        paths: A list of all paths for a given cloud/local prefix. Must be the top directory of a model.
+        paths: A list of all paths for a given s3/local prefix. Must be the top directory of a model.
         predictor_type: Predictor type. Can be PythonPredictorType, TensorFlowPredictorType, TensorFlowNeuronPredictorType or ONNXPredictorType.
         common_prefix: The common prefix of the directory which holds all models.
 

@@ -146,25 +146,25 @@ func queryPrometheusVec(promAPIv1 promv1.API, query string, t time.Time) (model.
 	return values, nil
 }
 
-func saveMetricsToCloud(jobKey spec.JobKey) error {
+func saveMetricsToS3(jobKey spec.JobKey) error {
 	t := time.Now()
 	batchMetrics, err := getBatchMetrics(jobKey, t)
 	if err != nil {
 		return err
 	}
 
-	s3Key := path.Join(jobKey.Prefix(config.ClusterName()), _completedMetricsFileKey)
-	err = config.UploadJSONToBucket(batchMetrics, s3Key)
+	s3Key := path.Join(jobKey.Prefix(config.CoreConfig.ClusterName), _completedMetricsFileKey)
+	err = config.AWS.UploadJSONToS3(batchMetrics, config.CoreConfig.Bucket, s3Key)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func readMetricsFromCloud(jobKey spec.JobKey) (metrics.BatchMetrics, error) {
-	s3Key := path.Join(jobKey.Prefix(config.ClusterName()), _completedMetricsFileKey)
+func readMetricsFromS3(jobKey spec.JobKey) (metrics.BatchMetrics, error) {
+	s3Key := path.Join(jobKey.Prefix(config.CoreConfig.ClusterName), _completedMetricsFileKey)
 	batchMetrics := metrics.BatchMetrics{}
-	err := config.ReadJSONFromBucket(&batchMetrics, s3Key)
+	err := config.AWS.ReadJSONFromS3(&batchMetrics, config.CoreConfig.Bucket, s3Key)
 	if err != nil {
 		return batchMetrics, err
 	}

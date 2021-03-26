@@ -32,7 +32,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/exit"
 	"github.com/cortexlabs/cortex/pkg/lib/json"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
-	"github.com/cortexlabs/cortex/pkg/types"
 	"github.com/gorilla/websocket"
 )
 
@@ -64,18 +63,16 @@ func streamLogs(operatorConfig OperatorConfig, path string, qParams ...map[strin
 
 	header := http.Header{}
 	header.Set("CortexAPIVersion", consts.CortexVersion)
-	if operatorConfig.Provider == types.AWSProviderType {
-		awsClient, err := aws.New()
-		if err != nil {
-			return err
-		}
-
-		authHeader, err := awsClient.IdentityRequestAsHeader()
-		if err != nil {
-			return err
-		}
-		header.Set(consts.AuthHeader, authHeader)
+	awsClient, err := aws.New()
+	if err != nil {
+		return err
 	}
+
+	authHeader, err := awsClient.IdentityRequestAsHeader()
+	if err != nil {
+		return err
+	}
+	header.Set(consts.AuthHeader, authHeader)
 
 	var dialer = websocket.Dialer{
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},

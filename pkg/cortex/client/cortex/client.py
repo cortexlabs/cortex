@@ -76,11 +76,6 @@ class Client:
             Deployment status, API specification, and endpoint for each API.
         """
 
-        if self.env["provider"] == "gcp" and wait:
-            raise ValueError(
-                "`wait` flag is not supported for clusters on GCP, please set the `wait` flag to false"
-            )
-
         if project_dir is not None:
             if predictor is not None:
                 raise ValueError(

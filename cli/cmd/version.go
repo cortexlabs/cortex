@@ -51,7 +51,7 @@ var _versionCmd = &cobra.Command{
 			telemetry.Event("cli.version")
 			exit.Error(err)
 		}
-		telemetry.Event("cli.version", map[string]interface{}{"provider": env.Provider.String(), "env_name": env.Name})
+		telemetry.Event("cli.version", map[string]interface{}{"env_name": env.Name})
 
 		err = printEnvIfNotSpecified(env.Name, cmd)
 		if err != nil {

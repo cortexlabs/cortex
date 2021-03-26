@@ -57,7 +57,7 @@ var _refreshCmd = &cobra.Command{
 			telemetry.Event("cli.refresh")
 			exit.Error(err)
 		}
-		telemetry.Event("cli.refresh", map[string]interface{}{"provider": env.Provider.String(), "env_name": env.Name})
+		telemetry.Event("cli.refresh", map[string]interface{}{"env_name": env.Name})
 
 		err = printEnvIfNotSpecified(env.Name, cmd)
 		if err != nil {
