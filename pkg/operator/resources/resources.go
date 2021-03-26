@@ -231,7 +231,6 @@ func patchAPI(apiConfig *userconfig.API, force bool) (*spec.API, string, error) 
 	}
 
 	if deployedResource.Kind != userconfig.TrafficSplitterKind {
-		// bytes, err := config.ReadBytesFromBucket(prevAPISpec.ProjectKey)
 		bytes, err := config.AWS.ReadBytesFromS3(config.CoreConfig.Bucket, prevAPISpec.ProjectKey)
 		if err != nil {
 			return nil, "", err
