@@ -28,8 +28,7 @@ class CuratedModelResources:
             {
                 'path': 's3://cortex-examples/models/tensorflow/transformer/',
                 'name': 'modelB',
-                's3_path': True,
-                'gs_path': False,
+                'cloud_path': True,
                 'local_path': False,
                 'signature_key': None,
                 'versions': [1554540232]
@@ -67,7 +66,7 @@ class CuratedModelResources:
         Get a list of the values of each models' specified field.
 
         Args:
-            field: name, s3_path, gs_path, local_path, signature_key or versions.
+            field: name, cloud_path, gs_path, local_path, signature_key or versions.
 
         Returns:
             A list with the specified value of each model.
@@ -203,8 +202,7 @@ def get_models_from_api_spec(
             os.path.join(model_dir, model_resource["name"], "1", os.path.basename(model["path"]))
         ):
             model_resource["is_file_path"] = True
-            model_resource["s3_path"] = False
-            model_resource["gcs_path"] = False
+            model_resource["cloud_path"] = False
             model_resource["local_path"] = True
             model_resource["versions"] = []
             model_resource["path"] = os.path.join(
@@ -214,15 +212,12 @@ def get_models_from_api_spec(
             continue
         model_resource["is_file_path"] = False
 
-        model_resource["s3_path"] = model["path"].startswith("s3://")
-        model_resource["gcs_path"] = model["path"].startswith("gs://")
-        model_resource["local_path"] = (
-            not model_resource["s3_path"] and not model_resource["gcs_path"]
-        )
+        model_resource["cloud_path"] = model["path"].startswith("s3://")
+        model_resource["local_path"] = not model_resource["cloud_path"]
 
-        if model_resource["s3_path"] or model_resource["gcs_path"]:
+        if model_resource["cloud_path"]:
             model_resource["path"] = model["path"]
-            _, versions, _, _, _, _, _ = find_all_cloud_models(
+            _, versions, _, _, _, _ = find_all_cloud_models(
                 False, "", predictor_type, [model_resource["path"]], [model_resource["name"]]
             )
             if model_resource["name"] not in versions:
@@ -239,13 +234,11 @@ def get_models_from_api_spec(
         models_spec
         and models_spec["dir"]
         and not models_spec["dir"].startswith("s3://")
-        and not models_spec["dir"].startswith("gs://")
     ):
         for model_name in os.listdir(model_dir):
             model_resource = {}
             model_resource["name"] = model_name
-            model_resource["s3_path"] = False
-            model_resource["gcs_path"] = False
+            model_resource["cloud_path"] = False
             model_resource["local_path"] = True
             model_resource["signature_key"] = models_spec["signature_key"]
             model_resource["path"] = os.path.join(model_dir, model_name)

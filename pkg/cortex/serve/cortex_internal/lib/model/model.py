@@ -53,7 +53,7 @@ class ModelsHolder:
             temp_dir: Where models are temporary stored for validation.
             mem_cache_size: The size of the cache for in-memory models. For negative values, the cache is disabled.
             disk_cache_size: The size of the cache for on-disk models. For negative values, the cache is disabled.
-            on_download_callback(<predictor_type>, <bucket-provider>, <bucket-name>, <model_name>, <model_version>, <model_path>, <temp_dir>, <model_dir>): Function to be called for downloading a model to disk. Returns the downloaded model's upstream timestamp, otherwise a negative number is returned.
+            on_download_callback(<predictor_type>, <bucket-name>, <model_name>, <model_version>, <model_path>, <temp_dir>, <model_dir>): Function to be called for downloading a model to disk. Returns the downloaded model's upstream timestamp, otherwise a negative number is returned.
             on_load_callback(<disk_model_path>, **kwargs): Function to be called when a model is loaded from disk. Returns the actual model. May throw exceptions if it doesn't work.
             on_remove_callback(<list of model IDs to remove>, **kwargs): Function to be called when the GC is called. E.g. for the TensorFlow Predictor, the function would communicate with TFS to unload models.
         """
@@ -290,7 +290,7 @@ class ModelsHolder:
         Args:
             model_name: The name of the model.
             model_version: The version of the model.
-            upstream_timestamp: When was this model last modified on the upstream source (e.g. S3, GS).
+            upstream_timestamp: When was this model last modified on the upstream source (S3 only).
             tags: List of tags to initialize the model with.
             kwargs: Extra arguments to pass into the loading callback.
 
@@ -322,7 +322,6 @@ class ModelsHolder:
 
     def download_model(
         self,
-        provider: str,
         bucket: str,
         model_name: str,
         model_version: str,
@@ -335,7 +334,6 @@ class ModelsHolder:
         It is assumed that when caching is disabled, an external mechanism is responsible for downloading/removing models to/from disk.
 
         Args:
-            provider: Provider of the bucket. Can be "s3" or "gs".
             bucket: The upstream model's cloud bucket name.
             model_name: The name of the model.
             model_version: The version of the model.
@@ -350,7 +348,6 @@ class ModelsHolder:
         if self._download_callback:
             return self._download_callback(
                 self._predictor_type,
-                provider,
                 bucket,
                 model_name,
                 model_version,

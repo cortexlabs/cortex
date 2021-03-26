@@ -43,7 +43,7 @@ from cortex_internal.lib.model import (
     get_models_from_api_spec,
     ModelsTree,
 )
-from cortex_internal.lib.storage import S3, GCS
+from cortex_internal.lib.storage import S3
 from cortex_internal.lib.telemetry import get_default_tags, init_sentry
 from cortex_internal.lib.type import (
     predictor_type_from_api_spec,
@@ -263,7 +263,6 @@ class FileBasedModelsTreeUpdater(mp.Process):
             model_paths,
             sub_paths,
             timestamps,
-            bucket_providers,
             bucket_names,
         ) = find_all_cloud_models(
             self._is_dir_used,
@@ -277,8 +276,8 @@ class FileBasedModelsTreeUpdater(mp.Process):
         # a model is updated if its directory tree has changed, if it's not present or if it doesn't exist on the upstream
         with ThreadPoolExecutor(max_workers=5) as executor:
             futures = []
-            for idx, (model_name, bucket_provider, bucket_name, bucket_sub_paths) in enumerate(
-                zip(model_names, bucket_providers, bucket_names, sub_paths)
+            for idx, (model_name, bucket_name, bucket_sub_paths) in enumerate(
+                zip(model_names, bucket_names, sub_paths)
             ):
                 futures += [
                     executor.submit(
@@ -289,7 +288,6 @@ class FileBasedModelsTreeUpdater(mp.Process):
                         versions[model_name],
                         timestamps[idx],
                         bucket_sub_paths,
-                        bucket_provider,
                         bucket_name,
                     )
                 ]
@@ -320,14 +318,10 @@ class FileBasedModelsTreeUpdater(mp.Process):
         versions: List[str],
         timestamps: List[datetime.datetime],
         sub_paths: List[str],
-        bucket_provider: str,
         bucket_name: str,
     ) -> None:
 
-        if bucket_provider == "s3":
-            client = S3(bucket_name)
-        if bucket_provider == "gs":
-            client = GCS(bucket_name)
+        client = S3(bucket_name)
 
         ondisk_model_path = os.path.join(self._download_dir, model_name)
         for version, model_ts in zip(versions, timestamps):
@@ -387,10 +381,7 @@ class FileBasedModelsTreeUpdater(mp.Process):
                     passed_validation = False
                     shutil.rmtree(temp_dest)
 
-                    if bucket_provider == "s3":
-                        cloud_path = S3.construct_s3_path(bucket_name, cloud_src)
-                    if bucket_provider == "gs":
-                        cloud_path = GCS.construct_gcs_path(bucket_name, cloud_src)
+                    cloud_path = S3.construct_s3_path(bucket_name, cloud_src)
                     logger.debug(
                         f"failed validating model {model_name} of version {version} found at {cloud_path} path"
                     )
@@ -490,10 +481,7 @@ class FileBasedModelsTreeUpdater(mp.Process):
                 passed_validation = False
                 shutil.rmtree(temp_dest)
 
-                if bucket_provider == "s3":
-                    cloud_path = S3.construct_s3_path(bucket_name, model_path)
-                if bucket_provider == "gs":
-                    cloud_path = GCS.construct_gcs_path(bucket_name, model_path)
+                cloud_path = S3.construct_s3_path(bucket_name, model_path)
                 logger.debug(
                     f"failed validating model {model_name} of version {version} found at {cloud_path} path"
                 )
@@ -551,7 +539,7 @@ class FileBasedModelsGC(AbstractLoopingThread):
                 if self._models.has_model_id(in_memory_id)[0] == "in-memory":
                     model_name, model_version = in_memory_id.rsplit("-", maxsplit=1)
                     logger.info(
-                        f"removing model {model_name} of version {model_version} from memory as it's no longer present on disk/S3/GS (thread {td.get_ident()})"
+                        f"removing model {model_name} of version {model_version} from memory as it's no longer present on disk/S3 (thread {td.get_ident()})"
                     )
                     self._models.remove_model_by_id(
                         in_memory_id, mem=True, disk=False, del_reference=True
@@ -678,7 +666,7 @@ def find_ondisk_model_info(lock_dir: str, model_name: str) -> Tuple[List[str], L
 
 class TFSModelLoader(mp.Process):
     """
-    Monitors the cloud path(s)/dir (S3 or GS) and continuously updates the models on TFS.
+    Monitors the cloud path(s)/dir (S3 only) and continuously updates the models on TFS.
     The model paths are validated - the bad paths are ignored.
     When a new model is found, it updates the tree, downloads it and loads it into memory - likewise when a model is removed.
     """
@@ -812,14 +800,13 @@ class TFSModelLoader(mp.Process):
         return self._ran_once.is_set()
 
     def _update_models(self) -> bool:
-        # get updated/validated paths/versions of the cloud models (S3 or GS)
+        # get updated/validated paths/versions of the cloud models (S3 only)
         (
             model_names,
             versions,
             model_paths,
             sub_paths,
             timestamps,
-            bucket_providers,
             bucket_names,
         ) = find_all_cloud_models(
             self._is_dir_used,
@@ -833,8 +820,8 @@ class TFSModelLoader(mp.Process):
         # a model is updated if its directory tree has changed, if it's not present or if it doesn't exist on the upstream
         with ThreadPoolExecutor(max_workers=5) as executor:
             futures = []
-            for idx, (model_name, bucket_provider, bucket_name, bucket_sub_paths) in enumerate(
-                zip(model_names, bucket_providers, bucket_names, sub_paths)
+            for idx, (model_name, bucket_name, bucket_sub_paths) in enumerate(
+                zip(model_names, bucket_names, sub_paths)
             ):
                 futures += [
                     executor.submit(
@@ -845,7 +832,6 @@ class TFSModelLoader(mp.Process):
                         versions[model_name],
                         timestamps[idx],
                         bucket_sub_paths,
-                        bucket_provider,
                         bucket_name,
                     )
                 ]
@@ -940,14 +926,10 @@ class TFSModelLoader(mp.Process):
         versions: List[str],
         timestamps: List[datetime.datetime],
         sub_paths: List[str],
-        bucket_provider: str,
         bucket_name: str,
     ) -> None:
 
-        if bucket_provider == "s3":
-            client = S3(bucket_name)
-        if bucket_provider == "gs":
-            client = GCS(bucket_name)
+        client = S3(bucket_name)
 
         ondisk_model_path = os.path.join(self._download_dir, model_name)
         for version, model_ts in zip(versions, timestamps):
@@ -998,10 +980,7 @@ class TFSModelLoader(mp.Process):
                     passed_validation = False
                     shutil.rmtree(temp_dest)
 
-                    if bucket_provider == "s3":
-                        cloud_path = S3.construct_s3_path(bucket_name, model_path)
-                    if bucket_provider == "gs":
-                        cloud_path = GCS.construct_gcs_path(bucket_name, model_path)
+                    cloud_path = S3.construct_s3_path(bucket_name, model_path)
                     logger.debug(
                         f"failed validating model {model_name} of version {version} found at {cloud_path} path"
                     )
@@ -1086,10 +1065,7 @@ class TFSModelLoader(mp.Process):
                 passed_validation = False
                 shutil.rmtree(temp_dest)
 
-                if bucket_provider == "s3":
-                    cloud_path = S3.construct_s3_path(bucket_name, model_path)
-                if bucket_provider == "gs":
-                    cloud_path = GCS.construct_gcs_path(bucket_name, model_path)
+                cloud_path = S3.construct_s3_path(bucket_name, model_path)
                 logger.debug(
                     f"failed validating model {model_name} of version {version} found at {cloud_path} path"
                 )
@@ -1373,7 +1349,7 @@ class ModelsGC(AbstractLoopingThread):
 
     def _remove_stale_models(self) -> None:
         """
-        Remove models that exist locally in-memory and on-disk that no longer appear on the cloud upstream (S3 or GS).
+        Remove models that exist locally in-memory and on-disk that no longer appear on the cloud upstream (S3 only).
         """
 
         # get available upstream S3 model IDs
@@ -1446,7 +1422,7 @@ class ModelsGC(AbstractLoopingThread):
 
 class ModelTreeUpdater(AbstractLoopingThread):
     """
-    Model tree updater. Updates a local representation of all available models from the cloud upstreams (S3 or GS).
+    Model tree updater. Updates a local representation of all available models from the cloud upstreams (S3 only).
     """
 
     def __init__(self, interval: int, api_spec: dict, tree: ModelsTree, ondisk_models_dir: str):
@@ -1454,7 +1430,7 @@ class ModelTreeUpdater(AbstractLoopingThread):
         Args:
             interval: How often to update the models tree. Measured in seconds.
             api_spec: Identical copy of pkg.type.spec.api.API.
-            tree: Model tree representation of the available models on the cloud upstream (S3 or GS).
+            tree: Model tree representation of the available models on the cloud upstream (S3 only).
             ondisk_models_dir: Where the models are stored on disk. Necessary when local models are used.
         """
 
@@ -1512,7 +1488,6 @@ class ModelTreeUpdater(AbstractLoopingThread):
                 ondisk_paths = util.remove_non_empty_directory_paths(ondisk_paths)
                 # removable is set to false to prevent the local models from being removed
                 self._tree.update_model(
-                    provider="",
                     bucket="",
                     model_name=model_name,
                     model_version=model_version,
@@ -1532,7 +1507,6 @@ class ModelTreeUpdater(AbstractLoopingThread):
                 ondisk_paths = util.remove_non_empty_directory_paths(ondisk_paths)
                 # removable is set to false to prevent the local models from being removed
                 self._tree.update_model(
-                    provider="",
                     bucket="",
                     model_name=model_name,
                     model_version=model_version,
@@ -1543,14 +1517,13 @@ class ModelTreeUpdater(AbstractLoopingThread):
                 )
 
     def _update_models_tree(self) -> None:
-        # get updated/validated paths/versions of the cloud models (S3 or GS)
+        # get updated/validated paths/versions of the cloud models (S3 only)
         (
             model_names,
             versions,
             model_paths,
             sub_paths,
             timestamps,
-            bucket_providers,
             bucket_names,
         ) = find_all_cloud_models(
             self._is_dir_used,
@@ -1567,7 +1540,6 @@ class ModelTreeUpdater(AbstractLoopingThread):
             model_paths,
             sub_paths,
             timestamps,
-            bucket_providers,
             bucket_names,
         )
 
