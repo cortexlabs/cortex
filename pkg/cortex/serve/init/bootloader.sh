@@ -143,7 +143,7 @@ create_s6_service_from_file() {
 # prepare webserver
 if [ "$CORTEX_KIND" = "RealtimeAPI" ]; then
     if [ $CORTEX_SERVING_PROTOCOL = "http" ]; then
-        mkdir /run/uvicorn
+        mkdir /run/servers
     fi
 
     if [ $CORTEX_SERVING_PROTOCOL = "grpc" ]; then
@@ -154,7 +154,7 @@ if [ "$CORTEX_KIND" = "RealtimeAPI" ]; then
     for i in $(seq 1 $CORTEX_PROCESSES_PER_REPLICA); do
         # prepare uvicorn workers
         if [ $CORTEX_SERVING_PROTOCOL = "http" ]; then
-            create_s6_service "uvicorn-$((i-1))" "cd /mnt/project && $source_env_file_cmd && PYTHONUNBUFFERED=TRUE PYTHONPATH=$PYTHONPATH:$CORTEX_PYTHON_PATH exec /opt/conda/envs/env/bin/python /src/cortex/serve/start/server.py /run/uvicorn/proc-$((i-1)).sock"
+            create_s6_service "uvicorn-$((i-1))" "cd /mnt/project && $source_env_file_cmd && PYTHONUNBUFFERED=TRUE PYTHONPATH=$PYTHONPATH:$CORTEX_PYTHON_PATH exec /opt/conda/envs/env/bin/python /src/cortex/serve/start/server.py /run/servers/proc-$((i-1)).sock"
         fi
 
         # prepare grpc workers
