@@ -12,7 +12,7 @@ Flags:
   -e, --env string      environment to use
   -f, --force           override the in-progress api update
   -y, --yes             skip prompts
-  -o, --output string   output format: one of json (default "pretty")
+  -o, --output string   output format: one of pretty|json (default "pretty")
   -h, --help            help for deploy
 ```
 
@@ -27,7 +27,7 @@ Usage:
 Flags:
   -e, --env string      environment to use
   -w, --watch           re-run the command every 2 seconds
-  -o, --output string   output format: one of json (default "pretty")
+  -o, --output string   output format: one of pretty|json (default "pretty")
   -v, --verbose         show additional information (only applies to pretty output format)
   -h, --help            help for get
 ```
@@ -57,7 +57,7 @@ Usage:
 Flags:
   -e, --env string      environment to use
   -f, --force           override the in-progress api update
-  -o, --output string   output format: one of json (default "pretty")
+  -o, --output string   output format: one of pretty|json (default "pretty")
   -h, --help            help for patch
 ```
 
@@ -72,7 +72,7 @@ Usage:
 Flags:
   -e, --env string      environment to use
   -f, --force           override the in-progress api update
-  -o, --output string   output format: one of json (default "pretty")
+  -o, --output string   output format: one of pretty|json (default "pretty")
   -h, --help            help for refresh
 ```
 
@@ -88,7 +88,7 @@ Flags:
   -e, --env string      environment to use
   -f, --force           delete the api without confirmation
   -c, --keep-cache      keep cached data for the api
-  -o, --output string   output format: one of json (default "pretty")
+  -o, --output string   output format: one of pretty|json (default "pretty")
   -h, --help            help for delete
 ```
 
@@ -192,7 +192,7 @@ Usage:
   cortex env list [flags]
 
 Flags:
-  -o, --output string   output format: one of json (default "pretty")
+  -o, --output string   output format: one of pretty|json (default "pretty")
   -h, --help            help for list
 ```
 
