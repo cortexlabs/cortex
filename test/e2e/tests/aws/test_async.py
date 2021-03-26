@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Dict, Any
+from typing import Dict
 
 import cortex as cx
 import pytest
@@ -20,19 +20,18 @@ import pytest
 import e2e.tests
 
 TEST_APIS = [
-    {"name": "async/iris-classifier", "poll_retries": 10, "poll_sleep_time": 1},
-    {"name": "async/tensorflow", "poll_retries": 10, "poll_sleep_time": 1},
-    {"name": "async/onnx", "poll_retries": 10, "poll_sleep_time": 1},
+    "async/iris-classifier",
+    "async/tensorflow",
+    "async/onnx",
 ]
 
 
 @pytest.mark.usefixtures("client")
-@pytest.mark.parametrize("api", TEST_APIS, ids=[api["name"] for api in TEST_APIS])
-def test_async_api(config: Dict, client: cx.Client, api: Dict[str, Any]):
+@pytest.mark.parametrize("api", TEST_APIS)
+def test_async_api(config: Dict, client: cx.Client, api: str):
     e2e.tests.test_async_api(
         client=client,
-        api=api["name"],
+        api=api,
         deploy_timeout=config["global"]["async_deploy_timeout"],
-        poll_retries=api["poll_retries"],
-        poll_sleep_seconds=api["poll_sleep_time"],
+        poll_retries=config["global"]["async_workload_timeout"],
     )
