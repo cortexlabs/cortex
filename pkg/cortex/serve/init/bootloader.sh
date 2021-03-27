@@ -142,11 +142,25 @@ create_s6_service_from_file() {
 
 # prepare webserver
 if [ "$CORTEX_KIND" = "RealtimeAPI" ]; then
+    if [ $CORTEX_SERVING_PROTOCOL = "http" ]; then
+        mkdir /run/servers
+    fi
 
-    # prepare uvicorn workers
-    mkdir /run/uvicorn
+    if [ $CORTEX_SERVING_PROTOCOL = "grpc" ]; then
+        /opt/conda/envs/env/bin/python -m grpc_tools.protoc --proto_path=$CORTEX_PROJECT_DIR --python_out=$CORTEX_PYTHON_PATH --grpc_python_out=$CORTEX_PYTHON_PATH $CORTEX_PROTOBUF_FILE
+    fi
+
+    # prepare servers
     for i in $(seq 1 $CORTEX_PROCESSES_PER_REPLICA); do
-        create_s6_service "uvicorn-$((i-1))" "cd /mnt/project && $source_env_file_cmd && PYTHONUNBUFFERED=TRUE PYTHONPATH=$PYTHONPATH:$CORTEX_PYTHON_PATH exec /opt/conda/envs/env/bin/python /src/cortex/serve/start/server.py /run/uvicorn/proc-$((i-1)).sock"
+        # prepare uvicorn workers
+        if [ $CORTEX_SERVING_PROTOCOL = "http" ]; then
+            create_s6_service "uvicorn-$((i-1))" "cd /mnt/project && $source_env_file_cmd && PYTHONUNBUFFERED=TRUE PYTHONPATH=$PYTHONPATH:$CORTEX_PYTHON_PATH exec /opt/conda/envs/env/bin/python /src/cortex/serve/start/server.py /run/servers/proc-$((i-1)).sock"
+        fi
+
+        # prepare grpc workers
+        if [ $CORTEX_SERVING_PROTOCOL = "grpc" ]; then
+            create_s6_service "grpc-$((i-1))" "cd /mnt/project && $source_env_file_cmd && PYTHONUNBUFFERED=TRUE PYTHONPATH=$PYTHONPATH:$CORTEX_PYTHON_PATH exec /opt/conda/envs/env/bin/python /src/cortex/serve/start/server_grpc.py localhost:$((i-1+20000))"
+        fi
     done
 
     # generate nginx conf

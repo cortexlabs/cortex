@@ -885,12 +885,26 @@ func getEnvVars(api *spec.API, container string) []kcore.EnvVar {
 		)
 
 		if api.Kind == userconfig.RealtimeAPIKind {
+			servingProtocol := "http"
+			if api.Predictor != nil && api.Predictor.IsGRPC() {
+				servingProtocol = "grpc"
+			}
 			envVars = append(envVars,
 				kcore.EnvVar{
 					Name:  "CORTEX_API_SPEC",
 					Value: aws.S3Path(config.CoreConfig.Bucket, api.PredictorKey),
 				},
+				kcore.EnvVar{
+					Name:  "CORTEX_SERVING_PROTOCOL",
+					Value: servingProtocol,
+				},
 			)
+			if servingProtocol == "grpc" {
+				envVars = append(envVars, kcore.EnvVar{
+					Name:  "CORTEX_PROTOBUF_FILE",
+					Value: path.Join(_emptyDirMountPath, "project", *api.Predictor.ProtobufPath),
+				})
+			}
 		} else {
 			envVars = append(envVars,
 				kcore.EnvVar{
@@ -1444,6 +1458,11 @@ func APIEndpoint(api *spec.API) (string, error) {
 		return "", err
 	}
 	baseAPIEndpoint = strings.Replace(baseAPIEndpoint, "https://", "http://", 1)
+
+	if api.Predictor != nil && api.Predictor.IsGRPC() {
+		baseAPIEndpoint = strings.Replace(baseAPIEndpoint, "http://", "", 1)
+		return baseAPIEndpoint, nil
+	}
 
 	return urls.Join(baseAPIEndpoint, *api.Networking.Endpoint), nil
 }

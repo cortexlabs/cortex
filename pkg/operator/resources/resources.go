@@ -118,6 +118,7 @@ func Deploy(projectBytes []byte, configFileName string, configBytes []byte, forc
 	results := make([]schema.DeployResult, 0, len(apiConfigs))
 	for i := range apiConfigs {
 		apiConfig := apiConfigs[i]
+
 		api, msg, err := UpdateAPI(&apiConfig, projectID, force)
 
 		result := schema.DeployResult{
@@ -143,6 +144,40 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string, force bool) (*schema
 
 	if deployedResource != nil && deployedResource.Kind != apiConfig.Kind {
 		return nil, "", ErrorCannotChangeKindOfDeployedAPI(apiConfig.Name, apiConfig.Kind, deployedResource.Kind)
+	}
+
+	if deployedResource != nil {
+		prevAPISpec, err := operator.DownloadAPISpec(deployedResource.Name, deployedResource.ID())
+		if err != nil {
+			return nil, "", err
+		}
+
+		if deployedResource.Kind == userconfig.RealtimeAPIKind && prevAPISpec != nil && !prevAPISpec.Predictor.IsGRPC() && apiConfig.Predictor.IsGRPC() {
+			realtimeAPIName := deployedResource.Name
+
+			virtualServices, err := config.K8s.ListVirtualServicesByLabel("apiKind", userconfig.TrafficSplitterKind.String())
+			if err != nil {
+				return nil, "", err
+			}
+
+			trafficSplitterList, err := trafficsplitter.GetAllAPIs(virtualServices)
+			if err != nil {
+				return nil, "", err
+			}
+
+			dependentTrafficSplitters := []string{}
+			for _, trafficSplitter := range trafficSplitterList {
+				for _, api := range trafficSplitter.Spec.APIs {
+					if realtimeAPIName == api.Name {
+						dependentTrafficSplitters = append(dependentTrafficSplitters, api.Name)
+					}
+				}
+			}
+
+			if len(dependentTrafficSplitters) > 0 {
+				return nil, "", ErrorCannotChangeProtocolWhenUsedByTrafficSplitter(realtimeAPIName, dependentTrafficSplitters)
+			}
+		}
 	}
 
 	telemetry.Event("operator.deploy", apiConfig.TelemetryEvent())
@@ -250,6 +285,33 @@ func patchAPI(apiConfig *userconfig.API, force bool) (*spec.API, string, error) 
 	if err != nil {
 		err = errors.Append(err, fmt.Sprintf("\n\napi configuration schema can be found at https://docs.cortex.dev/v/%s/", consts.CortexVersionMinor))
 		return nil, "", err
+	}
+
+	if deployedResource.Kind == userconfig.RealtimeAPIKind && !prevAPISpec.Predictor.IsGRPC() && apiConfig.Predictor.IsGRPC() {
+		realtimeAPIName := deployedResource.Name
+
+		virtualServices, err := config.K8s.ListVirtualServicesByLabel("apiKind", userconfig.TrafficSplitterKind.String())
+		if err != nil {
+			return nil, "", err
+		}
+
+		trafficSplitterList, err := trafficsplitter.GetAllAPIs(virtualServices)
+		if err != nil {
+			return nil, "", err
+		}
+
+		dependentTrafficSplitters := []string{}
+		for _, trafficSplitter := range trafficSplitterList {
+			for _, api := range trafficSplitter.Spec.APIs {
+				if realtimeAPIName == api.Name {
+					dependentTrafficSplitters = append(dependentTrafficSplitters, api.Name)
+				}
+			}
+		}
+
+		if len(dependentTrafficSplitters) > 0 {
+			return nil, "", ErrorCannotChangeProtocolWhenUsedByTrafficSplitter(realtimeAPIName, dependentTrafficSplitters)
+		}
 	}
 
 	switch deployedResource.Kind {

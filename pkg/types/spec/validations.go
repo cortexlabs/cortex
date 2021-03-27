@@ -17,6 +17,7 @@ limitations under the License.
 package spec
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"strings"
@@ -40,6 +41,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/urls"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	dockertypes "github.com/docker/docker/api/types"
+	pbparser "github.com/emicklei/proto"
 	kresource "k8s.io/apimachinery/pkg/api/resource"
 )
 
@@ -165,6 +167,16 @@ func predictorValidation() *cr.StructFieldValidation {
 					StructField: "Path",
 					StringValidation: &cr.StringValidation{
 						Required: true,
+						Suffix:   ".py",
+					},
+				},
+				{
+					StructField: "ProtobufPath",
+					StringPtrValidation: &cr.StringPtrValidation{
+						Default:                   nil,
+						AllowExplicitNull:         true,
+						AlphaNumericDotUnderscore: true,
+						Suffix:                    ".proto",
 					},
 				},
 				{
@@ -737,7 +749,7 @@ func ValidateAPI(
 		models = &[]CuratedModelResource{}
 	}
 
-	if api.Networking.Endpoint == nil {
+	if api.Networking.Endpoint == nil && (api.Predictor == nil || (api.Predictor != nil && api.Predictor.ProtobufPath == nil)) {
 		api.Networking.Endpoint = pointer.String("/" + api.Name)
 	}
 
@@ -748,6 +760,9 @@ func ValidateAPI(
 		}
 	default:
 		if err := validatePredictor(api, models, projectFiles, awsClient, k8sClient); err != nil {
+			if errors.GetKind(err) == ErrProtoInvalidNetworkingEndpoint {
+				return errors.Wrap(err, userconfig.NetworkingKey, userconfig.EndpointKey)
+			}
 			return errors.Wrap(err, userconfig.PredictorKey)
 		}
 	}
@@ -843,6 +858,27 @@ func validatePredictor(
 	k8sClient *k8s.Client,
 ) error {
 	predictor := api.Predictor
+
+	if !projectFiles.HasFile(predictor.Path) {
+		return errors.Wrap(files.ErrorFileDoesNotExist(predictor.Path), userconfig.PathKey)
+	}
+
+	if predictor.PythonPath != nil {
+		if err := validatePythonPath(predictor, projectFiles); err != nil {
+			return errors.Wrap(err, userconfig.PythonPathKey)
+		}
+	}
+
+	if predictor.IsGRPC() {
+		if api.Kind != userconfig.RealtimeAPIKind {
+			return ErrorKeyIsNotSupportedForKind(userconfig.ProtobufPathKey, api.Kind)
+		}
+
+		if err := validateProtobufPath(api, projectFiles); err != nil {
+			return err
+		}
+	}
+
 	if err := validateMultiModelsFields(api); err != nil {
 		return err
 	}
@@ -890,16 +926,6 @@ func validatePredictor(
 	for key := range predictor.Env {
 		if strings.HasPrefix(key, "CORTEX_") {
 			return errors.Wrap(ErrorCortexPrefixedEnvVarNotAllowed(), userconfig.EnvKey, key)
-		}
-	}
-
-	if !projectFiles.HasFile(predictor.Path) {
-		return errors.Wrap(files.ErrorFileDoesNotExist(predictor.Path), userconfig.PathKey)
-	}
-
-	if predictor.PythonPath != nil {
-		if err := validatePythonPath(predictor, projectFiles); err != nil {
-			return errors.Wrap(err, userconfig.PythonPathKey)
 		}
 	}
 
@@ -1295,6 +1321,85 @@ func validateONNXModelFilePath(modelPath string, awsClient *aws.Client) error {
 
 	if !isS3File {
 		return ErrorInvalidONNXModelFilePath(modelPrefix)
+	}
+
+	return nil
+}
+
+func validateProtobufPath(api *userconfig.API, projectFiles ProjectFiles) error {
+	apiName := api.Name
+	protobufPath := *api.Predictor.ProtobufPath
+
+	if !projectFiles.HasFile(protobufPath) {
+		return errors.Wrap(files.ErrorFileDoesNotExist(protobufPath), userconfig.ProtobufPathKey)
+	}
+	protoBytes, err := projectFiles.GetFile(protobufPath)
+	if err != nil {
+		return errors.Wrap(err, userconfig.ProtobufPathKey, *api.Predictor.ProtobufPath)
+	}
+
+	protoReader := bytes.NewReader(protoBytes)
+	parser := pbparser.NewParser(protoReader)
+	proto, err := parser.Parse()
+	if err != nil {
+		return errors.Wrap(errors.WithStack(err), userconfig.ProtobufPathKey, *api.Predictor.ProtobufPath)
+	}
+
+	var packageName string
+	var serviceName string
+	var serviceMethodName string = "Predict"
+	var detectedMethodName string
+
+	numServices := 0
+	numRPCs := 0
+	pbparser.Walk(proto,
+		pbparser.WithPackage(func(pkg *pbparser.Package) {
+			packageName = pkg.Name
+		}),
+		pbparser.WithService(func(service *pbparser.Service) {
+			numServices++
+			serviceName = service.Name
+			for _, elem := range service.Elements {
+				if s, ok := elem.(*pbparser.RPC); ok {
+					numRPCs++
+					detectedMethodName = s.Name
+				}
+			}
+		}),
+	)
+
+	if numServices > 1 {
+		return errors.Wrap(ErrorProtoNumServicesExceeded(numServices), userconfig.ProtobufPathKey, *api.Predictor.ProtobufPath)
+	}
+
+	if numRPCs > 1 {
+		return errors.Wrap(ErrorProtoNumServiceMethodsExceeded(numRPCs, serviceName), userconfig.ProtobufPathKey, *api.Predictor.ProtobufPath)
+	}
+
+	if serviceMethodName != detectedMethodName {
+		return errors.Wrap(ErrorProtoInvalidServiceMethod(detectedMethodName, serviceMethodName, serviceName), userconfig.ProtobufPathKey, *api.Predictor.ProtobufPath)
+	}
+
+	var requiredPackageName string
+	requiredPackageName = strings.ReplaceAll(apiName, "-", "_")
+
+	if api.Predictor.ServerSideBatching != nil {
+		return ErrorConflictingFields(userconfig.ProtobufPathKey, userconfig.ServerSideBatchingKey)
+	}
+
+	if packageName == "" {
+		return errors.Wrap(ErrorProtoMissingPackageName(requiredPackageName), userconfig.ProtobufPathKey, *api.Predictor.ProtobufPath)
+	}
+	if packageName != requiredPackageName {
+		return errors.Wrap(ErrorProtoInvalidPackageName(packageName, requiredPackageName), userconfig.ProtobufPathKey, *api.Predictor.ProtobufPath)
+	}
+
+	requiredEndpoint := "/" + requiredPackageName + "." + serviceName + "/" + serviceMethodName
+	if api.Networking.Endpoint == nil {
+		api.Networking.Endpoint = pointer.String(requiredEndpoint)
+	}
+	if *api.Networking.Endpoint != requiredEndpoint {
+		return ErrorProtoInvalidNetworkingEndpoint(requiredEndpoint)
 	}
 
 	return nil

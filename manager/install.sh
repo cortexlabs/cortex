@@ -63,12 +63,12 @@ function cluster_up() {
   setup_grafana
   echo "✓"
 
-  echo -n "￮ configuring gpu support (for the nodegroups that may require it)"
+  echo -n "￮ configuring gpu support (for the nodegroups that may require it) "
   envsubst < manifests/nvidia.yaml | kubectl apply -f - >/dev/null
   NVIDIA_COM_GPU_VALUE=true envsubst < manifests/prometheus-dcgm-exporter.yaml | kubectl apply -f - >/dev/null
   echo "✓"
 
-  echo -n "￮ configuring inf support (for the nodegroups that may require it)"
+  echo -n "￮ configuring inf support (for the nodegroups that may require it) "
   envsubst < manifests/inferentia.yaml | kubectl apply -f - >/dev/null
   echo "✓"
 

@@ -12,10 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import sys
 import time
+import importlib
+import pathlib
 from http import HTTPStatus
-from typing import List, Optional, Dict, Union, Callable
+from typing import Any, List, Optional, Tuple, Union, Dict, Callable
 
+import grpc
 import cortex as cx
 import requests
 import yaml
@@ -58,6 +62,45 @@ def job_done(client: cx.Client, api_name: str, job_id: str, timeout: int = None)
         return job_info["job_status"]["status"] == "status_succeeded"
 
     return wait_for(_is_ready, timeout=timeout)
+
+
+def generate_grpc(
+    client: cx.Client, api_name: str, api_dir: pathlib.Path, config: Dict[str, Any]
+) -> Tuple[Any, Any, List, Any, bool]:
+    api_info = client.get_api(api_name)
+
+    test_proto_dir = pathlib.Path(config["proto_module_pb2"]).parent
+    sys.path.append(str(api_dir / test_proto_dir))
+    proto_module_pb2 = importlib.import_module(str(pathlib.Path(config["proto_module_pb2"]).stem))
+    proto_module_pb2_grpc = importlib.import_module(
+        str(pathlib.Path(config["proto_module_pb2_grpc"]).stem)
+    )
+    sys.path.pop()
+
+    endpoint = api_info["endpoint"] + ":" + str(api_info["grpc_ports"]["insecure"])
+    channel = grpc.insecure_channel(endpoint)
+    stub = getattr(proto_module_pb2_grpc, config["stub_service_name"] + "Stub")(channel)
+
+    input_sample = getattr(proto_module_pb2, config["input_spec"]["class_name"])()
+    for k, v in config["input_spec"]["input"].items():
+        setattr(input_sample, k, v)
+
+    SampleClass = getattr(proto_module_pb2, config["output_spec"]["class_name"])
+    output_values = []
+    is_output_stream = config["output_spec"]["stream"]
+    if is_output_stream:
+        for entry in config["output_spec"]["output"]:
+            output_val = SampleClass()
+            for k, v in entry.items():
+                setattr(output_val, k, v)
+            output_values.append(output_val)
+    else:
+        output_val = SampleClass()
+        for k, v in config["output_spec"]["output"].items():
+            setattr(output_val, k, v)
+        output_values.append(output_val)
+
+    return stub, input_sample, output_values, SampleClass, is_output_stream
 
 
 def request_prediction(

@@ -35,10 +35,12 @@ const (
 	ErrLeadingWhitespace             = "configreader.leading_whitespace"
 	ErrTrailingWhitespace            = "configreader.trailing_whitespace"
 	ErrAlphaNumericDashUnderscore    = "configreader.alpha_numeric_dash_underscore"
+	ErrAlphaNumericDotUnderscore     = "configreader.alpha_numeric_dot_underscore"
 	ErrAlphaNumericDashDotUnderscore = "configreader.alpha_numeric_dash_dot_underscore"
 	ErrInvalidAWSTag                 = "configreader.invalid_aws_tag"
 	ErrInvalidDockerImage            = "configreader.invalid_docker_image"
 	ErrMustHavePrefix                = "configreader.must_have_prefix"
+	ErrMustHaveSuffix                = "configreader.must_have_suffix"
 	ErrCantHavePrefix                = "configreader.cant_have_prefix"
 	ErrInvalidInterface              = "configreader.invalid_interface"
 	ErrInvalidFloat64                = "configreader.invalid_float64"
@@ -138,6 +140,13 @@ func ErrorAlphaNumericDashUnderscore(provided string) error {
 	})
 }
 
+func ErrorAlphaNumericDotUnderscore(provided string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrAlphaNumericDotUnderscore,
+		Message: fmt.Sprintf("%s must contain only letters, numbers, underscores and periods", s.UserStr(provided)),
+	})
+}
+
 func ErrorAlphaNumericDashDotUnderscore(provided string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrAlphaNumericDashDotUnderscore,
@@ -163,6 +172,13 @@ func ErrorMustHavePrefix(provided string, prefix string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrMustHavePrefix,
 		Message: fmt.Sprintf("%s must start with %s", s.UserStr(provided), s.UserStr(prefix)),
+	})
+}
+
+func ErrorMustHaveSuffix(provided string, suffix string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrMustHaveSuffix,
+		Message: fmt.Sprintf("%s must end with %s", s.UserStr(provided), s.UserStr(suffix)),
 	})
 }
 

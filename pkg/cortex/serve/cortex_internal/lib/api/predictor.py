@@ -28,6 +28,7 @@ from cortex_internal.lib import util
 from cortex_internal.lib.api.validations import (
     validate_class_impl,
     validate_python_predictor_with_models,
+    validate_predictor_with_grpc,
     are_models_specified,
 )
 from cortex_internal.lib.client.onnx import ONNXClient
@@ -61,12 +62,12 @@ PYTHON_CLASS_VALIDATION = {
         {
             "name": "__init__",
             "required_args": ["self", "config"],
-            "optional_args": ["job_spec", "python_client", "metrics_client"],
+            "optional_args": ["job_spec", "python_client", "metrics_client", "proto_module_pb2"],
         },
         {
             "name": "predict",
             "required_args": ["self"],
-            "optional_args": ["payload", "query_params", "headers", "batch_id"],
+            "optional_args": ["payload", "query_params", "headers", "batch_id", "context"],
         },
     ],
     "optional": [
@@ -88,12 +89,12 @@ TENSORFLOW_CLASS_VALIDATION = {
         {
             "name": "__init__",
             "required_args": ["self", "tensorflow_client", "config"],
-            "optional_args": ["job_spec", "metrics_client"],
+            "optional_args": ["job_spec", "metrics_client", "proto_module_pb2"],
         },
         {
             "name": "predict",
             "required_args": ["self"],
-            "optional_args": ["payload", "query_params", "headers", "batch_id"],
+            "optional_args": ["payload", "query_params", "headers", "batch_id", "context"],
         },
     ],
     "optional": [
@@ -111,12 +112,12 @@ ONNX_CLASS_VALIDATION = {
         {
             "name": "__init__",
             "required_args": ["self", "onnx_client", "config"],
-            "optional_args": ["job_spec", "metrics_client"],
+            "optional_args": ["job_spec", "metrics_client", "proto_module_pb2"],
         },
         {
             "name": "predict",
             "required_args": ["self"],
-            "optional_args": ["payload", "query_params", "headers", "batch_id"],
+            "optional_args": ["payload", "query_params", "headers", "batch_id", "context"],
         },
     ],
     "optional": [
@@ -146,6 +147,7 @@ class Predictor:
         self.type = predictor_type_from_api_spec(api_spec)
         self.path = api_spec["predictor"]["path"]
         self.config = api_spec["predictor"].get("config", {})
+        self.protobuf_path = api_spec["predictor"].get("protobuf_path")
 
         self.api_spec = api_spec
 
@@ -234,12 +236,14 @@ class Predictor:
         project_dir: str,
         client: Union[PythonClient, TensorFlowClient, ONNXClient],
         metrics_client: DogStatsd,
-        job_spec: Dict[str, Any] = None,
+        job_spec: Optional[Dict[str, Any]] = None,
+        proto_module_pb2: Optional[Any] = None,
     ):
         """
         Initialize predictor class as provided by the user.
 
         job_spec is a dictionary when the "kind" of the API is set to "BatchAPI". Otherwise, it's None.
+        proto_module_pb2 is a module of the compiled proto when grpc is enabled for the "RealtimeAPI" kind. Otherwise, it's None.
 
         Can raise UserRuntimeException/UserException/CortexException.
         """
@@ -257,6 +261,8 @@ class Predictor:
             args["job_spec"] = job_spec
         if "metrics_client" in constructor_args:
             args["metrics_client"] = metrics_client
+        if "proto_module_pb2" in constructor_args:
+            args["proto_module_pb2"] = proto_module_pb2
 
         # initialize predictor class
         try:
@@ -328,6 +334,7 @@ class Predictor:
 
         try:
             validate_class_impl(predictor_class, validations)
+            validate_predictor_with_grpc(predictor_class, self.api_spec)
             if self.type == PythonPredictorType:
                 validate_python_predictor_with_models(predictor_class, self.api_spec)
         except Exception as e:

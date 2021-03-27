@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import pathlib
 import types
 from typing import Dict, Any
 
@@ -78,6 +79,38 @@ def validate_response_expectations(expectations: Dict[str, Any]):
             Draft7Validator.check_schema(schema=expectations["json_schema"])
         except Exception as e:
             raise ExpectationsValidationException("json_schema is invalid") from e
+
+    if "grpc" in expectations:
+        grpc = expectations["grpc"]
+        required_fields = [
+            "proto_module_pb2",
+            "proto_module_pb2_grpc",
+            "stub_service_name",
+            "input_spec",
+            "output_spec",
+        ]
+        for required_field in required_fields:
+            if required_field not in grpc:
+                raise ExpectationsValidationException(f"missing grpc.{required_field} field")
+
+        p1 = str(pathlib.Path(grpc["proto_module_pb2"]).parent)
+        p2 = str(pathlib.Path(grpc["proto_module_pb2_grpc"]).parent)
+        if p1 != p2:
+            raise ExpectationsValidationException(
+                "the parent directories of proto_module_pb2 and proto_module_pb2_grpc don't match"
+            )
+
+        input_spec = grpc["input_spec"]
+        if "class_name" not in input_spec:
+            raise ExpectationsValidationException("missing grpc.input_spec.class_name field")
+        if "input" not in input_spec:
+            raise ExpectationsValidationException("missing grpc.input_spec.input field")
+
+        output_spec = grpc["output_spec"]
+        if "class_name" not in output_spec:
+            raise ExpectationsValidationException("missing grpc.output_spec.class_name field")
+        if "stream" not in output_spec:
+            raise ExpectationsValidationException("missing grpc.output_spec.stream field")
 
 
 def _get_response_content(response: requests.Response, content_type: str) -> str:

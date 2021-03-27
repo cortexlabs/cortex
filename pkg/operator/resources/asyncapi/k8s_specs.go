@@ -81,6 +81,7 @@ func gatewayDeploymentSpec(api spec.API, prevDeployment *kapps.Deployment, queue
 func gatewayServiceSpec(api spec.API) kcore.Service {
 	return *k8s.Service(&k8s.ServiceSpec{
 		Name:        operator.K8sName(api.Name),
+		PortName:    "http",
 		Port:        operator.DefaultPortInt32,
 		TargetPort:  operator.DefaultPortInt32,
 		Annotations: api.ToK8sAnnotations(),

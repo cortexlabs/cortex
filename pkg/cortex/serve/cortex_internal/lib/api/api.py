@@ -83,6 +83,21 @@ class API:
         ]
         self.post_metrics(metrics)
 
+    def post_status_code_request_metrics(self, status_code):
+        metrics = [
+            self.status_code_metric(self.metric_dimensions(), status_code),
+            self.status_code_metric(self.metric_dimensions_with_id(), status_code),
+        ]
+        self.post_metrics(metrics)
+
+    def post_latency_request_metrics(self, total_time):
+        total_time_ms = total_time * 1000
+        metrics = [
+            self.latency_metric(self.metric_dimensions(), total_time_ms),
+            self.latency_metric(self.metric_dimensions_with_id(), total_time_ms),
+        ]
+        self.post_metrics(metrics)
+
     def post_metrics(self, metrics):
         try:
             if self.statsd is None:
