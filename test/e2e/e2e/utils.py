@@ -74,7 +74,7 @@ def generate_grpc(
     proto_module_pb2_grpc = importlib.import_module(str(pathlib.Path(config["proto_module_pb2_grpc"]).stem))
     sys.path.pop()
 
-    endpoint = api_info["endpoint"] + ":" + str(api_info["ports"]["insecure"])
+    endpoint = api_info["endpoint"] + ":" + str(api_info["grpc_ports"]["insecure"])
     channel = grpc.insecure_channel(endpoint)
     stub = getattr(proto_module_pb2_grpc, config["stub_service_name"] + "Stub")(channel)
 

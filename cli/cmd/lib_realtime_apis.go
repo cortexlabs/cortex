@@ -52,9 +52,9 @@ func realtimeAPITable(realtimeAPI schema.APIResponse, env cliconfig.Environment)
 		out += "\n" + console.Bold("metrics dashboard: ") + *realtimeAPI.DashboardURL + "\n"
 	}
 
-	if realtimeAPI.Spec.Predictor.ProtobufPath != nil {
-		out += "\n" + console.Bold("insecure endpoint: ") + fmt.Sprintf("%s:%d", realtimeAPI.Endpoint, realtimeAPI.Ports["insecure"])
-		out += "\n" + console.Bold("secure endpoint: ") + fmt.Sprintf("%s:%d", realtimeAPI.Endpoint, realtimeAPI.Ports["secure"]) + "\n"
+	if realtimeAPI.Spec.Predictor.IsGRPC() {
+		out += "\n" + console.Bold("insecure endpoint: ") + fmt.Sprintf("%s:%d", realtimeAPI.Endpoint, realtimeAPI.GRPCPorts["insecure"])
+		out += "\n" + console.Bold("secure endpoint: ") + fmt.Sprintf("%s:%d", realtimeAPI.Endpoint, realtimeAPI.GRPCPorts["secure"]) + "\n"
 	} else {
 		out += "\n" + console.Bold("endpoint: ") + realtimeAPI.Endpoint + "\n"
 	}

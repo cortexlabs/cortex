@@ -321,7 +321,7 @@ func checkIfAPIExists(trafficSplitterAPIs []*userconfig.TrafficSplit, apis []use
 	for _, trafficSplitAPI := range trafficSplitterAPIs {
 		// don't allow apis that use grpc
 		if grpcDeployedRealtimeAPIs.Has(trafficSplitAPI.Name) {
-			return ErrorGrpcAPINotSupportedForTrafficSplitter(trafficSplitAPI.Name)
+			return ErrorGRPCNotSupportedForTrafficSplitter(trafficSplitAPI.Name)
 		}
 
 		// check if already deployed

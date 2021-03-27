@@ -23,7 +23,7 @@ sample = iris_classifier_pb2.Sample(
 
 cx = cortex.client("aws")
 api = cx.get_api("iris-classifier")
-grpc_endpoint = api["endpoint"] + ":" + str(api["ports"]["insecure"])
+grpc_endpoint = api["endpoint"] + ":" + str(api["grpc_ports"]["insecure"])
 channel = grpc.insecure_channel(grpc_endpoint)
 stub = iris_classifier_pb2_grpc.PredictorStub(channel)
 

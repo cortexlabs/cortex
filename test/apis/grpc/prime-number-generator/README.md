@@ -4,7 +4,7 @@
 
 ```bash
 pip install grpc
-python -m grpc_tools.protoc -I. --python_out=. --grpc_python_out=. iris_classifier.proto
+python -m grpc_tools.protoc -I. --python_out=. --grpc_python_out=. generator.proto
 ```
 
 #### Step 2
@@ -16,7 +16,7 @@ import generator_pb2_grpc
 
 cx = cortex.client("aws")
 api = cx.get_api("prime-generator")
-grpc_endpoint = api["endpoint"] + ":" + str(api["ports"]["insecure"])
+grpc_endpoint = api["endpoint"] + ":" + str(api["grpc_ports"]["insecure"])
 
 prime_numbers_to_generate = 5
 

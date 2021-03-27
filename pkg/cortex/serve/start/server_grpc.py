@@ -159,17 +159,19 @@ def init():
     ServicerClass = get_servicer_from_module(module_proto_pb2_grpc)
 
     class PredictorServicer(ServicerClass):
-        def __init__(self, config: Dict[str, Any]):
-            self.config = config
+        def __init__(self, predict_fn_args, predictor_impl, api):
+            self.predict_fn_args = predict_fn_args
+            self.predictor_impl = predictor_impl
+            self.api = api
 
         def Predict(self, payload, context):
             try:
-                kwargs = build_predict_kwargs(self.config["predict_fn_args"], payload, context)
-                response = self.config["predictor_impl"].predict(**kwargs)
-                api.post_status_code_request_metrics(200)
+                kwargs = build_predict_kwargs(self.predict_fn_args, payload, context)
+                response = self.predictor_impl.predict(**kwargs)
+                self.api.post_status_code_request_metrics(200)
             except Exception:
                 logger.error(traceback.format_exc())
-                api.post_status_code_request_metrics(500)
+                self.api.post_status_code_request_metrics(500)
                 context.abort(grpc.StatusCode.INTERNAL, "internal server error")
             return response
 
@@ -200,7 +202,10 @@ def main():
     module_proto_pb2 = config["module_proto_pb2"]
     module_proto_pb2_grpc = config["module_proto_pb2_grpc"]
     PredictorServicer = config["predictor_servicer"]
+
     api = config["api"]
+    predictor_impl = config["predictor_impl"]
+    predict_fn_args = config["predict_fn_args"]
 
     server = grpc.server(
         ThreadPoolExecutorWithRequestMonitor(
@@ -210,7 +215,7 @@ def main():
     )
 
     add_PredictorServicer_to_server = get_servicer_to_server_from_module(module_proto_pb2_grpc)
-    add_PredictorServicer_to_server(PredictorServicer(config), server)
+    add_PredictorServicer_to_server(PredictorServicer(predict_fn_args, predictor_impl, api), server)
 
     service_name = get_service_name_from_module(module_proto_pb2_grpc)
     SERVICE_NAMES = (
@@ -222,11 +227,7 @@ def main():
     server.add_insecure_port(address)
     server.start()
 
-    time_to_wait = 5.0
-    start_time = time.time()
-    while time.time() - start_time < time_to_wait:
-        time.sleep(1.0)
-
+    time.sleep(5.0)
     open(f"/mnt/workspace/proc-{os.getpid()}-ready.txt", "a").close()
     server.wait_for_termination()
 

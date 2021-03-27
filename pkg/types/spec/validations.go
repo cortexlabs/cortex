@@ -912,20 +912,13 @@ func validatePredictor(
 		}
 	}
 
-	if predictor.ProtobufPath != nil {
+	if predictor.IsGRPC() {
 		if api.Kind != userconfig.RealtimeAPIKind {
 			return ErrorKeyIsNotSupportedForKind(userconfig.ProtobufPathKey, api.Kind)
 		}
 
 		if err := validateProtobufPath(api, projectFiles); err != nil {
-			kind := errors.GetKind(err)
-			if kind == ErrConflictingFields || kind == ErrProtoInvalidNetworkingEndpoint {
-				return err
-			}
-			if kind == files.ErrFileDoesNotExist {
-				return errors.Wrap(err, userconfig.ProtobufPathKey)
-			}
-			return errors.Wrap(err, userconfig.ProtobufPathKey, *predictor.ProtobufPath)
+			return err
 		}
 	}
 
@@ -1403,22 +1396,21 @@ func validateONNXModelFilePath(modelPath string, awsClient *aws.Client, gcpClien
 }
 
 func validateProtobufPath(api *userconfig.API, projectFiles ProjectFiles) error {
-	apiName := api.Name
 	protobufPath := *api.Predictor.ProtobufPath
 
 	if !projectFiles.HasFile(protobufPath) {
-		return files.ErrorFileDoesNotExist(protobufPath)
+		return errors.Wrap(files.ErrorFileDoesNotExist(protobufPath), userconfig.ProtobufPathKey)
 	}
 	protoBytes, err := projectFiles.GetFile(protobufPath)
 	if err != nil {
-		return err
+		return errors.Wrap(err, userconfig.ProtobufPathKey, *api.Predictor.ProtobufPath)
 	}
 
 	protoReader := bytes.NewReader(protoBytes)
 	parser := pbparser.NewParser(protoReader)
 	proto, err := parser.Parse()
 	if err != nil {
-		return err
+		return errors.Wrap(errors.WithStack(err), userconfig.ProtobufPathKey, *api.Predictor.ProtobufPath)
 	}
 
 	var packageName string
@@ -1445,38 +1437,32 @@ func validateProtobufPath(api *userconfig.API, projectFiles ProjectFiles) error 
 	)
 
 	if numServices > 1 {
-		return ErrorProtoNumServicesExceeded(numServices)
+		return errors.Wrap(ErrorProtoNumServicesExceeded(numServices), userconfig.ProtobufPathKey, *api.Predictor.ProtobufPath)
 	}
 
 	if numRPCs > 1 {
-		return ErrorProtoNumServiceMethodsExceeded(numRPCs, serviceName)
+		return errors.Wrap(ErrorProtoNumServiceMethodsExceeded(numRPCs, serviceName), userconfig.ProtobufPathKey, *api.Predictor.ProtobufPath)
 	}
 
 	if serviceMethodName != detectedMethodName {
-		return ErrorProtoInvalidServiceMethod(detectedMethodName, serviceMethodName, serviceName)
+		return errors.Wrap(ErrorProtoInvalidServiceMethod(detectedMethodName, serviceMethodName, serviceName), userconfig.ProtobufPathKey, *api.Predictor.ProtobufPath)
 	}
 
-	var required_package_name string
-	for _, c := range apiName {
-		if string(c) == "-" {
-			required_package_name += "_"
-		} else {
-			required_package_name += string(c)
-		}
-	}
+	var requiredPackageName string
+	requiredPackageName = strings.ReplaceAll(requiredPackageName, "-", "_")
 
 	if api.Predictor.ServerSideBatching != nil {
 		return ErrorConflictingFields(userconfig.ProtobufPathKey, userconfig.ServerSideBatchingKey)
 	}
 
 	if packageName == "" {
-		return ErrorProtoMissingPackageName(required_package_name)
+		return errors.Wrap(ErrorProtoMissingPackageName(requiredPackageName), userconfig.ProtobufPathKey, *api.Predictor.ProtobufPath)
 	}
-	if packageName != required_package_name {
-		return ErrorProtoInvalidPackageName(packageName, required_package_name)
+	if packageName != requiredPackageName {
+		return errors.Wrap(ErrorProtoInvalidPackageName(packageName, requiredPackageName), userconfig.ProtobufPathKey, *api.Predictor.ProtobufPath)
 	}
 
-	requiredEndpoint := "/" + required_package_name + "." + serviceName + "/" + serviceMethodName
+	requiredEndpoint := "/" + requiredPackageName + "." + serviceName + "/" + serviceMethodName
 	if api.Networking.Endpoint == nil {
 		api.Networking.Endpoint = pointer.String(requiredEndpoint)
 	}

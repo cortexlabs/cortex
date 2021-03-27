@@ -168,8 +168,6 @@ if [ "$CORTEX_KIND" = "RealtimeAPI" ]; then
 
     create_s6_service "py_init" "cd /mnt/project && exec /opt/conda/envs/env/bin/python /src/cortex/serve/init/script.py"
     create_s6_service "nginx" "exec nginx -c /run/nginx.conf"
-
-    touch /mnt/workspace/api_readiness.txt
     create_s6_service_from_file "api_readiness" "/src/cortex/serve/poll/readiness.sh"
 
 elif [ "$CORTEX_KIND" = "BatchAPI" ]; then

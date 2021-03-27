@@ -43,7 +43,6 @@ const (
 	ErrSpecifyAllOrNone             = "spec.specify_all_or_none"
 	ErrOneOfPrerequisitesNotDefined = "spec.one_of_prerequisites_not_defined"
 	ErrConfigGreaterThanOtherConfig = "spec.config_greater_than_other_config"
-	ErrInvalidFieldValue            = "spec.invalid_field_value"
 
 	ErrMinReplicasGreaterThanMax  = "spec.min_replicas_greater_than_max"
 	ErrInitReplicasGreaterThanMax = "spec.init_replicas_greater_than_max"

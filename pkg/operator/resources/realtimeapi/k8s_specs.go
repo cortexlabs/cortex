@@ -47,7 +47,7 @@ func tensorflowAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.D
 	containers = append(containers, operator.RequestMonitorContainer(api))
 
 	servingProtocol := "http"
-	if api.Predictor != nil && api.Predictor.ProtobufPath != nil {
+	if api.Predictor != nil && api.Predictor.IsGRPC() {
 		servingProtocol = "grpc"
 	}
 
@@ -109,7 +109,7 @@ func pythonAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deplo
 	containers = append(containers, operator.RequestMonitorContainer(api))
 
 	servingProtocol := "http"
-	if api.Predictor != nil && api.Predictor.ProtobufPath != nil {
+	if api.Predictor != nil && api.Predictor.IsGRPC() {
 		servingProtocol = "grpc"
 	}
 
@@ -171,7 +171,7 @@ func onnxAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deploym
 	containers = append(containers, operator.RequestMonitorContainer(api))
 
 	servingProtocol := "http"
-	if api.Predictor != nil && api.Predictor.ProtobufPath != nil {
+	if api.Predictor != nil && api.Predictor.IsGRPC() {
 		servingProtocol = "grpc"
 	}
 
@@ -229,7 +229,7 @@ func onnxAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deploym
 
 func serviceSpec(api *spec.API) *kcore.Service {
 	servingProtocol := "http"
-	if api.Predictor != nil && api.Predictor.ProtobufPath != nil {
+	if api.Predictor != nil && api.Predictor.IsGRPC() {
 		servingProtocol = "grpc"
 	}
 	return k8s.Service(&k8s.ServiceSpec{
@@ -255,7 +255,7 @@ func virtualServiceSpec(api *spec.API) *istioclientnetworking.VirtualService {
 	servingProtocol := "http"
 	rewritePath := pointer.String("predict")
 
-	if api.Predictor != nil && api.Predictor.ProtobufPath != nil {
+	if api.Predictor != nil && api.Predictor.IsGRPC() {
 		servingProtocol = "grpc"
 		rewritePath = nil
 	}

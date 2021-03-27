@@ -35,7 +35,7 @@ const (
 	ErrLeadingWhitespace             = "configreader.leading_whitespace"
 	ErrTrailingWhitespace            = "configreader.trailing_whitespace"
 	ErrAlphaNumericDashUnderscore    = "configreader.alpha_numeric_dash_underscore"
-	ErrAlphaNumericUnderscore        = "configreader.alpha_numeric_underscore"
+	ErrAlphaNumericDotUnderscore     = "configreader.alpha_numeric_dot_underscore"
 	ErrAlphaNumericDashDotUnderscore = "configreader.alpha_numeric_dash_dot_underscore"
 	ErrInvalidAWSTag                 = "configreader.invalid_aws_tag"
 	ErrInvalidDockerImage            = "configreader.invalid_docker_image"
@@ -142,7 +142,7 @@ func ErrorAlphaNumericDashUnderscore(provided string) error {
 
 func ErrorAlphaNumericDotUnderscore(provided string) error {
 	return errors.WithStack(&errors.Error{
-		Kind:    ErrAlphaNumericUnderscore,
+		Kind:    ErrAlphaNumericDotUnderscore,
 		Message: fmt.Sprintf("%s must contain only letters, numbers, underscores and periods", s.UserStr(provided)),
 	})
 }

@@ -846,7 +846,7 @@ func getEnvVars(api *spec.API, container string) []kcore.EnvVar {
 
 		if api.Kind == userconfig.RealtimeAPIKind {
 			servingProtocol := "http"
-			if api.Predictor != nil && api.Predictor.ProtobufPath != nil {
+			if api.Predictor != nil && api.Predictor.IsGRPC() {
 				servingProtocol = "grpc"
 			}
 			envVars = append(envVars,
@@ -1486,7 +1486,7 @@ func APIEndpoint(api *spec.API) (string, error) {
 	}
 	baseAPIEndpoint = strings.Replace(baseAPIEndpoint, "https://", "http://", 1)
 
-	if api.Predictor != nil && api.Predictor.ProtobufPath != nil {
+	if api.Predictor != nil && api.Predictor.IsGRPC() {
 		baseAPIEndpoint = strings.Replace(baseAPIEndpoint, "http://", "", 1)
 		return baseAPIEndpoint, nil
 	}

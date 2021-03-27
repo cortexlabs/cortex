@@ -128,14 +128,7 @@ func Deploy(projectBytes []byte, configFileName string, configBytes []byte, forc
 	for i := range apiConfigs {
 		apiConfig := apiConfigs[i]
 
-		protobufBytes := []byte{}
-		if apiConfig.Predictor != nil && apiConfig.Predictor.ProtobufPath != nil {
-			protobufBytes, err = projectFiles.GetFile(*apiConfig.Predictor.ProtobufPath)
-			if err != nil {
-				return nil, err
-			}
-		}
-		api, msg, err := UpdateAPI(&apiConfig, projectID, force, protobufBytes)
+		api, msg, err := UpdateAPI(&apiConfig, projectID, force)
 
 		result := schema.DeployResult{
 			Message: msg,
@@ -152,7 +145,7 @@ func Deploy(projectBytes []byte, configFileName string, configBytes []byte, forc
 	return results, nil
 }
 
-func UpdateAPI(apiConfig *userconfig.API, projectID string, force bool, protobufBytes []byte) (*schema.APIResponse, string, error) {
+func UpdateAPI(apiConfig *userconfig.API, projectID string, force bool) (*schema.APIResponse, string, error) {
 	deployedResource, err := GetDeployedResourceByNameOrNil(apiConfig.Name)
 	if err != nil {
 		return nil, "", err
@@ -168,7 +161,7 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string, force bool, protobuf
 			return nil, "", err
 		}
 
-		if deployedResource.Kind == userconfig.RealtimeAPIKind && prevAPISpec != nil && prevAPISpec.Predictor.ProtobufPath == nil && apiConfig.Predictor.ProtobufPath != nil {
+		if deployedResource.Kind == userconfig.RealtimeAPIKind && prevAPISpec != nil && !prevAPISpec.Predictor.IsGRPC() && apiConfig.Predictor.IsGRPC() {
 			realtimeAPIName := deployedResource.Name
 
 			virtualServices, err := config.K8s.ListVirtualServicesByLabel("apiKind", userconfig.TrafficSplitterKind.String())
@@ -191,17 +184,12 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string, force bool, protobuf
 			}
 
 			if len(dependentTrafficSplitters) > 0 {
-				return nil, "", ErrorCannotChangeAPIServingProtocolWhenTrafficSplitterIsInUse(realtimeAPIName, dependentTrafficSplitters)
+				return nil, "", ErrorCannotChangeProtocolWhenUsedByTrafficSplitter(realtimeAPIName, dependentTrafficSplitters)
 			}
 		}
 	}
 
-	grpcStreamingEnabled, err := isGrpcStreamingEnabledInProto(protobufBytes)
-	if err != nil {
-		return nil, "", err
-	}
-
-	telemetry.Event("operator.deploy", apiConfig.TelemetryEvent(config.Provider, grpcStreamingEnabled))
+	telemetry.Event("operator.deploy", apiConfig.TelemetryEvent(config.Provider))
 
 	var api *spec.API
 	var msg string
@@ -318,7 +306,7 @@ func patchAPI(apiConfig *userconfig.API, force bool) (*spec.API, string, error) 
 		return nil, "", err
 	}
 
-	if deployedResource.Kind == userconfig.RealtimeAPIKind && prevAPISpec.Predictor.ProtobufPath == nil && apiConfig.Predictor.ProtobufPath != nil {
+	if deployedResource.Kind == userconfig.RealtimeAPIKind && !prevAPISpec.Predictor.IsGRPC() && apiConfig.Predictor.IsGRPC() {
 		realtimeAPIName := deployedResource.Name
 
 		virtualServices, err := config.K8s.ListVirtualServicesByLabel("apiKind", userconfig.TrafficSplitterKind.String())
@@ -341,7 +329,7 @@ func patchAPI(apiConfig *userconfig.API, force bool) (*spec.API, string, error) 
 		}
 
 		if len(dependentTrafficSplitters) > 0 {
-			return nil, "", ErrorCannotChangeAPIServingProtocolWhenTrafficSplitterIsInUse(realtimeAPIName, dependentTrafficSplitters)
+			return nil, "", ErrorCannotChangeProtocolWhenUsedByTrafficSplitter(realtimeAPIName, dependentTrafficSplitters)
 		}
 	}
 

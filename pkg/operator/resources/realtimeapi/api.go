@@ -252,10 +252,10 @@ func GetAPIByName(deployedResource *operator.DeployedResource) ([]schema.APIResp
 
 	dashboardURL := pointer.String(getDashboardURL(api.Name))
 
-	ports := map[string]int64{}
-	if api.Predictor != nil && api.Predictor.ProtobufPath != nil {
-		ports["insecure"] = 80
-		ports["secure"] = 443
+	grpcPorts := map[string]int64{}
+	if api.Predictor != nil && api.Predictor.IsGRPC() {
+		grpcPorts["insecure"] = 80
+		grpcPorts["secure"] = 443
 	}
 
 	return []schema.APIResponse{
@@ -264,7 +264,7 @@ func GetAPIByName(deployedResource *operator.DeployedResource) ([]schema.APIResp
 			Status:       status,
 			Metrics:      metrics,
 			Endpoint:     apiEndpoint,
-			Ports:        ports,
+			GRPCPorts:    grpcPorts,
 			DashboardURL: dashboardURL,
 		},
 	}, nil
