@@ -76,7 +76,7 @@ var _deployCmd = &cobra.Command{
 			telemetry.Event("cli.deploy")
 			exit.Error(err)
 		}
-		telemetry.Event("cli.deploy", map[string]interface{}{"provider": env.Provider.String(), "env_name": env.Name})
+		telemetry.Event("cli.deploy", map[string]interface{}{"env_name": env.Name})
 
 		err = printEnvIfNotSpecified(env.Name, cmd)
 		if err != nil {

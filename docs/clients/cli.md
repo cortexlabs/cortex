@@ -12,7 +12,7 @@ Flags:
   -e, --env string      environment to use
   -f, --force           override the in-progress api update
   -y, --yes             skip prompts
-  -o, --output string   output format: one of pretty|json (default "pretty")
+  -o, --output string   output format: one of json (default "pretty")
   -h, --help            help for deploy
 ```
 
@@ -27,7 +27,7 @@ Usage:
 Flags:
   -e, --env string      environment to use
   -w, --watch           re-run the command every 2 seconds
-  -o, --output string   output format: one of pretty|json (default "pretty")
+  -o, --output string   output format: one of json (default "pretty")
   -v, --verbose         show additional information (only applies to pretty output format)
   -h, --help            help for get
 ```
@@ -57,7 +57,7 @@ Usage:
 Flags:
   -e, --env string      environment to use
   -f, --force           override the in-progress api update
-  -o, --output string   output format: one of pretty|json (default "pretty")
+  -o, --output string   output format: one of json (default "pretty")
   -h, --help            help for patch
 ```
 
@@ -72,7 +72,7 @@ Usage:
 Flags:
   -e, --env string      environment to use
   -f, --force           override the in-progress api update
-  -o, --output string   output format: one of pretty|json (default "pretty")
+  -o, --output string   output format: one of json (default "pretty")
   -h, --help            help for refresh
 ```
 
@@ -88,7 +88,7 @@ Flags:
   -e, --env string      environment to use
   -f, --force           delete the api without confirmation
   -c, --keep-cache      keep cached data for the api
-  -o, --output string   output format: one of pretty|json (default "pretty")
+  -o, --output string   output format: one of json (default "pretty")
   -h, --help            help for delete
 ```
 
@@ -170,57 +170,6 @@ Flags:
   -h, --help            help for export
 ```
 
-## cluster-gcp up
-
-```text
-spin up a cluster on gcp
-
-Usage:
-  cortex cluster-gcp up [CLUSTER_CONFIG_FILE] [flags]
-
-Flags:
-  -e, --configure-env string   name of environment to configure (default "gcp")
-  -y, --yes                    skip prompts
-  -h, --help                   help for up
-```
-
-## cluster-gcp info
-
-```text
-get information about a cluster
-
-Usage:
-  cortex cluster-gcp info [flags]
-
-Flags:
-  -c, --config string          path to a cluster configuration file
-  -n, --name string            name of the cluster
-  -p, --project string         gcp project id
-  -z, --zone string            gcp zone of the cluster
-  -e, --configure-env string   name of environment to configure
-  -d, --debug                  save the current cluster state to a file
-  -y, --yes                    skip prompts
-  -h, --help                   help for info
-```
-
-## cluster-gcp down
-
-```text
-spin down a cluster
-
-Usage:
-  cortex cluster-gcp down [flags]
-
-Flags:
-  -c, --config string    path to a cluster configuration file
-  -n, --name string      name of the cluster
-  -p, --project string   gcp project id
-  -z, --zone string      gcp zone of the cluster
-  -y, --yes              skip prompts
-      --keep-volumes     keep cortex provisioned persistent volumes
-  -h, --help             help for down
-```
-
 ## env configure
 
 ```text
@@ -243,7 +192,7 @@ Usage:
   cortex env list [flags]
 
 Flags:
-  -o, --output string   output format: one of pretty|json (default "pretty")
+  -o, --output string   output format: one of json (default "pretty")
   -h, --help            help for list
 ```
 

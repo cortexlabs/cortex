@@ -37,8 +37,8 @@ import (
 )
 
 type StructFieldValidation struct {
-	Key                        string                          // Required, defaults to json key or "StructField"
-	StructField                string                          // Required
+	StructField                string                          // Required (can be omitted to skip writing of value to struct)
+	Key                        string                          // Required, or defaults to json key or "StructField"
 	DefaultField               string                          // Optional. Will set the default to the runtime value of this field
 	DefaultDependentFields     []string                        // Optional. Will be passed in to DefaultDependentFieldsFunc. Dependent fields must be listed first in the `[]*cr.StructFieldValidation`.
 	DefaultDependentFieldsFunc func([]interface{}) interface{} // Optional. Will be called with DefaultDependentFields
@@ -362,14 +362,16 @@ func Struct(dest interface{}, inter interface{}, v *StructValidation) []error {
 			continue
 		}
 
-		if val == nil {
-			err = setFieldNil(dest, structFieldValidation.StructField)
-		} else {
-			err = setField(val, dest, structFieldValidation.StructField)
-		}
-		if allErrs, ok = errors.AddError(allErrs, err, key); ok {
-			if v.ShortCircuit {
-				return allErrs
+		if structFieldValidation.StructField != "" {
+			if val == nil {
+				err = setFieldNil(dest, structFieldValidation.StructField)
+			} else {
+				err = setField(val, dest, structFieldValidation.StructField)
+			}
+			if allErrs, ok = errors.AddError(allErrs, err, key); ok {
+				if v.ShortCircuit {
+					return allErrs
+				}
 			}
 		}
 	}

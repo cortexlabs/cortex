@@ -96,9 +96,7 @@ opus-mt-afa-afa                    1 (latest)      21 Aug 20 10:42:38 EDT
 ...
 ```
 
-This initial deploy will take a bit of time (~9 minutes) as Cortex indexes all the models in the bucket. After Cortex's upcoming release, deploys will take seconds, as model validation will be done in a nonblocking fashion (you can [track here](https://github.com/cortexlabs/cortex/issues/1663))
-
-Once Cortex has indexed all +1,000 models. We can now query the API at the endpoint given, structuring the body of our request according to the format expected by our predictor (specified in `predictor.py`):
+Once Cortex has indexed all +1,000 models, we can now query the API at the endpoint given, structuring the body of our request according to the format expected by our predictor (specified in `predictor.py`):
 
 ```
 {

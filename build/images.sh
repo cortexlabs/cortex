@@ -19,35 +19,23 @@
 
 set -euo pipefail
 
-api_images_cluster=(
+api_images=(
   "python-predictor-cpu"
   "python-predictor-gpu"
   "tensorflow-predictor"
   "onnx-predictor-cpu"
   "onnx-predictor-gpu"
-)
-api_images_aws=(
-  # includes api_images_cluster
   "python-predictor-inf"
 )
-api_images_gcp=(
-  # includes api_images_cluster
-)
 
-dev_images_cluster=(
+dev_images=(
   "downloader"
   "manager"
   "request-monitor"
   "async-gateway"
 )
-dev_images_aws=(
-  # includes dev_images_cluster
-)
-dev_images_gcp=(
-  # includes dev_images_cluster
-)
 
-non_dev_images_cluster=(
+non_dev_images=(
   "tensorflow-serving-cpu"
   "tensorflow-serving-gpu"
   "cluster-autoscaler"
@@ -65,46 +53,15 @@ non_dev_images_cluster=(
   "kube-rbac-proxy"
   "grafana"
   "event-exporter"
-)
-non_dev_images_aws=(
-  # includes non_dev_images_cluster
   "tensorflow-serving-inf"
   "metrics-server"
   "inferentia"
   "neuron-rtd"
   "nvidia"
 )
-non_dev_images_gcp=(
-  # includes non_dev_images_cluster
-  "google-pause"
-)
 
 all_images=(
-  "${api_images_cluster[@]}"
-  "${api_images_aws[@]}"
-  "${api_images_gcp[@]}"
-  "${dev_images_cluster[@]}"
-  "${dev_images_aws[@]}"
-  "${dev_images_gcp[@]}"
-  "${non_dev_images_cluster[@]}"
-  "${non_dev_images_aws[@]}"
-  "${non_dev_images_gcp[@]}"
-)
-
-aws_images=(
-  "${api_images_cluster[@]}"
-  "${api_images_aws[@]}"
-  "${dev_images_cluster[@]}"
-  "${dev_images_aws[@]}"
-  "${non_dev_images_cluster[@]}"
-  "${non_dev_images_aws[@]}"
-)
-
-gcp_images=(
-  "${api_images_cluster[@]}"
-  "${api_images_gcp[@]}"
-  "${dev_images_cluster[@]}"
-  "${dev_images_gcp[@]}"
-  "${non_dev_images_cluster[@]}"
-  "${non_dev_images_gcp[@]}"
+  "${api_images[@]}"
+  "${dev_images[@]}"
+  "${non_dev_images[@]}"
 )

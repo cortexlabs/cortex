@@ -62,12 +62,12 @@ func GetStatus(apiName string) (*status.Status, error) {
 
 func GetAllStatuses(deployments []kapps.Deployment, pods []kcore.Pod) ([]status.Status, error) {
 	statuses := make([]status.Status, len(deployments))
-	for i, deployment := range deployments {
-		status, err := apiStatus(&deployment, pods)
+	for i := range deployments {
+		st, err := apiStatus(&deployments[i], pods)
 		if err != nil {
 			return nil, err
 		}
-		statuses[i] = *status
+		statuses[i] = *st
 	}
 
 	sort.Slice(statuses, func(i, j int) bool {
@@ -96,11 +96,12 @@ func getReplicaCounts(deployment *kapps.Deployment, pods []kcore.Pod) status.Rep
 	counts := status.ReplicaCounts{}
 	counts.Requested = *deployment.Spec.Replicas
 
-	for _, pod := range pods {
+	for i := range pods {
+		pod := pods[i]
 		if pod.Labels["apiName"] != deployment.Labels["apiName"] {
 			continue
 		}
-		addPodToReplicaCounts(&pod, deployment, &counts)
+		addPodToReplicaCounts(&pods[i], deployment, &counts)
 	}
 
 	return counts

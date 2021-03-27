@@ -17,10 +17,13 @@ limitations under the License.
 package asyncapi
 
 import (
+	"fmt"
+
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/operator/operator"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
+	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	"istio.io/client-go/pkg/apis/networking/v1beta1"
 	kapps "k8s.io/api/apps/v1"
 	kcore "k8s.io/api/core/v1"
@@ -122,7 +125,21 @@ func gatewayVirtualServiceSpec(api spec.API) v1beta1.VirtualService {
 }
 
 func apiDeploymentSpec(api spec.API, prevDeployment *kapps.Deployment, queueURL string) kapps.Deployment {
-	containers, volumes := operator.AsyncPythonPredictorContainers(api, queueURL)
+	var (
+		containers []kcore.Container
+		volumes    []kcore.Volume
+	)
+
+	switch api.Predictor.Type {
+	case userconfig.PythonPredictorType:
+		containers, volumes = operator.AsyncPythonPredictorContainers(api, queueURL)
+	case userconfig.TensorFlowPredictorType:
+		containers, volumes = operator.AsyncTensorflowPredictorContainers(api, queueURL)
+	case userconfig.ONNXPredictorType:
+		containers, volumes = operator.AsyncONNXPredictorContainers(api, queueURL)
+	default:
+		panic(fmt.Sprintf("invalid predictor type: %s", api.Predictor.Type))
+	}
 
 	return *k8s.Deployment(&k8s.DeploymentSpec{
 		Name:           operator.K8sName(api.Name),

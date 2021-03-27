@@ -24,7 +24,7 @@ from cortex.exceptions import NotFound
 @sentry_wrapper
 def client(env: Optional[str] = None) -> Client:
     """
-    Initialize a client based on the specified environment.
+    Initialize a client based on the specified environment. If no environment is specified, it will attempt to use the default environment.
 
     Args:
         env: Name of the environment to use.
@@ -56,14 +56,14 @@ def new_client(
     operator_endpoint: str,
 ) -> Client:
     """
-    Create a new environment to connect to an existing Cortex Cluster, and initialize a client to deploy and manage APIs on that cluster.
+    Create a new environment to connect to an existing cluster, and initialize a client to deploy and manage APIs on that cluster.
 
     Args:
         name: Name of the environment to create.
-        operator_endpoint: The endpoint for the operator of your Cortex Cluster. You can get this endpoint by running the CLI command `cortex cluster info` for an AWS provider or `cortex cluster-gcp info` for a GCP provider.
+        operator_endpoint: The endpoint for the operator of your Cortex cluster. You can get this endpoint by running the CLI command `cortex cluster info`.
 
     Returns:
-        Cortex client that can be used to deploy and manage APIs on a Cortex Cluster.
+        Cortex client that can be used to deploy and manage APIs on a cluster.
     """
     cli_args = [
         "env",

@@ -19,6 +19,7 @@ package taskapi
 import (
 	"path"
 
+	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/parallel"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
@@ -58,14 +59,14 @@ func virtualServiceSpec(api *spec.API) *istioclientnetworking.VirtualService {
 	})
 }
 
-func k8sJobSpec(api *spec.API, job *spec.TaskJob) (*kbatch.Job, error) {
+func k8sJobSpec(api *spec.API, job *spec.TaskJob) *kbatch.Job {
 	containers, volumes := operator.TaskContainers(api)
 	for i, container := range containers {
 		if container.Name == operator.APIContainerName {
 			containers[i].Env = append(container.Env,
 				kcore.EnvVar{
 					Name:  "CORTEX_TASK_SPEC",
-					Value: config.BucketPath(job.SpecFilePath(config.ClusterName())),
+					Value: aws.S3Path(config.CoreConfig.Bucket, job.SpecFilePath(config.CoreConfig.ClusterName)),
 				},
 				kcore.EnvVar{
 					Name:  "CORTEX_TELEMETRY_SENTRY_USER_ID",
@@ -128,7 +129,7 @@ func k8sJobSpec(api *spec.API, job *spec.TaskJob) (*kbatch.Job, error) {
 				ServiceAccountName: operator.ServiceAccountName,
 			},
 		},
-	}), nil
+	})
 }
 
 func applyK8sResources(api *spec.API, prevVirtualService *istioclientnetworking.VirtualService) error {
@@ -175,12 +176,9 @@ func deleteK8sJob(jobKey spec.JobKey) error {
 }
 
 func createK8sJob(apiSpec *spec.API, jobSpec *spec.TaskJob) error {
-	k8sJob, err := k8sJobSpec(apiSpec, jobSpec)
-	if err != nil {
-		return err
-	}
+	k8sJob := k8sJobSpec(apiSpec, jobSpec)
 
-	_, err = config.K8s.CreateJob(k8sJob)
+	_, err := config.K8s.CreateJob(k8sJob)
 	if err != nil {
 		return err
 	}

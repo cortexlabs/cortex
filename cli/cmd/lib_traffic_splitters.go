@@ -57,7 +57,7 @@ func trafficSplitterTable(trafficSplitter schema.APIResponse, env cliconfig.Envi
 		return out, nil
 	}
 
-	out += titleStr("configuration") + strings.TrimSpace(trafficSplitter.Spec.UserStr(env.Provider))
+	out += titleStr("configuration") + strings.TrimSpace(trafficSplitter.Spec.UserStr())
 
 	return out, nil
 }

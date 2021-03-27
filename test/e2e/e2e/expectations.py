@@ -40,6 +40,12 @@ def assert_response_expectations(response: requests.Response, expectations: Dict
         jsonschema.validate(output, schema=expected_json_schema)
 
 
+def assert_json_expectations(response_json: Dict[str, Any], expectations: Dict[str, Any]):
+    expected_json_schema = expectations.get("json_schema")
+    if expected_json_schema:
+        jsonschema.validate(response_json, schema=expected_json_schema)
+
+
 def parse_expectations(expectations_file: str) -> Dict[str, Any]:
     with open(expectations_file) as f:
         expectations = yaml.safe_load(f)

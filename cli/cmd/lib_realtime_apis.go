@@ -69,7 +69,7 @@ func realtimeAPITable(realtimeAPI schema.APIResponse, env cliconfig.Environment)
 		return out, nil
 	}
 
-	out += titleStr("configuration") + strings.TrimSpace(realtimeAPI.Spec.UserStr(env.Provider))
+	out += titleStr("configuration") + strings.TrimSpace(realtimeAPI.Spec.UserStr())
 
 	return out, nil
 }

@@ -33,11 +33,9 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/json"
 	"github.com/cortexlabs/cortex/pkg/lib/print"
 	"github.com/cortexlabs/cortex/pkg/lib/prompt"
-	"github.com/cortexlabs/cortex/pkg/lib/slices"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/urls"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
-	"github.com/cortexlabs/cortex/pkg/types"
 	"github.com/cortexlabs/yaml"
 )
 
@@ -72,21 +70,18 @@ var _cliConfigValidation = &cr.StructValidation{
 							},
 						},
 						{
-							StructField: "Provider",
+							Key: "provider",
 							StringValidation: &cr.StringValidation{
-								Required: true,
+								AllowEmpty: true,
 								Validator: func(provider string) (string, error) {
-									if slices.HasString(types.ProviderTypeStrings(), provider) {
-										return provider, nil
+									if provider == "" || provider == "aws" {
+										return "", nil
 									}
-									if provider == "local" {
+									if provider == "gcp" || provider == "local" {
 										return "", ErrorInvalidLegacyProvider(provider, _cliConfigPath)
 									}
-									return "", ErrorInvalidProvider(provider)
+									return "", ErrorInvalidProvider(provider, _cliConfigPath)
 								},
-							},
-							Parser: func(str string) (interface{}, error) {
-								return types.ProviderTypeFromString(str), nil
 							},
 						},
 						{
@@ -163,16 +158,15 @@ func promptForExistingEnvName(promptMsg string) string {
 
 func promptEnv(env *cliconfig.Environment, defaults cliconfig.Environment) error {
 	if env.OperatorEndpoint == "" {
-		fmt.Print("you can get your cortex operator endpoint using `cortex cluster info` or `cortex cluster-gcp info` if you already have a cortex cluster running, otherwise run `cortex cluster up` or `cortex cluster-gcp up` to create a cortex cluster\n\n")
+		fmt.Print("you can get your cortex operator endpoint using `cortex cluster info` if you already have a cortex cluster running, otherwise run `cortex cluster up` to create a cortex cluster\n\n")
 	}
 
 	validator := func(endpoint string) (string, error) {
-		operatorURL, provider, err := validateOperatorEndpoint(endpoint)
+		operatorURL, err := validateOperatorEndpoint(endpoint)
 		if err != nil {
 			return "", err
 		}
 
-		env.Provider = provider
 		return operatorURL, nil
 	}
 
@@ -213,22 +207,22 @@ func promptEnv(env *cliconfig.Environment, defaults cliconfig.Environment) error
 }
 
 // Only validate this during prompt, not when reading from file
-func validateOperatorEndpoint(endpoint string) (string, types.ProviderType, error) {
+func validateOperatorEndpoint(endpoint string) (string, error) {
 	url, err := cliconfig.CortexEndpointValidator(endpoint)
 	if err != nil {
-		return "", types.UnknownProviderType, err
+		return "", err
 	}
 
 	parsedURL, err := urls.Parse(url)
 	if err != nil {
-		return "", types.UnknownProviderType, err
+		return "", err
 	}
 
 	url = parsedURL.String()
 
 	req, err := http.NewRequest("GET", urls.Join(url, "/verifycortex"), nil)
 	if err != nil {
-		return "", types.UnknownProviderType, errors.Wrap(err, "verifying operator endpoint", url)
+		return "", errors.Wrap(err, "verifying operator endpoint", url)
 	}
 
 	client := http.Client{
@@ -239,25 +233,25 @@ func validateOperatorEndpoint(endpoint string) (string, types.ProviderType, erro
 
 	response, err := client.Do(req)
 	if err != nil {
-		return "", types.UnknownProviderType, ErrorInvalidOperatorEndpoint(url)
+		return "", ErrorInvalidOperatorEndpoint(url)
 	}
 	defer response.Body.Close()
 
 	if response.StatusCode != 200 {
-		return "", types.UnknownProviderType, ErrorInvalidOperatorEndpoint(url)
+		return "", ErrorInvalidOperatorEndpoint(url)
 	}
 
 	bodyBytes, err := ioutil.ReadAll(response.Body)
 	if err != nil {
-		return "", types.UnknownProviderType, errors.Wrap(err, _errStrRead)
+		return "", errors.Wrap(err, _errStrRead)
 	}
 
 	var verifyCortex schema.VerifyCortexResponse
 	if err = json.Unmarshal(bodyBytes, &verifyCortex); err != nil {
-		return "", types.UnknownProviderType, errors.Wrap(err, endpoint, string(bodyBytes))
+		return "", errors.Wrap(err, endpoint, string(bodyBytes))
 	}
 
-	return url, verifyCortex.Provider, nil
+	return url, nil
 }
 
 func getDefaultEnv() (*string, error) {
@@ -355,7 +349,7 @@ func ReadOrConfigureEnv(envName string) (cliconfig.Environment, error) {
 
 	promptStr := fmt.Sprintf("the %s environment is not configured; do you already have a Cortex cluster running?", envName)
 	yesMsg := fmt.Sprintf("please configure the %s environment to point to your running cluster:\n", envName)
-	noMsg := "you can create a cluster on AWS or GCP by running the `cortex cluster up` or `cortex cluster-gcp up` command"
+	noMsg := "you can create a cluster by running the `cortex cluster up` command"
 	prompt.YesOrExit(promptStr, yesMsg, noMsg)
 
 	env, err := configureEnv(envName, cliconfig.Environment{})
@@ -386,7 +380,6 @@ func configureEnv(envName string, fieldsToSkipPrompt cliconfig.Environment) (cli
 	env := cliconfig.Environment{
 		Name:             envName,
 		OperatorEndpoint: fieldsToSkipPrompt.OperatorEndpoint,
-		Provider:         fieldsToSkipPrompt.Provider,
 	}
 
 	defaults := getEnvConfigDefaults(env.Name)
@@ -424,7 +417,6 @@ func MustGetOperatorConfig(envName string) cluster.OperatorConfig {
 		Telemetry: isTelemetryEnabled(),
 		ClientID:  clientID,
 		EnvName:   env.Name,
-		Provider:  env.Provider,
 	}
 
 	if env.OperatorEndpoint == "" {
@@ -609,34 +601,4 @@ func writeCLIConfig(cliConfig cliconfig.CLIConfig) error {
 	}
 
 	return nil
-}
-
-func listConfiguredEnvsForProvider(provider types.ProviderType) ([]*cliconfig.Environment, error) {
-	cliConfig, err := readCLIConfig()
-	if err != nil {
-		return nil, err
-	}
-
-	var envs []*cliconfig.Environment
-	for i := range cliConfig.Environments {
-		if cliConfig.Environments[i].Provider == provider {
-			envs = append(envs, cliConfig.Environments[i])
-		}
-	}
-
-	return envs, nil
-}
-
-func listConfiguredEnvNamesForProvider(provider types.ProviderType) ([]string, error) {
-	envList, err := listConfiguredEnvsForProvider(provider)
-	if err != nil {
-		return nil, err
-	}
-
-	envNames := make([]string, len(envList))
-	for i, env := range envList {
-		envNames[i] = env.Name
-	}
-
-	return envNames, nil
 }

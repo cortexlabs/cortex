@@ -17,15 +17,9 @@ kind: StorageClass
 metadata:
   name: ssd
 volumeBindingMode: WaitForFirstConsumer
-{% if config['provider'] == "aws" %}
 provisioner: kubernetes.io/aws-ebs
 parameters:
   type: gp2
-{% elif config['provider'] == "gcp" %}
-provisioner: kubernetes.io/gce-pd
-parameters:
-  type: pd-ssd
-{% endif %}
 
 ---
 

@@ -45,7 +45,7 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string) (*spec.API, string, 
 		return nil, "", err
 	}
 
-	api := spec.GetAPISpec(apiConfig, projectID, "", config.ClusterName()) // Deployment ID not needed for BatchAPI spec
+	api := spec.GetAPISpec(apiConfig, projectID, "", config.CoreConfig.ClusterName) // Deployment ID not needed for BatchAPI spec
 
 	if prevVirtualService == nil {
 		if err := config.AWS.UploadJSONToS3(api, config.CoreConfig.Bucket, api.Key); err != nil {
@@ -106,11 +106,11 @@ func DeleteAPI(apiName string, keepCache bool) error {
 func deleteS3Resources(apiName string) error {
 	return parallel.RunFirstErr(
 		func() error {
-			prefix := filepath.Join(config.ClusterName(), "apis", apiName)
+			prefix := filepath.Join(config.CoreConfig.ClusterName, "apis", apiName)
 			return config.AWS.DeleteS3Dir(config.CoreConfig.Bucket, prefix, true)
 		},
 		func() error {
-			prefix := spec.JobAPIPrefix(config.ClusterName(), userconfig.BatchAPIKind, apiName)
+			prefix := spec.JobAPIPrefix(config.CoreConfig.ClusterName, userconfig.BatchAPIKind, apiName)
 			routines.RunWithPanicHandler(func() {
 				config.AWS.DeleteS3Dir(config.CoreConfig.Bucket, prefix, true) // deleting job files may take a while
 			})
@@ -128,8 +128,8 @@ func GetAllAPIs(virtualServices []istioclientnetworking.VirtualService, k8sJobs 
 	batchAPIsMap := map[string]*schema.APIResponse{}
 
 	jobIDToK8sJobMap := map[string]*kbatch.Job{}
-	for _, kJob := range k8sJobs {
-		jobIDToK8sJobMap[kJob.Labels["jobID"]] = &kJob
+	for i, kJob := range k8sJobs {
+		jobIDToK8sJobMap[kJob.Labels["jobID"]] = &k8sJobs[i]
 	}
 
 	jobIDToPodsMap := map[string][]kcore.Pod{}
@@ -229,8 +229,8 @@ func GetAPIByName(deployedResource *operator.DeployedResource) ([]schema.APIResp
 	}
 
 	jobIDToK8sJobMap := map[string]*kbatch.Job{}
-	for _, kJob := range k8sJobs {
-		jobIDToK8sJobMap[kJob.Labels["jobID"]] = &kJob
+	for i, kJob := range k8sJobs {
+		jobIDToK8sJobMap[kJob.Labels["jobID"]] = &k8sJobs[i]
 	}
 
 	endpoint, err := operator.APIEndpoint(api)

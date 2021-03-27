@@ -29,7 +29,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/table"
 	libtime "github.com/cortexlabs/cortex/pkg/lib/time"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
-	"github.com/cortexlabs/cortex/pkg/types"
 )
 
 const (
@@ -123,7 +122,7 @@ func taskAPITable(taskAPI schema.APIResponse) string {
 		return out
 	}
 
-	out += titleStr("task api configuration") + taskAPI.Spec.UserStr(types.AWSProviderType)
+	out += titleStr("task api configuration") + taskAPI.Spec.UserStr()
 
 	return out
 }

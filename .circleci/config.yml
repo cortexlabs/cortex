@@ -44,10 +44,6 @@ commands:
   run-e2e-tests:
     description: Creates a temporary cluster and runs the cortex E2E tests
     parameters:
-      provider:
-        description: cloud provider
-        type: enum
-        enum: [gcp, aws]
       config:
         description: cluster config file path
         type: string
@@ -57,34 +53,16 @@ commands:
         type: string
         default: "#builds"
     steps:
-      - when:
-          condition:
-            equal: [<< parameters.provider >>, "aws"]
-          steps:
-            - run:
-                name: Create Cluster
-                command: cortex cluster up << parameters.config >> --configure-env << parameters.provider >> -y
-            - run:
-                name: Run E2E Tests
-                command: pytest -v test/e2e/tests -k << parameters.provider >> --<< parameters.provider >>-env << parameters.provider >>
-            - run:
-                name: Delete Cluster
-                command: cortex cluster down --config << parameters.config >> -y
-                when: always
-      - when:
-          condition:
-            equal: [ << parameters.provider >>, "gcp" ]
-          steps:
-            - run:
-                name: Create Cluster
-                command: cortex cluster-gcp up << parameters.config >> --configure-env << parameters.provider >> -y
-            - run:
-                name: Run E2E Tests
-                command: pytest -v test/e2e/tests -k << parameters.provider >> --<< parameters.provider >>-env << parameters.provider >>
-            - run:
-                name: Delete Cluster
-                command: cortex cluster-gcp down --config << parameters.config >> -y
-                when: always
+      - run:
+          name: Create Cluster
+          command: cortex cluster up << parameters.config >> --configure-env aws -y
+      - run:
+          name: Run E2E Tests
+          command: pytest -v test/e2e/tests --env aws
+      - run:
+          name: Delete Cluster
+          command: cortex cluster down --config << parameters.config >> -y
+          when: always
       - slack/notify:
           event: fail
           channel: << parameters.slack_channel >>
@@ -98,8 +76,12 @@ jobs:
       - checkout
       - setup_remote_docker
       - install-go
-      - run: go get -u -v golang.org/x/lint/golint
-      - run: sudo pip install black aiohttp
+      - run:
+          name: Install Linting Tools
+          command: |
+            go get -u -v golang.org/x/lint/golint
+            go get -u -v github.com/kyoh86/looppointer/cmd/looppointer
+            sudo pip install black aiohttp
       - run:
           name: Lint
           command: make lint
@@ -121,16 +103,16 @@ jobs:
       - install-go
       - run: sudo apt update && sudo apt install parallel -y
       - run: sudo pip install awscli
-      - run: make ci-build-images
       - run: make ci-build-cli
       - return-if-not-deployed-branch
+      - run: make ci-build-and-upload-cli
+      - run: make ci-build-images
       - quay-login
       - run:
           command: make ci-push-images
           no_output_timeout: 20m
-      - run: make ci-build-and-upload-cli
 
-  e2e-tests-aws:
+  e2e-tests:
     docker:
       - image: circleci/python:3.6
     environment:
@@ -146,10 +128,9 @@ jobs:
             echo 'export AWS_SECRET_ACCESS_KEY=${NIGHTLY_AWS_SECRET_ACCESS_KEY}' >> $BASH_ENV
       - run:
           name: Generate Cluster Config
-           # using a variety of node groups to test the multi-instance-type cluster functionality
+          # using a variety of node groups to test the multi-instance-type cluster functionality
           command: |
             cat \<< EOF > ./cluster.yaml
-            provider: aws
             cluster_name: cortex
             region: us-east-1
             bucket: cortex-dev-nightly
@@ -173,53 +154,9 @@ jobs:
                 max_instances: 2
             EOF
       - run-e2e-tests:
-          provider: aws
-          config: ./cluster.yaml
-
-  e2e-tests-gcp:
-    docker:
-      - image: circleci/python:3.6
-    steps:
-      - checkout
-      - setup_remote_docker
-      - install-e2e-dependencies
-      - run:
-          name: Initialize Credentials
-          command: |
-            echo ${NIGHTLY_GOOGLE_APPLICATION_CREDENTIALS} > ./google_service_account.json
-            echo 'export GOOGLE_APPLICATION_CREDENTIALS=$(pwd)/google_service_account.json' >> $BASH_ENV
-      - run:
-          name: Generate Cluster Config
-          # using a variety of node pools to test the multi-instance-type cluster functionality
-          command: |
-            cat \<< EOF > ./cluster.yaml
-            provider: gcp
-            cluster_name: cortex
-            project: cortexlabs-dev
-            zone: us-east1-c
-            node_pools:
-              - name: preemptible
-                instance_type: n1-standard-2
-                min_instances: 0
-                max_instances: 1
-                preemptible: true
-              - name: cpu
-                instance_type: n1-standard-2
-                min_instances: 1
-                max_instances: 2
-              - name: gpu
-                instance_type: n1-standard-2
-                accelerator_type: nvidia-tesla-t4
-                min_instances: 1
-                max_instances: 2
-            EOF
-      - run-e2e-tests:
-          provider: gcp
           config: ./cluster.yaml
 
 workflows:
-  version: 2.1
-
   build:
     jobs:
       - test
@@ -249,5 +186,4 @@ workflows:
               only:
                 - master
     jobs:
-      - e2e-tests-aws
-      - e2e-tests-gcp
+      - e2e-tests

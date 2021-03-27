@@ -349,7 +349,7 @@ func checkIfJobCompleted(jobState *job.State, queueURL string, k8sJob kbatch.Job
 	}
 
 	// It takes at least 20 seconds for a worker to exit after determining that the queue is empty.
-	// Queue metrics and cloud metrics both take a few seconds to achieve consistency.
+	// Queue metrics and S3 metrics both take a few seconds to achieve consistency.
 	// Wait one more cycle for the workers to exit and metrics to acheive consistency before determining job status.
 	_jobsToDelete.Add(jobKey.ID)
 
@@ -364,7 +364,8 @@ func checkForJobFailure(jobKey spec.JobKey, k8sJob kbatch.Job) (bool, error) {
 
 	reasonFound := false
 	pods, _ := config.K8s.ListPodsByLabel("jobID", jobKey.ID)
-	for _, pod := range pods {
+	for i := range pods {
+		pod := pods[i] // to avoid loop pointer bugs
 		if k8s.WasPodOOMKilled(&pod) {
 			jobLogger.Error("at least one worker was killed because it ran out of out of memory")
 			return true, errors.FirstError(

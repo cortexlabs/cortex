@@ -34,11 +34,13 @@ pip3 install -e .
 pydoc-markdown -m cortex -m cortex.client --render-toc > $docs_path
 
 # title
-sed -i "s/# Table of Contents/# Python API/g" $docs_path
+sed -i "s/# Table of Contents/# Python client/g" $docs_path
 
 # delete links
 sed -i "/<a name=/d" $docs_path
 
+# delete sentry wrapper
+sed -i "/@sentry_wrapper/d" $docs_path
 # delete unnecessary section headers
 sed -i "/_](#cortex\.client\.Client\.__init__)/d" $docs_path
 sed -i "/\* \[Client](#cortex\.client\.Client)/d" $docs_path

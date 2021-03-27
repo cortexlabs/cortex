@@ -17,7 +17,6 @@ limitations under the License.
 package schema
 
 import (
-	"github.com/cortexlabs/cortex/pkg/types"
 	"github.com/cortexlabs/cortex/pkg/types/clusterconfig"
 	"github.com/cortexlabs/cortex/pkg/types/metrics"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
@@ -30,10 +29,6 @@ type InfoResponse struct {
 	ClusterConfig        clusterconfig.InternalConfig `json:"cluster_config"`
 	NodeInfos            []NodeInfo                   `json:"node_infos"`
 	NumPendingReplicas   int                          `json:"num_pending_replicas"`
-}
-
-type InfoGCPResponse struct {
-	ClusterConfig clusterconfig.InternalGCPConfig `json:"cluster_config"`
 }
 
 type NodeInfo struct {
@@ -91,10 +86,6 @@ type ErrorResponse struct {
 	Message string `json:"message"`
 }
 
-type GCPLogsResponse struct {
-	QueryParams map[string]string `json:"query_params"`
-}
-
 type APITFLiveReloadingSummary struct {
 	Message       string                       `json:"message"`
 	ModelMetadata map[string]TFModelIDMetadata `json:"model_metadata"`
@@ -128,9 +119,7 @@ type APIVersion struct {
 	LastUpdated int64  `json:"last_updated"`
 }
 
-type VerifyCortexResponse struct {
-	Provider types.ProviderType `json:"provider"`
-}
+type VerifyCortexResponse struct{}
 
 func (ir InfoResponse) GetNodesWithNodeGroupName(ngName string) []NodeInfo {
 	nodesInfo := []NodeInfo{}

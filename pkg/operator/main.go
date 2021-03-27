@@ -32,7 +32,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/operator/resources/job/batchapi"
 	"github.com/cortexlabs/cortex/pkg/operator/resources/job/taskapi"
 	"github.com/cortexlabs/cortex/pkg/operator/resources/realtimeapi"
-	"github.com/cortexlabs/cortex/pkg/types"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	"github.com/gorilla/mux"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -47,61 +46,52 @@ func main() {
 		exit.ErrorNoTelemetry(errors.Wrap(err, "init"))
 	}
 
-	telemetry.Event("operator.init", map[string]interface{}{"provider": config.Provider})
+	telemetry.Event("operator.init")
 
 	cron.Run(operator.DeleteEvictedPods, operator.ErrorHandler("delete evicted pods"), time.Hour)
+	cron.Run(operator.ClusterTelemetry, operator.ErrorHandler("instance telemetry"), 1*time.Hour)
 
-	switch config.Provider {
-	case types.AWSProviderType:
-		cron.Run(operator.InstanceTelemetryAWS, operator.ErrorHandler("instance telemetry"), 1*time.Hour)
-	case types.GCPProviderType:
-		cron.Run(operator.InstanceTelemetryGCP, operator.ErrorHandler("instance telemetry"), 1*time.Hour)
+	_, err := operator.UpdateMemoryCapacityConfigMap()
+	if err != nil {
+		exit.Error(errors.Wrap(err, "init"))
 	}
 
-	if config.Provider == types.AWSProviderType {
-		if config.IsManaged() {
-			_, err := operator.UpdateMemoryCapacityConfigMap()
+	cron.Run(batchapi.ManageJobResources, operator.ErrorHandler("manage batch jobs"), batchapi.ManageJobResourcesCronPeriod)
+	cron.Run(taskapi.ManageJobResources, operator.ErrorHandler("manage task jobs"), taskapi.ManageJobResourcesCronPeriod)
+
+	deployments, err := config.K8s.ListDeploymentsWithLabelKeys("apiName")
+	if err != nil {
+		exit.Error(errors.Wrap(err, "init"))
+	}
+
+	for i := range deployments {
+		deployment := deployments[i]
+		apiKind := deployment.Labels["apiKind"]
+		if userconfig.KindFromString(apiKind) == userconfig.RealtimeAPIKind ||
+			userconfig.KindFromString(apiKind) == userconfig.AsyncAPIKind {
+			apiID := deployment.Labels["apiID"]
+			apiName := deployment.Labels["apiName"]
+			api, err := operator.DownloadAPISpec(apiName, apiID)
 			if err != nil {
 				exit.Error(errors.Wrap(err, "init"))
 			}
-		}
 
-		deployments, err := config.K8s.ListDeploymentsWithLabelKeys("apiName")
-		if err != nil {
-			exit.Error(errors.Wrap(err, "init"))
-		}
-
-		for _, deployment := range deployments {
-			apiKind := deployment.Labels["apiKind"]
-			if userconfig.KindFromString(apiKind) == userconfig.RealtimeAPIKind ||
-				userconfig.KindFromString(apiKind) == userconfig.AsyncAPIKind {
-				apiID := deployment.Labels["apiID"]
-				apiName := deployment.Labels["apiName"]
-				api, err := operator.DownloadAPISpec(apiName, apiID)
-				if err != nil {
-					exit.Error(errors.Wrap(err, "init"))
+			switch apiKind {
+			case userconfig.RealtimeAPIKind.String():
+				if err := realtimeapi.UpdateAutoscalerCron(&deployment, api); err != nil {
+					operatorLogger.Fatal(errors.Wrap(err, "init"))
+				}
+			case userconfig.AsyncAPIKind.String():
+				if err := asyncapi.UpdateMetricsCron(&deployment); err != nil {
+					operatorLogger.Fatal(errors.Wrap(err, "init"))
 				}
 
-				switch apiKind {
-				case userconfig.RealtimeAPIKind.String():
-					if err := realtimeapi.UpdateAutoscalerCron(&deployment, api); err != nil {
-						operatorLogger.Fatal(errors.Wrap(err, "init"))
-					}
-				case userconfig.AsyncAPIKind.String():
-					if err := asyncapi.UpdateMetricsCron(&deployment); err != nil {
-						operatorLogger.Fatal(errors.Wrap(err, "init"))
-					}
-
-					if err := asyncapi.UpdateAutoscalerCron(&deployment, *api); err != nil {
-						operatorLogger.Fatal(errors.Wrap(err, "init"))
-					}
+				if err := asyncapi.UpdateAutoscalerCron(&deployment, *api); err != nil {
+					operatorLogger.Fatal(errors.Wrap(err, "init"))
 				}
 			}
 		}
-
-		cron.Run(batchapi.ManageJobResources, operator.ErrorHandler("manage batch jobs"), batchapi.ManageJobResourcesCronPeriod)
 	}
-	cron.Run(taskapi.ManageJobResources, operator.ErrorHandler("manage task jobs"), taskapi.ManageJobResourcesCronPeriod)
 
 	router := mux.NewRouter()
 
@@ -109,11 +99,9 @@ func main() {
 	routerWithoutAuth.Use(endpoints.PanicMiddleware)
 	routerWithoutAuth.HandleFunc("/verifycortex", endpoints.VerifyCortex).Methods("GET")
 
-	if config.Provider == types.AWSProviderType {
-		routerWithoutAuth.HandleFunc("/batch/{apiName}", endpoints.SubmitBatchJob).Methods("POST")
-		routerWithoutAuth.HandleFunc("/batch/{apiName}", endpoints.GetBatchJob).Methods("GET")
-		routerWithoutAuth.HandleFunc("/batch/{apiName}", endpoints.StopBatchJob).Methods("DELETE")
-	}
+	routerWithoutAuth.HandleFunc("/batch/{apiName}", endpoints.SubmitBatchJob).Methods("POST")
+	routerWithoutAuth.HandleFunc("/batch/{apiName}", endpoints.GetBatchJob).Methods("GET")
+	routerWithoutAuth.HandleFunc("/batch/{apiName}", endpoints.StopBatchJob).Methods("DELETE")
 	routerWithoutAuth.HandleFunc("/tasks/{apiName}", endpoints.SubmitTaskJob).Methods("POST")
 	routerWithoutAuth.HandleFunc("/tasks/{apiName}", endpoints.GetTaskJob).Methods("GET")
 	routerWithoutAuth.HandleFunc("/tasks/{apiName}", endpoints.StopTaskJob).Methods("DELETE")
@@ -124,9 +112,7 @@ func main() {
 	routerWithAuth := router.NewRoute().Subrouter()
 
 	routerWithAuth.Use(endpoints.PanicMiddleware)
-	if config.Provider == types.AWSProviderType {
-		routerWithAuth.Use(endpoints.AWSAuthMiddleware)
-	}
+	routerWithAuth.Use(endpoints.AWSAuthMiddleware)
 	routerWithAuth.Use(endpoints.ClientIDMiddleware)
 	routerWithAuth.Use(endpoints.APIVersionCheckMiddleware)
 

@@ -286,10 +286,7 @@ func DirPathRelativeToDir(absPath string, dir string) string {
 func IsFileOrDir(path string) bool {
 	path, _ = EscapeTilde(path)
 	_, err := os.Stat(path)
-	if err == nil {
-		return true
-	}
-	return false
+	return err == nil
 }
 
 func IsDir(path string) bool {
@@ -1004,7 +1001,7 @@ func HashFile(path string, paths ...string) (string, error) {
 		f.Close()
 	}
 
-	return hex.EncodeToString((md5Hash.Sum(nil))), nil
+	return hex.EncodeToString(md5Hash.Sum(nil)), nil
 }
 
 func HashDirectory(dir string, ignoreFns ...IgnoreFn) (string, error) {
@@ -1048,7 +1045,7 @@ func HashDirectory(dir string, ignoreFns ...IgnoreFn) (string, error) {
 		return "", walkErr
 	}
 
-	return hex.EncodeToString((md5Hash.Sum(nil))), nil
+	return hex.EncodeToString(md5Hash.Sum(nil)), nil
 }
 
 func CloseSilent(closer io.Closer, closers ...io.Closer) {

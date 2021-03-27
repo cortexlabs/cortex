@@ -21,7 +21,7 @@ import datadog
 from cortex_internal.lib.api import Predictor
 from cortex_internal.lib.exceptions import CortexException
 from cortex_internal.lib.log import configure_logger
-from cortex_internal.lib.storage import S3, GCS
+from cortex_internal.lib.storage import S3
 
 logger = configure_logger("cortex", os.environ["CORTEX_LOG_CONFIG_FILE"])
 
@@ -29,13 +29,11 @@ logger = configure_logger("cortex", os.environ["CORTEX_LOG_CONFIG_FILE"])
 class API:
     def __init__(
         self,
-        provider: str,
-        storage: Union[S3, GCS],
+        storage: S3,
         api_spec: Dict[str, Any],
         model_dir: str,
         cache_dir: str = ".",
     ):
-        self.provider = provider
         self.storage = storage
         self.api_spec = api_spec
         self.cache_dir = cache_dir
@@ -47,7 +45,7 @@ class API:
         self.key = api_spec["key"]
         self.metadata_root = api_spec["metadata_root"]
         self.name = api_spec["name"]
-        self.predictor = Predictor(provider, api_spec, model_dir)
+        self.predictor = Predictor(api_spec, model_dir)
 
         host_ip = os.environ["HOST_IP"]
         datadog.initialize(statsd_host=host_ip, statsd_port=9125)
@@ -135,16 +133,14 @@ class API:
 
 
 def get_api(
-    provider: str,
     spec_path: str,
     model_dir: str,
     cache_dir: str,
-    region: Optional[str] = None,
+    region: str,
 ) -> API:
-    storage, raw_api_spec = get_spec(provider, spec_path, cache_dir, region)
+    storage, raw_api_spec = get_spec(spec_path, cache_dir, region)
 
     api = API(
-        provider=provider,
         storage=storage,
         api_spec=raw_api_spec,
         model_dir=model_dir,
@@ -155,29 +151,21 @@ def get_api(
 
 
 def get_spec(
-    provider: str,
     spec_path: str,
     cache_dir: str,
-    region: Optional[str] = None,
+    region: str,
     spec_name: str = "api_spec.json",
-) -> Tuple[Union[S3, GCS], dict]:
+) -> Tuple[S3, dict]:
     """
     Args:
-        provider: "aws" or "gcp".
         spec_path: Path to API spec (i.e. "s3://cortex-dev-0/apis/iris-classifier/api/69b93378fa5c0218-jy1fjtyihu-9fcc10739e7fc8050cefa8ca27ece1ee/master-spec.json").
         cache_dir: Local directory where the API spec gets saved to.
-        region: Region of the bucket. Only required for "S3" provider.
+        region: Region of the bucket.
         spec_name: File name of the spec as it is saved on disk.
     """
 
-    if provider == "aws":
-        bucket, key = S3.deconstruct_s3_path(spec_path)
-        storage = S3(bucket=bucket, region=region)
-    elif provider == "gcp":
-        bucket, key = GCS.deconstruct_gcs_path(spec_path)
-        storage = GCS(bucket=bucket)
-    else:
-        raise ValueError('invalid "provider" argument')
+    bucket, key = S3.deconstruct_s3_path(spec_path)
+    storage = S3(bucket=bucket, region=region)
 
     local_spec_path = os.path.join(cache_dir, spec_name)
     if not os.path.isfile(local_spec_path):

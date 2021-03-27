@@ -83,14 +83,13 @@ var _getCmd = &cobra.Command{
 			}
 		}
 
-		// if API_NAME is specified or env name is provided then the provider is known, otherwise provider isn't because all apis from all environments will be fetched
 		if len(args) == 1 || wasEnvFlagProvided(cmd) {
 			env, err := ReadOrConfigureEnv(envName)
 			if err != nil {
 				telemetry.Event("cli.get")
 				exit.Error(err)
 			}
-			telemetry.Event("cli.get", map[string]interface{}{"provider": env.Provider.String(), "env_name": env.Name})
+			telemetry.Event("cli.get", map[string]interface{}{"env_name": env.Name})
 		} else {
 			telemetry.Event("cli.get")
 		}
@@ -166,7 +165,7 @@ var _getCmd = &cobra.Command{
 						return "", err
 					}
 
-					apiTable, err := getAPIsByEnv(env, false)
+					apiTable, err := getAPIsByEnv(env)
 					if err != nil {
 						return "", err
 					}
@@ -336,7 +335,7 @@ func getAPIsInAllEnvironments() (string, error) {
 	return out, nil
 }
 
-func getAPIsByEnv(env cliconfig.Environment, printEnv bool) (string, error) {
+func getAPIsByEnv(env cliconfig.Environment) (string, error) {
 	apisRes, err := cluster.GetAPIs(MustGetOperatorConfig(env.Name))
 	if err != nil {
 		return "", err

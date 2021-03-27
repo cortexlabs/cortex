@@ -27,7 +27,6 @@ import (
 	libmath "github.com/cortexlabs/cortex/pkg/lib/math"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
-	"github.com/cortexlabs/cortex/pkg/types"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 )
 
@@ -65,7 +64,7 @@ const (
 	ErrS3DirIsEmpty   = "spec.s3_dir_is_empty"
 
 	ErrModelPathNotDirectory      = "spec.model_path_not_directory"
-	ErrInvalidModelPathProvider   = "spec.invalid_model_path_provider"
+	ErrInvalidBucketScheme        = "spec.invalid_bucket_scheme"
 	ErrInvalidPythonModelPath     = "spec.invalid_python_model_path"
 	ErrInvalidTensorFlowModelPath = "spec.invalid_tensorflow_model_path"
 	ErrInvalidONNXModelPath       = "spec.invalid_onnx_model_path"
@@ -86,10 +85,8 @@ const (
 	ErrPredictorTypeNotSupportedForKind            = "spec.predictor_type_not_supported_by_kind"
 	ErrNoAvailableNodeComputeLimit                 = "spec.no_available_node_compute_limit"
 	ErrCortexPrefixedEnvVarNotAllowed              = "spec.cortex_prefixed_env_var_not_allowed"
-	ErrUnsupportedComputeResourceForProvider       = "spec.unsupported_compute_resource_for_provider"
 	ErrRegistryInDifferentRegion                   = "spec.registry_in_different_region"
 	ErrRegistryAccountIDMismatch                   = "spec.registry_account_id_mismatch"
-	ErrKindIsNotSupportedByProvider                = "spec.kind_is_not_supported_by_provider"
 	ErrKeyIsNotSupportedForKind                    = "spec.key_is_not_supported_for_kind"
 	ErrComputeResourceConflict                     = "spec.compute_resource_conflict"
 	ErrInvalidNumberOfInfProcesses                 = "spec.invalid_number_of_inf_processes"
@@ -311,10 +308,10 @@ func ErrorModelPathNotDirectory(modelPath string) error {
 	})
 }
 
-func ErrorInvalidModelPathProvider(modelPath string) error {
+func ErrorInvalidBucketScheme(path string) error {
 	return errors.WithStack(&errors.Error{
-		Kind:    ErrInvalidModelPathProvider,
-		Message: fmt.Sprintf("%s: model path must be an S3 path (e.g. s3://bucket/my-dir/) or a GCS path (e.g. gs://bucket/my-dir)", modelPath),
+		Kind:    ErrInvalidBucketScheme,
+		Message: fmt.Sprintf("%s: path must be an S3 path (e.g. s3://bucket/my-dir/)", path),
 	})
 }
 
@@ -548,14 +545,7 @@ func ErrorFieldNotSupportedByPredictorType(fieldKey string, predictorType userco
 func ErrorCortexPrefixedEnvVarNotAllowed() error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrCortexPrefixedEnvVarNotAllowed,
-		Message: fmt.Sprintf("environment variables starting with CORTEX_ are reserved"),
-	})
-}
-
-func ErrorUnsupportedComputeResourceForProvider(resourceType string, provider types.ProviderType) error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrUnsupportedComputeResourceForProvider,
-		Message: fmt.Sprintf("%s compute resources cannot be used for the %s provider", resourceType, provider.String()),
+		Message: "environment variables starting with CORTEX_ are reserved",
 	})
 }
 
@@ -570,13 +560,6 @@ func ErrorRegistryAccountIDMismatch(regID, opID string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrRegistryAccountIDMismatch,
 		Message: fmt.Sprintf("registry account ID (%s) doesn't match your AWS account ID (%s), and using an ECR registry in a different AWS account is not supported", regID, opID),
-	})
-}
-
-func ErrorKindIsNotSupportedByProvider(kind userconfig.Kind, provider types.ProviderType) error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrKindIsNotSupportedByProvider,
-		Message: fmt.Sprintf("%s kind is not supported on %s provider", kind.String(), provider.String()),
 	})
 }
 

@@ -25,7 +25,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/urls"
-	"github.com/cortexlabs/cortex/pkg/types"
 	"github.com/cortexlabs/yaml"
 	kmeta "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -335,7 +334,7 @@ func AutoscalingFromAnnotations(k8sObj kmeta.Object) (*Autoscaling, error) {
 	return &a, nil
 }
 
-func (api *API) UserStr(provider types.ProviderType) string {
+func (api *API) UserStr() string {
 	var sb strings.Builder
 	sb.WriteString(fmt.Sprintf("%s: %s\n", NameKey, api.Name))
 	sb.WriteString(fmt.Sprintf("%s: %s\n", KindKey, api.Kind.String()))
@@ -634,11 +633,8 @@ func ZeroCompute() Compute {
 	}
 }
 
-func (api *API) TelemetryEvent(provider types.ProviderType) map[string]interface{} {
-	event := map[string]interface{}{
-		"provider": provider,
-		"kind":     api.Kind,
-	}
+func (api *API) TelemetryEvent() map[string]interface{} {
+	event := map[string]interface{}{"kind": api.Kind}
 
 	if len(api.APIs) > 0 {
 		event["apis._is_defined"] = true

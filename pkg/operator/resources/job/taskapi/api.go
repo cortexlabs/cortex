@@ -43,10 +43,10 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string) (*spec.API, string, 
 		return nil, "", err
 	}
 
-	api := spec.GetAPISpec(apiConfig, projectID, "", config.ClusterName()) // Deployment ID not needed for TaskAPI spec
+	api := spec.GetAPISpec(apiConfig, projectID, "", config.CoreConfig.ClusterName) // Deployment ID not needed for TaskAPI spec
 
 	if prevVirtualService == nil {
-		if err := config.UploadJSONToBucket(api, api.Key); err != nil {
+		if err := config.AWS.UploadJSONToS3(api, config.CoreConfig.Bucket, api.Key); err != nil {
 			return nil, "", errors.Wrap(err, "upload api spec")
 		}
 
@@ -62,7 +62,7 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string) (*spec.API, string, 
 	}
 
 	if prevVirtualService.Labels["specID"] != api.SpecID {
-		if err := config.UploadJSONToBucket(api, api.Key); err != nil {
+		if err := config.AWS.UploadJSONToS3(api, config.CoreConfig.Bucket, api.Key); err != nil {
 			return nil, "", errors.Wrap(err, "upload api spec")
 		}
 
@@ -101,13 +101,13 @@ func DeleteAPI(apiName string, keepCache bool) error {
 func deleteS3Resources(apiName string) error {
 	return parallel.RunFirstErr(
 		func() error {
-			prefix := filepath.Join(config.ClusterName(), "apis", apiName)
-			return config.DeleteBucketDir(prefix, true)
+			prefix := filepath.Join(config.CoreConfig.ClusterName, "apis", apiName)
+			return config.AWS.DeleteS3Dir(config.CoreConfig.Bucket, prefix, true)
 		},
 		func() error {
-			prefix := spec.JobAPIPrefix(config.ClusterName(), userconfig.TaskAPIKind, apiName)
+			prefix := spec.JobAPIPrefix(config.CoreConfig.ClusterName, userconfig.TaskAPIKind, apiName)
 			go func() {
-				_ = config.DeleteBucketDir(prefix, true) // deleting job files may take a while
+				_ = config.AWS.DeleteS3Dir(config.CoreConfig.Bucket, prefix, true) // deleting job files may take a while
 			}()
 			return nil
 		},
@@ -123,8 +123,8 @@ func GetAllAPIs(virtualServices []istioclientnetworking.VirtualService, k8sJobs 
 	taskAPIsMap := map[string]*schema.APIResponse{}
 
 	jobIDToK8sJobMap := map[string]*kbatch.Job{}
-	for _, job := range k8sJobs {
-		jobIDToK8sJobMap[job.Labels["jobID"]] = &job
+	for i, kJob := range k8sJobs {
+		jobIDToK8sJobMap[kJob.Labels["jobID"]] = &k8sJobs[i]
 	}
 
 	jobIDToPodsMap := map[string][]kcore.Pod{}
@@ -204,7 +204,7 @@ func GetAllAPIs(virtualServices []istioclientnetworking.VirtualService, k8sJobs 
 	return taskAPIList, nil
 }
 
-// GetAllAPIs returns a single task API and its most recently submitted job along with all running task jobs
+// GetAPIByName returns a single task API and its most recently submitted job along with all running task jobs
 func GetAPIByName(deployedResource *operator.DeployedResource) ([]schema.APIResponse, error) {
 	virtualService := deployedResource.VirtualService
 
@@ -220,8 +220,8 @@ func GetAPIByName(deployedResource *operator.DeployedResource) ([]schema.APIResp
 	}
 
 	jobIDToK8sJobMap := map[string]*kbatch.Job{}
-	for _, job := range k8sJobs {
-		jobIDToK8sJobMap[job.Labels["jobID"]] = &job
+	for i, kJob := range k8sJobs {
+		jobIDToK8sJobMap[kJob.Labels["jobID"]] = &k8sJobs[i]
 	}
 
 	endpoint, err := operator.APIEndpoint(api)

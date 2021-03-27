@@ -1,4 +1,4 @@
-# Python API
+# Python client
 
 * [cortex](#cortex)
   * [client](#client)
@@ -22,11 +22,10 @@
 ## client
 
 ```python
-client(env: str = None) -> Client
+client(env: Optional[str] = None) -> Client
 ```
 
-Initialize a client based on the specified environment.
-If no environment name is passed, it will attempt using the default environment.
+Initialize a client based on the specified environment. If no environment is specified, it will attempt to use the default environment.
 
 **Arguments**:
 
@@ -43,17 +42,17 @@ If no environment name is passed, it will attempt using the default environment.
 new_client(name: str, operator_endpoint: str) -> Client
 ```
 
-Create a new environment to connect to an existing Cortex Cluster, and initialize a client to deploy and manage APIs on that cluster.
+Create a new environment to connect to an existing cluster, and initialize a client to deploy and manage APIs on that cluster.
 
 **Arguments**:
 
 - `name` - Name of the environment to create.
-- `operator_endpoint` - The endpoint for the operator of your Cortex Cluster. You can get this endpoint by running the CLI command `cortex cluster info` for an AWS provider or `cortex cluster-gcp info` for a GCP provider.
+- `operator_endpoint` - The endpoint for the operator of your Cortex cluster. You can get this endpoint by running the CLI command `cortex cluster info`.
 
 
 **Returns**:
 
-  Cortex client that can be used to deploy and manage APIs on a Cortex Cluster.
+  Cortex client that can be used to deploy and manage APIs on a cluster.
 
 ## env\_list
 

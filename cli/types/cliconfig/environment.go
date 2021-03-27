@@ -24,13 +24,11 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/table"
 	"github.com/cortexlabs/cortex/pkg/lib/urls"
-	"github.com/cortexlabs/cortex/pkg/types"
 )
 
 type Environment struct {
-	Name             string             `json:"name" yaml:"name"`
-	Provider         types.ProviderType `json:"provider" yaml:"provider"`
-	OperatorEndpoint string             `json:"operator_endpoint" yaml:"operator_endpoint"`
+	Name             string `json:"name" yaml:"name"`
+	OperatorEndpoint string `json:"operator_endpoint" yaml:"operator_endpoint"`
 }
 
 func (env Environment) String(isDefault bool) string {
@@ -42,7 +40,6 @@ func (env Environment) String(isDefault bool) string {
 		items.Add("name", env.Name)
 	}
 
-	items.Add("provider", env.Provider)
 	items.Add("cortex operator endpoint", env.OperatorEndpoint)
 
 	return items.String(&table.KeyValuePairOpts{

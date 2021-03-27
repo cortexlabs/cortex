@@ -24,9 +24,7 @@ import (
 
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
-	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/urls"
-	"github.com/cortexlabs/cortex/pkg/types"
 	"github.com/cortexlabs/cortex/pkg/types/clusterconfig"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 )
@@ -41,48 +39,44 @@ func errStrFailedToConnect(u url.URL) string {
 }
 
 const (
-	ErrInvalidProvider                         = "cli.invalid_provider"
-	ErrInvalidLegacyProvider                   = "cli.invalid_legacy_provider"
-	ErrCommandNotSupportedForKind              = "cli.command_not_supported_for_kind"
-	ErrNoAvailableEnvironment                  = "cli.no_available_environment"
-	ErrEnvironmentNotSet                       = "cli.environment_not_set"
-	ErrEnvironmentNotFound                     = "cli.environment_not_found"
-	ErrFieldNotFoundInEnvironment              = "cli.field_not_found_in_environment"
-	ErrInvalidOperatorEndpoint                 = "cli.invalid_operator_endpoint"
-	ErrNoOperatorLoadBalancer                  = "cli.no_operator_load_balancer"
-	ErrCortexYAMLNotFound                      = "cli.cortex_yaml_not_found"
-	ErrConnectToDockerDaemon                   = "cli.connect_to_docker_daemon"
-	ErrDockerPermissions                       = "cli.docker_permissions"
-	ErrDockerCtrlC                             = "cli.docker_ctrl_c"
-	ErrResponseUnknown                         = "cli.response_unknown"
-	ErrAPINotReady                             = "cli.api_not_ready"
-	ErrOneAWSEnvVarSet                         = "cli.one_aws_env_var_set"
-	ErrOneAWSFlagSet                           = "cli.one_aws_flag_set"
-	ErrOnlyAWSClusterEnvVarSet                 = "cli.only_aws_cluster_env_var_set"
-	ErrOnlyAWSClusterFlagSet                   = "cli.only_aws_cluster_flag_set"
-	ErrMissingAWSCredentials                   = "cli.missing_aws_credentials"
-	ErrCredentialsInClusterConfig              = "cli.credentials_in_cluster_config"
-	ErrClusterUp                               = "cli.cluster_up"
-	ErrClusterConfigure                        = "cli.cluster_configure"
-	ErrClusterInfo                             = "cli.cluster_info"
-	ErrClusterDebug                            = "cli.cluster_debug"
-	ErrClusterRefresh                          = "cli.cluster_refresh"
-	ErrClusterDown                             = "cli.cluster_down"
-	ErrDuplicateCLIEnvNames                    = "cli.duplicate_cli_env_names"
-	ErrClusterAccessConfigRequired             = "cli.cluster_access_config_or_prompts_required"
-	ErrGCPClusterAccessConfigRequired          = "cli.gcp_cluster_access_config_or_prompts_required"
-	ErrGCPClusterAccessConfigOrPromptsRequired = "cli.gcp_cluster_access_config_or_prompts_required"
-	ErrShellCompletionNotSupported             = "cli.shell_completion_not_supported"
-	ErrNoTerminalWidth                         = "cli.no_terminal_width"
-	ErrDeployFromTopLevelDir                   = "cli.deploy_from_top_level_dir"
-	ErrGCPClusterAlreadyExists                 = "cli.gcp_cluster_already_exists"
-	ErrGCPClusterDoesntExist                   = "cli.gcp_cluster_doesnt_exist"
+	ErrInvalidProvider             = "cli.invalid_provider"
+	ErrInvalidLegacyProvider       = "cli.invalid_legacy_provider"
+	ErrCommandNotSupportedForKind  = "cli.command_not_supported_for_kind"
+	ErrNoAvailableEnvironment      = "cli.no_available_environment"
+	ErrEnvironmentNotSet           = "cli.environment_not_set"
+	ErrEnvironmentNotFound         = "cli.environment_not_found"
+	ErrFieldNotFoundInEnvironment  = "cli.field_not_found_in_environment"
+	ErrInvalidOperatorEndpoint     = "cli.invalid_operator_endpoint"
+	ErrNoOperatorLoadBalancer      = "cli.no_operator_load_balancer"
+	ErrCortexYAMLNotFound          = "cli.cortex_yaml_not_found"
+	ErrConnectToDockerDaemon       = "cli.connect_to_docker_daemon"
+	ErrDockerPermissions           = "cli.docker_permissions"
+	ErrDockerCtrlC                 = "cli.docker_ctrl_c"
+	ErrResponseUnknown             = "cli.response_unknown"
+	ErrAPINotReady                 = "cli.api_not_ready"
+	ErrOneAWSEnvVarSet             = "cli.one_aws_env_var_set"
+	ErrOneAWSFlagSet               = "cli.one_aws_flag_set"
+	ErrOnlyAWSClusterEnvVarSet     = "cli.only_aws_cluster_env_var_set"
+	ErrOnlyAWSClusterFlagSet       = "cli.only_aws_cluster_flag_set"
+	ErrMissingAWSCredentials       = "cli.missing_aws_credentials"
+	ErrCredentialsInClusterConfig  = "cli.credentials_in_cluster_config"
+	ErrClusterUp                   = "cli.cluster_up"
+	ErrClusterConfigure            = "cli.cluster_configure"
+	ErrClusterInfo                 = "cli.cluster_info"
+	ErrClusterDebug                = "cli.cluster_debug"
+	ErrClusterRefresh              = "cli.cluster_refresh"
+	ErrClusterDown                 = "cli.cluster_down"
+	ErrDuplicateCLIEnvNames        = "cli.duplicate_cli_env_names"
+	ErrClusterAccessConfigRequired = "cli.cluster_access_config_or_prompts_required"
+	ErrShellCompletionNotSupported = "cli.shell_completion_not_supported"
+	ErrNoTerminalWidth             = "cli.no_terminal_width"
+	ErrDeployFromTopLevelDir       = "cli.deploy_from_top_level_dir"
 )
 
-func ErrorInvalidProvider(providerStr string) error {
+func ErrorInvalidProvider(providerStr, cliConfigPath string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrInvalidProvider,
-		Message: fmt.Sprintf("%s is not a valid provider (%s are supported)", providerStr, s.UserStrsAnd(types.ProviderTypeStrings())),
+		Message: fmt.Sprintf("\"%s\" is not a supported provider (only aws is supported); remove the environment(s) which use the %s provider from %s, or delete %s (it will be recreated on subsequent CLI commands)", providerStr, providerStr, cliConfigPath, cliConfigPath),
 	})
 }
 
@@ -103,7 +97,7 @@ func ErrorCommandNotSupportedForKind(kind userconfig.Kind, command string) error
 func ErrorNoAvailableEnvironment() error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrNoAvailableEnvironment,
-		Message: "no environments are configured; run `cortex cluster up` or `cortex cluster-gcp up` to create a cluster, or run `cortex env configure` to connect to an existing cluster",
+		Message: "no environments are configured; run `cortex cluster up` to create a cluster, or run `cortex env configure` to connect to an existing cluster",
 	})
 }
 
@@ -278,13 +272,6 @@ func ErrorClusterAccessConfigRequired() error {
 	})
 }
 
-func ErrorGCPClusterAccessConfigRequired() error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrGCPClusterAccessConfigRequired,
-		Message: fmt.Sprintf("please provide a cluster configuration file which specifies `%s` and `%s` (e.g. via `--config cluster.yaml`) or use the CLI flags to specify the cluster (e.g. via `--name`, `--project` and `--zone`)", clusterconfig.ClusterNameKey, clusterconfig.RegionKey),
-	})
-}
-
 func ErrorShellCompletionNotSupported(shell string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrShellCompletionNotSupported,
@@ -303,19 +290,5 @@ func ErrorDeployFromTopLevelDir(genericDirName string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrDeployFromTopLevelDir,
 		Message: fmt.Sprintf("cannot deploy from your %s directory - when deploying your API, cortex sends all files in your project directory (i.e. the directory which contains cortex.yaml) to your cluster (see https://docs.cortex.dev/v/%s/); therefore it is recommended to create a subdirectory for your project files", genericDirName, consts.CortexVersionMinor),
-	})
-}
-
-func ErrorGCPClusterAlreadyExists(clusterName string, zone string, project string) error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrGCPClusterAlreadyExists,
-		Message: fmt.Sprintf("there is already a cluster named \"%s\" in %s in the %s project", clusterName, zone, project),
-	})
-}
-
-func ErrorGCPClusterDoesntExist(clusterName string, zone string, project string) error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrGCPClusterDoesntExist,
-		Message: fmt.Sprintf("there is no cluster named \"%s\" in %s in the %s project", clusterName, zone, project),
 	})
 }

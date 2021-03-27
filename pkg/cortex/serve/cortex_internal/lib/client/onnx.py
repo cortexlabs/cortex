@@ -12,10 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os
 import datetime
+import os
 import threading as td
-import multiprocessing as mp
 from typing import Any, Tuple, Optional
 
 try:
@@ -55,7 +54,7 @@ class ONNXClient:
         api_spec: dict,
         models: ModelsHolder,
         model_dir: str,
-        models_tree: Optional[ModelsTree],
+        models_tree: Optional[ModelsTree] = None,
         lock_dir: Optional[str] = "/run/cron",
     ):
         """
@@ -358,11 +357,11 @@ class ONNXClient:
                             )
                         elif status == "on-disk":
                             logger.info(
-                                f"found newer model {model_name} of vesion {model_version} on the {upstream_model['provider']} upstream than the one on the disk"
+                                f"found newer model {model_name} of vesion {model_version} on the s3 upstream than the one on the disk"
                             )
                         else:
                             logger.info(
-                                f"found newer model {model_name} of vesion {model_version} on the {upstream_model['provider']} upstream than the one loaded into memory"
+                                f"found newer model {model_name} of vesion {model_version} on the s3 upstream than the one loaded into memory"
                             )
 
                         # remove model from disk and memory
@@ -379,10 +378,9 @@ class ONNXClient:
 
                         # download model
                         logger.info(
-                            f"downloading model {model_name} of version {model_version} from the {upstream_model['provider']} upstream"
+                            f"downloading model {model_name} of version {model_version} from the s3 upstream"
                         )
                         date = self._models.download_model(
-                            upstream_model["provider"],
                             upstream_model["bucket"],
                             model_name,
                             model_version,

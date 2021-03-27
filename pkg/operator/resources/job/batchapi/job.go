@@ -131,7 +131,7 @@ func SubmitJob(apiName string, submission *schema.BatchJobSubmission) (*spec.Bat
 }
 
 func uploadJobSpec(jobSpec *spec.BatchJob) error {
-	err := config.AWS.UploadJSONToS3(jobSpec, config.CoreConfig.Bucket, jobSpec.SpecFilePath(config.ClusterName()))
+	err := config.AWS.UploadJSONToS3(jobSpec, config.CoreConfig.Bucket, jobSpec.SpecFilePath(config.CoreConfig.ClusterName))
 	if err != nil {
 		return err
 	}
@@ -220,12 +220,12 @@ func handleJobSubmissionError(jobKey spec.JobKey, jobErr error) {
 	}
 }
 
-// delete k8s job, queue and save batch metrics from prometheus to cloud
+// delete k8s job, queue and save batch metrics from prometheus to S3
 func deleteJobRuntimeResources(jobKey spec.JobKey) error {
 	err := errors.FirstError(
 		deleteK8sJob(jobKey),
 		deleteQueueWithDelay(jobKey),
-		saveMetricsToCloud(jobKey),
+		saveMetricsToS3(jobKey),
 	)
 
 	if err != nil {

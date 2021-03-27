@@ -21,24 +21,6 @@ EKSCTL_TIMEOUT=45m
 arg1="$1"
 
 function main() {
-  if [ "$CORTEX_PROVIDER" == "aws" ]; then
-    uninstall_aws
-  elif [ "$CORTEX_PROVIDER" == "gcp" ]; then
-    uninstall_gcp
-  fi
-}
-
-function uninstall_gcp() {
-  gcloud auth activate-service-account --key-file $GOOGLE_APPLICATION_CREDENTIALS 2> /dev/stdout 1> /dev/null | (grep -v "Activated service account credentials" || true)
-  gcloud container clusters get-credentials $CORTEX_CLUSTER_NAME --project $CORTEX_GCP_PROJECT --region $CORTEX_GCP_ZONE 2> /dev/stdout 1> /dev/null | (grep -v "Fetching cluster" | grep -v "kubeconfig entry generated" || true)
-
-  if [ "$arg1" != "--keep-volumes" ]; then
-    uninstall_prometheus
-    uninstall_grafana
-  fi
-}
-
-function uninstall_aws() {
   echo
   aws eks --region $CORTEX_REGION update-kubeconfig --name $CORTEX_CLUSTER_NAME >/dev/null
   eksctl delete cluster --wait --name=$CORTEX_CLUSTER_NAME --region=$CORTEX_REGION --timeout=$EKSCTL_TIMEOUT

@@ -13,7 +13,9 @@
 # limitations under the License.
 import inspect
 import os
+import pathlib
 import sys
+import time
 from typing import Dict, Any
 
 import boto3
@@ -37,7 +39,6 @@ JOB_COMPLETE_MESSAGE_RENEWAL = 10  # seconds
 
 local_cache: Dict[str, Any] = {
     "api": None,
-    "provider": None,
     "predictor_impl": None,
     "predict_fn_args": None,
     "sqs_client": None,
@@ -93,8 +94,11 @@ def build_predict_args(payload, request_id):
 
 
 def main():
+    while not pathlib.Path("/mnt/workspace/init_script_run.txt").is_file():
+        time.sleep(0.2)
+
+    model_dir = os.getenv("CORTEX_MODEL_DIR")
     cache_dir = os.environ["CORTEX_CACHE_DIR"]
-    provider = os.environ["CORTEX_PROVIDER"]
     api_spec_path = os.environ["CORTEX_API_SPEC"]
     workload_path = os.environ["CORTEX_ASYNC_WORKLOAD_PATH"]
     project_dir = os.environ["CORTEX_PROJECT_DIR"]
@@ -103,8 +107,10 @@ def main():
     queue_url = os.environ["CORTEX_QUEUE_URL"]
     statsd_host = os.getenv("HOST_IP")
     statsd_port = os.getenv("CORTEX_STATSD_PORT", "9125")
+    tf_serving_host = os.getenv("CORTEX_TF_SERVING_HOST")
+    tf_serving_port = os.getenv("CORTEX_TF_BASE_SERVING_PORT")
 
-    storage, api_spec = get_spec(provider, api_spec_path, cache_dir, region)
+    storage, api_spec = get_spec(api_spec_path, cache_dir, region)
     sqs_client = boto3.client("sqs", region_name=region)
     api = AsyncAPI(
         api_spec=api_spec,
@@ -112,12 +118,18 @@ def main():
         storage_path=workload_path,
         statsd_host=statsd_host,
         statsd_port=int(statsd_port),
+        model_dir=model_dir,
     )
 
     try:
-        log.info("loading the predictor from {}".format(api.path))
+        log.info(f"loading the predictor from {api.path}")
         metrics_client = MetricsClient(api.statsd)
-        predictor_impl = api.initialize_impl(project_dir, metrics_client)
+        predictor_impl = api.initialize_impl(
+            project_dir,
+            metrics_client,
+            tf_serving_host=tf_serving_host,
+            tf_serving_port=tf_serving_port,
+        )
     except UserRuntimeException as err:
         err.wrap(f"failed to initialize predictor implementation")
         log.error(str(err), exc_info=True)
@@ -128,7 +140,6 @@ def main():
         sys.exit(1)
 
     local_cache["api"] = api
-    local_cache["provider"] = provider
     local_cache["predictor_impl"] = predictor_impl
     local_cache["sqs_client"] = sqs_client
     local_cache["storage_client"] = storage

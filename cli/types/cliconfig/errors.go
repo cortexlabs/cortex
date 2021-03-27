@@ -21,26 +21,17 @@ import (
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
-	"github.com/cortexlabs/cortex/pkg/types"
 )
 
 const (
-	ErrEnvironmentNotConfigured        = "cliconfig.environment_not_configured"
-	ErrEnvironmentProviderNameConflict = "cliconfig.environment_provider_name_conflict"
-	ErrDuplicateEnvironmentNames       = "cliconfig.duplicate_environment_names"
+	ErrEnvironmentNotConfigured  = "cliconfig.environment_not_configured"
+	ErrDuplicateEnvironmentNames = "cliconfig.duplicate_environment_names"
 )
 
 func ErrorEnvironmentNotConfigured(envName string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrEnvironmentNotConfigured,
 		Message: fmt.Sprintf("%s environment is not configured", envName),
-	})
-}
-
-func ErrorEnvironmentProviderNameConflict(envName string, provider types.ProviderType) error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrEnvironmentProviderNameConflict,
-		Message: fmt.Sprintf("an environment named \"%s\" cannot use %s provider", envName, provider.String()),
 	})
 }
 

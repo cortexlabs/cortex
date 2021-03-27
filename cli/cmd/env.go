@@ -68,12 +68,11 @@ var _envConfigureCmd = &cobra.Command{
 
 		fieldsToSkipPrompt := cliconfig.Environment{}
 		if _flagEnvOperatorEndpoint != "" {
-			operatorEndpoint, provider, err := validateOperatorEndpoint(_flagEnvOperatorEndpoint)
+			operatorEndpoint, err := validateOperatorEndpoint(_flagEnvOperatorEndpoint)
 			if err != nil {
 				exit.Error(err)
 			}
 			fieldsToSkipPrompt.OperatorEndpoint = operatorEndpoint
-			fieldsToSkipPrompt.Provider = provider
 		}
 
 		if _, err := configureEnv(envName, fieldsToSkipPrompt); err != nil {

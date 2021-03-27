@@ -39,7 +39,6 @@ spec:
           app: operator-istio-gateway
           istio: ingressgateway-operator
         k8s:
-          {% if env['CORTEX_PROVIDER'] == "aws" %}
           serviceAnnotations:
             service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
             service.beta.kubernetes.io/aws-load-balancer-cross-zone-load-balancing-enabled: "true"
@@ -48,10 +47,6 @@ spec:
             {% if config.get('operator_load_balancer_scheme') == 'internal' %}
             service.beta.kubernetes.io/aws-load-balancer-internal: "true"
             {% endif %}
-          {% elif env['CORTEX_PROVIDER'] == "gcp" and config.get('operator_load_balancer_scheme') == 'internal' %}
-          serviceAnnotations:
-            cloud.google.com/load-balancer-type: "Internal"
-          {% endif %}
           service:
             type: LoadBalancer
             externalTrafficPolicy: Cluster # https://medium.com/pablo-perez/k8s-externaltrafficpolicy-local-or-cluster-40b259a19404, https://www.asykim.com/blog/deep-dive-into-kubernetes-external-traffic-policies
@@ -98,7 +93,6 @@ spec:
           app: apis-istio-gateway
           istio: ingressgateway-apis
         k8s:
-          {% if env['CORTEX_PROVIDER'] == "aws" %}
           serviceAnnotations:
             service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
             service.beta.kubernetes.io/aws-load-balancer-cross-zone-load-balancing-enabled: "true"
@@ -111,10 +105,6 @@ spec:
             {% if config.get('ssl_certificate_arn', '') != '' %}
             service.beta.kubernetes.io/aws-load-balancer-ssl-cert: "{{ config['ssl_certificate_arn'] }}"
             {% endif %}
-          {% elif env['CORTEX_PROVIDER'] == "gcp" and config.get('api_load_balancer_scheme') == 'internal' %}
-          serviceAnnotations:
-            cloud.google.com/load-balancer-type: "Internal"
-          {% endif %}
           service:
             type: LoadBalancer
             externalTrafficPolicy: Cluster # https://medium.com/pablo-perez/k8s-externaltrafficpolicy-local-or-cluster-40b259a19404, https://www.asykim.com/blog/deep-dive-into-kubernetes-external-traffic-policies
