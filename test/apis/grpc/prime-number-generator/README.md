@@ -16,7 +16,7 @@ import generator_pb2_grpc
 
 cx = cortex.client("aws")
 api = cx.get_api("prime-generator")
-grpc_endpoint = api["endpoint"] + ":" + api["ports"]["insecure"]
+grpc_endpoint = api["endpoint"] + ":" + str(api["ports"]["insecure"])
 
 prime_numbers_to_generate = 5
 
