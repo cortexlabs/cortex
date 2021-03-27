@@ -30,6 +30,7 @@ setup(
     license="Apache License 2.0",
     python_requires=">=3.6",
     install_requires=[
+        "grpcio==1.36.0",
         "requests==2.24.0",
         "jsonschema==3.2.0",
         "pytest==6.1.*",

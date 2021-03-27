@@ -64,8 +64,9 @@ def get_service_name_from_module(module_proto_pb2_grpc) -> Any:
     classes = inspect.getmembers(module_proto_pb2_grpc, inspect.isclass)
     for class_name, _ in classes:
         if class_name.endswith("Servicer"):
-            return class_name[:-len("Servicer")]
+            return class_name[: -len("Servicer")]
     # this line will never be reached because we're guaranteed to have one servicer class in the module
+
 
 def get_servicer_from_module(module_proto_pb2_grpc) -> Any:
     classes = inspect.getmembers(module_proto_pb2_grpc, inspect.isclass)
@@ -203,7 +204,8 @@ def main():
 
     server = grpc.server(
         ThreadPoolExecutorWithRequestMonitor(
-            post_latency_metrics_fn=api.post_latency_request_metrics, max_workers=threads_per_process
+            post_latency_metrics_fn=api.post_latency_request_metrics,
+            max_workers=threads_per_process,
         )
     )
 

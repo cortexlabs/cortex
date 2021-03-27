@@ -14,13 +14,16 @@ import cortex
 import iris_classifier_pb2
 import iris_classifier_pb2_grpc
 
-sample = iris_classifier_pb2.Sample()
-with open("sample.bin", "rb") as f:
-    serialized_sample = f.read()
-sample.ParseFromString(serialized_sample)
+sample = iris_classifier_pb2.Sample(
+    sepal_length=5.2,
+    sepal_width=3.6,
+    petal_length=1.4,
+    petal_width=0.3
+)
 
 cx = cortex.client("aws")
-grpc_endpoint = cx.get_api("iris-classifier")["endpoint"]
+api = cx.get_api("iris-classifier")
+grpc_endpoint = api["endpoint"] + ":" + api["ports"]["insecure"]
 channel = grpc.insecure_channel(grpc_endpoint)
 stub = iris_classifier_pb2_grpc.PredictorStub(channel)
 

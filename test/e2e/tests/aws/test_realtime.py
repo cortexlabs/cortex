@@ -19,6 +19,7 @@ import pytest
 import e2e.tests
 
 TEST_APIS = ["pytorch/iris-classifier", "onnx/iris-classifier", "tensorflow/iris-classifier"]
+TEST_APIS_GRPC = ["grpc/iris-classifier-sklearn", "grpc/prime-number-generator"]
 TEST_APIS_GPU = ["pytorch/text-generator", "tensorflow/text-generator"]
 TEST_APIS_INF = ["pytorch/image-classifier-resnet50"]
 
@@ -28,6 +29,16 @@ TEST_APIS_INF = ["pytorch/image-classifier-resnet50"]
 def test_realtime_api(config: Dict, client: cx.Client, api: str):
     e2e.tests.test_realtime_api(
         client=client, api=api, timeout=config["global"]["realtime_deploy_timeout"]
+    )
+
+
+@pytest.mark.usefixtures("client")
+@pytest.mark.parametrize("api", TEST_APIS_GRPC)
+def test_realtime_api_grpc(config: Dict, client: cx.Client, api: str):
+    e2e.tests.test_realtime_api(
+        client=client,
+        api=api,
+        timeout=config["global"]["realtime_deploy_timeout"],
     )
 
 

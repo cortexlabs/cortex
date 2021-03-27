@@ -1,5 +1,6 @@
 from collections import defaultdict
 
+
 class PythonPredictor:
     def __init__(self, config, proto_module_pb2):
         self.proto_module_pb2 = proto_module_pb2
