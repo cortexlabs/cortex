@@ -94,7 +94,6 @@ def build_predict_kwargs(predict_fn_args, payload, context) -> Dict[str, Any]:
 
 
 def init():
-    provider = os.environ["CORTEX_PROVIDER"]
     project_dir = os.environ["CORTEX_PROJECT_DIR"]
     spec_path = os.environ["CORTEX_API_SPEC"]
 
@@ -118,11 +117,10 @@ def init():
             json.dump(used_ports, f)
             f.truncate()
 
-    api = get_api(provider, spec_path, model_dir, cache_dir, region)
+    api = get_api(spec_path, model_dir, cache_dir, region)
 
     config: Dict[str, Any] = {
         "api": None,
-        "provider": None,
         "client": None,
         "predictor_impl": None,
         "module_proto_pb2_grpc": None,
@@ -176,7 +174,6 @@ def init():
             return response
 
     config["api"] = api
-    config["provider"] = provider
     config["client"] = client
     config["predictor_impl"] = predictor_impl
     config["predict_fn_args"] = inspect.getfullargspec(predictor_impl.predict).args

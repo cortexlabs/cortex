@@ -749,7 +749,7 @@ func ValidateAPI(
 		models = &[]CuratedModelResource{}
 	}
 
-	if api.Networking.Endpoint == nil && api.Predictor.ProtobufPath == nil {
+	if api.Networking.Endpoint == nil && (api.Predictor == nil || (api.Predictor != nil && api.Predictor.ProtobufPath == nil)) {
 		api.Networking.Endpoint = pointer.String("/" + api.Name)
 	}
 
@@ -858,10 +858,6 @@ func validatePredictor(
 	k8sClient *k8s.Client,
 ) error {
 	predictor := api.Predictor
-
-	if api.Kind == userconfig.AsyncAPIKind && predictor.Type != userconfig.PythonPredictorType {
-		return ErrorPredictorTypeNotSupportedForKind(predictor.Type, api.Kind)
-	}
 
 	if !projectFiles.HasFile(predictor.Path) {
 		return errors.Wrap(files.ErrorFileDoesNotExist(predictor.Path), userconfig.PathKey)
