@@ -26,13 +26,8 @@ import (
 )
 
 func createFIFOQueue(apiName string, deploymentID string, tags map[string]string) (string, error) {
-	if config.CoreConfig.IsManaged {
-		managedConfig := config.ManagedConfigOrNil()
-		if managedConfig != nil {
-			for key, value := range managedConfig.Tags {
-				tags[key] = value
-			}
-		}
+	for key, value := range config.ManagedConfig.Tags {
+		tags[key] = value
 	}
 
 	queueName := apiQueueName(apiName, deploymentID)

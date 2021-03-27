@@ -73,7 +73,7 @@ func UpdateAPI(apiConfig userconfig.API, projectID string, force bool) (*spec.AP
 		deployID = prevK8sResources.apiDeployment.Labels["deploymentID"]
 	}
 
-	api := spec.GetAPISpec(&apiConfig, projectID, deployID, config.ClusterName())
+	api := spec.GetAPISpec(&apiConfig, projectID, deployID, config.CoreConfig.ClusterName)
 
 	// resource creation
 	if prevK8sResources.apiDeployment == nil {
@@ -401,8 +401,8 @@ func applyK8sVirtualService(prevVirtualService *istioclientnetworking.VirtualSer
 }
 
 func deleteBucketResources(apiName string) error {
-	prefix := filepath.Join(config.ClusterName(), "apis", apiName)
-	return config.DeleteBucketDir(prefix, true)
+	prefix := filepath.Join(config.CoreConfig.ClusterName, "apis", apiName)
+	return config.AWS.DeleteS3Dir(config.CoreConfig.Bucket, prefix, true)
 }
 
 func deleteK8sResources(apiName string) error {
@@ -444,7 +444,7 @@ func uploadAPItoS3(api spec.API) error {
 	return parallel.RunFirstErr(
 		func() error {
 			var err error
-			err = config.UploadJSONToBucket(api, api.Key)
+			err = config.AWS.UploadJSONToS3(api, config.CoreConfig.Bucket, api.Key)
 			if err != nil {
 				err = errors.Wrap(err, "upload api spec")
 			}
@@ -453,7 +453,7 @@ func uploadAPItoS3(api spec.API) error {
 		func() error {
 			var err error
 			// Use api spec indexed by PredictorID for replicas to prevent rolling updates when SpecID changes without PredictorID changing
-			err = config.UploadJSONToBucket(api, api.PredictorKey)
+			err = config.AWS.UploadJSONToS3(api, config.CoreConfig.Bucket, api.PredictorKey)
 			if err != nil {
 				err = errors.Wrap(err, "upload predictor spec")
 			}

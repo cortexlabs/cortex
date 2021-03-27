@@ -20,14 +20,16 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
-	"github.com/cortexlabs/cortex/pkg/types"
 )
 
 const (
+	ErrInvalidProvider                        = "clusterconfig.invalid_provider"
+	ErrInvalidLegacyProvider                  = "cli.invalid_legacy_provider"
 	ErrInvalidRegion                          = "clusterconfig.invalid_region"
 	ErrNoNodeGroupSpecified                   = "clusterconfig.no_nodegroup_specified"
 	ErrMaxNumOfNodeGroupsReached              = "clusterconfig.max_num_of_nodegroups_reached"
@@ -65,18 +67,21 @@ const (
 	ErrCantOverrideDefaultTag                 = "clusterconfig.cant_override_default_tag"
 	ErrSSLCertificateARNNotFound              = "clusterconfig.ssl_certificate_arn_not_found"
 	ErrIAMPolicyARNNotFound                   = "clusterconfig.iam_policy_arn_not_found"
-	ErrProviderMismatch                       = "clusterconfig.provider_mismatch"
-
-	ErrGCPInvalidProjectID                        = "clusterconfig.gcp_invalid_project_id"
-	ErrGCPProjectMustBeSpecified                  = "clusterconfig.gcp_project_must_be_specified"
-	ErrGCPInvalidZone                             = "clusterconfig.gcp_invalid_zone"
-	ErrGCPNoNodePoolSpecified                     = "clusterconfig.gcp_no_nodepool_specified"
-	ErrGCPMaxNumOfNodePoolsReached                = "clusterconfig.gcp_max_num_of_nodepools_reached"
-	ErrGCPDuplicateNodePoolName                   = "clusterconfig.gcp_duplicate_nodepool_name"
-	ErrGCPInvalidInstanceType                     = "clusterconfig.gcp_invalid_instance_type"
-	ErrGCPInvalidAcceleratorType                  = "clusterconfig.gcp_invalid_accelerator_type"
-	ErrGCPIncompatibleInstanceTypeWithAccelerator = "clusterconfig.gcp_incompatible_instance_type_with_accelerator"
 )
+
+func ErrorInvalidProvider(providerStr string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrInvalidProvider,
+		Message: fmt.Sprintf("\"%s\" is not a supported provider; only aws is supported, so the provider field may be removed from your cluster configuration file", providerStr),
+	})
+}
+
+func ErrorInvalidLegacyProvider(providerStr string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrInvalidLegacyProvider,
+		Message: fmt.Sprintf("the %s provider is no longer supported on cortex v%s; only aws is supported, so the provider field may be removed from your cluster configuration file", providerStr, consts.CortexVersionMinor),
+	})
+}
 
 func ErrorInvalidRegion(region string) error {
 	return errors.WithStack(&errors.Error{
@@ -346,96 +351,5 @@ func ErrorIAMPolicyARNNotFound(policyARN string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrIAMPolicyARNNotFound,
 		Message: fmt.Sprintf("unable to find iam policy %s", policyARN),
-	})
-}
-
-func ErrorProviderMismatch(expectedProvider types.ProviderType, actualProvider string) error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrProviderMismatch,
-		Message: fmt.Sprintf("expected \"%s\" provider, but got \"%s\"; please use `cortex cluster` commands for aws clusters, and `cortex cluster-gcp` commands for gcp clusters", expectedProvider, actualProvider),
-	})
-}
-
-func ErrorGCPInvalidProjectID(projectID string) error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrGCPInvalidProjectID,
-		Message: fmt.Sprintf("invalid project ID '%s'", projectID),
-	})
-}
-
-func ErrorGCPProjectMustBeSpecified() error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrGCPProjectMustBeSpecified,
-		Message: fmt.Sprintf("please provide a cluster configuration file which specifies `%s` (e.g. via `--config cluster.yaml`) or enable prompts (i.e. omit the `--yes` flag)", ProjectKey),
-	})
-}
-
-func ErrorGCPInvalidZone(zone string, suggestedZones ...string) error {
-	errorMessage := fmt.Sprintf("invalid zone '%s'", zone)
-	if len(suggestedZones) == 1 {
-		errorMessage += fmt.Sprintf("; use zone '%s' instead", suggestedZones[0])
-	}
-	if len(suggestedZones) > 1 {
-		errorMessage += fmt.Sprintf("; choose one of the following zones: %s", s.StrsOr(suggestedZones))
-	}
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrGCPInvalidZone,
-		Message: errorMessage,
-	})
-}
-
-func ErrorGCPNoNodePoolSpecified() error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrGCPNoNodePoolSpecified,
-		Message: "no nodepool was specified; please specify at least 1 nodepool",
-	})
-}
-
-func ErrorGCPMaxNumOfNodePoolsReached(maxNodePools int64) error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrGCPMaxNumOfNodePoolsReached,
-		Message: fmt.Sprintf("cannot have more than %d nodepools", maxNodePools),
-	})
-}
-
-func ErrorGCPDuplicateNodePoolName(duplicateNpName string) error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrGCPDuplicateNodePoolName,
-		Message: fmt.Sprintf("cannot have multiple nodepools with the same name (%s)", duplicateNpName),
-	})
-}
-
-func ErrorGCPInvalidInstanceType(instanceType string, suggestedInstanceTypes ...string) error {
-	errorMessage := fmt.Sprintf("invalid instance type '%s'", instanceType)
-	if len(suggestedInstanceTypes) == 1 {
-		errorMessage += fmt.Sprintf("; use instance type '%s' instead", suggestedInstanceTypes[0])
-	}
-	if len(suggestedInstanceTypes) > 1 {
-		errorMessage += fmt.Sprintf("; choose one of the following instance types: %s", s.StrsOr(suggestedInstanceTypes))
-	}
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrGCPInvalidInstanceType,
-		Message: errorMessage,
-	})
-}
-
-func ErrorGCPInvalidAcceleratorType(acceleratorType string, zone string, suggestedAcceleratorsInZone []string, suggestedZonesForAccelerator []string) error {
-	errorMessage := fmt.Sprintf("invalid accelerator type '%s'", acceleratorType)
-	if len(suggestedAcceleratorsInZone) > 0 {
-		errorMessage += fmt.Sprintf("\n\nfor zone %s, the following accelerators are available: %s", zone, s.StrsAnd(suggestedAcceleratorsInZone))
-	}
-	if len(suggestedZonesForAccelerator) > 0 {
-		errorMessage += fmt.Sprintf("\n\nfor accelerator %s, the following zones are accepted: %s", acceleratorType, s.StrsAnd(suggestedZonesForAccelerator))
-	}
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrGCPInvalidAcceleratorType,
-		Message: errorMessage,
-	})
-}
-
-func ErrorGCPIncompatibleInstanceTypeWithAccelerator(instanceType, acceleratorType, zone string, compatibleInstances []string) error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrGCPIncompatibleInstanceTypeWithAccelerator,
-		Message: fmt.Sprintf("instance type %s is incompatible with the %s accelerator; the following instance types are compatible with the %s accelerator in zone %s: %s", instanceType, acceleratorType, acceleratorType, zone, s.StrsOr(compatibleInstances)),
 	})
 }

@@ -19,6 +19,7 @@ package taskapi
 import (
 	"path"
 
+	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/parallel"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
@@ -65,7 +66,7 @@ func k8sJobSpec(api *spec.API, job *spec.TaskJob) *kbatch.Job {
 			containers[i].Env = append(container.Env,
 				kcore.EnvVar{
 					Name:  "CORTEX_TASK_SPEC",
-					Value: config.BucketPath(job.SpecFilePath(config.ClusterName())),
+					Value: aws.S3Path(config.CoreConfig.Bucket, job.SpecFilePath(config.CoreConfig.ClusterName)),
 				},
 				kcore.EnvVar{
 					Name:  "CORTEX_TELEMETRY_SENTRY_USER_ID",

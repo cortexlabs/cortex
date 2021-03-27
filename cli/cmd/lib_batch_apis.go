@@ -30,7 +30,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/table"
 	libtime "github.com/cortexlabs/cortex/pkg/lib/time"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
-	"github.com/cortexlabs/cortex/pkg/types"
 	"github.com/cortexlabs/cortex/pkg/types/status"
 )
 
@@ -143,7 +142,7 @@ func batchAPITable(batchAPI schema.APIResponse) string {
 		return out
 	}
 
-	out += titleStr("batch api configuration") + batchAPI.Spec.UserStr(types.AWSProviderType)
+	out += titleStr("batch api configuration") + batchAPI.Spec.UserStr()
 
 	return out
 }

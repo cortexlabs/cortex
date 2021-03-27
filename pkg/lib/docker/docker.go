@@ -37,7 +37,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/parallel"
 	"github.com/cortexlabs/cortex/pkg/lib/print"
 	"github.com/cortexlabs/cortex/pkg/lib/slices"
-	"github.com/cortexlabs/cortex/pkg/types"
 	dockertypes "github.com/docker/docker/api/types"
 	dockerclient "github.com/docker/docker/client"
 	"github.com/docker/docker/pkg/jsonmessage"
@@ -315,7 +314,7 @@ func EncodeAuthConfig(authConfig dockertypes.AuthConfig) (string, error) {
 	return registryAuth, nil
 }
 
-func CheckImageAccessible(dockerClient *Client, dockerImage, authConfig string, providerType types.ProviderType) error {
+func CheckImageAccessible(dockerClient *Client, dockerImage, authConfig string) error {
 	if _, err := dockerClient.DistributionInspect(context.Background(), dockerImage, authConfig); err != nil {
 		return ErrorImageInaccessible(dockerImage, err)
 	}

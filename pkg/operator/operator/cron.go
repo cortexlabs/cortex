@@ -74,31 +74,25 @@ type instanceInfo struct {
 	CPU           float64 `json:"cpu" yaml:"cpu"`
 	GPU           int64   `json:"gpu" yaml:"gpu"`
 	Inf           int64   `json:"inf" yaml:"inf"`
-	GPUType       string  `json:"gpu_type" yaml:"gpu_type"` // currently only used in GCP
 }
 
-func InstanceTelemetryAWS() error {
-	if config.CoreConfig.IsManaged && config.ManagedConfigOrNil() != nil {
-		properties, err := managedClusterTelemetry()
-		if err != nil {
-			return err
-		}
-		telemetry.Event("operator.cron", properties, config.CoreConfig.TelemetryEvent(), config.ManagedConfigOrNil().TelemetryEvent())
-	} else {
-		telemetry.Event("operator.cron", config.CoreConfig.TelemetryEvent())
+func ClusterTelemetry() error {
+	properties, err := clusterTelemetryProperties()
+	if err != nil {
+		return err
 	}
+	telemetry.Event("operator.cron", properties, config.CoreConfig.TelemetryEvent(), config.ManagedConfig.TelemetryEvent())
 
 	return nil
 }
 
-func managedClusterTelemetry() (map[string]interface{}, error) {
+func clusterTelemetryProperties() (map[string]interface{}, error) {
 	nodes, err := config.K8s.ListNodes(nil)
 	if err != nil {
 		return nil, err
 	}
 
 	instanceInfos := make(map[string]*instanceInfo)
-	managedConfig := config.ManagedConfigOrNil()
 
 	var totalInstances int
 	var totalInstancePrice float64
@@ -141,18 +135,12 @@ func managedClusterTelemetry() (map[string]interface{}, error) {
 		}
 
 		ngName := node.Labels["alpha.eksctl.io/nodegroup-name"]
-		ebsPricePerVolume := getEBSPriceForNodeGroupInstance(managedConfig.NodeGroups, ngName)
+		ebsPricePerVolume := getEBSPriceForNodeGroupInstance(config.ManagedConfig.NodeGroups, ngName)
 		onDemandPrice += ebsPricePerVolume
 		price += ebsPricePerVolume
 
 		gpuQty := node.Status.Capacity["nvidia.com/gpu"]
 		infQty := node.Status.Capacity["aws.amazon.com/neuron"]
-
-		// For AWS, use the instance type as the GPU type
-		gpuType := ""
-		if gpuQty.Value() > 0 {
-			gpuType = instanceType
-		}
 
 		info := instanceInfo{
 			InstanceType:  instanceType,
@@ -164,7 +152,6 @@ func managedClusterTelemetry() (map[string]interface{}, error) {
 			CPU:           float64(node.Status.Capacity.Cpu().MilliValue()) / 1000,
 			GPU:           gpuQty.Value(),
 			Inf:           infQty.Value(),
-			GPUType:       gpuType,
 		}
 
 		instanceInfos[instanceInfosKey] = &info
@@ -172,7 +159,7 @@ func managedClusterTelemetry() (map[string]interface{}, error) {
 		totalInstancePriceIfOnDemand += info.OnDemandPrice
 	}
 
-	fixedPrice := clusterFixedPriceAWS()
+	fixedPrice := clusterFixedPrice()
 
 	return map[string]interface{}{
 		"region":                      config.CoreConfig.Region,
@@ -206,7 +193,7 @@ func getEBSPriceForNodeGroupInstance(ngs []*clusterconfig.NodeGroup, ngName stri
 	return ebsPrice
 }
 
-func clusterFixedPriceAWS() float64 {
+func clusterFixedPrice() float64 {
 	eksPrice := aws.EKSPrices[config.CoreConfig.Region]
 	operatorInstancePrice := aws.InstanceMetadatas[config.CoreConfig.Region]["t3.medium"].Price
 	operatorEBSPrice := aws.EBSMetadatas[config.CoreConfig.Region]["gp2"].PriceGB * 20 / 30 / 24
@@ -215,82 +202,13 @@ func clusterFixedPriceAWS() float64 {
 	natUnitPrice := aws.NATMetadatas[config.CoreConfig.Region].Price
 	var natTotalPrice float64
 
-	managedConfig := config.ManagedConfigOrNil()
-	if managedConfig != nil {
-		if managedConfig.NATGateway == clusterconfig.SingleNATGateway {
-			natTotalPrice = natUnitPrice
-		} else if managedConfig.NATGateway == clusterconfig.HighlyAvailableNATGateway {
-			natTotalPrice = natUnitPrice * float64(len(managedConfig.AvailabilityZones))
-		}
+	if config.ManagedConfig.NATGateway == clusterconfig.SingleNATGateway {
+		natTotalPrice = natUnitPrice
+	} else if config.ManagedConfig.NATGateway == clusterconfig.HighlyAvailableNATGateway {
+		natTotalPrice = natUnitPrice * float64(len(config.ManagedConfig.AvailabilityZones))
 	}
 
 	return eksPrice + 2*operatorInstancePrice + operatorEBSPrice + metricsEBSPrice + 2*nlbPrice + natTotalPrice
-}
-
-func InstanceTelemetryGCP() error {
-	if config.GCPCoreConfig.IsManaged && config.GCPManagedConfigOrNil() != nil {
-		properties, err := gcpManagedClusterTelemetry()
-		if err != nil {
-			return err
-		}
-		telemetry.Event("operator.cron", properties, config.GCPCoreConfig.TelemetryEvent(), config.GCPManagedConfigOrNil().TelemetryEvent())
-	} else {
-		telemetry.Event("operator.cron", config.GCPCoreConfig.TelemetryEvent())
-	}
-
-	return nil
-}
-
-func gcpManagedClusterTelemetry() (map[string]interface{}, error) {
-	nodes, err := config.K8s.ListNodes(nil)
-	if err != nil {
-		return nil, err
-	}
-
-	instanceInfos := make(map[string]*instanceInfo)
-	var totalInstances int
-
-	for _, node := range nodes {
-		if node.Labels["workload"] != "true" {
-			continue
-		}
-
-		instanceType := node.Labels["beta.kubernetes.io/instance-type"]
-		if instanceType == "" {
-			instanceType = "unknown"
-		}
-
-		totalInstances++
-
-		instanceInfosKey := instanceType + "_ondemand"
-
-		if info, ok := instanceInfos[instanceInfosKey]; ok {
-			info.Count++
-			continue
-		}
-
-		gpuQty := node.Status.Capacity["nvidia.com/gpu"]
-
-		info := instanceInfo{
-			InstanceType: instanceType,
-			IsSpot:       false,
-			Count:        1,
-			Memory:       node.Status.Capacity.Memory().Value(),
-			CPU:          float64(node.Status.Capacity.Cpu().MilliValue()) / 1000,
-			GPU:          gpuQty.Value(),
-			GPUType:      node.Labels["cloud.google.com/gke-accelerator"],
-		}
-
-		instanceInfos[instanceInfosKey] = &info
-	}
-
-	properties := map[string]interface{}{
-		"zone":           config.GCPCoreConfig.Zone,
-		"instance_count": totalInstances,
-		"instances":      instanceInfos,
-	}
-
-	return properties, nil
 }
 
 func ErrorHandler(cronName string) func(error) {

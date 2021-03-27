@@ -29,18 +29,17 @@ logger = configure_logger("cortex", os.environ["CORTEX_LOG_CONFIG_FILE"])
 
 def start():
     cache_dir = os.environ["CORTEX_CACHE_DIR"]
-    provider = os.environ["CORTEX_PROVIDER"]
     project_dir = os.environ["CORTEX_PROJECT_DIR"]
     region = os.getenv("AWS_REGION")
 
     api_spec_path = os.environ["CORTEX_API_SPEC"]
     task_spec_path = os.environ["CORTEX_TASK_SPEC"]
 
-    _, api_spec = get_spec(provider, api_spec_path, cache_dir, region)
-    _, task_spec = get_spec(provider, task_spec_path, cache_dir, region, spec_name="task-spec.json")
+    _, api_spec = get_spec(api_spec_path, cache_dir, region)
+    _, task_spec = get_spec(task_spec_path, cache_dir, region, spec_name="task-spec.json")
 
     logger.info("loading the task definition from {}".format(api_spec["definition"]["path"]))
-    task_api = TaskAPI(provider, api_spec)
+    task_api = TaskAPI(api_spec)
 
     logger.info("executing the task definition from {}".format(api_spec["definition"]["path"]))
     callable_fn = task_api.get_callable(project_dir)

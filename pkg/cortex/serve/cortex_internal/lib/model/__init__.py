@@ -22,7 +22,7 @@ from cortex_internal.lib.model.tfs import TensorFlowServingAPI, TensorFlowServin
 from cortex_internal.lib.model.tree import (
     ModelsTree,
     LockedModelsTree,
-    find_all_cloud_models,
+    find_all_s3_models,
 )
 from cortex_internal.lib.model.type import get_models_from_api_spec, CuratedModelResources
 from cortex_internal.lib.model.validation import (
