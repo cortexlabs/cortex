@@ -72,7 +72,7 @@ def test_realtime_api(
             if expectations and "response" in expectations:
                 assert_response_expectations(response, expectations["response"])
 
-        if "grpc" in expectations:
+        if expectations and "grpc" in expectations:
             stub, input_sample, output_values, output_type, is_output_stream = generate_grpc(
                 client, api_name, api_dir, expectations["grpc"]
             )
