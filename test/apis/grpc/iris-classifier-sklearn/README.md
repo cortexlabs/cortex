@@ -30,4 +30,3 @@ stub = iris_classifier_pb2_grpc.PredictorStub(channel)
 response = stub.Predict(sample)
 print("prediction:", response.classification)
 ```
-

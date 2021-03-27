@@ -63,6 +63,7 @@ def job_done(client: cx.Client, api_name: str, job_id: str, timeout: int = None)
 
     return wait_for(_is_ready, timeout=timeout)
 
+
 def generate_grpc(
     client: cx.Client, api_name: str, api_dir: pathlib.Path, config: Dict[str, Any]
 ) -> Tuple[Any, Any, List, Any, bool]:
@@ -71,7 +72,9 @@ def generate_grpc(
     test_proto_dir = pathlib.Path(config["proto_module_pb2"]).parent
     sys.path.append(str(api_dir / test_proto_dir))
     proto_module_pb2 = importlib.import_module(str(pathlib.Path(config["proto_module_pb2"]).stem))
-    proto_module_pb2_grpc = importlib.import_module(str(pathlib.Path(config["proto_module_pb2_grpc"]).stem))
+    proto_module_pb2_grpc = importlib.import_module(
+        str(pathlib.Path(config["proto_module_pb2_grpc"]).stem)
+    )
     sys.path.pop()
 
     endpoint = api_info["endpoint"] + ":" + str(api_info["grpc_ports"]["insecure"])

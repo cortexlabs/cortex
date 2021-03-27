@@ -96,7 +96,9 @@ def validate_response_expectations(expectations: Dict[str, Any]):
         p1 = str(pathlib.Path(grpc["proto_module_pb2"]).parent)
         p2 = str(pathlib.Path(grpc["proto_module_pb2_grpc"]).parent)
         if p1 != p2:
-            raise ExpectationsValidationException("the parent directories of proto_module_pb2 and proto_module_pb2_grpc don't match")
+            raise ExpectationsValidationException(
+                "the parent directories of proto_module_pb2 and proto_module_pb2_grpc don't match"
+            )
 
         input_spec = grpc["input_spec"]
         if "class_name" not in input_spec:

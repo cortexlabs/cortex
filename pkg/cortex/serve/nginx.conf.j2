@@ -59,7 +59,7 @@ http {
     upstream servers {
         # load balancing policy
         least_conn;
-        
+
         {% for i in range(CORTEX_PROCESSES_PER_REPLICA | int) %}
         {% if CORTEX_SERVING_PROTOCOL == 'http' %}
         server unix:/run/servers/proc-{{ i }}.sock;
@@ -106,7 +106,7 @@ http {
 
         # how much time an inference can take
         proxy_read_timeout 3600s;
-        
+
         location /nginx_status {
             stub_status on;
             allow 127.0.0.1;

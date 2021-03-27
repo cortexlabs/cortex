@@ -93,7 +93,9 @@ def test_realtime_api(
                 assert (
                     type(stub.Predict(input_sample)) == output_type
                 ), f"didn't receive response of type {str(output_type)}, but received {str(type(response))}"
-                assert response == output_values[0], f"received {response} instead of {output_values[0]}"
+                assert (
+                    response == output_values[0]
+                ), f"received {response} instead of {output_values[0]}"
     finally:
         delete_apis(client, [api_name])
 

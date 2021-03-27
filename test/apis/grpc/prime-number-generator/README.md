@@ -21,6 +21,6 @@ grpc_endpoint = api["endpoint"] + ":" + str(api["grpc_ports"]["insecure"])
 prime_numbers_to_generate = 5
 
 channel = grpc.insecure_channel(grpc_endpoint)
-for r in stub.Predict(generator_pb2.Input(prime_numbers_to_generate=prime_numbers_to_generate)): 
+for r in stub.Predict(generator_pb2.Input(prime_numbers_to_generate=prime_numbers_to_generate)):
     print(r)
 ```
