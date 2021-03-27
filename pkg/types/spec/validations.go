@@ -1396,6 +1396,7 @@ func validateONNXModelFilePath(modelPath string, awsClient *aws.Client, gcpClien
 }
 
 func validateProtobufPath(api *userconfig.API, projectFiles ProjectFiles) error {
+	apiName := api.Name
 	protobufPath := *api.Predictor.ProtobufPath
 
 	if !projectFiles.HasFile(protobufPath) {
@@ -1449,7 +1450,7 @@ func validateProtobufPath(api *userconfig.API, projectFiles ProjectFiles) error 
 	}
 
 	var requiredPackageName string
-	requiredPackageName = strings.ReplaceAll(requiredPackageName, "-", "_")
+	requiredPackageName = strings.ReplaceAll(apiName, "-", "_")
 
 	if api.Predictor.ServerSideBatching != nil {
 		return ErrorConflictingFields(userconfig.ProtobufPathKey, userconfig.ServerSideBatchingKey)
