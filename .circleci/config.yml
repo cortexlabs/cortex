@@ -160,7 +160,6 @@ workflows:
   build:
     jobs:
       - test
-      - e2e-tests
       - build-and-deploy-approval:
           type: approval
           requires:
