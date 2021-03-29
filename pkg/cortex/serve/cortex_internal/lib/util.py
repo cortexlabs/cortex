@@ -318,6 +318,47 @@ def is_float_or_int_list(var):
     return True
 
 
+def and_list_with_quotes(values: List) -> str:
+    """
+    Converts a list like ["a", "b", "c"] to '"a", "b" and "c"'".
+    """
+    string = ""
+
+    if len(values) == 1:
+        string = '"' + values[0] + '"'
+    elif len(values) > 1:
+        for val in values[:-2]:
+            string += '"' + val + '", '
+        string += '"' + values[-2] + '" and "' + values[-1] + '"'
+
+    return string
+
+
+def or_list_with_quotes(values: List) -> str:
+    """
+    Converts a list like ["a", "b", "c"] to '"a", "b" or "c"'.
+    """
+    string = ""
+
+    if len(values) == 1:
+        string = '"' + values[0] + '"'
+    elif len(values) > 1:
+        for val in values[:-2]:
+            string += '"' + val + '", '
+        string += '"' + values[-2] + '" or "' + values[-1] + '"'
+
+    return string
+
+
+def string_plural_with_s(string: str, count: int) -> str:
+    """
+    Pluralize the word with an "s" character if the count is greater than 1.
+    """
+    if count > 1:
+        string += "s"
+    return string
+
+
 def render_jinja_template(jinja_template_file: str, context: dict) -> str:
     from jinja2 import Environment, FileSystemLoader
 

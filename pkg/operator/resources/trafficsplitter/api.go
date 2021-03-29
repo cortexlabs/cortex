@@ -39,9 +39,9 @@ func UpdateAPI(apiConfig *userconfig.API) (*spec.API, string, error) {
 		return nil, "", err
 	}
 
-	api := spec.GetAPISpec(apiConfig, "", "", config.ClusterName())
+	api := spec.GetAPISpec(apiConfig, "", "", config.CoreConfig.ClusterName)
 	if prevVirtualService == nil {
-		if err := config.UploadJSONToBucket(api, api.Key); err != nil {
+		if err := config.AWS.UploadJSONToS3(api, config.CoreConfig.Bucket, api.Key); err != nil {
 			return nil, "", errors.Wrap(err, "failed to upload api spec")
 		}
 
@@ -56,7 +56,7 @@ func UpdateAPI(apiConfig *userconfig.API) (*spec.API, string, error) {
 	}
 
 	if prevVirtualService.Labels["specID"] != api.SpecID {
-		if err := config.UploadJSONToBucket(api, api.Key); err != nil {
+		if err := config.AWS.UploadJSONToS3(api, config.CoreConfig.Bucket, api.Key); err != nil {
 			return nil, "", errors.Wrap(err, "failed to upload api spec")
 		}
 
@@ -180,6 +180,6 @@ func deleteK8sResources(apiName string) error {
 }
 
 func deleteS3Resources(apiName string) error {
-	prefix := filepath.Join(config.ClusterName(), "apis", apiName)
-	return config.DeleteBucketDir(prefix, true)
+	prefix := filepath.Join(config.CoreConfig.ClusterName, "apis", apiName)
+	return config.AWS.DeleteS3Dir(config.CoreConfig.Bucket, prefix, true)
 }

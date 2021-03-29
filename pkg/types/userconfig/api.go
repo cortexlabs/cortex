@@ -25,7 +25,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/urls"
-	"github.com/cortexlabs/cortex/pkg/types"
 	"github.com/cortexlabs/yaml"
 	kmeta "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -45,8 +44,9 @@ type API struct {
 }
 
 type Predictor struct {
-	Type PredictorType `json:"type" yaml:"type"`
-	Path string        `json:"path" yaml:"path"`
+	Type         PredictorType `json:"type" yaml:"type"`
+	Path         string        `json:"path" yaml:"path"`
+	ProtobufPath *string       `json:"protobuf_path" yaml:"protobuf_path"`
 
 	MultiModelReloading *MultiModels `json:"multi_model_reloading" yaml:"multi_model_reloading"`
 	Models              *MultiModels `json:"models" yaml:"models"`
@@ -211,6 +211,10 @@ func (api *API) applyTaskDefaultDockerPaths(usesGPU, usesInf bool) {
 	}
 }
 
+func (predictor *Predictor) IsGRPC() bool {
+	return predictor.ProtobufPath != nil
+}
+
 func IdentifyAPI(filePath string, name string, kind Kind, index int) string {
 	str := ""
 
@@ -330,7 +334,7 @@ func AutoscalingFromAnnotations(k8sObj kmeta.Object) (*Autoscaling, error) {
 	return &a, nil
 }
 
-func (api *API) UserStr(provider types.ProviderType) string {
+func (api *API) UserStr() string {
 	var sb strings.Builder
 	sb.WriteString(fmt.Sprintf("%s: %s\n", NameKey, api.Name))
 	sb.WriteString(fmt.Sprintf("%s: %s\n", KindKey, api.Kind.String()))
@@ -421,6 +425,10 @@ func (predictor *Predictor) UserStr() string {
 
 	sb.WriteString(fmt.Sprintf("%s: %s\n", TypeKey, predictor.Type))
 	sb.WriteString(fmt.Sprintf("%s: %s\n", PathKey, predictor.Path))
+
+	if predictor.ProtobufPath != nil {
+		sb.WriteString(fmt.Sprintf("%s: %s\n", ProtobufPathKey, *predictor.ProtobufPath))
+	}
 
 	if predictor.Models != nil {
 		sb.WriteString(fmt.Sprintf("%s:\n", ModelsKey))
@@ -625,11 +633,8 @@ func ZeroCompute() Compute {
 	}
 }
 
-func (api *API) TelemetryEvent(provider types.ProviderType) map[string]interface{} {
-	event := map[string]interface{}{
-		"provider": provider,
-		"kind":     api.Kind,
-	}
+func (api *API) TelemetryEvent() map[string]interface{} {
+	event := map[string]interface{}{"kind": api.Kind}
 
 	if len(api.APIs) > 0 {
 		event["apis._is_defined"] = true
@@ -672,6 +677,9 @@ func (api *API) TelemetryEvent(provider types.ProviderType) map[string]interface
 
 		event["predictor.log_level"] = api.Predictor.LogLevel
 
+		if api.Predictor.ProtobufPath != nil {
+			event["predictor.protobuf_path._is_defined"] = true
+		}
 		if api.Predictor.PythonPath != nil {
 			event["predictor.python_path._is_defined"] = true
 		}

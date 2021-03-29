@@ -33,6 +33,7 @@ type StringPtrValidation struct {
 	DisallowedValues                     []string
 	CantBeSpecifiedErrStr                *string
 	Prefix                               string
+	Suffix                               string
 	InvalidPrefixes                      []string
 	MaxLength                            int
 	MinLength                            int
@@ -41,6 +42,7 @@ type StringPtrValidation struct {
 	AlphaNumericDashDotUnderscoreOrEmpty bool
 	AlphaNumericDashDotUnderscore        bool
 	AlphaNumericDashUnderscore           bool
+	AlphaNumericDotUnderscore            bool
 	AWSTag                               bool
 	DNS1035                              bool
 	DNS1123                              bool
@@ -59,6 +61,7 @@ func makeStringValValidation(v *StringPtrValidation) *StringValidation {
 		AllowedValues:                        v.AllowedValues,
 		DisallowedValues:                     v.DisallowedValues,
 		Prefix:                               v.Prefix,
+		Suffix:                               v.Suffix,
 		InvalidPrefixes:                      v.InvalidPrefixes,
 		MaxLength:                            v.MaxLength,
 		MinLength:                            v.MinLength,
@@ -67,6 +70,7 @@ func makeStringValValidation(v *StringPtrValidation) *StringValidation {
 		AlphaNumericDashDotUnderscoreOrEmpty: v.AlphaNumericDashDotUnderscoreOrEmpty,
 		AlphaNumericDashDotUnderscore:        v.AlphaNumericDashDotUnderscore,
 		AlphaNumericDashUnderscore:           v.AlphaNumericDashUnderscore,
+		AlphaNumericDotUnderscore:            v.AlphaNumericDotUnderscore,
 		AWSTag:                               v.AWSTag,
 		DNS1035:                              v.DNS1035,
 		DNS1123:                              v.DNS1123,

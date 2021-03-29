@@ -71,13 +71,8 @@ func jobKeyFromQueueURL(queueURL string) spec.JobKey {
 }
 
 func createFIFOQueue(jobKey spec.JobKey, deadLetterQueue *spec.SQSDeadLetterQueue, tags map[string]string) (string, error) {
-	if config.CoreConfig.IsManaged {
-		managedConfig := config.ManagedConfigOrNil()
-		if managedConfig != nil {
-			for key, value := range managedConfig.Tags {
-				tags[key] = value
-			}
-		}
+	for key, value := range config.ManagedConfig.Tags {
+		tags[key] = value
 	}
 
 	queueName := getJobQueueName(jobKey)

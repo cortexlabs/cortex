@@ -1,0 +1,17 @@
+grpc:
+  proto_module_pb2: "test_proto/generator_pb2.py"
+  proto_module_pb2_grpc: "test_proto/generator_pb2_grpc.py"
+  stub_service_name: "Generator"
+  input_spec:
+    class_name: "Input"
+    input:
+      prime_numbers_to_generate: 5
+  output_spec:
+    class_name: "Output"
+    stream: true
+    output:
+      - prime_number: 2
+      - prime_number: 3
+      - prime_number: 5
+      - prime_number: 7
+      - prime_number: 11

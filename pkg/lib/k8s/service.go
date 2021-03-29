@@ -34,6 +34,7 @@ var _serviceTypeMeta = kmeta.TypeMeta{
 
 type ServiceSpec struct {
 	Name        string
+	PortName    string
 	Port        int32
 	TargetPort  int32
 	ServiceType kcore.ServiceType
@@ -56,7 +57,7 @@ func Service(spec *ServiceSpec) *kcore.Service {
 			Ports: []kcore.ServicePort{
 				{
 					Protocol: kcore.ProtocolTCP,
-					Name:     "http",
+					Name:     spec.PortName,
 					Port:     spec.Port,
 					TargetPort: intstr.IntOrString{
 						IntVal: spec.TargetPort,

@@ -18,7 +18,7 @@ import base64
 import json
 
 from cortex_internal.lib import util
-from cortex_internal.lib.storage import S3, GCS
+from cortex_internal.lib.storage import S3
 from cortex_internal.lib.log import configure_logger
 
 util.expand_environment_vars_on_file(os.environ["CORTEX_LOG_CONFIG_FILE"])
@@ -32,14 +32,8 @@ def start(args):
         to_path = download_arg["to"]
         item_name = download_arg.get("item_name", "")
 
-        if from_path.startswith("s3://"):
-            bucket_name, prefix = S3.deconstruct_s3_path(from_path)
-            client = S3(bucket_name)
-        elif from_path.startswith("gs://"):
-            bucket_name, prefix = GCS.deconstruct_gcs_path(from_path)
-            client = GCS(bucket_name)
-        else:
-            raise ValueError('"from" download arg can either have the "s3://" or "gs://" prefixes')
+        bucket_name, prefix = S3.deconstruct_s3_path(from_path)
+        client = S3(bucket_name)
 
         if item_name != "":
             if download_arg.get("hide_from_log", False):

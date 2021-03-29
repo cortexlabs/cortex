@@ -44,14 +44,11 @@ TASK_CLASS_VALIDATION = {
 
 
 class TaskAPI:
-    def __init__(self, provider: str, api_spec: dict):
+    def __init__(self, api_spec: dict):
         """
         Args:
-            provider: "aws" or "gcp".
             api_spec: API configuration.
         """
-
-        self.provider = provider
 
         self.path = api_spec["definition"]["path"]
         self.config = api_spec["definition"].get("config", {})

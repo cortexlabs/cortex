@@ -56,21 +56,56 @@ http {
     # to distribute load
     aio threads=pool;
 
-    # how much time an inference can take
-    proxy_read_timeout 3600s;
-
-    upstream uvicorn {
+    upstream servers {
         # load balancing policy
         least_conn;
 
         {% for i in range(CORTEX_PROCESSES_PER_REPLICA | int) %}
-        server unix:/run/uvicorn/proc-{{ i }}.sock;
+        {% if CORTEX_SERVING_PROTOCOL == 'http' %}
+        server unix:/run/servers/proc-{{ i }}.sock;
+        {% endif %}
+        {% if CORTEX_SERVING_PROTOCOL == 'grpc' %}
+        server localhost:{{ i + 20000 }};
+        {% endif %}
         {% endfor %}
     }
 
+    {% if CORTEX_SERVING_PROTOCOL == 'grpc' %}
+    server {
+        listen {{ CORTEX_SERVING_PORT | int }} http2;
+        default_type application/grpc;
+        underscores_in_headers on;
+
+        grpc_read_timeout 3600s;
+
+        location /nginx_status {
+            stub_status on;
+            allow 127.0.0.1;
+            deny all;
+        }
+
+        location / {
+            limit_conn inflights {{ CORTEX_MAX_REPLICA_CONCURRENCY | int }};
+
+            grpc_set_header Upgrade $http_upgrade;
+            grpc_set_header Connection "Upgrade";
+            grpc_set_header Connection keep-alive;
+            grpc_set_header Host $host:$server_port;
+            grpc_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            grpc_set_header X-Forwarded-Proto $scheme;
+
+            grpc_pass grpc://servers;
+        }
+    }
+    {% endif %}
+
+    {% if CORTEX_SERVING_PROTOCOL == 'http' %}
     server {
         listen {{ CORTEX_SERVING_PORT | int }};
         underscores_in_headers on;
+
+        # how much time an inference can take
+        proxy_read_timeout 3600s;
 
         location /nginx_status {
             stub_status on;
@@ -119,7 +154,8 @@ http {
             proxy_redirect off;
             proxy_buffering off;
 
-            proxy_pass http://uvicorn;
+            proxy_pass http://servers;
         }
     }
+    {% endif %}
 }

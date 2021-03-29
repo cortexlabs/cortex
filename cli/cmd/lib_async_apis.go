@@ -57,7 +57,7 @@ func asyncAPITable(asyncAPI schema.APIResponse, env cliconfig.Environment) (stri
 		return out, nil
 	}
 
-	out += titleStr("configuration") + strings.TrimSpace(asyncAPI.Spec.UserStr(env.Provider))
+	out += titleStr("configuration") + strings.TrimSpace(asyncAPI.Spec.UserStr())
 
 	return out, nil
 }

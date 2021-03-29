@@ -34,7 +34,7 @@ func ListAllInProgressJobKeys(kind userconfig.Kind) ([]spec.JobKey, error) {
 }
 
 func DeleteInProgressFile(jobKey spec.JobKey) error {
-	err := config.DeleteBucketFile(inProgressKey(jobKey))
+	err := config.AWS.DeleteS3File(config.CoreConfig.Bucket, inProgressKey(jobKey))
 	if err != nil {
 		return err
 	}
@@ -42,7 +42,7 @@ func DeleteInProgressFile(jobKey spec.JobKey) error {
 }
 
 func DeleteAllInProgressFilesByAPI(kind userconfig.Kind, apiName string) error {
-	err := config.DeleteBucketPrefix(allInProgressForAPIKey(kind, apiName), true)
+	err := config.AWS.DeleteS3Prefix(config.CoreConfig.Bucket, allInProgressForAPIKey(kind, apiName), true)
 	if err != nil {
 		return err
 	}
@@ -62,20 +62,11 @@ func listAllInProgressJobKeysByAPI(kind userconfig.Kind, apiName *string) ([]spe
 		jobPath = allInProgressKey(kind)
 	}
 
-	gcsObjects, s3Objects, err := config.ListBucketDir(jobPath, nil)
+	s3Objects, err := config.AWS.ListS3Dir(config.CoreConfig.Bucket, jobPath, false, nil)
 	if err != nil {
 		return nil, err
 	}
 
-	if len(gcsObjects) > 0 {
-		jobKeys := make([]spec.JobKey, 0, len(gcsObjects))
-		for _, obj := range gcsObjects {
-			if obj != nil {
-				jobKeys = append(jobKeys, jobKeyFromInProgressKey(obj.Name))
-			}
-		}
-		return jobKeys, nil
-	}
 	jobKeys := make([]spec.JobKey, 0, len(s3Objects))
 	for _, obj := range s3Objects {
 		if obj != nil {
@@ -86,7 +77,7 @@ func listAllInProgressJobKeysByAPI(kind userconfig.Kind, apiName *string) ([]spe
 }
 
 func uploadInProgressFile(jobKey spec.JobKey) error {
-	err := config.UploadStringToBucket("", inProgressKey(jobKey))
+	err := config.AWS.UploadStringToS3("", config.CoreConfig.Bucket, inProgressKey(jobKey))
 	if err != nil {
 		return err
 	}
@@ -96,7 +87,7 @@ func uploadInProgressFile(jobKey spec.JobKey) error {
 // e.g. <cluster_name>/jobs/<job_api_kind>/in_progress
 func allInProgressKey(kind userconfig.Kind) string {
 	return path.Join(
-		config.ClusterName(), _jobsPrefix, kind.String(), _inProgressFilePrefix,
+		config.CoreConfig.ClusterName, _jobsPrefix, kind.String(), _inProgressFilePrefix,
 	)
 }
 

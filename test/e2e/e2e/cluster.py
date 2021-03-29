@@ -25,23 +25,15 @@ def create_cluster(cluster_config: str):
     with open(cluster_config) as f:
         config = yaml.safe_load(f)
 
-    cluster_name = config["cluster_name"]
-    provider = config["provider"]
-
-    if provider == "gcp":
-        cluster_cmd = "cluster-gcp"
-    else:
-        cluster_cmd = "cluster"
-
     p = subprocess.run(
         [
             "cortex",
-            cluster_cmd,
+            "cluster",
             "up",
             cluster_config,
             "-y",
             "--configure-env",
-            f"{cluster_name}-{provider}",
+            config["cluster_name"],
         ],
         stdout=sys.stdout,
         stderr=sys.stderr,
@@ -56,13 +48,8 @@ def delete_cluster(cluster_config: str):
     with open(cluster_config) as f:
         config = yaml.safe_load(f)
 
-    if config["provider"] == "gcp":
-        cluster_cmd = "cluster-gcp"
-    else:
-        cluster_cmd = "cluster"
-
     p = subprocess.run(
-        ["cortex", cluster_cmd, "down", "-y", "--config", cluster_config],
+        ["cortex", "cluster", "down", "-y", "--config", cluster_config],
         stdout=sys.stdout,
         stderr=sys.stderr,
     )
