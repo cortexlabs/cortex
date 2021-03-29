@@ -14,7 +14,7 @@
 
 import threading
 import time
-from typing import Callable, Dict, Any, Optional
+from typing import Callable, Dict, Any, Optional, Tuple
 
 import botocore.exceptions
 
@@ -22,10 +22,6 @@ from cortex_internal.lib.exceptions import UserRuntimeException
 from cortex_internal.lib.log import logger as log
 from cortex_internal.lib.signals import SignalHandler
 from cortex_internal.lib.telemetry import capture_exception
-
-
-def is_on_job_complete(message) -> bool:
-    return "MessageAttributes" in message and "job_complete" in message["MessageAttributes"]
 
 
 class SQSHandler:
@@ -132,12 +128,7 @@ class SQSHandler:
                         raise err
 
     def _get_total_messages_in_queue(self):
-        attributes = self.sqs_client.get_queue_attributes(
-            QueueUrl=self.queue_url, AttributeNames=["All"]
-        )["Attributes"]
-        visible_count = int(attributes.get("ApproximateNumberOfMessages", 0))
-        not_visible_count = int(attributes.get("ApproximateNumberOfMessagesNotVisible", 0))
-        return visible_count, not_visible_count
+        return get_total_messages_in_queue(sqs_client=self.sqs_client, queue_url=self.queue_url)
 
     def _handle_message(self, message, callback_fn, failure_callback_fn):
         receipt_handle = message["ReceiptHandle"]
@@ -179,3 +170,16 @@ class SQSHandler:
                 self.sqs_client.delete_message(
                     QueueUrl=self.queue_url, ReceiptHandle=receipt_handle
                 )
+
+
+def get_total_messages_in_queue(sqs_client, queue_url: str) -> Tuple[int, int]:
+    attributes = sqs_client.get_queue_attributes(QueueUrl=queue_url, AttributeNames=["All"])[
+        "Attributes"
+    ]
+    visible_count = int(attributes.get("ApproximateNumberOfMessages", 0))
+    not_visible_count = int(attributes.get("ApproximateNumberOfMessagesNotVisible", 0))
+    return visible_count, not_visible_count
+
+
+def is_on_job_complete(message: Dict[str, Any]) -> bool:
+    return "MessageAttributes" in message and "job_complete" in message["MessageAttributes"]

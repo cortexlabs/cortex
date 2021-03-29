@@ -40,7 +40,7 @@ func OutputTypeFromString(s string) OutputType {
 }
 
 func UserOutputTypeStrings() []string {
-	return _outputTypes[2:]
+	return _outputTypes[1:]
 }
 
 func OutputTypeStrings() []string {
