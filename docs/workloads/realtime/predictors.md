@@ -48,7 +48,7 @@ class PythonPredictor:
 # initialization code and variables can be declared here in global scope
 
 class PythonPredictor:
-    def __init__(self, config, python_client):
+    def __init__(self, config, python_client, module_proto_pb2):
         """(Required) Called once before the API becomes available. Performs
         setup such as downloading/initializing the model or downloading a
         vocabulary.
@@ -60,10 +60,16 @@ class PythonPredictor:
             python_client (optional): Python client which is used to retrieve
                 models for prediction. This should be saved for use in predict().
                 Required when `predictor.multi_model_reloading` is specified in the api configuration.
+            module_proto_pb2 (optional): Loaded Python module containing the
+                class definitions of the messages defined in `predictor.protobuf_path`
+                file. Required when `predictor.protobuf_path` is specified in
+                the api configuration.
+
         """
         self.client = python_client # optional
+        self.module_proto_pb2 = module_proto_pb2 # optional
 
-    def predict(self, payload, query_params, headers):
+    def predict(self, payload, query_params, headers, context):
         """(Required) Called once per request. Preprocesses the request payload
         (if necessary), runs inference, and postprocesses the inference output
         (if necessary).
@@ -73,10 +79,15 @@ class PythonPredictor:
                 payload types).
             query_params (optional): A dictionary of the query parameters used
                 in the request.
+                Available when `predictor.protobuf_path` is not configured.
             headers (optional): A dictionary of the headers sent in the request.
+                Available when `predictor.protobuf_path` is not configured.
+            context (optional): gRPC context.
+                Available when `predictor.protobuf_path` is specified in the
+                api configuration.
 
         Returns:
-            Prediction or a batch of predictions.
+            Prediction. For the HTTP protocol, can also return batch of predictions.
         """
         pass
 
@@ -88,6 +99,8 @@ class PythonPredictor:
         Note: post_predict() and predict() run in the same thread pool. The
         size of the thread pool can be increased by updating
         `threads_per_process` in the api configuration yaml.
+
+        Note: not available when `predictor.protobuf_path` is configured.
 
         Args:
             response (optional): The response as returned by the predict method.
@@ -125,9 +138,15 @@ When multiple models are defined using the Predictor's `models` field, the `pyth
 
 For proper separation of concerns, it is recommended to use the constructor's `config` parameter for information such as from where to download the model and initialization files, or any configurable model parameters. You define `config` in your API configuration, and it is passed through to your Predictor's constructor.
 
-Your API can accept requests with different types of payloads such as `JSON`-parseable, `bytes` or `starlette.datastructures.FormData` data. Navigate to the [API requests](#api-requests) section to learn about how headers can be used to change the type of `payload` that is passed into your `predict` method.
+The realtime API supports 2 serving protocols: HTTP (REST-based) and gRPC. By default, the HTTP protocol is enabled. To enable the gRPC protocol, you must provide a protobuf file to the `predictor.protobuf_path` field in the API spec. The protobuf file needs to have defined a single service with a single rpc service method.
 
-Your `predictor` method can return different types of objects such as `JSON`-parseable, `string`, and `bytes` objects. Navigate to the [API responses](#api-responses) section to learn about how to configure your `predictor` method to respond with different response codes and content-types.
+For the HTTP protocol, your API can accept requests with different types of payloads such as `JSON`-parseable, `bytes` or `starlette.datastructures.FormData` data. Navigate to the [API requests](#api-requests) section to learn about how headers can be used to change the type of `payload` that is passed into your `predict` method.
+
+For the HTTP protocol, your `predictor` method can return different types of objects such as `JSON`-parseable, `string`, and `bytes` objects. Navigate to the [API responses](#api-responses) section to learn about how to configure your `predictor` method to respond with different response codes and content-types.
+
+For the gRPC protocol, your API can only accept the type that it has been specified in the protobuf definition of your service's method. Navigate to the [API requests](#api-requests) section to learn how to make the input streamable.
+
+For the gRPC protocol, your `predictor` method can only return the type that it has been specified in the protobuf definiton of your service's method. Navigate to the [API responses](#api-responses) section to learn how to make the output streamable.
 
 ## TensorFlow Predictor
 
@@ -137,7 +156,7 @@ Your `predictor` method can return different types of objects such as `JSON`-par
 
 ```python
 class TensorFlowPredictor:
-    def __init__(self, tensorflow_client, config):
+    def __init__(self, tensorflow_client, config, module_proto_pb2):
         """(Required) Called once before the API becomes available. Performs
         setup such as downloading/initializing a vocabulary.
 
@@ -146,11 +165,16 @@ class TensorFlowPredictor:
                 make predictions. This should be saved for use in predict().
             config (required): Dictionary passed from API configuration (if
                 specified).
+            module_proto_pb2 (optional): Loaded Python module containing the
+                class definitions of the messages defined in `predictor.protobuf_path`
+                file. Required when `predictor.protobuf_path` is specified in
+                the api configuration.
         """
         self.client = tensorflow_client
+        self.module_proto_pb2 = module_proto_pb2
         # Additional initialization may be done here
 
-    def predict(self, payload, query_params, headers):
+    def predict(self, payload, query_params, headers, context):
         """(Required) Called once per request. Preprocesses the request payload
         (if necessary), runs inference (e.g. by calling
         self.client.predict(model_input)), and postprocesses the inference
@@ -161,10 +185,15 @@ class TensorFlowPredictor:
                 payload types).
             query_params (optional): A dictionary of the query parameters used
                 in the request.
+                Available when `predictor.protobuf_path` is not configured.
             headers (optional): A dictionary of the headers sent in the request.
+                Available when `predictor.protobuf_path` is not configured.
+            context (optional): gRPC context.
+                Available when `predictor.protobuf_path` is specified in the
+                api configuration.
 
         Returns:
-            Prediction or a batch of predictions.
+            Prediction. For the HTTP protocol, can also return batch of predictions.
         """
         pass
 
@@ -176,6 +205,8 @@ class TensorFlowPredictor:
         Note: post_predict() and predict() run in the same thread pool. The
         size of the thread pool can be increased by updating
         `threads_per_process` in the api configuration yaml.
+
+        Note: not available when `predictor.protobuf_path` is configured.
 
         Args:
             response (optional): The response as returned by the predict method.
@@ -195,9 +226,15 @@ When multiple models are defined using the Predictor's `models` field, the `tens
 
 For proper separation of concerns, it is recommended to use the constructor's `config` parameter for information such as configurable model parameters or download links for initialization files. You define `config` in your API configuration, and it is passed through to your Predictor's constructor.
 
-Your API can accept requests with different types of payloads such as `JSON`-parseable, `bytes` or `starlette.datastructures.FormData` data. Navigate to the [API requests](#api-requests) section to learn about how headers can be used to change the type of `payload` that is passed into your `predict` method.
+The realtime API supports 2 serving protocols: HTTP (REST-based) and gRPC. By default, the HTTP protocol is enabled. To enable the gRPC protocol, you must provide a protobuf file to the `predictor.protobuf_path` field in the API spec. The protobuf file needs to have defined a single service with a single rpc service method.
 
-Your `predictor` method can return different types of objects such as `JSON`-parseable, `string`, and `bytes` objects. Navigate to the [API responses](#api-responses) section to learn about how to configure your `predictor` method to respond with different response codes and content-types.
+For the HTTP protocol, your API can accept requests with different types of payloads such as `JSON`-parseable, `bytes` or `starlette.datastructures.FormData` data. Navigate to the [API requests](#api-requests) section to learn about how headers can be used to change the type of `payload` that is passed into your `predict` method.
+
+For the HTTP protocol, your `predictor` method can return different types of objects such as `JSON`-parseable, `string`, and `bytes` objects. Navigate to the [API responses](#api-responses) section to learn about how to configure your `predictor` method to respond with different response codes and content-types.
+
+For the gRPC protocol, your API can only accept the type that it has been specified in the protobuf definition of your service's method. Navigate to the [API requests](#api-requests) section to learn how to make the input streamable.
+
+For the gRPC protocol, your `predictor` method can only return the type that it has been specified in the protobuf definiton of your service's method. Navigate to the [API responses](#api-responses) section to learn how to make the output streamable.
 
 If you need to share files between your predictor implementation and the TensorFlow Serving container, you can create a new directory within `/mnt` (e.g. `/mnt/user`) and write files to it. The entire `/mnt` directory is shared between containers, but do not write to any of the directories in `/mnt` that already exist (they are used internally by Cortex).
 
@@ -209,7 +246,7 @@ If you need to share files between your predictor implementation and the TensorF
 
 ```python
 class ONNXPredictor:
-    def __init__(self, onnx_client, config):
+    def __init__(self, onnx_client, config, module_proto_pb2):
         """(Required) Called once before the API becomes available. Performs
         setup such as downloading/initializing a vocabulary.
 
@@ -218,11 +255,16 @@ class ONNXPredictor:
                 predictions. This should be saved for use in predict().
             config (required): Dictionary passed from API configuration (if
                 specified).
+            module_proto_pb2 (optional): Loaded Python module containing the
+                class definitions of the messages defined in `predictor.protobuf_path`
+                file. Required when `predictor.protobuf_path` is specified in
+                the api configuration.
         """
         self.client = onnx_client
+        self.module_proto_pb2 = module_proto_pb2
         # Additional initialization may be done here
 
-    def predict(self, payload, query_params, headers):
+    def predict(self, payload, query_params, headers, context):
         """(Required) Called once per request. Preprocesses the request payload
         (if necessary), runs inference (e.g. by calling
         self.client.predict(model_input)), and postprocesses the inference
@@ -233,10 +275,15 @@ class ONNXPredictor:
                 payload types).
             query_params (optional): A dictionary of the query parameters used
                 in the request.
+                Available when `predictor.protobuf_path` is not configured.
             headers (optional): A dictionary of the headers sent in the request.
+                Available when `predictor.protobuf_path` is not configured.
+            context (optional): gRPC context.
+                Available when `predictor.protobuf_path` is specified in the
+                api configuration.
 
         Returns:
-            Prediction or a batch of predictions.
+            Prediction. For the HTTP protocol, can also return batch of predictions.
         """
         pass
 
@@ -248,6 +295,8 @@ class ONNXPredictor:
         Note: post_predict() and predict() run in the same thread pool. The
         size of the thread pool can be increased by updating
         `threads_per_process` in the api configuration yaml.
+
+        Note: not available when `predictor.protobuf_path` is configured.
 
         Args:
             response (optional): The response as returned by the predict method.
@@ -267,11 +316,19 @@ When multiple models are defined using the Predictor's `models` field, the `onnx
 
 For proper separation of concerns, it is recommended to use the constructor's `config` parameter for information such as configurable model parameters or download links for initialization files. You define `config` in your API configuration, and it is passed through to your Predictor's constructor.
 
-Your API can accept requests with different types of payloads such as `JSON`-parseable, `bytes` or `starlette.datastructures.FormData` data. Navigate to the [API requests](#api-requests) section to learn about how headers can be used to change the type of `payload` that is passed into your `predict` method.
+The realtime API supports 2 serving protocols: HTTP (REST-based) and gRPC. By default, the HTTP protocol is enabled. To enable the gRPC protocol, you must provide a protobuf file to the `predictor.protobuf_path` field in the API spec. The protobuf file needs to have defined a single service with a single rpc service method.
 
-Your `predictor` method can return different types of objects such as `JSON`-parseable, `string`, and `bytes` objects. Navigate to the [API responses](#api-responses) section to learn about how to configure your `predictor` method to respond with different response codes and content-types.
+For the HTTP protocol, your API can accept requests with different types of payloads such as `JSON`-parseable, `bytes` or `starlette.datastructures.FormData` data. Navigate to the [API requests](#api-requests) section to learn about how headers can be used to change the type of `payload` that is passed into your `predict` method.
 
-## API requests
+For the HTTP protocol, your `predictor` method can return different types of objects such as `JSON`-parseable, `string`, and `bytes` objects. Navigate to the [API responses](#api-responses) section to learn about how to configure your `predictor` method to respond with different response codes and content-types.
+
+For the gRPC protocol, your API can only accept the type that it has been specified in the protobuf definition of your service's method. Navigate to the [API requests](#api-requests) section to learn how to make the input streamable.
+
+For the gRPC protocol, your `predictor` method can only return the type that it has been specified in the protobuf definiton of your service's method. Navigate to the [API responses](#api-responses) section to learn how to make the output streamable.
+
+## HTTP API
+
+### Requests
 
 The type of the `payload` parameter in `predict(self, payload)` can vary based on the content type of the request. The `payload` parameter is parsed according to the `Content-Type` header in the request. Here are the parsing rules (see below for examples):
 
@@ -282,9 +339,9 @@ The type of the `payload` parameter in `predict(self, payload)` can vary based o
 
 Here are some examples:
 
-### JSON data
+#### JSON data
 
-#### Making the request
+##### Making the request
 
 ```bash
 curl http://***.amazonaws.com/my-api \
@@ -292,7 +349,7 @@ curl http://***.amazonaws.com/my-api \
     -d '{"key": "value"}'
 ```
 
-#### Reading the payload
+##### Reading the payload
 
 When sending a JSON payload, the `payload` parameter will be a Python object:
 
@@ -305,9 +362,9 @@ class PythonPredictor:
         print(payload["key"])  # prints "value"
 ```
 
-### Binary data
+#### Binary data
 
-#### Making the request
+##### Making the request
 
 ```bash
 curl http://***.amazonaws.com/my-api \
@@ -315,7 +372,7 @@ curl http://***.amazonaws.com/my-api \
     --data-binary @object.pkl
 ```
 
-#### Reading the payload
+##### Reading the payload
 
 Since the `Content-Type: application/octet-stream` header is used, the `payload` parameter will be a `bytes` object:
 
@@ -346,9 +403,9 @@ class PythonPredictor:
         print(img.size)
 ```
 
-### Form data (files)
+#### Form data (files)
 
-#### Making the request
+##### Making the request
 
 ```bash
 curl http://***.amazonaws.com/my-api \
@@ -358,7 +415,7 @@ curl http://***.amazonaws.com/my-api \
     -F "image=@image.png"
 ```
 
-#### Reading the payload
+##### Reading the payload
 
 When sending files via form data, the `payload` parameter will be `starlette.datastructures.FormData` (key-value pairs where the values are `starlette.datastructures.UploadFile`, see [Starlette's documentation](https://www.starlette.io/requests/#request-files)). Either `Content-Type: multipart/form-data` or `Content-Type: application/x-www-form-urlencoded` can be used (typically `Content-Type: multipart/form-data` is used for files, and is the default in the examples above).
 
@@ -381,9 +438,9 @@ class PythonPredictor:
         print(img.size)  # prints the dimensions of image.png
 ```
 
-### Form data (text)
+#### Form data (text)
 
-#### Making the request
+##### Making the request
 
 ```bash
 curl http://***.amazonaws.com/my-api \
@@ -391,7 +448,7 @@ curl http://***.amazonaws.com/my-api \
     -d "key=value"
 ```
 
-#### Reading the payload
+##### Reading the payload
 
 When sending text via form data, the `payload` parameter will be `starlette.datastructures.FormData` (key-value pairs where the values are strings, see [Starlette's documentation](https://www.starlette.io/requests/#request-files)). Either `Content-Type: multipart/form-data` or `Content-Type: application/x-www-form-urlencoded` can be used (typically `Content-Type: application/x-www-form-urlencoded` is used for text, and is the default in the examples above).
 
@@ -404,9 +461,9 @@ class PythonPredictor:
         print(payload["key"])  # will print "value"
 ```
 
-### Text data
+#### Text data
 
-#### Making the request
+##### Making the request
 
 ```bash
 curl http://***.amazonaws.com/my-api \
@@ -414,7 +471,7 @@ curl http://***.amazonaws.com/my-api \
     -d "hello world"
 ```
 
-#### Reading the payload
+##### Reading the payload
 
 Since the `Content-Type: text/plain` header is used, the `payload` parameter will be a `string` object:
 
@@ -427,7 +484,7 @@ class PythonPredictor:
         print(payload)  # prints "hello world"
 ```
 
-## API responses
+### Responses
 
 The response of your `predict()` function may be:
 
@@ -438,6 +495,173 @@ The response of your `predict()` function may be:
 1. A `bytes` object (e.g. `bytes(4)` or `pickle.dumps(obj)`)
 
 1. An instance of [starlette.responses.Response](https://www.starlette.io/responses/#response)
+
+## gRPC API
+
+### Requests
+
+Assuming the following service:
+
+```protobuf
+# predictor.proto
+
+syntax = "proto3";
+package sample_service;
+
+service Predictor {
+    rpc Predict (Sample) returns (Response);
+}
+
+message Sample {
+    string a = 1;
+}
+
+message Response {
+    string b = 1;
+}
+```
+
+The type of the `payload` parameter in `predict(self, payload)` will always be that of the `Sample` message defined in the `predictor.protobuf_path` file (or the above's example).
+
+#### Simple request
+
+The service method must look like this:
+
+```protobuf
+...
+rpc Predict (Sample) returns (Response);
+...
+```
+
+```python
+import grpc, sample_service_pb2, sample_service_pb2_grpc
+
+stub = sample_service_pb2_grpc.PredictorStub(grpc.insecure_channel("***.amazonaws.com:80"))
+stub.Predict(sample_service_pb2.Sample(a="text"))
+```
+
+In the `predict` method, you'll read the value like this:
+
+```python
+...
+def predict(self, payload):
+    print(payload.a)
+...
+```
+
+#### Streaming request
+
+The service method must look like this:
+
+```protobuf
+...
+rpc Predict (stream Sample) returns (Response);
+...
+```
+
+```python
+import grpc, sample_service_pb2, sample_service_pb2_grpc
+
+def generate_iterator(sample_list):
+    for sample in sample_list:
+        yield sample
+
+stub = sample_service_pb2_grpc.PredictorStub(grpc.insecure_channel("***.amazonaws.com:80"))
+stub.Predict(sample_service_pb2.Sample(generate_iterator(["a", "b", "c", "d"])))
+```
+
+In the `predict` method, you'll read the streamed values like this:
+
+```python
+...
+def predict(self, payload):
+    for item in payload:
+        print(item.a)
+...
+```
+
+### Responses
+
+Assuming the following service:
+
+```protobuf
+# predictor.proto
+
+syntax = "proto3";
+package sample_service;
+
+service Predictor {
+    rpc Predict (Sample) returns (Response);
+}
+
+message Sample {
+    string a = 1;
+}
+
+message Response {
+    string b = 1;
+}
+```
+
+The returned type of the `predict` method will always be that of the `Response` message defined in the `predictor.protobuf_path` file (or the above's example).
+
+#### Simple response
+
+The service method must look like this:
+
+```protobuf
+...
+rpc Predict (Sample) returns (Response);
+...
+```
+
+```python
+import grpc, sample_service_pb2, sample_service_pb2_grpc
+
+stub = sample_service_pb2_grpc.PredictorStub(grpc.insecure_channel("***.amazonaws.com:80"))
+r = stub.Predict(sample_service_pb2.Sample())
+```
+
+In the `predict` method, you'll return the value like this:
+
+```python
+...
+def predict(self, payload):
+    return self.proto_module_pb2.Response(b="text")
+...
+```
+
+#### Streaming response
+
+The service method must look like this:
+
+```protobuf
+...
+rpc Predict (Sample) returns (stream Response);
+...
+```
+
+```python
+import grpc, sample_service_pb2, sample_service_pb2_grpc
+
+def generate_iterator(sample_list):
+    for sample in sample_list:
+        yield sample
+
+stub = sample_service_pb2_grpc.PredictorStub(grpc.insecure_channel("***.amazonaws.com:80"))
+for r in stub.Predict(sample_service_pb2.Sample())):
+    print(r.b)
+```
+
+In the `predict` method, you'll return the streamed values like this:
+
+```python
+...
+def predict(self, payload):
+    for text in ["a", "b", "c", "d"]:
+        yield self.proto_module_pb2.Response(b=text)
+...
+```
 
 ## Chaining APIs
 

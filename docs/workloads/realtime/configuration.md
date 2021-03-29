@@ -19,7 +19,8 @@
 predictor:
   type: python
   path: <string>  # path to a python file with a PythonPredictor class definition, relative to the Cortex root (required)
-  dependencies: # (optional)
+  protobuf_path: <string>  # path to a protobuf file that enables the API to be served using the gRPC protocol (optional)
+  dependencies:  # (optional)
     pip: <string>  # relative path to requirements.txt (default: requirements.txt)
     conda: <string>  # relative path to conda-packages.txt (default: conda-packages.txt)
     shell: <string>  # relative path to a shell script for system package installation (default: dependencies.sh)
@@ -52,7 +53,8 @@ predictor:
 predictor:
   type: tensorflow
   path: <string>  # path to a python file with a TensorFlowPredictor class definition, relative to the Cortex root (required)
-  dependencies: # (optional)
+  protobuf_path: <string>  # path to a protobuf file that enables the API to be served using the gRPC protocol (optional)
+  dependencies:  # (optional)
     pip: <string>  # relative path to requirements.txt (default: requirements.txt)
     conda: <string>  # relative path to conda-packages.txt (default: conda-packages.txt)
     shell: <string>  # relative path to a shell script for system package installation (default: dependencies.sh)
@@ -88,7 +90,8 @@ predictor:
 predictor:
   type: onnx
   path: <string>  # path to a python file with an ONNXPredictor class definition, relative to the Cortex root (required)
-  dependencies: # (optional)
+  protobuf_path: <string>  # path to a protobuf file that enables the API to be served using the gRPC protocol (optional)
+  dependencies:  # (optional)
     pip: <string>  # relative path to requirements.txt (default: requirements.txt)
     conda: <string>  # relative path to conda-packages.txt (default: conda-packages.txt)
     shell: <string>  # relative path to a shell script for system package installation (default: dependencies.sh)
