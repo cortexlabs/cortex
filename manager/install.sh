@@ -378,26 +378,13 @@ function start_pre_download_images() {
 }
 
 function await_pre_download_images() {
-  daemonsets=( "image-downloader-cpu" )
+  daemonsets=( "image-downloader-cpu" "image-downloader-gpu" "image-downloader-inf" )
 
-  has_gpu="false"
-  has_inf="false"
-
-  cluster_config_len=$(cat /in/cluster_${CORTEX_CLUSTER_NAME}_${CORTEX_REGION}.yaml | yq -r .node_groups | yq -r length)
-  for idx in $(seq 0 $(($cluster_config_len-1))); do
-    ng_instance_type=$(cat /in/cluster_${CORTEX_CLUSTER_NAME}_${CORTEX_REGION}.yaml | yq -r .node_groups[$idx].instance_type)
-    if [[ "$has_gpu" == "false" && ( "$ng_instance_type" == p* || "$ng_instance_type" == g* ) ]]; then
-      daemonsets+=( "image-downloader-gpu" )
-      has_gpu="true"
-    fi
-    if [[ "$has_inf" == "false" && "$ng_instance_type" == inf* ]]; then
-      daemonsets+=( "image-downloader-inf" )
-      has_inf="true"
-    fi
-  done
-
-  echo -n "￮ downloading docker images "
+  echo -n "￮ downloading docker images ."
   for ds_name in ${daemonsets[@]}; do
+    if ! kubectl get daemonset $ds_name > /dev/null 2>&1; then
+      continue
+    fi
     i=0
     until [ "$(kubectl get daemonset $ds_name -n=default -o 'jsonpath={.status.numberReady}')" == "$(kubectl get daemonset $ds_name -n=default -o 'jsonpath={.status.desiredNumberScheduled}')" ]; do
       if [ $i -eq 120 ]; then break; fi  # give up after 6 minutes
