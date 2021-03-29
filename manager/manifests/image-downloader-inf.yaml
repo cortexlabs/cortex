@@ -28,6 +28,7 @@ spec:
     spec:
       nodeSelector:
         workload: "true"
+        aws.amazon.com/neuron: "true"
       tolerations:
         - key: workload
           value: "true"

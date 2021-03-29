@@ -28,6 +28,7 @@ spec:
     spec:
       nodeSelector:
         workload: "true"
+        nvidia.com/gpu: "true"
       tolerations:
         - key: workload
           value: "true"
