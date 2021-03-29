@@ -240,7 +240,7 @@ func RemoveDuplicates(strs []string, ignoreRegex *regexp.Regexp) []string {
 			filteredStr = ignoreRegex.ReplaceAllString(str, "")
 		}
 
-		counter[filteredStr] += 1
+		counter[filteredStr]++
 		if counter[filteredStr] > 1 {
 			continue
 		}
