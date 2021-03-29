@@ -15,19 +15,20 @@
 apiVersion: apps/v1
 kind: DaemonSet
 metadata:
-  name: image-downloader
+  name: image-downloader-inf
   namespace: default
 spec:
   selector:
     matchLabels:
-      name: image-downloader
+      name: image-downloader-inf
   template:
     metadata:
       labels:
-        name: image-downloader
+        name: image-downloader-inf
     spec:
       nodeSelector:
         workload: "true"
+        aws.amazon.com/neuron: "true"
       tolerations:
         - key: workload
           value: "true"
@@ -45,14 +46,6 @@ spec:
           args: ["-c", "sleep 1000000"]
         - name: tensorflow-serving-inf
           image: $CORTEX_IMAGE_TENSORFLOW_SERVING_INF
-          command: ["/bin/sh"]
-          args: ["-c", "sleep 1000000"]
-        - name: tensorflow-predictor
-          image: $CORTEX_IMAGE_TENSORFLOW_PREDICTOR
-          command: ["/bin/sh"]
-          args: ["-c", "sleep 1000000"]
-        - name: downloader
-          image: $CORTEX_IMAGE_DOWNLOADER
           command: ["/bin/sh"]
           args: ["-c", "sleep 1000000"]
         - name: neuron-rtd
