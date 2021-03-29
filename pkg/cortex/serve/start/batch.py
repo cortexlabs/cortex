@@ -46,7 +46,6 @@ JOB_COMPLETE_MESSAGE_RENEWAL = 10  # seconds
 local_cache: Dict[str, Any] = {
     "api": None,
     "job_spec": None,
-    "provider": None,
     "predictor_impl": None,
     "sqs_client": None,
 }
@@ -182,7 +181,6 @@ def start():
         time.sleep(0.2)
 
     cache_dir = os.environ["CORTEX_CACHE_DIR"]
-    provider = os.environ["CORTEX_PROVIDER"]
     api_spec_path = os.environ["CORTEX_API_SPEC"]
     job_spec_path = os.environ["CORTEX_JOB_SPEC"]
     project_dir = os.environ["CORTEX_PROJECT_DIR"]
@@ -206,8 +204,8 @@ def start():
             json.dump(used_ports, f)
             f.truncate()
 
-    api = get_api(provider, api_spec_path, model_dir, cache_dir, region)
-    storage, _ = get_spec(provider, api_spec_path, cache_dir, region)
+    api = get_api(api_spec_path, model_dir, cache_dir, region)
+    storage, _ = get_spec(api_spec_path, cache_dir, region)
     job_spec = get_job_spec(storage, cache_dir, job_spec_path)
     sqs_client = boto3.client("sqs", region_name=region)
 
@@ -244,7 +242,6 @@ def start():
     threading.Thread(target=check_if_crons_have_failed, daemon=True).start()
 
     local_cache["api"] = api
-    local_cache["provider"] = provider
     local_cache["job_spec"] = job_spec
     local_cache["predictor_impl"] = predictor_impl
     local_cache["predict_fn_args"] = inspect.getfullargspec(predictor_impl.predict).args

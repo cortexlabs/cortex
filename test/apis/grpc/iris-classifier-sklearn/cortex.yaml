@@ -1,0 +1,12 @@
+- name: iris-classifier
+  kind: RealtimeAPI
+  predictor:
+    type: python
+    path: predictor.py
+    protobuf_path: iris_classifier.proto
+    config:
+      bucket: cortex-examples
+      key: sklearn/iris-classifier/model.pkl
+  compute:
+    cpu: 0.2
+    mem: 200M

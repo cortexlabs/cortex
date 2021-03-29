@@ -27,7 +27,7 @@ from cortex_internal.lib.model.validation import (
     validate_model_paths,
     ModelVersion,
 )
-from cortex_internal.lib.storage import S3, GCS
+from cortex_internal.lib.storage import S3
 from cortex_internal.lib.type import PredictorType
 
 logger = configure_logger("cortex", os.environ["CORTEX_LOG_CONFIG_FILE"])
@@ -35,7 +35,7 @@ logger = configure_logger("cortex", os.environ["CORTEX_LOG_CONFIG_FILE"])
 
 class ModelsTree:
     """
-    Model tree for cloud-provided models.
+    Model tree for S3 models.
     """
 
     def __init__(self):
@@ -83,7 +83,6 @@ class ModelsTree:
         model_paths: List[str],
         sub_paths: List[List[str]],
         timestamps: List[List[datetime.datetime]],
-        bucket_providers: List[str],
         bucket_names: List[str],
     ) -> Tuple[AbstractSet[str], AbstractSet[str]]:
         """
@@ -94,10 +93,9 @@ class ModelsTree:
         Args:
             model_names: The unique names of the models as discovered in models:dir or specified in models:paths.
             model_versions: The detected versions of each model. If the list is empty, then version "1" should be assumed. The dictionary keys represent the models' names.
-            model_paths: Cloud model paths to each model.
+            model_paths: S3 model paths to each model.
             sub_paths: A list of filepaths lists for each file of each model.
             timestamps: When was each versioned model updated the last time on the upstream. When no versions are passed, a timestamp is still expected.
-            bucket_providers: A list with the bucket providers for each model ("s3" or "gs"). Empty elements if none are used.
             bucket_names: A list with the bucket_names required for each model. Empty elements if no bucket is used.
 
         Returns:
@@ -121,7 +119,6 @@ class ModelsTree:
                 model_id = f"{model_name}-1"
                 with LockedModelsTree(self, "w", model_name, "1"):
                     updated = self.update_model(
-                        bucket_providers[idx],
                         bucket_names[idx],
                         model_name,
                         "1",
@@ -138,7 +135,6 @@ class ModelsTree:
                 model_id = f"{model_name}-{model_version}"
                 with LockedModelsTree(self, "w", model_name, model_version):
                     updated = self.update_model(
-                        bucket_providers[idx],
                         bucket_names[idx],
                         model_name,
                         model_version,
@@ -165,7 +161,6 @@ class ModelsTree:
 
     def update_model(
         self,
-        provider: str,
         bucket: str,
         model_name: str,
         model_version: str,
@@ -180,8 +175,7 @@ class ModelsTree:
         Locking is required.
 
         Args:
-            provider: The bucket provider for the model ("s3" or "gs"). Empty if no bucket was used.
-            bucket: The cloud bucket on which the model is stored. Empty if there's no bucket.
+            bucket: The bucket on which the model is stored. Empty if there's no bucket.
             model_name: The unique name of the model as discovered in models:dir or specified in models:paths.
             model_version: A detected version of the model.
             model_path: The model path to the versioned model.
@@ -202,7 +196,6 @@ class ModelsTree:
 
         if has_changed or model_id in self.models:
             self.models[model_id] = {
-                "provider": provider,
                 "bucket": bucket,
                 "path": model_path,
                 "sub_paths": sub_paths,
@@ -223,7 +216,7 @@ class ModelsTree:
 
         Returns:
             A dict with keys "bucket", "model_paths, "versions" and "timestamps".
-            "model_paths" contains the cloud prefixes of each versioned model, "versions" represents the available versions of the model,
+            "model_paths" contains the s3 prefixes of each versioned model, "versions" represents the available versions of the model,
             and each "timestamps" element is the corresponding last-edit time of each versioned model.
 
             Empty lists are returned if the model is not found.
@@ -231,7 +224,6 @@ class ModelsTree:
         Example of returned dictionary for model_name.
         ```json
         {
-            "provider": "s3",
             "bucket": "bucket-0",
             "model_paths": ["modelA/1", "modelA/4", "modelA/7", ...],
             "versions": [1,4,7, ...],
@@ -251,8 +243,6 @@ class ModelsTree:
         for model_id in models:
             _model_name, model_version = model_id.rsplit("-", maxsplit=1)
             if _model_name == model_name:
-                if "provider" not in info:
-                    info["provider"] = models[model_id]["provider"]
                 if "bucket" not in info:
                     info["bucket"] = models[model_id]["bucket"]
                 info["model_paths"] += [os.path.join(models[model_id]["path"], model_version)]
@@ -293,7 +283,6 @@ class ModelsTree:
         {
             ...
             "modelA": {
-                "provider": "s3",
                 "bucket": "bucket-0",
                 "model_paths": ["modelA/1", "modelA/4", "modelA/7", ...],
                 "versions": ["1","4","7", ...],
@@ -325,8 +314,6 @@ class ModelsTree:
             for model_id in models:
                 _model_name, model_version = model_id.rsplit("-", maxsplit=1)
                 if _model_name == model_name:
-                    if "provider" not in model_info:
-                        model_info["provider"] = models[model_id]["provider"]
                     if "bucket" not in model_info:
                         model_info["bucket"] = models[model_id]["bucket"]
                     model_info["model_paths"] += [
@@ -343,7 +330,6 @@ class ModelsTree:
         """
         Each value of a key (model ID) is a dictionary with the following format:
         {
-            "provider": <provider-of-the-bucket>,
             "bucket": <bucket-of-the-model>,
             "path": <path-of-the-model>,
             "sub_paths": <sub-path-of-each-file-of-the-model>,
@@ -358,7 +344,6 @@ class ModelsTree:
         """
         Each value of a key (model ID) is a dictionary with the following format:
         {
-            "provider": <provider-of-the-bucket>,
             "bucket": <bucket-of-the-model>,
             "path": <path-of-the-model>,
             "sub_paths": <sub-path-of-each-file-of-the-model>,
@@ -400,12 +385,12 @@ class LockedModelsTree:
         return True
 
 
-def find_all_cloud_models(
+def find_all_s3_models(
     is_dir_used: bool,
     models_dir: str,
     predictor_type: PredictorType,
-    cloud_paths: List[str],
-    cloud_model_names: List[str],
+    s3_paths: List[str],
+    s3_model_names: List[str],
 ) -> Tuple[
     List[str],
     Dict[str, List[str]],
@@ -416,15 +401,15 @@ def find_all_cloud_models(
     List[str],
 ]:
     """
-    Get updated information on all models that are currently present on the cloud upstreams.
+    Get updated information on all models that are currently present on the S3 upstreams.
     Information on the available models, versions, last edit times, the subpaths of each model, and so on.
 
     Args:
         is_dir_used: Whether predictor:models:dir is used or not.
         models_dir: The value of predictor:models:dir in case it's present. Ignored when not required.
         predictor_type: The predictor type.
-        cloud_paths: The cloud model paths as they are specified in predictor:models:path/predictor:models:paths/predictor:models:dir is used. Ignored when not required.
-        cloud_model_names: The cloud model names as they are specified in predictor:models:paths:name when predictor:models:paths is used or the default name of the model when predictor:models:path is used. Ignored when not required.
+        s3_paths: The S3 model paths as they are specified in predictor:models:path/predictor:models:paths/predictor:models:dir is used. Ignored when not required.
+        s3_model_names: The S3 model names as they are specified in predictor:models:paths:name when predictor:models:paths is used or the default name of the model when predictor:models:path is used. Ignored when not required.
 
     Returns: The tuple with the following elements:
         model_names - a list with the names of the models (i.e. bert, gpt-2, etc) and they are unique
@@ -433,18 +418,13 @@ def find_all_cloud_models(
         model_paths - a list with the prefix of each model.
         sub_paths - a list of filepaths lists for each file of each model.
         timestamps - a list of timestamps lists representing the last edit time of each versioned model.
-        bucket_providers - a list of the bucket providers for each model. Can be "s3" or "gs".
         bucket_names - a list of the bucket names of each model.
     """
 
-    # validate models stored in cloud (S3 or GS) that were specified with predictor:models:dir field
+    # validate models stored in S3 that were specified with predictor:models:dir field
     if is_dir_used:
-        if S3.is_valid_s3_path(models_dir):
-            bucket_name, models_path = S3.deconstruct_s3_path(models_dir)
-            client = S3(bucket_name)
-        if GCS.is_valid_gcs_path(models_dir):
-            bucket_name, models_path = GCS.deconstruct_gcs_path(models_dir)
-            client = GCS(bucket_name)
+        bucket_name, models_path = S3.deconstruct_s3_path(models_dir)
+        client = S3(bucket_name)
 
         sub_paths, timestamps = client.search(models_path)
 
@@ -458,31 +438,22 @@ def find_all_cloud_models(
             model_path + "/" * (not model_path.endswith("/")) for model_path in model_paths
         ]
 
-        if S3.is_valid_s3_path(models_dir):
-            bucket_providers = len(model_paths) * ["s3"]
-        if GCS.is_valid_gcs_path(models_dir):
-            bucket_providers = len(model_paths) * ["gs"]
-
         bucket_names = len(model_paths) * [bucket_name]
         sub_paths = len(model_paths) * [sub_paths]
         timestamps = len(model_paths) * [timestamps]
 
-    # validate models stored in cloud (S3 or GS) that were specified with predictor:models:paths field
+    # validate models stored in S3 that were specified with predictor:models:paths field
     if not is_dir_used:
         sub_paths = []
         ooa_ids = []
         model_paths = []
         model_names = []
         timestamps = []
-        bucket_providers = []
         bucket_names = []
-        for idx, path in enumerate(cloud_paths):
+        for idx, path in enumerate(s3_paths):
             if S3.is_valid_s3_path(path):
                 bucket_name, model_path = S3.deconstruct_s3_path(path)
                 client = S3(bucket_name)
-            elif GCS.is_valid_gcs_path(path):
-                bucket_name, model_path = GCS.deconstruct_gcs_path(path)
-                client = GCS(bucket_name)
             else:
                 continue
 
@@ -492,17 +463,12 @@ def find_all_cloud_models(
             except CortexException:
                 continue
             model_paths.append(model_path)
-            model_names.append(cloud_model_names[idx])
+            model_names.append(s3_model_names[idx])
             bucket_names.append(bucket_name)
             sub_paths += [sb]
             timestamps += [model_path_ts]
 
-            if S3.is_valid_s3_path(path):
-                bucket_providers.append("s3")
-            if GCS.is_valid_gcs_path(path):
-                bucket_providers.append("gs")
-
-    # determine the detected versions for each cloud model
+    # determine the detected versions for each s3 model
     # if the model was not versioned, then leave the version list empty
     versions = {}
     for model_path, model_name, model_ooa_ids, bucket_sub_paths in zip(
@@ -555,7 +521,6 @@ def find_all_cloud_models(
     # model_paths - a list with the prefix of each model
     # sub_paths - a list of filepaths lists for each file of each model
     # timestamps - a list of timestamps lists representing the last edit time of each versioned model
-    # bucket_providers - bucket providers
     # bucket_names - names of the buckets
 
-    return model_names, versions, model_paths, sub_paths, timestamps, bucket_providers, bucket_names
+    return model_names, versions, model_paths, sub_paths, timestamps, bucket_names

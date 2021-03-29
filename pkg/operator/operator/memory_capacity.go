@@ -17,7 +17,6 @@ limitations under the License.
 package operator
 
 import (
-	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/slices"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
@@ -102,18 +101,10 @@ func getMemoryCapacityFromConfigMap() (map[string]*kresource.Quantity, error) {
 }
 
 func UpdateMemoryCapacityConfigMap() (map[string]kresource.Quantity, error) {
-	if !config.IsManaged() {
-		return nil, nil
-	}
-
-	instancesMetadata := config.AWSInstancesMetadata()
-	if len(instancesMetadata) == 0 {
-		return nil, errors.ErrorUnexpected("unable to find instances metadata; likely because this is not a cortex managed cluster")
-	}
 	primaryInstances := []string{}
 
 	minMemMap := map[string]kresource.Quantity{}
-	for _, instanceMetadata := range instancesMetadata {
+	for _, instanceMetadata := range config.InstancesMetadata {
 		minMemMap[instanceMetadata.Type] = instanceMetadata.Memory
 		primaryInstances = append(primaryInstances, instanceMetadata.Type)
 	}

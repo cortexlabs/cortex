@@ -40,6 +40,7 @@ type StringValidation struct {
 	DisallowedValues                     []string
 	CantBeSpecifiedErrStr                *string
 	Prefix                               string
+	Suffix                               string
 	InvalidPrefixes                      []string
 	MaxLength                            int
 	MinLength                            int
@@ -49,6 +50,7 @@ type StringValidation struct {
 	AlphaNumericDashDotUnderscore        bool
 	AlphaNumericDashUnderscoreOrEmpty    bool
 	AlphaNumericDashUnderscore           bool
+	AlphaNumericDotUnderscore            bool
 	AWSTag                               bool
 	DNS1035                              bool
 	DNS1123                              bool
@@ -262,6 +264,12 @@ func ValidateStringVal(val string, v *StringValidation) error {
 		}
 	}
 
+	if v.Suffix != "" {
+		if !strings.HasSuffix(val, v.Suffix) {
+			return ErrorMustHaveSuffix(val, v.Suffix)
+		}
+	}
+
 	for _, invalidPrefix := range v.InvalidPrefixes {
 		if strings.HasPrefix(val, invalidPrefix) {
 			return ErrorCantHavePrefix(val, invalidPrefix)
@@ -289,6 +297,12 @@ func ValidateStringVal(val string, v *StringValidation) error {
 	if v.AlphaNumericDashUnderscore {
 		if !regex.IsAlphaNumericDashUnderscore(val) {
 			return ErrorAlphaNumericDashUnderscore(val)
+		}
+	}
+
+	if v.AlphaNumericDotUnderscore {
+		if !regex.IsAlphaNumericDotUnderscore(val) {
+			return ErrorAlphaNumericDotUnderscore(val)
 		}
 	}
 

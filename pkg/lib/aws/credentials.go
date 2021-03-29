@@ -16,12 +16,6 @@ limitations under the License.
 
 package aws
 
-import (
-	"fmt"
-
-	"github.com/aws/aws-sdk-go/aws/credentials"
-)
-
 // access key ID may be unavailable depending on how the client was instantiated
 func (c *Client) AccessKeyID() *string {
 	if c.sess.Config.Credentials == nil {
@@ -72,26 +66,4 @@ func (c *Client) SessionToken() *string {
 	}
 
 	return &sessCreds.SessionToken
-}
-
-func GetCredentialsFromCLIConfigFile() (string, string, error) {
-	creds := credentials.NewSharedCredentials("", "")
-	if creds == nil {
-		return "", "", ErrorReadCredentials()
-	}
-
-	value, err := creds.Get()
-	if err != nil {
-		return "", "", err
-	}
-
-	if value.SessionToken != "" {
-		fmt.Println("warning: credentials requiring aws session tokens are not supported")
-	}
-
-	if value.AccessKeyID == "" || value.SecretAccessKey == "" {
-		return "", "", ErrorReadCredentials()
-	}
-
-	return value.AccessKeyID, value.SecretAccessKey, nil
 }
