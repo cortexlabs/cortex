@@ -147,16 +147,18 @@ func UpdateAPI(apiConfig userconfig.API, projectID string, force bool) (*spec.AP
 func DeleteAPI(apiName string, keepCache bool) error {
 	err := parallel.RunFirstErr(
 		func() error {
-			deployment, err := config.K8s.GetVirtualService(operator.K8sName(apiName))
+			vs, err := config.K8s.GetVirtualService(operator.K8sName(apiName))
 			if err != nil {
 				return err
 			}
-			queueURL, err := getQueueURL(apiName, deployment.Labels["deploymentID"])
-			if err != nil {
-				return err
+			if vs != nil {
+				queueURL, err := getQueueURL(apiName, vs.Labels["deploymentID"])
+				if err != nil {
+					return err
+				}
+				// best effort deletion
+				_ = deleteQueueByURL(queueURL)
 			}
-			// best effort deletion
-			_ = deleteQueueByURL(queueURL)
 			return nil
 		},
 		func() error {
