@@ -15,13 +15,14 @@
 import sys
 
 import yaml
+import json
 
+K8S_VERSION = "1.18"
 
 # kubelet config schema:
 # https://github.com/kubernetes/kubernetes/blob/master/staging/src/k8s.io/kubelet/config/v1beta1/types.go
 def default_nodegroup(cluster_config):
     return {
-        "ami": "auto",
         "iam": {
             "withAddonPolicies": {"autoScaler": True},
             "attachPolicyARNs": [
@@ -161,10 +162,12 @@ def get_inf_resources(instance_type):
     return num_chips, f"{128 * num_chips}Mi"
 
 
-def get_all_worker_nodegroups(cluster_config: dict) -> list:
+def get_all_worker_nodegroups(ami_map: dict, cluster_config: dict) -> list:
     worker_nodegroups = []
     for ng in cluster_config["node_groups"]:
         worker_nodegroup = default_nodegroup(cluster_config)
+        worker_nodegroup["ami"] = get_ami(ami_map, ng["instance_type"])
+
         apply_worker_settings(worker_nodegroup, ng)
         apply_clusterconfig(worker_nodegroup, ng)
 
@@ -182,12 +185,24 @@ def get_all_worker_nodegroups(cluster_config: dict) -> list:
     return worker_nodegroups
 
 
-def generate_eks(cluster_config_path):
+def get_ami(ami_map: dict, instance_type: str) -> str:
+    if is_gpu(instance_type) or is_inf(instance_type):
+        return ami_map["accelerated"]
+    return ami_map["cpu"]
+
+
+def generate_eks(cluster_config_path, ami_json_path):
     with open(cluster_config_path, "r") as f:
         cluster_config = yaml.safe_load(f)
 
+    region = cluster_config["region"]
+
+    with open(ami_json_path, "r") as f:
+        ami_map = json.load(f)[K8S_VERSION][region]
+
     operator_nodegroup = default_nodegroup(cluster_config)
     operator_settings = {
+        "ami": get_ami(ami_map, "t3.medium"),
         "name": "cx-operator",
         "instanceType": "t3.medium",
         "minSize": 2,
@@ -196,7 +211,7 @@ def generate_eks(cluster_config_path):
     }
     operator_nodegroup = merge_override(operator_nodegroup, operator_settings)
 
-    worker_nodegroups = get_all_worker_nodegroups(cluster_config)
+    worker_nodegroups = get_all_worker_nodegroups(ami_map, cluster_config)
 
     nat_gateway = "Disable"
     if cluster_config["nat_gateway"] == "single":
@@ -210,7 +225,7 @@ def generate_eks(cluster_config_path):
         "metadata": {
             "name": cluster_config["cluster_name"],
             "region": cluster_config["region"],
-            "version": "1.18",
+            "version": K8S_VERSION,
             "tags": cluster_config["tags"],
         },
         "vpc": {"nat": {"gateway": nat_gateway}},
@@ -252,4 +267,4 @@ class IgnoreAliases(yaml.Dumper):
 
 
 if __name__ == "__main__":
-    generate_eks(cluster_config_path=sys.argv[1])
+    generate_eks(cluster_config_path=sys.argv[1], ami_json_path=sys.argv[2])

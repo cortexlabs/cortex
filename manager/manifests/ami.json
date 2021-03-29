@@ -1,0 +1,88 @@
+{
+	"1.18": {
+		"af-south-1": {
+			"accelerated": "ami-0449e43458923407e",
+			"cpu": "ami-0114a922955a0b9aa"
+		},
+		"ap-east-1": {
+			"accelerated": "ami-097271e14e95f0068",
+			"cpu": "ami-0ba7eff4ab9afaaca"
+		},
+		"ap-northeast-1": {
+			"accelerated": "ami-06a0016bf0b1dc9fb",
+			"cpu": "ami-0c4f7ed0f96c7d333"
+		},
+		"ap-northeast-2": {
+			"accelerated": "ami-03e9c915844970121",
+			"cpu": "ami-0471e35b27cfeef14"
+		},
+		"ap-northeast-3": {
+			"accelerated": "ami-039479e380a32721b",
+			"cpu": "ami-086e0e9bd40db60f5"
+		},
+		"ap-south-1": {
+			"accelerated": "ami-0cb31a5b6c3ac4cb6",
+			"cpu": "ami-0c9005c1080938019"
+		},
+		"ap-southeast-1": {
+			"accelerated": "ami-0a52f540d258f9673",
+			"cpu": "ami-001789b7865972490"
+		},
+		"ap-southeast-2": {
+			"accelerated": "ami-053dfd9f640f65168",
+			"cpu": "ami-00fad97745b2d2c64"
+		},
+		"ca-central-1": {
+			"accelerated": "ami-035ba6d09c540290f",
+			"cpu": "ami-0ca9d348267a8c65d"
+		},
+		"eu-central-1": {
+			"accelerated": "ami-0d42212d35cc8d237",
+			"cpu": "ami-0f85d2eeb0bea62a7"
+		},
+		"eu-north-1": {
+			"accelerated": "ami-016de826d1d553d1b",
+			"cpu": "ami-05dc6dcd932a8159e"
+		},
+		"eu-south-1": {
+			"accelerated": "ami-0ce76bb81c438e3b9",
+			"cpu": "ami-0ca535994b7de3e69"
+		},
+		"eu-west-1": {
+			"accelerated": "ami-023b929963e20eff3",
+			"cpu": "ami-016c2a4f422f847a2"
+		},
+		"eu-west-2": {
+			"accelerated": "ami-0ccc26465f00e100d",
+			"cpu": "ami-08b9b0904b1d53903"
+		},
+		"eu-west-3": {
+			"accelerated": "ami-0ca7fdd012fc03b73",
+			"cpu": "ami-09198b441d6e41f77"
+		},
+		"me-south-1": {
+			"accelerated": "ami-0d109448b9811cc5d",
+			"cpu": "ami-0801d12e832ce09f7"
+		},
+		"sa-east-1": {
+			"accelerated": "ami-069a705625dac028c",
+			"cpu": "ami-01a65422c4c57f063"
+		},
+		"us-east-1": {
+			"accelerated": "ami-089f9a2a14c92f7e3",
+			"cpu": "ami-09ba20e934af98ddf"
+		},
+		"us-east-2": {
+			"accelerated": "ami-0da728680ca5ee572",
+			"cpu": "ami-0576aabae1709e005"
+		},
+		"us-west-1": {
+			"accelerated": "ami-085fdad868b9007dd",
+			"cpu": "ami-09bec0a8c8d4925a6"
+		},
+		"us-west-2": {
+			"accelerated": "ami-0039397c9cf7f00ce",
+			"cpu": "ami-01f2f1180914aad2b"
+		}
+	}
+}
