@@ -33,6 +33,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/ec2/ec2iface"
 )
 
+// run with `go run build/generate_ami_mapping.go manager/manifests/ami.json`
 // copied from https://github.com/weaveworks/eksctl/blob/c211e68d3c8cf3c7f800768bfa0251dda17e011c/pkg/apis/eksctl.io/v1alpha5/types.go
 // most of this code can be removed once eksctl can be imported: https://github.com/weaveworks/eksctl/issues/813
 const (
@@ -227,6 +228,8 @@ func main() {
 	if err != nil {
 		log.Fatal(err.Error())
 	}
+
+	marshalledBytes = append(marshalledBytes, []byte("\n")...)
 
 	err = ioutil.WriteFile(destFile, marshalledBytes, 0664)
 	if err != nil {
