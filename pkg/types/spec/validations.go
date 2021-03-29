@@ -23,7 +23,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/cast"
@@ -1494,31 +1493,8 @@ func validateDockerImagePath(
 	dockerAuthStr := docker.NoAuth
 
 	if regex.IsValidECRURL(image) {
-		ecrRegion := aws.GetRegionFromECRURL(image)
-		if ecrRegion != awsClient.Region {
-			return ErrorRegistryInDifferentRegion(ecrRegion, awsClient.Region)
-		}
-
-		operatorID, _, err := awsClient.GetCachedAccountID()
-		if err != nil {
-			return err
-		}
-		registryID := aws.GetAccountIDFromECRURL(image)
-
-		if operatorID != registryID {
-			return ErrorRegistryAccountIDMismatch(registryID, operatorID)
-		}
-
 		dockerAuthStr, err = docker.AWSAuthConfig(awsClient)
 		if err != nil {
-			if _, ok := errors.CauseOrSelf(err).(awserr.Error); ok {
-				// because the operator's IAM user != instances's IAM role (which is created by eksctl and
-				// has access to ECR), if the operator IAM doesn't include ECR access, then this will fail
-				// even though the instance IAM role may have access; instead, ignore this error because the
-				// instance will have access (this will result in missing the case where the image does not exist)
-				return nil
-			}
-
 			return err
 		}
 	} else if k8sClient != nil {
