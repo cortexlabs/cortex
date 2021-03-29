@@ -43,7 +43,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/table"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
-	"github.com/cortexlabs/cortex/pkg/types"
 	"github.com/cortexlabs/cortex/pkg/types/clusterconfig"
 	"github.com/cortexlabs/cortex/pkg/types/clusterstate"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
@@ -115,7 +114,7 @@ func addClusterRegionFlag(cmd *cobra.Command) {
 
 var _clusterCmd = &cobra.Command{
 	Use:   "cluster",
-	Short: "manage AWS clusters (contains subcommands)",
+	Short: "manage cortex clusters (contains subcommands)",
 }
 
 var _clusterUpCmd = &cobra.Command{
@@ -123,7 +122,7 @@ var _clusterUpCmd = &cobra.Command{
 	Short: "spin up a cluster on aws",
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		telemetry.EventNotify("cli.cluster.up", map[string]interface{}{"provider": types.AWSProviderType})
+		telemetry.EventNotify("cli.cluster.up")
 
 		clusterConfigFile := args[0]
 
@@ -273,7 +272,6 @@ var _clusterUpCmd = &cobra.Command{
 
 		newEnvironment := cliconfig.Environment{
 			Name:             _flagClusterUpEnv,
-			Provider:         types.AWSProviderType,
 			OperatorEndpoint: "https://" + *loadBalancer.DNSName,
 		}
 
@@ -295,7 +293,7 @@ var _clusterConfigureCmd = &cobra.Command{
 	Short: "update a cluster's configuration",
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		telemetry.Event("cli.cluster.configure", map[string]interface{}{"provider": types.AWSProviderType})
+		telemetry.Event("cli.cluster.configure")
 
 		clusterConfigFile := args[0]
 
@@ -360,7 +358,7 @@ var _clusterInfoCmd = &cobra.Command{
 	Short: "get information about a cluster",
 	Args:  cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
-		telemetry.Event("cli.cluster.info", map[string]interface{}{"provider": types.AWSProviderType})
+		telemetry.Event("cli.cluster.info")
 
 		if _, err := docker.GetDockerClient(); err != nil {
 			exit.Error(err)
@@ -389,7 +387,7 @@ var _clusterDownCmd = &cobra.Command{
 	Short: "spin down a cluster",
 	Args:  cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
-		telemetry.Event("cli.cluster.down", map[string]interface{}{"provider": types.AWSProviderType})
+		telemetry.Event("cli.cluster.down")
 
 		if _, err := docker.GetDockerClient(); err != nil {
 			exit.Error(err)
@@ -544,7 +542,7 @@ var _clusterExportCmd = &cobra.Command{
 	Short: "download the code and configuration for APIs",
 	Args:  cobra.RangeArgs(0, 2),
 	Run: func(cmd *cobra.Command, args []string) {
-		telemetry.Event("cli.cluster.export", map[string]interface{}{"provider": types.AWSProviderType})
+		telemetry.Event("cli.cluster.export")
 
 		accessConfig, err := getClusterAccessConfigWithCache()
 		if err != nil {
@@ -577,7 +575,6 @@ var _clusterExportCmd = &cobra.Command{
 			Telemetry:        isTelemetryEnabled(),
 			ClientID:         clientID(),
 			OperatorEndpoint: "https://" + *loadBalancer.DNSName,
-			Provider:         types.AWSProviderType,
 		}
 
 		info, err := cluster.Info(operatorConfig)
@@ -725,7 +722,6 @@ func printInfoOperatorResponse(clusterConfig clusterconfig.Config, operatorEndpo
 		Telemetry:        isTelemetryEnabled(),
 		ClientID:         clientID(),
 		OperatorEndpoint: operatorEndpoint,
-		Provider:         types.AWSProviderType,
 	}
 
 	infoResponse, err := cluster.Info(operatorConfig)
@@ -887,7 +883,6 @@ func updateAWSCLIEnv(envName string, operatorEndpoint string, disallowPrompt boo
 
 	newEnvironment := cliconfig.Environment{
 		Name:             envName,
-		Provider:         types.AWSProviderType,
 		OperatorEndpoint: operatorEndpoint,
 	}
 

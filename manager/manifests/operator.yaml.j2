@@ -73,10 +73,6 @@ spec:
               mountPath: /configs/cluster
             - name: docker-client
               mountPath: /var/run/docker.sock
-            {% if config['provider'] == "gcp" %}
-            - name: gcp-credentials
-              mountPath: /var/secrets/google
-            {% endif %}
       volumes:
         - name: cluster-config
           configMap:
@@ -85,11 +81,6 @@ spec:
           hostPath:
             path: /var/run/docker.sock
             type: Socket
-        {% if config['provider'] == "gcp" %}
-        - name: gcp-credentials
-          secret:
-            secretName: gcp-credentials
-        {% endif %}
 
 ---
 apiVersion: v1

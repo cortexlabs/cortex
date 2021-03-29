@@ -32,7 +32,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/files"
 	"github.com/cortexlabs/cortex/pkg/lib/json"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
-	"github.com/cortexlabs/cortex/pkg/types"
 )
 
 type OperatorClient struct {
@@ -43,7 +42,6 @@ type OperatorConfig struct {
 	Telemetry        bool
 	ClientID         string
 	EnvName          string
-	Provider         types.ProviderType
 	OperatorEndpoint string
 }
 
@@ -180,18 +178,16 @@ func makeOperatorRequest(operatorConfig OperatorConfig, request *http.Request) (
 	}
 
 	request.Header.Set("CortexAPIVersion", consts.CortexVersion)
-	if operatorConfig.Provider == types.AWSProviderType {
-		awsClient, err := aws.New()
-		if err != nil {
-			return nil, err
-		}
-
-		authHeader, err := awsClient.IdentityRequestAsHeader()
-		if err != nil {
-			return nil, err
-		}
-		request.Header.Set(consts.AuthHeader, authHeader)
+	awsClient, err := aws.New()
+	if err != nil {
+		return nil, err
 	}
+
+	authHeader, err := awsClient.IdentityRequestAsHeader()
+	if err != nil {
+		return nil, err
+	}
+	request.Header.Set(consts.AuthHeader, authHeader)
 
 	timeout := 600 * time.Second
 	if request.URL.Path == "/info" {

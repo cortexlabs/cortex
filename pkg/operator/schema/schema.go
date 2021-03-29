@@ -17,7 +17,6 @@ limitations under the License.
 package schema
 
 import (
-	"github.com/cortexlabs/cortex/pkg/types"
 	"github.com/cortexlabs/cortex/pkg/types/clusterconfig"
 	"github.com/cortexlabs/cortex/pkg/types/metrics"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
@@ -30,10 +29,6 @@ type InfoResponse struct {
 	ClusterConfig        clusterconfig.InternalConfig `json:"cluster_config"`
 	NodeInfos            []NodeInfo                   `json:"node_infos"`
 	NumPendingReplicas   int                          `json:"num_pending_replicas"`
-}
-
-type InfoGCPResponse struct {
-	ClusterConfig clusterconfig.InternalGCPConfig `json:"cluster_config"`
 }
 
 type NodeInfo struct {
@@ -59,6 +54,7 @@ type APIResponse struct {
 	Status           *status.Status          `json:"status,omitempty"`
 	Metrics          *metrics.Metrics        `json:"metrics,omitempty"`
 	Endpoint         string                  `json:"endpoint"`
+	GRPCPorts        map[string]int64        `json:"grpc_ports,omitempty"`
 	DashboardURL     *string                 `json:"dashboard_url,omitempty"`
 	BatchJobStatuses []status.BatchJobStatus `json:"batch_job_statuses,omitempty"`
 	TaskJobStatuses  []status.TaskJobStatus  `json:"task_job_statuses,omitempty"`
@@ -88,10 +84,6 @@ type RefreshResponse struct {
 type ErrorResponse struct {
 	Kind    string `json:"kind"`
 	Message string `json:"message"`
-}
-
-type GCPLogsResponse struct {
-	QueryParams map[string]string `json:"query_params"`
 }
 
 type APITFLiveReloadingSummary struct {
@@ -127,9 +119,7 @@ type APIVersion struct {
 	LastUpdated int64  `json:"last_updated"`
 }
 
-type VerifyCortexResponse struct {
-	Provider types.ProviderType `json:"provider"`
-}
+type VerifyCortexResponse struct{}
 
 func (ir InfoResponse) GetNodesWithNodeGroupName(ngName string) []NodeInfo {
 	nodesInfo := []NodeInfo{}

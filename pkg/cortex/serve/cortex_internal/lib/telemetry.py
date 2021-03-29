@@ -24,7 +24,6 @@ from sentry_sdk.integrations.threading import ThreadingIntegration
 
 def get_default_tags():
     vars = {
-        "provider": "CORTEX_PROVIDER",
         "kind": "CORTEX_KIND",
         "image_type": "CORTEX_IMAGE_TYPE",
     }

@@ -30,6 +30,7 @@ from e2e.utils import (
     apis_ready,
     endpoint_ready,
     request_prediction,
+    generate_grpc,
     job_done,
     request_batch_prediction,
     request_task,
@@ -65,17 +66,36 @@ def test_realtime_api(
             client=client, api_names=[api_name], timeout=timeout
         ), f"apis {api_name} not ready"
 
-        with open(str(api_dir / "sample.json")) as f:
-            payload = json.load(f)
+        if not expectations or "grpc" not in expectations:
+            with open(str(api_dir / "sample.json")) as f:
+                payload = json.load(f)
+            response = request_prediction(client, api_name, payload)
 
-        response = request_prediction(client, api_name, payload)
+            assert (
+                response.status_code == HTTPStatus.OK
+            ), f"status code: got {response.status_code}, expected {HTTPStatus.OK}"
 
-        assert (
-            response.status_code == HTTPStatus.OK
-        ), f"status code: got {response.status_code}, expected {HTTPStatus.OK}"
+            if expectations and "response" in expectations:
+                assert_response_expectations(response, expectations["response"])
 
-        if expectations and "response" in expectations:
-            assert_response_expectations(response, expectations["response"])
+        if expectations and "grpc" in expectations:
+            stub, input_sample, output_values, output_type, is_output_stream = generate_grpc(
+                client, api_name, api_dir, expectations["grpc"]
+            )
+            if is_output_stream:
+                for response, output_val in zip(stub.Predict(input_sample), output_values):
+                    assert (
+                        type(response) == output_type
+                    ), f"didn't receive response of type {str(output_type)}, but received {str(type(response))}"
+                    assert response == output_val, f"received {response} instead of {output_val}"
+            else:
+                response = stub.Predict(input_sample)
+                assert (
+                    type(stub.Predict(input_sample)) == output_type
+                ), f"didn't receive response of type {str(output_type)}, but received {str(type(response))}"
+                assert (
+                    response == output_values[0]
+                ), f"received {response} instead of {output_values[0]}"
     finally:
         delete_apis(client, [api_name])
 
@@ -107,7 +127,7 @@ def test_batch_api(
             payload = json.load(f)
 
         response = None
-        for i in range(retry_attempts + 1):
+        for _ in range(retry_attempts + 1):
             response = request_batch_prediction(
                 client,
                 api_name,

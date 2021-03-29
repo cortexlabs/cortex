@@ -138,7 +138,6 @@ metadata:
   namespace: kube-system
 data:
   priorities: |-
-  {% if config['provider'] == 'aws' %}
   {% for ng in config['node_groups']|reverse %}
     {{ (loop.index0+1) * 10 }}:
     {% if ng['spot'] %}
@@ -147,16 +146,6 @@ data:
       - .*{{ 'cx-wd-' + ng['name'] }}.*
     {% endif %}
   {% endfor %}
-  {% else %}
-  {% for np in config['node_pools']|reverse %}
-    {{ (loop.index0+1) * 10 }}:
-    {% if np['preemptible'] %}
-      - .*{{ 'cx-ws-' + np['name'] }}.*
-    {% else %}
-      - .*{{ 'cx-wd-' + np['name'] }}.*
-    {% endif %}
-  {% endfor %}
-  {% endif %}
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -190,28 +179,14 @@ spec:
             - ./cluster-autoscaler
             - --v=4
             - --stderrthreshold=info
-            {% if config['provider'] == 'aws' %}
             - --cloud-provider=aws
-            {% else %}
-            - --cloud-provider=gce
-            {% endif %}
             - --skip-nodes-with-local-storage=false
             - --expander=priority
             - --max-total-unready-percentage=5
             - --ok-total-unready-count=30
             - --max-node-provision-time=5m
             - --scan-interval=20s
-            {% if config['provider'] == 'aws' %}
             - --node-group-auto-discovery=asg:tag=k8s.io/cluster-autoscaler/enabled,k8s.io/cluster-autoscaler/{{ config['cluster_name'] }}
-            {% else %}
-            {% for np in config['node_pools'] %}
-            {% if np['preemptible'] %}
-            - --node-group-auto-discovery=mig:namePrefix=gke-{{ config['cluster_name'] }}-cx-ws-{{ np['name'] }},min={{ np['min_instances'] }},max={{ np['max_instances'] }}
-            {% else %}
-            - --node-group-auto-discovery=mig:namePrefix=gke-{{ config['cluster_name'] }}-cx-wd-{{ np['name'] }},min={{ np['min_instances'] }},max={{ np['max_instances'] }}
-            {% endif %}
-            {% endfor %}
-            {% endif %}
           volumeMounts:
             - name: ssl-certs
               mountPath: /etc/ssl/certs/ca-certificates.crt
@@ -220,11 +195,7 @@ spec:
       volumes:
         - name: ssl-certs
           hostPath:
-            {% if config['provider'] == 'aws' %}
             path: "/etc/ssl/certs/ca-bundle.crt"
-            {% else %}
-            path: "/etc/ssl/certs/ca-certificates.crt"
-            {% endif %}
   strategy:
     type: RollingUpdate
     rollingUpdate:

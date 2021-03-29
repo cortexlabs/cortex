@@ -58,7 +58,6 @@ app = FastAPI()
 
 local_cache: Dict[str, Any] = {
     "api": None,
-    "provider": None,
     "predictor_impl": None,
     "dynamic_batcher": None,
     "predict_route": None,
@@ -114,13 +113,12 @@ async def register_request(request: Request, call_next):
     response = None
     try:
         if is_prediction_request(request):
-            if local_cache["provider"] != "local":
-                if "x-request-id" in request.headers:
-                    request_id = request.headers["x-request-id"]
-                else:
-                    request_id = uuid.uuid1()
-                file_id = f"/mnt/requests/{request_id}"
-                open(file_id, "a").close()
+            if "x-request-id" in request.headers:
+                request_id = request.headers["x-request-id"]
+            else:
+                request_id = uuid.uuid1()
+            file_id = f"/mnt/requests/{request_id}"
+            open(file_id, "a").close()
 
         response = await call_next(request)
     finally:
@@ -262,7 +260,6 @@ def start():
 
 
 def start_fn():
-    provider = os.environ["CORTEX_PROVIDER"]
     project_dir = os.environ["CORTEX_PROJECT_DIR"]
     spec_path = os.environ["CORTEX_API_SPEC"]
 
@@ -287,7 +284,7 @@ def start_fn():
                 json.dump(used_ports, f)
                 f.truncate()
 
-        api = get_api(provider, spec_path, model_dir, cache_dir, region)
+        api = get_api(spec_path, model_dir, cache_dir, region)
 
         client = api.predictor.initialize_client(
             tf_serving_host=tf_serving_host, tf_serving_port=tf_serving_port
@@ -311,7 +308,6 @@ def start_fn():
         threading.Thread(target=check_if_crons_have_failed, daemon=True).start()
 
         local_cache["api"] = api
-        local_cache["provider"] = provider
         local_cache["client"] = client
         local_cache["predictor_impl"] = predictor_impl
         local_cache["predict_fn_args"] = inspect.getfullargspec(predictor_impl.predict).args

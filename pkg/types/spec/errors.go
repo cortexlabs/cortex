@@ -27,7 +27,6 @@ import (
 	libmath "github.com/cortexlabs/cortex/pkg/lib/math"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
-	"github.com/cortexlabs/cortex/pkg/types"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 )
 
@@ -65,7 +64,7 @@ const (
 	ErrS3DirIsEmpty   = "spec.s3_dir_is_empty"
 
 	ErrModelPathNotDirectory      = "spec.model_path_not_directory"
-	ErrInvalidModelPathProvider   = "spec.invalid_model_path_provider"
+	ErrInvalidBucketScheme        = "spec.invalid_bucket_scheme"
 	ErrInvalidPythonModelPath     = "spec.invalid_python_model_path"
 	ErrInvalidTensorFlowModelPath = "spec.invalid_tensorflow_model_path"
 	ErrInvalidONNXModelPath       = "spec.invalid_onnx_model_path"
@@ -74,15 +73,20 @@ const (
 	ErrDuplicateModelNames = "spec.duplicate_model_names"
 	ErrReservedModelName   = "spec.reserved_model_name"
 
+	ErrProtoNumServicesExceeded       = "spec.proto_num_services_exceeded"
+	ErrProtoNumServiceMethodsExceeded = "spec.proto_num_service_methods_exceeded"
+	ErrProtoInvalidServiceMethod      = "spec.proto_invalid_service_method"
+	ErrProtoMissingPackageName        = "spec.proto_missing_package_name"
+	ErrProtoInvalidPackageName        = "spec.proto_invalid_package_name"
+	ErrProtoInvalidNetworkingEndpoint = "spec.proto_invalid_networking_endpoint"
+
 	ErrFieldMustBeDefinedForPredictorType          = "spec.field_must_be_defined_for_predictor_type"
 	ErrFieldNotSupportedByPredictorType            = "spec.field_not_supported_by_predictor_type"
 	ErrPredictorTypeNotSupportedForKind            = "spec.predictor_type_not_supported_by_kind"
 	ErrNoAvailableNodeComputeLimit                 = "spec.no_available_node_compute_limit"
 	ErrCortexPrefixedEnvVarNotAllowed              = "spec.cortex_prefixed_env_var_not_allowed"
-	ErrUnsupportedComputeResourceForProvider       = "spec.unsupported_compute_resource_for_provider"
 	ErrRegistryInDifferentRegion                   = "spec.registry_in_different_region"
 	ErrRegistryAccountIDMismatch                   = "spec.registry_account_id_mismatch"
-	ErrKindIsNotSupportedByProvider                = "spec.kind_is_not_supported_by_provider"
 	ErrKeyIsNotSupportedForKind                    = "spec.key_is_not_supported_for_kind"
 	ErrComputeResourceConflict                     = "spec.compute_resource_conflict"
 	ErrInvalidNumberOfInfProcesses                 = "spec.invalid_number_of_inf_processes"
@@ -304,10 +308,10 @@ func ErrorModelPathNotDirectory(modelPath string) error {
 	})
 }
 
-func ErrorInvalidModelPathProvider(modelPath string) error {
+func ErrorInvalidBucketScheme(path string) error {
 	return errors.WithStack(&errors.Error{
-		Kind:    ErrInvalidModelPathProvider,
-		Message: fmt.Sprintf("%s: model path must be an S3 path (e.g. s3://bucket/my-dir/) or a GCS path (e.g. gs://bucket/my-dir)", modelPath),
+		Kind:    ErrInvalidBucketScheme,
+		Message: fmt.Sprintf("%s: path must be an S3 path (e.g. s3://bucket/my-dir/)", path),
 	})
 }
 
@@ -482,6 +486,48 @@ func ErrorReservedModelName(reservedModel string) error {
 	})
 }
 
+func ErrorProtoNumServicesExceeded(requested int) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrProtoNumServicesExceeded,
+		Message: fmt.Sprintf("cannot have more than one service defined; there are currently %d services defined", requested),
+	})
+}
+
+func ErrorProtoNumServiceMethodsExceeded(requested int, serviceName string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrProtoNumServiceMethodsExceeded,
+		Message: fmt.Sprintf("cannot have more than one service method for service %s; there are currently %d service methods defined", serviceName, requested),
+	})
+}
+
+func ErrorProtoInvalidServiceMethod(requestedServiceMethodName, allowedServiceMethodName, serviceName string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrProtoInvalidServiceMethod,
+		Message: fmt.Sprintf("found %s service method in service %s; service %s can only have a single service method defined that must be called %s", requestedServiceMethodName, serviceName, serviceName, allowedServiceMethodName),
+	})
+}
+
+func ErrorProtoMissingPackageName(allowedPackageName string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrProtoMissingPackageName,
+		Message: fmt.Sprintf("your protobuf definition must have the %s package defined", allowedPackageName),
+	})
+}
+
+func ErrorProtoInvalidPackageName(requestedPackageName, allowedPackageName string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrProtoInvalidPackageName,
+		Message: fmt.Sprintf("found invalid package %s; your package must be named %s", requestedPackageName, allowedPackageName),
+	})
+}
+
+func ErrorProtoInvalidNetworkingEndpoint(allowedValue string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrProtoInvalidNetworkingEndpoint,
+		Message: fmt.Sprintf("because of the protobuf definition from section %s and field %s, the only permitted value is %s", userconfig.PredictorKey, userconfig.ProtobufPathKey, allowedValue),
+	})
+}
+
 func ErrorFieldMustBeDefinedForPredictorType(fieldKey string, predictorType userconfig.PredictorType) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrFieldMustBeDefinedForPredictorType,
@@ -503,13 +549,6 @@ func ErrorCortexPrefixedEnvVarNotAllowed() error {
 	})
 }
 
-func ErrorUnsupportedComputeResourceForProvider(resourceType string, provider types.ProviderType) error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrUnsupportedComputeResourceForProvider,
-		Message: fmt.Sprintf("%s compute resources cannot be used for the %s provider", resourceType, provider.String()),
-	})
-}
-
 func ErrorRegistryInDifferentRegion(registryRegion string, awsClientRegion string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrRegistryInDifferentRegion,
@@ -521,13 +560,6 @@ func ErrorRegistryAccountIDMismatch(regID, opID string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrRegistryAccountIDMismatch,
 		Message: fmt.Sprintf("registry account ID (%s) doesn't match your AWS account ID (%s), and using an ECR registry in a different AWS account is not supported", regID, opID),
-	})
-}
-
-func ErrorKindIsNotSupportedByProvider(kind userconfig.Kind, provider types.ProviderType) error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrKindIsNotSupportedByProvider,
-		Message: fmt.Sprintf("%s kind is not supported on %s provider", kind.String(), provider.String()),
 	})
 }
 

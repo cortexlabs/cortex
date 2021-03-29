@@ -28,6 +28,7 @@ from cortex_internal.lib import util
 from cortex_internal.lib.api.validations import (
     validate_class_impl,
     validate_python_predictor_with_models,
+    validate_predictor_with_grpc,
     are_models_specified,
 )
 from cortex_internal.lib.client.onnx import ONNXClient
@@ -44,7 +45,7 @@ from cortex_internal.lib.model import (
     ModelsTree,
     validate_model_paths,
 )
-from cortex_internal.lib.storage import S3, GCS
+from cortex_internal.lib.storage import S3
 from cortex_internal.lib.type import (
     predictor_type_from_api_spec,
     PredictorType,
@@ -61,12 +62,12 @@ PYTHON_CLASS_VALIDATION = {
         {
             "name": "__init__",
             "required_args": ["self", "config"],
-            "optional_args": ["job_spec", "python_client", "metrics_client"],
+            "optional_args": ["job_spec", "python_client", "metrics_client", "proto_module_pb2"],
         },
         {
             "name": "predict",
             "required_args": ["self"],
-            "optional_args": ["payload", "query_params", "headers", "batch_id"],
+            "optional_args": ["payload", "query_params", "headers", "batch_id", "context"],
         },
     ],
     "optional": [
@@ -88,12 +89,12 @@ TENSORFLOW_CLASS_VALIDATION = {
         {
             "name": "__init__",
             "required_args": ["self", "tensorflow_client", "config"],
-            "optional_args": ["job_spec", "metrics_client"],
+            "optional_args": ["job_spec", "metrics_client", "proto_module_pb2"],
         },
         {
             "name": "predict",
             "required_args": ["self"],
-            "optional_args": ["payload", "query_params", "headers", "batch_id"],
+            "optional_args": ["payload", "query_params", "headers", "batch_id", "context"],
         },
     ],
     "optional": [
@@ -111,12 +112,12 @@ ONNX_CLASS_VALIDATION = {
         {
             "name": "__init__",
             "required_args": ["self", "onnx_client", "config"],
-            "optional_args": ["job_spec", "metrics_client"],
+            "optional_args": ["job_spec", "metrics_client", "proto_module_pb2"],
         },
         {
             "name": "predict",
             "required_args": ["self"],
-            "optional_args": ["payload", "query_params", "headers", "batch_id"],
+            "optional_args": ["payload", "query_params", "headers", "batch_id", "context"],
         },
     ],
     "optional": [
@@ -136,19 +137,17 @@ class Predictor:
     Also makes the specified models in cortex.yaml available to the predictor's implementation.
     """
 
-    def __init__(self, provider: str, api_spec: dict, model_dir: str):
+    def __init__(self, api_spec: dict, model_dir: str):
         """
         Args:
-            provider: "aws" or "gcp".
             api_spec: API configuration.
             model_dir: Where the models are stored on disk.
         """
 
-        self.provider = provider
-
         self.type = predictor_type_from_api_spec(api_spec)
         self.path = api_spec["predictor"]["path"]
         self.config = api_spec["predictor"].get("config", {})
+        self.protobuf_path = api_spec["predictor"].get("protobuf_path")
 
         self.api_spec = api_spec
 
@@ -237,12 +236,14 @@ class Predictor:
         project_dir: str,
         client: Union[PythonClient, TensorFlowClient, ONNXClient],
         metrics_client: DogStatsd,
-        job_spec: Dict[str, Any] = None,
+        job_spec: Optional[Dict[str, Any]] = None,
+        proto_module_pb2: Optional[Any] = None,
     ):
         """
         Initialize predictor class as provided by the user.
 
         job_spec is a dictionary when the "kind" of the API is set to "BatchAPI". Otherwise, it's None.
+        proto_module_pb2 is a module of the compiled proto when grpc is enabled for the "RealtimeAPI" kind. Otherwise, it's None.
 
         Can raise UserRuntimeException/UserException/CortexException.
         """
@@ -260,6 +261,8 @@ class Predictor:
             args["job_spec"] = job_spec
         if "metrics_client" in constructor_args:
             args["metrics_client"] = metrics_client
+        if "proto_module_pb2" in constructor_args:
+            args["proto_module_pb2"] = proto_module_pb2
 
         # initialize predictor class
         try:
@@ -331,6 +334,7 @@ class Predictor:
 
         try:
             validate_class_impl(predictor_class, validations)
+            validate_predictor_with_grpc(predictor_class, self.api_spec)
             if self.type == PythonPredictorType:
                 validate_python_predictor_with_models(predictor_class, self.api_spec)
         except Exception as e:
@@ -387,7 +391,6 @@ class Predictor:
 
 def model_downloader(
     predictor_type: PredictorType,
-    bucket_provider: str,
     bucket_name: str,
     model_name: str,
     model_version: str,
@@ -396,11 +399,10 @@ def model_downloader(
     model_dir: str,
 ) -> Optional[datetime.datetime]:
     """
-    Downloads model to disk. Validates the cloud model path and the downloaded model as well.
+    Downloads model to disk. Validates the s3 model path and the downloaded model.
 
     Args:
         predictor_type: The predictor type as implemented by the API.
-        bucket_provider: Provider for the bucket. Can be "s3" or "gs".
         bucket_name: Name of the bucket where the model is stored.
         model_name: Name of the model. Is part of the model's local path.
         model_version: Version of the model. Is part of the model's local path.
@@ -416,12 +418,9 @@ def model_downloader(
         f"downloading from bucket {bucket_name}/{model_path}, model {model_name} of version {model_version}, temporarily to {temp_dir} and then finally to {model_dir}"
     )
 
-    if bucket_provider == "s3":
-        client = S3(bucket_name)
-    if bucket_provider == "gs":
-        client = GCS(bucket_name)
+    client = S3(bucket_name)
 
-    # validate upstream cloud model
+    # validate upstream S3 model
     sub_paths, ts = client.search(model_path)
     try:
         validate_model_paths(sub_paths, predictor_type, model_path)

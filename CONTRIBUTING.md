@@ -2,7 +2,7 @@
 
 ## Remote development
 
-We recommend that you run your development environment on a cloud instance due to frequent docker registry pushing, e.g. an AWS EC2 instance or GCP VM. We've had a good experience using [Mutagen](https://mutagen.io/documentation/introduction) to synchronize local / remote file systems.
+We recommend that you run your development environment on an EC2 instance due to frequent docker registry pushing. We've had a good experience using [Mutagen](https://mutagen.io/documentation/introduction) to synchronize local / remote file systems.
 
 ## Prerequisites
 
@@ -76,21 +76,6 @@ sudo python3 -m pip install awscli
 aws configure
 ```
 
-### gcloud (v1)
-
-Follow [these instructions](https://cloud.google.com/sdk/docs/install#deb) to install gcloud.
-
-For example:
-
-```bash
-echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] https://packages.cloud.google.com/apt cloud-sdk main" | sudo tee -a /etc/apt/sources.list.d/google-cloud-sdk.list && \
-curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key --keyring /usr/share/keyrings/cloud.google.gpg add - && \
-sudo apt-get update && \
-sudo apt-get install -y google-cloud-sdk
-
-gcloud init
-```
-
 ## Cortex dev environment
 
 ### Clone the repo
@@ -134,8 +119,6 @@ git diff  # there should be no diff
 
 ### Cluster configuration
 
-These instructions assume you'll be creating clusters on AWS and GCP. You may skip some of the steps and configuration if you'll only be developing / testing on a single cloud provider.
-
 Create a config directory in the repo's root directory:
 
 ```bash
@@ -152,26 +135,21 @@ export AWS_REGION="***"  # you can use any AWS region you'd like, e.g. "us-west-
 export AWS_ACCESS_KEY_ID="***"
 export AWS_SECRET_ACCESS_KEY="***"
 
-export GCP_PROJECT_ID="***"
-export GOOGLE_APPLICATION_CREDENTIALS="***"  # check the service account permissions here: https://docs.cortex.dev/clusters/gcp/credentials
-export GCR_HOST="gcr.io"  # must be "gcr.io", "us.gcr.io", "eu.gcr.io", or "asia.gcr.io"
-
 # export NUM_BUILD_PROCS=2  # optional; can be >2 if you have enough memory
 ```
 
 Create the ECR registries:
 
 ```bash
-make registry-create-aws
+make registry-create
 ```
 
-Create `dev/config/cluster-aws.yaml`. Paste the following config, and update `region` and all registry URLs (replace `<account_id>` with your AWS account ID, and replace `<region>` with your region):
+Create `dev/config/cluster.yaml`. Paste the following config, and update `region` and all registry URLs (replace `<account_id>` with your AWS account ID, and replace `<region>` with your region):
 
 ```yaml
-# dev/config/cluster-aws.yaml
+# dev/config/cluster.yaml
 
 cluster_name: cortex
-provider: aws
 region: <region>  # e.g. us-west-2
 
 node_groups:
@@ -204,51 +182,13 @@ image_grafana: <account_id>.dkr.ecr.<region>.amazonaws.com/cortexlabs/grafana:ma
 image_event_exporter: <account_id>.dkr.ecr.<region>.amazonaws.com/cortexlabs/event-exporter:master
 ```
 
-Create `dev/config/cluster-gcp.yaml`. Paste the following config, and update `project`, `zone`, and all registry URLs (replace `<project_id>` with your project ID, and update `gcr.io` if you are using a different host):
-
-```yaml
-# dev/config/cluster-gcp.yaml
-
-project: <project_id>
-zone: <zone>  # e.g. us-east1-c
-cluster_name: cortex
-provider: gcp
-
-node_pools:
-  - name: worker-np
-    instance_type: n1-standard-2
-    min_instances: 1
-    max_instances: 5
-    # accelerator_type: nvidia-tesla-k80  # optional
-
-image_operator: /cortexlabs/operator:master
-image_manager: gcr.io/<project_id>/cortexlabs/manager:master
-image_downloader: gcr.io/<project_id>/cortexlabs/downloader:master
-image_request_monitor: gcr.io/<project_id>/cortexlabs/request-monitor:master
-image_istio_proxy: gcr.io/<project_id>/cortexlabs/istio-proxy:master
-image_istio_pilot: gcr.io/<project_id>/cortexlabs/istio-pilot:master
-image_google_pause: gcr.io/<project_id>/cortexlabs/google-pause:master
-image_prometheus: gcr.io/<project_id>/cortexlabs/prometheus:master
-image_prometheus_config_reloader: gcr.io/<project_id>/cortexlabs/prometheus-config-reloader:master
-image_prometheus_operator: gcr.io/<project_id>/cortexlabs/prometheus-operator:master
-image_prometheus_statsd_exporter: gcr.io/<project_id>/cortexlabs/prometheus-statsd-exporter:master
-image_prometheus_dcgm_exporter: gcr.io/<project_id>/cortexlabs/prometheus-dcgm-exporter:master
-image_prometheus_kube_state_metrics: gcr.io/<project_id>/cortexlabs/prometheus-kube-state-metrics:master
-image_prometheus_node_exporter: gcr.io/<project_id>/cortexlabs/prometheus-node-exporter:master
-image_kube_rbac_proxy: gcr.io/<project_id>/cortexlabs/kube-rbac-proxy:master
-image_grafana: gcr.io/<project_id>/cortexlabs/grafana:master
-image_event_exporter: gcr.io/<project_id>/cortexlabs/event-exporter:master
-```
-
 ### Building
 
 Add this to your bash profile (e.g. `~/.bash_profile`, `~/.profile` or `~/.bashrc`), replacing the placeholders accordingly:
 
 ```bash
 # set the default image for APIs
-export CORTEX_DEV_DEFAULT_PREDICTOR_IMAGE_REGISTRY_AWS="<account_id>.dkr.ecr.<region>.amazonaws.com/cortexlabs"
-export CORTEX_DEV_DEFAULT_PREDICTOR_IMAGE_REGISTRY_GCP="gcr.io/<project_id>/cortexlabs"
-export CORTEX_DEV_DEFAULT_PREDICTOR_IMAGE_REGISTRY="cortexlabs"
+export CORTEX_DEV_DEFAULT_PREDICTOR_IMAGE_REGISTRY="<account_id>.dkr.ecr.<region>.amazonaws.com/cortexlabs"
 
 # redirect analytics and error reporting to our dev environment
 export CORTEX_TELEMETRY_SENTRY_DSN="https://c334df915c014ffa93f2076769e5b334@sentry.io/1848098"
@@ -277,35 +217,31 @@ cortex version  # should show "master"
 Build and push all Cortex images:
 
 ```bash
-# for AWS:
-make images-all-aws
-
-# for GCP:
-make images-all-gcp
+make images-all
 ```
 
 ## Dev workflow
 
-Here is the typical full dev workflow which covers most cases (replace `aws` with `gcp` if desired):
+Here is the typical full dev workflow which covers most cases:
 
-1. `make cluster-up-aws` (creates a cluster using `dev/config/cluster-aws.yaml`)
-2. `make devstart-aws` (deletes the in-cluster operator, builds the CLI, and starts the operator locally; file changes will trigger the CLI and operator to re-build)
+1. `make cluster-up` (creates a cluster using `dev/config/cluster.yaml`)
+2. `make devstart` (deletes the in-cluster operator, builds the CLI, and starts the operator locally; file changes will trigger the CLI and operator to re-build)
 3. Make your changes
-4. `make images-dev-aws` (only necessary if API images or the manager are modified)
+4. `make images-dev` (only necessary if API images or the manager are modified)
 5. Test your changes e.g. via `cortex deploy` (and repeat steps 3 and 4 as necessary)
-6. `make cluster-down-aws` (deletes your cluster)
+6. `make cluster-down` (deletes your cluster)
 
 If you want to switch back to the in-cluster operator:
 
 1. `<ctrl+c>` to stop your local operator
-2. `make operator-start-aws` to restart the operator in your cluster
+2. `make operator-start` to restart the operator in your cluster
 
 ### Dev workflow optimizations
 
 If you are only modifying the CLI, `make cli-watch` will build the CLI and re-build it when files are changed. When doing this, you can leave the operator running in the cluster instead of running it locally.
 
-If you are only modifying the operator, `make operator-local-aws` will build and start the operator locally, and build/restart it when files are changed.
+If you are only modifying the operator, `make operator-local` will build and start the operator locally, and build/restart it when files are changed.
 
-If you are modifying code in the API images (i.e. any of the Python serving code), `make images-dev-aws` may build more images than you need during testing. For example, if you are only testing using the `python-predictor-cpu` image, you can run `./dev/registry.sh update-single python-predictor-cpu --provider aws`.
+If you are modifying code in the API images (i.e. any of the Python serving code), `make images-dev` may build more images than you need during testing. For example, if you are only testing using the `python-predictor-cpu` image, you can run `./dev/registry.sh update-single python-predictor-cpu`.
 
 See `Makefile` for additional dev commands.

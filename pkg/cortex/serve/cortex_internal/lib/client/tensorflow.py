@@ -306,10 +306,9 @@ class TensorFlowClient:
 
                         # download model
                         logger.info(
-                            f"downloading model {model_name} of version {model_version} from the {upstream_model['provider']} upstream"
+                            f"downloading model {model_name} of version {model_version} from the s3 upstream"
                         )
                         date = self._models.download_model(
-                            upstream_model["provider"],
                             upstream_model["bucket"],
                             model_name,
                             model_version,

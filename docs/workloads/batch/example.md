@@ -96,7 +96,7 @@ import requests
 cx = cortex.client("aws")
 batch_endpoint = cx.get_api("image-classifier")["endpoint"]
 
-dest_s3_dir = # specify S3 directory for the results, e.g. "s3://my-bucket/dir" or "gs://my-bucket/dir" (make sure your cluster has access to this bucket)
+dest_s3_dir = # specify S3 directory for the results, e.g. "s3://my-bucket/dir" (make sure your cluster has access to this bucket)
 
 job_spec = {
     "workers": 1,

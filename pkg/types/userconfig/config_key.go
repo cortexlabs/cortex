@@ -35,6 +35,7 @@ const (
 	// Predictor
 	TypeKey                   = "type"
 	PathKey                   = "path"
+	ProtobufPathKey           = "protobuf_path"
 	ServerSideBatchingKey     = "server_side_batching"
 	PythonPathKey             = "python_path"
 	ImageKey                  = "image"

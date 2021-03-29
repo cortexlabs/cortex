@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+package prime_generator;
+
+service Generator {
+    rpc Predict (Input) returns (stream Output);
+}
+
+message Input {
+    int64 prime_numbers_to_generate = 1;
+}
+
+message Output {
+    int64 prime_number = 1;
+}

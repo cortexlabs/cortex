@@ -29,16 +29,16 @@ def client(config):
     if config_path is not None:
         return client_from_config(config_path)
 
-    pytest.skip("--aws-env or --aws-config must be passed to run aws tests")
+    pytest.skip("--env or --config must be passed to run tests")
 
 
 def pytest_configure(config):
-    aws_config = config.getoption("--aws-config")
-    if aws_config:
-        e2e.create_cluster(aws_config)
+    cluster_config = config.getoption("--config")
+    if cluster_config:
+        e2e.create_cluster(cluster_config)
 
 
 def pytest_unconfigure(config):
-    aws_config = config.getoption("--aws-config")
-    if aws_config:
-        e2e.delete_cluster(aws_config)
+    cluster_config = config.getoption("--config")
+    if cluster_config:
+        e2e.delete_cluster(cluster_config)

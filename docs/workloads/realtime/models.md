@@ -2,7 +2,7 @@
 
 ## Model directory format
 
-Whenever a model path is specified in an API configuration file, it should be a path to an S3/GCS prefix which contains your exported model. Directories may include a single model, or multiple folders each with a single model (note that a "single model" need not be a single file; there can be multiple files for a single model). When multiple folders are used, the folder names must be integer values, and will be interpreted as the model version. Model versions can be any integer, but are typically integer timestamps. It is always assumed that the highest version number is the latest version of your model.
+Whenever a model path is specified in an API configuration file, it should be a path to an S3 prefix which contains your exported model. Directories may include a single model, or multiple folders each with a single model (note that a "single model" need not be a single file; there can be multiple files for a single model). When multiple folders are used, the folder names must be integer values, and will be interpreted as the model version. Model versions can be any integer, but are typically integer timestamps. It is always assumed that the highest version number is the latest version of your model.
 
 Each predictor type expects a different model format:
 
@@ -195,7 +195,7 @@ The `load_model()` function that you implement in your `PythonPredictor` can ret
 
 Python data structures containing these types are also supported (e.g. lists and dicts).
 
-The `load_model()` function takes a single argument, which is a path (on disk) to the model to be loaded. Your `load_model()` function is called behind the scenes by Cortex when you call the `python_client`'s `get_model()` method. Cortex is responsible for downloading your model from S3/GCS onto the local disk before calling `load_model()` with the local path. Whatever `load_model()` returns will be the exact return value of `python_client.get_model()`. Here is the schema for `python_client.get_model()`:
+The `load_model()` function takes a single argument, which is a path (on disk) to the model to be loaded. Your `load_model()` function is called behind the scenes by Cortex when you call the `python_client`'s `get_model()` method. Cortex is responsible for downloading your model from S3 onto the local disk before calling `load_model()` with the local path. Whatever `load_model()` returns will be the exact return value of `python_client.get_model()`. Here is the schema for `python_client.get_model()`:
 
 ```python
 def get_model(model_name, model_version):

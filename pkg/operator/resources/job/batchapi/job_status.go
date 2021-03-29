@@ -89,7 +89,7 @@ func getJobStatusFromJobState(jobState *job.State, k8sJob *kbatch.Job, pods []kc
 	}
 
 	if _, ok := jobState.LastUpdatedMap[_completedMetricsFileKey]; ok && jobState.Status.IsCompleted() {
-		metrics, err := readMetricsFromCloud(jobKey)
+		metrics, err := readMetricsFromS3(jobKey)
 		if err != nil {
 			return nil, err
 		}

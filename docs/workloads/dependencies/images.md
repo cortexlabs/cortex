@@ -1,6 +1,6 @@
 # Docker images
 
-Cortex includes a default set of Docker images with pre-installed Python and system packages but you can build custom images for use in your APIs. Common reasons to do this are to avoid installing dependencies during replica initialization, to have smaller images, and/or to mirror images to your cloud's container registry (for speed and reliability).
+Cortex includes a default set of Docker images with pre-installed Python and system packages but you can build custom images for use in your APIs. Common reasons to do this are to avoid installing dependencies during replica initialization, to have smaller images, and/or to mirror images to your ECR registry (for speed and reliability).
 
 ## Create a Dockerfile
 
