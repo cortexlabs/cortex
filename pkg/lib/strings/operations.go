@@ -228,18 +228,20 @@ func PluralCustom(singular string, plural string, count interface{}) string {
 	return plural
 }
 
-func RemoveDuplicates(strs []string, ignorePrefixRegex *regexp.Regexp) []string {
+// RemoveDuplicates returns a filtered string slice without repeated entries.
+// The ignoreRegex parameter can optionally be used to ignore repeated patters in each slice entry.
+func RemoveDuplicates(strs []string, ignoreRegex *regexp.Regexp) []string {
 	var result []string
 	counter := map[string]int64{}
 
 	for _, str := range strs {
-		strNoPrefix := str
-		if ignorePrefixRegex != nil {
-			strNoPrefix = ignorePrefixRegex.ReplaceAllString(str, "")
+		filteredStr := str
+		if ignoreRegex != nil {
+			filteredStr = ignoreRegex.ReplaceAllString(str, "")
 		}
 
-		counter[strNoPrefix] += 1
-		if counter[strNoPrefix] > 1 {
+		counter[filteredStr] += 1
+		if counter[filteredStr] > 1 {
 			continue
 		}
 		result = append(result, str)
