@@ -21,6 +21,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
 
@@ -60,6 +61,8 @@ var (
 	_flagClusterDisallowPrompt  bool
 	_flagClusterDownKeepVolumes bool
 )
+
+var _eksctlPrefixRegex = regexp.MustCompile(`^[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2} \[.+] {2}`)
 
 func clusterInit() {
 	_clusterUpCmd.Flags().SortFlags = false
@@ -195,6 +198,7 @@ var _clusterUpCmd = &cobra.Command{
 			exit.Error(err)
 		}
 		if exitCode == nil || *exitCode != 0 {
+			out = filterEKSCTLOutput(out)
 			eksCluster, err := awsClient.EKSClusterOrNil(clusterConfig.ClusterName)
 			if err != nil {
 				helpStr := "\ndebugging tips (may or may not apply to this error):"
@@ -457,6 +461,7 @@ var _clusterDownCmd = &cobra.Command{
 			errors.PrintError(err)
 			fmt.Println()
 		} else if exitCode == nil || *exitCode != 0 {
+			out = filterEKSCTLOutput(out)
 			helpStr := fmt.Sprintf("\nNote: if this error cannot be resolved, please ensure that all CloudFormation stacks for this cluster eventually become fully deleted (%s). If the stack deletion process has failed, please delete the stacks directly from the AWS console (this may require manually deleting particular AWS resources that are blocking the stack deletion)", clusterstate.CloudFormationURL(accessConfig.ClusterName, accessConfig.Region))
 			fmt.Println(helpStr)
 			exit.Error(ErrorClusterDown(out + helpStr))
@@ -1050,4 +1055,8 @@ func listPVCVolumesForCluster(awsClient *aws.Client, clusterName string) ([]ec2.
 		Key:   pointer.String(fmt.Sprintf("kubernetes.io/cluster/%s", clusterName)),
 		Value: nil, // any value should be ok as long as the key is present
 	})
+}
+
+func filterEKSCTLOutput(out string) string {
+	return strings.Join(s.RemoveDuplicates(strings.Split(out, "\n"), _eksctlPrefixRegex), "\n")
 }

@@ -17,6 +17,7 @@ limitations under the License.
 package strings
 
 import (
+	"regexp"
 	"strings"
 	"unicode"
 
@@ -225,4 +226,26 @@ func PluralCustom(singular string, plural string, count interface{}) string {
 		return singular
 	}
 	return plural
+}
+
+// RemoveDuplicates returns a filtered string slice without repeated entries.
+// The ignoreRegex parameter can optionally be used to ignore repeated patterns in each slice entry.
+func RemoveDuplicates(strs []string, ignoreRegex *regexp.Regexp) []string {
+	var result []string
+	counter := map[string]int64{}
+
+	for _, str := range strs {
+		filteredStr := str
+		if ignoreRegex != nil {
+			filteredStr = ignoreRegex.ReplaceAllString(str, "")
+		}
+
+		counter[filteredStr]++
+		if counter[filteredStr] > 1 {
+			continue
+		}
+		result = append(result, str)
+	}
+
+	return result
 }
