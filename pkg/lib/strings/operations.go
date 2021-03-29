@@ -229,7 +229,7 @@ func PluralCustom(singular string, plural string, count interface{}) string {
 }
 
 // RemoveDuplicates returns a filtered string slice without repeated entries.
-// The ignoreRegex parameter can optionally be used to ignore repeated patters in each slice entry.
+// The ignoreRegex parameter can optionally be used to ignore repeated patterns in each slice entry.
 func RemoveDuplicates(strs []string, ignoreRegex *regexp.Regexp) []string {
 	var result []string
 	counter := map[string]int64{}
