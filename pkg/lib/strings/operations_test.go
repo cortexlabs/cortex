@@ -75,7 +75,7 @@ func TestRemoveDuplicates(t *testing.T) {
 		},
 		{
 			name:        "eksctl",
-			prefixRegex: regexp.MustCompile("^[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2} \\[\\W\\]"),
+			prefixRegex: regexp.MustCompile("^[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2} \\[.+] {2}"),
 			input: []string{
 				"2021-03-26 00:03:50 [ℹ]  eksctl version 0.40.0",
 				"2021-03-26 00:03:50 [ℹ]  using region us-east-1",

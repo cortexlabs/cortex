@@ -63,7 +63,7 @@ var (
 	_flagClusterDownKeepVolumes bool
 )
 
-var _eksctlPrefixRegex = regexp.MustCompile("^[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2} \\[\\W\\]")
+var _eksctlPrefixRegex = regexp.MustCompile("^[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2} \\[.+] {2}")
 
 func clusterInit() {
 	_clusterUpCmd.Flags().SortFlags = false
