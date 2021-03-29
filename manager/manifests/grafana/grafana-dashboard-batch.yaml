@@ -36,7 +36,7 @@ data:
       "editable": true,
       "gnetId": null,
       "graphTooltip": 0,
-      "iteration": 1614622843373,
+      "iteration": 1617047403252,
       "links": [],
       "panels": [
         {
@@ -670,7 +670,7 @@ data:
           "targets": [
             {
               "exemplar": false,
-              "expr": "sum(sum_over_time(container_memory_working_set_bytes{pod=~\"$api_name.+\", name!=\"\", container!=\"POD\"}[1m]))\n/\nsum(count_over_time(container_memory_working_set_bytes{pod=~\"$api_name.+\", name!=\"\", container=\"api\"}[1m])) / 1024^2",
+              "expr": "sum(sum_over_time(container_memory_working_set_bytes{pod=~\"$api_name.+\", name!=\"\", container!=\"POD\"}[1m]))\n/\ncount(count_over_time(container_memory_working_set_bytes{pod=~\"$api_name.+\", name!=\"\", container=\"api\"}[1m])) / 1024^2",
               "format": "time_series",
               "instant": false,
               "interval": "",
@@ -1151,7 +1151,7 @@ data:
           "targets": [
             {
               "exemplar": false,
-              "expr": "sum(sum_over_time(container_memory_working_set_bytes{pod=~\"$api_name.+\", name!=\"\", container!=\"POD\"}[1m]))\n/\nsum(count_over_time(container_memory_working_set_bytes{pod=~\"$api_name.+\", name!=\"\", container=\"api\"}[1m])) / 1024^2\n/\nsum(kube_pod_info{exported_pod=~\"$api_name.+\"})",
+              "expr": "sum(sum_over_time(container_memory_working_set_bytes{pod=~\"$api_name.+\", name!=\"\", container!=\"POD\"}[1m]))\n/\ncount(count_over_time(container_memory_working_set_bytes{pod=~\"$api_name.+\", name!=\"\", container=\"api\"}[1m])) / 1024^2\n/\nsum(kube_pod_info{exported_pod=~\"$api_name.+\"})",
               "format": "time_series",
               "instant": false,
               "interval": "",
