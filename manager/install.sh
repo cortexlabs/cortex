@@ -352,30 +352,65 @@ function start_pre_download_images() {
   export CORTEX_IMAGE_TENSORFLOW_SERVING_INF="${registry}/tensorflow-serving-inf:${CORTEX_VERSION}"
   export CORTEX_IMAGE_TENSORFLOW_PREDICTOR="${registry}/tensorflow-predictor:${CORTEX_VERSION}"
 
-  if [[ "$CORTEX_INSTANCE_TYPE" == p* ]] || [[ "$CORTEX_INSTANCE_TYPE" == g* ]] || [ -n "$CORTEX_ACCELERATOR_TYPE" ]; then
+  envsubst < manifests/image-downloader-cpu.yaml | kubectl apply -f - &>/dev/null
+
+  has_gpu="false"
+  has_inf="false"
+
+  cluster_config_len=$(cat /in/cluster_${CORTEX_CLUSTER_NAME}_${CORTEX_REGION}.yaml | yq -r .node_groups | yq -r length)
+  for idx in $(seq 0 $(($cluster_config_len-1))); do
+    ng_instance_type=$(cat /in/cluster_${CORTEX_CLUSTER_NAME}_${CORTEX_REGION}.yaml | yq -r .node_groups[$idx].instance_type)
+    if [[ "$has_gpu" == "false" && ( "$ng_instance_type" == p* || "$ng_instance_type" == g* ) ]]; then
+      has_gpu="true"
+    fi
+    if [[ "$has_inf" == "false" && "$ng_instance_type" == inf* ]]; then
+      has_inf="true"
+    fi
+  done
+
+  if [ "$has_gpu" == "true" ]; then
     envsubst < manifests/image-downloader-gpu.yaml | kubectl apply -f - &>/dev/null
-  elif [[ "$CORTEX_INSTANCE_TYPE" == inf* ]]; then
+  fi
+
+  if [ "$has_inf" == "true" ]; then
     envsubst < manifests/image-downloader-inf.yaml | kubectl apply -f - &>/dev/null
-  else
-    envsubst < manifests/image-downloader-cpu.yaml | kubectl apply -f - &>/dev/null
   fi
 }
 
 function await_pre_download_images() {
-  if kubectl get daemonset image-downloader -n=default &>/dev/null; then
-    echo -n "￮ downloading docker images "
+  daemonsets=( "image-downloader-cpu" )
+
+  cluster_config_len=$(cat /in/cluster_${CORTEX_CLUSTER_NAME}_${CORTEX_REGION}.yaml | yq -r .node_groups | yq -r length)
+  for idx in $(seq 0 $(($cluster_config_len-1))); do
+    ng_instance_type=$(cat /in/cluster_${CORTEX_CLUSTER_NAME}_${CORTEX_REGION}.yaml | yq -r .node_groups[$idx].instance_type)
+    if [[ "$has_gpu" == "false" && ( "$ng_instance_type" == p* || "$ng_instance_type" == g* ) ]]; then
+      daemonsets+=( "image-downloader-gpu" )
+    fi
+    if [[ "$has_inf" == "false" && "$ng_instance_type" == inf* ]]; then
+      daemonsets+=( "image-downloader-inf" )
+    fi
+  done
+
+  echo -n "￮ downloading docker images "
+  printed_dot_count=0
+  for ds_name in ${daemonsets[@]}; do
     printed_dot="false"
     i=0
-    until [ "$(kubectl get daemonset image-downloader -n=default -o 'jsonpath={.status.numberReady}')" == "$(kubectl get daemonset image-downloader -n=default -o 'jsonpath={.status.desiredNumberScheduled}')" ]; do
+    until [ "$(kubectl get daemonset $ds_name -n=default -o 'jsonpath={.status.numberReady}')" == "$(kubectl get daemonset $ds_name -n=default -o 'jsonpath={.status.desiredNumberScheduled}')" ]; do
       if [ $i -eq 120 ]; then break; fi  # give up after 6 minutes
       echo -n "."
       printed_dot="true"
       ((i=i+1))
       sleep 3
     done
-    kubectl -n=default delete --ignore-not-found=true daemonset image-downloader &>/dev/null
-    if [ "$printed_dot" == "true" ]; then echo " ✓"; else echo "✓"; fi
-  fi
+    kubectl -n=default delete --ignore-not-found=true daemonset $ds_name &>/dev/null
+    if [ "$printed_dot" == "true" ]; then
+      printed_dot_count=$(($printed_dot_count+1))
+    fi
+  done
+
+
+  if [ "$printed_dot_count" == "${#daemonsets[@]}" ]; then echo " ✓"; else echo "✓"; fi
 }
 
 function validate_cortex() {
