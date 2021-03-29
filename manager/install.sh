@@ -360,10 +360,10 @@ function start_pre_download_images() {
   cluster_config_len=$(cat /in/cluster_${CORTEX_CLUSTER_NAME}_${CORTEX_REGION}.yaml | yq -r .node_groups | yq -r length)
   for idx in $(seq 0 $(($cluster_config_len-1))); do
     ng_instance_type=$(cat /in/cluster_${CORTEX_CLUSTER_NAME}_${CORTEX_REGION}.yaml | yq -r .node_groups[$idx].instance_type)
-    if [[ "$has_gpu" == "false" && ( "$ng_instance_type" == p* || "$ng_instance_type" == g* ) ]]; then
+    if [[ "$ng_instance_type" == p* || "$ng_instance_type" == g* ]]; then
       has_gpu="true"
     fi
-    if [[ "$has_inf" == "false" && "$ng_instance_type" == inf* ]]; then
+    if [[ "$ng_instance_type" == inf* ]]; then
       has_inf="true"
     fi
   done
