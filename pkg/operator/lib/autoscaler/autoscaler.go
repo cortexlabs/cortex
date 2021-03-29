@@ -23,7 +23,6 @@ import (
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	math2 "github.com/cortexlabs/cortex/pkg/lib/math"
-	"github.com/cortexlabs/cortex/pkg/lib/strings"
 	time2 "github.com/cortexlabs/cortex/pkg/lib/time"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 	"github.com/cortexlabs/cortex/pkg/operator/operator"
@@ -187,23 +186,23 @@ func AutoscaleFn(initialDeployment *kapps.Deployment, apiSpec *spec.API, getInFl
 
 		apiLogger.Debugw(fmt.Sprintf("%s autoscaler tick", apiName),
 			"autoscaling", map[string]interface{}{
-				"avg_in_flight":                  strings.Round(*avgInFlight, 2, 0),
-				"target_replica_concurrency":     strings.Float64(*autoscalingSpec.TargetReplicaConcurrency),
-				"raw_recommendation":             strings.Round(rawRecommendation, 2, 0),
+				"avg_in_flight":                  *avgInFlight,
+				"target_replica_concurrency":     *autoscalingSpec.TargetReplicaConcurrency,
+				"raw_recommendation":             rawRecommendation,
 				"current_replicas":               currentReplicas,
-				"downscale_tolerance":            strings.Float64(autoscalingSpec.DownscaleTolerance),
-				"upscale_tolerance":              strings.Float64(autoscalingSpec.UpscaleTolerance),
-				"max_downscale_factor":           strings.Float64(autoscalingSpec.MaxDownscaleFactor),
+				"downscale_tolerance":            autoscalingSpec.DownscaleTolerance,
+				"upscale_tolerance":              autoscalingSpec.UpscaleTolerance,
+				"max_downscale_factor":           autoscalingSpec.MaxDownscaleFactor,
 				"downscale_factor_floor":         downscaleFactorFloor,
-				"max_upscale_factor":             strings.Float64(autoscalingSpec.MaxUpscaleFactor),
+				"max_upscale_factor":             autoscalingSpec.MaxUpscaleFactor,
 				"upscale_factor_ceil":            upscaleFactorCeil,
 				"min_replicas":                   autoscalingSpec.MinReplicas,
 				"max_replicas":                   autoscalingSpec.MaxReplicas,
 				"recommendation":                 recommendation,
-				"downscale_stabilization_period": autoscalingSpec.DownscaleStabilizationPeriod,
-				"downscale_stabilization_floor":  strings.ObjFlatNoQuotes(downscaleStabilizationFloor),
-				"upscale_stabilization_period":   autoscalingSpec.UpscaleStabilizationPeriod,
-				"upscale_stabilization_ceil":     strings.ObjFlatNoQuotes(upscaleStabilizationCeil),
+				"downscale_stabilization_period": autoscalingSpec.DownscaleStabilizationPeriod.Seconds(),
+				"downscale_stabilization_floor":  downscaleStabilizationFloor,
+				"upscale_stabilization_period":   autoscalingSpec.UpscaleStabilizationPeriod.Seconds(),
+				"upscale_stabilization_ceil":     upscaleStabilizationCeil,
 				"request":                        request,
 			},
 		)
