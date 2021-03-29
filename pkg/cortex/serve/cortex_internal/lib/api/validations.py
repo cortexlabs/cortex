@@ -171,3 +171,9 @@ def validate_predictor_with_grpc(impl, api_spec):
             f'invalid signature for method "predict"',
             f'{util.string_plural_with_s("argument", len(disallowed_params))} {util.and_list_with_quotes(disallowed_params)} cannot be used when the grpc protocol is enabled',
         )
+
+    if getattr(impl, "post_predict", None):
+        raise UserException(
+            f"class {target_class_name}",
+            f"post_predict method is not supported when the grpc protocol is enabled",
+        )
