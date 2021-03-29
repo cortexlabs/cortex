@@ -378,10 +378,8 @@ function start_pre_download_images() {
 }
 
 function await_pre_download_images() {
-  daemonsets=( "image-downloader-cpu" "image-downloader-gpu" "image-downloader-inf" )
-
   echo -n "￮ downloading docker images ."
-  for ds_name in ${daemonsets[@]}; do
+  for ds_name in image-downloader-cpu image-downloader-gpu image-downloader-inf; do
     if ! kubectl get daemonset $ds_name > /dev/null 2>&1; then
       continue
     fi
