@@ -6,7 +6,7 @@ Which Predictor you use depends on how your model is exported:
 * [ONNX Predictor](#onnx-predictor) if your model is exported in the ONNX format
 * [Python Predictor](#python-predictor) for all other cases
 
-The response type of the predictor can vary depending on your requirements, see [API responses](#api-responses) below.
+The response type of the predictor can vary depending on your requirements, see [HTTP API responses](#responses) and [gRPC API responses](#responses-1) below.
 
 ## Project files
 

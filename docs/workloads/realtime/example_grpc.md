@@ -10,6 +10,8 @@ touch predictor.proto predictor.py requirements.txt text_generator.yaml
 ```
 
 ```protobuf
+<!-- predictor.proto -->
+
 syntax = "proto3";
 package text_generator;
 
