@@ -21,7 +21,8 @@ cortex cluster up cluster.yaml
 cortex deploy apis.yaml
 ```
 
-* [RealtimeAPI](workloads/realtime/example.md) - create APIs that respond to prediction requests in real-time.
+* [RealtimeAPI with HTTP](workloads/realtime/example_http.md) - create HTTP APIs that respond to prediction requests in real-time.
+* [RealtimeAPI with gRPC](workloads/realtime/example_grpc.md) - create gRPC APIs that respond to prediction requests in real-time.
 * [AsyncAPI](workloads/async/example.md) - create APIs that respond to prediction requests asynchronously.
 * [BatchAPI](workloads/batch/example.md) - create APIs that run distributed batch inference jobs.
 * [TaskAPI](workloads/task/example.md) - create APIs that run training or fine-tuning jobs.

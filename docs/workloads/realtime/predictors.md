@@ -140,13 +140,13 @@ For proper separation of concerns, it is recommended to use the constructor's `c
 
 The realtime API supports 2 serving protocols: HTTP (REST-based) and gRPC. By default, the HTTP protocol is enabled. To enable the gRPC protocol, you must provide a protobuf file to the `predictor.protobuf_path` field in the API spec. The protobuf file needs to have defined a single service with a single rpc service method.
 
-For the HTTP protocol, your API can accept requests with different types of payloads such as `JSON`-parseable, `bytes` or `starlette.datastructures.FormData` data. Navigate to the [API requests](#api-requests) section to learn about how headers can be used to change the type of `payload` that is passed into your `predict` method.
+For the HTTP protocol, your API can accept requests with different types of payloads such as `JSON`-parseable, `bytes` or `starlette.datastructures.FormData` data. Navigate to the [HTTP API requests](#requests) section to learn about how headers can be used to change the type of `payload` that is passed into your `predict` method.
 
-For the HTTP protocol, your `predictor` method can return different types of objects such as `JSON`-parseable, `string`, and `bytes` objects. Navigate to the [API responses](#api-responses) section to learn about how to configure your `predictor` method to respond with different response codes and content-types.
+For the HTTP protocol, your `predictor` method can return different types of objects such as `JSON`-parseable, `string`, and `bytes` objects. Navigate to the [HTTP API responses](#responses) section to learn about how to configure your `predictor` method to respond with different response codes and content-types.
 
-For the gRPC protocol, your API can only accept the type that it has been specified in the protobuf definition of your service's method. Navigate to the [API requests](#api-requests) section to learn how to make the input streamable.
+For the gRPC protocol, your API can only accept the type that it has been specified in the protobuf definition of your service's method. Navigate to the [gRPC API requests](#requests-1) section to learn how to make the input streamable.
 
-For the gRPC protocol, your `predictor` method can only return the type that it has been specified in the protobuf definiton of your service's method. Navigate to the [API responses](#api-responses) section to learn how to make the output streamable.
+For the gRPC protocol, your `predictor` method can only return the type that it has been specified in the protobuf definiton of your service's method. Navigate to the [gRPC API responses](#responses-1) section to learn how to make the output streamable.
 
 ## TensorFlow Predictor
 
@@ -228,13 +228,13 @@ For proper separation of concerns, it is recommended to use the constructor's `c
 
 The realtime API supports 2 serving protocols: HTTP (REST-based) and gRPC. By default, the HTTP protocol is enabled. To enable the gRPC protocol, you must provide a protobuf file to the `predictor.protobuf_path` field in the API spec. The protobuf file needs to have defined a single service with a single rpc service method.
 
-For the HTTP protocol, your API can accept requests with different types of payloads such as `JSON`-parseable, `bytes` or `starlette.datastructures.FormData` data. Navigate to the [API requests](#api-requests) section to learn about how headers can be used to change the type of `payload` that is passed into your `predict` method.
+For the HTTP protocol, your API can accept requests with different types of payloads such as `JSON`-parseable, `bytes` or `starlette.datastructures.FormData` data. Navigate to the [HTTP API requests](#requests) section to learn about how headers can be used to change the type of `payload` that is passed into your `predict` method.
 
-For the HTTP protocol, your `predictor` method can return different types of objects such as `JSON`-parseable, `string`, and `bytes` objects. Navigate to the [API responses](#api-responses) section to learn about how to configure your `predictor` method to respond with different response codes and content-types.
+For the HTTP protocol, your `predictor` method can return different types of objects such as `JSON`-parseable, `string`, and `bytes` objects. Navigate to the [HTTP API responses](#responses) section to learn about how to configure your `predictor` method to respond with different response codes and content-types.
 
-For the gRPC protocol, your API can only accept the type that it has been specified in the protobuf definition of your service's method. Navigate to the [API requests](#api-requests) section to learn how to make the input streamable.
+For the gRPC protocol, your API can only accept the type that it has been specified in the protobuf definition of your service's method. Navigate to the [gRPC API requests](#requests-1) section to learn how to make the input streamable.
 
-For the gRPC protocol, your `predictor` method can only return the type that it has been specified in the protobuf definiton of your service's method. Navigate to the [API responses](#api-responses) section to learn how to make the output streamable.
+For the gRPC protocol, your `predictor` method can only return the type that it has been specified in the protobuf definiton of your service's method. Navigate to the [gRPC API responses](#responses-1) section to learn how to make the output streamable.
 
 If you need to share files between your predictor implementation and the TensorFlow Serving container, you can create a new directory within `/mnt` (e.g. `/mnt/user`) and write files to it. The entire `/mnt` directory is shared between containers, but do not write to any of the directories in `/mnt` that already exist (they are used internally by Cortex).
 
@@ -318,13 +318,13 @@ For proper separation of concerns, it is recommended to use the constructor's `c
 
 The realtime API supports 2 serving protocols: HTTP (REST-based) and gRPC. By default, the HTTP protocol is enabled. To enable the gRPC protocol, you must provide a protobuf file to the `predictor.protobuf_path` field in the API spec. The protobuf file needs to have defined a single service with a single rpc service method.
 
-For the HTTP protocol, your API can accept requests with different types of payloads such as `JSON`-parseable, `bytes` or `starlette.datastructures.FormData` data. Navigate to the [API requests](#api-requests) section to learn about how headers can be used to change the type of `payload` that is passed into your `predict` method.
+For the HTTP protocol, your API can accept requests with different types of payloads such as `JSON`-parseable, `bytes` or `starlette.datastructures.FormData` data. Navigate to the [HTTP API requests](#requests) section to learn about how headers can be used to change the type of `payload` that is passed into your `predict` method.
 
-For the HTTP protocol, your `predictor` method can return different types of objects such as `JSON`-parseable, `string`, and `bytes` objects. Navigate to the [API responses](#api-responses) section to learn about how to configure your `predictor` method to respond with different response codes and content-types.
+For the HTTP protocol, your `predictor` method can return different types of objects such as `JSON`-parseable, `string`, and `bytes` objects. Navigate to the [HTTP API responses](#responses) section to learn about how to configure your `predictor` method to respond with different response codes and content-types.
 
-For the gRPC protocol, your API can only accept the type that it has been specified in the protobuf definition of your service's method. Navigate to the [API requests](#api-requests) section to learn how to make the input streamable.
+For the gRPC protocol, your API can only accept the type that it has been specified in the protobuf definition of your service's method. Navigate to the [gRPC API requests](#requests-1) section to learn how to make the input streamable.
 
-For the gRPC protocol, your `predictor` method can only return the type that it has been specified in the protobuf definiton of your service's method. Navigate to the [API responses](#api-responses) section to learn how to make the output streamable.
+For the gRPC protocol, your `predictor` method can only return the type that it has been specified in the protobuf definiton of your service's method. Navigate to the [gRPC API responses](#responses-1) section to learn how to make the output streamable.
 
 ## HTTP API
 
@@ -521,7 +521,7 @@ message Response {
 }
 ```
 
-The type of the `payload` parameter in `predict(self, payload)` will always be that of the `Sample` message defined in the `predictor.protobuf_path` file (or the above's example).
+The type of the `payload` parameter in `predict(self, payload)` will always be that of the `Sample` message defined in the `predictor.protobuf_path` file (or in the above example).
 
 #### Simple request
 
@@ -533,12 +533,16 @@ rpc Predict (Sample) returns (Response);
 ...
 ```
 
+##### Making the request
+
 ```python
 import grpc, sample_service_pb2, sample_service_pb2_grpc
 
 stub = sample_service_pb2_grpc.PredictorStub(grpc.insecure_channel("***.amazonaws.com:80"))
 stub.Predict(sample_service_pb2.Sample(a="text"))
 ```
+
+##### Reading the payload
 
 In the `predict` method, you'll read the value like this:
 
@@ -559,6 +563,8 @@ rpc Predict (stream Sample) returns (Response);
 ...
 ```
 
+##### Making the request
+
 ```python
 import grpc, sample_service_pb2, sample_service_pb2_grpc
 
@@ -569,6 +575,8 @@ def generate_iterator(sample_list):
 stub = sample_service_pb2_grpc.PredictorStub(grpc.insecure_channel("***.amazonaws.com:80"))
 stub.Predict(sample_service_pb2.Sample(generate_iterator(["a", "b", "c", "d"])))
 ```
+
+##### Reading the payload
 
 In the `predict` method, you'll read the streamed values like this:
 
@@ -603,7 +611,7 @@ message Response {
 }
 ```
 
-The returned type of the `predict` method will always be that of the `Response` message defined in the `predictor.protobuf_path` file (or the above's example).
+The returned type of the `predict` method will always be that of the `Response` message defined in the `predictor.protobuf_path` file (or in the above example).
 
 #### Simple response
 
@@ -615,12 +623,16 @@ rpc Predict (Sample) returns (Response);
 ...
 ```
 
+##### Making the request
+
 ```python
 import grpc, sample_service_pb2, sample_service_pb2_grpc
 
 stub = sample_service_pb2_grpc.PredictorStub(grpc.insecure_channel("***.amazonaws.com:80"))
 r = stub.Predict(sample_service_pb2.Sample())
 ```
+
+##### Returning the response
 
 In the `predict` method, you'll return the value like this:
 
@@ -641,6 +653,8 @@ rpc Predict (Sample) returns (stream Response);
 ...
 ```
 
+##### Making the request
+
 ```python
 import grpc, sample_service_pb2, sample_service_pb2_grpc
 
@@ -652,6 +666,8 @@ stub = sample_service_pb2_grpc.PredictorStub(grpc.insecure_channel("***.amazonaw
 for r in stub.Predict(sample_service_pb2.Sample())):
     print(r.b)
 ```
+
+##### Returning the response
 
 In the `predict` method, you'll return the streamed values like this:
 

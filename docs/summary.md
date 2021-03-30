@@ -28,7 +28,8 @@
 ## Workloads
 
 * Realtime APIs
-  * [Example](workloads/realtime/example.md)
+  * [Example - HTTP](workloads/realtime/example_http.md)
+  * [Example - gRPC](workloads/realtime/example_grpc.md)
   * [Predictor](workloads/realtime/predictors.md)
   * [Configuration](workloads/realtime/configuration.md)
   * [Models](workloads/realtime/models.md)

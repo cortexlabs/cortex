@@ -1,6 +1,6 @@
-# RealtimeAPI
+# RealtimeAPI - HTTP
 
-Create APIs that respond to prediction requests in real-time.
+Create APIs that respond to prediction requests in real-time using the HTTP protocol.
 
 ## Implement
 
