@@ -486,7 +486,10 @@ class PythonPredictor:
             context (optional): gRPC context.
 
         Returns:
-            Prediction.
+            Prediction when streaming is disabled.
+
+        Yield:
+            Prediction when streaming is enabled.
         """
         pass
 
@@ -557,7 +560,10 @@ class TensorFlowPredictor:
             context (optional): gRPC context.
 
         Returns:
-            Prediction.
+            Prediction when streaming is disabled.
+
+        Yield:
+            Prediction when streaming is enabled.
         """
         pass
 ```
@@ -612,7 +618,10 @@ class ONNXPredictor:
             context (optional): gRPC context.
 
         Returns:
-            Prediction.
+            Prediction when streaming is disabled.
+
+        Yield:
+            Prediction when streaming is enabled.
         """
         pass
 ```
