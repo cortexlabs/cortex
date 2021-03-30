@@ -28,7 +28,7 @@
 ## Workloads
 
 * Realtime APIs
-  * [Example](workloads/realtime/example_http.md)
+  * [Example](workloads/realtime/example.md)
   * [Predictor](workloads/realtime/predictors.md)
   * [Configuration](workloads/realtime/configuration.md)
   * [Models](workloads/realtime/models.md)
