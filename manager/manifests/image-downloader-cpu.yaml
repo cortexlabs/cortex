@@ -15,21 +15,28 @@
 apiVersion: apps/v1
 kind: DaemonSet
 metadata:
-  name: image-downloader
+  name: image-downloader-cpu
   namespace: default
 spec:
   selector:
     matchLabels:
-      name: image-downloader
+      name: image-downloader-cpu
   template:
     metadata:
       labels:
-        name: image-downloader
+        name: image-downloader-cpu
     spec:
       nodeSelector:
         workload: "true"
       tolerations:
         - key: workload
+          value: "true"
+          operator: Equal
+          effect: NoSchedule
+        - key: nvidia.com/gpu
+          operator: Exists
+          effect: NoSchedule
+        - key: aws.amazon.com/neuron
           value: "true"
           operator: Equal
           effect: NoSchedule
