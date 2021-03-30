@@ -12,10 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import json
 import sys
 
 import yaml
-import json
 
 K8S_VERSION = "1.18"
 
@@ -40,6 +40,7 @@ def default_nodegroup(cluster_config):
             "kubeReservedCgroup": "/kube-reserved",
             "systemReserved": {"cpu": "150m", "memory": "300Mi", "ephemeral-storage": "1Gi"},
             "evictionHard": {"memory.available": "200Mi", "nodefs.available": "5%"},
+            "registryPullQPS": 10,
         },
     }
 
