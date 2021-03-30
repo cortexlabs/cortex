@@ -132,7 +132,7 @@ class TensorFlowPredictor:
 <!-- CORTEX_VERSION_MINOR -->
 
 Cortex provides a `tensorflow_client` to your Predictor's constructor. `tensorflow_client` is an instance
-of [TensorFlowClient](https://github.com/cortexlabs/cortex/tree/master/pkg/cortex/serve/cortex_internal/lib/client/tensorflow.py)
+of [TensorFlowClient](https://github.com/cortexlabs/cortex/tree/0.32/pkg/cortex/serve/cortex_internal/lib/client/tensorflow.py)
 that manages a connection to a TensorFlow Serving container to make predictions using your model. It should be saved as
 an instance variable in your Predictor, and your `predict()` function should call `tensorflow_client.predict()` to make
 an inference with your exported TensorFlow model. Preprocessing of the JSON payload and postprocessing of predictions
@@ -191,7 +191,7 @@ class ONNXPredictor:
 <!-- CORTEX_VERSION_MINOR -->
 
 Cortex provides an `onnx_client` to your Predictor's constructor. `onnx_client` is an instance
-of [ONNXClient](https://github.com/cortexlabs/cortex/tree/master/pkg/cortex/serve/cortex_internal/lib/client/onnx.py)
+of [ONNXClient](https://github.com/cortexlabs/cortex/tree/0.32/pkg/cortex/serve/cortex_internal/lib/client/onnx.py)
 that manages an ONNX Runtime session to make predictions using your model. It should be saved as an instance variable in
 your Predictor, and your `predict()` function should call `onnx_client.predict()` to make an inference with your
 exported ONNX model. Preprocessing of the JSON payload and postprocessing of predictions can be implemented in

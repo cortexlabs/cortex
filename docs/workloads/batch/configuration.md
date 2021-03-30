@@ -19,7 +19,7 @@ predictor:
   path: <string>  # path to a python file with a PythonPredictor class definition, relative to the Cortex root (required)
   config: <string: value>  # arbitrary dictionary passed to the constructor of the Predictor (can be overridden by config passed in job submission) (optional)
   python_path: <string>  # path to the root of your Python folder that will be appended to PYTHONPATH (default: folder containing cortex.yaml)
-  image: <string> # docker image to use for the Predictor (default: quay.io/cortexlabs/python-predictor-cpu:master or quay.io/cortexlabs/python-predictor-gpu:master-cuda10.2-cudnn8 based on compute)
+  image: <string> # docker image to use for the Predictor (default: quay.io/cortexlabs/python-predictor-cpu:0.32.0 or quay.io/cortexlabs/python-predictor-gpu:0.32.0-cuda10.2-cudnn8 based on compute)
   env: <string: string>  # dictionary of environment variables
   log_level: <string>  # log level that can be "debug", "info", "warning" or "error" (default: "info")
   shm_size: <string>  # size of shared memory (/dev/shm) for sharing data between multiple processes, e.g. 64Mi or 1Gi (default: Null)
@@ -49,8 +49,8 @@ predictor:
     batch_interval: <duration>  # the maximum amount of time to spend waiting for additional requests before running inference on the batch of requests
   config: <string: value>  # arbitrary dictionary passed to the constructor of the Predictor (can be overridden by config passed in job submission) (optional)
   python_path: <string>  # path to the root of your Python folder that will be appended to PYTHONPATH (default: folder containing cortex.yaml)
-  image: <string> # docker image to use for the Predictor (default: quay.io/cortexlabs/tensorflow-predictor:master)
-  tensorflow_serving_image: <string> # docker image to use for the TensorFlow Serving container (default: quay.io/cortexlabs/tensorflow-serving-cpu:master or quay.io/cortexlabs/tensorflow-serving-gpu:master based on compute)
+  image: <string> # docker image to use for the Predictor (default: quay.io/cortexlabs/tensorflow-predictor:0.32.0)
+  tensorflow_serving_image: <string> # docker image to use for the TensorFlow Serving container (default: quay.io/cortexlabs/tensorflow-serving-cpu:0.32.0 or quay.io/cortexlabs/tensorflow-serving-gpu:0.32.0 based on compute)
   env: <string: string>  # dictionary of environment variables
   log_level: <string>  # log level that can be "debug", "info", "warning" or "error" (default: "info")
   shm_size: <string>  # size of shared memory (/dev/shm) for sharing data between multiple processes, e.g. 64Mi or 1Gi (default: Null)
@@ -75,7 +75,7 @@ predictor:
       ...
   config: <string: value>  # arbitrary dictionary passed to the constructor of the Predictor (can be overridden by config passed in job submission) (optional)
   python_path: <string>  # path to the root of your Python folder that will be appended to PYTHONPATH (default: folder containing cortex.yaml)
-  image: <string> # docker image to use for the Predictor (default: quay.io/cortexlabs/onnx-predictor-cpu:master or quay.io/cortexlabs/onnx-predictor-gpu:master based on compute)
+  image: <string> # docker image to use for the Predictor (default: quay.io/cortexlabs/onnx-predictor-cpu:0.32.0 or quay.io/cortexlabs/onnx-predictor-gpu:0.32.0 based on compute)
   env: <string: string>  # dictionary of environment variables
   log_level: <string>  # log level that can be "debug", "info", "warning" or "error" (default: "info")
   shm_size: <string>  # size of shared memory (/dev/shm) for sharing data between multiple processes, e.g. 64Mi or 1Gi (default: Null)

@@ -63,7 +63,7 @@ class Client:
         Deploy an API.
 
         Args:
-            api_spec: A dictionary defining a single Cortex API. See https://docs.cortex.dev/v/master/ for schema.
+            api_spec: A dictionary defining a single Cortex API. See https://docs.cortex.dev/v/0.32/ for schema.
             predictor: A Cortex Predictor class implementation. Not required for TaskAPI/TrafficSplitter kinds.
             task: A callable class/function implementation. Not required for RealtimeAPI/BatchAPI/TrafficSplitter kinds.
             requirements: A list of PyPI dependencies that will be installed before the predictor class implementation is invoked.

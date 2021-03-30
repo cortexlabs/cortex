@@ -12,7 +12,7 @@
       conda: <string>  # relative path to conda-packages.txt (default: conda-packages.txt)
       shell: <string>  # relative path to a shell script for system package installation (default: dependencies.sh)
     python_path: <string>  # path to the root of your Python folder that will be appended to PYTHONPATH (default: folder containing cortex.yaml)
-    image: <string> # docker image to use for the Task (default: quay.io/cortexlabs/python-predictor-cpu:master, quay.io/cortexlabs/python-predictor-gpu:master-cuda10.2-cudnn8, or quay.io/cortexlabs/python-predictor-inf:master based on compute)
+    image: <string> # docker image to use for the Task (default: quay.io/cortexlabs/python-predictor-cpu:0.32.0, quay.io/cortexlabs/python-predictor-gpu:0.32.0-cuda10.2-cudnn8, or quay.io/cortexlabs/python-predictor-inf:0.32.0 based on compute)
     env: <string: string>  # dictionary of environment variables
     log_level: <string>  # log level that can be "debug", "info", "warning" or "error" (default: "info")
   networking:
