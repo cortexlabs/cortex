@@ -222,7 +222,8 @@ def main():
         ThreadPoolExecutorWithRequestMonitor(
             post_latency_metrics_fn=api.post_latency_request_metrics,
             max_workers=threads_per_process,
-        )
+        ),
+        options=[("grpc.max_send_message_length", -1), ("grpc.max_receive_message_length", -1)],
     )
 
     add_PredictorServicer_to_server = get_servicer_to_server_from_module(module_proto_pb2_grpc)
