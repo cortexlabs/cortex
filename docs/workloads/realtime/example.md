@@ -2,7 +2,7 @@
 
 ## HTTP
 
-Create APIs that respond to prediction requests in real-time using the HTTP protocol.
+Create HTTP APIs that respond to prediction requests in real-time.
 
 ### Implement
 
@@ -75,11 +75,11 @@ cortex delete text-generator
 
 ## gRPC
 
-To make the above API use gRPC as its protocol, take the above HTTP example and make the following changes. The rest of the steps remain the same.
+To make the above API use gRPC as its protocol, make the following changes (the rest of the steps are the same):
 
 ### Add protobuf file
 
-Create a `predictor.proto` file in your project's directory.
+Create a `predictor.proto` file in your project's directory:
 
 ```protobuf
 <!-- predictor.proto -->
@@ -94,10 +94,9 @@ service Predictor {
 message Message {
     string text = 1;
 }
-
 ```
 
-And set the `predictor.protobuf_path` field in the API spec to point to the `predictor.proto` file.
+Set the `predictor.protobuf_path` field in the API spec to point to the `predictor.proto` file:
 
 ```yaml
 # text_generator.yaml
@@ -112,7 +111,7 @@ And set the `predictor.protobuf_path` field in the API spec to point to the `pre
     gpu: 1
 ```
 
-### Make gRPC request
+### Make a gRPC request
 
 ```bash
 grpcurl -plaintext -proto predictor.proto -d '{"text": "hello-world"}' ***.elb.us-west-2.amazonaws.com:80 text_generator.Predictor/Predict
