@@ -536,10 +536,10 @@ rpc Predict (Sample) returns (Response);
 ##### Making the request
 
 ```python
-import grpc, sample_service_pb2, sample_service_pb2_grpc
+import grpc, predictor_pb2, predictor_pb2_grpc
 
-stub = sample_service_pb2_grpc.PredictorStub(grpc.insecure_channel("***.amazonaws.com:80"))
-stub.Predict(sample_service_pb2.Sample(a="text"))
+stub = predictor_pb2_grpc.PredictorStub(grpc.insecure_channel("***.amazonaws.com:80"))
+stub.Predict(predictor_pb2.Sample(a="text"))
 ```
 
 ##### Reading the payload
@@ -566,14 +566,14 @@ rpc Predict (stream Sample) returns (Response);
 ##### Making the request
 
 ```python
-import grpc, sample_service_pb2, sample_service_pb2_grpc
+import grpc, predictor_pb2, predictor_pb2_grpc
 
 def generate_iterator(sample_list):
     for sample in sample_list:
         yield sample
 
-stub = sample_service_pb2_grpc.PredictorStub(grpc.insecure_channel("***.amazonaws.com:80"))
-stub.Predict(sample_service_pb2.Sample(generate_iterator(["a", "b", "c", "d"])))
+stub = predictor_pb2_grpc.PredictorStub(grpc.insecure_channel("***.amazonaws.com:80"))
+stub.Predict(predictor_pb2.Sample(generate_iterator(["a", "b", "c", "d"])))
 ```
 
 ##### Reading the payload
@@ -626,10 +626,10 @@ rpc Predict (Sample) returns (Response);
 ##### Making the request
 
 ```python
-import grpc, sample_service_pb2, sample_service_pb2_grpc
+import grpc, predictor_pb2, predictor_pb2_grpc
 
-stub = sample_service_pb2_grpc.PredictorStub(grpc.insecure_channel("***.amazonaws.com:80"))
-r = stub.Predict(sample_service_pb2.Sample())
+stub = predictor_pb2_grpc.PredictorStub(grpc.insecure_channel("***.amazonaws.com:80"))
+r = stub.Predict(predictor_pb2.Sample())
 ```
 
 ##### Returning the response
@@ -656,14 +656,14 @@ rpc Predict (Sample) returns (stream Response);
 ##### Making the request
 
 ```python
-import grpc, sample_service_pb2, sample_service_pb2_grpc
+import grpc, predictor_pb2, predictor_pb2_grpc
 
 def generate_iterator(sample_list):
     for sample in sample_list:
         yield sample
 
-stub = sample_service_pb2_grpc.PredictorStub(grpc.insecure_channel("***.amazonaws.com:80"))
-for r in stub.Predict(sample_service_pb2.Sample())):
+stub = predictor_pb2_grpc.PredictorStub(grpc.insecure_channel("***.amazonaws.com:80"))
+for r in stub.Predict(predictor_pb2.Sample())):
     print(r.b)
 ```
 
