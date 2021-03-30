@@ -86,7 +86,7 @@ output=$(cd "$ROOT" && find . -type f \
 ! -path "**/.history/*" \
 ! -path "**/__pycache__/*" \
 ! -path "**/.pytest_cache/*" \
-! -path "**.egg-info/*" \
+! -path "**/*.egg-info/*" \
 ! -path "./test/*" \
 ! -path "./dev/config/*" \
 ! -path "./bin/*" \
@@ -117,7 +117,7 @@ if [ "$is_release_branch" = "true" ]; then
   ! -path "**/.history/*" \
   ! -path "**/__pycache__/*" \
   ! -path "**/.pytest_cache/*" \
-  ! -path "**.egg-info/*" \
+  ! -path "**/*.egg-info/*" \
   ! -path "./dev/config/*" \
   ! -path "./bin/*" \
   ! -path "./.git/*" \
@@ -140,7 +140,7 @@ output=$(cd "$ROOT" && find . -type f \
 ! -path "**/.vscode/*" \
 ! -path "**/__pycache__/*" \
 ! -path "**/.pytest_cache/*" \
-! -path "**.egg-info/*" \
+! -path "**/*.egg-info/*" \
 ! -path "./dev/config/*" \
 ! -path "./bin/*" \
 ! -path "./.git/*" \
@@ -162,7 +162,7 @@ output=$(cd "$ROOT" && find . -type f \
 ! -path "**/.vscode/*" \
 ! -path "**/__pycache__/*" \
 ! -path "**/.pytest_cache/*" \
-! -path "**.egg-info/*" \
+! -path "**/*.egg-info/*" \
 ! -path "./dev/config/*" \
 ! -path "./bin/*" \
 ! -path "./.git/*" \
@@ -184,7 +184,7 @@ output=$(cd "$ROOT" && find . -type f \
 ! -path "**/.history/*" \
 ! -path "**/__pycache__/*" \
 ! -path "**/.pytest_cache/*" \
-! -path "**.egg-info/*" \
+! -path "**/*.egg-info/*" \
 ! -path "./dev/config/*" \
 ! -path "./bin/*" \
 ! -path "./.git/*" \
@@ -206,7 +206,7 @@ output=$(cd "$ROOT" && find . -type f \
 ! -path "**/.vscode/*" \
 ! -path "**/__pycache__/*" \
 ! -path "**/.pytest_cache/*" \
-! -path "**.egg-info/*" \
+! -path "**/*.egg-info/*" \
 ! -path "./dev/config/*" \
 ! -path "./bin/*" \
 ! -path "./.git/*" \
