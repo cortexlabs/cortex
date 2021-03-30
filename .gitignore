@@ -10,6 +10,7 @@ __pycache__/
 .env
 .venv
 *.egg-info
+*.pytest_cache
 
 # OSX
 .DS_Store
