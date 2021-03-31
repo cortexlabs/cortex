@@ -114,7 +114,8 @@ func getClusterAccessConfigWithCache() (*clusterconfig.AccessConfig, error) {
 	}
 
 	if accessConfig.ClusterName == "" || accessConfig.Region == "" {
-		return nil, ErrorClusterAccessConfigRequired()
+		cliFlagsOnly := _flagClusterScaleNodeGroup != ""
+		return nil, ErrorClusterAccessConfigRequired(cliFlagsOnly)
 	}
 	return accessConfig, nil
 }

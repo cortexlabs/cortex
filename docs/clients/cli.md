@@ -127,7 +127,7 @@ Flags:
 ## cluster scale
 
 ```text
-update a node group's min/max instances
+update the min/max instances for a nodegroup
 
 Usage:
   cortex cluster scale [flags]
@@ -136,8 +136,8 @@ Flags:
   -n, --name string         name of the cluster
   -r, --region string       aws region of the cluster
       --node-group string   name of the node group to scale
-      --min-instances int   minimum number of instances for the given node group
-      --max-instances int   maximum number of instances for the given node group
+      --min-instances int   minimum number of instances
+      --max-instances int   maximum number of instances
   -y, --yes                 skip prompts
   -h, --help                help for scale
 ```

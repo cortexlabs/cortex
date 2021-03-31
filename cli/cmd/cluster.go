@@ -118,8 +118,8 @@ func addClusterRegionFlag(cmd *cobra.Command) {
 
 func addClusterScaleFlags(cmd *cobra.Command) {
 	cmd.Flags().StringVar(&_flagClusterScaleNodeGroup, "node-group", "", "name of the node group to scale")
-	cmd.Flags().Int64Var(&_flagClusterScaleMinInstances, "min-instances", 0, "minimum number of instances for the given node group")
-	cmd.Flags().Int64Var(&_flagClusterScaleMaxInstances, "max-instances", 0, "maximum number of instances for the given node group")
+	cmd.Flags().Int64Var(&_flagClusterScaleMinInstances, "min-instances", 0, "minimum number of instances")
+	cmd.Flags().Int64Var(&_flagClusterScaleMaxInstances, "max-instances", 0, "maximum number of instances")
 
 	cmd.MarkFlagRequired("node-group")
 	cmd.MarkFlagRequired("min-instances")

@@ -228,10 +228,16 @@ func ErrorNodeGroupNotFound(scalingNodeGroupName, clusterName, clusterRegion str
 	})
 }
 
-func ErrorClusterAccessConfigRequired() error {
+func ErrorClusterAccessConfigRequired(cliFlagsOnly bool) error {
+	message := ""
+	if cliFlagsOnly {
+		message = "please provide the name and region of the cluster using the CLI flags (e.g. via `--name` and `--region`)"
+	} else {
+		message = fmt.Sprintf("please provide a cluster configuration file which specifies `%s` and `%s` (e.g. via `--config cluster.yaml`) or use the CLI flags to specify the cluster (e.g. via `--name` and `--region`)", clusterconfig.ClusterNameKey, clusterconfig.RegionKey)
+	}
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrClusterAccessConfigRequired,
-		Message: fmt.Sprintf("please provide a cluster configuration file which specifies `%s` and `%s` (e.g. via `--config cluster.yaml`) or use the CLI flags to specify the cluster (e.g. via `--name` and `--region`)", clusterconfig.ClusterNameKey, clusterconfig.RegionKey),
+		Message: message,
 	})
 }
 
