@@ -53,7 +53,7 @@ var _cortexPolicy = `
 		{
 			"Effect": "Allow",
 			"Action": "sqs:*",
-			"Resource": "arn:aws:sqs:{{ .Region }}:{{ .AccountID }}:cx-*"
+			"Resource": "arn:aws:sqs:{{ .Region }}:{{ .AccountID }}:cx_*"
 		},
 		{
 			"Effect": "Allow",

@@ -8,6 +8,10 @@ The Python and TensorFlow predictors allow for the use of the following 2 fields
 
 * `batch_interval`: The maximum amount of time to spend waiting for additional requests before running inference on the batch of requests. If fewer than `max_batch_size` requests are received after waiting the full `batch_interval`, then inference will run on the requests that have been received. This is an instrument for controlling latency.
 
+{% hint style="note" %}
+Server-side batching is not supported for APIs that use the gRPC protocol.
+{% endhint %}
+
 ## Python predictor
 
 When using server-side batching with the Python predictor, the arguments that are passed into your predictor's `predict()` function will be lists: `payload` will be a list of payloads, `query_params` will be a list of query parameter dictionaries, and `headers` will be a list of header dictionaries. The lists will all have the same length, where a particular index accross all arguments corresponds to a single request (i.e. `payload[2]`, `query_params[2]`, and `headers[2]` correspond to a single prediction request). Your `predict()` function must return a list of responses in the same order that they were received (i.e. the 3rd element in returned list must be the response associated with `payload[2]`).

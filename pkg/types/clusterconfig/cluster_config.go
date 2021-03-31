@@ -41,10 +41,16 @@ import (
 )
 
 const (
-	ClusterNameTag       = "cortex.dev/cluster-name"
+	// MaxNodePoolsOrGroups represents the max number of node groups in a cluster
 	MaxNodePoolsOrGroups = 100
 	// the s3 url should be used (rather than the cloudfront URL) to avoid caching
 	_cniSupportedInstancesURL = "https://cortex-public.s3-us-west-2.amazonaws.com/cli-assets/cni_supported_instances.txt"
+	// ClusterNameTag is the tag used for storing a cluster's name in AWS resources
+	ClusterNameTag = "cortex.dev/cluster-name"
+	// SQSQueueDelimiter is the delimiter character used for naming cortex SQS queues (e.g. cx_<cluster_hash>_b_<api_name>_<jon_id>)
+	// In this case, _ was chosen to simplify the retrieval of information for the queue's name,
+	// since the api naming scheme does not allow this character.
+	SQSQueueDelimiter = "_"
 )
 
 var (
@@ -736,10 +742,10 @@ func (cc *Config) ToAccessConfig() AccessConfig {
 
 func SQSNamePrefix(clusterName string) string {
 	// 8 was chosen to make sure that other identifiers can be added to the full queue name before reaching the 80 char SQS name limit
-	return "cx-" + hash.String(clusterName)[:8] + "-"
+	return "cx" + SQSQueueDelimiter + hash.String(clusterName)[:8] + SQSQueueDelimiter
 }
 
-// returns hash of cluster name and adds trailing "-" e.g. cx-abcd1234-
+// SQSNamePrefix returns a string with the hash of cluster name and adds trailing "_" e.g. cx_abcd1234_
 func (cc *CoreConfig) SQSNamePrefix() string {
 	return SQSNamePrefix(cc.ClusterName)
 }
