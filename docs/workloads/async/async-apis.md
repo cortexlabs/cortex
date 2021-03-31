@@ -5,7 +5,7 @@ and retrieves the result later, either by polling or through a webhook.
 
 The design is summarized in the image below.
 
-![AsyncAPI Design](https://user-images.githubusercontent.com/7456627/111491999-9b67f100-873c-11eb-87f0-effcf4aab01b.png)
+![](https://user-images.githubusercontent.com/7456627/111491999-9b67f100-873c-11eb-87f0-effcf4aab01b.png)
 
 The Async Gateway is responsible for submitting the workloads to the queue and for the retrieval of the respective
 workload status and results. Cortex fully manages the Async Gateway and the queue, while the user is in charge of implementing
