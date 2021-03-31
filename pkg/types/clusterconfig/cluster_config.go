@@ -41,11 +41,16 @@ import (
 )
 
 const (
-	ClusterNameTag       = "cortex.dev/cluster-name"
+	// MaxNodePoolsOrGroups represents the max number of node groups in a cluster
 	MaxNodePoolsOrGroups = 100
 	// the s3 url should be used (rather than the cloudfront URL) to avoid caching
 	_cniSupportedInstancesURL = "https://cortex-public.s3-us-west-2.amazonaws.com/cli-assets/cni_supported_instances.txt"
-	SQSQueueDelimiter         = "_"
+	// ClusterNameTag is the tag used for storing a cluster's name in AWS resources
+	ClusterNameTag = "cortex.dev/cluster-name"
+	// SQSQueueDelimiter is the delimiter character used for naming cortex SQS queues (e.g. cx_<cluster_hash>_b_<api_name>_<jon_id>)
+	// In this case, _ was chosen to simplify the retrieval of information for the queue's name,
+	// since the api naming scheme does not allow this character.
+	SQSQueueDelimiter = "_"
 )
 
 var (
