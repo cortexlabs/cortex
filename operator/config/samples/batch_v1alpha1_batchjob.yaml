@@ -1,0 +1,7 @@
+apiVersion: batch.cortex.dev/v1alpha1
+kind: BatchJob
+metadata:
+  name: batchjob-sample
+spec:
+  # Add fields here
+  foo: bar

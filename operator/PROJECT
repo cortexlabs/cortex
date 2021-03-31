@@ -1,0 +1,8 @@
+domain: cortex.dev
+multigroup: true
+repo: github.com/cortexlabs/cortex/operator
+resources:
+- group: batch
+  kind: BatchJob
+  version: v1alpha1
+version: "2"
