@@ -19,11 +19,11 @@ If no logs appear (e.g. it just says "fetching logs..."), continue down this lis
 
 ### Check `max_instances` for your cluster
 
-When you created your Cortex cluster, you configured `max_instances` (either from the command prompts or via a cluster configuration file, e.g. `cluster.yaml`). If your cluster already has `min_instances` running instances, additional instances cannot be created and APIs may not be able to deploy, scale, or update.
+When you created your Cortex cluster, you configured `max_instances` for each node group that you specified (via the cluster configuration file, e.g. `cluster.yaml`). If your cluster already has `min_instances` running instances for a given node group, additional instances cannot be created and APIs may not be able to deploy, scale, or update.
 
-You can check the current value of `max_instances` by running `cortex cluster info --config cluster.yaml` (or `cortex cluster info --name <CLUSTER-NAME> --region <CLUSTER-REGION>` if you have the name and region of the cluster).
+You can check the current value of `max_instances` for the selected node group by running `cortex cluster info --config cluster.yaml` (or `cortex cluster info --name <CLUSTER-NAME> --region <CLUSTER-REGION>` if you have the name and region of the cluster).
 
-You can update `max_instances` by modifying `max_instances` in your cluster configuration file and running `cortex cluster configure --config cluster.yaml` (or `cortex cluster configure --name <CLUSTER-NAME> --region <CLUSTER-REGION>` if you have the name and region of the cluster).
+Once you have the name and region of the cluster, you can update `max_instances` by specifying the desired number of `max_instances` for your node group with `cortex cluster scale --name <CLUSTER-NAME> --region <CLUSTER-REGION> --node-group <NG-NAME> --min-instances <MIN-INSTANCES> --max-instances <MAX-INSTANCES>`.
 
 ## Check your AWS auto scaling group activity history
 

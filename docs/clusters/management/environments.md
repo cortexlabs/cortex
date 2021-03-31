@@ -1,6 +1,6 @@
 # Environments
 
-When you create a cluster with `cortex cluster up`, an environment named `aws` is automatically created to point to your cluster and is configured to be the default environment. You can name the environment something else via the `--configure-env` flag, e.g. `cortex cluster up --configure-env prod`. You can also use the `--configure-env` flag with `cortex cluster info` and `cortex cluster configure` to create / update the specified environment.
+When you create a cluster with `cortex cluster up`, an environment named `aws` is automatically created to point to your cluster and is configured to be the default environment. You can name the environment something else via the `--configure-env` flag, e.g. `cortex cluster up --configure-env prod`. You can also use the `--configure-env` flag with `cortex cluster info` to create / update the specified environment.
 
 You can list your environments with `cortex env list`, change the default environment with `cortex env default`, delete an environment with `cortex env delete`, and create/update an environment with `cortex env configure`.
 

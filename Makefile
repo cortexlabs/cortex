@@ -84,18 +84,6 @@ cluster-info:
 	@$(MAKE) cli
 	@eval $$(python3 ./manager/cluster_config_env.py ./dev/config/cluster.yaml) && ./bin/cortex cluster info --config=./dev/config/cluster.yaml --configure-env="$$CORTEX_CLUSTER_NAME" --yes
 
-cluster-configure:
-	@$(MAKE) images-all
-	@$(MAKE) cli
-	@kill $(shell pgrep -f rerun) >/dev/null 2>&1 || true
-	@eval $$(python3 ./manager/cluster_config_env.py ./dev/config/cluster.yaml) && ./bin/cortex cluster configure ./dev/config/cluster.yaml --configure-env="$$CORTEX_CLUSTER_NAME"
-
-cluster-configure-y:
-	@$(MAKE) images-all
-	@$(MAKE) cli
-	@kill $(shell pgrep -f rerun) >/dev/null 2>&1 || true
-	@eval $$(python3 ./manager/cluster_config_env.py ./dev/config/cluster.yaml) && ./bin/cortex cluster configure ./dev/config/cluster.yaml --configure-env="$$CORTEX_CLUSTER_NAME" --yes
-
 # stop the in-cluster operator
 operator-stop:
 	@$(MAKE) kubectl
