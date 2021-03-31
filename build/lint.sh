@@ -100,6 +100,8 @@ output=$(cd "$ROOT" && find . -type f \
 ! -name ".*" \
 ! -name "*.bin" \
 ! -name "Dockerfile" \
+! -name "./operator/PROJECT" \
+! -name "./operator/config/*" \
 -exec grep -L "Copyright 2021 Cortex Labs, Inc" {} \;)
 if [[ $output ]]; then
   echo "File(s) are missing Cortex license:"
