@@ -29,6 +29,7 @@ import (
 	libjson "github.com/cortexlabs/cortex/pkg/lib/json"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
+	"github.com/cortexlabs/cortex/pkg/types/clusterconfig"
 	"github.com/cortexlabs/cortex/pkg/types/metrics"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 )
@@ -39,10 +40,12 @@ const (
 )
 
 func apiQueueNamePrefix(apiName string) string {
-	return fmt.Sprintf("%sb-%s-", config.CoreConfig.SQSNamePrefix(), apiName)
+	// <sqs_prefix>_b_<api_name>_
+	return config.CoreConfig.SQSNamePrefix() + "b" + clusterconfig.SQSQueueDelimiter +
+		apiName + clusterconfig.SQSQueueDelimiter
 }
 
-// QueueName is cx-<hash of cluster name>-b-<api_name>-<job_id>.fifo
+// QueueName is cx_<hash of cluster name>_b_<api_name>_<job_id>.fifo
 func getJobQueueName(jobKey spec.JobKey) string {
 	return apiQueueNamePrefix(jobKey.APIName) + jobKey.ID + ".fifo"
 }
@@ -60,12 +63,12 @@ func jobKeyFromQueueURL(queueURL string) spec.JobKey {
 	split := strings.Split(queueURL, "/")
 	queueName := split[len(split)-1]
 
-	dashSplit := strings.Split(queueName, "-")
+	dashSplit := strings.Split(queueName, clusterconfig.SQSQueueDelimiter)
 
 	jobID := strings.TrimSuffix(dashSplit[len(dashSplit)-1], ".fifo")
 
 	apiNameSplit := dashSplit[3 : len(dashSplit)-1]
-	apiName := strings.Join(apiNameSplit, "-")
+	apiName := strings.Join(apiNameSplit, clusterconfig.SQSQueueDelimiter)
 
 	return spec.JobKey{APIName: apiName, ID: jobID}
 }
@@ -115,7 +118,9 @@ func doesQueueExist(jobKey spec.JobKey) (bool, error) {
 }
 
 func listQueueURLsForAllAPIs() ([]string, error) {
-	queueURLs, err := config.AWS.ListQueuesByQueueNamePrefix(config.CoreConfig.SQSNamePrefix() + "b-")
+	queueURLs, err := config.AWS.ListQueuesByQueueNamePrefix(
+		config.CoreConfig.SQSNamePrefix() + "b" + clusterconfig.SQSQueueDelimiter,
+	)
 	if err != nil {
 		return nil, err
 	}
