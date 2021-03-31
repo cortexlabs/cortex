@@ -975,7 +975,7 @@ func refreshCachedClusterConfig(awsClient aws.Client, accessConfig *clusterconfi
 
 func scaleNodeGroup(clusterConfig clusterconfig.Config) (clusterconfig.Config, error) {
 	if _flagClusterScaleMinInstances < 0 {
-		return clusterconfig.Config{}, ErrorMaxInstancesLowerThan(0)
+		return clusterconfig.Config{}, ErrorMinInstancesLowerThan(0)
 	}
 	if _flagClusterScaleMaxInstances < 0 {
 		return clusterconfig.Config{}, ErrorMaxInstancesLowerThan(0)
