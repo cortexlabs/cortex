@@ -39,7 +39,7 @@ commands=(
   "delete"
   "cluster up"
   "cluster info"
-  "cluster configure"
+  "cluster scale"
   "cluster down"
   "cluster export"
   "env configure"

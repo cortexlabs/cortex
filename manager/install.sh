@@ -257,57 +257,39 @@ function restart_operator() {
 function resize_nodegroup() {
   eksctl get nodegroup --cluster=$CORTEX_CLUSTER_NAME --region=$CORTEX_REGION -o json > nodegroups.json
   ng_len=$(cat nodegroups.json | jq -r length)
-  cluster_config_ng_len=$(cat /in/cluster_${CORTEX_CLUSTER_NAME}_${CORTEX_REGION}.yaml | yq -r .node_groups | yq -r length)
-  num_resizes=0
+  config_ng="$CORTEX_SCALING_NODEGROUP"
 
-  for idx in $(seq 0 $(($cluster_config_ng_len-1))); do
-    config_ng=$(cat /in/cluster_${CORTEX_CLUSTER_NAME}_${CORTEX_REGION}.yaml | yq -r .node_groups[$idx].name)
-
-    for eks_idx in $(seq 0 $(($ng_len-1))); do
-      stack_ng=$(cat nodegroups.json | jq -r .[$eks_idx].Name)
-      if [ "$stack_ng" = "cx-operator" ]; then
-        continue
-      fi
-      if [[ "$stack_ng" == *"$config_ng" ]]; then
-        break
-      fi
-    done
-
-    desired=$(cat nodegroups.json | jq -r .[$eks_idx].DesiredCapacity)
-    existing_min=$(cat nodegroups.json | jq -r .[$eks_idx].MinSize)
-    existing_max=$(cat nodegroups.json | jq -r .[$eks_idx].MaxSize)
-    updating_min=$(cat /in/cluster_${CORTEX_CLUSTER_NAME}_${CORTEX_REGION}.yaml | yq -r .node_groups[$idx].min_instances)
-    updating_max=$(cat /in/cluster_${CORTEX_CLUSTER_NAME}_${CORTEX_REGION}.yaml | yq -r .node_groups[$idx].max_instances)
-    if [ $updating_min = "null" ]; then
-      updating_min=1
+  for eks_idx in $(seq 0 $(($ng_len-1))); do
+    stack_ng=$(cat nodegroups.json | jq -r .[$eks_idx].Name)
+    if [ "$stack_ng" = "cx-operator" ]; then
+      continue
     fi
-    if [ $updating_max = "null" ]; then
-      updating_max=5
-    fi
-
-    if [ "$existing_min" != "$updating_min" ] && [ "$existing_max" != "$updating_max" ]; then
-      echo "￮ nodegroup $idx ($config_ng): updating min instances to $updating_min and max instances to $updating_max "
-      eksctl scale nodegroup --cluster=$CORTEX_CLUSTER_NAME --region=$CORTEX_REGION $stack_ng --nodes $desired --nodes-min $updating_min --nodes-max $updating_max
-      num_resizes=$(($num_resizes+1))
-      echo
-    elif [ "$existing_min" != "$updating_min" ]; then
-      echo "￮ nodegroup $idx ($config_ng): updating min instances to $updating_min "
-      eksctl scale nodegroup --cluster=$CORTEX_CLUSTER_NAME --region=$CORTEX_REGION $stack_ng --nodes $desired --nodes-min $updating_min
-      num_resizes=$(($num_resizes+1))
-      echo
-    elif [ "$existing_max" != "$updating_max" ]; then
-      echo "￮ nodegroup $idx ($config_ng): updating max instances to $updating_max "
-      eksctl scale nodegroup --cluster=$CORTEX_CLUSTER_NAME --region=$CORTEX_REGION $stack_ng --nodes $desired --nodes-max $updating_max
-      num_resizes=$(($num_resizes+1))
-      echo
+    if [[ "$stack_ng" == *"$config_ng" ]]; then
+      break
     fi
   done
-  rm nodegroups.json
 
-  if [ "$num_resizes" -eq "0" ]; then
-    echo "no changes to node group sizes detected in the cluster config"
-    exit 0
+  desired=$(cat nodegroups.json | jq -r .[$eks_idx].DesiredCapacity)
+  existing_min=$(cat nodegroups.json | jq -r .[$eks_idx].MinSize)
+  existing_max=$(cat nodegroups.json | jq -r .[$eks_idx].MaxSize)
+  updating_min="$CORTEX_SCALING_MIN_INSTANCES"
+  updating_max="$CORTEX_SCALING_MAX_INSTANCES"
+
+  if [ "$existing_min" != "$updating_min" ] && [ "$existing_max" != "$updating_max" ]; then
+    echo "￮ nodegroup $config_ng: updating min instances to $updating_min and max instances to $updating_max "
+    eksctl scale nodegroup --cluster=$CORTEX_CLUSTER_NAME --region=$CORTEX_REGION $stack_ng --nodes $desired --nodes-min $updating_min --nodes-max $updating_max
+    echo
+  elif [ "$existing_min" != "$updating_min" ]; then
+    echo "￮ nodegroup $config_ng: updating min instances to $updating_min "
+    eksctl scale nodegroup --cluster=$CORTEX_CLUSTER_NAME --region=$CORTEX_REGION $stack_ng --nodes $desired --nodes-min $updating_min
+    echo
+  elif [ "$existing_max" != "$updating_max" ]; then
+    echo "￮ nodegroup $config_ng: updating max instances to $updating_max "
+    eksctl scale nodegroup --cluster=$CORTEX_CLUSTER_NAME --region=$CORTEX_REGION $stack_ng --nodes $desired --nodes-max $updating_max
+    echo
   fi
+
+  rm nodegroups.json
 }
 
 function suspend_az_rebalance() {
