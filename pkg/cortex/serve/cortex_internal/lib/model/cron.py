@@ -138,7 +138,7 @@ class FileBasedModelsTreeUpdater(mp.Process):
 
         self._s3_paths = []
         self._spec_models = get_models_from_api_spec(self._api_spec)
-        self._s3_model_names = self._spec_models.get_s3_model_names("name")
+        self._s3_model_names = self._spec_models.get_s3_model_names()
         for model_name in self._s3_model_names:
             self._s3_paths.append(self._spec_models[model_name]["path"])
 
