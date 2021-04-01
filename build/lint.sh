@@ -218,6 +218,7 @@ output=$(cd "$ROOT" && find . -type f \
 ! -name ".*" \
 ! -name "*.bin" \
 ! -name "*.wav" \
+! -name "boilerplate.go.txt" \
 -print0 | \
 xargs -0 -L1 bash -c 'test "$(head -c 1 "$0")" || [ ! -s "$0" ] || echo "New line at beginning of $0"' || true)
 if [[ $output ]]; then
