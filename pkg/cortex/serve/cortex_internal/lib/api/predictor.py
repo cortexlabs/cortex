@@ -241,6 +241,9 @@ class Predictor:
             if self.type == PythonPredictorType:
                 if are_models_specified(self.api_spec):
                     args["python_client"] = client
+                    # set load method to enable the use of the client in the constructor
+                    # setting/getting from self in load_model won't work because self will be set to None
+                    client.set_load_method(lambda model_path: class_impl.load_model(None, model_path))
                     initialized_impl = class_impl(**args)
                     client.set_load_method(initialized_impl.load_model)
                 else:
