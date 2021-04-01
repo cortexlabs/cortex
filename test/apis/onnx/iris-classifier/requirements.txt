@@ -1,0 +1,2 @@
+onnxruntime==1.6.0
+numpy==1.19.1
