@@ -89,9 +89,10 @@ output=$(cd "$ROOT" && find . -type f \
 ! -path "**/*.egg-info/*" \
 ! -path "./test/*" \
 ! -path "./dev/config/*" \
-! -path "./bin/*" \
+! -path "**/bin/*" \
 ! -path "./.circleci/*" \
 ! -path "./.git/*" \
+! -path "./operator/config/*" \
 ! -name LICENSE \
 ! -name "*requirements.txt" \
 ! -name "go.*" \
@@ -100,8 +101,7 @@ output=$(cd "$ROOT" && find . -type f \
 ! -name ".*" \
 ! -name "*.bin" \
 ! -name "Dockerfile" \
-! -name "./operator/PROJECT" \
-! -name "./operator/config/*" \
+! -name "PROJECT" \
 -exec grep -L "Copyright 2021 Cortex Labs, Inc" {} \;)
 if [[ $output ]]; then
   echo "File(s) are missing Cortex license:"
