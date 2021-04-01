@@ -152,14 +152,6 @@ Note: it's ok if example training notebooks aren't upgraded, as long as the expo
 
 1. Search the codebase for the previous CUDA version and `cudnn`. It might be nice to use the version of CUDA which does not require a special pip command when installing pytorch.
 
-## ONNX runtime
-
-1. Update the version in `images/onnx-predictor-cpu/Dockerfile`
-   and `images/onnx-predictor-gpu/Dockerfile` ([releases](https://github.com/microsoft/onnxruntime/releases))
-   * Use the appropriate CUDA/cuDNN version in `images/onnx-predictor-gpu/Dockerfile` ([docs](https://github.com/microsoft/onnxruntime/blob/master/BUILD.md#CUDA))
-   * Search the codebase for the previous version
-1. Search the codebase for the previous ONNX runtime version
-
 ## Nvidia device plugin
 
 1. Update the version in `images/nvidia/Dockerfile` ([releases](https://github.com/NVIDIA/k8s-device-plugin/releases)

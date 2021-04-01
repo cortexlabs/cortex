@@ -23,8 +23,6 @@ api_images=(
   "python-predictor-cpu"
   "python-predictor-gpu"
   "tensorflow-predictor"
-  "onnx-predictor-cpu"
-  "onnx-predictor-gpu"
   "python-predictor-inf"
 )
 
