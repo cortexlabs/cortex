@@ -146,6 +146,7 @@ output=$(cd "$ROOT" && find . -type f \
 ! -path "./dev/config/*" \
 ! -path "./bin/*" \
 ! -path "./.git/*" \
+! -path "./operator/config/*" \
 ! -name ".*" \
 ! -name "*.bin" \
 ! -name "*.wav" \
@@ -166,6 +167,7 @@ output=$(cd "$ROOT" && find . -type f \
 ! -path "**/.pytest_cache/*" \
 ! -path "**/*.egg-info/*" \
 ! -path "./dev/config/*" \
+! -path "./operator/config/*" \
 ! -path "./bin/*" \
 ! -path "./.git/*" \
 ! -name ".*" \
