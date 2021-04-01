@@ -148,65 +148,6 @@ learn about how headers can be used to change the type of `payload` that is pass
 At this moment, the AsyncAPI `predict` method can only return `JSON`-parseable objects. Navigate to
 the [API responses](#api-responses) section to learn about how to configure it.
 
-## ONNX Predictor
-
-**Uses ONNX Runtime version 1.6.0 by default**
-
-### Interface
-
-```python
-class ONNXPredictor:
-    def __init__(self, config, onnx_client, metrics_client):
-        """(Required) Called once before the API becomes available. Performs
-        setup such as downloading/initializing a vocabulary.
-
-        Args:
-            onnx_client (required): ONNX client which is used to make
-                predictions. This should be saved for use in predict().
-            config (required): Dictionary passed from API configuration (if
-                specified).
-            metrics_client (optional): The cortex metrics client, which allows
-                you to push custom metrics in order to build custom dashboards
-                in grafana.
-        """
-        self.client = onnx_client
-        # Additional initialization may be done here
-
-    def predict(self, payload, request_id):
-        """(Required) Called once per request. Preprocesses the request payload
-        (if necessary), runs inference (e.g. by calling
-        self.client.predict(model_input)), and postprocesses the inference
-        output (if necessary).
-
-        Args:
-            payload (optional): The request payload (see below for the possible
-                payload types).
-            request_id (optional): The request id string that identifies a workload
-
-        Returns:
-            Prediction or a batch of predictions.
-        """
-        pass
-```
-<!-- CORTEX_VERSION_MINOR -->
-
-Cortex provides an `onnx_client` to your Predictor's constructor. `onnx_client` is an instance
-of [ONNXClient](https://github.com/cortexlabs/cortex/tree/master/pkg/cortex/serve/cortex_internal/lib/client/onnx.py)
-that manages an ONNX Runtime session to make predictions using your model. It should be saved as an instance variable in
-your Predictor, and your `predict()` function should call `onnx_client.predict()` to make an inference with your
-exported ONNX model. Preprocessing of the JSON payload and postprocessing of predictions can be implemented in
-your `predict()` function as well.
-
-For proper separation of concerns, it is recommended to use the constructor's `config` parameter for information such as
-from where to download the model and initialization files, or any configurable model parameters. You define `config` in
-your API configuration, and it is passed through to your Predictor's constructor.
-
-Your API can accept requests with different types of payloads. Navigate to the [API requests](#api-requests) section to
-learn about how headers can be used to change the type of `payload` that is passed into your `predict` method.
-
-At this moment, the AsyncAPI `predict` method can only return `JSON`-parseable objects. Navigate to
-the [API responses](#api-responses) section to learn about how to configure it.
-
 ## API requests
 
 The type of the `payload` parameter in `predict(self, payload)` can vary based on the content type of the request.

@@ -81,25 +81,6 @@ or for a versioned model:
       └── saved_model.pb
 ```
 
-### ONNX
-
-For the ONNX predictor, the model path must contain a single `*.onnx` file:
-
-```text
-  s3://my-bucket/models/text-generator/
-  └── model.onnx
-```
-
-or for a versioned model:
-
-```text
-  s3://my-bucket/models/text-generator/
-  ├── 1523423423/  (version number, usually a timestamp)
-  |   └── model.onnx
-  └── 2434389194/  (version number, usually a timestamp)
-      └── model.onnx
-```
-
 ## Single model
 
 The most common pattern is to serve a single model per API. The path to the model is specified in the `path` field in the `predictor.models` configuration. For example:
@@ -304,71 +285,3 @@ class TensorFlowPredictor:
 ```
 
 Note: when using Inferentia models with the TensorFlow predictor, live model reloading is only supported if `predictor.processes_per_replica` is set to 1 (the default value).
-
-### ONNX
-
-When using the ONNX predictor, inference is performed by using the `predict()` method of the `onnx_client` that's passed to the predictor's constructor:
-
-```python
-def predict(model_input: Any, model_name: Optional[str] = None, model_version: str = "latest") -> Any:
-    """
-    Run prediction.
-
-    Args:
-        model_input: Input to the model.
-        model_name (optional): Name of the model to retrieve (when multiple models are deployed in an API).
-            When predictor.models.paths is specified, model_name should be the name of one of the models listed in the API config.
-            When predictor.models.dir is specified, model_name should be the name of a top-level directory in the models dir.
-        model_version (string, optional): Version of the model to retrieve. Can be omitted or set to "latest" to select the highest version.
-
-    Returns:
-        The prediction returned from the model.
-    """
-```
-
-For example:
-
-```python
-class ONNXPredictor:
-    def __init__(self, onnx_client, config):
-        self.client = onnx_client
-
-    def predict(self, payload):
-      return self.client.predict(payload)
-```
-
-When multiple models are being served in an API, `onnx_client.predict()` can accept a model name:
-
-```python
-class ONNXPredictor:
-    # ...
-
-    def predict(self, payload, query_params):
-      return self.client.predict(payload, query_params["model"])
-```
-
-`onnx_client.predict()` can also accept a model version if a version other than the highest is desired:
-
-```python
-class ONNXPredictor:
-    # ...
-
-    def predict(self, payload, query_params):
-      return self.client.predict(payload, query_params["model"], query_params["version"])
-```
-
-You can also retrieve information about the model by calling the `onnx_client`'s `get_model()` method (it supports model name and model version arguments, like its `predict()` method). This can be useful for retrieving the model's input/output signatures. For example, `self.client.get_model()` might look like this:
-
-```python
-{
-    "session": "<onnxruntime.InferenceSession model object>",
-    "signatures": "<onnxruntime.InferenceSession model object>['session'].get_inputs()",
-    "input_signatures": {
-        "<signature-name>": {
-            "shape": "<input shape>",
-            "type": "<numpy type>"
-        }
-        ...
-    }
-}
-```

@@ -83,37 +83,6 @@ predictor:
   shm_size: <string>  # size of shared memory (/dev/shm) for sharing data between multiple processes, e.g. 64Mi or 1Gi (default: Null)
 ```
 
-### ONNX Predictor
-
-<!-- CORTEX_VERSION_BRANCH_STABLE x2 -->
-```yaml
-predictor:
-  type: onnx
-  path: <string>  # path to a python file with an ONNXPredictor class definition, relative to the Cortex root (required)
-  protobuf_path: <string>  # path to a protobuf file (required if using gRPC)
-  dependencies:  # (optional)
-    pip: <string>  # relative path to requirements.txt (default: requirements.txt)
-    conda: <string>  # relative path to conda-packages.txt (default: conda-packages.txt)
-    shell: <string>  # relative path to a shell script for system package installation (default: dependencies.sh)
-  models:  # (required)
-    path: <string> # S3 path to an exported model directory (e.g. s3://my-bucket/exported_model/) (either this, 'dir', or 'paths' must be provided)
-    paths:  # list of S3 paths to exported model directories (either this, 'dir', or 'path' must be provided)
-      - name: <string>  # unique name for the model (e.g. text-generator) (required)
-        path: <string>  # S3 path to an exported model directory (e.g. s3://my-bucket/exported_model/) (required)
-      ...
-    dir: <string>  # S3 path to a directory containing multiple model directories (e.g. s3://my-bucket/models/) (either this, 'path', or 'paths' must be provided)
-    cache_size: <int>  # the number models to keep in memory (optional; all models are kept in memory by default)
-    disk_cache_size: <int>  # the number of models to keep on disk (optional; all models are kept on disk by default)
-  processes_per_replica: <int>  # the number of parallel serving processes to run on each replica (default: 1)
-  threads_per_process: <int>  # the number of threads per process (default: 1)
-  config: <string: value>  # arbitrary dictionary passed to the constructor of the Predictor (optional)
-  python_path: <string>  # path to the root of your Python folder that will be appended to PYTHONPATH (default: folder containing cortex.yaml)
-  image: <string>  # docker image to use for the Predictor (default: quay.io/cortexlabs/onnx-predictor-cpu:master or quay.io/cortexlabs/onnx-predictor-gpu:master based on compute)
-  env: <string: string>  # dictionary of environment variables
-  log_level: <string>  # log level that can be "debug", "info", "warning" or "error" (default: "info")
-  shm_size: <string>  # size of shared memory (/dev/shm) for sharing data between multiple processes, e.g. 64Mi or 1Gi (default: Null)
-```
-
 ## Compute
 
 ```yaml

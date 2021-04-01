@@ -10,7 +10,7 @@
 * examples
   * check logs, predictions
   * check metrics, tracker
-  * make sure to try all 8 base images (tf/onnx/py gpu/cpu, tf/py inferentia)
+  * make sure to try all 6 base images (tf/py gpu/cpu, tf/py inferentia)
   * confirm GPUs are used when requested
 
 ## eksctl
@@ -213,8 +213,7 @@ Note: it's ok if example training notebooks aren't upgraded, as long as the expo
 
 ## S6-overlay supervisor
 
-1. Locate the `s6-overlay` installation in `images/python-predictor-*/Dockerfile`
-   , `images/tensorflow-predictor/Dockerfile` and `images/onnx-predictor-*/Dockerfile`
+1. Locate the `s6-overlay` installation in `images/python-predictor-*/Dockerfile` and `images/tensorflow-predictor/Dockerfile`.
 1. Update the version in each serving image with the newer one in https://github.com/just-containers/s6-overlay.
 
 ## Nginx
@@ -222,8 +221,7 @@ Note: it's ok if example training notebooks aren't upgraded, as long as the expo
 1. Run a base image of ubuntu that matches the version tag used for the serving images. The running command
    is `docker run -it --rm <base-image>`
 1. Run `apt update && apt-cache policy nginx`. Notice the latest minor version of nginx (e.g. `1.14`)
-1. Locate the `nginx` package in `images/python-predictor-*/Dockerfile`, `images/tensorflow-predictor/Dockerfile`
-   and `images/onnx-predictor-*/Dockerfile`
+1. Locate the `nginx` package in `images/python-predictor-*/Dockerfile` and `images/tensorflow-predictor/Dockerfile`.
 1. Update the version for all `nginx` appearances using the minor version from step 2 and add an asterisk at the end to
    denote any version (e.g. `1.14.*`)
 

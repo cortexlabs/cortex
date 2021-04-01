@@ -60,31 +60,6 @@ predictor:
     shell: <string>  # relative path to a shell script for system package installation (default: dependencies.sh)
 ```
 
-### ONNX Predictor
-
-<!-- CORTEX_VERSION_BRANCH_STABLE x2 -->
-```yaml
-predictor:
-  type: onnx
-  path: <string>  # path to a python file with an ONNXPredictor class definition, relative to the Cortex root (required)
-  models:  # use this to serve a single model or multiple ones
-    path: <string>  # S3 path to an exported model (e.g. s3://my-bucket/exported_model) (either this or 'paths' must be provided)
-    paths:  # (either this or 'path' must be provided)
-      - name: <string> # unique name for the model (e.g. text-generator) (required)
-        path: <string>  # S3 path to an exported model (e.g. s3://my-bucket/exported_model.onnx) (required)
-      ...
-  config: <string: value>  # arbitrary dictionary passed to the constructor of the Predictor (can be overridden by config passed in job submission) (optional)
-  python_path: <string>  # path to the root of your Python folder that will be appended to PYTHONPATH (default: folder containing cortex.yaml)
-  image: <string> # docker image to use for the Predictor (default: quay.io/cortexlabs/onnx-predictor-cpu:master or quay.io/cortexlabs/onnx-predictor-gpu:master based on compute)
-  env: <string: string>  # dictionary of environment variables
-  log_level: <string>  # log level that can be "debug", "info", "warning" or "error" (default: "info")
-  shm_size: <string>  # size of shared memory (/dev/shm) for sharing data between multiple processes, e.g. 64Mi or 1Gi (default: Null)
-  dependencies: # (optional)
-    pip: <string>  # relative path to requirements.txt (default: requirements.txt)
-    conda: <string>  # relative path to conda-packages.txt (default: conda-packages.txt)
-    shell: <string>  # relative path to a shell script for system package installation (default: dependencies.sh)
-```
-
 ## Compute
 
 ```yaml
