@@ -67,8 +67,6 @@ const (
 	ErrInvalidBucketScheme        = "spec.invalid_bucket_scheme"
 	ErrInvalidPythonModelPath     = "spec.invalid_python_model_path"
 	ErrInvalidTensorFlowModelPath = "spec.invalid_tensorflow_model_path"
-	ErrInvalidONNXModelPath       = "spec.invalid_onnx_model_path"
-	ErrInvalidONNXModelFilePath   = "spec.invalid_onnx_model_file_path"
 
 	ErrDuplicateModelNames = "spec.duplicate_model_names"
 	ErrReservedModelName   = "spec.reserved_model_name"
@@ -420,54 +418,6 @@ func ErrorInvalidTensorFlowModelPath(modelPath string, neuronExport bool, modelS
 
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrInvalidTensorFlowModelPath,
-		Message: message,
-	})
-}
-
-var _onnxVersionedExpectedStructMessage = `
-  %s
-  ├── 1523423423/ (Version prefix)
-  |   └── <model-name>.onnx // ONNX-exported file
-  └── 2434389194/ (Version prefix)
-      └── <model-name>.onnx // ONNX-exported file
-
-or like
-
-  %s
-  └── <model-name>.onnx // ONNX-exported file
-`
-
-func ErrorInvalidONNXModelPath(modelPath string, modelSubPaths []string) error {
-	message := fmt.Sprintf("%s: invalid %s model path. ", modelPath, userconfig.ONNXPredictorType.CasedString())
-	message += " " + fmt.Sprintf("For models provided for the %s predictor type, the path must be a directory with one of the following structures:\n", userconfig.PythonPredictorType)
-
-	message += fmt.Sprintf(_onnxVersionedExpectedStructMessage, modelPath, modelPath)
-
-	if len(modelSubPaths) > 0 {
-		message += "\n" + "but its current structure is (limited to 50 sub-paths)" + "\n\n"
-		if len(modelSubPaths) > 50 {
-			message += s.Indent(files.FileTree(modelSubPaths[:50], "", files.DirsSorted), "  ")
-			message += "\n  ..."
-		} else {
-			message += s.Indent(files.FileTree(modelSubPaths, "", files.DirsSorted), "  ")
-		}
-	} else {
-		message += "\n" + "but its current directory is empty"
-	}
-
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrInvalidONNXModelPath,
-		Message: message,
-	})
-}
-
-func ErrorInvalidONNXModelFilePath(filePath string) error {
-	message := fmt.Sprintf("%s: invalid %s model file path; specify an ONNX file path or provide a directory with one of the following structures:\n", filePath, userconfig.ONNXPredictorType.CasedString())
-	templateModelPath := "path/to/model/directory/"
-	message += fmt.Sprintf(_onnxVersionedExpectedStructMessage, templateModelPath, templateModelPath)
-
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrInvalidONNXModelFilePath,
 		Message: message,
 	})
 }

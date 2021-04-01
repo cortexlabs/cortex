@@ -187,14 +187,6 @@ func (api *API) applyPredictorDefaultDockerPaths(usesGPU, usesInf bool) {
 				predictor.TensorFlowServingImage = consts.DefaultImageTensorFlowServingCPU
 			}
 		}
-	case ONNXPredictorType:
-		if predictor.Image == "" {
-			if usesGPU {
-				predictor.Image = consts.DefaultImageONNXPredictorGPU
-			} else {
-				predictor.Image = consts.DefaultImageONNXPredictorCPU
-			}
-		}
 	}
 }
 

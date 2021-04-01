@@ -894,10 +894,6 @@ func validatePredictor(
 		if err := validateDockerImagePath(predictor.TensorFlowServingImage, awsClient, k8sClient); err != nil {
 			return errors.Wrap(err, userconfig.TensorFlowServingImageKey)
 		}
-	case userconfig.ONNXPredictorType:
-		if err := validateONNXPredictor(api, models, awsClient); err != nil {
-			return err
-		}
 	}
 
 	if api.Kind == userconfig.BatchAPIKind || api.Kind == userconfig.AsyncAPIKind {
@@ -1188,143 +1184,6 @@ func validateTensorFlowPredictor(api *userconfig.API, models *[]CuratedModelReso
 	return nil
 }
 
-func validateONNXPredictor(api *userconfig.API, models *[]CuratedModelResource, awsClient *aws.Client) error {
-	predictor := api.Predictor
-
-	if predictor.Models.SignatureKey != nil {
-		return errors.Wrap(ErrorFieldNotSupportedByPredictorType(userconfig.ModelsSignatureKeyKey, predictor.Type), userconfig.ModelsKey)
-	}
-	if predictor.ServerSideBatching != nil {
-		return ErrorFieldNotSupportedByPredictorType(userconfig.ServerSideBatchingKey, predictor.Type)
-	}
-	if predictor.TensorFlowServingImage != "" {
-		return ErrorFieldNotSupportedByPredictorType(userconfig.TensorFlowServingImageKey, predictor.Type)
-	}
-
-	if predictor.MultiModelReloading != nil {
-		return ErrorFieldNotSupportedByPredictorType(userconfig.MultiModelReloadingKey, userconfig.PythonPredictorType)
-	}
-
-	hasSingleModel := predictor.Models.Path != nil
-	hasMultiModels := !hasSingleModel
-
-	var modelWrapError func(error) error
-	var modelResources []userconfig.ModelResource
-	var modelFileResources []userconfig.ModelResource
-
-	if hasSingleModel {
-		modelWrapError = func(err error) error {
-			return errors.Wrap(err, userconfig.ModelsKey, userconfig.ModelsPathKey)
-		}
-		modelResource := userconfig.ModelResource{
-			Name: consts.SingleModelName,
-			Path: *predictor.Models.Path,
-		}
-
-		if strings.HasSuffix(*predictor.Models.Path, ".onnx") {
-			if err := validateONNXModelFilePath(*predictor.Models.Path, awsClient); err != nil {
-				return modelWrapError(err)
-			}
-			modelFileResources = append(modelFileResources, modelResource)
-		} else {
-			modelResources = append(modelResources, modelResource)
-			*predictor.Models.Path = s.EnsureSuffix(*predictor.Models.Path, "/")
-		}
-	}
-	if hasMultiModels {
-		if len(predictor.Models.Paths) > 0 {
-			modelWrapError = func(err error) error {
-				return errors.Wrap(err, userconfig.ModelsKey, userconfig.ModelsPathsKey)
-			}
-
-			for _, path := range predictor.Models.Paths {
-				if path.SignatureKey != nil {
-					return errors.Wrap(
-						ErrorFieldNotSupportedByPredictorType(userconfig.ModelsSignatureKeyKey, predictor.Type),
-						userconfig.ModelsKey,
-						userconfig.ModelsPathsKey,
-						path.Name,
-					)
-				}
-				if strings.HasSuffix((*path).Path, ".onnx") {
-					if err := validateONNXModelFilePath((*path).Path, awsClient); err != nil {
-						return errors.Wrap(modelWrapError(err), path.Name)
-					}
-					modelFileResources = append(modelFileResources, *path)
-				} else {
-					(*path).Path = s.EnsureSuffix((*path).Path, "/")
-					modelResources = append(modelResources, *path)
-				}
-			}
-		}
-
-		if predictor.Models.Dir != nil {
-			modelWrapError = func(err error) error {
-				return errors.Wrap(err, userconfig.ModelsKey, userconfig.ModelsDirKey)
-			}
-		}
-	}
-
-	validators := []modelValidator{onnxModelValidator}
-
-	var err error
-	if hasMultiModels && predictor.Models.Dir != nil {
-		*models, err = validateDirModels(*predictor.Models.Dir, nil, awsClient, generateErrorForPredictorTypeFn(api), validators)
-	} else {
-		*models, err = validateModels(modelResources, nil, awsClient, generateErrorForPredictorTypeFn(api), validators)
-	}
-	if err != nil {
-		return modelWrapError(err)
-	}
-
-	for _, modelFileResource := range modelFileResources {
-		*models = append(*models, CuratedModelResource{
-			ModelResource: &userconfig.ModelResource{
-				Name: modelFileResource.Name,
-				Path: modelFileResource.Path,
-			},
-			IsFilePath: true,
-		})
-	}
-
-	if hasMultiModels {
-		for _, model := range *models {
-			if model.Name == consts.SingleModelName {
-				return modelWrapError(ErrorReservedModelName(model.Name))
-			}
-		}
-	}
-
-	if err := checkDuplicateModelNames(*models); err != nil {
-		return modelWrapError(err)
-	}
-
-	return nil
-}
-
-func validateONNXModelFilePath(modelPath string, awsClient *aws.Client) error {
-	awsClientForBucket, err := aws.NewFromClientS3Path(modelPath, awsClient)
-	if err != nil {
-		return err
-	}
-
-	bucket, modelPrefix, err := aws.SplitS3Path(modelPath)
-	if err != nil {
-		return err
-	}
-
-	isS3File, err := awsClientForBucket.IsS3File(bucket, modelPrefix)
-	if err != nil {
-		return err
-	}
-
-	if !isS3File {
-		return ErrorInvalidONNXModelFilePath(modelPrefix)
-	}
-
-	return nil
-}
-
 func validateProtobufPath(api *userconfig.API, projectFiles ProjectFiles) error {
 	apiName := api.Name
 	protobufPath := *api.Predictor.ProtobufPath
@@ -1449,10 +1308,6 @@ func validateAutoscaling(api *userconfig.API) error {
 
 func validateCompute(api *userconfig.API) error {
 	compute := api.Compute
-
-	if compute.Inf > 0 && api.Predictor.Type == userconfig.ONNXPredictorType {
-		return ErrorFieldNotSupportedByPredictorType(userconfig.InfKey, api.Predictor.Type)
-	}
 
 	if compute.GPU > 0 && compute.Inf > 0 {
 		return ErrorComputeResourceConflict(userconfig.GPUKey, userconfig.InfKey)
