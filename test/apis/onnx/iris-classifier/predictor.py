@@ -9,20 +9,17 @@ class PythonPredictor:
         self.client = python_client
 
     def predict(self, payload):
-        model = self.client.get_model()
-        session = model["session"]
-        input_name = model["input_name"]
-        output_name = model["input_name"]
+        session = self.client.get_model()
 
         input_dict = {
-            input_name: np.array([
+            "input": np.array([
                 payload["sepal_length"],
                 payload["sepal_width"],
                 payload["petal_length"],
                 payload["petal_width"],
             ], dtype="float32").reshape(1, 4),
         }
-        prediction = session.run([output_name], input_dict)
+        prediction = session.run(["label"], input_dict)
 
         predicted_class_id = prediction[0][0]
         return labels[predicted_class_id]
@@ -33,9 +30,4 @@ class PythonPredictor:
         """
 
         model_path = os.path.join(model_path, os.listdir(model_path)[0])
-        session = rt.InferenceSession(model_path)
-        return {
-            "session": session,
-            "input_name": session.get_inputs()[0].name,
-            "output_name": session.get_outputs()[0].name,
-        }
+        return rt.InferenceSession(model_path)
