@@ -334,7 +334,7 @@ var _clusterScaleCmd = &cobra.Command{
 		}
 
 		clusterConfig := refreshCachedClusterConfig(*awsClient, accessConfig)
-		clusterConfig, err = scaleNodeGroup(clusterConfig)
+		clusterConfig, err = updateNodeGroupScale(clusterConfig, _flagClusterScaleNodeGroup, _flagClusterScaleMinInstances, _flagClusterScaleMaxInstances, _flagClusterDisallowPrompt)
 		if err != nil {
 			exit.Error(err)
 		}
@@ -973,14 +973,14 @@ func refreshCachedClusterConfig(awsClient aws.Client, accessConfig *clusterconfi
 	return *refreshedClusterConfig
 }
 
-func scaleNodeGroup(clusterConfig clusterconfig.Config) (clusterconfig.Config, error) {
-	if _flagClusterScaleMinInstances < 0 {
+func updateNodeGroupScale(clusterConfig clusterconfig.Config, targetNg string, desiredMinReplicas, desiredMaxReplicas int64, disallowPrompt bool) (clusterconfig.Config, error) {
+	if desiredMinReplicas < 0 {
 		return clusterconfig.Config{}, ErrorMinInstancesLowerThan(0)
 	}
-	if _flagClusterScaleMaxInstances < 0 {
+	if desiredMaxReplicas < 0 {
 		return clusterconfig.Config{}, ErrorMaxInstancesLowerThan(0)
 	}
-	if _flagClusterScaleMinInstances > _flagClusterScaleMaxInstances {
+	if desiredMinReplicas > desiredMaxReplicas {
 		return clusterconfig.Config{}, ErrorMinInstancesGreaterThanMaxInstances()
 	}
 
@@ -994,37 +994,37 @@ func scaleNodeGroup(clusterConfig clusterconfig.Config) (clusterconfig.Config, e
 			continue
 		}
 		availableNodeGroups = append(availableNodeGroups, ng.Name)
-		if ng.Name == _flagClusterScaleNodeGroup {
-			if ng.MinInstances == _flagClusterScaleMinInstances && ng.MaxInstances == _flagClusterScaleMaxInstances {
+		if ng.Name == targetNg {
+			if ng.MinInstances == desiredMinReplicas && ng.MaxInstances == desiredMaxReplicas {
 				fmt.Printf("no changes to the %s nodegroup required in cluster %s from region %s\n", ng.Name, clusterName, region)
 				exit.Ok()
 			}
 
-			if !_flagClusterDisallowPrompt {
+			if !disallowPrompt {
 				promptMessage := ""
-				if ng.MinInstances != _flagClusterScaleMinInstances && ng.MaxInstances != _flagClusterScaleMaxInstances {
-					promptMessage = fmt.Sprintf("nodegroup %s of cluster %s from region %s will have field %s set from %d to %d and field %s set from %d to %d", ng.Name, clusterName, region, clusterconfig.MinInstancesKey, ng.MinInstances, _flagClusterScaleMinInstances, clusterconfig.MaxInstancesKey, ng.MaxInstances, _flagClusterScaleMaxInstances)
+				if ng.MinInstances != desiredMinReplicas && ng.MaxInstances != desiredMaxReplicas {
+					promptMessage = fmt.Sprintf("your nodegroup named %s in your %s cluster in %s will update its %s from %d to %d and %s set from %d to %d", ng.Name, clusterName, region, clusterconfig.MinInstancesKey, ng.MinInstances, desiredMinReplicas, clusterconfig.MaxInstancesKey, ng.MaxInstances, desiredMaxReplicas)
 				}
-				if ng.MinInstances == _flagClusterScaleMinInstances && ng.MaxInstances != _flagClusterScaleMaxInstances {
-					promptMessage = fmt.Sprintf("nodegroup %s of cluster %s from region %s will have field %s set from %d to %d", ng.Name, clusterName, region, clusterconfig.MaxInstancesKey, ng.MaxInstances, _flagClusterScaleMaxInstances)
+				if ng.MinInstances == desiredMinReplicas && ng.MaxInstances != desiredMaxReplicas {
+					promptMessage = fmt.Sprintf("your nodegroup named %s in your %s cluster in %s will update its %s from %d to %d", ng.Name, clusterName, region, clusterconfig.MaxInstancesKey, ng.MaxInstances, desiredMaxReplicas)
 				}
-				if ng.MinInstances != _flagClusterScaleMinInstances && ng.MaxInstances == _flagClusterScaleMaxInstances {
-					promptMessage = fmt.Sprintf("nodegroup %s of cluster %s from region %s will have field %s set from %d to %d", ng.Name, clusterName, region, clusterconfig.MinInstancesKey, ng.MinInstances, _flagClusterScaleMinInstances)
+				if ng.MinInstances != desiredMinReplicas && ng.MaxInstances == desiredMaxReplicas {
+					promptMessage = fmt.Sprintf("your nodegroup named %s in your %s cluster in %s will update its %s from %d to %d", ng.Name, clusterName, region, clusterconfig.MinInstancesKey, ng.MinInstances, desiredMinReplicas)
 				}
 				if !prompt.YesOrNo(promptMessage, "", "") {
 					exit.Ok()
 				}
 			}
 
-			clusterConfig.NodeGroups[idx].MinInstances = _flagClusterScaleMinInstances
-			clusterConfig.NodeGroups[idx].MaxInstances = _flagClusterScaleMaxInstances
+			clusterConfig.NodeGroups[idx].MinInstances = desiredMinReplicas
+			clusterConfig.NodeGroups[idx].MaxInstances = desiredMaxReplicas
 			ngFound = true
 			break
 		}
 	}
 
 	if !ngFound {
-		return clusterconfig.Config{}, ErrorNodeGroupNotFound(_flagClusterScaleNodeGroup, clusterName, region, availableNodeGroups)
+		return clusterconfig.Config{}, ErrorNodeGroupNotFound(targetNg, clusterName, region, availableNodeGroups)
 	}
 
 	return clusterConfig, nil
