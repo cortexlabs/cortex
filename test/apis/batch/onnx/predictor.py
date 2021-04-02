@@ -1,19 +1,17 @@
-import requests
-import numpy as np
-import base64
-from PIL import Image
-from io import BytesIO
-from torchvision import transforms
-import boto3
 import json
 import re
 import os
+from io import BytesIO
 
+import requests
+import numpy as np
+import onnxruntime as rt
+from PIL import Image
+from torchvision import transforms
+import boto3
 
-class ONNXPredictor:
-    def __init__(self, onnx_client, config, job_spec):
-        self.client = onnx_client
-
+class PythonPredictor:
+    def __init__(self, config, job_spec):
         self.labels = requests.get(
             "https://storage.googleapis.com/download.tensorflow.org/data/ImageNetLabels.txt"
         ).text.split("\n")[1:]
@@ -29,6 +27,14 @@ class ONNXPredictor:
 
         self.s3 = boto3.client("s3")
 
+        # download and load ONNX model
+        model_bucket, model_key = re.match("s3://(.+?)/(.+)", config["path"]).groups()
+        self.s3.download_file(model_bucket, model_key, "model.onnx")
+        self.session = rt.InferenceSession("model.onnx")
+        self.input_name = self.session.get_inputs()[0].name
+        self.output_name = self.session.get_outputs()[0].name
+
+        # store destination bucket/key
         self.bucket, self.key = re.match("s3://(.+?)/(.+)", config["dest_s3_dir"]).groups()
         self.key = os.path.join(self.key, job_spec["job_id"])
 
@@ -47,8 +53,9 @@ class ONNXPredictor:
             arr_list.append(self.preprocess(img_pil).numpy())
 
         # classify the batch of images
-        imgs_arr = np.stack(arr_list, axis=0)
-        result = self.client.predict(imgs_arr)
+        result = self.session.run([self.output_name], {
+            self.input_name: np.stack(arr_list, axis=0),
+        })
 
         # extract predicted classes
         predicted_classes = np.argmax(result[0], axis=1)
@@ -60,3 +67,16 @@ class ONNXPredictor:
         # save results
         json_output = json.dumps(results)
         self.s3.put_object(Bucket=self.bucket, Key=f"{self.key}/{batch_id}.json", Body=json_output)
+
+    def load_model(self, model_path):
+        """
+        Load ONNX model from disk.
+        """
+
+        model_path = os.path.join(model_path, os.listdir(model_path)[0])
+        session = rt.InferenceSession(model_path)
+        return {
+            "session": session,
+            "input_name": session.get_inputs()[0].name,
+            "output_name": session.get_outputs()[0].name,
+        }
