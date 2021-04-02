@@ -118,8 +118,6 @@ func InitContainer(api *spec.API) kcore.Container {
 	switch api.Predictor.Type {
 	case userconfig.TensorFlowPredictorType:
 		downloadArgs = tfDownloadArgs(api)
-	case userconfig.ONNXPredictorType:
-		downloadArgs = onnxDownloadArgs(api)
 	case userconfig.PythonPredictorType:
 		downloadArgs = pythonDownloadArgs(api)
 	}
@@ -208,10 +206,6 @@ func AsyncPythonPredictorContainers(api spec.API, queueURL string) ([]kcore.Cont
 
 func AsyncTensorflowPredictorContainers(api spec.API, queueURL string) ([]kcore.Container, []kcore.Volume) {
 	return tensorFlowPredictorContainers(&api, getAsyncAPIEnvVars(api, queueURL))
-}
-
-func AsyncONNXPredictorContainers(api spec.API, queueURL string) ([]kcore.Container, []kcore.Volume) {
-	return onnxPredictorContainers(&api, getAsyncAPIEnvVars(api, queueURL))
 }
 
 func AsyncGatewayContainers(api spec.API, queueURL string) kcore.Container {
@@ -493,78 +487,6 @@ func tensorFlowPredictorContainers(api *spec.API, envVars []kcore.EnvVar) ([]kco
 			},
 		),
 	)
-
-	return containers, volumes
-}
-
-func ONNXPredictorContainers(api *spec.API) ([]kcore.Container, []kcore.Volume) {
-	return onnxPredictorContainers(api, getEnvVars(api, APIContainerName))
-}
-
-func onnxPredictorContainers(api *spec.API, envVars []kcore.EnvVar) ([]kcore.Container, []kcore.Volume) {
-	resourceList := kcore.ResourceList{}
-	resourceLimitsList := kcore.ResourceList{}
-	apiPodVolumeMounts := defaultVolumeMounts()
-	volumes := DefaultVolumes()
-	var containers []kcore.Container
-
-	if api.Compute.CPU != nil {
-		userPodCPURequest := k8s.QuantityPtr(api.Compute.CPU.Quantity.DeepCopy())
-		if api.Kind == userconfig.RealtimeAPIKind {
-			userPodCPURequest.Sub(_requestMonitorCPURequest)
-		}
-		resourceList[kcore.ResourceCPU] = *userPodCPURequest
-	}
-
-	if api.Compute.Mem != nil {
-		userPodMemRequest := k8s.QuantityPtr(api.Compute.Mem.Quantity.DeepCopy())
-		if api.Kind == userconfig.RealtimeAPIKind {
-			userPodMemRequest.Sub(_requestMonitorMemRequest)
-		}
-		resourceList[kcore.ResourceMemory] = *userPodMemRequest
-	}
-
-	if api.Compute.GPU > 0 {
-		resourceList["nvidia.com/gpu"] = *kresource.NewQuantity(api.Compute.GPU, kresource.DecimalSI)
-		resourceLimitsList["nvidia.com/gpu"] = *kresource.NewQuantity(api.Compute.GPU, kresource.DecimalSI)
-	}
-
-	if api.Predictor.ShmSize != nil {
-		volumes = append(volumes, kcore.Volume{
-			Name: "dshm",
-			VolumeSource: kcore.VolumeSource{
-				EmptyDir: &kcore.EmptyDirVolumeSource{
-					Medium:    kcore.StorageMediumMemory,
-					SizeLimit: k8s.QuantityPtr(api.Predictor.ShmSize.Quantity),
-				},
-			},
-		})
-		apiPodVolumeMounts = append(apiPodVolumeMounts, kcore.VolumeMount{
-			Name:      "dshm",
-			MountPath: "/dev/shm",
-		})
-	}
-
-	containers = append(containers, kcore.Container{
-		Name:            APIContainerName,
-		Image:           api.Predictor.Image,
-		ImagePullPolicy: kcore.PullAlways,
-		Env:             envVars,
-		EnvFrom:         baseEnvVars(),
-		VolumeMounts:    apiPodVolumeMounts,
-		ReadinessProbe:  FileExistsProbe(_apiReadinessFile),
-		Lifecycle:       nginxGracefulStopper(api.Kind),
-		Resources: kcore.ResourceRequirements{
-			Requests: resourceList,
-			Limits:   resourceLimitsList,
-		},
-		Ports: []kcore.ContainerPort{
-			{ContainerPort: DefaultPortInt32},
-		},
-		SecurityContext: &kcore.SecurityContext{
-			Privileged: pointer.Bool(true),
-		},
-	})
 
 	return containers, volumes
 }
@@ -1081,48 +1003,6 @@ func pythonDownloadArgs(api *spec.API) string {
 				HideUnzippingLog: true,
 			},
 		},
-	}
-
-	downloadArgsBytes, _ := json.Marshal(downloadConfig)
-	return base64.URLEncoding.EncodeToString(downloadArgsBytes)
-}
-
-func onnxDownloadArgs(api *spec.API) string {
-	downloadContainerArs := []downloadContainerArg{
-		{
-			From:             aws.S3Path(config.CoreConfig.Bucket, api.ProjectKey),
-			To:               path.Join(_emptyDirMountPath, "project"),
-			Unzip:            true,
-			ItemName:         "the project code",
-			HideFromLog:      true,
-			HideUnzippingLog: true,
-		},
-	}
-
-	if api.Predictor.Models.Path != nil && strings.HasSuffix(*api.Predictor.Models.Path, ".onnx") {
-		downloadContainerArs = append(downloadContainerArs, downloadContainerArg{
-			From:     *api.Predictor.Models.Path,
-			To:       path.Join(_modelDir, consts.SingleModelName, "1"),
-			ItemName: "the onnx model",
-		})
-	}
-
-	for _, model := range api.Predictor.Models.Paths {
-		if model == nil {
-			continue
-		}
-		if strings.HasSuffix(model.Path, ".onnx") {
-			downloadContainerArs = append(downloadContainerArs, downloadContainerArg{
-				From:     model.Path,
-				To:       path.Join(_modelDir, model.Name, "1"),
-				ItemName: fmt.Sprintf("%s onnx model", model.Name),
-			})
-		}
-	}
-
-	downloadConfig := downloadContainerConfig{
-		LastLog:      fmt.Sprintf(_downloaderLastLog, "onnx"),
-		DownloadArgs: downloadContainerArs,
 	}
 
 	downloadArgsBytes, _ := json.Marshal(downloadConfig)

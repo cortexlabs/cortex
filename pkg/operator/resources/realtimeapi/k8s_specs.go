@@ -33,8 +33,6 @@ func deploymentSpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Depl
 	switch api.Predictor.Type {
 	case userconfig.TensorFlowPredictorType:
 		return tensorflowAPISpec(api, prevDeployment)
-	case userconfig.ONNXPredictorType:
-		return onnxAPISpec(api, prevDeployment)
 	case userconfig.PythonPredictorType:
 		return pythonAPISpec(api, prevDeployment)
 	default:
@@ -154,67 +152,6 @@ func pythonAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deplo
 				Containers:   containers,
 				NodeSelector: operator.NodeSelectors(),
 				Tolerations:  operator.GenerateResourceTolerations(),
-				Affinity: &kcore.Affinity{
-					NodeAffinity: &kcore.NodeAffinity{
-						PreferredDuringSchedulingIgnoredDuringExecution: operator.GeneratePreferredNodeAffinities(),
-					},
-				},
-				Volumes:            volumes,
-				ServiceAccountName: operator.ServiceAccountName,
-			},
-		},
-	})
-}
-
-func onnxAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deployment {
-	containers, volumes := operator.ONNXPredictorContainers(api)
-	containers = append(containers, operator.RequestMonitorContainer(api))
-
-	servingProtocol := "http"
-	if api.Predictor != nil && api.Predictor.IsGRPC() {
-		servingProtocol = "grpc"
-	}
-
-	return k8s.Deployment(&k8s.DeploymentSpec{
-		Name:           operator.K8sName(api.Name),
-		Replicas:       getRequestedReplicasFromDeployment(api, prevDeployment),
-		MaxSurge:       pointer.String(api.UpdateStrategy.MaxSurge),
-		MaxUnavailable: pointer.String(api.UpdateStrategy.MaxUnavailable),
-		Labels: map[string]string{
-			"apiName":         api.Name,
-			"apiKind":         api.Kind.String(),
-			"apiID":           api.ID,
-			"specID":          api.SpecID,
-			"deploymentID":    api.DeploymentID,
-			"predictorID":     api.PredictorID,
-			"servingProtocol": servingProtocol,
-			"cortex.dev/api":  "true",
-		},
-		Annotations: api.ToK8sAnnotations(),
-		Selector: map[string]string{
-			"apiName": api.Name,
-			"apiKind": api.Kind.String(),
-		},
-		PodSpec: k8s.PodSpec{
-			Labels: map[string]string{
-				"apiName":         api.Name,
-				"apiKind":         api.Kind.String(),
-				"deploymentID":    api.DeploymentID,
-				"predictorID":     api.PredictorID,
-				"servingProtocol": servingProtocol,
-				"cortex.dev/api":  "true",
-			},
-			Annotations: map[string]string{
-				"traffic.sidecar.istio.io/excludeOutboundIPRanges": "0.0.0.0/0",
-			},
-			K8sPodSpec: kcore.PodSpec{
-				InitContainers: []kcore.Container{
-					operator.InitContainer(api),
-				},
-				TerminationGracePeriodSeconds: pointer.Int64(_terminationGracePeriodSeconds),
-				Containers:                    containers,
-				NodeSelector:                  operator.NodeSelectors(),
-				Tolerations:                   operator.GenerateResourceTolerations(),
 				Affinity: &kcore.Affinity{
 					NodeAffinity: &kcore.NodeAffinity{
 						PreferredDuringSchedulingIgnoredDuringExecution: operator.GeneratePreferredNodeAffinities(),

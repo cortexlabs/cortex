@@ -22,8 +22,6 @@ Cortex's base Docker images are listed below. Depending on the Cortex Predictor 
   * `quay.io/cortexlabs/python-predictor-gpu:master-cuda11.1-cudnn8`
 * Python Predictor (Inferentia): `quay.io/cortexlabs/python-predictor-inf:master`
 * TensorFlow Predictor (CPU, GPU, Inferentia): `quay.io/cortexlabs/tensorflow-predictor:master`
-* ONNX Predictor (CPU): `quay.io/cortexlabs/onnx-predictor-cpu:master`
-* ONNX Predictor (GPU): `quay.io/cortexlabs/onnx-predictor-gpu:master`
 
 The sample `Dockerfile` below inherits from Cortex's Python CPU serving image, and installs 3 packages. `tree` is a system package and `pandas` and `rdkit` are Python packages.
 

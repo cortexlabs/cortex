@@ -135,8 +135,6 @@ func apiDeploymentSpec(api spec.API, prevDeployment *kapps.Deployment, queueURL 
 		containers, volumes = operator.AsyncPythonPredictorContainers(api, queueURL)
 	case userconfig.TensorFlowPredictorType:
 		containers, volumes = operator.AsyncTensorflowPredictorContainers(api, queueURL)
-	case userconfig.ONNXPredictorType:
-		containers, volumes = operator.AsyncONNXPredictorContainers(api, queueURL)
 	default:
 		panic(fmt.Sprintf("invalid predictor type: %s", api.Predictor.Type))
 	}

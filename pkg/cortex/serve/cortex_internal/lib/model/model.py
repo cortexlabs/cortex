@@ -48,7 +48,7 @@ class ModelsHolder:
     ):
         """
         Args:
-            predictor_type: The predictor type. Can be PythonPredictor, TensorFlowPredictor or ONNXPredictor.
+            predictor_type: The predictor type. Can be PythonPredictor, TensorFlowPredictor or TensorFlowNeuronPredictor.
             model_dir: Where models are saved on disk.
             temp_dir: Where models are temporary stored for validation.
             mem_cache_size: The size of the cache for in-memory models. For negative values, the cache is disabled.

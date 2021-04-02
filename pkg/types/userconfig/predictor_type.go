@@ -22,21 +22,18 @@ const (
 	UnknownPredictorType PredictorType = iota
 	PythonPredictorType
 	TensorFlowPredictorType
-	ONNXPredictorType
 )
 
 var _predictorTypes = []string{
 	"unknown",
 	"python",
 	"tensorflow",
-	"onnx",
 }
 
 var _casedPredictorTypes = []string{
 	"unknown",
 	"Python",
 	"TensorFlow",
-	"ONNX",
 }
 
 func PredictorTypeFromString(s string) PredictorType {

@@ -28,15 +28,13 @@ PythonPredictorType = PredictorType("python")
 TensorFlowPredictorType = PredictorType("tensorflow")
 TensorFlowNeuronPredictorType = PredictorType("tensorflow-neuron")
 
-ONNXPredictorType = PredictorType("onnx")
-
 
 def predictor_type_from_string(predictor_type: str) -> PredictorType:
     """
     Get predictor type from string.
 
     Args:
-        predictor_type: "python", "tensorflow", "onnx" or "tensorflow-neuron"
+        predictor_type: "python", "tensorflow" or "tensorflow-neuron"
 
     Raises:
         ValueError if predictor_type does not hold the right value.
@@ -44,15 +42,12 @@ def predictor_type_from_string(predictor_type: str) -> PredictorType:
     predictor_types = [
         PythonPredictorType,
         TensorFlowPredictorType,
-        ONNXPredictorType,
         TensorFlowNeuronPredictorType,
     ]
     for candidate in predictor_types:
         if str(candidate) == predictor_type:
             return candidate
-    raise ValueError(
-        "predictor_type can only be 'python', 'tensorflow', 'onnx' or 'tensorflow-neuron'"
-    )
+    raise ValueError("predictor_type can only be 'python', 'tensorflow' or 'tensorflow-neuron'")
 
 
 def predictor_type_from_api_spec(api_spec: dict) -> PredictorType:

@@ -99,8 +99,6 @@ func generateErrorForPredictorTypeFn(api *userconfig.API) errorForPredictorTypeF
 		switch api.Predictor.Type {
 		case userconfig.PythonPredictorType:
 			return ErrorInvalidPythonModelPath(modelPrefix, modelPaths)
-		case userconfig.ONNXPredictorType:
-			return ErrorInvalidONNXModelPath(modelPrefix, modelPaths)
 		case userconfig.TensorFlowPredictorType:
 			return ErrorInvalidTensorFlowModelPath(modelPrefix, api.Compute.Inf > 0, modelPaths)
 		}
@@ -302,32 +300,6 @@ func validateModels(
 	}
 
 	return modelResources, nil
-}
-
-func onnxModelValidator(paths []string, prefix string, versionedPrefix *string) error {
-	var filteredFilePaths []string
-	if versionedPrefix != nil {
-		filteredFilePaths = files.FilterPathsWithDirPrefix(paths, *versionedPrefix)
-	} else {
-		filteredFilePaths = files.FilterPathsWithDirPrefix(paths, prefix)
-	}
-
-	errFunc := func() error {
-		if versionedPrefix != nil {
-			return ErrorInvalidONNXModelPath(prefix, files.FilterPathsWithDirPrefix(paths, prefix))
-		}
-		return ErrorInvalidONNXModelPath(prefix, filteredFilePaths)
-	}
-
-	if len(filteredFilePaths) != 1 {
-		return errFunc()
-	}
-
-	if !strings.HasSuffix(filteredFilePaths[0], ".onnx") {
-		return errFunc()
-	}
-
-	return nil
 }
 
 func tensorflowModelValidator(paths []string, prefix string, versionedPrefix *string) error {

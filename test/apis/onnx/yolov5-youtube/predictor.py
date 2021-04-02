@@ -4,18 +4,18 @@ import io
 import uuid
 import utils
 
+import onnxruntime as rt
 import numpy as np
 from matplotlib import pyplot as plt
 
 from starlette.responses import StreamingResponse
 
 
-class ONNXPredictor:
-    def __init__(self, onnx_client, config):
-        self.client = onnx_client
+class PythonPredictor:
+    def __init__(self, python_client, config):
+        self.client = python_client
         # Get the input shape from the ONNX runtime
-        (signature,) = onnx_client.get_model()["input_signatures"].values()
-        _, _, height, width = signature["shape"]
+        _, _, height, width = python_client.get_model()["input_shape"]
         self.input_size = (width, height)
         self.config = config
         with open("labels.json") as buf:
@@ -43,13 +43,24 @@ class ONNXPredictor:
         in_path = utils.download_from_youtube(payload["url"], self.input_size[1])
         out_path = f"{uuid.uuid1()}.mp4"
 
+        # get model
+        model = self.client.get_model()
+        session = model["session"]
+        input_name = model["input_name"]
+        output_name = model["output_name"]
+
         # run predictions
         with utils.FrameWriter(out_path, size=self.input_size) as writer:
             for frame in utils.frame_reader(in_path, size=self.input_size):
                 x = (frame.astype(np.float32) / 255).transpose(2, 0, 1)
                 # 4 output tensors, the last three are intermediate values and
                 # not necessary for detection
-                output, *_ = self.client.predict(x[None])
+                output, *_ = session.run(
+                    [output_name],
+                    {
+                        input_name: x[None],
+                    },
+                )
                 boxes, class_ids, confidence = self.postprocess(output)
                 utils.overlay_boxes(frame, boxes, class_ids, self.labels, self.color_map)
                 writer.write(frame)
@@ -61,3 +72,19 @@ class ONNXPredictor:
         os.remove(out_path)
 
         return StreamingResponse(output_buf, media_type="video/mp4")
+
+    def load_model(self, model_path):
+        """
+        Load ONNX model from disk.
+        """
+
+        model_path = os.path.join(model_path, os.listdir(model_path)[0])
+        session = rt.InferenceSession(model_path)
+        print("get_inputs", session.get_inputs()[0])
+        print("get_outputs", session.get_outputs()[0])
+        return {
+            "session": session,
+            "input_shape": session.get_inputs()[0].shape,
+            "input_name": session.get_inputs()[0].name,
+            "output_name": session.get_outputs()[0].name,
+        }

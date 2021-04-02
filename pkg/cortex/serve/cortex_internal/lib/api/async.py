@@ -24,7 +24,6 @@ import datadog
 import dill
 
 from cortex_internal.lib.api.validations import validate_class_impl
-from cortex_internal.lib.client.onnx import ONNXClient
 from cortex_internal.lib.client.tensorflow import TensorFlowClient
 from cortex_internal.lib.exceptions import CortexException, UserException, UserRuntimeException
 from cortex_internal.lib.metrics import MetricsClient
@@ -34,7 +33,6 @@ from cortex_internal.lib.type import (
     predictor_type_from_api_spec,
     TensorFlowPredictorType,
     TensorFlowNeuronPredictorType,
-    ONNXPredictorType,
     PythonPredictorType,
 )
 
@@ -58,21 +56,6 @@ ASYNC_TENSORFLOW_PREDICTOR_VALIDATION = {
         {
             "name": "__init__",
             "required_args": ["self", "tensorflow_client", "config"],
-            "optional_args": ["metrics_client"],
-        },
-        {
-            "name": "predict",
-            "required_args": ["self"],
-            "optional_args": ["payload", "request_id"],
-        },
-    ],
-}
-
-ASYNC_ONNX_PREDICTOR_VALIDATION = {
-    "required": [
-        {
-            "name": "__init__",
-            "required_args": ["self", "onnx_client", "config"],
             "optional_args": ["metrics_client"],
         },
         {
@@ -186,14 +169,6 @@ class AsyncAPI:
             )
             tf_client.sync_models(lock_dir=self.lock_dir)
             args["tensorflow_client"] = tf_client
-        elif self.type == ONNXPredictorType:
-            models = ModelsHolder(self.type, self.model_dir)
-            onnx_client = ONNXClient(
-                api_spec=self.api_spec,
-                models=models,
-                model_dir=self.model_dir,
-            )
-            args["onnx_client"] = onnx_client
 
         try:
             predictor = predictor_impl(**args)
@@ -206,9 +181,6 @@ class AsyncAPI:
         if self.type in [TensorFlowPredictorType, TensorFlowNeuronPredictorType]:
             target_class_name = "TensorFlowPredictor"
             validations = ASYNC_TENSORFLOW_PREDICTOR_VALIDATION
-        elif self.type == ONNXPredictorType:
-            target_class_name = "ONNXPredictor"
-            validations = ASYNC_ONNX_PREDICTOR_VALIDATION
         elif self.type == PythonPredictorType:
             target_class_name = "PythonPredictor"
             validations = ASYNC_PYTHON_PREDICTOR_VALIDATION

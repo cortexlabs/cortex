@@ -28,8 +28,6 @@ class CuratedModelResources:
             {
                 'path': 's3://cortex-examples/models/tensorflow/transformer/',
                 'name': 'modelB',
-                's3_path': True,
-                'local_path': False,
                 'signature_key': None,
                 'versions': [1554540232]
             },
@@ -44,29 +42,12 @@ class CuratedModelResources:
             else:
                 res["versions"] = [str(version) for version in res["versions"]]
 
-    def is_local(self, name: str) -> Optional[bool]:
-        """
-        Checks if the model has been made available from the local disk.
-
-        Note: Only required for ONNX file paths.
-
-        Args:
-            name: Name of the model as specified in predictor:models:paths:name or if a single model is specified, _cortex_default.
-
-        Returns:
-            If the model is local. None if the model wasn't found.
-        """
-        for model in self._models:
-            if model["name"] == name:
-                return model["local_path"]
-        return None
-
     def get_field(self, field: str) -> List[str]:
         """
         Get a list of the values of each models' specified field.
 
         Args:
-            field: name, s3_path, local_path, signature_key or versions.
+            field: name, path, signature_key or versions.
 
         Returns:
             A list with the specified value of each model.
@@ -95,22 +76,6 @@ class CuratedModelResources:
             return None
         return [str(version) for version in versions]
 
-    def get_local_model_names(self) -> List[str]:
-        """
-        Get locally-provided models as specified with predictor:models:path, predictor:models:paths or predictor:models:dir.
-
-        Note: Only required for ONNX file paths.
-
-        Returns:
-            A list of names of all local models.
-        """
-        local_model_names = []
-        for model_name in self.get_field("name"):
-            if self.is_local(model_name):
-                local_model_names.append(model_name)
-
-        return local_model_names
-
     def get_s3_model_names(self) -> List[str]:
         """
         Get S3 models as specified with predictor:models:path or predictor:models:paths.
@@ -118,12 +83,7 @@ class CuratedModelResources:
         Returns:
             A list of names of all models available from the bucket(s).
         """
-        s3_model_names = []
-        for model_name in self.get_field("name"):
-            if not self.is_local(model_name):
-                s3_model_names.append(model_name)
-
-        return s3_model_names
+        return self.get_field("name")
 
     def __getitem__(self, name: str) -> dict:
         """
@@ -197,48 +157,14 @@ def get_models_from_api_spec(
         else:
             model_resource["signature_key"] = model["signature_key"]
 
-        ends_as_file_path = model["path"].endswith(".onnx")
-        if ends_as_file_path and os.path.exists(
-            os.path.join(model_dir, model_resource["name"], "1", os.path.basename(model["path"]))
-        ):
-            model_resource["is_file_path"] = True
-            model_resource["s3_path"] = False
-            model_resource["local_path"] = True
-            model_resource["versions"] = []
-            model_resource["path"] = os.path.join(
-                model_dir, model_resource["name"], "1", os.path.basename(model["path"])
-            )
-            model_resources.append(model_resource)
+        model_resource["path"] = model["path"]
+        _, versions, _, _, _, _ = find_all_s3_models(
+            False, "", predictor_type, [model_resource["path"]], [model_resource["name"]]
+        )
+        if model_resource["name"] not in versions:
             continue
-        model_resource["is_file_path"] = False
-
-        model_resource["s3_path"] = model["path"].startswith("s3://")
-        model_resource["local_path"] = not model_resource["s3_path"]
-
-        if model_resource["s3_path"]:
-            model_resource["path"] = model["path"]
-            _, versions, _, _, _, _ = find_all_s3_models(
-                False, "", predictor_type, [model_resource["path"]], [model_resource["name"]]
-            )
-            if model_resource["name"] not in versions:
-                continue
-            model_resource["versions"] = versions[model_resource["name"]]
-        else:
-            model_resource["path"] = os.path.join(model_dir, model_resource["name"])
-            model_resource["versions"] = os.listdir(model_resource["path"])
+        model_resource["versions"] = versions[model_resource["name"]]
 
         model_resources.append(model_resource)
-
-    # building model resources for models.dir
-    if models_spec and models_spec["dir"] and not models_spec["dir"].startswith("s3://"):
-        for model_name in os.listdir(model_dir):
-            model_resource = {}
-            model_resource["name"] = model_name
-            model_resource["s3_path"] = False
-            model_resource["local_path"] = True
-            model_resource["signature_key"] = models_spec["signature_key"]
-            model_resource["path"] = os.path.join(model_dir, model_name)
-            model_resource["versions"] = os.listdir(model_resource["path"])
-            model_resources.append(model_resource)
 
     return CuratedModelResources(model_resources)

@@ -28,7 +28,6 @@ from cortex_internal.lib.type import (
     PythonPredictorType,
     TensorFlowPredictorType,
     TensorFlowNeuronPredictorType,
-    ONNXPredictorType,
 )
 from cortex_internal.lib.model import (
     FileBasedModelsTreeUpdater,  # only when num workers > 1
@@ -138,9 +137,7 @@ def main():
         os.makedirs("/tmp/cron", exist_ok=True)
 
         # prepare crons
-        if predictor_type in [PythonPredictorType, ONNXPredictorType] and are_models_specified(
-            api_spec
-        ):
+        if predictor_type == PythonPredictorType and are_models_specified(api_spec):
             cron = FileBasedModelsTreeUpdater(
                 interval=10,
                 api_spec=api_spec,
