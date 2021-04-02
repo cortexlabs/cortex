@@ -151,8 +151,6 @@ function create_eks() {
   eksctl create cluster --timeout=$EKSCTL_TIMEOUT --install-neuron-plugin=false --install-nvidia-plugin=false -f /workspace/eks.yaml
   echo
 
-  suspend_az_rebalance
-
   write_kubeconfig
 }
 
@@ -307,22 +305,6 @@ function resize_nodegroup() {
   if [ "$num_resizes" -eq "0" ]; then
     echo "no changes to node group sizes detected in the cluster config"
     exit 0
-  fi
-}
-
-function suspend_az_rebalance() {
-  asg_on_demand_info=$(aws autoscaling describe-auto-scaling-groups --region $CORTEX_REGION --query "AutoScalingGroups[?contains(Tags[?Key==\`alpha.eksctl.io/cluster-name\`].Value, \`$CORTEX_CLUSTER_NAME\`)]|[?contains(Tags[?Key==\`alpha.eksctl.io/nodegroup-name\`].Value, \`ng-cortex-worker-on-demand\`)]")
-  asg_on_demand_length=$(echo "$asg_on_demand_info" | jq -r 'length')
-  if (( "$asg_on_demand_length" > "0" )); then
-    asg_on_demand_name=$(echo "$asg_on_demand_info" | jq -r 'first | .AutoScalingGroupName')
-    aws autoscaling suspend-processes --region $CORTEX_REGION --auto-scaling-group-name $asg_on_demand_name --scaling-processes AZRebalance
-  fi
-
-  asg_spot_info=$(aws autoscaling describe-auto-scaling-groups --region $CORTEX_REGION --query "AutoScalingGroups[?contains(Tags[?Key==\`alpha.eksctl.io/cluster-name\`].Value, \`$CORTEX_CLUSTER_NAME\`)]|[?contains(Tags[?Key==\`alpha.eksctl.io/nodegroup-name\`].Value, \`ng-cortex-worker-spot\`)]")
-  asg_spot_length=$(echo "$asg_spot_info" | jq -r 'length')
-  if (( "$asg_spot_length" > "0" )); then
-    asg_spot_name=$(echo "$asg_spot_info" | jq -r 'first | .AutoScalingGroupName')
-    aws autoscaling suspend-processes --region $CORTEX_REGION --auto-scaling-group-name $asg_spot_name --scaling-processes AZRebalance
   fi
 }
 

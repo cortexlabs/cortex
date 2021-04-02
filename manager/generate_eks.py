@@ -61,6 +61,7 @@ def merge_override(a, b):
 def apply_worker_settings(nodegroup, config):
     worker_settings = {
         "name": "cx-wd-" + config["name"],
+        "asgSuspendProcesses": ["AZRebalance"],
         "labels": {"workload": "true"},
         "taints": {"workload": "true:NoSchedule"},
         "tags": {
