@@ -3,15 +3,19 @@
   predictor:
     type: python
     path: pytorch_predictor.py
+    dependencies:
+      pip: pytorch_requirements.txt
     config:
       model: s3://cortex-examples/pytorch/iris-classifier/weights.pth
 
 - name: iris-classifier-onnx
   kind: RealtimeAPI
   predictor:
-    type: onnx
+    type: python
     path: onnx_predictor.py
-    models:
+    dependencies:
+      pip: onnx_requirements.txt
+    multi_model_reloading:
       path: s3://cortex-examples/onnx/iris-classifier/
 
 - name: request-recorder
