@@ -71,16 +71,3 @@ class PythonPredictor:
         # save results
         json_output = json.dumps(results)
         self.s3.put_object(Bucket=self.bucket, Key=f"{self.key}/{batch_id}.json", Body=json_output)
-
-    def load_model(self, model_path):
-        """
-        Load ONNX model from disk.
-        """
-
-        model_path = os.path.join(model_path, os.listdir(model_path)[0])
-        session = rt.InferenceSession(model_path)
-        return {
-            "session": session,
-            "input_name": session.get_inputs()[0].name,
-            "output_name": session.get_outputs()[0].name,
-        }
