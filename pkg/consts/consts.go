@@ -29,15 +29,15 @@ var (
 
 	SingleModelName = "_cortex_default"
 
-	DefaultImagePythonPredictorCPU   = fmt.Sprintf("%s/python-predictor-cpu:%s", defaultRegistry(), CortexVersion)
-	DefaultImagePythonPredictorGPU   = fmt.Sprintf("%s/python-predictor-gpu:%s-cuda10.2-cudnn8", defaultRegistry(), CortexVersion)
-	DefaultImagePythonPredictorInf   = fmt.Sprintf("%s/python-predictor-inf:%s", defaultRegistry(), CortexVersion)
-	DefaultImageTensorFlowServingCPU = fmt.Sprintf("%s/tensorflow-serving-cpu:%s", defaultRegistry(), CortexVersion)
-	DefaultImageTensorFlowServingGPU = fmt.Sprintf("%s/tensorflow-serving-gpu:%s", defaultRegistry(), CortexVersion)
-	DefaultImageTensorFlowServingInf = fmt.Sprintf("%s/tensorflow-serving-inf:%s", defaultRegistry(), CortexVersion)
-	DefaultImageTensorFlowPredictor  = fmt.Sprintf("%s/tensorflow-predictor:%s", defaultRegistry(), CortexVersion)
-	DefaultImageONNXPredictorCPU     = fmt.Sprintf("%s/onnx-predictor-cpu:%s", defaultRegistry(), CortexVersion)
-	DefaultImageONNXPredictorGPU     = fmt.Sprintf("%s/onnx-predictor-gpu:%s", defaultRegistry(), CortexVersion)
+	DefaultImagePythonPredictorCPU   = fmt.Sprintf("%s/python-predictor-cpu:%s", DefaultRegistry(), CortexVersion)
+	DefaultImagePythonPredictorGPU   = fmt.Sprintf("%s/python-predictor-gpu:%s-cuda10.2-cudnn8", DefaultRegistry(), CortexVersion)
+	DefaultImagePythonPredictorInf   = fmt.Sprintf("%s/python-predictor-inf:%s", DefaultRegistry(), CortexVersion)
+	DefaultImageTensorFlowServingCPU = fmt.Sprintf("%s/tensorflow-serving-cpu:%s", DefaultRegistry(), CortexVersion)
+	DefaultImageTensorFlowServingGPU = fmt.Sprintf("%s/tensorflow-serving-gpu:%s", DefaultRegistry(), CortexVersion)
+	DefaultImageTensorFlowServingInf = fmt.Sprintf("%s/tensorflow-serving-inf:%s", DefaultRegistry(), CortexVersion)
+	DefaultImageTensorFlowPredictor  = fmt.Sprintf("%s/tensorflow-predictor:%s", DefaultRegistry(), CortexVersion)
+	DefaultImageONNXPredictorCPU     = fmt.Sprintf("%s/onnx-predictor-cpu:%s", DefaultRegistry(), CortexVersion)
+	DefaultImageONNXPredictorGPU     = fmt.Sprintf("%s/onnx-predictor-gpu:%s", DefaultRegistry(), CortexVersion)
 	DefaultImagePathsSet             = strset.New(
 		DefaultImagePythonPredictorCPU,
 		DefaultImagePythonPredictorGPU,
@@ -55,7 +55,7 @@ var (
 	AuthHeader                   = "X-Cortex-Authorization"
 )
 
-func defaultRegistry() string {
+func DefaultRegistry() string {
 	if registryOverride := os.Getenv("CORTEX_DEV_DEFAULT_IMAGE_REGISTRY"); registryOverride != "" {
 		return registryOverride
 	}
