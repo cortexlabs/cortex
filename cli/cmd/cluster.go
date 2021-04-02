@@ -314,7 +314,7 @@ var _clusterScaleCmd = &cobra.Command{
 			scaleMaxInstances = pointer.Int64(_flagClusterScaleMaxInstances)
 		}
 		if scaleMinIntances == nil && scaleMaxInstances == nil {
-			exit.Error(ErrorSpecifyAtLeastOneFlag("min-instances", "max-instances"))
+			exit.Error(ErrorSpecifyAtLeastOneFlag("--min-instances", "--max-instances"))
 		}
 
 		if _, err := docker.GetDockerClient(); err != nil {
@@ -1016,7 +1016,7 @@ func updateNodeGroupScale(clusterConfig clusterconfig.Config, targetNg string, d
 			}
 
 			if ng.MinInstances == minReplicas && ng.MaxInstances == maxReplicas {
-				fmt.Printf("no changes to the %s nodegroup required in cluster %s in region %s\n", ng.Name, clusterName, region)
+				fmt.Printf("the %s nodegroup in the %s cluster in %s already has min instances set to %d and max instances set to %d\n", ng.Name, clusterName, region, minReplicas, maxReplicas)
 				exit.Ok()
 			}
 
