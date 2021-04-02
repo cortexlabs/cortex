@@ -111,11 +111,8 @@ class PythonPredictor:
 
         model_path = os.path.join(model_path, os.listdir(model_path)[0])
         session = rt.InferenceSession(model_path)
-        print("input_name", session.get_inputs()[0])
-        print("output_name", session.get_outputs()[0])
         return {
             "session": session,
             "input_name": session.get_inputs()[0].name,
             "output_name": session.get_outputs()[0].name,
         }
-
