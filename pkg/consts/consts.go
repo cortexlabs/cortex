@@ -36,8 +36,6 @@ var (
 	DefaultImageTensorFlowServingGPU = fmt.Sprintf("%s/tensorflow-serving-gpu:%s", DefaultRegistry(), CortexVersion)
 	DefaultImageTensorFlowServingInf = fmt.Sprintf("%s/tensorflow-serving-inf:%s", DefaultRegistry(), CortexVersion)
 	DefaultImageTensorFlowPredictor  = fmt.Sprintf("%s/tensorflow-predictor:%s", DefaultRegistry(), CortexVersion)
-	DefaultImageONNXPredictorCPU     = fmt.Sprintf("%s/onnx-predictor-cpu:%s", DefaultRegistry(), CortexVersion)
-	DefaultImageONNXPredictorGPU     = fmt.Sprintf("%s/onnx-predictor-gpu:%s", DefaultRegistry(), CortexVersion)
 	DefaultImagePathsSet             = strset.New(
 		DefaultImagePythonPredictorCPU,
 		DefaultImagePythonPredictorGPU,
@@ -46,8 +44,6 @@ var (
 		DefaultImageTensorFlowServingGPU,
 		DefaultImageTensorFlowServingInf,
 		DefaultImageTensorFlowPredictor,
-		DefaultImageONNXPredictorCPU,
-		DefaultImageONNXPredictorGPU,
 	)
 
 	DefaultMaxReplicaConcurrency = int64(1024)

@@ -1,9 +1,9 @@
 - name: yolov5-youtube
   kind: RealtimeAPI
   predictor:
-    type: onnx
+    type: python
     path: predictor.py
-    models:
+    multi_model_reloading:
       path: s3://cortex-examples/onnx/yolov5-youtube/
     config:
       iou_threshold: 0.5

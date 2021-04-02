@@ -48,13 +48,7 @@ type API struct {
 
 type CuratedModelResource struct {
 	*userconfig.ModelResource
-
-	// has no utility in the go stack, but in the python stack, this is required for
-	// single model paths (ONNX) because models are made available locally to the api pod
-	LocalPath bool `json:"local_path"`
-
-	IsFilePath bool    `json:"file_path"`
-	Versions   []int64 `json:"versions"`
+	Versions []int64 `json:"versions"`
 }
 
 /*

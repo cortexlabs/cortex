@@ -16,7 +16,6 @@ from cortex_internal.lib.type.type import (
     PythonPredictorType,
     TensorFlowPredictorType,
     TensorFlowNeuronPredictorType,
-    ONNXPredictorType,
     PredictorType,
     predictor_type_from_string,
     predictor_type_from_api_spec,

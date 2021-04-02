@@ -26,7 +26,6 @@ from cortex_internal.lib.type import (
     PythonPredictorType,
     TensorFlowPredictorType,
     TensorFlowNeuronPredictorType,
-    ONNXPredictorType,
     PredictorType,
 )
 
@@ -207,16 +206,6 @@ ModelTemplate = {
             AnyPlaceholder: None,
         },
     },
-    ONNXPredictorType: {
-        OneOfAllPlaceholder(ModelVersion.PROVIDED): {
-            IntegerPlaceholder: {
-                PlaceholderGroup(SinglePlaceholder, GenericPlaceholder(".onnx")): None,
-            },
-        },
-        OneOfAllPlaceholder(ModelVersion.NOT_PROVIDED): {
-            PlaceholderGroup(SinglePlaceholder, GenericPlaceholder(".onnx")): None,
-        },
-    },
 }
 
 
@@ -295,7 +284,7 @@ def validate_model_paths(
 
     Args:
         paths: A list of all paths for a given s3/local prefix. Must be the top directory of a model.
-        predictor_type: Predictor type. Can be PythonPredictorType, TensorFlowPredictorType, TensorFlowNeuronPredictorType or ONNXPredictorType.
+        predictor_type: Predictor type. Can be PythonPredictorType, TensorFlowPredictorType or TensorFlowNeuronPredictorType.
         common_prefix: The common prefix of the directory which holds all models.
 
     Returns:

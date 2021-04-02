@@ -1,4 +1,6 @@
+import os
 import numpy as np
+import onnxruntime as rt
 import cv2, requests
 from scipy.special import softmax
 
@@ -66,10 +68,10 @@ def postprocess(results):
     return result
 
 
-class ONNXPredictor:
-    def __init__(self, onnx_client, config):
+class PythonPredictor:
+    def __init__(self, python_client, config):
         # onnx client
-        self.client = onnx_client
+        self.client = python_client
 
         # for image classifiers
         classes = requests.get(config["image-classifier-classes"]).json()
@@ -87,10 +89,30 @@ class ONNXPredictor:
         img = preprocess(img)
 
         # predict
-        results = self.client.predict(img, model_name)[0]
+        model = self.client.get_model(model_name)
+        session = model["session"]
+        input_name = model["input_name"]
+        output_name = model["output_name"]
+        input_dict = {
+            input_name: img,
+        }
+        results = session.run([output_name], input_dict)[0]
 
         # interpret result
         result = postprocess(results)
         predicted_label = self.image_classes[result]
 
         return {"label": predicted_label}
+
+    def load_model(self, model_path):
+        """
+        Load ONNX model from disk.
+        """
+
+        model_path = os.path.join(model_path, os.listdir(model_path)[0])
+        session = rt.InferenceSession(model_path)
+        return {
+            "session": session,
+            "input_name": session.get_inputs()[0].name,
+            "output_name": session.get_outputs()[0].name,
+        }

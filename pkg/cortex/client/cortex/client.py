@@ -165,8 +165,6 @@ class Client:
                 predictor_type = "python"
             if predictor.__name__ == "TensorFlowPredictor":
                 predictor_type = "tensorflow"
-            if predictor.__name__ == "ONNXPredictor":
-                predictor_type = "onnx"
 
             api_spec["predictor"]["path"] = impl_rel_path
             api_spec["predictor"]["type"] = predictor_type

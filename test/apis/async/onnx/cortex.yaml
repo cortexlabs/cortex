@@ -1,7 +1,0 @@
-- name: async-iris-classifier
-  kind: AsyncAPI
-  predictor:
-    type: onnx
-    path: predictor.py
-    models:
-      path: s3://cortex-examples/onnx/iris-classifier/
