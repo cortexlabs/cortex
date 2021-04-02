@@ -1016,7 +1016,7 @@ func updateNodeGroupScale(clusterConfig clusterconfig.Config, targetNg string, d
 			}
 
 			if ng.MinInstances == minReplicas && ng.MaxInstances == maxReplicas {
-				fmt.Printf("no changes to the %s nodegroup required in cluster %s from region %s\n", ng.Name, clusterName, region)
+				fmt.Printf("no changes to the %s nodegroup required in cluster %s in region %s\n", ng.Name, clusterName, region)
 				exit.Ok()
 			}
 
