@@ -280,6 +280,13 @@ function resize_nodegroup() {
   updating_min="$CORTEX_SCALING_MIN_INSTANCES"
   updating_max="$CORTEX_SCALING_MAX_INSTANCES"
 
+  if [ "$desired" -lt $updating_min ]; then
+    desired=$updating_min
+  fi
+  if [ "$desired" -gt $updating_max ]; then
+    desired=$updating_max
+  fi
+
   if [ "$existing_min" != "$updating_min" ] && [ "$existing_max" != "$updating_max" ]; then
     echo "￮ nodegroup $config_ng: updating min instances to $updating_min and max instances to $updating_max "
     eksctl scale nodegroup --cluster=$CORTEX_CLUSTER_NAME --region=$CORTEX_REGION $stack_ng --nodes $desired --nodes-min $updating_min --nodes-max $updating_max
