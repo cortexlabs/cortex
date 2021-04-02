@@ -257,15 +257,22 @@ function resize_nodegroup() {
   ng_len=$(cat nodegroups.json | jq -r length)
   config_ng="$CORTEX_SCALING_NODEGROUP"
 
+  has_ng="false"
   for eks_idx in $(seq 0 $(($ng_len-1))); do
     stack_ng=$(cat nodegroups.json | jq -r .[$eks_idx].Name)
     if [ "$stack_ng" = "cx-operator" ]; then
       continue
     fi
     if [[ "$stack_ng" == *"$config_ng" ]]; then
+      has_ng="true"
       break
     fi
   done
+
+  if [ "$has_ng" == "false" ]; then
+    echo "error: \"cx-*-$config_ng\" node group couldn't be found"
+    exit 1
+  fi
 
   desired=$(cat nodegroups.json | jq -r .[$eks_idx].DesiredCapacity)
   existing_min=$(cat nodegroups.json | jq -r .[$eks_idx].MinSize)

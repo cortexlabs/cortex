@@ -203,28 +203,28 @@ func ErrorClusterDown(out string) error {
 func ErrorMinInstancesLowerThan(minValue int64) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrMinInstancesLowerThan,
-		Message: fmt.Sprintf("flag --min-instances cannot be set to a value lower than %d", minValue),
+		Message: fmt.Sprintf("min instances cannot be set to a value lower than %d", minValue),
 	})
 }
 
 func ErrorMaxInstancesLowerThan(minValue int64) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrMaxInstancesLowerThan,
-		Message: fmt.Sprintf("flag --max-instances cannot be set to a value lower than %d", minValue),
+		Message: fmt.Sprintf("max instances cannot be set to a value lower than %d", minValue),
 	})
 }
 
-func ErrorMinInstancesGreaterThanMaxInstances() error {
+func ErrorMinInstancesGreaterThanMaxInstances(minInstances, maxInstances int64) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrMinInstancesGreaterThanMaxInstances,
-		Message: "flag --min-instances cannot be set to a value higher than that of --max-instances flag",
+		Message: "min instances (%d) cannot be set to a value higher than max instances (%d)",
 	})
 }
 
 func ErrorNodeGroupNotFound(scalingNodeGroupName, clusterName, clusterRegion string, availableNodeGroups []string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrNodeGroupNotFound,
-		Message: fmt.Sprintf("nodegroup %s couldn't be found in the cluster named %s from region %s; the available nodegroups for this cluster are %s", scalingNodeGroupName, clusterName, clusterRegion, s.StrsAnd(availableNodeGroups)),
+		Message: fmt.Sprintf("nodegroup %s couldn't be found in the cluster named %s in region %s; the available nodegroups for this cluster are %s", scalingNodeGroupName, clusterName, clusterRegion, s.StrsAnd(availableNodeGroups)),
 	})
 }
 

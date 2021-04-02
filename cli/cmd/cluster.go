@@ -981,7 +981,7 @@ func updateNodeGroupScale(clusterConfig clusterconfig.Config, targetNg string, d
 		return clusterconfig.Config{}, ErrorMaxInstancesLowerThan(0)
 	}
 	if desiredMinReplicas > desiredMaxReplicas {
-		return clusterconfig.Config{}, ErrorMinInstancesGreaterThanMaxInstances()
+		return clusterconfig.Config{}, ErrorMinInstancesGreaterThanMaxInstances(desiredMinReplicas, desiredMaxReplicas)
 	}
 
 	clusterName := clusterConfig.ClusterName
@@ -1003,7 +1003,7 @@ func updateNodeGroupScale(clusterConfig clusterconfig.Config, targetNg string, d
 			if !disallowPrompt {
 				promptMessage := ""
 				if ng.MinInstances != desiredMinReplicas && ng.MaxInstances != desiredMaxReplicas {
-					promptMessage = fmt.Sprintf("your nodegroup named %s in your %s cluster in %s will update its %s from %d to %d and %s set from %d to %d", ng.Name, clusterName, region, clusterconfig.MinInstancesKey, ng.MinInstances, desiredMinReplicas, clusterconfig.MaxInstancesKey, ng.MaxInstances, desiredMaxReplicas)
+					promptMessage = fmt.Sprintf("your nodegroup named %s in your %s cluster in %s will update its %s from %d to %d and update its %s from %d to %d", ng.Name, clusterName, region, clusterconfig.MinInstancesKey, ng.MinInstances, desiredMinReplicas, clusterconfig.MaxInstancesKey, ng.MaxInstances, desiredMaxReplicas)
 				}
 				if ng.MinInstances == desiredMinReplicas && ng.MaxInstances != desiredMaxReplicas {
 					promptMessage = fmt.Sprintf("your nodegroup named %s in your %s cluster in %s will update its %s from %d to %d", ng.Name, clusterName, region, clusterconfig.MaxInstancesKey, ng.MaxInstances, desiredMaxReplicas)
