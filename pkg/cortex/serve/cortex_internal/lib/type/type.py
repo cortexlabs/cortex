@@ -47,9 +47,7 @@ def predictor_type_from_string(predictor_type: str) -> PredictorType:
     for candidate in predictor_types:
         if str(candidate) == predictor_type:
             return candidate
-    raise ValueError(
-        "predictor_type can only be 'python', 'tensorflow' or 'tensorflow-neuron'"
-    )
+    raise ValueError("predictor_type can only be 'python', 'tensorflow' or 'tensorflow-neuron'")
 
 
 def predictor_type_from_api_spec(api_spec: dict) -> PredictorType:

@@ -42,7 +42,6 @@ class CuratedModelResources:
             else:
                 res["versions"] = [str(version) for version in res["versions"]]
 
-
     def get_field(self, field: str) -> List[str]:
         """
         Get a list of the values of each models' specified field.

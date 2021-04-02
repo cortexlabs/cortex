@@ -10,6 +10,7 @@ from PIL import Image
 from torchvision import transforms
 import boto3
 
+
 class PythonPredictor:
     def __init__(self, config, job_spec):
         self.labels = requests.get(
@@ -53,9 +54,12 @@ class PythonPredictor:
             arr_list.append(self.preprocess(img_pil).numpy())
 
         # classify the batch of images
-        result = self.session.run([self.output_name], {
-            self.input_name: np.stack(arr_list, axis=0),
-        })
+        result = self.session.run(
+            [self.output_name],
+            {
+                self.input_name: np.stack(arr_list, axis=0),
+            },
+        )
 
         # extract predicted classes
         predicted_classes = np.argmax(result[0], axis=1)

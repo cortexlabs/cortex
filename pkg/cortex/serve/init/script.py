@@ -137,9 +137,7 @@ def main():
         os.makedirs("/tmp/cron", exist_ok=True)
 
         # prepare crons
-        if predictor_type == PythonPredictorType and are_models_specified(
-            api_spec
-        ):
+        if predictor_type == PythonPredictorType and are_models_specified(api_spec):
             cron = FileBasedModelsTreeUpdater(
                 interval=10,
                 api_spec=api_spec,
