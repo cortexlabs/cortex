@@ -22,7 +22,6 @@ import e2e.tests
 TEST_APIS = [
     "async/iris-classifier",
     "async/tensorflow",
-    "async/onnx",
 ]
 
 
