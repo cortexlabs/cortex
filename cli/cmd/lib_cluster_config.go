@@ -18,6 +18,7 @@ package cmd
 
 import (
 	"fmt"
+	"os"
 	"path"
 	"path/filepath"
 	"regexp"
@@ -87,8 +88,15 @@ func getNewClusterAccessConfig(clusterConfigFile string) (*clusterconfig.AccessC
 }
 
 func getClusterAccessConfigWithCache() (*clusterconfig.AccessConfig, error) {
+	defaultImageRegistry := "quay.io/cortexlabs"
+
+	devDefaultImageRegistry := os.Getenv("CORTEX_DEV_DEFAULT_PREDICTOR_IMAGE_REGISTRY")
+	if devDefaultImageRegistry != "" {
+		defaultImageRegistry = devDefaultImageRegistry
+	}
+
 	accessConfig := &clusterconfig.AccessConfig{
-		ImageManager: "quay.io/cortexlabs/manager:" + consts.CortexVersion,
+		ImageManager: defaultImageRegistry + "/manager:" + consts.CortexVersion,
 	}
 
 	cachedPaths := existingCachedClusterConfigPaths()

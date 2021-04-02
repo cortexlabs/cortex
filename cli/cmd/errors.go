@@ -58,6 +58,7 @@ const (
 	ErrClusterDebug                        = "cli.cluster_debug"
 	ErrClusterRefresh                      = "cli.cluster_refresh"
 	ErrClusterDown                         = "cli.cluster_down"
+	ErrSpecifyAtLeastOneFlag               = "cli.specify_at_least_one_flag"
 	ErrMinInstancesLowerThan               = "cli.min_instances_lower_than"
 	ErrMaxInstancesLowerThan               = "cli.max_instances_lower_than"
 	ErrMinInstancesGreaterThanMaxInstances = "cli.min_instances_greater_than_max_instances"
@@ -197,6 +198,13 @@ func ErrorClusterDown(out string) error {
 		Kind:    ErrClusterDown,
 		Message: out,
 		NoPrint: true,
+	})
+}
+
+func ErrorSpecifyAtLeastOneFlag(flagsToSpecify ...string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrSpecifyAtLeastOneFlag,
+		Message: fmt.Sprintf("must specify at least one of the following flags: %s", s.StrsOr(flagsToSpecify)),
 	})
 }
 
