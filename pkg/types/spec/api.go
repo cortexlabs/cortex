@@ -48,9 +48,7 @@ type API struct {
 
 type CuratedModelResource struct {
 	*userconfig.ModelResource
-
-	IsFilePath bool    `json:"file_path"`
-	Versions   []int64 `json:"versions"`
+	Versions []int64 `json:"versions"`
 }
 
 /*
