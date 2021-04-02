@@ -214,7 +214,7 @@ function setup_configmap() {
     --from-literal='CORTEX_TELEMETRY_DISABLE'=$CORTEX_TELEMETRY_DISABLE \
     --from-literal='CORTEX_TELEMETRY_SENTRY_DSN'=$CORTEX_TELEMETRY_SENTRY_DSN \
     --from-literal='CORTEX_TELEMETRY_SEGMENT_WRITE_KEY'=$CORTEX_TELEMETRY_SEGMENT_WRITE_KEY \
-    --from-literal='CORTEX_DEV_DEFAULT_PREDICTOR_IMAGE_REGISTRY'=$CORTEX_DEV_DEFAULT_PREDICTOR_IMAGE_REGISTRY \
+    --from-literal='CORTEX_DEV_DEFAULT_IMAGE_REGISTRY'=$CORTEX_DEV_DEFAULT_IMAGE_REGISTRY \
     -o yaml --dry-run=client | kubectl apply -f - >/dev/null
 }
 
@@ -319,8 +319,8 @@ function setup_istio() {
 
 function start_pre_download_images() {
   registry="quay.io/cortexlabs"
-  if [ -n "$CORTEX_DEV_DEFAULT_PREDICTOR_IMAGE_REGISTRY" ]; then
-    registry="$CORTEX_DEV_DEFAULT_PREDICTOR_IMAGE_REGISTRY"
+  if [ -n "$CORTEX_DEV_DEFAULT_IMAGE_REGISTRY" ]; then
+    registry="$CORTEX_DEV_DEFAULT_IMAGE_REGISTRY"
   fi
   export CORTEX_IMAGE_PYTHON_PREDICTOR_CPU="${registry}/python-predictor-cpu:${CORTEX_VERSION}"
   export CORTEX_IMAGE_PYTHON_PREDICTOR_GPU="${registry}/python-predictor-gpu:${CORTEX_VERSION}-cuda10.2-cudnn8"

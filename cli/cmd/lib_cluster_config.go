@@ -90,7 +90,7 @@ func getNewClusterAccessConfig(clusterConfigFile string) (*clusterconfig.AccessC
 func getClusterAccessConfigWithCache() (*clusterconfig.AccessConfig, error) {
 	defaultImageRegistry := "quay.io/cortexlabs"
 
-	devDefaultImageRegistry := os.Getenv("CORTEX_DEV_DEFAULT_PREDICTOR_IMAGE_REGISTRY")
+	devDefaultImageRegistry := os.Getenv("CORTEX_DEV_DEFAULT_IMAGE_REGISTRY")
 	if devDefaultImageRegistry != "" {
 		defaultImageRegistry = devDefaultImageRegistry
 	}
