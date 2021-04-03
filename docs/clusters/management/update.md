@@ -1,9 +1,9 @@
 # Update
 
-## Update configuration
+## Update node group size
 
 ```bash
-cortex cluster configure cluster.yaml
+cortex cluster scale --node-group <node-group-name> --min-instances <min-instances> --max-instances <max-instances>
 ```
 
 ## Upgrade to a newer version

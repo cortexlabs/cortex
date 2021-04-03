@@ -188,7 +188,7 @@ Add this to your bash profile (e.g. `~/.bash_profile`, `~/.profile` or `~/.bashr
 
 ```bash
 # set the default image for APIs
-export CORTEX_DEV_DEFAULT_PREDICTOR_IMAGE_REGISTRY="<account_id>.dkr.ecr.<region>.amazonaws.com/cortexlabs"
+export CORTEX_DEV_DEFAULT_IMAGE_REGISTRY="<account_id>.dkr.ecr.<region>.amazonaws.com/cortexlabs"
 
 # redirect analytics and error reporting to our dev environment
 export CORTEX_TELEMETRY_SENTRY_DSN="https://c334df915c014ffa93f2076769e5b334@sentry.io/1848098"

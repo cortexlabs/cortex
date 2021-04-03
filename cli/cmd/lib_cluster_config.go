@@ -25,7 +25,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
-	"github.com/cortexlabs/cortex/pkg/lib/console"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
 	"github.com/cortexlabs/cortex/pkg/lib/maps"
@@ -34,7 +33,6 @@ import (
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/table"
 	"github.com/cortexlabs/cortex/pkg/types/clusterconfig"
-	"github.com/cortexlabs/yaml"
 )
 
 var _cachedClusterConfigRegex = regexp.MustCompile(`^cluster_\S+\.yaml$`)
@@ -90,7 +88,7 @@ func getNewClusterAccessConfig(clusterConfigFile string) (*clusterconfig.AccessC
 
 func getClusterAccessConfigWithCache() (*clusterconfig.AccessConfig, error) {
 	accessConfig := &clusterconfig.AccessConfig{
-		ImageManager: "quay.io/cortexlabs/manager:" + consts.CortexVersion,
+		ImageManager: consts.DefaultRegistry() + "/manager:" + consts.CortexVersion,
 	}
 
 	cachedPaths := existingCachedClusterConfigPaths()
@@ -116,7 +114,8 @@ func getClusterAccessConfigWithCache() (*clusterconfig.AccessConfig, error) {
 	}
 
 	if accessConfig.ClusterName == "" || accessConfig.Region == "" {
-		return nil, ErrorClusterAccessConfigRequired()
+		cliFlagsOnly := _flagClusterScaleNodeGroup != ""
+		return nil, ErrorClusterAccessConfigRequired(cliFlagsOnly)
 	}
 	return accessConfig, nil
 }
@@ -145,82 +144,6 @@ func getInstallClusterConfig(awsClient *aws.Client, clusterConfigFile string, di
 	confirmInstallClusterConfig(clusterConfig, awsClient, disallowPrompt)
 
 	return clusterConfig, nil
-}
-
-func getConfigureClusterConfig(cachedClusterConfig clusterconfig.Config, clusterConfigFile string, disallowPrompt bool) (*clusterconfig.Config, error) {
-	userClusterConfig := &clusterconfig.Config{}
-	var awsClient *aws.Client
-
-	err := readUserClusterConfigFile(userClusterConfig, clusterConfigFile)
-	if err != nil {
-		return nil, err
-	}
-
-	userClusterConfig.ClusterName = cachedClusterConfig.ClusterName
-	userClusterConfig.Region = cachedClusterConfig.Region
-	awsClient, err = newAWSClient(userClusterConfig.Region)
-	if err != nil {
-		return nil, err
-	}
-	promptIfNotAdmin(awsClient, disallowPrompt)
-
-	userClusterConfig.Telemetry, err = readTelemetryConfig()
-	if err != nil {
-		return nil, err
-	}
-
-	err = userClusterConfig.Validate(awsClient, true)
-	if err != nil {
-		err = errors.Append(err, fmt.Sprintf("\n\ncluster configuration schema can be found at https://docs.cortex.dev/v/%s/", consts.CortexVersionMinor))
-		return nil, errors.Wrap(err, clusterConfigFile)
-	}
-
-	clusterConfigCopy, err := userClusterConfig.DeepCopy()
-	if err != nil {
-		return nil, err
-	}
-
-	cachedConfigCopy, err := cachedClusterConfig.DeepCopy()
-	if err != nil {
-		return nil, err
-	}
-
-	for idx := range clusterConfigCopy.NodeGroups {
-		clusterConfigCopy.NodeGroups[idx].MinInstances = 0
-		clusterConfigCopy.NodeGroups[idx].MaxInstances = 0
-	}
-	for idx := range cachedConfigCopy.NodeGroups {
-		cachedConfigCopy.NodeGroups[idx].MinInstances = 0
-		cachedConfigCopy.NodeGroups[idx].MaxInstances = 0
-	}
-
-	h1, err := clusterConfigCopy.Hash()
-	if err != nil {
-		return nil, err
-	}
-	h2, err := cachedConfigCopy.Hash()
-	if err != nil {
-		return nil, err
-	}
-	if h1 != h2 {
-		return nil, clusterconfig.ErrorConfigCannotBeChangedOnUpdate()
-	}
-
-	yamlBytes, err := yaml.Marshal(userClusterConfig)
-	if err != nil {
-		return nil, err
-	}
-	yamlString := string(yamlBytes)
-
-	fmt.Println(console.Bold("cluster config:"))
-	fmt.Println(yamlString)
-
-	if !disallowPrompt {
-		exitMessage := fmt.Sprintf("cluster configuration can be modified via the cluster config file; see https://docs.cortex.dev/v/%s/ for more information", consts.CortexVersionMinor)
-		prompt.YesOrExit(fmt.Sprintf("your cluster named \"%s\" in %s will be updated according to the configuration above, are you sure you want to continue?", userClusterConfig.ClusterName, userClusterConfig.Region), "", exitMessage)
-	}
-
-	return userClusterConfig, nil
 }
 
 func confirmInstallClusterConfig(clusterConfig *clusterconfig.Config, awsClient *aws.Client, disallowPrompt bool) {

@@ -267,161 +267,161 @@ var CoreConfigStructFieldValidations = []*cr.StructFieldValidation{
 	{
 		StructField: "ImageOperator",
 		StringValidation: &cr.StringValidation{
-			Default:   "quay.io/cortexlabs/operator:" + consts.CortexVersion,
+			Default:   consts.DefaultRegistry() + "/operator:" + consts.CortexVersion,
 			Validator: validateImageVersion,
 		},
 	},
 	{
 		StructField: "ImageManager",
 		StringValidation: &cr.StringValidation{
-			Default:   "quay.io/cortexlabs/manager:" + consts.CortexVersion,
+			Default:   consts.DefaultRegistry() + "/manager:" + consts.CortexVersion,
 			Validator: validateImageVersion,
 		},
 	},
 	{
 		StructField: "ImageDownloader",
 		StringValidation: &cr.StringValidation{
-			Default:   "quay.io/cortexlabs/downloader:" + consts.CortexVersion,
+			Default:   consts.DefaultRegistry() + "/downloader:" + consts.CortexVersion,
 			Validator: validateImageVersion,
 		},
 	},
 	{
 		StructField: "ImageRequestMonitor",
 		StringValidation: &cr.StringValidation{
-			Default:   "quay.io/cortexlabs/request-monitor:" + consts.CortexVersion,
+			Default:   consts.DefaultRegistry() + "/request-monitor:" + consts.CortexVersion,
 			Validator: validateImageVersion,
 		},
 	},
 	{
 		StructField: "ImageAsyncGateway",
 		StringValidation: &cr.StringValidation{
-			Default:   "quay.io/cortexlabs/async-gateway:" + consts.CortexVersion,
+			Default:   consts.DefaultRegistry() + "/async-gateway:" + consts.CortexVersion,
 			Validator: validateImageVersion,
 		},
 	},
 	{
 		StructField: "ImageClusterAutoscaler",
 		StringValidation: &cr.StringValidation{
-			Default:   "quay.io/cortexlabs/cluster-autoscaler:" + consts.CortexVersion,
+			Default:   consts.DefaultRegistry() + "/cluster-autoscaler:" + consts.CortexVersion,
 			Validator: validateImageVersion,
 		},
 	},
 	{
 		StructField: "ImageMetricsServer",
 		StringValidation: &cr.StringValidation{
-			Default:   "quay.io/cortexlabs/metrics-server:" + consts.CortexVersion,
+			Default:   consts.DefaultRegistry() + "/metrics-server:" + consts.CortexVersion,
 			Validator: validateImageVersion,
 		},
 	},
 	{
 		StructField: "ImageInferentia",
 		StringValidation: &cr.StringValidation{
-			Default:   "quay.io/cortexlabs/inferentia:" + consts.CortexVersion,
+			Default:   consts.DefaultRegistry() + "/inferentia:" + consts.CortexVersion,
 			Validator: validateImageVersion,
 		},
 	},
 	{
 		StructField: "ImageNeuronRTD",
 		StringValidation: &cr.StringValidation{
-			Default:   "quay.io/cortexlabs/neuron-rtd:" + consts.CortexVersion,
+			Default:   consts.DefaultRegistry() + "/neuron-rtd:" + consts.CortexVersion,
 			Validator: validateImageVersion,
 		},
 	},
 	{
 		StructField: "ImageNvidia",
 		StringValidation: &cr.StringValidation{
-			Default:   "quay.io/cortexlabs/nvidia:" + consts.CortexVersion,
+			Default:   consts.DefaultRegistry() + "/nvidia:" + consts.CortexVersion,
 			Validator: validateImageVersion,
 		},
 	},
 	{
 		StructField: "ImageFluentBit",
 		StringValidation: &cr.StringValidation{
-			Default:   "quay.io/cortexlabs/fluent-bit:" + consts.CortexVersion,
+			Default:   consts.DefaultRegistry() + "/fluent-bit:" + consts.CortexVersion,
 			Validator: validateImageVersion,
 		},
 	},
 	{
 		StructField: "ImageIstioProxy",
 		StringValidation: &cr.StringValidation{
-			Default:   "quay.io/cortexlabs/istio-proxy:" + consts.CortexVersion,
+			Default:   consts.DefaultRegistry() + "/istio-proxy:" + consts.CortexVersion,
 			Validator: validateImageVersion,
 		},
 	},
 	{
 		StructField: "ImageIstioPilot",
 		StringValidation: &cr.StringValidation{
-			Default:   "quay.io/cortexlabs/istio-pilot:" + consts.CortexVersion,
+			Default:   consts.DefaultRegistry() + "/istio-pilot:" + consts.CortexVersion,
 			Validator: validateImageVersion,
 		},
 	},
 	{
 		StructField: "ImagePrometheus",
 		StringValidation: &cr.StringValidation{
-			Default:   "quay.io/cortexlabs/prometheus:" + consts.CortexVersion,
+			Default:   consts.DefaultRegistry() + "/prometheus:" + consts.CortexVersion,
 			Validator: validateImageVersion,
 		},
 	},
 	{
 		StructField: "ImagePrometheusConfigReloader",
 		StringValidation: &cr.StringValidation{
-			Default:   "quay.io/cortexlabs/prometheus-config-reloader:" + consts.CortexVersion,
+			Default:   consts.DefaultRegistry() + "/prometheus-config-reloader:" + consts.CortexVersion,
 			Validator: validateImageVersion,
 		},
 	},
 	{
 		StructField: "ImagePrometheusOperator",
 		StringValidation: &cr.StringValidation{
-			Default:   "quay.io/cortexlabs/prometheus-operator:" + consts.CortexVersion,
+			Default:   consts.DefaultRegistry() + "/prometheus-operator:" + consts.CortexVersion,
 			Validator: validateImageVersion,
 		},
 	},
 	{
 		StructField: "ImagePrometheusStatsDExporter",
 		StringValidation: &cr.StringValidation{
-			Default:   "quay.io/cortexlabs/prometheus-statsd-exporter:" + consts.CortexVersion,
+			Default:   consts.DefaultRegistry() + "/prometheus-statsd-exporter:" + consts.CortexVersion,
 			Validator: validateImageVersion,
 		},
 	},
 	{
 		StructField: "ImagePrometheusDCGMExporter",
 		StringValidation: &cr.StringValidation{
-			Default:   "quay.io/cortexlabs/prometheus-dcgm-exporter:" + consts.CortexVersion,
+			Default:   consts.DefaultRegistry() + "/prometheus-dcgm-exporter:" + consts.CortexVersion,
 			Validator: validateImageVersion,
 		},
 	},
 	{
 		StructField: "ImagePrometheusKubeStateMetrics",
 		StringValidation: &cr.StringValidation{
-			Default:   "quay.io/cortexlabs/prometheus-kube-state-metrics:" + consts.CortexVersion,
+			Default:   consts.DefaultRegistry() + "/prometheus-kube-state-metrics:" + consts.CortexVersion,
 			Validator: validateImageVersion,
 		},
 	},
 	{
 		StructField: "ImagePrometheusNodeExporter",
 		StringValidation: &cr.StringValidation{
-			Default:   "quay.io/cortexlabs/prometheus-node-exporter:" + consts.CortexVersion,
+			Default:   consts.DefaultRegistry() + "/prometheus-node-exporter:" + consts.CortexVersion,
 			Validator: validateImageVersion,
 		},
 	},
 	{
 		StructField: "ImageKubeRBACProxy",
 		StringValidation: &cr.StringValidation{
-			Default:   "quay.io/cortexlabs/kube-rbac-proxy:" + consts.CortexVersion,
+			Default:   consts.DefaultRegistry() + "/kube-rbac-proxy:" + consts.CortexVersion,
 			Validator: validateImageVersion,
 		},
 	},
 	{
 		StructField: "ImageGrafana",
 		StringValidation: &cr.StringValidation{
-			Default:   "quay.io/cortexlabs/grafana:" + consts.CortexVersion,
+			Default:   consts.DefaultRegistry() + "/grafana:" + consts.CortexVersion,
 			Validator: validateImageVersion,
 		},
 	},
 	{
 		StructField: "ImageEventExporter",
 		StringValidation: &cr.StringValidation{
-			Default:   "quay.io/cortexlabs/event-exporter:" + consts.CortexVersion,
+			Default:   consts.DefaultRegistry() + "/event-exporter:" + consts.CortexVersion,
 			Validator: validateImageVersion,
 		},
 	},
@@ -725,7 +725,7 @@ var AccessValidation = &cr.StructValidation{
 		{
 			StructField: "ImageManager",
 			StringValidation: &cr.StringValidation{
-				Default:   "quay.io/cortexlabs/manager:" + consts.CortexVersion,
+				Default:   consts.DefaultRegistry() + "/manager:" + consts.CortexVersion,
 				Validator: validateImageVersion,
 			},
 		},

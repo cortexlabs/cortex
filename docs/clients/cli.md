@@ -124,18 +124,22 @@ Flags:
   -h, --help                   help for info
 ```
 
-## cluster configure
+## cluster scale
 
 ```text
-update a cluster's configuration
+update the min/max instances for a nodegroup
 
 Usage:
-  cortex cluster configure [CLUSTER_CONFIG_FILE] [flags]
+  cortex cluster scale [flags]
 
 Flags:
-  -e, --configure-env string   name of environment to configure
-  -y, --yes                    skip prompts
-  -h, --help                   help for configure
+  -n, --name string         name of the cluster
+  -r, --region string       aws region of the cluster
+      --node-group string   name of the node group to scale
+      --min-instances int   minimum number of instances
+      --max-instances int   maximum number of instances
+  -y, --yes                 skip prompts
+  -h, --help                help for scale
 ```
 
 ## cluster down
