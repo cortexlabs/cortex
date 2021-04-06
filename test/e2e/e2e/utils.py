@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import concurrent
 import sys
 import time
 import importlib
@@ -19,6 +20,8 @@ import pathlib
 from http import HTTPStatus
 from typing import Any, List, Optional, Tuple, Union, Dict, Callable
 
+from concurrent import futures
+import threading as td
 import grpc
 import cortex as cx
 import requests
@@ -43,6 +46,14 @@ def apis_ready(client: cx.Client, api_names: List[str], timeout: Optional[int] =
         return all(
             [client.get_api(name)["status"]["status_code"] == "status_live" for name in api_names]
         )
+
+    return wait_for(_is_ready, timeout=timeout)
+
+
+def api_updated(client: cx.Client, api_name: str, timeout: Optional[int] = None) -> bool:
+    def _is_ready():
+        status = client.get_api(api_name)["status"]
+        return status["replica_counts"]["requested"] == status["replica_counts"]["updated"]["ready"]
 
     return wait_for(_is_ready, timeout=timeout)
 
@@ -157,6 +168,39 @@ def request_task(
 
     response = requests.post(endpoint, json=payload)
     return response
+
+
+def request_concurrent_predictions(
+    client: cx.Client,
+    api_name: str,
+    concurrency: int,
+    event_stopper: td.Event,
+    payload: Optional[Union[List, Dict]] = None,
+    query_params: Dict[str, str] = {},
+) -> List[futures.Future]:
+    thread_local = td.local()
+    executor = futures.ThreadPoolExecutor(concurrency)
+    api_info = client.get_api(api_name)
+
+    def get_session() -> requests.Session:
+        if not hasattr(thread_local, "session"):
+            thread_local.session = requests.Session()
+        return thread_local.session
+
+    def runnable():
+        session = get_session()
+        while not event_stopper.is_set():
+            response = session.post(api_info["endpoint"], json=payload, params=query_params)
+            assert (
+                response.status_code == HTTPStatus.OK
+            ), f"status code: got {response.status_code}, expected {HTTPStatus.OK}"
+
+    futures_list = []
+    for _ in range(concurrency):
+        future = executor.submit(runnable)
+        futures_list.append(future)
+
+    return futures_list
 
 
 def client_from_config(config_path: str) -> cx.Client:

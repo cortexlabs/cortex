@@ -3,3 +3,5 @@
   predictor:
     type: python
     path: predictor.py
+  compute:
+    cpu: 100m

@@ -47,6 +47,11 @@ def pytest_addoption(parser):
         action="store_true",
         help="skip Inferentia tests",
     )
+    parser.addoption(
+        "--skip-autoscaling",
+        action="store_true",
+        help="skip autoscaling tests",
+    )
 
 
 def pytest_configure(config):
@@ -75,6 +80,7 @@ def pytest_configure(config):
             "task_job_timeout": int(os.environ.get("CORTEX_TEST_TASK_JOB_TIMEOUT", 200)),
             "skip_gpus": config.getoption("--skip-gpus"),
             "skip_infs": config.getoption("--skip-infs"),
+            "skip_autoscaling": config.getoption("--skip-autoscaling"),
         },
     }
 

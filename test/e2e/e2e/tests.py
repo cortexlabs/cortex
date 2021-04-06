@@ -14,12 +14,15 @@
 
 import json
 import time
+import math
 from http import HTTPStatus
 from pathlib import Path
-from typing import List
+from typing import Dict, Any, List
 
 import cortex as cx
 import yaml
+import threading as td
+from concurrent import futures
 
 from e2e.expectations import (
     parse_expectations,
@@ -28,6 +31,7 @@ from e2e.expectations import (
 )
 from e2e.utils import (
     apis_ready,
+    api_updated,
     endpoint_ready,
     request_prediction,
     generate_grpc,
@@ -35,6 +39,7 @@ from e2e.utils import (
     request_batch_prediction,
     request_task,
     retrieve_async_result,
+    request_concurrent_predictions,
 )
 
 TEST_APIS_DIR = Path(__file__).parent.parent.parent / "apis"
@@ -292,3 +297,105 @@ def test_task_api(
 
     finally:
         delete_apis(client, [api_name])
+
+
+def test_autoscaling(
+    client: cx.Client,
+    apis: Dict[str, Any],
+    deploy_timeout: int = None,
+    api_config_name: str = "cortex.yaml",
+):
+    # max number of concurrent requests
+    concurrency = 20
+
+    all_apis = [apis["primary"]] + apis["dummy"]
+    all_api_names = []
+    for api in all_apis:
+        api_dir = TEST_APIS_DIR / api
+        with open(str(api_dir / api_config_name)) as f:
+            api_specs = yaml.safe_load(f)
+        assert len(api_specs) == 1
+        api_specs[0]["autoscaling"] = {"max_replicas": concurrency}
+        all_api_names.append(api_specs[0]["name"])
+        client.create_api(api_spec=api_specs[0], project_dir=api_dir)
+
+    primary_api_name = all_api_names[0]
+    autoscaling = client.get_api(primary_api_name)["spec"]["autoscaling"]
+
+    request_stopper = td.Event()
+
+    # determine upscale/downscale replica requests
+    current_replicas = 1  # starting number of replicas
+    expected_replica_curve = [current_replicas]
+    actual_replica_curve = []
+    test_timeout = 0  # measured in seconds
+    while current_replicas < concurrency:
+        upscale_ceil = math.ceil(current_replicas * autoscaling["max_upscale_factor"])
+        if upscale_ceil > current_replicas + 1:
+            current_replicas = upscale_ceil
+        else:
+            current_replicas += 1
+        if current_replicas > concurrency:
+            current_replicas = concurrency
+        expected_replica_curve.append(current_replicas)
+        test_timeout += int(autoscaling["upscale_stabilization_period"] / (1000 ** 3))
+    while current_replicas > 1:
+        downscale_ceil = math.ceil(current_replicas * autoscaling["max_downscale_factor"])
+        if downscale_ceil < current_replicas - 1:
+            current_replicas = downscale_ceil
+        else:
+            current_replicas -= 1
+        expected_replica_curve.append(current_replicas)
+        test_timeout += int(autoscaling["downscale_stabilization_period"] / (1000 ** 3))
+
+    # double the test timeout to account for the process of downloading images or adding nodes to the cluster
+    test_timeout *= 2
+
+    try:
+        assert apis_ready(
+            client=client, api_names=all_api_names, timeout=deploy_timeout
+        ), f"apis {all_api_names} not ready"
+
+        threads_futures = request_concurrent_predictions(
+            client, primary_api_name, concurrency, request_stopper
+        )
+
+        test_start_time = time.time()
+
+        # upscale/downscale the api
+        while True:
+            api_updated(client, primary_api_name)
+            current_replicas = client.get_api(primary_api_name)["status"]["replica_counts"][
+                "requested"
+            ]
+            if len(actual_replica_curve) == 0 or actual_replica_curve[-1] != current_replicas:
+                actual_replica_curve.append(current_replicas)
+            if current_replicas == concurrency:
+                request_stopper.set()
+            if not request_stopper.is_set() and current_replicas == 1:
+                break
+            assert (
+                actual_replica_curve == expected_replica_curve[: len(actual_replica_curve)]
+            ), f"actual replica curve ({actual_replica_curve}) doesn't match the expected replica curve ({expected_replica_curve[:len(actual_replica_curve)]})"
+
+            # check if the requesting threads are still healthy
+            # if not, they'll raise an exception
+            for future in threads_futures:
+                if future.exception():
+                    future.result()
+
+            # check if the test is taking too much time
+            assert (
+                time.time() - test_start_time < test_timeout
+            ), f"apis {primary_api_name} did not finish in time; expected replica curve is {expected_replica_curve}, current replica curve is {actual_replica_curve}"
+
+            # stop the test if it reached its end
+            if len(actual_replica_curve) == len(expected_replica_curve):
+                break
+
+            # add some delay to reduce the number of gets
+            time.sleep(1)
+
+    finally:
+        request_stopper.set()
+        delete_apis(client, all_api_names)
