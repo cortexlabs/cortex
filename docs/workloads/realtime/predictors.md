@@ -3,7 +3,6 @@
 Which Predictor you use depends on how your model is exported:
 
 * [TensorFlow Predictor](#tensorflow-predictor) if your model is exported as a TensorFlow `SavedModel`
-* [ONNX Predictor](#onnx-predictor) if your model is exported in the ONNX format
 * [Python Predictor](#python-predictor) for all other cases
 
 The response type of the predictor can vary depending on your requirements, see [HTTP API responses](#http-responses) and [gRPC API responses](#grpc-responses) below.
@@ -203,76 +202,6 @@ Your API can accept requests with different types of payloads such as `JSON`-par
 Your `predictor` method can return different types of objects such as `JSON`-parseable, `string`, and `bytes` objects. See [HTTP API responses](#http-responses) to learn about how to configure your `predictor` method to respond with different response codes and content-types.
 
 If you need to share files between your predictor implementation and the TensorFlow Serving container, you can create a new directory within `/mnt` (e.g. `/mnt/user`) and write files to it. The entire `/mnt` directory is shared between containers, but do not write to any of the directories in `/mnt` that already exist (they are used internally by Cortex).
-
-### ONNX Predictor
-
-**Uses ONNX Runtime version 1.6.0 by default**
-
-#### Interface
-
-```python
-class ONNXPredictor:
-    def __init__(self, onnx_client, config):
-        """(Required) Called once before the API becomes available. Performs
-        setup such as downloading/initializing a vocabulary.
-
-        Args:
-            onnx_client (required): ONNX client which is used to make
-                predictions. This should be saved for use in predict().
-            config (required): Dictionary passed from API configuration (if
-                specified).
-        """
-        self.client = onnx_client
-        # Additional initialization may be done here
-
-    def predict(self, payload, query_params, headers):
-        """(Required) Called once per request. Preprocesses the request payload
-        (if necessary), runs inference (e.g. by calling
-        self.client.predict(model_input)), and postprocesses the inference
-        output (if necessary).
-
-        Args:
-            payload (optional): The request payload (see below for the possible
-                payload types).
-            query_params (optional): A dictionary of the query parameters used
-                in the request.
-            headers (optional): A dictionary of the headers sent in the request.
-
-        Returns:
-            Prediction or a batch of predictions.
-        """
-        pass
-
-    def post_predict(self, response, payload, query_params, headers):
-        """(Optional) Called in the background after returning a response.
-        Useful for tasks that the client doesn't need to wait on before
-        receiving a response such as recording metrics or storing results.
-
-        Note: post_predict() and predict() run in the same thread pool. The
-        size of the thread pool can be increased by updating
-        `threads_per_process` in the api configuration yaml.
-
-        Args:
-            response (optional): The response as returned by the predict method.
-            payload (optional): The request payload (see below for the possible
-                payload types).
-            query_params (optional): A dictionary of the query parameters used
-                in the request.
-            headers (optional): A dictionary of the headers sent in the request.
-        """
-        pass
-```
-
-<!-- CORTEX_VERSION_MINOR -->
-Cortex provides an `onnx_client` to your Predictor's constructor. `onnx_client` is an instance of [ONNXClient](https://github.com/cortexlabs/cortex/tree/master/pkg/cortex/serve/cortex_internal/lib/client/onnx.py) that manages an ONNX Runtime session to make predictions using your model. It should be saved as an instance variable in your Predictor, and your `predict()` function should call `onnx_client.predict()` to make an inference with your exported ONNX model. Preprocessing of the JSON payload and postprocessing of predictions can be implemented in your `predict()` function as well.
-
-When multiple models are defined using the Predictor's `models` field, the `onnx_client.predict()` method expects a second argument `model_name` which must hold the name of the model that you want to use for inference (for example: `self.client.predict(model_input, "text-generator")`). There is also an optional third argument to specify the model version.
-
-For proper separation of concerns, it is recommended to use the constructor's `config` parameter for information such as configurable model parameters or download links for initialization files. You define `config` in your API configuration, and it is passed through to your Predictor's constructor.
-
-Your API can accept requests with different types of payloads such as `JSON`-parseable, `bytes` or `starlette.datastructures.FormData` data. See [HTTP API requests](#http-requests) to learn about how headers can be used to change the type of `payload` that is passed into your `predict` method.
-
-Your `predictor` method can return different types of objects such as `JSON`-parseable, `string`, and `bytes` objects. See [HTTP API responses](#http-responses) to learn about how to configure your `predictor` method to respond with different response codes and content-types.
 
 ### HTTP requests
 
@@ -579,62 +508,6 @@ Your API can only accept the type that has been specified in the protobuf defini
 Your `predictor` method can only return the type that has been specified in the protobuf definition of your service's method. See [gRPC API responses](#grpc-responses) for how to handle gRPC responses.
 
 If you need to share files between your predictor implementation and the TensorFlow Serving container, you can create a new directory within `/mnt` (e.g. `/mnt/user`) and write files to it. The entire `/mnt` directory is shared between containers, but do not write to any of the directories in `/mnt` that already exist (they are used internally by Cortex).
-
-### ONNX Predictor
-
-**Uses ONNX Runtime version 1.6.0 by default**
-
-#### Interface
-
-```python
-class ONNXPredictor:
-    def __init__(self, onnx_client, config, module_proto_pb2):
-        """(Required) Called once before the API becomes available. Performs
-        setup such as downloading/initializing a vocabulary.
-
-        Args:
-            onnx_client (required): ONNX client which is used to make
-                predictions. This should be saved for use in predict().
-            config (required): Dictionary passed from API configuration (if
-                specified).
-            module_proto_pb2 (optional): Loaded Python module containing the
-                class definitions of the messages defined in the protobuf
-                file (`predictor.protobuf_path`).
-        """
-        self.client = onnx_client
-        self.module_proto_pb2 = module_proto_pb2
-        # Additional initialization may be done here
-
-    def predict(self, payload, context):
-        """(Required) Called once per request. Preprocesses the request payload
-        (if necessary), runs inference (e.g. by calling
-        self.client.predict(model_input)), and postprocesses the inference
-        output (if necessary).
-
-        Args:
-            payload (optional): The request payload (see below for the possible
-                payload types).
-            context (optional): gRPC context.
-
-        Returns:
-            Prediction (when streaming is not used).
-
-        Yield:
-            Prediction (when streaming is used).
-        """
-        pass
-```
-
-<!-- CORTEX_VERSION_MINOR -->
-Cortex provides an `onnx_client` to your Predictor's constructor. `onnx_client` is an instance of [ONNXClient](https://github.com/cortexlabs/cortex/tree/master/pkg/cortex/serve/cortex_internal/lib/client/onnx.py) that manages an ONNX Runtime session to make predictions using your model. It should be saved as an instance variable in your Predictor, and your `predict()` function should call `onnx_client.predict()` to make an inference with your exported ONNX model. Preprocessing of the JSON payload and postprocessing of predictions can be implemented in your `predict()` function as well.
-
-When multiple models are defined using the Predictor's `models` field, the `onnx_client.predict()` method expects a second argument `model_name` which must hold the name of the model that you want to use for inference (for example: `self.client.predict(model_input, "text-generator")`). There is also an optional third argument to specify the model version.
-
-For proper separation of concerns, it is recommended to use the constructor's `config` parameter for information such as configurable model parameters or download links for initialization files. You define `config` in your API configuration, and it is passed through to your Predictor's constructor.
-
-Your API can only accept the type that has been specified in the protobuf definition of your service's method. See [gRPC API requests](#grpc-requests) for how to construct gRPC requests.
-
-Your `predictor` method can only return the type that has been specified in the protobuf definition of your service's method. See [gRPC API responses](#grpc-responses) for how to handle gRPC responses.
 
 ### gRPC requests
 

@@ -151,8 +151,6 @@ function create_eks() {
   eksctl create cluster --timeout=$EKSCTL_TIMEOUT --install-neuron-plugin=false --install-nvidia-plugin=false -f /workspace/eks.yaml
   echo
 
-  suspend_az_rebalance
-
   write_kubeconfig
 }
 
@@ -216,7 +214,7 @@ function setup_configmap() {
     --from-literal='CORTEX_TELEMETRY_DISABLE'=$CORTEX_TELEMETRY_DISABLE \
     --from-literal='CORTEX_TELEMETRY_SENTRY_DSN'=$CORTEX_TELEMETRY_SENTRY_DSN \
     --from-literal='CORTEX_TELEMETRY_SEGMENT_WRITE_KEY'=$CORTEX_TELEMETRY_SEGMENT_WRITE_KEY \
-    --from-literal='CORTEX_DEV_DEFAULT_PREDICTOR_IMAGE_REGISTRY'=$CORTEX_DEV_DEFAULT_PREDICTOR_IMAGE_REGISTRY \
+    --from-literal='CORTEX_DEV_DEFAULT_IMAGE_REGISTRY'=$CORTEX_DEV_DEFAULT_IMAGE_REGISTRY \
     -o yaml --dry-run=client | kubectl apply -f - >/dev/null
 }
 
@@ -257,73 +255,53 @@ function restart_operator() {
 function resize_nodegroup() {
   eksctl get nodegroup --cluster=$CORTEX_CLUSTER_NAME --region=$CORTEX_REGION -o json > nodegroups.json
   ng_len=$(cat nodegroups.json | jq -r length)
-  cluster_config_ng_len=$(cat /in/cluster_${CORTEX_CLUSTER_NAME}_${CORTEX_REGION}.yaml | yq -r .node_groups | yq -r length)
-  num_resizes=0
+  config_ng="$CORTEX_SCALING_NODEGROUP"
 
-  for idx in $(seq 0 $(($cluster_config_ng_len-1))); do
-    config_ng=$(cat /in/cluster_${CORTEX_CLUSTER_NAME}_${CORTEX_REGION}.yaml | yq -r .node_groups[$idx].name)
-
-    for eks_idx in $(seq 0 $(($ng_len-1))); do
-      stack_ng=$(cat nodegroups.json | jq -r .[$eks_idx].Name)
-      if [ "$stack_ng" = "cx-operator" ]; then
-        continue
-      fi
-      if [[ "$stack_ng" == *"$config_ng" ]]; then
-        break
-      fi
-    done
-
-    desired=$(cat nodegroups.json | jq -r .[$eks_idx].DesiredCapacity)
-    existing_min=$(cat nodegroups.json | jq -r .[$eks_idx].MinSize)
-    existing_max=$(cat nodegroups.json | jq -r .[$eks_idx].MaxSize)
-    updating_min=$(cat /in/cluster_${CORTEX_CLUSTER_NAME}_${CORTEX_REGION}.yaml | yq -r .node_groups[$idx].min_instances)
-    updating_max=$(cat /in/cluster_${CORTEX_CLUSTER_NAME}_${CORTEX_REGION}.yaml | yq -r .node_groups[$idx].max_instances)
-    if [ $updating_min = "null" ]; then
-      updating_min=1
+  has_ng="false"
+  for eks_idx in $(seq 0 $(($ng_len-1))); do
+    stack_ng=$(cat nodegroups.json | jq -r .[$eks_idx].Name)
+    if [ "$stack_ng" = "cx-operator" ]; then
+      continue
     fi
-    if [ $updating_max = "null" ]; then
-      updating_max=5
-    fi
-
-    if [ "$existing_min" != "$updating_min" ] && [ "$existing_max" != "$updating_max" ]; then
-      echo "￮ nodegroup $idx ($config_ng): updating min instances to $updating_min and max instances to $updating_max "
-      eksctl scale nodegroup --cluster=$CORTEX_CLUSTER_NAME --region=$CORTEX_REGION $stack_ng --nodes $desired --nodes-min $updating_min --nodes-max $updating_max
-      num_resizes=$(($num_resizes+1))
-      echo
-    elif [ "$existing_min" != "$updating_min" ]; then
-      echo "￮ nodegroup $idx ($config_ng): updating min instances to $updating_min "
-      eksctl scale nodegroup --cluster=$CORTEX_CLUSTER_NAME --region=$CORTEX_REGION $stack_ng --nodes $desired --nodes-min $updating_min
-      num_resizes=$(($num_resizes+1))
-      echo
-    elif [ "$existing_max" != "$updating_max" ]; then
-      echo "￮ nodegroup $idx ($config_ng): updating max instances to $updating_max "
-      eksctl scale nodegroup --cluster=$CORTEX_CLUSTER_NAME --region=$CORTEX_REGION $stack_ng --nodes $desired --nodes-max $updating_max
-      num_resizes=$(($num_resizes+1))
-      echo
+    if [[ "$stack_ng" == *"$config_ng" ]]; then
+      has_ng="true"
+      break
     fi
   done
+
+  if [ "$has_ng" == "false" ]; then
+    echo "error: \"cx-*-$config_ng\" node group couldn't be found"
+    exit 1
+  fi
+
+  desired=$(cat nodegroups.json | jq -r .[$eks_idx].DesiredCapacity)
+  existing_min=$(cat nodegroups.json | jq -r .[$eks_idx].MinSize)
+  existing_max=$(cat nodegroups.json | jq -r .[$eks_idx].MaxSize)
+  updating_min="$CORTEX_SCALING_MIN_INSTANCES"
+  updating_max="$CORTEX_SCALING_MAX_INSTANCES"
+
+  if [ "$desired" -lt $updating_min ]; then
+    desired=$updating_min
+  fi
+  if [ "$desired" -gt $updating_max ]; then
+    desired=$updating_max
+  fi
+
+  if [ "$existing_min" != "$updating_min" ] && [ "$existing_max" != "$updating_max" ]; then
+    echo "￮ nodegroup $config_ng: updating min instances to $updating_min and max instances to $updating_max "
+    eksctl scale nodegroup --cluster=$CORTEX_CLUSTER_NAME --region=$CORTEX_REGION $stack_ng --nodes $desired --nodes-min $updating_min --nodes-max $updating_max
+    echo
+  elif [ "$existing_min" != "$updating_min" ]; then
+    echo "￮ nodegroup $config_ng: updating min instances to $updating_min "
+    eksctl scale nodegroup --cluster=$CORTEX_CLUSTER_NAME --region=$CORTEX_REGION $stack_ng --nodes $desired --nodes-min $updating_min
+    echo
+  elif [ "$existing_max" != "$updating_max" ]; then
+    echo "￮ nodegroup $config_ng: updating max instances to $updating_max "
+    eksctl scale nodegroup --cluster=$CORTEX_CLUSTER_NAME --region=$CORTEX_REGION $stack_ng --nodes $desired --nodes-max $updating_max
+    echo
+  fi
+
   rm nodegroups.json
-
-  if [ "$num_resizes" -eq "0" ]; then
-    echo "no changes to node group sizes detected in the cluster config"
-    exit 0
-  fi
-}
-
-function suspend_az_rebalance() {
-  asg_on_demand_info=$(aws autoscaling describe-auto-scaling-groups --region $CORTEX_REGION --query "AutoScalingGroups[?contains(Tags[?Key==\`alpha.eksctl.io/cluster-name\`].Value, \`$CORTEX_CLUSTER_NAME\`)]|[?contains(Tags[?Key==\`alpha.eksctl.io/nodegroup-name\`].Value, \`ng-cortex-worker-on-demand\`)]")
-  asg_on_demand_length=$(echo "$asg_on_demand_info" | jq -r 'length')
-  if (( "$asg_on_demand_length" > "0" )); then
-    asg_on_demand_name=$(echo "$asg_on_demand_info" | jq -r 'first | .AutoScalingGroupName')
-    aws autoscaling suspend-processes --region $CORTEX_REGION --auto-scaling-group-name $asg_on_demand_name --scaling-processes AZRebalance
-  fi
-
-  asg_spot_info=$(aws autoscaling describe-auto-scaling-groups --region $CORTEX_REGION --query "AutoScalingGroups[?contains(Tags[?Key==\`alpha.eksctl.io/cluster-name\`].Value, \`$CORTEX_CLUSTER_NAME\`)]|[?contains(Tags[?Key==\`alpha.eksctl.io/nodegroup-name\`].Value, \`ng-cortex-worker-spot\`)]")
-  asg_spot_length=$(echo "$asg_spot_info" | jq -r 'length')
-  if (( "$asg_spot_length" > "0" )); then
-    asg_spot_name=$(echo "$asg_spot_info" | jq -r 'first | .AutoScalingGroupName')
-    aws autoscaling suspend-processes --region $CORTEX_REGION --auto-scaling-group-name $asg_spot_name --scaling-processes AZRebalance
-  fi
 }
 
 function setup_istio() {
@@ -341,8 +319,8 @@ function setup_istio() {
 
 function start_pre_download_images() {
   registry="quay.io/cortexlabs"
-  if [ -n "$CORTEX_DEV_DEFAULT_PREDICTOR_IMAGE_REGISTRY" ]; then
-    registry="$CORTEX_DEV_DEFAULT_PREDICTOR_IMAGE_REGISTRY"
+  if [ -n "$CORTEX_DEV_DEFAULT_IMAGE_REGISTRY" ]; then
+    registry="$CORTEX_DEV_DEFAULT_IMAGE_REGISTRY"
   fi
   export CORTEX_IMAGE_PYTHON_PREDICTOR_CPU="${registry}/python-predictor-cpu:${CORTEX_VERSION}"
   export CORTEX_IMAGE_PYTHON_PREDICTOR_GPU="${registry}/python-predictor-gpu:${CORTEX_VERSION}-cuda10.2-cudnn8"

@@ -72,7 +72,7 @@ var _getCmd = &cobra.Command{
 	Args:  cobra.RangeArgs(0, 2),
 	Run: func(cmd *cobra.Command, args []string) {
 		var envName string
-		if wasEnvFlagProvided(cmd) {
+		if wasFlagProvided(cmd, "env") {
 			envName = _flagGetEnv
 		} else if len(args) > 0 {
 			var err error
@@ -83,7 +83,7 @@ var _getCmd = &cobra.Command{
 			}
 		}
 
-		if len(args) == 1 || wasEnvFlagProvided(cmd) {
+		if len(args) == 1 || wasFlagProvided(cmd, "env") {
 			env, err := ReadOrConfigureEnv(envName)
 			if err != nil {
 				telemetry.Event("cli.get")
@@ -154,7 +154,7 @@ var _getCmd = &cobra.Command{
 					return "", ErrorNoAvailableEnvironment()
 				}
 
-				if wasEnvFlagProvided(cmd) {
+				if wasFlagProvided(cmd, "env") {
 					env, err := ReadOrConfigureEnv(envName)
 					if err != nil {
 						exit.Error(err)

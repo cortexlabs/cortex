@@ -49,7 +49,6 @@ const (
 	ErrNoCompatibleSpotInstanceFound          = "clusterconfig.no_compatible_spot_instance_found"
 	ErrConfiguredWhenSpotIsNotEnabled         = "clusterconfig.configured_when_spot_is_not_enabled"
 	ErrOnDemandBaseCapacityGreaterThanMax     = "clusterconfig.on_demand_base_capacity_greater_than_max"
-	ErrConfigCannotBeChangedOnUpdate          = "clusterconfig.config_cannot_be_changed_on_update"
 	ErrInvalidAvailabilityZone                = "clusterconfig.invalid_availability_zone"
 	ErrAvailabilityZoneSpecifiedTwice         = "clusterconfig.availability_zone_specified_twice"
 	ErrUnsupportedAvailabilityZone            = "clusterconfig.unsupported_availability_zone"
@@ -199,13 +198,6 @@ func ErrorOnDemandBaseCapacityGreaterThanMax(onDemandBaseCapacity int64, max int
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrOnDemandBaseCapacityGreaterThanMax,
 		Message: fmt.Sprintf("%s cannot be greater than %s (%d > %d)", OnDemandBaseCapacityKey, MaxInstancesKey, onDemandBaseCapacity, max),
-	})
-}
-
-func ErrorConfigCannotBeChangedOnUpdate() error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrConfigCannotBeChangedOnUpdate,
-		Message: fmt.Sprintf("in a running cluster, only the %s and %s fields in the %s section can be modified", MinInstancesKey, MaxInstancesKey, NodeGroupsKey),
 	})
 }
 

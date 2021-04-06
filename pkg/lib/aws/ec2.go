@@ -19,6 +19,7 @@ package aws
 import (
 	"math"
 	"regexp"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -35,11 +36,14 @@ import (
 // the third group is optional, and is a set of single-character "flags"
 //   "g" represents ARM (graviton), "a" for AMD, "n" for fast networking, "d" for fast storage, etc.
 // the fourth and final group (after the dot) is the instance size, e.g. "large"
-var _armInstanceRegex = regexp.MustCompile(`^\w+[0-9]+\w*g\w*\.\w+$`)
+var _armInstanceCapabilityRegex = regexp.MustCompile(`^\w+[0-9]+\w*g\w*\.\w+$`)
 
-// instanceType must be a valid instance type that exists in AWS, e.g. g4dn.xlarge
+// instanceType is assumed to be a valid instance type that exists in AWS, e.g. g4dn.xlarge
 func IsARMInstance(instanceType string) bool {
-	return _armInstanceRegex.MatchString(instanceType)
+	if strings.HasPrefix(instanceType, "a") {
+		return true
+	}
+	return _armInstanceCapabilityRegex.MatchString(instanceType)
 }
 
 func (c *Client) SpotInstancePrice(instanceType string) (float64, error) {

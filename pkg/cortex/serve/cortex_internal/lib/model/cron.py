@@ -138,7 +138,6 @@ class FileBasedModelsTreeUpdater(mp.Process):
 
         self._s3_paths = []
         self._spec_models = get_models_from_api_spec(self._api_spec)
-        self._local_model_names = self._spec_models.get_local_model_names()
         self._s3_model_names = self._spec_models.get_s3_model_names()
         for model_name in self._s3_model_names:
             self._s3_paths.append(self._spec_models[model_name]["path"])
@@ -180,7 +179,6 @@ class FileBasedModelsTreeUpdater(mp.Process):
         """
 
         init_sentry(tags=get_default_tags())
-        self._make_local_models_available()
         while not self._event_stopper.is_set():
             self._update_models_tree()
             if not self._ran_once.is_set():
@@ -214,46 +212,6 @@ class FileBasedModelsTreeUpdater(mp.Process):
         """
 
         return self._ran_once.is_set()
-
-    def _make_local_models_available(self) -> None:
-        """
-        Make local models (provided through models:path, models:paths or models:dir fields) available on disk.
-        """
-
-        timestamp_utc = datetime.datetime.now(datetime.timezone.utc).timestamp()
-
-        if len(self._local_model_names) == 1:
-            message = "local model "
-        elif len(self._local_model_names) > 1:
-            message = "local models "
-        else:
-            return
-
-        for idx, local_model_name in enumerate(self._local_model_names):
-            versions = self._spec_models[local_model_name]["versions"]
-            if len(versions) == 0:
-                resource = os.path.join(self._lock_dir, local_model_name + "-" + "1" + ".txt")
-                with LockedFile(resource, "w") as f:
-                    f.write("available " + str(int(timestamp_utc)))
-            for ondisk_version in versions:
-                resource = os.path.join(
-                    self._lock_dir, local_model_name + "-" + ondisk_version + ".txt"
-                )
-                with LockedFile(resource, "w") as f:
-                    f.write("available " + str(int(timestamp_utc)))
-
-            message += f"{local_model_name} "
-            if len(versions) == 1:
-                message += f"(version {versions[0]})"
-            elif len(versions) > 1:
-                message += f"(versions {','.join(versions)})"
-
-            if idx + 1 < len(self._local_model_names):
-                message += ", "
-            else:
-                message += " now available on disk"
-
-        logger.info(message)
 
     def _update_models_tree(self) -> None:
         # get updated/validated paths/versions of the s3 models
@@ -553,7 +511,7 @@ def find_ondisk_models_with_lock(
     Returns all available models from the disk.
     To be used in conjunction with FileBasedModelsTreeUpdater/FileBasedModelsGC.
 
-    Can be used for Python/TensorFlow/ONNX clients.
+    Can be used for Python/TensorFlow clients.
 
     Args:
         lock_dir: Path to where the resource locks are stored.
@@ -609,7 +567,7 @@ def find_ondisk_model_ids_with_lock(lock_dir: str) -> List[str]:
     Returns all available model IDs from the disk.
     To be used in conjunction with FileBasedModelsTreeUpdater/FileBasedModelsGC.
 
-    Can be used for Python/TensorFlow/ONNX clients.
+    Can be used for Python/TensorFlow clients.
 
     Args:
         lock_dir: Path to where the resource locks are stored.
@@ -635,7 +593,7 @@ def find_ondisk_model_info(lock_dir: str, model_name: str) -> Tuple[List[str], L
     Returns all available versions/timestamps of a model from the disk.
     To be used in conjunction with FileBasedModelsTreeUpdater/FileBasedModelsGC.
 
-    Can be used for Python/TensorFlow/ONNX clients.
+    Can be used for Python/TensorFlow clients.
 
     Args:
         lock_dir: Path to where the resource locks are stored.
@@ -1232,7 +1190,7 @@ def find_ondisk_models(models_dir: str) -> Dict[str, List[str]]:
     To be used in conjunction with TFSModelLoader.
 
     This function should never be used for determining whether a model has to be loaded or not.
-    Can be used for Python/TensorFlow/ONNX clients.
+    Can be used for Python/TensorFlow clients.
 
     Args:
         models_dir: Path to where the models are stored.
@@ -1287,19 +1245,6 @@ class ModelsGC(AbstractLoopingThread):
 
         self._spec_models = get_models_from_api_spec(self._api_spec)
 
-        # only required for ONNX file paths
-        self._local_model_names = self._spec_models.get_local_model_names()
-        self._local_model_versions = [
-            self._spec_models.get_versions_for(model_name) for model_name in self._local_model_names
-        ]
-        self._local_model_ids = []
-        for model_name, versions in zip(self._local_model_names, self._local_model_versions):
-            if len(versions) == 0:
-                self._local_model_ids.append(f"{model_name}-1")
-                continue
-            for version in versions:
-                self._local_model_ids.append(f"{model_name}-{version}")
-
         # run the cron every 10 seconds
         self._lock_timeout = 10.0
 
@@ -1310,9 +1255,7 @@ class ModelsGC(AbstractLoopingThread):
 
         # are there any models to collect (aka remove) from cache
         with LockedGlobalModelsGC(self._models, "r"):
-            collectible, _, _ = self._models.garbage_collect(
-                exclude_disk_model_ids=self._local_model_ids, dry_run=True
-            )
+            collectible, _, _ = self._models.garbage_collect(dry_run=True)
         if not collectible:
             self._remove_stale_models()
             return
@@ -1325,18 +1268,14 @@ class ModelsGC(AbstractLoopingThread):
             if not acquired:
                 raise WithBreak
 
-            _, memory_evicted_model_ids, disk_evicted_model_ids = self._models.garbage_collect(
-                exclude_disk_model_ids=self._local_model_ids
-            )
+            _, memory_evicted_model_ids, disk_evicted_model_ids = self._models.garbage_collect()
 
         # otherwise, grab exclusive access to all models with exclusive access preference
         # and remove excess models from cache
         if not acquired:
             self._models.set_global_preference_policy("w")
             with LockedGlobalModelsGC(self._models, "w"):
-                _, memory_evicted_model_ids, disk_evicted_model_ids = self._models.garbage_collect(
-                    exclude_disk_model_ids=self._local_model_ids
-                )
+                _, memory_evicted_model_ids, disk_evicted_model_ids = self._models.garbage_collect()
             self._models.set_global_preference_policy("r")
 
         memory_evicted_models = ids_to_models(memory_evicted_model_ids)
@@ -1367,9 +1306,6 @@ class ModelsGC(AbstractLoopingThread):
         # get model IDs loaded into memory or on disk.
         with LockedGlobalModelsGC(self._models, "r"):
             present_model_ids = self._models.get_model_ids()
-
-        # exclude local models from removal
-        present_model_ids = list(set(present_model_ids) - set(self._local_model_ids))
 
         # remove models that don't exist in the S3 upstream
         ghost_model_ids = list(set(present_model_ids) - set(s3_model_ids))
@@ -1467,54 +1403,6 @@ class ModelTreeUpdater(AbstractLoopingThread):
         else:
             self._is_dir_used = False
             self._models_dir = None
-
-        # only required for ONNX file paths
-        self._make_local_models_available()
-
-    def _make_local_models_available(self):
-        timestamp_utc = datetime.datetime.now(datetime.timezone.utc)
-
-        for model_name in self._spec_models.get_local_model_names():
-            model = self._spec_models[model_name]
-
-            if len(model["versions"]) == 0:
-                model_version = "1"
-                ondisk_model_version_path = os.path.join(
-                    self._ondisk_models_dir, model_name, model_version
-                )
-                ondisk_paths = glob.glob(
-                    os.path.join(ondisk_model_version_path, "**"), recursive=True
-                )
-                ondisk_paths = util.remove_non_empty_directory_paths(ondisk_paths)
-                # removable is set to false to prevent the local models from being removed
-                self._tree.update_model(
-                    bucket="",
-                    model_name=model_name,
-                    model_version=model_version,
-                    model_path=ondisk_model_version_path,
-                    sub_paths=ondisk_paths,
-                    timestamp=timestamp_utc,
-                    removable=False,
-                )
-
-            for model_version in model["versions"]:
-                ondisk_model_version_path = os.path.join(
-                    self._ondisk_models_dir, model_name, model_version
-                )
-                ondisk_paths = glob.glob(
-                    os.path.join(ondisk_model_version_path, "**"), recursive=True
-                )
-                ondisk_paths = util.remove_non_empty_directory_paths(ondisk_paths)
-                # removable is set to false to prevent the local models from being removed
-                self._tree.update_model(
-                    bucket="",
-                    model_name=model_name,
-                    model_version=model_version,
-                    model_path=ondisk_model_version_path,
-                    sub_paths=ondisk_paths,
-                    timestamp=timestamp_utc,
-                    removable=False,
-                )
 
     def _update_models_tree(self) -> None:
         # get updated/validated paths/versions of the S3 models

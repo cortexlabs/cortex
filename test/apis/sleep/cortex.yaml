@@ -1,0 +1,5 @@
+- name: sleep
+  kind: RealtimeAPI
+  predictor:
+    type: python
+    path: predictor.py

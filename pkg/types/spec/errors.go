@@ -67,8 +67,6 @@ const (
 	ErrInvalidBucketScheme        = "spec.invalid_bucket_scheme"
 	ErrInvalidPythonModelPath     = "spec.invalid_python_model_path"
 	ErrInvalidTensorFlowModelPath = "spec.invalid_tensorflow_model_path"
-	ErrInvalidONNXModelPath       = "spec.invalid_onnx_model_path"
-	ErrInvalidONNXModelFilePath   = "spec.invalid_onnx_model_file_path"
 
 	ErrDuplicateModelNames = "spec.duplicate_model_names"
 	ErrReservedModelName   = "spec.reserved_model_name"
@@ -82,7 +80,6 @@ const (
 
 	ErrFieldMustBeDefinedForPredictorType          = "spec.field_must_be_defined_for_predictor_type"
 	ErrFieldNotSupportedByPredictorType            = "spec.field_not_supported_by_predictor_type"
-	ErrPredictorTypeNotSupportedForKind            = "spec.predictor_type_not_supported_by_kind"
 	ErrNoAvailableNodeComputeLimit                 = "spec.no_available_node_compute_limit"
 	ErrCortexPrefixedEnvVarNotAllowed              = "spec.cortex_prefixed_env_var_not_allowed"
 	ErrRegistryInDifferentRegion                   = "spec.registry_in_different_region"
@@ -424,54 +421,6 @@ func ErrorInvalidTensorFlowModelPath(modelPath string, neuronExport bool, modelS
 	})
 }
 
-var _onnxVersionedExpectedStructMessage = `
-  %s
-  ├── 1523423423/ (Version prefix)
-  |   └── <model-name>.onnx // ONNX-exported file
-  └── 2434389194/ (Version prefix)
-      └── <model-name>.onnx // ONNX-exported file
-
-or like
-
-  %s
-  └── <model-name>.onnx // ONNX-exported file
-`
-
-func ErrorInvalidONNXModelPath(modelPath string, modelSubPaths []string) error {
-	message := fmt.Sprintf("%s: invalid %s model path. ", modelPath, userconfig.ONNXPredictorType.CasedString())
-	message += " " + fmt.Sprintf("For models provided for the %s predictor type, the path must be a directory with one of the following structures:\n", userconfig.PythonPredictorType)
-
-	message += fmt.Sprintf(_onnxVersionedExpectedStructMessage, modelPath, modelPath)
-
-	if len(modelSubPaths) > 0 {
-		message += "\n" + "but its current structure is (limited to 50 sub-paths)" + "\n\n"
-		if len(modelSubPaths) > 50 {
-			message += s.Indent(files.FileTree(modelSubPaths[:50], "", files.DirsSorted), "  ")
-			message += "\n  ..."
-		} else {
-			message += s.Indent(files.FileTree(modelSubPaths, "", files.DirsSorted), "  ")
-		}
-	} else {
-		message += "\n" + "but its current directory is empty"
-	}
-
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrInvalidONNXModelPath,
-		Message: message,
-	})
-}
-
-func ErrorInvalidONNXModelFilePath(filePath string) error {
-	message := fmt.Sprintf("%s: invalid %s model file path; specify an ONNX file path or provide a directory with one of the following structures:\n", filePath, userconfig.ONNXPredictorType.CasedString())
-	templateModelPath := "path/to/model/directory/"
-	message += fmt.Sprintf(_onnxVersionedExpectedStructMessage, templateModelPath, templateModelPath)
-
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrInvalidONNXModelFilePath,
-		Message: message,
-	})
-}
-
 func ErrorDuplicateModelNames(duplicateModel string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrDuplicateModelNames,
@@ -567,13 +516,6 @@ func ErrorKeyIsNotSupportedForKind(key string, kind userconfig.Kind) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrKeyIsNotSupportedForKind,
 		Message: fmt.Sprintf("%s key is not supported for %s kind", key, kind.String()),
-	})
-}
-
-func ErrorPredictorTypeNotSupportedForKind(predictorType userconfig.PredictorType, kind userconfig.Kind) error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrPredictorTypeNotSupportedForKind,
-		Message: fmt.Sprintf("%s predictor type is not supported for %s kind", predictorType.String(), kind.String()),
 	})
 }
 

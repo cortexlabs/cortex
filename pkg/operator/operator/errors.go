@@ -32,7 +32,7 @@ const (
 func ErrorCortexInstallationBroken() error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrCortexInstallationBroken,
-		Message: "cortex is out of date or not installed properly; run `cortex cluster configure` to repair, or spin down your cluster with `cortex cluster down` and create a new one with `cortex cluster up`",
+		Message: "cortex is out of date or not installed properly; spin down your cluster with `cortex cluster down` and create a new one with `cortex cluster up`",
 	})
 }
 

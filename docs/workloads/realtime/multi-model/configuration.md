@@ -117,39 +117,3 @@ class TensorFlowPredictor:
         predicted_label = postprocess(results)
         return {"label": predicted_label}
 ```
-
-## `ONNXPredictor`
-
-### `cortex.yaml`
-
-```yaml
-- name: multi-model-classifier
-  kind: RealtimeAPI
-  predictor:
-    type: onnx
-    path: predictor.py
-    models:
-      paths:
-        - name: resnet50
-          path: s3://cortex-examples/onnx/resnet50/
-        - name: mobilenet
-          path: s3://cortex-examples/onnx/mobilenet/
-        - name: shufflenet
-          path: s3://cortex-examples/onnx/shufflenet/
-      ...
-```
-
-### `predictor.py`
-
-```python
-class ONNXPredictor:
-    def __init__(self, onnx_client, config):
-        self.client = onnx_client
-
-    def predict(self, payload, query_params):
-        model_name = query_params["model"]
-        model_input = preprocess(payload["url"])
-        results = self.client.predict(model_input, model_name)
-        predicted_label = postprocess(results)
-        return {"label": predicted_label}
-```

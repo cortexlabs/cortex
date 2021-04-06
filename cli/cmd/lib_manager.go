@@ -160,7 +160,7 @@ func runManager(containerConfig *container.Config, addNewLineAfterPull bool, cop
 	return output, &info.State.ExitCode, nil
 }
 
-func runManagerWithClusterConfig(entrypoint string, clusterConfig *clusterconfig.Config, awsClient *aws.Client, copyToPaths []dockerCopyToPath, copyFromPaths []dockerCopyFromPath) (string, *int, error) {
+func runManagerWithClusterConfig(entrypoint string, clusterConfig *clusterconfig.Config, awsClient *aws.Client, copyToPaths []dockerCopyToPath, copyFromPaths []dockerCopyFromPath, extraEnvs []string) (string, *int, error) {
 	clusterConfigBytes, err := yaml.Marshal(clusterConfig)
 	if err != nil {
 		return "", nil, errors.WithStack(err)
@@ -184,6 +184,16 @@ func runManagerWithClusterConfig(entrypoint string, clusterConfig *clusterconfig
 		containerPath: "/",
 	})
 
+	envs := []string{
+		"AWS_ACCESS_KEY_ID=" + *awsClient.AccessKeyID(),
+		"AWS_SECRET_ACCESS_KEY=" + *awsClient.SecretAccessKey(),
+		"CORTEX_TELEMETRY_DISABLE=" + os.Getenv("CORTEX_TELEMETRY_DISABLE"),
+		"CORTEX_TELEMETRY_SENTRY_DSN=" + os.Getenv("CORTEX_TELEMETRY_SENTRY_DSN"),
+		"CORTEX_TELEMETRY_SEGMENT_WRITE_KEY=" + os.Getenv("CORTEX_TELEMETRY_SEGMENT_WRITE_KEY"),
+		"CORTEX_DEV_DEFAULT_IMAGE_REGISTRY=" + os.Getenv("CORTEX_DEV_DEFAULT_IMAGE_REGISTRY"),
+		"CORTEX_CLUSTER_CONFIG_FILE=" + containerClusterConfigPath,
+	}
+	envs = append(envs, extraEnvs...)
 	containerConfig := &container.Config{
 		Image:        clusterConfig.ImageManager,
 		Entrypoint:   []string{"/bin/bash", "-c"},
@@ -191,15 +201,7 @@ func runManagerWithClusterConfig(entrypoint string, clusterConfig *clusterconfig
 		Tty:          true,
 		AttachStdout: true,
 		AttachStderr: true,
-		Env: []string{
-			"AWS_ACCESS_KEY_ID=" + *awsClient.AccessKeyID(),
-			"AWS_SECRET_ACCESS_KEY=" + *awsClient.SecretAccessKey(),
-			"CORTEX_TELEMETRY_DISABLE=" + os.Getenv("CORTEX_TELEMETRY_DISABLE"),
-			"CORTEX_TELEMETRY_SENTRY_DSN=" + os.Getenv("CORTEX_TELEMETRY_SENTRY_DSN"),
-			"CORTEX_TELEMETRY_SEGMENT_WRITE_KEY=" + os.Getenv("CORTEX_TELEMETRY_SEGMENT_WRITE_KEY"),
-			"CORTEX_DEV_DEFAULT_PREDICTOR_IMAGE_REGISTRY=" + os.Getenv("CORTEX_DEV_DEFAULT_PREDICTOR_IMAGE_REGISTRY"),
-			"CORTEX_CLUSTER_CONFIG_FILE=" + containerClusterConfigPath,
-		},
+		Env:          envs,
 	}
 
 	if sessionToken := awsClient.SessionToken(); sessionToken != nil {

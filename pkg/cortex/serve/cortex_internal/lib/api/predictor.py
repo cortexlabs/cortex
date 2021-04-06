@@ -31,7 +31,6 @@ from cortex_internal.lib.api.validations import (
     validate_predictor_with_grpc,
     are_models_specified,
 )
-from cortex_internal.lib.client.onnx import ONNXClient
 from cortex_internal.lib.client.python import PythonClient
 from cortex_internal.lib.client.tensorflow import TensorFlowClient
 from cortex_internal.lib.exceptions import CortexException, UserException, UserRuntimeException
@@ -52,7 +51,6 @@ from cortex_internal.lib.type import (
     PythonPredictorType,
     TensorFlowPredictorType,
     TensorFlowNeuronPredictorType,
-    ONNXPredictorType,
 )
 
 logger = configure_logger("cortex", os.environ["CORTEX_LOG_CONFIG_FILE"])
@@ -107,33 +105,10 @@ TENSORFLOW_CLASS_VALIDATION = {
     ],
 }
 
-ONNX_CLASS_VALIDATION = {
-    "required": [
-        {
-            "name": "__init__",
-            "required_args": ["self", "onnx_client", "config"],
-            "optional_args": ["job_spec", "metrics_client", "proto_module_pb2"],
-        },
-        {
-            "name": "predict",
-            "required_args": ["self"],
-            "optional_args": ["payload", "query_params", "headers", "batch_id", "context"],
-        },
-    ],
-    "optional": [
-        {"name": "on_job_complete", "required_args": ["self"]},
-        {
-            "name": "post_predict",
-            "required_args": ["self"],
-            "optional_args": ["response", "payload", "query_params", "headers"],
-        },
-    ],
-}
-
 
 class Predictor:
     """
-    Class to validate/load the predictor class (PythonPredictor, TensorFlowPredictor, ONNXPredictor).
+    Class to validate/load the predictor class (PythonPredictor, TensorFlowPredictor).
     Also makes the specified models in cortex.yaml available to the predictor's implementation.
     """
 
@@ -194,7 +169,7 @@ class Predictor:
 
     def initialize_client(
         self, tf_serving_host: Optional[str] = None, tf_serving_port: Optional[str] = None
-    ) -> Union[PythonClient, TensorFlowClient, ONNXClient]:
+    ) -> Union[PythonClient, TensorFlowClient]:
         """
         Initialize client that gives access to models specified in the API spec (cortex.yaml).
         Only applies when models are provided in the API spec.
@@ -226,15 +201,12 @@ class Predictor:
                     cron = TFSAPIServingThreadUpdater(interval=5.0, client=client)
                     cron.start()
 
-            if self.type == ONNXPredictorType:
-                client = ONNXClient(self.api_spec, self.models, self.model_dir, self.models_tree)
-
         return client
 
     def initialize_impl(
         self,
         project_dir: str,
-        client: Union[PythonClient, TensorFlowClient, ONNXClient],
+        client: Union[PythonClient, TensorFlowClient],
         metrics_client: DogStatsd,
         job_spec: Optional[Dict[str, Any]] = None,
         proto_module_pb2: Optional[Any] = None,
@@ -269,15 +241,17 @@ class Predictor:
             if self.type == PythonPredictorType:
                 if are_models_specified(self.api_spec):
                     args["python_client"] = client
+                    # set load method to enable the use of the client in the constructor
+                    # setting/getting from self in load_model won't work because self will be set to None
+                    client.set_load_method(
+                        lambda model_path: class_impl.load_model(None, model_path)
+                    )
                     initialized_impl = class_impl(**args)
                     client.set_load_method(initialized_impl.load_model)
                 else:
                     initialized_impl = class_impl(**args)
             if self.type in [TensorFlowPredictorType, TensorFlowNeuronPredictorType]:
                 args["tensorflow_client"] = client
-                initialized_impl = class_impl(**args)
-            if self.type == ONNXPredictorType:
-                args["onnx_client"] = client
                 initialized_impl = class_impl(**args)
         except Exception as e:
             raise UserRuntimeException(self.path, "__init__", str(e)) from e
@@ -300,7 +274,7 @@ class Predictor:
                     ),
                 ]
 
-            if not self.caching_enabled and self.type in [PythonPredictorType, ONNXPredictorType]:
+            if not self.caching_enabled and self.type == PythonPredictorType:
                 self.crons += [
                     FileBasedModelsGC(interval=10, models=self.models, download_dir=self.model_dir)
                 ]
@@ -315,9 +289,6 @@ class Predictor:
         if self.type in [TensorFlowPredictorType, TensorFlowNeuronPredictorType]:
             target_class_name = "TensorFlowPredictor"
             validations = TENSORFLOW_CLASS_VALIDATION
-        elif self.type == ONNXPredictorType:
-            target_class_name = "ONNXPredictor"
-            validations = ONNX_CLASS_VALIDATION
         elif self.type == PythonPredictorType:
             target_class_name = "PythonPredictor"
             validations = PYTHON_CLASS_VALIDATION

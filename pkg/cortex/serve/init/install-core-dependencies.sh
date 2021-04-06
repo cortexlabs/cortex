@@ -33,10 +33,4 @@ if [ "${CORTEX_IMAGE_TYPE}" = "tensorflow-predictor" ]; then
             tensorflow-cpu==2.3.0 \
             tensorflow-serving-api==2.3.0
     fi
-elif [ "${CORTEX_IMAGE_TYPE}" = "onnx-predictor-cpu" ] && ! module_exists "onnxruntime"; then
-    pip install --no-cache-dir -U \
-        onnxruntime==1.6.0
-elif [ "${CORTEX_IMAGE_TYPE}" = "onnx-predictor-gpu" ] && ! module_exists "onnxruntime"; then
-    pip install --no-cache-dir -U \
-        onnxruntime-gpu==1.6.0
 fi

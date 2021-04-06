@@ -162,7 +162,7 @@ CPU Reservations:
 
 FluentBit 100
 StatsDExporter 100
-NodeExporter 100
+NodeExporter 110 (it has two containers)
 KubeProxy 100
 AWS cni 10
 Reserved (150 + 150) see eks.yaml for details
@@ -174,7 +174,7 @@ Memory Reservations:
 
 FluentBit 150
 StatsDExporter 100
-NodeExporter 180
+NodeExporter 200 (it has two containers)
 Reserved (300 + 300 + 200) see eks.yaml for details
 */
 var _cortexMemReserve = kresource.MustParse("1230Mi")

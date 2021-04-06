@@ -19,14 +19,13 @@ package cmd
 import (
 	"fmt"
 	"net/url"
-	"runtime"
 	"strings"
 
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/urls"
 	"github.com/cortexlabs/cortex/pkg/types/clusterconfig"
-	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 )
 
 const (
@@ -39,38 +38,36 @@ func errStrFailedToConnect(u url.URL) string {
 }
 
 const (
-	ErrInvalidProvider             = "cli.invalid_provider"
-	ErrInvalidLegacyProvider       = "cli.invalid_legacy_provider"
-	ErrCommandNotSupportedForKind  = "cli.command_not_supported_for_kind"
-	ErrNoAvailableEnvironment      = "cli.no_available_environment"
-	ErrEnvironmentNotSet           = "cli.environment_not_set"
-	ErrEnvironmentNotFound         = "cli.environment_not_found"
-	ErrFieldNotFoundInEnvironment  = "cli.field_not_found_in_environment"
-	ErrInvalidOperatorEndpoint     = "cli.invalid_operator_endpoint"
-	ErrNoOperatorLoadBalancer      = "cli.no_operator_load_balancer"
-	ErrCortexYAMLNotFound          = "cli.cortex_yaml_not_found"
-	ErrConnectToDockerDaemon       = "cli.connect_to_docker_daemon"
-	ErrDockerPermissions           = "cli.docker_permissions"
-	ErrDockerCtrlC                 = "cli.docker_ctrl_c"
-	ErrResponseUnknown             = "cli.response_unknown"
-	ErrAPINotReady                 = "cli.api_not_ready"
-	ErrOneAWSEnvVarSet             = "cli.one_aws_env_var_set"
-	ErrOneAWSFlagSet               = "cli.one_aws_flag_set"
-	ErrOnlyAWSClusterEnvVarSet     = "cli.only_aws_cluster_env_var_set"
-	ErrOnlyAWSClusterFlagSet       = "cli.only_aws_cluster_flag_set"
-	ErrMissingAWSCredentials       = "cli.missing_aws_credentials"
-	ErrCredentialsInClusterConfig  = "cli.credentials_in_cluster_config"
-	ErrClusterUp                   = "cli.cluster_up"
-	ErrClusterConfigure            = "cli.cluster_configure"
-	ErrClusterInfo                 = "cli.cluster_info"
-	ErrClusterDebug                = "cli.cluster_debug"
-	ErrClusterRefresh              = "cli.cluster_refresh"
-	ErrClusterDown                 = "cli.cluster_down"
-	ErrDuplicateCLIEnvNames        = "cli.duplicate_cli_env_names"
-	ErrClusterAccessConfigRequired = "cli.cluster_access_config_or_prompts_required"
-	ErrShellCompletionNotSupported = "cli.shell_completion_not_supported"
-	ErrNoTerminalWidth             = "cli.no_terminal_width"
-	ErrDeployFromTopLevelDir       = "cli.deploy_from_top_level_dir"
+	ErrInvalidProvider                     = "cli.invalid_provider"
+	ErrInvalidLegacyProvider               = "cli.invalid_legacy_provider"
+	ErrNoAvailableEnvironment              = "cli.no_available_environment"
+	ErrEnvironmentNotSet                   = "cli.environment_not_set"
+	ErrEnvironmentNotFound                 = "cli.environment_not_found"
+	ErrFieldNotFoundInEnvironment          = "cli.field_not_found_in_environment"
+	ErrInvalidOperatorEndpoint             = "cli.invalid_operator_endpoint"
+	ErrNoOperatorLoadBalancer              = "cli.no_operator_load_balancer"
+	ErrCortexYAMLNotFound                  = "cli.cortex_yaml_not_found"
+	ErrDockerCtrlC                         = "cli.docker_ctrl_c"
+	ErrResponseUnknown                     = "cli.response_unknown"
+	ErrOnlyAWSClusterFlagSet               = "cli.only_aws_cluster_flag_set"
+	ErrMissingAWSCredentials               = "cli.missing_aws_credentials"
+	ErrCredentialsInClusterConfig          = "cli.credentials_in_cluster_config"
+	ErrClusterUp                           = "cli.cluster_up"
+	ErrClusterScale                        = "cli.cluster_scale"
+	ErrClusterInfo                         = "cli.cluster_info"
+	ErrClusterDebug                        = "cli.cluster_debug"
+	ErrClusterRefresh                      = "cli.cluster_refresh"
+	ErrClusterDown                         = "cli.cluster_down"
+	ErrSpecifyAtLeastOneFlag               = "cli.specify_at_least_one_flag"
+	ErrMinInstancesLowerThan               = "cli.min_instances_lower_than"
+	ErrMaxInstancesLowerThan               = "cli.max_instances_lower_than"
+	ErrMinInstancesGreaterThanMaxInstances = "cli.min_instances_greater_than_max_instances"
+	ErrNodeGroupNotFound                   = "cli.nodegroup_not_found"
+	ErrDuplicateCLIEnvNames                = "cli.duplicate_cli_env_names"
+	ErrClusterAccessConfigRequired         = "cli.cluster_access_config_or_prompts_required"
+	ErrShellCompletionNotSupported         = "cli.shell_completion_not_supported"
+	ErrNoTerminalWidth                     = "cli.no_terminal_width"
+	ErrDeployFromTopLevelDir               = "cli.deploy_from_top_level_dir"
 )
 
 func ErrorInvalidProvider(providerStr, cliConfigPath string) error {
@@ -84,13 +81,6 @@ func ErrorInvalidLegacyProvider(providerStr, cliConfigPath string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrInvalidLegacyProvider,
 		Message: fmt.Sprintf("the %s provider is no longer supported on cortex v%s; remove the environment(s) which use the %s provider from %s, or delete %s (it will be recreated on subsequent CLI commands)", providerStr, consts.CortexVersionMinor, providerStr, cliConfigPath, cliConfigPath),
-	})
-}
-
-func ErrorCommandNotSupportedForKind(kind userconfig.Kind, command string) error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrCommandNotSupportedForKind,
-		Message: fmt.Sprintf("the `%s` command is not supported for %s kind", command, kind),
 	})
 }
 
@@ -143,32 +133,6 @@ func ErrorCortexYAMLNotFound() error {
 	})
 }
 
-func ErrorConnectToDockerDaemon() error {
-	installMsg := "install it by following the instructions for your operating system: https://docs.docker.com/install"
-	if strings.HasPrefix(runtime.GOOS, "darwin") {
-		installMsg = "install it here: https://docs.docker.com/docker-for-mac/install"
-	}
-
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrConnectToDockerDaemon,
-		Message: fmt.Sprintf("unable to connect to the Docker daemon\n\nplease confirm Docker is running, or if Docker is not installed, %s", installMsg),
-	})
-}
-
-func ErrorDockerPermissions(err error) error {
-	errStr := errors.Message(err)
-
-	var groupAddStr string
-	if strings.HasPrefix(runtime.GOOS, "linux") {
-		groupAddStr = " (e.g. by running `sudo groupadd docker && sudo gpasswd -a $USER docker`)"
-	}
-
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrDockerPermissions,
-		Message: errStr + "\n\nyou can re-run this command with `sudo`, or grant your current user access to docker" + groupAddStr,
-	})
-}
-
 func ErrorDockerCtrlC() error {
 	return errors.WithStack(&errors.Error{
 		Kind:        ErrDockerCtrlC,
@@ -189,34 +153,6 @@ func ErrorResponseUnknown(body string, statusCode int) error {
 	})
 }
 
-func ErrorAPINotReady(apiName string, status string) error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrAPINotReady,
-		Message: fmt.Sprintf("%s is %s", apiName, status),
-	})
-}
-
-func ErrorOneAWSEnvVarSet(setEnvVar string, missingEnvVar string) error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrOneAWSEnvVarSet,
-		Message: fmt.Sprintf("only $%s is set; please run `export %s=***`", setEnvVar, missingEnvVar),
-	})
-}
-
-func ErrorOneAWSFlagSet(setFlag string, missingFlag string) error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrOneAWSFlagSet,
-		Message: fmt.Sprintf("only flag %s was provided; please provide %s as well", setFlag, missingFlag),
-	})
-}
-
-func ErrorOnlyAWSClusterEnvVarSet() error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrOnlyAWSClusterEnvVarSet,
-		Message: "when specifying $CLUSTER_AWS_ACCESS_KEY_ID and $CLUSTER_AWS_SECRET_ACCESS_KEY, please also specify $AWS_ACCESS_KEY_ID and $AWS_SECRET_ACCESS_KEY",
-	})
-}
-
 func ErrorClusterUp(out string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrClusterUp,
@@ -225,9 +161,9 @@ func ErrorClusterUp(out string) error {
 	})
 }
 
-func ErrorClusterConfigure(out string) error {
+func ErrorClusterScale(out string) error {
 	return errors.WithStack(&errors.Error{
-		Kind:    ErrClusterConfigure,
+		Kind:    ErrClusterScale,
 		Message: out,
 		NoPrint: true,
 	})
@@ -265,10 +201,51 @@ func ErrorClusterDown(out string) error {
 	})
 }
 
-func ErrorClusterAccessConfigRequired() error {
+func ErrorSpecifyAtLeastOneFlag(flagsToSpecify ...string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrSpecifyAtLeastOneFlag,
+		Message: fmt.Sprintf("must specify at least one of the following flags: %s", s.StrsOr(flagsToSpecify)),
+	})
+}
+
+func ErrorMinInstancesLowerThan(minValue int64) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrMinInstancesLowerThan,
+		Message: fmt.Sprintf("min instances cannot be set to a value lower than %d", minValue),
+	})
+}
+
+func ErrorMaxInstancesLowerThan(minValue int64) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrMaxInstancesLowerThan,
+		Message: fmt.Sprintf("max instances cannot be set to a value lower than %d", minValue),
+	})
+}
+
+func ErrorMinInstancesGreaterThanMaxInstances(minInstances, maxInstances int64) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrMinInstancesGreaterThanMaxInstances,
+		Message: "min instances (%d) cannot be set to a value higher than max instances (%d)",
+	})
+}
+
+func ErrorNodeGroupNotFound(scalingNodeGroupName, clusterName, clusterRegion string, availableNodeGroups []string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrNodeGroupNotFound,
+		Message: fmt.Sprintf("nodegroup %s couldn't be found in the cluster named %s in region %s; the available nodegroups for this cluster are %s", scalingNodeGroupName, clusterName, clusterRegion, s.StrsAnd(availableNodeGroups)),
+	})
+}
+
+func ErrorClusterAccessConfigRequired(cliFlagsOnly bool) error {
+	message := ""
+	if cliFlagsOnly {
+		message = "please provide the name and region of the cluster using the CLI flags (e.g. via `--name` and `--region`)"
+	} else {
+		message = fmt.Sprintf("please provide a cluster configuration file which specifies `%s` and `%s` (e.g. via `--config cluster.yaml`) or use the CLI flags to specify the cluster (e.g. via `--name` and `--region`)", clusterconfig.ClusterNameKey, clusterconfig.RegionKey)
+	}
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrClusterAccessConfigRequired,
-		Message: fmt.Sprintf("please provide a cluster configuration file which specifies `%s` and `%s` (e.g. via `--config cluster.yaml`) or use the CLI flags to specify the cluster (e.g. via `--name` and `--region`)", clusterconfig.ClusterNameKey, clusterconfig.RegionKey),
+		Message: message,
 	})
 }
 

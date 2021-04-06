@@ -1,9 +1,9 @@
 - name: multi-model-classifier
   kind: RealtimeAPI
   predictor:
-    type: onnx
+    type: python
     path: predictor.py
-    models:
+    multi_model_reloading:
       paths:
         - name: resnet50
           path: s3://cortex-examples/onnx/resnet50/

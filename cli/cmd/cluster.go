@@ -51,15 +51,17 @@ import (
 )
 
 var (
-	_flagClusterUpEnv           string
-	_flagClusterInfoEnv         string
-	_flagClusterConfigureEnv    string
-	_flagClusterConfig          string
-	_flagClusterName            string
-	_flagClusterRegion          string
-	_flagClusterInfoDebug       bool
-	_flagClusterDisallowPrompt  bool
-	_flagClusterDownKeepVolumes bool
+	_flagClusterUpEnv             string
+	_flagClusterInfoEnv           string
+	_flagClusterScaleNodeGroup    string
+	_flagClusterScaleMinInstances int64
+	_flagClusterScaleMaxInstances int64
+	_flagClusterConfig            string
+	_flagClusterName              string
+	_flagClusterRegion            string
+	_flagClusterInfoDebug         bool
+	_flagClusterDisallowPrompt    bool
+	_flagClusterDownKeepVolumes   bool
 )
 
 var _eksctlPrefixRegex = regexp.MustCompile(`^[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2} \[.+] {2}`)
@@ -79,10 +81,12 @@ func clusterInit() {
 	_clusterInfoCmd.Flags().BoolVarP(&_flagClusterDisallowPrompt, "yes", "y", false, "skip prompts")
 	_clusterCmd.AddCommand(_clusterInfoCmd)
 
-	_clusterConfigureCmd.Flags().SortFlags = false
-	_clusterConfigureCmd.Flags().StringVarP(&_flagClusterConfigureEnv, "configure-env", "e", "", "name of environment to configure")
-	_clusterConfigureCmd.Flags().BoolVarP(&_flagClusterDisallowPrompt, "yes", "y", false, "skip prompts")
-	_clusterCmd.AddCommand(_clusterConfigureCmd)
+	_clusterScaleCmd.Flags().SortFlags = false
+	addClusterNameFlag(_clusterScaleCmd)
+	addClusterRegionFlag(_clusterScaleCmd)
+	addClusterScaleFlags(_clusterScaleCmd)
+	_clusterScaleCmd.Flags().BoolVarP(&_flagClusterDisallowPrompt, "yes", "y", false, "skip prompts")
+	_clusterCmd.AddCommand(_clusterScaleCmd)
 
 	_clusterDownCmd.Flags().SortFlags = false
 	addClusterConfigFlag(_clusterDownCmd)
@@ -110,6 +114,13 @@ func addClusterNameFlag(cmd *cobra.Command) {
 
 func addClusterRegionFlag(cmd *cobra.Command) {
 	cmd.Flags().StringVarP(&_flagClusterRegion, "region", "r", "", "aws region of the cluster")
+}
+
+func addClusterScaleFlags(cmd *cobra.Command) {
+	cmd.Flags().StringVar(&_flagClusterScaleNodeGroup, "node-group", "", "name of the node group to scale")
+	cmd.MarkFlagRequired("node-group")
+	cmd.Flags().Int64Var(&_flagClusterScaleMinInstances, "min-instances", 0, "minimum number of instances")
+	cmd.Flags().Int64Var(&_flagClusterScaleMaxInstances, "max-instances", 0, "maximum number of instances")
 }
 
 var _clusterCmd = &cobra.Command{
@@ -193,7 +204,7 @@ var _clusterUpCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
-		out, exitCode, err := runManagerWithClusterConfig("/root/install.sh", clusterConfig, awsClient, nil, nil)
+		out, exitCode, err := runManagerWithClusterConfig("/root/install.sh", clusterConfig, awsClient, nil, nil, nil)
 		if err != nil {
 			exit.Error(err)
 		}
@@ -288,20 +299,29 @@ var _clusterUpCmd = &cobra.Command{
 	},
 }
 
-var _clusterConfigureCmd = &cobra.Command{
-	Use:   "configure [CLUSTER_CONFIG_FILE]",
-	Short: "update a cluster's configuration",
-	Args:  cobra.ExactArgs(1),
+var _clusterScaleCmd = &cobra.Command{
+	Use:   "scale [flags]",
+	Short: "update the min/max instances for a nodegroup",
+	Args:  cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
 		telemetry.Event("cli.cluster.configure")
 
-		clusterConfigFile := args[0]
+		var scaleMinIntances, scaleMaxInstances *int64
+		if wasFlagProvided(cmd, "min-instances") {
+			scaleMinIntances = pointer.Int64(_flagClusterScaleMinInstances)
+		}
+		if wasFlagProvided(cmd, "max-instances") {
+			scaleMaxInstances = pointer.Int64(_flagClusterScaleMaxInstances)
+		}
+		if scaleMinIntances == nil && scaleMaxInstances == nil {
+			exit.Error(ErrorSpecifyAtLeastOneFlag("--min-instances", "--max-instances"))
+		}
 
 		if _, err := docker.GetDockerClient(); err != nil {
 			exit.Error(err)
 		}
 
-		accessConfig, err := getNewClusterAccessConfig(clusterConfigFile)
+		accessConfig, err := getClusterAccessConfigWithCache()
 		if err != nil {
 			exit.Error(err)
 		}
@@ -321,14 +341,17 @@ var _clusterConfigureCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
-		cachedClusterConfig := refreshCachedClusterConfig(*awsClient, accessConfig)
-
-		clusterConfig, err := getConfigureClusterConfig(cachedClusterConfig, clusterConfigFile, _flagClusterDisallowPrompt)
+		clusterConfig := refreshCachedClusterConfig(*awsClient, accessConfig)
+		clusterConfig, err = updateNodeGroupScale(clusterConfig, _flagClusterScaleNodeGroup, scaleMinIntances, scaleMaxInstances, _flagClusterDisallowPrompt)
 		if err != nil {
 			exit.Error(err)
 		}
 
-		out, exitCode, err := runManagerWithClusterConfig("/root/install.sh --update", clusterConfig, awsClient, nil, nil)
+		out, exitCode, err := runManagerWithClusterConfig("/root/install.sh --update", &clusterConfig, awsClient, nil, nil, []string{
+			"CORTEX_SCALING_NODEGROUP=" + _flagClusterScaleNodeGroup,
+			"CORTEX_SCALING_MIN_INSTANCES=" + s.Int64(_flagClusterScaleMinInstances),
+			"CORTEX_SCALING_MAX_INSTANCES=" + s.Int64(_flagClusterScaleMaxInstances),
+		})
 		if err != nil {
 			exit.Error(err)
 		}
@@ -336,19 +359,7 @@ var _clusterConfigureCmd = &cobra.Command{
 			helpStr := "\ndebugging tips (may or may not apply to this error):"
 			helpStr += fmt.Sprintf("\n* if your cluster was unable to provision instances, additional error information may be found in the activity history of your cluster's autoscaling groups (select each autoscaling group and click the  \"Activity\" or \"Activity History\" tab): https://console.aws.amazon.com/ec2/autoscaling/home?region=%s#AutoScalingGroups:", clusterConfig.Region)
 			fmt.Println(helpStr)
-			exit.Error(ErrorClusterConfigure(out + helpStr))
-		}
-
-		if _flagClusterConfigureEnv != "" {
-			loadBalancer, err := getAWSOperatorLoadBalancer(clusterConfig.ClusterName, awsClient)
-			if err != nil {
-				exit.Error(errors.Append(err, fmt.Sprintf("\n\nyou can attempt to resolve this issue and configure your cli environment by running `cortex cluster info --configure-env %s`", _flagClusterConfigureEnv)))
-			}
-			operatorEndpoint := "https://" + *loadBalancer.DNSName
-			err = updateAWSCLIEnv(_flagClusterConfigureEnv, operatorEndpoint, _flagClusterDisallowPrompt)
-			if err != nil {
-				exit.Error(errors.Append(err, fmt.Sprintf("\n\nyou can attempt to resolve this issue and configure your cli environment by running `cortex cluster info --configure-env %s`", _flagClusterConfigureEnv)))
-			}
+			exit.Error(ErrorClusterScale(out + helpStr))
 		}
 	},
 }
@@ -659,7 +670,7 @@ func cmdInfo(awsClient *aws.Client, accessConfig *clusterconfig.AccessConfig, di
 
 	clusterConfig := refreshCachedClusterConfig(*awsClient, accessConfig)
 
-	out, exitCode, err := runManagerWithClusterConfig("/root/info.sh", &clusterConfig, awsClient, nil, nil)
+	out, exitCode, err := runManagerWithClusterConfig("/root/info.sh", &clusterConfig, awsClient, nil, nil, nil)
 	if err != nil {
 		exit.Error(err)
 	}
@@ -968,6 +979,75 @@ func refreshCachedClusterConfig(awsClient aws.Client, accessConfig *clusterconfi
 		exit.Error(err)
 	}
 	return *refreshedClusterConfig
+}
+
+func updateNodeGroupScale(clusterConfig clusterconfig.Config, targetNg string, desiredMinReplicas, desiredMaxReplicas *int64, disallowPrompt bool) (clusterconfig.Config, error) {
+	clusterName := clusterConfig.ClusterName
+	region := clusterConfig.Region
+
+	ngFound := false
+	availableNodeGroups := []string{}
+	for idx, ng := range clusterConfig.NodeGroups {
+		if ng == nil {
+			continue
+		}
+		availableNodeGroups = append(availableNodeGroups, ng.Name)
+		if ng.Name == targetNg {
+			var minReplicas, maxReplicas int64
+			if desiredMinReplicas == nil {
+				minReplicas = ng.MinInstances
+			} else {
+				minReplicas = *desiredMinReplicas
+			}
+			if desiredMaxReplicas == nil {
+				maxReplicas = ng.MaxInstances
+			} else {
+				maxReplicas = *desiredMaxReplicas
+			}
+
+			if minReplicas < 0 {
+				return clusterconfig.Config{}, ErrorMinInstancesLowerThan(0)
+			}
+			if maxReplicas < 0 {
+				return clusterconfig.Config{}, ErrorMaxInstancesLowerThan(0)
+			}
+			if minReplicas > maxReplicas {
+				return clusterconfig.Config{}, ErrorMinInstancesGreaterThanMaxInstances(minReplicas, maxReplicas)
+			}
+
+			if ng.MinInstances == minReplicas && ng.MaxInstances == maxReplicas {
+				fmt.Printf("the %s nodegroup in the %s cluster in %s already has min instances set to %d and max instances set to %d\n", ng.Name, clusterName, region, minReplicas, maxReplicas)
+				exit.Ok()
+			}
+
+			if !disallowPrompt {
+				promptMessage := ""
+				if ng.MinInstances != minReplicas && ng.MaxInstances != maxReplicas {
+					promptMessage = fmt.Sprintf("your nodegroup named %s in your %s cluster in %s will update its %s from %d to %d and update its %s from %d to %d", ng.Name, clusterName, region, clusterconfig.MinInstancesKey, ng.MinInstances, minReplicas, clusterconfig.MaxInstancesKey, ng.MaxInstances, maxReplicas)
+				}
+				if ng.MinInstances == minReplicas && ng.MaxInstances != maxReplicas {
+					promptMessage = fmt.Sprintf("your nodegroup named %s in your %s cluster in %s will update its %s from %d to %d", ng.Name, clusterName, region, clusterconfig.MaxInstancesKey, ng.MaxInstances, maxReplicas)
+				}
+				if ng.MinInstances != minReplicas && ng.MaxInstances == maxReplicas {
+					promptMessage = fmt.Sprintf("your nodegroup named %s in your %s cluster in %s will update its %s from %d to %d", ng.Name, clusterName, region, clusterconfig.MinInstancesKey, ng.MinInstances, minReplicas)
+				}
+				if !prompt.YesOrNo(promptMessage, "", "") {
+					exit.Ok()
+				}
+			}
+
+			clusterConfig.NodeGroups[idx].MinInstances = minReplicas
+			clusterConfig.NodeGroups[idx].MaxInstances = maxReplicas
+			ngFound = true
+			break
+		}
+	}
+
+	if !ngFound {
+		return clusterconfig.Config{}, ErrorNodeGroupNotFound(targetNg, clusterName, region, availableNodeGroups)
+	}
+
+	return clusterConfig, nil
 }
 
 func createS3BucketIfNotFound(awsClient *aws.Client, bucket string, tags map[string]string) error {

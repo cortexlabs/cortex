@@ -1,7 +1,7 @@
 - name: iris-classifier
   kind: RealtimeAPI
   predictor:
-    type: onnx
+    type: python
     path: predictor.py
-    models:
+    multi_model_reloading:
       path: s3://cortex-examples/onnx/iris-classifier/

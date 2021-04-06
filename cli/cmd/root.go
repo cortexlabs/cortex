@@ -198,15 +198,15 @@ func addVerboseFlag(cmd *cobra.Command) {
 	cmd.Flags().BoolVarP(&_flagVerbose, "verbose", "v", false, "show additional information (only applies to pretty output format)")
 }
 
-func wasEnvFlagProvided(cmd *cobra.Command) bool {
-	envFlagProvided := false
+func wasFlagProvided(cmd *cobra.Command, flagName string) bool {
+	flagWasProvided := false
 	cmd.Flags().VisitAll(func(flag *pflag.Flag) {
-		if flag.Shorthand == "e" && flag.Changed && flag.Value.String() != "" {
-			envFlagProvided = true
+		if flag.Name == flagName && flag.Changed && flag.Value.String() != "" {
+			flagWasProvided = true
 		}
 	})
 
-	return envFlagProvided
+	return flagWasProvided
 }
 
 func printEnvIfNotSpecified(envName string, cmd *cobra.Command) error {
@@ -228,7 +228,7 @@ func envStringIfNotSpecified(envName string, cmd *cobra.Command) (string, error)
 		return "", err
 	}
 
-	if _flagOutput == flags.PrettyOutputType && !wasEnvFlagProvided(cmd) && len(envNames) > 1 {
+	if _flagOutput == flags.PrettyOutputType && !wasFlagProvided(cmd, "env") && len(envNames) > 1 {
 		return fmt.Sprintf("using %s environment\n\n", envName), nil
 	}
 
