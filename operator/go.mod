@@ -3,6 +3,7 @@ module github.com/cortexlabs/cortex/operator
 go 1.13
 
 require (
+	github.com/aws/aws-sdk-go v1.36.2 // indirect
 	github.com/cortexlabs/cortex v0.32.0
 	github.com/go-logr/logr v0.1.0
 	github.com/onsi/ginkgo v1.11.0
@@ -14,6 +15,6 @@ require (
 )
 
 replace (
-	github.com/cortexlabs/cortex/pkg/types/status => ../
+	github.com/cortexlabs/cortex => ../
 	github.com/docker/docker => github.com/docker/engine v17.12.0-ce-rc1.0.20200618181300-9dc6525e6118+incompatible
 )

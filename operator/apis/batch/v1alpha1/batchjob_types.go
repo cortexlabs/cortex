@@ -69,14 +69,11 @@ type BatchJobStatus struct {
 	// Job ID
 	ID string `json:"id,omitempty"`
 
-	// Creation timestamp
-	CreatedTime kmeta.Time `json:"created_time,omitempty"`
-
 	// Processing start timestamp
-	StartTime kmeta.Time `json:"start_time,omitempty"`
+	StartTime *kmeta.Time `json:"start_time,omitempty"`
 
 	// Processing ending timestamp
-	EndTime kmeta.Time `json:"end_time,omitempty"`
+	EndTime *kmeta.Time `json:"end_time,omitempty"`
 
 	// URL for the used SQS queue
 	QueueURL string `json:"queue_url,omitempty"`
@@ -85,7 +82,7 @@ type BatchJobStatus struct {
 	Status string `json:"status,omitempty"`
 
 	// Detailed worker counts with respective status
-	WorkerCounts status.WorkerCounts `json:"worker_counts,omitempty"`
+	WorkerCounts *status.WorkerCounts `json:"worker_counts,omitempty"`
 }
 
 // +kubebuilder:object:root=true
