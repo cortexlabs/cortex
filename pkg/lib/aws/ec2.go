@@ -41,7 +41,7 @@ var _armInstanceCapabilityRegex = regexp.MustCompile(`^\w+[0-9]+\w*g\w*\.\w+$`)
 // instanceType is assumed to be a valid instance type that exists in AWS, e.g. g4dn.xlarge
 func IsARMInstance(instanceType string) bool {
 	if strings.HasPrefix(instanceType, "a") {
-		return false
+		return true
 	}
 	return _armInstanceCapabilityRegex.MatchString(instanceType)
 }
