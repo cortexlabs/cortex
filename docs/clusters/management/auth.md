@@ -10,7 +10,7 @@ Cortex client uses the default credential provider chain to get credentials for 
 
 ### Cluster management
 
-It is recommended that your AWS credentials have AdminstratorAccess when running `cortex cluster *` commands. For the advanced users, see [minimum IAM policy](#minimum-iam-policy) section below to see view the minimum permissions required to run `cortex cluster *` commands.
+It is recommended that your AWS credentials have AdministratorAccess when running `cortex cluster *` commands. For the advanced users, see [minimum IAM policy](#minimum-iam-policy) section below to see view the minimum permissions required to run `cortex cluster *` commands.
 
 After spinning up a cluster using `cortex cluster up`, the IAM entity user or role that created the cluster is automatically granted `system:masters` permission to the cluster's RBAC. Make sure to keep track of which IAM entity originally created the cluster.
 

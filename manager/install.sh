@@ -38,7 +38,6 @@ function cluster_up() {
 
   echo -n "￮ updating cluster configuration "
   setup_configmap
-  setup_secrets
   echo "✓"
 
   echo -n "￮ configuring networking (this might take a few minutes) "
@@ -93,7 +92,6 @@ function cluster_configure() {
 
   echo -n "￮ updating cluster configuration "
   setup_configmap
-  setup_secrets
   echo "✓"
 
   # this is necessary since max_instances may have been updated
@@ -215,13 +213,6 @@ function setup_configmap() {
     --from-literal='CORTEX_TELEMETRY_SENTRY_DSN'=$CORTEX_TELEMETRY_SENTRY_DSN \
     --from-literal='CORTEX_TELEMETRY_SEGMENT_WRITE_KEY'=$CORTEX_TELEMETRY_SEGMENT_WRITE_KEY \
     --from-literal='CORTEX_DEV_DEFAULT_IMAGE_REGISTRY'=$CORTEX_DEV_DEFAULT_IMAGE_REGISTRY \
-    -o yaml --dry-run=client | kubectl apply -f - >/dev/null
-}
-
-function setup_secrets() {
-  kubectl -n=default create secret generic 'aws-credentials' \
-    --from-literal='AWS_ACCESS_KEY_ID'=$CLUSTER_AWS_ACCESS_KEY_ID \
-    --from-literal='AWS_SECRET_ACCESS_KEY'=$CLUSTER_AWS_SECRET_ACCESS_KEY \
     -o yaml --dry-run=client | kubectl apply -f - >/dev/null
 }
 
@@ -356,7 +347,8 @@ function start_pre_download_images() {
 }
 
 function await_pre_download_images() {
-  echo -n "￮ downloading docker images ."
+  echo -n "￮ downloading docker images "
+  printed_dot="false"
   for ds_name in image-downloader-cpu image-downloader-gpu image-downloader-inf; do
     if ! kubectl get daemonset $ds_name > /dev/null 2>&1; then
       continue
@@ -365,13 +357,14 @@ function await_pre_download_images() {
     until [ "$(kubectl get daemonset $ds_name -n=default -o 'jsonpath={.status.numberReady}')" == "$(kubectl get daemonset $ds_name -n=default -o 'jsonpath={.status.desiredNumberScheduled}')" ]; do
       if [ $i -eq 120 ]; then break; fi  # give up after 6 minutes
       echo -n "."
+      printed_dot="true"
       ((i=i+1))
       sleep 3
     done
     kubectl -n=default delete --ignore-not-found=true daemonset $ds_name &>/dev/null
   done
 
-  echo " ✓"
+  if [ "$printed_dot" == "true" ]; then echo " ✓"; else echo "✓"; fi
 }
 
 function validate_cortex() {

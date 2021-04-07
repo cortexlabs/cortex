@@ -18,13 +18,11 @@ package endpoints
 
 import (
 	"net/http"
-	"os"
 	"sort"
 	"strings"
 
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
-	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
 	"github.com/cortexlabs/cortex/pkg/types/clusterconfig"
@@ -49,10 +47,9 @@ func Info(w http.ResponseWriter, r *http.Request) {
 	}
 
 	response := schema.InfoResponse{
-		MaskedAWSAccessKeyID: s.MaskString(os.Getenv("AWS_ACCESS_KEY_ID"), 4),
-		ClusterConfig:        fullClusterConfig,
-		NodeInfos:            nodeInfos,
-		NumPendingReplicas:   numPendingReplicas,
+		ClusterConfig:      fullClusterConfig,
+		NodeInfos:          nodeInfos,
+		NumPendingReplicas: numPendingReplicas,
 	}
 	respond(w, response)
 }

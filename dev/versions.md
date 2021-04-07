@@ -136,7 +136,7 @@ It's probably safest to use the minor version of Python that you get when you
 run `apt-get install python3` ([currently that's what TensorFlow's Docker image does](https://github.com/tensorflow/tensorflow/blob/master/tensorflow/tools/dockerfiles/dockerfiles/cpu.Dockerfile))
 , or what you get by default in Google CoLab. In theory, it should be safe to use the lowest of the maximum supported
 python versions in our pip dependencies (e.g. [tensorflow](https://pypi.org/project/tensorflow)
-, [Keras](https://pypi.org/project/Keras), [numpy](https://pypi.org/project/numpy)
+, [Keras](https://pypi.org/project/Keras),
 , [pandas](https://pypi.org/project/pandas), [scikit-learn](https://pypi.org/project/scikit-learn)
 , [scipy](https://pypi.org/project/scipy), [torch](https://pypi.org/project/torch)
 , [xgboost](https://pypi.org/project/xgboost))
