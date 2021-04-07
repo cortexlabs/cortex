@@ -12,10 +12,6 @@ Prometheus volume are not automatically deleted when running `cortex cluster dow
 To delete them:
 
 ```bash
-# set AWS credentials
-export AWS_ACCESS_KEY_ID=***
-export AWS_SECRET_ACCESS_KEY=***
-
 # identify the name of your cortex S3 bucket
 aws s3 ls
 

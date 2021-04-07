@@ -21,6 +21,4 @@ const (
 	DefaultEnvironmentKey = "default_environment"
 	NameKey               = "name"
 	OperatorEndpointKey   = "operator_endpoint"
-	AWSAccessKeyIDKey     = "aws_access_key_id"
-	AWSSecretAccessKeyKey = "aws_secret_access_key"
 )
