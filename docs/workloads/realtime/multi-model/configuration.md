@@ -22,7 +22,6 @@ The directory `s3://cortex-examples/sklearn/mpg-estimator/linreg/` contains 4 di
 
 ```python
 import mlflow.sklearn
-import numpy as np
 
 
 class PythonPredictor:
