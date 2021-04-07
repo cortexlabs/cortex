@@ -742,12 +742,8 @@ func printInfoOperatorResponse(clusterConfig clusterconfig.Config, operatorEndpo
 	}
 	infoResponse.ClusterConfig.Config = clusterConfig
 
-	fmt.Println(console.Bold("metadata:"))
-	fmt.Println(fmt.Sprintf("aws access key id: %s", infoResponse.MaskedAWSAccessKeyID))
-	fmt.Println(fmt.Sprintf("%s: %s", clusterconfig.APIVersionUserKey, infoResponse.ClusterConfig.APIVersion))
-
-	fmt.Println()
 	fmt.Println(console.Bold("cluster config:"))
+	fmt.Println(fmt.Sprintf("%s: %s", clusterconfig.APIVersionUserKey, infoResponse.ClusterConfig.APIVersion))
 	fmt.Print(yamlString)
 
 	printInfoPricing(infoResponse, clusterConfig)
