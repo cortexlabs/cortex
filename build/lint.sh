@@ -169,6 +169,7 @@ output=$(cd "$ROOT" && find . -type f \
 ! -name ".*" \
 ! -name "*.bin" \
 ! -name "*.wav" \
+! -name "*.json" \
 -print0 | \
 xargs -0 -L1 bash -c 'test "$(tail -c 1 "$0")" && echo "No new line at end of $0"' || true)
 if [[ $output ]]; then
@@ -217,6 +218,17 @@ output=$(cd "$ROOT" && find . -type f \
 xargs -0 -L1 bash -c 'test "$(head -c 1 "$0")" || [ ! -s "$0" ] || echo "New line at beginning of $0"' || true)
 if [[ $output ]]; then
   echo "$output"
+  exit 1
+fi
+
+# Check that minimum_aws_policy.json is in-sync with docs
+output=$(python3 -c "
+import sys
+policy=open('./dev/minimum_aws_policy.json').read()
+doc=open('./docs/clusters/management/auth.md').read()
+print(policy in doc)")
+if [[ "$output" == "False" ]]; then
+  echo "./dev/minimum_aws_policy.json and the policy in ./docs/clusters/management/auth.md are out of sync"
   exit 1
 fi
 

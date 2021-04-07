@@ -38,6 +38,7 @@ commands:
       - run:
           name: Install Dependencies
           command: |
+            pip install boto3 pyyaml awscli
             pip install -e ./test/e2e
             pip install https://s3-us-west-2.amazonaws.com/get-cortex/master/python/cortex-master.tar.gz
 
@@ -153,6 +154,15 @@ jobs:
                 min_instances: 1
                 max_instances: 2
             EOF
+      - run:
+          name: Create/Update AWS User policy
+          command: eval $(python ./manager/cluster_config_env.py cluster.yaml) && python ./dev/create_user.py $CORTEX_CLUSTER_NAME 388176669058 $CORTEX_REGION > $BASH_ENV
+      - run:
+          name: Wait for new keys to propagate in AWS
+          command: sleep 10
+      - run:
+          name: Verify configuration of credentials
+          command: aws sts get-caller-identity
       - run-e2e-tests:
           config: ./cluster.yaml
 

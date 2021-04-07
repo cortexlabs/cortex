@@ -26,7 +26,7 @@ cluster_name = sys.argv[1]
 account_id = sys.argv[2]
 cortex_region = sys.argv[3]
 
-with open("./dev/aws_policy.json", "r") as f:
+with open("./dev/minimum_aws_policy.json", "r") as f:
     policy_string = f.read()
 policy_string = policy_string.replace("$CORTEX_CLUSTER_NAME", cluster_name)
 policy_string = policy_string.replace("$CORTEX_REGION", cortex_region)
@@ -37,16 +37,16 @@ user_name = f"dev-{cluster_name}-{cortex_region}"
 iam_client = boto3.client("iam")
 
 try:
-    user_metadata = iam_client.get_user(UserName=user_name)
+    iam_client.get_user(UserName=user_name)
 except iam_client.exceptions.NoSuchEntityException:
-    user_metadata = iam_client.create_user(UserName=user_name)
+    iam_client.create_user(UserName=user_name)
 
 policy_arn = f"arn:aws:iam::{account_id}:policy/{user_name}"
 
 try:
-    response = iam_client.get_policy(PolicyArn=policy_arn)
+    iam_client.get_policy(PolicyArn=policy_arn)
 except iam_client.exceptions.NoSuchEntityException:
-    response = iam_client.create_policy(
+    iam_client.create_policy(
         PolicyName=user_name,
         PolicyDocument=policy_string,
     )
@@ -73,13 +73,10 @@ if not aws_credentials_path.exists():
 aws_credentials = configparser.ConfigParser()
 aws_credentials.read(aws_credentials_path)
 if not user_name in aws_credentials:
-    iam_client.create_access_key(UserName=user_name)
-
     access_keys = iam_client.list_access_keys(UserName=user_name)["AccessKeyMetadata"]
     if len(access_keys) == 2:
         access_keys.sort(key=lambda x: x["CreateDate"])
-
-    iam_client.delete_access_key(UserName=user_name, AccessKeyId=access_keys[0]["AccessKeyId"])
+        iam_client.delete_access_key(UserName=user_name, AccessKeyId=access_keys[0]["AccessKeyId"])
     key = iam_client.create_access_key(UserName=user_name)["AccessKey"]
     aws_credentials[user_name] = {
         "aws_access_key_id": key["AccessKeyId"],
