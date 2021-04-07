@@ -322,6 +322,7 @@ def test_autoscaling(
     primary_api_name = all_api_names[0]
     autoscaling = client.get_api(primary_api_name)["spec"]["autoscaling"]
 
+    # controls the flow of requests
     request_stopper = td.Event()
 
     # determine upscale/downscale replica requests
@@ -357,7 +358,7 @@ def test_autoscaling(
         ), f"apis {all_api_names} not ready"
 
         threads_futures = request_concurrent_predictions(
-            client, primary_api_name, concurrency, request_stopper
+            client, primary_api_name, concurrency, request_stopper, query_params={"sleep": "1.0"}
         )
 
         test_start_time = time.time()
@@ -381,7 +382,12 @@ def test_autoscaling(
             # check if the requesting threads are still healthy
             # if not, they'll raise an exception
             for future in threads_futures:
-                if future.exception():
+                has_exception = None
+                try:
+                    has_exception = future.exception(timeout=0.1)
+                except futures.TimeoutError:
+                    pass
+                if has_exception:
                     future.result()
 
             # check if the test is taking too much time
