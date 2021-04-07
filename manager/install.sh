@@ -356,7 +356,8 @@ function start_pre_download_images() {
 }
 
 function await_pre_download_images() {
-  echo -n "￮ downloading docker images ."
+  echo -n "￮ downloading docker images "
+  printed_dot="false"
   for ds_name in image-downloader-cpu image-downloader-gpu image-downloader-inf; do
     if ! kubectl get daemonset $ds_name > /dev/null 2>&1; then
       continue
@@ -365,13 +366,14 @@ function await_pre_download_images() {
     until [ "$(kubectl get daemonset $ds_name -n=default -o 'jsonpath={.status.numberReady}')" == "$(kubectl get daemonset $ds_name -n=default -o 'jsonpath={.status.desiredNumberScheduled}')" ]; do
       if [ $i -eq 120 ]; then break; fi  # give up after 6 minutes
       echo -n "."
+      printed_dot="true"
       ((i=i+1))
       sleep 3
     done
     kubectl -n=default delete --ignore-not-found=true daemonset $ds_name &>/dev/null
   done
 
-  echo " ✓"
+  if [ "$printed_dot" == "true" ]; then echo " ✓"; else echo "✓"; fi
 }
 
 function validate_cortex() {
