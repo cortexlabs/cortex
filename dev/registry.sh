@@ -236,6 +236,9 @@ elif [ "$cmd" = "update" ]; then
   if [[ " ${images_to_build[@]} " =~ " request-monitor " ]]; then
     cache_builder request-monitor
   fi
+  if [[ " ${images_to_build[@]} " =~ " async-gateway " ]]; then
+    cache_builder async-gateway
+  fi
 
   if command -v parallel &> /dev/null && [ -n "${NUM_BUILD_PROCS+set}" ] && [ "$NUM_BUILD_PROCS" != "1" ]; then
     is_registry_logged_in=$is_registry_logged_in ROOT=$ROOT registry_push_url=$registry_push_url SHELL=$(type -p /bin/bash) parallel --will-cite --halt now,fail=1 --eta --jobs $NUM_BUILD_PROCS build_and_push "{}" ::: "${images_to_build[@]}"
