@@ -315,7 +315,10 @@ def test_autoscaling(
         with open(str(api_dir / api_config_name)) as f:
             api_specs = yaml.safe_load(f)
         assert len(api_specs) == 1
-        api_specs[0]["autoscaling"] = {"max_replicas": concurrency}
+        api_specs[0]["autoscaling"] = {
+            "max_replicas": concurrency,
+            "downscale_stabilization_period": "1m",
+        }
         all_api_names.append(api_specs[0]["name"])
         client.create_api(api_spec=api_specs[0], project_dir=api_dir)
 
@@ -327,8 +330,6 @@ def test_autoscaling(
 
     # determine upscale/downscale replica requests
     current_replicas = 1  # starting number of replicas
-    expected_replica_curve = [current_replicas]
-    actual_replica_curve = []
     test_timeout = 0  # measured in seconds
     while current_replicas < concurrency:
         upscale_ceil = math.ceil(current_replicas * autoscaling["max_upscale_factor"])
@@ -338,7 +339,6 @@ def test_autoscaling(
             current_replicas += 1
         if current_replicas > concurrency:
             current_replicas = concurrency
-        expected_replica_curve.append(current_replicas)
         test_timeout += int(autoscaling["upscale_stabilization_period"] / (1000 ** 3))
     while current_replicas > 1:
         downscale_ceil = math.ceil(current_replicas * autoscaling["max_downscale_factor"])
@@ -346,10 +346,9 @@ def test_autoscaling(
             current_replicas = downscale_ceil
         else:
             current_replicas -= 1
-        expected_replica_curve.append(current_replicas)
         test_timeout += int(autoscaling["downscale_stabilization_period"] / (1000 ** 3))
 
-    # double the test timeout to account for the process of downloading images or adding nodes to the cluster
+    # add overhead to the test timeout to account for the process of downloading images or adding nodes to the cluster
     test_timeout *= 2
 
     try:
@@ -369,15 +368,10 @@ def test_autoscaling(
             current_replicas = client.get_api(primary_api_name)["status"]["replica_counts"][
                 "requested"
             ]
-            if len(actual_replica_curve) == 0 or actual_replica_curve[-1] != current_replicas:
-                actual_replica_curve.append(current_replicas)
+
+            # stop the requests from being made
             if current_replicas == concurrency:
                 request_stopper.set()
-            if not request_stopper.is_set() and current_replicas == 1:
-                break
-            assert (
-                actual_replica_curve == expected_replica_curve[: len(actual_replica_curve)]
-            ), f"actual replica curve ({actual_replica_curve}) doesn't match the expected replica curve ({expected_replica_curve[:len(actual_replica_curve)]})"
 
             # check if the requesting threads are still healthy
             # if not, they'll raise an exception
@@ -393,10 +387,10 @@ def test_autoscaling(
             # check if the test is taking too much time
             assert (
                 time.time() - test_start_time < test_timeout
-            ), f"apis {primary_api_name} did not finish in time; expected replica curve is {expected_replica_curve}, current replica curve is {actual_replica_curve}"
+            ), f"autoscaling test for api {primary_api_name} did not finish in {test_timeout}s; current number of replicas is {current_replicas}/{concurrency}"
 
-            # stop the test if it reached its end
-            if len(actual_replica_curve) == len(expected_replica_curve):
+            # stop the test if it has finished
+            if current_replicas == 1 and request_stopper.is_set():
                 break
 
             # add some delay to reduce the number of gets
