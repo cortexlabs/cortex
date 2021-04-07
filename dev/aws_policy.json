@@ -1,0 +1,139 @@
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Action": "iam:CreateServiceLinkedRole",
+            "Resource": "*",
+            "Condition": {
+                "StringEquals": {
+                    "iam:AWSServiceName": [
+                        "autoscaling.amazonaws.com",
+                        "ec2scheduled.amazonaws.com",
+                        "elasticloadbalancing.amazonaws.com",
+                        "spot.amazonaws.com",
+                        "spotfleet.amazonaws.com",
+                        "transitgateway.amazonaws.com"
+                    ]
+                }
+            }
+        },
+        {
+            "Effect": "Allow",
+            "Action": "iam:CreateServiceLinkedRole",
+            "Resource": "*",
+            "Condition": {
+                "StringEquals": {
+                    "iam:AWSServiceName": [
+                        "eks.amazonaws.com",
+                        "eks-nodegroup.amazonaws.com",
+                        "eks-fargate.amazonaws.com"
+                    ]
+                }
+            }
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "logs:ListTagsLogGroup",
+                "iam:GetRole",
+                "logs:TagLogGroup",
+                "ssm:GetParameters",
+                "ssm:GetParameter",
+                "logs:CreateLogGroup"
+            ],
+            "Resource": [
+                "arn:aws:ssm:*:$CORTEX_ACCOUNT_ID:parameter/aws/*",
+                "arn:aws:ssm:*::parameter/aws/*",
+                "arn:aws:logs:$CORTEX_REGION:$CORTEX_ACCOUNT_ID:log-group:$CORTEX_CLUSTER_NAME",
+                "arn:aws:iam::$CORTEX_ACCOUNT_ID:role/*"
+            ]
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "iam:CreateInstanceProfile",
+                "logs:ListTagsLogGroup",
+                "logs:DescribeLogStreams",
+                "iam:TagRole",
+                "iam:RemoveRoleFromInstanceProfile",
+                "iam:CreateRole",
+                "iam:AttachRolePolicy",
+                "iam:PutRolePolicy",
+                "iam:AddRoleToInstanceProfile",
+                "iam:ListInstanceProfilesForRole",
+                "iam:PassRole",
+                "logs:CreateLogStream",
+                "iam:DetachRolePolicy",
+                "logs:TagLogGroup",
+                "iam:ListAttachedRolePolicies",
+                "iam:DeleteRolePolicy",
+                "iam:DeleteOpenIDConnectProvider",
+                "iam:DeleteInstanceProfile",
+                "iam:GetRole",
+                "iam:GetInstanceProfile",
+                "iam:DeleteRole",
+                "iam:ListInstanceProfiles",
+                "logs:CreateLogGroup",
+                "logs:PutLogEvents",
+                "iam:CreateOpenIDConnectProvider",
+                "iam:GetOpenIDConnectProvider",
+                "iam:GetRolePolicy"
+            ],
+            "Resource": [
+                "arn:aws:iam::$CORTEX_ACCOUNT_ID:instance-profile/eksctl-*",
+                "arn:aws:iam::$CORTEX_ACCOUNT_ID:role/eksctl-*",
+                "arn:aws:iam::$CORTEX_ACCOUNT_ID:role/aws-service-role/eks-nodegroup.amazonaws.com/AWSServiceRoleForAmazonEKSNodegroup",
+                "arn:aws:iam::$CORTEX_ACCOUNT_ID:role/eksctl-managed-*",
+                "arn:aws:iam::$CORTEX_ACCOUNT_ID:oidc-provider/*",
+                "arn:aws:logs:$CORTEX_REGION:$CORTEX_ACCOUNT_ID:log-group:$CORTEX_CLUSTER_NAME:*"
+            ]
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "iam:CreatePolicy",
+                "iam:GetPolicyVersion",
+                "iam:ListPolicyVersions",
+                "iam:DeletePolicy",
+                "iam:CreatePolicyVersion",
+                "iam:DeletePolicyVersion"
+            ],
+            "Resource": "arn:aws:iam::$CORTEX_ACCOUNT_ID:policy/cortex-*"
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "sqs:ListQueues",
+                "iam:GetPolicy",
+                "ecr:GetAuthorizationToken",
+                "cloudformation:*",
+                "elasticloadbalancing:*",
+                "autoscaling:*",
+                "cloudwatch:*",
+                "ecr:BatchGetImage",
+                "kms:DescribeKey",
+                "ec2:*",
+                "sts:GetCallerIdentity",
+                "eks:*",
+                "kms:CreateGrant"
+            ],
+            "Resource": "*"
+        },
+        {
+            "Effect": "Allow",
+            "Action": "sqs:*",
+            "Resource": "arn:aws:sqs:$CORTEX_REGION:$CORTEX_ACCOUNT_ID:cx-*"
+        },
+        {
+            "Effect": "Allow",
+            "Action": "s3:*",
+            "Resource": "arn:aws:s3:::$CORTEX_CLUSTER_NAME*"
+        },
+        {
+            "Effect": "Allow",
+            "Action": "s3:*",
+            "Resource": "arn:aws:s3:::$CORTEX_CLUSTER_NAME*/*"
+        }
+    ]
+}
