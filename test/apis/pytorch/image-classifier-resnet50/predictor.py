@@ -27,16 +27,11 @@ class PythonPredictor:
         classes = requests.get(config["classes"]).json()
         self.idx2label = [classes[str(k)][1] for k in range(len(classes))]
 
-        # create s3 client
-        if os.environ.get("AWS_ACCESS_KEY_ID"):
-            s3 = boto3.client("s3")  # client will use your credentials if available
-        else:
-            s3 = boto3.client("s3", config=Config(signature_version=UNSIGNED))  # anonymous client
-
         # download the model
         model_path = config["model_path"]
         model_name = config["model_name"]
         bucket, key = re.match("s3://(.+?)/(.+)", model_path).groups()
+        s3 = boto3.client("s3")
         s3.download_file(bucket, os.path.join(key, model_name), model_name)
 
         # load the model

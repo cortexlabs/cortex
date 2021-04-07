@@ -13,12 +13,7 @@ class PythonPredictor:
     def __init__(self, config):
         # download the model
         bucket, key = re.match("s3://(.+?)/(.+)", config["model"]).groups()
-
-        if os.environ.get("AWS_ACCESS_KEY_ID"):
-            s3 = boto3.client("s3")  # client will use your credentials if available
-        else:
-            s3 = boto3.client("s3", config=Config(signature_version=UNSIGNED))  # anonymous client
-
+        s3 = boto3.client("s3")
         s3.download_file(bucket, key, "/tmp/model.pth")
 
         # initialize the model
