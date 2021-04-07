@@ -1210,6 +1210,9 @@ func (cc *CoreConfig) TelemetryEvent() map[string]interface{} {
 	if !strings.HasPrefix(cc.ImageRequestMonitor, "cortexlabs/") {
 		event["image_request_monitor._is_custom"] = true
 	}
+	if !strings.HasPrefix(cc.ImageAsyncGateway, "cortexlabs/") {
+		event["image_async_gateway._is_custom"] = true
+	}
 	if !strings.HasPrefix(cc.ImageClusterAutoscaler, "cortexlabs/") {
 		event["image_cluster_autoscaler._is_custom"] = true
 	}

@@ -103,6 +103,7 @@ image_operator: quay.io/cortexlabs/operator:master
 image_manager: quay.io/cortexlabs/manager:master
 image_downloader: quay.io/cortexlabs/downloader:master
 image_request_monitor: quay.io/cortexlabs/request-monitor:master
+image_image_async_gateway: quay.io/cortexlabs/async-gateway:master
 image_cluster_autoscaler: quay.io/cortexlabs/cluster-autoscaler:master
 image_metrics_server: quay.io/cortexlabs/metrics-server:master
 image_inferentia: quay.io/cortexlabs/inferentia:master
