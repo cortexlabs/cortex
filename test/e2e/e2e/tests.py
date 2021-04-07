@@ -306,7 +306,9 @@ def test_autoscaling(
     api_config_name: str = "cortex.yaml",
 ):
     # max number of concurrent requests
-    concurrency = 20
+    max_replicas = 20
+    # increase the concurrency by 1 to ensure we get max_replicas replicas
+    concurrency = max_replicas + 1
 
     all_apis = [apis["primary"]] + apis["dummy"]
     all_api_names = []
@@ -316,7 +318,7 @@ def test_autoscaling(
             api_specs = yaml.safe_load(f)
         assert len(api_specs) == 1
         api_specs[0]["autoscaling"] = {
-            "max_replicas": concurrency,
+            "max_replicas": max_replicas,
             "downscale_stabilization_period": "1m",
         }
         all_api_names.append(api_specs[0]["name"])
@@ -331,14 +333,14 @@ def test_autoscaling(
     # determine upscale/downscale replica requests
     current_replicas = 1  # starting number of replicas
     test_timeout = 0  # measured in seconds
-    while current_replicas < concurrency:
+    while current_replicas < max_replicas:
         upscale_ceil = math.ceil(current_replicas * autoscaling["max_upscale_factor"])
         if upscale_ceil > current_replicas + 1:
             current_replicas = upscale_ceil
         else:
             current_replicas += 1
-        if current_replicas > concurrency:
-            current_replicas = concurrency
+        if current_replicas > max_replicas:
+            current_replicas = max_replicas
         test_timeout += int(autoscaling["upscale_stabilization_period"] / (1000 ** 3))
     while current_replicas > 1:
         downscale_ceil = math.ceil(current_replicas * autoscaling["max_downscale_factor"])
@@ -370,7 +372,7 @@ def test_autoscaling(
             ]
 
             # stop the requests from being made
-            if current_replicas == concurrency:
+            if current_replicas == max_replicas:
                 request_stopper.set()
 
             # check if the requesting threads are still healthy
