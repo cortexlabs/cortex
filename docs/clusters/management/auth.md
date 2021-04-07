@@ -2,7 +2,7 @@
 
 ## Client
 
-Cortex client uses the default credential provider chain to get credentials for both cluster and api management. Credentials will be read in the following order of precedence:
+Cortex client uses the default credential provider chain to get credentials for cluster and api management. Credentials will be read in the following order of precedence:
 
 - environment variables
 - the name of the profile specified by `AWS_PROFILE` environment variable
@@ -10,7 +10,7 @@ Cortex client uses the default credential provider chain to get credentials for 
 
 ### Cluster management
 
-It is recommended that your AWS credentials have AdministratorAccess when running `cortex cluster *` commands. For the advanced users, see [minimum IAM policy](#minimum-iam-policy) section below to see view the minimum permissions required to run `cortex cluster *` commands.
+It is recommended that your AWS credentials have AdministratorAccess when running `cortex cluster *` commands. If you are unable to use AdministratorAccess, see the [minimum IAM policy](#minimum-iam-policy) below for the minimum permissions required to run `cortex cluster *` commands.
 
 After spinning up a cluster using `cortex cluster up`, the IAM entity user or role that created the cluster is automatically granted `system:masters` permission to the cluster's RBAC. Make sure to keep track of which IAM entity originally created the cluster.
 
@@ -48,7 +48,7 @@ By default, the `cortex cluster *` commands can only be executed by the IAM user
 
 Cortex client relies on AWS IAM to authenticate requests (e.g. `cortex deploy`, `cortex get`) to a cluster on AWS. The client will include a get-caller-identity request that has been signed with the credentials from the default credential provider chain along with original request. The operator executes the presigned request to verify that credentials are valid and belong to the same account as the IAM entity of the cluster.
 
-AWS credentials required to authenticate cortex client requests to the operator don't require any permissions. However, managing the cluster using `cortex cluster *` commands do require permissions.
+AWS credentials required to authenticate cortex client requests to the operator don't require any specific permissions; they must only be valid credentials within the same AWS account. However, managing the cluster (i.e. running `cortex cluster *` commands) does require permissions.
 
 ## Authorizing your APIs
 
@@ -60,9 +60,9 @@ _NOTE: The policy created during `cortex cluster up` will automatically be delet
 
 ## Minimum IAM Policy
 
-The policy listed below is the minimum permissions required to manage a Cortex cluster and its dependencies.
+The policy listed below contains the minimum permissions required to manage a Cortex cluster (i.e. via `cortex cluster *` commands).
 
-Replace the following $CORTEX_CLUSTER_NAME, $CORTEX_ACCOUNT_ID, $CORTEX_REGION with their respective values in the policy template below.
+Replace the following placeholders with their respective values in the policy template below: `$CORTEX_CLUSTER_NAME`, `$CORTEX_ACCOUNT_ID`, `$CORTEX_REGION`.
 
 ```json
 {
