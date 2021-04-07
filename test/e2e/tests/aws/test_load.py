@@ -19,23 +19,19 @@ import pytest
 
 import e2e.tests
 
-TEST_APIS = [
-    {
-        "primary": "sleep",
-        "dummy": ["sklearn/mpg-estimator", "tensorflow/iris-classifier"],
-    }
-]
+TEST_APIS = ["tensorflow/iris-classifier"]
 
 
 @pytest.mark.usefixtures("client")
-@pytest.mark.parametrize("apis", TEST_APIS)
-def test_autoscaling(config: Dict, client: cx.Client, apis: str):
-    skip_autoscaling_test = config["global"].get("skip_autoscaling", False)
-    if skip_autoscaling_test:
-        pytest.skip("--skip-autoscaling flag detected, skipping autoscaling tests")
+@pytest.mark.parametrize("api", TEST_APIS)
+def test_load_realtime(config: Dict, client: cx.Client, api: str):
+    skip_load_test = config["global"]["load_test_config"].get("skip_load", False)
+    if skip_load_test:
+        pytest.skip("--skip-load flag detected, skipping load tests")
 
-    e2e.tests.test_autoscaling(
+    e2e.tests.test_load_realtime(
         client,
-        apis,
+        api,
+        load_config=config["global"]["load_test_config"]["realtime"],
         deploy_timeout=config["global"]["realtime_deploy_timeout"],
     )

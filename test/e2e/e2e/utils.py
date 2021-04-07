@@ -58,6 +58,15 @@ def api_updated(client: cx.Client, api_name: str, timeout: Optional[int] = None)
     return wait_for(_is_ready, timeout=timeout)
 
 
+def api_requests(
+    client: cx.Client, api_name: str, target_requests: int, timeout: Optional[int] = None
+) -> bool:
+    def _is_ready():
+        return client.get_api(api_name)["metrics"]["network_stats"]["code_2xx"] == target_requests
+
+    return wait_for(_is_ready, timeout=timeout)
+
+
 def endpoint_ready(client: cx.Client, api_name: str, timeout: int = None) -> bool:
     def _is_ready():
         endpoint = client.get_api(api_name)["endpoint"]
@@ -170,17 +179,28 @@ def request_task(
     return response
 
 
+_request_concurrent_predictions_max_total_requests: int = 0
+
+
 def request_concurrent_predictions(
     client: cx.Client,
     api_name: str,
     concurrency: int,
     event_stopper: td.Event,
+    latencies: Optional[List[float]] = None,
+    max_total_requests: Optional[int] = None,
     payload: Optional[Union[List, Dict]] = None,
     query_params: Dict[str, str] = {},
 ) -> List[futures.Future]:
+
+    lock = td.RLock()
     thread_local = td.local()
+    sync = td.Barrier(concurrency)
     executor = futures.ThreadPoolExecutor(concurrency)
     api_info = client.get_api(api_name)
+
+    global _request_concurrent_predictions_max_total_requests
+    _request_concurrent_predictions_max_total_requests = max_total_requests
 
     def get_session() -> requests.Session:
         if not hasattr(thread_local, "session"):
@@ -189,11 +209,22 @@ def request_concurrent_predictions(
 
     def runnable():
         session = get_session()
+        global _request_concurrent_predictions_max_total_requests
+        sync.wait()
         while not event_stopper.is_set():
+            if _request_concurrent_predictions_max_total_requests is not None:
+                with lock:
+                    if _request_concurrent_predictions_max_total_requests == 0:
+                        event_stopper.set()
+                        break
+                    _request_concurrent_predictions_max_total_requests -= 1
+            start = time.time()
             response = session.post(api_info["endpoint"], json=payload, params=query_params)
             assert (
                 response.status_code == HTTPStatus.OK
             ), f"status code: got {response.status_code}, expected {HTTPStatus.OK}"
+            if latencies is not None:
+                latencies.append(time.time() - start)
 
     futures_list = []
     for _ in range(concurrency):
@@ -201,6 +232,17 @@ def request_concurrent_predictions(
         futures_list.append(future)
 
     return futures_list
+
+
+def check_futures_healthy(futures_list: List[futures.Future]):
+    for future in futures_list:
+        has_exception = None
+        try:
+            has_exception = future.exception(timeout=0.0)
+        except futures.TimeoutError:
+            pass
+        if has_exception:
+            future.result()
 
 
 def client_from_config(config_path: str) -> cx.Client:

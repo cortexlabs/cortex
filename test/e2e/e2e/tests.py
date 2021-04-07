@@ -17,12 +17,11 @@ import time
 import math
 from http import HTTPStatus
 from pathlib import Path
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Union
 
 import cortex as cx
 import yaml
 import threading as td
-from concurrent import futures
 
 from e2e.expectations import (
     parse_expectations,
@@ -32,6 +31,7 @@ from e2e.expectations import (
 from e2e.utils import (
     apis_ready,
     api_updated,
+    api_requests,
     endpoint_ready,
     request_prediction,
     generate_grpc,
@@ -40,6 +40,7 @@ from e2e.utils import (
     request_task,
     retrieve_async_result,
     request_concurrent_predictions,
+    check_futures_healthy,
 )
 
 TEST_APIS_DIR = Path(__file__).parent.parent.parent / "apis"
@@ -366,7 +367,9 @@ def test_autoscaling(
 
         # upscale/downscale the api
         while True:
-            api_updated(client, primary_api_name)
+            assert api_updated(
+                client, primary_api_name, timeout=deploy_timeout
+            ), "api didn't scale up to the desired number of replicas in time"
             current_replicas = client.get_api(primary_api_name)["status"]["replica_counts"][
                 "requested"
             ]
@@ -377,14 +380,7 @@ def test_autoscaling(
 
             # check if the requesting threads are still healthy
             # if not, they'll raise an exception
-            for future in threads_futures:
-                has_exception = None
-                try:
-                    has_exception = future.exception(timeout=0.1)
-                except futures.TimeoutError:
-                    pass
-                if has_exception:
-                    future.result()
+            check_futures_healthy(threads_futures)
 
             # check if the test is taking too much time
             assert (
@@ -401,3 +397,94 @@ def test_autoscaling(
     finally:
         request_stopper.set()
         delete_apis(client, all_api_names)
+
+
+def test_load_realtime(
+    client: cx.Client,
+    api: str,
+    load_config: Dict[str, Union[int, float]],
+    deploy_timeout: int = None,
+    api_config_name: str = "cortex.yaml",
+):
+
+    total_requests = load_config["total_requests"]
+    desired_replicas = load_config["desired_replicas"]
+    concurrency = load_config["concurrency"]
+    min_rtt = load_config["min_rtt"]
+    max_rtt = load_config["max_rtt"]
+    avg_rtt = load_config["avg_rtt"]
+    avg_rtt_tolerance = load_config["avg_rtt_tolerance"]
+    status_code_timeout = load_config["status_code_timeout"]
+
+    api_dir = TEST_APIS_DIR / api
+    with open(str(api_dir / api_config_name)) as f:
+        api_specs = yaml.safe_load(f)
+    assert len(api_specs) == 1
+    api_specs[0]["autoscaling"] = {
+        "min_replicas": desired_replicas,
+        "max_replicas": desired_replicas,
+    }
+    api_name = api_specs[0]["name"]
+    client.create_api(api_spec=api_specs[0], project_dir=api_dir)
+
+    # controls the flow of requests
+    request_stopper = td.Event()
+    latencies: List[float] = []
+    try:
+        assert apis_ready(
+            client=client, api_names=[api_name], timeout=deploy_timeout
+        ), f"api {api_name} not ready"
+
+        with open(str(api_dir / "sample.json")) as f:
+            payload = json.load(f)
+
+        threads_futures = request_concurrent_predictions(
+            client,
+            api_name,
+            concurrency,
+            request_stopper,
+            latencies=latencies,
+            max_total_requests=total_requests,
+            payload=payload,
+        )
+
+        # upscale/downscale the api
+        while not request_stopper.is_set():
+            current_min_rtt = min(latencies) if len(latencies) > 0 else min_rtt
+            assert (
+                current_min_rtt >= min_rtt
+            ), f"min latency threshold hit; got {current_min_rtt}s, but the lowest accepted latency is {min_rtt}s"
+
+            current_max_rtt = max(latencies) if len(latencies) > 0 else max_rtt
+            assert (
+                current_max_rtt <= max_rtt
+            ), f"max latency threshold hit; got {current_max_rtt}s, but the highest accepted latency is {max_rtt}s"
+
+            current_avg_rtt = sum(latencies) / len(latencies) if len(latencies) > 0 else avg_rtt
+            assert (
+                current_avg_rtt > avg_rtt - avg_rtt_tolerance
+                and current_avg_rtt < avg_rtt + avg_rtt_tolerance
+            ), f"avg latency ({current_avg_rtt}s) falls outside the expected range ({avg_rtt - avg_rtt_tolerance}s - {avg_rtt + avg_rtt_tolerance})"
+
+            network_stats = client.get_api(api_name)["metrics"]["network_stats"]
+            assert (
+                network_stats["code_4xx"] == 0
+            ), f"detected 4xx response codes ({network_stats['code_4xx']}) in cortex get"
+            assert (
+                network_stats["code_5xx"] == 0
+            ), f"detected 5xx response codes ({network_stats['code_5xx']}) in cortex get"
+            
+            # check if the requesting threads are still healthy
+            # if not, they'll raise an exception
+            check_futures_healthy(threads_futures)
+
+            # don't stress the CPU too hard
+            time.sleep(1)
+
+        assert api_requests(
+            client, api_name, total_requests, timeout=status_code_timeout
+        ), f"the number of 2xx response codes for api {api_name} doesn't match the expected number {total_requests}"
+
+    finally:
+        request_stopper.set()
+        delete_apis(client, [api_name])

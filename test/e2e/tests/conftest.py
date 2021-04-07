@@ -52,6 +52,11 @@ def pytest_addoption(parser):
         action="store_true",
         help="skip autoscaling tests",
     )
+    parser.addoption(
+        "--skip-load",
+        action="store_true",
+        help="skip load tests",
+    )
 
 
 def pytest_configure(config):
@@ -81,6 +86,24 @@ def pytest_configure(config):
             "skip_gpus": config.getoption("--skip-gpus"),
             "skip_infs": config.getoption("--skip-infs"),
             "skip_autoscaling": config.getoption("--skip-autoscaling"),
+            "load_test_config": {
+                "skip_load": config.getoption("--skip-load"),
+                "realtime": {
+                    "total_requests": 10 ** 6,
+                    "desired_replicas": 50,
+                    "concurrency": 50,
+                    "min_rtt": 0.005,  # measured in seconds
+                    "max_rtt": 0.200,  # measured in seconds
+                    "avg_rtt": 0.06,  # measured in seconds
+                    "avg_rtt_tolerance": 0.05,  # measured in seconds
+                    "status_code_timeout": 60,  # measured in seconds
+                },
+                "async": {
+                    "total_requests": 10 * 4,
+                    "desired_replicas": 50,
+                    "concurrency": 1000,
+                },
+            },
         },
     }
 
