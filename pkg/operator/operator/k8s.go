@@ -57,6 +57,9 @@ const (
 	_gatewayContainerName                          = "gateway"
 	_downloaderInitContainerName                   = "downloader"
 	_downloaderLastLog                             = "downloading the %s serving image"
+	_kubexitInitContainerName                      = "kubexit"
+	_kubexitGraveyardName                          = "graveyard"
+	_kubexitGraveyardMountPath                     = "/graveyard"
 	_neuronRTDContainerName                        = "neuron-rtd"
 	_tfBaseServingPortInt32, _tfBaseServingPortStr = int32(9000), "9000"
 	_tfServingHost                                 = "localhost"
@@ -125,10 +128,20 @@ func InitContainer(api *spec.API) kcore.Container {
 	return kcore.Container{
 		Name:            _downloaderInitContainerName,
 		Image:           config.CoreConfig.ImageDownloader,
-		ImagePullPolicy: "Always",
+		ImagePullPolicy: kcore.PullAlways,
 		Args:            []string{"--download=" + downloadArgs},
 		EnvFrom:         baseEnvVars(),
 		Env:             getEnvVars(api, _downloaderInitContainerName),
+		VolumeMounts:    defaultVolumeMounts(),
+	}
+}
+
+func KubexitInitContainer() kcore.Container {
+	return kcore.Container{
+		Name:            _kubexitInitContainerName,
+		Image:           config.CoreConfig.ImageKubexit,
+		ImagePullPolicy: kcore.PullAlways,
+		Command:         []string{"cp", "/bin/kubexit", "/mnt/kubexit"},
 		VolumeMounts:    defaultVolumeMounts(),
 	}
 }
@@ -205,7 +218,9 @@ func AsyncPythonPredictorContainers(api spec.API, queueURL string) ([]kcore.Cont
 }
 
 func AsyncTensorflowPredictorContainers(api spec.API, queueURL string) ([]kcore.Container, []kcore.Volume) {
-	return tensorFlowPredictorContainers(&api, getAsyncAPIEnvVars(api, queueURL))
+	envVars := getAsyncAPIEnvVars(api, queueURL)
+	tfServingEnvVars := getEnvVars(&api, _tfServingContainerName)
+	return tensorFlowPredictorContainers(&api, envVars, tfServingEnvVars, false)
 }
 
 func AsyncGatewayContainers(api spec.API, queueURL string) kcore.Container {
@@ -369,10 +384,22 @@ func pythonPredictorContainers(api *spec.API, envVars []kcore.EnvVar) ([]kcore.C
 }
 
 func TensorFlowPredictorContainers(api *spec.API) ([]kcore.Container, []kcore.Volume) {
-	return tensorFlowPredictorContainers(api, getEnvVars(api, APIContainerName))
+	envVars := getEnvVars(api, APIContainerName)
+	tfServingEnvVars := getEnvVars(api, _tfServingContainerName)
+	return tensorFlowPredictorContainers(api, envVars, tfServingEnvVars, false)
 }
 
-func tensorFlowPredictorContainers(api *spec.API, envVars []kcore.EnvVar) ([]kcore.Container, []kcore.Volume) {
+func TensorFlowPredictorJobContainers(api *spec.API) ([]kcore.Container, []kcore.Volume) {
+	envVars := getEnvVars(api, APIContainerName)
+	envVars = append(envVars, getKubexitEnvVars(APIContainerName)...)
+
+	tfServingEnvVars := getEnvVars(api, _tfServingContainerName)
+	tfServingEnvVars = append(tfServingEnvVars, getKubexitEnvVars(_tfServingContainerName, APIContainerName)...)
+
+	return tensorFlowPredictorContainers(api, envVars, tfServingEnvVars, true)
+}
+
+func tensorFlowPredictorContainers(api *spec.API, envVars []kcore.EnvVar, tfServingEnvVars []kcore.EnvVar, isJob bool) ([]kcore.Container, []kcore.Volume) {
 	apiResourceList := kcore.ResourceList{}
 	tfServingResourceList := kcore.ResourceList{}
 	tfServingLimitsList := kcore.ResourceList{}
@@ -460,6 +487,13 @@ func tensorFlowPredictorContainers(api *spec.API, envVars []kcore.EnvVar) ([]kco
 		})
 	}
 
+	if isJob {
+		volumes = append(volumes, k8s.EmptyDirVolume(_kubexitGraveyardName))
+		volumeMounts = append(volumeMounts,
+			kcore.VolumeMount{Name: _kubexitGraveyardName, MountPath: _kubexitGraveyardMountPath},
+		)
+	}
+
 	containers = append(containers, kcore.Container{
 		Name:            APIContainerName,
 		Image:           api.Predictor.Image,
@@ -485,6 +519,7 @@ func tensorFlowPredictorContainers(api *spec.API, envVars []kcore.EnvVar) ([]kco
 				Limits:   tfServingLimitsList,
 				Requests: tfServingResourceList,
 			},
+			tfServingEnvVars,
 		),
 	)
 
@@ -971,6 +1006,28 @@ func getEnvVars(api *spec.API, container string) []kcore.EnvVar {
 	return envVars
 }
 
+func getKubexitEnvVars(containerName string, deathDeps ...string) []kcore.EnvVar {
+	envVars := []kcore.EnvVar{
+		{
+			Name:  "KUBEXIT_NAME",
+			Value: containerName,
+		},
+		{
+			Name:  "KUBEXIT_GRAVEYARD",
+			Value: _kubexitGraveyardMountPath,
+		},
+	}
+
+	if deathDeps != nil {
+		envVars = append(envVars, kcore.EnvVar{
+			Name:  "KUBEXIT_DEATH_DEPS",
+			Value: strings.Join(deathDeps, ","),
+		})
+	}
+
+	return envVars
+}
+
 func tfDownloadArgs(api *spec.API) string {
 	downloadConfig := downloadContainerConfig{
 		LastLog: fmt.Sprintf(_downloaderLastLog, "tensorflow"),
@@ -1009,7 +1066,7 @@ func pythonDownloadArgs(api *spec.API) string {
 	return base64.URLEncoding.EncodeToString(downloadArgsBytes)
 }
 
-func tensorflowServingContainer(api *spec.API, volumeMounts []kcore.VolumeMount, resources kcore.ResourceRequirements) *kcore.Container {
+func tensorflowServingContainer(api *spec.API, volumeMounts []kcore.VolumeMount, resources kcore.ResourceRequirements, envVars []kcore.EnvVar) *kcore.Container {
 	var cmdArgs []string
 	ports := []kcore.ContainerPort{
 		{
@@ -1059,13 +1116,12 @@ func tensorflowServingContainer(api *spec.API, volumeMounts []kcore.VolumeMount,
 			},
 		}
 	}
-
 	return &kcore.Container{
 		Name:            _tfServingContainerName,
 		Image:           api.Predictor.TensorFlowServingImage,
 		ImagePullPolicy: kcore.PullAlways,
 		Args:            cmdArgs,
-		Env:             getEnvVars(api, _tfServingContainerName),
+		Env:             envVars,
 		EnvFrom:         baseEnvVars(),
 		VolumeMounts:    volumeMounts,
 		ReadinessProbe: &kcore.Probe{

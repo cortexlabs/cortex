@@ -102,7 +102,7 @@ func pythonPredictorJobSpec(api *spec.API, job *spec.BatchJob) (*kbatch.Job, err
 }
 
 func tensorFlowPredictorJobSpec(api *spec.API, job *spec.BatchJob) (*kbatch.Job, error) {
-	containers, volumes := operator.TensorFlowPredictorContainers(api)
+	containers, volumes := operator.TensorFlowPredictorJobContainers(api)
 	for i, container := range containers {
 		if container.Name == operator.APIContainerName {
 			containers[i].Env = append(container.Env, kcore.EnvVar{
@@ -140,6 +140,7 @@ func tensorFlowPredictorJobSpec(api *spec.API, job *spec.BatchJob) (*kbatch.Job,
 				RestartPolicy: "Never",
 				InitContainers: []kcore.Container{
 					operator.InitContainer(api),
+					operator.KubexitInitContainer(),
 				},
 				Containers:   containers,
 				NodeSelector: operator.NodeSelectors(),

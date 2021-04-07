@@ -56,6 +56,7 @@ non_dev_images=(
   "inferentia"
   "neuron-rtd"
   "nvidia"
+  "kubexit"
 )
 
 all_images=(
