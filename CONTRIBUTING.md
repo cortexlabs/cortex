@@ -157,29 +157,6 @@ node_groups:
     instance_type: m5.large
     min_instances: 1
     max_instances: 5
-
-image_operator: <account_id>.dkr.ecr.<region>.amazonaws.com/cortexlabs/operator:master
-image_manager: <account_id>.dkr.ecr.<region>.amazonaws.com/cortexlabs/manager:master
-image_downloader: <account_id>.dkr.ecr.<region>.amazonaws.com/cortexlabs/downloader:master
-image_request_monitor: <account_id>.dkr.ecr.<region>.amazonaws.com/cortexlabs/request-monitor:master
-image_cluster_autoscaler: <account_id>.dkr.ecr.<region>.amazonaws.com/cortexlabs/cluster-autoscaler:master
-image_metrics_server: <account_id>.dkr.ecr.<region>.amazonaws.com/cortexlabs/metrics-server:master
-image_inferentia: <account_id>.dkr.ecr.<region>.amazonaws.com/cortexlabs/inferentia:master
-image_neuron_rtd: <account_id>.dkr.ecr.<region>.amazonaws.com/cortexlabs/neuron-rtd:master
-image_nvidia: <account_id>.dkr.ecr.<region>.amazonaws.com/cortexlabs/nvidia:master
-image_fluent_bit: <account_id>.dkr.ecr.<region>.amazonaws.com/cortexlabs/fluent-bit:master
-image_istio_proxy: <account_id>.dkr.ecr.<region>.amazonaws.com/cortexlabs/istio-proxy:master
-image_istio_pilot: <account_id>.dkr.ecr.<region>.amazonaws.com/cortexlabs/istio-pilot:master
-image_prometheus: <account_id>.dkr.ecr.<region>.amazonaws.com/cortexlabs/prometheus:master
-image_prometheus_config_reloader: <account_id>.dkr.ecr.<region>.amazonaws.com/cortexlabs/prometheus-config-reloader:master
-image_prometheus_operator: <account_id>.dkr.ecr.<region>.amazonaws.com/cortexlabs/prometheus-operator:master
-image_prometheus_statsd_exporter: <account_id>.dkr.ecr.<region>.amazonaws.com/cortexlabs/prometheus-statsd-exporter:master
-image_prometheus_dcgm_exporter: <account_id>.dkr.ecr.<region>.amazonaws.com/cortexlabs/prometheus-dcgm-exporter:master
-image_prometheus_kube_state_metrics: <account_id>.dkr.ecr.<region>.amazonaws.com/cortexlabs/prometheus-kube-state-metrics:master
-image_prometheus_node_exporter: <account_id>.dkr.ecr.<region>.amazonaws.com/cortexlabs/prometheus-node-exporter:master
-image_kube_rbac_proxy: <account_id>.dkr.ecr.<region>.amazonaws.com/cortexlabs/kube-rbac-proxy:master
-image_grafana: <account_id>.dkr.ecr.<region>.amazonaws.com/cortexlabs/grafana:master
-image_event_exporter: <account_id>.dkr.ecr.<region>.amazonaws.com/cortexlabs/event-exporter:master
 ```
 
 ### Building
