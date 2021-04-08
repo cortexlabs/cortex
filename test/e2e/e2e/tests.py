@@ -750,3 +750,47 @@ def test_load_task(
     finally:
         map_stopper.set()
         delete_apis(client, [api_name])
+
+
+def test_long_running_realtime(
+    client: cx.Client,
+    api: str,
+    long_running_config: Dict[str, Union[int, float]],
+    deploy_timeout: int = None,
+    api_config_name: str = "cortex.yaml",
+):
+    api_dir = TEST_APIS_DIR / api
+    with open(str(api_dir / api_config_name)) as f:
+        api_specs = yaml.safe_load(f)
+
+    time_to_run = long_running_config["time_to_run"]
+
+    expectations = None
+    expectations_file = api_dir / "expectations.yaml"
+    if expectations_file.exists():
+        expectations = parse_expectations(str(expectations_file))
+
+    api_name = api_specs[0]["name"]
+    for api_spec in api_specs:
+        client.create_api(api_spec=api_spec, project_dir=api_dir)
+
+    try:
+        assert apis_ready(
+            client=client, api_names=[api_name], timeout=deploy_timeout
+        ), f"apis {api_name} not ready"
+
+        with open(str(api_dir / "sample.json")) as f:
+            payload = json.load(f)
+
+        start_time = time.time()
+        while time.time() - start_time <= time_to_run:
+            response = request_prediction(client, api_name, payload)
+
+            assert (
+                response.status_code == HTTPStatus.OK
+            ), f"status code: got {response.status_code}, expected {HTTPStatus.OK}"
+
+            if expectations and "response" in expectations:
+                assert_response_expectations(response, expectations["response"])
+    finally:
+        delete_apis(client, [api_name])

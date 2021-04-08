@@ -57,6 +57,11 @@ def pytest_addoption(parser):
         action="store_true",
         help="skip load tests",
     )
+    parser.addoption(
+        "--skip-long-running",
+        action="store_true",
+        help="skip long-running test",
+    )
 
 
 def pytest_configure(config):
@@ -118,6 +123,10 @@ def pytest_configure(config):
                     "submit_timeout": 60,
                     "workload_timeout": 180,
                 },
+            },
+            "long_running_test_config": {
+                "skip_load": config.getoption("--skip-long-running"),
+                "time_to_run": 5 * 24 * 3600,
             },
         },
     }
