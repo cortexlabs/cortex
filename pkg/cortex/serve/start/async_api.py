@@ -21,7 +21,7 @@ from typing import Dict, Any
 import boto3
 
 from cortex_internal.lib.api import get_spec
-from cortex_internal.lib.api.async import AsyncAPI
+from cortex_internal.lib.api.async_api import AsyncAPI
 from cortex_internal.lib.exceptions import UserRuntimeException
 from cortex_internal.lib.log import configure_logger
 from cortex_internal.lib.metrics import MetricsClient
