@@ -21,6 +21,7 @@ import e2e.tests
 
 TEST_APIS_REALTIME = ["tensorflow/iris-classifier"]
 TEST_APIS_ASYNC = ["async/iris-classifier"]
+TEST_APIS_BATCH = ["batch/sum"]
 
 
 @pytest.mark.usefixtures("client")
@@ -50,4 +51,27 @@ def test_load_async(config: Dict, client: cx.Client, api: str):
         api,
         load_config=config["global"]["load_test_config"]["async"],
         deploy_timeout=config["global"]["async_deploy_timeout"],
+    )
+
+
+@pytest.mark.usefixtures("client")
+@pytest.mark.parametrize("api", TEST_APIS_BATCH)
+def test_load_batch(config: Dict, client: cx.Client, api: str):
+    skip_load_test = config["global"]["load_test_config"].get("skip_load", False)
+    if skip_load_test:
+        pytest.skip("--skip-load flag detected, skipping load tests")
+
+    s3_path = config["aws"].get("s3_path")
+    if not s3_path:
+        pytest.skip(
+            "--s3-path option is required to run batch tests (alternatively set the "
+            "CORTEX_TEST_BATCH_S3_PATH env var) )"
+        )
+
+    e2e.tests.test_load_batch(
+        client,
+        api,
+        test_s3_path=s3_path,
+        load_config=config["global"]["load_test_config"]["batch"],
+        deploy_timeout=config["global"]["batch_deploy_timeout"],
     )

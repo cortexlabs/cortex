@@ -37,6 +37,7 @@ setup(
         "pytest==6.1.*",
         "python-dotenv==0.15.0",
         "pyyaml>=5.3.1",
+        "boto3>=1.14.53",
         "cortex",
     ],
     dependency_links=[f"file://{cortex_client_dir}#egg=cortex"],

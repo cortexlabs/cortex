@@ -13,17 +13,20 @@
 # limitations under the License.
 
 import json
+import os
+import re
 import time
 import math
-import requests
+import boto3
+from e2e.generator import load_generator
 from http import HTTPStatus
 from pathlib import Path
 from typing import Dict, Any, List, Union
 
 import cortex as cx
+import requests
 import yaml
 import threading as td
-from concurrent import futures
 
 from e2e.expectations import (
     parse_expectations,
@@ -40,10 +43,11 @@ from e2e.utils import (
     request_prediction,
     generate_grpc,
     job_done,
+    jobs_done,
     request_batch_prediction,
     request_task,
     retrieve_async_result,
-    request_concurrent_predictions,
+    request_concurrently,
     check_futures_healthy,
     retrieve_async_results_concurrently,
 )
@@ -364,7 +368,7 @@ def test_autoscaling(
             client=client, api_names=all_api_names, timeout=deploy_timeout
         ), f"apis {all_api_names} not ready"
 
-        threads_futures = request_concurrent_predictions(
+        threads_futures = request_concurrently(
             client, primary_api_name, concurrency, request_stopper, query_params={"sleep": "1.0"}
         )
 
@@ -443,7 +447,7 @@ def test_load_realtime(
         with open(str(api_dir / "sample.json")) as f:
             payload = json.load(f)
 
-        threads_futures = request_concurrent_predictions(
+        threads_futures = request_concurrently(
             client,
             api_name,
             concurrency,
@@ -533,7 +537,7 @@ def test_load_async(
         with open(str(api_dir / "sample.json")) as f:
             payload = json.load(f)
 
-        threads_futures = request_concurrent_predictions(
+        threads_futures = request_concurrently(
             client,
             api_name,
             concurrency,
@@ -596,4 +600,92 @@ def test_load_async(
         if "results" in vars() and len(results) < total_requests:
             print(f"{len(results)}/{total_requests} have been successfully retrieved")
         map_stopper.set()
+        delete_apis(client, [api_name])
+
+
+def test_load_batch(
+    client: cx.Client,
+    api: str,
+    test_s3_path: str,
+    load_config: Dict[str, Union[int, float]],
+    deploy_timeout: int = None,
+    retry_attempts: int = 0,
+    api_config_name: str = "cortex.yaml",
+):
+
+    jobs = load_config["jobs"]
+    workers_per_job = load_config["workers_per_job"]
+    items_per_job = load_config["items_per_job"]
+    batch_size = load_config["batch_size"]
+    workload_timeout = load_config["workload_timeout"]
+
+    bucket, key = re.match("s3://(.+?)/(.+)", test_s3_path).groups()
+    s3 = boto3.client("s3")
+    paginator = s3.get_paginator("list_objects_v2")
+
+    api_dir = TEST_APIS_DIR / api
+    with open(str(api_dir / api_config_name)) as f:
+        api_specs = yaml.safe_load(f)
+    assert len(api_specs) == 1
+
+    sample_generator_path = api_dir / "sample_generator.py"
+    assert (
+        sample_generator_path.exists()
+    ), "sample_generator.py must be present for the batch load test"
+    sample_generator = load_generator(sample_generator_path)
+
+    api_name = api_specs[0]["name"]
+    client.create_api(api_spec=api_specs[0], project_dir=api_dir)
+    api_endpoint = client.get_api(api_name)["endpoint"]
+
+    try:
+        assert endpoint_ready(
+            client=client, api_name=api_name, timeout=deploy_timeout
+        ), f"api {api_name} not ready"
+
+        # submit jobs
+        job_specs = []
+        for _ in range(jobs):
+            for _ in range(retry_attempts + 1):
+                response = request_batch_prediction(
+                    client,
+                    api_name,
+                    item_list=[sample_generator() for _ in range(items_per_job)],
+                    batch_size=batch_size,
+                    workers=workers_per_job,
+                    config={"dest_s3_dir": test_s3_path},
+                )
+                if response.status_code == HTTPStatus.OK:
+                    break
+                time.sleep(1)
+            # retries are only required once
+            retry_attempts = 0
+
+            assert (
+                response.status_code == HTTPStatus.OK
+            ), f"status code: got {response.status_code}, expected {HTTPStatus.OK} ({response.text})"
+            job_specs.append(response.json())
+
+        # wait the jobs to finish
+        assert jobs_done(
+            client, api_name, [job_spec["job_id"] for job_spec in job_specs], workload_timeout
+        ), f"not all jobs succeed in {workload_timeout}s"
+
+        # assert jobs
+        for job_spec in job_specs:
+            job_id: str = job_spec["job_id"]
+            job_status = requests.get(f"{api_endpoint}?jobID={job_id}").json()["job_status"]
+
+            assert job_status["status"] == "status_succeeded"
+            assert (
+                job_status["batches_in_queue"] == 0
+            ), f"there are still batches in queue ({job_status['batches_in_queue']}) for job ID {job_id}"
+            assert job_status["batch_metrics"]["succeeded"] == math.ceil(items_per_job / batch_size)
+
+            num_objects = 0
+            for page in paginator.paginate(Bucket=bucket, Prefix=os.path.join(key, job_id)):
+                num_objects += len(page["Contents"])
+            assert num_objects == 1
+
+    finally:
         delete_apis(client, [api_name])

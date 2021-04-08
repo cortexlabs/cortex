@@ -89,12 +89,27 @@ def endpoint_ready(client: cx.Client, api_name: str, timeout: int = None) -> boo
     return wait_for(_is_ready, timeout=timeout)
 
 
-def job_done(client: cx.Client, api_name: str, job_id: str, timeout: int = None):
+def job_done(client: cx.Client, api_name: str, job_id: str, timeout: int = None) -> bool:
     def _is_ready():
         job_info = client.get_job(api_name, job_id)
         return job_info["job_status"]["status"] == "status_succeeded"
 
     return wait_for(_is_ready, timeout=timeout)
+
+
+def jobs_done(client: cx.Client, api_name: str, job_ids: List[str], timeout: int = None) -> bool:
+    exec = futures.ThreadPoolExecutor(10)
+
+    def _runnable(job_id):
+        return job_done(client, api_name, job_id)
+
+    try:
+        for _ in exec.map(_runnable, job_ids, timeout=timeout):
+            pass
+    except:
+        return False
+
+    return True
 
 
 def generate_grpc(
@@ -195,7 +210,7 @@ def request_task(
 _request_concurrent_predictions_max_total_requests: int = 0
 
 
-def request_concurrent_predictions(
+def request_concurrently(
     client: cx.Client,
     api_name: str,
     concurrency: int,
@@ -254,17 +269,6 @@ def request_concurrent_predictions(
     return futures_list
 
 
-def check_futures_healthy(futures_list: List[futures.Future]):
-    for future in futures_list:
-        has_exception = None
-        try:
-            has_exception = future.exception(timeout=0.0)
-        except futures.TimeoutError:
-            pass
-        if has_exception:
-            future.result()
-
-
 def retrieve_async_results_concurrently(
     client: cx.Client,
     api_name: str,
@@ -306,6 +310,17 @@ def retrieve_async_results_concurrently(
     # will throw an exception if something failed in any thread
     for _ in exec.map(_async_retriever, job_ids, timeout=timeout):
         pass
+
+
+def check_futures_healthy(futures_list: List[futures.Future]):
+    for future in futures_list:
+        has_exception = None
+        try:
+            has_exception = future.exception(timeout=0.0)
+        except futures.TimeoutError:
+            pass
+        if has_exception:
+            future.result()
 
 
 def client_from_config(config_path: str) -> cx.Client:
