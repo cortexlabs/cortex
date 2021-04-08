@@ -21,7 +21,7 @@ import boto3
 from e2e.generator import load_generator
 from http import HTTPStatus
 from pathlib import Path
-from typing import Dict, Any, List, Union
+from typing import Callable, Dict, Any, List, Union
 
 import cortex as cx
 import requests
@@ -311,6 +311,7 @@ def test_task_api(
 
 
 def test_autoscaling(
+    printer: Callable,
     client: cx.Client,
     apis: Dict[str, Any],
     deploy_timeout: int = None,
@@ -376,6 +377,7 @@ def test_autoscaling(
         test_start_time = time.time()
 
         # upscale/downscale the api
+        printer(f"scaling up to {max_replicas} replicas")
         while True:
             assert api_updated(
                 client, primary_api_name, timeout=deploy_timeout
@@ -386,6 +388,7 @@ def test_autoscaling(
 
             # stop the requests from being made
             if current_replicas == max_replicas:
+                printer(f"scaling back down to 1 replica")
                 request_stopper.set()
 
             # check if the requesting threads are still healthy
@@ -410,6 +413,7 @@ def test_autoscaling(
 
 
 def test_load_realtime(
+    printer: Callable,
     client: cx.Client,
     api: str,
     load_config: Dict[str, Union[int, float]],
@@ -441,6 +445,7 @@ def test_load_realtime(
     request_stopper = td.Event()
     latencies: List[float] = []
     try:
+        printer(f"getting {desired_replicas} replicas ready")
         assert apis_ready(
             client=client, api_names=[api_name], timeout=deploy_timeout
         ), f"api {api_name} not ready"
@@ -448,6 +453,7 @@ def test_load_realtime(
         with open(str(api_dir / "sample.json")) as f:
             payload = json.load(f)
 
+        printer("start making requests concurrently")
         threads_futures = request_predictions_concurrently(
             client,
             api_name,
@@ -476,13 +482,19 @@ def test_load_realtime(
                 and current_avg_rtt < avg_rtt + avg_rtt_tolerance
             ), f"avg latency ({current_avg_rtt}s) falls outside the expected range ({avg_rtt - avg_rtt_tolerance}s - {avg_rtt + avg_rtt_tolerance})"
 
-            network_stats = client.get_api(api_name)["metrics"]["network_stats"]
+            api_info = client.get_api(api_name)
+            network_stats = api_info["metrics"]["network_stats"]
+
             assert (
                 network_stats["code_4xx"] == 0
             ), f"detected 4xx response codes ({network_stats['code_4xx']}) in cortex get"
             assert (
                 network_stats["code_5xx"] == 0
             ), f"detected 5xx response codes ({network_stats['code_5xx']}) in cortex get"
+
+            printer(
+                f"min RTT: {current_min_rtt} | max RTT: {current_max_rtt} | avg RTT: {current_avg_rtt} | requests: {network_stats['code_2xx']} (out of {total_requests})"
+            )
 
             # check if the requesting threads are still healthy
             # if not, they'll raise an exception
@@ -491,6 +503,7 @@ def test_load_realtime(
             # don't stress the CPU too hard
             time.sleep(1)
 
+        printer("verifying number of processed requests using the client")
         assert api_requests(
             client, api_name, total_requests, timeout=status_code_timeout
         ), f"the number of 2xx response codes for api {api_name} doesn't match the expected number {total_requests}"
@@ -501,6 +514,7 @@ def test_load_realtime(
 
 
 def test_load_async(
+    printer: Callable,
     client: cx.Client,
     api: str,
     load_config: Dict[str, Union[int, float]],
@@ -531,6 +545,7 @@ def test_load_async(
     map_stopper = td.Event()
     responses: List[Dict[str, Any]] = []
     try:
+        printer(f"getting {desired_replicas} replicas ready")
         assert apis_ready(
             client=client, api_names=[api_name], timeout=deploy_timeout
         ), f"api {api_name} not ready"
@@ -538,6 +553,7 @@ def test_load_async(
         with open(str(api_dir / "sample.json")) as f:
             payload = json.load(f)
 
+        printer("start making prediction requests concurrently")
         threads_futures = request_predictions_concurrently(
             client,
             api_name,
@@ -553,6 +569,7 @@ def test_load_async(
         check_futures_healthy(threads_futures)
         wait_on_futures(threads_futures)
 
+        printer("finished making prediction requests")
         assert (
             len(responses) == total_requests
         ), f"the submitted number of requests doesn't match the returned number of responses"
@@ -564,6 +581,7 @@ def test_load_async(
             job_ids.append(response_json["id"])
 
         # assert the results
+        printer("start retrieving the async results concurrently")
         results = []
         retrieve_results_concurrently(
             client,
@@ -599,12 +617,13 @@ def test_load_async(
 
     finally:
         if "results" in vars() and len(results) < total_requests:
-            print(f"{len(results)}/{total_requests} have been successfully retrieved")
+            printer(f"{len(results)}/{total_requests} have been successfully retrieved")
         map_stopper.set()
         delete_apis(client, [api_name])
 
 
 def test_load_batch(
+    printer: Callable,
     client: cx.Client,
     api: str,
     test_s3_path: str,
@@ -645,6 +664,7 @@ def test_load_batch(
         ), f"api {api_name} not ready"
 
         # submit jobs
+        printer(f"submitting {jobs} jobs")
         job_specs = []
         for _ in range(jobs):
             for _ in range(retry_attempts + 1):
@@ -668,11 +688,13 @@ def test_load_batch(
             job_specs.append(response.json())
 
         # wait the jobs to finish
+        printer("waiting on the jobs")
         assert jobs_done(
             client, api_name, [job_spec["job_id"] for job_spec in job_specs], workload_timeout
         ), f"not all jobs succeed in {workload_timeout}s"
 
         # assert jobs
+        printer("checking the jobs' responses")
         for job_spec in job_specs:
             job_id: str = job_spec["job_id"]
             job_status = requests.get(f"{api_endpoint}?jobID={job_id}").json()["job_status"]
@@ -692,6 +714,7 @@ def test_load_batch(
 
 
 def test_load_task(
+    printer: Callable,
     client: cx.Client,
     api: str,
     load_config: Dict[str, Union[int, float]],
@@ -725,6 +748,7 @@ def test_load_task(
         time.sleep(1 * retry_attempts)
 
         # submit jobs
+        printer(f"submitting {jobs} jobs concurrently")
         job_specs = []
         threads_futures = request_tasks_concurrently(
             client, api_name, request_stopper, concurrency, jobs, job_specs
@@ -736,6 +760,7 @@ def test_load_task(
         check_futures_healthy(threads_futures)
         wait_on_futures(threads_futures)
 
+        printer("waiting on the jobs")
         job_ids = [job_spec.json()["job_id"] for job_spec in job_specs]
         retrieve_results_concurrently(
             client,
@@ -793,4 +818,5 @@ def test_long_running_realtime(
             if expectations and "response" in expectations:
                 assert_response_expectations(response, expectations["response"])
     finally:
+
         delete_apis(client, [api_name])

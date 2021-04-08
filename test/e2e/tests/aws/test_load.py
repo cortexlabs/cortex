@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Dict
+from typing import Callable, Dict
 
 import cortex as cx
 import pytest
@@ -27,12 +27,13 @@ TEST_APIS_TASK = ["task/hello-world"]
 
 @pytest.mark.usefixtures("client")
 @pytest.mark.parametrize("api", TEST_APIS_REALTIME)
-def test_load_realtime(config: Dict, client: cx.Client, api: str):
+def test_load_realtime(printer: Callable, config: Dict, client: cx.Client, api: str):
     skip_load_test = config["global"]["load_test_config"].get("skip_load", False)
     if skip_load_test:
         pytest.skip("--skip-load flag detected, skipping load tests")
 
     e2e.tests.test_load_realtime(
+        printer,
         client,
         api,
         load_config=config["global"]["load_test_config"]["realtime"],
@@ -42,12 +43,13 @@ def test_load_realtime(config: Dict, client: cx.Client, api: str):
 
 @pytest.mark.usefixtures("client")
 @pytest.mark.parametrize("api", TEST_APIS_ASYNC)
-def test_load_async(config: Dict, client: cx.Client, api: str):
+def test_load_async(printer: Callable, config: Dict, client: cx.Client, api: str):
     skip_load_test = config["global"]["load_test_config"].get("skip_load", False)
     if skip_load_test:
         pytest.skip("--skip-load flag detected, skipping load tests")
 
     e2e.tests.test_load_async(
+        printer,
         client,
         api,
         load_config=config["global"]["load_test_config"]["async"],
@@ -57,7 +59,7 @@ def test_load_async(config: Dict, client: cx.Client, api: str):
 
 @pytest.mark.usefixtures("client")
 @pytest.mark.parametrize("api", TEST_APIS_BATCH)
-def test_load_batch(config: Dict, client: cx.Client, api: str):
+def test_load_batch(printer: Callable, config: Dict, client: cx.Client, api: str):
     skip_load_test = config["global"]["load_test_config"].get("skip_load", False)
     if skip_load_test:
         pytest.skip("--skip-load flag detected, skipping load tests")
@@ -70,6 +72,7 @@ def test_load_batch(config: Dict, client: cx.Client, api: str):
         )
 
     e2e.tests.test_load_batch(
+        printer,
         client,
         api,
         test_s3_path=s3_path,
@@ -80,12 +83,13 @@ def test_load_batch(config: Dict, client: cx.Client, api: str):
 
 @pytest.mark.usefixtures("client")
 @pytest.mark.parametrize("api", TEST_APIS_TASK)
-def test_load_task(config: Dict, client: cx.Client, api: str):
+def test_load_task(printer: Callable, config: Dict, client: cx.Client, api: str):
     skip_load_test = config["global"]["load_test_config"].get("skip_load", False)
     if skip_load_test:
         pytest.skip("--skip-load flag detected, skipping load tests")
 
     e2e.tests.test_load_task(
+        printer,
         client,
         api,
         load_config=config["global"]["load_test_config"]["task"],
