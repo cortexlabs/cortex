@@ -17,7 +17,6 @@ limitations under the License.
 package v1alpha1
 
 import (
-	"github.com/cortexlabs/cortex/pkg/types/status"
 	kcore "k8s.io/api/core/v1"
 	kmeta "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -82,7 +81,18 @@ type BatchJobStatus struct {
 	Status string `json:"status,omitempty"`
 
 	// Detailed worker counts with respective status
-	WorkerCounts *status.WorkerCounts `json:"worker_counts,omitempty"`
+	WorkerCounts *WorkerCounts `json:"worker_counts,omitempty"`
+}
+
+// WorkerCounts keeps track of the worker counts per state
+type WorkerCounts struct {
+	Pending      int32 `json:"pending"`
+	Initializing int32 `json:"initializing"`
+	Running      int32 `json:"running"`
+	Succeeded    int32 `json:"succeeded"`
+	Failed       int32 `json:"failed"`
+	Stalled      int32 `json:"stalled"` // pending for a long time
+	Unknown      int32 `json:"unknown"`
 }
 
 // +kubebuilder:object:root=true

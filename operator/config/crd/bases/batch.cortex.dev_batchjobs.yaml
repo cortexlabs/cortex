@@ -1,6 +1,6 @@
 
 ---
-apiVersion: apiextensions.k8s.io/v1beta1
+apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
@@ -15,147 +15,142 @@ spec:
     plural: batchjobs
     singular: batchjob
   scope: Namespaced
-  subresources:
-    status: {}
-  validation:
-    openAPIV3Schema:
-      description: BatchJob is the Schema for the batchjobs API
-      properties:
-        apiVersion:
-          description: 'APIVersion defines the versioned schema of this representation
-            of an object. Servers should convert recognized schemas to the latest
-            internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
-          type: string
-        kind:
-          description: 'Kind is a string value representing the REST resource this
-            object represents. Servers may infer this from the endpoint the client
-            submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
-          type: string
-        metadata:
-          type: object
-        spec:
-          description: BatchJobSpec defines the desired state of BatchJob
-          properties:
-            api_id:
-              description: Reference to a cortex BatchAPI apiID
-              type: string
-            api_name:
-              description: Reference to a cortex BatchAPI name
-              type: string
-            dead_letter_queue:
-              description: Configuration for the dead letter queue
-              properties:
-                arn:
-                  description: arn of the dead letter queue e.g. arn:aws:sqs:us-west-2:123456789:failed.fifo
-                  type: string
-                max_receive_count:
-                  default: 1
-                  description: Number of times a batch is allowed to be handled by
-                    a worker before it is considered to be failed and transferred
-                    to the dead letter queue (must be >= 1)
-                  format: int64
-                  minimum: 1
-                  type: integer
-              type: object
-            resources:
-              description: Compute resource requirements
-              properties:
-                limits:
-                  additionalProperties:
-                    anyOf:
-                    - type: integer
-                    - type: string
-                    pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
-                    x-kubernetes-int-or-string: true
-                  description: 'Limits describes the maximum amount of compute resources
-                    allowed. More info: https://kubernetes.io/docs/concepts/configuration/manage-compute-resources-container/'
-                  type: object
-                requests:
-                  additionalProperties:
-                    anyOf:
-                    - type: integer
-                    - type: string
-                    pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
-                    x-kubernetes-int-or-string: true
-                  description: 'Requests describes the minimum amount of compute resources
-                    required. If Requests is omitted for a container, it defaults
-                    to Limits if that is explicitly specified, otherwise to an implementation-defined
-                    value. More info: https://kubernetes.io/docs/concepts/configuration/manage-compute-resources-container/'
-                  type: object
-              type: object
-            timeout:
-              description: Duration until a batch job times out
-              type: string
-            workers:
-              default: 1
-              description: Number of workers for the batch job
-              format: int32
-              type: integer
-          type: object
-        status:
-          description: BatchJobStatus defines the observed state of BatchJob
-          properties:
-            created_time:
-              description: Creation timestamp
-              format: date-time
-              type: string
-            end_time:
-              description: Processing ending timestamp
-              format: date-time
-              type: string
-            id:
-              description: Job ID
-              type: string
-            queue_url:
-              description: URL for the used SQS queue
-              type: string
-            start_time:
-              description: Processing start timestamp
-              format: date-time
-              type: string
-            status:
-              description: Status of the batch job
-              type: string
-            worker_counts:
-              description: Detailed worker counts with respective status
-              properties:
-                failed:
-                  format: int32
-                  type: integer
-                initializing:
-                  format: int32
-                  type: integer
-                pending:
-                  format: int32
-                  type: integer
-                running:
-                  format: int32
-                  type: integer
-                stalled:
-                  format: int32
-                  type: integer
-                succeeded:
-                  format: int32
-                  type: integer
-                unknown:
-                  format: int32
-                  type: integer
-              required:
-              - failed
-              - initializing
-              - pending
-              - running
-              - stalled
-              - succeeded
-              - unknown
-              type: object
-          type: object
-      type: object
-  version: v1alpha1
   versions:
   - name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: BatchJob is the Schema for the batchjobs API
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: BatchJobSpec defines the desired state of BatchJob
+            properties:
+              api_id:
+                description: Reference to a cortex BatchAPI apiID
+                type: string
+              api_name:
+                description: Reference to a cortex BatchAPI name
+                type: string
+              dead_letter_queue:
+                description: Configuration for the dead letter queue
+                properties:
+                  arn:
+                    description: arn of the dead letter queue e.g. arn:aws:sqs:us-west-2:123456789:failed.fifo
+                    type: string
+                  max_receive_count:
+                    default: 1
+                    description: Number of times a batch is allowed to be handled
+                      by a worker before it is considered to be failed and transferred
+                      to the dead letter queue (must be >= 1)
+                    format: int64
+                    minimum: 1
+                    type: integer
+                type: object
+              resources:
+                description: Compute resource requirements
+                properties:
+                  limits:
+                    additionalProperties:
+                      anyOf:
+                      - type: integer
+                      - type: string
+                      pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                      x-kubernetes-int-or-string: true
+                    description: 'Limits describes the maximum amount of compute resources
+                      allowed. More info: https://kubernetes.io/docs/concepts/configuration/manage-compute-resources-container/'
+                    type: object
+                  requests:
+                    additionalProperties:
+                      anyOf:
+                      - type: integer
+                      - type: string
+                      pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                      x-kubernetes-int-or-string: true
+                    description: 'Requests describes the minimum amount of compute
+                      resources required. If Requests is omitted for a container,
+                      it defaults to Limits if that is explicitly specified, otherwise
+                      to an implementation-defined value. More info: https://kubernetes.io/docs/concepts/configuration/manage-compute-resources-container/'
+                    type: object
+                type: object
+              timeout:
+                description: Duration until a batch job times out
+                type: string
+              workers:
+                default: 1
+                description: Number of workers for the batch job
+                format: int32
+                type: integer
+            type: object
+          status:
+            description: BatchJobStatus defines the observed state of BatchJob
+            properties:
+              end_time:
+                description: Processing ending timestamp
+                format: date-time
+                type: string
+              id:
+                description: Job ID
+                type: string
+              queue_url:
+                description: URL for the used SQS queue
+                type: string
+              start_time:
+                description: Processing start timestamp
+                format: date-time
+                type: string
+              status:
+                description: Status of the batch job
+                type: string
+              worker_counts:
+                description: Detailed worker counts with respective status
+                properties:
+                  failed:
+                    format: int32
+                    type: integer
+                  initializing:
+                    format: int32
+                    type: integer
+                  pending:
+                    format: int32
+                    type: integer
+                  running:
+                    format: int32
+                    type: integer
+                  stalled:
+                    format: int32
+                    type: integer
+                  succeeded:
+                    format: int32
+                    type: integer
+                  unknown:
+                    format: int32
+                    type: integer
+                required:
+                - failed
+                - initializing
+                - pending
+                - running
+                - stalled
+                - succeeded
+                - unknown
+                type: object
+            type: object
+        type: object
     served: true
     storage: true
+    subresources:
+      status: {}
 status:
   acceptedNames:
     kind: ""
