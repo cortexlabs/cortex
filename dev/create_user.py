@@ -19,6 +19,7 @@ import boto3
 import configparser
 from pathlib import Path
 import sys
+import os
 
 # Usage: python create_user.py $CORTEX_CLUSTER_NAME $CORTEX_ACCOUNT_ID $CORTEX_REGION
 
