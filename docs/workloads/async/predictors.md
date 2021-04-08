@@ -1,6 +1,9 @@
 # Predictor implementation
 
-The `AsyncAPI` kind currently only supports the `python` predictor type.
+Which Predictor you use depends on how your model is exported:
+
+* [TensorFlow Predictor](#tensorflow-predictor) if your model is exported as a TensorFlow `SavedModel`
+* [Python Predictor](#python-predictor) for all other cases: PyTorch, ONNX, scikit-learn, XGBoost, TensorFlow (if not using `SavedModel`s), etc.
 
 ## Project files
 

@@ -13,13 +13,8 @@ class PythonPredictor:
     def __init__(self, config):
         # download yolov3 model
         bucket, key = re.match("s3://(.+?)/(.+)", config["yolov3"]).groups()
-
-        if os.environ.get("AWS_ACCESS_KEY_ID"):
-            s3 = boto3.client("s3")  # client will use your credentials if available
-        else:
-            s3 = boto3.client("s3", config=Config(signature_version=UNSIGNED))  # anonymous client
-
         model_path = "/tmp/model.h5"
+        s3 = boto3.client("s3")
         s3.download_file(bucket, key, model_path)
 
         # load yolov3 model

@@ -35,7 +35,7 @@ def client(env: Optional[str] = None) -> Client:
     environments = env_list()
 
     if env is None:
-        if not environments["default_environment"]:
+        if not environments.get("default_environment"):
             raise NotFound("no default environment configured")
         env = environments["default_environment"]
 

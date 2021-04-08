@@ -16,7 +16,7 @@ AWS credentials required to authenticate cortex client requests to the operator 
 
 ### Cluster management
 
-It is recommended that your AWS credentials have AdminstratorAccess before running `cortex cluster *` commands.
+It is recommended that your AWS credentials have AdministratorAccess before running `cortex cluster *` commands.
 
 After spinning up a cluster using `cortex cluster up`, the IAM entity user or role that created the cluster is automatically granted `system:masters` permission to the cluster's RBAC. Make sure to keep track of which IAM entity originally created the cluster.
 

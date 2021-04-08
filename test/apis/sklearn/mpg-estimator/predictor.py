@@ -12,13 +12,9 @@ class PythonPredictor:
         model_path = "/tmp/model"
         os.makedirs(model_path, exist_ok=True)
 
-        if os.environ.get("AWS_ACCESS_KEY_ID"):
-            s3 = boto3.client("s3")  # client will use your credentials if available
-        else:
-            s3 = boto3.client("s3", config=Config(signature_version=UNSIGNED))  # anonymous client
-
         # download mlflow model folder from S3
         bucket, prefix = re.match("s3://(.+?)/(.+)", config["model"]).groups()
+        s3 = boto3.client("s3")
         response = s3.list_objects_v2(Bucket=bucket, Prefix=prefix)
         for s3_obj in response["Contents"]:
             obj_key = s3_obj["Key"]
