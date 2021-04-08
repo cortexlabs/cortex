@@ -75,8 +75,6 @@ For example, to use ECR, first create a repository to store your image:
 # We create a repository in ECR
 
 export AWS_REGION="***"
-export AWS_ACCESS_KEY_ID="***"
-export AWS_SECRET_ACCESS_KEY="***"
 export REGISTRY_URL="***"  # this will be in the format "<aws_account_id>.dkr.ecr.<aws_region>.amazonaws.com"
 
 aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $REGISTRY_URL

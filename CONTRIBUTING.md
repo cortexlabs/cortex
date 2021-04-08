@@ -132,8 +132,8 @@ Create `dev/config/env.sh` with the following information:
 
 export AWS_ACCOUNT_ID="***"  # you can find your account ID in the AWS web console; here is an example: 764403040417
 export AWS_REGION="***"  # you can use any AWS region you'd like, e.g. "us-west-2"
-export AWS_ACCESS_KEY_ID="***"
-export AWS_SECRET_ACCESS_KEY="***"
+export AWS_ACCESS_KEY_ID="***"  # alternatively, you can remove this to use the default credentials chain on your machine
+export AWS_SECRET_ACCESS_KEY="***"  # alternatively, you can remove this to use the default credentials chain on your machine
 
 # export NUM_BUILD_PROCS=2  # optional; can be >2 if you have enough memory
 ```
