@@ -99,9 +99,11 @@ def pytest_configure(config):
                     "status_code_timeout": 60,  # measured in seconds
                 },
                 "async": {
-                    "total_requests": 10 * 4,
+                    "total_requests": 10 ** 4,
                     "desired_replicas": 50,
-                    "concurrency": 1000,
+                    "concurrency": 10,
+                    "submit_timeout": 120,  # measured in seconds
+                    "workload_timeout": 120,  # measured in seconds
                 },
             },
         },

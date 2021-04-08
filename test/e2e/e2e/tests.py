@@ -15,6 +15,7 @@
 import json
 import time
 import math
+import requests
 from http import HTTPStatus
 from pathlib import Path
 from typing import Dict, Any, List, Union
@@ -22,6 +23,7 @@ from typing import Dict, Any, List, Union
 import cortex as cx
 import yaml
 import threading as td
+from concurrent import futures
 
 from e2e.expectations import (
     parse_expectations,
@@ -32,6 +34,8 @@ from e2e.utils import (
     apis_ready,
     api_updated,
     api_requests,
+    wait_on_event,
+    wait_on_futures,
     endpoint_ready,
     request_prediction,
     generate_grpc,
@@ -208,7 +212,7 @@ def test_async_api(
         result_response = None
         for i in range(poll_retries + 1):
             result_response = retrieve_async_result(
-                cliett=client, api_name=api_name, request_id=request_id
+                client=client, api_name=api_name, request_id=request_id
             )
 
             if result_response.status_code == HTTPStatus.OK:
@@ -277,7 +281,7 @@ def test_task_api(
         ), f"api {api_name} not ready"
 
         response = None
-        for i in range(retry_attempts + 1):
+        for _ in range(retry_attempts + 1):
             response = request_task(
                 client,
                 api_name,
@@ -473,7 +477,7 @@ def test_load_realtime(
             assert (
                 network_stats["code_5xx"] == 0
             ), f"detected 5xx response codes ({network_stats['code_5xx']}) in cortex get"
-            
+
             # check if the requesting threads are still healthy
             # if not, they'll raise an exception
             check_futures_healthy(threads_futures)
@@ -487,4 +491,130 @@ def test_load_realtime(
 
     finally:
         request_stopper.set()
+        delete_apis(client, [api_name])
+
+
+def test_load_async(
+    client: cx.Client,
+    api: str,
+    load_config: Dict[str, Union[int, float]],
+    deploy_timeout: int = None,
+    poll_sleep_seconds: int = 1,
+    api_config_name: str = "cortex.yaml",
+):
+
+    total_requests = load_config["total_requests"]
+    desired_replicas = load_config["desired_replicas"]
+    concurrency = load_config["concurrency"]
+    submit_timeout = load_config["submit_timeout"]
+    workload_timeout = load_config["workload_timeout"]
+
+    api_dir = TEST_APIS_DIR / api
+    with open(str(api_dir / api_config_name)) as f:
+        api_specs = yaml.safe_load(f)
+
+    assert len(api_specs) == 1
+    api_specs[0]["autoscaling"] = {
+        "min_replicas": desired_replicas,
+        "max_replicas": desired_replicas,
+    }
+    api_name = api_specs[0]["name"]
+    client.create_api(api_spec=api_specs[0], project_dir=api_dir)
+    api_info = client.get_api(api_name)
+
+    request_stopper = td.Event()
+    map_stopper = td.Event()
+    responses: List[Dict[str, Any]] = []
+    try:
+        assert apis_ready(
+            client=client, api_names=[api_name], timeout=deploy_timeout
+        ), f"api {api_name} not ready"
+
+        with open(str(api_dir / "sample.json")) as f:
+            payload = json.load(f)
+
+        threads_futures = request_concurrent_predictions(
+            client,
+            api_name,
+            concurrency,
+            request_stopper,
+            responses=responses,
+            max_total_requests=total_requests,
+            payload=payload,
+        )
+        assert wait_on_event(
+            request_stopper, submit_timeout
+        ), f"{total_requests} couldn't be submitted in {submit_timeout}s"
+        check_futures_healthy(threads_futures)
+        wait_on_futures(threads_futures)
+
+        assert (
+            len(responses) == total_requests
+        ), f"the submitted number of requests doesn't match the returned number of responses"
+
+        for response in responses:
+            response_json = response.json()
+            assert "id" in response_json
+
+        exec = futures.ThreadPoolExecutor(concurrency)
+        thread_local = td.local()
+
+        def _get_session() -> requests.Session:
+            if not hasattr(thread_local, "session"):
+                thread_local.session = requests.Session()
+            return thread_local.session
+
+        def _async_retriever(response: requests.Response):
+            session = _get_session()
+
+            response_json = response.json()
+            request_id = response_json["id"]
+
+            while not map_stopper.is_set():
+                result_response = session.get(f"{api_info['endpoint']}/{request_id}")
+
+                if result_response.status_code != HTTPStatus.OK:
+                    time.sleep(poll_sleep_seconds)
+                    continue
+
+                result_response_json = result_response.json()
+                if (
+                    "status" in result_response_json
+                    and result_response_json["status"] == "completed"
+                ):
+                    break
+
+                print(f"waiting on {request_id}")
+
+            if map_stopper.is_set():
+                return
+
+            print(result_response_json)
+            # validate keys are in the result json response
+            assert (
+                "id" in result_response_json
+            ), f"id key was not present in result response (response: {result_response_json})"
+            assert (
+                "result" in result_response_json
+            ), f"result key was not present in result response (response: {result_response_json})"
+            assert (
+                "timestamp" in result_response_json
+            ), f"timestamp key was not present in result response (response: {result_response_json})"
+
+            # validate result json response has valid values
+            assert (
+                result_response_json["id"] == request_id
+            ), f"result 'id' and request 'id' mismatch ({result_response_json['id']} != {request_id})"
+            assert (
+                result_response_json["status"] == "completed"
+            ), f"async workload did not complete (response: {result_response_json})"
+            assert result_response_json["timestamp"] != "", "result 'timestamp' value was empty"
+            assert result_response_json["result"] != "", "result 'result' value was empty"
+
+        # will throw an exception if something failed in any thread
+        for _ in exec.map(_async_retriever, responses, timeout=workload_timeout):
+            pass
+
+    finally:
+        map_stopper.set()
         delete_apis(client, [api_name])

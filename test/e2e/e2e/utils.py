@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import concurrent
 import sys
 import time
 import importlib
@@ -63,6 +62,20 @@ def api_requests(
 ) -> bool:
     def _is_ready():
         return client.get_api(api_name)["metrics"]["network_stats"]["code_2xx"] == target_requests
+
+    return wait_for(_is_ready, timeout=timeout)
+
+
+def wait_on_event(event: td.Event, timeout: Optional[int] = None) -> bool:
+    def _is_ready():
+        return event.is_set()
+
+    return wait_for(_is_ready, timeout=timeout)
+
+
+def wait_on_futures(futures_list: List[futures.Future], timeout: Optional[int] = None):
+    def _is_ready():
+        return all([future.done() for future in futures_list])
 
     return wait_for(_is_ready, timeout=timeout)
 
@@ -132,8 +145,8 @@ def request_prediction(
     return response
 
 
-def retrieve_async_result(cliett: cx.Client, api_name: str, request_id: str) -> requests.Response:
-    api_info = cliett.get_api(api_name)
+def retrieve_async_result(client: cx.Client, api_name: str, request_id: str) -> requests.Response:
+    api_info = client.get_api(api_name)
     response = requests.get(f"{api_info['endpoint']}/{request_id}")
 
     return response
@@ -188,6 +201,7 @@ def request_concurrent_predictions(
     concurrency: int,
     event_stopper: td.Event,
     latencies: Optional[List[float]] = None,
+    responses: Optional[List[Dict[str, Any]]] = None,
     max_total_requests: Optional[int] = None,
     payload: Optional[Union[List, Dict]] = None,
     query_params: Dict[str, str] = {},
@@ -195,7 +209,8 @@ def request_concurrent_predictions(
 
     lock = td.RLock()
     thread_local = td.local()
-    sync = td.Barrier(concurrency)
+    start_sync = td.Barrier(concurrency)
+    end_sync = td.Barrier(concurrency)
     executor = futures.ThreadPoolExecutor(concurrency)
     api_info = client.get_api(api_name)
 
@@ -210,12 +225,11 @@ def request_concurrent_predictions(
     def runnable():
         session = get_session()
         global _request_concurrent_predictions_max_total_requests
-        sync.wait()
+        start_sync.wait()
         while not event_stopper.is_set():
             if _request_concurrent_predictions_max_total_requests is not None:
                 with lock:
                     if _request_concurrent_predictions_max_total_requests == 0:
-                        event_stopper.set()
                         break
                     _request_concurrent_predictions_max_total_requests -= 1
             start = time.time()
@@ -225,6 +239,12 @@ def request_concurrent_predictions(
             ), f"status code: got {response.status_code}, expected {HTTPStatus.OK}"
             if latencies is not None:
                 latencies.append(time.time() - start)
+            if responses is not None:
+                responses.append(response)
+
+        if _request_concurrent_predictions_max_total_requests is not None:
+            end_sync.wait()
+            event_stopper.set()
 
     futures_list = []
     for _ in range(concurrency):

@@ -19,11 +19,12 @@ import pytest
 
 import e2e.tests
 
-TEST_APIS = ["tensorflow/iris-classifier"]
+TEST_APIS_REALTIME = ["tensorflow/iris-classifier"]
+TEST_APIS_ASYNC = ["async/iris-classifier"]
 
 
 @pytest.mark.usefixtures("client")
-@pytest.mark.parametrize("api", TEST_APIS)
+@pytest.mark.parametrize("api", TEST_APIS_REALTIME)
 def test_load_realtime(config: Dict, client: cx.Client, api: str):
     skip_load_test = config["global"]["load_test_config"].get("skip_load", False)
     if skip_load_test:
@@ -34,4 +35,19 @@ def test_load_realtime(config: Dict, client: cx.Client, api: str):
         api,
         load_config=config["global"]["load_test_config"]["realtime"],
         deploy_timeout=config["global"]["realtime_deploy_timeout"],
+    )
+
+
+@pytest.mark.usefixtures("client")
+@pytest.mark.parametrize("api", TEST_APIS_ASYNC)
+def test_load_async(config: Dict, client: cx.Client, api: str):
+    skip_load_test = config["global"]["load_test_config"].get("skip_load", False)
+    if skip_load_test:
+        pytest.skip("--skip-load flag detected, skipping load tests")
+
+    e2e.tests.test_load_async(
+        client,
+        api,
+        load_config=config["global"]["load_test_config"]["async"],
+        deploy_timeout=config["global"]["async_deploy_timeout"],
     )
