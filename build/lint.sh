@@ -227,7 +227,7 @@ import sys
 policy=open('./dev/minimum_aws_policy.json').read()
 doc=open('./docs/clusters/management/auth.md').read()
 print(policy in doc)")
-if [[ "$output" == "False" ]]; then
+if [[ "$output" != "True" ]]; then
   echo "./dev/minimum_aws_policy.json and the policy in ./docs/clusters/management/auth.md are out of sync"
   exit 1
 fi

@@ -51,7 +51,7 @@ operator-local-dbg:
 
 # configure kubectl to point to the cluster specified in dev/config/cluster.yaml
 kubectl:
-	@eval $$(python3 ./manager/cluster_config_env.py ./dev/config/cluster.yaml) && eksctl utils write-kubeconfig --cluster="$$CORTEX_CLUSTER_NAME" --region="$$CORTEX_REGION" | (grep -v "saved kubeconfig as" | grep -v "using region" | grep -v "eksctl version" || true)
+	@eval $$(python3 ./manager/cluster_config_env.py ./dev/config/cluster.yaml) && eval $$(python3 ./dev/create_user.py $$CORTEX_CLUSTER_NAME $$AWS_ACCOUNT_ID $$CORTEX_REGION) && eksctl utils write-kubeconfig --cluster="$$CORTEX_CLUSTER_NAME" --region="$$CORTEX_REGION" | (grep -v "saved kubeconfig as" | grep -v "using region" | grep -v "eksctl version" || true)
 
 cluster-up:
 	@$(MAKE) images-all

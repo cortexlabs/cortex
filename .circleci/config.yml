@@ -162,7 +162,7 @@ jobs:
           command: sleep 10
       - run:
           name: Verify configuration of credentials
-          command: aws sts get-caller-identity
+          command: aws sts get-caller-identity | jq ".Arn" | grep "dev-cortex-us-east-1"
       - run-e2e-tests:
           config: ./cluster.yaml
 

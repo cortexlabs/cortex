@@ -26,7 +26,9 @@ cluster_name = sys.argv[1]
 account_id = sys.argv[2]
 cortex_region = sys.argv[3]
 
-with open("./dev/minimum_aws_policy.json", "r") as f:
+dir_path = os.path.dirname(os.path.realpath(__file__))
+
+with open(f"{dir_path}/minimum_aws_policy.json", "r") as f:
     policy_string = f.read()
 policy_string = policy_string.replace("$CORTEX_CLUSTER_NAME", cluster_name)
 policy_string = policy_string.replace("$CORTEX_REGION", cortex_region)
