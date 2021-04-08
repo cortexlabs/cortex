@@ -207,10 +207,75 @@ def request_task(
     return response
 
 
-_request_concurrent_predictions_max_total_requests: int = 0
+_request_tasks_concurrently_total_requests: int = 0
 
 
-def request_concurrently(
+def request_tasks_concurrently(
+    client: cx.Client,
+    api_name: str,
+    event_stopper: td.Event,
+    concurrency: int,
+    total_requests: int,
+    responses: Optional[List[Dict[str, Any]]] = None,
+    config: Dict = None,
+    timeout: int = None,
+):
+    api_info = client.get_api(api_name)
+    endpoint = api_info["endpoint"]
+
+    payload = {}
+    if config is not None:
+        payload["config"] = config
+    if timeout is not None:
+        payload["timeout"] = timeout
+
+    lock = td.RLock()
+    thread_local = td.local()
+    start_sync = td.Barrier(concurrency)
+    end_sync = td.Barrier(concurrency)
+    executor = futures.ThreadPoolExecutor(concurrency)
+
+    global _request_tasks_concurrently_total_requests
+    _request_tasks_concurrently_total_requests = total_requests
+
+    def get_session() -> requests.Session:
+        if not hasattr(thread_local, "session"):
+            thread_local.session = requests.Session()
+        return thread_local.session
+
+    def runnable():
+        session = get_session()
+        global _request_tasks_concurrently_total_requests
+        start_sync.wait()
+        while not event_stopper.is_set():
+            if _request_tasks_concurrently_total_requests is not None:
+                with lock:
+                    if _request_tasks_concurrently_total_requests == 0:
+                        break
+                    _request_tasks_concurrently_total_requests -= 1
+            response = session.post(endpoint, json=payload)
+            assert (
+                response.status_code == HTTPStatus.OK
+            ), f"status code: got {response.status_code}, expected {HTTPStatus.OK}"
+            if responses is not None:
+                responses.append(response)
+
+        if _request_tasks_concurrently_total_requests is not None:
+            end_sync.wait()
+            event_stopper.set()
+
+    futures_list = []
+    for _ in range(concurrency):
+        future = executor.submit(runnable)
+        futures_list.append(future)
+
+    return futures_list
+
+
+_request_predictions_concurrently_max_total_requests: int = 0
+
+
+def request_predictions_concurrently(
     client: cx.Client,
     api_name: str,
     concurrency: int,
@@ -229,8 +294,8 @@ def request_concurrently(
     executor = futures.ThreadPoolExecutor(concurrency)
     api_info = client.get_api(api_name)
 
-    global _request_concurrent_predictions_max_total_requests
-    _request_concurrent_predictions_max_total_requests = max_total_requests
+    global _request_predictions_concurrently_max_total_requests
+    _request_predictions_concurrently_max_total_requests = max_total_requests
 
     def get_session() -> requests.Session:
         if not hasattr(thread_local, "session"):
@@ -239,14 +304,14 @@ def request_concurrently(
 
     def runnable():
         session = get_session()
-        global _request_concurrent_predictions_max_total_requests
+        global _request_predictions_concurrently_max_total_requests
         start_sync.wait()
         while not event_stopper.is_set():
-            if _request_concurrent_predictions_max_total_requests is not None:
+            if _request_predictions_concurrently_max_total_requests is not None:
                 with lock:
-                    if _request_concurrent_predictions_max_total_requests == 0:
+                    if _request_predictions_concurrently_max_total_requests == 0:
                         break
-                    _request_concurrent_predictions_max_total_requests -= 1
+                    _request_predictions_concurrently_max_total_requests -= 1
             start = time.time()
             response = session.post(api_info["endpoint"], json=payload, params=query_params)
             assert (
@@ -257,7 +322,7 @@ def request_concurrently(
             if responses is not None:
                 responses.append(response)
 
-        if _request_concurrent_predictions_max_total_requests is not None:
+        if _request_predictions_concurrently_max_total_requests is not None:
             end_sync.wait()
             event_stopper.set()
 
@@ -269,7 +334,7 @@ def request_concurrently(
     return futures_list
 
 
-def retrieve_async_results_concurrently(
+def retrieve_results_concurrently(
     client: cx.Client,
     api_name: str,
     concurrency: int,
@@ -280,6 +345,11 @@ def retrieve_async_results_concurrently(
     timeout: Optional[int] = None,
 ):
     api_info = client.get_api(api_name)
+    task_kind = api_info["spec"]["kind"] == "TaskAPI"
+    async_kind = api_info["spec"]["kind"] == "AsyncAPI"
+    if not task_kind and not async_kind:
+        raise ValueError("function can only be called for TaskAPI/AsyncAPI kinds")
+
     exec = futures.ThreadPoolExecutor(concurrency)
     thread_local = td.local()
 
@@ -288,18 +358,32 @@ def retrieve_async_results_concurrently(
             thread_local.session = requests.Session()
         return thread_local.session
 
-    def _async_retriever(request_id: str):
+    def _retriever(request_id: str):
         session = _get_session()
 
         while not event_stopper.is_set():
-            result_response = session.get(f"{api_info['endpoint']}/{request_id}")
+            if task_kind:
+                result_response = session.get(f"{api_info['endpoint']}?jobID={request_id}")
+            if async_kind:
+                result_response = session.get(f"{api_info['endpoint']}/{request_id}")
 
             if result_response.status_code != HTTPStatus.OK:
                 time.sleep(poll_sleep_seconds)
                 continue
 
             result_response_json = result_response.json()
-            if "status" in result_response_json and result_response_json["status"] == "completed":
+            if (
+                async_kind
+                and "status" in result_response_json
+                and result_response_json["status"] == "completed"
+            ):
+                break
+            if (
+                task_kind
+                and "job_status" in result_response_json
+                and "status" in result_response_json["job_status"]
+                and result_response_json["job_status"]["status"] == "status_succeeded"
+            ):
                 break
 
         if event_stopper.is_set():
@@ -308,7 +392,7 @@ def retrieve_async_results_concurrently(
         responses.append((request_id, result_response_json))
 
     # will throw an exception if something failed in any thread
-    for _ in exec.map(_async_retriever, job_ids, timeout=timeout):
+    for _ in exec.map(_retriever, job_ids, timeout=timeout):
         pass
 
 

@@ -112,6 +112,12 @@ def pytest_configure(config):
                     "batch_size": 10 * 2,
                     "workload_timeout": 180,  # measured in seconds
                 },
+                "task": {
+                    "jobs": 10 ** 2,
+                    "concurrency": 4,
+                    "submit_timeout": 60,
+                    "workload_timeout": 180,
+                },
             },
         },
     }

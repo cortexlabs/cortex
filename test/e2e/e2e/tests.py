@@ -46,10 +46,11 @@ from e2e.utils import (
     jobs_done,
     request_batch_prediction,
     request_task,
+    request_tasks_concurrently,
     retrieve_async_result,
-    request_concurrently,
+    request_predictions_concurrently,
     check_futures_healthy,
-    retrieve_async_results_concurrently,
+    retrieve_results_concurrently,
 )
 
 TEST_APIS_DIR = Path(__file__).parent.parent.parent / "apis"
@@ -368,7 +369,7 @@ def test_autoscaling(
             client=client, api_names=all_api_names, timeout=deploy_timeout
         ), f"apis {all_api_names} not ready"
 
-        threads_futures = request_concurrently(
+        threads_futures = request_predictions_concurrently(
             client, primary_api_name, concurrency, request_stopper, query_params={"sleep": "1.0"}
         )
 
@@ -447,7 +448,7 @@ def test_load_realtime(
         with open(str(api_dir / "sample.json")) as f:
             payload = json.load(f)
 
-        threads_futures = request_concurrently(
+        threads_futures = request_predictions_concurrently(
             client,
             api_name,
             concurrency,
@@ -537,7 +538,7 @@ def test_load_async(
         with open(str(api_dir / "sample.json")) as f:
             payload = json.load(f)
 
-        threads_futures = request_concurrently(
+        threads_futures = request_predictions_concurrently(
             client,
             api_name,
             concurrency,
@@ -564,7 +565,7 @@ def test_load_async(
 
         # assert the results
         results = []
-        retrieve_async_results_concurrently(
+        retrieve_results_concurrently(
             client,
             api_name,
             concurrency,
@@ -676,7 +677,6 @@ def test_load_batch(
             job_id: str = job_spec["job_id"]
             job_status = requests.get(f"{api_endpoint}?jobID={job_id}").json()["job_status"]
 
-            assert job_status["status"] == "status_succeeded"
             assert (
                 job_status["batches_in_queue"] == 0
             ), f"there are still batches in queue ({job_status['batches_in_queue']}) for job ID {job_id}"
@@ -688,4 +688,65 @@ def test_load_batch(
             assert num_objects == 1
 
     finally:
+        delete_apis(client, [api_name])
+
+
+def test_load_task(
+    client: cx.Client,
+    api: str,
+    load_config: Dict[str, Union[int, float]],
+    deploy_timeout: int = None,
+    retry_attempts: int = 0,
+    poll_sleep_seconds: int = 1,
+    api_config_name: str = "cortex.yaml",
+):
+
+    jobs = load_config["jobs"]
+    concurrency = load_config["concurrency"]
+    submit_timeout = load_config["submit_timeout"]
+    workload_timeout = load_config["workload_timeout"]
+
+    api_dir = TEST_APIS_DIR / api
+    with open(str(api_dir / api_config_name)) as f:
+        api_specs = yaml.safe_load(f)
+    assert len(api_specs) == 1
+
+    api_name = api_specs[0]["name"]
+    client.create_api(api_spec=api_specs[0], project_dir=api_dir)
+
+    request_stopper = td.Event()
+    map_stopper = td.Event()
+    try:
+        assert endpoint_ready(
+            client=client, api_name=api_name, timeout=deploy_timeout
+        ), f"api {api_name} not ready"
+
+        # give the operator time to start
+        time.sleep(1 * retry_attempts)
+
+        # submit jobs
+        job_specs = []
+        threads_futures = request_tasks_concurrently(
+            client, api_name, request_stopper, concurrency, jobs, job_specs
+        )
+
+        assert wait_on_event(
+            request_stopper, submit_timeout
+        ), f"{jobs} jobs couldn't be submitted in {submit_timeout}s"
+        check_futures_healthy(threads_futures)
+        wait_on_futures(threads_futures)
+
+        job_ids = [job_spec.json()["job_id"] for job_spec in job_specs]
+        retrieve_results_concurrently(
+            client,
+            api_name,
+            concurrency,
+            map_stopper,
+            job_ids,
+            poll_sleep_seconds=poll_sleep_seconds,
+            timeout=workload_timeout,
+        )
+
+    finally:
+        map_stopper.set()
         delete_apis(client, [api_name])
