@@ -45,6 +45,7 @@ from e2e.utils import (
     retrieve_async_result,
     request_concurrent_predictions,
     check_futures_healthy,
+    retrieve_async_results_concurrently,
 )
 
 TEST_APIS_DIR = Path(__file__).parent.parent.parent / "apis"
@@ -520,7 +521,6 @@ def test_load_async(
     }
     api_name = api_specs[0]["name"]
     client.create_api(api_spec=api_specs[0], project_dir=api_dir)
-    api_info = client.get_api(api_name)
 
     request_stopper = td.Event()
     map_stopper = td.Event()
@@ -552,69 +552,48 @@ def test_load_async(
             len(responses) == total_requests
         ), f"the submitted number of requests doesn't match the returned number of responses"
 
+        job_ids = []
         for response in responses:
             response_json = response.json()
             assert "id" in response_json
+            job_ids.append(response_json["id"])
 
-        exec = futures.ThreadPoolExecutor(concurrency)
-        thread_local = td.local()
-
-        def _get_session() -> requests.Session:
-            if not hasattr(thread_local, "session"):
-                thread_local.session = requests.Session()
-            return thread_local.session
-
-        def _async_retriever(response: requests.Response):
-            session = _get_session()
-
-            response_json = response.json()
-            request_id = response_json["id"]
-
-            while not map_stopper.is_set():
-                result_response = session.get(f"{api_info['endpoint']}/{request_id}")
-
-                if result_response.status_code != HTTPStatus.OK:
-                    time.sleep(poll_sleep_seconds)
-                    continue
-
-                result_response_json = result_response.json()
-                if (
-                    "status" in result_response_json
-                    and result_response_json["status"] == "completed"
-                ):
-                    break
-
-                print(f"waiting on {request_id}")
-
-            if map_stopper.is_set():
-                return
-
-            print(result_response_json)
+        # assert the results
+        results = []
+        retrieve_async_results_concurrently(
+            client,
+            api_name,
+            concurrency,
+            map_stopper,
+            job_ids,
+            results,
+            poll_sleep_seconds,
+            workload_timeout,
+        )
+        for request_id, json_result in results:
             # validate keys are in the result json response
             assert (
-                "id" in result_response_json
-            ), f"id key was not present in result response (response: {result_response_json})"
+                "id" in json_result
+            ), f"id key was not present in result response (response: {json_result})"
             assert (
-                "result" in result_response_json
-            ), f"result key was not present in result response (response: {result_response_json})"
+                "result" in json_result
+            ), f"result key was not present in result response (response: {json_result})"
             assert (
-                "timestamp" in result_response_json
-            ), f"timestamp key was not present in result response (response: {result_response_json})"
+                "timestamp" in json_result
+            ), f"timestamp key was not present in result response (response: {json_result})"
 
             # validate result json response has valid values
             assert (
-                result_response_json["id"] == request_id
-            ), f"result 'id' and request 'id' mismatch ({result_response_json['id']} != {request_id})"
+                json_result["id"] == request_id
+            ), f"result 'id' and request 'id' mismatch ({json_result['id']} != {request_id})"
             assert (
-                result_response_json["status"] == "completed"
-            ), f"async workload did not complete (response: {result_response_json})"
-            assert result_response_json["timestamp"] != "", "result 'timestamp' value was empty"
-            assert result_response_json["result"] != "", "result 'result' value was empty"
-
-        # will throw an exception if something failed in any thread
-        for _ in exec.map(_async_retriever, responses, timeout=workload_timeout):
-            pass
+                json_result["status"] == "completed"
+            ), f"async workload did not complete (response: {json_result})"
+            assert json_result["timestamp"] != "", "result 'timestamp' value was empty"
+            assert json_result["result"] != "", "result 'result' value was empty"
 
     finally:
+        if "results" in vars() and len(results) < total_requests:
+            print(f"{len(results)}/{total_requests} have been successfully retrieved")
         map_stopper.set()
         delete_apis(client, [api_name])

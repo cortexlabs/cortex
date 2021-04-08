@@ -265,6 +265,49 @@ def check_futures_healthy(futures_list: List[futures.Future]):
             future.result()
 
 
+def retrieve_async_results_concurrently(
+    client: cx.Client,
+    api_name: str,
+    concurrency: int,
+    event_stopper: td.Event,
+    job_ids: List[str],
+    responses: List[Tuple[str, Dict[str, Any]]] = [],
+    poll_sleep_seconds: int = 1,
+    timeout: Optional[int] = None,
+):
+    api_info = client.get_api(api_name)
+    exec = futures.ThreadPoolExecutor(concurrency)
+    thread_local = td.local()
+
+    def _get_session() -> requests.Session:
+        if not hasattr(thread_local, "session"):
+            thread_local.session = requests.Session()
+        return thread_local.session
+
+    def _async_retriever(request_id: str):
+        session = _get_session()
+
+        while not event_stopper.is_set():
+            result_response = session.get(f"{api_info['endpoint']}/{request_id}")
+
+            if result_response.status_code != HTTPStatus.OK:
+                time.sleep(poll_sleep_seconds)
+                continue
+
+            result_response_json = result_response.json()
+            if "status" in result_response_json and result_response_json["status"] == "completed":
+                break
+
+        if event_stopper.is_set():
+            return
+
+        responses.append((request_id, result_response_json))
+
+    # will throw an exception if something failed in any thread
+    for _ in exec.map(_async_retriever, job_ids, timeout=timeout):
+        pass
+
+
 def client_from_config(config_path: str) -> cx.Client:
     with open(config_path) as f:
         config = yaml.safe_load(f)
