@@ -121,12 +121,12 @@ def pytest_configure(config):
                     "jobs": 10 ** 2,
                     "concurrency": 4,
                     "submit_timeout": 60,
-                    "workload_timeout": 180,
+                    "workload_timeout": 180,  # measured in seconds
                 },
             },
             "long_running_test_config": {
                 "skip_load": config.getoption("--skip-long-running"),
-                "time_to_run": 5 * 24 * 3600,
+                "time_to_run": 5 * 24 * 3600,  # measured in seconds
             },
         },
     }
