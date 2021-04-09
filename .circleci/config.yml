@@ -59,7 +59,7 @@ commands:
       - run:
           name: Run E2E Tests
           command: |
-            pytest -v test/e2e/tests --env aws --skip-load --skip-long-running
+            pytest -v test/e2e/tests --env aws --skip-autoscaling --skip-load --skip-long-running
             pytest -v test/e2e/tests --env aws -k test_autoscaling
             pytest -v test/e2e/tests --env aws -k test_load
       - run:
