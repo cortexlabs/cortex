@@ -527,6 +527,9 @@ def test_load_realtime(
             client=client, api_names=[api_name], timeout=deploy_timeout
         ), f"api {api_name} not ready"
 
+        # give the APIs some time to prevent getting high latency spikes in the beginning
+        time.sleep(5)
+
         with open(str(api_dir / "sample.json")) as f:
             payload = json.load(f)
 
@@ -541,7 +544,6 @@ def test_load_realtime(
             payload=payload,
         )
 
-        # upscale/downscale the api
         while not request_stopper.is_set():
             current_min_rtt = min(latencies) if len(latencies) > 0 else min_rtt
             assert (
@@ -903,6 +905,7 @@ def test_long_running_realtime(
         api_specs = yaml.safe_load(f)
 
     time_to_run = long_running_config["time_to_run"]
+    status_code_timeout = long_running_config["status_code_timeout"]
 
     expectations = None
     expectations_file = api_dir / "expectations.yaml"
@@ -921,6 +924,7 @@ def test_long_running_realtime(
         with open(str(api_dir / "sample.json")) as f:
             payload = json.load(f)
 
+        counter = 0
         start_time = time.time()
         while time.time() - start_time <= time_to_run:
             response = request_prediction(client, api_name, payload)
@@ -931,6 +935,13 @@ def test_long_running_realtime(
 
             if expectations and "response" in expectations:
                 assert_response_expectations(response, expectations["response"])
+
+            counter += 1
+
+        printer("verifying number of processed requests using the client")
+        assert api_requests(
+            client, api_name, counter, timeout=status_code_timeout
+        ), f"the number of 2xx response codes for api {api_name} doesn't match the expected number {counter}"
 
     except:
         # best effort

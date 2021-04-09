@@ -102,7 +102,7 @@ def pytest_configure(config):
                     "desired_replicas": 50,
                     "concurrency": 50,
                     "min_rtt": 0.005,  # measured in seconds
-                    "max_rtt": 1.500,  # measured in seconds
+                    "max_rtt": 1.000,  # measured in seconds
                     "avg_rtt": 0.06,  # measured in seconds
                     "avg_rtt_tolerance": 0.05,  # measured in seconds
                     "status_code_timeout": 60,  # measured in seconds
@@ -130,6 +130,7 @@ def pytest_configure(config):
             },
             "long_running_test_config": {
                 "time_to_run": 5 * 24 * 3600,  # measured in seconds
+                "status_code_timeout": 60,  # measured in seconds
             },
         },
     }
