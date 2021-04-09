@@ -28,7 +28,7 @@ TEST_APIS_TASK = ["task/hello-world"]
 @pytest.mark.usefixtures("client")
 @pytest.mark.parametrize("api", TEST_APIS_REALTIME)
 def test_load_realtime(printer: Callable, config: Dict, client: cx.Client, api: str):
-    skip_load_test = config["global"]["load_test_config"].get("skip_load", False)
+    skip_load_test = config["global"].get("skip_load", False)
     if skip_load_test:
         pytest.skip("--skip-load flag detected, skipping load tests")
 
@@ -44,7 +44,7 @@ def test_load_realtime(printer: Callable, config: Dict, client: cx.Client, api: 
 @pytest.mark.usefixtures("client")
 @pytest.mark.parametrize("api", TEST_APIS_ASYNC)
 def test_load_async(printer: Callable, config: Dict, client: cx.Client, api: str):
-    skip_load_test = config["global"]["load_test_config"].get("skip_load", False)
+    skip_load_test = config["global"].get("skip_load", False)
     if skip_load_test:
         pytest.skip("--skip-load flag detected, skipping load tests")
 
@@ -60,7 +60,7 @@ def test_load_async(printer: Callable, config: Dict, client: cx.Client, api: str
 @pytest.mark.usefixtures("client")
 @pytest.mark.parametrize("api", TEST_APIS_BATCH)
 def test_load_batch(printer: Callable, config: Dict, client: cx.Client, api: str):
-    skip_load_test = config["global"]["load_test_config"].get("skip_load", False)
+    skip_load_test = config["global"].get("skip_load", False)
     if skip_load_test:
         pytest.skip("--skip-load flag detected, skipping load tests")
 
@@ -84,7 +84,7 @@ def test_load_batch(printer: Callable, config: Dict, client: cx.Client, api: str
 @pytest.mark.usefixtures("client")
 @pytest.mark.parametrize("api", TEST_APIS_TASK)
 def test_load_task(printer: Callable, config: Dict, client: cx.Client, api: str):
-    skip_load_test = config["global"]["load_test_config"].get("skip_load", False)
+    skip_load_test = config["global"].get("skip_load", False)
     if skip_load_test:
         pytest.skip("--skip-load flag detected, skipping load tests")
 

@@ -23,6 +23,9 @@ TEST_APIS = [
     {
         "primary": "sleep",
         "dummy": ["sklearn/mpg-estimator", "tensorflow/iris-classifier"],
+        "query_params": {
+            "sleep": "1.0",
+        },
     }
 ]
 
@@ -38,5 +41,6 @@ def test_autoscaling(printer: Callable, config: Dict, client: cx.Client, apis: s
         printer,
         client,
         apis,
+        autoscaling_config=config["global"]["autoscaling_test_config"],
         deploy_timeout=config["global"]["realtime_deploy_timeout"],
     )

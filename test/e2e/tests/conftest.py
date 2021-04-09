@@ -91,8 +91,12 @@ def pytest_configure(config):
             "skip_gpus": config.getoption("--skip-gpus"),
             "skip_infs": config.getoption("--skip-infs"),
             "skip_autoscaling": config.getoption("--skip-autoscaling"),
+            "skip_long_running": config.getoption("--skip-long-running"),
+            "skip_load": config.getoption("--skip-load"),
+            "autoscaling_test_config": {
+                "max_replicas": 20,
+            },
             "load_test_config": {
-                "skip_load": config.getoption("--skip-load"),
                 "realtime": {
                     "total_requests": 10 ** 6,
                     "desired_replicas": 50,
@@ -125,7 +129,6 @@ def pytest_configure(config):
                 },
             },
             "long_running_test_config": {
-                "skip_long_running": config.getoption("--skip-long-running"),
                 "time_to_run": 5 * 24 * 3600,  # measured in seconds
             },
         },

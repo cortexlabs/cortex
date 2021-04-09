@@ -380,11 +380,13 @@ def test_autoscaling(
     printer: Callable,
     client: cx.Client,
     apis: Dict[str, Any],
+    autoscaling_config: Dict[str, Union[int, float]],
     deploy_timeout: int = None,
     api_config_name: str = "cortex.yaml",
 ):
-    # max number of concurrent requests
-    max_replicas = 20
+    max_replicas = autoscaling_config["max_replicas"]
+    query_params = apis["query_params"]
+
     # increase the concurrency by 1 to ensure we get max_replicas replicas
     concurrency = max_replicas + 1
 
@@ -437,7 +439,7 @@ def test_autoscaling(
         ), f"apis {all_api_names} not ready"
 
         threads_futures = request_predictions_concurrently(
-            client, primary_api_name, concurrency, request_stopper, query_params={"sleep": "1.0"}
+            client, primary_api_name, concurrency, request_stopper, query_params=query_params
         )
 
         test_start_time = time.time()

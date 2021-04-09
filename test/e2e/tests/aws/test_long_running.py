@@ -25,7 +25,7 @@ TEST_APIS = ["onnx/iris-classifier"]
 @pytest.mark.usefixtures("client")
 @pytest.mark.parametrize("api", TEST_APIS)
 def test_long_running_realtime(printer: Callable, config: Dict, client: cx.Client, api: str):
-    skip_load_test = config["global"]["long_running_test_config"].get("skip_long_running", False)
+    skip_load_test = config["global"].get("skip_long_running", False)
     if skip_load_test:
         pytest.skip("--skip-long-running flag detected, skipping long-running test")
 
