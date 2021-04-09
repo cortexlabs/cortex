@@ -66,7 +66,7 @@ func (s *service) CreateWorkload(id string, payload io.Reader, contentType strin
 		return "", err
 	}
 
-	statusPath := fmt.Sprintf("%s/%s/status", prefix, id)
+	statusPath := fmt.Sprintf("%s/%s/%s", prefix, id, StatusInQueue)
 	log.Debug(fmt.Sprintf("setting status to %s", StatusInQueue))
 	if err := s.storage.Upload(statusPath, strings.NewReader(string(StatusInQueue)), "text/plain"); err != nil {
 		return "", err
@@ -83,22 +83,38 @@ func (s *service) GetWorkload(id string) (GetWorkloadResponse, error) {
 	// download workload status
 	statusPath := fmt.Sprintf("%s/%s/status", prefix, id)
 	log.Debug("downloading status file", zap.String("path", statusPath))
-	statusBuf, err := s.storage.Download(statusPath)
+	files, err := s.storage.List(fmt.Sprintf("%s/%s", prefix, id))
 	if err != nil {
 		return GetWorkloadResponse{}, err
 	}
 
-	status := Status(statusBuf[:])
-	switch status {
-	case StatusFailed, StatusInProgress, StatusInQueue:
+	hasCompleted := false
+	for _, f := range files {
+		if f == "completed" {
+			hasCompleted = true
+		}
+	}
+
+	if !hasCompleted {
 		return GetWorkloadResponse{
 			ID:     id,
-			Status: status,
+			Status: StatusInQueue,
 		}, nil
-	case StatusCompleted: // continues execution after switch/case, below
-	default:
-		return GetWorkloadResponse{}, fmt.Errorf("invalid workload status: %s", status)
 	}
+
+	status := StatusCompleted
+
+	// status := Status(statusBuf[:])
+	// switch status {
+	// case StatusFailed, StatusInProgress, StatusInQueue:
+	// 	return GetWorkloadResponse{
+	// 		ID:     id,
+	// 		Status: status,
+	// 	}, nil
+	// case StatusCompleted: // continues execution after switch/case, below
+	// default:
+	// 	return GetWorkloadResponse{}, fmt.Errorf("invalid workload status: %s", status)
+	// }
 
 	// attempt to download user result
 	resultPath := fmt.Sprintf("%s/%s/result.json", prefix, id)
