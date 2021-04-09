@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Dict
+from typing import Callable, Dict
 
 import cortex as cx
 import pytest
@@ -24,8 +24,9 @@ TEST_APIS = ["task/hello-world"]
 
 @pytest.mark.usefixtures("client")
 @pytest.mark.parametrize("api", TEST_APIS)
-def test_task_api(config: Dict, client: cx.Client, api: str):
+def test_task_api(printer: Callable, config: Dict, client: cx.Client, api: str):
     e2e.tests.test_task_api(
+        printer,
         client,
         api,
         retry_attempts=5,

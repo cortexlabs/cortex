@@ -125,7 +125,7 @@ def pytest_configure(config):
                 },
             },
             "long_running_test_config": {
-                "skip_load": config.getoption("--skip-long-running"),
+                "skip_long_running": config.getoption("--skip-long-running"),
                 "time_to_run": 5 * 24 * 3600,  # measured in seconds
             },
         },

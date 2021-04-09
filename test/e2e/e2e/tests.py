@@ -62,7 +62,11 @@ def delete_apis(client: cx.Client, api_names: List[str]):
 
 
 def test_realtime_api(
-    client: cx.Client, api: str, timeout: int = None, api_config_name: str = "cortex.yaml"
+    printer: Callable,
+    client: cx.Client,
+    api: str,
+    timeout: int = None,
+    api_config_name: str = "cortex.yaml",
 ):
     api_dir = TEST_APIS_DIR / api
     with open(str(api_dir / api_config_name)) as f:
@@ -112,11 +116,22 @@ def test_realtime_api(
                 assert (
                     response == output_values[0]
                 ), f"received {response} instead of {output_values[0]}"
+    except:
+        # best effort
+        try:
+            api_info = client.get_api(api_name)
+            printer(json.dumps(api_info, indent=2))
+            td.Thread(target=lambda: client.stream_api_logs(api_name), daemon=True).start()
+            time.sleep(5)
+        except:
+            pass
+        raise
     finally:
         delete_apis(client, [api_name])
 
 
 def test_batch_api(
+    printer: Callable,
     client: cx.Client,
     api: str,
     test_s3_path: str,
@@ -170,11 +185,28 @@ def test_batch_api(
             timeout=job_timeout,
         ), f"job did not succeed (api_name: {api_name}, job_id: {job_spec['job_id']})"
 
+    except:
+        # best effort
+        try:
+            api_info = client.get_api(api_name)
+            printer(json.dumps(api_info, indent=2))
+
+            job_status = client.get_job(api_name, job_spec["job_id"])
+            printer(json.dumps(job_status, indent=2))
+            td.Thread(
+                target=lambda: client.stream_job_logs(api_name, job_spec["job_id"]), daemon=True
+            ).start()
+            time.sleep(5)
+        except:
+            pass
+        raise
+
     finally:
         delete_apis(client, [api_name])
 
 
 def test_async_api(
+    printer: Callable,
     client: cx.Client,
     api: str,
     deploy_timeout: int = None,
@@ -260,11 +292,29 @@ def test_async_api(
         if expectations:
             assert_json_expectations(result_response_json["result"], expectations["response"])
 
+    except:
+        # best effort
+        try:
+            api_info = client.get_api(api_name)
+            printer(json.dumps(api_info, indent=2))
+
+            job_status = client.get_job(api_name, result_response_json["id"])
+            printer(json.dumps(job_status, indent=2))
+            td.Thread(
+                target=lambda: client.stream_job_logs(api_name, result_response_json["id"]),
+                daemon=True,
+            ).start()
+            time.sleep(5)
+        except:
+            pass
+        raise
+
     finally:
         delete_apis(client, [api_name])
 
 
 def test_task_api(
+    printer: Callable,
     client: cx.Client,
     api: str,
     deploy_timeout: int = None,
@@ -305,6 +355,22 @@ def test_task_api(
             job_id=job_spec["job_id"],
             timeout=job_timeout,
         ), f"task job did not succeed (api_name: {api_name}, job_id: {job_spec['job_id']})"
+
+    except:
+        # best effort
+        try:
+            api_info = client.get_api(api_name)
+            printer(json.dumps(api_info, indent=2))
+
+            job_status = client.get_job(api_name, job_spec["job_id"])
+            printer(json.dumps(job_status, indent=2))
+            td.Thread(
+                target=lambda: client.stream_job_logs(api_name, job_spec["job_id"]), daemon=True
+            ).start()
+            time.sleep(5)
+        except:
+            pass
+        raise
 
     finally:
         delete_apis(client, [api_name])
@@ -407,6 +473,15 @@ def test_autoscaling(
             # add some delay to reduce the number of gets
             time.sleep(1)
 
+    except:
+        # best effort
+        try:
+            api_info = client.get_api(primary_api_name)
+            printer(json.dumps(api_info, indent=2))
+        except:
+            pass
+        raise
+
     finally:
         request_stopper.set()
         delete_apis(client, all_api_names)
@@ -507,6 +582,15 @@ def test_load_realtime(
         assert api_requests(
             client, api_name, total_requests, timeout=status_code_timeout
         ), f"the number of 2xx response codes for api {api_name} doesn't match the expected number {total_requests}"
+
+    except:
+        # best effort
+        try:
+            api_info = client.get_api(api_name)
+            printer(json.dumps(api_info, indent=2))
+        except:
+            pass
+        raise
 
     finally:
         request_stopper.set()
@@ -615,6 +699,15 @@ def test_load_async(
             assert json_result["timestamp"] != "", "result 'timestamp' value was empty"
             assert json_result["result"] != "", "result 'result' value was empty"
 
+    except:
+        # best effort
+        try:
+            api_info = client.get_api(api_name)
+            printer(json.dumps(api_info, indent=2))
+        except:
+            pass
+        raise
+
     finally:
         if "results" in vars() and len(results) < total_requests:
             printer(f"{len(results)}/{total_requests} have been successfully retrieved")
@@ -709,6 +802,15 @@ def test_load_batch(
                 num_objects += len(page["Contents"])
             assert num_objects == 1
 
+    except:
+        # best effort
+        try:
+            api_info = client.get_api(api_name)
+            printer(json.dumps(api_info, indent=2))
+        except:
+            pass
+        raise
+
     finally:
         delete_apis(client, [api_name])
 
@@ -772,12 +874,22 @@ def test_load_task(
             timeout=workload_timeout,
         )
 
+    except:
+        # best effort
+        try:
+            api_info = client.get_api(api_name)
+            printer(json.dumps(api_info, indent=2))
+        except:
+            pass
+        raise
+
     finally:
         map_stopper.set()
         delete_apis(client, [api_name])
 
 
 def test_long_running_realtime(
+    printer: Callable,
     client: cx.Client,
     api: str,
     long_running_config: Dict[str, Union[int, float]],
@@ -817,6 +929,16 @@ def test_long_running_realtime(
 
             if expectations and "response" in expectations:
                 assert_response_expectations(response, expectations["response"])
-    finally:
 
+    except:
+        # best effort
+        try:
+            api_info = client.get_api(api_name)
+            printer(json.dumps(api_info, indent=2))
+            td.Thread(target=lambda: client.stream_api_logs(api_name), daemon=True).start()
+            time.sleep(5)
+        except:
+            pass
+        raise
+    finally:
         delete_apis(client, [api_name])

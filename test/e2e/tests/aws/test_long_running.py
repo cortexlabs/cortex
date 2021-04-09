@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Dict
+from typing import Callable, Dict
 
 import cortex as cx
 import pytest
@@ -24,12 +24,13 @@ TEST_APIS = ["onnx/iris-classifier"]
 
 @pytest.mark.usefixtures("client")
 @pytest.mark.parametrize("api", TEST_APIS)
-def test_long_running_realtime(config: Dict, client: cx.Client, api: str):
+def test_long_running_realtime(printer: Callable, config: Dict, client: cx.Client, api: str):
     skip_load_test = config["global"]["long_running_test_config"].get("skip_long_running", False)
     if skip_load_test:
         pytest.skip("--skip-long-running flag detected, skipping long-running test")
 
     e2e.tests.test_long_running_realtime(
+        printer,
         client,
         api,
         long_running_config=config["global"]["long_running_test_config"],
