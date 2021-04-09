@@ -50,6 +50,9 @@ spec:
           service:
             type: LoadBalancer
             externalTrafficPolicy: Cluster # https://medium.com/pablo-perez/k8s-externaltrafficpolicy-local-or-cluster-40b259a19404, https://www.asykim.com/blog/deep-dive-into-kubernetes-external-traffic-policies
+            {% if config.get('operator_load_balancer_cidr_white_list', [])|length > 0 %}
+            loadBalancerSourceRanges: {{ config['operator_load_balancer_cidr_white_list'] }}
+            {% endif %}
             selector:
               app: operator-istio-gateway
               istio: ingressgateway-operator
@@ -107,6 +110,10 @@ spec:
             {% endif %}
           service:
             type: LoadBalancer
+            {% if config.get('api_load_balancer_cidr_white_list', [])|length > 0 %}
+            loadBalancerSourceRanges: {{ config['api_load_balancer_cidr_white_list'] }}
+            {% endif %}
+            selector:
             externalTrafficPolicy: Cluster # https://medium.com/pablo-perez/k8s-externaltrafficpolicy-local-or-cluster-40b259a19404, https://www.asykim.com/blog/deep-dive-into-kubernetes-external-traffic-policies
             selector:
               app: apis-istio-gateway
