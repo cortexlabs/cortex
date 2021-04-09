@@ -207,9 +207,6 @@ def request_task(
     return response
 
 
-_request_tasks_concurrently_total_requests: int = 0
-
-
 def request_tasks_concurrently(
     client: cx.Client,
     api_name: str,
@@ -220,62 +217,27 @@ def request_tasks_concurrently(
     config: Dict = None,
     timeout: int = None,
 ):
-    api_info = client.get_api(api_name)
-    endpoint = api_info["endpoint"]
-
     payload = {}
     if config is not None:
         payload["config"] = config
     if timeout is not None:
         payload["timeout"] = timeout
 
-    lock = td.RLock()
-    thread_local = td.local()
-    start_sync = td.Barrier(concurrency)
-    end_sync = td.Barrier(concurrency)
-    executor = futures.ThreadPoolExecutor(concurrency)
-
-    global _request_tasks_concurrently_total_requests
-    _request_tasks_concurrently_total_requests = total_requests
-
-    def get_session() -> requests.Session:
-        if not hasattr(thread_local, "session"):
-            thread_local.session = requests.Session()
-        return thread_local.session
-
-    def runnable():
-        session = get_session()
-        global _request_tasks_concurrently_total_requests
-        start_sync.wait()
-        while not event_stopper.is_set():
-            if _request_tasks_concurrently_total_requests is not None:
-                with lock:
-                    if _request_tasks_concurrently_total_requests == 0:
-                        break
-                    _request_tasks_concurrently_total_requests -= 1
-            response = session.post(endpoint, json=payload)
-            assert (
-                response.status_code == HTTPStatus.OK
-            ), f"status code: got {response.status_code}, expected {HTTPStatus.OK}"
-            if responses is not None:
-                responses.append(response)
-
-        if _request_tasks_concurrently_total_requests is not None:
-            end_sync.wait()
-            event_stopper.set()
-
-    futures_list = []
-    for _ in range(concurrency):
-        future = executor.submit(runnable)
-        futures_list.append(future)
-
-    return futures_list
+    return make_requests_concurrently(
+        client,
+        api_name,
+        concurrency,
+        event_stopper,
+        responses=responses,
+        max_total_requests=total_requests,
+        payload=payload,
+    )
 
 
-_request_predictions_concurrently_max_total_requests: int = 0
+_make_requests_concurrently_max_total_requests: int = 0
 
 
-def request_predictions_concurrently(
+def make_requests_concurrently(
     client: cx.Client,
     api_name: str,
     concurrency: int,
@@ -293,9 +255,10 @@ def request_predictions_concurrently(
     end_sync = td.Barrier(concurrency)
     executor = futures.ThreadPoolExecutor(concurrency)
     api_info = client.get_api(api_name)
+    endpoint = api_info["endpoint"]
 
-    global _request_predictions_concurrently_max_total_requests
-    _request_predictions_concurrently_max_total_requests = max_total_requests
+    global _make_requests_concurrently_max_total_requests
+    _make_requests_concurrently_max_total_requests = max_total_requests
 
     def get_session() -> requests.Session:
         if not hasattr(thread_local, "session"):
@@ -304,16 +267,16 @@ def request_predictions_concurrently(
 
     def runnable():
         session = get_session()
-        global _request_predictions_concurrently_max_total_requests
+        global _make_requests_concurrently_max_total_requests
         start_sync.wait()
         while not event_stopper.is_set():
-            if _request_predictions_concurrently_max_total_requests is not None:
+            if _make_requests_concurrently_max_total_requests is not None:
                 with lock:
-                    if _request_predictions_concurrently_max_total_requests == 0:
+                    if _make_requests_concurrently_max_total_requests == 0:
                         break
-                    _request_predictions_concurrently_max_total_requests -= 1
+                    _make_requests_concurrently_max_total_requests -= 1
             start = time.time()
-            response = session.post(api_info["endpoint"], json=payload, params=query_params)
+            response = session.post(endpoint, json=payload, params=query_params)
             assert (
                 response.status_code == HTTPStatus.OK
             ), f"status code: got {response.status_code}, expected {HTTPStatus.OK}"
@@ -322,7 +285,7 @@ def request_predictions_concurrently(
             if responses is not None:
                 responses.append(response)
 
-        if _request_predictions_concurrently_max_total_requests is not None:
+        if _make_requests_concurrently_max_total_requests is not None:
             end_sync.wait()
             event_stopper.set()
 

@@ -48,7 +48,7 @@ from e2e.utils import (
     request_task,
     request_tasks_concurrently,
     retrieve_async_result,
-    request_predictions_concurrently,
+    make_requests_concurrently,
     check_futures_healthy,
     retrieve_results_concurrently,
 )
@@ -438,7 +438,7 @@ def test_autoscaling(
             client=client, api_names=all_api_names, timeout=deploy_timeout
         ), f"apis {all_api_names} not ready"
 
-        threads_futures = request_predictions_concurrently(
+        threads_futures = make_requests_concurrently(
             client, primary_api_name, concurrency, request_stopper, query_params=query_params
         )
 
@@ -534,7 +534,7 @@ def test_load_realtime(
             payload = json.load(f)
 
         printer("start making requests concurrently")
-        threads_futures = request_predictions_concurrently(
+        threads_futures = make_requests_concurrently(
             client,
             api_name,
             concurrency,
@@ -642,7 +642,7 @@ def test_load_async(
             payload = json.load(f)
 
         printer("start making prediction requests concurrently")
-        threads_futures = request_predictions_concurrently(
+        threads_futures = make_requests_concurrently(
             client,
             api_name,
             concurrency,
