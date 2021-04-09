@@ -30,7 +30,8 @@ import (
 )
 
 const (
-	_defaultPort = "8080"
+	_defaultPort  = "8080"
+	_asyncAPIKind = "AsyncAPI"
 )
 
 func createLogger() (*zap.Logger, error) {
@@ -101,6 +102,8 @@ func main() {
 		log.Fatal("apiName argument was not provided")
 	}
 
+	log = log.With(zap.String("apiKind", _asyncAPIKind), zap.String("apiName", apiName))
+
 	sess, err := session.NewSessionWithOptions(session.Options{
 		Config: aws.Config{
 			Region: region,
@@ -112,7 +115,6 @@ func main() {
 	}
 
 	s3Storage := NewS3(sess, *bucket)
-
 	sqsQueue := NewSQS(*queueURL, sess)
 
 	svc := NewService(*clusterName, apiName, sqsQueue, s3Storage, log)
