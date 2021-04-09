@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Dict
+from typing import Callable, Dict
 
 import cortex as cx
 import pytest
@@ -27,8 +27,9 @@ TEST_APIS = [
 
 @pytest.mark.usefixtures("client")
 @pytest.mark.parametrize("api", TEST_APIS)
-def test_async_api(config: Dict, client: cx.Client, api: str):
+def test_async_api(printer: Callable, config: Dict, client: cx.Client, api: str):
     e2e.tests.test_async_api(
+        printer=printer,
         client=client,
         api=api,
         deploy_timeout=config["global"]["async_deploy_timeout"],

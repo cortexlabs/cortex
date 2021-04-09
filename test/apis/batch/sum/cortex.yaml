@@ -1,7 +1,8 @@
-- name: sleep
-  kind: RealtimeAPI
+- name: summing-api
+  kind: BatchAPI
   predictor:
     type: python
     path: predictor.py
   compute:
     cpu: 100m
+    mem: 200Mi
