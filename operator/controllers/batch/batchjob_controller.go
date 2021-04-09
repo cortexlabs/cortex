@@ -30,12 +30,6 @@ import (
 	batch "github.com/cortexlabs/cortex/operator/apis/batch/v1alpha1"
 )
 
-type batchJobStatusInfo struct {
-	QueueExists     bool
-	EnqueuingStatus string
-	WorkerJob       *kbatch.Job
-}
-
 // BatchJobReconciler reconciles a BatchJob object
 type BatchJobReconciler struct {
 	client.Client
@@ -107,22 +101,21 @@ func (r *BatchJobReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		queueURL = r.getQueueURL(batchJob)
 	}
 
-	// FIXME: replace status strings with enum
-	if enqueueingStatus != "done" { // FIXME
+	switch enqueueingStatus {
+	case EnqueuingNotStarted:
 		log.V(1).Info("enqueing payload")
 		if err = r.enqueuePayload(batchJob, queueURL); err != nil {
 			log.Error(err, "failed to start enqueueing the payload")
 			return ctrl.Result{}, err
 		}
-	} else if enqueueingStatus == "in_progress" {
-		// wait for enqueing process to be reach a final state (done|failed)
+	case EnqueuingInProgress:
+		// wait for enqueuing process to be reach a final state (done|failed)
 		return ctrl.Result{}, nil
-	} else if enqueueingStatus == "failed" {
+	case EnqueuingFailed:
 		log.Info("failed to enqueue payload")
 		return ctrl.Result{}, nil
 	}
 
-	// TODO: create only if there are no workers created
 	workerJobExists := workerJob != nil
 	if !workerJobExists {
 		log.V(1).Info("creating workers")

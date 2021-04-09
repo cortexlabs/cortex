@@ -20,7 +20,24 @@ import (
 	"context"
 
 	batch "github.com/cortexlabs/cortex/operator/apis/batch/v1alpha1"
-	"k8s.io/api/batch/v1"
+	kbatch "k8s.io/api/batch/v1"
+)
+
+type batchJobStatusInfo struct {
+	QueueExists     bool
+	EnqueuingStatus EnqueuingStatus
+	WorkerJob       *kbatch.Job
+}
+
+// EnqueuingStatus is an enum for the different possible enqueuing status
+type EnqueuingStatus string
+
+// Possible EnqueuingStatus states
+const (
+	EnqueuingNotStarted EnqueuingStatus = "not_started"
+	EnqueuingInProgress EnqueuingStatus = "in_progress"
+	EnqueuingDone       EnqueuingStatus = "done"
+	EnqueuingFailed     EnqueuingStatus = "failed"
 )
 
 func (r *BatchJobReconciler) checkIfQueueExists(batchJob batch.BatchJob) (bool, error) {
@@ -35,7 +52,7 @@ func (r *BatchJobReconciler) getQueueURL(batchJob batch.BatchJob) string {
 	panic("implement me!")
 }
 
-func (r *BatchJobReconciler) checkEnqueueingStatus(batchJob batch.BatchJob) (string, error) {
+func (r *BatchJobReconciler) checkEnqueueingStatus(batchJob batch.BatchJob) (EnqueuingStatus, error) {
 	panic("implement me!")
 }
 
@@ -47,7 +64,7 @@ func (r *BatchJobReconciler) createWorkerJob(job batch.BatchJob) error {
 	panic("implement me!")
 }
 
-func (r *BatchJobReconciler) getWorkerJob(batchJob batch.BatchJob) (*v1.Job, error) {
+func (r *BatchJobReconciler) getWorkerJob(batchJob batch.BatchJob) (*kbatch.Job, error) {
 	panic("implement me!")
 }
 
