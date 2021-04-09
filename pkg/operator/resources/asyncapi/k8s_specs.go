@@ -35,7 +35,7 @@ func gatewayDeploymentSpec(api spec.API, prevDeployment *kapps.Deployment, queue
 	container := operator.AsyncGatewayContainers(api, queueURL)
 	return *k8s.Deployment(&k8s.DeploymentSpec{
 		Name:           getGatewayK8sName(api.Name),
-		Replicas:       getRequestedReplicasFromDeployment(api, prevDeployment),
+		Replicas:       1,
 		MaxSurge:       pointer.String(api.UpdateStrategy.MaxSurge),
 		MaxUnavailable: pointer.String(api.UpdateStrategy.MaxUnavailable),
 		Selector: map[string]string{

@@ -337,7 +337,20 @@ func applyK8sResources(api spec.API, prevK8sResources resources, queueURL string
 
 	return parallel.RunFirstErr(
 		func() error {
-			return applyK8sDeployment(api, prevK8sResources.apiDeployment, &apiDeployment)
+			err := applyK8sDeployment(api, prevK8sResources.apiDeployment, &apiDeployment)
+			if err != nil {
+				return err
+			}
+
+			if err := UpdateMetricsCron(&apiDeployment); err != nil {
+				return err
+			}
+
+			if err := UpdateAutoscalerCron(&apiDeployment, api); err != nil {
+				return err
+			}
+
+			return nil
 		},
 		func() error {
 			return applyK8sDeployment(api, prevK8sResources.gatewayDeployment, &gatewayDeployment)
@@ -370,15 +383,6 @@ func applyK8sDeployment(api spec.API, prevDeployment *kapps.Deployment, newDeplo
 			return err
 		}
 	}
-
-	if err := UpdateMetricsCron(newDeployment); err != nil {
-		return err
-	}
-
-	if err := UpdateAutoscalerCron(newDeployment, api); err != nil {
-		return err
-	}
-
 	return nil
 }
 
