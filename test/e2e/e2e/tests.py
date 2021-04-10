@@ -455,7 +455,7 @@ def test_autoscaling(
             ]
 
             # stop the requests from being made
-            if current_replicas == max_replicas and not request_stopper.is_set()::
+            if current_replicas == max_replicas and not request_stopper.is_set():
                 printer(f"scaling back down to 1 replica")
                 request_stopper.set()
 
