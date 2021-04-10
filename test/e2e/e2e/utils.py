@@ -19,6 +19,8 @@ import pathlib
 from http import HTTPStatus
 from typing import Any, List, Optional, Tuple, Union, Dict, Callable
 
+from concurrent import futures
+import threading as td
 import grpc
 import cortex as cx
 import requests
@@ -47,6 +49,37 @@ def apis_ready(client: cx.Client, api_names: List[str], timeout: Optional[int] =
     return wait_for(_is_ready, timeout=timeout)
 
 
+def api_updated(client: cx.Client, api_name: str, timeout: Optional[int] = None) -> bool:
+    def _is_ready():
+        status = client.get_api(api_name)["status"]
+        return status["replica_counts"]["requested"] == status["replica_counts"]["updated"]["ready"]
+
+    return wait_for(_is_ready, timeout=timeout)
+
+
+def api_requests(
+    client: cx.Client, api_name: str, target_requests: int, timeout: Optional[int] = None
+) -> bool:
+    def _is_ready():
+        return client.get_api(api_name)["metrics"]["network_stats"]["code_2xx"] == target_requests
+
+    return wait_for(_is_ready, timeout=timeout)
+
+
+def wait_on_event(event: td.Event, timeout: Optional[int] = None) -> bool:
+    def _is_ready():
+        return event.is_set()
+
+    return wait_for(_is_ready, timeout=timeout)
+
+
+def wait_on_futures(futures_list: List[futures.Future], timeout: Optional[int] = None):
+    def _is_ready():
+        return all([future.done() for future in futures_list])
+
+    return wait_for(_is_ready, timeout=timeout)
+
+
 def endpoint_ready(client: cx.Client, api_name: str, timeout: int = None) -> bool:
     def _is_ready():
         endpoint = client.get_api(api_name)["endpoint"]
@@ -56,12 +89,27 @@ def endpoint_ready(client: cx.Client, api_name: str, timeout: int = None) -> boo
     return wait_for(_is_ready, timeout=timeout)
 
 
-def job_done(client: cx.Client, api_name: str, job_id: str, timeout: int = None):
+def job_done(client: cx.Client, api_name: str, job_id: str, timeout: int = None) -> bool:
     def _is_ready():
         job_info = client.get_job(api_name, job_id)
         return job_info["job_status"]["status"] == "status_succeeded"
 
     return wait_for(_is_ready, timeout=timeout)
+
+
+def jobs_done(client: cx.Client, api_name: str, job_ids: List[str], timeout: int = None) -> bool:
+    exec = futures.ThreadPoolExecutor(10)
+
+    def _runnable(job_id):
+        return job_done(client, api_name, job_id)
+
+    try:
+        for _ in exec.map(_runnable, job_ids, timeout=timeout):
+            pass
+    except:
+        return False
+
+    return True
 
 
 def generate_grpc(
@@ -112,8 +160,8 @@ def request_prediction(
     return response
 
 
-def retrieve_async_result(cliett: cx.Client, api_name: str, request_id: str) -> requests.Response:
-    api_info = cliett.get_api(api_name)
+def retrieve_async_result(client: cx.Client, api_name: str, request_id: str) -> requests.Response:
+    api_info = client.get_api(api_name)
     response = requests.get(f"{api_info['endpoint']}/{request_id}")
 
     return response
@@ -157,6 +205,169 @@ def request_task(
 
     response = requests.post(endpoint, json=payload)
     return response
+
+
+def request_tasks_concurrently(
+    client: cx.Client,
+    api_name: str,
+    event_stopper: td.Event,
+    concurrency: int,
+    total_requests: int,
+    responses: Optional[List[Dict[str, Any]]] = None,
+    config: Dict = None,
+    timeout: int = None,
+):
+    payload = {}
+    if config is not None:
+        payload["config"] = config
+    if timeout is not None:
+        payload["timeout"] = timeout
+
+    return make_requests_concurrently(
+        client,
+        api_name,
+        concurrency,
+        event_stopper,
+        responses=responses,
+        max_total_requests=total_requests,
+        payload=payload,
+    )
+
+
+_make_requests_concurrently_max_total_requests: int = 0
+
+
+def make_requests_concurrently(
+    client: cx.Client,
+    api_name: str,
+    concurrency: int,
+    event_stopper: td.Event,
+    latencies: Optional[List[float]] = None,
+    responses: Optional[List[Dict[str, Any]]] = None,
+    max_total_requests: Optional[int] = None,
+    payload: Optional[Union[List, Dict]] = None,
+    query_params: Dict[str, str] = {},
+) -> List[futures.Future]:
+
+    lock = td.RLock()
+    thread_local = td.local()
+    start_sync = td.Barrier(concurrency)
+    end_sync = td.Barrier(concurrency)
+    executor = futures.ThreadPoolExecutor(concurrency)
+    api_info = client.get_api(api_name)
+    endpoint = api_info["endpoint"]
+
+    global _make_requests_concurrently_max_total_requests
+    _make_requests_concurrently_max_total_requests = max_total_requests
+
+    def get_session() -> requests.Session:
+        if not hasattr(thread_local, "session"):
+            thread_local.session = requests.Session()
+        return thread_local.session
+
+    def runnable():
+        session = get_session()
+        global _make_requests_concurrently_max_total_requests
+        start_sync.wait()
+        while not event_stopper.is_set():
+            if _make_requests_concurrently_max_total_requests is not None:
+                with lock:
+                    if _make_requests_concurrently_max_total_requests == 0:
+                        break
+                    _make_requests_concurrently_max_total_requests -= 1
+            start = time.time()
+            response = session.post(endpoint, json=payload, params=query_params)
+            assert (
+                response.status_code == HTTPStatus.OK
+            ), f"status code: got {response.status_code}, expected {HTTPStatus.OK}"
+            if latencies is not None:
+                latencies.append(time.time() - start)
+            if responses is not None:
+                responses.append(response)
+
+        if _make_requests_concurrently_max_total_requests is not None:
+            end_sync.wait()
+            event_stopper.set()
+
+    futures_list = []
+    for _ in range(concurrency):
+        future = executor.submit(runnable)
+        futures_list.append(future)
+
+    return futures_list
+
+
+def retrieve_results_concurrently(
+    client: cx.Client,
+    api_name: str,
+    concurrency: int,
+    event_stopper: td.Event,
+    job_ids: List[str],
+    responses: List[Tuple[str, Dict[str, Any]]] = [],
+    poll_sleep_seconds: int = 1,
+    timeout: Optional[int] = None,
+):
+    api_info = client.get_api(api_name)
+    task_kind = api_info["spec"]["kind"] == "TaskAPI"
+    async_kind = api_info["spec"]["kind"] == "AsyncAPI"
+    if not task_kind and not async_kind:
+        raise ValueError("function can only be called for TaskAPI/AsyncAPI kinds")
+
+    exec = futures.ThreadPoolExecutor(concurrency)
+    thread_local = td.local()
+
+    def _get_session() -> requests.Session:
+        if not hasattr(thread_local, "session"):
+            thread_local.session = requests.Session()
+        return thread_local.session
+
+    def _retriever(request_id: str):
+        session = _get_session()
+
+        while not event_stopper.is_set():
+            if task_kind:
+                result_response = session.get(f"{api_info['endpoint']}?jobID={request_id}")
+            if async_kind:
+                result_response = session.get(f"{api_info['endpoint']}/{request_id}")
+
+            if result_response.status_code != HTTPStatus.OK:
+                time.sleep(poll_sleep_seconds)
+                continue
+
+            result_response_json = result_response.json()
+            if (
+                async_kind
+                and "status" in result_response_json
+                and result_response_json["status"] == "completed"
+            ):
+                break
+            if (
+                task_kind
+                and "job_status" in result_response_json
+                and "status" in result_response_json["job_status"]
+                and result_response_json["job_status"]["status"] == "status_succeeded"
+            ):
+                break
+
+        if event_stopper.is_set():
+            return
+
+        responses.append((request_id, result_response_json))
+
+    # will throw an exception if something failed in any thread
+    for _ in exec.map(_retriever, job_ids, timeout=timeout):
+        pass
+
+
+def check_futures_healthy(futures_list: List[futures.Future]):
+    for future in futures_list:
+        has_exception = None
+        try:
+            has_exception = future.exception(timeout=0.0)
+        except futures.TimeoutError:
+            pass
+        if has_exception:
+            future.result()
 
 
 def client_from_config(config_path: str) -> cx.Client:

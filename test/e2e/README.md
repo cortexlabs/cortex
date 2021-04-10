@@ -44,6 +44,18 @@ It is possible to skip GPU tests by passing the `--skip-gpus` flag to the pytest
 
 It is possible to skip Inferentia tests by passing the `--skip-infs` flag to the pytest command.
 
+### Skip Autoscaling Test
+
+It is possible to skip the autoscaling test by passing the `--skip-autoscaling` flag to the pytest command.
+
+### Skip Load Test
+
+It is possible to skip the load tests by passing the `--skip-load` flag to the pytest command.
+
+### Skip Long Running Test
+
+It is possible to skip the long running test by passing the `--skip-long-running` flag to the pytest command.
+
 ## Configuration
 
 It is possible to configure the behaviour of the tests by defining environment variables or a `.env` file at the project
