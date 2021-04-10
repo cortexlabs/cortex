@@ -19,17 +19,20 @@ import pytest
 
 import e2e.tests
 
-TEST_APIS = ["task/hello-world"]
+TEST_APIS = ["onnx/iris-classifier"]
 
 
 @pytest.mark.usefixtures("client")
 @pytest.mark.parametrize("api", TEST_APIS)
-def test_task_api(printer: Callable, config: Dict, client: cx.Client, api: str):
-    e2e.tests.test_task_api(
+def test_long_running_realtime(printer: Callable, config: Dict, client: cx.Client, api: str):
+    skip_load_test = config["global"].get("skip_long_running", False)
+    if skip_load_test:
+        pytest.skip("--skip-long-running flag detected, skipping long-running test")
+
+    e2e.tests.test_long_running_realtime(
         printer,
         client,
         api,
-        retry_attempts=5,
-        deploy_timeout=config["global"]["task_deploy_timeout"],
-        job_timeout=config["global"]["task_job_timeout"],
+        long_running_config=config["global"]["long_running_test_config"],
+        deploy_timeout=config["global"]["realtime_deploy_timeout"],
     )
