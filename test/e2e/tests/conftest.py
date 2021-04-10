@@ -47,6 +47,21 @@ def pytest_addoption(parser):
         action="store_true",
         help="skip Inferentia tests",
     )
+    parser.addoption(
+        "--skip-autoscaling",
+        action="store_true",
+        help="skip autoscaling tests",
+    )
+    parser.addoption(
+        "--skip-load",
+        action="store_true",
+        help="skip load tests",
+    )
+    parser.addoption(
+        "--skip-long-running",
+        action="store_true",
+        help="skip long-running test",
+    )
 
 
 def pytest_configure(config):
@@ -67,7 +82,7 @@ def pytest_configure(config):
             ),
             "batch_deploy_timeout": int(os.environ.get("CORTEX_TEST_BATCH_DEPLOY_TIMEOUT", 30)),
             "batch_job_timeout": int(os.environ.get("CORTEX_TEST_BATCH_JOB_TIMEOUT", 200)),
-            "async_deploy_timeout": int(os.environ.get("CORTEX_TEST_ASYNC_DEPLOY_TIMEOUT", 60)),
+            "async_deploy_timeout": int(os.environ.get("CORTEX_TEST_ASYNC_DEPLOY_TIMEOUT", 90)),
             "async_workload_timeout": int(
                 os.environ.get("CORTEX_TEST_ASYNC_WORKLOAD_TIMEOUT", 200)
             ),
@@ -75,6 +90,48 @@ def pytest_configure(config):
             "task_job_timeout": int(os.environ.get("CORTEX_TEST_TASK_JOB_TIMEOUT", 200)),
             "skip_gpus": config.getoption("--skip-gpus"),
             "skip_infs": config.getoption("--skip-infs"),
+            "skip_autoscaling": config.getoption("--skip-autoscaling"),
+            "skip_long_running": config.getoption("--skip-long-running"),
+            "skip_load": config.getoption("--skip-load"),
+            "autoscaling_test_config": {
+                "max_replicas": 20,
+            },
+            "load_test_config": {
+                "realtime": {
+                    "total_requests": 10 ** 6,
+                    "desired_replicas": 50,
+                    "concurrency": 50,
+                    "min_rtt": 0.004,  # measured in seconds
+                    "max_rtt": 1.000,  # measured in seconds
+                    "avg_rtt": 0.06,  # measured in seconds
+                    "avg_rtt_tolerance": 0.05,  # measured in seconds
+                    "status_code_timeout": 60,  # measured in seconds
+                },
+                "async": {
+                    "total_requests": 10 ** 4,
+                    "desired_replicas": 50,
+                    "concurrency": 10,
+                    "submit_timeout": 120,  # measured in seconds
+                    "workload_timeout": 120,  # measured in seconds
+                },
+                "batch": {
+                    "jobs": 10,
+                    "workers_per_job": 10,
+                    "items_per_job": 10 ** 5,
+                    "batch_size": 10 * 2,
+                    "workload_timeout": 180,  # measured in seconds
+                },
+                "task": {
+                    "jobs": 10 ** 2,
+                    "concurrency": 4,
+                    "submit_timeout": 60,  # measured in seconds
+                    "workload_timeout": 180,  # measured in seconds
+                },
+            },
+            "long_running_test_config": {
+                "time_to_run": 5 * 24 * 3600,  # measured in seconds
+                "status_code_timeout": 60,  # measured in seconds
+            },
         },
     }
 

@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Dict
+from typing import Callable, Dict
 
 import cortex as cx
 import pytest
@@ -24,7 +24,7 @@ TEST_APIS = ["batch/image-classifier", "batch/onnx", "batch/tensorflow"]
 
 @pytest.mark.usefixtures("client")
 @pytest.mark.parametrize("api", TEST_APIS)
-def test_batch_api(config: Dict, client: cx.Client, api: str):
+def test_batch_api(printer: Callable, config: Dict, client: cx.Client, api: str):
     s3_path = config["aws"].get("s3_path")
     if not s3_path:
         pytest.skip(
@@ -33,6 +33,7 @@ def test_batch_api(config: Dict, client: cx.Client, api: str):
         )
 
     e2e.tests.test_batch_api(
+        printer,
         client,
         api,
         test_s3_path=s3_path,
