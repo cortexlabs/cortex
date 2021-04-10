@@ -101,7 +101,7 @@ def pytest_configure(config):
                     "total_requests": 10 ** 6,
                     "desired_replicas": 50,
                     "concurrency": 50,
-                    "min_rtt": 0.005,  # measured in seconds
+                    "min_rtt": 0.004,  # measured in seconds
                     "max_rtt": 1.000,  # measured in seconds
                     "avg_rtt": 0.06,  # measured in seconds
                     "avg_rtt_tolerance": 0.05,  # measured in seconds
