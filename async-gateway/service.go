@@ -97,14 +97,10 @@ func (s *service) GetWorkload(id string) (GetWorkloadResponse, error) {
 			break
 		}
 		if fileStatus == StatusInProgress {
-			status = StatusInProgress
+			status = fileStatus
 		}
-		if fileStatus == StatusCompleted {
-			status = StatusCompleted
-			break
-		}
-		if fileStatus == StatusFailed {
-			status = StatusFailed
+		if fileStatus == StatusCompleted || fileStatus == StatusFailed {
+			status = fileStatus
 			break
 		}
 	}
