@@ -82,7 +82,7 @@ func (s *s3) Download(key string) ([]byte, error) {
 	return buff.Bytes(), nil
 }
 
-// Download downloads a file from S3 into memory
+// List lists a set of files from a given S3 path
 func (s *s3) List(key string) ([]string, error) {
 	result, err := s.client.ListObjectsV2(&awss3.ListObjectsV2Input{
 		Prefix: aws.String(key),

@@ -81,44 +81,48 @@ func (s *service) GetWorkload(id string) (GetWorkloadResponse, error) {
 	log := s.logger.With(zap.String("id", id))
 
 	// download workload status
-	statusPath := fmt.Sprintf("%s/%s/status", prefix, id)
-	log.Debug("downloading status file", zap.String("path", statusPath))
+	statusPath := fmt.Sprintf("%s/%s/*", prefix, id)
+	log.Debug("checking status", zap.String("path", statusPath))
 	files, err := s.storage.List(fmt.Sprintf("%s/%s", prefix, id))
 	if err != nil {
 		return GetWorkloadResponse{}, err
 	}
 
-	hasCompleted := false
-	for _, f := range files {
-		if f == "completed" {
-			hasCompleted = true
+	status := StatusInQueue
+	for _, file := range files {
+		fileStatus := Status(file)
+
+		if !fileStatus.Valid() {
+			status = fileStatus
+			break
+		}
+		if fileStatus == StatusInProgress {
+			status = StatusInProgress
+		}
+		if fileStatus == StatusCompleted {
+			status = StatusCompleted
+			break
+		}
+		if fileStatus == StatusFailed {
+			status = StatusFailed
+			break
 		}
 	}
 
-	if !hasCompleted {
+	switch status {
+	case StatusFailed, StatusInProgress, StatusInQueue:
 		return GetWorkloadResponse{
 			ID:     id,
-			Status: StatusInQueue,
+			Status: status,
 		}, nil
+	case StatusCompleted: // continues execution after switch/case, below
+	default:
+		return GetWorkloadResponse{}, fmt.Errorf("invalid workload status: %s", status)
 	}
-
-	status := StatusCompleted
-
-	// status := Status(statusBuf[:])
-	// switch status {
-	// case StatusFailed, StatusInProgress, StatusInQueue:
-	// 	return GetWorkloadResponse{
-	// 		ID:     id,
-	// 		Status: status,
-	// 	}, nil
-	// case StatusCompleted: // continues execution after switch/case, below
-	// default:
-	// 	return GetWorkloadResponse{}, fmt.Errorf("invalid workload status: %s", status)
-	// }
 
 	// attempt to download user result
 	resultPath := fmt.Sprintf("%s/%s/result.json", prefix, id)
-	log.Debug("donwloading user result", zap.String("path", resultPath))
+	log.Debug("downloading user result", zap.String("path", resultPath))
 	resultBuf, err := s.storage.Download(resultPath)
 	if err != nil {
 		return GetWorkloadResponse{}, err
