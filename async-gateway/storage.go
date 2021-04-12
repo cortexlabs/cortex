@@ -18,6 +18,8 @@ package main
 
 import (
 	"io"
+	"path"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -30,6 +32,7 @@ import (
 type Storage interface {
 	Upload(key string, payload io.Reader, contentType string) error
 	Download(key string) ([]byte, error)
+	List(key string) ([]string, error)
 	GetLastModified(key string) (time.Time, error)
 }
 
@@ -78,6 +81,30 @@ func (s *s3) Download(key string) ([]byte, error) {
 	}
 
 	return buff.Bytes(), nil
+}
+
+// List lists a set of files from a given S3 path.
+// Works only for one level deep sub-paths.
+func (s *s3) List(key string) ([]string, error) {
+	if key != "" && !strings.HasSuffix(key, "/") {
+		key += "/"
+	}
+
+	result, err := s.client.ListObjectsV2(&awss3.ListObjectsV2Input{
+		Prefix: aws.String(key),
+		Bucket: aws.String(s.bucket),
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	files := []string{}
+	for _, obj := range result.Contents {
+		_, file := path.Split(*obj.Key)
+		files = append(files, file)
+	}
+	return files, nil
 }
 
 // GetLastModified retrieves the last modified timestamp of an S3 object

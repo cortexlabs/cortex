@@ -31,6 +31,7 @@ type Int64Validation struct {
 	Default               int64
 	TreatNullAsZero       bool // `<field>: ` and `<field>: null` will be read as `<field>: 0`
 	AllowedValues         []int64
+	HiddenAllowedValues   []int64 // allowed, but will not be listed as valid values (must be used in conjunction with AllowedValues)
 	DisallowedValues      []int64
 	CantBeSpecifiedErrStr *string
 	GreaterThan           *int64
@@ -207,7 +208,7 @@ func ValidateInt64Val(val int64, v *Int64Validation) error {
 	}
 
 	if len(v.AllowedValues) > 0 {
-		if !slices.HasInt64(v.AllowedValues, val) {
+		if !slices.HasInt64(append(v.AllowedValues, v.HiddenAllowedValues...), val) {
 			return ErrorInvalidInt64(val, v.AllowedValues[0], v.AllowedValues[1:]...)
 		}
 	}
