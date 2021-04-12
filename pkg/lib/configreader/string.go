@@ -37,6 +37,7 @@ type StringValidation struct {
 	AllowEmpty                           bool // Allow `<field>: ""`
 	TreatNullAsEmpty                     bool // `<field>: ` and `<field>: null` will be read as `<field>: ""`
 	AllowedValues                        []string
+	HiddenAllowedValues                  []string // allowed, but will not be listed as valid values (must be used in conjunction with AllowedValues)
 	DisallowedValues                     []string
 	CantBeSpecifiedErrStr                *string
 	Prefix                               string
@@ -239,7 +240,7 @@ func ValidateStringVal(val string, v *StringValidation) error {
 	}
 
 	if len(v.AllowedValues) > 0 {
-		if !slices.HasString(v.AllowedValues, val) {
+		if !slices.HasString(append(v.AllowedValues, v.HiddenAllowedValues...), val) {
 			return ErrorInvalidStr(val, v.AllowedValues[0], v.AllowedValues[1:]...)
 		}
 	}
