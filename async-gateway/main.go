@@ -112,7 +112,6 @@ func main() {
 	}
 
 	s3Storage := NewS3(sess, *bucket)
-
 	sqsQueue := NewSQS(*queueURL, sess)
 
 	svc := NewService(*clusterName, apiName, sqsQueue, s3Storage, log)
