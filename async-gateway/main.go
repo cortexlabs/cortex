@@ -30,8 +30,7 @@ import (
 )
 
 const (
-	_defaultPort  = "8080"
-	_asyncAPIKind = "AsyncAPI"
+	_defaultPort = "8080"
 )
 
 func createLogger() (*zap.Logger, error) {
@@ -101,8 +100,6 @@ func main() {
 	if apiName == "" {
 		log.Fatal("apiName argument was not provided")
 	}
-
-	log = log.With(zap.String("apiKind", _asyncAPIKind), zap.String("apiName", apiName))
 
 	sess, err := session.NewSessionWithOptions(session.Options{
 		Config: aws.Config{
