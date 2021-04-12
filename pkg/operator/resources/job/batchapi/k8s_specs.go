@@ -88,7 +88,7 @@ func pythonPredictorJobSpec(api *spec.API, job *spec.BatchJob) (*kbatch.Job, err
 				},
 				Containers:   containers,
 				NodeSelector: operator.NodeSelectors(),
-				Tolerations:  operator.ResourceTolerations,
+				Tolerations:  operator.GenerateResourceTolerations(),
 				Affinity: &kcore.Affinity{
 					NodeAffinity: &kcore.NodeAffinity{
 						PreferredDuringSchedulingIgnoredDuringExecution: operator.GeneratePreferredNodeAffinities(),
@@ -143,7 +143,7 @@ func tensorFlowPredictorJobSpec(api *spec.API, job *spec.BatchJob) (*kbatch.Job,
 				},
 				Containers:   containers,
 				NodeSelector: operator.NodeSelectors(),
-				Tolerations:  operator.ResourceTolerations,
+				Tolerations:  operator.GenerateResourceTolerations(),
 				Affinity: &kcore.Affinity{
 					NodeAffinity: &kcore.NodeAffinity{
 						PreferredDuringSchedulingIgnoredDuringExecution: operator.GeneratePreferredNodeAffinities(),

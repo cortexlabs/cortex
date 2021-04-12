@@ -67,7 +67,7 @@ func gatewayDeploymentSpec(api spec.API, prevDeployment *kapps.Deployment, queue
 				TerminationGracePeriodSeconds: pointer.Int64(_terminationGracePeriodSeconds),
 				Containers:                    []kcore.Container{container},
 				NodeSelector:                  operator.NodeSelectors(),
-				Tolerations:                   operator.ResourceTolerations,
+				Tolerations:                   operator.GenerateResourceTolerations(),
 				Affinity: &kcore.Affinity{
 					NodeAffinity: &kcore.NodeAffinity{
 						PreferredDuringSchedulingIgnoredDuringExecution: operator.GeneratePreferredNodeAffinities(),
@@ -177,7 +177,7 @@ func apiDeploymentSpec(api spec.API, prevDeployment *kapps.Deployment, queueURL 
 				},
 				Containers:   containers,
 				NodeSelector: operator.NodeSelectors(),
-				Tolerations:  operator.ResourceTolerations,
+				Tolerations:  operator.GenerateResourceTolerations(),
 				Affinity: &kcore.Affinity{
 					NodeAffinity: &kcore.NodeAffinity{
 						PreferredDuringSchedulingIgnoredDuringExecution: operator.GeneratePreferredNodeAffinities(),
