@@ -31,6 +31,7 @@ dev_images=(
   "manager"
   "request-monitor"
   "async-gateway"
+  "enqueuer"
 )
 
 non_dev_images=(
