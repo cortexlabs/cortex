@@ -81,12 +81,12 @@ func gatewayDeploymentSpec(api spec.API, prevDeployment *kapps.Deployment, queue
 	})
 }
 
-func gatewayHPASpec(api spec.API) kautoscaling.HorizontalPodAutoscaler {
+func gatewayHPASpec(api spec.API) (kautoscaling.HorizontalPodAutoscaler, error) {
 	var maxReplicas int32 = 1
 	if api.Autoscaling != nil {
 		maxReplicas = api.Autoscaling.MaxReplicas
 	}
-	return *k8s.HPA(&k8s.HPASpec{
+	hpa, err := k8s.HPA(&k8s.HPASpec{
 		DeploymentName:       getGatewayK8sName(api.Name),
 		MinReplicas:          1,
 		MaxReplicas:          maxReplicas,
@@ -103,6 +103,11 @@ func gatewayHPASpec(api spec.API) kautoscaling.HorizontalPodAutoscaler {
 			"cortex.dev/async": "hpa",
 		},
 	})
+
+	if err != nil {
+		return kautoscaling.HorizontalPodAutoscaler{}, err
+	}
+	return *hpa, nil
 }
 
 func gatewayServiceSpec(api spec.API) kcore.Service {
