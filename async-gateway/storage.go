@@ -19,6 +19,7 @@ package main
 import (
 	"io"
 	"path"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -82,8 +83,13 @@ func (s *s3) Download(key string) ([]byte, error) {
 	return buff.Bytes(), nil
 }
 
-// List lists a set of files from a given S3 path
+// List lists a set of files from a given S3 path.
+// Works only for one level deep sub-paths.
 func (s *s3) List(key string) ([]string, error) {
+	if key != "" && !strings.HasSuffix(key, "/") {
+		key += "/"
+	}
+
 	result, err := s.client.ListObjectsV2(&awss3.ListObjectsV2Input{
 		Prefix: aws.String(key),
 		Bucket: aws.String(s.bucket),
