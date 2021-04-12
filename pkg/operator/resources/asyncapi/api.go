@@ -400,16 +400,14 @@ func applyK8sDeployment(prevDeployment *kapps.Deployment, newDeployment *kapps.D
 }
 
 func applyK8sHPA(prevHPA *kautoscaling.HorizontalPodAutoscaler, newHPA *kautoscaling.HorizontalPodAutoscaler) error {
+	var err error
 	if prevHPA == nil {
-		_, err := config.K8s.CreateHPA(prevHPA)
-		if err != nil {
-			return err
-		}
+		_, err = config.K8s.CreateHPA(newHPA)
 	} else {
-		_, err := config.K8s.UpdateHPA(newHPA)
-		if err != nil {
-			return err
-		}
+		_, err = config.K8s.UpdateHPA(newHPA)
+	}
+	if err != nil {
+		return err
 	}
 	return nil
 }
