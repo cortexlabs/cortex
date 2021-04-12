@@ -58,6 +58,7 @@ commands:
           command: cortex cluster up << parameters.config >> --configure-env aws -y
       - run:
           name: Run E2E Tests
+          no_output_timeout: 30m
           command: |
             pytest -v test/e2e/tests --env aws --skip-autoscaling --skip-load --skip-long-running
             pytest -v test/e2e/tests --env aws -k test_autoscaling

@@ -73,6 +73,12 @@ operator_load_balancer_scheme: internet-facing
 #   - availability_zone: us-west-2b
 #     subnet_id: subnet-0faed05adf6042ab7
 
+# restrict access to APIs by cidr blocks/ip address ranges
+api_load_balancer_cidr_white_list: [0.0.0.0/0]
+
+# restrict access to the Operator by cidr blocks/ip address ranges
+operator_load_balancer_cidr_white_list: [0.0.0.0/0]
+
 # additional tags to assign to AWS resources (all resources will automatically be tagged with cortex.dev/cluster-name: <cluster_name>)
 tags:  # <string>: <string> map of key/value pairs
 

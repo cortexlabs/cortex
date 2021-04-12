@@ -31,6 +31,7 @@ type Int32Validation struct {
 	Default               int32
 	TreatNullAsZero       bool // `<field>: ` and `<field>: null` will be read as `<field>: 0`
 	AllowedValues         []int32
+	HiddenAllowedValues   []int32 // allowed, but will not be listed as valid values (must be used in conjunction with AllowedValues)
 	DisallowedValues      []int32
 	CantBeSpecifiedErrStr *string
 	GreaterThan           *int32
@@ -207,7 +208,7 @@ func ValidateInt32Val(val int32, v *Int32Validation) error {
 	}
 
 	if len(v.AllowedValues) > 0 {
-		if !slices.HasInt32(v.AllowedValues, val) {
+		if !slices.HasInt32(append(v.AllowedValues, v.HiddenAllowedValues...), val) {
 			return ErrorInvalidInt32(val, v.AllowedValues[0], v.AllowedValues[1:]...)
 		}
 	}
