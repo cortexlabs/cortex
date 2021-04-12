@@ -98,18 +98,20 @@ type CoreConfig struct {
 }
 
 type ManagedConfig struct {
-	NodeGroups                 []*NodeGroup       `json:"node_groups" yaml:"node_groups"`
-	Tags                       map[string]string  `json:"tags" yaml:"tags"`
-	AvailabilityZones          []string           `json:"availability_zones" yaml:"availability_zones"`
-	SSLCertificateARN          *string            `json:"ssl_certificate_arn,omitempty" yaml:"ssl_certificate_arn,omitempty"`
-	IAMPolicyARNs              []string           `json:"iam_policy_arns" yaml:"iam_policy_arns"`
-	SubnetVisibility           SubnetVisibility   `json:"subnet_visibility" yaml:"subnet_visibility"`
-	Subnets                    []*Subnet          `json:"subnets,omitempty" yaml:"subnets,omitempty"`
-	NATGateway                 NATGateway         `json:"nat_gateway" yaml:"nat_gateway"`
-	APILoadBalancerScheme      LoadBalancerScheme `json:"api_load_balancer_scheme" yaml:"api_load_balancer_scheme"`
-	OperatorLoadBalancerScheme LoadBalancerScheme `json:"operator_load_balancer_scheme" yaml:"operator_load_balancer_scheme"`
-	VPCCIDR                    *string            `json:"vpc_cidr,omitempty" yaml:"vpc_cidr,omitempty"`
-	CortexPolicyARN            string             `json:"cortex_policy_arn" yaml:"cortex_policy_arn"` // this field is not user facing
+	NodeGroups                        []*NodeGroup       `json:"node_groups" yaml:"node_groups"`
+	Tags                              map[string]string  `json:"tags" yaml:"tags"`
+	AvailabilityZones                 []string           `json:"availability_zones" yaml:"availability_zones"`
+	SSLCertificateARN                 *string            `json:"ssl_certificate_arn,omitempty" yaml:"ssl_certificate_arn,omitempty"`
+	IAMPolicyARNs                     []string           `json:"iam_policy_arns" yaml:"iam_policy_arns"`
+	SubnetVisibility                  SubnetVisibility   `json:"subnet_visibility" yaml:"subnet_visibility"`
+	Subnets                           []*Subnet          `json:"subnets,omitempty" yaml:"subnets,omitempty"`
+	NATGateway                        NATGateway         `json:"nat_gateway" yaml:"nat_gateway"`
+	APILoadBalancerScheme             LoadBalancerScheme `json:"api_load_balancer_scheme" yaml:"api_load_balancer_scheme"`
+	OperatorLoadBalancerScheme        LoadBalancerScheme `json:"operator_load_balancer_scheme" yaml:"operator_load_balancer_scheme"`
+	APILoadBalancerCIDRWhiteList      []string           `json:"api_load_balancer_cidr_white_list,omitempty" yaml:"api_load_balancer_cidr_white_list,omitempty"`
+	OperatorLoadBalancerCIDRWhiteList []string           `json:"operator_load_balancer_cidr_white_list,omitempty" yaml:"operator_load_balancer_cidr_white_list,omitempty"`
+	VPCCIDR                           *string            `json:"vpc_cidr,omitempty" yaml:"vpc_cidr,omitempty"`
+	CortexPolicyARN                   string             `json:"cortex_policy_arn" yaml:"cortex_policy_arn"` // this field is not user facing
 }
 
 type NodeGroup struct {
@@ -664,6 +666,34 @@ var ManagedConfigStructFieldValidations = []*cr.StructFieldValidation{
 		},
 	},
 	{
+		StructField: "APILoadBalancerCIDRWhiteList",
+		StringListValidation: &cr.StringListValidation{
+			Validator: func(addresses []string) ([]string, error) {
+				for i, address := range addresses {
+					_, err := validateCIDR(address)
+					if err != nil {
+						return nil, errors.Wrap(err, fmt.Sprintf("index %d", i))
+					}
+				}
+				return addresses, nil
+			},
+		},
+	},
+	{
+		StructField: "OperatorLoadBalancerCIDRWhiteList",
+		StringListValidation: &cr.StringListValidation{
+			Validator: func(addresses []string) ([]string, error) {
+				for i, address := range addresses {
+					_, err := validateCIDR(address)
+					if err != nil {
+						return nil, errors.Wrap(err, fmt.Sprintf("index %d", i))
+					}
+				}
+				return addresses, nil
+			},
+		},
+	},
+	{
 		StructField: "OperatorLoadBalancerScheme",
 		StringValidation: &cr.StringValidation{
 			AllowedValues: LoadBalancerSchemeStrings(),
@@ -676,7 +706,7 @@ var ManagedConfigStructFieldValidations = []*cr.StructFieldValidation{
 	{
 		StructField: "VPCCIDR",
 		StringPtrValidation: &cr.StringPtrValidation{
-			Validator: validateVPCCIDR,
+			Validator: validateCIDR,
 		},
 	},
 }
@@ -1083,7 +1113,7 @@ func validateBucketName(bucket string) (string, error) {
 	return bucket, nil
 }
 
-func validateVPCCIDR(cidr string) (string, error) {
+func validateCIDR(cidr string) (string, error) {
 	_, _, err := net.ParseCIDR(cidr)
 	if err != nil {
 		return "", errors.WithStack(err)
