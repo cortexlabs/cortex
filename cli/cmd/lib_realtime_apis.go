@@ -167,6 +167,9 @@ func describeModelInput(status *status.Status, predictor *userconfig.Predictor, 
 	if predictor.Type == userconfig.TensorFlowPredictorType && !cachingEnabled {
 		apiTFLiveReloadingSummary, err := getAPITFLiveReloadingSummary(apiEndpoint)
 		if err != nil {
+			if strings.Contains(errors.Message(err), "context deadline exceeded") {
+				return "error retrieving the models' metadata schema: unable to connect to the API, you either do not have access or the API is too busy" + "\n"
+			}
 			return "error retrieving the models' metadata schema: " + errors.Message(err) + "\n"
 		}
 		t, err := parseAPITFLiveReloadingSummary(apiTFLiveReloadingSummary)
@@ -178,6 +181,9 @@ func describeModelInput(status *status.Status, predictor *userconfig.Predictor, 
 
 	apiModelSummary, err := getAPIModelSummary(apiEndpoint)
 	if err != nil {
+		if strings.Contains(errors.Message(err), "context deadline exceeded") {
+			return "error retrieving the models' metadata schema: unable to connect to the API, you either do not have access or the API is too busy" + "\n"
+		}
 		return "error retrieving the models' metadata schema: " + errors.Message(err) + "\n"
 	}
 	t, err := parseAPIModelSummary(apiModelSummary)
@@ -196,7 +202,7 @@ func getModelFromModelID(modelID string) (modelName string, modelVersion int64, 
 
 func makeRequest(request *http.Request) (http.Header, []byte, error) {
 	client := http.Client{
-		Timeout: 600 * time.Second,
+		Timeout: 5 * time.Second,
 		Transport: &http.Transport{
 			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 		},
