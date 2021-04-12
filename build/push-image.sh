@@ -19,8 +19,8 @@ set -euo pipefail
 
 CORTEX_VERSION=master
 
-image=$1
-host=$2
+host=$1
+image=$2
 
 echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
 
