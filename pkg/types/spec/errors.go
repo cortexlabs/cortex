@@ -95,6 +95,7 @@ const (
 	ErrTrafficSplitterAPIsNotUnique                = "spec.traffic_splitter_apis_not_unique"
 	ErrOneShadowPerTrafficSplitter                 = "spec.one_shadow_per_traffic_splitter"
 	ErrUnexpectedDockerSecretData                  = "spec.unexpected_docker_secret_data"
+	ErrInvalidONNXPredictorType                    = "spec.invalid_onnx_predictor_type"
 )
 
 var _modelCurrentStructure = `
@@ -610,5 +611,12 @@ func ErrorUnexpectedDockerSecretData(reason string, secretData map[string][]byte
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrUnexpectedDockerSecretData,
 		Message: fmt.Sprintf("docker registry secret named \"%s\" was found, but contains unexpected data (%s); got: %s", _dockerPullSecretName, reason, s.UserStr(secretDataStrMap)),
+	})
+}
+
+func ErrorInvalidONNXPredictorType() error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrInvalidONNXPredictorType,
+		Message: "the onnx predictor type has been replaced by the python predictor type; please use the python predictor type instead (all onnx models are fully supported by the python predictor type)",
 	})
 }

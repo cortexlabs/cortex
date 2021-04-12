@@ -29,6 +29,7 @@ type Int32PtrValidation struct {
 	Default               *int32
 	AllowExplicitNull     bool
 	AllowedValues         []int32
+	HiddenAllowedValues   []int32 // allowed, but will not be listed as valid values (must be used in conjunction with AllowedValues)
 	DisallowedValues      []int32
 	CantBeSpecifiedErrStr *string
 	GreaterThan           *int32
@@ -41,6 +42,7 @@ type Int32PtrValidation struct {
 func makeInt32ValValidation(v *Int32PtrValidation) *Int32Validation {
 	return &Int32Validation{
 		AllowedValues:        v.AllowedValues,
+		HiddenAllowedValues:  v.HiddenAllowedValues,
 		DisallowedValues:     v.DisallowedValues,
 		GreaterThan:          v.GreaterThan,
 		GreaterThanOrEqualTo: v.GreaterThanOrEqualTo,

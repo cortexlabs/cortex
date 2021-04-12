@@ -155,10 +155,14 @@ func predictorValidation() *cr.StructFieldValidation {
 				{
 					StructField: "Type",
 					StringValidation: &cr.StringValidation{
-						Required:      true,
-						AllowedValues: userconfig.PredictorTypeStrings(),
+						Required:            true,
+						AllowedValues:       userconfig.PredictorTypeStrings(),
+						HiddenAllowedValues: []string{"onnx"},
 					},
 					Parser: func(str string) (interface{}, error) {
+						if str == "onnx" {
+							return nil, ErrorInvalidONNXPredictorType()
+						}
 						return userconfig.PredictorTypeFromString(str), nil
 					},
 				},
