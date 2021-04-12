@@ -89,7 +89,7 @@ func tensorflowAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.D
 				},
 				Containers:   containers,
 				NodeSelector: operator.NodeSelectors(),
-				Tolerations:  operator.GenerateResourceTolerations(),
+				Tolerations:  operator.ResourceTolerations,
 				Affinity: &kcore.Affinity{
 					NodeAffinity: &kcore.NodeAffinity{
 						PreferredDuringSchedulingIgnoredDuringExecution: operator.GeneratePreferredNodeAffinities(),
@@ -151,7 +151,7 @@ func pythonAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deplo
 				},
 				Containers:   containers,
 				NodeSelector: operator.NodeSelectors(),
-				Tolerations:  operator.GenerateResourceTolerations(),
+				Tolerations:  operator.ResourceTolerations,
 				Affinity: &kcore.Affinity{
 					NodeAffinity: &kcore.NodeAffinity{
 						PreferredDuringSchedulingIgnoredDuringExecution: operator.GeneratePreferredNodeAffinities(),

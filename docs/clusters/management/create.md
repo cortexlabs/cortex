@@ -48,15 +48,6 @@ node_groups:
     instance_volume_type: gp2
     # instance_volume_iops: 3000
     spot: false
-
-  - name: ng-inferentia
-    instance_type: inf1.xlarge
-    min_instances: 1
-    max_instances: 5
-    instance_volume_size: 50
-    instance_volume_type: gp2
-    # instance_volume_iops: 3000
-    spot: false
   ...
 
 # subnet visibility [public (instances will have public IPs) | private (instances will not have public IPs)]

@@ -119,7 +119,7 @@ func k8sJobSpec(api *spec.API, job *spec.TaskJob) *kbatch.Job {
 				},
 				Containers:   containers,
 				NodeSelector: operator.NodeSelectors(),
-				Tolerations:  operator.GenerateResourceTolerations(),
+				Tolerations:  operator.ResourceTolerations,
 				Affinity: &kcore.Affinity{
 					NodeAffinity: &kcore.NodeAffinity{
 						PreferredDuringSchedulingIgnoredDuringExecution: operator.GeneratePreferredNodeAffinities(),

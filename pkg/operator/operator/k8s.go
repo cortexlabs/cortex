@@ -1246,28 +1246,24 @@ func NodeSelectors() map[string]string {
 	}
 }
 
-func GenerateResourceTolerations() []kcore.Toleration {
-	tolerations := []kcore.Toleration{
-		{
-			Key:      "workload",
-			Operator: kcore.TolerationOpEqual,
-			Value:    "true",
-			Effect:   kcore.TaintEffectNoSchedule,
-		},
-		{
-			Key:      "nvidia.com/gpu",
-			Operator: kcore.TolerationOpExists,
-			Effect:   kcore.TaintEffectNoSchedule,
-		},
-		{
-			Key:      "aws.amazon.com/neuron",
-			Operator: kcore.TolerationOpEqual,
-			Value:    "true",
-			Effect:   kcore.TaintEffectNoSchedule,
-		},
-	}
-
-	return tolerations
+var ResourceTolerations = []kcore.Toleration{
+	{
+		Key:      "workload",
+		Operator: kcore.TolerationOpEqual,
+		Value:    "true",
+		Effect:   kcore.TaintEffectNoSchedule,
+	},
+	{
+		Key:      "nvidia.com/gpu",
+		Operator: kcore.TolerationOpExists,
+		Effect:   kcore.TaintEffectNoSchedule,
+	},
+	{
+		Key:      "aws.amazon.com/neuron",
+		Operator: kcore.TolerationOpEqual,
+		Value:    "true",
+		Effect:   kcore.TaintEffectNoSchedule,
+	},
 }
 
 func GeneratePreferredNodeAffinities() []kcore.PreferredSchedulingTerm {
