@@ -129,7 +129,7 @@ var _clusterCmd = &cobra.Command{
 }
 
 var _clusterUpCmd = &cobra.Command{
-	Use:   "up [CLUSTER_CONFIG_FILE]",
+	Use:   "up CLUSTER_CONFIG_FILE",
 	Short: "spin up a cluster on aws",
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
@@ -743,7 +743,7 @@ func printInfoOperatorResponse(clusterConfig clusterconfig.Config, operatorEndpo
 	infoResponse.ClusterConfig.Config = clusterConfig
 
 	fmt.Println(console.Bold("cluster config:"))
-	fmt.Println(fmt.Sprintf("%s: %s", clusterconfig.APIVersionUserKey, infoResponse.ClusterConfig.APIVersion))
+	fmt.Println(fmt.Sprintf("cluster version: %s", infoResponse.ClusterConfig.APIVersion))
 	fmt.Print(yamlString)
 
 	printInfoPricing(infoResponse, clusterConfig)

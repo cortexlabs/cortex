@@ -98,7 +98,7 @@ Flags:
 spin up a cluster on aws
 
 Usage:
-  cortex cluster up [CLUSTER_CONFIG_FILE] [flags]
+  cortex cluster up CLUSTER_CONFIG_FILE [flags]
 
 Flags:
   -e, --configure-env string   name of environment to configure (default "aws")
