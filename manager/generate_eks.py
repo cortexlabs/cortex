@@ -42,6 +42,13 @@ def default_nodegroup(cluster_config):
             "evictionHard": {"memory.available": "200Mi", "nodefs.available": "5%"},
             "registryPullQPS": 10,
         },
+        "preBootstrapCommands": [
+            "export CRICTL_VERSION=v1.21.0",
+            "wget https://github.com/kubernetes-sigs/cri-tools/releases/download/$CRICTL_VERSION/crictl-$CRICTL_VERSION-linux-amd64.tar.gz",
+            "sudo tar zxvf crictl-$CRICTL_VERSION-linux-amd64.tar.gz -C /usr/local/bin",
+            "rm -f crictl-$CRICTL_VERSION-linux-amd64.tar.gz",
+            "crictl config --set runtime-endpoint=unix:///run/containerd/containerd.sock --set image-endpoint=unix:///run/containerd/containerd.sock",
+        ],
     }
 
 
