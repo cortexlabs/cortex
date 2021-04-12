@@ -37,6 +37,7 @@ type HPASpec struct {
 	MinReplicas          int32
 	MaxReplicas          int32
 	TargetCPUUtilization int32
+	TargetMemUtilization int32
 	Labels               map[string]string
 	Annotations          map[string]string
 }
@@ -60,6 +61,16 @@ func HPA(spec *HPASpec) *kautoscaling.HorizontalPodAutoscaler {
 						Target: kautoscaling.MetricTarget{
 							Type:               kautoscaling.UtilizationMetricType,
 							AverageUtilization: &spec.TargetCPUUtilization,
+						},
+					},
+				},
+				{
+					Type: kautoscaling.ResourceMetricSourceType,
+					Resource: &kautoscaling.ResourceMetricSource{
+						Name: kcore.ResourceMemory,
+						Target: kautoscaling.MetricTarget{
+							Type:               kautoscaling.UtilizationMetricType,
+							AverageUtilization: &spec.TargetMemUtilization,
 						},
 					},
 				},
@@ -166,7 +177,7 @@ func HPAMap(hpas []kautoscaling.HorizontalPodAutoscaler) map[string]kautoscaling
 	return hpaMap
 }
 
-func IsHPAUpToDate(hpa *kautoscaling.HorizontalPodAutoscaler, minReplicas int32, maxReplicas int32, targetCPUUtilization int32) bool {
+func IsHPAUpToDate(hpa *kautoscaling.HorizontalPodAutoscaler, minReplicas, maxReplicas, targetCPUUtilization, targetMemUtilization int32) bool {
 	if hpa == nil {
 		return false
 	}
@@ -179,20 +190,35 @@ func IsHPAUpToDate(hpa *kautoscaling.HorizontalPodAutoscaler, minReplicas int32,
 		return false
 	}
 
-	if len(hpa.Spec.Metrics) != 1 {
+	if len(hpa.Spec.Metrics) != 2 {
 		return false
 	}
-	metric := hpa.Spec.Metrics[0]
-	if metric.Type != kautoscaling.ResourceMetricSourceType || metric.Resource == nil {
+
+	cpuMetric := hpa.Spec.Metrics[0]
+	if cpuMetric.Type != kautoscaling.ResourceMetricSourceType || cpuMetric.Resource == nil {
 		return false
 	}
-	if metric.Resource.Name != kcore.ResourceCPU {
+	if cpuMetric.Resource.Name != kcore.ResourceCPU {
 		return false
 	}
-	if metric.Resource.Target.Type != kautoscaling.UtilizationMetricType || metric.Resource.Target.AverageUtilization == nil {
+	if cpuMetric.Resource.Target.Type != kautoscaling.UtilizationMetricType || cpuMetric.Resource.Target.AverageUtilization == nil {
 		return false
 	}
-	if *metric.Resource.Target.AverageUtilization != targetCPUUtilization {
+	if *cpuMetric.Resource.Target.AverageUtilization != targetCPUUtilization {
+		return false
+	}
+
+	memMetric := hpa.Spec.Metrics[1]
+	if memMetric.Type != kautoscaling.ResourceMetricSourceType || memMetric.Resource == nil {
+		return false
+	}
+	if memMetric.Resource.Name != kcore.ResourceMemory {
+		return false
+	}
+	if memMetric.Resource.Target.Type != kautoscaling.UtilizationMetricType || memMetric.Resource.Target.AverageUtilization == nil {
+		return false
+	}
+	if *memMetric.Resource.Target.AverageUtilization != targetMemUtilization {
 		return false
 	}
 

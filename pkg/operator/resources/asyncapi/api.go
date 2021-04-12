@@ -34,6 +34,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	istioclientnetworking "istio.io/client-go/pkg/apis/networking/v1beta1"
 	kapps "k8s.io/api/apps/v1"
+	kautoscaling "k8s.io/api/autoscaling/v2beta2"
 	kcore "k8s.io/api/core/v1"
 )
 
@@ -51,6 +52,7 @@ type resources struct {
 	apiDeployment         *kapps.Deployment
 	gatewayDeployment     *kapps.Deployment
 	gatewayService        *kcore.Service
+	gatewayHPA            *kautoscaling.HorizontalPodAutoscaler
 	gatewayVirtualService *istioclientnetworking.VirtualService
 }
 
@@ -293,6 +295,7 @@ func getK8sResources(apiConfig userconfig.API) (resources, error) {
 	var deployment *kapps.Deployment
 	var gatewayDeployment *kapps.Deployment
 	var gatewayService *kcore.Service
+	var gatewayHPA *kautoscaling.HorizontalPodAutoscaler
 	var gatewayVirtualService *istioclientnetworking.VirtualService
 
 	gatewayK8sName := getGatewayK8sName(apiConfig.Name)
@@ -316,6 +319,11 @@ func getK8sResources(apiConfig userconfig.API) (resources, error) {
 		},
 		func() error {
 			var err error
+			gatewayHPA, err = config.K8s.GetHPA(gatewayK8sName)
+			return err
+		},
+		func() error {
+			var err error
 			gatewayVirtualService, err = config.K8s.GetVirtualService(apiK8sName)
 			return err
 		},
@@ -325,6 +333,7 @@ func getK8sResources(apiConfig userconfig.API) (resources, error) {
 		apiDeployment:         deployment,
 		gatewayDeployment:     gatewayDeployment,
 		gatewayService:        gatewayService,
+		gatewayHPA:            gatewayHPA,
 		gatewayVirtualService: gatewayVirtualService,
 	}, err
 }
@@ -332,12 +341,13 @@ func getK8sResources(apiConfig userconfig.API) (resources, error) {
 func applyK8sResources(api spec.API, prevK8sResources resources, queueURL string) error {
 	apiDeployment := apiDeploymentSpec(api, prevK8sResources.apiDeployment, queueURL)
 	gatewayDeployment := gatewayDeploymentSpec(api, prevK8sResources.gatewayDeployment, queueURL)
+	gatewayHPA := gatewayHPASpec(api)
 	gatewayService := gatewayServiceSpec(api)
 	gatewayVirtualService := gatewayVirtualServiceSpec(api)
 
 	return parallel.RunFirstErr(
 		func() error {
-			err := applyK8sDeployment(api, prevK8sResources.apiDeployment, &apiDeployment)
+			err := applyK8sDeployment(prevK8sResources.apiDeployment, &apiDeployment)
 			if err != nil {
 				return err
 			}
@@ -353,7 +363,10 @@ func applyK8sResources(api spec.API, prevK8sResources resources, queueURL string
 			return nil
 		},
 		func() error {
-			return applyK8sDeployment(api, prevK8sResources.gatewayDeployment, &gatewayDeployment)
+			return applyK8sDeployment(prevK8sResources.gatewayDeployment, &gatewayDeployment)
+		},
+		func() error {
+			return applyK8sHPA(prevK8sResources.gatewayHPA, &gatewayHPA)
 		},
 		func() error {
 			return applyK8sService(prevK8sResources.gatewayService, &gatewayService)
@@ -364,7 +377,7 @@ func applyK8sResources(api spec.API, prevK8sResources resources, queueURL string
 	)
 }
 
-func applyK8sDeployment(api spec.API, prevDeployment *kapps.Deployment, newDeployment *kapps.Deployment) error {
+func applyK8sDeployment(prevDeployment *kapps.Deployment, newDeployment *kapps.Deployment) error {
 	if prevDeployment == nil {
 		_, err := config.K8s.CreateDeployment(newDeployment)
 		if err != nil {
@@ -379,6 +392,21 @@ func applyK8sDeployment(api spec.API, prevDeployment *kapps.Deployment, newDeplo
 		}
 	} else {
 		_, err := config.K8s.UpdateDeployment(newDeployment)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func applyK8sHPA(prevHPA *kautoscaling.HorizontalPodAutoscaler, newHPA *kautoscaling.HorizontalPodAutoscaler) error {
+	if prevHPA == nil {
+		_, err := config.K8s.CreateHPA(prevHPA)
+		if err != nil {
+			return err
+		}
+	} else {
+		_, err := config.K8s.UpdateHPA(newHPA)
 		if err != nil {
 			return err
 		}
@@ -413,6 +441,7 @@ func deleteBucketResources(apiName string) error {
 
 func deleteK8sResources(apiName string) error {
 	apiK8sName := operator.K8sName(apiName)
+	gatewayK8sName := getGatewayK8sName(apiName)
 
 	err := parallel.RunFirstErr(
 		func() error {
@@ -429,8 +458,11 @@ func deleteK8sResources(apiName string) error {
 			return err
 		},
 		func() error {
-			gatewayK8sName := getGatewayK8sName(apiName)
 			_, err := config.K8s.DeleteDeployment(gatewayK8sName)
+			return err
+		},
+		func() error {
+			_, err := config.K8s.DeleteHPA(gatewayK8sName)
 			return err
 		},
 		func() error {
