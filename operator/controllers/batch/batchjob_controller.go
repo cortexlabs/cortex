@@ -20,6 +20,7 @@ import (
 	"context"
 
 	"github.com/aws/aws-sdk-go/service/sqs"
+	"github.com/cortexlabs/cortex/pkg/types/clusterconfig"
 	"github.com/go-logr/logr"
 	kbatch "k8s.io/api/batch/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
@@ -33,9 +34,10 @@ import (
 // BatchJobReconciler reconciles a BatchJob object
 type BatchJobReconciler struct {
 	client.Client
-	Log    logr.Logger
-	SQS    *sqs.SQS
-	Scheme *runtime.Scheme
+	Log           logr.Logger
+	SQS           *sqs.SQS
+	ClusterConfig *clusterconfig.Config
+	Scheme        *runtime.Scheme
 }
 
 // +kubebuilder:rbac:groups=batch.cortex.dev,resources=batchjobs,verbs=get;list;watch;create;update;patch;delete

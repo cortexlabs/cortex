@@ -18,8 +18,15 @@ package controllers
 
 import (
 	"context"
+	"fmt"
 
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/aws-sdk-go/service/sqs"
 	batch "github.com/cortexlabs/cortex/operator/apis/batch/v1alpha1"
+	libjson "github.com/cortexlabs/cortex/pkg/lib/json"
+	s "github.com/cortexlabs/cortex/pkg/lib/strings"
+	"github.com/cortexlabs/cortex/pkg/types/clusterconfig"
 	kbatch "k8s.io/api/batch/v1"
 )
 
@@ -41,15 +48,77 @@ const (
 )
 
 func (r *BatchJobReconciler) checkIfQueueExists(batchJob batch.BatchJob) (bool, error) {
-	panic("implement me!")
+	queueName := r.getQueueName(batchJob)
+	input := &sqs.GetQueueUrlInput{
+		QueueName: aws.String(queueName),
+	}
+	_, err := r.SQS.GetQueueUrl(input)
+	if err != nil {
+		if aerr, ok := err.(awserr.Error); ok {
+			if aerr.Code() == sqs.ErrCodeQueueDoesNotExist {
+				return false, nil
+			}
+			return false, err
+		}
+	}
+	return true, nil
 }
 
 func (r *BatchJobReconciler) createQueue(batchJob batch.BatchJob) (string, error) {
-	panic("implement me!")
+	queueName := r.getQueueName(batchJob)
+
+	tags := map[string]string{
+		clusterconfig.ClusterNameTag: r.ClusterConfig.ClusterName,
+		"apiName":                    batchJob.Spec.APIName,
+		"apiID":                      batchJob.Spec.APIId,
+		"jobID":                      batchJob.Name,
+	}
+
+	attributes := map[string]string{
+		sqs.QueueAttributeNameFifoQueue:         "true",
+		sqs.QueueAttributeNameVisibilityTimeout: "60",
+	}
+
+	if batchJob.Spec.DeadLetterQueue != nil {
+		redrivePolicy := map[string]string{
+			"deadLetterTargetArn": batchJob.Spec.DeadLetterQueue.ARN,
+			"maxReceiveCount":     s.Int32(batchJob.Spec.DeadLetterQueue.MaxReceiveCount),
+		}
+
+		redrivePolicyJSONBytes, err := libjson.Marshal(redrivePolicy)
+		if err != nil {
+			return "", err
+		}
+
+		attributes[sqs.QueueAttributeNameRedrivePolicy] = string(redrivePolicyJSONBytes)
+	}
+
+	input := &sqs.CreateQueueInput{
+		Attributes: aws.StringMap(attributes),
+		QueueName:  aws.String(queueName),
+		Tags:       aws.StringMap(tags),
+	}
+	output, err := r.SQS.CreateQueue(input)
+	if err != nil {
+		return "", err
+	}
+
+	return *output.QueueUrl, nil
 }
 
 func (r *BatchJobReconciler) getQueueURL(batchJob batch.BatchJob) string {
-	panic("implement me!")
+	// e.g. https://sqs.<region>.amazonaws.com/<account_id>/<queue_name>
+	return fmt.Sprintf(
+		"https://sqs.%s.amazonaws.com/%s/%s",
+		r.ClusterConfig.Region, r.ClusterConfig.AccountID, r.getQueueName(batchJob),
+	)
+}
+
+func (r *BatchJobReconciler) getQueueName(batchJob batch.BatchJob) string {
+	// cx_<hash of cluster name>_b_<api_name>_<job_id>.fifo
+	return clusterconfig.SQSNamePrefix(r.ClusterConfig.ClusterName) + "b" +
+		clusterconfig.SQSQueueDelimiter + batchJob.Spec.APIName +
+		clusterconfig.SQSQueueDelimiter + batchJob.Name + ".fifo"
 }
 
 func (r *BatchJobReconciler) checkEnqueueingStatus(batchJob batch.BatchJob) (EnqueuingStatus, error) {
@@ -60,7 +129,15 @@ func (r *BatchJobReconciler) enqueuePayload(batchJob batch.BatchJob, queueURL st
 	panic("implement me!")
 }
 
-func (r *BatchJobReconciler) createWorkerJob(job batch.BatchJob) error {
+func (r *BatchJobReconciler) createWorkerJob(batchJob batch.BatchJob) error {
+	panic("implement me!")
+}
+
+func (r *BatchJobReconciler) desiredEnqueuerJob(batchJob batch.BatchJob) *kbatch.Job {
+	panic("implement me!")
+}
+
+func (r *BatchJobReconciler) desiredWorkerJob(batchJob batch.BatchJob) *kbatch.Job {
 	panic("implement me!")
 }
 
@@ -77,9 +154,9 @@ func (r *BatchJobReconciler) updateStatus(ctx context.Context, batchJob *batch.B
 
 	// TODO replace strings with enum
 	switch statusInfo.EnqueuingStatus {
-	case "in_progress":
+	case EnqueuingInProgress:
 		batchJob.Status.Status = "enqueing"
-	case "failed":
+	case EnqueuingFailed:
 		batchJob.Status.Status = "enqueing_failed"
 	}
 
