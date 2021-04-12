@@ -422,7 +422,12 @@ function validate_cortex() {
         echo "operator curl response:"
         curl --max-time 3 "${operator_endpoint}/verifycortex"
       fi
+
+      echo "additional networking events:"
+      kubectl get events -n=istio-system --field-selector involvedObject.kind=Service --sort-by=".metadata.managedFields[0].time" | tail -10
+      kubectl get events -n=istio-system --field-selector involvedObject.kind=Pod --sort-by=".metadata.managedFields[0].time" | tail -10
       echo
+
       exit 1
     fi
 
