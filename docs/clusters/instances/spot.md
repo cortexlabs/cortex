@@ -7,7 +7,7 @@ node_groups:
   - name: node-group-1
 
     # whether to use spot instances for this node group (default: false)
-    spot: false
+    spot: false  # this must be set to true to use spot instances
 
     spot_config:
       # additional instance types with identical or better specs than the primary cluster instance type (defaults to only the primary instance type)
