@@ -38,7 +38,7 @@ node_groups:
     instance_volume_size: 50 # disk storage size per instance (GB)
     instance_volume_type: gp2 # instance volume type [gp2 | io1 | st1 | sc1]
     # instance_volume_iops: 3000 # instance volume iops (only applicable to io1)
-    spot: false # enable spot instances
+    spot: false # whether to use spot instances
 
   - name: ng-gpu
     instance_type: g4dn.xlarge
