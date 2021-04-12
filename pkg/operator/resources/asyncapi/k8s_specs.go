@@ -178,7 +178,6 @@ func apiDeploymentSpec(api spec.API, prevDeployment *kapps.Deployment, queueURL 
 				Containers:   containers,
 				NodeSelector: operator.NodeSelectors(),
 				Tolerations:  operator.ResourceTolerations,
-				Tolerations:  operator.ResourceTolerations,
 				Affinity: &kcore.Affinity{
 					NodeAffinity: &kcore.NodeAffinity{
 						PreferredDuringSchedulingIgnoredDuringExecution: operator.GeneratePreferredNodeAffinities(),
