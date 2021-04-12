@@ -104,12 +104,6 @@ func main() {
 		log.Fatal("-jobID is a required option")
 	}
 
-	log = log.With(
-		zap.String("apiKind", _batchKind),
-		zap.String("apiName", apiName),
-		zap.String("jobID", jobID),
-	)
-
 	clusterEnv := ClusterEnv{
 		ClusterName: clusterName,
 		Region:      region,
