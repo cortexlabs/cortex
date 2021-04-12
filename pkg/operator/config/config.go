@@ -24,7 +24,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
 
-	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/hash"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
@@ -62,18 +61,13 @@ func Init() error {
 		clusterConfigPath = _clusterConfigPath
 	}
 
-	CoreConfig = &clusterconfig.CoreConfig{}
-
-	errs := cr.ParseYAMLFile(CoreConfig, clusterconfig.CoreConfigValidations(true), clusterConfigPath)
-	if errors.HasError(errs) {
-		return errors.FirstError(errs...)
+	clusterConfig, err := clusterconfig.NewForFile(clusterConfigPath)
+	if err != nil {
+		return err
 	}
 
-	ManagedConfig = &clusterconfig.ManagedConfig{}
-	errs = cr.ParseYAMLFile(ManagedConfig, clusterconfig.ManagedConfigValidations(true), clusterConfigPath)
-	if errors.HasError(errs) {
-		return errors.FirstError(errs...)
-	}
+	CoreConfig = &clusterConfig.CoreConfig
+	ManagedConfig = &clusterConfig.ManagedConfig
 
 	for _, instanceType := range ManagedConfig.GetAllInstanceTypes() {
 		InstancesMetadata = append(InstancesMetadata, aws.InstanceMetadatas[CoreConfig.Region][instanceType])
@@ -84,10 +78,12 @@ func Init() error {
 		return err
 	}
 
-	_, hashedAccountID, err := AWS.CheckCredentials()
+	accountID, hashedAccountID, err := AWS.CheckCredentials()
 	if err != nil {
 		return err
 	}
+
+	clusterConfig.AccountID = accountID
 
 	OperatorMetadata = &clusterconfig.OperatorMetadata{
 		APIVersion:          consts.CortexVersion,

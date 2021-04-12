@@ -122,6 +122,7 @@ type ManagedConfig struct {
 	OperatorLoadBalancerCIDRWhiteList []string           `json:"operator_load_balancer_cidr_white_list,omitempty" yaml:"operator_load_balancer_cidr_white_list,omitempty"`
 	VPCCIDR                           *string            `json:"vpc_cidr,omitempty" yaml:"vpc_cidr,omitempty"`
 	CortexPolicyARN                   string             `json:"cortex_policy_arn" yaml:"cortex_policy_arn"` // this field is not user facing
+	AccountID                         string             `json:"account_id" yaml:"account_id"`               // this field is not user facing
 }
 
 type NodeGroup struct {
@@ -178,6 +179,26 @@ type AccessConfig struct {
 	ImageManager string `json:"image_manager" yaml:"image_manager"`
 }
 
+// NewForFile initializes and validates the cluster config from the YAML config file
+func NewForFile(clusterConfigPath string) (*Config, error) {
+	coreConfig := CoreConfig{}
+	errs := cr.ParseYAMLFile(&coreConfig, CoreConfigValidations(true), clusterConfigPath)
+	if errors.HasError(errs) {
+		return nil, errors.FirstError(errs...)
+	}
+
+	managedConfig := ManagedConfig{}
+	errs = cr.ParseYAMLFile(&managedConfig, ManagedConfigValidations(true), clusterConfigPath)
+	if errors.HasError(errs) {
+		return nil, errors.FirstError(errs...)
+	}
+
+	return &Config{
+		CoreConfig:    coreConfig,
+		ManagedConfig: managedConfig,
+	}, nil
+}
+
 func ValidateRegion(region string) error {
 	if !aws.EKSSupportedRegions.Has(region) {
 		return ErrorInvalidRegion(region)
@@ -213,9 +234,9 @@ func (cc *Config) Hash() (string, error) {
 		return "", err
 	}
 
-	hash := sha256.New()
-	hash.Write(bytes)
-	return hex.EncodeToString(hash.Sum(nil)), nil
+	configHash := sha256.New()
+	configHash.Write(bytes)
+	return hex.EncodeToString(configHash.Sum(nil)), nil
 }
 
 var CoreConfigStructFieldValidations = []*cr.StructFieldValidation{
@@ -1210,27 +1231,6 @@ func validateInstanceDistribution(instances []string) ([]string, error) {
 		}
 	}
 	return instances, nil
-}
-
-// This does not set defaults for fields that are prompted from the user
-func SetDefaults(cc *Config) error {
-	var emptyMap interface{} = map[interface{}]interface{}{}
-	errs := cr.Struct(cc, emptyMap, FullManagedValidation)
-	if errors.HasError(errs) {
-		return errors.FirstError(errs...)
-	}
-	return nil
-}
-
-// This does not set defaults for fields that are prompted from the user
-func GetDefaults() (*Config, error) {
-	cc := &Config{}
-	err := SetDefaults(cc)
-	if err != nil {
-		return nil, err
-	}
-
-	return cc, nil
 }
 
 func (ng *NodeGroup) MaxPossibleOnDemandInstances() int64 {
