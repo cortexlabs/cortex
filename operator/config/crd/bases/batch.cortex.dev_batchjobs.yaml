@@ -53,7 +53,7 @@ spec:
                     description: Number of times a batch is allowed to be handled
                       by a worker before it is considered to be failed and transferred
                       to the dead letter queue (must be >= 1)
-                    format: int64
+                    format: int32
                     minimum: 1
                     type: integer
                 type: object

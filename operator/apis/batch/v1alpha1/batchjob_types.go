@@ -60,7 +60,7 @@ type DeadLetterQueueSpec struct {
 	// +kubebuilder:validation:Minimum=1
 	// Number of times a batch is allowed to be handled by a worker before it is considered to be failed
 	// and transferred to the dead letter queue (must be >= 1)
-	MaxReceiveCount int64 `json:"max_receive_count,omitempty"`
+	MaxReceiveCount int32 `json:"max_receive_count,omitempty"`
 }
 
 // BatchJobStatus defines the observed state of BatchJob
