@@ -127,7 +127,7 @@ func (s *service) getStatus(id string) (Status, error) {
 	log.Debug("checking status", zap.String("path", fmt.Sprintf("%s/%s/*", prefix, id)))
 	files, err := s.storage.List(fmt.Sprintf("%s/%s", prefix, id))
 	if err != nil {
-		return Status(""), err
+		return "", err
 	}
 
 	// determine request status
@@ -137,7 +137,7 @@ func (s *service) getStatus(id string) (Status, error) {
 
 		if !fileStatus.Valid() {
 			status = fileStatus
-			return Status(""), fmt.Errorf("invalid workload status: %s", status)
+			return "", fmt.Errorf("invalid workload status: %s", status)
 		}
 		if fileStatus == StatusInProgress {
 			status = fileStatus
