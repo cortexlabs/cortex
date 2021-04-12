@@ -109,13 +109,13 @@ func Deploy(projectBytes []byte, configFileName string, configBytes []byte, forc
 		return nil, err
 	}
 
-	projectKey := spec.ProjectKey(projectID, config.CoreConfig.ClusterName)
-	isProjectUploaded, err := config.AWS.IsS3File(config.CoreConfig.Bucket, projectKey)
+	projectKey := spec.ProjectKey(projectID, config.ClusterConfig.ClusterName)
+	isProjectUploaded, err := config.AWS.IsS3File(config.ClusterConfig.Bucket, projectKey)
 	if err != nil {
 		return nil, err
 	}
 	if !isProjectUploaded {
-		if err = config.AWS.UploadBytesToS3(projectBytes, config.CoreConfig.Bucket, projectKey); err != nil {
+		if err = config.AWS.UploadBytesToS3(projectBytes, config.ClusterConfig.Bucket, projectKey); err != nil {
 			return nil, err
 		}
 	}
@@ -274,7 +274,7 @@ func patchAPI(apiConfig *userconfig.API, force bool) (*spec.API, string, error) 
 	}
 
 	if deployedResource.Kind != userconfig.TrafficSplitterKind {
-		bytes, err := config.AWS.ReadBytesFromS3(config.CoreConfig.Bucket, prevAPISpec.ProjectKey)
+		bytes, err := config.AWS.ReadBytesFromS3(config.ClusterConfig.Bucket, prevAPISpec.ProjectKey)
 		if err != nil {
 			return nil, "", err
 		}
@@ -650,7 +650,7 @@ func GetAPIByID(apiName string, apiID string) ([]schema.APIResponse, error) {
 func getPastAPIDeploys(apiName string) ([]schema.APIVersion, error) {
 	var apiVersions []schema.APIVersion
 
-	apiIDs, err := config.AWS.ListS3DirOneLevel(config.CoreConfig.Bucket, spec.KeysPrefix(apiName, config.CoreConfig.ClusterName), pointer.Int64(10))
+	apiIDs, err := config.AWS.ListS3DirOneLevel(config.ClusterConfig.Bucket, spec.KeysPrefix(apiName, config.ClusterConfig.ClusterName), pointer.Int64(10))
 	if err != nil {
 		return nil, err
 	}

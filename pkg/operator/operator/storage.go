@@ -24,9 +24,9 @@ import (
 )
 
 func DownloadAPISpec(apiName string, apiID string) (*spec.API, error) {
-	bucketKey := spec.Key(apiName, apiID, config.CoreConfig.ClusterName)
+	bucketKey := spec.Key(apiName, apiID, config.ClusterConfig.ClusterName)
 	var api spec.API
-	if err := config.AWS.ReadJSONFromS3(&api, config.CoreConfig.Bucket, bucketKey); err != nil {
+	if err := config.AWS.ReadJSONFromS3(&api, config.ClusterConfig.Bucket, bucketKey); err != nil {
 		return nil, err
 	}
 	return &api, nil
@@ -60,7 +60,7 @@ func DownloadAPISpecs(apiNames []string, apiIDs []string) ([]spec.API, error) {
 
 func DownloadBatchJobSpec(jobKey spec.JobKey) (*spec.BatchJob, error) {
 	jobSpec := spec.BatchJob{}
-	if err := config.AWS.ReadJSONFromS3(&jobSpec, config.CoreConfig.Bucket, jobKey.SpecFilePath(config.CoreConfig.ClusterName)); err != nil {
+	if err := config.AWS.ReadJSONFromS3(&jobSpec, config.ClusterConfig.Bucket, jobKey.SpecFilePath(config.ClusterConfig.ClusterName)); err != nil {
 		return nil, errors.Wrap(err, "unable to download job specification", jobKey.UserString())
 	}
 	return &jobSpec, nil
@@ -68,7 +68,7 @@ func DownloadBatchJobSpec(jobKey spec.JobKey) (*spec.BatchJob, error) {
 
 func DownloadTaskJobSpec(jobKey spec.JobKey) (*spec.TaskJob, error) {
 	jobSpec := spec.TaskJob{}
-	if err := config.AWS.ReadJSONFromS3(&jobSpec, config.CoreConfig.Bucket, jobKey.SpecFilePath(config.CoreConfig.ClusterName)); err != nil {
+	if err := config.AWS.ReadJSONFromS3(&jobSpec, config.ClusterConfig.Bucket, jobKey.SpecFilePath(config.ClusterConfig.ClusterName)); err != nil {
 		return nil, errors.Wrap(err, "unable to download job specification", jobKey.UserString())
 	}
 	return &jobSpec, nil
