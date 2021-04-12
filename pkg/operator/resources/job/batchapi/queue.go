@@ -41,7 +41,7 @@ const (
 
 func apiQueueNamePrefix(apiName string) string {
 	// <sqs_prefix>_b_<api_name>_
-	return config.CoreConfig.SQSNamePrefix() + "b" + clusterconfig.SQSQueueDelimiter +
+	return config.ClusterConfig.SQSNamePrefix() + "b" + clusterconfig.SQSQueueDelimiter +
 		apiName + clusterconfig.SQSQueueDelimiter
 }
 
@@ -74,7 +74,7 @@ func jobKeyFromQueueURL(queueURL string) spec.JobKey {
 }
 
 func createFIFOQueue(jobKey spec.JobKey, deadLetterQueue *spec.SQSDeadLetterQueue, tags map[string]string) (string, error) {
-	for key, value := range config.ManagedConfig.Tags {
+	for key, value := range config.ClusterConfig.Tags {
 		tags[key] = value
 	}
 
@@ -119,7 +119,7 @@ func doesQueueExist(jobKey spec.JobKey) (bool, error) {
 
 func listQueueURLsForAllAPIs() ([]string, error) {
 	queueURLs, err := config.AWS.ListQueuesByQueueNamePrefix(
-		config.CoreConfig.SQSNamePrefix() + "b" + clusterconfig.SQSQueueDelimiter,
+		config.ClusterConfig.SQSNamePrefix() + "b" + clusterconfig.SQSQueueDelimiter,
 	)
 	if err != nil {
 		return nil, err

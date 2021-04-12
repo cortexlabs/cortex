@@ -104,7 +104,7 @@ func TaskInitContainer(api *spec.API, job *spec.TaskJob) kcore.Container {
 		LastLog: fmt.Sprintf(_downloaderLastLog, "task"),
 		DownloadArgs: []downloadContainerArg{
 			{
-				From:             aws.S3Path(config.CoreConfig.Bucket, api.ProjectKey),
+				From:             aws.S3Path(config.ClusterConfig.Bucket, api.ProjectKey),
 				To:               path.Join(_emptyDirMountPath, "project"),
 				Unzip:            true,
 				ItemName:         "the project code",
@@ -112,7 +112,7 @@ func TaskInitContainer(api *spec.API, job *spec.TaskJob) kcore.Container {
 				HideUnzippingLog: true,
 			},
 			{
-				From:             aws.S3Path(config.CoreConfig.Bucket, api.Key),
+				From:             aws.S3Path(config.ClusterConfig.Bucket, api.Key),
 				To:               APISpecPath,
 				Unzip:            false,
 				ToFile:           true,
@@ -121,7 +121,7 @@ func TaskInitContainer(api *spec.API, job *spec.TaskJob) kcore.Container {
 				HideUnzippingLog: true,
 			},
 			{
-				From:             aws.S3Path(config.CoreConfig.Bucket, job.SpecFilePath(config.CoreConfig.ClusterName)),
+				From:             aws.S3Path(config.ClusterConfig.Bucket, job.SpecFilePath(config.ClusterConfig.ClusterName)),
 				To:               TaskSpecPath,
 				Unzip:            false,
 				ToFile:           true,
@@ -137,7 +137,7 @@ func TaskInitContainer(api *spec.API, job *spec.TaskJob) kcore.Container {
 
 	return kcore.Container{
 		Name:            _downloaderInitContainerName,
-		Image:           config.CoreConfig.ImageDownloader,
+		Image:           config.ClusterConfig.ImageDownloader,
 		ImagePullPolicy: "Always",
 		Args:            []string{"--download=" + downloadArgs},
 		EnvFrom:         baseEnvVars(),
@@ -151,7 +151,7 @@ func BatchInitContainer(api *spec.API, job *spec.BatchJob) kcore.Container {
 		LastLog: fmt.Sprintf(_downloaderLastLog, api.Handler.Type.String()),
 		DownloadArgs: []downloadContainerArg{
 			{
-				From:             aws.S3Path(config.CoreConfig.Bucket, api.ProjectKey),
+				From:             aws.S3Path(config.ClusterConfig.Bucket, api.ProjectKey),
 				To:               path.Join(_emptyDirMountPath, "project"),
 				Unzip:            true,
 				ItemName:         "the project code",
@@ -159,7 +159,7 @@ func BatchInitContainer(api *spec.API, job *spec.BatchJob) kcore.Container {
 				HideUnzippingLog: true,
 			},
 			{
-				From:             aws.S3Path(config.CoreConfig.Bucket, api.Key),
+				From:             aws.S3Path(config.ClusterConfig.Bucket, api.Key),
 				To:               APISpecPath,
 				Unzip:            false,
 				ToFile:           true,
@@ -168,7 +168,7 @@ func BatchInitContainer(api *spec.API, job *spec.BatchJob) kcore.Container {
 				HideUnzippingLog: true,
 			},
 			{
-				From:             aws.S3Path(config.CoreConfig.Bucket, job.SpecFilePath(config.CoreConfig.ClusterName)),
+				From:             aws.S3Path(config.ClusterConfig.Bucket, job.SpecFilePath(config.ClusterConfig.ClusterName)),
 				To:               BatchSpecPath,
 				Unzip:            false,
 				ToFile:           true,
@@ -184,7 +184,7 @@ func BatchInitContainer(api *spec.API, job *spec.BatchJob) kcore.Container {
 
 	return kcore.Container{
 		Name:            _downloaderInitContainerName,
-		Image:           config.CoreConfig.ImageDownloader,
+		Image:           config.ClusterConfig.ImageDownloader,
 		ImagePullPolicy: "Always",
 		Args:            []string{"--download=" + downloadArgs},
 		EnvFrom:         baseEnvVars(),
@@ -199,7 +199,7 @@ func InitContainer(api *spec.API) kcore.Container {
 		LastLog: fmt.Sprintf(_downloaderLastLog, api.Handler.Type.String()),
 		DownloadArgs: []downloadContainerArg{
 			{
-				From:             aws.S3Path(config.CoreConfig.Bucket, api.ProjectKey),
+				From:             aws.S3Path(config.ClusterConfig.Bucket, api.ProjectKey),
 				To:               path.Join(_emptyDirMountPath, "project"),
 				Unzip:            true,
 				ItemName:         "the project code",
@@ -207,7 +207,7 @@ func InitContainer(api *spec.API) kcore.Container {
 				HideUnzippingLog: true,
 			},
 			{
-				From:             aws.S3Path(config.CoreConfig.Bucket, api.HandlerKey),
+				From:             aws.S3Path(config.ClusterConfig.Bucket, api.HandlerKey),
 				To:               APISpecPath,
 				Unzip:            false,
 				ToFile:           true,
@@ -223,7 +223,7 @@ func InitContainer(api *spec.API) kcore.Container {
 
 	return kcore.Container{
 		Name:            _downloaderInitContainerName,
-		Image:           config.CoreConfig.ImageDownloader,
+		Image:           config.ClusterConfig.ImageDownloader,
 		ImagePullPolicy: "Always",
 		Args:            []string{"--download=" + downloadArgs},
 		EnvFrom:         baseEnvVars(),
@@ -324,10 +324,10 @@ func AsyncTensorflowHandlerContainers(api spec.API, queueURL string) ([]kcore.Co
 }
 
 func AsyncGatewayContainers(api spec.API, queueURL string) kcore.Container {
-	image := config.CoreConfig.ImageAsyncGateway
-	region := config.CoreConfig.Region
-	bucket := config.CoreConfig.Bucket
-	clusterName := config.CoreConfig.ClusterName
+	image := config.ClusterConfig.ImageAsyncGateway
+	region := config.ClusterConfig.Region
+	bucket := config.ClusterConfig.Bucket
+	clusterName := config.ClusterConfig.ClusterName
 
 	return kcore.Container{
 		Name:            _gatewayContainerName,
@@ -628,7 +628,7 @@ func getAsyncAPIEnvVars(api spec.API, queueURL string) []kcore.EnvVar {
 		},
 		kcore.EnvVar{
 			Name:  "CORTEX_ASYNC_WORKLOAD_PATH",
-			Value: aws.S3Path(config.CoreConfig.Bucket, fmt.Sprintf("%s/apis/%s/workloads", config.CoreConfig.ClusterName, api.Name)),
+			Value: aws.S3Path(config.ClusterConfig.Bucket, fmt.Sprintf("%s/apis/%s/workloads", config.ClusterConfig.ClusterName, api.Name)),
 		},
 	)
 
@@ -880,7 +880,7 @@ func neuronRuntimeDaemonContainer(api *spec.API, volumeMounts []kcore.VolumeMoun
 	totalHugePages := api.Compute.Inf * _hugePagesMemPerInf
 	return &kcore.Container{
 		Name:            _neuronRTDContainerName,
-		Image:           config.CoreConfig.ImageNeuronRTD,
+		Image:           config.ClusterConfig.ImageNeuronRTD,
 		ImagePullPolicy: kcore.PullAlways,
 		SecurityContext: &kcore.SecurityContext{
 			Capabilities: &kcore.Capabilities{
@@ -919,7 +919,7 @@ func RequestMonitorContainer(api *spec.API) kcore.Container {
 
 	return kcore.Container{
 		Name:            _requestMonitorContainerName,
-		Image:           config.CoreConfig.ImageRequestMonitor,
+		Image:           config.ClusterConfig.ImageRequestMonitor,
 		ImagePullPolicy: kcore.PullAlways,
 		Args:            []string{"-p", DefaultRequestMonitorPortStr},
 		Ports: []kcore.ContainerPort{
@@ -1067,7 +1067,7 @@ func GenerateResourceTolerations() []kcore.Toleration {
 func GenerateNodeAffinities(apiNodeGroups []string) *kcore.Affinity {
 	// node groups are ordered according to how the cluster config node groups are ordered
 	var nodeGroups []*clusterconfig.NodeGroup
-	for _, clusterNodeGroup := range config.ManagedConfig.NodeGroups {
+	for _, clusterNodeGroup := range config.ClusterConfig.NodeGroups {
 		for _, apiNodeGroupName := range apiNodeGroups {
 			if clusterNodeGroup.Name == apiNodeGroupName {
 				nodeGroups = append(nodeGroups, clusterNodeGroup)
@@ -1077,8 +1077,8 @@ func GenerateNodeAffinities(apiNodeGroups []string) *kcore.Affinity {
 
 	numNodeGroups := len(apiNodeGroups)
 	if apiNodeGroups == nil {
-		nodeGroups = config.ManagedConfig.NodeGroups
-		numNodeGroups = len(config.ManagedConfig.NodeGroups)
+		nodeGroups = config.ClusterConfig.NodeGroups
+		numNodeGroups = len(config.ClusterConfig.NodeGroups)
 	}
 
 	requiredNodeGroups := []string{}

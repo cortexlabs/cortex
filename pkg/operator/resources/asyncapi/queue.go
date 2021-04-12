@@ -27,7 +27,7 @@ import (
 )
 
 func createFIFOQueue(apiName string, deploymentID string, tags map[string]string) (string, error) {
-	for key, value := range config.ManagedConfig.Tags {
+	for key, value := range config.ClusterConfig.Tags {
 		tags[key] = value
 	}
 
@@ -53,7 +53,7 @@ func createFIFOQueue(apiName string, deploymentID string, tags map[string]string
 }
 
 func apiQueueName(apiName string, deploymentID string) string {
-	return config.CoreConfig.SQSNamePrefix() + apiName + clusterconfig.SQSQueueDelimiter + deploymentID + ".fifo"
+	return config.ClusterConfig.SQSNamePrefix() + apiName + clusterconfig.SQSQueueDelimiter + deploymentID + ".fifo"
 }
 
 func deleteQueueByURL(queueURL string) error {

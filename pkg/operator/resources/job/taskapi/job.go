@@ -75,7 +75,7 @@ func SubmitJob(apiName string, submission *schema.TaskJobSubmission) (*spec.Task
 
 func uploadJobSpec(jobSpec *spec.TaskJob) error {
 	if err := config.AWS.UploadJSONToS3(
-		jobSpec, config.CoreConfig.Bucket, jobSpec.SpecFilePath(config.CoreConfig.ClusterName),
+		jobSpec, config.ClusterConfig.Bucket, jobSpec.SpecFilePath(config.ClusterConfig.ClusterName),
 	); err != nil {
 		return err
 	}

@@ -38,10 +38,7 @@ func Info(w http.ResponseWriter, r *http.Request) {
 	}
 
 	fullClusterConfig := clusterconfig.InternalConfig{
-		Config: clusterconfig.Config{
-			CoreConfig:    *config.CoreConfig,
-			ManagedConfig: *config.ManagedConfig,
-		},
+		Config:            *config.ClusterConfig,
 		OperatorMetadata:  *config.OperatorMetadata,
 		InstancesMetadata: config.InstancesMetadata,
 	}
@@ -75,7 +72,7 @@ func getNodeInfos() ([]schema.NodeInfo, int, error) {
 		nodeGroupName := node.Labels["alpha.eksctl.io/nodegroup-name"]
 		isSpot := strings.Contains(strings.ToLower(node.Labels["lifecycle"]), "spot")
 
-		price := aws.InstanceMetadatas[config.CoreConfig.Region][instanceType].Price
+		price := aws.InstanceMetadatas[config.ClusterConfig.Region][instanceType].Price
 		if isSpot {
 			if spotPrice, ok := spotPriceCache[instanceType]; ok {
 				price = spotPrice

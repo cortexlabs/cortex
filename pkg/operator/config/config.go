@@ -40,8 +40,7 @@ const (
 var (
 	OperatorMetadata *clusterconfig.OperatorMetadata
 
-	CoreConfig        *clusterconfig.CoreConfig
-	ManagedConfig     *clusterconfig.ManagedConfig
+	ClusterConfig     *clusterconfig.Config
 	InstancesMetadata []aws.InstanceMetadata
 
 	AWS             *aws.Client
@@ -66,14 +65,13 @@ func Init() error {
 		return err
 	}
 
-	CoreConfig = &clusterConfig.CoreConfig
-	ManagedConfig = &clusterConfig.ManagedConfig
+	ClusterConfig = clusterConfig
 
-	for _, instanceType := range ManagedConfig.GetAllInstanceTypes() {
-		InstancesMetadata = append(InstancesMetadata, aws.InstanceMetadatas[CoreConfig.Region][instanceType])
+	for _, instanceType := range clusterConfig.GetAllInstanceTypes() {
+		InstancesMetadata = append(InstancesMetadata, aws.InstanceMetadatas[clusterConfig.Region][instanceType])
 	}
 
-	AWS, err = aws.NewForRegion(CoreConfig.Region)
+	AWS, err = aws.NewForRegion(clusterConfig.Region)
 	if err != nil {
 		return err
 	}
@@ -88,23 +86,23 @@ func Init() error {
 	OperatorMetadata = &clusterconfig.OperatorMetadata{
 		APIVersion:          consts.CortexVersion,
 		OperatorID:          hashedAccountID,
-		ClusterID:           hash.String(CoreConfig.ClusterName + CoreConfig.Region + hashedAccountID),
+		ClusterID:           hash.String(clusterConfig.ClusterName + clusterConfig.Region + hashedAccountID),
 		IsOperatorInCluster: strings.ToLower(os.Getenv("CORTEX_OPERATOR_IN_CLUSTER")) != "false",
 	}
 
-	clusterNamespace = CoreConfig.Namespace
-	istioNamespace = CoreConfig.IstioNamespace
+	clusterNamespace = clusterConfig.Namespace
+	istioNamespace = clusterConfig.IstioNamespace
 
-	exists, err := AWS.DoesBucketExist(CoreConfig.Bucket)
+	exists, err := AWS.DoesBucketExist(clusterConfig.Bucket)
 	if err != nil {
 		return err
 	}
 	if !exists {
-		return errors.ErrorUnexpected("the specified bucket does not exist", CoreConfig.Bucket)
+		return errors.ErrorUnexpected("the specified bucket does not exist", clusterConfig.Bucket)
 	}
 
 	err = telemetry.Init(telemetry.Config{
-		Enabled: CoreConfig.Telemetry,
+		Enabled: clusterConfig.Telemetry,
 		UserID:  OperatorMetadata.OperatorID,
 		Properties: map[string]string{
 			"cluster_id":  OperatorMetadata.ClusterID,

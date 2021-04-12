@@ -131,7 +131,7 @@ func SubmitJob(apiName string, submission *schema.BatchJobSubmission) (*spec.Bat
 }
 
 func uploadJobSpec(jobSpec *spec.BatchJob) error {
-	err := config.AWS.UploadJSONToS3(jobSpec, config.CoreConfig.Bucket, jobSpec.SpecFilePath(config.CoreConfig.ClusterName))
+	err := config.AWS.UploadJSONToS3(jobSpec, config.ClusterConfig.Bucket, jobSpec.SpecFilePath(config.ClusterConfig.ClusterName))
 	if err != nil {
 		return err
 	}

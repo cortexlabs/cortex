@@ -60,15 +60,15 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string, force bool) (*spec.A
 		deploymentID = prevDeployment.Labels["deploymentID"]
 	}
 
-	api := spec.GetAPISpec(apiConfig, projectID, deploymentID, config.CoreConfig.ClusterName)
+	api := spec.GetAPISpec(apiConfig, projectID, deploymentID, config.ClusterConfig.ClusterName)
 
 	if prevDeployment == nil {
-		if err := config.AWS.UploadJSONToS3(api, config.CoreConfig.Bucket, api.Key); err != nil {
+		if err := config.AWS.UploadJSONToS3(api, config.ClusterConfig.Bucket, api.Key); err != nil {
 			return nil, "", errors.Wrap(err, "upload api spec")
 		}
 
 		// Use api spec indexed by HandlerID for replicas to prevent rolling updates when SpecID changes without HandlerID changing
-		if err := config.AWS.UploadJSONToS3(api, config.CoreConfig.Bucket, api.HandlerKey); err != nil {
+		if err := config.AWS.UploadJSONToS3(api, config.ClusterConfig.Bucket, api.HandlerKey); err != nil {
 			return nil, "", errors.Wrap(err, "upload handler spec")
 		}
 
@@ -91,12 +91,12 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string, force bool) (*spec.A
 			return nil, "", ErrorAPIUpdating(api.Name)
 		}
 
-		if err := config.AWS.UploadJSONToS3(api, config.CoreConfig.Bucket, api.Key); err != nil {
+		if err := config.AWS.UploadJSONToS3(api, config.ClusterConfig.Bucket, api.Key); err != nil {
 			return nil, "", errors.Wrap(err, "upload api spec")
 		}
 
 		// Use api spec indexed by HandlerID for replicas to prevent rolling updates when SpecID changes without HandlerID changing
-		if err := config.AWS.UploadJSONToS3(api, config.CoreConfig.Bucket, api.HandlerKey); err != nil {
+		if err := config.AWS.UploadJSONToS3(api, config.ClusterConfig.Bucket, api.HandlerKey); err != nil {
 			return nil, "", errors.Wrap(err, "upload handler spec")
 		}
 
@@ -144,14 +144,14 @@ func RefreshAPI(apiName string, force bool) (string, error) {
 		return "", err
 	}
 
-	api = spec.GetAPISpec(api.API, api.ProjectID, deploymentID(), config.CoreConfig.ClusterName)
+	api = spec.GetAPISpec(api.API, api.ProjectID, deploymentID(), config.ClusterConfig.ClusterName)
 
-	if err := config.AWS.UploadJSONToS3(api, config.CoreConfig.Bucket, api.Key); err != nil {
+	if err := config.AWS.UploadJSONToS3(api, config.ClusterConfig.Bucket, api.Key); err != nil {
 		return "", errors.Wrap(err, "upload api spec")
 	}
 
 	// Reupload api spec to the same HandlerID but with the new DeploymentID
-	if err := config.AWS.UploadJSONToS3(api, config.CoreConfig.Bucket, api.HandlerKey); err != nil {
+	if err := config.AWS.UploadJSONToS3(api, config.ClusterConfig.Bucket, api.HandlerKey); err != nil {
 		return "", errors.Wrap(err, "upload handler spec")
 	}
 
@@ -407,8 +407,8 @@ func deleteK8sResources(apiName string) error {
 }
 
 func deleteBucketResources(apiName string) error {
-	prefix := filepath.Join(config.CoreConfig.ClusterName, "apis", apiName)
-	return config.AWS.DeleteS3Dir(config.CoreConfig.Bucket, prefix, true)
+	prefix := filepath.Join(config.ClusterConfig.ClusterName, "apis", apiName)
+	return config.AWS.DeleteS3Dir(config.ClusterConfig.Bucket, prefix, true)
 }
 
 // returns true if min_replicas are not ready and no updated replicas have errored
