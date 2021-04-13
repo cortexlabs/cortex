@@ -34,8 +34,8 @@ if [ "${image}" == "python-predictor-gpu" ]; then
   cudnn=("7" "7" "8" "7" "8" "8" "8")
   for i in ${!cudnn[@]}; do
     build_args="${build_args} --build-arg CUDA_VERSION=${cuda[$i]} --build-arg CUDNN=${cudnn[$i]}"
-    docker build "$ROOT" -f $ROOT/images/$image/Dockerfile $build_args -t quay.io/cortexlabs/${image}:${CORTEX_VERSION}-cuda${cuda[$i]}-cudnn${cudnn[$i]}
+    docker build "$ROOT" -f $ROOT/images/$image/Dockerfile $build_args -t quay.io/cortexlabs/${image}:${CORTEX_VERSION}-cuda${cuda[$i]}-cudnn${cudnn[$i]} -t cortexlabs/${image}:${CORTEX_VERSION}-cuda${cuda[$i]}-cudnn${cudnn[$i]}
   done
 else
-  docker build "$ROOT" -f $ROOT/images/$image/Dockerfile $build_args -t quay.io/cortexlabs/${image}:${CORTEX_VERSION}
+  docker build "$ROOT" -f $ROOT/images/$image/Dockerfile $build_args -t quay.io/cortexlabs/${image}:${CORTEX_VERSION} -t cortexlabs/${image}:${CORTEX_VERSION}
 fi
