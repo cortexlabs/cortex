@@ -25,7 +25,7 @@ import (
 	kcore "k8s.io/api/core/v1"
 )
 
-const _stalledPodTimeout = 10 * time.Minute
+const _stalledPodTimeout = 15 * time.Minute
 
 func GetWorkerCountsForJob(k8sJob kbatch.Job, pods []kcore.Pod) status.WorkerCounts {
 	if k8sJob.Status.Failed > 0 {
