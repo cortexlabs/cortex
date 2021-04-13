@@ -97,6 +97,8 @@ type WorkerCounts struct {
 
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
+// +kubebuilder:printcolumn:JSONPath=".status.status",name="Status",type="string"
+// +kubebuilder:printcolumn:JSONPath=".status.queue_url",name="Queue URL",type="string"
 
 // BatchJob is the Schema for the batchjobs API
 type BatchJob struct {

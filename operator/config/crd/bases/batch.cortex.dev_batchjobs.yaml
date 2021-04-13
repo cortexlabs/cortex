@@ -16,7 +16,14 @@ spec:
     singular: batchjob
   scope: Namespaced
   versions:
-  - name: v1alpha1
+  - additionalPrinterColumns:
+    - jsonPath: .status.status
+      name: Status
+      type: string
+    - jsonPath: .status.queue_url
+      name: Queue URL
+      type: string
+    name: v1alpha1
     schema:
       openAPIV3Schema:
         description: BatchJob is the Schema for the batchjobs API

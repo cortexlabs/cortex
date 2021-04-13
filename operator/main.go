@@ -19,13 +19,14 @@ package main
 import (
 	"flag"
 	"os"
+	"strings"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/sqs"
-	"github.com/aws/aws-sdk-go/service/sts"
 	batch "github.com/cortexlabs/cortex/operator/apis/batch/v1alpha1"
-	controllers "github.com/cortexlabs/cortex/operator/controllers/batch"
+	"github.com/cortexlabs/cortex/operator/controllers"
+	batchcontrollers "github.com/cortexlabs/cortex/operator/controllers/batch"
+	"github.com/cortexlabs/cortex/pkg/consts"
+	awslib "github.com/cortexlabs/cortex/pkg/lib/aws"
+	"github.com/cortexlabs/cortex/pkg/lib/hash"
 	"github.com/cortexlabs/cortex/pkg/types/clusterconfig"
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
@@ -89,30 +90,35 @@ func main() {
 		os.Exit(1)
 	}
 
-	sess, err := session.NewSessionWithOptions(session.Options{
-		Config: aws.Config{
-			Region: aws.String(clusterConfig.Region),
-		},
-		SharedConfigState: session.SharedConfigEnable,
-	})
+	awsClient, err := awslib.NewForRegion(clusterConfig.Region)
 	if err != nil {
-		setupLog.Error(err, "failed to create AWS session")
+		setupLog.Error(err, "failed to create AWS client")
 		os.Exit(1)
 	}
 
-	stsClient := sts.New(sess)
-	response, err := stsClient.GetCallerIdentity(nil)
+	accountID, hashedAccountID, err := awsClient.CheckCredentials()
 	if err != nil {
-		setupLog.Error(err, "failed to retrieve AWS credentials")
+		setupLog.Error(err, "failed to check AWS credentials")
 		os.Exit(1)
 	}
-	clusterConfig.AccountID = *response.Account
 
-	if err = (&controllers.BatchJobReconciler{
+	clusterConfig.AccountID = accountID
+
+	operatorMetadata := &clusterconfig.OperatorMetadata{
+		APIVersion:          consts.CortexVersion,
+		OperatorID:          hashedAccountID,
+		ClusterID:           hash.String(clusterConfig.ClusterName + clusterConfig.Region + hashedAccountID),
+		IsOperatorInCluster: strings.ToLower(os.Getenv("CORTEX_OPERATOR_IN_CLUSTER")) != "false",
+	}
+
+	// initialize some of the global values for the k8s helpers
+	controllers.Init(clusterConfig, operatorMetadata)
+
+	if err = (&batchcontrollers.BatchJobReconciler{
 		Client:        mgr.GetClient(),
 		Log:           ctrl.Log.WithName("controllers").WithName("BatchJob"),
 		ClusterConfig: clusterConfig,
-		SQS:           sqs.New(sess),
+		AWS:           awsClient,
 		Scheme:        mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "BatchJob")

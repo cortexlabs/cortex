@@ -19,7 +19,7 @@ package controllers
 import (
 	"context"
 
-	"github.com/aws/aws-sdk-go/service/sqs"
+	awslib "github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/types/clusterconfig"
 	"github.com/go-logr/logr"
 	kbatch "k8s.io/api/batch/v1"
@@ -35,7 +35,7 @@ import (
 type BatchJobReconciler struct {
 	client.Client
 	Log           logr.Logger
-	SQS           *sqs.SQS
+	AWS           *awslib.Client
 	ClusterConfig *clusterconfig.Config
 	Scheme        *runtime.Scheme
 }
@@ -59,32 +59,47 @@ func (r *BatchJobReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	}
 
 	// Step 2: Update Status
+	log.V(1).Info("checking if queue exists")
 	queueExists, err := r.checkIfQueueExists(batchJob)
 	if err != nil {
 		log.Error(err, "failed to check if queue exists")
 		return ctrl.Result{}, err
 	}
 
-	enqueueingStatus, err := r.checkEnqueueingStatus(batchJob)
-	if err != nil {
-		log.Error(err, "failed to check enqueuing status")
-		return ctrl.Result{}, err
-	}
-
-	workerJob, err := r.getWorkerJob(batchJob)
+	log.V(1).Info("getting worker job")
+	workerJob, err := r.getWorkerJob(ctx, batchJob)
 	if err != nil && !kerrors.IsNotFound(err) {
 		log.Error(err, "failed to get worker job")
 		return ctrl.Result{}, err
 	}
 
+	log.V(1).Info("checking enqueueing status")
+	enqueueingStatus, err := r.checkEnqueueingStatus(ctx, batchJob, workerJob)
+	if err != nil {
+		log.Error(err, "failed to check enqueuing status")
+		return ctrl.Result{}, err
+	}
+
+	workerJobExists := workerJob != nil
 	statusInfo := batchJobStatusInfo{
 		QueueExists:     queueExists,
 		EnqueuingStatus: enqueueingStatus,
 		WorkerJob:       workerJob,
 	}
 
+	log.V(1).Info("status data successfully acquired",
+		"queueExists", queueExists,
+		"enqueuingStatus", enqueueingStatus,
+		"workerJobExists", workerJobExists,
+	)
+
+	log.V(1).Info("updating status")
 	if err = r.updateStatus(ctx, &batchJob, statusInfo); err != nil {
-		log.Error(err, "failed to update status")
+		if kerrors.IsConflict(err) {
+			log.Info("conflict during status update, retrying")
+		} else {
+			log.Error(err, "failed to update status")
+		}
 		return ctrl.Result{}, err
 	}
 
@@ -106,7 +121,7 @@ func (r *BatchJobReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	switch enqueueingStatus {
 	case EnqueuingNotStarted:
 		log.V(1).Info("enqueing payload")
-		if err = r.enqueuePayload(batchJob, queueURL); err != nil {
+		if err = r.enqueuePayload(ctx, batchJob, queueURL); err != nil {
 			log.Error(err, "failed to start enqueueing the payload")
 			return ctrl.Result{}, err
 		}
@@ -118,10 +133,9 @@ func (r *BatchJobReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return ctrl.Result{}, nil
 	}
 
-	workerJobExists := workerJob != nil
 	if !workerJobExists {
-		log.V(1).Info("creating workers")
-		if err = r.createWorkerJob(batchJob); err != nil {
+		log.V(1).Info("creating worker job")
+		if err = r.createWorkerJob(ctx, batchJob); err != nil {
 			log.Error(err, "failed to create worker job")
 			return ctrl.Result{}, err
 		}

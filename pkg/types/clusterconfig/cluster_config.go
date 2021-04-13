@@ -87,6 +87,7 @@ type CoreConfig struct {
 	ImageDownloader                 string `json:"image_downloader" yaml:"image_downloader"`
 	ImageRequestMonitor             string `json:"image_request_monitor" yaml:"image_request_monitor"`
 	ImageAsyncGateway               string `json:"image_async_gateway" yaml:"image_async_gateway"`
+	ImageEnqueuer                   string `json:"image_enqueuer" yaml:"image_enqueuer"`
 	ImageClusterAutoscaler          string `json:"image_cluster_autoscaler" yaml:"image_cluster_autoscaler"`
 	ImageMetricsServer              string `json:"image_metrics_server" yaml:"image_metrics_server"`
 	ImageInferentia                 string `json:"image_inferentia" yaml:"image_inferentia"`
@@ -330,6 +331,13 @@ var CoreConfigStructFieldValidations = []*cr.StructFieldValidation{
 		StructField: "ImageAsyncGateway",
 		StringValidation: &cr.StringValidation{
 			Default:   consts.DefaultRegistry() + "/async-gateway:" + consts.CortexVersion,
+			Validator: validateImageVersion,
+		},
+	},
+	{
+		StructField: "ImageEnqueuer",
+		StringValidation: &cr.StringValidation{
+			Default:   consts.DefaultRegistry() + "/enqueuer:" + consts.CortexVersion,
 			Validator: validateImageVersion,
 		},
 	},
@@ -1301,6 +1309,9 @@ func (cc *CoreConfig) TelemetryEvent() map[string]interface{} {
 	}
 	if !strings.HasPrefix(cc.ImageAsyncGateway, "cortexlabs/") {
 		event["image_async_gateway._is_custom"] = true
+	}
+	if !strings.HasPrefix(cc.ImageEnqueuer, "cortexlabs/") {
+		event["image_enqueuer._is_custom"] = true
 	}
 	if !strings.HasPrefix(cc.ImageClusterAutoscaler, "cortexlabs/") {
 		event["image_cluster_autoscaler._is_custom"] = true

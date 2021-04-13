@@ -1,7 +1,12 @@
 apiVersion: batch.cortex.dev/v1alpha1
 kind: BatchJob
 metadata:
-  name: batchjob-sample
+  name: "123456"
 spec:
-  # Add fields here
-  foo: bar
+  api_name: "image-classifier"
+  api_id: "123456"
+  workers: 1
+  timeout: "30s"
+  resources:
+    requests:
+      cpu: "100m"
