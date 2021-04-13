@@ -23,6 +23,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"strings"
 	"sync"
 	"time"
 
@@ -30,13 +31,13 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/files"
 )
 
-// usage: go run load.go <url> <sample.json>
+// usage: go run load.go <url> <sample.json OR sample json string>
 
 // either set _numConcurrent > 0 or _requestInterval > 0 (and configure the corresponding sections)
 
 // constant in-flight requests
 const (
-	_numConcurrent        = 5
+	_numConcurrent        = 3
 	_numRequestsPerThread = -1 // -1 means loop infinitely
 	_requestDelay         = 0 * time.Second
 	_numMainLoops         = 10 // only relevant if _numRequestsPerThread != -1
@@ -76,8 +77,13 @@ func main() {
 		os.Exit(1)
 	}
 
-	url, jsonPath := mustExtractArgs()
-	jsonBytes := mustReadJSONBytes(jsonPath)
+	url, jsonPathOrString := mustExtractArgs()
+	var jsonBytes []byte
+	if strings.HasPrefix(jsonPathOrString, "{") {
+		jsonBytes = []byte(jsonPathOrString)
+	} else {
+		jsonBytes = mustReadJSONBytes(jsonPathOrString)
+	}
 
 	if _numConcurrent > 0 {
 		runConstantInFlight(url, jsonBytes)
@@ -231,12 +237,12 @@ func mustReadJSONBytes(jsonPath string) []byte {
 
 func mustExtractArgs() (string, string) {
 	if len(os.Args) != 3 {
-		fmt.Println("usage: go run load.go <url> <sample.json>")
+		fmt.Println("usage: go run load.go <url> <sample.json OR sample json string>")
 		os.Exit(1)
 	}
 
 	url := os.Args[1]
-	jsonPath := os.Args[2]
+	jsonPathOrString := os.Args[2]
 
-	return url, jsonPath
+	return url, jsonPathOrString
 }
