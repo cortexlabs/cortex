@@ -30,6 +30,7 @@ const (
 	ErrParseLabel         = "k8s.parse_label"
 	ErrParseAnnotation    = "k8s.parse_annotation"
 	ErrParseQuantity      = "k8s.parse_quantity"
+	ErrMissingMetrics     = "k8s.missing_metrics"
 )
 
 func ErrorLabelNotFound(labelName string) error {
@@ -64,5 +65,12 @@ func ErrorParseQuantity(qtyStr string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrParseQuantity,
 		Message: fmt.Sprintf("%s: invalid kubernetes quantity, some valid examples are 1, 200m, 500Mi, 2G (see here for more information: https://docs.cortex.dev/v/%s/)", qtyStr, consts.CortexVersionMinor),
+	})
+}
+
+func ErrorMissingMetrics() error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrMissingMetrics,
+		Message: "must specify at least one metric",
 	})
 }
