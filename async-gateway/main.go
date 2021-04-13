@@ -24,6 +24,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -127,8 +128,18 @@ func main() {
 	)
 	router.HandleFunc("/{id}", ep.GetWorkload).Methods("GET")
 
+	// inspired by our nginx config
+	corsOptions := []handlers.CORSOption{
+		handlers.AllowedOrigins([]string{"*"}),
+		// custom headers are not supported currently, since "*" is not supported in AllowedHeaders(); here are some common ones:
+		handlers.AllowedHeaders([]string{"Content-Type", "X-Requested-With", "User-Agent", "Accept", "Accept-Language", "Content-Language", "Origin"}),
+		handlers.AllowedMethods([]string{"GET", "HEAD", "POST", "PUT", "OPTIONS"}),
+		handlers.ExposedHeaders([]string{"Content-Length", "Content-Range"}),
+		handlers.AllowCredentials(),
+	}
+
 	log.Info("Running on port " + *port)
-	if err = http.ListenAndServe(":"+*port, router); err != nil {
+	if err = http.ListenAndServe(":"+*port, handlers.CORS(corsOptions...)(router)); err != nil {
 		log.Fatal("failed to start server", zap.Error(err))
 	}
 }
