@@ -28,8 +28,8 @@ if [ "$image" == "python-predictor-gpu" ]; then
   cuda=("10.0" "10.1" "10.1" "10.2" "10.2" "11.0" "11.1")
   cudnn=("7" "7" "8" "7" "8" "8" "8")
   for i in ${!cudnn[@]}; do
-    docker push $host/dockerhub/${image}:${CORTEX_VERSION}-cuda${cuda[$i]}-cudnn${cudnn[$i]}
+    docker push $host/cortexlabs/${image}:${CORTEX_VERSION}-cuda${cuda[$i]}-cudnn${cudnn[$i]}
   done
 else
-  docker push $host/dockerhub/${image}:${CORTEX_VERSION}
+  docker push $host/cortexlabs/${image}:${CORTEX_VERSION}
 fi
