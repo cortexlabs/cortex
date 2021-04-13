@@ -82,7 +82,7 @@ def pytest_configure(config):
             ),
             "batch_deploy_timeout": int(os.environ.get("CORTEX_TEST_BATCH_DEPLOY_TIMEOUT", 30)),
             "batch_job_timeout": int(os.environ.get("CORTEX_TEST_BATCH_JOB_TIMEOUT", 200)),
-            "async_deploy_timeout": int(os.environ.get("CORTEX_TEST_ASYNC_DEPLOY_TIMEOUT", 90)),
+            "async_deploy_timeout": int(os.environ.get("CORTEX_TEST_ASYNC_DEPLOY_TIMEOUT", 120)),
             "async_workload_timeout": int(
                 os.environ.get("CORTEX_TEST_ASYNC_WORKLOAD_TIMEOUT", 200)
             ),
@@ -103,8 +103,8 @@ def pytest_configure(config):
                     "concurrency": 50,
                     "min_rtt": 0.004,  # measured in seconds
                     "max_rtt": 1.000,  # measured in seconds
-                    "avg_rtt": 0.06,  # measured in seconds
-                    "avg_rtt_tolerance": 0.05,  # measured in seconds
+                    "avg_rtt": 0.07,  # measured in seconds
+                    "avg_rtt_tolerance": 0.06,  # measured in seconds
                     "status_code_timeout": 60,  # measured in seconds
                 },
                 "async": {
