@@ -26,16 +26,19 @@ import (
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	"istio.io/client-go/pkg/apis/networking/v1beta1"
 	kapps "k8s.io/api/apps/v1"
+	kautoscaling "k8s.io/api/autoscaling/v2beta2"
 	kcore "k8s.io/api/core/v1"
 )
 
-var _terminationGracePeriodSeconds int64 = 60 // seconds
+var _terminationGracePeriodSeconds int64 = 60  // seconds
+var _gatewayHPATargetCPUUtilization int32 = 80 // percentage
+var _gatewayHPATargetMemUtilization int32 = 80 // percentage
 
 func gatewayDeploymentSpec(api spec.API, prevDeployment *kapps.Deployment, queueURL string) kapps.Deployment {
 	container := operator.AsyncGatewayContainers(api, queueURL)
 	return *k8s.Deployment(&k8s.DeploymentSpec{
 		Name:           getGatewayK8sName(api.Name),
-		Replicas:       getRequestedReplicasFromDeployment(api, prevDeployment),
+		Replicas:       1,
 		MaxSurge:       pointer.String(api.UpdateStrategy.MaxSurge),
 		MaxUnavailable: pointer.String(api.UpdateStrategy.MaxUnavailable),
 		Selector: map[string]string{
@@ -76,6 +79,35 @@ func gatewayDeploymentSpec(api spec.API, prevDeployment *kapps.Deployment, queue
 			},
 		},
 	})
+}
+
+func gatewayHPASpec(api spec.API) (kautoscaling.HorizontalPodAutoscaler, error) {
+	var maxReplicas int32 = 1
+	if api.Autoscaling != nil {
+		maxReplicas = api.Autoscaling.MaxReplicas
+	}
+	hpa, err := k8s.HPA(&k8s.HPASpec{
+		DeploymentName:       getGatewayK8sName(api.Name),
+		MinReplicas:          1,
+		MaxReplicas:          maxReplicas,
+		TargetCPUUtilization: _gatewayHPATargetCPUUtilization,
+		TargetMemUtilization: _gatewayHPATargetMemUtilization,
+		Labels: map[string]string{
+			"apiName":          api.Name,
+			"apiKind":          api.Kind.String(),
+			"apiID":            api.ID,
+			"specID":           api.SpecID,
+			"deploymentID":     api.DeploymentID,
+			"predictorID":      api.PredictorID,
+			"cortex.dev/api":   "true",
+			"cortex.dev/async": "hpa",
+		},
+	})
+
+	if err != nil {
+		return kautoscaling.HorizontalPodAutoscaler{}, err
+	}
+	return *hpa, nil
 }
 
 func gatewayServiceSpec(api spec.API) kcore.Service {

@@ -37,11 +37,42 @@ type HPASpec struct {
 	MinReplicas          int32
 	MaxReplicas          int32
 	TargetCPUUtilization int32
+	TargetMemUtilization int32
 	Labels               map[string]string
 	Annotations          map[string]string
 }
 
-func HPA(spec *HPASpec) *kautoscaling.HorizontalPodAutoscaler {
+func HPA(spec *HPASpec) (*kautoscaling.HorizontalPodAutoscaler, error) {
+	metrics := []kautoscaling.MetricSpec{}
+	if spec.TargetCPUUtilization > 0 {
+		metrics = append(metrics, kautoscaling.MetricSpec{
+			Type: kautoscaling.ResourceMetricSourceType,
+			Resource: &kautoscaling.ResourceMetricSource{
+				Name: kcore.ResourceCPU,
+				Target: kautoscaling.MetricTarget{
+					Type:               kautoscaling.UtilizationMetricType,
+					AverageUtilization: &spec.TargetCPUUtilization,
+				},
+			},
+		})
+	}
+	if spec.TargetMemUtilization > 0 {
+		metrics = append(metrics, kautoscaling.MetricSpec{
+			Type: kautoscaling.ResourceMetricSourceType,
+			Resource: &kautoscaling.ResourceMetricSource{
+				Name: kcore.ResourceMemory,
+				Target: kautoscaling.MetricTarget{
+					Type:               kautoscaling.UtilizationMetricType,
+					AverageUtilization: &spec.TargetMemUtilization,
+				},
+			},
+		})
+	}
+
+	if len(metrics) == 0 {
+		return nil, ErrorMissingMetrics()
+	}
+
 	hpa := &kautoscaling.HorizontalPodAutoscaler{
 		TypeMeta: _hpaTypeMeta,
 		ObjectMeta: kmeta.ObjectMeta{
@@ -52,18 +83,7 @@ func HPA(spec *HPASpec) *kautoscaling.HorizontalPodAutoscaler {
 		Spec: kautoscaling.HorizontalPodAutoscalerSpec{
 			MinReplicas: &spec.MinReplicas,
 			MaxReplicas: spec.MaxReplicas,
-			Metrics: []kautoscaling.MetricSpec{
-				{
-					Type: kautoscaling.ResourceMetricSourceType,
-					Resource: &kautoscaling.ResourceMetricSource{
-						Name: kcore.ResourceCPU,
-						Target: kautoscaling.MetricTarget{
-							Type:               kautoscaling.UtilizationMetricType,
-							AverageUtilization: &spec.TargetCPUUtilization,
-						},
-					},
-				},
-			},
+			Metrics:     metrics,
 			ScaleTargetRef: kautoscaling.CrossVersionObjectReference{
 				Kind:       _deploymentTypeMeta.Kind,
 				Name:       spec.DeploymentName,
@@ -71,7 +91,7 @@ func HPA(spec *HPASpec) *kautoscaling.HorizontalPodAutoscaler {
 			},
 		},
 	}
-	return hpa
+	return hpa, nil
 }
 
 func (c *Client) CreateHPA(hpa *kautoscaling.HorizontalPodAutoscaler) (*kautoscaling.HorizontalPodAutoscaler, error) {
@@ -166,7 +186,7 @@ func HPAMap(hpas []kautoscaling.HorizontalPodAutoscaler) map[string]kautoscaling
 	return hpaMap
 }
 
-func IsHPAUpToDate(hpa *kautoscaling.HorizontalPodAutoscaler, minReplicas int32, maxReplicas int32, targetCPUUtilization int32) bool {
+func IsHPAUpToDate(hpa *kautoscaling.HorizontalPodAutoscaler, minReplicas, maxReplicas, targetCPUUtilization, targetMemUtilization int32) bool {
 	if hpa == nil {
 		return false
 	}
@@ -179,21 +199,26 @@ func IsHPAUpToDate(hpa *kautoscaling.HorizontalPodAutoscaler, minReplicas int32,
 		return false
 	}
 
-	if len(hpa.Spec.Metrics) != 1 {
+	if len(hpa.Spec.Metrics) != 2 {
 		return false
 	}
-	metric := hpa.Spec.Metrics[0]
-	if metric.Type != kautoscaling.ResourceMetricSourceType || metric.Resource == nil {
-		return false
-	}
-	if metric.Resource.Name != kcore.ResourceCPU {
-		return false
-	}
-	if metric.Resource.Target.Type != kautoscaling.UtilizationMetricType || metric.Resource.Target.AverageUtilization == nil {
-		return false
-	}
-	if *metric.Resource.Target.AverageUtilization != targetCPUUtilization {
-		return false
+
+	for _, metric := range hpa.Spec.Metrics {
+		if metric.Type != kautoscaling.ResourceMetricSourceType || metric.Resource == nil {
+			return false
+		}
+		if metric.Resource.Target.Type != kautoscaling.UtilizationMetricType || metric.Resource.Target.AverageUtilization == nil {
+			return false
+		}
+		if metric.Resource.Name != kcore.ResourceCPU && metric.Resource.Name != kcore.ResourceMemory {
+			return false
+		}
+		if metric.Resource.Name == kcore.ResourceCPU && *metric.Resource.Target.AverageUtilization != targetCPUUtilization {
+			return false
+		}
+		if metric.Resource.Name == kcore.ResourceMemory && *metric.Resource.Target.AverageUtilization != targetMemUtilization {
+			return false
+		}
 	}
 
 	return true
