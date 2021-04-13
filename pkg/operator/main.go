@@ -33,6 +33,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/operator/resources/job/taskapi"
 	"github.com/cortexlabs/cortex/pkg/operator/resources/realtimeapi"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
+	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
@@ -127,5 +128,16 @@ func main() {
 	routerWithAuth.HandleFunc("/logs/{apiName}", endpoints.ReadLogs)
 
 	operatorLogger.Info("Running on port " + _operatorPortStr)
-	operatorLogger.Fatal(http.ListenAndServe(":"+_operatorPortStr, router))
+
+	// inspired by our nginx config
+	corsOptions := []handlers.CORSOption{
+		handlers.AllowedOrigins([]string{"*"}),
+		// custom headers are not supported currently, since "*" is not supported in AllowedHeaders(); here are some common ones:
+		handlers.AllowedHeaders([]string{"Content-Type", "X-Requested-With", "User-Agent", "Accept", "Accept-Language", "Content-Language", "Origin"}),
+		handlers.AllowedMethods([]string{"GET", "HEAD", "POST", "PUT", "OPTIONS"}),
+		handlers.ExposedHeaders([]string{"Content-Length", "Content-Range"}),
+		handlers.AllowCredentials(),
+	}
+
+	operatorLogger.Fatal(http.ListenAndServe(":"+_operatorPortStr, handlers.CORS(corsOptions...)(router)))
 }
