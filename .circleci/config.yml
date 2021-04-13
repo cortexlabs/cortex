@@ -115,6 +115,9 @@ jobs:
       - run:
           command: make ci-push-images
           no_output_timeout: 20m
+      - run:
+          command: make ci-backup-images
+          no_output_timeout: 20m
 
   e2e-tests:
     docker:
