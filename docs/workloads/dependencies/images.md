@@ -10,7 +10,7 @@ mkdir my-api && cd my-api && touch Dockerfile
 
 Cortex's base Docker images are listed below. Depending on the Cortex Predictor and compute type specified in your API configuration, choose one of these images to use as the base for your Docker image:
 
-<!-- CORTEX_VERSION_BRANCH_STABLE x12 -->
+<!-- CORTEX_VERSION_BRANCH_STABLE x10 -->
 * Python Predictor (CPU): `quay.io/cortexlabs/python-predictor-cpu:master`
 * Python Predictor (GPU): choose one of the following:
   * `quay.io/cortexlabs/python-predictor-gpu:master-cuda10.0-cudnn7`
