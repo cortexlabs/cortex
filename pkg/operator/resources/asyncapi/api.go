@@ -38,7 +38,7 @@ import (
 )
 
 const (
-	_stalledPodTimeout = 10 * time.Minute
+	_stalledPodTimeout = 15 * time.Minute
 	_tickPeriodMetrics = 10 * time.Second
 )
 

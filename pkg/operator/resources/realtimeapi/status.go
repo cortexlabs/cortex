@@ -31,7 +31,7 @@ import (
 	kcore "k8s.io/api/core/v1"
 )
 
-const _stalledPodTimeout = 10 * time.Minute
+const _stalledPodTimeout = 15 * time.Minute
 
 func GetStatus(apiName string) (*status.Status, error) {
 	var deployment *kapps.Deployment
