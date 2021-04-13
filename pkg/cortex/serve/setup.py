@@ -23,7 +23,7 @@ with pathlib.Path("cortex_internal.requirements.txt").open() as requirements_txt
 
 setup(
     name="cortex-internal",
-    version="master",  # CORTEX_VERSION
+    version="0.33.0",  # CORTEX_VERSION
     description="Internal package for Cortex containers",
     author="cortex.dev",
     author_email="dev@cortex.dev",
