@@ -63,7 +63,7 @@ const (
 	ErrMaxInstancesLowerThan               = "cli.max_instances_lower_than"
 	ErrMinInstancesGreaterThanMaxInstances = "cli.min_instances_greater_than_max_instances"
 	ErrNodeGroupNotFound                   = "cli.nodegroup_not_found"
-	ErrJsonOutputNotSupportedWithFlag      = "cli.json_output_not_supported_with_flag"
+	ErrJSONOutputNotSupportedWithFlag      = "cli.json_output_not_supported_with_flag"
 	ErrClusterAccessConfigRequired         = "cli.cluster_access_config_or_prompts_required"
 	ErrShellCompletionNotSupported         = "cli.shell_completion_not_supported"
 	ErrNoTerminalWidth                     = "cli.no_terminal_width"
@@ -235,9 +235,9 @@ func ErrorNodeGroupNotFound(scalingNodeGroupName, clusterName, clusterRegion str
 	})
 }
 
-func ErrorJsonOutputNotSupportedWithFlag(flag string) error {
+func ErrorJSONOutputNotSupportedWithFlag(flag string) error {
 	return errors.WithStack(&errors.Error{
-		Kind:    ErrJsonOutputNotSupportedWithFlag,
+		Kind:    ErrJSONOutputNotSupportedWithFlag,
 		Message: fmt.Sprintf("flag %s cannot be used when output is set to json type", flag),
 	})
 }

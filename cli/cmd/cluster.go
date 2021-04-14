@@ -390,7 +390,7 @@ var _clusterInfoCmd = &cobra.Command{
 
 		if _flagClusterInfoDebug {
 			if _flagOutput != flags.PrettyOutputType {
-				exit.Error(ErrorJsonOutputNotSupportedWithFlag("--debug"))
+				exit.Error(ErrorJSONOutputNotSupportedWithFlag("--debug"))
 			}
 			cmdDebug(awsClient, accessConfig)
 		} else {
