@@ -238,7 +238,7 @@ func ErrorNodeGroupNotFound(scalingNodeGroupName, clusterName, clusterRegion str
 func ErrorJSONOutputNotSupportedWithFlag(flag string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrJSONOutputNotSupportedWithFlag,
-		Message: fmt.Sprintf("flag %s cannot be used when output is set to json type", flag),
+		Message: fmt.Sprintf("flag %s cannot be used when output type is set to json", flag),
 	})
 }
 
