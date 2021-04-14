@@ -118,6 +118,7 @@ Flags:
   -c, --config string          path to a cluster configuration file
   -n, --name string            name of the cluster
   -r, --region string          aws region of the cluster
+  -o, --output string          output format: one of pretty|json (default "pretty")
   -e, --configure-env string   name of environment to configure
   -d, --debug                  save the current cluster state to a file
   -y, --yes                    skip prompts
