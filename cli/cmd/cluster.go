@@ -680,11 +680,13 @@ func cmdInfo(awsClient *aws.Client, accessConfig *clusterconfig.AccessConfig, di
 	}
 
 	fmt.Println(console.Bold("endpoints:"))
-	operatorEndpoint := "https://" + *operatorLoadBalancer.DNSName
+	operatorEndpoint := *operatorLoadBalancer.DNSName
 	apiEndpoint := *apiLoadBalancer.DNSName
 	fmt.Println("operator:         ", operatorEndpoint)
 	fmt.Println("api load balancer:", apiEndpoint)
 	fmt.Println()
+
+	operatorEndpoint = "https://" + operatorEndpoint
 
 	if err := printInfoOperatorResponse(clusterConfig, operatorEndpoint); err != nil {
 		exit.Error(err)
