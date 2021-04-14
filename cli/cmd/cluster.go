@@ -687,11 +687,11 @@ func cmdInfo(awsClient *aws.Client, accessConfig *clusterconfig.AccessConfig, ou
 		exit.Error(err)
 	}
 
-	operatorEndpoint := *operatorLoadBalancer.DNSName
+	operatorEndpoint := s.EnsurePrefix(*operatorLoadBalancer.DNSName, "https://")
 	apiEndpoint := *apiLoadBalancer.DNSName
 
 	if outputType == flags.JSONOutputType {
-		infoResponse, err := getInfoOperatorResponse("https://" + operatorEndpoint)
+		infoResponse, err := getInfoOperatorResponse(operatorEndpoint)
 		if err != nil {
 			exit.Error(err)
 		}
@@ -716,13 +716,13 @@ func cmdInfo(awsClient *aws.Client, accessConfig *clusterconfig.AccessConfig, ou
 		fmt.Println("api load balancer:", apiEndpoint)
 		fmt.Println()
 
-		if err := printInfoOperatorResponse(clusterConfig, "https://"+operatorEndpoint); err != nil {
+		if err := printInfoOperatorResponse(clusterConfig, operatorEndpoint); err != nil {
 			exit.Error(err)
 		}
 	}
 
 	if _flagClusterInfoEnv != "" {
-		if err := updateCLIEnv(_flagClusterInfoEnv, "https://"+operatorEndpoint, disallowPrompt, outputType == flags.PrettyOutputType); err != nil {
+		if err := updateCLIEnv(_flagClusterInfoEnv, operatorEndpoint, disallowPrompt, outputType == flags.PrettyOutputType); err != nil {
 			exit.Error(err)
 		}
 	}

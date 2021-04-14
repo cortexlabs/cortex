@@ -57,7 +57,6 @@ const (
 	ErrClusterDebug                        = "cli.cluster_debug"
 	ErrClusterRefresh                      = "cli.cluster_refresh"
 	ErrClusterDown                         = "cli.cluster_down"
-	ErrConflictingFlags                    = "cli.conflicting_flags"
 	ErrSpecifyAtLeastOneFlag               = "cli.specify_at_least_one_flag"
 	ErrMinInstancesLowerThan               = "cli.min_instances_lower_than"
 	ErrMaxInstancesLowerThan               = "cli.max_instances_lower_than"
@@ -190,13 +189,6 @@ func ErrorClusterDown(out string) error {
 		Kind:    ErrClusterDown,
 		Message: out,
 		NoPrint: true,
-	})
-}
-
-func ErrorConflictingFlags(flagA, flagB string) error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrConflictingFlags,
-		Message: fmt.Sprintf("please specify either the %s or %s flag (both cannot be specified at the same time)", flagA, flagB),
 	})
 }
 
