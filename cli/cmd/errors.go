@@ -54,7 +54,6 @@ const (
 	ErrCredentialsInClusterConfig          = "cli.credentials_in_cluster_config"
 	ErrClusterUp                           = "cli.cluster_up"
 	ErrClusterScale                        = "cli.cluster_scale"
-	ErrClusterInfo                         = "cli.cluster_info"
 	ErrClusterDebug                        = "cli.cluster_debug"
 	ErrClusterRefresh                      = "cli.cluster_refresh"
 	ErrClusterDown                         = "cli.cluster_down"
@@ -165,14 +164,6 @@ func ErrorClusterUp(out string) error {
 func ErrorClusterScale(out string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrClusterScale,
-		Message: out,
-		NoPrint: true,
-	})
-}
-
-func ErrorClusterInfo(out string) error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrClusterInfo,
 		Message: out,
 		NoPrint: true,
 	})
