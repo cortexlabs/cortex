@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package controllers
+package batchcontrollers
 
 import (
 	"context"
@@ -372,6 +372,16 @@ func (r *BatchJobReconciler) updateStatus(ctx context.Context, batchJob *batch.B
 	}
 
 	if err := r.Status().Update(ctx, batchJob); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (r *BatchJobReconciler) deleteSQSQueue(batchJob batch.BatchJob) error {
+	queueURL := r.getQueueURL(batchJob)
+	input := sqs.DeleteQueueInput{QueueUrl: aws.String(queueURL)}
+	if _, err := r.AWS.SQS().DeleteQueue(&input); err != nil {
 		return err
 	}
 

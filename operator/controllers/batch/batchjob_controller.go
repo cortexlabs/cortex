@@ -14,12 +14,14 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package controllers
+package batchcontrollers
 
 import (
 	"context"
 
+	"github.com/cortexlabs/cortex/operator/controllers"
 	awslib "github.com/cortexlabs/cortex/pkg/lib/aws"
+	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/types/clusterconfig"
 	"github.com/go-logr/logr"
 	kbatch "k8s.io/api/batch/v1"
@@ -29,6 +31,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	batch "github.com/cortexlabs/cortex/operator/apis/batch/v1alpha1"
+)
+
+const (
+	_sqsFinalizer = "sqs.finalizers.batch.cortex.dev"
 )
 
 // BatchJobReconciler reconciles a BatchJob object
@@ -50,15 +56,49 @@ func (r *BatchJobReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 
 	// Step 1: get resource from request
 	batchJob := batch.BatchJob{}
-	log.V(1).Info("retrieving batchjob resource")
+	log.V(1).Info("retrieving resource")
 	if err := r.Get(ctx, req.NamespacedName, &batchJob); err != nil {
 		if !kerrors.IsNotFound(err) {
-			log.Error(err, "failed to retrieve batchjob")
+			log.Error(err, "failed to retrieve resource")
 		}
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
-	// Step 2: Update Status
+	// TODO: add TTL to BatchJob
+
+	// Step 2: create finalizer or handle deletion
+	if batchJob.ObjectMeta.DeletionTimestamp.IsZero() {
+		// The object is not being deleted, so we add our finalizer if it does not exist yet,
+		if !s.SliceContains(batchJob.ObjectMeta.Finalizers, _sqsFinalizer) {
+			log.V(1).Info("adding finalizer")
+			batchJob.ObjectMeta.Finalizers = append(batchJob.ObjectMeta.Finalizers, _sqsFinalizer)
+			if err := r.Update(ctx, &batchJob); err != nil {
+				log.Error(err, "failed to add finalizer to resource")
+				return ctrl.Result{}, err
+			}
+		}
+	} else {
+		// The object is being deleted
+		if s.SliceContains(batchJob.ObjectMeta.Finalizers, _sqsFinalizer) {
+			// our finalizer is present, so lets handle any external dependency
+			log.V(1).Info("deleting SQS queue")
+			if err := r.deleteSQSQueue(batchJob); err != nil {
+				log.Error(err, "failed to delete SQS queue")
+				return ctrl.Result{}, err
+			}
+
+			log.V(1).Info("removing finalizer")
+			// remove our finalizer from the list and update it.
+			batchJob.ObjectMeta.Finalizers = s.RemoveFromSlice(batchJob.ObjectMeta.Finalizers, _sqsFinalizer)
+			if err := r.Update(ctx, &batchJob); err != nil {
+				log.Error(err, "failed to remove finalizer from resource")
+				return ctrl.Result{}, err
+			}
+		}
+		return ctrl.Result{}, nil
+	}
+
+	// Step 3: Update Status
 	log.V(1).Info("checking if queue exists")
 	queueExists, err := r.checkIfQueueExists(batchJob)
 	if err != nil {
@@ -95,17 +135,15 @@ func (r *BatchJobReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 
 	log.V(1).Info("updating status")
 	if err = r.updateStatus(ctx, &batchJob, statusInfo); err != nil {
-		if kerrors.IsConflict(err) {
+		if controllers.IsOptimisticLockError(err) {
 			log.Info("conflict during status update, retrying")
-		} else {
-			log.Error(err, "failed to update status")
+			return ctrl.Result{Requeue: true}, nil
 		}
+		log.Error(err, "failed to update status")
 		return ctrl.Result{}, err
 	}
 
-	// TODO: finalizer
-
-	// Step 3: Create resources
+	// Step 4: Create resources
 	var queueURL string
 	if !queueExists {
 		log.V(1).Info("creating queue")
