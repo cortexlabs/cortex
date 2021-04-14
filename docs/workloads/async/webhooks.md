@@ -1,10 +1,10 @@
 # Webhooks
 
-Polling for requests can be very resource intensive, and does not guarantee you the result as soon as it is ready. In
+Polling for requests can be resource intensive, and does not guarantee that you will have the result as soon as it is ready. In
 order to overcome this problem, we can use webhooks.
 
 A webhook is a request that is sent to a URL known in advance when an event occurs. In our case, the event is a workload
-completion or failure, and the URL known in advance is some other service that we have already running.
+completion or failure, and the URL known in advance is some other service that we already have running.
 
 ## Example
 
