@@ -58,12 +58,13 @@ const (
 	ErrClusterDebug                        = "cli.cluster_debug"
 	ErrClusterRefresh                      = "cli.cluster_refresh"
 	ErrClusterDown                         = "cli.cluster_down"
+	ErrConflictingFlags                    = "cli.conflicting_flags"
 	ErrSpecifyAtLeastOneFlag               = "cli.specify_at_least_one_flag"
 	ErrMinInstancesLowerThan               = "cli.min_instances_lower_than"
 	ErrMaxInstancesLowerThan               = "cli.max_instances_lower_than"
 	ErrMinInstancesGreaterThanMaxInstances = "cli.min_instances_greater_than_max_instances"
 	ErrNodeGroupNotFound                   = "cli.nodegroup_not_found"
-	ErrDuplicateCLIEnvNames                = "cli.duplicate_cli_env_names"
+	ErrJsonOutputNotSupportedWithFlag      = "cli.json_output_not_supported_with_flag"
 	ErrClusterAccessConfigRequired         = "cli.cluster_access_config_or_prompts_required"
 	ErrShellCompletionNotSupported         = "cli.shell_completion_not_supported"
 	ErrNoTerminalWidth                     = "cli.no_terminal_width"
@@ -201,6 +202,13 @@ func ErrorClusterDown(out string) error {
 	})
 }
 
+func ErrorConflictingFlags(flagA, flagB string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrConflictingFlags,
+		Message: fmt.Sprintf("please specify either the %s or %s flag (both cannot be specified at the same time)", flagA, flagB),
+	})
+}
+
 func ErrorSpecifyAtLeastOneFlag(flagsToSpecify ...string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrSpecifyAtLeastOneFlag,
@@ -233,6 +241,13 @@ func ErrorNodeGroupNotFound(scalingNodeGroupName, clusterName, clusterRegion str
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrNodeGroupNotFound,
 		Message: fmt.Sprintf("nodegroup %s couldn't be found in the cluster named %s in region %s; the available nodegroups for this cluster are %s", scalingNodeGroupName, clusterName, clusterRegion, s.StrsAnd(availableNodeGroups)),
+	})
+}
+
+func ErrorJsonOutputNotSupportedWithFlag(flag string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrJsonOutputNotSupportedWithFlag,
+		Message: fmt.Sprintf("flag %s cannot be used when output is set to json type", flag),
 	})
 }
 
