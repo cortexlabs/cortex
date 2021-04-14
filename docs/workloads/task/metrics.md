@@ -24,5 +24,4 @@ class Task:
         self.metrics.histogram(metric="my_histogram", value=100, tags={"model": "v1"})
 ```
 
-**Note**: The metrics client uses the UDP protocol to push metrics, to be fault tolerant, so if it fails during a
-metrics push there is no exception thrown.
+**Note**: The metrics client uses the UDP protocol to push metrics, so if it fails during a metrics push, no exception is thrown.

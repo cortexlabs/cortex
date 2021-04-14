@@ -16,7 +16,7 @@ Cortex auto-scales AsyncAPIs on a per-API basis based on your configuration.
 metric which the autoscaler uses to make scaling decisions. It is recommended to leave this parameter at its default
 value.
 
-Replica concurrency is simply how many requests have been sent to the queue and have not yet been responded to (also
+Replica concurrency is simply how many requests have been sent to the queue and have not yet finished being processed (also
 referred to as in-flight requests). Therefore, it includes requests which are currently being processed and requests
 which are waiting in the queue.
 
