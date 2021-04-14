@@ -119,10 +119,10 @@ func ErrorInvalidOperatorEndpoint(endpoint string) error {
 	})
 }
 
-func ErrorNoOperatorLoadBalancer() error {
+func ErrorNoOperatorLoadBalancer(whichLB string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrNoOperatorLoadBalancer,
-		Message: "unable to locate operator load balancer",
+		Message: fmt.Sprintf("unable to locate %s load balancer", whichLB),
 	})
 }
 

@@ -276,7 +276,7 @@ var _clusterUpCmd = &cobra.Command{
 			exit.Error(ErrorClusterUp(out + helpStr))
 		}
 
-		loadBalancer, err := getAWSOperatorLoadBalancer(clusterConfig.ClusterName, awsClient)
+		loadBalancer, err := getLoadBalancer(clusterConfig.ClusterName, OperatorLoadBalancer, awsClient)
 		if err != nil {
 			exit.Error(errors.Append(err, fmt.Sprintf("\n\nyou can attempt to resolve this issue and configure your cli environment by running `cortex cluster info --configure-env %s`", _flagClusterUpEnv)))
 		}
@@ -447,7 +447,7 @@ var _clusterDownCmd = &cobra.Command{
 		}
 
 		// updating CLI env is best-effort, so ignore errors
-		loadBalancer, _ := getAWSOperatorLoadBalancer(accessConfig.ClusterName, awsClient)
+		loadBalancer, _ := getLoadBalancer(accessConfig.ClusterName, OperatorLoadBalancer, awsClient)
 
 		if _flagClusterDisallowPrompt {
 			fmt.Printf("your cluster named \"%s\" in %s will be spun down and all apis will be deleted\n\n", accessConfig.ClusterName, accessConfig.Region)
@@ -577,7 +577,7 @@ var _clusterExportCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
-		loadBalancer, err := getAWSOperatorLoadBalancer(accessConfig.ClusterName, awsClient)
+		loadBalancer, err := getLoadBalancer(accessConfig.ClusterName, OperatorLoadBalancer, awsClient)
 		if err != nil {
 			exit.Error(err)
 		}
@@ -670,24 +670,21 @@ func cmdInfo(awsClient *aws.Client, accessConfig *clusterconfig.AccessConfig, di
 
 	clusterConfig := refreshCachedClusterConfig(*awsClient, accessConfig)
 
-	out, exitCode, err := runManagerWithClusterConfig("/root/info.sh", &clusterConfig, awsClient, nil, nil, nil)
+	operatorLoadBalancer, err := getLoadBalancer(accessConfig.ClusterName, OperatorLoadBalancer, awsClient)
 	if err != nil {
 		exit.Error(err)
 	}
-	if exitCode == nil || *exitCode != 0 {
-		exit.Error(ErrorClusterInfo(out))
+	apiLoadBalancer, err := getLoadBalancer(accessConfig.ClusterName, APILoadBalancer, awsClient)
+	if err != nil {
+		exit.Error(err)
 	}
 
+	fmt.Println(console.Bold("endpoints:"))
+	operatorEndpoint := "https://" + *operatorLoadBalancer.DNSName
+	apiEndpoint := *apiLoadBalancer.DNSName
+	fmt.Println("operator:         ", operatorEndpoint)
+	fmt.Println("api load balancer:", apiEndpoint)
 	fmt.Println()
-
-	var operatorEndpoint string
-	for _, line := range strings.Split(out, "\n") {
-		// before modifying this, search for this prefix
-		if strings.HasPrefix(line, "operator: ") {
-			operatorEndpoint = "https://" + strings.TrimSpace(strings.TrimPrefix(line, "operator: "))
-			break
-		}
-	}
 
 	if err := printInfoOperatorResponse(clusterConfig, operatorEndpoint); err != nil {
 		exit.Error(err)
@@ -1109,18 +1106,29 @@ func createLogGroupIfNotFound(awsClient *aws.Client, logGroup string, tags map[s
 	return nil
 }
 
-// Will return error if load balancer can't be found
-func getAWSOperatorLoadBalancer(clusterName string, awsClient *aws.Client) (*elbv2.LoadBalancer, error) {
+type LoadBalancer string
+
+var (
+	OperatorLoadBalancer LoadBalancer = "operator"
+	APILoadBalancer      LoadBalancer = "api"
+)
+
+func (lb LoadBalancer) String() string {
+	return string(lb)
+}
+
+// Will return error if the load balancer can't be found
+func getLoadBalancer(clusterName string, whichLB LoadBalancer, awsClient *aws.Client) (*elbv2.LoadBalancer, error) {
 	loadBalancer, err := awsClient.FindLoadBalancer(map[string]string{
 		clusterconfig.ClusterNameTag: clusterName,
-		"cortex.dev/load-balancer":   "operator",
+		"cortex.dev/load-balancer":   whichLB.String(),
 	})
 	if err != nil {
-		return nil, errors.Wrap(err, "unable to locate operator load balancer")
+		return nil, errors.Wrap(err, fmt.Sprintf("unable to locate %s load balancer", whichLB.String()))
 	}
 
 	if loadBalancer == nil {
-		return nil, ErrorNoOperatorLoadBalancer()
+		return nil, ErrorNoOperatorLoadBalancer(whichLB.String())
 	}
 
 	return loadBalancer, nil
