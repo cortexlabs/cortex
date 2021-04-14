@@ -249,3 +249,25 @@ func RemoveDuplicates(strs []string, ignoreRegex *regexp.Regexp) []string {
 
 	return result
 }
+
+// SliceContains checks if a string slice contains a target string
+func SliceContains(strSlice []string, target string) bool {
+	for _, item := range strSlice {
+		if item == target {
+			return true
+		}
+	}
+	return false
+}
+
+// RemoveFromSlice removes a target string from a string slice if it exists
+func RemoveFromSlice(strSlice []string, target string) []string {
+	var result []string
+	for _, item := range strSlice {
+		if item == target {
+			continue
+		}
+		result = append(result, item)
+	}
+	return result
+}

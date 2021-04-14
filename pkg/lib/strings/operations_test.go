@@ -139,3 +139,79 @@ func TestRemoveDuplicates(t *testing.T) {
 		})
 	}
 }
+
+func TestRemoveFromSlice(t *testing.T) {
+	cases := []struct {
+		name     string
+		slice    []string
+		target   string
+		expected []string
+	}{
+		{
+			name:     "simple",
+			slice:    []string{"a", "b", "c"},
+			target:   "a",
+			expected: []string{"b", "c"},
+		},
+		{
+			name:     "repeated",
+			slice:    []string{"a", "b", "c", "c"},
+			target:   "c",
+			expected: []string{"a", "b"},
+		},
+		{
+			name:     "nil",
+			slice:    nil,
+			target:   "a",
+			expected: nil,
+		},
+		{
+			name:     "unchanged",
+			slice:    []string{"a", "b", "c", "c"},
+			target:   "d",
+			expected: []string{"a", "b", "c", "c"},
+		},
+	}
+
+	for _, tt := range cases {
+		t.Run(tt.name, func(t *testing.T) {
+			result := RemoveFromSlice(tt.slice, tt.target)
+			require.Equal(t, tt.expected, result)
+		})
+	}
+}
+
+func TestSliceContains(t *testing.T) {
+	cases := []struct {
+		name     string
+		slice    []string
+		target   string
+		expected bool
+	}{
+		{
+			name:     "exists",
+			slice:    []string{"a", "b", "c"},
+			target:   "a",
+			expected: true,
+		},
+		{
+			name:     "doesn't exist",
+			slice:    []string{"a", "b", "c"},
+			target:   "d",
+			expected: false,
+		},
+		{
+			name:     "nil",
+			slice:    nil,
+			target:   "a",
+			expected: false,
+		},
+	}
+
+	for _, tt := range cases {
+		t.Run(tt.name, func(t *testing.T) {
+			result := SliceContains(tt.slice, tt.target)
+			require.Equal(t, tt.expected, result)
+		})
+	}
+}
