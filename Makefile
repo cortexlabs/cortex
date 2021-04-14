@@ -54,7 +54,7 @@ kubectl:
 	@eval $$(python3 ./manager/cluster_config_env.py ./dev/config/cluster.yaml) && eksctl utils write-kubeconfig --cluster="$$CORTEX_CLUSTER_NAME" --region="$$CORTEX_REGION" | (grep -v "saved kubeconfig as" | grep -v "using region" | grep -v "eksctl version" || true)
 
 cluster-up:
-	@$(MAKE) images-all
+	# @$(MAKE) images-all
 	@$(MAKE) cli
 	@kill $(shell pgrep -f rerun) >/dev/null 2>&1 || true
 	@eval $$(python3 ./manager/cluster_config_env.py ./dev/config/cluster.yaml) && ./bin/cortex cluster up ./dev/config/cluster.yaml --configure-env="$$CORTEX_CLUSTER_NAME"

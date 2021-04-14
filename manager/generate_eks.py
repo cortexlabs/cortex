@@ -22,7 +22,6 @@ K8S_VERSION = "1.18"
 # kubelet config schema:
 # https://github.com/kubernetes/kubernetes/blob/master/staging/src/k8s.io/kubelet/config/v1beta1/types.go
 def default_nodegroup(cluster_config):
-    crictl_version = "v1.21.0"
     return {
         "iam": {
             "withAddonPolicies": {"autoScaler": True},
@@ -45,11 +44,10 @@ def default_nodegroup(cluster_config):
         },
         "preBootstrapCommands": [
             "yum install containerd -y",
-            f"wget https://github.com/kubernetes-sigs/cri-tools/releases/download/{crictl_version}/crictl-{crictl_version}-linux-amd64.tar.gz && sudo tar zxvf crictl-{crictl_version}-linux-amd64.tar.gz -C /usr/local/bin && rm -f crictl-{crictl_version}-linux-amd64.tar.gz",
-            "crictl config --set runtime-endpoint=unix:///run/containerd/containerd.sock --set image-endpoint=unix:///run/containerd/containerd.sock --set pull-image-on-create=true",
+            "truncate -s-1 /etc/systemd/system/kubelet.service.d/10-eksclt.al2.conf",
+            "echo -n ' --container-runtime=remote --container-runtime-endpoint=unix:///run/containerd/containerd.sock' >> /etc/systemd/system/kubelet.service.d/10-eksclt.al2.conf",
         ],
     }
-
 
 def merge_override(a, b):
     "merges b into a"
