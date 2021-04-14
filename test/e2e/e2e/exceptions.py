@@ -8,3 +8,7 @@ class ClusterDeletionException(Exception):
 
 class ExpectationsValidationException(Exception):
     pass
+
+
+class GeneratorValidationException(Exception):
+    pass

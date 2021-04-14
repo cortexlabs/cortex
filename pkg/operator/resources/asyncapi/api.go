@@ -330,8 +330,8 @@ func getK8sResources(apiConfig userconfig.API) (resources, error) {
 }
 
 func applyK8sResources(api spec.API, prevK8sResources resources, queueURL string) error {
-	gatewayDeployment := apiDeploymentSpec(api, prevK8sResources.apiDeployment, queueURL)
-	apiDeployment := gatewayDeploymentSpec(api, prevK8sResources.gatewayDeployment, queueURL)
+	apiDeployment := apiDeploymentSpec(api, prevK8sResources.apiDeployment, queueURL)
+	gatewayDeployment := gatewayDeploymentSpec(api, prevK8sResources.gatewayDeployment, queueURL)
 	gatewayService := gatewayServiceSpec(api)
 	gatewayVirtualService := gatewayVirtualServiceSpec(api)
 
@@ -359,7 +359,7 @@ func applyK8sDeployment(api spec.API, prevDeployment *kapps.Deployment, newDeplo
 		}
 	} else if prevDeployment.Status.ReadyReplicas == 0 {
 		// Delete deployment if it never became ready
-		_, _ = config.K8s.DeleteDeployment(operator.K8sName(api.Name))
+		_, _ = config.K8s.DeleteDeployment(prevDeployment.Name)
 		_, err := config.K8s.CreateDeployment(newDeployment)
 		if err != nil {
 			return err

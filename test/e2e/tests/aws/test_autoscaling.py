@@ -19,17 +19,28 @@ import pytest
 
 import e2e.tests
 
-TEST_APIS = ["task/hello-world"]
+TEST_APIS = [
+    {
+        "primary": "sleep",
+        "dummy": ["sklearn/mpg-estimator", "tensorflow/iris-classifier"],
+        "query_params": {
+            "sleep": "1.0",
+        },
+    }
+]
 
 
 @pytest.mark.usefixtures("client")
-@pytest.mark.parametrize("api", TEST_APIS)
-def test_task_api(printer: Callable, config: Dict, client: cx.Client, api: str):
-    e2e.tests.test_task_api(
+@pytest.mark.parametrize("apis", TEST_APIS)
+def test_autoscaling(printer: Callable, config: Dict, client: cx.Client, apis: str):
+    skip_autoscaling_test = config["global"].get("skip_autoscaling", False)
+    if skip_autoscaling_test:
+        pytest.skip("--skip-autoscaling flag detected, skipping autoscaling tests")
+
+    e2e.tests.test_autoscaling(
         printer,
         client,
-        api,
-        retry_attempts=5,
-        deploy_timeout=config["global"]["task_deploy_timeout"],
-        job_timeout=config["global"]["task_job_timeout"],
+        apis,
+        autoscaling_config=config["global"]["autoscaling_test_config"],
+        deploy_timeout=config["global"]["realtime_deploy_timeout"],
     )

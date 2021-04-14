@@ -27,7 +27,6 @@ from cortex_internal.lib.api.validations import validate_class_impl
 from cortex_internal.lib.client.tensorflow import TensorFlowClient
 from cortex_internal.lib.exceptions import CortexException, UserException, UserRuntimeException
 from cortex_internal.lib.metrics import MetricsClient
-from cortex_internal.lib.model import ModelsHolder
 from cortex_internal.lib.storage import S3
 from cortex_internal.lib.type import (
     predictor_type_from_api_spec,
