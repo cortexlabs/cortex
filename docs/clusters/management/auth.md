@@ -2,7 +2,7 @@
 
 ## Client
 
-Cortex client uses the default credential provider chain to get credentials for cluster and api management. Credentials will be read in the following order of precedence:
+The Cortex CLI and Python client use the default credential provider chain to get credentials for cluster and api management. Credentials will be read in the following order of precedence:
 
 - environment variables
 - the name of the profile specified by `AWS_PROFILE` environment variable
@@ -12,7 +12,7 @@ Cortex client uses the default credential provider chain to get credentials for 
 
 It is recommended that your AWS credentials have AdministratorAccess when running `cortex cluster *` commands. If you are unable to use AdministratorAccess, see the [minimum IAM policy](#minimum-iam-policy) below for the minimum permissions required to run `cortex cluster *` commands.
 
-After spinning up a cluster using `cortex cluster up`, the IAM entity user or role that created the cluster is automatically granted `system:masters` permission to the cluster's RBAC. Make sure to keep track of which IAM entity originally created the cluster.
+After spinning up a cluster using `cortex cluster up`, the IAM user or role that created the cluster is automatically granted `system:masters` permission to the cluster's RBAC. Make sure to keep track of which IAM entity originally created the cluster.
 
 #### Running `cortex cluster` commands from different IAM users
 
@@ -46,21 +46,19 @@ By default, the `cortex cluster *` commands can only be executed by the IAM user
 
 ### API management
 
-Cortex client relies on AWS IAM to authenticate requests (e.g. `cortex deploy`, `cortex get`) to a cluster on AWS. The client will include a get-caller-identity request that has been signed with the credentials from the default credential provider chain along with original request. The operator executes the presigned request to verify that credentials are valid and belong to the same account as the IAM entity of the cluster.
-
-AWS credentials required to authenticate cortex client requests to the operator don't require any specific permissions; they must only be valid credentials within the same AWS account. However, managing the cluster (i.e. running `cortex cluster *` commands) does require permissions.
+The Cortex CLI and Python client rely on AWS IAM to authenticate requests to a cluster on AWS (e.g. `cortex deploy`, `cortex get`). AWS credentials required to authenticate Cortex client requests to the operator don't require any specific permissions; they must only be valid credentials within the same AWS account as the Cortex cluster. However, managing the cluster (i.e. running `cortex cluster *` commands) does require permissions.
 
 ## Authorizing your APIs
 
-When spinning up a cortex cluster, you can provide additional policies to authorize your APIs to access AWS resources by creating a policy and adding it to the `iam_policy_arns` list.
+When spinning up a cortex cluster, you can provide additional policies to authorize your APIs to access AWS resources by creating a policy and adding it to the `iam_policy_arns` list in your cluster configuration file.
 
-If you already have a cluster running and would like to add additional permissions, you can update the policy that is created automatically during `cortex cluster up`. In [IAM console](https://console.aws.amazon.com/iam/home?policies#/policies) search for `cortex-<cluster_name>-<region>` to find the policy that has been attached to your cluster. Adding more permissions to this policy will automatically give more access to all of your Cortex APIs.
+If you already have a cluster running and would like to add additional permissions, you can update the policy that is created automatically during `cortex cluster up`. In the [IAM console](https://console.aws.amazon.com/iam/home?policies#/policies), search for `cortex-<cluster_name>-<region>` to find the policy that has been attached to your cluster. Adding more permissions to this policy will automatically give more access to all of your Cortex APIs.
 
 _NOTE: The policy created during `cortex cluster up` will automatically be deleted during `cortex cluster down`. It is recommended to create your own policies that can be specified in `iam_policy_arns` field in cluster configuration. The precreated policy should only be updated for development and testing purposes._
 
 ## Minimum IAM Policy
 
-The policy listed below contains the minimum permissions required to manage a Cortex cluster (i.e. via `cortex cluster *` commands).
+The policy shown below contains the minimum permissions required to manage a Cortex cluster (i.e. via `cortex cluster *` commands).
 
 Replace the following placeholders with their respective values in the policy template below: `$CORTEX_CLUSTER_NAME`, `$CORTEX_ACCOUNT_ID`, `$CORTEX_REGION`.
 
