@@ -404,7 +404,7 @@ function validate_cortex() {
       if [ "$operator_endpoint" != "" ]; then
         echo "operator endpoint: $operator_endpoint"
       fi
-      if [ "${prometheus_ready}" != "" ] then
+      if [ "${prometheus_ready}" != "" ]; then
         echo "prometheus is ready: $prometheus_ready"
       fi
       if [ "$api_load_balancer_endpoint" != "" ]; then
