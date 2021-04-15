@@ -6,13 +6,13 @@ Cortex can be configured to provision different instance types to improve worklo
 
 **Node groups with lower indices have higher priority.**
 
-1. Small instance node groups should be listed before large instance node groups.
+1. Spot node groups should be listed before on-demand node groups.
 1. CPU node groups should be listed before GPU/Inferentia node groups.
-1. Spot node groups should always be listed before on-demand node groups.
+1. Node groups with small instance types should be listed before node groups with large instance types.
 
 ## Examples
 
-### CPU spot, CPU on-demand, and GPU on-demand
+### CPU spot cluster, with on-demand backup
 
 ```yaml
 # cluster.yaml
@@ -21,27 +21,47 @@ node_groups:
   - name: cpu-spot
     instance_type: m5.large
     spot: true
+    spot_config:
+      instance_distribution: [m5a.large, m5d.large, m5n.large, m5ad.large, m5dn.large, m4.large, t3.large, t3a.large, t2.large]
   - name: cpu-on-demand
     instance_type: m5.large
-  - name: gpu-on-demand
-    instance_type: g4dn.xlarge
 ```
 
-### CPU on-demand, GPU on-demand, and Inferentia on-demand
+### On-demand cluster supporting CPU, GPU, and Inferentia
 
 ```yaml
 # cluster.yaml
 
 node_groups:
-  - name: cpu-on-demand
+  - name: cpu
     instance_type: m5.large
-  - name: gpu-on-demand
+  - name: gpu
     instance_type: g4dn.xlarge
-  - name: inferentia-on-demand
+  - name: inf
     instance_type: inf.xlarge
 ```
 
-### 3 CPU spot and 1 CPU on-demand
+### Spot cluster supporting CPU and GPU (with on-demand backup)
+
+```yaml
+# cluster.yaml
+
+node_groups:
+  - name: cpu-spot
+    instance_type: m5.large
+    spot: true
+    spot_config:
+      instance_distribution: [m5a.large, m5d.large, m5n.large, m5ad.large, m5dn.large, m4.large, t3.large, t3a.large, t2.large]
+  - name: cpu-on-demand
+    instance_type: m5.large
+  - name: gpu-spot
+    instance_type: g4dn.xlarge
+    spot: true
+  - name: gpu-on-demand
+    instance_type: g4dn.xlarge
+```
+
+### CPU spot cluster with multiple instance types and on-demand backup
 
 ```yaml
 # cluster.yaml

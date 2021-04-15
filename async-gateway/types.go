@@ -32,6 +32,19 @@ const (
 	StatusCompleted  Status = "completed"
 )
 
+func (status Status) String() string {
+	return string(status)
+}
+
+func (status Status) Valid() bool {
+	switch status {
+	case StatusFailed, StatusInProgress, StatusInQueue, StatusCompleted:
+		return true
+	default:
+		return false
+	}
+}
+
 //CreateWorkloadResponse represents the response returned to the user on workload creation
 type CreateWorkloadResponse struct {
 	ID string `json:"id"`

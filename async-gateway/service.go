@@ -66,9 +66,9 @@ func (s *service) CreateWorkload(id string, payload io.Reader, contentType strin
 		return "", err
 	}
 
-	statusPath := fmt.Sprintf("%s/%s/status", prefix, id)
+	statusPath := fmt.Sprintf("%s/%s/%s", prefix, id, StatusInQueue)
 	log.Debug(fmt.Sprintf("setting status to %s", StatusInQueue))
-	if err := s.storage.Upload(statusPath, strings.NewReader(string(StatusInQueue)), "text/plain"); err != nil {
+	if err := s.storage.Upload(statusPath, strings.NewReader(""), "text/plain"); err != nil {
 		return "", err
 	}
 
@@ -77,32 +77,24 @@ func (s *service) CreateWorkload(id string, payload io.Reader, contentType strin
 
 // GetWorkload retrieves the status and result, if available, of a given workload
 func (s *service) GetWorkload(id string) (GetWorkloadResponse, error) {
-	prefix := s.workloadStoragePrefix()
 	log := s.logger.With(zap.String("id", id))
 
-	// download workload status
-	statusPath := fmt.Sprintf("%s/%s/status", prefix, id)
-	log.Debug("downloading status file", zap.String("path", statusPath))
-	statusBuf, err := s.storage.Download(statusPath)
+	status, err := s.getStatus(id)
 	if err != nil {
 		return GetWorkloadResponse{}, err
 	}
 
-	status := Status(statusBuf[:])
-	switch status {
-	case StatusFailed, StatusInProgress, StatusInQueue:
+	if status != StatusCompleted {
 		return GetWorkloadResponse{
 			ID:     id,
 			Status: status,
 		}, nil
-	case StatusCompleted: // continues execution after switch/case, below
-	default:
-		return GetWorkloadResponse{}, fmt.Errorf("invalid workload status: %s", status)
 	}
 
 	// attempt to download user result
+	prefix := s.workloadStoragePrefix()
 	resultPath := fmt.Sprintf("%s/%s/result.json", prefix, id)
-	log.Debug("donwloading user result", zap.String("path", resultPath))
+	log.Debug("downloading user result", zap.String("path", resultPath))
 	resultBuf, err := s.storage.Download(resultPath)
 	if err != nil {
 		return GetWorkloadResponse{}, err
@@ -125,6 +117,38 @@ func (s *service) GetWorkload(id string) (GetWorkloadResponse, error) {
 		Result:    &userResponse,
 		Timestamp: &timestamp,
 	}, nil
+}
+
+func (s *service) getStatus(id string) (Status, error) {
+	prefix := s.workloadStoragePrefix()
+	log := s.logger.With(zap.String("id", id))
+
+	// download workload status
+	log.Debug("checking status", zap.String("path", fmt.Sprintf("%s/%s/*", prefix, id)))
+	files, err := s.storage.List(fmt.Sprintf("%s/%s", prefix, id))
+	if err != nil {
+		return "", err
+	}
+
+	// determine request status
+	status := StatusInQueue
+	for _, file := range files {
+		fileStatus := Status(file)
+
+		if !fileStatus.Valid() {
+			status = fileStatus
+			return "", fmt.Errorf("invalid workload status: %s", status)
+		}
+		if fileStatus == StatusInProgress {
+			status = fileStatus
+		}
+		if fileStatus == StatusCompleted || fileStatus == StatusFailed {
+			status = fileStatus
+			break
+		}
+	}
+
+	return status, nil
 }
 
 func (s *service) workloadStoragePrefix() string {

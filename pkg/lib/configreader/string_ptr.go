@@ -30,6 +30,7 @@ type StringPtrValidation struct {
 	AllowExplicitNull                    bool
 	AllowEmpty                           bool
 	AllowedValues                        []string
+	HiddenAllowedValues                  []string // allowed, but will not be listed as valid values (must be used in conjunction with AllowedValues)
 	DisallowedValues                     []string
 	CantBeSpecifiedErrStr                *string
 	Prefix                               string
@@ -59,6 +60,7 @@ func makeStringValValidation(v *StringPtrValidation) *StringValidation {
 	return &StringValidation{
 		AllowEmpty:                           v.AllowEmpty,
 		AllowedValues:                        v.AllowedValues,
+		HiddenAllowedValues:                  v.HiddenAllowedValues,
 		DisallowedValues:                     v.DisallowedValues,
 		Prefix:                               v.Prefix,
 		Suffix:                               v.Suffix,

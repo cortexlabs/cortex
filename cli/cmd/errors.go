@@ -54,7 +54,6 @@ const (
 	ErrCredentialsInClusterConfig          = "cli.credentials_in_cluster_config"
 	ErrClusterUp                           = "cli.cluster_up"
 	ErrClusterScale                        = "cli.cluster_scale"
-	ErrClusterInfo                         = "cli.cluster_info"
 	ErrClusterDebug                        = "cli.cluster_debug"
 	ErrClusterRefresh                      = "cli.cluster_refresh"
 	ErrClusterDown                         = "cli.cluster_down"
@@ -63,7 +62,7 @@ const (
 	ErrMaxInstancesLowerThan               = "cli.max_instances_lower_than"
 	ErrMinInstancesGreaterThanMaxInstances = "cli.min_instances_greater_than_max_instances"
 	ErrNodeGroupNotFound                   = "cli.nodegroup_not_found"
-	ErrDuplicateCLIEnvNames                = "cli.duplicate_cli_env_names"
+	ErrJSONOutputNotSupportedWithFlag      = "cli.json_output_not_supported_with_flag"
 	ErrClusterAccessConfigRequired         = "cli.cluster_access_config_or_prompts_required"
 	ErrShellCompletionNotSupported         = "cli.shell_completion_not_supported"
 	ErrNoTerminalWidth                     = "cli.no_terminal_width"
@@ -119,10 +118,10 @@ func ErrorInvalidOperatorEndpoint(endpoint string) error {
 	})
 }
 
-func ErrorNoOperatorLoadBalancer() error {
+func ErrorNoOperatorLoadBalancer(whichLB string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrNoOperatorLoadBalancer,
-		Message: "unable to locate operator load balancer",
+		Message: fmt.Sprintf("unable to locate %s load balancer", whichLB),
 	})
 }
 
@@ -164,14 +163,6 @@ func ErrorClusterUp(out string) error {
 func ErrorClusterScale(out string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrClusterScale,
-		Message: out,
-		NoPrint: true,
-	})
-}
-
-func ErrorClusterInfo(out string) error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrClusterInfo,
 		Message: out,
 		NoPrint: true,
 	})
@@ -233,6 +224,13 @@ func ErrorNodeGroupNotFound(scalingNodeGroupName, clusterName, clusterRegion str
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrNodeGroupNotFound,
 		Message: fmt.Sprintf("nodegroup %s couldn't be found in the cluster named %s in region %s; the available nodegroups for this cluster are %s", scalingNodeGroupName, clusterName, clusterRegion, s.StrsAnd(availableNodeGroups)),
+	})
+}
+
+func ErrorJSONOutputNotSupportedWithFlag(flag string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrJSONOutputNotSupportedWithFlag,
+		Message: fmt.Sprintf("flag %s cannot be used when output type is set to json", flag),
 	})
 }
 

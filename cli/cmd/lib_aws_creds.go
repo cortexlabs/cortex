@@ -26,7 +26,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/types/clusterconfig"
 )
 
-func newAWSClient(region string) (*aws.Client, error) {
+func newAWSClient(region string, printToStdout bool) (*aws.Client, error) {
 	if err := clusterconfig.ValidateRegion(region); err != nil {
 		return nil, err
 	}
@@ -40,7 +40,9 @@ func newAWSClient(region string) (*aws.Client, error) {
 		return nil, err
 	}
 
-	fmt.Println("using aws credentials with access key " + *awsClient.AccessKeyID() + "\n")
+	if printToStdout {
+		fmt.Println("using aws credentials with access key " + *awsClient.AccessKeyID() + "\n")
+	}
 
 	return awsClient, nil
 }

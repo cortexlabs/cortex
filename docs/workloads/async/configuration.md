@@ -34,7 +34,7 @@ predictor:
 
 ### Tensorflow Predictor
 
-<!-- CORTEX_VERSION_BRANCH_STABLE x3 -->
+<!-- CORTEX_VERSION_BRANCH_STABLE x4 -->
 
 ```yaml
 predictor:

@@ -112,6 +112,17 @@ operator-update:
 	@kubectl scale --namespace=default deployments/operator --replicas=1
 	@operator_pod=$$(kubectl get pods -l workloadID=operator --namespace=default -o jsonpath='{.items[0].metadata.name}') && kubectl wait --for=condition=ready pod $$operator_pod --namespace=default
 
+# restart all in-cluster async-gateways
+async-gateway-restart:
+	@$(MAKE) kubectl
+	@kubectl delete pods -l cortex.dev/async=gateway --namespace=default
+
+# build and update all in-cluster async-gateways
+async-gateway-update:
+	@$(MAKE) kubectl
+	@./dev/registry.sh update-single async-gateway
+	@kubectl delete pods -l cortex.dev/async=gateway --namespace=default
+
 # Docker images
 
 images-all:
@@ -195,7 +206,10 @@ ci-build-images:
 	@./build/build-images.sh
 
 ci-push-images:
-	@./build/push-images.sh
+	@./build/push-images.sh quay.io
+
+ci-backup-images:
+	@./build/push-images.sh docker.io
 
 ci-build-cli:
 	@./build/cli.sh
