@@ -383,6 +383,7 @@ function validate_cortex() {
   api_load_balancer_state=""
   operator_target_group_status=""
   operator_endpoint_reachable=""
+  prometheus_ready=""
   success_cycles=0
 
   while true; do
@@ -402,6 +403,9 @@ function validate_cortex() {
       fi
       if [ "$operator_endpoint" != "" ]; then
         echo "operator endpoint: $operator_endpoint"
+      fi
+      if [ "${prometheus_ready}" != "" ] then
+        echo "prometheus is ready: $prometheus_ready"
       fi
       if [ "$api_load_balancer_endpoint" != "" ]; then
         echo "api load balancer endpoint: $api_load_balancer_endpoint"
@@ -473,6 +477,14 @@ function validate_cortex() {
         continue
       fi
       operator_endpoint=$(kubectl -n=istio-system get service ingressgateway-operator -o json | tr -d '[:space:]' | sed 's/.*{\"hostname\":\"\(.*\)\".*/\1/')
+    fi
+
+    if [ "$prometheus_ready" == "" ]; then
+      readyReplicas=$(kubectl get statefulset -n default prometheus-prometheus -o jsonpath='{.status.readyReplicas}')
+      desiredReplicas=$(kubectl get statefulset -n default prometheus-prometheus -o jsonpath='{.status.replicas}')
+      if [ $readyReplicas == $desiredReplicas ]; then
+        prometheus_ready="true"
+      fi
     fi
 
     if [ "$api_load_balancer_endpoint" == "" ]; then
