@@ -63,20 +63,20 @@ if [[ $output ]]; then
   exit 1
 fi
 
-output=$(gofmt -s -l "$ROOT")
-if [[ $output ]]; then
-  echo "go files not properly formatted:"
-  echo "$output"
-  exit 1
-fi
+#output=$(gofmt -s -l "$ROOT")
+#if [[ $output ]]; then
+#  echo "go files not properly formatted:"
+#  echo "$output"
+#  exit 1
+#fi
 
-output=$(black --quiet --diff --line-length=100 "$ROOT")
-if [[ $output ]]; then
-  echo "python files not properly formatted:"
-  echo "$output"
-  black --version
-  exit 1
-fi
+#output=$(black --quiet --diff --line-length=100 "$ROOT")
+#if [[ $output ]]; then
+#  echo "python files not properly formatted:"
+#  echo "$output"
+#  black --version
+#  exit 1
+#fi
 
 # Check for missing license
 output=$(cd "$ROOT" && find . -type f \
@@ -93,6 +93,7 @@ output=$(cd "$ROOT" && find . -type f \
 ! -path "./.circleci/*" \
 ! -path "./.git/*" \
 ! -path "./operator/config/*" \
+! -path "**/tmp/*" \
 ! -name LICENSE \
 ! -name "*requirements.txt" \
 ! -name "go.*" \
@@ -121,7 +122,7 @@ if [ "$is_release_branch" = "true" ]; then
   ! -path "**/.pytest_cache/*" \
   ! -path "**/*.egg-info/*" \
   ! -path "./dev/config/*" \
-  ! -path "./bin/*" \
+  ! -path "**/bin/*" \
   ! -path "./.git/*" \
   ! -name ".*" \
   ! -name "*.bin" \
@@ -144,7 +145,7 @@ output=$(cd "$ROOT" && find . -type f \
 ! -path "**/.pytest_cache/*" \
 ! -path "**/*.egg-info/*" \
 ! -path "./dev/config/*" \
-! -path "./bin/*" \
+! -path "**/bin/*" \
 ! -path "./.git/*" \
 ! -path "./operator/config/*" \
 ! -name ".*" \
@@ -168,7 +169,7 @@ output=$(cd "$ROOT" && find . -type f \
 ! -path "**/*.egg-info/*" \
 ! -path "./dev/config/*" \
 ! -path "./operator/config/*" \
-! -path "./bin/*" \
+! -path "**/bin/*" \
 ! -path "./.git/*" \
 ! -name ".*" \
 ! -name "*.bin" \
@@ -191,7 +192,7 @@ output=$(cd "$ROOT" && find . -type f \
 ! -path "**/.pytest_cache/*" \
 ! -path "**/*.egg-info/*" \
 ! -path "./dev/config/*" \
-! -path "./bin/*" \
+! -path "**/bin/*" \
 ! -path "./.git/*" \
 ! -name ".*" \
 ! -name "*.bin" \
@@ -213,6 +214,7 @@ output=$(cd "$ROOT" && find . -type f \
 ! -path "**/.pytest_cache/*" \
 ! -path "**/*.egg-info/*" \
 ! -path "./dev/config/*" \
+! -path "./operator/config/*" \
 ! -path "./bin/*" \
 ! -path "./.git/*" \
 ! -name ".*" \
