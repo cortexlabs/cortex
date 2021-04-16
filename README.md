@@ -55,7 +55,7 @@ all APIs are ready!
 ## Observable
 
 * **Structured logging** - automatically stream logs from every workload to your favorite log management tool.
-* **Workload autoscaling** - monitor your workloads with pre-built Grafana dashboards and add your own custom dashboards.
+* **Metrics aggregation** - monitor your workloads with pre-built Grafana dashboards and add your own custom dashboards.
 
 ```text
 $ cortex get
