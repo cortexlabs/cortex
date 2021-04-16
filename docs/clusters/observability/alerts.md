@@ -89,13 +89,13 @@ The memory usage alert needs to be defined like in the following screenshot:
 
 ![memory usage alert](https://user-images.githubusercontent.com/26958764/114951782-bfaf0e80-9e5d-11eb-834d-e48ab3546d3c.png)
 
-The alert will get in the Slack channel will be the following:
+The alert that will get sent to the Slack channel will be the following:
 
 ![slack notification](https://user-images.githubusercontent.com/26958764/114952346-bd00e900-9e5e-11eb-879a-5851dab7630b.png)
 
 ## Persistent changes
 
-To save your changes permanently, go your dashboard and click on the floppy-disk button on the top-right corner. 
+To save your changes permanently, go back to your dashboard and click on the floppy-disk button on the top-right corner. 
 
 ![floppy-disk icon](https://user-images.githubusercontent.com/26958764/114953264-af4c6300-9e60-11eb-8095-40e438c125d8.png)
 
