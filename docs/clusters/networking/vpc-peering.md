@@ -1,8 +1,8 @@
 # VPC peering
 
-If you are using an internal operator load balancer (i.e. you set `operator_load_balancer_scheme: internal` in your cluster configuration file before creating your cluster), you can use VPC Peering to enable your Cortex CLI to connect to your cluster operator from another VPC so that you may run `cortex` commands.
+If you are using an internal operator load balancer \(i.e. you set `operator_load_balancer_scheme: internal` in your cluster configuration file before creating your cluster\), you can use VPC Peering to enable your Cortex CLI to connect to your cluster operator from another VPC so that you may run `cortex` commands.
 
-If you are using an internal API load balancer (i.e. you set `api_load_balancer_scheme: internal` in your cluster configuration file before creating your cluster), you can use VPC Peering to make prediction requests from another VPC.
+If you are using an internal API load balancer \(i.e. you set `api_load_balancer_scheme: internal` in your cluster configuration file before creating your cluster\), you can use VPC Peering to make prediction requests from another VPC.
 
 This guide illustrates how to create a VPC Peering connection between a VPC of your choice and the Cortex load balancers.
 
@@ -34,11 +34,11 @@ From AWS's VPC dashboard, navigate to the "Peering Connections" page, and click 
 
 ![](https://user-images.githubusercontent.com/808475/80127600-67df0f80-8549-11ea-9e10-765a6e273b54.png)
 
-Name your new VPC Peering Connection (I used "cortex-operator", but "cortex" or "cortex-api" may make more sense depending on your use case). Then configure the connection such that the "Requester" is the VPC from which you'll connect to the Cortex VPC, and the "Accepter" is Cortex's VPC.
+Name your new VPC Peering Connection \(I used "cortex-operator", but "cortex" or "cortex-api" may make more sense depending on your use case\). Then configure the connection such that the "Requester" is the VPC from which you'll connect to the Cortex VPC, and the "Accepter" is Cortex's VPC.
 
 ![](https://user-images.githubusercontent.com/808475/80131545-3f5a1400-854f-11ea-9ca0-c51433d3fa3d.png)
 
-Click "Create Peering Connection", navigate back to the Peering Connections dashboard, select the newly created peering connection, and click "Actions" > "Accept Request":
+Click "Create Peering Connection", navigate back to the Peering Connections dashboard, select the newly created peering connection, and click "Actions" &gt; "Accept Request":
 
 ![](https://user-images.githubusercontent.com/808475/80132168-21d97a00-8550-11ea-8c22-79c65710d369.png)
 
@@ -46,7 +46,7 @@ Click "Create Peering Connection", navigate back to the Peering Connections dash
 
 ## Update route tables
 
-Navigate to the VPC Route Tables page. Select the route table for the VPC from which you'd like to connect to the Cortex cluster (in my case, I just have one route table for this VPC). Select the "Routes" tab, and click "Edit routes":
+Navigate to the VPC Route Tables page. Select the route table for the VPC from which you'd like to connect to the Cortex cluster \(in my case, I just have one route table for this VPC\). Select the "Routes" tab, and click "Edit routes":
 
 ![](https://user-images.githubusercontent.com/808475/80135180-b940cc00-8554-11ea-8162-c7409090897b.png)
 
@@ -73,3 +73,4 @@ You should now be able to use the Cortex CLI and make prediction requests from y
 Delete the VPC Peering connection before spinning down your Cortex cluster:
 
 ![](https://user-images.githubusercontent.com/808475/80138851-57836080-855a-11ea-92f1-06d501932a41.png)
+

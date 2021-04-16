@@ -51,3 +51,4 @@ On your new machine, run:
 ```bash
 cortex env configure
 ```
+

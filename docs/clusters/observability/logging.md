@@ -14,8 +14,7 @@ cortex logs <api_name>
 cortex logs <api_name> <job_id>  # the job needs to be in a running state
 ```
 
-**Important:** this method won't show the logs for all the API replicas and therefore is not a complete logging
-solution.
+**Important:** this method won't show the logs for all the API replicas and therefore is not a complete logging solution.
 
 ## Logs on AWS
 
@@ -67,12 +66,12 @@ fields @timestamp, message
 
 ## Structured logging
 
-You can use Cortex's logger in your Python code to log in JSON, which will enrich your logs with Cortex's metadata, and
-enable you to add custom metadata to the logs.
+You can use Cortex's logger in your Python code to log in JSON, which will enrich your logs with Cortex's metadata, and enable you to add custom metadata to the logs.
 
 See the structured logging docs for each API kind:
 
-- [RealtimeAPI](../../workloads/realtime/predictors.md#structured-logging)
-- [AsyncAPI](../../workloads/async/predictors.md#structured-logging)
-- [BatchAPI](../../workloads/batch/predictors.md#structured-logging)
-- [TaskAPI](../../workloads/task/definitions.md#structured-logging)
+* [RealtimeAPI](../../workloads/realtime-apis/predictors.md#structured-logging)
+* [AsyncAPI](../../workloads/async-apis/predictors.md#structured-logging)
+* [BatchAPI](../../workloads/batch-apis/predictors.md#structured-logging)
+* [TaskAPI](../../workloads/task-apis/definitions.md#structured-logging)
+

@@ -1,4 +1,4 @@
-# Deploy a project
+# Example
 
 You can deploy an API by providing a project directory. Cortex will save the project directory and make it available during API initialization.
 
@@ -59,3 +59,4 @@ cx.create_api(api_spec, project_dir=".")
 ```bash
 cortex deploy api.yaml
 ```
+

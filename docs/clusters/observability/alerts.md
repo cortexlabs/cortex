@@ -1,27 +1,28 @@
 # Alerts
 
-Cortex supports setting alerts for your APIs out-of-the-box. Alerts are an effective way of identifying problems in your system as they occur.
+Cortex supports setting alerts for your APIs out-of-the-box with Grafana. Alerts are an effective way of identifying problems in your system as they occur. 
 
 The following dashboards can be configured with alerts:
 
-- RealtimeAPI
-- BatchAPI
-- Cluster resources
-- Node resources
+* RealtimeAPI
+* BatchAPI
+* Cluster resources
+* Node resources
 
-This page demonstrates the process for configuring alerts for a realtime API. The same principles apply to the others as well. Alerts can be configured for a variety of notification channels such as for Slack, Discord, Microsoft Teams, PagerDuty, Telegram and traditional webhooks. In this example, we'll use Slack.
+This page demonstrates the process for configuring alerts for a RealtimeAPI. The same principles apply to the others as well. Alerts can be configured for a variety of notification channels such as Slack, Discord, Microsoft Teams, PagerDuty, Telegram, and traditional webhooks. In this example, we'll use Slack as the notification channel.
 
-If you don't know how to access the Grafana dashboard for your API, make sure you check out [this page](metrics.md) first.
+If you don't know how to access the Grafana dashboard for your API, make sure you check out [this page](metrics.md) first.  
 
-## Create a Slack channel
 
-Create a slack channel on your team's Slack workspace. We'll name ours "cortex-alerts".
+## Preparing your Slack channel
+
+You will need a slack channel on your team's Slack workspace, for the sake of this example we'll name ours "cortex-alerts".
 
 Add an _Incoming Webhook_ to your channel and retrieve the webhook URL. It will look like something like `https://hooks.slack.com/services/<XXX>/<YYY>/<ZZZ>`.
 
 ## Create a Grafana notification channel
 
-Go to Grafana and on the left-hand side panel, hover over the alerting bell and select _"Notification channels"_.
+Go to Grafana and on the left-hand side panel, hover over the alerting bell, and select _"Notification channels"_.
 
 ![](https://user-images.githubusercontent.com/26958764/114937638-b6667780-9e46-11eb-963a-8a53e5655c3d.png)
 
@@ -73,7 +74,7 @@ Let's add an alert on the _"In-Flight Requests"_ panel. We want to send an alert
 
 ![](https://user-images.githubusercontent.com/26958764/114949182-1bc36400-9e59-11eb-9c19-0d788872a388.png)
 
-An alert triggered for this will look like:
+An alert triggered for this will look like this:
 
 ![](https://user-images.githubusercontent.com/26958764/114949593-000c8d80-9e5a-11eb-8cb5-b2c9a2b344e8.png)
 
@@ -114,3 +115,4 @@ Your dashboard now has stored the alert configuration permanently.
 ## Multiple APIs alerts
 
 Due to how Grafana was built, you'll need to re-do the steps of setting a given alert for each individual API. That's because Grafana doesn't currently support alerts on template or transformation queries.
+
