@@ -95,7 +95,7 @@ The alert that will get sent to the Slack channel will be the following:
 
 ## Persistent changes
 
-To save your changes permanently, go back to your dashboard and click on the floppy-disk button on the top-right corner. 
+To save your changes permanently, go back to your dashboard and click on the floppy-disk button on the top-right corner.
 
 ![floppy-disk icon](https://user-images.githubusercontent.com/26958764/114953264-af4c6300-9e60-11eb-8095-40e438c125d8.png)
 
