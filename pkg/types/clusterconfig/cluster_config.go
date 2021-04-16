@@ -1415,6 +1415,26 @@ func (mc *ManagedConfig) GetAllInstanceTypes() []string {
 	return allInstanceTypes.Slice()
 }
 
+func (mc *ManagedConfig) GetNodeGroupByName(name string) *NodeGroup {
+	for _, ng := range mc.NodeGroups {
+		if ng.Name == name {
+			matchedNodeGroup := *ng
+			return &matchedNodeGroup
+		}
+	}
+
+	return nil
+}
+
+func (mc *ManagedConfig) GetNodeGroupNames() []string {
+	allNodeGroupNames := []string{}
+	for _, ng := range mc.NodeGroups {
+		allNodeGroupNames = append(allNodeGroupNames, ng.Name)
+	}
+
+	return allNodeGroupNames
+}
+
 func validateClusterName(clusterName string) (string, error) {
 	if !_strictS3BucketRegex.MatchString(clusterName) {
 		return "", errors.Wrap(ErrorDidNotMatchStrictS3Regex(), clusterName)

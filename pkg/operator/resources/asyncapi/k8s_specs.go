@@ -36,6 +36,16 @@ var _gatewayHPATargetMemUtilization int32 = 80 // percentage
 
 func gatewayDeploymentSpec(api spec.API, prevDeployment *kapps.Deployment, queueURL string) kapps.Deployment {
 	container := operator.AsyncGatewayContainers(api, queueURL)
+
+	var affinity *kcore.Affinity
+	if api.Compute.Selector == nil {
+		affinity = &kcore.Affinity{
+			NodeAffinity: &kcore.NodeAffinity{
+				PreferredDuringSchedulingIgnoredDuringExecution: operator.GeneratePreferredNodeAffinities(),
+			},
+		}
+	}
+
 	return *k8s.Deployment(&k8s.DeploymentSpec{
 		Name:           getGatewayK8sName(api.Name),
 		Replicas:       1,
@@ -69,13 +79,10 @@ func gatewayDeploymentSpec(api spec.API, prevDeployment *kapps.Deployment, queue
 				RestartPolicy:                 "Always",
 				TerminationGracePeriodSeconds: pointer.Int64(_terminationGracePeriodSeconds),
 				Containers:                    []kcore.Container{container},
-				NodeSelector:                  operator.NodeSelectors(),
+				NodeSelector:                  operator.NodeSelectors(api.Compute.Selector),
 				Tolerations:                   operator.GenerateResourceTolerations(),
-				Affinity: &kcore.Affinity{
-					NodeAffinity: &kcore.NodeAffinity{
-						PreferredDuringSchedulingIgnoredDuringExecution: operator.GeneratePreferredNodeAffinities(),
-					},
-				}, ServiceAccountName: operator.ServiceAccountName,
+				Affinity:                      affinity,
+				ServiceAccountName:            operator.ServiceAccountName,
 			},
 		},
 	})
@@ -171,6 +178,15 @@ func apiDeploymentSpec(api spec.API, prevDeployment *kapps.Deployment, queueURL 
 		panic(fmt.Sprintf("invalid predictor type: %s", api.Predictor.Type))
 	}
 
+	var affinity *kcore.Affinity
+	if api.Compute.Selector == nil {
+		affinity = &kcore.Affinity{
+			NodeAffinity: &kcore.NodeAffinity{
+				PreferredDuringSchedulingIgnoredDuringExecution: operator.GeneratePreferredNodeAffinities(),
+			},
+		}
+	}
+
 	return *k8s.Deployment(&k8s.DeploymentSpec{
 		Name:           operator.K8sName(api.Name),
 		Replicas:       getRequestedReplicasFromDeployment(api, prevDeployment),
@@ -207,14 +223,10 @@ func apiDeploymentSpec(api spec.API, prevDeployment *kapps.Deployment, queueURL 
 				InitContainers: []kcore.Container{
 					operator.InitContainer(&api),
 				},
-				Containers:   containers,
-				NodeSelector: operator.NodeSelectors(),
-				Tolerations:  operator.GenerateResourceTolerations(),
-				Affinity: &kcore.Affinity{
-					NodeAffinity: &kcore.NodeAffinity{
-						PreferredDuringSchedulingIgnoredDuringExecution: operator.GeneratePreferredNodeAffinities(),
-					},
-				},
+				Containers:         containers,
+				NodeSelector:       operator.NodeSelectors(api.Compute.Selector),
+				Tolerations:        operator.GenerateResourceTolerations(),
+				Affinity:           affinity,
 				Volumes:            volumes,
 				ServiceAccountName: operator.ServiceAccountName,
 			},

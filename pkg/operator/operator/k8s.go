@@ -1240,10 +1240,29 @@ func defaultVolumeMounts() []kcore.VolumeMount {
 	}
 }
 
-func NodeSelectors() map[string]string {
-	return map[string]string{
+func NodeSelectors(nodeGroupSelector *string) map[string]string {
+	nodeSelectors := map[string]string{
 		"workload": "true",
 	}
+
+	if nodeGroupSelector == nil {
+		return nodeSelectors
+	}
+
+	var nodeGroupPrefix string
+	for _, nodeGroup := range config.ManagedConfig.NodeGroups {
+		if nodeGroup.Name == *nodeGroupSelector {
+			if nodeGroup.Spot {
+				nodeGroupPrefix = "cx-ws-"
+			} else {
+				nodeGroupPrefix = "cx-wd-"
+			}
+			break
+		}
+	}
+
+	nodeSelectors["alpha.eksctl.io/nodegroup-name"] = nodeGroupPrefix + *nodeGroupSelector
+	return nodeSelectors
 }
 
 func GenerateResourceTolerations() []kcore.Toleration {

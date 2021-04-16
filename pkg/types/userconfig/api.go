@@ -111,10 +111,11 @@ type Networking struct {
 }
 
 type Compute struct {
-	CPU *k8s.Quantity `json:"cpu" yaml:"cpu"`
-	Mem *k8s.Quantity `json:"mem" yaml:"mem"`
-	GPU int64         `json:"gpu" yaml:"gpu"`
-	Inf int64         `json:"inf" yaml:"inf"`
+	CPU      *k8s.Quantity `json:"cpu" yaml:"cpu"`
+	Mem      *k8s.Quantity `json:"mem" yaml:"mem"`
+	GPU      int64         `json:"gpu" yaml:"gpu"`
+	Inf      int64         `json:"inf" yaml:"inf"`
+	Selector *string       `json:"selector" yaml:"selector"`
 }
 
 type Autoscaling struct {
@@ -540,6 +541,12 @@ func (compute *Compute) Normalized() string {
 	} else {
 		sb.WriteString(fmt.Sprintf("%s: %d\n", MemKey, compute.Mem.Value()))
 	}
+	if compute.Selector == nil {
+		sb.WriteString(fmt.Sprintf("%s: null\n", SelectorKey))
+	} else {
+		sb.WriteString(fmt.Sprintf("%s: %s\n", SelectorKey, *compute.Selector))
+	}
+
 	return sb.String()
 }
 
@@ -560,6 +567,11 @@ func (compute *Compute) UserStr() string {
 		sb.WriteString(fmt.Sprintf("%s: null  # no limit\n", MemKey))
 	} else {
 		sb.WriteString(fmt.Sprintf("%s: %s\n", MemKey, compute.Mem.UserString))
+	}
+	if compute.Selector == nil {
+		sb.WriteString(fmt.Sprintf("%s: null  # automatic node-group selection\n", SelectorKey))
+	} else {
+		sb.WriteString(fmt.Sprintf("%s: %s\n", SelectorKey, *compute.Selector))
 	}
 	return sb.String()
 }
@@ -586,6 +598,14 @@ func (compute Compute) Equals(c2 *Compute) bool {
 	}
 
 	if compute.GPU != c2.GPU {
+		return false
+	}
+
+	if compute.Selector == nil && c2.Selector != nil || compute.Selector != nil && c2.Selector == nil {
+		return false
+	}
+
+	if *compute.Selector != *c2.Selector {
 		return false
 	}
 
@@ -655,6 +675,10 @@ func (api *API) TelemetryEvent() map[string]interface{} {
 		}
 		event["compute.gpu"] = api.Compute.GPU
 		event["compute.inf"] = api.Compute.Inf
+		if api.Compute.Selector != nil {
+			event["compute.selector._is_defined"] = true
+			event["compute.selector"] = *api.Compute.Selector
+		}
 	}
 
 	if api.Predictor != nil {

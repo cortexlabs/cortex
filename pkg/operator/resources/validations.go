@@ -191,7 +191,17 @@ var _inferentiaMemReserve = kresource.MustParse("100Mi")
 func validateK8sCompute(compute *userconfig.Compute, maxMemMap map[string]kresource.Quantity) error {
 	allErrors := []error{}
 	successfulLoops := 0
+
+	nodeGroupNames := strset.New(config.ManagedConfig.GetNodeGroupNames()...)
+	if compute.Selector != nil && !nodeGroupNames.Has(*compute.Selector) {
+		return ErrorInvalidNodeGroupSelector(*compute.Selector, nodeGroupNames.Slice())
+	}
+
 	for _, instanceMetadata := range config.InstancesMetadata {
+		if compute.Selector != nil && config.ManagedConfig.GetNodeGroupByName(*compute.Selector).InstanceType != instanceMetadata.Type {
+			continue
+		}
+
 		maxMemLoop := maxMemMap[instanceMetadata.Type]
 		maxMemLoop.Sub(_cortexMemReserve)
 

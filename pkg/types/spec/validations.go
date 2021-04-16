@@ -397,6 +397,14 @@ func computeValidation() *cr.StructFieldValidation {
 						GreaterThanOrEqualTo: pointer.Int64(0),
 					},
 				},
+				{
+					StructField: "Selector",
+					StringPtrValidation: &cr.StringPtrValidation{
+						Default:                    nil,
+						AllowExplicitNull:          true,
+						AlphaNumericDashUnderscore: true,
+					},
+				},
 			},
 		},
 	}

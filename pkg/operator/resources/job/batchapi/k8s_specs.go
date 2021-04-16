@@ -57,58 +57,12 @@ func pythonPredictorJobSpec(api *spec.API, job *spec.BatchJob) (*kbatch.Job, err
 		}
 	}
 
-	return k8s.Job(&k8s.JobSpec{
-		Name:        job.JobKey.K8sName(),
-		Parallelism: int32(job.Workers),
-		Labels: map[string]string{
-			"apiName":        api.Name,
-			"apiID":          api.ID,
-			"specID":         api.SpecID,
-			"predictorID":    api.PredictorID,
-			"jobID":          job.ID,
-			"apiKind":        api.Kind.String(),
-			"cortex.dev/api": "true",
-		},
-		PodSpec: k8s.PodSpec{
-			Labels: map[string]string{
-				"apiName":        api.Name,
-				"predictorID":    api.PredictorID,
-				"jobID":          job.ID,
-				"apiKind":        api.Kind.String(),
-				"cortex.dev/api": "true",
+	var affinity *kcore.Affinity
+	if api.Compute.Selector == nil {
+		affinity = &kcore.Affinity{
+			NodeAffinity: &kcore.NodeAffinity{
+				PreferredDuringSchedulingIgnoredDuringExecution: operator.GeneratePreferredNodeAffinities(),
 			},
-			Annotations: map[string]string{
-				"traffic.sidecar.istio.io/excludeOutboundIPRanges": "0.0.0.0/0",
-				"cluster-autoscaler.kubernetes.io/safe-to-evict":   "false",
-			},
-			K8sPodSpec: kcore.PodSpec{
-				RestartPolicy: "Never",
-				InitContainers: []kcore.Container{
-					operator.InitContainer(api),
-				},
-				Containers:   containers,
-				NodeSelector: operator.NodeSelectors(),
-				Tolerations:  operator.GenerateResourceTolerations(),
-				Affinity: &kcore.Affinity{
-					NodeAffinity: &kcore.NodeAffinity{
-						PreferredDuringSchedulingIgnoredDuringExecution: operator.GeneratePreferredNodeAffinities(),
-					},
-				},
-				Volumes:            volumes,
-				ServiceAccountName: operator.ServiceAccountName,
-			},
-		},
-	}), nil
-}
-
-func tensorFlowPredictorJobSpec(api *spec.API, job *spec.BatchJob) (*kbatch.Job, error) {
-	containers, volumes := operator.TensorFlowPredictorContainers(api)
-	for i, container := range containers {
-		if container.Name == operator.APIContainerName {
-			containers[i].Env = append(container.Env, kcore.EnvVar{
-				Name:  "CORTEX_JOB_SPEC",
-				Value: "s3://" + config.CoreConfig.Bucket + "/" + job.SpecFilePath(config.CoreConfig.ClusterName),
-			})
 		}
 	}
 
@@ -141,14 +95,70 @@ func tensorFlowPredictorJobSpec(api *spec.API, job *spec.BatchJob) (*kbatch.Job,
 				InitContainers: []kcore.Container{
 					operator.InitContainer(api),
 				},
-				Containers:   containers,
-				NodeSelector: operator.NodeSelectors(),
-				Tolerations:  operator.GenerateResourceTolerations(),
-				Affinity: &kcore.Affinity{
-					NodeAffinity: &kcore.NodeAffinity{
-						PreferredDuringSchedulingIgnoredDuringExecution: operator.GeneratePreferredNodeAffinities(),
-					},
+				Containers:         containers,
+				NodeSelector:       operator.NodeSelectors(api.Compute.Selector),
+				Tolerations:        operator.GenerateResourceTolerations(),
+				Affinity:           affinity,
+				Volumes:            volumes,
+				ServiceAccountName: operator.ServiceAccountName,
+			},
+		},
+	}), nil
+}
+
+func tensorFlowPredictorJobSpec(api *spec.API, job *spec.BatchJob) (*kbatch.Job, error) {
+	containers, volumes := operator.TensorFlowPredictorContainers(api)
+	for i, container := range containers {
+		if container.Name == operator.APIContainerName {
+			containers[i].Env = append(container.Env, kcore.EnvVar{
+				Name:  "CORTEX_JOB_SPEC",
+				Value: "s3://" + config.CoreConfig.Bucket + "/" + job.SpecFilePath(config.CoreConfig.ClusterName),
+			})
+		}
+	}
+
+	var affinity *kcore.Affinity
+	if api.Compute.Selector == nil {
+		affinity = &kcore.Affinity{
+			NodeAffinity: &kcore.NodeAffinity{
+				PreferredDuringSchedulingIgnoredDuringExecution: operator.GeneratePreferredNodeAffinities(),
+			},
+		}
+	}
+
+	return k8s.Job(&k8s.JobSpec{
+		Name:        job.JobKey.K8sName(),
+		Parallelism: int32(job.Workers),
+		Labels: map[string]string{
+			"apiName":        api.Name,
+			"apiID":          api.ID,
+			"specID":         api.SpecID,
+			"predictorID":    api.PredictorID,
+			"jobID":          job.ID,
+			"apiKind":        api.Kind.String(),
+			"cortex.dev/api": "true",
+		},
+		PodSpec: k8s.PodSpec{
+			Labels: map[string]string{
+				"apiName":        api.Name,
+				"predictorID":    api.PredictorID,
+				"jobID":          job.ID,
+				"apiKind":        api.Kind.String(),
+				"cortex.dev/api": "true",
+			},
+			Annotations: map[string]string{
+				"traffic.sidecar.istio.io/excludeOutboundIPRanges": "0.0.0.0/0",
+				"cluster-autoscaler.kubernetes.io/safe-to-evict":   "false",
+			},
+			K8sPodSpec: kcore.PodSpec{
+				RestartPolicy: "Never",
+				InitContainers: []kcore.Container{
+					operator.InitContainer(api),
 				},
+				Containers:         containers,
+				NodeSelector:       operator.NodeSelectors(api.Compute.Selector),
+				Tolerations:        operator.GenerateResourceTolerations(),
+				Affinity:           affinity,
 				Volumes:            volumes,
 				ServiceAccountName: operator.ServiceAccountName,
 			},
