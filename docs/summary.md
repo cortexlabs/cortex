@@ -16,7 +16,7 @@
 * Observability
   * [Logging](clusters/observability/logging.md)
   * [Metrics](clusters/observability/metrics.md)
-  * [Alerts](clusters/observability/alerts.md)
+  * [Alerting](clusters/observability/alerting.md)
 * Networking
   * [Load balancers](clusters/networking/load-balancers.md)
   * [VPC peering](clusters/networking/vpc-peering.md)

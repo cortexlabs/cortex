@@ -1,4 +1,4 @@
-# Alerts
+# Alerting
 
 Cortex supports setting alerts for your APIs out-of-the-box. Alerts are an effective way of identifying problems in your system as they occur.
 
