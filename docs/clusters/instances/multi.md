@@ -1,4 +1,4 @@
-# Multi-instance
+# Multi-instance type clusters
 
 Cortex can be configured to provision different instance types to improve workload performance and reduce cloud infrastructure spend.
 
@@ -7,8 +7,8 @@ Cortex can be configured to provision different instance types to improve worklo
 **Node groups with lower indices have higher priority.**
 
 1. Spot node groups should be listed before on-demand node groups.
-2. CPU node groups should be listed before GPU/Inferentia node groups.
-3. Node groups with small instance types should be listed before node groups with large instance types.
+1. CPU node groups should be listed before GPU/Inferentia node groups.
+1. Node groups with small instance types should be listed before node groups with large instance types.
 
 ## Examples
 
@@ -41,7 +41,7 @@ node_groups:
     instance_type: inf.xlarge
 ```
 
-### Spot cluster supporting CPU and GPU \(with on-demand backup\)
+### Spot cluster supporting CPU and GPU (with on-demand backup)
 
 ```yaml
 # cluster.yaml
@@ -79,4 +79,3 @@ node_groups:
   - name: cpu-4
     instance_type: m5.24xlarge
 ```
-

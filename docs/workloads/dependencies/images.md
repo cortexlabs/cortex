@@ -1,6 +1,6 @@
-# Custom images
+# Docker images
 
-Cortex includes a default set of Docker images with pre-installed Python and system packages but you can build custom images for use in your APIs. Common reasons to do this are to avoid installing dependencies during replica initialization, to have smaller images, and/or to mirror images to your ECR registry \(for speed and reliability\).
+Cortex includes a default set of Docker images with pre-installed Python and system packages but you can build custom images for use in your APIs. Common reasons to do this are to avoid installing dependencies during replica initialization, to have smaller images, and/or to mirror images to your ECR registry (for speed and reliability).
 
 ## Create a Dockerfile
 
@@ -10,8 +10,9 @@ mkdir my-api && cd my-api && touch Dockerfile
 
 Cortex's base Docker images are listed below. Depending on the Cortex Predictor and compute type specified in your API configuration, choose one of these images to use as the base for your Docker image:
 
-* Python Predictor \(CPU\): `quay.io/cortexlabs/python-predictor-cpu:master`
-* Python Predictor \(GPU\): choose one of the following:
+<!-- CORTEX_VERSION_BRANCH_STABLE x10 -->
+* Python Predictor (CPU): `quay.io/cortexlabs/python-predictor-cpu:master`
+* Python Predictor (GPU): choose one of the following:
   * `quay.io/cortexlabs/python-predictor-gpu:master-cuda10.0-cudnn7`
   * `quay.io/cortexlabs/python-predictor-gpu:master-cuda10.1-cudnn7`
   * `quay.io/cortexlabs/python-predictor-gpu:master-cuda10.1-cudnn8`
@@ -19,12 +20,13 @@ Cortex's base Docker images are listed below. Depending on the Cortex Predictor 
   * `quay.io/cortexlabs/python-predictor-gpu:master-cuda10.2-cudnn8`
   * `quay.io/cortexlabs/python-predictor-gpu:master-cuda11.0-cudnn8`
   * `quay.io/cortexlabs/python-predictor-gpu:master-cuda11.1-cudnn8`
-* Python Predictor \(Inferentia\): `quay.io/cortexlabs/python-predictor-inf:master`
-* TensorFlow Predictor \(CPU, GPU, Inferentia\): `quay.io/cortexlabs/tensorflow-predictor:master`
+* Python Predictor (Inferentia): `quay.io/cortexlabs/python-predictor-inf:master`
+* TensorFlow Predictor (CPU, GPU, Inferentia): `quay.io/cortexlabs/tensorflow-predictor:master`
 
 The sample `Dockerfile` below inherits from Cortex's Python CPU serving image, and installs 3 packages. `tree` is a system package and `pandas` and `rdkit` are Python packages.
 
-```text
+<!-- CORTEX_VERSION_BRANCH_STABLE -->
+```dockerfile
 # Dockerfile
 
 FROM quay.io/cortexlabs/python-predictor-cpu:master
@@ -40,7 +42,9 @@ RUN pip install --no-cache-dir pandas \
 
 If you need to upgrade the Python Runtime version on your image, you can follow this procedure:
 
-```text
+<!-- CORTEX_VERSION_BRANCH_STABLE -->
+
+```Dockerfile
 # Dockerfile
 
 FROM quay.io/cortexlabs/python-predictor-cpu:master
@@ -63,7 +67,7 @@ docker build . -t org/my-api:latest
 
 ## Push your image to a container registry
 
-You can push your built Docker image to a public registry of your choice \(e.g. Docker Hub\), or to a private registry on ECR or Docker Hub.
+You can push your built Docker image to a public registry of your choice (e.g. Docker Hub), or to a private registry on ECR or Docker Hub.
 
 For example, to use ECR, first create a repository to store your image:
 
@@ -99,5 +103,4 @@ docker push <repository_url>:latest
   ...
 ```
 
-Note: for TensorFlow Predictors, two containers run together to serve predictions: one runs your Predictor code \(`quay.io/cortexlabs/tensorflow-predictor`\), and the other is TensorFlow serving to load the SavedModel \(`quay.io/cortexlabs/tensorflow-serving-gpu` or `quay.io/cortexlabs/tensorflow-serving-cpu`\). There's a second available field `tensorflow_serving_image` that can be used to override the TensorFlow Serving image. Both of the default serving images \(`quay.io/cortexlabs/tensorflow-serving-gpu` and `quay.io/cortexlabs/tensorflow-serving-cpu`\) are based on the official TensorFlow Serving image \(`tensorflow/serving`\). Unless a different version of TensorFlow Serving is required, the TensorFlow Serving image shouldn't have to be overridden, since it's only used to load the SavedModel and does not run your Predictor code.
-
+Note: for TensorFlow Predictors, two containers run together to serve predictions: one runs your Predictor code (`quay.io/cortexlabs/tensorflow-predictor`), and the other is TensorFlow serving to load the SavedModel (`quay.io/cortexlabs/tensorflow-serving-gpu` or `quay.io/cortexlabs/tensorflow-serving-cpu`). There's a second available field `tensorflow_serving_image` that can be used to override the TensorFlow Serving image. Both of the default serving images (`quay.io/cortexlabs/tensorflow-serving-gpu` and `quay.io/cortexlabs/tensorflow-serving-cpu`) are based on the official TensorFlow Serving image (`tensorflow/serving`). Unless a different version of TensorFlow Serving is required, the TensorFlow Serving image shouldn't have to be overridden, since it's only used to load the SavedModel and does not run your Predictor code.

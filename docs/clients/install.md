@@ -8,7 +8,8 @@ To install the latest version:
 pip install cortex
 ```
 
-To install or upgrade to a specific version \(e.g. v0.33.0\):
+<!-- CORTEX_VERSION_README x2 -->
+To install or upgrade to a specific version (e.g. v0.33.0):
 
 ```bash
 pip install cortex==0.33.0
@@ -22,6 +23,7 @@ pip install --upgrade cortex
 
 ## Install without the Python client
 
+<!-- CORTEX_VERSION_README x2 -->
 ```bash
 # For example to download CLI version 0.33.0 (Note the "v"):
 bash -c "$(curl -sS https://raw.githubusercontent.com/cortexlabs/cortex/v0.33.0/get-cli.sh)"
@@ -32,4 +34,3 @@ By default, the Cortex CLI is installed at `/usr/local/bin/cortex`. To install t
 ## Changing the CLI/client configuration directory
 
 By default, the CLI/client creates a directory at `~/.cortex/` and uses it to store environment configuration. To use a different directory, export the `CORTEX_CLI_CONFIG_DIR` environment variable before running any `cortex` commands.
-

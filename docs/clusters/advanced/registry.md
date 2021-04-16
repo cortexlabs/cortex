@@ -27,4 +27,3 @@ kubectl delete secret --namespace default registry-credentials
 kubectl patch serviceaccount default --namespace default \
     -p "{\"imagePullSecrets\": []}"
 ```
-

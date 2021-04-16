@@ -1,11 +1,11 @@
-# Create
+# Install
 
 ## Prerequisites
 
 1. Install and run [Docker](https://docs.docker.com/install) on your machine.
-2. Subscribe to the [AMI with GPU support](https://aws.amazon.com/marketplace/pp/B07GRHFXGM) \(for GPU clusters\).
-3. Create an IAM user with `AdministratorAccess` and programmatic access.
-4. You may need to [request limit increases](https://console.aws.amazon.com/servicequotas/home?#!/services/ec2/quotas) for your desired instance types.
+1. Subscribe to the [AMI with GPU support](https://aws.amazon.com/marketplace/pp/B07GRHFXGM) (for GPU clusters).
+1. Create an IAM user with `AdministratorAccess` and programmatic access.
+1. You may need to [request limit increases](https://console.aws.amazon.com/servicequotas/home?#!/services/ec2/quotas) for your desired instance types.
 
 ## Create a cluster on your AWS account
 
@@ -92,8 +92,9 @@ iam_policy_arns: ["arn:aws:iam::aws:policy/AmazonS3FullAccess"]
 vpc_cidr: 192.168.0.0/16
 ```
 
-The docker images used by the cluster can also be overridden. They can be configured by adding any of these keys to your cluster configuration file \(default values are shown\):
+The docker images used by the cluster can also be overridden. They can be configured by adding any of these keys to your cluster configuration file (default values are shown):
 
+<!-- CORTEX_VERSION_BRANCH_STABLE -->
 ```yaml
 image_operator: quay.io/cortexlabs/operator:master
 image_manager: quay.io/cortexlabs/manager:master
@@ -119,4 +120,3 @@ image_kube_rbac_proxy: quay.io/cortexlabs/kube-rbac-proxy:master
 image_grafana: quay.io/cortexlabs/grafana:master
 image_event_exporter: quay.io/cortexlabs/event-exporter:master
 ```
-

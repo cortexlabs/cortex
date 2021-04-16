@@ -1,4 +1,4 @@
-# Setting up kubectl
+# Setting up `kubectl`
 
 ## Install `kubectl`
 
@@ -27,4 +27,3 @@ aws eks update-kubeconfig --name=<cluster_name> --region=<region>
 ```bash
 kubectl get pods
 ```
-

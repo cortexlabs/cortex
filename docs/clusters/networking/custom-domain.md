@@ -1,6 +1,6 @@
 # Custom domain
 
-You can use any custom domain \(that you own\) for your prediction endpoints. For example, you can make your API accessible via `api.example.com/text-generator`. This guide will demonstrate how to create a dedicated subdomain in AWS Route 53 and, if desired, configure your API load balancer to use an SSL certificate provisioned by AWS Certificate Manager.
+You can use any custom domain (that you own) for your prediction endpoints. For example, you can make your API accessible via `api.example.com/text-generator`. This guide will demonstrate how to create a dedicated subdomain in AWS Route 53 and, if desired, configure your API load balancer to use an SSL certificate provisioned by AWS Certificate Manager.
 
 ## Configure DNS
 
@@ -18,17 +18,17 @@ Take note of the values in the NS record.
 
 ![](https://user-images.githubusercontent.com/4365343/82211656-386cba00-98df-11ea-8c86-4961082b5f49.png)
 
-Navigate to your root DNS service provider \(e.g. Google Domains, AWS Route 53, Go Daddy\). Your root DNS service provider is typically the registrar where you purchased your domain \(unless you have transferred DNS management elsewhere\). The procedure for adding DNS records may vary based on your service provider.
+Navigate to your root DNS service provider (e.g. Google Domains, AWS Route 53, Go Daddy). Your root DNS service provider is typically the registrar where you purchased your domain (unless you have transferred DNS management elsewhere). The procedure for adding DNS records may vary based on your service provider.
 
-We are going to add an NS \(name server\) record that specifies that any traffic to your subdomain should use the name servers of your hosted zone in Route 53 for DNS resolution.
+We are going to add an NS (name server) record that specifies that any traffic to your subdomain should use the name servers of your hosted zone in Route 53 for DNS resolution.
 
-`cortexlabs.dev` is managed by Google Domains. The image below is a screenshot for adding a DNS record in Google Domains \(your UI may differ based on your DNS service provider\).
+`cortexlabs.dev` is managed by Google Domains. The image below is a screenshot for adding a DNS record in Google Domains (your UI may differ based on your DNS service provider).
 
 ![](https://user-images.githubusercontent.com/808475/109039458-abcb0580-7681-11eb-8644-76436328687e.png)
 
 ## Generate an SSL certificate
 
-You can skip this section \(and continue to [add the DNS record](custom-domain.md#add-dns-record)\) if you don't need an SSL certificate for your custom domain. If you don't use an SSL certificate, you will need to skip certificate verification when making HTTPS requests to your APIs \(e.g. `curl -k https://***`\), or make HTTP requests instead \(e.g. `curl http://***`\).
+You can skip this section (and continue to [add the DNS record](#add-dns-record)) if you don't need an SSL certificate for your custom domain. If you don't use an SSL certificate, you will need to skip certificate verification when making HTTPS requests to your APIs (e.g. `curl -k https://***`), or make HTTP requests instead (e.g. `curl http://***`).
 
 To create an SSL certificate, go to the [ACM console](https://us-west-2.console.aws.amazon.com/acm/home) and click "Get Started" under the "Provision certificates" section.
 
@@ -46,7 +46,7 @@ Select "DNS validation" and then click "Next".
 
 ![](https://user-images.githubusercontent.com/4365343/82205311-66003600-98d4-11ea-90e3-da7e8b0b2b9c.png)
 
-Add tags for searchability \(optional\) then click "Review".
+Add tags for searchability (optional) then click "Review".
 
 ![](https://user-images.githubusercontent.com/4365343/82206485-52ee6580-98d6-11ea-95a9-1d0ebafc178a.png)
 
@@ -90,7 +90,7 @@ Take note of the load balancer's name.
 
 ![](https://user-images.githubusercontent.com/808475/80142777-961c1980-8560-11ea-9202-40964dbff5e9.png)
 
-Go back to the [Route 53 console](https://console.aws.amazon.com/route53/home#hosted-zones:) and select the hosted zone you created earlier. Click "Create Record Set", and add an Alias record that routes traffic to your Cortex cluster's API load balancer \(leave "Name" blank\).
+Go back to the [Route 53 console](https://console.aws.amazon.com/route53/home#hosted-zones:) and select the hosted zone you created earlier. Click "Create Record Set", and add an Alias record that routes traffic to your Cortex cluster's API load balancer (leave "Name" blank).
 
 ![](https://user-images.githubusercontent.com/808475/84083422-6ac97e80-a996-11ea-9679-be37268a2133.png)
 
@@ -111,13 +111,13 @@ curl https://api.cortexlabs.dev/text-generator -X POST -H "Content-Type: applica
 
 ## Debugging connectivity issues
 
-You could run into connectivity issues if you make a request to your API without waiting long enough for your DNS records to propagate after creating them \(it usually takes 5-10 mintues\). If you are updating existing DNS records, it could take anywhere from a few minutes to 48 hours for the DNS cache to expire \(until then, your previous DNS configuration will be used\).
+You could run into connectivity issues if you make a request to your API without waiting long enough for your DNS records to propagate after creating them (it usually takes 5-10 mintues). If you are updating existing DNS records, it could take anywhere from a few minutes to 48 hours for the DNS cache to expire (until then, your previous DNS configuration will be used).
 
 To test connectivity, try the following steps:
 
-1. Deploy any api \(e.g. examples/pytorch/iris-classifier\).
-2. Make a GET request to the your api \(e.g. `curl https://api.cortexlabs.dev/iris-classifier` or paste the url into your browser\).
-3. If you run into an error such as `curl: (6) Could not resolve host: api.cortexlabs.dev` wait a few minutes and make the GET request from another device that hasn't made a request to that url in a while. A successful request looks like this:
+1. Deploy any api (e.g. examples/pytorch/iris-classifier).
+1. Make a GET request to the your api (e.g. `curl https://api.cortexlabs.dev/iris-classifier` or paste the url into your browser).
+1. If you run into an error such as `curl: (6) Could not resolve host: api.cortexlabs.dev` wait a few minutes and make the GET request from another device that hasn't made a request to that url in a while. A successful request looks like this:
 
 ```text
 {"message":"make a prediction by sending a post request to this endpoint with a json payload",...}
@@ -134,4 +134,3 @@ Delete the hosted zone for your subdomain in the [Route 53 console](https://cons
 If you created an SSL certificate, delete it from the [ACM console](https://us-west-2.console.aws.amazon.com/acm/home):
 
 ![](https://user-images.githubusercontent.com/4365343/82228835-a624e000-98f7-11ea-92e2-cb4fb0f591e2.png)
-

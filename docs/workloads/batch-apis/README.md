@@ -1,2 +1,0 @@
-# Batch APIs
-
