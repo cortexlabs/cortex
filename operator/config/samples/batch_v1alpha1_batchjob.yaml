@@ -6,7 +6,6 @@ spec:
   api_name: "image-classifier"
   api_id: "123456"
   workers: 1
+  config: |
+    dest_s3_dir: s3://cortex-8b69ff0f/test/jobs
   timeout: "30s"
-  resources:
-    requests:
-      cpu: "100m"

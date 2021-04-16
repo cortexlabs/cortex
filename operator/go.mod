@@ -5,6 +5,7 @@ go 1.13
 require (
 	github.com/aws/aws-sdk-go v1.38.15
 	github.com/cortexlabs/cortex v0.32.0
+	github.com/cortexlabs/yaml v0.0.0-20200511220111-581aea36a2e4
 	github.com/go-logr/logr v0.1.0
 	github.com/onsi/ginkgo v1.12.1
 	github.com/onsi/gomega v1.10.1

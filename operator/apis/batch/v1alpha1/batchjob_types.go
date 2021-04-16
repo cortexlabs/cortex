@@ -37,6 +37,10 @@ type BatchJobSpec struct {
 	Workers int32 `json:"workers,omitempty"`
 
 	// +kubebuilder:validation:Optional
+	// YAML content of the user config
+	Config *string `json:"config,omitempty"`
+
+	// +kubebuilder:validation:Optional
 	// Duration until a batch job times out
 	Timeout *kmeta.Duration `json:"timeout,omitempty"`
 

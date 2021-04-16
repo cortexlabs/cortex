@@ -65,6 +65,7 @@ func (r *BatchJobReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	}
 
 	// TODO: add TTL to BatchJob
+	// TODO: handle timeouts
 
 	// Step 2: create finalizer or handle deletion
 	if batchJob.ObjectMeta.DeletionTimestamp.IsZero() {
@@ -173,7 +174,7 @@ func (r *BatchJobReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 
 	if !workerJobExists {
 		log.V(1).Info("creating worker job")
-		if err = r.createWorkerJob(ctx, batchJob); err != nil {
+		if err = r.createWorkerJob(ctx, batchJob, queueURL); err != nil {
 			log.Error(err, "failed to create worker job")
 			return ctrl.Result{}, err
 		}

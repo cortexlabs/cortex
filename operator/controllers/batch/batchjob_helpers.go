@@ -17,16 +17,20 @@ limitations under the License.
 package batchcontrollers
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
+	"path/filepath"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 	"github.com/aws/aws-sdk-go/service/sqs"
 	batch "github.com/cortexlabs/cortex/operator/apis/batch/v1alpha1"
 	"github.com/cortexlabs/cortex/operator/controllers"
+	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	libjson "github.com/cortexlabs/cortex/pkg/lib/json"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
@@ -34,6 +38,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/types/clusterconfig"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
+	"github.com/cortexlabs/yaml"
 	kbatch "k8s.io/api/batch/v1"
 	kcore "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
@@ -181,10 +186,19 @@ func (r *BatchJobReconciler) enqueuePayload(ctx context.Context, batchJob batch.
 	return nil
 }
 
-func (r *BatchJobReconciler) createWorkerJob(ctx context.Context, batchJob batch.BatchJob) error {
-	workerJob, err := r.desiredWorkerJob(batchJob)
+func (r *BatchJobReconciler) createWorkerJob(ctx context.Context, batchJob batch.BatchJob, queueURL string) error {
+	apiSpec, err := r.getAPISpec(batchJob)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "failed to get API spec")
+	}
+
+	if err = r.uploadJobSpec(batchJob, *apiSpec, queueURL); err != nil {
+		return errors.Wrap(err, "failed to upload job spec")
+	}
+
+	workerJob, err := r.desiredWorkerJob(batchJob, *apiSpec)
+	if err != nil {
+		return errors.Wrap(err, "failed to get desired worker job")
 	}
 
 	if err = r.Create(ctx, workerJob); err != nil {
@@ -242,22 +256,26 @@ func (r *BatchJobReconciler) desiredEnqueuerJob(batchJob batch.BatchJob, queueUR
 	return job, nil
 }
 
-func (r *BatchJobReconciler) desiredWorkerJob(batchJob batch.BatchJob) (*kbatch.Job, error) {
-	apiSpec, err := r.getAPISpec(batchJob)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to get API spec")
-	}
-
+func (r *BatchJobReconciler) desiredWorkerJob(batchJob batch.BatchJob, apiSpec spec.API) (*kbatch.Job, error) {
 	var containers []kcore.Container
 	var volumes []kcore.Volume
 
 	switch apiSpec.Predictor.Type {
 	case userconfig.PythonPredictorType:
-		containers, volumes = controllers.PythonPredictorContainers(apiSpec)
+		containers, volumes = controllers.PythonPredictorContainers(&apiSpec)
 	case userconfig.TensorFlowPredictorType:
 		panic("not implemented!") // FIXME: implement
 	default:
 		return nil, fmt.Errorf("unexpected predictor type (%s)", apiSpec.Predictor.Type)
+	}
+
+	for i, container := range containers {
+		if container.Name == controllers.APIContainerName {
+			containers[i].Env = append(container.Env, kcore.EnvVar{
+				Name:  "CORTEX_JOB_SPEC",
+				Value: "s3://" + r.ClusterConfig.Bucket + "/" + r.jobSpecKey(batchJob),
+			})
+		}
 	}
 
 	job := k8s.Job(
@@ -281,7 +299,7 @@ func (r *BatchJobReconciler) desiredWorkerJob(batchJob batch.BatchJob) (*kbatch.
 				},
 				K8sPodSpec: kcore.PodSpec{
 					InitContainers: []kcore.Container{
-						controllers.DownloaderContainer(apiSpec),
+						controllers.DownloaderContainer(&apiSpec),
 					},
 					Containers:    containers,
 					Volumes:       volumes,
@@ -299,7 +317,7 @@ func (r *BatchJobReconciler) desiredWorkerJob(batchJob batch.BatchJob) (*kbatch.
 		},
 	)
 
-	if err = ctrl.SetControllerReference(&batchJob, job, r.Scheme); err != nil {
+	if err := ctrl.SetControllerReference(&batchJob, job, r.Scheme); err != nil {
 		return nil, err
 	}
 
@@ -386,4 +404,67 @@ func (r *BatchJobReconciler) deleteSQSQueue(batchJob batch.BatchJob) error {
 	}
 
 	return nil
+}
+
+func (r *BatchJobReconciler) uploadJobSpec(batchJob batch.BatchJob, api spec.API, queueURL string) error {
+	var deadLetterQueue *spec.SQSDeadLetterQueue
+	if batchJob.Spec.DeadLetterQueue != nil {
+		deadLetterQueue = &spec.SQSDeadLetterQueue{
+			ARN:             batchJob.Spec.DeadLetterQueue.ARN,
+			MaxReceiveCount: int(batchJob.Spec.DeadLetterQueue.MaxReceiveCount),
+		}
+	}
+
+	var config map[string]interface{}
+	if batchJob.Spec.Config != nil {
+		if err := yaml.Unmarshal([]byte(*batchJob.Spec.Config), &config); err != nil {
+			return err
+		}
+	}
+
+	jobSpec := spec.BatchJob{
+		JobKey: spec.JobKey{
+			ID:      batchJob.Name,
+			APIName: batchJob.Spec.APIName,
+			Kind:    userconfig.BatchAPIKind,
+		},
+		RuntimeBatchJobConfig: spec.RuntimeBatchJobConfig{
+			Workers:            int(batchJob.Spec.Workers),
+			SQSDeadLetterQueue: deadLetterQueue,
+			Config:             config,
+		},
+		APIID:       api.ID,
+		SpecID:      api.SpecID,
+		PredictorID: api.PredictorID,
+		SQSUrl:      queueURL,
+		StartTime:   batchJob.CreationTimestamp.Time,
+	}
+
+	buffer := &bytes.Buffer{}
+	if err := json.NewEncoder(buffer).Encode(jobSpec); err != nil {
+		return err
+	}
+
+	input := s3manager.UploadInput{
+		Body:   buffer,
+		Bucket: aws.String(r.ClusterConfig.Bucket),
+		Key:    aws.String(r.jobSpecKey(batchJob)),
+	}
+	if _, err := r.AWS.S3Uploader().Upload(&input); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (r *BatchJobReconciler) jobSpecKey(batchJob batch.BatchJob) string {
+	// e.g. <cluster name>/jobs/<job_api_kind>/<cortex version>/<api_name>/<job_id>/spec.json
+	return filepath.Join(
+		r.ClusterConfig.ClusterName,
+		"jobs",
+		userconfig.BatchAPIKind.String(),
+		consts.CortexVersion,
+		batchJob.Spec.APIName,
+		batchJob.Name,
+		"spec.json",
+	)
 }
