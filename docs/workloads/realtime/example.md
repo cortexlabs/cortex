@@ -2,7 +2,7 @@
 
 ## HTTP
 
-Create HTTP APIs that respond to prediction requests in real-time.
+Create HTTP APIs that respond to requests in real-time.
 
 ### Implement
 

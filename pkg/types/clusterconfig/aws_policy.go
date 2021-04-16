@@ -45,7 +45,8 @@ var _cortexPolicy = `
 				"sts:GetCallerIdentity",
 				"ecr:GetAuthorizationToken",
 				"ecr:BatchGetImage",
-				"sqs:ListQueues"
+				"sqs:ListQueues",
+				"ec2:DescribeSpotPriceHistory"
 			],
 			"Effect": "Allow",
 			"Resource": "*"

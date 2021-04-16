@@ -2,7 +2,7 @@
 
 ## 404 or 503 error responses from API requests
 
-When making prediction requests to your API, it's possible to get a `{"message":"Not Found"}` error message (with HTTP status code `404`), or a `no healthy upstream` error message (with HTTP status code `503`). This means that there are currently no live replicas running for your API. This could happen for a few reasons:
+When making requests to your API, it's possible to get a `{"message":"Not Found"}` error message (with HTTP status code `404`), or a `no healthy upstream` error message (with HTTP status code `503`). This means that there are currently no live replicas running for your API. This could happen for a few reasons:
 
 1. It's possible that your API is simply not ready yet. You can check the status of your API with `cortex get API_NAME`, and stream the logs with `cortex logs API_NAME`.
 1. Your API may have errored during initialization or while responding to a previous request. `cortex get API_NAME` will show the status of your API, and you can view the logs with `cortex logs API_NAME`.
@@ -67,23 +67,4 @@ You can disable rolling updates for your API in your API configuration (e.g. in 
     ...
   update_strategy:
     max_surge: 0
-```
-
-## TensorFlow session
-
-When doing inferences with TensorFlow using the Realtime API Python Predictor or Batch API Python Predictor, it should be noted that your Python Predictor's `__init__()` constructor is only called on one thread, whereas its `predict()` method can run on any of the available threads (which is configured via the `threads_per_process` field in the API's `predictor` configuration). If `threads_per_process` is set to `1` (the default value), then there is no concern, since `__init__()` and `predict()` will run on the same thread. However, if `threads_per_process` is greater than `1`, then only one of the inference threads will have executed the `__init__()` function. This can cause issues with TensorFlow because the default graph is a property of the current thread, so if `__init__()` initializes the TensorFlow graph, only the thread that executed `__init__()` will have the default graph set.
-
-The error you may see if the default graph is not set (as a consequence of `__init__()` and `predict()` running in separate threads) is:
-
-```text
-TypeError: Cannot interpret feed_dict key as Tensor: Tensor Tensor("Placeholder:0", shape=(1, ?), dtype=int32) is not an element of this graph.
-```
-
-To avoid this error, you can set the default graph before running the prediction in the `predict()` method:
-
-```python
-
-def predict(self, payload):
-    with self.sess.graph.as_default():
-        # perform your inference here
 ```

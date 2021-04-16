@@ -184,7 +184,7 @@ spec:
             - --expander=priority
             - --max-total-unready-percentage=5
             - --ok-total-unready-count=30
-            - --max-node-provision-time=5m
+            - --max-node-provision-time=8m
             - --scan-interval=20s
             - --node-group-auto-discovery=asg:tag=k8s.io/cluster-autoscaler/enabled,k8s.io/cluster-autoscaler/{{ config['cluster_name'] }}
           volumeMounts:

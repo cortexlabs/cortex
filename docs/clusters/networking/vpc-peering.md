@@ -2,7 +2,7 @@
 
 If you are using an internal operator load balancer (i.e. you set `operator_load_balancer_scheme: internal` in your cluster configuration file before creating your cluster), you can use VPC Peering to enable your Cortex CLI to connect to your cluster operator from another VPC so that you may run `cortex` commands.
 
-If you are using an internal API load balancer (i.e. you set `api_load_balancer_scheme: internal` in your cluster configuration file before creating your cluster), you can use VPC Peering to make prediction requests from another VPC.
+If you are using an internal API load balancer (i.e. you set `api_load_balancer_scheme: internal` in your cluster configuration file before creating your cluster), you can use VPC Peering to make requests from another VPC.
 
 This guide illustrates how to create a VPC Peering connection between a VPC of your choice and the Cortex load balancers.
 
@@ -66,7 +66,7 @@ For each of these route tables, click "Edit routes" and add a new route where th
 
 Repeat adding this route for each route table associated with the Cortex operator's subnets; in my case there were three. Do not create new route tables or change subnet associations.
 
-You should now be able to use the Cortex CLI and make prediction requests from your VPC.
+You should now be able to use the Cortex CLI and make requests from your VPC.
 
 ## Cleanup
 
