@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package batchcontrollers
+package batchcontrollers_test
 
 import (
 	"os"
@@ -22,6 +22,7 @@ import (
 	"testing"
 
 	"github.com/cortexlabs/cortex/operator/controllers"
+	batchcontrollers "github.com/cortexlabs/cortex/operator/controllers/batch"
 	"github.com/cortexlabs/cortex/pkg/consts"
 	awslib "github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/hash"
@@ -50,6 +51,8 @@ const (
 
 var cfg *rest.Config
 var k8sClient client.Client
+var awsClient *awslib.Client
+var clusterConfig *clusterconfig.Config
 var testEnv *envtest.Environment
 
 func TestAPIs(t *testing.T) {
@@ -95,13 +98,13 @@ var _ = BeforeSuite(func(done Done) {
 		clusterConfigPath = _devClusterConfigPath
 	}
 
-	clusterConfig, err := clusterconfig.NewForFile(clusterConfigPath)
+	clusterConfig, err = clusterconfig.NewForFile(clusterConfigPath)
 	Expect(err).ToNot(HaveOccurred(),
 		"error during cluster config creation (custom cluster "+
 			"config paths can be set with the CORTEX_TEST_CLUSTER_CONFIG env variable)",
 	)
 
-	awsClient, err := awslib.NewForRegion(clusterConfig.Region)
+	awsClient, err = awslib.NewForRegion(clusterConfig.Region)
 	Expect(err).ToNot(HaveOccurred())
 
 	accountID, hashedAccountID, err := awsClient.CheckCredentials()
@@ -119,7 +122,7 @@ var _ = BeforeSuite(func(done Done) {
 	// initialize some of the global values for the k8s helpers
 	controllers.Init(clusterConfig, operatorMetadata)
 
-	err = (&BatchJobReconciler{
+	err = (&batchcontrollers.BatchJobReconciler{
 		Client:        k8sManager.GetClient(),
 		Log:           ctrl.Log.WithName("controllers").WithName("BatchJob"),
 		ClusterConfig: clusterConfig,

@@ -141,7 +141,7 @@ func (r *BatchJobReconciler) getQueueName(batchJob batch.BatchJob) string {
 		clusterconfig.SQSQueueDelimiter + batchJob.Name + ".fifo"
 }
 
-func (r *BatchJobReconciler) checkEnqueueingStatus(ctx context.Context, batchJob batch.BatchJob, workerJob *kbatch.Job) (EnqueuingStatus, error) {
+func (r *BatchJobReconciler) checkEnqueuingStatus(ctx context.Context, batchJob batch.BatchJob, workerJob *kbatch.Job) (EnqueuingStatus, error) {
 	if workerJob != nil {
 		return EnqueuingDone, nil
 	}
@@ -369,9 +369,9 @@ func (r *BatchJobReconciler) updateStatus(ctx context.Context, batchJob *batch.B
 	// TODO replace strings with enum
 	switch statusInfo.EnqueuingStatus {
 	case EnqueuingInProgress:
-		batchJob.Status.Status = "enqueing"
+		batchJob.Status.Status = "enqueuing"
 	case EnqueuingFailed:
-		batchJob.Status.Status = "enqueing_failed"
+		batchJob.Status.Status = "enqueuing_failed"
 	}
 
 	worker := statusInfo.WorkerJob

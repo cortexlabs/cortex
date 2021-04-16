@@ -14,56 +14,179 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package batchcontrollers
+package batchcontrollers_test
 
 import (
 	"context"
+	"strings"
 	"time"
 
 	batch "github.com/cortexlabs/cortex/operator/apis/batch/v1alpha1"
+	"github.com/cortexlabs/cortex/pkg/lib/random"
+	"github.com/cortexlabs/cortex/pkg/types/spec"
+	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	kbatch "k8s.io/api/batch/v1"
 	kmeta "k8s.io/apimachinery/pkg/apis/meta/v1"
 	ktypes "k8s.io/apimachinery/pkg/types"
 )
+
+func uploadDummyAPISpec(apiName string, apiID string) error {
+	apiSpec := spec.API{
+		API: &userconfig.API{
+			Resource: userconfig.Resource{
+				Name: apiName,
+				Kind: userconfig.BatchAPIKind,
+			},
+			Predictor: &userconfig.Predictor{
+				Type:         userconfig.PythonPredictorType,
+				Image:        "quay.io/cortexlabs/python-predictor-cpu:master",
+				Dependencies: &userconfig.Dependencies{},
+			},
+			Compute: &userconfig.Compute{},
+		},
+		ID:           apiID,
+		SpecID:       random.String(5),
+		PredictorID:  random.String(5),
+		DeploymentID: random.String(5),
+	}
+	apiSpecKey := spec.Key(apiName, apiID, clusterConfig.ClusterName)
+	if err := awsClient.UploadJSONToS3(apiSpec, clusterConfig.Bucket, apiSpecKey); err != nil {
+		return err
+	}
+	return nil
+}
+
+func deleteDummyAPISpec(apiName string, apiID string) error {
+	apiSpecKey := spec.Key(apiName, apiID, clusterConfig.ClusterName)
+	if err := awsClient.DeleteS3File(clusterConfig.Bucket, apiSpecKey); err != nil {
+		return err
+	}
+	return nil
+}
 
 var _ = Describe("BatchJob controller", func() {
 
 	// Define utility constants for object names and testing timeouts/durations and intervals.
 	const (
-		BatchJobName      = "test-batch-job"
+		APIName           = "test-api"
 		BatchJobNamespace = "default"
 		timeout           = time.Second * 10
 		interval          = time.Millisecond * 250
 	)
 
-	Context("Reconcile", func() {
-		It("Should update the status correctly", func() {
-			By("Creating a new BatchJob")
-			ctx := context.Background()
-			batchJob := &batch.BatchJob{
-				ObjectMeta: kmeta.ObjectMeta{
-					Name:      BatchJobName,
+	var (
+		randomJobID string
+		randomAPIID string
+	)
+
+	Context("Reconciliation", func() {
+		BeforeEach(func() {
+			// ensures the tests can be ran in rapid succession by avoiding the time limits of SQS queue creation
+			randomJobID = strings.ToLower(random.String(5))
+			randomAPIID = random.Digits(5)
+
+			Expect(uploadDummyAPISpec(APIName, randomAPIID)).To(Succeed())
+		})
+
+		AfterEach(func(done Done) {
+			Expect(k8sClient.Delete(
+				context.Background(),
+				&batch.BatchJob{
+					ObjectMeta: kmeta.ObjectMeta{Name: randomJobID, Namespace: BatchJobNamespace},
+				},
+			)).To(Succeed())
+
+			Expect(deleteDummyAPISpec(APIName, randomAPIID)).To(Succeed())
+
+			close(done)
+		})
+
+		It("Should reach a batch job completed status", func() {
+			When("Every child resource is created or finishes successfully", func() {
+				By("Creating a new BatchJob")
+				ctx := context.Background()
+				batchJob := &batch.BatchJob{
+					ObjectMeta: kmeta.ObjectMeta{
+						Name:      randomJobID,
+						Namespace: BatchJobNamespace,
+					},
+					Spec: batch.BatchJobSpec{
+						APIName: APIName,
+						APIId:   randomAPIID,
+						Workers: 1,
+					},
+				}
+				Expect(k8sClient.Create(ctx, batchJob)).To(Succeed())
+
+				batchJobLookupKey := ktypes.NamespacedName{Name: batchJob.Name, Namespace: batchJob.Namespace}
+				createdBatchJob := &batch.BatchJob{}
+
+				// Check that the resource was created correctly (i.e. if the spec matches)
+				Eventually(func() error {
+					return k8sClient.Get(ctx, batchJobLookupKey, createdBatchJob)
+				}, timeout, interval).Should(Succeed())
+				Expect(createdBatchJob.Spec).Should(Equal(batchJob.Spec))
+
+				By("Creating an SQS queue successfully")
+				Eventually(func() bool {
+					err := k8sClient.Get(ctx, batchJobLookupKey, createdBatchJob)
+					if err != nil {
+						return false
+					}
+					return createdBatchJob.Status.QueueURL != ""
+				}, timeout, interval).Should(BeTrue())
+
+				By("Reaching a completed enqueuer status")
+				enqueuerJobLookupKey := ktypes.NamespacedName{
+					Name:      batchJob.Spec.APIName + "-" + batchJob.Name + "-enqueuer",
+					Namespace: batchJob.Namespace,
+				}
+				createdEnqueuerJob := &kbatch.Job{}
+
+				// wait for the enqueuer job to be created
+				Eventually(func() error {
+					return k8sClient.Get(ctx, enqueuerJobLookupKey, createdEnqueuerJob)
+				}, timeout, interval).Should(Succeed())
+
+				// Mock the enqueuer status to match the success condition
+				createdEnqueuerJob.Status.Succeeded = 1
+				Expect(k8sClient.Status().Update(ctx, createdEnqueuerJob)).To(Succeed())
+
+				Eventually(func() bool {
+					err := k8sClient.Get(ctx, batchJobLookupKey, createdBatchJob)
+					if err != nil {
+						return false
+					}
+					return createdBatchJob.Status.Status == "enqueuing"
+				}, timeout, interval)
+
+				By("Reaching a successful worker job status")
+
+				workerJobLookupKey := ktypes.NamespacedName{
+					Name:      batchJob.Spec.APIName + "-" + batchJob.Name,
 					Namespace: BatchJobNamespace,
-				},
-				Spec: batch.BatchJobSpec{
-					APIName: "test-api",
-					APIId:   "123456",
-					Workers: 1,
-				},
-			}
-			Expect(k8sClient.Create(ctx, batchJob)).Should(Succeed())
+				}
+				createdWorkerJob := &kbatch.Job{}
 
-			By("Checking created spec matches the original")
-			batchJobLookupKey := ktypes.NamespacedName{Name: batchJob.Name, Namespace: batchJob.Namespace}
-			createdBatchJob := &batch.BatchJob{}
+				// Wait for worker job to be created
+				Eventually(func() error {
+					return k8sClient.Get(ctx, workerJobLookupKey, createdWorkerJob)
+				}, timeout, interval).Should(Succeed())
 
-			// Check that the resource was created correctly (i.e. if the spec matches)
-			Eventually(func() bool {
-				err := k8sClient.Get(ctx, batchJobLookupKey, createdBatchJob)
-				return err == nil
-			}, timeout, interval).Should(BeTrue())
-			Expect(createdBatchJob.Spec).Should(Equal(batchJob.Spec))
+				// Mock the worker job status to match the success condition
+				createdWorkerJob.Status.Succeeded = batchJob.Spec.Workers
+				Expect(k8sClient.Status().Update(ctx, createdWorkerJob)).To(Succeed())
+
+				Eventually(func() bool {
+					err := k8sClient.Get(ctx, batchJobLookupKey, createdBatchJob)
+					if err != nil {
+						return false
+					}
+					return createdBatchJob.Status.Status == "completed"
+				}).Should(BeTrue())
+			})
 		})
 	})
 })

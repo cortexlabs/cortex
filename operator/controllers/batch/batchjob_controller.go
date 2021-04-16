@@ -114,8 +114,8 @@ func (r *BatchJobReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return ctrl.Result{}, err
 	}
 
-	log.V(1).Info("checking enqueueing status")
-	enqueueingStatus, err := r.checkEnqueueingStatus(ctx, batchJob, workerJob)
+	log.V(1).Info("checking enqueuing status")
+	enqueuingStatus, err := r.checkEnqueuingStatus(ctx, batchJob, workerJob)
 	if err != nil {
 		log.Error(err, "failed to check enqueuing status")
 		return ctrl.Result{}, err
@@ -124,13 +124,13 @@ func (r *BatchJobReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	workerJobExists := workerJob != nil
 	statusInfo := batchJobStatusInfo{
 		QueueExists:     queueExists,
-		EnqueuingStatus: enqueueingStatus,
+		EnqueuingStatus: enqueuingStatus,
 		WorkerJob:       workerJob,
 	}
 
 	log.V(1).Info("status data successfully acquired",
 		"queueExists", queueExists,
-		"enqueuingStatus", enqueueingStatus,
+		"enqueuingStatus", enqueuingStatus,
 		"workerJobExists", workerJobExists,
 	)
 
@@ -157,11 +157,11 @@ func (r *BatchJobReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		queueURL = r.getQueueURL(batchJob)
 	}
 
-	switch enqueueingStatus {
+	switch enqueuingStatus {
 	case EnqueuingNotStarted:
-		log.V(1).Info("enqueing payload")
+		log.V(1).Info("enqueuing payload")
 		if err = r.enqueuePayload(ctx, batchJob, queueURL); err != nil {
-			log.Error(err, "failed to start enqueueing the payload")
+			log.Error(err, "failed to start enqueuing the payload")
 			return ctrl.Result{}, err
 		}
 	case EnqueuingInProgress:
