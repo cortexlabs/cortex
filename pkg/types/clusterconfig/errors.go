@@ -32,6 +32,7 @@ const (
 	ErrInvalidLegacyProvider                  = "cli.invalid_legacy_provider"
 	ErrInvalidRegion                          = "clusterconfig.invalid_region"
 	ErrNoNodeGroupSpecified                   = "clusterconfig.no_nodegroup_specified"
+	ErrNodeGroupMaxInstancesIsZero            = "clusterconfig.node_group_max_instances_is_zero"
 	ErrMaxNumOfNodeGroupsReached              = "clusterconfig.max_num_of_nodegroups_reached"
 	ErrDuplicateNodeGroupName                 = "clusterconfig.duplicate_nodegroup_name"
 	ErrInstanceTypeTooSmall                   = "clusterconfig.instance_type_too_small"
@@ -93,6 +94,13 @@ func ErrorNoNodeGroupSpecified() error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrNoNodeGroupSpecified,
 		Message: "no nodegroup was specified; please specify at least 1 nodegroup",
+	})
+}
+
+func ErrorNodeGroupMaxInstancesIsZero() error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrNodeGroupMaxInstancesIsZero,
+		Message: fmt.Sprintf("nodegroups cannot be created with `%s` set to 0 (but `%s` can be scaled to 0 after the cluster has been created)", MaxInstancesKey, MaxInstancesKey),
 	})
 }
 
