@@ -1,1 +1,1 @@
-Deploy machine learning models to production - [docs.cortex.dev](https://www.docs.cortex.dev)
+Cost-effective serverless computing at scale - [docs.cortex.dev](https://www.docs.cortex.dev)
