@@ -462,8 +462,8 @@ var ManagedConfigStructFieldValidations = []*cr.StructFieldValidation{
 					{
 						StructField: "MaxInstances",
 						Int64Validation: &cr.Int64Validation{
-							Default:     int64(5),
-							GreaterThan: pointer.Int64(0),
+							Default:              int64(5),
+							GreaterThanOrEqualTo: pointer.Int64(0), // this will be validated to be > 0 during cluster up (can be scaled down later)
 						},
 					},
 					{
@@ -795,6 +795,10 @@ func (cc *Config) Validate(awsClient *aws.Client, skipQuotaVerification bool) er
 	ngNames := []string{}
 	instances := []aws.InstanceTypeRequests{}
 	for _, nodeGroup := range cc.NodeGroups {
+		// setting max_instances to 0 during cluster creation is not permitted (but scaling max_instances to 0 afterwards is allowed)
+		if nodeGroup.MaxInstances == 0 {
+			return errors.Wrap(ErrorNodeGroupMaxInstancesIsZero(), NodeGroupsKey, nodeGroup.Name)
+		}
 		if !slices.HasString(ngNames, nodeGroup.Name) {
 			ngNames = append(ngNames, nodeGroup.Name)
 		} else {
