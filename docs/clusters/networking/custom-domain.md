@@ -1,6 +1,6 @@
 # Custom domain
 
-You can use any custom domain (that you own) for your prediction endpoints. For example, you can make your API accessible via `api.example.com/text-generator`. This guide will demonstrate how to create a dedicated subdomain in AWS Route 53 and, if desired, configure your API load balancer to use an SSL certificate provisioned by AWS Certificate Manager.
+You can use any custom domain for your endpoints. For example, you can make your API accessible via `api.example.com/text-generator`. This guide will demonstrate how to create a dedicated subdomain in AWS Route 53 and, if desired, configure your API load balancer to use an SSL certificate provisioned by AWS Certificate Manager.
 
 ## Configure DNS
 
@@ -120,7 +120,7 @@ To test connectivity, try the following steps:
 1. If you run into an error such as `curl: (6) Could not resolve host: api.cortexlabs.dev` wait a few minutes and make the GET request from another device that hasn't made a request to that url in a while. A successful request looks like this:
 
 ```text
-{"message":"make a prediction by sending a post request to this endpoint with a json payload",...}
+{"message":"make a request by sending a POST to this endpoint with a json payload",...}
 ```
 
 ## Cleanup
