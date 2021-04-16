@@ -14,7 +14,7 @@ Server-side batching is not supported for APIs that use the gRPC protocol.
 
 ## Python predictor
 
-When using server-side batching with the Python predictor, the arguments that are passed into your predictor's `predict()` function will be lists: `payload` will be a list of payloads, `query_params` will be a list of query parameter dictionaries, and `headers` will be a list of header dictionaries. The lists will all have the same length, where a particular index accross all arguments corresponds to a single request (i.e. `payload[2]`, `query_params[2]`, and `headers[2]` correspond to a single prediction request). Your `predict()` function must return a list of responses in the same order that they were received (i.e. the 3rd element in returned list must be the response associated with `payload[2]`).
+When using server-side batching with the Python predictor, the arguments that are passed into your predictor's `predict()` function will be lists: `payload` will be a list of payloads, `query_params` will be a list of query parameter dictionaries, and `headers` will be a list of header dictionaries. The lists will all have the same length, where a particular index across all arguments corresponds to a single request (i.e. `payload[2]`, `query_params[2]`, and `headers[2]` correspond to a single request). Your `predict()` function must return a list of responses in the same order that they were received (i.e. the 3rd element in returned list must be the response associated with `payload[2]`).
 
 ## TensorFlow predictor
 
@@ -68,7 +68,7 @@ with graph.as_default():
 
 ## Optimization
 
-When optimizing for both throughput and latency, you will likely want keep the `max_batch_size` to a relatively small value. Even though a higher `max_batch_size` with a low `batch_interval` (when there are many requests coming in) can offer a significantly higher throughput, the overall latency could be quite large. The reason is that for a request to get back a response, it has to wait until the entire batch is processed, which means that the added latency due to the `batch_interval` can pale in comparison. For instance, let's assume that a single prediction takes 50ms, and that when the batch size is set to 128, the processing time for a batch is 1280ms (i.e. 10ms per sample). So while the throughput is now 5 times higher, it takes 1280ms + `batch_interval` to get back a response (instead of 50ms). This is the trade-off with server-side batching.
+When optimizing for both throughput and latency, you will likely want keep the `max_batch_size` to a relatively small value. Even though a higher `max_batch_size` with a low `batch_interval` (when there are many requests coming in) can offer a significantly higher throughput, the overall latency could be quite large. The reason is that for a request to get back a response, it has to wait until the entire batch is processed, which means that the added latency due to the `batch_interval` can pale in comparison. For instance, let's assume that a single request takes 50ms, and that when the batch size is set to 128, the processing time for a batch is 1280ms (i.e. 10ms per sample). So while the throughput is now 5 times higher, it takes 1280ms + `batch_interval` to get back a response (instead of 50ms). This is the trade-off with server-side batching.
 
 When optimizing for maximum throughput, a good rule of thumb is to follow these steps:
 

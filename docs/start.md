@@ -14,14 +14,14 @@ cortex cluster up cluster.yaml
 * [Cluster configuration](clusters/management/create.md) - optimize your cluster for your workloads.
 * [Environments](clusters/management/environments.md) - manage multiple clusters.
 
-## Run machine learning workloads at scale
+## Build scalable APIs
 
 ```bash
-# deploy machine learning APIs
+# deploy APIs
 cortex deploy apis.yaml
 ```
 
-* [RealtimeAPI](workloads/realtime/example.md) - create HTTP/gRPC APIs that respond to prediction requests in real-time.
-* [AsyncAPI](workloads/async/example.md) - create APIs that respond to prediction requests asynchronously.
-* [BatchAPI](workloads/batch/example.md) - create APIs that run distributed batch inference jobs.
-* [TaskAPI](workloads/task/example.md) - create APIs that run training or fine-tuning jobs.
+* [RealtimeAPI](workloads/realtime/example.md) - create HTTP/gRPC APIs that respond to requests in real-time.
+* [AsyncAPI](workloads/async/example.md) - create APIs that respond to requests asynchronously.
+* [BatchAPI](workloads/batch/example.md) - create APIs that run distributed batch jobs.
+* [TaskAPI](workloads/task/example.md) - create APIs that run jobs on-demand.
