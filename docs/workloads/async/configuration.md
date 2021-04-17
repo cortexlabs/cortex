@@ -63,7 +63,7 @@ compute:
   cpu: <string | int | float>  # CPU request per replica. One unit of CPU corresponds to one virtual CPU; fractional requests are allowed, and can be specified as a floating point number or via the "m" suffix (default: 200m)
   gpu: <int>  # GPU request per replica. One unit of GPU corresponds to one virtual GPU (default: 0)
   mem: <string>  # memory request per replica. One unit of memory is one byte and can be expressed as an integer or by using one of these suffixes: K, M, G, T (or their power-of two counterparts: Ki, Mi, Gi, Ti) (default: Null)
-  node_groups: <string>  # to select a specific node group (optional)
+  node_groups: <list:string>  # to select specific node groups (optional)
 ```
 
 ## Autoscaling
