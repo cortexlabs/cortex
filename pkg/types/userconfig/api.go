@@ -677,6 +677,7 @@ func (api *API) TelemetryEvent() map[string]interface{} {
 		event["compute.gpu"] = api.Compute.GPU
 		event["compute.inf"] = api.Compute.Inf
 		event["compute.node_groups._is_defined"] = len(api.Compute.NodeGroups) > 0
+		event["compute.node_groups._len"] = len(api.Compute.NodeGroups)
 	}
 
 	if api.Predictor != nil {
