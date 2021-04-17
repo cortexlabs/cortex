@@ -49,15 +49,6 @@ func tensorflowAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.D
 		servingProtocol = "grpc"
 	}
 
-	var affinity *kcore.Affinity
-	if api.Compute.Selector == nil {
-		affinity = &kcore.Affinity{
-			NodeAffinity: &kcore.NodeAffinity{
-				PreferredDuringSchedulingIgnoredDuringExecution: operator.GeneratePreferredNodeAffinities(),
-			},
-		}
-	}
-
 	return k8s.Deployment(&k8s.DeploymentSpec{
 		Name:           operator.K8sName(api.Name),
 		Replicas:       getRequestedReplicasFromDeployment(api, prevDeployment),
@@ -97,9 +88,9 @@ func tensorflowAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.D
 					operator.InitContainer(api),
 				},
 				Containers:         containers,
-				NodeSelector:       operator.NodeSelectors(api.Compute.Selector),
+				NodeSelector:       operator.NodeSelectors(),
 				Tolerations:        operator.GenerateResourceTolerations(),
-				Affinity:           affinity,
+				Affinity:           operator.GenerateNodeAffinities(api.Compute.NodeGroups),
 				Volumes:            volumes,
 				ServiceAccountName: operator.ServiceAccountName,
 			},
@@ -116,15 +107,6 @@ func pythonAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deplo
 		servingProtocol = "grpc"
 	}
 
-	var affinity *kcore.Affinity
-	if api.Compute.Selector == nil {
-		affinity = &kcore.Affinity{
-			NodeAffinity: &kcore.NodeAffinity{
-				PreferredDuringSchedulingIgnoredDuringExecution: operator.GeneratePreferredNodeAffinities(),
-			},
-		}
-	}
-
 	return k8s.Deployment(&k8s.DeploymentSpec{
 		Name:           operator.K8sName(api.Name),
 		Replicas:       getRequestedReplicasFromDeployment(api, prevDeployment),
@@ -164,9 +146,9 @@ func pythonAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deplo
 					operator.InitContainer(api),
 				},
 				Containers:         containers,
-				NodeSelector:       operator.NodeSelectors(api.Compute.Selector),
+				NodeSelector:       operator.NodeSelectors(),
 				Tolerations:        operator.GenerateResourceTolerations(),
-				Affinity:           affinity,
+				Affinity:           operator.GenerateNodeAffinities(api.Compute.NodeGroups),
 				Volumes:            volumes,
 				ServiceAccountName: operator.ServiceAccountName,
 			},

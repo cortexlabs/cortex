@@ -192,14 +192,28 @@ func validateK8sCompute(compute *userconfig.Compute, maxMemMap map[string]kresou
 	allErrors := []error{}
 	successfulLoops := 0
 
-	nodeGroupNames := strset.New(config.ManagedConfig.GetNodeGroupNames()...)
-	if compute.Selector != nil && !nodeGroupNames.Has(*compute.Selector) {
-		return ErrorInvalidNodeGroupSelector(*compute.Selector, nodeGroupNames.Slice())
+	clusterNodeGroupNames := strset.New(config.ManagedConfig.GetNodeGroupNames()...)
+	apiNodeGroupNames := compute.NodeGroups
+
+	if apiNodeGroupNames != nil {
+		for _, ngName := range apiNodeGroupNames {
+			if !clusterNodeGroupNames.Has(ngName) {
+				return ErrorInvalidNodeGroupSelector(ngName, clusterNodeGroupNames.Slice())
+			}
+		}
 	}
 
 	for _, instanceMetadata := range config.InstancesMetadata {
-		if compute.Selector != nil && config.ManagedConfig.GetNodeGroupByName(*compute.Selector).InstanceType != instanceMetadata.Type {
-			continue
+		if apiNodeGroupNames != nil {
+			matchedNodeGroups := 0
+			for _, ngName := range apiNodeGroupNames {
+				if config.ManagedConfig.GetNodeGroupByName(ngName).InstanceType != instanceMetadata.Type {
+					matchedNodeGroups++
+				}
+			}
+			if matchedNodeGroups == 0 {
+				continue
+			}
 		}
 
 		maxMemLoop := maxMemMap[instanceMetadata.Type]

@@ -20,22 +20,24 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/cast"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/slices"
+	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 )
 
 type StringListValidation struct {
-	Required               bool
-	Default                []string
-	AllowExplicitNull      bool
-	AllowEmpty             bool
-	CantBeSpecifiedErrStr  *string
-	CastSingleItem         bool
-	DisallowDups           bool
-	MinLength              int
-	MaxLength              int
-	InvalidLengths         []int
-	AllowCortexResources   bool
-	RequireCortexResources bool
-	Validator              func([]string) ([]string, error)
+	Required                bool
+	Default                 []string
+	AllowExplicitNull       bool
+	AllowEmpty              bool
+	CantBeSpecifiedErrStr   *string
+	CastSingleItem          bool
+	DisallowDups            bool
+	MinLength               int
+	MaxLength               int
+	InvalidLengths          []int
+	AllowCortexResources    bool
+	RequireCortexResources  bool
+	ElementStringValidation *StringValidation // Required, Default, AllowEmpty, TreatNullAsEmpty & Validator fields not applicable here
+	Validator               func([]string) ([]string, error)
 }
 
 func StringList(inter interface{}, v *StringListValidation) ([]string, error) {
@@ -126,6 +128,15 @@ func validateStringList(val []string, v *StringListValidation) ([]string, error)
 	for _, invalidLength := range v.InvalidLengths {
 		if len(val) == invalidLength {
 			return nil, ErrorWrongNumberOfElements(v.InvalidLengths)
+		}
+	}
+
+	if v.ElementStringValidation != nil {
+		for i, element := range val {
+			err := ValidateStringVal(element, v.ElementStringValidation)
+			if err != nil {
+				return nil, errors.Wrap(err, s.Index(i))
+			}
 		}
 	}
 

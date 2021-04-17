@@ -398,11 +398,15 @@ func computeValidation() *cr.StructFieldValidation {
 					},
 				},
 				{
-					StructField: "Selector",
-					StringPtrValidation: &cr.StringPtrValidation{
-						Default:                    nil,
-						AllowExplicitNull:          true,
-						AlphaNumericDashUnderscore: true,
+					StructField: "NodeGroups",
+					StringListValidation: &cr.StringListValidation{
+						Required:          false,
+						Default:           nil,
+						AllowExplicitNull: true,
+						AllowEmpty:        false,
+						ElementStringValidation: &cr.StringValidation{
+							AlphaNumericDashUnderscore: true,
+						},
 					},
 				},
 			},

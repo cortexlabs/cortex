@@ -88,15 +88,6 @@ func k8sJobSpec(api *spec.API, job *spec.TaskJob) *kbatch.Job {
 		}
 	}
 
-	var affinity *kcore.Affinity
-	if api.Compute.Selector == nil {
-		affinity = &kcore.Affinity{
-			NodeAffinity: &kcore.NodeAffinity{
-				PreferredDuringSchedulingIgnoredDuringExecution: operator.GeneratePreferredNodeAffinities(),
-			},
-		}
-	}
-
 	return k8s.Job(&k8s.JobSpec{
 		Name:        job.JobKey.K8sName(),
 		Parallelism: int32(job.Workers),
@@ -127,9 +118,9 @@ func k8sJobSpec(api *spec.API, job *spec.TaskJob) *kbatch.Job {
 					operator.TaskInitContainer(api),
 				},
 				Containers:         containers,
-				NodeSelector:       operator.NodeSelectors(api.Compute.Selector),
+				NodeSelector:       operator.NodeSelectors(),
 				Tolerations:        operator.GenerateResourceTolerations(),
-				Affinity:           affinity,
+				Affinity:           operator.GenerateNodeAffinities(api.Compute.NodeGroups),
 				Volumes:            volumes,
 				ServiceAccountName: operator.ServiceAccountName,
 			},

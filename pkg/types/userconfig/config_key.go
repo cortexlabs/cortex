@@ -76,11 +76,11 @@ const (
 	EndpointKey = "endpoint"
 
 	// Compute
-	CPUKey      = "cpu"
-	MemKey      = "mem"
-	GPUKey      = "gpu"
-	InfKey      = "inf"
-	SelectorKey = "selector"
+	CPUKey        = "cpu"
+	MemKey        = "mem"
+	GPUKey        = "gpu"
+	InfKey        = "inf"
+	NodeGroupsKey = "node_groups"
 
 	// Autoscaling
 	MinReplicasKey                  = "min_replicas"

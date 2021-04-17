@@ -23,6 +23,7 @@ import (
 
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
+	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/urls"
 	"github.com/cortexlabs/yaml"
@@ -111,11 +112,11 @@ type Networking struct {
 }
 
 type Compute struct {
-	CPU      *k8s.Quantity `json:"cpu" yaml:"cpu"`
-	Mem      *k8s.Quantity `json:"mem" yaml:"mem"`
-	GPU      int64         `json:"gpu" yaml:"gpu"`
-	Inf      int64         `json:"inf" yaml:"inf"`
-	Selector *string       `json:"selector" yaml:"selector"`
+	CPU        *k8s.Quantity `json:"cpu" yaml:"cpu"`
+	Mem        *k8s.Quantity `json:"mem" yaml:"mem"`
+	GPU        int64         `json:"gpu" yaml:"gpu"`
+	Inf        int64         `json:"inf" yaml:"inf"`
+	NodeGroups []string      `json:"node_groups" yaml:"node_groups"`
 }
 
 type Autoscaling struct {
@@ -541,10 +542,10 @@ func (compute *Compute) Normalized() string {
 	} else {
 		sb.WriteString(fmt.Sprintf("%s: %d\n", MemKey, compute.Mem.Value()))
 	}
-	if compute.Selector == nil {
-		sb.WriteString(fmt.Sprintf("%s: null\n", SelectorKey))
+	if compute.NodeGroups == nil {
+		sb.WriteString(fmt.Sprintf("%s: null\n", NodeGroupsKey))
 	} else {
-		sb.WriteString(fmt.Sprintf("%s: %s\n", SelectorKey, *compute.Selector))
+		sb.WriteString(fmt.Sprintf("%s: %s\n", NodeGroupsKey, s.ObjFlatNoQuotes(compute.NodeGroups)))
 	}
 
 	return sb.String()
@@ -568,10 +569,10 @@ func (compute *Compute) UserStr() string {
 	} else {
 		sb.WriteString(fmt.Sprintf("%s: %s\n", MemKey, compute.Mem.UserString))
 	}
-	if compute.Selector == nil {
-		sb.WriteString(fmt.Sprintf("%s: null  # automatic node-group selection\n", SelectorKey))
+	if compute.NodeGroups == nil {
+		sb.WriteString(fmt.Sprintf("%s: null  # automatic node-group selection\n", NodeGroupsKey))
 	} else {
-		sb.WriteString(fmt.Sprintf("%s: %s\n", SelectorKey, *compute.Selector))
+		sb.WriteString(fmt.Sprintf("%s: %s\n", NodeGroupsKey, s.ObjFlatNoQuotes(compute.NodeGroups)))
 	}
 	return sb.String()
 }
@@ -601,11 +602,11 @@ func (compute Compute) Equals(c2 *Compute) bool {
 		return false
 	}
 
-	if compute.Selector == nil && c2.Selector != nil || compute.Selector != nil && c2.Selector == nil {
+	if compute.NodeGroups == nil && c2.NodeGroups != nil || compute.NodeGroups != nil && c2.NodeGroups == nil {
 		return false
 	}
 
-	if *compute.Selector != *c2.Selector {
+	if !strset.New(compute.NodeGroups...).IsEqual(strset.New(c2.NodeGroups...)) {
 		return false
 	}
 
@@ -675,10 +676,7 @@ func (api *API) TelemetryEvent() map[string]interface{} {
 		}
 		event["compute.gpu"] = api.Compute.GPU
 		event["compute.inf"] = api.Compute.Inf
-		if api.Compute.Selector != nil {
-			event["compute.selector._is_defined"] = true
-			event["compute.selector"] = *api.Compute.Selector
-		}
+		event["compute.node_groups._is_defined"] = len(api.Compute.NodeGroups) > 0
 	}
 
 	if api.Predictor != nil {

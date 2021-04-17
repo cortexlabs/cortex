@@ -30,6 +30,7 @@ import (
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/urls"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
+	"github.com/cortexlabs/cortex/pkg/types/clusterconfig"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	kcore "k8s.io/api/core/v1"
@@ -1240,29 +1241,10 @@ func defaultVolumeMounts() []kcore.VolumeMount {
 	}
 }
 
-func NodeSelectors(nodeGroupSelector *string) map[string]string {
-	nodeSelectors := map[string]string{
+func NodeSelectors() map[string]string {
+	return map[string]string{
 		"workload": "true",
 	}
-
-	if nodeGroupSelector == nil {
-		return nodeSelectors
-	}
-
-	var nodeGroupPrefix string
-	for _, nodeGroup := range config.ManagedConfig.NodeGroups {
-		if nodeGroup.Name == *nodeGroupSelector {
-			if nodeGroup.Spot {
-				nodeGroupPrefix = "cx-ws-"
-			} else {
-				nodeGroupPrefix = "cx-wd-"
-			}
-			break
-		}
-	}
-
-	nodeSelectors["alpha.eksctl.io/nodegroup-name"] = nodeGroupPrefix + *nodeGroupSelector
-	return nodeSelectors
 }
 
 func GenerateResourceTolerations() []kcore.Toleration {
@@ -1289,18 +1271,35 @@ func GenerateResourceTolerations() []kcore.Toleration {
 	return tolerations
 }
 
-func GeneratePreferredNodeAffinities() []kcore.PreferredSchedulingTerm {
-	affinities := []kcore.PreferredSchedulingTerm{}
+func GenerateNodeAffinities(apiNodeGroups []string) *kcore.Affinity {
+	preferredAffinities := []kcore.PreferredSchedulingTerm{}
 
-	numNodeGroups := len(config.ManagedConfig.NodeGroups)
-	for idx, nodeGroup := range config.ManagedConfig.NodeGroups {
+	// node groups are ordered according to how the cluster config node groups are ordered
+	var nodeGroups []*clusterconfig.NodeGroup
+	for _, clusterNodeGroup := range config.ManagedConfig.NodeGroups {
+		for _, apiNodeGroupName := range apiNodeGroups {
+			if clusterNodeGroup.Name == apiNodeGroupName {
+				nodeGroups = append(nodeGroups, clusterNodeGroup)
+			}
+		}
+	}
+
+	numNodeGroups := len(apiNodeGroups)
+	requiredNodeGroups := []string{}
+	if apiNodeGroups == nil {
+		nodeGroups = config.ManagedConfig.NodeGroups
+		numNodeGroups = len(config.ManagedConfig.NodeGroups)
+	}
+
+	for idx, nodeGroup := range nodeGroups {
 		var nodeGroupPrefix string
 		if nodeGroup.Spot {
 			nodeGroupPrefix = "cx-ws-"
 		} else {
 			nodeGroupPrefix = "cx-wd-"
 		}
-		affinities = append(affinities, kcore.PreferredSchedulingTerm{
+
+		preferredAffinities = append(preferredAffinities, kcore.PreferredSchedulingTerm{
 			Weight: int32(100 * (1 - float64(idx)/float64(numNodeGroups))),
 			Preference: kcore.NodeSelectorTerm{
 				MatchExpressions: []kcore.NodeSelectorRequirement{
@@ -1312,9 +1311,32 @@ func GeneratePreferredNodeAffinities() []kcore.PreferredSchedulingTerm {
 				},
 			},
 		})
+		requiredNodeGroups = append(requiredNodeGroups, nodeGroupPrefix+nodeGroup.Name)
 	}
 
-	return affinities
+	var requiredNodeSelector *kcore.NodeSelector
+	if apiNodeGroups != nil {
+		requiredNodeSelector = &kcore.NodeSelector{
+			NodeSelectorTerms: []kcore.NodeSelectorTerm{
+				{
+					MatchExpressions: []kcore.NodeSelectorRequirement{
+						{
+							Key:      "alpha.eksctl.io/nodegroup-name",
+							Operator: kcore.NodeSelectorOpIn,
+							Values:   requiredNodeGroups,
+						},
+					},
+				},
+			},
+		}
+	}
+
+	return &kcore.Affinity{
+		NodeAffinity: &kcore.NodeAffinity{
+			PreferredDuringSchedulingIgnoredDuringExecution: preferredAffinities,
+			RequiredDuringSchedulingIgnoredDuringExecution:  requiredNodeSelector,
+		},
+	}
 }
 
 func K8sName(apiName string) string {
