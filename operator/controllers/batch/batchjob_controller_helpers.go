@@ -34,6 +34,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	libjson "github.com/cortexlabs/cortex/pkg/lib/json"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
+	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/types/clusterconfig"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
@@ -317,6 +318,8 @@ func (r *BatchJobReconciler) desiredWorkerJob(batchJob batch.BatchJob, apiSpec s
 		},
 	)
 
+	job.Spec.ActiveDeadlineSeconds = pointer.Int64(int64(batchJob.Spec.Timeout.Seconds()))
+
 	if err := ctrl.SetControllerReference(&batchJob, job, r.Scheme); err != nil {
 		return nil, err
 	}
@@ -380,7 +383,17 @@ func (r *BatchJobReconciler) updateStatus(ctx context.Context, batchJob *batch.B
 		batchJob.Status.EndTime = worker.Status.CompletionTime // assign right away, because it's a pointer
 
 		if worker.Status.Failed == batchJob.Spec.Workers {
-			batchJob.Status.Status = "failed"
+			var status string
+			for _, condition := range worker.Status.Conditions {
+				if condition.Reason == "DeadlineExceeded" {
+					status = "timed_out"
+					break
+				}
+			}
+			if status == "" {
+				status = "failed"
+			}
+			batchJob.Status.Status = status
 		} else if worker.Status.Succeeded == batchJob.Spec.Workers {
 			batchJob.Status.Status = "completed"
 		} else if worker.Status.Active > 0 {

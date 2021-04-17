@@ -32,7 +32,7 @@ import (
 	ktypes "k8s.io/apimachinery/pkg/types"
 )
 
-func uploadDummyAPISpec(apiName string, apiID string) error {
+func uploadTestAPISpec(apiName string, apiID string) error {
 	apiSpec := spec.API{
 		API: &userconfig.API{
 			Resource: userconfig.Resource{
@@ -58,7 +58,7 @@ func uploadDummyAPISpec(apiName string, apiID string) error {
 	return nil
 }
 
-func deleteDummyAPISpec(apiName string, apiID string) error {
+func deleteTestAPISpec(apiName string, apiID string) error {
 	apiSpecKey := spec.Key(apiName, apiID, clusterConfig.ClusterName)
 	if err := awsClient.DeleteS3File(clusterConfig.Bucket, apiSpecKey); err != nil {
 		return err
@@ -87,18 +87,18 @@ var _ = Describe("BatchJob controller", func() {
 			randomJobID = strings.ToLower(random.String(5))
 			randomAPIID = random.Digits(5)
 
-			Expect(uploadDummyAPISpec(APIName, randomAPIID)).To(Succeed())
+			Expect(uploadTestAPISpec(APIName, randomAPIID)).To(Succeed())
 		})
 
 		AfterEach(func(done Done) {
+			Expect(deleteTestAPISpec(APIName, randomAPIID)).To(Succeed())
+
 			Expect(k8sClient.Delete(
 				context.Background(),
 				&batch.BatchJob{
 					ObjectMeta: kmeta.ObjectMeta{Name: randomJobID, Namespace: BatchJobNamespace},
 				},
 			)).To(Succeed())
-
-			Expect(deleteDummyAPISpec(APIName, randomAPIID)).To(Succeed())
 
 			close(done)
 		})
