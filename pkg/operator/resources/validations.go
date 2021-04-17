@@ -167,7 +167,7 @@ KubeProxy 100
 AWS cni 10
 Reserved (150 + 150) see eks.yaml for details
 */
-var _cortexCPUReserve = kresource.MustParse("710m")
+var _cortexCPUReserve = kresource.MustParse("720m")
 
 /*
 Memory Reservations:
@@ -177,7 +177,7 @@ StatsDExporter 100
 NodeExporter 200 (it has two containers)
 Reserved (300 + 300 + 200) see eks.yaml for details
 */
-var _cortexMemReserve = kresource.MustParse("1230Mi")
+var _cortexMemReserve = kresource.MustParse("1250Mi")
 
 var _nvidiaCPUReserve = kresource.MustParse("100m")
 var _nvidiaMemReserve = kresource.MustParse("100Mi")
