@@ -1272,8 +1272,6 @@ func GenerateResourceTolerations() []kcore.Toleration {
 }
 
 func GenerateNodeAffinities(apiNodeGroups []string) *kcore.Affinity {
-	preferredAffinities := []kcore.PreferredSchedulingTerm{}
-
 	// node groups are ordered according to how the cluster config node groups are ordered
 	var nodeGroups []*clusterconfig.NodeGroup
 	for _, clusterNodeGroup := range config.ManagedConfig.NodeGroups {
@@ -1285,11 +1283,13 @@ func GenerateNodeAffinities(apiNodeGroups []string) *kcore.Affinity {
 	}
 
 	numNodeGroups := len(apiNodeGroups)
-	requiredNodeGroups := []string{}
 	if apiNodeGroups == nil {
 		nodeGroups = config.ManagedConfig.NodeGroups
 		numNodeGroups = len(config.ManagedConfig.NodeGroups)
 	}
+
+	requiredNodeGroups := []string{}
+	preferredAffinities := []kcore.PreferredSchedulingTerm{}
 
 	for idx, nodeGroup := range nodeGroups {
 		var nodeGroupPrefix string
