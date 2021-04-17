@@ -223,7 +223,7 @@ func ErrorMinInstancesGreaterThanMaxInstances(minInstances, maxInstances int64) 
 func ErrorNodeGroupNotFound(scalingNodeGroupName, clusterName, clusterRegion string, availableNodeGroups []string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrNodeGroupNotFound,
-		Message: fmt.Sprintf("nodegroup %s couldn't be found in the cluster named %s in region %s; the available nodegroups for this cluster are %s", scalingNodeGroupName, clusterName, clusterRegion, s.StrsAnd(availableNodeGroups)),
+		Message: fmt.Sprintf("nodegroup %s couldn't be found in the cluster named %s in region %s; the available nodegroups for this cluster are: %s", scalingNodeGroupName, clusterName, clusterRegion, s.StrsAnd(availableNodeGroups)),
 	})
 }
 
