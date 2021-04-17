@@ -18,6 +18,7 @@ package batchcontrollers
 
 import (
 	"context"
+	"time"
 
 	"github.com/cortexlabs/cortex/operator/controllers"
 	awslib "github.com/cortexlabs/cortex/pkg/lib/aws"
@@ -65,7 +66,6 @@ func (r *BatchJobReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	}
 
 	// TODO: add TTL to BatchJob
-	// TODO: handle timeouts
 
 	// Step 2: create finalizer or handle deletion
 	if batchJob.ObjectMeta.DeletionTimestamp.IsZero() {
@@ -178,6 +178,19 @@ func (r *BatchJobReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 			log.Error(err, "failed to create worker job")
 			return ctrl.Result{}, err
 		}
+	}
+
+	if batchJob.Spec.TTL != nil && batchJob.Status.EndTime != nil {
+		afterFinishedDuration := time.Now().Sub(batchJob.Status.EndTime.Time)
+		if afterFinishedDuration >= batchJob.Spec.TTL.Duration {
+			if err = r.Delete(ctx, &batchJob); err != nil {
+				return ctrl.Result{}, client.IgnoreNotFound(err)
+			}
+			log.V(1).Info("TTL exceeded, deleting resource")
+			return ctrl.Result{}, nil
+		}
+
+		return ctrl.Result{RequeueAfter: batchJob.Spec.TTL.Duration}, nil
 	}
 
 	return ctrl.Result{}, nil

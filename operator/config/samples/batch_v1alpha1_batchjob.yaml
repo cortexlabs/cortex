@@ -8,4 +8,4 @@ spec:
   workers: 1
   config: |
     dest_s3_dir: s3://cortex-8b69ff0f/test/jobs
-  timeout: "30s"
+  ttl: "10s"

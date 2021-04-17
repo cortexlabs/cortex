@@ -318,7 +318,9 @@ func (r *BatchJobReconciler) desiredWorkerJob(batchJob batch.BatchJob, apiSpec s
 		},
 	)
 
-	job.Spec.ActiveDeadlineSeconds = pointer.Int64(int64(batchJob.Spec.Timeout.Seconds()))
+	if batchJob.Spec.Timeout != nil {
+		job.Spec.ActiveDeadlineSeconds = pointer.Int64(int64(batchJob.Spec.Timeout.Seconds()))
+	}
 
 	if err := ctrl.SetControllerReference(&batchJob, job, r.Scheme); err != nil {
 		return nil, err

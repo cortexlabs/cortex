@@ -96,6 +96,10 @@ spec:
               timeout:
                 description: Duration until a batch job times out
                 type: string
+              ttl:
+                description: Time to live for the resource. The controller will clean-up
+                  resources that reached a final state when the TTL time is exceeded.
+                type: string
               workers:
                 default: 1
                 description: Number of workers for the batch job

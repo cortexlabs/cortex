@@ -51,6 +51,11 @@ type BatchJobSpec struct {
 	// +kubebuilder:validation:Optional
 	// Compute resource requirements
 	Resources *kcore.ResourceRequirements `json:"resources,omitempty"`
+
+	// +kubebuilder:validation:Optional
+	// Time to live for the resource. The controller will clean-up resources
+	// that reached a final state when the TTL time is exceeded.
+	TTL *kmeta.Duration `json:"ttl,omitempty"`
 }
 
 // DeadLetterQueueSpec defines the desired state for the dead letter queue in a BatchJob
