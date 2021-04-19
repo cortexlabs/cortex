@@ -191,7 +191,7 @@ var _ = Describe("BatchJob controller", func() {
 		})
 	})
 
-	FContext("Reconcialiation TTL", func() {
+	Context("Reconcialiation TTL", func() {
 		BeforeEach(func() {
 			// ensures the tests can be ran in rapid succession by avoiding the time limits of SQS queue creation
 			randomJobID = strings.ToLower(random.String(5))
