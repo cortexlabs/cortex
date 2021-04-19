@@ -63,20 +63,20 @@ if [[ $output ]]; then
   exit 1
 fi
 
-#output=$(gofmt -s -l "$ROOT")
-#if [[ $output ]]; then
-#  echo "go files not properly formatted:"
-#  echo "$output"
-#  exit 1
-#fi
+output=$(gofmt -s -l "$ROOT")
+if [[ $output ]]; then
+  echo "go files not properly formatted:"
+  echo "$output"
+  exit 1
+fi
 
-#output=$(black --quiet --diff --line-length=100 "$ROOT")
-#if [[ $output ]]; then
-#  echo "python files not properly formatted:"
-#  echo "$output"
-#  black --version
-#  exit 1
-#fi
+output=$(black --quiet --diff --line-length=100 "$ROOT")
+if [[ $output ]]; then
+  echo "python files not properly formatted:"
+  echo "$output"
+  black --version
+  exit 1
+fi
 
 # Check for missing license
 output=$(cd "$ROOT" && find . -type f \
