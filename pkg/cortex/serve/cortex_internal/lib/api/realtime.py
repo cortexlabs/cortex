@@ -12,16 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import datetime
-import glob
 import imp
 import inspect
 import os
-import shutil
 from copy import deepcopy
 from typing import Optional, Union, Dict, Any
 
 import dill
+import datadog
 from datadog import DogStatsd
 
 from cortex_internal.lib import util
@@ -31,9 +29,11 @@ from cortex_internal.lib.api.validations import (
     validate_predictor_with_grpc,
     are_models_specified,
 )
+from cortex_internal.lib.api.utils import model_downloader, get_spec
 from cortex_internal.lib.client.python import PythonClient
 from cortex_internal.lib.client.tensorflow import TensorFlowClient
 from cortex_internal.lib.exceptions import CortexException, UserException, UserRuntimeException
+from cortex_internal.lib.storage import S3
 from cortex_internal.lib.log import configure_logger
 from cortex_internal.lib.model import (
     FileBasedModelsGC,
@@ -42,12 +42,9 @@ from cortex_internal.lib.model import (
     ModelTreeUpdater,
     ModelsHolder,
     ModelsTree,
-    validate_model_paths,
 )
-from cortex_internal.lib.storage import S3
 from cortex_internal.lib.type import (
     predictor_type_from_api_spec,
-    PredictorType,
     PythonPredictorType,
     TensorFlowPredictorType,
     TensorFlowNeuronPredictorType,
@@ -56,57 +53,84 @@ from cortex_internal.lib.type import (
 logger = configure_logger("cortex", os.environ["CORTEX_LOG_CONFIG_FILE"])
 
 PYTHON_CLASS_VALIDATION = {
-    "required": [
-        {
-            "name": "__init__",
-            "required_args": ["self", "config"],
-            "optional_args": ["job_spec", "python_client", "metrics_client", "proto_module_pb2"],
-        },
-        {
-            "name": "predict",
-            "required_args": ["self"],
-            "optional_args": ["payload", "query_params", "headers", "batch_id", "context"],
-        },
-    ],
-    "optional": [
-        {"name": "on_job_complete", "required_args": ["self"]},
-        {
-            "name": "post_predict",
-            "required_args": ["self"],
-            "optional_args": ["response", "payload", "query_params", "headers"],
-        },
-        {
-            "name": "load_model",
-            "required_args": ["self", "model_path"],
-        },
-    ],
+    "http": {
+        "required": [
+            {
+                "name": "__init__",
+                "required_args": ["self", "config"],
+                "optional_args": ["model_client", "metrics_client"],
+            },
+        ],
+        "optional": [
+            {
+                "name": [
+                    "handle_post",
+                    "handle_get",
+                    "handle_put",
+                    "handle_patch",
+                    "handle_delete",
+                ],
+                "required_args": ["self"],
+                "optional_args": ["payload", "query_params", "headers"]
+            },
+            {
+                "name": "load_model",
+                "required_args": ["self", "model_path"],
+            },
+        ],
+    },
+    "grpc": {
+        "required": [
+            {
+                "name": "__init__",
+                "required_args": ["self", "config", "proto_module_pb2"],
+                "optional_args": ["model_client", "metrics_client"],
+            },
+        ],
+        "optional": [
+            {
+                "name": "load_model",
+                "required_args": ["self", "model_path"],
+            },
+        ],
+    },
 }
 
 TENSORFLOW_CLASS_VALIDATION = {
-    "required": [
-        {
-            "name": "__init__",
-            "required_args": ["self", "tensorflow_client", "config"],
-            "optional_args": ["job_spec", "metrics_client", "proto_module_pb2"],
-        },
-        {
-            "name": "predict",
-            "required_args": ["self"],
-            "optional_args": ["payload", "query_params", "headers", "batch_id", "context"],
-        },
-    ],
-    "optional": [
-        {"name": "on_job_complete", "required_args": ["self"]},
-        {
-            "name": "post_predict",
-            "required_args": ["self"],
-            "optional_args": ["response", "payload", "query_params", "headers"],
-        },
-    ],
+    "http": {
+        "required": [
+            {
+                "name": "__init__",
+                "required_args": ["self", "config", "tensorflow_client"],
+                "optional_args": ["metrics_client"],
+            },
+        ],
+        "optional": [
+            {
+                "name": [
+                    "handle_post",
+                    "handle_get",
+                    "handle_put",
+                    "handle_patch",
+                    "handle_delete",
+                ],
+                "required_args": ["self"],
+                "optional_args": ["payload", "query_params", "headers"]
+            },
+        ],
+    },
+    "grpc": {
+        "required": [
+            {
+                "name": "__init__",
+                "required_args": ["self", "config", "proto_module_pb2", "tensorflow_client"],
+                "optional_args": ["metrics_client"],
+            },
+        ],
+    },
 }
 
-
-class Predictor:
+class RealtimeAPI:
     """
     Class to validate/load the predictor class (PythonPredictor, TensorFlowPredictor).
     Also makes the specified models in cortex.yaml available to the predictor's implementation.
@@ -360,76 +384,125 @@ class Predictor:
             cron.join()
 
 
-def model_downloader(
-    predictor_type: PredictorType,
-    bucket_name: str,
-    model_name: str,
-    model_version: str,
-    model_path: str,
-    temp_dir: str,
+class RealtimeAPI:
+    def __init__(
+        self,
+        storage: S3,
+        api_spec: Dict[str, Any],
+        model_dir: str,
+        cache_dir: str = ".",
+    ):
+        self.storage = storage
+        self.api_spec = api_spec
+        self.cache_dir = cache_dir
+
+        self.id = api_spec["id"]
+        self.predictor_id = api_spec["predictor_id"]
+        self.deployment_id = api_spec["deployment_id"]
+
+        self.key = api_spec["key"]
+        self.metadata_root = api_spec["metadata_root"]
+        self.name = api_spec["name"]
+        self.predictor = Predictor(api_spec, model_dir)
+
+        host_ip = os.environ["HOST_IP"]
+        datadog.initialize(statsd_host=host_ip, statsd_port=9125)
+        self.__statsd = datadog.statsd
+
+    @property
+    def statsd(self):
+        return self.__statsd
+
+    @property
+    def python_server_side_batching_enabled(self):
+        return (
+            self.api_spec["predictor"].get("server_side_batching") is not None
+            and self.api_spec["predictor"]["type"] == "python"
+        )
+
+    def metric_dimensions_with_id(self):
+        return [
+            {"Name": "api_name", "Value": self.name},
+            {"Name": "api_id", "Value": self.id},
+            {"Name": "predictor_id", "Value": self.predictor_id},
+            {"Name": "deployment_id", "Value": self.deployment_id},
+        ]
+
+    def metric_dimensions(self):
+        return [{"Name": "api_name", "Value": self.name}]
+
+    def post_request_metrics(self, status_code, total_time):
+        total_time_ms = total_time * 1000
+        metrics = [
+            self.status_code_metric(self.metric_dimensions(), status_code),
+            self.status_code_metric(self.metric_dimensions_with_id(), status_code),
+            self.latency_metric(self.metric_dimensions(), total_time_ms),
+            self.latency_metric(self.metric_dimensions_with_id(), total_time_ms),
+        ]
+        self.post_metrics(metrics)
+
+    def post_status_code_request_metrics(self, status_code):
+        metrics = [
+            self.status_code_metric(self.metric_dimensions(), status_code),
+            self.status_code_metric(self.metric_dimensions_with_id(), status_code),
+        ]
+        self.post_metrics(metrics)
+
+    def post_latency_request_metrics(self, total_time):
+        total_time_ms = total_time * 1000
+        metrics = [
+            self.latency_metric(self.metric_dimensions(), total_time_ms),
+            self.latency_metric(self.metric_dimensions_with_id(), total_time_ms),
+        ]
+        self.post_metrics(metrics)
+
+    def post_metrics(self, metrics):
+        try:
+            if self.statsd is None:
+                raise CortexException("statsd client not initialized")  # unexpected
+
+            for metric in metrics:
+                tags = ["{}:{}".format(dim["Name"], dim["Value"]) for dim in metric["Dimensions"]]
+                if metric.get("Unit") == "Count":
+                    self.statsd.increment(metric["MetricName"], value=metric["Value"], tags=tags)
+                else:
+                    self.statsd.histogram(metric["MetricName"], value=metric["Value"], tags=tags)
+        except:
+            logger.warn("failure encountered while publishing metrics", exc_info=True)
+
+    def status_code_metric(self, dimensions, status_code):
+        status_code_series = int(status_code / 100)
+        status_code_dimensions = dimensions + [
+            {"Name": "response_code", "Value": "{}XX".format(status_code_series)}
+        ]
+        return {
+            "MetricName": "cortex_status_code",
+            "Dimensions": status_code_dimensions,
+            "Value": 1,
+            "Unit": "Count",
+        }
+
+    def latency_metric(self, dimensions, total_time):
+        return {
+            "MetricName": "cortex_latency",
+            "Dimensions": dimensions,
+            "Value": total_time,  # milliseconds
+        }
+
+
+def get_api(
+    spec_path: str,
     model_dir: str,
-) -> Optional[datetime.datetime]:
-    """
-    Downloads model to disk. Validates the s3 model path and the downloaded model.
+    cache_dir: str,
+    region: str,
+) -> RealtimeAPI:
+    storage, raw_api_spec = get_spec(spec_path, cache_dir, region)
 
-    Args:
-        predictor_type: The predictor type as implemented by the API.
-        bucket_name: Name of the bucket where the model is stored.
-        model_name: Name of the model. Is part of the model's local path.
-        model_version: Version of the model. Is part of the model's local path.
-        model_path: Model prefix of the versioned model.
-        temp_dir: Where to temporarily store the model for validation.
-        model_dir: The top directory of where all models are stored locally.
-
-    Returns:
-        The model's timestamp. None if the model didn't pass the validation, if it doesn't exist or if there are not enough permissions.
-    """
-
-    logger.info(
-        f"downloading from bucket {bucket_name}/{model_path}, model {model_name} of version {model_version}, temporarily to {temp_dir} and then finally to {model_dir}"
+    api = RealtimeAPI(
+        storage=storage,
+        api_spec=raw_api_spec,
+        model_dir=model_dir,
+        cache_dir=cache_dir,
     )
 
-    client = S3(bucket_name)
-
-    # validate upstream S3 model
-    sub_paths, ts = client.search(model_path)
-    try:
-        validate_model_paths(sub_paths, predictor_type, model_path)
-    except CortexException:
-        logger.info(f"failed validating model {model_name} of version {model_version}")
-        return None
-
-    # download model to temp dir
-    temp_dest = os.path.join(temp_dir, model_name, model_version)
-    try:
-        client.download_dir_contents(model_path, temp_dest)
-    except CortexException:
-        logger.info(
-            f"failed downloading model {model_name} of version {model_version} to temp dir {temp_dest}"
-        )
-        shutil.rmtree(temp_dest)
-        return None
-
-    # validate model
-    model_contents = glob.glob(os.path.join(temp_dest, "**"), recursive=True)
-    model_contents = util.remove_non_empty_directory_paths(model_contents)
-    try:
-        validate_model_paths(model_contents, predictor_type, temp_dest)
-    except CortexException:
-        logger.info(
-            f"failed validating model {model_name} of version {model_version} from temp dir"
-        )
-        shutil.rmtree(temp_dest)
-        return None
-
-    # move model to dest dir
-    model_top_dir = os.path.join(model_dir, model_name)
-    ondisk_model_version = os.path.join(model_top_dir, model_version)
-    logger.info(
-        f"moving model {model_name} of version {model_version} to final dir {ondisk_model_version}"
-    )
-    if os.path.isdir(ondisk_model_version):
-        shutil.rmtree(ondisk_model_version)
-    shutil.move(temp_dest, ondisk_model_version)
-
-    return max(ts)
+    return api
