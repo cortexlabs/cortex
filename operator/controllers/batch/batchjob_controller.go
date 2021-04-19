@@ -189,7 +189,7 @@ func (r *BatchJobReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 			log.V(1).Info("TTL exceeded, deleting resource")
 			return ctrl.Result{}, nil
 		}
-
+		log.V(1).Info("scheduling reconciliation requeue", "time", batchJob.Spec.TTL.Duration)
 		return ctrl.Result{RequeueAfter: batchJob.Spec.TTL.Duration}, nil
 	}
 

@@ -28,8 +28,10 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	kbatch "k8s.io/api/batch/v1"
+	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	kmeta "k8s.io/apimachinery/pkg/apis/meta/v1"
 	ktypes "k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 func uploadTestAPISpec(apiName string, apiID string) error {
@@ -99,7 +101,6 @@ var _ = Describe("BatchJob controller", func() {
 					ObjectMeta: kmeta.ObjectMeta{Name: randomJobID, Namespace: BatchJobNamespace},
 				},
 			)).To(Succeed())
-
 			close(done)
 		})
 
@@ -187,6 +188,93 @@ var _ = Describe("BatchJob controller", func() {
 					return createdBatchJob.Status.Status == "completed"
 				}).Should(BeTrue())
 			})
+		})
+	})
+
+	FContext("Reconcialiation TTL", func() {
+		BeforeEach(func() {
+			// ensures the tests can be ran in rapid succession by avoiding the time limits of SQS queue creation
+			randomJobID = strings.ToLower(random.String(5))
+			randomAPIID = random.Digits(5)
+
+			Expect(uploadTestAPISpec(APIName, randomAPIID)).To(Succeed())
+		})
+
+		AfterEach(func(done Done) {
+			Expect(deleteTestAPISpec(APIName, randomAPIID)).To(Succeed())
+			close(done)
+		})
+
+		It("Should self clean-up when a completed status is reached and the TTL is exceeded", func() {
+			By("Creating a new BatchJob")
+			ttl := kmeta.Duration{Duration: time.Second * 10}
+			ctx := context.Background()
+			batchJob := &batch.BatchJob{
+				ObjectMeta: kmeta.ObjectMeta{
+					Name:      randomJobID,
+					Namespace: BatchJobNamespace,
+				},
+				Spec: batch.BatchJobSpec{
+					APIName: APIName,
+					APIId:   randomAPIID,
+					Workers: 1,
+					TTL:     &ttl,
+				},
+			}
+			Expect(k8sClient.Create(ctx, batchJob)).To(Succeed())
+
+			By("Reaching a completed enqueuer status")
+			enqueuerJobLookupKey := ktypes.NamespacedName{
+				Name:      batchJob.Spec.APIName + "-" + batchJob.Name + "-enqueuer",
+				Namespace: batchJob.Namespace,
+			}
+			createdEnqueuerJob := &kbatch.Job{}
+
+			// wait for the enqueuer job to be created
+			Eventually(func() error {
+				return k8sClient.Get(ctx, enqueuerJobLookupKey, createdEnqueuerJob)
+			}, timeout, interval).Should(Succeed())
+
+			// Mock the enqueuer status to match the success condition
+			createdEnqueuerJob.Status.Succeeded = 1
+			Expect(k8sClient.Status().Update(ctx, createdEnqueuerJob)).To(Succeed())
+
+			By("Reaching a successful worker job status")
+			workerJobLookupKey := ktypes.NamespacedName{
+				Name:      batchJob.Spec.APIName + "-" + batchJob.Name,
+				Namespace: BatchJobNamespace,
+			}
+			createdWorkerJob := &kbatch.Job{}
+
+			// Wait for worker job to be created
+			Eventually(func() error {
+				return k8sClient.Get(ctx, workerJobLookupKey, createdWorkerJob)
+			}, timeout, interval).Should(Succeed())
+
+			// Mock the worker job status to match the success condition
+			completionTime := time.Now()
+			createdWorkerJob.Status.Succeeded = batchJob.Spec.Workers
+			createdWorkerJob.Status.CompletionTime = &kmeta.Time{Time: completionTime}
+			Expect(k8sClient.Status().Update(ctx, createdWorkerJob)).To(Succeed())
+
+			By("Waiting for the TTL to kick in")
+
+			var deletionTime time.Time
+			Eventually(func() bool {
+				if err := k8sClient.Get(ctx, client.ObjectKey{
+					Name:      randomJobID,
+					Namespace: BatchJobNamespace,
+				}, &batch.BatchJob{}); err != nil {
+					if kerrors.IsNotFound(err) {
+						deletionTime = time.Now()
+						return true
+					}
+				}
+				return false
+			}, ttl.Duration.Seconds()*2).Should(BeTrue())
+
+			duration := deletionTime.Sub(completionTime)
+			Expect(duration > ttl.Duration).Should(BeTrue())
 		})
 	})
 })
