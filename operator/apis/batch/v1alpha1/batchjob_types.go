@@ -17,6 +17,7 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"github.com/cortexlabs/cortex/pkg/types/status"
 	kcore "k8s.io/api/core/v1"
 	kmeta "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -86,8 +87,9 @@ type BatchJobStatus struct {
 	// URL for the used SQS queue
 	QueueURL string `json:"queue_url,omitempty"`
 
+	// +kubebuilder:validation:Type=string
 	// Status of the batch job
-	Status string `json:"status,omitempty"`
+	Status status.JobCode `json:"status,omitempty"`
 
 	// Detailed worker counts with respective status
 	WorkerCounts *WorkerCounts `json:"worker_counts,omitempty"`

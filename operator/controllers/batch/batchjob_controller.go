@@ -65,8 +65,6 @@ func (r *BatchJobReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
-	// TODO: add TTL to BatchJob
-
 	// Step 2: create finalizer or handle deletion
 	if batchJob.ObjectMeta.DeletionTimestamp.IsZero() {
 		// The object is not being deleted, so we add our finalizer if it does not exist yet,
@@ -164,6 +162,7 @@ func (r *BatchJobReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 			log.Error(err, "failed to start enqueuing the payload")
 			return ctrl.Result{}, err
 		}
+		return ctrl.Result{}, nil
 	case EnqueuingInProgress:
 		// wait for enqueuing process to be reach a final state (done|failed)
 		return ctrl.Result{}, nil
@@ -180,7 +179,7 @@ func (r *BatchJobReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		}
 	}
 
-	if batchJob.Spec.TTL != nil && batchJob.Status.EndTime != nil {
+	if batchJob.Spec.TTL != nil && batchJob.Status.Status.IsCompleted() {
 		afterFinishedDuration := time.Now().Sub(batchJob.Status.EndTime.Time)
 		if afterFinishedDuration >= batchJob.Spec.TTL.Duration {
 			if err = r.Delete(ctx, &batchJob); err != nil {

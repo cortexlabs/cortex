@@ -38,6 +38,7 @@ import (
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/types/clusterconfig"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
+	"github.com/cortexlabs/cortex/pkg/types/status"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	"github.com/cortexlabs/yaml"
 	kbatch "k8s.io/api/batch/v1"
@@ -212,8 +213,9 @@ func (r *BatchJobReconciler) createWorkerJob(ctx context.Context, batchJob batch
 func (r *BatchJobReconciler) desiredEnqueuerJob(batchJob batch.BatchJob, queueURL string) (*kbatch.Job, error) {
 	job := k8s.Job(
 		&k8s.JobSpec{
-			Name:      batchJob.Spec.APIName + "-" + batchJob.Name + "-enqueuer",
-			Namespace: batchJob.Namespace,
+			Name:        batchJob.Spec.APIName + "-" + batchJob.Name + "-enqueuer",
+			Namespace:   batchJob.Namespace,
+			Parallelism: 1,
 			PodSpec: k8s.PodSpec{
 				Labels: map[string]string{
 					"apiKind":        userconfig.BatchAPIKind.String(),
@@ -230,9 +232,16 @@ func (r *BatchJobReconciler) desiredEnqueuerJob(batchJob batch.BatchJob, queueUR
 					RestartPolicy: kcore.RestartPolicyNever,
 					Containers: []kcore.Container{
 						{
-							Name:            _enqueuerContainerName,
-							Image:           r.ClusterConfig.ImageEnqueuer,
-							Args:            []string{"-queue", queueURL, "-apiName", batchJob.Spec.APIName, "-jobID", batchJob.Name},
+							Name:  _enqueuerContainerName,
+							Image: r.ClusterConfig.ImageEnqueuer,
+							Args: []string{
+								"-cluster", r.ClusterConfig.ClusterName,
+								"-region", r.ClusterConfig.Region,
+								"-bucket", r.ClusterConfig.Bucket,
+								"-queue", queueURL,
+								"-apiName", batchJob.Spec.APIName,
+								"-jobID", batchJob.Name,
+							},
 							EnvFrom:         controllers.BaseEnvVars(),
 							ImagePullPolicy: kcore.PullAlways,
 						},
@@ -371,12 +380,13 @@ func (r *BatchJobReconciler) updateStatus(ctx context.Context, batchJob *batch.B
 		batchJob.Status.QueueURL = r.getQueueURL(*batchJob)
 	}
 
-	// TODO replace strings with enum
 	switch statusInfo.EnqueuingStatus {
+	case EnqueuingNotStarted:
+		batchJob.Status.Status = status.JobPending
 	case EnqueuingInProgress:
-		batchJob.Status.Status = "enqueuing"
+		batchJob.Status.Status = status.JobEnqueuing
 	case EnqueuingFailed:
-		batchJob.Status.Status = "enqueuing_failed"
+		batchJob.Status.Status = status.JobEnqueueFailed
 	}
 
 	worker := statusInfo.WorkerJob
@@ -385,21 +395,22 @@ func (r *BatchJobReconciler) updateStatus(ctx context.Context, batchJob *batch.B
 		batchJob.Status.EndTime = worker.Status.CompletionTime // assign right away, because it's a pointer
 
 		if worker.Status.Failed == batchJob.Spec.Workers {
-			var status string
+			var batchJobStatus status.JobCode
 			for _, condition := range worker.Status.Conditions {
 				if condition.Reason == "DeadlineExceeded" {
-					status = "timed_out"
+					batchJobStatus = status.JobTimedOut
 					break
 				}
+				// TODO: handle known failure conditions (OOM / image pull failure / etc)
 			}
-			if status == "" {
-				status = "failed"
+			if batchJobStatus != status.JobTimedOut {
+				batchJobStatus = status.JobWorkerError
 			}
-			batchJob.Status.Status = status
+			batchJob.Status.Status = batchJobStatus
 		} else if worker.Status.Succeeded == batchJob.Spec.Workers {
-			batchJob.Status.Status = "completed"
+			batchJob.Status.Status = status.JobSucceeded
 		} else if worker.Status.Active > 0 {
-			batchJob.Status.Status = "in_progress"
+			batchJob.Status.Status = status.JobRunning
 		}
 		// TODO: update worker counts
 	}

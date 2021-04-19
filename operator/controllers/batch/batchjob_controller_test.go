@@ -24,6 +24,7 @@ import (
 	batch "github.com/cortexlabs/cortex/operator/apis/batch/v1alpha1"
 	"github.com/cortexlabs/cortex/pkg/lib/random"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
+	"github.com/cortexlabs/cortex/pkg/types/status"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -160,7 +161,7 @@ var _ = Describe("BatchJob controller", func() {
 					if err != nil {
 						return false
 					}
-					return createdBatchJob.Status.Status == "enqueuing"
+					return createdBatchJob.Status.Status == status.JobEnqueuing
 				}, timeout, interval)
 
 				By("Reaching a successful worker job status")
@@ -185,7 +186,7 @@ var _ = Describe("BatchJob controller", func() {
 					if err != nil {
 						return false
 					}
-					return createdBatchJob.Status.Status == "completed"
+					return createdBatchJob.Status.Status == status.JobSucceeded
 				}).Should(BeTrue())
 			})
 		})
