@@ -43,7 +43,7 @@ ASYNC_PYTHON_HANDLER_VALIDATION = {
             "optional_args": ["metrics_client"],
         },
         {
-            "name": "predict",
+            "name": "handle_async",
             "required_args": ["self"],
             "optional_args": ["payload", "request_id"],
         },
@@ -58,7 +58,7 @@ ASYNC_TENSORFLOW_HANDLER_VALIDATION = {
             "optional_args": ["metrics_client"],
         },
         {
-            "name": "predict",
+            "name": "handle_async",
             "required_args": ["self"],
             "optional_args": ["payload", "request_id"],
         },

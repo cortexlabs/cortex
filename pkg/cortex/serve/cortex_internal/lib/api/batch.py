@@ -65,7 +65,7 @@ PYTHON_CLASS_VALIDATION = {
             "name": "load_model",
             "required_args": ["self", "model_path"],
         },
-        {"name": "on_job_complete", "required_args": ["self"]},
+        {"name": "handle_on_job_complete", "required_args": ["self"]},
     ],
 }
 
@@ -83,7 +83,7 @@ TENSORFLOW_CLASS_VALIDATION = {
         },
     ],
     "optional": [
-        {"name": "on_job_complete", "required_args": ["self"]},
+        {"name": "handle_on_job_complete", "required_args": ["self"]},
     ],
 }
 
