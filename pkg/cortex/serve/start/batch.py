@@ -88,16 +88,16 @@ def time_per_batch_metric(total_time_seconds):
     }
 
 
-def build_predict_args(payload, batch_id):
+def build_handle_batch_args(payload, batch_id):
     args = {}
 
-    if "payload" in local_cache["predict_fn_args"]:
+    if "payload" in local_cache["handle_batch_fn_args"]:
         args["payload"] = payload
-    if "headers" in local_cache["predict_fn_args"]:
+    if "headers" in local_cache["handle_batch_fn_args"]:
         args["headers"] = None
-    if "query_params" in local_cache["predict_fn_args"]:
+    if "query_params" in local_cache["handle_batch_fn_args"]:
         args["query_params"] = None
-    if "batch_id" in local_cache["predict_fn_args"]:
+    if "batch_id" in local_cache["handle_batch_fn_args"]:
         args["batch_id"] = batch_id
     return args
 
@@ -121,7 +121,7 @@ def handle_batch_message(message):
     batch_id = message["MessageId"]
 
     try:
-        handler_impl.predict(**build_predict_args(payload, batch_id))
+        handler_impl.handle_batch(**build_handle_batch_args(payload, batch_id))
     except Exception as err:
         raise UserRuntimeException from err
 
@@ -143,7 +143,7 @@ def handle_on_job_complete(message):
     sqs_client = local_cache["sqs_client"]
     queue_url = job_spec["sqs_url"]
 
-    should_run_on_job_complete = False
+    should_run_handle_on_job_complete = False
 
     while True:
         visible_messages, invisible_messages = get_total_messages_in_queue(
@@ -166,15 +166,15 @@ def handle_on_job_complete(message):
             )
             break
         else:
-            if should_run_on_job_complete:
-                if getattr(handler_impl, "on_job_complete", None):
-                    log.info("executing on_job_complete")
+            if should_run_handle_on_job_complete:
+                if getattr(handler_impl, "handle_on_job_complete", None):
+                    log.info("executing handle_on_job_complete")
                     try:
-                        handler_impl.on_job_complete()
+                        handler_impl.handle_on_job_complete()
                     except Exception as err:
                         raise UserRuntimeException from err
                 break
-            should_run_on_job_complete = True
+            should_run_handle_on_job_complete = True
 
         time.sleep(10)  # verify that the queue is empty one more time
 
@@ -248,7 +248,7 @@ def start():
     local_cache["api"] = api
     local_cache["job_spec"] = job_spec
     local_cache["handler_impl"] = handler_impl
-    local_cache["predict_fn_args"] = inspect.getfullargspec(handler_impl.predict).args
+    local_cache["handle_batch_fn_args"] = inspect.getfullargspec(handler_impl.handle_batch).args
     local_cache["sqs_client"] = sqs_client
 
     open("/mnt/workspace/api_readiness.txt", "a").close()
@@ -268,7 +268,7 @@ def start():
         sqs_handler.start(
             message_fn=handle_batch_message,
             message_failure_fn=handle_batch_failure,
-            on_job_complete_fn=handle_on_job_complete,
+            handle_on_job_complete_fn=handle_on_job_complete,
         )
     except UserRuntimeException as err:
         err.wrap(f"failed to run job {job_spec['job_id']}")

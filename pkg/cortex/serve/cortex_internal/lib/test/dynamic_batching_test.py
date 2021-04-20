@@ -20,7 +20,7 @@ import time
 from cortex_internal.lib.api.utils import DynamicBatcher
 
 
-class Predictor:
+class Handler:
     def predict(self, payload):
         time.sleep(0.2)
         return payload
@@ -29,7 +29,7 @@ class Predictor:
 def test_dynamic_batching_while_hitting_max_batch_size():
     max_batch_size = 32
     dynamic_batcher = DynamicBatcher(
-        Predictor(), max_batch_size=max_batch_size, batch_interval=0.1, test_mode=True
+        Handler(), max_batch_size=max_batch_size, batch_interval=0.1, test_mode=True
     )
     counter = itertools.count(1)
     event = td.Event()
@@ -72,7 +72,7 @@ def test_dynamic_batching_while_hitting_max_batch_size():
 def test_dynamic_batching_while_hitting_max_interval():
     max_batch_size = 32
     dynamic_batcher = DynamicBatcher(
-        Predictor(), max_batch_size=max_batch_size, batch_interval=1.0, test_mode=True
+        Handler(), max_batch_size=max_batch_size, batch_interval=1.0, test_mode=True
     )
     counter = itertools.count(1)
     event = td.Event()
