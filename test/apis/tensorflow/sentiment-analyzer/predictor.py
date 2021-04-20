@@ -5,7 +5,7 @@ from bert import tokenization, run_classifier
 labels = ["negative", "positive"]
 
 
-class TensorFlowPredictor:
+class Handler:
     def __init__(self, tensorflow_client, config):
         with tf.Graph().as_default():
             bert_module = hub.Module("https://tfhub.dev/google/bert_uncased_L-12_H-768_A-12/1")

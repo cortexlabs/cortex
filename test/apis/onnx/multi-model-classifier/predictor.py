@@ -68,7 +68,7 @@ def postprocess(results):
     return result
 
 
-class PythonPredictor:
+class Handler:
     def __init__(self, python_client, config):
         # onnx client
         self.client = python_client

@@ -9,7 +9,7 @@ from model import IrisNet
 labels = ["setosa", "versicolor", "virginica"]
 
 
-class PythonPredictor:
+class Handler:
     def __init__(self, config):
         # download the model
         bucket, key = re.match("s3://(.+?)/(.+)", config["model"]).groups()

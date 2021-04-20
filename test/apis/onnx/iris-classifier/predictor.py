@@ -5,7 +5,7 @@ import numpy as np
 labels = ["setosa", "versicolor", "virginica"]
 
 
-class PythonPredictor:
+class Handler:
     def __init__(self, python_client, config):
         self.client = python_client
 

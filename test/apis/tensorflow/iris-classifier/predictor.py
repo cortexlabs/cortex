@@ -1,7 +1,7 @@
 labels = ["setosa", "versicolor", "virginica"]
 
 
-class TensorFlowPredictor:
+class Handler:
     def __init__(self, tensorflow_client, config):
         self.client = tensorflow_client
 

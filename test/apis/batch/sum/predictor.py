@@ -4,7 +4,7 @@ import json
 import re
 
 
-class PythonPredictor:
+class Handler:
     def __init__(self, config, job_spec):
         if len(config.get("dest_s3_dir", "")) == 0:
             raise Exception("'dest_s3_dir' field was not provided in job submission")

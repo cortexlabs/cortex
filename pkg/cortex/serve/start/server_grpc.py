@@ -136,22 +136,20 @@ def init():
     config: Dict[str, Any] = {
         "api": None,
         "client": None,
-        "predictor_impl": None,
+        "handler_impl": None,
         "module_proto_pb2_grpc": None,
     }
 
-    proto_without_ext = pathlib.Path(api.predictor.protobuf_path).stem
+    proto_without_ext = pathlib.Path(api.protobuf_path).stem
     module_proto_pb2 = importlib.import_module(proto_without_ext + "_pb2")
     module_proto_pb2_grpc = importlib.import_module(proto_without_ext + "_pb2_grpc")
 
-    client = api.predictor.initialize_client(
-        tf_serving_host=tf_serving_host, tf_serving_port=tf_serving_port
-    )
+    client = api.initialize_client(tf_serving_host=tf_serving_host, tf_serving_port=tf_serving_port)
 
     with FileLock("/run/init_stagger.lock"):
-        logger.info("loading the predictor from {}".format(api.predictor.path))
+        logger.info("loading the handler from {}".format(api.path))
         metrics_client = MetricsClient(api.statsd)
-        predictor_impl = api.predictor.initialize_impl(
+        handler_impl = api.initialize_impl(
             project_dir=project_dir,
             client=client,
             metrics_client=metrics_client,
@@ -161,7 +159,7 @@ def init():
     # crons only stop if an unhandled exception occurs
     def check_if_crons_have_failed():
         while True:
-            for cron in api.predictor.crons:
+            for cron in api.crons:
                 if not cron.is_alive():
                     os.kill(os.getpid(), signal.SIGQUIT)
             time.sleep(1)
@@ -170,16 +168,16 @@ def init():
 
     ServicerClass = get_servicer_from_module(module_proto_pb2_grpc)
 
-    class PredictorServicer(ServicerClass):
-        def __init__(self, predict_fn_args, predictor_impl, api):
+    class HandlerServicer(ServicerClass):
+        def __init__(self, predict_fn_args, handler_impl, api):
             self.predict_fn_args = predict_fn_args
-            self.predictor_impl = predictor_impl
+            self.handler_impl = handler_impl
             self.api = api
 
         def Predict(self, payload, context):
             try:
                 kwargs = build_predict_kwargs(self.predict_fn_args, payload, context)
-                response = self.predictor_impl.predict(**kwargs)
+                response = self.handler_impl.predict(**kwargs)
                 self.api.post_status_code_request_metrics(200)
             except Exception:
                 logger.error(traceback.format_exc())
@@ -189,11 +187,11 @@ def init():
 
     config["api"] = api
     config["client"] = client
-    config["predictor_impl"] = predictor_impl
-    config["predict_fn_args"] = inspect.getfullargspec(predictor_impl.predict).args
+    config["handler_impl"] = handler_impl
+    config["predict_fn_args"] = inspect.getfullargspec(handler_impl.predict).args
     config["module_proto_pb2"] = module_proto_pb2
     config["module_proto_pb2_grpc"] = module_proto_pb2_grpc
-    config["predictor_servicer"] = PredictorServicer
+    config["handler_servicer"] = HandlerServicer
 
     return config
 
@@ -212,10 +210,10 @@ def main():
 
     module_proto_pb2 = config["module_proto_pb2"]
     module_proto_pb2_grpc = config["module_proto_pb2_grpc"]
-    PredictorServicer = config["predictor_servicer"]
+    HandlerServicer = config["handler_servicer"]
 
     api = config["api"]
-    predictor_impl = config["predictor_impl"]
+    handler_impl = config["handler_impl"]
     predict_fn_args = config["predict_fn_args"]
 
     server = grpc.server(
@@ -226,8 +224,8 @@ def main():
         options=[("grpc.max_send_message_length", -1), ("grpc.max_receive_message_length", -1)],
     )
 
-    add_PredictorServicer_to_server = get_servicer_to_server_from_module(module_proto_pb2_grpc)
-    add_PredictorServicer_to_server(PredictorServicer(predict_fn_args, predictor_impl, api), server)
+    add_HandlerServicer_to_server = get_servicer_to_server_from_module(module_proto_pb2_grpc)
+    add_HandlerServicer_to_server(HandlerServicer(predict_fn_args, handler_impl, api), server)
 
     service_name = get_service_name_from_module(module_proto_pb2_grpc)
     SERVICE_NAMES = (

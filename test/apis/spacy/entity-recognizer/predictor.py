@@ -2,7 +2,7 @@ import spacy
 import subprocess
 
 
-class PythonPredictor:
+class Handler:
     """
     Class to perform NER (named entity recognition)
     """

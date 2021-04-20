@@ -1,6 +1,6 @@
 - name: image-classifier-inception
   kind: RealtimeAPI
-  predictor:
+  handler:
     type: tensorflow
     path: predictor.py
     models:

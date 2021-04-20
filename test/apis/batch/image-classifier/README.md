@@ -131,7 +131,7 @@ Create a `cortex.yaml` file and add the configuration below. An `api` with `kind
 
 - name: image-classifier
   kind: BatchAPI
-  predictor:
+  handler:
     type: python
     path: predictor.py
   compute:

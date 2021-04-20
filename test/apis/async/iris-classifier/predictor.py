@@ -8,7 +8,7 @@ from botocore.client import Config
 labels = ["setosa", "versicolor", "virginica"]
 
 
-class PythonPredictor:
+class Handler:
     def __init__(self, config):
         s3 = boto3.client("s3")
         s3.download_file(config["bucket"], config["key"], "/tmp/model.pkl")

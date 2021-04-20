@@ -13,7 +13,7 @@ api_spec = {
 }
 
 
-class PythonPredictor:
+class Handler:
     def __init__(self, config):
         from transformers import pipeline
 

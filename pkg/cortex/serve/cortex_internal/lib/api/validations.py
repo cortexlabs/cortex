@@ -17,7 +17,7 @@ from typing import Dict
 
 from cortex_internal.lib import util
 from cortex_internal.lib.exceptions import UserException
-from cortex_internal.lib.type import predictor_type_from_api_spec, PythonPredictorType
+from cortex_internal.lib.type import handler_type_from_api_spec, PythonHandlerType
 
 
 def validate_class_impl(impl, impl_req):
@@ -90,7 +90,7 @@ def validate_required_method_args(impl, func_signature):
         seen_args.append(arg_name)
 
 
-def validate_python_predictor_with_models(impl, api_spec):
+def validate_python_handler_with_models(impl, api_spec):
     if not are_models_specified(api_spec):
         return
 
@@ -102,7 +102,7 @@ def validate_python_predictor_with_models(impl, api_spec):
             f"class {target_class_name}",
             f'invalid signature for method "__init__"',
             f'"python_client" is a required argument, but was not provided',
-            f"when the python predictor type is used and models are specified in the api spec, "
+            f"when the python handler type is used and models are specified in the api spec, "
             f'adding the "python_client" argument is required',
         )
 
@@ -110,7 +110,7 @@ def validate_python_predictor_with_models(impl, api_spec):
         raise UserException(
             f"class {target_class_name}",
             f'required method "load_model" is not defined',
-            f"when the python predictor type is used and models are specified in the api spec, "
+            f"when the python handler type is used and models are specified in the api spec, "
             f'adding the "load_model" method is required',
         )
 
@@ -122,12 +122,12 @@ def are_models_specified(api_spec: Dict) -> bool:
     Args:
         api_spec: API configuration.
     """
-    predictor_type = predictor_type_from_api_spec(api_spec)
+    handler_type = handler_type_from_api_spec(api_spec)
 
-    if predictor_type == PythonPredictorType and api_spec["predictor"]["multi_model_reloading"]:
-        models = api_spec["predictor"]["multi_model_reloading"]
-    elif predictor_type != PythonPredictorType:
-        models = api_spec["predictor"]["models"]
+    if handler_type == PythonHandlerType and api_spec["handler"]["multi_model_reloading"]:
+        models = api_spec["handler"]["multi_model_reloading"]
+    elif handler_type != PythonHandlerType:
+        models = api_spec["handler"]["models"]
     else:
         return False
 
@@ -141,10 +141,10 @@ def is_grpc_enabled(api_spec: Dict) -> bool:
     Args:
         api_spec: API configuration.
     """
-    return api_spec["predictor"]["protobuf_path"] is not None
+    return api_spec["handler"]["protobuf_path"] is not None
 
 
-def validate_predictor_with_grpc(impl, api_spec):
+def validate_handler_with_grpc(impl, api_spec):
     if not is_grpc_enabled(api_spec):
         return
 
@@ -160,10 +160,10 @@ def validate_predictor_with_grpc(impl, api_spec):
             f'which means that adding the "proto_module_pb2" argument is required',
         )
 
-    predictor = getattr(impl, "predict")
-    predictor_arg_spec = inspect.getfullargspec(predictor)
+    handler = getattr(impl, "predict")
+    handler_arg_spec = inspect.getfullargspec(handler)
     disallowed_params = list(
-        set(["query_params", "headers", "batch_id"]).intersection(predictor_arg_spec.args)
+        set(["query_params", "headers", "batch_id"]).intersection(handler_arg_spec.args)
     )
     if len(disallowed_params) > 0:
         raise UserException(

@@ -6,7 +6,7 @@ from PIL import Image
 from io import BytesIO
 
 
-class PythonPredictor:
+class Handler:
     def __init__(self, config):
         device = "cuda" if torch.cuda.is_available() else "cpu"
         print(f"using device: {device}")

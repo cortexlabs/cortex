@@ -3,7 +3,7 @@ import regex
 import tqdm
 
 
-class PythonPredictor:
+class Handler:
     def __init__(self, config):
         roberta = torch.hub.load("pytorch/fairseq", "roberta.large", force_reload=True)
         roberta.eval()

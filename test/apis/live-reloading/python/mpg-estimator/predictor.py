@@ -1,7 +1,7 @@
 import mlflow.sklearn
 
 
-class PythonPredictor:
+class Handler:
     def __init__(self, config, python_client):
         self.client = python_client
 

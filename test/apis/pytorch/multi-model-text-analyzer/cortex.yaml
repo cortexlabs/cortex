@@ -1,6 +1,6 @@
 - name: multi-model-text-analyzer
   kind: RealtimeAPI
-  predictor:
+  handler:
     type: python
     path: predictor.py
   compute:

@@ -9,7 +9,7 @@ import utils.bbox as bbox_utils
 import utils.preprocess as preprocess_utils
 
 
-class PythonPredictor:
+class Handler:
     def __init__(self, config):
         # download yolov3 model
         bucket, key = re.match("s3://(.+?)/(.+)", config["yolov3"]).groups()

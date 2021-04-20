@@ -6,7 +6,7 @@ import pickle
 import tensorflow as tf
 
 
-class PythonPredictor:
+class Handler:
     def __init__(self, config):
         # limit memory usage on each process
         for gpu in tf.config.list_physical_devices("GPU"):

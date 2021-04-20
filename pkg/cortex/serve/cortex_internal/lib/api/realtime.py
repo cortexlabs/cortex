@@ -23,8 +23,8 @@ from datadog import DogStatsd
 
 from cortex_internal.lib.api.validations import (
     validate_class_impl,
-    validate_python_predictor_with_models,
-    validate_predictor_with_grpc,
+    validate_python_handler_with_models,
+    validate_handler_with_grpc,
     are_models_specified,
 )
 from cortex_internal.lib.api.utils import model_downloader, CortexMetrics
@@ -40,10 +40,10 @@ from cortex_internal.lib.model import (
     ModelsTree,
 )
 from cortex_internal.lib.type import (
-    predictor_type_from_api_spec,
-    PythonPredictorType,
-    TensorFlowPredictorType,
-    TensorFlowNeuronPredictorType,
+    handler_type_from_api_spec,
+    PythonHandlerType,
+    TensorFlowHandlerType,
+    TensorFlowNeuronHandlerType,
 )
 
 PYTHON_CLASS_VALIDATION = {
@@ -127,8 +127,8 @@ TENSORFLOW_CLASS_VALIDATION = {
 
 class RealtimeAPI:
     """
-    Class to validate/load the predictor class (PythonPredictor, TensorFlowPredictor).
-    Also makes the specified models in cortex.yaml available to the predictor's implementation.
+    Class to validate/load the handler class (Handler).
+    Also makes the specified models in cortex.yaml available to the handler's implementation.
     """
 
     def __init__(self, api_spec: dict, statsd_client: DogStatsd, model_dir: str):
@@ -136,30 +136,30 @@ class RealtimeAPI:
         self.model_dir = model_dir
 
         self.metrics = CortexMetrics(statsd_client, api_spec)
-        self.type = predictor_type_from_api_spec(api_spec)
-        self.path = api_spec["predictor"]["path"]
-        self.config = api_spec["predictor"].get("config", {})
-        self.protobuf_path = api_spec["predictor"].get("protobuf_path")
+        self.type = handler_type_from_api_spec(api_spec)
+        self.path = api_spec["handler"]["path"]
+        self.config = api_spec["handler"].get("config", {})
+        self.protobuf_path = api_spec["handler"].get("protobuf_path")
 
         self.crons = []
         if not are_models_specified(self.api_spec):
             return
 
         self.caching_enabled = self._is_model_caching_enabled()
-        self.multiple_processes = self.api_spec["predictor"]["processes_per_replica"] > 1
+        self.multiple_processes = self.api_spec["handler"]["processes_per_replica"] > 1
 
         # model caching can only be enabled when processes_per_replica is 1
         # model side-reloading is supported for any number of processes_per_replica
 
         if self.caching_enabled:
-            if self.type == PythonPredictorType:
-                mem_cache_size = self.api_spec["predictor"]["multi_model_reloading"]["cache_size"]
-                disk_cache_size = self.api_spec["predictor"]["multi_model_reloading"][
+            if self.type == PythonHandlerType:
+                mem_cache_size = self.api_spec["handler"]["multi_model_reloading"]["cache_size"]
+                disk_cache_size = self.api_spec["handler"]["multi_model_reloading"][
                     "disk_cache_size"
                 ]
             else:
-                mem_cache_size = self.api_spec["predictor"]["models"]["cache_size"]
-                disk_cache_size = self.api_spec["predictor"]["models"]["disk_cache_size"]
+                mem_cache_size = self.api_spec["handler"]["models"]["cache_size"]
+                disk_cache_size = self.api_spec["handler"]["models"]["disk_cache_size"]
             self.models = ModelsHolder(
                 self.type,
                 self.model_dir,
@@ -168,8 +168,8 @@ class RealtimeAPI:
                 on_download_callback=model_downloader,
             )
         elif not self.caching_enabled and self.type not in [
-            TensorFlowPredictorType,
-            TensorFlowNeuronPredictorType,
+            TensorFlowHandlerType,
+            TensorFlowNeuronHandlerType,
         ]:
             self.models = ModelsHolder(self.type, self.model_dir)
         else:
@@ -183,8 +183,8 @@ class RealtimeAPI:
     @property
     def python_server_side_batching_enabled(self):
         return (
-            self.api_spec["predictor"].get("server_side_batching") is not None
-            and self.api_spec["predictor"]["type"] == "python"
+            self.api_spec["handler"].get("server_side_batching") is not None
+            and self.api_spec["handler"]["type"] == "python"
         )
 
     def initialize_client(
@@ -195,20 +195,20 @@ class RealtimeAPI:
         Only applies when models are provided in the API spec.
 
         Args:
-            tf_serving_host: Host of TF serving server. To be only used when the TensorFlow predictor is used.
-            tf_serving_port: Port of TF serving server. To be only used when the TensorFlow predictor is used.
+            tf_serving_host: Host of TF serving server. To be only used when the TensorFlow type is used.
+            tf_serving_port: Port of TF serving server. To be only used when the TensorFlow type is used.
 
         Return:
-            The client for the respective predictor type.
+            The client for the respective handler type.
         """
 
         client = None
 
         if are_models_specified(self.api_spec):
-            if self.type == PythonPredictorType:
+            if self.type == PythonHandlerType:
                 client = PythonClient(self.api_spec, self.models, self.model_dir, self.models_tree)
 
-            if self.type in [TensorFlowPredictorType, TensorFlowNeuronPredictorType]:
+            if self.type in [TensorFlowHandlerType, TensorFlowNeuronHandlerType]:
                 tf_serving_address = tf_serving_host + ":" + tf_serving_port
                 client = TensorFlowClient(
                     tf_serving_address,
@@ -231,7 +231,7 @@ class RealtimeAPI:
         proto_module_pb2: Optional[Any] = None,
     ):
         """
-        Initialize predictor class as provided by the user.
+        Initialize handler class as provided by the user.
 
         proto_module_pb2 is a module of the compiled proto when grpc is enabled for the "RealtimeAPI" kind. Otherwise, it's None.
 
@@ -250,9 +250,9 @@ class RealtimeAPI:
         if "proto_module_pb2" in constructor_args:
             args["proto_module_pb2"] = proto_module_pb2
 
-        # initialize predictor class
+        # initialize handler class
         try:
-            if self.type == PythonPredictorType:
+            if self.type == PythonHandlerType:
                 if are_models_specified(self.api_spec):
                     args["python_client"] = client
                     # set load method to enable the use of the client in the constructor
@@ -264,7 +264,7 @@ class RealtimeAPI:
                     client.set_load_method(initialized_impl.load_model)
                 else:
                     initialized_impl = class_impl(**args)
-            if self.type in [TensorFlowPredictorType, TensorFlowNeuronPredictorType]:
+            if self.type in [TensorFlowHandlerType, TensorFlowNeuronHandlerType]:
                 args["tensorflow_client"] = client
                 initialized_impl = class_impl(**args)
         except Exception as e:
@@ -288,7 +288,7 @@ class RealtimeAPI:
                     ),
                 ]
 
-            if not self.caching_enabled and self.type == PythonPredictorType:
+            if not self.caching_enabled and self.type == PythonHandlerType:
                 self.crons += [
                     FileBasedModelsGC(interval=10, models=self.models, download_dir=self.model_dir)
                 ]
@@ -300,32 +300,31 @@ class RealtimeAPI:
 
     def class_impl(self, project_dir):
         """Can only raise UserException/CortexException exceptions"""
-        if self.type in [TensorFlowPredictorType, TensorFlowNeuronPredictorType]:
-            target_class_name = "TensorFlowPredictor"
+        target_class_name = "Handler"
+        if self.type in [TensorFlowHandlerType, TensorFlowNeuronHandlerType]:
             validations = TENSORFLOW_CLASS_VALIDATION
-        elif self.type == PythonPredictorType:
-            target_class_name = "PythonPredictor"
+        elif self.type == PythonHandlerType:
             validations = PYTHON_CLASS_VALIDATION
         else:
-            raise CortexException(f"invalid predictor type: {self.type}")
+            raise CortexException(f"invalid handler type: {self.type}")
 
         try:
-            predictor_class = self._get_class_impl(
-                "cortex_predictor", os.path.join(project_dir, self.path), target_class_name
+            handler_class = self._get_class_impl(
+                "cortex_handler", os.path.join(project_dir, self.path), target_class_name
             )
         except Exception as e:
             e.wrap("error in " + self.path)
             raise
 
         try:
-            validate_class_impl(predictor_class, validations)
-            validate_predictor_with_grpc(predictor_class, self.api_spec)
-            if self.type == PythonPredictorType:
-                validate_python_predictor_with_models(predictor_class, self.api_spec)
+            validate_class_impl(handler_class, validations)
+            validate_handler_with_grpc(handler_class, self.api_spec)
+            if self.type == PythonHandlerType:
+                validate_python_handler_with_models(handler_class, self.api_spec)
         except Exception as e:
             e.wrap("error in " + self.path)
             raise
-        return predictor_class
+        return handler_class
 
     def _get_class_impl(self, module_name, impl_path, target_class_name):
         """Can only raise UserException exception"""
@@ -342,28 +341,28 @@ class RealtimeAPI:
             raise UserException(str(e)) from e
 
         classes = inspect.getmembers(impl, inspect.isclass)
-        predictor_class = None
+        handler_class = None
         for class_df in classes:
             if class_df[0] == target_class_name:
-                if predictor_class is not None:
+                if handler_class is not None:
                     raise UserException(
-                        f"multiple definitions for {target_class_name} class found; please check your imports and class definitions and ensure that there is only one Predictor class definition"
+                        f"multiple definitions for {target_class_name} class found; please check your imports and class definitions and ensure that there is only one handler class definition"
                     )
-                predictor_class = class_df[1]
-        if predictor_class is None:
+                handler_class = class_df[1]
+        if handler_class is None:
             raise UserException(f"{target_class_name} class is not defined")
 
-        return predictor_class
+        return handler_class
 
     def _is_model_caching_enabled(self) -> bool:
         """
         Checks if model caching is enabled.
         """
         models = None
-        if self.type != PythonPredictorType and self.api_spec["predictor"]["models"]:
-            models = self.api_spec["predictor"]["models"]
-        if self.type == PythonPredictorType and self.api_spec["predictor"]["multi_model_reloading"]:
-            models = self.api_spec["predictor"]["multi_model_reloading"]
+        if self.type != PythonHandlerType and self.api_spec["handler"]["models"]:
+            models = self.api_spec["handler"]["models"]
+        if self.type == PythonHandlerType and self.api_spec["handler"]["multi_model_reloading"]:
+            models = self.api_spec["handler"]["multi_model_reloading"]
 
         return models and models["cache_size"] and models["disk_cache_size"]
 

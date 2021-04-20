@@ -2,7 +2,7 @@ import torch
 from transformers import GPT2Tokenizer, GPT2LMHeadModel
 
 
-class PythonPredictor:
+class Handler:
     def __init__(self, config):
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         print(f"using device: {self.device}")

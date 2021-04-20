@@ -1,7 +1,7 @@
 import time
 
 
-class PythonPredictor:
+class Handler:
     def __init__(self, config):
         pass
 

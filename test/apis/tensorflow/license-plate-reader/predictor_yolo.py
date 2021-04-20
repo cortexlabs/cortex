@@ -6,7 +6,7 @@ import pickle
 import utils.utils as utils
 
 
-class TensorFlowPredictor:
+class Handler:
     def __init__(self, tensorflow_client, config):
         self.client = tensorflow_client
 

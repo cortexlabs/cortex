@@ -11,7 +11,7 @@ from torchvision import transforms
 import boto3
 
 
-class PythonPredictor:
+class Handler:
     def __init__(self, config, job_spec):
         self.labels = requests.get(
             "https://storage.googleapis.com/download.tensorflow.org/data/ImageNetLabels.txt"

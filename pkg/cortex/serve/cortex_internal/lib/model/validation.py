@@ -23,10 +23,10 @@ from fnmatch import fnmatchcase
 from cortex_internal.lib import util
 from cortex_internal.lib.exceptions import CortexException
 from cortex_internal.lib.type import (
-    PythonPredictorType,
-    TensorFlowPredictorType,
-    TensorFlowNeuronPredictorType,
-    PredictorType,
+    PythonHandlerType,
+    TensorFlowHandlerType,
+    TensorFlowNeuronHandlerType,
+    HandlerType,
 )
 
 from cortex_internal.lib.log import configure_logger
@@ -158,9 +158,9 @@ class ModelVersion(IntEnum):
     PROVIDED = 2  # for models provided with version directories (1, 2, 452, etc).
 
 
-# to be used when predictor:models:path, predictor:models:paths or predictor:models:dir is used
+# to be used when handler:models:path, handler:models:paths or handler:models:dir is used
 ModelTemplate = {
-    PythonPredictorType: {
+    PythonHandlerType: {
         OneOfAllPlaceholder(ModelVersion.PROVIDED): {
             IntegerPlaceholder: AnyPlaceholder,
         },
@@ -168,7 +168,7 @@ ModelTemplate = {
             AnyPlaceholder: None,
         },
     },
-    TensorFlowPredictorType: {
+    TensorFlowHandlerType: {
         OneOfAllPlaceholder(ModelVersion.PROVIDED): {
             IntegerPlaceholder: {
                 AnyPlaceholder: None,
@@ -194,7 +194,7 @@ ModelTemplate = {
             },
         },
     },
-    TensorFlowNeuronPredictorType: {
+    TensorFlowNeuronHandlerType: {
         OneOfAllPlaceholder(ModelVersion.PROVIDED): {
             IntegerPlaceholder: {
                 GenericPlaceholder("saved_model.pb"): None,
@@ -229,24 +229,24 @@ def json_model_template_representation(model_template) -> dict:
         return str(model_template)
 
 
-def _single_model_pattern(predictor_type: PredictorType) -> dict:
+def _single_model_pattern(handler_type: HandlerType) -> dict:
     """
-    To be used when predictor:models:path or predictor:models:paths in cortex.yaml is used.
+    To be used when handler:models:path or handler:models:paths in cortex.yaml is used.
     """
-    return ModelTemplate[predictor_type]
+    return ModelTemplate[handler_type]
 
 
 def validate_models_dir_paths(
-    paths: List[str], predictor_type: PredictorType, common_prefix: str
+    paths: List[str], handler_type: HandlerType, common_prefix: str
 ) -> Tuple[List[str], List[List[int]]]:
     """
-    Validates the models paths based on the given predictor type.
-    To be used when predictor:models:dir in cortex.yaml is used.
+    Validates the models paths based on the given handler type.
+    To be used when handler:models:dir in cortex.yaml is used.
 
     Args:
         paths: A list of all paths for a given s3/local prefix. Must be underneath the common prefix.
-        predictor_type: The predictor type.
-        common_prefix: The common prefix of the directory which holds all models. AKA predictor:models:dir.
+        handler_type: The handler type.
+        common_prefix: The common prefix of the directory which holds all models. AKA handler:models:dir.
 
     Returns:
         List with the prefix of each model that's valid.
@@ -254,7 +254,7 @@ def validate_models_dir_paths(
     """
     if len(paths) == 0:
         raise CortexException(
-            f"{predictor_type} predictor at '{common_prefix}'", "model top path can't be empty"
+            f"{handler_type} handler at '{common_prefix}'", "model top path can't be empty"
         )
 
     rel_paths = [os.path.relpath(top_path, common_prefix) for top_path in paths]
@@ -267,7 +267,7 @@ def validate_models_dir_paths(
     ooa_valid_key_ids = []
     for model_name in model_names:
         try:
-            ooa_valid_key_ids.append(validate_model_paths(rel_paths, predictor_type, model_name))
+            ooa_valid_key_ids.append(validate_model_paths(rel_paths, handler_type, model_name))
             valid_model_prefixes.append(os.path.join(common_prefix, model_name))
         except CortexException as e:
             logger.debug(f"failed validating model {model_name}: {str(e)}")
@@ -277,14 +277,14 @@ def validate_models_dir_paths(
 
 
 def validate_model_paths(
-    paths: List[str], predictor_type: PredictorType, common_prefix: str
+    paths: List[str], handler_type: HandlerType, common_prefix: str
 ) -> List[int]:
     """
-    To be used when predictor:models:path or predictor:models:paths in cortex.yaml is used.
+    To be used when handler:models:path or handler:models:paths in cortex.yaml is used.
 
     Args:
         paths: A list of all paths for a given s3/local prefix. Must be the top directory of a model.
-        predictor_type: Predictor type. Can be PythonPredictorType, TensorFlowPredictorType or TensorFlowNeuronPredictorType.
+        handler_type: Handler type. Can be PythonHandlerType, TensorFlowHandlerType or TensorFlowNeuronHandlerType.
         common_prefix: The common prefix of the directory which holds all models.
 
     Returns:
@@ -295,7 +295,7 @@ def validate_model_paths(
     """
     if len(paths) == 0:
         raise CortexException(
-            f"{predictor_type} predictor at '{common_prefix}'", "model path can't be empty"
+            f"{handler_type} handler at '{common_prefix}'", "model path can't be empty"
         )
 
     paths_by_prefix_cache = {}
@@ -318,7 +318,7 @@ def validate_model_paths(
             if len(objects) == 1 and objects[0] == ".":
                 return ooa_valid_key_ids
             raise CortexException(
-                f"{predictor_type} predictor at '{common_prefix}'",
+                f"{handler_type} handler at '{common_prefix}'",
                 "template doesn't specify a substructure for the given path",
             )
         if not isinstance(pattern, dict):
@@ -332,7 +332,7 @@ def validate_model_paths(
                 isinstance(x, OneOfAllPlaceholder) for x in keys
             ):
                 raise CortexException(
-                    f"{predictor_type} predictor at '{common_prefix}'",
+                    f"{handler_type} handler at '{common_prefix}'",
                     f"{OneOfAllPlaceholder()} is a mutual-exclusive key with all other keys",
                 )
             elif all(isinstance(x, OneOfAllPlaceholder) for x in keys):
@@ -360,7 +360,7 @@ def validate_model_paths(
                     raise CortexException("found a non-placeholder object in model template")
 
         except CortexException as e:
-            raise CortexException(f"{predictor_type} predictor at '{common_prefix}'", str(e))
+            raise CortexException(f"{handler_type} handler at '{common_prefix}'", str(e))
 
         if (
             all(isinstance(x, OneOfAllPlaceholder) for x in keys)
@@ -385,7 +385,7 @@ def validate_model_paths(
                 unvisited_paths += untraced_paths
         if len(unvisited_paths) > 0:
             raise CortexException(
-                f"{predictor_type} predictor model at '{common_prefix}'",
+                f"{handler_type} handler model at '{common_prefix}'",
                 "unexpected path(s) for " + str(unvisited_paths),
             )
 
@@ -410,7 +410,7 @@ def validate_model_paths(
 
         return aggregated_ooa_valid_key_ids
 
-    pattern = _single_model_pattern(predictor_type)
+    pattern = _single_model_pattern(handler_type)
     return _validate_model_paths(pattern, paths, common_prefix)
 
 

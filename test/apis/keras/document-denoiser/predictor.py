@@ -32,7 +32,7 @@ def image_to_png_bytes(image):
     return byte_im
 
 
-class PythonPredictor:
+class Handler:
     def __init__(self, config):
         # download the model
         bucket, key = re.match("s3://(.+?)/(.+)", config["model"]).groups()

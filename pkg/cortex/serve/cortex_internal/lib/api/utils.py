@@ -14,7 +14,7 @@ from starlette.responses import Response
 
 from cortex_internal.lib import util
 from cortex_internal.lib.storage import S3
-from cortex_internal.lib.type import PredictorType
+from cortex_internal.lib.type import HandlerType
 from cortex_internal.lib.exceptions import CortexException, UserRuntimeException
 from cortex_internal.lib.model import validate_model_paths
 from cortex_internal.lib.log import configure_logger
@@ -53,7 +53,7 @@ def get_spec(
 
 
 def model_downloader(
-    predictor_type: PredictorType,
+    handler_type: HandlerType,
     bucket_name: str,
     model_name: str,
     model_version: str,
@@ -65,7 +65,7 @@ def model_downloader(
     Downloads model to disk. Validates the s3 model path and the downloaded model.
 
     Args:
-        predictor_type: The predictor type as implemented by the API.
+        handler_type: The handler type as implemented by the API.
         bucket_name: Name of the bucket where the model is stored.
         model_name: Name of the model. Is part of the model's local path.
         model_version: Version of the model. Is part of the model's local path.
@@ -86,7 +86,7 @@ def model_downloader(
     # validate upstream S3 model
     sub_paths, ts = client.search(model_path)
     try:
-        validate_model_paths(sub_paths, predictor_type, model_path)
+        validate_model_paths(sub_paths, handler_type, model_path)
     except CortexException:
         logger.info(f"failed validating model {model_name} of version {model_version}")
         return None
@@ -106,7 +106,7 @@ def model_downloader(
     model_contents = glob.glob(os.path.join(temp_dest, "**"), recursive=True)
     model_contents = util.remove_non_empty_directory_paths(model_contents)
     try:
-        validate_model_paths(model_contents, predictor_type, temp_dest)
+        validate_model_paths(model_contents, handler_type, temp_dest)
     except CortexException:
         logger.info(
             f"failed validating model {model_name} of version {model_version} from temp dir"
@@ -134,7 +134,7 @@ class CortexMetrics:
         api_spec: Dict[str, Any],
     ):
         self._metric_value_id = api_spec["id"]
-        self._metric_value_predictor_id = api_spec["predictor_id"]
+        self._metric_value_handler_id = api_spec["handler_id"]
         self._metric_value_deployment_id = api_spec["deployment_id"]
         self._metric_value_name = api_spec["name"]
         self.__statsd = statsd_client
@@ -143,7 +143,7 @@ class CortexMetrics:
         return [
             {"Name": "api_name", "Value": self._metric_value_name},
             {"Name": "api_id", "Value": self._metric_value_id},
-            {"Name": "predictor_id", "Value": self._metric_value_predictor_id},
+            {"Name": "handler_id", "Value": self._metric_value_handler_id},
             {"Name": "deployment_id", "Value": self._metric_value_deployment_id},
         ]
 
@@ -177,15 +177,15 @@ class CortexMetrics:
 
     def post_metrics(self, metrics):
         try:
-            if self.statsd is None:
+            if self.__statsd is None:
                 raise CortexException("statsd client not initialized")  # unexpected
 
             for metric in metrics:
                 tags = ["{}:{}".format(dim["Name"], dim["Value"]) for dim in metric["Dimensions"]]
                 if metric.get("Unit") == "Count":
-                    self.statsd.increment(metric["MetricName"], value=metric["Value"], tags=tags)
+                    self.__statsd.increment(metric["MetricName"], value=metric["Value"], tags=tags)
                 else:
-                    self.statsd.histogram(metric["MetricName"], value=metric["Value"], tags=tags)
+                    self.__statsd.histogram(metric["MetricName"], value=metric["Value"], tags=tags)
         except:
             logger.warn("failure encountered while publishing metrics", exc_info=True)
 
@@ -212,12 +212,12 @@ class CortexMetrics:
 class DynamicBatcher:
     def __init__(
         self,
-        predictor_impl: Callable,
+        handler_impl: Callable,
         max_batch_size: int,
         batch_interval: int,
         test_mode: bool = False,
     ):
-        self.predictor_impl = predictor_impl
+        self.handler_impl = handler_impl
 
         self.batch_max_size = max_batch_size
         self.batch_interval = batch_interval  # measured in seconds
@@ -249,7 +249,7 @@ class DynamicBatcher:
                 if self.samples:
                     batch = self._make_batch(sample_ids)
 
-                    predictions = self.predictor_impl.predict(**batch)
+                    predictions = self.handler_impl.predict(**batch)
                     if not isinstance(predictions, list):
                         raise UserRuntimeException(
                             f"please return a list when using server side batching, got {type(predictions)}"

@@ -2,7 +2,7 @@ from transformers import MarianMTModel, MarianTokenizer, pipeline
 import torch
 
 
-class PythonPredictor:
+class Handler:
     def __init__(self, config, python_client):
         self.client = python_client
         self.device = torch.cuda.current_device() if torch.cuda.is_available() else -1

@@ -9,7 +9,7 @@ import boto3
 import tensorflow as tf
 
 
-class TensorFlowPredictor:
+class Handler:
     def __init__(self, tensorflow_client, config, job_spec):
         self.client = tensorflow_client
         self.labels = requests.get(

@@ -47,7 +47,7 @@ JOB_COMPLETE_MESSAGE_RENEWAL = 10  # seconds
 local_cache: Dict[str, Any] = {
     "api": None,
     "job_spec": None,
-    "predictor_impl": None,
+    "handler_impl": None,
     "sqs_client": None,
 }
 
@@ -111,7 +111,7 @@ def get_job_spec(storage, cache_dir, job_spec_path):
 
 
 def handle_batch_message(message):
-    predictor_impl = local_cache["predictor_impl"]
+    handler_impl = local_cache["handler_impl"]
     api: BatchAPI = local_cache["api"]
 
     log.info(f"processing batch {message['MessageId']}")
@@ -121,7 +121,7 @@ def handle_batch_message(message):
     batch_id = message["MessageId"]
 
     try:
-        predictor_impl.predict(**build_predict_args(payload, batch_id))
+        handler_impl.predict(**build_predict_args(payload, batch_id))
     except Exception as err:
         raise UserRuntimeException from err
 
@@ -139,7 +139,7 @@ def handle_batch_failure(message):
 
 def handle_on_job_complete(message):
     job_spec = local_cache["job_spec"]
-    predictor_impl = local_cache["predictor_impl"]
+    handler_impl = local_cache["handler_impl"]
     sqs_client = local_cache["sqs_client"]
     queue_url = job_spec["sqs_url"]
 
@@ -167,10 +167,10 @@ def handle_on_job_complete(message):
             break
         else:
             if should_run_on_job_complete:
-                if getattr(predictor_impl, "on_job_complete", None):
+                if getattr(handler_impl, "on_job_complete", None):
                     log.info("executing on_job_complete")
                     try:
-                        predictor_impl.on_job_complete()
+                        handler_impl.on_job_complete()
                     except Exception as err:
                         raise UserRuntimeException from err
                 break
@@ -219,8 +219,8 @@ def start():
     client = api.initialize_client(tf_serving_host=tf_serving_host, tf_serving_port=tf_serving_port)
 
     try:
-        log.info("loading the predictor from {}".format(api.path))
-        predictor_impl = api.initialize_impl(
+        log.info("loading the handler from {}".format(api.path))
+        handler_impl = api.initialize_impl(
             project_dir=project_dir,
             client=client,
             metrics_client=MetricsClient(statsd_client),
@@ -247,8 +247,8 @@ def start():
 
     local_cache["api"] = api
     local_cache["job_spec"] = job_spec
-    local_cache["predictor_impl"] = predictor_impl
-    local_cache["predict_fn_args"] = inspect.getfullargspec(predictor_impl.predict).args
+    local_cache["handler_impl"] = handler_impl
+    local_cache["predict_fn_args"] = inspect.getfullargspec(handler_impl.predict).args
     local_cache["sqs_client"] = sqs_client
 
     open("/mnt/workspace/api_readiness.txt", "a").close()

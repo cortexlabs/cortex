@@ -4,7 +4,7 @@ from PIL import Image
 from io import BytesIO
 
 
-class TensorFlowPredictor:
+class Handler:
     def __init__(self, tensorflow_client, config):
         self.client = tensorflow_client
         self.labels = requests.get(

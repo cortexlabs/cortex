@@ -11,7 +11,7 @@ from matplotlib import pyplot as plt
 from starlette.responses import StreamingResponse
 
 
-class PythonPredictor:
+class Handler:
     def __init__(self, python_client, config):
         self.client = python_client
         # Get the input shape from the ONNX runtime

@@ -17,7 +17,7 @@ import time
 from cortex_internal.lib.log import logger as cortex_logger
 
 
-class PythonPredictor:
+class Handler:
     def __init__(self, config):
         num_success = 0
         num_fail = 0

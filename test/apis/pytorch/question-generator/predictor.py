@@ -4,7 +4,7 @@ import subprocess
 import json
 
 
-class PythonPredictor:
+class Handler:
     def __init__(self, config):
         subprocess.call("python -m spacy download en_core_web_sm".split(" "))
         import en_core_web_sm

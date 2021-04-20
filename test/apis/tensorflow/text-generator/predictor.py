@@ -5,7 +5,7 @@ from botocore.client import Config
 from encoder import get_encoder
 
 
-class TensorFlowPredictor:
+class Handler:
     def __init__(self, tensorflow_client, config):
         self.client = tensorflow_client
         s3 = boto3.client("s3")

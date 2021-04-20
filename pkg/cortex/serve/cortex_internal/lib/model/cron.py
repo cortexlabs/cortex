@@ -46,10 +46,10 @@ from cortex_internal.lib.model import (
 from cortex_internal.lib.storage import S3
 from cortex_internal.lib.telemetry import get_default_tags, init_sentry
 from cortex_internal.lib.type import (
-    predictor_type_from_api_spec,
-    PythonPredictorType,
-    TensorFlowPredictorType,
-    TensorFlowNeuronPredictorType,
+    handler_type_from_api_spec,
+    PythonHandlerType,
+    TensorFlowHandlerType,
+    TensorFlowNeuronHandlerType,
 )
 
 logger = configure_logger("cortex", os.environ["CORTEX_LOG_CONFIG_FILE"])
@@ -142,15 +142,15 @@ class FileBasedModelsTreeUpdater(mp.Process):
         for model_name in self._s3_model_names:
             self._s3_paths.append(self._spec_models[model_name]["path"])
 
-        self._predictor_type = predictor_type_from_api_spec(self._api_spec)
+        self._handler_type = handler_type_from_api_spec(self._api_spec)
 
         if (
-            self._predictor_type == PythonPredictorType
-            and self._api_spec["predictor"]["multi_model_reloading"]
+            self._handler_type == PythonHandlerType
+            and self._api_spec["handler"]["multi_model_reloading"]
         ):
-            models = self._api_spec["predictor"]["multi_model_reloading"]
-        elif self._predictor_type != PythonPredictorType:
-            models = self._api_spec["predictor"]["models"]
+            models = self._api_spec["handler"]["multi_model_reloading"]
+        elif self._handler_type != PythonHandlerType:
+            models = self._api_spec["handler"]["models"]
         else:
             models = None
 
@@ -225,7 +225,7 @@ class FileBasedModelsTreeUpdater(mp.Process):
         ) = find_all_s3_models(
             self._is_dir_used,
             self._models_dir,
-            self._predictor_type,
+            self._handler_type,
             self._s3_paths,
             self._s3_model_names,
         )
@@ -333,7 +333,7 @@ class FileBasedModelsTreeUpdater(mp.Process):
                 model_contents = glob.glob(os.path.join(temp_dest, "**"), recursive=True)
                 model_contents = util.remove_non_empty_directory_paths(model_contents)
                 try:
-                    validate_model_paths(model_contents, self._predictor_type, temp_dest)
+                    validate_model_paths(model_contents, self._handler_type, temp_dest)
                     passed_validation = True
                 except CortexException:
                     passed_validation = False
@@ -433,7 +433,7 @@ class FileBasedModelsTreeUpdater(mp.Process):
             model_contents = glob.glob(os.path.join(temp_dest, "**"), recursive=True)
             model_contents = util.remove_non_empty_directory_paths(model_contents)
             try:
-                validate_model_paths(model_contents, self._predictor_type, temp_dest)
+                validate_model_paths(model_contents, self._handler_type, temp_dest)
                 passed_validation = True
             except CortexException:
                 passed_validation = False
@@ -597,7 +597,7 @@ def find_ondisk_model_info(lock_dir: str, model_name: str) -> Tuple[List[str], L
 
     Args:
         lock_dir: Path to where the resource locks are stored.
-        model_name: Name of the model as specified in predictor:models:paths:name, _cortex_default when predictor:models:path is set or the discovered model names when predictor:models:dir is used.
+        model_name: Name of the model as specified in handler:models:paths:name, _cortex_default when handler:models:path is set or the discovered model names when handler:models:dir is used.
 
     Returns:
         2-element tuple made of a list with the available versions and a list with the corresponding timestamps for each model. Empty when the model is not available.
@@ -680,23 +680,23 @@ class TFSModelLoader(mp.Process):
             self._s3_paths.append(self._spec_models[model_name]["path"])
 
         if (
-            self._api_spec["predictor"]["models"] is not None
-            and self._api_spec["predictor"]["models"]["dir"] is not None
+            self._api_spec["handler"]["models"] is not None
+            and self._api_spec["handler"]["models"]["dir"] is not None
         ):
             self._is_dir_used = True
-            self._models_dir = self._api_spec["predictor"]["models"]["dir"]
+            self._models_dir = self._api_spec["handler"]["models"]["dir"]
         else:
             self._is_dir_used = False
             self._models_dir = None
 
-        if self._api_spec["predictor"]["type"] == "tensorflow":
+        if self._api_spec["handler"]["type"] == "tensorflow":
             if self._api_spec["compute"]["inf"] > 0:
-                self._predictor_type = TensorFlowNeuronPredictorType
+                self._handler_type = TensorFlowNeuronHandlerType
             else:
-                self._predictor_type = TensorFlowPredictorType
+                self._handler_type = TensorFlowHandlerType
         else:
             raise CortexException(
-                "'tensorflow' predictor type is the only allowed type for this cron"
+                "'tensorflow' handler type is the only allowed type for this cron"
             )
 
         self._ran_once = mp.Event()
@@ -769,7 +769,7 @@ class TFSModelLoader(mp.Process):
         ) = find_all_s3_models(
             self._is_dir_used,
             self._models_dir,
-            self._predictor_type,
+            self._handler_type,
             self._s3_paths,
             self._s3_model_names,
         )
@@ -932,7 +932,7 @@ class TFSModelLoader(mp.Process):
                 model_contents = glob.glob(os.path.join(temp_dest, "**"), recursive=True)
                 model_contents = util.remove_non_empty_directory_paths(model_contents)
                 try:
-                    validate_model_paths(model_contents, self._predictor_type, temp_dest)
+                    validate_model_paths(model_contents, self._handler_type, temp_dest)
                     passed_validation = True
                 except CortexException:
                     passed_validation = False
@@ -1017,7 +1017,7 @@ class TFSModelLoader(mp.Process):
             model_contents = glob.glob(os.path.join(temp_dest, "**"), recursive=True)
             model_contents = util.remove_non_empty_directory_paths(model_contents)
             try:
-                validate_model_paths(model_contents, self._predictor_type, temp_dest)
+                validate_model_paths(model_contents, self._handler_type, temp_dest)
                 passed_validation = True
             except CortexException:
                 passed_validation = False
@@ -1141,7 +1141,7 @@ class TFSModelLoader(mp.Process):
 
     def _determine_model_signature_key(self, model_name: str) -> Optional[str]:
         if self._models_dir:
-            signature_key = self._api_spec["predictor"]["models"]["signature_key"]
+            signature_key = self._api_spec["handler"]["models"]["signature_key"]
         else:
             signature_key = self._spec_models[model_name]["signature_key"]
 
@@ -1162,7 +1162,7 @@ class TFSModelLoader(mp.Process):
 
 class TFSAPIServingThreadUpdater(AbstractLoopingThread):
     """
-    When live reloading and the TensorFlow predictor are used, the serving container
+    When live reloading and the TensorFlow type is used, the serving container
     needs to have a way of accessing the models' metadata which is generated using the TFSModelLoader cron.
 
     This cron runs on each serving process and periodically reads the exported metadata from the TFSModelLoader cron.
@@ -1382,15 +1382,15 @@ class ModelTreeUpdater(AbstractLoopingThread):
         for model_name in self._s3_model_names:
             self._s3_paths.append(self._spec_models[model_name]["path"])
 
-        self._predictor_type = predictor_type_from_api_spec(self._api_spec)
+        self._handler_type = handler_type_from_api_spec(self._api_spec)
 
         if (
-            self._predictor_type == PythonPredictorType
-            and self._api_spec["predictor"]["multi_model_reloading"]
+            self._handler_type == PythonHandlerType
+            and self._api_spec["handler"]["multi_model_reloading"]
         ):
-            models = self._api_spec["predictor"]["multi_model_reloading"]
-        elif self._predictor_type != PythonPredictorType:
-            models = self._api_spec["predictor"]["models"]
+            models = self._api_spec["handler"]["multi_model_reloading"]
+        elif self._handler_type != PythonHandlerType:
+            models = self._api_spec["handler"]["models"]
         else:
             models = None
 
@@ -1416,7 +1416,7 @@ class ModelTreeUpdater(AbstractLoopingThread):
         ) = find_all_s3_models(
             self._is_dir_used,
             self._models_dir,
-            self._predictor_type,
+            self._handler_type,
             self._s3_paths,
             self._s3_model_names,
         )

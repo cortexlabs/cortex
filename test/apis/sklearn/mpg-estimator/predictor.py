@@ -7,7 +7,7 @@ import re
 import os
 
 
-class PythonPredictor:
+class Handler:
     def __init__(self, config):
         model_path = "/tmp/model"
         os.makedirs(model_path, exist_ok=True)

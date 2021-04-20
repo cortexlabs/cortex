@@ -1,6 +1,6 @@
 - name: document-denoiser
   kind: RealtimeAPI
-  predictor:
+  handler:
     type: python
     path: predictor.py
     config:

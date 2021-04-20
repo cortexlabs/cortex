@@ -14,7 +14,7 @@ def get_url_image(url_image):
     return image
 
 
-class TensorFlowPredictor:
+class Handler:
     def __init__(self, tensorflow_client, config):
         self.client = tensorflow_client
 

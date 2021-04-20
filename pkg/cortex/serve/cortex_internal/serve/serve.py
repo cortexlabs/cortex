@@ -58,7 +58,7 @@ app = FastAPI()
 
 local_cache: Dict[str, Any] = {
     "api": None,
-    "predictor_impl": None,
+    "handler_impl": None,
     "dynamic_batcher": None,
     "predict_route": None,
     "client": None,
@@ -177,14 +177,14 @@ async def parse_payload(request: Request, call_next):
 
 
 def predict(request: Request):
-    predictor_impl = local_cache["predictor_impl"]
+    handler_impl = local_cache["handler_impl"]
     dynamic_batcher = local_cache["dynamic_batcher"]
     kwargs = build_predict_kwargs(request)
 
     if dynamic_batcher:
         prediction = dynamic_batcher.predict(**kwargs)
     else:
-        prediction = predictor_impl.predict(**kwargs)
+        prediction = handler_impl.predict(**kwargs)
 
     if isinstance(prediction, bytes):
         response = Response(content=prediction, media_type="application/octet-stream")
@@ -203,9 +203,9 @@ def predict(request: Request):
             ) from e
         response = Response(content=json_string, media_type="application/json")
 
-    if util.has_method(predictor_impl, "post_predict"):
+    if util.has_method(handler_impl, "post_predict"):
         kwargs = build_post_predict_kwargs(prediction, request)
-        request_thread_pool.submit(predictor_impl.post_predict, **kwargs)
+        request_thread_pool.submit(handler_impl.post_predict, **kwargs)
 
     return response
 
@@ -295,8 +295,8 @@ def start_fn():
         )
 
         with FileLock("/run/init_stagger.lock"):
-            logger.info("loading the predictor from {}".format(api.path))
-            predictor_impl = api.initialize_impl(
+            logger.info("loading the handler from {}".format(api.path))
+            handler_impl = api.initialize_impl(
                 project_dir=project_dir, client=client, metrics_client=MetricsClient(statsd_client)
             )
 
@@ -312,21 +312,21 @@ def start_fn():
 
         local_cache["api"] = api
         local_cache["client"] = client
-        local_cache["predictor_impl"] = predictor_impl
-        local_cache["predict_fn_args"] = inspect.getfullargspec(predictor_impl.predict).args
+        local_cache["handler_impl"] = handler_impl
+        local_cache["predict_fn_args"] = inspect.getfullargspec(handler_impl.predict).args
 
         if api.python_server_side_batching_enabled:
-            dynamic_batching_config = api.api_spec["predictor"]["server_side_batching"]
+            dynamic_batching_config = api.api_spec["handler"]["server_side_batching"]
             local_cache["dynamic_batcher"] = DynamicBatcher(
-                predictor_impl,
+                handler_impl,
                 max_batch_size=dynamic_batching_config["max_batch_size"],
                 batch_interval=dynamic_batching_config["batch_interval"]
                 / NANOSECONDS_IN_SECOND,  # convert nanoseconds to seconds
             )
 
-        if util.has_method(predictor_impl, "post_predict"):
+        if util.has_method(handler_impl, "post_predict"):
             local_cache["post_predict_fn_args"] = inspect.getfullargspec(
-                predictor_impl.post_predict
+                handler_impl.post_predict
             ).args
 
         predict_route = "/predict"

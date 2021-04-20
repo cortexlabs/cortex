@@ -10,7 +10,7 @@ import json
 import re
 
 
-class PythonPredictor:
+class Handler:
     def __init__(self, config, job_spec):
         self.model = torchvision.models.alexnet(pretrained=True).eval()
 

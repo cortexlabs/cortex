@@ -30,7 +30,7 @@ def prepare_image(image, input_shape, input_key):
     return img
 
 
-class TensorFlowPredictor:
+class Handler:
     def __init__(self, tensorflow_client, config):
         self.client = tensorflow_client
 
