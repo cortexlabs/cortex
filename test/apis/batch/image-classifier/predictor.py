@@ -31,7 +31,7 @@ class Handler:
         self.bucket, self.key = re.match("s3://(.+?)/(.+)", config["dest_s3_dir"]).groups()
         self.key = os.path.join(self.key, job_spec["job_id"])
 
-    def predict(self, payload, batch_id):
+    def handle_batch(self, payload, batch_id):
         tensor_list = []
 
         # download and preprocess each image
@@ -61,7 +61,7 @@ class Handler:
         # save results
         self.s3.put_object(Bucket=self.bucket, Key=f"{self.key}/{batch_id}.json", Body=json_output)
 
-    def on_job_complete(self):
+    def handle_on_job_complete(self):
         all_results = []
 
         # aggregate all classifications

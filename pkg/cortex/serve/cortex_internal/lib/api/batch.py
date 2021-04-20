@@ -103,6 +103,7 @@ class BatchAPI:
 
         self.metrics = CortexMetrics(statsd_client, api_spec)
 
+        self.name = api_spec["name"]
         self.type = handler_type_from_api_spec(api_spec)
         self.path = api_spec["handler"]["path"]
         self.config = api_spec["handler"].get("config", {})

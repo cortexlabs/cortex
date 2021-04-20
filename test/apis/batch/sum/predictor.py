@@ -15,10 +15,10 @@ class Handler:
         self.key = os.path.join(self.key, job_spec["job_id"])
         self.list = []
 
-    def predict(self, payload, batch_id):
+    def handle_batch(self, payload, batch_id):
         for numbers_list in payload:
             self.list.append(sum(numbers_list))
 
-    def on_job_complete(self):
+    def handle_on_job_complete(self):
         json_output = json.dumps(self.list)
         self.s3.put_object(Bucket=self.bucket, Key=f"{self.key}.json", Body=json_output)
