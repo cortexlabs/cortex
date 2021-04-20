@@ -133,8 +133,11 @@ func (s *service) getStatus(id string) (Status, error) {
 	// determine request status
 	status := StatusInQueue
 	for _, file := range files {
-		fileStatus := Status(file)
+		if file == "payload" {
+			continue
+		}
 
+		fileStatus := Status(file)
 		if !fileStatus.Valid() {
 			status = fileStatus
 			return "", fmt.Errorf("invalid workload status: %s", status)
