@@ -17,7 +17,7 @@ import threading as td
 import itertools
 import time
 
-import cortex_internal.lib.api.batching as batching
+from cortex_internal.lib.api.utils import DynamicBatcher
 
 
 class Predictor:
@@ -28,7 +28,7 @@ class Predictor:
 
 def test_dynamic_batching_while_hitting_max_batch_size():
     max_batch_size = 32
-    dynamic_batcher = batching.DynamicBatcher(
+    dynamic_batcher = DynamicBatcher(
         Predictor(), max_batch_size=max_batch_size, batch_interval=0.1, test_mode=True
     )
     counter = itertools.count(1)
@@ -71,7 +71,7 @@ def test_dynamic_batching_while_hitting_max_batch_size():
 
 def test_dynamic_batching_while_hitting_max_interval():
     max_batch_size = 32
-    dynamic_batcher = batching.DynamicBatcher(
+    dynamic_batcher = DynamicBatcher(
         Predictor(), max_batch_size=max_batch_size, batch_interval=1.0, test_mode=True
     )
     counter = itertools.count(1)

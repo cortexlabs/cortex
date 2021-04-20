@@ -25,7 +25,7 @@ from typing import Dict, Any
 
 import boto3
 
-from cortex_internal.lib.api import get_api, get_spec
+from cortex_internal.lib.api import get_spec, BatchAPI
 from cortex_internal.lib.concurrency import LockedFile
 from cortex_internal.lib.exceptions import UserRuntimeException
 from cortex_internal.lib.log import configure_logger
@@ -33,6 +33,7 @@ from cortex_internal.lib.metrics import MetricsClient
 from cortex_internal.lib.queue.sqs import SQSHandler, get_total_messages_in_queue
 from cortex_internal.lib.storage import S3
 from cortex_internal.lib.telemetry import get_default_tags, init_sentry, capture_exception
+import datadog
 
 init_sentry(tags=get_default_tags())
 log = configure_logger("cortex", os.environ["CORTEX_LOG_CONFIG_FILE"])
@@ -111,7 +112,7 @@ def get_job_spec(storage, cache_dir, job_spec_path):
 
 def handle_batch_message(message):
     predictor_impl = local_cache["predictor_impl"]
-    api = local_cache["api"]
+    api: BatchAPI = local_cache["api"]
 
     log.info(f"processing batch {message['MessageId']}")
 
@@ -124,13 +125,15 @@ def handle_batch_message(message):
     except Exception as err:
         raise UserRuntimeException from err
 
-    api.post_metrics([success_counter_metric(), time_per_batch_metric(time.time() - start_time)])
+    api.metrics.post_metrics(
+        [success_counter_metric(), time_per_batch_metric(time.time() - start_time)]
+    )
 
 
 def handle_batch_failure(message):
-    api = local_cache["api"]
+    api: BatchAPI = local_cache["api"]
 
-    api.post_metrics([failed_counter_metric()])
+    api.metrics.post_metrics([failed_counter_metric()])
     log.exception(f"failed processing batch {message['MessageId']}")
 
 
@@ -186,6 +189,7 @@ def start():
     project_dir = os.environ["CORTEX_PROJECT_DIR"]
 
     model_dir = os.getenv("CORTEX_MODEL_DIR")
+    host_ip = os.environ["HOST_IP"]
     tf_serving_port = os.getenv("CORTEX_TF_BASE_SERVING_PORT", "9000")
     tf_serving_host = os.getenv("CORTEX_TF_SERVING_HOST", "localhost")
 
@@ -204,22 +208,22 @@ def start():
             json.dump(used_ports, f)
             f.truncate()
 
-    api = get_api(api_spec_path, model_dir, cache_dir, region)
-    storage, _ = get_spec(api_spec_path, cache_dir, region)
+    datadog.initialize(statsd_host=host_ip, statsd_port=9125)
+    statsd_client = datadog.statsd
+
+    storage, api_spec = get_spec(api_spec_path, cache_dir, region)
+    api = BatchAPI(api_spec, statsd_client, model_dir)
     job_spec = get_job_spec(storage, cache_dir, job_spec_path)
     sqs_client = boto3.client("sqs", region_name=region)
 
-    client = api.predictor.initialize_client(
-        tf_serving_host=tf_serving_host, tf_serving_port=tf_serving_port
-    )
+    client = api.initialize_client(tf_serving_host=tf_serving_host, tf_serving_port=tf_serving_port)
 
     try:
-        log.info("loading the predictor from {}".format(api.predictor.path))
-        metrics_client = MetricsClient(api.statsd)
-        predictor_impl = api.predictor.initialize_impl(
+        log.info("loading the predictor from {}".format(api.path))
+        predictor_impl = api.initialize_impl(
             project_dir=project_dir,
             client=client,
-            metrics_client=metrics_client,
+            metrics_client=MetricsClient(statsd_client),
             job_spec=job_spec,
         )
     except UserRuntimeException as err:
@@ -234,7 +238,7 @@ def start():
     # crons only stop if an unhandled exception occurs
     def check_if_crons_have_failed():
         while True:
-            for cron in api.predictor.crons:
+            for cron in api.crons:
                 if not cron.is_alive():
                     os.kill(os.getpid(), signal.SIGQUIT)
             time.sleep(1)

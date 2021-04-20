@@ -16,25 +16,21 @@ import imp
 import inspect
 import os
 from copy import deepcopy
-from typing import Optional, Union, Dict, Any
+from typing import Optional, Union, Any
 
 import dill
-import datadog
 from datadog import DogStatsd
 
-from cortex_internal.lib import util
 from cortex_internal.lib.api.validations import (
     validate_class_impl,
     validate_python_predictor_with_models,
     validate_predictor_with_grpc,
     are_models_specified,
 )
-from cortex_internal.lib.api.utils import model_downloader, get_spec
+from cortex_internal.lib.api.utils import model_downloader, CortexMetrics
 from cortex_internal.lib.client.python import PythonClient
 from cortex_internal.lib.client.tensorflow import TensorFlowClient
 from cortex_internal.lib.exceptions import CortexException, UserException, UserRuntimeException
-from cortex_internal.lib.storage import S3
-from cortex_internal.lib.log import configure_logger
 from cortex_internal.lib.model import (
     FileBasedModelsGC,
     TFSAPIServingThreadUpdater,
@@ -49,8 +45,6 @@ from cortex_internal.lib.type import (
     TensorFlowPredictorType,
     TensorFlowNeuronPredictorType,
 )
-
-logger = configure_logger("cortex", os.environ["CORTEX_LOG_CONFIG_FILE"])
 
 PYTHON_CLASS_VALIDATION = {
     "http": {
@@ -71,7 +65,7 @@ PYTHON_CLASS_VALIDATION = {
                     "handle_delete",
                 ],
                 "required_args": ["self"],
-                "optional_args": ["payload", "query_params", "headers"]
+                "optional_args": ["payload", "query_params", "headers"],
             },
             {
                 "name": "load_model",
@@ -115,7 +109,7 @@ TENSORFLOW_CLASS_VALIDATION = {
                     "handle_delete",
                 ],
                 "required_args": ["self"],
-                "optional_args": ["payload", "query_params", "headers"]
+                "optional_args": ["payload", "query_params", "headers"],
             },
         ],
     },
@@ -130,31 +124,26 @@ TENSORFLOW_CLASS_VALIDATION = {
     },
 }
 
+
 class RealtimeAPI:
     """
     Class to validate/load the predictor class (PythonPredictor, TensorFlowPredictor).
     Also makes the specified models in cortex.yaml available to the predictor's implementation.
     """
 
-    def __init__(self, api_spec: dict, model_dir: str):
-        """
-        Args:
-            api_spec: API configuration.
-            model_dir: Where the models are stored on disk.
-        """
+    def __init__(self, api_spec: dict, statsd_client: DogStatsd, model_dir: str):
+        self.api_spec = api_spec
+        self.model_dir = model_dir
 
+        self.metrics = CortexMetrics(statsd_client, api_spec)
         self.type = predictor_type_from_api_spec(api_spec)
         self.path = api_spec["predictor"]["path"]
         self.config = api_spec["predictor"].get("config", {})
         self.protobuf_path = api_spec["predictor"].get("protobuf_path")
 
-        self.api_spec = api_spec
-
         self.crons = []
         if not are_models_specified(self.api_spec):
             return
-
-        self.model_dir = model_dir
 
         self.caching_enabled = self._is_model_caching_enabled()
         self.multiple_processes = self.api_spec["predictor"]["processes_per_replica"] > 1
@@ -190,6 +179,13 @@ class RealtimeAPI:
             self.models_tree = None
         else:
             self.models_tree = ModelsTree()
+
+    @property
+    def python_server_side_batching_enabled(self):
+        return (
+            self.api_spec["predictor"].get("server_side_batching") is not None
+            and self.api_spec["predictor"]["type"] == "python"
+        )
 
     def initialize_client(
         self, tf_serving_host: Optional[str] = None, tf_serving_port: Optional[str] = None
@@ -232,13 +228,11 @@ class RealtimeAPI:
         project_dir: str,
         client: Union[PythonClient, TensorFlowClient],
         metrics_client: DogStatsd,
-        job_spec: Optional[Dict[str, Any]] = None,
         proto_module_pb2: Optional[Any] = None,
     ):
         """
         Initialize predictor class as provided by the user.
 
-        job_spec is a dictionary when the "kind" of the API is set to "BatchAPI". Otherwise, it's None.
         proto_module_pb2 is a module of the compiled proto when grpc is enabled for the "RealtimeAPI" kind. Otherwise, it's None.
 
         Can raise UserRuntimeException/UserException/CortexException.
@@ -249,12 +243,8 @@ class RealtimeAPI:
         constructor_args = inspect.getfullargspec(class_impl.__init__).args
         config = deepcopy(self.config)
         args = {}
-        if job_spec is not None and job_spec.get("config") is not None:
-            util.merge_dicts_in_place_overwrite(config, job_spec["config"])
         if "config" in constructor_args:
             args["config"] = config
-        if "job_spec" in constructor_args:
-            args["job_spec"] = job_spec
         if "metrics_client" in constructor_args:
             args["metrics_client"] = metrics_client
         if "proto_module_pb2" in constructor_args:
@@ -382,127 +372,3 @@ class RealtimeAPI:
             cron.stop()
         for cron in self.crons:
             cron.join()
-
-
-class RealtimeAPI:
-    def __init__(
-        self,
-        storage: S3,
-        api_spec: Dict[str, Any],
-        model_dir: str,
-        cache_dir: str = ".",
-    ):
-        self.storage = storage
-        self.api_spec = api_spec
-        self.cache_dir = cache_dir
-
-        self.id = api_spec["id"]
-        self.predictor_id = api_spec["predictor_id"]
-        self.deployment_id = api_spec["deployment_id"]
-
-        self.key = api_spec["key"]
-        self.metadata_root = api_spec["metadata_root"]
-        self.name = api_spec["name"]
-        self.predictor = Predictor(api_spec, model_dir)
-
-        host_ip = os.environ["HOST_IP"]
-        datadog.initialize(statsd_host=host_ip, statsd_port=9125)
-        self.__statsd = datadog.statsd
-
-    @property
-    def statsd(self):
-        return self.__statsd
-
-    @property
-    def python_server_side_batching_enabled(self):
-        return (
-            self.api_spec["predictor"].get("server_side_batching") is not None
-            and self.api_spec["predictor"]["type"] == "python"
-        )
-
-    def metric_dimensions_with_id(self):
-        return [
-            {"Name": "api_name", "Value": self.name},
-            {"Name": "api_id", "Value": self.id},
-            {"Name": "predictor_id", "Value": self.predictor_id},
-            {"Name": "deployment_id", "Value": self.deployment_id},
-        ]
-
-    def metric_dimensions(self):
-        return [{"Name": "api_name", "Value": self.name}]
-
-    def post_request_metrics(self, status_code, total_time):
-        total_time_ms = total_time * 1000
-        metrics = [
-            self.status_code_metric(self.metric_dimensions(), status_code),
-            self.status_code_metric(self.metric_dimensions_with_id(), status_code),
-            self.latency_metric(self.metric_dimensions(), total_time_ms),
-            self.latency_metric(self.metric_dimensions_with_id(), total_time_ms),
-        ]
-        self.post_metrics(metrics)
-
-    def post_status_code_request_metrics(self, status_code):
-        metrics = [
-            self.status_code_metric(self.metric_dimensions(), status_code),
-            self.status_code_metric(self.metric_dimensions_with_id(), status_code),
-        ]
-        self.post_metrics(metrics)
-
-    def post_latency_request_metrics(self, total_time):
-        total_time_ms = total_time * 1000
-        metrics = [
-            self.latency_metric(self.metric_dimensions(), total_time_ms),
-            self.latency_metric(self.metric_dimensions_with_id(), total_time_ms),
-        ]
-        self.post_metrics(metrics)
-
-    def post_metrics(self, metrics):
-        try:
-            if self.statsd is None:
-                raise CortexException("statsd client not initialized")  # unexpected
-
-            for metric in metrics:
-                tags = ["{}:{}".format(dim["Name"], dim["Value"]) for dim in metric["Dimensions"]]
-                if metric.get("Unit") == "Count":
-                    self.statsd.increment(metric["MetricName"], value=metric["Value"], tags=tags)
-                else:
-                    self.statsd.histogram(metric["MetricName"], value=metric["Value"], tags=tags)
-        except:
-            logger.warn("failure encountered while publishing metrics", exc_info=True)
-
-    def status_code_metric(self, dimensions, status_code):
-        status_code_series = int(status_code / 100)
-        status_code_dimensions = dimensions + [
-            {"Name": "response_code", "Value": "{}XX".format(status_code_series)}
-        ]
-        return {
-            "MetricName": "cortex_status_code",
-            "Dimensions": status_code_dimensions,
-            "Value": 1,
-            "Unit": "Count",
-        }
-
-    def latency_metric(self, dimensions, total_time):
-        return {
-            "MetricName": "cortex_latency",
-            "Dimensions": dimensions,
-            "Value": total_time,  # milliseconds
-        }
-
-
-def get_api(
-    spec_path: str,
-    model_dir: str,
-    cache_dir: str,
-    region: str,
-) -> RealtimeAPI:
-    storage, raw_api_spec = get_spec(spec_path, cache_dir, region)
-
-    api = RealtimeAPI(
-        storage=storage,
-        api_spec=raw_api_spec,
-        model_dir=model_dir,
-        cache_dir=cache_dir,
-    )
-
-    return api

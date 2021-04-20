@@ -24,16 +24,16 @@ import time
 import uuid
 from concurrent.futures import ThreadPoolExecutor
 from typing import Any, Dict
+import datadog
 
 from fastapi import FastAPI
 from fastapi.exceptions import RequestValidationError
-from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.requests import Request
+from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.responses import JSONResponse, PlainTextResponse, Response
 
 from cortex_internal.lib import util
-from cortex_internal.lib.api import get_api
-from cortex_internal.lib.api.batching import DynamicBatcher
+from cortex_internal.lib.api import get_spec, DynamicBatcher, RealtimeAPI
 from cortex_internal.lib.concurrency import FileLock, LockedFile
 from cortex_internal.lib.exceptions import UserRuntimeException
 from cortex_internal.lib.log import configure_logger
@@ -132,8 +132,8 @@ async def register_request(request: Request, call_next):
             status_code = 500
             if response is not None:
                 status_code = response.status_code
-            api = local_cache["api"]
-            api.post_request_metrics(status_code, time.time() - request.state.start_time)
+            api: RealtimeAPI = local_cache["api"]
+            api.metrics.post_request_metrics(status_code, time.time() - request.state.start_time)
 
     return response
 
@@ -245,7 +245,6 @@ def get_summary():
 
     if hasattr(local_cache["client"], "metadata"):
         client = local_cache["client"]
-        predictor = local_cache["api"].predictor
         response["model_metadata"] = client.metadata
 
     return response
@@ -267,6 +266,7 @@ def start_fn():
     cache_dir = os.getenv("CORTEX_CACHE_DIR")
     region = os.getenv("AWS_REGION")
 
+    host_ip = os.environ["HOST_IP"]
     tf_serving_port = os.getenv("CORTEX_TF_BASE_SERVING_PORT", "9000")
     tf_serving_host = os.getenv("CORTEX_TF_SERVING_HOST", "localhost")
 
@@ -284,23 +284,26 @@ def start_fn():
                 json.dump(used_ports, f)
                 f.truncate()
 
-        api = get_api(spec_path, model_dir, cache_dir, region)
+        datadog.initialize(statsd_host=host_ip, statsd_port=9125)
+        statsd_client = datadog.statsd
 
-        client = api.predictor.initialize_client(
+        _, api_spec = get_spec(spec_path, cache_dir, region)
+        api = RealtimeAPI(api_spec, statsd_client, model_dir)
+
+        client = api.initialize_client(
             tf_serving_host=tf_serving_host, tf_serving_port=tf_serving_port
         )
 
         with FileLock("/run/init_stagger.lock"):
-            logger.info("loading the predictor from {}".format(api.predictor.path))
-            metrics_client = MetricsClient(api.statsd)
-            predictor_impl = api.predictor.initialize_impl(
-                project_dir=project_dir, client=client, metrics_client=metrics_client
+            logger.info("loading the predictor from {}".format(api.path))
+            predictor_impl = api.initialize_impl(
+                project_dir=project_dir, client=client, metrics_client=MetricsClient(statsd_client)
             )
 
         # crons only stop if an unhandled exception occurs
         def check_if_crons_have_failed():
             while True:
-                for cron in api.predictor.crons:
+                for cron in api.crons:
                     if not cron.is_alive():
                         os.kill(os.getpid(), signal.SIGQUIT)
                 time.sleep(1)
