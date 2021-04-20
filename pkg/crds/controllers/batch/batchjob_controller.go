@@ -20,7 +20,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/cortexlabs/cortex/operator/controllers"
+	"github.com/cortexlabs/cortex/pkg/crds/controllers"
 	awslib "github.com/cortexlabs/cortex/pkg/lib/aws"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/types/clusterconfig"
@@ -31,7 +31,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	batch "github.com/cortexlabs/cortex/operator/apis/batch/v1alpha1"
+	batch "github.com/cortexlabs/cortex/pkg/crds/apis/batch/v1alpha1"
 )
 
 const (

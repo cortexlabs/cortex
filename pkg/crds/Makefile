@@ -19,7 +19,7 @@ IMG ?= controller:latest
 # Produce CRDs that work back to Kubernetes 1.11 (no version conversion)
 CRD_OPTIONS ?= "crd:trivialVersions=true,crdVersions=v1"
 # Cortex cluster config path. Defaults to the dev config path
-CLUSTER_CONFIG ?= "../dev/config/cluster.yaml"
+CLUSTER_CONFIG ?= "../../../dev/config/cluster.yaml"
 
 # Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
 ifeq (,$(shell go env GOBIN))

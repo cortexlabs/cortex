@@ -25,7 +25,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/json"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
-	"k8s.io/api/core/v1"
+	kcore "k8s.io/api/core/v1"
 )
 
 type downloadContainerConfig struct {
@@ -43,26 +43,26 @@ type downloadContainerArg struct {
 	HideUnzippingLog bool   `json:"hide_unzipping_log"` // if true, don't log when unzipping
 }
 
-func FileExistsProbe(fileName string) *v1.Probe {
-	return &v1.Probe{
+func FileExistsProbe(fileName string) *kcore.Probe {
+	return &kcore.Probe{
 		InitialDelaySeconds: 3,
 		TimeoutSeconds:      5,
 		PeriodSeconds:       5,
 		SuccessThreshold:    1,
 		FailureThreshold:    1,
-		Handler: v1.Handler{
-			Exec: &v1.ExecAction{
+		Handler: kcore.Handler{
+			Exec: &kcore.ExecAction{
 				Command: []string{"/bin/bash", "-c", fmt.Sprintf("test -f %s", fileName)},
 			},
 		},
 	}
 }
 
-func nginxGracefulStopper(apiKind userconfig.Kind) *v1.Lifecycle {
+func nginxGracefulStopper(apiKind userconfig.Kind) *kcore.Lifecycle {
 	if apiKind == userconfig.RealtimeAPIKind {
-		return &v1.Lifecycle{
-			PreStop: &v1.Handler{
-				Exec: &v1.ExecAction{
+		return &kcore.Lifecycle{
+			PreStop: &kcore.Handler{
+				Exec: &kcore.ExecAction{
 					// the sleep is required to wait for any k8s-related race conditions
 					// as described in https://medium.com/codecademy-engineering/kubernetes-nginx-and-zero-downtime-in-production-2c910c6a5ed8
 					Command: []string{"/bin/sh", "-c", "sleep 5; /usr/sbin/nginx -s quit; while pgrep -x nginx; do sleep 1; done"},
@@ -73,11 +73,11 @@ func nginxGracefulStopper(apiKind userconfig.Kind) *v1.Lifecycle {
 	return nil
 }
 
-func waitAPIContainerToStop(apiKind userconfig.Kind) *v1.Lifecycle {
+func waitAPIContainerToStop(apiKind userconfig.Kind) *kcore.Lifecycle {
 	if apiKind == userconfig.RealtimeAPIKind {
-		return &v1.Lifecycle{
-			PreStop: &v1.Handler{
-				Exec: &v1.ExecAction{
+		return &kcore.Lifecycle{
+			PreStop: &kcore.Handler{
+				Exec: &kcore.ExecAction{
 					Command: []string{"/bin/sh", "-c", fmt.Sprintf("while curl localhost:%s/nginx_status; do sleep 1; done", DefaultPortStr)},
 				},
 			},
@@ -86,15 +86,15 @@ func waitAPIContainerToStop(apiKind userconfig.Kind) *v1.Lifecycle {
 	return nil
 }
 
-func socketExistsProbe(socketName string) *v1.Probe {
-	return &v1.Probe{
+func socketExistsProbe(socketName string) *kcore.Probe {
+	return &kcore.Probe{
 		InitialDelaySeconds: 3,
 		TimeoutSeconds:      5,
 		PeriodSeconds:       5,
 		SuccessThreshold:    1,
 		FailureThreshold:    1,
-		Handler: v1.Handler{
-			Exec: &v1.ExecAction{
+		Handler: kcore.Handler{
+			Exec: &kcore.ExecAction{
 				Command: []string{"/bin/bash", "-c", fmt.Sprintf("test -S %s", socketName)},
 			},
 		},

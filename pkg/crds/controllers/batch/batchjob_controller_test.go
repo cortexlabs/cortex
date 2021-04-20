@@ -21,7 +21,7 @@ import (
 	"strings"
 	"time"
 
-	batch "github.com/cortexlabs/cortex/operator/apis/batch/v1alpha1"
+	batch "github.com/cortexlabs/cortex/pkg/crds/apis/batch/v1alpha1"
 	"github.com/cortexlabs/cortex/pkg/lib/random"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/types/status"
