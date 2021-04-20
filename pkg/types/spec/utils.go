@@ -92,14 +92,14 @@ func checkForInvalidBucketScheme(modelPath string) (string, error) {
 	return modelPath, nil
 }
 
-type errorForPredictorTypeFn func(string, []string) error
+type errorForHandlerTypeFn func(string, []string) error
 
-func generateErrorForPredictorTypeFn(api *userconfig.API) errorForPredictorTypeFn {
+func generateErrorForHandlerTypeFn(api *userconfig.API) errorForHandlerTypeFn {
 	return func(modelPrefix string, modelPaths []string) error {
-		switch api.Predictor.Type {
-		case userconfig.PythonPredictorType:
+		switch api.Handler.Type {
+		case userconfig.PythonHandlerType:
 			return ErrorInvalidPythonModelPath(modelPrefix, modelPaths)
-		case userconfig.TensorFlowPredictorType:
+		case userconfig.TensorHandlerType:
 			return ErrorInvalidTensorFlowModelPath(modelPrefix, api.Compute.Inf > 0, modelPaths)
 		}
 		return nil
@@ -110,7 +110,7 @@ func validateDirModels(
 	modelPath string,
 	signatureKey *string,
 	awsClient *aws.Client,
-	errorForPredictorType errorForPredictorTypeFn,
+	errorForHandlerType errorForHandlerTypeFn,
 	extraValidators []modelValidator) ([]CuratedModelResource, error) {
 
 	var bucket string
@@ -137,7 +137,7 @@ func validateDirModels(
 	modelDirPaths = aws.ConvertS3ObjectsToKeys(s3Objects...)
 
 	if len(modelDirPaths) == 0 {
-		return nil, errorForPredictorType(dirPrefix, modelDirPaths)
+		return nil, errorForHandlerType(dirPrefix, modelDirPaths)
 	}
 
 	modelNames := []string{}
@@ -160,7 +160,7 @@ func validateDirModels(
 
 		modelStructureType := determineBaseModelStructure(modelDirPaths, modelPrefix)
 		if modelStructureType == userconfig.UnknownModelStructureType {
-			return nil, errors.Wrap(errorForPredictorType(modelPrefix, nil), modelNameWrapStr)
+			return nil, errors.Wrap(errorForHandlerType(modelPrefix, nil), modelNameWrapStr)
 		}
 
 		var versions []string
@@ -210,7 +210,7 @@ func validateModels(
 	models []userconfig.ModelResource,
 	defaultSignatureKey *string,
 	awsClient *aws.Client,
-	errorForPredictorType errorForPredictorTypeFn,
+	errorForHandlerType errorForHandlerTypeFn,
 	extraValidators []modelValidator) ([]CuratedModelResource, error) {
 
 	var bucket string
@@ -244,7 +244,7 @@ func validateModels(
 		modelPaths = aws.ConvertS3ObjectsToKeys(s3Objects...)
 
 		if len(modelPaths) == 0 {
-			return nil, errors.Wrap(errorForPredictorType(modelPrefix, modelPaths), modelNameWrapStr)
+			return nil, errors.Wrap(errorForHandlerType(modelPrefix, modelPaths), modelNameWrapStr)
 		}
 
 		modelStructureType := determineBaseModelStructure(modelPaths, modelPrefix)

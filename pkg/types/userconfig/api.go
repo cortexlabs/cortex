@@ -32,7 +32,7 @@ import (
 type API struct {
 	Resource
 	APIs             []*TrafficSplit `json:"apis" yaml:"apis"`
-	Predictor        *Predictor      `json:"predictor" yaml:"predictor"`
+	Handler          *Handler        `json:"handler" yaml:"handler"`
 	TaskDefinition   *TaskDefinition `json:"definition" yaml:"definition"`
 	Networking       *Networking     `json:"networking" yaml:"networking"`
 	Compute          *Compute        `json:"compute" yaml:"compute"`
@@ -43,10 +43,10 @@ type API struct {
 	SubmittedAPISpec interface{}     `json:"submitted_api_spec" yaml:"submitted_api_spec"`
 }
 
-type Predictor struct {
-	Type         PredictorType `json:"type" yaml:"type"`
-	Path         string        `json:"path" yaml:"path"`
-	ProtobufPath *string       `json:"protobuf_path" yaml:"protobuf_path"`
+type Handler struct {
+	Type         HandlerType `json:"type" yaml:"type"`
+	Path         string      `json:"path" yaml:"path"`
+	ProtobufPath *string     `json:"protobuf_path" yaml:"protobuf_path"`
 
 	MultiModelReloading *MultiModels `json:"multi_model_reloading" yaml:"multi_model_reloading"`
 	Models              *MultiModels `json:"models" yaml:"models"`
@@ -143,7 +143,7 @@ func (api *API) Identify() string {
 
 func (api *API) ModelNames() []string {
 	names := []string{}
-	for _, model := range api.Predictor.Models.Paths {
+	for _, model := range api.Handler.Models.Paths {
 		names = append(names, model.Name)
 	}
 	return names
@@ -155,36 +155,36 @@ func (api *API) ApplyDefaultDockerPaths() {
 
 	switch api.Kind {
 	case RealtimeAPIKind, BatchAPIKind, AsyncAPIKind:
-		api.applyPredictorDefaultDockerPaths(usesGPU, usesInf)
+		api.applyHandlerDefaultDockerPaths(usesGPU, usesInf)
 	case TaskAPIKind:
 		api.applyTaskDefaultDockerPaths(usesGPU, usesInf)
 	}
 }
 
-func (api *API) applyPredictorDefaultDockerPaths(usesGPU, usesInf bool) {
-	predictor := api.Predictor
-	switch predictor.Type {
-	case PythonPredictorType:
-		if predictor.Image == "" {
+func (api *API) applyHandlerDefaultDockerPaths(usesGPU, usesInf bool) {
+	handler := api.Handler
+	switch handler.Type {
+	case PythonHandlerType:
+		if handler.Image == "" {
 			if usesGPU {
-				predictor.Image = consts.DefaultImagePythonPredictorGPU
+				handler.Image = consts.DefaultImagePythonHandlerGPU
 			} else if usesInf {
-				predictor.Image = consts.DefaultImagePythonPredictorInf
+				handler.Image = consts.DefaultImagePythonHandlerInf
 			} else {
-				predictor.Image = consts.DefaultImagePythonPredictorCPU
+				handler.Image = consts.DefaultImagePythoHandlerCPU
 			}
 		}
-	case TensorFlowPredictorType:
-		if predictor.Image == "" {
-			predictor.Image = consts.DefaultImageTensorFlowPredictor
+	case TensorHandlerType:
+		if handler.Image == "" {
+			handler.Image = consts.DefaultImageTensorFlowHandler
 		}
-		if predictor.TensorFlowServingImage == "" {
+		if handler.TensorFlowServingImage == "" {
 			if usesGPU {
-				predictor.TensorFlowServingImage = consts.DefaultImageTensorFlowServingGPU
+				handler.TensorFlowServingImage = consts.DefaultImageTensorFlowServingGPU
 			} else if usesInf {
-				predictor.TensorFlowServingImage = consts.DefaultImageTensorFlowServingInf
+				handler.TensorFlowServingImage = consts.DefaultImageTensorFlowServingInf
 			} else {
-				predictor.TensorFlowServingImage = consts.DefaultImageTensorFlowServingCPU
+				handler.TensorFlowServingImage = consts.DefaultImageTensorFlowServingCPU
 			}
 		}
 	}
@@ -194,17 +194,17 @@ func (api *API) applyTaskDefaultDockerPaths(usesGPU, usesInf bool) {
 	task := api.TaskDefinition
 	if task.Image == "" {
 		if usesGPU {
-			task.Image = consts.DefaultImagePythonPredictorGPU
+			task.Image = consts.DefaultImagePythonHandlerGPU
 		} else if usesInf {
-			task.Image = consts.DefaultImagePythonPredictorInf
+			task.Image = consts.DefaultImagePythonHandlerInf
 		} else {
-			task.Image = consts.DefaultImagePythonPredictorCPU
+			task.Image = consts.DefaultImagePythoHandlerCPU
 		}
 	}
 }
 
-func (predictor *Predictor) IsGRPC() bool {
-	return predictor.ProtobufPath != nil
+func (handler *Handler) IsGRPC() bool {
+	return handler.ProtobufPath != nil
 }
 
 func IdentifyAPI(filePath string, name string, kind Kind, index int) string {
@@ -229,9 +229,9 @@ func IdentifyAPI(filePath string, name string, kind Kind, index int) string {
 // InitReplicas was left out deliberately
 func (api *API) ToK8sAnnotations() map[string]string {
 	annotations := map[string]string{}
-	if api.Predictor != nil {
-		annotations[ProcessesPerReplicaAnnotationKey] = s.Int32(api.Predictor.ProcessesPerReplica)
-		annotations[ThreadsPerProcessAnnotationKey] = s.Int32(api.Predictor.ThreadsPerProcess)
+	if api.Handler != nil {
+		annotations[ProcessesPerReplicaAnnotationKey] = s.Int32(api.Handler.ProcessesPerReplica)
+		annotations[ThreadsPerProcessAnnotationKey] = s.Int32(api.Handler.ThreadsPerProcess)
 	}
 
 	if api.Networking != nil {
@@ -343,9 +343,9 @@ func (api *API) UserStr() string {
 		sb.WriteString(s.Indent(api.TaskDefinition.UserStr(), "  "))
 	}
 
-	if api.Predictor != nil {
-		sb.WriteString(fmt.Sprintf("%s:\n", PredictorKey))
-		sb.WriteString(s.Indent(api.Predictor.UserStr(), "  "))
+	if api.Handler != nil {
+		sb.WriteString(fmt.Sprintf("%s:\n", HandlerKey))
+		sb.WriteString(s.Indent(api.Handler.UserStr(), "  "))
 	}
 
 	if api.Networking != nil {
@@ -412,59 +412,59 @@ func (task *TaskDefinition) UserStr() string {
 	return sb.String()
 }
 
-func (predictor *Predictor) UserStr() string {
+func (handler *Handler) UserStr() string {
 	var sb strings.Builder
 
-	sb.WriteString(fmt.Sprintf("%s: %s\n", TypeKey, predictor.Type))
-	sb.WriteString(fmt.Sprintf("%s: %s\n", PathKey, predictor.Path))
+	sb.WriteString(fmt.Sprintf("%s: %s\n", TypeKey, handler.Type))
+	sb.WriteString(fmt.Sprintf("%s: %s\n", PathKey, handler.Path))
 
-	if predictor.ProtobufPath != nil {
-		sb.WriteString(fmt.Sprintf("%s: %s\n", ProtobufPathKey, *predictor.ProtobufPath))
+	if handler.ProtobufPath != nil {
+		sb.WriteString(fmt.Sprintf("%s: %s\n", ProtobufPathKey, *handler.ProtobufPath))
 	}
 
-	if predictor.Models != nil {
+	if handler.Models != nil {
 		sb.WriteString(fmt.Sprintf("%s:\n", ModelsKey))
-		sb.WriteString(s.Indent(predictor.Models.UserStr(), "  "))
+		sb.WriteString(s.Indent(handler.Models.UserStr(), "  "))
 	}
-	if predictor.MultiModelReloading != nil {
+	if handler.MultiModelReloading != nil {
 		sb.WriteString(fmt.Sprintf("%s:\n", MultiModelReloadingKey))
-		sb.WriteString(s.Indent(predictor.MultiModelReloading.UserStr(), "  "))
+		sb.WriteString(s.Indent(handler.MultiModelReloading.UserStr(), "  "))
 	}
 
-	if predictor.Type == TensorFlowPredictorType && predictor.ServerSideBatching != nil {
+	if handler.Type == TensorHandlerType && handler.ServerSideBatching != nil {
 		sb.WriteString(fmt.Sprintf("%s:\n", ServerSideBatchingKey))
-		sb.WriteString(s.Indent(predictor.ServerSideBatching.UserStr(), "  "))
+		sb.WriteString(s.Indent(handler.ServerSideBatching.UserStr(), "  "))
 	}
 
-	sb.WriteString(fmt.Sprintf("%s: %s\n", ProcessesPerReplicaKey, s.Int32(predictor.ProcessesPerReplica)))
-	sb.WriteString(fmt.Sprintf("%s: %s\n", ThreadsPerProcessKey, s.Int32(predictor.ThreadsPerProcess)))
+	sb.WriteString(fmt.Sprintf("%s: %s\n", ProcessesPerReplicaKey, s.Int32(handler.ProcessesPerReplica)))
+	sb.WriteString(fmt.Sprintf("%s: %s\n", ThreadsPerProcessKey, s.Int32(handler.ThreadsPerProcess)))
 
-	if predictor.ShmSize != nil {
-		sb.WriteString(fmt.Sprintf("%s: %s\n", ShmSize, predictor.ShmSize.UserString))
+	if handler.ShmSize != nil {
+		sb.WriteString(fmt.Sprintf("%s: %s\n", ShmSize, handler.ShmSize.UserString))
 	}
 
-	if len(predictor.Config) > 0 {
+	if len(handler.Config) > 0 {
 		sb.WriteString(fmt.Sprintf("%s:\n", ConfigKey))
-		d, _ := yaml.Marshal(&predictor.Config)
+		d, _ := yaml.Marshal(&handler.Config)
 		sb.WriteString(s.Indent(string(d), "  "))
 	}
-	sb.WriteString(fmt.Sprintf("%s: %s\n", ImageKey, predictor.Image))
-	if predictor.TensorFlowServingImage != "" {
-		sb.WriteString(fmt.Sprintf("%s: %s\n", TensorFlowServingImageKey, predictor.TensorFlowServingImage))
+	sb.WriteString(fmt.Sprintf("%s: %s\n", ImageKey, handler.Image))
+	if handler.TensorFlowServingImage != "" {
+		sb.WriteString(fmt.Sprintf("%s: %s\n", TensorFlowServingImageKey, handler.TensorFlowServingImage))
 	}
-	if predictor.PythonPath != nil {
-		sb.WriteString(fmt.Sprintf("%s: %s\n", PythonPathKey, *predictor.PythonPath))
+	if handler.PythonPath != nil {
+		sb.WriteString(fmt.Sprintf("%s: %s\n", PythonPathKey, *handler.PythonPath))
 	}
 
-	sb.WriteString(fmt.Sprintf("%s: %s\n", LogLevelKey, predictor.LogLevel))
+	sb.WriteString(fmt.Sprintf("%s: %s\n", LogLevelKey, handler.LogLevel))
 
-	if len(predictor.Env) > 0 {
+	if len(handler.Env) > 0 {
 		sb.WriteString(fmt.Sprintf("%s:\n", EnvKey))
-		d, _ := yaml.Marshal(&predictor.Env)
+		d, _ := yaml.Marshal(&handler.Env)
 		sb.WriteString(s.Indent(string(d), "  "))
 	}
 	sb.WriteString(fmt.Sprintf("%s:\n", DependenciesKey))
-	sb.WriteString(s.Indent(predictor.Dependencies.UserStr(), "  "))
+	sb.WriteString(s.Indent(handler.Dependencies.UserStr(), "  "))
 
 	return sb.String()
 }
@@ -657,83 +657,83 @@ func (api *API) TelemetryEvent() map[string]interface{} {
 		event["compute.inf"] = api.Compute.Inf
 	}
 
-	if api.Predictor != nil {
-		event["predictor._is_defined"] = true
-		event["predictor.type"] = api.Predictor.Type
-		event["predictor.processes_per_replica"] = api.Predictor.ProcessesPerReplica
-		event["predictor.threads_per_process"] = api.Predictor.ThreadsPerProcess
+	if api.Handler != nil {
+		event["handler._is_defined"] = true
+		event["handler.type"] = api.Handler.Type
+		event["handler.processes_per_replica"] = api.Handler.ProcessesPerReplica
+		event["handler.threads_per_process"] = api.Handler.ThreadsPerProcess
 
-		if api.Predictor.ShmSize != nil {
-			event["predictor.shm_size"] = api.Predictor.ShmSize.String()
+		if api.Handler.ShmSize != nil {
+			event["handler.shm_size"] = api.Handler.ShmSize.String()
 		}
 
-		event["predictor.log_level"] = api.Predictor.LogLevel
+		event["handler.log_level"] = api.Handler.LogLevel
 
-		if api.Predictor.ProtobufPath != nil {
-			event["predictor.protobuf_path._is_defined"] = true
+		if api.Handler.ProtobufPath != nil {
+			event["handler.protobuf_path._is_defined"] = true
 		}
-		if api.Predictor.PythonPath != nil {
-			event["predictor.python_path._is_defined"] = true
+		if api.Handler.PythonPath != nil {
+			event["handler.python_path._is_defined"] = true
 		}
-		if !strings.HasPrefix(api.Predictor.Image, "cortexlabs/") {
-			event["predictor.image._is_custom"] = true
+		if !strings.HasPrefix(api.Handler.Image, "cortexlabs/") {
+			event["handler.image._is_custom"] = true
 		}
-		if !strings.HasPrefix(api.Predictor.TensorFlowServingImage, "cortexlabs/") {
-			event["predictor.tensorflow_serving_image._is_custom"] = true
+		if !strings.HasPrefix(api.Handler.TensorFlowServingImage, "cortexlabs/") {
+			event["handler.tensorflow_serving_image._is_custom"] = true
 		}
-		if len(api.Predictor.Config) > 0 {
-			event["predictor.config._is_defined"] = true
-			event["predictor.config._len"] = len(api.Predictor.Config)
+		if len(api.Handler.Config) > 0 {
+			event["handler.config._is_defined"] = true
+			event["handler.config._len"] = len(api.Handler.Config)
 		}
-		if len(api.Predictor.Env) > 0 {
-			event["predictor.env._is_defined"] = true
-			event["predictor.env._len"] = len(api.Predictor.Env)
+		if len(api.Handler.Env) > 0 {
+			event["handler.env._is_defined"] = true
+			event["handler.env._len"] = len(api.Handler.Env)
 		}
 
 		var models *MultiModels
-		if api.Predictor.Models != nil {
-			models = api.Predictor.Models
+		if api.Handler.Models != nil {
+			models = api.Handler.Models
 		}
-		if api.Predictor.MultiModelReloading != nil {
-			models = api.Predictor.MultiModelReloading
+		if api.Handler.MultiModelReloading != nil {
+			models = api.Handler.MultiModelReloading
 		}
 
 		if models != nil {
-			event["predictor.models._is_defined"] = true
+			event["handler.models._is_defined"] = true
 			if models.Path != nil {
-				event["predictor.models.path._is_defined"] = true
+				event["handler.models.path._is_defined"] = true
 			}
 			if len(models.Paths) > 0 {
-				event["predictor.models.paths._is_defined"] = true
-				event["predictor.models.paths._len"] = len(models.Paths)
+				event["handler.models.paths._is_defined"] = true
+				event["handler.models.paths._len"] = len(models.Paths)
 				var numSignatureKeysDefined int
 				for _, mmPath := range models.Paths {
 					if mmPath.SignatureKey != nil {
 						numSignatureKeysDefined++
 					}
 				}
-				event["predictor.models.paths._num_signature_keys_defined"] = numSignatureKeysDefined
+				event["handler.models.paths._num_signature_keys_defined"] = numSignatureKeysDefined
 			}
 			if models.Dir != nil {
-				event["predictor.models.dir._is_defined"] = true
+				event["handler.models.dir._is_defined"] = true
 			}
 			if models.CacheSize != nil {
-				event["predictor.models.cache_size._is_defined"] = true
-				event["predictor.models.cache_size"] = *models.CacheSize
+				event["handler.models.cache_size._is_defined"] = true
+				event["handler.models.cache_size"] = *models.CacheSize
 			}
 			if models.DiskCacheSize != nil {
-				event["predictor.models.disk_cache_size._is_defined"] = true
-				event["predictor.models.disk_cache_size"] = *models.DiskCacheSize
+				event["handler.models.disk_cache_size._is_defined"] = true
+				event["handler.models.disk_cache_size"] = *models.DiskCacheSize
 			}
 			if models.SignatureKey != nil {
-				event["predictor.models.signature_key._is_defined"] = true
+				event["handler.models.signature_key._is_defined"] = true
 			}
 		}
 
-		if api.Predictor.ServerSideBatching != nil {
-			event["predictor.server_side_batching._is_defined"] = true
-			event["predictor.server_side_batching.max_batch_size"] = api.Predictor.ServerSideBatching.MaxBatchSize
-			event["predictor.server_side_batching.batch_interval"] = api.Predictor.ServerSideBatching.BatchInterval.Seconds()
+		if api.Handler.ServerSideBatching != nil {
+			event["handler.server_side_batching._is_defined"] = true
+			event["handler.server_side_batching.max_batch_size"] = api.Handler.ServerSideBatching.MaxBatchSize
+			event["handler.server_side_batching.batch_interval"] = api.Handler.ServerSideBatching.BatchInterval.Seconds()
 		}
 	}
 

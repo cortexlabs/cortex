@@ -1,40 +1,30 @@
 FROM ubuntu:18.04
 
 RUN apt-get update -qq && apt-get install -y -q \
-    wget \
-    gnupg && \
-    echo "deb https://apt.repos.neuron.amazonaws.com bionic main" >> /etc/apt/sources.list.d/neuron.list && \
-    wget -qO - https://apt.repos.neuron.amazonaws.com/GPG-PUB-KEY-AMAZON-AWS-NEURON.PUB | apt-key add - && \
-    apt-get update -qq && apt-get install -y -q \
-    aws-neuron-tools=1.4.2.0 \
-    aws-neuron-runtime=1.4.3.0 && \
-    apt-get clean -qq && rm -rf /var/lib/apt/lists/*
+        build-essential \
+        pkg-config \
+        software-properties-common \
+        curl \
+        git \
+        unzip \
+        zlib1g-dev \
+        locales \
+        nginx=1.14.* \
+    && apt-get clean -qq && rm -rf /var/lib/apt/lists/*
 
-RUN wget -P /tmp/ https://github.com/just-containers/s6-overlay/releases/download/v2.1.0.2/s6-overlay-amd64-installer && \
+RUN cd /tmp/ && \
+    curl -L --output s6-overlay-amd64-installer "https://github.com/just-containers/s6-overlay/releases/download/v2.1.0.2/s6-overlay-amd64-installer" && \
+    cd - && \
     chmod +x /tmp/s6-overlay-amd64-installer && /tmp/s6-overlay-amd64-installer / && rm /tmp/s6-overlay-amd64-installer
 
 ENV S6_BEHAVIOUR_IF_STAGE2_FAILS 2
-
-ENV PATH=/opt/aws/neuron/bin/:$PATH
-
-RUN apt-get update -qq && apt-get install -y -q \
-    build-essential \
-    pkg-config \
-    software-properties-common \
-    curl \
-    git \
-    unzip \
-    zlib1g-dev \
-    locales \
-    nginx=1.14.* \
-    && apt-get clean -qq && rm -rf /var/lib/apt/lists/*
 
 RUN locale-gen en_US.UTF-8
 ENV LANG=en_US.UTF-8 LANGUAGE=en_US.UTF-8 LC_ALL=en_US.UTF-8
 
 ENV PATH=/opt/conda/bin:$PATH
 ENV PYTHONVERSION=3.6.9
-ENV CORTEX_IMAGE_TYPE=python-predictor-inf
+ENV CORTEX_IMAGE_TYPE=tensorflow-handler
 
 # conda needs an untainted base environment to function properly
 # that's why a new separate conda environment is created
@@ -57,7 +47,9 @@ COPY pkg/cortex/serve/serve.requirements.txt /src/cortex/serve/serve.requirement
 COPY pkg/cortex/serve/cortex_internal.requirements.txt /src/cortex/serve/cortex_internal.requirements.txt
 RUN pip install --no-cache-dir \
     -r /src/cortex/serve/serve.requirements.txt \
-    -r /src/cortex/serve/cortex_internal.requirements.txt
+    -r /src/cortex/serve/cortex_internal.requirements.txt \
+    tensorflow-cpu==2.3.0 \
+    tensorflow-serving-api==2.3.0
 
 COPY pkg/cortex/serve/init/install-core-dependencies.sh /usr/local/cortex/install-core-dependencies.sh
 RUN chmod +x /usr/local/cortex/install-core-dependencies.sh

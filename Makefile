@@ -140,7 +140,7 @@ images-api-skip-push:
 images-manager-skip-push:
 	@./dev/registry.sh update-single manager --skip-push
 images-iris:
-	@./dev/registry.sh update-single python-predictor-cpu
+	@./dev/registry.sh update-single python-handler-cpu
 
 registry-create:
 	@./dev/registry.sh create

@@ -39,8 +39,8 @@ spec:
           effect: NoSchedule
       terminationGracePeriodSeconds: 0
       containers:
-        - name: python-predictor-gpu
-          image: $CORTEX_IMAGE_PYTHON_PREDICTOR_GPU
+        - name: python-handler-gpu
+          image: $CORTEX_IMAGE_PYTHON_HANDLER_GPU
           command: ["/bin/sh"]
           args: ["-c", "sleep 1000000"]
         - name: tensorflow-serving-gpu

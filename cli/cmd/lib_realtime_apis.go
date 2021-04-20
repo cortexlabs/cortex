@@ -52,15 +52,15 @@ func realtimeAPITable(realtimeAPI schema.APIResponse, env cliconfig.Environment)
 		out += "\n" + console.Bold("metrics dashboard: ") + *realtimeAPI.DashboardURL + "\n"
 	}
 
-	if realtimeAPI.Spec.Predictor.IsGRPC() {
+	if realtimeAPI.Spec.Handler.IsGRPC() {
 		out += "\n" + console.Bold("insecure endpoint: ") + fmt.Sprintf("%s:%d", realtimeAPI.Endpoint, realtimeAPI.GRPCPorts["insecure"])
 		out += "\n" + console.Bold("secure endpoint: ") + fmt.Sprintf("%s:%d", realtimeAPI.Endpoint, realtimeAPI.GRPCPorts["secure"]) + "\n"
 	} else {
 		out += "\n" + console.Bold("endpoint: ") + realtimeAPI.Endpoint + "\n"
 	}
 
-	if !(realtimeAPI.Spec.Predictor.Type == userconfig.PythonPredictorType && realtimeAPI.Spec.Predictor.MultiModelReloading == nil) && realtimeAPI.Spec.Predictor.ProtobufPath == nil {
-		out += "\n" + describeModelInput(realtimeAPI.Status, realtimeAPI.Spec.Predictor, realtimeAPI.Endpoint)
+	if !(realtimeAPI.Spec.Handler.Type == userconfig.PythonHandlerType && realtimeAPI.Spec.Handler.MultiModelReloading == nil) && realtimeAPI.Spec.Handler.ProtobufPath == nil {
+		out += "\n" + describeModelInput(realtimeAPI.Status, realtimeAPI.Spec.Handler, realtimeAPI.Endpoint)
 	}
 
 	out += "\n" + apiHistoryTable(realtimeAPI.APIVersions)
@@ -158,13 +158,13 @@ func code5XXStr(metrics *metrics.Metrics) string {
 	return s.Int(metrics.NetworkStats.Code5XX)
 }
 
-func describeModelInput(status *status.Status, predictor *userconfig.Predictor, apiEndpoint string) string {
+func describeModelInput(status *status.Status, handler *userconfig.Handler, apiEndpoint string) string {
 	if status.Updated.Ready+status.Stale.Ready == 0 {
 		return "the models' metadata schema will be available when the api is live\n"
 	}
 
-	cachingEnabled := predictor.Models != nil && predictor.Models.CacheSize != nil && predictor.Models.DiskCacheSize != nil
-	if predictor.Type == userconfig.TensorFlowPredictorType && !cachingEnabled {
+	cachingEnabled := handler.Models != nil && handler.Models.CacheSize != nil && handler.Models.DiskCacheSize != nil
+	if handler.Type == userconfig.TensorHandlerType && !cachingEnabled {
 		apiTFLiveReloadingSummary, err := getAPITFLiveReloadingSummary(apiEndpoint)
 		if err != nil {
 			if strings.Contains(errors.Message(err), "context deadline exceeded") {

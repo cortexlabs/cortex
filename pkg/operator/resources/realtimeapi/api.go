@@ -64,9 +64,9 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string, force bool) (*spec.A
 			return nil, "", errors.Wrap(err, "upload api spec")
 		}
 
-		// Use api spec indexed by PredictorID for replicas to prevent rolling updates when SpecID changes without PredictorID changing
-		if err := config.AWS.UploadJSONToS3(api, config.CoreConfig.Bucket, api.PredictorKey); err != nil {
-			return nil, "", errors.Wrap(err, "upload predictor spec")
+		// Use api spec indexed by HandlerID for replicas to prevent rolling updates when SpecID changes without HandlerID changing
+		if err := config.AWS.UploadJSONToS3(api, config.CoreConfig.Bucket, api.HandlerKey); err != nil {
+			return nil, "", errors.Wrap(err, "upload handler spec")
 		}
 
 		if err := applyK8sResources(api, prevDeployment, prevService, prevVirtualService); err != nil {
@@ -92,9 +92,9 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string, force bool) (*spec.A
 			return nil, "", errors.Wrap(err, "upload api spec")
 		}
 
-		// Use api spec indexed by PredictorID for replicas to prevent rolling updates when SpecID changes without PredictorID changing
-		if err := config.AWS.UploadJSONToS3(api, config.CoreConfig.Bucket, api.PredictorKey); err != nil {
-			return nil, "", errors.Wrap(err, "upload predictor spec")
+		// Use api spec indexed by HandlerID for replicas to prevent rolling updates when SpecID changes without HandlerID changing
+		if err := config.AWS.UploadJSONToS3(api, config.CoreConfig.Bucket, api.HandlerKey); err != nil {
+			return nil, "", errors.Wrap(err, "upload handler spec")
 		}
 
 		if err := applyK8sResources(api, prevDeployment, prevService, prevVirtualService); err != nil {
@@ -147,9 +147,9 @@ func RefreshAPI(apiName string, force bool) (string, error) {
 		return "", errors.Wrap(err, "upload api spec")
 	}
 
-	// Reupload api spec to the same PredictorID but with the new DeploymentID
-	if err := config.AWS.UploadJSONToS3(api, config.CoreConfig.Bucket, api.PredictorKey); err != nil {
-		return "", errors.Wrap(err, "upload predictor spec")
+	// Reupload api spec to the same HandlerID but with the new DeploymentID
+	if err := config.AWS.UploadJSONToS3(api, config.CoreConfig.Bucket, api.HandlerKey); err != nil {
+		return "", errors.Wrap(err, "upload handler spec")
 	}
 
 	if err := applyK8sDeployment(api, prevDeployment); err != nil {
@@ -254,7 +254,7 @@ func GetAPIByName(deployedResource *operator.DeployedResource) ([]schema.APIResp
 	dashboardURL := pointer.String(getDashboardURL(api.Name))
 
 	grpcPorts := map[string]int64{}
-	if api.Predictor != nil && api.Predictor.IsGRPC() {
+	if api.Handler != nil && api.Handler.IsGRPC() {
 		grpcPorts["insecure"] = 80
 		grpcPorts["secure"] = 443
 	}
@@ -430,7 +430,7 @@ func isAPIUpdating(deployment *kapps.Deployment) (bool, error) {
 }
 
 func isPodSpecLatest(deployment *kapps.Deployment, pod *kcore.Pod) bool {
-	return deployment.Spec.Template.Labels["predictorID"] == pod.Labels["predictorID"] &&
+	return deployment.Spec.Template.Labels["handlerID"] == pod.Labels["handlerID"] &&
 		deployment.Spec.Template.Labels["deploymentID"] == pod.Labels["deploymentID"]
 }
 

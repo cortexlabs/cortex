@@ -1,32 +1,40 @@
-ARG CUDA_VERSION=10.2
-ARG CUDNN=8
-FROM nvidia/cuda:$CUDA_VERSION-cudnn$CUDNN-runtime-ubuntu18.04
+FROM ubuntu:18.04
 
 RUN apt-get update -qq && apt-get install -y -q \
-        build-essential \
-        pkg-config \
-        software-properties-common \
-        curl \
-        git \
-        unzip \
-        zlib1g-dev \
-        locales \
-        nginx=1.14.* \
-    && apt-get clean -qq && rm -rf /var/lib/apt/lists/*
+    wget \
+    gnupg && \
+    echo "deb https://apt.repos.neuron.amazonaws.com bionic main" >> /etc/apt/sources.list.d/neuron.list && \
+    wget -qO - https://apt.repos.neuron.amazonaws.com/GPG-PUB-KEY-AMAZON-AWS-NEURON.PUB | apt-key add - && \
+    apt-get update -qq && apt-get install -y -q \
+    aws-neuron-tools=1.4.2.0 \
+    aws-neuron-runtime=1.4.3.0 && \
+    apt-get clean -qq && rm -rf /var/lib/apt/lists/*
 
-RUN cd /tmp/ && \
-    curl -L --output s6-overlay-amd64-installer "https://github.com/just-containers/s6-overlay/releases/download/v2.1.0.2/s6-overlay-amd64-installer" && \
-    cd - && \
+RUN wget -P /tmp/ https://github.com/just-containers/s6-overlay/releases/download/v2.1.0.2/s6-overlay-amd64-installer && \
     chmod +x /tmp/s6-overlay-amd64-installer && /tmp/s6-overlay-amd64-installer / && rm /tmp/s6-overlay-amd64-installer
 
 ENV S6_BEHAVIOUR_IF_STAGE2_FAILS 2
+
+ENV PATH=/opt/aws/neuron/bin/:$PATH
+
+RUN apt-get update -qq && apt-get install -y -q \
+    build-essential \
+    pkg-config \
+    software-properties-common \
+    curl \
+    git \
+    unzip \
+    zlib1g-dev \
+    locales \
+    nginx=1.14.* \
+    && apt-get clean -qq && rm -rf /var/lib/apt/lists/*
 
 RUN locale-gen en_US.UTF-8
 ENV LANG=en_US.UTF-8 LANGUAGE=en_US.UTF-8 LC_ALL=en_US.UTF-8
 
 ENV PATH=/opt/conda/bin:$PATH
 ENV PYTHONVERSION=3.6.9
-ENV CORTEX_IMAGE_TYPE=python-predictor-gpu
+ENV CORTEX_IMAGE_TYPE=python-handler-inf
 
 # conda needs an untainted base environment to function properly
 # that's why a new separate conda environment is created

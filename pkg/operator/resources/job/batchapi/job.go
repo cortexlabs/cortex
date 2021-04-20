@@ -98,7 +98,7 @@ func SubmitJob(apiName string, submission *schema.BatchJobSubmission) (*spec.Bat
 		JobKey:                jobKey,
 		APIID:                 apiSpec.ID,
 		SpecID:                apiSpec.SpecID,
-		PredictorID:           apiSpec.PredictorID,
+		HandlerID:             apiSpec.HandlerID,
 		SQSUrl:                queueURL,
 		StartTime:             time.Now(),
 	}

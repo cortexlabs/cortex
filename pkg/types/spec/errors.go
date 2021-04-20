@@ -78,8 +78,8 @@ const (
 	ErrProtoInvalidPackageName        = "spec.proto_invalid_package_name"
 	ErrProtoInvalidNetworkingEndpoint = "spec.proto_invalid_networking_endpoint"
 
-	ErrFieldMustBeDefinedForPredictorType          = "spec.field_must_be_defined_for_predictor_type"
-	ErrFieldNotSupportedByPredictorType            = "spec.field_not_supported_by_predictor_type"
+	ErrFieldMustBeDefinedForHandlerType            = "spec.field_must_be_defined_for_handler_type"
+	ErrFieldNotSupportedByHandlerType              = "spec.field_not_supported_by_handler_type"
 	ErrNoAvailableNodeComputeLimit                 = "spec.no_available_node_compute_limit"
 	ErrCortexPrefixedEnvVarNotAllowed              = "spec.cortex_prefixed_env_var_not_allowed"
 	ErrRegistryInDifferentRegion                   = "spec.registry_in_different_region"
@@ -95,7 +95,7 @@ const (
 	ErrTrafficSplitterAPIsNotUnique                = "spec.traffic_splitter_apis_not_unique"
 	ErrOneShadowPerTrafficSplitter                 = "spec.one_shadow_per_traffic_splitter"
 	ErrUnexpectedDockerSecretData                  = "spec.unexpected_docker_secret_data"
-	ErrInvalidONNXPredictorType                    = "spec.invalid_onnx_predictor_type"
+	ErrInvalidONNXHandlerType                      = "spec.invalid_onnx_handler_type"
 )
 
 var _modelCurrentStructure = `
@@ -237,7 +237,7 @@ func ErrorSurgeAndUnavailableBothZero() error {
 func ErrorShmSizeCannotExceedMem(shmSize k8s.Quantity, mem k8s.Quantity) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrShmSizeCannotExceedMem,
-		Message: fmt.Sprintf("predictor.shm_size (%s) cannot exceed compute.mem (%s)", shmSize.UserString, mem.UserString),
+		Message: fmt.Sprintf("handler.shm_size (%s) cannot exceed compute.mem (%s)", shmSize.UserString, mem.UserString),
 	})
 }
 
@@ -327,8 +327,8 @@ or like
 `
 
 func ErrorInvalidPythonModelPath(modelPath string, modelSubPaths []string) error {
-	message := fmt.Sprintf("%s: invalid %s model path. ", modelPath, userconfig.PythonPredictorType.CasedString())
-	message += " " + fmt.Sprintf("For models provided for the %s predictor type, the path must be a directory with one of the following structures:\n", userconfig.PythonPredictorType)
+	message := fmt.Sprintf("%s: invalid %s model path. ", modelPath, userconfig.PythonHandlerType.CasedString())
+	message += " " + fmt.Sprintf("For models provided for the %s handler type, the path must be a directory with one of the following structures:\n", userconfig.PythonHandlerType)
 
 	message += fmt.Sprintf(_pythonModelTemplates, modelPath, modelPath)
 
@@ -391,12 +391,12 @@ or like
 `
 
 func ErrorInvalidTensorFlowModelPath(modelPath string, neuronExport bool, modelSubPaths []string) error {
-	predictorType := userconfig.TensorFlowPredictorType.CasedString()
+	handlerType := userconfig.TensorHandlerType.CasedString()
 	if neuronExport {
-		predictorType = "Neuron " + predictorType
+		handlerType = "Neuron " + handlerType
 	}
-	message := fmt.Sprintf("%s: invalid %s model path.", modelPath, predictorType)
-	message += " " + fmt.Sprintf("For models provided for the %s predictor type, the path must be a directory with one of the following structures:\n", userconfig.TensorFlowPredictorType)
+	message := fmt.Sprintf("%s: invalid %s model path.", modelPath, handlerType)
+	message += " " + fmt.Sprintf("For models provided for the %s handler type, the path must be a directory with one of the following structures:\n", userconfig.TensorHandlerType)
 
 	if !neuronExport {
 		message += fmt.Sprintf(_tfVersionedExpectedStructMessage, modelPath, modelPath)
@@ -474,21 +474,21 @@ func ErrorProtoInvalidPackageName(requestedPackageName, allowedPackageName strin
 func ErrorProtoInvalidNetworkingEndpoint(allowedValue string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrProtoInvalidNetworkingEndpoint,
-		Message: fmt.Sprintf("because of the protobuf definition from section %s and field %s, the only permitted value is %s", userconfig.PredictorKey, userconfig.ProtobufPathKey, allowedValue),
+		Message: fmt.Sprintf("because of the protobuf definition from section %s and field %s, the only permitted value is %s", userconfig.HandlerKey, userconfig.ProtobufPathKey, allowedValue),
 	})
 }
 
-func ErrorFieldMustBeDefinedForPredictorType(fieldKey string, predictorType userconfig.PredictorType) error {
+func ErrorFieldMustBeDefinedForHandlerType(fieldKey string, handlerType userconfig.HandlerType) error {
 	return errors.WithStack(&errors.Error{
-		Kind:    ErrFieldMustBeDefinedForPredictorType,
-		Message: fmt.Sprintf("%s field must be defined for the %s predictor type", fieldKey, predictorType.String()),
+		Kind:    ErrFieldMustBeDefinedForHandlerType,
+		Message: fmt.Sprintf("%s field must be defined for the %s handler type", fieldKey, handlerType.String()),
 	})
 }
 
-func ErrorFieldNotSupportedByPredictorType(fieldKey string, predictorType userconfig.PredictorType) error {
+func ErrorFieldNotSupportedByHandlerType(fieldKey string, handlerType userconfig.HandlerType) error {
 	return errors.WithStack(&errors.Error{
-		Kind:    ErrFieldNotSupportedByPredictorType,
-		Message: fmt.Sprintf("%s is not a supported field for the %s predictor type", fieldKey, predictorType.String()),
+		Kind:    ErrFieldNotSupportedByHandlerType,
+		Message: fmt.Sprintf("%s is not a supported field for the %s handler type", fieldKey, handlerType.String()),
 	})
 }
 
@@ -567,7 +567,7 @@ func ErrorConcurrencyMismatchServerSideBatchingPython(maxBatchsize int32, thread
 		&errors.Error{
 			Kind: ErrConcurrencyMismatchServerSideBatchingPython,
 			Message: fmt.Sprintf(
-				"%s (%d) must be equal to %s (%d) when using server side batching with the python predictor",
+				"%s (%d) must be equal to %s (%d) when using server side batching with the python handler",
 				userconfig.ThreadsPerProcessKey, threadsPerProcess, userconfig.MaxBatchSizeKey, maxBatchsize,
 			),
 		},
@@ -614,9 +614,9 @@ func ErrorUnexpectedDockerSecretData(reason string, secretData map[string][]byte
 	})
 }
 
-func ErrorInvalidONNXPredictorType() error {
+func ErrorInvalidONNXHandlerType() error {
 	return errors.WithStack(&errors.Error{
-		Kind:    ErrInvalidONNXPredictorType,
-		Message: "the onnx predictor type has been replaced by the python predictor type; please use the python predictor type instead (all onnx models are fully supported by the python predictor type)",
+		Kind:    ErrInvalidONNXHandlerType,
+		Message: "the onnx handler type has been replaced by the python handler type; please use the python handler type instead (all onnx models are fully supported by the python handler type)",
 	})
 }

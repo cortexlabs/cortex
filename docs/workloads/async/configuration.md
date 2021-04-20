@@ -26,7 +26,7 @@ predictor:
     shell: <string>  # relative path to a shell script for system package installation (default: dependencies.sh)
   config: <string: value>  # arbitrary dictionary passed to the constructor of the Predictor (optional)
   python_path: <string>  # path to the root of your Python folder that will be appended to PYTHONPATH (default: folder containing cortex.yaml)
-  image: <string>  # docker image to use for the Predictor (default: quay.io/cortexlabs/python-predictor-cpu:master, quay.io/cortexlabs/python-predictor-gpu:master-cuda10.2-cudnn8, or quay.io/cortexlabs/python-predictor-inf:master based on compute)
+  image: <string>  # docker image to use for the Predictor (default: quay.io/cortexlabs/python-handler-cpu:master, quay.io/cortexlabs/python-handler-gpu:master-cuda10.2-cudnn8, or quay.io/cortexlabs/python-handler-inf:master based on compute)
   env: <string: string>  # dictionary of environment variables
   log_level: <string>  # log level that can be "debug", "info", "warning" or "error" (default: "info")
   shm_size: <string>  # size of shared memory (/dev/shm) for sharing data between multiple processes, e.g. 64Mi or 1Gi (default: Null)
@@ -49,7 +49,7 @@ predictor:
     signature_key:  # name of the signature def to use for prediction (required if your model has more than one signature def)
   config: <string: value>  # arbitrary dictionary passed to the constructor of the Predictor (optional)
   python_path: <string>  # path to the root of your Python folder that will be appended to PYTHONPATH (default: folder containing cortex.yaml)
-  image: <string>  # docker image to use for the Predictor (default: quay.io/cortexlabs/tensorflow-predictor:master)
+  image: <string>  # docker image to use for the Predictor (default: quay.io/cortexlabs/tensorflow-handler:master)
   tensorflow_serving_image: <string>  # docker image to use for the TensorFlow Serving container (default: quay.io/cortexlabs/tensorflow-serving-cpu:master, quay.io/cortexlabs/tensorflow-serving-gpu:master, or quay.io/cortexlabs/tensorflow-serving-inf:master based on compute)
   env: <string: string>  # dictionary of environment variables
   log_level: <string>  # log level that can be "debug", "info", "warning" or "error" (default: "info")

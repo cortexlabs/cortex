@@ -20,7 +20,7 @@ const (
 	// API
 	NameKey           = "name"
 	KindKey           = "kind"
-	PredictorKey      = "predictor"
+	HandlerKey        = "handler"
 	TaskDefinitionKey = "definition"
 	NetworkingKey     = "networking"
 	ComputeKey        = "compute"
@@ -32,7 +32,7 @@ const (
 	WeightKey = "weight"
 	ShadowKey = "shadow"
 
-	// Predictor
+	// Handler
 	TypeKey                   = "type"
 	PathKey                   = "path"
 	ProtobufPathKey           = "protobuf_path"
@@ -47,7 +47,7 @@ const (
 	ConfigKey                 = "config"
 	EnvKey                    = "env"
 
-	// Predictor/TaskDefinition.Dependencies
+	// Handler/TaskDefinition.Dependencies
 	DependenciesKey = "dependencies"
 	PipKey          = "pip"
 	ShellKey        = "shell"
@@ -101,8 +101,8 @@ const (
 
 	// K8s annotation
 	EndpointAnnotationKey                     = "networking.cortex.dev/endpoint"
-	ProcessesPerReplicaAnnotationKey          = "predictor.cortex.dev/processes-per-replica"
-	ThreadsPerProcessAnnotationKey            = "predictor.cortex.dev/threads-per-process"
+	ProcessesPerReplicaAnnotationKey          = "handler.cortex.dev/processes-per-replica"
+	ThreadsPerProcessAnnotationKey            = "handler.cortex.dev/threads-per-process"
 	MinReplicasAnnotationKey                  = "autoscaling.cortex.dev/min-replicas"
 	MaxReplicasAnnotationKey                  = "autoscaling.cortex.dev/max-replicas"
 	TargetReplicaConcurrencyAnnotationKey     = "autoscaling.cortex.dev/target-replica-concurrency"

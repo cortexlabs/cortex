@@ -54,7 +54,7 @@ func apiValidation(resource userconfig.Resource) *cr.StructValidation {
 	switch resource.Kind {
 	case userconfig.RealtimeAPIKind:
 		structFieldValidations = append(resourceStructValidations,
-			predictorValidation(),
+			handlerValidation(),
 			networkingValidation(),
 			computeValidation(),
 			autoscalingValidation(),
@@ -62,7 +62,7 @@ func apiValidation(resource userconfig.Resource) *cr.StructValidation {
 		)
 	case userconfig.AsyncAPIKind:
 		structFieldValidations = append(resourceStructValidations,
-			predictorValidation(),
+			handlerValidation(),
 			networkingValidation(),
 			computeValidation(),
 			autoscalingValidation(),
@@ -70,7 +70,7 @@ func apiValidation(resource userconfig.Resource) *cr.StructValidation {
 		)
 	case userconfig.BatchAPIKind:
 		structFieldValidations = append(resourceStructValidations,
-			predictorValidation(),
+			handlerValidation(),
 			networkingValidation(),
 			computeValidation(),
 		)
@@ -146,9 +146,9 @@ func multiAPIsValidation() *cr.StructFieldValidation {
 	}
 }
 
-func predictorValidation() *cr.StructFieldValidation {
+func handlerValidation() *cr.StructFieldValidation {
 	return &cr.StructFieldValidation{
-		StructField: "Predictor",
+		StructField: "Handler",
 		StructValidation: &cr.StructValidation{
 			Required: true,
 			StructFieldValidations: []*cr.StructFieldValidation{
@@ -156,14 +156,14 @@ func predictorValidation() *cr.StructFieldValidation {
 					StructField: "Type",
 					StringValidation: &cr.StringValidation{
 						Required:            true,
-						AllowedValues:       userconfig.PredictorTypeStrings(),
+						AllowedValues:       userconfig.HandlerTypeStrings(),
 						HiddenAllowedValues: []string{"onnx"},
 					},
 					Parser: func(str string) (interface{}, error) {
 						if str == "onnx" {
-							return nil, ErrorInvalidONNXPredictorType()
+							return nil, ErrorInvalidONNXHandlerType()
 						}
-						return userconfig.PredictorTypeFromString(str), nil
+						return userconfig.HandlerTypeFromString(str), nil
 					},
 				},
 				{
@@ -752,7 +752,7 @@ func ValidateAPI(
 		models = &[]CuratedModelResource{}
 	}
 
-	if api.Networking.Endpoint == nil && (api.Predictor == nil || (api.Predictor != nil && api.Predictor.ProtobufPath == nil)) {
+	if api.Networking.Endpoint == nil && (api.Handler == nil || (api.Handler != nil && api.Handler.ProtobufPath == nil)) {
 		api.Networking.Endpoint = pointer.String("/" + api.Name)
 	}
 
@@ -762,11 +762,11 @@ func ValidateAPI(
 			return errors.Wrap(err, userconfig.TaskDefinitionKey)
 		}
 	default:
-		if err := validatePredictor(api, models, projectFiles, awsClient, k8sClient); err != nil {
+		if err := validateHandler(api, models, projectFiles, awsClient, k8sClient); err != nil {
 			if errors.GetKind(err) == ErrProtoInvalidNetworkingEndpoint {
 				return errors.Wrap(err, userconfig.NetworkingKey, userconfig.EndpointKey)
 			}
-			return errors.Wrap(err, userconfig.PredictorKey)
+			return errors.Wrap(err, userconfig.HandlerKey)
 		}
 	}
 
@@ -786,9 +786,9 @@ func ValidateAPI(
 		}
 	}
 
-	if api.Predictor != nil && api.Predictor.ShmSize != nil && api.Compute.Mem != nil {
-		if api.Predictor.ShmSize.Cmp(api.Compute.Mem.Quantity) > 0 {
-			return ErrorShmSizeCannotExceedMem(*api.Predictor.ShmSize, *api.Compute.Mem)
+	if api.Handler != nil && api.Handler.ShmSize != nil && api.Compute.Mem != nil {
+		if api.Handler.ShmSize.Cmp(api.Compute.Mem.Quantity) > 0 {
+			return ErrorShmSizeCannotExceedMem(*api.Handler.ShmSize, *api.Compute.Mem)
 		}
 	}
 
@@ -853,26 +853,26 @@ func ValidateTrafficSplitter(api *userconfig.API) error {
 	return nil
 }
 
-func validatePredictor(
+func validateHandler(
 	api *userconfig.API,
 	models *[]CuratedModelResource,
 	projectFiles ProjectFiles,
 	awsClient *aws.Client,
 	k8sClient *k8s.Client,
 ) error {
-	predictor := api.Predictor
+	handler := api.Handler
 
-	if !projectFiles.HasFile(predictor.Path) {
-		return errors.Wrap(files.ErrorFileDoesNotExist(predictor.Path), userconfig.PathKey)
+	if !projectFiles.HasFile(handler.Path) {
+		return errors.Wrap(files.ErrorFileDoesNotExist(handler.Path), userconfig.PathKey)
 	}
 
-	if predictor.PythonPath != nil {
-		if err := validatePythonPath(predictor, projectFiles); err != nil {
+	if handler.PythonPath != nil {
+		if err := validatePythonPath(handler, projectFiles); err != nil {
 			return errors.Wrap(err, userconfig.PythonPathKey)
 		}
 	}
 
-	if predictor.IsGRPC() {
+	if handler.IsGRPC() {
 		if api.Kind != userconfig.RealtimeAPIKind {
 			return ErrorKeyIsNotSupportedForKind(userconfig.ProtobufPathKey, api.Kind)
 		}
@@ -886,43 +886,43 @@ func validatePredictor(
 		return err
 	}
 
-	switch predictor.Type {
-	case userconfig.PythonPredictorType:
-		if err := validatePythonPredictor(api, models, awsClient); err != nil {
+	switch handler.Type {
+	case userconfig.PythonHandlerType:
+		if err := validatePythonHandler(api, models, awsClient); err != nil {
 			return err
 		}
-	case userconfig.TensorFlowPredictorType:
-		if err := validateTensorFlowPredictor(api, models, awsClient); err != nil {
+	case userconfig.TensorHandlerType:
+		if err := validateTensorFlowHandler(api, models, awsClient); err != nil {
 			return err
 		}
-		if err := validateDockerImagePath(predictor.TensorFlowServingImage, awsClient, k8sClient); err != nil {
+		if err := validateDockerImagePath(handler.TensorFlowServingImage, awsClient, k8sClient); err != nil {
 			return errors.Wrap(err, userconfig.TensorFlowServingImageKey)
 		}
 	}
 
 	if api.Kind == userconfig.BatchAPIKind || api.Kind == userconfig.AsyncAPIKind {
-		if predictor.MultiModelReloading != nil {
+		if handler.MultiModelReloading != nil {
 			return ErrorKeyIsNotSupportedForKind(userconfig.MultiModelReloadingKey, api.Kind)
 		}
 
-		if predictor.ServerSideBatching != nil {
+		if handler.ServerSideBatching != nil {
 			return ErrorKeyIsNotSupportedForKind(userconfig.ServerSideBatchingKey, api.Kind)
 		}
 
-		if predictor.ProcessesPerReplica > 1 {
+		if handler.ProcessesPerReplica > 1 {
 			return ErrorKeyIsNotSupportedForKind(userconfig.ProcessesPerReplicaKey, api.Kind)
 		}
 
-		if predictor.ThreadsPerProcess > 1 {
+		if handler.ThreadsPerProcess > 1 {
 			return ErrorKeyIsNotSupportedForKind(userconfig.ThreadsPerProcessKey, api.Kind)
 		}
 	}
 
-	if err := validateDockerImagePath(predictor.Image, awsClient, k8sClient); err != nil {
+	if err := validateDockerImagePath(handler.Image, awsClient, k8sClient); err != nil {
 		return errors.Wrap(err, userconfig.ImageKey)
 	}
 
-	for key := range predictor.Env {
+	for key := range handler.Env {
 		if strings.HasPrefix(key, "CORTEX_") {
 			return errors.Wrap(ErrorCortexPrefixedEnvVarNotAllowed(), userconfig.EnvKey, key)
 		}
@@ -932,25 +932,25 @@ func validatePredictor(
 }
 
 func validateMultiModelsFields(api *userconfig.API) error {
-	predictor := api.Predictor
+	handler := api.Handler
 
 	var models *userconfig.MultiModels
-	if api.Predictor.Models != nil {
-		if api.Predictor.Type == userconfig.PythonPredictorType {
-			return ErrorFieldNotSupportedByPredictorType(userconfig.ModelsKey, api.Predictor.Type)
+	if api.Handler.Models != nil {
+		if api.Handler.Type == userconfig.PythonHandlerType {
+			return ErrorFieldNotSupportedByHandlerType(userconfig.ModelsKey, api.Handler.Type)
 		}
-		models = api.Predictor.Models
+		models = api.Handler.Models
 	}
-	if api.Predictor.MultiModelReloading != nil {
-		if api.Predictor.Type != userconfig.PythonPredictorType {
-			return ErrorFieldNotSupportedByPredictorType(userconfig.MultiModelReloadingKey, api.Predictor.Type)
+	if api.Handler.MultiModelReloading != nil {
+		if api.Handler.Type != userconfig.PythonHandlerType {
+			return ErrorFieldNotSupportedByHandlerType(userconfig.MultiModelReloadingKey, api.Handler.Type)
 		}
-		models = api.Predictor.MultiModelReloading
+		models = api.Handler.MultiModelReloading
 	}
 
 	if models == nil {
-		if api.Predictor.Type != userconfig.PythonPredictorType {
-			return ErrorFieldMustBeDefinedForPredictorType(userconfig.ModelsKey, api.Predictor.Type)
+		if api.Handler.Type != userconfig.PythonHandlerType {
+			return ErrorFieldMustBeDefinedForHandlerType(userconfig.ModelsKey, api.Handler.Type)
 		}
 		return nil
 	}
@@ -989,39 +989,39 @@ func validateMultiModelsFields(api *userconfig.API) error {
 			return errors.Wrap(ErrorConfigGreaterThanOtherConfig(userconfig.ModelsCacheSizeKey, *models.CacheSize, userconfig.ModelsDiskCacheSizeKey, *models.DiskCacheSize), userconfig.ModelsKey)
 		}
 
-		if predictor.ProcessesPerReplica > 1 {
-			return ErrorModelCachingNotSupportedWhenMultiprocessingEnabled(predictor.ProcessesPerReplica)
+		if handler.ProcessesPerReplica > 1 {
+			return ErrorModelCachingNotSupportedWhenMultiprocessingEnabled(handler.ProcessesPerReplica)
 		}
 	}
 
 	return nil
 }
 
-func validatePythonPredictor(api *userconfig.API, models *[]CuratedModelResource, awsClient *aws.Client) error {
-	predictor := api.Predictor
+func validatePythonHandler(api *userconfig.API, models *[]CuratedModelResource, awsClient *aws.Client) error {
+	handler := api.Handler
 
-	if predictor.Models != nil {
-		return ErrorFieldNotSupportedByPredictorType(userconfig.ModelsKey, predictor.Type)
+	if handler.Models != nil {
+		return ErrorFieldNotSupportedByHandlerType(userconfig.ModelsKey, handler.Type)
 	}
 
-	if predictor.ServerSideBatching != nil {
-		if predictor.ServerSideBatching.MaxBatchSize != predictor.ThreadsPerProcess {
+	if handler.ServerSideBatching != nil {
+		if handler.ServerSideBatching.MaxBatchSize != handler.ThreadsPerProcess {
 			return ErrorConcurrencyMismatchServerSideBatchingPython(
-				predictor.ServerSideBatching.MaxBatchSize,
-				predictor.ThreadsPerProcess,
+				handler.ServerSideBatching.MaxBatchSize,
+				handler.ThreadsPerProcess,
 			)
 		}
 	}
-	if predictor.TensorFlowServingImage != "" {
-		return ErrorFieldNotSupportedByPredictorType(userconfig.TensorFlowServingImageKey, predictor.Type)
+	if handler.TensorFlowServingImage != "" {
+		return ErrorFieldNotSupportedByHandlerType(userconfig.TensorFlowServingImageKey, handler.Type)
 	}
 
-	if predictor.MultiModelReloading == nil {
+	if handler.MultiModelReloading == nil {
 		return nil
 	}
-	mmr := predictor.MultiModelReloading
+	mmr := handler.MultiModelReloading
 	if mmr.SignatureKey != nil {
-		return errors.Wrap(ErrorFieldNotSupportedByPredictorType(userconfig.ModelsSignatureKeyKey, predictor.Type), userconfig.MultiModelReloadingKey)
+		return errors.Wrap(ErrorFieldNotSupportedByHandlerType(userconfig.ModelsSignatureKeyKey, handler.Type), userconfig.MultiModelReloadingKey)
 	}
 
 	hasSingleModel := mmr.Path != nil
@@ -1044,7 +1044,7 @@ func validatePythonPredictor(api *userconfig.API, models *[]CuratedModelResource
 	}
 	if hasMultiModels {
 		if mmr.SignatureKey != nil {
-			return errors.Wrap(ErrorFieldNotSupportedByPredictorType(userconfig.ModelsSignatureKeyKey, predictor.Type), userconfig.MultiModelReloadingKey)
+			return errors.Wrap(ErrorFieldNotSupportedByHandlerType(userconfig.ModelsSignatureKeyKey, handler.Type), userconfig.MultiModelReloadingKey)
 		}
 
 		if len(mmr.Paths) > 0 {
@@ -1055,7 +1055,7 @@ func validatePythonPredictor(api *userconfig.API, models *[]CuratedModelResource
 			for _, path := range mmr.Paths {
 				if path.SignatureKey != nil {
 					return errors.Wrap(
-						ErrorFieldNotSupportedByPredictorType(userconfig.ModelsSignatureKeyKey, predictor.Type),
+						ErrorFieldNotSupportedByHandlerType(userconfig.ModelsSignatureKeyKey, handler.Type),
 						userconfig.MultiModelReloadingKey,
 						userconfig.ModelsKey,
 						userconfig.ModelsPathsKey,
@@ -1076,9 +1076,9 @@ func validatePythonPredictor(api *userconfig.API, models *[]CuratedModelResource
 
 	var err error
 	if hasMultiModels && mmr.Dir != nil {
-		*models, err = validateDirModels(*mmr.Dir, nil, awsClient, generateErrorForPredictorTypeFn(api), nil)
+		*models, err = validateDirModels(*mmr.Dir, nil, awsClient, generateErrorForHandlerTypeFn(api), nil)
 	} else {
-		*models, err = validateModels(modelResources, nil, awsClient, generateErrorForPredictorTypeFn(api), nil)
+		*models, err = validateModels(modelResources, nil, awsClient, generateErrorForHandlerTypeFn(api), nil)
 	}
 	if err != nil {
 		return modelWrapError(err)
@@ -1099,23 +1099,23 @@ func validatePythonPredictor(api *userconfig.API, models *[]CuratedModelResource
 	return nil
 }
 
-func validateTensorFlowPredictor(api *userconfig.API, models *[]CuratedModelResource, awsClient *aws.Client) error {
-	predictor := api.Predictor
+func validateTensorFlowHandler(api *userconfig.API, models *[]CuratedModelResource, awsClient *aws.Client) error {
+	handler := api.Handler
 
-	if predictor.ServerSideBatching != nil {
-		if api.Compute.Inf == 0 && predictor.ServerSideBatching.MaxBatchSize > predictor.ProcessesPerReplica*predictor.ThreadsPerProcess {
-			return ErrorInsufficientBatchConcurrencyLevel(predictor.ServerSideBatching.MaxBatchSize, predictor.ProcessesPerReplica, predictor.ThreadsPerProcess)
+	if handler.ServerSideBatching != nil {
+		if api.Compute.Inf == 0 && handler.ServerSideBatching.MaxBatchSize > handler.ProcessesPerReplica*handler.ThreadsPerProcess {
+			return ErrorInsufficientBatchConcurrencyLevel(handler.ServerSideBatching.MaxBatchSize, handler.ProcessesPerReplica, handler.ThreadsPerProcess)
 		}
-		if api.Compute.Inf > 0 && predictor.ServerSideBatching.MaxBatchSize > predictor.ThreadsPerProcess {
-			return ErrorInsufficientBatchConcurrencyLevelInf(predictor.ServerSideBatching.MaxBatchSize, predictor.ThreadsPerProcess)
+		if api.Compute.Inf > 0 && handler.ServerSideBatching.MaxBatchSize > handler.ThreadsPerProcess {
+			return ErrorInsufficientBatchConcurrencyLevelInf(handler.ServerSideBatching.MaxBatchSize, handler.ThreadsPerProcess)
 		}
 	}
 
-	if predictor.MultiModelReloading != nil {
-		return ErrorFieldNotSupportedByPredictorType(userconfig.MultiModelReloadingKey, userconfig.PythonPredictorType)
+	if handler.MultiModelReloading != nil {
+		return ErrorFieldNotSupportedByHandlerType(userconfig.MultiModelReloadingKey, userconfig.PythonHandlerType)
 	}
 
-	hasSingleModel := predictor.Models.Path != nil
+	hasSingleModel := handler.Models.Path != nil
 	hasMultiModels := !hasSingleModel
 
 	var modelWrapError func(error) error
@@ -1128,28 +1128,28 @@ func validateTensorFlowPredictor(api *userconfig.API, models *[]CuratedModelReso
 		modelResources = []userconfig.ModelResource{
 			{
 				Name:         consts.SingleModelName,
-				Path:         *predictor.Models.Path,
-				SignatureKey: predictor.Models.SignatureKey,
+				Path:         *handler.Models.Path,
+				SignatureKey: handler.Models.SignatureKey,
 			},
 		}
-		*predictor.Models.Path = s.EnsureSuffix(*predictor.Models.Path, "/")
+		*handler.Models.Path = s.EnsureSuffix(*handler.Models.Path, "/")
 	}
 	if hasMultiModels {
-		if len(predictor.Models.Paths) > 0 {
+		if len(handler.Models.Paths) > 0 {
 			modelWrapError = func(err error) error {
 				return errors.Wrap(err, userconfig.ModelsKey, userconfig.ModelsPathsKey)
 			}
 
-			for _, path := range predictor.Models.Paths {
-				if path.SignatureKey == nil && predictor.Models.SignatureKey != nil {
-					path.SignatureKey = predictor.Models.SignatureKey
+			for _, path := range handler.Models.Paths {
+				if path.SignatureKey == nil && handler.Models.SignatureKey != nil {
+					path.SignatureKey = handler.Models.SignatureKey
 				}
 				(*path).Path = s.EnsureSuffix((*path).Path, "/")
 				modelResources = append(modelResources, *path)
 			}
 		}
 
-		if predictor.Models.Dir != nil {
+		if handler.Models.Dir != nil {
 			modelWrapError = func(err error) error {
 				return errors.Wrap(err, userconfig.ModelsKey, userconfig.ModelsDirKey)
 			}
@@ -1164,10 +1164,10 @@ func validateTensorFlowPredictor(api *userconfig.API, models *[]CuratedModelReso
 	}
 
 	var err error
-	if hasMultiModels && predictor.Models.Dir != nil {
-		*models, err = validateDirModels(*predictor.Models.Dir, predictor.Models.SignatureKey, awsClient, generateErrorForPredictorTypeFn(api), validators)
+	if hasMultiModels && handler.Models.Dir != nil {
+		*models, err = validateDirModels(*handler.Models.Dir, handler.Models.SignatureKey, awsClient, generateErrorForHandlerTypeFn(api), validators)
 	} else {
-		*models, err = validateModels(modelResources, predictor.Models.SignatureKey, awsClient, generateErrorForPredictorTypeFn(api), validators)
+		*models, err = validateModels(modelResources, handler.Models.SignatureKey, awsClient, generateErrorForHandlerTypeFn(api), validators)
 	}
 	if err != nil {
 		return modelWrapError(err)
@@ -1190,21 +1190,21 @@ func validateTensorFlowPredictor(api *userconfig.API, models *[]CuratedModelReso
 
 func validateProtobufPath(api *userconfig.API, projectFiles ProjectFiles) error {
 	apiName := api.Name
-	protobufPath := *api.Predictor.ProtobufPath
+	protobufPath := *api.Handler.ProtobufPath
 
 	if !projectFiles.HasFile(protobufPath) {
 		return errors.Wrap(files.ErrorFileDoesNotExist(protobufPath), userconfig.ProtobufPathKey)
 	}
 	protoBytes, err := projectFiles.GetFile(protobufPath)
 	if err != nil {
-		return errors.Wrap(err, userconfig.ProtobufPathKey, *api.Predictor.ProtobufPath)
+		return errors.Wrap(err, userconfig.ProtobufPathKey, *api.Handler.ProtobufPath)
 	}
 
 	protoReader := bytes.NewReader(protoBytes)
 	parser := pbparser.NewParser(protoReader)
 	proto, err := parser.Parse()
 	if err != nil {
-		return errors.Wrap(errors.WithStack(err), userconfig.ProtobufPathKey, *api.Predictor.ProtobufPath)
+		return errors.Wrap(errors.WithStack(err), userconfig.ProtobufPathKey, *api.Handler.ProtobufPath)
 	}
 
 	var packageName string
@@ -1231,29 +1231,29 @@ func validateProtobufPath(api *userconfig.API, projectFiles ProjectFiles) error 
 	)
 
 	if numServices > 1 {
-		return errors.Wrap(ErrorProtoNumServicesExceeded(numServices), userconfig.ProtobufPathKey, *api.Predictor.ProtobufPath)
+		return errors.Wrap(ErrorProtoNumServicesExceeded(numServices), userconfig.ProtobufPathKey, *api.Handler.ProtobufPath)
 	}
 
 	if numRPCs > 1 {
-		return errors.Wrap(ErrorProtoNumServiceMethodsExceeded(numRPCs, serviceName), userconfig.ProtobufPathKey, *api.Predictor.ProtobufPath)
+		return errors.Wrap(ErrorProtoNumServiceMethodsExceeded(numRPCs, serviceName), userconfig.ProtobufPathKey, *api.Handler.ProtobufPath)
 	}
 
 	if serviceMethodName != detectedMethodName {
-		return errors.Wrap(ErrorProtoInvalidServiceMethod(detectedMethodName, serviceMethodName, serviceName), userconfig.ProtobufPathKey, *api.Predictor.ProtobufPath)
+		return errors.Wrap(ErrorProtoInvalidServiceMethod(detectedMethodName, serviceMethodName, serviceName), userconfig.ProtobufPathKey, *api.Handler.ProtobufPath)
 	}
 
 	var requiredPackageName string
 	requiredPackageName = strings.ReplaceAll(apiName, "-", "_")
 
-	if api.Predictor.ServerSideBatching != nil {
+	if api.Handler.ServerSideBatching != nil {
 		return ErrorConflictingFields(userconfig.ProtobufPathKey, userconfig.ServerSideBatchingKey)
 	}
 
 	if packageName == "" {
-		return errors.Wrap(ErrorProtoMissingPackageName(requiredPackageName), userconfig.ProtobufPathKey, *api.Predictor.ProtobufPath)
+		return errors.Wrap(ErrorProtoMissingPackageName(requiredPackageName), userconfig.ProtobufPathKey, *api.Handler.ProtobufPath)
 	}
 	if packageName != requiredPackageName {
-		return errors.Wrap(ErrorProtoInvalidPackageName(packageName, requiredPackageName), userconfig.ProtobufPathKey, *api.Predictor.ProtobufPath)
+		return errors.Wrap(ErrorProtoInvalidPackageName(packageName, requiredPackageName), userconfig.ProtobufPathKey, *api.Handler.ProtobufPath)
 	}
 
 	requiredEndpoint := "/" + requiredPackageName + "." + serviceName + "/" + serviceMethodName
@@ -1267,9 +1267,9 @@ func validateProtobufPath(api *userconfig.API, projectFiles ProjectFiles) error 
 	return nil
 }
 
-func validatePythonPath(predictor *userconfig.Predictor, projectFiles ProjectFiles) error {
-	if !projectFiles.HasDir(*predictor.PythonPath) {
-		return ErrorPythonPathNotFound(*predictor.PythonPath)
+func validatePythonPath(handler *userconfig.Handler, projectFiles ProjectFiles) error {
+	if !projectFiles.HasDir(*handler.PythonPath) {
+		return ErrorPythonPathNotFound(*handler.PythonPath)
 	}
 
 	return nil
@@ -1277,10 +1277,10 @@ func validatePythonPath(predictor *userconfig.Predictor, projectFiles ProjectFil
 
 func validateAutoscaling(api *userconfig.API) error {
 	autoscaling := api.Autoscaling
-	predictor := api.Predictor
+	handler := api.Handler
 
 	if autoscaling.TargetReplicaConcurrency == nil {
-		autoscaling.TargetReplicaConcurrency = pointer.Float64(float64(predictor.ProcessesPerReplica * predictor.ThreadsPerProcess))
+		autoscaling.TargetReplicaConcurrency = pointer.Float64(float64(handler.ProcessesPerReplica * handler.ThreadsPerProcess))
 	}
 
 	if *autoscaling.TargetReplicaConcurrency > float64(autoscaling.MaxReplicaConcurrency) {
@@ -1301,7 +1301,7 @@ func validateAutoscaling(api *userconfig.API) error {
 
 	if api.Compute.Inf > 0 {
 		numNeuronCores := api.Compute.Inf * consts.NeuronCoresPerInf
-		processesPerReplica := int64(predictor.ProcessesPerReplica)
+		processesPerReplica := int64(handler.ProcessesPerReplica)
 		if !libmath.IsDivisibleByInt64(numNeuronCores, processesPerReplica) {
 			return ErrorInvalidNumberOfInfProcesses(processesPerReplica, api.Compute.Inf, numNeuronCores)
 		}

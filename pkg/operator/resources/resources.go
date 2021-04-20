@@ -152,7 +152,7 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string, force bool) (*schema
 			return nil, "", err
 		}
 
-		if deployedResource.Kind == userconfig.RealtimeAPIKind && prevAPISpec != nil && !prevAPISpec.Predictor.IsGRPC() && apiConfig.Predictor.IsGRPC() {
+		if deployedResource.Kind == userconfig.RealtimeAPIKind && prevAPISpec != nil && !prevAPISpec.Handler.IsGRPC() && apiConfig.Handler.IsGRPC() {
 			realtimeAPIName := deployedResource.Name
 
 			virtualServices, err := config.K8s.ListVirtualServicesByLabel("apiKind", userconfig.TrafficSplitterKind.String())
@@ -287,7 +287,7 @@ func patchAPI(apiConfig *userconfig.API, force bool) (*spec.API, string, error) 
 		return nil, "", err
 	}
 
-	if deployedResource.Kind == userconfig.RealtimeAPIKind && !prevAPISpec.Predictor.IsGRPC() && apiConfig.Predictor.IsGRPC() {
+	if deployedResource.Kind == userconfig.RealtimeAPIKind && !prevAPISpec.Handler.IsGRPC() && apiConfig.Handler.IsGRPC() {
 		realtimeAPIName := deployedResource.Name
 
 		virtualServices, err := config.K8s.ListVirtualServicesByLabel("apiKind", userconfig.TrafficSplitterKind.String())

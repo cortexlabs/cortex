@@ -30,10 +30,10 @@ import (
 var _terminationGracePeriodSeconds int64 = 60 // seconds
 
 func deploymentSpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deployment {
-	switch api.Predictor.Type {
-	case userconfig.TensorFlowPredictorType:
+	switch api.Handler.Type {
+	case userconfig.TensorHandlerType:
 		return tensorflowAPISpec(api, prevDeployment)
-	case userconfig.PythonPredictorType:
+	case userconfig.PythonHandlerType:
 		return pythonAPISpec(api, prevDeployment)
 	default:
 		return nil // unexpected
@@ -41,11 +41,11 @@ func deploymentSpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Depl
 }
 
 func tensorflowAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deployment {
-	containers, volumes := operator.TensorFlowPredictorContainers(api)
+	containers, volumes := operator.TensorFlowHandlerContainers(api)
 	containers = append(containers, operator.RequestMonitorContainer(api))
 
 	servingProtocol := "http"
-	if api.Predictor != nil && api.Predictor.IsGRPC() {
+	if api.Handler != nil && api.Handler.IsGRPC() {
 		servingProtocol = "grpc"
 	}
 
@@ -60,7 +60,7 @@ func tensorflowAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.D
 			"apiID":           api.ID,
 			"specID":          api.SpecID,
 			"deploymentID":    api.DeploymentID,
-			"predictorID":     api.PredictorID,
+			"handlerID":       api.HandlerID,
 			"servingProtocol": servingProtocol,
 			"cortex.dev/api":  "true",
 		},
@@ -74,7 +74,7 @@ func tensorflowAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.D
 				"apiName":         api.Name,
 				"apiKind":         api.Kind.String(),
 				"deploymentID":    api.DeploymentID,
-				"predictorID":     api.PredictorID,
+				"handlerID":       api.HandlerID,
 				"servingProtocol": servingProtocol,
 				"cortex.dev/api":  "true",
 			},
@@ -103,11 +103,11 @@ func tensorflowAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.D
 }
 
 func pythonAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deployment {
-	containers, volumes := operator.PythonPredictorContainers(api)
+	containers, volumes := operator.PythonHandlerContainers(api)
 	containers = append(containers, operator.RequestMonitorContainer(api))
 
 	servingProtocol := "http"
-	if api.Predictor != nil && api.Predictor.IsGRPC() {
+	if api.Handler != nil && api.Handler.IsGRPC() {
 		servingProtocol = "grpc"
 	}
 
@@ -122,7 +122,7 @@ func pythonAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deplo
 			"apiID":           api.ID,
 			"specID":          api.SpecID,
 			"deploymentID":    api.DeploymentID,
-			"predictorID":     api.PredictorID,
+			"handlerID":       api.HandlerID,
 			"servingProtocol": servingProtocol,
 			"cortex.dev/api":  "true",
 		},
@@ -136,7 +136,7 @@ func pythonAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deplo
 				"apiName":         api.Name,
 				"apiKind":         api.Kind.String(),
 				"deploymentID":    api.DeploymentID,
-				"predictorID":     api.PredictorID,
+				"handlerID":       api.HandlerID,
 				"servingProtocol": servingProtocol,
 				"cortex.dev/api":  "true",
 			},
@@ -166,7 +166,7 @@ func pythonAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deplo
 
 func serviceSpec(api *spec.API) *kcore.Service {
 	servingProtocol := "http"
-	if api.Predictor != nil && api.Predictor.IsGRPC() {
+	if api.Handler != nil && api.Handler.IsGRPC() {
 		servingProtocol = "grpc"
 	}
 	return k8s.Service(&k8s.ServiceSpec{
@@ -192,7 +192,7 @@ func virtualServiceSpec(api *spec.API) *istioclientnetworking.VirtualService {
 	servingProtocol := "http"
 	rewritePath := pointer.String("predict")
 
-	if api.Predictor != nil && api.Predictor.IsGRPC() {
+	if api.Handler != nil && api.Handler.IsGRPC() {
 		servingProtocol = "grpc"
 		rewritePath = nil
 	}
@@ -215,7 +215,7 @@ func virtualServiceSpec(api *spec.API) *istioclientnetworking.VirtualService {
 			"apiID":           api.ID,
 			"specID":          api.SpecID,
 			"deploymentID":    api.DeploymentID,
-			"predictorID":     api.PredictorID,
+			"handlerID":       api.HandlerID,
 			"cortex.dev/api":  "true",
 		},
 	})

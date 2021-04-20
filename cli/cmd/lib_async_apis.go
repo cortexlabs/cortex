@@ -47,8 +47,8 @@ func asyncAPITable(asyncAPI schema.APIResponse, env cliconfig.Environment) (stri
 
 	out += "\n" + console.Bold("endpoint: ") + asyncAPI.Endpoint + "\n"
 
-	if !(asyncAPI.Spec.Predictor.Type == userconfig.PythonPredictorType && asyncAPI.Spec.Predictor.MultiModelReloading == nil) {
-		out += "\n" + describeModelInput(asyncAPI.Status, asyncAPI.Spec.Predictor, asyncAPI.Endpoint)
+	if !(asyncAPI.Spec.Handler.Type == userconfig.PythonHandlerType && asyncAPI.Spec.Handler.MultiModelReloading == nil) {
+		out += "\n" + describeModelInput(asyncAPI.Status, asyncAPI.Spec.Handler, asyncAPI.Endpoint)
 	}
 
 	out += "\n" + apiHistoryTable(asyncAPI.APIVersions)
