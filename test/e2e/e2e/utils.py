@@ -331,6 +331,12 @@ def retrieve_results_concurrently(
                 result_response = session.get(f"{api_info['endpoint']}/{request_id}")
 
             if result_response.status_code != HTTPStatus.OK:
+                content = result_response.content.decode("utf-8")
+                if "error" in content:
+                    event_stopper.set()
+                    raise RuntimeError(
+                        f"received {result_response.status_code} status code with the following message: {content}"
+                    )
                 time.sleep(poll_sleep_seconds)
                 continue
 

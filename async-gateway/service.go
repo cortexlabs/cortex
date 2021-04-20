@@ -133,7 +133,7 @@ func (s *service) getStatus(id string) (Status, error) {
 	// determine request status
 	status := StatusInQueue
 	for _, file := range files {
-		if file == "payload" {
+		if file == "payload" || file == "result.json" {
 			continue
 		}
 
