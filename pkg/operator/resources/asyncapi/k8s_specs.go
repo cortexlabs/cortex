@@ -36,6 +36,7 @@ var _gatewayHPATargetMemUtilization int32 = 80 // percentage
 
 func gatewayDeploymentSpec(api spec.API, prevDeployment *kapps.Deployment, queueURL string) kapps.Deployment {
 	container := operator.AsyncGatewayContainers(api, queueURL)
+
 	return *k8s.Deployment(&k8s.DeploymentSpec{
 		Name:           getGatewayK8sName(api.Name),
 		Replicas:       1,
@@ -71,11 +72,8 @@ func gatewayDeploymentSpec(api spec.API, prevDeployment *kapps.Deployment, queue
 				Containers:                    []kcore.Container{container},
 				NodeSelector:                  operator.NodeSelectors(),
 				Tolerations:                   operator.GenerateResourceTolerations(),
-				Affinity: &kcore.Affinity{
-					NodeAffinity: &kcore.NodeAffinity{
-						PreferredDuringSchedulingIgnoredDuringExecution: operator.GeneratePreferredNodeAffinities(),
-					},
-				}, ServiceAccountName: operator.ServiceAccountName,
+				Affinity:                      operator.GenerateNodeAffinities(api.Compute.NodeGroups),
+				ServiceAccountName:            operator.ServiceAccountName,
 			},
 		},
 	})
@@ -207,14 +205,10 @@ func apiDeploymentSpec(api spec.API, prevDeployment *kapps.Deployment, queueURL 
 				InitContainers: []kcore.Container{
 					operator.InitContainer(&api),
 				},
-				Containers:   containers,
-				NodeSelector: operator.NodeSelectors(),
-				Tolerations:  operator.GenerateResourceTolerations(),
-				Affinity: &kcore.Affinity{
-					NodeAffinity: &kcore.NodeAffinity{
-						PreferredDuringSchedulingIgnoredDuringExecution: operator.GeneratePreferredNodeAffinities(),
-					},
-				},
+				Containers:         containers,
+				NodeSelector:       operator.NodeSelectors(),
+				Tolerations:        operator.GenerateResourceTolerations(),
+				Affinity:           operator.GenerateNodeAffinities(api.Compute.NodeGroups),
 				Volumes:            volumes,
 				ServiceAccountName: operator.ServiceAccountName,
 			},

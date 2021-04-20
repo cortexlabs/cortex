@@ -86,14 +86,10 @@ func pythonPredictorJobSpec(api *spec.API, job *spec.BatchJob) (*kbatch.Job, err
 				InitContainers: []kcore.Container{
 					operator.InitContainer(api),
 				},
-				Containers:   containers,
-				NodeSelector: operator.NodeSelectors(),
-				Tolerations:  operator.GenerateResourceTolerations(),
-				Affinity: &kcore.Affinity{
-					NodeAffinity: &kcore.NodeAffinity{
-						PreferredDuringSchedulingIgnoredDuringExecution: operator.GeneratePreferredNodeAffinities(),
-					},
-				},
+				Containers:         containers,
+				NodeSelector:       operator.NodeSelectors(),
+				Tolerations:        operator.GenerateResourceTolerations(),
+				Affinity:           operator.GenerateNodeAffinities(api.Compute.NodeGroups),
 				Volumes:            volumes,
 				ServiceAccountName: operator.ServiceAccountName,
 			},
@@ -141,14 +137,10 @@ func tensorFlowPredictorJobSpec(api *spec.API, job *spec.BatchJob) (*kbatch.Job,
 				InitContainers: []kcore.Container{
 					operator.InitContainer(api),
 				},
-				Containers:   containers,
-				NodeSelector: operator.NodeSelectors(),
-				Tolerations:  operator.GenerateResourceTolerations(),
-				Affinity: &kcore.Affinity{
-					NodeAffinity: &kcore.NodeAffinity{
-						PreferredDuringSchedulingIgnoredDuringExecution: operator.GeneratePreferredNodeAffinities(),
-					},
-				},
+				Containers:         containers,
+				NodeSelector:       operator.NodeSelectors(),
+				Tolerations:        operator.GenerateResourceTolerations(),
+				Affinity:           operator.GenerateNodeAffinities(api.Compute.NodeGroups),
 				Volumes:            volumes,
 				ServiceAccountName: operator.ServiceAccountName,
 			},

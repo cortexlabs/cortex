@@ -37,6 +37,7 @@ const (
 	ErrRealtimeAPIUsedByTrafficSplitter              = "resources.realtime_api_used_by_traffic_splitter"
 	ErrAPIsNotDeployed                               = "resources.apis_not_deployed"
 	ErrGRPCNotSupportedForTrafficSplitter            = "resources.grpc_not_supported_for_traffic_splitter"
+	ErrInvalidNodeGroupSelector                      = "resources.invalid_node_group_selector"
 )
 
 func ErrorOperationIsOnlySupportedForKind(resource operator.DeployedResource, supportedKind userconfig.Kind, supportedKinds ...userconfig.Kind) error {
@@ -114,5 +115,12 @@ func ErrorGRPCNotSupportedForTrafficSplitter(grpcAPIName string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrGRPCNotSupportedForTrafficSplitter,
 		Message: fmt.Sprintf("api %s (of kind %s) is served using the grpc protocol and therefore, it cannot be used for the %s kind", grpcAPIName, userconfig.RealtimeAPIKind, userconfig.TrafficSplitterKind),
+	})
+}
+
+func ErrorInvalidNodeGroupSelector(selected string, availableNodeGroups []string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrInvalidNodeGroupSelector,
+		Message: fmt.Sprintf("node group %s doesn't exist; remove the node group selector to let Cortex determine automatically where to place the API or specify a valid node group name (%s)", selected, s.StrsOr(availableNodeGroups)),
 	})
 }

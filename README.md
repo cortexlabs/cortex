@@ -4,67 +4,81 @@
 
 [Website](https://www.cortex.dev) • [Slack](https://community.cortex.dev) • [Docs](https://docs.cortex.dev)
 
-# Deploy machine learning models to production
+# Cost-effective serverless computing at scale
 
-Cortex is a cloud native model serving platform for machine learning engineering teams.
+Cortex is a serverless platform for compute-intensive applications.
 
 <br>
 
 ## Use cases
 
-* **Realtime machine learning** - build NLP, computer vision, and other APIs and integrate them into any application.
-* **Large-scale inference** - scale realtime or batch inference workloads across hundreds or thousands of instances.
-* **Consistent MLOps workflows** - create streamlined and reproducible MLOps workflows for any machine learning team.
+* **Data processing** - run image processing, natural language processing, and more.
+* **Machine learning in production** - train and serve machine learning models in production.
+* **Large-scale inference** - efficiently scale realtime and batch inference workloads.
 
 <br>
 
-## Deploy
+## Scalable
 
-* Deploy TensorFlow, PyTorch, ONNX, and other models using a simple CLI or Python client.
-* Run realtime inference, batch inference, asynchronous inference, and training jobs.
-* Define preprocessing and postprocessing steps in Python and chain workloads seamlessly.
+* **Cluster autoscaling** - configure Cortex to spin up instances when load increases and spin them down when load decreases.
+* **Workload autoscaling** - customize the autoscaling behavior of each workload to ensure efficient use of cluster resources.
+
+```text
+$ cortex cluster info
+
+region: us-east-1
+instances: [c5.xlarge, g4dn.xlarge]
+spot_instances: true
+min_instances: 10
+max_instances: 100
+```
+
+<br>
+
+## Flexible
+
+* **Any workload** - define custom Python functions or containers and deploy them as realtime, async, and batch workloads.
+* **Any pipeline** - chain workloads seamlessly to create custom data pipelines.
 
 ```text
 $ cortex deploy apis.yaml
 
-• creating text-generator (realtime API)
-• creating image-classifier (batch API)
-• creating video-analyzer (async API)
+creating text-generator (realtime API)
+creating image-classifier (batch API)
+creating video-analyzer (async API)
 
 all APIs are ready!
 ```
 
 <br>
 
-## Manage
+## Observable
 
-* Create A/B tests and shadow pipelines with configurable traffic splitting.
-* Automatically stream logs from every workload to your favorite log management tool.
-* Monitor your workloads with pre-built Grafana dashboards and add your own custom dashboards.
+* **Structured logging** - automatically stream logs from every workload to your favorite log management tool.
+* **Metrics aggregation** - monitor your workloads with pre-built Grafana dashboards and add your own custom dashboards.
 
 ```text
 $ cortex get
 
-API                 TYPE        GPUs
-text-generator      realtime    32
-image-classifier    batch       64
-video-analyzer      async       16
+API                TYPE       REPLICAS
+text-generator     realtime   32
+image-classifier   batch      64
+video-analyzer     async      16
 ```
 
 <br>
 
-## Scale
+## Affordable
 
-* Configure workload and cluster autoscaling to efficiently handle large-scale production workloads.
-* Create clusters with different types of instances for different types of workloads.
-* Spend less on cloud infrastructure by letting Cortex manage spot instances.
+* **Spot instance management** - spend less on EC2 instances by letting Cortex manage spot instances.
+* **Multi-instance type clusters** - configure resources per workload to run each workload on the right hardware.
 
 ```text
-$ cortex cluster info
+$ cortex cluster pricing
 
-region: us-east-1
-instance_types: [c5.xlarge, g4dn.xlarge]
-spot_instances: true
-min_instances: 10
-max_instances: 100
+RESOURCE                       COST PER HOUR
+1 eks cluster                  $0.10
+2 network load balancers       $0.02 each
+10-100 g4dn.xlarge instances   $0.53 each
+10-100 c5.xlarge instances     $0.17 each
 ```
