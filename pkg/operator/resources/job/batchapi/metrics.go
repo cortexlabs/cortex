@@ -133,7 +133,7 @@ func queryPrometheusVec(promAPIv1 promv1.API, query string, t time.Time) (model.
 	ctx, cancel := context.WithTimeout(context.Background(), _metricsRequestTimeoutSeconds*time.Second)
 	defer cancel()
 
-	valuesQuery, err := promAPIv1.Query(ctx, query, t)
+	valuesQuery, _, err := promAPIv1.Query(ctx, query, t)
 	if err != nil {
 		return nil, err
 	}

@@ -46,7 +46,7 @@ func getInflightRequests(apiName string, window time.Duration) (*float64, error)
 	ctx, cancel := context.WithTimeout(context.Background(), _prometheusQueryTimeoutSeconds*time.Second)
 	defer cancel()
 
-	valuesQuery, err := config.Prometheus.Query(ctx, query, time.Now())
+	valuesQuery, _, err := config.Prometheus.Query(ctx, query, time.Now())
 	if err != nil {
 		return nil, err
 	}

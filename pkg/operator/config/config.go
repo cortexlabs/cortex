@@ -22,7 +22,10 @@ import (
 	"strings"
 
 	"github.com/cortexlabs/cortex/pkg/consts"
+	batch "github.com/cortexlabs/cortex/pkg/crds/apis/batch/v1alpha1"
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
+	"k8s.io/apimachinery/pkg/runtime"
+	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/hash"
@@ -48,7 +51,13 @@ var (
 	K8sIstio        *k8s.Client
 	K8sAllNamspaces *k8s.Client
 	Prometheus      promv1.API
+	scheme          = runtime.NewScheme()
 )
+
+func init() {
+	_ = clientgoscheme.AddToScheme(scheme)
+	_ = batch.AddToScheme(scheme)
+}
 
 func Init() error {
 	var err error
@@ -116,11 +125,11 @@ func Init() error {
 		fmt.Println(errors.Message(err))
 	}
 
-	if K8s, err = k8s.New(clusterNamespace, OperatorMetadata.IsOperatorInCluster, nil); err != nil {
+	if K8s, err = k8s.New(clusterNamespace, OperatorMetadata.IsOperatorInCluster, nil, scheme); err != nil {
 		return err
 	}
 
-	if K8sIstio, err = k8s.New(istioNamespace, OperatorMetadata.IsOperatorInCluster, nil); err != nil {
+	if K8sIstio, err = k8s.New(istioNamespace, OperatorMetadata.IsOperatorInCluster, nil, scheme); err != nil {
 		return err
 	}
 
@@ -138,7 +147,7 @@ func Init() error {
 
 	Prometheus = promv1.NewAPI(promClient)
 
-	if K8sAllNamspaces, err = k8s.New("", OperatorMetadata.IsOperatorInCluster, nil); err != nil {
+	if K8sAllNamspaces, err = k8s.New("", OperatorMetadata.IsOperatorInCluster, nil, scheme); err != nil {
 		return err
 	}
 
