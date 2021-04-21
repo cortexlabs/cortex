@@ -49,15 +49,16 @@ type DeployResult struct {
 }
 
 type APIResponse struct {
-	Spec             spec.API                `json:"spec"`
-	Status           *status.Status          `json:"status,omitempty"`
-	Metrics          *metrics.Metrics        `json:"metrics,omitempty"`
-	Endpoint         string                  `json:"endpoint"`
-	GRPCPorts        map[string]int64        `json:"grpc_ports,omitempty"`
-	DashboardURL     *string                 `json:"dashboard_url,omitempty"`
-	BatchJobStatuses []status.BatchJobStatus `json:"batch_job_statuses,omitempty"`
-	TaskJobStatuses  []status.TaskJobStatus  `json:"task_job_statuses,omitempty"`
-	APIVersions      []APIVersion            `json:"api_versions,omitempty"`
+	Spec                  spec.API                `json:"spec"`
+	Status                *status.Status          `json:"status,omitempty"`
+	Metrics               *metrics.Metrics        `json:"metrics,omitempty"`
+	Endpoint              string                  `json:"endpoint"`
+	GRPCPorts             map[string]int64        `json:"grpc_ports,omitempty"`
+	DashboardURL          *string                 `json:"dashboard_url,omitempty"`
+	BatchJobStatuses      []status.BatchJobStatus `json:"batch_job_statuses,omitempty"`
+	TaskJobStatuses       []status.TaskJobStatus  `json:"task_job_statuses,omitempty"`
+	RealtimeModelMetadata RealtimeModelMetadata   `json:"realtime_model_metadata"`
+	APIVersions           []APIVersion            `json:"api_versions,omitempty"`
 }
 
 type BatchJobResponse struct {
@@ -85,8 +86,12 @@ type ErrorResponse struct {
 	Message string `json:"message"`
 }
 
+type RealtimeModelMetadata struct {
+	APITFModelSummary     *APITFLiveReloadingSummary `json:"tf_model_summary"`
+	APIPythonModelSummary *APIModelSummary           `json:"python_model_summary"`
+}
+
 type APITFLiveReloadingSummary struct {
-	Message       string                       `json:"message"`
 	ModelMetadata map[string]TFModelIDMetadata `json:"model_metadata"`
 }
 
@@ -104,7 +109,6 @@ type InputSignature struct {
 }
 
 type APIModelSummary struct {
-	Message       string                          `json:"message"`
 	ModelMetadata map[string]GenericModelMetadata `json:"model_metadata"`
 }
 

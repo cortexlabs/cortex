@@ -18,6 +18,7 @@ package k8s
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	kcore "k8s.io/api/core/v1"
@@ -154,6 +155,19 @@ func (c *Client) ListServicesWithLabelKeys(labelKeys ...string) ([]kcore.Service
 		LabelSelector: LabelExistsSelector(labelKeys...),
 	}
 	return c.ListServices(opts)
+}
+
+func (c *Client) InternalServiceEndpoint(serviceName string, portNumber int32) (string, error) {
+	service, err := c.GetService(serviceName)
+	if err != nil {
+		return "", err
+	}
+
+	if service == nil {
+		return "", ErrorServiceNotFound(serviceName)
+	}
+
+	return fmt.Sprintf("http://%s.%s.svc.cluster.local:%d", serviceName, service.Namespace, portNumber), nil
 }
 
 func ServiceMap(services []kcore.Service) map[string]kcore.Service {

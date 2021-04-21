@@ -6,8 +6,8 @@ labels = ["setosa", "versicolor", "virginica"]
 
 
 class Handler:
-    def __init__(self, python_client, config):
-        self.client = python_client
+    def __init__(self, model_client, config):
+        self.client = model_client
 
     def handle_post(self, payload):
         session = self.client.get_model()

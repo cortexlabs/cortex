@@ -27,7 +27,9 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/parallel"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
+	"github.com/cortexlabs/cortex/pkg/lib/urls"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
+	"github.com/cortexlabs/cortex/pkg/operator/lib/logging"
 	"github.com/cortexlabs/cortex/pkg/operator/lib/routines"
 	"github.com/cortexlabs/cortex/pkg/operator/operator"
 	"github.com/cortexlabs/cortex/pkg/operator/resources/asyncapi"
@@ -44,6 +46,12 @@ import (
 	kcore "k8s.io/api/core/v1"
 	kmeta "k8s.io/apimachinery/pkg/apis/meta/v1"
 	klabels "k8s.io/apimachinery/pkg/labels"
+)
+
+var operatorLogger = logging.GetOperatorLogger()
+
+const (
+	_defaultAPIPortInt32 = int32(8888)
 )
 
 // Returns an error if resource doesn't exist
@@ -596,6 +604,23 @@ func GetAPI(apiName string) ([]schema.APIResponse, error) {
 		if err != nil {
 			return nil, err
 		}
+	}
+
+	// best effort
+	if config.K8s != nil && apiResponse[0].Spec.Kind == userconfig.RealtimeAPIKind && !apiResponse[0].Spec.Handler.IsGRPC() && (apiResponse[0].Spec.Handler.MultiModelReloading != nil || apiResponse[0].Spec.Handler.Models != nil) {
+		internalAPIEndpoint, err := config.K8s.InternalServiceEndpoint("api-"+apiResponse[0].Spec.Name, _defaultAPIPortInt32)
+		if err != nil {
+			operatorLogger.Warn(errors.Wrap(err, fmt.Sprintf("api %s", apiResponse[0].Spec.Name)))
+		}
+
+		infoAPIEndpoint := urls.Join(internalAPIEndpoint, "info")
+		apiTFModelSummary, apiPythonModelSummary, err := realtimeapi.GetModelsMetadata(apiResponse[0].Status, apiResponse[0].Spec.Handler, infoAPIEndpoint)
+		if err != nil {
+			operatorLogger.Warn(errors.Wrap(err, fmt.Sprintf("api %s", apiResponse[0].Spec.Name)))
+		}
+
+		apiResponse[0].RealtimeModelMetadata.APITFModelSummary = apiTFModelSummary
+		apiResponse[0].RealtimeModelMetadata.APIPythonModelSummary = apiPythonModelSummary
 	}
 
 	return apiResponse, nil

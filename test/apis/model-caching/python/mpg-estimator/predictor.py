@@ -2,8 +2,8 @@ import mlflow.sklearn
 
 
 class Handler:
-    def __init__(self, config, python_client):
-        self.client = python_client
+    def __init__(self, config, model_client):
+        self.client = model_client
 
     def load_model(self, model_path):
         return mlflow.sklearn.load_model(model_path)

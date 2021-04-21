@@ -18,13 +18,16 @@ package realtimeapi
 
 import (
 	"fmt"
+	"net/http"
 	"path/filepath"
 
 	"github.com/cortexlabs/cortex/pkg/lib/cron"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/json"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/parallel"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
+	"github.com/cortexlabs/cortex/pkg/lib/requests"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 	autoscalerlib "github.com/cortexlabs/cortex/pkg/operator/lib/autoscaler"
 	"github.com/cortexlabs/cortex/pkg/operator/lib/routines"
@@ -446,4 +449,67 @@ func getDashboardURL(apiName string) string {
 	)
 
 	return dashboardURL
+}
+
+func GetModelsMetadata(status *status.Status, handler *userconfig.Handler, apiEndpoint string) (*schema.APITFLiveReloadingSummary, *schema.APIModelSummary, error) {
+	if status.Updated.Ready+status.Stale.Ready == 0 {
+		return nil, nil, nil
+	}
+
+	cachingEnabled := handler.Models != nil && handler.Models.CacheSize != nil && handler.Models.DiskCacheSize != nil
+	if handler.Type == userconfig.TensorHandlerType && !cachingEnabled {
+		apiTFLiveReloadingSummary, err := getAPITFLiveReloadingSummary(apiEndpoint)
+		if err != nil {
+			return nil, nil, err
+		}
+		return apiTFLiveReloadingSummary, nil, nil
+	}
+
+	if handler.Type == userconfig.PythonHandlerType && handler.MultiModelReloading != nil {
+		apiModelSummary, err := getAPIModelSummary(apiEndpoint)
+		if err != nil {
+			return nil, nil, err
+		}
+		return nil, apiModelSummary, nil
+	}
+
+	return nil, nil, nil
+}
+
+func getAPIModelSummary(apiEndpoint string) (*schema.APIModelSummary, error) {
+	req, err := http.NewRequest("GET", apiEndpoint, nil)
+	if err != nil {
+		return nil, errors.Wrap(err, "unable to request api summary")
+	}
+	req.Header.Set("Content-Type", "application/json")
+	_, response, err := requests.MakeRequest(req)
+	if err != nil {
+		return nil, err
+	}
+
+	var apiModelSummary schema.APIModelSummary
+	err = json.DecodeWithNumber(response, &apiModelSummary)
+	if err != nil {
+		return nil, errors.Wrap(err, "unable to parse api summary response")
+	}
+	return &apiModelSummary, nil
+}
+
+func getAPITFLiveReloadingSummary(apiEndpoint string) (*schema.APITFLiveReloadingSummary, error) {
+	req, err := http.NewRequest("GET", apiEndpoint, nil)
+	if err != nil {
+		return nil, errors.Wrap(err, "unable to request api summary")
+	}
+	req.Header.Set("Content-Type", "application/json")
+	_, response, err := requests.MakeRequest(req)
+	if err != nil {
+		return nil, err
+	}
+
+	var apiTFLiveReloadingSummary schema.APITFLiveReloadingSummary
+	err = json.DecodeWithNumber(response, &apiTFLiveReloadingSummary)
+	if err != nil {
+		return nil, errors.Wrap(err, "unable to parse api summary response")
+	}
+	return &apiTFLiveReloadingSummary, nil
 }

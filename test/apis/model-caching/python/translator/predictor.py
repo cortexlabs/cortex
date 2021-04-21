@@ -3,8 +3,8 @@ import torch
 
 
 class Handler:
-    def __init__(self, config, python_client):
-        self.client = python_client
+    def __init__(self, config, model_client):
+        self.client = model_client
         self.device = torch.cuda.current_device() if torch.cuda.is_available() else -1
 
     def load_model(self, model_path):

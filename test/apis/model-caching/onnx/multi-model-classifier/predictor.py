@@ -69,9 +69,9 @@ def postprocess(results):
 
 
 class Handler:
-    def __init__(self, python_client, config):
+    def __init__(self, model_client, config):
         # onnx client
-        self.client = python_client
+        self.client = model_client
 
         # for image classifiers
         classes = requests.get(config["image-classifier-classes"]).json()

@@ -12,10 +12,10 @@ from starlette.responses import StreamingResponse
 
 
 class Handler:
-    def __init__(self, python_client, config):
-        self.client = python_client
+    def __init__(self, model_client, config):
+        self.client = model_client
         # Get the input shape from the ONNX runtime
-        _, _, height, width = python_client.get_model()["input_shape"]
+        _, _, height, width = model_client.get_model()["input_shape"]
         self.input_size = (width, height)
         self.config = config
         with open("labels.json") as buf:

@@ -241,13 +241,11 @@ def build_handler_kwargs(request: Request):
 
 
 def get_summary():
-    response = {
-        "message": f'process requests by sending {util.and_list_with_quotes(local_cache["handle_fn_args"])} {util.string_plural_with_s("request", len(local_cache["handle_fn_args"]))} to this endpoint'
-    }
-
     if hasattr(local_cache["client"], "metadata"):
         client = local_cache["client"]
-        response["model_metadata"] = client.metadata
+        response = {
+            "model_metadata": client.metadata,
+        }
 
     return response
 

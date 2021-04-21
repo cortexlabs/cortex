@@ -29,7 +29,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/console"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
-	"github.com/cortexlabs/cortex/pkg/lib/json"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/table"
 	libtime "github.com/cortexlabs/cortex/pkg/lib/time"
@@ -60,7 +59,10 @@ func realtimeAPITable(realtimeAPI schema.APIResponse, env cliconfig.Environment)
 	}
 
 	if !(realtimeAPI.Spec.Handler.Type == userconfig.PythonHandlerType && realtimeAPI.Spec.Handler.MultiModelReloading == nil) && realtimeAPI.Spec.Handler.ProtobufPath == nil {
-		out += "\n" + describeModelInput(realtimeAPI.Status, realtimeAPI.Spec.Handler, realtimeAPI.Endpoint)
+		decribedModels := describeModelInput(realtimeAPI.Status, realtimeAPI.RealtimeModelMetadata.APITFModelSummary, realtimeAPI.RealtimeModelMetadata.APIPythonModelSummary)
+		if decribedModels != "" {
+			out += "\n" + decribedModels
+		}
 	}
 
 	out += "\n" + apiHistoryTable(realtimeAPI.APIVersions)
@@ -158,39 +160,28 @@ func code5XXStr(metrics *metrics.Metrics) string {
 	return s.Int(metrics.NetworkStats.Code5XX)
 }
 
-func describeModelInput(status *status.Status, handler *userconfig.Handler, apiEndpoint string) string {
+func describeModelInput(status *status.Status, apiTFLiveReloadingSummary *schema.APITFLiveReloadingSummary, apiModelSummary *schema.APIModelSummary) string {
 	if status.Updated.Ready+status.Stale.Ready == 0 {
 		return "the models' metadata schema will be available when the api is live\n"
 	}
 
-	cachingEnabled := handler.Models != nil && handler.Models.CacheSize != nil && handler.Models.DiskCacheSize != nil
-	if handler.Type == userconfig.TensorHandlerType && !cachingEnabled {
-		apiTFLiveReloadingSummary, err := getAPITFLiveReloadingSummary(apiEndpoint)
-		if err != nil {
-			if strings.Contains(errors.Message(err), "context deadline exceeded") {
-				return "error retrieving the models' metadata schema: unable to connect to the API, you either do not have access or the API is too busy" + "\n"
-			}
-			return "error retrieving the models' metadata schema: " + errors.Message(err) + "\n"
-		}
+	if apiTFLiveReloadingSummary != nil {
 		t, err := parseAPITFLiveReloadingSummary(apiTFLiveReloadingSummary)
 		if err != nil {
-			return "error retrieving the model's input schema: " + errors.Message(err) + "\n"
+			return "error parsing the model's input schema: " + errors.Message(err) + "\n"
 		}
 		return t
 	}
 
-	apiModelSummary, err := getAPIModelSummary(apiEndpoint)
-	if err != nil {
-		if strings.Contains(errors.Message(err), "context deadline exceeded") {
-			return "error retrieving the models' metadata schema: unable to connect to the API, you either do not have access or the API is too busy" + "\n"
+	if apiModelSummary != nil {
+		t, err := parseAPIModelSummary(apiModelSummary)
+		if err != nil {
+			return "error parsing the models' metadata schema: " + errors.Message(err) + "\n"
 		}
-		return "error retrieving the models' metadata schema: " + errors.Message(err) + "\n"
+		return t
 	}
-	t, err := parseAPIModelSummary(apiModelSummary)
-	if err != nil {
-		return "error retrieving the models' metadata schema: " + errors.Message(err) + "\n"
-	}
-	return t
+
+	return ""
 }
 
 func getModelFromModelID(modelID string) (modelName string, modelVersion int64, err error) {
@@ -227,44 +218,6 @@ func makeRequest(request *http.Request) (http.Header, []byte, error) {
 		return nil, nil, errors.Wrap(err, _errStrRead)
 	}
 	return response.Header, bodyBytes, nil
-}
-
-func getAPIModelSummary(apiEndpoint string) (*schema.APIModelSummary, error) {
-	req, err := http.NewRequest("GET", apiEndpoint, nil)
-	if err != nil {
-		return nil, errors.Wrap(err, "unable to request api summary")
-	}
-	req.Header.Set("Content-Type", "application/json")
-	_, response, err := makeRequest(req)
-	if err != nil {
-		return nil, err
-	}
-
-	var apiModelSummary schema.APIModelSummary
-	err = json.DecodeWithNumber(response, &apiModelSummary)
-	if err != nil {
-		return nil, errors.Wrap(err, "unable to parse api summary response")
-	}
-	return &apiModelSummary, nil
-}
-
-func getAPITFLiveReloadingSummary(apiEndpoint string) (*schema.APITFLiveReloadingSummary, error) {
-	req, err := http.NewRequest("GET", apiEndpoint, nil)
-	if err != nil {
-		return nil, errors.Wrap(err, "unable to request api summary")
-	}
-	req.Header.Set("Content-Type", "application/json")
-	_, response, err := makeRequest(req)
-	if err != nil {
-		return nil, err
-	}
-
-	var apiTFLiveReloadingSummary schema.APITFLiveReloadingSummary
-	err = json.DecodeWithNumber(response, &apiTFLiveReloadingSummary)
-	if err != nil {
-		return nil, errors.Wrap(err, "unable to parse api summary response")
-	}
-	return &apiTFLiveReloadingSummary, nil
 }
 
 func parseAPIModelSummary(summary *schema.APIModelSummary) (string, error) {
