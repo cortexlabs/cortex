@@ -24,7 +24,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/console"
 )
 
-var _maxBoldLength = 150
+var _maxBoldLength = 200
 
 func BoldFirstLine(msg string) {
 	msgParts := strings.Split(msg, "\n")
