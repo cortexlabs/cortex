@@ -25,7 +25,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 )
 
-const _administratorAccessARN = "arn:aws:iam::aws:policy/AdministratorAccess"
+const _administratorAccessARN = "arn:aws-us-gov:iam::aws:policy/AdministratorAccess"
 
 func (c *Client) GetUser() (iam.User, error) {
 	getUserOutput, err := c.IAM().GetUser(nil)
@@ -130,7 +130,7 @@ func (c *Client) isRoleAdmin() bool {
 		return false
 	}
 
-	// expected to be in form arn:aws:sts::account-id:assumed-role/role-name/role-session-name
+	// expected to be in form arn:aws-us-gov:sts::account-id:assumed-role/role-name/role-session-name
 	arnSplit := strings.Split(*arn, "/")
 	if len(arnSplit) < 2 {
 		return false

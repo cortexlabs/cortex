@@ -76,8 +76,11 @@ is_registry_logged_in="false"
 function registry_login() {
   if [ "$is_registry_logged_in" = "false" ]; then
     blue_echo "Logging in to ECR..."
+    echo $AWS_REGION
+    echo $registry_push_url
     aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $registry_push_url
-    aws ecr get-login-password --region us-west-2 | docker login --username AWS --password-stdin 790709498068.dkr.ecr.us-west-2.amazonaws.com  # this is for the inferentia device plugin image
+    blue_echo "Logging in to ECR 2..."
+    # aws ecr get-login-password --region us-west-2 | docker login --username AWS --password-stdin 790709498068.dkr.ecr.us-west-2.amazonaws.com  # this is for the inferentia device plugin image
     is_registry_logged_in="true"
     green_echo "Success\n"
   fi

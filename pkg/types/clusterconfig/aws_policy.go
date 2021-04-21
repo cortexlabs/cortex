@@ -33,7 +33,7 @@ func DefaultPolicyName(clusterName string, region string) string {
 }
 
 func DefaultPolicyARN(accountID string, clusterName string, region string) string {
-	return fmt.Sprintf("arn:aws:iam::%s:policy/%s", accountID, DefaultPolicyName(clusterName, region))
+	return fmt.Sprintf("arn:aws-us-gov:iam::%s:policy/%s", accountID, DefaultPolicyName(clusterName, region))
 }
 
 var _cortexPolicy = `
@@ -54,17 +54,17 @@ var _cortexPolicy = `
 		{
 			"Effect": "Allow",
 			"Action": "sqs:*",
-			"Resource": "arn:aws:sqs:{{ .Region }}:{{ .AccountID }}:cx_*"
+			"Resource": "arn:aws-us-gov:sqs:{{ .Region }}:{{ .AccountID }}:cx_*"
 		},
 		{
 			"Effect": "Allow",
 			"Action": "s3:*",
-			"Resource": "arn:aws:s3:::{{ .Bucket }}"
+			"Resource": "arn:aws-us-gov:s3:::{{ .Bucket }}"
 		},
 		{
 			"Effect": "Allow",
 			"Action": "s3:*",
-			"Resource": "arn:aws:s3:::{{ .Bucket }}/*"
+			"Resource": "arn:aws-us-gov:s3:::{{ .Bucket }}/*"
 		},
 		{
 			"Effect": "Allow",
@@ -74,12 +74,12 @@ var _cortexPolicy = `
 				"logs:PutLogEvents",
 				"logs:CreateLogGroup"
 			],
-			"Resource": "arn:aws:logs:{{ .Region }}:{{ .AccountID }}:log-group:{{ .LogGroup }}:*"
+			"Resource": "arn:aws-us-gov:logs:{{ .Region }}:{{ .AccountID }}:log-group:{{ .LogGroup }}:*"
 		},
 		{
 			"Effect": "Allow",
 			"Action": "logs:CreateLogGroup",
-			"Resource": "arn:aws:logs:{{ .Region }}:{{ .AccountID }}:log-group:{{ .LogGroup }}"
+			"Resource": "arn:aws-us-gov:logs:{{ .Region }}:{{ .AccountID }}:log-group:{{ .LogGroup }}"
 		}
 	]
 }

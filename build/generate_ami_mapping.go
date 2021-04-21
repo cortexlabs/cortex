@@ -171,8 +171,8 @@ func SupportedRegions() []string {
 		RegionAFSouth1,
 		// RegionCNNorthwest1,
 		// RegionCNNorth1,
-		// RegionUSGovWest1,
-		// RegionUSGovEast1,
+		RegionUSGovWest1,
+		RegionUSGovEast1,
 	}
 }
 
@@ -200,10 +200,41 @@ func EKSResourceAccountID(region string) string {
 }
 
 func main() {
-	destFile := mustExtractArg()
+	if len(os.Args) > 3 {
+		fmt.Println("usage: go run generate_ami_mapping.go <abs_dest_path> [only-govcloud]")
+		os.Exit(1)
+	}
+
+	destFile := os.Args[1]
+
+	onlyGovcloud := false
+
+	if len(os.Args) == 3 {
+		if os.Args[2] == "only-govcloud" {
+			onlyGovcloud = true
+		}
+	}
+
+	k8sVersionMap := map[string]map[string]map[string]string{}
+
+	if _, err := os.Stat(destFile); !os.IsNotExist(err) {
+		jsonBytes, err := ioutil.ReadFile(destFile)
+		if err != nil {
+			log.Fatal(err.Error())
+		}
+		json.Unmarshal(jsonBytes, &k8sVersionMap)
+	}
+
 	k8sVersion := "1.18"
-	regions := map[string]map[string]string{}
+
+	if k8sVersionMap[k8sVersion] == nil {
+		k8sVersionMap[k8sVersion] = map[string]map[string]string{}
+	}
 	for _, region := range SupportedRegions() {
+		if onlyGovcloud != (region == RegionUSGovEast1 || region == RegionUSGovWest1) {
+			// onlyGovcloud xor (region is us govclouds)
+			continue
+		}
 		fmt.Print(region)
 		sess := session.New(&aws.Config{Region: aws.String(region)})
 		svc := ec2.New(sess)
@@ -215,15 +246,17 @@ func main() {
 		if err != nil {
 			log.Fatal(err.Error())
 		}
-		regions[region] = map[string]string{
+
+		if k8sVersionMap[k8sVersion][region] == nil {
+			k8sVersionMap[k8sVersion][region] = map[string]string{}
+		}
+		k8sVersionMap[k8sVersion][region] = map[string]string{
 			"cpu":         cpuAMI,
 			"accelerated": acceleratedAMI,
 		}
 		fmt.Println(" ✓")
 	}
 
-	k8sVersionMap := map[string]interface{}{}
-	k8sVersionMap[k8sVersion] = regions
 	marshalledBytes, err := json.MarshalIndent(k8sVersionMap, "", "\t")
 	if err != nil {
 		log.Fatal(err.Error())
@@ -286,14 +319,5 @@ func FindImage(ec2api ec2iface.EC2API, ownerAccount, namePattern string) (string
 		return creationLeft.After(creationRight)
 	})
 
-	return *output.Images[0].ImageId, nil
-}
-
-func mustExtractArg() string {
-	if len(os.Args) != 2 {
-		fmt.Println("usage: go run generate_ami_mapping.go <abs_dest_path>")
-		os.Exit(1)
-	}
-
-	return os.Args[1]
+	return *output.Images[3].ImageId, nil
 }

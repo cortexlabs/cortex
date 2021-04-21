@@ -41,8 +41,8 @@
 			"cpu": "ami-0f85d2eeb0bea62a7"
 		},
 		"eu-north-1": {
-			"accelerated": "ami-016de826d1d553d1b",
-			"cpu": "ami-05dc6dcd932a8159e"
+			"accelerated": "ami-05bc92c8d24c7a661",
+			"cpu": "ami-09f6f77efde8920b8"
 		},
 		"eu-south-1": {
 			"accelerated": "ami-0ce76bb81c438e3b9",
@@ -75,6 +75,14 @@
 		"us-east-2": {
 			"accelerated": "ami-0da728680ca5ee572",
 			"cpu": "ami-0576aabae1709e005"
+		},
+		"us-gov-east-1": {
+			"accelerated": "ami-0d0129213a7f16d12",
+			"cpu": "ami-090c13eee66020d9b"
+		},
+		"us-gov-west-1": {
+			"accelerated": "ami-06439eec0732c6baa",
+			"cpu": "ami-04bd686c969f13917"
 		},
 		"us-west-1": {
 			"accelerated": "ami-085fdad868b9007dd",

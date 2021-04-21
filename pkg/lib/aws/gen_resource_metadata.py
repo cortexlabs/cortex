@@ -41,6 +41,8 @@ REGIONS = [
     "eu-north-1",  # Stockholm
     "me-south-1",  # Bahrain
     "sa-east-1",  # Sao Paulo
+    "us-gov-east-1",
+    "us-gov-west-1",
 ]
 
 OUTPUT_FILE_NAME = "resource_metadata.go"

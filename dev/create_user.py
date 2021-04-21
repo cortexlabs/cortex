@@ -37,14 +37,14 @@ policy_string = policy_string.replace("$CORTEX_ACCOUNT_ID", account_id)
 
 user_name = f"dev-{cluster_name}-{cortex_region}"
 
-iam_client = boto3.client("iam")
+iam_client = boto3.client("iam", region_name=cortex_region)
 
 try:
     iam_client.get_user(UserName=user_name)
 except iam_client.exceptions.NoSuchEntityException:
     iam_client.create_user(UserName=user_name)
 
-policy_arn = f"arn:aws:iam::{account_id}:policy/{user_name}"
+policy_arn = f"arn:aws-us-gov:iam::{account_id}:policy/{user_name}"
 
 try:
     iam_client.get_policy(PolicyArn=policy_arn)
