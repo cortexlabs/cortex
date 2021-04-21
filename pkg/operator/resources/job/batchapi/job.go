@@ -27,6 +27,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/operator/operator"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
+	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	"github.com/cortexlabs/yaml"
 	kmeta "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -71,6 +72,12 @@ func SubmitJob(apiName string, submission *schema.BatchJobSubmission) (*batch.Ba
 
 	apiID := virtualService.Labels["apiID"]
 	jobID := spec.MonotonicallyDecreasingID()
+
+	// upload job payload for enqueuer
+	payloadKey := spec.JobPayloadKey(config.ClusterConfig.ClusterName, userconfig.BatchAPIKind, apiName, jobID)
+	if err = config.AWS.UploadJSONToS3(submission, config.ClusterConfig.Bucket, payloadKey); err != nil {
+		return nil, err
+	}
 
 	var jobConfig *string
 	if submission.Config != nil {

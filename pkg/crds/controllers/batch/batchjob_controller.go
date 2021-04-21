@@ -113,7 +113,7 @@ func (r *BatchJobReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	}
 
 	log.V(1).Info("checking enqueuing status")
-	enqueuingStatus, err := r.checkEnqueuingStatus(ctx, batchJob, workerJob)
+	enqueuerJob, enqueuingStatus, err := r.checkEnqueuingStatus(ctx, batchJob)
 	if err != nil {
 		log.Error(err, "failed to check enqueuing status")
 		return ctrl.Result{}, err
@@ -123,6 +123,7 @@ func (r *BatchJobReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	statusInfo := batchJobStatusInfo{
 		QueueExists:     queueExists,
 		EnqueuingStatus: enqueuingStatus,
+		EnqueuerJob:     enqueuerJob,
 		WorkerJob:       workerJob,
 	}
 

@@ -93,3 +93,7 @@ type TaskJob struct {
 func JobAPIPrefix(clusterName string, kind userconfig.Kind, apiName string) string {
 	return filepath.Join(clusterName, "jobs", kind.String(), consts.CortexVersion, apiName)
 }
+
+func JobPayloadKey(clusterName string, kind userconfig.Kind, apiName string, jobId string) string {
+	return filepath.Join(JobAPIPrefix(clusterName, kind, apiName), jobId, "payload.json")
+}

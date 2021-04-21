@@ -29,12 +29,13 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/random"
+	"github.com/cortexlabs/cortex/pkg/types/spec"
+	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	"go.uber.org/zap"
 )
 
 const (
 	_defaultCortexVersion = "master"
-	_batchKind            = "BatchAPI"
 	_s3DownloadChunkSize  = 32 * 1024 * 1024
 )
 
@@ -155,10 +156,7 @@ func (e *Enqueuer) Enqueue() (int, error) {
 
 func (e *Enqueuer) getJobPayload() (JobSubmission, error) {
 	// e.g. <cluster name>/jobs/<job_api_kind>/<cortex version>/<api_name>/<job_id>
-	key := fmt.Sprintf(
-		"%s/jobs/%s/%s/%s/%s/payload.json",
-		e.clusterEnv.ClusterName, _batchKind, e.clusterEnv.Version, e.clusterEnv.APIName, e.clusterEnv.JobID,
-	)
+	key := spec.JobPayloadKey(e.clusterEnv.ClusterName, userconfig.BatchAPIKind, e.clusterEnv.APIName, e.clusterEnv.JobID)
 
 	buff := aws.WriteAtBuffer{}
 	input := s3.GetObjectInput{

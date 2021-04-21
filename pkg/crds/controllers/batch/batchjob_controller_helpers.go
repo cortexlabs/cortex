@@ -49,12 +49,14 @@ import (
 )
 
 const (
-	_enqueuerContainerName = "enqueuer"
+	_enqueuerContainerName  = "enqueuer"
+	_deadlineExceededReason = "DeadlineExceeded"
 )
 
 type batchJobStatusInfo struct {
 	QueueExists     bool
 	EnqueuingStatus EnqueuingStatus
+	EnqueuerJob     *kbatch.Job
 	WorkerJob       *kbatch.Job
 }
 
@@ -143,11 +145,7 @@ func (r *BatchJobReconciler) getQueueName(batchJob batch.BatchJob) string {
 		clusterconfig.SQSQueueDelimiter + batchJob.Name + ".fifo"
 }
 
-func (r *BatchJobReconciler) checkEnqueuingStatus(ctx context.Context, batchJob batch.BatchJob, workerJob *kbatch.Job) (EnqueuingStatus, error) {
-	if workerJob != nil {
-		return EnqueuingDone, nil
-	}
-
+func (r *BatchJobReconciler) checkEnqueuingStatus(ctx context.Context, batchJob batch.BatchJob) (*kbatch.Job, EnqueuingStatus, error) {
 	var enqueuerJob kbatch.Job
 	if err := r.Get(ctx,
 		client.ObjectKey{
@@ -157,22 +155,22 @@ func (r *BatchJobReconciler) checkEnqueuingStatus(ctx context.Context, batchJob 
 		&enqueuerJob,
 	); err != nil {
 		if kerrors.IsNotFound(err) {
-			return EnqueuingNotStarted, nil
+			return nil, EnqueuingNotStarted, nil
 		}
-		return "", err
+		return nil, "", err
 	}
 
 	enqueuerStatus := enqueuerJob.Status
 	switch {
 	case enqueuerStatus.Failed > 0:
-		return EnqueuingFailed, nil
+		return &enqueuerJob, EnqueuingFailed, nil
 	case enqueuerStatus.Succeeded > 0:
-		return EnqueuingDone, nil
+		return &enqueuerJob, EnqueuingDone, nil
 	case enqueuerStatus.Active > 0:
-		return EnqueuingInProgress, nil
+		return &enqueuerJob, EnqueuingInProgress, nil
 	}
 
-	return EnqueuingInProgress, nil
+	return &enqueuerJob, EnqueuingInProgress, nil
 }
 
 func (r *BatchJobReconciler) enqueuePayload(ctx context.Context, batchJob batch.BatchJob, queueURL string) error {
@@ -387,6 +385,7 @@ func (r *BatchJobReconciler) updateStatus(ctx context.Context, batchJob *batch.B
 		batchJob.Status.Status = status.JobEnqueuing
 	case EnqueuingFailed:
 		batchJob.Status.Status = status.JobEnqueueFailed
+		batchJob.Status.EndTime = statusInfo.EnqueuerJob.Status.CompletionTime
 	}
 
 	worker := statusInfo.WorkerJob
@@ -397,7 +396,7 @@ func (r *BatchJobReconciler) updateStatus(ctx context.Context, batchJob *batch.B
 		if worker.Status.Failed == batchJob.Spec.Workers {
 			var batchJobStatus status.JobCode
 			for _, condition := range worker.Status.Conditions {
-				if condition.Reason == "DeadlineExceeded" {
+				if condition.Reason == _deadlineExceededReason {
 					batchJobStatus = status.JobTimedOut
 					break
 				}
