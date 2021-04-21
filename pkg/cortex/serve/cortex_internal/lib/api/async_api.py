@@ -94,7 +94,7 @@ class AsyncAPI:
         return self.__statsd
 
     def update_status(self, request_id: str, status: str):
-        self.storage.put_str("", f"{self.storage_path}/{request_id}/{status}")
+        self.storage.put_str("", f"{self.storage_path}/{request_id}/status/{status}")
 
     def upload_result(self, request_id: str, result: Dict[str, Any]):
         if not isinstance(result, dict):
