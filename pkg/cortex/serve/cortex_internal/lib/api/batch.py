@@ -36,7 +36,6 @@ from cortex_internal.lib.api.utils import CortexMetrics, model_downloader
 from cortex_internal.lib.api.validations import (
     are_models_specified,
     validate_class_impl,
-    validate_handler_with_grpc,
     validate_python_handler_with_models,
 )
 from cortex_internal.lib.type import (
@@ -289,7 +288,6 @@ class BatchAPI:
 
         try:
             validate_class_impl(handler_class, validations)
-            validate_handler_with_grpc(handler_class, self.api_spec)
             if self.type == PythonHandlerType:
                 validate_python_handler_with_models(handler_class, self.api_spec)
         except Exception as e:

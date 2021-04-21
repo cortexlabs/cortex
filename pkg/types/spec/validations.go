@@ -1209,11 +1209,8 @@ func validateProtobufPath(api *userconfig.API, projectFiles ProjectFiles) error 
 
 	var packageName string
 	var serviceName string
-	var serviceMethodName string = "Predict"
-	var detectedMethodName string
 
 	numServices := 0
-	numRPCs := 0
 	pbparser.Walk(proto,
 		pbparser.WithPackage(func(pkg *pbparser.Package) {
 			packageName = pkg.Name
@@ -1221,25 +1218,11 @@ func validateProtobufPath(api *userconfig.API, projectFiles ProjectFiles) error 
 		pbparser.WithService(func(service *pbparser.Service) {
 			numServices++
 			serviceName = service.Name
-			for _, elem := range service.Elements {
-				if s, ok := elem.(*pbparser.RPC); ok {
-					numRPCs++
-					detectedMethodName = s.Name
-				}
-			}
 		}),
 	)
 
 	if numServices > 1 {
 		return errors.Wrap(ErrorProtoNumServicesExceeded(numServices), userconfig.ProtobufPathKey, *api.Handler.ProtobufPath)
-	}
-
-	if numRPCs > 1 {
-		return errors.Wrap(ErrorProtoNumServiceMethodsExceeded(numRPCs, serviceName), userconfig.ProtobufPathKey, *api.Handler.ProtobufPath)
-	}
-
-	if serviceMethodName != detectedMethodName {
-		return errors.Wrap(ErrorProtoInvalidServiceMethod(detectedMethodName, serviceMethodName, serviceName), userconfig.ProtobufPathKey, *api.Handler.ProtobufPath)
 	}
 
 	var requiredPackageName string
@@ -1256,7 +1239,7 @@ func validateProtobufPath(api *userconfig.API, projectFiles ProjectFiles) error 
 		return errors.Wrap(ErrorProtoInvalidPackageName(packageName, requiredPackageName), userconfig.ProtobufPathKey, *api.Handler.ProtobufPath)
 	}
 
-	requiredEndpoint := "/" + requiredPackageName + "." + serviceName + "/" + serviceMethodName
+	requiredEndpoint := "/" + requiredPackageName + "." + serviceName
 	if api.Networking.Endpoint == nil {
 		api.Networking.Endpoint = pointer.String(requiredEndpoint)
 	}

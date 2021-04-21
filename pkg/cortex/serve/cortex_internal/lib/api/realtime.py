@@ -16,7 +16,7 @@ import imp
 import inspect
 import os
 from copy import deepcopy
-from typing import Optional, Union, Any
+from typing import List, Optional, Union, Any
 
 import dill
 from datadog import DogStatsd
@@ -229,17 +229,19 @@ class RealtimeAPI:
         client: Union[PythonClient, TensorFlowClient],
         metrics_client: DogStatsd,
         proto_module_pb2: Optional[Any] = None,
+        rpc_method_names: Optional[List[str]] = None,
     ):
         """
         Initialize handler class as provided by the user.
 
         proto_module_pb2 is a module of the compiled proto when grpc is enabled for the "RealtimeAPI" kind. Otherwise, it's None.
+        rpc_method_names is a non-empty list when grpc is enabled for the "RealtimeAPI" kind. Otherwise, it's None.
 
         Can raise UserRuntimeException/UserException/CortexException.
         """
 
         # build args
-        class_impl = self.class_impl(project_dir)
+        class_impl = self.class_impl(project_dir, rpc_method_names)
         constructor_args = inspect.getfullargspec(class_impl.__init__).args
         config = deepcopy(self.config)
         args = {}
@@ -298,7 +300,7 @@ class RealtimeAPI:
 
         return initialized_impl
 
-    def class_impl(self, project_dir):
+    def class_impl(self, project_dir: str, rpc_method_names: Optional[List[str]] = None):
         """Can only raise UserException/CortexException exceptions"""
         target_class_name = "Handler"
         if self.type in [TensorFlowHandlerType, TensorFlowNeuronHandlerType]:
@@ -318,7 +320,7 @@ class RealtimeAPI:
 
         try:
             validate_class_impl(handler_class, validations)
-            validate_handler_with_grpc(handler_class, self.api_spec)
+            validate_handler_with_grpc(handler_class, self.api_spec, rpc_method_names)
             if self.type == PythonHandlerType:
                 validate_python_handler_with_models(handler_class, self.api_spec)
         except Exception as e:

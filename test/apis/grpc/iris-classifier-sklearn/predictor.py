@@ -14,7 +14,7 @@ class Handler:
         self.model = pickle.load(open("/tmp/model.pkl", "rb"))
         self.proto_module_pb2 = proto_module_pb2
 
-    def predict(self, payload):
+    def Predict(self, payload):
         measurements = [
             payload.sepal_length,
             payload.sepal_width,

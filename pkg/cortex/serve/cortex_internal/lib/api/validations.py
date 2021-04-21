@@ -13,7 +13,7 @@
 # limitations under the License.
 
 import inspect
-from typing import Dict
+from typing import Dict, List
 
 from cortex_internal.lib import util
 from cortex_internal.lib.exceptions import UserException
@@ -144,7 +144,7 @@ def is_grpc_enabled(api_spec: Dict) -> bool:
     return api_spec["handler"]["protobuf_path"] is not None
 
 
-def validate_handler_with_grpc(impl, api_spec):
+def validate_handler_with_grpc(impl, api_spec: Dict, rpc_method_names: List[str]):
     if not is_grpc_enabled(api_spec):
         return
 
@@ -160,14 +160,18 @@ def validate_handler_with_grpc(impl, api_spec):
             f'which means that adding the "proto_module_pb2" argument is required',
         )
 
-    handler = getattr(impl, "predict")
-    handler_arg_spec = inspect.getfullargspec(handler)
-    disallowed_params = list(
-        set(["query_params", "headers", "batch_id"]).intersection(handler_arg_spec.args)
-    )
-    if len(disallowed_params) > 0:
-        raise UserException(
-            f"class {target_class_name}",
-            f'invalid signature for method "predict"',
-            f'{util.string_plural_with_s("argument", len(disallowed_params))} {util.and_list_with_quotes(disallowed_params)} cannot be used when the grpc protocol is enabled',
-        )
+    for rpc_method_name in rpc_method_names:
+        if not util.has_method(impl, rpc_method_name):
+            raise UserException(
+                f"method {rpc_method_name} hasn't been defined in the Handler class; define one called {rpc_method_name} to match the RPC method from the protobuf definition"
+            )
+
+        rpc_handler = getattr(impl, rpc_method_name)
+        arg_spec = inspect.getfullargspec(rpc_handler).args
+        disallowed_params = list(set(arg_spec).difference(set(["self", "payload", "context"])))
+        if len(disallowed_params) > 0:
+            raise UserException(
+                f"class {target_class_name}",
+                f'invalid signature for method "{rpc_method_name}"',
+                f'{util.string_plural_with_s("argument", len(disallowed_params))} {util.and_list_with_quotes(disallowed_params)} cannot be used when the grpc protocol is enabled',
+            )

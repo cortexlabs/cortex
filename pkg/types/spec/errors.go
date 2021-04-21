@@ -72,8 +72,6 @@ const (
 	ErrReservedModelName   = "spec.reserved_model_name"
 
 	ErrProtoNumServicesExceeded       = "spec.proto_num_services_exceeded"
-	ErrProtoNumServiceMethodsExceeded = "spec.proto_num_service_methods_exceeded"
-	ErrProtoInvalidServiceMethod      = "spec.proto_invalid_service_method"
 	ErrProtoMissingPackageName        = "spec.proto_missing_package_name"
 	ErrProtoInvalidPackageName        = "spec.proto_invalid_package_name"
 	ErrProtoInvalidNetworkingEndpoint = "spec.proto_invalid_networking_endpoint"
@@ -440,20 +438,6 @@ func ErrorProtoNumServicesExceeded(requested int) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrProtoNumServicesExceeded,
 		Message: fmt.Sprintf("cannot have more than one service defined; there are currently %d services defined", requested),
-	})
-}
-
-func ErrorProtoNumServiceMethodsExceeded(requested int, serviceName string) error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrProtoNumServiceMethodsExceeded,
-		Message: fmt.Sprintf("cannot have more than one service method for service %s; there are currently %d service methods defined", serviceName, requested),
-	})
-}
-
-func ErrorProtoInvalidServiceMethod(requestedServiceMethodName, allowedServiceMethodName, serviceName string) error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrProtoInvalidServiceMethod,
-		Message: fmt.Sprintf("found %s service method in service %s; service %s can only have a single service method defined that must be called %s", requestedServiceMethodName, serviceName, serviceName, allowedServiceMethodName),
 	})
 }
 

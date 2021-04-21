@@ -23,15 +23,17 @@ import traceback
 import pathlib
 import importlib
 import inspect
-from typing import Callable, Dict, Any
+from typing import Callable, Dict, Any, List
 from concurrent import futures
+import datadog
 
 import grpc
 from grpc_reflection.v1alpha import reflection
 
-from cortex_internal.lib.api import get_api
+from cortex_internal.lib import util
+from cortex_internal.lib.api import RealtimeAPI, get_spec
 from cortex_internal.lib.concurrency import FileLock, LockedFile
-from cortex_internal.lib.exceptions import UserRuntimeException
+from cortex_internal.lib.exceptions import UserException, UserRuntimeException
 from cortex_internal.lib.log import configure_logger
 from cortex_internal.lib.metrics import MetricsClient
 from cortex_internal.lib.telemetry import capture_exception, get_default_tags, init_sentry
@@ -98,13 +100,46 @@ def get_servicer_to_server_from_module(module_proto_pb2_grpc) -> Any:
     # this line will never be reached because we're guaranteed to have one servicer adder in the module
 
 
-def build_predict_kwargs(predict_fn_args, payload, context) -> Dict[str, Any]:
-    predict_kwargs = {}
-    if "payload" in predict_fn_args:
-        predict_kwargs["payload"] = payload
-    if "context" in predict_fn_args:
-        predict_kwargs["context"] = context
-    return predict_kwargs
+def get_rpc_methods_from_servicer(servicer: Any) -> List[str]:
+    rpc_names = []
+    for (rpc_name, rpc_method) in inspect.getmembers(servicer, inspect.isfunction):
+        rpc_names.append(rpc_name)
+    return rpc_names
+
+
+def build_method_kwargs(method_fn_args, payload, context) -> Dict[str, Any]:
+    method_kwargs = {}
+    if "payload" in method_fn_args:
+        method_kwargs["payload"] = payload
+    if "context" in method_fn_args:
+        method_kwargs["context"] = context
+    return method_kwargs
+
+
+def construct_handler_servicer_class(ServicerClass: Any, handler_impl: Any) -> Any:
+    class HandlerServicer(ServicerClass):
+        def __init__(self, handler_impl: Any, api: RealtimeAPI):
+            self.handler_impl = handler_impl
+            self.api = api
+
+    rpc_names = get_rpc_methods_from_servicer(ServicerClass)
+    for rpc_name in rpc_names:
+        arg_spec = inspect.getfullargspec(getattr(handler_impl, rpc_name)).args
+
+        def _rpc_method(self: HandlerServicer, payload, context):
+            try:
+                kwargs = build_method_kwargs(arg_spec, payload, context)
+                response = getattr(self.handler_impl, rpc_name)(**kwargs)
+                self.api.metrics.post_status_code_request_metrics(200)
+            except Exception:
+                logger.error(traceback.format_exc())
+                self.api.metrics.post_status_code_request_metrics(500)
+                context.abort(grpc.StatusCode.INTERNAL, "internal server error")
+            return response
+
+        setattr(HandlerServicer, rpc_name, _rpc_method)
+
+    return HandlerServicer
 
 
 def init():
@@ -115,6 +150,7 @@ def init():
     cache_dir = os.getenv("CORTEX_CACHE_DIR")
     region = os.getenv("AWS_REGION")
 
+    host_ip = os.environ["HOST_IP"]
     tf_serving_port = os.getenv("CORTEX_TF_BASE_SERVING_PORT", "9000")
     tf_serving_host = os.getenv("CORTEX_TF_SERVING_HOST", "localhost")
 
@@ -131,7 +167,11 @@ def init():
             json.dump(used_ports, f)
             f.truncate()
 
-    api = get_api(spec_path, model_dir, cache_dir, region)
+    datadog.initialize(statsd_host=host_ip, statsd_port=9125)
+    statsd_client = datadog.statsd
+
+    _, api_spec = get_spec(spec_path, cache_dir, region)
+    api = RealtimeAPI(api_spec, statsd_client, model_dir)
 
     config: Dict[str, Any] = {
         "api": None,
@@ -146,14 +186,17 @@ def init():
 
     client = api.initialize_client(tf_serving_host=tf_serving_host, tf_serving_port=tf_serving_port)
 
+    ServicerClass = get_servicer_from_module(module_proto_pb2_grpc)
+    rpc_names = get_rpc_methods_from_servicer(ServicerClass)
+
     with FileLock("/run/init_stagger.lock"):
         logger.info("loading the handler from {}".format(api.path))
-        metrics_client = MetricsClient(api.statsd)
         handler_impl = api.initialize_impl(
             project_dir=project_dir,
             client=client,
-            metrics_client=metrics_client,
+            metrics_client=MetricsClient(statsd_client),
             proto_module_pb2=module_proto_pb2,
+            rpc_method_names=rpc_names,
         )
 
     # crons only stop if an unhandled exception occurs
@@ -166,29 +209,11 @@ def init():
 
     threading.Thread(target=check_if_crons_have_failed, daemon=True).start()
 
-    ServicerClass = get_servicer_from_module(module_proto_pb2_grpc)
-
-    class HandlerServicer(ServicerClass):
-        def __init__(self, predict_fn_args, handler_impl, api):
-            self.predict_fn_args = predict_fn_args
-            self.handler_impl = handler_impl
-            self.api = api
-
-        def Predict(self, payload, context):
-            try:
-                kwargs = build_predict_kwargs(self.predict_fn_args, payload, context)
-                response = self.handler_impl.predict(**kwargs)
-                self.api.post_status_code_request_metrics(200)
-            except Exception:
-                logger.error(traceback.format_exc())
-                self.api.post_status_code_request_metrics(500)
-                context.abort(grpc.StatusCode.INTERNAL, "internal server error")
-            return response
+    HandlerServicer = construct_handler_servicer_class(ServicerClass, handler_impl)
 
     config["api"] = api
     config["client"] = client
     config["handler_impl"] = handler_impl
-    config["predict_fn_args"] = inspect.getfullargspec(handler_impl.predict).args
     config["module_proto_pb2"] = module_proto_pb2
     config["module_proto_pb2_grpc"] = module_proto_pb2_grpc
     config["handler_servicer"] = HandlerServicer
@@ -212,20 +237,19 @@ def main():
     module_proto_pb2_grpc = config["module_proto_pb2_grpc"]
     HandlerServicer = config["handler_servicer"]
 
-    api = config["api"]
+    api: RealtimeAPI = config["api"]
     handler_impl = config["handler_impl"]
-    predict_fn_args = config["predict_fn_args"]
 
     server = grpc.server(
         ThreadPoolExecutorWithRequestMonitor(
-            post_latency_metrics_fn=api.post_latency_request_metrics,
+            post_latency_metrics_fn=api.metrics.post_latency_request_metrics,
             max_workers=threads_per_process,
         ),
         options=[("grpc.max_send_message_length", -1), ("grpc.max_receive_message_length", -1)],
     )
 
     add_HandlerServicer_to_server = get_servicer_to_server_from_module(module_proto_pb2_grpc)
-    add_HandlerServicer_to_server(HandlerServicer(predict_fn_args, handler_impl, api), server)
+    add_HandlerServicer_to_server(HandlerServicer(handler_impl, api), server)
 
     service_name = get_service_name_from_module(module_proto_pb2_grpc)
     SERVICE_NAMES = (

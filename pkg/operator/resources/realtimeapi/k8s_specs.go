@@ -205,7 +205,7 @@ func virtualServiceSpec(api *spec.API) *istioclientnetworking.VirtualService {
 			Weight:      100,
 			Port:        uint32(operator.DefaultPortInt32),
 		}},
-		ExactPath:   api.Networking.Endpoint,
+		PrefixPath:  api.Networking.Endpoint,
 		Rewrite:     rewritePath,
 		Annotations: api.ToK8sAnnotations(),
 		Labels: map[string]string{
