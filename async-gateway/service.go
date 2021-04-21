@@ -66,7 +66,7 @@ func (s *service) CreateWorkload(id string, payload io.Reader, contentType strin
 		return "", err
 	}
 
-	statusPath := fmt.Sprintf("%s/%s/%s", prefix, id, StatusInQueue)
+	statusPath := fmt.Sprintf("%s/%s/status/%s", prefix, id, StatusInQueue)
 	log.Debug(fmt.Sprintf("setting status to %s", StatusInQueue))
 	if err := s.storage.Upload(statusPath, strings.NewReader(""), "text/plain"); err != nil {
 		return "", err
@@ -124,8 +124,8 @@ func (s *service) getStatus(id string) (Status, error) {
 	log := s.logger.With(zap.String("id", id))
 
 	// download workload status
-	log.Debug("checking status", zap.String("path", fmt.Sprintf("%s/%s/*", prefix, id)))
-	files, err := s.storage.List(fmt.Sprintf("%s/%s", prefix, id))
+	log.Debug("checking status", zap.String("path", fmt.Sprintf("%s/%s/status/*", prefix, id)))
+	files, err := s.storage.List(fmt.Sprintf("%s/%s/status", prefix, id))
 	if err != nil {
 		return "", err
 	}
@@ -134,7 +134,6 @@ func (s *service) getStatus(id string) (Status, error) {
 	status := StatusInQueue
 	for _, file := range files {
 		fileStatus := Status(file)
-
 		if !fileStatus.Valid() {
 			status = fileStatus
 			return "", fmt.Errorf("invalid workload status: %s", status)
