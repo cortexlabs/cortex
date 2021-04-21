@@ -19,7 +19,7 @@ class Handler:
 
         self.model = pipeline(task="text-generation")
 
-    def predict(self, payload):
+    def handle_post(self, payload):
         return self.model(payload["text"])[0]
 
 

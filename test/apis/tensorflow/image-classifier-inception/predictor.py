@@ -11,7 +11,7 @@ class Handler:
             "https://storage.googleapis.com/download.tensorflow.org/data/ImageNetLabels.txt"
         ).text.split("\n")
 
-    def predict(self, payload):
+    def handle_post(self, payload):
         image = requests.get(payload["url"]).content
         decoded_image = np.asarray(Image.open(BytesIO(image)), dtype=np.float32) / 255
         model_input = {"images": np.expand_dims(decoded_image, axis=0)}

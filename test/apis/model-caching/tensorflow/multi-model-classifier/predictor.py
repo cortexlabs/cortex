@@ -28,7 +28,7 @@ class Handler:
         # for iris classifier
         self.iris_labels = self.config["iris"]["labels"]
 
-    def predict(self, payload, query_params):
+    def handle_post(self, payload, query_params):
         model_name = query_params["model"]
         model_version = query_params.get("version", "latest")
         predicted_label = None

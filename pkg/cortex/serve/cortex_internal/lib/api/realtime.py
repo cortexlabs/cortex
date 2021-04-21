@@ -254,7 +254,7 @@ class RealtimeAPI:
         try:
             if self.type == PythonHandlerType:
                 if are_models_specified(self.api_spec):
-                    args["python_client"] = client
+                    args["model_client"] = client
                     # set load method to enable the use of the client in the constructor
                     # setting/getting from self in load_model won't work because self will be set to None
                     client.set_load_method(

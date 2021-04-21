@@ -46,7 +46,7 @@ class Handler:
         # resize shape (width, height)
         self.resize_shape = tuple(config["resize_shape"])
 
-    def predict(self, payload):
+    def handle_post(self, payload):
         # download image
         img_url = payload["url"]
         image = get_url_image(img_url)

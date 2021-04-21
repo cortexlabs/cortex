@@ -64,7 +64,7 @@ class Handler:
             ]
         )
 
-    def predict(self, payload):
+    def handle_post(self, payload):
         # preprocess image
         image = get_url_image(payload["url"])
         image = self.transform(image)

@@ -9,7 +9,7 @@ class Handler:
 
         self.summarizer = pipeline(task="summarization", device=device)
 
-    def predict(self, payload):
+    def handle_post(self, payload):
         summary = self.summarizer(
             payload["text"], num_beams=4, length_penalty=2.0, max_length=142, no_repeat_ngram_size=3
         )

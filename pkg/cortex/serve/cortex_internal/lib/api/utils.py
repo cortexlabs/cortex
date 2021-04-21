@@ -10,6 +10,7 @@ import threading as td
 from typing import Any, Callable, Dict, List, Optional, Tuple
 from collections import defaultdict
 from http import HTTPStatus
+from six import get_method_function, get_method_self
 from starlette.responses import Response
 
 from cortex_internal.lib import util
@@ -213,10 +214,12 @@ class DynamicBatcher:
     def __init__(
         self,
         handler_impl: Callable,
+        method_name: str,
         max_batch_size: int,
         batch_interval: int,
         test_mode: bool = False,
     ):
+        self.method_name = method_name
         self.handler_impl = handler_impl
 
         self.batch_max_size = max_batch_size
@@ -227,14 +230,14 @@ class DynamicBatcher:
         self.barrier = td.Barrier(self.batch_max_size + 1)
 
         self.samples = {}
-        self.predictions = {}
+        self.results = {}
         td.Thread(target=self._batch_engine, daemon=True).start()
 
         self.sample_id_generator = itertools.count()
 
     def _batch_engine(self):
         while True:
-            if len(self.predictions) > 0:
+            if len(self.results) > 0:
                 time.sleep(0.001)
                 continue
 
@@ -243,24 +246,24 @@ class DynamicBatcher:
             except td.BrokenBarrierError:
                 pass
 
-            self.predictions = {}
+            self.results = {}
             sample_ids = self._get_sample_ids(self.batch_max_size)
             try:
                 if self.samples:
                     batch = self._make_batch(sample_ids)
 
-                    predictions = self.handler_impl.predict(**batch)
-                    if not isinstance(predictions, list):
+                    results = getattr(self.handler_impl, self.method_name)(**batch)
+                    if not isinstance(results, list):
                         raise UserRuntimeException(
-                            f"please return a list when using server side batching, got {type(predictions)}"
+                            f"please return a list when using server side batching, got {type(results)}"
                         )
 
                     if self.test_mode:
-                        self._test_batch_lengths.append(len(predictions))
+                        self._test_batch_lengths.append(len(results))
 
-                    self.predictions = dict(zip(sample_ids, predictions))
+                    self.results = dict(zip(sample_ids, results))
             except Exception as e:
-                self.predictions = {sample_id: e for sample_id in sample_ids}
+                self.results = {sample_id: e for sample_id in sample_ids}
                 logger.error(traceback.format_exc())
             finally:
                 for sample_id in sample_ids:
@@ -282,7 +285,7 @@ class DynamicBatcher:
 
     def _enqueue_request(self, sample_id: int, **kwargs):
         """
-        Enqueue sample for batch inference. This is a blocking method.
+        Enqueue sample for batch processing. This is a blocking method.
         """
 
         self.samples[sample_id] = kwargs
@@ -291,31 +294,31 @@ class DynamicBatcher:
         except td.BrokenBarrierError:
             pass
 
-    def predict(self, **kwargs):
+    def process(self, **kwargs):
         """
         Queues a request to be batched with other incoming request, waits for the response
-        and returns the prediction result. This is a blocking method.
+        and returns the processed result. This is a blocking method.
         """
         sample_id = next(self.sample_id_generator)
         self._enqueue_request(sample_id, **kwargs)
-        prediction = self._get_prediction(sample_id)
-        return prediction
+        result = self._get_result(sample_id)
+        return result
 
-    def _get_prediction(self, sample_id: int) -> Any:
+    def _get_result(self, sample_id: int) -> Any:
         """
-        Return the prediction. This is a blocking method.
+        Return the processed result. This is a blocking method.
         """
-        while sample_id not in self.predictions:
+        while sample_id not in self.results:
             time.sleep(0.001)
 
-        prediction = self.predictions[sample_id]
-        del self.predictions[sample_id]
+        result = self.results[sample_id]
+        del self.results[sample_id]
 
-        if isinstance(prediction, Exception):
+        if isinstance(result, Exception):
             return Response(
-                content=str(prediction),
+                content=str(result),
                 status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
                 media_type="text/plain",
             )
 
-        return prediction
+        return result

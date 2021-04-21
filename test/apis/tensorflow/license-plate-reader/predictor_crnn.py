@@ -16,7 +16,7 @@ class Handler:
         # weights for the detector and recognizer.
         self.pipeline = keras_ocr.pipeline.Pipeline()
 
-    def predict(self, payload):
+    def handle_post(self, payload):
         # preprocess the images w/ license plates (LPs)
         imgs = payload["imgs"]
         imgs = base64.b64decode(imgs.encode("utf-8"))

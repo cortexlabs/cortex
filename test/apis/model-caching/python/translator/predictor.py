@@ -10,7 +10,7 @@ class Handler:
     def load_model(self, model_path):
         return MarianMTModel.from_pretrained(model_path, local_files_only=True)
 
-    def predict(self, payload):
+    def handle_post(self, payload):
         model_name = "opus-mt-" + payload["source_language"] + "-" + payload["destination_language"]
         tokenizer_path = "Helsinki-NLP/" + model_name
         model = self.client.get_model(model_name)

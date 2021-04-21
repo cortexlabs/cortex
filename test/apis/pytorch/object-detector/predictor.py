@@ -22,7 +22,7 @@ class Handler:
 
         self.model = model
 
-    def predict(self, payload):
+    def handle_post(self, payload):
         threshold = float(payload["threshold"])
         image = requests.get(payload["url"]).content
         img_pil = Image.open(BytesIO(image))

@@ -10,7 +10,7 @@ class Handler:
 
         self.model = fasttext.load_model("/tmp/model")
 
-    def predict(self, payload):
+    def handle_post(self, payload):
         prediction = self.model.predict(payload["text"])
         language = prediction[0][0][-2:]
         return language

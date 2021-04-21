@@ -11,7 +11,7 @@ class Handler:
         self.analyzer = pipeline(task="sentiment-analysis", device=device)
         self.summarizer = pipeline(task="summarization", device=device)
 
-    def predict(self, query_params, payload):
+    def handle_post(self, query_params, payload):
         model_name = query_params.get("model")
 
         if model_name == "sentiment":

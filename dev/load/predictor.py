@@ -58,5 +58,5 @@ class Handler:
             extra={"finished": True, "num_success": num_success, "num_fail": num_fail},
         )
 
-    def predict(self, payload):
+    def handle_post(self, payload):
         return "ok"

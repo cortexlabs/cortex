@@ -9,5 +9,5 @@ class Handler:
 
         self.analyzer = pipeline(task="sentiment-analysis", device=device)
 
-    def predict(self, payload):
+    def handle_post(self, payload):
         return self.analyzer(payload["text"])[0]

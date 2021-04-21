@@ -42,7 +42,7 @@ class Handler:
         self.input_key = str(config["input_key"])
         self.output_key = str(config["output_key"])
 
-    def predict(self, payload):
+    def handle_post(self, payload):
         # preprocess image
         img = read_image(payload)
         if img is None:

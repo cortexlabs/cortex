@@ -25,7 +25,7 @@ class Handler:
         self.model = model
         self.device = device
 
-    def predict(self, payload):
+    def handle_post(self, payload):
         image = requests.get(payload["url"]).content
         img_pil = Image.open(BytesIO(image))
         img_tensor = self.preprocess(img_pil)

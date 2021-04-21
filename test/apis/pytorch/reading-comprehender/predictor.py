@@ -16,7 +16,7 @@ class Handler:
             cuda_device=cuda_device,
         )
 
-    def predict(self, payload):
+    def handle_post(self, payload):
         prediction = self.predictor.predict(
             passage=payload["passage"], question=payload["question"]
         )

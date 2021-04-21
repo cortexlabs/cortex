@@ -28,7 +28,7 @@ class Handler:
         self.model = model
         self.tokenizer = GPT2Tokenizer.from_pretrained("gpt2")
 
-    def predict(self, payload):
+    def handle_post(self, payload):
         conditioned_tokens = self.tokenizer.encode(payload["text"]) + [generator.END_OF_TEXT]
         prediction = generator.generate(self.model, conditioned_tokens, self.device)
         return self.tokenizer.decode(prediction)

@@ -23,7 +23,7 @@ class Handler:
 
         self.model = model
 
-    def predict(self, payload):
+    def handle_post(self, payload):
         # Convert the request to a tensor and pass it into the model
         input_tensor = torch.FloatTensor(
             [

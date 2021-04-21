@@ -38,7 +38,7 @@ class Handler:
         boxes, class_id, confidence = boxes[sel], class_id[sel], confidence[sel]
         return boxes, class_id, confidence
 
-    def predict(self, payload):
+    def handle_post(self, payload):
         # download YT video
         in_path = utils.download_from_youtube(payload["url"], self.input_size[1])
         out_path = f"{uuid.uuid1()}.mp4"

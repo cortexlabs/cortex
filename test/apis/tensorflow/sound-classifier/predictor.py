@@ -16,7 +16,7 @@ class Handler:
                 class_names.append(row[2])
         return class_names
 
-    def predict(self, payload):
+    def handle_post(self, payload):
         rate, data = read(io.BytesIO(payload))
         assert rate == 16000
 

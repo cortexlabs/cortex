@@ -23,7 +23,7 @@ class Handler:
 
         self.model = model
 
-    def predict(self, payload):
+    def handle_post(self, payload):
         responses = []
 
         # note: this is not the most efficient way, it's just to test server-side batching

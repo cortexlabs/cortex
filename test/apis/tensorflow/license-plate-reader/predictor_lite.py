@@ -31,7 +31,7 @@ class Handler:
         # weights for the detector and recognizer
         self.recognition_model_pipeline = keras_ocr.pipeline.Pipeline()
 
-    def predict(self, payload):
+    def handle_post(self, payload):
         # download image
         img_url = payload["url"]
         image = preprocess_utils.get_url_image(img_url)

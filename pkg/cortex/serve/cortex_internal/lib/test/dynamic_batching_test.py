@@ -21,7 +21,7 @@ from cortex_internal.lib.api.utils import DynamicBatcher
 
 
 class Handler:
-    def predict(self, payload):
+    def handle_post(self, payload):
         time.sleep(0.2)
         return payload
 
@@ -29,7 +29,11 @@ class Handler:
 def test_dynamic_batching_while_hitting_max_batch_size():
     max_batch_size = 32
     dynamic_batcher = DynamicBatcher(
-        Handler(), max_batch_size=max_batch_size, batch_interval=0.1, test_mode=True
+        Handler(),
+        method_name="handle_post",
+        max_batch_size=max_batch_size,
+        batch_interval=0.1,
+        test_mode=True,
     )
     counter = itertools.count(1)
     event = td.Event()
@@ -37,7 +41,7 @@ def test_dynamic_batching_while_hitting_max_batch_size():
 
     def submitter():
         while not event.is_set():
-            global_list.append(dynamic_batcher.predict(payload=next(counter)))
+            global_list.append(dynamic_batcher.process(payload=next(counter)))
             time.sleep(0.1)
 
     running_threads = []
@@ -72,7 +76,11 @@ def test_dynamic_batching_while_hitting_max_batch_size():
 def test_dynamic_batching_while_hitting_max_interval():
     max_batch_size = 32
     dynamic_batcher = DynamicBatcher(
-        Handler(), max_batch_size=max_batch_size, batch_interval=1.0, test_mode=True
+        Handler(),
+        method_name="handle_post",
+        max_batch_size=max_batch_size,
+        batch_interval=1.0,
+        test_mode=True,
     )
     counter = itertools.count(1)
     event = td.Event()
@@ -80,7 +88,7 @@ def test_dynamic_batching_while_hitting_max_interval():
 
     def submitter():
         while not event.is_set():
-            global_list.append(dynamic_batcher.predict(payload=next(counter)))
+            global_list.append(dynamic_batcher.process(payload=next(counter)))
             time.sleep(0.1)
 
     running_threads = []

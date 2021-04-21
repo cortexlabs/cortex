@@ -117,31 +117,25 @@ http {
             deny all;
         }
 
-        location ~ ^/(predict/?|)$ {
+        location = / {
             # CORS (inspired by https://enable-cors.org/server_nginx.html)
+
+            # for all CRUD methods
+            add_header 'Access-Control-Allow-Origin' '*';
+            add_header 'Access-Control-Allow-Methods' 'POST, GET, PUT, PATCH, DELETE, OPTIONS';
+            add_header 'Access-Control-Allow-Headers' '*';
+            add_header 'Access-Control-Allow-Credentials' 'true';
+            add_header 'Access-Control-Expose-Headers' 'Content-Length,Content-Range';
+
             if ($request_method = 'OPTIONS') {
                 add_header 'Access-Control-Allow-Origin' '*';
-                add_header 'Access-Control-Allow-Methods' 'GET, POST, OPTIONS';
+                add_header 'Access-Control-Allow-Methods' 'POST, GET, PUT, PATCH, DELETE, OPTIONS';
                 add_header 'Access-Control-Allow-Headers' '*';
                 add_header 'Access-Control-Allow-Credentials' 'true';
                 add_header 'Access-Control-Max-Age' 1728000;
                 add_header 'Content-Type' 'text/plain; charset=utf-8';
                 add_header 'Content-Length' 0;
                 return 204;
-            }
-            if ($request_method = 'POST') {
-                add_header 'Access-Control-Allow-Origin' '*';
-                add_header 'Access-Control-Allow-Methods' 'GET, POST, OPTIONS';
-                add_header 'Access-Control-Allow-Headers' '*';
-                add_header 'Access-Control-Allow-Credentials' 'true';
-                add_header 'Access-Control-Expose-Headers' 'Content-Length,Content-Range';
-            }
-            if ($request_method = 'GET') {
-                add_header 'Access-Control-Allow-Origin' '*';
-                add_header 'Access-Control-Allow-Methods' 'GET, POST, OPTIONS';
-                add_header 'Access-Control-Allow-Headers' '*';
-                add_header 'Access-Control-Allow-Credentials' 'true';
-                add_header 'Access-Control-Expose-Headers' 'Content-Length,Content-Range';
             }
 
             limit_conn inflights {{ CORTEX_MAX_REPLICA_CONCURRENCY | int }};

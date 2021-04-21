@@ -13,6 +13,6 @@ class Handler:
 
         self.model = roberta
 
-    def predict(self, payload):
+    def handle_post(self, payload):
         predictions = self.model.fill_mask(payload["text"] + " <mask>", topk=5)
         return [prediction[0] for prediction in predictions]

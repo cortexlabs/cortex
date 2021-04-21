@@ -97,13 +97,13 @@ def validate_python_handler_with_models(impl, api_spec):
     target_class_name = impl.__name__
     constructor = getattr(impl, "__init__")
     constructor_arg_spec = inspect.getfullargspec(constructor)
-    if "python_client" not in constructor_arg_spec.args:
+    if "model_client" not in constructor_arg_spec.args:
         raise UserException(
             f"class {target_class_name}",
             f'invalid signature for method "__init__"',
-            f'"python_client" is a required argument, but was not provided',
+            f'"model_client" is a required argument, but was not provided',
             f"when the python handler type is used and models are specified in the api spec, "
-            f'adding the "python_client" argument is required',
+            f'adding the "model_client" argument is required',
         )
 
     if getattr(impl, "load_model", None) is None:
@@ -170,10 +170,4 @@ def validate_handler_with_grpc(impl, api_spec):
             f"class {target_class_name}",
             f'invalid signature for method "predict"',
             f'{util.string_plural_with_s("argument", len(disallowed_params))} {util.and_list_with_quotes(disallowed_params)} cannot be used when the grpc protocol is enabled',
-        )
-
-    if getattr(impl, "post_predict", None):
-        raise UserException(
-            f"class {target_class_name}",
-            f"post_predict method is not supported when the grpc protocol is enabled",
         )

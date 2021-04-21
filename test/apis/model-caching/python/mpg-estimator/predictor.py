@@ -8,7 +8,7 @@ class Handler:
     def load_model(self, model_path):
         return mlflow.sklearn.load_model(model_path)
 
-    def predict(self, payload, query_params):
+    def handle_post(self, payload, query_params):
         model_name = "mpg-estimator"
         model_version = query_params.get("version", "latest")
 

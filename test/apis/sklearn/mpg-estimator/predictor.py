@@ -22,7 +22,7 @@ class Handler:
 
         self.model = mlflow.sklearn.load_model(model_path)
 
-    def predict(self, payload):
+    def handle_post(self, payload):
         model_input = [
             payload["cylinders"],
             payload["displacement"],

@@ -15,7 +15,7 @@ class Handler:
         for key in data:
             setattr(self, key, data[key])
 
-    def predict(self, payload):
+    def handle_post(self, payload):
         # decode the payload
         img = payload["img"]
         img = base64.b64decode(img)

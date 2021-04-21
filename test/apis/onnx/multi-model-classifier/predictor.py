@@ -78,7 +78,7 @@ class Handler:
         self.image_classes = [classes[str(k)][1] for k in range(len(classes))]
         self.resize_value = config["image-resize"]
 
-    def predict(self, payload, query_params):
+    def handle_post(self, payload, query_params):
         # get request params
         model_name = query_params["model"]
         img_url = payload["url"]
