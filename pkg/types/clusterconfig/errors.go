@@ -61,7 +61,6 @@ const (
 	ErrDidNotMatchStrictS3Regex               = "clusterconfig.did_not_match_strict_s3_regex"
 	ErrNATRequiredWithPrivateSubnetVisibility = "clusterconfig.nat_required_with_private_subnet_visibility"
 	ErrS3RegionDiffersFromCluster             = "clusterconfig.s3_region_differs_from_cluster"
-	ErrInvalidInstanceType                    = "clusterconfig.invalid_instance_type"
 	ErrIOPSNotSupported                       = "clusterconfig.iops_not_supported"
 	ErrIOPSTooLarge                           = "clusterconfig.iops_too_large"
 	ErrCantOverrideDefaultTag                 = "clusterconfig.cant_override_default_tag"
@@ -118,10 +117,10 @@ func ErrorDuplicateNodeGroupName(duplicateNgName string) error {
 	})
 }
 
-func ErrorInstanceTypeTooSmall() error {
+func ErrorInstanceTypeTooSmall(instanceType string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrInstanceTypeTooSmall,
-		Message: "cortex does not support nano or micro instances - please specify a larger instance type",
+		Message: fmt.Sprintf("%s: cortex does not support nano or micro instances - please specify a larger instance type", instanceType),
 	})
 }
 
@@ -184,7 +183,7 @@ func ErrorSpotPriceGreaterThanMaxPrice(suggestedSpotPrice float64, maxPrice floa
 func ErrorInstanceTypeNotSupported(instanceType string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrInstanceTypeNotSupported,
-		Message: fmt.Sprintf("instance type %s is not supported", instanceType),
+		Message: fmt.Sprintf("instance type %s is not supported by cortex", instanceType),
 	})
 }
 
@@ -309,13 +308,6 @@ func ErrorS3RegionDiffersFromCluster(bucketName string, bucketRegion string, clu
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrS3RegionDiffersFromCluster,
 		Message: fmt.Sprintf("the %s bucket is in %s, but your cluster is in %s; either change the region of your cluster to %s, use a bucket that is in %s, or remove your bucket configuration to allow cortex to make the bucket for you", bucketName, bucketRegion, clusterRegion, bucketRegion, clusterRegion),
-	})
-}
-
-func ErrorInvalidInstanceType(instanceType string) error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrInvalidInstanceType,
-		Message: fmt.Sprintf("%s is not a valid instance type", instanceType),
 	})
 }
 

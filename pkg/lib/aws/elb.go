@@ -28,10 +28,18 @@ import (
 // https://docs.aws.amazon.com/elasticloadbalancing/latest/network/load-balancer-target-groups.html
 var _nlbUnsupportedInstancePrefixes = strset.New("c1", "cc1", "cc2", "cg1", "cg2", "cr1", "g1", "g2", "hi1", "hs1", "m1", "m2", "m3", "t1")
 
-// instanceType must be a valid instance type that exists in AWS, e.g. g4dn.xlarge
-func IsInstanceSupportedByNLB(instanceType string) bool {
-	instancePrefix := strings.Split(instanceType, ".")[0]
-	return !_nlbUnsupportedInstancePrefixes.Has(instancePrefix)
+func IsInstanceSupportedByNLB(instanceType string) (bool, error) {
+	if err := CheckValidInstanceType(instanceType); err != nil {
+		return false, err
+	}
+
+	for prefix := range _nlbUnsupportedInstancePrefixes {
+		if strings.HasPrefix(instanceType, prefix) {
+			return false, nil
+		}
+	}
+
+	return true, nil
 }
 
 // returns the the first load balancer which has all of the specified tags, or nil if no load balancers match

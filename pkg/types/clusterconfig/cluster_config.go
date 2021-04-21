@@ -922,8 +922,13 @@ func (ng *NodeGroup) validateNodeGroup(awsClient *aws.Client, region string) err
 	}
 
 	primaryInstanceType := ng.InstanceType
-	if _, ok := aws.InstanceMetadatas[region][primaryInstanceType]; !ok {
+
+	if !aws.InstanceTypes[region].Has(primaryInstanceType) {
 		return errors.Wrap(ErrorInstanceTypeNotSupportedInRegion(primaryInstanceType, region), InstanceTypeKey)
+	}
+
+	if _, ok := aws.InstanceMetadatas[region][primaryInstanceType]; !ok {
+		return errors.Wrap(ErrorInstanceTypeNotSupported(primaryInstanceType), InstanceTypeKey)
 	}
 
 	// Throw error if IOPS defined for other storage than io1
@@ -950,8 +955,13 @@ func (ng *NodeGroup) validateNodeGroup(awsClient *aws.Client, region string) err
 			if instanceType == primaryInstanceType {
 				continue
 			}
-			if _, ok := aws.InstanceMetadatas[region][instanceType]; !ok {
+
+			if !aws.InstanceTypes[region].Has(instanceType) {
 				return errors.Wrap(ErrorInstanceTypeNotSupportedInRegion(instanceType, region), SpotConfigKey, InstanceDistributionKey)
+			}
+
+			if _, ok := aws.InstanceMetadatas[region][instanceType]; !ok {
+				return errors.Wrap(ErrorInstanceTypeNotSupported(instanceType), SpotConfigKey, InstanceDistributionKey)
 			}
 
 			instanceMetadata := aws.InstanceMetadatas[region][instanceType]
@@ -975,27 +985,6 @@ func (ng *NodeGroup) validateNodeGroup(awsClient *aws.Client, region string) err
 		if ng.SpotConfig != nil {
 			return ErrorConfiguredWhenSpotIsNotEnabled(SpotConfigKey)
 		}
-	}
-
-	return nil
-}
-
-func checkCortexSupport(instanceMetadata aws.InstanceMetadata) error {
-	if strings.HasSuffix(instanceMetadata.Type, "nano") ||
-		strings.HasSuffix(instanceMetadata.Type, "micro") {
-		return ErrorInstanceTypeTooSmall()
-	}
-
-	if !aws.IsInstanceSupportedByNLB(instanceMetadata.Type) {
-		return ErrorInstanceTypeNotSupported(instanceMetadata.Type)
-	}
-
-	if aws.IsARMInstance(instanceMetadata.Type) {
-		return ErrorARMInstancesNotSupported(instanceMetadata.Type)
-	}
-
-	if err := checkCNISupport(instanceMetadata.Type); err != nil {
-		return err
 	}
 
 	return nil
@@ -1127,20 +1116,36 @@ func validateCIDR(cidr string) (string, error) {
 }
 
 func validateInstanceType(instanceType string) (string, error) {
-	var foundInstance *aws.InstanceMetadata
-	for _, instanceMap := range aws.InstanceMetadatas {
-		if instanceMetadata, ok := instanceMap[instanceType]; ok {
-			foundInstance = &instanceMetadata
-			break
-		}
+	if err := aws.CheckValidInstanceType(instanceType); err != nil {
+		return "", err
 	}
 
-	if foundInstance == nil {
-		return "", ErrorInvalidInstanceType(instanceType)
-	}
-
-	err := checkCortexSupport(*foundInstance)
+	parsedType, err := aws.ParseInstanceType(instanceType)
 	if err != nil {
+		return "", err
+	}
+
+	if parsedType.Size == "nano" || parsedType.Size == "micro" {
+		return "", ErrorInstanceTypeTooSmall(instanceType)
+	}
+
+	isSupportedByNLB, err := aws.IsInstanceSupportedByNLB(instanceType)
+	if err != nil {
+		return "", err
+	}
+	if !isSupportedByNLB {
+		return "", ErrorInstanceTypeNotSupported(instanceType)
+	}
+
+	isARM, err := aws.IsARMInstance(instanceType)
+	if err != nil {
+		return "", err
+	}
+	if isARM {
+		return "", ErrorARMInstancesNotSupported(instanceType)
+	}
+
+	if err := checkCNISupport(instanceType); err != nil {
 		return "", err
 	}
 

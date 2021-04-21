@@ -28,6 +28,7 @@ import (
 )
 
 const (
+	ErrInvalidInstanceType          = "aws.invalid_instance_type"
 	ErrInvalidAWSCredentials        = "aws.invalid_aws_credentials"
 	ErrInvalidS3aPath               = "aws.invalid_s3a_path"
 	ErrInvalidS3Path                = "aws.invalid_s3_path"
@@ -88,6 +89,13 @@ func IsErrCode(err error, errorCode string) bool {
 		return true
 	}
 	return false
+}
+
+func ErrorInvalidInstanceType(instanceType string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrInvalidInstanceType,
+		Message: fmt.Sprintf("%s is not an AWS instance type (e.g. m5.large is a valid instance type)", s.UserStr(instanceType)),
+	})
 }
 
 func ErrorInvalidAWSCredentials(awsErr error) error {
