@@ -45,7 +45,7 @@ import (
 // http://onsi.github.io/ginkgo/ to learn more about Ginkgo.
 
 const (
-	_devClusterConfigPath = "../../../dev/config/cluster.yaml"
+	_devClusterConfigPath = "./dev/config/cluster.yaml"
 )
 
 var cfg *rest.Config
@@ -65,7 +65,7 @@ func TestAPIs(t *testing.T) {
 var _ = BeforeSuite(func(done Done) {
 	logf.SetLogger(zap.New(zap.UseDevMode(true), zap.WriteTo(GinkgoWriter)))
 
-	crdDirectoryPath := filepath.Join("..", "..", "config", "crd", "bases")
+	crdDirectoryPath := filepath.Join("pkg", "crds", "config", "crd", "bases")
 	Expect(crdDirectoryPath).To(BeADirectory())
 
 	By("bootstrapping test environment")

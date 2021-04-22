@@ -22,6 +22,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"path/filepath"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -492,4 +493,19 @@ func (r *BatchJobReconciler) jobSpecKey(batchJob batch.BatchJob) string {
 		batchJob.Name,
 		"spec.json",
 	)
+}
+
+func (r *BatchJobReconciler) updateCompletedTimestamp(ctx context.Context, batchJob *batch.BatchJob) error {
+	ts := time.Now().Format(time.RFC3339)
+	if batchJob.Annotations != nil {
+		batchJob.Annotations[_completedTimestampAnnotation] = ts
+	} else {
+		batchJob.Annotations = map[string]string{
+			_completedTimestampAnnotation: ts,
+		}
+	}
+	if err := r.Update(ctx, batchJob); err != nil {
+		return err
+	}
+	return nil
 }

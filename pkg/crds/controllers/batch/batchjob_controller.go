@@ -35,7 +35,8 @@ import (
 )
 
 const (
-	_sqsFinalizer = "sqs.finalizers.batch.cortex.dev"
+	_sqsFinalizer                 = "sqs.finalizers.batch.cortex.dev"
+	_completedTimestampAnnotation = "batch.cortex.dev/completed_timestamp"
 )
 
 // BatchJobReconciler reconciles a BatchJob object
@@ -143,7 +144,27 @@ func (r *BatchJobReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return ctrl.Result{}, err
 	}
 
-	// Step 4: Create resources
+	// Step 4: Add a completion timestamp annotation if job is in a completed state
+	var completedTimestamp *time.Time
+	if batchJob.Status.Status.IsCompleted() {
+		completedTimestampStr, completedTimestampExists := batchJob.Annotations[_completedTimestampAnnotation]
+		if !completedTimestampExists {
+			if err = r.updateCompletedTimestamp(ctx, &batchJob); err != nil {
+				log.Error(err, "failed to update completed timestamp annotation")
+				return ctrl.Result{}, err
+			}
+			return ctrl.Result{}, nil
+		}
+
+		ts, err := time.Parse(time.RFC3339, completedTimestampStr)
+		if err != nil {
+			log.Error(err, "failed to parse completed timestamp string")
+			return ctrl.Result{}, err
+		}
+		completedTimestamp = &ts
+	}
+
+	// Step 5: Create resources
 	var queueURL string
 	if !queueExists {
 		log.V(1).Info("creating queue")
@@ -180,8 +201,8 @@ func (r *BatchJobReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		}
 	}
 
-	if batchJob.Spec.TTL != nil && batchJob.Status.Status.IsCompleted() {
-		afterFinishedDuration := time.Now().Sub(batchJob.Status.EndTime.Time)
+	if batchJob.Spec.TTL != nil && completedTimestamp != nil {
+		afterFinishedDuration := time.Now().Sub(*completedTimestamp)
 		if afterFinishedDuration >= batchJob.Spec.TTL.Duration {
 			if err = r.Delete(ctx, &batchJob); err != nil {
 				return ctrl.Result{}, client.IgnoreNotFound(err)
