@@ -17,22 +17,14 @@ import imp
 import inspect
 import os
 import dill
-from typing import Any, Dict, Optional, Union
+from typing import Any, Dict, Optional
 
 from datadog.dogstatsd.base import DogStatsd
 
 from cortex_internal.lib import util
-from cortex_internal.lib.client.python import PythonClient
 from cortex_internal.lib.client.tensorflow import TensorFlowClient
-from cortex_internal.lib.model import (
-    FileBasedModelsGC,
-    ModelTreeUpdater,
-    ModelsGC,
-    TFSAPIServingThreadUpdater,
-    ModelsTree,
-    ModelsHolder,
-)
-from cortex_internal.lib.api.utils import CortexMetrics, model_downloader
+from cortex_internal.lib.model import TFSAPIServingThreadUpdater
+from cortex_internal.lib.api.utils import CortexMetrics
 from cortex_internal.lib.api.validations import (
     are_models_specified,
     validate_class_impl,
@@ -50,8 +42,8 @@ PYTHON_CLASS_VALIDATION = {
     "required": [
         {
             "name": "__init__",
-            "required_args": ["self", "config", "job_spec"],
-            "optional_args": ["model_client", "metrics_client"],
+            "required_args": ["self", "config"],
+            "optional_args": ["job_spec", "metrics_client"],
         },
         {
             "name": "handle_batch",
@@ -60,10 +52,6 @@ PYTHON_CLASS_VALIDATION = {
         },
     ],
     "optional": [
-        {
-            "name": "load_model",
-            "required_args": ["self", "model_path"],
-        },
         {"name": "handle_on_job_complete", "required_args": ["self"]},
     ],
 }
@@ -72,8 +60,8 @@ TENSORFLOW_CLASS_VALIDATION = {
     "required": [
         {
             "name": "__init__",
-            "required_args": ["self", "config", "tensorflow_client", "job_spec"],
-            "optional_args": ["metrics_client"],
+            "required_args": ["self", "config", "tensorflow_client"],
+            "optional_args": ["job_spec", "metrics_client"],
         },
         {
             "name": "handle_batch",
@@ -110,50 +98,9 @@ class BatchAPI:
 
         self.api_spec = api_spec
 
-        self.crons = []
-        if not are_models_specified(self.api_spec):
-            return
-
-        self.model_dir = model_dir
-
-        self.caching_enabled = self._is_model_caching_enabled()
-        self.multiple_processes = self.api_spec["handler"]["processes_per_replica"] > 1
-
-        # model caching can only be enabled when processes_per_replica is 1
-        # model side-reloading is supported for any number of processes_per_replica
-
-        if self.caching_enabled:
-            if self.type == PythonHandlerType:
-                mem_cache_size = self.api_spec["handler"]["multi_model_reloading"]["cache_size"]
-                disk_cache_size = self.api_spec["handler"]["multi_model_reloading"][
-                    "disk_cache_size"
-                ]
-            else:
-                mem_cache_size = self.api_spec["handler"]["models"]["cache_size"]
-                disk_cache_size = self.api_spec["handler"]["models"]["disk_cache_size"]
-            self.models = ModelsHolder(
-                self.type,
-                self.model_dir,
-                mem_cache_size=mem_cache_size,
-                disk_cache_size=disk_cache_size,
-                on_download_callback=model_downloader,
-            )
-        elif not self.caching_enabled and self.type not in [
-            TensorFlowHandlerType,
-            TensorFlowNeuronHandlerType,
-        ]:
-            self.models = ModelsHolder(self.type, self.model_dir)
-        else:
-            self.models = None
-
-        if self.multiple_processes:
-            self.models_tree = None
-        else:
-            self.models_tree = ModelsTree()
-
     def initialize_client(
         self, tf_serving_host: Optional[str] = None, tf_serving_port: Optional[str] = None
-    ) -> Union[PythonClient, TensorFlowClient]:
+    ) -> TensorFlowClient:
         """
         Initialize client that gives access to models specified in the API spec (cortex.yaml).
         Only applies when models are provided in the API spec.
@@ -168,29 +115,28 @@ class BatchAPI:
 
         client = None
 
-        if are_models_specified(self.api_spec):
-            if self.type == PythonHandlerType:
-                client = PythonClient(self.api_spec, self.models, self.model_dir, self.models_tree)
-
-            if self.type in [TensorFlowHandlerType, TensorFlowNeuronHandlerType]:
-                tf_serving_address = tf_serving_host + ":" + tf_serving_port
-                client = TensorFlowClient(
-                    tf_serving_address,
-                    self.api_spec,
-                    self.models,
-                    self.model_dir,
-                    self.models_tree,
-                )
-                if not self.caching_enabled:
-                    cron = TFSAPIServingThreadUpdater(interval=5.0, client=client)
-                    cron.start()
+        if are_models_specified(self.api_spec) and self.type in [
+            TensorFlowHandlerType,
+            TensorFlowNeuronHandlerType,
+        ]:
+            tf_serving_address = tf_serving_host + ":" + tf_serving_port
+            client = TensorFlowClient(
+                tf_serving_address,
+                self.api_spec,
+                self.models,
+                self.model_dir,
+                self.models_tree,
+            )
+            if not self.caching_enabled:
+                cron = TFSAPIServingThreadUpdater(interval=5.0, client=client)
+                cron.start()
 
         return client
 
     def initialize_impl(
         self,
         project_dir: str,
-        client: Union[PythonClient, TensorFlowClient],
+        client: TensorFlowClient,
         metrics_client: DogStatsd,
         job_spec: Optional[Dict[str, Any]] = None,
         proto_module_pb2: Optional[Any] = None,
@@ -223,48 +169,12 @@ class BatchAPI:
         # initialize handler class
         try:
             if self.type == PythonHandlerType:
-                if are_models_specified(self.api_spec):
-                    args["model_client"] = client
-                    # set load method to enable the use of the client in the constructor
-                    # setting/getting from self in load_model won't work because self will be set to None
-                    client.set_load_method(
-                        lambda model_path: class_impl.load_model(None, model_path)
-                    )
-                    initialized_impl = class_impl(**args)
-                    client.set_load_method(initialized_impl.load_model)
-                else:
-                    initialized_impl = class_impl(**args)
+                initialized_impl = class_impl(**args)
             if self.type in [TensorFlowHandlerType, TensorFlowNeuronHandlerType]:
                 args["tensorflow_client"] = client
                 initialized_impl = class_impl(**args)
         except Exception as e:
             raise UserRuntimeException(self.path, "__init__", str(e)) from e
-
-        # initialize the crons if models have been specified and if the API kind is RealtimeAPI
-        if are_models_specified(self.api_spec) and self.api_spec["kind"] == "RealtimeAPI":
-            if not self.multiple_processes and self.caching_enabled:
-                self.crons += [
-                    ModelTreeUpdater(
-                        interval=10,
-                        api_spec=self.api_spec,
-                        tree=self.models_tree,
-                        ondisk_models_dir=self.model_dir,
-                    ),
-                    ModelsGC(
-                        interval=10,
-                        api_spec=self.api_spec,
-                        models=self.models,
-                        tree=self.models_tree,
-                    ),
-                ]
-
-            if not self.caching_enabled and self.type == PythonHandlerType:
-                self.crons += [
-                    FileBasedModelsGC(interval=10, models=self.models, download_dir=self.model_dir)
-                ]
-
-        for cron in self.crons:
-            cron.start()
 
         return initialized_impl
 
@@ -288,8 +198,6 @@ class BatchAPI:
 
         try:
             validate_class_impl(handler_class, validations)
-            if self.type == PythonHandlerType:
-                validate_python_handler_with_models(handler_class, self.api_spec)
         except Exception as e:
             e.wrap("error in " + self.path)
             raise
@@ -322,18 +230,6 @@ class BatchAPI:
             raise UserException(f"{target_class_name} class is not defined")
 
         return handler_class
-
-    def _is_model_caching_enabled(self) -> bool:
-        """
-        Checks if model caching is enabled.
-        """
-        models = None
-        if self.type != PythonHandlerType and self.api_spec["handler"]["models"]:
-            models = self.api_spec["handler"]["models"]
-        if self.type == PythonHandlerType and self.api_spec["handler"]["multi_model_reloading"]:
-            models = self.api_spec["handler"]["multi_model_reloading"]
-
-        return models and models["cache_size"] and models["disk_cache_size"]
 
     def __del__(self) -> None:
         for cron in self.crons:
