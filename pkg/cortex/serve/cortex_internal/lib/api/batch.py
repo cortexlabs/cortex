@@ -230,9 +230,3 @@ class BatchAPI:
             raise UserException(f"{target_class_name} class is not defined")
 
         return handler_class
-
-    def __del__(self) -> None:
-        for cron in self.crons:
-            cron.stop()
-        for cron in self.crons:
-            cron.join()

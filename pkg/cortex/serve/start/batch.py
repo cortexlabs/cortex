@@ -235,16 +235,6 @@ def start():
         log.error(f"failed to start job {job_spec['job_id']}", exc_info=True)
         sys.exit(1)
 
-    # crons only stop if an unhandled exception occurs
-    def check_if_crons_have_failed():
-        while True:
-            for cron in api.crons:
-                if not cron.is_alive():
-                    os.kill(os.getpid(), signal.SIGQUIT)
-            time.sleep(1)
-
-    threading.Thread(target=check_if_crons_have_failed, daemon=True).start()
-
     local_cache["api"] = api
     local_cache["job_spec"] = job_spec
     local_cache["handler_impl"] = handler_impl
