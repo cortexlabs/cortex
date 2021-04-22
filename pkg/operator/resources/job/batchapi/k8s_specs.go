@@ -17,8 +17,10 @@ limitations under the License.
 package batchapi
 
 import (
+	"context"
 	"path"
 
+	batch "github.com/cortexlabs/cortex/pkg/crds/apis/batch/v1alpha1"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/parallel"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
@@ -29,8 +31,7 @@ import (
 	istioclientnetworking "istio.io/client-go/pkg/apis/networking/v1beta1"
 	kbatch "k8s.io/api/batch/v1"
 	kcore "k8s.io/api/core/v1"
-	kmeta "k8s.io/apimachinery/pkg/apis/meta/v1"
-	klabels "k8s.io/apimachinery/pkg/labels"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 const _operatorService = "operator"
@@ -186,39 +187,17 @@ func applyK8sResources(api *spec.API, prevVirtualService *istioclientnetworking.
 func deleteK8sResources(apiName string) error {
 	return parallel.RunFirstErr(
 		func() error {
-			_, err := config.K8s.DeleteJobs(&kmeta.ListOptions{
-				LabelSelector: klabels.SelectorFromSet(map[string]string{"apiName": apiName}).String(),
-			})
-			return err
+			err := config.K8s.DeleteAllOf(
+				context.Background(),
+				&batch.BatchJob{},
+				client.InNamespace(config.K8s.Namespace),
+				client.MatchingLabels{"apiName": apiName},
+			)
+			return client.IgnoreNotFound(err)
 		},
 		func() error {
 			_, err := config.K8s.DeleteVirtualService(operator.K8sName(apiName))
 			return err
 		},
 	)
-}
-
-func deleteK8sJob(jobKey spec.JobKey) error {
-	_, err := config.K8s.DeleteJobs(&kmeta.ListOptions{
-		LabelSelector: klabels.SelectorFromSet(map[string]string{"apiName": jobKey.APIName, "jobID": jobKey.ID}).String(),
-	})
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func createK8sJob(apiSpec *spec.API, jobSpec *spec.BatchJob) error {
-	kJob, err := k8sJobSpec(apiSpec, jobSpec)
-	if err != nil {
-		return err
-	}
-
-	_, err = config.K8s.CreateJob(kJob)
-	if err != nil {
-		return err
-	}
-
-	return nil
 }

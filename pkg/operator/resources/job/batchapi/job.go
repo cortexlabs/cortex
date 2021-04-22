@@ -105,6 +105,14 @@ func SubmitJob(apiName string, submission *schema.BatchJobSubmission) (*batch.Ba
 		ObjectMeta: kmeta.ObjectMeta{
 			Name:      jobID,
 			Namespace: config.K8s.Namespace,
+			Labels: map[string]string{
+				"apiName":        apiName,
+				"apiID":          apiID,
+				"specID":         virtualService.Labels["specID"],
+				"predictorID":    virtualService.Labels["predictorID"],
+				"apiKind":        userconfig.BatchAPIKind.String(),
+				"cortex.dev/api": "true",
+			},
 		},
 		Spec: batch.BatchJobSpec{
 			APIName:         apiName,
