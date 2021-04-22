@@ -87,14 +87,10 @@ func tensorflowAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.D
 				InitContainers: []kcore.Container{
 					operator.InitContainer(api),
 				},
-				Containers:   containers,
-				NodeSelector: operator.NodeSelectors(),
-				Tolerations:  operator.GenerateResourceTolerations(),
-				Affinity: &kcore.Affinity{
-					NodeAffinity: &kcore.NodeAffinity{
-						PreferredDuringSchedulingIgnoredDuringExecution: operator.GeneratePreferredNodeAffinities(),
-					},
-				},
+				Containers:         containers,
+				NodeSelector:       operator.NodeSelectors(),
+				Tolerations:        operator.GenerateResourceTolerations(),
+				Affinity:           operator.GenerateNodeAffinities(api.Compute.NodeGroups),
 				Volumes:            volumes,
 				ServiceAccountName: operator.ServiceAccountName,
 			},
@@ -149,14 +145,10 @@ func pythonAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deplo
 				InitContainers: []kcore.Container{
 					operator.InitContainer(api),
 				},
-				Containers:   containers,
-				NodeSelector: operator.NodeSelectors(),
-				Tolerations:  operator.GenerateResourceTolerations(),
-				Affinity: &kcore.Affinity{
-					NodeAffinity: &kcore.NodeAffinity{
-						PreferredDuringSchedulingIgnoredDuringExecution: operator.GeneratePreferredNodeAffinities(),
-					},
-				},
+				Containers:         containers,
+				NodeSelector:       operator.NodeSelectors(),
+				Tolerations:        operator.GenerateResourceTolerations(),
+				Affinity:           operator.GenerateNodeAffinities(api.Compute.NodeGroups),
 				Volumes:            volumes,
 				ServiceAccountName: operator.ServiceAccountName,
 			},

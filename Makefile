@@ -51,38 +51,42 @@ operator-local-dbg:
 
 # configure kubectl to point to the cluster specified in dev/config/cluster.yaml
 kubectl:
-	@eval $$(python3 ./manager/cluster_config_env.py ./dev/config/cluster.yaml) && eksctl utils write-kubeconfig --cluster="$$CORTEX_CLUSTER_NAME" --region="$$CORTEX_REGION" | (grep -v "saved kubeconfig as" | grep -v "using region" | grep -v "eksctl version" || true)
+	@eval $$(python3 ./manager/cluster_config_env.py ./dev/config/cluster.yaml) && eval $$(python3 ./dev/create_user.py $$CORTEX_CLUSTER_NAME $$AWS_ACCOUNT_ID $$CORTEX_REGION) && eksctl utils write-kubeconfig --cluster="$$CORTEX_CLUSTER_NAME" --region="$$CORTEX_REGION" | (grep -v "saved kubeconfig as" | grep -v "using region" | grep -v "eksctl version" || true)
 
 cluster-up:
 	@$(MAKE) images-all
 	@$(MAKE) cli
 	@kill $(shell pgrep -f rerun) >/dev/null 2>&1 || true
-	@eval $$(python3 ./manager/cluster_config_env.py ./dev/config/cluster.yaml) && ./bin/cortex cluster up ./dev/config/cluster.yaml --configure-env="$$CORTEX_CLUSTER_NAME"
+	@eval $$(python3 ./manager/cluster_config_env.py ./dev/config/cluster.yaml) && eval $$(python3 ./dev/create_user.py $$CORTEX_CLUSTER_NAME $$AWS_ACCOUNT_ID $$CORTEX_REGION) && sleep 10 && ./bin/cortex cluster up ./dev/config/cluster.yaml --configure-env="$$CORTEX_CLUSTER_NAME" && eksctl create iamidentitymapping --region $$CORTEX_REGION --cluster $$CORTEX_CLUSTER_NAME --arn $$DEFAULT_USER_ARN --group system:masters --username $$DEFAULT_USER_ARN
+
 	@$(MAKE) kubectl
 
 cluster-up-y:
 	@$(MAKE) images-all
 	@$(MAKE) cli
 	@kill $(shell pgrep -f rerun) >/dev/null 2>&1 || true
-	@eval $$(python3 ./manager/cluster_config_env.py ./dev/config/cluster.yaml) && ./bin/cortex cluster up ./dev/config/cluster.yaml --configure-env="$$CORTEX_CLUSTER_NAME" --yes
+	@eval $$(python3 ./manager/cluster_config_env.py ./dev/config/cluster.yaml) && eval $$(python3 ./dev/create_user.py $$CORTEX_CLUSTER_NAME $$AWS_ACCOUNT_ID $$CORTEX_REGION) && sleep 10 && ./bin/cortex cluster up ./dev/config/cluster.yaml --configure-env="$$CORTEX_CLUSTER_NAME" --yes && eksctl create iamidentitymapping --region $$CORTEX_REGION --cluster $$CORTEX_CLUSTER_NAME --arn $$DEFAULT_USER_ARN --group system:masters --username $$DEFAULT_USER_ARN
 	@$(MAKE) kubectl
 
 cluster-down:
 	@$(MAKE) images-manager-skip-push
 	@$(MAKE) cli
 	@kill $(shell pgrep -f rerun) >/dev/null 2>&1 || true
-	@./bin/cortex cluster down --config=./dev/config/cluster.yaml
+	@eval $$(python3 ./manager/cluster_config_env.py ./dev/config/cluster.yaml) && eval $$(python3 ./dev/create_user.py $$CORTEX_CLUSTER_NAME $$AWS_ACCOUNT_ID $$CORTEX_REGION) && sleep 10 && ./bin/cortex cluster down --config=./dev/config/cluster.yaml
 
 cluster-down-y:
 	@$(MAKE) images-manager-skip-push
 	@$(MAKE) cli
 	@kill $(shell pgrep -f rerun) >/dev/null 2>&1 || true
-	@./bin/cortex cluster down --config=./dev/config/cluster.yaml --yes
+	@eval $$(python3 ./manager/cluster_config_env.py ./dev/config/cluster.yaml) && eval $$(python3 ./dev/create_user.py $$CORTEX_CLUSTER_NAME $$AWS_ACCOUNT_ID $$CORTEX_REGION) && sleep 10 && ./bin/cortex cluster down --config=./dev/config/cluster.yaml --yes
 
 cluster-info:
 	@$(MAKE) images-manager-skip-push
 	@$(MAKE) cli
-	@eval $$(python3 ./manager/cluster_config_env.py ./dev/config/cluster.yaml) && ./bin/cortex cluster info --config=./dev/config/cluster.yaml --configure-env="$$CORTEX_CLUSTER_NAME" --yes
+	@eval $$(python3 ./manager/cluster_config_env.py ./dev/config/cluster.yaml) && eval $$(python3 ./dev/create_user.py $$CORTEX_CLUSTER_NAME $$AWS_ACCOUNT_ID $$CORTEX_REGION) && sleep 10 && ./bin/cortex cluster info --config=./dev/config/cluster.yaml --configure-env="$$CORTEX_CLUSTER_NAME" --yes
+
+update-credentials:
+	@eval $$(python3 ./manager/cluster_config_env.py ./dev/config/cluster.yaml) && python3 ./dev/create_user.py $$CORTEX_CLUSTER_NAME $$AWS_ACCOUNT_ID $$CORTEX_REGION
 
 # stop the in-cluster operator
 operator-stop:
@@ -156,7 +160,7 @@ tools:
 	@go get -u -v github.com/VojtechVitek/rerun/cmd/rerun
 	@go get -u -v github.com/go-delve/delve/cmd/dlv
 	@if [[ "$$OSTYPE" == "darwin"* ]]; then brew install parallel; elif [[ "$$OSTYPE" == "linux"* ]]; then sudo apt-get install -y parallel; else echo "your operating system is not supported"; fi
-	@python3 -m pip install aiohttp black 'pydoc-markdown>=3.0.0,<4.0.0'
+	@python3 -m pip install aiohttp black 'pydoc-markdown>=3.0.0,<4.0.0' boto3 pyyaml
 	@python3 -m pip install -e test/e2e
 
 format:

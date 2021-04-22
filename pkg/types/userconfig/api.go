@@ -23,6 +23,7 @@ import (
 
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
+	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/urls"
 	"github.com/cortexlabs/yaml"
@@ -111,10 +112,11 @@ type Networking struct {
 }
 
 type Compute struct {
-	CPU *k8s.Quantity `json:"cpu" yaml:"cpu"`
-	Mem *k8s.Quantity `json:"mem" yaml:"mem"`
-	GPU int64         `json:"gpu" yaml:"gpu"`
-	Inf int64         `json:"inf" yaml:"inf"`
+	CPU        *k8s.Quantity `json:"cpu" yaml:"cpu"`
+	Mem        *k8s.Quantity `json:"mem" yaml:"mem"`
+	GPU        int64         `json:"gpu" yaml:"gpu"`
+	Inf        int64         `json:"inf" yaml:"inf"`
+	NodeGroups []string      `json:"node_groups" yaml:"node_groups"`
 }
 
 type Autoscaling struct {
@@ -540,6 +542,12 @@ func (compute *Compute) Normalized() string {
 	} else {
 		sb.WriteString(fmt.Sprintf("%s: %d\n", MemKey, compute.Mem.Value()))
 	}
+	if compute.NodeGroups == nil {
+		sb.WriteString(fmt.Sprintf("%s: null\n", NodeGroupsKey))
+	} else {
+		sb.WriteString(fmt.Sprintf("%s: %s\n", NodeGroupsKey, s.ObjFlatNoQuotes(compute.NodeGroups)))
+	}
+
 	return sb.String()
 }
 
@@ -560,6 +568,11 @@ func (compute *Compute) UserStr() string {
 		sb.WriteString(fmt.Sprintf("%s: null  # no limit\n", MemKey))
 	} else {
 		sb.WriteString(fmt.Sprintf("%s: %s\n", MemKey, compute.Mem.UserString))
+	}
+	if compute.NodeGroups == nil {
+		sb.WriteString(fmt.Sprintf("%s: null  # automatic node-group selection\n", NodeGroupsKey))
+	} else {
+		sb.WriteString(fmt.Sprintf("%s: %s\n", NodeGroupsKey, s.ObjFlatNoQuotes(compute.NodeGroups)))
 	}
 	return sb.String()
 }
@@ -586,6 +599,14 @@ func (compute Compute) Equals(c2 *Compute) bool {
 	}
 
 	if compute.GPU != c2.GPU {
+		return false
+	}
+
+	if compute.NodeGroups == nil && c2.NodeGroups != nil || compute.NodeGroups != nil && c2.NodeGroups == nil {
+		return false
+	}
+
+	if !strset.New(compute.NodeGroups...).IsEqual(strset.New(c2.NodeGroups...)) {
 		return false
 	}
 
@@ -655,6 +676,8 @@ func (api *API) TelemetryEvent() map[string]interface{} {
 		}
 		event["compute.gpu"] = api.Compute.GPU
 		event["compute.inf"] = api.Compute.Inf
+		event["compute.node_groups._is_defined"] = len(api.Compute.NodeGroups) > 0
+		event["compute.node_groups._len"] = len(api.Compute.NodeGroups)
 	}
 
 	if api.Handler != nil {

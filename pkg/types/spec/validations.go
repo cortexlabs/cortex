@@ -400,6 +400,18 @@ func computeValidation() *cr.StructFieldValidation {
 						GreaterThanOrEqualTo: pointer.Int64(0),
 					},
 				},
+				{
+					StructField: "NodeGroups",
+					StringListValidation: &cr.StringListValidation{
+						Required:          false,
+						Default:           nil,
+						AllowExplicitNull: true,
+						AllowEmpty:        false,
+						ElementStringValidation: &cr.StringValidation{
+							AlphaNumericDashUnderscore: true,
+						},
+					},
+				},
 			},
 		},
 	}
