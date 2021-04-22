@@ -78,7 +78,7 @@ TENSORFLOW_CLASS_VALIDATION = {
         {
             "name": "handle_batch",
             "required_args": ["self"],
-            "optional_args": ["payload", "batch_ud"],
+            "optional_args": ["payload", "batch_id"],
         },
     ],
     "optional": [
