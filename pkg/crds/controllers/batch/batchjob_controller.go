@@ -201,6 +201,7 @@ func (r *BatchJobReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		}
 	}
 
+	// Step 6: Delete self if TTL is enabled and reached a final state
 	if batchJob.Spec.TTL != nil && completedTimestamp != nil {
 		afterFinishedDuration := time.Now().Sub(*completedTimestamp)
 		if afterFinishedDuration >= batchJob.Spec.TTL.Duration {
