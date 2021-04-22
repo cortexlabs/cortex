@@ -23,12 +23,11 @@ from datadog.dogstatsd.base import DogStatsd
 
 from cortex_internal.lib import util
 from cortex_internal.lib.client.tensorflow import TensorFlowClient
-from cortex_internal.lib.model import TFSAPIServingThreadUpdater, ModelsTree
+from cortex_internal.lib.model import TFSAPIServingThreadUpdater
 from cortex_internal.lib.api.utils import CortexMetrics
 from cortex_internal.lib.api.validations import (
     are_models_specified,
     validate_class_impl,
-    validate_python_handler_with_models,
 )
 from cortex_internal.lib.type import (
     PythonHandlerType,
@@ -123,9 +122,7 @@ class BatchAPI:
                 tf_serving_address,
                 self.api_spec,
             )
-            if not self.caching_enabled:
-                cron = TFSAPIServingThreadUpdater(interval=5.0, client=client)
-                cron.start()
+            TFSAPIServingThreadUpdater(interval=5.0, client=client).start()
 
         return client
 
