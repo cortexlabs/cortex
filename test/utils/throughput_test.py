@@ -22,7 +22,7 @@ from validator_collection import checkers
     type=int,
     default=1,
     show_default=True,
-    help="Number of processes for prediction requests.",
+    help="Number of processes for compute requests.",
 )
 @click.option(
     "--threads",
@@ -30,7 +30,7 @@ from validator_collection import checkers
     type=int,
     default=1,
     show_default=True,
-    help="Number of threads per process for prediction requests.",
+    help="Number of threads per process for compute requests.",
 )
 @click.option(
     "--samples",
@@ -45,7 +45,7 @@ from validator_collection import checkers
     "-i",
     type=float,
     default=0.0,
-    help="How long the thread making predictions will run for in seconds. If set, -s option will be ignored.",
+    help="How long the thread making requests will run for in seconds. If set, -s option will be ignored.",
 )
 def main(payload, endpoint, processes, threads, samples, time_based):
     file_type = None
