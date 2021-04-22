@@ -611,12 +611,14 @@ func GetAPI(apiName string) ([]schema.APIResponse, error) {
 		internalAPIEndpoint, err := config.K8s.InternalServiceEndpoint("api-"+apiResponse[0].Spec.Name, _defaultAPIPortInt32)
 		if err != nil {
 			operatorLogger.Warn(errors.Wrap(err, fmt.Sprintf("api %s", apiResponse[0].Spec.Name)))
+			return apiResponse, nil
 		}
 
 		infoAPIEndpoint := urls.Join(internalAPIEndpoint, "info")
 		apiTFModelSummary, apiPythonModelSummary, err := realtimeapi.GetModelsMetadata(apiResponse[0].Status, apiResponse[0].Spec.Handler, infoAPIEndpoint)
 		if err != nil {
 			operatorLogger.Warn(errors.Wrap(err, fmt.Sprintf("api %s", apiResponse[0].Spec.Name)))
+			return apiResponse, nil
 		}
 
 		apiResponse[0].RealtimeModelMetadata.APITFModelSummary = apiTFModelSummary

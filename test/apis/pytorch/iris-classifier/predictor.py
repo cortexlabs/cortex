@@ -42,14 +42,3 @@ class Handler:
 
         # Translate the model output to the corresponding label string
         return labels[torch.argmax(output[0])]
-
-    def handle_get(self):
-        return "handle_get response"
-
-    def handle_put(self):
-        def _callback():
-            print("preparing callback")
-            time.sleep(3.0)
-            print("callback called after 3 seconds")
-
-        return "handle_put response", _callback

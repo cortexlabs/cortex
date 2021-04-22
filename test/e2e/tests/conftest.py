@@ -122,9 +122,9 @@ def pytest_configure(config):
                     "workload_timeout": 210,  # measured in seconds
                 },
                 "task": {
-                    "jobs": 10 ** 3,
+                    "jobs": 10 ** 2,
                     "concurrency": 4,
-                    "submit_timeout": 210,  # measured in seconds
+                    "submit_timeout": 120,  # measured in seconds
                     "workload_timeout": 180,  # measured in seconds
                 },
             },
