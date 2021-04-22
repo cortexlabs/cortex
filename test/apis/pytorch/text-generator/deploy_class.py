@@ -1,6 +1,5 @@
 import cortex
 import os
-import sys
 import requests
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
@@ -25,7 +24,7 @@ class Handler:
 
 api = cx.create_api(
     api_spec,
-    predictor=PythonPredictor,
+    handler=Handler,
     requirements=["torch", "transformers"],
     wait=True,
 )

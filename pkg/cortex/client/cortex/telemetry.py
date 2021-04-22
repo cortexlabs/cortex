@@ -13,7 +13,6 @@
 # limitations under the License.
 
 import os
-import pathlib
 
 from uuid import uuid4
 

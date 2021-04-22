@@ -170,7 +170,10 @@ func handlerValidation() *cr.StructFieldValidation {
 					StructField: "Path",
 					StringValidation: &cr.StringValidation{
 						Required: true,
-						Suffix:   ".py",
+						AllowedSuffixes: []string{
+							".py",
+							".pickle",
+						},
 					},
 				},
 				{

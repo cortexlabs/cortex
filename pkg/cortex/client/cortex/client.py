@@ -51,7 +51,7 @@ class Client:
     def create_api(
         self,
         api_spec: dict,
-        predictor=None,
+        handler=None,
         task=None,
         requirements=[],
         conda_packages=[],
@@ -64,10 +64,10 @@ class Client:
 
         Args:
             api_spec: A dictionary defining a single Cortex API. See https://docs.cortex.dev/v/master/ for schema.
-            predictor: A Cortex Predictor class implementation. Not required for TaskAPI/TrafficSplitter kinds.
+            handler: A Cortex Handler class implementation. Not required for TaskAPI/TrafficSplitter kinds.
             task: A callable class/function implementation. Not required for RealtimeAPI/BatchAPI/TrafficSplitter kinds.
-            requirements: A list of PyPI dependencies that will be installed before the predictor class implementation is invoked.
-            conda_packages: A list of Conda dependencies that will be installed before the predictor class implementation is invoked.
+            requirements: A list of PyPI dependencies that will be installed before the handler class implementation is invoked.
+            conda_packages: A list of Conda dependencies that will be installed before the handler class implementation is invoked.
             project_dir: Path to a python project.
             force: Override any in-progress api updates.
             wait: Streams logs until the APIs are ready.
@@ -77,9 +77,9 @@ class Client:
         """
 
         if project_dir is not None:
-            if predictor is not None:
+            if handler is not None:
                 raise ValueError(
-                    "`predictor` and `project_dir` parameters cannot be specified at the same time, please choose one"
+                    "`handler` and `project_dir` parameters cannot be specified at the same time, please choose one"
                 )
             if task is not None:
                 raise ValueError(
@@ -95,18 +95,18 @@ class Client:
 
         api_kind = api_spec.get("kind")
         if api_kind == "TrafficSplitter":
-            if predictor:
-                raise ValueError(f"`predictor` parameter cannot be specified for {api_kind} kind")
+            if handler:
+                raise ValueError(f"`handler` parameter cannot be specified for {api_kind} kind")
             if task:
                 raise ValueError(f"`task` parameter cannot be specified for {api_kind} kind")
         elif api_kind == "TaskAPI":
-            if predictor:
-                raise ValueError(f"`predictor` parameter cannnot be specified for {api_kind} kind")
+            if handler:
+                raise ValueError(f"`handler` parameter cannnot be specified for {api_kind} kind")
             if task is None:
                 raise ValueError(f"`task` parameter must be specified for {api_kind} kind")
         elif api_kind in ["BatchAPI", "RealtimeAPI"]:
-            if not predictor:
-                raise ValueError(f"`predictor` parameter must be specified for {api_kind}")
+            if not handler:
+                raise ValueError(f"`handler` parameter must be specified for {api_kind}")
             if task:
                 raise ValueError(f"`task` parameter cannot be specified for {api_kind}")
         else:
@@ -154,20 +154,19 @@ class Client:
                 conda_file.write("\n".join(conda_packages))
 
         if api_kind in ["BatchAPI", "RealtimeAPI"]:
-            if not inspect.isclass(predictor):
-                raise ValueError("`predictor` parameter must be a class definition")
+            if not inspect.isclass(handler):
+                raise ValueError("`handler` parameter must be a class definition")
 
-            impl_rel_path = self._save_impl(predictor, project_dir, "predictor")
-            if api_spec.get("predictor") is None:
-                api_spec["predictor"] = {}
+            impl_rel_path = self._save_impl(handler, project_dir, "handler")
+            api_spec["handler"]["path"] = impl_rel_path
 
-            if predictor.__name__ == "PythonPredictor":
-                predictor_type = "python"
-            if predictor.__name__ == "TensorFlowPredictor":
-                predictor_type = "tensorflow"
+            if api_spec.get("handler") is None:
+                raise ValueError("`api_spec` must have the `handler` section defined")
 
-            api_spec["predictor"]["path"] = impl_rel_path
-            api_spec["predictor"]["type"] = predictor_type
+            if api_spec["handler"].get("type") is None:
+                raise ValueError(
+                    "the `type` field in the `handler` section of the `api_spec` must be set (tensorflow or python)"
+                )
 
         if api_kind == "TaskAPI":
             if not callable(task):
