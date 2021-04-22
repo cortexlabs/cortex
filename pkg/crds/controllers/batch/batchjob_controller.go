@@ -190,10 +190,9 @@ func (r *BatchJobReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return ctrl.Result{}, nil
 	case EnqueuingFailed:
 		log.Info("failed to enqueue payload")
-		return ctrl.Result{}, nil
 	}
 
-	if !workerJobExists {
+	if !workerJobExists && enqueuingStatus == EnqueuingDone {
 		log.V(1).Info("creating worker job")
 		if err = r.createWorkerJob(ctx, batchJob, queueURL); err != nil {
 			log.Error(err, "failed to create worker job")
