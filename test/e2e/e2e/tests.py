@@ -810,6 +810,11 @@ def test_load_batch(
         # best effort
         try:
             api_info = client.get_api(api_name)
+
+            # only get the last 10 job statuses
+            if "batch_job_statuses" in api_info and len(api_info["batch_job_statuses"]) > 10:
+                api_info["batch_job_statuses"] = api_info["batch_job_statuses"][-10:]
+
             printer(json.dumps(api_info, indent=2))
         except:
             pass
@@ -882,6 +887,11 @@ def test_load_task(
         # best effort
         try:
             api_info = client.get_api(api_name)
+
+            # only get the last 10 job statuses
+            if "task_job_statuses" in api_info and len(api_info["task_job_statuses"]) > 10:
+                api_info["task_job_statuses"] = api_info["task_job_statuses"][-10:]
+
             printer(json.dumps(api_info, indent=2))
         except:
             pass
