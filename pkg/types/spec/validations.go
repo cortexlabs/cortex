@@ -1221,8 +1221,8 @@ func validateProtobufPath(api *userconfig.API, projectFiles ProjectFiles) error 
 		}),
 	)
 
-	if numServices > 1 {
-		return errors.Wrap(ErrorProtoNumServicesExceeded(numServices), userconfig.ProtobufPathKey, *api.Handler.ProtobufPath)
+	if numServices != 1 {
+		return errors.Wrap(ErrorProtoNumServicesMismatch(numServices), userconfig.ProtobufPathKey, *api.Handler.ProtobufPath)
 	}
 
 	var requiredPackageName string

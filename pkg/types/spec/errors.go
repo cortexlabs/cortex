@@ -71,7 +71,7 @@ const (
 	ErrDuplicateModelNames = "spec.duplicate_model_names"
 	ErrReservedModelName   = "spec.reserved_model_name"
 
-	ErrProtoNumServicesExceeded       = "spec.proto_num_services_exceeded"
+	ErrProtoNumServicesMismatch       = "spec.proto_num_services_mismatch"
 	ErrProtoMissingPackageName        = "spec.proto_missing_package_name"
 	ErrProtoInvalidPackageName        = "spec.proto_invalid_package_name"
 	ErrProtoInvalidNetworkingEndpoint = "spec.proto_invalid_networking_endpoint"
@@ -434,10 +434,10 @@ func ErrorReservedModelName(reservedModel string) error {
 	})
 }
 
-func ErrorProtoNumServicesExceeded(requested int) error {
+func ErrorProtoNumServicesMismatch(requested int) error {
 	return errors.WithStack(&errors.Error{
-		Kind:    ErrProtoNumServicesExceeded,
-		Message: fmt.Sprintf("cannot have more than one service defined; there are currently %d services defined", requested),
+		Kind:    ErrProtoNumServicesMismatch,
+		Message: fmt.Sprintf("can only have one service defined; there are currently %d services defined", requested),
 	})
 }
 
