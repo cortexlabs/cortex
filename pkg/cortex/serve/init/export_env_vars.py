@@ -1,3 +1,19 @@
+#!/usr/bin/env bash
+
+# Copyright 2021 Cortex Labs, Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import json
 import os
 import sys
@@ -32,6 +48,10 @@ def extract_from_predictor(api_kind: str, predictor_config: dict, compute_config
         else:
             env_vars["CORTEX_SERVING_PROTOCOL"] = "http"
 
+    if predictor_type == "tensorflow":
+        env_vars["CORTEX_TF_BASE_SERVING_PORT"] = "9000"
+        env_vars["CORTEX_TF_SERVING_HOST"] = "localhost"
+
     if compute_config.get("inf", 0) > 0:
         if predictor_type == "python":
             env_vars["NEURON_RTD_ADDRESS"] = "unix:/sock/neuron.sock"
@@ -61,7 +81,7 @@ def extract_from_task_definition(definition_config: dict, compute_config: dict) 
             os.path.join("/mnt", "project", definition_config["python_path"])
         )
 
-    if compute_config is not None and compute_config.get("inf", 0) > 0:
+    if compute_config.get("inf", 0) > 0:
         env_vars["NEURON_RTD_ADDRESS"] = "unix:/sock/neuron.sock"
         env_vars["NEURONCORE_GROUP_SIZES"] = int(compute_config["inf"] * NEURON_CORES_PER_INF)
 
@@ -85,7 +105,7 @@ def set_env_vars_for_s6(env_vars: dict):
 def print_env_var_exports(env_vars: dict):
     for k, v in env_vars.items():
         if v is not None:
-            print(f"export {k}={v}")
+            print(f"export {k}='{v}'")
 
 
 def main(api_spec_path: str):
@@ -100,7 +120,8 @@ def main(api_spec_path: str):
         "CORTEX_CLI_CONFIG_DIR": "/mnt/client",
         "CORTEX_MODEL_DIR": "/mnt/model",
         "CORTEX_LOG_CONFIG_FILE": "/src/cortex/serve/log_config.yaml",
-        "HOST_IP": "localhost",
+        "CORTEX_PYTHON_PATH": "/mnt/project",
+        "HOST_IP": os.environ.get("HOST_IP", "localhost"),
         "CORTEX_KIND": api_kind,
     }
 

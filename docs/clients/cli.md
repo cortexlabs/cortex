@@ -98,7 +98,7 @@ Flags:
 prepare artifacts to debug containers
 
 Usage:
-  cortex prepare-debug CONFIG_FILE API_NAME [flags]
+  cortex prepare-debug CONFIG_FILE [API_NAME] [flags]
 
 Flags:
   -h, --help   help for prepare-debug

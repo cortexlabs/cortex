@@ -36,14 +36,19 @@ func prepareDebugInit() {
 }
 
 var _prepareDebugCmd = &cobra.Command{
-	Use:   "prepare-debug CONFIG_FILE API_NAME",
+	Use:   "prepare-debug CONFIG_FILE [API_NAME]",
 	Short: "prepare artifacts to debug containers",
-	Args:  cobra.ExactArgs(2),
+	Args:  cobra.RangeArgs(1, 2),
 	Run: func(cmd *cobra.Command, args []string) {
 		telemetry.Event("cli.prepare-debug")
 
 		configPath := args[0]
-		apiName := args[1]
+
+		var apiName string
+		if len(args) == 2 {
+			apiName = args[1]
+		}
+
 		configBytes, err := files.ReadFileBytes(configPath)
 		if err != nil {
 			exit.Error(err)
@@ -56,23 +61,32 @@ var _prepareDebugCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
-		found := false
+		if apiName == "" && len(apis) > 1 {
+			exit.Error(errors.Wrap(ErrorAPINameMustBeProvided(), configPath))
+		}
 
 		var apiToPrepare userconfig.API
-		for i := range apis {
-			api := apis[i]
-			if api.Name == apiName {
-				found = true
+		if apiName == "" {
+			apiToPrepare = apis[0]
+		} else {
+			found := false
+			for i := range apis {
+				api := apis[i]
+				if api.Name == apiName {
+					found = true
+					apiToPrepare = api
+					break
+				}
 			}
-			apiToPrepare = api
-		}
-		if !found {
-			exit.Error(errors.Wrap(ErrorAPINotFoundInConfig(apiName), configPath))
+			if !found {
+				exit.Error(errors.Wrap(ErrorAPINotFoundInConfig(apiName), configPath))
+			}
 		}
 
-		if apiToPrepare.Kind == userconfig.TaskAPIKind || apiToPrepare.Kind == userconfig.TrafficSplitterKind {
+		if apiToPrepare.Kind != userconfig.RealtimeAPIKind {
 			exit.Error(ErrorNotSupportedForKindAndType(apiToPrepare.Kind, userconfig.UnknownPredictorType))
-		} else if apiToPrepare.Kind != userconfig.RealtimeAPIKind || apiToPrepare.Predictor.Type != userconfig.PythonPredictorType {
+		}
+		if apiToPrepare.Predictor.Type != userconfig.PythonPredictorType {
 			exit.Error(ErrorNotSupportedForKindAndType(apiToPrepare.Kind, apiToPrepare.Predictor.Type))
 		}
 
@@ -80,7 +94,7 @@ var _prepareDebugCmd = &cobra.Command{
 			API: &apiToPrepare,
 		}
 
-		debugFileName := apiName + ".debug.json"
+		debugFileName := apiSpec.Name + ".debug.json"
 		jsonStr, err := libjson.Pretty(apiSpec)
 		if err != nil {
 			exit.Error(err)
@@ -93,7 +107,6 @@ docker run -p 9000:8888 \
 -e "CORTEX_VERSION=%s" \
 -e "CORTEX_API_SPEC=/mnt/project/%s" \
 -v %s:/mnt/project \
-%s
-		`, consts.CortexVersion, debugFileName, path.Clean(projectRoot), apiToPrepare.Predictor.Image))
+%s`, consts.CortexVersion, debugFileName, path.Clean(projectRoot), apiToPrepare.Predictor.Image))
 	},
 }

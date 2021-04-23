@@ -131,7 +131,7 @@ def init():
             json.dump(used_ports, f)
             f.truncate()
 
-    api = get_api(spec_path, model_dir, cache_dir, region)
+    api = get_api(spec_path, model_dir, cache_dir)
 
     config: Dict[str, Any] = {
         "api": None,

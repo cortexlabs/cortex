@@ -284,7 +284,7 @@ def start_fn():
                 json.dump(used_ports, f)
                 f.truncate()
 
-        api = get_api(spec_path, model_dir, cache_dir, region)
+        api = get_api(spec_path, model_dir, cache_dir)
 
         client = api.predictor.initialize_client(
             tf_serving_host=tf_serving_host, tf_serving_port=tf_serving_port

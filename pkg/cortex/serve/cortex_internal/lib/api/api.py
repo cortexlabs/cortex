@@ -132,7 +132,6 @@ def get_api(
     spec_path: str,
     model_dir: str,
     cache_dir: str,
-    region: str,
 ) -> API:
     with open(spec_path) as json_file:
         raw_api_spec = json.load(json_file)

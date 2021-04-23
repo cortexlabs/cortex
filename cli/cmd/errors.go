@@ -68,6 +68,7 @@ const (
 	ErrShellCompletionNotSupported         = "cli.shell_completion_not_supported"
 	ErrNoTerminalWidth                     = "cli.no_terminal_width"
 	ErrDeployFromTopLevelDir               = "cli.deploy_from_top_level_dir"
+	ErrAPINameMustBeProvided               = "cli.api_name_must_be_provided"
 	ErrAPINotFoundInConfig                 = "cli.api_not_found_in_config"
 	ErrNotSupportedForKindAndType          = "cli.not_supported_for_kind_and_type"
 )
@@ -271,10 +272,17 @@ func ErrorDeployFromTopLevelDir(genericDirName string) error {
 	})
 }
 
+func ErrorAPINameMustBeProvided() error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrAPINameMustBeProvided,
+		Message: fmt.Sprintf("multiple apis listed; please specify the name of an api"),
+	})
+}
+
 func ErrorAPINotFoundInConfig(apiName string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrAPINotFoundInConfig,
-		Message: fmt.Sprintf("%s not found in config", apiName),
+		Message: fmt.Sprintf("api '%s' not found in config", apiName),
 	})
 }
 

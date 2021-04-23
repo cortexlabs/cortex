@@ -195,7 +195,7 @@ def start():
             json.dump(used_ports, f)
             f.truncate()
 
-    api = get_api(api_spec_path, model_dir, cache_dir, region)
+    api = get_api(api_spec_path, model_dir, cache_dir)
     with open(job_spec_path) as json_file:
         job_spec = json.load(json_file)
 

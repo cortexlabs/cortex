@@ -100,8 +100,6 @@ type downloadContainerArg struct {
 }
 
 func TaskInitContainer(api *spec.API, job *spec.TaskJob) kcore.Container {
-	apiSpecPath := aws.S3Path(config.CoreConfig.Bucket, api.Key)
-
 	downloadConfig := downloadContainerConfig{
 		LastLog: fmt.Sprintf(_downloaderLastLog, "task"),
 		DownloadArgs: []downloadContainerArg{
@@ -114,7 +112,7 @@ func TaskInitContainer(api *spec.API, job *spec.TaskJob) kcore.Container {
 				HideUnzippingLog: true,
 			},
 			{
-				From:             apiSpecPath,
+				From:             aws.S3Path(config.CoreConfig.Bucket, api.Key),
 				To:               APISpecPath,
 				Unzip:            false,
 				ToFile:           true,
@@ -149,11 +147,6 @@ func TaskInitContainer(api *spec.API, job *spec.TaskJob) kcore.Container {
 }
 
 func BatchInitContainer(api *spec.API, job *spec.BatchJob) kcore.Container {
-	apiSpecPath := aws.S3Path(config.CoreConfig.Bucket, api.Key)
-	if api.Kind == userconfig.RealtimeAPIKind {
-		apiSpecPath = aws.S3Path(config.CoreConfig.Bucket, api.PredictorKey)
-	}
-
 	downloadConfig := downloadContainerConfig{
 		LastLog: fmt.Sprintf(_downloaderLastLog, api.Predictor.Type.String()),
 		DownloadArgs: []downloadContainerArg{
@@ -166,7 +159,7 @@ func BatchInitContainer(api *spec.API, job *spec.BatchJob) kcore.Container {
 				HideUnzippingLog: true,
 			},
 			{
-				From:             apiSpecPath,
+				From:             aws.S3Path(config.CoreConfig.Bucket, api.Key),
 				To:               APISpecPath,
 				Unzip:            false,
 				ToFile:           true,
@@ -200,12 +193,8 @@ func BatchInitContainer(api *spec.API, job *spec.BatchJob) kcore.Container {
 	}
 }
 
+// for async and realtime apis
 func InitContainer(api *spec.API) kcore.Container {
-	apiSpecPath := aws.S3Path(config.CoreConfig.Bucket, api.Key)
-	if api.Kind == userconfig.RealtimeAPIKind {
-		apiSpecPath = aws.S3Path(config.CoreConfig.Bucket, api.PredictorKey)
-	}
-
 	downloadConfig := downloadContainerConfig{
 		LastLog: fmt.Sprintf(_downloaderLastLog, api.Predictor.Type.String()),
 		DownloadArgs: []downloadContainerArg{
@@ -218,7 +207,7 @@ func InitContainer(api *spec.API) kcore.Container {
 				HideUnzippingLog: true,
 			},
 			{
-				From:             apiSpecPath,
+				From:             aws.S3Path(config.CoreConfig.Bucket, api.PredictorKey),
 				To:               APISpecPath,
 				Unzip:            false,
 				ToFile:           true,
@@ -292,7 +281,7 @@ func TaskContainers(api *spec.API) ([]kcore.Container, []kcore.Volume) {
 		Name:            APIContainerName,
 		Image:           api.TaskDefinition.Image,
 		ImagePullPolicy: kcore.PullAlways,
-		Env:             getTaskEnvVars(api),
+		Env:             taskEnvVars(api),
 		EnvFrom:         baseEnvVars(),
 		VolumeMounts:    apiPodVolumeMounts,
 		Resources: kcore.ResourceRequirements{
@@ -601,7 +590,7 @@ func tensorFlowPredictorContainers(api *spec.API, envVars []kcore.EnvVar) ([]kco
 	return containers, volumes
 }
 
-func getTaskEnvVars(api *spec.API) []kcore.EnvVar {
+func taskEnvVars(api *spec.API) []kcore.EnvVar {
 	envVars := apiContainerEnvVars(api)
 	envVars = append(envVars,
 
@@ -771,6 +760,18 @@ func apiContainerEnvVars(api *spec.API) []kcore.EnvVar {
 				Name:  name,
 				Value: val,
 			})
+		}
+		if api.Predictor.Type == userconfig.TensorFlowPredictorType {
+			envVars = append(envVars,
+				kcore.EnvVar{
+					Name:  "CORTEX_TF_BASE_SERVING_PORT",
+					Value: _tfBaseServingPortStr,
+				},
+				kcore.EnvVar{
+					Name:  "CORTEX_TF_SERVING_HOST",
+					Value: _tfServingHost,
+				},
+			)
 		}
 	}
 
