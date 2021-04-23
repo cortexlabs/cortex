@@ -1,1 +1,1 @@
-Cost-effective serverless computing at scale - [docs.cortex.dev](https://www.docs.cortex.dev)
+Serverless computing at scale - [docs.cortex.dev](https://www.docs.cortex.dev)
