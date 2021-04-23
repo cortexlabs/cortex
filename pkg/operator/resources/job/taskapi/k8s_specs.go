@@ -19,7 +19,6 @@ package taskapi
 import (
 	"path"
 
-	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/parallel"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
@@ -66,23 +65,7 @@ func k8sJobSpec(api *spec.API, job *spec.TaskJob) *kbatch.Job {
 			containers[i].Env = append(container.Env,
 				kcore.EnvVar{
 					Name:  "CORTEX_TASK_SPEC",
-					Value: aws.S3Path(config.CoreConfig.Bucket, job.SpecFilePath(config.CoreConfig.ClusterName)),
-				},
-				kcore.EnvVar{
-					Name:  "CORTEX_TELEMETRY_SENTRY_USER_ID",
-					Value: config.OperatorMetadata.OperatorID,
-				},
-				kcore.EnvVar{
-					Name:  "CORTEX_TELEMETRY_SENTRY_ENVIRONMENT",
-					Value: "api",
-				},
-				kcore.EnvVar{
-					Name: "HOST_IP",
-					ValueFrom: &kcore.EnvVarSource{
-						FieldRef: &kcore.ObjectFieldSelector{
-							FieldPath: "status.hostIP",
-						},
-					},
+					Value: operator.TaskSpecPath,
 				},
 			)
 		}
@@ -115,7 +98,7 @@ func k8sJobSpec(api *spec.API, job *spec.TaskJob) *kbatch.Job {
 			K8sPodSpec: kcore.PodSpec{
 				RestartPolicy: "Never",
 				InitContainers: []kcore.Container{
-					operator.TaskInitContainer(api),
+					operator.TaskInitContainer(api, job),
 				},
 				Containers:         containers,
 				NodeSelector:       operator.NodeSelectors(),

@@ -52,7 +52,7 @@ func pythonHandlerJobSpec(api *spec.API, job *spec.BatchJob) (*kbatch.Job, error
 		if container.Name == operator.APIContainerName {
 			containers[i].Env = append(container.Env, kcore.EnvVar{
 				Name:  "CORTEX_JOB_SPEC",
-				Value: "s3://" + config.CoreConfig.Bucket + "/" + job.SpecFilePath(config.CoreConfig.ClusterName),
+				Value: operator.BatchSpecPath,
 			})
 		}
 	}
@@ -84,7 +84,7 @@ func pythonHandlerJobSpec(api *spec.API, job *spec.BatchJob) (*kbatch.Job, error
 			K8sPodSpec: kcore.PodSpec{
 				RestartPolicy: "Never",
 				InitContainers: []kcore.Container{
-					operator.InitContainer(api),
+					operator.BatchInitContainer(api, job),
 				},
 				Containers:         containers,
 				NodeSelector:       operator.NodeSelectors(),
@@ -103,7 +103,7 @@ func tensorFlowHandlerJobSpec(api *spec.API, job *spec.BatchJob) (*kbatch.Job, e
 		if container.Name == operator.APIContainerName {
 			containers[i].Env = append(container.Env, kcore.EnvVar{
 				Name:  "CORTEX_JOB_SPEC",
-				Value: "s3://" + config.CoreConfig.Bucket + "/" + job.SpecFilePath(config.CoreConfig.ClusterName),
+				Value: operator.BatchSpecPath,
 			})
 		}
 	}
@@ -135,7 +135,7 @@ func tensorFlowHandlerJobSpec(api *spec.API, job *spec.BatchJob) (*kbatch.Job, e
 			K8sPodSpec: kcore.PodSpec{
 				RestartPolicy: "Never",
 				InitContainers: []kcore.Container{
-					operator.InitContainer(api),
+					operator.BatchInitContainer(api, job),
 				},
 				Containers:         containers,
 				NodeSelector:       operator.NodeSelectors(),

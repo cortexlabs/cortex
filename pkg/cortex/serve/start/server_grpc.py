@@ -30,10 +30,9 @@ import datadog
 import grpc
 from grpc_reflection.v1alpha import reflection
 
-from cortex_internal.lib import util
-from cortex_internal.lib.api import RealtimeAPI, get_spec
+from cortex_internal.lib.api import RealtimeAPI
 from cortex_internal.lib.concurrency import FileLock, LockedFile
-from cortex_internal.lib.exceptions import UserException, UserRuntimeException
+from cortex_internal.lib.exceptions import UserRuntimeException
 from cortex_internal.lib.log import configure_logger
 from cortex_internal.lib.metrics import MetricsClient
 from cortex_internal.lib.telemetry import capture_exception, get_default_tags, init_sentry
@@ -170,7 +169,8 @@ def init():
     datadog.initialize(statsd_host=host_ip, statsd_port=9125)
     statsd_client = datadog.statsd
 
-    _, api_spec = get_spec(spec_path, cache_dir, region)
+    with open(spec_path) as json_file:
+        api_spec = json.load(json_file)
     api = RealtimeAPI(api_spec, statsd_client, model_dir)
 
     config: Dict[str, Any] = {

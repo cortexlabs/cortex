@@ -25,13 +25,12 @@ from typing import Dict, Any
 
 import boto3
 
-from cortex_internal.lib.api import get_spec, BatchAPI
+from cortex_internal.lib.api import BatchAPI
 from cortex_internal.lib.concurrency import LockedFile
 from cortex_internal.lib.exceptions import UserRuntimeException
 from cortex_internal.lib.log import configure_logger
 from cortex_internal.lib.metrics import MetricsClient
 from cortex_internal.lib.queue.sqs import SQSHandler, get_total_messages_in_queue
-from cortex_internal.lib.storage import S3
 from cortex_internal.lib.telemetry import get_default_tags, init_sentry, capture_exception
 import datadog
 
@@ -100,14 +99,6 @@ def build_handle_batch_args(payload, batch_id):
     if "batch_id" in local_cache["handle_batch_fn_args"]:
         args["batch_id"] = batch_id
     return args
-
-
-def get_job_spec(storage, cache_dir, job_spec_path):
-    local_spec_path = os.path.join(cache_dir, "job_spec.json")
-    _, key = S3.deconstruct_s3_path(job_spec_path)
-    storage.download_file(key, local_spec_path)
-    with open(local_spec_path) as f:
-        return json.load(f)
 
 
 def handle_batch_message(message):
@@ -183,7 +174,6 @@ def start():
     while not pathlib.Path("/mnt/workspace/init_script_run.txt").is_file():
         time.sleep(0.2)
 
-    cache_dir = os.environ["CORTEX_CACHE_DIR"]
     api_spec_path = os.environ["CORTEX_API_SPEC"]
     job_spec_path = os.environ["CORTEX_JOB_SPEC"]
     project_dir = os.environ["CORTEX_PROJECT_DIR"]
@@ -211,9 +201,13 @@ def start():
     datadog.initialize(statsd_host=host_ip, statsd_port=9125)
     statsd_client = datadog.statsd
 
-    storage, api_spec = get_spec(api_spec_path, cache_dir, region)
+    with open(api_spec_path) as json_file:
+        api_spec = json.load(json_file)
     api = BatchAPI(api_spec, statsd_client, model_dir)
-    job_spec = get_job_spec(storage, cache_dir, job_spec_path)
+
+    with open(job_spec_path) as json_file:
+        job_spec = json.load(json_file)
+
     sqs_client = boto3.client("sqs", region_name=region)
 
     client = api.initialize_client(tf_serving_host=tf_serving_host, tf_serving_port=tf_serving_port)

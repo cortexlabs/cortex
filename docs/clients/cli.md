@@ -92,6 +92,18 @@ Flags:
   -h, --help            help for delete
 ```
 
+## prepare-debug
+
+```text
+prepare artifacts to debug containers
+
+Usage:
+  cortex prepare-debug CONFIG_FILE [API_NAME] [flags]
+
+Flags:
+  -h, --help   help for prepare-debug
+```
+
 ## cluster up
 
 ```text

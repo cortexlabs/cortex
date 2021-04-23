@@ -109,9 +109,9 @@ def validate_python_handler_with_models(impl, api_spec):
     if getattr(impl, "load_model", None) is None:
         raise UserException(
             f"class {target_class_name}",
-            f'required method `load_model` is not defined',
+            f"required method `load_model` is not defined",
             f"when the python handler type is used and models are specified in the api spec, "
-            f'adding the `load_model` method is required',
+            f"adding the `load_model` method is required",
         )
 
 
@@ -154,7 +154,7 @@ def validate_handler_with_grpc(impl, api_spec: Dict, rpc_method_names: List[str]
     if "proto_module_pb2" not in constructor_arg_spec.args:
         raise UserException(
             f"class {target_class_name}",
-            f'invalid signature for method `__init__`',
+            f"invalid signature for method `__init__`",
             f'"proto_module_pb2" is a required argument, but was not provided',
             f"when a protobuf is specified in the api spec, then that means the grpc protocol is enabled, "
             f'which means that adding the "proto_module_pb2" argument is required',

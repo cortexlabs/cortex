@@ -183,9 +183,7 @@ def handle(request: Request):
     verb = request.method.lower()
     handle_fn_args = local_cache["handle_fn_args"]
     if verb not in handle_fn_args:
-        raise UserRuntimeException(
-            f'`handle_{verb}` method is not implemented'
-        )
+        raise UserRuntimeException(f"`handle_{verb}` method is not implemented")
 
     handler_impl = local_cache["handler_impl"]
     dynamic_batcher = None
@@ -263,10 +261,7 @@ def start():
 def start_fn():
     project_dir = os.environ["CORTEX_PROJECT_DIR"]
     spec_path = os.environ["CORTEX_API_SPEC"]
-
     model_dir = os.getenv("CORTEX_MODEL_DIR")
-    cache_dir = os.getenv("CORTEX_CACHE_DIR")
-    region = os.getenv("AWS_REGION")
 
     host_ip = os.environ["HOST_IP"]
     tf_serving_port = os.getenv("CORTEX_TF_BASE_SERVING_PORT", "9000")
@@ -289,7 +284,8 @@ def start_fn():
         datadog.initialize(statsd_host=host_ip, statsd_port=9125)
         statsd_client = datadog.statsd
 
-        _, api_spec = get_spec(spec_path, cache_dir, region)
+        with open(spec_path) as json_file:
+            api_spec = json.load(json_file)
         api = RealtimeAPI(api_spec, statsd_client, model_dir)
 
         client = api.initialize_client(

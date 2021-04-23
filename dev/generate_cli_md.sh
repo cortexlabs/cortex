@@ -37,6 +37,7 @@ commands=(
   "patch"
   "refresh"
   "delete"
+  "prepare-debug"
   "cluster up"
   "cluster info"
   "cluster scale"

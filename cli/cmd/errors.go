@@ -26,6 +26,7 @@ import (
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/urls"
 	"github.com/cortexlabs/cortex/pkg/types/clusterconfig"
+	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 )
 
 const (
@@ -67,6 +68,9 @@ const (
 	ErrShellCompletionNotSupported         = "cli.shell_completion_not_supported"
 	ErrNoTerminalWidth                     = "cli.no_terminal_width"
 	ErrDeployFromTopLevelDir               = "cli.deploy_from_top_level_dir"
+	ErrAPINameMustBeProvided               = "cli.api_name_must_be_provided"
+	ErrAPINotFoundInConfig                 = "cli.api_not_found_in_config"
+	ErrNotSupportedForKindAndType          = "cli.not_supported_for_kind_and_type"
 )
 
 func ErrorInvalidProvider(providerStr, cliConfigPath string) error {
@@ -265,5 +269,30 @@ func ErrorDeployFromTopLevelDir(genericDirName string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrDeployFromTopLevelDir,
 		Message: fmt.Sprintf("cannot deploy from your %s directory - when deploying your API, cortex sends all files in your project directory (i.e. the directory which contains cortex.yaml) to your cluster (see https://docs.cortex.dev/v/%s/); therefore it is recommended to create a subdirectory for your project files", genericDirName, consts.CortexVersionMinor),
+	})
+}
+
+func ErrorAPINameMustBeProvided() error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrAPINameMustBeProvided,
+		Message: fmt.Sprintf("multiple apis listed; please specify the name of an api"),
+	})
+}
+
+func ErrorAPINotFoundInConfig(apiName string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrAPINotFoundInConfig,
+		Message: fmt.Sprintf("api '%s' not found in config", apiName),
+	})
+}
+
+func ErrorNotSupportedForKindAndType(kind userconfig.Kind, predictorType userconfig.HandlerType) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrNotSupportedForKindAndType,
+		Message: fmt.Sprintf("this command is still in beta and currently only supports %s with type %s", userconfig.RealtimeAPIKind.String(), userconfig.PythonHandlerType.String()),
+		Metadata: map[string]interface{}{
+			"apiKind":       kind.String(),
+			"predictorType": predictorType.String(),
+		},
 	})
 }
