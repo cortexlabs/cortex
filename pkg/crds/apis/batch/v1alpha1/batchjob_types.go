@@ -92,19 +92,19 @@ type BatchJobStatus struct {
 	Status status.JobCode `json:"status,omitempty"`
 
 	// Detailed worker counts with respective status
-	WorkerCounts *WorkerCounts `json:"worker_counts,omitempty"`
+	WorkerCounts *status.WorkerCounts `json:"worker_counts,omitempty"`
 }
 
-// WorkerCounts keeps track of the worker counts per state
-type WorkerCounts struct {
-	Pending      int32 `json:"pending"`
-	Initializing int32 `json:"initializing"`
-	Running      int32 `json:"running"`
-	Succeeded    int32 `json:"succeeded"`
-	Failed       int32 `json:"failed"`
-	Stalled      int32 `json:"stalled"` // pending for a long time
-	Unknown      int32 `json:"unknown"`
-}
+// EnqueuingStatus is an enum for the different possible enqueuing status
+type EnqueuingStatus string
+
+// Possible EnqueuingStatus states
+const (
+	EnqueuingNotStarted EnqueuingStatus = "not_started"
+	EnqueuingInProgress EnqueuingStatus = "in_progress"
+	EnqueuingDone       EnqueuingStatus = "done"
+	EnqueuingFailed     EnqueuingStatus = "failed"
+)
 
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status

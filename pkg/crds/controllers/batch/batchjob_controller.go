@@ -178,21 +178,21 @@ func (r *BatchJobReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	}
 
 	switch enqueuingStatus {
-	case EnqueuingNotStarted:
+	case batch.EnqueuingNotStarted:
 		log.V(1).Info("enqueuing payload")
 		if err = r.enqueuePayload(ctx, batchJob, queueURL); err != nil {
 			log.Error(err, "failed to start enqueuing the payload")
 			return ctrl.Result{}, err
 		}
 		return ctrl.Result{}, nil
-	case EnqueuingInProgress:
+	case batch.EnqueuingInProgress:
 		// wait for enqueuing process to be reach a final state (done|failed)
 		return ctrl.Result{}, nil
-	case EnqueuingFailed:
+	case batch.EnqueuingFailed:
 		log.Info("failed to enqueue payload")
 	}
 
-	if !workerJobExists && enqueuingStatus == EnqueuingDone {
+	if !workerJobExists && enqueuingStatus == batch.EnqueuingDone {
 		log.V(1).Info("creating worker job")
 		if err = r.createWorkerJob(ctx, batchJob, queueURL); err != nil {
 			log.Error(err, "failed to create worker job")

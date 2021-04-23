@@ -56,21 +56,10 @@ const (
 
 type batchJobStatusInfo struct {
 	QueueExists     bool
-	EnqueuingStatus EnqueuingStatus
+	EnqueuingStatus batch.EnqueuingStatus
 	EnqueuerJob     *kbatch.Job
 	WorkerJob       *kbatch.Job
 }
-
-// EnqueuingStatus is an enum for the different possible enqueuing status
-type EnqueuingStatus string
-
-// Possible EnqueuingStatus states
-const (
-	EnqueuingNotStarted EnqueuingStatus = "not_started"
-	EnqueuingInProgress EnqueuingStatus = "in_progress"
-	EnqueuingDone       EnqueuingStatus = "done"
-	EnqueuingFailed     EnqueuingStatus = "failed"
-)
 
 func (r *BatchJobReconciler) checkIfQueueExists(batchJob batch.BatchJob) (bool, error) {
 	queueName := r.getQueueName(batchJob)
@@ -146,7 +135,7 @@ func (r *BatchJobReconciler) getQueueName(batchJob batch.BatchJob) string {
 		clusterconfig.SQSQueueDelimiter + batchJob.Name + ".fifo"
 }
 
-func (r *BatchJobReconciler) checkEnqueuingStatus(ctx context.Context, batchJob batch.BatchJob) (*kbatch.Job, EnqueuingStatus, error) {
+func (r *BatchJobReconciler) checkEnqueuingStatus(ctx context.Context, batchJob batch.BatchJob) (*kbatch.Job, batch.EnqueuingStatus, error) {
 	var enqueuerJob kbatch.Job
 	if err := r.Get(ctx,
 		client.ObjectKey{
@@ -156,7 +145,7 @@ func (r *BatchJobReconciler) checkEnqueuingStatus(ctx context.Context, batchJob 
 		&enqueuerJob,
 	); err != nil {
 		if kerrors.IsNotFound(err) {
-			return nil, EnqueuingNotStarted, nil
+			return nil, batch.EnqueuingNotStarted, nil
 		}
 		return nil, "", err
 	}
@@ -164,14 +153,14 @@ func (r *BatchJobReconciler) checkEnqueuingStatus(ctx context.Context, batchJob 
 	enqueuerStatus := enqueuerJob.Status
 	switch {
 	case enqueuerStatus.Failed > 0:
-		return &enqueuerJob, EnqueuingFailed, nil
+		return &enqueuerJob, batch.EnqueuingFailed, nil
 	case enqueuerStatus.Succeeded > 0:
-		return &enqueuerJob, EnqueuingDone, nil
+		return &enqueuerJob, batch.EnqueuingDone, nil
 	case enqueuerStatus.Active > 0:
-		return &enqueuerJob, EnqueuingInProgress, nil
+		return &enqueuerJob, batch.EnqueuingInProgress, nil
 	}
 
-	return &enqueuerJob, EnqueuingInProgress, nil
+	return &enqueuerJob, batch.EnqueuingInProgress, nil
 }
 
 func (r *BatchJobReconciler) enqueuePayload(ctx context.Context, batchJob batch.BatchJob, queueURL string) error {
@@ -380,11 +369,11 @@ func (r *BatchJobReconciler) updateStatus(ctx context.Context, batchJob *batch.B
 	}
 
 	switch statusInfo.EnqueuingStatus {
-	case EnqueuingNotStarted:
+	case batch.EnqueuingNotStarted:
 		batchJob.Status.Status = status.JobPending
-	case EnqueuingInProgress:
+	case batch.EnqueuingInProgress:
 		batchJob.Status.Status = status.JobEnqueuing
-	case EnqueuingFailed:
+	case batch.EnqueuingFailed:
 		batchJob.Status.Status = status.JobEnqueueFailed
 		batchJob.Status.EndTime = statusInfo.EnqueuerJob.Status.CompletionTime
 	}
