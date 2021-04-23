@@ -161,7 +161,7 @@ func GetMostRecentlySubmittedJobStates(apiName string, count int, kind userconfi
 
 	// job id -> file name -> last update timestamp
 	lastUpdatedMaps := map[string]map[string]time.Time{}
-	jobIDOrder := []string{}
+	var jobIDOrder []string
 	for _, object := range s3Objects {
 		if object == nil {
 			continue

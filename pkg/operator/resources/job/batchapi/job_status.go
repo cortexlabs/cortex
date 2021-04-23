@@ -17,15 +17,17 @@ limitations under the License.
 package batchapi
 
 import (
+	"context"
 	"time"
 
+	batch "github.com/cortexlabs/cortex/pkg/crds/apis/batch/v1alpha1"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 	"github.com/cortexlabs/cortex/pkg/operator/operator"
 	"github.com/cortexlabs/cortex/pkg/operator/resources/job"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/types/status"
-	kbatch "k8s.io/api/batch/v1"
-	kcore "k8s.io/api/core/v1"
+	"github.com/cortexlabs/cortex/pkg/types/userconfig"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 func GetJobStatus(jobKey spec.JobKey) (*status.BatchJobStatus, error) {
@@ -34,20 +36,16 @@ func GetJobStatus(jobKey spec.JobKey) (*status.BatchJobStatus, error) {
 		return nil, err
 	}
 
-	k8sJob, err := config.K8s.GetJob(jobKey.K8sName())
-	if err != nil {
+	ctx := context.Background()
+	var batchJob batch.BatchJob
+	if err = config.K8s.Get(ctx, client.ObjectKey{Name: jobKey.ID, Namespace: config.K8s.Namespace}, &batchJob); err != nil {
 		return nil, err
 	}
 
-	pods, err := config.K8s.ListPodsByLabels(map[string]string{"apiName": jobKey.APIName, "jobID": jobKey.ID})
-	if err != nil {
-		return nil, err
-	}
-
-	return getJobStatusFromJobState(jobState, k8sJob, pods)
+	return getJobStatusFromJobState(jobState, &batchJob)
 }
 
-func getJobStatusFromJobState(jobState *job.State, k8sJob *kbatch.Job, pods []kcore.Pod) (*status.BatchJobStatus, error) {
+func getJobStatusFromJobState(jobState *job.State, batchJob *batch.BatchJob) (*status.BatchJobStatus, error) {
 	jobKey := jobState.JobKey
 
 	jobSpec, err := operator.DownloadBatchJobSpec(jobKey)
@@ -55,13 +53,18 @@ func getJobStatusFromJobState(jobState *job.State, k8sJob *kbatch.Job, pods []kc
 		return nil, err
 	}
 
+	jobCode := jobState.Status
+	if batchJob != nil {
+		jobCode = batchJob.Status.Status
+	}
+
 	jobStatus := status.BatchJobStatus{
 		BatchJob: *jobSpec,
 		EndTime:  jobState.EndTime,
-		Status:   jobState.Status,
+		Status:   jobCode,
 	}
 
-	if jobState.Status.IsInProgress() {
+	if batchJob != nil && jobCode.IsInProgress() {
 		queueMetrics, err := getQueueMetrics(jobKey)
 		if err != nil {
 			return nil, err
@@ -69,22 +72,17 @@ func getJobStatusFromJobState(jobState *job.State, k8sJob *kbatch.Job, pods []kc
 
 		jobStatus.BatchesInQueue = queueMetrics.TotalUserMessages()
 
-		if jobState.Status == status.JobEnqueuing {
+		if batchJob.Status.Status == status.JobEnqueuing {
 			jobStatus.TotalBatchCount = queueMetrics.TotalUserMessages()
 		}
 
-		if jobState.Status == status.JobRunning {
+		if batchJob.Status.Status == status.JobRunning {
 			metrics, err := getBatchMetrics(jobKey, time.Now())
 			if err != nil {
 				return nil, err
 			}
 			jobStatus.BatchMetrics = &metrics
-
-			// There can be race conditions where the job state is temporarily out of sync with the cluster state
-			if k8sJob != nil {
-				workerCounts := job.GetWorkerCountsForJob(*k8sJob, pods)
-				jobStatus.WorkerCounts = &workerCounts
-			}
+			jobStatus.WorkerCounts = batchJob.Status.WorkerCounts
 		}
 	}
 
@@ -99,11 +97,15 @@ func getJobStatusFromJobState(jobState *job.State, k8sJob *kbatch.Job, pods []kc
 	return &jobStatus, nil
 }
 
-func getJobStatusFromK8sJob(jobKey spec.JobKey, k8sJob *kbatch.Job, pods []kcore.Pod) (*status.BatchJobStatus, error) {
-	jobState, err := job.GetJobState(jobKey)
+func getJobStatusFromK8sBatchJob(batchJob batch.BatchJob) (*status.BatchJobStatus, error) {
+	jobState, err := job.GetJobState(spec.JobKey{
+		ID:      batchJob.Name,
+		APIName: batchJob.Spec.APIName,
+		Kind:    userconfig.BatchAPIKind,
+	})
 	if err != nil {
 		return nil, err
 	}
 
-	return getJobStatusFromJobState(jobState, k8sJob, pods)
+	return getJobStatusFromJobState(jobState, &batchJob)
 }
