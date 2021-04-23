@@ -2,8 +2,8 @@
 
 <br>
 
-[Website](https://www.cortex.dev) • [Slack](https://community.cortex.dev) • [Docs](https://docs.cortex.dev)
-
 # Serverless computing at scale
 
 One platform for all your microservices, data processing, and machine learning workloads.
+
+[Website](https://www.cortex.dev) • [Slack](https://community.cortex.dev) • [Docs](https://docs.cortex.dev)
