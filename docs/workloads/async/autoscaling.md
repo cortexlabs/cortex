@@ -103,6 +103,6 @@ image and for the api to initialize (via its `__init__()` method).
 If you want the autoscaler to react as quickly as possible, set `upscale_stabilization_period` and `window` to their
 minimum values (0s and 10s respectively).
 
-If it takes a long time to initialize your API replica (i.e. install dependencies and run your predictor's `__init__()`
+If it takes a long time to initialize your API replica (i.e. install dependencies and run your handler's `__init__()`
 function), consider building your own API image to use instead of the default image. With this approach, you can
 pre-download/build/install any custom dependencies and bake them into the image.

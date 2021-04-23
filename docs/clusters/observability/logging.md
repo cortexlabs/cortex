@@ -72,7 +72,7 @@ enable you to add custom metadata to the logs.
 
 See the structured logging docs for each API kind:
 
-- [RealtimeAPI](../../workloads/realtime/predictors.md#structured-logging)
-- [AsyncAPI](../../workloads/async/predictors.md#structured-logging)
-- [BatchAPI](../../workloads/batch/predictors.md#structured-logging)
+- [RealtimeAPI](../../workloads/realtime/handler.md#structured-logging)
+- [AsyncAPI](../../workloads/async/handler.md#structured-logging)
+- [BatchAPI](../../workloads/batch/handler.md#structured-logging)
 - [TaskAPI](../../workloads/task/definitions.md#structured-logging)

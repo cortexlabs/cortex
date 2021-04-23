@@ -36,7 +36,7 @@ from cortex_internal.lib.log import configure_logger
 logger = configure_logger("cortex", os.environ["CORTEX_LOG_CONFIG_FILE"])
 
 
-class PythonClient:
+class ModelClient:
     def __init__(
         self,
         api_spec: dict,

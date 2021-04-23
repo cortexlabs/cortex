@@ -162,9 +162,9 @@ YOLO3_PATH=examples/tensorflow/license-plate-reader/yolov3_tf
 aws s3 cp yolov3/ "s3://$BUCKET/$YOLO3_PATH" --recursive
 ```
 
-### Configuring YOLOv3 Predictor
+### Configuring YOLOv3 Handler
 
-The `yolov3` API predictor requires a [config.json](config.json) file to configure the input size of the image (dependent on the model's architecture), the anchor boxes, the object threshold, and the IoU threshold. All of these are already set appropriately so no other change is required.
+The `yolov3` API handler requires a [config.json](config.json) file to configure the input size of the image (dependent on the model's architecture), the anchor boxes, the object threshold, and the IoU threshold. All of these are already set appropriately so no other change is required.
 
 The configuration file's content is based on [this](https://github.com/experiencor/keras-yolo3/blob/bf37c87561caeccc4f1b879e313d4a3fec1b987e/zoo/config_license_plates.json#L2-L7).
 

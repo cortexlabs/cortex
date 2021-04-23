@@ -28,7 +28,7 @@ from cortex_internal.lib.api.validations import (
     are_models_specified,
 )
 from cortex_internal.lib.api.utils import model_downloader, CortexMetrics
-from cortex_internal.lib.client.python import PythonClient
+from cortex_internal.lib.client.python import ModelClient
 from cortex_internal.lib.client.tensorflow import TensorFlowClient
 from cortex_internal.lib.exceptions import CortexException, UserException, UserRuntimeException
 from cortex_internal.lib.model import (
@@ -189,7 +189,7 @@ class RealtimeAPI:
 
     def initialize_client(
         self, tf_serving_host: Optional[str] = None, tf_serving_port: Optional[str] = None
-    ) -> Union[PythonClient, TensorFlowClient]:
+    ) -> Union[ModelClient, TensorFlowClient]:
         """
         Initialize client that gives access to models specified in the API spec (cortex.yaml).
         Only applies when models are provided in the API spec.
@@ -206,7 +206,7 @@ class RealtimeAPI:
 
         if are_models_specified(self.api_spec):
             if self.type == PythonHandlerType:
-                client = PythonClient(self.api_spec, self.models, self.model_dir, self.models_tree)
+                client = ModelClient(self.api_spec, self.models, self.model_dir, self.models_tree)
 
             if self.type in [TensorFlowHandlerType, TensorFlowNeuronHandlerType]:
                 tf_serving_address = tf_serving_host + ":" + tf_serving_port
@@ -226,7 +226,7 @@ class RealtimeAPI:
     def initialize_impl(
         self,
         project_dir: str,
-        client: Union[PythonClient, TensorFlowClient],
+        client: Union[ModelClient, TensorFlowClient],
         metrics_client: DogStatsd,
         proto_module_pb2: Optional[Any] = None,
         rpc_method_names: Optional[List[str]] = None,

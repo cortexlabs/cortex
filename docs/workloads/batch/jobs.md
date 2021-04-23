@@ -40,7 +40,7 @@ POST <batch_api_endpoint>:
             <any>,
             <any>
         ],
-        "batch_size": <int>,  # the number of items per batch (the predict() function is called once per batch) (required)
+        "batch_size": <int>,  # the number of items per batch (the handle_batch() function is called once per batch) (required)
     }
     "config": {               # custom fields for this specific job (will override values in `config` specified in your api configuration) (optional)
         "string": <any>
@@ -91,7 +91,7 @@ POST <batch_api_endpoint>:
         "s3_paths": [<string>],  # can be S3 prefixes or complete S3 paths (required)
         "includes": [<string>],  # glob patterns (optional)
         "excludes": [<string>],  # glob patterns (optional)
-        "batch_size": <int>,     # the number of S3 file paths per batch (the predict() function is called once per batch) (required)
+        "batch_size": <int>,     # the number of S3 file paths per batch (the handle_batch() function is called once per batch) (required)
     }
     "config": {                  # custom fields for this specific job (will override values in `config` specified in your api configuration) (optional)
         "string": <any>
@@ -141,7 +141,7 @@ POST <batch_api_endpoint>:
         "s3_paths": [<string>],  # can be S3 prefixes or complete S3 paths (required)
         "includes": [<string>],  # glob patterns (optional)
         "excludes": [<string>],  # glob patterns (optional)
-        "batch_size": <int>,     # the number of json objects per batch (the predict() function is called once per batch) (required)
+        "batch_size": <int>,     # the number of json objects per batch (the handle_batch() function is called once per batch) (required)
     }
     "config": {                  # custom fields for this specific job (will override values in `config` specified in your api configuration) (optional)
         "string": <any>
@@ -196,7 +196,7 @@ RESPONSE:
         },
         "worker_counts": {               # worker counts are only available while a job is running
             "pending": <int>,            # number of workers that are waiting for compute resources to be provisioned
-            "initializing": <int>,       # number of workers that are initializing (downloading images or running your predictor's init function)
+            "initializing": <int>,       # number of workers that are initializing (downloading images or running your handler's init function)
             "running": <int>,            # number of workers that are actively working on batches from the queue
             "succeeded": <int>,          # number of workers that have completed after verifying that the queue is empty
             "failed": <int>,             # number of workers that have failed
