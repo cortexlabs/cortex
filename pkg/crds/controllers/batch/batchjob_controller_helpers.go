@@ -22,6 +22,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"path/filepath"
+	"strconv"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -437,6 +438,11 @@ func (r *BatchJobReconciler) uploadJobSpec(batchJob batch.BatchJob, api spec.API
 		}
 	}
 
+	maxBatchCount, err := r.getMaxBatchCount(batchJob)
+	if err != nil {
+		return err
+	}
+
 	jobSpec := spec.BatchJob{
 		JobKey: spec.JobKey{
 			ID:      batchJob.Name,
@@ -448,11 +454,12 @@ func (r *BatchJobReconciler) uploadJobSpec(batchJob batch.BatchJob, api spec.API
 			SQSDeadLetterQueue: deadLetterQueue,
 			Config:             config,
 		},
-		APIID:       api.ID,
-		SpecID:      api.SpecID,
-		PredictorID: api.PredictorID,
-		SQSUrl:      queueURL,
-		StartTime:   batchJob.CreationTimestamp.Time,
+		APIID:           api.ID,
+		SpecID:          api.SpecID,
+		PredictorID:     api.PredictorID,
+		SQSUrl:          queueURL,
+		StartTime:       batchJob.CreationTimestamp.Time,
+		TotalBatchCount: maxBatchCount,
 	}
 
 	buffer := &bytes.Buffer{}
@@ -469,6 +476,21 @@ func (r *BatchJobReconciler) uploadJobSpec(batchJob batch.BatchJob, api spec.API
 		return err
 	}
 	return nil
+}
+
+func (r *BatchJobReconciler) getMaxBatchCount(batchJob batch.BatchJob) (int, error) {
+	key := spec.JobBatchCountKey(r.ClusterConfig.ClusterName, userconfig.BatchAPIKind, batchJob.Spec.APIName, batchJob.Name)
+	maxBatchCountBytes, err := r.AWS.ReadBytesFromS3(r.ClusterConfig.Bucket, key)
+	if err != nil {
+		return 0, err
+	}
+
+	maxBatchCount, err := strconv.Atoi(string(maxBatchCountBytes))
+	if err != nil {
+		return 0, err
+	}
+
+	return maxBatchCount, nil
 }
 
 func (r *BatchJobReconciler) jobSpecKey(batchJob batch.BatchJob) string {

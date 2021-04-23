@@ -123,5 +123,9 @@ func main() {
 		log.Fatal("failed to enqueue batches", zap.Error(err))
 	}
 
+	if err = enqueuer.UploadBatchCount(totalBatches); err != nil {
+		log.Fatal("failed to upload batch count", zap.Error(err))
+	}
+
 	log.Info("done enqueuing batches", zap.Int("batchCount", totalBatches))
 }

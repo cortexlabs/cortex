@@ -97,3 +97,7 @@ func JobAPIPrefix(clusterName string, kind userconfig.Kind, apiName string) stri
 func JobPayloadKey(clusterName string, kind userconfig.Kind, apiName string, jobId string) string {
 	return filepath.Join(JobAPIPrefix(clusterName, kind, apiName), jobId, "payload.json")
 }
+
+func JobBatchCountKey(clusterName string, kind userconfig.Kind, apiName string, jobId string) string {
+	return filepath.Join(JobAPIPrefix(clusterName, kind, apiName), jobId, "max_batch_count")
+}

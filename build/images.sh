@@ -39,6 +39,7 @@ non_dev_images=(
   "tensorflow-serving-gpu"
   "cluster-autoscaler"
   "operator"
+  "operator-crd"
   "istio-proxy"
   "istio-pilot"
   "fluent-bit"

@@ -29,6 +29,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/random"
+	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	"go.uber.org/zap"
@@ -151,7 +152,16 @@ func (e *Enqueuer) Enqueue() (int, error) {
 		return 0, errors.Wrap(err, "failed to enqueue job_complete placeholder")
 	}
 
+	if err = e.deleteJobPayload(); err != nil {
+		return 0, err
+	}
+
 	return totalBatches, nil
+}
+
+func (e *Enqueuer) UploadBatchCount(batchCount int) error {
+	key := spec.JobBatchCountKey(e.clusterEnv.ClusterName, userconfig.BatchAPIKind, e.clusterEnv.APIName, e.clusterEnv.JobID)
+	return e.aws.UploadStringToS3(s.Int(batchCount), e.clusterEnv.Bucket, key)
 }
 
 func (e *Enqueuer) getJobPayload() (JobSubmission, error) {
@@ -174,6 +184,14 @@ func (e *Enqueuer) getJobPayload() (JobSubmission, error) {
 	}
 
 	return submission, nil
+}
+
+func (e *Enqueuer) deleteJobPayload() error {
+	key := spec.JobPayloadKey(e.clusterEnv.ClusterName, userconfig.BatchAPIKind, e.clusterEnv.APIName, e.clusterEnv.JobID)
+	if err := e.aws.DeleteS3File(e.clusterEnv.Bucket, key); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (e *Enqueuer) enqueueItems(itemList *ItemList) (int, error) {
@@ -337,7 +355,7 @@ func (e *Enqueuer) streamJSONToQueue(uploader *sqsBatchUploader, bytesBuffer *by
 			break
 		} else if err == io.ErrUnexpectedEOF {
 			bytesBuffer.Reset()
-			bytesBuffer.ReadFrom(dec.Buffered())
+			_, _ = bytesBuffer.ReadFrom(dec.Buffered())
 			return io.ErrUnexpectedEOF
 		} else if err != nil {
 			return errors.Wrap(err, fmt.Sprintf("item %d", *itemIndex))
