@@ -1,1 +1,1 @@
-[cortex.dev](https://cortex.dev)
+**[cortex.dev](https://cortex.dev)**
