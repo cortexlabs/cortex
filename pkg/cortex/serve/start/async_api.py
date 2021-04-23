@@ -17,10 +17,11 @@ import pathlib
 import sys
 import time
 from typing import Dict, Any
+import json
 
 import boto3
 
-from cortex_internal.lib.api import get_spec
+from cortex_internal.lib.storage import S3
 from cortex_internal.lib.api.async_api import AsyncAPI
 from cortex_internal.lib.exceptions import UserRuntimeException
 from cortex_internal.lib.log import configure_logger
@@ -110,12 +111,17 @@ def main():
     tf_serving_host = os.getenv("CORTEX_TF_SERVING_HOST")
     tf_serving_port = os.getenv("CORTEX_TF_BASE_SERVING_PORT")
 
-    storage, api_spec = get_spec(api_spec_path, cache_dir, region)
+    bucket, key = S3.deconstruct_s3_path(workload_path)
+    storage = S3(bucket=bucket, region=region)
+
+    with open(api_spec_path) as json_file:
+        api_spec = json.load(json_file)
+
     sqs_client = boto3.client("sqs", region_name=region)
     api = AsyncAPI(
         api_spec=api_spec,
         storage=storage,
-        storage_path=workload_path,
+        storage_path=key,
         statsd_host=statsd_host,
         statsd_port=int(statsd_port),
         model_dir=model_dir,
