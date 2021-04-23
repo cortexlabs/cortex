@@ -59,7 +59,7 @@ func realtimeAPITable(realtimeAPI schema.APIResponse, env cliconfig.Environment)
 	}
 
 	if !(realtimeAPI.Spec.Handler.Type == userconfig.PythonHandlerType && realtimeAPI.Spec.Handler.MultiModelReloading == nil) && realtimeAPI.Spec.Handler.ProtobufPath == nil {
-		decribedModels := describeModelInput(realtimeAPI.Status, realtimeAPI.RealtimeModelMetadata.APITFModelSummary, realtimeAPI.RealtimeModelMetadata.APIPythonModelSummary)
+		decribedModels := describeModelInput(realtimeAPI.Status, realtimeAPI.RealtimeModelMetadata.TFModelSummary, realtimeAPI.RealtimeModelMetadata.PythonModelSummary)
 		if decribedModels != "" {
 			out += "\n" + decribedModels
 		}
@@ -160,7 +160,7 @@ func code5XXStr(metrics *metrics.Metrics) string {
 	return s.Int(metrics.NetworkStats.Code5XX)
 }
 
-func describeModelInput(status *status.Status, apiTFLiveReloadingSummary *schema.APITFLiveReloadingSummary, apiModelSummary *schema.APIModelSummary) string {
+func describeModelInput(status *status.Status, apiTFLiveReloadingSummary *schema.TFLiveReloadingSummary, apiModelSummary *schema.PythonModelSummary) string {
 	if status.Updated.Ready+status.Stale.Ready == 0 {
 		return "the models' metadata schema will be available when the api is live\n"
 	}
@@ -220,7 +220,7 @@ func makeRequest(request *http.Request) (http.Header, []byte, error) {
 	return response.Header, bodyBytes, nil
 }
 
-func parseAPIModelSummary(summary *schema.APIModelSummary) (string, error) {
+func parseAPIModelSummary(summary *schema.PythonModelSummary) (string, error) {
 	rows := make([][]interface{}, 0)
 
 	for modelName, modelMetadata := range summary.ModelMetadata {
@@ -277,7 +277,7 @@ func parseAPIModelSummary(summary *schema.APIModelSummary) (string, error) {
 	return t.MustFormat(), nil
 }
 
-func parseAPITFLiveReloadingSummary(summary *schema.APITFLiveReloadingSummary) (string, error) {
+func parseAPITFLiveReloadingSummary(summary *schema.TFLiveReloadingSummary) (string, error) {
 	latestVersions := make(map[string]int64)
 
 	numRows := 0

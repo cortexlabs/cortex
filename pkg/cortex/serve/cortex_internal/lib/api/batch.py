@@ -51,7 +51,7 @@ PYTHON_CLASS_VALIDATION = {
         },
     ],
     "optional": [
-        {"name": "handle_on_job_complete", "required_args": ["self"]},
+        {"name": "on_job_complete", "required_args": ["self"]},
     ],
 }
 
@@ -69,7 +69,7 @@ TENSORFLOW_CLASS_VALIDATION = {
         },
     ],
     "optional": [
-        {"name": "handle_on_job_complete", "required_args": ["self"]},
+        {"name": "on_job_complete", "required_args": ["self"]},
     ],
 }
 
@@ -132,13 +132,11 @@ class BatchAPI:
         client: TensorFlowClient,
         metrics_client: DogStatsd,
         job_spec: Optional[Dict[str, Any]] = None,
-        proto_module_pb2: Optional[Any] = None,
     ):
         """
         Initialize handler class as provided by the user.
 
         job_spec is a dictionary when the "kind" of the API is set to "BatchAPI". Otherwise, it's None.
-        proto_module_pb2 is a module of the compiled proto when grpc is enabled for the "RealtimeAPI" kind. Otherwise, it's None.
 
         Can raise UserRuntimeException/UserException/CortexException.
         """
@@ -156,8 +154,6 @@ class BatchAPI:
             args["job_spec"] = job_spec
         if "metrics_client" in constructor_args:
             args["metrics_client"] = metrics_client
-        if "proto_module_pb2" in constructor_args:
-            args["proto_module_pb2"] = proto_module_pb2
 
         # initialize handler class
         try:

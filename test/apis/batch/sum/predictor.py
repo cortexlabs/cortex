@@ -19,6 +19,6 @@ class Handler:
         for numbers_list in payload:
             self.list.append(sum(numbers_list))
 
-    def handle_on_job_complete(self):
+    def on_job_complete(self):
         json_output = json.dumps(self.list)
         self.s3.put_object(Bucket=self.bucket, Key=f"{self.key}.json", Body=json_output)

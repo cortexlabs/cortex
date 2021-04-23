@@ -621,8 +621,8 @@ func GetAPI(apiName string) ([]schema.APIResponse, error) {
 			return apiResponse, nil
 		}
 
-		apiResponse[0].RealtimeModelMetadata.APITFModelSummary = apiTFModelSummary
-		apiResponse[0].RealtimeModelMetadata.APIPythonModelSummary = apiPythonModelSummary
+		apiResponse[0].RealtimeModelMetadata.TFModelSummary = apiTFModelSummary
+		apiResponse[0].RealtimeModelMetadata.PythonModelSummary = apiPythonModelSummary
 	}
 
 	return apiResponse, nil

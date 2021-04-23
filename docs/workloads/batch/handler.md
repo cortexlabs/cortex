@@ -76,7 +76,7 @@ class Handler:
         """
         pass
 
-    def handle_on_job_complete(self):
+    def on_job_complete(self):
         """(Optional) Called once after all batches in the job have been
         processed. Performs post job completion tasks such as aggregating
         results, executing web hooks, or triggering other jobs.
@@ -114,7 +114,7 @@ A default [Cortex Python client](../../clients/python.md#cortex.client.client) e
 import cortex
 
 class Handler:
-    def handle_on_job_complete(self):
+    def on_job_complete(self):
         ...
         # get client pointing to the default environment
         client = cortex.client()

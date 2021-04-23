@@ -87,11 +87,11 @@ type ErrorResponse struct {
 }
 
 type RealtimeModelMetadata struct {
-	APITFModelSummary     *APITFLiveReloadingSummary `json:"tf_model_summary"`
-	APIPythonModelSummary *APIModelSummary           `json:"python_model_summary"`
+	TFModelSummary     *TFLiveReloadingSummary `json:"tf_model_summary"`
+	PythonModelSummary *PythonModelSummary     `json:"python_model_summary"`
 }
 
-type APITFLiveReloadingSummary struct {
+type TFLiveReloadingSummary struct {
 	ModelMetadata map[string]TFModelIDMetadata `json:"model_metadata"`
 }
 
@@ -108,7 +108,7 @@ type InputSignature struct {
 	Type  string        `json:"type"`
 }
 
-type APIModelSummary struct {
+type PythonModelSummary struct {
 	ModelMetadata map[string]GenericModelMetadata `json:"model_metadata"`
 }
 

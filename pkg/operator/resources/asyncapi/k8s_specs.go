@@ -163,7 +163,7 @@ func apiDeploymentSpec(api spec.API, prevDeployment *kapps.Deployment, queueURL 
 	switch api.Handler.Type {
 	case userconfig.PythonHandlerType:
 		containers, volumes = operator.AsyncPythonHandlerContainers(api, queueURL)
-	case userconfig.TensorHandlerType:
+	case userconfig.TensorFlowHandlerType:
 		containers, volumes = operator.AsyncTensorflowHandlerContainers(api, queueURL)
 	default:
 		panic(fmt.Sprintf("invalid handler type: %s", api.Handler.Type))

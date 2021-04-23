@@ -906,7 +906,7 @@ func validateHandler(
 		if err := validatePythonHandler(api, models, awsClient); err != nil {
 			return err
 		}
-	case userconfig.TensorHandlerType:
+	case userconfig.TensorFlowHandlerType:
 		if err := validateTensorFlowHandler(api, models, awsClient); err != nil {
 			return err
 		}

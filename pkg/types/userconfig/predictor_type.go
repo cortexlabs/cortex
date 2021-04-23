@@ -21,7 +21,7 @@ type HandlerType int
 const (
 	UnknownHandlerType HandlerType = iota
 	PythonHandlerType
-	TensorHandlerType
+	TensorFlowHandlerType
 )
 
 var _handlerTypes = []string{

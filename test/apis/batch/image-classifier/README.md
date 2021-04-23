@@ -85,7 +85,7 @@ class Handler:
         # save results
         self.s3.put_object(Bucket=self.bucket, Key=f"{self.key}/{batch_id}.json", Body=json_output)
 
-    def handle_on_job_complete(self):
+    def on_job_complete(self):
         all_results = []
 
         # aggregate all classifications

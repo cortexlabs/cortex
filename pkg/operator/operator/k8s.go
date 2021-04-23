@@ -117,7 +117,7 @@ func InitContainer(api *spec.API) kcore.Container {
 	downloadArgs := ""
 
 	switch api.Handler.Type {
-	case userconfig.TensorHandlerType:
+	case userconfig.TensorFlowHandlerType:
 		downloadArgs = tfDownloadArgs(api)
 	case userconfig.PythonHandlerType:
 		downloadArgs = pythonDownloadArgs(api)
@@ -654,7 +654,7 @@ func getAsyncAPIEnvVars(api spec.API, queueURL string) []kcore.EnvVar {
 		},
 	)
 
-	if api.Handler.Type == userconfig.TensorHandlerType {
+	if api.Handler.Type == userconfig.TensorFlowHandlerType {
 		envVars = append(envVars,
 			kcore.EnvVar{
 				Name:  "CORTEX_TF_BASE_SERVING_PORT",
@@ -706,7 +706,7 @@ func getAsyncAPIEnvVars(api spec.API, queueURL string) []kcore.EnvVar {
 			},
 		)
 
-		if api.Handler.Type == userconfig.TensorHandlerType {
+		if api.Handler.Type == userconfig.TensorFlowHandlerType {
 			envVars = append(envVars,
 				kcore.EnvVar{
 					Name:  "CORTEX_MULTIPLE_TF_SERVERS",
@@ -864,7 +864,7 @@ func getEnvVars(api *spec.API, container string) []kcore.EnvVar {
 			Value: cortexPythonPath,
 		})
 
-		if api.Handler.Type == userconfig.TensorHandlerType {
+		if api.Handler.Type == userconfig.TensorFlowHandlerType {
 			envVars = append(envVars,
 				kcore.EnvVar{
 					Name:  "CORTEX_TF_BASE_SERVING_PORT",
@@ -912,7 +912,7 @@ func getEnvVars(api *spec.API, container string) []kcore.EnvVar {
 
 	if api.Compute.Inf > 0 {
 		if (api.Handler.Type == userconfig.PythonHandlerType && container == APIContainerName) ||
-			(api.Handler.Type == userconfig.TensorHandlerType && container == _tfServingContainerName) {
+			(api.Handler.Type == userconfig.TensorFlowHandlerType && container == _tfServingContainerName) {
 			envVars = append(envVars,
 				kcore.EnvVar{
 					Name:  "NEURONCORE_GROUP_SIZES",
@@ -925,7 +925,7 @@ func getEnvVars(api *spec.API, container string) []kcore.EnvVar {
 			)
 		}
 
-		if api.Handler.Type == userconfig.TensorHandlerType {
+		if api.Handler.Type == userconfig.TensorFlowHandlerType {
 			if container == _tfServingContainerName {
 				envVars = append(envVars,
 					kcore.EnvVar{

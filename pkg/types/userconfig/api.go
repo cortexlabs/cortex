@@ -176,7 +176,7 @@ func (api *API) applyHandlerDefaultDockerPaths(usesGPU, usesInf bool) {
 				handler.Image = consts.DefaultImagePythoHandlerCPU
 			}
 		}
-	case TensorHandlerType:
+	case TensorFlowHandlerType:
 		if handler.Image == "" {
 			handler.Image = consts.DefaultImageTensorFlowHandler
 		}
@@ -433,7 +433,7 @@ func (handler *Handler) UserStr() string {
 		sb.WriteString(s.Indent(handler.MultiModelReloading.UserStr(), "  "))
 	}
 
-	if handler.Type == TensorHandlerType && handler.ServerSideBatching != nil {
+	if handler.Type == TensorFlowHandlerType && handler.ServerSideBatching != nil {
 		sb.WriteString(fmt.Sprintf("%s:\n", ServerSideBatchingKey))
 		sb.WriteString(s.Indent(handler.ServerSideBatching.UserStr(), "  "))
 	}

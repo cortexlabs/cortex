@@ -37,7 +37,7 @@ const _operatorService = "operator"
 
 func k8sJobSpec(api *spec.API, job *spec.BatchJob) (*kbatch.Job, error) {
 	switch api.Handler.Type {
-	case userconfig.TensorHandlerType:
+	case userconfig.TensorFlowHandlerType:
 		return tensorFlowHandlerJobSpec(api, job)
 	case userconfig.PythonHandlerType:
 		return pythonHandlerJobSpec(api, job)

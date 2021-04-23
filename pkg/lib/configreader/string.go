@@ -279,24 +279,28 @@ func ValidateStringVal(val string, v *StringValidation) error {
 		}
 	}
 
-	matchedPrefixes := 0
-	for _, allowedPrefix := range v.AllowedPrefixes {
-		if strings.HasPrefix(val, allowedPrefix) {
-			matchedPrefixes++
+	if len(v.AllowedPrefixes) > 0 {
+		matchedPrefixes := 0
+		for _, allowedPrefix := range v.AllowedPrefixes {
+			if strings.HasPrefix(val, allowedPrefix) {
+				matchedPrefixes++
+			}
 		}
-	}
-	if len(v.AllowedPrefixes) > 0 && matchedPrefixes == 0 {
-		return ErrorMustHavePrefix(val, v.AllowedPrefixes[0], v.AllowedPrefixes[1:]...)
+		if matchedPrefixes == 0 {
+			return ErrorMustHavePrefix(val, v.AllowedPrefixes[0], v.AllowedPrefixes[1:]...)
+		}
 	}
 
-	matchedSuffixes := 0
-	for _, allowedSuffix := range v.AllowedSuffixes {
-		if strings.HasSuffix(val, allowedSuffix) {
-			matchedSuffixes++
+	if len(v.AllowedSuffixes) > 0 {
+		matchedSuffixes := 0
+		for _, allowedSuffix := range v.AllowedSuffixes {
+			if strings.HasSuffix(val, allowedSuffix) {
+				matchedSuffixes++
+			}
 		}
-	}
-	if len(v.AllowedSuffixes) > 0 && matchedSuffixes == 0 {
-		return ErrorMustHaveSuffix(val, v.AllowedSuffixes[0], v.AllowedSuffixes[1:]...)
+		if matchedSuffixes == 0 {
+			return ErrorMustHaveSuffix(val, v.AllowedSuffixes[0], v.AllowedSuffixes[1:]...)
+		}
 	}
 
 	if v.DisallowLeadingWhitespace {

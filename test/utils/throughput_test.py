@@ -22,7 +22,7 @@ from validator_collection import checkers
     type=int,
     default=1,
     show_default=True,
-    help="Number of processes for compute requests.",
+    help="Number of processes for requests.",
 )
 @click.option(
     "--threads",
@@ -30,7 +30,7 @@ from validator_collection import checkers
     type=int,
     default=1,
     show_default=True,
-    help="Number of threads per process for compute requests.",
+    help="Number of threads per process for requests.",
 )
 @click.option(
     "--samples",

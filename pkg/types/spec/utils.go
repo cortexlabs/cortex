@@ -99,7 +99,7 @@ func generateErrorForHandlerTypeFn(api *userconfig.API) errorForHandlerTypeFn {
 		switch api.Handler.Type {
 		case userconfig.PythonHandlerType:
 			return ErrorInvalidPythonModelPath(modelPrefix, modelPaths)
-		case userconfig.TensorHandlerType:
+		case userconfig.TensorFlowHandlerType:
 			return ErrorInvalidTensorFlowModelPath(modelPrefix, api.Compute.Inf > 0, modelPaths)
 		}
 		return nil

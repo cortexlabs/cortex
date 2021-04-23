@@ -137,13 +137,13 @@ def handle_batch_failure(message):
     log.exception(f"failed processing batch {message['MessageId']}")
 
 
-def handle_on_job_complete(message):
+def on_job_complete(message):
     job_spec = local_cache["job_spec"]
     handler_impl = local_cache["handler_impl"]
     sqs_client = local_cache["sqs_client"]
     queue_url = job_spec["sqs_url"]
 
-    should_run_handle_on_job_complete = False
+    should_run_on_job_complete = False
 
     while True:
         visible_messages, invisible_messages = get_total_messages_in_queue(
@@ -166,15 +166,15 @@ def handle_on_job_complete(message):
             )
             break
         else:
-            if should_run_handle_on_job_complete:
-                if getattr(handler_impl, "handle_on_job_complete", None):
-                    log.info("executing handle_on_job_complete")
+            if should_run_on_job_complete:
+                if getattr(handler_impl, "on_job_complete", None):
+                    log.info("executing on_job_complete")
                     try:
-                        handler_impl.handle_on_job_complete()
+                        handler_impl.on_job_complete()
                     except Exception as err:
                         raise UserRuntimeException from err
                 break
-            should_run_handle_on_job_complete = True
+            should_run_on_job_complete = True
 
         time.sleep(10)  # verify that the queue is empty one more time
 
@@ -258,7 +258,7 @@ def start():
         sqs_handler.start(
             message_fn=handle_batch_message,
             message_failure_fn=handle_batch_failure,
-            handle_on_job_complete_fn=handle_on_job_complete,
+            on_job_complete_fn=on_job_complete,
         )
     except UserRuntimeException as err:
         err.wrap(f"failed to run job {job_spec['job_id']}")

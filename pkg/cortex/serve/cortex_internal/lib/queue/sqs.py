@@ -52,7 +52,7 @@ class SQSHandler:
         self,
         message_fn: Callable[[Dict[str, Any]], None],
         message_failure_fn: Callable[[Dict[str, Any]], None],
-        handle_on_job_complete_fn: Optional[Callable[[Dict[str, Any]], None]] = None,
+        on_job_complete_fn: Optional[Callable[[Dict[str, Any]], None]] = None,
     ):
         no_messages_found_in_previous_iteration = False
         signal_handler = SignalHandler()
@@ -89,7 +89,7 @@ class SQSHandler:
             renewer.start()
 
             if is_on_job_complete(message):
-                self._handle_on_job_complete(message, handle_on_job_complete_fn)
+                self._on_job_complete(message, on_job_complete_fn)
             else:
                 self._handle_message(message, message_fn, message_failure_fn)
 
@@ -158,7 +158,7 @@ class SQSHandler:
                     QueueUrl=self.queue_url, ReceiptHandle=receipt_handle
                 )
 
-    def _handle_on_job_complete(self, message, callback_fn):
+    def _on_job_complete(self, message, callback_fn):
         receipt_handle = message["ReceiptHandle"]
         try:
             callback_fn(message)

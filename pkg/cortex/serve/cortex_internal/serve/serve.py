@@ -35,7 +35,7 @@ from starlette.responses import JSONResponse, PlainTextResponse, Response
 from cortex_internal.lib import util
 from cortex_internal.lib.api import get_spec, DynamicBatcher, RealtimeAPI
 from cortex_internal.lib.concurrency import FileLock, LockedFile
-from cortex_internal.lib.exceptions import UserRuntimeException
+from cortex_internal.lib.exceptions import UserException, UserRuntimeException
 from cortex_internal.lib.log import configure_logger
 from cortex_internal.lib.metrics import MetricsClient
 from cortex_internal.lib.telemetry import capture_exception, get_default_tags, init_sentry
@@ -184,7 +184,7 @@ def handle(request: Request):
     handle_fn_args = local_cache["handle_fn_args"]
     if verb not in handle_fn_args:
         raise UserRuntimeException(
-            f'used HTTP verb is "{verb}", but the available ones are {util.and_list_with_quotes(list(handle_fn_args))}'
+            f'`handle_{verb}` method is not implemented'
         )
 
     handler_impl = local_cache["handler_impl"]
@@ -216,7 +216,7 @@ def handle(request: Request):
             raise UserRuntimeException(
                 str(e),
                 "please return an object that is JSON serializable (including its nested fields), a bytes object, "
-                "a string, or a starlette.response.Response object",
+                "a string, or a `starlette.response.Response` object",
             ) from e
         response = Response(content=json_string, media_type="application/json")
 
@@ -241,6 +241,8 @@ def build_handler_kwargs(request: Request):
 
 
 def get_summary():
+    response = {}
+
     if hasattr(local_cache["client"], "metadata"):
         client = local_cache["client"]
         response = {
@@ -321,8 +323,8 @@ def start_fn():
                     getattr(handler_impl, f"handle_{verb}")
                 ).args
         if len(local_cache["handle_fn_args"]) == 0:
-            raise UserRuntimeException(
-                "no user-defined handle_<verb> method found in handler class; define at least one verb handler (post, get, put, patch, delete)"
+            raise UserException(
+                "no user-defined `handle_<verb>` method found in handler class; define at least one verb handler (`handle_post`, `handle_get`, `handle_put`, `handle_patch`, `handle_delete`)"
             )
 
         if api.python_server_side_batching_enabled:
@@ -335,6 +337,10 @@ def start_fn():
                     max_batch_size=dynamic_batching_config["max_batch_size"],
                     batch_interval=dynamic_batching_config["batch_interval"]
                     / NANOSECONDS_IN_SECOND,  # convert nanoseconds to seconds
+                )
+            else:
+                raise UserException(
+                    "dynamic batcher has been enabled, but no `handle_post` method could be found in the `Handler` class"
                 )
 
         local_cache["api_route"] = "/"

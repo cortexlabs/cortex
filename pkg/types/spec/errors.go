@@ -389,12 +389,12 @@ or like
 `
 
 func ErrorInvalidTensorFlowModelPath(modelPath string, neuronExport bool, modelSubPaths []string) error {
-	handlerType := userconfig.TensorHandlerType.CasedString()
+	handlerType := userconfig.TensorFlowHandlerType.CasedString()
 	if neuronExport {
 		handlerType = "Neuron " + handlerType
 	}
 	message := fmt.Sprintf("%s: invalid %s model path.", modelPath, handlerType)
-	message += " " + fmt.Sprintf("For models provided for the %s handler type, the path must be a directory with one of the following structures:\n", userconfig.TensorHandlerType)
+	message += " " + fmt.Sprintf("For models provided for the %s handler type, the path must be a directory with one of the following structures:\n", userconfig.TensorFlowHandlerType)
 
 	if !neuronExport {
 		message += fmt.Sprintf(_tfVersionedExpectedStructMessage, modelPath, modelPath)

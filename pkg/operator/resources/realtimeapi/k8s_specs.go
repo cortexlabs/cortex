@@ -31,7 +31,7 @@ var _terminationGracePeriodSeconds int64 = 60 // seconds
 
 func deploymentSpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deployment {
 	switch api.Handler.Type {
-	case userconfig.TensorHandlerType:
+	case userconfig.TensorFlowHandlerType:
 		return tensorflowAPISpec(api, prevDeployment)
 	case userconfig.PythonHandlerType:
 		return pythonAPISpec(api, prevDeployment)
