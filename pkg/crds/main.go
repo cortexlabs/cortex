@@ -18,6 +18,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"os"
 	"strings"
 
@@ -28,6 +29,8 @@ import (
 	awslib "github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/hash"
 	"github.com/cortexlabs/cortex/pkg/types/clusterconfig"
+	promapi "github.com/prometheus/client_golang/api"
+	promv1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
@@ -53,11 +56,15 @@ func main() {
 		metricsAddr          string
 		enableLeaderElection bool
 		clusterConfigPath    string
+		prometheusURL        string
 	)
 	flag.StringVar(&metricsAddr, "metrics-addr", ":8080", "The address the metric endpoint binds to.")
 	flag.StringVar(&clusterConfigPath, "config", os.Getenv("CORTEX_CLUSTER_CONFIG_PATH"),
 		"The path to the cluster config yaml file. "+
 			"Can be set with the CORTEX_CLUSTER_CONFIG_PATH env variable. [Required]",
+	)
+	flag.StringVar(&prometheusURL, "prometheus-url", os.Getenv("CORTEX_PROMETHEUS_URL"),
+		"Prometheus server URL",
 	)
 	flag.BoolVar(&enableLeaderElection, "enable-leader-election", false,
 		"Enable leader election for controller manager. "+
@@ -76,6 +83,10 @@ func main() {
 	if err != nil {
 		setupLog.Error(err, "failed to initialize cluster config")
 		os.Exit(1)
+	}
+
+	if prometheusURL == "" {
+		prometheusURL = fmt.Sprintf("http://prometheus.%s:9090", clusterConfig.Namespace)
 	}
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
@@ -111,6 +122,12 @@ func main() {
 		IsOperatorInCluster: strings.ToLower(os.Getenv("CORTEX_OPERATOR_IN_CLUSTER")) != "false",
 	}
 
+	promClient, err := promapi.NewClient(promapi.Config{Address: prometheusURL})
+	if err != nil {
+		setupLog.Error(err, "failed to initialize prometheus client")
+		os.Exit(1)
+	}
+
 	// initialize some of the global values for the k8s helpers
 	controllers.Init(clusterConfig, operatorMetadata)
 
@@ -119,6 +136,7 @@ func main() {
 		Log:           ctrl.Log.WithName("controllers").WithName("BatchJob"),
 		ClusterConfig: clusterConfig,
 		AWS:           awsClient,
+		Prometheus:    promv1.NewAPI(promClient),
 		Scheme:        mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "BatchJob")

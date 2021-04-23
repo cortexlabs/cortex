@@ -20,22 +20,24 @@ import (
 	"context"
 	"time"
 
+	batch "github.com/cortexlabs/cortex/pkg/crds/apis/batch/v1alpha1"
 	"github.com/cortexlabs/cortex/pkg/crds/controllers"
 	awslib "github.com/cortexlabs/cortex/pkg/lib/aws"
+	"github.com/cortexlabs/cortex/pkg/lib/slices"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/types/clusterconfig"
 	"github.com/go-logr/logr"
+	promv1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	kbatch "k8s.io/api/batch/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-
-	batch "github.com/cortexlabs/cortex/pkg/crds/apis/batch/v1alpha1"
 )
 
 const (
 	_sqsFinalizer                 = "sqs.finalizers.batch.cortex.dev"
+	_s3Finalizer                  = "s3.finalizers.batch.cortex.dev"
 	_completedTimestampAnnotation = "batch.cortex.dev/completed_timestamp"
 )
 
@@ -45,6 +47,7 @@ type BatchJobReconciler struct {
 	Log           logr.Logger
 	AWS           *awslib.Client
 	ClusterConfig *clusterconfig.Config
+	Prometheus    promv1.API
 	Scheme        *runtime.Scheme
 }
 
@@ -69,11 +72,12 @@ func (r *BatchJobReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	// Step 2: create finalizer or handle deletion
 	if batchJob.ObjectMeta.DeletionTimestamp.IsZero() {
 		// The object is not being deleted, so we add our finalizer if it does not exist yet,
-		if !s.SliceContains(batchJob.ObjectMeta.Finalizers, _sqsFinalizer) {
-			log.V(1).Info("adding finalizer")
-			batchJob.ObjectMeta.Finalizers = append(batchJob.ObjectMeta.Finalizers, _sqsFinalizer)
+		if !slices.HasString(batchJob.ObjectMeta.Finalizers, _sqsFinalizer) &&
+			!slices.HasString(batchJob.ObjectMeta.Finalizers, _s3Finalizer) {
+			log.V(1).Info("adding finalizers")
+			batchJob.ObjectMeta.Finalizers = append(batchJob.ObjectMeta.Finalizers, _sqsFinalizer, _s3Finalizer)
 			if err := r.Update(ctx, &batchJob); err != nil {
-				log.Error(err, "failed to add finalizer to resource")
+				log.Error(err, "failed to add finalizers to resource")
 				return ctrl.Result{}, err
 			}
 		}
@@ -87,14 +91,30 @@ func (r *BatchJobReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 				return ctrl.Result{}, err
 			}
 
-			log.V(1).Info("removing finalizer")
+			log.V(1).Info("removing sqs finalizer")
 			// remove our finalizer from the list and update it.
 			batchJob.ObjectMeta.Finalizers = s.RemoveFromSlice(batchJob.ObjectMeta.Finalizers, _sqsFinalizer)
 			if err := r.Update(ctx, &batchJob); err != nil {
-				log.Error(err, "failed to remove finalizer from resource")
+				log.Error(err, "failed to remove sqs finalizer from resource")
 				return ctrl.Result{}, err
 			}
 		}
+
+		if s.SliceContains(batchJob.ObjectMeta.Finalizers, _s3Finalizer) {
+			log.V(1).Info("persisting job to S3")
+			if err := r.persistJobToS3(batchJob); err != nil {
+				log.Error(err, "failed to persist job to S3")
+				return ctrl.Result{}, err
+			}
+
+			log.V(1).Info("removing S3 finalizer")
+			batchJob.ObjectMeta.Finalizers = s.RemoveFromSlice(batchJob.ObjectMeta.Finalizers, _s3Finalizer)
+			if err := r.Update(ctx, &batchJob); err != nil {
+				log.Error(err, "failed to remove S3 finalizer from resource")
+				return ctrl.Result{}, err
+			}
+		}
+
 		return ctrl.Result{}, nil
 	}
 

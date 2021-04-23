@@ -14,17 +14,15 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package batchapi
+package v1alpha1
 
 import (
 	"context"
 	"fmt"
-	"path"
 	"time"
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/parallel"
-	"github.com/cortexlabs/cortex/pkg/operator/config"
 	"github.com/cortexlabs/cortex/pkg/types/metrics"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 	promv1 "github.com/prometheus/client_golang/api/prometheus/v1"
@@ -33,10 +31,10 @@ import (
 
 const (
 	_metricsRequestTimeoutSeconds = 10
-	_completedMetricsFileKey      = "metrics.json"
 )
 
-func getBatchMetrics(jobKey spec.JobKey, t time.Time) (metrics.BatchMetrics, error) {
+// GetMetrics retrieves the BatchJob metrics from prometheus
+func GetMetrics(promAPIv1 promv1.API, jobKey spec.JobKey, t time.Time) (metrics.BatchMetrics, error) {
 	var (
 		jobBatchesSucceeded float64
 		jobBatchesFailed    float64
@@ -46,17 +44,17 @@ func getBatchMetrics(jobKey spec.JobKey, t time.Time) (metrics.BatchMetrics, err
 	err := parallel.RunFirstErr(
 		func() error {
 			var err error
-			jobBatchesSucceeded, err = getSucceededBatchesForJobMetric(config.Prometheus, jobKey, t)
+			jobBatchesSucceeded, err = getSucceededBatchesForJobMetric(promAPIv1, jobKey, t)
 			return err
 		},
 		func() error {
 			var err error
-			jobBatchesFailed, err = getFailedBatchesForJobMetric(config.Prometheus, jobKey, t)
+			jobBatchesFailed, err = getFailedBatchesForJobMetric(promAPIv1, jobKey, t)
 			return err
 		},
 		func() error {
 			var err error
-			avgTimePerBatch, err = getAvgTimePerBatchMetric(config.Prometheus, jobKey, t)
+			avgTimePerBatch, err = getAvgTimePerBatchMetric(promAPIv1, jobKey, t)
 			return err
 		},
 	)
@@ -144,29 +142,4 @@ func queryPrometheusVec(promAPIv1 promv1.API, query string, t time.Time) (model.
 	}
 
 	return values, nil
-}
-
-func saveMetricsToS3(jobKey spec.JobKey) error {
-	t := time.Now()
-	batchMetrics, err := getBatchMetrics(jobKey, t)
-	if err != nil {
-		return err
-	}
-
-	s3Key := path.Join(jobKey.Prefix(config.ClusterConfig.ClusterName), _completedMetricsFileKey)
-	err = config.AWS.UploadJSONToS3(batchMetrics, config.ClusterConfig.Bucket, s3Key)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func readMetricsFromS3(jobKey spec.JobKey) (metrics.BatchMetrics, error) {
-	s3Key := path.Join(jobKey.Prefix(config.ClusterConfig.ClusterName), _completedMetricsFileKey)
-	batchMetrics := metrics.BatchMetrics{}
-	err := config.AWS.ReadJSONFromS3(&batchMetrics, config.ClusterConfig.Bucket, s3Key)
-	if err != nil {
-		return batchMetrics, err
-	}
-	return batchMetrics, nil
 }

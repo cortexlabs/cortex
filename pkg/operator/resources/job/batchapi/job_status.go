@@ -24,6 +24,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 	"github.com/cortexlabs/cortex/pkg/operator/operator"
 	"github.com/cortexlabs/cortex/pkg/operator/resources/job"
+	"github.com/cortexlabs/cortex/pkg/types/metrics"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/types/status"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
@@ -77,21 +78,21 @@ func getJobStatusFromJobState(jobState *job.State, batchJob *batch.BatchJob) (*s
 		}
 
 		if batchJob.Status.Status == status.JobRunning {
-			metrics, err := getBatchMetrics(jobKey, time.Now())
+			jobMetrics, err := batch.GetMetrics(config.Prometheus, jobKey, time.Now())
 			if err != nil {
 				return nil, err
 			}
-			jobStatus.BatchMetrics = &metrics
+			jobStatus.BatchMetrics = &jobMetrics
 			jobStatus.WorkerCounts = batchJob.Status.WorkerCounts
 		}
 	}
 
-	if _, ok := jobState.LastUpdatedMap[_completedMetricsFileKey]; ok && jobState.Status.IsCompleted() {
-		metrics, err := readMetricsFromS3(jobKey)
+	if _, ok := jobState.LastUpdatedMap[spec.MetricsFileKey]; ok && jobState.Status.IsCompleted() {
+		jobMetrics, err := readMetricsFromS3(jobKey)
 		if err != nil {
 			return nil, err
 		}
-		jobStatus.BatchMetrics = &metrics
+		jobStatus.BatchMetrics = &jobMetrics
 	}
 
 	return &jobStatus, nil
@@ -108,4 +109,14 @@ func getJobStatusFromK8sBatchJob(batchJob batch.BatchJob) (*status.BatchJobStatu
 	}
 
 	return getJobStatusFromJobState(jobState, &batchJob)
+}
+
+func readMetricsFromS3(jobKey spec.JobKey) (metrics.BatchMetrics, error) {
+	s3Key := spec.JobMetricsKey(config.ClusterConfig.ClusterName, userconfig.BatchAPIKind, jobKey.APIName, jobKey.ID)
+	batchMetrics := metrics.BatchMetrics{}
+	err := config.AWS.ReadJSONFromS3(&batchMetrics, config.ClusterConfig.Bucket, s3Key)
+	if err != nil {
+		return batchMetrics, err
+	}
+	return batchMetrics, nil
 }

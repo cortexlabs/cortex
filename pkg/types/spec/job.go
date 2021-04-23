@@ -27,6 +27,10 @@ import (
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 )
 
+const (
+	MetricsFileKey = "metrics.json"
+)
+
 type JobKey struct {
 	ID      string          `json:"job_id"`
 	APIName string          `json:"api_name"`
@@ -100,4 +104,8 @@ func JobPayloadKey(clusterName string, kind userconfig.Kind, apiName string, job
 
 func JobBatchCountKey(clusterName string, kind userconfig.Kind, apiName string, jobId string) string {
 	return filepath.Join(JobAPIPrefix(clusterName, kind, apiName), jobId, "max_batch_count")
+}
+
+func JobMetricsKey(clusterName string, kind userconfig.Kind, apiName string, jobId string) string {
+	return filepath.Join(JobAPIPrefix(clusterName, kind, apiName), jobId, MetricsFileKey)
 }

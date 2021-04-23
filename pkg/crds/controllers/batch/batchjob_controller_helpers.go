@@ -36,6 +36,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	libjson "github.com/cortexlabs/cortex/pkg/lib/json"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
+	"github.com/cortexlabs/cortex/pkg/lib/parallel"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/types/clusterconfig"
@@ -516,6 +517,45 @@ func (r *BatchJobReconciler) updateCompletedTimestamp(ctx context.Context, batch
 		}
 	}
 	if err := r.Update(ctx, batchJob); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (r *BatchJobReconciler) persistJobToS3(batchJob batch.BatchJob) error {
+	return parallel.RunFirstErr(
+		func() error {
+			return r.saveJobMetrics(batchJob)
+		},
+		func() error {
+			return r.saveJobStatus(batchJob)
+		},
+	)
+}
+
+func (r *BatchJobReconciler) saveJobMetrics(batchJob batch.BatchJob) error {
+	jobSpec := spec.JobKey{ID: batchJob.Name, APIName: batchJob.Spec.APIName, Kind: userconfig.BatchAPIKind}
+	jobMetrics, err := batch.GetMetrics(r.Prometheus, jobSpec, time.Now())
+	if err != nil {
+		return err
+	}
+
+	key := spec.JobMetricsKey(r.ClusterConfig.ClusterName, userconfig.BatchAPIKind, batchJob.Spec.APIName, batchJob.Name)
+	if err = r.AWS.UploadJSONToS3(&jobMetrics, r.ClusterConfig.Bucket, key); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (r BatchJobReconciler) saveJobStatus(batchJob batch.BatchJob) error {
+	jobStatus := batchJob.Status.Status.String()
+	key := filepath.Join(
+		spec.JobAPIPrefix(r.ClusterConfig.ClusterName, userconfig.BatchAPIKind, batchJob.Spec.APIName),
+		batchJob.Name,
+		jobStatus,
+	)
+	if err := r.AWS.UploadStringToS3("", r.ClusterConfig.Bucket, key); err != nil {
 		return err
 	}
 	return nil
