@@ -44,13 +44,13 @@ type SubReplicaCounts struct {
 
 // Worker counts don't have as many failure variations because Jobs clean up dead pods, so counting different failure scenarios isn't interesting
 type WorkerCounts struct {
-	Pending      int32 `json:"pending"`
-	Initializing int32 `json:"initializing"`
-	Running      int32 `json:"running"`
-	Succeeded    int32 `json:"succeeded"`
-	Failed       int32 `json:"failed"`
-	Stalled      int32 `json:"stalled"` // pending for a long time
-	Unknown      int32 `json:"unknown"`
+	Pending      int32 `json:"pending,omitempty"`
+	Initializing int32 `json:"initializing,omitempty"`
+	Running      int32 `json:"running,omitempty"`
+	Succeeded    int32 `json:"succeeded,omitempty"`
+	Failed       int32 `json:"failed,omitempty"`
+	Stalled      int32 `json:"stalled,omitempty"` // pending for a long time
+	Unknown      int32 `json:"unknown,omitempty"`
 }
 
 func (status *Status) Message() string {

@@ -404,6 +404,13 @@ func (r *BatchJobReconciler) updateStatus(ctx context.Context, batchJob *batch.B
 			batchJob.Status.Status = status.JobRunning
 		}
 		// TODO: update worker counts
+		pendingWorkers := batchJob.Spec.Workers - (worker.Status.Active + worker.Status.Succeeded + worker.Status.Failed)
+		batchJob.Status.WorkerCounts = &status.WorkerCounts{
+			Pending:   pendingWorkers,
+			Running:   worker.Status.Active,
+			Succeeded: worker.Status.Succeeded,
+			Failed:    worker.Status.Failed,
+		}
 	}
 
 	if err := r.Status().Update(ctx, batchJob); err != nil {

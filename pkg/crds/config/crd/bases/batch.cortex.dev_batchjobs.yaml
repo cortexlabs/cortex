@@ -150,14 +150,6 @@ spec:
                   unknown:
                     format: int32
                     type: integer
-                required:
-                - failed
-                - initializing
-                - pending
-                - running
-                - stalled
-                - succeeded
-                - unknown
                 type: object
             type: object
         type: object
