@@ -98,6 +98,7 @@ func (r *BatchJobReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 				log.Error(err, "failed to remove sqs finalizer from resource")
 				return ctrl.Result{}, err
 			}
+			return ctrl.Result{}, nil // return here because the status update will trigger another reconcile
 		}
 
 		if s.SliceContains(batchJob.ObjectMeta.Finalizers, _s3Finalizer) {
@@ -113,6 +114,7 @@ func (r *BatchJobReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 				log.Error(err, "failed to remove S3 finalizer from resource")
 				return ctrl.Result{}, err
 			}
+			return ctrl.Result{}, nil // return here because the status update will trigger another reconcile
 		}
 
 		return ctrl.Result{}, nil
@@ -163,6 +165,8 @@ func (r *BatchJobReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		log.Error(err, "failed to update status")
 		return ctrl.Result{}, err
 	}
+
+	log.V(1).Info("current job status", "jobStatus", batchJob.Status.Status)
 
 	// Step 4: Add a completion timestamp annotation if job is in a completed state
 	var completedTimestamp *time.Time
