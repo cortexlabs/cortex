@@ -1,5 +1,55 @@
 # Models
 
+## Python Handler
+
+### Interface
+
+```python
+# initialization code and variables can be declared here in global scope
+
+class Handler:
+    def __init__(self, config, model_client):
+        """(Required) Called once before the API becomes available. Performs
+        setup such as downloading/initializing the model or downloading a
+        vocabulary.
+
+        Args:
+            config (required): Dictionary passed from API configuration (if
+                specified). This may contain information on where to download
+                the model and/or metadata.
+            model_client (optional): Python client which is used to retrieve
+                models for prediction. This should be saved for use in the handler method.
+                Required when `handler.multi_model_reloading` is specified in
+                the api configuration.
+        """
+        self.client = model_client # optional
+
+    def load_model(self, model_path):
+        """(Optional) Called by Cortex to load a model when necessary.
+
+        This method is required when `handler.multi_model_reloading`
+        field is specified in the api configuration.
+
+        Warning: this method must not make any modification to the model's
+        contents on disk.
+
+        Args:
+            model_path: The path to the model on disk.
+
+        Returns:
+            The loaded model from disk. The returned object is what
+            self.client.get_model() will return.
+        """
+        pass
+
+    # define any handler methods for HTTP/gRPC workloads here
+```
+
+<!-- CORTEX_VERSION_MINOR -->
+When explicit model paths are specified in the Python handler's API configuration, Cortex provides a `model_client` to your Handler's constructor. `model_client` is an instance of [ModelClient](https://github.com/cortexlabs/cortex/tree/master/pkg/cortex/serve/cortex_internal/lib/client/python.py) that is used to load model(s) (it calls the `load_model()` method of your handler, which must be defined when using explicit model paths). It should be saved as an instance variable in your handler class, and your handler method should call `model_client.get_model()` to load your model for inference. Preprocessing of the JSON/gRPC payload and postprocessing of predictions can be implemented in your handler method as well.
+
+When multiple models are defined using the Handler's `models` field, the `model_client.get_model()` method expects an argument `model_name` which must hold the name of the model that you want to load (for example: `self.client.get_model("text-generator")`). There is also an optional second argument to specify the model version.
+
 ## TensorFlow Handler
 
 In addition to the [standard Python Handler](handler.md), Cortex also supports another handler called the TensorFlow handler, which can be used to run TensorFlow models exported as `SavedModel` models.

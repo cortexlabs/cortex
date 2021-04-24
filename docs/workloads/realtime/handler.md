@@ -46,7 +46,7 @@ class Handler:
 # initialization code and variables can be declared here in global scope
 
 class Handler:
-    def __init__(self, config, model_client):
+    def __init__(self, config):
         """(Required) Called once before the API becomes available. Performs
         setup such as downloading/initializing the model or downloading a
         vocabulary.
@@ -55,12 +55,8 @@ class Handler:
             config (required): Dictionary passed from API configuration (if
                 specified). This may contain information on where to download
                 the model and/or metadata.
-            model_client (optional): Python client which is used to retrieve
-                models for prediction. This should be saved for use in the handler method.
-                Required when `handler.multi_model_reloading` is specified in
-                the api configuration.
         """
-        self.client = model_client # optional
+        pass
 
     def handle_<HTTP-VERB>(self, payload, query_params, headers):
         """(Required) Called once per request. Preprocesses the request payload
@@ -78,32 +74,9 @@ class Handler:
             Result or a batch of results.
         """
         pass
-
-    def load_model(self, model_path):
-        """(Optional) Called by Cortex to load a model when necessary.
-
-        This method is required when `handler.multi_model_reloading`
-        field is specified in the api configuration.
-
-        Warning: this method must not make any modification to the model's
-        contents on disk.
-
-        Args:
-            model_path: The path to the model on disk.
-
-        Returns:
-            The loaded model from disk. The returned object is what
-            self.client.get_model() will return.
-        """
-        pass
 ```
 
-Your `Handler` class can have handle methods defined for each of the CRUD HTTP methods (POST, GET, PUT, PATCH, DELETE). Therefore, the respective methods in the `Handler` definition can be `handle_post`, `handle_get`, `handle_put`, `handle_patch`, `handle_delete`.
-
-<!-- CORTEX_VERSION_MINOR -->
-When explicit model paths are specified in the Python handler's API configuration, Cortex provides a `model_client` to your Handler's constructor. `model_client` is an instance of [ModelClient](https://github.com/cortexlabs/cortex/tree/master/pkg/cortex/serve/cortex_internal/lib/client/python.py) that is used to load model(s) (it calls the `load_model()` method of your handler, which must be defined when using explicit model paths). It should be saved as an instance variable in your handler class, and your handler method should call `model_client.get_model()` to load your model for inference. Preprocessing of the JSON payload and postprocessing of predictions can be implemented in your handler method as well.
-
-When multiple models are defined using the Handler's `models` field, the `model_client.get_model()` method expects an argument `model_name` which must hold the name of the model that you want to load (for example: `self.client.get_model("text-generator")`). There is also an optional second argument to specify the model version.
+Your `Handler` class can implement methods for each of the following HTTP methods: POST, GET, PUT, PATCH, DELETE. Therefore, the respective methods in the `Handler` definition can be `handle_post`, `handle_get`, `handle_put`, `handle_patch`, and `handle_delete`.
 
 For proper separation of concerns, it is recommended to use the constructor's `config` parameter for information such as from where to download the model and initialization files, or any configurable model parameters. You define `config` in your API configuration, and it is passed through to your Handler's constructor.
 
@@ -113,9 +86,9 @@ Your handler method can return different types of objects such as `JSON`-parseab
 
 ### Callbacks
 
-Each of the handler method of your class can implement callbacks. To do this, when returning the result(s) from your handler method, also make sure to return a 2-element tuple in which the first element are your results that you want to return and the second element is a callable object that takes no arguments.
+A callback is a function that starts running in the background after the results have been sent back to the client. They are meant to be short-lived.
 
-Once the results are returned within the method, a response will be sent back to the client with the aforementioned results after which the callback will run in the background.
+Each handler method of your class can implement callbacks. To do this, when returning the result(s) from your handler method, also make sure to return a 2-element tuple in which the first element are your results that you want to return and the second element is a callable object that takes no arguments.
 
 You can implement a callback like in the following example:
 
@@ -306,7 +279,7 @@ To serve your API using the gRPC protocol, make sure the `handler.protobuf_path`
 # initialization code and variables can be declared here in global scope
 
 class Handler:
-    def __init__(self, config, module_proto_pb2, model_client):
+    def __init__(self, config, module_proto_pb2):
         """(Required) Called once before the API becomes available. Performs
         setup such as downloading/initializing the model or downloading a
         vocabulary.
@@ -318,13 +291,8 @@ class Handler:
             module_proto_pb2 (required): Loaded Python module containing the
                 class definitions of the messages defined in the protobuf
                 file (`handler.protobuf_path`).
-            model_client (optional): Python client which is used to retrieve
-                models for prediction. This should be saved for use in the handler.
-                Required when `handler.multi_model_reloading` is specified in
-                the api configuration.
         """
         self.module_proto_pb2 = module_proto_pb2
-        self.client = model_client # optional
 
     def <RPC-METHOD-NAME>(self, payload, context):
         """(Required) Called once per request. Preprocesses the request payload
@@ -343,32 +311,9 @@ class Handler:
             Result (when streaming is used).
         """
         pass
-
-    def load_model(self, model_path):
-        """(Optional) Called by Cortex to load a model when necessary.
-
-        This method is required when `handler.multi_model_reloading`
-        field is specified in the api configuration.
-
-        Warning: this method must not make any modification to the model's
-        contents on disk.
-
-        Args:
-            model_path: The path to the model on disk.
-
-        Returns:
-            The loaded model from disk. The returned object is what
-            self.client.get_model() will return.
-        """
-        pass
 ```
 
 Your `Handler` class must implement the RPC methods found in the protobuf. If your single-service protobuf has 2 RPC methods called `Analyze` and `Predict` methods, then your `Handler` class must also implement these methods like in the above `Handler` template.
-
-<!-- CORTEX_VERSION_MINOR -->
-When explicit model paths are specified in the Python handler's API configuration, Cortex provides a `model_client` to your handler class' constructor. `model_client` is an instance of [ModelClient](https://github.com/cortexlabs/cortex/tree/master/pkg/cortex/serve/cortex_internal/lib/client/python.py) that is used to load model(s) (it calls the `load_model()` method of your handler, which must be defined when using explicit model paths). It should be saved as an instance variable in your Handler class, and your handler method should call `model_client.get_model()` to load your model for inference. Preprocessing of the JSON payload and postprocessing of results can be implemented in your handler method as well.
-
-When multiple models are defined using the Handler's `models` field, the `model_client.get_model()` method expects an argument `model_name` which must hold the name of the model that you want to load (for example: `self.client.get_model("text-generator")`). There is also an optional second argument to specify the model version.
 
 For proper separation of concerns, it is recommended to use the constructor's `config` parameter for information such as from where to download the model and initialization files, or any configurable model parameters. You define `config` in your API configuration, and it is passed through to your Handler class' constructor.
 
