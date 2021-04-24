@@ -446,7 +446,7 @@ func (r *BatchJobReconciler) uploadJobSpec(batchJob batch.BatchJob, api spec.API
 		}
 	}
 
-	maxBatchCount, err := r.getMaxBatchCount(batchJob)
+	maxBatchCount, err := r.Config.GetMaxBatchCount(r, batchJob)
 	if err != nil {
 		return err
 	}
@@ -486,21 +486,6 @@ func (r *BatchJobReconciler) uploadJobSpec(batchJob batch.BatchJob, api spec.API
 	return nil
 }
 
-func (r *BatchJobReconciler) getMaxBatchCount(batchJob batch.BatchJob) (int, error) {
-	key := spec.JobBatchCountKey(r.ClusterConfig.ClusterName, userconfig.BatchAPIKind, batchJob.Spec.APIName, batchJob.Name)
-	maxBatchCountBytes, err := r.AWS.ReadBytesFromS3(r.ClusterConfig.Bucket, key)
-	if err != nil {
-		return 0, err
-	}
-
-	maxBatchCount, err := strconv.Atoi(string(maxBatchCountBytes))
-	if err != nil {
-		return 0, err
-	}
-
-	return maxBatchCount, nil
-}
-
 func (r *BatchJobReconciler) jobSpecKey(batchJob batch.BatchJob) string {
 	// e.g. <cluster name>/jobs/<job_api_kind>/<cortex version>/<api_name>/<job_id>/spec.json
 	return filepath.Join(
@@ -532,15 +517,30 @@ func (r *BatchJobReconciler) updateCompletedTimestamp(ctx context.Context, batch
 func (r *BatchJobReconciler) persistJobToS3(batchJob batch.BatchJob) error {
 	return parallel.RunFirstErr(
 		func() error {
-			return r.saveJobMetrics(batchJob)
+			return r.Config.SaveJobMetrics(r, batchJob)
 		},
 		func() error {
-			return r.saveJobStatus(batchJob)
+			return r.Config.SaveJobStatus(r, batchJob)
 		},
 	)
 }
 
-func (r *BatchJobReconciler) saveJobMetrics(batchJob batch.BatchJob) error {
+func getMaxBatchCount(r *BatchJobReconciler, batchJob batch.BatchJob) (int, error) {
+	key := spec.JobBatchCountKey(r.ClusterConfig.ClusterName, userconfig.BatchAPIKind, batchJob.Spec.APIName, batchJob.Name)
+	maxBatchCountBytes, err := r.AWS.ReadBytesFromS3(r.ClusterConfig.Bucket, key)
+	if err != nil {
+		return 0, err
+	}
+
+	maxBatchCount, err := strconv.Atoi(string(maxBatchCountBytes))
+	if err != nil {
+		return 0, err
+	}
+
+	return maxBatchCount, nil
+}
+
+func saveJobMetrics(r *BatchJobReconciler, batchJob batch.BatchJob) error {
 	jobSpec := spec.JobKey{ID: batchJob.Name, APIName: batchJob.Spec.APIName, Kind: userconfig.BatchAPIKind}
 	jobMetrics, err := batch.GetMetrics(r.Prometheus, jobSpec, time.Now())
 	if err != nil {
@@ -555,7 +555,7 @@ func (r *BatchJobReconciler) saveJobMetrics(batchJob batch.BatchJob) error {
 	return nil
 }
 
-func (r BatchJobReconciler) saveJobStatus(batchJob batch.BatchJob) error {
+func saveJobStatus(r *BatchJobReconciler, batchJob batch.BatchJob) error {
 	jobStatus := batchJob.Status.Status.String()
 	key := filepath.Join(
 		spec.JobAPIPrefix(r.ClusterConfig.ClusterName, userconfig.BatchAPIKind, batchJob.Spec.APIName),

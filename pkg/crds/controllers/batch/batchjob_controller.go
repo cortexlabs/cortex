@@ -44,6 +44,7 @@ const (
 // BatchJobReconciler reconciles a BatchJob object
 type BatchJobReconciler struct {
 	client.Client
+	Config        BatchJobReconcilerConfig
 	Log           logr.Logger
 	AWS           *awslib.Client
 	ClusterConfig *clusterconfig.Config

@@ -121,8 +121,22 @@ var _ = BeforeSuite(func(done Done) {
 	// initialize some of the global values for the k8s helpers
 	controllers.Init(clusterConfig, operatorMetadata)
 
+	// mock certain methods of the reconciler
+	config := batchcontrollers.BatchJobReconcilerConfig{
+		GetMaxBatchCount: func(r *batchcontrollers.BatchJobReconciler, batchJob batch.BatchJob) (int, error) {
+			return 1, nil
+		},
+		SaveJobMetrics: func(r *batchcontrollers.BatchJobReconciler, batchJob batch.BatchJob) error {
+			return nil
+		},
+		SaveJobStatus: func(r *batchcontrollers.BatchJobReconciler, batchJob batch.BatchJob) error {
+			return nil
+		},
+	}
+
 	err = (&batchcontrollers.BatchJobReconciler{
 		Client:        k8sManager.GetClient(),
+		Config:        config,
 		Log:           ctrl.Log.WithName("controllers").WithName("BatchJob"),
 		ClusterConfig: clusterConfig,
 		AWS:           awsClient,
