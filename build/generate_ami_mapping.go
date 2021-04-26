@@ -169,10 +169,10 @@ func SupportedRegions() []string {
 		RegionMESouth1,
 		RegionSAEast1,
 		RegionAFSouth1,
-		// RegionCNNorthwest1,
-		// RegionCNNorth1,
 		RegionUSGovWest1,
 		RegionUSGovEast1,
+		// RegionCNNorthwest1,
+		// RegionCNNorth1,
 	}
 }
 
