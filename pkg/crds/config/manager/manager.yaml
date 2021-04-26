@@ -17,14 +17,17 @@ spec:
         control-plane: controller-manager
     spec:
       containers:
-      - command:
+      - name: manager
+        command:
         - /manager
         args:
         - "--config=/mnt/cluster.yaml"
         - "--enable-leader-election"
         image: controller:latest
         imagePullPolicy: Always
-        name: manager
+        env:
+          - name: CORTEX_OPERATOR_IN_CLUSTER
+            value: "true"
         resources:
           limits:
             cpu: 100m

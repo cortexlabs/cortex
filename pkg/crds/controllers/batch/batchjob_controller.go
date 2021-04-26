@@ -54,6 +54,7 @@ type BatchJobReconciler struct {
 
 // +kubebuilder:rbac:groups=batch.cortex.dev,resources=batchjobs,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=batch.cortex.dev,resources=batchjobs/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=batch,resources=jobs,verbs=get;list;watch;create;update;patch
 
 // Reconcile runs a reconciliation iteration for BatchJobs.batch.cortex.dev
 func (r *BatchJobReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {

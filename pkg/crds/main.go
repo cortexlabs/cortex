@@ -57,6 +57,8 @@ func main() {
 		enableLeaderElection bool
 		clusterConfigPath    string
 		prometheusURL        string
+		inCluster            = strings.ToLower(os.Getenv("CORTEX_OPERATOR_IN_CLUSTER")) == "true"
+		useDevMode           = strings.ToLower(os.Getenv("CORTEX_DISABLE_JSON_LOGGING")) == "true"
 	)
 	flag.StringVar(&metricsAddr, "metrics-addr", ":8080", "The address the metric endpoint binds to.")
 	flag.StringVar(&clusterConfigPath, "config", os.Getenv("CORTEX_CLUSTER_CONFIG_PATH"),
@@ -71,7 +73,7 @@ func main() {
 			"Enabling this will ensure there is only one active controller manager.")
 	flag.Parse()
 
-	ctrl.SetLogger(zap.New(zap.UseDevMode(true)))
+	ctrl.SetLogger(zap.New(zap.UseDevMode(useDevMode)))
 
 	switch {
 	case clusterConfigPath == "":
@@ -119,7 +121,7 @@ func main() {
 		APIVersion:          consts.CortexVersion,
 		OperatorID:          hashedAccountID,
 		ClusterID:           hash.String(clusterConfig.ClusterName + clusterConfig.Region + hashedAccountID),
-		IsOperatorInCluster: strings.ToLower(os.Getenv("CORTEX_OPERATOR_IN_CLUSTER")) != "false",
+		IsOperatorInCluster: inCluster,
 	}
 
 	promClient, err := promapi.NewClient(promapi.Config{Address: prometheusURL})
