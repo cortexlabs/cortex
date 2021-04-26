@@ -9,7 +9,7 @@ Deploy several models in a single API to improve resource utilization efficiency
 
 import cortex
 
-class PythonPredictor:
+class Handler:
     def __init__(self, config):
         from transformers import pipeline
         self.analyzer = pipeline(task="sentiment-analysis")
@@ -21,7 +21,7 @@ class PythonPredictor:
         )
         self.language_identifier = fasttext.load_model("/tmp/model")
 
-    def predict(self, query_params, payload):
+    def handle_post(self, query_params, payload):
         model = query_params.get("model")
         if model == "sentiment":
             return self.analyzer(payload["text"])[0]
@@ -33,7 +33,7 @@ requirements = ["tensorflow", "transformers", "wget", "fasttext"]
 api_spec = {"name": "multi-model", "kind": "RealtimeAPI"}
 
 cx = cortex.client("aws")
-cx.create_api(api_spec, predictor=PythonPredictor, requirements=requirements)
+cx.create_api(api_spec, handler=Handler, requirements=requirements)
 ```
 
 ## Deploy

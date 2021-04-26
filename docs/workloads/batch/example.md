@@ -12,7 +12,7 @@ touch predictor.py requirements.txt image_classifier.yaml
 ```python
 # predictor.py
 
-class PythonPredictor:
+class Handler:
     def __init__(self, config, job_spec):
         from torchvision import transforms
         import torchvision
@@ -32,7 +32,7 @@ class PythonPredictor:
         self.bucket, self.key = re.match("s3://(.+?)/(.+)", config["dest_s3_dir"]).groups()
         self.key = os.path.join(self.key, job_spec["job_id"])
 
-    def predict(self, payload, batch_id):
+    def handle_batch(self, payload, batch_id):
         import json
         import torch
         from PIL import Image
@@ -68,7 +68,7 @@ requests
 
 - name: image-classifier
   kind: BatchAPI
-  predictor:
+  handler:
     type: python
     path: predictor.py
     config:

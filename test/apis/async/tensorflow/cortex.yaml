@@ -1,6 +1,6 @@
 - name: async-iris-classifier
   kind: AsyncAPI
-  predictor:
+  handler:
     type: tensorflow
     path: predictor.py
     models:

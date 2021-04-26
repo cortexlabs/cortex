@@ -1,6 +1,6 @@
 - name: license-plate-reader
   kind: RealtimeAPI
-  predictor:
+  handler:
     type: python
     path: predictor_lite.py
     config:

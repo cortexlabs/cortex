@@ -68,17 +68,17 @@ def postprocess(results):
     return result
 
 
-class PythonPredictor:
-    def __init__(self, python_client, config):
+class Handler:
+    def __init__(self, model_client, config):
         # onnx client
-        self.client = python_client
+        self.client = model_client
 
         # for image classifiers
         classes = requests.get(config["image-classifier-classes"]).json()
         self.image_classes = [classes[str(k)][1] for k in range(len(classes))]
         self.resize_value = config["image-resize"]
 
-    def predict(self, payload, query_params):
+    def handle_post(self, payload, query_params):
         # get request params
         model_name = query_params["model"]
         img_url = payload["url"]

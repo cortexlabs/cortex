@@ -24,28 +24,24 @@ import time
 import uuid
 from concurrent.futures import ThreadPoolExecutor
 from typing import Any, Dict
+import datadog
 
 from fastapi import FastAPI
 from fastapi.exceptions import RequestValidationError
-from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.requests import Request
+from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.responses import JSONResponse, PlainTextResponse, Response
 
 from cortex_internal.lib import util
-from cortex_internal.lib.api import get_api
-from cortex_internal.lib.api.batching import DynamicBatcher
+from cortex_internal.lib.api import get_spec, DynamicBatcher, RealtimeAPI
 from cortex_internal.lib.concurrency import FileLock, LockedFile
-from cortex_internal.lib.exceptions import UserRuntimeException
+from cortex_internal.lib.exceptions import UserException, UserRuntimeException
 from cortex_internal.lib.log import configure_logger
 from cortex_internal.lib.metrics import MetricsClient
 from cortex_internal.lib.telemetry import capture_exception, get_default_tags, init_sentry
 
 init_sentry(tags=get_default_tags())
 logger = configure_logger("cortex", os.environ["CORTEX_LOG_CONFIG_FILE"])
-
-API_SUMMARY_MESSAGE = (
-    "make a prediction by sending a post request to this endpoint with a json payload"
-)
 
 NANOSECONDS_IN_SECOND = 1e9
 
@@ -58,9 +54,9 @@ app = FastAPI()
 
 local_cache: Dict[str, Any] = {
     "api": None,
-    "predictor_impl": None,
+    "handler_impl": None,
     "dynamic_batcher": None,
-    "predict_route": None,
+    "api_route": None,
     "client": None,
 }
 
@@ -83,8 +79,11 @@ def shutdown():
         pass
 
 
-def is_prediction_request(request):
-    return request.url.path == local_cache["predict_route"] and request.method == "POST"
+def is_allowed_request(request):
+    return (
+        request.url.path == local_cache["api_route"]
+        and request.method.lower() in local_cache["handle_fn_args"]
+    )
 
 
 @app.exception_handler(StarletteHTTPException)
@@ -112,7 +111,7 @@ async def register_request(request: Request, call_next):
     file_id = None
     response = None
     try:
-        if is_prediction_request(request):
+        if is_allowed_request(request):
             if "x-request-id" in request.headers:
                 request_id = request.headers["x-request-id"]
             else:
@@ -128,22 +127,26 @@ async def register_request(request: Request, call_next):
             except FileNotFoundError:
                 pass
 
-        if is_prediction_request(request):
+        if is_allowed_request(request):
             status_code = 500
             if response is not None:
                 status_code = response.status_code
-            api = local_cache["api"]
-            api.post_request_metrics(status_code, time.time() - request.state.start_time)
+            api: RealtimeAPI = local_cache["api"]
+            api.metrics.post_request_metrics(status_code, time.time() - request.state.start_time)
 
     return response
 
 
 @app.middleware("http")
 async def parse_payload(request: Request, call_next):
-    if not is_prediction_request(request):
+    if not is_allowed_request(request):
         return await call_next(request)
 
-    if "payload" not in local_cache["predict_fn_args"]:
+    verb = request.method.lower()
+    if (
+        verb in local_cache["handle_fn_args"]
+        and "payload" not in local_cache["handle_fn_args"][verb]
+    ):
         return await call_next(request)
 
     content_type = request.headers.get("content-type", "").lower()
@@ -176,84 +179,80 @@ async def parse_payload(request: Request, call_next):
     return await call_next(request)
 
 
-def predict(request: Request):
-    predictor_impl = local_cache["predictor_impl"]
-    dynamic_batcher = local_cache["dynamic_batcher"]
-    kwargs = build_predict_kwargs(request)
+def handle(request: Request):
+    verb = request.method.lower()
+    handle_fn_args = local_cache["handle_fn_args"]
+    if verb not in handle_fn_args:
+        raise UserRuntimeException(f"`handle_{verb}` method is not implemented")
+
+    handler_impl = local_cache["handler_impl"]
+    dynamic_batcher = None
+    if verb == "post":
+        dynamic_batcher: DynamicBatcher = local_cache["dynamic_batcher"]
+    kwargs = build_handler_kwargs(request)
 
     if dynamic_batcher:
-        prediction = dynamic_batcher.predict(**kwargs)
+        result = dynamic_batcher.process(**kwargs)
     else:
-        prediction = predictor_impl.predict(**kwargs)
+        result = getattr(handler_impl, f"handle_{verb}")(**kwargs)
 
-    if isinstance(prediction, bytes):
-        response = Response(content=prediction, media_type="application/octet-stream")
-    elif isinstance(prediction, str):
-        response = Response(content=prediction, media_type="text/plain")
-    elif isinstance(prediction, Response):
-        response = prediction
+    callback = None
+    if isinstance(result, tuple) and len(result) == 2 and callable(result[1]):
+        callback = result[1]
+        result = result[0]
+
+    if isinstance(result, bytes):
+        response = Response(content=result, media_type="application/octet-stream")
+    elif isinstance(result, str):
+        response = Response(content=result, media_type="text/plain")
+    elif isinstance(result, Response):
+        response = result
     else:
         try:
-            json_string = json.dumps(prediction)
+            json_string = json.dumps(result)
         except Exception as e:
             raise UserRuntimeException(
                 str(e),
                 "please return an object that is JSON serializable (including its nested fields), a bytes object, "
-                "a string, or a starlette.response.Response object",
+                "a string, or a `starlette.response.Response` object",
             ) from e
         response = Response(content=json_string, media_type="application/json")
 
-    if util.has_method(predictor_impl, "post_predict"):
-        kwargs = build_post_predict_kwargs(prediction, request)
-        request_thread_pool.submit(predictor_impl.post_predict, **kwargs)
+    if callback is not None:
+        request_thread_pool.submit(callback)
 
     return response
 
 
-def build_predict_kwargs(request: Request):
+def build_handler_kwargs(request: Request):
     kwargs = {}
+    verb = request.method.lower()
 
-    if "payload" in local_cache["predict_fn_args"]:
+    if "payload" in local_cache["handle_fn_args"][verb]:
         kwargs["payload"] = request.state.payload
-    if "headers" in local_cache["predict_fn_args"]:
+    if "headers" in local_cache["handle_fn_args"][verb]:
         kwargs["headers"] = request.headers
-    if "query_params" in local_cache["predict_fn_args"]:
+    if "query_params" in local_cache["handle_fn_args"][verb]:
         kwargs["query_params"] = request.query_params
-    if "batch_id" in local_cache["predict_fn_args"]:
-        kwargs["batch_id"] = None
-
-    return kwargs
-
-
-def build_post_predict_kwargs(response, request: Request):
-    kwargs = {}
-
-    if "payload" in local_cache["post_predict_fn_args"]:
-        kwargs["payload"] = request.state.payload
-    if "headers" in local_cache["post_predict_fn_args"]:
-        kwargs["headers"] = request.headers
-    if "query_params" in local_cache["post_predict_fn_args"]:
-        kwargs["query_params"] = request.query_params
-    if "response" in local_cache["post_predict_fn_args"]:
-        kwargs["response"] = response
 
     return kwargs
 
 
 def get_summary():
-    response = {"message": API_SUMMARY_MESSAGE}
+    response = {}
 
     if hasattr(local_cache["client"], "metadata"):
         client = local_cache["client"]
-        predictor = local_cache["api"].predictor
-        response["model_metadata"] = client.metadata
+        response = {
+            "model_metadata": client.metadata,
+        }
 
     return response
 
 
 # this exists so that the user's __init__() can be executed by the request thread pool, which helps
 # to avoid errors that occur when the user's __init__() function must be called by the same thread
-# which executes predict(). This only avoids errors if threads_per_worker == 1
+# which executes handle_<verb>() methods. This only avoids errors if threads_per_worker == 1
 def start():
     future = request_thread_pool.submit(start_fn)
     return future.result()
@@ -262,11 +261,9 @@ def start():
 def start_fn():
     project_dir = os.environ["CORTEX_PROJECT_DIR"]
     spec_path = os.environ["CORTEX_API_SPEC"]
-
     model_dir = os.getenv("CORTEX_MODEL_DIR")
-    cache_dir = os.getenv("CORTEX_CACHE_DIR")
-    region = os.getenv("AWS_REGION")
 
+    host_ip = os.environ["HOST_IP"]
     tf_serving_port = os.getenv("CORTEX_TF_BASE_SERVING_PORT", "9000")
     tf_serving_host = os.getenv("CORTEX_TF_SERVING_HOST", "localhost")
 
@@ -284,23 +281,27 @@ def start_fn():
                 json.dump(used_ports, f)
                 f.truncate()
 
-        api = get_api(spec_path, model_dir, cache_dir)
+        datadog.initialize(statsd_host=host_ip, statsd_port=9125)
+        statsd_client = datadog.statsd
 
-        client = api.predictor.initialize_client(
+        with open(spec_path) as json_file:
+            api_spec = json.load(json_file)
+        api = RealtimeAPI(api_spec, statsd_client, model_dir)
+
+        client = api.initialize_client(
             tf_serving_host=tf_serving_host, tf_serving_port=tf_serving_port
         )
 
         with FileLock("/run/init_stagger.lock"):
-            logger.info("loading the predictor from {}".format(api.predictor.path))
-            metrics_client = MetricsClient(api.statsd)
-            predictor_impl = api.predictor.initialize_impl(
-                project_dir=project_dir, client=client, metrics_client=metrics_client
+            logger.info("loading the handler from {}".format(api.path))
+            handler_impl = api.initialize_impl(
+                project_dir=project_dir, client=client, metrics_client=MetricsClient(statsd_client)
             )
 
         # crons only stop if an unhandled exception occurs
         def check_if_crons_have_failed():
             while True:
-                for cron in api.predictor.crons:
+                for cron in api.crons:
                     if not cron.is_alive():
                         os.kill(os.getpid(), signal.SIGQUIT)
                 time.sleep(1)
@@ -309,25 +310,37 @@ def start_fn():
 
         local_cache["api"] = api
         local_cache["client"] = client
-        local_cache["predictor_impl"] = predictor_impl
-        local_cache["predict_fn_args"] = inspect.getfullargspec(predictor_impl.predict).args
+        local_cache["handler_impl"] = handler_impl
 
-        if api.python_server_side_batching_enabled:
-            dynamic_batching_config = api.api_spec["predictor"]["server_side_batching"]
-            local_cache["dynamic_batcher"] = DynamicBatcher(
-                predictor_impl,
-                max_batch_size=dynamic_batching_config["max_batch_size"],
-                batch_interval=dynamic_batching_config["batch_interval"]
-                / NANOSECONDS_IN_SECOND,  # convert nanoseconds to seconds
+        local_cache["handle_fn_args"] = {}
+        for verb in ["post", "get", "put", "patch", "delete"]:
+            if util.has_method(handler_impl, f"handle_{verb}"):
+                local_cache["handle_fn_args"][verb] = inspect.getfullargspec(
+                    getattr(handler_impl, f"handle_{verb}")
+                ).args
+        if len(local_cache["handle_fn_args"]) == 0:
+            raise UserException(
+                "no user-defined `handle_<verb>` method found in handler class; define at least one verb handler (`handle_post`, `handle_get`, `handle_put`, `handle_patch`, `handle_delete`)"
             )
 
-        if util.has_method(predictor_impl, "post_predict"):
-            local_cache["post_predict_fn_args"] = inspect.getfullargspec(
-                predictor_impl.post_predict
-            ).args
+        if api.python_server_side_batching_enabled:
+            dynamic_batching_config = api.api_spec["handler"]["server_side_batching"]
 
-        predict_route = "/predict"
-        local_cache["predict_route"] = predict_route
+            if "post" in local_cache["handle_fn_args"]:
+                local_cache["dynamic_batcher"] = DynamicBatcher(
+                    handler_impl,
+                    method_name=f"handle_post",
+                    max_batch_size=dynamic_batching_config["max_batch_size"],
+                    batch_interval=dynamic_batching_config["batch_interval"]
+                    / NANOSECONDS_IN_SECOND,  # convert nanoseconds to seconds
+                )
+            else:
+                raise UserException(
+                    "dynamic batcher has been enabled, but no `handle_post` method could be found in the `Handler` class"
+                )
+
+        local_cache["api_route"] = "/"
+        local_cache["info_route"] = "/info"
 
     except Exception as err:
         if not isinstance(err, UserRuntimeException):
@@ -335,7 +348,11 @@ def start_fn():
         logger.exception("failed to start api")
         sys.exit(1)
 
-    app.add_api_route(local_cache["predict_route"], predict, methods=["POST"])
-    app.add_api_route(local_cache["predict_route"], get_summary, methods=["GET"])
+    app.add_api_route(
+        local_cache["api_route"],
+        handle,
+        methods=[verb.upper() for verb in local_cache["handle_fn_args"]],
+    )
+    app.add_api_route(local_cache["info_route"], get_summary, methods=["GET"])
 
     return app

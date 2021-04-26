@@ -6,7 +6,7 @@ import pickle
 import utils.utils as utils
 
 
-class TensorFlowPredictor:
+class Handler:
     def __init__(self, tensorflow_client, config):
         self.client = tensorflow_client
 
@@ -15,7 +15,7 @@ class TensorFlowPredictor:
         for key in data:
             setattr(self, key, data[key])
 
-    def predict(self, payload):
+    def handle_post(self, payload):
         # decode the payload
         img = payload["img"]
         img = base64.b64decode(img)

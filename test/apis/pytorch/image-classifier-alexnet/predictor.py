@@ -6,7 +6,7 @@ from PIL import Image
 from io import BytesIO
 
 
-class PythonPredictor:
+class Handler:
     def __init__(self, config):
         device = "cuda" if torch.cuda.is_available() else "cpu"
         print(f"using device: {device}")
@@ -25,7 +25,7 @@ class PythonPredictor:
         self.model = model
         self.device = device
 
-    def predict(self, payload):
+    def handle_post(self, payload):
         image = requests.get(payload["url"]).content
         img_pil = Image.open(BytesIO(image))
         img_tensor = self.preprocess(img_pil)

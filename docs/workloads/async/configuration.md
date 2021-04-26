@@ -3,53 +3,59 @@
 ```yaml
 - name: <string>
   kind: AsyncAPI
-  predictor: # detailed configuration below
+  handler: # detailed configuration below
   compute: # detailed configuration below
   autoscaling: # detailed configuration below
   update_strategy: # detailed configuration below
   networking: # detailed configuration below
 ```
 
-## Predictor
+## Handler
 
-### Python Predictor
+### Python Handler
 
 <!-- CORTEX_VERSION_BRANCH_STABLE x3 -->
 
 ```yaml
-predictor:
+handler:
   type: python
-  path: <string>  # path to a python file with a PythonPredictor class definition, relative to the Cortex root (required)
+  path: <string>  # path to a python file with a Handler class definition, relative to the Cortex root (required)
   dependencies: # (optional)
     pip: <string>  # relative path to requirements.txt (default: requirements.txt)
     conda: <string>  # relative path to conda-packages.txt (default: conda-packages.txt)
     shell: <string>  # relative path to a shell script for system package installation (default: dependencies.sh)
-  config: <string: value>  # arbitrary dictionary passed to the constructor of the Predictor (optional)
+  config: <string: value>  # arbitrary dictionary passed to the constructor of the Handler class (optional)
   python_path: <string>  # path to the root of your Python folder that will be appended to PYTHONPATH (default: folder containing cortex.yaml)
-  image: <string>  # docker image to use for the Predictor (default: quay.io/cortexlabs/python-predictor-cpu:master, quay.io/cortexlabs/python-predictor-gpu:master-cuda10.2-cudnn8, or quay.io/cortexlabs/python-predictor-inf:master based on compute)
+  image: <string>  # docker image to use for the handler (default: quay.io/cortexlabs/python-handler-cpu:master, quay.io/cortexlabs/python-handler-gpu:master-cuda10.2-cudnn8, or quay.io/cortexlabs/python-handler-inf:master based on compute)
   env: <string: string>  # dictionary of environment variables
   log_level: <string>  # log level that can be "debug", "info", "warning" or "error" (default: "info")
   shm_size: <string>  # size of shared memory (/dev/shm) for sharing data between multiple processes, e.g. 64Mi or 1Gi (default: Null)
 ```
 
-### Tensorflow Predictor
+### Tensorflow Handler
 
 <!-- CORTEX_VERSION_BRANCH_STABLE x4 -->
 
 ```yaml
-predictor:
+handler:
   type: tensorflow
-  path: <string>  # path to a python file with a TensorFlowPredictor class definition, relative to the Cortex root (required)
+  path: <string>  # path to a python file with a Handler class definition, relative to the Cortex root (required)
   dependencies: # (optional)
     pip: <string>  # relative path to requirements.txt (default: requirements.txt)
     conda: <string>  # relative path to conda-packages.txt (default: conda-packages.txt)
     shell: <string>  # relative path to a shell script for system package installation (default: dependencies.sh)
   models:  # (required)
     path: <string> # S3 path to an exported SavedModel directory (e.g. s3://my-bucket/exported_model/) (either this, 'dir', or 'paths' must be provided)
+    paths:  # list of S3 paths to exported SavedModel directories (either this, 'dir', or 'path' must be provided)
+      - name: <string>  # unique name for the model (e.g. text-generator) (required)
+        path: <string>  # S3 path to an exported SavedModel directory (e.g. s3://my-bucket/exported_model/) (required)
+        signature_key: <string>  # name of the signature def to use for prediction (required if your model has more than one signature def)
+      ...
+    dir: <string>  # S3 path to a directory containing multiple SavedModel directories (e.g. s3://my-bucket/models/) (either this, 'path', or 'paths' must be provided)
     signature_key:  # name of the signature def to use for prediction (required if your model has more than one signature def)
-  config: <string: value>  # arbitrary dictionary passed to the constructor of the Predictor (optional)
+  config: <string: value>  # arbitrary dictionary passed to the constructor of the Handler class (optional)
   python_path: <string>  # path to the root of your Python folder that will be appended to PYTHONPATH (default: folder containing cortex.yaml)
-  image: <string>  # docker image to use for the Predictor (default: quay.io/cortexlabs/tensorflow-predictor:master)
+  image: <string>  # docker image to use for the handler (default: quay.io/cortexlabs/tensorflow-handler:master)
   tensorflow_serving_image: <string>  # docker image to use for the TensorFlow Serving container (default: quay.io/cortexlabs/tensorflow-serving-cpu:master, quay.io/cortexlabs/tensorflow-serving-gpu:master, or quay.io/cortexlabs/tensorflow-serving-inf:master based on compute)
   env: <string: string>  # dictionary of environment variables
   log_level: <string>  # log level that can be "debug", "info", "warning" or "error" (default: "info")
@@ -62,6 +68,7 @@ predictor:
 compute:
   cpu: <string | int | float>  # CPU request per replica. One unit of CPU corresponds to one virtual CPU; fractional requests are allowed, and can be specified as a floating point number or via the "m" suffix (default: 200m)
   gpu: <int>  # GPU request per replica. One unit of GPU corresponds to one virtual GPU (default: 0)
+  inf: <int>  # Inferentia request per replica. One unit of Inf corresponds to one virtual Inferentia chip (default: 0)
   mem: <string>  # memory request per replica. One unit of memory is one byte and can be expressed as an integer or by using one of these suffixes: K, M, G, T (or their power-of two counterparts: Ki, Mi, Gi, Ti) (default: Null)
   node_groups: <list:string>  # to select specific node groups (optional)
 ```

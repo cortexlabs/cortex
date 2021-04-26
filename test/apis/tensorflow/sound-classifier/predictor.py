@@ -4,7 +4,7 @@ import io
 import csv
 
 
-class TensorFlowPredictor:
+class Handler:
     def __init__(self, tensorflow_client, config):
         self.client = tensorflow_client
         self.class_names = self.class_names_from_csv("class_names.csv")
@@ -16,7 +16,7 @@ class TensorFlowPredictor:
                 class_names.append(row[2])
         return class_names
 
-    def predict(self, payload):
+    def handle_post(self, payload):
         rate, data = read(io.BytesIO(payload))
         assert rate == 16000
 

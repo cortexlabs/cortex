@@ -1,6 +1,6 @@
 - name: yolov3
   kind: RealtimeAPI
-  predictor:
+  handler:
     type: tensorflow
     path: predictor_yolo.py
     models:
@@ -20,7 +20,7 @@
 
 - name: crnn
   kind: RealtimeAPI
-  predictor:
+  handler:
     type: python
     path: predictor_crnn.py
     processes_per_replica: 1

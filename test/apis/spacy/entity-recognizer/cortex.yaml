@@ -1,6 +1,6 @@
 - name: entity-recognizer
   kind: RealtimeAPI
-  predictor:
+  handler:
     type: python
     path: predictor.py
   compute:

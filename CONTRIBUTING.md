@@ -219,6 +219,6 @@ If you are only modifying the CLI, `make cli-watch` will build the CLI and re-bu
 
 If you are only modifying the operator, `make operator-local` will build and start the operator locally, and build/restart it when files are changed.
 
-If you are modifying code in the API images (i.e. any of the Python serving code), `make images-dev` may build more images than you need during testing. For example, if you are only testing using the `python-predictor-cpu` image, you can run `./dev/registry.sh update-single python-predictor-cpu`.
+If you are modifying code in the API images (i.e. any of the Python serving code), `make images-dev` may build more images than you need during testing. For example, if you are only testing using the `python-handler-cpu` image, you can run `./dev/registry.sh update-single python-handler-cpu`.
 
 See `Makefile` for additional dev commands.

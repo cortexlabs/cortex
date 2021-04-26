@@ -72,7 +72,7 @@ You can use any of these metrics to set up your own dashboards.
 
 ## Custom user metrics
 
-It is possible to export your own custom metrics by using the `MetricsClient` class in your predictor code. This allows
+It is possible to export your own custom metrics by using the `MetricsClient` class in your handler code. This allows
 you to create a custom metrics from your deployed API that can be later be used on your own custom dashboards.
 
 Code examples on how to use custom metrics for each API kind can be found here:

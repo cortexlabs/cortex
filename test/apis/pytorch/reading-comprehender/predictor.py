@@ -2,7 +2,7 @@ import torch
 from allennlp.predictors.predictor import Predictor as AllenNLPPredictor
 
 
-class PythonPredictor:
+class Handler:
     def __init__(self, config):
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         print(f"using device: {self.device}")
@@ -16,7 +16,7 @@ class PythonPredictor:
             cuda_device=cuda_device,
         )
 
-    def predict(self, payload):
+    def handle_post(self, payload):
         prediction = self.predictor.predict(
             passage=payload["passage"], question=payload["question"]
         )

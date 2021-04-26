@@ -423,7 +423,7 @@ class TensorFlowServingAPI:
         Args:
             model_name: Name of the model.
             model_version: Version of the model.
-            signature_key: Signature key of the model as passed in with predictor:signature_key, predictor:models:paths:signature_key or predictor:models:signature_key.
+            signature_key: Signature key of the model as passed in with handler:signature_key, handler:models:paths:signature_key or handler:models:signature_key.
                 When set to None, "predict" is the assumed key.
 
         Raises:

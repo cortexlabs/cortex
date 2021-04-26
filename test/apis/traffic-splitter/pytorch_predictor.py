@@ -9,7 +9,7 @@ from model import IrisNet
 labels = ["setosa", "versicolor", "virginica"]
 
 
-class PythonPredictor:
+class Handler:
     def __init__(self, config):
         # download the model
         bucket, key = re.match("s3://(.+?)/(.+)", config["model"]).groups()
@@ -23,7 +23,7 @@ class PythonPredictor:
 
         self.model = model
 
-    def predict(self, payload):
+    def handle_post(self, payload):
         # Convert the request to a tensor and pass it into the model
         input_tensor = torch.FloatTensor(
             [

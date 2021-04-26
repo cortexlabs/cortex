@@ -36,16 +36,15 @@ The `cortex get API_NAME` command also provides a link to a Grafana dashboard:
 ## Custom user metrics
 
 It is possible to export custom user metrics by adding the `metrics_client`
-argument to the predictor constructor. Below there is an example of how to use the metrics client with
-the `PythonPredictor` type. The implementation would be similar to other predictor types.
+argument to the handler constructor. Below there is an example of how to use the metrics client. The implementation is similar to all handler types.
 
 ```python
-class PythonPredictor:
+class Handler:
     def __init__(self, config, metrics_client):
         self.metrics = metrics_client
 
-    def predict(self, payload):
-        # --- my predict code here ---
+    def handle_post(self, payload):
+        # --- my handler code here ---
         result = ...
 
         # increment a counter with name "my_metric" and tags model:v1

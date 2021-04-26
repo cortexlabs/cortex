@@ -5,11 +5,11 @@ import numpy as np
 labels = ["setosa", "versicolor", "virginica"]
 
 
-class PythonPredictor:
-    def __init__(self, python_client, config):
-        self.client = python_client
+class Handler:
+    def __init__(self, model_client, config):
+        self.client = model_client
 
-    def predict(self, payload):
+    def handle_post(self, payload):
         session = self.client.get_model()
 
         input_dict = {

@@ -1,6 +1,6 @@
 - name: mpg-estimator
   kind: RealtimeAPI
-  predictor:
+  handler:
     type: python
     path: predictor.py
     config:

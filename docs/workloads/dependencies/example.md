@@ -11,18 +11,18 @@ project/
   └── ...
 ```
 
-You can define your Predictor class in a separate python file and import code from your project.
+You can define your Handler class in a separate python file and import code from your project.
 
 ```python
 # predictor.py
 
 from model import MyModel
 
-class PythonPredictor:
+class Handler:
     def __init__(self, config):
         model = MyModel()
 
-    def predict(payload):
+    def handle_post(payload):
         return model(payload)
 ```
 
@@ -34,7 +34,7 @@ import cortex
 api_spec = {
     "name": "text-generator",
     "kind": "RealtimeAPI",
-    "predictor": {
+    "handler": {
         "type": "python",
         "path": "predictor.py"
     }
@@ -51,7 +51,7 @@ cx.create_api(api_spec, project_dir=".")
 
 - name: text-generator
   kind: RealtimeAPI
-  predictor:
+  handler:
     type: python
     path: predictor.py
 ```

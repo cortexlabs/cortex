@@ -1,6 +1,6 @@
 - name: iris-classifier
   kind: RealtimeAPI
-  predictor:
+  handler:
     type: python
     path: predictor.py
     protobuf_path: iris_classifier.proto

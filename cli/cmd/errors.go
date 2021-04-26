@@ -286,13 +286,13 @@ func ErrorAPINotFoundInConfig(apiName string) error {
 	})
 }
 
-func ErrorNotSupportedForKindAndType(kind userconfig.Kind, predictorType userconfig.PredictorType) error {
+func ErrorNotSupportedForKindAndType(kind userconfig.Kind, handlerType userconfig.HandlerType) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrNotSupportedForKindAndType,
-		Message: fmt.Sprintf("this command is still in beta and currently only supports %s with type %s", userconfig.RealtimeAPIKind.String(), userconfig.PythonPredictorType.String()),
+		Message: fmt.Sprintf("this command is still in beta and currently only supports %s with type %s", userconfig.RealtimeAPIKind.String(), userconfig.PythonHandlerType.String()),
 		Metadata: map[string]interface{}{
-			"apiKind":       kind.String(),
-			"predictorType": predictorType.String(),
+			"apiKind":     kind.String(),
+			"handlerType": handlerType.String(),
 		},
 	})
 }

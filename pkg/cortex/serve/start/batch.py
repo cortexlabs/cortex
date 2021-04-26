@@ -25,13 +25,14 @@ from typing import Dict, Any
 
 import boto3
 
-from cortex_internal.lib.api import get_api
+from cortex_internal.lib.api import BatchAPI
 from cortex_internal.lib.concurrency import LockedFile
 from cortex_internal.lib.exceptions import UserRuntimeException
 from cortex_internal.lib.log import configure_logger
 from cortex_internal.lib.metrics import MetricsClient
 from cortex_internal.lib.queue.sqs import SQSHandler, get_total_messages_in_queue
 from cortex_internal.lib.telemetry import get_default_tags, init_sentry, capture_exception
+import datadog
 
 init_sentry(tags=get_default_tags())
 log = configure_logger("cortex", os.environ["CORTEX_LOG_CONFIG_FILE"])
@@ -45,7 +46,7 @@ JOB_COMPLETE_MESSAGE_RENEWAL = 10  # seconds
 local_cache: Dict[str, Any] = {
     "api": None,
     "job_spec": None,
-    "predictor_impl": None,
+    "handler_impl": None,
     "sqs_client": None,
 }
 
@@ -86,23 +87,23 @@ def time_per_batch_metric(total_time_seconds):
     }
 
 
-def build_predict_args(payload, batch_id):
+def build_handle_batch_args(payload, batch_id):
     args = {}
 
-    if "payload" in local_cache["predict_fn_args"]:
+    if "payload" in local_cache["handle_batch_fn_args"]:
         args["payload"] = payload
-    if "headers" in local_cache["predict_fn_args"]:
+    if "headers" in local_cache["handle_batch_fn_args"]:
         args["headers"] = None
-    if "query_params" in local_cache["predict_fn_args"]:
+    if "query_params" in local_cache["handle_batch_fn_args"]:
         args["query_params"] = None
-    if "batch_id" in local_cache["predict_fn_args"]:
+    if "batch_id" in local_cache["handle_batch_fn_args"]:
         args["batch_id"] = batch_id
     return args
 
 
 def handle_batch_message(message):
-    predictor_impl = local_cache["predictor_impl"]
-    api = local_cache["api"]
+    handler_impl = local_cache["handler_impl"]
+    api: BatchAPI = local_cache["api"]
 
     log.info(f"processing batch {message['MessageId']}")
 
@@ -111,23 +112,25 @@ def handle_batch_message(message):
     batch_id = message["MessageId"]
 
     try:
-        predictor_impl.predict(**build_predict_args(payload, batch_id))
+        handler_impl.handle_batch(**build_handle_batch_args(payload, batch_id))
     except Exception as err:
         raise UserRuntimeException from err
 
-    api.post_metrics([success_counter_metric(), time_per_batch_metric(time.time() - start_time)])
+    api.metrics.post_metrics(
+        [success_counter_metric(), time_per_batch_metric(time.time() - start_time)]
+    )
 
 
 def handle_batch_failure(message):
-    api = local_cache["api"]
+    api: BatchAPI = local_cache["api"]
 
-    api.post_metrics([failed_counter_metric()])
+    api.metrics.post_metrics([failed_counter_metric()])
     log.exception(f"failed processing batch {message['MessageId']}")
 
 
-def handle_on_job_complete(message):
+def on_job_complete(message):
     job_spec = local_cache["job_spec"]
-    predictor_impl = local_cache["predictor_impl"]
+    handler_impl = local_cache["handler_impl"]
     sqs_client = local_cache["sqs_client"]
     queue_url = job_spec["sqs_url"]
 
@@ -155,10 +158,10 @@ def handle_on_job_complete(message):
             break
         else:
             if should_run_on_job_complete:
-                if getattr(predictor_impl, "on_job_complete", None):
+                if getattr(handler_impl, "on_job_complete", None):
                     log.info("executing on_job_complete")
                     try:
-                        predictor_impl.on_job_complete()
+                        handler_impl.on_job_complete()
                     except Exception as err:
                         raise UserRuntimeException from err
                 break
@@ -171,12 +174,12 @@ def start():
     while not pathlib.Path("/mnt/workspace/init_script_run.txt").is_file():
         time.sleep(0.2)
 
-    cache_dir = os.environ["CORTEX_CACHE_DIR"]
     api_spec_path = os.environ["CORTEX_API_SPEC"]
     job_spec_path = os.environ["CORTEX_JOB_SPEC"]
     project_dir = os.environ["CORTEX_PROJECT_DIR"]
 
     model_dir = os.getenv("CORTEX_MODEL_DIR")
+    host_ip = os.environ["HOST_IP"]
     tf_serving_port = os.getenv("CORTEX_TF_BASE_SERVING_PORT", "9000")
     tf_serving_host = os.getenv("CORTEX_TF_SERVING_HOST", "localhost")
 
@@ -195,23 +198,26 @@ def start():
             json.dump(used_ports, f)
             f.truncate()
 
-    api = get_api(api_spec_path, model_dir, cache_dir)
+    datadog.initialize(statsd_host=host_ip, statsd_port=9125)
+    statsd_client = datadog.statsd
+
+    with open(api_spec_path) as json_file:
+        api_spec = json.load(json_file)
+    api = BatchAPI(api_spec, statsd_client, model_dir)
+
     with open(job_spec_path) as json_file:
         job_spec = json.load(json_file)
 
     sqs_client = boto3.client("sqs", region_name=region)
 
-    client = api.predictor.initialize_client(
-        tf_serving_host=tf_serving_host, tf_serving_port=tf_serving_port
-    )
+    client = api.initialize_client(tf_serving_host=tf_serving_host, tf_serving_port=tf_serving_port)
 
     try:
-        log.info("loading the predictor from {}".format(api.predictor.path))
-        metrics_client = MetricsClient(api.statsd)
-        predictor_impl = api.predictor.initialize_impl(
+        log.info("loading the handler from {}".format(api.path))
+        handler_impl = api.initialize_impl(
             project_dir=project_dir,
             client=client,
-            metrics_client=metrics_client,
+            metrics_client=MetricsClient(statsd_client),
             job_spec=job_spec,
         )
     except UserRuntimeException as err:
@@ -223,20 +229,10 @@ def start():
         log.error(f"failed to start job {job_spec['job_id']}", exc_info=True)
         sys.exit(1)
 
-    # crons only stop if an unhandled exception occurs
-    def check_if_crons_have_failed():
-        while True:
-            for cron in api.predictor.crons:
-                if not cron.is_alive():
-                    os.kill(os.getpid(), signal.SIGQUIT)
-            time.sleep(1)
-
-    threading.Thread(target=check_if_crons_have_failed, daemon=True).start()
-
     local_cache["api"] = api
     local_cache["job_spec"] = job_spec
-    local_cache["predictor_impl"] = predictor_impl
-    local_cache["predict_fn_args"] = inspect.getfullargspec(predictor_impl.predict).args
+    local_cache["handler_impl"] = handler_impl
+    local_cache["handle_batch_fn_args"] = inspect.getfullargspec(handler_impl.handle_batch).args
     local_cache["sqs_client"] = sqs_client
 
     open("/mnt/workspace/api_readiness.txt", "a").close()
@@ -256,7 +252,7 @@ def start():
         sqs_handler.start(
             message_fn=handle_batch_message,
             message_failure_fn=handle_batch_failure,
-            on_job_complete_fn=handle_on_job_complete,
+            on_job_complete_fn=on_job_complete,
         )
     except UserRuntimeException as err:
         err.wrap(f"failed to run job {job_spec['job_id']}")

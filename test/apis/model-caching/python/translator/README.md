@@ -13,7 +13,7 @@ curl https://***.amazonaws.com/translator -X POST -H "Content-Type: application/
 Priorities of this project include:
 
 - __Cost effectiveness.__ Each language-to-language translation is handled by a different ~300 MB model. Traditional setups would deploy all +1,000 models across many servers to ensure availability, but this API can be run on a single server thanks to Cortex's multi-model caching.
-- __Ease of use.__ Predictions are generated using Hugging Face's Transformer Library and Cortex's Predictor API, while the translation service itself runs on a Cortex cluster self-hosted on your AWS account.
+- __Ease of use.__ Predictions are generated using Hugging Face's Transformer Library and Cortex's Handler API, while the translation service itself runs on a Cortex cluster self-hosted on your AWS account.
 - __Configurability.__ All tools used in this API are fully open source and modifiable. The deployed service and underlying infrastructure run on your AWS account. The prediction API can be run on CPU and GPU instances.
 
 ## Models used
@@ -96,7 +96,7 @@ opus-mt-afa-afa                    1 (latest)      21 Aug 20 10:42:38 EDT
 ...
 ```
 
-Once Cortex has indexed all +1,000 models, we can now query the API at the endpoint given, structuring the body of our request according to the format expected by our predictor (specified in `predictor.py`):
+Once Cortex has indexed all +1,000 models, we can now query the API at the endpoint given, structuring the body of our request according to the format expected by our handler (specified in `predictor.py`):
 
 ```
 {

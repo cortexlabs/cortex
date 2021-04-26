@@ -40,8 +40,8 @@ JOB_COMPLETE_MESSAGE_RENEWAL = 10  # seconds
 
 local_cache: Dict[str, Any] = {
     "api": None,
-    "predictor_impl": None,
-    "predict_fn_args": None,
+    "handler_impl": None,
+    "handle_async_fn_args": None,
     "sqs_client": None,
     "storage_client": None,
 }
@@ -49,7 +49,7 @@ local_cache: Dict[str, Any] = {
 
 def handle_workload(message):
     api: AsyncAPI = local_cache["api"]
-    predictor_impl = local_cache["predictor_impl"]
+    handler_impl = local_cache["handler_impl"]
 
     request_id = message["Body"]
     log.info(f"processing workload...", extra={"id": request_id})
@@ -58,7 +58,7 @@ def handle_workload(message):
     payload = api.get_payload(request_id)
 
     try:
-        result = predictor_impl.predict(**build_predict_args(payload, request_id))
+        result = handler_impl.handle_async(**build_handle_async_args(payload, request_id))
     except Exception as err:
         raise UserRuntimeException from err
 
@@ -85,11 +85,11 @@ def handle_workload_failure(message):
     api.delete_payload(request_id=request_id)
 
 
-def build_predict_args(payload, request_id):
+def build_handle_async_args(payload, request_id):
     args = {}
-    if "payload" in local_cache["predict_fn_args"]:
+    if "payload" in local_cache["handle_async_fn_args"]:
         args["payload"] = payload
-    if "request_id" in local_cache["predict_fn_args"]:
+    if "request_id" in local_cache["handle_async_fn_args"]:
         args["request_id"] = request_id
     return args
 
@@ -128,28 +128,28 @@ def main():
     )
 
     try:
-        log.info(f"loading the predictor from {api.path}")
+        log.info(f"loading the handler from {api.path}")
         metrics_client = MetricsClient(api.statsd)
-        predictor_impl = api.initialize_impl(
+        handler_impl = api.initialize_impl(
             project_dir,
             metrics_client,
             tf_serving_host=tf_serving_host,
             tf_serving_port=tf_serving_port,
         )
     except UserRuntimeException as err:
-        err.wrap(f"failed to initialize predictor implementation")
+        err.wrap(f"failed to initialize handler implementation")
         log.error(str(err), exc_info=True)
         sys.exit(1)
     except Exception as err:
         capture_exception(err)
-        log.error(f"failed to initialize predictor implementation", exc_info=True)
+        log.error(f"failed to initialize handler implementation", exc_info=True)
         sys.exit(1)
 
     local_cache["api"] = api
-    local_cache["predictor_impl"] = predictor_impl
+    local_cache["handler_impl"] = handler_impl
     local_cache["sqs_client"] = sqs_client
     local_cache["storage_client"] = storage
-    local_cache["predict_fn_args"] = inspect.getfullargspec(predictor_impl.predict).args
+    local_cache["handle_async_fn_args"] = inspect.getfullargspec(handler_impl.handle_async).args
 
     open(readiness_file, "a").close()
 

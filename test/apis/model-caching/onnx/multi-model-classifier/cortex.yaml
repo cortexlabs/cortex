@@ -1,6 +1,6 @@
 - name: multi-model-classifier
   kind: RealtimeAPI
-  predictor:
+  handler:
     type: python
     path: predictor.py
     multi_model_reloading:

@@ -4,7 +4,7 @@ import json
 import re
 
 
-class PythonPredictor:
+class Handler:
     def __init__(self, config, job_spec):
         if len(config.get("dest_s3_dir", "")) == 0:
             raise Exception("'dest_s3_dir' field was not provided in job submission")
@@ -15,7 +15,7 @@ class PythonPredictor:
         self.key = os.path.join(self.key, job_spec["job_id"])
         self.list = []
 
-    def predict(self, payload, batch_id):
+    def handle_batch(self, payload, batch_id):
         for numbers_list in payload:
             self.list.append(sum(numbers_list))
 

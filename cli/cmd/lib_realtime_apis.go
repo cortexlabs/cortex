@@ -29,7 +29,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/console"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
-	"github.com/cortexlabs/cortex/pkg/lib/json"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/table"
 	libtime "github.com/cortexlabs/cortex/pkg/lib/time"
@@ -52,15 +51,18 @@ func realtimeAPITable(realtimeAPI schema.APIResponse, env cliconfig.Environment)
 		out += "\n" + console.Bold("metrics dashboard: ") + *realtimeAPI.DashboardURL + "\n"
 	}
 
-	if realtimeAPI.Spec.Predictor.IsGRPC() {
+	if realtimeAPI.Spec.Handler.IsGRPC() {
 		out += "\n" + console.Bold("insecure endpoint: ") + fmt.Sprintf("%s:%d", realtimeAPI.Endpoint, realtimeAPI.GRPCPorts["insecure"])
 		out += "\n" + console.Bold("secure endpoint: ") + fmt.Sprintf("%s:%d", realtimeAPI.Endpoint, realtimeAPI.GRPCPorts["secure"]) + "\n"
 	} else {
 		out += "\n" + console.Bold("endpoint: ") + realtimeAPI.Endpoint + "\n"
 	}
 
-	if !(realtimeAPI.Spec.Predictor.Type == userconfig.PythonPredictorType && realtimeAPI.Spec.Predictor.MultiModelReloading == nil) && realtimeAPI.Spec.Predictor.ProtobufPath == nil {
-		out += "\n" + describeModelInput(realtimeAPI.Status, realtimeAPI.Spec.Predictor, realtimeAPI.Endpoint)
+	if !(realtimeAPI.Spec.Handler.Type == userconfig.PythonHandlerType && realtimeAPI.Spec.Handler.MultiModelReloading == nil) && realtimeAPI.Spec.Handler.ProtobufPath == nil {
+		decribedModels := describeModelInput(realtimeAPI.Status, realtimeAPI.RealtimeModelMetadata.TFModelSummary, realtimeAPI.RealtimeModelMetadata.PythonModelSummary)
+		if decribedModels != "" {
+			out += "\n" + decribedModels
+		}
 	}
 
 	out += "\n" + apiHistoryTable(realtimeAPI.APIVersions)
@@ -158,39 +160,28 @@ func code5XXStr(metrics *metrics.Metrics) string {
 	return s.Int(metrics.NetworkStats.Code5XX)
 }
 
-func describeModelInput(status *status.Status, predictor *userconfig.Predictor, apiEndpoint string) string {
+func describeModelInput(status *status.Status, apiTFLiveReloadingSummary *schema.TFLiveReloadingSummary, apiModelSummary *schema.PythonModelSummary) string {
 	if status.Updated.Ready+status.Stale.Ready == 0 {
 		return "the models' metadata schema will be available when the api is live\n"
 	}
 
-	cachingEnabled := predictor.Models != nil && predictor.Models.CacheSize != nil && predictor.Models.DiskCacheSize != nil
-	if predictor.Type == userconfig.TensorFlowPredictorType && !cachingEnabled {
-		apiTFLiveReloadingSummary, err := getAPITFLiveReloadingSummary(apiEndpoint)
-		if err != nil {
-			if strings.Contains(errors.Message(err), "context deadline exceeded") {
-				return "error retrieving the models' metadata schema: unable to connect to the API, you either do not have access or the API is too busy" + "\n"
-			}
-			return "error retrieving the models' metadata schema: " + errors.Message(err) + "\n"
-		}
+	if apiTFLiveReloadingSummary != nil {
 		t, err := parseAPITFLiveReloadingSummary(apiTFLiveReloadingSummary)
 		if err != nil {
-			return "error retrieving the model's input schema: " + errors.Message(err) + "\n"
+			return "error parsing the model's input schema: " + errors.Message(err) + "\n"
 		}
 		return t
 	}
 
-	apiModelSummary, err := getAPIModelSummary(apiEndpoint)
-	if err != nil {
-		if strings.Contains(errors.Message(err), "context deadline exceeded") {
-			return "error retrieving the models' metadata schema: unable to connect to the API, you either do not have access or the API is too busy" + "\n"
+	if apiModelSummary != nil {
+		t, err := parseAPIModelSummary(apiModelSummary)
+		if err != nil {
+			return "error parsing the models' metadata schema: " + errors.Message(err) + "\n"
 		}
-		return "error retrieving the models' metadata schema: " + errors.Message(err) + "\n"
+		return t
 	}
-	t, err := parseAPIModelSummary(apiModelSummary)
-	if err != nil {
-		return "error retrieving the models' metadata schema: " + errors.Message(err) + "\n"
-	}
-	return t
+
+	return ""
 }
 
 func getModelFromModelID(modelID string) (modelName string, modelVersion int64, err error) {
@@ -229,45 +220,7 @@ func makeRequest(request *http.Request) (http.Header, []byte, error) {
 	return response.Header, bodyBytes, nil
 }
 
-func getAPIModelSummary(apiEndpoint string) (*schema.APIModelSummary, error) {
-	req, err := http.NewRequest("GET", apiEndpoint, nil)
-	if err != nil {
-		return nil, errors.Wrap(err, "unable to request api summary")
-	}
-	req.Header.Set("Content-Type", "application/json")
-	_, response, err := makeRequest(req)
-	if err != nil {
-		return nil, err
-	}
-
-	var apiModelSummary schema.APIModelSummary
-	err = json.DecodeWithNumber(response, &apiModelSummary)
-	if err != nil {
-		return nil, errors.Wrap(err, "unable to parse api summary response")
-	}
-	return &apiModelSummary, nil
-}
-
-func getAPITFLiveReloadingSummary(apiEndpoint string) (*schema.APITFLiveReloadingSummary, error) {
-	req, err := http.NewRequest("GET", apiEndpoint, nil)
-	if err != nil {
-		return nil, errors.Wrap(err, "unable to request api summary")
-	}
-	req.Header.Set("Content-Type", "application/json")
-	_, response, err := makeRequest(req)
-	if err != nil {
-		return nil, err
-	}
-
-	var apiTFLiveReloadingSummary schema.APITFLiveReloadingSummary
-	err = json.DecodeWithNumber(response, &apiTFLiveReloadingSummary)
-	if err != nil {
-		return nil, errors.Wrap(err, "unable to parse api summary response")
-	}
-	return &apiTFLiveReloadingSummary, nil
-}
-
-func parseAPIModelSummary(summary *schema.APIModelSummary) (string, error) {
+func parseAPIModelSummary(summary *schema.PythonModelSummary) (string, error) {
 	rows := make([][]interface{}, 0)
 
 	for modelName, modelMetadata := range summary.ModelMetadata {
@@ -324,7 +277,7 @@ func parseAPIModelSummary(summary *schema.APIModelSummary) (string, error) {
 	return t.MustFormat(), nil
 }
 
-func parseAPITFLiveReloadingSummary(summary *schema.APITFLiveReloadingSummary) (string, error) {
+func parseAPITFLiveReloadingSummary(summary *schema.TFLiveReloadingSummary) (string, error) {
 	latestVersions := make(map[string]int64)
 
 	numRows := 0

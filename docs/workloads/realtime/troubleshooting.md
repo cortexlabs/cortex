@@ -7,7 +7,7 @@ When making requests to your API, it's possible to get a `{"message":"Not Found"
 1. It's possible that your API is simply not ready yet. You can check the status of your API with `cortex get API_NAME`, and stream the logs with `cortex logs API_NAME`.
 1. Your API may have errored during initialization or while responding to a previous request. `cortex get API_NAME` will show the status of your API, and you can view the logs with `cortex logs API_NAME`.
 
-It is also possible to receive a `{"message":"Service Unavailable"}` error message (with HTTP status code `503`) if you are using API Gateway in front of your API endpoints and if your request exceeds API Gateway's 29 second timeout. If the request is exceeding the API Gateway timeout, your client should receive the `{"message":"Service Unavailable"}` response ~29 seconds after making the request. To confirm that this is the issue, you can modify your `predict()` function to immediately return a response (e.g. `return "ok"`), re-deploy your API, wait for the update to complete, and try making a request. If your client successfully receives the "ok" response, it is likely that the API Gateway timeout is occurring. You can either modify your `predict()` implementation to take less time, run on faster hardware (e.g. GPUs), or don't use API Gateway (there is no timeout when using the API's endpoint).
+It is also possible to receive a `{"message":"Service Unavailable"}` error message (with HTTP status code `503`) if you are using API Gateway in front of your API endpoints and if your request exceeds API Gateway's 29 second timeout. If the request is exceeding the API Gateway timeout, your client should receive the `{"message":"Service Unavailable"}` response ~29 seconds after making the request. To confirm that this is the issue, you can modify your handle function to immediately return a response (e.g. `return "ok"`), re-deploy your API, wait for the update to complete, and try making a request. If your client successfully receives the "ok" response, it is likely that the API Gateway timeout is occurring. You can either modify your handler implementation to take less time, run on faster hardware (e.g. GPUs), or don't use API Gateway (there is no timeout when using the API's endpoint).
 
 ## API is stuck updating
 
@@ -62,7 +62,7 @@ You can disable rolling updates for your API in your API configuration (e.g. in 
 
 ```yaml
 - name: text-generator
-  predictor:
+  handler:
     type: python
     ...
   update_strategy:

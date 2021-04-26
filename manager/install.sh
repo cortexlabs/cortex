@@ -313,13 +313,13 @@ function start_pre_download_images() {
   if [ -n "$CORTEX_DEV_DEFAULT_IMAGE_REGISTRY" ]; then
     registry="$CORTEX_DEV_DEFAULT_IMAGE_REGISTRY"
   fi
-  export CORTEX_IMAGE_PYTHON_PREDICTOR_CPU="${registry}/python-predictor-cpu:${CORTEX_VERSION}"
-  export CORTEX_IMAGE_PYTHON_PREDICTOR_GPU="${registry}/python-predictor-gpu:${CORTEX_VERSION}-cuda10.2-cudnn8"
-  export CORTEX_IMAGE_PYTHON_PREDICTOR_INF="${registry}/python-predictor-inf:${CORTEX_VERSION}"
+  export CORTEX_IMAGE_PYTHON_HANDLER_CPU="${registry}/python-handler-cpu:${CORTEX_VERSION}"
+  export CORTEX_IMAGE_PYTHON_HANDLER_GPU="${registry}/python-handler-gpu:${CORTEX_VERSION}-cuda10.2-cudnn8"
+  export CORTEX_IMAGE_PYTHON_HANDLER_INF="${registry}/python-handler-inf:${CORTEX_VERSION}"
   export CORTEX_IMAGE_TENSORFLOW_SERVING_CPU="${registry}/tensorflow-serving-cpu:${CORTEX_VERSION}"
   export CORTEX_IMAGE_TENSORFLOW_SERVING_GPU="${registry}/tensorflow-serving-gpu:${CORTEX_VERSION}"
   export CORTEX_IMAGE_TENSORFLOW_SERVING_INF="${registry}/tensorflow-serving-inf:${CORTEX_VERSION}"
-  export CORTEX_IMAGE_TENSORFLOW_PREDICTOR="${registry}/tensorflow-predictor:${CORTEX_VERSION}"
+  export CORTEX_IMAGE_TENSORFLOW_HANDLER="${registry}/tensorflow-handler:${CORTEX_VERSION}"
 
   envsubst < manifests/image-downloader-cpu.yaml | kubectl apply -f - &>/dev/null
 

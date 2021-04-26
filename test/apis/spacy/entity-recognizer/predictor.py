@@ -2,7 +2,7 @@ import spacy
 import subprocess
 
 
-class PythonPredictor:
+class Handler:
     """
     Class to perform NER (named entity recognition)
     """
@@ -13,7 +13,7 @@ class PythonPredictor:
 
         self.nlp = en_core_web_md.load()
 
-    def predict(self, payload):
+    def handle_post(self, payload):
         doc = self.nlp(payload["text"])
         proc = lambda ent: {"label": ent.label_, "start": ent.start, "end": ent.end}
         out = {ent.text: proc(ent) for ent in doc.ents}

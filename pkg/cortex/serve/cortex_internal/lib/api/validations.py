@@ -13,11 +13,11 @@
 # limitations under the License.
 
 import inspect
-from typing import Dict
+from typing import Dict, List
 
 from cortex_internal.lib import util
 from cortex_internal.lib.exceptions import UserException
-from cortex_internal.lib.type import predictor_type_from_api_spec, PythonPredictorType
+from cortex_internal.lib.type import handler_type_from_api_spec, PythonHandlerType
 
 
 def validate_class_impl(impl, impl_req):
@@ -90,28 +90,28 @@ def validate_required_method_args(impl, func_signature):
         seen_args.append(arg_name)
 
 
-def validate_python_predictor_with_models(impl, api_spec):
+def validate_python_handler_with_models(impl, api_spec):
     if not are_models_specified(api_spec):
         return
 
     target_class_name = impl.__name__
     constructor = getattr(impl, "__init__")
     constructor_arg_spec = inspect.getfullargspec(constructor)
-    if "python_client" not in constructor_arg_spec.args:
+    if "model_client" not in constructor_arg_spec.args:
         raise UserException(
             f"class {target_class_name}",
             f'invalid signature for method "__init__"',
-            f'"python_client" is a required argument, but was not provided',
-            f"when the python predictor type is used and models are specified in the api spec, "
-            f'adding the "python_client" argument is required',
+            f'"model_client" is a required argument, but was not provided',
+            f"when the python handler type is used and models are specified in the api spec, "
+            f'adding the "model_client" argument is required',
         )
 
     if getattr(impl, "load_model", None) is None:
         raise UserException(
             f"class {target_class_name}",
-            f'required method "load_model" is not defined',
-            f"when the python predictor type is used and models are specified in the api spec, "
-            f'adding the "load_model" method is required',
+            f"required method `load_model` is not defined",
+            f"when the python handler type is used and models are specified in the api spec, "
+            f"adding the `load_model` method is required",
         )
 
 
@@ -122,12 +122,12 @@ def are_models_specified(api_spec: Dict) -> bool:
     Args:
         api_spec: API configuration.
     """
-    predictor_type = predictor_type_from_api_spec(api_spec)
+    handler_type = handler_type_from_api_spec(api_spec)
 
-    if predictor_type == PythonPredictorType and api_spec["predictor"]["multi_model_reloading"]:
-        models = api_spec["predictor"]["multi_model_reloading"]
-    elif predictor_type != PythonPredictorType:
-        models = api_spec["predictor"]["models"]
+    if handler_type == PythonHandlerType and api_spec["handler"]["multi_model_reloading"]:
+        models = api_spec["handler"]["multi_model_reloading"]
+    elif handler_type != PythonHandlerType:
+        models = api_spec["handler"]["models"]
     else:
         return False
 
@@ -141,10 +141,10 @@ def is_grpc_enabled(api_spec: Dict) -> bool:
     Args:
         api_spec: API configuration.
     """
-    return api_spec["predictor"]["protobuf_path"] is not None
+    return api_spec["handler"]["protobuf_path"] is not None
 
 
-def validate_predictor_with_grpc(impl, api_spec):
+def validate_handler_with_grpc(impl, api_spec: Dict, rpc_method_names: List[str]):
     if not is_grpc_enabled(api_spec):
         return
 
@@ -154,26 +154,24 @@ def validate_predictor_with_grpc(impl, api_spec):
     if "proto_module_pb2" not in constructor_arg_spec.args:
         raise UserException(
             f"class {target_class_name}",
-            f'invalid signature for method "__init__"',
+            f"invalid signature for method `__init__`",
             f'"proto_module_pb2" is a required argument, but was not provided',
             f"when a protobuf is specified in the api spec, then that means the grpc protocol is enabled, "
             f'which means that adding the "proto_module_pb2" argument is required',
         )
 
-    predictor = getattr(impl, "predict")
-    predictor_arg_spec = inspect.getfullargspec(predictor)
-    disallowed_params = list(
-        set(["query_params", "headers", "batch_id"]).intersection(predictor_arg_spec.args)
-    )
-    if len(disallowed_params) > 0:
-        raise UserException(
-            f"class {target_class_name}",
-            f'invalid signature for method "predict"',
-            f'{util.string_plural_with_s("argument", len(disallowed_params))} {util.and_list_with_quotes(disallowed_params)} cannot be used when the grpc protocol is enabled',
-        )
+    for rpc_method_name in rpc_method_names:
+        if not util.has_method(impl, rpc_method_name):
+            raise UserException(
+                f"method {rpc_method_name} hasn't been defined in the Handler class; define one called {rpc_method_name} to match the RPC method from the protobuf definition"
+            )
 
-    if getattr(impl, "post_predict", None):
-        raise UserException(
-            f"class {target_class_name}",
-            f"post_predict method is not supported when the grpc protocol is enabled",
-        )
+        rpc_handler = getattr(impl, rpc_method_name)
+        arg_spec = inspect.getfullargspec(rpc_handler).args
+        disallowed_params = list(set(arg_spec).difference(set(["self", "payload", "context"])))
+        if len(disallowed_params) > 0:
+            raise UserException(
+                f"class {target_class_name}",
+                f'invalid signature for method "{rpc_method_name}"',
+                f'{util.string_plural_with_s("argument", len(disallowed_params))} {util.and_list_with_quotes(disallowed_params)} cannot be used when the grpc protocol is enabled',
+            )

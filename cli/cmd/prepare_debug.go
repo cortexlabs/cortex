@@ -84,10 +84,10 @@ var _prepareDebugCmd = &cobra.Command{
 		}
 
 		if apiToPrepare.Kind != userconfig.RealtimeAPIKind {
-			exit.Error(ErrorNotSupportedForKindAndType(apiToPrepare.Kind, userconfig.UnknownPredictorType))
+			exit.Error(ErrorNotSupportedForKindAndType(apiToPrepare.Kind, userconfig.UnknownHandlerType))
 		}
-		if apiToPrepare.Predictor.Type != userconfig.PythonPredictorType {
-			exit.Error(ErrorNotSupportedForKindAndType(apiToPrepare.Kind, apiToPrepare.Predictor.Type))
+		if apiToPrepare.Handler.Type != userconfig.PythonHandlerType {
+			exit.Error(ErrorNotSupportedForKindAndType(apiToPrepare.Kind, apiToPrepare.Handler.Type))
 		}
 
 		apiSpec := spec.API{
@@ -107,6 +107,6 @@ docker run -p 9000:8888 \
 -e "CORTEX_VERSION=%s" \
 -e "CORTEX_API_SPEC=/mnt/project/%s" \
 -v %s:/mnt/project \
-%s`, consts.CortexVersion, debugFileName, path.Clean(projectRoot), apiToPrepare.Predictor.Image))
+%s`, consts.CortexVersion, debugFileName, path.Clean(projectRoot), apiToPrepare.Handler.Image))
 	},
 }
