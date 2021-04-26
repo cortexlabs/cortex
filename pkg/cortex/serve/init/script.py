@@ -121,7 +121,7 @@ def main():
     # get API spec
     spec_path = os.environ["CORTEX_API_SPEC"]
     cache_dir = os.getenv("CORTEX_CACHE_DIR")
-    region = os.getenv("AWS_REGION")  # when it's deployed to AWS
+    region = os.getenv("AWS_DEFAULT_REGION")  # when it's deployed to AWS
 
     with open(spec_path) as json_file:
         api_spec = json.load(json_file)

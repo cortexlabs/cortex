@@ -183,7 +183,7 @@ def start():
     tf_serving_port = os.getenv("CORTEX_TF_BASE_SERVING_PORT", "9000")
     tf_serving_host = os.getenv("CORTEX_TF_SERVING_HOST", "localhost")
 
-    region = os.getenv("AWS_REGION")
+    region = os.getenv("AWS_DEFAULT_REGION")
 
     has_multiple_servers = os.getenv("CORTEX_MULTIPLE_TF_SERVERS")
     if has_multiple_servers:

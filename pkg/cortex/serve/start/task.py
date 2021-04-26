@@ -28,7 +28,6 @@ logger = configure_logger("cortex", os.environ["CORTEX_LOG_CONFIG_FILE"])
 
 def start():
     project_dir = os.environ["CORTEX_PROJECT_DIR"]
-
     api_spec_path = os.environ["CORTEX_API_SPEC"]
     task_spec_path = os.environ["CORTEX_TASK_SPEC"]
 

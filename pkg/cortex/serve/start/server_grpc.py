@@ -147,7 +147,7 @@ def init():
 
     model_dir = os.getenv("CORTEX_MODEL_DIR")
     cache_dir = os.getenv("CORTEX_CACHE_DIR")
-    region = os.getenv("AWS_REGION")
+    region = os.getenv("AWS_DEFAULT_REGION")
 
     host_ip = os.environ["HOST_IP"]
     tf_serving_port = os.getenv("CORTEX_TF_BASE_SERVING_PORT", "9000")
