@@ -96,7 +96,15 @@ func GetAllStatuses(deployments []kapps.Deployment, pods []kcore.Pod) ([]status.
 	statuses := make([]status.Status, len(resourcesByAPI))
 
 	var i int
-	for _, k8sResources := range resourcesByAPI {
+	for apiName, k8sResources := range resourcesByAPI {
+		if k8sResources.APIDeployment == nil {
+			return nil, errors.ErrorUnexpected("unable to find api deployment", apiName)
+		}
+
+		if k8sResources.GatewayDeployment == nil {
+			return nil, errors.ErrorUnexpected("unable to find gateway deployment", apiName)
+		}
+
 		st, err := apiStatus(k8sResources.APIDeployment, k8sResources.APIPods, k8sResources.GatewayDeployment, k8sResources.GatewayPods)
 		if err != nil {
 			return nil, err
