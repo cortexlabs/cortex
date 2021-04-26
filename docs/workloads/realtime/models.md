@@ -99,7 +99,7 @@ When explicit model paths are specified in the Python handler's API configuratio
 
 When multiple models are defined using the Handler's `multi_model_reloading` field, the `model_client.get_model()` method expects an argument `model_name` which must hold the name of the model that you want to load (for example: `self.client.get_model("text-generator")`). There is also an optional second argument to specify the model version.
 
-### load_model method
+### `load_model` method
 
 The `load_model()` method that you implement in your `Handler` can return anything that you need to make a prediction. There is one caveat: whatever the return value is, it must be unloadable from memory via the `del` keyword. The following frameworks have been tested to work:
 

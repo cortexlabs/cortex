@@ -31,17 +31,17 @@
 * Realtime APIs
   * [Example](workloads/realtime/example.md)
   * [Handler](workloads/realtime/handler.md)
+  * [Models](workloads/realtime/models.md)
+  * Multi-model
+    * [Example](workloads/realtime/multi-model/example.md)
+    * [Configuration](workloads/realtime/multi-model/configuration.md)
+    * [Caching](workloads/realtime/multi-model/caching.md)
   * [Configuration](workloads/realtime/configuration.md)
   * [Parallelism](workloads/realtime/parallelism.md)
   * [Server-side batching](workloads/realtime/server-side-batching.md)
   * [Autoscaling](workloads/realtime/autoscaling.md)
   * [Statuses](workloads/realtime/statuses.md)
   * [Metrics](workloads/realtime/metrics.md)
-  * [Models](workloads/realtime/models.md)
-  * Multi-model
-    * [Example](workloads/realtime/multi-model/example.md)
-    * [Configuration](workloads/realtime/multi-model/configuration.md)
-    * [Caching](workloads/realtime/multi-model/caching.md)
   * Traffic Splitter
     * [Example](workloads/realtime/traffic-splitter/example.md)
     * [Configuration](workloads/realtime/traffic-splitter/configuration.md)
@@ -49,7 +49,7 @@
 * [Async APIs](workloads/async/async-apis.md)
   * [Example](workloads/async/example.md)
   * [Handler](workloads/async/handler.md)
-  * [Models](workloads/batch/models.md)
+  * [Models](workloads/async/models.md)
   * [Configuration](workloads/async/configuration.md)
   * [Statuses](workloads/async/statuses.md)
   * [Webhooks](workloads/async/webhooks.md)
