@@ -22,46 +22,46 @@ from pathlib import Path
 NEURON_CORES_PER_INF = 4
 
 
-def extract_from_predictor(api_kind: str, predictor_config: dict, compute_config: dict) -> dict:
-    predictor_type = predictor_config["type"].lower()
+def extract_from_handler(api_kind: str, handle_config: dict, compute_config: dict) -> dict:
+    handle_type = handle_config["type"].lower()
 
     env_vars = {
-        "CORTEX_LOG_LEVEL": predictor_config["log_level"].upper(),
-        "CORTEX_PROCESSES_PER_REPLICA": predictor_config["processes_per_replica"],
-        "CORTEX_THREADS_PER_PROCESS": predictor_config["threads_per_process"],
-        "CORTEX_DEPENDENCIES_PIP": predictor_config["dependencies"]["pip"],
-        "CORTEX_DEPENDENCIES_CONDA": predictor_config["dependencies"]["conda"],
-        "CORTEX_DEPENDENCIES_SHELL": predictor_config["dependencies"]["shell"],
+        "CORTEX_LOG_LEVEL": handle_config["log_level"].upper(),
+        "CORTEX_PROCESSES_PER_REPLICA": handle_config["processes_per_replica"],
+        "CORTEX_THREADS_PER_PROCESS": handle_config["threads_per_process"],
+        "CORTEX_DEPENDENCIES_PIP": handle_config["dependencies"]["pip"],
+        "CORTEX_DEPENDENCIES_CONDA": handle_config["dependencies"]["conda"],
+        "CORTEX_DEPENDENCIES_SHELL": handle_config["dependencies"]["shell"],
     }
 
-    if predictor_config.get("python_path") is not None:
+    if handle_config.get("python_path") is not None:
         env_vars["CORTEX_PYTHON_PATH"] = os.path.normpath(
-            os.path.join("/mnt", "project", predictor_config["python_path"])
+            os.path.join("/mnt", "project", handle_config["python_path"])
         )
 
     if api_kind == "RealtimeAPI":
-        if predictor_config.get("protobuf_path") is not None:
+        if handle_config.get("protobuf_path") is not None:
             env_vars["CORTEX_SERVING_PROTOCOL"] = "grpc"
             env_vars["CORTEX_PROTOBUF_FILE"] = os.path.join(
-                "/mnt", "project", predictor_config["protobuf_path"]
+                "/mnt", "project", handle_config["protobuf_path"]
             )
         else:
             env_vars["CORTEX_SERVING_PROTOCOL"] = "http"
 
-    if predictor_type == "tensorflow":
+    if handle_type == "tensorflow":
         env_vars["CORTEX_TF_BASE_SERVING_PORT"] = "9000"
         env_vars["CORTEX_TF_SERVING_HOST"] = "localhost"
 
     if compute_config.get("inf", 0) > 0:
-        if predictor_type == "python":
+        if handle_type == "python":
             env_vars["NEURON_RTD_ADDRESS"] = "unix:/sock/neuron.sock"
             env_vars["NEURONCORE_GROUP_SIZES"] = int(
                 compute_config["inf"]
                 * NEURON_CORES_PER_INF
-                / predictor_config.get("processes_per_replica", 1)
+                / handle_config.get("processes_per_replica", 1)
             )
 
-        if predictor_type == "tensorflow":
+        if handle_type == "tensorflow":
             env_vars["CORTEX_MULTIPLE_TF_SERVERS"] = "yes"
             env_vars["CORTEX_ACTIVE_NEURON"] = "yes"
 
@@ -125,13 +125,13 @@ def main(api_spec_path: str):
         "CORTEX_KIND": api_kind,
     }
 
-    predictor_config = api_config.get("predictor", None)
+    handle_config = api_config.get("handler", None)
     compute_config = api_config.get("compute", None)
     definition_config = api_config.get("definition", None)
     autoscaling_config = api_config.get("autoscaling", None)
 
-    if predictor_config is not None:
-        env_vars.update(extract_from_predictor(api_kind, predictor_config, compute_config))
+    if handle_config is not None:
+        env_vars.update(extract_from_handler(api_kind, handle_config, compute_config))
 
     if definition_config is not None:
         env_vars.update(extract_from_task_definition(definition_config, compute_config))
