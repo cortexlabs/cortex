@@ -114,7 +114,7 @@ func GetRealtimeAPILogger(apiName string, apiID string) (*zap.SugaredLogger, err
 		return nil, err
 	}
 
-	return initializeLogger(loggerCacheKey, apiSpec.Predictor.LogLevel, map[string]interface{}{
+	return initializeLogger(loggerCacheKey, apiSpec.Handler.LogLevel, map[string]interface{}{
 		"apiName": apiSpec.Name,
 		"apiKind": apiSpec.Kind.String(),
 		"apiID":   apiSpec.ID,
@@ -128,7 +128,7 @@ func GetRealtimeAPILoggerFromSpec(apiSpec *spec.API) (*zap.SugaredLogger, error)
 		return logger, nil
 	}
 
-	return initializeLogger(loggerCacheKey, apiSpec.Predictor.LogLevel, map[string]interface{}{
+	return initializeLogger(loggerCacheKey, apiSpec.Handler.LogLevel, map[string]interface{}{
 		"apiName": apiSpec.Name,
 		"apiKind": apiSpec.Kind.String(),
 		"apiID":   apiSpec.ID,
@@ -154,7 +154,7 @@ func GetJobLogger(jobKey spec.JobKey) (*zap.SugaredLogger, error) {
 		if err != nil {
 			return nil, err
 		}
-		logLevel = apiSpec.Predictor.LogLevel
+		logLevel = apiSpec.Handler.LogLevel
 	case userconfig.TaskAPIKind:
 		jobSpec, err := DownloadTaskJobSpec(jobKey)
 		if err != nil {
@@ -183,7 +183,7 @@ func GetJobLoggerFromSpec(apiSpec *spec.API, jobKey spec.JobKey) (*zap.SugaredLo
 		return logger, nil
 	}
 
-	return initializeLogger(loggerCacheKey, apiSpec.Predictor.LogLevel, map[string]interface{}{
+	return initializeLogger(loggerCacheKey, apiSpec.Handler.LogLevel, map[string]interface{}{
 		"apiName": jobKey.APIName,
 		"apiKind": jobKey.Kind.String(),
 		"jobID":   jobKey.ID,

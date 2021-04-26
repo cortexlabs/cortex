@@ -32,7 +32,7 @@ def image_to_png_bytes(image):
     return byte_im
 
 
-class PythonPredictor:
+class Handler:
     def __init__(self, config):
         # download the model
         bucket, key = re.match("s3://(.+?)/(.+)", config["model"]).groups()
@@ -46,7 +46,7 @@ class PythonPredictor:
         # resize shape (width, height)
         self.resize_shape = tuple(config["resize_shape"])
 
-    def predict(self, payload):
+    def handle_post(self, payload):
         # download image
         img_url = payload["url"]
         image = get_url_image(img_url)

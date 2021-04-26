@@ -31,6 +31,7 @@ const (
 	ErrParseAnnotation    = "k8s.parse_annotation"
 	ErrParseQuantity      = "k8s.parse_quantity"
 	ErrMissingMetrics     = "k8s.missing_metrics"
+	ErrServiceNotFound    = "k8s.service_not_found"
 )
 
 func ErrorLabelNotFound(labelName string) error {
@@ -72,5 +73,12 @@ func ErrorMissingMetrics() error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrMissingMetrics,
 		Message: "must specify at least one metric",
+	})
+}
+
+func ErrorServiceNotFound(serviceName string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrServiceNotFound,
+		Message: fmt.Sprintf("service %s couldn't be found", serviceName),
 	})
 }

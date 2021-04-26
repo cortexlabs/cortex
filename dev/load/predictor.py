@@ -17,7 +17,7 @@ import time
 from cortex_internal.lib.log import logger as cortex_logger
 
 
-class PythonPredictor:
+class Handler:
     def __init__(self, config):
         num_success = 0
         num_fail = 0
@@ -58,5 +58,5 @@ class PythonPredictor:
             extra={"finished": True, "num_success": num_success, "num_fail": num_fail},
         )
 
-    def predict(self, payload):
+    def handle_post(self, payload):
         return "ok"

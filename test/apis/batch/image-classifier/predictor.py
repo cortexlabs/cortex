@@ -10,7 +10,7 @@ import json
 import re
 
 
-class PythonPredictor:
+class Handler:
     def __init__(self, config, job_spec):
         self.model = torchvision.models.alexnet(pretrained=True).eval()
 
@@ -31,7 +31,7 @@ class PythonPredictor:
         self.bucket, self.key = re.match("s3://(.+?)/(.+)", config["dest_s3_dir"]).groups()
         self.key = os.path.join(self.key, job_spec["job_id"])
 
-    def predict(self, payload, batch_id):
+    def handle_batch(self, payload, batch_id):
         tensor_list = []
 
         # download and preprocess each image

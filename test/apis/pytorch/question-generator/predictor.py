@@ -4,7 +4,7 @@ import subprocess
 import json
 
 
-class PythonPredictor:
+class Handler:
     def __init__(self, config):
         subprocess.call("python -m spacy download en_core_web_sm".split(" "))
         import en_core_web_sm
@@ -17,7 +17,7 @@ class PythonPredictor:
         )
         self.nlp = en_core_web_sm.load()
 
-    def predict(self, payload):
+    def handle_post(self, payload):
         context = payload["context"]
         answer = payload["answer"]
         max_length = int(payload.get("max_length", 64))

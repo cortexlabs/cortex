@@ -6,7 +6,7 @@ import pickle
 import tensorflow as tf
 
 
-class PythonPredictor:
+class Handler:
     def __init__(self, config):
         # limit memory usage on each process
         for gpu in tf.config.list_physical_devices("GPU"):
@@ -16,7 +16,7 @@ class PythonPredictor:
         # weights for the detector and recognizer.
         self.pipeline = keras_ocr.pipeline.Pipeline()
 
-    def predict(self, payload):
+    def handle_post(self, payload):
         # preprocess the images w/ license plates (LPs)
         imgs = payload["imgs"]
         imgs = base64.b64decode(imgs.encode("utf-8"))

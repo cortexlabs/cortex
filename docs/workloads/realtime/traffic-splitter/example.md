@@ -7,12 +7,12 @@ Expose multiple RealtimeAPIs as a single endpoint for A/B tests, multi-armed ban
 ```python
 import cortex
 
-class PythonPredictor:
+class Handler:
     def __init__(self, config):
         from transformers import pipeline
         self.model = pipeline(task="text-generation")
 
-    def predict(self, payload):
+    def handle_post(self, payload):
         return self.model(payload["text"])[0]
 
 requirements = ["tensorflow", "transformers"]
@@ -34,8 +34,8 @@ api_spec_gpu = {
 }
 
 cx = cortex.client("aws")
-cx.create_api(api_spec_cpu, predictor=PythonPredictor, requirements=requirements)
-cx.create_api(api_spec_gpu, predictor=PythonPredictor, requirements=requirements)
+cx.create_api(api_spec_cpu, handler=Handler, requirements=requirements)
+cx.create_api(api_spec_gpu, handler=Handler, requirements=requirements)
 ```
 
 ## Deploy a traffic splitter

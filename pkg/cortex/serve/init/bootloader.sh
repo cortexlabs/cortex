@@ -24,6 +24,10 @@ if [ "$CORTEX_VERSION" != "$EXPECTED_CORTEX_VERSION" ]; then
     exit 1
 fi
 
+export CORTEX_DEBUGGING=${CORTEX_DEBUGGING:-"true"}
+
+eval $(/opt/conda/envs/env/bin/python /src/cortex/serve/init/export_env_vars.py $CORTEX_API_SPEC)
+
 function substitute_env_vars() {
     file_to_run_substitution=$1
     /opt/conda/envs/env/bin/python -c "from cortex_internal.lib import util; import os; util.expand_environment_vars_on_file('$file_to_run_substitution')"

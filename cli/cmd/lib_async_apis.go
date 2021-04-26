@@ -25,7 +25,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/table"
 	libtime "github.com/cortexlabs/cortex/pkg/lib/time"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
-	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 )
 
 const (
@@ -46,10 +45,6 @@ func asyncAPITable(asyncAPI schema.APIResponse, env cliconfig.Environment) (stri
 	}
 
 	out += "\n" + console.Bold("endpoint: ") + asyncAPI.Endpoint + "\n"
-
-	if !(asyncAPI.Spec.Predictor.Type == userconfig.PythonPredictorType && asyncAPI.Spec.Predictor.MultiModelReloading == nil) {
-		out += "\n" + describeModelInput(asyncAPI.Status, asyncAPI.Spec.Predictor, asyncAPI.Endpoint)
-	}
 
 	out += "\n" + apiHistoryTable(asyncAPI.APIVersions)
 

@@ -102,7 +102,7 @@ def pytest_configure(config):
                     "desired_replicas": 50,
                     "concurrency": 50,
                     "min_rtt": 0.004,  # measured in seconds
-                    "max_rtt": 1.000,  # measured in seconds
+                    "max_rtt": 1.200,  # measured in seconds
                     "avg_rtt": 0.07,  # measured in seconds
                     "avg_rtt_tolerance": 0.06,  # measured in seconds
                     "status_code_timeout": 60,  # measured in seconds
@@ -122,9 +122,9 @@ def pytest_configure(config):
                     "workload_timeout": 210,  # measured in seconds
                 },
                 "task": {
-                    "jobs": 10 ** 4,
+                    "jobs": 10 ** 2,
                     "concurrency": 4,
-                    "submit_timeout": 300,  # measured in seconds
+                    "submit_timeout": 240,  # measured in seconds
                     "workload_timeout": 180,  # measured in seconds
                 },
             },

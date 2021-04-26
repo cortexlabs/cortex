@@ -27,7 +27,7 @@ if ! module_exists "cortex_internal"; then
         /src/cortex/serve/
 fi
 
-if [ "${CORTEX_IMAGE_TYPE}" = "tensorflow-predictor" ]; then
+if [ "${CORTEX_IMAGE_TYPE}" = "tensorflow-handler" ]; then
     if ! module_exists "tensorflow" || ! module_exists "tensorflow_serving"; then
         pip install --no-cache-dir -U \
             tensorflow-cpu==2.3.0 \

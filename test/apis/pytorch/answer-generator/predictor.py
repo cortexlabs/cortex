@@ -4,7 +4,7 @@ from transformers import GPT2Tokenizer, GPT2LMHeadModel, GPT2Config
 import generator
 
 
-class PythonPredictor:
+class Handler:
     def __init__(self, config):
         medium_config = GPT2Config(n_embd=1024, n_layer=24, n_head=16)
         model = GPT2LMHeadModel(medium_config)
@@ -28,7 +28,7 @@ class PythonPredictor:
         self.model = model
         self.tokenizer = GPT2Tokenizer.from_pretrained("gpt2")
 
-    def predict(self, payload):
+    def handle_post(self, payload):
         conditioned_tokens = self.tokenizer.encode(payload["text"]) + [generator.END_OF_TEXT]
         prediction = generator.generate(self.model, conditioned_tokens, self.device)
         return self.tokenizer.decode(prediction)

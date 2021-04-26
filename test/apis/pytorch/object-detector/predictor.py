@@ -7,7 +7,7 @@ from torchvision import models
 from torchvision import transforms
 
 
-class PythonPredictor:
+class Handler:
     def __init__(self, config):
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         print(f"using device: {self.device}")
@@ -22,7 +22,7 @@ class PythonPredictor:
 
         self.model = model
 
-    def predict(self, payload):
+    def handle_post(self, payload):
         threshold = float(payload["threshold"])
         image = requests.get(payload["url"]).content
         img_pil = Image.open(BytesIO(image))

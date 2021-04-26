@@ -9,7 +9,7 @@ from model import IrisNet
 labels = ["setosa", "versicolor", "virginica"]
 
 
-class PythonPredictor:
+class Handler:
     def __init__(self, config):
         # download the model
         bucket, key = re.match("s3://(.+?)/(.+)", config["model"]).groups()
@@ -23,7 +23,7 @@ class PythonPredictor:
 
         self.model = model
 
-    def predict(self, payload):
+    def handle_post(self, payload):
         responses = []
 
         # note: this is not the most efficient way, it's just to test server-side batching

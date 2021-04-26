@@ -12,15 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import json
 import os
 import sys
+import json
 from copy import deepcopy
 
 from cortex_internal.lib import util
-from cortex_internal.lib.api import get_spec, TaskAPI
-from cortex_internal.lib.exceptions import UserRuntimeException
-from cortex_internal.lib.telemetry import capture_exception, get_default_tags, init_sentry
+from cortex_internal.lib.api import TaskAPI
+from cortex_internal.lib.telemetry import get_default_tags, init_sentry
 from cortex_internal.lib.log import configure_logger
 
 init_sentry(tags=get_default_tags())
@@ -28,15 +27,15 @@ logger = configure_logger("cortex", os.environ["CORTEX_LOG_CONFIG_FILE"])
 
 
 def start():
-    cache_dir = os.environ["CORTEX_CACHE_DIR"]
     project_dir = os.environ["CORTEX_PROJECT_DIR"]
-    region = os.getenv("AWS_REGION")
-
     api_spec_path = os.environ["CORTEX_API_SPEC"]
     task_spec_path = os.environ["CORTEX_TASK_SPEC"]
 
-    _, api_spec = get_spec(api_spec_path, cache_dir, region)
-    _, task_spec = get_spec(task_spec_path, cache_dir, region, spec_name="task-spec.json")
+    with open(api_spec_path) as json_file:
+        api_spec = json.load(json_file)
+
+    with open(task_spec_path) as json_file:
+        task_spec = json.load(json_file)
 
     logger.info("loading the task definition from {}".format(api_spec["definition"]["path"]))
     task_api = TaskAPI(api_spec)

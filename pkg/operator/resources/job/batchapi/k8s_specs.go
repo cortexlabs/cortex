@@ -36,23 +36,23 @@ import (
 const _operatorService = "operator"
 
 func k8sJobSpec(api *spec.API, job *spec.BatchJob) (*kbatch.Job, error) {
-	switch api.Predictor.Type {
-	case userconfig.TensorFlowPredictorType:
-		return tensorFlowPredictorJobSpec(api, job)
-	case userconfig.PythonPredictorType:
-		return pythonPredictorJobSpec(api, job)
+	switch api.Handler.Type {
+	case userconfig.TensorFlowHandlerType:
+		return tensorFlowHandlerJobSpec(api, job)
+	case userconfig.PythonHandlerType:
+		return pythonHandlerJobSpec(api, job)
 	default:
 		return nil, nil // unexpected
 	}
 }
 
-func pythonPredictorJobSpec(api *spec.API, job *spec.BatchJob) (*kbatch.Job, error) {
-	containers, volumes := operator.PythonPredictorContainers(api)
+func pythonHandlerJobSpec(api *spec.API, job *spec.BatchJob) (*kbatch.Job, error) {
+	containers, volumes := operator.PythonHandlerContainers(api)
 	for i, container := range containers {
 		if container.Name == operator.APIContainerName {
 			containers[i].Env = append(container.Env, kcore.EnvVar{
 				Name:  "CORTEX_JOB_SPEC",
-				Value: "s3://" + config.CoreConfig.Bucket + "/" + job.SpecFilePath(config.CoreConfig.ClusterName),
+				Value: operator.BatchSpecPath,
 			})
 		}
 	}
@@ -64,7 +64,7 @@ func pythonPredictorJobSpec(api *spec.API, job *spec.BatchJob) (*kbatch.Job, err
 			"apiName":        api.Name,
 			"apiID":          api.ID,
 			"specID":         api.SpecID,
-			"predictorID":    api.PredictorID,
+			"handlerID":      api.HandlerID,
 			"jobID":          job.ID,
 			"apiKind":        api.Kind.String(),
 			"cortex.dev/api": "true",
@@ -72,7 +72,7 @@ func pythonPredictorJobSpec(api *spec.API, job *spec.BatchJob) (*kbatch.Job, err
 		PodSpec: k8s.PodSpec{
 			Labels: map[string]string{
 				"apiName":        api.Name,
-				"predictorID":    api.PredictorID,
+				"handlerID":      api.HandlerID,
 				"jobID":          job.ID,
 				"apiKind":        api.Kind.String(),
 				"cortex.dev/api": "true",
@@ -84,7 +84,7 @@ func pythonPredictorJobSpec(api *spec.API, job *spec.BatchJob) (*kbatch.Job, err
 			K8sPodSpec: kcore.PodSpec{
 				RestartPolicy: "Never",
 				InitContainers: []kcore.Container{
-					operator.InitContainer(api),
+					operator.BatchInitContainer(api, job),
 				},
 				Containers:         containers,
 				NodeSelector:       operator.NodeSelectors(),
@@ -97,13 +97,13 @@ func pythonPredictorJobSpec(api *spec.API, job *spec.BatchJob) (*kbatch.Job, err
 	}), nil
 }
 
-func tensorFlowPredictorJobSpec(api *spec.API, job *spec.BatchJob) (*kbatch.Job, error) {
-	containers, volumes := operator.TensorFlowPredictorContainers(api)
+func tensorFlowHandlerJobSpec(api *spec.API, job *spec.BatchJob) (*kbatch.Job, error) {
+	containers, volumes := operator.TensorFlowHandlerContainers(api)
 	for i, container := range containers {
 		if container.Name == operator.APIContainerName {
 			containers[i].Env = append(container.Env, kcore.EnvVar{
 				Name:  "CORTEX_JOB_SPEC",
-				Value: "s3://" + config.CoreConfig.Bucket + "/" + job.SpecFilePath(config.CoreConfig.ClusterName),
+				Value: operator.BatchSpecPath,
 			})
 		}
 	}
@@ -115,7 +115,7 @@ func tensorFlowPredictorJobSpec(api *spec.API, job *spec.BatchJob) (*kbatch.Job,
 			"apiName":        api.Name,
 			"apiID":          api.ID,
 			"specID":         api.SpecID,
-			"predictorID":    api.PredictorID,
+			"handlerID":      api.HandlerID,
 			"jobID":          job.ID,
 			"apiKind":        api.Kind.String(),
 			"cortex.dev/api": "true",
@@ -123,7 +123,7 @@ func tensorFlowPredictorJobSpec(api *spec.API, job *spec.BatchJob) (*kbatch.Job,
 		PodSpec: k8s.PodSpec{
 			Labels: map[string]string{
 				"apiName":        api.Name,
-				"predictorID":    api.PredictorID,
+				"handlerID":      api.HandlerID,
 				"jobID":          job.ID,
 				"apiKind":        api.Kind.String(),
 				"cortex.dev/api": "true",
@@ -135,7 +135,7 @@ func tensorFlowPredictorJobSpec(api *spec.API, job *spec.BatchJob) (*kbatch.Job,
 			K8sPodSpec: kcore.PodSpec{
 				RestartPolicy: "Never",
 				InitContainers: []kcore.Container{
-					operator.InitContainer(api),
+					operator.BatchInitContainer(api, job),
 				},
 				Containers:         containers,
 				NodeSelector:       operator.NodeSelectors(),
@@ -164,7 +164,7 @@ func virtualServiceSpec(api *spec.API) *istioclientnetworking.VirtualService {
 			"apiName":        api.Name,
 			"apiID":          api.ID,
 			"specID":         api.SpecID,
-			"predictorID":    api.PredictorID,
+			"handlerID":      api.HandlerID,
 			"apiKind":        api.Kind.String(),
 			"cortex.dev/api": "true",
 		},

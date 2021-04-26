@@ -485,10 +485,10 @@ func uploadAPItoS3(api spec.API) error {
 		},
 		func() error {
 			var err error
-			// Use api spec indexed by PredictorID for replicas to prevent rolling updates when SpecID changes without PredictorID changing
-			err = config.AWS.UploadJSONToS3(api, config.CoreConfig.Bucket, api.PredictorKey)
+			// Use api spec indexed by HandlerID for replicas to prevent rolling updates when SpecID changes without HandlerID changing
+			err = config.AWS.UploadJSONToS3(api, config.CoreConfig.Bucket, api.HandlerKey)
 			if err != nil {
-				err = errors.Wrap(err, "upload predictor spec")
+				err = errors.Wrap(err, "upload handler spec")
 			}
 			return err
 		},

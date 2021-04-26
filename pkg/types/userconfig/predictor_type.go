@@ -16,73 +16,73 @@ limitations under the License.
 
 package userconfig
 
-type PredictorType int
+type HandlerType int
 
 const (
-	UnknownPredictorType PredictorType = iota
-	PythonPredictorType
-	TensorFlowPredictorType
+	UnknownHandlerType HandlerType = iota
+	PythonHandlerType
+	TensorFlowHandlerType
 )
 
-var _predictorTypes = []string{
+var _handlerTypes = []string{
 	"unknown",
 	"python",
 	"tensorflow",
 }
 
-var _casedPredictorTypes = []string{
+var _casedHandlerTypes = []string{
 	"unknown",
 	"Python",
 	"TensorFlow",
 }
 
-func PredictorTypeFromString(s string) PredictorType {
-	for i := 0; i < len(_predictorTypes); i++ {
-		if s == _predictorTypes[i] {
-			return PredictorType(i)
+func HandlerTypeFromString(s string) HandlerType {
+	for i := 0; i < len(_handlerTypes); i++ {
+		if s == _handlerTypes[i] {
+			return HandlerType(i)
 		}
 	}
-	return UnknownPredictorType
+	return UnknownHandlerType
 }
 
-func PredictorTypeStrings() []string {
-	return _predictorTypes[1:]
+func HandlerTypeStrings() []string {
+	return _handlerTypes[1:]
 }
 
-func (t PredictorType) String() string {
-	return _predictorTypes[t]
+func (t HandlerType) String() string {
+	return _handlerTypes[t]
 }
 
-func (t PredictorType) CasedString() string {
-	return _casedPredictorTypes[t]
+func (t HandlerType) CasedString() string {
+	return _casedHandlerTypes[t]
 }
 
 // MarshalText satisfies TextMarshaler
-func (t PredictorType) MarshalText() ([]byte, error) {
+func (t HandlerType) MarshalText() ([]byte, error) {
 	return []byte(t.String()), nil
 }
 
 // UnmarshalText satisfies TextUnmarshaler
-func (t *PredictorType) UnmarshalText(text []byte) error {
+func (t *HandlerType) UnmarshalText(text []byte) error {
 	enum := string(text)
-	for i := 0; i < len(_predictorTypes); i++ {
-		if enum == _predictorTypes[i] {
-			*t = PredictorType(i)
+	for i := 0; i < len(_handlerTypes); i++ {
+		if enum == _handlerTypes[i] {
+			*t = HandlerType(i)
 			return nil
 		}
 	}
 
-	*t = UnknownPredictorType
+	*t = UnknownHandlerType
 	return nil
 }
 
 // UnmarshalBinary satisfies BinaryUnmarshaler
 // Needed for msgpack
-func (t *PredictorType) UnmarshalBinary(data []byte) error {
+func (t *HandlerType) UnmarshalBinary(data []byte) error {
 	return t.UnmarshalText(data)
 }
 
 // MarshalBinary satisfies BinaryMarshaler
-func (t PredictorType) MarshalBinary() ([]byte, error) {
+func (t HandlerType) MarshalBinary() ([]byte, error) {
 	return []byte(t.String()), nil
 }

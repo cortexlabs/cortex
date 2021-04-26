@@ -9,7 +9,7 @@ import utils.bbox as bbox_utils
 import utils.preprocess as preprocess_utils
 
 
-class PythonPredictor:
+class Handler:
     def __init__(self, config):
         # download yolov3 model
         bucket, key = re.match("s3://(.+?)/(.+)", config["yolov3"]).groups()
@@ -31,7 +31,7 @@ class PythonPredictor:
         # weights for the detector and recognizer
         self.recognition_model_pipeline = keras_ocr.pipeline.Pipeline()
 
-    def predict(self, payload):
+    def handle_post(self, payload):
         # download image
         img_url = payload["url"]
         image = preprocess_utils.get_url_image(img_url)

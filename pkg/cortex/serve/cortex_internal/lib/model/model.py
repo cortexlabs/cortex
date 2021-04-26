@@ -21,7 +21,7 @@ from typing import Dict, List, Any, Tuple, Callable, AbstractSet, Optional
 
 from cortex_internal.lib.concurrency import ReadWriteLock
 from cortex_internal.lib.exceptions import WithBreak, CortexException
-from cortex_internal.lib.type import PredictorType
+from cortex_internal.lib.type import HandlerType
 from cortex_internal.lib.log import configure_logger
 
 logger = configure_logger("cortex", os.environ["CORTEX_LOG_CONFIG_FILE"])
@@ -35,29 +35,29 @@ class ModelsHolder:
 
     def __init__(
         self,
-        predictor_type: PredictorType,
+        handler_type: HandlerType,
         model_dir: str,
         temp_dir: str = "/tmp/cron",
         mem_cache_size: int = -1,
         disk_cache_size: int = -1,
         on_download_callback: Optional[
-            Callable[[PredictorType, str, str, str, str, str, str, str], datetime.datetime]
+            Callable[[HandlerType, str, str, str, str, str, str, str], datetime.datetime]
         ] = None,
         on_load_callback: Optional[Callable[[str], Any]] = None,
         on_remove_callback: Optional[Callable[[List[str]], None]] = None,
     ):
         """
         Args:
-            predictor_type: The predictor type. Can be PythonPredictor, TensorFlowPredictor or TensorFlowNeuronPredictor.
+            handler_type: The handler type. Can be PythonHandler, TensorFlowHandler or TensorFlowNeuronHandler.
             model_dir: Where models are saved on disk.
             temp_dir: Where models are temporary stored for validation.
             mem_cache_size: The size of the cache for in-memory models. For negative values, the cache is disabled.
             disk_cache_size: The size of the cache for on-disk models. For negative values, the cache is disabled.
-            on_download_callback(<predictor_type>, <bucket-name>, <model_name>, <model_version>, <model_path>, <temp_dir>, <model_dir>): Function to be called for downloading a model to disk. Returns the downloaded model's upstream timestamp, otherwise a negative number is returned.
+            on_download_callback(<handler_type>, <bucket-name>, <model_name>, <model_version>, <model_path>, <temp_dir>, <model_dir>): Function to be called for downloading a model to disk. Returns the downloaded model's upstream timestamp, otherwise a negative number is returned.
             on_load_callback(<disk_model_path>, **kwargs): Function to be called when a model is loaded from disk. Returns the actual model. May throw exceptions if it doesn't work.
-            on_remove_callback(<list of model IDs to remove>, **kwargs): Function to be called when the GC is called. E.g. for the TensorFlow Predictor, the function would communicate with TFS to unload models.
+            on_remove_callback(<list of model IDs to remove>, **kwargs): Function to be called when the GC is called. E.g. for the TensorFlow type, the function would communicate with TFS to unload models.
         """
-        self._predictor_type = predictor_type
+        self._handler_type = handler_type
         self._model_dir = model_dir
         self._temp_dir = temp_dir
 
@@ -347,7 +347,7 @@ class ModelsHolder:
         """
         if self._download_callback:
             return self._download_callback(
-                self._predictor_type,
+                self._handler_type,
                 bucket,
                 model_name,
                 model_version,

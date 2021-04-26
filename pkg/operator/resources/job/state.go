@@ -250,20 +250,6 @@ func SetEnqueuingStatus(jobKey spec.JobKey) error {
 	return nil
 }
 
-func SetFailedStatus(jobKey spec.JobKey) error {
-	err := config.AWS.UploadStringToS3("", config.CoreConfig.Bucket, path.Join(jobKey.Prefix(config.CoreConfig.ClusterName), status.JobEnqueueFailed.String()))
-	if err != nil {
-		return err
-	}
-
-	err = DeleteInProgressFile(jobKey)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
 func SetRunningStatus(jobKey spec.JobKey) error {
 	err := config.AWS.UploadStringToS3("", config.CoreConfig.Bucket, path.Join(jobKey.Prefix(config.CoreConfig.ClusterName), status.JobRunning.String()))
 	if err != nil {

@@ -1,11 +1,11 @@
 from collections import defaultdict
 
 
-class PythonPredictor:
+class Handler:
     def __init__(self, config, proto_module_pb2):
         self.proto_module_pb2 = proto_module_pb2
 
-    def predict(self, payload):
+    def Predict(self, payload):
         prime_numbers_to_generate: int = payload.prime_numbers_to_generate
         for prime_number in self.gen_primes():
             if prime_numbers_to_generate == 0:

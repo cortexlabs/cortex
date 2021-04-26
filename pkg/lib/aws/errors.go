@@ -198,7 +198,7 @@ func ErrorDashboardHeightOutOfRange(height int) error {
 func ErrorRegionNotConfigured() error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrRegionNotConfigured,
-		Message: "aws region has not been configured; please set a default region (e.g. `export AWS_REGION=us-west-2`)",
+		Message: "aws region has not been configured; please set a default region (e.g. `export AWS_DEFAULT_REGION=us-west-2`)",
 	})
 }
 

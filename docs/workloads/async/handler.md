@@ -1,21 +1,20 @@
-# Predictor implementation
+# Handler implementation
 
-Which Predictor you use depends on how your model is exported:
+Your handler can be used to process any asynchronous workloads. It can also be used for running ML models using a variety of frameworks such as: PyTorch, ONNX, scikit-learn, XGBoost, TensorFlow (if not using `SavedModel`s), etc.
 
-* [TensorFlow Predictor](#tensorflow-predictor) if your model is exported as a TensorFlow `SavedModel`
-* [Python Predictor](#python-predictor) for all other cases: PyTorch, ONNX, scikit-learn, XGBoost, TensorFlow (if not using `SavedModel`s), etc.
+If you plan on deploying models with TensorFlow in `SavedModel` format, you can also use the [TensorFlow Handler](models.md) that was specifically built for this purpose.
 
 ## Project files
 
 Cortex makes all files in the project directory (i.e. the directory which contains `cortex.yaml`) available for use in
-your Predictor implementation. Python bytecode files (`*.pyc`, `*.pyo`, `*.pyd`), files or folders that start with `.`,
+your handler implementation. Python bytecode files (`*.pyc`, `*.pyo`, `*.pyd`), files or folders that start with `.`,
 and the api configuration file (e.g. `cortex.yaml`) are excluded.
 
 The following files can also be added at the root of the project's directory:
 
 * `.cortexignore` file, which follows the same syntax and behavior as
   a [.gitignore file](https://git-scm.com/docs/gitignore).
-* `.env` file, which exports environment variables that can be used in the predictor. Each line of this file must follow
+* `.env` file, which exports environment variables that can be used in the handler. Each line of this file must follow
   the `VARIABLE=value` format.
 
 For example, if your directory looks like this:
@@ -29,27 +28,25 @@ For example, if your directory looks like this:
 └── requirements.txt
 ```
 
-You can access `values.json` in your Predictor like this:
+You can access `values.json` in your Handler class like this:
 
 ```python
 import json
 
 
-class PythonPredictor:
+class Handler:
     def __init__(self, config):
         with open('values.json', 'r') as values_file:
             values = json.load(values_file)
         self.values = values
 ```
 
-## Python Predictor
-
-### Interface
+## Interface
 
 ```python
 # initialization code and variables can be declared here in global scope
 
-class PythonPredictor:
+class Handler:
     def __init__(self, config, metrics_client):
         """(Required) Called once before the API becomes available. Performs
         setup such as downloading/initializing the model or downloading a
@@ -65,9 +62,9 @@ class PythonPredictor:
         """
         pass
 
-    def predict(self, payload, request_id):
+    def handle_async(self, payload, request_id):
         """(Required) Called once per request. Preprocesses the request payload
-        (if necessary), runs inference, and postprocesses the inference output
+        (if necessary), runs the workload, and postprocesses the resulting output
         (if necessary).
 
         Args:
@@ -76,84 +73,24 @@ class PythonPredictor:
             request_id (optional): The request id string that identifies a workload
 
         Returns:
-            Prediction or a batch of predictions.
+            Workload result or batch of results.
         """
         pass
 ```
 
 For proper separation of concerns, it is recommended to use the constructor's `config` parameter for information such as
 from where to download the model and initialization files, or any configurable model parameters. You define `config` in
-your API configuration, and it is passed through to your Predictor's constructor.
+your API configuration, and it is passed through to your handler's constructor.
 
 Your API can accept requests with different types of payloads. Navigate to the [API requests](#api-requests) section to
-learn about how headers can be used to change the type of `payload` that is passed into your `predict` method.
+learn about how headers can be used to change the type of `payload` that is passed into your `handle_async` method.
 
-At this moment, the AsyncAPI `predict` method can only return `JSON`-parseable objects. Navigate to
-the [API responses](#api-responses) section to learn about how to configure it.
-
-## TensorFlow Predictor
-
-**Uses TensorFlow version 2.3.0 by default**
-
-### Interface
-
-```python
-class TensorFlowPredictor:
-    def __init__(self, config, tensorflow_client, metrics_client):
-        """(Required) Called once before the API becomes available. Performs
-        setup such as downloading/initializing a vocabulary.
-
-        Args:
-            config (required): Dictionary passed from API configuration (if
-                specified).
-            tensorflow_client (required): TensorFlow client which is used to
-                make predictions. This should be saved for use in predict().
-            metrics_client (optional): The cortex metrics client, which allows
-                you to push custom metrics in order to build custom dashboards
-                in grafana.
-        """
-        self.client = tensorflow_client
-        # Additional initialization may be done here
-
-    def predict(self, payload, request_id):
-        """(Required) Called once per request. Preprocesses the request payload
-        (if necessary), runs inference (e.g. by calling
-        self.client.predict(model_input)), and postprocesses the inference
-        output (if necessary).
-
-        Args:
-            payload (optional): The request payload (see below for the possible
-                payload types).
-            request_id (optional): The request id string that identifies a workload
-
-        Returns:
-            Prediction or a batch of predictions.
-        """
-        pass
-```
-
-<!-- CORTEX_VERSION_MINOR -->
-
-Cortex provides a `tensorflow_client` to your Predictor's constructor. `tensorflow_client` is an instance
-of [TensorFlowClient](https://github.com/cortexlabs/cortex/tree/master/pkg/cortex/serve/cortex_internal/lib/client/tensorflow.py)
-that manages a connection to a TensorFlow Serving container to make predictions using your model. It should be saved as
-an instance variable in your Predictor, and your `predict()` function should call `tensorflow_client.predict()` to make
-an inference with your exported TensorFlow model. Preprocessing of the JSON payload and postprocessing of predictions
-can be implemented in your `predict()` function as well.
-
-For proper separation of concerns, it is recommended to use the constructor's `config` parameter for information such as
-from where to download the model and initialization files, or any configurable model parameters. You define `config` in
-your API configuration, and it is passed through to your Predictor's constructor.
-
-Your API can accept requests with different types of payloads. Navigate to the [API requests](#api-requests) section to
-learn about how headers can be used to change the type of `payload` that is passed into your `predict` method.
-
-At this moment, the AsyncAPI `predict` method can only return `JSON`-parseable objects. Navigate to
+At this moment, the AsyncAPI `handle_async` method can only return `JSON`-parseable objects. Navigate to
 the [API responses](#api-responses) section to learn about how to configure it.
 
 ## API requests
 
-The type of the `payload` parameter in `predict(self, payload)` can vary based on the content type of the request.
+The type of the `payload` parameter in `handle_async(self, payload)` can vary based on the content type of the request.
 The `payload` parameter is parsed according to the `Content-Type` header in the request. Here are the parsing rules (see
 below for examples):
 
@@ -179,11 +116,11 @@ curl http://***.amazonaws.com/my-api \
 When sending a JSON payload, the `payload` parameter will be a Python object:
 
 ```python
-class PythonPredictor:
+class Handler:
     def __init__(self, config):
         pass
 
-    def predict(self, payload):
+    def handle_async(self, payload):
         print(payload["key"])  # prints "value"
 ```
 
@@ -205,11 +142,11 @@ Since the `Content-Type: application/octet-stream` header is used, the `payload`
 import pickle
 
 
-class PythonPredictor:
+class Handler:
     def __init__(self, config):
         pass
 
-    def predict(self, payload):
+    def handle_async(self, payload):
         obj = pickle.loads(payload)
         print(obj["key"])  # prints "value"
 ```
@@ -221,11 +158,11 @@ from PIL import Image
 import io
 
 
-class PythonPredictor:
+class Handler:
     def __init__(self, config):
         pass
 
-    def predict(self, payload):
+    def handle_async(self, payload):
         img = Image.open(io.BytesIO(payload))  # read the payload bytes as an image
         print(img.size)
 ```
@@ -245,22 +182,22 @@ curl http://***.amazonaws.com/my-api \
 Since the `Content-Type: text/plain` header is used, the `payload` parameter will be a `string` object:
 
 ```python
-class PythonPredictor:
+class Handle:
     def __init__(self, config):
         pass
 
-    def predict(self, payload):
+    def handle_async(self, payload):
         print(payload)  # prints "hello world"
 ```
 
 ## API responses
 
-Currently, AsyncAPI responses of your `predict()` method have to be a JSON-serializable dictionary.
+Currently, AsyncAPI responses of your `handle_async()` method have to be a JSON-serializable dictionary.
 
 ## Chaining APIs
 
 It is possible to make requests from one API to another within a Cortex cluster. All running APIs are accessible from
-within the predictor at `http://api-<api_name>:8888/predict`, where `<api_name>` is the name of the API you are making a
+within the handler at `http://api-<api_name>:8888/`, where `<api_name>` is the name of the API you are making a
 request to.
 
 For example, if there is an api named `text-generator` running in the cluster, you could make a request to it from a
@@ -270,15 +207,15 @@ different API by using:
 import requests
 
 
-class PythonPredictor:
-    def predict(self, payload):
-        response = requests.post("http://api-text-generator:8888/predict", json={"text": "machine learning is"})
+class Handler:
+    def handle_async(self, payload):
+        response = requests.post("http://api-text-generator:8888/", json={"text": "machine learning is"})
         # ...
 ```
 
 ## Structured logging
 
-You can use Cortex's logger in your predictor implemention to log in JSON. This will enrich your logs with Cortex's
+You can use Cortex's logger in your handler implemention to log in JSON. This will enrich your logs with Cortex's
 metadata, and you can add custom metadata to the logs by adding key value pairs to the `extra` key when using the
 logger. For example:
 
@@ -287,8 +224,8 @@ logger. For example:
 from cortex_internal.lib.log import logger as log
 
 
-class PythonPredictor:
-    def predict(self, payload):
+class Handler:
+    def handle_async(self, payload):
         log.info("received payload", extra={"payload": payload})
 ```
 

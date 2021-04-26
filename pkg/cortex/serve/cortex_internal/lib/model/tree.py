@@ -28,7 +28,7 @@ from cortex_internal.lib.model.validation import (
     ModelVersion,
 )
 from cortex_internal.lib.storage import S3
-from cortex_internal.lib.type import PredictorType
+from cortex_internal.lib.type import HandlerType
 
 logger = configure_logger("cortex", os.environ["CORTEX_LOG_CONFIG_FILE"])
 
@@ -388,7 +388,7 @@ class LockedModelsTree:
 def find_all_s3_models(
     is_dir_used: bool,
     models_dir: str,
-    predictor_type: PredictorType,
+    handler_type: HandlerType,
     s3_paths: List[str],
     s3_model_names: List[str],
 ) -> Tuple[
@@ -405,11 +405,11 @@ def find_all_s3_models(
     Information on the available models, versions, last edit times, the subpaths of each model, and so on.
 
     Args:
-        is_dir_used: Whether predictor:models:dir is used or not.
-        models_dir: The value of predictor:models:dir in case it's present. Ignored when not required.
-        predictor_type: The predictor type.
-        s3_paths: The S3 model paths as they are specified in predictor:models:path/predictor:models:paths/predictor:models:dir is used. Ignored when not required.
-        s3_model_names: The S3 model names as they are specified in predictor:models:paths:name when predictor:models:paths is used or the default name of the model when predictor:models:path is used. Ignored when not required.
+        is_dir_used: Whether handler:models:dir is used or not.
+        models_dir: The value of handler:models:dir in case it's present. Ignored when not required.
+        handler_type: The handler type.
+        s3_paths: The S3 model paths as they are specified in handler:models:path/handler:models:paths/handler:models:dir is used. Ignored when not required.
+        s3_model_names: The S3 model names as they are specified in handler:models:paths:name when handler:models:paths is used or the default name of the model when handler:models:path is used. Ignored when not required.
 
     Returns: The tuple with the following elements:
         model_names - a list with the names of the models (i.e. bert, gpt-2, etc) and they are unique
@@ -421,14 +421,14 @@ def find_all_s3_models(
         bucket_names - a list of the bucket names of each model.
     """
 
-    # validate models stored in S3 that were specified with predictor:models:dir field
+    # validate models stored in S3 that were specified with handler:models:dir field
     if is_dir_used:
         bucket_name, models_path = S3.deconstruct_s3_path(models_dir)
         client = S3(bucket_name)
 
         sub_paths, timestamps = client.search(models_path)
 
-        model_paths, ooa_ids = validate_models_dir_paths(sub_paths, predictor_type, models_path)
+        model_paths, ooa_ids = validate_models_dir_paths(sub_paths, handler_type, models_path)
         model_names = [os.path.basename(model_path) for model_path in model_paths]
 
         model_paths = [
@@ -442,7 +442,7 @@ def find_all_s3_models(
         sub_paths = len(model_paths) * [sub_paths]
         timestamps = len(model_paths) * [timestamps]
 
-    # validate models stored in S3 that were specified with predictor:models:paths field
+    # validate models stored in S3 that were specified with handler:models:paths field
     if not is_dir_used:
         sub_paths = []
         ooa_ids = []
@@ -459,7 +459,7 @@ def find_all_s3_models(
 
             sb, model_path_ts = client.search(model_path)
             try:
-                ooa_ids.append(validate_model_paths(sb, predictor_type, model_path))
+                ooa_ids.append(validate_model_paths(sb, handler_type, model_path))
             except CortexException:
                 continue
             model_paths.append(model_path)

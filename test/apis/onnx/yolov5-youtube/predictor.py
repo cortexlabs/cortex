@@ -11,11 +11,11 @@ from matplotlib import pyplot as plt
 from starlette.responses import StreamingResponse
 
 
-class PythonPredictor:
-    def __init__(self, python_client, config):
-        self.client = python_client
+class Handler:
+    def __init__(self, model_client, config):
+        self.client = model_client
         # Get the input shape from the ONNX runtime
-        _, _, height, width = python_client.get_model()["input_shape"]
+        _, _, height, width = model_client.get_model()["input_shape"]
         self.input_size = (width, height)
         self.config = config
         with open("labels.json") as buf:
@@ -38,7 +38,7 @@ class PythonPredictor:
         boxes, class_id, confidence = boxes[sel], class_id[sel], confidence[sel]
         return boxes, class_id, confidence
 
-    def predict(self, payload):
+    def handle_post(self, payload):
         # download YT video
         in_path = utils.download_from_youtube(payload["url"], self.input_size[1])
         out_path = f"{uuid.uuid1()}.mp4"

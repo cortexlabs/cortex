@@ -1,8 +1,8 @@
 # Server-side batching
 
-Server-side batching is the process of aggregating multiple real-time requests into a single batch inference, which increases throughput at the expense of latency. Inference is triggered when either a maximum number of requests have been received, or when a certain amount of time has passed since receiving the first request, whichever comes first. Once a threshold is reached, inference is run on the received requests and responses are returned individually back to the clients. This process is transparent to the clients.
+Server-side batching is the process of aggregating multiple real-time requests into a single batch execution, which increases throughput at the expense of latency. Inference is triggered when either a maximum number of requests have been received, or when a certain amount of time has passed since receiving the first request, whichever comes first. Once a threshold is reached, the handling function is run on the received requests and responses are returned individually back to the clients. This process is transparent to the clients.
 
-The Python and TensorFlow predictors allow for the use of the following 2 fields in the `server_side_batching` configuration:
+The Python and TensorFlow handlers allow for the use of the following 2 fields in the `server_side_batching` configuration:
 
 * `max_batch_size`: The maximum number of requests to aggregate before running inference. This is an instrument for controlling throughput. The maximum size can be achieved if `batch_interval` is long enough to collect `max_batch_size` requests.
 
@@ -12,13 +12,17 @@ The Python and TensorFlow predictors allow for the use of the following 2 fields
 Server-side batching is not supported for APIs that use the gRPC protocol.
 {% endhint %}
 
-## Python predictor
+{% hint style="note" %}
+Server-side batching is only supported on the `handle_post` method.
+{% endhint %}
 
-When using server-side batching with the Python predictor, the arguments that are passed into your predictor's `predict()` function will be lists: `payload` will be a list of payloads, `query_params` will be a list of query parameter dictionaries, and `headers` will be a list of header dictionaries. The lists will all have the same length, where a particular index across all arguments corresponds to a single request (i.e. `payload[2]`, `query_params[2]`, and `headers[2]` correspond to a single request). Your `predict()` function must return a list of responses in the same order that they were received (i.e. the 3rd element in returned list must be the response associated with `payload[2]`).
+## Python Handler
 
-## TensorFlow predictor
+When using server-side batching with the Python handler, the arguments that are passed into your handler's  function will be lists: `payload` will be a list of payloads, `query_params` will be a list of query parameter dictionaries, and `headers` will be a list of header dictionaries. The lists will all have the same length, where a particular index across all arguments corresponds to a single request (i.e. `payload[2]`, `query_params[2]`, and `headers[2]` correspond to a single request). Your handle function must return a list of responses in the same order that they were received (i.e. the 3rd element in returned list must be the response associated with `payload[2]`).
 
-In order to use server-side batching with the TensorFlow predictor, the only requirement is that model's graph must be built such that batches can be accepted as input/output. No modifications to your `TensorFlowPredictor` implementation are required.
+## TensorFlow Handler
+
+In order to use server-side batching with the TensorFlow handler, the only requirement is that model's graph must be built such that batches can be accepted as input/output. No modifications to your handler implementation are required.
 
 The following is an example of how the input `x` and the output `y` of the graph could be shaped to be compatible with server-side batching:
 

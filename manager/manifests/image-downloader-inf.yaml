@@ -40,8 +40,8 @@ spec:
           effect: NoSchedule
       terminationGracePeriodSeconds: 0
       containers:
-        - name: python-predictor-inf
-          image: $CORTEX_IMAGE_PYTHON_PREDICTOR_INF
+        - name: python-handler-inf
+          image: $CORTEX_IMAGE_PYTHON_HANDLER_INF
           command: ["/bin/sh"]
           args: ["-c", "sleep 1000000"]
         - name: tensorflow-serving-inf
