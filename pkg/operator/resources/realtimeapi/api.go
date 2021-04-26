@@ -458,25 +458,25 @@ func GetModelsMetadata(status *status.Status, handler *userconfig.Handler, apiEn
 
 	cachingEnabled := handler.Models != nil && handler.Models.CacheSize != nil && handler.Models.DiskCacheSize != nil
 	if handler.Type == userconfig.TensorFlowHandlerType && !cachingEnabled {
-		apiTFLiveReloadingSummary, err := getAPITFLiveReloadingSummary(apiEndpoint)
+		tfLiveReloadingSummary, err := getTFLiveReloadingSummary(apiEndpoint)
 		if err != nil {
 			return nil, nil, err
 		}
-		return apiTFLiveReloadingSummary, nil, nil
+		return tfLiveReloadingSummary, nil, nil
 	}
 
 	if handler.Type == userconfig.PythonHandlerType && handler.MultiModelReloading != nil {
-		apiModelSummary, err := getAPIModelSummary(apiEndpoint)
+		pythonModelSummary, err := getPythonModelSummary(apiEndpoint)
 		if err != nil {
 			return nil, nil, err
 		}
-		return nil, apiModelSummary, nil
+		return nil, pythonModelSummary, nil
 	}
 
 	return nil, nil, nil
 }
 
-func getAPIModelSummary(apiEndpoint string) (*schema.PythonModelSummary, error) {
+func getPythonModelSummary(apiEndpoint string) (*schema.PythonModelSummary, error) {
 	req, err := http.NewRequest("GET", apiEndpoint, nil)
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to request api summary")
@@ -487,15 +487,15 @@ func getAPIModelSummary(apiEndpoint string) (*schema.PythonModelSummary, error) 
 		return nil, err
 	}
 
-	var apiModelSummary schema.PythonModelSummary
-	err = json.DecodeWithNumber(response, &apiModelSummary)
+	var pythonModelSummary schema.PythonModelSummary
+	err = json.DecodeWithNumber(response, &pythonModelSummary)
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to parse api summary response")
 	}
-	return &apiModelSummary, nil
+	return &pythonModelSummary, nil
 }
 
-func getAPITFLiveReloadingSummary(apiEndpoint string) (*schema.TFLiveReloadingSummary, error) {
+func getTFLiveReloadingSummary(apiEndpoint string) (*schema.TFLiveReloadingSummary, error) {
 	req, err := http.NewRequest("GET", apiEndpoint, nil)
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to request api summary")
@@ -506,10 +506,10 @@ func getAPITFLiveReloadingSummary(apiEndpoint string) (*schema.TFLiveReloadingSu
 		return nil, err
 	}
 
-	var apiTFLiveReloadingSummary schema.TFLiveReloadingSummary
-	err = json.DecodeWithNumber(response, &apiTFLiveReloadingSummary)
+	var tfLiveReloadingSummary schema.TFLiveReloadingSummary
+	err = json.DecodeWithNumber(response, &tfLiveReloadingSummary)
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to parse api summary response")
 	}
-	return &apiTFLiveReloadingSummary, nil
+	return &tfLiveReloadingSummary, nil
 }

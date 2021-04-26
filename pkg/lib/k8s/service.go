@@ -157,8 +157,8 @@ func (c *Client) ListServicesWithLabelKeys(labelKeys ...string) ([]kcore.Service
 	return c.ListServices(opts)
 }
 
-func (c *Client) InternalServiceEndpoint(serviceName string, portNumber int32) (string, error) {
-	return fmt.Sprintf("http://%s.%s.svc.cluster.local:%d", serviceName, c.Namespace, portNumber), nil
+func (c *Client) InternalServiceEndpoint(serviceName string, portNumber int32) string {
+	return fmt.Sprintf("http://%s.%s.svc.cluster.local:%d", serviceName, c.Namespace, portNumber)
 }
 
 func ServiceMap(services []kcore.Service) map[string]kcore.Service {

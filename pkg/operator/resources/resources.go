@@ -608,21 +608,17 @@ func GetAPI(apiName string) ([]schema.APIResponse, error) {
 
 	// best effort
 	if config.K8s != nil && apiResponse[0].Spec.Kind == userconfig.RealtimeAPIKind && !apiResponse[0].Spec.Handler.IsGRPC() && (apiResponse[0].Spec.Handler.MultiModelReloading != nil || apiResponse[0].Spec.Handler.Models != nil) {
-		internalAPIEndpoint, err := config.K8s.InternalServiceEndpoint("api-"+apiResponse[0].Spec.Name, _defaultAPIPortInt32)
-		if err != nil {
-			operatorLogger.Warn(errors.Wrap(err, fmt.Sprintf("api %s", apiResponse[0].Spec.Name)))
-			return apiResponse, nil
-		}
+		internalAPIEndpoint := config.K8s.InternalServiceEndpoint("api-"+apiResponse[0].Spec.Name, _defaultAPIPortInt32)
 
 		infoAPIEndpoint := urls.Join(internalAPIEndpoint, "info")
-		apiTFModelSummary, apiPythonModelSummary, err := realtimeapi.GetModelsMetadata(apiResponse[0].Status, apiResponse[0].Spec.Handler, infoAPIEndpoint)
+		tfModelSummary, pythonModelSummary, err := realtimeapi.GetModelsMetadata(apiResponse[0].Status, apiResponse[0].Spec.Handler, infoAPIEndpoint)
 		if err != nil {
 			operatorLogger.Warn(errors.Wrap(err, fmt.Sprintf("api %s", apiResponse[0].Spec.Name)))
 			return apiResponse, nil
 		}
 
-		apiResponse[0].RealtimeModelMetadata.TFModelSummary = apiTFModelSummary
-		apiResponse[0].RealtimeModelMetadata.PythonModelSummary = apiPythonModelSummary
+		apiResponse[0].RealtimeModelMetadata.TFModelSummary = tfModelSummary
+		apiResponse[0].RealtimeModelMetadata.PythonModelSummary = pythonModelSummary
 	}
 
 	return apiResponse, nil
