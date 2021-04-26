@@ -56,7 +56,7 @@ func main() {
 		metricsAddr          string
 		enableLeaderElection bool
 		clusterConfigPath    string
-		prometheusURL        string
+		prometheusURL        string // defaults to http://prometheus.<namespace>:9090
 		inCluster            = strings.ToLower(os.Getenv("CORTEX_OPERATOR_IN_CLUSTER")) == "true"
 		useDevMode           = strings.ToLower(os.Getenv("CORTEX_DISABLE_JSON_LOGGING")) == "true"
 	)
