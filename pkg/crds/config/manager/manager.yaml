@@ -1,9 +1,3 @@
-apiVersion: v1
-kind: Namespace
-metadata:
-  labels:
-    control-plane: controller-manager
-  name: system
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -26,8 +20,10 @@ spec:
       - command:
         - /manager
         args:
-        - --enable-leader-election
+        - "--config=/mnt/cluster.yaml"
+        - "--enable-leader-election"
         image: controller:latest
+        imagePullPolicy: Always
         name: manager
         resources:
           limits:
@@ -36,4 +32,12 @@ spec:
           requests:
             cpu: 100m
             memory: 20Mi
+        volumeMounts:
+          - mountPath: /mnt/cluster.yaml
+            name: cluster-config
+            subPath: cluster.yaml
+      volumes:
+        - name: cluster-config
+          configMap:
+            name: cluster-config
       terminationGracePeriodSeconds: 10
