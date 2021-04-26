@@ -30,7 +30,7 @@ logger = configure_logger("cortex", os.environ["CORTEX_LOG_CONFIG_FILE"])
 def start():
     cache_dir = os.environ["CORTEX_CACHE_DIR"]
     project_dir = os.environ["CORTEX_PROJECT_DIR"]
-    region = os.getenv("AWS_REGION")
+    region = os.getenv("AWS_DEFAULT_REGION")
 
     api_spec_path = os.environ["CORTEX_API_SPEC"]
     task_spec_path = os.environ["CORTEX_TASK_SPEC"]

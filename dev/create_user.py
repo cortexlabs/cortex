@@ -44,7 +44,11 @@ try:
 except iam_client.exceptions.NoSuchEntityException:
     iam_client.create_user(UserName=user_name)
 
-policy_arn = f"arn:aws-us-gov:iam::{account_id}:policy/{user_name}"
+partition = "aws"
+if "us-gov" in cortex_region:
+    partition = "aws-us-gov"
+
+policy_arn = f"arn:{partition}:iam::{account_id}:policy/{user_name}"
 
 try:
     iam_client.get_policy(PolicyArn=policy_arn)

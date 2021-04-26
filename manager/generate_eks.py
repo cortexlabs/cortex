@@ -22,14 +22,17 @@ K8S_VERSION = "1.18"
 # kubelet config schema:
 # https://github.com/kubernetes/kubernetes/blob/master/staging/src/k8s.io/kubelet/config/v1beta1/types.go
 def default_nodegroup(cluster_config):
+    partition = "aws"
+    if "us-gov" in cluster_config["region"]:
+        partition = "aws-us-gov"
     return {
         "iam": {
             "withAddonPolicies": {"autoScaler": True},
             "attachPolicyARNs": [
-                "arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy",
-                "arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy",
-                "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly",
-                "arn:aws:iam::aws:policy/ElasticLoadBalancingFullAccess",
+                f"arn:{partition}:iam::aws:policy/AmazonEKSWorkerNodePolicy",
+                f"arn:{partition}:iam::aws:policy/AmazonEKS_CNI_Policy",
+                f"arn:{partition}:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly",
+                f"arn:{partition}:iam::aws:policy/ElasticLoadBalancingFullAccess",
                 cluster_config["cortex_policy_arn"],
             ]
             + cluster_config.get("iam_policy_arns", []),

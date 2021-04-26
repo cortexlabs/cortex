@@ -319,5 +319,5 @@ func FindImage(ec2api ec2iface.EC2API, ownerAccount, namePattern string) (string
 		return creationLeft.After(creationRight)
 	})
 
-	return *output.Images[3].ImageId, nil
+	return *output.Images[0].ImageId, nil
 }

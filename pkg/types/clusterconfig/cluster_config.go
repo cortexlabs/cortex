@@ -58,7 +58,7 @@ var (
 	_maxNodeGroupLength           = _maxNodeGroupLengthWithPrefix - len("cx-wd-") // or cx-ws-
 	_maxInstancePools             = 20
 	_cachedCNISupportedInstances  *string
-	_defaultIAMPolicies           = []string{"arn:aws-us-gov:iam::aws:policy/AmazonS3FullAccess"}
+	_defaultIAMPolicies           = []string{"arn:aws:iam::aws:policy/AmazonS3FullAccess"}
 	_invalidTagPrefixes           = []string{"kubernetes.io/", "k8s.io/", "eksctl.", "alpha.eksctl.", "beta.eksctl.", "aws:", "Aws:", "aWs:", "awS:", "aWS:", "AwS:", "aWS:", "AWS:"}
 	// This regex is stricter than the actual S3 rules
 	_strictS3BucketRegex = regexp.MustCompile(`^([a-z0-9])+(-[a-z0-9]+)*$`)
@@ -855,7 +855,16 @@ func (cc *Config) Validate(awsClient *aws.Client, skipQuotaVerification bool) er
 
 	cc.CortexPolicyARN = DefaultPolicyARN(accountID, cc.ClusterName, cc.Region)
 
-	for _, policyARN := range cc.IAMPolicyARNs {
+	defaultPoliciesSet := strset.New(_defaultIAMPolicies...)
+	for i := range cc.IAMPolicyARNs {
+		policyARN := cc.IAMPolicyARNs[i]
+
+		if defaultPoliciesSet.Has(policyARN) {
+			partition := aws.PartitionFromRegion(cc.Region)
+			adjustedPolicyARN := strings.Replace(policyARN, "arn:aws:", fmt.Sprintf("arn:%s:", partition), 1)
+			cc.IAMPolicyARNs[i] = adjustedPolicyARN
+			policyARN = adjustedPolicyARN
+		}
 		_, err := awsClient.IAM().GetPolicy(&iam.GetPolicyInput{
 			PolicyArn: pointer.String(policyARN),
 		})
@@ -1326,7 +1335,6 @@ func (mc *ManagedConfig) TelemetryEvent() map[string]interface{} {
 	}
 
 	// CortexPolicyARN should be managed by cortex
-
 	if !strset.New(_defaultIAMPolicies...).IsEqual(strset.New(mc.IAMPolicyARNs...)) {
 		event["iam_policy_arns._is_custom"] = true
 	}

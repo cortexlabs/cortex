@@ -103,7 +103,7 @@ def main():
     workload_path = os.environ["CORTEX_ASYNC_WORKLOAD_PATH"]
     project_dir = os.environ["CORTEX_PROJECT_DIR"]
     readiness_file = os.getenv("CORTEX_READINESS_FILE", "/mnt/workspace/api_readiness.txt")
-    region = os.getenv("AWS_REGION")
+    region = os.getenv("AWS_DEFAULT_REGION")
     queue_url = os.environ["CORTEX_QUEUE_URL"]
     statsd_host = os.getenv("HOST_IP")
     statsd_port = os.getenv("CORTEX_STATSD_PORT", "9125")
