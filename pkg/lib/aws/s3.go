@@ -383,6 +383,10 @@ func (c *Client) UploadMsgpackToS3(obj interface{}, bucket string, key string) e
 	return c.UploadBytesToS3(msgpackBytes, bucket, key)
 }
 
+func (c *Client) CreateEmptyS3File(bucket string, key string) error {
+	return c.UploadReaderToS3(bytes.NewReader(nil), bucket, key)
+}
+
 func (c *Client) UploadDirToS3(localDirPath string, bucket string, s3Dir string, ignoreFns ...files.IgnoreFn) error {
 	localRelPaths, err := files.ListDirRecursive(localDirPath, true, ignoreFns...)
 	if err != nil {
@@ -705,6 +709,7 @@ func (c *Client) DeleteS3Dir(bucket string, s3Dir string, continueIfFailure bool
 }
 
 func (c *Client) DeleteS3Prefix(bucket string, prefix string, continueIfFailure bool) error {
+	// This implementation is confirmed to be considerably faster than using s3manager.NewDeleteListIterator() + s3manager.NewBatchDeleteWithClient()
 	err := c.S3BatchIterator(bucket, prefix, true, nil, func(objects []*s3.Object) (bool, error) {
 		deleteObjects := make([]*s3.ObjectIdentifier, len(objects))
 		for i, object := range objects {

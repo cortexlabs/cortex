@@ -33,7 +33,6 @@ from cortex_internal.lib.model import (
     FileBasedModelsTreeUpdater,  # only when num workers > 1
     TFSModelLoader,
 )
-from cortex_internal.lib.api import get_spec
 from cortex_internal.lib.checkers.pod import wait_neuron_rtd
 
 
@@ -123,7 +122,9 @@ def main():
     spec_path = os.environ["CORTEX_API_SPEC"]
     cache_dir = os.getenv("CORTEX_CACHE_DIR")
     region = os.getenv("AWS_DEFAULT_REGION")  # when it's deployed to AWS
-    _, api_spec = get_spec(spec_path, cache_dir, region)
+
+    with open(spec_path) as json_file:
+        api_spec = json.load(json_file)
 
     predictor_type = predictor_type_from_api_spec(api_spec)
     caching_enabled = is_model_caching_enabled(api_spec)
