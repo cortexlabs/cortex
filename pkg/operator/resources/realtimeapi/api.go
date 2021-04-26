@@ -21,6 +21,7 @@ import (
 	"net/http"
 	"path/filepath"
 
+	"github.com/cortexlabs/cortex/pkg/config"
 	"github.com/cortexlabs/cortex/pkg/lib/cron"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/json"
@@ -28,7 +29,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/parallel"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/requests"
-	"github.com/cortexlabs/cortex/pkg/operator/config"
 	autoscalerlib "github.com/cortexlabs/cortex/pkg/operator/lib/autoscaler"
 	"github.com/cortexlabs/cortex/pkg/operator/lib/routines"
 	"github.com/cortexlabs/cortex/pkg/operator/operator"
@@ -36,6 +36,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/types/status"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
+	"github.com/cortexlabs/cortex/pkg/workloads"
 	istioclientnetworking "istio.io/client-go/pkg/apis/networking/v1beta1"
 	kapps "k8s.io/api/apps/v1"
 	kcore "k8s.io/api/core/v1"
@@ -118,7 +119,7 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string, force bool) (*spec.A
 }
 
 func RefreshAPI(apiName string, force bool) (string, error) {
-	prevDeployment, err := config.K8s.GetDeployment(operator.K8sName(apiName))
+	prevDeployment, err := config.K8s.GetDeployment(workloads.K8sName(apiName))
 	if err != nil {
 		return "", err
 	} else if prevDeployment == nil {
@@ -282,17 +283,17 @@ func getK8sResources(apiConfig *userconfig.API) (*kapps.Deployment, *kcore.Servi
 	err := parallel.RunFirstErr(
 		func() error {
 			var err error
-			deployment, err = config.K8s.GetDeployment(operator.K8sName(apiConfig.Name))
+			deployment, err = config.K8s.GetDeployment(workloads.K8sName(apiConfig.Name))
 			return err
 		},
 		func() error {
 			var err error
-			service, err = config.K8s.GetService(operator.K8sName(apiConfig.Name))
+			service, err = config.K8s.GetService(workloads.K8sName(apiConfig.Name))
 			return err
 		},
 		func() error {
 			var err error
-			virtualService, err = config.K8s.GetVirtualService(operator.K8sName(apiConfig.Name))
+			virtualService, err = config.K8s.GetVirtualService(workloads.K8sName(apiConfig.Name))
 			return err
 		},
 	)
@@ -324,7 +325,7 @@ func applyK8sDeployment(api *spec.API, prevDeployment *kapps.Deployment) error {
 		}
 	} else if prevDeployment.Status.ReadyReplicas == 0 {
 		// Delete deployment if it never became ready
-		config.K8s.DeleteDeployment(operator.K8sName(api.Name))
+		config.K8s.DeleteDeployment(workloads.K8sName(api.Name))
 		_, err := config.K8s.CreateDeployment(newDeployment)
 		if err != nil {
 			return err
@@ -392,15 +393,15 @@ func deleteK8sResources(apiName string) error {
 				delete(_autoscalerCrons, apiName)
 			}
 
-			_, err := config.K8s.DeleteDeployment(operator.K8sName(apiName))
+			_, err := config.K8s.DeleteDeployment(workloads.K8sName(apiName))
 			return err
 		},
 		func() error {
-			_, err := config.K8s.DeleteService(operator.K8sName(apiName))
+			_, err := config.K8s.DeleteService(workloads.K8sName(apiName))
 			return err
 		},
 		func() error {
-			_, err := config.K8s.DeleteVirtualService(operator.K8sName(apiName))
+			_, err := config.K8s.DeleteVirtualService(workloads.K8sName(apiName))
 			return err
 		},
 	)

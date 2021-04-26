@@ -32,7 +32,6 @@ import (
 	"github.com/aws/aws-sdk-go/service/sqs"
 	"github.com/cortexlabs/cortex/pkg/consts"
 	batch "github.com/cortexlabs/cortex/pkg/crds/apis/batch/v1alpha1"
-	"github.com/cortexlabs/cortex/pkg/crds/controllers"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	libjson "github.com/cortexlabs/cortex/pkg/lib/json"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
@@ -43,6 +42,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/types/status"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
+	"github.com/cortexlabs/cortex/pkg/workloads"
 	"github.com/cortexlabs/yaml"
 	kbatch "k8s.io/api/batch/v1"
 	kcore "k8s.io/api/core/v1"
@@ -184,11 +184,12 @@ func (r *BatchJobReconciler) createWorkerJob(ctx context.Context, batchJob batch
 		return errors.Wrap(err, "failed to get API spec")
 	}
 
-	if err = r.uploadJobSpec(batchJob, *apiSpec, queueURL); err != nil {
+	jobSpec, err := r.uploadJobSpec(batchJob, *apiSpec, queueURL)
+	if err != nil {
 		return errors.Wrap(err, "failed to upload job spec")
 	}
 
-	workerJob, err := r.desiredWorkerJob(batchJob, *apiSpec)
+	workerJob, err := r.desiredWorkerJob(batchJob, *apiSpec, *jobSpec)
 	if err != nil {
 		return errors.Wrap(err, "failed to get desired worker job")
 	}
@@ -232,18 +233,13 @@ func (r *BatchJobReconciler) desiredEnqueuerJob(batchJob batch.BatchJob, queueUR
 								"-apiName", batchJob.Spec.APIName,
 								"-jobID", batchJob.Name,
 							},
-							EnvFrom:         controllers.BaseEnvVars(),
 							ImagePullPolicy: kcore.PullAlways,
 						},
 					},
-					NodeSelector: controllers.NodeSelectors(),
-					Tolerations:  controllers.GenerateResourceTolerations(),
-					Affinity: &kcore.Affinity{
-						NodeAffinity: &kcore.NodeAffinity{
-							PreferredDuringSchedulingIgnoredDuringExecution: controllers.GeneratePreferredNodeAffinities(),
-						},
-					},
-					ServiceAccountName: controllers.ServiceAccountName,
+					NodeSelector:       workloads.NodeSelectors(),
+					Tolerations:        workloads.GenerateResourceTolerations(),
+					Affinity:           workloads.GenerateNodeAffinities(nil), // FIXME: probably requires a node group
+					ServiceAccountName: workloads.ServiceAccountName,
 				},
 			},
 		},
@@ -256,13 +252,13 @@ func (r *BatchJobReconciler) desiredEnqueuerJob(batchJob batch.BatchJob, queueUR
 	return job, nil
 }
 
-func (r *BatchJobReconciler) desiredWorkerJob(batchJob batch.BatchJob, apiSpec spec.API) (*kbatch.Job, error) {
+func (r *BatchJobReconciler) desiredWorkerJob(batchJob batch.BatchJob, apiSpec spec.API, jobSpec spec.BatchJob) (*kbatch.Job, error) {
 	var containers []kcore.Container
 	var volumes []kcore.Volume
 
 	switch apiSpec.Predictor.Type {
 	case userconfig.PythonPredictorType:
-		containers, volumes = controllers.PythonPredictorContainers(&apiSpec)
+		containers, volumes = workloads.PythonPredictorContainers(&apiSpec)
 	case userconfig.TensorFlowPredictorType:
 		panic("not implemented!") // FIXME: implement
 	default:
@@ -270,7 +266,7 @@ func (r *BatchJobReconciler) desiredWorkerJob(batchJob batch.BatchJob, apiSpec s
 	}
 
 	for i, container := range containers {
-		if container.Name == controllers.APIContainerName {
+		if container.Name == workloads.APIContainerName {
 			containers[i].Env = append(container.Env, kcore.EnvVar{
 				Name:  "CORTEX_JOB_SPEC",
 				Value: "s3://" + r.ClusterConfig.Bucket + "/" + r.jobSpecKey(batchJob),
@@ -299,19 +295,15 @@ func (r *BatchJobReconciler) desiredWorkerJob(batchJob batch.BatchJob, apiSpec s
 				},
 				K8sPodSpec: kcore.PodSpec{
 					InitContainers: []kcore.Container{
-						controllers.DownloaderContainer(&apiSpec),
+						workloads.BatchInitContainer(&apiSpec, &jobSpec),
 					},
-					Containers:    containers,
-					Volumes:       volumes,
-					RestartPolicy: kcore.RestartPolicyNever,
-					NodeSelector:  controllers.NodeSelectors(),
-					Affinity: &kcore.Affinity{
-						NodeAffinity: &kcore.NodeAffinity{
-							PreferredDuringSchedulingIgnoredDuringExecution: controllers.GeneratePreferredNodeAffinities(),
-						},
-					},
-					Tolerations:        controllers.GenerateResourceTolerations(),
-					ServiceAccountName: controllers.ServiceAccountName,
+					Containers:         containers,
+					Volumes:            volumes,
+					RestartPolicy:      kcore.RestartPolicyNever,
+					NodeSelector:       workloads.NodeSelectors(),
+					Affinity:           workloads.GenerateNodeAffinities(apiSpec.Compute.NodeGroups),
+					Tolerations:        workloads.GenerateResourceTolerations(),
+					ServiceAccountName: workloads.ServiceAccountName,
 				},
 			},
 		},
@@ -430,7 +422,7 @@ func (r *BatchJobReconciler) deleteSQSQueue(batchJob batch.BatchJob) error {
 	return nil
 }
 
-func (r *BatchJobReconciler) uploadJobSpec(batchJob batch.BatchJob, api spec.API, queueURL string) error {
+func (r *BatchJobReconciler) uploadJobSpec(batchJob batch.BatchJob, api spec.API, queueURL string) (*spec.BatchJob, error) {
 	var deadLetterQueue *spec.SQSDeadLetterQueue
 	if batchJob.Spec.DeadLetterQueue != nil {
 		deadLetterQueue = &spec.SQSDeadLetterQueue{
@@ -442,13 +434,13 @@ func (r *BatchJobReconciler) uploadJobSpec(batchJob batch.BatchJob, api spec.API
 	var config map[string]interface{}
 	if batchJob.Spec.Config != nil {
 		if err := yaml.Unmarshal([]byte(*batchJob.Spec.Config), &config); err != nil {
-			return err
+			return nil, err
 		}
 	}
 
 	maxBatchCount, err := r.Config.GetMaxBatchCount(r, batchJob)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	jobSpec := spec.BatchJob{
@@ -472,7 +464,7 @@ func (r *BatchJobReconciler) uploadJobSpec(batchJob batch.BatchJob, api spec.API
 
 	buffer := &bytes.Buffer{}
 	if err := json.NewEncoder(buffer).Encode(jobSpec); err != nil {
-		return err
+		return nil, err
 	}
 
 	input := s3manager.UploadInput{
@@ -481,9 +473,9 @@ func (r *BatchJobReconciler) uploadJobSpec(batchJob batch.BatchJob, api spec.API
 		Key:    aws.String(r.jobSpecKey(batchJob)),
 	}
 	if _, err := r.AWS.S3Uploader().Upload(&input); err != nil {
-		return err
+		return nil, err
 	}
-	return nil
+	return &jobSpec, nil
 }
 
 func (r *BatchJobReconciler) jobSpecKey(batchJob batch.BatchJob) string {

@@ -21,17 +21,18 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/cortexlabs/cortex/pkg/config"
 	"github.com/cortexlabs/cortex/pkg/lib/cron"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/parallel"
-	"github.com/cortexlabs/cortex/pkg/operator/config"
 	autoscalerlib "github.com/cortexlabs/cortex/pkg/operator/lib/autoscaler"
 	"github.com/cortexlabs/cortex/pkg/operator/lib/routines"
 	"github.com/cortexlabs/cortex/pkg/operator/operator"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
+	"github.com/cortexlabs/cortex/pkg/workloads"
 	istioclientnetworking "istio.io/client-go/pkg/apis/networking/v1beta1"
 	kapps "k8s.io/api/apps/v1"
 	kautoscaling "k8s.io/api/autoscaling/v2beta2"
@@ -149,7 +150,7 @@ func UpdateAPI(apiConfig userconfig.API, projectID string, force bool) (*spec.AP
 func DeleteAPI(apiName string, keepCache bool) error {
 	err := parallel.RunFirstErr(
 		func() error {
-			vs, err := config.K8s.GetVirtualService(operator.K8sName(apiName))
+			vs, err := config.K8s.GetVirtualService(workloads.K8sName(apiName))
 			if err != nil {
 				return err
 			}
@@ -293,7 +294,7 @@ func getK8sResources(apiConfig userconfig.API) (resources, error) {
 	var gatewayVirtualService *istioclientnetworking.VirtualService
 
 	gatewayK8sName := getGatewayK8sName(apiConfig.Name)
-	apiK8sName := operator.K8sName(apiConfig.Name)
+	apiK8sName := workloads.K8sName(apiConfig.Name)
 
 	err := parallel.RunFirstErr(
 		func() error {
@@ -435,7 +436,7 @@ func deleteBucketResources(apiName string) error {
 }
 
 func deleteK8sResources(apiName string) error {
-	apiK8sName := operator.K8sName(apiName)
+	apiK8sName := workloads.K8sName(apiName)
 	gatewayK8sName := getGatewayK8sName(apiName)
 
 	err := parallel.RunFirstErr(

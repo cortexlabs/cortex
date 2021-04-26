@@ -59,6 +59,11 @@ func init() {
 	_ = batch.AddToScheme(scheme)
 }
 
+func InitConfigs(clusterConfig *clusterconfig.Config, operatorMetadata *clusterconfig.OperatorMetadata) {
+	ClusterConfig = clusterConfig
+	OperatorMetadata = operatorMetadata
+}
+
 func Init() error {
 	var err error
 	var clusterNamespace string

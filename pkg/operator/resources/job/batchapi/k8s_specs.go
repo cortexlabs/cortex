@@ -20,14 +20,14 @@ import (
 	"context"
 	"path"
 
+	"github.com/cortexlabs/cortex/pkg/config"
 	batch "github.com/cortexlabs/cortex/pkg/crds/apis/batch/v1alpha1"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/parallel"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
-	"github.com/cortexlabs/cortex/pkg/operator/config"
-	"github.com/cortexlabs/cortex/pkg/operator/operator"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
+	"github.com/cortexlabs/cortex/pkg/workloads"
 	istioclientnetworking "istio.io/client-go/pkg/apis/networking/v1beta1"
 	kbatch "k8s.io/api/batch/v1"
 	kcore "k8s.io/api/core/v1"
@@ -48,12 +48,12 @@ func k8sJobSpec(api *spec.API, job *spec.BatchJob) (*kbatch.Job, error) {
 }
 
 func pythonHandlerJobSpec(api *spec.API, job *spec.BatchJob) (*kbatch.Job, error) {
-	containers, volumes := operator.PythonHandlerContainers(api)
+	containers, volumes := workloads.PythonHandlerContainers(api)
 	for i, container := range containers {
-		if container.Name == operator.APIContainerName {
+		if container.Name == workloads.APIContainerName {
 			containers[i].Env = append(container.Env, kcore.EnvVar{
 				Name:  "CORTEX_JOB_SPEC",
-				Value: operator.BatchSpecPath,
+				Value: workloads.BatchSpecPath,
 			})
 		}
 	}
@@ -85,26 +85,26 @@ func pythonHandlerJobSpec(api *spec.API, job *spec.BatchJob) (*kbatch.Job, error
 			K8sPodSpec: kcore.PodSpec{
 				RestartPolicy: "Never",
 				InitContainers: []kcore.Container{
-					operator.BatchInitContainer(api, job),
+					workloads.BatchInitContainer(api, job),
 				},
 				Containers:         containers,
-				NodeSelector:       operator.NodeSelectors(),
-				Tolerations:        operator.GenerateResourceTolerations(),
-				Affinity:           operator.GenerateNodeAffinities(api.Compute.NodeGroups),
+				NodeSelector:       workloads.NodeSelectors(),
+				Tolerations:        workloads.GenerateResourceTolerations(),
+				Affinity:           workloads.GenerateNodeAffinities(api.Compute.NodeGroups),
 				Volumes:            volumes,
-				ServiceAccountName: operator.ServiceAccountName,
+				ServiceAccountName: workloads.ServiceAccountName,
 			},
 		},
 	}), nil
 }
 
 func tensorFlowHandlerJobSpec(api *spec.API, job *spec.BatchJob) (*kbatch.Job, error) {
-	containers, volumes := operator.TensorFlowHandlerContainers(api)
+	containers, volumes := workloads.TensorFlowHandlerContainers(api)
 	for i, container := range containers {
-		if container.Name == operator.APIContainerName {
+		if container.Name == workloads.APIContainerName {
 			containers[i].Env = append(container.Env, kcore.EnvVar{
 				Name:  "CORTEX_JOB_SPEC",
-				Value: operator.BatchSpecPath,
+				Value: workloads.BatchSpecPath,
 			})
 		}
 	}
@@ -136,14 +136,14 @@ func tensorFlowHandlerJobSpec(api *spec.API, job *spec.BatchJob) (*kbatch.Job, e
 			K8sPodSpec: kcore.PodSpec{
 				RestartPolicy: "Never",
 				InitContainers: []kcore.Container{
-					operator.BatchInitContainer(api, job),
+					workloads.BatchInitContainer(api, job),
 				},
 				Containers:         containers,
-				NodeSelector:       operator.NodeSelectors(),
-				Tolerations:        operator.GenerateResourceTolerations(),
-				Affinity:           operator.GenerateNodeAffinities(api.Compute.NodeGroups),
+				NodeSelector:       workloads.NodeSelectors(),
+				Tolerations:        workloads.GenerateResourceTolerations(),
+				Affinity:           workloads.GenerateNodeAffinities(api.Compute.NodeGroups),
 				Volumes:            volumes,
-				ServiceAccountName: operator.ServiceAccountName,
+				ServiceAccountName: workloads.ServiceAccountName,
 			},
 		},
 	}), nil
@@ -151,12 +151,12 @@ func tensorFlowHandlerJobSpec(api *spec.API, job *spec.BatchJob) (*kbatch.Job, e
 
 func virtualServiceSpec(api *spec.API) *istioclientnetworking.VirtualService {
 	return k8s.VirtualService(&k8s.VirtualServiceSpec{
-		Name:     operator.K8sName(api.Name),
+		Name:     workloads.K8sName(api.Name),
 		Gateways: []string{"apis-gateway"},
 		Destinations: []k8s.Destination{{
 			ServiceName: _operatorService,
 			Weight:      100,
-			Port:        uint32(operator.DefaultPortInt32),
+			Port:        uint32(workloads.DefaultPortInt32),
 		}},
 		PrefixPath:  api.Networking.Endpoint,
 		Rewrite:     pointer.String(path.Join("batch", api.Name)),
@@ -196,7 +196,7 @@ func deleteK8sResources(apiName string) error {
 			return client.IgnoreNotFound(err)
 		},
 		func() error {
-			_, err := config.K8s.DeleteVirtualService(operator.K8sName(apiName))
+			_, err := config.K8s.DeleteVirtualService(workloads.K8sName(apiName))
 			return err
 		},
 	)

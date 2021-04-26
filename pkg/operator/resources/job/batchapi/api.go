@@ -21,12 +21,12 @@ import (
 	"fmt"
 	"path/filepath"
 
+	"github.com/cortexlabs/cortex/pkg/config"
 	batch "github.com/cortexlabs/cortex/pkg/crds/apis/batch/v1alpha1"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/parallel"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
-	"github.com/cortexlabs/cortex/pkg/operator/config"
 	"github.com/cortexlabs/cortex/pkg/operator/lib/routines"
 	"github.com/cortexlabs/cortex/pkg/operator/operator"
 	"github.com/cortexlabs/cortex/pkg/operator/resources/job"
@@ -34,6 +34,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/types/status"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
+	"github.com/cortexlabs/cortex/pkg/workloads"
 	istioclientnetworking "istio.io/client-go/pkg/apis/networking/v1beta1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -41,7 +42,7 @@ import (
 const _batchDashboardUID = "batchapi"
 
 func UpdateAPI(apiConfig *userconfig.API, projectID string) (*spec.API, string, error) {
-	prevVirtualService, err := config.K8s.GetVirtualService(operator.K8sName(apiConfig.Name))
+	prevVirtualService, err := config.K8s.GetVirtualService(workloads.K8sName(apiConfig.Name))
 	if err != nil {
 		return nil, "", err
 	}

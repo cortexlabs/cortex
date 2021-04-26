@@ -14,19 +14,20 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package controllers
+package workloads
 
 import (
-	"encoding/base64"
 	"fmt"
-	"path"
+	"strings"
 
-	"github.com/cortexlabs/cortex/pkg/lib/aws"
-	"github.com/cortexlabs/cortex/pkg/lib/json"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
-	kcore "k8s.io/api/core/v1"
+	"k8s.io/api/core/v1"
 )
+
+func K8sName(apiName string) string {
+	return "api-" + apiName
+}
 
 type downloadContainerConfig struct {
 	DownloadArgs []downloadContainerArg `json:"download_args"`
@@ -43,26 +44,58 @@ type downloadContainerArg struct {
 	HideUnzippingLog bool   `json:"hide_unzipping_log"` // if true, don't log when unzipping
 }
 
-func FileExistsProbe(fileName string) *kcore.Probe {
-	return &kcore.Probe{
+func downloaderEnvVars(api *spec.API) []v1.EnvVar {
+	if api.Kind == userconfig.TaskAPIKind {
+		return []v1.EnvVar{
+			{
+				Name:  "CORTEX_LOG_LEVEL",
+				Value: strings.ToUpper(api.TaskDefinition.LogLevel.String()),
+			},
+		}
+	}
+	return []v1.EnvVar{
+		{
+			Name:  "CORTEX_LOG_LEVEL",
+			Value: strings.ToUpper(api.Predictor.LogLevel.String()),
+		},
+	}
+}
+
+func FileExistsProbe(fileName string) *v1.Probe {
+	return &v1.Probe{
 		InitialDelaySeconds: 3,
 		TimeoutSeconds:      5,
 		PeriodSeconds:       5,
 		SuccessThreshold:    1,
 		FailureThreshold:    1,
-		Handler: kcore.Handler{
-			Exec: &kcore.ExecAction{
+		Handler: v1.Handler{
+			Exec: &v1.ExecAction{
 				Command: []string{"/bin/bash", "-c", fmt.Sprintf("test -f %s", fileName)},
 			},
 		},
 	}
 }
 
-func nginxGracefulStopper(apiKind userconfig.Kind) *kcore.Lifecycle {
+func socketExistsProbe(socketName string) *v1.Probe {
+	return &v1.Probe{
+		InitialDelaySeconds: 3,
+		TimeoutSeconds:      5,
+		PeriodSeconds:       5,
+		SuccessThreshold:    1,
+		FailureThreshold:    1,
+		Handler: v1.Handler{
+			Exec: &v1.ExecAction{
+				Command: []string{"/bin/bash", "-c", fmt.Sprintf("test -S %s", socketName)},
+			},
+		},
+	}
+}
+
+func nginxGracefulStopper(apiKind userconfig.Kind) *v1.Lifecycle {
 	if apiKind == userconfig.RealtimeAPIKind {
-		return &kcore.Lifecycle{
-			PreStop: &kcore.Handler{
-				Exec: &kcore.ExecAction{
+		return &v1.Lifecycle{
+			PreStop: &v1.Handler{
+				Exec: &v1.ExecAction{
 					// the sleep is required to wait for any k8s-related race conditions
 					// as described in https://medium.com/codecademy-engineering/kubernetes-nginx-and-zero-downtime-in-production-2c910c6a5ed8
 					Command: []string{"/bin/sh", "-c", "sleep 5; /usr/sbin/nginx -s quit; while pgrep -x nginx; do sleep 1; done"},
@@ -73,76 +106,15 @@ func nginxGracefulStopper(apiKind userconfig.Kind) *kcore.Lifecycle {
 	return nil
 }
 
-func waitAPIContainerToStop(apiKind userconfig.Kind) *kcore.Lifecycle {
+func waitAPIContainerToStop(apiKind userconfig.Kind) *v1.Lifecycle {
 	if apiKind == userconfig.RealtimeAPIKind {
-		return &kcore.Lifecycle{
-			PreStop: &kcore.Handler{
-				Exec: &kcore.ExecAction{
+		return &v1.Lifecycle{
+			PreStop: &v1.Handler{
+				Exec: &v1.ExecAction{
 					Command: []string{"/bin/sh", "-c", fmt.Sprintf("while curl localhost:%s/nginx_status; do sleep 1; done", DefaultPortStr)},
 				},
 			},
 		}
 	}
 	return nil
-}
-
-func socketExistsProbe(socketName string) *kcore.Probe {
-	return &kcore.Probe{
-		InitialDelaySeconds: 3,
-		TimeoutSeconds:      5,
-		PeriodSeconds:       5,
-		SuccessThreshold:    1,
-		FailureThreshold:    1,
-		Handler: kcore.Handler{
-			Exec: &kcore.ExecAction{
-				Command: []string{"/bin/bash", "-c", fmt.Sprintf("test -S %s", socketName)},
-			},
-		},
-	}
-}
-
-func tfDownloadArgs(api *spec.API) string {
-	downloadConfig := downloadContainerConfig{
-		LastLog: fmt.Sprintf(_downloaderLastLog, "tensorflow"),
-		DownloadArgs: []downloadContainerArg{
-			{
-				From:             aws.S3Path(ClusterConfig.Bucket, api.ProjectKey),
-				To:               path.Join(_emptyDirMountPath, "project"),
-				Unzip:            true,
-				ItemName:         "the project code",
-				HideFromLog:      true,
-				HideUnzippingLog: true,
-			},
-		},
-	}
-
-	downloadArgsBytes, err := json.Marshal(downloadConfig)
-	if err != nil {
-		panic(err)
-	}
-
-	return base64.URLEncoding.EncodeToString(downloadArgsBytes)
-}
-
-func pythonDownloadArgs(api *spec.API) string {
-	downloadConfig := downloadContainerConfig{
-		LastLog: fmt.Sprintf(_downloaderLastLog, "python"),
-		DownloadArgs: []downloadContainerArg{
-			{
-				From:             aws.S3Path(ClusterConfig.Bucket, api.ProjectKey),
-				To:               path.Join(_emptyDirMountPath, "project"),
-				Unzip:            true,
-				ItemName:         "the project code",
-				HideFromLog:      true,
-				HideUnzippingLog: true,
-			},
-		},
-	}
-
-	downloadArgsBytes, err := json.Marshal(downloadConfig)
-	if err != nil {
-		panic(err)
-	}
-
-	return base64.URLEncoding.EncodeToString(downloadArgsBytes)
 }

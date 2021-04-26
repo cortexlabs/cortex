@@ -20,8 +20,8 @@ import (
 	"context"
 	"time"
 
+	"github.com/cortexlabs/cortex/pkg/config"
 	batch "github.com/cortexlabs/cortex/pkg/crds/apis/batch/v1alpha1"
-	"github.com/cortexlabs/cortex/pkg/operator/config"
 	"github.com/cortexlabs/cortex/pkg/operator/operator"
 	"github.com/cortexlabs/cortex/pkg/operator/resources/job"
 	"github.com/cortexlabs/cortex/pkg/types/metrics"

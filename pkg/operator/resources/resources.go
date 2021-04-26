@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/cortexlabs/cortex/pkg/config"
 	"github.com/cortexlabs/cortex/pkg/consts"
 	batch "github.com/cortexlabs/cortex/pkg/crds/apis/batch/v1alpha1"
 	"github.com/cortexlabs/cortex/pkg/lib/archive"
@@ -30,7 +31,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	"github.com/cortexlabs/cortex/pkg/lib/urls"
-	"github.com/cortexlabs/cortex/pkg/operator/config"
 	"github.com/cortexlabs/cortex/pkg/operator/lib/logging"
 	"github.com/cortexlabs/cortex/pkg/operator/lib/routines"
 	"github.com/cortexlabs/cortex/pkg/operator/operator"
@@ -42,6 +42,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
+	"github.com/cortexlabs/cortex/pkg/workloads"
 	istioclientnetworking "istio.io/client-go/pkg/apis/networking/v1beta1"
 	kapps "k8s.io/api/apps/v1"
 	kbatch "k8s.io/api/batch/v1"
@@ -71,7 +72,7 @@ func GetDeployedResourceByName(resourceName string) (*operator.DeployedResource,
 }
 
 func GetDeployedResourceByNameOrNil(resourceName string) (*operator.DeployedResource, error) {
-	virtualService, err := config.K8s.GetVirtualService(operator.K8sName(resourceName))
+	virtualService, err := config.K8s.GetVirtualService(workloads.K8sName(resourceName))
 	if err != nil {
 		return nil, err
 	}

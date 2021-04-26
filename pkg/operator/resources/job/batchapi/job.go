@@ -20,14 +20,14 @@ import (
 	"context"
 	"time"
 
+	"github.com/cortexlabs/cortex/pkg/config"
 	batch "github.com/cortexlabs/cortex/pkg/crds/apis/batch/v1alpha1"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
-	"github.com/cortexlabs/cortex/pkg/operator/config"
-	"github.com/cortexlabs/cortex/pkg/operator/operator"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
+	"github.com/cortexlabs/cortex/pkg/workloads"
 	"github.com/cortexlabs/yaml"
 	kmeta "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -65,7 +65,7 @@ func SubmitJob(apiName string, submission *schema.BatchJobSubmission) (*batch.Ba
 		return nil, err
 	}
 
-	virtualService, err := config.K8s.GetVirtualService(operator.K8sName(apiName))
+	virtualService, err := config.K8s.GetVirtualService(workloads.K8sName(apiName))
 	if err != nil {
 		return nil, err
 	}

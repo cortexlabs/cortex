@@ -21,9 +21,9 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/cortexlabs/cortex/pkg/config"
 	"github.com/cortexlabs/cortex/pkg/consts"
 	batch "github.com/cortexlabs/cortex/pkg/crds/apis/batch/v1alpha1"
-	"github.com/cortexlabs/cortex/pkg/crds/controllers"
 	batchcontrollers "github.com/cortexlabs/cortex/pkg/crds/controllers/batch"
 	awslib "github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/hash"
@@ -119,10 +119,10 @@ var _ = BeforeSuite(func(done Done) {
 	}
 
 	// initialize some of the global values for the k8s helpers
-	controllers.Init(clusterConfig, operatorMetadata)
+	config.InitConfigs(clusterConfig, operatorMetadata)
 
 	// mock certain methods of the reconciler
-	config := batchcontrollers.BatchJobReconcilerConfig{
+	reconcilerConfig := batchcontrollers.BatchJobReconcilerConfig{
 		GetMaxBatchCount: func(r *batchcontrollers.BatchJobReconciler, batchJob batch.BatchJob) (int, error) {
 			return 1, nil
 		},
@@ -136,7 +136,7 @@ var _ = BeforeSuite(func(done Done) {
 
 	err = (&batchcontrollers.BatchJobReconciler{
 		Client:        k8sManager.GetClient(),
-		Config:        config,
+		Config:        reconcilerConfig,
 		Log:           ctrl.Log.WithName("controllers").WithName("BatchJob"),
 		ClusterConfig: clusterConfig,
 		AWS:           awsClient,

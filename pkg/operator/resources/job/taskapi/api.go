@@ -20,10 +20,10 @@ import (
 	"fmt"
 	"path/filepath"
 
+	"github.com/cortexlabs/cortex/pkg/config"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/parallel"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
-	"github.com/cortexlabs/cortex/pkg/operator/config"
 	"github.com/cortexlabs/cortex/pkg/operator/lib/routines"
 	"github.com/cortexlabs/cortex/pkg/operator/operator"
 	"github.com/cortexlabs/cortex/pkg/operator/resources/job"
@@ -31,6 +31,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/types/status"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
+	"github.com/cortexlabs/cortex/pkg/workloads"
 	istioclientnetworking "istio.io/client-go/pkg/apis/networking/v1beta1"
 	kbatch "k8s.io/api/batch/v1"
 	kcore "k8s.io/api/core/v1"
@@ -38,7 +39,7 @@ import (
 
 // UpdateAPI deploys or update a task api without triggering any task
 func UpdateAPI(apiConfig *userconfig.API, projectID string) (*spec.API, string, error) {
-	prevVirtualService, err := config.K8s.GetVirtualService(operator.K8sName(apiConfig.Name))
+	prevVirtualService, err := config.K8s.GetVirtualService(workloads.K8sName(apiConfig.Name))
 	if err != nil {
 		return nil, "", err
 	}

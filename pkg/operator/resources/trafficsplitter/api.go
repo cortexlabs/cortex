@@ -20,21 +20,22 @@ import (
 	"fmt"
 	"path/filepath"
 
+	"github.com/cortexlabs/cortex/pkg/config"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/parallel"
-	"github.com/cortexlabs/cortex/pkg/operator/config"
 	"github.com/cortexlabs/cortex/pkg/operator/lib/routines"
 	"github.com/cortexlabs/cortex/pkg/operator/operator"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
+	"github.com/cortexlabs/cortex/pkg/workloads"
 	istioclientnetworking "istio.io/client-go/pkg/apis/networking/v1beta1"
 )
 
 // UpdateAPI creates or updates a traffic splitter API kind
 func UpdateAPI(apiConfig *userconfig.API) (*spec.API, string, error) {
-	prevVirtualService, err := config.K8s.GetVirtualService(operator.K8sName(apiConfig.Name))
+	prevVirtualService, err := config.K8s.GetVirtualService(workloads.K8sName(apiConfig.Name))
 	if err != nil {
 		return nil, "", err
 	}
@@ -109,7 +110,7 @@ func getTrafficSplitterDestinations(trafficSplitter *spec.API) []k8s.Destination
 	destinations := make([]k8s.Destination, len(trafficSplitter.APIs))
 	for i, api := range trafficSplitter.APIs {
 		destinations[i] = k8s.Destination{
-			ServiceName: operator.K8sName(api.Name),
+			ServiceName: workloads.K8sName(api.Name),
 			Weight:      api.Weight,
 			Port:        uint32(_defaultPortInt32),
 			Shadow:      api.Shadow,
@@ -175,7 +176,7 @@ func GetAPIByName(deployedResource *operator.DeployedResource) ([]schema.APIResp
 }
 
 func deleteK8sResources(apiName string) error {
-	_, err := config.K8s.DeleteVirtualService(operator.K8sName(apiName))
+	_, err := config.K8s.DeleteVirtualService(workloads.K8sName(apiName))
 	return err
 }
 
