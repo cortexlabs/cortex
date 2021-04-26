@@ -98,14 +98,14 @@ func JobAPIPrefix(clusterName string, kind userconfig.Kind, apiName string) stri
 	return filepath.Join(clusterName, "jobs", kind.String(), consts.CortexVersion, apiName)
 }
 
-func JobPayloadKey(clusterName string, kind userconfig.Kind, apiName string, jobId string) string {
-	return filepath.Join(JobAPIPrefix(clusterName, kind, apiName), jobId, "payload.json")
+func JobPayloadKey(clusterName string, kind userconfig.Kind, apiName string, jobID string) string {
+	return filepath.Join(JobAPIPrefix(clusterName, kind, apiName), jobID, "payload.json")
 }
 
-func JobBatchCountKey(clusterName string, kind userconfig.Kind, apiName string, jobId string) string {
-	return filepath.Join(JobAPIPrefix(clusterName, kind, apiName), jobId, "max_batch_count")
+func JobBatchCountKey(clusterName string, kind userconfig.Kind, apiName string, jobID string) string {
+	return filepath.Join(JobAPIPrefix(clusterName, kind, apiName), jobID, "max_batch_count")
 }
 
-func JobMetricsKey(clusterName string, kind userconfig.Kind, apiName string, jobId string) string {
-	return filepath.Join(JobAPIPrefix(clusterName, kind, apiName), jobId, MetricsFileKey)
+func JobMetricsKey(clusterName string, kind userconfig.Kind, apiName string, jobID string) string {
+	return filepath.Join(JobAPIPrefix(clusterName, kind, apiName), jobID, MetricsFileKey)
 }

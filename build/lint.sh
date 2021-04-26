@@ -92,7 +92,7 @@ output=$(cd "$ROOT" && find . -type f \
 ! -path "**/bin/*" \
 ! -path "./.circleci/*" \
 ! -path "./.git/*" \
-! -path "./operator/config/*" \
+! -path "./pkg/crds/config/*" \
 ! -path "**/tmp/*" \
 ! -name LICENSE \
 ! -name "*requirements.txt" \
@@ -147,7 +147,7 @@ output=$(cd "$ROOT" && find . -type f \
 ! -path "./dev/config/*" \
 ! -path "**/bin/*" \
 ! -path "./.git/*" \
-! -path "./operator/config/*" \
+! -path "./pkg/crds/config/*" \
 ! -name ".*" \
 ! -name "*.bin" \
 ! -name "*.wav" \
@@ -168,7 +168,7 @@ output=$(cd "$ROOT" && find . -type f \
 ! -path "**/.pytest_cache/*" \
 ! -path "**/*.egg-info/*" \
 ! -path "./dev/config/*" \
-! -path "./operator/config/*" \
+! -path "./pkg/crds/config/*" \
 ! -path "**/bin/*" \
 ! -path "./.git/*" \
 ! -name ".*" \
@@ -214,7 +214,7 @@ output=$(cd "$ROOT" && find . -type f \
 ! -path "**/.pytest_cache/*" \
 ! -path "**/*.egg-info/*" \
 ! -path "./dev/config/*" \
-! -path "./operator/config/*" \
+! -path "./pkg/crds/config/*" \
 ! -path "./bin/*" \
 ! -path "./.git/*" \
 ! -name ".*" \
