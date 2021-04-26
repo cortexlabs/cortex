@@ -1,8 +1,8 @@
 # Handler implementation
 
-Realtime APIs respond to requests in real-time and autoscale based on in-flight request volumes. They can be used for realtime inference or data processing workloads. It can also be used for running ML models using a variety of frameworks such as: PyTorch, ONNX, scikit-learn, XGBoost, TensorFlow (if not using `SavedModel`s), etc.
+Realtime APIs respond to requests in real-time and autoscale based on in-flight request volumes. They can be used for realtime inference or data processing workloads.
 
-If you plan on deploying models with TensorFlow in `SavedModel` format and run realtime inferences, you can also use the [TensorFlow Handler](#models.md) that was specifically built for this purpose.
+If you plan on deploying ML models and run realtime inferences, check out the [Models](#models.md) page. Cortex provides out-of-the-box support for a variety of frameworks such as: PyTorch, ONNX, scikit-learn, XGBoost, TensorFlow, etc.
 
 The response type of the handler can vary depending on your requirements, see [HTTP API responses](#http-responses) and [gRPC API responses](#grpc-responses) below.
 
