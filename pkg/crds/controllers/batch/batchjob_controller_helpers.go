@@ -269,7 +269,7 @@ func (r *BatchJobReconciler) desiredWorkerJob(batchJob batch.BatchJob, apiSpec s
 		if container.Name == workloads.APIContainerName {
 			containers[i].Env = append(container.Env, kcore.EnvVar{
 				Name:  "CORTEX_JOB_SPEC",
-				Value: "s3://" + r.ClusterConfig.Bucket + "/" + r.jobSpecKey(batchJob),
+				Value: workloads.BatchSpecPath,
 			})
 		}
 	}
