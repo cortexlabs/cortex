@@ -163,6 +163,7 @@ It is possible to serve multiple models from a single API. The paths to the mode
   kind: RealtimeAPI
   handler:
     # ...
+    type: python
     multi_model_reloading:
       paths:
         - name: iris-classifier
@@ -179,6 +180,7 @@ or:
   kind: RealtimeAPI
   handler:
     # ...
+    type: python
     multi_model_reloading:
       dir: s3://my-bucket/models/
 ```
@@ -326,7 +328,7 @@ The most common pattern is to serve a single model per API. The path to the mode
   kind: RealtimeAPI
   handler:
     # ...
-    type: python
+    type: tensorflow
     models:
       path: s3://my-bucket/models/text-generator/
 ```
@@ -342,6 +344,7 @@ It is possible to serve multiple models from a single API. The paths to the mode
   kind: RealtimeAPI
   handler:
     # ...
+    type: tensorflow
     models:
       paths:
         - name: iris-classifier
@@ -358,6 +361,7 @@ or:
   kind: RealtimeAPI
   handler:
     # ...
+    type: tensorflow
     models:
       dir: s3://my-bucket/models/
 ```
@@ -415,7 +419,7 @@ or for a versioned model:
           └── variables.data-00002-of-...
 ```
 
-#### On Inferentia
+##### On Inferentia
 
 When Inferentia models are used, the directory structure is slightly different:
 

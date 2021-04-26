@@ -2,7 +2,7 @@
 
 Realtime APIs respond to requests in real-time and autoscale based on in-flight request volumes. They can be used for realtime inference or data processing workloads.
 
-If you plan on deploying ML models and run realtime inferences, check out the [Models](#models.md) page. Cortex provides out-of-the-box support for a variety of frameworks such as: PyTorch, ONNX, scikit-learn, XGBoost, TensorFlow, etc.
+If you plan on deploying ML models and run realtime inferences, check out the [Models](models.md) page. Cortex provides out-of-the-box support for a variety of frameworks such as: PyTorch, ONNX, scikit-learn, XGBoost, TensorFlow, etc.
 
 The response type of the handler can vary depending on your requirements, see [HTTP API responses](#http-responses) and [gRPC API responses](#grpc-responses) below.
 

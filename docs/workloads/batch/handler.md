@@ -2,7 +2,7 @@
 
 Batch APIs run distributed and fault-tolerant batch processing jobs on-demand. They can be used for batch inference or data processing workloads. It can also be used for running ML models using a variety of frameworks such as: PyTorch, ONNX, scikit-learn, XGBoost, TensorFlow (if not using `SavedModel`s), etc.
 
-If you plan on deploying models with TensorFlow in `SavedModel` format and run inferences in batches, you can also use the [TensorFlow Handler](#models.md) that was specifically built for this purpose.
+If you plan on deploying models with TensorFlow in `SavedModel` format and run inferences in batches, you can also use the [TensorFlow Handler](models.md) that was specifically built for this purpose.
 
 ## Project files
 

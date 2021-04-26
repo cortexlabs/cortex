@@ -50,12 +50,154 @@ an instance variable in your handler class, and your `handle_async()` function s
 an inference with your exported TensorFlow model. Preprocessing of the JSON payload and postprocessing of predictions
 can be implemented in your `handle_async()` function as well.
 
-For proper separation of concerns, it is recommended to use the constructor's `config` parameter for information such as
-from where to download the model and initialization files, or any configurable model parameters. You define `config` in
-your API configuration, and it is passed through to your handler class' constructor.
+When multiple models are defined using the Handler's `models` field, the `tensorflow_client.predict()` method expects a second argument `model_name` which must hold the name of the model that you want to use for inference (for example: `self.client.predict(payload, "text-generator")`). There is also an optional third argument to specify the model version.
 
-Your API can accept requests with different types of payloads. Navigate to the [API requests](#api-requests) section to
-learn about how headers can be used to change the type of `payload` that is passed into your `handler_async` method.
+If you need to share files between your handler implementation and the TensorFlow Serving container, you can create a new directory within `/mnt` (e.g. `/mnt/user`) and write files to it. The entire `/mnt` directory is shared between containers, but do not write to any of the directories in `/mnt` that already exist (they are used internally by Cortex).
 
-At this moment, the AsyncAPI `handler_async` method can only return `JSON`-parseable objects. Navigate to
-the [API responses](#api-responses) section to learn about how to configure it.
+## `predict` method
+
+Inference is performed by using the `predict` method of the `tensorflow_client` that's passed to the handler's constructor:
+
+```python
+def predict(model_input, model_name, model_version) -> dict:
+    """
+    Run prediction.
+
+    Args:
+        model_input: Input to the model.
+        model_name (optional): Name of the model to retrieve (when multiple models are deployed in an API).
+            When handler.models.paths is specified, model_name should be the name of one of the models listed in the API config.
+            When handler.models.dir is specified, model_name should be the name of a top-level directory in the models dir.
+        model_version (string, optional): Version of the model to retrieve. Can be omitted or set to "latest" to select the highest version.
+
+    Returns:
+        dict: TensorFlow Serving response converted to a dictionary.
+    """
+```
+
+## Specifying models
+
+Whenever a model path is specified in an API configuration file, it should be a path to an S3 prefix which contains your exported model. Directories may include a single model, or multiple folders each with a single model (note that a "single model" need not be a single file; there can be multiple files for a single model). When multiple folders are used, the folder names must be integer values, and will be interpreted as the model version. Model versions can be any integer, but are typically integer timestamps. It is always assumed that the highest version number is the latest version of your model.
+
+### API spec
+
+#### Single model
+
+The most common pattern is to serve a single model per API. The path to the model is specified in the `path` field in the `handler.models` configuration. For example:
+
+```yaml
+# cortex.yaml
+
+- name: iris-classifier
+  kind: AsyncAPI
+  handler:
+    # ...
+    type: tensorflow
+    models:
+      path: s3://my-bucket/models/text-generator/
+```
+
+#### Multiple models
+
+It is possible to serve multiple models from a single API. The paths to the models are specified in the api configuration, either via the `models.paths` or `models.dir` field in the `handler` configuration. For example:
+
+```yaml
+# cortex.yaml
+
+- name: iris-classifier
+  kind: AsyncAPI
+  handler:
+    # ...
+    type: tensorflow
+    models:
+      paths:
+        - name: iris-classifier
+          path: s3://my-bucket/models/text-generator/
+        # ...
+```
+
+or:
+
+```yaml
+# cortex.yaml
+
+- name: iris-classifier
+  kind: AsyncAPI
+  handler:
+    # ...
+    type: tensorflow
+    models:
+      dir: s3://my-bucket/models/
+```
+
+When using the `models.paths` field, each path must be a valid model directory (see above for valid model directory structures).
+
+When using the `models.dir` field, the directory provided may contain multiple subdirectories, each of which is a valid model directory. For example:
+
+```text
+  s3://my-bucket/models/
+  ├── text-generator
+  |   └── * (model files)
+  └── sentiment-analyzer
+      ├── 24753823/
+      |   └── * (model files)
+      └── 26234288/
+          └── * (model files)
+```
+
+In this case, there are two models in the directory, one of which is named "text-generator", and the other is named "sentiment-analyzer".
+
+### Structure
+
+#### On CPU/GPU
+
+The model path must be a SavedModel export:
+
+```text
+  s3://my-bucket/models/text-generator/
+  ├── saved_model.pb
+  └── variables/
+      ├── variables.index
+      ├── variables.data-00000-of-00003
+      ├── variables.data-00001-of-00003
+      └── variables.data-00002-of-...
+```
+
+or for a versioned model:
+
+```text
+  s3://my-bucket/models/text-generator/
+  ├── 1523423423/  (version number, usually a timestamp)
+  |   ├── saved_model.pb
+  |   └── variables/
+  |       ├── variables.index
+  |       ├── variables.data-00000-of-00003
+  |       ├── variables.data-00001-of-00003
+  |       └── variables.data-00002-of-...
+  └── 2434389194/  (version number, usually a timestamp)
+      ├── saved_model.pb
+      └── variables/
+          ├── variables.index
+          ├── variables.data-00000-of-00003
+          ├── variables.data-00001-of-00003
+          └── variables.data-00002-of-...
+```
+
+#### On Inferentia
+
+When Inferentia models are used, the directory structure is slightly different:
+
+```text
+  s3://my-bucket/models/text-generator/
+  └── saved_model.pb
+```
+
+or for a versioned model:
+
+```text
+  s3://my-bucket/models/text-generator/
+  ├── 1523423423/  (version number, usually a timestamp)
+  |   └── saved_model.pb
+  └── 2434389194/  (version number, usually a timestamp)
+      └── saved_model.pb
+```

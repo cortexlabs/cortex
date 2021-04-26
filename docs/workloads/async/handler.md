@@ -2,7 +2,7 @@
 
 Your handler can be used to process any asynchronous workloads. It can also be used for running ML models using a variety of frameworks such as: PyTorch, ONNX, scikit-learn, XGBoost, TensorFlow (if not using `SavedModel`s), etc.
 
-If you plan on deploying models with TensorFlow in `SavedModel` format, you can also use the [TensorFlow Handler](#models.md) that was specifically built for this purpose.
+If you plan on deploying models with TensorFlow in `SavedModel` format, you can also use the [TensorFlow Handler](models.md) that was specifically built for this purpose.
 
 ## Project files
 

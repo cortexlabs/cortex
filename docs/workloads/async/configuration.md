@@ -46,6 +46,12 @@ handler:
     shell: <string>  # relative path to a shell script for system package installation (default: dependencies.sh)
   models:  # (required)
     path: <string> # S3 path to an exported SavedModel directory (e.g. s3://my-bucket/exported_model/) (either this, 'dir', or 'paths' must be provided)
+    paths:  # list of S3 paths to exported SavedModel directories (either this, 'dir', or 'path' must be provided)
+      - name: <string>  # unique name for the model (e.g. text-generator) (required)
+        path: <string>  # S3 path to an exported SavedModel directory (e.g. s3://my-bucket/exported_model/) (required)
+        signature_key: <string>  # name of the signature def to use for prediction (required if your model has more than one signature def)
+      ...
+    dir: <string>  # S3 path to a directory containing multiple SavedModel directories (e.g. s3://my-bucket/models/) (either this, 'path', or 'paths' must be provided)
     signature_key:  # name of the signature def to use for prediction (required if your model has more than one signature def)
   config: <string: value>  # arbitrary dictionary passed to the constructor of the Handler class (optional)
   python_path: <string>  # path to the root of your Python folder that will be appended to PYTHONPATH (default: folder containing cortex.yaml)
