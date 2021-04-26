@@ -3,7 +3,7 @@ import regex
 import tqdm
 
 
-class PythonPredictor:
+class Handler:
     def __init__(self, config):
         roberta = torch.hub.load("pytorch/fairseq", "roberta.large", force_reload=True)
         roberta.eval()
@@ -13,6 +13,6 @@ class PythonPredictor:
 
         self.model = roberta
 
-    def predict(self, payload):
+    def handle_post(self, payload):
         predictions = self.model.fill_mask(payload["text"] + " <mask>", topk=5)
         return [prediction[0] for prediction in predictions]

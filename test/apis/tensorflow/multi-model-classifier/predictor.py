@@ -14,7 +14,7 @@ def get_url_image(url_image):
     return image
 
 
-class TensorFlowPredictor:
+class Handler:
     def __init__(self, tensorflow_client, config):
         self.client = tensorflow_client
 
@@ -28,7 +28,7 @@ class TensorFlowPredictor:
         # for iris classifier
         self.iris_labels = self.config["iris"]["labels"]
 
-    def predict(self, payload, query_params):
+    def handle_post(self, payload, query_params):
         model_name = query_params["model"]
         predicted_label = None
 

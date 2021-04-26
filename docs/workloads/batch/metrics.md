@@ -3,15 +3,14 @@
 ## Custom user metrics
 
 It is possible to export custom user metrics by adding the `metrics_client`
-argument to the predictor constructor. Below there is an example of how to use the metrics client with
-the `PythonPredictor` type. The implementation would be similar to other predictor types.
+argument to the Handler class constructor. Below there is an example of how to use the metrics client. The implementation is similar to all handler types.
 
 ```python
-class PythonPredictor:
+class Handler:
     def __init__(self, config, metrics_client):
         self.metrics = metrics_client
 
-    def predict(self, payload):
+    def handle_batch(self, payload):
         # --- my predict code here ---
         result = ...
 

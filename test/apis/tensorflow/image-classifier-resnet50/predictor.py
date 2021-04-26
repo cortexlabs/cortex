@@ -30,7 +30,7 @@ def prepare_image(image, input_shape, input_key):
     return img
 
 
-class TensorFlowPredictor:
+class Handler:
     def __init__(self, tensorflow_client, config):
         self.client = tensorflow_client
 
@@ -42,7 +42,7 @@ class TensorFlowPredictor:
         self.input_key = str(config["input_key"])
         self.output_key = str(config["output_key"])
 
-    def predict(self, payload):
+    def handle_post(self, payload):
         # preprocess image
         img = read_image(payload)
         if img is None:

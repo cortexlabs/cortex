@@ -11,7 +11,7 @@ from torchvision import transforms
 import boto3
 
 
-class PythonPredictor:
+class Handler:
     def __init__(self, config, job_spec):
         self.labels = requests.get(
             "https://storage.googleapis.com/download.tensorflow.org/data/ImageNetLabels.txt"
@@ -39,7 +39,7 @@ class PythonPredictor:
         self.bucket, self.key = re.match("s3://(.+?)/(.+)", config["dest_s3_dir"]).groups()
         self.key = os.path.join(self.key, job_spec["job_id"])
 
-    def predict(self, payload, batch_id):
+    def handle_batch(self, payload, batch_id):
         arr_list = []
 
         # download and preprocess each image

@@ -36,10 +36,10 @@ type API struct {
 	*userconfig.API
 	ID           string `json:"id"`
 	SpecID       string `json:"spec_id"`
-	PredictorID  string `json:"predictor_id"`
+	HandlerID    string `json:"handler_id"`
 	DeploymentID string `json:"deployment_id"`
 	Key          string `json:"key"`
-	PredictorKey string `json:"predictor_key"`
+	HandlerKey   string `json:"handler_key"`
 	LastUpdated  int64  `json:"last_updated"`
 	MetadataRoot string `json:"metadata_root"`
 	ProjectID    string `json:"project_id"`
@@ -54,9 +54,9 @@ type CuratedModelResource struct {
 /*
 APIID (uniquely identifies an api configuration for a given deployment)
 	* SpecID (uniquely identifies api configuration specified by user)
-		* PredictorID (used to determine when rolling updates need to happen)
+		* HandlerID (used to determine when rolling updates need to happen)
 			* Resource
-			* Predictor
+			* Handler
 			* TaskDefinition
 			* Compute
 			* ProjectID
@@ -70,16 +70,16 @@ func GetAPISpec(apiConfig *userconfig.API, projectID string, deploymentID string
 	var buf bytes.Buffer
 
 	buf.WriteString(s.Obj(apiConfig.Resource))
-	buf.WriteString(s.Obj(apiConfig.Predictor))
+	buf.WriteString(s.Obj(apiConfig.Handler))
 	buf.WriteString(s.Obj(apiConfig.TaskDefinition))
 	buf.WriteString(projectID)
 	if apiConfig.Compute != nil {
 		buf.WriteString(s.Obj(apiConfig.Compute.Normalized()))
 	}
-	predictorID := hash.Bytes(buf.Bytes())
+	handlerID := hash.Bytes(buf.Bytes())
 
 	buf.Reset()
-	buf.WriteString(predictorID)
+	buf.WriteString(handlerID)
 	buf.WriteString(s.Obj(apiConfig.APIs))
 	buf.WriteString(s.Obj(apiConfig.Networking))
 	buf.WriteString(s.Obj(apiConfig.Autoscaling))
@@ -92,9 +92,9 @@ func GetAPISpec(apiConfig *userconfig.API, projectID string, deploymentID string
 		API:          apiConfig,
 		ID:           apiID,
 		SpecID:       specID,
-		PredictorID:  predictorID,
+		HandlerID:    handlerID,
 		Key:          Key(apiConfig.Name, apiID, clusterName),
-		PredictorKey: PredictorKey(apiConfig.Name, predictorID, clusterName),
+		HandlerKey:   HandlerKey(apiConfig.Name, handlerID, clusterName),
 		DeploymentID: deploymentID,
 		LastUpdated:  time.Now().Unix(),
 		MetadataRoot: MetadataRoot(apiConfig.Name, clusterName),
@@ -103,13 +103,13 @@ func GetAPISpec(apiConfig *userconfig.API, projectID string, deploymentID string
 	}
 }
 
-func PredictorKey(apiName string, predictorID string, clusterName string) string {
+func HandlerKey(apiName string, handlerID string, clusterName string) string {
 	return filepath.Join(
 		clusterName,
 		"apis",
 		apiName,
-		"predictor",
-		predictorID,
+		"handler",
+		handlerID,
 		consts.CortexVersion+"-spec.json",
 	)
 }

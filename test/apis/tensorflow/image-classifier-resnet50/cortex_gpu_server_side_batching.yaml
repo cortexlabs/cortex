@@ -1,6 +1,6 @@
 - name: image-classifier-resnet50
   kind: RealtimeAPI
-  predictor:
+  handler:
     type: tensorflow
     path: predictor.py
     models:

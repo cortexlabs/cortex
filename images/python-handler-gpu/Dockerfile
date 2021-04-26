@@ -1,4 +1,6 @@
-FROM ubuntu:18.04
+ARG CUDA_VERSION=10.2
+ARG CUDNN=8
+FROM nvidia/cuda:$CUDA_VERSION-cudnn$CUDNN-runtime-ubuntu18.04
 
 RUN apt-get update -qq && apt-get install -y -q \
         build-essential \
@@ -24,7 +26,7 @@ ENV LANG=en_US.UTF-8 LANGUAGE=en_US.UTF-8 LC_ALL=en_US.UTF-8
 
 ENV PATH=/opt/conda/bin:$PATH
 ENV PYTHONVERSION=3.6.9
-ENV CORTEX_IMAGE_TYPE=tensorflow-predictor
+ENV CORTEX_IMAGE_TYPE=python-handler-gpu
 
 # conda needs an untainted base environment to function properly
 # that's why a new separate conda environment is created
@@ -47,9 +49,7 @@ COPY pkg/cortex/serve/serve.requirements.txt /src/cortex/serve/serve.requirement
 COPY pkg/cortex/serve/cortex_internal.requirements.txt /src/cortex/serve/cortex_internal.requirements.txt
 RUN pip install --no-cache-dir \
     -r /src/cortex/serve/serve.requirements.txt \
-    -r /src/cortex/serve/cortex_internal.requirements.txt \
-    tensorflow-cpu==2.3.0 \
-    tensorflow-serving-api==2.3.0
+    -r /src/cortex/serve/cortex_internal.requirements.txt
 
 COPY pkg/cortex/serve/init/install-core-dependencies.sh /usr/local/cortex/install-core-dependencies.sh
 RUN chmod +x /usr/local/cortex/install-core-dependencies.sh

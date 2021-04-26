@@ -7,7 +7,7 @@ import re
 import os
 
 
-class PythonPredictor:
+class Handler:
     def __init__(self, config):
         model_path = "/tmp/model"
         os.makedirs(model_path, exist_ok=True)
@@ -22,7 +22,7 @@ class PythonPredictor:
 
         self.model = mlflow.sklearn.load_model(model_path)
 
-    def predict(self, payload):
+    def handle_post(self, payload):
         model_input = [
             payload["cylinders"],
             payload["displacement"],

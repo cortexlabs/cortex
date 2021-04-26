@@ -191,7 +191,7 @@ Note: it's ok if example training notebooks aren't upgraded, as long as the expo
 1. Check if there are any updates
    to [Dockerfile.neuron-rtd](https://github.com/aws/aws-neuron-sdk/blob/master/docs/neuron-container-tools/docker-example/Dockerfile.neuron-rtd)
    which should be brought in to `images/neuron-rtd/Dockerfile`
-1. Set the version of `aws-neuron-tools` and `aws-neuron-runtime` in `images/python-predictor-inf/Dockerfile`
+1. Set the version of `aws-neuron-tools` and `aws-neuron-runtime` in `images/python-handler-inf/Dockerfile`
    and `images/tensorflow-serving-inf/Dockerfile`
 1. Run `docker run --rm -it ubuntu:18.04`
 1. Run the first `RUN` command used in `images/tensorflow-serving-inf/Dockerfile`, having omitted the version specified
@@ -214,7 +214,7 @@ Note: it's ok if example training notebooks aren't upgraded, as long as the expo
 
 ## S6-overlay supervisor
 
-1. Locate the `s6-overlay` installation in `images/python-predictor-*/Dockerfile` and `images/tensorflow-predictor/Dockerfile`.
+1. Locate the `s6-overlay` installation in `images/python-handler-*/Dockerfile` and `images/tensorflow-handler/Dockerfile`.
 1. Update the version in each serving image with the newer one in https://github.com/just-containers/s6-overlay.
 
 ## Nginx
@@ -222,7 +222,7 @@ Note: it's ok if example training notebooks aren't upgraded, as long as the expo
 1. Run a base image of ubuntu that matches the version tag used for the serving images. The running command
    is `docker run -it --rm <base-image>`
 1. Run `apt update && apt-cache policy nginx`. Notice the latest minor version of nginx (e.g. `1.14`)
-1. Locate the `nginx` package in `images/python-predictor-*/Dockerfile` and `images/tensorflow-predictor/Dockerfile`.
+1. Locate the `nginx` package in `images/python-handler-*/Dockerfile` and `images/tensorflow-handler/Dockerfile`.
 1. Update the version for all `nginx` appearances using the minor version from step 2 and add an asterisk at the end to
    denote any version (e.g. `1.14.*`)
 

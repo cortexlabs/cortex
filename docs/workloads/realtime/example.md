@@ -16,11 +16,11 @@ touch predictor.py requirements.txt text_generator.yaml
 
 from transformers import pipeline
 
-class PythonPredictor:
+class Handler:
     def __init__(self, config):
         self.model = pipeline(task="text-generation")
 
-    def predict(self, payload):
+    def handle_post(self, payload):
         return self.model(payload["text"])[0]
 ```
 
@@ -36,7 +36,7 @@ torch
 
 - name: text-generator
   kind: RealtimeAPI
-  predictor:
+  handler:
     type: python
     path: predictor.py
   compute:
@@ -103,12 +103,30 @@ Set the `predictor.protobuf_path` field in the API spec to point to the `predict
 
 - name: text-generator
   kind: RealtimeAPI
-  predictor:
+  handler:
     type: python
     path: predictor.py
     protobuf_path: predictor.proto
   compute:
     gpu: 1
+```
+
+### Match RPC service name
+
+Match the name of the RPC service(s) from the protofuf definition (in this case `Predict`) with what you're defining in the handler's implementation:
+
+```python
+# predictor.py
+
+from transformers import pipeline
+
+class Handler:
+    def __init__(self, config, proto_module_pb2):
+        self.model = pipeline(task="text-generation")
+        self.proto_module_pb2 = proto_module_pb2
+
+    def Predict(self, payload):
+        return self.proto_module_pb2.Message(text="returned message")
 ```
 
 ### Make a gRPC request

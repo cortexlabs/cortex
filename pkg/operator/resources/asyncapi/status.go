@@ -289,6 +289,6 @@ func addPodToReplicaCounts(pod *kcore.Pod, deployment *kapps.Deployment, counts 
 }
 
 func isPodSpecLatest(deployment *kapps.Deployment, pod *kcore.Pod) bool {
-	return deployment.Spec.Template.Labels["predictorID"] == pod.Labels["predictorID"] &&
+	return deployment.Spec.Template.Labels["handlerID"] == pod.Labels["handlerID"] &&
 		deployment.Spec.Template.Labels["deploymentID"] == pod.Labels["deploymentID"]
 }

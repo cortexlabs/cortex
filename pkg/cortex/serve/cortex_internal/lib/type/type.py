@@ -15,7 +15,7 @@
 import collections
 
 
-class PredictorType(collections.namedtuple("PredictorType", "type")):
+class HandlerType(collections.namedtuple("HandlerType", "type")):
     def __str__(self) -> str:
         return str(self.type)
 
@@ -23,39 +23,37 @@ class PredictorType(collections.namedtuple("PredictorType", "type")):
         return str(self.type)
 
 
-PythonPredictorType = PredictorType("python")
+PythonHandlerType = HandlerType("python")
 
-TensorFlowPredictorType = PredictorType("tensorflow")
-TensorFlowNeuronPredictorType = PredictorType("tensorflow-neuron")
+TensorFlowHandlerType = HandlerType("tensorflow")
+TensorFlowNeuronHandlerType = HandlerType("tensorflow-neuron")
 
 
-def predictor_type_from_string(predictor_type: str) -> PredictorType:
+def handler_type_from_string(handler_type: str) -> HandlerType:
     """
-    Get predictor type from string.
+    Get handler type from string.
 
     Args:
-        predictor_type: "python", "tensorflow" or "tensorflow-neuron"
+        handler_type: "python", "tensorflow" or "tensorflow-neuron"
 
     Raises:
-        ValueError if predictor_type does not hold the right value.
+        ValueError if handler_type does not hold the right value.
     """
-    predictor_types = [
-        PythonPredictorType,
-        TensorFlowPredictorType,
-        TensorFlowNeuronPredictorType,
+    handler_types = [
+        PythonHandlerType,
+        TensorFlowHandlerType,
+        TensorFlowNeuronHandlerType,
     ]
-    for candidate in predictor_types:
-        if str(candidate) == predictor_type:
+    for candidate in handler_types:
+        if str(candidate) == handler_type:
             return candidate
-    raise ValueError("predictor_type can only be 'python', 'tensorflow' or 'tensorflow-neuron'")
+    raise ValueError("handler_type can only be 'python', 'tensorflow' or 'tensorflow-neuron'")
 
 
-def predictor_type_from_api_spec(api_spec: dict) -> PredictorType:
+def handler_type_from_api_spec(api_spec: dict) -> HandlerType:
     """
-    Get predictor type from API spec.
+    Get handler type from API spec.
     """
-    if api_spec["compute"]["inf"] > 0 and api_spec["predictor"]["type"] == str(
-        TensorFlowPredictorType
-    ):
-        return predictor_type_from_string("tensorflow-neuron")
-    return predictor_type_from_string(api_spec["predictor"]["type"])
+    if api_spec["compute"]["inf"] > 0 and api_spec["handler"]["type"] == str(TensorFlowHandlerType):
+        return handler_type_from_string("tensorflow-neuron")
+    return handler_type_from_string(api_spec["handler"]["type"])

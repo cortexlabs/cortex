@@ -12,11 +12,11 @@ This example shows how to deploy a batch image classification api that accepts a
 
 <br>
 
-## Implement your predictor
+## Implement your handler
 
 1. Create a Python file named `predictor.py`.
-1. Define a Predictor class with a constructor that loads and initializes an image-classifier from `torchvision`.
-1. Add a `predict()` function that will accept a list of images urls (http:// or s3://), downloads them, performs inference, and writes the predictions to S3.
+1. Define a Handler class with a constructor that loads and initializes an image-classifier from `torchvision`.
+1. Add a `handle_post()` function that will accept a list of images urls (http:// or s3://), downloads them, performs inference, and writes the predictions to S3.
 1. Specify an `on_job_complete()` function that aggregates the results and writes them to a single file named `aggregated_results.json` in S3.
 
 ```python
@@ -34,7 +34,7 @@ import json
 import re
 
 
-class PythonPredictor:
+class Handler:
     def __init__(self, config, job_spec):
         self.model = torchvision.models.alexnet(pretrained=True).eval()
 
@@ -55,7 +55,7 @@ class PythonPredictor:
         self.bucket, self.key = re.match("s3://(.+?)/(.+)", config["dest_s3_dir"]).groups()
         self.key = os.path.join(self.key, job_spec["job_id"])
 
-    def predict(self, payload, batch_id):
+    def handle_batch(self, payload, batch_id):
         tensor_list = []
 
         # download and preprocess each image
@@ -103,7 +103,7 @@ class PythonPredictor:
         )
 ```
 
-Here are the complete [Predictor docs](../../../docs/workloads/batch/predictors.md).
+Here are the complete [Handler docs](../../../docs/workloads/batch/handler.md).
 
 <br>
 
@@ -131,7 +131,7 @@ Create a `cortex.yaml` file and add the configuration below. An `api` with `kind
 
 - name: image-classifier
   kind: BatchAPI
-  predictor:
+  handler:
     type: python
     path: predictor.py
   compute:

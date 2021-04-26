@@ -74,7 +74,7 @@ type BatchJob struct {
 	RuntimeBatchJobConfig
 	APIID           string    `json:"api_id"`
 	SpecID          string    `json:"spec_id"`
-	PredictorID     string    `json:"predictor_id"`
+	HandlerID       string    `json:"handler_id"`
 	SQSUrl          string    `json:"sqs_url"`
 	TotalBatchCount int       `json:"total_batch_count"`
 	StartTime       time.Time `json:"start_time"`
@@ -83,10 +83,10 @@ type BatchJob struct {
 type TaskJob struct {
 	JobKey
 	RuntimeTaskJobConfig
-	APIID       string    `json:"api_id"`
-	SpecID      string    `json:"spec_id"`
-	PredictorID string    `json:"predictor_id"`
-	StartTime   time.Time `json:"start_time"`
+	APIID     string    `json:"api_id"`
+	SpecID    string    `json:"spec_id"`
+	HandlerID string    `json:"handler_id"`
+	StartTime time.Time `json:"start_time"`
 }
 
 // e.g. /<cluster name>/jobs/<job_api_kind>/<cortex version>/<api_name>

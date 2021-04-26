@@ -43,6 +43,8 @@ type StringValidation struct {
 	Prefix                               string
 	Suffix                               string
 	InvalidPrefixes                      []string
+	AllowedPrefixes                      []string
+	AllowedSuffixes                      []string
 	MaxLength                            int
 	MinLength                            int
 	DisallowLeadingWhitespace            bool
@@ -274,6 +276,30 @@ func ValidateStringVal(val string, v *StringValidation) error {
 	for _, invalidPrefix := range v.InvalidPrefixes {
 		if strings.HasPrefix(val, invalidPrefix) {
 			return ErrorCantHavePrefix(val, invalidPrefix)
+		}
+	}
+
+	if len(v.AllowedPrefixes) > 0 {
+		matchedPrefixes := 0
+		for _, allowedPrefix := range v.AllowedPrefixes {
+			if strings.HasPrefix(val, allowedPrefix) {
+				matchedPrefixes++
+			}
+		}
+		if matchedPrefixes == 0 {
+			return ErrorMustHavePrefix(val, v.AllowedPrefixes[0], v.AllowedPrefixes[1:]...)
+		}
+	}
+
+	if len(v.AllowedSuffixes) > 0 {
+		matchedSuffixes := 0
+		for _, allowedSuffix := range v.AllowedSuffixes {
+			if strings.HasSuffix(val, allowedSuffix) {
+				matchedSuffixes++
+			}
+		}
+		if matchedSuffixes == 0 {
+			return ErrorMustHaveSuffix(val, v.AllowedSuffixes[0], v.AllowedSuffixes[1:]...)
 		}
 	}
 

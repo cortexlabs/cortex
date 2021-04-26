@@ -5,7 +5,7 @@ from bert import tokenization, run_classifier
 labels = ["negative", "positive"]
 
 
-class TensorFlowPredictor:
+class Handler:
     def __init__(self, tensorflow_client, config):
         with tf.Graph().as_default():
             bert_module = hub.Module("https://tfhub.dev/google/bert_uncased_L-12_H-768_A-12/1")
@@ -17,7 +17,7 @@ class TensorFlowPredictor:
         )
         self.client = tensorflow_client
 
-    def predict(self, payload):
+    def handle_post(self, payload):
         input_example = run_classifier.InputExample(guid="", text_a=payload["review"], label=0)
         input_feature = run_classifier.convert_single_example(
             0, input_example, [0, 1], 128, self._tokenizer

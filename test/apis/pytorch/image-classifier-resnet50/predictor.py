@@ -21,7 +21,7 @@ def get_url_image(url_image):
     return image
 
 
-class PythonPredictor:
+class Handler:
     def __init__(self, config):
         # load classes
         classes = requests.get(config["classes"]).json()
@@ -51,7 +51,7 @@ class PythonPredictor:
 
             self.model = torch.jit.load(model_name)
         else:
-            raise RuntimeError("invalid predictor: config: must be cpu, gpu, or inf")
+            raise RuntimeError("invalid handler: config: must be cpu, gpu, or inf")
 
         # save normalization transform for later use
         normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
@@ -64,7 +64,7 @@ class PythonPredictor:
             ]
         )
 
-    def predict(self, payload):
+    def handle_post(self, payload):
         # preprocess image
         image = get_url_image(payload["url"])
         image = self.transform(image)

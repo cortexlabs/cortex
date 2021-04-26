@@ -29,13 +29,13 @@ from cortex_internal.lib.exceptions import CortexException, UserException, UserR
 from cortex_internal.lib.metrics import MetricsClient
 from cortex_internal.lib.storage import S3
 from cortex_internal.lib.type import (
-    predictor_type_from_api_spec,
-    TensorFlowPredictorType,
-    TensorFlowNeuronPredictorType,
-    PythonPredictorType,
+    handler_type_from_api_spec,
+    TensorFlowHandlerType,
+    TensorFlowNeuronHandlerType,
+    PythonHandlerType,
 )
 
-ASYNC_PYTHON_PREDICTOR_VALIDATION = {
+ASYNC_PYTHON_HANDLER_VALIDATION = {
     "required": [
         {
             "name": "__init__",
@@ -43,14 +43,14 @@ ASYNC_PYTHON_PREDICTOR_VALIDATION = {
             "optional_args": ["metrics_client"],
         },
         {
-            "name": "predict",
+            "name": "handle_async",
             "required_args": ["self"],
             "optional_args": ["payload", "request_id"],
         },
     ],
 }
 
-ASYNC_TENSORFLOW_PREDICTOR_VALIDATION = {
+ASYNC_TENSORFLOW_HANDLER_VALIDATION = {
     "required": [
         {
             "name": "__init__",
@@ -58,7 +58,7 @@ ASYNC_TENSORFLOW_PREDICTOR_VALIDATION = {
             "optional_args": ["metrics_client"],
         },
         {
-            "name": "predict",
+            "name": "handle_async",
             "required_args": ["self"],
             "optional_args": ["payload", "request_id"],
         },
@@ -80,9 +80,9 @@ class AsyncAPI:
         self.api_spec = api_spec
         self.storage = storage
         self.storage_path = storage_path
-        self.path = api_spec["predictor"]["path"]
-        self.config = api_spec["predictor"].get("config", {})
-        self.type = predictor_type_from_api_spec(api_spec)
+        self.path = api_spec["handler"]["path"]
+        self.config = api_spec["handler"].get("config", {})
+        self.type = handler_type_from_api_spec(api_spec)
         self.model_dir = model_dir
         self.lock_dir = lock_dir
 
@@ -150,8 +150,8 @@ class AsyncAPI:
         tf_serving_host: str = None,
         tf_serving_port: str = None,
     ):
-        predictor_impl = self._get_impl(project_dir)
-        constructor_args = inspect.getfullargspec(predictor_impl.__init__).args
+        handler_impl = self._get_impl(project_dir)
+        constructor_args = inspect.getfullargspec(handler_impl.__init__).args
         config = deepcopy(self.config)
 
         args = {}
@@ -160,7 +160,7 @@ class AsyncAPI:
         if "metrics_client" in constructor_args:
             args["metrics_client"] = metrics_client
 
-        if self.type in [TensorFlowPredictorType, TensorFlowNeuronPredictorType]:
+        if self.type in [TensorFlowHandlerType, TensorFlowNeuronHandlerType]:
             tf_serving_address = tf_serving_host + ":" + tf_serving_port
             tf_client = TensorFlowClient(
                 tf_serving_url=tf_serving_address,
@@ -170,25 +170,24 @@ class AsyncAPI:
             args["tensorflow_client"] = tf_client
 
         try:
-            predictor = predictor_impl(**args)
+            handler = handler_impl(**args)
         except Exception as e:
             raise UserRuntimeException(self.path, "__init__", str(e)) from e
 
-        return predictor
+        return handler
 
     def _get_impl(self, project_dir: str):
-        if self.type in [TensorFlowPredictorType, TensorFlowNeuronPredictorType]:
-            target_class_name = "TensorFlowPredictor"
-            validations = ASYNC_TENSORFLOW_PREDICTOR_VALIDATION
-        elif self.type == PythonPredictorType:
-            target_class_name = "PythonPredictor"
-            validations = ASYNC_PYTHON_PREDICTOR_VALIDATION
+        target_class_name = "Handler"
+        if self.type in [TensorFlowHandlerType, TensorFlowNeuronHandlerType]:
+            validations = ASYNC_TENSORFLOW_HANDLER_VALIDATION
+        elif self.type == PythonHandlerType:
+            validations = ASYNC_PYTHON_HANDLER_VALIDATION
         else:
-            raise CortexException(f"invalid predictor type: {self.type}")
+            raise CortexException(f"invalid handler type: {self.type}")
 
         try:
             impl = self._read_impl(
-                "cortex_async_predictor", os.path.join(project_dir, self.path), target_class_name
+                "cortex_async_handler", os.path.join(project_dir, self.path), target_class_name
             )
         except CortexException as e:
             e.wrap("error in " + self.path)
@@ -218,18 +217,18 @@ class AsyncAPI:
 
         classes = inspect.getmembers(impl, inspect.isclass)
 
-        predictor_class = None
+        handler_class = None
         for class_df in classes:
             if class_df[0] == target_class_name:
-                if predictor_class is not None:
+                if handler_class is not None:
                     raise UserException(
                         f"multiple definitions for {target_class_name} class found; please check "
                         f"your imports and class definitions and ensure that there is only one "
-                        f"predictor class definition"
+                        f"handler class definition"
                     )
-                predictor_class = class_df[1]
+                handler_class = class_df[1]
 
-        if predictor_class is None:
+        if handler_class is None:
             raise UserException(f"{target_class_name} class is not defined")
 
-        return predictor_class
+        return handler_class

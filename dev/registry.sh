@@ -150,7 +150,7 @@ function build_and_push() {
   set -euo pipefail  # necessary since this is called in a new shell by parallel
 
   tag=$CORTEX_VERSION
-  if [ "${image}" == "python-predictor-gpu" ]; then
+  if [ "${image}" == "python-handler-gpu" ]; then
     tag="${CORTEX_VERSION}-cuda10.2-cudnn8"
   fi
 

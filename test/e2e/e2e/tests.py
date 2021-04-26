@@ -248,29 +248,33 @@ def test_async_api(
         request_id = response_json["id"]
 
         result_response = None
-        for i in range(poll_retries + 1):
+        for _ in range(poll_retries + 1):
             result_response = retrieve_async_result(
                 client=client, api_name=api_name, request_id=request_id
             )
 
-            if result_response.status_code == HTTPStatus.OK:
-                break
+            if result_response.status_code != HTTPStatus.OK:
+                time.sleep(poll_sleep_seconds)
+                continue
 
-            time.sleep(poll_sleep_seconds)
+            result_response_json = result_response.json()
+            assert (
+                "id" in result_response_json
+            ), f"id key was not present in result response (response: {result_response_json})"
+            assert (
+                "status" in result_response_json
+            ), f"status key was not present in result response (response: {result_response_json})"
+
+            if result_response_json["status"] != "completed":
+                time.sleep(poll_sleep_seconds)
+                continue
+            break
 
         assert (
             result_response.status_code == HTTPStatus.OK
         ), f"result retrieval status code: got {result_response.status_code}, expected {HTTPStatus.OK}"
 
-        result_response_json = result_response.json()
-
         # validate keys are in the result json response
-        assert (
-            "id" in result_response_json
-        ), f"id key was not present in result response (response: {result_response_json})"
-        assert (
-            "status" in result_response_json
-        ), f"status key was not present in result response (response: {result_response_json})"
         assert (
             "result" in result_response_json
         ), f"result key was not present in result response (response: {result_response_json})"

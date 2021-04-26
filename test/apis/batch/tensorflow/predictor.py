@@ -9,7 +9,7 @@ import boto3
 import tensorflow as tf
 
 
-class TensorFlowPredictor:
+class Handler:
     def __init__(self, tensorflow_client, config, job_spec):
         self.client = tensorflow_client
         self.labels = requests.get(
@@ -24,7 +24,7 @@ class TensorFlowPredictor:
         self.bucket, self.key = re.match("s3://(.+?)/(.+)", config["dest_s3_dir"]).groups()
         self.key = os.path.join(self.key, job_spec["job_id"])
 
-    def predict(self, payload, batch_id):
+    def handle_batch(self, payload, batch_id):
         arr_list = []
 
         # download and preprocess each image

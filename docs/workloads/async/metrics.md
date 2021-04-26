@@ -3,15 +3,15 @@
 ## Custom user metrics
 
 It is possible to export custom user metrics by adding the `metrics_client`
-argument to the predictor constructor.
+argument to the workload handler constructor.
 
 ```python
-class PythonPredictor:
+class Handler:
     def __init__(self, config, metrics_client):
         self.metrics = metrics_client
 
-    def predict(self, payload):
-        # --- my predict code here ---
+    def handle_async(self, payload):
+        # --- my workload code here ---
         result = ...
 
         # increment a counter with name "my_metric" and tags model:v1
