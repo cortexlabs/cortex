@@ -201,18 +201,15 @@ func EKSResourceAccountID(region string) string {
 
 func main() {
 	if len(os.Args) > 3 {
-		fmt.Println("usage: go run generate_ami_mapping.go <abs_dest_path> [only-govcloud]")
+		fmt.Println("usage: go run generate_ami_mapping.go <abs_dest_path> public|govcloud")
 		os.Exit(1)
 	}
 
 	destFile := os.Args[1]
+	cloudType := os.Args[2]
 
-	onlyGovcloud := false
-
-	if len(os.Args) == 3 {
-		if os.Args[2] == "only-govcloud" {
-			onlyGovcloud = true
-		}
+	if cloudType != "public" && cloudType != "govcloud" {
+		log.Fatalf("%s is not a valid value; specify public or govcloud", cloudType)
 	}
 
 	k8sVersionMap := map[string]map[string]map[string]string{}
@@ -231,8 +228,8 @@ func main() {
 		k8sVersionMap[k8sVersion] = map[string]map[string]string{}
 	}
 	for _, region := range SupportedRegions() {
-		if onlyGovcloud != (region == RegionUSGovEast1 || region == RegionUSGovWest1) {
-			// onlyGovcloud xor (region is us govclouds)
+		if (cloudType == "govcloud") != (region == RegionUSGovEast1 || region == RegionUSGovWest1) {
+			// cloudType == "govcloud" xor (region is us govclouds)
 			continue
 		}
 		fmt.Print(region)
