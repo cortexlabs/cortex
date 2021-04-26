@@ -68,6 +68,9 @@ const (
 	_apiReadinessFile                              = "/mnt/workspace/api_readiness.txt"
 	_neuronRTDSocket                               = "/sock/neuron.sock"
 	_requestMonitorReadinessFile                   = "/request_monitor_ready.txt"
+	APISpecPath                                    = "/mnt/spec/spec.json"
+	TaskSpecPath                                   = "/mnt/spec/task.json"
+	BatchSpecPath                                  = "/mnt/spec/batch.json"
 )
 
 var (
@@ -96,32 +99,41 @@ type downloadContainerArg struct {
 	HideUnzippingLog bool   `json:"hide_unzipping_log"` // if true, don't log when unzipping
 }
 
-func TaskInitContainer(api *spec.API) kcore.Container {
-	return kcore.Container{
-		Name:            _downloaderInitContainerName,
-		Image:           config.CoreConfig.ImageDownloader,
-		ImagePullPolicy: "Always",
-		Args:            []string{"--download=" + pythonDownloadArgs(api)},
-		EnvFrom:         baseEnvVars(),
-		Env: []kcore.EnvVar{
+func TaskInitContainer(api *spec.API, job *spec.TaskJob) kcore.Container {
+	downloadConfig := downloadContainerConfig{
+		LastLog: fmt.Sprintf(_downloaderLastLog, "task"),
+		DownloadArgs: []downloadContainerArg{
 			{
-				Name:  "CORTEX_LOG_LEVEL",
-				Value: strings.ToUpper(api.TaskDefinition.LogLevel.String()),
+				From:             aws.S3Path(config.CoreConfig.Bucket, api.ProjectKey),
+				To:               path.Join(_emptyDirMountPath, "project"),
+				Unzip:            true,
+				ItemName:         "the project code",
+				HideFromLog:      true,
+				HideUnzippingLog: true,
+			},
+			{
+				From:             aws.S3Path(config.CoreConfig.Bucket, api.Key),
+				To:               APISpecPath,
+				Unzip:            false,
+				ToFile:           true,
+				ItemName:         "the api spec",
+				HideFromLog:      true,
+				HideUnzippingLog: true,
+			},
+			{
+				From:             aws.S3Path(config.CoreConfig.Bucket, job.SpecFilePath(config.CoreConfig.ClusterName)),
+				To:               TaskSpecPath,
+				Unzip:            false,
+				ToFile:           true,
+				ItemName:         "the task spec",
+				HideFromLog:      true,
+				HideUnzippingLog: true,
 			},
 		},
-		VolumeMounts: defaultVolumeMounts(),
 	}
-}
 
-func InitContainer(api *spec.API) kcore.Container {
-	downloadArgs := ""
-
-	switch api.Predictor.Type {
-	case userconfig.TensorFlowPredictorType:
-		downloadArgs = tfDownloadArgs(api)
-	case userconfig.PythonPredictorType:
-		downloadArgs = pythonDownloadArgs(api)
-	}
+	downloadArgsBytes, _ := json.Marshal(downloadConfig)
+	downloadArgs := base64.URLEncoding.EncodeToString(downloadArgsBytes)
 
 	return kcore.Container{
 		Name:            _downloaderInitContainerName,
@@ -129,7 +141,93 @@ func InitContainer(api *spec.API) kcore.Container {
 		ImagePullPolicy: "Always",
 		Args:            []string{"--download=" + downloadArgs},
 		EnvFrom:         baseEnvVars(),
-		Env:             getEnvVars(api, _downloaderInitContainerName),
+		Env:             downloaderEnvVars(api),
+		VolumeMounts:    defaultVolumeMounts(),
+	}
+}
+
+func BatchInitContainer(api *spec.API, job *spec.BatchJob) kcore.Container {
+	downloadConfig := downloadContainerConfig{
+		LastLog: fmt.Sprintf(_downloaderLastLog, api.Predictor.Type.String()),
+		DownloadArgs: []downloadContainerArg{
+			{
+				From:             aws.S3Path(config.CoreConfig.Bucket, api.ProjectKey),
+				To:               path.Join(_emptyDirMountPath, "project"),
+				Unzip:            true,
+				ItemName:         "the project code",
+				HideFromLog:      true,
+				HideUnzippingLog: true,
+			},
+			{
+				From:             aws.S3Path(config.CoreConfig.Bucket, api.Key),
+				To:               APISpecPath,
+				Unzip:            false,
+				ToFile:           true,
+				ItemName:         "the api spec",
+				HideFromLog:      true,
+				HideUnzippingLog: true,
+			},
+			{
+				From:             aws.S3Path(config.CoreConfig.Bucket, job.SpecFilePath(config.CoreConfig.ClusterName)),
+				To:               BatchSpecPath,
+				Unzip:            false,
+				ToFile:           true,
+				ItemName:         "the job spec",
+				HideFromLog:      true,
+				HideUnzippingLog: true,
+			},
+		},
+	}
+
+	downloadArgsBytes, _ := json.Marshal(downloadConfig)
+	downloadArgs := base64.URLEncoding.EncodeToString(downloadArgsBytes)
+
+	return kcore.Container{
+		Name:            _downloaderInitContainerName,
+		Image:           config.CoreConfig.ImageDownloader,
+		ImagePullPolicy: "Always",
+		Args:            []string{"--download=" + downloadArgs},
+		EnvFrom:         baseEnvVars(),
+		Env:             downloaderEnvVars(api),
+		VolumeMounts:    defaultVolumeMounts(),
+	}
+}
+
+// for async and realtime apis
+func InitContainer(api *spec.API) kcore.Container {
+	downloadConfig := downloadContainerConfig{
+		LastLog: fmt.Sprintf(_downloaderLastLog, api.Predictor.Type.String()),
+		DownloadArgs: []downloadContainerArg{
+			{
+				From:             aws.S3Path(config.CoreConfig.Bucket, api.ProjectKey),
+				To:               path.Join(_emptyDirMountPath, "project"),
+				Unzip:            true,
+				ItemName:         "the project code",
+				HideFromLog:      true,
+				HideUnzippingLog: true,
+			},
+			{
+				From:             aws.S3Path(config.CoreConfig.Bucket, api.PredictorKey),
+				To:               APISpecPath,
+				Unzip:            false,
+				ToFile:           true,
+				ItemName:         "the api spec",
+				HideFromLog:      true,
+				HideUnzippingLog: true,
+			},
+		},
+	}
+
+	downloadArgsBytes, _ := json.Marshal(downloadConfig)
+	downloadArgs := base64.URLEncoding.EncodeToString(downloadArgsBytes)
+
+	return kcore.Container{
+		Name:            _downloaderInitContainerName,
+		Image:           config.CoreConfig.ImageDownloader,
+		ImagePullPolicy: "Always",
+		Args:            []string{"--download=" + downloadArgs},
+		EnvFrom:         baseEnvVars(),
+		Env:             downloaderEnvVars(api),
 		VolumeMounts:    defaultVolumeMounts(),
 	}
 }
@@ -183,7 +281,7 @@ func TaskContainers(api *spec.API) ([]kcore.Container, []kcore.Volume) {
 		Name:            APIContainerName,
 		Image:           api.TaskDefinition.Image,
 		ImagePullPolicy: kcore.PullAlways,
-		Env:             getTaskEnvVars(api, APIContainerName),
+		Env:             taskEnvVars(api),
 		EnvFrom:         baseEnvVars(),
 		VolumeMounts:    apiPodVolumeMounts,
 		Resources: kcore.ResourceRequirements{
@@ -262,7 +360,7 @@ func AsyncGatewayContainers(api spec.API, queueURL string) kcore.Container {
 }
 
 func PythonPredictorContainers(api *spec.API) ([]kcore.Container, []kcore.Volume) {
-	return pythonPredictorContainers(api, getEnvVars(api, APIContainerName))
+	return pythonPredictorContainers(api, apiContainerEnvVars(api))
 }
 
 func pythonPredictorContainers(api *spec.API, envVars []kcore.EnvVar) ([]kcore.Container, []kcore.Volume) {
@@ -370,7 +468,7 @@ func pythonPredictorContainers(api *spec.API, envVars []kcore.EnvVar) ([]kcore.C
 }
 
 func TensorFlowPredictorContainers(api *spec.API) ([]kcore.Container, []kcore.Volume) {
-	return tensorFlowPredictorContainers(api, getEnvVars(api, APIContainerName))
+	return tensorFlowPredictorContainers(api, apiContainerEnvVars(api))
 }
 
 func tensorFlowPredictorContainers(api *spec.API, envVars []kcore.EnvVar) ([]kcore.Container, []kcore.Volume) {
@@ -492,207 +590,125 @@ func tensorFlowPredictorContainers(api *spec.API, envVars []kcore.EnvVar) ([]kco
 	return containers, volumes
 }
 
-func getTaskEnvVars(api *spec.API, container string) []kcore.EnvVar {
-	envVars := []kcore.EnvVar{
-		{
-			Name:  "CORTEX_KIND",
-			Value: api.Kind.String(),
+func taskEnvVars(api *spec.API) []kcore.EnvVar {
+	envVars := apiContainerEnvVars(api)
+	envVars = append(envVars,
+
+		kcore.EnvVar{
+			Name:  "CORTEX_TASK_SPEC",
+			Value: TaskSpecPath,
 		},
-		{
-			Name:  "CORTEX_LOG_LEVEL",
-			Value: strings.ToUpper(api.TaskDefinition.LogLevel.String()),
-		},
-	}
-
-	for name, val := range api.TaskDefinition.Env {
-		envVars = append(envVars, kcore.EnvVar{
-			Name:  name,
-			Value: val,
-		})
-	}
-
-	if container == APIContainerName {
-		envVars = append(envVars,
-			kcore.EnvVar{
-				Name: "HOST_IP",
-				ValueFrom: &kcore.EnvVarSource{
-					FieldRef: &kcore.ObjectFieldSelector{
-						FieldPath: "status.hostIP",
-					},
-				},
-			},
-			kcore.EnvVar{
-				Name:  "CORTEX_PROJECT_DIR",
-				Value: path.Join(_emptyDirMountPath, "project"),
-			},
-			kcore.EnvVar{
-				Name:  "CORTEX_DEPENDENCIES_PIP",
-				Value: api.TaskDefinition.Dependencies.Pip,
-			},
-			kcore.EnvVar{
-				Name:  "CORTEX_DEPENDENCIES_CONDA",
-				Value: api.TaskDefinition.Dependencies.Conda,
-			},
-			kcore.EnvVar{
-				Name:  "CORTEX_DEPENDENCIES_SHELL",
-				Value: api.TaskDefinition.Dependencies.Shell,
-			},
-			kcore.EnvVar{
-				Name:  "CORTEX_CACHE_DIR",
-				Value: _specCacheDir,
-			},
-			kcore.EnvVar{
-				Name:  "CORTEX_API_SPEC",
-				Value: aws.S3Path(config.CoreConfig.Bucket, api.Key),
-			},
-			kcore.EnvVar{
-				Name:  "CORTEX_CLI_CONFIG_DIR",
-				Value: _clientConfigDir,
-			},
-		)
-
-		cortexPythonPath := path.Join(_emptyDirMountPath, "project")
-		if api.TaskDefinition.PythonPath != nil {
-			cortexPythonPath = path.Join(_emptyDirMountPath, "project", *api.TaskDefinition.PythonPath)
-		}
-		envVars = append(envVars, kcore.EnvVar{
-			Name:  "CORTEX_PYTHON_PATH",
-			Value: cortexPythonPath,
-		})
-
-		if api.Compute.Inf > 0 {
-			envVars = append(envVars,
-				kcore.EnvVar{
-					Name:  "NEURONCORE_GROUP_SIZES",
-					Value: s.Int64(api.Compute.Inf * consts.NeuronCoresPerInf),
-				},
-				kcore.EnvVar{
-					Name:  "NEURON_RTD_ADDRESS",
-					Value: fmt.Sprintf("unix:%s", _neuronRTDSocket),
-				},
-			)
-		}
-	}
+	)
 	return envVars
 }
 
 func getAsyncAPIEnvVars(api spec.API, queueURL string) []kcore.EnvVar {
-	envVars := []kcore.EnvVar{
-		{
-			Name:  "CORTEX_KIND",
-			Value: api.Kind.String(),
-		},
-		{
-			Name:  "CORTEX_TELEMETRY_SENTRY_USER_ID",
-			Value: config.OperatorMetadata.OperatorID,
-		},
-		{
-			Name:  "CORTEX_TELEMETRY_SENTRY_ENVIRONMENT",
-			Value: "api",
-		},
-	}
-
-	for name, val := range api.Predictor.Env {
-		envVars = append(envVars, kcore.EnvVar{
-			Name:  name,
-			Value: val,
-		})
-	}
+	envVars := apiContainerEnvVars(&api)
 
 	envVars = append(envVars,
-		kcore.EnvVar{
-			Name:  "CORTEX_LOG_LEVEL",
-			Value: strings.ToUpper(api.Predictor.LogLevel.String()),
-		},
-		kcore.EnvVar{
-			Name: "HOST_IP",
-			ValueFrom: &kcore.EnvVarSource{
-				FieldRef: &kcore.ObjectFieldSelector{
-					FieldPath: "status.hostIP",
-				},
-			},
-		},
-		kcore.EnvVar{
-			Name:  "CORTEX_SERVING_PORT",
-			Value: DefaultPortStr,
-		},
-		kcore.EnvVar{
-			Name:  "CORTEX_CACHE_DIR",
-			Value: _specCacheDir,
-		},
-		kcore.EnvVar{
-			Name:  "CORTEX_PROJECT_DIR",
-			Value: path.Join(_emptyDirMountPath, "project"),
-		},
-		kcore.EnvVar{
-			Name:  "CORTEX_DEPENDENCIES_PIP",
-			Value: api.Predictor.Dependencies.Pip,
-		},
-		kcore.EnvVar{
-			Name:  "CORTEX_DEPENDENCIES_CONDA",
-			Value: api.Predictor.Dependencies.Conda,
-		},
-		kcore.EnvVar{
-			Name:  "CORTEX_DEPENDENCIES_SHELL",
-			Value: api.Predictor.Dependencies.Shell,
-		},
 		kcore.EnvVar{
 			Name:  "CORTEX_QUEUE_URL",
 			Value: queueURL,
 		},
 		kcore.EnvVar{
 			Name:  "CORTEX_ASYNC_WORKLOAD_PATH",
-			Value: fmt.Sprintf("%s/apis/%s/workloads", config.CoreConfig.ClusterName, api.Name),
-		},
-		kcore.EnvVar{
-			Name:  "CORTEX_API_SPEC",
-			Value: aws.S3Path(config.CoreConfig.Bucket, api.PredictorKey),
-		},
-		kcore.EnvVar{
-			Name:  "CORTEX_PROCESSES_PER_REPLICA",
-			Value: s.Int32(api.Predictor.ProcessesPerReplica),
+			Value: aws.S3Path(config.CoreConfig.Bucket, fmt.Sprintf("%s/apis/%s/workloads", config.CoreConfig.ClusterName, api.Name)),
 		},
 	)
 
-	if api.Predictor.Type == userconfig.TensorFlowPredictorType {
+	return envVars
+}
+
+func requestMonitorEnvVars(api *spec.API) []kcore.EnvVar {
+	if api.Kind == userconfig.TaskAPIKind {
+		return []kcore.EnvVar{
+			{
+				Name:  "CORTEX_LOG_LEVEL",
+				Value: strings.ToUpper(api.TaskDefinition.LogLevel.String()),
+			},
+		}
+	}
+	return []kcore.EnvVar{
+		{
+			Name:  "CORTEX_LOG_LEVEL",
+			Value: strings.ToUpper(api.Predictor.LogLevel.String()),
+		},
+	}
+}
+
+func downloaderEnvVars(api *spec.API) []kcore.EnvVar {
+	if api.Kind == userconfig.TaskAPIKind {
+		return []kcore.EnvVar{
+			{
+				Name:  "CORTEX_LOG_LEVEL",
+				Value: strings.ToUpper(api.TaskDefinition.LogLevel.String()),
+			},
+		}
+	}
+	return []kcore.EnvVar{
+		{
+			Name:  "CORTEX_LOG_LEVEL",
+			Value: strings.ToUpper(api.Predictor.LogLevel.String()),
+		},
+	}
+}
+
+func tensorflowServingEnvVars(api *spec.API) []kcore.EnvVar {
+	envVars := []kcore.EnvVar{
+		{
+			Name:  "TF_CPP_MIN_LOG_LEVEL",
+			Value: s.Int(userconfig.TFNumericLogLevelFromLogLevel(api.Predictor.LogLevel)),
+		},
+		{
+			Name:  "TF_PROCESSES",
+			Value: s.Int32(api.Predictor.ProcessesPerReplica),
+		},
+		{
+			Name:  "CORTEX_TF_BASE_SERVING_PORT",
+			Value: _tfBaseServingPortStr,
+		},
+		{
+			Name:  "TF_EMPTY_MODEL_CONFIG",
+			Value: _tfServingEmptyModelConfig,
+		},
+		{
+			Name:  "TF_MAX_NUM_LOAD_RETRIES",
+			Value: _tfServingMaxNumLoadRetries,
+		},
+		{
+			Name:  "TF_LOAD_RETRY_INTERVAL_MICROS",
+			Value: _tfServingLoadTimeMicros,
+		},
+		{
+			Name:  "TF_GRPC_MAX_CONCURRENT_STREAMS",
+			Value: fmt.Sprintf(`--grpc_channel_arguments="grpc.max_concurrent_streams=%d"`, api.Predictor.ThreadsPerProcess+10),
+		},
+	}
+
+	if api.Predictor.ServerSideBatching != nil {
+		var numBatchedThreads int32
+		if api.Compute.Inf > 0 {
+			// because there are processes_per_replica TF servers
+			numBatchedThreads = 1
+		} else {
+			numBatchedThreads = api.Predictor.ProcessesPerReplica
+		}
+
 		envVars = append(envVars,
 			kcore.EnvVar{
-				Name:  "CORTEX_TF_BASE_SERVING_PORT",
-				Value: _tfBaseServingPortStr,
+				Name:  "TF_MAX_BATCH_SIZE",
+				Value: s.Int32(api.Predictor.ServerSideBatching.MaxBatchSize),
 			},
 			kcore.EnvVar{
-				Name:  "CORTEX_TF_SERVING_HOST",
-				Value: _tfServingHost,
+				Name:  "TF_BATCH_TIMEOUT_MICROS",
+				Value: s.Int64(api.Predictor.ServerSideBatching.BatchInterval.Microseconds()),
+			},
+			kcore.EnvVar{
+				Name:  "TF_NUM_BATCHED_THREADS",
+				Value: s.Int32(numBatchedThreads),
 			},
 		)
 	}
-
-	if api.Autoscaling != nil {
-		envVars = append(envVars,
-			kcore.EnvVar{
-				Name:  "CORTEX_MAX_REPLICA_CONCURRENCY",
-				Value: s.Int64(api.Autoscaling.MaxReplicaConcurrency),
-			},
-		)
-	}
-
-	if api.Predictor.Type != userconfig.PythonPredictorType {
-		envVars = append(envVars,
-			kcore.EnvVar{
-				Name:  "CORTEX_MODEL_DIR",
-				Value: path.Join(_emptyDirMountPath, "model"),
-			},
-		)
-	}
-
-	cortexPythonPath := path.Join(_emptyDirMountPath, "project")
-	if api.Predictor.PythonPath != nil {
-		cortexPythonPath = path.Join(_emptyDirMountPath, "project", *api.Predictor.PythonPath)
-	}
-	envVars = append(envVars, kcore.EnvVar{
-		Name:  "CORTEX_PYTHON_PATH",
-		Value: cortexPythonPath,
-	})
 
 	if api.Compute.Inf > 0 {
 		envVars = append(envVars,
@@ -705,39 +721,13 @@ func getAsyncAPIEnvVars(api spec.API, queueURL string) []kcore.EnvVar {
 				Value: fmt.Sprintf("unix:%s", _neuronRTDSocket),
 			},
 		)
-
-		if api.Predictor.Type == userconfig.TensorFlowPredictorType {
-			envVars = append(envVars,
-				kcore.EnvVar{
-					Name:  "CORTEX_MULTIPLE_TF_SERVERS",
-					Value: "yes",
-				},
-				kcore.EnvVar{
-					Name:  "CORTEX_ACTIVE_NEURON",
-					Value: "yes",
-				},
-			)
-		}
 	}
 
 	return envVars
 }
 
-func getEnvVars(api *spec.API, container string) []kcore.EnvVar {
-	if container == _requestMonitorContainerName || container == _downloaderInitContainerName {
-		return []kcore.EnvVar{
-			{
-				Name:  "CORTEX_LOG_LEVEL",
-				Value: strings.ToUpper(api.Predictor.LogLevel.String()),
-			},
-		}
-	}
-
+func apiContainerEnvVars(api *spec.API) []kcore.EnvVar {
 	envVars := []kcore.EnvVar{
-		{
-			Name:  "CORTEX_KIND",
-			Value: api.Kind.String(),
-		},
 		{
 			Name:  "CORTEX_TELEMETRY_SENTRY_USER_ID",
 			Value: config.OperatorMetadata.OperatorID,
@@ -746,124 +736,31 @@ func getEnvVars(api *spec.API, container string) []kcore.EnvVar {
 			Name:  "CORTEX_TELEMETRY_SENTRY_ENVIRONMENT",
 			Value: "api",
 		},
+		{
+			Name:  "CORTEX_DEBUGGING",
+			Value: "false",
+		},
+		{
+			Name: "HOST_IP",
+			ValueFrom: &kcore.EnvVarSource{
+				FieldRef: &kcore.ObjectFieldSelector{
+					FieldPath: "status.hostIP",
+				},
+			},
+		},
+		{
+			Name:  "CORTEX_API_SPEC",
+			Value: APISpecPath,
+		},
 	}
 
-	for name, val := range api.Predictor.Env {
-		envVars = append(envVars, kcore.EnvVar{
-			Name:  name,
-			Value: val,
-		})
-	}
-
-	if container == APIContainerName {
-		envVars = append(envVars,
-			kcore.EnvVar{
-				Name:  "CORTEX_LOG_LEVEL",
-				Value: strings.ToUpper(api.Predictor.LogLevel.String()),
-			},
-			kcore.EnvVar{
-				Name: "HOST_IP",
-				ValueFrom: &kcore.EnvVarSource{
-					FieldRef: &kcore.ObjectFieldSelector{
-						FieldPath: "status.hostIP",
-					},
-				},
-			},
-			kcore.EnvVar{
-				Name:  "CORTEX_PROCESSES_PER_REPLICA",
-				Value: s.Int32(api.Predictor.ProcessesPerReplica),
-			},
-			kcore.EnvVar{
-				Name:  "CORTEX_THREADS_PER_PROCESS",
-				Value: s.Int32(api.Predictor.ThreadsPerProcess),
-			},
-			kcore.EnvVar{
-				Name:  "CORTEX_SERVING_PORT",
-				Value: DefaultPortStr,
-			},
-			kcore.EnvVar{
-				Name:  "CORTEX_CACHE_DIR",
-				Value: _specCacheDir,
-			},
-			kcore.EnvVar{
-				Name:  "CORTEX_PROJECT_DIR",
-				Value: path.Join(_emptyDirMountPath, "project"),
-			},
-			kcore.EnvVar{
-				Name:  "CORTEX_DEPENDENCIES_PIP",
-				Value: api.Predictor.Dependencies.Pip,
-			},
-			kcore.EnvVar{
-				Name:  "CORTEX_DEPENDENCIES_CONDA",
-				Value: api.Predictor.Dependencies.Conda,
-			},
-			kcore.EnvVar{
-				Name:  "CORTEX_DEPENDENCIES_SHELL",
-				Value: api.Predictor.Dependencies.Shell,
-			},
-			kcore.EnvVar{
-				Name:  "CORTEX_CLI_CONFIG_DIR",
-				Value: _clientConfigDir,
-			},
-		)
-
-		if api.Kind == userconfig.RealtimeAPIKind {
-			servingProtocol := "http"
-			if api.Predictor != nil && api.Predictor.IsGRPC() {
-				servingProtocol = "grpc"
-			}
-			envVars = append(envVars,
-				kcore.EnvVar{
-					Name:  "CORTEX_API_SPEC",
-					Value: aws.S3Path(config.CoreConfig.Bucket, api.PredictorKey),
-				},
-				kcore.EnvVar{
-					Name:  "CORTEX_SERVING_PROTOCOL",
-					Value: servingProtocol,
-				},
-			)
-			if servingProtocol == "grpc" {
-				envVars = append(envVars, kcore.EnvVar{
-					Name:  "CORTEX_PROTOBUF_FILE",
-					Value: path.Join(_emptyDirMountPath, "project", *api.Predictor.ProtobufPath),
-				})
-			}
-		} else {
-			envVars = append(envVars,
-				kcore.EnvVar{
-					Name:  "CORTEX_API_SPEC",
-					Value: aws.S3Path(config.CoreConfig.Bucket, api.Key),
-				},
-			)
+	if api.Predictor != nil {
+		for name, val := range api.Predictor.Env {
+			envVars = append(envVars, kcore.EnvVar{
+				Name:  name,
+				Value: val,
+			})
 		}
-
-		if api.Autoscaling != nil {
-			envVars = append(envVars,
-				kcore.EnvVar{
-					Name:  "CORTEX_MAX_REPLICA_CONCURRENCY",
-					Value: s.Int64(api.Autoscaling.MaxReplicaConcurrency),
-				},
-			)
-		}
-
-		if api.Predictor.Type != userconfig.PythonPredictorType || api.Predictor.MultiModelReloading != nil {
-			envVars = append(envVars,
-				kcore.EnvVar{
-					Name:  "CORTEX_MODEL_DIR",
-					Value: path.Join(_emptyDirMountPath, "model"),
-				},
-			)
-		}
-
-		cortexPythonPath := path.Join(_emptyDirMountPath, "project")
-		if api.Predictor.PythonPath != nil {
-			cortexPythonPath = path.Join(_emptyDirMountPath, "project", *api.Predictor.PythonPath)
-		}
-		envVars = append(envVars, kcore.EnvVar{
-			Name:  "CORTEX_PYTHON_PATH",
-			Value: cortexPythonPath,
-		})
-
 		if api.Predictor.Type == userconfig.TensorFlowPredictorType {
 			envVars = append(envVars,
 				kcore.EnvVar{
@@ -878,136 +775,16 @@ func getEnvVars(api *spec.API, container string) []kcore.EnvVar {
 		}
 	}
 
-	if container == _tfServingContainerName {
-		envVars = append(envVars, kcore.EnvVar{
-			Name:  "TF_CPP_MIN_LOG_LEVEL",
-			Value: s.Int(userconfig.TFNumericLogLevelFromLogLevel(api.Predictor.LogLevel)),
-		})
-
-		if api.Predictor.ServerSideBatching != nil {
-			var numBatchedThreads int32
-			if api.Compute.Inf > 0 {
-				// because there are processes_per_replica TF servers
-				numBatchedThreads = 1
-			} else {
-				numBatchedThreads = api.Predictor.ProcessesPerReplica
-			}
-
-			envVars = append(envVars,
-				kcore.EnvVar{
-					Name:  "TF_MAX_BATCH_SIZE",
-					Value: s.Int32(api.Predictor.ServerSideBatching.MaxBatchSize),
-				},
-				kcore.EnvVar{
-					Name:  "TF_BATCH_TIMEOUT_MICROS",
-					Value: s.Int64(api.Predictor.ServerSideBatching.BatchInterval.Microseconds()),
-				},
-				kcore.EnvVar{
-					Name:  "TF_NUM_BATCHED_THREADS",
-					Value: s.Int32(numBatchedThreads),
-				},
-			)
-		}
-	}
-
-	if api.Compute.Inf > 0 {
-		if (api.Predictor.Type == userconfig.PythonPredictorType && container == APIContainerName) ||
-			(api.Predictor.Type == userconfig.TensorFlowPredictorType && container == _tfServingContainerName) {
-			envVars = append(envVars,
-				kcore.EnvVar{
-					Name:  "NEURONCORE_GROUP_SIZES",
-					Value: s.Int64(api.Compute.Inf * consts.NeuronCoresPerInf / int64(api.Predictor.ProcessesPerReplica)),
-				},
-				kcore.EnvVar{
-					Name:  "NEURON_RTD_ADDRESS",
-					Value: fmt.Sprintf("unix:%s", _neuronRTDSocket),
-				},
-			)
-		}
-
-		if api.Predictor.Type == userconfig.TensorFlowPredictorType {
-			if container == _tfServingContainerName {
-				envVars = append(envVars,
-					kcore.EnvVar{
-						Name:  "TF_PROCESSES",
-						Value: s.Int32(api.Predictor.ProcessesPerReplica),
-					},
-					kcore.EnvVar{
-						Name:  "CORTEX_TF_BASE_SERVING_PORT",
-						Value: _tfBaseServingPortStr,
-					},
-					kcore.EnvVar{
-						Name:  "TF_EMPTY_MODEL_CONFIG",
-						Value: _tfServingEmptyModelConfig,
-					},
-					kcore.EnvVar{
-						Name:  "TF_MAX_NUM_LOAD_RETRIES",
-						Value: _tfServingMaxNumLoadRetries,
-					},
-					kcore.EnvVar{
-						Name:  "TF_LOAD_RETRY_INTERVAL_MICROS",
-						Value: _tfServingLoadTimeMicros,
-					},
-					kcore.EnvVar{
-						Name:  "TF_GRPC_MAX_CONCURRENT_STREAMS",
-						Value: fmt.Sprintf(`--grpc_channel_arguments="grpc.max_concurrent_streams=%d"`, api.Predictor.ThreadsPerProcess+10),
-					},
-				)
-			}
-			if container == APIContainerName {
-				envVars = append(envVars,
-					kcore.EnvVar{
-						Name:  "CORTEX_MULTIPLE_TF_SERVERS",
-						Value: "yes",
-					},
-					kcore.EnvVar{
-						Name:  "CORTEX_ACTIVE_NEURON",
-						Value: "yes",
-					},
-				)
-			}
+	if api.TaskDefinition != nil {
+		for name, val := range api.TaskDefinition.Env {
+			envVars = append(envVars, kcore.EnvVar{
+				Name:  name,
+				Value: val,
+			})
 		}
 	}
 
 	return envVars
-}
-
-func tfDownloadArgs(api *spec.API) string {
-	downloadConfig := downloadContainerConfig{
-		LastLog: fmt.Sprintf(_downloaderLastLog, "tensorflow"),
-		DownloadArgs: []downloadContainerArg{
-			{
-				From:             aws.S3Path(config.CoreConfig.Bucket, api.ProjectKey),
-				To:               path.Join(_emptyDirMountPath, "project"),
-				Unzip:            true,
-				ItemName:         "the project code",
-				HideFromLog:      true,
-				HideUnzippingLog: true,
-			},
-		},
-	}
-
-	downloadArgsBytes, _ := json.Marshal(downloadConfig)
-	return base64.URLEncoding.EncodeToString(downloadArgsBytes)
-}
-
-func pythonDownloadArgs(api *spec.API) string {
-	downloadConfig := downloadContainerConfig{
-		LastLog: fmt.Sprintf(_downloaderLastLog, "python"),
-		DownloadArgs: []downloadContainerArg{
-			{
-				From:             aws.S3Path(config.CoreConfig.Bucket, api.ProjectKey),
-				To:               path.Join(_emptyDirMountPath, "project"),
-				Unzip:            true,
-				ItemName:         "the project code",
-				HideFromLog:      true,
-				HideUnzippingLog: true,
-			},
-		},
-	}
-
-	downloadArgsBytes, _ := json.Marshal(downloadConfig)
-	return base64.URLEncoding.EncodeToString(downloadArgsBytes)
 }
 
 func tensorflowServingContainer(api *spec.API, volumeMounts []kcore.VolumeMount, resources kcore.ResourceRequirements) *kcore.Container {
@@ -1066,7 +843,7 @@ func tensorflowServingContainer(api *spec.API, volumeMounts []kcore.VolumeMount,
 		Image:           api.Predictor.TensorFlowServingImage,
 		ImagePullPolicy: kcore.PullAlways,
 		Args:            cmdArgs,
-		Env:             getEnvVars(api, _tfServingContainerName),
+		Env:             tensorflowServingEnvVars(api),
 		EnvFrom:         baseEnvVars(),
 		VolumeMounts:    volumeMounts,
 		ReadinessProbe: &kcore.Probe{
@@ -1132,7 +909,7 @@ func RequestMonitorContainer(api *spec.API) kcore.Container {
 		Ports: []kcore.ContainerPort{
 			{Name: "metrics", ContainerPort: DefaultRequestMonitorPortInt32},
 		},
-		Env:            getEnvVars(api, _requestMonitorContainerName),
+		Env:            requestMonitorEnvVars(api),
 		EnvFrom:        baseEnvVars(),
 		VolumeMounts:   defaultVolumeMounts(),
 		ReadinessProbe: FileExistsProbe(_requestMonitorReadinessFile),

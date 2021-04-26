@@ -29,12 +29,10 @@ logger = configure_logger("cortex", os.environ["CORTEX_LOG_CONFIG_FILE"])
 class API:
     def __init__(
         self,
-        storage: S3,
         api_spec: Dict[str, Any],
         model_dir: str,
         cache_dir: str = ".",
     ):
-        self.storage = storage
         self.api_spec = api_spec
         self.cache_dir = cache_dir
 
@@ -42,8 +40,6 @@ class API:
         self.predictor_id = api_spec["predictor_id"]
         self.deployment_id = api_spec["deployment_id"]
 
-        self.key = api_spec["key"]
-        self.metadata_root = api_spec["metadata_root"]
         self.name = api_spec["name"]
         self.predictor = Predictor(api_spec, model_dir)
 
@@ -136,44 +132,14 @@ def get_api(
     spec_path: str,
     model_dir: str,
     cache_dir: str,
-    region: str,
 ) -> API:
-    storage, raw_api_spec = get_spec(spec_path, cache_dir, region)
+    with open(spec_path) as json_file:
+        raw_api_spec = json.load(json_file)
 
     api = API(
-        storage=storage,
         api_spec=raw_api_spec,
         model_dir=model_dir,
         cache_dir=cache_dir,
     )
 
     return api
-
-
-def get_spec(
-    spec_path: str,
-    cache_dir: str,
-    region: str,
-    spec_name: str = "api_spec.json",
-) -> Tuple[S3, dict]:
-    """
-    Args:
-        spec_path: Path to API spec (i.e. "s3://cortex-dev-0/apis/iris-classifier/api/69b93378fa5c0218-jy1fjtyihu-9fcc10739e7fc8050cefa8ca27ece1ee/master-spec.json").
-        cache_dir: Local directory where the API spec gets saved to.
-        region: Region of the bucket.
-        spec_name: File name of the spec as it is saved on disk.
-    """
-
-    bucket, key = S3.deconstruct_s3_path(spec_path)
-    storage = S3(bucket=bucket, region=region)
-
-    local_spec_path = os.path.join(cache_dir, spec_name)
-    if not os.path.isfile(local_spec_path):
-        storage.download_file(key, local_spec_path)
-
-    return storage, read_json(local_spec_path)
-
-
-def read_json(json_path: str):
-    with open(json_path) as json_file:
-        return json.load(json_file)
