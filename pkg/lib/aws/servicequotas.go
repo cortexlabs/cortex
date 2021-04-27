@@ -32,10 +32,17 @@ var _standardInstanceCategories = strset.New("a", "c", "d", "h", "i", "m", "r", 
 var _knownInstanceCategories = strset.Union(_standardInstanceCategories, strset.New("p", "g", "inf", "x", "f"))
 
 const (
-	_elasticIPsQuotaCode      = "L-0263D0A3"
-	_internetGatewayQuotaCode = "L-A4707A72"
-	_natGatewayQuotaCode      = "L-FE5A380F"
-	_vpcQuotaCode             = "L-F678F1CE"
+	_elasticIPsQuotaCode         = "L-0263D0A3"
+	_internetGatewayQuotaCode    = "L-A4707A72"
+	_natGatewayQuotaCode         = "L-FE5A380F"
+	_vpcQuotaCode                = "L-F678F1CE"
+	_securityGroupsQuotaCode     = "L-E79EC296"
+	_securityGroupRulesQuotaCode = "L-0EA8095F"
+
+	// 35 inbound rules
+	_inboundRulesForWorkerNodeGroup = 35
+	// ClusterSharedNodeSecurityGroup, ControlPlaneSecurityGroup, eks-cluster-sg-<cluster-name>, operator security groups
+	_baseNumberOfSecurityGroups = 4
 )
 
 type InstanceTypeRequests struct {
@@ -145,12 +152,14 @@ func (c *Client) VerifyInstanceQuota(instances []InstanceTypeRequests) error {
 	return nil
 }
 
-func (c *Client) VerifyNetworkQuotas(requiredInternetGateways int, natGatewayRequired bool, highlyAvailableNATGateway bool, requiredVPCs int, availabilityZones strset.Set) error {
+func (c *Client) VerifyNetworkQuotas(requiredInternetGateways int, natGatewayRequired bool, highlyAvailableNATGateway bool, requiredVPCs int, availabilityZones strset.Set, numNodeGroups int) error {
 	quotaCodeToValueMap := map[string]int{
-		_elasticIPsQuotaCode:      0, // elastic IP quota code
-		_internetGatewayQuotaCode: 0, // internet gw quota code
-		_natGatewayQuotaCode:      0, // nat gw quota code
-		_vpcQuotaCode:             0, // vpc quota code
+		_elasticIPsQuotaCode:         0, // elastic IP quota code
+		_internetGatewayQuotaCode:    0, // internet gw quota code
+		_natGatewayQuotaCode:         0, // nat gw quota code
+		_vpcQuotaCode:                0, // vpc quota code
+		_securityGroupsQuotaCode:     0, // security groups quota code
+		_securityGroupRulesQuotaCode: 0, // security group rules quota code
 	}
 
 	err := c.ServiceQuotas().ListServiceQuotasPages(
@@ -285,5 +294,39 @@ func (c *Client) VerifyNetworkQuotas(requiredInternetGateways int, natGatewayReq
 		}
 	}
 
+	if _inboundRulesForWorkerNodeGroup > quotaCodeToValueMap[_securityGroupRulesQuotaCode] {
+		additionalQuotaRequired := _inboundRulesForWorkerNodeGroup - quotaCodeToValueMap[_securityGroupRulesQuotaCode]
+		return ErrorSecurityGroupRulesExceeded(quotaCodeToValueMap[_securityGroupRulesQuotaCode], additionalQuotaRequired, c.Region)
+	}
+
+	requiredOutboundRulesForCPSG := requiredOutboundRulesForControlPlaneSecurityGroup(numNodeGroups)
+	if requiredOutboundRulesForCPSG > quotaCodeToValueMap[_securityGroupRulesQuotaCode] {
+		additionalQuotaRequired := requiredOutboundRulesForCPSG - quotaCodeToValueMap[_securityGroupRulesQuotaCode]
+		return ErrorSecurityGroupRulesExceeded(quotaCodeToValueMap[_securityGroupRulesQuotaCode], additionalQuotaRequired, c.Region)
+	}
+
+	requiredSecurityGroups := requiredSecurityGroups(numNodeGroups)
+	sgs, err := c.DescribeSecurityGroups()
+	if err != nil {
+		return err
+	}
+	if quotaCodeToValueMap[_securityGroupsQuotaCode]-len(sgs)-requiredSecurityGroups < 0 {
+		additionalQuotaRequired := len(sgs) + requiredSecurityGroups - quotaCodeToValueMap[_securityGroupsQuotaCode]
+		return ErrorSecurityGroupLimitExceeded(quotaCodeToValueMap[_securityGroupsQuotaCode], additionalQuotaRequired, c.Region)
+
+	}
+
 	return nil
+}
+
+func requiredOutboundRulesForControlPlaneSecurityGroup(numNodeGroups int) int {
+	// +1 for the operator node group
+	// one third goes to inbound rules (port 443 only), but we don't count that as that's a lower number
+	// 2 thirds go to outbound rules (ports 443 and 1025-65535)
+	return 2 * (numNodeGroups + 1)
+}
+
+func requiredSecurityGroups(numNodeGroups int) int {
+	// each node group requires a security group
+	return _baseNumberOfSecurityGroups + numNodeGroups
 }
