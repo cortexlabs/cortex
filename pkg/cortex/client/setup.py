@@ -80,7 +80,7 @@ if pathlib.Path("README.md").is_file():
 setup(
     name="cortex",
     version="0.34.0",  # CORTEX_VERSION
-    description="Cost-effective serverless computing at scale",
+    description="Scale compute-intensive serverless workloads",
     author="cortex.dev",
     author_email="dev@cortex.dev",
     license="Apache License 2.0",
