@@ -30,8 +30,7 @@ Run the script below to export images to ECR in the same region and account as y
 Feel free to modify the script if you would like to export the images to a different registry such as a private docker hub.
 
 ```bash
-cd ./cortex
-./dev/export_images.sh <AWS_REGION> <AWS_ACCOUNT_ID>
+./cortex/dev/export_images.sh <AWS_REGION> <AWS_ACCOUNT_ID>
 ```
 
 You can now configure Cortex to use your images when creating a cluster (see [here](../management/create.md) for how to specify cluster images) and/or when deploying APIs (see the configuration docs corresponding to your API type for how to specify API images).
