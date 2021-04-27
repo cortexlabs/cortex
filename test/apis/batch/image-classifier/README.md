@@ -14,13 +14,13 @@ This example shows how to deploy a batch image classification api that accepts a
 
 ## Implement your handler
 
-1. Create a Python file named `predictor.py`.
+1. Create a Python file named `handler.py`.
 1. Define a Handler class with a constructor that loads and initializes an image-classifier from `torchvision`.
 1. Add a `handle_post()` function that will accept a list of images urls (http:// or s3://), downloads them, performs inference, and writes the predictions to S3.
 1. Specify an `on_job_complete()` function that aggregates the results and writes them to a single file named `aggregated_results.json` in S3.
 
 ```python
-# predictor.py
+# handler.py
 
 import os
 import requests
@@ -109,7 +109,7 @@ Here are the complete [Handler docs](../../../docs/workloads/batch/handler.md).
 
 ## Specify your Python dependencies
 
-Create a `requirements.txt` file to specify the dependencies needed by `predictor.py`. Cortex will automatically install them into your runtime once you deploy:
+Create a `requirements.txt` file to specify the dependencies needed by `handler.py`. Cortex will automatically install them into your runtime once you deploy:
 
 ```python
 # requirements.txt
@@ -124,7 +124,7 @@ pillow
 
 ## Configure your API
 
-Create a `cortex.yaml` file and add the configuration below. An `api` with `kind: BatchAPI` will expose your model as an endpoint that will orchestrate offline batch inference across multiple workers upon receiving job requests. The configuration below defines how much `compute` each worker requires and your `predictor.py` determines how each batch should be processed.
+Create a `cortex.yaml` file and add the configuration below. An `api` with `kind: BatchAPI` will expose your model as an endpoint that will orchestrate offline batch inference across multiple workers upon receiving job requests. The configuration below defines how much `compute` each worker requires and your `handler.py` determines how each batch should be processed.
 
 ```yaml
 # cortex.yaml
@@ -133,7 +133,7 @@ Create a `cortex.yaml` file and add the configuration below. An `api` with `kind
   kind: BatchAPI
   handler:
     type: python
-    path: predictor.py
+    path: handler.py
   compute:
     cpu: 1
 ```
@@ -144,7 +144,7 @@ Here are the complete [API configuration docs](../../../docs/workloads/batch/con
 
 ## Deploy your Batch API
 
-`cortex deploy` takes your model, your `predictor.py` implementation, and your configuration from `cortex.yaml` and creates an endpoint that can receive job submissions and manage running jobs.
+`cortex deploy` takes your model, your `handler.py` implementation, and your configuration from `cortex.yaml` and creates an endpoint that can receive job submissions and manage running jobs.
 
 ```bash
 $ cortex deploy --env aws
@@ -166,7 +166,7 @@ endpoint: http://***.elb.us-west-2.amazonaws.com/image-classifier
 
 ## Setup destination S3 directory
 
-Our `predictor.py` implementation writes results to an S3 directory. Before submitting a job, we need to create an S3 directory to store the output of the batch job. The S3 directory should be accessible by the credentials used to create your Cortex cluster.
+Our `handler.py` implementation writes results to an S3 directory. Before submitting a job, we need to create an S3 directory to store the output of the batch job. The S3 directory should be accessible by the credentials used to create your Cortex cluster.
 
 Export the S3 directory to an environment variable:
 

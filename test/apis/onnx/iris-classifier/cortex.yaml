@@ -2,6 +2,6 @@
   kind: RealtimeAPI
   handler:
     type: python
-    path: predictor.py
+    path: handler.py
     multi_model_reloading:
       path: s3://cortex-examples/onnx/iris-classifier/

@@ -13,12 +13,12 @@ The directory `s3://cortex-examples/sklearn/mpg-estimator/linreg/` contains 4 di
   kind: RealtimeAPI
   handler:
     type: python
-    path: predictor.py
+    path: handler.py
     models:
       path: s3://cortex-examples/sklearn/mpg-estimator/linreg/
 ```
 
-#### `predictor.py`
+#### `handler.py`
 
 ```python
 import mlflow.sklearn
@@ -51,11 +51,11 @@ class Handler:
   kind: RealtimeAPI
   handler:
     type: python
-    path: predictor.py
+    path: handler.py
     ...
 ```
 
-#### `predictor.py`
+#### `handler.py`
 
 ```python
 class Handler:
@@ -90,7 +90,7 @@ class Handler:
   kind: RealtimeAPI
   handler:
     type: tensorflow
-    path: predictor.py
+    path: handler.py
     models:
       paths:
         - name: inception
@@ -102,7 +102,7 @@ class Handler:
       ...
 ```
 
-### `predictor.py`
+### `handler.py`
 
 ```python
 class Handler:

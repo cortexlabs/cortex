@@ -2,7 +2,7 @@
   kind: RealtimeAPI
   handler:
     type: tensorflow
-    path: predictor.py
+    path: handler.py
     models:
       paths:
         - name: inception

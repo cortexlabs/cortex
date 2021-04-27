@@ -1,7 +1,7 @@
 grpc:
   proto_module_pb2: "test_proto/iris_classifier_pb2.py"
   proto_module_pb2_grpc: "test_proto/iris_classifier_pb2_grpc.py"
-  stub_service_name: "Predictor"
+  stub_service_name: "Handler"
   input_spec:
     class_name: "Sample"
     input:
