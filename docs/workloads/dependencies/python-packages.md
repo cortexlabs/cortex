@@ -8,7 +8,7 @@ a `requirements.txt` file in the top level Cortex project directory (i.e. the di
 ```text
 ./my-classifier/
 ├── cortex.yaml
-├── predictor.py
+├── handler.py
 ├── ...
 └── requirements.txt
 ```
@@ -63,7 +63,7 @@ directory structure:
 ```text
 ./my-classifier/
 ├── cortex.yaml
-├── predictor.py
+├── handler.py
 ├── ...
 ├── mypkg
 │   └── __init__.py
@@ -88,7 +88,7 @@ which contains `cortex.yaml`):
 ```text
 ./my-classifier/
 ├── cortex.yaml
-├── predictor.py
+├── handler.py
 ├── ...
 └── conda-packages.txt
 ```

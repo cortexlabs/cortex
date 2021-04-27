@@ -5,7 +5,7 @@ Cortex looks for a file named `dependencies.sh` in the top level Cortex project 
 ```text
 ./my-classifier/
 ├── cortex.yaml
-├── predictor.py
+├── handler.py
 ├── ...
 └── dependencies.sh
 ```
@@ -18,10 +18,11 @@ Here is an example `dependencies.sh`, which installs the `tree` utility:
 apt-get update && apt-get install -y tree
 ```
 
-The `tree` utility can now be called inside your `predictor.py`:
+The `tree` utility can now be called inside your `handler.py`:
 
 ```python
-# predictor.py
+# handler.py
+
 import subprocess
 
 class Handler:

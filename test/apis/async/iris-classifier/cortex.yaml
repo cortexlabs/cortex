@@ -2,7 +2,7 @@
   kind: AsyncAPI
   handler:
     type: python
-    path: predictor.py
+    path: handler.py
     config:
       bucket: cortex-examples
       key: sklearn/iris-classifier/model.pkl
