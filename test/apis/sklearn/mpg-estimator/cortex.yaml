@@ -2,6 +2,6 @@
   kind: RealtimeAPI
   handler:
     type: python
-    path: predictor.py
+    path: handler.py
     config:
       model: s3://cortex-examples/sklearn/mpg-estimator/linreg/

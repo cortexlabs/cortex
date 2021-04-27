@@ -5,7 +5,7 @@ import grpc
 import iris_classifier_pb2 as iris__classifier__pb2
 
 
-class PredictorStub(object):
+class HandlerStub(object):
     """Missing associated documentation comment in .proto file."""
 
     def __init__(self, channel):
@@ -15,13 +15,13 @@ class PredictorStub(object):
             channel: A grpc.Channel.
         """
         self.Predict = channel.unary_unary(
-            "/iris_classifier.Predictor/Predict",
+            "/iris_classifier.Handler/Predict",
             request_serializer=iris__classifier__pb2.Sample.SerializeToString,
             response_deserializer=iris__classifier__pb2.Response.FromString,
         )
 
 
-class PredictorServicer(object):
+class HandlerServicer(object):
     """Missing associated documentation comment in .proto file."""
 
     def Predict(self, request, context):
@@ -31,7 +31,7 @@ class PredictorServicer(object):
         raise NotImplementedError("Method not implemented!")
 
 
-def add_PredictorServicer_to_server(servicer, server):
+def add_HandlerServicer_to_server(servicer, server):
     rpc_method_handlers = {
         "Predict": grpc.unary_unary_rpc_method_handler(
             servicer.Predict,
@@ -40,13 +40,13 @@ def add_PredictorServicer_to_server(servicer, server):
         ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
-        "iris_classifier.Predictor", rpc_method_handlers
+        "iris_classifier.Handler", rpc_method_handlers
     )
     server.add_generic_rpc_handlers((generic_handler,))
 
 
 # This class is part of an EXPERIMENTAL API.
-class Predictor(object):
+class Handler(object):
     """Missing associated documentation comment in .proto file."""
 
     @staticmethod
@@ -65,7 +65,7 @@ class Predictor(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            "/iris_classifier.Predictor/Predict",
+            "/iris_classifier.Handler/Predict",
             iris__classifier__pb2.Sample.SerializeToString,
             iris__classifier__pb2.Response.FromString,
             options,

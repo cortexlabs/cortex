@@ -2,7 +2,7 @@
   kind: RealtimeAPI
   handler:
     type: python
-    path: predictor.py
+    path: handler.py
     config:
       model: s3://cortex-examples/pytorch/iris-classifier/weights.pth
     server_side_batching:

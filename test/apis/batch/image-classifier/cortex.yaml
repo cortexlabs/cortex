@@ -2,6 +2,6 @@
   kind: BatchAPI
   handler:
     type: python
-    path: predictor.py
+    path: handler.py
   compute:
     cpu: 1
