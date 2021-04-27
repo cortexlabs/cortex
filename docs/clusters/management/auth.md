@@ -181,7 +181,9 @@ Replace the following placeholders with their respective values in the policy te
                 "ec2:*",
                 "sts:GetCallerIdentity",
                 "eks:*",
-                "kms:CreateGrant"
+                "kms:CreateGrant",
+                "acm:DescribeCertificate",
+                "servicequotas:ListServiceQuotas"
             ],
             "Resource": "*"
         },
