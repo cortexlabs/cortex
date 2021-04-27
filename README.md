@@ -45,7 +45,7 @@ One platform for all your microservices, data processing, and machine learning w
 
 ## Integrate with modern observability tools
 
-* **Stream structured logs** - Automatically stream logs from every workload to your favorite log management tool.
+* **Stream structured logs** - automatically stream logs from every workload to your favorite log management tool.
 * **Collect custom metrics** - monitor your workloads with pre-built dashboards and add your own custom dashboards.
 
 <br>
