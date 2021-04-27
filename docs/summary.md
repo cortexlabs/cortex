@@ -25,6 +25,7 @@
 * Advanced
   * [Setting up kubectl](clusters/advanced/kubectl.md)
   * [Private Docker registry](clusters/advanced/registry.md)
+  * [Self hosted images](clusters/advanced/self-hosted-images.md)
 
 ## Workloads
 
