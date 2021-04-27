@@ -6,7 +6,7 @@ In this guide, we'll use [ECR](https://aws.amazon.com/ecr/) as the destination c
 
 ## Step 1
 
-Make sure you have the [aws](https://docs.aws.amazon.com/cli/latest/userguide/install-cliv1.html), [docker](https://docs.docker.com/get-docker/) and [skopeo](https://github.com/containers/skopeo/blob/master/install.md) utilities installed.
+Make sure you have the [aws](https://docs.aws.amazon.com/cli/latest/userguide/install-cliv1.html), [docker](https://docs.docker.com/get-docker/), and [skopeo](https://github.com/containers/skopeo/blob/master/install.md) utilities installed.
 
 ## Step 2
 
@@ -14,10 +14,10 @@ Export the `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` environment variables
 
 ## Step 3
 
-Clone the Cortex repo with the specific tag.
+Clone the Cortex repo using the release tag corresponding to your version:
 
-```
-export CORTEX_VERSION=0.33.0 # you can get the complete version using `cortex version`
+```bash
+export CORTEX_VERSION=0.33.0  # you can get the complete version using `cortex version`
 git clone --depth 1 --branch v$CORTEX_VERSION https://github.com/cortexlabs/cortex.git
 ```
 
