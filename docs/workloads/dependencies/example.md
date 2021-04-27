@@ -6,7 +6,7 @@ You can deploy an API by providing a project directory. Cortex will save the pro
 project/
   ├── model.py
   ├── util.py
-  ├── predictor.py
+  ├── handler.py
   ├── requirements.txt
   └── ...
 ```
@@ -14,7 +14,7 @@ project/
 You can define your Handler class in a separate python file and import code from your project.
 
 ```python
-# predictor.py
+# handler.py
 
 from model import MyModel
 
@@ -36,7 +36,7 @@ api_spec = {
     "kind": "RealtimeAPI",
     "handler": {
         "type": "python",
-        "path": "predictor.py"
+        "path": "handler.py"
     }
 }
 
@@ -53,7 +53,7 @@ cx.create_api(api_spec, project_dir=".")
   kind: RealtimeAPI
   handler:
     type: python
-    path: predictor.py
+    path: handler.py
 ```
 
 ```bash

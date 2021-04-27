@@ -2,7 +2,7 @@
   kind: RealtimeAPI
   handler:
     type: tensorflow
-    path: predictor.py
+    path: handler.py
     models:
       path: s3://cortex-examples/tensorflow/resnet50_neuron_batch_size_5/
     server_side_batching:

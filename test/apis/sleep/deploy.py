@@ -8,9 +8,9 @@ cx = cortex.client()
 api_spec = {
     "name": "sleep",
     "kind": "RealtimeAPI",
-    "predictor": {
+    "handler": {
         "type": "python",
-        "path": "predictor.py",
+        "path": "handler.py",
     },
 }
 

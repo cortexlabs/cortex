@@ -23,7 +23,7 @@ For example, if your directory looks like this:
 ./my-classifier/
 ├── cortex.yaml
 ├── values.json
-├── predictor.py
+├── handler.py
 ├── ...
 └── requirements.txt
 ```
@@ -31,8 +31,9 @@ For example, if your directory looks like this:
 You can access `values.json` in your Handler class like this:
 
 ```python
-import json
+# handler.py
 
+import json
 
 class Handler:
     def __init__(self, config):

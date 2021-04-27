@@ -11,7 +11,7 @@ class Handler:
         self.metrics = metrics_client
 
     def handle_batch(self, payload):
-        # --- my predict code here ---
+        # --- my handler code here ---
         result = ...
 
         # increment a counter with name "my_metric" and tags model:v1

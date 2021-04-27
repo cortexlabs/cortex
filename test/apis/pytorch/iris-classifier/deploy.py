@@ -8,9 +8,9 @@ cx = cortex.client()
 api_spec = {
     "name": "iris-classifier",
     "kind": "RealtimeAPI",
-    "predictor": {
+    "handler": {
         "type": "python",
-        "path": "predictor.py",
+        "path": "handler.py",
         "config": {
             "model": "s3://cortex-examples/pytorch/iris-classifier/weights.pth",
         },
