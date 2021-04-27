@@ -20,7 +20,7 @@ set -e
 export EXPECTED_CORTEX_VERSION=0.34.0
 
 if [ "$CORTEX_VERSION" != "$EXPECTED_CORTEX_VERSION" ]; then
-    echo "error: your Cortex operator version ($CORTEX_VERSION) doesn't match your predictor image version ($EXPECTED_CORTEX_VERSION); please update your predictor image by modifying the \`image\` field in your API configuration file (e.g. cortex.yaml) and re-running \`cortex deploy\`, or update your cluster by following the instructions at https://docs.cortex.dev/"
+    echo "error: your Cortex operator version ($CORTEX_VERSION) doesn't match your handler image version ($EXPECTED_CORTEX_VERSION); please update your handler image by modifying the \`image\` field in your API configuration file (e.g. cortex.yaml) and re-running \`cortex deploy\`, or update your cluster by following the instructions at https://docs.cortex.dev/"
     exit 1
 fi
 

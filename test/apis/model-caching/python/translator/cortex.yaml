@@ -2,7 +2,7 @@
   kind: RealtimeAPI
   handler:
     type: python
-    path: predictor.py
+    path: handler.py
     multi_model_reloading:
       dir: s3://models.huggingface.co/bert/Helsinki-NLP/
       cache_size: 5

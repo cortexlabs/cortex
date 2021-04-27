@@ -6,11 +6,11 @@ Create APIs that can orchestrate distributed batch inference jobs on large datas
 
 ```bash
 mkdir image-classifier && cd image-classifier
-touch predictor.py requirements.txt image_classifier.yaml
+touch handler.py requirements.txt image_classifier.yaml
 ```
 
 ```python
-# predictor.py
+# handler.py
 
 class Handler:
     def __init__(self, config, job_spec):
@@ -70,7 +70,7 @@ requests
   kind: BatchAPI
   handler:
     type: python
-    path: predictor.py
+    path: handler.py
     config:
       labels: "https://storage.googleapis.com/download.tensorflow.org/data/ImageNetLabels.txt"
 ```

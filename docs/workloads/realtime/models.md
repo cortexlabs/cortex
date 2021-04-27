@@ -11,7 +11,7 @@ The following is a list of events that will trigger the API to update its model(
 
 ## Python Handler
 
-To use live model reloading with the Python handler, the model path(s) must be specified in the API's `handler` configuration, via the `multi_model_reloading` field. When models are specified in this manner, your `Handler` class must implement the `load_model()` function, and models can be retrieved by using the `get_model()` method of the `model_client` that's passed into your predictor's constructor.
+To use live model reloading with the Python handler, the model path(s) must be specified in the API's `handler` configuration, via the `multi_model_reloading` field. When models are specified in this manner, your `Handler` class must implement the `load_model()` function, and models can be retrieved by using the `get_model()` method of the `model_client` that's passed into your handler's constructor.
 
 ### Example
 
@@ -273,7 +273,7 @@ class Handler:
 
         Args:
             tensorflow_client (required): TensorFlow client which is used to
-                make predictions. This should be saved for use in predict().
+                make predictions. This should be saved for use in the handler method.
             config (required): Dictionary passed from API configuration (if
                 specified).
         """

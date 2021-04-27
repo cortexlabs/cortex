@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package iris_classifier;
 
-service Predictor {
+service Handler {
     rpc Predict (Sample) returns (Response);
 }
 
