@@ -1,84 +1,57 @@
+[Website](https://www.cortex.dev) • [Slack](https://community.cortex.dev) • [Docs](https://docs.cortex.dev)
+
+<br>
+
 <img src='https://s3-us-west-2.amazonaws.com/cortex-public/logo.png' height='42'>
 
 <br>
 
-[Website](https://www.cortex.dev) • [Slack](https://community.cortex.dev) • [Docs](https://docs.cortex.dev)
+# Scale compute-intensive serverless workloads
 
-# Cost-effective serverless computing at scale
-
-Cortex is a serverless platform for compute-intensive applications.
+One platform for all your microservices, data processing, and machine learning workloads.
 
 <br>
 
-## Use cases
+## Forget about resource limits, cold starts, and timeouts
 
-* **Data processing** - run image processing, natural language processing, and more.
-* **Machine learning in production** - train and serve machine learning models in production.
-* **Large-scale inference** - efficiently scale realtime and batch inference workloads.
-
-<br>
-
-## Scalable
-
-* **Cluster autoscaling** - configure Cortex to spin up instances when load increases and spin them down when load decreases.
-* **Workload autoscaling** - customize the autoscaling behavior of each workload to ensure efficient use of cluster resources.
-
-```text
-$ cortex cluster info
-
-region: us-east-1
-instances: [c5.xlarge, g4dn.xlarge]
-spot_instances: true
-min_instances: 10
-max_instances: 100
-```
+* **No resource limits** - allocate as much CPU, GPU, and memory as each workload requires.
+* **No cold starts** - keep a minimum number of API replicas running to ensure that requests are handled in real-time.
+* **No timeouts** - run workloads for as long as you want.
 
 <br>
 
-## Flexible
+## Run realtime, batch, and async workloads
 
-* **Any workload** - define custom Python functions or containers and deploy them as realtime, async, and batch workloads.
-* **Any pipeline** - chain workloads seamlessly to create custom data pipelines.
-
-```text
-$ cortex deploy apis.yaml
-
-creating text-generator (realtime API)
-creating image-classifier (batch API)
-creating video-analyzer (async API)
-
-all APIs are ready!
-```
+* **Realtime** - realtime APIs respond to requests in real-time and autoscale based on in-flight request volumes.
+* **Batch** - batch APIs run distributed and fault-tolerant batch processing jobs on-demand.
+* **Async** - async APIs process requests asynchronously and autoscale based on request queue length.
 
 <br>
 
-## Observable
+## Minimize costs, especially at scale
 
-* **Structured logging** - automatically stream logs from every workload to your favorite log management tool.
-* **Metrics aggregation** - monitor your workloads with pre-built Grafana dashboards and add your own custom dashboards.
-
-```text
-$ cortex get
-
-API                TYPE       REPLICAS
-text-generator     realtime   32
-image-classifier   batch      64
-video-analyzer     async      16
-```
+* **Spot instance management** - cortex can automatically run your workloads on spot instances so that you can save money without sacrificing reliability.
+* **Customizable autoscaling** - optimize the autoscaling behavior for each workload to ensure efficient resource utilization.
 
 <br>
 
-## Affordable
+## Streamline your development workflow
 
-* **Spot instance management** - spend less on EC2 instances by letting Cortex manage spot instances.
-* **Multi-instance type clusters** - configure resources per workload to run each workload on the right hardware.
+* **Deploy functions and containers** - upload Python functions and let Cortex manage dependencies or connect to your image registry.
+* **Deploy programmatically** - deploy your code interactively with a CLI or programmatically with a Python client.
+* **Debug locally** - keep your local and cloud workflows similar so that you can iterate on your code faster.
 
-```text
-$ cortex cluster pricing
+<br>
 
-RESOURCE                       COST PER HOUR
-1 eks cluster                  $0.10
-2 network load balancers       $0.02 each
-10-100 g4dn.xlarge instances   $0.53 each
-10-100 c5.xlarge instances     $0.17 each
-```
+## Integrate with modern observability tools
+
+* **Stream structured logs** - automatically stream logs from every workload to your favorite log management tool.
+* **Collect custom metrics** - monitor your workloads with pre-built dashboards and add your own custom dashboards.
+
+<br>
+
+## Deploy Cortex on your AWS account
+
+* **Identity & Access Management** - Cortex integrates with IAM to simplify authentication and authorization worklfows.
+* **Elastic Kubernetes Service** - Cortex runs on top of EKS to scale workloads reliably and cost-effectively.
+* **Billing & Cost Management** - Cortex supports resource tagging to enable detailed spend visibility.
