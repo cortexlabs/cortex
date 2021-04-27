@@ -116,7 +116,9 @@
                 "ec2:*",
                 "sts:GetCallerIdentity",
                 "eks:*",
-                "kms:CreateGrant"
+                "kms:CreateGrant",
+                "acm:DescribeCertificate",
+                "servicequotas:ListServiceQuotas"
             ],
             "Resource": "*"
         },
