@@ -3,7 +3,7 @@
 #### Step 1
 
 ```bash
-pip install grpc
+pip install grpcio
 python -m grpc_tools.protoc -I. --python_out=. --grpc_python_out=. iris_classifier.proto
 ```
 
