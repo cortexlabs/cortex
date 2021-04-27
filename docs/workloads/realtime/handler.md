@@ -426,7 +426,7 @@ syntax = "proto3";
 package sample_service;
 
 service Handler {
-    rpc Handle (Sample) returns (Response);
+    rpc Predict (Sample) returns (Response);
 }
 
 message Sample {
