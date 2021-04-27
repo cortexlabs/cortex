@@ -19,15 +19,16 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")"/.. >/dev/null && pwd)"
 
-# user set variables
-ecr_region=$1
-aws_account_id=$2  # example account ID
-
 # CORTEX_VERSION
 cortex_version=master
-source_registry=quay.io/cortexlabs # this can also be docker.io/cortexlabs
-destination_ecr_prefix="cortexlabs"
 
+# user set variables
+ecr_region=$1
+aws_account_id=$2
+
+source_registry=quay.io/cortexlabs  # this can also be docker.io/cortexlabs
+
+destination_ecr_prefix="cortexlabs"
 destination_registry="${aws_account_id}.dkr.ecr.${ecr_region}.amazonaws.com/${destination_ecr_prefix}"
 aws ecr get-login-password --region $ecr_region | docker login --username AWS --password-stdin $destination_registry
 
@@ -44,7 +45,7 @@ cudnn=("7" "7" "8" "7" "8" "8" "8")
 
 # pull the images from source registry and push them to ECR
 for image in "${all_images[@]}"; do
-    # copy the different cuda, cudnn variations of the python handler image
+    # copy the different cuda/cudnn variations of the python handler image
     if [ "$image" = "python-handler-gpu" ]; then
         for i in "${!cuda[@]}"; do
             full_image="$image:$cortex_version-cuda${cuda[$i]}-cudnn${cudnn[$i]}"
@@ -58,3 +59,4 @@ for image in "${all_images[@]}"; do
         echo
     fi
 done
+echo "done ✓"

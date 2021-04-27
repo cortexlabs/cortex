@@ -14,10 +14,12 @@ Export the `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` environment variables
 
 ## Step 3
 
-Clone the Cortex repo using the release tag corresponding to your version:
+Clone the Cortex repo using the release tag corresponding to your version (which you can check by running `cortex version`):
+
+<!-- CORTEX_VERSION_README -->
 
 ```bash
-export CORTEX_VERSION=0.33.0  # you can get the complete version using `cortex version`
+export CORTEX_VERSION=0.33.0
 git clone --depth 1 --branch v$CORTEX_VERSION https://github.com/cortexlabs/cortex.git
 ```
 
@@ -27,12 +29,12 @@ Run the script below to export images to ECR in the same region and account as y
 
 Feel free to modify the script if you would like to export the images to a different registry such as a private docker hub.
 
-```
-cd ./cortex # navigate into the cortex folder
+```bash
+cd ./cortex
 ./dev/export_images.sh <AWS_REGION> <AWS_ACCOUNT_ID>
 ```
 
-You can now spin up a new cluster and deploy apis with images pointing to your registry.
+You can now configure Cortex to use your images when creating a cluster (see [here](../management/create.md) for how to specify cluster images) and/or when deploying APIs (see the configuration docs corresponding to your API type for how to specify API images).
 
 ## Cleanup
 
