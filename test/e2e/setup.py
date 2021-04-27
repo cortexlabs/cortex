@@ -24,7 +24,7 @@ if not cortex_client_dir.exists():
 
 setup(
     name="e2e",
-    version="master",  # CORTEX_VERSION
+    version="0.34.0",  # CORTEX_VERSION
     packages=find_packages(exclude=["tests"]),
     url="https://github.com/cortexlabs/cortex",
     license="Apache License 2.0",

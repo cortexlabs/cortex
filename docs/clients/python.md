@@ -88,7 +88,7 @@ Deploy an API.
 
 **Arguments**:
 
-- `api_spec` - A dictionary defining a single Cortex API. See https://docs.cortex.dev/v/master/ for schema.
+- `api_spec` - A dictionary defining a single Cortex API. See https://docs.cortex.dev/v/0.34/ for schema.
 - `handler` - A Cortex handler class implementation. Not required for TaskAPI/TrafficSplitter kinds.
 - `task` - A callable class/function implementation. Not required for RealtimeAPI/BatchAPI/TrafficSplitter kinds.
 - `requirements` - A list of PyPI dependencies that will be installed before the handler class implementation is invoked.

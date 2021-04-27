@@ -11,17 +11,17 @@ mkdir my-api && cd my-api && touch Dockerfile
 Cortex's base Docker images are listed below. Depending on the Cortex Handler and compute type specified in your API configuration, choose one of these images to use as the base for your Docker image:
 
 <!-- CORTEX_VERSION_BRANCH_STABLE x10 -->
-* Python Handler (CPU): `quay.io/cortexlabs/python-handler-cpu:master`
+* Python Handler (CPU): `quay.io/cortexlabs/python-handler-cpu:0.34.0`
 * Python Handler (GPU): choose one of the following:
-  * `quay.io/cortexlabs/python-handler-gpu:master-cuda10.0-cudnn7`
-  * `quay.io/cortexlabs/python-handler-gpu:master-cuda10.1-cudnn7`
-  * `quay.io/cortexlabs/python-handler-gpu:master-cuda10.1-cudnn8`
-  * `quay.io/cortexlabs/python-handler-gpu:master-cuda10.2-cudnn7`
-  * `quay.io/cortexlabs/python-handler-gpu:master-cuda10.2-cudnn8`
-  * `quay.io/cortexlabs/python-handler-gpu:master-cuda11.0-cudnn8`
-  * `quay.io/cortexlabs/python-handler-gpu:master-cuda11.1-cudnn8`
-* Python Handler (Inferentia): `quay.io/cortexlabs/python-handler-inf:master`
-* TensorFlow Handler (CPU, GPU, Inferentia): `quay.io/cortexlabs/tensorflow-handler:master`
+  * `quay.io/cortexlabs/python-handler-gpu:0.34.0-cuda10.0-cudnn7`
+  * `quay.io/cortexlabs/python-handler-gpu:0.34.0-cuda10.1-cudnn7`
+  * `quay.io/cortexlabs/python-handler-gpu:0.34.0-cuda10.1-cudnn8`
+  * `quay.io/cortexlabs/python-handler-gpu:0.34.0-cuda10.2-cudnn7`
+  * `quay.io/cortexlabs/python-handler-gpu:0.34.0-cuda10.2-cudnn8`
+  * `quay.io/cortexlabs/python-handler-gpu:0.34.0-cuda11.0-cudnn8`
+  * `quay.io/cortexlabs/python-handler-gpu:0.34.0-cuda11.1-cudnn8`
+* Python Handler (Inferentia): `quay.io/cortexlabs/python-handler-inf:0.34.0`
+* TensorFlow Handler (CPU, GPU, Inferentia): `quay.io/cortexlabs/tensorflow-handler:0.34.0`
 
 The sample `Dockerfile` below inherits from Cortex's Python CPU serving image, and installs 3 packages. `tree` is a system package and `pandas` and `rdkit` are Python packages.
 
@@ -29,7 +29,7 @@ The sample `Dockerfile` below inherits from Cortex's Python CPU serving image, a
 ```dockerfile
 # Dockerfile
 
-FROM quay.io/cortexlabs/python-handler-cpu:master
+FROM quay.io/cortexlabs/python-handler-cpu:0.34.0
 
 RUN apt-get update \
     && apt-get install -y tree \
@@ -47,7 +47,7 @@ If you need to upgrade the Python Runtime version on your image, you can follow 
 ```Dockerfile
 # Dockerfile
 
-FROM quay.io/cortexlabs/python-handler-cpu:master
+FROM quay.io/cortexlabs/python-handler-cpu:0.34.0
 
 # upgrade python runtime version
 RUN conda update -n base -c defaults conda

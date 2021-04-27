@@ -44,7 +44,7 @@ class Handler:
 <!-- CORTEX_VERSION_MINOR -->
 
 Cortex provides a `tensorflow_client` to your handler's constructor. `tensorflow_client` is an instance
-of [TensorFlowClient](https://github.com/cortexlabs/cortex/tree/master/pkg/cortex/serve/cortex_internal/lib/client/tensorflow.py)
+of [TensorFlowClient](https://github.com/cortexlabs/cortex/tree/0.34/pkg/cortex/serve/cortex_internal/lib/client/tensorflow.py)
 that manages a connection to a TensorFlow Serving container to make predictions using your model. It should be saved as
 an instance variable in your handler class, and your `handle_async()` function should call `tensorflow_client.predict()` to make
 an inference with your exported TensorFlow model. Preprocessing of the JSON payload and postprocessing of predictions
