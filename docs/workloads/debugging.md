@@ -2,7 +2,9 @@
 
 You can test and debug your handler implementation and image by running your API container locally.
 
-`cortex prepare-debug` command will generate a debugging configuration file `<api_name>.debug.json` based on your api spec and it will print out a corresponding docker run command to help run the container.
+The `cortex prepare-debug` command will generate a debugging configuration file named `<api_name>.debug.json` based on your api spec, and it will print out a corresponding `docker run` command that can be used to run the container locally.
+
+For example:
 
 ```bash
 cortex prepare-debug cortex.yaml iris-classifier
