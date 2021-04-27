@@ -1,7 +1,7 @@
 - name: image-classifier
   kind: BatchAPI
-  predictor:
+  handler:
     type: python
-    path: predictor.py
+    path: handler.py
   compute:
     cpu: 1

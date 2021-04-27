@@ -1,8 +1,8 @@
 - name: iris-classifier
   kind: RealtimeAPI
-  predictor:
+  handler:
     type: python
-    path: predictor.py
+    path: handler.py
     protobuf_path: iris_classifier.proto
     config:
       bucket: cortex-examples

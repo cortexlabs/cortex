@@ -20,10 +20,10 @@
 set -euo pipefail
 
 api_images=(
-  "python-predictor-cpu"
-  "python-predictor-gpu"
-  "tensorflow-predictor"
-  "python-predictor-inf"
+  "python-handler-cpu"
+  "python-handler-gpu"
+  "tensorflow-handler"
+  "python-handler-inf"
 )
 
 dev_images=(

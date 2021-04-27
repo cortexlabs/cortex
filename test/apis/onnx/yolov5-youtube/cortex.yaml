@@ -1,8 +1,8 @@
 - name: yolov5-youtube
   kind: RealtimeAPI
-  predictor:
+  handler:
     type: python
-    path: predictor.py
+    path: handler.py
     multi_model_reloading:
       path: s3://cortex-examples/onnx/yolov5-youtube/
     config:

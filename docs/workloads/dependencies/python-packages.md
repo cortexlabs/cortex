@@ -8,15 +8,15 @@ a `requirements.txt` file in the top level Cortex project directory (i.e. the di
 ```text
 ./my-classifier/
 ├── cortex.yaml
-├── predictor.py
+├── handler.py
 ├── ...
 └── requirements.txt
 ```
 
 If you want to use `conda` to install your python packages, see the [Conda section](#conda-packages) below.
 
-Note that some packages are pre-installed by default (see "pre-installed packages" for your Predictor type in the
-Realtime API Predictor documentation and Batch API Predictor documentation).
+Note that some packages are pre-installed by default (see "pre-installed packages" for your handler type in the
+Realtime API Handler documentation and Batch API Handler documentation).
 
 ## Private PyPI packages
 
@@ -63,7 +63,7 @@ directory structure:
 ```text
 ./my-classifier/
 ├── cortex.yaml
-├── predictor.py
+├── handler.py
 ├── ...
 ├── mypkg
 │   └── __init__.py
@@ -88,7 +88,7 @@ which contains `cortex.yaml`):
 ```text
 ./my-classifier/
 ├── cortex.yaml
-├── predictor.py
+├── handler.py
 ├── ...
 └── conda-packages.txt
 ```
@@ -121,7 +121,7 @@ Check the [best practices](https://www.anaconda.com/using-pip-in-a-conda-environ
 Cortex allows you to specify different dependency paths other than the default ones. This can be useful when deploying
 different versions of the same API (e.g. CPU vs GPU dependencies).
 
-To customize the path for your dependencies, you can specify `predictor.dependencies` in your API's configuration file. You can set
+To customize the path for your dependencies, you can specify `handler.dependencies` in your API's configuration file. You can set
 one or more fields to specify the path for each dependency type. Each path should be a relative path with respect to the current file.
 
 For example:
@@ -131,7 +131,7 @@ For example:
 
 - name: my-classifier
   kind: RealtimeAPI
-  predictor:
+  handler:
     (...)
     dependencies:
       pip: requirement-gpu.txt

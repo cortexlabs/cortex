@@ -20,11 +20,11 @@ STATUS_COMPLETED = "completed"
 STATUS_FAILED = "failed"
 
 
-class PythonPredictor:
+class Handler:
     def __init__(self, config):
         self.webhook_url = config["webhook_url"]  # the webhook url is passed in the config
 
-    def predict(self, payload, request_id):
+    def handle_async(self, payload, request_id):
         try:
             time.sleep(60)  # simulates a long workload
             self.send_report(request_id, STATUS_COMPLETED, result={"data": "hello"})

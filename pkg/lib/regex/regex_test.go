@@ -596,7 +596,7 @@ func TestValidDockerImage(t *testing.T) {
 			match: false, // Support this as valid?
 		},
 		{
-			input: "680880929103.dkr.ecr.eu-central-1.amazonaws.com/cortexlabs/python-predictor-cpu:latest",
+			input: "680880929103.dkr.ecr.eu-central-1.amazonaws.com/cortexlabs/python-handler-cpu:latest",
 			match: true,
 		},
 	}
@@ -625,7 +625,7 @@ func TestValidECR(t *testing.T) {
 			match: false,
 		},
 		{
-			input: "680880929102.dkr.ecr.eu-central-1.amazonaws.com/cortexlabs/python-predictor-cpu:latest",
+			input: "680880929102.dkr.ecr.eu-central-1.amazonaws.com/cortexlabs/python-handler-cpu:latest",
 			match: true,
 		},
 		{

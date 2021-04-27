@@ -51,7 +51,7 @@ func virtualServiceSpec(api *spec.API) *istioclientnetworking.VirtualService {
 			"apiName":        api.Name,
 			"apiID":          api.ID,
 			"specID":         api.SpecID,
-			"predictorID":    api.PredictorID,
+			"handlerID":      api.HandlerID,
 			"apiKind":        api.Kind.String(),
 			"cortex.dev/api": "true",
 		},
@@ -78,7 +78,7 @@ func k8sJobSpec(api *spec.API, job *spec.TaskJob) *kbatch.Job {
 			"apiName":        api.Name,
 			"apiID":          api.ID,
 			"specID":         api.SpecID,
-			"predictorID":    api.PredictorID,
+			"handlerID":      api.HandlerID,
 			"jobID":          job.ID,
 			"apiKind":        api.Kind.String(),
 			"cortex.dev/api": "true",
@@ -86,7 +86,7 @@ func k8sJobSpec(api *spec.API, job *spec.TaskJob) *kbatch.Job {
 		PodSpec: k8s.PodSpec{
 			Labels: map[string]string{
 				"apiName":        api.Name,
-				"predictorID":    api.PredictorID,
+				"handlerID":      api.HandlerID,
 				"jobID":          job.ID,
 				"apiKind":        api.Kind.String(),
 				"cortex.dev/api": "true",

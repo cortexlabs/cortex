@@ -1,5 +1,5 @@
 - name: language-identifier
   kind: RealtimeAPI
-  predictor:
+  handler:
     type: python
-    path: predictor.py
+    path: handler.py

@@ -1,8 +1,8 @@
 - name: yolov3
   kind: RealtimeAPI
-  predictor:
+  handler:
     type: tensorflow
-    path: predictor_yolo.py
+    path: handler_yolo.py
     models:
       path: s3://cortex-examples/tensorflow/license-plate-reader/yolov3_tf/
     processes_per_replica: 4
@@ -20,9 +20,9 @@
 
 - name: crnn
   kind: RealtimeAPI
-  predictor:
+  handler:
     type: python
-    path: predictor_crnn.py
+    path: handler_crnn.py
     processes_per_replica: 1
     threads_per_process: 1
   compute:

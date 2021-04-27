@@ -17,6 +17,7 @@ limitations under the License.
 package aws
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -25,7 +26,16 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 )
 
-const _administratorAccessARN = "arn:aws:iam::aws:policy/AdministratorAccess"
+func PartitionFromRegion(region string) string {
+	if strings.Contains(region, "us-gov") {
+		return "aws-us-gov"
+	}
+	return "aws"
+}
+
+func administratorAccessARN(region string) string {
+	return fmt.Sprintf("arn:%s:iam::aws:policy/AdministratorAccess", PartitionFromRegion(region))
+}
 
 func (c *Client) GetUser() (iam.User, error) {
 	getUserOutput, err := c.IAM().GetUser(nil)
@@ -107,7 +117,7 @@ func (c *Client) isAdminUser(user iam.User) bool {
 	}
 
 	for _, policy := range policies {
-		if *policy.PolicyArn == _administratorAccessARN {
+		if *policy.PolicyArn == administratorAccessARN(c.Region) {
 			return true
 		}
 	}
@@ -142,7 +152,7 @@ func (c *Client) isRoleAdmin() bool {
 		RoleName: &roleName,
 	}, func(policies *iam.ListAttachedRolePoliciesOutput, lastPage bool) bool {
 		for _, policy := range policies.AttachedPolicies {
-			if *policy.PolicyArn == _administratorAccessARN {
+			if *policy.PolicyArn == administratorAccessARN(c.Region) {
 				isAdmin = true
 				return false
 			}

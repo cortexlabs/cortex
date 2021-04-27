@@ -53,7 +53,7 @@ func gatewayDeploymentSpec(api spec.API, prevDeployment *kapps.Deployment, queue
 			"apiID":            api.ID,
 			"specID":           api.SpecID,
 			"deploymentID":     api.DeploymentID,
-			"predictorID":      api.PredictorID,
+			"handlerID":        api.HandlerID,
 			"cortex.dev/api":   "true",
 			"cortex.dev/async": "gateway",
 		},
@@ -62,7 +62,7 @@ func gatewayDeploymentSpec(api spec.API, prevDeployment *kapps.Deployment, queue
 				"apiName":          api.Name,
 				"apiKind":          api.Kind.String(),
 				"deploymentID":     api.DeploymentID,
-				"predictorID":      api.PredictorID,
+				"handlerID":        api.HandlerID,
 				"cortex.dev/api":   "true",
 				"cortex.dev/async": "gateway",
 			},
@@ -96,7 +96,7 @@ func gatewayHPASpec(api spec.API) (kautoscaling.HorizontalPodAutoscaler, error) 
 			"apiID":            api.ID,
 			"specID":           api.SpecID,
 			"deploymentID":     api.DeploymentID,
-			"predictorID":      api.PredictorID,
+			"handlerID":        api.HandlerID,
 			"cortex.dev/api":   "true",
 			"cortex.dev/async": "hpa",
 		},
@@ -147,7 +147,7 @@ func gatewayVirtualServiceSpec(api spec.API) v1beta1.VirtualService {
 			"apiID":            api.ID,
 			"specID":           api.SpecID,
 			"deploymentID":     api.DeploymentID,
-			"predictorID":      api.PredictorID,
+			"handlerID":        api.HandlerID,
 			"cortex.dev/api":   "true",
 			"cortex.dev/async": "gateway",
 		},
@@ -160,13 +160,13 @@ func apiDeploymentSpec(api spec.API, prevDeployment *kapps.Deployment, queueURL 
 		volumes    []kcore.Volume
 	)
 
-	switch api.Predictor.Type {
-	case userconfig.PythonPredictorType:
-		containers, volumes = operator.AsyncPythonPredictorContainers(api, queueURL)
-	case userconfig.TensorFlowPredictorType:
-		containers, volumes = operator.AsyncTensorflowPredictorContainers(api, queueURL)
+	switch api.Handler.Type {
+	case userconfig.PythonHandlerType:
+		containers, volumes = operator.AsyncPythonHandlerContainers(api, queueURL)
+	case userconfig.TensorFlowHandlerType:
+		containers, volumes = operator.AsyncTensorflowHandlerContainers(api, queueURL)
 	default:
-		panic(fmt.Sprintf("invalid predictor type: %s", api.Predictor.Type))
+		panic(fmt.Sprintf("invalid handler type: %s", api.Handler.Type))
 	}
 
 	return *k8s.Deployment(&k8s.DeploymentSpec{
@@ -180,7 +180,7 @@ func apiDeploymentSpec(api spec.API, prevDeployment *kapps.Deployment, queueURL 
 			"apiID":            api.ID,
 			"specID":           api.SpecID,
 			"deploymentID":     api.DeploymentID,
-			"predictorID":      api.PredictorID,
+			"handlerID":        api.HandlerID,
 			"cortex.dev/api":   "true",
 			"cortex.dev/async": "api",
 		},
@@ -195,7 +195,7 @@ func apiDeploymentSpec(api spec.API, prevDeployment *kapps.Deployment, queueURL 
 				"apiName":          api.Name,
 				"apiKind":          api.Kind.String(),
 				"deploymentID":     api.DeploymentID,
-				"predictorID":      api.PredictorID,
+				"handlerID":        api.HandlerID,
 				"cortex.dev/api":   "true",
 				"cortex.dev/async": "api",
 			},

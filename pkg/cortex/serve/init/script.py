@@ -24,10 +24,10 @@ init_sentry(tags=get_default_tags())
 logger = configure_logger("cortex", os.environ["CORTEX_LOG_CONFIG_FILE"])
 
 from cortex_internal.lib.type import (
-    predictor_type_from_api_spec,
-    PythonPredictorType,
-    TensorFlowPredictorType,
-    TensorFlowNeuronPredictorType,
+    handler_type_from_api_spec,
+    PythonHandlerType,
+    TensorFlowHandlerType,
+    TensorFlowNeuronHandlerType,
 )
 from cortex_internal.lib.model import (
     FileBasedModelsTreeUpdater,  # only when num workers > 1
@@ -76,12 +76,12 @@ def are_models_specified(api_spec: dict) -> bool:
     Args:
         api_spec: API configuration.
     """
-    predictor_type = predictor_type_from_api_spec(api_spec)
+    handler_type = handler_type_from_api_spec(api_spec)
 
-    if predictor_type == PythonPredictorType and api_spec["predictor"]["multi_model_reloading"]:
-        models = api_spec["predictor"]["multi_model_reloading"]
-    elif predictor_type != PythonPredictorType:
-        models = api_spec["predictor"]["models"]
+    if handler_type == PythonHandlerType and api_spec["handler"]["multi_model_reloading"]:
+        models = api_spec["handler"]["multi_model_reloading"]
+    elif handler_type != PythonHandlerType:
+        models = api_spec["handler"]["models"]
     else:
         return False
 
@@ -89,12 +89,12 @@ def are_models_specified(api_spec: dict) -> bool:
 
 
 def is_model_caching_enabled(api_spec: dir) -> bool:
-    predictor_type = predictor_type_from_api_spec(api_spec)
+    handler_type = handler_type_from_api_spec(api_spec)
 
-    if predictor_type == PythonPredictorType and api_spec["predictor"]["multi_model_reloading"]:
-        models = api_spec["predictor"]["multi_model_reloading"]
-    elif predictor_type != PythonPredictorType:
-        models = api_spec["predictor"]["models"]
+    if handler_type == PythonHandlerType and api_spec["handler"]["multi_model_reloading"]:
+        models = api_spec["handler"]["multi_model_reloading"]
+    elif handler_type != PythonHandlerType:
+        models = api_spec["handler"]["models"]
     else:
         return False
 
@@ -121,12 +121,12 @@ def main():
     # get API spec
     spec_path = os.environ["CORTEX_API_SPEC"]
     cache_dir = os.getenv("CORTEX_CACHE_DIR")
-    region = os.getenv("AWS_REGION")  # when it's deployed to AWS
+    region = os.getenv("AWS_DEFAULT_REGION")  # when it's deployed to AWS
 
     with open(spec_path) as json_file:
         api_spec = json.load(json_file)
 
-    predictor_type = predictor_type_from_api_spec(api_spec)
+    handler_type = handler_type_from_api_spec(api_spec)
     caching_enabled = is_model_caching_enabled(api_spec)
     model_dir = os.getenv("CORTEX_MODEL_DIR")
 
@@ -138,14 +138,14 @@ def main():
         os.makedirs("/tmp/cron", exist_ok=True)
 
         # prepare crons
-        if predictor_type == PythonPredictorType and are_models_specified(api_spec):
+        if handler_type == PythonHandlerType and are_models_specified(api_spec):
             cron = FileBasedModelsTreeUpdater(
                 interval=10,
                 api_spec=api_spec,
                 download_dir=model_dir,
             )
             cron.start()
-        elif predictor_type == TensorFlowPredictorType:
+        elif handler_type == TensorFlowHandlerType:
             tf_serving_port = os.getenv("CORTEX_TF_BASE_SERVING_PORT", "9000")
             tf_serving_host = os.getenv("CORTEX_TF_SERVING_HOST", "localhost")
             cron = TFSModelLoader(
@@ -156,7 +156,7 @@ def main():
                 download_dir=model_dir,
             )
             cron.start()
-        elif predictor_type == TensorFlowNeuronPredictorType:
+        elif handler_type == TensorFlowNeuronHandlerType:
             cron = prepare_tfs_servers_api(api_spec, model_dir)
             cron.start()
 
@@ -166,9 +166,9 @@ def main():
                 time.sleep(0.25)
 
             # disable live reloading when the BatchAPI kind is used
-            # disable live reloading for the TF predictor when Inferentia is used and when multiple processes are used (num procs > 1)
+            # disable live reloading for the TF type when Inferentia is used and when multiple processes are used (num procs > 1)
             if api_spec["kind"] != "RealtimeAPI" or (
-                predictor_type == TensorFlowNeuronPredictorType
+                handler_type == TensorFlowNeuronHandlerType
                 and has_multiple_tf_servers
                 and num_processes > 1
             ):

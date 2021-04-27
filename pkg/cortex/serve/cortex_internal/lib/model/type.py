@@ -17,7 +17,7 @@ from typing import List, Optional
 
 import cortex_internal.consts
 from cortex_internal.lib.model import find_all_s3_models
-from cortex_internal.lib.type import predictor_type_from_api_spec, PythonPredictorType
+from cortex_internal.lib.type import handler_type_from_api_spec, PythonHandlerType
 
 
 class CuratedModelResources:
@@ -59,7 +59,7 @@ class CuratedModelResources:
         Get versions for a given model name.
 
         Args:
-            name: Name of the model (_cortex_default for predictor:models:path) or predictor:models:paths:name.
+            name: Name of the model (_cortex_default for handler:models:path) or handler:models:paths:name.
 
         Returns:
             Versions for a given model. None if the model wasn't found.
@@ -78,7 +78,7 @@ class CuratedModelResources:
 
     def get_s3_model_names(self) -> List[str]:
         """
-        Get S3 models as specified with predictor:models:path or predictor:models:paths.
+        Get S3 models as specified with handler:models:path or handler:models:paths.
 
         Returns:
             A list of names of all models available from the bucket(s).
@@ -113,12 +113,12 @@ def get_models_from_api_spec(
     Only effective for models:path, models:paths or for models:dir fields when the dir is a local path.
     It does not apply for when models:dir field is set to an S3 model path.
     """
-    predictor_type = predictor_type_from_api_spec(api_spec)
+    handler_type = handler_type_from_api_spec(api_spec)
 
-    if predictor_type == PythonPredictorType and api_spec["predictor"]["multi_model_reloading"]:
-        models_spec = api_spec["predictor"]["multi_model_reloading"]
-    elif predictor_type != PythonPredictorType:
-        models_spec = api_spec["predictor"]["models"]
+    if handler_type == PythonHandlerType and api_spec["handler"]["multi_model_reloading"]:
+        models_spec = api_spec["handler"]["multi_model_reloading"]
+    elif handler_type != PythonHandlerType:
+        models_spec = api_spec["handler"]["models"]
     else:
         return CuratedModelResources([])
 
@@ -159,7 +159,7 @@ def get_models_from_api_spec(
 
         model_resource["path"] = model["path"]
         _, versions, _, _, _, _ = find_all_s3_models(
-            False, "", predictor_type, [model_resource["path"]], [model_resource["name"]]
+            False, "", handler_type, [model_resource["path"]], [model_resource["name"]]
         )
         if model_resource["name"] not in versions:
             continue

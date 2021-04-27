@@ -13,10 +13,10 @@
 # limitations under the License.
 
 from cortex_internal.lib.type.type import (
-    PythonPredictorType,
-    TensorFlowPredictorType,
-    TensorFlowNeuronPredictorType,
-    PredictorType,
-    predictor_type_from_string,
-    predictor_type_from_api_spec,
+    PythonHandlerType,
+    TensorFlowHandlerType,
+    TensorFlowNeuronHandlerType,
+    HandlerType,
+    handler_type_from_string,
+    handler_type_from_api_spec,
 )

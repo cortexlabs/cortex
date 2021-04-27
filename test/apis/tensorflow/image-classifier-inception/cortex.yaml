@@ -1,8 +1,8 @@
 - name: image-classifier-inception
   kind: RealtimeAPI
-  predictor:
+  handler:
     type: tensorflow
-    path: predictor.py
+    path: handler.py
     models:
       path: s3://cortex-examples/tensorflow/image-classifier/inception/
   compute:

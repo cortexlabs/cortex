@@ -1,8 +1,8 @@
 - name: image-classifier-resnet50
   kind: RealtimeAPI
-  predictor:
+  handler:
     type: python
-    path: predictor.py
+    path: handler.py
     config:
       model_path: s3://cortex-examples/pytorch/image-classifier-resnet50
       model_name: resnet50_neuron.pt

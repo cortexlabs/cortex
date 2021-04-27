@@ -168,17 +168,19 @@ func ErrorInvalidDockerImage(provided string) error {
 	})
 }
 
-func ErrorMustHavePrefix(provided string, prefix string) error {
+func ErrorMustHavePrefix(provided string, prefix string, prefixes ...string) error {
+	allAllowedPrefixes := append([]string{prefix}, prefixes...)
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrMustHavePrefix,
-		Message: fmt.Sprintf("%s must start with %s", s.UserStr(provided), s.UserStr(prefix)),
+		Message: fmt.Sprintf("%s must start with %s", s.UserStr(provided), s.UserStrsOr(allAllowedPrefixes)),
 	})
 }
 
-func ErrorMustHaveSuffix(provided string, suffix string) error {
+func ErrorMustHaveSuffix(provided string, suffix string, suffixes ...string) error {
+	allAllowedSuffixes := append([]string{suffix}, suffixes...)
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrMustHaveSuffix,
-		Message: fmt.Sprintf("%s must end with %s", s.UserStr(provided), s.UserStr(suffix)),
+		Message: fmt.Sprintf("%s must end with %s", s.UserStr(provided), s.UserStrsOr(allAllowedSuffixes)),
 	})
 }
 

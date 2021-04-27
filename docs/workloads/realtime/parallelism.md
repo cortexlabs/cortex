@@ -1,6 +1,6 @@
 # Replica parallelism
 
-Replica parallelism can be configured with the following fields in the `predictor` configuration:
+Replica parallelism can be configured with the following fields in the `handler` configuration:
 
 * `processes_per_replica` (default: 1): Each replica runs a web server with `processes_per_replica` processes. For APIs running with multiple CPUs per replica, using 1-3 processes per unit of CPU generally leads to optimal throughput. For example, if `cpu` is 2, a value between 2 and 6 `processes_per_replica` is reasonable. The optimal number will vary based on the workload's characteristics and the CPU compute request for the API.
 

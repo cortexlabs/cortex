@@ -50,7 +50,7 @@ func ReadLogs(w http.ResponseWriter, r *http.Request) {
 	}
 
 	deploymentID := deployedResource.VirtualService.Labels["deploymentID"]
-	predictorID := deployedResource.VirtualService.Labels["predictorID"]
+	handlerID := deployedResource.VirtualService.Labels["handlerID"]
 
 	upgrader := websocket.Upgrader{}
 	socket, err := upgrader.Upgrade(w, r, nil)
@@ -60,7 +60,7 @@ func ReadLogs(w http.ResponseWriter, r *http.Request) {
 	}
 	defer socket.Close()
 
-	labels := map[string]string{"apiName": apiName, "deploymentID": deploymentID, "predictorID": predictorID}
+	labels := map[string]string{"apiName": apiName, "deploymentID": deploymentID, "handlerID": handlerID}
 
 	if deployedResource.Kind == userconfig.AsyncAPIKind {
 		labels["cortex.dev/async"] = "api"

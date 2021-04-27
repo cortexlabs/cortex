@@ -134,6 +134,11 @@ export AWS_ACCOUNT_ID="***"  # you can find your account ID in the AWS web conso
 export AWS_REGION="***"  # you can use any AWS region you'd like, e.g. "us-west-2"
 export AWS_ACCESS_KEY_ID="***"  # alternatively, you can remove this to use the default credentials chain on your machine
 export AWS_SECRET_ACCESS_KEY="***"  # alternatively, you can remove this to use the default credentials chain on your machine
+export DEFAULT_USER_ARN="arn:aws:iam::<ACCOUNT_ID>:<AWS IAM ENTITY>" # (e.g. arn:aws-us-gov:iam::123456789:user/foo)
+
+# If you are working on govcloud, you will need to set credentials from a public (non govcloud) account to access inferentia ECR
+# export NORMAL_REGION_AWS_ACCESS_KEY_ID="***"
+# export NORMAL_REGION_AWS_SECRET_ACCESS_KEY="***"
 
 # export NUM_BUILD_PROCS=2  # optional; can be >2 if you have enough memory
 ```
@@ -219,6 +224,6 @@ If you are only modifying the CLI, `make cli-watch` will build the CLI and re-bu
 
 If you are only modifying the operator, `make operator-local` will build and start the operator locally, and build/restart it when files are changed.
 
-If you are modifying code in the API images (i.e. any of the Python serving code), `make images-dev` may build more images than you need during testing. For example, if you are only testing using the `python-predictor-cpu` image, you can run `./dev/registry.sh update-single python-predictor-cpu`.
+If you are modifying code in the API images (i.e. any of the Python serving code), `make images-dev` may build more images than you need during testing. For example, if you are only testing using the `python-handler-cpu` image, you can run `./dev/registry.sh update-single python-handler-cpu`.
 
 See `Makefile` for additional dev commands.

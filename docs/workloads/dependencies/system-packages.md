@@ -5,12 +5,12 @@ Cortex looks for a file named `dependencies.sh` in the top level Cortex project 
 ```text
 ./my-classifier/
 ├── cortex.yaml
-├── predictor.py
+├── handler.py
 ├── ...
 └── dependencies.sh
 ```
 
-`dependencies.sh` is executed with `bash` shell during the initialization of each replica (before installing Python packages in `requirements.txt` or `conda-packages.txt`). Typical use cases include installing required system packages to be used in your Predictor, building Python packages from source, etc. If initialization time is a concern, see [Docker images](images.md) for how to build and use custom Docker images.
+`dependencies.sh` is executed with `bash` shell during the initialization of each replica (before installing Python packages in `requirements.txt` or `conda-packages.txt`). Typical use cases include installing required system packages to be used in your Handler, building Python packages from source, etc. If initialization time is a concern, see [Docker images](images.md) for how to build and use custom Docker images.
 
 Here is an example `dependencies.sh`, which installs the `tree` utility:
 
@@ -18,13 +18,14 @@ Here is an example `dependencies.sh`, which installs the `tree` utility:
 apt-get update && apt-get install -y tree
 ```
 
-The `tree` utility can now be called inside your `predictor.py`:
+The `tree` utility can now be called inside your `handler.py`:
 
 ```python
-# predictor.py
+# handler.py
+
 import subprocess
 
-class PythonPredictor:
+class Handler:
     def __init__(self, config):
         subprocess.run(["tree"])
     ...
@@ -45,7 +46,7 @@ conda install -n env python=3.8.5
 
 Cortex allows you to specify a path for this script other than `dependencies.sh`. This can be useful when deploying
 different versions of the same API (e.g. CPU vs GPU dependencies). The path should be a relative path with respect
-to the API configuration file, and is specified via `predictor.dependencies.shell`.
+to the API configuration file, and is specified via `handler.dependencies.shell`.
 
 For example:
 
@@ -54,7 +55,7 @@ For example:
 
 - name: my-classifier
   kind: RealtimeAPI
-  predictor:
+  handler:
     (...)
     dependencies:
       shell: dependencies-gpu.sh

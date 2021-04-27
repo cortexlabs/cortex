@@ -10,7 +10,7 @@ following structure:
 ```text
 ./iris-classifier
 ├── cortex.yaml
-├── predictor.py
+├── handler.py
 └── requirements.txt
 ```
 
@@ -18,11 +18,11 @@ We will now create the necessary files:
 
 ```bash
 mkdir iris-classifier && cd iris-classifier
-touch predictor.py requirements.txt cortex.yaml
+touch handler.py requirements.txt cortex.yaml
 ```
 
 ```python
-# predictor.py
+# handler.py
 
 import os
 import pickle
@@ -35,13 +35,13 @@ from botocore.client import Config
 labels = ["setosa", "versicolor", "virginica"]
 
 
-class PythonPredictor:
+class Handler:
     def __init__(self, config):
         s3 = boto3.client("s3")
         s3.download_file(config["bucket"], config["key"], "/tmp/model.pkl")
         self.model = pickle.load(open("/tmp/model.pkl", "rb"))
 
-    def predict(self, payload: Dict[str, Any]) -> Dict[str, str]:
+    def handle_async(self, payload: Dict[str, Any]) -> Dict[str, str]:
         measurements = [
             payload["sepal_length"],
             payload["sepal_width"],
@@ -66,15 +66,15 @@ boto3
 
 - name: iris-classifier
   kind: AsyncAPI
-  predictor:
+  handler:
     type: python
-    path: predictor.py
+    path: handler.py
 ```
 
 ## Deploy
 
 We can now deploy our API with the `cortex deploy` command. This command can be re-run to update your API configuration
-or predictor implementation.
+or handler implementation.
 
 ```bash
 cortex deploy cortex.yaml
@@ -104,7 +104,7 @@ cortex get iris-classifier --watch
 ## Submit a workload
 
 Now we want to submit a workload to our deployed API. We will start by creating a file with a JSON request payload, in
-the format expected by our `iris-classifier` predictor implementation.
+the format expected by our `iris-classifier` handler implementation.
 
 This is the JSON file we will submit to our iris-classifier API.
 
@@ -147,7 +147,7 @@ Depending on the status of your workload, you will get different responses back.
 are `in_queue | in_progress | failed | completed`. The `result` and `timestamp` keys are returned if the status
 is `completed`.
 
-It is also possible to setup a webhook in your predictor to get the response sent to a pre-defined web server once the
+It is also possible to setup a webhook in your handler to get the response sent to a pre-defined web server once the
 workload completes or fails. You can read more about it in the [webhook documentation](./webhooks.md).
 
 ## Stream logs

@@ -1,6 +1,6 @@
 # Configuration
 
-## `PythonPredictor`
+## Python Handler
 
 ### Specifying models in API configuration
 
@@ -11,27 +11,27 @@ The directory `s3://cortex-examples/sklearn/mpg-estimator/linreg/` contains 4 di
 ```yaml
 - name: mpg-estimator
   kind: RealtimeAPI
-  predictor:
+  handler:
     type: python
-    path: predictor.py
+    path: handler.py
     models:
       path: s3://cortex-examples/sklearn/mpg-estimator/linreg/
 ```
 
-#### `predictor.py`
+#### `handler.py`
 
 ```python
 import mlflow.sklearn
 
 
-class PythonPredictor:
+class Handler:
     def __init__(self, config, python_client):
         self.client = python_client
 
     def load_model(self, model_path):
         return mlflow.sklearn.load_model(model_path)
 
-    def predict(self, payload, query_params):
+    def handle_post(self, payload, query_params):
         model_version = query_params.get("version")
 
         # model_input = ...
@@ -49,21 +49,21 @@ class PythonPredictor:
 ```yaml
 - name: text-analyzer
   kind: RealtimeAPI
-  predictor:
+  handler:
     type: python
-    path: predictor.py
+    path: handler.py
     ...
 ```
 
-#### `predictor.py`
+#### `handler.py`
 
 ```python
-class PythonPredictor:
+class Handler:
     def __init__(self, config):
         self.analyzer = initialize_model("sentiment-analysis")
         self.summarizer = initialize_model("summarization")
 
-    def predict(self, query_params, payload):
+    def handle_post(self, query_params, payload):
         model_name = query_params.get("model")
         model_input = payload["text"]
 
@@ -81,16 +81,16 @@ class PythonPredictor:
             return JSONResponse({"error": f"unknown model: {model_name}"}, status_code=400)
 ```
 
-## `TensorFlowPredictor`
+## TensorFlow Handler
 
 ### `cortex.yaml`
 
 ```yaml
 - name: multi-model-classifier
   kind: RealtimeAPI
-  predictor:
+  handler:
     type: tensorflow
-    path: predictor.py
+    path: handler.py
     models:
       paths:
         - name: inception
@@ -102,14 +102,14 @@ class PythonPredictor:
       ...
 ```
 
-### `predictor.py`
+### `handler.py`
 
 ```python
-class TensorFlowPredictor:
+class Handler:
     def __init__(self, tensorflow_client, config):
         self.client = tensorflow_client
 
-    def predict(self, payload, query_params):
+    def handle_post(self, payload, query_params):
         model_name = query_params["model"]
         model_input = preprocess(payload["url"])
         results = self.client.predict(model_input, model_name)

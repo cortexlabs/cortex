@@ -1,8 +1,8 @@
 - name: multi-model-classifier
   kind: RealtimeAPI
-  predictor:
+  handler:
     type: tensorflow
-    path: predictor.py
+    path: handler.py
     models:
       paths:
         - name: inception

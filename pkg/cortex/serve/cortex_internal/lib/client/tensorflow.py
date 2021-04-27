@@ -68,15 +68,15 @@ class TensorFlowClient:
         self._spec_models = get_models_from_api_spec(api_spec)
 
         if (
-            self._api_spec["predictor"]["models"]
-            and self._api_spec["predictor"]["models"]["dir"] is not None
+            self._api_spec["handler"]["models"]
+            and self._api_spec["handler"]["models"]["dir"] is not None
         ):
             self._models_dir = True
         else:
             self._models_dir = False
             self._spec_model_names = self._spec_models.get_field("name")
 
-        self._multiple_processes = self._api_spec["predictor"]["processes_per_replica"] > 1
+        self._multiple_processes = self._api_spec["handler"]["processes_per_replica"] > 1
         self._caching_enabled = self._is_model_caching_enabled()
 
         if self._models:
@@ -122,8 +122,8 @@ class TensorFlowClient:
         Args:
             model_input: Input to the model.
             model_name (optional): Name of the model to retrieve (when multiple models are deployed in an API).
-                When predictor.models.paths is specified, model_name should be the name of one of the models listed in the API config.
-                When predictor.models.dir is specified, model_name should be the name of a top-level directory in the models dir.
+                When handler.models.paths is specified, model_name should be the name of one of the models listed in the API config.
+                When handler.models.dir is specified, model_name should be the name of a top-level directory in the models dir.
             model_version (string, optional): Version of the model to retrieve. Can be omitted or set to "latest" to select the highest version.
 
         Returns:
@@ -135,14 +135,14 @@ class TensorFlowClient:
                 "model_version must be either a parse-able numeric value or 'latest'"
             )
 
-        # when ppredictor:models:path or predictor:models:paths is specified
+        # when handler:models:path or handler:models:paths is specified
         if not self._models_dir:
 
-            # when predictor:models:path is provided
+            # when handler:models:path is provided
             if consts.SINGLE_MODEL_NAME in self._spec_model_names:
                 return self._run_inference(model_input, consts.SINGLE_MODEL_NAME, model_version)
 
-            # when predictor:models:paths is specified
+            # when handler:models:paths is specified
             if model_name is None:
                 raise UserRuntimeException(
                     f"model_name was not specified, choose one of the following: {self._spec_model_names}"
@@ -153,7 +153,7 @@ class TensorFlowClient:
                     f"'{model_name}' model wasn't found in the list of available models"
                 )
 
-        # when predictor:models:dir is specified
+        # when handler:models:dir is specified
         if self._models_dir and model_name is None:
             raise UserRuntimeException("model_name was not specified")
 
@@ -166,7 +166,7 @@ class TensorFlowClient:
 
         Args:
             model_input: Input to the model.
-            model_name: Name of the model, as it's specified in predictor:models:paths or in the other case as they are named on disk.
+            model_name: Name of the model, as it's specified in handler:models:paths or in the other case as they are named on disk.
             model_version: Version of the model, as it's found on disk. Can also infer the version number from the "latest" version tag.
 
         Returns:
@@ -393,7 +393,7 @@ class TensorFlowClient:
         Determine what's the signature key for a given model from API spec.
         """
         if self._models_dir:
-            return self._api_spec["predictor"]["models"]["signature_key"]
+            return self._api_spec["handler"]["models"]["signature_key"]
         return self._spec_models[model_name]["signature_key"]
 
     def _get_latest_model_version_from_tree(self, model_name: str, model_info: dict) -> str:
@@ -409,9 +409,9 @@ class TensorFlowClient:
         Checks if model caching is enabled (models:cache_size and models:disk_cache_size).
         """
         return (
-            self._api_spec["predictor"]["models"]
-            and self._api_spec["predictor"]["models"]["cache_size"] is not None
-            and self._api_spec["predictor"]["models"]["disk_cache_size"] is not None
+            self._api_spec["handler"]["models"]
+            and self._api_spec["handler"]["models"]["cache_size"] is not None
+            and self._api_spec["handler"]["models"]["disk_cache_size"] is not None
         )
 
     @property

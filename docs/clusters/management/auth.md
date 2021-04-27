@@ -108,10 +108,10 @@ Replace the following placeholders with their respective values in the policy te
                 "logs:CreateLogGroup"
             ],
             "Resource": [
-                "arn:aws:ssm:*:$CORTEX_ACCOUNT_ID:parameter/aws/*",
-                "arn:aws:ssm:*::parameter/aws/*",
-                "arn:aws:logs:$CORTEX_REGION:$CORTEX_ACCOUNT_ID:log-group:$CORTEX_CLUSTER_NAME",
-                "arn:aws:iam::$CORTEX_ACCOUNT_ID:role/*"
+                "arn:*:ssm:*:$CORTEX_ACCOUNT_ID:parameter/aws/*",
+                "arn:*:ssm:*::parameter/aws/*",
+                "arn:*:logs:$CORTEX_REGION:$CORTEX_ACCOUNT_ID:log-group:$CORTEX_CLUSTER_NAME",
+                "arn:*:iam::$CORTEX_ACCOUNT_ID:role/*"
             ]
         },
         {
@@ -146,12 +146,12 @@ Replace the following placeholders with their respective values in the policy te
                 "iam:GetRolePolicy"
             ],
             "Resource": [
-                "arn:aws:iam::$CORTEX_ACCOUNT_ID:instance-profile/eksctl-*",
-                "arn:aws:iam::$CORTEX_ACCOUNT_ID:role/eksctl-*",
-                "arn:aws:iam::$CORTEX_ACCOUNT_ID:role/aws-service-role/eks-nodegroup.amazonaws.com/AWSServiceRoleForAmazonEKSNodegroup",
-                "arn:aws:iam::$CORTEX_ACCOUNT_ID:role/eksctl-managed-*",
-                "arn:aws:iam::$CORTEX_ACCOUNT_ID:oidc-provider/*",
-                "arn:aws:logs:$CORTEX_REGION:$CORTEX_ACCOUNT_ID:log-group:$CORTEX_CLUSTER_NAME:*"
+                "arn:*:iam::$CORTEX_ACCOUNT_ID:instance-profile/eksctl-*",
+                "arn:*:iam::$CORTEX_ACCOUNT_ID:role/eksctl-*",
+                "arn:*:iam::$CORTEX_ACCOUNT_ID:role/aws-service-role/eks-nodegroup.amazonaws.com/AWSServiceRoleForAmazonEKSNodegroup",
+                "arn:*:iam::$CORTEX_ACCOUNT_ID:role/eksctl-managed-*",
+                "arn:*:iam::$CORTEX_ACCOUNT_ID:oidc-provider/*",
+                "arn:*:logs:$CORTEX_REGION:$CORTEX_ACCOUNT_ID:log-group:$CORTEX_CLUSTER_NAME:*"
             ]
         },
         {
@@ -164,7 +164,7 @@ Replace the following placeholders with their respective values in the policy te
                 "iam:CreatePolicyVersion",
                 "iam:DeletePolicyVersion"
             ],
-            "Resource": "arn:aws:iam::$CORTEX_ACCOUNT_ID:policy/cortex-*"
+            "Resource": "arn:*:iam::$CORTEX_ACCOUNT_ID:policy/cortex-*"
         },
         {
             "Effect": "Allow",
@@ -188,17 +188,17 @@ Replace the following placeholders with their respective values in the policy te
         {
             "Effect": "Allow",
             "Action": "sqs:*",
-            "Resource": "arn:aws:sqs:$CORTEX_REGION:$CORTEX_ACCOUNT_ID:cx-*"
+            "Resource": "arn:*:sqs:$CORTEX_REGION:$CORTEX_ACCOUNT_ID:cx-*"
         },
         {
             "Effect": "Allow",
             "Action": "s3:*",
-            "Resource": "arn:aws:s3:::$CORTEX_CLUSTER_NAME*"
+            "Resource": "arn:*:s3:::$CORTEX_CLUSTER_NAME*"
         },
         {
             "Effect": "Allow",
             "Action": "s3:*",
-            "Resource": "arn:aws:s3:::$CORTEX_CLUSTER_NAME*/*"
+            "Resource": "arn:*:s3:::$CORTEX_CLUSTER_NAME*/*"
         }
     ]
 }

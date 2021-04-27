@@ -1,6 +1,5 @@
 import cortex
 import os
-import sys
 import requests
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
@@ -13,19 +12,19 @@ api_spec = {
 }
 
 
-class PythonPredictor:
+class Handler:
     def __init__(self, config):
         from transformers import pipeline
 
         self.model = pipeline(task="text-generation")
 
-    def predict(self, payload):
+    def handle_post(self, payload):
         return self.model(payload["text"])[0]
 
 
 api = cx.create_api(
     api_spec,
-    predictor=PythonPredictor,
+    handler=Handler,
     requirements=["torch", "transformers"],
     wait=True,
 )

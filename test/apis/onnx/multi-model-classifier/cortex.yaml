@@ -1,8 +1,8 @@
 - name: multi-model-classifier
   kind: RealtimeAPI
-  predictor:
+  handler:
     type: python
-    path: predictor.py
+    path: handler.py
     multi_model_reloading:
       paths:
         - name: resnet50

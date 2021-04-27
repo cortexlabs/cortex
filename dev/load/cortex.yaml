@@ -14,9 +14,9 @@
 
 - name: load
   kind: RealtimeAPI
-  predictor:
+  handler:
     type: python
-    path: predictor.py
+    path: handler.py
     log_level: debug
     config:
       endpoint: http://a76d3b3343f1a43e8a5dd1f556689215-14bf49c6f95638fb.elb.us-west-2.amazonaws.com/iris-classifier

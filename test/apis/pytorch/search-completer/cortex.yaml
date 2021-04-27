@@ -1,8 +1,8 @@
 - name: search-completer
   kind: RealtimeAPI
-  predictor:
+  handler:
     type: python
-    path: predictor.py
+    path: handler.py
   compute:
     cpu: 1
     gpu: 1

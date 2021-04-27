@@ -1,8 +1,8 @@
 - name: summing-api
   kind: BatchAPI
-  predictor:
+  handler:
     type: python
-    path: predictor.py
+    path: handler.py
   compute:
     cpu: 100m
     mem: 200Mi
