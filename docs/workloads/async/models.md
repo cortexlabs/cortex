@@ -1,4 +1,4 @@
-# Models
+# TensorFlow Models
 
 In addition to the [standard Python Handler](handler.md), Cortex also supports another handler called the TensorFlow handler, which can be used to deploy TensorFlow models exported as `SavedModel` models.
 
