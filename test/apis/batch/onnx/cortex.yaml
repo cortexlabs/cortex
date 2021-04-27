@@ -2,7 +2,7 @@
   kind: BatchAPI
   handler:
     type: python
-    path: predictor.py
+    path: handler.py
     config:
       path: s3://cortex-examples/image-classifier/alexnet_batch/alexnet_batch.onnx
   compute:

@@ -21,7 +21,7 @@ For example, if your directory looks like this:
 ./my-classifier/
 ├── cortex.yaml
 ├── values.json
-├── predictor.py
+├── handler.py
 ├── ...
 └── requirements.txt
 ```
@@ -29,6 +29,8 @@ For example, if your directory looks like this:
 You can access `values.json` in your handler class like this:
 
 ```python
+# handler.py
+
 import json
 
 class Handler:
@@ -313,7 +315,7 @@ class Handler:
         pass
 ```
 
-Your `Handler` class must implement the RPC methods found in the protobuf. If your single-service protobuf has 2 RPC methods called `Analyze` and `Predict` methods, then your `Handler` class must also implement these methods like in the above `Handler` template.
+Your `Handler` class must implement the RPC methods found in the protobuf. Your protobuf must have a single service defined, which can have any name. If your service has 2 RPC methods called `Info` and `Predict` methods, then your `Handler` class must also implement these methods like in the above `Handler` template.
 
 For proper separation of concerns, it is recommended to use the constructor's `config` parameter for information such as from where to download the model and initialization files, or any configurable model parameters. You define `config` in your API configuration, and it is passed through to your Handler class' constructor.
 
@@ -326,12 +328,12 @@ Your handler method(s) can only return the type that has been specified in the p
 Assuming the following service:
 
 ```protobuf
-# predictor.proto
+# handler.proto
 
 syntax = "proto3";
 package sample_service;
 
-service Predictor {
+service Handler {
     rpc Predict (Sample) returns (Response);
 }
 
@@ -344,9 +346,9 @@ message Response {
 }
 ```
 
-The handler implementation will also have a corresponding `Predict` method defined that represents the RPC method in the above protobuf service. The naming scheme of the RPC method(s) is not enforced by Cortex.
+The handler implementation will also have a corresponding `Predict` method defined that represents the RPC method in the above protobuf service. The name(s) of the RPC method(s) is not enforced by Cortex.
 
-The type of the `payload` parameter passed into `Predict(self, payload)` will match that of the `Sample` message defined in the `predictor.protobuf_path` file. For this example, we'll assume that the above protobuf file was specified for the API.
+The type of the `payload` parameter passed into `Predict(self, payload)` will match that of the `Sample` message defined in the `handler.protobuf_path` file. For this example, we'll assume that the above protobuf file was specified for the API.
 
 #### Simple request
 
@@ -361,10 +363,10 @@ rpc Predict (Sample) returns (Response);
 ##### Making the request
 
 ```python
-import grpc, predictor_pb2, predictor_pb2_grpc
+import grpc, handler_pb2, handler_pb2_grpc
 
-stub = predictor_pb2_grpc.PredictorStub(grpc.insecure_channel("***.amazonaws.com:80"))
-stub.Predict(predictor_pb2.Sample(a="text"))
+stub = handler_pb2_grpc.HandlerStub(grpc.insecure_channel("***.amazonaws.com:80"))
+stub.Predict(handler_pb2.Sample(a="text"))
 ```
 
 ##### Reading the payload
@@ -391,14 +393,14 @@ rpc Predict (stream Sample) returns (Response);
 ##### Making the request
 
 ```python
-import grpc, predictor_pb2, predictor_pb2_grpc
+import grpc, handler_pb2, handler_pb2_grpc
 
 def generate_iterator(sample_list):
     for sample in sample_list:
         yield sample
 
-stub = predictor_pb2_grpc.PredictorStub(grpc.insecure_channel("***.amazonaws.com:80"))
-stub.Predict(predictor_pb2.Sample(generate_iterator(["a", "b", "c", "d"])))
+stub = handler_pb2_grpc.HandlerStub(grpc.insecure_channel("***.amazonaws.com:80"))
+stub.Predict(handler_pb2.Sample(generate_iterator(["a", "b", "c", "d"])))
 ```
 
 ##### Reading the payload
@@ -418,13 +420,13 @@ def Predict(self, payload):
 Assuming the following service:
 
 ```protobuf
-# predictor.proto
+# handler.proto
 
 syntax = "proto3";
 package sample_service;
 
-service Predictor {
-    rpc Predict (Sample) returns (Response);
+service Handler {
+    rpc Handle (Sample) returns (Response);
 }
 
 message Sample {
@@ -436,9 +438,9 @@ message Response {
 }
 ```
 
-The handler implementation will also have a corresponding `Predict` method defined that represents the RPC method in the above protobuf service. The naming scheme of the RPC method(s) is not enforced by Cortex.
+The handler implementation will also have a corresponding `Predict` method defined that represents the RPC method in the above protobuf service. The name(s) of the RPC method(s) is not enforced by Cortex.
 
-The type of the value that you return in your `Predict()` method must match the `Response` message defined in the `predictor.protobuf_path` file. For this example, we'll assume that the above protobuf file was specified for the API.
+The type of the value that you return in your `Predict()` method must match the `Response` message defined in the `handler.protobuf_path` file. For this example, we'll assume that the above protobuf file was specified for the API.
 
 #### Simple response
 
@@ -453,10 +455,10 @@ rpc Predict (Sample) returns (Response);
 ##### Making the request
 
 ```python
-import grpc, predictor_pb2, predictor_pb2_grpc
+import grpc, handler_pb2, handler_pb2_grpc
 
-stub = predictor_pb2_grpc.PredictorStub(grpc.insecure_channel("***.amazonaws.com:80"))
-r = stub.Predict(predictor_pb2.Sample())
+stub = handler_pb2_grpc.HandlerStub(grpc.insecure_channel("***.amazonaws.com:80"))
+r = stub.Predict(handler_pb2.Sample())
 ```
 
 ##### Returning the response
@@ -483,14 +485,14 @@ rpc Predict (Sample) returns (stream Response);
 ##### Making the request
 
 ```python
-import grpc, predictor_pb2, predictor_pb2_grpc
+import grpc, handler_pb2, handler_pb2_grpc
 
 def generate_iterator(sample_list):
     for sample in sample_list:
         yield sample
 
-stub = predictor_pb2_grpc.PredictorStub(grpc.insecure_channel("***.amazonaws.com:80"))
-for r in stub.Predict(predictor_pb2.Sample())):
+stub = handler_pb2_grpc.HandlerStub(grpc.insecure_channel("***.amazonaws.com:80"))
+for r in stub.Predict(handler_pb2.Sample())):
     print(r.b)
 ```
 

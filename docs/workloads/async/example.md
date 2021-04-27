@@ -10,7 +10,7 @@ following structure:
 ```text
 ./iris-classifier
 ├── cortex.yaml
-├── predictor.py
+├── handler.py
 └── requirements.txt
 ```
 
@@ -18,11 +18,11 @@ We will now create the necessary files:
 
 ```bash
 mkdir iris-classifier && cd iris-classifier
-touch predictor.py requirements.txt cortex.yaml
+touch handler.py requirements.txt cortex.yaml
 ```
 
 ```python
-# predictor.py
+# handler.py
 
 import os
 import pickle
@@ -68,7 +68,7 @@ boto3
   kind: AsyncAPI
   handler:
     type: python
-    path: predictor.py
+    path: handler.py
 ```
 
 ## Deploy

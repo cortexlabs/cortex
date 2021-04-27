@@ -96,7 +96,7 @@ opus-mt-afa-afa                    1 (latest)      21 Aug 20 10:42:38 EDT
 ...
 ```
 
-Once Cortex has indexed all +1,000 models, we can now query the API at the endpoint given, structuring the body of our request according to the format expected by our handler (specified in `predictor.py`):
+Once Cortex has indexed all +1,000 models, we can now query the API at the endpoint given, structuring the body of our request according to the format expected by our handler (specified in `handler.py`):
 
 ```
 {

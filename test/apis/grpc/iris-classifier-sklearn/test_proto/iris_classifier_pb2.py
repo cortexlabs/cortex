@@ -18,7 +18,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
     syntax="proto3",
     serialized_options=None,
     create_key=_descriptor._internal_create_key,
-    serialized_pb=b'\n\x15iris_classifier.proto\x12\x0firis_classifier"^\n\x06Sample\x12\x14\n\x0csepal_length\x18\x01 \x01(\x02\x12\x13\n\x0bsepal_width\x18\x02 \x01(\x02\x12\x14\n\x0cpetal_length\x18\x03 \x01(\x02\x12\x13\n\x0bpetal_width\x18\x04 \x01(\x02""\n\x08Response\x12\x16\n\x0e\x63lassification\x18\x01 \x01(\t2J\n\tPredictor\x12=\n\x07Predict\x12\x17.iris_classifier.Sample\x1a\x19.iris_classifier.Responseb\x06proto3',
+    serialized_pb=b'\n\x15iris_classifier.proto\x12\x0firis_classifier"^\n\x06Sample\x12\x14\n\x0csepal_length\x18\x01 \x01(\x02\x12\x13\n\x0bsepal_width\x18\x02 \x01(\x02\x12\x14\n\x0cpetal_length\x18\x03 \x01(\x02\x12\x13\n\x0bpetal_width\x18\x04 \x01(\x02""\n\x08Response\x12\x16\n\x0e\x63lassification\x18\x01 \x01(\t2J\n\tHandler\x12=\n\x07Predict\x12\x17.iris_classifier.Sample\x1a\x19.iris_classifier.Responseb\x06proto3',
 )
 
 
@@ -187,9 +187,9 @@ Response = _reflection.GeneratedProtocolMessageType(
 _sym_db.RegisterMessage(Response)
 
 
-_PREDICTOR = _descriptor.ServiceDescriptor(
-    name="Predictor",
-    full_name="iris_classifier.Predictor",
+_HANDLER = _descriptor.ServiceDescriptor(
+    name="Handler",
+    full_name="iris_classifier.Handler",
     file=DESCRIPTOR,
     index=0,
     serialized_options=None,
@@ -199,7 +199,7 @@ _PREDICTOR = _descriptor.ServiceDescriptor(
     methods=[
         _descriptor.MethodDescriptor(
             name="Predict",
-            full_name="iris_classifier.Predictor.Predict",
+            full_name="iris_classifier.Handler.Predict",
             index=0,
             containing_service=None,
             input_type=_SAMPLE,
@@ -209,8 +209,8 @@ _PREDICTOR = _descriptor.ServiceDescriptor(
         ),
     ],
 )
-_sym_db.RegisterServiceDescriptor(_PREDICTOR)
+_sym_db.RegisterServiceDescriptor(_HANDLER)
 
-DESCRIPTOR.services_by_name["Predictor"] = _PREDICTOR
+DESCRIPTOR.services_by_name["Handler"] = _HANDLER
 
 # @@protoc_insertion_point(module_scope)
