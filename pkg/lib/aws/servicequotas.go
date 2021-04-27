@@ -39,8 +39,9 @@ const (
 	_securityGroupsQuotaCode     = "L-E79EC296"
 	_securityGroupRulesQuotaCode = "L-0EA8095F"
 
-	// 35 inbound rules
-	_inboundRulesForWorkerNodeGroup = 35
+	// 11 inbound rules
+	_baseInboundRulesForWorkerNodeGroup = 11
+	_inboundRulesPerAZ                  = 8
 	// ClusterSharedNodeSecurityGroup, ControlPlaneSecurityGroup, eks-cluster-sg-<cluster-name>, operator security groups
 	_baseNumberOfSecurityGroups = 4
 )
@@ -294,17 +295,21 @@ func (c *Client) VerifyNetworkQuotas(requiredInternetGateways int, natGatewayReq
 		}
 	}
 
-	if _inboundRulesForWorkerNodeGroup > quotaCodeToValueMap[_securityGroupRulesQuotaCode] {
-		additionalQuotaRequired := _inboundRulesForWorkerNodeGroup - quotaCodeToValueMap[_securityGroupRulesQuotaCode]
+	// check inbound rules quota for worker SGs
+	requiredInboundRulesForWSG := requiredInboundRulesForWorkerSecurityGroup(len(availabilityZones))
+	if requiredInboundRulesForWSG > quotaCodeToValueMap[_securityGroupRulesQuotaCode] {
+		additionalQuotaRequired := requiredInboundRulesForWSG - quotaCodeToValueMap[_securityGroupRulesQuotaCode]
 		return ErrorSecurityGroupRulesExceeded(quotaCodeToValueMap[_securityGroupRulesQuotaCode], additionalQuotaRequired, c.Region)
 	}
 
+	// check outbound rules quota for control plane SG
 	requiredOutboundRulesForCPSG := requiredOutboundRulesForControlPlaneSecurityGroup(numNodeGroups)
 	if requiredOutboundRulesForCPSG > quotaCodeToValueMap[_securityGroupRulesQuotaCode] {
 		additionalQuotaRequired := requiredOutboundRulesForCPSG - quotaCodeToValueMap[_securityGroupRulesQuotaCode]
 		return ErrorSecurityGroupRulesExceeded(quotaCodeToValueMap[_securityGroupRulesQuotaCode], additionalQuotaRequired, c.Region)
 	}
 
+	// check security groups quota
 	requiredSecurityGroups := requiredSecurityGroups(numNodeGroups)
 	sgs, err := c.DescribeSecurityGroups()
 	if err != nil {
@@ -317,6 +322,10 @@ func (c *Client) VerifyNetworkQuotas(requiredInternetGateways int, natGatewayReq
 	}
 
 	return nil
+}
+
+func requiredInboundRulesForWorkerSecurityGroup(numAZs int) int {
+	return _baseInboundRulesForWorkerNodeGroup + numAZs*_inboundRulesPerAZ
 }
 
 func requiredOutboundRulesForControlPlaneSecurityGroup(numNodeGroups int) int {
