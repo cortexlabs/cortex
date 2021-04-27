@@ -104,6 +104,7 @@ func DeleteAPI(apiName string, keepCache bool) error {
 }
 
 func deleteS3Resources(apiName string) error {
+	_ = job.DeleteAllInProgressFilesByAPI(userconfig.BatchAPIKind, apiName) // not useful xml error is thrown, swallow the error
 	return parallel.RunFirstErr(
 		func() error {
 			prefix := filepath.Join(config.CoreConfig.ClusterName, "apis", apiName)
@@ -114,10 +115,6 @@ func deleteS3Resources(apiName string) error {
 			routines.RunWithPanicHandler(func() {
 				config.AWS.DeleteS3Dir(config.CoreConfig.Bucket, prefix, true) // deleting job files may take a while
 			})
-			return nil
-		},
-		func() error {
-			_ = job.DeleteAllInProgressFilesByAPI(userconfig.BatchAPIKind, apiName) // not useful xml error is thrown, swallow the error
 			return nil
 		},
 	)
