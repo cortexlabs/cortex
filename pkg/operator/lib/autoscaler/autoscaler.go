@@ -96,14 +96,14 @@ func AutoscaleFn(initialDeployment *kapps.Deployment, apiSpec *spec.API, getInFl
 		return nil, errors.ErrorUnexpected("unable to find api deployment")
 	}
 
-	autoscalingSpec, err := userconfig.AutoscalingFromAnnotations(initialDeployment)
-	if err != nil {
-		return nil, err
-	}
-
 	if apiSpec == nil {
 		apiName := initialDeployment.Labels["apiName"]
 		return nil, errors.ErrorUnexpected("unable to find api spec", apiName)
+	}
+
+	autoscalingSpec, err := userconfig.AutoscalingFromAnnotations(initialDeployment)
+	if err != nil {
+		return nil, err
 	}
 
 	apiName := apiSpec.Name
