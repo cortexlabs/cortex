@@ -6,14 +6,16 @@ The `cortex prepare-debug` command will generate a debugging configuration file 
 
 For example:
 
+<!-- CORTEX_VERSION_README x2 -->
+
 ```bash
 cortex prepare-debug cortex.yaml iris-classifier
 
 > docker run -p 9000:8888 \
-> -e "CORTEX_VERSION=master" \
+> -e "CORTEX_VERSION=0.34.0" \
 > -e "CORTEX_API_SPEC=/mnt/project/iris-classifier.debug.json" \
 > -v /home/ubuntu/iris-classifier:/mnt/project \
-> quay.io/cortexlabs/python-handler-cpu:master
+> quay.io/cortexlabs/python-handler-cpu:0.34.0
 ```
 
 Make a request to the api container:
