@@ -28,10 +28,15 @@ if [[ -n ${TF_MAX_BATCH_SIZE} && -n ${TF_BATCH_TIMEOUT_MICROS} ]]; then
     export TF_EXTRA_CMD_ARGS="--enable_batching=true --batching_parameters_file=/etc/tfs/batch_config.conf"
 fi
 
+start_cmd=tensorflow_model_server_neuron
+if [ -f "/mnt/kubexit" ]; then
+  start_cmd="/mnt/kubexit $start_cmd"
+fi
+
 # spin up multiple process to handle different NCGs
 for i in $(seq 1 $TF_PROCESSES); do
     echo -e "\n\n" >> /tmp/supervisord.conf
-    process=$i port=$((CORTEX_TF_BASE_SERVING_PORT+i-1)) envsubst < /tmp/template.conf >> /tmp/supervisord.conf
+    start_cmd=$start_cmd process=$i port=$((CORTEX_TF_BASE_SERVING_PORT+i-1)) envsubst < /tmp/template.conf >> /tmp/supervisord.conf
 done
 
 mv /tmp/supervisord.conf /etc/supervisor/conf.d/supervisord.conf

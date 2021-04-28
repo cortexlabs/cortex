@@ -44,6 +44,9 @@ const (
 	DefaultRequestMonitorPortInt32 = int32(15000)
 	APIContainerName               = "api"
 	ServiceAccountName             = "default"
+	APISpecPath                    = "/mnt/spec/spec.json"
+	TaskSpecPath                   = "/mnt/spec/task.json"
+	BatchSpecPath                  = "/mnt/spec/batch.json"
 )
 
 const (
@@ -65,9 +68,9 @@ const (
 	_apiReadinessFile                              = "/mnt/workspace/api_readiness.txt"
 	_neuronRTDSocket                               = "/sock/neuron.sock"
 	_requestMonitorReadinessFile                   = "/request_monitor_ready.txt"
-	APISpecPath                                    = "/mnt/spec/spec.json"
-	TaskSpecPath                                   = "/mnt/spec/task.json"
-	BatchSpecPath                                  = "/mnt/spec/batch.json"
+	_kubexitInitContainerName                      = "kubexit"
+	_kubexitGraveyardName                          = "graveyard"
+	_kubexitGraveyardMountPath                     = "/graveyard"
 )
 
 var (
@@ -120,10 +123,20 @@ func TaskInitContainer(api *spec.API, job *spec.TaskJob) kcore.Container {
 	return kcore.Container{
 		Name:            _downloaderInitContainerName,
 		Image:           config.ClusterConfig.ImageDownloader,
-		ImagePullPolicy: "Always",
+		ImagePullPolicy: kcore.PullAlways,
 		Args:            []string{"--download=" + downloadArgs},
 		EnvFrom:         baseEnvVars(),
 		Env:             downloaderEnvVars(api),
+		VolumeMounts:    defaultVolumeMounts(),
+	}
+}
+
+func KubexitInitContainer() kcore.Container {
+	return kcore.Container{
+		Name:            _kubexitInitContainerName,
+		Image:           config.ClusterConfig.ImageKubexit,
+		ImagePullPolicy: kcore.PullAlways,
+		Command:         []string{"cp", "/bin/kubexit", "/mnt/kubexit"},
 		VolumeMounts:    defaultVolumeMounts(),
 	}
 }
@@ -167,7 +180,7 @@ func BatchInitContainer(api *spec.API, job *spec.BatchJob) kcore.Container {
 	return kcore.Container{
 		Name:            _downloaderInitContainerName,
 		Image:           config.ClusterConfig.ImageDownloader,
-		ImagePullPolicy: "Always",
+		ImagePullPolicy: kcore.PullAlways,
 		Args:            []string{"--download=" + downloadArgs},
 		EnvFrom:         baseEnvVars(),
 		Env:             downloaderEnvVars(api),
@@ -206,7 +219,7 @@ func InitContainer(api *spec.API) kcore.Container {
 	return kcore.Container{
 		Name:            _downloaderInitContainerName,
 		Image:           config.ClusterConfig.ImageDownloader,
-		ImagePullPolicy: "Always",
+		ImagePullPolicy: kcore.PullAlways,
 		Args:            []string{"--download=" + downloadArgs},
 		EnvFrom:         baseEnvVars(),
 		Env:             downloaderEnvVars(api),
@@ -286,7 +299,7 @@ func AsyncPythonHandlerContainers(api spec.API, queueURL string) ([]kcore.Contai
 }
 
 func AsyncTensorflowHandlerContainers(api spec.API, queueURL string) ([]kcore.Container, []kcore.Volume) {
-	return tensorFlowHandlerContainers(&api, getAsyncAPIEnvVars(api, queueURL))
+	return tensorFlowHandlerContainers(&api, getAsyncAPIEnvVars(api, queueURL), false)
 }
 
 func AsyncGatewayContainers(api spec.API, queueURL string) kcore.Container {
@@ -450,17 +463,34 @@ func pythonHandlerContainers(api *spec.API, envVars []kcore.EnvVar) ([]kcore.Con
 }
 
 func TensorFlowHandlerContainers(api *spec.API) ([]kcore.Container, []kcore.Volume) {
-	return tensorFlowHandlerContainers(api, apiContainerEnvVars(api))
+	return tensorFlowHandlerContainers(api, apiContainerEnvVars(api), false)
 }
 
-func tensorFlowHandlerContainers(api *spec.API, envVars []kcore.EnvVar) ([]kcore.Container, []kcore.Volume) {
+func TensorFlowHandlerJobContainers(api *spec.API) ([]kcore.Container, []kcore.Volume) {
+	return tensorFlowHandlerContainers(api, apiContainerEnvVars(api), true)
+}
+
+func tensorFlowHandlerContainers(api *spec.API, envVars []kcore.EnvVar, isJob bool) ([]kcore.Container, []kcore.Volume) {
 	apiResourceList := kcore.ResourceList{}
 	tfServingResourceList := kcore.ResourceList{}
 	tfServingLimitsList := kcore.ResourceList{}
 	volumeMounts := defaultVolumeMounts()
 	volumes := DefaultVolumes()
-	var containers []kcore.Container
 
+	var tfServingEnvVars []kcore.EnvVar
+	if isJob {
+		envVars = append(envVars, getKubexitEnvVars(APIContainerName)...)
+
+		tfServingEnvVars = tensorflowServingEnvVars(api)
+		tfServingEnvVars = append(tfServingEnvVars, getKubexitEnvVars(_tfServingContainerName, APIContainerName)...)
+
+		volumes = append(volumes, k8s.EmptyDirVolume(_kubexitGraveyardName))
+		volumeMounts = append(volumeMounts,
+			kcore.VolumeMount{Name: _kubexitGraveyardName, MountPath: _kubexitGraveyardMountPath},
+		)
+	}
+
+	var containers []kcore.Container
 	if api.Compute.Inf == 0 {
 		if api.Compute.CPU != nil {
 			userPodCPURequest := k8s.QuantityPtr(api.Compute.CPU.Quantity.DeepCopy())
@@ -566,6 +596,7 @@ func tensorFlowHandlerContainers(api *spec.API, envVars []kcore.EnvVar) ([]kcore
 				Limits:   tfServingLimitsList,
 				Requests: tfServingResourceList,
 			},
+			tfServingEnvVars,
 		),
 	)
 
@@ -769,7 +800,7 @@ func apiContainerEnvVars(api *spec.API) []kcore.EnvVar {
 	return envVars
 }
 
-func tensorflowServingContainer(api *spec.API, volumeMounts []kcore.VolumeMount, resources kcore.ResourceRequirements) *kcore.Container {
+func tensorflowServingContainer(api *spec.API, volumeMounts []kcore.VolumeMount, resources kcore.ResourceRequirements, envVars []kcore.EnvVar) *kcore.Container {
 	var cmdArgs []string
 	ports := []kcore.ContainerPort{
 		{
@@ -825,7 +856,7 @@ func tensorflowServingContainer(api *spec.API, volumeMounts []kcore.VolumeMount,
 		Image:           api.Handler.TensorFlowServingImage,
 		ImagePullPolicy: kcore.PullAlways,
 		Args:            cmdArgs,
-		Env:             tensorflowServingEnvVars(api),
+		Env:             envVars,
 		EnvFrom:         baseEnvVars(),
 		VolumeMounts:    volumeMounts,
 		ReadinessProbe: &kcore.Probe{
@@ -910,6 +941,28 @@ func baseEnvVars() []kcore.EnvFromSource {
 				},
 			},
 		},
+	}
+
+	return envVars
+}
+
+func getKubexitEnvVars(containerName string, deathDeps ...string) []kcore.EnvVar {
+	envVars := []kcore.EnvVar{
+		{
+			Name:  "KUBEXIT_NAME",
+			Value: containerName,
+		},
+		{
+			Name:  "KUBEXIT_GRAVEYARD",
+			Value: _kubexitGraveyardMountPath,
+		},
+	}
+
+	if deathDeps != nil {
+		envVars = append(envVars, kcore.EnvVar{
+			Name:  "KUBEXIT_DEATH_DEPS",
+			Value: strings.Join(deathDeps, ","),
+		})
 	}
 
 	return envVars
