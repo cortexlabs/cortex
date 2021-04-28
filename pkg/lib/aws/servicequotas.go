@@ -153,7 +153,14 @@ func (c *Client) VerifyInstanceQuota(instances []InstanceTypeRequests) error {
 	return nil
 }
 
-func (c *Client) VerifyNetworkQuotas(requiredInternetGateways int, natGatewayRequired bool, highlyAvailableNATGateway bool, requiredVPCs int, availabilityZones strset.Set, numNodeGroups int) error {
+func (c *Client) VerifyNetworkQuotas(
+	requiredInternetGateways int,
+	natGatewayRequired bool,
+	highlyAvailableNATGateway bool,
+	requiredVPCs int,
+	availabilityZones strset.Set,
+	numNodeGroups int,
+	longestCIDRWhiteList int) error {
 	quotaCodeToValueMap := map[string]int{
 		_elasticIPsQuotaCode:         0, // elastic IP quota code
 		_internetGatewayQuotaCode:    0, // internet gw quota code
@@ -295,17 +302,17 @@ func (c *Client) VerifyNetworkQuotas(requiredInternetGateways int, natGatewayReq
 		}
 	}
 
-	// check inbound rules quota for worker SGs
-	requiredInboundRulesForWSG := requiredInboundRulesForWorkerSecurityGroup(len(availabilityZones))
-	if requiredInboundRulesForWSG > quotaCodeToValueMap[_securityGroupRulesQuotaCode] {
-		additionalQuotaRequired := requiredInboundRulesForWSG - quotaCodeToValueMap[_securityGroupRulesQuotaCode]
+	// check rules quota for nodegroup SGs
+	requiredRulesForWSG := requiredRulesForNodeGroupSecurityGroup(len(availabilityZones), longestCIDRWhiteList)
+	if requiredRulesForWSG > quotaCodeToValueMap[_securityGroupRulesQuotaCode] {
+		additionalQuotaRequired := requiredRulesForWSG - quotaCodeToValueMap[_securityGroupRulesQuotaCode]
 		return ErrorSecurityGroupRulesExceeded(quotaCodeToValueMap[_securityGroupRulesQuotaCode], additionalQuotaRequired, c.Region)
 	}
 
-	// check outbound rules quota for control plane SG
-	requiredOutboundRulesForCPSG := requiredOutboundRulesForControlPlaneSecurityGroup(numNodeGroups)
-	if requiredOutboundRulesForCPSG > quotaCodeToValueMap[_securityGroupRulesQuotaCode] {
-		additionalQuotaRequired := requiredOutboundRulesForCPSG - quotaCodeToValueMap[_securityGroupRulesQuotaCode]
+	// check rules quota for control plane SG
+	requiredRulesForCPSG := requiredRulesForControlPlaneSecurityGroup(numNodeGroups)
+	if requiredRulesForCPSG > quotaCodeToValueMap[_securityGroupRulesQuotaCode] {
+		additionalQuotaRequired := requiredRulesForCPSG - quotaCodeToValueMap[_securityGroupRulesQuotaCode]
 		return ErrorSecurityGroupRulesExceeded(quotaCodeToValueMap[_securityGroupRulesQuotaCode], additionalQuotaRequired, c.Region)
 	}
 
@@ -324,11 +331,17 @@ func (c *Client) VerifyNetworkQuotas(requiredInternetGateways int, natGatewayReq
 	return nil
 }
 
-func requiredInboundRulesForWorkerSecurityGroup(numAZs int) int {
-	return _baseInboundRulesForWorkerNodeGroup + numAZs*_inboundRulesPerAZ
+func requiredRulesForNodeGroupSecurityGroup(numAZs, whitelistLength int) int {
+	whitelistRuleCount := 0
+	if whitelistLength == 1 {
+		whitelistRuleCount = 1
+	} else if whitelistRuleCount > 1 {
+		whitelistRuleCount = 5 * whitelistLength
+	}
+	return _baseInboundRulesForWorkerNodeGroup + numAZs*_inboundRulesPerAZ + whitelistRuleCount
 }
 
-func requiredOutboundRulesForControlPlaneSecurityGroup(numNodeGroups int) int {
+func requiredRulesForControlPlaneSecurityGroup(numNodeGroups int) int {
 	// +1 for the operator node group
 	// one third goes to inbound rules (port 443 only), but we don't count that as that's a lower number
 	// 2 thirds go to outbound rules (ports 443 and 1025-65535)
