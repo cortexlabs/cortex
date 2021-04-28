@@ -196,7 +196,7 @@ func getEBSPriceForNodeGroupInstance(ngs []*clusterconfig.NodeGroup, ngName stri
 func clusterFixedPrice() float64 {
 	eksPrice := aws.EKSPrices[config.CoreConfig.Region]
 	operatorInstancePrice := aws.InstanceMetadatas[config.CoreConfig.Region]["t3.medium"].Price
-	operatorEBSPrice := aws.EBSMetadatas[config.CoreConfig.Region]["gp2"].PriceGB * 20 / 30 / 24
+	operatorEBSPrice := aws.EBSMetadatas[config.CoreConfig.Region]["gp3"].PriceGB * 20 / 30 / 24
 	metricsEBSPrice := aws.EBSMetadatas[config.CoreConfig.Region]["gp2"].PriceGB * 40 / 30 / 24
 	nlbPrice := aws.NLBMetadatas[config.CoreConfig.Region].Price
 	natUnitPrice := aws.NATMetadatas[config.CoreConfig.Region].Price

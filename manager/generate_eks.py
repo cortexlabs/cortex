@@ -215,6 +215,9 @@ def generate_eks(cluster_config_path, ami_json_path):
         "minSize": 2,
         "maxSize": 2,
         "desiredCapacity": 2,
+        "volumeType": "gp3",
+        "volumeIOPS": 3000,
+        "volumeThroughput": 125,
     }
     operator_nodegroup = merge_override(operator_nodegroup, operator_settings)
 

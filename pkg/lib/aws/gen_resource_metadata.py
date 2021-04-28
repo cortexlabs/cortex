@@ -183,6 +183,11 @@ def get_ebs_metadata(pricing):
                 metadata["price_iops"] = price
                 metadata["iops_configurable"] = "true"
 
+        elif product["attributes"].get("volumeApiName") == "gp3":
+            # not correct but will do for now
+            metadata["price_iops"] = 0
+            metadata["iops_configurable"] = "true"
+
         # set default values for all other storage types
         else:
             metadata["price_iops"] = 0
