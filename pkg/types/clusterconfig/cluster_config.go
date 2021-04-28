@@ -481,7 +481,7 @@ var ManagedConfigStructFieldValidations = []*cr.StructFieldValidation{
 						StructField: "InstanceVolumeType",
 						StringValidation: &cr.StringValidation{
 							AllowedValues: VolumeTypesStrings(),
-							Default:       GP3VolumeType.String(),
+							Default:       GP2VolumeType.String(),
 						},
 						Parser: func(str string) (interface{}, error) {
 							return VolumeTypeFromString(str), nil
@@ -946,7 +946,7 @@ func (ng *NodeGroup) validateNodeGroup(awsClient *aws.Client, region string) err
 	}
 
 	// throw error if IOPS defined for other storage than io1/gp3
-	if ng.InstanceVolumeType != IO1VolumeType || ng.InstanceVolumeType != GP3VolumeType && ng.InstanceVolumeIOPS != nil {
+	if ng.InstanceVolumeType != IO1VolumeType && ng.InstanceVolumeType != GP3VolumeType && ng.InstanceVolumeIOPS != nil {
 		return ErrorIOPSNotSupported(ng.InstanceVolumeType)
 	}
 
