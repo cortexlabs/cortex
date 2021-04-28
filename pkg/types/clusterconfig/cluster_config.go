@@ -478,7 +478,7 @@ var ManagedConfigStructFieldValidations = []*cr.StructFieldValidation{
 						StructField: "InstanceVolumeType",
 						StringValidation: &cr.StringValidation{
 							AllowedValues: VolumeTypesStrings(),
-							Default:       GP2VolumeType.String(),
+							Default:       GP3VolumeType.String(),
 						},
 						Parser: func(str string) (interface{}, error) {
 							return VolumeTypeFromString(str), nil
