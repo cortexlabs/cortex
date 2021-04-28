@@ -207,6 +207,13 @@ func (r *BatchJobReconciler) desiredEnqueuerJob(batchJob batch.BatchJob, queueUR
 			Name:        batchJob.Spec.APIName + "-" + batchJob.Name + "-enqueuer",
 			Namespace:   batchJob.Namespace,
 			Parallelism: 1,
+			Labels: map[string]string{
+				"apiKind":        userconfig.BatchAPIKind.String(),
+				"apiName":        batchJob.Spec.APIName,
+				"apiID":          batchJob.Spec.APIId,
+				"jobID":          batchJob.Name,
+				"cortex.dev/api": "true",
+			},
 			PodSpec: k8s.PodSpec{
 				Labels: map[string]string{
 					"apiKind":        userconfig.BatchAPIKind.String(),
@@ -279,6 +286,15 @@ func (r *BatchJobReconciler) desiredWorkerJob(batchJob batch.BatchJob, apiSpec s
 			Name:        batchJob.Spec.APIName + "-" + batchJob.Name,
 			Namespace:   batchJob.Namespace,
 			Parallelism: batchJob.Spec.Workers,
+			Labels: map[string]string{
+				"apiKind":        userconfig.BatchAPIKind.String(),
+				"apiName":        batchJob.Spec.APIName,
+				"apiID":          batchJob.Spec.APIId,
+				"specID":         apiSpec.SpecID,
+				"handlerID":      apiSpec.HandlerID,
+				"jobID":          batchJob.Name,
+				"cortex.dev/api": "true",
+			},
 			PodSpec: k8s.PodSpec{
 				Labels: map[string]string{
 					"apiKind":        userconfig.BatchAPIKind.String(),
