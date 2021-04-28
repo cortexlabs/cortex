@@ -47,7 +47,6 @@ node_groups:
     max_instances: 5
     instance_volume_size: 50
     instance_volume_type: gp3
-    # instance_volume_iops: 3000
     spot: false
   ...
 
