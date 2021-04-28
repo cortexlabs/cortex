@@ -256,13 +256,13 @@ func (r *BatchJobReconciler) desiredWorkerJob(batchJob batch.BatchJob, apiSpec s
 	var containers []kcore.Container
 	var volumes []kcore.Volume
 
-	switch apiSpec.Predictor.Type {
-	case userconfig.PythonPredictorType:
-		containers, volumes = workloads.PythonPredictorContainers(&apiSpec)
-	case userconfig.TensorFlowPredictorType:
+	switch apiSpec.Handler.Type {
+	case userconfig.PythonHandlerType:
+		containers, volumes = workloads.PythonHandlerContainers(&apiSpec)
+	case userconfig.TensorFlowHandlerType:
 		panic("not implemented!") // FIXME: implement
 	default:
-		return nil, fmt.Errorf("unexpected predictor type (%s)", apiSpec.Predictor.Type)
+		return nil, fmt.Errorf("unexpected handler type (%s)", apiSpec.Handler.Type)
 	}
 
 	for i, container := range containers {
@@ -285,7 +285,7 @@ func (r *BatchJobReconciler) desiredWorkerJob(batchJob batch.BatchJob, apiSpec s
 					"apiName":        batchJob.Spec.APIName,
 					"apiID":          batchJob.Spec.APIId,
 					"specID":         apiSpec.SpecID,
-					"predictorID":    apiSpec.PredictorID,
+					"handlerID":      apiSpec.HandlerID,
 					"jobID":          batchJob.Name,
 					"cortex.dev/api": "true",
 				},
@@ -456,7 +456,7 @@ func (r *BatchJobReconciler) uploadJobSpec(batchJob batch.BatchJob, api spec.API
 		},
 		APIID:           api.ID,
 		SpecID:          api.SpecID,
-		PredictorID:     api.PredictorID,
+		HandlerID:       api.HandlerID,
 		SQSUrl:          queueURL,
 		StartTime:       batchJob.CreationTimestamp.Time,
 		TotalBatchCount: maxBatchCount,

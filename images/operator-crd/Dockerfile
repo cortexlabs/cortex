@@ -10,10 +10,12 @@ COPY go.sum go.sum
 RUN go mod download
 
 # Copy the go source
+COPY pkg/config pkg/config
 COPY pkg/consts pkg/consts
+COPY pkg/crds pkg/crds
 COPY pkg/lib pkg/lib
 COPY pkg/types pkg/types
-COPY pkg/crds pkg/crds
+COPY pkg/workloads pkg/workloads
 
 WORKDIR /workspace/pkg/crds
 

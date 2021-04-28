@@ -42,8 +42,8 @@ func uploadTestAPISpec(apiName string, apiID string) error {
 				Name: apiName,
 				Kind: userconfig.BatchAPIKind,
 			},
-			Predictor: &userconfig.Predictor{
-				Type:         userconfig.PythonPredictorType,
+			Handler: &userconfig.Handler{
+				Type:         userconfig.PythonHandlerType,
 				Image:        "quay.io/cortexlabs/python-predictor-cpu:master",
 				Dependencies: &userconfig.Dependencies{},
 			},
@@ -51,7 +51,7 @@ func uploadTestAPISpec(apiName string, apiID string) error {
 		},
 		ID:           apiID,
 		SpecID:       random.String(5),
-		PredictorID:  random.String(5),
+		HandlerID:    random.String(5),
 		DeploymentID: random.String(5),
 	}
 	apiSpecKey := spec.Key(apiName, apiID, clusterConfig.ClusterName)
