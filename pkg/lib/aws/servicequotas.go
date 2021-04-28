@@ -336,7 +336,7 @@ func requiredRulesForNodeGroupSecurityGroup(numAZs, whitelistLength int) int {
 	if whitelistLength == 1 {
 		whitelistRuleCount = 1
 	} else if whitelistLength > 1 {
-		whitelistRuleCount = 5 * whitelistLength
+		whitelistRuleCount = 1 + 5*(whitelistLength-1)
 	}
 	return _baseInboundRulesForWorkerNodeGroup + numAZs*_inboundRulesPerAZ + whitelistRuleCount
 }
