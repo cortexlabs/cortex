@@ -60,6 +60,8 @@ var (
 	_cachedCNISupportedInstances  *string
 	_defaultIAMPolicies           = []string{"arn:aws:iam::aws:policy/AmazonS3FullAccess"}
 	_invalidTagPrefixes           = []string{"kubernetes.io/", "k8s.io/", "eksctl.", "alpha.eksctl.", "beta.eksctl.", "aws:", "Aws:", "aWs:", "awS:", "aWS:", "AwS:", "aWS:", "AWS:"}
+	_highestIOPSForIO1VolumeType  = int64(64000)
+	_highestIOPSForGP3VolumeType  = int64(16000)
 	// This regex is stricter than the actual S3 rules
 	_strictS3BucketRegex = regexp.MustCompile(`^([a-z0-9])+(-[a-z0-9]+)*$`)
 )
@@ -115,15 +117,16 @@ type ManagedConfig struct {
 }
 
 type NodeGroup struct {
-	Name               string      `json:"name" yaml:"name"`
-	InstanceType       string      `json:"instance_type" yaml:"instance_type"`
-	MinInstances       int64       `json:"min_instances" yaml:"min_instances"`
-	MaxInstances       int64       `json:"max_instances" yaml:"max_instances"`
-	InstanceVolumeSize int64       `json:"instance_volume_size" yaml:"instance_volume_size"`
-	InstanceVolumeType VolumeType  `json:"instance_volume_type" yaml:"instance_volume_type"`
-	InstanceVolumeIOPS *int64      `json:"instance_volume_iops" yaml:"instance_volume_iops"`
-	Spot               bool        `json:"spot" yaml:"spot"`
-	SpotConfig         *SpotConfig `json:"spot_config" yaml:"spot_config"`
+	Name                     string      `json:"name" yaml:"name"`
+	InstanceType             string      `json:"instance_type" yaml:"instance_type"`
+	MinInstances             int64       `json:"min_instances" yaml:"min_instances"`
+	MaxInstances             int64       `json:"max_instances" yaml:"max_instances"`
+	InstanceVolumeSize       int64       `json:"instance_volume_size" yaml:"instance_volume_size"`
+	InstanceVolumeType       VolumeType  `json:"instance_volume_type" yaml:"instance_volume_type"`
+	InstanceVolumeIOPS       *int64      `json:"instance_volume_iops" yaml:"instance_volume_iops"`
+	InstanceVolumeThroughput *int64      `json:"instance_volume_throughput" yaml:"instance_volume_throughput"`
+	Spot                     bool        `json:"spot" yaml:"spot"`
+	SpotConfig               *SpotConfig `json:"spot_config" yaml:"spot_config"`
 }
 
 type SpotConfig struct {
@@ -488,7 +491,14 @@ var ManagedConfigStructFieldValidations = []*cr.StructFieldValidation{
 						StructField: "InstanceVolumeIOPS",
 						Int64PtrValidation: &cr.Int64PtrValidation{
 							GreaterThanOrEqualTo: pointer.Int64(100),
-							LessThanOrEqualTo:    pointer.Int64(64000),
+							AllowExplicitNull:    true,
+						},
+					},
+					{
+						StructField: "InstanceVolumeThroughput",
+						Int64PtrValidation: &cr.Int64PtrValidation{
+							GreaterThanOrEqualTo: pointer.Int64(100),
+							LessThanOrEqualTo:    pointer.Int64(1000),
 							AllowExplicitNull:    true,
 						},
 					},
@@ -935,19 +945,41 @@ func (ng *NodeGroup) validateNodeGroup(awsClient *aws.Client, region string) err
 		return errors.Wrap(ErrorInstanceTypeNotSupportedInRegion(primaryInstanceType, region), InstanceTypeKey)
 	}
 
-	// Throw error if IOPS defined for other storage than io1
-	if ng.InstanceVolumeType != IO1VolumeType && ng.InstanceVolumeIOPS != nil {
+	// throw error if IOPS defined for other storage than io1/gp3
+	if ng.InstanceVolumeType != IO1VolumeType || ng.InstanceVolumeType != GP3VolumeType && ng.InstanceVolumeIOPS != nil {
 		return ErrorIOPSNotSupported(ng.InstanceVolumeType)
 	}
 
-	if ng.InstanceVolumeType == IO1VolumeType && ng.InstanceVolumeIOPS != nil {
-		if *ng.InstanceVolumeIOPS > ng.InstanceVolumeSize*50 {
-			return ErrorIOPSTooLarge(*ng.InstanceVolumeIOPS, ng.InstanceVolumeSize)
+	// throw error if throughput defined for other storage than gp3
+	if ng.InstanceVolumeType != GP3VolumeType && ng.InstanceVolumeThroughput != nil {
+		return ErrorThroughputNotSupported(ng.InstanceVolumeType)
+	}
+
+	if ng.InstanceVolumeIOPS != nil {
+		if ng.InstanceVolumeType == IO1VolumeType {
+			if *ng.InstanceVolumeIOPS > _highestIOPSForIO1VolumeType {
+				return ErrorIOPSTooLarge(*ng.InstanceVolumeIOPS, _highestIOPSForIO1VolumeType)
+			}
+			if *ng.InstanceVolumeIOPS > ng.InstanceVolumeSize*50 {
+				return ErrorIOPSTooLargeDueToVolumeSize(*ng.InstanceVolumeIOPS, ng.InstanceVolumeSize)
+			}
+		} else {
+			if *ng.InstanceVolumeIOPS > _highestIOPSForGP3VolumeType {
+				return ErrorIOPSTooLarge(*ng.InstanceVolumeIOPS, _highestIOPSForGP3VolumeType)
+			}
 		}
 	}
 
 	if aws.EBSMetadatas[region][ng.InstanceVolumeType.String()].IOPSConfigurable && ng.InstanceVolumeIOPS == nil {
-		ng.InstanceVolumeIOPS = pointer.Int64(libmath.MinInt64(ng.InstanceVolumeSize*50, 3000))
+		if ng.InstanceVolumeType == GP3VolumeType {
+			ng.InstanceVolumeIOPS = pointer.Int64(3000)
+		} else {
+			ng.InstanceVolumeIOPS = pointer.Int64(libmath.MinInt64(ng.InstanceVolumeSize*50, 3000))
+		}
+	}
+
+	if ng.InstanceVolumeType == GP3VolumeType && ng.InstanceVolumeThroughput == nil {
+		ng.InstanceVolumeThroughput = pointer.Int64(125)
 	}
 
 	if ng.Spot {
@@ -1370,7 +1402,11 @@ func (mc *ManagedConfig) TelemetryEvent() map[string]interface{} {
 		event[nodeGroupKey("instance_volume_type")] = ng.InstanceVolumeType
 		if ng.InstanceVolumeIOPS != nil {
 			event[nodeGroupKey("instance_volume_iops.is_defined")] = true
-			event[nodeGroupKey("instance_volume_iops")] = ng.InstanceVolumeIOPS
+			event[nodeGroupKey("instance_volume_iops")] = *ng.InstanceVolumeIOPS
+		}
+		if ng.InstanceVolumeThroughput != nil {
+			event[nodeGroupKey("instance_volume_throughput.is_defined")] = true
+			event[nodeGroupKey("instance_volume_throughput")] = *ng.InstanceVolumeThroughput
 		}
 
 		event[nodeGroupKey("spot")] = ng.Spot

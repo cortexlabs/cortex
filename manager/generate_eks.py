@@ -85,9 +85,11 @@ def apply_clusterconfig(nodegroup, config):
         "volumeType": config["instance_volume_type"],
         "desiredCapacity": 1 if config["min_instances"] == 0 else config["min_instances"],
     }
-    # add iops to settings if volume_type is io1
-    if config["instance_volume_type"] == "io1":
+    # add iops to settings if volume_type is io1/gp3
+    if config["instance_volume_type"] in ["io1", "gp3"]:
         clusterconfig_settings["volumeIOPS"] = config["instance_volume_iops"]
+    if config["instance_volume_type"] == "gp3":
+        clusterconfig_settings["volumeThroughput"] = config["instance_volume_throughput"]
 
     return merge_override(nodegroup, clusterconfig_settings)
 

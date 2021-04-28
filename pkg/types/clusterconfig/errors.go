@@ -63,7 +63,9 @@ const (
 	ErrS3RegionDiffersFromCluster             = "clusterconfig.s3_region_differs_from_cluster"
 	ErrInvalidInstanceType                    = "clusterconfig.invalid_instance_type"
 	ErrIOPSNotSupported                       = "clusterconfig.iops_not_supported"
+	ErrThroughputNotSupported                 = "clusterconfig.throughput_not_supported"
 	ErrIOPSTooLarge                           = "clusterconfig.iops_too_large"
+	ErrIOPSTooLargeDueToVolumeSize            = "clusterconfig.iops_too_large_due_to_volume_siz"
 	ErrCantOverrideDefaultTag                 = "clusterconfig.cant_override_default_tag"
 	ErrSSLCertificateARNNotFound              = "clusterconfig.ssl_certificate_arn_not_found"
 	ErrIAMPolicyARNNotFound                   = "clusterconfig.iam_policy_arn_not_found"
@@ -322,13 +324,27 @@ func ErrorInvalidInstanceType(instanceType string) error {
 func ErrorIOPSNotSupported(volumeType VolumeType) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrIOPSNotSupported,
-		Message: fmt.Sprintf("IOPS cannot be configured for volume type %s; set `%s: %s` or remove `%s` from your cluster configuration file", volumeType, InstanceVolumeTypeKey, IO1VolumeType, InstanceVolumeIOPSKey),
+		Message: fmt.Sprintf("IOPS cannot be configured for volume type %s; set `%s: %s`, `%s: %s` or remove `%s` from your cluster configuration file", volumeType, InstanceVolumeTypeKey, IO1VolumeType, InstanceVolumeTypeKey, GP3VolumeType, InstanceVolumeIOPSKey),
 	})
 }
 
-func ErrorIOPSTooLarge(iops int64, volumeSize int64) error {
+func ErrorThroughputNotSupported(volumeType VolumeType) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrThroughputNotSupported,
+		Message: fmt.Sprintf("throughput cannot be configured for volume type %s; set `%s: %s` or remove `%s` from your cluster configuration file", volumeType, InstanceVolumeTypeKey, GP3VolumeType, InstanceVolumeThroughputKey),
+	})
+}
+
+func ErrorIOPSTooLarge(iops, maxIOPS int64) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrIOPSTooLarge,
+		Message: fmt.Sprintf("%s (%d) cannot be larger than %d", InstanceVolumeIOPSKey, iops, maxIOPS),
+	})
+}
+
+func ErrorIOPSTooLargeDueToVolumeSize(iops int64, volumeSize int64) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrIOPSTooLargeDueToVolumeSize,
 		Message: fmt.Sprintf("%s (%d) cannot be more than 50 times larger than %s (%d); increase `%s` or decrease `%s` in your cluster configuration file", InstanceVolumeIOPSKey, iops, InstanceVolumeSizeKey, volumeSize, InstanceVolumeSizeKey, InstanceVolumeIOPSKey),
 	})
 }
