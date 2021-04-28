@@ -40,9 +40,9 @@ const (
 	_securityGroupRulesQuotaCode = "L-0EA8095F"
 
 	// 11 inbound rules
-	_baseInboundRulesForWorkerNodeGroup = 11
-	_inboundRulesPerAZ                  = 8
-	// ClusterSharedNodeSecurityGroup, ControlPlaneSecurityGroup, eks-cluster-sg-<cluster-name>, operator security groups
+	_baseInboundRulesForNodeGroup = 11
+	_inboundRulesPerAZ            = 8
+	// ClusterSharedNodeSecurityGroup, ControlPlaneSecurityGroup, eks-cluster-sg-<cluster-name>, and operator security group
 	_baseNumberOfSecurityGroups = 4
 )
 
@@ -303,9 +303,9 @@ func (c *Client) VerifyNetworkQuotas(
 	}
 
 	// check rules quota for nodegroup SGs
-	requiredRulesForWSG := requiredRulesForNodeGroupSecurityGroup(len(availabilityZones), longestCIDRWhiteList)
-	if requiredRulesForWSG > quotaCodeToValueMap[_securityGroupRulesQuotaCode] {
-		additionalQuotaRequired := requiredRulesForWSG - quotaCodeToValueMap[_securityGroupRulesQuotaCode]
+	requiredRulesForSG := requiredRulesForNodeGroupSecurityGroup(len(availabilityZones), longestCIDRWhiteList)
+	if requiredRulesForSG > quotaCodeToValueMap[_securityGroupRulesQuotaCode] {
+		additionalQuotaRequired := requiredRulesForSG - quotaCodeToValueMap[_securityGroupRulesQuotaCode]
 		return ErrorSecurityGroupRulesExceeded(quotaCodeToValueMap[_securityGroupRulesQuotaCode], additionalQuotaRequired, c.Region)
 	}
 
@@ -338,13 +338,12 @@ func requiredRulesForNodeGroupSecurityGroup(numAZs, whitelistLength int) int {
 	} else if whitelistLength > 1 {
 		whitelistRuleCount = 1 + 5*(whitelistLength-1)
 	}
-	return _baseInboundRulesForWorkerNodeGroup + numAZs*_inboundRulesPerAZ + whitelistRuleCount
+	return _baseInboundRulesForNodeGroup + numAZs*_inboundRulesPerAZ + whitelistRuleCount
 }
 
 func requiredRulesForControlPlaneSecurityGroup(numNodeGroups int) int {
 	// +1 for the operator node group
-	// one third goes to inbound rules (port 443 only), but we don't count that as that's a lower number
-	// 2 thirds go to outbound rules (ports 443 and 1025-65535)
+	// this is the number of outbound rules (there are half as many inbound rules, so that is not the limiting factor)
 	return 2 * (numNodeGroups + 1)
 }
 
