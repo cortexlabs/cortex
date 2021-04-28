@@ -781,7 +781,7 @@ func (cc *CoreConfig) SQSNamePrefix() string {
 }
 
 // this validates the user-provided cluster config
-func (cc *Config) Validate(awsClient *aws.Client, skipQuotaVerification bool) error {
+func (cc *Config) Validate(awsClient *aws.Client) error {
 	fmt.Print("verifying your configuration ...\n\n")
 
 	numNodeGroups := len(cc.NodeGroups)
@@ -817,12 +817,10 @@ func (cc *Config) Validate(awsClient *aws.Client, skipQuotaVerification bool) er
 		})
 	}
 
-	if !skipQuotaVerification {
-		if err := awsClient.VerifyInstanceQuota(instances); err != nil {
-			// Skip AWS errors, since some regions (e.g. eu-north-1) do not support this API
-			if !aws.IsAWSError(err) {
-				return errors.Wrap(err, NodeGroupsKey)
-			}
+	if err := awsClient.VerifyInstanceQuota(instances); err != nil {
+		// Skip AWS errors, since some regions (e.g. eu-north-1) do not support this API
+		if !aws.IsAWSError(err) {
+			return errors.Wrap(err, NodeGroupsKey)
 		}
 	}
 
@@ -909,16 +907,15 @@ func (cc *Config) Validate(awsClient *aws.Client, skipQuotaVerification bool) er
 		}
 	}
 
-	if !skipQuotaVerification {
-		var requiredVPCs int
-		if len(cc.Subnets) == 0 {
-			requiredVPCs = 1
-		}
-		if err := awsClient.VerifyNetworkQuotas(1, cc.NATGateway != NoneNATGateway, cc.NATGateway == HighlyAvailableNATGateway, requiredVPCs, strset.FromSlice(cc.AvailabilityZones)); err != nil {
-			// Skip AWS errors, since some regions (e.g. eu-north-1) do not support this API
-			if !aws.IsAWSError(err) {
-				return err
-			}
+	var requiredVPCs int
+	if len(cc.Subnets) == 0 {
+		requiredVPCs = 1
+	}
+	longestCIDRWhiteList := libmath.MaxInt(len(cc.APILoadBalancerCIDRWhiteList), len(cc.OperatorLoadBalancerCIDRWhiteList))
+	if err := awsClient.VerifyNetworkQuotas(1, cc.NATGateway != NoneNATGateway, cc.NATGateway == HighlyAvailableNATGateway, requiredVPCs, strset.FromSlice(cc.AvailabilityZones), len(cc.NodeGroups), longestCIDRWhiteList); err != nil {
+		// Skip AWS errors, since some regions (e.g. eu-north-1) do not support this API
+		if !aws.IsAWSError(err) {
+			return err
 		}
 	}
 

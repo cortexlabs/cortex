@@ -135,7 +135,7 @@ func getInstallClusterConfig(awsClient *aws.Client, clusterConfigFile string, di
 		return nil, err
 	}
 
-	err = clusterConfig.Validate(awsClient, false)
+	err = clusterConfig.Validate(awsClient)
 	if err != nil {
 		err = errors.Append(err, fmt.Sprintf("\n\ncluster configuration schema can be found at https://docs.cortex.dev/v/%s/", consts.CortexVersionMinor))
 		return nil, errors.Wrap(err, clusterConfigFile)
