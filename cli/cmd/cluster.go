@@ -811,8 +811,12 @@ func printInfoPricing(infoResponse *schema.InfoResponse, clusterConfig clusterco
 		numInstances := len(nodesInfo)
 
 		ebsPrice := aws.EBSMetadatas[clusterConfig.Region][ng.InstanceVolumeType.String()].PriceGB * float64(ng.InstanceVolumeSize) / 30 / 24
-		if ng.InstanceVolumeType.String() == "io1" && ng.InstanceVolumeIOPS != nil {
+		if ng.InstanceVolumeType == clusterconfig.IO1VolumeType && ng.InstanceVolumeIOPS != nil {
 			ebsPrice += aws.EBSMetadatas[clusterConfig.Region][ng.InstanceVolumeType.String()].PriceIOPS * float64(*ng.InstanceVolumeIOPS) / 30 / 24
+		}
+		if ng.InstanceVolumeType == clusterconfig.GP3VolumeType && ng.InstanceVolumeIOPS != nil && ng.InstanceVolumeThroughput != nil {
+			ebsPrice += aws.EBSMetadatas[clusterConfig.Region][ng.InstanceVolumeType.String()].PriceIOPS * float64(*ng.InstanceVolumeIOPS) / 30 / 24
+			ebsPrice += aws.EBSMetadatas[clusterConfig.Region][ng.InstanceVolumeType.String()].PriceThroughput * float64(*ng.InstanceVolumeThroughput) / 30 / 24
 		}
 		totalEBSPrice := ebsPrice * float64(numInstances)
 

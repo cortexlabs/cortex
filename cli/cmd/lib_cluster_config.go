@@ -176,8 +176,12 @@ func confirmInstallClusterConfig(clusterConfig *clusterconfig.Config, awsClient 
 	for _, ng := range clusterConfig.NodeGroups {
 		apiInstancePrice := aws.InstanceMetadatas[clusterConfig.Region][ng.InstanceType].Price
 		apiEBSPrice := aws.EBSMetadatas[clusterConfig.Region][ng.InstanceVolumeType.String()].PriceGB * float64(ng.InstanceVolumeSize) / 30 / 24
-		if ng.InstanceVolumeType.String() == "io1" && ng.InstanceVolumeIOPS != nil {
+		if ng.InstanceVolumeType == clusterconfig.IO1VolumeType && ng.InstanceVolumeIOPS != nil {
 			apiEBSPrice += aws.EBSMetadatas[clusterConfig.Region][ng.InstanceVolumeType.String()].PriceIOPS * float64(*ng.InstanceVolumeIOPS) / 30 / 24
+		}
+		if ng.InstanceVolumeType == clusterconfig.GP3VolumeType && ng.InstanceVolumeIOPS != nil && ng.InstanceVolumeThroughput != nil {
+			apiEBSPrice += aws.EBSMetadatas[clusterConfig.Region][ng.InstanceVolumeType.String()].PriceIOPS * float64(*ng.InstanceVolumeIOPS) / 30 / 24
+			apiEBSPrice += aws.EBSMetadatas[clusterConfig.Region][ng.InstanceVolumeType.String()].PriceThroughput * float64(*ng.InstanceVolumeThroughput) / 30 / 24
 		}
 
 		totalMinPrice += float64(ng.MinInstances) * (apiInstancePrice + apiEBSPrice)
