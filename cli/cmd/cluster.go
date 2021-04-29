@@ -842,7 +842,7 @@ func printInfoPricing(infoResponse *schema.InfoResponse, clusterConfig clusterco
 	fmt.Printf(console.Bold("\nyour cluster currently costs %s per hour\n\n"), s.DollarsAndCents(totalPrice))
 
 	rows = append(rows, []interface{}{"2 t3.medium instances for cortex", s.DollarsMaxPrecision(operatorInstancePrice * 2)})
-	rows = append(rows, []interface{}{"1 20gb ebs volume for the operator", s.DollarsAndTenthsOfCents(operatorEBSPrice)})
+	rows = append(rows, []interface{}{"2 20gb ebs volumes for the operator", s.DollarsAndTenthsOfCents(operatorEBSPrice * 2)})
 	rows = append(rows, []interface{}{"1 40+2gb ebs volumes for metrics (prometheus and grafana)", s.DollarsAndTenthsOfCents(metricsEBSPrice)})
 	rows = append(rows, []interface{}{"2 network load balancers", s.DollarsMaxPrecision(nlbPrice*2) + " total"})
 
