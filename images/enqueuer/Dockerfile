@@ -14,12 +14,14 @@ COPY go.sum go.sum
 # and so that source changes don't invalidate our downloaded layer
 RUN go mod download
 
+WORKDIR /workspace/enqueuer
+RUN go mod download
+
 # Copy the go source for the enqueuer and the cortex package, as it is a local dependency
-COPY ./enqueuer ./enqueuer
-COPY ./pkg ./pkg
+COPY ./enqueuer /workspace/enqueuer
+COPY ./pkg /workspace/pkg
 
 # Build
-WORKDIR ./enqueuer
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 GO111MODULE=on go build -a -o enqueuer .
 
 # Use distroless as minimal base image to package the manager binary
