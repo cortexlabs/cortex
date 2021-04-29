@@ -13,7 +13,6 @@
 **/*.pyd
 **/__pycache__/
 
-pkg/crds/config/
 **/hack/
 **/PROJECT
 **/Makefile

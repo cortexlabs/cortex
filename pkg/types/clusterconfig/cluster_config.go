@@ -83,6 +83,7 @@ type CoreConfig struct {
 	IstioNamespace string `json:"istio_namespace" yaml:"istio_namespace"`
 
 	ImageOperator                   string `json:"image_operator" yaml:"image_operator"`
+	ImageControllerManager          string `json:"image_controller_manager" yaml:"image_controller_manager"`
 	ImageManager                    string `json:"image_manager" yaml:"image_manager"`
 	ImageDownloader                 string `json:"image_downloader" yaml:"image_downloader"`
 	ImageKubexit                    string `json:"image_kubexit" yaml:"image_kubexit"`
@@ -304,6 +305,13 @@ var CoreConfigStructFieldValidations = []*cr.StructFieldValidation{
 		StructField: "ImageOperator",
 		StringValidation: &cr.StringValidation{
 			Default:   consts.DefaultRegistry() + "/operator:" + consts.CortexVersion,
+			Validator: validateImageVersion,
+		},
+	},
+	{
+		StructField: "ImageControllerManager",
+		StringValidation: &cr.StringValidation{
+			Default:   consts.DefaultRegistry() + "/controller-manager:" + consts.CortexVersion,
 			Validator: validateImageVersion,
 		},
 	},
@@ -1305,6 +1313,9 @@ func (cc *CoreConfig) TelemetryEvent() map[string]interface{} {
 
 	if !strings.HasPrefix(cc.ImageOperator, "cortexlabs/") {
 		event["image_operator._is_custom"] = true
+	}
+	if !strings.HasPrefix(cc.ImageControllerManager, "cortexlabs/") {
+		event["image_operator_controller_manager._is_custom"] = true
 	}
 	if !strings.HasPrefix(cc.ImageManager, "cortexlabs/") {
 		event["image_manager._is_custom"] = true
