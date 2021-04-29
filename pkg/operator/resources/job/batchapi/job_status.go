@@ -54,18 +54,18 @@ func getJobStatusFromJobState(jobState *job.State, batchJob *batch.BatchJob) (*s
 		return nil, err
 	}
 
-	jobCode := jobState.Status
-	if batchJob != nil {
-		jobCode = batchJob.Status.Status
-	}
-
 	jobStatus := status.BatchJobStatus{
 		BatchJob: *jobSpec,
 		EndTime:  jobState.EndTime,
-		Status:   jobCode,
+		Status:   jobState.Status,
 	}
 
-	if batchJob != nil && jobCode.IsInProgress() {
+	if batchJob != nil {
+		jobStatus.Status = batchJob.Status.Status
+		if batchJob.Status.EndTime != nil {
+			jobStatus.EndTime = &batchJob.Status.EndTime.Time
+		}
+
 		queueMetrics, err := getQueueMetrics(jobKey)
 		if err != nil {
 			return nil, err
@@ -77,7 +77,7 @@ func getJobStatusFromJobState(jobState *job.State, batchJob *batch.BatchJob) (*s
 			jobStatus.TotalBatchCount = queueMetrics.TotalUserMessages()
 		}
 
-		if batchJob.Status.Status == status.JobRunning {
+		if batchJob.Status.Status == status.JobRunning || batchJob.Status.Status == status.JobSucceeded {
 			jobMetrics, err := batch.GetMetrics(config.Prometheus, jobKey, time.Now())
 			if err != nil {
 				return nil, err

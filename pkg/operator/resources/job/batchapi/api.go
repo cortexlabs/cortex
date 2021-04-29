@@ -200,14 +200,12 @@ func GetAPIByName(deployedResource *operator.DeployedResource) ([]schema.APIResp
 	var jobStatuses []status.BatchJobStatus
 	jobIDSet := strset.New()
 	for _, batchJob := range batchJobList.Items {
-		if batchJob.Status.Status.IsInProgress() {
-			jobStatus, err := getJobStatusFromK8sBatchJob(batchJob)
-			if err != nil {
-				return nil, err
-			}
-			jobStatuses = append(jobStatuses, *jobStatus)
-			jobIDSet.Add(batchJob.Name)
+		jobStatus, err := getJobStatusFromK8sBatchJob(batchJob)
+		if err != nil {
+			return nil, err
 		}
+		jobStatuses = append(jobStatuses, *jobStatus)
+		jobIDSet.Add(batchJob.Name)
 	}
 
 	if len(jobStatuses) < 10 {

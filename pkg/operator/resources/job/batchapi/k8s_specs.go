@@ -26,128 +26,12 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/parallel"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
-	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	"github.com/cortexlabs/cortex/pkg/workloads"
 	istioclientnetworking "istio.io/client-go/pkg/apis/networking/v1beta1"
-	kbatch "k8s.io/api/batch/v1"
-	kcore "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 const _operatorService = "operator"
-
-func k8sJobSpec(api *spec.API, job *spec.BatchJob) (*kbatch.Job, error) {
-	switch api.Handler.Type {
-	case userconfig.TensorFlowHandlerType:
-		return tensorFlowHandlerJobSpec(api, job)
-	case userconfig.PythonHandlerType:
-		return pythonHandlerJobSpec(api, job)
-	default:
-		return nil, nil // unexpected
-	}
-}
-
-func pythonHandlerJobSpec(api *spec.API, job *spec.BatchJob) (*kbatch.Job, error) {
-	containers, volumes := workloads.PythonHandlerContainers(api)
-	for i, container := range containers {
-		if container.Name == workloads.APIContainerName {
-			containers[i].Env = append(container.Env, kcore.EnvVar{
-				Name:  "CORTEX_JOB_SPEC",
-				Value: workloads.BatchSpecPath,
-			})
-		}
-	}
-
-	return k8s.Job(&k8s.JobSpec{
-		Name:        job.JobKey.K8sName(),
-		Parallelism: int32(job.Workers),
-		Labels: map[string]string{
-			"apiName":        api.Name,
-			"apiID":          api.ID,
-			"specID":         api.SpecID,
-			"handlerID":      api.HandlerID,
-			"jobID":          job.ID,
-			"apiKind":        api.Kind.String(),
-			"cortex.dev/api": "true",
-		},
-		PodSpec: k8s.PodSpec{
-			Labels: map[string]string{
-				"apiName":        api.Name,
-				"handlerID":      api.HandlerID,
-				"jobID":          job.ID,
-				"apiKind":        api.Kind.String(),
-				"cortex.dev/api": "true",
-			},
-			Annotations: map[string]string{
-				"traffic.sidecar.istio.io/excludeOutboundIPRanges": "0.0.0.0/0",
-				"cluster-autoscaler.kubernetes.io/safe-to-evict":   "false",
-			},
-			K8sPodSpec: kcore.PodSpec{
-				RestartPolicy: "Never",
-				InitContainers: []kcore.Container{
-					workloads.BatchInitContainer(api, job),
-				},
-				Containers:         containers,
-				NodeSelector:       workloads.NodeSelectors(),
-				Tolerations:        workloads.GenerateResourceTolerations(),
-				Affinity:           workloads.GenerateNodeAffinities(api.Compute.NodeGroups),
-				Volumes:            volumes,
-				ServiceAccountName: workloads.ServiceAccountName,
-			},
-		},
-	}), nil
-}
-
-func tensorFlowHandlerJobSpec(api *spec.API, job *spec.BatchJob) (*kbatch.Job, error) {
-	containers, volumes := workloads.TensorFlowHandlerContainers(api)
-	for i, container := range containers {
-		if container.Name == workloads.APIContainerName {
-			containers[i].Env = append(container.Env, kcore.EnvVar{
-				Name:  "CORTEX_JOB_SPEC",
-				Value: workloads.BatchSpecPath,
-			})
-		}
-	}
-
-	return k8s.Job(&k8s.JobSpec{
-		Name:        job.JobKey.K8sName(),
-		Parallelism: int32(job.Workers),
-		Labels: map[string]string{
-			"apiName":        api.Name,
-			"apiID":          api.ID,
-			"specID":         api.SpecID,
-			"handlerID":      api.HandlerID,
-			"jobID":          job.ID,
-			"apiKind":        api.Kind.String(),
-			"cortex.dev/api": "true",
-		},
-		PodSpec: k8s.PodSpec{
-			Labels: map[string]string{
-				"apiName":        api.Name,
-				"handlerID":      api.HandlerID,
-				"jobID":          job.ID,
-				"apiKind":        api.Kind.String(),
-				"cortex.dev/api": "true",
-			},
-			Annotations: map[string]string{
-				"traffic.sidecar.istio.io/excludeOutboundIPRanges": "0.0.0.0/0",
-				"cluster-autoscaler.kubernetes.io/safe-to-evict":   "false",
-			},
-			K8sPodSpec: kcore.PodSpec{
-				RestartPolicy: "Never",
-				InitContainers: []kcore.Container{
-					workloads.BatchInitContainer(api, job),
-				},
-				Containers:         containers,
-				NodeSelector:       workloads.NodeSelectors(),
-				Tolerations:        workloads.GenerateResourceTolerations(),
-				Affinity:           workloads.GenerateNodeAffinities(api.Compute.NodeGroups),
-				Volumes:            volumes,
-				ServiceAccountName: workloads.ServiceAccountName,
-			},
-		},
-	}), nil
-}
 
 func virtualServiceSpec(api *spec.API) *istioclientnetworking.VirtualService {
 	return k8s.VirtualService(&k8s.VirtualServiceSpec{
