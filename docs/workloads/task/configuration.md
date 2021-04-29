@@ -12,6 +12,7 @@
       conda: <string>  # relative path to conda-packages.txt (default: conda-packages.txt)
       shell: <string>  # relative path to a shell script for system package installation (default: dependencies.sh)
     python_path: <string>  # path to the root of your Python folder that will be appended to PYTHONPATH (default: folder containing cortex.yaml)
+    shm_size: <string> # size of shared memory (/dev/shm) for sharing data between multiple processes, e.g. 64Mi or 1Gi (default: Null)
     image: <string> # docker image to use for the Task (default: quay.io/cortexlabs/python-handler-cpu:master, quay.io/cortexlabs/python-handler-gpu:master-cuda10.2-cudnn8, or quay.io/cortexlabs/python-handler-inf:master based on compute)
     env: <string: string>  # dictionary of environment variables
     log_level: <string>  # log level that can be "debug", "info", "warning" or "error" (default: "info")
