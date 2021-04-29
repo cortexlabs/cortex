@@ -334,6 +334,28 @@ func (c *Client) DescribeVpcs() ([]ec2.Vpc, error) {
 	return vpcs, nil
 }
 
+func (c *Client) DescribeSecurityGroups() ([]ec2.SecurityGroup, error) {
+	var sgs []ec2.SecurityGroup
+	err := c.EC2().DescribeSecurityGroupsPages(&ec2.DescribeSecurityGroupsInput{}, func(output *ec2.DescribeSecurityGroupsOutput, lastPage bool) bool {
+		if output == nil {
+			return false
+		}
+		for _, sg := range output.SecurityGroups {
+			if sg == nil {
+				continue
+			}
+			sgs = append(sgs, *sg)
+		}
+
+		return true
+	})
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+
+	return sgs, nil
+}
+
 func (c *Client) ListVolumes(tags ...ec2.Tag) ([]ec2.Volume, error) {
 	var volumes []ec2.Volume
 	err := c.EC2().DescribeVolumesPages(&ec2.DescribeVolumesInput{}, func(output *ec2.DescribeVolumesOutput, lastPage bool) bool {

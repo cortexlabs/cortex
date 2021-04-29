@@ -46,6 +46,8 @@ const (
 	ErrEIPLimitExceeded             = "aws.eip_limit_exceeded"
 	ErrInternetGatewayLimitExceeded = "aws.internet_gateway_limit_exceeded"
 	ErrVPCLimitExceeded             = "aws.vpc_limit_exceeded"
+	ErrSecurityGroupRulesExceeded   = "aws.security_group_rules_exceeded"
+	ErrSecurityGroupLimitExceeded   = "aws.security_group_limit_exceeded"
 )
 
 func IsAWSError(err error) bool {
@@ -230,5 +232,21 @@ func ErrorVPCLimitExceeded(currentLimit, additionalQuotaRequired int, region str
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrVPCLimitExceeded,
 		Message: fmt.Sprintf("VPC limit of %d exceeded in region %s; remove some of the existing VPCs or increase your quota for VPCs by at least %d here: %s (if your request was recently approved, please allow ~30 minutes for AWS to reflect this change)", currentLimit, region, additionalQuotaRequired, url),
+	})
+}
+
+func ErrorSecurityGroupRulesExceeded(currentLimit, additionalQuotaRequired int, region string) error {
+	url := "https://console.aws.amazon.com/servicequotas/home?#!/services/vpc/quotas"
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrSecurityGroupRulesExceeded,
+		Message: fmt.Sprintf("security group rules limit of %d exceeded in region %s; use fewer availability zones, remove some node groups from your cluster config, reduce the number of CIDR white lists (if you have any), or increase your quota for inbound/outbound rules per security group by at least %d here: %s (if your request was recently approved, please allow ~30 minutes for AWS to reflect this change)", currentLimit, region, additionalQuotaRequired, url),
+	})
+}
+
+func ErrorSecurityGroupLimitExceeded(currentLimit, additionalQuotaRequired int, region string) error {
+	url := "https://console.aws.amazon.com/servicequotas/home?#!/services/vpc/quotas"
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrSecurityGroupLimitExceeded,
+		Message: fmt.Sprintf("security group limit of %d exceeded in region %s; remove some node groups from your cluster config or increase your quota for security groups by at least %d here: %s (if your request was recently approved, please allow ~30 minutes for AWS to reflect this change)", currentLimit, region, additionalQuotaRequired, url),
 	})
 }
