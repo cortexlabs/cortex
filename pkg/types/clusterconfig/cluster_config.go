@@ -985,8 +985,8 @@ func (ng *NodeGroup) validateNodeGroup(awsClient *aws.Client, region string) err
 				return ErrorIOPSToVolumeSizeRatio(ng.InstanceVolumeType, _maxIOPSToVolumeSizeRatioForGP3, *ng.InstanceVolumeIOPS, ng.InstanceVolumeSize)
 			}
 			iopsToThroughputRatio := float64(*ng.InstanceVolumeIOPS) / float64(*ng.InstanceVolumeThroughput)
-			if iopsToThroughputRatio > float64(_maxIOPSToThroughputRatioForGP3) {
-				return ErrorIOPSToThroughputRatio(ng.InstanceVolumeType, iopsToThroughputRatio, *ng.InstanceVolumeIOPS, *ng.InstanceVolumeThroughput)
+			if iopsToThroughputRatio < float64(_maxIOPSToThroughputRatioForGP3) {
+				return ErrorIOPSToThroughputRatio(ng.InstanceVolumeType, _maxIOPSToThroughputRatioForGP3, *ng.InstanceVolumeIOPS, *ng.InstanceVolumeThroughput)
 			}
 		}
 	} else if ng.InstanceVolumeType == GP3VolumeType && aws.EBSMetadatas[region][ng.InstanceVolumeType.String()].IOPSConfigurable {

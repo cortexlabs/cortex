@@ -373,10 +373,10 @@ func ErrorIOPSToVolumeSizeRatio(volumeType VolumeType, ratio, iops int64, volume
 	})
 }
 
-func ErrorIOPSToThroughputRatio(volumeType VolumeType, ratio float64, throughput int64, iops int64) error {
+func ErrorIOPSToThroughputRatio(volumeType VolumeType, ratio, throughput int64, iops int64) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrIOPSToThroughputRatio,
-		Message: fmt.Sprintf("for %s volume type, %s (%d) cannot be more than %f times larger than %s (%d); increase `%s` or decrease `%s` in your cluster configuration file", volumeType, InstanceVolumeIOPSKey, iops, ratio, InstanceVolumeThroughputKey, throughput, InstanceVolumeThroughputKey, InstanceVolumeIOPSKey),
+		Message: fmt.Sprintf("for %s volume type, %s (%d) cannot be less than %d times smaller than %s (%d); increase `%s` or decrease `%s` in your cluster configuration file", volumeType, InstanceVolumeIOPSKey, iops, ratio, InstanceVolumeThroughputKey, throughput, InstanceVolumeThroughputKey, InstanceVolumeIOPSKey),
 	})
 }
 
