@@ -60,8 +60,16 @@ var (
 	_cachedCNISupportedInstances  *string
 	_defaultIAMPolicies           = []string{"arn:aws:iam::aws:policy/AmazonS3FullAccess"}
 	_invalidTagPrefixes           = []string{"kubernetes.io/", "k8s.io/", "eksctl.", "alpha.eksctl.", "beta.eksctl.", "aws:", "Aws:", "aWs:", "awS:", "aWS:", "AwS:", "aWS:", "AWS:"}
+
+	_smallestIOPSForIO1VolumeType = int64(100)
 	_highestIOPSForIO1VolumeType  = int64(64000)
+	_smallestIOPSForGP3VolumeType = int64(3000)
 	_highestIOPSForGP3VolumeType  = int64(16000)
+
+	_maxIOPSToVolumeSizeRatioForIO1 = int64(50)
+	_maxIOPSToVolumeSizeRatioForGP3 = int64(500)
+	_maxIOPSToThroughputRatioForGP3 = int64(4)
+
 	// This regex is stricter than the actual S3 rules
 	_strictS3BucketRegex = regexp.MustCompile(`^([a-z0-9])+(-[a-z0-9]+)*$`)
 )
@@ -490,14 +498,13 @@ var ManagedConfigStructFieldValidations = []*cr.StructFieldValidation{
 					{
 						StructField: "InstanceVolumeIOPS",
 						Int64PtrValidation: &cr.Int64PtrValidation{
-							GreaterThanOrEqualTo: pointer.Int64(100),
-							AllowExplicitNull:    true,
+							AllowExplicitNull: true,
 						},
 					},
 					{
 						StructField: "InstanceVolumeThroughput",
 						Int64PtrValidation: &cr.Int64PtrValidation{
-							GreaterThanOrEqualTo: pointer.Int64(100),
+							GreaterThanOrEqualTo: pointer.Int64(125),
 							LessThanOrEqualTo:    pointer.Int64(1000),
 							AllowExplicitNull:    true,
 						},
@@ -952,31 +959,41 @@ func (ng *NodeGroup) validateNodeGroup(awsClient *aws.Client, region string) err
 		return ErrorThroughputNotSupported(ng.InstanceVolumeType)
 	}
 
+	if ng.InstanceVolumeType == GP3VolumeType && ((ng.InstanceVolumeIOPS != nil && ng.InstanceVolumeThroughput == nil) || (ng.InstanceVolumeIOPS == nil && ng.InstanceVolumeThroughput != nil)) {
+		return ErrorSpecifyTwoOrNone(InstanceVolumeIOPSKey, InstanceVolumeThroughputKey)
+	}
+
 	if ng.InstanceVolumeIOPS != nil {
 		if ng.InstanceVolumeType == IO1VolumeType {
+			if *ng.InstanceVolumeIOPS < _smallestIOPSForIO1VolumeType {
+				return ErrorIOPSTooSmall(ng.InstanceVolumeType, *ng.InstanceVolumeIOPS, _smallestIOPSForIO1VolumeType)
+			}
 			if *ng.InstanceVolumeIOPS > _highestIOPSForIO1VolumeType {
-				return ErrorIOPSTooLarge(*ng.InstanceVolumeIOPS, _highestIOPSForIO1VolumeType)
+				return ErrorIOPSTooLarge(ng.InstanceVolumeType, *ng.InstanceVolumeIOPS, _highestIOPSForIO1VolumeType)
 			}
-			if *ng.InstanceVolumeIOPS > ng.InstanceVolumeSize*50 {
-				return ErrorIOPSTooLargeDueToVolumeSize(*ng.InstanceVolumeIOPS, ng.InstanceVolumeSize)
+			if *ng.InstanceVolumeIOPS > ng.InstanceVolumeSize*_maxIOPSToVolumeSizeRatioForIO1 {
+				return ErrorIOPSToVolumeSizeRatio(ng.InstanceVolumeType, _maxIOPSToVolumeSizeRatioForIO1, *ng.InstanceVolumeIOPS, ng.InstanceVolumeSize)
 			}
 		} else {
+			if *ng.InstanceVolumeIOPS < _smallestIOPSForGP3VolumeType {
+				return ErrorIOPSTooSmall(ng.InstanceVolumeType, *ng.InstanceVolumeIOPS, _smallestIOPSForGP3VolumeType)
+			}
 			if *ng.InstanceVolumeIOPS > _highestIOPSForGP3VolumeType {
-				return ErrorIOPSTooLarge(*ng.InstanceVolumeIOPS, _highestIOPSForGP3VolumeType)
+				return ErrorIOPSTooLarge(ng.InstanceVolumeType, *ng.InstanceVolumeIOPS, _highestIOPSForGP3VolumeType)
+			}
+			if *ng.InstanceVolumeIOPS > ng.InstanceVolumeSize*_maxIOPSToVolumeSizeRatioForGP3 {
+				return ErrorIOPSToVolumeSizeRatio(ng.InstanceVolumeType, _maxIOPSToVolumeSizeRatioForGP3, *ng.InstanceVolumeIOPS, ng.InstanceVolumeSize)
+			}
+			iopsToThroughputRatio := float64(*ng.InstanceVolumeIOPS) / float64(*ng.InstanceVolumeThroughput)
+			if iopsToThroughputRatio > float64(_maxIOPSToThroughputRatioForGP3) {
+				return ErrorIOPSToThroughputRatio(ng.InstanceVolumeType, iopsToThroughputRatio, *ng.InstanceVolumeIOPS, *ng.InstanceVolumeThroughput)
 			}
 		}
-	}
-
-	if aws.EBSMetadatas[region][ng.InstanceVolumeType.String()].IOPSConfigurable && ng.InstanceVolumeIOPS == nil {
-		if ng.InstanceVolumeType == GP3VolumeType {
-			ng.InstanceVolumeIOPS = pointer.Int64(3000)
-		} else {
-			ng.InstanceVolumeIOPS = pointer.Int64(libmath.MinInt64(ng.InstanceVolumeSize*50, 3000))
-		}
-	}
-
-	if ng.InstanceVolumeType == GP3VolumeType && ng.InstanceVolumeThroughput == nil {
+	} else if ng.InstanceVolumeType == GP3VolumeType && aws.EBSMetadatas[region][ng.InstanceVolumeType.String()].IOPSConfigurable {
+		ng.InstanceVolumeIOPS = pointer.Int64(3000)
 		ng.InstanceVolumeThroughput = pointer.Int64(125)
+	} else if ng.InstanceVolumeType == IO1VolumeType && aws.EBSMetadatas[region][ng.InstanceVolumeType.String()].IOPSConfigurable {
+		ng.InstanceVolumeIOPS = pointer.Int64(libmath.MinInt64(ng.InstanceVolumeSize*_maxIOPSToVolumeSizeRatioForIO1, 3000))
 	}
 
 	if ng.Spot {

@@ -197,7 +197,7 @@ func clusterFixedPrice() float64 {
 	eksPrice := aws.EKSPrices[config.CoreConfig.Region]
 	operatorInstancePrice := aws.InstanceMetadatas[config.CoreConfig.Region]["t3.medium"].Price
 	operatorEBSPrice := aws.EBSMetadatas[config.CoreConfig.Region]["gp3"].PriceGB * 20 / 30 / 24
-	metricsEBSPrice := aws.EBSMetadatas[config.CoreConfig.Region]["gp2"].PriceGB * 40 / 30 / 24
+	metricsEBSPrice := aws.EBSMetadatas[config.CoreConfig.Region]["gp2"].PriceGB * (40 + 2) / 30 / 24
 	nlbPrice := aws.NLBMetadatas[config.CoreConfig.Region].Price
 	natUnitPrice := aws.NATMetadatas[config.CoreConfig.Region].Price
 	var natTotalPrice float64
@@ -208,7 +208,7 @@ func clusterFixedPrice() float64 {
 		natTotalPrice = natUnitPrice * float64(len(config.ManagedConfig.AvailabilityZones))
 	}
 
-	return eksPrice + 2*operatorInstancePrice + operatorEBSPrice + metricsEBSPrice + 2*nlbPrice + natTotalPrice
+	return eksPrice + 2*(operatorInstancePrice+operatorEBSPrice) + metricsEBSPrice + 2*nlbPrice + natTotalPrice
 }
 
 func ErrorHandler(cronName string) func(error) {

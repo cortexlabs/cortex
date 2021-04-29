@@ -56,6 +56,7 @@ const (
 	ErrNotEnoughValidDefaultAvailibilityZones = "clusterconfig.not_enough_valid_default_availability_zones"
 	ErrNoNATGatewayWithSubnets                = "clusterconfig.no_nat_gateway_with_subnets"
 	ErrSpecifyOneOrNone                       = "clusterconfig.specify_one_or_none"
+	ErrSpecifyTwoOrNone                       = "clusterconfig.specify_two_or_none"
 	ErrDependentFieldMustBeSpecified          = "clusterconfig.dependent_field_must_be_specified"
 	ErrFieldConfigurationDependentOnCondition = "clusterconfig.field_configuration_dependent_on_condition"
 	ErrDidNotMatchStrictS3Regex               = "clusterconfig.did_not_match_strict_s3_regex"
@@ -64,8 +65,10 @@ const (
 	ErrInvalidInstanceType                    = "clusterconfig.invalid_instance_type"
 	ErrIOPSNotSupported                       = "clusterconfig.iops_not_supported"
 	ErrThroughputNotSupported                 = "clusterconfig.throughput_not_supported"
+	ErrIOPSTooSmall                           = "clusterconfig.iops_too_small"
 	ErrIOPSTooLarge                           = "clusterconfig.iops_too_large"
-	ErrIOPSTooLargeDueToVolumeSize            = "clusterconfig.iops_too_large_due_to_volume_siz"
+	ErrIOPSToVolumeSizeRatio                  = "clusterconfig.iops_to_volume_size_ratio"
+	ErrIOPSToThroughputRatio                  = "clusterconfig.iops_to_throughput_ratio"
 	ErrCantOverrideDefaultTag                 = "clusterconfig.cant_override_default_tag"
 	ErrSSLCertificateARNNotFound              = "clusterconfig.ssl_certificate_arn_not_found"
 	ErrIAMPolicyARNNotFound                   = "clusterconfig.iam_policy_arn_not_found"
@@ -279,6 +282,20 @@ func ErrorSpecifyOneOrNone(fieldName1 string, fieldName2 string, fieldNames ...s
 	})
 }
 
+func ErrorSpecifyTwoOrNone(fieldName1 string, fieldName2 string, fieldNames ...string) error {
+	fieldNames = append([]string{fieldName1, fieldName2}, fieldNames...)
+
+	message := fmt.Sprintf("specify exactly two or none of the following fields: %s", s.StrsAnd(fieldNames))
+	if len(fieldNames) == 1 {
+		message = fmt.Sprintf("cannot have a single field (%s) to choose from)", fieldNames[0])
+	}
+
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrSpecifyTwoOrNone,
+		Message: message,
+	})
+}
+
 func ErrorDependentFieldMustBeSpecified(configuredField string, dependencyField string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrDependentFieldMustBeSpecified,
@@ -324,7 +341,7 @@ func ErrorInvalidInstanceType(instanceType string) error {
 func ErrorIOPSNotSupported(volumeType VolumeType) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrIOPSNotSupported,
-		Message: fmt.Sprintf("IOPS cannot be configured for volume type %s; set `%s: %s`, `%s: %s` or remove `%s` from your cluster configuration file", volumeType, InstanceVolumeTypeKey, IO1VolumeType, InstanceVolumeTypeKey, GP3VolumeType, InstanceVolumeIOPSKey),
+		Message: fmt.Sprintf("IOPS cannot be configured for volume type %s; set `%s: %s`, `%s: %s`, or remove `%s` from your cluster configuration file", volumeType, InstanceVolumeTypeKey, IO1VolumeType, InstanceVolumeTypeKey, GP3VolumeType, InstanceVolumeIOPSKey),
 	})
 }
 
@@ -335,17 +352,31 @@ func ErrorThroughputNotSupported(volumeType VolumeType) error {
 	})
 }
 
-func ErrorIOPSTooLarge(iops, maxIOPS int64) error {
+func ErrorIOPSTooSmall(volumeType VolumeType, iops, minIOPS int64) error {
 	return errors.WithStack(&errors.Error{
-		Kind:    ErrIOPSTooLarge,
-		Message: fmt.Sprintf("%s (%d) cannot be larger than %d", InstanceVolumeIOPSKey, iops, maxIOPS),
+		Kind:    ErrIOPSTooSmall,
+		Message: fmt.Sprintf("for %s volume type, %s (%d) cannot be smaller than %d", volumeType, InstanceVolumeIOPSKey, iops, minIOPS),
 	})
 }
 
-func ErrorIOPSTooLargeDueToVolumeSize(iops int64, volumeSize int64) error {
+func ErrorIOPSTooLarge(volumeType VolumeType, iops, maxIOPS int64) error {
 	return errors.WithStack(&errors.Error{
-		Kind:    ErrIOPSTooLargeDueToVolumeSize,
-		Message: fmt.Sprintf("%s (%d) cannot be more than 50 times larger than %s (%d); increase `%s` or decrease `%s` in your cluster configuration file", InstanceVolumeIOPSKey, iops, InstanceVolumeSizeKey, volumeSize, InstanceVolumeSizeKey, InstanceVolumeIOPSKey),
+		Kind:    ErrIOPSTooLarge,
+		Message: fmt.Sprintf("for %s volume type, %s (%d) cannot be larger than %d", volumeType, InstanceVolumeIOPSKey, iops, maxIOPS),
+	})
+}
+
+func ErrorIOPSToVolumeSizeRatio(volumeType VolumeType, ratio, iops int64, volumeSize int64) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrIOPSToVolumeSizeRatio,
+		Message: fmt.Sprintf("for %s volume type, %s (%d) cannot be more than %d times larger than %s (%d); increase `%s` or decrease `%s` in your cluster configuration file", volumeType, InstanceVolumeIOPSKey, iops, ratio, InstanceVolumeSizeKey, volumeSize, InstanceVolumeSizeKey, InstanceVolumeIOPSKey),
+	})
+}
+
+func ErrorIOPSToThroughputRatio(volumeType VolumeType, ratio float64, throughput int64, iops int64) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrIOPSToThroughputRatio,
+		Message: fmt.Sprintf("for %s volume type, %s (%d) cannot be more than %f times larger than %s (%d); increase `%s` or decrease `%s` in your cluster configuration file", volumeType, InstanceVolumeIOPSKey, iops, ratio, InstanceVolumeThroughputKey, throughput, InstanceVolumeThroughputKey, InstanceVolumeIOPSKey),
 	})
 }
 
