@@ -421,6 +421,16 @@ func (r *BatchJobReconciler) updateStatus(ctx context.Context, batchJob *batch.B
 			batchJob.Status.Status = batchJobStatus
 		} else if worker.Status.Succeeded == batchJob.Spec.Workers {
 			batchJob.Status.Status = status.JobSucceeded
+
+			jobMetrics, err := r.Config.GetMetrics(r, *batchJob)
+			if err != nil {
+				return err
+			}
+
+			if jobMetrics.Failed > 0 {
+				batchJob.Status.Status = status.JobCompletedWithFailures
+			}
+
 		} else if worker.Status.Active > 0 {
 			batchJob.Status.Status = status.JobRunning
 		}
