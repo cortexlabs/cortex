@@ -501,6 +501,11 @@ func (r *BatchJobReconciler) uploadJobSpec(batchJob batch.BatchJob, api spec.API
 		}
 	}
 
+	var timeout *int
+	if batchJob.Spec.Timeout != nil {
+		timeout = pointer.Int(int(batchJob.Spec.Timeout.Seconds()))
+	}
+
 	maxBatchCount, err := r.Config.GetMaxBatchCount(r, batchJob)
 	if err != nil {
 		return nil, err
@@ -515,6 +520,7 @@ func (r *BatchJobReconciler) uploadJobSpec(batchJob batch.BatchJob, api spec.API
 		RuntimeBatchJobConfig: spec.RuntimeBatchJobConfig{
 			Workers:            int(batchJob.Spec.Workers),
 			SQSDeadLetterQueue: deadLetterQueue,
+			Timeout:            timeout,
 			Config:             config,
 		},
 		APIID:           api.ID,

@@ -22,12 +22,14 @@ import (
 
 	"github.com/cortexlabs/cortex/pkg/config"
 	batch "github.com/cortexlabs/cortex/pkg/crds/apis/batch/v1alpha1"
+	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/operator/operator"
 	"github.com/cortexlabs/cortex/pkg/operator/resources/job"
 	"github.com/cortexlabs/cortex/pkg/types/metrics"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/types/status"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
+	"github.com/cortexlabs/yaml"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -48,6 +50,45 @@ func GetJobStatus(jobKey spec.JobKey) (*status.BatchJobStatus, error) {
 
 func getJobStatusFromJobState(jobState *job.State, batchJob *batch.BatchJob) (*status.BatchJobStatus, error) {
 	jobKey := jobState.JobKey
+
+	if batchJob != nil {
+		if batchJob.Status.Status == status.JobPending || batchJob.Status.Status == status.JobEnqueuing {
+			var deadLetterQueue *spec.SQSDeadLetterQueue
+			if batchJob.Spec.DeadLetterQueue != nil {
+				deadLetterQueue = &spec.SQSDeadLetterQueue{
+					ARN:             batchJob.Spec.DeadLetterQueue.ARN,
+					MaxReceiveCount: int(batchJob.Spec.DeadLetterQueue.MaxReceiveCount),
+				}
+			}
+
+			var jobConfig map[string]interface{}
+			if batchJob.Spec.Config != nil {
+				if err := yaml.Unmarshal([]byte(*batchJob.Spec.Config), &jobConfig); err != nil {
+					return nil, err
+				}
+			}
+
+			var timeout *int
+			if batchJob.Spec.Timeout != nil {
+				timeout = pointer.Int(int(batchJob.Spec.Timeout.Seconds()))
+			}
+
+			return &status.BatchJobStatus{
+				BatchJob: spec.BatchJob{
+					JobKey: jobKey,
+					RuntimeBatchJobConfig: spec.RuntimeBatchJobConfig{
+						Workers:            int(batchJob.Spec.Workers),
+						SQSDeadLetterQueue: deadLetterQueue,
+						Config:             jobConfig,
+						Timeout:            timeout,
+					},
+					APIID:  batchJob.Spec.APIID,
+					SQSUrl: batchJob.Status.QueueURL,
+				},
+				Status: batchJob.Status.Status,
+			}, nil
+		}
+	}
 
 	jobSpec, err := operator.DownloadBatchJobSpec(jobKey)
 	if err != nil {
