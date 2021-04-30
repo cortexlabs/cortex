@@ -86,7 +86,7 @@ func (r *BatchJobReconciler) createQueue(batchJob batch.BatchJob) (string, error
 	tags := map[string]string{
 		clusterconfig.ClusterNameTag: r.ClusterConfig.ClusterName,
 		"apiName":                    batchJob.Spec.APIName,
-		"apiID":                      batchJob.Spec.APIId,
+		"apiID":                      batchJob.Spec.APIID,
 		"jobID":                      batchJob.Name,
 	}
 
@@ -210,7 +210,7 @@ func (r *BatchJobReconciler) desiredEnqueuerJob(batchJob batch.BatchJob, queueUR
 			Labels: map[string]string{
 				"apiKind":        userconfig.BatchAPIKind.String(),
 				"apiName":        batchJob.Spec.APIName,
-				"apiID":          batchJob.Spec.APIId,
+				"apiID":          batchJob.Spec.APIID,
 				"jobID":          batchJob.Name,
 				"cortex.dev/api": "true",
 			},
@@ -218,7 +218,7 @@ func (r *BatchJobReconciler) desiredEnqueuerJob(batchJob batch.BatchJob, queueUR
 				Labels: map[string]string{
 					"apiKind":        userconfig.BatchAPIKind.String(),
 					"apiName":        batchJob.Spec.APIName,
-					"apiID":          batchJob.Spec.APIId,
+					"apiID":          batchJob.Spec.APIID,
 					"jobID":          batchJob.Name,
 					"cortex.dev/api": "true",
 				},
@@ -297,7 +297,7 @@ func (r *BatchJobReconciler) desiredWorkerJob(batchJob batch.BatchJob, apiSpec s
 			Labels: map[string]string{
 				"apiKind":        userconfig.BatchAPIKind.String(),
 				"apiName":        batchJob.Spec.APIName,
-				"apiID":          batchJob.Spec.APIId,
+				"apiID":          batchJob.Spec.APIID,
 				"specID":         apiSpec.SpecID,
 				"handlerID":      apiSpec.HandlerID,
 				"jobID":          batchJob.Name,
@@ -307,7 +307,7 @@ func (r *BatchJobReconciler) desiredWorkerJob(batchJob batch.BatchJob, apiSpec s
 				Labels: map[string]string{
 					"apiKind":        userconfig.BatchAPIKind.String(),
 					"apiName":        batchJob.Spec.APIName,
-					"apiID":          batchJob.Spec.APIId,
+					"apiID":          batchJob.Spec.APIID,
 					"specID":         apiSpec.SpecID,
 					"handlerID":      apiSpec.HandlerID,
 					"jobID":          batchJob.Name,
@@ -343,7 +343,7 @@ func (r *BatchJobReconciler) desiredWorkerJob(batchJob batch.BatchJob, apiSpec s
 }
 
 func (r *BatchJobReconciler) getAPISpec(batchJob batch.BatchJob) (*spec.API, error) {
-	apiSpecKey := spec.Key(batchJob.Spec.APIName, batchJob.Spec.APIId, r.ClusterConfig.ClusterName)
+	apiSpecKey := spec.Key(batchJob.Spec.APIName, batchJob.Spec.APIID, r.ClusterConfig.ClusterName)
 
 	input := s3.GetObjectInput{
 		Bucket: aws.String(r.ClusterConfig.Bucket),

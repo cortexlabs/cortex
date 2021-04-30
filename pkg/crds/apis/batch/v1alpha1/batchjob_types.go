@@ -30,7 +30,7 @@ type BatchJobSpec struct {
 
 	// +kubebuilder:validation:Required
 	// Reference to a cortex BatchAPI apiID
-	APIId string `json:"api_id,omitempty"`
+	APIID string `json:"api_id,omitempty"`
 
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:default=1

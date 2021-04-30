@@ -116,7 +116,7 @@ func SubmitJob(apiName string, submission *schema.BatchJobSubmission) (*batch.Ba
 		},
 		Spec: batch.BatchJobSpec{
 			APIName:         apiName,
-			APIId:           apiID,
+			APIID:           apiID,
 			Workers:         int32(submission.Workers),
 			Config:          jobConfig,
 			Timeout:         timeout,

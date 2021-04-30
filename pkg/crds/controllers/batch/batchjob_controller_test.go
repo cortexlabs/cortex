@@ -44,7 +44,7 @@ func uploadTestAPISpec(apiName string, apiID string) error {
 			},
 			Handler: &userconfig.Handler{
 				Type:         userconfig.PythonHandlerType,
-				Image:        "quay.io/cortexlabs/python-predictor-cpu:master",
+				Image:        "quay.io/cortexlabs/python-handler-cpu:master",
 				Dependencies: &userconfig.Dependencies{},
 			},
 			Compute: &userconfig.Compute{},
@@ -116,7 +116,7 @@ var _ = Describe("BatchJob controller", func() {
 					},
 					Spec: batch.BatchJobSpec{
 						APIName: APIName,
-						APIId:   randomAPIID,
+						APIID:   randomAPIID,
 						Workers: 1,
 					},
 				}
@@ -217,7 +217,7 @@ var _ = Describe("BatchJob controller", func() {
 				},
 				Spec: batch.BatchJobSpec{
 					APIName: APIName,
-					APIId:   randomAPIID,
+					APIID:   randomAPIID,
 					Workers: 1,
 					TTL:     &ttl,
 				},
@@ -288,7 +288,7 @@ var _ = Describe("BatchJob controller", func() {
 				},
 				Spec: batch.BatchJobSpec{
 					APIName: APIName,
-					APIId:   randomAPIID,
+					APIID:   randomAPIID,
 					Workers: 1,
 					TTL:     &ttl,
 				},
@@ -318,7 +318,7 @@ var _ = Describe("BatchJob controller", func() {
 					Namespace: BatchJobNamespace,
 				}, &batch.BatchJob{})
 				return kerrors.IsNotFound(err)
-			}, ttl.Duration.Seconds()*2).Should(BeTrue())
+			}, ttl.Duration.Seconds()*2, interval).Should(BeTrue())
 		})
 	})
 })
