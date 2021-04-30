@@ -138,6 +138,7 @@ def test_batch_api(
     job_timeout: int = None,
     retry_attempts: int = 0,
     api_config_name: str = "cortex.yaml",
+    local_operator: bool = False,
 ):
     api_dir = TEST_APIS_DIR / api
     with open(str(api_dir / api_config_name)) as f:
@@ -149,8 +150,9 @@ def test_batch_api(
     client.create_api(api_spec=api_specs[0], project_dir=str(api_dir))
 
     try:
+        endpoint_override = f"http://localhost:8888/batch/{api_name}" if local_operator else None
         assert endpoint_ready(
-            client=client, api_name=api_name, timeout=deploy_timeout
+            client=client, api_name=api_name, timeout=deploy_timeout, endpoint_override=endpoint_override
         ), f"api {api_name} not ready"
 
         with open(str(api_dir / "sample.json")) as f:
@@ -164,6 +166,7 @@ def test_batch_api(
                 item_list=payload,
                 batch_size=2,
                 config={"dest_s3_dir": test_s3_path},
+                local_operator=local_operator,
             )
             if response.status_code == HTTPStatus.OK:
                 break
@@ -182,6 +185,7 @@ def test_batch_api(
             api_name=job_spec["api_name"],
             job_id=job_spec["job_id"],
             timeout=job_timeout,
+            local_operator=local_operator,
         ), f"job did not succeed (api_name: {api_name}, job_id: {job_spec['job_id']})"
 
     except:
@@ -275,6 +279,7 @@ def test_async_api(
         assert (
             "result" in result_response_json
         ), f"result key was not present in result response (response: {result_response_json})"
+
         assert (
             "timestamp" in result_response_json
         ), f"timestamp key was not present in result response (response: {result_response_json})"
