@@ -13,26 +13,26 @@
 # limitations under the License.
 
 import json
+import math
 import os
 import re
+import threading as td
 import time
-import math
-import boto3
-from e2e.generator import load_generator
 from http import HTTPStatus
 from pathlib import Path
 from typing import Callable, Dict, Any, List, Union
 
+import boto3
 import cortex as cx
 import requests
 import yaml
-import threading as td
 
 from e2e.expectations import (
     parse_expectations,
     assert_response_expectations,
     assert_json_expectations,
 )
+from e2e.generator import load_generator
 from e2e.utils import (
     apis_ready,
     api_updated,
@@ -79,7 +79,7 @@ def test_realtime_api(
 
     api_name = api_specs[0]["name"]
     for api_spec in api_specs:
-        client.create_api(api_spec=api_spec, project_dir=api_dir)
+        client.create_api(api_spec=api_spec, project_dir=str(api_dir))
 
     try:
         assert apis_ready(
@@ -123,9 +123,8 @@ def test_realtime_api(
             printer(json.dumps(api_info, indent=2))
             td.Thread(target=lambda: client.stream_api_logs(api_name), daemon=True).start()
             time.sleep(5)
-        except:
-            pass
-        raise
+        finally:
+            raise
     finally:
         delete_apis(client, [api_name])
 
@@ -147,7 +146,7 @@ def test_batch_api(
     assert len(api_specs) == 1
 
     api_name = api_specs[0]["name"]
-    client.create_api(api_spec=api_specs[0], project_dir=api_dir)
+    client.create_api(api_spec=api_specs[0], project_dir=str(api_dir))
 
     try:
         assert endpoint_ready(
@@ -197,10 +196,8 @@ def test_batch_api(
                 target=lambda: client.stream_job_logs(api_name, job_spec["job_id"]), daemon=True
             ).start()
             time.sleep(5)
-        except:
-            pass
-        raise
-
+        finally:
+            raise
     finally:
         delete_apis(client, [api_name])
 
@@ -226,7 +223,7 @@ def test_async_api(
     assert len(api_specs) == 1
 
     api_name = api_specs[0]["name"]
-    client.create_api(api_spec=api_specs[0], project_dir=api_dir)
+    client.create_api(api_spec=api_specs[0], project_dir=str(api_dir))
 
     try:
         assert apis_ready(
@@ -333,7 +330,7 @@ def test_task_api(
     assert len(api_specs) == 1
 
     api_name = api_specs[0]["name"]
-    client.create_api(api_spec=api_specs[0], project_dir=api_dir)
+    client.create_api(api_spec=api_specs[0], project_dir=str(api_dir))
 
     try:
         assert endpoint_ready(
@@ -484,10 +481,8 @@ def test_autoscaling(
         try:
             api_info = client.get_api(primary_api_name)
             printer(json.dumps(api_info, indent=2))
-        except:
-            pass
-        raise
-
+        finally:
+            raise
     finally:
         request_stopper.set()
         delete_apis(client, all_api_names)
@@ -520,7 +515,7 @@ def test_load_realtime(
         "max_replicas": desired_replicas,
     }
     api_name = api_specs[0]["name"]
-    client.create_api(api_spec=api_specs[0], project_dir=api_dir)
+    client.create_api(api_spec=api_specs[0], project_dir=str(api_dir))
 
     # controls the flow of requests
     request_stopper = td.Event()
@@ -561,8 +556,7 @@ def test_load_realtime(
 
             current_avg_rtt = sum(latencies) / len(latencies) if len(latencies) > 0 else avg_rtt
             assert (
-                current_avg_rtt > avg_rtt - avg_rtt_tolerance
-                and current_avg_rtt < avg_rtt + avg_rtt_tolerance
+                avg_rtt - avg_rtt_tolerance < current_avg_rtt < avg_rtt + avg_rtt_tolerance
             ), f"avg latency ({current_avg_rtt}s) falls outside the expected range ({avg_rtt - avg_rtt_tolerance}s - {avg_rtt + avg_rtt_tolerance})"
 
             api_info = client.get_api(api_name)
@@ -596,9 +590,8 @@ def test_load_realtime(
         try:
             api_info = client.get_api(api_name)
             printer(json.dumps(api_info, indent=2))
-        except:
-            pass
-        raise
+        finally:
+            raise
 
     finally:
         request_stopper.set()
@@ -631,7 +624,7 @@ def test_load_async(
         "max_replicas": desired_replicas,
     }
     api_name = api_specs[0]["name"]
-    client.create_api(api_spec=api_specs[0], project_dir=api_dir)
+    client.create_api(api_spec=api_specs[0], project_dir=str(api_dir))
 
     request_stopper = td.Event()
     map_stopper = td.Event()
@@ -712,9 +705,8 @@ def test_load_async(
         try:
             api_info = client.get_api(api_name)
             printer(json.dumps(api_info, indent=2))
-        except:
-            pass
-        raise
+        finally:
+            raise
 
     finally:
         if "results" in vars() and len(results) < total_requests:
@@ -756,7 +748,7 @@ def test_load_batch(
     sample_generator = load_generator(sample_generator_path)
 
     api_name = api_specs[0]["name"]
-    client.create_api(api_spec=api_specs[0], project_dir=api_dir)
+    client.create_api(api_spec=api_specs[0], project_dir=str(api_dir))
     api_endpoint = client.get_api(api_name)["endpoint"]
 
     try:
@@ -820,9 +812,8 @@ def test_load_batch(
                 api_info["batch_job_statuses"] = api_info["batch_job_statuses"][-10:]
 
             printer(json.dumps(api_info, indent=2))
-        except:
-            pass
-        raise
+        finally:
+            raise
 
     finally:
         delete_apis(client, [api_name])
@@ -850,7 +841,7 @@ def test_load_task(
     assert len(api_specs) == 1
 
     api_name = api_specs[0]["name"]
-    client.create_api(api_spec=api_specs[0], project_dir=api_dir)
+    client.create_api(api_spec=api_specs[0], project_dir=str(api_dir))
 
     request_stopper = td.Event()
     map_stopper = td.Event()
@@ -897,9 +888,8 @@ def test_load_task(
                 api_info["task_job_statuses"] = api_info["task_job_statuses"][-10:]
 
             printer(json.dumps(api_info, indent=2))
-        except:
-            pass
-        raise
+        finally:
+            raise
 
     finally:
         map_stopper.set()
@@ -928,7 +918,7 @@ def test_long_running_realtime(
 
     api_name = api_specs[0]["name"]
     for api_spec in api_specs:
-        client.create_api(api_spec=api_spec, project_dir=api_dir)
+        client.create_api(api_spec=api_spec, project_dir=str(api_dir))
 
     try:
         assert apis_ready(
@@ -964,8 +954,7 @@ def test_long_running_realtime(
             printer(json.dumps(api_info, indent=2))
             td.Thread(target=lambda: client.stream_api_logs(api_name), daemon=True).start()
             time.sleep(5)
-        except:
-            pass
-        raise
+        finally:
+            raise
     finally:
         delete_apis(client, [api_name])
