@@ -70,6 +70,10 @@ var _jobCodeMessages = []string{
 
 var _ = [1]int{}[int(JobStopped)-(len(_jobCodeMessages)-1)] // Ensure list length matches
 
+func (code JobCode) IsNotStarted() bool {
+	return code == JobPending || code == JobEnqueuing
+}
+
 func (code JobCode) IsInProgress() bool {
 	return code == JobEnqueuing || code == JobRunning
 }

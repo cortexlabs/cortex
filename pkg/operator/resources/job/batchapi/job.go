@@ -24,6 +24,7 @@ import (
 	batch "github.com/cortexlabs/cortex/pkg/crds/apis/batch/v1alpha1"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
+	"github.com/cortexlabs/cortex/pkg/operator/operator"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
@@ -59,7 +60,7 @@ func DryRun(submission *schema.BatchJobSubmission) ([]string, error) {
 	return nil, nil
 }
 
-func SubmitJob(apiName string, submission *schema.BatchJobSubmission) (*batch.BatchJob, error) {
+func SubmitJob(apiName string, submission *schema.BatchJobSubmission) (*spec.BatchJob, error) {
 	err := validateJobSubmission(submission)
 	if err != nil {
 		return nil, err
@@ -72,6 +73,28 @@ func SubmitJob(apiName string, submission *schema.BatchJobSubmission) (*batch.Ba
 
 	apiID := virtualService.Labels["apiID"]
 	jobID := spec.MonotonicallyDecreasingID()
+
+	apiSpec, err := operator.DownloadAPISpec(apiName, apiID)
+	if err != nil {
+		return nil, err
+	}
+
+	jobSpec := spec.BatchJob{
+		RuntimeBatchJobConfig: submission.RuntimeBatchJobConfig,
+		JobKey: spec.JobKey{
+			APIName: apiName,
+			ID:      jobID,
+			Kind:    userconfig.BatchAPIKind,
+		},
+		APIID:     apiSpec.ID,
+		SpecID:    apiSpec.SpecID,
+		HandlerID: apiSpec.HandlerID,
+	}
+
+	err = uploadJobSpec(&jobSpec)
+	if err != nil {
+		return nil, err
+	}
 
 	// upload job payload for enqueuer
 	payloadKey := spec.JobPayloadKey(config.ClusterConfig.ClusterName, userconfig.BatchAPIKind, apiName, jobID)
@@ -130,11 +153,19 @@ func SubmitJob(apiName string, submission *schema.BatchJobSubmission) (*batch.Ba
 		return nil, err
 	}
 
-	return &batchJob, nil
+	return &jobSpec, nil
 }
 
 func StopJob(jobKey spec.JobKey) error {
 	return config.K8s.Delete(context.Background(), &batch.BatchJob{
 		ObjectMeta: kmeta.ObjectMeta{Name: jobKey.ID, Namespace: config.K8s.Namespace},
 	})
+}
+
+func uploadJobSpec(jobSpec *spec.BatchJob) error {
+	err := config.AWS.UploadJSONToS3(jobSpec, config.ClusterConfig.Bucket, jobSpec.SpecFilePath(config.ClusterConfig.ClusterName))
+	if err != nil {
+		return err
+	}
+	return nil
 }

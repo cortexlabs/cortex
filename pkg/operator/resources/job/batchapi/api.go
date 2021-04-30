@@ -224,9 +224,11 @@ func GetAPIByName(deployedResource *operator.DeployedResource) ([]schema.APIResp
 				return nil, err
 			}
 
-			jobStatuses = append(jobStatuses, *jobStatus)
-			if len(jobStatuses) == 10 {
-				break
+			if jobStatus != nil {
+				jobStatuses = append(jobStatuses, *jobStatus)
+				if len(jobStatuses) == 10 {
+					break
+				}
 			}
 		}
 	}

@@ -52,7 +52,7 @@ func getJobStatusFromJobState(jobState *job.State, batchJob *batch.BatchJob) (*s
 	jobKey := jobState.JobKey
 
 	if batchJob != nil {
-		if batchJob.Status.Status == status.JobPending || batchJob.Status.Status == status.JobEnqueuing {
+		if batchJob.Status.Status == status.JobUnknown || batchJob.Status.Status.IsNotStarted() {
 			var deadLetterQueue *spec.SQSDeadLetterQueue
 			if batchJob.Spec.DeadLetterQueue != nil {
 				deadLetterQueue = &spec.SQSDeadLetterQueue{
