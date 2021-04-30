@@ -232,10 +232,10 @@ func ErrorSurgeAndUnavailableBothZero() error {
 	})
 }
 
-func ErrorShmSizeCannotExceedMem(topSection string, shmSize k8s.Quantity, mem k8s.Quantity) error {
+func ErrorShmSizeCannotExceedMem(parentFieldName string, shmSize k8s.Quantity, mem k8s.Quantity) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrShmSizeCannotExceedMem,
-		Message: fmt.Sprintf("%s.shm_size (%s) cannot exceed compute.mem (%s)", topSection, shmSize.UserString, mem.UserString),
+		Message: fmt.Sprintf("%s.shm_size (%s) cannot exceed compute.mem (%s)", parentFieldName, shmSize.UserString, mem.UserString),
 	})
 }
 
