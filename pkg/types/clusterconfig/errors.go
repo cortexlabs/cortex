@@ -284,15 +284,9 @@ func ErrorSpecifyOneOrNone(fieldName1 string, fieldName2 string, fieldNames ...s
 
 func ErrorSpecifyTwoOrNone(fieldName1 string, fieldName2 string, fieldNames ...string) error {
 	fieldNames = append([]string{fieldName1, fieldName2}, fieldNames...)
-
-	message := fmt.Sprintf("specify exactly two or none of the following fields: %s", s.StrsAnd(fieldNames))
-	if len(fieldNames) == 1 {
-		message = fmt.Sprintf("cannot have a single field (%s) to choose from)", fieldNames[0])
-	}
-
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrSpecifyTwoOrNone,
-		Message: message,
+		Message: fmt.Sprintf("specify exactly two or none of the following fields: %s", s.StrsAnd(fieldNames)),
 	})
 }
 
@@ -373,10 +367,10 @@ func ErrorIOPSToVolumeSizeRatio(volumeType VolumeType, ratio, iops int64, volume
 	})
 }
 
-func ErrorIOPSToThroughputRatio(volumeType VolumeType, ratio, throughput int64, iops int64) error {
+func ErrorIOPSToThroughputRatio(volumeType VolumeType, ratio, iops, throughput int64) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrIOPSToThroughputRatio,
-		Message: fmt.Sprintf("for %s volume type, %s (%d) cannot be less than %d times smaller than %s (%d); increase `%s` or decrease `%s` in your cluster configuration file", volumeType, InstanceVolumeIOPSKey, iops, ratio, InstanceVolumeThroughputKey, throughput, InstanceVolumeThroughputKey, InstanceVolumeIOPSKey),
+		Message: fmt.Sprintf("for %s volume type, %s (%d) must be at least %d times larger than %s (%d); decrease `%s` or increase `%s` in your cluster configuration file", volumeType, InstanceVolumeIOPSKey, iops, ratio, InstanceVolumeThroughputKey, throughput, InstanceVolumeThroughputKey, InstanceVolumeIOPSKey),
 	})
 }
 

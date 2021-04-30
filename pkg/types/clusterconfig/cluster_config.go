@@ -68,7 +68,7 @@ var (
 
 	_maxIOPSToVolumeSizeRatioForIO1 = int64(50)
 	_maxIOPSToVolumeSizeRatioForGP3 = int64(500)
-	_maxIOPSToThroughputRatioForGP3 = int64(4)
+	_minIOPSToThroughputRatioForGP3 = int64(4)
 
 	// This regex is stricter than the actual S3 rules
 	_strictS3BucketRegex = regexp.MustCompile(`^([a-z0-9])+(-[a-z0-9]+)*$`)
@@ -985,14 +985,14 @@ func (ng *NodeGroup) validateNodeGroup(awsClient *aws.Client, region string) err
 				return ErrorIOPSToVolumeSizeRatio(ng.InstanceVolumeType, _maxIOPSToVolumeSizeRatioForGP3, *ng.InstanceVolumeIOPS, ng.InstanceVolumeSize)
 			}
 			iopsToThroughputRatio := float64(*ng.InstanceVolumeIOPS) / float64(*ng.InstanceVolumeThroughput)
-			if iopsToThroughputRatio < float64(_maxIOPSToThroughputRatioForGP3) {
-				return ErrorIOPSToThroughputRatio(ng.InstanceVolumeType, _maxIOPSToThroughputRatioForGP3, *ng.InstanceVolumeIOPS, *ng.InstanceVolumeThroughput)
+			if iopsToThroughputRatio < float64(_minIOPSToThroughputRatioForGP3) {
+				return ErrorIOPSToThroughputRatio(ng.InstanceVolumeType, _minIOPSToThroughputRatioForGP3, *ng.InstanceVolumeIOPS, *ng.InstanceVolumeThroughput)
 			}
 		}
-	} else if ng.InstanceVolumeType == GP3VolumeType && aws.EBSMetadatas[region][ng.InstanceVolumeType.String()].IOPSConfigurable {
+	} else if ng.InstanceVolumeType == GP3VolumeType {
 		ng.InstanceVolumeIOPS = pointer.Int64(3000)
 		ng.InstanceVolumeThroughput = pointer.Int64(125)
-	} else if ng.InstanceVolumeType == IO1VolumeType && aws.EBSMetadatas[region][ng.InstanceVolumeType.String()].IOPSConfigurable {
+	} else if ng.InstanceVolumeType == IO1VolumeType {
 		ng.InstanceVolumeIOPS = pointer.Int64(libmath.MinInt64(ng.InstanceVolumeSize*_maxIOPSToVolumeSizeRatioForIO1, 3000))
 	}
 

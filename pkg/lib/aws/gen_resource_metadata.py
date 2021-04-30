@@ -301,9 +301,9 @@ type EBSMetadata struct {
 	Region string  `json:"region"`
 	PriceGB  float64 `json:"price_gb"`
 	PriceIOPS  float64 `json:"price_iops"`
-    PriceThroughput float64 `json:"price_throughput"`
+	PriceThroughput float64 `json:"price_throughput"`
 	IOPSConfigurable bool `json:"iops_configurable"`
-    ThroughputConfigurable bool `json:"throughput_configurable"`
+	ThroughputConfigurable bool `json:"throughput_configurable"`
 	Type  string `json:"type"`
 }
 
