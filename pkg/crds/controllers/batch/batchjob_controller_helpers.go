@@ -476,9 +476,12 @@ func (r *BatchJobReconciler) deleteSQSQueue(batchJob batch.BatchJob) error {
 	queueURL := r.getQueueURL(batchJob)
 	input := sqs.DeleteQueueInput{QueueUrl: aws.String(queueURL)}
 	if _, err := r.AWS.SQS().DeleteQueue(&input); err != nil {
-		return err
+		if awsErr, ok := err.(awserr.Error); ok {
+			if awsErr.Code() == sqs.ErrCodeQueueDoesNotExist {
+				return nil
+			}
+		}
 	}
-
 	return nil
 }
 
@@ -569,6 +572,9 @@ func (r *BatchJobReconciler) updateCompletedTimestamp(ctx context.Context, batch
 func (r *BatchJobReconciler) persistJobToS3(batchJob batch.BatchJob) error {
 	return parallel.RunFirstErr(
 		func() error {
+			if batchJob.Status.Status != status.JobSucceeded {
+				return nil
+			}
 			return r.Config.SaveJobMetrics(r, batchJob)
 		},
 		func() error {
