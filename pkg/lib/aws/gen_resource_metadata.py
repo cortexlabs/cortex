@@ -181,12 +181,48 @@ def get_ebs_metadata(pricing):
                 price = list(price_dimensions.values())[0]["pricePerUnit"]["USD"]
 
                 metadata["price_iops"] = price
+                metadata["price_throughput"] = 0
                 metadata["iops_configurable"] = "true"
+                metadata["throughput_configurable"] = "false"
+
+        elif product["attributes"].get("volumeApiName") == "gp3":
+            # go through pricing data until found data about IOPS and throughput pricing
+            for _, product_iops in pricing["products"].items():
+                if product_iops.get("attributes") is None:
+                    continue
+                if product_iops.get("productFamily") not in [
+                    "System Operation",
+                    "Provisioned Throughput",
+                ]:
+                    continue
+                if product_iops["attributes"].get("volumeApiName") != "gp3":
+                    continue
+                if product_iops["attributes"].get("group") not in ["EBS IOPS", "EBS Throughput"]:
+                    continue
+                if product_iops["attributes"].get("provisioned") != "Yes":
+                    continue
+
+                price_dimensions = list(pricing["terms"]["OnDemand"][product_iops["sku"]].values())[
+                    0
+                ]["priceDimensions"]
+                if product_iops["attributes"].get("group") == "EBS IOPS":
+                    price_iops = list(price_dimensions.values())[0]["pricePerUnit"]["USD"]
+                else:
+                    price_throughput = (
+                        float(list(price_dimensions.values())[0]["pricePerUnit"]["USD"]) / 1000
+                    )
+
+            metadata["price_iops"] = price_iops
+            metadata["price_throughput"] = price_throughput
+            metadata["throughput_configurable"] = "true"
+            metadata["iops_configurable"] = "true"
 
         # set default values for all other storage types
         else:
             metadata["price_iops"] = 0
+            metadata["price_throughput"] = 0
             metadata["iops_configurable"] = "false"
+            metadata["throughput_configurable"] = "false"
 
         storage_mapping[product["attributes"]["volumeApiName"]] = metadata
 
@@ -265,7 +301,9 @@ type EBSMetadata struct {
 	Region string  `json:"region"`
 	PriceGB  float64 `json:"price_gb"`
 	PriceIOPS  float64 `json:"price_iops"`
+	PriceThroughput float64 `json:"price_throughput"`
 	IOPSConfigurable bool `json:"iops_configurable"`
+	ThroughputConfigurable bool `json:"throughput_configurable"`
 	Type  string `json:"type"`
 }
 
@@ -326,7 +364,7 @@ ebs_region_map_template = Template(
 )
 
 ebs_type_map_template = Template(
-    """"${type}": {Region: "${region}",Type: "${type}", PriceGB: ${price_gb}, PriceIOPS: ${price_iops}, IOPSConfigurable: ${iops_configurable}},
+    """"${type}": {Region: "${region}",Type: "${type}", PriceGB: ${price_gb}, PriceIOPS: ${price_iops}, PriceThroughput: ${price_throughput}, IOPSConfigurable: ${iops_configurable}, ThroughputConfigurable: ${throughput_configurable}},
 """
 )
 
@@ -381,7 +419,9 @@ def main():
                     "type": ebs_type,
                     "price_gb": metadata["price_gb"],
                     "price_iops": metadata["price_iops"],
+                    "price_throughput": metadata["price_throughput"],
                     "iops_configurable": metadata["iops_configurable"],
+                    "throughput_configurable": metadata["throughput_configurable"],
                 }
             )
 

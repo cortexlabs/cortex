@@ -28,6 +28,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
 	"github.com/cortexlabs/cortex/pkg/lib/maps"
+	libmath "github.com/cortexlabs/cortex/pkg/lib/math"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/prompt"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
@@ -149,8 +150,8 @@ func getInstallClusterConfig(awsClient *aws.Client, clusterConfigFile string, di
 func confirmInstallClusterConfig(clusterConfig *clusterconfig.Config, awsClient *aws.Client, disallowPrompt bool) {
 	eksPrice := aws.EKSPrices[clusterConfig.Region]
 	operatorInstancePrice := aws.InstanceMetadatas[clusterConfig.Region]["t3.medium"].Price
-	operatorEBSPrice := aws.EBSMetadatas[clusterConfig.Region]["gp2"].PriceGB * 20 / 30 / 24
-	metricsEBSPrice := aws.EBSMetadatas[clusterConfig.Region]["gp2"].PriceGB * 40 / 30 / 24
+	operatorEBSPrice := aws.EBSMetadatas[clusterConfig.Region]["gp3"].PriceGB * 20 / 30 / 24
+	metricsEBSPrice := aws.EBSMetadatas[clusterConfig.Region]["gp2"].PriceGB * (40 + 2) / 30 / 24
 	nlbPrice := aws.NLBMetadatas[clusterConfig.Region].Price
 	natUnitPrice := aws.NATMetadatas[clusterConfig.Region].Price
 
@@ -170,14 +171,18 @@ func confirmInstallClusterConfig(clusterConfig *clusterconfig.Config, awsClient 
 	rows = append(rows, []interface{}{"1 eks cluster", s.DollarsMaxPrecision(eksPrice)})
 
 	ngNameToSpotInstancesUsed := map[string]int{}
-	fixedPrice := eksPrice + 2*operatorInstancePrice + operatorEBSPrice + metricsEBSPrice + 2*nlbPrice + natTotalPrice
+	fixedPrice := eksPrice + 2*(operatorInstancePrice+operatorEBSPrice) + metricsEBSPrice + 2*nlbPrice + natTotalPrice
 	totalMinPrice := fixedPrice
 	totalMaxPrice := fixedPrice
 	for _, ng := range clusterConfig.NodeGroups {
 		apiInstancePrice := aws.InstanceMetadatas[clusterConfig.Region][ng.InstanceType].Price
 		apiEBSPrice := aws.EBSMetadatas[clusterConfig.Region][ng.InstanceVolumeType.String()].PriceGB * float64(ng.InstanceVolumeSize) / 30 / 24
-		if ng.InstanceVolumeType.String() == "io1" && ng.InstanceVolumeIOPS != nil {
+		if ng.InstanceVolumeType == clusterconfig.IO1VolumeType && ng.InstanceVolumeIOPS != nil {
 			apiEBSPrice += aws.EBSMetadatas[clusterConfig.Region][ng.InstanceVolumeType.String()].PriceIOPS * float64(*ng.InstanceVolumeIOPS) / 30 / 24
+		}
+		if ng.InstanceVolumeType == clusterconfig.GP3VolumeType && ng.InstanceVolumeIOPS != nil && ng.InstanceVolumeThroughput != nil {
+			apiEBSPrice += libmath.MaxFloat64(0, (aws.EBSMetadatas[clusterConfig.Region][ng.InstanceVolumeType.String()].PriceIOPS-3000)*float64(*ng.InstanceVolumeIOPS)/30/24)
+			apiEBSPrice += libmath.MaxFloat64(0, (aws.EBSMetadatas[clusterConfig.Region][ng.InstanceVolumeType.String()].PriceThroughput-125)*float64(*ng.InstanceVolumeThroughput)/30/24)
 		}
 
 		totalMinPrice += float64(ng.MinInstances) * (apiInstancePrice + apiEBSPrice)
@@ -212,8 +217,8 @@ func confirmInstallClusterConfig(clusterConfig *clusterconfig.Config, awsClient 
 	}
 
 	rows = append(rows, []interface{}{"2 t3.medium instances for cortex", s.DollarsMaxPrecision(operatorInstancePrice * 2)})
-	rows = append(rows, []interface{}{"1 20gb ebs volume for the operator", s.DollarsAndTenthsOfCents(operatorEBSPrice)})
-	rows = append(rows, []interface{}{"1 40gb ebs volume for prometheus", s.DollarsAndTenthsOfCents(metricsEBSPrice)})
+	rows = append(rows, []interface{}{"2 20gb ebs volumes for the operator", s.DollarsAndTenthsOfCents(operatorEBSPrice * 2)})
+	rows = append(rows, []interface{}{"1 40+2gb ebs volumes for metrics (prometheus and grafana)", s.DollarsAndTenthsOfCents(metricsEBSPrice)})
 	rows = append(rows, []interface{}{"2 network load balancers", s.DollarsMaxPrecision(nlbPrice) + " each"})
 
 	if clusterConfig.NATGateway == clusterconfig.SingleNATGateway {

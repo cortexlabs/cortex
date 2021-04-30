@@ -36,8 +36,9 @@ node_groups:
     min_instances: 1 # minimum number of instances
     max_instances: 5 # maximum number of instances
     instance_volume_size: 50 # disk storage size per instance (GB)
-    instance_volume_type: gp2 # instance volume type [gp2 | io1 | st1 | sc1]
-    # instance_volume_iops: 3000 # instance volume iops (only applicable to io1)
+    instance_volume_type: gp3 # instance volume type [gp2 | gp3 | io1 | st1 | sc1]
+    # instance_volume_iops: 3000 # instance volume iops (only applicable to io1/gp3)
+    # instance_volume_throughput: 125 # instance volume throughput (only applicable to gp3)
     spot: false # whether to use spot instances
 
   - name: ng-gpu
@@ -45,8 +46,7 @@ node_groups:
     min_instances: 1
     max_instances: 5
     instance_volume_size: 50
-    instance_volume_type: gp2
-    # instance_volume_iops: 3000
+    instance_volume_type: gp3
     spot: false
   ...
 
