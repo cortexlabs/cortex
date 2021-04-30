@@ -18,6 +18,7 @@ package batchcontrollers
 
 import (
 	"context"
+	"reflect"
 	"time"
 
 	batch "github.com/cortexlabs/cortex/pkg/crds/apis/batch/v1alpha1"
@@ -30,9 +31,11 @@ import (
 	promv1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	kbatch "k8s.io/api/batch/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
+	kmeta "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 )
 
 const (
@@ -216,19 +219,19 @@ func (r *BatchJobReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return ctrl.Result{}, nil
 	case batch.EnqueuingFailed:
 		log.Info("failed to enqueue payload")
-	}
-
-	if !workerJobExists && enqueuingStatus == batch.EnqueuingDone {
-		log.V(1).Info("creating worker job")
-		if err = r.createWorkerJob(ctx, batchJob, queueURL); err != nil {
-			log.Error(err, "failed to create worker job")
-			return ctrl.Result{}, err
+	case batch.EnqueuingDone:
+		if !workerJobExists {
+			log.V(1).Info("creating worker job")
+			if err = r.createWorkerJob(ctx, batchJob, queueURL); err != nil {
+				log.Error(err, "failed to create worker job")
+				return ctrl.Result{}, err
+			}
 		}
 	}
 
 	// Step 6: Delete self if TTL is enabled and reached a final state
 	if batchJob.Spec.TTL != nil && completedTimestamp != nil {
-		afterFinishedDuration := time.Now().Sub(*completedTimestamp)
+		afterFinishedDuration := time.Since(*completedTimestamp)
 		if afterFinishedDuration >= batchJob.Spec.TTL.Duration {
 			if err = r.Delete(ctx, &batchJob); err != nil {
 				return ctrl.Result{}, client.IgnoreNotFound(err)
@@ -245,8 +248,28 @@ func (r *BatchJobReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 
 // SetupWithManager sets up the BatchJob controller with the controller manager
 func (r *BatchJobReconciler) SetupWithManager(mgr ctrl.Manager) error {
+	watchOwnedFilter := predicate.NewPredicateFuncs(
+		func(meta kmeta.Object, object runtime.Object) bool {
+			if _, ok := object.(*batch.BatchJob); ok {
+				return true
+			}
+
+			ownerRefs := meta.GetOwnerReferences()
+
+			var isOwnedByController bool
+			for _, ownerRef := range ownerRefs {
+				if ownerRef.Kind == reflect.TypeOf(batch.BatchJob{}).Name() {
+					isOwnedByController = true
+				}
+			}
+
+			return isOwnedByController
+		},
+	)
+
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&batch.BatchJob{}).
 		Owns(&kbatch.Job{}).
+		WithEventFilter(watchOwnedFilter).
 		Complete(r)
 }

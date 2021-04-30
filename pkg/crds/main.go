@@ -133,11 +133,9 @@ func main() {
 	// initialize some of the global values for the k8s helpers
 	config.InitConfigs(clusterConfig, operatorMetadata)
 
-	reconcilerConfig := batchcontrollers.BatchJobReconcilerConfig{}.ApplyDefaults()
-
 	if err = (&batchcontrollers.BatchJobReconciler{
 		Client:        mgr.GetClient(),
-		Config:        reconcilerConfig,
+		Config:        batchcontrollers.BatchJobReconcilerConfig{}.ApplyDefaults(),
 		Log:           ctrl.Log.WithName("controllers").WithName("BatchJob"),
 		ClusterConfig: clusterConfig,
 		AWS:           awsClient,
