@@ -16,11 +16,15 @@ limitations under the License.
 
 package batchcontrollers
 
-import batch "github.com/cortexlabs/cortex/pkg/crds/apis/batch/v1alpha1"
+import (
+	batch "github.com/cortexlabs/cortex/pkg/crds/apis/batch/v1alpha1"
+	"github.com/cortexlabs/cortex/pkg/types/metrics"
+)
 
 // BatchJobReconcilerConfig reconciler config for the BatchJob kind. Allows for mocking specific methods
 type BatchJobReconcilerConfig struct {
 	GetMaxBatchCount func(r *BatchJobReconciler, batchJob batch.BatchJob) (int, error)
+	GetMetrics       func(r *BatchJobReconciler, batchJob batch.BatchJob) (metrics.BatchMetrics, error)
 	SaveJobMetrics   func(r *BatchJobReconciler, batchJob batch.BatchJob) error
 	SaveJobStatus    func(r *BatchJobReconciler, batchJob batch.BatchJob) error
 }
@@ -29,6 +33,10 @@ type BatchJobReconcilerConfig struct {
 func (c BatchJobReconcilerConfig) ApplyDefaults() BatchJobReconcilerConfig {
 	if c.GetMaxBatchCount == nil {
 		c.GetMaxBatchCount = getMaxBatchCount
+	}
+
+	if c.GetMetrics == nil {
+		c.GetMetrics = getMetrics
 	}
 
 	if c.SaveJobMetrics == nil {

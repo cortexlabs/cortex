@@ -39,6 +39,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/types/clusterconfig"
+	"github.com/cortexlabs/cortex/pkg/types/metrics"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/types/status"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
@@ -554,9 +555,20 @@ func getMaxBatchCount(r *BatchJobReconciler, batchJob batch.BatchJob) (int, erro
 	return maxBatchCount, nil
 }
 
+func getMetrics(r *BatchJobReconciler, batchJob batch.BatchJob) (metrics.BatchMetrics, error) {
+	jobMetrics, err := batch.GetMetrics(r.Prometheus, spec.JobKey{
+		ID:      batchJob.Name,
+		APIName: batchJob.Spec.APIName,
+		Kind:    userconfig.BatchAPIKind,
+	}, batchJob.Status.EndTime.Time)
+	if err != nil {
+		return metrics.BatchMetrics{}, err
+	}
+	return jobMetrics, nil
+}
+
 func saveJobMetrics(r *BatchJobReconciler, batchJob batch.BatchJob) error {
-	jobSpec := spec.JobKey{ID: batchJob.Name, APIName: batchJob.Spec.APIName, Kind: userconfig.BatchAPIKind}
-	jobMetrics, err := batch.GetMetrics(r.Prometheus, jobSpec, time.Now())
+	jobMetrics, err := r.Config.GetMetrics(r, batchJob)
 	if err != nil {
 		return err
 	}

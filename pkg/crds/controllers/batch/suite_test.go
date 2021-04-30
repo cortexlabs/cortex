@@ -28,6 +28,7 @@ import (
 	awslib "github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/hash"
 	"github.com/cortexlabs/cortex/pkg/types/clusterconfig"
+	"github.com/cortexlabs/cortex/pkg/types/metrics"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"k8s.io/client-go/kubernetes/scheme"
@@ -125,6 +126,9 @@ var _ = BeforeSuite(func(done Done) {
 	reconcilerConfig := batchcontrollers.BatchJobReconcilerConfig{
 		GetMaxBatchCount: func(r *batchcontrollers.BatchJobReconciler, batchJob batch.BatchJob) (int, error) {
 			return 1, nil
+		},
+		GetMetrics: func(r *batchcontrollers.BatchJobReconciler, batchJob batch.BatchJob) (metrics.BatchMetrics, error) {
+			return metrics.BatchMetrics{Succeeded: 1}, nil
 		},
 		SaveJobMetrics: func(r *batchcontrollers.BatchJobReconciler, batchJob batch.BatchJob) error {
 			return nil
