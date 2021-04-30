@@ -103,7 +103,7 @@ var _prepareDebugCmd = &cobra.Command{
 
 		fmt.Println(fmt.Sprintf(
 			`
-docker run -p 9000:8888 \
+docker run --rm -p 9000:8888 \
 -e "CORTEX_VERSION=%s" \
 -e "CORTEX_API_SPEC=/mnt/project/%s" \
 -v %s:/mnt/project \
