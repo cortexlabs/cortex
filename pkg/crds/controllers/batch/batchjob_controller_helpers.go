@@ -401,24 +401,30 @@ func (r *BatchJobReconciler) updateStatus(ctx context.Context, batchJob *batch.B
 		batchJob.Status.EndTime = worker.Status.CompletionTime // assign right away, because it's a pointer
 
 		if worker.Status.Failed == batchJob.Spec.Workers {
-			var batchJobStatus status.JobCode
+			batchJobStatus := status.JobWorkerError
 			for _, condition := range worker.Status.Conditions {
 				if condition.Reason == _deadlineExceededReason {
 					batchJobStatus = status.JobTimedOut
 					break
 				}
-				// TODO: handle known failure conditions (OOM / image pull failure / etc)
 			}
-			if batchJobStatus != status.JobTimedOut {
-				batchJobStatus = status.JobWorkerError
+
+			isWorkerOOM, err := r.checkWorkersOOM(ctx, batchJob)
+			if err != nil {
+				return err
 			}
+
+			if isWorkerOOM {
+				batchJobStatus = status.JobWorkerOOM
+			}
+
 			batchJob.Status.Status = batchJobStatus
 		} else if worker.Status.Succeeded == batchJob.Spec.Workers {
 			batchJob.Status.Status = status.JobSucceeded
 		} else if worker.Status.Active > 0 {
 			batchJob.Status.Status = status.JobRunning
 		}
-		// TODO: update worker counts
+
 		pendingWorkers := batchJob.Spec.Workers - (worker.Status.Active + worker.Status.Succeeded + worker.Status.Failed)
 		batchJob.Status.WorkerCounts = &status.WorkerCounts{
 			Pending:   pendingWorkers,
@@ -433,6 +439,27 @@ func (r *BatchJobReconciler) updateStatus(ctx context.Context, batchJob *batch.B
 	}
 
 	return nil
+}
+
+func (r *BatchJobReconciler) checkWorkersOOM(ctx context.Context, batchJob *batch.BatchJob) (bool, error) {
+	workerJobPods := kcore.PodList{}
+	if err := r.List(ctx, &workerJobPods,
+		client.InNamespace(r.ClusterConfig.Namespace),
+		client.MatchingLabels{
+			"jobID":   batchJob.Name,
+			"apiName": batchJob.Spec.APIName,
+			"apiID":   batchJob.Spec.APIID,
+		},
+	); err != nil {
+		return false, err
+	}
+
+	for i := range workerJobPods.Items {
+		if k8s.WasPodOOMKilled(&workerJobPods.Items[i]) {
+			return true, nil
+		}
+	}
+	return false, nil
 }
 
 func (r *BatchJobReconciler) deleteSQSQueue(batchJob batch.BatchJob) error {
