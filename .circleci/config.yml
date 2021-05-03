@@ -88,8 +88,10 @@ jobs:
             go get -u -v github.com/kyoh86/looppointer/cmd/looppointer
             sudo pip install black aiohttp
       - run:
-          name: Lint
-          command: make lint
+          name: Initialize Credentials
+          command: |
+            echo 'export AWS_ACCESS_KEY_ID=${NIGHTLY_AWS_ACCESS_KEY_ID}' >> $BASH_ENV
+            echo 'export AWS_SECRET_ACCESS_KEY=${NIGHTLY_AWS_SECRET_ACCESS_KEY}' >> $BASH_ENV
       - run:
           name: Generate Cluster Config
           command: |
@@ -104,6 +106,9 @@ jobs:
                 min_instances: 1
                 max_instances: 1
             EOF
+      - run:
+          name: Lint
+          command: make lint
       - run:
           name: Go Tests
           command: make test-go
