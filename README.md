@@ -26,6 +26,8 @@ Cortex is a Kubernetes-based serverless platform built for AWS.
 * **No cold starts** - keep a minimum number of API replicas running to ensure that requests are handled in real-time.
 * **No timeouts** - run workloads for as long as you want.
 
+<br>
+
 ## Control your AWS spend
 
 * **Spot instance management** - Cortex automatically runs workloads on spot instances and falls back to on-demand instances to ensure reliability.
