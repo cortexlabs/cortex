@@ -959,10 +959,16 @@ func getKubexitEnvVars(containerName string, deathDeps ...string) []kcore.EnvVar
 	}
 
 	if deathDeps != nil {
-		envVars = append(envVars, kcore.EnvVar{
-			Name:  "KUBEXIT_DEATH_DEPS",
-			Value: strings.Join(deathDeps, ","),
-		})
+		envVars = append(envVars,
+			kcore.EnvVar{
+				Name:  "KUBEXIT_DEATH_DEPS",
+				Value: strings.Join(deathDeps, ","),
+			},
+			kcore.EnvVar{
+				Name:  "KUBEXIT_IGNORE_CODE_ON_DEATH_DEPS",
+				Value: "true",
+			},
+		)
 	}
 
 	return envVars
