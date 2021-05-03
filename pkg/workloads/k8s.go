@@ -272,6 +272,22 @@ func TaskContainers(api *spec.API) ([]kcore.Container, []kcore.Volume) {
 		}
 	}
 
+	if api.TaskDefinition.ShmSize != nil {
+		volumes = append(volumes, kcore.Volume{
+			Name: "dshm",
+			VolumeSource: kcore.VolumeSource{
+				EmptyDir: &kcore.EmptyDirVolumeSource{
+					Medium:    kcore.StorageMediumMemory,
+					SizeLimit: k8s.QuantityPtr(api.TaskDefinition.ShmSize.Quantity),
+				},
+			},
+		})
+		apiPodVolumeMounts = append(apiPodVolumeMounts, kcore.VolumeMount{
+			Name:      "dshm",
+			MountPath: "/dev/shm",
+		})
+	}
+
 	containers = append(containers, kcore.Container{
 		Name:            APIContainerName,
 		Image:           api.TaskDefinition.Image,

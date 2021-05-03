@@ -192,8 +192,8 @@ func getEBSPriceForNodeGroupInstance(ngs []*clusterconfig.NodeGroup, ngName stri
 				ebsPrice += aws.EBSMetadatas[config.ClusterConfig.Region][ng.InstanceVolumeType.String()].PriceIOPS * float64(*ng.InstanceVolumeIOPS) / 30 / 24
 			}
 			if ng.InstanceVolumeType == clusterconfig.GP3VolumeType && ng.InstanceVolumeIOPS != nil && ng.InstanceVolumeThroughput != nil {
-				ebsPrice += libmath.MaxFloat64(0, (aws.EBSMetadatas[config.CoreConfig.Region][ng.InstanceVolumeType.String()].PriceIOPS-3000)*float64(*ng.InstanceVolumeIOPS)/30/24)
-				ebsPrice += libmath.MaxFloat64(0, (aws.EBSMetadatas[config.CoreConfig.Region][ng.InstanceVolumeType.String()].PriceThroughput-125)*float64(*ng.InstanceVolumeThroughput)/30/24)
+				ebsPrice += libmath.MaxFloat64(0, (aws.EBSMetadatas[config.ClusterConfig.Region][ng.InstanceVolumeType.String()].PriceIOPS-3000)*float64(*ng.InstanceVolumeIOPS)/30/24)
+				ebsPrice += libmath.MaxFloat64(0, (aws.EBSMetadatas[config.ClusterConfig.Region][ng.InstanceVolumeType.String()].PriceThroughput-125)*float64(*ng.InstanceVolumeThroughput)/30/24)
 			}
 			break
 		}
