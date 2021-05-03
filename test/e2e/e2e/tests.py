@@ -152,7 +152,10 @@ def test_batch_api(
     try:
         endpoint_override = f"http://localhost:8888/batch/{api_name}" if local_operator else None
         assert endpoint_ready(
-            client=client, api_name=api_name, timeout=deploy_timeout, endpoint_override=endpoint_override
+            client=client,
+            api_name=api_name,
+            timeout=deploy_timeout,
+            endpoint_override=endpoint_override,
         ), f"api {api_name} not ready"
 
         with open(str(api_dir / "sample.json")) as f:
