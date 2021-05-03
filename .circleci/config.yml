@@ -88,6 +88,11 @@ jobs:
             go get -u -v github.com/kyoh86/looppointer/cmd/looppointer
             sudo pip install black aiohttp
       - run:
+          name: Install kubebuilder
+          command: |
+            curl -L -o kubebuilder https://go.kubebuilder.io/dl/2.3.2/$(go env GOOS)/$(go env GOARCH)
+            chmod +x kubebuilder && mv kubebuilder /usr/local/bin/
+      - run:
           name: Lint
           command: make lint
       - run:
