@@ -45,9 +45,8 @@ import (
 // These tests use Ginkgo (BDD-style Go testing framework). Refer to
 // http://onsi.github.io/ginkgo/ to learn more about Ginkgo.
 
-const (
-	_devClusterConfigPath = "./dev/config/cluster.yaml"
-)
+var projectRoot = filepath.Join("..", "..", "..", "..")
+var devClusterConfigPath = filepath.Join(projectRoot, "dev", "config", "cluster.yaml")
 
 var cfg *rest.Config
 var k8sClient client.Client
@@ -66,7 +65,7 @@ func TestAPIs(t *testing.T) {
 var _ = BeforeSuite(func(done Done) {
 	logf.SetLogger(zap.New(zap.UseDevMode(true), zap.WriteTo(GinkgoWriter)))
 
-	crdDirectoryPath := filepath.Join("pkg", "crds", "config", "crd", "bases")
+	crdDirectoryPath := filepath.Join("..", "..", "config", "crd", "bases")
 	Expect(crdDirectoryPath).To(BeADirectory())
 
 	By("bootstrapping test environment")
@@ -95,7 +94,7 @@ var _ = BeforeSuite(func(done Done) {
 
 	clusterConfigPath := os.Getenv("CORTEX_TEST_CLUSTER_CONFIG")
 	if clusterConfigPath == "" {
-		clusterConfigPath = _devClusterConfigPath
+		clusterConfigPath = devClusterConfigPath
 	}
 
 	clusterConfig, err = clusterconfig.NewForFile(clusterConfigPath)
