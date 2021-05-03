@@ -1,6 +1,6 @@
 module github.com/cortexlabs/cortex
 
-go 1.14
+go 1.15
 
 require (
 	cloud.google.com/go v0.73.0 // indirect
@@ -20,7 +20,7 @@ require (
 	github.com/emicklei/proto v1.9.0
 	github.com/fatih/color v1.10.0
 	github.com/getsentry/sentry-go v0.8.0
-	github.com/go-logr/logr v0.1.0
+	github.com/go-logr/logr v0.3.0
 	github.com/go-ole/go-ole v1.2.4 // indirect
 	github.com/gobwas/glob v0.2.3
 	github.com/google/uuid v1.1.2
@@ -34,8 +34,8 @@ require (
 	github.com/opencontainers/go-digest v1.0.0 // indirect
 	github.com/opencontainers/image-spec v1.0.1 // indirect
 	github.com/pkg/errors v0.9.1
-	github.com/prometheus/client_golang v1.0.0
-	github.com/prometheus/common v0.4.1
+	github.com/prometheus/client_golang v1.7.1
+	github.com/prometheus/common v0.10.0
 	github.com/segmentio/backo-go v0.0.0-20200129164019-23eae7c10bd3 // indirect
 	github.com/shirou/gopsutil v3.20.11+incompatible
 	github.com/sirupsen/logrus v1.8.1 // indirect
@@ -58,10 +58,10 @@ require (
 	gopkg.in/segmentio/analytics-go.v3 v3.1.0
 	istio.io/api v0.0.0-20200911191701-0dc35ad5c478
 	istio.io/client-go v0.0.0-20200807182027-d287a5abb594
-	k8s.io/api v0.18.6
-	k8s.io/apimachinery v0.18.6
-	k8s.io/client-go v0.18.6
-	sigs.k8s.io/controller-runtime v0.6.5
+	k8s.io/api v0.19.2
+	k8s.io/apimachinery v0.19.2
+	k8s.io/client-go v0.19.2
+	sigs.k8s.io/controller-runtime v0.7.2
 )
 
 replace github.com/docker/docker => github.com/docker/engine v17.12.0-ce-rc1.0.20200618181300-9dc6525e6118+incompatible

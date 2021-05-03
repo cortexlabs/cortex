@@ -1,5 +1,5 @@
 /*
-Copyright 2021 Cortex Labs, Inc.
+Copyright 2021 Cortex Labs.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -54,11 +54,12 @@ type BatchJobReconciler struct {
 
 // +kubebuilder:rbac:groups=batch.cortex.dev,resources=batchjobs,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=batch.cortex.dev,resources=batchjobs/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=batch.cortex.dev,resources=batchjobs/finalizers,verbs=update
 // +kubebuilder:rbac:groups=batch,resources=jobs,verbs=get;list;watch;create;update;patch
 
-// Reconcile runs a reconciliation iteration for BatchJobs.batch.cortex.dev
-func (r *BatchJobReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
-	ctx := context.Background()
+// Reconcile is part of the main kubernetes reconciliation loop which aims to
+// move the current state of the cluster closer to the desired state.
+func (r *BatchJobReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := r.Log.WithValues("batchjob", req.NamespacedName)
 
 	// Step 1: get resource from request
@@ -243,7 +244,7 @@ func (r *BatchJobReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	return ctrl.Result{}, nil
 }
 
-// SetupWithManager sets up the BatchJob controller with the controller manager
+// SetupWithManager sets up the controller with the Manager.
 func (r *BatchJobReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&batch.BatchJob{}).
