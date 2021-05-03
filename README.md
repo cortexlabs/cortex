@@ -8,19 +8,11 @@
 
 # Scale compute-intensive serverless workloads
 
-One platform for all your microservices, data processing, and machine learning workloads.
+Cortex is a Kubernetes-based serverless platform built for AWS.
 
 <br>
 
-## Forget about resource limits, cold starts, and timeouts
-
-* **No resource limits** - allocate as much CPU, GPU, and memory as each workload requires.
-* **No cold starts** - keep a minimum number of API replicas running to ensure that requests are handled in real-time.
-* **No timeouts** - run workloads for as long as you want.
-
-<br>
-
-## Run realtime, batch, and async workloads
+## Deploy realtime, batch, and async workloads
 
 * **Realtime** - realtime APIs respond to requests in real-time and autoscale based on in-flight request volumes.
 * **Batch** - batch APIs run distributed and fault-tolerant batch processing jobs on-demand.
@@ -28,30 +20,16 @@ One platform for all your microservices, data processing, and machine learning w
 
 <br>
 
-## Minimize costs, especially at scale
+## Scale across hundreds of CPU and GPU instances
 
-* **Spot instance management** - cortex can automatically run your workloads on spot instances so that you can save money without sacrificing reliability.
+* **No resource limits** - allocate as much CPU, GPU, and memory as each workload requires.
+* **No cold starts** - keep a minimum number of API replicas running to ensure that requests are handled in real-time.
+* **No timeouts** - run workloads for as long as you want.
+
+<br>
+
+## Control your AWS spend
+
+* **Spot instance management** - Cortex automatically runs workloads on spot instances and falls back to on-demand instances to ensure reliability.
+* **Multi-instance type clusters** - choose the ideal EC2 instance type for your workloads or mix and match several instance types in the same cluster.
 * **Customizable autoscaling** - optimize the autoscaling behavior for each workload to ensure efficient resource utilization.
-
-<br>
-
-## Streamline your development workflow
-
-* **Deploy functions and containers** - upload Python functions and let Cortex manage dependencies or connect to your image registry.
-* **Deploy programmatically** - deploy your code interactively with a CLI or programmatically with a Python client.
-* **Debug locally** - keep your local and cloud workflows similar so that you can iterate on your code faster.
-
-<br>
-
-## Integrate with modern observability tools
-
-* **Stream structured logs** - automatically stream logs from every workload to your favorite log management tool.
-* **Collect custom metrics** - monitor your workloads with pre-built dashboards and add your own custom dashboards.
-
-<br>
-
-## Deploy Cortex on your AWS account
-
-* **Identity & Access Management** - Cortex integrates with IAM to simplify authentication and authorization worklfows.
-* **Elastic Kubernetes Service** - Cortex runs on top of EKS to scale workloads reliably and cost-effectively.
-* **Billing & Cost Management** - Cortex supports resource tagging to enable detailed spend visibility.
