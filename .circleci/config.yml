@@ -91,6 +91,20 @@ jobs:
           name: Lint
           command: make lint
       - run:
+          name: Generate Cluster Config
+          command: |
+            mkdir -p dev/config
+            cat \<< EOF > ./dev/config/cluster.yaml
+            cluster_name: cortex
+            region: us-east-1
+            bucket: cortex-dev-nightly
+            node_groups:
+              - name: cpu
+                instance_type: m5.large
+                min_instances: 1
+                max_instances: 1
+            EOF
+      - run:
           name: Go Tests
           command: make test-go
       - run:
