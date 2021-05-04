@@ -68,5 +68,5 @@ def test_batch_api_inf(printer: Callable, config: Dict, client: cx.Client, api: 
         job_timeout=config["global"]["batch_job_timeout"],
         retry_attempts=5,
         local_operator=config["global"]["local_operator"],
-        api_config_name="cortex_inf.yaml"
+        api_config_name="cortex_inf.yaml",
     )
