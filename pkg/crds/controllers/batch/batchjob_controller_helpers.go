@@ -75,8 +75,8 @@ func (r *BatchJobReconciler) checkIfQueueExists(batchJob batch.BatchJob) (bool, 
 			if aerr.Code() == sqs.ErrCodeQueueDoesNotExist {
 				return false, nil
 			}
-			return false, err
 		}
+		return false, err
 	}
 	return true, nil
 }
@@ -481,6 +481,7 @@ func (r *BatchJobReconciler) deleteSQSQueue(batchJob batch.BatchJob) error {
 				return nil
 			}
 		}
+		return err
 	}
 	return nil
 }
