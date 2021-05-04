@@ -36,8 +36,7 @@ import (
 )
 
 const (
-	_defaultCortexVersion = "master"
-	_s3DownloadChunkSize  = 32 * 1024 * 1024
+	_s3DownloadChunkSize = 32 * 1024 * 1024
 )
 
 type ClusterEnv struct {

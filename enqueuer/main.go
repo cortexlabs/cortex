@@ -21,6 +21,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/cortexlabs/cortex/pkg/consts"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
@@ -78,7 +79,7 @@ func main() {
 
 	version := os.Getenv("CORTEX_VERSION")
 	if version == "" {
-		version = _defaultCortexVersion
+		version = consts.CortexVersion
 	}
 
 	log, err := createLogger()
