@@ -242,13 +242,18 @@ func TaskContainers(api *spec.API) ([]kcore.Container, []kcore.Volume) {
 			Name: "neuron-sock",
 		})
 		rtdVolumeMounts := []kcore.VolumeMount{
+			k8s.EmptyDirVolumeMount(_emptyDirVolumeName, _emptyDirMountPath),
 			{
 				Name:      "neuron-sock",
 				MountPath: "/sock",
 			},
+			{
+				Name:      _kubexitGraveyardName,
+				MountPath: _kubexitGraveyardMountPath,
+			},
 		}
 		apiPodVolumeMounts = append(apiPodVolumeMounts, rtdVolumeMounts...)
-		neuronContainer := *neuronRuntimeDaemonContainer(api, rtdVolumeMounts)
+		neuronContainer := neuronRuntimeDaemonContainer(api, rtdVolumeMounts, getKubexitEnvVars(_neuronRTDContainerName, APIContainerName))
 
 		if api.Compute.CPU != nil {
 			q1, q2 := k8s.SplitInTwo(k8s.QuantityPtr(api.Compute.CPU.Quantity.DeepCopy()))
@@ -311,7 +316,7 @@ func TaskContainers(api *spec.API) ([]kcore.Container, []kcore.Volume) {
 }
 
 func AsyncPythonHandlerContainers(api spec.API, queueURL string) ([]kcore.Container, []kcore.Volume) {
-	return pythonHandlerContainers(&api, getAsyncAPIEnvVars(api, queueURL))
+	return pythonHandlerContainers(&api, getAsyncAPIEnvVars(api, queueURL), false)
 }
 
 func AsyncTensorflowHandlerContainers(api spec.API, queueURL string) ([]kcore.Container, []kcore.Volume) {
@@ -371,15 +376,30 @@ func AsyncGatewayContainers(api spec.API, queueURL string) kcore.Container {
 }
 
 func PythonHandlerContainers(api *spec.API) ([]kcore.Container, []kcore.Volume) {
-	return pythonHandlerContainers(api, apiContainerEnvVars(api))
+	return pythonHandlerContainers(api, apiContainerEnvVars(api), false)
 }
 
-func pythonHandlerContainers(api *spec.API, envVars []kcore.EnvVar) ([]kcore.Container, []kcore.Volume) {
+func PythonHandlerJobContainers(api *spec.API) ([]kcore.Container, []kcore.Volume) {
+	return pythonHandlerContainers(api, apiContainerEnvVars(api), true)
+}
+
+func pythonHandlerContainers(api *spec.API, envVars []kcore.EnvVar, isJob bool) ([]kcore.Container, []kcore.Volume) {
 	apiPodResourceList := kcore.ResourceList{}
 	apiPodResourceLimitsList := kcore.ResourceList{}
 	apiPodVolumeMounts := defaultVolumeMounts()
 	volumes := DefaultVolumes()
+
 	var containers []kcore.Container
+
+	var neuronRTDEnvVars []kcore.EnvVar
+	if isJob {
+		envVars = append(envVars, getKubexitEnvVars(APIContainerName)...)
+		volumes = append(volumes, k8s.EmptyDirVolume(_kubexitGraveyardName))
+		apiPodVolumeMounts = append(apiPodVolumeMounts,
+			kcore.VolumeMount{Name: _kubexitGraveyardName, MountPath: _kubexitGraveyardMountPath},
+		)
+		neuronRTDEnvVars = getKubexitEnvVars(_neuronRTDContainerName, APIContainerName)
+	}
 
 	if api.Compute.Inf == 0 {
 		if api.Compute.CPU != nil {
@@ -412,8 +432,17 @@ func pythonHandlerContainers(api *spec.API, envVars []kcore.EnvVar) ([]kcore.Con
 				MountPath: "/sock",
 			},
 		}
+
 		apiPodVolumeMounts = append(apiPodVolumeMounts, rtdVolumeMounts...)
-		neuronContainer := *neuronRuntimeDaemonContainer(api, rtdVolumeMounts)
+
+		if isJob {
+			rtdVolumeMounts = append(rtdVolumeMounts,
+				k8s.EmptyDirVolumeMount(_emptyDirVolumeName, _emptyDirMountPath),
+				kcore.VolumeMount{Name: _kubexitGraveyardName, MountPath: _kubexitGraveyardMountPath},
+			)
+		}
+
+		neuronContainer := neuronRuntimeDaemonContainer(api, rtdVolumeMounts, neuronRTDEnvVars)
 
 		if api.Compute.CPU != nil {
 			userPodCPURequest := k8s.QuantityPtr(api.Compute.CPU.Quantity.DeepCopy())
@@ -434,7 +463,6 @@ func pythonHandlerContainers(api *spec.API, envVars []kcore.EnvVar) ([]kcore.Con
 			apiPodResourceList[kcore.ResourceMemory] = *q1
 			neuronContainer.Resources.Requests[kcore.ResourceMemory] = *q2
 		}
-
 		containers = append(containers, neuronContainer)
 	}
 
@@ -493,17 +521,17 @@ func tensorFlowHandlerContainers(api *spec.API, envVars []kcore.EnvVar, isJob bo
 	volumeMounts := defaultVolumeMounts()
 	volumes := DefaultVolumes()
 
-	var tfServingEnvVars []kcore.EnvVar
+	var neuronRTDEnvVars []kcore.EnvVar
+	tfServingEnvVars := tensorflowServingEnvVars(api)
 	if isJob {
 		envVars = append(envVars, getKubexitEnvVars(APIContainerName)...)
-
-		tfServingEnvVars = tensorflowServingEnvVars(api)
 		tfServingEnvVars = append(tfServingEnvVars, getKubexitEnvVars(_tfServingContainerName, APIContainerName)...)
 
 		volumes = append(volumes, k8s.EmptyDirVolume(_kubexitGraveyardName))
 		volumeMounts = append(volumeMounts,
 			kcore.VolumeMount{Name: _kubexitGraveyardName, MountPath: _kubexitGraveyardMountPath},
 		)
+		neuronRTDEnvVars = getKubexitEnvVars(_neuronRTDContainerName, APIContainerName)
 	}
 
 	var containers []kcore.Container
@@ -544,7 +572,14 @@ func tensorFlowHandlerContainers(api *spec.API, envVars []kcore.EnvVar, isJob bo
 		}
 		volumeMounts = append(volumeMounts, rtdVolumeMounts...)
 
-		neuronContainer := *neuronRuntimeDaemonContainer(api, rtdVolumeMounts)
+		if isJob {
+			rtdVolumeMounts = append(rtdVolumeMounts,
+				k8s.EmptyDirVolumeMount(_emptyDirVolumeName, _emptyDirMountPath),
+				kcore.VolumeMount{Name: _kubexitGraveyardName, MountPath: _kubexitGraveyardMountPath},
+			)
+		}
+
+		neuronContainer := neuronRuntimeDaemonContainer(api, rtdVolumeMounts, neuronRTDEnvVars)
 
 		if api.Compute.CPU != nil {
 			userPodCPURequest := k8s.QuantityPtr(api.Compute.CPU.Quantity.DeepCopy())
@@ -605,7 +640,7 @@ func tensorFlowHandlerContainers(api *spec.API, envVars []kcore.EnvVar, isJob bo
 		SecurityContext: &kcore.SecurityContext{
 			Privileged: pointer.Bool(true),
 		}},
-		*tensorflowServingContainer(
+		tensorflowServingContainer(
 			api,
 			volumeMounts,
 			kcore.ResourceRequirements{
@@ -816,7 +851,7 @@ func apiContainerEnvVars(api *spec.API) []kcore.EnvVar {
 	return envVars
 }
 
-func tensorflowServingContainer(api *spec.API, volumeMounts []kcore.VolumeMount, resources kcore.ResourceRequirements, envVars []kcore.EnvVar) *kcore.Container {
+func tensorflowServingContainer(api *spec.API, volumeMounts []kcore.VolumeMount, resources kcore.ResourceRequirements, envVars []kcore.EnvVar) kcore.Container {
 	var cmdArgs []string
 	ports := []kcore.ContainerPort{
 		{
@@ -867,7 +902,7 @@ func tensorflowServingContainer(api *spec.API, volumeMounts []kcore.VolumeMount,
 		}
 	}
 
-	return &kcore.Container{
+	return kcore.Container{
 		Name:            _tfServingContainerName,
 		Image:           api.Handler.TensorFlowServingImage,
 		ImagePullPolicy: kcore.PullAlways,
@@ -889,12 +924,13 @@ func tensorflowServingContainer(api *spec.API, volumeMounts []kcore.VolumeMount,
 	}
 }
 
-func neuronRuntimeDaemonContainer(api *spec.API, volumeMounts []kcore.VolumeMount) *kcore.Container {
+func neuronRuntimeDaemonContainer(api *spec.API, volumeMounts []kcore.VolumeMount, envVars []kcore.EnvVar) kcore.Container {
 	totalHugePages := api.Compute.Inf * _hugePagesMemPerInf
-	return &kcore.Container{
+	return kcore.Container{
 		Name:            _neuronRTDContainerName,
 		Image:           config.ClusterConfig.ImageNeuronRTD,
 		ImagePullPolicy: kcore.PullAlways,
+		Env:             envVars,
 		SecurityContext: &kcore.SecurityContext{
 			Capabilities: &kcore.Capabilities{
 				Add: []kcore.Capability{
