@@ -18,11 +18,11 @@
 
 CLUSTER_CONFIG=$1
 
-portForwardCMD="kubectl port-forward -n default prometheus-prometheus-0 9090"
-kill $(pgrep -f "${portForwardCMD}") >/dev/null 2>&1 || true
+port_forward_cmd="kubectl port-forward -n default prometheus-prometheus-0 9090"
+kill $(pgrep -f "${port_forward_cmd}") >/dev/null 2>&1 || true
 
 echo "Port-forwarding Prometheus to localhost:9090"
-eval "${portForwardCMD}" >/dev/null 2>&1 &
+eval "${port_forward_cmd}" >/dev/null 2>&1 &
 
 CORTEX_DISABLE_JSON_LOGGING="true" \
 CORTEX_PROMETHEUS_URL="http://localhost:9090" \
