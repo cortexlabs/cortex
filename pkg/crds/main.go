@@ -41,7 +41,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
-	batchv1alpha1 "github.com/cortexlabs/cortex/pkg/crds/apis/batch/v1alpha1"
+	batch "github.com/cortexlabs/cortex/pkg/crds/apis/batch/v1alpha1"
 	batchcontrollers "github.com/cortexlabs/cortex/pkg/crds/controllers/batch"
 	//+kubebuilder:scaffold:imports
 )
@@ -54,7 +54,7 @@ var (
 func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 
-	utilruntime.Must(batchv1alpha1.AddToScheme(scheme))
+	utilruntime.Must(batch.AddToScheme(scheme))
 	//+kubebuilder:scaffold:scheme
 }
 
