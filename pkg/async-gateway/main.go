@@ -19,11 +19,11 @@ package main
 import (
 	"flag"
 	"net/http"
+	"os"
 
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 
-	"github.com/cortexlabs/cortex/pkg/async-gateway/exit"
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
@@ -36,6 +36,28 @@ import (
 const (
 	_defaultPort = "8080"
 )
+
+var (
+	gatewayLogger = logging.GetLogger()
+)
+
+func Error(err error, wrapStrs ...string) {
+	for _, str := range wrapStrs {
+		err = errors.Wrap(err, str)
+	}
+
+	if err != nil && !errors.IsNoTelemetry(err) {
+		telemetry.Error(err)
+	}
+
+	if err != nil && !errors.IsNoPrint(err) {
+		gatewayLogger.Error(err)
+	}
+
+	telemetry.Close()
+
+	os.Exit(1)
+}
 
 // usage: ./gateway -bucket <bucket> -region <region> -port <port> -queue queue <apiName>
 func main() {
@@ -75,17 +97,17 @@ func main() {
 	coreConfig := &clusterconfig.CoreConfig{}
 	errs := cr.ParseYAMLFile(coreConfig, clusterconfig.CoreConfigValidations(true), *clusterConfigPath)
 	if errors.HasError(errs) {
-		exit.Error(errors.FirstError(errs...))
+		Error(errors.FirstError(errs...))
 	}
 
 	aws, err := aws.NewForRegion(*region)
 	if err != nil {
-		exit.Error(err)
+		Error(err)
 	}
 
 	_, userID, err := aws.CheckCredentials()
 	if err != nil {
-		exit.Error(err)
+		Error(err)
 	}
 
 	err = telemetry.Init(telemetry.Config{
@@ -100,7 +122,7 @@ func main() {
 		BackoffMode: telemetry.BackoffDuplicateMessages,
 	})
 	if err != nil {
-		exit.Error(err)
+		Error(err)
 	}
 
 	sess := aws.Session()
@@ -132,6 +154,6 @@ func main() {
 
 	log.Info("Running on port " + *port)
 	if err = http.ListenAndServe(":"+*port, handlers.CORS(corsOptions...)(router)); err != nil {
-		exit.Error(err)
+		Error(err)
 	}
 }
