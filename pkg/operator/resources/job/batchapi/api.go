@@ -103,7 +103,6 @@ func DeleteAPI(apiName string, keepCache bool) error {
 }
 
 func deleteS3Resources(apiName string) error {
-	_ = job.DeleteAllInProgressFilesByAPI(userconfig.BatchAPIKind, apiName) // not useful xml error is thrown, swallow the error
 	return parallel.RunFirstErr(
 		func() error {
 			prefix := filepath.Join(config.ClusterConfig.ClusterName, "apis", apiName)
