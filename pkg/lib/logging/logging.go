@@ -46,12 +46,12 @@ func initializeLogger() {
 		zapConfig.Encoding = "console"
 	}
 
-	_logger, err := zapConfig.Build()
+	zapLogger, err := zapConfig.Build()
 	if err != nil {
 		panic(err)
 	}
 
-	logger = _logger.Sugar()
+	logger = zapLogger.Sugar()
 }
 
 func GetLogger() *zap.SugaredLogger {

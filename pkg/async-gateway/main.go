@@ -34,8 +34,7 @@ import (
 )
 
 const (
-	_defaultPort       = "8080"
-	_clusterConfigPath = "/configs/cluster/cluster.yaml"
+	_defaultPort = "8080"
 )
 
 // usage: ./gateway -bucket <bucket> -region <region> -port <port> -queue queue <apiName>
@@ -46,11 +45,12 @@ func main() {
 	}()
 
 	var (
-		port        = flag.String("port", _defaultPort, "port on which the gateway server runs on")
-		queueURL    = flag.String("queue", "", "SQS queue URL")
-		region      = flag.String("region", "", "AWS region")
-		bucket      = flag.String("bucket", "", "AWS bucket")
-		clusterName = flag.String("cluster", "", "cluster name")
+		port              = flag.String("port", _defaultPort, "port on which the gateway server runs on")
+		queueURL          = flag.String("queue", "", "SQS queue URL")
+		region            = flag.String("region", "", "AWS region")
+		bucket            = flag.String("bucket", "", "AWS bucket")
+		clusterName       = flag.String("cluster", "", "cluster name")
+		clusterConfigPath = flag.String("cluster-config-path", "", "cluster config path")
 	)
 	flag.Parse()
 
@@ -63,6 +63,8 @@ func main() {
 		log.Fatal("missing required option: -bucket")
 	case *clusterName == "":
 		log.Fatal("missing required option: -cluster")
+	case *clusterConfigPath == "":
+		log.Fatal("missing required option: -cluster-config-path")
 	}
 
 	apiName := flag.Arg(0)
@@ -71,19 +73,19 @@ func main() {
 	}
 
 	coreConfig := &clusterconfig.CoreConfig{}
-	errs := cr.ParseYAMLFile(coreConfig, clusterconfig.CoreConfigValidations(true), _clusterConfigPath)
+	errs := cr.ParseYAMLFile(coreConfig, clusterconfig.CoreConfigValidations(true), *clusterConfigPath)
 	if errors.HasError(errs) {
 		exit.Error(errors.FirstError(errs...))
 	}
 
 	aws, err := aws.NewForRegion(*region)
 	if err != nil {
-		exit.Error(errors.FirstError(errs...))
+		exit.Error(err)
 	}
 
 	_, userID, err := aws.CheckCredentials()
 	if err != nil {
-		exit.Error(errors.FirstError(errs...))
+		exit.Error(err)
 	}
 
 	err = telemetry.Init(telemetry.Config{
@@ -93,7 +95,7 @@ func main() {
 			"kind":       userconfig.AsyncAPIKind.String(),
 			"image_type": "async-gateway",
 		},
-		Environment: "client",
+		Environment: "api",
 		LogErrors:   true,
 		BackoffMode: telemetry.BackoffDuplicateMessages,
 	})
