@@ -42,7 +42,7 @@ const (
 	TensorFlowServingImageKey = "tensorflow_serving_image"
 	ProcessesPerReplicaKey    = "processes_per_replica"
 	ThreadsPerProcessKey      = "threads_per_process"
-	ShmSize                   = "shm_size"
+	ShmSizeKey                = "shm_size"
 	LogLevelKey               = "log_level"
 	ConfigKey                 = "config"
 	EnvKey                    = "env"

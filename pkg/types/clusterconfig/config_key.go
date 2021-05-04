@@ -32,6 +32,7 @@ const (
 	InstanceVolumeSizeKey                  = "instance_volume_size"
 	InstanceVolumeTypeKey                  = "instance_volume_type"
 	InstanceVolumeIOPSKey                  = "instance_volume_iops"
+	InstanceVolumeThroughputKey            = "instance_volume_throughput"
 	InstancePoolsKey                       = "instance_pools"
 	MaxPriceKey                            = "max_price"
 	NetworkKey                             = "network"
