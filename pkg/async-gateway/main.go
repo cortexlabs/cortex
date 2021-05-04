@@ -19,60 +19,28 @@ package main
 import (
 	"flag"
 	"net/http"
-	"os"
-	"strings"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
-	"go.uber.org/zap"
-	"go.uber.org/zap/zapcore"
+
+	"github.com/cortexlabs/cortex/pkg/async-gateway/exit"
+	"github.com/cortexlabs/cortex/pkg/async-gateway/logging"
+	"github.com/cortexlabs/cortex/pkg/lib/aws"
+	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
+	"github.com/cortexlabs/cortex/pkg/types/clusterconfig"
+	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 )
 
 const (
-	_defaultPort = "8080"
+	_defaultPort       = "8080"
+	_clusterConfigPath = "/configs/cluster/cluster.yaml"
 )
-
-func createLogger() (*zap.Logger, error) {
-	logLevelEnv := os.Getenv("CORTEX_LOG_LEVEL")
-	disableJSONLogging := os.Getenv("CORTEX_DISABLE_JSON_LOGGING")
-
-	var logLevelZap zapcore.Level
-	switch logLevelEnv {
-	case "DEBUG":
-		logLevelZap = zapcore.DebugLevel
-	case "WARNING":
-		logLevelZap = zapcore.WarnLevel
-	case "ERROR":
-		logLevelZap = zapcore.ErrorLevel
-	default:
-		logLevelZap = zapcore.InfoLevel
-	}
-
-	encoderConfig := zap.NewProductionEncoderConfig()
-	encoderConfig.MessageKey = "message"
-
-	encoding := "json"
-	if strings.ToLower(disableJSONLogging) == "true" {
-		encoding = "console"
-	}
-
-	return zap.Config{
-		Level:            zap.NewAtomicLevelAt(logLevelZap),
-		Encoding:         encoding,
-		EncoderConfig:    encoderConfig,
-		OutputPaths:      []string{"stdout"},
-		ErrorOutputPaths: []string{"stderr"},
-	}.Build()
-}
 
 // usage: ./gateway -bucket <bucket> -region <region> -port <port> -queue queue <apiName>
 func main() {
-	log, err := createLogger()
-	if err != nil {
-		panic(err)
-	}
+	log := logging.GetGatewayLogger()
 	defer func() {
 		_ = log.Sync()
 	}()
@@ -102,16 +70,38 @@ func main() {
 		log.Fatal("apiName argument was not provided")
 	}
 
-	sess, err := session.NewSessionWithOptions(session.Options{
-		Config: aws.Config{
-			Region: region,
-		},
-		SharedConfigState: session.SharedConfigEnable,
-	})
-	if err != nil {
-		log.Fatal("failed to create AWS session: %s", zap.Error(err))
+	coreConfig := &clusterconfig.CoreConfig{}
+	errs := cr.ParseYAMLFile(coreConfig, clusterconfig.CoreConfigValidations(true), _clusterConfigPath)
+	if errors.HasError(errs) {
+		exit.Error(errors.FirstError(errs...))
 	}
 
+	aws, err := aws.NewForRegion(*region)
+	if err != nil {
+		exit.Error(errors.FirstError(errs...))
+	}
+
+	_, userID, err := aws.CheckCredentials()
+	if err != nil {
+		exit.Error(errors.FirstError(errs...))
+	}
+
+	err = telemetry.Init(telemetry.Config{
+		Enabled: coreConfig.Telemetry,
+		UserID:  userID,
+		Properties: map[string]string{
+			"kind":       userconfig.AsyncAPIKind.String(),
+			"image_type": "async-gateway",
+		},
+		Environment: "client",
+		LogErrors:   true,
+		BackoffMode: telemetry.BackoffDuplicateMessages,
+	})
+	if err != nil {
+		exit.Error(err)
+	}
+
+	sess := aws.Session()
 	s3Storage := NewS3(sess, *bucket)
 	sqsQueue := NewSQS(*queueURL, sess)
 
@@ -140,6 +130,6 @@ func main() {
 
 	log.Info("Running on port " + *port)
 	if err = http.ListenAndServe(":"+*port, handlers.CORS(corsOptions...)(router)); err != nil {
-		log.Fatal("failed to start server", zap.Error(err))
+		exit.Error(err)
 	}
 }

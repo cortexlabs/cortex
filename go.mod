@@ -1,6 +1,6 @@
 module github.com/cortexlabs/cortex
 
-go 1.14
+go 1.15
 
 require (
 	cloud.google.com/go v0.73.0 // indirect

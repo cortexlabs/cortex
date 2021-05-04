@@ -21,6 +21,8 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	"github.com/gorilla/mux"
 	"go.uber.org/zap"
 )
@@ -28,11 +30,11 @@ import (
 // Endpoint wraps an async-gateway Service with HTTP logic
 type Endpoint struct {
 	service Service
-	logger  *zap.Logger
+	logger  *zap.SugaredLogger
 }
 
 // NewEndpoint creates and initializes a new Endpoint struct
-func NewEndpoint(svc Service, logger *zap.Logger) *Endpoint {
+func NewEndpoint(svc Service, logger *zap.SugaredLogger) *Endpoint {
 	return &Endpoint{
 		service: svc,
 		logger:  logger,
@@ -62,13 +64,13 @@ func (e *Endpoint) CreateWorkload(w http.ResponseWriter, r *http.Request) {
 
 	id, err := e.service.CreateWorkload(requestID, body, contentType)
 	if err != nil {
-		log.Error("failed to create workload", zap.Error(err))
 		respondPlainText(w, http.StatusInternalServerError, fmt.Sprintf("error: %v", err))
+		logErrorWithTelemetry(log, errors.Wrap(err, "failed to create workload"))
 		return
 	}
 
 	if err = respondJSON(w, http.StatusOK, CreateWorkloadResponse{ID: id}); err != nil {
-		log.Error("failed to encode json response", zap.Error(err))
+		logErrorWithTelemetry(log, errors.Wrap(err, "failed to encode json response"))
 		return
 	}
 }
@@ -86,13 +88,18 @@ func (e *Endpoint) GetWorkload(w http.ResponseWriter, r *http.Request) {
 
 	res, err := e.service.GetWorkload(id)
 	if err != nil {
-		log.Error("failed to get workload", zap.Error(err))
 		respondPlainText(w, http.StatusInternalServerError, fmt.Sprintf("error: %v", err))
+		logErrorWithTelemetry(log, errors.Wrap(err, "failed to get workload"))
+		return
+	}
+	if res.Status == StatusNotFound {
+		respondPlainText(w, http.StatusNotFound, fmt.Sprintf("error: id %s not found", res.ID))
+		logErrorWithTelemetry(log, errors.ErrorUnexpected(fmt.Sprintf("error: id %s not found", res.ID)))
 		return
 	}
 
 	if err = respondJSON(w, http.StatusOK, res); err != nil {
-		log.Error("failed to encode json response", zap.Error(err))
+		logErrorWithTelemetry(log, errors.Wrap(err, "failed to encode json response"))
 		return
 	}
 }
@@ -107,4 +114,11 @@ func respondJSON(w http.ResponseWriter, statusCode int, s interface{}) error {
 	w.WriteHeader(statusCode)
 	w.Header().Set("Content-Type", "application/json")
 	return json.NewEncoder(w).Encode(s)
+}
+
+func logErrorWithTelemetry(log *zap.SugaredLogger, err error) {
+	if err != nil && !errors.IsNoTelemetry(err) {
+		telemetry.Error(err)
+	}
+	log.Error(err)
 }

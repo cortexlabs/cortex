@@ -307,7 +307,7 @@ func AsyncTensorflowHandlerContainers(api spec.API, queueURL string) ([]kcore.Co
 	return tensorFlowHandlerContainers(&api, getAsyncAPIEnvVars(api, queueURL))
 }
 
-func AsyncGatewayContainers(api spec.API, queueURL string) kcore.Container {
+func AsyncGatewayContainers(api spec.API, queueURL string, volumeMounts []kcore.VolumeMount) kcore.Container {
 	image := config.CoreConfig.ImageAsyncGateway
 	region := config.CoreConfig.Region
 	bucket := config.CoreConfig.Bucket
@@ -334,6 +334,7 @@ func AsyncGatewayContainers(api spec.API, queueURL string) kcore.Container {
 				Value: strings.ToUpper(api.Handler.LogLevel.String()),
 			},
 		},
+		EnvFrom: baseEnvVars(),
 		Resources: kcore.ResourceRequirements{
 			Requests: kcore.ResourceList{
 				kcore.ResourceCPU:    _asyncGatewayCPURequest,
@@ -356,6 +357,7 @@ func AsyncGatewayContainers(api spec.API, queueURL string) kcore.Container {
 				},
 			},
 		},
+		VolumeMounts: volumeMounts,
 	}
 }
 

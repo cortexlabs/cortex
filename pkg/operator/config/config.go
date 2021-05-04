@@ -63,7 +63,6 @@ func Init() error {
 	}
 
 	CoreConfig = &clusterconfig.CoreConfig{}
-
 	errs := cr.ParseYAMLFile(CoreConfig, clusterconfig.CoreConfigValidations(true), clusterConfigPath)
 	if errors.HasError(errs) {
 		return errors.FirstError(errs...)
