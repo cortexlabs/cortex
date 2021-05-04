@@ -181,8 +181,7 @@ async def parse_payload(request: Request, call_next):
 
 
 def handle(request: Request):
-    result = async_to_sync(request.is_disconnected)()
-    if result:
+    if async_to_sync(request.is_disconnected)():
         return Response(status_code=499, content="disconnected client")
 
     verb = request.method.lower()
