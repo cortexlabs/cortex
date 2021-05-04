@@ -24,12 +24,12 @@ import (
 )
 
 const (
-	ErrInvalidGatewayLogLevel = "logging.invalid_gateway_log_level"
+	ErrInvalidLogLevel = "logging.invalid_log_level"
 )
 
-func ErrorInvalidGatewayLogLevel(provided string, loglevels []string) error {
+func ErrorInvalidLogLevel(provided string, loglevels []string) error {
 	return errors.WithStack(&errors.Error{
-		Kind:    ErrInvalidGatewayLogLevel,
-		Message: fmt.Sprintf("invalid async gateway log level %s; must be one of %s", provided, s.StrsOr(loglevels)),
+		Kind:    ErrInvalidLogLevel,
+		Message: fmt.Sprintf("invalid log level %s; must be one of %s", provided, s.StrsOr(loglevels)),
 	})
 }

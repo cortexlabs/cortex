@@ -19,26 +19,12 @@ package exit
 import (
 	"os"
 
-	"github.com/cortexlabs/cortex/pkg/async-gateway/logging"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/logging"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 )
 
-var gatewayLogger = logging.GetGatewayLogger()
-
-func ErrorNoTelemetry(err error, wrapStrs ...string) {
-	for _, str := range wrapStrs {
-		err = errors.Wrap(err, str)
-	}
-
-	if err != nil && !errors.IsNoPrint(err) {
-		gatewayLogger.Error(err)
-	}
-
-	telemetry.Close()
-
-	os.Exit(1)
-}
+var gatewayLogger = logging.GetLogger()
 
 func Error(err error, wrapStrs ...string) {
 	for _, str := range wrapStrs {

@@ -24,10 +24,10 @@ import (
 	"github.com/gorilla/mux"
 
 	"github.com/cortexlabs/cortex/pkg/async-gateway/exit"
-	"github.com/cortexlabs/cortex/pkg/async-gateway/logging"
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/logging"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	"github.com/cortexlabs/cortex/pkg/types/clusterconfig"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
@@ -40,7 +40,7 @@ const (
 
 // usage: ./gateway -bucket <bucket> -region <region> -port <port> -queue queue <apiName>
 func main() {
-	log := logging.GetGatewayLogger()
+	log := logging.GetLogger()
 	defer func() {
 		_ = log.Sync()
 	}()
