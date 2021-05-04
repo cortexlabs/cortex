@@ -109,6 +109,7 @@ func getNodeInfos() ([]schema.NodeInfo, int, error) {
 		pod := pods[i]
 
 		_, isAPIPod := pod.Labels["apiName"]
+		asyncDeploymentType, isAsyncPod := pod.Labels["cortex.dev/async"]
 
 		if pod.Spec.NodeName == "" && isAPIPod {
 			numPendingReplicas++
@@ -120,7 +121,7 @@ func getNodeInfos() ([]schema.NodeInfo, int, error) {
 			continue
 		}
 
-		if isAPIPod {
+		if isAPIPod && (!isAsyncPod || asyncDeploymentType != "gateway") {
 			node.NumReplicas++
 		}
 
