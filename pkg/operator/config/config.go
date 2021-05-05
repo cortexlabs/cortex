@@ -34,10 +34,6 @@ import (
 	promv1 "github.com/prometheus/client_golang/api/prometheus/v1"
 )
 
-const (
-	_clusterConfigPath = "/configs/cluster/cluster.yaml"
-)
-
 var (
 	OperatorMetadata *clusterconfig.OperatorMetadata
 
@@ -59,7 +55,7 @@ func Init() error {
 
 	clusterConfigPath := os.Getenv("CORTEX_CLUSTER_CONFIG_PATH")
 	if clusterConfigPath == "" {
-		clusterConfigPath = _clusterConfigPath
+		clusterConfigPath = consts.DefaultInClusterConfigPath
 	}
 
 	CoreConfig = &clusterconfig.CoreConfig{}

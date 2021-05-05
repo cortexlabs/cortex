@@ -333,7 +333,7 @@ func AsyncGatewayContainers(api spec.API, queueURL string, volumeMounts []kcore.
 		Args: []string{
 			"-queue", queueURL,
 			"-port", s.Int32(DefaultPortInt32),
-			"-cluster-config", "/configs/cluster/cluster.yaml",
+			"-cluster-config", consts.DefaultInClusterConfigPath,
 			api.Name,
 		},
 		Ports: []kcore.ContainerPort{
