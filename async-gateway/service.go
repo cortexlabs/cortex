@@ -151,5 +151,5 @@ func (s *service) getStatus(id string) (Status, error) {
 }
 
 func (s *service) workloadStoragePrefix() string {
-	return fmt.Sprintf("%s/apis/%s/workloads", s.clusterName, s.apiName)
+	return fmt.Sprintf("%s/workloads/%s", s.clusterName, s.apiName)
 }

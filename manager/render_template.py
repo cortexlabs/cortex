@@ -19,8 +19,14 @@ import pathlib
 from jinja2 import Environment, FileSystemLoader
 
 if __name__ == "__main__":
-    cluster_config_path = sys.argv[1]
-    template_path = pathlib.Path(sys.argv[2])
+    if len(sys.argv) == 3:
+        yaml_file_path = sys.argv[1]
+        template_path = pathlib.Path(sys.argv[2])
+    elif len(sys.argv) == 2:
+        yaml_file_path = None
+        template_path = pathlib.Path(sys.argv[1])
+    else:
+        raise RuntimeError(f"incorrect number of parameters ({len(sys.argv)})")
 
     file_loader = FileSystemLoader(str(template_path.parent))
     env = Environment(loader=file_loader)
@@ -29,6 +35,10 @@ if __name__ == "__main__":
     env.rstrip_blocks = True
 
     template = env.get_template(str(template_path.name))
-    with open(cluster_config_path, "r") as f:
-        cluster_config = yaml.safe_load(f)
-        print(template.render(config=cluster_config, env=os.environ))
+
+    if yaml_file_path:
+        with open(yaml_file_path, "r") as f:
+            yaml_data = yaml.safe_load(f)
+            print(template.render(config=yaml_data, env=os.environ))
+    else:
+        print(template.render(env=os.environ))

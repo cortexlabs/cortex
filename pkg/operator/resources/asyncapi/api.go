@@ -430,7 +430,7 @@ func applyK8sVirtualService(prevVirtualService *istioclientnetworking.VirtualSer
 }
 
 func deleteBucketResources(apiName string) error {
-	prefix := filepath.Join(config.CoreConfig.ClusterName, "apis", apiName)
+	prefix := filepath.Join(config.CoreConfig.ClusterName, "workloads", apiName)
 	return config.AWS.DeleteS3Dir(config.CoreConfig.Bucket, prefix, true)
 }
 

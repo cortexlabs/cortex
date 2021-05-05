@@ -628,7 +628,7 @@ func getAsyncAPIEnvVars(api spec.API, queueURL string) []kcore.EnvVar {
 		},
 		kcore.EnvVar{
 			Name:  "CORTEX_ASYNC_WORKLOAD_PATH",
-			Value: aws.S3Path(config.CoreConfig.Bucket, fmt.Sprintf("%s/apis/%s/workloads", config.CoreConfig.ClusterName, api.Name)),
+			Value: aws.S3Path(config.CoreConfig.Bucket, fmt.Sprintf("%s/workloads/%s", config.CoreConfig.ClusterName, api.Name)),
 		},
 	)
 
