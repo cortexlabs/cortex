@@ -69,24 +69,15 @@ func main() {
 	var (
 		port              = flag.String("port", _defaultPort, "port on which the gateway server runs on")
 		queueURL          = flag.String("queue", "", "SQS queue URL")
-		region            = flag.String("region", "", "AWS region")
-		bucket            = flag.String("bucket", "", "AWS bucket")
-		clusterName       = flag.String("cluster", "", "cluster name")
-		clusterConfigPath = flag.String("cluster-config-path", "", "cluster config path")
+		clusterConfigPath = flag.String("cluster-config", "", "cluster config path")
 	)
 	flag.Parse()
 
 	switch {
 	case *queueURL == "":
 		log.Fatal("missing required option: -queue")
-	case *region == "":
-		log.Fatal("missing required option: -region")
-	case *bucket == "":
-		log.Fatal("missing required option: -bucket")
-	case *clusterName == "":
-		log.Fatal("missing required option: -cluster")
 	case *clusterConfigPath == "":
-		log.Fatal("missing required option: -cluster-config-path")
+		log.Fatal("missing required option: -cluster-config")
 	}
 
 	apiName := flag.Arg(0)
@@ -100,7 +91,7 @@ func main() {
 		Exit(errors.FirstError(errs...))
 	}
 
-	aws, err := aws.NewForRegion(*region)
+	aws, err := aws.NewForRegion(coreConfig.Region)
 	if err != nil {
 		Exit(err)
 	}
@@ -126,10 +117,10 @@ func main() {
 	}
 
 	sess := aws.Session()
-	s3Storage := NewS3(sess, *bucket)
+	s3Storage := NewS3(sess, coreConfig.Bucket)
 	sqsQueue := NewSQS(*queueURL, sess)
 
-	svc := NewService(*clusterName, apiName, sqsQueue, s3Storage, log)
+	svc := NewService(coreConfig.ClusterName, apiName, sqsQueue, s3Storage, log)
 	ep := NewEndpoint(svc, log)
 
 	router := mux.NewRouter()

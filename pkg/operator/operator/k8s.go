@@ -325,9 +325,6 @@ func AsyncTensorflowHandlerContainers(api spec.API, queueURL string) ([]kcore.Co
 
 func AsyncGatewayContainers(api spec.API, queueURL string, volumeMounts []kcore.VolumeMount) kcore.Container {
 	image := config.CoreConfig.ImageAsyncGateway
-	region := config.CoreConfig.Region
-	bucket := config.CoreConfig.Bucket
-	clusterName := config.CoreConfig.ClusterName
 
 	return kcore.Container{
 		Name:            _gatewayContainerName,
@@ -335,11 +332,8 @@ func AsyncGatewayContainers(api spec.API, queueURL string, volumeMounts []kcore.
 		ImagePullPolicy: kcore.PullAlways,
 		Args: []string{
 			"-queue", queueURL,
-			"-region", region,
-			"-bucket", bucket,
-			"-cluster", clusterName,
 			"-port", s.Int32(DefaultPortInt32),
-			"-cluster-config-path", "/configs/cluster/cluster.yaml",
+			"-cluster-config", "/configs/cluster/cluster.yaml",
 			api.Name,
 		},
 		Ports: []kcore.ContainerPort{
