@@ -20,12 +20,12 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/cortexlabs/cortex/pkg/config"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
-	"github.com/cortexlabs/cortex/pkg/operator/config"
 	"github.com/cortexlabs/cortex/pkg/operator/operator"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
@@ -192,13 +192,13 @@ func validateK8sCompute(compute *userconfig.Compute, maxMemMap map[string]kresou
 	allErrors := []error{}
 	successfulLoops := 0
 
-	clusterNodeGroupNames := strset.New(config.ManagedConfig.GetNodeGroupNames()...)
+	clusterNodeGroupNames := strset.New(config.ClusterConfig.GetNodeGroupNames()...)
 	apiNodeGroupNames := compute.NodeGroups
 
 	if apiNodeGroupNames != nil {
 		for _, ngName := range apiNodeGroupNames {
 			if !clusterNodeGroupNames.Has(ngName) {
-				return ErrorInvalidNodeGroupSelector(ngName, config.ManagedConfig.GetNodeGroupNames())
+				return ErrorInvalidNodeGroupSelector(ngName, config.ClusterConfig.GetNodeGroupNames())
 			}
 		}
 	}
@@ -207,7 +207,7 @@ func validateK8sCompute(compute *userconfig.Compute, maxMemMap map[string]kresou
 		if apiNodeGroupNames != nil {
 			matchedNodeGroups := 0
 			for _, ngName := range apiNodeGroupNames {
-				if config.ManagedConfig.GetNodeGroupByName(ngName).InstanceType == instanceMetadata.Type {
+				if config.ClusterConfig.GetNodeGroupByName(ngName).InstanceType == instanceMetadata.Type {
 					matchedNodeGroups++
 				}
 			}

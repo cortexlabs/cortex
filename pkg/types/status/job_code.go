@@ -16,10 +16,14 @@ limitations under the License.
 
 package status
 
+// JobCode is an enum to represent a job status
+// +kubebuilder:validation:Type=string
 type JobCode int
 
+// Possible values for JobCode
 const (
 	JobUnknown JobCode = iota
+	JobPending
 	JobEnqueuing
 	JobRunning
 	JobEnqueueFailed
@@ -33,23 +37,25 @@ const (
 )
 
 var _jobCodes = []string{
-	"status_unknown",
-	"status_enqueuing",
-	"status_running",
-	"status_enqueue_failed",
-	"status_completed_with_failures",
-	"status_succeeded",
-	"status_unexpected_error",
-	"status_worker_error",
-	"status_worker_oom",
-	"status_timed_out",
-	"status_stopped",
+	"unknown",
+	"pending",
+	"enqueuing",
+	"running",
+	"enqueue_failed",
+	"completed_with_failures",
+	"succeeded",
+	"unexpected_error",
+	"worker_error",
+	"worker_oom",
+	"timed_out",
+	"stopped",
 }
 
 var _ = [1]int{}[int(JobStopped)-(len(_jobCodes)-1)] // Ensure list length matches
 
 var _jobCodeMessages = []string{
 	"unknown",
+	"pending",
 	"enqueuing",
 	"running",
 	"failed while enqueuing",
@@ -64,12 +70,19 @@ var _jobCodeMessages = []string{
 
 var _ = [1]int{}[int(JobStopped)-(len(_jobCodeMessages)-1)] // Ensure list length matches
 
+func (code JobCode) IsNotStarted() bool {
+	return code == JobPending || code == JobEnqueuing
+}
+
 func (code JobCode) IsInProgress() bool {
 	return code == JobEnqueuing || code == JobRunning
 }
 
 func (code JobCode) IsCompleted() bool {
-	return code == JobEnqueueFailed || code == JobCompletedWithFailures || code == JobSucceeded || code == JobUnexpectedError || code == JobWorkerError || code == JobWorkerOOM || code == JobStopped || code == JobTimedOut
+	return code == JobEnqueueFailed || code == JobCompletedWithFailures ||
+		code == JobSucceeded || code == JobUnexpectedError ||
+		code == JobWorkerError || code == JobWorkerOOM ||
+		code == JobStopped || code == JobTimedOut
 }
 
 func (code JobCode) String() string {

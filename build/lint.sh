@@ -89,9 +89,11 @@ output=$(cd "$ROOT" && find . -type f \
 ! -path "**/*.egg-info/*" \
 ! -path "./test/*" \
 ! -path "./dev/config/*" \
-! -path "./bin/*" \
+! -path "**/bin/*" \
 ! -path "./.circleci/*" \
 ! -path "./.git/*" \
+! -path "./pkg/crds/config/*" \
+! -path "**/tmp/*" \
 ! -name LICENSE \
 ! -name "*requirements.txt" \
 ! -name "go.*" \
@@ -100,6 +102,7 @@ output=$(cd "$ROOT" && find . -type f \
 ! -name ".*" \
 ! -name "*.bin" \
 ! -name "Dockerfile" \
+! -name "PROJECT" \
 -exec grep -L "Copyright 2021 Cortex Labs, Inc" {} \;)
 if [[ $output ]]; then
   echo "File(s) are missing Cortex license:"
@@ -119,7 +122,7 @@ if [ "$is_release_branch" = "true" ]; then
   ! -path "**/.pytest_cache/*" \
   ! -path "**/*.egg-info/*" \
   ! -path "./dev/config/*" \
-  ! -path "./bin/*" \
+  ! -path "**/bin/*" \
   ! -path "./.git/*" \
   ! -name ".*" \
   ! -name "*.bin" \
@@ -142,8 +145,9 @@ output=$(cd "$ROOT" && find . -type f \
 ! -path "**/.pytest_cache/*" \
 ! -path "**/*.egg-info/*" \
 ! -path "./dev/config/*" \
-! -path "./bin/*" \
+! -path "**/bin/*" \
 ! -path "./.git/*" \
+! -path "./pkg/crds/config/*" \
 ! -name ".*" \
 ! -name "*.bin" \
 ! -name "*.wav" \
@@ -164,7 +168,8 @@ output=$(cd "$ROOT" && find . -type f \
 ! -path "**/.pytest_cache/*" \
 ! -path "**/*.egg-info/*" \
 ! -path "./dev/config/*" \
-! -path "./bin/*" \
+! -path "./pkg/crds/config/*" \
+! -path "**/bin/*" \
 ! -path "./.git/*" \
 ! -name ".*" \
 ! -name "*.bin" \
@@ -187,7 +192,7 @@ output=$(cd "$ROOT" && find . -type f \
 ! -path "**/.pytest_cache/*" \
 ! -path "**/*.egg-info/*" \
 ! -path "./dev/config/*" \
-! -path "./bin/*" \
+! -path "**/bin/*" \
 ! -path "./.git/*" \
 ! -name ".*" \
 ! -name "*.bin" \
@@ -209,11 +214,13 @@ output=$(cd "$ROOT" && find . -type f \
 ! -path "**/.pytest_cache/*" \
 ! -path "**/*.egg-info/*" \
 ! -path "./dev/config/*" \
+! -path "./pkg/crds/config/*" \
 ! -path "./bin/*" \
 ! -path "./.git/*" \
 ! -name ".*" \
 ! -name "*.bin" \
 ! -name "*.wav" \
+! -name "boilerplate.go.txt" \
 -print0 | \
 xargs -0 -L1 bash -c 'test "$(head -c 1 "$0")" || [ ! -s "$0" ] || echo "New line at beginning of $0"' || true)
 if [[ $output ]]; then

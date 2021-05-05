@@ -20,4 +20,7 @@ ENV PATH="/opt/aws/neuron/bin:${PATH}"
 
 RUN ln -s /sock/neuron.sock /run/neuron.sock
 
-CMD neuron-rtd -g unix:/sock/neuron.sock --log-console
+COPY images/neuron-rtd/entrypoint.sh ./entrypoint.sh
+RUN chmod +x ./entrypoint.sh
+
+ENTRYPOINT ["./entrypoint.sh"]

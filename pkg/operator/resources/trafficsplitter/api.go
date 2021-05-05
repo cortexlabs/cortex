@@ -20,28 +20,29 @@ import (
 	"fmt"
 	"path/filepath"
 
+	"github.com/cortexlabs/cortex/pkg/config"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/parallel"
-	"github.com/cortexlabs/cortex/pkg/operator/config"
 	"github.com/cortexlabs/cortex/pkg/operator/lib/routines"
 	"github.com/cortexlabs/cortex/pkg/operator/operator"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
+	"github.com/cortexlabs/cortex/pkg/workloads"
 	istioclientnetworking "istio.io/client-go/pkg/apis/networking/v1beta1"
 )
 
 // UpdateAPI creates or updates a traffic splitter API kind
 func UpdateAPI(apiConfig *userconfig.API) (*spec.API, string, error) {
-	prevVirtualService, err := config.K8s.GetVirtualService(operator.K8sName(apiConfig.Name))
+	prevVirtualService, err := config.K8s.GetVirtualService(workloads.K8sName(apiConfig.Name))
 	if err != nil {
 		return nil, "", err
 	}
 
-	api := spec.GetAPISpec(apiConfig, "", "", config.CoreConfig.ClusterName)
+	api := spec.GetAPISpec(apiConfig, "", "", config.ClusterConfig.ClusterName)
 	if prevVirtualService == nil {
-		if err := config.AWS.UploadJSONToS3(api, config.CoreConfig.Bucket, api.Key); err != nil {
+		if err := config.AWS.UploadJSONToS3(api, config.ClusterConfig.Bucket, api.Key); err != nil {
 			return nil, "", errors.Wrap(err, "failed to upload api spec")
 		}
 
@@ -56,7 +57,7 @@ func UpdateAPI(apiConfig *userconfig.API) (*spec.API, string, error) {
 	}
 
 	if prevVirtualService.Labels["specID"] != api.SpecID {
-		if err := config.AWS.UploadJSONToS3(api, config.CoreConfig.Bucket, api.Key); err != nil {
+		if err := config.AWS.UploadJSONToS3(api, config.ClusterConfig.Bucket, api.Key); err != nil {
 			return nil, "", errors.Wrap(err, "failed to upload api spec")
 		}
 
@@ -109,7 +110,7 @@ func getTrafficSplitterDestinations(trafficSplitter *spec.API) []k8s.Destination
 	destinations := make([]k8s.Destination, len(trafficSplitter.APIs))
 	for i, api := range trafficSplitter.APIs {
 		destinations[i] = k8s.Destination{
-			ServiceName: operator.K8sName(api.Name),
+			ServiceName: workloads.K8sName(api.Name),
 			Weight:      api.Weight,
 			Port:        uint32(_defaultPortInt32),
 			Shadow:      api.Shadow,
@@ -175,11 +176,11 @@ func GetAPIByName(deployedResource *operator.DeployedResource) ([]schema.APIResp
 }
 
 func deleteK8sResources(apiName string) error {
-	_, err := config.K8s.DeleteVirtualService(operator.K8sName(apiName))
+	_, err := config.K8s.DeleteVirtualService(workloads.K8sName(apiName))
 	return err
 }
 
 func deleteS3Resources(apiName string) error {
-	prefix := filepath.Join(config.CoreConfig.ClusterName, "apis", apiName)
-	return config.AWS.DeleteS3Dir(config.CoreConfig.Bucket, prefix, true)
+	prefix := filepath.Join(config.ClusterConfig.ClusterName, "apis", apiName)
+	return config.AWS.DeleteS3Dir(config.ClusterConfig.Bucket, prefix, true)
 }

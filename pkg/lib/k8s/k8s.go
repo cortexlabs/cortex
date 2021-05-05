@@ -27,6 +27,7 @@ import (
 	istionetworkingclient "istio.io/client-go/pkg/clientset/versioned/typed/networking/v1beta1"
 	kresource "k8s.io/apimachinery/pkg/api/resource"
 	kmeta "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	kclientdynamic "k8s.io/client-go/dynamic"
 	kclientset "k8s.io/client-go/kubernetes"
 	kclientapps "k8s.io/client-go/kubernetes/typed/apps/v1"
@@ -38,6 +39,7 @@ import (
 	kclientrest "k8s.io/client-go/rest"
 	kclientcmd "k8s.io/client-go/tools/clientcmd"
 	kclienthomedir "k8s.io/client-go/util/homedir"
+	ctrl "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 var (
@@ -49,6 +51,7 @@ var (
 )
 
 type Client struct {
+	ctrl.Client
 	RestConfig           *kclientrest.Config
 	clientset            *kclientset.Clientset
 	dynamicClient        kclientdynamic.Interface
@@ -65,7 +68,7 @@ type Client struct {
 	Namespace            string
 }
 
-func New(namespace string, inCluster bool, restConfig *kclientrest.Config) (*Client, error) {
+func New(namespace string, inCluster bool, restConfig *kclientrest.Config, scheme *runtime.Scheme) (*Client, error) {
 	var err error
 	client := &Client{
 		Namespace: namespace,
@@ -89,6 +92,11 @@ func New(namespace string, inCluster bool, restConfig *kclientrest.Config) (*Cli
 	}
 
 	client.dynamicClient, err = kclientdynamic.NewForConfig(client.RestConfig)
+	if err != nil {
+		return nil, errors.Wrap(err, "kubeconfig")
+	}
+
+	client.Client, err = ctrl.New(client.RestConfig, ctrl.Options{Scheme: scheme})
 	if err != nil {
 		return nil, errors.Wrap(err, "kubeconfig")
 	}

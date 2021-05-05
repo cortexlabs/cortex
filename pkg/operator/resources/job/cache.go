@@ -20,7 +20,7 @@ import (
 	"path"
 	"strings"
 
-	"github.com/cortexlabs/cortex/pkg/operator/config"
+	"github.com/cortexlabs/cortex/pkg/config"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 )
@@ -34,7 +34,7 @@ func ListAllInProgressJobKeys(kind userconfig.Kind) ([]spec.JobKey, error) {
 }
 
 func DeleteInProgressFile(jobKey spec.JobKey) error {
-	err := config.AWS.DeleteS3File(config.CoreConfig.Bucket, inProgressKey(jobKey))
+	err := config.AWS.DeleteS3File(config.ClusterConfig.Bucket, inProgressKey(jobKey))
 	if err != nil {
 		return err
 	}
@@ -42,7 +42,7 @@ func DeleteInProgressFile(jobKey spec.JobKey) error {
 }
 
 func DeleteAllInProgressFilesByAPI(kind userconfig.Kind, apiName string) error {
-	err := config.AWS.DeleteS3Prefix(config.CoreConfig.Bucket, allInProgressForAPIKey(kind, apiName), true)
+	err := config.AWS.DeleteS3Prefix(config.ClusterConfig.Bucket, allInProgressForAPIKey(kind, apiName), true)
 	if err != nil {
 		return err
 	}
@@ -62,7 +62,7 @@ func listAllInProgressJobKeysByAPI(kind userconfig.Kind, apiName *string) ([]spe
 		jobPath = allInProgressKey(kind)
 	}
 
-	s3Objects, err := config.AWS.ListS3Dir(config.CoreConfig.Bucket, jobPath, false, nil)
+	s3Objects, err := config.AWS.ListS3Dir(config.ClusterConfig.Bucket, jobPath, false, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -77,7 +77,7 @@ func listAllInProgressJobKeysByAPI(kind userconfig.Kind, apiName *string) ([]spe
 }
 
 func uploadInProgressFile(jobKey spec.JobKey) error {
-	err := config.AWS.UploadStringToS3("", config.CoreConfig.Bucket, inProgressKey(jobKey))
+	err := config.AWS.UploadStringToS3("", config.ClusterConfig.Bucket, inProgressKey(jobKey))
 	if err != nil {
 		return err
 	}
@@ -87,7 +87,7 @@ func uploadInProgressFile(jobKey spec.JobKey) error {
 // e.g. <cluster_name>/jobs/<job_api_kind>/in_progress
 func allInProgressKey(kind userconfig.Kind) string {
 	return path.Join(
-		config.CoreConfig.ClusterName, _jobsPrefix, kind.String(), _inProgressFilePrefix,
+		config.ClusterConfig.ClusterName, _jobsPrefix, kind.String(), _inProgressFilePrefix,
 	)
 }
 
