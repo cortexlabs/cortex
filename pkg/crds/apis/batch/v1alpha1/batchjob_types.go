@@ -54,6 +54,10 @@ type BatchJobSpec struct {
 	Resources *kcore.ResourceRequirements `json:"resources,omitempty"`
 
 	// +kubebuilder:validation:Optional
+	// Node groups selector
+	NodeGroups []string `json:"node_groups"`
+
+	// +kubebuilder:validation:Optional
 	// Time to live for the resource. The controller will clean-up resources
 	// that reached a final state when the TTL time is exceeded.
 	TTL *kmeta.Duration `json:"ttl,omitempty"`

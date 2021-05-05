@@ -67,6 +67,11 @@ spec:
                     minimum: 1
                     type: integer
                 type: object
+              node_groups:
+                description: Node groups selector
+                items:
+                  type: string
+                type: array
               resources:
                 description: Compute resource requirements
                 properties:

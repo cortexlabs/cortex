@@ -177,7 +177,7 @@ func (r *BatchJobReconciler) enqueuePayload(ctx context.Context, batchJob batch.
 }
 
 func (r *BatchJobReconciler) createWorkerJob(ctx context.Context, batchJob batch.BatchJob, queueURL string) error {
-	apiSpec, err := r.getAPISpec(batchJob)
+	apiSpec, err := r.getAPISpec(batchJob) // TODO: should be cached
 	if err != nil {
 		return errors.Wrap(err, "failed to get API spec")
 	}
@@ -243,7 +243,7 @@ func (r *BatchJobReconciler) desiredEnqueuerJob(batchJob batch.BatchJob, queueUR
 					},
 					NodeSelector:       workloads.NodeSelectors(),
 					Tolerations:        workloads.GenerateResourceTolerations(),
-					Affinity:           workloads.GenerateNodeAffinities(nil), // FIXME: probably requires a node group
+					Affinity:           workloads.GenerateNodeAffinities(batchJob.Spec.NodeGroups),
 					ServiceAccountName: workloads.ServiceAccountName,
 				},
 			},
@@ -316,7 +316,7 @@ func (r *BatchJobReconciler) desiredWorkerJob(batchJob batch.BatchJob, apiSpec s
 					Volumes:            volumes,
 					RestartPolicy:      kcore.RestartPolicyNever,
 					NodeSelector:       workloads.NodeSelectors(),
-					Affinity:           workloads.GenerateNodeAffinities(apiSpec.Compute.NodeGroups),
+					Affinity:           workloads.GenerateNodeAffinities(batchJob.Spec.NodeGroups),
 					Tolerations:        workloads.GenerateResourceTolerations(),
 					ServiceAccountName: workloads.ServiceAccountName,
 				},

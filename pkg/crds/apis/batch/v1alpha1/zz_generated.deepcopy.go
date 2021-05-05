@@ -109,6 +109,11 @@ func (in *BatchJobSpec) DeepCopyInto(out *BatchJobSpec) {
 		*out = new(corev1.ResourceRequirements)
 		(*in).DeepCopyInto(*out)
 	}
+	if in.NodeGroups != nil {
+		in, out := &in.NodeGroups, &out.NodeGroups
+		*out = make([]string, len(*in))
+		copy(*out, *in)
+	}
 	if in.TTL != nil {
 		in, out := &in.TTL, &out.TTL
 		*out = new(v1.Duration)
