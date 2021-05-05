@@ -175,11 +175,21 @@ if [ "$CORTEX_KIND" = "RealtimeAPI" ]; then
     create_s6_service_from_file "api_readiness" "/src/cortex/serve/poll/readiness.sh"
 
 elif [ "$CORTEX_KIND" = "BatchAPI" ]; then
+    start_cmd="/opt/conda/envs/env/bin/python /src/cortex/serve/start/batch.py"
+    if [ -f "/mnt/kubexit" ]; then
+      start_cmd="/mnt/kubexit ${start_cmd}"
+    fi
+
     create_s6_service "py_init" "cd /mnt/project && exec /opt/conda/envs/env/bin/python /src/cortex/serve/init/script.py"
-    create_s6_service "batch" "cd /mnt/project && $source_env_file_cmd && PYTHONUNBUFFERED=TRUE PYTHONPATH=$PYTHONPATH:$CORTEX_PYTHON_PATH exec /opt/conda/envs/env/bin/python /src/cortex/serve/start/batch.py"
+    create_s6_service "batch" "cd /mnt/project && $source_env_file_cmd && PYTHONUNBUFFERED=TRUE PYTHONPATH=$PYTHONPATH:$CORTEX_PYTHON_PATH exec ${start_cmd}"
 elif [ "$CORTEX_KIND" = "AsyncAPI" ]; then
     create_s6_service "py_init" "cd /mnt/project && exec /opt/conda/envs/env/bin/python /src/cortex/serve/init/script.py"
     create_s6_service "async" "cd /mnt/project && $source_env_file_cmd && PYTHONUNBUFFERED=TRUE PYTHONPATH=$PYTHONPATH:$CORTEX_PYTHON_PATH exec /opt/conda/envs/env/bin/python /src/cortex/serve/start/async_api.py"
 elif [ "$CORTEX_KIND" = "TaskAPI" ]; then
-    create_s6_service "task" "cd /mnt/project && $source_env_file_cmd && PYTHONUNBUFFERED=TRUE PYTHONPATH=$PYTHONPATH:$CORTEX_PYTHON_PATH exec /opt/conda/envs/env/bin/python /src/cortex/serve/start/task.py"
+    start_cmd="/opt/conda/envs/env/bin/python /src/cortex/serve/start/task.py"
+    if [ -f "/mnt/kubexit" ]; then
+      start_cmd="/mnt/kubexit ${start_cmd}"
+    fi
+
+    create_s6_service "task" "cd /mnt/project && $source_env_file_cmd && PYTHONUNBUFFERED=TRUE PYTHONPATH=$PYTHONPATH:$CORTEX_PYTHON_PATH exec ${start_cmd}"
 fi

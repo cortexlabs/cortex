@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package batchapi
+package main
 
 import (
 	"fmt"
@@ -22,8 +22,6 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/sqs"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
-	"github.com/cortexlabs/cortex/pkg/operator/config"
-	"github.com/cortexlabs/cortex/pkg/types/spec"
 )
 
 const (
@@ -32,6 +30,7 @@ const (
 )
 
 type sqsBatchUploader struct {
+	client               *sqs.SQS
 	messageAttributes    map[string]*sqs.MessageAttributeValue
 	queueURL             string
 	retries              int // default 3 times
@@ -41,19 +40,20 @@ type sqsBatchUploader struct {
 	TotalBatches         int
 }
 
-func newSQSBatchUploader(queueURL string, jobKey spec.JobKey) *sqsBatchUploader {
+func newSQSBatchUploader(apiName, jobID, queueURL string, client *sqs.SQS) *sqsBatchUploader {
 	messageAttributes := map[string]*sqs.MessageAttributeValue{
 		"api_name": {
 			DataType:    aws.String("String"),
-			StringValue: aws.String(jobKey.APIName),
+			StringValue: aws.String(apiName),
 		},
 		"job_id": {
 			DataType:    aws.String("String"),
-			StringValue: aws.String(jobKey.ID),
+			StringValue: aws.String(jobID),
 		},
 	}
 
 	return &sqsBatchUploader{
+		client:               client,
 		messageAttributes:    messageAttributes,
 		queueURL:             queueURL,
 		retries:              3,
@@ -108,11 +108,15 @@ func (uploader *sqsBatchUploader) Flush() error {
 }
 
 func (uploader *sqsBatchUploader) enqueueToSQS() error {
-	output, err := config.AWS.SQS().SendMessageBatch(&sqs.SendMessageBatchInput{
+	output, err := uploader.client.SendMessageBatch(&sqs.SendMessageBatchInput{
 		QueueUrl: aws.String(uploader.queueURL),
 		Entries:  uploader.messageList,
 	})
 	if err != nil {
+		if output == nil {
+			return errors.ErrorUnexpected("got unexpected nil pointer")
+		}
+
 		if len(output.Failed) == 0 {
 			return errors.WithStack(err)
 		}

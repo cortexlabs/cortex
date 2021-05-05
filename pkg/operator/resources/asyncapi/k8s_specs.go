@@ -21,9 +21,9 @@ import (
 
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
-	"github.com/cortexlabs/cortex/pkg/operator/operator"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
+	"github.com/cortexlabs/cortex/pkg/workloads"
 	"istio.io/client-go/pkg/apis/networking/v1beta1"
 	kapps "k8s.io/api/apps/v1"
 	kautoscaling "k8s.io/api/autoscaling/v2beta2"
@@ -35,7 +35,7 @@ var _gatewayHPATargetCPUUtilization int32 = 80 // percentage
 var _gatewayHPATargetMemUtilization int32 = 80 // percentage
 
 func gatewayDeploymentSpec(api spec.API, prevDeployment *kapps.Deployment, queueURL string) kapps.Deployment {
-	container := operator.AsyncGatewayContainers(api, queueURL)
+	container := workloads.AsyncGatewayContainers(api, queueURL)
 
 	return *k8s.Deployment(&k8s.DeploymentSpec{
 		Name:           getGatewayK8sName(api.Name),
@@ -70,10 +70,10 @@ func gatewayDeploymentSpec(api spec.API, prevDeployment *kapps.Deployment, queue
 				RestartPolicy:                 "Always",
 				TerminationGracePeriodSeconds: pointer.Int64(_terminationGracePeriodSeconds),
 				Containers:                    []kcore.Container{container},
-				NodeSelector:                  operator.NodeSelectors(),
-				Tolerations:                   operator.GenerateResourceTolerations(),
-				Affinity:                      operator.GenerateNodeAffinities(api.Compute.NodeGroups),
-				ServiceAccountName:            operator.ServiceAccountName,
+				NodeSelector:                  workloads.NodeSelectors(),
+				Tolerations:                   workloads.GenerateResourceTolerations(),
+				Affinity:                      workloads.GenerateNodeAffinities(api.Compute.NodeGroups),
+				ServiceAccountName:            workloads.ServiceAccountName,
 			},
 		},
 	})
@@ -110,10 +110,10 @@ func gatewayHPASpec(api spec.API) (kautoscaling.HorizontalPodAutoscaler, error) 
 
 func gatewayServiceSpec(api spec.API) kcore.Service {
 	return *k8s.Service(&k8s.ServiceSpec{
-		Name:        operator.K8sName(api.Name),
+		Name:        workloads.K8sName(api.Name),
 		PortName:    "http",
-		Port:        operator.DefaultPortInt32,
-		TargetPort:  operator.DefaultPortInt32,
+		Port:        workloads.DefaultPortInt32,
+		TargetPort:  workloads.DefaultPortInt32,
 		Annotations: api.ToK8sAnnotations(),
 		Labels: map[string]string{
 			"apiName":          api.Name,
@@ -131,12 +131,12 @@ func gatewayServiceSpec(api spec.API) kcore.Service {
 
 func gatewayVirtualServiceSpec(api spec.API) v1beta1.VirtualService {
 	return *k8s.VirtualService(&k8s.VirtualServiceSpec{
-		Name:     operator.K8sName(api.Name),
+		Name:     workloads.K8sName(api.Name),
 		Gateways: []string{"apis-gateway"},
 		Destinations: []k8s.Destination{{
-			ServiceName: operator.K8sName(api.Name),
+			ServiceName: workloads.K8sName(api.Name),
 			Weight:      100,
-			Port:        uint32(operator.DefaultPortInt32),
+			Port:        uint32(workloads.DefaultPortInt32),
 		}},
 		PrefixPath:  api.Networking.Endpoint,
 		Rewrite:     pointer.String("/"),
@@ -162,15 +162,15 @@ func apiDeploymentSpec(api spec.API, prevDeployment *kapps.Deployment, queueURL 
 
 	switch api.Handler.Type {
 	case userconfig.PythonHandlerType:
-		containers, volumes = operator.AsyncPythonHandlerContainers(api, queueURL)
+		containers, volumes = workloads.AsyncPythonHandlerContainers(api, queueURL)
 	case userconfig.TensorFlowHandlerType:
-		containers, volumes = operator.AsyncTensorflowHandlerContainers(api, queueURL)
+		containers, volumes = workloads.AsyncTensorflowHandlerContainers(api, queueURL)
 	default:
 		panic(fmt.Sprintf("invalid handler type: %s", api.Handler.Type))
 	}
 
 	return *k8s.Deployment(&k8s.DeploymentSpec{
-		Name:           operator.K8sName(api.Name),
+		Name:           workloads.K8sName(api.Name),
 		Replicas:       getRequestedReplicasFromDeployment(api, prevDeployment),
 		MaxSurge:       pointer.String(api.UpdateStrategy.MaxSurge),
 		MaxUnavailable: pointer.String(api.UpdateStrategy.MaxUnavailable),
@@ -203,14 +203,14 @@ func apiDeploymentSpec(api spec.API, prevDeployment *kapps.Deployment, queueURL 
 				RestartPolicy:                 "Always",
 				TerminationGracePeriodSeconds: pointer.Int64(_terminationGracePeriodSeconds),
 				InitContainers: []kcore.Container{
-					operator.InitContainer(&api),
+					workloads.InitContainer(&api),
 				},
 				Containers:         containers,
-				NodeSelector:       operator.NodeSelectors(),
-				Tolerations:        operator.GenerateResourceTolerations(),
-				Affinity:           operator.GenerateNodeAffinities(api.Compute.NodeGroups),
+				NodeSelector:       workloads.NodeSelectors(),
+				Tolerations:        workloads.GenerateResourceTolerations(),
+				Affinity:           workloads.GenerateNodeAffinities(api.Compute.NodeGroups),
 				Volumes:            volumes,
-				ServiceAccountName: operator.ServiceAccountName,
+				ServiceAccountName: workloads.ServiceAccountName,
 			},
 		},
 	})

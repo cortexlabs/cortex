@@ -1,0 +1,16 @@
+- name: image-classifier-resnet50
+  kind: BatchAPI
+  handler:
+    type: python
+    path: handler.py
+    config:
+      model_path: s3://cortex-examples/pytorch/image-classifier-resnet50
+      # this model only supports batch size of 1, given the way it was saved.
+      # It is intended for testing only.
+      model_name: resnet50_neuron.pt
+      device: inf
+      classes: https://s3.amazonaws.com/deep-learning-models/image-models/imagenet_class_index.json
+      input_shape: [224, 224]
+  compute:
+    inf: 1
+    cpu: 1

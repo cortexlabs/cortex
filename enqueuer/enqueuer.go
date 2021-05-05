@@ -14,75 +14,124 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package batchapi
+package main
 
 import (
 	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
-	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/sqs"
 	awslib "github.com/cortexlabs/cortex/pkg/lib/aws"
-	"github.com/cortexlabs/cortex/pkg/lib/cron"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/random"
-	"github.com/cortexlabs/cortex/pkg/operator/config"
-	"github.com/cortexlabs/cortex/pkg/operator/lib/logging"
-	"github.com/cortexlabs/cortex/pkg/operator/operator"
-	"github.com/cortexlabs/cortex/pkg/operator/resources/job"
-	"github.com/cortexlabs/cortex/pkg/operator/schema"
+	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
+	"github.com/cortexlabs/cortex/pkg/types/userconfig"
+	"go.uber.org/zap"
 )
 
 const (
-	_enqueuingLivenessPeriod = 20 * time.Second
-	_s3DownloadChunkSize     = 32 * 1024 * 1024
+	_s3DownloadChunkSize = 32 * 1024 * 1024
 )
 
-var operatorLogger = logging.GetOperatorLogger()
+type EnvConfig struct {
+	ClusterName string
+	Region      string
+	Version     string
+	Bucket      string
+	APIName     string
+	JobID       string
+}
+
+// FIXME: all these types should be shared with the cortex webserver (from where the payload is submitted)
+
+type ItemList struct {
+	Items     []json.RawMessage `json:"items"`
+	BatchSize int               `json:"batch_size"`
+}
+
+type S3Lister struct {
+	S3Paths  []string `json:"s3_paths"` // s3://<bucket_name>/key
+	Includes []string `json:"includes"`
+	Excludes []string `json:"excludes"`
+}
+
+type FilePathLister struct {
+	S3Lister
+	BatchSize int `json:"batch_size"`
+}
+
+type DelimitedFiles struct {
+	S3Lister
+	BatchSize int `json:"batch_size"`
+}
+
+type JobSubmission struct {
+	ItemList       *ItemList       `json:"item_list"`
+	FilePathLister *FilePathLister `json:"file_path_lister"`
+	DelimitedFiles *DelimitedFiles `json:"delimited_files"`
+}
 
 func randomMessageID() string {
 	return random.String(40) // maximum is 80 (for sqs.SendMessageBatchRequestEntry.Id) but this ID may show up in a user error message
 }
 
-func enqueue(jobSpec *spec.BatchJob, submission *schema.BatchJobSubmission) (int, error) {
-	livenessUpdater := func() error {
-		return job.UpdateLiveness(jobSpec.JobKey)
+type Enqueuer struct {
+	aws       *awslib.Client
+	envConfig EnvConfig
+	queueURL  string
+	logger    *zap.Logger
+}
+
+func NewEnqueuer(envConfig EnvConfig, queueURL string, logger *zap.Logger) (*Enqueuer, error) {
+	awsClient, err := awslib.NewForRegion(envConfig.Region)
+	if err != nil {
+		return nil, err
 	}
 
-	livenessCron := cron.Run(livenessUpdater, operator.ErrorHandler(fmt.Sprintf("liveness check for %s", jobSpec.UserString())), _enqueuingLivenessPeriod)
-	defer livenessCron.Cancel()
+	return &Enqueuer{
+		aws:       awsClient,
+		envConfig: envConfig,
+		queueURL:  queueURL,
+		logger:    logger,
+	}, nil
+}
+
+func (e *Enqueuer) Enqueue() (int, error) {
+	submission, err := e.getJobPayload()
+	if err != nil {
+		return 0, err
+	}
 
 	totalBatches := 0
-	var err error
 	if submission.ItemList != nil {
-		totalBatches, err = enqueueItems(jobSpec, submission.ItemList)
+		totalBatches, err = e.enqueueItems(submission.ItemList)
 		if err != nil {
 			return 0, err
 		}
 	} else if submission.FilePathLister != nil {
-		totalBatches, err = enqueueS3Paths(jobSpec, submission.FilePathLister)
+		totalBatches, err = e.enqueueS3Paths(submission.FilePathLister)
 		if err != nil {
 			return 0, err
 		}
 	} else if submission.DelimitedFiles != nil {
-		totalBatches, err = enqueueS3FileContents(jobSpec, submission.DelimitedFiles)
+		totalBatches, err = e.enqueueS3FileContents(submission.DelimitedFiles)
 		if err != nil {
 			return 0, err
 		}
 	}
 
-	randomMessageID := randomMessageID()
-	_, err = config.AWS.SQS().SendMessage(&sqs.SendMessageInput{
-		QueueUrl:               aws.String(jobSpec.SQSUrl),
+	randomID := randomMessageID()
+	_, err = e.aws.SQS().SendMessage(&sqs.SendMessageInput{
+		QueueUrl:               aws.String(e.queueURL),
 		MessageBody:            aws.String("\"job_complete\""),
-		MessageDeduplicationId: aws.String(randomMessageID), // prevent content based deduping
-		MessageGroupId:         aws.String(randomMessageID), // aws recommends message group id per message to improve chances of exactly-once
+		MessageDeduplicationId: aws.String(randomID), // prevent content based deduping
+		MessageGroupId:         aws.String(randomID), // aws recommends message group id per message to improve chances of exactly-once
 		MessageAttributes: map[string]*sqs.MessageAttributeValue{
 			"job_complete": {
 				DataType:    aws.String("String"),
@@ -90,11 +139,11 @@ func enqueue(jobSpec *spec.BatchJob, submission *schema.BatchJobSubmission) (int
 			},
 			"api_name": {
 				DataType:    aws.String("String"),
-				StringValue: aws.String(jobSpec.APIName),
+				StringValue: aws.String(e.envConfig.APIName),
 			},
 			"job_id": {
 				DataType:    aws.String("String"),
-				StringValue: aws.String(jobSpec.ID),
+				StringValue: aws.String(e.envConfig.JobID),
 			},
 		},
 	})
@@ -102,23 +151,59 @@ func enqueue(jobSpec *spec.BatchJob, submission *schema.BatchJobSubmission) (int
 		return 0, errors.Wrap(err, "failed to enqueue job_complete placeholder")
 	}
 
+	if err = e.deleteJobPayload(); err != nil {
+		return 0, err
+	}
+
 	return totalBatches, nil
 }
 
-func enqueueItems(jobSpec *spec.BatchJob, itemList *schema.ItemList) (int, error) {
+func (e *Enqueuer) UploadBatchCount(batchCount int) error {
+	key := spec.JobBatchCountKey(e.envConfig.ClusterName, userconfig.BatchAPIKind, e.envConfig.APIName, e.envConfig.JobID)
+	return e.aws.UploadStringToS3(s.Int(batchCount), e.envConfig.Bucket, key)
+}
+
+func (e *Enqueuer) getJobPayload() (JobSubmission, error) {
+	// e.g. <cluster name>/jobs/<job_api_kind>/<cortex version>/<api_name>/<job_id>
+	key := spec.JobPayloadKey(e.envConfig.ClusterName, userconfig.BatchAPIKind, e.envConfig.APIName, e.envConfig.JobID)
+
+	submissionBytes, err := e.aws.ReadBytesFromS3(e.envConfig.Bucket, key)
+	if err != nil {
+		return JobSubmission{}, err
+	}
+
+	var submission JobSubmission
+	if err = json.Unmarshal(submissionBytes, &submission); err != nil {
+		return JobSubmission{}, err
+	}
+
+	return submission, nil
+}
+
+func (e *Enqueuer) deleteJobPayload() error {
+	key := spec.JobPayloadKey(e.envConfig.ClusterName, userconfig.BatchAPIKind, e.envConfig.APIName, e.envConfig.JobID)
+	if err := e.aws.DeleteS3File(e.envConfig.Bucket, key); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (e *Enqueuer) enqueueItems(itemList *ItemList) (int, error) {
+	log := e.logger
+
 	batchCount := len(itemList.Items) / itemList.BatchSize
 	if len(itemList.Items)%itemList.BatchSize != 0 {
 		batchCount++
 	}
 
-	jobLogger, err := operator.GetJobLogger(jobSpec.JobKey)
-	if err != nil {
-		return 0, nil
-	}
+	log.Info(
+		"partitioning items found in job submission into batches",
+		zap.Int("numItems", len(itemList.Items)),
+		zap.Int("batchCount", batchCount),
+		zap.Int("batchSize", itemList.BatchSize),
+	)
 
-	jobLogger.Infof("partitioning %d items found in job submission into %d batches of size %d", len(itemList.Items), batchCount, itemList.BatchSize)
-
-	uploader := newSQSBatchUploader(jobSpec.SQSUrl, jobSpec.JobKey)
+	uploader := newSQSBatchUploader(e.envConfig.APIName, e.envConfig.JobID, e.queueURL, e.aws.SQS())
 
 	for i := 0; i < batchCount; i++ {
 		min := i * (itemList.BatchSize)
@@ -143,11 +228,11 @@ func enqueueItems(jobSpec *spec.BatchJob, itemList *schema.ItemList) (int, error
 			return 0, errors.Wrap(err, fmt.Sprintf("items with index between %d to %d", min, max))
 		}
 		if uploader.TotalBatches%100 == 0 {
-			jobLogger.Infof("enqueued %d batches", uploader.TotalBatches)
+			log.Info("enqueued batches", zap.Int("batchCount", uploader.TotalBatches))
 		}
 	}
 
-	err = uploader.Flush()
+	err := uploader.Flush()
 	if err != nil {
 		return 0, err
 	}
@@ -155,16 +240,13 @@ func enqueueItems(jobSpec *spec.BatchJob, itemList *schema.ItemList) (int, error
 	return uploader.TotalBatches, nil
 }
 
-func enqueueS3Paths(jobSpec *spec.BatchJob, s3PathsLister *schema.FilePathLister) (int, error) {
-	jobLogger, err := operator.GetJobLogger(jobSpec.JobKey)
-	if err != nil {
-		return 0, err
-	}
+func (e *Enqueuer) enqueueS3Paths(s3PathsLister *FilePathLister) (int, error) {
+	log := e.logger
 
 	var s3PathList []string
-	uploader := newSQSBatchUploader(jobSpec.SQSUrl, jobSpec.JobKey)
+	uploader := newSQSBatchUploader(e.envConfig.APIName, e.envConfig.JobID, e.queueURL, e.aws.SQS())
 
-	err = s3IteratorFromLister(s3PathsLister.S3Lister, func(bucket string, s3Obj *s3.Object) (bool, error) {
+	err := s3IteratorFromLister(e.aws, s3PathsLister.S3Lister, func(bucket string, s3Obj *s3.Object) (bool, error) {
 		s3Path := awslib.S3Path(bucket, *s3Obj.Key)
 
 		s3PathList = append(s3PathList, s3Path)
@@ -176,7 +258,7 @@ func enqueueS3Paths(jobSpec *spec.BatchJob, s3PathsLister *schema.FilePathLister
 			s3PathList = nil
 
 			if uploader.TotalBatches%100 == 0 {
-				jobLogger.Infof("enqueued %d batches", uploader.TotalBatches)
+				log.Info("enqueued batches", zap.Int("numBatches", uploader.TotalBatches))
 			}
 		}
 
@@ -201,58 +283,18 @@ func enqueueS3Paths(jobSpec *spec.BatchJob, s3PathsLister *schema.FilePathLister
 	return uploader.TotalBatches, nil
 }
 
-func addS3PathsToQueue(uploader *sqsBatchUploader, s3PathList []string) error {
-	jsonBytes, err := json.Marshal(s3PathList)
-	if err != nil {
-		return errors.Wrap(err, fmt.Sprintf("batch %d", uploader.TotalBatches))
-	}
-
-	err = uploader.AddToBatch(randomMessageID(), pointer.String(string(jsonBytes)))
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-type jsonBuffer struct {
-	BatchSize   int
-	messageList []json.RawMessage
-}
-
-func newJSONBuffer(batchSize int) *jsonBuffer {
-	return &jsonBuffer{
-		BatchSize:   batchSize,
-		messageList: make([]json.RawMessage, 0, batchSize),
-	}
-}
-
-func (j *jsonBuffer) Add(jsonMessage json.RawMessage) {
-	j.messageList = append(j.messageList, jsonMessage)
-}
-
-func (j *jsonBuffer) Clear() {
-	j.messageList = make([]json.RawMessage, 0, j.BatchSize)
-}
-
-func (j *jsonBuffer) Length() int {
-	return len(j.messageList)
-}
-
-func enqueueS3FileContents(jobSpec *spec.BatchJob, delimitedFiles *schema.DelimitedFiles) (int, error) {
-	jobLogger, err := operator.GetJobLogger(jobSpec.JobKey)
-	if err != nil {
-		return 0, err
-	}
+func (e *Enqueuer) enqueueS3FileContents(delimitedFiles *DelimitedFiles) (int, error) {
+	log := e.logger
 
 	jsonMessageList := newJSONBuffer(delimitedFiles.BatchSize)
-	uploader := newSQSBatchUploader(jobSpec.SQSUrl, jobSpec.JobKey)
+	uploader := newSQSBatchUploader(e.envConfig.APIName, e.envConfig.JobID, e.queueURL, e.aws.SQS())
 
 	bytesBuffer := bytes.NewBuffer([]byte{})
-	err = s3IteratorFromLister(delimitedFiles.S3Lister, func(bucket string, s3Obj *s3.Object) (bool, error) {
+	err := s3IteratorFromLister(e.aws, delimitedFiles.S3Lister, func(bucket string, s3Obj *s3.Object) (bool, error) {
 		s3Path := awslib.S3Path(bucket, *s3Obj.Key)
-		jobLogger.Infof("enqueuing contents from file %s", s3Path)
+		log.Info("enqueuing contents from file", zap.String("path", s3Path))
 
-		awsClientForBucket, err := awslib.NewFromClientS3Path(s3Path, config.AWS)
+		awsClientForBucket, err := awslib.NewFromClientS3Path(s3Path, e.aws)
 		if err != nil {
 			return false, err
 		}
@@ -263,7 +305,7 @@ func enqueueS3FileContents(jobSpec *spec.BatchJob, delimitedFiles *schema.Delimi
 			if err != nil {
 				return false, err
 			}
-			err = streamJSONToQueue(jobSpec, uploader, bytesBuffer, jsonMessageList, &itemIndex)
+			err = e.streamJSONToQueue(uploader, bytesBuffer, jsonMessageList, &itemIndex)
 			if err != nil {
 				if errors.CauseOrSelf(err) != io.ErrUnexpectedEOF || (errors.CauseOrSelf(err) == io.ErrUnexpectedEOF && isLastChunk) {
 					return false, err
@@ -295,11 +337,8 @@ func enqueueS3FileContents(jobSpec *spec.BatchJob, delimitedFiles *schema.Delimi
 	return uploader.TotalBatches, nil
 }
 
-func streamJSONToQueue(jobSpec *spec.BatchJob, uploader *sqsBatchUploader, bytesBuffer *bytes.Buffer, jsonMessageList *jsonBuffer, itemIndex *int) error {
-	jobLogger, err := operator.GetJobLogger(jobSpec.JobKey)
-	if err != nil {
-		return err
-	}
+func (e *Enqueuer) streamJSONToQueue(uploader *sqsBatchUploader, bytesBuffer *bytes.Buffer, jsonMessageList *jsonBuffer, itemIndex *int) error {
+	log := e.logger
 
 	dec := json.NewDecoder(bytesBuffer)
 	for {
@@ -310,7 +349,7 @@ func streamJSONToQueue(jobSpec *spec.BatchJob, uploader *sqsBatchUploader, bytes
 			break
 		} else if err == io.ErrUnexpectedEOF {
 			bytesBuffer.Reset()
-			bytesBuffer.ReadFrom(dec.Buffered())
+			_, _ = bytesBuffer.ReadFrom(dec.Buffered())
 			return io.ErrUnexpectedEOF
 		} else if err != nil {
 			return errors.Wrap(err, fmt.Sprintf("item %d", *itemIndex))
@@ -329,7 +368,7 @@ func streamJSONToQueue(jobSpec *spec.BatchJob, uploader *sqsBatchUploader, bytes
 			jsonMessageList.Clear()
 
 			if uploader.TotalBatches%100 == 0 {
-				jobLogger.Infof("enqueued %d batches", uploader.TotalBatches)
+				log.Info("enqueued batches", zap.Int("numBatches", uploader.TotalBatches))
 			}
 		}
 	}
@@ -337,16 +376,15 @@ func streamJSONToQueue(jobSpec *spec.BatchJob, uploader *sqsBatchUploader, bytes
 	return nil
 }
 
-func addJSONObjectsToQueue(uploader *sqsBatchUploader, jsonMessageList *jsonBuffer) error {
-	jsonBytes, err := json.Marshal(jsonMessageList.messageList)
+func addS3PathsToQueue(uploader *sqsBatchUploader, s3PathList []string) error {
+	jsonBytes, err := json.Marshal(s3PathList)
 	if err != nil {
-		return err
+		return errors.Wrap(err, fmt.Sprintf("batch %d", uploader.TotalBatches))
 	}
 
 	err = uploader.AddToBatch(randomMessageID(), pointer.String(string(jsonBytes)))
 	if err != nil {
 		return err
 	}
-
 	return nil
 }
