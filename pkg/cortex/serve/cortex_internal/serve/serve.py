@@ -25,6 +25,7 @@ import uuid
 from concurrent.futures import ThreadPoolExecutor
 from typing import Any, Dict
 import datadog
+from asgiref.sync import async_to_sync
 
 from fastapi import FastAPI
 from fastapi.exceptions import RequestValidationError
@@ -180,6 +181,9 @@ async def parse_payload(request: Request, call_next):
 
 
 def handle(request: Request):
+    if async_to_sync(request.is_disconnected)():
+        return Response(status_code=499, content="disconnected client")
+
     verb = request.method.lower()
     handle_fn_args = local_cache["handle_fn_args"]
     if verb not in handle_fn_args:

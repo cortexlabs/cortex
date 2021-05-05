@@ -23,38 +23,14 @@ import (
 )
 
 const (
-	ErrNoS3FilesFound             = "batchapi.no_s3_files_found"
-	ErrNoDataFoundInJobSubmission = "batchapi.no_data_found_in_job_submission"
-	ErrFailedToEnqueueMessages    = "batchapi.failed_to_enqueue_messages"
-	ErrMessageExceedsMaxSize      = "batchapi.message_exceeds_max_size"
-	ErrBatchItemSizeExceedsLimit  = "batchapi.item_size_exceeds_limit"
+	ErrNoS3FilesFound            = "batchapi.no_s3_files_found"
+	ErrBatchItemSizeExceedsLimit = "batchapi.item_size_exceeds_limit"
 )
 
 func ErrorNoS3FilesFound() error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrNoS3FilesFound,
 		Message: "no s3 files match search criteria",
-	})
-}
-
-func ErrorNoDataFoundInJobSubmission() error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrNoDataFoundInJobSubmission,
-		Message: "unable to enqueue batches because no data was found",
-	})
-}
-
-func ErrorFailedToEnqueueMessages(message string) error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrFailedToEnqueueMessages,
-		Message: message,
-	})
-}
-
-func ErrorMessageExceedsMaxSize(messageSize int, messageLimit int) error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrMessageExceedsMaxSize,
-		Message: fmt.Sprintf("cannot enqueue message because its size of %d bytes exceeds the %d bytes limit; use a smaller batch size or reduce the size of each of item in the batch", messageSize, messageLimit),
 	})
 }
 

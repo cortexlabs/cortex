@@ -19,8 +19,8 @@ package trafficsplitter
 import (
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
-	"github.com/cortexlabs/cortex/pkg/operator/operator"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
+	"github.com/cortexlabs/cortex/pkg/workloads"
 	istioclientnetworking "istio.io/client-go/pkg/apis/networking/v1beta1"
 )
 
@@ -30,7 +30,7 @@ const (
 
 func virtualServiceSpec(trafficSplitter *spec.API) *istioclientnetworking.VirtualService {
 	return k8s.VirtualService(&k8s.VirtualServiceSpec{
-		Name:         operator.K8sName(trafficSplitter.Name),
+		Name:         workloads.K8sName(trafficSplitter.Name),
 		Gateways:     []string{"apis-gateway"},
 		Destinations: getTrafficSplitterDestinations(trafficSplitter),
 		ExactPath:    trafficSplitter.Networking.Endpoint,

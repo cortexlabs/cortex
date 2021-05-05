@@ -1,0 +1,11 @@
+apiVersion: batch.cortex.dev/v1alpha1
+kind: BatchJob
+metadata:
+  name: "123456"
+spec:
+  api_name: "image-classifier"
+  api_id: "123456"
+  workers: 1
+  config: |
+    dest_s3_dir: s3://abc/123
+  ttl: "10s"

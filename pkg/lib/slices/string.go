@@ -23,6 +23,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 )
 
+// HasString checks if a string slice contains a target string
 func HasString(list []string, query string) bool {
 	for _, elem := range list {
 		if elem == query {
@@ -32,6 +33,7 @@ func HasString(list []string, query string) bool {
 	return false
 }
 
+// HasAnyStrings checks if a string slice contains any string from the query string slice
 func HasAnyStrings(queries []string, list []string) bool {
 	keys := strset.New()
 	for _, elem := range queries {
@@ -45,6 +47,7 @@ func HasAnyStrings(queries []string, list []string) bool {
 	return false
 }
 
+// HasAllStrings checks if a string slice contains all the strings from the query string slice
 func HasAllStrings(queries []string, list []string) bool {
 	keys := strset.New()
 	for _, elem := range list {
@@ -96,6 +99,18 @@ func RemoveEmptiesAndUnique(strs []string) []string {
 		}
 	}
 	return out
+}
+
+// RemoveString removes a target string from a string slice if it exists
+func RemoveString(strs []string, target string) []string {
+	var result []string
+	for _, item := range strs {
+		if item == target {
+			continue
+		}
+		result = append(result, item)
+	}
+	return result
 }
 
 func HasDuplicateStr(in []string) bool {

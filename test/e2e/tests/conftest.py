@@ -62,6 +62,11 @@ def pytest_addoption(parser):
         action="store_true",
         help="skip long-running test",
     )
+    parser.addoption(
+        "--local-operator",
+        action="store_true",
+        help="enable for using testing against BatchAPI with a local operator",
+    )
 
 
 def pytest_configure(config):
@@ -77,6 +82,7 @@ def pytest_configure(config):
             "s3_path": s3_path,
         },
         "global": {
+            "local_operator": config.getoption("--local-operator"),
             "realtime_deploy_timeout": int(
                 os.environ.get("CORTEX_TEST_REALTIME_DEPLOY_TIMEOUT", 200)
             ),

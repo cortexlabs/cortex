@@ -12,3 +12,7 @@
 **/*.pyo
 **/*.pyd
 **/__pycache__/
+
+**/hack/
+**/PROJECT
+**/Makefile

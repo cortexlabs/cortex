@@ -21,9 +21,9 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/cortexlabs/cortex/pkg/config"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/parallel"
-	"github.com/cortexlabs/cortex/pkg/operator/config"
 	"github.com/cortexlabs/cortex/pkg/types/metrics"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 	promv1 "github.com/prometheus/client_golang/api/prometheus/v1"
@@ -216,7 +216,7 @@ func queryPrometheusVec(promAPIv1 promv1.API, query string) (model.Vector, error
 	ctx, cancel := context.WithTimeout(context.Background(), _metricsRequestTimeout*time.Second)
 	defer cancel()
 
-	valuesQuery, err := promAPIv1.Query(ctx, query, time.Now())
+	valuesQuery, _, err := promAPIv1.Query(ctx, query, time.Now())
 	if err != nil {
 		return nil, err
 	}

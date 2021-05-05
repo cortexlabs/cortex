@@ -19,13 +19,13 @@ package taskapi
 import (
 	"path"
 
+	"github.com/cortexlabs/cortex/pkg/config"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/parallel"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
-	"github.com/cortexlabs/cortex/pkg/operator/config"
-	"github.com/cortexlabs/cortex/pkg/operator/operator"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
+	"github.com/cortexlabs/cortex/pkg/workloads"
 	istioclientnetworking "istio.io/client-go/pkg/apis/networking/v1beta1"
 	kbatch "k8s.io/api/batch/v1"
 	kcore "k8s.io/api/core/v1"
@@ -37,12 +37,12 @@ const _operatorService = "operator"
 
 func virtualServiceSpec(api *spec.API) *istioclientnetworking.VirtualService {
 	return k8s.VirtualService(&k8s.VirtualServiceSpec{
-		Name:     operator.K8sName(api.Name),
+		Name:     workloads.K8sName(api.Name),
 		Gateways: []string{"apis-gateway"},
 		Destinations: []k8s.Destination{{
 			ServiceName: _operatorService,
 			Weight:      100,
-			Port:        uint32(operator.DefaultPortInt32),
+			Port:        uint32(workloads.DefaultPortInt32),
 		}},
 		PrefixPath:  api.Networking.Endpoint,
 		Rewrite:     pointer.String(path.Join("tasks", api.Name)),
@@ -59,13 +59,13 @@ func virtualServiceSpec(api *spec.API) *istioclientnetworking.VirtualService {
 }
 
 func k8sJobSpec(api *spec.API, job *spec.TaskJob) *kbatch.Job {
-	containers, volumes := operator.TaskContainers(api)
+	containers, volumes := workloads.TaskContainers(api)
 	for i, container := range containers {
-		if container.Name == operator.APIContainerName {
+		if container.Name == workloads.APIContainerName {
 			containers[i].Env = append(container.Env,
 				kcore.EnvVar{
 					Name:  "CORTEX_TASK_SPEC",
-					Value: operator.TaskSpecPath,
+					Value: workloads.TaskSpecPath,
 				},
 			)
 		}
@@ -98,14 +98,15 @@ func k8sJobSpec(api *spec.API, job *spec.TaskJob) *kbatch.Job {
 			K8sPodSpec: kcore.PodSpec{
 				RestartPolicy: "Never",
 				InitContainers: []kcore.Container{
-					operator.TaskInitContainer(api, job),
+					workloads.KubexitInitContainer(),
+					workloads.TaskInitContainer(api, job),
 				},
 				Containers:         containers,
-				NodeSelector:       operator.NodeSelectors(),
-				Tolerations:        operator.GenerateResourceTolerations(),
-				Affinity:           operator.GenerateNodeAffinities(api.Compute.NodeGroups),
+				NodeSelector:       workloads.NodeSelectors(),
+				Tolerations:        workloads.GenerateResourceTolerations(),
+				Affinity:           workloads.GenerateNodeAffinities(api.Compute.NodeGroups),
 				Volumes:            volumes,
-				ServiceAccountName: operator.ServiceAccountName,
+				ServiceAccountName: workloads.ServiceAccountName,
 			},
 		},
 	})
@@ -136,7 +137,7 @@ func deleteK8sResources(apiName string) error {
 			return err
 		},
 		func() error {
-			_, err := config.K8s.DeleteVirtualService(operator.K8sName(apiName))
+			_, err := config.K8s.DeleteVirtualService(workloads.K8sName(apiName))
 			return err
 		},
 	)

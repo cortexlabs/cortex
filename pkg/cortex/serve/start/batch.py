@@ -16,7 +16,6 @@ import inspect
 import json
 import os
 import pathlib
-import signal
 import sys
 import threading
 import time
@@ -24,6 +23,7 @@ import uuid
 from typing import Dict, Any
 
 import boto3
+import datadog
 
 from cortex_internal.lib.api import BatchAPI
 from cortex_internal.lib.concurrency import LockedFile
@@ -32,7 +32,6 @@ from cortex_internal.lib.log import configure_logger
 from cortex_internal.lib.metrics import MetricsClient
 from cortex_internal.lib.queue.sqs import SQSHandler, get_total_messages_in_queue
 from cortex_internal.lib.telemetry import get_default_tags, init_sentry, capture_exception
-import datadog
 
 init_sentry(tags=get_default_tags())
 log = configure_logger("cortex", os.environ["CORTEX_LOG_CONFIG_FILE"])
