@@ -1,0 +1,28 @@
+# Build the manager binary
+FROM golang:1.15 as builder
+
+# Copy the Go Modules manifests
+COPY go.mod go.sum /workspace
+WORKDIR /workspace
+RUN go mod download
+
+COPY pkg/config /workspace/pkg/config
+COPY pkg/consts /workspace/pkg/consts
+COPY pkg/lib /workspace/pkg/lib
+COPY pkg/enqueuer /workspace/pkg/enqueuer
+COPY pkg/types /workspace/pkg/types
+COPY pkg/crds /workspace/pkg/crds
+COPY pkg/workloads /workspace/pkg/workloads
+WORKDIR /workspace/pkg/enqueuer
+
+# Build
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 GO111MODULE=on go build -o enqueuer .
+
+# Use distroless as minimal base image to package the manager binary
+# Refer to https://github.com/GoogleContainerTools/distroless for more details
+FROM gcr.io/distroless/static:nonroot
+WORKDIR /
+COPY --from=builder /workspace/enqueuer .
+USER nonroot:nonroot
+
+ENTRYPOINT ["/enqueuer"]

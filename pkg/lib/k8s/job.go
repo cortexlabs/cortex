@@ -34,6 +34,7 @@ var _jobTypeMeta = kmeta.TypeMeta{
 
 type JobSpec struct {
 	Name         string
+	Namespace    string
 	PodSpec      PodSpec
 	Parallelism  int32
 	BackoffLimit int32
@@ -50,6 +51,7 @@ func Job(spec *JobSpec) *kbatch.Job {
 		TypeMeta: _jobTypeMeta,
 		ObjectMeta: kmeta.ObjectMeta{
 			Name:        spec.Name,
+			Namespace:   spec.Namespace,
 			Labels:      spec.Labels,
 			Annotations: spec.Annotations,
 		},

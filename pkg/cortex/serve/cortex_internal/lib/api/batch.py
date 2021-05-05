@@ -12,30 +12,31 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from copy import deepcopy
 import imp
 import inspect
 import os
-import dill
+from copy import deepcopy
 from typing import Any, Dict, Optional
 
+import dill
 from datadog.dogstatsd.base import DogStatsd
 
 from cortex_internal.lib import util
-from cortex_internal.lib.client.tensorflow import TensorFlowClient
-from cortex_internal.lib.model import TFSAPIServingThreadUpdater
 from cortex_internal.lib.api.utils import CortexMetrics
 from cortex_internal.lib.api.validations import (
     are_models_specified,
     validate_class_impl,
 )
+from cortex_internal.lib.client.tensorflow import TensorFlowClient
+from cortex_internal.lib.exceptions import CortexException, UserException, UserRuntimeException
+from cortex_internal.lib.metrics import MetricsClient
+from cortex_internal.lib.model import TFSAPIServingThreadUpdater
 from cortex_internal.lib.type import (
     PythonHandlerType,
     TensorFlowNeuronHandlerType,
     TensorFlowHandlerType,
     handler_type_from_api_spec,
 )
-from cortex_internal.lib.exceptions import CortexException, UserException, UserRuntimeException
 
 PYTHON_CLASS_VALIDATION = {
     "required": [
@@ -130,7 +131,7 @@ class BatchAPI:
         self,
         project_dir: str,
         client: TensorFlowClient,
-        metrics_client: DogStatsd,
+        metrics_client: MetricsClient,
         job_spec: Optional[Dict[str, Any]] = None,
     ):
         """

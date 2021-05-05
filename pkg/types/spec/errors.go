@@ -575,7 +575,7 @@ func ErrorTrafficSplitterAPIsNotUnique(names []string) error {
 func ErrorOneShadowPerTrafficSplitter() error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrOneShadowPerTrafficSplitter,
-		Message: fmt.Sprintf("multiple shadow apis detected; only one api is allowed to be marked as a shadow"),
+		Message: "multiple shadow apis detected; only one api is allowed to be marked as a shadow",
 	})
 }
 

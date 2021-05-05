@@ -25,7 +25,6 @@ import (
 	"github.com/gorilla/mux"
 
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
-	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/logging"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
@@ -85,13 +84,12 @@ func main() {
 		log.Fatal("apiName argument was not provided")
 	}
 
-	coreConfig := &clusterconfig.CoreConfig{}
-	errs := cr.ParseYAMLFile(coreConfig, clusterconfig.CoreConfigValidations(true), *clusterConfigPath)
-	if errors.HasError(errs) {
-		Exit(errors.FirstError(errs...))
+	clusterConfig, err := clusterconfig.NewForFile(*clusterConfigPath)
+	if err != nil {
+		Exit(err)
 	}
 
-	aws, err := aws.NewForRegion(coreConfig.Region)
+	aws, err := aws.NewForRegion(clusterConfig.Region)
 	if err != nil {
 		Exit(err)
 	}
@@ -102,7 +100,7 @@ func main() {
 	}
 
 	err = telemetry.Init(telemetry.Config{
-		Enabled: coreConfig.Telemetry,
+		Enabled: clusterConfig.Telemetry,
 		UserID:  userID,
 		Properties: map[string]string{
 			"kind":       userconfig.AsyncAPIKind.String(),
@@ -117,10 +115,10 @@ func main() {
 	}
 
 	sess := aws.Session()
-	s3Storage := NewS3(sess, coreConfig.Bucket)
+	s3Storage := NewS3(sess, clusterConfig.Bucket)
 	sqsQueue := NewSQS(*queueURL, sess)
 
-	svc := NewService(coreConfig.ClusterName, apiName, sqsQueue, s3Storage, log)
+	svc := NewService(clusterConfig.ClusterName, apiName, sqsQueue, s3Storage, log)
 	ep := NewEndpoint(svc, log)
 
 	router := mux.NewRouter()

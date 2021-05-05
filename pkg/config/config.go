@@ -22,9 +22,8 @@ import (
 	"strings"
 
 	"github.com/cortexlabs/cortex/pkg/consts"
+	batch "github.com/cortexlabs/cortex/pkg/crds/apis/batch/v1alpha1"
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
-
-	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/hash"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
@@ -32,13 +31,15 @@ import (
 	"github.com/cortexlabs/cortex/pkg/types/clusterconfig"
 	promapi "github.com/prometheus/client_golang/api"
 	promv1 "github.com/prometheus/client_golang/api/prometheus/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 )
 
 var (
 	OperatorMetadata *clusterconfig.OperatorMetadata
 
-	CoreConfig        *clusterconfig.CoreConfig
-	ManagedConfig     *clusterconfig.ManagedConfig
+	ClusterConfig     *clusterconfig.Config
 	InstancesMetadata []aws.InstanceMetadata
 
 	AWS             *aws.Client
@@ -46,7 +47,18 @@ var (
 	K8sIstio        *k8s.Client
 	K8sAllNamspaces *k8s.Client
 	Prometheus      promv1.API
+	scheme          = runtime.NewScheme()
 )
+
+func init() {
+	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
+	utilruntime.Must(batch.AddToScheme(scheme))
+}
+
+func InitConfigs(clusterConfig *clusterconfig.Config, operatorMetadata *clusterconfig.OperatorMetadata) {
+	ClusterConfig = clusterConfig
+	OperatorMetadata = operatorMetadata
+}
 
 func Init() error {
 	var err error
@@ -58,52 +70,49 @@ func Init() error {
 		clusterConfigPath = consts.DefaultInClusterConfigPath
 	}
 
-	CoreConfig = &clusterconfig.CoreConfig{}
-	errs := cr.ParseYAMLFile(CoreConfig, clusterconfig.CoreConfigValidations(true), clusterConfigPath)
-	if errors.HasError(errs) {
-		return errors.FirstError(errs...)
-	}
-
-	ManagedConfig = &clusterconfig.ManagedConfig{}
-	errs = cr.ParseYAMLFile(ManagedConfig, clusterconfig.ManagedConfigValidations(true), clusterConfigPath)
-	if errors.HasError(errs) {
-		return errors.FirstError(errs...)
-	}
-
-	for _, instanceType := range ManagedConfig.GetAllInstanceTypes() {
-		InstancesMetadata = append(InstancesMetadata, aws.InstanceMetadatas[CoreConfig.Region][instanceType])
-	}
-
-	AWS, err = aws.NewForRegion(CoreConfig.Region)
+	clusterConfig, err := clusterconfig.NewForFile(clusterConfigPath)
 	if err != nil {
 		return err
 	}
 
-	_, hashedAccountID, err := AWS.CheckCredentials()
+	ClusterConfig = clusterConfig
+
+	for _, instanceType := range clusterConfig.GetAllInstanceTypes() {
+		InstancesMetadata = append(InstancesMetadata, aws.InstanceMetadatas[clusterConfig.Region][instanceType])
+	}
+
+	AWS, err = aws.NewForRegion(clusterConfig.Region)
 	if err != nil {
 		return err
 	}
+
+	accountID, hashedAccountID, err := AWS.CheckCredentials()
+	if err != nil {
+		return err
+	}
+
+	clusterConfig.AccountID = accountID
 
 	OperatorMetadata = &clusterconfig.OperatorMetadata{
 		APIVersion:          consts.CortexVersion,
 		OperatorID:          hashedAccountID,
-		ClusterID:           hash.String(CoreConfig.ClusterName + CoreConfig.Region + hashedAccountID),
+		ClusterID:           hash.String(clusterConfig.ClusterName + clusterConfig.Region + hashedAccountID),
 		IsOperatorInCluster: strings.ToLower(os.Getenv("CORTEX_OPERATOR_IN_CLUSTER")) != "false",
 	}
 
-	clusterNamespace = CoreConfig.Namespace
-	istioNamespace = CoreConfig.IstioNamespace
+	clusterNamespace = clusterConfig.Namespace
+	istioNamespace = clusterConfig.IstioNamespace
 
-	exists, err := AWS.DoesBucketExist(CoreConfig.Bucket)
+	exists, err := AWS.DoesBucketExist(clusterConfig.Bucket)
 	if err != nil {
 		return err
 	}
 	if !exists {
-		return errors.ErrorUnexpected("the specified bucket does not exist", CoreConfig.Bucket)
+		return errors.ErrorUnexpected("the specified bucket does not exist", clusterConfig.Bucket)
 	}
 
 	err = telemetry.Init(telemetry.Config{
-		Enabled: CoreConfig.Telemetry,
+		Enabled: clusterConfig.Telemetry,
 		UserID:  OperatorMetadata.OperatorID,
 		Properties: map[string]string{
 			"cluster_id":  OperatorMetadata.ClusterID,
@@ -117,11 +126,11 @@ func Init() error {
 		fmt.Println(errors.Message(err))
 	}
 
-	if K8s, err = k8s.New(clusterNamespace, OperatorMetadata.IsOperatorInCluster, nil); err != nil {
+	if K8s, err = k8s.New(clusterNamespace, OperatorMetadata.IsOperatorInCluster, nil, scheme); err != nil {
 		return err
 	}
 
-	if K8sIstio, err = k8s.New(istioNamespace, OperatorMetadata.IsOperatorInCluster, nil); err != nil {
+	if K8sIstio, err = k8s.New(istioNamespace, OperatorMetadata.IsOperatorInCluster, nil, scheme); err != nil {
 		return err
 	}
 
@@ -139,7 +148,7 @@ func Init() error {
 
 	Prometheus = promv1.NewAPI(promClient)
 
-	if K8sAllNamspaces, err = k8s.New("", OperatorMetadata.IsOperatorInCluster, nil); err != nil {
+	if K8sAllNamspaces, err = k8s.New("", OperatorMetadata.IsOperatorInCluster, nil, scheme); err != nil {
 		return err
 	}
 

@@ -72,6 +72,7 @@ function cluster_up() {
   echo "✓"
 
   restart_operator
+  start_controller_manager
 
   validate_cortex
 
@@ -241,6 +242,19 @@ function restart_operator() {
   python render_template.py $CORTEX_CLUSTER_CONFIG_FILE manifests/operator.yaml.j2 > /workspace/operator.yaml
   kubectl apply -f /workspace/operator.yaml >/dev/null
   if [ "$printed_dot" == "true" ]; then echo " ✓"; else echo "✓"; fi
+}
+
+function start_controller_manager() {
+  echo -n "￮ starting controller manager "
+
+  kustomize build config/default | kubectl delete --ignore-not-found=true -f - >/dev/null
+
+  cd config/manager \
+    && kustomize edit set image controller=${CORTEX_IMAGE_CONTROLLER_MANAGER} \
+    && cd ../.. > /dev/null
+
+  kustomize build config/default | kubectl apply -f - >/dev/null
+  echo "✓"
 }
 
 function resize_nodegroup() {
