@@ -41,7 +41,7 @@ var (
 	gatewayLogger = logging.GetLogger()
 )
 
-func Error(err error, wrapStrs ...string) {
+func Exit(err error, wrapStrs ...string) {
 	for _, str := range wrapStrs {
 		err = errors.Wrap(err, str)
 	}
@@ -97,17 +97,17 @@ func main() {
 	coreConfig := &clusterconfig.CoreConfig{}
 	errs := cr.ParseYAMLFile(coreConfig, clusterconfig.CoreConfigValidations(true), *clusterConfigPath)
 	if errors.HasError(errs) {
-		Error(errors.FirstError(errs...))
+		Exit(errors.FirstError(errs...))
 	}
 
 	aws, err := aws.NewForRegion(*region)
 	if err != nil {
-		Error(err)
+		Exit(err)
 	}
 
 	_, userID, err := aws.CheckCredentials()
 	if err != nil {
-		Error(err)
+		Exit(err)
 	}
 
 	err = telemetry.Init(telemetry.Config{
@@ -122,7 +122,7 @@ func main() {
 		BackoffMode: telemetry.BackoffDuplicateMessages,
 	})
 	if err != nil {
-		Error(err)
+		Exit(err)
 	}
 
 	sess := aws.Session()
@@ -154,6 +154,6 @@ func main() {
 
 	log.Info("Running on port " + *port)
 	if err = http.ListenAndServe(":"+*port, handlers.CORS(corsOptions...)(router)); err != nil {
-		Error(err)
+		Exit(err)
 	}
 }
