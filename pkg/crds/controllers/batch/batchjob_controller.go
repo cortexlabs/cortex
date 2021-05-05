@@ -25,6 +25,7 @@ import (
 	awslib "github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/slices"
 	"github.com/cortexlabs/cortex/pkg/types/clusterconfig"
+	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	"github.com/go-logr/logr"
 	promv1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	kbatch "k8s.io/api/batch/v1"
@@ -59,7 +60,10 @@ type BatchJobReconciler struct {
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
 func (r *BatchJobReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	log := r.Log.WithValues("batchjob", req.NamespacedName)
+	log := r.Log.WithValues(
+		"batchjob", req.NamespacedName,
+		"apiKind", userconfig.BatchAPIKind.String(),
+	)
 
 	// Step 1: get resource from request
 	batchJob := batch.BatchJob{}
@@ -70,6 +74,8 @@ func (r *BatchJobReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		}
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
+
+	log = log.WithValues("apiName", batchJob.Spec.APIName, "apiID", batchJob.Spec.APIID, "jobID", batchJob.Name)
 
 	// Step 2: create finalizer or handle deletion
 	if batchJob.ObjectMeta.DeletionTimestamp.IsZero() {
