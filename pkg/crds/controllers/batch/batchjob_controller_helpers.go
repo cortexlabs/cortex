@@ -17,7 +17,6 @@ limitations under the License.
 package batchcontrollers
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -27,8 +26,6 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
-	"github.com/aws/aws-sdk-go/service/s3"
-	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 	"github.com/aws/aws-sdk-go/service/sqs"
 	"github.com/cortexlabs/cortex/pkg/consts"
 	batch "github.com/cortexlabs/cortex/pkg/crds/apis/batch/v1alpha1"
@@ -341,17 +338,13 @@ func (r *BatchJobReconciler) desiredWorkerJob(batchJob batch.BatchJob, apiSpec s
 func (r *BatchJobReconciler) getAPISpec(batchJob batch.BatchJob) (*spec.API, error) {
 	apiSpecKey := spec.Key(batchJob.Spec.APIName, batchJob.Spec.APIID, r.ClusterConfig.ClusterName)
 
-	input := s3.GetObjectInput{
-		Bucket: aws.String(r.ClusterConfig.Bucket),
-		Key:    aws.String(apiSpecKey),
-	}
-	buff := aws.WriteAtBuffer{}
-	if _, err := r.AWS.S3Downloader().Download(&buff, &input); err != nil {
+	apiSpecBytes, err := r.AWS.ReadBytesFromS3(r.ClusterConfig.Bucket, apiSpecKey)
+	if err != nil {
 		return nil, err
 	}
 
 	apiSpec := &spec.API{}
-	if err := json.Unmarshal(buff.Bytes(), apiSpec); err != nil {
+	if err := json.Unmarshal(apiSpecBytes, apiSpec); err != nil {
 		return nil, err
 	}
 
@@ -527,19 +520,10 @@ func (r *BatchJobReconciler) uploadJobSpec(batchJob batch.BatchJob, api spec.API
 		TotalBatchCount: maxBatchCount,
 	}
 
-	buffer := &bytes.Buffer{}
-	if err := json.NewEncoder(buffer).Encode(jobSpec); err != nil {
+	if err = r.AWS.UploadJSONToS3(&jobSpec, r.ClusterConfig.Bucket, r.jobSpecKey(batchJob)); err != nil {
 		return nil, err
 	}
 
-	input := s3manager.UploadInput{
-		Body:   buffer,
-		Bucket: aws.String(r.ClusterConfig.Bucket),
-		Key:    aws.String(r.jobSpecKey(batchJob)),
-	}
-	if _, err := r.AWS.S3Uploader().Upload(&input); err != nil {
-		return nil, err
-	}
 	return &jobSpec, nil
 }
 
