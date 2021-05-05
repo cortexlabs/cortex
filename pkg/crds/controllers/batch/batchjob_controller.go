@@ -24,7 +24,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/crds/controllers"
 	awslib "github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/slices"
-	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/types/clusterconfig"
 	"github.com/go-logr/logr"
 	promv1 "github.com/prometheus/client_golang/api/prometheus/v1"
@@ -86,7 +85,7 @@ func (r *BatchJobReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		}
 	} else {
 		// The object is being deleted
-		if s.SliceContains(batchJob.ObjectMeta.Finalizers, _sqsFinalizer) {
+		if slices.HasString(batchJob.ObjectMeta.Finalizers, _sqsFinalizer) {
 			// our finalizer is present, so lets handle any external dependency
 			log.V(1).Info("deleting SQS queue")
 			if err := r.deleteSQSQueue(batchJob); err != nil {
@@ -96,7 +95,7 @@ func (r *BatchJobReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 
 			log.V(1).Info("removing sqs finalizer")
 			// remove our finalizer from the list and update it.
-			batchJob.ObjectMeta.Finalizers = s.RemoveFromSlice(batchJob.ObjectMeta.Finalizers, _sqsFinalizer)
+			batchJob.ObjectMeta.Finalizers = slices.RemoveString(batchJob.ObjectMeta.Finalizers, _sqsFinalizer)
 			if err := r.Update(ctx, &batchJob); err != nil {
 				log.Error(err, "failed to remove sqs finalizer from resource")
 				return ctrl.Result{}, err
@@ -104,7 +103,7 @@ func (r *BatchJobReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 			return ctrl.Result{}, nil // return here because the status update will trigger another reconcile
 		}
 
-		if s.SliceContains(batchJob.ObjectMeta.Finalizers, _s3Finalizer) {
+		if slices.HasString(batchJob.ObjectMeta.Finalizers, _s3Finalizer) {
 			log.V(1).Info("persisting job to S3")
 			if err := r.persistJobToS3(batchJob); err != nil {
 				log.Error(err, "failed to persist job to S3")
@@ -112,7 +111,7 @@ func (r *BatchJobReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 			}
 
 			log.V(1).Info("removing S3 finalizer")
-			batchJob.ObjectMeta.Finalizers = s.RemoveFromSlice(batchJob.ObjectMeta.Finalizers, _s3Finalizer)
+			batchJob.ObjectMeta.Finalizers = slices.RemoveString(batchJob.ObjectMeta.Finalizers, _s3Finalizer)
 			if err := r.Update(ctx, &batchJob); err != nil {
 				log.Error(err, "failed to remove S3 finalizer from resource")
 				return ctrl.Result{}, err
