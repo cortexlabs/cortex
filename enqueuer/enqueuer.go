@@ -167,18 +167,13 @@ func (e *Enqueuer) getJobPayload() (JobSubmission, error) {
 	// e.g. <cluster name>/jobs/<job_api_kind>/<cortex version>/<api_name>/<job_id>
 	key := spec.JobPayloadKey(e.envConfig.ClusterName, userconfig.BatchAPIKind, e.envConfig.APIName, e.envConfig.JobID)
 
-	buff := aws.WriteAtBuffer{}
-	input := s3.GetObjectInput{
-		Key:    aws.String(key),
-		Bucket: aws.String(e.envConfig.Bucket),
-	}
-
-	if _, err := e.aws.S3Downloader().Download(&buff, &input); err != nil {
+	submissionBytes, err := e.aws.ReadBytesFromS3(e.envConfig.Bucket, key)
+	if err != nil {
 		return JobSubmission{}, err
 	}
 
 	var submission JobSubmission
-	if err := json.Unmarshal(buff.Bytes(), &submission); err != nil {
+	if err = json.Unmarshal(submissionBytes, &submission); err != nil {
 		return JobSubmission{}, err
 	}
 
