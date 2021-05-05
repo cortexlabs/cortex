@@ -266,6 +266,10 @@ func patchAPI(apiConfig *userconfig.API, force bool) (*spec.API, string, error) 
 		return nil, "", ErrorOperationIsOnlySupportedForKind(*deployedResource, userconfig.RealtimeAPIKind, userconfig.AsyncAPIKind, userconfig.BatchAPIKind, userconfig.TaskAPIKind, userconfig.TrafficSplitterKind) // unexpected
 	}
 
+	if deployedResource.Kind != apiConfig.Kind {
+		return nil, "", ErrorCannotChangeKindOfDeployedAPI(apiConfig.Name, apiConfig.Kind, deployedResource.Kind)
+	}
+
 	var projectFiles ProjectFiles
 
 	prevAPISpec, err := operator.DownloadAPISpec(deployedResource.Name, deployedResource.ID())
