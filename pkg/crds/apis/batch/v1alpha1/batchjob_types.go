@@ -54,6 +54,7 @@ type BatchJobSpec struct {
 	Resources *kcore.ResourceRequirements `json:"resources,omitempty"`
 
 	// +kubebuilder:validation:Optional
+	// +nullable
 	// Node groups selector
 	NodeGroups []string `json:"node_groups"`
 

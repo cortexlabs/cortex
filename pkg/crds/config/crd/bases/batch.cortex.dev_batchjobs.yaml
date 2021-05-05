@@ -71,6 +71,7 @@ spec:
                 description: Node groups selector
                 items:
                   type: string
+                nullable: true
                 type: array
               resources:
                 description: Compute resource requirements
