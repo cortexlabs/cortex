@@ -39,7 +39,7 @@ const (
 	_s3DownloadChunkSize = 32 * 1024 * 1024
 )
 
-type ClusterEnv struct {
+type EnvConfig struct {
 	ClusterName string
 	Region      string
 	Version     string
@@ -82,23 +82,23 @@ func randomMessageID() string {
 }
 
 type Enqueuer struct {
-	aws        *awslib.Client
-	clusterEnv ClusterEnv
-	queueURL   string
-	logger     *zap.Logger
+	aws       *awslib.Client
+	envConfig EnvConfig
+	queueURL  string
+	logger    *zap.Logger
 }
 
-func NewEnqueuer(clusterEnv ClusterEnv, queueURL string, logger *zap.Logger) (*Enqueuer, error) {
-	awsClient, err := awslib.NewForRegion(clusterEnv.Region)
+func NewEnqueuer(envConfig EnvConfig, queueURL string, logger *zap.Logger) (*Enqueuer, error) {
+	awsClient, err := awslib.NewForRegion(envConfig.Region)
 	if err != nil {
 		return nil, err
 	}
 
 	return &Enqueuer{
-		aws:        awsClient,
-		clusterEnv: clusterEnv,
-		queueURL:   queueURL,
-		logger:     logger,
+		aws:       awsClient,
+		envConfig: envConfig,
+		queueURL:  queueURL,
+		logger:    logger,
 	}, nil
 }
 
@@ -139,11 +139,11 @@ func (e *Enqueuer) Enqueue() (int, error) {
 			},
 			"api_name": {
 				DataType:    aws.String("String"),
-				StringValue: aws.String(e.clusterEnv.APIName),
+				StringValue: aws.String(e.envConfig.APIName),
 			},
 			"job_id": {
 				DataType:    aws.String("String"),
-				StringValue: aws.String(e.clusterEnv.JobID),
+				StringValue: aws.String(e.envConfig.JobID),
 			},
 		},
 	})
@@ -159,18 +159,18 @@ func (e *Enqueuer) Enqueue() (int, error) {
 }
 
 func (e *Enqueuer) UploadBatchCount(batchCount int) error {
-	key := spec.JobBatchCountKey(e.clusterEnv.ClusterName, userconfig.BatchAPIKind, e.clusterEnv.APIName, e.clusterEnv.JobID)
-	return e.aws.UploadStringToS3(s.Int(batchCount), e.clusterEnv.Bucket, key)
+	key := spec.JobBatchCountKey(e.envConfig.ClusterName, userconfig.BatchAPIKind, e.envConfig.APIName, e.envConfig.JobID)
+	return e.aws.UploadStringToS3(s.Int(batchCount), e.envConfig.Bucket, key)
 }
 
 func (e *Enqueuer) getJobPayload() (JobSubmission, error) {
 	// e.g. <cluster name>/jobs/<job_api_kind>/<cortex version>/<api_name>/<job_id>
-	key := spec.JobPayloadKey(e.clusterEnv.ClusterName, userconfig.BatchAPIKind, e.clusterEnv.APIName, e.clusterEnv.JobID)
+	key := spec.JobPayloadKey(e.envConfig.ClusterName, userconfig.BatchAPIKind, e.envConfig.APIName, e.envConfig.JobID)
 
 	buff := aws.WriteAtBuffer{}
 	input := s3.GetObjectInput{
 		Key:    aws.String(key),
-		Bucket: aws.String(e.clusterEnv.Bucket),
+		Bucket: aws.String(e.envConfig.Bucket),
 	}
 
 	if _, err := e.aws.S3Downloader().Download(&buff, &input); err != nil {
@@ -186,8 +186,8 @@ func (e *Enqueuer) getJobPayload() (JobSubmission, error) {
 }
 
 func (e *Enqueuer) deleteJobPayload() error {
-	key := spec.JobPayloadKey(e.clusterEnv.ClusterName, userconfig.BatchAPIKind, e.clusterEnv.APIName, e.clusterEnv.JobID)
-	if err := e.aws.DeleteS3File(e.clusterEnv.Bucket, key); err != nil {
+	key := spec.JobPayloadKey(e.envConfig.ClusterName, userconfig.BatchAPIKind, e.envConfig.APIName, e.envConfig.JobID)
+	if err := e.aws.DeleteS3File(e.envConfig.Bucket, key); err != nil {
 		return err
 	}
 	return nil
@@ -208,7 +208,7 @@ func (e *Enqueuer) enqueueItems(itemList *ItemList) (int, error) {
 		zap.Int("batchSize", itemList.BatchSize),
 	)
 
-	uploader := newSQSBatchUploader(e.clusterEnv.APIName, e.clusterEnv.JobID, e.queueURL, e.aws.SQS())
+	uploader := newSQSBatchUploader(e.envConfig.APIName, e.envConfig.JobID, e.queueURL, e.aws.SQS())
 
 	for i := 0; i < batchCount; i++ {
 		min := i * (itemList.BatchSize)
@@ -249,7 +249,7 @@ func (e *Enqueuer) enqueueS3Paths(s3PathsLister *FilePathLister) (int, error) {
 	log := e.logger
 
 	var s3PathList []string
-	uploader := newSQSBatchUploader(e.clusterEnv.APIName, e.clusterEnv.JobID, e.queueURL, e.aws.SQS())
+	uploader := newSQSBatchUploader(e.envConfig.APIName, e.envConfig.JobID, e.queueURL, e.aws.SQS())
 
 	err := s3IteratorFromLister(e.aws, s3PathsLister.S3Lister, func(bucket string, s3Obj *s3.Object) (bool, error) {
 		s3Path := awslib.S3Path(bucket, *s3Obj.Key)
@@ -292,7 +292,7 @@ func (e *Enqueuer) enqueueS3FileContents(delimitedFiles *DelimitedFiles) (int, e
 	log := e.logger
 
 	jsonMessageList := newJSONBuffer(delimitedFiles.BatchSize)
-	uploader := newSQSBatchUploader(e.clusterEnv.APIName, e.clusterEnv.JobID, e.queueURL, e.aws.SQS())
+	uploader := newSQSBatchUploader(e.envConfig.APIName, e.envConfig.JobID, e.queueURL, e.aws.SQS())
 
 	bytesBuffer := bytes.NewBuffer([]byte{})
 	err := s3IteratorFromLister(e.aws, delimitedFiles.S3Lister, func(bucket string, s3Obj *s3.Object) (bool, error) {

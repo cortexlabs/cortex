@@ -105,7 +105,7 @@ func main() {
 		log.Fatal("-jobID is a required option")
 	}
 
-	clusterEnv := ClusterEnv{
+	envConfig := EnvConfig{
 		ClusterName: clusterName,
 		Region:      region,
 		Version:     version,
@@ -114,7 +114,7 @@ func main() {
 		JobID:       jobID,
 	}
 
-	enqueuer, err := NewEnqueuer(clusterEnv, queueURL, log)
+	enqueuer, err := NewEnqueuer(envConfig, queueURL, log)
 	if err != nil {
 		log.Fatal("failed to create enqueuer", zap.Error(err))
 	}
