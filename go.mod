@@ -19,8 +19,8 @@ require (
 	github.com/docker/go-connections v0.4.0 // indirect
 	github.com/emicklei/proto v1.9.0
 	github.com/fatih/color v1.10.0
-	github.com/getsentry/sentry-go v0.8.0
 	github.com/go-logr/logr v0.3.0
+	github.com/getsentry/sentry-go v0.10.0
 	github.com/go-ole/go-ole v1.2.4 // indirect
 	github.com/gobwas/glob v0.2.3
 	github.com/google/uuid v1.1.2
