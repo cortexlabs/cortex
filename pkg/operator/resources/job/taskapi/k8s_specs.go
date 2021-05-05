@@ -98,6 +98,7 @@ func k8sJobSpec(api *spec.API, job *spec.TaskJob) *kbatch.Job {
 			K8sPodSpec: kcore.PodSpec{
 				RestartPolicy: "Never",
 				InitContainers: []kcore.Container{
+					workloads.KubexitInitContainer(),
 					workloads.TaskInitContainer(api, job),
 				},
 				Containers:         containers,

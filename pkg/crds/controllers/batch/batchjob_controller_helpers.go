@@ -263,20 +263,12 @@ func (r *BatchJobReconciler) desiredEnqueuerJob(batchJob batch.BatchJob, queueUR
 func (r *BatchJobReconciler) desiredWorkerJob(batchJob batch.BatchJob, apiSpec spec.API, jobSpec spec.BatchJob) (*kbatch.Job, error) {
 	var containers []kcore.Container
 	var volumes []kcore.Volume
-	var initContainers []kcore.Container
 
 	switch apiSpec.Handler.Type {
 	case userconfig.PythonHandlerType:
-		containers, volumes = workloads.PythonHandlerContainers(&apiSpec)
-		initContainers = []kcore.Container{
-			workloads.BatchInitContainer(&apiSpec, &jobSpec),
-		}
+		containers, volumes = workloads.PythonHandlerJobContainers(&apiSpec)
 	case userconfig.TensorFlowHandlerType:
 		containers, volumes = workloads.TensorFlowHandlerJobContainers(&apiSpec)
-		initContainers = []kcore.Container{
-			workloads.KubexitInitContainer(),
-			workloads.BatchInitContainer(&apiSpec, &jobSpec),
-		}
 	default:
 		return nil, fmt.Errorf("unexpected handler type (%s)", apiSpec.Handler.Type)
 	}
@@ -319,7 +311,10 @@ func (r *BatchJobReconciler) desiredWorkerJob(batchJob batch.BatchJob, apiSpec s
 					"cluster-autoscaler.kubernetes.io/safe-to-evict":   "false",
 				},
 				K8sPodSpec: kcore.PodSpec{
-					InitContainers:     initContainers,
+					InitContainers: []kcore.Container{
+						workloads.KubexitInitContainer(),
+						workloads.BatchInitContainer(&apiSpec, &jobSpec),
+					},
 					Containers:         containers,
 					Volumes:            volumes,
 					RestartPolicy:      kcore.RestartPolicyNever,
