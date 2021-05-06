@@ -26,9 +26,13 @@ RUN curl -LO https://storage.googleapis.com/kubernetes-release/release/v1.20.2/b
     chmod +x ./kubectl && \
     mv ./kubectl /usr/local/bin/kubectl
 
+RUN curl -L "https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2Fv4.1.2/kustomize_v4.1.2_linux_amd64.tar.gz" | tar xz -C /tmp && \
+    mv /tmp/kustomize /usr/local/bin
+
 ENV ISTIO_VERSION 1.7.3
 RUN curl -L https://istio.io/downloadIstio | sh -
 
 COPY manager /root
+COPY pkg/crds/config /root/config
 
 ENTRYPOINT ["/bin/bash"]

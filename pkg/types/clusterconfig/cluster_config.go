@@ -90,10 +90,13 @@ type CoreConfig struct {
 
 	// User-specifiable fields
 	ImageOperator                   string `json:"image_operator" yaml:"image_operator"`
+	ImageControllerManager          string `json:"image_controller_manager" yaml:"image_controller_manager"`
 	ImageManager                    string `json:"image_manager" yaml:"image_manager"`
 	ImageDownloader                 string `json:"image_downloader" yaml:"image_downloader"`
+	ImageKubexit                    string `json:"image_kubexit" yaml:"image_kubexit"`
 	ImageRequestMonitor             string `json:"image_request_monitor" yaml:"image_request_monitor"`
 	ImageAsyncGateway               string `json:"image_async_gateway" yaml:"image_async_gateway"`
+	ImageEnqueuer                   string `json:"image_enqueuer" yaml:"image_enqueuer"`
 	ImageClusterAutoscaler          string `json:"image_cluster_autoscaler" yaml:"image_cluster_autoscaler"`
 	ImageMetricsServer              string `json:"image_metrics_server" yaml:"image_metrics_server"`
 	ImageInferentia                 string `json:"image_inferentia" yaml:"image_inferentia"`
@@ -129,6 +132,7 @@ type ManagedConfig struct {
 	OperatorLoadBalancerCIDRWhiteList []string           `json:"operator_load_balancer_cidr_white_list,omitempty" yaml:"operator_load_balancer_cidr_white_list,omitempty"`
 	VPCCIDR                           *string            `json:"vpc_cidr,omitempty" yaml:"vpc_cidr,omitempty"`
 	CortexPolicyARN                   string             `json:"cortex_policy_arn" yaml:"cortex_policy_arn"` // this field is not user facing
+	AccountID                         string             `json:"account_id" yaml:"account_id"`               // this field is not user facing
 }
 
 type NodeGroup struct {
@@ -185,6 +189,26 @@ type AccessConfig struct {
 	ImageManager string `json:"image_manager" yaml:"image_manager"`
 }
 
+// NewForFile initializes and validates the cluster config from the YAML config file
+func NewForFile(clusterConfigPath string) (*Config, error) {
+	coreConfig := CoreConfig{}
+	errs := cr.ParseYAMLFile(&coreConfig, CoreConfigValidations(true), clusterConfigPath)
+	if errors.HasError(errs) {
+		return nil, errors.FirstError(errs...)
+	}
+
+	managedConfig := ManagedConfig{}
+	errs = cr.ParseYAMLFile(&managedConfig, ManagedConfigValidations(true), clusterConfigPath)
+	if errors.HasError(errs) {
+		return nil, errors.FirstError(errs...)
+	}
+
+	return &Config{
+		CoreConfig:    coreConfig,
+		ManagedConfig: managedConfig,
+	}, nil
+}
+
 func ValidateRegion(region string) error {
 	if !aws.EKSSupportedRegions.Has(region) {
 		return ErrorInvalidRegion(region)
@@ -220,9 +244,9 @@ func (cc *Config) Hash() (string, error) {
 		return "", err
 	}
 
-	hash := sha256.New()
-	hash.Write(bytes)
-	return hex.EncodeToString(hash.Sum(nil)), nil
+	configHash := sha256.New()
+	configHash.Write(bytes)
+	return hex.EncodeToString(configHash.Sum(nil)), nil
 }
 
 var CoreConfigStructFieldValidations = []*cr.StructFieldValidation{
@@ -302,6 +326,13 @@ var CoreConfigStructFieldValidations = []*cr.StructFieldValidation{
 		},
 	},
 	{
+		StructField: "ImageControllerManager",
+		StringValidation: &cr.StringValidation{
+			Default:   consts.DefaultRegistry() + "/controller-manager:" + consts.CortexVersion,
+			Validator: validateImageVersion,
+		},
+	},
+	{
 		StructField: "ImageManager",
 		StringValidation: &cr.StringValidation{
 			Default:   consts.DefaultRegistry() + "/manager:" + consts.CortexVersion,
@@ -316,6 +347,13 @@ var CoreConfigStructFieldValidations = []*cr.StructFieldValidation{
 		},
 	},
 	{
+		StructField: "ImageKubexit",
+		StringValidation: &cr.StringValidation{
+			Default:   consts.DefaultRegistry() + "/kubexit:" + consts.CortexVersion,
+			Validator: validateImageVersion,
+		},
+	},
+	{
 		StructField: "ImageRequestMonitor",
 		StringValidation: &cr.StringValidation{
 			Default:   consts.DefaultRegistry() + "/request-monitor:" + consts.CortexVersion,
@@ -326,6 +364,13 @@ var CoreConfigStructFieldValidations = []*cr.StructFieldValidation{
 		StructField: "ImageAsyncGateway",
 		StringValidation: &cr.StringValidation{
 			Default:   consts.DefaultRegistry() + "/async-gateway:" + consts.CortexVersion,
+			Validator: validateImageVersion,
+		},
+	},
+	{
+		StructField: "ImageEnqueuer",
+		StringValidation: &cr.StringValidation{
+			Default:   consts.DefaultRegistry() + "/enqueuer:" + consts.CortexVersion,
 			Validator: validateImageVersion,
 		},
 	},
@@ -1222,27 +1267,6 @@ func validateInstanceDistribution(instances []string) ([]string, error) {
 	return instances, nil
 }
 
-// This does not set defaults for fields that are prompted from the user
-func SetDefaults(cc *Config) error {
-	var emptyMap interface{} = map[interface{}]interface{}{}
-	errs := cr.Struct(cc, emptyMap, FullManagedValidation)
-	if errors.HasError(errs) {
-		return errors.FirstError(errs...)
-	}
-	return nil
-}
-
-// This does not set defaults for fields that are prompted from the user
-func GetDefaults() (*Config, error) {
-	cc := &Config{}
-	err := SetDefaults(cc)
-	if err != nil {
-		return nil, err
-	}
-
-	return cc, nil
-}
-
 func (ng *NodeGroup) MaxPossibleOnDemandInstances() int64 {
 	if !ng.Spot || ng.SpotConfig == nil {
 		return ng.MaxInstances
@@ -1300,17 +1324,26 @@ func (cc *CoreConfig) TelemetryEvent() map[string]interface{} {
 	if !strings.HasPrefix(cc.ImageOperator, "cortexlabs/") {
 		event["image_operator._is_custom"] = true
 	}
+	if !strings.HasPrefix(cc.ImageControllerManager, "cortexlabs/") {
+		event["image_operator_controller_manager._is_custom"] = true
+	}
 	if !strings.HasPrefix(cc.ImageManager, "cortexlabs/") {
 		event["image_manager._is_custom"] = true
 	}
 	if !strings.HasPrefix(cc.ImageDownloader, "cortexlabs/") {
 		event["image_downloader._is_custom"] = true
 	}
+	if !strings.HasPrefix(cc.ImageKubexit, "cortexlabs/") {
+		event["image_kubexit._is_custom"] = true
+	}
 	if !strings.HasPrefix(cc.ImageRequestMonitor, "cortexlabs/") {
 		event["image_request_monitor._is_custom"] = true
 	}
 	if !strings.HasPrefix(cc.ImageAsyncGateway, "cortexlabs/") {
 		event["image_async_gateway._is_custom"] = true
+	}
+	if !strings.HasPrefix(cc.ImageEnqueuer, "cortexlabs/") {
+		event["image_enqueuer._is_custom"] = true
 	}
 	if !strings.HasPrefix(cc.ImageClusterAutoscaler, "cortexlabs/") {
 		event["image_cluster_autoscaler._is_custom"] = true

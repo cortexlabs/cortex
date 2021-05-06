@@ -24,8 +24,8 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/sqs"
+	"github.com/cortexlabs/cortex/pkg/config"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
-	"github.com/cortexlabs/cortex/pkg/operator/config"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
@@ -101,7 +101,7 @@ func getMessagesInQueue(apiName string, window time.Duration) (*float64, error) 
 	ctx, cancel := context.WithTimeout(context.Background(), _prometheusQueryTimeoutSeconds*time.Second)
 	defer cancel()
 
-	valuesQuery, err := config.Prometheus.Query(ctx, query, time.Now())
+	valuesQuery, _, err := config.Prometheus.Query(ctx, query, time.Now())
 	if err != nil {
 		return nil, err
 	}

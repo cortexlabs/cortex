@@ -21,17 +21,18 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/cortexlabs/cortex/pkg/config"
 	"github.com/cortexlabs/cortex/pkg/lib/cron"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/parallel"
-	"github.com/cortexlabs/cortex/pkg/operator/config"
 	autoscalerlib "github.com/cortexlabs/cortex/pkg/operator/lib/autoscaler"
 	"github.com/cortexlabs/cortex/pkg/operator/lib/routines"
 	"github.com/cortexlabs/cortex/pkg/operator/operator"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
+	"github.com/cortexlabs/cortex/pkg/workloads"
 	istioclientnetworking "istio.io/client-go/pkg/apis/networking/v1beta1"
 	kapps "k8s.io/api/apps/v1"
 	kautoscaling "k8s.io/api/autoscaling/v2beta2"
@@ -75,7 +76,7 @@ func UpdateAPI(apiConfig userconfig.API, projectID string, force bool) (*spec.AP
 		deployID = prevK8sResources.apiDeployment.Labels["deploymentID"]
 	}
 
-	api := spec.GetAPISpec(&apiConfig, projectID, deployID, config.CoreConfig.ClusterUID)
+	api := spec.GetAPISpec(&apiConfig, projectID, deployID, config.ClusterConfig.ClusterUID)
 
 	// resource creation
 	if prevK8sResources.apiDeployment == nil {
@@ -149,7 +150,7 @@ func UpdateAPI(apiConfig userconfig.API, projectID string, force bool) (*spec.AP
 func DeleteAPI(apiName string, keepCache bool) error {
 	err := parallel.RunFirstErr(
 		func() error {
-			vs, err := config.K8s.GetVirtualService(operator.K8sName(apiName))
+			vs, err := config.K8s.GetVirtualService(workloads.K8sName(apiName))
 			if err != nil {
 				return err
 			}
@@ -293,7 +294,7 @@ func getK8sResources(apiConfig userconfig.API) (resources, error) {
 	var gatewayVirtualService *istioclientnetworking.VirtualService
 
 	gatewayK8sName := getGatewayK8sName(apiConfig.Name)
-	apiK8sName := operator.K8sName(apiConfig.Name)
+	apiK8sName := workloads.K8sName(apiConfig.Name)
 
 	err := parallel.RunFirstErr(
 		func() error {
@@ -430,12 +431,12 @@ func applyK8sVirtualService(prevVirtualService *istioclientnetworking.VirtualSer
 }
 
 func deleteBucketResources(apiName string) error {
-	prefix := filepath.Join(config.CoreConfig.ClusterUID, "workloads", apiName)
-	return config.AWS.DeleteS3Dir(config.CoreConfig.Bucket, prefix, true)
+	prefix := filepath.Join(config.ClusterConfig.ClusterUID, "workloads", apiName)
+	return config.AWS.DeleteS3Dir(config.ClusterConfig.Bucket, prefix, true)
 }
 
 func deleteK8sResources(apiName string) error {
-	apiK8sName := operator.K8sName(apiName)
+	apiK8sName := workloads.K8sName(apiName)
 	gatewayK8sName := getGatewayK8sName(apiName)
 
 	err := parallel.RunFirstErr(
@@ -477,7 +478,7 @@ func uploadAPItoS3(api spec.API) error {
 	return parallel.RunFirstErr(
 		func() error {
 			var err error
-			err = config.AWS.UploadJSONToS3(api, config.CoreConfig.Bucket, api.Key)
+			err = config.AWS.UploadJSONToS3(api, config.ClusterConfig.Bucket, api.Key)
 			if err != nil {
 				err = errors.Wrap(err, "upload api spec")
 			}
@@ -486,7 +487,7 @@ func uploadAPItoS3(api spec.API) error {
 		func() error {
 			var err error
 			// Use api spec indexed by HandlerID for replicas to prevent rolling updates when SpecID changes without HandlerID changing
-			err = config.AWS.UploadJSONToS3(api, config.CoreConfig.Bucket, api.HandlerKey)
+			err = config.AWS.UploadJSONToS3(api, config.ClusterConfig.Bucket, api.HandlerKey)
 			if err != nil {
 				err = errors.Wrap(err, "upload handler spec")
 			}

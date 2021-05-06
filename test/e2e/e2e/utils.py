@@ -12,17 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import sys
-import time
 import importlib
 import pathlib
+import sys
+import threading as td
+import time
+from concurrent import futures
 from http import HTTPStatus
 from typing import Any, List, Optional, Tuple, Union, Dict, Callable
 
-from concurrent import futures
-import threading as td
-import grpc
 import cortex as cx
+import grpc
 import requests
 import yaml
 
@@ -80,19 +80,32 @@ def wait_on_futures(futures_list: List[futures.Future], timeout: Optional[int] =
     return wait_for(_is_ready, timeout=timeout)
 
 
-def endpoint_ready(client: cx.Client, api_name: str, timeout: int = None) -> bool:
+def endpoint_ready(
+    client: cx.Client, api_name: str, timeout: int = None, endpoint_override: str = None
+) -> bool:
     def _is_ready():
-        endpoint = client.get_api(api_name)["endpoint"]
+        if endpoint_override:
+            endpoint = endpoint_override
+        else:
+            endpoint = client.get_api(api_name)["endpoint"]
+
         response = requests.post(endpoint)
         return response.status_code == HTTPStatus.BAD_REQUEST
 
     return wait_for(_is_ready, timeout=timeout)
 
 
-def job_done(client: cx.Client, api_name: str, job_id: str, timeout: int = None) -> bool:
+def job_done(
+    client: cx.Client, api_name: str, job_id: str, timeout: int = None, local_operator: bool = False
+) -> bool:
     def _is_ready():
+        if local_operator:
+            job_info = requests.get(f"http://localhost:8888/batch/{api_name}?jobID={job_id}")
+            job_info = job_info.json()
+            return job_info["job_status"]["status"] == "succeeded"
+
         job_info = client.get_job(api_name, job_id)
-        return job_info["job_status"]["status"] == "status_succeeded"
+        return job_info["job_status"]["status"] == "succeeded"
 
     return wait_for(_is_ready, timeout=timeout)
 
@@ -174,9 +187,14 @@ def request_batch_prediction(
     batch_size: int,
     workers: int = 1,
     config: Dict = None,
+    local_operator: bool = False,
 ) -> requests.Response:
-    api_info = client.get_api(api_name)
-    endpoint = api_info["endpoint"]
+
+    if local_operator:
+        endpoint = f"http://localhost:8888/batch/{api_name}"
+    else:
+        api_info = client.get_api(api_name)
+        endpoint = api_info["endpoint"]
 
     batch_payload = {
         "workers": workers,

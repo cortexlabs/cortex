@@ -1,0 +1,11 @@
+grpcio==1.36.0
+boto3==1.14.53
+datadog==0.39.0
+dill>=0.3.1.1
+msgpack==1.0.0
+jinja2==2.11.3
+fastapi==0.61.1
+pyyaml==5.4
+python-json-logger==2.0.1
+sentry-sdk==0.20.2
+asgiref==3.3.4

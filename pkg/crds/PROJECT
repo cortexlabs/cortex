@@ -1,0 +1,17 @@
+domain: cortex.dev
+layout:
+- go.kubebuilder.io/v3
+multigroup: true
+projectName: operator
+repo: github.com/cortexlabs/cortex
+resources:
+- api:
+    crdVersion: v1
+    namespaced: true
+  controller: true
+  domain: cortex.dev
+  group: batch
+  kind: BatchJob
+  path: github.com/cortexlabs/cortex/pkg/crds/apis/batch/v1alpha1
+  version: v1alpha1
+version: "3"

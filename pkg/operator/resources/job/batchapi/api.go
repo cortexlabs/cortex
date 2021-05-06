@@ -17,14 +17,16 @@ limitations under the License.
 package batchapi
 
 import (
+	"context"
 	"fmt"
 	"path/filepath"
 
+	"github.com/cortexlabs/cortex/pkg/config"
+	batch "github.com/cortexlabs/cortex/pkg/crds/apis/batch/v1alpha1"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/parallel"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
-	"github.com/cortexlabs/cortex/pkg/operator/config"
 	"github.com/cortexlabs/cortex/pkg/operator/lib/routines"
 	"github.com/cortexlabs/cortex/pkg/operator/operator"
 	"github.com/cortexlabs/cortex/pkg/operator/resources/job"
@@ -32,30 +34,30 @@ import (
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/types/status"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
+	"github.com/cortexlabs/cortex/pkg/workloads"
 	istioclientnetworking "istio.io/client-go/pkg/apis/networking/v1beta1"
-	kbatch "k8s.io/api/batch/v1"
-	kcore "k8s.io/api/core/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 const _batchDashboardUID = "batchapi"
 
 func UpdateAPI(apiConfig *userconfig.API, projectID string) (*spec.API, string, error) {
-	prevVirtualService, err := config.K8s.GetVirtualService(operator.K8sName(apiConfig.Name))
+	prevVirtualService, err := config.K8s.GetVirtualService(workloads.K8sName(apiConfig.Name))
 	if err != nil {
 		return nil, "", err
 	}
 
-	api := spec.GetAPISpec(apiConfig, projectID, "", config.CoreConfig.ClusterUID) // Deployment ID not needed for BatchAPI spec
+	api := spec.GetAPISpec(apiConfig, projectID, "", config.ClusterConfig.ClusterUID) // Deployment ID not needed for BatchAPI spec
 
 	if prevVirtualService == nil {
-		if err := config.AWS.UploadJSONToS3(api, config.CoreConfig.Bucket, api.Key); err != nil {
+		if err := config.AWS.UploadJSONToS3(api, config.ClusterConfig.Bucket, api.Key); err != nil {
 			return nil, "", errors.Wrap(err, "upload api spec")
 		}
 
 		err = applyK8sResources(api, prevVirtualService)
 		if err != nil {
 			routines.RunWithPanicHandler(func() {
-				deleteK8sResources(api.Name)
+				_ = deleteK8sResources(api.Name)
 			})
 			return nil, "", err
 		}
@@ -64,7 +66,7 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string) (*spec.API, string, 
 	}
 
 	if prevVirtualService.Labels["specID"] != api.SpecID {
-		if err := config.AWS.UploadJSONToS3(api, config.CoreConfig.Bucket, api.Key); err != nil {
+		if err := config.AWS.UploadJSONToS3(api, config.ClusterConfig.Bucket, api.Key); err != nil {
 			return nil, "", errors.Wrap(err, "upload api spec")
 		}
 
@@ -91,9 +93,6 @@ func DeleteAPI(apiName string, keepCache bool) error {
 			}
 			return deleteS3Resources(apiName)
 		},
-		func() error {
-			return config.AWS.DeleteQueuesWithPrefix(apiQueueNamePrefix(apiName))
-		},
 	)
 
 	if err != nil {
@@ -104,16 +103,15 @@ func DeleteAPI(apiName string, keepCache bool) error {
 }
 
 func deleteS3Resources(apiName string) error {
-	_ = job.DeleteAllInProgressFilesByAPI(userconfig.BatchAPIKind, apiName) // not useful xml error is thrown, swallow the error
 	return parallel.RunFirstErr(
 		func() error {
-			prefix := filepath.Join(config.CoreConfig.ClusterUID, "apis", apiName)
-			return config.AWS.DeleteS3Dir(config.CoreConfig.Bucket, prefix, true)
+			prefix := filepath.Join(config.ClusterConfig.ClusterUID, "apis", apiName)
+			return config.AWS.DeleteS3Dir(config.ClusterConfig.Bucket, prefix, true)
 		},
 		func() error {
-			prefix := spec.JobAPIPrefix(config.CoreConfig.ClusterUID, userconfig.BatchAPIKind, apiName)
+			prefix := spec.JobAPIPrefix(config.ClusterConfig.ClusterUID, userconfig.BatchAPIKind, apiName)
 			routines.RunWithPanicHandler(func() {
-				config.AWS.DeleteS3Dir(config.CoreConfig.Bucket, prefix, true) // deleting job files may take a while
+				_ = config.AWS.DeleteS3Dir(config.ClusterConfig.Bucket, prefix, true) // deleting job files may take a while
 			})
 			return nil
 		},
@@ -121,19 +119,12 @@ func deleteS3Resources(apiName string) error {
 }
 
 // GetAllAPIs returns all batch apis, for each API returning the most recently submitted job and all running jobs
-func GetAllAPIs(virtualServices []istioclientnetworking.VirtualService, k8sJobs []kbatch.Job, pods []kcore.Pod) ([]schema.APIResponse, error) {
+func GetAllAPIs(virtualServices []istioclientnetworking.VirtualService, batchJobList []batch.BatchJob) ([]schema.APIResponse, error) {
 	batchAPIsMap := map[string]*schema.APIResponse{}
 
-	jobIDToK8sJobMap := map[string]*kbatch.Job{}
-	for i, kJob := range k8sJobs {
-		jobIDToK8sJobMap[kJob.Labels["jobID"]] = &k8sJobs[i]
-	}
-
-	jobIDToPodsMap := map[string][]kcore.Pod{}
-	for _, pod := range pods {
-		if pod.Labels["jobID"] != "" {
-			jobIDToPodsMap[pod.Labels["jobID"]] = append(jobIDToPodsMap[pod.Labels["jobID"]], pod)
-		}
+	jobIDToBatchJobMap := map[string]*batch.BatchJob{}
+	for i, batchJob := range batchJobList {
+		jobIDToBatchJobMap[batchJob.Name] = &batchJobList[i]
 	}
 
 	for _, virtualService := range virtualServices {
@@ -151,10 +142,13 @@ func GetAllAPIs(virtualServices []istioclientnetworking.VirtualService, k8sJobs 
 		}
 
 		jobStates, err := job.GetMostRecentlySubmittedJobStates(apiName, 1, userconfig.BatchAPIKind)
+		if err != nil {
+			return nil, err
+		}
 
 		var jobStatuses []status.BatchJobStatus
 		if len(jobStates) > 0 {
-			jobStatus, err := getJobStatusFromJobState(jobStates[0], jobIDToK8sJobMap[jobStates[0].ID], jobIDToPodsMap[jobStates[0].ID])
+			jobStatus, err := getJobStatusFromJobState(jobStates[0], jobIDToBatchJobMap[jobStates[0].ID])
 			if err != nil {
 				return nil, err
 			}
@@ -166,39 +160,6 @@ func GetAllAPIs(virtualServices []istioclientnetworking.VirtualService, k8sJobs 
 			Spec:             *api,
 			Endpoint:         endpoint,
 			BatchJobStatuses: jobStatuses,
-		}
-	}
-
-	inProgressJobKeys, err := job.ListAllInProgressJobKeys(userconfig.BatchAPIKind)
-	if err != nil {
-		return nil, err
-	}
-
-	for _, jobKey := range inProgressJobKeys {
-		alreadyAdded := false
-		if _, ok := batchAPIsMap[jobKey.APIName]; !ok {
-			// It is possible that the Batch API may have been deleted but the in progress job keys have not been deleted yet
-			continue
-		}
-
-		for _, jobStatus := range batchAPIsMap[jobKey.APIName].BatchJobStatuses {
-			if jobStatus.ID == jobKey.ID {
-				alreadyAdded = true
-				break
-			}
-		}
-
-		if alreadyAdded {
-			continue
-		}
-
-		jobStatus, err := getJobStatusFromK8sJob(jobKey, jobIDToK8sJobMap[jobKey.ID], jobIDToPodsMap[jobKey.ID])
-		if err != nil {
-			return nil, err
-		}
-
-		if jobStatus.Status.IsInProgress() {
-			batchAPIsMap[jobKey.APIName].BatchJobStatuses = append(batchAPIsMap[jobKey.APIName].BatchJobStatuses, *jobStatus)
 		}
 	}
 
@@ -220,14 +181,14 @@ func GetAPIByName(deployedResource *operator.DeployedResource) ([]schema.APIResp
 		return nil, err
 	}
 
-	k8sJobs, err := config.K8s.ListJobsByLabel("apiName", deployedResource.Name)
-	if err != nil {
+	ctx := context.Background()
+	batchJobList := batch.BatchJobList{}
+	if err = config.K8s.List(
+		ctx, &batchJobList,
+		client.InNamespace(config.K8s.Namespace),
+		client.MatchingLabels{"apiName": deployedResource.Name},
+	); err != nil {
 		return nil, err
-	}
-
-	jobIDToK8sJobMap := map[string]*kbatch.Job{}
-	for i, kJob := range k8sJobs {
-		jobIDToK8sJobMap[kJob.Labels["jobID"]] = &k8sJobs[i]
 	}
 
 	endpoint, err := operator.APIEndpoint(api)
@@ -235,31 +196,15 @@ func GetAPIByName(deployedResource *operator.DeployedResource) ([]schema.APIResp
 		return nil, err
 	}
 
-	pods, err := config.K8s.ListPodsByLabel("apiName", deployedResource.Name)
-	if err != nil {
-		return nil, err
-	}
-
-	jobIDToPodsMap := map[string][]kcore.Pod{}
-	for _, pod := range pods {
-		jobIDToPodsMap[pod.Labels["jobID"]] = append(jobIDToPodsMap[pod.Labels["jobID"]], pod)
-	}
-
-	inProgressJobKeys, err := job.ListAllInProgressJobKeysByAPI(userconfig.BatchAPIKind, deployedResource.Name)
-	if err != nil {
-		return nil, err
-	}
-
 	var jobStatuses []status.BatchJobStatus
 	jobIDSet := strset.New()
-	for _, jobKey := range inProgressJobKeys {
-		jobStatus, err := getJobStatusFromK8sJob(jobKey, jobIDToK8sJobMap[jobKey.ID], jobIDToPodsMap[jobKey.ID])
+	for _, batchJob := range batchJobList.Items {
+		jobStatus, err := getJobStatusFromK8sBatchJob(batchJob)
 		if err != nil {
 			return nil, err
 		}
-
 		jobStatuses = append(jobStatuses, *jobStatus)
-		jobIDSet.Add(jobKey.ID)
+		jobIDSet.Add(batchJob.Name)
 	}
 
 	if len(jobStatuses) < 10 {
@@ -273,14 +218,16 @@ func GetAPIByName(deployedResource *operator.DeployedResource) ([]schema.APIResp
 			}
 			jobIDSet.Add(jobState.ID)
 
-			jobStatus, err := getJobStatusFromJobState(jobState, nil, nil)
+			jobStatus, err := getJobStatusFromJobState(jobState, nil)
 			if err != nil {
 				return nil, err
 			}
 
-			jobStatuses = append(jobStatuses, *jobStatus)
-			if len(jobStatuses) == 10 {
-				break
+			if jobStatus != nil {
+				jobStatuses = append(jobStatuses, *jobStatus)
+				if len(jobStatuses) == 10 {
+					break
+				}
 			}
 		}
 	}

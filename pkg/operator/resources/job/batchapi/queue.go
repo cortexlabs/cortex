@@ -18,30 +18,18 @@ package batchapi
 
 import (
 	"fmt"
-	"strings"
-	"time"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/sqs"
-	awslib "github.com/cortexlabs/cortex/pkg/lib/aws"
-	"github.com/cortexlabs/cortex/pkg/lib/cron"
+	"github.com/cortexlabs/cortex/pkg/config"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
-	libjson "github.com/cortexlabs/cortex/pkg/lib/json"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
-	"github.com/cortexlabs/cortex/pkg/operator/config"
 	"github.com/cortexlabs/cortex/pkg/types/clusterconfig"
 	"github.com/cortexlabs/cortex/pkg/types/metrics"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 )
 
-const (
-	_markForDeletion          = "cortex.dev/to-be-deleted"
-	_queueGraceKillTimePeriod = 5 * time.Minute
-)
-
 func apiQueueNamePrefix(apiName string) string {
 	// <sqs_prefix>_b_<api_name>_
-	return config.CoreConfig.SQSNamePrefix() + "b" + clusterconfig.SQSQueueDelimiter +
+	return config.ClusterConfig.SQSNamePrefix() + "b" + clusterconfig.SQSQueueDelimiter +
 		apiName + clusterconfig.SQSQueueDelimiter
 }
 
@@ -57,157 +45,6 @@ func getJobQueueURL(jobKey spec.JobKey) (string, error) {
 	}
 
 	return fmt.Sprintf("https://sqs.%s.amazonaws.com/%s/%s", config.AWS.Region, operatorAccountID, getJobQueueName(jobKey)), nil
-}
-
-func jobKeyFromQueueURL(queueURL string) spec.JobKey {
-	split := strings.Split(queueURL, "/")
-	queueName := split[len(split)-1]
-
-	dashSplit := strings.Split(queueName, clusterconfig.SQSQueueDelimiter)
-
-	jobID := strings.TrimSuffix(dashSplit[len(dashSplit)-1], ".fifo")
-
-	apiNameSplit := dashSplit[3 : len(dashSplit)-1]
-	apiName := strings.Join(apiNameSplit, clusterconfig.SQSQueueDelimiter)
-
-	return spec.JobKey{APIName: apiName, ID: jobID}
-}
-
-func createFIFOQueue(jobKey spec.JobKey, deadLetterQueue *spec.SQSDeadLetterQueue, tags map[string]string) (string, error) {
-	for key, value := range config.ManagedConfig.Tags {
-		tags[key] = value
-	}
-
-	queueName := getJobQueueName(jobKey)
-
-	attributes := map[string]string{
-		sqs.QueueAttributeNameFifoQueue:         "true",
-		sqs.QueueAttributeNameVisibilityTimeout: "60",
-	}
-
-	if deadLetterQueue != nil {
-		redrivePolicy := map[string]string{
-			"deadLetterTargetArn": deadLetterQueue.ARN,
-			"maxReceiveCount":     s.Int(deadLetterQueue.MaxReceiveCount),
-		}
-
-		redrivePolicyJSONBytes, err := libjson.Marshal(redrivePolicy)
-		if err != nil {
-			return "", err
-		}
-
-		attributes[sqs.QueueAttributeNameRedrivePolicy] = string(redrivePolicyJSONBytes)
-	}
-
-	output, err := config.AWS.SQS().CreateQueue(
-		&sqs.CreateQueueInput{
-			Attributes: aws.StringMap(attributes),
-			QueueName:  aws.String(queueName),
-			Tags:       aws.StringMap(tags),
-		},
-	)
-	if err != nil {
-		return "", errors.Wrap(err, "failed to create sqs queue", queueName)
-	}
-
-	return *output.QueueUrl, nil
-}
-
-func doesQueueExist(jobKey spec.JobKey) (bool, error) {
-	return config.AWS.DoesQueueExist(getJobQueueName(jobKey))
-}
-
-func listQueueURLsForAllAPIs() ([]string, error) {
-	queueURLs, err := config.AWS.ListQueuesByQueueNamePrefix(
-		config.CoreConfig.SQSNamePrefix() + "b" + clusterconfig.SQSQueueDelimiter,
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	return queueURLs, nil
-}
-
-func markForDeletion(queueURL string) error {
-	_, err := config.AWS.SQS().TagQueue(&sqs.TagQueueInput{
-		QueueUrl: aws.String(queueURL),
-		Tags: aws.StringMap(map[string]string{
-			_markForDeletion: time.Now().Format(time.RFC3339Nano),
-		}),
-	})
-	if err != nil {
-		return errors.WithStack(err)
-	}
-	return nil
-}
-
-func deleteQueueWithDelay(jobKey spec.JobKey) error {
-	queueURL, err := getJobQueueURL(jobKey)
-	if err != nil {
-		return err
-	}
-
-	output, err := config.AWS.SQS().ListQueueTags(&sqs.ListQueueTagsInput{
-		QueueUrl: aws.String(queueURL),
-	})
-	if err != nil {
-		if !awslib.IsNonExistentQueueErr(errors.CauseOrSelf(err)) {
-			operatorLogger.Error(err)
-		}
-		return nil
-	}
-
-	if value, exists := output.Tags[_markForDeletion]; exists {
-		markedTime, err := time.Parse(time.RFC3339Nano, *value)
-		if err != nil {
-			err = deleteQueueByURL(queueURL)
-			if err != nil {
-				if !awslib.IsNonExistentQueueErr(errors.CauseOrSelf(err)) {
-					operatorLogger.Error(err)
-				}
-				return nil
-			}
-		}
-
-		if time.Since(markedTime) > _queueGraceKillTimePeriod {
-			err := deleteQueueByURL(queueURL)
-			if err != nil {
-				if !awslib.IsNonExistentQueueErr(errors.CauseOrSelf(err)) {
-					operatorLogger.Error(err)
-				}
-				return nil
-			}
-		}
-	} else {
-		operatorLogger.Info("scheduling deleting queue " + jobKey.UserString())
-		err = markForDeletion(queueURL)
-		if err != nil && awslib.IsNonExistentQueueErr(errors.CauseOrSelf(err)) {
-			return nil
-		}
-
-		time.AfterFunc(_queueGraceKillTimePeriod, func() {
-			defer cron.Recoverer(nil)
-			operatorLogger.Info("deleting queue " + jobKey.UserString())
-			err := deleteQueueByURL(queueURL)
-			// ignore non existent queue errors
-			if err != nil && !awslib.IsNonExistentQueueErr(errors.CauseOrSelf(err)) {
-				operatorLogger.Error(err)
-			}
-		})
-	}
-
-	return nil
-}
-
-func deleteQueueByURL(queueURL string) error {
-	_, err := config.AWS.SQS().DeleteQueue(&sqs.DeleteQueueInput{
-		QueueUrl: aws.String(queueURL),
-	})
-	if err != nil {
-		return errors.Wrap(err, "failed to delete queue", queueURL)
-	}
-
-	return err
 }
 
 func getQueueMetrics(jobKey spec.JobKey) (*metrics.QueueMetrics, error) {

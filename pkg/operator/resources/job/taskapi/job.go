@@ -19,14 +19,15 @@ package taskapi
 import (
 	"time"
 
+	"github.com/cortexlabs/cortex/pkg/config"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
-	"github.com/cortexlabs/cortex/pkg/operator/config"
 	"github.com/cortexlabs/cortex/pkg/operator/lib/routines"
 	"github.com/cortexlabs/cortex/pkg/operator/operator"
 	"github.com/cortexlabs/cortex/pkg/operator/resources/job"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
+	"github.com/cortexlabs/cortex/pkg/workloads"
 )
 
 func SubmitJob(apiName string, submission *schema.TaskJobSubmission) (*spec.TaskJob, error) {
@@ -35,7 +36,7 @@ func SubmitJob(apiName string, submission *schema.TaskJobSubmission) (*spec.Task
 		return nil, err
 	}
 
-	virtualService, err := config.K8s.GetVirtualService(operator.K8sName(apiName))
+	virtualService, err := config.K8s.GetVirtualService(workloads.K8sName(apiName))
 	if err != nil {
 		return nil, err
 	}
@@ -75,7 +76,7 @@ func SubmitJob(apiName string, submission *schema.TaskJobSubmission) (*spec.Task
 
 func uploadJobSpec(jobSpec *spec.TaskJob) error {
 	if err := config.AWS.UploadJSONToS3(
-		jobSpec, config.CoreConfig.Bucket, jobSpec.SpecFilePath(config.CoreConfig.ClusterUID),
+		jobSpec, config.ClusterConfig.Bucket, jobSpec.SpecFilePath(config.ClusterConfig.ClusterUID),
 	); err != nil {
 		return err
 	}
