@@ -96,7 +96,11 @@ def endpoint_ready(
 
 
 def job_done(
-    client: cx.Client, api_name: str, job_id: str, timeout: int = None, endpoint_override: str = None
+    client: cx.Client,
+    api_name: str,
+    job_id: str,
+    timeout: int = None,
+    endpoint_override: str = None,
 ) -> bool:
     def _is_ready():
         if endpoint_override:
