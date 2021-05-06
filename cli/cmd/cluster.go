@@ -497,13 +497,14 @@ var _clusterDownCmd = &cobra.Command{
 		}
 
 		// set lifecycle policy to clean the bucket
-		fmt.Printf("￮ setting lifecycle policy to empty the %s bucket", bucketName)
+		fmt.Printf("￮ setting lifecycle policy to empty the %s bucket ", bucketName)
 		err = setLifecycleRulesOnClusterDown(awsClient, bucketName)
 		if err != nil {
 			fmt.Printf("\n\nfailed to set lifecycle policy to empty the %s bucket; you need to remove the bucket manually via the s3 console: https://s3.console.aws.amazon.com/s3/management/%s", bucketName, bucketName)
 			errors.PrintError(err)
 			fmt.Println()
 		}
+		fmt.Println("✓")
 
 		// delete policy after spinning down the cluster (which deletes the roles) because policies can't be deleted if they are attached to roles
 		policyARN := clusterconfig.DefaultPolicyARN(accountID, accessConfig.ClusterName, accessConfig.Region)
@@ -1233,7 +1234,7 @@ func setLifecycleRulesOnClusterDown(awsClient *aws.Client, bucket string) error 
 	return awsClient.SetLifecycleRules(bucket, []s3.LifecycleRule{
 		{
 			Expiration: &s3.LifecycleExpiration{
-				Days: pointer.Int64(0),
+				Days: pointer.Int64(1), // cannot be set to 0
 			},
 			ID: pointer.String("bucket-cleaner"),
 			Filter: &s3.LifecycleRuleFilter{
