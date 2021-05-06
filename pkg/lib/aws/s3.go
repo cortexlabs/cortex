@@ -875,22 +875,24 @@ func (c *Client) TagBucket(bucket string, tagMap map[string]string) error {
 	return nil
 }
 
-func (c *Client) SetLifecycleRules(bucket string, rules []s3.Rule) error {
-	pointerRules := []*s3.Rule{}
+func (c *Client) SetLifecycleRules(bucket string, rules []s3.LifecycleRule) error {
+	pointerRules := []*s3.LifecycleRule{}
 	for _, rule := range rules {
 		tempRule := rule
 		pointerRules = append(pointerRules, &tempRule)
 	}
-	_, err := c.S3().PutBucketLifecycle(&s3.PutBucketLifecycleInput{
-		LifecycleConfiguration: &s3.LifecycleConfiguration{
+	_, err := c.S3().PutBucketLifecycleConfiguration(&s3.PutBucketLifecycleConfigurationInput{
+		Bucket: pointer.String(bucket),
+		LifecycleConfiguration: &s3.BucketLifecycleConfiguration{
 			Rules: pointerRules,
 		},
 	})
+
 	return err
 }
 
-func (c *Client) GetLifecycleRules(bucket string) ([]s3.Rule, error) {
-	lifecycleOutput, err := c.S3().GetBucketLifecycle(&s3.GetBucketLifecycleInput{
+func (c *Client) GetLifecycleRules(bucket string) ([]s3.LifecycleRule, error) {
+	lifecycleOutput, err := c.S3().GetBucketLifecycleConfiguration(&s3.GetBucketLifecycleConfigurationInput{
 		Bucket: pointer.String(bucket),
 	})
 	if err != nil {
@@ -900,7 +902,7 @@ func (c *Client) GetLifecycleRules(bucket string) ([]s3.Rule, error) {
 		return nil, nil
 	}
 
-	s3Rules := []s3.Rule{}
+	s3Rules := []s3.LifecycleRule{}
 	for _, rule := range lifecycleOutput.Rules {
 		if rule != nil {
 			s3Rules = append(s3Rules, *rule)

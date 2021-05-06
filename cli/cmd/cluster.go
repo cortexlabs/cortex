@@ -1194,24 +1194,28 @@ func setLifecycleRulesOnClusterUp(awsClient *aws.Client, bucket, newClusterUID s
 		return err
 	}
 
-	rules := []s3.Rule{}
+	rules := []s3.LifecycleRule{}
 	for _, clusterUID := range clusterUIDs {
-		rules = append(rules, s3.Rule{
+		rules = append(rules, s3.LifecycleRule{
 			Expiration: &s3.LifecycleExpiration{
 				Days: pointer.Int64(0),
 			},
-			ID:     pointer.String("cluster-remove-" + clusterUID),
-			Prefix: pointer.String(s.EnsureSuffix(clusterUID, "/")),
+			ID: pointer.String("cluster-remove-" + clusterUID),
+			Filter: &s3.LifecycleRuleFilter{
+				Prefix: pointer.String(s.EnsureSuffix(clusterUID, "/")),
+			},
 			Status: pointer.String("Enabled"),
 		})
 	}
 
-	rules = append(rules, s3.Rule{
+	rules = append(rules, s3.LifecycleRule{
 		Expiration: &s3.LifecycleExpiration{
 			Days: pointer.Int64(consts.AsyncWorkloadsExpirationDays),
 		},
-		ID:     pointer.String("async-workloads-expiry-policy"),
-		Prefix: pointer.String(s.EnsureSuffix(filepath.Join(newClusterUID, "workloads"), "/")),
+		ID: pointer.String("async-workloads-expiry-policy"),
+		Filter: &s3.LifecycleRuleFilter{
+			Prefix: pointer.String(s.EnsureSuffix(filepath.Join(newClusterUID, "workloads"), "/")),
+		},
 		Status: pointer.String("Enabled"),
 	})
 
@@ -1226,13 +1230,15 @@ func setLifecycleRulesOnClusterDown(awsClient *aws.Client, bucket string) error 
 	}
 
 	// delete all bucket contents at midnight
-	return awsClient.SetLifecycleRules(bucket, []s3.Rule{
+	return awsClient.SetLifecycleRules(bucket, []s3.LifecycleRule{
 		{
 			Expiration: &s3.LifecycleExpiration{
 				Days: pointer.Int64(0),
 			},
-			ID:     pointer.String("bucket-cleaner"),
-			Prefix: pointer.String("/"),
+			ID: pointer.String("bucket-cleaner"),
+			Filter: &s3.LifecycleRuleFilter{
+				Prefix: pointer.String("/"),
+			},
 			Status: pointer.String("Enabled"),
 		},
 	})
