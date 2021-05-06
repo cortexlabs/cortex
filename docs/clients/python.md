@@ -17,7 +17,7 @@
   * [get\_job](#get_job)
   * [refresh](#refresh)
   * [patch](#patch)
-  * [delete\_api](#delete_api)
+  * [delete](#delete)
   * [stop\_job](#stop_job)
   * [stream\_api\_logs](#stream_api_logs)
   * [stream\_job\_logs](#stream_job_logs)
@@ -274,7 +274,7 @@ Update the api specification for an API that has already been deployed.
 - `api_spec` - The new api specification to apply
 - `force` - Override an already in-progress API update.
 
-## delete\_api
+## delete
 
 ```python
  | delete(api_name: str, keep_cache: bool = False)
