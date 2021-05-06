@@ -22,19 +22,21 @@ import threading
 import time
 import uuid
 from pathlib import Path
-from typing import Optional
+from typing import Optional, List, Dict, Any
 
 import dill
 import yaml
+
 from cortex import util
 from cortex.binary import run_cli, get_cli_path
 from cortex.consts import EXPECTED_PYTHON_VERSION
 from cortex.telemetry import sentry_wrapper
+from cortex.exceptions import InvalidKindForMethod
 
 
 class Client:
     @sentry_wrapper
-    def __init__(self, env: dict):
+    def __init__(self, env: Dict):
         """
         A client to deploy and manage APIs in the specified environment.
 
@@ -46,18 +48,211 @@ class Client:
         self.env_name = env["name"]
 
     # CORTEX_VERSION_MINOR
-    @sentry_wrapper
-    def create_api(
+    def deploy(
+            self,
+            api_spec: Dict[str, Any],
+            project_dir: str,
+            force: bool = True,
+            wait: bool = False,
+    ):
+        """
+        Deploy an API from a project directory.
+
+        Args:
+            api_spec: A dictionary defining a single Cortex API. See https://docs.cortex.dev/v/master/ for schema.
+            project_dir: Path to a python project.
+            force: Override any in-progress api updates.
+            wait: Streams logs until the APIs are ready.
+
+        Returns:
+            Deployment status, API specification, and endpoint for each API.
+        """
+        return self._create_api(
+            api_spec=api_spec,
+            project_dir=project_dir,
+            force=force,
+            wait=wait,
+        )
+
+    # CORTEX_VERSION_MINOR
+    def deploy_realtime_api(
         self,
-        api_spec: dict,
+        api_spec: Dict[str, Any],
+        handler,
+        requirements: Optional[List] = None,
+        conda_packages: Optional[List] = None,
+        force: bool = True,
+        wait: bool = False,
+    ) -> Dict:
+        """
+        Deploy a Realtime API.
+
+        Args:
+            api_spec: A dictionary defining a single Cortex API. See https://docs.cortex.dev/v/master/workloads/realtime-apis/configuration for schema.
+            handler: A Cortex Handler class implementation.
+            requirements: A list of PyPI dependencies that will be installed before the handler class implementation is invoked.
+            conda_packages: A list of Conda dependencies that will be installed before the handler class implementation is invoked.
+            force: Override any in-progress api updates.
+            wait: Streams logs until the APIs are ready.
+
+        Returns:
+            Deployment status, API specification, and endpoint for each API.
+        """
+        kind = api_spec.get("kind")
+        if kind != "RealtimeAPI":
+            raise InvalidKindForMethod(
+                f"expected an api_spec with kind 'RealtimeAPI', got kind '{kind}' instead"
+            )
+
+        return self._create_api(
+            api_spec=api_spec,
+            handler=handler,
+            requirements=requirements,
+            conda_packages=conda_packages,
+            force=force,
+            wait=wait,
+        )
+
+    # CORTEX_VERSION_MINOR
+    def deploy_async_api(
+        self,
+        api_spec: Dict[str, Any],
+        handler,
+        requirements: Optional[List] = None,
+        conda_packages: Optional[List] = None,
+        force: bool = True,
+    ) -> Dict:
+        """
+        Deploy an Async API.
+
+        Args:
+            api_spec: A dictionary defining a single Cortex API. See https://docs.cortex.dev/v/master/workloads/async-apis/configuration for schema.
+            handler: A Cortex Handler class implementation.
+            requirements: A list of PyPI dependencies that will be installed before the handler class implementation is invoked.
+            conda_packages: A list of Conda dependencies that will be installed before the handler class implementation is invoked.
+            force: Override any in-progress api updates.
+
+        Returns:
+            Deployment status, API specification, and endpoint for each API.
+        """
+        kind = api_spec.get("kind")
+        if kind != "AsyncAPI":
+            raise InvalidKindForMethod(
+                f"expected an api_spec with kind 'AsyncAPI', got kind '{kind}' instead"
+            )
+
+        return self._create_api(
+            api_spec=api_spec,
+            handler=handler,
+            requirements=requirements,
+            conda_packages=conda_packages,
+            force=force,
+        )
+
+    # CORTEX_VERSION_MINOR
+    def deploy_batch_api(
+        self,
+        api_spec: Dict[str, Any],
+        handler,
+        requirements: Optional[List] = None,
+        conda_packages: Optional[List] = None,
+    ) -> Dict:
+        """
+        Deploy a Batch API.
+
+        Args:
+            api_spec: A dictionary defining a single Cortex API. See https://docs.cortex.dev/v/master/workloads/batch-apis/configuration for schema.
+            handler: A Cortex Handler class implementation.
+            requirements: A list of PyPI dependencies that will be installed before the handler class implementation is invoked.
+            conda_packages: A list of Conda dependencies that will be installed before the handler class implementation is invoked.
+
+        Returns:
+            Deployment status, API specification, and endpoint for each API.
+        """
+
+        kind = api_spec.get("kind")
+        if kind != "BatchAPI":
+            raise InvalidKindForMethod(
+                f"expected an api_spec with kind 'BatchAPI', got kind '{kind}' instead"
+            )
+
+        return self._create_api(
+            api_spec=api_spec,
+            handler=handler,
+            requirements=requirements,
+            conda_packages=conda_packages,
+        )
+
+    # CORTEX_VERSION_MINOR
+    def deploy_task_api(
+        self,
+        api_spec: Dict[str, Any],
+        task,
+        requirements: Optional[List] = None,
+        conda_packages: Optional[List] = None,
+    ) -> Dict:
+        """
+        Deploy a Task API.
+
+        Args:
+            api_spec: A dictionary defining a single Cortex API. See https://docs.cortex.dev/v/master/workloads/task-apis/configuration for schema.
+            task: A callable class implementation.
+            requirements: A list of PyPI dependencies that will be installed before the handler class implementation is invoked.
+            conda_packages: A list of Conda dependencies that will be installed before the handler class implementation is invoked.
+
+        Returns:
+            Deployment status, API specification, and endpoint for each API.
+        """
+        kind = api_spec.get("kind")
+        if kind != "TaskAPI":
+            raise InvalidKindForMethod(
+                f"expected an api_spec with kind 'TaskAPI', got kind '{kind}' instead"
+            )
+
+        return self._create_api(
+            api_spec=api_spec,
+            task=task,
+            requirements=requirements,
+            conda_packages=conda_packages,
+        )
+
+    # CORTEX_VERSION_MINOR
+    def deploy_traffic_splitter(
+        self,
+        api_spec: Dict[str, Any],
+    ) -> Dict:
+        """
+        Deploy a Task API.
+
+        Args:
+            api_spec: A dictionary defining a single Cortex API. See https://docs.cortex.dev/v/master/workloads/realtime-apis/traffic-splitter/configuration for schema.
+
+        Returns:
+            Deployment status, API specification, and endpoint for each API.
+        """
+        kind = api_spec.get("kind")
+        if kind != "TrafficSplitter":
+            raise InvalidKindForMethod(
+                f"expected an api_spec with kind 'TrafficSplitter', got kind '{kind}' instead"
+            )
+
+        return self._create_api(
+            api_spec=api_spec,
+        )
+
+    # CORTEX_VERSION_MINOR
+    @sentry_wrapper
+    def _create_api(
+        self,
+        api_spec: Dict,
         handler=None,
         task=None,
-        requirements=[],
-        conda_packages=[],
+        requirements: Optional[List] = None,
+        conda_packages: Optional[List] = None,
         project_dir: Optional[str] = None,
         force: bool = True,
         wait: bool = False,
-    ) -> list:
+    ) -> Dict:
         """
         Deploy an API.
 
@@ -144,11 +339,11 @@ class Client:
             if not is_python_set:
                 conda_packages = [f"python={actual_version}", "pip=19.*"] + conda_packages
 
-        if len(requirements) > 0:
+        if requirements is not None:
             with open(project_dir / "requirements.txt", "w") as requirements_file:
                 requirements_file.write("\n".join(requirements))
 
-        if len(conda_packages) > 0:
+        if conda_packages is not None:
             with open(project_dir / "conda-packages.txt", "w") as conda_file:
                 conda_file.write("\n".join(conda_packages))
 
@@ -204,7 +399,7 @@ class Client:
         config_file: str,
         force: bool = False,
         wait: bool = False,
-    ) -> list:
+    ) -> Dict:
         """
         Deploy or update APIs specified in the config_file.
 
@@ -278,7 +473,7 @@ class Client:
         return api
 
     @sentry_wrapper
-    def get_api(self, api_name: str) -> dict:
+    def get_api(self, api_name: str) -> Dict:
         """
         Get information about an API.
 
@@ -294,7 +489,7 @@ class Client:
         return apis[0]
 
     @sentry_wrapper
-    def list_apis(self) -> list:
+    def list_apis(self) -> List:
         """
         List all APIs in the environment.
 
@@ -308,7 +503,7 @@ class Client:
         return json.loads(output.strip())
 
     @sentry_wrapper
-    def get_job(self, api_name: str, job_id: str) -> dict:
+    def get_job(self, api_name: str, job_id: str) -> Dict:
         """
         Get information about a submitted job.
 
@@ -342,7 +537,7 @@ class Client:
         run_cli(args, hide_output=True)
 
     @sentry_wrapper
-    def patch(self, api_spec: dict, force: bool = False) -> dict:
+    def patch(self, api_spec: Dict, force: bool = False) -> Dict:
         """
         Update the api specification for an API that has already been deployed.
 
@@ -365,7 +560,7 @@ class Client:
             return json.loads(output.strip())
 
     @sentry_wrapper
-    def delete_api(self, api_name: str, keep_cache: bool = False):
+    def delete(self, api_name: str, keep_cache: bool = False):
         """
         Delete an API.
 

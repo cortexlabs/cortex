@@ -34,8 +34,8 @@ api_spec_gpu = {
 }
 
 cx = cortex.client("aws")
-cx.create_api(api_spec_cpu, handler=Handler, requirements=requirements)
-cx.create_api(api_spec_gpu, handler=Handler, requirements=requirements)
+cx.deploy_realtime_api(api_spec_cpu, handler=Handler, requirements=requirements)
+cx.deploy_realtime_api(api_spec_gpu, handler=Handler, requirements=requirements)
 ```
 
 ## Deploy a traffic splitter
@@ -50,7 +50,7 @@ traffic_splitter_spec = {
     ],
 }
 
-cx.create_api(traffic_splitter_spec)
+cx.deploy_traffic_splitter(traffic_splitter_spec)
 ```
 
 ## Update the weights of the traffic splitter

@@ -48,7 +48,7 @@ sed -i "/\* \[Client](#cortex\.client\.Client)/d" $docs_path
 sed -i "s/\* \[cortex\.client](#cortex\.client)/\* [cortex\.client\.Client](#cortex-client-client)/g" $docs_path
 sed -i "s/# cortex\.client/# cortex\.client\.Client/g" $docs_path
 # delete unnecessary section body
-sed -i "/# cortex.client.Client/,/## create\\\_api/{//!d}" $docs_path
+sed -i "/# cortex.client.Client/,/## deploy/{//!d}" $docs_path
 sed -i "s/# cortex.client.Client/# cortex.client.Client\n/g" $docs_path
 
 # fix table of contents links
