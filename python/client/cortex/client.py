@@ -49,11 +49,11 @@ class Client:
 
     # CORTEX_VERSION_MINOR
     def deploy(
-            self,
-            api_spec: Dict[str, Any],
-            project_dir: str,
-            force: bool = True,
-            wait: bool = False,
+        self,
+        api_spec: Dict[str, Any],
+        project_dir: str,
+        force: bool = True,
+        wait: bool = False,
     ):
         """
         Deploy an API from a project directory.
