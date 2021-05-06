@@ -92,6 +92,9 @@ type BatchJobStatus struct {
 	// URL for the used SQS queue
 	QueueURL string `json:"queue_url,omitempty"`
 
+	// Total batch count
+	TotalBatchCount int `json:"total_batch_count,omitempty"`
+
 	// +kubebuilder:validation:Type=string
 	// Status of the batch job
 	Status status.JobCode `json:"status,omitempty"`

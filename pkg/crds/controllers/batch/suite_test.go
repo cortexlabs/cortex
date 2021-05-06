@@ -123,7 +123,7 @@ var _ = BeforeSuite(func(done Done) {
 
 	// mock certain methods of the reconciler
 	reconcilerConfig := batchcontrollers.BatchJobReconcilerConfig{
-		GetMaxBatchCount: func(r *batchcontrollers.BatchJobReconciler, batchJob batch.BatchJob) (int, error) {
+		GetTotalBatchCount: func(r *batchcontrollers.BatchJobReconciler, batchJob batch.BatchJob) (int, error) {
 			return 1, nil
 		},
 		GetMetrics: func(r *batchcontrollers.BatchJobReconciler, batchJob batch.BatchJob) (metrics.BatchMetrics, error) {

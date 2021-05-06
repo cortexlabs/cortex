@@ -132,6 +132,9 @@ spec:
               status:
                 description: Status of the batch job
                 type: string
+              total_batch_count:
+                description: Total batch count
+                type: integer
               worker_counts:
                 description: Detailed worker counts with respective status
                 properties:

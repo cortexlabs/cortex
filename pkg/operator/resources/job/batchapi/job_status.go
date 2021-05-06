@@ -30,65 +30,102 @@ import (
 	"github.com/cortexlabs/cortex/pkg/types/status"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	"github.com/cortexlabs/yaml"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 func GetJobStatus(jobKey spec.JobKey) (*status.BatchJobStatus, error) {
+	ctx := context.Background()
+	var batchJob batch.BatchJob
+	err := config.K8s.Get(ctx, client.ObjectKey{Name: jobKey.ID, Namespace: config.K8s.Namespace}, &batchJob)
+	if err != nil && !k8serrors.IsNotFound(err) {
+		return nil, err
+	}
+	if err == nil {
+		return getJobStatusFromBatchJob(batchJob)
+	}
+
 	jobState, err := job.GetJobState(jobKey)
 	if err != nil {
 		return nil, err
 	}
 
-	ctx := context.Background()
-	var batchJob batch.BatchJob
-	if err = config.K8s.Get(ctx, client.ObjectKey{Name: jobKey.ID, Namespace: config.K8s.Namespace}, &batchJob); err != nil {
+	return getJobStatusFromJobState(jobState)
+}
+
+func getJobStatusFromBatchJob(batchJob batch.BatchJob) (*status.BatchJobStatus, error) {
+	jobKey := spec.JobKey{
+		ID:      batchJob.Name,
+		APIName: batchJob.Spec.APIName,
+		Kind:    userconfig.BatchAPIKind,
+	}
+
+	var deadLetterQueue *spec.SQSDeadLetterQueue
+	if batchJob.Spec.DeadLetterQueue != nil {
+		deadLetterQueue = &spec.SQSDeadLetterQueue{
+			ARN:             batchJob.Spec.DeadLetterQueue.ARN,
+			MaxReceiveCount: int(batchJob.Spec.DeadLetterQueue.MaxReceiveCount),
+		}
+	}
+
+	var jobConfig map[string]interface{}
+	if batchJob.Spec.Config != nil {
+		if err := yaml.Unmarshal([]byte(*batchJob.Spec.Config), &jobConfig); err != nil {
+			return nil, err
+		}
+	}
+
+	var timeout *int
+	if batchJob.Spec.Timeout != nil {
+		timeout = pointer.Int(int(batchJob.Spec.Timeout.Seconds()))
+	}
+
+	jobStatus := status.BatchJobStatus{
+		BatchJob: spec.BatchJob{
+			JobKey: jobKey,
+			RuntimeBatchJobConfig: spec.RuntimeBatchJobConfig{
+				Workers:            int(batchJob.Spec.Workers),
+				SQSDeadLetterQueue: deadLetterQueue,
+				Config:             jobConfig,
+				Timeout:            timeout,
+			},
+			APIID:           batchJob.Spec.APIID,
+			StartTime:       batchJob.CreationTimestamp.Time,
+			SQSUrl:          batchJob.Status.QueueURL,
+			TotalBatchCount: batchJob.Status.TotalBatchCount,
+		},
+		WorkerCounts: batchJob.Status.WorkerCounts,
+		Status:       batchJob.Status.Status,
+	}
+
+	if batchJob.Status.EndTime != nil {
+		jobStatus.EndTime = &batchJob.Status.EndTime.Time
+	}
+
+	queueMetrics, err := getQueueMetrics(jobKey)
+	if err != nil {
 		return nil, err
 	}
 
-	return getJobStatusFromJobState(jobState, &batchJob)
+	jobStatus.BatchesInQueue = queueMetrics.TotalUserMessages()
+
+	if batchJob.Status.Status == status.JobEnqueuing {
+		jobStatus.TotalBatchCount = queueMetrics.TotalUserMessages()
+	}
+
+	jobMetrics, err := batch.GetMetrics(config.Prometheus, jobKey, time.Now())
+	if err != nil {
+		return nil, err
+	}
+
+	jobStatus.BatchMetrics = &jobMetrics
+	jobStatus.WorkerCounts = batchJob.Status.WorkerCounts
+
+	return &jobStatus, nil
 }
 
-func getJobStatusFromJobState(jobState *job.State, batchJob *batch.BatchJob) (*status.BatchJobStatus, error) {
+func getJobStatusFromJobState(jobState *job.State) (*status.BatchJobStatus, error) {
 	jobKey := jobState.JobKey
-
-	if batchJob != nil {
-		if batchJob.Status.Status == status.JobUnknown || batchJob.Status.Status.IsNotStarted() {
-			var deadLetterQueue *spec.SQSDeadLetterQueue
-			if batchJob.Spec.DeadLetterQueue != nil {
-				deadLetterQueue = &spec.SQSDeadLetterQueue{
-					ARN:             batchJob.Spec.DeadLetterQueue.ARN,
-					MaxReceiveCount: int(batchJob.Spec.DeadLetterQueue.MaxReceiveCount),
-				}
-			}
-
-			var jobConfig map[string]interface{}
-			if batchJob.Spec.Config != nil {
-				if err := yaml.Unmarshal([]byte(*batchJob.Spec.Config), &jobConfig); err != nil {
-					return nil, err
-				}
-			}
-
-			var timeout *int
-			if batchJob.Spec.Timeout != nil {
-				timeout = pointer.Int(int(batchJob.Spec.Timeout.Seconds()))
-			}
-
-			return &status.BatchJobStatus{
-				BatchJob: spec.BatchJob{
-					JobKey: jobKey,
-					RuntimeBatchJobConfig: spec.RuntimeBatchJobConfig{
-						Workers:            int(batchJob.Spec.Workers),
-						SQSDeadLetterQueue: deadLetterQueue,
-						Config:             jobConfig,
-						Timeout:            timeout,
-					},
-					APIID:  batchJob.Spec.APIID,
-					SQSUrl: batchJob.Status.QueueURL,
-				},
-				Status: batchJob.Status.Status,
-			}, nil
-		}
-	}
 
 	jobSpec, err := operator.DownloadBatchJobSpec(jobKey)
 	if err != nil {
@@ -101,33 +138,6 @@ func getJobStatusFromJobState(jobState *job.State, batchJob *batch.BatchJob) (*s
 		Status:   jobState.Status,
 	}
 
-	if batchJob != nil {
-		jobStatus.Status = batchJob.Status.Status
-		if batchJob.Status.EndTime != nil {
-			jobStatus.EndTime = &batchJob.Status.EndTime.Time
-		}
-
-		queueMetrics, err := getQueueMetrics(jobKey)
-		if err != nil {
-			return nil, err
-		}
-
-		jobStatus.BatchesInQueue = queueMetrics.TotalUserMessages()
-
-		if batchJob.Status.Status == status.JobEnqueuing {
-			jobStatus.TotalBatchCount = queueMetrics.TotalUserMessages()
-		}
-
-		if batchJob.Status.Status == status.JobRunning || batchJob.Status.Status == status.JobSucceeded {
-			jobMetrics, err := batch.GetMetrics(config.Prometheus, jobKey, time.Now())
-			if err != nil {
-				return nil, err
-			}
-			jobStatus.BatchMetrics = &jobMetrics
-			jobStatus.WorkerCounts = batchJob.Status.WorkerCounts
-		}
-	}
-
 	if _, ok := jobState.LastUpdatedMap[spec.MetricsFileKey]; ok && jobState.Status.IsCompleted() {
 		jobMetrics, err := readMetricsFromS3(jobKey)
 		if err != nil {
@@ -137,19 +147,6 @@ func getJobStatusFromJobState(jobState *job.State, batchJob *batch.BatchJob) (*s
 	}
 
 	return &jobStatus, nil
-}
-
-func getJobStatusFromK8sBatchJob(batchJob batch.BatchJob) (*status.BatchJobStatus, error) {
-	jobState, err := job.GetJobState(spec.JobKey{
-		ID:      batchJob.Name,
-		APIName: batchJob.Spec.APIName,
-		Kind:    userconfig.BatchAPIKind,
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	return getJobStatusFromJobState(jobState, &batchJob)
 }
 
 func readMetricsFromS3(jobKey spec.JobKey) (metrics.BatchMetrics, error) {

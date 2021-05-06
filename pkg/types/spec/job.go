@@ -77,8 +77,6 @@ type BatchJob struct {
 	JobKey
 	RuntimeBatchJobConfig
 	APIID           string    `json:"api_id"`
-	SpecID          string    `json:"spec_id"`
-	HandlerID       string    `json:"handler_id"`
 	SQSUrl          string    `json:"sqs_url"`
 	TotalBatchCount int       `json:"total_batch_count,omitempty"`
 	StartTime       time.Time `json:"start_time,omitempty"`

@@ -42,6 +42,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	"github.com/cortexlabs/cortex/pkg/workloads"
 	"github.com/cortexlabs/yaml"
+	cache "github.com/patrickmn/go-cache"
 	kbatch "k8s.io/api/batch/v1"
 	kcore "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
@@ -52,13 +53,21 @@ import (
 const (
 	_enqueuerContainerName  = "enqueuer"
 	_deadlineExceededReason = "DeadlineExceeded"
+	_cacheDuration          = 60 * time.Second
 )
+
+var totalBatchCountCache *cache.Cache
+
+func init() {
+	totalBatchCountCache = cache.New(_cacheDuration, _cacheDuration)
+}
 
 type batchJobStatusInfo struct {
 	QueueExists     bool
 	EnqueuingStatus batch.EnqueuingStatus
 	EnqueuerJob     *kbatch.Job
 	WorkerJob       *kbatch.Job
+	TotalBatchCount int
 }
 
 func (r *BatchJobReconciler) checkIfQueueExists(batchJob batch.BatchJob) (bool, error) {
@@ -381,6 +390,8 @@ func (r *BatchJobReconciler) updateStatus(ctx context.Context, batchJob *batch.B
 	case batch.EnqueuingFailed:
 		batchJob.Status.Status = status.JobEnqueueFailed
 		batchJob.Status.EndTime = statusInfo.EnqueuerJob.Status.CompletionTime
+	case batch.EnqueuingDone:
+		batchJob.Status.TotalBatchCount = statusInfo.TotalBatchCount
 	}
 
 	worker := statusInfo.WorkerJob
@@ -423,9 +434,7 @@ func (r *BatchJobReconciler) updateStatus(ctx context.Context, batchJob *batch.B
 			batchJob.Status.Status = status.JobRunning
 		}
 
-		pendingWorkers := batchJob.Spec.Workers - (worker.Status.Active + worker.Status.Succeeded + worker.Status.Failed)
 		batchJob.Status.WorkerCounts = &status.WorkerCounts{
-			Pending:   pendingWorkers,
 			Running:   worker.Status.Active,
 			Succeeded: worker.Status.Succeeded,
 			Failed:    worker.Status.Failed,
@@ -495,7 +504,7 @@ func (r *BatchJobReconciler) uploadJobSpec(batchJob batch.BatchJob, api spec.API
 		timeout = pointer.Int(int(batchJob.Spec.Timeout.Seconds()))
 	}
 
-	maxBatchCount, err := r.Config.GetMaxBatchCount(r, batchJob)
+	totalBatchCount, err := r.Config.GetTotalBatchCount(r, batchJob)
 	if err != nil {
 		return nil, err
 	}
@@ -513,11 +522,9 @@ func (r *BatchJobReconciler) uploadJobSpec(batchJob batch.BatchJob, api spec.API
 			Config:             config,
 		},
 		APIID:           api.ID,
-		SpecID:          api.SpecID,
-		HandlerID:       api.HandlerID,
 		SQSUrl:          queueURL,
 		StartTime:       batchJob.CreationTimestamp.Time,
-		TotalBatchCount: maxBatchCount,
+		TotalBatchCount: totalBatchCount,
 	}
 
 	if err = r.AWS.UploadJSONToS3(&jobSpec, r.ClusterConfig.Bucket, r.jobSpecKey(batchJob)); err != nil {
@@ -569,19 +576,27 @@ func (r *BatchJobReconciler) persistJobToS3(batchJob batch.BatchJob) error {
 	)
 }
 
-func getMaxBatchCount(r *BatchJobReconciler, batchJob batch.BatchJob) (int, error) {
+func getTotalBatchCount(r *BatchJobReconciler, batchJob batch.BatchJob) (int, error) {
 	key := spec.JobBatchCountKey(r.ClusterConfig.ClusterName, userconfig.BatchAPIKind, batchJob.Spec.APIName, batchJob.Name)
-	maxBatchCountBytes, err := r.AWS.ReadBytesFromS3(r.ClusterConfig.Bucket, key)
-	if err != nil {
-		return 0, err
+	cachedTotalBatchCount, found := totalBatchCountCache.Get(key)
+	var totalBatchCount int
+	if !found {
+		totalBatchCountBytes, err := r.AWS.ReadBytesFromS3(r.ClusterConfig.Bucket, key)
+		if err != nil {
+			return 0, err
+		}
+
+		totalBatchCount, err = strconv.Atoi(string(totalBatchCountBytes))
+		if err != nil {
+			return 0, err
+		}
+	} else {
+		totalBatchCount = cachedTotalBatchCount.(int)
 	}
 
-	maxBatchCount, err := strconv.Atoi(string(maxBatchCountBytes))
-	if err != nil {
-		return 0, err
-	}
+	totalBatchCountCache.Set(key, totalBatchCount, _cacheDuration)
 
-	return maxBatchCount, nil
+	return totalBatchCount, nil
 }
 
 func getMetrics(r *BatchJobReconciler, batchJob batch.BatchJob) (metrics.BatchMetrics, error) {

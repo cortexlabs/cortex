@@ -150,12 +150,18 @@ func (r *BatchJobReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		return ctrl.Result{}, err
 	}
 
+	var totalBatchCount int
+	if enqueuingStatus == batch.EnqueuingDone {
+		totalBatchCount, err = r.Config.GetTotalBatchCount(r, batchJob)
+	}
+
 	workerJobExists := workerJob != nil
 	statusInfo := batchJobStatusInfo{
 		QueueExists:     queueExists,
 		EnqueuingStatus: enqueuingStatus,
 		EnqueuerJob:     enqueuerJob,
 		WorkerJob:       workerJob,
+		TotalBatchCount: totalBatchCount,
 	}
 
 	log.V(1).Info("status data successfully acquired",
