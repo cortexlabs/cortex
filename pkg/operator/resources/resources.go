@@ -109,7 +109,7 @@ func Deploy(projectBytes []byte, configFileName string, configBytes []byte, forc
 		return nil, err
 	}
 
-	projectKey := spec.ProjectKey(projectID, config.CoreConfig.ClusterName)
+	projectKey := spec.ProjectKey(projectID, config.CoreConfig.ClusterUID)
 	isProjectUploaded, err := config.AWS.IsS3File(config.CoreConfig.Bucket, projectKey)
 	if err != nil {
 		return nil, err
@@ -650,7 +650,7 @@ func GetAPIByID(apiName string, apiID string) ([]schema.APIResponse, error) {
 func getPastAPIDeploys(apiName string) ([]schema.APIVersion, error) {
 	var apiVersions []schema.APIVersion
 
-	apiIDs, err := config.AWS.ListS3DirOneLevel(config.CoreConfig.Bucket, spec.KeysPrefix(apiName, config.CoreConfig.ClusterName), pointer.Int64(10))
+	apiIDs, err := config.AWS.ListS3DirOneLevel(config.CoreConfig.Bucket, spec.KeysPrefix(apiName, config.CoreConfig.ClusterUID), pointer.Int64(10), nil)
 	if err != nil {
 		return nil, err
 	}

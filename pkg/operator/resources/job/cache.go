@@ -62,7 +62,7 @@ func listAllInProgressJobKeysByAPI(kind userconfig.Kind, apiName *string) ([]spe
 		jobPath = allInProgressKey(kind)
 	}
 
-	s3Objects, err := config.AWS.ListS3Dir(config.CoreConfig.Bucket, jobPath, false, nil)
+	s3Objects, err := config.AWS.ListS3Dir(config.CoreConfig.Bucket, jobPath, false, nil, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -84,10 +84,10 @@ func uploadInProgressFile(jobKey spec.JobKey) error {
 	return nil
 }
 
-// e.g. <cluster_name>/jobs/<job_api_kind>/in_progress
+// e.g. <cluster_uid>/jobs/<job_api_kind>/in_progress
 func allInProgressKey(kind userconfig.Kind) string {
 	return path.Join(
-		config.CoreConfig.ClusterName, _jobsPrefix, kind.String(), _inProgressFilePrefix,
+		config.CoreConfig.ClusterUID, _jobsPrefix, kind.String(), _inProgressFilePrefix,
 	)
 }
 

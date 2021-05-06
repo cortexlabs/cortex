@@ -17,6 +17,11 @@ limitations under the License.
 package clusterconfig
 
 const (
+	BucketKey     = "bucket"
+	ClusterUIDKey = "cluster_uid"
+
+	ClusterNameKey                         = "cluster_name"
+	RegionKey                              = "region"
 	NodeGroupsKey                          = "node_groups"
 	NodePoolsKey                           = "node_pools"
 	InstanceTypeKey                        = "instance_type"
@@ -38,8 +43,6 @@ const (
 	NetworkKey                             = "network"
 	SubnetKey                              = "subnet"
 	TagsKey                                = "tags"
-	ClusterNameKey                         = "cluster_name"
-	RegionKey                              = "region"
 	AvailabilityZonesKey                   = "availability_zones"
 	SubnetsKey                             = "subnets"
 	AvailabilityZoneKey                    = "availability_zone"
@@ -47,7 +50,6 @@ const (
 	SSLCertificateARNKey                   = "ssl_certificate_arn"
 	CortexPolicyARNKey                     = "cortex_policy_arn"
 	IAMPolicyARNsKey                       = "iam_policy_arns"
-	BucketKey                              = "bucket"
 	SubnetVisibilityKey                    = "subnet_visibility"
 	NATGatewayKey                          = "nat_gateway"
 	APILoadBalancerSchemeKey               = "api_load_balancer_scheme"

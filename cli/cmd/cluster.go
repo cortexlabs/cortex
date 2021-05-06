@@ -28,9 +28,11 @@ import (
 	"github.com/aws/aws-sdk-go/service/autoscaling"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/elbv2"
+	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/cortexlabs/cortex/cli/cluster"
 	"github.com/cortexlabs/cortex/cli/types/cliconfig"
 	"github.com/cortexlabs/cortex/cli/types/flags"
+	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/archive"
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/console"
@@ -183,6 +185,11 @@ var _clusterUpCmd = &cobra.Command{
 		}
 
 		err = createS3BucketIfNotFound(awsClient, clusterConfig.Bucket, clusterConfig.Tags)
+		if err != nil {
+			exit.Error(err)
+		}
+
+		err = setLifecycleRulesOnClusterUp(awsClient, clusterConfig.Bucket, clusterConfig.ClusterUID)
 		if err != nil {
 			exit.Error(err)
 		}
@@ -426,6 +433,7 @@ var _clusterDownCmd = &cobra.Command{
 		if err != nil {
 			exit.Error(err)
 		}
+		bucketName := clusterconfig.BucketName(accountID, accessConfig.ClusterName, accessConfig.Region)
 
 		warnIfNotAdmin(awsClient)
 
@@ -480,9 +488,21 @@ var _clusterDownCmd = &cobra.Command{
 			fmt.Println()
 		} else if exitCode == nil || *exitCode != 0 {
 			out = filterEKSCTLOutput(out)
-			helpStr := fmt.Sprintf("\nNote: if this error cannot be resolved, please ensure that all CloudFormation stacks for this cluster eventually become fully deleted (%s). If the stack deletion process has failed, please delete the stacks directly from the AWS console (this may require manually deleting particular AWS resources that are blocking the stack deletion)", clusterstate.CloudFormationURL(accessConfig.ClusterName, accessConfig.Region))
+			template := "\nNote: if this error cannot be resolved, please ensure that all CloudFormation stacks for this cluster eventually become fully deleted (%s)."
+			template += " If the stack deletion process has failed, please delete the stacks directly from the AWS console (this may require manually deleting particular AWS resources that are blocking the stack deletion)."
+			template += " In addition to deleting the stacks manually from the AWS console, also make sure to empty and remove the %s bucket"
+			helpStr := fmt.Sprintf(template, clusterstate.CloudFormationURL(accessConfig.ClusterName, accessConfig.Region), bucketName)
 			fmt.Println(helpStr)
 			exit.Error(ErrorClusterDown(out + helpStr))
+		}
+
+		// set lifecycle policy to clean the bucket
+		fmt.Printf("￮ setting lifecycle policy to empty the %s bucket", bucketName)
+		err = setLifecycleRulesOnClusterDown(awsClient, bucketName)
+		if err != nil {
+			fmt.Printf("\n\nfailed to set lifecycle policy to empty the %s bucket; you need to remove the bucket manually via the s3 console: https://s3.console.aws.amazon.com/s3/management/%s", bucketName, bucketName)
+			errors.PrintError(err)
+			fmt.Println()
 		}
 
 		// delete policy after spinning down the cluster (which deletes the roles) because policies can't be deleted if they are attached to roles
@@ -549,6 +569,7 @@ var _clusterDownCmd = &cobra.Command{
 		}
 
 		fmt.Printf("\nplease check CloudFormation to ensure that all resources for the %s cluster eventually become successfully deleted: %s\n", accessConfig.ClusterName, clusterstate.CloudFormationURL(accessConfig.ClusterName, accessConfig.Region))
+		fmt.Printf("\nthe cluster's %s bucket has been applied a lifecycle rule to empty its contents later today; make sure to delete the %s bucket once the bucket is emptied via the s3 console: https://s3.console.aws.amazon.com/s3/management/%s", bucketName, bucketName, bucketName)
 
 		cachedClusterConfigPath := cachedClusterConfigPath(accessConfig.ClusterName, accessConfig.Region)
 		os.Remove(cachedClusterConfigPath)
@@ -1123,6 +1144,98 @@ func createS3BucketIfNotFound(awsClient *aws.Client, bucket string, tags map[str
 
 	fmt.Print("\n\n")
 	return err
+}
+
+func getClusterUIDsFromBucket(awsClient *aws.Client, bucket string) ([]string, error) {
+	// find first cluster UID
+	s3Objects, err := awsClient.ListS3Prefix(bucket, "/", false, pointer.Int64(1), nil)
+	if err != nil {
+		return nil, err
+	}
+	clusterUIDs := aws.ConvertS3ObjectsToKeys(s3Objects...)
+
+	// detect all remaining cluster UIDs
+	for {
+		if len(clusterUIDs) == 0 {
+			break
+		}
+		previousClusterUID := clusterUIDs[len(clusterUIDs)-1]
+		s3Objects, err := awsClient.ListS3Prefix(
+			bucket,
+			"/",
+			false,
+			pointer.Int64(1),
+			pointer.String(filepath.Join(previousClusterUID, "~~~")),
+		)
+		if err != nil {
+			return nil, err
+		}
+		if len(aws.ConvertS3ObjectsToKeys(s3Objects...)) == 0 {
+			break
+		}
+		clusterUIDs = append(clusterUIDs, aws.ConvertS3ObjectsToKeys(s3Objects...)...)
+		if len(clusterUIDs)+1 > consts.MaxBucketLifecycleRules {
+			return nil, ErrorClusterUIDsLimitInBucket(bucket, len(clusterUIDs), consts.MaxBucketLifecycleRules-1)
+		}
+	}
+
+	return clusterUIDs, nil
+}
+
+func setLifecycleRulesOnClusterUp(awsClient *aws.Client, bucket, newClusterUID string) error {
+	// deletes bucket-wide deletion rule
+	err := awsClient.DeleteLifecycleRules(bucket)
+	if err != nil {
+		return err
+	}
+
+	clusterUIDs, err := getClusterUIDsFromBucket(awsClient, bucket)
+	if err != nil {
+		return err
+	}
+
+	rules := []s3.Rule{}
+	for _, clusterUID := range clusterUIDs {
+		rules = append(rules, s3.Rule{
+			Expiration: &s3.LifecycleExpiration{
+				Days: pointer.Int64(0),
+			},
+			ID:     pointer.String("cluster-remove-" + clusterUID),
+			Prefix: pointer.String(s.EnsureSuffix(clusterUID, "/")),
+			Status: pointer.String("Enabled"),
+		})
+	}
+
+	rules = append(rules, s3.Rule{
+		Expiration: &s3.LifecycleExpiration{
+			Days: pointer.Int64(consts.AsyncWorkloadsExpirationDays),
+		},
+		ID:     pointer.String("async-workloads-expiry-policy"),
+		Prefix: pointer.String(s.EnsureSuffix(filepath.Join(newClusterUID, "workloads"), "/")),
+		Status: pointer.String("Enabled"),
+	})
+
+	return awsClient.SetLifecycleRules(bucket, rules)
+}
+
+func setLifecycleRulesOnClusterDown(awsClient *aws.Client, bucket string) error {
+	// deletes bucket-wide deletion rule
+	err := awsClient.DeleteLifecycleRules(bucket)
+	if err != nil {
+		return err
+	}
+
+	// delete all bucket contents at midnight
+	return awsClient.SetLifecycleRules(bucket, []s3.Rule{
+		{
+			Expiration: &s3.LifecycleExpiration{
+				Days: pointer.Int64(0),
+			},
+			ID:     pointer.String("bucket-cleaner"),
+			Prefix: pointer.String("/"),
+			Status: pointer.String("Enabled"),
+		},
+	})
 }
 
 func createLogGroupIfNotFound(awsClient *aws.Client, logGroup string, tags map[string]string) error {

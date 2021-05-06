@@ -37,14 +37,14 @@ func (j JobKey) UserString() string {
 	return fmt.Sprintf("%s (%s api)", j.ID, j.APIName)
 }
 
-// e.g. /<cluster name>/jobs/<job_api_kind>/<cortex version>/<api_name>/<job_id>/spec.json
-func (j JobKey) SpecFilePath(clusterName string) string {
-	return path.Join(j.Prefix(clusterName), "spec.json")
+// e.g. /<cluster UID>/jobs/<job_api_kind>/<cortex version>/<api_name>/<job_id>/spec.json
+func (j JobKey) SpecFilePath(clusterUID string) string {
+	return path.Join(j.Prefix(clusterUID), "spec.json")
 }
 
-// e.g. /<cluster name>/jobs/<job_api_kind>/<cortex version>/<api_name>/<job_id>
-func (j JobKey) Prefix(clusterName string) string {
-	return s.EnsureSuffix(path.Join(JobAPIPrefix(clusterName, j.Kind, j.APIName), j.ID), "/")
+// e.g. /<cluster UID>/jobs/<job_api_kind>/<cortex version>/<api_name>/<job_id>
+func (j JobKey) Prefix(clusterUID string) string {
+	return s.EnsureSuffix(path.Join(JobAPIPrefix(clusterUID, j.Kind, j.APIName), j.ID), "/")
 }
 
 func (j JobKey) K8sName() string {
@@ -89,7 +89,7 @@ type TaskJob struct {
 	StartTime time.Time `json:"start_time"`
 }
 
-// e.g. /<cluster name>/jobs/<job_api_kind>/<cortex version>/<api_name>
-func JobAPIPrefix(clusterName string, kind userconfig.Kind, apiName string) string {
-	return filepath.Join(clusterName, "jobs", kind.String(), consts.CortexVersion, apiName)
+// e.g. /<cluster UID>/jobs/<job_api_kind>/<cortex version>/<api_name>
+func JobAPIPrefix(clusterUID string, kind userconfig.Kind, apiName string) string {
+	return filepath.Join(clusterUID, "jobs", kind.String(), consts.CortexVersion, apiName)
 }

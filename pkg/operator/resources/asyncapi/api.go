@@ -75,7 +75,7 @@ func UpdateAPI(apiConfig userconfig.API, projectID string, force bool) (*spec.AP
 		deployID = prevK8sResources.apiDeployment.Labels["deploymentID"]
 	}
 
-	api := spec.GetAPISpec(&apiConfig, projectID, deployID, config.CoreConfig.ClusterName)
+	api := spec.GetAPISpec(&apiConfig, projectID, deployID, config.CoreConfig.ClusterUID)
 
 	// resource creation
 	if prevK8sResources.apiDeployment == nil {
@@ -430,7 +430,7 @@ func applyK8sVirtualService(prevVirtualService *istioclientnetworking.VirtualSer
 }
 
 func deleteBucketResources(apiName string) error {
-	prefix := filepath.Join(config.CoreConfig.ClusterName, "workloads", apiName)
+	prefix := filepath.Join(config.CoreConfig.ClusterUID, "workloads", apiName)
 	return config.AWS.DeleteS3Dir(config.CoreConfig.Bucket, prefix, true)
 }
 

@@ -71,6 +71,7 @@ const (
 	ErrAPINameMustBeProvided               = "cli.api_name_must_be_provided"
 	ErrAPINotFoundInConfig                 = "cli.api_not_found_in_config"
 	ErrNotSupportedForKindAndType          = "cli.not_supported_for_kind_and_type"
+	ErrClusterUIDsLimitInBucket            = "cli.cluster_uids_limit_in_bucket"
 )
 
 func ErrorInvalidProvider(providerStr, cliConfigPath string) error {
@@ -294,5 +295,12 @@ func ErrorNotSupportedForKindAndType(kind userconfig.Kind, handlerType userconfi
 			"apiKind":     kind.String(),
 			"handlerType": handlerType.String(),
 		},
+	})
+}
+
+func ErrorClusterUIDsLimitInBucket(bucket string, current, max int) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrClusterUIDsLimitInBucket,
+		Message: fmt.Sprintf("detected %d cluster UIDs in %s bucket, but the max limit of cluster UIDs is %d; manual intervention is required", current, bucket, max),
 	})
 }

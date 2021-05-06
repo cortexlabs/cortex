@@ -16,7 +16,6 @@ import inspect
 import json
 import os
 import pathlib
-import signal
 import sys
 import threading
 import time
