@@ -12,18 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from cortex_internal.lib.model.cron import (
-    FileBasedModelsTreeUpdater,
-    FileBasedModelsGC,
-    find_ondisk_models_with_lock,
-    find_ondisk_model_ids_with_lock,
-    find_ondisk_model_info,
-    TFSModelLoader,
-    TFSAPIServingThreadUpdater,
-    find_ondisk_models,
-    ModelsGC,
-    ModelTreeUpdater,
-)
 from cortex_internal.lib.model.model import (
     ModelsHolder,
     LockedGlobalModelsGC,
@@ -41,4 +29,16 @@ from cortex_internal.lib.model.validation import (
     validate_models_dir_paths,
     validate_model_paths,
     ModelVersion,
+)
+from cortex_internal.lib.model.cron import (
+    FileBasedModelsTreeUpdater,
+    FileBasedModelsGC,
+    find_ondisk_models_with_lock,
+    find_ondisk_model_ids_with_lock,
+    find_ondisk_model_info,
+    TFSModelLoader,
+    TFSAPIServingThreadUpdater,
+    find_ondisk_models,
+    ModelsGC,
+    ModelTreeUpdater,
 )
