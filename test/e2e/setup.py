@@ -17,7 +17,7 @@ from pathlib import Path
 from setuptools import setup, find_packages
 
 root = Path(__file__).parent.absolute()
-cortex_client_dir = root.parent.parent / "pkg" / "cortex" / "client"
+cortex_client_dir = root.parent.parent / "python" / "client"
 
 if not cortex_client_dir.exists():
     raise ModuleNotFoundError(f"cortex client not found in {cortex_client_dir}")
