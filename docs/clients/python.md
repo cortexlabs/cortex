@@ -83,11 +83,13 @@ Delete an environment configured on this machine.
 
 ## deploy
 
+<!-- CORTEX_VERSION_MINOR -->
+
 ```python
  | deploy(api_spec: Dict[str, Any], project_dir: str, force: bool = True, wait: bool = False)
 ```
 
-Deploy an API from a project directory.
+Deploy API(s) from a project directory.
 
 **Arguments**:
 
@@ -102,6 +104,8 @@ Deploy an API from a project directory.
   Deployment status, API specification, and endpoint for each API.
 
 ## deploy\_realtime\_api
+
+<!-- CORTEX_VERSION_MINOR -->
 
 ```python
  | deploy_realtime_api(api_spec: Dict[str, Any], handler, requirements: Optional[List] = None, conda_packages: Optional[List] = None, force: bool = True, wait: bool = False) -> Dict
@@ -125,6 +129,8 @@ Deploy a Realtime API.
 
 ## deploy\_async\_api
 
+<!-- CORTEX_VERSION_MINOR -->
+
 ```python
  | deploy_async_api(api_spec: Dict[str, Any], handler, requirements: Optional[List] = None, conda_packages: Optional[List] = None, force: bool = True) -> Dict
 ```
@@ -146,6 +152,8 @@ Deploy an Async API.
 
 ## deploy\_batch\_api
 
+<!-- CORTEX_VERSION_MINOR -->
+
 ```python
  | deploy_batch_api(api_spec: Dict[str, Any], handler, requirements: Optional[List] = None, conda_packages: Optional[List] = None) -> Dict
 ```
@@ -166,6 +174,8 @@ Deploy a Batch API.
 
 ## deploy\_task\_api
 
+<!-- CORTEX_VERSION_MINOR -->
+
 ```python
  | deploy_task_api(api_spec: Dict[str, Any], task, requirements: Optional[List] = None, conda_packages: Optional[List] = None) -> Dict
 ```
@@ -185,6 +195,8 @@ Deploy a Task API.
   Deployment status, API specification, and endpoint for each API.
 
 ## deploy\_traffic\_splitter
+
+<!-- CORTEX_VERSION_MINOR -->
 
 ```python
  | deploy_traffic_splitter(api_spec: Dict[str, Any]) -> Dict
