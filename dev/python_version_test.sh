@@ -35,7 +35,7 @@ pip install requests
 export CORTEX_CLI_PATH=$ROOT/bin/cortex
 
 # install cortex
-cd $ROOT/pkg/cortex/client
+cd $ROOT/python/client
 pip install -e .
 
 # run script.py
@@ -44,4 +44,4 @@ python $ROOT/dev/deploy_test.py $2
 # clean up conda
 conda deactivate
 conda env remove -n env
-rm -rf $ROOT/pkg/cortex/client/cortex.egg-info
+rm -rf $ROOT/python/client/cortex.egg-info

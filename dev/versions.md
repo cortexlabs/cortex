@@ -197,7 +197,7 @@ Note: it's ok if example training notebooks aren't upgraded, as long as the expo
 
 ## Python packages
 
-1. Update versions in `pkg/cortex/serve/*requirements.txt`
+1. Update versions in `python/serve/*requirements.txt`
 
 ## S6-overlay supervisor
 
