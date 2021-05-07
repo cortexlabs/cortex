@@ -29,7 +29,8 @@ import (
 
 const (
 	ErrInvalidProvider                        = "clusterconfig.invalid_provider"
-	ErrInvalidLegacyProvider                  = "cli.invalid_legacy_provider"
+	ErrInvalidLegacyProvider                  = "clusterconfig.invalid_legacy_provider"
+	ErrDisallowedField                        = "clusterconfig.disallowed_field"
 	ErrInvalidRegion                          = "clusterconfig.invalid_region"
 	ErrNoNodeGroupSpecified                   = "clusterconfig.no_nodegroup_specified"
 	ErrNodeGroupMaxInstancesIsZero            = "clusterconfig.node_group_max_instances_is_zero"
@@ -85,6 +86,13 @@ func ErrorInvalidLegacyProvider(providerStr string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrInvalidLegacyProvider,
 		Message: fmt.Sprintf("the %s provider is no longer supported on cortex v%s; only aws is supported, so the provider field may be removed from your cluster configuration file", providerStr, consts.CortexVersionMinor),
+	})
+}
+
+func ErrorDisallowedField(field string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrDisallowedField,
+		Message: fmt.Sprintf("the %s field cannot be configured by the user", field),
 	})
 }
 
@@ -321,7 +329,7 @@ func ErrorNATRequiredWithPrivateSubnetVisibility() error {
 func ErrorS3RegionDiffersFromCluster(bucketName string, bucketRegion string, clusterRegion string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrS3RegionDiffersFromCluster,
-		Message: fmt.Sprintf("the %s bucket is in %s, but your cluster is in %s; either change the region of your cluster to %s, use a bucket that is in %s, or remove your bucket configuration to allow cortex to make the bucket for you", bucketName, bucketRegion, clusterRegion, bucketRegion, clusterRegion),
+		Message: fmt.Sprintf("the %s bucket already exists but is in %s (your cluster is in %s); either change the region of your cluster to %s or delete your bucket to allow cortex to create the bucket for you in %s", bucketName, bucketRegion, clusterRegion, bucketRegion, clusterRegion),
 	})
 }
 

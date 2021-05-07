@@ -66,7 +66,7 @@ APIID (uniquely identifies an api configuration for a given deployment)
 		* APIs
 	* DeploymentID (used for refreshing a deployment)
 */
-func GetAPISpec(apiConfig *userconfig.API, projectID string, deploymentID string, clusterName string) *API {
+func GetAPISpec(apiConfig *userconfig.API, projectID string, deploymentID string, clusterUID string) *API {
 	var buf bytes.Buffer
 
 	buf.WriteString(s.Obj(apiConfig.Resource))
@@ -93,19 +93,19 @@ func GetAPISpec(apiConfig *userconfig.API, projectID string, deploymentID string
 		ID:           apiID,
 		SpecID:       specID,
 		HandlerID:    handlerID,
-		Key:          Key(apiConfig.Name, apiID, clusterName),
-		HandlerKey:   HandlerKey(apiConfig.Name, handlerID, clusterName),
+		Key:          Key(apiConfig.Name, apiID, clusterUID),
+		HandlerKey:   HandlerKey(apiConfig.Name, handlerID, clusterUID),
 		DeploymentID: deploymentID,
 		LastUpdated:  time.Now().Unix(),
-		MetadataRoot: MetadataRoot(apiConfig.Name, clusterName),
+		MetadataRoot: MetadataRoot(apiConfig.Name, clusterUID),
 		ProjectID:    projectID,
-		ProjectKey:   ProjectKey(projectID, clusterName),
+		ProjectKey:   ProjectKey(projectID, clusterUID),
 	}
 }
 
-func HandlerKey(apiName string, handlerID string, clusterName string) string {
+func HandlerKey(apiName string, handlerID string, clusterUID string) string {
 	return filepath.Join(
-		clusterName,
+		clusterUID,
 		"apis",
 		apiName,
 		"handler",
@@ -114,9 +114,9 @@ func HandlerKey(apiName string, handlerID string, clusterName string) string {
 	)
 }
 
-func Key(apiName string, apiID string, clusterName string) string {
+func Key(apiName string, apiID string, clusterUID string) string {
 	return filepath.Join(
-		clusterName,
+		clusterUID,
 		"apis",
 		apiName,
 		"api",
@@ -126,27 +126,27 @@ func Key(apiName string, apiID string, clusterName string) string {
 }
 
 // The path to the directory which contains one subdirectory for each API ID (for its API spec)
-func KeysPrefix(apiName string, clusterName string) string {
+func KeysPrefix(apiName string, clusterUID string) string {
 	return filepath.Join(
-		clusterName,
+		clusterUID,
 		"apis",
 		apiName,
 		"api",
 	) + "/"
 }
 
-func MetadataRoot(apiName string, clusterName string) string {
+func MetadataRoot(apiName string, clusterUID string) string {
 	return filepath.Join(
-		clusterName,
+		clusterUID,
 		"apis",
 		apiName,
 		"metadata",
 	)
 }
 
-func ProjectKey(projectID string, clusterName string) string {
+func ProjectKey(projectID string, clusterUID string) string {
 	return filepath.Join(
-		clusterName,
+		clusterUID,
 		"projects",
 		projectID+".zip",
 	)

@@ -96,11 +96,15 @@ def endpoint_ready(
 
 
 def job_done(
-    client: cx.Client, api_name: str, job_id: str, timeout: int = None, local_operator: bool = False
+    client: cx.Client,
+    api_name: str,
+    job_id: str,
+    timeout: int = None,
+    endpoint_override: str = None,
 ) -> bool:
     def _is_ready():
-        if local_operator:
-            job_info = requests.get(f"http://localhost:8888/batch/{api_name}?jobID={job_id}")
+        if endpoint_override:
+            job_info = requests.get(endpoint_override)
             job_info = job_info.json()
             return job_info["job_status"]["status"] == "succeeded"
 
@@ -211,9 +215,13 @@ def request_task(
     api_name: str,
     config: Dict = None,
     timeout: int = None,
+    local_operator: bool = False,
 ):
-    api_info = client.get_api(api_name)
-    endpoint = api_info["endpoint"]
+    if local_operator:
+        endpoint = f"http://localhost:8888/tasks/{api_name}"
+    else:
+        api_info = client.get_api(api_name)
+        endpoint = api_info["endpoint"]
 
     payload = {}
     if config is not None:

@@ -48,7 +48,7 @@ node_groups:
     instance_volume_size: 50
     instance_volume_type: gp3
     spot: false
-  ...
+  # ...
 
 # subnet visibility [public (instances will have public IPs) | private (instances will not have public IPs)]
 subnet_visibility: public
@@ -101,7 +101,7 @@ image_controller_manager: quay.io/cortexlabs/controller-manager:master
 image_manager: quay.io/cortexlabs/manager:master
 image_downloader: quay.io/cortexlabs/downloader:master
 image_request_monitor: quay.io/cortexlabs/request-monitor:master
-image_image_async_gateway: quay.io/cortexlabs/async-gateway:master
+image_async_gateway: quay.io/cortexlabs/async-gateway:master
 image_cluster_autoscaler: quay.io/cortexlabs/cluster-autoscaler:master
 image_metrics_server: quay.io/cortexlabs/metrics-server:master
 image_inferentia: quay.io/cortexlabs/inferentia:master

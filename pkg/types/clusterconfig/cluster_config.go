@@ -25,7 +25,9 @@ import (
 	"net"
 	"net/http"
 	"regexp"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/cortexlabs/cortex/pkg/consts"
@@ -75,13 +77,18 @@ var (
 )
 
 type CoreConfig struct {
+	// Non-user-specifiable fields
+	ClusterUID     string `json:"cluster_uid" yaml:"cluster_uid"`
 	Bucket         string `json:"bucket" yaml:"bucket"`
-	ClusterName    string `json:"cluster_name" yaml:"cluster_name"`
-	Region         string `json:"region" yaml:"region"`
 	Telemetry      bool   `json:"telemetry" yaml:"telemetry"`
 	Namespace      string `json:"namespace" yaml:"namespace"`
 	IstioNamespace string `json:"istio_namespace" yaml:"istio_namespace"`
 
+	// User-specifiable fields
+	ClusterName string `json:"cluster_name" yaml:"cluster_name"`
+	Region      string `json:"region" yaml:"region"`
+
+	// User-specifiable fields
 	ImageOperator                   string `json:"image_operator" yaml:"image_operator"`
 	ImageControllerManager          string `json:"image_controller_manager" yaml:"image_controller_manager"`
 	ImageManager                    string `json:"image_manager" yaml:"image_manager"`
@@ -259,6 +266,36 @@ var CoreConfigStructFieldValidations = []*cr.StructFieldValidation{
 		},
 	},
 	{
+		StructField: "ClusterUID",
+		StringValidation: &cr.StringValidation{
+			Default:          "",
+			AllowEmpty:       true,
+			TreatNullAsEmpty: true,
+		},
+	},
+	{
+		StructField: "Bucket",
+		StringValidation: &cr.StringValidation{
+			Default:          "",
+			AllowEmpty:       true,
+			TreatNullAsEmpty: true,
+		},
+	},
+	{
+		StructField: "Namespace",
+		StringValidation: &cr.StringValidation{
+			Default:       "default",
+			AllowedValues: []string{"default"},
+		},
+	},
+	{
+		StructField: "IstioNamespace",
+		StringValidation: &cr.StringValidation{
+			Default:       "istio-system",
+			AllowedValues: []string{"istio-system"},
+		},
+	},
+	{
 		StructField: "ClusterName",
 		StringValidation: &cr.StringValidation{
 			Default:   "cortex",
@@ -273,26 +310,6 @@ var CoreConfigStructFieldValidations = []*cr.StructFieldValidation{
 			Required:  true,
 			MinLength: 1,
 			Validator: RegionValidator,
-		},
-	},
-	{
-		StructField: "Namespace",
-		StringValidation: &cr.StringValidation{
-			Default: "default",
-		},
-	},
-	{
-		StructField: "IstioNamespace",
-		StringValidation: &cr.StringValidation{
-			Default: "istio-system",
-		},
-	},
-	{
-		StructField: "Bucket",
-		StringValidation: &cr.StringValidation{
-			AllowEmpty:       true,
-			TreatNullAsEmpty: true,
-			Validator:        validateBucketNameOrEmpty,
 		},
 	},
 	{
@@ -642,14 +659,6 @@ var ManagedConfigStructFieldValidations = []*cr.StructFieldValidation{
 		},
 	},
 	{
-		StructField: "CortexPolicyARN",
-		StringValidation: &cr.StringValidation{
-			Required:         false,
-			AllowEmpty:       true,
-			TreatNullAsEmpty: true,
-		},
-	},
-	{
 		StructField: "IAMPolicyARNs",
 		StringListValidation: &cr.StringListValidation{
 			Default:           _defaultIAMPolicies,
@@ -769,6 +778,22 @@ var ManagedConfigStructFieldValidations = []*cr.StructFieldValidation{
 		StructField: "VPCCIDR",
 		StringPtrValidation: &cr.StringPtrValidation{
 			Validator: validateCIDR,
+		},
+	},
+	{
+		StructField: "CortexPolicyARN",
+		StringValidation: &cr.StringValidation{
+			Required:         false,
+			AllowEmpty:       true,
+			TreatNullAsEmpty: true,
+		},
+	},
+	{
+		StructField: "AccountID",
+		StringValidation: &cr.StringValidation{
+			Required:         false,
+			AllowEmpty:       true,
+			TreatNullAsEmpty: true,
 		},
 	},
 }
@@ -903,16 +928,29 @@ func (cc *Config) Validate(awsClient *aws.Client) error {
 		return err
 	}
 
-	if cc.Bucket == "" {
-		bucketID := hash.String(accountID + cc.Region)[:8] // this is to "guarantee" a globally unique name
-		cc.Bucket = cc.ClusterName + "-" + bucketID
-	} else {
-		bucketRegion, _ := aws.GetBucketRegion(cc.Bucket)
-		if bucketRegion != "" && bucketRegion != cc.Region { // if the bucket didn't exist, we will create it in the correct region, so there is no error
-			return ErrorS3RegionDiffersFromCluster(cc.Bucket, bucketRegion, cc.Region)
-		}
+	if cc.AccountID != "" {
+		return ErrorDisallowedField(AccountIDKey)
+	}
+	cc.AccountID = accountID
+
+	if cc.Bucket != "" {
+		return ErrorDisallowedField(BucketKey)
+	}
+	cc.Bucket = BucketName(accountID, cc.ClusterName, cc.Region)
+	// check if the bucket already exists in a different region for some reason
+	bucketRegion, _ := aws.GetBucketRegion(cc.Bucket)
+	if bucketRegion != "" && bucketRegion != cc.Region { // if the bucket didn't exist, we will create it in the correct region, so there is no error
+		return ErrorS3RegionDiffersFromCluster(cc.Bucket, bucketRegion, cc.Region)
 	}
 
+	if cc.ClusterUID != "" {
+		return ErrorDisallowedField(ClusterUIDKey)
+	}
+	cc.ClusterUID = strconv.FormatInt(time.Now().Unix(), 10)
+
+	if cc.CortexPolicyARN != "" {
+		return ErrorDisallowedField(CortexPolicyARNKey)
+	}
 	cc.CortexPolicyARN = DefaultPolicyARN(accountID, cc.ClusterName, cc.Region)
 
 	defaultPoliciesSet := strset.New(_defaultIAMPolicies...)
@@ -1201,20 +1239,6 @@ func (ng *NodeGroup) FillEmptySpotFields(region string) {
 		ng.SpotConfig = &SpotConfig{}
 	}
 	AutoGenerateSpotConfig(ng.SpotConfig, region, ng.InstanceType)
-}
-
-func validateBucketNameOrEmpty(bucket string) (string, error) {
-	if bucket == "" {
-		return "", nil
-	}
-	return validateBucketName(bucket)
-}
-
-func validateBucketName(bucket string) (string, error) {
-	if !_strictS3BucketRegex.MatchString(bucket) {
-		return "", errors.Wrap(ErrorDidNotMatchStrictS3Regex(), bucket)
-	}
-	return bucket, nil
 }
 
 func validateCIDR(cidr string) (string, error) {
@@ -1528,6 +1552,11 @@ func (mc *ManagedConfig) GetNodeGroupNames() []string {
 	}
 
 	return allNodeGroupNames
+}
+
+func BucketName(accountID, clusterName, region string) string {
+	bucketID := hash.String(accountID + region)[:8] // this is to "guarantee" a globally unique name
+	return clusterName + "-" + bucketID
 }
 
 func validateClusterName(clusterName string) (string, error) {
