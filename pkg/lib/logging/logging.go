@@ -29,32 +29,32 @@ var logger *zap.SugaredLogger
 var loggerLock sync.Mutex
 
 func initializeLogger() {
-	operatorLogLevel := os.Getenv("CORTEX_OPERATOR_LOG_LEVEL")
-	if operatorLogLevel == "" {
-		operatorLogLevel = "info"
+	logLevel := strings.ToLower(os.Getenv("CORTEX_LOG_LEVEL"))
+	if logLevel == "" {
+		logLevel = "info"
 	}
 
-	operatorCortexLogLevel := userconfig.LogLevelFromString(operatorLogLevel)
-	if operatorCortexLogLevel == userconfig.UnknownLogLevel {
-		panic(ErrorInvalidOperatorLogLevel(operatorLogLevel, userconfig.LogLevelTypes()))
+	cortexLogLevel := userconfig.LogLevelFromString(logLevel)
+	if cortexLogLevel == userconfig.UnknownLogLevel {
+		panic(ErrorInvalidLogLevel(logLevel, userconfig.LogLevelTypes()))
 	}
 
-	operatorZapConfig := DefaultZapConfig(operatorCortexLogLevel)
+	zapConfig := DefaultZapConfig(cortexLogLevel)
 
 	disableJSONLogging := strings.ToLower(os.Getenv("CORTEX_DISABLE_JSON_LOGGING"))
 	if disableJSONLogging == "true" {
-		operatorZapConfig.Encoding = "console"
+		zapConfig.Encoding = "console"
 	}
 
-	operatorLogger, err := operatorZapConfig.Build()
+	zapLogger, err := zapConfig.Build()
 	if err != nil {
 		panic(err)
 	}
 
-	logger = operatorLogger.Sugar()
+	logger = zapLogger.Sugar()
 }
 
-func GetOperatorLogger() *zap.SugaredLogger {
+func GetLogger() *zap.SugaredLogger {
 	loggerLock.Lock()
 	defer loggerLock.Unlock()
 

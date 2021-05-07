@@ -35,7 +35,25 @@ var _gatewayHPATargetCPUUtilization int32 = 80 // percentage
 var _gatewayHPATargetMemUtilization int32 = 80 // percentage
 
 func gatewayDeploymentSpec(api spec.API, prevDeployment *kapps.Deployment, queueURL string) kapps.Deployment {
-	container := workloads.AsyncGatewayContainers(api, queueURL)
+	volumeMounts := []kcore.VolumeMount{
+		{
+			Name:      "cluster-config",
+			MountPath: "/configs/cluster",
+		},
+	}
+	volumes := []kcore.Volume{
+		{
+			Name: "cluster-config",
+			VolumeSource: kcore.VolumeSource{
+				ConfigMap: &kcore.ConfigMapVolumeSource{
+					LocalObjectReference: kcore.LocalObjectReference{
+						Name: "cluster-config",
+					},
+				},
+			},
+		},
+	}
+	container := workloads.AsyncGatewayContainers(api, queueURL, volumeMounts)
 
 	return *k8s.Deployment(&k8s.DeploymentSpec{
 		Name:           getGatewayK8sName(api.Name),
@@ -73,6 +91,7 @@ func gatewayDeploymentSpec(api spec.API, prevDeployment *kapps.Deployment, queue
 				NodeSelector:                  workloads.NodeSelectors(),
 				Tolerations:                   workloads.GenerateResourceTolerations(),
 				Affinity:                      workloads.GenerateNodeAffinities(api.Compute.NodeGroups),
+				Volumes:                       volumes,
 				ServiceAccountName:            workloads.ServiceAccountName,
 			},
 		},

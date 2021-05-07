@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package main
+package gateway
 
 import (
 	"encoding/json"
@@ -32,7 +32,7 @@ type Service interface {
 }
 
 type service struct {
-	logger     *zap.Logger
+	logger     *zap.SugaredLogger
 	queue      Queue
 	storage    Storage
 	clusterUID string
@@ -40,7 +40,7 @@ type service struct {
 }
 
 // NewService creates a new async-gateway service
-func NewService(clusterUID, apiName string, queue Queue, storage Storage, logger *zap.Logger) Service {
+func NewService(clusterUID, apiName string, queue Queue, storage Storage, logger *zap.SugaredLogger) Service {
 	return &service{
 		logger:     logger,
 		queue:      queue,
@@ -128,6 +128,9 @@ func (s *service) getStatus(id string) (Status, error) {
 	files, err := s.storage.List(fmt.Sprintf("%s/%s/status", prefix, id))
 	if err != nil {
 		return "", err
+	}
+	if len(files) == 0 {
+		return StatusNotFound, nil
 	}
 
 	// determine request status

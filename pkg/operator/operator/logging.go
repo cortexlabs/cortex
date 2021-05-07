@@ -24,7 +24,7 @@ import (
 	"time"
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
-	"github.com/cortexlabs/cortex/pkg/operator/lib/logging"
+	"github.com/cortexlabs/cortex/pkg/lib/logging"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	"go.uber.org/zap"

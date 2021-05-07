@@ -21,12 +21,12 @@ import (
 	"net/http"
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/logging"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
-	"github.com/cortexlabs/cortex/pkg/operator/lib/logging"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
 )
 
-var operatorLogger = logging.GetOperatorLogger()
+var operatorLogger = logging.GetLogger()
 
 func respond(w http.ResponseWriter, response interface{}) {
 	w.Header().Set("Content-Type", "application/json")
