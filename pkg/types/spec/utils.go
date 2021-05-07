@@ -130,7 +130,7 @@ func validateDirModels(
 		return nil, err
 	}
 
-	s3Objects, err := awsClientForBucket.ListS3PathDir(modelPath, false, nil)
+	s3Objects, err := awsClientForBucket.ListS3PathDir(modelPath, false, nil, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -237,7 +237,7 @@ func validateModels(
 		}
 		modelPrefix = s.EnsureSuffix(modelPrefix, "/")
 
-		s3Objects, err := awsClientForBucket.ListS3PathDir(modelPath, false, nil)
+		s3Objects, err := awsClientForBucket.ListS3PathDir(modelPath, false, nil, nil)
 		if err != nil {
 			return nil, errors.Wrap(err, modelNameWrapStr)
 		}

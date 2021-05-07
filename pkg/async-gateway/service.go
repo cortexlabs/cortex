@@ -32,21 +32,21 @@ type Service interface {
 }
 
 type service struct {
-	logger      *zap.SugaredLogger
-	queue       Queue
-	storage     Storage
-	clusterName string
-	apiName     string
+	logger     *zap.SugaredLogger
+	queue      Queue
+	storage    Storage
+	clusterUID string
+	apiName    string
 }
 
 // NewService creates a new async-gateway service
-func NewService(clusterName, apiName string, queue Queue, storage Storage, logger *zap.SugaredLogger) Service {
+func NewService(clusterUID, apiName string, queue Queue, storage Storage, logger *zap.SugaredLogger) Service {
 	return &service{
-		logger:      logger,
-		queue:       queue,
-		storage:     storage,
-		clusterName: clusterName,
-		apiName:     apiName,
+		logger:     logger,
+		queue:      queue,
+		storage:    storage,
+		clusterUID: clusterUID,
+		apiName:    apiName,
 	}
 }
 
@@ -154,5 +154,5 @@ func (s *service) getStatus(id string) (Status, error) {
 }
 
 func (s *service) workloadStoragePrefix() string {
-	return fmt.Sprintf("%s/apis/%s/workloads", s.clusterName, s.apiName)
+	return fmt.Sprintf("%s/workloads/%s", s.clusterUID, s.apiName)
 }

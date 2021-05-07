@@ -140,7 +140,7 @@ func (c *Client) GetNLevelsDeepFromS3Path(s3Path string, depth int, includeDirOb
 		return nil, nil, err
 	}
 
-	allS3Objects, err := c.ListS3PathDir(s3Path, includeDirObjects, maxResults)
+	allS3Objects, err := c.ListS3PathDir(s3Path, includeDirObjects, maxResults, nil)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -158,10 +158,53 @@ func (c *Client) GetNLevelsDeepFromS3Path(s3Path string, depth int, includeDirOb
 	return paths.Slice(), allPaths, nil
 }
 
+// Efficient way to list all top-level directory prefixes on a bucket.
+//
+// Warning: when using this function, make sure the "~" character isn't used in any of the S3 objects.
+func (c *Client) ListS3TopLevelDirs(bucket string) ([]string, error) {
+	// find first top-level directory
+	s3Objects, err := c.ListS3Prefix(bucket, "", false, pointer.Int64(1), nil)
+	if err != nil {
+		return nil, err
+	}
+	dirs := []string{}
+	for _, prefix := range ConvertS3ObjectsToKeys(s3Objects...) {
+		dirs = append(dirs, files.GetTopLevelDirectory(prefix))
+	}
+
+	// detect all remaining top-level dirs
+	for {
+		if len(dirs) == 0 {
+			break
+		}
+		previousDir := dirs[len(dirs)-1]
+		s3Objects, err := c.ListS3Prefix(
+			bucket,
+			"",
+			true,
+			pointer.Int64(1),
+			pointer.String(filepath.Join(previousDir, "~~~")),
+		)
+		if err != nil {
+			return nil, err
+		}
+		if len(ConvertS3ObjectsToKeys(s3Objects...)) == 0 {
+			break
+		}
+		for _, prefix := range ConvertS3ObjectsToKeys(s3Objects...) {
+			dirs = append(dirs, files.GetTopLevelDirectory(prefix))
+		}
+	}
+
+	return dirs, nil
+}
+
 func ConvertS3ObjectsToKeys(s3Objects ...*s3.Object) []string {
 	paths := make([]string, 0, len(s3Objects))
 	for _, object := range s3Objects {
-		paths = append(paths, *object.Key)
+		if object != nil {
+			paths = append(paths, *object.Key)
+		}
 	}
 	return paths
 }
@@ -550,7 +593,7 @@ func (c *Client) DownloadPrefixFromS3(bucket string, prefix string, localDirPath
 		}
 	}
 
-	err := c.S3Iterator(bucket, prefix, true, maxFiles, func(object *s3.Object) (bool, error) {
+	err := c.S3Iterator(bucket, prefix, true, maxFiles, nil, func(object *s3.Object) (bool, error) {
 		localRelPath := *object.Key
 		if shouldTrimDirPrefix {
 			localRelPath = strings.TrimPrefix(localRelPath, trimPrefix)
@@ -631,24 +674,24 @@ func (c *Client) S3FileIterator(bucket string, s3Obj *s3.Object, partSize int, f
 	return nil
 }
 
-func (c *Client) ListS3Dir(bucket string, s3Dir string, includeDirObjects bool, maxResults *int64) ([]*s3.Object, error) {
+func (c *Client) ListS3Dir(bucket string, s3Dir string, includeDirObjects bool, maxResults *int64, startAfter *string) ([]*s3.Object, error) {
 	prefix := s.EnsureSuffix(s3Dir, "/")
-	return c.ListS3Prefix(bucket, prefix, includeDirObjects, maxResults)
+	return c.ListS3Prefix(bucket, prefix, includeDirObjects, maxResults, startAfter)
 }
 
-func (c *Client) ListS3PathDir(s3DirPath string, includeDirObjects bool, maxResults *int64) ([]*s3.Object, error) {
+func (c *Client) ListS3PathDir(s3DirPath string, includeDirObjects bool, maxResults *int64, startAfter *string) ([]*s3.Object, error) {
 	s3Path := s.EnsureSuffix(s3DirPath, "/")
-	return c.ListS3PathPrefix(s3Path, includeDirObjects, maxResults)
+	return c.ListS3PathPrefix(s3Path, includeDirObjects, maxResults, startAfter)
 }
 
 // This behaves like you'd expect `ls` to behave on a local file system
 // "directory" names will be returned even if S3 directory objects don't exist
-func (c *Client) ListS3DirOneLevel(bucket string, s3Dir string, maxResults *int64) ([]string, error) {
+func (c *Client) ListS3DirOneLevel(bucket string, s3Dir string, maxResults *int64, startAfter *string) ([]string, error) {
 	s3Dir = s.EnsureSuffix(s3Dir, "/")
 
 	allNames := strset.New()
 
-	err := c.S3Iterator(bucket, s3Dir, true, nil, func(object *s3.Object) (bool, error) {
+	err := c.S3Iterator(bucket, s3Dir, true, nil, startAfter, func(object *s3.Object) (bool, error) {
 		relativePath := strings.TrimPrefix(*object.Key, s3Dir)
 		oneLevelPath := strings.Split(relativePath, "/")[0]
 		allNames.Add(oneLevelPath)
@@ -666,10 +709,10 @@ func (c *Client) ListS3DirOneLevel(bucket string, s3Dir string, maxResults *int6
 	return allNames.SliceSorted(), nil
 }
 
-func (c *Client) ListS3Prefix(bucket string, prefix string, includeDirObjects bool, maxResults *int64) ([]*s3.Object, error) {
+func (c *Client) ListS3Prefix(bucket string, prefix string, includeDirObjects bool, maxResults *int64, startAfter *string) ([]*s3.Object, error) {
 	var allObjects []*s3.Object
 
-	err := c.S3BatchIterator(bucket, prefix, includeDirObjects, maxResults, func(objects []*s3.Object) (bool, error) {
+	err := c.S3BatchIterator(bucket, prefix, includeDirObjects, maxResults, startAfter, func(objects []*s3.Object) (bool, error) {
 		allObjects = append(allObjects, objects...)
 		return true, nil
 	})
@@ -681,12 +724,12 @@ func (c *Client) ListS3Prefix(bucket string, prefix string, includeDirObjects bo
 	return allObjects, nil
 }
 
-func (c *Client) ListS3PathPrefix(s3Path string, includeDirObjects bool, maxResults *int64) ([]*s3.Object, error) {
+func (c *Client) ListS3PathPrefix(s3Path string, includeDirObjects bool, maxResults *int64, startAfter *string) ([]*s3.Object, error) {
 	bucket, prefix, err := SplitS3Path(s3Path)
 	if err != nil {
 		return nil, err
 	}
-	return c.ListS3Prefix(bucket, prefix, includeDirObjects, maxResults)
+	return c.ListS3Prefix(bucket, prefix, includeDirObjects, maxResults, startAfter)
 }
 
 func (c *Client) DeleteS3File(bucket string, key string) error {
@@ -710,7 +753,7 @@ func (c *Client) DeleteS3Dir(bucket string, s3Dir string, continueIfFailure bool
 
 func (c *Client) DeleteS3Prefix(bucket string, prefix string, continueIfFailure bool) error {
 	// This implementation is confirmed to be considerably faster than using s3manager.NewDeleteListIterator() + s3manager.NewBatchDeleteWithClient()
-	err := c.S3BatchIterator(bucket, prefix, true, nil, func(objects []*s3.Object) (bool, error) {
+	err := c.S3BatchIterator(bucket, prefix, true, nil, nil, func(objects []*s3.Object) (bool, error) {
 		deleteObjects := make([]*s3.ObjectIdentifier, len(objects))
 		for i, object := range objects {
 			deleteObjects[i] = &s3.ObjectIdentifier{Key: object.Key}
@@ -742,10 +785,10 @@ func (c *Client) DeleteS3Prefix(bucket string, prefix string, continueIfFailure 
 	return nil
 }
 
-func (c *Client) HashS3Dir(bucket string, prefix string, maxResults *int64) (string, error) {
+func (c *Client) HashS3Dir(bucket string, prefix string, maxResults *int64, startAfter *string) (string, error) {
 	md5Hash := md5.New()
 
-	err := c.S3BatchIterator(bucket, prefix, true, maxResults, func(objects []*s3.Object) (bool, error) {
+	err := c.S3BatchIterator(bucket, prefix, true, maxResults, startAfter, func(objects []*s3.Object) (bool, error) {
 		var subErr error
 		for _, object := range objects {
 			io.WriteString(md5Hash, *object.ETag)
@@ -761,8 +804,8 @@ func (c *Client) HashS3Dir(bucket string, prefix string, maxResults *int64) (str
 }
 
 // Directory objects are empty objects ending in "/". They are not guaranteed to exists, and there may or may not be files "in" the directory
-func (c *Client) S3Iterator(bucket string, prefix string, includeDirObjects bool, maxResults *int64, fn func(*s3.Object) (bool, error)) error {
-	err := c.S3BatchIterator(bucket, prefix, includeDirObjects, maxResults, func(objects []*s3.Object) (bool, error) {
+func (c *Client) S3Iterator(bucket string, prefix string, includeDirObjects bool, maxResults *int64, startAfter *string, fn func(*s3.Object) (bool, error)) error {
+	err := c.S3BatchIterator(bucket, prefix, includeDirObjects, maxResults, startAfter, func(objects []*s3.Object) (bool, error) {
 		var subErr error
 		for _, object := range objects {
 			shouldContinue, newSubErr := fn(object)
@@ -785,16 +828,17 @@ func (c *Client) S3Iterator(bucket string, prefix string, includeDirObjects bool
 
 // The return value of fn([]*s3.Object) (bool, error) should be whether to continue iterating, and an error (if any occurred)
 // Directory objects are empty objects ending in "/". They are not guaranteed to exists, and there may or may not be files "in" the directory
-func (c *Client) S3BatchIterator(bucket string, prefix string, includeDirObjects bool, maxResults *int64, fn func([]*s3.Object) (bool, error)) error {
+func (c *Client) S3BatchIterator(bucket string, prefix string, includeDirObjects bool, maxResults *int64, startAfter *string, fn func([]*s3.Object) (bool, error)) error {
 	var maxResultsRemaining *int64
 	if maxResults != nil {
 		maxResultsRemaining = pointer.Int64(*maxResults)
 	}
 
 	listObjectsInput := &s3.ListObjectsV2Input{
-		Bucket:  aws.String(bucket),
-		Prefix:  aws.String(prefix),
-		MaxKeys: maxResultsRemaining,
+		Bucket:     aws.String(bucket),
+		Prefix:     aws.String(prefix),
+		MaxKeys:    maxResultsRemaining,
+		StartAfter: startAfter,
 	}
 
 	var numSeen int64
@@ -872,4 +916,47 @@ func (c *Client) TagBucket(bucket string, tagMap map[string]string) error {
 	}
 
 	return nil
+}
+
+func (c *Client) SetLifecycleRules(bucket string, rules []s3.LifecycleRule) error {
+	pointerRules := []*s3.LifecycleRule{}
+	for i := range rules {
+		pointerRules = append(pointerRules, &rules[i])
+	}
+	_, err := c.S3().PutBucketLifecycleConfiguration(&s3.PutBucketLifecycleConfigurationInput{
+		Bucket: pointer.String(bucket),
+		LifecycleConfiguration: &s3.BucketLifecycleConfiguration{
+			Rules: pointerRules,
+		},
+	})
+
+	return errors.WithStack(err)
+}
+
+func (c *Client) GetLifecycleRules(bucket string) ([]s3.LifecycleRule, error) {
+	lifecycleOutput, err := c.S3().GetBucketLifecycleConfiguration(&s3.GetBucketLifecycleConfigurationInput{
+		Bucket: pointer.String(bucket),
+	})
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+	if lifecycleOutput == nil {
+		return nil, nil
+	}
+
+	s3Rules := []s3.LifecycleRule{}
+	for _, rule := range lifecycleOutput.Rules {
+		if rule != nil {
+			s3Rules = append(s3Rules, *rule)
+		}
+	}
+
+	return s3Rules, nil
+}
+
+func (c *Client) DeleteLifecycleRules(bucket string) error {
+	_, err := c.S3().DeleteBucketLifecycle(&s3.DeleteBucketLifecycleInput{
+		Bucket: pointer.String(bucket),
+	})
+	return errors.WithStack(err)
 }

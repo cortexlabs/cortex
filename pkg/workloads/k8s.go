@@ -106,7 +106,7 @@ func TaskInitContainer(api *spec.API, job *spec.TaskJob) kcore.Container {
 				HideUnzippingLog: true,
 			},
 			{
-				From:             aws.S3Path(config.ClusterConfig.Bucket, job.SpecFilePath(config.ClusterConfig.ClusterName)),
+				From:             aws.S3Path(config.ClusterConfig.Bucket, job.SpecFilePath(config.ClusterConfig.ClusterUID)),
 				To:               TaskSpecPath,
 				Unzip:            false,
 				ToFile:           true,
@@ -163,7 +163,7 @@ func BatchInitContainer(api *spec.API, job *spec.BatchJob) kcore.Container {
 				HideUnzippingLog: true,
 			},
 			{
-				From:             aws.S3Path(config.ClusterConfig.Bucket, job.SpecFilePath(config.ClusterConfig.ClusterName)),
+				From:             aws.S3Path(config.ClusterConfig.Bucket, job.SpecFilePath(config.ClusterConfig.ClusterUID)),
 				To:               BatchSpecPath,
 				Unzip:            false,
 				ToFile:           true,
@@ -670,7 +670,7 @@ func getAsyncAPIEnvVars(api spec.API, queueURL string) []kcore.EnvVar {
 		},
 		kcore.EnvVar{
 			Name:  "CORTEX_ASYNC_WORKLOAD_PATH",
-			Value: aws.S3Path(config.ClusterConfig.Bucket, fmt.Sprintf("%s/apis/%s/workloads", config.ClusterConfig.ClusterName, api.Name)),
+			Value: aws.S3Path(config.ClusterConfig.Bucket, fmt.Sprintf("%s/workloads/%s", config.ClusterConfig.ClusterUID, api.Name)),
 		},
 	)
 

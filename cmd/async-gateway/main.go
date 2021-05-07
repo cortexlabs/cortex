@@ -118,7 +118,7 @@ func main() {
 	s3Storage := gateway.NewS3(sess, clusterConfig.Bucket)
 	sqsQueue := gateway.NewSQS(*queueURL, sess)
 
-	svc := gateway.NewService(clusterConfig.ClusterName, apiName, sqsQueue, s3Storage, log)
+	svc := gateway.NewService(clusterConfig.ClusterUID, apiName, sqsQueue, s3Storage, log)
 	ep := gateway.NewEndpoint(svc, log)
 
 	router := mux.NewRouter()

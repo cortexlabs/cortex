@@ -50,7 +50,9 @@ var (
 	NeuronCoresPerInf            = int64(4)
 	AuthHeader                   = "X-Cortex-Authorization"
 
-	DefaultInClusterConfigPath = "/configs/cluster/cluster.yaml"
+	DefaultInClusterConfigPath   = "/configs/cluster/cluster.yaml"
+	MaxBucketLifecycleRules      = 100
+	AsyncWorkloadsExpirationDays = int64(7)
 )
 
 func DefaultRegistry() string {
