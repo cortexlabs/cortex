@@ -183,12 +183,16 @@ def test_batch_api(
         job_spec = response.json()
 
         # monitor job progress
+        job_id = job_spec["job_id"]
+        endpoint_override = (
+            f"http://localhost:8888/batch/{api_name}?jobID={job_id}" if local_operator else None
+        )
         assert job_done(
             client=client,
-            api_name=job_spec["api_name"],
-            job_id=job_spec["job_id"],
+            api_name=api_name,
+            job_id=job_id,
             timeout=job_timeout,
-            local_operator=local_operator,
+            endpoint_override=endpoint_override,
         ), f"job did not succeed (api_name: {api_name}, job_id: {job_spec['job_id']})"
 
     except:
@@ -330,6 +334,7 @@ def test_task_api(
     job_timeout: int = None,
     retry_attempts: int = 0,
     api_config_name: str = "cortex.yaml",
+    local_operator: bool = False,
 ):
     api_dir = TEST_APIS_DIR / api
     with open(str(api_dir / api_config_name)) as f:
@@ -341,16 +346,17 @@ def test_task_api(
     client.deploy(api_spec=api_specs[0], project_dir=str(api_dir))
 
     try:
+        endpoint_override = f"http://localhost:8888/tasks/{api_name}" if local_operator else None
         assert endpoint_ready(
-            client=client, api_name=api_name, timeout=deploy_timeout
+            client=client,
+            api_name=api_name,
+            timeout=deploy_timeout,
+            endpoint_override=endpoint_override,
         ), f"api {api_name} not ready"
 
         response = None
         for _ in range(retry_attempts + 1):
-            response = request_task(
-                client,
-                api_name,
-            )
+            response = request_task(client, api_name, local_operator=local_operator)
             if response.status_code == HTTPStatus.OK:
                 break
 
@@ -358,11 +364,16 @@ def test_task_api(
 
         job_spec = response.json()
 
+        job_id = job_spec["job_id"]
+        endpoint_override = (
+            f"http://localhost:8888/tasks/{api_name}?jobID={job_id}" if local_operator else None
+        )
         assert job_done(
             client=client,
             api_name=api_name,
             job_id=job_spec["job_id"],
             timeout=job_timeout,
+            endpoint_override=endpoint_override,
         ), f"task job did not succeed (api_name: {api_name}, job_id: {job_spec['job_id']})"
 
     except:
