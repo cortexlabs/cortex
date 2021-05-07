@@ -29,8 +29,9 @@ import (
 
 const (
 	ErrInvalidProvider                        = "clusterconfig.invalid_provider"
-	ErrInvalidLegacyProvider                  = "cli.invalid_legacy_provider"
+	ErrInvalidLegacyProvider                  = "clusterconfig.invalid_legacy_provider"
 	ErrInvalidRegion                          = "clusterconfig.invalid_region"
+	ErrDisallowedField                        = "clusterconfig.disallowed_field"
 	ErrNoNodeGroupSpecified                   = "clusterconfig.no_nodegroup_specified"
 	ErrNodeGroupMaxInstancesIsZero            = "clusterconfig.node_group_max_instances_is_zero"
 	ErrMaxNumOfNodeGroupsReached              = "clusterconfig.max_num_of_nodegroups_reached"
@@ -85,6 +86,13 @@ func ErrorInvalidLegacyProvider(providerStr string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrInvalidLegacyProvider,
 		Message: fmt.Sprintf("the %s provider is no longer supported on cortex v%s; only aws is supported, so the provider field may be removed from your cluster configuration file", providerStr, consts.CortexVersionMinor),
+	})
+}
+
+func ErrorDisallowedField(field string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrDisallowedField,
+		Message: fmt.Sprintf("the %s field cannot be configured by the user", field),
 	})
 }
 
