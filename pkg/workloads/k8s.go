@@ -651,12 +651,12 @@ func tensorFlowHandlerContainers(api *spec.API, envVars []kcore.EnvVar, isJob bo
 func taskEnvVars(api *spec.API) []kcore.EnvVar {
 	envVars := apiContainerEnvVars(api)
 	envVars = append(envVars,
-
 		kcore.EnvVar{
 			Name:  "CORTEX_TASK_SPEC",
 			Value: TaskSpecPath,
 		},
 	)
+	envVars = append(envVars, getKubexitEnvVars(APIContainerName)...)
 	return envVars
 }
 
