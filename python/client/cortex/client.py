@@ -56,7 +56,7 @@ class Client:
         wait: bool = False,
     ):
         """
-        Deploy an API from a project directory.
+        Deploy API(s) from a project directory.
 
         Args:
             api_spec: A dictionary defining a single Cortex API. See https://docs.cortex.dev/v/master/ for schema.
@@ -339,11 +339,11 @@ class Client:
             if not is_python_set:
                 conda_packages = [f"python={actual_version}", "pip=19.*"] + conda_packages
 
-        if requirements is not None:
+        if requirements is not None and len(requirements) > 0:
             with open(project_dir / "requirements.txt", "w") as requirements_file:
                 requirements_file.write("\n".join(requirements))
 
-        if conda_packages is not None:
+        if conda_packages is not None and len(conda_packages) > 0:
             with open(project_dir / "conda-packages.txt", "w") as conda_file:
                 conda_file.write("\n".join(conda_packages))
 
