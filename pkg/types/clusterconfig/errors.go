@@ -29,7 +29,7 @@ import (
 
 const (
 	ErrInvalidProvider                        = "clusterconfig.invalid_provider"
-	ErrInvalidLegacyProvider                  = "cli.invalid_legacy_provider"
+	ErrInvalidLegacyProvider                  = "clusterconfig.invalid_legacy_provider"
 	ErrInvalidRegion                          = "clusterconfig.invalid_region"
 	ErrDisallowedField                        = "clusterconfig.disallowed_field"
 	ErrNoNodeGroupSpecified                   = "clusterconfig.no_nodegroup_specified"
@@ -92,7 +92,7 @@ func ErrorInvalidLegacyProvider(providerStr string) error {
 func ErrorDisallowedField(field string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrDisallowedField,
-		Message: fmt.Sprintf("field %s cannot be configured by the user", field),
+		Message: fmt.Sprintf("the %s field cannot be configured by the user", field),
 	})
 }
 
