@@ -353,15 +353,15 @@ var _clusterScaleCmd = &cobra.Command{
 		}
 
 		clusterConfig := refreshCachedClusterConfig(*awsClient, accessConfig, true)
-		clusterConfig, err = updateNodeGroupScale(clusterConfig, _flagClusterScaleNodeGroup, scaleMinIntances, scaleMaxInstances, _flagClusterDisallowPrompt)
+		clusterConfig, ngIndex, err := updateNodeGroupScale(clusterConfig, _flagClusterScaleNodeGroup, scaleMinIntances, scaleMaxInstances, _flagClusterDisallowPrompt)
 		if err != nil {
 			exit.Error(err)
 		}
 
 		out, exitCode, err := runManagerWithClusterConfig("/root/install.sh --update", &clusterConfig, awsClient, nil, nil, []string{
 			"CORTEX_SCALING_NODEGROUP=" + _flagClusterScaleNodeGroup,
-			"CORTEX_SCALING_MIN_INSTANCES=" + s.Int64(_flagClusterScaleMinInstances),
-			"CORTEX_SCALING_MAX_INSTANCES=" + s.Int64(_flagClusterScaleMaxInstances),
+			"CORTEX_SCALING_MIN_INSTANCES=" + s.Int64(clusterConfig.NodeGroups[ngIndex].MinInstances),
+			"CORTEX_SCALING_MAX_INSTANCES=" + s.Int64(clusterConfig.NodeGroups[ngIndex].MaxInstances),
 		})
 		if err != nil {
 			exit.Error(err)
@@ -1045,7 +1045,7 @@ func refreshCachedClusterConfig(awsClient aws.Client, accessConfig *clusterconfi
 	return *refreshedClusterConfig
 }
 
-func updateNodeGroupScale(clusterConfig clusterconfig.Config, targetNg string, desiredMinReplicas, desiredMaxReplicas *int64, disallowPrompt bool) (clusterconfig.Config, error) {
+func updateNodeGroupScale(clusterConfig clusterconfig.Config, targetNg string, desiredMinReplicas, desiredMaxReplicas *int64, disallowPrompt bool) (clusterconfig.Config, int, error) {
 	clusterName := clusterConfig.ClusterName
 	region := clusterConfig.Region
 
@@ -1070,13 +1070,13 @@ func updateNodeGroupScale(clusterConfig clusterconfig.Config, targetNg string, d
 			}
 
 			if minReplicas < 0 {
-				return clusterconfig.Config{}, ErrorMinInstancesLowerThan(0)
+				return clusterconfig.Config{}, 0, ErrorMinInstancesLowerThan(0)
 			}
 			if maxReplicas < 0 {
-				return clusterconfig.Config{}, ErrorMaxInstancesLowerThan(0)
+				return clusterconfig.Config{}, 0, ErrorMaxInstancesLowerThan(0)
 			}
 			if minReplicas > maxReplicas {
-				return clusterconfig.Config{}, ErrorMinInstancesGreaterThanMaxInstances(minReplicas, maxReplicas)
+				return clusterconfig.Config{}, 0, ErrorMinInstancesGreaterThanMaxInstances(minReplicas, maxReplicas)
 			}
 
 			if ng.MinInstances == minReplicas && ng.MaxInstances == maxReplicas {
@@ -1102,16 +1102,15 @@ func updateNodeGroupScale(clusterConfig clusterconfig.Config, targetNg string, d
 
 			clusterConfig.NodeGroups[idx].MinInstances = minReplicas
 			clusterConfig.NodeGroups[idx].MaxInstances = maxReplicas
-			ngFound = true
-			break
+			return clusterConfig, idx, nil
 		}
 	}
 
 	if !ngFound {
-		return clusterconfig.Config{}, ErrorNodeGroupNotFound(targetNg, clusterName, region, availableNodeGroups)
+		return clusterconfig.Config{}, 0, ErrorNodeGroupNotFound(targetNg, clusterName, region, availableNodeGroups)
 	}
 
-	return clusterConfig, nil
+	return clusterConfig, 0, nil
 }
 
 func createS3BucketIfNotFound(awsClient *aws.Client, bucket string, tags map[string]string) error {
