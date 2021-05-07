@@ -642,14 +642,6 @@ var ManagedConfigStructFieldValidations = []*cr.StructFieldValidation{
 		},
 	},
 	{
-		StructField: "CortexPolicyARN",
-		StringValidation: &cr.StringValidation{
-			Required:         false,
-			AllowEmpty:       true,
-			TreatNullAsEmpty: true,
-		},
-	},
-	{
 		StructField: "IAMPolicyARNs",
 		StringListValidation: &cr.StringListValidation{
 			Default:           _defaultIAMPolicies,
@@ -769,6 +761,22 @@ var ManagedConfigStructFieldValidations = []*cr.StructFieldValidation{
 		StructField: "VPCCIDR",
 		StringPtrValidation: &cr.StringPtrValidation{
 			Validator: validateCIDR,
+		},
+	},
+	{
+		StructField: "CortexPolicyARN",
+		StringValidation: &cr.StringValidation{
+			Required:         false,
+			AllowEmpty:       true,
+			TreatNullAsEmpty: true,
+		},
+	},
+	{
+		StructField: "AccountID",
+		StringValidation: &cr.StringValidation{
+			Required:         false,
+			AllowEmpty:       true,
+			TreatNullAsEmpty: true,
 		},
 	},
 }
@@ -903,6 +911,11 @@ func (cc *Config) Validate(awsClient *aws.Client) error {
 		return err
 	}
 
+	if cc.AccountID != "" {
+		return ErrorDisallowedField(AccountIDKey)
+	}
+	cc.AccountID = accountID
+
 	if cc.Bucket == "" {
 		bucketID := hash.String(accountID + cc.Region)[:8] // this is to "guarantee" a globally unique name
 		cc.Bucket = cc.ClusterName + "-" + bucketID
@@ -913,6 +926,9 @@ func (cc *Config) Validate(awsClient *aws.Client) error {
 		}
 	}
 
+	if cc.CortexPolicyARN != "" {
+		return ErrorDisallowedField(CortexPolicyARNKey)
+	}
 	cc.CortexPolicyARN = DefaultPolicyARN(accountID, cc.ClusterName, cc.Region)
 
 	defaultPoliciesSet := strset.New(_defaultIAMPolicies...)
