@@ -29,7 +29,8 @@ import (
 
 const (
 	ErrInvalidProvider                        = "clusterconfig.invalid_provider"
-	ErrInvalidLegacyProvider                  = "cli.invalid_legacy_provider"
+	ErrInvalidLegacyProvider                  = "clusterconfig.invalid_legacy_provider"
+	ErrDisallowedField                        = "clusterconfig.disallowed_field"
 	ErrInvalidRegion                          = "clusterconfig.invalid_region"
 	ErrNoNodeGroupSpecified                   = "clusterconfig.no_nodegroup_specified"
 	ErrNodeGroupMaxInstancesIsZero            = "clusterconfig.node_group_max_instances_is_zero"
@@ -56,13 +57,18 @@ const (
 	ErrNotEnoughValidDefaultAvailibilityZones = "clusterconfig.not_enough_valid_default_availability_zones"
 	ErrNoNATGatewayWithSubnets                = "clusterconfig.no_nat_gateway_with_subnets"
 	ErrSpecifyOneOrNone                       = "clusterconfig.specify_one_or_none"
+	ErrSpecifyTwoOrNone                       = "clusterconfig.specify_two_or_none"
 	ErrDependentFieldMustBeSpecified          = "clusterconfig.dependent_field_must_be_specified"
 	ErrFieldConfigurationDependentOnCondition = "clusterconfig.field_configuration_dependent_on_condition"
 	ErrDidNotMatchStrictS3Regex               = "clusterconfig.did_not_match_strict_s3_regex"
 	ErrNATRequiredWithPrivateSubnetVisibility = "clusterconfig.nat_required_with_private_subnet_visibility"
 	ErrS3RegionDiffersFromCluster             = "clusterconfig.s3_region_differs_from_cluster"
 	ErrIOPSNotSupported                       = "clusterconfig.iops_not_supported"
+	ErrThroughputNotSupported                 = "clusterconfig.throughput_not_supported"
+	ErrIOPSTooSmall                           = "clusterconfig.iops_too_small"
 	ErrIOPSTooLarge                           = "clusterconfig.iops_too_large"
+	ErrIOPSToVolumeSizeRatio                  = "clusterconfig.iops_to_volume_size_ratio"
+	ErrIOPSToThroughputRatio                  = "clusterconfig.iops_to_throughput_ratio"
 	ErrCantOverrideDefaultTag                 = "clusterconfig.cant_override_default_tag"
 	ErrSSLCertificateARNNotFound              = "clusterconfig.ssl_certificate_arn_not_found"
 	ErrIAMPolicyARNNotFound                   = "clusterconfig.iam_policy_arn_not_found"
@@ -79,6 +85,13 @@ func ErrorInvalidLegacyProvider(providerStr string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrInvalidLegacyProvider,
 		Message: fmt.Sprintf("the %s provider is no longer supported on cortex v%s; only aws is supported, so the provider field may be removed from your cluster configuration file", providerStr, consts.CortexVersionMinor),
+	})
+}
+
+func ErrorDisallowedField(field string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrDisallowedField,
+		Message: fmt.Sprintf("the %s field cannot be configured by the user", field),
 	})
 }
 
@@ -276,6 +289,14 @@ func ErrorSpecifyOneOrNone(fieldName1 string, fieldName2 string, fieldNames ...s
 	})
 }
 
+func ErrorSpecifyTwoOrNone(fieldName1 string, fieldName2 string, fieldNames ...string) error {
+	fieldNames = append([]string{fieldName1, fieldName2}, fieldNames...)
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrSpecifyTwoOrNone,
+		Message: fmt.Sprintf("specify exactly two or none of the following fields: %s", s.StrsAnd(fieldNames)),
+	})
+}
+
 func ErrorDependentFieldMustBeSpecified(configuredField string, dependencyField string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrDependentFieldMustBeSpecified,
@@ -307,21 +328,49 @@ func ErrorNATRequiredWithPrivateSubnetVisibility() error {
 func ErrorS3RegionDiffersFromCluster(bucketName string, bucketRegion string, clusterRegion string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrS3RegionDiffersFromCluster,
-		Message: fmt.Sprintf("the %s bucket is in %s, but your cluster is in %s; either change the region of your cluster to %s, use a bucket that is in %s, or remove your bucket configuration to allow cortex to make the bucket for you", bucketName, bucketRegion, clusterRegion, bucketRegion, clusterRegion),
+		Message: fmt.Sprintf("the %s bucket already exists but is in %s (your cluster is in %s); either change the region of your cluster to %s or delete your bucket to allow cortex to create the bucket for you in %s", bucketName, bucketRegion, clusterRegion, bucketRegion, clusterRegion),
 	})
 }
 
 func ErrorIOPSNotSupported(volumeType VolumeType) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrIOPSNotSupported,
-		Message: fmt.Sprintf("IOPS cannot be configured for volume type %s; set `%s: %s` or remove `%s` from your cluster configuration file", volumeType, InstanceVolumeTypeKey, IO1VolumeType, InstanceVolumeIOPSKey),
+		Message: fmt.Sprintf("IOPS cannot be configured for volume type %s; set `%s: %s`, `%s: %s`, or remove `%s` from your cluster configuration file", volumeType, InstanceVolumeTypeKey, IO1VolumeType, InstanceVolumeTypeKey, GP3VolumeType, InstanceVolumeIOPSKey),
 	})
 }
 
-func ErrorIOPSTooLarge(iops int64, volumeSize int64) error {
+func ErrorThroughputNotSupported(volumeType VolumeType) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrThroughputNotSupported,
+		Message: fmt.Sprintf("throughput cannot be configured for volume type %s; set `%s: %s` or remove `%s` from your cluster configuration file", volumeType, InstanceVolumeTypeKey, GP3VolumeType, InstanceVolumeThroughputKey),
+	})
+}
+
+func ErrorIOPSTooSmall(volumeType VolumeType, iops, minIOPS int64) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrIOPSTooSmall,
+		Message: fmt.Sprintf("for %s volume type, %s (%d) cannot be smaller than %d", volumeType, InstanceVolumeIOPSKey, iops, minIOPS),
+	})
+}
+
+func ErrorIOPSTooLarge(volumeType VolumeType, iops, maxIOPS int64) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrIOPSTooLarge,
-		Message: fmt.Sprintf("%s (%d) cannot be more than 50 times larger than %s (%d); increase `%s` or decrease `%s` in your cluster configuration file", InstanceVolumeIOPSKey, iops, InstanceVolumeSizeKey, volumeSize, InstanceVolumeSizeKey, InstanceVolumeIOPSKey),
+		Message: fmt.Sprintf("for %s volume type, %s (%d) cannot be larger than %d", volumeType, InstanceVolumeIOPSKey, iops, maxIOPS),
+	})
+}
+
+func ErrorIOPSToVolumeSizeRatio(volumeType VolumeType, ratio, iops int64, volumeSize int64) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrIOPSToVolumeSizeRatio,
+		Message: fmt.Sprintf("for %s volume type, %s (%d) cannot be more than %d times larger than %s (%d); increase `%s` or decrease `%s` in your cluster configuration file", volumeType, InstanceVolumeIOPSKey, iops, ratio, InstanceVolumeSizeKey, volumeSize, InstanceVolumeSizeKey, InstanceVolumeIOPSKey),
+	})
+}
+
+func ErrorIOPSToThroughputRatio(volumeType VolumeType, ratio, iops, throughput int64) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrIOPSToThroughputRatio,
+		Message: fmt.Sprintf("for %s volume type, %s (%d) must be at least %d times larger than %s (%d); decrease `%s` or increase `%s` in your cluster configuration file", volumeType, InstanceVolumeIOPSKey, iops, ratio, InstanceVolumeThroughputKey, throughput, InstanceVolumeThroughputKey, InstanceVolumeIOPSKey),
 	})
 }
 

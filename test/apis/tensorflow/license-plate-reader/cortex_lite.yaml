@@ -2,7 +2,7 @@
   kind: RealtimeAPI
   handler:
     type: python
-    path: predictor_lite.py
+    path: handler_lite.py
     config:
       yolov3: s3://cortex-examples/tensorflow/license-plate-reader/yolov3_keras/model.h5
       yolov3_model_config: config.json

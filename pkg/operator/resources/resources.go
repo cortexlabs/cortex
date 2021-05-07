@@ -17,19 +17,21 @@ limitations under the License.
 package resources
 
 import (
+	"context"
 	"fmt"
 
+	"github.com/cortexlabs/cortex/pkg/config"
 	"github.com/cortexlabs/cortex/pkg/consts"
+	batch "github.com/cortexlabs/cortex/pkg/crds/apis/batch/v1alpha1"
 	"github.com/cortexlabs/cortex/pkg/lib/archive"
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/hash"
+	"github.com/cortexlabs/cortex/pkg/lib/logging"
 	"github.com/cortexlabs/cortex/pkg/lib/parallel"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	"github.com/cortexlabs/cortex/pkg/lib/urls"
-	"github.com/cortexlabs/cortex/pkg/operator/config"
-	"github.com/cortexlabs/cortex/pkg/operator/lib/logging"
 	"github.com/cortexlabs/cortex/pkg/operator/lib/routines"
 	"github.com/cortexlabs/cortex/pkg/operator/operator"
 	"github.com/cortexlabs/cortex/pkg/operator/resources/asyncapi"
@@ -40,6 +42,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
+	"github.com/cortexlabs/cortex/pkg/workloads"
 	istioclientnetworking "istio.io/client-go/pkg/apis/networking/v1beta1"
 	kapps "k8s.io/api/apps/v1"
 	kbatch "k8s.io/api/batch/v1"
@@ -48,7 +51,7 @@ import (
 	klabels "k8s.io/apimachinery/pkg/labels"
 )
 
-var operatorLogger = logging.GetOperatorLogger()
+var operatorLogger = logging.GetLogger()
 
 const (
 	_defaultAPIPortInt32 = int32(8888)
@@ -69,7 +72,7 @@ func GetDeployedResourceByName(resourceName string) (*operator.DeployedResource,
 }
 
 func GetDeployedResourceByNameOrNil(resourceName string) (*operator.DeployedResource, error) {
-	virtualService, err := config.K8s.GetVirtualService(operator.K8sName(resourceName))
+	virtualService, err := config.K8s.GetVirtualService(workloads.K8sName(resourceName))
 	if err != nil {
 		return nil, err
 	}
@@ -109,13 +112,13 @@ func Deploy(projectBytes []byte, configFileName string, configBytes []byte, forc
 		return nil, err
 	}
 
-	projectKey := spec.ProjectKey(projectID, config.CoreConfig.ClusterName)
-	isProjectUploaded, err := config.AWS.IsS3File(config.CoreConfig.Bucket, projectKey)
+	projectKey := spec.ProjectKey(projectID, config.ClusterConfig.ClusterUID)
+	isProjectUploaded, err := config.AWS.IsS3File(config.ClusterConfig.Bucket, projectKey)
 	if err != nil {
 		return nil, err
 	}
 	if !isProjectUploaded {
-		if err = config.AWS.UploadBytesToS3(projectBytes, config.CoreConfig.Bucket, projectKey); err != nil {
+		if err = config.AWS.UploadBytesToS3(projectBytes, config.ClusterConfig.Bucket, projectKey); err != nil {
 			return nil, err
 		}
 	}
@@ -266,6 +269,10 @@ func patchAPI(apiConfig *userconfig.API, force bool) (*spec.API, string, error) 
 		return nil, "", ErrorOperationIsOnlySupportedForKind(*deployedResource, userconfig.RealtimeAPIKind, userconfig.AsyncAPIKind, userconfig.BatchAPIKind, userconfig.TaskAPIKind, userconfig.TrafficSplitterKind) // unexpected
 	}
 
+	if deployedResource.Kind != apiConfig.Kind {
+		return nil, "", ErrorCannotChangeKindOfDeployedAPI(apiConfig.Name, apiConfig.Kind, deployedResource.Kind)
+	}
+
 	var projectFiles ProjectFiles
 
 	prevAPISpec, err := operator.DownloadAPISpec(deployedResource.Name, deployedResource.ID())
@@ -274,7 +281,7 @@ func patchAPI(apiConfig *userconfig.API, force bool) (*spec.API, string, error) 
 	}
 
 	if deployedResource.Kind != userconfig.TrafficSplitterKind {
-		bytes, err := config.AWS.ReadBytesFromS3(config.CoreConfig.Bucket, prevAPISpec.ProjectKey)
+		bytes, err := config.AWS.ReadBytesFromS3(config.ClusterConfig.Bucket, prevAPISpec.ProjectKey)
 		if err != nil {
 			return nil, "", err
 		}
@@ -423,10 +430,10 @@ func DeleteAPI(apiName string, keepCache bool) (*schema.DeleteResponse, error) {
 
 func GetAPIs() ([]schema.APIResponse, error) {
 	var deployments []kapps.Deployment
-	var k8sBatchJobs []kbatch.Job
 	var k8sTaskJobs []kbatch.Job
 	var pods []kcore.Pod
 	var virtualServices []istioclientnetworking.VirtualService
+	var batchJobList batch.BatchJobList
 
 	err := parallel.RunFirstErr(
 		func() error {
@@ -437,19 +444,6 @@ func GetAPIs() ([]schema.APIResponse, error) {
 		func() error {
 			var err error
 			pods, err = config.K8s.ListPodsWithLabelKeys("apiName")
-			return err
-		},
-		func() error {
-			var err error
-			k8sBatchJobs, err = config.K8s.ListJobs(
-				&kmeta.ListOptions{
-					LabelSelector: klabels.SelectorFromSet(
-						map[string]string{
-							"apiKind": userconfig.BatchAPIKind.String(),
-						},
-					).String(),
-				},
-			)
 			return err
 		},
 		func() error {
@@ -469,6 +463,9 @@ func GetAPIs() ([]schema.APIResponse, error) {
 			var err error
 			virtualServices, err = config.K8s.ListVirtualServicesWithLabelKeys("apiName")
 			return err
+		},
+		func() error {
+			return config.K8s.List(context.Background(), &batchJobList)
 		},
 	)
 	if err != nil {
@@ -529,7 +526,7 @@ func GetAPIs() ([]schema.APIResponse, error) {
 		return nil, err
 	}
 
-	batchAPIList, err := batchapi.GetAllAPIs(batchAPIVirtualServices, k8sBatchJobs, batchAPIPods)
+	batchAPIList, err := batchapi.GetAllAPIs(batchAPIVirtualServices, batchJobList.Items)
 	if err != nil {
 		return nil, err
 	}
@@ -650,7 +647,7 @@ func GetAPIByID(apiName string, apiID string) ([]schema.APIResponse, error) {
 func getPastAPIDeploys(apiName string) ([]schema.APIVersion, error) {
 	var apiVersions []schema.APIVersion
 
-	apiIDs, err := config.AWS.ListS3DirOneLevel(config.CoreConfig.Bucket, spec.KeysPrefix(apiName, config.CoreConfig.ClusterName), pointer.Int64(10))
+	apiIDs, err := config.AWS.ListS3DirOneLevel(config.ClusterConfig.Bucket, spec.KeysPrefix(apiName, config.ClusterConfig.ClusterUID), pointer.Int64(10), nil)
 	if err != nil {
 		return nil, err
 	}

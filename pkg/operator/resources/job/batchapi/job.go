@@ -17,16 +17,20 @@ limitations under the License.
 package batchapi
 
 import (
+	"context"
 	"time"
 
+	"github.com/cortexlabs/cortex/pkg/config"
+	batch "github.com/cortexlabs/cortex/pkg/crds/apis/batch/v1alpha1"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
-	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
-	"github.com/cortexlabs/cortex/pkg/operator/config"
-	"github.com/cortexlabs/cortex/pkg/operator/lib/routines"
+	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/operator/operator"
-	"github.com/cortexlabs/cortex/pkg/operator/resources/job"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
+	"github.com/cortexlabs/cortex/pkg/types/userconfig"
+	"github.com/cortexlabs/cortex/pkg/workloads"
+	"github.com/cortexlabs/yaml"
+	kmeta "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func DryRun(submission *schema.BatchJobSubmission) ([]string, error) {
@@ -62,202 +66,107 @@ func SubmitJob(apiName string, submission *schema.BatchJobSubmission) (*spec.Bat
 		return nil, err
 	}
 
-	virtualService, err := config.K8s.GetVirtualService(operator.K8sName(apiName))
+	virtualService, err := config.K8s.GetVirtualService(workloads.K8sName(apiName))
 	if err != nil {
 		return nil, err
 	}
 
 	apiID := virtualService.Labels["apiID"]
+	jobID := spec.MonotonicallyDecreasingID()
 
 	apiSpec, err := operator.DownloadAPISpec(apiName, apiID)
 	if err != nil {
 		return nil, err
 	}
 
-	jobID := spec.MonotonicallyDecreasingID()
-
-	jobKey := spec.JobKey{
-		APIName: apiSpec.Name,
-		ID:      jobID,
-		Kind:    apiSpec.Kind,
-	}
-
-	tags := map[string]string{
-		"apiName": apiSpec.Name,
-		"apiID":   apiSpec.ID,
-		"jobID":   jobID,
-	}
-
-	queueURL, err := createFIFOQueue(jobKey, submission.SQSDeadLetterQueue, tags)
-	if err != nil {
-		return nil, err
-	}
-
 	jobSpec := spec.BatchJob{
 		RuntimeBatchJobConfig: submission.RuntimeBatchJobConfig,
-		JobKey:                jobKey,
-		APIID:                 apiSpec.ID,
-		SpecID:                apiSpec.SpecID,
-		HandlerID:             apiSpec.HandlerID,
-		SQSUrl:                queueURL,
-		StartTime:             time.Now(),
+		JobKey: spec.JobKey{
+			APIName: apiName,
+			ID:      jobID,
+			Kind:    userconfig.BatchAPIKind,
+		},
+		APIID:     apiSpec.ID,
+		SpecID:    apiSpec.SpecID,
+		HandlerID: apiSpec.HandlerID,
 	}
 
 	err = uploadJobSpec(&jobSpec)
 	if err != nil {
-		deleteQueueByURL(queueURL)
 		return nil, err
 	}
 
-	jobLogger, err := operator.GetJobLoggerFromSpec(apiSpec, jobKey)
-	if err != nil {
-		deleteQueueByURL(queueURL)
+	// upload job payload for enqueuer
+	payloadKey := spec.JobPayloadKey(config.ClusterConfig.ClusterUID, userconfig.BatchAPIKind, apiName, jobID)
+	if err = config.AWS.UploadJSONToS3(submission, config.ClusterConfig.Bucket, payloadKey); err != nil {
 		return nil, err
 	}
 
-	err = job.SetEnqueuingStatus(jobKey)
-	if err != nil {
-		deleteQueueByURL(queueURL)
-		return nil, err
+	var jobConfig *string
+	if submission.Config != nil {
+		jobConfigBytes, err := yaml.Marshal(submission.Config)
+		if err != nil {
+			return nil, err
+		}
+		jobConfig = pointer.String(string(jobConfigBytes))
 	}
 
-	jobLogger.Info("started enqueuing batches")
+	var timeout *kmeta.Duration
+	if submission.Timeout != nil {
+		timeout = &kmeta.Duration{Duration: time.Duration(*submission.Timeout) * time.Second}
+	}
 
-	routines.RunWithPanicHandler(func() {
-		deployJob(apiSpec, &jobSpec, submission)
-	})
+	var deadLetterQueue *batch.DeadLetterQueueSpec
+	if submission.SQSDeadLetterQueue != nil {
+		deadLetterQueue = &batch.DeadLetterQueueSpec{
+			ARN:             submission.SQSDeadLetterQueue.ARN,
+			MaxReceiveCount: int32(submission.SQSDeadLetterQueue.MaxReceiveCount),
+		}
+	}
+
+	batchJob := batch.BatchJob{
+		ObjectMeta: kmeta.ObjectMeta{
+			Name:      jobID,
+			Namespace: config.K8s.Namespace,
+			Labels: map[string]string{
+				"apiName":        apiName,
+				"apiID":          apiID,
+				"specID":         virtualService.Labels["specID"],
+				"predictorID":    virtualService.Labels["predictorID"],
+				"apiKind":        userconfig.BatchAPIKind.String(),
+				"cortex.dev/api": "true",
+			},
+		},
+		Spec: batch.BatchJobSpec{
+			APIName:         apiName,
+			APIID:           apiID,
+			Workers:         int32(submission.Workers),
+			Config:          jobConfig,
+			Timeout:         timeout,
+			DeadLetterQueue: deadLetterQueue,
+			TTL:             &kmeta.Duration{Duration: 30 * time.Second},
+			NodeGroups:      apiSpec.Compute.NodeGroups,
+		},
+	}
+
+	ctx := context.Background()
+	if err = config.K8s.Create(ctx, &batchJob); err != nil {
+		return nil, err
+	}
 
 	return &jobSpec, nil
 }
 
-func uploadJobSpec(jobSpec *spec.BatchJob) error {
-	err := config.AWS.UploadJSONToS3(jobSpec, config.CoreConfig.Bucket, jobSpec.SpecFilePath(config.CoreConfig.ClusterName))
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func deployJob(apiSpec *spec.API, jobSpec *spec.BatchJob, submission *schema.BatchJobSubmission) {
-	jobLogger, err := operator.GetJobLoggerFromSpec(apiSpec, jobSpec.JobKey)
-	if err != nil {
-		telemetry.Error(err)
-		operatorLogger.Error(err)
-		return
-	}
-
-	totalBatches, err := enqueue(jobSpec, submission)
-	if err != nil {
-		jobLogger.Error(errors.Wrap(err, "failed to enqueue all batches").Error())
-
-		err := errors.FirstError(
-			job.SetEnqueueFailedStatus(jobSpec.JobKey),
-			deleteJobRuntimeResources(jobSpec.JobKey),
-		)
-		if err != nil {
-			telemetry.Error(err)
-			operatorLogger.Error(err)
-		}
-		return
-	}
-
-	if totalBatches == 0 {
-		var errs []error
-		jobLogger.Error(ErrorNoDataFoundInJobSubmission())
-		if submission.DelimitedFiles != nil {
-			jobLogger.Error("please verify that the files are not empty (the files being read can be retrieved by providing `dryRun=true` query param with your job submission")
-		}
-		errs = append(errs, job.SetEnqueueFailedStatus(jobSpec.JobKey))
-		errs = append(errs, deleteJobRuntimeResources(jobSpec.JobKey))
-
-		err := errors.FirstError(errs...)
-		if err != nil {
-			telemetry.Error(err)
-			operatorLogger.Error(err)
-		}
-		return
-	}
-
-	jobLogger.Infof("completed enqueuing a total of %d batches", totalBatches)
-	jobLogger.Infof("spinning up workers...")
-
-	jobSpec.TotalBatchCount = totalBatches
-
-	err = uploadJobSpec(jobSpec)
-	if err != nil {
-		handleJobSubmissionError(jobSpec.JobKey, err)
-		return
-	}
-
-	err = createK8sJob(apiSpec, jobSpec)
-	if err != nil {
-		handleJobSubmissionError(jobSpec.JobKey, err)
-	}
-
-	err = job.SetRunningStatus(jobSpec.JobKey)
-	if err != nil {
-		handleJobSubmissionError(jobSpec.JobKey, err)
-		return
-	}
-}
-
-func handleJobSubmissionError(jobKey spec.JobKey, jobErr error) {
-	jobLogger, err := operator.GetJobLogger(jobKey)
-	if err != nil {
-		telemetry.Error(err)
-		operatorLogger.Error(err)
-		return
-	}
-
-	jobLogger.Error(jobErr.Error())
-	err = errors.FirstError(
-		job.SetUnexpectedErrorStatus(jobKey),
-		deleteJobRuntimeResources(jobKey),
-	)
-	if err != nil {
-		telemetry.Error(err)
-		operatorLogger.Error(err)
-	}
-}
-
-// delete k8s job, queue and save batch metrics from prometheus to S3
-func deleteJobRuntimeResources(jobKey spec.JobKey) error {
-	err := errors.FirstError(
-		deleteK8sJob(jobKey),
-		deleteQueueWithDelay(jobKey),
-		saveMetricsToS3(jobKey),
-	)
-
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
 func StopJob(jobKey spec.JobKey) error {
-	jobState, err := job.GetJobState(jobKey)
+	return config.K8s.Delete(context.Background(), &batch.BatchJob{
+		ObjectMeta: kmeta.ObjectMeta{Name: jobKey.ID, Namespace: config.K8s.Namespace},
+	})
+}
+
+func uploadJobSpec(jobSpec *spec.BatchJob) error {
+	err := config.AWS.UploadJSONToS3(jobSpec, config.ClusterConfig.Bucket, jobSpec.SpecFilePath(config.ClusterConfig.ClusterUID))
 	if err != nil {
-		routines.RunWithPanicHandler(func() {
-			deleteJobRuntimeResources(jobKey)
-		})
 		return err
 	}
-
-	if !jobState.Status.IsInProgress() {
-		routines.RunWithPanicHandler(func() {
-			deleteJobRuntimeResources(jobKey)
-		})
-		return errors.Wrap(job.ErrorJobIsNotInProgress(jobKey.Kind), jobKey.UserString())
-	}
-
-	jobLogger, err := operator.GetJobLogger(jobKey)
-	if err == nil {
-		jobLogger.Warn("request received to stop job; performing cleanup...")
-	}
-
-	return errors.FirstError(
-		deleteJobRuntimeResources(jobKey),
-		job.SetStoppedStatus(jobKey),
-	)
+	return nil
 }

@@ -20,13 +20,13 @@ import (
 	"sort"
 	"time"
 
+	"github.com/cortexlabs/cortex/pkg/config"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/parallel"
-	"github.com/cortexlabs/cortex/pkg/operator/config"
-	"github.com/cortexlabs/cortex/pkg/operator/operator"
 	"github.com/cortexlabs/cortex/pkg/types/status"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
+	"github.com/cortexlabs/cortex/pkg/workloads"
 	kapps "k8s.io/api/apps/v1"
 	kcore "k8s.io/api/core/v1"
 )
@@ -47,7 +47,7 @@ func GetStatus(apiName string) (*status.Status, error) {
 	err := parallel.RunFirstErr(
 		func() error {
 			var err error
-			apiDeployment, err = config.K8s.GetDeployment(operator.K8sName(apiName))
+			apiDeployment, err = config.K8s.GetDeployment(workloads.K8sName(apiName))
 			return err
 		},
 		func() error {
@@ -96,7 +96,15 @@ func GetAllStatuses(deployments []kapps.Deployment, pods []kcore.Pod) ([]status.
 	statuses := make([]status.Status, len(resourcesByAPI))
 
 	var i int
-	for _, k8sResources := range resourcesByAPI {
+	for apiName, k8sResources := range resourcesByAPI {
+		if k8sResources.APIDeployment == nil {
+			return nil, errors.ErrorUnexpected("unable to find api deployment", apiName)
+		}
+
+		if k8sResources.GatewayDeployment == nil {
+			return nil, errors.ErrorUnexpected("unable to find gateway deployment", apiName)
+		}
+
 		st, err := apiStatus(k8sResources.APIDeployment, k8sResources.APIPods, k8sResources.GatewayDeployment, k8sResources.GatewayPods)
 		if err != nil {
 			return nil, err

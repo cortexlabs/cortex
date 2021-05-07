@@ -19,18 +19,19 @@ package operator
 import (
 	"strings"
 
+	"github.com/cortexlabs/cortex/pkg/config"
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
+	"github.com/cortexlabs/cortex/pkg/lib/logging"
+	libmath "github.com/cortexlabs/cortex/pkg/lib/math"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
-	"github.com/cortexlabs/cortex/pkg/operator/config"
-	"github.com/cortexlabs/cortex/pkg/operator/lib/logging"
 	"github.com/cortexlabs/cortex/pkg/types/clusterconfig"
 	kmeta "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-var operatorLogger = logging.GetOperatorLogger()
+var operatorLogger = logging.GetLogger()
 var previousListOfEvictedPods = strset.New()
 
 func DeleteEvictedPods() error {
@@ -81,7 +82,10 @@ func ClusterTelemetry() error {
 	if err != nil {
 		return err
 	}
-	telemetry.Event("operator.cron", properties, config.CoreConfig.TelemetryEvent(), config.ManagedConfig.TelemetryEvent())
+	telemetry.Event("operator.cron", properties,
+		config.ClusterConfig.CoreConfig.TelemetryEvent(),
+		config.ClusterConfig.ManagedConfig.TelemetryEvent(),
+	)
 
 	return nil
 }
@@ -125,7 +129,7 @@ func clusterTelemetryProperties() (map[string]interface{}, error) {
 			continue
 		}
 
-		onDemandPrice := aws.InstanceMetadatas[config.CoreConfig.Region][instanceType].Price
+		onDemandPrice := aws.InstanceMetadatas[config.ClusterConfig.Region][instanceType].Price
 		price := onDemandPrice
 		if isSpot {
 			spotPrice, err := config.AWS.SpotInstancePrice(instanceType)
@@ -135,7 +139,7 @@ func clusterTelemetryProperties() (map[string]interface{}, error) {
 		}
 
 		ngName := node.Labels["alpha.eksctl.io/nodegroup-name"]
-		ebsPricePerVolume := getEBSPriceForNodeGroupInstance(config.ManagedConfig.NodeGroups, ngName)
+		ebsPricePerVolume := getEBSPriceForNodeGroupInstance(config.ClusterConfig.NodeGroups, ngName)
 		onDemandPrice += ebsPricePerVolume
 		price += ebsPricePerVolume
 
@@ -162,7 +166,7 @@ func clusterTelemetryProperties() (map[string]interface{}, error) {
 	fixedPrice := clusterFixedPrice()
 
 	return map[string]interface{}{
-		"region":                      config.CoreConfig.Region,
+		"region":                      config.ClusterConfig.Region,
 		"instance_count":              totalInstances,
 		"instances":                   instanceInfos,
 		"fixed_price":                 fixedPrice,
@@ -183,9 +187,13 @@ func getEBSPriceForNodeGroupInstance(ngs []*clusterconfig.NodeGroup, ngName stri
 			ngNamePrefix = "cx-wd-"
 		}
 		if ng.Name == ngNamePrefix+ngName {
-			ebsPrice = aws.EBSMetadatas[config.CoreConfig.Region][ng.InstanceVolumeType.String()].PriceGB * float64(ng.InstanceVolumeSize) / 30 / 24
-			if ng.InstanceVolumeType.String() == "io1" && ng.InstanceVolumeIOPS != nil {
-				ebsPrice += aws.EBSMetadatas[config.CoreConfig.Region][ng.InstanceVolumeType.String()].PriceIOPS * float64(*ng.InstanceVolumeIOPS) / 30 / 24
+			ebsPrice = aws.EBSMetadatas[config.ClusterConfig.Region][ng.InstanceVolumeType.String()].PriceGB * float64(ng.InstanceVolumeSize) / 30 / 24
+			if ng.InstanceVolumeType == clusterconfig.IO1VolumeType && ng.InstanceVolumeIOPS != nil {
+				ebsPrice += aws.EBSMetadatas[config.ClusterConfig.Region][ng.InstanceVolumeType.String()].PriceIOPS * float64(*ng.InstanceVolumeIOPS) / 30 / 24
+			}
+			if ng.InstanceVolumeType == clusterconfig.GP3VolumeType && ng.InstanceVolumeIOPS != nil && ng.InstanceVolumeThroughput != nil {
+				ebsPrice += libmath.MaxFloat64(0, (aws.EBSMetadatas[config.ClusterConfig.Region][ng.InstanceVolumeType.String()].PriceIOPS-3000)*float64(*ng.InstanceVolumeIOPS)/30/24)
+				ebsPrice += libmath.MaxFloat64(0, (aws.EBSMetadatas[config.ClusterConfig.Region][ng.InstanceVolumeType.String()].PriceThroughput-125)*float64(*ng.InstanceVolumeThroughput)/30/24)
 			}
 			break
 		}
@@ -194,21 +202,21 @@ func getEBSPriceForNodeGroupInstance(ngs []*clusterconfig.NodeGroup, ngName stri
 }
 
 func clusterFixedPrice() float64 {
-	eksPrice := aws.EKSPrices[config.CoreConfig.Region]
-	operatorInstancePrice := aws.InstanceMetadatas[config.CoreConfig.Region]["t3.medium"].Price
-	operatorEBSPrice := aws.EBSMetadatas[config.CoreConfig.Region]["gp2"].PriceGB * 20 / 30 / 24
-	metricsEBSPrice := aws.EBSMetadatas[config.CoreConfig.Region]["gp2"].PriceGB * 40 / 30 / 24
-	nlbPrice := aws.NLBMetadatas[config.CoreConfig.Region].Price
-	natUnitPrice := aws.NATMetadatas[config.CoreConfig.Region].Price
+	eksPrice := aws.EKSPrices[config.ClusterConfig.Region]
+	operatorInstancePrice := aws.InstanceMetadatas[config.ClusterConfig.Region]["t3.medium"].Price
+	operatorEBSPrice := aws.EBSMetadatas[config.ClusterConfig.Region]["gp3"].PriceGB * 20 / 30 / 24
+	metricsEBSPrice := aws.EBSMetadatas[config.ClusterConfig.Region]["gp2"].PriceGB * (40 + 2) / 30 / 24
+	nlbPrice := aws.NLBMetadatas[config.ClusterConfig.Region].Price
+	natUnitPrice := aws.NATMetadatas[config.ClusterConfig.Region].Price
 	var natTotalPrice float64
 
-	if config.ManagedConfig.NATGateway == clusterconfig.SingleNATGateway {
+	if config.ClusterConfig.NATGateway == clusterconfig.SingleNATGateway {
 		natTotalPrice = natUnitPrice
-	} else if config.ManagedConfig.NATGateway == clusterconfig.HighlyAvailableNATGateway {
-		natTotalPrice = natUnitPrice * float64(len(config.ManagedConfig.AvailabilityZones))
+	} else if config.ClusterConfig.NATGateway == clusterconfig.HighlyAvailableNATGateway {
+		natTotalPrice = natUnitPrice * float64(len(config.ClusterConfig.AvailabilityZones))
 	}
 
-	return eksPrice + 2*operatorInstancePrice + operatorEBSPrice + metricsEBSPrice + 2*nlbPrice + natTotalPrice
+	return eksPrice + 2*(operatorInstancePrice+operatorEBSPrice) + metricsEBSPrice + 2*nlbPrice + natTotalPrice
 }
 
 func ErrorHandler(cronName string) func(error) {

@@ -1,84 +1,35 @@
+[Website](https://www.cortex.dev) • [Slack](https://community.cortex.dev) • [Docs](https://docs.cortex.dev)
+
+<br>
+
 <img src='https://s3-us-west-2.amazonaws.com/cortex-public/logo.png' height='42'>
 
 <br>
 
-[Website](https://www.cortex.dev) • [Slack](https://community.cortex.dev) • [Docs](https://docs.cortex.dev)
+# Scale compute-intensive serverless workloads
 
-# Cost-effective serverless computing at scale
-
-Cortex is a serverless platform for compute-intensive applications.
+Cortex is a Kubernetes-based serverless platform built for AWS.
 
 <br>
 
-## Use cases
+## Deploy realtime, batch, and async workloads
 
-* **Data processing** - run image processing, natural language processing, and more.
-* **Machine learning in production** - train and serve machine learning models in production.
-* **Large-scale inference** - efficiently scale realtime and batch inference workloads.
-
-<br>
-
-## Scalable
-
-* **Cluster autoscaling** - configure Cortex to spin up instances when load increases and spin them down when load decreases.
-* **Workload autoscaling** - customize the autoscaling behavior of each workload to ensure efficient use of cluster resources.
-
-```text
-$ cortex cluster info
-
-region: us-east-1
-instances: [c5.xlarge, g4dn.xlarge]
-spot_instances: true
-min_instances: 10
-max_instances: 100
-```
+* **Realtime** - realtime APIs respond to requests in real-time and autoscale based on in-flight request volumes.
+* **Batch** - batch APIs run distributed and fault-tolerant batch processing jobs on-demand.
+* **Async** - async APIs process requests asynchronously and autoscale based on request queue length.
 
 <br>
 
-## Flexible
+## Scale across hundreds of CPU and GPU instances
 
-* **Any workload** - define custom Python functions or containers and deploy them as realtime, async, and batch workloads.
-* **Any pipeline** - chain workloads seamlessly to create custom data pipelines.
-
-```text
-$ cortex deploy apis.yaml
-
-creating text-generator (realtime API)
-creating image-classifier (batch API)
-creating video-analyzer (async API)
-
-all APIs are ready!
-```
+* **No resource limits** - allocate as much CPU, GPU, and memory as each workload requires.
+* **No cold starts** - keep a minimum number of API replicas running to ensure that requests are handled in real-time.
+* **No timeouts** - run workloads for as long as you want.
 
 <br>
 
-## Observable
+## Control your AWS spend
 
-* **Structured logging** - automatically stream logs from every workload to your favorite log management tool.
-* **Metrics aggregation** - monitor your workloads with pre-built Grafana dashboards and add your own custom dashboards.
-
-```text
-$ cortex get
-
-API                TYPE       REPLICAS
-text-generator     realtime   32
-image-classifier   batch      64
-video-analyzer     async      16
-```
-
-<br>
-
-## Affordable
-
-* **Spot instance management** - spend less on EC2 instances by letting Cortex manage spot instances.
-* **Multi-instance type clusters** - configure resources per workload to run each workload on the right hardware.
-
-```text
-$ cortex cluster pricing
-
-RESOURCE                       COST PER HOUR
-1 eks cluster                  $0.10
-2 network load balancers       $0.02 each
-10-100 g4dn.xlarge instances   $0.53 each
-10-100 c5.xlarge instances     $0.17 each
-```
+* **Spot instance management** - Cortex automatically runs workloads on spot instances and falls back to on-demand instances to ensure reliability.
+* **Multi-instance type clusters** - choose the ideal EC2 instance type for your workloads or mix and match several instance types in the same cluster.
+* **Customizable autoscaling** - optimize the autoscaling behavior for each workload to ensure efficient resource utilization.

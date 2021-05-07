@@ -25,7 +25,9 @@ import (
 	"net"
 	"net/http"
 	"regexp"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/cortexlabs/cortex/pkg/consts"
@@ -60,23 +62,41 @@ var (
 	_cachedCNISupportedInstances  *string
 	_defaultIAMPolicies           = []string{"arn:aws:iam::aws:policy/AmazonS3FullAccess"}
 	_invalidTagPrefixes           = []string{"kubernetes.io/", "k8s.io/", "eksctl.", "alpha.eksctl.", "beta.eksctl.", "aws:", "Aws:", "aWs:", "awS:", "aWS:", "AwS:", "aWS:", "AWS:"}
+
+	_smallestIOPSForIO1VolumeType = int64(100)
+	_highestIOPSForIO1VolumeType  = int64(64000)
+	_smallestIOPSForGP3VolumeType = int64(3000)
+	_highestIOPSForGP3VolumeType  = int64(16000)
+
+	_maxIOPSToVolumeSizeRatioForIO1 = int64(50)
+	_maxIOPSToVolumeSizeRatioForGP3 = int64(500)
+	_minIOPSToThroughputRatioForGP3 = int64(4)
+
 	// This regex is stricter than the actual S3 rules
 	_strictS3BucketRegex = regexp.MustCompile(`^([a-z0-9])+(-[a-z0-9]+)*$`)
 )
 
 type CoreConfig struct {
+	// Non-user-specifiable fields
+	ClusterUID     string `json:"cluster_uid" yaml:"cluster_uid"`
 	Bucket         string `json:"bucket" yaml:"bucket"`
-	ClusterName    string `json:"cluster_name" yaml:"cluster_name"`
-	Region         string `json:"region" yaml:"region"`
 	Telemetry      bool   `json:"telemetry" yaml:"telemetry"`
 	Namespace      string `json:"namespace" yaml:"namespace"`
 	IstioNamespace string `json:"istio_namespace" yaml:"istio_namespace"`
 
+	// User-specifiable fields
+	ClusterName string `json:"cluster_name" yaml:"cluster_name"`
+	Region      string `json:"region" yaml:"region"`
+
+	// User-specifiable fields
 	ImageOperator                   string `json:"image_operator" yaml:"image_operator"`
+	ImageControllerManager          string `json:"image_controller_manager" yaml:"image_controller_manager"`
 	ImageManager                    string `json:"image_manager" yaml:"image_manager"`
 	ImageDownloader                 string `json:"image_downloader" yaml:"image_downloader"`
+	ImageKubexit                    string `json:"image_kubexit" yaml:"image_kubexit"`
 	ImageRequestMonitor             string `json:"image_request_monitor" yaml:"image_request_monitor"`
 	ImageAsyncGateway               string `json:"image_async_gateway" yaml:"image_async_gateway"`
+	ImageEnqueuer                   string `json:"image_enqueuer" yaml:"image_enqueuer"`
 	ImageClusterAutoscaler          string `json:"image_cluster_autoscaler" yaml:"image_cluster_autoscaler"`
 	ImageMetricsServer              string `json:"image_metrics_server" yaml:"image_metrics_server"`
 	ImageInferentia                 string `json:"image_inferentia" yaml:"image_inferentia"`
@@ -112,18 +132,20 @@ type ManagedConfig struct {
 	OperatorLoadBalancerCIDRWhiteList []string           `json:"operator_load_balancer_cidr_white_list,omitempty" yaml:"operator_load_balancer_cidr_white_list,omitempty"`
 	VPCCIDR                           *string            `json:"vpc_cidr,omitempty" yaml:"vpc_cidr,omitempty"`
 	CortexPolicyARN                   string             `json:"cortex_policy_arn" yaml:"cortex_policy_arn"` // this field is not user facing
+	AccountID                         string             `json:"account_id" yaml:"account_id"`               // this field is not user facing
 }
 
 type NodeGroup struct {
-	Name               string      `json:"name" yaml:"name"`
-	InstanceType       string      `json:"instance_type" yaml:"instance_type"`
-	MinInstances       int64       `json:"min_instances" yaml:"min_instances"`
-	MaxInstances       int64       `json:"max_instances" yaml:"max_instances"`
-	InstanceVolumeSize int64       `json:"instance_volume_size" yaml:"instance_volume_size"`
-	InstanceVolumeType VolumeType  `json:"instance_volume_type" yaml:"instance_volume_type"`
-	InstanceVolumeIOPS *int64      `json:"instance_volume_iops" yaml:"instance_volume_iops"`
-	Spot               bool        `json:"spot" yaml:"spot"`
-	SpotConfig         *SpotConfig `json:"spot_config" yaml:"spot_config"`
+	Name                     string      `json:"name" yaml:"name"`
+	InstanceType             string      `json:"instance_type" yaml:"instance_type"`
+	MinInstances             int64       `json:"min_instances" yaml:"min_instances"`
+	MaxInstances             int64       `json:"max_instances" yaml:"max_instances"`
+	InstanceVolumeSize       int64       `json:"instance_volume_size" yaml:"instance_volume_size"`
+	InstanceVolumeType       VolumeType  `json:"instance_volume_type" yaml:"instance_volume_type"`
+	InstanceVolumeIOPS       *int64      `json:"instance_volume_iops" yaml:"instance_volume_iops"`
+	InstanceVolumeThroughput *int64      `json:"instance_volume_throughput" yaml:"instance_volume_throughput"`
+	Spot                     bool        `json:"spot" yaml:"spot"`
+	SpotConfig               *SpotConfig `json:"spot_config" yaml:"spot_config"`
 }
 
 type SpotConfig struct {
@@ -167,6 +189,26 @@ type AccessConfig struct {
 	ImageManager string `json:"image_manager" yaml:"image_manager"`
 }
 
+// NewForFile initializes and validates the cluster config from the YAML config file
+func NewForFile(clusterConfigPath string) (*Config, error) {
+	coreConfig := CoreConfig{}
+	errs := cr.ParseYAMLFile(&coreConfig, CoreConfigValidations(true), clusterConfigPath)
+	if errors.HasError(errs) {
+		return nil, errors.FirstError(errs...)
+	}
+
+	managedConfig := ManagedConfig{}
+	errs = cr.ParseYAMLFile(&managedConfig, ManagedConfigValidations(true), clusterConfigPath)
+	if errors.HasError(errs) {
+		return nil, errors.FirstError(errs...)
+	}
+
+	return &Config{
+		CoreConfig:    coreConfig,
+		ManagedConfig: managedConfig,
+	}, nil
+}
+
 func ValidateRegion(region string) error {
 	if !aws.EKSSupportedRegions.Has(region) {
 		return ErrorInvalidRegion(region)
@@ -202,9 +244,9 @@ func (cc *Config) Hash() (string, error) {
 		return "", err
 	}
 
-	hash := sha256.New()
-	hash.Write(bytes)
-	return hex.EncodeToString(hash.Sum(nil)), nil
+	configHash := sha256.New()
+	configHash.Write(bytes)
+	return hex.EncodeToString(configHash.Sum(nil)), nil
 }
 
 var CoreConfigStructFieldValidations = []*cr.StructFieldValidation{
@@ -221,6 +263,36 @@ var CoreConfigStructFieldValidations = []*cr.StructFieldValidation{
 				}
 				return "", ErrorInvalidProvider(provider)
 			},
+		},
+	},
+	{
+		StructField: "ClusterUID",
+		StringValidation: &cr.StringValidation{
+			Default:          "",
+			AllowEmpty:       true,
+			TreatNullAsEmpty: true,
+		},
+	},
+	{
+		StructField: "Bucket",
+		StringValidation: &cr.StringValidation{
+			Default:          "",
+			AllowEmpty:       true,
+			TreatNullAsEmpty: true,
+		},
+	},
+	{
+		StructField: "Namespace",
+		StringValidation: &cr.StringValidation{
+			Default:       "default",
+			AllowedValues: []string{"default"},
+		},
+	},
+	{
+		StructField: "IstioNamespace",
+		StringValidation: &cr.StringValidation{
+			Default:       "istio-system",
+			AllowedValues: []string{"istio-system"},
 		},
 	},
 	{
@@ -241,26 +313,6 @@ var CoreConfigStructFieldValidations = []*cr.StructFieldValidation{
 		},
 	},
 	{
-		StructField: "Namespace",
-		StringValidation: &cr.StringValidation{
-			Default: "default",
-		},
-	},
-	{
-		StructField: "IstioNamespace",
-		StringValidation: &cr.StringValidation{
-			Default: "istio-system",
-		},
-	},
-	{
-		StructField: "Bucket",
-		StringValidation: &cr.StringValidation{
-			AllowEmpty:       true,
-			TreatNullAsEmpty: true,
-			Validator:        validateBucketNameOrEmpty,
-		},
-	},
-	{
 		StructField: "Telemetry",
 		BoolValidation: &cr.BoolValidation{
 			Default: true,
@@ -270,6 +322,13 @@ var CoreConfigStructFieldValidations = []*cr.StructFieldValidation{
 		StructField: "ImageOperator",
 		StringValidation: &cr.StringValidation{
 			Default:   consts.DefaultRegistry() + "/operator:" + consts.CortexVersion,
+			Validator: validateImageVersion,
+		},
+	},
+	{
+		StructField: "ImageControllerManager",
+		StringValidation: &cr.StringValidation{
+			Default:   consts.DefaultRegistry() + "/controller-manager:" + consts.CortexVersion,
 			Validator: validateImageVersion,
 		},
 	},
@@ -288,6 +347,13 @@ var CoreConfigStructFieldValidations = []*cr.StructFieldValidation{
 		},
 	},
 	{
+		StructField: "ImageKubexit",
+		StringValidation: &cr.StringValidation{
+			Default:   consts.DefaultRegistry() + "/kubexit:" + consts.CortexVersion,
+			Validator: validateImageVersion,
+		},
+	},
+	{
 		StructField: "ImageRequestMonitor",
 		StringValidation: &cr.StringValidation{
 			Default:   consts.DefaultRegistry() + "/request-monitor:" + consts.CortexVersion,
@@ -298,6 +364,13 @@ var CoreConfigStructFieldValidations = []*cr.StructFieldValidation{
 		StructField: "ImageAsyncGateway",
 		StringValidation: &cr.StringValidation{
 			Default:   consts.DefaultRegistry() + "/async-gateway:" + consts.CortexVersion,
+			Validator: validateImageVersion,
+		},
+	},
+	{
+		StructField: "ImageEnqueuer",
+		StringValidation: &cr.StringValidation{
+			Default:   consts.DefaultRegistry() + "/enqueuer:" + consts.CortexVersion,
 			Validator: validateImageVersion,
 		},
 	},
@@ -478,7 +551,7 @@ var ManagedConfigStructFieldValidations = []*cr.StructFieldValidation{
 						StructField: "InstanceVolumeType",
 						StringValidation: &cr.StringValidation{
 							AllowedValues: VolumeTypesStrings(),
-							Default:       GP2VolumeType.String(),
+							Default:       GP3VolumeType.String(),
 						},
 						Parser: func(str string) (interface{}, error) {
 							return VolumeTypeFromString(str), nil
@@ -487,8 +560,14 @@ var ManagedConfigStructFieldValidations = []*cr.StructFieldValidation{
 					{
 						StructField: "InstanceVolumeIOPS",
 						Int64PtrValidation: &cr.Int64PtrValidation{
-							GreaterThanOrEqualTo: pointer.Int64(100),
-							LessThanOrEqualTo:    pointer.Int64(64000),
+							AllowExplicitNull: true,
+						},
+					},
+					{
+						StructField: "InstanceVolumeThroughput",
+						Int64PtrValidation: &cr.Int64PtrValidation{
+							GreaterThanOrEqualTo: pointer.Int64(125),
+							LessThanOrEqualTo:    pointer.Int64(1000),
 							AllowExplicitNull:    true,
 						},
 					},
@@ -577,14 +656,6 @@ var ManagedConfigStructFieldValidations = []*cr.StructFieldValidation{
 		StructField: "SSLCertificateARN",
 		StringPtrValidation: &cr.StringPtrValidation{
 			AllowExplicitNull: true,
-		},
-	},
-	{
-		StructField: "CortexPolicyARN",
-		StringValidation: &cr.StringValidation{
-			Required:         false,
-			AllowEmpty:       true,
-			TreatNullAsEmpty: true,
 		},
 	},
 	{
@@ -709,6 +780,22 @@ var ManagedConfigStructFieldValidations = []*cr.StructFieldValidation{
 			Validator: validateCIDR,
 		},
 	},
+	{
+		StructField: "CortexPolicyARN",
+		StringValidation: &cr.StringValidation{
+			Required:         false,
+			AllowEmpty:       true,
+			TreatNullAsEmpty: true,
+		},
+	},
+	{
+		StructField: "AccountID",
+		StringValidation: &cr.StringValidation{
+			Required:         false,
+			AllowEmpty:       true,
+			TreatNullAsEmpty: true,
+		},
+	},
 }
 
 func CoreConfigValidations(allowExtraFields bool) *cr.StructValidation {
@@ -781,7 +868,7 @@ func (cc *CoreConfig) SQSNamePrefix() string {
 }
 
 // this validates the user-provided cluster config
-func (cc *Config) Validate(awsClient *aws.Client, skipQuotaVerification bool) error {
+func (cc *Config) Validate(awsClient *aws.Client) error {
 	fmt.Print("verifying your configuration ...\n\n")
 
 	numNodeGroups := len(cc.NodeGroups)
@@ -817,12 +904,10 @@ func (cc *Config) Validate(awsClient *aws.Client, skipQuotaVerification bool) er
 		})
 	}
 
-	if !skipQuotaVerification {
-		if err := awsClient.VerifyInstanceQuota(instances); err != nil {
-			// Skip AWS errors, since some regions (e.g. eu-north-1) do not support this API
-			if !aws.IsAWSError(err) {
-				return errors.Wrap(err, NodeGroupsKey)
-			}
+	if err := awsClient.VerifyInstanceQuota(instances); err != nil {
+		// Skip AWS errors, since some regions (e.g. eu-north-1) do not support this API
+		if !aws.IsAWSError(err) {
+			return errors.Wrap(err, NodeGroupsKey)
 		}
 	}
 
@@ -843,16 +928,29 @@ func (cc *Config) Validate(awsClient *aws.Client, skipQuotaVerification bool) er
 		return err
 	}
 
-	if cc.Bucket == "" {
-		bucketID := hash.String(accountID + cc.Region)[:8] // this is to "guarantee" a globally unique name
-		cc.Bucket = cc.ClusterName + "-" + bucketID
-	} else {
-		bucketRegion, _ := aws.GetBucketRegion(cc.Bucket)
-		if bucketRegion != "" && bucketRegion != cc.Region { // if the bucket didn't exist, we will create it in the correct region, so there is no error
-			return ErrorS3RegionDiffersFromCluster(cc.Bucket, bucketRegion, cc.Region)
-		}
+	if cc.AccountID != "" {
+		return ErrorDisallowedField(AccountIDKey)
+	}
+	cc.AccountID = accountID
+
+	if cc.Bucket != "" {
+		return ErrorDisallowedField(BucketKey)
+	}
+	cc.Bucket = BucketName(accountID, cc.ClusterName, cc.Region)
+	// check if the bucket already exists in a different region for some reason
+	bucketRegion, _ := aws.GetBucketRegion(cc.Bucket)
+	if bucketRegion != "" && bucketRegion != cc.Region { // if the bucket didn't exist, we will create it in the correct region, so there is no error
+		return ErrorS3RegionDiffersFromCluster(cc.Bucket, bucketRegion, cc.Region)
 	}
 
+	if cc.ClusterUID != "" {
+		return ErrorDisallowedField(ClusterUIDKey)
+	}
+	cc.ClusterUID = strconv.FormatInt(time.Now().Unix(), 10)
+
+	if cc.CortexPolicyARN != "" {
+		return ErrorDisallowedField(CortexPolicyARNKey)
+	}
 	cc.CortexPolicyARN = DefaultPolicyARN(accountID, cc.ClusterName, cc.Region)
 
 	defaultPoliciesSet := strset.New(_defaultIAMPolicies...)
@@ -909,16 +1007,15 @@ func (cc *Config) Validate(awsClient *aws.Client, skipQuotaVerification bool) er
 		}
 	}
 
-	if !skipQuotaVerification {
-		var requiredVPCs int
-		if len(cc.Subnets) == 0 {
-			requiredVPCs = 1
-		}
-		if err := awsClient.VerifyNetworkQuotas(1, cc.NATGateway != NoneNATGateway, cc.NATGateway == HighlyAvailableNATGateway, requiredVPCs, strset.FromSlice(cc.AvailabilityZones)); err != nil {
-			// Skip AWS errors, since some regions (e.g. eu-north-1) do not support this API
-			if !aws.IsAWSError(err) {
-				return err
-			}
+	var requiredVPCs int
+	if len(cc.Subnets) == 0 {
+		requiredVPCs = 1
+	}
+	longestCIDRWhiteList := libmath.MaxInt(len(cc.APILoadBalancerCIDRWhiteList), len(cc.OperatorLoadBalancerCIDRWhiteList))
+	if err := awsClient.VerifyNetworkQuotas(1, cc.NATGateway != NoneNATGateway, cc.NATGateway == HighlyAvailableNATGateway, requiredVPCs, strset.FromSlice(cc.AvailabilityZones), len(cc.NodeGroups), longestCIDRWhiteList); err != nil {
+		// Skip AWS errors, since some regions (e.g. eu-north-1) do not support this API
+		if !aws.IsAWSError(err) {
+			return err
 		}
 	}
 
@@ -940,19 +1037,51 @@ func (ng *NodeGroup) validateNodeGroup(awsClient *aws.Client, region string) err
 		return errors.Wrap(ErrorInstanceTypeNotSupported(primaryInstanceType), InstanceTypeKey)
 	}
 
-	// Throw error if IOPS defined for other storage than io1
-	if ng.InstanceVolumeType != IO1VolumeType && ng.InstanceVolumeIOPS != nil {
+	// throw error if IOPS defined for other storage than io1/gp3
+	if ng.InstanceVolumeType != IO1VolumeType && ng.InstanceVolumeType != GP3VolumeType && ng.InstanceVolumeIOPS != nil {
 		return ErrorIOPSNotSupported(ng.InstanceVolumeType)
 	}
 
-	if ng.InstanceVolumeType == IO1VolumeType && ng.InstanceVolumeIOPS != nil {
-		if *ng.InstanceVolumeIOPS > ng.InstanceVolumeSize*50 {
-			return ErrorIOPSTooLarge(*ng.InstanceVolumeIOPS, ng.InstanceVolumeSize)
-		}
+	// throw error if throughput defined for other storage than gp3
+	if ng.InstanceVolumeType != GP3VolumeType && ng.InstanceVolumeThroughput != nil {
+		return ErrorThroughputNotSupported(ng.InstanceVolumeType)
 	}
 
-	if aws.EBSMetadatas[region][ng.InstanceVolumeType.String()].IOPSConfigurable && ng.InstanceVolumeIOPS == nil {
-		ng.InstanceVolumeIOPS = pointer.Int64(libmath.MinInt64(ng.InstanceVolumeSize*50, 3000))
+	if ng.InstanceVolumeType == GP3VolumeType && ((ng.InstanceVolumeIOPS != nil && ng.InstanceVolumeThroughput == nil) || (ng.InstanceVolumeIOPS == nil && ng.InstanceVolumeThroughput != nil)) {
+		return ErrorSpecifyTwoOrNone(InstanceVolumeIOPSKey, InstanceVolumeThroughputKey)
+	}
+
+	if ng.InstanceVolumeIOPS != nil {
+		if ng.InstanceVolumeType == IO1VolumeType {
+			if *ng.InstanceVolumeIOPS < _smallestIOPSForIO1VolumeType {
+				return ErrorIOPSTooSmall(ng.InstanceVolumeType, *ng.InstanceVolumeIOPS, _smallestIOPSForIO1VolumeType)
+			}
+			if *ng.InstanceVolumeIOPS > _highestIOPSForIO1VolumeType {
+				return ErrorIOPSTooLarge(ng.InstanceVolumeType, *ng.InstanceVolumeIOPS, _highestIOPSForIO1VolumeType)
+			}
+			if *ng.InstanceVolumeIOPS > ng.InstanceVolumeSize*_maxIOPSToVolumeSizeRatioForIO1 {
+				return ErrorIOPSToVolumeSizeRatio(ng.InstanceVolumeType, _maxIOPSToVolumeSizeRatioForIO1, *ng.InstanceVolumeIOPS, ng.InstanceVolumeSize)
+			}
+		} else {
+			if *ng.InstanceVolumeIOPS < _smallestIOPSForGP3VolumeType {
+				return ErrorIOPSTooSmall(ng.InstanceVolumeType, *ng.InstanceVolumeIOPS, _smallestIOPSForGP3VolumeType)
+			}
+			if *ng.InstanceVolumeIOPS > _highestIOPSForGP3VolumeType {
+				return ErrorIOPSTooLarge(ng.InstanceVolumeType, *ng.InstanceVolumeIOPS, _highestIOPSForGP3VolumeType)
+			}
+			if *ng.InstanceVolumeIOPS > ng.InstanceVolumeSize*_maxIOPSToVolumeSizeRatioForGP3 {
+				return ErrorIOPSToVolumeSizeRatio(ng.InstanceVolumeType, _maxIOPSToVolumeSizeRatioForGP3, *ng.InstanceVolumeIOPS, ng.InstanceVolumeSize)
+			}
+			iopsToThroughputRatio := float64(*ng.InstanceVolumeIOPS) / float64(*ng.InstanceVolumeThroughput)
+			if iopsToThroughputRatio < float64(_minIOPSToThroughputRatioForGP3) {
+				return ErrorIOPSToThroughputRatio(ng.InstanceVolumeType, _minIOPSToThroughputRatioForGP3, *ng.InstanceVolumeIOPS, *ng.InstanceVolumeThroughput)
+			}
+		}
+	} else if ng.InstanceVolumeType == GP3VolumeType {
+		ng.InstanceVolumeIOPS = pointer.Int64(3000)
+		ng.InstanceVolumeThroughput = pointer.Int64(125)
+	} else if ng.InstanceVolumeType == IO1VolumeType {
+		ng.InstanceVolumeIOPS = pointer.Int64(libmath.MinInt64(ng.InstanceVolumeSize*_maxIOPSToVolumeSizeRatioForIO1, 3000))
 	}
 
 	if ng.Spot {
@@ -1101,20 +1230,6 @@ func (ng *NodeGroup) FillEmptySpotFields(region string) {
 	AutoGenerateSpotConfig(ng.SpotConfig, region, ng.InstanceType)
 }
 
-func validateBucketNameOrEmpty(bucket string) (string, error) {
-	if bucket == "" {
-		return "", nil
-	}
-	return validateBucketName(bucket)
-}
-
-func validateBucketName(bucket string) (string, error) {
-	if !_strictS3BucketRegex.MatchString(bucket) {
-		return "", errors.Wrap(ErrorDidNotMatchStrictS3Regex(), bucket)
-	}
-	return bucket, nil
-}
-
 func validateCIDR(cidr string) (string, error) {
 	_, _, err := net.ParseCIDR(cidr)
 	if err != nil {
@@ -1169,27 +1284,6 @@ func validateInstanceDistribution(instances []string) ([]string, error) {
 		}
 	}
 	return instances, nil
-}
-
-// This does not set defaults for fields that are prompted from the user
-func SetDefaults(cc *Config) error {
-	var emptyMap interface{} = map[interface{}]interface{}{}
-	errs := cr.Struct(cc, emptyMap, FullManagedValidation)
-	if errors.HasError(errs) {
-		return errors.FirstError(errs...)
-	}
-	return nil
-}
-
-// This does not set defaults for fields that are prompted from the user
-func GetDefaults() (*Config, error) {
-	cc := &Config{}
-	err := SetDefaults(cc)
-	if err != nil {
-		return nil, err
-	}
-
-	return cc, nil
 }
 
 func (ng *NodeGroup) MaxPossibleOnDemandInstances() int64 {
@@ -1249,17 +1343,26 @@ func (cc *CoreConfig) TelemetryEvent() map[string]interface{} {
 	if !strings.HasPrefix(cc.ImageOperator, "cortexlabs/") {
 		event["image_operator._is_custom"] = true
 	}
+	if !strings.HasPrefix(cc.ImageControllerManager, "cortexlabs/") {
+		event["image_operator_controller_manager._is_custom"] = true
+	}
 	if !strings.HasPrefix(cc.ImageManager, "cortexlabs/") {
 		event["image_manager._is_custom"] = true
 	}
 	if !strings.HasPrefix(cc.ImageDownloader, "cortexlabs/") {
 		event["image_downloader._is_custom"] = true
 	}
+	if !strings.HasPrefix(cc.ImageKubexit, "cortexlabs/") {
+		event["image_kubexit._is_custom"] = true
+	}
 	if !strings.HasPrefix(cc.ImageRequestMonitor, "cortexlabs/") {
 		event["image_request_monitor._is_custom"] = true
 	}
 	if !strings.HasPrefix(cc.ImageAsyncGateway, "cortexlabs/") {
 		event["image_async_gateway._is_custom"] = true
+	}
+	if !strings.HasPrefix(cc.ImageEnqueuer, "cortexlabs/") {
+		event["image_enqueuer._is_custom"] = true
 	}
 	if !strings.HasPrefix(cc.ImageClusterAutoscaler, "cortexlabs/") {
 		event["image_cluster_autoscaler._is_custom"] = true
@@ -1375,7 +1478,11 @@ func (mc *ManagedConfig) TelemetryEvent() map[string]interface{} {
 		event[nodeGroupKey("instance_volume_type")] = ng.InstanceVolumeType
 		if ng.InstanceVolumeIOPS != nil {
 			event[nodeGroupKey("instance_volume_iops.is_defined")] = true
-			event[nodeGroupKey("instance_volume_iops")] = ng.InstanceVolumeIOPS
+			event[nodeGroupKey("instance_volume_iops")] = *ng.InstanceVolumeIOPS
+		}
+		if ng.InstanceVolumeThroughput != nil {
+			event[nodeGroupKey("instance_volume_throughput.is_defined")] = true
+			event[nodeGroupKey("instance_volume_throughput")] = *ng.InstanceVolumeThroughput
 		}
 
 		event[nodeGroupKey("spot")] = ng.Spot
@@ -1450,6 +1557,11 @@ func (mc *ManagedConfig) GetNodeGroupNames() []string {
 	}
 
 	return allNodeGroupNames
+}
+
+func BucketName(accountID, clusterName, region string) string {
+	bucketID := hash.String(accountID + region)[:8] // this is to "guarantee" a globally unique name
+	return clusterName + "-" + bucketID
 }
 
 func validateClusterName(clusterName string) (string, error) {

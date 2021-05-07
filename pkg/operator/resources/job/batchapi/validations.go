@@ -29,6 +29,10 @@ import (
 	"github.com/gobwas/glob"
 )
 
+const (
+	_messageSizeLimit = 250 * 1024 // normally its 256 * 1024 but reserve 6k for message attributes
+)
+
 func validateJobSubmissionSchema(submission *schema.BatchJobSubmission) error {
 	providedKeys := []string{}
 	if submission.ItemList != nil {

@@ -2,7 +2,7 @@
   kind: RealtimeAPI
   handler:
     type: python
-    path: pytorch_predictor.py
+    path: pytorch_handler.py
     dependencies:
       pip: pytorch_requirements.txt
     config:
@@ -12,7 +12,7 @@
   kind: RealtimeAPI
   handler:
     type: python
-    path: onnx_predictor.py
+    path: onnx_handler.py
     dependencies:
       pip: onnx_requirements.txt
     multi_model_reloading:

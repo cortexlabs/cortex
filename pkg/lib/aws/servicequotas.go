@@ -30,10 +30,18 @@ var _standardInstanceFamilies = strset.New("a", "c", "d", "h", "i", "m", "r", "t
 var _knownInstanceFamilies = strset.Union(_standardInstanceFamilies, strset.New("p", "g", "inf", "x", "f", "mac"))
 
 const (
-	_elasticIPsQuotaCode      = "L-0263D0A3"
-	_internetGatewayQuotaCode = "L-A4707A72"
-	_natGatewayQuotaCode      = "L-FE5A380F"
-	_vpcQuotaCode             = "L-F678F1CE"
+	_elasticIPsQuotaCode         = "L-0263D0A3"
+	_internetGatewayQuotaCode    = "L-A4707A72"
+	_natGatewayQuotaCode         = "L-FE5A380F"
+	_vpcQuotaCode                = "L-F678F1CE"
+	_securityGroupsQuotaCode     = "L-E79EC296"
+	_securityGroupRulesQuotaCode = "L-0EA8095F"
+
+	// 11 inbound rules
+	_baseInboundRulesForNodeGroup = 11
+	_inboundRulesPerAZ            = 8
+	// ClusterSharedNodeSecurityGroup, ControlPlaneSecurityGroup, eks-cluster-sg-<cluster-name>, and operator security group
+	_baseNumberOfSecurityGroups = 4
 )
 
 type InstanceTypeRequests struct {
@@ -151,12 +159,21 @@ func (c *Client) VerifyInstanceQuota(instances []InstanceTypeRequests) error {
 	return nil
 }
 
-func (c *Client) VerifyNetworkQuotas(requiredInternetGateways int, natGatewayRequired bool, highlyAvailableNATGateway bool, requiredVPCs int, availabilityZones strset.Set) error {
+func (c *Client) VerifyNetworkQuotas(
+	requiredInternetGateways int,
+	natGatewayRequired bool,
+	highlyAvailableNATGateway bool,
+	requiredVPCs int,
+	availabilityZones strset.Set,
+	numNodeGroups int,
+	longestCIDRWhiteList int) error {
 	quotaCodeToValueMap := map[string]int{
-		_elasticIPsQuotaCode:      0, // elastic IP quota code
-		_internetGatewayQuotaCode: 0, // internet gw quota code
-		_natGatewayQuotaCode:      0, // nat gw quota code
-		_vpcQuotaCode:             0, // vpc quota code
+		_elasticIPsQuotaCode:         0, // elastic IP quota code
+		_internetGatewayQuotaCode:    0, // internet gw quota code
+		_natGatewayQuotaCode:         0, // nat gw quota code
+		_vpcQuotaCode:                0, // vpc quota code
+		_securityGroupsQuotaCode:     0, // security groups quota code
+		_securityGroupRulesQuotaCode: 0, // security group rules quota code
 	}
 
 	err := c.ServiceQuotas().ListServiceQuotasPages(
@@ -291,5 +308,52 @@ func (c *Client) VerifyNetworkQuotas(requiredInternetGateways int, natGatewayReq
 		}
 	}
 
+	// check rules quota for nodegroup SGs
+	requiredRulesForSG := requiredRulesForNodeGroupSecurityGroup(len(availabilityZones), longestCIDRWhiteList)
+	if requiredRulesForSG > quotaCodeToValueMap[_securityGroupRulesQuotaCode] {
+		additionalQuotaRequired := requiredRulesForSG - quotaCodeToValueMap[_securityGroupRulesQuotaCode]
+		return ErrorSecurityGroupRulesExceeded(quotaCodeToValueMap[_securityGroupRulesQuotaCode], additionalQuotaRequired, c.Region)
+	}
+
+	// check rules quota for control plane SG
+	requiredRulesForCPSG := requiredRulesForControlPlaneSecurityGroup(numNodeGroups)
+	if requiredRulesForCPSG > quotaCodeToValueMap[_securityGroupRulesQuotaCode] {
+		additionalQuotaRequired := requiredRulesForCPSG - quotaCodeToValueMap[_securityGroupRulesQuotaCode]
+		return ErrorSecurityGroupRulesExceeded(quotaCodeToValueMap[_securityGroupRulesQuotaCode], additionalQuotaRequired, c.Region)
+	}
+
+	// check security groups quota
+	requiredSecurityGroups := requiredSecurityGroups(numNodeGroups)
+	sgs, err := c.DescribeSecurityGroups()
+	if err != nil {
+		return err
+	}
+	if quotaCodeToValueMap[_securityGroupsQuotaCode]-len(sgs)-requiredSecurityGroups < 0 {
+		additionalQuotaRequired := len(sgs) + requiredSecurityGroups - quotaCodeToValueMap[_securityGroupsQuotaCode]
+		return ErrorSecurityGroupLimitExceeded(quotaCodeToValueMap[_securityGroupsQuotaCode], additionalQuotaRequired, c.Region)
+
+	}
+
 	return nil
+}
+
+func requiredRulesForNodeGroupSecurityGroup(numAZs, whitelistLength int) int {
+	whitelistRuleCount := 0
+	if whitelistLength == 1 {
+		whitelistRuleCount = 1
+	} else if whitelistLength > 1 {
+		whitelistRuleCount = 1 + 5*(whitelistLength-1)
+	}
+	return _baseInboundRulesForNodeGroup + numAZs*_inboundRulesPerAZ + whitelistRuleCount
+}
+
+func requiredRulesForControlPlaneSecurityGroup(numNodeGroups int) int {
+	// +1 for the operator node group
+	// this is the number of outbound rules (there are half as many inbound rules, so that is not the limiting factor)
+	return 2 * (numNodeGroups + 1)
+}
+
+func requiredSecurityGroups(numNodeGroups int) int {
+	// each node group requires a security group
+	return _baseNumberOfSecurityGroups + numNodeGroups
 }

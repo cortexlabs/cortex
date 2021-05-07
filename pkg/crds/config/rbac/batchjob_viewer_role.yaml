@@ -1,0 +1,20 @@
+# permissions for end users to view batchjobs.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: batchjob-viewer-role
+rules:
+- apiGroups:
+  - batch.cortex.dev
+  resources:
+  - batchjobs
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - batch.cortex.dev
+  resources:
+  - batchjobs/status
+  verbs:
+  - get

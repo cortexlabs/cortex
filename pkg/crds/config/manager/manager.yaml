@@ -1,0 +1,63 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: controller-manager
+  namespace: system
+  labels:
+    control-plane: controller-manager
+spec:
+  selector:
+    matchLabels:
+      control-plane: controller-manager
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        control-plane: controller-manager
+    spec:
+      securityContext:
+        runAsNonRoot: true
+      containers:
+      - name: manager
+        command:
+        - /manager
+        args:
+        - "--config=/mnt/cluster.yaml"
+        - "--leader-elect"
+        image: controller:latest
+        imagePullPolicy: Always
+        securityContext:
+          allowPrivilegeEscalation: false
+        env:
+          - name: CORTEX_OPERATOR_IN_CLUSTER
+            value: "true"
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8081
+          initialDelaySeconds: 15
+          periodSeconds: 20
+        readinessProbe:
+          httpGet:
+            path: /readyz
+            port: 8081
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        resources:
+          limits:
+            cpu: 100m
+            memory: 30Mi
+          requests:
+            cpu: 100m
+            memory: 20Mi
+        volumeMounts:
+          - mountPath: /mnt/cluster.yaml
+            name: cluster-config
+            subPath: cluster.yaml
+      volumes:
+        - name: cluster-config
+          configMap:
+            name: cluster-config
+      serviceAccountName: controller-manager
+      terminationGracePeriodSeconds: 10

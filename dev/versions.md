@@ -1,18 +1,5 @@
 # Upgrade notes
 
-## Things to check when updating versions
-
-* cluster up / info / down (works, and logs look good)
-* check metrics server pod logs
-* check cluster autoscaler pod logs
-* check pod -> cluster autoscaling on cpu or gpu or inferentia
-* check cluster autoscaling on cpu and gpu and inferentia
-* examples
-  * check logs, predictions
-  * check metrics, tracker
-  * make sure to try all 6 base images (tf/py gpu/cpu, tf/py inferentia)
-  * confirm GPUs are used when requested
-
 ## eksctl
 
 1. Find the latest release on [GitHub](https://github.com/weaveworks/eksctl/releases) and check the changelog
@@ -210,7 +197,7 @@ Note: it's ok if example training notebooks aren't upgraded, as long as the expo
 
 ## Python packages
 
-1. Update versions in `pkg/cortex/serve/*requirements.txt`
+1. Update versions in `python/serve/*requirements.txt`
 
 ## S6-overlay supervisor
 

@@ -36,8 +36,9 @@ node_groups:
     min_instances: 1 # minimum number of instances
     max_instances: 5 # maximum number of instances
     instance_volume_size: 50 # disk storage size per instance (GB)
-    instance_volume_type: gp2 # instance volume type [gp2 | io1 | st1 | sc1]
-    # instance_volume_iops: 3000 # instance volume iops (only applicable to io1)
+    instance_volume_type: gp3 # instance volume type [gp2 | gp3 | io1 | st1 | sc1]
+    # instance_volume_iops: 3000 # instance volume iops (only applicable to io1/gp3)
+    # instance_volume_throughput: 125 # instance volume throughput (only applicable to gp3)
     spot: false # whether to use spot instances
 
   - name: ng-gpu
@@ -45,10 +46,9 @@ node_groups:
     min_instances: 1
     max_instances: 5
     instance_volume_size: 50
-    instance_volume_type: gp2
-    # instance_volume_iops: 3000
+    instance_volume_type: gp3
     spot: false
-  ...
+  # ...
 
 # subnet visibility [public (instances will have public IPs) | private (instances will not have public IPs)]
 subnet_visibility: public
@@ -97,10 +97,11 @@ The docker images used by the cluster can also be overridden. They can be config
 <!-- CORTEX_VERSION_BRANCH_STABLE -->
 ```yaml
 image_operator: quay.io/cortexlabs/operator:master
+image_controller_manager: quay.io/cortexlabs/controller-manager:master
 image_manager: quay.io/cortexlabs/manager:master
 image_downloader: quay.io/cortexlabs/downloader:master
 image_request_monitor: quay.io/cortexlabs/request-monitor:master
-image_image_async_gateway: quay.io/cortexlabs/async-gateway:master
+image_async_gateway: quay.io/cortexlabs/async-gateway:master
 image_cluster_autoscaler: quay.io/cortexlabs/cluster-autoscaler:master
 image_metrics_server: quay.io/cortexlabs/metrics-server:master
 image_inferentia: quay.io/cortexlabs/inferentia:master
@@ -119,4 +120,6 @@ image_prometheus_node_exporter: quay.io/cortexlabs/prometheus-node-exporter:mast
 image_kube_rbac_proxy: quay.io/cortexlabs/kube-rbac-proxy:master
 image_grafana: quay.io/cortexlabs/grafana:master
 image_event_exporter: quay.io/cortexlabs/event-exporter:master
+image_enqueuer: quay.io/cortexlabs/enqueuer:master
+image_kubexit: quay.io/cortexlabs/kubexit:master
 ```

@@ -232,10 +232,10 @@ func ErrorSurgeAndUnavailableBothZero() error {
 	})
 }
 
-func ErrorShmSizeCannotExceedMem(shmSize k8s.Quantity, mem k8s.Quantity) error {
+func ErrorShmSizeCannotExceedMem(parentFieldName string, shmSize k8s.Quantity, mem k8s.Quantity) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrShmSizeCannotExceedMem,
-		Message: fmt.Sprintf("handler.shm_size (%s) cannot exceed compute.mem (%s)", shmSize.UserString, mem.UserString),
+		Message: fmt.Sprintf("%s.shm_size (%s) cannot exceed compute.mem (%s)", parentFieldName, shmSize.UserString, mem.UserString),
 	})
 }
 
@@ -575,7 +575,7 @@ func ErrorTrafficSplitterAPIsNotUnique(names []string) error {
 func ErrorOneShadowPerTrafficSplitter() error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrOneShadowPerTrafficSplitter,
-		Message: fmt.Sprintf("multiple shadow apis detected; only one api is allowed to be marked as a shadow"),
+		Message: "multiple shadow apis detected; only one api is allowed to be marked as a shadow",
 	})
 }
 

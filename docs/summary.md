@@ -25,23 +25,24 @@
 * Advanced
   * [Setting up kubectl](clusters/advanced/kubectl.md)
   * [Private Docker registry](clusters/advanced/registry.md)
+  * [Self hosted images](clusters/advanced/self-hosted-images.md)
 
 ## Workloads
 
 * Realtime APIs
   * [Example](workloads/realtime/example.md)
   * [Handler](workloads/realtime/handler.md)
+  * [Configuration](workloads/realtime/configuration.md)
+  * [Parallelism](workloads/realtime/parallelism.md)
+  * [Autoscaling](workloads/realtime/autoscaling.md)
   * [Models](workloads/realtime/models.md)
   * Multi-model
     * [Example](workloads/realtime/multi-model/example.md)
     * [Configuration](workloads/realtime/multi-model/configuration.md)
     * [Caching](workloads/realtime/multi-model/caching.md)
-  * [Configuration](workloads/realtime/configuration.md)
-  * [Parallelism](workloads/realtime/parallelism.md)
   * [Server-side batching](workloads/realtime/server-side-batching.md)
-  * [Autoscaling](workloads/realtime/autoscaling.md)
-  * [Statuses](workloads/realtime/statuses.md)
   * [Metrics](workloads/realtime/metrics.md)
+  * [Statuses](workloads/realtime/statuses.md)
   * Traffic Splitter
     * [Example](workloads/realtime/traffic-splitter/example.md)
     * [Configuration](workloads/realtime/traffic-splitter/configuration.md)
@@ -49,31 +50,32 @@
 * [Async APIs](workloads/async/async-apis.md)
   * [Example](workloads/async/example.md)
   * [Handler](workloads/async/handler.md)
-  * [Models](workloads/async/models.md)
   * [Configuration](workloads/async/configuration.md)
+  * [TensorFlow Models](workloads/async/models.md)
+  * [Metrics](workloads/async/metrics.md)
   * [Statuses](workloads/async/statuses.md)
   * [Webhooks](workloads/async/webhooks.md)
-  * [Metrics](workloads/async/metrics.md)
 * Batch APIs
   * [Example](workloads/batch/example.md)
   * [Handler](workloads/batch/handler.md)
-  * [Models](workloads/batch/models.md)
   * [Configuration](workloads/batch/configuration.md)
   * [Jobs](workloads/batch/jobs.md)
-  * [Statuses](workloads/batch/statuses.md)
+  * [TensorFlow Models](workloads/batch/models.md)
   * [Metrics](workloads/batch/metrics.md)
+  * [Statuses](workloads/batch/statuses.md)
 * Task APIs
   * [Example](workloads/task/example.md)
   * [Definition](workloads/task/definitions.md)
   * [Configuration](workloads/task/configuration.md)
   * [Jobs](workloads/task/jobs.md)
-  * [Statuses](workloads/task/statuses.md)
   * [Metrics](workloads/task/metrics.md)
+  * [Statuses](workloads/task/statuses.md)
 * Dependencies
   * [Example](workloads/dependencies/example.md)
   * [Python packages](workloads/dependencies/python-packages.md)
   * [System packages](workloads/dependencies/system-packages.md)
   * [Custom images](workloads/dependencies/images.md)
+* [Debugging](workloads/debugging.md)
 
 ## Clients
 

@@ -31,6 +31,7 @@ dev_images=(
   "manager"
   "request-monitor"
   "async-gateway"
+  "enqueuer"
 )
 
 non_dev_images=(
@@ -38,6 +39,7 @@ non_dev_images=(
   "tensorflow-serving-gpu"
   "cluster-autoscaler"
   "operator"
+  "controller-manager"
   "istio-proxy"
   "istio-pilot"
   "fluent-bit"
@@ -56,6 +58,7 @@ non_dev_images=(
   "inferentia"
   "neuron-rtd"
   "nvidia"
+  "kubexit"
 )
 
 all_images=(

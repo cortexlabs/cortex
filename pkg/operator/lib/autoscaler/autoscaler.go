@@ -21,10 +21,10 @@ import (
 	"math"
 	"time"
 
+	"github.com/cortexlabs/cortex/pkg/config"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	math2 "github.com/cortexlabs/cortex/pkg/lib/math"
 	time2 "github.com/cortexlabs/cortex/pkg/lib/time"
-	"github.com/cortexlabs/cortex/pkg/operator/config"
 	"github.com/cortexlabs/cortex/pkg/operator/operator"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
@@ -89,6 +89,18 @@ func (recs recommendations) minSince(period time.Duration) *int32 {
 
 // AutoscaleFn returns the autoscaler function
 func AutoscaleFn(initialDeployment *kapps.Deployment, apiSpec *spec.API, getInFlightFn GetInFlightFunc) (func() error, error) {
+	if initialDeployment == nil {
+		if apiSpec != nil {
+			return nil, errors.ErrorUnexpected("unable to find api deployment", apiSpec.Name)
+		}
+		return nil, errors.ErrorUnexpected("unable to find api deployment")
+	}
+
+	if apiSpec == nil {
+		apiName := initialDeployment.Labels["apiName"]
+		return nil, errors.ErrorUnexpected("unable to find api spec", apiName)
+	}
+
 	autoscalingSpec, err := userconfig.AutoscalingFromAnnotations(initialDeployment)
 	if err != nil {
 		return nil, err

@@ -69,6 +69,7 @@ type TaskDefinition struct {
 	Path         string                 `json:"path" yaml:"path"`
 	PythonPath   *string                `json:"python_path" yaml:"python_path"`
 	Image        string                 `json:"image" yaml:"image"`
+	ShmSize      *k8s.Quantity          `json:"shm_size" yaml:"shm_size"`
 	LogLevel     LogLevel               `json:"log_level" yaml:"log_level"`
 	Config       map[string]interface{} `json:"config" yaml:"config"`
 	Env          map[string]string      `json:"env" yaml:"env"`
@@ -397,6 +398,9 @@ func (task *TaskDefinition) UserStr() string {
 		sb.WriteString(fmt.Sprintf("%s: %s\n", PythonPathKey, *task.PythonPath))
 	}
 	sb.WriteString(fmt.Sprintf("%s: %s\n", ImageKey, task.Image))
+	if task.ShmSize != nil {
+		sb.WriteString(fmt.Sprintf("%s: %s\n", ShmSizeKey, task.ShmSize.String()))
+	}
 	sb.WriteString(fmt.Sprintf("%s: %s\n", LogLevelKey, task.LogLevel))
 	if len(task.Config) > 0 {
 		sb.WriteString(fmt.Sprintf("%s:\n", ConfigKey))
@@ -442,7 +446,7 @@ func (handler *Handler) UserStr() string {
 	sb.WriteString(fmt.Sprintf("%s: %s\n", ThreadsPerProcessKey, s.Int32(handler.ThreadsPerProcess)))
 
 	if handler.ShmSize != nil {
-		sb.WriteString(fmt.Sprintf("%s: %s\n", ShmSize, handler.ShmSize.UserString))
+		sb.WriteString(fmt.Sprintf("%s: %s\n", ShmSizeKey, handler.ShmSize.UserString))
 	}
 
 	if len(handler.Config) > 0 {

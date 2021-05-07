@@ -27,6 +27,10 @@ import (
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 )
 
+const (
+	MetricsFileKey = "metrics.json"
+)
+
 type JobKey struct {
 	ID      string          `json:"job_id"`
 	APIName string          `json:"api_name"`
@@ -37,14 +41,14 @@ func (j JobKey) UserString() string {
 	return fmt.Sprintf("%s (%s api)", j.ID, j.APIName)
 }
 
-// e.g. /<cluster name>/jobs/<job_api_kind>/<cortex version>/<api_name>/<job_id>/spec.json
-func (j JobKey) SpecFilePath(clusterName string) string {
-	return path.Join(j.Prefix(clusterName), "spec.json")
+// e.g. /<cluster UID>/jobs/<job_api_kind>/<cortex version>/<api_name>/<job_id>/spec.json
+func (j JobKey) SpecFilePath(clusterUID string) string {
+	return path.Join(j.Prefix(clusterUID), "spec.json")
 }
 
-// e.g. /<cluster name>/jobs/<job_api_kind>/<cortex version>/<api_name>/<job_id>
-func (j JobKey) Prefix(clusterName string) string {
-	return s.EnsureSuffix(path.Join(JobAPIPrefix(clusterName, j.Kind, j.APIName), j.ID), "/")
+// e.g. /<cluster UID>/jobs/<job_api_kind>/<cortex version>/<api_name>/<job_id>
+func (j JobKey) Prefix(clusterUID string) string {
+	return s.EnsureSuffix(path.Join(JobAPIPrefix(clusterUID, j.Kind, j.APIName), j.ID), "/")
 }
 
 func (j JobKey) K8sName() string {
@@ -76,8 +80,8 @@ type BatchJob struct {
 	SpecID          string    `json:"spec_id"`
 	HandlerID       string    `json:"handler_id"`
 	SQSUrl          string    `json:"sqs_url"`
-	TotalBatchCount int       `json:"total_batch_count"`
-	StartTime       time.Time `json:"start_time"`
+	TotalBatchCount int       `json:"total_batch_count,omitempty"`
+	StartTime       time.Time `json:"start_time,omitempty"`
 }
 
 type TaskJob struct {
@@ -89,7 +93,19 @@ type TaskJob struct {
 	StartTime time.Time `json:"start_time"`
 }
 
-// e.g. /<cluster name>/jobs/<job_api_kind>/<cortex version>/<api_name>
-func JobAPIPrefix(clusterName string, kind userconfig.Kind, apiName string) string {
-	return filepath.Join(clusterName, "jobs", kind.String(), consts.CortexVersion, apiName)
+// e.g. /<cluster UID>/jobs/<job_api_kind>/<cortex version>/<api_name>
+func JobAPIPrefix(clusterUID string, kind userconfig.Kind, apiName string) string {
+	return filepath.Join(clusterUID, "jobs", kind.String(), consts.CortexVersion, apiName)
+}
+
+func JobPayloadKey(clusterUID string, kind userconfig.Kind, apiName string, jobID string) string {
+	return filepath.Join(JobAPIPrefix(clusterUID, kind, apiName), jobID, "payload.json")
+}
+
+func JobBatchCountKey(clusterUID string, kind userconfig.Kind, apiName string, jobID string) string {
+	return filepath.Join(JobAPIPrefix(clusterUID, kind, apiName), jobID, "max_batch_count")
+}
+
+func JobMetricsKey(clusterUID string, kind userconfig.Kind, apiName string, jobID string) string {
+	return filepath.Join(JobAPIPrefix(clusterUID, kind, apiName), jobID, MetricsFileKey)
 }

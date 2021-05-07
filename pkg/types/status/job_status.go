@@ -25,11 +25,11 @@ import (
 
 type BatchJobStatus struct {
 	spec.BatchJob
-	EndTime        *time.Time            `json:"end_time"`
 	Status         JobCode               `json:"status"`
-	BatchesInQueue int                   `json:"batches_in_queue"`
-	BatchMetrics   *metrics.BatchMetrics `json:"batch_metrics"`
-	WorkerCounts   *WorkerCounts         `json:"worker_counts"`
+	EndTime        *time.Time            `json:"end_time,omitempty"`
+	BatchesInQueue int                   `json:"batches_in_queue,omitempty"`
+	BatchMetrics   *metrics.BatchMetrics `json:"batch_metrics,omitempty"`
+	WorkerCounts   *WorkerCounts         `json:"worker_counts,omitempty"`
 }
 
 type TaskJobStatus struct {

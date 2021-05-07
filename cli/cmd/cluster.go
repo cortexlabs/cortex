@@ -28,9 +28,11 @@ import (
 	"github.com/aws/aws-sdk-go/service/autoscaling"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/elbv2"
+	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/cortexlabs/cortex/cli/cluster"
 	"github.com/cortexlabs/cortex/cli/types/cliconfig"
 	"github.com/cortexlabs/cortex/cli/types/flags"
+	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/archive"
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/console"
@@ -39,11 +41,13 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/exit"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
 	libjson "github.com/cortexlabs/cortex/pkg/lib/json"
+	libmath "github.com/cortexlabs/cortex/pkg/lib/math"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/prompt"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/table"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
+	libtime "github.com/cortexlabs/cortex/pkg/lib/time"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
 	"github.com/cortexlabs/cortex/pkg/types/clusterconfig"
 	"github.com/cortexlabs/cortex/pkg/types/clusterstate"
@@ -182,6 +186,11 @@ var _clusterUpCmd = &cobra.Command{
 		}
 
 		err = createS3BucketIfNotFound(awsClient, clusterConfig.Bucket, clusterConfig.Tags)
+		if err != nil {
+			exit.Error(err)
+		}
+
+		err = setLifecycleRulesOnClusterUp(awsClient, clusterConfig.Bucket, clusterConfig.ClusterUID)
 		if err != nil {
 			exit.Error(err)
 		}
@@ -345,15 +354,15 @@ var _clusterScaleCmd = &cobra.Command{
 		}
 
 		clusterConfig := refreshCachedClusterConfig(*awsClient, accessConfig, true)
-		clusterConfig, err = updateNodeGroupScale(clusterConfig, _flagClusterScaleNodeGroup, scaleMinIntances, scaleMaxInstances, _flagClusterDisallowPrompt)
+		clusterConfig, ngIndex, err := updateNodeGroupScale(clusterConfig, _flagClusterScaleNodeGroup, scaleMinIntances, scaleMaxInstances, _flagClusterDisallowPrompt)
 		if err != nil {
 			exit.Error(err)
 		}
 
 		out, exitCode, err := runManagerWithClusterConfig("/root/install.sh --update", &clusterConfig, awsClient, nil, nil, []string{
 			"CORTEX_SCALING_NODEGROUP=" + _flagClusterScaleNodeGroup,
-			"CORTEX_SCALING_MIN_INSTANCES=" + s.Int64(_flagClusterScaleMinInstances),
-			"CORTEX_SCALING_MAX_INSTANCES=" + s.Int64(_flagClusterScaleMaxInstances),
+			"CORTEX_SCALING_MIN_INSTANCES=" + s.Int64(clusterConfig.NodeGroups[ngIndex].MinInstances),
+			"CORTEX_SCALING_MAX_INSTANCES=" + s.Int64(clusterConfig.NodeGroups[ngIndex].MaxInstances),
 		})
 		if err != nil {
 			exit.Error(err)
@@ -425,6 +434,7 @@ var _clusterDownCmd = &cobra.Command{
 		if err != nil {
 			exit.Error(err)
 		}
+		bucketName := clusterconfig.BucketName(accountID, accessConfig.ClusterName, accessConfig.Region)
 
 		warnIfNotAdmin(awsClient)
 
@@ -479,10 +489,23 @@ var _clusterDownCmd = &cobra.Command{
 			fmt.Println()
 		} else if exitCode == nil || *exitCode != 0 {
 			out = filterEKSCTLOutput(out)
-			helpStr := fmt.Sprintf("\nNote: if this error cannot be resolved, please ensure that all CloudFormation stacks for this cluster eventually become fully deleted (%s). If the stack deletion process has failed, please delete the stacks directly from the AWS console (this may require manually deleting particular AWS resources that are blocking the stack deletion)", clusterstate.CloudFormationURL(accessConfig.ClusterName, accessConfig.Region))
+			template := "\nNote: if this error cannot be resolved, please ensure that all CloudFormation stacks for this cluster eventually become fully deleted (%s)."
+			template += " If the stack deletion process has failed, please delete the stacks directly from the AWS console (this may require manually deleting particular AWS resources that are blocking the stack deletion)."
+			template += " In addition to deleting the stacks manually from the AWS console, also make sure to empty and remove the %s bucket"
+			helpStr := fmt.Sprintf(template, clusterstate.CloudFormationURL(accessConfig.ClusterName, accessConfig.Region), bucketName)
 			fmt.Println(helpStr)
 			exit.Error(ErrorClusterDown(out + helpStr))
 		}
+
+		// set lifecycle policy to clean the bucket
+		fmt.Printf("￮ setting lifecycle policy to empty the %s bucket ", bucketName)
+		err = setLifecycleRulesOnClusterDown(awsClient, bucketName)
+		if err != nil {
+			fmt.Printf("\n\nfailed to set lifecycle policy to empty the %s bucket; you can remove the bucket manually via the s3 console: https://s3.console.aws.amazon.com/s3/management/%s\n", bucketName, bucketName)
+			errors.PrintError(err)
+			fmt.Println()
+		}
+		fmt.Println("✓")
 
 		// delete policy after spinning down the cluster (which deletes the roles) because policies can't be deleted if they are attached to roles
 		policyARN := clusterconfig.DefaultPolicyARN(accountID, accessConfig.ClusterName, accessConfig.Region)
@@ -548,6 +571,7 @@ var _clusterDownCmd = &cobra.Command{
 		}
 
 		fmt.Printf("\nplease check CloudFormation to ensure that all resources for the %s cluster eventually become successfully deleted: %s\n", accessConfig.ClusterName, clusterstate.CloudFormationURL(accessConfig.ClusterName, accessConfig.Region))
+		fmt.Printf("\na lifecycle rule has been applied to the cluster’s %s bucket to empty its contents later today; you can delete the %s bucket via the s3 console once it has been emptied: https://s3.console.aws.amazon.com/s3/management/%s\n", bucketName, bucketName, bucketName)
 
 		cachedClusterConfigPath := cachedClusterConfigPath(accessConfig.ClusterName, accessConfig.Region)
 		os.Remove(cachedClusterConfigPath)
@@ -786,8 +810,8 @@ func getInfoOperatorResponse(operatorEndpoint string) (*schema.InfoResponse, err
 func printInfoPricing(infoResponse *schema.InfoResponse, clusterConfig clusterconfig.Config) {
 	eksPrice := aws.EKSPrices[clusterConfig.Region]
 	operatorInstancePrice := aws.InstanceMetadatas[clusterConfig.Region]["t3.medium"].Price
-	operatorEBSPrice := aws.EBSMetadatas[clusterConfig.Region]["gp2"].PriceGB * 20 / 30 / 24
-	metricsEBSPrice := aws.EBSMetadatas[clusterConfig.Region]["gp2"].PriceGB * 40 / 30 / 24
+	operatorEBSPrice := aws.EBSMetadatas[clusterConfig.Region]["gp3"].PriceGB * 20 / 30 / 24
+	metricsEBSPrice := aws.EBSMetadatas[clusterConfig.Region]["gp2"].PriceGB * (40 + 2) / 30 / 24
 	nlbPrice := aws.NLBMetadatas[clusterConfig.Region].Price
 	natUnitPrice := aws.NATMetadatas[clusterConfig.Region].Price
 
@@ -811,8 +835,12 @@ func printInfoPricing(infoResponse *schema.InfoResponse, clusterConfig clusterco
 		numInstances := len(nodesInfo)
 
 		ebsPrice := aws.EBSMetadatas[clusterConfig.Region][ng.InstanceVolumeType.String()].PriceGB * float64(ng.InstanceVolumeSize) / 30 / 24
-		if ng.InstanceVolumeType.String() == "io1" && ng.InstanceVolumeIOPS != nil {
+		if ng.InstanceVolumeType == clusterconfig.IO1VolumeType && ng.InstanceVolumeIOPS != nil {
 			ebsPrice += aws.EBSMetadatas[clusterConfig.Region][ng.InstanceVolumeType.String()].PriceIOPS * float64(*ng.InstanceVolumeIOPS) / 30 / 24
+		}
+		if ng.InstanceVolumeType == clusterconfig.GP3VolumeType && ng.InstanceVolumeIOPS != nil && ng.InstanceVolumeThroughput != nil {
+			ebsPrice += libmath.MaxFloat64(0, (aws.EBSMetadatas[clusterConfig.Region][ng.InstanceVolumeType.String()].PriceIOPS-3000)*float64(*ng.InstanceVolumeIOPS)/30/24)
+			ebsPrice += libmath.MaxFloat64(0, (aws.EBSMetadatas[clusterConfig.Region][ng.InstanceVolumeType.String()].PriceThroughput-125)*float64(*ng.InstanceVolumeThroughput)/30/24)
 		}
 		totalEBSPrice := ebsPrice * float64(numInstances)
 
@@ -833,12 +861,12 @@ func printInfoPricing(infoResponse *schema.InfoResponse, clusterConfig clusterco
 	} else if clusterConfig.NATGateway == clusterconfig.HighlyAvailableNATGateway {
 		natTotalPrice = natUnitPrice * float64(len(clusterConfig.AvailabilityZones))
 	}
-	totalPrice := eksPrice + totalNodeGroupsPrice + operatorInstancePrice*2 + operatorEBSPrice + metricsEBSPrice + nlbPrice*2 + natTotalPrice
+	totalPrice := eksPrice + totalNodeGroupsPrice + 2*(operatorInstancePrice+operatorEBSPrice) + metricsEBSPrice + nlbPrice*2 + natTotalPrice
 	fmt.Printf(console.Bold("\nyour cluster currently costs %s per hour\n\n"), s.DollarsAndCents(totalPrice))
 
 	rows = append(rows, []interface{}{"2 t3.medium instances for cortex", s.DollarsMaxPrecision(operatorInstancePrice * 2)})
-	rows = append(rows, []interface{}{"1 20gb ebs volume for the operator", s.DollarsAndTenthsOfCents(operatorEBSPrice)})
-	rows = append(rows, []interface{}{"1 40gb ebs volume for prometheus", s.DollarsAndTenthsOfCents(metricsEBSPrice)})
+	rows = append(rows, []interface{}{"2 20gb ebs volumes for the operator", s.DollarsAndTenthsOfCents(operatorEBSPrice * 2)})
+	rows = append(rows, []interface{}{"1 40+2gb ebs volumes for metrics (prometheus and grafana)", s.DollarsAndTenthsOfCents(metricsEBSPrice)})
 	rows = append(rows, []interface{}{"2 network load balancers", s.DollarsMaxPrecision(nlbPrice*2) + " total"})
 
 	if clusterConfig.NATGateway == clusterconfig.SingleNATGateway {
@@ -1018,11 +1046,10 @@ func refreshCachedClusterConfig(awsClient aws.Client, accessConfig *clusterconfi
 	return *refreshedClusterConfig
 }
 
-func updateNodeGroupScale(clusterConfig clusterconfig.Config, targetNg string, desiredMinReplicas, desiredMaxReplicas *int64, disallowPrompt bool) (clusterconfig.Config, error) {
+func updateNodeGroupScale(clusterConfig clusterconfig.Config, targetNg string, desiredMinReplicas, desiredMaxReplicas *int64, disallowPrompt bool) (clusterconfig.Config, int, error) {
 	clusterName := clusterConfig.ClusterName
 	region := clusterConfig.Region
 
-	ngFound := false
 	availableNodeGroups := []string{}
 	for idx, ng := range clusterConfig.NodeGroups {
 		if ng == nil {
@@ -1043,13 +1070,13 @@ func updateNodeGroupScale(clusterConfig clusterconfig.Config, targetNg string, d
 			}
 
 			if minReplicas < 0 {
-				return clusterconfig.Config{}, ErrorMinInstancesLowerThan(0)
+				return clusterconfig.Config{}, 0, ErrorMinInstancesLowerThan(0)
 			}
 			if maxReplicas < 0 {
-				return clusterconfig.Config{}, ErrorMaxInstancesLowerThan(0)
+				return clusterconfig.Config{}, 0, ErrorMaxInstancesLowerThan(0)
 			}
 			if minReplicas > maxReplicas {
-				return clusterconfig.Config{}, ErrorMinInstancesGreaterThanMaxInstances(minReplicas, maxReplicas)
+				return clusterconfig.Config{}, 0, ErrorMinInstancesGreaterThanMaxInstances(minReplicas, maxReplicas)
 			}
 
 			if ng.MinInstances == minReplicas && ng.MaxInstances == maxReplicas {
@@ -1075,16 +1102,11 @@ func updateNodeGroupScale(clusterConfig clusterconfig.Config, targetNg string, d
 
 			clusterConfig.NodeGroups[idx].MinInstances = minReplicas
 			clusterConfig.NodeGroups[idx].MaxInstances = maxReplicas
-			ngFound = true
-			break
+			return clusterConfig, idx, nil
 		}
 	}
 
-	if !ngFound {
-		return clusterconfig.Config{}, ErrorNodeGroupNotFound(targetNg, clusterName, region, availableNodeGroups)
-	}
-
-	return clusterConfig, nil
+	return clusterconfig.Config{}, 0, ErrorNodeGroupNotFound(targetNg, clusterName, region, availableNodeGroups)
 }
 
 func createS3BucketIfNotFound(awsClient *aws.Client, bucket string, tags map[string]string) error {
@@ -1118,6 +1140,71 @@ func createS3BucketIfNotFound(awsClient *aws.Client, bucket string, tags map[str
 
 	fmt.Print("\n\n")
 	return err
+}
+
+func setLifecycleRulesOnClusterUp(awsClient *aws.Client, bucket, newClusterUID string) error {
+	err := awsClient.DeleteLifecycleRules(bucket)
+	if err != nil {
+		return err
+	}
+
+	clusterUIDs, err := awsClient.ListS3TopLevelDirs(bucket)
+	if err != nil {
+		return err
+	}
+
+	if len(clusterUIDs)+1 > consts.MaxBucketLifecycleRules {
+		return ErrorClusterUIDsLimitInBucket(bucket)
+	}
+
+	expirationDate := libtime.GetCurrentUTCDate().Add(-24 * time.Hour)
+	rules := []s3.LifecycleRule{}
+	for _, clusterUID := range clusterUIDs {
+		rules = append(rules, s3.LifecycleRule{
+			Expiration: &s3.LifecycleExpiration{
+				Date: &expirationDate,
+			},
+			ID: pointer.String("cluster-remove-" + clusterUID),
+			Filter: &s3.LifecycleRuleFilter{
+				Prefix: pointer.String(s.EnsureSuffix(clusterUID, "/")),
+			},
+			Status: pointer.String("Enabled"),
+		})
+	}
+
+	rules = append(rules, s3.LifecycleRule{
+		Expiration: &s3.LifecycleExpiration{
+			Days: pointer.Int64(consts.AsyncWorkloadsExpirationDays),
+		},
+		ID: pointer.String("async-workloads-expiry-policy"),
+		Filter: &s3.LifecycleRuleFilter{
+			Prefix: pointer.String(s.EnsureSuffix(filepath.Join(newClusterUID, "workloads"), "/")),
+		},
+		Status: pointer.String("Enabled"),
+	})
+
+	return awsClient.SetLifecycleRules(bucket, rules)
+}
+
+func setLifecycleRulesOnClusterDown(awsClient *aws.Client, bucket string) error {
+	err := awsClient.DeleteLifecycleRules(bucket)
+	if err != nil {
+		return err
+	}
+
+	expirationDate := libtime.GetCurrentUTCDate().Add(-24 * time.Hour)
+	return awsClient.SetLifecycleRules(bucket, []s3.LifecycleRule{
+		{
+			Expiration: &s3.LifecycleExpiration{
+				Date: &expirationDate,
+			},
+			ID: pointer.String("bucket-cleaner"),
+			Filter: &s3.LifecycleRuleFilter{
+				Prefix: pointer.String(""),
+			},
+			Status: pointer.String("Enabled"),
+		},
+	})
 }
 
 func createLogGroupIfNotFound(awsClient *aws.Client, logGroup string, tags map[string]string) error {

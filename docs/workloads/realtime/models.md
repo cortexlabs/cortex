@@ -11,7 +11,7 @@ The following is a list of events that will trigger the API to update its model(
 
 ## Python Handler
 
-To use live model reloading with the Python handler, the model path(s) must be specified in the API's `handler` configuration, via the `multi_model_reloading` field. When models are specified in this manner, your `Handler` class must implement the `load_model()` function, and models can be retrieved by using the `get_model()` method of the `model_client` that's passed into your predictor's constructor.
+To use live model reloading with the Python handler, the model path(s) must be specified in the API's `handler` configuration, via the `multi_model_reloading` field. When models are specified in this manner, your `Handler` class must implement the `load_model()` function, and models can be retrieved by using the `get_model()` method of the `model_client` that's passed into your handler's constructor.
 
 ### Example
 
@@ -95,7 +95,7 @@ class Handler:
 ```
 
 <!-- CORTEX_VERSION_MINOR -->
-When explicit model paths are specified in the Python handler's API configuration, Cortex provides a `model_client` to your Handler's constructor. `model_client` is an instance of [ModelClient](https://github.com/cortexlabs/cortex/tree/master/pkg/cortex/serve/cortex_internal/lib/client/python.py) that is used to load model(s) (it calls the `load_model()` method of your handler, which must be defined when using explicit model paths). It should be saved as an instance variable in your handler class, and your handler method should call `model_client.get_model()` to load your model for inference. Preprocessing of the JSON/gRPC payload and postprocessing of predictions can be implemented in your handler method as well.
+When explicit model paths are specified in the Python handler's API configuration, Cortex provides a `model_client` to your Handler's constructor. `model_client` is an instance of [ModelClient](https://github.com/cortexlabs/cortex/tree/master/python/serve/cortex_internal/lib/client/python.py) that is used to load model(s) (it calls the `load_model()` method of your handler, which must be defined when using explicit model paths). It should be saved as an instance variable in your handler class, and your handler method should call `model_client.get_model()` to load your model for inference. Preprocessing of the JSON/gRPC payload and postprocessing of predictions can be implemented in your handler method as well.
 
 When multiple models are defined using the Handler's `multi_model_reloading` field, the `model_client.get_model()` method expects an argument `model_name` which must hold the name of the model that you want to load (for example: `self.client.get_model("text-generator")`). There is also an optional second argument to specify the model version.
 
@@ -273,7 +273,7 @@ class Handler:
 
         Args:
             tensorflow_client (required): TensorFlow client which is used to
-                make predictions. This should be saved for use in predict().
+                make predictions. This should be saved for use in the handler method.
             config (required): Dictionary passed from API configuration (if
                 specified).
         """
@@ -284,7 +284,7 @@ class Handler:
 ```
 
 <!-- CORTEX_VERSION_MINOR -->
-Cortex provides a `tensorflow_client` to your Handler's constructor. `tensorflow_client` is an instance of [TensorFlowClient](https://github.com/cortexlabs/cortex/tree/master/pkg/cortex/serve/cortex_internal/lib/client/tensorflow.py) that manages a connection to a TensorFlow Serving container to make predictions using your model. It should be saved as an instance variable in your Handler class, and your handler method should call `tensorflow_client.predict()` to make an inference with your exported TensorFlow model. Preprocessing of the JSON payload and postprocessing of predictions can be implemented in your handler method as well.
+Cortex provides a `tensorflow_client` to your Handler's constructor. `tensorflow_client` is an instance of [TensorFlowClient](https://github.com/cortexlabs/cortex/tree/master/python/serve/cortex_internal/lib/client/tensorflow.py) that manages a connection to a TensorFlow Serving container to make predictions using your model. It should be saved as an instance variable in your Handler class, and your handler method should call `tensorflow_client.predict()` to make an inference with your exported TensorFlow model. Preprocessing of the JSON payload and postprocessing of predictions can be implemented in your handler method as well.
 
 When multiple models are defined using the Handler's `models` field, the `tensorflow_client.predict()` method expects a second argument `model_name` which must hold the name of the model that you want to use for inference (for example: `self.client.predict(payload, "text-generator")`). There is also an optional third argument to specify the model version.
 

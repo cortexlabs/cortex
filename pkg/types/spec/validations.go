@@ -311,6 +311,14 @@ func taskDefinitionValidation() *cr.StructFieldValidation {
 					},
 				},
 				{
+					StructField: "ShmSize",
+					StringPtrValidation: &cr.StringPtrValidation{
+						Default:           nil,
+						AllowExplicitNull: true,
+					},
+					Parser: k8s.QuantityParser(&k8s.QuantityValidation{}),
+				},
+				{
 					StructField: "LogLevel",
 					StringValidation: &cr.StringValidation{
 						Default:       "info",
@@ -803,7 +811,13 @@ func ValidateAPI(
 
 	if api.Handler != nil && api.Handler.ShmSize != nil && api.Compute.Mem != nil {
 		if api.Handler.ShmSize.Cmp(api.Compute.Mem.Quantity) > 0 {
-			return ErrorShmSizeCannotExceedMem(*api.Handler.ShmSize, *api.Compute.Mem)
+			return ErrorShmSizeCannotExceedMem(userconfig.HandlerKey, *api.Handler.ShmSize, *api.Compute.Mem)
+		}
+	}
+
+	if api.TaskDefinition != nil && api.TaskDefinition.ShmSize != nil && api.Compute.Mem != nil {
+		if api.TaskDefinition.ShmSize.Cmp(api.Compute.Mem.Quantity) > 0 {
+			return ErrorShmSizeCannotExceedMem(userconfig.TaskDefinitionKey, *api.TaskDefinition.ShmSize, *api.Compute.Mem)
 		}
 	}
 
