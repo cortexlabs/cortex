@@ -1,10 +1,10 @@
-FROM golang:1.14.7 as builder
+FROM golang:1.15 as builder
 
-COPY request-monitor/go.mod request-monitor/go.sum /workspace/request-monitor/
-WORKDIR /workspace/request-monitor
+WORKDIR /workspace
+COPY go.mod go.sum /workspace/
 RUN go mod download
 
-COPY request-monitor/*.go /workspace/request-monitor/
+COPY cmd/request-monitor /workspace
 RUN GO111MODULE=on CGO_ENABLED=0 GOOS=linux go build -installsuffix cgo -o request-monitor .
 
 

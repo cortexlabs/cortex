@@ -10,3 +10,7 @@ configMapGenerator:
   name: manager-config
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
+images:
+- name: controller
+  newName: 780116911663.dkr.ecr.eu-central-1.amazonaws.com/cortexlabs/controller-manager
+  newTag: master

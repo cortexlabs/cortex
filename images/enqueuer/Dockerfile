@@ -2,21 +2,21 @@
 FROM golang:1.15 as builder
 
 # Copy the Go Modules manifests
-COPY go.mod go.sum /workspace
+COPY go.mod go.sum /workspace/
 WORKDIR /workspace
 RUN go mod download
 
-COPY pkg/config /workspace/pkg/config
-COPY pkg/consts /workspace/pkg/consts
-COPY pkg/lib /workspace/pkg/lib
-COPY pkg/enqueuer /workspace/pkg/enqueuer
-COPY pkg/types /workspace/pkg/types
-COPY pkg/crds /workspace/pkg/crds
-COPY pkg/workloads /workspace/pkg/workloads
-WORKDIR /workspace/pkg/enqueuer
+COPY pkg/config pkg/config
+COPY pkg/consts pkg/consts
+COPY pkg/lib pkg/lib
+COPY pkg/enqueuer pkg/enqueuer
+COPY pkg/types pkg/types
+COPY pkg/crds pkg/crds
+COPY pkg/workloads pkg/workloads
+COPY cmd/enqueuer cmd/enqueuer
 
 # Build
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 GO111MODULE=on go build -o enqueuer .
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 GO111MODULE=on go build -o enqueuer ./cmd/enqueuer
 
 # Use distroless as minimal base image to package the manager binary
 # Refer to https://github.com/GoogleContainerTools/distroless for more details

@@ -21,15 +21,15 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/gorilla/handlers"
-	"github.com/gorilla/mux"
-
+	gateway "github.com/cortexlabs/cortex/pkg/async-gateway"
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/logging"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	"github.com/cortexlabs/cortex/pkg/types/clusterconfig"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
+	"github.com/gorilla/handlers"
+	"github.com/gorilla/mux"
 )
 
 const (
@@ -89,12 +89,12 @@ func main() {
 		Exit(err)
 	}
 
-	aws, err := aws.NewForRegion(clusterConfig.Region)
+	awsClient, err := aws.NewForRegion(clusterConfig.Region)
 	if err != nil {
 		Exit(err)
 	}
 
-	_, userID, err := aws.CheckCredentials()
+	_, userID, err := awsClient.CheckCredentials()
 	if err != nil {
 		Exit(err)
 	}
@@ -114,19 +114,21 @@ func main() {
 		Exit(err)
 	}
 
-	sess := aws.Session()
-	s3Storage := NewS3(sess, clusterConfig.Bucket)
-	sqsQueue := NewSQS(*queueURL, sess)
+	sess := awsClient.Session()
+	s3Storage := gateway.NewS3(sess, clusterConfig.Bucket)
+	sqsQueue := gateway.NewSQS(*queueURL, sess)
 
-	svc := NewService(clusterConfig.ClusterName, apiName, sqsQueue, s3Storage, log)
-	ep := NewEndpoint(svc, log)
+	svc := gateway.NewService(clusterConfig.ClusterName, apiName, sqsQueue, s3Storage, log)
+	ep := gateway.NewEndpoint(svc, log)
 
 	router := mux.NewRouter()
 	router.HandleFunc("/", ep.CreateWorkload).Methods("POST")
 	router.HandleFunc(
 		"/healthz",
 		func(w http.ResponseWriter, r *http.Request) {
-			respondPlainText(w, http.StatusOK, "ok")
+			w.WriteHeader(http.StatusOK)
+			w.Header().Set("Content-Type", "text/plain")
+			_, _ = w.Write([]byte("ok"))
 		},
 	)
 	router.HandleFunc("/{id}", ep.GetWorkload).Methods("GET")
