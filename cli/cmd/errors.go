@@ -220,7 +220,7 @@ func ErrorMaxInstancesLowerThan(minValue int64) error {
 func ErrorMinInstancesGreaterThanMaxInstances(minInstances, maxInstances int64) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrMinInstancesGreaterThanMaxInstances,
-		Message: "min instances (%d) cannot be set to a value higher than max instances (%d)",
+		Message: fmt.Sprintf("min instances (%d) cannot be set to a value higher than max instances (%d)", minInstances, maxInstances),
 	})
 }
 
