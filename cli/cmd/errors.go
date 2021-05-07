@@ -298,9 +298,9 @@ func ErrorNotSupportedForKindAndType(kind userconfig.Kind, handlerType userconfi
 	})
 }
 
-func ErrorClusterUIDsLimitInBucket(bucket string, current, max int) error {
+func ErrorClusterUIDsLimitInBucket(bucket string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrClusterUIDsLimitInBucket,
-		Message: fmt.Sprintf("detected %d cluster UIDs in %s bucket, but the max limit of cluster UIDs is %d; manual intervention is required", current, bucket, max),
+		Message: fmt.Sprintf("detected too many top level folders in %s bucket; please empty your bucket and try again", bucket),
 	})
 }

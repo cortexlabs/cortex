@@ -933,15 +933,14 @@ func (cc *Config) Validate(awsClient *aws.Client) error {
 	}
 	cc.AccountID = accountID
 
-	if cc.Bucket == "" {
-		cc.Bucket = BucketName(accountID, cc.ClusterName, cc.Region)
-		// check if the bucket already exists in a different region for some reason
-		bucketRegion, _ := aws.GetBucketRegion(cc.Bucket)
-		if bucketRegion != "" && bucketRegion != cc.Region { // if the bucket didn't exist, we will create it in the correct region, so there is no error
-			return ErrorS3RegionDiffersFromCluster(cc.Bucket, bucketRegion, cc.Region)
-		}
-	} else {
+	if cc.Bucket != "" {
 		return ErrorDisallowedField(BucketKey)
+	}
+	cc.Bucket = BucketName(accountID, cc.ClusterName, cc.Region)
+	// check if the bucket already exists in a different region for some reason
+	bucketRegion, _ := aws.GetBucketRegion(cc.Bucket)
+	if bucketRegion != "" && bucketRegion != cc.Region { // if the bucket didn't exist, we will create it in the correct region, so there is no error
+		return ErrorS3RegionDiffersFromCluster(cc.Bucket, bucketRegion, cc.Region)
 	}
 
 	if cc.ClusterUID != "" {

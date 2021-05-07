@@ -500,7 +500,7 @@ var _clusterDownCmd = &cobra.Command{
 		fmt.Printf("￮ setting lifecycle policy to empty the %s bucket ", bucketName)
 		err = setLifecycleRulesOnClusterDown(awsClient, bucketName)
 		if err != nil {
-			fmt.Printf("\n\nfailed to set lifecycle policy to empty the %s bucket; you need to remove the bucket manually via the s3 console: https://s3.console.aws.amazon.com/s3/management/%s", bucketName, bucketName)
+			fmt.Printf("\n\nfailed to set lifecycle policy to empty the %s bucket; you can remove the bucket manually via the s3 console: https://s3.console.aws.amazon.com/s3/management/%s", bucketName, bucketName)
 			errors.PrintError(err)
 			fmt.Println()
 		}
@@ -570,7 +570,7 @@ var _clusterDownCmd = &cobra.Command{
 		}
 
 		fmt.Printf("\nplease check CloudFormation to ensure that all resources for the %s cluster eventually become successfully deleted: %s\n", accessConfig.ClusterName, clusterstate.CloudFormationURL(accessConfig.ClusterName, accessConfig.Region))
-		fmt.Printf("\nthe cluster's %s bucket has been applied a lifecycle rule to empty its contents later today; make sure to delete the %s bucket once the bucket is emptied via the s3 console: https://s3.console.aws.amazon.com/s3/management/%s", bucketName, bucketName, bucketName)
+		fmt.Printf("\na lifecycle rule has been applied to the cluster’s %s bucket to empty its contents later today; you can delete the %s bucket via the s3 console once it has been emptied: https://s3.console.aws.amazon.com/s3/management/%s", bucketName, bucketName, bucketName)
 
 		cachedClusterConfigPath := cachedClusterConfigPath(accessConfig.ClusterName, accessConfig.Region)
 		os.Remove(cachedClusterConfigPath)
@@ -1142,7 +1142,6 @@ func createS3BucketIfNotFound(awsClient *aws.Client, bucket string, tags map[str
 }
 
 func setLifecycleRulesOnClusterUp(awsClient *aws.Client, bucket, newClusterUID string) error {
-	// deletes bucket-wide deletion rule
 	err := awsClient.DeleteLifecycleRules(bucket)
 	if err != nil {
 		return err
@@ -1154,7 +1153,7 @@ func setLifecycleRulesOnClusterUp(awsClient *aws.Client, bucket, newClusterUID s
 	}
 
 	if len(clusterUIDs)+1 > consts.MaxBucketLifecycleRules {
-		return ErrorClusterUIDsLimitInBucket(bucket, len(clusterUIDs), consts.MaxBucketLifecycleRules-1)
+		return ErrorClusterUIDsLimitInBucket(bucket)
 	}
 
 	rules := []s3.LifecycleRule{}
@@ -1186,13 +1185,11 @@ func setLifecycleRulesOnClusterUp(awsClient *aws.Client, bucket, newClusterUID s
 }
 
 func setLifecycleRulesOnClusterDown(awsClient *aws.Client, bucket string) error {
-	// deletes bucket-wide deletion rule
 	err := awsClient.DeleteLifecycleRules(bucket)
 	if err != nil {
 		return err
 	}
 
-	// delete all bucket contents at midnight
 	return awsClient.SetLifecycleRules(bucket, []s3.LifecycleRule{
 		{
 			Expiration: &s3.LifecycleExpiration{

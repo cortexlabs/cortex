@@ -32,7 +32,6 @@ const (
 	ErrInvalidLegacyProvider                  = "clusterconfig.invalid_legacy_provider"
 	ErrDisallowedField                        = "clusterconfig.disallowed_field"
 	ErrInvalidRegion                          = "clusterconfig.invalid_region"
-	ErrDisallowedField                        = "clusterconfig.disallowed_field"
 	ErrNoNodeGroupSpecified                   = "clusterconfig.no_nodegroup_specified"
 	ErrNodeGroupMaxInstancesIsZero            = "clusterconfig.node_group_max_instances_is_zero"
 	ErrMaxNumOfNodeGroupsReached              = "clusterconfig.max_num_of_nodegroups_reached"
@@ -330,7 +329,7 @@ func ErrorNATRequiredWithPrivateSubnetVisibility() error {
 func ErrorS3RegionDiffersFromCluster(bucketName string, bucketRegion string, clusterRegion string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrS3RegionDiffersFromCluster,
-		Message: fmt.Sprintf("the %s bucket is in %s, but your cluster is in %s; either change the region of your cluster to %s, use a bucket that is in %s, or remove your bucket configuration to allow cortex to make the bucket for you", bucketName, bucketRegion, clusterRegion, bucketRegion, clusterRegion),
+		Message: fmt.Sprintf("the %s bucket already exists but is in %s (your cluster is in %s); either change the region of your cluster to %s or delete your bucket to allow cortex to create the bucket for you in %s", bucketName, bucketRegion, clusterRegion, bucketRegion, clusterRegion),
 	})
 }
 

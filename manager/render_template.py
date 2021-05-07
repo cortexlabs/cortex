@@ -18,6 +18,7 @@ import os
 import pathlib
 from jinja2 import Environment, FileSystemLoader
 
+# python render_template.py [CLUSTER_CONFIG_PATH] TEMPLATE_PATH
 if __name__ == "__main__":
     if len(sys.argv) == 3:
         yaml_file_path = sys.argv[1]

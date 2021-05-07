@@ -181,7 +181,7 @@ func (c *Client) ListS3TopLevelDirs(bucket string) ([]string, error) {
 		s3Objects, err := c.ListS3Prefix(
 			bucket,
 			"",
-			false,
+			true,
 			pointer.Int64(1),
 			pointer.String(filepath.Join(previousDir, "~~~")),
 		)
@@ -202,7 +202,9 @@ func (c *Client) ListS3TopLevelDirs(bucket string) ([]string, error) {
 func ConvertS3ObjectsToKeys(s3Objects ...*s3.Object) []string {
 	paths := make([]string, 0, len(s3Objects))
 	for _, object := range s3Objects {
-		paths = append(paths, *object.Key)
+		if object != nil {
+			paths = append(paths, *object.Key)
+		}
 	}
 	return paths
 }
@@ -929,7 +931,7 @@ func (c *Client) SetLifecycleRules(bucket string, rules []s3.LifecycleRule) erro
 		},
 	})
 
-	return err
+	return errors.WithStack(err)
 }
 
 func (c *Client) GetLifecycleRules(bucket string) ([]s3.LifecycleRule, error) {
@@ -937,7 +939,7 @@ func (c *Client) GetLifecycleRules(bucket string) ([]s3.LifecycleRule, error) {
 		Bucket: pointer.String(bucket),
 	})
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 	if lifecycleOutput == nil {
 		return nil, nil
@@ -957,5 +959,5 @@ func (c *Client) DeleteLifecycleRules(bucket string) error {
 	_, err := c.S3().DeleteBucketLifecycle(&s3.DeleteBucketLifecycleInput{
 		Bucket: pointer.String(bucket),
 	})
-	return err
+	return errors.WithStack(err)
 }
