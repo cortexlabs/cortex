@@ -61,7 +61,7 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string, force bool) (*spec.A
 		deploymentID = prevDeployment.Labels["deploymentID"]
 	}
 
-	api := spec.GetAPISpec(apiConfig, projectID, deploymentID, config.ClusterConfig.ClusterName)
+	api := spec.GetAPISpec(apiConfig, projectID, deploymentID, config.ClusterConfig.ClusterUID)
 
 	if prevDeployment == nil {
 		if err := config.AWS.UploadJSONToS3(api, config.ClusterConfig.Bucket, api.Key); err != nil {
@@ -145,7 +145,7 @@ func RefreshAPI(apiName string, force bool) (string, error) {
 		return "", err
 	}
 
-	api = spec.GetAPISpec(api.API, api.ProjectID, deploymentID(), config.ClusterConfig.ClusterName)
+	api = spec.GetAPISpec(api.API, api.ProjectID, deploymentID(), config.ClusterConfig.ClusterUID)
 
 	if err := config.AWS.UploadJSONToS3(api, config.ClusterConfig.Bucket, api.Key); err != nil {
 		return "", errors.Wrap(err, "upload api spec")
@@ -408,7 +408,7 @@ func deleteK8sResources(apiName string) error {
 }
 
 func deleteBucketResources(apiName string) error {
-	prefix := filepath.Join(config.ClusterConfig.ClusterName, "apis", apiName)
+	prefix := filepath.Join(config.ClusterConfig.ClusterUID, "apis", apiName)
 	return config.AWS.DeleteS3Dir(config.ClusterConfig.Bucket, prefix, true)
 }
 

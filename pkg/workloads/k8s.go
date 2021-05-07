@@ -106,7 +106,7 @@ func TaskInitContainer(api *spec.API, job *spec.TaskJob) kcore.Container {
 				HideUnzippingLog: true,
 			},
 			{
-				From:             aws.S3Path(config.ClusterConfig.Bucket, job.SpecFilePath(config.ClusterConfig.ClusterName)),
+				From:             aws.S3Path(config.ClusterConfig.Bucket, job.SpecFilePath(config.ClusterConfig.ClusterUID)),
 				To:               TaskSpecPath,
 				Unzip:            false,
 				ToFile:           true,
@@ -163,7 +163,7 @@ func BatchInitContainer(api *spec.API, job *spec.BatchJob) kcore.Container {
 				HideUnzippingLog: true,
 			},
 			{
-				From:             aws.S3Path(config.ClusterConfig.Bucket, job.SpecFilePath(config.ClusterConfig.ClusterName)),
+				From:             aws.S3Path(config.ClusterConfig.Bucket, job.SpecFilePath(config.ClusterConfig.ClusterUID)),
 				To:               BatchSpecPath,
 				Unzip:            false,
 				ToFile:           true,
@@ -327,7 +327,7 @@ func AsyncGatewayContainers(api spec.API, queueURL string) kcore.Container {
 	image := config.ClusterConfig.ImageAsyncGateway
 	region := config.ClusterConfig.Region
 	bucket := config.ClusterConfig.Bucket
-	clusterName := config.ClusterConfig.ClusterName
+	clusterUID := config.ClusterConfig.ClusterUID
 
 	return kcore.Container{
 		Name:            _gatewayContainerName,
@@ -337,7 +337,7 @@ func AsyncGatewayContainers(api spec.API, queueURL string) kcore.Container {
 			"-queue", queueURL,
 			"-region", region,
 			"-bucket", bucket,
-			"-cluster", clusterName,
+			"-cluster-uid", clusterUID,
 			"-port", s.Int32(DefaultPortInt32),
 			api.Name,
 		},
@@ -676,7 +676,7 @@ func getAsyncAPIEnvVars(api spec.API, queueURL string) []kcore.EnvVar {
 		},
 		kcore.EnvVar{
 			Name:  "CORTEX_ASYNC_WORKLOAD_PATH",
-			Value: aws.S3Path(config.ClusterConfig.Bucket, fmt.Sprintf("%s/apis/%s/workloads", config.ClusterConfig.ClusterName, api.Name)),
+			Value: aws.S3Path(config.ClusterConfig.Bucket, fmt.Sprintf("%s/workloads/%s", config.ClusterConfig.ClusterUID, api.Name)),
 		},
 	)
 

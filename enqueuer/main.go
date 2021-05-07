@@ -61,14 +61,14 @@ func createLogger() (*zap.Logger, error) {
 
 func main() {
 	var (
-		clusterName string
-		region      string
-		bucket      string
-		queueURL    string
-		apiName     string
-		jobID       string
+		clusterUID string
+		region     string
+		bucket     string
+		queueURL   string
+		apiName    string
+		jobID      string
 	)
-	flag.StringVar(&clusterName, "cluster", os.Getenv("CORTEX_CLUSTER_NAME"), "cluster name (can be set throught the CORTEX_CLUSTER_NAME env variable)")
+	flag.StringVar(&clusterUID, "cluster-uid", os.Getenv("CORTEX_CLUSTER_UID"), "cluster UID (can be set throught the CORTEX_CLUSTER_UID env variable)")
 	flag.StringVar(&region, "region", os.Getenv("CORTEX_REGION"), "cluster region (can be set throught the CORTEX_REGION env variable)")
 	flag.StringVar(&bucket, "bucket", os.Getenv("CORTEX_BUCKET"), "cortex S3 bucket (can be set throught the CORTEX_BUCKET env variable)")
 	flag.StringVar(&queueURL, "queue", "", "target queue URL to where the api messages will be enqueued")
@@ -91,8 +91,8 @@ func main() {
 	}()
 
 	switch {
-	case clusterName == "":
-		log.Fatal("-cluster is a required option")
+	case clusterUID == "":
+		log.Fatal("-cluster-uid is a required option")
 	case region == "":
 		log.Fatal("-region is a required option")
 	case bucket == "":
@@ -106,12 +106,12 @@ func main() {
 	}
 
 	envConfig := EnvConfig{
-		ClusterName: clusterName,
-		Region:      region,
-		Version:     version,
-		Bucket:      bucket,
-		APIName:     apiName,
-		JobID:       jobID,
+		ClusterUID: clusterUID,
+		Region:     region,
+		Version:    version,
+		Bucket:     bucket,
+		APIName:    apiName,
+		JobID:      jobID,
 	}
 
 	enqueuer, err := NewEnqueuer(envConfig, queueURL, log)
