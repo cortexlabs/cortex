@@ -1049,7 +1049,6 @@ func updateNodeGroupScale(clusterConfig clusterconfig.Config, targetNg string, d
 	clusterName := clusterConfig.ClusterName
 	region := clusterConfig.Region
 
-	ngFound := false
 	availableNodeGroups := []string{}
 	for idx, ng := range clusterConfig.NodeGroups {
 		if ng == nil {
@@ -1106,11 +1105,7 @@ func updateNodeGroupScale(clusterConfig clusterconfig.Config, targetNg string, d
 		}
 	}
 
-	if !ngFound {
-		return clusterconfig.Config{}, 0, ErrorNodeGroupNotFound(targetNg, clusterName, region, availableNodeGroups)
-	}
-
-	return clusterConfig, 0, nil
+	return clusterconfig.Config{}, 0, ErrorNodeGroupNotFound(targetNg, clusterName, region, availableNodeGroups)
 }
 
 func createS3BucketIfNotFound(awsClient *aws.Client, bucket string, tags map[string]string) error {
