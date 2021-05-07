@@ -18,7 +18,6 @@ package asyncapi
 
 import (
 	"fmt"
-	"path/filepath"
 	"time"
 
 	"github.com/cortexlabs/cortex/pkg/config"
@@ -166,14 +165,6 @@ func DeleteAPI(apiName string, keepCache bool) error {
 		},
 		func() error {
 			return deleteK8sResources(apiName)
-		},
-		func() error {
-			if keepCache {
-				return nil
-			}
-			// best effort deletion, swallow errors because there could be weird error messages
-			_ = deleteBucketResources(apiName)
-			return nil
 		},
 	)
 
@@ -428,11 +419,6 @@ func applyK8sVirtualService(prevVirtualService *istioclientnetworking.VirtualSer
 
 	_, err := config.K8s.UpdateVirtualService(prevVirtualService, newVirtualService)
 	return err
-}
-
-func deleteBucketResources(apiName string) error {
-	prefix := filepath.Join(config.ClusterConfig.ClusterUID, "workloads", apiName)
-	return config.AWS.DeleteS3Dir(config.ClusterConfig.Bucket, prefix, true)
 }
 
 func deleteK8sResources(apiName string) error {

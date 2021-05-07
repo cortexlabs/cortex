@@ -1149,11 +1149,14 @@ func createS3BucketIfNotFound(awsClient *aws.Client, bucket string, tags map[str
 
 func getClusterUIDsFromBucket(awsClient *aws.Client, bucket string) ([]string, error) {
 	// find first cluster UID
-	s3Objects, err := awsClient.ListS3Prefix(bucket, "/", false, pointer.Int64(1), nil)
+	s3Objects, err := awsClient.ListS3Prefix(bucket, "", false, pointer.Int64(1), nil)
 	if err != nil {
 		return nil, err
 	}
-	clusterUIDs := aws.ConvertS3ObjectsToKeys(s3Objects...)
+	clusterUIDs := []string{}
+	for _, prefix := range aws.ConvertS3ObjectsToKeys(s3Objects...) {
+		clusterUIDs = append(clusterUIDs, files.GetTopLevelDirectory(prefix))
+	}
 
 	// detect all remaining cluster UIDs
 	for {
@@ -1163,7 +1166,7 @@ func getClusterUIDsFromBucket(awsClient *aws.Client, bucket string) ([]string, e
 		previousClusterUID := clusterUIDs[len(clusterUIDs)-1]
 		s3Objects, err := awsClient.ListS3Prefix(
 			bucket,
-			"/",
+			"",
 			false,
 			pointer.Int64(1),
 			pointer.String(filepath.Join(previousClusterUID, "~~~")),
@@ -1174,7 +1177,9 @@ func getClusterUIDsFromBucket(awsClient *aws.Client, bucket string) ([]string, e
 		if len(aws.ConvertS3ObjectsToKeys(s3Objects...)) == 0 {
 			break
 		}
-		clusterUIDs = append(clusterUIDs, aws.ConvertS3ObjectsToKeys(s3Objects...)...)
+		for _, prefix := range aws.ConvertS3ObjectsToKeys(s3Objects...) {
+			clusterUIDs = append(clusterUIDs, files.GetTopLevelDirectory(prefix))
+		}
 		if len(clusterUIDs)+1 > consts.MaxBucketLifecycleRules {
 			return nil, ErrorClusterUIDsLimitInBucket(bucket, len(clusterUIDs), consts.MaxBucketLifecycleRules-1)
 		}
@@ -1199,7 +1204,7 @@ func setLifecycleRulesOnClusterUp(awsClient *aws.Client, bucket, newClusterUID s
 	for _, clusterUID := range clusterUIDs {
 		rules = append(rules, s3.LifecycleRule{
 			Expiration: &s3.LifecycleExpiration{
-				Days: pointer.Int64(0),
+				Days: pointer.Int64(1),
 			},
 			ID: pointer.String("cluster-remove-" + clusterUID),
 			Filter: &s3.LifecycleRuleFilter{
