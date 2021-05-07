@@ -1,16 +1,16 @@
 FROM python:3.6
 
-COPY pkg/cortex/serve/cortex_internal.requirements.txt /src/cortex/serve/cortex_internal.requirements.txt
+COPY python/serve/cortex_internal.requirements.txt /src/cortex/serve/cortex_internal.requirements.txt
 
 RUN pip install --upgrade pip && \
     pip install --no-cache-dir -r /src/cortex/serve/cortex_internal.requirements.txt && \
     pip install pytest mock && \
     rm -rf /root/.cache/pip*
 
-COPY pkg /src
+COPY python /src/cortex
 COPY images/test/run.sh /src/run.sh
 
-COPY pkg/cortex/serve/log_config.yaml /src/cortex/serve/log_config.yaml
+COPY python/serve/log_config.yaml /src/cortex/serve/log_config.yaml
 ENV CORTEX_LOG_LEVEL DEBUG
 ENV CORTEX_LOG_CONFIG_FILE /src/cortex/serve/log_config.yaml
 

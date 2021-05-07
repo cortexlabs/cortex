@@ -12,25 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Callable, Dict
-
-import cortex as cx
-import pytest
-
-import e2e.tests
-
-TEST_APIS = ["task/hello-world"]
-
-
-@pytest.mark.usefixtures("client")
-@pytest.mark.parametrize("api", TEST_APIS)
-def test_task_api(printer: Callable, config: Dict, client: cx.Client, api: str):
-    e2e.tests.test_task_api(
-        printer,
-        client,
-        api,
-        retry_attempts=5,
-        deploy_timeout=config["global"]["task_deploy_timeout"],
-        job_timeout=config["global"]["task_job_timeout"],
-        local_operator=config["global"]["local_operator"],
-    )
+from cortex_internal.lib.api.batch import BatchAPI
+from cortex_internal.lib.api.realtime import RealtimeAPI
+from cortex_internal.lib.api.task import TaskAPI
+from cortex_internal.lib.api.utils import get_spec, model_downloader, DynamicBatcher, CortexMetrics

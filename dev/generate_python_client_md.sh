@@ -27,7 +27,7 @@ docs_path="$ROOT/docs/clients/python.md"
 
 pip3 uninstall -y cortex
 
-cd $ROOT/pkg/cortex/client
+cd $ROOT/python/client
 
 pip3 install -e .
 
@@ -67,4 +67,4 @@ truncate -s -1 $docs_path
 sed -i "s/^## create\\\_api/## create\\\_api\n\n<!-- CORTEX_VERSION_MINOR -->/g" $docs_path
 
 pip3 uninstall -y cortex
-rm -rf $ROOT/pkg/cortex/client/cortex.egg-info
+rm -rf $ROOT/python/client/cortex.egg-info

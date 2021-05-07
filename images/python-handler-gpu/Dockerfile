@@ -45,17 +45,17 @@ RUN /opt/conda/bin/conda create -n env -c conda-forge python=$PYTHONVERSION pip=
 ENV BASH_ENV=~/.env
 SHELL ["/bin/bash", "-c"]
 
-COPY pkg/cortex/serve/serve.requirements.txt /src/cortex/serve/serve.requirements.txt
-COPY pkg/cortex/serve/cortex_internal.requirements.txt /src/cortex/serve/cortex_internal.requirements.txt
+COPY python/serve/serve.requirements.txt /src/cortex/serve/serve.requirements.txt
+COPY python/serve/cortex_internal.requirements.txt /src/cortex/serve/cortex_internal.requirements.txt
 RUN pip install --no-cache-dir \
     -r /src/cortex/serve/serve.requirements.txt \
     -r /src/cortex/serve/cortex_internal.requirements.txt
 
-COPY pkg/cortex/serve/init/install-core-dependencies.sh /usr/local/cortex/install-core-dependencies.sh
+COPY python/serve/init/install-core-dependencies.sh /usr/local/cortex/install-core-dependencies.sh
 RUN chmod +x /usr/local/cortex/install-core-dependencies.sh
 
-COPY pkg/cortex/serve/ /src/cortex/serve
-COPY pkg/cortex/client/ /src/cortex/client
+COPY python/serve/ /src/cortex/serve
+COPY python/client/ /src/cortex/client
 ENV CORTEX_LOG_CONFIG_FILE /src/cortex/serve/log_config.yaml
 
 RUN pip install --no-deps /src/cortex/serve/ && \

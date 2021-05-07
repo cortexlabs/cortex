@@ -12,25 +12,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Callable, Dict
+import os
+import stat
+import time
 
-import cortex as cx
-import pytest
-
-import e2e.tests
-
-TEST_APIS = ["task/hello-world"]
+from cortex_internal import consts
 
 
-@pytest.mark.usefixtures("client")
-@pytest.mark.parametrize("api", TEST_APIS)
-def test_task_api(printer: Callable, config: Dict, client: cx.Client, api: str):
-    e2e.tests.test_task_api(
-        printer,
-        client,
-        api,
-        retry_attempts=5,
-        deploy_timeout=config["global"]["task_deploy_timeout"],
-        job_timeout=config["global"]["task_job_timeout"],
-        local_operator=config["global"]["local_operator"],
-    )
+def neuron_socket_exists():
+    if not os.path.exists(consts.INFERENTIA_NEURON_SOCKET):
+        return False
+    else:
+        mode = os.stat(consts.INFERENTIA_NEURON_SOCKET)
+        return stat.S_ISSOCK(mode.st_mode)
+
+
+def wait_neuron_rtd():
+    while not neuron_socket_exists():
+        time.sleep(0.1)
