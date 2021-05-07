@@ -99,7 +99,6 @@ def main():
         time.sleep(0.2)
 
     model_dir = os.getenv("CORTEX_MODEL_DIR")
-    cache_dir = os.environ["CORTEX_CACHE_DIR"]
     api_spec_path = os.environ["CORTEX_API_SPEC"]
     workload_path = os.environ["CORTEX_ASYNC_WORKLOAD_PATH"]
     project_dir = os.environ["CORTEX_PROJECT_DIR"]

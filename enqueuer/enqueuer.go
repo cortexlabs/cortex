@@ -40,12 +40,12 @@ const (
 )
 
 type EnvConfig struct {
-	ClusterName string
-	Region      string
-	Version     string
-	Bucket      string
-	APIName     string
-	JobID       string
+	ClusterUID string
+	Region     string
+	Version    string
+	Bucket     string
+	APIName    string
+	JobID      string
 }
 
 // FIXME: all these types should be shared with the cortex webserver (from where the payload is submitted)
@@ -159,13 +159,13 @@ func (e *Enqueuer) Enqueue() (int, error) {
 }
 
 func (e *Enqueuer) UploadBatchCount(batchCount int) error {
-	key := spec.JobBatchCountKey(e.envConfig.ClusterName, userconfig.BatchAPIKind, e.envConfig.APIName, e.envConfig.JobID)
+	key := spec.JobBatchCountKey(e.envConfig.ClusterUID, userconfig.BatchAPIKind, e.envConfig.APIName, e.envConfig.JobID)
 	return e.aws.UploadStringToS3(s.Int(batchCount), e.envConfig.Bucket, key)
 }
 
 func (e *Enqueuer) getJobPayload() (JobSubmission, error) {
-	// e.g. <cluster name>/jobs/<job_api_kind>/<cortex version>/<api_name>/<job_id>
-	key := spec.JobPayloadKey(e.envConfig.ClusterName, userconfig.BatchAPIKind, e.envConfig.APIName, e.envConfig.JobID)
+	// e.g. <cluster uid>/jobs/<job_api_kind>/<cortex version>/<api_name>/<job_id>
+	key := spec.JobPayloadKey(e.envConfig.ClusterUID, userconfig.BatchAPIKind, e.envConfig.APIName, e.envConfig.JobID)
 
 	submissionBytes, err := e.aws.ReadBytesFromS3(e.envConfig.Bucket, key)
 	if err != nil {
@@ -181,7 +181,7 @@ func (e *Enqueuer) getJobPayload() (JobSubmission, error) {
 }
 
 func (e *Enqueuer) deleteJobPayload() error {
-	key := spec.JobPayloadKey(e.envConfig.ClusterName, userconfig.BatchAPIKind, e.envConfig.APIName, e.envConfig.JobID)
+	key := spec.JobPayloadKey(e.envConfig.ClusterUID, userconfig.BatchAPIKind, e.envConfig.APIName, e.envConfig.JobID)
 	if err := e.aws.DeleteS3File(e.envConfig.Bucket, key); err != nil {
 		return err
 	}

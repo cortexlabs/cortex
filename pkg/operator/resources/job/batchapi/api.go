@@ -47,7 +47,7 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string) (*spec.API, string, 
 		return nil, "", err
 	}
 
-	api := spec.GetAPISpec(apiConfig, projectID, "", config.ClusterConfig.ClusterName) // Deployment ID not needed for BatchAPI spec
+	api := spec.GetAPISpec(apiConfig, projectID, "", config.ClusterConfig.ClusterUID) // Deployment ID not needed for BatchAPI spec
 
 	if prevVirtualService == nil {
 		if err := config.AWS.UploadJSONToS3(api, config.ClusterConfig.Bucket, api.Key); err != nil {
@@ -105,11 +105,11 @@ func DeleteAPI(apiName string, keepCache bool) error {
 func deleteS3Resources(apiName string) error {
 	return parallel.RunFirstErr(
 		func() error {
-			prefix := filepath.Join(config.ClusterConfig.ClusterName, "apis", apiName)
+			prefix := filepath.Join(config.ClusterConfig.ClusterUID, "apis", apiName)
 			return config.AWS.DeleteS3Dir(config.ClusterConfig.Bucket, prefix, true)
 		},
 		func() error {
-			prefix := spec.JobAPIPrefix(config.ClusterConfig.ClusterName, userconfig.BatchAPIKind, apiName)
+			prefix := spec.JobAPIPrefix(config.ClusterConfig.ClusterUID, userconfig.BatchAPIKind, apiName)
 			routines.RunWithPanicHandler(func() {
 				_ = config.AWS.DeleteS3Dir(config.ClusterConfig.Bucket, prefix, true) // deleting job files may take a while
 			})

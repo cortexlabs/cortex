@@ -49,6 +49,9 @@ var (
 	DefaultMaxReplicaConcurrency = int64(1024)
 	NeuronCoresPerInf            = int64(4)
 	AuthHeader                   = "X-Cortex-Authorization"
+
+	MaxBucketLifecycleRules      = 100
+	AsyncWorkloadsExpirationDays = int64(7)
 )
 
 func DefaultRegistry() string {

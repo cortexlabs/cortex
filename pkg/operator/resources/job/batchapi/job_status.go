@@ -153,7 +153,7 @@ func getJobStatusFromK8sBatchJob(batchJob batch.BatchJob) (*status.BatchJobStatu
 }
 
 func readMetricsFromS3(jobKey spec.JobKey) (metrics.BatchMetrics, error) {
-	s3Key := spec.JobMetricsKey(config.ClusterConfig.ClusterName, userconfig.BatchAPIKind, jobKey.APIName, jobKey.ID)
+	s3Key := spec.JobMetricsKey(config.ClusterConfig.ClusterUID, userconfig.BatchAPIKind, jobKey.APIName, jobKey.ID)
 	batchMetrics := metrics.BatchMetrics{}
 	err := config.AWS.ReadJSONFromS3(&batchMetrics, config.ClusterConfig.Bucket, s3Key)
 	if err != nil {

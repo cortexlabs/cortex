@@ -78,11 +78,11 @@ func main() {
 	}()
 
 	var (
-		port        = flag.String("port", _defaultPort, "port on which the gateway server runs on")
-		queueURL    = flag.String("queue", "", "SQS queue URL")
-		region      = flag.String("region", "", "AWS region")
-		bucket      = flag.String("bucket", "", "AWS bucket")
-		clusterName = flag.String("cluster", "", "cluster name")
+		port       = flag.String("port", _defaultPort, "port on which the gateway server runs on")
+		queueURL   = flag.String("queue", "", "SQS queue URL")
+		region     = flag.String("region", "", "AWS region")
+		bucket     = flag.String("bucket", "", "AWS bucket")
+		clusterUID = flag.String("cluster-uid", "", "cluster UID")
 	)
 	flag.Parse()
 
@@ -93,8 +93,8 @@ func main() {
 		log.Fatal("missing required option: -region")
 	case *bucket == "":
 		log.Fatal("missing required option: -bucket")
-	case *clusterName == "":
-		log.Fatal("missing required option: -cluster")
+	case *clusterUID == "":
+		log.Fatal("missing required option: -cluster-uid")
 	}
 
 	apiName := flag.Arg(0)
@@ -115,7 +115,7 @@ func main() {
 	s3Storage := NewS3(sess, *bucket)
 	sqsQueue := NewSQS(*queueURL, sess)
 
-	svc := NewService(*clusterName, apiName, sqsQueue, s3Storage, log)
+	svc := NewService(*clusterUID, apiName, sqsQueue, s3Storage, log)
 	ep := NewEndpoint(svc, log)
 
 	router := mux.NewRouter()

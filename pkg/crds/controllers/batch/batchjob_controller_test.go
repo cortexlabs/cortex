@@ -54,7 +54,7 @@ func uploadTestAPISpec(apiName string, apiID string) error {
 		HandlerID:    random.String(5),
 		DeploymentID: random.String(5),
 	}
-	apiSpecKey := spec.Key(apiName, apiID, clusterConfig.ClusterName)
+	apiSpecKey := spec.Key(apiName, apiID, clusterConfig.ClusterUID)
 	if err := awsClient.UploadJSONToS3(apiSpec, clusterConfig.Bucket, apiSpecKey); err != nil {
 		return err
 	}
@@ -62,7 +62,7 @@ func uploadTestAPISpec(apiName string, apiID string) error {
 }
 
 func deleteTestAPISpec(apiName string, apiID string) error {
-	apiSpecKey := spec.Key(apiName, apiID, clusterConfig.ClusterName)
+	apiSpecKey := spec.Key(apiName, apiID, clusterConfig.ClusterUID)
 	if err := awsClient.DeleteS3File(clusterConfig.Bucket, apiSpecKey); err != nil {
 		return err
 	}
