@@ -920,9 +920,8 @@ func (c *Client) TagBucket(bucket string, tagMap map[string]string) error {
 
 func (c *Client) SetLifecycleRules(bucket string, rules []s3.LifecycleRule) error {
 	pointerRules := []*s3.LifecycleRule{}
-	for _, rule := range rules {
-		tempRule := rule
-		pointerRules = append(pointerRules, &tempRule)
+	for i := range rules {
+		pointerRules = append(pointerRules, &rules[i])
 	}
 	_, err := c.S3().PutBucketLifecycleConfiguration(&s3.PutBucketLifecycleConfigurationInput{
 		Bucket: pointer.String(bucket),

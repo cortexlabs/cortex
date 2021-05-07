@@ -47,6 +47,7 @@ import (
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/table"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
+	libtime "github.com/cortexlabs/cortex/pkg/lib/time"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
 	"github.com/cortexlabs/cortex/pkg/types/clusterconfig"
 	"github.com/cortexlabs/cortex/pkg/types/clusterstate"
@@ -1156,11 +1157,12 @@ func setLifecycleRulesOnClusterUp(awsClient *aws.Client, bucket, newClusterUID s
 		return ErrorClusterUIDsLimitInBucket(bucket)
 	}
 
+	expirationDate := libtime.GetCurrentUTCDate().Add(-24 * time.Hour)
 	rules := []s3.LifecycleRule{}
 	for _, clusterUID := range clusterUIDs {
 		rules = append(rules, s3.LifecycleRule{
 			Expiration: &s3.LifecycleExpiration{
-				Days: pointer.Int64(1), // cannot be set to 0
+				Date: &expirationDate,
 			},
 			ID: pointer.String("cluster-remove-" + clusterUID),
 			Filter: &s3.LifecycleRuleFilter{
@@ -1190,14 +1192,15 @@ func setLifecycleRulesOnClusterDown(awsClient *aws.Client, bucket string) error 
 		return err
 	}
 
+	expirationDate := libtime.GetCurrentUTCDate().Add(-24 * time.Hour)
 	return awsClient.SetLifecycleRules(bucket, []s3.LifecycleRule{
 		{
 			Expiration: &s3.LifecycleExpiration{
-				Days: pointer.Int64(1), // cannot be set to 0
+				Date: &expirationDate,
 			},
 			ID: pointer.String("bucket-cleaner"),
 			Filter: &s3.LifecycleRuleFilter{
-				Prefix: pointer.String("/"),
+				Prefix: pointer.String(""),
 			},
 			Status: pointer.String("Enabled"),
 		},
