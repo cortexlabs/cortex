@@ -771,6 +771,14 @@ var ManagedConfigStructFieldValidations = []*cr.StructFieldValidation{
 			TreatNullAsEmpty: true,
 		},
 	},
+	{
+		StructField: "AccountID",
+		StringValidation: &cr.StringValidation{
+			Required:         false,
+			AllowEmpty:       true,
+			TreatNullAsEmpty: true,
+		},
+	},
 }
 
 func CoreConfigValidations(allowExtraFields bool) *cr.StructValidation {
