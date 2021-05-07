@@ -10,14 +10,14 @@ RUN apt-get update -qq && apt-get install -y -q \
     pip install --upgrade pip && \
     rm -rf /root/.cache/pip*
 
-COPY pkg/cortex/serve/cortex_internal.requirements.txt /src/cortex/serve/cortex_internal.requirements.txt
+COPY python/serve/cortex_internal.requirements.txt /src/cortex/serve/cortex_internal.requirements.txt
 
 RUN pip install --no-cache-dir \
     -r /src/cortex/serve/cortex_internal.requirements.txt && \
     rm -rf /root/.cache/pip*
 
-COPY pkg/cortex/downloader /src/cortex/downloader
-COPY pkg/cortex/serve/ /src/cortex/serve
+COPY python/downloader /src/cortex/downloader
+COPY python/serve/ /src/cortex/serve
 ENV CORTEX_LOG_CONFIG_FILE /src/cortex/serve/log_config.yaml
 
 RUN pip install --no-deps /src/cortex/serve/ && \

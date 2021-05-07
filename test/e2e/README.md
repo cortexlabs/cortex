@@ -10,7 +10,7 @@ pip install -e test/e2e
 
 This only needs to be installed once (not on every code change).
 
-_note: you may need to run `pip3 uninstall cortex` and `pip3 install -e pkg/cortex/client/` before the command above_
+_note: you may need to run `pip3 uninstall cortex` and `pip3 install -e python/client/` before the command above_
 
 ## Running the tests
 
