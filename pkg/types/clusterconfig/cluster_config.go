@@ -659,14 +659,6 @@ var ManagedConfigStructFieldValidations = []*cr.StructFieldValidation{
 		},
 	},
 	{
-		StructField: "CortexPolicyARN",
-		StringValidation: &cr.StringValidation{
-			Required:         false,
-			AllowEmpty:       true,
-			TreatNullAsEmpty: true,
-		},
-	},
-	{
 		StructField: "IAMPolicyARNs",
 		StringListValidation: &cr.StringListValidation{
 			Default:           _defaultIAMPolicies,
@@ -786,6 +778,22 @@ var ManagedConfigStructFieldValidations = []*cr.StructFieldValidation{
 		StructField: "VPCCIDR",
 		StringPtrValidation: &cr.StringPtrValidation{
 			Validator: validateCIDR,
+		},
+	},
+	{
+		StructField: "CortexPolicyARN",
+		StringValidation: &cr.StringValidation{
+			Required:         false,
+			AllowEmpty:       true,
+			TreatNullAsEmpty: true,
+		},
+	},
+	{
+		StructField: "AccountID",
+		StringValidation: &cr.StringValidation{
+			Required:         false,
+			AllowEmpty:       true,
+			TreatNullAsEmpty: true,
 		},
 	},
 }
@@ -920,6 +928,11 @@ func (cc *Config) Validate(awsClient *aws.Client) error {
 		return err
 	}
 
+	if cc.AccountID != "" {
+		return ErrorDisallowedField(AccountIDKey)
+	}
+	cc.AccountID = accountID
+
 	if cc.Bucket == "" {
 		cc.Bucket = BucketName(accountID, cc.ClusterName, cc.Region)
 		// check if the bucket already exists in a different region for some reason
@@ -931,12 +944,14 @@ func (cc *Config) Validate(awsClient *aws.Client) error {
 		return ErrorDisallowedField(BucketKey)
 	}
 
-	if cc.ClusterUID == "" {
-		cc.ClusterUID = strconv.FormatInt(time.Now().Unix(), 10)
-	} else {
+	if cc.ClusterUID != "" {
 		return ErrorDisallowedField(ClusterUIDKey)
 	}
+	cc.ClusterUID = strconv.FormatInt(time.Now().Unix(), 10)
 
+	if cc.CortexPolicyARN != "" {
+		return ErrorDisallowedField(CortexPolicyARNKey)
+	}
 	cc.CortexPolicyARN = DefaultPolicyARN(accountID, cc.ClusterName, cc.Region)
 
 	defaultPoliciesSet := strset.New(_defaultIAMPolicies...)

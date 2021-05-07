@@ -55,5 +55,6 @@ const (
 	APILoadBalancerSchemeKey               = "api_load_balancer_scheme"
 	OperatorLoadBalancerSchemeKey          = "operator_load_balancer_scheme"
 	VPCCIDRKey                             = "vpc_cidr"
+	AccountIDKey                           = "account_id"
 	TelemetryKey                           = "telemetry"
 )
