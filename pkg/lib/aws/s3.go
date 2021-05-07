@@ -158,6 +158,47 @@ func (c *Client) GetNLevelsDeepFromS3Path(s3Path string, depth int, includeDirOb
 	return paths.Slice(), allPaths, nil
 }
 
+// Efficient way to list all top-level directory prefixes on a bucket.
+//
+// Warning: when using this function, make sure the "~" character isn't used in any of the S3 objects.
+func (c *Client) ListS3TopLevelDirs(bucket string) ([]string, error) {
+	// find first top-level directory
+	s3Objects, err := c.ListS3Prefix(bucket, "", false, pointer.Int64(1), nil)
+	if err != nil {
+		return nil, err
+	}
+	dirs := []string{}
+	for _, prefix := range ConvertS3ObjectsToKeys(s3Objects...) {
+		dirs = append(dirs, files.GetTopLevelDirectory(prefix))
+	}
+
+	// detect all remaining top-level dirs
+	for {
+		if len(dirs) == 0 {
+			break
+		}
+		previousDir := dirs[len(dirs)-1]
+		s3Objects, err := c.ListS3Prefix(
+			bucket,
+			"",
+			false,
+			pointer.Int64(1),
+			pointer.String(filepath.Join(previousDir, "~~~")),
+		)
+		if err != nil {
+			return nil, err
+		}
+		if len(ConvertS3ObjectsToKeys(s3Objects...)) == 0 {
+			break
+		}
+		for _, prefix := range ConvertS3ObjectsToKeys(s3Objects...) {
+			dirs = append(dirs, files.GetTopLevelDirectory(prefix))
+		}
+	}
+
+	return dirs, nil
+}
+
 func ConvertS3ObjectsToKeys(s3Objects ...*s3.Object) []string {
 	paths := make([]string, 0, len(s3Objects))
 	for _, object := range s3Objects {

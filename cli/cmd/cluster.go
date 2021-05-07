@@ -1146,47 +1146,6 @@ func createS3BucketIfNotFound(awsClient *aws.Client, bucket string, tags map[str
 	return err
 }
 
-func getClusterUIDsFromBucket(awsClient *aws.Client, bucket string) ([]string, error) {
-	// find first cluster UID
-	s3Objects, err := awsClient.ListS3Prefix(bucket, "", false, pointer.Int64(1), nil)
-	if err != nil {
-		return nil, err
-	}
-	clusterUIDs := []string{}
-	for _, prefix := range aws.ConvertS3ObjectsToKeys(s3Objects...) {
-		clusterUIDs = append(clusterUIDs, files.GetTopLevelDirectory(prefix))
-	}
-
-	// detect all remaining cluster UIDs
-	for {
-		if len(clusterUIDs) == 0 {
-			break
-		}
-		previousClusterUID := clusterUIDs[len(clusterUIDs)-1]
-		s3Objects, err := awsClient.ListS3Prefix(
-			bucket,
-			"",
-			false,
-			pointer.Int64(1),
-			pointer.String(filepath.Join(previousClusterUID, "~~~")),
-		)
-		if err != nil {
-			return nil, err
-		}
-		if len(aws.ConvertS3ObjectsToKeys(s3Objects...)) == 0 {
-			break
-		}
-		for _, prefix := range aws.ConvertS3ObjectsToKeys(s3Objects...) {
-			clusterUIDs = append(clusterUIDs, files.GetTopLevelDirectory(prefix))
-		}
-		if len(clusterUIDs)+1 > consts.MaxBucketLifecycleRules {
-			return nil, ErrorClusterUIDsLimitInBucket(bucket, len(clusterUIDs), consts.MaxBucketLifecycleRules-1)
-		}
-	}
-
-	return clusterUIDs, nil
-}
-
 func setLifecycleRulesOnClusterUp(awsClient *aws.Client, bucket, newClusterUID string) error {
 	// deletes bucket-wide deletion rule
 	err := awsClient.DeleteLifecycleRules(bucket)
@@ -1194,16 +1153,20 @@ func setLifecycleRulesOnClusterUp(awsClient *aws.Client, bucket, newClusterUID s
 		return err
 	}
 
-	clusterUIDs, err := getClusterUIDsFromBucket(awsClient, bucket)
+	clusterUIDs, err := awsClient.ListS3TopLevelDirs(bucket)
 	if err != nil {
 		return err
+	}
+
+	if len(clusterUIDs)+1 > consts.MaxBucketLifecycleRules {
+		return ErrorClusterUIDsLimitInBucket(bucket, len(clusterUIDs), consts.MaxBucketLifecycleRules-1)
 	}
 
 	rules := []s3.LifecycleRule{}
 	for _, clusterUID := range clusterUIDs {
 		rules = append(rules, s3.LifecycleRule{
 			Expiration: &s3.LifecycleExpiration{
-				Days: pointer.Int64(1),
+				Days: pointer.Int64(1), // cannot be set to 0
 			},
 			ID: pointer.String("cluster-remove-" + clusterUID),
 			Filter: &s3.LifecycleRuleFilter{
