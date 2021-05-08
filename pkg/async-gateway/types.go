@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package main
+package gateway
 
 import "time"
 
@@ -26,6 +26,7 @@ type Status string
 
 // Different possible workload status
 const (
+	StatusNotFound   Status = "not_found"
 	StatusFailed     Status = "failed"
 	StatusInProgress Status = "in_progress"
 	StatusInQueue    Status = "in_queue"
@@ -38,7 +39,7 @@ func (status Status) String() string {
 
 func (status Status) Valid() bool {
 	switch status {
-	case StatusFailed, StatusInProgress, StatusInQueue, StatusCompleted:
+	case StatusNotFound, StatusFailed, StatusInProgress, StatusInQueue, StatusCompleted:
 		return true
 	default:
 		return false

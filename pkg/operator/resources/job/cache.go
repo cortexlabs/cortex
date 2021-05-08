@@ -62,7 +62,7 @@ func listAllInProgressJobKeysByAPI(kind userconfig.Kind, apiName *string) ([]spe
 		jobPath = allInProgressKey(kind)
 	}
 
-	s3Objects, err := config.AWS.ListS3Dir(config.ClusterConfig.Bucket, jobPath, false, nil)
+	s3Objects, err := config.AWS.ListS3Dir(config.ClusterConfig.Bucket, jobPath, false, nil, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -84,19 +84,19 @@ func uploadInProgressFile(jobKey spec.JobKey) error {
 	return nil
 }
 
-// e.g. <cluster_name>/jobs/<job_api_kind>/in_progress
+// e.g. <cluster_uid>/jobs/<job_api_kind>/in_progress
 func allInProgressKey(kind userconfig.Kind) string {
 	return path.Join(
-		config.ClusterConfig.ClusterName, _jobsPrefix, kind.String(), _inProgressFilePrefix,
+		config.ClusterConfig.ClusterUID, _jobsPrefix, kind.String(), _inProgressFilePrefix,
 	)
 }
 
-// e.g. <cluster_name>/jobs/<job_api_kind>/in_progress/<api_name>
+// e.g. <cluster_uid>/jobs/<job_api_kind>/in_progress/<api_name>
 func allInProgressForAPIKey(kind userconfig.Kind, apiName string) string {
 	return path.Join(allInProgressKey(kind), apiName)
 }
 
-// e.g. <cluster_name>/jobs/<job_api_kind>/in_progress/<api_name>/<job_id>
+// e.g. <cluster_uid>/jobs/<job_api_kind>/in_progress/<api_name>/<job_id>
 func inProgressKey(jobKey spec.JobKey) string {
 	return path.Join(allInProgressForAPIKey(jobKey.Kind, jobKey.APIName), jobKey.ID)
 }

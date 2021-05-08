@@ -24,12 +24,12 @@ import (
 )
 
 const (
-	ErrInvalidOperatorLogLevel = "logging.invalid_operator_log_level"
+	ErrInvalidLogLevel = "logging.invalid_log_level"
 )
 
-func ErrorInvalidOperatorLogLevel(provided string, loglevels []string) error {
+func ErrorInvalidLogLevel(provided string, loglevels []string) error {
 	return errors.WithStack(&errors.Error{
-		Kind:    ErrInvalidOperatorLogLevel,
-		Message: fmt.Sprintf("invalid operator log level %s; must be one of %s", provided, s.StrsOr(loglevels)),
+		Kind:    ErrInvalidLogLevel,
+		Message: fmt.Sprintf("invalid log level %s; must be one of %s", provided, s.StrsOr(loglevels)),
 	})
 }

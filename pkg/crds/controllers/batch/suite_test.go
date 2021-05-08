@@ -110,6 +110,7 @@ var _ = BeforeSuite(func(done Done) {
 	Expect(err).ToNot(HaveOccurred())
 
 	clusterConfig.AccountID = accountID
+	clusterConfig.Bucket = clusterconfig.BucketName(accountID, clusterConfig.ClusterName, clusterConfig.Region)
 
 	operatorMetadata := &clusterconfig.OperatorMetadata{
 		APIVersion:          consts.CortexVersion,
