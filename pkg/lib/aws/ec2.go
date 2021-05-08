@@ -30,7 +30,10 @@ import (
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 )
 
-var _digitsRegex = regexp.MustCompile(`[0-9]+`)
+var (
+	_digitsRegex         = regexp.MustCompile(`[0-9]+`)
+	_gpuInstanceFamilies = strset.New("g", "p")
+)
 
 type ParsedInstanceType struct {
 	Family       string
@@ -111,6 +114,23 @@ func IsARMInstance(instanceType string) (bool, error) {
 	}
 
 	if parsedType.Capabilities.Has("g") {
+		return true, nil
+	}
+
+	return false, nil
+}
+
+func IsAMDGPUInstance(instanceType string) (bool, error) {
+	parsedType, err := ParseInstanceType(instanceType)
+	if err != nil {
+		return false, err
+	}
+
+	if !_gpuInstanceFamilies.Has(parsedType.Family) {
+		return false, nil
+	}
+
+	if parsedType.Capabilities.Has("a") {
 		return true, nil
 	}
 
