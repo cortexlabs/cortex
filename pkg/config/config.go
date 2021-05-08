@@ -36,10 +36,6 @@ import (
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 )
 
-const (
-	_clusterConfigPath = "/configs/cluster/cluster.yaml"
-)
-
 var (
 	OperatorMetadata *clusterconfig.OperatorMetadata
 
@@ -71,7 +67,7 @@ func Init() error {
 
 	clusterConfigPath := os.Getenv("CORTEX_CLUSTER_CONFIG_PATH")
 	if clusterConfigPath == "" {
-		clusterConfigPath = _clusterConfigPath
+		clusterConfigPath = consts.DefaultInClusterConfigPath
 	}
 
 	clusterConfig, err := clusterconfig.NewForFile(clusterConfigPath)

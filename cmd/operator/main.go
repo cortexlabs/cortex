@@ -23,10 +23,10 @@ import (
 	"github.com/cortexlabs/cortex/pkg/config"
 	"github.com/cortexlabs/cortex/pkg/lib/cron"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/logging"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	"github.com/cortexlabs/cortex/pkg/operator/endpoints"
 	"github.com/cortexlabs/cortex/pkg/operator/lib/exit"
-	"github.com/cortexlabs/cortex/pkg/operator/lib/logging"
 	"github.com/cortexlabs/cortex/pkg/operator/operator"
 	"github.com/cortexlabs/cortex/pkg/operator/resources/asyncapi"
 	"github.com/cortexlabs/cortex/pkg/operator/resources/job/taskapi"
@@ -37,7 +37,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
-var operatorLogger = logging.GetOperatorLogger()
+var operatorLogger = logging.GetLogger()
 
 const _operatorPortStr = "8888"
 

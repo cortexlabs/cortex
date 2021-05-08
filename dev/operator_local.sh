@@ -76,7 +76,7 @@ fi
 export CORTEX_OPERATOR_IN_CLUSTER=false
 export CORTEX_CLUSTER_CONFIG_PATH=~/.cortex/cluster-dev.yaml
 export CORTEX_DISABLE_JSON_LOGGING=true
-export CORTEX_OPERATOR_LOG_LEVEL=debug
+export CORTEX_LOG_LEVEL=debug
 export CORTEX_PROMETHEUS_URL="http://localhost:9090"
 
 portForwardCMD="kubectl port-forward -n default prometheus-prometheus-0 9090"
@@ -89,17 +89,17 @@ mkdir -p $ROOT/bin
 
 if [ "$operator_only" = "true" ]; then
   kill $(pgrep -f rerun) >/dev/null 2>&1 || true
-  rerun -watch $ROOT/pkg $ROOT/dev/config -run sh -c \
-  "clear && echo 'building operator...' && go build -o $ROOT/bin/operator $ROOT/pkg/operator && echo 'starting local operator...' && $ROOT/bin/operator"
+  rerun -watch $ROOT/pkg $ROOT/dev/config $ROOT/cmd/operator -run sh -c \
+  "clear && echo 'building operator...' && go build -o $ROOT/bin/operator $ROOT/cmd/operator && echo 'starting local operator...' && $ROOT/bin/operator"
 elif [ "$debug" = "true" ]; then
-  DEBUG_CMD="dlv --listen=:2345 --headless=true --api-version=2 debug $ROOT/pkg/operator --output ${ROOT}/bin/__debug_bin"
+  DEBUG_CMD="dlv --listen=:2345 --headless=true --api-version=2 debug $ROOT/cmd/operator --output ${ROOT}/bin/__debug_bin"
   kill $(pgrep -f "${DEBUG_CMD}") >/dev/null 2>&1 || true
   kill $(pgrep -f __debug_bin) >/dev/null 2>&1 || true
   echo 'starting local operator in debug mode...' && eval "${DEBUG_CMD}"
 else
   kill $(pgrep -f rerun) >/dev/null 2>&1 || true
-  rerun -watch $ROOT/pkg $ROOT/cli $ROOT/dev/config -run sh -c \
-  "clear && echo 'building cli...' && go build -o $ROOT/bin/cortex $ROOT/cli && echo 'building operator...' && go build -o $ROOT/bin/operator $ROOT/pkg/operator && echo 'starting local operator...' && $ROOT/bin/operator"
+  rerun -watch $ROOT/pkg $ROOT/cli $ROOT/dev/config $ROOT/cmd/operator -run sh -c \
+  "clear && echo 'building cli...' && go build -o $ROOT/bin/cortex $ROOT/cli && echo 'building operator...' && go build -o $ROOT/bin/operator $ROOT/cmd/operator && echo 'starting local operator...' && $ROOT/bin/operator"
 fi
 
-# go run -race $ROOT/pkg/operator/main.go  # Check for race conditions. Doesn't seem to catch them all?
+# go run -race $ROOT/cmd/operator # Check for race conditions. Doesn't seem to catch them all?

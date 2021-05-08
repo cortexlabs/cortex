@@ -22,6 +22,7 @@ import (
 	"strings"
 
 	"github.com/cortexlabs/cortex/pkg/consts"
+	"github.com/cortexlabs/cortex/pkg/enqueuer"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
@@ -105,7 +106,7 @@ func main() {
 		log.Fatal("-jobID is a required option")
 	}
 
-	envConfig := EnvConfig{
+	envConfig := enqueuer.EnvConfig{
 		ClusterUID: clusterUID,
 		Region:     region,
 		Version:    version,
@@ -114,17 +115,17 @@ func main() {
 		JobID:      jobID,
 	}
 
-	enqueuer, err := NewEnqueuer(envConfig, queueURL, log)
+	eqr, err := enqueuer.NewEnqueuer(envConfig, queueURL, log)
 	if err != nil {
 		log.Fatal("failed to create enqueuer", zap.Error(err))
 	}
 
-	totalBatches, err := enqueuer.Enqueue()
+	totalBatches, err := eqr.Enqueue()
 	if err != nil {
 		log.Fatal("failed to enqueue batches", zap.Error(err))
 	}
 
-	if err = enqueuer.UploadBatchCount(totalBatches); err != nil {
+	if err = eqr.UploadBatchCount(totalBatches); err != nil {
 		log.Fatal("failed to upload batch count", zap.Error(err))
 	}
 

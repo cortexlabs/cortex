@@ -20,11 +20,11 @@ import (
 	"os"
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/logging"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
-	"github.com/cortexlabs/cortex/pkg/operator/lib/logging"
 )
 
-var operatorLogger = logging.GetOperatorLogger()
+var operatorLogger = logging.GetLogger()
 
 func ErrorNoTelemetry(err error, wrapStrs ...string) {
 	for _, str := range wrapStrs {
