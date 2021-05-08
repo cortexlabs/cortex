@@ -1269,6 +1269,14 @@ func validateInstanceType(instanceType string) (string, error) {
 		return "", ErrorARMInstancesNotSupported(instanceType)
 	}
 
+	isAMDGPU, err := aws.IsAMDGPUInstance(instanceType)
+	if err != nil {
+		return "", err
+	}
+	if isAMDGPU {
+		return "", ErrorAMDGPUInstancesNotSupported(instanceType)
+	}
+
 	if err := checkCNISupport(instanceType); err != nil {
 		return "", err
 	}

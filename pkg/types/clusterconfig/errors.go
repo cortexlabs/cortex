@@ -47,6 +47,7 @@ const (
 	ErrSpotPriceGreaterThanMaxPrice           = "clusterconfig.spot_price_greater_than_max_price"
 	ErrInstanceTypeNotSupportedByCortex       = "clusterconfig.instance_type_not_supported_by_cortex"
 	ErrARMInstancesNotSupported               = "clusterconfig.arm_instances_not_supported"
+	ErrAMDGPUInstancesNotSupported            = "clusterconfig.amd_gpu_instances_not_supported"
 	ErrAtLeastOneInstanceDistribution         = "clusterconfig.at_least_one_instance_distribution"
 	ErrNoCompatibleSpotInstanceFound          = "clusterconfig.no_compatible_spot_instance_found"
 	ErrConfiguredWhenSpotIsNotEnabled         = "clusterconfig.configured_when_spot_is_not_enabled"
@@ -203,7 +204,14 @@ func ErrorInstanceTypeNotSupportedByCortex(instanceType string) error {
 func ErrorARMInstancesNotSupported(instanceType string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrARMInstancesNotSupported,
-		Message: fmt.Sprintf("ARM-based instances (including %s) are not supported", instanceType),
+		Message: fmt.Sprintf("ARM-based instances (including %s) are not supported by cortex", instanceType),
+	})
+}
+
+func ErrorAMDGPUInstancesNotSupported(instanceType string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrAMDGPUInstancesNotSupported,
+		Message: fmt.Sprintf("AMD GPU instances (including %s) are not supported by cortex", instanceType),
 	})
 }
 
