@@ -30,9 +30,10 @@ import (
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 )
 
-var _digitsRegex = regexp.MustCompile(`[0-9]+`)
-
-var _gpu_instance_families = strset.New("g", "p")
+var (
+	_digitsRegex         = regexp.MustCompile(`[0-9]+`)
+	_gpuInstanceFamilies = strset.New("g", "p")
+)
 
 type ParsedInstanceType struct {
 	Family       string
@@ -125,7 +126,7 @@ func IsAMDGPUInstance(instanceType string) (bool, error) {
 		return false, err
 	}
 
-	if !_gpu_instance_families.Has(parsedType.Family) {
+	if !_gpuInstanceFamilies.Has(parsedType.Family) {
 		return false, nil
 	}
 
