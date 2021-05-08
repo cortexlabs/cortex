@@ -1034,7 +1034,7 @@ func (ng *NodeGroup) validateNodeGroup(awsClient *aws.Client, region string) err
 	}
 
 	if _, ok := aws.InstanceMetadatas[region][primaryInstanceType]; !ok {
-		return errors.Wrap(ErrorInstanceTypeNotSupported(primaryInstanceType), InstanceTypeKey)
+		return errors.Wrap(ErrorInstanceTypeNotSupportedByCortex(primaryInstanceType), InstanceTypeKey)
 	}
 
 	// throw error if IOPS defined for other storage than io1/gp3
@@ -1099,7 +1099,7 @@ func (ng *NodeGroup) validateNodeGroup(awsClient *aws.Client, region string) err
 			}
 
 			if _, ok := aws.InstanceMetadatas[region][instanceType]; !ok {
-				return errors.Wrap(ErrorInstanceTypeNotSupported(instanceType), SpotConfigKey, InstanceDistributionKey)
+				return errors.Wrap(ErrorInstanceTypeNotSupportedByCortex(instanceType), SpotConfigKey, InstanceDistributionKey)
 			}
 
 			instanceMetadata := aws.InstanceMetadatas[region][instanceType]
@@ -1155,7 +1155,7 @@ func checkCNISupport(instanceType string) error {
 	}
 
 	if !strings.Contains(*_cachedCNISupportedInstances, instanceType) {
-		return ErrorInstanceTypeNotSupported(instanceType)
+		return ErrorInstanceTypeNotSupportedByCortex(instanceType)
 	}
 
 	return nil
@@ -1258,7 +1258,7 @@ func validateInstanceType(instanceType string) (string, error) {
 		return "", err
 	}
 	if !isSupportedByNLB {
-		return "", ErrorInstanceTypeNotSupported(instanceType)
+		return "", ErrorInstanceTypeNotSupportedByCortex(instanceType)
 	}
 
 	isARM, err := aws.IsARMInstance(instanceType)
