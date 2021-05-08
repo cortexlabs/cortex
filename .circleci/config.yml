@@ -97,9 +97,8 @@ jobs:
           command: |
             mkdir -p dev/config
             cat \<< EOF > ./dev/config/cluster.yaml
-            cluster_name: cortex
+            cluster_name: cortex-nightly
             region: us-east-1
-            bucket: cortex-dev-nightly
             node_groups:
               - name: cpu
                 instance_type: m5.large
@@ -158,9 +157,8 @@ jobs:
           # using a variety of node groups to test the multi-instance-type cluster functionality
           command: |
             cat \<< EOF > ./cluster.yaml
-            cluster_name: cortex
+            cluster_name: cortex-nightly
             region: us-east-1
-            bucket: cortex-dev-nightly
             node_groups:
               - name: spot
                 instance_type: t3.medium
