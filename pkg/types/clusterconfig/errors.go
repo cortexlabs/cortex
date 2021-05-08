@@ -45,7 +45,7 @@ const (
 	ErrIncompatibleSpotInstanceTypeInf        = "clusterconfig.incompatible_spot_instance_type_inf"
 	ErrSpotPriceGreaterThanTargetOnDemand     = "clusterconfig.spot_price_greater_than_target_on_demand"
 	ErrSpotPriceGreaterThanMaxPrice           = "clusterconfig.spot_price_greater_than_max_price"
-	ErrInstanceTypeNotSupported               = "clusterconfig.instance_type_not_supported"
+	ErrInstanceTypeNotSupportedByCortex       = "clusterconfig.instance_type_not_supported_by_cortex"
 	ErrARMInstancesNotSupported               = "clusterconfig.arm_instances_not_supported"
 	ErrAtLeastOneInstanceDistribution         = "clusterconfig.at_least_one_instance_distribution"
 	ErrNoCompatibleSpotInstanceFound          = "clusterconfig.no_compatible_spot_instance_found"
@@ -63,7 +63,6 @@ const (
 	ErrDidNotMatchStrictS3Regex               = "clusterconfig.did_not_match_strict_s3_regex"
 	ErrNATRequiredWithPrivateSubnetVisibility = "clusterconfig.nat_required_with_private_subnet_visibility"
 	ErrS3RegionDiffersFromCluster             = "clusterconfig.s3_region_differs_from_cluster"
-	ErrInvalidInstanceType                    = "clusterconfig.invalid_instance_type"
 	ErrIOPSNotSupported                       = "clusterconfig.iops_not_supported"
 	ErrThroughputNotSupported                 = "clusterconfig.throughput_not_supported"
 	ErrIOPSTooSmall                           = "clusterconfig.iops_too_small"
@@ -131,10 +130,10 @@ func ErrorDuplicateNodeGroupName(duplicateNgName string) error {
 	})
 }
 
-func ErrorInstanceTypeTooSmall() error {
+func ErrorInstanceTypeTooSmall(instanceType string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrInstanceTypeTooSmall,
-		Message: "cortex does not support nano or micro instances - please specify a larger instance type",
+		Message: fmt.Sprintf("%s: cortex does not support nano or micro instances - please specify a larger instance type", instanceType),
 	})
 }
 
@@ -194,10 +193,10 @@ func ErrorSpotPriceGreaterThanMaxPrice(suggestedSpotPrice float64, maxPrice floa
 	})
 }
 
-func ErrorInstanceTypeNotSupported(instanceType string) error {
+func ErrorInstanceTypeNotSupportedByCortex(instanceType string) error {
 	return errors.WithStack(&errors.Error{
-		Kind:    ErrInstanceTypeNotSupported,
-		Message: fmt.Sprintf("instance type %s is not supported", instanceType),
+		Kind:    ErrInstanceTypeNotSupportedByCortex,
+		Message: fmt.Sprintf("instance type %s is not supported by cortex", instanceType),
 	})
 }
 
@@ -330,13 +329,6 @@ func ErrorS3RegionDiffersFromCluster(bucketName string, bucketRegion string, clu
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrS3RegionDiffersFromCluster,
 		Message: fmt.Sprintf("the %s bucket already exists but is in %s (your cluster is in %s); either change the region of your cluster to %s or delete your bucket to allow cortex to create the bucket for you in %s", bucketName, bucketRegion, clusterRegion, bucketRegion, clusterRegion),
-	})
-}
-
-func ErrorInvalidInstanceType(instanceType string) error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrInvalidInstanceType,
-		Message: fmt.Sprintf("%s is not a valid instance type", instanceType),
 	})
 }
 

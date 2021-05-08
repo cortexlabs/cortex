@@ -30,20 +30,91 @@ import (
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 )
 
-// aws instance types take this form: (\w+)([0-9]+)(\w*).(\w+)
-// the first group is the instance series, e.g. "m", "t", "g", "inf", ...
-// the second group is a version number for that series, e.g. 3, 4, ...
-// the third group is optional, and is a set of single-character "flags"
+var _digitsRegex = regexp.MustCompile(`[0-9]+`)
+
+type ParsedInstanceType struct {
+	Family       string
+	Generation   int
+	Capabilities strset.Set
+	Size         string
+}
+
+// Checks weather the input is an AWS instance type
+func IsValidInstanceType(instanceType string) bool {
+	return AllInstanceTypes.Has(instanceType)
+}
+
+// Checks whether the input is an AWS instance type
+func CheckValidInstanceType(instanceType string) error {
+	if !IsValidInstanceType(instanceType) {
+		return ErrorInvalidInstanceType(instanceType)
+	}
+	return nil
+}
+
+// AWS instance types take the form of: [family][generation][capabilities].[size]
+// the first group is the instance family, e.g. "m", "t", "g", "inf", ...
+// the second group is a generation number for that series, e.g. 3, 4, ...
+// the third group is optional, and is a set of single-character capabilities
 //   "g" represents ARM (graviton), "a" for AMD, "n" for fast networking, "d" for fast storage, etc.
 // the fourth and final group (after the dot) is the instance size, e.g. "large"
-var _armInstanceCapabilityRegex = regexp.MustCompile(`^\w+[0-9]+\w*g\w*\.\w+$`)
-
-// instanceType is assumed to be a valid instance type that exists in AWS, e.g. g4dn.xlarge
-func IsARMInstance(instanceType string) bool {
-	if strings.HasPrefix(instanceType, "a") {
-		return true
+func ParseInstanceType(instanceType string) (ParsedInstanceType, error) {
+	if err := CheckValidInstanceType(instanceType); err != nil {
+		return ParsedInstanceType{}, err
 	}
-	return _armInstanceCapabilityRegex.MatchString(instanceType)
+
+	parts := strings.Split(instanceType, ".")
+	if len(parts) != 2 {
+		return ParsedInstanceType{}, errors.ErrorUnexpected("unexpected invalid instance type: " + instanceType)
+	}
+
+	prefix := parts[0]
+	size := parts[1]
+
+	digitSets := _digitsRegex.FindAllString(prefix, -1)
+	if len(digitSets) == 0 {
+		return ParsedInstanceType{}, errors.ErrorUnexpected("unexpected invalid instance type: " + instanceType)
+	}
+
+	prefixParts := _digitsRegex.Split(prefix, -1)
+	capabilitiesStr := prefixParts[len(prefixParts)-1]
+	capabilities := strset.FromSlice(strings.Split(capabilitiesStr, ""))
+
+	generationStr := digitSets[len(digitSets)-1]
+	generation, ok := s.ParseInt(generationStr)
+	if !ok {
+		return ParsedInstanceType{}, errors.ErrorUnexpected("unexpected invalid instance type: " + instanceType)
+	}
+
+	generationIndex := strings.LastIndex(prefix, generationStr)
+	if generationIndex == -1 {
+		return ParsedInstanceType{}, errors.ErrorUnexpected("unexpected invalid instance type: " + instanceType)
+	}
+	family := prefix[:generationIndex]
+
+	return ParsedInstanceType{
+		Family:       family,
+		Generation:   generation,
+		Capabilities: capabilities,
+		Size:         size,
+	}, nil
+}
+
+func IsARMInstance(instanceType string) (bool, error) {
+	parsedType, err := ParseInstanceType(instanceType)
+	if err != nil {
+		return false, err
+	}
+
+	if parsedType.Family == "a" {
+		return true, nil
+	}
+
+	if parsedType.Capabilities.Has("g") {
+		return true, nil
+	}
+
+	return false, nil
 }
 
 func (c *Client) SpotInstancePrice(instanceType string) (float64, error) {
