@@ -32,6 +32,8 @@ import (
 
 var _digitsRegex = regexp.MustCompile(`[0-9]+`)
 
+var _gpu_instance_families = strset.New("g", "p")
+
 type ParsedInstanceType struct {
 	Family       string
 	Generation   int
@@ -111,6 +113,23 @@ func IsARMInstance(instanceType string) (bool, error) {
 	}
 
 	if parsedType.Capabilities.Has("g") {
+		return true, nil
+	}
+
+	return false, nil
+}
+
+func IsAMDGPUInstance(instanceType string) (bool, error) {
+	parsedType, err := ParseInstanceType(instanceType)
+	if err != nil {
+		return false, err
+	}
+
+	if !_gpu_instance_families.Has(parsedType.Family) {
+		return false, nil
+	}
+
+	if parsedType.Capabilities.Has("a") {
 		return true, nil
 	}
 
