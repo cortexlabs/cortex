@@ -916,7 +916,7 @@ func printInfoNodes(infoResponse *schema.InfoResponse) {
 		{Title: "instance type"},
 		{Title: "lifecycle"},
 		{Title: "replicas"},
-		{Title: "async gateway replicas", Hidden: doesClusterHaveAsyncAPIs},
+		{Title: "async gateway replicas", Hidden: !doesClusterHaveAsyncAPIs},
 		{Title: "CPU (requested / total allocatable)"},
 		{Title: "memory (requested / total allocatable)"},
 		{Title: "GPU (requested / total allocatable)", Hidden: !doesClusterHaveGPUs},
