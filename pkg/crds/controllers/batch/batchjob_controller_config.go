@@ -23,16 +23,16 @@ import (
 
 // BatchJobReconcilerConfig reconciler config for the BatchJob kind. Allows for mocking specific methods
 type BatchJobReconcilerConfig struct {
-	GetMaxBatchCount func(r *BatchJobReconciler, batchJob batch.BatchJob) (int, error)
-	GetMetrics       func(r *BatchJobReconciler, batchJob batch.BatchJob) (metrics.BatchMetrics, error)
-	SaveJobMetrics   func(r *BatchJobReconciler, batchJob batch.BatchJob) error
-	SaveJobStatus    func(r *BatchJobReconciler, batchJob batch.BatchJob) error
+	GetTotalBatchCount func(r *BatchJobReconciler, batchJob batch.BatchJob) (int, error)
+	GetMetrics         func(r *BatchJobReconciler, batchJob batch.BatchJob) (metrics.BatchMetrics, error)
+	SaveJobMetrics     func(r *BatchJobReconciler, batchJob batch.BatchJob) error
+	SaveJobStatus      func(r *BatchJobReconciler, batchJob batch.BatchJob) error
 }
 
 // ApplyDefaults sets the defaults for BatchJobReconcilerConfig
 func (c BatchJobReconcilerConfig) ApplyDefaults() BatchJobReconcilerConfig {
-	if c.GetMaxBatchCount == nil {
-		c.GetMaxBatchCount = getMaxBatchCount
+	if c.GetTotalBatchCount == nil {
+		c.GetTotalBatchCount = getTotalBatchCount
 	}
 
 	if c.GetMetrics == nil {

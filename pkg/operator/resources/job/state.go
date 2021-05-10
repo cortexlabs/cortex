@@ -24,6 +24,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/config"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
+	"github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/types/status"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
@@ -65,7 +66,7 @@ func (j State) GetFirstCreated() time.Time {
 }
 
 // Doesn't assume only status files are present. The order below matters.
-func GetStatusCode(lastUpdatedMap map[string]time.Time) status.JobCode {
+func GetTaskStatusCode(lastUpdatedMap map[string]time.Time) status.JobCode {
 	if _, ok := lastUpdatedMap[status.JobStopped.String()]; ok {
 		return status.JobStopped
 	}
@@ -106,6 +107,58 @@ func GetStatusCode(lastUpdatedMap map[string]time.Time) status.JobCode {
 		return status.JobEnqueuing
 	}
 
+	if _, ok := lastUpdatedMap[status.JobPending.String()]; ok {
+		return status.JobPending
+	}
+
+	return status.JobUnknown
+}
+
+func GetBatchStatusCode(lastUpdatedMap map[string]time.Time) status.JobCode {
+	if _, ok := lastUpdatedMap[status.JobTimedOut.String()]; ok {
+		return status.JobTimedOut
+	}
+
+	if _, ok := lastUpdatedMap[status.JobWorkerOOM.String()]; ok {
+		return status.JobWorkerOOM
+	}
+
+	if _, ok := lastUpdatedMap[status.JobWorkerError.String()]; ok {
+		return status.JobWorkerError
+	}
+
+	if _, ok := lastUpdatedMap[status.JobEnqueueFailed.String()]; ok {
+		return status.JobEnqueueFailed
+	}
+
+	if _, ok := lastUpdatedMap[status.JobUnexpectedError.String()]; ok {
+		return status.JobUnexpectedError
+	}
+
+	if _, ok := lastUpdatedMap[status.JobCompletedWithFailures.String()]; ok {
+		return status.JobCompletedWithFailures
+	}
+
+	if _, ok := lastUpdatedMap[status.JobSucceeded.String()]; ok {
+		return status.JobSucceeded
+	}
+
+	if _, ok := lastUpdatedMap[status.JobStopped.String()]; ok {
+		return status.JobStopped
+	}
+
+	if _, ok := lastUpdatedMap[status.JobRunning.String()]; ok {
+		return status.JobRunning
+	}
+
+	if _, ok := lastUpdatedMap[status.JobEnqueuing.String()]; ok {
+		return status.JobEnqueuing
+	}
+
+	if _, ok := lastUpdatedMap[status.JobPending.String()]; ok {
+		return status.JobPending
+	}
+
 	return status.JobUnknown
 }
 
@@ -129,7 +182,13 @@ func GetJobState(jobKey spec.JobKey) (*State, error) {
 }
 
 func getJobStateFromFiles(jobKey spec.JobKey, lastUpdatedFileMap map[string]time.Time) State {
-	statusCode := GetStatusCode(lastUpdatedFileMap)
+	var statusCode status.JobCode
+	switch jobKey.Kind {
+	case userconfig.BatchAPIKind:
+		statusCode = GetBatchStatusCode(lastUpdatedFileMap)
+	case userconfig.TaskAPIKind:
+		statusCode = GetTaskStatusCode(lastUpdatedFileMap)
+	}
 
 	var jobEndTime *time.Time
 	if statusCode.IsCompleted() {
@@ -148,9 +207,11 @@ func getJobStateFromFiles(jobKey spec.JobKey, lastUpdatedFileMap map[string]time
 
 func GetMostRecentlySubmittedJobStates(apiName string, count int, kind userconfig.Kind) ([]*State, error) {
 	// a single job state may include 5 files on average, overshoot the number of files needed
+	apiPrefix := strings.EnsureSuffix(spec.JobAPIPrefix(config.ClusterConfig.ClusterUID, kind, apiName), "/")
+
 	s3Objects, err := config.AWS.ListS3Prefix(
 		config.ClusterConfig.Bucket,
-		spec.JobAPIPrefix(config.ClusterConfig.ClusterUID, kind, apiName),
+		apiPrefix,
 		false,
 		pointer.Int64(int64(count*_averageFilesPerJobState)),
 		nil,
@@ -181,6 +242,14 @@ func GetMostRecentlySubmittedJobStates(apiName string, count int, kind userconfi
 
 	jobStateCount := 0
 	for _, jobID := range jobIDOrder {
+
+		// it is possible to have fragmented deletes, spec.json should always be there
+		_, found := lastUpdatedMaps[jobID]["spec.json"]
+		if !found {
+			go config.AWS.DeleteS3Dir(config.ClusterConfig.Bucket, path.Join(apiPrefix, jobID), true)
+			continue
+		}
+
 		jobState := getJobStateFromFiles(spec.JobKey{
 			APIName: apiName,
 			ID:      jobID,

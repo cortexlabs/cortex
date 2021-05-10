@@ -56,6 +56,7 @@ type BatchJobReconciler struct {
 // +kubebuilder:rbac:groups=batch.cortex.dev,resources=batchjobs/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=batch.cortex.dev,resources=batchjobs/finalizers,verbs=update
 // +kubebuilder:rbac:groups=batch,resources=jobs,verbs=get;list;watch;create;update;patch
+// +kubebuilder:rbac:groups="",resources=pods,verbs=get;list;watch
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
@@ -150,12 +151,18 @@ func (r *BatchJobReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		return ctrl.Result{}, err
 	}
 
+	var totalBatchCount int
+	if enqueuingStatus == batch.EnqueuingDone {
+		totalBatchCount, err = r.Config.GetTotalBatchCount(r, batchJob)
+	}
+
 	workerJobExists := workerJob != nil
 	statusInfo := batchJobStatusInfo{
 		QueueExists:     queueExists,
 		EnqueuingStatus: enqueuingStatus,
 		EnqueuerJob:     enqueuerJob,
 		WorkerJob:       workerJob,
+		TotalBatchCount: totalBatchCount,
 	}
 
 	log.V(1).Info("status data successfully acquired",

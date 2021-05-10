@@ -22,8 +22,7 @@ type JobCode int
 
 // Possible values for JobCode
 const (
-	JobUnknown JobCode = iota
-	JobPending
+	JobPending JobCode = iota // pending should be the first status in this list
 	JobEnqueuing
 	JobRunning
 	JobEnqueueFailed
@@ -34,10 +33,10 @@ const (
 	JobWorkerOOM
 	JobTimedOut
 	JobStopped
+	JobUnknown
 )
 
 var _jobCodes = []string{
-	"unknown",
 	"pending",
 	"enqueuing",
 	"running",
@@ -49,12 +48,12 @@ var _jobCodes = []string{
 	"worker_oom",
 	"timed_out",
 	"stopped",
+	"unknown",
 }
 
-var _ = [1]int{}[int(JobStopped)-(len(_jobCodes)-1)] // Ensure list length matches
+var _ = [1]int{}[int(JobUnknown)-(len(_jobCodes)-1)] // Ensure list length matches
 
 var _jobCodeMessages = []string{
-	"unknown",
 	"pending",
 	"enqueuing",
 	"running",
@@ -66,9 +65,10 @@ var _jobCodeMessages = []string{
 	"out of memory",
 	"timed out",
 	"stopped",
+	"unknown",
 }
 
-var _ = [1]int{}[int(JobStopped)-(len(_jobCodeMessages)-1)] // Ensure list length matches
+var _ = [1]int{}[int(JobUnknown)-(len(_jobCodeMessages)-1)] // Ensure list length matches
 
 func (code JobCode) IsNotStarted() bool {
 	return code == JobPending || code == JobEnqueuing
