@@ -76,6 +76,7 @@
                 "iam:ListInstanceProfiles",
                 "logs:CreateLogGroup",
                 "logs:PutLogEvents",
+                "logs:DeleteLogGroup",
                 "iam:CreateOpenIDConnectProvider",
                 "iam:GetOpenIDConnectProvider",
                 "iam:GetRolePolicy"

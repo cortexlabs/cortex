@@ -57,17 +57,17 @@ import (
 )
 
 var (
-	_flagClusterUpEnv             string
-	_flagClusterInfoEnv           string
-	_flagClusterScaleNodeGroup    string
-	_flagClusterScaleMinInstances int64
-	_flagClusterScaleMaxInstances int64
-	_flagClusterConfig            string
-	_flagClusterName              string
-	_flagClusterRegion            string
-	_flagClusterInfoDebug         bool
-	_flagClusterDisallowPrompt    bool
-	_flagClusterDownKeepVolumes   bool
+	_flagClusterUpEnv                string
+	_flagClusterInfoEnv              string
+	_flagClusterScaleNodeGroup       string
+	_flagClusterScaleMinInstances    int64
+	_flagClusterScaleMaxInstances    int64
+	_flagClusterConfig               string
+	_flagClusterName                 string
+	_flagClusterRegion               string
+	_flagClusterInfoDebug            bool
+	_flagClusterDisallowPrompt       bool
+	_flagClusterDownKeepAWSResources bool
 )
 
 var _eksctlPrefixRegex = regexp.MustCompile(`^.*[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2} \[.+] {2}`)
@@ -100,7 +100,7 @@ func clusterInit() {
 	addClusterNameFlag(_clusterDownCmd)
 	addClusterRegionFlag(_clusterDownCmd)
 	_clusterDownCmd.Flags().BoolVarP(&_flagClusterDisallowPrompt, "yes", "y", false, "skip prompts")
-	_clusterDownCmd.Flags().BoolVar(&_flagClusterDownKeepVolumes, "keep-volumes", false, "keep cortex provisioned persistent volumes")
+	_clusterDownCmd.Flags().BoolVar(&_flagClusterDownKeepAWSResources, "keep-aws-resources", false, "skip deletion of resources that cortex provisioned on aws (bucket contents, ebs volumes, log group)")
 	_clusterCmd.AddCommand(_clusterDownCmd)
 
 	_clusterExportCmd.Flags().SortFlags = false
@@ -437,33 +437,9 @@ var _clusterDownCmd = &cobra.Command{
 		bucketName := clusterconfig.BucketName(accountID, accessConfig.ClusterName, accessConfig.Region)
 
 		warnIfNotAdmin(awsClient)
+		fmt.Println()
 
-		clusterState, err := clusterstate.GetClusterState(awsClient, accessConfig)
-		if err != nil && errors.GetKind(err) != clusterstate.ErrUnexpectedCloudFormationStatus {
-			exit.Error(err)
-		}
-		if err == nil {
-			switch clusterState.Status {
-			case clusterstate.StatusNotFound:
-				exit.Error(clusterstate.ErrorClusterDoesNotExist(accessConfig.ClusterName, accessConfig.Region))
-			case clusterstate.StatusDeleteComplete:
-				// silently clean up
-				awsClient.DeleteQueuesWithPrefix(clusterconfig.SQSNamePrefix(accessConfig.ClusterName))
-				awsClient.DeletePolicy(clusterconfig.DefaultPolicyARN(accountID, accessConfig.ClusterName, accessConfig.Region))
-				if !_flagClusterDownKeepVolumes {
-					volumes, err := listPVCVolumesForCluster(awsClient, accessConfig.ClusterName)
-					if err == nil {
-						for _, volume := range volumes {
-							awsClient.DeleteVolume(*volume.VolumeId)
-						}
-					}
-				}
-				exit.Error(clusterstate.ErrorClusterAlreadyDeleted(accessConfig.ClusterName, accessConfig.Region))
-			}
-		}
-
-		// updating CLI env is best-effort, so ignore errors
-		loadBalancer, _ := getLoadBalancer(accessConfig.ClusterName, OperatorLoadBalancer, awsClient)
+		errorsList := []error{}
 
 		if _flagClusterDisallowPrompt {
 			fmt.Printf("your cluster named \"%s\" in %s will be spun down and all apis will be deleted\n\n", accessConfig.ClusterName, accessConfig.Region)
@@ -471,63 +447,145 @@ var _clusterDownCmd = &cobra.Command{
 			prompt.YesOrExit(fmt.Sprintf("your cluster named \"%s\" in %s will be spun down and all apis will be deleted, are you sure you want to continue?", accessConfig.ClusterName, accessConfig.Region), "", "")
 		}
 
-		fmt.Print("￮ deleting sqs queues ")
-		err = awsClient.DeleteQueuesWithPrefix(clusterconfig.SQSNamePrefix(accessConfig.ClusterName))
+		fmt.Print("￮ retrieving cluster ... ")
+		var clusterExists bool
+		clusterState, err := clusterstate.GetClusterState(awsClient, accessConfig)
 		if err != nil {
+			errorsList = append(errorsList, err)
+			fmt.Print("failed ✗")
+			fmt.Printf("\n\ncouldn't retrieve cluster state; check the cluster stacks in the cloudformation console: https://%s.console.aws.amazon.com/cloudformation\n", accessConfig.Region)
+			errors.PrintError(err)
+			fmt.Println()
+		} else {
+			switch clusterState.Status {
+			case clusterstate.StatusNotFound:
+				fmt.Println("cluster doesn't exist ✓")
+			case clusterstate.StatusDeleteComplete:
+				awsClient.DeleteQueuesWithPrefix(clusterconfig.SQSNamePrefix(accessConfig.ClusterName))
+				awsClient.DeletePolicy(clusterconfig.DefaultPolicyARN(accountID, accessConfig.ClusterName, accessConfig.Region))
+				if !_flagClusterDownKeepAWSResources {
+					volumes, err := listPVCVolumesForCluster(awsClient, accessConfig.ClusterName)
+					if err == nil {
+						for _, volume := range volumes {
+							awsClient.DeleteVolume(*volume.VolumeId)
+						}
+					}
+				}
+				fmt.Println("already deleted ✓")
+			default:
+				fmt.Println("found ✓")
+				clusterExists = true
+			}
+		}
+
+		// updating CLI env is best-effort, so ignore errors
+		loadBalancer, _ := getLoadBalancer(accessConfig.ClusterName, OperatorLoadBalancer, awsClient)
+
+		fmt.Print("￮ deleting sqs queues ... ")
+		if queueExists, err := awsClient.DoesQueueExist(clusterconfig.SQSNamePrefix(accessConfig.ClusterName)); err != nil {
+			errorsList = append(errorsList, err)
+			fmt.Print("failed ✗")
 			fmt.Printf("\n\nfailed to delete all sqs queues; please delete queues starting with the name %s via the cloudwatch console: https://%s.console.aws.amazon.com/sqs/v2/home\n", clusterconfig.SQSNamePrefix(accessConfig.ClusterName), accessConfig.Region)
 			errors.PrintError(err)
 			fmt.Println()
+		} else if !queueExists {
+			fmt.Println("no sqs queues exist ✓")
 		} else {
-			fmt.Println("✓")
-		}
-
-		fmt.Print("￮ spinning down the cluster ...")
-
-		out, exitCode, err := runManagerAccessCommand("/root/uninstall.sh", *accessConfig, awsClient, nil, nil)
-		if err != nil {
-			errors.PrintError(err)
-			fmt.Println()
-		} else if exitCode == nil || *exitCode != 0 {
-			out = filterEKSCTLOutput(out)
-			template := "\nNote: if this error cannot be resolved, please ensure that all CloudFormation stacks for this cluster eventually become fully deleted (%s)."
-			template += " If the stack deletion process has failed, please delete the stacks directly from the AWS console (this may require manually deleting particular AWS resources that are blocking the stack deletion)."
-			template += " In addition to deleting the stacks manually from the AWS console, also make sure to empty and remove the %s bucket"
-			helpStr := fmt.Sprintf(template, clusterstate.CloudFormationURL(accessConfig.ClusterName, accessConfig.Region), bucketName)
-			fmt.Println(helpStr)
-			exit.Error(ErrorClusterDown(out + helpStr))
-		}
-
-		// set lifecycle policy to clean the bucket
-		fmt.Printf("￮ setting lifecycle policy to empty the %s bucket ", bucketName)
-		err = setLifecycleRulesOnClusterDown(awsClient, bucketName)
-		if err != nil {
-			fmt.Printf("\n\nfailed to set lifecycle policy to empty the %s bucket; you can remove the bucket manually via the s3 console: https://s3.console.aws.amazon.com/s3/management/%s\n", bucketName, bucketName)
-			errors.PrintError(err)
-			fmt.Println()
-		}
-		fmt.Println("✓")
-
-		// delete policy after spinning down the cluster (which deletes the roles) because policies can't be deleted if they are attached to roles
-		policyARN := clusterconfig.DefaultPolicyARN(accountID, accessConfig.ClusterName, accessConfig.Region)
-		fmt.Printf("￮ deleting auto-generated iam policy %s ", policyARN)
-		err = awsClient.DeletePolicy(policyARN)
-		if err != nil {
-			fmt.Printf("\n\nfailed to delete auto-generated cortex policy %s; please delete the policy via the iam console: https://console.aws.amazon.com/iam/home#/policies\n", policyARN)
-			errors.PrintError(err)
-			fmt.Println()
-		} else {
-			fmt.Println("✓")
-		}
-
-		// delete EBS volumes
-		if !_flagClusterDownKeepVolumes {
-			volumes, err := listPVCVolumesForCluster(awsClient, accessConfig.ClusterName)
+			err = awsClient.DeleteQueuesWithPrefix(clusterconfig.SQSNamePrefix(accessConfig.ClusterName))
 			if err != nil {
-				fmt.Println("\nfailed to list volumes for deletion; please delete any volumes associated with your cluster via the ec2 console: https://console.aws.amazon.com/ec2/v2/home?#Volumes")
+				fmt.Print("failed ✗")
+				errorsList = append(errorsList, err)
+				fmt.Printf("\n\nfailed to delete all sqs queues; please delete queues starting with the name %s via the cloudwatch console: https://%s.console.aws.amazon.com/sqs/v2/home\n", clusterconfig.SQSNamePrefix(accessConfig.ClusterName), accessConfig.Region)
 				errors.PrintError(err)
 				fmt.Println()
 			} else {
-				fmt.Print("￮ deleting ebs volumes ")
+				fmt.Println("✓")
+			}
+		}
+
+		clusterDoesntExist := !clusterExists
+		if clusterExists {
+			fmt.Print("￮ spinning down the cluster ...")
+			out, exitCode, err := runManagerAccessCommand("/root/uninstall.sh", *accessConfig, awsClient, nil, nil)
+			if err != nil {
+				errorsList = append(errorsList, err)
+				fmt.Println()
+				errors.PrintError(err)
+			} else if exitCode == nil || *exitCode != 0 {
+				template := "\nNote: if this error cannot be resolved, please ensure that all CloudFormation stacks for this cluster eventually become fully deleted (%s)."
+				template += " If the stack deletion process has failed, please delete the stacks directly from the AWS console (this may require manually deleting particular AWS resources that are blocking the stack deletion)."
+				template += " In addition to deleting the stacks manually from the AWS console, also make sure to empty and remove the %s bucket"
+				helpStr := fmt.Sprintf(template, clusterstate.CloudFormationURL(accessConfig.ClusterName, accessConfig.Region), bucketName)
+				fmt.Println(helpStr)
+				errorsList = append(errorsList, ErrorClusterDown(filterEKSCTLOutput(out)+helpStr))
+			} else {
+				clusterDoesntExist = true
+			}
+			fmt.Println()
+		}
+
+		// set lifecycle policy to clean the bucket
+		var bucketExists bool
+		if !_flagClusterDownKeepAWSResources {
+			fmt.Printf("￮ setting lifecycle policy to empty the %s bucket ... ", bucketName)
+			bucketExists, err := awsClient.DoesBucketExist(bucketName)
+			if err != nil {
+				errorsList = append(errorsList, err)
+				fmt.Print("failed ✗")
+				fmt.Printf("\n\nfailed to set lifecycle policy to empty the %s bucket; you can remove the bucket manually via the s3 console: https://s3.console.aws.amazon.com/s3/management/%s\n", bucketName, bucketName)
+				errors.PrintError(err)
+				fmt.Println()
+			} else if !bucketExists {
+				fmt.Println("bucket doesn't exist ✗")
+			} else {
+				err = setLifecycleRulesOnClusterDown(awsClient, bucketName)
+				if err != nil {
+					errorsList = append(errorsList, err)
+					fmt.Print("failed ✗")
+					fmt.Printf("\n\nfailed to set lifecycle policy to empty the %s bucket; you can remove the bucket manually via the s3 console: https://s3.console.aws.amazon.com/s3/management/%s\n", bucketName, bucketName)
+					errors.PrintError(err)
+					fmt.Println()
+				} else {
+					fmt.Println("✓")
+				}
+			}
+		}
+
+		// delete policy after spinning down the cluster (which deletes the roles) because policies can't be deleted if they are attached to roles
+		if clusterDoesntExist {
+			policyARN := clusterconfig.DefaultPolicyARN(accountID, accessConfig.ClusterName, accessConfig.Region)
+			fmt.Printf("￮ deleting auto-generated iam policy %s ... ", policyARN)
+			if policy, err := awsClient.GetPolicyOrNil(policyARN); err != nil {
+				errorsList = append(errorsList, err)
+				fmt.Print("failed ✗")
+				fmt.Printf("\n\nfailed to delete auto-generated cortex policy %s; please delete the policy via the iam console: https://console.aws.amazon.com/iam/home#/policies\n", policyARN)
+				errors.PrintError(err)
+				fmt.Println()
+			} else if policy == nil {
+				fmt.Println("policy doesn't exist ✓")
+			} else {
+				err = awsClient.DeletePolicy(policyARN)
+				if err != nil {
+					errorsList = append(errorsList, err)
+					fmt.Print("failed ✗")
+					fmt.Printf("\n\nfailed to delete auto-generated cortex policy %s; please delete the policy via the iam console: https://console.aws.amazon.com/iam/home#/policies\n", policyARN)
+					errors.PrintError(err)
+					fmt.Println()
+				} else {
+					fmt.Println("✓")
+				}
+			}
+		}
+
+		if !_flagClusterDownKeepAWSResources {
+			fmt.Print("￮ deleting ebs volumes ... ")
+			volumes, err := listPVCVolumesForCluster(awsClient, accessConfig.ClusterName)
+			if err != nil {
+				errorsList = append(errorsList, err)
+				fmt.Println("\n\nfailed to list volumes for deletion; please delete any volumes associated with your cluster via the ec2 console: https://console.aws.amazon.com/ec2/v2/home?#Volumes")
+				errors.PrintError(err)
+				fmt.Println()
+			} else {
 				var failedToDeleteVolumes []string
 				var lastErr error
 				for _, volume := range volumes {
@@ -537,7 +595,10 @@ var _clusterDownCmd = &cobra.Command{
 						lastErr = err
 					}
 				}
-				if lastErr != nil {
+				if len(volumes) == 0 {
+					fmt.Println("no ebs volumes exist ✓")
+				} else if lastErr != nil {
+					errorsList = append(errorsList, lastErr)
 					fmt.Printf("\n\nfailed to delete %s %s; please delete %s via the ec2 console: https://console.aws.amazon.com/ec2/v2/home?#Volumes\n", s.PluralS("volume", len(failedToDeleteVolumes)), s.UserStrsAnd(failedToDeleteVolumes), s.PluralCustom("it", "them", len(failedToDeleteVolumes)))
 					errors.PrintError(lastErr)
 					fmt.Println()
@@ -545,7 +606,45 @@ var _clusterDownCmd = &cobra.Command{
 					fmt.Println("✓")
 				}
 			}
+
+			fmt.Printf("￮ deleting log group %s ... ", accessConfig.ClusterName)
+			logGroupExists, err := awsClient.DoesLogGroupExist(accessConfig.ClusterName)
+			if err != nil {
+				errorsList = append(errorsList, err)
+				fmt.Print("failed ✗")
+				fmt.Printf("\n\nfailed to list log group for deletion; please delete the log group associated with your cluster via the ec2 console: https://%s.console.aws.amazon.com/cloudwatch/home?#logsV2:log-groups\n", accessConfig.Region)
+				errors.PrintError(err)
+				fmt.Println()
+			} else {
+				if !logGroupExists {
+					fmt.Println("log group doesn't exist ✓")
+				} else {
+					err = awsClient.DeleteLogGroup(accessConfig.ClusterName)
+					if err != nil {
+						errorsList = append(errorsList, err)
+						fmt.Print("failed ✗")
+						fmt.Printf("\n\nfailed to delete log group %s; please delete the log group associated with your cluster via the ec2 console: https://%s.console.aws.amazon.com/cloudwatch/home?#logsV2:log-groups\n", accessConfig.ClusterName, accessConfig.Region)
+						errors.PrintError(err)
+						fmt.Println()
+					} else {
+						fmt.Println("✓")
+					}
+				}
+			}
 		}
+
+		// best-effort deletion of cached config
+		cachedClusterConfigPath := cachedClusterConfigPath(accessConfig.ClusterName, accessConfig.Region)
+		os.Remove(cachedClusterConfigPath)
+
+		if len(errorsList) > 0 {
+			exit.Error(errors.ListOfErrors(ErrClusterDown, false, errorsList...))
+		}
+		fmt.Printf("\nplease check CloudFormation to ensure that all resources for the %s cluster eventually become successfully deleted: %s\n", accessConfig.ClusterName, clusterstate.CloudFormationURL(accessConfig.ClusterName, accessConfig.Region))
+		if !_flagClusterDownKeepAWSResources && bucketExists {
+			fmt.Printf("\na lifecycle rule has been applied to the cluster's %s bucket to empty its contents within the next 24 hours; you can delete the %s bucket via the s3 console once it has been emptied (or you can empty and delete it now): https://s3.console.aws.amazon.com/s3/management/%s\n", bucketName, bucketName, bucketName)
+		}
+		fmt.Println()
 
 		// best-effort deletion of cli environment(s)
 		if loadBalancer != nil {
@@ -569,12 +668,6 @@ var _clusterDownCmd = &cobra.Command{
 				}
 			}
 		}
-
-		fmt.Printf("\nplease check CloudFormation to ensure that all resources for the %s cluster eventually become successfully deleted: %s\n", accessConfig.ClusterName, clusterstate.CloudFormationURL(accessConfig.ClusterName, accessConfig.Region))
-		fmt.Printf("\na lifecycle rule has been applied to the cluster’s %s bucket to empty its contents later today; you can delete the %s bucket via the s3 console once it has been emptied: https://s3.console.aws.amazon.com/s3/management/%s\n", bucketName, bucketName, bucketName)
-
-		cachedClusterConfigPath := cachedClusterConfigPath(accessConfig.ClusterName, accessConfig.Region)
-		os.Remove(cachedClusterConfigPath)
 	},
 }
 

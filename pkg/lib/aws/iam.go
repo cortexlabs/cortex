@@ -209,3 +209,20 @@ func (c *Client) DeletePolicy(policyARN string) error {
 	}
 	return nil
 }
+
+func (c *Client) GetPolicyOrNil(policyARN string) (*iam.Policy, error) {
+	policyOutput, err := c.IAM().GetPolicy(&iam.GetPolicyInput{
+		PolicyArn: aws.String(policyARN),
+	})
+	if err != nil {
+		if IsErrCode(err, iam.ErrCodeNoSuchEntityException) {
+			return nil, nil
+		}
+		return nil, errors.WithStack(err)
+	}
+
+	if policyOutput != nil {
+		return policyOutput.Policy, nil
+	}
+	return nil, nil
+}
