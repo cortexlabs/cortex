@@ -141,6 +141,7 @@ Replace the following placeholders with their respective values in the policy te
                 "iam:ListInstanceProfiles",
                 "logs:CreateLogGroup",
                 "logs:PutLogEvents",
+                "logs:DeleteLogGroup",
                 "iam:CreateOpenIDConnectProvider",
                 "iam:GetOpenIDConnectProvider",
                 "iam:GetRolePolicy"

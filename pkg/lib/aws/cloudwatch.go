@@ -105,6 +105,17 @@ func (c *Client) CreateLogGroup(logGroup string, tags map[string]string) error {
 	return nil
 }
 
+func (c *Client) DeleteLogGroup(logGroup string) error {
+	_, err := c.CloudWatchLogs().DeleteLogGroup(&cloudwatchlogs.DeleteLogGroupInput{
+		LogGroupName: aws.String(logGroup),
+	})
+	if err != nil {
+		return errors.Wrap(err, "log group "+logGroup)
+	}
+
+	return nil
+}
+
 func (c *Client) TagLogGroup(logGroup string, tagMap map[string]string) error {
 	tags := map[string]*string{}
 	for key, value := range tagMap {
