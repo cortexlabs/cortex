@@ -22,6 +22,7 @@ import (
 
 	"github.com/cortexlabs/cortex/pkg/config"
 	batch "github.com/cortexlabs/cortex/pkg/crds/apis/batch/v1alpha1"
+	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/operator/operator"
 	"github.com/cortexlabs/cortex/pkg/operator/resources/job"
@@ -103,14 +104,17 @@ func getJobStatusFromBatchJob(batchJob batch.BatchJob) (*status.BatchJobStatus, 
 	}
 
 	queueMetrics, err := getQueueMetrics(jobKey)
-	if err != nil {
+	if aws.IsNonExistentQueueErr(err) {
+		jobStatus.BatchesInQueue = 0
+		jobStatus.TotalBatchCount = 0
+	} else if err != nil {
 		return nil, err
-	}
+	} else {
+		jobStatus.BatchesInQueue = queueMetrics.TotalUserMessages()
 
-	jobStatus.BatchesInQueue = queueMetrics.TotalUserMessages()
-
-	if batchJob.Status.Status == status.JobEnqueuing {
-		jobStatus.TotalBatchCount = queueMetrics.TotalUserMessages()
+		if batchJob.Status.Status == status.JobEnqueuing {
+			jobStatus.TotalBatchCount = queueMetrics.TotalUserMessages()
+		}
 	}
 
 	jobMetrics, err := batch.GetMetrics(config.Prometheus, jobKey, time.Now())
