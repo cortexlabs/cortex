@@ -638,7 +638,7 @@ var _clusterDownCmd = &cobra.Command{
 		os.Remove(cachedClusterConfigPath)
 
 		if len(errorsList) > 0 {
-			exit.Error(errors.ErrorsList(errorsList...))
+			exit.Error(errors.ListOfErrors(errorsList...))
 		}
 		fmt.Printf("\nplease check CloudFormation to ensure that all resources for the %s cluster eventually become successfully deleted: %s\n", accessConfig.ClusterName, clusterstate.CloudFormationURL(accessConfig.ClusterName, accessConfig.Region))
 		if bucketExists {
