@@ -24,6 +24,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/config"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
+	"github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/types/status"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
@@ -195,9 +196,12 @@ func getJobStateFromFiles(jobKey spec.JobKey, lastUpdatedFileMap map[string]time
 
 func GetMostRecentlySubmittedJobStates(apiName string, count int, kind userconfig.Kind) ([]*State, error) {
 	// a single job state may include 5 files on average, overshoot the number of files needed
+
+	apiPrefix := strings.EnsureSuffix(spec.JobAPIPrefix(config.ClusterConfig.ClusterName, kind, apiName), "/")
+
 	s3Objects, err := config.AWS.ListS3Prefix(
 		config.ClusterConfig.Bucket,
-		spec.JobAPIPrefix(config.ClusterConfig.ClusterName, kind, apiName),
+		apiPrefix,
 		false,
 		pointer.Int64(int64(count*_averageFilesPerJobState)),
 	)
@@ -227,6 +231,14 @@ func GetMostRecentlySubmittedJobStates(apiName string, count int, kind userconfi
 
 	jobStateCount := 0
 	for _, jobID := range jobIDOrder {
+
+		// it is possible to have fragmented deletes, spec.json should always be there
+		_, found := lastUpdatedMaps[jobID]["spec.json"]
+		if !found {
+			go config.AWS.DeleteS3Dir(config.ClusterConfig.Bucket, path.Join(apiPrefix, jobID), true)
+			continue
+		}
+
 		jobState := getJobStateFromFiles(spec.JobKey{
 			APIName: apiName,
 			ID:      jobID,
