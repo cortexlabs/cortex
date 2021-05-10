@@ -447,7 +447,7 @@ var _clusterDownCmd = &cobra.Command{
 			prompt.YesOrExit(fmt.Sprintf("your cluster named \"%s\" in %s will be spun down and all apis will be deleted, are you sure you want to continue?", accessConfig.ClusterName, accessConfig.Region), "", "")
 		}
 
-		fmt.Print("￮ retrieving cluster state ")
+		fmt.Print("￮ retrieving cluster state ... ")
 		var clusterExists bool
 		clusterState, err := clusterstate.GetClusterState(awsClient, accessConfig)
 		if err != nil {
@@ -459,10 +459,7 @@ var _clusterDownCmd = &cobra.Command{
 		if err == nil {
 			switch clusterState.Status {
 			case clusterstate.StatusNotFound:
-				errorsList = append(errorsList, clusterstate.ErrorClusterDoesNotExist(accessConfig.ClusterName, accessConfig.Region))
-				fmt.Print("\n\n")
-				errors.PrintError(clusterstate.ErrorClusterDoesNotExist(accessConfig.ClusterName, accessConfig.Region))
-				fmt.Println()
+				fmt.Println("not found ✗")
 			case clusterstate.StatusDeleteComplete:
 				awsClient.DeleteQueuesWithPrefix(clusterconfig.SQSNamePrefix(accessConfig.ClusterName))
 				awsClient.DeletePolicy(clusterconfig.DefaultPolicyARN(accountID, accessConfig.ClusterName, accessConfig.Region))
@@ -474,12 +471,9 @@ var _clusterDownCmd = &cobra.Command{
 						}
 					}
 				}
-				errorsList = append(errorsList, clusterstate.ErrorClusterAlreadyDeleted(accessConfig.ClusterName, accessConfig.Region))
-				fmt.Print("\n\n")
-				errors.PrintError(clusterstate.ErrorClusterAlreadyDeleted(accessConfig.ClusterName, accessConfig.Region))
-				fmt.Println()
+				fmt.Println("already deleted ✗")
 			default:
-				fmt.Println("✓")
+				fmt.Println("found ✓")
 				clusterExists = true
 			}
 		}
@@ -487,15 +481,24 @@ var _clusterDownCmd = &cobra.Command{
 		// updating CLI env is best-effort, so ignore errors
 		loadBalancer, _ := getLoadBalancer(accessConfig.ClusterName, OperatorLoadBalancer, awsClient)
 
-		fmt.Print("￮ deleting sqs queues ")
-		err = awsClient.DeleteQueuesWithPrefix(clusterconfig.SQSNamePrefix(accessConfig.ClusterName))
-		if err != nil {
+		fmt.Print("￮ deleting sqs queues ... ")
+		if queueExists, err := awsClient.DoesQueueExist(clusterconfig.SQSNamePrefix(accessConfig.ClusterName)); err != nil {
 			errorsList = append(errorsList, err)
 			fmt.Printf("\n\nfailed to delete all sqs queues; please delete queues starting with the name %s via the cloudwatch console: https://%s.console.aws.amazon.com/sqs/v2/home\n", clusterconfig.SQSNamePrefix(accessConfig.ClusterName), accessConfig.Region)
 			errors.PrintError(err)
 			fmt.Println()
+		} else if !queueExists {
+			fmt.Println("already deleted ✗")
 		} else {
-			fmt.Println("✓")
+			err = awsClient.DeleteQueuesWithPrefix(clusterconfig.SQSNamePrefix(accessConfig.ClusterName))
+			if err != nil {
+				errorsList = append(errorsList, err)
+				fmt.Printf("\n\nfailed to delete all sqs queues; please delete queues starting with the name %s via the cloudwatch console: https://%s.console.aws.amazon.com/sqs/v2/home\n", clusterconfig.SQSNamePrefix(accessConfig.ClusterName), accessConfig.Region)
+				errors.PrintError(err)
+				fmt.Println()
+			} else {
+				fmt.Println("✓")
+			}
 		}
 
 		if clusterExists {
@@ -522,32 +525,52 @@ var _clusterDownCmd = &cobra.Command{
 		}
 
 		// set lifecycle policy to clean the bucket
-		fmt.Printf("￮ setting lifecycle policy to empty the %s bucket ", bucketName)
-		err = setLifecycleRulesOnClusterDown(awsClient, bucketName)
-		if err != nil {
+		fmt.Printf("￮ setting lifecycle policy to empty the %s bucket ... ", bucketName)
+		if bucketExists, err := awsClient.DoesBucketExist(bucketName); err != nil {
 			errorsList = append(errorsList, err)
 			fmt.Printf("\n\nfailed to set lifecycle policy to empty the %s bucket; you can remove the bucket manually via the s3 console: https://s3.console.aws.amazon.com/s3/management/%s\n", bucketName, bucketName)
 			errors.PrintError(err)
 			fmt.Println()
+		} else if !bucketExists {
+			fmt.Println("non-existent bucket ✗")
+		} else {
+			err = setLifecycleRulesOnClusterDown(awsClient, bucketName)
+			if err != nil {
+				errorsList = append(errorsList, err)
+				fmt.Printf("\n\nfailed to set lifecycle policy to empty the %s bucket; you can remove the bucket manually via the s3 console: https://s3.console.aws.amazon.com/s3/management/%s\n", bucketName, bucketName)
+				errors.PrintError(err)
+				fmt.Println()
+			}
+			fmt.Println("✓")
 		}
-		fmt.Println("✓")
 
 		// delete policy after spinning down the cluster (which deletes the roles) because policies can't be deleted if they are attached to roles
 		policyARN := clusterconfig.DefaultPolicyARN(accountID, accessConfig.ClusterName, accessConfig.Region)
-		fmt.Printf("￮ deleting auto-generated iam policy %s ", policyARN)
-		err = awsClient.DeletePolicy(policyARN)
+		fmt.Printf("￮ deleting auto-generated iam policy %s ... ", policyARN)
+		policy, err := awsClient.GetPolicy(policyARN)
 		if err != nil {
 			errorsList = append(errorsList, err)
 			fmt.Printf("\n\nfailed to delete auto-generated cortex policy %s; please delete the policy via the iam console: https://console.aws.amazon.com/iam/home#/policies\n", policyARN)
 			errors.PrintError(err)
 			fmt.Println()
+		}
+		if policy == nil {
+			fmt.Println("already deleted ✗")
 		} else {
-			fmt.Println("✓")
+			err = awsClient.DeletePolicy(policyARN)
+			if err != nil {
+				errorsList = append(errorsList, err)
+				fmt.Printf("\n\nfailed to delete auto-generated cortex policy %s; please delete the policy via the iam console: https://console.aws.amazon.com/iam/home#/policies\n", policyARN)
+				errors.PrintError(err)
+				fmt.Println()
+			} else {
+				fmt.Println("✓")
+			}
 		}
 
 		// delete EBS volumes
 		if !_flagClusterDownKeepVolumes {
-			fmt.Print("￮ deleting ebs volumes ")
+			fmt.Print("￮ deleting ebs volumes ... ")
 			volumes, err := listPVCVolumesForCluster(awsClient, accessConfig.ClusterName)
 			if err != nil {
 				errorsList = append(errorsList, err)
@@ -564,7 +587,9 @@ var _clusterDownCmd = &cobra.Command{
 						lastErr = err
 					}
 				}
-				if lastErr != nil {
+				if len(volumes) == 0 {
+					fmt.Println("already deleted ✗")
+				} else if lastErr != nil {
 					errorsList = append(errorsList, lastErr)
 					fmt.Printf("\n\nfailed to delete %s %s; please delete %s via the ec2 console: https://console.aws.amazon.com/ec2/v2/home?#Volumes\n", s.PluralS("volume", len(failedToDeleteVolumes)), s.UserStrsAnd(failedToDeleteVolumes), s.PluralCustom("it", "them", len(failedToDeleteVolumes)))
 					errors.PrintError(lastErr)

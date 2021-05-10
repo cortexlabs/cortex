@@ -209,3 +209,25 @@ func (c *Client) DeletePolicy(policyARN string) error {
 	}
 	return nil
 }
+
+// delete non default policy versions and then delete the policy (as required by aws)
+func (c *Client) GetPolicy(policyARN string) (*iam.Policy, error) {
+	policyOutput, err := c.IAM().GetPolicy(&iam.GetPolicyInput{
+		PolicyArn: aws.String(policyARN),
+	})
+	if err != nil {
+		awsErr, ok := err.(awserr.Error)
+		if !ok {
+			return nil, errors.WithStack(err)
+		}
+		if awsErr.Code() == "NoSuchEntity" {
+			return nil, nil
+		}
+		return nil, errors.WithStack(err)
+	}
+
+	if policyOutput != nil && policyOutput.Policy != nil {
+		return policyOutput.Policy, nil
+	}
+	return nil, nil
+}
