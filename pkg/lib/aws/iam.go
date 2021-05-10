@@ -226,7 +226,7 @@ func (c *Client) GetPolicy(policyARN string) (*iam.Policy, error) {
 		return nil, errors.WithStack(err)
 	}
 
-	if policyOutput != nil && policyOutput.Policy != nil {
+	if policyOutput != nil {
 		return policyOutput.Policy, nil
 	}
 	return nil, nil
