@@ -29,7 +29,8 @@ import (
 
 const (
 	ErrInvalidProvider                        = "clusterconfig.invalid_provider"
-	ErrInvalidLegacyProvider                  = "cli.invalid_legacy_provider"
+	ErrInvalidLegacyProvider                  = "clusterconfig.invalid_legacy_provider"
+	ErrDisallowedField                        = "clusterconfig.disallowed_field"
 	ErrInvalidRegion                          = "clusterconfig.invalid_region"
 	ErrNoNodeGroupSpecified                   = "clusterconfig.no_nodegroup_specified"
 	ErrNodeGroupMaxInstancesIsZero            = "clusterconfig.node_group_max_instances_is_zero"
@@ -44,8 +45,9 @@ const (
 	ErrIncompatibleSpotInstanceTypeInf        = "clusterconfig.incompatible_spot_instance_type_inf"
 	ErrSpotPriceGreaterThanTargetOnDemand     = "clusterconfig.spot_price_greater_than_target_on_demand"
 	ErrSpotPriceGreaterThanMaxPrice           = "clusterconfig.spot_price_greater_than_max_price"
-	ErrInstanceTypeNotSupported               = "clusterconfig.instance_type_not_supported"
+	ErrInstanceTypeNotSupportedByCortex       = "clusterconfig.instance_type_not_supported_by_cortex"
 	ErrARMInstancesNotSupported               = "clusterconfig.arm_instances_not_supported"
+	ErrAMDGPUInstancesNotSupported            = "clusterconfig.amd_gpu_instances_not_supported"
 	ErrAtLeastOneInstanceDistribution         = "clusterconfig.at_least_one_instance_distribution"
 	ErrNoCompatibleSpotInstanceFound          = "clusterconfig.no_compatible_spot_instance_found"
 	ErrConfiguredWhenSpotIsNotEnabled         = "clusterconfig.configured_when_spot_is_not_enabled"
@@ -62,7 +64,6 @@ const (
 	ErrDidNotMatchStrictS3Regex               = "clusterconfig.did_not_match_strict_s3_regex"
 	ErrNATRequiredWithPrivateSubnetVisibility = "clusterconfig.nat_required_with_private_subnet_visibility"
 	ErrS3RegionDiffersFromCluster             = "clusterconfig.s3_region_differs_from_cluster"
-	ErrInvalidInstanceType                    = "clusterconfig.invalid_instance_type"
 	ErrIOPSNotSupported                       = "clusterconfig.iops_not_supported"
 	ErrThroughputNotSupported                 = "clusterconfig.throughput_not_supported"
 	ErrIOPSTooSmall                           = "clusterconfig.iops_too_small"
@@ -85,6 +86,13 @@ func ErrorInvalidLegacyProvider(providerStr string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrInvalidLegacyProvider,
 		Message: fmt.Sprintf("the %s provider is no longer supported on cortex v%s; only aws is supported, so the provider field may be removed from your cluster configuration file", providerStr, consts.CortexVersionMinor),
+	})
+}
+
+func ErrorDisallowedField(field string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrDisallowedField,
+		Message: fmt.Sprintf("the %s field cannot be configured by the user", field),
 	})
 }
 
@@ -123,10 +131,10 @@ func ErrorDuplicateNodeGroupName(duplicateNgName string) error {
 	})
 }
 
-func ErrorInstanceTypeTooSmall() error {
+func ErrorInstanceTypeTooSmall(instanceType string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrInstanceTypeTooSmall,
-		Message: "cortex does not support nano or micro instances - please specify a larger instance type",
+		Message: fmt.Sprintf("%s: cortex does not support nano or micro instances - please specify a larger instance type", instanceType),
 	})
 }
 
@@ -186,17 +194,24 @@ func ErrorSpotPriceGreaterThanMaxPrice(suggestedSpotPrice float64, maxPrice floa
 	})
 }
 
-func ErrorInstanceTypeNotSupported(instanceType string) error {
+func ErrorInstanceTypeNotSupportedByCortex(instanceType string) error {
 	return errors.WithStack(&errors.Error{
-		Kind:    ErrInstanceTypeNotSupported,
-		Message: fmt.Sprintf("instance type %s is not supported", instanceType),
+		Kind:    ErrInstanceTypeNotSupportedByCortex,
+		Message: fmt.Sprintf("instance type %s is not supported by cortex", instanceType),
 	})
 }
 
 func ErrorARMInstancesNotSupported(instanceType string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrARMInstancesNotSupported,
-		Message: fmt.Sprintf("ARM-based instances (including %s) are not supported", instanceType),
+		Message: fmt.Sprintf("ARM-based instances (including %s) are not supported by cortex", instanceType),
+	})
+}
+
+func ErrorAMDGPUInstancesNotSupported(instanceType string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrAMDGPUInstancesNotSupported,
+		Message: fmt.Sprintf("AMD GPU instances (including %s) are not supported by cortex", instanceType),
 	})
 }
 
@@ -321,14 +336,7 @@ func ErrorNATRequiredWithPrivateSubnetVisibility() error {
 func ErrorS3RegionDiffersFromCluster(bucketName string, bucketRegion string, clusterRegion string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrS3RegionDiffersFromCluster,
-		Message: fmt.Sprintf("the %s bucket is in %s, but your cluster is in %s; either change the region of your cluster to %s, use a bucket that is in %s, or remove your bucket configuration to allow cortex to make the bucket for you", bucketName, bucketRegion, clusterRegion, bucketRegion, clusterRegion),
-	})
-}
-
-func ErrorInvalidInstanceType(instanceType string) error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrInvalidInstanceType,
-		Message: fmt.Sprintf("%s is not a valid instance type", instanceType),
+		Message: fmt.Sprintf("the %s bucket already exists but is in %s (your cluster is in %s); either change the region of your cluster to %s or delete your bucket to allow cortex to create the bucket for you in %s", bucketName, bucketRegion, clusterRegion, bucketRegion, clusterRegion),
 	})
 }
 

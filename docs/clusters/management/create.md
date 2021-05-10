@@ -48,7 +48,7 @@ node_groups:
     instance_volume_size: 50
     instance_volume_type: gp3
     spot: false
-  ...
+  # ...
 
 # subnet visibility [public (instances will have public IPs) | private (instances will not have public IPs)]
 subnet_visibility: public

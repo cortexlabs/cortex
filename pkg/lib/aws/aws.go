@@ -142,3 +142,7 @@ func NewAnonymousClientWithRegion(region string) (*Client, error) {
 		IsAnonymous: true,
 	}, nil
 }
+
+func (c Client) Session() *session.Session {
+	return c.sess
+}

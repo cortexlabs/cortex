@@ -234,6 +234,25 @@ func ReplacePathWithTilde(absPath string) string {
 	return absPath
 }
 
+// e.g. /home/ubuntu/path -> /
+// or e.g. home/ubuntu/path -> home
+func GetTopLevelDirectory(path string) string {
+	if strings.HasPrefix(path, "/") {
+		return "/"
+	}
+
+	if path == "" {
+		return "."
+	}
+
+	splitList := strings.Split(path, "/")
+	if len(splitList) == 1 {
+		return "."
+	}
+
+	return splitList[0]
+}
+
 func TrimDirPrefix(fullPath string, dirPath string) string {
 	if !strings.HasSuffix(dirPath, "/") {
 		dirPath = dirPath + "/"

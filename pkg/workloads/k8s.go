@@ -106,7 +106,7 @@ func TaskInitContainer(api *spec.API, job *spec.TaskJob) kcore.Container {
 				HideUnzippingLog: true,
 			},
 			{
-				From:             aws.S3Path(config.ClusterConfig.Bucket, job.SpecFilePath(config.ClusterConfig.ClusterName)),
+				From:             aws.S3Path(config.ClusterConfig.Bucket, job.SpecFilePath(config.ClusterConfig.ClusterUID)),
 				To:               TaskSpecPath,
 				Unzip:            false,
 				ToFile:           true,
@@ -163,7 +163,7 @@ func BatchInitContainer(api *spec.API, job *spec.BatchJob) kcore.Container {
 				HideUnzippingLog: true,
 			},
 			{
-				From:             aws.S3Path(config.ClusterConfig.Bucket, job.SpecFilePath(config.ClusterConfig.ClusterName)),
+				From:             aws.S3Path(config.ClusterConfig.Bucket, job.SpecFilePath(config.ClusterConfig.ClusterUID)),
 				To:               BatchSpecPath,
 				Unzip:            false,
 				ToFile:           true,
@@ -323,22 +323,15 @@ func AsyncTensorflowHandlerContainers(api spec.API, queueURL string) ([]kcore.Co
 	return tensorFlowHandlerContainers(&api, getAsyncAPIEnvVars(api, queueURL), false)
 }
 
-func AsyncGatewayContainers(api spec.API, queueURL string) kcore.Container {
-	image := config.ClusterConfig.ImageAsyncGateway
-	region := config.ClusterConfig.Region
-	bucket := config.ClusterConfig.Bucket
-	clusterName := config.ClusterConfig.ClusterName
-
+func AsyncGatewayContainers(api spec.API, queueURL string, volumeMounts []kcore.VolumeMount) kcore.Container {
 	return kcore.Container{
 		Name:            _gatewayContainerName,
-		Image:           image,
+		Image:           config.ClusterConfig.ImageAsyncGateway,
 		ImagePullPolicy: kcore.PullAlways,
 		Args: []string{
-			"-queue", queueURL,
-			"-region", region,
-			"-bucket", bucket,
-			"-cluster", clusterName,
 			"-port", s.Int32(DefaultPortInt32),
+			"-queue", queueURL,
+			"-cluster-config", consts.DefaultInClusterConfigPath,
 			api.Name,
 		},
 		Ports: []kcore.ContainerPort{
@@ -372,6 +365,7 @@ func AsyncGatewayContainers(api spec.API, queueURL string) kcore.Container {
 				},
 			},
 		},
+		VolumeMounts: volumeMounts,
 	}
 }
 
@@ -657,12 +651,12 @@ func tensorFlowHandlerContainers(api *spec.API, envVars []kcore.EnvVar, isJob bo
 func taskEnvVars(api *spec.API) []kcore.EnvVar {
 	envVars := apiContainerEnvVars(api)
 	envVars = append(envVars,
-
 		kcore.EnvVar{
 			Name:  "CORTEX_TASK_SPEC",
 			Value: TaskSpecPath,
 		},
 	)
+	envVars = append(envVars, getKubexitEnvVars(APIContainerName)...)
 	return envVars
 }
 
@@ -676,7 +670,7 @@ func getAsyncAPIEnvVars(api spec.API, queueURL string) []kcore.EnvVar {
 		},
 		kcore.EnvVar{
 			Name:  "CORTEX_ASYNC_WORKLOAD_PATH",
-			Value: aws.S3Path(config.ClusterConfig.Bucket, fmt.Sprintf("%s/apis/%s/workloads", config.ClusterConfig.ClusterName, api.Name)),
+			Value: aws.S3Path(config.ClusterConfig.Bucket, fmt.Sprintf("%s/workloads/%s", config.ClusterConfig.ClusterUID, api.Name)),
 		},
 	)
 

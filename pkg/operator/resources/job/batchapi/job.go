@@ -97,7 +97,7 @@ func SubmitJob(apiName string, submission *schema.BatchJobSubmission) (*spec.Bat
 	}
 
 	// upload job payload for enqueuer
-	payloadKey := spec.JobPayloadKey(config.ClusterConfig.ClusterName, userconfig.BatchAPIKind, apiName, jobID)
+	payloadKey := spec.JobPayloadKey(config.ClusterConfig.ClusterUID, userconfig.BatchAPIKind, apiName, jobID)
 	if err = config.AWS.UploadJSONToS3(submission, config.ClusterConfig.Bucket, payloadKey); err != nil {
 		return nil, err
 	}
@@ -163,7 +163,7 @@ func StopJob(jobKey spec.JobKey) error {
 }
 
 func uploadJobSpec(jobSpec *spec.BatchJob) error {
-	err := config.AWS.UploadJSONToS3(jobSpec, config.ClusterConfig.Bucket, jobSpec.SpecFilePath(config.ClusterConfig.ClusterName))
+	err := config.AWS.UploadJSONToS3(jobSpec, config.ClusterConfig.Bucket, jobSpec.SpecFilePath(config.ClusterConfig.ClusterUID))
 	if err != nil {
 		return err
 	}

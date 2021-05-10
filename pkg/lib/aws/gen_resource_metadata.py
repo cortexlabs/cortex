@@ -63,28 +63,35 @@ inf_per_instance_type = {
 
 
 def get_instance_metadatas(pricing):
+    instance_types = set()
     instance_mapping = {}
 
     for _, product in pricing["products"].items():
         if product.get("attributes") is None:
             continue
+        if product["attributes"].get("instanceType") is None:
+            continue
         if product["attributes"].get("servicecode") != "AmazonEC2":
+            continue
+        if product["attributes"].get("capacitystatus") != "Used":
+            continue
+
+        instance_type = product["attributes"]["instanceType"]
+        instance_types.add(instance_type)
+
+        if product["attributes"].get("operation") != "RunInstances":
             continue
         if product["attributes"].get("tenancy") != "Shared":
             continue
         if product["attributes"].get("operatingSystem") != "Linux":
             continue
-        if product["attributes"].get("capacitystatus") != "Used":
-            continue
-        if product["attributes"].get("operation") != "RunInstances":
-            continue
+
         price_dimensions = list(pricing["terms"]["OnDemand"][product["sku"]].values())[0][
             "priceDimensions"
         ]
 
         price = list(price_dimensions.values())[0]["pricePerUnit"]["USD"]
 
-        instance_type = product["attributes"]["instanceType"]
         metadata = {
             "cpu": int(product["attributes"]["vcpu"]),
             "mem": int(
@@ -97,7 +104,7 @@ def get_instance_metadatas(pricing):
             metadata["gpu"] = product["attributes"]["gpu"]
         instance_mapping[instance_type] = metadata
 
-    return instance_mapping
+    return instance_types, instance_mapping
 
 
 def get_nlb_metadata(pricing):
@@ -274,6 +281,7 @@ limitations under the License.
 package aws
 
 import (
+    "github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	kresource "k8s.io/apimachinery/pkg/api/resource"
 )
 
@@ -307,29 +315,39 @@ type EBSMetadata struct {
 	Type  string `json:"type"`
 }
 
+// This set contains all known instance types. Metadata is not available for all of them.
+var AllInstanceTypes = strset.New(
+	${all_instance_types}
+)
+
+// This contains all instance types available in each region. Metadata is not available for all of them.
+var InstanceTypes = map[string]strset.Set{
+	${instance_types_map}
+}
+
 // region -> instance type -> instance metadata
 var InstanceMetadatas = map[string]map[string]InstanceMetadata{
-    ${instance_region_map}
+	${instance_region_map}
 }
 
 // region -> NLB metadata
 var NLBMetadatas = map[string]NLBMetadata{
-    ${nlb_region_map}
+	${nlb_region_map}
 }
 
 // region -> NAT metadata
 var NATMetadatas = map[string]NATMetadata{
-    ${nat_region_map}
+	${nat_region_map}
 }
 
 // region -> EBS metadata
 var EBSMetadatas = map[string]map[string]EBSMetadata{
-    ${ebs_region_map}
+	${ebs_region_map}
 }
 
 // region -> EKS price
 var EKSPrices = map[string]float64{
-    ${eks_region_map}
+	${eks_region_map}
 }
 """
 )
@@ -338,6 +356,14 @@ instance_region_map_template = Template(
     """"${region}": {
 	${instance_metadatas}
 },
+"""
+)
+
+instance_types_map_template = Template(
+    """"${region}":
+	strset.New(
+	${instance_types}
+	),
 """
 )
 
@@ -374,7 +400,39 @@ eks_region_map_template = Template(
 )
 
 
+def instanceTypeSorter(instanceType):
+    parts = instanceType.split(".")
+    if len(parts) != 2:
+        raise Exception(f"unknown instance type: {instanceType}")
+    prefix = parts[0]
+    size = parts[1]
+
+    if size == "nano":
+        return prefix + ".a"
+    if size == "micro":
+        return prefix + ".b"
+    if size == "small":
+        return prefix + ".c"
+    if size == "medium":
+        return prefix + ".d"
+    if size == "large":
+        return prefix + ".e"
+    if size == "xlarge":
+        return prefix + ".f"
+    if size == "metal":
+        return prefix + ".z"
+
+    if not size.endswith("xlarge"):
+        raise Exception(f"unknown instance type: {instanceType}")
+
+    num_xlarge = re.sub("xlarge$", "", size)
+    return prefix + ".y" + num_xlarge.zfill(5)
+
+
 def main():
+    all_instance_types = set()
+
+    instance_types_map_str = ""
     instance_region_map_str = ""
     nlb_region_map_str = ""
     nat_region_map_str = ""
@@ -387,15 +445,20 @@ def main():
         response = requests.get(EC2_PRICING_ENDPOINT_TEMPLATE.format(region))
         pricing = response.json()
 
-        instance_metadatas = get_instance_metadatas(pricing)
+        instance_types, instance_metadatas = get_instance_metadatas(pricing)
         nlb_metadata = get_nlb_metadata(pricing)
         nat_metadata = get_nat_metadata(pricing)
         ebs_metadata = get_ebs_metadata(pricing)
         eks_price = get_eks_price(region)
 
-        instance_metadatas_str = ""
+        all_instance_types.update(instance_types)
 
-        for instance_type in sorted(instance_metadatas.keys()):
+        instance_types_str = ""
+        for instance_type in sorted(instance_types, key=instanceTypeSorter):
+            instance_types_str += f'"{instance_type}",\n'
+
+        instance_metadatas_str = ""
+        for instance_type in sorted(instance_metadatas.keys(), key=instanceTypeSorter):
             metadata = instance_metadatas[instance_type]
             instance_metadatas_str += instance_metadata_template.substitute(
                 {
@@ -425,6 +488,9 @@ def main():
                 }
             )
 
+        instance_types_map_str += instance_types_map_template.substitute(
+            {"region": region, "instance_types": instance_types_str}
+        )
         instance_region_map_str += instance_region_map_template.substitute(
             {"region": region, "instance_metadatas": instance_metadatas_str}
         )
@@ -441,8 +507,14 @@ def main():
             {"region": region, "price": eks_price}
         )
 
+    all_instance_types_str = ""
+    for instance_type in sorted(all_instance_types, key=instanceTypeSorter):
+        all_instance_types_str += f'"{instance_type}",\n'
+
     file_str = file_template.substitute(
         {
+            "all_instance_types": all_instance_types_str,
+            "instance_types_map": instance_types_map_str,
             "instance_region_map": instance_region_map_str,
             "nlb_region_map": nlb_region_map_str,
             "nat_region_map": nat_region_map_str,

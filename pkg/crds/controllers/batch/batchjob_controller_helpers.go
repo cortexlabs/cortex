@@ -240,7 +240,7 @@ func (r *BatchJobReconciler) desiredEnqueuerJob(batchJob batch.BatchJob, queueUR
 							Name:  _enqueuerContainerName,
 							Image: r.ClusterConfig.ImageEnqueuer,
 							Args: []string{
-								"-cluster", r.ClusterConfig.ClusterName,
+								"-cluster-uid", r.ClusterConfig.ClusterUID,
 								"-region", r.ClusterConfig.Region,
 								"-bucket", r.ClusterConfig.Bucket,
 								"-queue", queueURL,
@@ -345,7 +345,7 @@ func (r *BatchJobReconciler) desiredWorkerJob(batchJob batch.BatchJob, apiSpec s
 }
 
 func (r *BatchJobReconciler) getAPISpec(batchJob batch.BatchJob) (*spec.API, error) {
-	apiSpecKey := spec.Key(batchJob.Spec.APIName, batchJob.Spec.APIID, r.ClusterConfig.ClusterName)
+	apiSpecKey := spec.Key(batchJob.Spec.APIName, batchJob.Spec.APIID, r.ClusterConfig.ClusterUID)
 
 	apiSpecBytes, err := r.AWS.ReadBytesFromS3(r.ClusterConfig.Bucket, apiSpecKey)
 	if err != nil {
@@ -535,9 +535,9 @@ func (r *BatchJobReconciler) uploadJobSpec(batchJob batch.BatchJob, api spec.API
 }
 
 func (r *BatchJobReconciler) jobSpecKey(batchJob batch.BatchJob) string {
-	// e.g. <cluster name>/jobs/<job_api_kind>/<cortex version>/<api_name>/<job_id>/spec.json
+	// e.g. <cluster uid>/jobs/<job_api_kind>/<cortex version>/<api_name>/<job_id>/spec.json
 	return filepath.Join(
-		r.ClusterConfig.ClusterName,
+		r.ClusterConfig.ClusterUID,
 		"jobs",
 		userconfig.BatchAPIKind.String(),
 		consts.CortexVersion,
@@ -577,7 +577,7 @@ func (r *BatchJobReconciler) persistJobToS3(batchJob batch.BatchJob) error {
 }
 
 func getTotalBatchCount(r *BatchJobReconciler, batchJob batch.BatchJob) (int, error) {
-	key := spec.JobBatchCountKey(r.ClusterConfig.ClusterName, userconfig.BatchAPIKind, batchJob.Spec.APIName, batchJob.Name)
+	key := spec.JobBatchCountKey(r.ClusterConfig.ClusterUID, userconfig.BatchAPIKind, batchJob.Spec.APIName, batchJob.Name)
 	cachedTotalBatchCount, found := totalBatchCountCache.Get(key)
 	var totalBatchCount int
 	if !found {
@@ -617,7 +617,7 @@ func saveJobMetrics(r *BatchJobReconciler, batchJob batch.BatchJob) error {
 		return err
 	}
 
-	key := spec.JobMetricsKey(r.ClusterConfig.ClusterName, userconfig.BatchAPIKind, batchJob.Spec.APIName, batchJob.Name)
+	key := spec.JobMetricsKey(r.ClusterConfig.ClusterUID, userconfig.BatchAPIKind, batchJob.Spec.APIName, batchJob.Name)
 	if err = r.AWS.UploadJSONToS3(&jobMetrics, r.ClusterConfig.Bucket, key); err != nil {
 		return err
 	}
@@ -635,7 +635,7 @@ func saveJobStatus(r *BatchJobReconciler, batchJob batch.BatchJob) error {
 
 	jobStatus := batchJob.Status.Status.String()
 	key := filepath.Join(
-		spec.JobAPIPrefix(r.ClusterConfig.ClusterName, userconfig.BatchAPIKind, batchJob.Spec.APIName),
+		spec.JobAPIPrefix(r.ClusterConfig.ClusterUID, userconfig.BatchAPIKind, batchJob.Spec.APIName),
 		batchJob.Name,
 		jobStatus,
 	)

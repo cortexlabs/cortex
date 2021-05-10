@@ -20,81 +20,63 @@ import (
 	"flag"
 	"net/http"
 	"os"
-	"strings"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
+	gateway "github.com/cortexlabs/cortex/pkg/async-gateway"
+	"github.com/cortexlabs/cortex/pkg/lib/aws"
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/logging"
+	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
+	"github.com/cortexlabs/cortex/pkg/types/clusterconfig"
+	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
-	"go.uber.org/zap"
-	"go.uber.org/zap/zapcore"
 )
 
 const (
 	_defaultPort = "8080"
 )
 
-func createLogger() (*zap.Logger, error) {
-	logLevelEnv := os.Getenv("CORTEX_LOG_LEVEL")
-	disableJSONLogging := os.Getenv("CORTEX_DISABLE_JSON_LOGGING")
+var (
+	gatewayLogger = logging.GetLogger()
+)
 
-	var logLevelZap zapcore.Level
-	switch logLevelEnv {
-	case "DEBUG":
-		logLevelZap = zapcore.DebugLevel
-	case "WARNING":
-		logLevelZap = zapcore.WarnLevel
-	case "ERROR":
-		logLevelZap = zapcore.ErrorLevel
-	default:
-		logLevelZap = zapcore.InfoLevel
+func Exit(err error, wrapStrs ...string) {
+	for _, str := range wrapStrs {
+		err = errors.Wrap(err, str)
 	}
 
-	encoderConfig := zap.NewProductionEncoderConfig()
-	encoderConfig.MessageKey = "message"
-
-	encoding := "json"
-	if strings.ToLower(disableJSONLogging) == "true" {
-		encoding = "console"
+	if err != nil && !errors.IsNoTelemetry(err) {
+		telemetry.Error(err)
 	}
 
-	return zap.Config{
-		Level:            zap.NewAtomicLevelAt(logLevelZap),
-		Encoding:         encoding,
-		EncoderConfig:    encoderConfig,
-		OutputPaths:      []string{"stdout"},
-		ErrorOutputPaths: []string{"stderr"},
-	}.Build()
+	if err != nil && !errors.IsNoPrint(err) {
+		gatewayLogger.Error(err)
+	}
+
+	telemetry.Close()
+
+	os.Exit(1)
 }
 
 // usage: ./gateway -bucket <bucket> -region <region> -port <port> -queue queue <apiName>
 func main() {
-	log, err := createLogger()
-	if err != nil {
-		panic(err)
-	}
+	log := logging.GetLogger()
 	defer func() {
 		_ = log.Sync()
 	}()
 
 	var (
-		port        = flag.String("port", _defaultPort, "port on which the gateway server runs on")
-		queueURL    = flag.String("queue", "", "SQS queue URL")
-		region      = flag.String("region", "", "AWS region")
-		bucket      = flag.String("bucket", "", "AWS bucket")
-		clusterName = flag.String("cluster", "", "cluster name")
+		port              = flag.String("port", _defaultPort, "port on which the gateway server runs on")
+		queueURL          = flag.String("queue", "", "SQS queue URL")
+		clusterConfigPath = flag.String("cluster-config", "", "cluster config path")
 	)
 	flag.Parse()
 
 	switch {
 	case *queueURL == "":
 		log.Fatal("missing required option: -queue")
-	case *region == "":
-		log.Fatal("missing required option: -region")
-	case *bucket == "":
-		log.Fatal("missing required option: -bucket")
-	case *clusterName == "":
-		log.Fatal("missing required option: -cluster")
+	case *clusterConfigPath == "":
+		log.Fatal("missing required option: -cluster-config")
 	}
 
 	apiName := flag.Arg(0)
@@ -102,28 +84,51 @@ func main() {
 		log.Fatal("apiName argument was not provided")
 	}
 
-	sess, err := session.NewSessionWithOptions(session.Options{
-		Config: aws.Config{
-			Region: region,
-		},
-		SharedConfigState: session.SharedConfigEnable,
-	})
+	clusterConfig, err := clusterconfig.NewForFile(*clusterConfigPath)
 	if err != nil {
-		log.Fatal("failed to create AWS session: %s", zap.Error(err))
+		Exit(err)
 	}
 
-	s3Storage := NewS3(sess, *bucket)
-	sqsQueue := NewSQS(*queueURL, sess)
+	awsClient, err := aws.NewForRegion(clusterConfig.Region)
+	if err != nil {
+		Exit(err)
+	}
 
-	svc := NewService(*clusterName, apiName, sqsQueue, s3Storage, log)
-	ep := NewEndpoint(svc, log)
+	_, userID, err := awsClient.CheckCredentials()
+	if err != nil {
+		Exit(err)
+	}
+
+	err = telemetry.Init(telemetry.Config{
+		Enabled: clusterConfig.Telemetry,
+		UserID:  userID,
+		Properties: map[string]string{
+			"kind":       userconfig.AsyncAPIKind.String(),
+			"image_type": "async-gateway",
+		},
+		Environment: "api",
+		LogErrors:   true,
+		BackoffMode: telemetry.BackoffDuplicateMessages,
+	})
+	if err != nil {
+		Exit(err)
+	}
+
+	sess := awsClient.Session()
+	s3Storage := gateway.NewS3(sess, clusterConfig.Bucket)
+	sqsQueue := gateway.NewSQS(*queueURL, sess)
+
+	svc := gateway.NewService(clusterConfig.ClusterUID, apiName, sqsQueue, s3Storage, log)
+	ep := gateway.NewEndpoint(svc, log)
 
 	router := mux.NewRouter()
 	router.HandleFunc("/", ep.CreateWorkload).Methods("POST")
 	router.HandleFunc(
 		"/healthz",
 		func(w http.ResponseWriter, r *http.Request) {
-			respondPlainText(w, http.StatusOK, "ok")
+			w.WriteHeader(http.StatusOK)
+			w.Header().Set("Content-Type", "text/plain")
+			_, _ = w.Write([]byte("ok"))
 		},
 	)
 	router.HandleFunc("/{id}", ep.GetWorkload).Methods("GET")
@@ -140,6 +145,6 @@ func main() {
 
 	log.Info("Running on port " + *port)
 	if err = http.ListenAndServe(":"+*port, handlers.CORS(corsOptions...)(router)); err != nil {
-		log.Fatal("failed to start server", zap.Error(err))
+		Exit(err)
 	}
 }
