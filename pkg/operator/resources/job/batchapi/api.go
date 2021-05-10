@@ -123,8 +123,10 @@ func GetAllAPIs(virtualServices []istioclientnetworking.VirtualService, batchJob
 	batchAPIsMap := map[string]*schema.APIResponse{}
 
 	jobIDToBatchJobMap := map[string]*batch.BatchJob{}
+	apiNameToBatchJobsMap := map[string][]*batch.BatchJob{}
 	for i, batchJob := range batchJobList {
 		jobIDToBatchJobMap[batchJob.Name] = &batchJobList[i]
+		apiNameToBatchJobsMap[batchJob.Spec.APIName] = append(apiNameToBatchJobsMap[batchJob.Spec.APIName], &batchJobList[i])
 	}
 
 	for _, virtualService := range virtualServices {
@@ -141,19 +143,33 @@ func GetAllAPIs(virtualServices []istioclientnetworking.VirtualService, batchJob
 			return nil, err
 		}
 
-		jobStates, err := job.GetMostRecentlySubmittedJobStates(apiName, 1, userconfig.BatchAPIKind)
-		if err != nil {
-			return nil, err
-		}
-
 		var jobStatuses []status.BatchJobStatus
-		if len(jobStates) > 0 {
-			jobStatus, err := getJobStatusFromJobState(jobStates[0], jobIDToBatchJobMap[jobStates[0].ID])
+		batchJobs := apiNameToBatchJobsMap[apiName]
+
+		if len(batchJobs) == 0 {
+			jobStates, err := job.GetMostRecentlySubmittedJobStates(apiName, 1, userconfig.BatchAPIKind)
 			if err != nil {
 				return nil, err
 			}
 
-			jobStatuses = append(jobStatuses, *jobStatus)
+			if len(jobStates) > 0 {
+				jobStatus, err := getJobStatusFromJobState(jobStates[0])
+				if err != nil {
+					return nil, err
+				}
+
+				jobStatuses = append(jobStatuses, *jobStatus)
+			}
+		} else {
+			for i := range batchJobs {
+				batchJob := batchJobs[i]
+				jobStatus, err := getJobStatusFromBatchJob(*batchJob)
+				if err != nil {
+					return nil, err
+				}
+
+				jobStatuses = append(jobStatuses, *jobStatus)
+			}
 		}
 
 		batchAPIsMap[apiName] = &schema.APIResponse{
@@ -199,7 +215,7 @@ func GetAPIByName(deployedResource *operator.DeployedResource) ([]schema.APIResp
 	var jobStatuses []status.BatchJobStatus
 	jobIDSet := strset.New()
 	for _, batchJob := range batchJobList.Items {
-		jobStatus, err := getJobStatusFromK8sBatchJob(batchJob)
+		jobStatus, err := getJobStatusFromBatchJob(batchJob)
 		if err != nil {
 			return nil, err
 		}
@@ -218,7 +234,7 @@ func GetAPIByName(deployedResource *operator.DeployedResource) ([]schema.APIResp
 			}
 			jobIDSet.Add(jobState.ID)
 
-			jobStatus, err := getJobStatusFromJobState(jobState, nil)
+			jobStatus, err := getJobStatusFromJobState(jobState)
 			if err != nil {
 				return nil, err
 			}

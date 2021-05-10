@@ -33,6 +33,8 @@ import (
 	kmeta "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+const _batchJobTTL = 40 * time.Second // Double the duration of the statsd pod monitor
+
 func DryRun(submission *schema.BatchJobSubmission) ([]string, error) {
 	err := validateJobSubmission(submission)
 	if err != nil {
@@ -87,8 +89,7 @@ func SubmitJob(apiName string, submission *schema.BatchJobSubmission) (*spec.Bat
 			Kind:    userconfig.BatchAPIKind,
 		},
 		APIID:     apiSpec.ID,
-		SpecID:    apiSpec.SpecID,
-		HandlerID: apiSpec.HandlerID,
+		StartTime: time.Now(),
 	}
 
 	err = uploadJobSpec(&jobSpec)
@@ -132,7 +133,6 @@ func SubmitJob(apiName string, submission *schema.BatchJobSubmission) (*spec.Bat
 				"apiName":        apiName,
 				"apiID":          apiID,
 				"specID":         virtualService.Labels["specID"],
-				"predictorID":    virtualService.Labels["predictorID"],
 				"apiKind":        userconfig.BatchAPIKind.String(),
 				"cortex.dev/api": "true",
 			},
@@ -144,7 +144,7 @@ func SubmitJob(apiName string, submission *schema.BatchJobSubmission) (*spec.Bat
 			Config:          jobConfig,
 			Timeout:         timeout,
 			DeadLetterQueue: deadLetterQueue,
-			TTL:             &kmeta.Duration{Duration: 30 * time.Second},
+			TTL:             &kmeta.Duration{Duration: _batchJobTTL},
 			NodeGroups:      apiSpec.Compute.NodeGroups,
 		},
 	}
