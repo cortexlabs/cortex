@@ -210,7 +210,6 @@ func (c *Client) DeletePolicy(policyARN string) error {
 	return nil
 }
 
-// delete non default policy versions and then delete the policy (as required by aws)
 func (c *Client) GetPolicy(policyARN string) (*iam.Policy, error) {
 	policyOutput, err := c.IAM().GetPolicy(&iam.GetPolicyInput{
 		PolicyArn: aws.String(policyARN),
