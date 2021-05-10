@@ -107,6 +107,10 @@ func GetTaskStatusCode(lastUpdatedMap map[string]time.Time) status.JobCode {
 		return status.JobEnqueuing
 	}
 
+	if _, ok := lastUpdatedMap[status.JobPending.String()]; ok {
+		return status.JobPending
+	}
+
 	return status.JobUnknown
 }
 
@@ -149,6 +153,10 @@ func GetBatchStatusCode(lastUpdatedMap map[string]time.Time) status.JobCode {
 
 	if _, ok := lastUpdatedMap[status.JobEnqueuing.String()]; ok {
 		return status.JobEnqueuing
+	}
+
+	if _, ok := lastUpdatedMap[status.JobPending.String()]; ok {
+		return status.JobPending
 	}
 
 	return status.JobUnknown

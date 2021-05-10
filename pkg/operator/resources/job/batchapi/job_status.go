@@ -31,7 +31,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/types/status"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	"github.com/cortexlabs/yaml"
-	k8serrors "k8s.io/apimachinery/pkg/api/errors"
+	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -39,7 +39,7 @@ func GetJobStatus(jobKey spec.JobKey) (*status.BatchJobStatus, error) {
 	ctx := context.Background()
 	var batchJob batch.BatchJob
 	err := config.K8s.Get(ctx, client.ObjectKey{Name: jobKey.ID, Namespace: config.K8s.Namespace}, &batchJob)
-	if err != nil && !k8serrors.IsNotFound(err) {
+	if err != nil && !kerrors.IsNotFound(err) {
 		return nil, err
 	}
 	if err == nil {
