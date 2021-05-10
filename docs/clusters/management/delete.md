@@ -4,34 +4,20 @@
 cortex cluster down
 ```
 
-## Delete metadata and log groups
+## Bucket Contents
 
-Since you may wish to have access to your data after spinning down your cluster, Cortex's bucket, log groups, and
-Prometheus volume are not automatically deleted when running `cortex cluster down`.
-
-To delete them:
-
-```bash
-# identify the name of your cortex S3 bucket
-aws s3 ls
-
-# delete the S3 bucket
-aws s3 rb --force s3://<bucket>
-
-# delete the log group (replace <cluster_name> with the name of your cluster, default: cortex)
-aws logs describe-log-groups --log-group-name-prefix=<cluster_name> --query logGroups[*].[logGroupName] --output text | xargs -I {} aws logs delete-log-group --log-group-name {}
-```
+During the lifecycle of a Cortex cluster, an S3 bucket is required for Cortex to operate. On `cortex cluster down`, a lifecycle rule gets applied to the bucket such that its contents are removed within the next 24 hours. You can safely remove the bucket once its contents are deleted.
 
 ## Delete Certificates
 
 If you've configured a custom domain for your APIs, you can remove the SSL Certificate and Hosted Zone for the domain by
 following these [instructions](../networking/custom-domain.md#cleanup).
 
-## Keep Cortex Volumes
+## Keep Cortex Resources
 
-The volumes used by Cortex's Prometheus and Grafana instances are deleted by default on a cluster down operation.
-If you want to keep the metrics and dashboards volumes for any reason,
-you can pass the `--keep-volumes` flag to the `cortex cluster down` command.
+The volumes (used by Cortex's Prometheus and Grafana instances) and the cluster log group are deleted by default on a cluster down operation.
+If you want to keep the metrics/dashboards volumes and the cluster log group for any reason,
+you can pass the `--keep-aws-resources` flag to the `cortex cluster down` command.
 
 ## Troubleshooting
 

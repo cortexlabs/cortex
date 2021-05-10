@@ -164,12 +164,12 @@ Usage:
   cortex cluster down [flags]
 
 Flags:
-  -c, --config string   path to a cluster configuration file
-  -n, --name string     name of the cluster
-  -r, --region string   aws region of the cluster
-  -y, --yes             skip prompts
-      --keep-volumes    keep cortex provisioned persistent volumes
-  -h, --help            help for down
+  -c, --config string        path to a cluster configuration file
+  -n, --name string          name of the cluster
+  -r, --region string        aws region of the cluster
+  -y, --yes                  skip prompts
+      --keep-aws-resources   keep cortex resources provisioned on aws (volumes, log group)
+  -h, --help                 help for down
 ```
 
 ## cluster export

@@ -57,17 +57,17 @@ import (
 )
 
 var (
-	_flagClusterUpEnv             string
-	_flagClusterInfoEnv           string
-	_flagClusterScaleNodeGroup    string
-	_flagClusterScaleMinInstances int64
-	_flagClusterScaleMaxInstances int64
-	_flagClusterConfig            string
-	_flagClusterName              string
-	_flagClusterRegion            string
-	_flagClusterInfoDebug         bool
-	_flagClusterDisallowPrompt    bool
-	_flagClusterDownKeepVolumes   bool
+	_flagClusterUpEnv                string
+	_flagClusterInfoEnv              string
+	_flagClusterScaleNodeGroup       string
+	_flagClusterScaleMinInstances    int64
+	_flagClusterScaleMaxInstances    int64
+	_flagClusterConfig               string
+	_flagClusterName                 string
+	_flagClusterRegion               string
+	_flagClusterInfoDebug            bool
+	_flagClusterDisallowPrompt       bool
+	_flagClusterDownKeepAWSResources bool
 )
 
 var _eksctlPrefixRegex = regexp.MustCompile(`^.*[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2} \[.+] {2}`)
@@ -100,7 +100,7 @@ func clusterInit() {
 	addClusterNameFlag(_clusterDownCmd)
 	addClusterRegionFlag(_clusterDownCmd)
 	_clusterDownCmd.Flags().BoolVarP(&_flagClusterDisallowPrompt, "yes", "y", false, "skip prompts")
-	_clusterDownCmd.Flags().BoolVar(&_flagClusterDownKeepVolumes, "keep-volumes", false, "keep cortex provisioned persistent volumes")
+	_clusterDownCmd.Flags().BoolVar(&_flagClusterDownKeepAWSResources, "keep-aws-resources", false, "keep cortex resources provisioned on aws (volumes, log group)")
 	_clusterCmd.AddCommand(_clusterDownCmd)
 
 	_clusterExportCmd.Flags().SortFlags = false
@@ -463,7 +463,7 @@ var _clusterDownCmd = &cobra.Command{
 			case clusterstate.StatusDeleteComplete:
 				awsClient.DeleteQueuesWithPrefix(clusterconfig.SQSNamePrefix(accessConfig.ClusterName))
 				awsClient.DeletePolicy(clusterconfig.DefaultPolicyARN(accountID, accessConfig.ClusterName, accessConfig.Region))
-				if !_flagClusterDownKeepVolumes {
+				if !_flagClusterDownKeepAWSResources {
 					volumes, err := listPVCVolumesForCluster(awsClient, accessConfig.ClusterName)
 					if err == nil {
 						for _, volume := range volumes {
@@ -574,7 +574,7 @@ var _clusterDownCmd = &cobra.Command{
 			}
 		}
 
-		if !_flagClusterDownKeepVolumes {
+		if !_flagClusterDownKeepAWSResources {
 
 			// delete EBS volumes
 			fmt.Print("￮ deleting ebs volumes ... ")
