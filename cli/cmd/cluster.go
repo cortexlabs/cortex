@@ -887,7 +887,7 @@ func printInfoNodes(infoResponse *schema.InfoResponse) {
 	numAPIInstances := len(infoResponse.NodeInfos)
 
 	var totalReplicas int
-	var doesClusterHaveGPUs, doesClusterHaveInfs bool
+	var doesClusterHaveGPUs, doesClusterHaveInfs, doesClusterHaveAsyncAPIs bool
 	for _, nodeInfo := range infoResponse.NodeInfos {
 		totalReplicas += nodeInfo.NumReplicas
 		if nodeInfo.ComputeUserCapacity.GPU > 0 {
@@ -895,6 +895,9 @@ func printInfoNodes(infoResponse *schema.InfoResponse) {
 		}
 		if nodeInfo.ComputeUserCapacity.Inf > 0 {
 			doesClusterHaveInfs = true
+		}
+		if nodeInfo.NumAsyncGatewayReplicas > 0 {
+			doesClusterHaveAsyncAPIs = true
 		}
 	}
 
@@ -913,6 +916,7 @@ func printInfoNodes(infoResponse *schema.InfoResponse) {
 		{Title: "instance type"},
 		{Title: "lifecycle"},
 		{Title: "replicas"},
+		{Title: "async gateway replicas", Hidden: doesClusterHaveAsyncAPIs},
 		{Title: "CPU (requested / total allocatable)"},
 		{Title: "memory (requested / total allocatable)"},
 		{Title: "GPU (requested / total allocatable)", Hidden: !doesClusterHaveGPUs},
@@ -930,7 +934,7 @@ func printInfoNodes(infoResponse *schema.InfoResponse) {
 		memStr := nodeInfo.ComputeUserRequested.Mem.String() + " / " + nodeInfo.ComputeUserCapacity.Mem.String()
 		gpuStr := s.Int64(nodeInfo.ComputeUserRequested.GPU) + " / " + s.Int64(nodeInfo.ComputeUserCapacity.GPU)
 		infStr := s.Int64(nodeInfo.ComputeUserRequested.Inf) + " / " + s.Int64(nodeInfo.ComputeUserCapacity.Inf)
-		rows = append(rows, []interface{}{nodeInfo.InstanceType, lifecycle, nodeInfo.NumReplicas, cpuStr, memStr, gpuStr, infStr})
+		rows = append(rows, []interface{}{nodeInfo.InstanceType, lifecycle, nodeInfo.NumReplicas, nodeInfo.NumAsyncGatewayReplicas, cpuStr, memStr, gpuStr, infStr})
 	}
 
 	t := table.Table{

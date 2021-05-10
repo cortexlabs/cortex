@@ -118,8 +118,13 @@ func getNodeInfos() ([]schema.NodeInfo, int, error) {
 			continue
 		}
 
-		if isAPIPod && (!isAsyncPod || asyncDeploymentType != "gateway") {
-			node.NumReplicas++
+		if isAPIPod {
+			if !isAsyncPod || asyncDeploymentType == "api" {
+				node.NumReplicas++
+			}
+			if !isAsyncPod || asyncDeploymentType == "gateway" {
+				node.NumAsyncGatewayReplicas++
+			}
 		}
 
 		cpu, mem, gpu, inf := k8s.TotalPodCompute(&pod.Spec)
