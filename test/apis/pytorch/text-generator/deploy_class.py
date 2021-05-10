@@ -22,7 +22,7 @@ class Handler:
         return self.model(payload["text"])[0]
 
 
-api = cx.create_api(
+api = cx.deploy_realtime_api(
     api_spec,
     handler=Handler,
     requirements=["torch", "transformers"],
@@ -37,4 +37,4 @@ response = requests.post(
 print(response.status_code)
 print(response.text)
 
-cx.delete_api(api_spec["name"])
+cx.delete(api_spec["name"])

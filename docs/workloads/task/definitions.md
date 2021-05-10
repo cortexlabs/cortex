@@ -6,7 +6,7 @@ Cortex makes all files in the project directory (i.e. the directory which contai
 
 The following files can also be added at the root of the project's directory:
 
-* `.cortexignore` file, which follows the same syntax and behavior as a [.gitignore file](https://git-scm.com/docs/gitignore).
+* `.cortexignore` file, which follows the same syntax and behavior as a [.gitignore file](https://git-scm.com/docs/gitignore). This may be necessary if you are reaching the size limit for your project directory (32mb).
 * `.env` file, which exports environment variables that can be used in the task. Each line of this file must follow the `VARIABLE=value` format.
 
 For example, if your directory looks like this:
@@ -87,5 +87,5 @@ class Task:
         # get client pointing to the default environment
         client = cortex.client()
         # deploy API in the existing cluster as part of your pipeline workflow
-        client.create_api(...)
+        client.deploy(...)
 ```
