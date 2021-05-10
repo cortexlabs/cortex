@@ -301,6 +301,7 @@ func (r *BatchJobReconciler) desiredWorkerJob(batchJob batch.BatchJob, apiSpec s
 				"handlerID":      apiSpec.HandlerID,
 				"jobID":          batchJob.Name,
 				"cortex.dev/api": "true",
+				"worker":         "true",
 			},
 			PodSpec: k8s.PodSpec{
 				Labels: map[string]string{
@@ -311,6 +312,7 @@ func (r *BatchJobReconciler) desiredWorkerJob(batchJob batch.BatchJob, apiSpec s
 					"handlerID":      apiSpec.HandlerID,
 					"jobID":          batchJob.Name,
 					"cortex.dev/api": "true",
+					"worker":         "true",
 				},
 				Annotations: map[string]string{
 					"traffic.sidecar.istio.io/excludeOutboundIPRanges": "0.0.0.0/0",

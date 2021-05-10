@@ -52,5 +52,5 @@ func ReadJobLogs(w http.ResponseWriter, r *http.Request) {
 	}
 	defer socket.Close()
 
-	operator.StreamLogsFromRandomPod(map[string]string{"apiName": apiName, "jobID": jobID}, socket)
+	operator.StreamLogsFromRandomPod(map[string]string{"apiName": apiName, "jobID": jobID, "worker": "true"}, socket)
 }
