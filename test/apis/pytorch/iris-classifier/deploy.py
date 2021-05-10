@@ -17,6 +17,6 @@ api_spec = {
     },
 }
 
-print(cx.create_api(api_spec, project_dir=dir_path))
+print(cx.deploy(api_spec, project_dir=dir_path))
 
-# cx.delete_api("iris-classifier")
+# cx.delete("iris-classifier")

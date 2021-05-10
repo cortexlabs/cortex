@@ -48,7 +48,7 @@ sed -i "/\* \[Client](#cortex\.client\.Client)/d" $docs_path
 sed -i "s/\* \[cortex\.client](#cortex\.client)/\* [cortex\.client\.Client](#cortex-client-client)/g" $docs_path
 sed -i "s/# cortex\.client/# cortex\.client\.Client/g" $docs_path
 # delete unnecessary section body
-sed -i "/# cortex.client.Client/,/## create\\\_api/{//!d}" $docs_path
+sed -i "/# cortex.client.Client/,/## deploy/{//!d}" $docs_path
 sed -i "s/# cortex.client.Client/# cortex.client.Client\n/g" $docs_path
 
 # fix table of contents links
@@ -64,7 +64,12 @@ sed -i 's/[[:space:]]*$//' $docs_path
 truncate -s -1 $docs_path
 
 # Cortex version comment
-sed -i "s/^## create\\\_api/## create\\\_api\n\n<!-- CORTEX_VERSION_MINOR -->/g" $docs_path
+sed -i "s/^## deploy$/## deploy\n\n<!-- CORTEX_VERSION_MINOR -->/g" $docs_path
+sed -i "s/^## deploy\\\_realtime\\\_api$/## deploy\\\_realtime\\\_api\n\n<!-- CORTEX_VERSION_MINOR -->/g" $docs_path
+sed -i "s/^## deploy\\\_async\\\_api$/## deploy\\\_async\\\_api\n\n<!-- CORTEX_VERSION_MINOR -->/g" $docs_path
+sed -i "s/^## deploy\\\_batch\\\_api$/## deploy\\\_batch\\\_api\n\n<!-- CORTEX_VERSION_MINOR -->/g" $docs_path
+sed -i "s/^## deploy\\\_task\\\_api$/## deploy\\\_task\\\_api\n\n<!-- CORTEX_VERSION_MINOR -->/g" $docs_path
+sed -i "s/^## deploy\\\_traffic\\\_splitter$/## deploy\\\_traffic\\\_splitter\n\n<!-- CORTEX_VERSION_MINOR -->/g" $docs_path
 
 pip3 uninstall -y cortex
 rm -rf $ROOT/python/client/cortex.egg-info

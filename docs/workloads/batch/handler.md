@@ -121,5 +121,5 @@ class Handler:
         # get client pointing to the default environment
         client = cortex.client()
         # deploy API in the existing cluster using the artifacts in the previous step
-        client.create_api(...)
+        client.deploy(...)
 ```

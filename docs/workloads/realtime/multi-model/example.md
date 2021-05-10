@@ -33,7 +33,7 @@ requirements = ["tensorflow", "transformers", "wget", "fasttext"]
 api_spec = {"name": "multi-model", "kind": "RealtimeAPI"}
 
 cx = cortex.client("aws")
-cx.create_api(api_spec, handler=Handler, requirements=requirements)
+cx.deploy_realtime_api(api_spec, handler=Handler, requirements=requirements)
 ```
 
 ## Deploy

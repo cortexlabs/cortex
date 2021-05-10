@@ -17,7 +17,6 @@ limitations under the License.
 package aws
 
 import (
-	"regexp"
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -27,9 +26,8 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 )
 
-var _instanceCategoryRegex = regexp.MustCompile(`[a-zA-Z]+`)
-var _standardInstanceCategories = strset.New("a", "c", "d", "h", "i", "m", "r", "t", "z")
-var _knownInstanceCategories = strset.Union(_standardInstanceCategories, strset.New("p", "g", "inf", "x", "f"))
+var _standardInstanceFamilies = strset.New("a", "c", "d", "h", "i", "m", "r", "t", "z")
+var _knownInstanceFamilies = strset.Union(_standardInstanceFamilies, strset.New("p", "g", "inf", "x", "f", "mac"))
 
 const (
 	_elasticIPsQuotaCode         = "L-0263D0A3"
@@ -52,10 +50,11 @@ type InstanceTypeRequests struct {
 	RequiredSpotInstances     int64
 }
 
-type instanceCategoryRequests struct {
-	InstanceTypes []string
+type instanceClassRequest struct {
+	InstanceClass string
 
-	InstanceCategory     string
+	InstanceTypes strset.Set // the instance class (e.g. "standard") can have multiple instance types
+
 	RequiredOnDemandCPUs int64
 	RequiredSpotCPUs     int64
 
@@ -67,38 +66,45 @@ type instanceCategoryRequests struct {
 }
 
 func (c *Client) VerifyInstanceQuota(instances []InstanceTypeRequests) error {
-	instanceCategories := []instanceCategoryRequests{}
+	instanceClassRequests := []instanceClassRequest{}
 	for _, instance := range instances {
 		if instance.RequiredOnDemandInstances == 0 && instance.RequiredSpotInstances == 0 {
 			continue
 		}
 
-		instanceCategoryStr := _instanceCategoryRegex.FindString(instance.InstanceType)
-		// Allow the instance if we don't recognize the type
-		if !_knownInstanceCategories.Has(instanceCategoryStr) {
+		parsedType, err := ParseInstanceType(instance.InstanceType)
+		if err != nil {
 			continue
 		}
-		if _standardInstanceCategories.Has(instanceCategoryStr) {
-			instanceCategoryStr = "standard"
+
+		// Allow the instance if we don't recognize the type
+		if !_knownInstanceFamilies.Has(parsedType.Family) {
+			continue
+		}
+
+		instanceClass := parsedType.Family
+		if _standardInstanceFamilies.Has(parsedType.Family) {
+			instanceClass = "standard"
 		}
 
 		cpusPerInstance := InstanceMetadatas[c.Region][instance.InstanceType].CPU
 
-		categoryFound := false
-		for idx, instanceCategory := range instanceCategories {
-			if instanceCategory.InstanceCategory == instanceCategoryStr {
-				instanceCategories[idx].InstanceTypes = append(instanceCategories[idx].InstanceTypes, instance.InstanceType)
-				instanceCategories[idx].RequiredOnDemandCPUs += instance.RequiredOnDemandInstances * cpusPerInstance.Value()
-				instanceCategories[idx].RequiredSpotCPUs += instance.RequiredSpotInstances * cpusPerInstance.Value()
+		instanceClassFound := false
+		for idx, r := range instanceClassRequests {
+			if r.InstanceClass == instanceClass {
+				instanceClassRequests[idx].InstanceTypes.Add(instance.InstanceType)
+				instanceClassRequests[idx].RequiredOnDemandCPUs += instance.RequiredOnDemandInstances * cpusPerInstance.Value()
+				instanceClassRequests[idx].RequiredSpotCPUs += instance.RequiredSpotInstances * cpusPerInstance.Value()
 
-				categoryFound = true
+				instanceClassFound = true
+				break
 			}
 		}
 
-		if !categoryFound {
-			instanceCategories = append(instanceCategories, instanceCategoryRequests{
-				InstanceTypes:        []string{instance.InstanceType},
-				InstanceCategory:     instanceCategoryStr,
+		if !instanceClassFound {
+			instanceClassRequests = append(instanceClassRequests, instanceClassRequest{
+				InstanceClass:        instanceClass,
+				InstanceTypes:        strset.New(instance.InstanceType),
 				RequiredOnDemandCPUs: instance.RequiredOnDemandInstances * cpusPerInstance.Value(),
 				RequiredSpotCPUs:     instance.RequiredSpotInstances * cpusPerInstance.Value(),
 			})
@@ -123,14 +129,14 @@ func (c *Client) VerifyInstanceQuota(instances []InstanceTypeRequests) error {
 					continue
 				}
 
-				for idx, instanceCategory := range instanceCategories {
+				for idx, r := range instanceClassRequests {
 					// quota is specified in number of vCPU permitted per family
-					if strings.ToLower(*metricClass) == instanceCategory.InstanceCategory+"/ondemand" {
-						instanceCategories[idx].OnDemandCPUQuota = pointer.Int64(int64(*quota.Value))
-						instanceCategories[idx].OnDemandQuotaCode = *quota.QuotaCode
-					} else if strings.ToLower(*metricClass) == instanceCategory.InstanceCategory+"/spot" {
-						instanceCategories[idx].SpotCPUQuota = pointer.Int64(int64(*quota.Value))
-						instanceCategories[idx].SpotQuotaCode = *quota.QuotaCode
+					if strings.ToLower(*metricClass) == r.InstanceClass+"/ondemand" {
+						instanceClassRequests[idx].OnDemandCPUQuota = pointer.Int64(int64(*quota.Value))
+						instanceClassRequests[idx].OnDemandQuotaCode = *quota.QuotaCode
+					} else if strings.ToLower(*metricClass) == r.InstanceClass+"/spot" {
+						instanceClassRequests[idx].SpotCPUQuota = pointer.Int64(int64(*quota.Value))
+						instanceClassRequests[idx].SpotQuotaCode = *quota.QuotaCode
 					}
 				}
 			}
@@ -141,12 +147,12 @@ func (c *Client) VerifyInstanceQuota(instances []InstanceTypeRequests) error {
 		return errors.WithStack(err)
 	}
 
-	for _, ic := range instanceCategories {
-		if ic.OnDemandCPUQuota != nil && *ic.OnDemandCPUQuota < ic.RequiredOnDemandCPUs {
-			return ErrorInsufficientInstanceQuota(strset.FromSlice(ic.InstanceTypes).Slice(), "on-demand", c.Region, ic.RequiredOnDemandCPUs, *ic.OnDemandCPUQuota, ic.OnDemandQuotaCode)
+	for _, r := range instanceClassRequests {
+		if r.OnDemandCPUQuota != nil && *r.OnDemandCPUQuota < r.RequiredOnDemandCPUs {
+			return ErrorInsufficientInstanceQuota(r.InstanceTypes.Slice(), "on-demand", c.Region, r.RequiredOnDemandCPUs, *r.OnDemandCPUQuota, r.OnDemandQuotaCode)
 		}
-		if ic.SpotCPUQuota != nil && *ic.SpotCPUQuota < ic.RequiredSpotCPUs {
-			return ErrorInsufficientInstanceQuota(strset.FromSlice(ic.InstanceTypes).Slice(), "spot", c.Region, ic.RequiredSpotCPUs, *ic.SpotCPUQuota, ic.SpotQuotaCode)
+		if r.SpotCPUQuota != nil && *r.SpotCPUQuota < r.RequiredSpotCPUs {
+			return ErrorInsufficientInstanceQuota(r.InstanceTypes.Slice(), "spot", c.Region, r.RequiredSpotCPUs, *r.SpotCPUQuota, r.SpotQuotaCode)
 		}
 	}
 

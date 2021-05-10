@@ -46,6 +46,7 @@ class Handler:
             self.model.load_state_dict(torch.load(model_name))
             self.model.eval()
         elif config["device"] == "inf":
+            import torch_neuron
 
             self.model = torch.jit.load(model_name)
         else:
