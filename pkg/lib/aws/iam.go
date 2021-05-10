@@ -210,16 +210,12 @@ func (c *Client) DeletePolicy(policyARN string) error {
 	return nil
 }
 
-func (c *Client) GetPolicy(policyARN string) (*iam.Policy, error) {
+func (c *Client) GetPolicyOrNil(policyARN string) (*iam.Policy, error) {
 	policyOutput, err := c.IAM().GetPolicy(&iam.GetPolicyInput{
 		PolicyArn: aws.String(policyARN),
 	})
 	if err != nil {
-		awsErr, ok := err.(awserr.Error)
-		if !ok {
-			return nil, errors.WithStack(err)
-		}
-		if awsErr.Code() == "NoSuchEntity" {
+		if IsErrCode(err, iam.ErrCodeNoSuchEntityException) {
 			return nil, nil
 		}
 		return nil, errors.WithStack(err)

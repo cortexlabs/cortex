@@ -24,8 +24,7 @@ import (
 )
 
 const (
-	ErrUnexpected   = "errors.unexpected"
-	ErrListOfErrors = "errors.list_of_errors"
+	ErrUnexpected = "errors.unexpected"
 )
 
 func ErrorUnexpected(msgs ...interface{}) error {
@@ -40,19 +39,19 @@ func ErrorUnexpected(msgs ...interface{}) error {
 	})
 }
 
-func ListOfErrors(errors ...error) error {
+func ListOfErrors(errKind string, shouldPrint bool, errors ...error) error {
 	var errorsContents string
 	for i, err := range errors {
 		if err != nil {
-			errorsContents += fmt.Sprintf("error %d: %s\n", i, err.Error())
+			errorsContents += fmt.Sprintf("error #%d: %s\n", i+1, err.Error())
 		}
 	}
 	if errorsContents == "" {
 		return nil
 	}
 	return WithStack(&Error{
-		Kind:    ErrListOfErrors,
+		Kind:    errKind,
 		Message: errorsContents,
-		NoPrint: true,
+		NoPrint: !shouldPrint,
 	})
 }

@@ -6,7 +6,7 @@ cortex cluster down
 
 ## Bucket Contents
 
-During the lifecycle of a Cortex cluster, an S3 bucket is required for Cortex to operate. On `cortex cluster down`, a lifecycle rule gets applied to the bucket such that its contents are removed within the next 24 hours. You can safely remove the bucket once its contents are deleted.
+When a Cortex cluster is created, an S3 bucket is created for its internal use. When running `cortex cluster down`, a lifecycle rule is applied to the bucket such that its entire contents are removed within the next 24 hours. You can safely delete the bucket at any time after `cortex cluster down` has finished running.
 
 ## Delete Certificates
 
@@ -15,9 +15,7 @@ following these [instructions](../networking/custom-domain.md#cleanup).
 
 ## Keep Cortex Resources
 
-The volumes (used by Cortex's Prometheus and Grafana instances) and the cluster log group are deleted by default on a cluster down operation.
-If you want to keep the metrics/dashboards volumes and the cluster log group for any reason,
-you can pass the `--keep-aws-resources` flag to the `cortex cluster down` command.
+The contents of Cortex's S3 bucket, the EBS volumes (used by Cortex's Prometheus and Grafana instances), and the log group are deleted by default when running `cortex cluster down`. If you want to keep these resources, you can pass the `--keep-aws-resources` flag to the `cortex cluster down` command.
 
 ## Troubleshooting
 

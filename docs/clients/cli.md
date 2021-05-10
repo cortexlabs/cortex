@@ -168,7 +168,7 @@ Flags:
   -n, --name string          name of the cluster
   -r, --region string        aws region of the cluster
   -y, --yes                  skip prompts
-      --keep-aws-resources   keep cortex resources provisioned on aws (volumes, log group)
+      --keep-aws-resources   skip deletion of resources that cortex provisioned on aws (bucket contents, ebs volumes, log group)
   -h, --help                 help for down
 ```
 

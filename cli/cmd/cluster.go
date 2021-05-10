@@ -100,7 +100,7 @@ func clusterInit() {
 	addClusterNameFlag(_clusterDownCmd)
 	addClusterRegionFlag(_clusterDownCmd)
 	_clusterDownCmd.Flags().BoolVarP(&_flagClusterDisallowPrompt, "yes", "y", false, "skip prompts")
-	_clusterDownCmd.Flags().BoolVar(&_flagClusterDownKeepAWSResources, "keep-aws-resources", false, "keep cortex resources provisioned on aws (volumes, log group)")
+	_clusterDownCmd.Flags().BoolVar(&_flagClusterDownKeepAWSResources, "keep-aws-resources", false, "skip deletion of resources that cortex provisioned on aws (bucket contents, ebs volumes, log group)")
 	_clusterCmd.AddCommand(_clusterDownCmd)
 
 	_clusterExportCmd.Flags().SortFlags = false
@@ -447,7 +447,7 @@ var _clusterDownCmd = &cobra.Command{
 			prompt.YesOrExit(fmt.Sprintf("your cluster named \"%s\" in %s will be spun down and all apis will be deleted, are you sure you want to continue?", accessConfig.ClusterName, accessConfig.Region), "", "")
 		}
 
-		fmt.Print("￮ retrieving cluster state ... ")
+		fmt.Print("￮ retrieving cluster ... ")
 		var clusterExists bool
 		clusterState, err := clusterstate.GetClusterState(awsClient, accessConfig)
 		if err != nil {
@@ -459,7 +459,7 @@ var _clusterDownCmd = &cobra.Command{
 		} else {
 			switch clusterState.Status {
 			case clusterstate.StatusNotFound:
-				fmt.Println("not found ✗")
+				fmt.Println("cluster doesn't exist ✓")
 			case clusterstate.StatusDeleteComplete:
 				awsClient.DeleteQueuesWithPrefix(clusterconfig.SQSNamePrefix(accessConfig.ClusterName))
 				awsClient.DeletePolicy(clusterconfig.DefaultPolicyARN(accountID, accessConfig.ClusterName, accessConfig.Region))
@@ -489,7 +489,7 @@ var _clusterDownCmd = &cobra.Command{
 			errors.PrintError(err)
 			fmt.Println()
 		} else if !queueExists {
-			fmt.Println("already deleted ✓")
+			fmt.Println("no sqs queues exist ✓")
 		} else {
 			err = awsClient.DeleteQueuesWithPrefix(clusterconfig.SQSNamePrefix(accessConfig.ClusterName))
 			if err != nil {
@@ -503,7 +503,7 @@ var _clusterDownCmd = &cobra.Command{
 			}
 		}
 
-		clusterSpunDown := !clusterExists
+		clusterDoesntExist := !clusterExists
 		if clusterExists {
 			fmt.Print("￮ spinning down the cluster ...")
 			out, exitCode, err := runManagerAccessCommand("/root/uninstall.sh", *accessConfig, awsClient, nil, nil)
@@ -519,7 +519,7 @@ var _clusterDownCmd = &cobra.Command{
 				fmt.Println(helpStr)
 				errorsList = append(errorsList, ErrorClusterDown(filterEKSCTLOutput(out)+helpStr))
 			} else {
-				clusterSpunDown = true
+				clusterDoesntExist = true
 			}
 			fmt.Println()
 		}
@@ -536,7 +536,7 @@ var _clusterDownCmd = &cobra.Command{
 				errors.PrintError(err)
 				fmt.Println()
 			} else if !bucketExists {
-				fmt.Println("non-existent bucket ✗")
+				fmt.Println("bucket doesn't exist ✗")
 			} else {
 				err = setLifecycleRulesOnClusterDown(awsClient, bucketName)
 				if err != nil {
@@ -552,17 +552,17 @@ var _clusterDownCmd = &cobra.Command{
 		}
 
 		// delete policy after spinning down the cluster (which deletes the roles) because policies can't be deleted if they are attached to roles
-		if clusterSpunDown {
+		if clusterDoesntExist {
 			policyARN := clusterconfig.DefaultPolicyARN(accountID, accessConfig.ClusterName, accessConfig.Region)
 			fmt.Printf("￮ deleting auto-generated iam policy %s ... ", policyARN)
-			if policy, err := awsClient.GetPolicy(policyARN); err != nil {
+			if policy, err := awsClient.GetPolicyOrNil(policyARN); err != nil {
 				errorsList = append(errorsList, err)
 				fmt.Print("failed ✗")
 				fmt.Printf("\n\nfailed to delete auto-generated cortex policy %s; please delete the policy via the iam console: https://console.aws.amazon.com/iam/home#/policies\n", policyARN)
 				errors.PrintError(err)
 				fmt.Println()
 			} else if policy == nil {
-				fmt.Println("already deleted ✓")
+				fmt.Println("policy doesn't exist ✓")
 			} else {
 				err = awsClient.DeletePolicy(policyARN)
 				if err != nil {
@@ -578,8 +578,6 @@ var _clusterDownCmd = &cobra.Command{
 		}
 
 		if !_flagClusterDownKeepAWSResources {
-
-			// delete EBS volumes
 			fmt.Print("￮ deleting ebs volumes ... ")
 			volumes, err := listPVCVolumesForCluster(awsClient, accessConfig.ClusterName)
 			if err != nil {
@@ -598,7 +596,7 @@ var _clusterDownCmd = &cobra.Command{
 					}
 				}
 				if len(volumes) == 0 {
-					fmt.Println("already deleted ✓")
+					fmt.Println("no ebs volumes exist ✓")
 				} else if lastErr != nil {
 					errorsList = append(errorsList, lastErr)
 					fmt.Printf("\n\nfailed to delete %s %s; please delete %s via the ec2 console: https://console.aws.amazon.com/ec2/v2/home?#Volumes\n", s.PluralS("volume", len(failedToDeleteVolumes)), s.UserStrsAnd(failedToDeleteVolumes), s.PluralCustom("it", "them", len(failedToDeleteVolumes)))
@@ -609,7 +607,6 @@ var _clusterDownCmd = &cobra.Command{
 				}
 			}
 
-			// delete log group
 			fmt.Printf("￮ deleting log group %s ... ", accessConfig.ClusterName)
 			logGroupExists, err := awsClient.DoesLogGroupExist(accessConfig.ClusterName)
 			if err != nil {
@@ -620,7 +617,7 @@ var _clusterDownCmd = &cobra.Command{
 				fmt.Println()
 			} else {
 				if !logGroupExists {
-					fmt.Println("already deleted ✓")
+					fmt.Println("log group doesn't exist ✓")
 				} else {
 					err = awsClient.DeleteLogGroup(accessConfig.ClusterName)
 					if err != nil {
@@ -641,11 +638,11 @@ var _clusterDownCmd = &cobra.Command{
 		os.Remove(cachedClusterConfigPath)
 
 		if len(errorsList) > 0 {
-			exit.Error(errors.ListOfErrors(errorsList...))
+			exit.Error(errors.ListOfErrors(ErrClusterDown, false, errorsList...))
 		}
 		fmt.Printf("\nplease check CloudFormation to ensure that all resources for the %s cluster eventually become successfully deleted: %s\n", accessConfig.ClusterName, clusterstate.CloudFormationURL(accessConfig.ClusterName, accessConfig.Region))
 		if !_flagClusterDownKeepAWSResources && bucketExists {
-			fmt.Printf("\na lifecycle rule has been applied to the cluster’s %s bucket to empty its contents later today; you can delete the %s bucket via the s3 console once it has been emptied: https://s3.console.aws.amazon.com/s3/management/%s\n", bucketName, bucketName, bucketName)
+			fmt.Printf("\na lifecycle rule has been applied to the cluster's %s bucket to empty its contents within the next 24 hours; you can delete the %s bucket via the s3 console once it has been emptied (or you can empty and delete it now): https://s3.console.aws.amazon.com/s3/management/%s\n", bucketName, bucketName, bucketName)
 		}
 		fmt.Println()
 
