@@ -17,6 +17,7 @@ limitations under the License.
 package errors
 
 import (
+	"fmt"
 	"strings"
 
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
@@ -24,6 +25,7 @@ import (
 
 const (
 	ErrUnexpected = "errors.unexpected"
+	ErrsList      = "errors.list"
 )
 
 func ErrorUnexpected(msgs ...interface{}) error {
@@ -35,5 +37,21 @@ func ErrorUnexpected(msgs ...interface{}) error {
 	return WithStack(&Error{
 		Kind:    ErrUnexpected,
 		Message: strings.Join(strs, ": "),
+	})
+}
+
+func ErrorsList(errors ...error) error {
+	var errorsContents string
+	for i, err := range errors {
+		if err != nil {
+			errorsContents += fmt.Sprintf("error %d: %s\n", i, err.Error())
+		}
+	}
+	if errorsContents == "" {
+		return nil
+	}
+	return WithStack(&Error{
+		Kind:    ErrsList,
+		Message: errorsContents,
 	})
 }
