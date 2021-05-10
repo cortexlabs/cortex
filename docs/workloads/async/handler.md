@@ -73,7 +73,7 @@ class Handler:
             request_id (optional): The request id string that identifies a workload
 
         Returns:
-            Workload result or batch of results.
+            JSON-serializeable result.
         """
         pass
 ```
@@ -192,7 +192,8 @@ class Handle:
 
 ## API responses
 
-Currently, AsyncAPI responses of your `handle_async()` method have to be a JSON-serializable dictionary.
+The return value of your `handle_async()` method must be a JSON-serializable dictionary. The result for
+each request will remain queryable for 7 days after the request was completed.
 
 ## Chaining APIs
 
