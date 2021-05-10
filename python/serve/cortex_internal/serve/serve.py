@@ -187,7 +187,7 @@ def handle(request: Request):
     verb = request.method.lower()
     handle_fn_args = local_cache["handle_fn_args"]
     if verb not in handle_fn_args:
-        return Response(status_code=405, content=f"`handle_{verb}` method not implemented")
+        return Response(status_code=405, content="method not implemented")
 
     handler_impl = local_cache["handler_impl"]
     dynamic_batcher = None
