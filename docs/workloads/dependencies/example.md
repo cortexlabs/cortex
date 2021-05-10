@@ -41,7 +41,7 @@ api_spec = {
 }
 
 cx = cortex.client("aws")
-cx.create_api(api_spec, project_dir=".")
+cx.deploy(api_spec, project_dir=".")
 ```
 
 ## Deploy using the CLI

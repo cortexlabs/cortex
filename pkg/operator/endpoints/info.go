@@ -106,6 +106,7 @@ func getNodeInfos() ([]schema.NodeInfo, int, error) {
 		pod := pods[i]
 
 		_, isAPIPod := pod.Labels["apiName"]
+		asyncDeploymentType, isAsyncPod := pod.Labels["cortex.dev/async"]
 
 		if pod.Spec.NodeName == "" && isAPIPod {
 			numPendingReplicas++
@@ -118,7 +119,12 @@ func getNodeInfos() ([]schema.NodeInfo, int, error) {
 		}
 
 		if isAPIPod {
-			node.NumReplicas++
+			if !isAsyncPod || asyncDeploymentType == "api" {
+				node.NumReplicas++
+			}
+			if !isAsyncPod || asyncDeploymentType == "gateway" {
+				node.NumAsyncGatewayReplicas++
+			}
 		}
 
 		cpu, mem, gpu, inf := k8s.TotalPodCompute(&pod.Spec)
