@@ -456,8 +456,7 @@ var _clusterDownCmd = &cobra.Command{
 			fmt.Printf("\n\ncouldn't retrieve cluster state; check the cluster stacks in the cloudformation console: https://%s.console.aws.amazon.com/cloudformation\n", accessConfig.Region)
 			errors.PrintError(err)
 			fmt.Println()
-		}
-		if err == nil {
+		} else {
 			switch clusterState.Status {
 			case clusterstate.StatusNotFound:
 				fmt.Println("not found ✗")
@@ -527,7 +526,8 @@ var _clusterDownCmd = &cobra.Command{
 
 		// set lifecycle policy to clean the bucket
 		fmt.Printf("￮ setting lifecycle policy to empty the %s bucket ... ", bucketName)
-		if bucketExists, err := awsClient.DoesBucketExist(bucketName); err != nil {
+		bucketExists, err := awsClient.DoesBucketExist(bucketName)
+		if err != nil {
 			errorsList = append(errorsList, err)
 			fmt.Print("failed ✗")
 			fmt.Printf("\n\nfailed to set lifecycle policy to empty the %s bucket; you can remove the bucket manually via the s3 console: https://s3.console.aws.amazon.com/s3/management/%s\n", bucketName, bucketName)
@@ -543,23 +543,22 @@ var _clusterDownCmd = &cobra.Command{
 				fmt.Printf("\n\nfailed to set lifecycle policy to empty the %s bucket; you can remove the bucket manually via the s3 console: https://s3.console.aws.amazon.com/s3/management/%s\n", bucketName, bucketName)
 				errors.PrintError(err)
 				fmt.Println()
+			} else {
+				fmt.Println("✓")
 			}
-			fmt.Println("✓")
 		}
 
 		// delete policy after spinning down the cluster (which deletes the roles) because policies can't be deleted if they are attached to roles
 		if clusterSpunDown {
 			policyARN := clusterconfig.DefaultPolicyARN(accountID, accessConfig.ClusterName, accessConfig.Region)
 			fmt.Printf("￮ deleting auto-generated iam policy %s ... ", policyARN)
-			policy, err := awsClient.GetPolicy(policyARN)
-			if err != nil {
+			if policy, err := awsClient.GetPolicy(policyARN); err != nil {
 				errorsList = append(errorsList, err)
 				fmt.Print("failed ✗")
 				fmt.Printf("\n\nfailed to delete auto-generated cortex policy %s; please delete the policy via the iam console: https://console.aws.amazon.com/iam/home#/policies\n", policyARN)
 				errors.PrintError(err)
 				fmt.Println()
-			}
-			if policy == nil {
+			} else if policy == nil {
 				fmt.Println("already deleted ✓")
 			} else {
 				err = awsClient.DeletePolicy(policyARN)
@@ -642,7 +641,9 @@ var _clusterDownCmd = &cobra.Command{
 			exit.Error(errors.ErrorsList(errorsList...))
 		}
 		fmt.Printf("\nplease check CloudFormation to ensure that all resources for the %s cluster eventually become successfully deleted: %s\n", accessConfig.ClusterName, clusterstate.CloudFormationURL(accessConfig.ClusterName, accessConfig.Region))
-		fmt.Printf("\na lifecycle rule has been applied to the cluster’s %s bucket to empty its contents later today; you can delete the %s bucket via the s3 console once it has been emptied: https://s3.console.aws.amazon.com/s3/management/%s\n", bucketName, bucketName, bucketName)
+		if bucketExists {
+			fmt.Printf("\na lifecycle rule has been applied to the cluster’s %s bucket to empty its contents later today; you can delete the %s bucket via the s3 console once it has been emptied: https://s3.console.aws.amazon.com/s3/management/%s\n", bucketName, bucketName, bucketName)
+		}
 		fmt.Println()
 
 		// best-effort deletion of cli environment(s)
