@@ -270,6 +270,9 @@ class Client:
             Deployment status, API specification, and endpoint for each API.
         """
 
+        requirements = requirements if requirements is not None else []
+        conda_packages = conda_packages if conda_packages is not None else []
+
         if project_dir is not None:
             if handler is not None:
                 raise ValueError(
@@ -305,7 +308,8 @@ class Client:
                 raise ValueError(f"`task` parameter cannot be specified for {api_kind}")
         else:
             raise ValueError(
-                f"invalid {api_kind} kind, `api_spec` must have the `kind` field set to one of the following kinds: {['TrafficSplitter', 'TaskAPI', 'BatchAPI', 'RealtimeAPI']}"
+                f"invalid {api_kind} kind, `api_spec` must have the `kind` field set to one of the following kinds: "
+                f"{['TrafficSplitter', 'TaskAPI', 'BatchAPI', 'RealtimeAPI']}"
             )
 
         if api_spec.get("name") is None:
@@ -339,20 +343,17 @@ class Client:
             if not is_python_set:
                 conda_packages = [f"python={actual_version}", "pip=19.*"] + conda_packages
 
-        if requirements is not None and len(requirements) > 0:
+        if len(requirements) > 0:
             with open(project_dir / "requirements.txt", "w") as requirements_file:
                 requirements_file.write("\n".join(requirements))
 
-        if conda_packages is not None and len(conda_packages) > 0:
+        if len(conda_packages) > 0:
             with open(project_dir / "conda-packages.txt", "w") as conda_file:
                 conda_file.write("\n".join(conda_packages))
 
         if api_kind in ["BatchAPI", "RealtimeAPI"]:
             if not inspect.isclass(handler):
                 raise ValueError("`handler` parameter must be a class definition")
-
-            impl_rel_path = self._save_impl(handler, project_dir, "handler")
-            api_spec["handler"]["path"] = impl_rel_path
 
             if api_spec.get("handler") is None:
                 raise ValueError("`api_spec` must have the `handler` section defined")
@@ -362,10 +363,14 @@ class Client:
                     "the `type` field in the `handler` section of the `api_spec` must be set (tensorflow or python)"
                 )
 
+            impl_rel_path = self._save_impl(handler, project_dir, "handler")
+            api_spec["handler"]["path"] = impl_rel_path
+
         if api_kind == "TaskAPI":
             if not callable(task):
                 raise ValueError(
-                    "`task` parameter must be a callable (e.g. a function definition or a class definition called `Task` with a `__call__` method implemented"
+                    "`task` parameter must be a callable (e.g. a function definition or a class definition called "
+                    "`Task` with a `__call__` method implemented "
                 )
 
             impl_rel_path = self._save_impl(task, project_dir, "task")
