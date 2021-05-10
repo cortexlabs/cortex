@@ -525,26 +525,29 @@ var _clusterDownCmd = &cobra.Command{
 		}
 
 		// set lifecycle policy to clean the bucket
-		fmt.Printf("￮ setting lifecycle policy to empty the %s bucket ... ", bucketName)
-		bucketExists, err := awsClient.DoesBucketExist(bucketName)
-		if err != nil {
-			errorsList = append(errorsList, err)
-			fmt.Print("failed ✗")
-			fmt.Printf("\n\nfailed to set lifecycle policy to empty the %s bucket; you can remove the bucket manually via the s3 console: https://s3.console.aws.amazon.com/s3/management/%s\n", bucketName, bucketName)
-			errors.PrintError(err)
-			fmt.Println()
-		} else if !bucketExists {
-			fmt.Println("non-existent bucket ✗")
-		} else {
-			err = setLifecycleRulesOnClusterDown(awsClient, bucketName)
+		var bucketExists bool
+		if !_flagClusterDownKeepAWSResources {
+			fmt.Printf("￮ setting lifecycle policy to empty the %s bucket ... ", bucketName)
+			bucketExists, err := awsClient.DoesBucketExist(bucketName)
 			if err != nil {
 				errorsList = append(errorsList, err)
 				fmt.Print("failed ✗")
 				fmt.Printf("\n\nfailed to set lifecycle policy to empty the %s bucket; you can remove the bucket manually via the s3 console: https://s3.console.aws.amazon.com/s3/management/%s\n", bucketName, bucketName)
 				errors.PrintError(err)
 				fmt.Println()
+			} else if !bucketExists {
+				fmt.Println("non-existent bucket ✗")
 			} else {
-				fmt.Println("✓")
+				err = setLifecycleRulesOnClusterDown(awsClient, bucketName)
+				if err != nil {
+					errorsList = append(errorsList, err)
+					fmt.Print("failed ✗")
+					fmt.Printf("\n\nfailed to set lifecycle policy to empty the %s bucket; you can remove the bucket manually via the s3 console: https://s3.console.aws.amazon.com/s3/management/%s\n", bucketName, bucketName)
+					errors.PrintError(err)
+					fmt.Println()
+				} else {
+					fmt.Println("✓")
+				}
 			}
 		}
 
@@ -641,7 +644,7 @@ var _clusterDownCmd = &cobra.Command{
 			exit.Error(errors.ListOfErrors(errorsList...))
 		}
 		fmt.Printf("\nplease check CloudFormation to ensure that all resources for the %s cluster eventually become successfully deleted: %s\n", accessConfig.ClusterName, clusterstate.CloudFormationURL(accessConfig.ClusterName, accessConfig.Region))
-		if bucketExists {
+		if !_flagClusterDownKeepAWSResources && bucketExists {
 			fmt.Printf("\na lifecycle rule has been applied to the cluster’s %s bucket to empty its contents later today; you can delete the %s bucket via the s3 console once it has been emptied: https://s3.console.aws.amazon.com/s3/management/%s\n", bucketName, bucketName, bucketName)
 		}
 		fmt.Println()
