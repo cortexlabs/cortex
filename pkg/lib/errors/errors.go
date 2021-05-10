@@ -53,5 +53,6 @@ func ErrorsList(errors ...error) error {
 	return WithStack(&Error{
 		Kind:    ErrsList,
 		Message: errorsContents,
+		NoPrint: true,
 	})
 }

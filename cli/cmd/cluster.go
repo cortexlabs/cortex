@@ -437,10 +437,18 @@ var _clusterDownCmd = &cobra.Command{
 		bucketName := clusterconfig.BucketName(accountID, accessConfig.ClusterName, accessConfig.Region)
 
 		warnIfNotAdmin(awsClient)
+		fmt.Println()
 
 		errorsList := []error{}
 
+		if _flagClusterDisallowPrompt {
+			fmt.Printf("your cluster named \"%s\" in %s will be spun down and all apis will be deleted\n\n", accessConfig.ClusterName, accessConfig.Region)
+		} else {
+			prompt.YesOrExit(fmt.Sprintf("your cluster named \"%s\" in %s will be spun down and all apis will be deleted, are you sure you want to continue?", accessConfig.ClusterName, accessConfig.Region), "", "")
+		}
+
 		fmt.Print("￮ retrieving cluster state ")
+		var clusterExists bool
 		clusterState, err := clusterstate.GetClusterState(awsClient, accessConfig)
 		if err != nil {
 			errorsList = append(errorsList, err)
@@ -472,17 +480,12 @@ var _clusterDownCmd = &cobra.Command{
 				fmt.Println()
 			default:
 				fmt.Println("✓")
+				clusterExists = true
 			}
 		}
 
 		// updating CLI env is best-effort, so ignore errors
 		loadBalancer, _ := getLoadBalancer(accessConfig.ClusterName, OperatorLoadBalancer, awsClient)
-
-		if _flagClusterDisallowPrompt {
-			fmt.Printf("your cluster named \"%s\" in %s will be spun down and all apis will be deleted\n\n", accessConfig.ClusterName, accessConfig.Region)
-		} else {
-			prompt.YesOrExit(fmt.Sprintf("your cluster named \"%s\" in %s will be spun down and all apis will be deleted, are you sure you want to continue?", accessConfig.ClusterName, accessConfig.Region), "", "")
-		}
 
 		fmt.Print("￮ deleting sqs queues ")
 		err = awsClient.DeleteQueuesWithPrefix(clusterconfig.SQSNamePrefix(accessConfig.ClusterName))
@@ -495,24 +498,27 @@ var _clusterDownCmd = &cobra.Command{
 			fmt.Println("✓")
 		}
 
-		fmt.Print("￮ spinning down the cluster ...")
-		out, exitCode, err := runManagerAccessCommand("/root/uninstall.sh", *accessConfig, awsClient, nil, nil)
-		if err != nil {
-			errorsList = append(errorsList, err)
-			fmt.Printf("\n\nfailed to spin down cluster\n")
-			errors.PrintError(err)
+		if clusterExists {
+			fmt.Print("￮ spinning down the cluster ...")
+			out, exitCode, err := runManagerAccessCommand("/root/uninstall.sh", *accessConfig, awsClient, nil, nil)
+			if err != nil {
+				errorsList = append(errorsList, err)
+				fmt.Println()
+				errors.PrintError(err)
+				fmt.Println()
+			} else if exitCode == nil || *exitCode != 0 {
+				fmt.Println()
+
+				out = filterEKSCTLOutput(out)
+				template := "\nNote: if this error cannot be resolved, please ensure that all CloudFormation stacks for this cluster eventually become fully deleted (%s)."
+				template += " If the stack deletion process has failed, please delete the stacks directly from the AWS console (this may require manually deleting particular AWS resources that are blocking the stack deletion)."
+				template += " In addition to deleting the stacks manually from the AWS console, also make sure to empty and remove the %s bucket"
+				helpStr := fmt.Sprintf(template, clusterstate.CloudFormationURL(accessConfig.ClusterName, accessConfig.Region), bucketName)
+
+				errors.PrintError(ErrorClusterDown(out + helpStr))
+				errorsList = append(errorsList, ErrorClusterDown(out+helpStr))
+			}
 			fmt.Println()
-		} else if exitCode == nil || *exitCode != 0 {
-			fmt.Printf("\n\nfailed to spin down cluster\n")
-
-			out = filterEKSCTLOutput(out)
-			template := "\nNote: if this error cannot be resolved, please ensure that all CloudFormation stacks for this cluster eventually become fully deleted (%s)."
-			template += " If the stack deletion process has failed, please delete the stacks directly from the AWS console (this may require manually deleting particular AWS resources that are blocking the stack deletion)."
-			template += " In addition to deleting the stacks manually from the AWS console, also make sure to empty and remove the %s bucket"
-			helpStr := fmt.Sprintf(template, clusterstate.CloudFormationURL(accessConfig.ClusterName, accessConfig.Region), bucketName)
-
-			errors.PrintError(ErrorClusterDown(out + helpStr))
-			errorsList = append(errorsList, ErrorClusterDown(out+helpStr))
 		}
 
 		// set lifecycle policy to clean the bucket
@@ -569,17 +575,16 @@ var _clusterDownCmd = &cobra.Command{
 			}
 		}
 
-		if len(errorsList) == 0 {
-			fmt.Printf("\nplease check CloudFormation to ensure that all resources for the %s cluster eventually become successfully deleted: %s\n", accessConfig.ClusterName, clusterstate.CloudFormationURL(accessConfig.ClusterName, accessConfig.Region))
-			fmt.Printf("\na lifecycle rule has been applied to the cluster’s %s bucket to empty its contents later today; you can delete the %s bucket via the s3 console once it has been emptied: https://s3.console.aws.amazon.com/s3/management/%s\n", bucketName, bucketName, bucketName)
-		}
-
+		// best-effort deletion of cached config
 		cachedClusterConfigPath := cachedClusterConfigPath(accessConfig.ClusterName, accessConfig.Region)
 		os.Remove(cachedClusterConfigPath)
 
 		if len(errorsList) > 0 {
 			exit.Error(errors.ErrorsList(errorsList...))
 		}
+		fmt.Printf("\nplease check CloudFormation to ensure that all resources for the %s cluster eventually become successfully deleted: %s\n", accessConfig.ClusterName, clusterstate.CloudFormationURL(accessConfig.ClusterName, accessConfig.Region))
+		fmt.Printf("\na lifecycle rule has been applied to the cluster’s %s bucket to empty its contents later today; you can delete the %s bucket via the s3 console once it has been emptied: https://s3.console.aws.amazon.com/s3/management/%s\n", bucketName, bucketName, bucketName)
+		fmt.Println()
 
 		// best-effort deletion of cli environment(s)
 		if loadBalancer != nil {
