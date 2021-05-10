@@ -626,20 +626,25 @@ func saveJobMetrics(r *BatchJobReconciler, batchJob batch.BatchJob) error {
 }
 
 func saveJobStatus(r *BatchJobReconciler, batchJob batch.BatchJob) error {
-	stoppedStatusKey := filepath.Join(
-		spec.JobAPIPrefix(r.ClusterConfig.ClusterName, userconfig.BatchAPIKind, batchJob.Spec.APIName),
-		batchJob.Name,
-		status.JobStopped.String(),
-	)
-	stoppedStatusErr := r.AWS.UploadStringToS3("", r.ClusterConfig.Bucket, stoppedStatusKey)
 
-	jobStatus := batchJob.Status.Status.String()
-	key := filepath.Join(
-		spec.JobAPIPrefix(r.ClusterConfig.ClusterUID, userconfig.BatchAPIKind, batchJob.Spec.APIName),
-		batchJob.Name,
-		jobStatus,
-	)
-	jobStatusUploadErr := r.AWS.UploadStringToS3("", r.ClusterConfig.Bucket, key)
+	return parallel.RunFirstErr(
+		func() error {
+			stoppedStatusKey := filepath.Join(
+				spec.JobAPIPrefix(r.ClusterConfig.ClusterName, userconfig.BatchAPIKind, batchJob.Spec.APIName),
+				batchJob.Name,
+				status.JobStopped.String(),
+			)
+			return r.AWS.UploadStringToS3("", r.ClusterConfig.Bucket, stoppedStatusKey)
 
-	return errors.FirstError(stoppedStatusErr, jobStatusUploadErr)
+		},
+		func() error {
+			jobStatus := batchJob.Status.Status.String()
+			key := filepath.Join(
+				spec.JobAPIPrefix(r.ClusterConfig.ClusterUID, userconfig.BatchAPIKind, batchJob.Spec.APIName),
+				batchJob.Name,
+				jobStatus,
+			)
+			return r.AWS.UploadStringToS3("", r.ClusterConfig.Bucket, key)
+		},
+	)
 }

@@ -66,7 +66,7 @@ func (j State) GetFirstCreated() time.Time {
 }
 
 // Doesn't assume only status files are present. The order below matters.
-func GetStatusCode(lastUpdatedMap map[string]time.Time) status.JobCode {
+func GetTaskStatusCode(lastUpdatedMap map[string]time.Time) status.JobCode {
 	if _, ok := lastUpdatedMap[status.JobStopped.String()]; ok {
 		return status.JobStopped
 	}
@@ -135,12 +135,12 @@ func GetBatchStatusCode(lastUpdatedMap map[string]time.Time) status.JobCode {
 		return status.JobCompletedWithFailures
 	}
 
-	if _, ok := lastUpdatedMap[status.JobStopped.String()]; ok {
-		return status.JobStopped
-	}
-
 	if _, ok := lastUpdatedMap[status.JobSucceeded.String()]; ok {
 		return status.JobSucceeded
+	}
+
+	if _, ok := lastUpdatedMap[status.JobStopped.String()]; ok {
+		return status.JobStopped
 	}
 
 	if _, ok := lastUpdatedMap[status.JobRunning.String()]; ok {
@@ -174,9 +174,12 @@ func GetJobState(jobKey spec.JobKey) (*State, error) {
 }
 
 func getJobStateFromFiles(jobKey spec.JobKey, lastUpdatedFileMap map[string]time.Time) State {
-	statusCode := GetStatusCode(lastUpdatedFileMap)
-	if jobKey.Kind == userconfig.BatchAPIKind {
+	var statusCode status.JobCode
+	switch jobKey.Kind {
+	case userconfig.BatchAPIKind:
 		statusCode = GetBatchStatusCode(lastUpdatedFileMap)
+	case userconfig.TaskAPIKind:
+		statusCode = GetTaskStatusCode(lastUpdatedFileMap)
 	}
 
 	var jobEndTime *time.Time
@@ -196,7 +199,6 @@ func getJobStateFromFiles(jobKey spec.JobKey, lastUpdatedFileMap map[string]time
 
 func GetMostRecentlySubmittedJobStates(apiName string, count int, kind userconfig.Kind) ([]*State, error) {
 	// a single job state may include 5 files on average, overshoot the number of files needed
-
 	apiPrefix := strings.EnsureSuffix(spec.JobAPIPrefix(config.ClusterConfig.ClusterUID, kind, apiName), "/")
 
 	s3Objects, err := config.AWS.ListS3Prefix(
