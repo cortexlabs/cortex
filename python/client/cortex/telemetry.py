@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import os
+from typing import Dict
 from uuid import uuid4
 
 import sentry_sdk
@@ -70,7 +71,7 @@ def _sentry_client(
     return client
 
 
-def _create_default_scope(optional_tags: dict = {}) -> sentry_sdk.Scope:
+def _create_default_scope(optional_tags: Dict = {}) -> sentry_sdk.Scope:
     """
     Creates default scope. Adds user ID as tag to the reported event.
     Can add optional tags.
