@@ -87,5 +87,5 @@ class Task:
         # get client pointing to the default environment
         client = cortex.client()
         # deploy API in the existing cluster as part of your pipeline workflow
-        client.create_api(...)
+        client.deploy(...)
 ```

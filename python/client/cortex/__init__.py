@@ -13,7 +13,7 @@
 # limitations under the License.
 
 import json
-from typing import Optional
+from typing import Optional, List
 
 from cortex.binary import run_cli
 from cortex.client import Client
@@ -79,7 +79,7 @@ def new_client(
 
 
 @sentry_wrapper
-def env_list() -> list:
+def env_list() -> List:
     """
     List all environments configured on this machine.
     """
