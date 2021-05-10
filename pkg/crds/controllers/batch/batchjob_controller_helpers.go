@@ -626,14 +626,20 @@ func saveJobMetrics(r *BatchJobReconciler, batchJob batch.BatchJob) error {
 }
 
 func saveJobStatus(r *BatchJobReconciler, batchJob batch.BatchJob) error {
+	stoppedStatusKey := filepath.Join(
+		spec.JobAPIPrefix(r.ClusterConfig.ClusterName, userconfig.BatchAPIKind, batchJob.Spec.APIName),
+		batchJob.Name,
+		status.JobStopped.String(),
+	)
+	stoppedStatusErr := r.AWS.UploadStringToS3("", r.ClusterConfig.Bucket, stoppedStatusKey)
+
 	jobStatus := batchJob.Status.Status.String()
 	key := filepath.Join(
 		spec.JobAPIPrefix(r.ClusterConfig.ClusterName, userconfig.BatchAPIKind, batchJob.Spec.APIName),
 		batchJob.Name,
 		jobStatus,
 	)
-	if err := r.AWS.UploadStringToS3("", r.ClusterConfig.Bucket, key); err != nil {
-		return err
-	}
-	return nil
+	jobStatusUploadErr := r.AWS.UploadStringToS3("", r.ClusterConfig.Bucket, key)
+
+	return errors.FirstError(stoppedStatusErr, jobStatusUploadErr)
 }

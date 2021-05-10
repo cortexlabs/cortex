@@ -109,6 +109,50 @@ func GetStatusCode(lastUpdatedMap map[string]time.Time) status.JobCode {
 	return status.JobUnknown
 }
 
+func GetBatchStatusCode(lastUpdatedMap map[string]time.Time) status.JobCode {
+	if _, ok := lastUpdatedMap[status.JobTimedOut.String()]; ok {
+		return status.JobTimedOut
+	}
+
+	if _, ok := lastUpdatedMap[status.JobWorkerOOM.String()]; ok {
+		return status.JobWorkerOOM
+	}
+
+	if _, ok := lastUpdatedMap[status.JobWorkerError.String()]; ok {
+		return status.JobWorkerError
+	}
+
+	if _, ok := lastUpdatedMap[status.JobEnqueueFailed.String()]; ok {
+		return status.JobEnqueueFailed
+	}
+
+	if _, ok := lastUpdatedMap[status.JobUnexpectedError.String()]; ok {
+		return status.JobUnexpectedError
+	}
+
+	if _, ok := lastUpdatedMap[status.JobCompletedWithFailures.String()]; ok {
+		return status.JobCompletedWithFailures
+	}
+
+	if _, ok := lastUpdatedMap[status.JobStopped.String()]; ok {
+		return status.JobStopped
+	}
+
+	if _, ok := lastUpdatedMap[status.JobSucceeded.String()]; ok {
+		return status.JobSucceeded
+	}
+
+	if _, ok := lastUpdatedMap[status.JobRunning.String()]; ok {
+		return status.JobRunning
+	}
+
+	if _, ok := lastUpdatedMap[status.JobEnqueuing.String()]; ok {
+		return status.JobEnqueuing
+	}
+
+	return status.JobUnknown
+}
+
 func GetJobState(jobKey spec.JobKey) (*State, error) {
 	s3Objects, err := config.AWS.ListS3Prefix(config.ClusterConfig.Bucket, jobKey.Prefix(config.ClusterConfig.ClusterName), false, nil)
 	if err != nil {
@@ -130,6 +174,9 @@ func GetJobState(jobKey spec.JobKey) (*State, error) {
 
 func getJobStateFromFiles(jobKey spec.JobKey, lastUpdatedFileMap map[string]time.Time) State {
 	statusCode := GetStatusCode(lastUpdatedFileMap)
+	if jobKey.Kind == userconfig.BatchAPIKind {
+		statusCode = GetBatchStatusCode(lastUpdatedFileMap)
+	}
 
 	var jobEndTime *time.Time
 	if statusCode.IsCompleted() {
