@@ -396,7 +396,6 @@ func (r *BatchJobReconciler) updateStatus(ctx context.Context, batchJob *batch.B
 
 	worker := statusInfo.WorkerJob
 	if worker != nil {
-		batchJob.Status.StartTime = worker.Status.StartTime    // assign right away, because it's a pointer
 		batchJob.Status.EndTime = worker.Status.CompletionTime // assign right away, because it's a pointer
 
 		if worker.Status.Failed == batchJob.Spec.Workers {
@@ -626,11 +625,10 @@ func saveJobMetrics(r *BatchJobReconciler, batchJob batch.BatchJob) error {
 }
 
 func saveJobStatus(r *BatchJobReconciler, batchJob batch.BatchJob) error {
-
 	return parallel.RunFirstErr(
 		func() error {
 			stoppedStatusKey := filepath.Join(
-				spec.JobAPIPrefix(r.ClusterConfig.ClusterName, userconfig.BatchAPIKind, batchJob.Spec.APIName),
+				spec.JobAPIPrefix(r.ClusterConfig.ClusterUID, userconfig.BatchAPIKind, batchJob.Spec.APIName),
 				batchJob.Name,
 				status.JobStopped.String(),
 			)

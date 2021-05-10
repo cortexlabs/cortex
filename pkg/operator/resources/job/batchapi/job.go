@@ -88,7 +88,8 @@ func SubmitJob(apiName string, submission *schema.BatchJobSubmission) (*spec.Bat
 			ID:      jobID,
 			Kind:    userconfig.BatchAPIKind,
 		},
-		APIID: apiSpec.ID,
+		APIID:     apiSpec.ID,
+		StartTime: time.Now(),
 	}
 
 	err = uploadJobSpec(&jobSpec)

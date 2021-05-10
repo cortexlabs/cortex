@@ -83,9 +83,6 @@ type BatchJobStatus struct {
 	// Job ID
 	ID string `json:"id,omitempty"`
 
-	// Processing start timestamp
-	StartTime *kmeta.Time `json:"start_time,omitempty"`
-
 	// Processing ending timestamp
 	EndTime *kmeta.Time `json:"end_time,omitempty"`
 

@@ -125,10 +125,6 @@ spec:
               queue_url:
                 description: URL for the used SQS queue
                 type: string
-              start_time:
-                description: Processing start timestamp
-                format: date-time
-                type: string
               status:
                 description: Status of the batch job
                 type: string
