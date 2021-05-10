@@ -119,11 +119,10 @@ func getNodeInfos() ([]schema.NodeInfo, int, error) {
 		}
 
 		if isAPIPod {
-			if !isAsyncPod || asyncDeploymentType == "api" {
-				node.NumReplicas++
-			}
-			if !isAsyncPod || asyncDeploymentType == "gateway" {
+			if isAsyncPod && asyncDeploymentType == "gateway" {
 				node.NumAsyncGatewayReplicas++
+			} else {
+				node.NumReplicas++
 			}
 		}
 
