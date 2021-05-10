@@ -152,12 +152,15 @@ func GetAllAPIs(virtualServices []istioclientnetworking.VirtualService, batchJob
 				return nil, err
 			}
 
-			jobStatus, err := getJobStatusFromJobState(jobStates[0])
-			if err != nil {
-				return nil, err
-			}
 
-			jobStatuses = append(jobStatuses, *jobStatus)
+			if len(jobStates) > 0 {
+				jobStatus, err := getJobStatusFromJobState(jobStates[0])
+				if err != nil {
+					return nil, err
+				}
+
+				jobStatuses = append(jobStatuses, *jobStatus)
+			}
 		} else {
 			for i := range batchJobs {
 				batchJob := batchJobs[i]
