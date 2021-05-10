@@ -152,7 +152,6 @@ func GetAllAPIs(virtualServices []istioclientnetworking.VirtualService, batchJob
 				return nil, err
 			}
 
-
 			if len(jobStates) > 0 {
 				jobStatus, err := getJobStatusFromJobState(jobStates[0])
 				if err != nil {
