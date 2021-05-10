@@ -44,8 +44,8 @@ var (
 	_warningProjectBytes = 1024 * 1024 * 10
 	_warningFileCount    = 1000
 
-	_maxFileSizeBytes    int64 = 1024 * 1024 * 512
-	_maxProjectSizeBytes int64 = 1024 * 1024 * 512
+	_maxFileSizeBytes    int64 = 1024 * 1024 * 32 // 32mb
+	_maxProjectSizeBytes int64 = 1024 * 1024 * 32 // 32mb
 
 	_flagDeployEnv            string
 	_flagDeployForce          bool

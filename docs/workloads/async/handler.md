@@ -12,8 +12,7 @@ and the api configuration file (e.g. `cortex.yaml`) are excluded.
 
 The following files can also be added at the root of the project's directory:
 
-* `.cortexignore` file, which follows the same syntax and behavior as
-  a [.gitignore file](https://git-scm.com/docs/gitignore).
+* `.cortexignore` file, which follows the same syntax and behavior as a [.gitignore file](https://git-scm.com/docs/gitignore). This may be necessary if you are reaching the size limit for your project directory (32mb).
 * `.env` file, which exports environment variables that can be used in the handler. Each line of this file must follow
   the `VARIABLE=value` format.
 
