@@ -101,7 +101,7 @@ func ErrorClusterDeleteFailed(clusterName string, region string) error {
 func ErrorUnexpectedCloudFormationStatus(clusterName string, region string, metadata interface{}) error {
 	return errors.WithStack(&errors.Error{
 		Kind:     ErrUnexpectedCloudFormationStatus,
-		Message:  fmt.Sprintf("cluster named \"%s\" in %s is in an unexpected state; please run `cortex cluster down` to delete the cluster, or if that fails, delete the CloudFormation stacks directly from your AWS console: %s", clusterName, region, CloudFormationURL(clusterName, region)),
+		Message:  fmt.Sprintf("cluster named \"%s\" in %s is in an unexpected state; if your CloudFormation stacks are updating, please wait for them to complete. Otherwise, run `cortex cluster down` to delete the cluster, or if that fails, delete the CloudFormation stacks directly from your AWS console: %s", clusterName, region, CloudFormationURL(clusterName, region)),
 		Metadata: metadata,
 	})
 }
