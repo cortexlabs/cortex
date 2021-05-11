@@ -24,14 +24,22 @@ import (
 )
 
 const (
-	ErrEnvironmentNotConfigured  = "cliconfig.environment_not_configured"
-	ErrDuplicateEnvironmentNames = "cliconfig.duplicate_environment_names"
+	ErrEnvironmentNotConfigured     = "cliconfig.environment_not_configured"
+	ErrEnvironmentAlreadyConfigured = "cliconfig.environment_already_configured"
+	ErrDuplicateEnvironmentNames    = "cliconfig.duplicate_environment_names"
 )
 
 func ErrorEnvironmentNotConfigured(envName string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrEnvironmentNotConfigured,
 		Message: fmt.Sprintf("%s environment is not configured", envName),
+	})
+}
+
+func ErrorEnvironmentAlreadyConfigured(envName string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrEnvironmentAlreadyConfigured,
+		Message: fmt.Sprintf("there is already an environment named %s", envName),
 	})
 }
 

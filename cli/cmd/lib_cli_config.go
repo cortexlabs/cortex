@@ -299,6 +299,40 @@ func setDefaultEnv(envName string) error {
 	return nil
 }
 
+func renameEnv(oldEnvName string, newEnvName string) error {
+	cliConfig, err := readCLIConfig()
+	if err != nil {
+		return err
+	}
+
+	renamedEnv := false
+
+	for _, env := range cliConfig.Environments {
+		if env.Name == newEnvName {
+			return cliconfig.ErrorEnvironmentAlreadyConfigured(newEnvName)
+		}
+
+		if env.Name == oldEnvName {
+			env.Name = newEnvName
+			renamedEnv = true
+		}
+	}
+
+	if !renamedEnv {
+		return cliconfig.ErrorEnvironmentNotConfigured(oldEnvName)
+	}
+
+	if cliConfig.DefaultEnvironment != nil && *cliConfig.DefaultEnvironment == oldEnvName {
+		cliConfig.DefaultEnvironment = &newEnvName
+	}
+
+	if err := writeCLIConfig(cliConfig); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func readTelemetryConfig() (bool, error) {
 	cliConfig, err := readCLIConfig()
 	if err != nil {

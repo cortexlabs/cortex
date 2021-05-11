@@ -45,6 +45,9 @@ func envInit() {
 	_envDefaultCmd.Flags().SortFlags = false
 	_envCmd.AddCommand(_envDefaultCmd)
 
+	_envRenameCmd.Flags().SortFlags = false
+	_envCmd.AddCommand(_envRenameCmd)
+
 	_envDeleteCmd.Flags().SortFlags = false
 	_envCmd.AddCommand(_envDeleteCmd)
 }
@@ -157,6 +160,24 @@ var _envDefaultCmd = &cobra.Command{
 		}
 
 		print.BoldFirstLine(fmt.Sprintf("set %s as the default environment", envName))
+	},
+}
+
+var _envRenameCmd = &cobra.Command{
+	Use:   "rename EXISTING_NAME NEW_NAME",
+	Short: "rename an environment",
+	Args:  cobra.ExactArgs(2),
+	Run: func(cmd *cobra.Command, args []string) {
+		telemetry.Event("cli.env.rename")
+
+		oldEnvName := args[0]
+		newEnvName := args[1]
+
+		if err := renameEnv(oldEnvName, newEnvName); err != nil {
+			exit.Error(err)
+		}
+
+		print.BoldFirstLine(fmt.Sprintf("renamed the %s environment to %s", oldEnvName, newEnvName))
 	},
 }
 
