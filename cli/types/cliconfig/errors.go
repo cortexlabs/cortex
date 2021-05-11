@@ -32,7 +32,7 @@ const (
 func ErrorEnvironmentNotConfigured(envName string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrEnvironmentNotConfigured,
-		Message: fmt.Sprintf("%s environment is not configured", envName),
+		Message: fmt.Sprintf("there is no environment named %s", envName),
 	})
 }
 
