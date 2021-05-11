@@ -225,6 +225,18 @@ Flags:
   -h, --help   help for default
 ```
 
+## env rename
+
+```text
+rename an environment
+
+Usage:
+  cortex env rename EXISTING_NAME NEW_NAME [flags]
+
+Flags:
+  -h, --help   help for rename
+```
+
 ## env delete
 
 ```text
