@@ -295,15 +295,15 @@ function resize_nodegroup() {
   fi
 
   if [ "$existing_min" != "$updating_min" ] && [ "$existing_max" != "$updating_max" ]; then
-    echo "￮ nodegroup $config_ng: updating min instances to $updating_min and max instances to $updating_max (this might take up to 60 minutes)"
+    echo "￮ nodegroup $config_ng: updating min instances to $updating_min and max instances to $updating_max"
     eksctl scale nodegroup --cluster=$CORTEX_CLUSTER_NAME --region=$CORTEX_REGION $stack_ng --nodes $desired --nodes-min $updating_min --nodes-max $updating_max --timeout "60m"
     echo
   elif [ "$existing_min" != "$updating_min" ]; then
-    echo "￮ nodegroup $config_ng: updating min instances to $updating_min (this might take up to 60 minutes)"
+    echo "￮ nodegroup $config_ng: updating min instances to $updating_min"
     eksctl scale nodegroup --cluster=$CORTEX_CLUSTER_NAME --region=$CORTEX_REGION $stack_ng --nodes $desired --nodes-min $updating_min --timeout "60m"
     echo
   elif [ "$existing_max" != "$updating_max" ]; then
-    echo "￮ nodegroup $config_ng: updating max instances to $updating_max (this might take up to 60 minutes)"
+    echo "￮ nodegroup $config_ng: updating max instances to $updating_max"
     eksctl scale nodegroup --cluster=$CORTEX_CLUSTER_NAME --region=$CORTEX_REGION $stack_ng --nodes $desired --nodes-max $updating_max --timeout "60m"
     echo
   fi
