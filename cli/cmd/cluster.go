@@ -478,7 +478,7 @@ var _clusterDownCmd = &cobra.Command{
 				}
 				fmt.Println("already deleted ✓")
 			default:
-				fmt.Println("found ✓")
+				fmt.Println("✓")
 				clusterExists = true
 			}
 		}
