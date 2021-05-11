@@ -90,7 +90,7 @@ Or, using Python `requests`:
 import cortex
 import requests
 
-cx = cortex.client("aws")  # "aws" is the name of the Cortex environment used in this example
+cx = cortex.client("cortex")  # "cortex" is the name of the Cortex environment used in this example
 task_endpoint = cx.get_api("train-iris")["endpoint"]
 
 dest_s3_dir =  # S3 directory where the model will be uploaded, e.g. "s3://my-bucket/dir"

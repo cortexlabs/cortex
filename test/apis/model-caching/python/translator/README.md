@@ -57,16 +57,12 @@ Once the cluster is spun up (roughly 20 minutes), we can deploy by running:
 cortex deploy
 ```
 
-(I've configured my CLI to default to the AWS environment by running `cortex env default aws`)
-
 Now, we wait for the API to become live. You can track its status with `cortex get --watch`.
 
 Note that after the API goes live, we may need to wait a few minutes for it to register all the models hosted in the S3 bucket. Because the bucket is so large, it takes Cortex a bit longer than usual. When it's done, running `cortex get translator` should return something like:
 
 ```
 cortex get translator
-
-using aws environment
 
 status   up-to-date   requested   last update   avg request   2XX
 live     1            1           3m            --            --

@@ -11,7 +11,7 @@ To deploy this example:
 ## `cortex deploy`
 
 ```bash
-$ cortex deploy --env aws
+$ cortex deploy
 
 creating iris-classifier-onnx (RealtimeAPI)
 creating iris-classifier-tf (RealtimeAPI)
@@ -23,18 +23,18 @@ created iris-classifier (TrafficSplitter)
 ```bash
 $ cortex get
 
-env   realtime api           status     up-to-date   requested   last update   avg request   2XX
-aws   iris-classifier-onnx   updating   0            1           27s           -             -
-aws   iris-classifier-tf     updating   0            1           27s           -             -
+env      realtime api           status     up-to-date   requested   last update   avg request   2XX
+cortex   iris-classifier-onnx   updating   0            1           27s           -             -
+cortex   iris-classifier-tf     updating   0            1           27s           -             -
 
 env   traffic splitter   apis                                            last update
-aws   iris-classifier    iris-classifier-onnx:30 iris-classifier-tf:70   27s
+cortex   iris-classifier    iris-classifier-onnx:30 iris-classifier-tf:70   27s
 ```
 
 ## `cortex get iris-classifier`
 
 ```bash
-$ cortex get iris-classifier --env aws
+$ cortex get iris-classifier
 
 apis                   weights   status   requested   last update   avg request   2XX   5XX
 iris-classifier-onnx   30        live     1           1m            -             -     -
@@ -73,10 +73,7 @@ setosa
 Notice the requests being routed to the different Realtime APIs based on their weights (the output below may not match yours):
 
 ```bash
-$ cortex get iris-classifier --env aws
-
-using aws environment
-
+$ cortex get iris-classifier
 
 apis                   weights   status   requested   last update   avg request   2XX   5XX
 iris-classifier-onnx   30        live     1           4m            6.00791 ms    1     -
@@ -93,15 +90,15 @@ example curl: curl http://***.elb.us-west-2.amazonaws.com/iris-classifier -X POS
 Use `cortex delete <api_name>` to delete the Traffic Splitter and the two Realtime APIs (note that the Traffic Splitter and each Realtime API must be deleted by separate `cortex delete` commands):
 
 ```bash
-$ cortex delete iris-classifier --env aws
+$ cortex delete iris-classifier
 
 deleting iris-classifier
 
-$ cortex delete iris-classifier-onnx  --env aws
+$ cortex delete iris-classifier-onnx
 
 deleting iris-classifier-onnx
 
-$ cortex delete iris-classifier-tf --env aws
+$ cortex delete iris-classifier-tf
 
 deleting iris-classifier-tf
 ```
