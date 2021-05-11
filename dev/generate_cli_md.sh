@@ -46,6 +46,7 @@ commands=(
   "env configure"
   "env list"
   "env default"
+  "env rename"
   "env delete"
   "version"
   "completion"
