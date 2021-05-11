@@ -74,7 +74,7 @@ var _eksctlPrefixRegex = regexp.MustCompile(`^.*[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]
 
 func clusterInit() {
 	_clusterUpCmd.Flags().SortFlags = false
-	_clusterUpCmd.Flags().StringVarP(&_flagClusterUpEnv, "configure-env", "e", "aws", "name of environment to configure")
+	_clusterUpCmd.Flags().StringVarP(&_flagClusterUpEnv, "configure-env", "e", "", "name of environment to configure (default: the name of your cluster)")
 	_clusterUpCmd.Flags().BoolVarP(&_flagClusterDisallowPrompt, "yes", "y", false, "skip prompts")
 	_clusterCmd.AddCommand(_clusterUpCmd)
 
@@ -144,18 +144,6 @@ var _clusterUpCmd = &cobra.Command{
 
 		clusterConfigFile := args[0]
 
-		envExists, err := isEnvConfigured(_flagClusterUpEnv)
-		if err != nil {
-			exit.Error(err)
-		}
-		if envExists {
-			if _flagClusterDisallowPrompt {
-				fmt.Printf("found an existing environment named \"%s\", which will be overwritten to connect to this cluster once it's created\n\n", _flagClusterUpEnv)
-			} else {
-				prompt.YesOrExit(fmt.Sprintf("found an existing environment named \"%s\"; would you like to overwrite it to connect to this cluster once it's created?", _flagClusterUpEnv), "", "you can specify a different environment name to be configured to connect to this cluster by specifying the --configure-env flag (e.g. `cortex cluster up --configure-env prod`); or you can list your environments with `cortex env list` and delete an environment with `cortex env delete ENV_NAME`")
-			}
-		}
-
 		if _, err := docker.GetDockerClient(); err != nil {
 			exit.Error(err)
 		}
@@ -163,6 +151,23 @@ var _clusterUpCmd = &cobra.Command{
 		accessConfig, err := getNewClusterAccessConfig(clusterConfigFile)
 		if err != nil {
 			exit.Error(err)
+		}
+
+		envName := _flagClusterUpEnv
+		if envName == "" {
+			envName = accessConfig.ClusterName
+		}
+
+		envExists, err := isEnvConfigured(envName)
+		if err != nil {
+			exit.Error(err)
+		}
+		if envExists {
+			if _flagClusterDisallowPrompt {
+				fmt.Printf("found an existing environment named \"%s\", which will be overwritten to connect to this cluster once it's created\n\n", envName)
+			} else {
+				prompt.YesOrExit(fmt.Sprintf("found an existing environment named \"%s\"; would you like to overwrite it to connect to this cluster once it's created?", envName), "", "you can specify a different environment name to be configured to connect to this cluster by specifying the --configure-env flag (e.g. `cortex cluster up --configure-env prod`); or you can list your environments with `cortex env list` and delete an environment with `cortex env delete ENV_NAME`")
+			}
 		}
 
 		awsClient, err := newAWSClient(accessConfig.Region, true)
@@ -290,23 +295,23 @@ var _clusterUpCmd = &cobra.Command{
 
 		loadBalancer, err := getLoadBalancer(clusterConfig.ClusterName, OperatorLoadBalancer, awsClient)
 		if err != nil {
-			exit.Error(errors.Append(err, fmt.Sprintf("\n\nyou can attempt to resolve this issue and configure your cli environment by running `cortex cluster info --configure-env %s`", _flagClusterUpEnv)))
+			exit.Error(errors.Append(err, fmt.Sprintf("\n\nyou can attempt to resolve this issue and configure your cli environment by running `cortex cluster info --configure-env %s`", envName)))
 		}
 
 		newEnvironment := cliconfig.Environment{
-			Name:             _flagClusterUpEnv,
+			Name:             envName,
 			OperatorEndpoint: "https://" + *loadBalancer.DNSName,
 		}
 
 		err = addEnvToCLIConfig(newEnvironment, true)
 		if err != nil {
-			exit.Error(errors.Append(err, fmt.Sprintf("\n\nyou can attempt to resolve this issue and configure your cli environment by running `cortex cluster info --configure-env %s`", _flagClusterUpEnv)))
+			exit.Error(errors.Append(err, fmt.Sprintf("\n\nyou can attempt to resolve this issue and configure your cli environment by running `cortex cluster info --configure-env %s`", envName)))
 		}
 
 		if envExists {
-			fmt.Printf(console.Bold("\nthe environment named \"%s\" has been updated to point to this cluster (and was set as the default environment)\n"), _flagClusterUpEnv)
+			fmt.Printf(console.Bold("\nthe environment named \"%s\" has been updated to point to this cluster (and was set as the default environment)\n"), envName)
 		} else {
-			fmt.Printf(console.Bold("\nan environment named \"%s\" has been configured to point to this cluster (and was set as the default environment)\n"), _flagClusterUpEnv)
+			fmt.Printf(console.Bold("\nan environment named \"%s\" has been configured to point to this cluster (and was set as the default environment)\n"), envName)
 		}
 	},
 }
