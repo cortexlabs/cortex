@@ -82,7 +82,6 @@ func k8sJobSpec(api *spec.API, job *spec.TaskJob) *kbatch.Job {
 			"jobID":          job.ID,
 			"apiKind":        api.Kind.String(),
 			"cortex.dev/api": "true",
-			"worker":         "true",
 		},
 		PodSpec: k8s.PodSpec{
 			Labels: map[string]string{
@@ -91,7 +90,6 @@ func k8sJobSpec(api *spec.API, job *spec.TaskJob) *kbatch.Job {
 				"jobID":          job.ID,
 				"apiKind":        api.Kind.String(),
 				"cortex.dev/api": "true",
-				"worker":         "true",
 			},
 			Annotations: map[string]string{
 				"traffic.sidecar.istio.io/excludeOutboundIPRanges": "0.0.0.0/0",
