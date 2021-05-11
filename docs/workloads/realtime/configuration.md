@@ -40,7 +40,7 @@ handler:
   threads_per_process: <int>  # the number of threads per process (default: 1)
   config: <string: value>  # arbitrary dictionary passed to the constructor of the Handler class (optional)
   python_path: <string>  # path to the root of your Python folder that will be appended to PYTHONPATH (default: folder containing cortex.yaml)
-  image: <string>  # docker image to use for the Handler class (default: quay.io/cortexlabs/python-handler-cpu:master, quay.io/cortexlabs/python-handler-gpu:master-cuda10.2-cudnn8, or quay.io/cortexlabs/python-handler-inf:master based on compute)
+  image: <string>  # docker image to use for the Handler class (default: quay.io/cortexlabs/python-handler-cpu:0.35.0, quay.io/cortexlabs/python-handler-gpu:0.35.0-cuda10.2-cudnn8, or quay.io/cortexlabs/python-handler-inf:0.35.0 based on compute)
   env: <string: string>  # dictionary of environment variables
   log_level: <string>  # log level that can be "debug", "info", "warning" or "error" (default: "info")
   shm_size: <string>  # size of shared memory (/dev/shm) for sharing data between multiple processes, e.g. 64Mi or 1Gi (default: Null)
@@ -76,8 +76,8 @@ handler:
   threads_per_process: <int>  # the number of threads per process (default: 1)
   config: <string: value>  # arbitrary dictionary passed to the constructor of the Handler class (optional)
   python_path: <string>  # path to the root of your Python folder that will be appended to PYTHONPATH (default: folder containing cortex.yaml)
-  image: <string>  # docker image to use for the handler (default: quay.io/cortexlabs/tensorflow-handler:master)
-  tensorflow_serving_image: <string>  # docker image to use for the TensorFlow Serving container (default: quay.io/cortexlabs/tensorflow-serving-cpu:master, quay.io/cortexlabs/tensorflow-serving-gpu:master, or quay.io/cortexlabs/tensorflow-serving-inf:master based on compute)
+  image: <string>  # docker image to use for the handler (default: quay.io/cortexlabs/tensorflow-handler:0.35.0)
+  tensorflow_serving_image: <string>  # docker image to use for the TensorFlow Serving container (default: quay.io/cortexlabs/tensorflow-serving-cpu:0.35.0, quay.io/cortexlabs/tensorflow-serving-gpu:0.35.0, or quay.io/cortexlabs/tensorflow-serving-inf:0.35.0 based on compute)
   env: <string: string>  # dictionary of environment variables
   log_level: <string>  # log level that can be "debug", "info", "warning" or "error" (default: "info")
   shm_size: <string>  # size of shared memory (/dev/shm) for sharing data between multiple processes, e.g. 64Mi or 1Gi (default: Null)

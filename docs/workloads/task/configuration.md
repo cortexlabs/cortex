@@ -13,7 +13,7 @@
       shell: <string>  # relative path to a shell script for system package installation (default: dependencies.sh)
     python_path: <string>  # path to the root of your Python folder that will be appended to PYTHONPATH (default: folder containing cortex.yaml)
     shm_size: <string> # size of shared memory (/dev/shm) for sharing data between multiple processes, e.g. 64Mi or 1Gi (default: Null)
-    image: <string> # docker image to use for the Task (default: quay.io/cortexlabs/python-handler-cpu:master, quay.io/cortexlabs/python-handler-gpu:master-cuda10.2-cudnn8, or quay.io/cortexlabs/python-handler-inf:master based on compute)
+    image: <string> # docker image to use for the Task (default: quay.io/cortexlabs/python-handler-cpu:0.35.0, quay.io/cortexlabs/python-handler-gpu:0.35.0-cuda10.2-cudnn8, or quay.io/cortexlabs/python-handler-inf:0.35.0 based on compute)
     env: <string: string>  # dictionary of environment variables
     log_level: <string>  # log level that can be "debug", "info", "warning" or "error" (default: "info")
   networking:

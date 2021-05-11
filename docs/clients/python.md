@@ -93,7 +93,7 @@ Deploy API(s) from a project directory.
 
 **Arguments**:
 
-- `api_spec` - A dictionary defining a single Cortex API. See https://docs.cortex.dev/v/master/ for schema.
+- `api_spec` - A dictionary defining a single Cortex API. See https://docs.cortex.dev/v/0.35/ for schema.
 - `project_dir` - Path to a python project.
 - `force` - Override any in-progress api updates.
 - `wait` - Streams logs until the APIs are ready.
@@ -115,7 +115,7 @@ Deploy a Realtime API.
 
 **Arguments**:
 
-- `api_spec` - A dictionary defining a single Cortex API. See https://docs.cortex.dev/v/master/workloads/realtime-apis/configuration for schema.
+- `api_spec` - A dictionary defining a single Cortex API. See https://docs.cortex.dev/v/0.35/workloads/realtime-apis/configuration for schema.
 - `handler` - A Cortex Handler class implementation.
 - `requirements` - A list of PyPI dependencies that will be installed before the handler class implementation is invoked.
 - `conda_packages` - A list of Conda dependencies that will be installed before the handler class implementation is invoked.
@@ -139,7 +139,7 @@ Deploy an Async API.
 
 **Arguments**:
 
-- `api_spec` - A dictionary defining a single Cortex API. See https://docs.cortex.dev/v/master/workloads/async-apis/configuration for schema.
+- `api_spec` - A dictionary defining a single Cortex API. See https://docs.cortex.dev/v/0.35/workloads/async-apis/configuration for schema.
 - `handler` - A Cortex Handler class implementation.
 - `requirements` - A list of PyPI dependencies that will be installed before the handler class implementation is invoked.
 - `conda_packages` - A list of Conda dependencies that will be installed before the handler class implementation is invoked.
@@ -162,7 +162,7 @@ Deploy a Batch API.
 
 **Arguments**:
 
-- `api_spec` - A dictionary defining a single Cortex API. See https://docs.cortex.dev/v/master/workloads/batch-apis/configuration for schema.
+- `api_spec` - A dictionary defining a single Cortex API. See https://docs.cortex.dev/v/0.35/workloads/batch-apis/configuration for schema.
 - `handler` - A Cortex Handler class implementation.
 - `requirements` - A list of PyPI dependencies that will be installed before the handler class implementation is invoked.
 - `conda_packages` - A list of Conda dependencies that will be installed before the handler class implementation is invoked.
@@ -184,7 +184,7 @@ Deploy a Task API.
 
 **Arguments**:
 
-- `api_spec` - A dictionary defining a single Cortex API. See https://docs.cortex.dev/v/master/workloads/task-apis/configuration for schema.
+- `api_spec` - A dictionary defining a single Cortex API. See https://docs.cortex.dev/v/0.35/workloads/task-apis/configuration for schema.
 - `task` - A callable class implementation.
 - `requirements` - A list of PyPI dependencies that will be installed before the handler class implementation is invoked.
 - `conda_packages` - A list of Conda dependencies that will be installed before the handler class implementation is invoked.
@@ -206,7 +206,7 @@ Deploy a Task API.
 
 **Arguments**:
 
-- `api_spec` - A dictionary defining a single Cortex API. See https://docs.cortex.dev/v/master/workloads/realtime-apis/traffic-splitter/configuration for schema.
+- `api_spec` - A dictionary defining a single Cortex API. See https://docs.cortex.dev/v/0.35/workloads/realtime-apis/traffic-splitter/configuration for schema.
 
 
 **Returns**:

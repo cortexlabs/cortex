@@ -59,7 +59,7 @@ class Client:
         Deploy API(s) from a project directory.
 
         Args:
-            api_spec: A dictionary defining a single Cortex API. See https://docs.cortex.dev/v/master/ for schema.
+            api_spec: A dictionary defining a single Cortex API. See https://docs.cortex.dev/v/0.35/ for schema.
             project_dir: Path to a python project.
             force: Override any in-progress api updates.
             wait: Streams logs until the APIs are ready.
@@ -88,7 +88,7 @@ class Client:
         Deploy a Realtime API.
 
         Args:
-            api_spec: A dictionary defining a single Cortex API. See https://docs.cortex.dev/v/master/workloads/realtime-apis/configuration for schema.
+            api_spec: A dictionary defining a single Cortex API. See https://docs.cortex.dev/v/0.35/workloads/realtime-apis/configuration for schema.
             handler: A Cortex Handler class implementation.
             requirements: A list of PyPI dependencies that will be installed before the handler class implementation is invoked.
             conda_packages: A list of Conda dependencies that will be installed before the handler class implementation is invoked.
@@ -126,7 +126,7 @@ class Client:
         Deploy an Async API.
 
         Args:
-            api_spec: A dictionary defining a single Cortex API. See https://docs.cortex.dev/v/master/workloads/async-apis/configuration for schema.
+            api_spec: A dictionary defining a single Cortex API. See https://docs.cortex.dev/v/0.35/workloads/async-apis/configuration for schema.
             handler: A Cortex Handler class implementation.
             requirements: A list of PyPI dependencies that will be installed before the handler class implementation is invoked.
             conda_packages: A list of Conda dependencies that will be installed before the handler class implementation is invoked.
@@ -161,7 +161,7 @@ class Client:
         Deploy a Batch API.
 
         Args:
-            api_spec: A dictionary defining a single Cortex API. See https://docs.cortex.dev/v/master/workloads/batch-apis/configuration for schema.
+            api_spec: A dictionary defining a single Cortex API. See https://docs.cortex.dev/v/0.35/workloads/batch-apis/configuration for schema.
             handler: A Cortex Handler class implementation.
             requirements: A list of PyPI dependencies that will be installed before the handler class implementation is invoked.
             conda_packages: A list of Conda dependencies that will be installed before the handler class implementation is invoked.
@@ -195,7 +195,7 @@ class Client:
         Deploy a Task API.
 
         Args:
-            api_spec: A dictionary defining a single Cortex API. See https://docs.cortex.dev/v/master/workloads/task-apis/configuration for schema.
+            api_spec: A dictionary defining a single Cortex API. See https://docs.cortex.dev/v/0.35/workloads/task-apis/configuration for schema.
             task: A callable class implementation.
             requirements: A list of PyPI dependencies that will be installed before the handler class implementation is invoked.
             conda_packages: A list of Conda dependencies that will be installed before the handler class implementation is invoked.
@@ -225,7 +225,7 @@ class Client:
         Deploy a Task API.
 
         Args:
-            api_spec: A dictionary defining a single Cortex API. See https://docs.cortex.dev/v/master/workloads/realtime-apis/traffic-splitter/configuration for schema.
+            api_spec: A dictionary defining a single Cortex API. See https://docs.cortex.dev/v/0.35/workloads/realtime-apis/traffic-splitter/configuration for schema.
 
         Returns:
             Deployment status, API specification, and endpoint for each API.
@@ -257,7 +257,7 @@ class Client:
         Deploy an API.
 
         Args:
-            api_spec: A dictionary defining a single Cortex API. See https://docs.cortex.dev/v/master/ for schema.
+            api_spec: A dictionary defining a single Cortex API. See https://docs.cortex.dev/v/0.35/ for schema.
             handler: A Cortex Handler class implementation. Not required for TaskAPI/TrafficSplitter kinds.
             task: A callable class/function implementation. Not required for RealtimeAPI/BatchAPI/TrafficSplitter kinds.
             requirements: A list of PyPI dependencies that will be installed before the handler class implementation is invoked.
