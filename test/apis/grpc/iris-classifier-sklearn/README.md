@@ -21,7 +21,7 @@ sample = iris_classifier_pb2.Sample(
     petal_width=0.3
 )
 
-cx = cortex.client("aws")
+cx = cortex.client("cortex")
 api = cx.get_api("iris-classifier")
 grpc_endpoint = api["endpoint"] + ":" + str(api["grpc_ports"]["insecure"])
 channel = grpc.insecure_channel(grpc_endpoint)

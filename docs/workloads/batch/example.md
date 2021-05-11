@@ -93,7 +93,7 @@ cortex get image-classifier
 import cortex
 import requests
 
-cx = cortex.client("aws")
+cx = cortex.client("cortex")
 batch_endpoint = cx.get_api("image-classifier")["endpoint"]
 
 dest_s3_dir = # specify S3 directory for the results, e.g. "s3://my-bucket/dir" (make sure your cluster has access to this bucket)

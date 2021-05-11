@@ -2,8 +2,6 @@
 
 This example shows how to deploy a batch image classification api that accepts a list of image urls as input, downloads the images, classifies them, and writes the results to S3.
 
-**Batch APIs are only supported in AWS.** You can find cluster installation documentation [here](../../../docs/aws/install.md).
-
 ## Pre-requisites
 
 * [Install](../../../docs/aws/install.md) Cortex and create a cluster
@@ -147,7 +145,7 @@ Here are the complete [API configuration docs](../../../docs/workloads/batch/con
 `cortex deploy` takes your model, your `handler.py` implementation, and your configuration from `cortex.yaml` and creates an endpoint that can receive job submissions and manage running jobs.
 
 ```bash
-$ cortex deploy --env aws
+$ cortex deploy
 
 created image-classifier (BatchAPI)
 ```
@@ -155,7 +153,7 @@ created image-classifier (BatchAPI)
 Get the endpoint for your Batch API with `cortex get image-classifier`:
 
 ```bash
-$ cortex get image-classifier --env aws
+$ cortex get image-classifier
 
 no submitted jobs
 
@@ -218,7 +216,7 @@ Take note of the job id in the response.
 ### List the jobs for your Batch API
 
 ```bash
-$ cortex get image-classifier --env aws
+$ cortex get image-classifier
 
 job id             status    progress   start time                 duration
 69d6faf82e4660d3   running   0/3        20 Jul 2020 01:07:44 UTC   3m26s
@@ -248,7 +246,7 @@ $ curl http://***.elb.us-west-2.amazonaws.com/image-classifier?jobID=69d6faf82e4
 You can also use the Cortex CLI to get the status of your job using `cortex get <BATCH_API_NAME> <JOB_ID>`.
 
 ```bash
-$ cortex get image-classifier 69d6faf82e4660d3 --env aws
+$ cortex get image-classifier 69d6faf82e4660d3
 
 job id: 69d6faf82e4660d3
 status: running
@@ -273,7 +271,7 @@ job endpoint: http://***.elb.us-west-2.amazonaws.com/image-classifier/69d6faf82e
 You can stream logs realtime for debugging and monitoring purposes with `cortex logs <BATCH_API_NAME> <JOB_ID>`
 
 ```bash
-$ cortex logs image-classifier 69d6fdeb2d8e6647 --env aws
+$ cortex logs image-classifier 69d6fdeb2d8e6647
 
 started enqueuing batches to queue
 partitioning 5 items found in job submission into 3 batches of size 2
@@ -398,7 +396,7 @@ After submitting this job, you should get a response like this:
 Wait for the job to complete by streaming the logs with `cortex logs <BATCH_API_NAME> <JOB_ID>` or watching for the job status to change with `cortex get <BATCH_API_NAME> <JOB_ID> --watch`.
 
 ```bash
-$ cortex logs image-classifier 69d6faf82e4660d3 --env aws
+$ cortex logs image-classifier 69d6faf82e4660d3
 
 started enqueuing batches to queue
 enqueuing contents from file s3://cortex-examples/image-classifier/urls_0.json
@@ -507,7 +505,7 @@ You should get a response like this:
 Wait for the job to complete by streaming the logs with `cortex logs <BATCH_API_NAME> <JOB_ID>` or watching for the job status to change with `cortex get <BATCH_API_NAME> <JOB_ID> --watch`.
 
 ```bash
-$ cortex logs image-classifier 69d6f8a472f0e1e5 --env aws
+$ cortex logs image-classifier 69d6f8a472f0e1e5
 
 started enqueuing batches to queue
 completed enqueuing a total of 8 batches
@@ -550,7 +548,7 @@ stopped job 69d96a01ea55da8c
 You can also use the Cortex CLI `cortex delete <BATCH_API_NAME> <JOB_ID>`.
 
 ```bash
-$ cortex delete image-classifier 69d96a01ea55da8c --env aws
+$ cortex delete image-classifier 69d96a01ea55da8c
 
 stopped job 69d96a01ea55da8c
 ```
@@ -562,7 +560,7 @@ stopped job 69d96a01ea55da8c
 Run `cortex delete` to delete the API:
 
 ```bash
-$ cortex delete image-classifier --env aws
+$ cortex delete image-classifier
 
 deleting image-classifier
 ```

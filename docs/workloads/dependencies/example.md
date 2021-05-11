@@ -40,7 +40,7 @@ api_spec = {
     }
 }
 
-cx = cortex.client("aws")
+cx = cortex.client("cortex")
 cx.deploy(api_spec, project_dir=".")
 ```
 
