@@ -50,7 +50,7 @@ node_groups:
     spot: false
   # ...
 
-# subnet visibility [public (instances will have public IPs) | private (instances will not have public IPs)]
+# subnet visibility for instances [public (instances will have public IPs) | private (instances will not have public IPs)]
 subnet_visibility: public
 
 # NAT gateway (required when using private subnets) [none | single | highly_available (a NAT gateway per availability zone)]
