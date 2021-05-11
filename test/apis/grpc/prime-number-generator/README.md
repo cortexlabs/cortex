@@ -14,7 +14,7 @@ import cortex
 import generator_pb2
 import generator_pb2_grpc
 
-cx = cortex.client("aws")
+cx = cortex.client("cortex")
 api = cx.get_api("prime-generator")
 grpc_endpoint = api["endpoint"] + ":" + str(api["grpc_ports"]["insecure"])
 

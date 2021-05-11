@@ -50,7 +50,6 @@ const (
 	ErrCortexYAMLNotFound                  = "cli.cortex_yaml_not_found"
 	ErrDockerCtrlC                         = "cli.docker_ctrl_c"
 	ErrResponseUnknown                     = "cli.response_unknown"
-	ErrOnlyAWSClusterFlagSet               = "cli.only_aws_cluster_flag_set"
 	ErrMissingAWSCredentials               = "cli.missing_aws_credentials"
 	ErrCredentialsInClusterConfig          = "cli.credentials_in_cluster_config"
 	ErrClusterUp                           = "cli.cluster_up"

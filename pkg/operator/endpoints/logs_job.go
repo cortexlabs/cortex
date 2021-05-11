@@ -52,5 +52,11 @@ func ReadJobLogs(w http.ResponseWriter, r *http.Request) {
 	}
 	defer socket.Close()
 
-	operator.StreamLogsFromRandomPod(map[string]string{"apiName": apiName, "jobID": jobID}, socket)
+	labels := map[string]string{"apiName": apiName, "jobID": jobID}
+
+	if deployedResource.Kind == userconfig.BatchAPIKind {
+		labels["cortex.dev/batch"] = "worker"
+	}
+
+	operator.StreamLogsFromRandomPod(labels, socket)
 }

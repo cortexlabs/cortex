@@ -6,10 +6,10 @@ response code counts (summed over the past 2 weeks) for your APIs:
 ```bash
 cortex get
 
-env   api                         status   up-to-date   requested   last update   avg request   2XX
-aws   iris-classifier             live     1            1           17m           24ms          1223
-aws   text-generator              live     1            1           8m            180ms         433
-aws   image-classifier-resnet50   live     2            2           1h            32ms          1121126
+env      api                         status   up-to-date   requested   last update   avg request   2XX
+cortex   iris-classifier             live     1            1           17m           24ms          1223
+cortex   text-generator              live     1            1           8m            180ms         433
+cortex   image-classifier-resnet50   live     2            2           1h            32ms          1121126
 ```
 
 The `cortex get API_NAME` command also provides a link to a Grafana dashboard:

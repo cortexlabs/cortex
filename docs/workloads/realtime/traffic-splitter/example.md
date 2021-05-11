@@ -33,7 +33,7 @@ api_spec_gpu = {
     },
 }
 
-cx = cortex.client("aws")
+cx = cortex.client("cortex")
 cx.deploy_realtime_api(api_spec_cpu, handler=Handler, requirements=requirements)
 cx.deploy_realtime_api(api_spec_gpu, handler=Handler, requirements=requirements)
 ```

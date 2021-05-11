@@ -113,7 +113,7 @@ Usage:
   cortex cluster up CLUSTER_CONFIG_FILE [flags]
 
 Flags:
-  -e, --configure-env string   name of environment to configure (default "aws")
+  -e, --configure-env string   name of environment to configure (default: the name of your cluster)
   -y, --yes                    skip prompts
   -h, --help                   help for up
 ```
