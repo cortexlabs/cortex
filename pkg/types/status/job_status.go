@@ -27,7 +27,7 @@ type BatchJobStatus struct {
 	spec.BatchJob
 	Status         JobCode               `json:"status"`
 	EndTime        *time.Time            `json:"end_time,omitempty"`
-	BatchesInQueue int                   `json:"batches_in_queue,omitempty"`
+	BatchesInQueue int                   `json:"batches_in_queue"`
 	BatchMetrics   *metrics.BatchMetrics `json:"batch_metrics,omitempty"`
 	WorkerCounts   *WorkerCounts         `json:"worker_counts,omitempty"`
 }
