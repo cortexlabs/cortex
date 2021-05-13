@@ -59,17 +59,7 @@ func virtualServiceSpec(api *spec.API) *istioclientnetworking.VirtualService {
 }
 
 func k8sJobSpec(api *spec.API, job *spec.TaskJob) *kbatch.Job {
-	containers, volumes := workloads.TaskContainers(api)
-	for i, container := range containers {
-		if container.Name == workloads.APIContainerName {
-			containers[i].Env = append(container.Env,
-				kcore.EnvVar{
-					Name:  "CORTEX_TASK_SPEC",
-					Value: workloads.TaskSpecPath,
-				},
-			)
-		}
-	}
+	containers, volumes := workloads.UserPodContainers(*api)
 
 	return k8s.Job(&k8s.JobSpec{
 		Name:        job.JobKey.K8sName(),
@@ -104,7 +94,7 @@ func k8sJobSpec(api *spec.API, job *spec.TaskJob) *kbatch.Job {
 				Containers:         containers,
 				NodeSelector:       workloads.NodeSelectors(),
 				Tolerations:        workloads.GenerateResourceTolerations(),
-				Affinity:           workloads.GenerateNodeAffinities(api.Compute.NodeGroups),
+				Affinity:           workloads.GenerateNodeAffinities(api.Pod.NodeGroups),
 				Volumes:            volumes,
 				ServiceAccountName: workloads.ServiceAccountName,
 			},

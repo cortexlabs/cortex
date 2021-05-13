@@ -334,7 +334,7 @@ func getK8sResources(apiConfig userconfig.API) (resources, error) {
 }
 
 func applyK8sResources(api spec.API, prevK8sResources resources, queueURL string) error {
-	apiDeployment := apiDeploymentSpec(api, prevK8sResources.apiDeployment, queueURL)
+	apiDeployment := deploymentSpec(api, prevK8sResources.apiDeployment, queueURL)
 	gatewayDeployment := gatewayDeploymentSpec(api, prevK8sResources.gatewayDeployment, queueURL)
 	gatewayHPA, err := gatewayHPASpec(api)
 	if err != nil {

@@ -20,7 +20,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
-	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	"github.com/cortexlabs/cortex/pkg/workloads"
 	istioclientnetworking "istio.io/client-go/pkg/apis/networking/v1beta1"
 	kapps "k8s.io/api/apps/v1"
@@ -30,23 +29,12 @@ import (
 var _terminationGracePeriodSeconds int64 = 60 // seconds
 
 func deploymentSpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deployment {
-	switch api.Handler.Type {
-	case userconfig.TensorFlowHandlerType:
-		return tensorflowAPISpec(api, prevDeployment)
-	case userconfig.PythonHandlerType:
-		return pythonAPISpec(api, prevDeployment)
-	default:
-		return nil // unexpected
-	}
-}
-
-func tensorflowAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deployment {
-	containers, volumes := workloads.TensorFlowHandlerContainers(api)
-	containers = append(containers, workloads.RequestMonitorContainer(api))
+	containers, volumes := workloads.UserPodContainers(*api)
+	// TODO add the proxy as well
 
 	return k8s.Deployment(&k8s.DeploymentSpec{
 		Name:           workloads.K8sName(api.Name),
-		Replicas:       getRequestedReplicasFromDeployment(api, prevDeployment),
+		Replicas:       getRequestedReplicasFromDeployment(*api, prevDeployment),
 		MaxSurge:       pointer.String(api.UpdateStrategy.MaxSurge),
 		MaxUnavailable: pointer.String(api.UpdateStrategy.MaxUnavailable),
 		Labels: map[string]string{
@@ -78,63 +66,13 @@ func tensorflowAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.D
 				RestartPolicy:                 "Always",
 				TerminationGracePeriodSeconds: pointer.Int64(_terminationGracePeriodSeconds),
 				InitContainers: []kcore.Container{
-					workloads.InitContainer(api),
+					workloads.KubexitInitContainer(),
+					workloads.InitContainer(*api),
 				},
 				Containers:         containers,
 				NodeSelector:       workloads.NodeSelectors(),
 				Tolerations:        workloads.GenerateResourceTolerations(),
-				Affinity:           workloads.GenerateNodeAffinities(api.Compute.NodeGroups),
-				Volumes:            volumes,
-				ServiceAccountName: workloads.ServiceAccountName,
-			},
-		},
-	})
-}
-
-func pythonAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deployment {
-	containers, volumes := workloads.PythonHandlerContainers(api)
-	containers = append(containers, workloads.RequestMonitorContainer(api))
-
-	return k8s.Deployment(&k8s.DeploymentSpec{
-		Name:           workloads.K8sName(api.Name),
-		Replicas:       getRequestedReplicasFromDeployment(api, prevDeployment),
-		MaxSurge:       pointer.String(api.UpdateStrategy.MaxSurge),
-		MaxUnavailable: pointer.String(api.UpdateStrategy.MaxUnavailable),
-		Labels: map[string]string{
-			"apiName":        api.Name,
-			"apiKind":        api.Kind.String(),
-			"apiID":          api.ID,
-			"specID":         api.SpecID,
-			"deploymentID":   api.DeploymentID,
-			"handlerID":      api.HandlerID,
-			"cortex.dev/api": "true",
-		},
-		Annotations: api.ToK8sAnnotations(),
-		Selector: map[string]string{
-			"apiName": api.Name,
-			"apiKind": api.Kind.String(),
-		},
-		PodSpec: k8s.PodSpec{
-			Labels: map[string]string{
-				"apiName":        api.Name,
-				"apiKind":        api.Kind.String(),
-				"deploymentID":   api.DeploymentID,
-				"handlerID":      api.HandlerID,
-				"cortex.dev/api": "true",
-			},
-			Annotations: map[string]string{
-				"traffic.sidecar.istio.io/excludeOutboundIPRanges": "0.0.0.0/0",
-			},
-			K8sPodSpec: kcore.PodSpec{
-				RestartPolicy:                 "Always",
-				TerminationGracePeriodSeconds: pointer.Int64(_terminationGracePeriodSeconds),
-				InitContainers: []kcore.Container{
-					workloads.InitContainer(api),
-				},
-				Containers:         containers,
-				NodeSelector:       workloads.NodeSelectors(),
-				Tolerations:        workloads.GenerateResourceTolerations(),
-				Affinity:           workloads.GenerateNodeAffinities(api.Compute.NodeGroups),
+				Affinity:           workloads.GenerateNodeAffinities(api.Pod.NodeGroups),
 				Volumes:            volumes,
 				ServiceAccountName: workloads.ServiceAccountName,
 			},
@@ -185,7 +123,7 @@ func virtualServiceSpec(api *spec.API) *istioclientnetworking.VirtualService {
 	})
 }
 
-func getRequestedReplicasFromDeployment(api *spec.API, deployment *kapps.Deployment) int32 {
+func getRequestedReplicasFromDeployment(api spec.API, deployment *kapps.Deployment) int32 {
 	requestedReplicas := api.Autoscaling.InitReplicas
 
 	if deployment != nil && deployment.Spec.Replicas != nil && *deployment.Spec.Replicas > 0 {

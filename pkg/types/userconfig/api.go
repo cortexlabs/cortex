@@ -22,6 +22,7 @@ import (
 	"time"
 
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
+	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/urls"
 	"github.com/cortexlabs/yaml"
@@ -431,6 +432,14 @@ func GetTotalComputeFromContainers(containers []Container) Compute {
 	}
 
 	return compute
+}
+
+func GetContainerNames(containers []Container) strset.Set {
+	containerNames := strset.New()
+	for _, container := range containers {
+		containerNames.Add(container.Name)
+	}
+	return containerNames
 }
 
 func (api *API) TelemetryEvent() map[string]interface{} {

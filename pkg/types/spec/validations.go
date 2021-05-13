@@ -578,6 +578,8 @@ func validateContainers(
 			}
 		}
 	}
+
+	return nil
 }
 
 func validateAutoscaling(api *userconfig.API) error {

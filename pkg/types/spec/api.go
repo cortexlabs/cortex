@@ -38,11 +38,13 @@ type API struct {
 	SpecID       string `json:"spec_id"`
 	HandlerID    string `json:"handler_id"`
 	DeploymentID string `json:"deployment_id"`
-	Key          string `json:"key"`
-	HandlerKey   string `json:"handler_key"`
+	ProjectID    string `json:"project_id"`
+
+	Key        string `json:"key"`
+	HandlerKey string `json:"handler_key"`
+
 	LastUpdated  int64  `json:"last_updated"`
 	MetadataRoot string `json:"metadata_root"`
-	ProjectID    string `json:"project_id"`
 }
 
 /*
@@ -50,9 +52,9 @@ APIID (uniquely identifies an api configuration for a given deployment)
 	* SpecID (uniquely identifies api configuration specified by user)
 		* HandlerID (used to determine when rolling updates need to happen)
 			* Resource
-			* Handler
-			* TaskDefinition
-			* Compute
+				* Containers
+				* Compute
+			* Pod
 			* ProjectID
 		* Deployment Strategy
 		* Autoscaling

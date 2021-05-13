@@ -17,7 +17,6 @@ require (
 	github.com/docker/distribution v2.7.1+incompatible // indirect
 	github.com/docker/docker v0.7.3-0.20190327010347-be7ac8be2ae0
 	github.com/docker/go-connections v0.4.0 // indirect
-	github.com/emicklei/proto v1.9.0
 	github.com/fatih/color v1.10.0
 	github.com/getsentry/sentry-go v0.10.0
 	github.com/go-logr/logr v0.3.0

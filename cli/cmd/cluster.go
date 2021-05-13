@@ -714,11 +714,6 @@ var _clusterExportCmd = &cobra.Command{
 			OperatorEndpoint: "https://" + *loadBalancer.DNSName,
 		}
 
-		info, err := cluster.Info(operatorConfig)
-		if err != nil {
-			exit.Error(err)
-		}
-
 		var apisResponse []schema.APIResponse
 		if len(args) == 0 {
 			apisResponse, err = cluster.GetAPIs(operatorConfig)
