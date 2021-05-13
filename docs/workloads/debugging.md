@@ -12,10 +12,10 @@ For example:
 cortex prepare-debug cortex.yaml iris-classifier
 
 > docker run -p 9000:8888 \
-> -e "CORTEX_VERSION=0.34.0" \
+> -e "CORTEX_VERSION=0.35.0" \
 > -e "CORTEX_API_SPEC=/mnt/project/iris-classifier.debug.json" \
 > -v /home/ubuntu/iris-classifier:/mnt/project \
-> quay.io/cortexlabs/python-handler-cpu:0.34.0
+> quay.io/cortexlabs/python-handler-cpu:0.35.0
 ```
 
 Make a request to the api container:

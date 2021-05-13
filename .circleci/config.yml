@@ -142,7 +142,7 @@ jobs:
     docker:
       - image: circleci/python:3.6
     environment:
-      CORTEX_TEST_BATCH_S3_PATH: s3://cortex-dev-nightly/test/jobs
+      CORTEX_TEST_BATCH_S3_PATH: s3://cortex-nightly-artifacts/test/jobs
     steps:
       - checkout
       - setup_remote_docker
