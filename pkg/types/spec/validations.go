@@ -33,6 +33,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/regex"
+	"github.com/cortexlabs/cortex/pkg/lib/slices"
 	libtime "github.com/cortexlabs/cortex/pkg/lib/time"
 	"github.com/cortexlabs/cortex/pkg/lib/urls"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
@@ -184,6 +185,7 @@ func containersValidation() *cr.StructFieldValidation {
 							Required:                   true,
 							AllowEmpty:                 false,
 							AlphaNumericDashUnderscore: true,
+							DisallowedValues:           consts.ReservedContainerNames,
 						},
 					},
 					{
@@ -567,7 +569,13 @@ func validateContainers(
 	awsClient *aws.Client,
 	k8sClient *k8s.Client,
 ) error {
+	containerNames := []string{}
+
 	for i, container := range containers {
+		if slices.HasString(containerNames, container.Name) {
+			return ErrorDuplicateContainerName(container.Name)
+		}
+
 		if err := validateDockerImagePath(container.Image, awsClient, k8sClient); err != nil {
 			return errors.Wrap(err, strconv.FormatInt(int64(i), 10), userconfig.ImageKey)
 		}

@@ -34,6 +34,7 @@ const (
 	ErrDuplicateName                = "spec.duplicate_name"
 	ErrDuplicateEndpointInOneDeploy = "spec.duplicate_endpoint_in_one_deploy"
 	ErrDuplicateEndpoint            = "spec.duplicate_endpoint"
+	ErrDuplicateContainerName       = "spec.duplicate_container_name"
 	ErrConflictingFields            = "spec.conflicting_fields"
 	ErrSpecifyOnlyOneField          = "spec.specify_only_one_field"
 	ErrSpecifyOneOrTheOther         = "spec.specify_one_or_the_other"
@@ -111,6 +112,13 @@ func ErrorDuplicateEndpoint(apiName string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrDuplicateEndpoint,
 		Message: fmt.Sprintf("endpoint is already being used by %s", apiName),
+	})
+}
+
+func ErrorDuplicateContainerName(containerName string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrDuplicateContainerName,
+		Message: fmt.Sprintf("container name %s must be unique", containerName),
 	})
 }
 

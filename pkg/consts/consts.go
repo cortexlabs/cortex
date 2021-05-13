@@ -33,6 +33,10 @@ var (
 	DefaultInClusterConfigPath   = "/configs/cluster/cluster.yaml"
 	MaxBucketLifecycleRules      = 100
 	AsyncWorkloadsExpirationDays = int64(7)
+
+	ReservedContainerNames = []string{
+		"neuron-rtd",
+	}
 )
 
 func DefaultRegistry() string {
