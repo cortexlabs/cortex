@@ -24,11 +24,13 @@ var (
 	CortexVersion      = "master" // CORTEX_VERSION
 	CortexVersionMinor = "master" // CORTEX_VERSION_MINOR
 
-	DefaultMaxReplicaQueueLength    = int64(1024)
-	DefaultMaxReplicaConcurrency    = int64(1024)
-	DefaultTargetReplicaConcurrency = float64(8)
-	NeuronCoresPerInf               = int64(4)
-	AuthHeader                      = "X-Cortex-Authorization"
+	ProxyListeningPort, ProxyListeningPortStr = int64(8888), "8888"
+	DefaultMaxReplicaQueueLength              = int64(1024)
+	DefaultMaxReplicaConcurrency              = int64(1024)
+	DefaultTargetReplicaConcurrency           = float64(8)
+	NeuronCoresPerInf                         = int64(4)
+
+	AuthHeader = "X-Cortex-Authorization"
 
 	DefaultInClusterConfigPath   = "/configs/cluster/cluster.yaml"
 	MaxBucketLifecycleRules      = 100

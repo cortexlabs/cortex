@@ -31,10 +31,8 @@ import (
 )
 
 const (
-	DefaultPortInt32               = int32(8888)
-	DefaultRequestMonitorPortStr   = "15000"
-	DefaultRequestMonitorPortInt32 = int32(15000)
-	ServiceAccountName             = "default"
+	DefaultPortInt32, DefaultPortStr = int32(8888), "8888"
+	ServiceAccountName               = "default"
 )
 
 const (

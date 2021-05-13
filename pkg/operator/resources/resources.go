@@ -51,10 +51,6 @@ import (
 
 var operatorLogger = logging.GetLogger()
 
-const (
-	_defaultAPIPortInt32 = int32(8888)
-)
-
 // Returns an error if resource doesn't exist
 func GetDeployedResourceByName(resourceName string) (*operator.DeployedResource, error) {
 	resource, err := GetDeployedResourceByNameOrNil(resourceName)

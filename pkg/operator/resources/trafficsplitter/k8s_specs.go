@@ -24,10 +24,6 @@ import (
 	istioclientnetworking "istio.io/client-go/pkg/apis/networking/v1beta1"
 )
 
-const (
-	_defaultPortInt32, _defaultPortStr = int32(8888), "8888"
-)
-
 func virtualServiceSpec(trafficSplitter *spec.API) *istioclientnetworking.VirtualService {
 	return k8s.VirtualService(&k8s.VirtualServiceSpec{
 		Name:         workloads.K8sName(trafficSplitter.Name),
