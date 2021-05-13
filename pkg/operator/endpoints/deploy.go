@@ -42,13 +42,7 @@ func Deploy(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	projectBytes, err := files.ReadReqFile(r, "project.zip")
-	if err != nil {
-		respondError(w, r, err)
-		return
-	}
-
-	response, err := resources.Deploy(projectBytes, configFileName, configBytes, force)
+	response, err := resources.Deploy(configFileName, configBytes, force)
 	if err != nil {
 		respondError(w, r, err)
 		return

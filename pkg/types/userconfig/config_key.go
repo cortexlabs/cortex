@@ -32,6 +32,10 @@ const (
 	WeightKey = "weight"
 	ShadowKey = "shadow"
 
+	// Containers
+	ContainersKey = "containers"
+	PortKey       = "port"
+
 	// Handler
 	TypeKey                   = "type"
 	PathKey                   = "path"

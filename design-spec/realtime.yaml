@@ -60,29 +60,27 @@
 
 - name: <string>
   kind: RealtimeAPI
-  shm_size: <string>
-  node_groups: <list:string>
-  log_level: <string>
-  config: <string: value>
-  containers:
-    - name: api
-      image: <string>
-      env: <string: string>
-      port: <string>
-      command: <list:string>
-      args: <list:string>
-      healthcheck: <none>
-      compute:
-        cpu: <string | int | float>
-        gpu: <int>
-        inf: <int>
-        mem: <string>
+  pod:
+    shm_size: <string>
+    node_groups: <list:string>
+    containers:
+      - name: api
+        image: <string>
+        env: <string: string>
+        command: <list:string>
+        args: <list:string>
+        compute:
+          cpu: <string | int | float>
+          gpu: <int>
+          inf: <int>
+          mem: <string>
   autoscaling:
     min_replicas: <int>
     max_replicas: <int>
     init_replicas: <int>
     max_replica_queue_length: <int>
     max_replica_concurrency: <int>
+    target_replica_concurrency: <int>
     window: <duration>
     downscale_stabilization_period: <duration>
     upscale_stabilization_period: <duration>

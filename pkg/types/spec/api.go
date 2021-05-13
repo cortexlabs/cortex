@@ -46,11 +46,6 @@ type API struct {
 	ProjectKey   string `json:"project_key"`
 }
 
-type CuratedModelResource struct {
-	*userconfig.ModelResource
-	Versions []int64 `json:"versions"`
-}
-
 /*
 APIID (uniquely identifies an api configuration for a given deployment)
 	* SpecID (uniquely identifies api configuration specified by user)

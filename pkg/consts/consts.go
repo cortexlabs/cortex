@@ -17,34 +17,12 @@ limitations under the License.
 package consts
 
 import (
-	"fmt"
 	"os"
-
-	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 )
 
 var (
 	CortexVersion      = "master" // CORTEX_VERSION
 	CortexVersionMinor = "master" // CORTEX_VERSION_MINOR
-
-	SingleModelName = "_cortex_default"
-
-	DefaultImagePythoHandlerCPU      = fmt.Sprintf("%s/python-handler-cpu:%s", DefaultRegistry(), CortexVersion)
-	DefaultImagePythonHandlerGPU     = fmt.Sprintf("%s/python-handler-gpu:%s-cuda10.2-cudnn8", DefaultRegistry(), CortexVersion)
-	DefaultImagePythonHandlerInf     = fmt.Sprintf("%s/python-handler-inf:%s", DefaultRegistry(), CortexVersion)
-	DefaultImageTensorFlowServingCPU = fmt.Sprintf("%s/tensorflow-serving-cpu:%s", DefaultRegistry(), CortexVersion)
-	DefaultImageTensorFlowServingGPU = fmt.Sprintf("%s/tensorflow-serving-gpu:%s", DefaultRegistry(), CortexVersion)
-	DefaultImageTensorFlowServingInf = fmt.Sprintf("%s/tensorflow-serving-inf:%s", DefaultRegistry(), CortexVersion)
-	DefaultImageTensorFlowHandler    = fmt.Sprintf("%s/tensorflow-handler:%s", DefaultRegistry(), CortexVersion)
-	DefaultImagePathsSet             = strset.New(
-		DefaultImagePythoHandlerCPU,
-		DefaultImagePythonHandlerGPU,
-		DefaultImagePythonHandlerInf,
-		DefaultImageTensorFlowServingCPU,
-		DefaultImageTensorFlowServingGPU,
-		DefaultImageTensorFlowServingInf,
-		DefaultImageTensorFlowHandler,
-	)
 
 	DefaultMaxReplicaConcurrency = int64(1024)
 	NeuronCoresPerInf            = int64(4)

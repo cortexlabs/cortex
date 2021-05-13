@@ -90,37 +90,18 @@ func GetDeployedResourceByNameOrNil(resourceName string) (*operator.DeployedReso
 	}, nil
 }
 
-func Deploy(projectBytes []byte, configFileName string, configBytes []byte, force bool) ([]schema.DeployResult, error) {
-	projectID := hash.Bytes(projectBytes)
-	projectFileMap, err := archive.UnzipMemToMem(projectBytes)
-	if err != nil {
-		return nil, err
-	}
-
-	projectFiles := ProjectFiles{
-		ProjectByteMap: projectFileMap,
-	}
+func Deploy(configFileName string, configBytes []byte, force bool) ([]schema.DeployResult, error) {
+	projectID := hash.Bytes(configBytes)
 
 	apiConfigs, err := spec.ExtractAPIConfigs(configBytes, configFileName)
 	if err != nil {
 		return nil, err
 	}
 
-	err = ValidateClusterAPIs(apiConfigs, projectFiles)
+	err = ValidateClusterAPIs(apiConfigs)
 	if err != nil {
 		err = errors.Append(err, fmt.Sprintf("\n\napi configuration schema can be found at https://docs.cortex.dev/v/%s/", consts.CortexVersionMinor))
 		return nil, err
-	}
-
-	projectKey := spec.ProjectKey(projectID, config.ClusterConfig.ClusterUID)
-	isProjectUploaded, err := config.AWS.IsS3File(config.ClusterConfig.Bucket, projectKey)
-	if err != nil {
-		return nil, err
-	}
-	if !isProjectUploaded {
-		if err = config.AWS.UploadBytesToS3(projectBytes, config.ClusterConfig.Bucket, projectKey); err != nil {
-			return nil, err
-		}
 	}
 
 	// This is done if user specifies RealtimeAPIs in same file as TrafficSplitter

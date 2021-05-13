@@ -21,7 +21,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
@@ -32,11 +31,16 @@ import (
 
 type API struct {
 	Resource
+
+	NodeGroups []string               `json:"node_groups" yaml:"node_groups"`
+	ShmSize    *k8s.Quantity          `json:"shm_size" yaml:"shm_size"`
+	PythonPath *string                `json:"python_path" yaml:"python_path"`
+	LogLevel   LogLevel               `json:"log_level" yaml:"log_level"`
+	Config     map[string]interface{} `json:"config" yaml:"config"`
+
+	Containers       []Container     `json:"containers" yaml:"containers"`
 	APIs             []*TrafficSplit `json:"apis" yaml:"apis"`
-	Handler          *Handler        `json:"handler" yaml:"handler"`
-	TaskDefinition   *TaskDefinition `json:"definition" yaml:"definition"`
 	Networking       *Networking     `json:"networking" yaml:"networking"`
-	Compute          *Compute        `json:"compute" yaml:"compute"`
 	Autoscaling      *Autoscaling    `json:"autoscaling" yaml:"autoscaling"`
 	UpdateStrategy   *UpdateStrategy `json:"update_strategy" yaml:"update_strategy"`
 	Index            int             `json:"index" yaml:"-"`
@@ -44,45 +48,16 @@ type API struct {
 	SubmittedAPISpec interface{}     `json:"submitted_api_spec" yaml:"submitted_api_spec"`
 }
 
-type Handler struct {
-	Type         HandlerType `json:"type" yaml:"type"`
-	Path         string      `json:"path" yaml:"path"`
-	ProtobufPath *string     `json:"protobuf_path" yaml:"protobuf_path"`
+type Container struct {
+	Name  string            `json:"name" yaml:"name"`
+	Image string            `json:"image" yaml:"image"`
+	Env   map[string]string `json:"env" yaml:"env"`
 
-	MultiModelReloading *MultiModels `json:"multi_model_reloading" yaml:"multi_model_reloading"`
-	Models              *MultiModels `json:"models" yaml:"models"`
+	Port    *int32   `json:"port" yaml:"port"`
+	Command []string `json:"command" yaml:"command"`
+	Args    []string `json:"args" yaml:"args"`
 
-	ServerSideBatching     *ServerSideBatching    `json:"server_side_batching" yaml:"server_side_batching"`
-	ProcessesPerReplica    int32                  `json:"processes_per_replica" yaml:"processes_per_replica"`
-	ThreadsPerProcess      int32                  `json:"threads_per_process" yaml:"threads_per_process"`
-	ShmSize                *k8s.Quantity          `json:"shm_size" yaml:"shm_size"`
-	PythonPath             *string                `json:"python_path" yaml:"python_path"`
-	LogLevel               LogLevel               `json:"log_level" yaml:"log_level"`
-	Image                  string                 `json:"image" yaml:"image"`
-	TensorFlowServingImage string                 `json:"tensorflow_serving_image" yaml:"tensorflow_serving_image"`
-	Config                 map[string]interface{} `json:"config" yaml:"config"`
-	Env                    map[string]string      `json:"env" yaml:"env"`
-	Dependencies           *Dependencies          `json:"dependencies" yaml:"dependencies"`
-}
-
-type TaskDefinition struct {
-	Path         string                 `json:"path" yaml:"path"`
-	PythonPath   *string                `json:"python_path" yaml:"python_path"`
-	Image        string                 `json:"image" yaml:"image"`
-	ShmSize      *k8s.Quantity          `json:"shm_size" yaml:"shm_size"`
-	LogLevel     LogLevel               `json:"log_level" yaml:"log_level"`
-	Config       map[string]interface{} `json:"config" yaml:"config"`
-	Env          map[string]string      `json:"env" yaml:"env"`
-	Dependencies *Dependencies          `json:"dependencies" yaml:"dependencies"`
-}
-
-type MultiModels struct {
-	Path          *string          `json:"path" yaml:"path"`
-	Paths         []*ModelResource `json:"paths" yaml:"paths"`
-	Dir           *string          `json:"dir" yaml:"dir"`
-	CacheSize     *int32           `json:"cache_size" yaml:"cache_size"`
-	DiskCacheSize *int32           `json:"disk_cache_size" yaml:"disk_cache_size"`
-	SignatureKey  *string          `json:"signature_key" yaml:"signature_key"`
+	Compute *Compute `json:"compute" yaml:"compute"`
 }
 
 type TrafficSplit struct {
@@ -91,33 +66,15 @@ type TrafficSplit struct {
 	Shadow bool   `json:"shadow" yaml:"shadow"`
 }
 
-type ModelResource struct {
-	Name         string  `json:"name" yaml:"name"`
-	Path         string  `json:"path" yaml:"path"`
-	SignatureKey *string `json:"signature_key" yaml:"signature_key"`
-}
-
-type ServerSideBatching struct {
-	MaxBatchSize  int32         `json:"max_batch_size" yaml:"max_batch_size"`
-	BatchInterval time.Duration `json:"batch_interval" yaml:"batch_interval"`
-}
-
-type Dependencies struct {
-	Pip   string `json:"pip" yaml:"pip"`
-	Conda string `json:"conda" yaml:"conda"`
-	Shell string `json:"shell" yaml:"shell"`
-}
-
 type Networking struct {
 	Endpoint *string `json:"endpoint" yaml:"endpoint"`
 }
 
 type Compute struct {
-	CPU        *k8s.Quantity `json:"cpu" yaml:"cpu"`
-	Mem        *k8s.Quantity `json:"mem" yaml:"mem"`
-	GPU        int64         `json:"gpu" yaml:"gpu"`
-	Inf        int64         `json:"inf" yaml:"inf"`
-	NodeGroups []string      `json:"node_groups" yaml:"node_groups"`
+	CPU *k8s.Quantity `json:"cpu" yaml:"cpu"`
+	Mem *k8s.Quantity `json:"mem" yaml:"mem"`
+	GPU int64         `json:"gpu" yaml:"gpu"`
+	Inf int64         `json:"inf" yaml:"inf"`
 }
 
 type Autoscaling struct {
@@ -142,72 +99,6 @@ type UpdateStrategy struct {
 
 func (api *API) Identify() string {
 	return IdentifyAPI(api.FileName, api.Name, api.Kind, api.Index)
-}
-
-func (api *API) ModelNames() []string {
-	names := []string{}
-	for _, model := range api.Handler.Models.Paths {
-		names = append(names, model.Name)
-	}
-	return names
-}
-
-func (api *API) ApplyDefaultDockerPaths() {
-	usesGPU := api.Compute.GPU > 0
-	usesInf := api.Compute.Inf > 0
-
-	switch api.Kind {
-	case RealtimeAPIKind, BatchAPIKind, AsyncAPIKind:
-		api.applyHandlerDefaultDockerPaths(usesGPU, usesInf)
-	case TaskAPIKind:
-		api.applyTaskDefaultDockerPaths(usesGPU, usesInf)
-	}
-}
-
-func (api *API) applyHandlerDefaultDockerPaths(usesGPU, usesInf bool) {
-	handler := api.Handler
-	switch handler.Type {
-	case PythonHandlerType:
-		if handler.Image == "" {
-			if usesGPU {
-				handler.Image = consts.DefaultImagePythonHandlerGPU
-			} else if usesInf {
-				handler.Image = consts.DefaultImagePythonHandlerInf
-			} else {
-				handler.Image = consts.DefaultImagePythoHandlerCPU
-			}
-		}
-	case TensorFlowHandlerType:
-		if handler.Image == "" {
-			handler.Image = consts.DefaultImageTensorFlowHandler
-		}
-		if handler.TensorFlowServingImage == "" {
-			if usesGPU {
-				handler.TensorFlowServingImage = consts.DefaultImageTensorFlowServingGPU
-			} else if usesInf {
-				handler.TensorFlowServingImage = consts.DefaultImageTensorFlowServingInf
-			} else {
-				handler.TensorFlowServingImage = consts.DefaultImageTensorFlowServingCPU
-			}
-		}
-	}
-}
-
-func (api *API) applyTaskDefaultDockerPaths(usesGPU, usesInf bool) {
-	task := api.TaskDefinition
-	if task.Image == "" {
-		if usesGPU {
-			task.Image = consts.DefaultImagePythonHandlerGPU
-		} else if usesInf {
-			task.Image = consts.DefaultImagePythonHandlerInf
-		} else {
-			task.Image = consts.DefaultImagePythoHandlerCPU
-		}
-	}
-}
-
-func (handler *Handler) IsGRPC() bool {
-	return handler.ProtobufPath != nil
 }
 
 func IdentifyAPI(filePath string, name string, kind Kind, index int) string {

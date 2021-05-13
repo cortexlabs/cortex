@@ -70,7 +70,7 @@ func (projectFiles ProjectFiles) HasDir(path string) bool {
 	return false
 }
 
-func ValidateClusterAPIs(apis []userconfig.API, projectFiles spec.ProjectFiles) error {
+func ValidateClusterAPIs(apis []userconfig.API) error {
 	if len(apis) == 0 {
 		return spec.ErrorNoAPIs()
 	}
@@ -109,7 +109,7 @@ func ValidateClusterAPIs(apis []userconfig.API, projectFiles spec.ProjectFiles) 
 		if api.Kind == userconfig.RealtimeAPIKind || api.Kind == userconfig.BatchAPIKind ||
 			api.Kind == userconfig.TaskAPIKind || api.Kind == userconfig.AsyncAPIKind {
 
-			if err := spec.ValidateAPI(api, nil, projectFiles, config.AWS, config.K8s); err != nil {
+			if err := spec.ValidateAPI(api, config.AWS, config.K8s); err != nil {
 				return errors.Wrap(err, api.Identify())
 			}
 
@@ -139,7 +139,7 @@ func ValidateClusterAPIs(apis []userconfig.API, projectFiles spec.ProjectFiles) 
 	for i := range apis {
 		api := &apis[i]
 		if api.Kind != userconfig.TrafficSplitterKind {
-			if err := validateK8sCompute(api.Compute, maxMemMap); err != nil {
+			if err := validateK8sCompute(api, maxMemMap); err != nil {
 				return err
 			}
 		}
@@ -188,12 +188,14 @@ var _nvidiaDCGMExporterMemReserve = kresource.MustParse("50Mi")
 var _inferentiaCPUReserve = kresource.MustParse("100m")
 var _inferentiaMemReserve = kresource.MustParse("100Mi")
 
-func validateK8sCompute(compute *userconfig.Compute, maxMemMap map[string]kresource.Quantity) error {
+func validateK8sCompute(api *userconfig.API, maxMemMap map[string]kresource.Quantity) error {
+	compute := spec.GetTotalComputeFromContainers(api.Containers)
+
 	allErrors := []error{}
 	successfulLoops := 0
 
 	clusterNodeGroupNames := strset.New(config.ClusterConfig.GetNodeGroupNames()...)
-	apiNodeGroupNames := compute.NodeGroups
+	apiNodeGroupNames := api.NodeGroups
 
 	if apiNodeGroupNames != nil {
 		for _, ngName := range apiNodeGroupNames {
