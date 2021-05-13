@@ -27,17 +27,15 @@ import (
 )
 
 const (
-	ErrOperationIsOnlySupportedForKind               = "resources.operation_is_only_supported_for_kind"
-	ErrAPINotDeployed                                = "resources.api_not_deployed"
-	ErrAPIIDNotFound                                 = "resources.api_id_not_found"
-	ErrCannotChangeTypeOfDeployedAPI                 = "resources.cannot_change_kind_of_deployed_api"
-	ErrCannotChangeProtocolWhenUsedByTrafficSplitter = "resources.cannot_change_protocol_when_used_by_traffic_splitter"
-	ErrNoAvailableNodeComputeLimit                   = "resources.no_available_node_compute_limit"
-	ErrJobIDRequired                                 = "resources.job_id_required"
-	ErrRealtimeAPIUsedByTrafficSplitter              = "resources.realtime_api_used_by_traffic_splitter"
-	ErrAPIsNotDeployed                               = "resources.apis_not_deployed"
-	ErrGRPCNotSupportedForTrafficSplitter            = "resources.grpc_not_supported_for_traffic_splitter"
-	ErrInvalidNodeGroupSelector                      = "resources.invalid_node_group_selector"
+	ErrOperationIsOnlySupportedForKind  = "resources.operation_is_only_supported_for_kind"
+	ErrAPINotDeployed                   = "resources.api_not_deployed"
+	ErrAPIIDNotFound                    = "resources.api_id_not_found"
+	ErrCannotChangeTypeOfDeployedAPI    = "resources.cannot_change_kind_of_deployed_api"
+	ErrNoAvailableNodeComputeLimit      = "resources.no_available_node_compute_limit"
+	ErrJobIDRequired                    = "resources.job_id_required"
+	ErrRealtimeAPIUsedByTrafficSplitter = "resources.realtime_api_used_by_traffic_splitter"
+	ErrAPIsNotDeployed                  = "resources.apis_not_deployed"
+	ErrInvalidNodeGroupSelector         = "resources.invalid_node_group_selector"
 )
 
 func ErrorOperationIsOnlySupportedForKind(resource operator.DeployedResource, supportedKind userconfig.Kind, supportedKinds ...userconfig.Kind) error {
@@ -75,13 +73,6 @@ func ErrorCannotChangeKindOfDeployedAPI(name string, newKind, prevKind userconfi
 	})
 }
 
-func ErrorCannotChangeProtocolWhenUsedByTrafficSplitter(protocolChangingAPIName string, trafficSplitters []string) error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrCannotChangeProtocolWhenUsedByTrafficSplitter,
-		Message: fmt.Sprintf("cannot change the serving protocol (http -> grpc) of api %s because it is used by the following %s: %s", protocolChangingAPIName, strings.PluralS("TrafficSplitter", len(trafficSplitters)), strings.StrsSentence(trafficSplitters, "")),
-	})
-}
-
 func ErrorNoAvailableNodeComputeLimit(resource string, reqStr string, maxStr string) error {
 	message := fmt.Sprintf("no instances can satisfy the requested %s quantity - requested %s %s but instances only have %s %s available", resource, reqStr, resource, maxStr, resource)
 	if maxStr == "0" {
@@ -108,13 +99,6 @@ func ErrorAPIsNotDeployed(notDeployedAPIs []string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrAPIsNotDeployed,
 		Message: message,
-	})
-}
-
-func ErrorGRPCNotSupportedForTrafficSplitter(grpcAPIName string) error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrGRPCNotSupportedForTrafficSplitter,
-		Message: fmt.Sprintf("api %s (of kind %s) is served using the grpc protocol and therefore, it cannot be used for the %s kind", grpcAPIName, userconfig.RealtimeAPIKind, userconfig.TrafficSplitterKind),
 	})
 }
 

@@ -478,7 +478,7 @@ func ValidateAPI(
 	k8sClient *k8s.Client,
 ) error {
 
-	if api.Networking.Endpoint == nil && (api.Handler == nil || (api.Handler != nil && api.Handler.ProtobufPath == nil)) {
+	if api.Networking.Endpoint == nil {
 		api.Networking.Endpoint = pointer.String("/" + api.Name)
 	}
 

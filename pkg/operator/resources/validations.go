@@ -31,8 +31,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	istioclientnetworking "istio.io/client-go/pkg/apis/networking/v1beta1"
 	kresource "k8s.io/apimachinery/pkg/api/resource"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	klabels "k8s.io/apimachinery/pkg/labels"
 )
 
 type ProjectFiles struct {
@@ -86,22 +84,6 @@ func ValidateClusterAPIs(apis []userconfig.API) error {
 		}
 	}
 
-	virtualServicesForGrpc, err := config.K8s.ListVirtualServices(&v1.ListOptions{
-		LabelSelector: klabels.SelectorFromSet(
-			map[string]string{
-				"servingProtocol": "grpc",
-			}).String(),
-	})
-	if err != nil {
-		return err
-	}
-	grpcDeployedRealtimeAPIs := strset.New()
-	for _, virtualService := range virtualServicesForGrpc {
-		if virtualService.Labels["apiKind"] == userconfig.RealtimeAPIKind.String() {
-			grpcDeployedRealtimeAPIs.Add(virtualService.Labels["apiName"])
-		}
-	}
-
 	realtimeAPIs := InclusiveFilterAPIsByKind(apis, userconfig.RealtimeAPIKind)
 
 	for i := range apis {
@@ -122,7 +104,7 @@ func ValidateClusterAPIs(apis []userconfig.API) error {
 			if err := spec.ValidateTrafficSplitter(api); err != nil {
 				return errors.Wrap(err, api.Identify())
 			}
-			if err := checkIfAPIExists(api.APIs, realtimeAPIs, httpDeployedRealtimeAPIs, grpcDeployedRealtimeAPIs); err != nil {
+			if err := checkIfAPIExists(api.APIs, realtimeAPIs, httpDeployedRealtimeAPIs); err != nil {
 				return errors.Wrap(err, api.Identify())
 			}
 			if err := validateEndpointCollisions(api, virtualServices); err != nil {
@@ -333,16 +315,10 @@ func ExclusiveFilterAPIsByKind(apis []userconfig.API, kindsToExclude ...userconf
 }
 
 // checkIfAPIExists checks if referenced apis in trafficsplitter are either defined in yaml or already deployed.
-// Also prevents traffic splitting apis that use grpc.
-func checkIfAPIExists(trafficSplitterAPIs []*userconfig.TrafficSplit, apis []userconfig.API, httpDeployedRealtimeAPIs strset.Set, grpcDeployedRealtimeAPIs strset.Set) error {
+func checkIfAPIExists(trafficSplitterAPIs []*userconfig.TrafficSplit, apis []userconfig.API, httpDeployedRealtimeAPIs strset.Set) error {
 	var missingAPIs []string
 	// check if apis named in trafficsplitter are either defined in same yaml or already deployed
 	for _, trafficSplitAPI := range trafficSplitterAPIs {
-		// don't allow apis that use grpc
-		if grpcDeployedRealtimeAPIs.Has(trafficSplitAPI.Name) {
-			return ErrorGRPCNotSupportedForTrafficSplitter(trafficSplitAPI.Name)
-		}
-
 		// check if already deployed
 		deployed := httpDeployedRealtimeAPIs.Has(trafficSplitAPI.Name)
 

@@ -31,7 +31,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/parallel"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
-	"github.com/cortexlabs/cortex/pkg/lib/urls"
 	"github.com/cortexlabs/cortex/pkg/operator/lib/routines"
 	"github.com/cortexlabs/cortex/pkg/operator/operator"
 	"github.com/cortexlabs/cortex/pkg/operator/resources/asyncapi"
@@ -136,40 +135,6 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string, force bool) (*schema
 
 	if deployedResource != nil && deployedResource.Kind != apiConfig.Kind {
 		return nil, "", ErrorCannotChangeKindOfDeployedAPI(apiConfig.Name, apiConfig.Kind, deployedResource.Kind)
-	}
-
-	if deployedResource != nil {
-		prevAPISpec, err := operator.DownloadAPISpec(deployedResource.Name, deployedResource.ID())
-		if err != nil {
-			return nil, "", err
-		}
-
-		if deployedResource.Kind == userconfig.RealtimeAPIKind && prevAPISpec != nil && !prevAPISpec.Handler.IsGRPC() && apiConfig.Handler.IsGRPC() {
-			realtimeAPIName := deployedResource.Name
-
-			virtualServices, err := config.K8s.ListVirtualServicesByLabel("apiKind", userconfig.TrafficSplitterKind.String())
-			if err != nil {
-				return nil, "", err
-			}
-
-			trafficSplitterList, err := trafficsplitter.GetAllAPIs(virtualServices)
-			if err != nil {
-				return nil, "", err
-			}
-
-			dependentTrafficSplitters := []string{}
-			for _, trafficSplitter := range trafficSplitterList {
-				for _, api := range trafficSplitter.Spec.APIs {
-					if realtimeAPIName == api.Name {
-						dependentTrafficSplitters = append(dependentTrafficSplitters, api.Name)
-					}
-				}
-			}
-
-			if len(dependentTrafficSplitters) > 0 {
-				return nil, "", ErrorCannotChangeProtocolWhenUsedByTrafficSplitter(realtimeAPIName, dependentTrafficSplitters)
-			}
-		}
 	}
 
 	telemetry.Event("operator.deploy", apiConfig.TelemetryEvent())
@@ -277,37 +242,10 @@ func patchAPI(apiConfig *userconfig.API, force bool) (*spec.API, string, error) 
 		}
 	}
 
-	err = ValidateClusterAPIs([]userconfig.API{*apiConfig}, projectFiles)
+	err = ValidateClusterAPIs([]userconfig.API{*apiConfig})
 	if err != nil {
 		err = errors.Append(err, fmt.Sprintf("\n\napi configuration schema can be found at https://docs.cortex.dev/v/%s/", consts.CortexVersionMinor))
 		return nil, "", err
-	}
-
-	if deployedResource.Kind == userconfig.RealtimeAPIKind && !prevAPISpec.Handler.IsGRPC() && apiConfig.Handler.IsGRPC() {
-		realtimeAPIName := deployedResource.Name
-
-		virtualServices, err := config.K8s.ListVirtualServicesByLabel("apiKind", userconfig.TrafficSplitterKind.String())
-		if err != nil {
-			return nil, "", err
-		}
-
-		trafficSplitterList, err := trafficsplitter.GetAllAPIs(virtualServices)
-		if err != nil {
-			return nil, "", err
-		}
-
-		dependentTrafficSplitters := []string{}
-		for _, trafficSplitter := range trafficSplitterList {
-			for _, api := range trafficSplitter.Spec.APIs {
-				if realtimeAPIName == api.Name {
-					dependentTrafficSplitters = append(dependentTrafficSplitters, api.Name)
-				}
-			}
-		}
-
-		if len(dependentTrafficSplitters) > 0 {
-			return nil, "", ErrorCannotChangeProtocolWhenUsedByTrafficSplitter(realtimeAPIName, dependentTrafficSplitters)
-		}
 	}
 
 	switch deployedResource.Kind {
@@ -582,21 +520,6 @@ func GetAPI(apiName string) ([]schema.APIResponse, error) {
 		if err != nil {
 			return nil, err
 		}
-	}
-
-	// best effort
-	if config.K8s != nil && apiResponse[0].Spec.Kind == userconfig.RealtimeAPIKind && !apiResponse[0].Spec.Handler.IsGRPC() && (apiResponse[0].Spec.Handler.MultiModelReloading != nil || apiResponse[0].Spec.Handler.Models != nil) {
-		internalAPIEndpoint := config.K8s.InternalServiceEndpoint("api-"+apiResponse[0].Spec.Name, _defaultAPIPortInt32)
-
-		infoAPIEndpoint := urls.Join(internalAPIEndpoint, "info")
-		tfModelSummary, pythonModelSummary, err := realtimeapi.GetModelsMetadata(apiResponse[0].Status, apiResponse[0].Spec.Handler, infoAPIEndpoint)
-		if err != nil {
-			operatorLogger.Warn(errors.Wrap(err, fmt.Sprintf("api %s", apiResponse[0].Spec.Name)))
-			return apiResponse, nil
-		}
-
-		apiResponse[0].RealtimeModelMetadata.TFModelSummary = tfModelSummary
-		apiResponse[0].RealtimeModelMetadata.PythonModelSummary = pythonModelSummary
 	}
 
 	return apiResponse, nil
