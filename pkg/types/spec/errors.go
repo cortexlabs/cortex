@@ -23,7 +23,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
-	libmath "github.com/cortexlabs/cortex/pkg/lib/math"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
@@ -42,8 +41,6 @@ const (
 	ErrOneOfPrerequisitesNotDefined = "spec.one_of_prerequisites_not_defined"
 	ErrConfigGreaterThanOtherConfig = "spec.config_greater_than_other_config"
 
-	ErrPortCanOnlyDefinedOnce = "spec.port_can_only_be_defined_once"
-
 	ErrMinReplicasGreaterThanMax  = "spec.min_replicas_greater_than_max"
 	ErrInitReplicasGreaterThanMax = "spec.init_replicas_greater_than_max"
 	ErrInitReplicasLessThanMin    = "spec.init_replicas_less_than_min"
@@ -61,7 +58,6 @@ const (
 	ErrRegistryAccountIDMismatch                   = "spec.registry_account_id_mismatch"
 	ErrKeyIsNotSupportedForKind                    = "spec.key_is_not_supported_for_kind"
 	ErrComputeResourceConflict                     = "spec.compute_resource_conflict"
-	ErrInvalidNumberOfInfProcesses                 = "spec.invalid_number_of_inf_processes"
 	ErrInvalidNumberOfInfs                         = "spec.invalid_number_of_infs"
 	ErrInsufficientBatchConcurrencyLevel           = "spec.insufficient_batch_concurrency_level"
 	ErrInsufficientBatchConcurrencyLevelInf        = "spec.insufficient_batch_concurrency_level_inf"
@@ -169,13 +165,6 @@ func ErrorConfigGreaterThanOtherConfig(tooBigKey string, tooBigVal interface{}, 
 	})
 }
 
-func ErrorPortCanOnlyDefinedOnce() error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrPortCanOnlyDefinedOnce,
-		Message: fmt.Sprintf("%s field must be specified for one container only", userconfig.PortKey),
-	})
-}
-
 func ErrorMinReplicasGreaterThanMax(min int32, max int32) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrMinReplicasGreaterThanMax,
@@ -214,7 +203,7 @@ func ErrorSurgeAndUnavailableBothZero() error {
 func ErrorShmSizeCannotExceedMem(parentFieldName string, shmSize k8s.Quantity, mem k8s.Quantity) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrShmSizeCannotExceedMem,
-		Message: fmt.Sprintf("%s.shm_size (%s) cannot exceed compute.mem (%s)", parentFieldName, shmSize.UserString, mem.UserString),
+		Message: fmt.Sprintf("%s.shm_size (%s) cannot exceed total compute mem (%s)", parentFieldName, shmSize.UserString, mem.UserString),
 	})
 }
 
@@ -250,14 +239,6 @@ func ErrorComputeResourceConflict(resourceA, resourceB string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrComputeResourceConflict,
 		Message: fmt.Sprintf("%s and %s resources cannot be used together", resourceA, resourceB),
-	})
-}
-
-func ErrorInvalidNumberOfInfProcesses(processesPerReplica int64, numInf int64, numNeuronCores int64) error {
-	acceptableProcesses := libmath.FactorsInt64(numNeuronCores)
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrInvalidNumberOfInfProcesses,
-		Message: fmt.Sprintf("cannot evenly distribute %d Inferentia %s (%d NeuronCores total) over %d processes - acceptable numbers of processes are %s", numInf, s.PluralS("ASIC", numInf), numNeuronCores, processesPerReplica, s.UserStrsOr(acceptableProcesses)),
 	})
 }
 

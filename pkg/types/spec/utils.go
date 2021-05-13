@@ -20,7 +20,6 @@ import (
 	"strings"
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
-	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 )
@@ -41,39 +40,6 @@ func FindDuplicateNames(apis []userconfig.API) []userconfig.API {
 	}
 
 	return nil
-}
-
-func GetTotalComputeFromContainers(containers []userconfig.Container) userconfig.Compute {
-	compute := userconfig.Compute{}
-
-	for _, container := range containers {
-		if container.Compute == nil {
-			continue
-		}
-
-		if container.Compute.CPU != nil {
-			newCPUQuantity := k8s.NewQuantity(container.Compute.CPU.Value())
-			if compute.CPU != nil {
-				compute.CPU = newCPUQuantity
-			} else if newCPUQuantity != nil {
-				compute.CPU.AddQty(*newCPUQuantity)
-			}
-		}
-
-		if container.Compute.Mem != nil {
-			newMemQuantity := k8s.NewQuantity(container.Compute.Mem.Value())
-			if compute.CPU != nil {
-				compute.Mem = newMemQuantity
-			} else if newMemQuantity != nil {
-				compute.Mem.AddQty(*newMemQuantity)
-			}
-		}
-
-		compute.GPU += container.Compute.GPU
-		compute.Inf += container.Compute.Inf
-	}
-
-	return compute
 }
 
 func surgeOrUnavailableValidator(str string) (string, error) {

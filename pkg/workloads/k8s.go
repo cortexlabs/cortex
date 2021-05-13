@@ -89,14 +89,6 @@ func TaskInitContainer(api *spec.API, job *spec.TaskJob) kcore.Container {
 		LastLog: fmt.Sprintf(_downloaderLastLog, "task"),
 		DownloadArgs: []downloadContainerArg{
 			{
-				From:             aws.S3Path(config.ClusterConfig.Bucket, api.ProjectKey),
-				To:               path.Join(_emptyDirMountPath, "project"),
-				Unzip:            true,
-				ItemName:         "the project code",
-				HideFromLog:      true,
-				HideUnzippingLog: true,
-			},
-			{
 				From:             aws.S3Path(config.ClusterConfig.Bucket, api.Key),
 				To:               APISpecPath,
 				Unzip:            false,
@@ -146,14 +138,6 @@ func BatchInitContainer(api *spec.API, job *spec.BatchJob) kcore.Container {
 		LastLog: fmt.Sprintf(_downloaderLastLog, api.Handler.Type.String()),
 		DownloadArgs: []downloadContainerArg{
 			{
-				From:             aws.S3Path(config.ClusterConfig.Bucket, api.ProjectKey),
-				To:               path.Join(_emptyDirMountPath, "project"),
-				Unzip:            true,
-				ItemName:         "the project code",
-				HideFromLog:      true,
-				HideUnzippingLog: true,
-			},
-			{
 				From:             aws.S3Path(config.ClusterConfig.Bucket, api.Key),
 				To:               APISpecPath,
 				Unzip:            false,
@@ -193,14 +177,6 @@ func InitContainer(api *spec.API) kcore.Container {
 	downloadConfig := downloadContainerConfig{
 		LastLog: fmt.Sprintf(_downloaderLastLog, api.Handler.Type.String()),
 		DownloadArgs: []downloadContainerArg{
-			{
-				From:             aws.S3Path(config.ClusterConfig.Bucket, api.ProjectKey),
-				To:               path.Join(_emptyDirMountPath, "project"),
-				Unzip:            true,
-				ItemName:         "the project code",
-				HideFromLog:      true,
-				HideUnzippingLog: true,
-			},
 			{
 				From:             aws.S3Path(config.ClusterConfig.Bucket, api.HandlerKey),
 				To:               APISpecPath,

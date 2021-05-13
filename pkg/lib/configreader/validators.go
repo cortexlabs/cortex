@@ -18,11 +18,9 @@ package configreader
 
 import (
 	"regexp"
-	"strings"
 	"time"
 
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
-	"github.com/cortexlabs/cortex/pkg/lib/docker"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
 )
 
@@ -119,22 +117,4 @@ func DurationParser(v *DurationValidation) func(string) (interface{}, error) {
 
 		return d, nil
 	}
-}
-
-func ValidateImageVersion(image, cortexVersion string) (string, error) {
-	if !strings.HasPrefix(image, "quay.io/cortexlabs/") && !strings.HasPrefix(image, "quay.io/cortexlabsdev/") && !strings.HasPrefix(image, "docker.io/cortexlabs/") && !strings.HasPrefix(image, "docker.io/cortexlabsdev/") && !strings.HasPrefix(image, "cortexlabs/") && !strings.HasPrefix(image, "cortexlabsdev/") {
-		return image, nil
-	}
-
-	tag := docker.ExtractImageTag(image)
-	// in docker, missing tag implies "latest"
-	if tag == "" {
-		tag = "latest"
-	}
-
-	if !strings.HasPrefix(tag, cortexVersion) {
-		return "", ErrorImageVersionMismatch(image, tag, cortexVersion)
-	}
-
-	return image, nil
 }

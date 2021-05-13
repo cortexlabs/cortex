@@ -18,20 +18,15 @@ package cmd
 
 import (
 	"fmt"
-	"path"
 	"strings"
 
 	"github.com/cortexlabs/cortex/cli/cluster"
 	"github.com/cortexlabs/cortex/cli/types/flags"
-	"github.com/cortexlabs/cortex/pkg/lib/archive"
-	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/exit"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
 	libjson "github.com/cortexlabs/cortex/pkg/lib/json"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/print"
-	"github.com/cortexlabs/cortex/pkg/lib/prompt"
-	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/table"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
@@ -147,49 +142,6 @@ func getConfigPath(args []string) string {
 	return files.RelToAbsPath(configPath, _cwd)
 }
 
-func findProjectFiles(configPath string) ([]string, error) {
-	projectRoot := files.Dir(configPath)
-
-	ignoreFns := []files.IgnoreFn{
-		files.IgnoreSpecificFiles(configPath),
-		files.IgnoreCortexDebug,
-		files.IgnoreHiddenFiles,
-		files.IgnoreHiddenFolders,
-		files.IgnorePythonGeneratedFiles,
-	}
-
-	cortexIgnorePath := path.Join(projectRoot, ".cortexignore")
-	if files.IsFile(cortexIgnorePath) {
-		cortexIgnore, err := files.GitIgnoreFn(cortexIgnorePath)
-		if err != nil {
-			return nil, err
-		}
-		ignoreFns = append(ignoreFns, cortexIgnore)
-	}
-
-	if !_flagDeployDisallowPrompt {
-		ignoreFns = append(ignoreFns, files.PromptForFilesAboveSize(_warningFileBytes, "do you want to upload %s (%s)?"))
-	}
-	ignoreFns = append(ignoreFns,
-		files.ErrorOnBigFilesFn(_maxFileSizeBytes),
-		// must be the last appended IgnoreFn
-		files.ErrorOnProjectSizeLimit(_maxProjectSizeBytes),
-	)
-
-	projectPaths, err := files.ListDirRecursive(projectRoot, false, ignoreFns...)
-	if err != nil {
-		return nil, err
-	}
-
-	// Include .env file containing environment variables
-	dotEnvPath := path.Join(projectRoot, ".env")
-	if files.IsFile(dotEnvPath) {
-		projectPaths = append(projectPaths, dotEnvPath)
-	}
-
-	return projectPaths, nil
-}
-
 func getDeploymentBytes(configPath string) (map[string][]byte, error) {
 	configBytes, err := files.ReadFileBytes(configPath)
 	if err != nil {
@@ -200,44 +152,6 @@ func getDeploymentBytes(configPath string) (map[string][]byte, error) {
 		"config": configBytes,
 	}
 
-	projectRoot := files.Dir(configPath)
-
-	projectPaths, err := findProjectFiles(configPath)
-	if err != nil {
-		return nil, err
-	}
-
-	canSkipPromptMsg := "you can skip this prompt next time with `cortex deploy --yes`\n"
-	rootDirMsg := "this directory"
-	if projectRoot != _cwd {
-		rootDirMsg = fmt.Sprintf("./%s", files.DirPathRelativeToCWD(projectRoot))
-	}
-
-	didPromptFileCount := false
-	if !_flagDeployDisallowPrompt && len(projectPaths) >= _warningFileCount {
-		msg := fmt.Sprintf("cortex will zip %d files in %s and upload them to the cluster; we recommend that you upload large files/directories (e.g. models) to s3 and download them in your api's __init__ function, and avoid sending unnecessary files by removing them from this directory or referencing them in a .cortexignore file. Would you like to continue?", len(projectPaths), rootDirMsg)
-		prompt.YesOrExit(msg, canSkipPromptMsg, "")
-		didPromptFileCount = true
-	}
-
-	projectZipBytes, _, err := archive.ZipToMem(&archive.Input{
-		FileLists: []archive.FileListInput{
-			{
-				Sources:      projectPaths,
-				RemovePrefix: projectRoot,
-			},
-		},
-	})
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to zip project folder")
-	}
-
-	if !_flagDeployDisallowPrompt && !didPromptFileCount && len(projectZipBytes) >= _warningProjectBytes {
-		msg := fmt.Sprintf("cortex will zip %d files in %s (%s) and upload them to the cluster, though we recommend you upload large files (e.g. models) to s3 and download them in your api's __init__ function. Would you like to continue?", len(projectPaths), rootDirMsg, s.IntToBase2Byte(len(projectZipBytes)))
-		prompt.YesOrExit(msg, canSkipPromptMsg, "")
-	}
-
-	uploadBytes["project.zip"] = projectZipBytes
 	return uploadBytes, nil
 }
 

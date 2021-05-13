@@ -43,7 +43,6 @@ type API struct {
 	LastUpdated  int64  `json:"last_updated"`
 	MetadataRoot string `json:"metadata_root"`
 	ProjectID    string `json:"project_id"`
-	ProjectKey   string `json:"project_key"`
 }
 
 /*
@@ -65,12 +64,8 @@ func GetAPISpec(apiConfig *userconfig.API, projectID string, deploymentID string
 	var buf bytes.Buffer
 
 	buf.WriteString(s.Obj(apiConfig.Resource))
-	buf.WriteString(s.Obj(apiConfig.Handler))
-	buf.WriteString(s.Obj(apiConfig.TaskDefinition))
+	buf.WriteString(s.Obj(apiConfig.Pod))
 	buf.WriteString(projectID)
-	if apiConfig.Compute != nil {
-		buf.WriteString(s.Obj(apiConfig.Compute.Normalized()))
-	}
 	handlerID := hash.Bytes(buf.Bytes())
 
 	buf.Reset()
@@ -94,7 +89,6 @@ func GetAPISpec(apiConfig *userconfig.API, projectID string, deploymentID string
 		LastUpdated:  time.Now().Unix(),
 		MetadataRoot: MetadataRoot(apiConfig.Name, clusterUID),
 		ProjectID:    projectID,
-		ProjectKey:   ProjectKey(projectID, clusterUID),
 	}
 }
 
@@ -136,14 +130,6 @@ func MetadataRoot(apiName string, clusterUID string) string {
 		"apis",
 		apiName,
 		"metadata",
-	)
-}
-
-func ProjectKey(projectID string, clusterUID string) string {
-	return filepath.Join(
-		clusterUID,
-		"projects",
-		projectID+".zip",
 	)
 }
 

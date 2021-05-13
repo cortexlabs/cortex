@@ -31,7 +31,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	libjson "github.com/cortexlabs/cortex/pkg/lib/json"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
-	libmath "github.com/cortexlabs/cortex/pkg/lib/math"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/regex"
 	libtime "github.com/cortexlabs/cortex/pkg/lib/time"
@@ -315,6 +314,16 @@ func autoscalingValidation() *cr.StructFieldValidation {
 					},
 				},
 				{
+					StructField: "MaxReplicaQueueLength",
+					Int64Validation: &cr.Int64Validation{
+						Default:     consts.DefaultMaxReplicaQueueLength,
+						GreaterThan: pointer.Int64(0),
+						// our configured nginx can theoretically accept up to 32768 connections, but during testing,
+						// it has been observed that the number is just slightly lower, so it has been offset by 2678
+						LessThanOrEqualTo: pointer.Int64(30000),
+					},
+				},
+				{
 					StructField: "MaxReplicaConcurrency",
 					Int64Validation: &cr.Int64Validation{
 						Default:     consts.DefaultMaxReplicaConcurrency,
@@ -326,7 +335,8 @@ func autoscalingValidation() *cr.StructFieldValidation {
 				},
 				{
 					StructField: "TargetReplicaConcurrency",
-					Float64PtrValidation: &cr.Float64PtrValidation{
+					Float64Validation: &cr.Float64Validation{
+						Default:     consts.DefaultTargetReplicaConcurrency,
 						GreaterThan: pointer.Float64(0),
 					},
 				},
@@ -482,8 +492,10 @@ func ValidateAPI(
 		api.Networking.Endpoint = pointer.String("/" + api.Name)
 	}
 
-	if err := validateContainers(api, awsClient, k8sClient); err != nil {
-		return errors.Wrap(err, userconfig.ContainersKey)
+	if api.Pod != nil {
+		if err := validatePod(api, awsClient, k8sClient); err != nil {
+			return errors.Wrap(err, userconfig.PodKey)
+		}
 	}
 
 	if api.Autoscaling != nil {
@@ -495,12 +507,6 @@ func ValidateAPI(
 	if api.UpdateStrategy != nil {
 		if err := validateUpdateStrategy(api.UpdateStrategy); err != nil {
 			return errors.Wrap(err, userconfig.UpdateStrategyKey)
-		}
-	}
-
-	if api.Handler != nil && api.Handler.ShmSize != nil && api.Compute.Mem != nil {
-		if api.Handler.ShmSize.Cmp(api.Compute.Mem.Quantity) > 0 {
-			return ErrorShmSizeCannotExceedMem(userconfig.HandlerKey, *api.Handler.ShmSize, *api.Compute.Mem)
 		}
 	}
 
@@ -531,21 +537,39 @@ func ValidateTrafficSplitter(api *userconfig.API) error {
 	return nil
 }
 
-func validateContainers(
+func validatePod(
 	api *userconfig.API,
 	awsClient *aws.Client,
 	k8sClient *k8s.Client,
 ) error {
-	containers := api.Containers
+	containers := api.Pod.Containers
+	totalCompute := userconfig.GetTotalComputeFromContainers(containers)
 
-	numPorts := 0
+	if api.Pod.ShmSize != nil {
+		if totalCompute.Mem != nil && api.Pod.ShmSize.Cmp(totalCompute.Mem.Quantity) > 0 {
+			return ErrorShmSizeCannotExceedMem(userconfig.HandlerKey, *api.Pod.ShmSize, *totalCompute.Mem)
+		}
+	}
+
+	if err := validateCompute(totalCompute); err != nil {
+		return errors.Wrap(err, userconfig.ComputeKey)
+	}
+
+	if err := validateContainers(containers, awsClient, k8sClient); err != nil {
+		return errors.Wrap(err, userconfig.ContainersKey)
+	}
+
+	return nil
+}
+
+func validateContainers(
+	containers []userconfig.Container,
+	awsClient *aws.Client,
+	k8sClient *k8s.Client,
+) error {
 	for i, container := range containers {
 		if err := validateDockerImagePath(container.Image, awsClient, k8sClient); err != nil {
 			return errors.Wrap(err, strconv.FormatInt(int64(i), 10), userconfig.ImageKey)
-		}
-
-		if container.Port != nil {
-			numPorts++
 		}
 
 		for key := range container.Env {
@@ -554,27 +578,13 @@ func validateContainers(
 			}
 		}
 	}
-	if numPorts != 1 {
-		return ErrorPortCanOnlyDefinedOnce()
-	}
-
-	if err := validateCompute(GetTotalComputeFromContainers(containers)); err != nil {
-		return err
-	}
-
-	return nil
 }
 
 func validateAutoscaling(api *userconfig.API) error {
 	autoscaling := api.Autoscaling
-	handler := api.Handler
 
-	if autoscaling.TargetReplicaConcurrency == nil {
-		autoscaling.TargetReplicaConcurrency = pointer.Float64(float64(handler.ProcessesPerReplica * handler.ThreadsPerProcess))
-	}
-
-	if *autoscaling.TargetReplicaConcurrency > float64(autoscaling.MaxReplicaConcurrency) {
-		return ErrorConfigGreaterThanOtherConfig(userconfig.TargetReplicaConcurrencyKey, *autoscaling.TargetReplicaConcurrency, userconfig.MaxReplicaConcurrencyKey, autoscaling.MaxReplicaConcurrency)
+	if autoscaling.TargetReplicaConcurrency > float64(autoscaling.MaxReplicaConcurrency) {
+		return ErrorConfigGreaterThanOtherConfig(userconfig.TargetReplicaConcurrencyKey, autoscaling.TargetReplicaConcurrency, userconfig.MaxReplicaConcurrencyKey, autoscaling.MaxReplicaConcurrency)
 	}
 
 	if autoscaling.MinReplicas > autoscaling.MaxReplicas {
@@ -587,14 +597,6 @@ func validateAutoscaling(api *userconfig.API) error {
 
 	if autoscaling.InitReplicas < autoscaling.MinReplicas {
 		return ErrorInitReplicasLessThanMin(autoscaling.InitReplicas, autoscaling.MinReplicas)
-	}
-
-	if api.Compute.Inf > 0 {
-		numNeuronCores := api.Compute.Inf * consts.NeuronCoresPerInf
-		processesPerReplica := int64(handler.ProcessesPerReplica)
-		if !libmath.IsDivisibleByInt64(numNeuronCores, processesPerReplica) {
-			return ErrorInvalidNumberOfInfProcesses(processesPerReplica, api.Compute.Inf, numNeuronCores)
-		}
 	}
 
 	return nil
@@ -625,13 +627,6 @@ func validateDockerImagePath(
 	awsClient *aws.Client,
 	k8sClient *k8s.Client,
 ) error {
-	if consts.DefaultImagePathsSet.Has(image) {
-		return nil
-	}
-	if _, err := cr.ValidateImageVersion(image, consts.CortexVersion); err != nil {
-		return err
-	}
-
 	dockerClient, err := docker.GetDockerClient()
 	if err != nil {
 		return err

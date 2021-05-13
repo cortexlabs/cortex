@@ -23,7 +23,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/config"
 	"github.com/cortexlabs/cortex/pkg/consts"
 	batch "github.com/cortexlabs/cortex/pkg/crds/apis/batch/v1alpha1"
-	"github.com/cortexlabs/cortex/pkg/lib/archive"
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/hash"
@@ -219,27 +218,9 @@ func patchAPI(apiConfig *userconfig.API, force bool) (*spec.API, string, error) 
 		return nil, "", ErrorCannotChangeKindOfDeployedAPI(apiConfig.Name, apiConfig.Kind, deployedResource.Kind)
 	}
 
-	var projectFiles ProjectFiles
-
 	prevAPISpec, err := operator.DownloadAPISpec(deployedResource.Name, deployedResource.ID())
 	if err != nil {
 		return nil, "", err
-	}
-
-	if deployedResource.Kind != userconfig.TrafficSplitterKind {
-		bytes, err := config.AWS.ReadBytesFromS3(config.ClusterConfig.Bucket, prevAPISpec.ProjectKey)
-		if err != nil {
-			return nil, "", err
-		}
-
-		projectFileMap, err := archive.UnzipMemToMem(bytes)
-		if err != nil {
-			return nil, "", err
-		}
-
-		projectFiles = ProjectFiles{
-			ProjectByteMap: projectFileMap,
-		}
 	}
 
 	err = ValidateClusterAPIs([]userconfig.API{*apiConfig})

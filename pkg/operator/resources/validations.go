@@ -18,11 +18,9 @@ package resources
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/cortexlabs/cortex/pkg/config"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
-	"github.com/cortexlabs/cortex/pkg/lib/files"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
@@ -32,41 +30,6 @@ import (
 	istioclientnetworking "istio.io/client-go/pkg/apis/networking/v1beta1"
 	kresource "k8s.io/apimachinery/pkg/api/resource"
 )
-
-type ProjectFiles struct {
-	ProjectByteMap map[string][]byte
-}
-
-func (projectFiles ProjectFiles) AllPaths() []string {
-	pFiles := make([]string, 0, len(projectFiles.ProjectByteMap))
-	for path := range projectFiles.ProjectByteMap {
-		pFiles = append(pFiles, path)
-	}
-	return pFiles
-}
-
-func (projectFiles ProjectFiles) GetFile(path string) ([]byte, error) {
-	bytes, ok := projectFiles.ProjectByteMap[path]
-	if !ok {
-		return nil, files.ErrorFileDoesNotExist(path)
-	}
-	return bytes, nil
-}
-
-func (projectFiles ProjectFiles) HasFile(path string) bool {
-	_, ok := projectFiles.ProjectByteMap[path]
-	return ok
-}
-
-func (projectFiles ProjectFiles) HasDir(path string) bool {
-	path = s.EnsureSuffix(path, "/")
-	for projectFilePath := range projectFiles.ProjectByteMap {
-		if strings.HasPrefix(projectFilePath, path) {
-			return true
-		}
-	}
-	return false
-}
 
 func ValidateClusterAPIs(apis []userconfig.API) error {
 	if len(apis) == 0 {
@@ -171,13 +134,11 @@ var _inferentiaCPUReserve = kresource.MustParse("100m")
 var _inferentiaMemReserve = kresource.MustParse("100Mi")
 
 func validateK8sCompute(api *userconfig.API, maxMemMap map[string]kresource.Quantity) error {
-	compute := spec.GetTotalComputeFromContainers(api.Containers)
-
 	allErrors := []error{}
 	successfulLoops := 0
 
 	clusterNodeGroupNames := strset.New(config.ClusterConfig.GetNodeGroupNames()...)
-	apiNodeGroupNames := api.NodeGroups
+	apiNodeGroupNames := api.Pod.NodeGroups
 
 	if apiNodeGroupNames != nil {
 		for _, ngName := range apiNodeGroupNames {
@@ -186,6 +147,8 @@ func validateK8sCompute(api *userconfig.API, maxMemMap map[string]kresource.Quan
 			}
 		}
 	}
+
+	compute := userconfig.GetTotalComputeFromContainers(api.Pod.Containers)
 
 	for _, instanceMetadata := range config.InstancesMetadata {
 		if apiNodeGroupNames != nil {

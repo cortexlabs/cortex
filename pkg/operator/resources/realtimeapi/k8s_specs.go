@@ -162,9 +162,6 @@ func serviceSpec(api *spec.API) *kcore.Service {
 }
 
 func virtualServiceSpec(api *spec.API) *istioclientnetworking.VirtualService {
-	servingProtocol := "http"
-	rewritePath := pointer.String("/")
-
 	return k8s.VirtualService(&k8s.VirtualServiceSpec{
 		Name:     workloads.K8sName(api.Name),
 		Gateways: []string{"apis-gateway"},
@@ -174,17 +171,16 @@ func virtualServiceSpec(api *spec.API) *istioclientnetworking.VirtualService {
 			Port:        uint32(workloads.DefaultPortInt32),
 		}},
 		PrefixPath:  api.Networking.Endpoint,
-		Rewrite:     rewritePath,
+		Rewrite:     pointer.String("/"),
 		Annotations: api.ToK8sAnnotations(),
 		Labels: map[string]string{
-			"apiName":         api.Name,
-			"apiKind":         api.Kind.String(),
-			"servingProtocol": servingProtocol,
-			"apiID":           api.ID,
-			"specID":          api.SpecID,
-			"deploymentID":    api.DeploymentID,
-			"handlerID":       api.HandlerID,
-			"cortex.dev/api":  "true",
+			"apiName":        api.Name,
+			"apiKind":        api.Kind.String(),
+			"apiID":          api.ID,
+			"specID":         api.SpecID,
+			"deploymentID":   api.DeploymentID,
+			"handlerID":      api.HandlerID,
+			"cortex.dev/api": "true",
 		},
 	})
 }
