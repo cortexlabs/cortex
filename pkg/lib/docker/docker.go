@@ -41,6 +41,7 @@ import (
 	dockerclient "github.com/docker/docker/client"
 	"github.com/docker/docker/pkg/jsonmessage"
 	"github.com/docker/docker/pkg/term"
+	"github.com/opencontainers/go-digest"
 )
 
 var NoAuth string
@@ -319,6 +320,14 @@ func CheckImageAccessible(dockerClient *Client, dockerImage, authConfig string) 
 		return ErrorImageInaccessible(dockerImage, err)
 	}
 	return nil
+}
+
+func GetDistributionDigest(dockerClient *Client, dockerImage, authConfig string) (digest.Digest, error) {
+	inspect, err := dockerClient.DistributionInspect(context.Background(), dockerImage, authConfig)
+	if err != nil {
+		return digest.Digest(""), errors.WithStack(err)
+	}
+	return inspect.Descriptor.Digest, nil
 }
 
 func CheckImageExistsLocally(dockerClient *Client, dockerImage string) error {
