@@ -17,21 +17,32 @@ limitations under the License.
 package proxy
 
 import (
+	"context"
+	"errors"
 	"net/http"
 	"strings"
 )
 
-func ProxyHandler(stats *RequestStats, next http.Handler) http.HandlerFunc {
+func ProxyHandler(breaker *Breaker, next http.Handler) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if isKubeletProbe(r) {
 			next.ServeHTTP(w, r)
 			return
 		}
 
-		stats.IncomingRequestEvent()
-		defer stats.OutgoingRequestEvent()
-
-		next.ServeHTTP(w, r)
+		if breaker != nil {
+			if err := breaker.Maybe(r.Context(), func() {
+				next.ServeHTTP(w, r)
+			}); err != nil {
+				if errors.Is(err, context.DeadlineExceeded) || errors.Is(err, ErrRequestQueueFull) {
+					http.Error(w, err.Error(), http.StatusServiceUnavailable)
+				} else {
+					w.WriteHeader(http.StatusInternalServerError)
+				}
+			}
+		} else {
+			next.ServeHTTP(w, r)
+		}
 	}
 }
 

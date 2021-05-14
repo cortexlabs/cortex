@@ -19,19 +19,28 @@ package proxy
 import (
 	"net/http"
 	"net/http/httputil"
+	"net/url"
 )
 
 // NewReverseProxy creates a new cortex base reverse proxy
-func NewReverseProxy(target string) httputil.ReverseProxy {
-	return httputil.ReverseProxy{
-		Director: func(req *http.Request) {
-			req.URL.Scheme = _proxyScheme
-			req.URL.Host = target
-
-			if _, ok := req.Header[_userAgentKey]; !ok {
-				// explicitly disable User-Agent so it's not set to default value
-				req.Header.Set(_userAgentKey, "")
-			}
-		},
+func NewReverseProxy(target string, maxIdle, maxIdlePerHost int) *httputil.ReverseProxy {
+	targetURL, err := url.Parse(target)
+	if err != nil {
+		panic(err)
 	}
+
+	httpProxy := httputil.NewSingleHostReverseProxy(targetURL)
+	httpProxy.Transport = buildHTTPTransport(maxIdle, maxIdlePerHost)
+
+	return httpProxy
+}
+
+func buildHTTPTransport(maxIdle, maxIdlePerHost int) http.RoundTripper {
+	transport := http.DefaultTransport.(*http.Transport).Clone()
+	transport.DisableKeepAlives = false
+	transport.MaxIdleConns = maxIdle
+	transport.MaxIdleConnsPerHost = maxIdlePerHost
+	transport.ForceAttemptHTTP2 = false
+	transport.DisableCompression = true
+	return transport
 }

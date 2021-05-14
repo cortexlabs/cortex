@@ -20,19 +20,29 @@ import (
 	"flag"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/cortexlabs/cortex/pkg/lib/logging"
 	"github.com/cortexlabs/cortex/pkg/proxy"
 )
 
+const (
+	_reportInterval        = 10 * time.Second
+	_requestSampleInterval = 1 * time.Second
+)
+
 func main() {
 	var (
-		port     int
-		userPort int
+		port              int
+		userPort          int
+		targetConcurrency int
+		maxConcurrency    int
 	)
 
 	flag.IntVar(&port, "port", 8000, "port where the proxy will be served")
 	flag.IntVar(&userPort, "user-port", 8080, "port where the proxy will redirect to the traffic to")
+	flag.IntVar(&targetConcurrency, "target-concurrency", 0, "target concurrency for user container")
+	flag.IntVar(&maxConcurrency, "max-concurrency", 0, "max concurrency for user container")
 	flag.Parse()
 
 	log := logging.GetLogger()
@@ -40,11 +50,46 @@ func main() {
 		_ = log.Sync()
 	}()
 
+	switch {
+	case targetConcurrency == 0:
+		log.Fatal("--target-concurrency is required")
+	case maxConcurrency == 0:
+		maxConcurrency = targetConcurrency * 10
+	}
+
 	target := "127.0.0.1:" + strconv.Itoa(port)
-	httpProxy := proxy.NewReverseProxy(target)
+	httpProxy := proxy.NewReverseProxy(target, maxConcurrency, maxConcurrency)
 
 	stats := &proxy.RequestStats{}
-	handler := proxy.ProxyHandler(stats, &httpProxy)
+	breaker := proxy.NewBreaker(
+		proxy.BreakerParams{
+			QueueDepth:      maxConcurrency,
+			MaxConcurrency:  targetConcurrency,
+			InitialCapacity: targetConcurrency,
+		},
+	)
+	handler := proxy.ProxyHandler(breaker, httpProxy)
+
+	go func() {
+		reportTicker := time.NewTicker(_reportInterval)
+		defer reportTicker.Stop()
+
+		requestSamplingTicker := time.NewTicker(_requestSampleInterval)
+		defer requestSamplingTicker.Stop()
+
+		for {
+			select {
+			case <-reportTicker.C:
+				go func() {
+					stats.Report() // TODO: report on prometheus
+				}()
+			case <-requestSamplingTicker.C:
+				go func() {
+					stats.Append(breaker.InFlight())
+				}()
+			}
+		}
+	}()
 
 	log.Fatal(http.ListenAndServe(":"+strconv.Itoa(userPort), handler))
 }

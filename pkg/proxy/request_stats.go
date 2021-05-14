@@ -20,21 +20,35 @@ import "sync"
 
 type RequestStats struct {
 	sync.Mutex
-	inFlightCounter uint64
+	counts []int
 }
 
-func (s *RequestStats) IncomingRequestEvent() {
+func (s *RequestStats) Append(val int) {
 	s.Lock()
 	defer s.Unlock()
-
-	s.inFlightCounter++
+	s.counts = append(s.counts, val)
 }
 
-func (s *RequestStats) OutgoingRequestEvent() {
+func (s *RequestStats) GetAllAndDelete() []int {
+	var output []int
 	s.Lock()
 	defer s.Unlock()
+	output = s.counts
+	s.counts = []int{}
+	return output
+}
 
-	if s.inFlightCounter > 0 {
-		s.inFlightCounter--
+func (s *RequestStats) Report() float64 {
+	requestCounts := s.GetAllAndDelete()
+
+	total := 0.0
+	if len(requestCounts) > 0 {
+		for _, val := range requestCounts {
+			total += float64(val)
+		}
+
+		total /= float64(len(requestCounts))
 	}
+
+	return total
 }

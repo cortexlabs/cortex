@@ -14,42 +14,95 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package proxy
+package proxy_test
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
-	"net/http/httputil"
-	"net/url"
+	"strings"
 	"testing"
+	"time"
 
+	"github.com/cortexlabs/cortex/pkg/proxy"
 	"github.com/stretchr/testify/require"
 )
 
-func TestProxyHandler(t *testing.T) {
-	userContainerHost := "http://user-container.cortex.dev"
-	originHost := "origin.cortex.dev"
+const (
+	userContainerHost = "http://user-container.cortex.dev"
+)
 
-	stats := &RequestStats{}
+func TestProxyHandlerQueueFull(t *testing.T) {
+	// This test sends three requests of which one should fail immediately as the queue
+	// saturates.
+	resp := make(chan struct{})
+	blockHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		<-resp
+	})
 
-	var httpHandler http.HandlerFunc = func(w http.ResponseWriter, r *http.Request) {
-		require.Equal(t, r.Host, originHost)
-		require.Equal(t, stats.inFlightCounter, uint64(1))
-		w.WriteHeader(http.StatusOK)
+	breaker := proxy.NewBreaker(
+		proxy.BreakerParams{
+			QueueDepth:      1,
+			MaxConcurrency:  1,
+			InitialCapacity: 1,
+		},
+	)
+
+	h := proxy.ProxyHandler(breaker, blockHandler)
+
+	req := httptest.NewRequest(http.MethodGet, userContainerHost, nil)
+	resps := make(chan *httptest.ResponseRecorder)
+	for i := 0; i < 3; i++ {
+		go func() {
+			rec := httptest.NewRecorder()
+			h(rec, req)
+			resps <- rec
+		}()
 	}
 
-	server := httptest.NewServer(httpHandler)
-	defer server.Close()
+	// One of the three requests fails and it should be the first we see since the others
+	// are still held by the resp channel.
+	failure := <-resps
+	require.Equal(t, http.StatusServiceUnavailable, failure.Code)
+	require.True(t, strings.Contains(failure.Body.String(), "pending request queue full"))
 
-	serverURL, err := url.Parse(server.URL)
-	require.NoError(t, err)
+	// Allow the remaining requests to pass.
+	close(resp)
+	for i := 0; i < 2; i++ {
+		res := <-resps
+		require.Equal(t, http.StatusOK, res.Code)
+	}
+}
 
-	httpProxy := httputil.NewSingleHostReverseProxy(serverURL)
-	handler := ProxyHandler(stats, httpProxy)
+func TestProxyHandlerBreakerTimeout(t *testing.T) {
+	// This test sends a request which will take a long time to complete.
+	// Then another one with a very short context timeout.
+	// Verifies that the second one fails with timeout.
+	seen := make(chan struct{})
+	resp := make(chan struct{})
+	defer close(resp) // Allow all requests to pass through.
+	blockHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		seen <- struct{}{}
+		<-resp
+	})
+	breaker := proxy.NewBreaker(proxy.BreakerParams{
+		QueueDepth: 1, MaxConcurrency: 1, InitialCapacity: 1,
+	})
+	h := proxy.ProxyHandler(breaker, blockHandler)
 
-	w := httptest.NewRecorder()
-	r := httptest.NewRequest(http.MethodPost, userContainerHost, nil)
-	r.Host = originHost
+	go func() {
+		h(httptest.NewRecorder(), httptest.NewRequest(http.MethodGet, userContainerHost, nil))
+	}()
 
-	handler(w, r)
+	// Wait until the first request has entered the handler.
+	<-seen
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Millisecond)
+	defer cancel()
+
+	rec := httptest.NewRecorder()
+	h(rec, httptest.NewRequest(http.MethodGet, userContainerHost, nil).WithContext(ctx))
+
+	require.Equal(t, http.StatusServiceUnavailable, rec.Code)
+	require.True(t, strings.Contains(rec.Body.String(), context.DeadlineExceeded.Error()))
 }

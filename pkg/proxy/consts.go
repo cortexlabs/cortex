@@ -17,7 +17,6 @@ limitations under the License.
 package proxy
 
 const (
-	_proxyScheme  = "http"
 	_userAgentKey = "User-Agent"
 
 	// Since K8s 1.8, prober requests have
