@@ -167,18 +167,24 @@ func UserPodContainers(api spec.API) ([]kcore.Container, []kcore.Volume) {
 				kcore.VolumeMount{Name: _kubexitGraveyardName, MountPath: _kubexitGraveyardMountPath},
 			)
 
-			neuronRTDEnvVars := getKubexitEnvVars(_neuronRTDContainerName, containerNames.Slice(), nil)
-			containers = append(containers, neuronRuntimeDaemonContainer(container.Compute.Inf, rtdVolumeMounts, neuronRTDEnvVars))
 			podHasInf = true
+			if api.Kind == userconfig.BatchAPIKind || api.Kind == userconfig.TaskAPIKind {
+				neuronRTDEnvVars := getKubexitEnvVars(_neuronRTDContainerName, containerNames.Slice(), nil)
+				containers = append(containers, neuronRuntimeDaemonContainer(container.Compute.Inf, rtdVolumeMounts, neuronRTDEnvVars))
+			} else {
+				containers = append(containers, neuronRuntimeDaemonContainer(container.Compute.Inf, rtdVolumeMounts, nil))
+			}
 		}
 
-		containerDeathDependencies := containerNames.Copy()
-		containerDeathDependencies.Remove(container.Name)
 		var containerEnvVars []kcore.EnvVar
-		if podHasInf {
-			containerEnvVars = getKubexitEnvVars(container.Name, containerDeathDependencies.Slice(), []string{"neuron-rtd"})
-		} else {
-			containerEnvVars = getKubexitEnvVars(container.Name, containerDeathDependencies.Slice(), nil)
+		if api.Kind == userconfig.BatchAPIKind || api.Kind == userconfig.TaskAPIKind {
+			containerDeathDependencies := containerNames.Copy()
+			containerDeathDependencies.Remove(container.Name)
+			if podHasInf {
+				containerEnvVars = getKubexitEnvVars(container.Name, containerDeathDependencies.Slice(), []string{"neuron-rtd"})
+			} else {
+				containerEnvVars = getKubexitEnvVars(container.Name, containerDeathDependencies.Slice(), nil)
+			}
 		}
 
 		for k, v := range container.Env {

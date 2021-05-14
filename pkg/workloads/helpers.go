@@ -106,10 +106,10 @@ func getKubexitEnvVars(containerName string, deathDeps []string, birthDeps []str
 				Name:  "KUBEXIT_DEATH_DEPS",
 				Value: strings.Join(deathDeps, ","),
 			},
-			// kcore.EnvVar{
-			// 	Name:  "KUBEXIT_IGNORE_CODE_ON_DEATH_DEPS",
-			// 	Value: "true",
-			// },
+			kcore.EnvVar{
+				Name:  "KUBEXIT_IGNORE_CODE_ON_DEATH_DEPS",
+				Value: "true",
+			},
 		)
 	}
 
@@ -119,10 +119,10 @@ func getKubexitEnvVars(containerName string, deathDeps []string, birthDeps []str
 				Name:  "KUBEXIT_BIRTH_DEPS",
 				Value: strings.Join(birthDeps, ","),
 			},
-			// kcore.EnvVar{
-			// 	Name:  "KUBEXIT_IGNORE_CODE_ON_DEATH_DEPS",
-			// 	Value: "true",
-			// },
+			kcore.EnvVar{
+				Name:  "KUBEXIT_IGNORE_CODE_ON_DEATH_DEPS",
+				Value: "true",
+			},
 		)
 	}
 

@@ -212,15 +212,12 @@ func deploymentSpec(api spec.API, prevDeployment *kapps.Deployment, queueURL str
 			K8sPodSpec: kcore.PodSpec{
 				RestartPolicy:                 "Always",
 				TerminationGracePeriodSeconds: pointer.Int64(_terminationGracePeriodSeconds),
-				InitContainers: []kcore.Container{
-					workloads.KubexitInitContainer(),
-				},
-				Containers:         containers,
-				NodeSelector:       workloads.NodeSelectors(),
-				Tolerations:        workloads.GenerateResourceTolerations(),
-				Affinity:           workloads.GenerateNodeAffinities(api.Pod.NodeGroups),
-				Volumes:            volumes,
-				ServiceAccountName: workloads.ServiceAccountName,
+				Containers:                    containers,
+				NodeSelector:                  workloads.NodeSelectors(),
+				Tolerations:                   workloads.GenerateResourceTolerations(),
+				Affinity:                      workloads.GenerateNodeAffinities(api.Pod.NodeGroups),
+				Volumes:                       volumes,
+				ServiceAccountName:            workloads.ServiceAccountName,
 			},
 		},
 	})
