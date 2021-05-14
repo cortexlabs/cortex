@@ -112,7 +112,7 @@ func UserPodContainers(api spec.API) ([]kcore.Container, []kcore.Volume) {
 	requiresKubexit := api.Kind == userconfig.BatchAPIKind || api.Kind == userconfig.TaskAPIKind
 	volumes := defaultVolumes(requiresKubexit)
 
-	defaultMounts := []kcore.VolumeMount{}
+	containerMounts := []kcore.VolumeMount{}
 	if api.Pod.ShmSize != nil {
 		volumes = append(volumes, kcore.Volume{
 			Name: "dshm",
@@ -123,7 +123,7 @@ func UserPodContainers(api spec.API) ([]kcore.Container, []kcore.Volume) {
 				},
 			},
 		})
-		defaultMounts = append(defaultMounts, kcore.VolumeMount{
+		containerMounts = append(containerMounts, kcore.VolumeMount{
 			Name:      "dshm",
 			MountPath: "/dev/shm",
 		})
@@ -149,7 +149,7 @@ func UserPodContainers(api spec.API) ([]kcore.Container, []kcore.Volume) {
 			containerResourceLimitsList["nvidia.com/gpu"] = *kresource.NewQuantity(container.Compute.GPU, kresource.DecimalSI)
 		}
 
-		containerVolumeMounts := append(defaultVolumeMounts(requiresKubexit), defaultMounts...)
+		containerVolumeMounts := append(defaultVolumeMounts(requiresKubexit), containerMounts...)
 		if container.Compute.Inf > 0 {
 			volumes = append(volumes, kcore.Volume{
 				Name: "neuron-sock",
@@ -163,18 +163,18 @@ func UserPodContainers(api spec.API) ([]kcore.Container, []kcore.Volume) {
 
 			containerVolumeMounts = append(containerVolumeMounts, rtdVolumeMounts...)
 
-			rtdVolumeMounts = append(rtdVolumeMounts,
-				k8s.EmptyDirVolumeMount(_emptyDirVolumeName, _emptyDirMountPath),
-				kcore.VolumeMount{Name: _kubexitGraveyardName, MountPath: _kubexitGraveyardMountPath},
-			)
-
-			podHasInf = true
 			if requiresKubexit {
+				rtdVolumeMounts = append(rtdVolumeMounts,
+					k8s.EmptyDirVolumeMount(_emptyDirVolumeName, _emptyDirMountPath),
+					kcore.VolumeMount{Name: _kubexitGraveyardName, MountPath: _kubexitGraveyardMountPath},
+				)
 				neuronRTDEnvVars := getKubexitEnvVars(_neuronRTDContainerName, containerNames.Slice(), nil)
 				containers = append(containers, neuronRuntimeDaemonContainer(container.Compute.Inf, rtdVolumeMounts, neuronRTDEnvVars))
 			} else {
 				containers = append(containers, neuronRuntimeDaemonContainer(container.Compute.Inf, rtdVolumeMounts, nil))
 			}
+
+			podHasInf = true
 		}
 
 		var containerEnvVars []kcore.EnvVar
@@ -204,7 +204,7 @@ func UserPodContainers(api spec.API) ([]kcore.Container, []kcore.Volume) {
 		})
 
 		var containerCmd []string
-		if requiresKubexit {
+		if requiresKubexit && container.Command[0] != "/mnt/kubexit" {
 			containerCmd = append([]string{"/mnt/kubexit"}, container.Command...)
 		}
 

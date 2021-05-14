@@ -170,7 +170,6 @@ func Init() error {
 	}
 
 	Prometheus = promv1.NewAPI(promClient)
-
 	if K8sAllNamspaces, err = k8s.New("", OperatorMetadata.IsOperatorInCluster, nil, scheme); err != nil {
 		return err
 	}

@@ -1,0 +1,12 @@
+- name: task
+  kind: TaskAPI
+  pod:
+    containers:
+    - name: api
+      image: 499593605069.dkr.ecr.us-west-2.amazonaws.com/sample/task-caas:latest
+      command:
+        - python
+        - main.py
+      compute:
+        cpu: 100m
+        mem: 256Mi

@@ -559,7 +559,7 @@ func validatePod(
 		return errors.Wrap(err, userconfig.ComputeKey)
 	}
 
-	if err := validateContainers(containers, awsClient, k8sClient); err != nil {
+	if err := validateContainers(containers, api.Kind, awsClient, k8sClient); err != nil {
 		return errors.Wrap(err, userconfig.ContainersKey)
 	}
 
@@ -568,6 +568,7 @@ func validatePod(
 
 func validateContainers(
 	containers []*userconfig.Container,
+	kind userconfig.Kind,
 	awsClient *aws.Client,
 	k8sClient *k8s.Client,
 ) error {
@@ -578,6 +579,10 @@ func validateContainers(
 			return errors.Wrap(ErrorDuplicateContainerName(container.Name), strconv.FormatInt(int64(i), 10), userconfig.ImageKey)
 		}
 		containerNames = append(containerNames, container.Name)
+
+		if container.Command == nil && (kind == userconfig.BatchAPIKind || kind == userconfig.TaskAPIKind) {
+			return errors.Wrap(ErrorFieldCannotBeEmptyForKind(userconfig.CommandKey, kind), strconv.FormatInt(int64(i), 10), userconfig.CommandKey)
+		}
 
 		if err := validateDockerImagePath(container.Image, awsClient, k8sClient); err != nil {
 			return errors.Wrap(err, strconv.FormatInt(int64(i), 10), userconfig.ImageKey)

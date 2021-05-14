@@ -51,23 +51,17 @@ const (
 
 	ErrShmSizeCannotExceedMem = "spec.shm_size_cannot_exceed_mem"
 
-	ErrFieldMustBeDefinedForHandlerType            = "spec.field_must_be_defined_for_handler_type"
-	ErrFieldNotSupportedByHandlerType              = "spec.field_not_supported_by_handler_type"
-	ErrNoAvailableNodeComputeLimit                 = "spec.no_available_node_compute_limit"
-	ErrCortexPrefixedEnvVarNotAllowed              = "spec.cortex_prefixed_env_var_not_allowed"
-	ErrRegistryInDifferentRegion                   = "spec.registry_in_different_region"
-	ErrRegistryAccountIDMismatch                   = "spec.registry_account_id_mismatch"
-	ErrKeyIsNotSupportedForKind                    = "spec.key_is_not_supported_for_kind"
-	ErrComputeResourceConflict                     = "spec.compute_resource_conflict"
-	ErrInvalidNumberOfInfs                         = "spec.invalid_number_of_infs"
-	ErrInsufficientBatchConcurrencyLevel           = "spec.insufficient_batch_concurrency_level"
-	ErrInsufficientBatchConcurrencyLevelInf        = "spec.insufficient_batch_concurrency_level_inf"
-	ErrConcurrencyMismatchServerSideBatchingPython = "spec.concurrency_mismatch_server_side_batching_python"
-	ErrIncorrectTrafficSplitterWeight              = "spec.incorrect_traffic_splitter_weight"
-	ErrTrafficSplitterAPIsNotUnique                = "spec.traffic_splitter_apis_not_unique"
-	ErrOneShadowPerTrafficSplitter                 = "spec.one_shadow_per_traffic_splitter"
-	ErrUnexpectedDockerSecretData                  = "spec.unexpected_docker_secret_data"
-	ErrInvalidONNXHandlerType                      = "spec.invalid_onnx_handler_type"
+	ErrFieldCannotBeEmptyForKind      = "spec.field_cannot_be_empty_for_kind"
+	ErrCortexPrefixedEnvVarNotAllowed = "spec.cortex_prefixed_env_var_not_allowed"
+	ErrRegistryInDifferentRegion      = "spec.registry_in_different_region"
+	ErrRegistryAccountIDMismatch      = "spec.registry_account_id_mismatch"
+	ErrKeyIsNotSupportedForKind       = "spec.key_is_not_supported_for_kind"
+	ErrComputeResourceConflict        = "spec.compute_resource_conflict"
+	ErrInvalidNumberOfInfs            = "spec.invalid_number_of_infs"
+	ErrIncorrectTrafficSplitterWeight = "spec.incorrect_traffic_splitter_weight"
+	ErrTrafficSplitterAPIsNotUnique   = "spec.traffic_splitter_apis_not_unique"
+	ErrOneShadowPerTrafficSplitter    = "spec.one_shadow_per_traffic_splitter"
+	ErrUnexpectedDockerSecretData     = "spec.unexpected_docker_secret_data"
 )
 
 func ErrorMalformedConfig() error {
@@ -212,6 +206,13 @@ func ErrorShmSizeCannotExceedMem(shmSize k8s.Quantity, mem k8s.Quantity) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrShmSizeCannotExceedMem,
 		Message: fmt.Sprintf("shm_size (%s) cannot exceed total compute mem (%s)", shmSize.UserString, mem.UserString),
+	})
+}
+
+func ErrorFieldCannotBeEmptyForKind(field string, kind userconfig.Kind) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrFieldCannotBeEmptyForKind,
+		Message: fmt.Sprintf("field %s cannot be empty for %s kind", field, kind.String()),
 	})
 }
 
