@@ -23,7 +23,7 @@ import (
 	"strings"
 )
 
-func ProxyHandler(breaker *Breaker, next http.Handler) http.HandlerFunc {
+func Handler(breaker *Breaker, next http.Handler) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if isKubeletProbe(r) {
 			next.ServeHTTP(w, r)

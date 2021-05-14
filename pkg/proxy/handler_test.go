@@ -48,7 +48,7 @@ func TestProxyHandlerQueueFull(t *testing.T) {
 		},
 	)
 
-	h := proxy.ProxyHandler(breaker, blockHandler)
+	h := proxy.Handler(breaker, blockHandler)
 
 	req := httptest.NewRequest(http.MethodGet, userContainerHost, nil)
 	resps := make(chan *httptest.ResponseRecorder)
@@ -88,7 +88,7 @@ func TestProxyHandlerBreakerTimeout(t *testing.T) {
 	breaker := proxy.NewBreaker(proxy.BreakerParams{
 		QueueDepth: 1, MaxConcurrency: 1, InitialCapacity: 1,
 	})
-	h := proxy.ProxyHandler(breaker, blockHandler)
+	h := proxy.Handler(breaker, blockHandler)
 
 	go func() {
 		h(httptest.NewRecorder(), httptest.NewRequest(http.MethodGet, userContainerHost, nil))

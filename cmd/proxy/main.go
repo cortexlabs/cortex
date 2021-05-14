@@ -68,7 +68,7 @@ func main() {
 			InitialCapacity: targetConcurrency,
 		},
 	)
-	handler := proxy.ProxyHandler(breaker, httpProxy)
+	handler := proxy.Handler(breaker, httpProxy)
 
 	go func() {
 		reportTicker := time.NewTicker(_reportInterval)
