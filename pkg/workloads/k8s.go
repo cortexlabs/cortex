@@ -109,7 +109,8 @@ func AsyncGatewayContainer(api spec.API, queueURL string, volumeMounts []kcore.V
 }
 
 func UserPodContainers(api spec.API) ([]kcore.Container, []kcore.Volume) {
-	volumes := defaultVolumes()
+	requiresKubexit := api.Kind == userconfig.BatchAPIKind || api.Kind == userconfig.TaskAPIKind
+	volumes := defaultVolumes(requiresKubexit)
 
 	defaultMounts := []kcore.VolumeMount{}
 	if api.Pod.ShmSize != nil {
@@ -148,7 +149,7 @@ func UserPodContainers(api spec.API) ([]kcore.Container, []kcore.Volume) {
 			containerResourceLimitsList["nvidia.com/gpu"] = *kresource.NewQuantity(container.Compute.GPU, kresource.DecimalSI)
 		}
 
-		containerVolumeMounts := append(defaultVolumeMounts(), defaultMounts...)
+		containerVolumeMounts := append(defaultVolumeMounts(requiresKubexit), defaultMounts...)
 		if container.Compute.Inf > 0 {
 			volumes = append(volumes, kcore.Volume{
 				Name: "neuron-sock",
@@ -168,7 +169,7 @@ func UserPodContainers(api spec.API) ([]kcore.Container, []kcore.Volume) {
 			)
 
 			podHasInf = true
-			if api.Kind == userconfig.BatchAPIKind || api.Kind == userconfig.TaskAPIKind {
+			if requiresKubexit {
 				neuronRTDEnvVars := getKubexitEnvVars(_neuronRTDContainerName, containerNames.Slice(), nil)
 				containers = append(containers, neuronRuntimeDaemonContainer(container.Compute.Inf, rtdVolumeMounts, neuronRTDEnvVars))
 			} else {
@@ -177,7 +178,7 @@ func UserPodContainers(api spec.API) ([]kcore.Container, []kcore.Volume) {
 		}
 
 		var containerEnvVars []kcore.EnvVar
-		if api.Kind == userconfig.BatchAPIKind || api.Kind == userconfig.TaskAPIKind {
+		if requiresKubexit {
 			containerDeathDependencies := containerNames.Copy()
 			containerDeathDependencies.Remove(container.Name)
 			if podHasInf {
@@ -202,16 +203,26 @@ func UserPodContainers(api spec.API) ([]kcore.Container, []kcore.Volume) {
 			},
 		})
 
+		var containerCmd []string
+		if requiresKubexit {
+			containerCmd = append([]string{"/mnt/kubexit"}, container.Command...)
+		}
+
 		containers = append(containers, kcore.Container{
 			Name:         container.Name,
 			Image:        container.Image,
-			Command:      append([]string{"/mnt/kubexit"}, container.Command...),
+			Command:      containerCmd,
 			Args:         container.Args,
 			Env:          containerEnvVars,
 			VolumeMounts: containerVolumeMounts,
 			Resources: kcore.ResourceRequirements{
 				Requests: containerResourceList,
 				Limits:   containerResourceLimitsList,
+			},
+			Ports: []kcore.ContainerPort{
+				{
+					ContainerPort: int32(8888),
+				},
 			},
 			ImagePullPolicy: kcore.PullAlways,
 			SecurityContext: &kcore.SecurityContext{

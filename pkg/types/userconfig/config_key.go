@@ -20,8 +20,6 @@ const (
 	// API
 	NameKey           = "name"
 	KindKey           = "kind"
-	HandlerKey        = "handler"
-	TaskDefinitionKey = "definition"
 	NetworkingKey     = "networking"
 	ComputeKey        = "compute"
 	AutoscalingKey    = "autoscaling"

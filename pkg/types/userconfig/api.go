@@ -235,7 +235,7 @@ func (api *API) UserStr() string {
 	}
 
 	if api.Pod != nil {
-		sb.WriteString(fmt.Sprintf("%s:\n", HandlerKey))
+		sb.WriteString(fmt.Sprintf("%s:\n", PodKey))
 		sb.WriteString(s.Indent(api.Pod.UserStr(), "  "))
 	}
 
@@ -279,7 +279,7 @@ func (pod *Pod) UserStr() string {
 
 	sb.WriteString(fmt.Sprintf("%s:\n", ContainersKey))
 	for _, container := range pod.Containers {
-		containerUserStr := s.Indent(container.UserStr(), "  ")
+		containerUserStr := s.Indent(container.UserStr(), "    ")
 		containerUserStr = containerUserStr[:2] + "-" + containerUserStr[3:]
 		sb.WriteString(containerUserStr)
 	}
@@ -299,8 +299,17 @@ func (container *Container) UserStr() string {
 		sb.WriteString(s.Indent(string(d), "  "))
 	}
 
-	sb.WriteString(fmt.Sprintf("%s: %s\n", CommandKey, s.ObjFlatNoQuotes(container.Command)))
-	sb.WriteString(fmt.Sprintf("%s: %s\n", ArgsKey, s.ObjFlatNoQuotes(container.Args)))
+	if container.Command == nil {
+		sb.WriteString(fmt.Sprintf("%s: null\n", CommandKey))
+	} else {
+		sb.WriteString(fmt.Sprintf("%s: %s\n", CommandKey, s.ObjFlatNoQuotes(container.Command)))
+	}
+
+	if container.Args == nil {
+		sb.WriteString(fmt.Sprintf("%s: null\n", ArgsKey))
+	} else {
+		sb.WriteString(fmt.Sprintf("%s: %s\n", ArgsKey, s.ObjFlatNoQuotes(container.Args)))
+	}
 
 	if container.Compute != nil {
 		sb.WriteString(fmt.Sprintf("%s:\n", ComputeKey))
@@ -410,7 +419,7 @@ func GetTotalComputeFromContainers(containers []*Container) Compute {
 		}
 
 		if container.Compute.CPU != nil {
-			newCPUQuantity := k8s.NewQuantity(container.Compute.CPU.Value())
+			newCPUQuantity := k8s.NewMilliQuantity(container.Compute.CPU.ToDec().MilliValue())
 			if compute.CPU == nil {
 				compute.CPU = newCPUQuantity
 			} else if newCPUQuantity != nil {
@@ -419,7 +428,7 @@ func GetTotalComputeFromContainers(containers []*Container) Compute {
 		}
 
 		if container.Compute.Mem != nil {
-			newMemQuantity := k8s.NewQuantity(container.Compute.Mem.Value())
+			newMemQuantity := k8s.NewMilliQuantity(container.Compute.Mem.ToDec().MilliValue())
 			if compute.Mem == nil {
 				compute.Mem = newMemQuantity
 			} else if newMemQuantity != nil {

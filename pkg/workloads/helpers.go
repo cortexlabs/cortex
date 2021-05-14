@@ -129,10 +129,9 @@ func getKubexitEnvVars(containerName string, deathDeps []string, birthDeps []str
 	return envVars
 }
 
-func defaultVolumes() []kcore.Volume {
-	return []kcore.Volume{
+func defaultVolumes(requiresKubexit bool) []kcore.Volume {
+	volumes := []kcore.Volume{
 		k8s.EmptyDirVolume(_emptyDirVolumeName),
-		k8s.EmptyDirVolume(_kubexitGraveyardName),
 		{
 			Name: "client-config",
 			VolumeSource: kcore.VolumeSource{
@@ -144,16 +143,25 @@ func defaultVolumes() []kcore.Volume {
 			},
 		},
 	}
+
+	if requiresKubexit {
+		return append(volumes, k8s.EmptyDirVolume(_kubexitGraveyardName))
+	}
+	return volumes
 }
 
-func defaultVolumeMounts() []kcore.VolumeMount {
-	return []kcore.VolumeMount{
+func defaultVolumeMounts(requiresKubexit bool) []kcore.VolumeMount {
+	volumeMounts := []kcore.VolumeMount{
 		k8s.EmptyDirVolumeMount(_emptyDirVolumeName, _emptyDirMountPath),
-		k8s.EmptyDirVolumeMount(_kubexitGraveyardName, _kubexitGraveyardMountPath),
 		{
 			Name:      "client-config",
 			MountPath: path.Join(_clientConfigDir, "cli.yaml"),
 			SubPath:   "cli.yaml",
 		},
 	}
+
+	if requiresKubexit {
+		return append(volumeMounts, k8s.EmptyDirVolumeMount(_kubexitGraveyardName, _kubexitGraveyardMountPath))
+	}
+	return volumeMounts
 }

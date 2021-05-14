@@ -44,7 +44,7 @@ func KubexitInitContainer() kcore.Container {
 		Image:           config.ClusterConfig.ImageKubexit,
 		ImagePullPolicy: kcore.PullAlways,
 		Command:         []string{"cp", "/bin/kubexit", "/mnt/kubexit"},
-		VolumeMounts:    defaultVolumeMounts(),
+		VolumeMounts:    defaultVolumeMounts(true),
 	}
 }
 
@@ -79,7 +79,7 @@ func TaskInitContainer(job *spec.TaskJob) kcore.Container {
 				Value: strings.ToUpper(userconfig.InfoLogLevel.String()),
 			},
 		},
-		VolumeMounts: defaultVolumeMounts(),
+		VolumeMounts: defaultVolumeMounts(true),
 	}
 }
 
@@ -114,6 +114,6 @@ func BatchInitContainer(job *spec.BatchJob) kcore.Container {
 				Value: strings.ToUpper(userconfig.InfoLogLevel.String()),
 			},
 		},
-		VolumeMounts: defaultVolumeMounts(),
+		VolumeMounts: defaultVolumeMounts(true),
 	}
 }

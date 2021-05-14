@@ -208,17 +208,17 @@ func ErrorSurgeAndUnavailableBothZero() error {
 	})
 }
 
-func ErrorShmSizeCannotExceedMem(parentFieldName string, shmSize k8s.Quantity, mem k8s.Quantity) error {
+func ErrorShmSizeCannotExceedMem(shmSize k8s.Quantity, mem k8s.Quantity) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrShmSizeCannotExceedMem,
-		Message: fmt.Sprintf("%s.shm_size (%s) cannot exceed total compute mem (%s)", parentFieldName, shmSize.UserString, mem.UserString),
+		Message: fmt.Sprintf("shm_size (%s) cannot exceed total compute mem (%s)", shmSize.UserString, mem.UserString),
 	})
 }
 
-func ErrorCortexPrefixedEnvVarNotAllowed() error {
+func ErrorCortexPrefixedEnvVarNotAllowed(prefixes ...string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrCortexPrefixedEnvVarNotAllowed,
-		Message: "environment variables starting with CORTEX_ are reserved",
+		Message: fmt.Sprintf("environment variables starting with %s are reserved", s.StrsOr(prefixes)),
 	})
 }
 

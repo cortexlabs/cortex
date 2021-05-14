@@ -183,10 +183,11 @@ func containersValidation() *cr.StructFieldValidation {
 					{
 						StructField: "Name",
 						StringValidation: &cr.StringValidation{
-							Required:                   true,
-							AllowEmpty:                 false,
-							AlphaNumericDashUnderscore: true,
-							DisallowedValues:           consts.ReservedContainerNames,
+							Required:         true,
+							AllowEmpty:       false,
+							DNS1035:          true,
+							MaxLength:        63,
+							DisallowedValues: consts.ReservedContainerNames,
 						},
 					},
 					{
@@ -550,7 +551,7 @@ func validatePod(
 
 	if api.Pod.ShmSize != nil {
 		if totalCompute.Mem != nil && api.Pod.ShmSize.Cmp(totalCompute.Mem.Quantity) > 0 {
-			return ErrorShmSizeCannotExceedMem(userconfig.HandlerKey, *api.Pod.ShmSize, *totalCompute.Mem)
+			return ErrorShmSizeCannotExceedMem(*api.Pod.ShmSize, *totalCompute.Mem)
 		}
 	}
 
@@ -574,16 +575,17 @@ func validateContainers(
 
 	for i, container := range containers {
 		if slices.HasString(containerNames, container.Name) {
-			return ErrorDuplicateContainerName(container.Name)
+			return errors.Wrap(ErrorDuplicateContainerName(container.Name), strconv.FormatInt(int64(i), 10), userconfig.ImageKey)
 		}
+		containerNames = append(containerNames, container.Name)
 
 		if err := validateDockerImagePath(container.Image, awsClient, k8sClient); err != nil {
 			return errors.Wrap(err, strconv.FormatInt(int64(i), 10), userconfig.ImageKey)
 		}
 
 		for key := range container.Env {
-			if strings.HasPrefix(key, "CORTEX_") {
-				return errors.Wrap(ErrorCortexPrefixedEnvVarNotAllowed(), strconv.FormatInt(int64(i), 10), userconfig.EnvKey, key)
+			if strings.HasPrefix(key, "CORTEX_") || strings.HasPrefix(key, "KUBEXIT_") {
+				return errors.Wrap(ErrorCortexPrefixedEnvVarNotAllowed("CORTEX_", "KUBEXIT_"), strconv.FormatInt(int64(i), 10), userconfig.EnvKey, key)
 			}
 		}
 	}
