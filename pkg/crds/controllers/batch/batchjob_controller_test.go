@@ -44,7 +44,7 @@ func uploadTestAPISpec(apiName string, apiID string) error {
 			},
 			Pod: &userconfig.Pod{
 				// TODO use a real image
-				Containers: []userconfig.Container{
+				Containers: []*userconfig.Container{
 					{
 						Name:    "api",
 						Image:   "quay.io/cortexlabs/batch-container-test:master",

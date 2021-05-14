@@ -67,7 +67,6 @@ func deploymentSpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Depl
 				TerminationGracePeriodSeconds: pointer.Int64(_terminationGracePeriodSeconds),
 				InitContainers: []kcore.Container{
 					workloads.KubexitInitContainer(),
-					workloads.InitContainer(*api),
 				},
 				Containers:         containers,
 				NodeSelector:       workloads.NodeSelectors(),

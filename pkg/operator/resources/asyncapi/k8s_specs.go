@@ -213,7 +213,7 @@ func deploymentSpec(api spec.API, prevDeployment *kapps.Deployment, queueURL str
 				RestartPolicy:                 "Always",
 				TerminationGracePeriodSeconds: pointer.Int64(_terminationGracePeriodSeconds),
 				InitContainers: []kcore.Container{
-					workloads.InitContainer(api),
+					workloads.KubexitInitContainer(),
 				},
 				Containers:         containers,
 				NodeSelector:       workloads.NodeSelectors(),

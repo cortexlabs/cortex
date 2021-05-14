@@ -28,7 +28,7 @@ import (
 )
 
 func createLogger() (*zap.Logger, error) {
-	logLevelEnv := os.Getenv("CORTEX_LOG_LEVEL")
+	logLevelEnv := strings.ToUpper(os.Getenv("CORTEX_LOG_LEVEL"))
 	disableJSONLogging := os.Getenv("CORTEX_DISABLE_JSON_LOGGING")
 
 	var logLevelZap zapcore.Level

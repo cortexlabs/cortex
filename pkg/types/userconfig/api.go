@@ -45,7 +45,7 @@ type API struct {
 type Pod struct {
 	NodeGroups []string      `json:"node_groups" yaml:"node_groups"`
 	ShmSize    *k8s.Quantity `json:"shm_size" yaml:"shm_size"`
-	Containers []Container   `json:"containers" yaml:"containers"`
+	Containers []*Container  `json:"containers" yaml:"containers"`
 }
 
 type Container struct {
@@ -401,17 +401,17 @@ func ZeroCompute() Compute {
 	}
 }
 
-func GetTotalComputeFromContainers(containers []Container) Compute {
+func GetTotalComputeFromContainers(containers []*Container) Compute {
 	compute := Compute{}
 
 	for _, container := range containers {
-		if container.Compute == nil {
+		if container == nil || container.Compute == nil {
 			continue
 		}
 
 		if container.Compute.CPU != nil {
 			newCPUQuantity := k8s.NewQuantity(container.Compute.CPU.Value())
-			if compute.CPU != nil {
+			if compute.CPU == nil {
 				compute.CPU = newCPUQuantity
 			} else if newCPUQuantity != nil {
 				compute.CPU.AddQty(*newCPUQuantity)
@@ -420,7 +420,7 @@ func GetTotalComputeFromContainers(containers []Container) Compute {
 
 		if container.Compute.Mem != nil {
 			newMemQuantity := k8s.NewQuantity(container.Compute.Mem.Value())
-			if compute.CPU != nil {
+			if compute.Mem == nil {
 				compute.Mem = newMemQuantity
 			} else if newMemQuantity != nil {
 				compute.Mem.AddQty(*newMemQuantity)
@@ -434,10 +434,12 @@ func GetTotalComputeFromContainers(containers []Container) Compute {
 	return compute
 }
 
-func GetContainerNames(containers []Container) strset.Set {
+func GetContainerNames(containers []*Container) strset.Set {
 	containerNames := strset.New()
 	for _, container := range containers {
-		containerNames.Add(container.Name)
+		if container != nil {
+			containerNames.Add(container.Name)
+		}
 	}
 	return containerNames
 }

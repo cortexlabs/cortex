@@ -19,6 +19,7 @@ package workloads
 import (
 	"encoding/base64"
 	"encoding/json"
+	"strings"
 
 	"github.com/cortexlabs/cortex/pkg/config"
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
@@ -28,9 +29,7 @@ import (
 )
 
 const (
-	APISpecPath   = "/mnt/spec/spec.json"
-	TaskSpecPath  = "/mnt/spec/task.json"
-	BatchSpecPath = "/mnt/spec/batch.json"
+	JobSpecPath = "/mnt/job_spec.json"
 )
 
 const (
@@ -49,22 +48,13 @@ func KubexitInitContainer() kcore.Container {
 	}
 }
 
-func TaskInitContainer(api *spec.API, job *spec.TaskJob) kcore.Container {
+func TaskInitContainer(job *spec.TaskJob) kcore.Container {
 	downloadConfig := downloadContainerConfig{
 		LastLog: _downloaderLastLog,
 		DownloadArgs: []downloadContainerArg{
 			{
-				From:             aws.S3Path(config.ClusterConfig.Bucket, api.Key),
-				To:               APISpecPath,
-				Unzip:            false,
-				ToFile:           true,
-				ItemName:         "the api spec",
-				HideFromLog:      true,
-				HideUnzippingLog: true,
-			},
-			{
 				From:             aws.S3Path(config.ClusterConfig.Bucket, job.SpecFilePath(config.ClusterConfig.ClusterUID)),
-				To:               TaskSpecPath,
+				To:               JobSpecPath,
 				Unzip:            false,
 				ToFile:           true,
 				ItemName:         "the task spec",
@@ -86,29 +76,20 @@ func TaskInitContainer(api *spec.API, job *spec.TaskJob) kcore.Container {
 		Env: []kcore.EnvVar{
 			{
 				Name:  "CORTEX_LOG_LEVEL",
-				Value: userconfig.InfoLogLevel.String(),
+				Value: strings.ToUpper(userconfig.InfoLogLevel.String()),
 			},
 		},
 		VolumeMounts: defaultVolumeMounts(),
 	}
 }
 
-func BatchInitContainer(api *spec.API, job *spec.BatchJob) kcore.Container {
+func BatchInitContainer(job *spec.BatchJob) kcore.Container {
 	downloadConfig := downloadContainerConfig{
 		LastLog: _downloaderLastLog,
 		DownloadArgs: []downloadContainerArg{
 			{
-				From:             aws.S3Path(config.ClusterConfig.Bucket, api.Key),
-				To:               APISpecPath,
-				Unzip:            false,
-				ToFile:           true,
-				ItemName:         "the api spec",
-				HideFromLog:      true,
-				HideUnzippingLog: true,
-			},
-			{
 				From:             aws.S3Path(config.ClusterConfig.Bucket, job.SpecFilePath(config.ClusterConfig.ClusterUID)),
-				To:               BatchSpecPath,
+				To:               JobSpecPath,
 				Unzip:            false,
 				ToFile:           true,
 				ItemName:         "the job spec",
@@ -130,43 +111,7 @@ func BatchInitContainer(api *spec.API, job *spec.BatchJob) kcore.Container {
 		Env: []kcore.EnvVar{
 			{
 				Name:  "CORTEX_LOG_LEVEL",
-				Value: userconfig.InfoLogLevel.String(),
-			},
-		},
-		VolumeMounts: defaultVolumeMounts(),
-	}
-}
-
-// for async and realtime apis
-func InitContainer(api spec.API) kcore.Container {
-	downloadConfig := downloadContainerConfig{
-		LastLog: _downloaderLastLog,
-		DownloadArgs: []downloadContainerArg{
-			{
-				From:             aws.S3Path(config.ClusterConfig.Bucket, api.HandlerKey),
-				To:               APISpecPath,
-				Unzip:            false,
-				ToFile:           true,
-				ItemName:         "the api spec",
-				HideFromLog:      true,
-				HideUnzippingLog: true,
-			},
-		},
-	}
-
-	downloadArgsBytes, _ := json.Marshal(downloadConfig)
-	downloadArgs := base64.URLEncoding.EncodeToString(downloadArgsBytes)
-
-	return kcore.Container{
-		Name:            _downloaderInitContainerName,
-		Image:           config.ClusterConfig.ImageDownloader,
-		ImagePullPolicy: kcore.PullAlways,
-		Args:            []string{"--download=" + downloadArgs},
-		EnvFrom:         baseClusterEnvVars(),
-		Env: []kcore.EnvVar{
-			{
-				Name:  "CORTEX_LOG_LEVEL",
-				Value: userconfig.InfoLogLevel.String(),
+				Value: strings.ToUpper(userconfig.InfoLogLevel.String()),
 			},
 		},
 		VolumeMounts: defaultVolumeMounts(),

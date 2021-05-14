@@ -17,6 +17,8 @@ limitations under the License.
 package workloads
 
 import (
+	"strings"
+
 	"github.com/cortexlabs/cortex/pkg/config"
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
@@ -77,7 +79,7 @@ func AsyncGatewayContainer(api spec.API, queueURL string, volumeMounts []kcore.V
 		Env: []kcore.EnvVar{
 			{
 				Name:  "CORTEX_LOG_LEVEL",
-				Value: userconfig.InfoLogLevel.String(),
+				Value: strings.ToUpper(userconfig.InfoLogLevel.String()),
 			},
 		},
 		Resources: kcore.ResourceRequirements{
@@ -127,6 +129,7 @@ func UserPodContainers(api spec.API) ([]kcore.Container, []kcore.Volume) {
 	}
 
 	var containers []kcore.Container
+	var podHasInf bool
 	containerNames := userconfig.GetContainerNames(api.Pod.Containers)
 	for _, container := range api.Pod.Containers {
 		containerResourceList := kcore.ResourceList{}
@@ -166,11 +169,17 @@ func UserPodContainers(api spec.API) ([]kcore.Container, []kcore.Volume) {
 
 			neuronRTDEnvVars := getKubexitEnvVars(_neuronRTDContainerName, containerNames.Slice(), nil)
 			containers = append(containers, neuronRuntimeDaemonContainer(container.Compute.Inf, rtdVolumeMounts, neuronRTDEnvVars))
+			podHasInf = true
 		}
 
 		containerDeathDependencies := containerNames.Copy()
 		containerDeathDependencies.Remove(container.Name)
-		containerEnvVars := getKubexitEnvVars(container.Name, containerDeathDependencies.Slice(), []string{_neuronRTDContainerName})
+		var containerEnvVars []kcore.EnvVar
+		if podHasInf {
+			containerEnvVars = getKubexitEnvVars(container.Name, containerDeathDependencies.Slice(), []string{"neuron-rtd"})
+		} else {
+			containerEnvVars = getKubexitEnvVars(container.Name, containerDeathDependencies.Slice(), nil)
+		}
 
 		for k, v := range container.Env {
 			containerEnvVars = append(containerEnvVars, kcore.EnvVar{

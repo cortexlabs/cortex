@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"strings"
 	"sync"
 	"time"
 
@@ -70,7 +71,7 @@ func (c *Counter) GetAllAndDelete() []int {
 func main() {
 	var port = flag.String("p", _defaultPort, "port on which the server runs on")
 
-	logLevelEnv := os.Getenv("CORTEX_LOG_LEVEL")
+	logLevelEnv := strings.ToUpper(os.Getenv("CORTEX_LOG_LEVEL"))
 	var logLevelZap zapcore.Level
 	switch logLevelEnv {
 	case "DEBUG":

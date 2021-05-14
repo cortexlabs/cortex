@@ -1,0 +1,20 @@
+- name: realtime
+  kind: RealtimeAPI
+  pod:
+    containers:
+    - name: api
+      image: 499593605069.dkr.ecr.us-west-2.amazonaws.com/sample/realtime-caas:latest
+      command:
+        - gunicorn
+        - --bind
+        - :7000
+        - --workers
+        - "1"
+        - --threads
+        - "8"
+        - --timeout
+        - "0"
+        - main:app
+      compute:
+        cpu: 200m
+        mem: 512Mi

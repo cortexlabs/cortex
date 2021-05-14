@@ -565,7 +565,7 @@ func validatePod(
 }
 
 func validateContainers(
-	containers []userconfig.Container,
+	containers []*userconfig.Container,
 	awsClient *aws.Client,
 	k8sClient *k8s.Client,
 ) error {
