@@ -1,5 +1,6 @@
 import json, re, os, boto3
 
+
 def main():
     with open("/mnt/job_spec.json", "r") as f:
         job_spec = json.load(f)
@@ -14,6 +15,7 @@ def main():
     bucket, key = re.match("s3://(.+?)/(.+)", s3_path).groups()
     s3 = boto3.client("s3")
     s3.put_object(Bucket=bucket, Key=os.path.join(key, job_id), Body="")
+
 
 if __name__ == "__main__":
     main()
