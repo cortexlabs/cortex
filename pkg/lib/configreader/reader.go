@@ -1038,6 +1038,20 @@ func ParseYAMLFile(dest interface{}, validation *StructValidation, filePath stri
 	return nil
 }
 
+func ParseYAMLBytes(dest interface{}, validation *StructValidation, data []byte) error {
+	fileInterface, err := ReadYAMLBytes(data)
+	if err != nil {
+		return nil
+	}
+
+	errs := Struct(dest, fileInterface, validation)
+	if errors.HasError(errs) {
+		return errors.FirstError(errs...)
+	}
+
+	return nil
+}
+
 func ReadYAMLFile(filePath string) (interface{}, error) {
 	fileBytes, err := files.ReadFileBytes(filePath)
 	if err != nil {
