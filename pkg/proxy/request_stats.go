@@ -16,7 +16,14 @@ limitations under the License.
 
 package proxy
 
-import "sync"
+import (
+	"net/http"
+	"sync"
+
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
+)
 
 type RequestStats struct {
 	sync.Mutex
@@ -38,7 +45,7 @@ func (s *RequestStats) GetAllAndDelete() []int {
 	return output
 }
 
-func (s *RequestStats) Report() float64 {
+func (s *RequestStats) Report() RequestStatsReport {
 	requestCounts := s.GetAllAndDelete()
 
 	total := 0.0
@@ -50,5 +57,34 @@ func (s *RequestStats) Report() float64 {
 		total /= float64(len(requestCounts))
 	}
 
-	return total
+	return RequestStatsReport{AvgInFlight: total}
+}
+
+type RequestStatsReport struct {
+	AvgInFlight float64
+}
+
+type PrometheusStatsReporter struct {
+	handler          http.Handler
+	inFlightRequests prometheus.Gauge
+}
+
+func NewPrometheusStatsReporter() *PrometheusStatsReporter {
+	inFlightRequestsGauge := promauto.NewGauge(prometheus.GaugeOpts{
+		Name: "cortex_in_flight_requests",
+		Help: "The number of in-flight requests for a cortex API",
+	})
+
+	return &PrometheusStatsReporter{
+		handler:          promhttp.Handler(),
+		inFlightRequests: inFlightRequestsGauge,
+	}
+}
+
+func (r *PrometheusStatsReporter) Report(stats RequestStatsReport) {
+	r.inFlightRequests.Set(stats.AvgInFlight)
+}
+
+func (r *PrometheusStatsReporter) ServeHTTP(w http.ResponseWriter, req *http.Request) {
+	r.handler.ServeHTTP(w, req)
 }

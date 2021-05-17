@@ -17,13 +17,17 @@ limitations under the License.
 package main
 
 import (
+	"context"
 	"flag"
 	"net/http"
+	"os"
+	"os/signal"
 	"strconv"
 	"time"
 
 	"github.com/cortexlabs/cortex/pkg/lib/logging"
 	"github.com/cortexlabs/cortex/pkg/proxy"
+	"go.uber.org/zap"
 )
 
 const (
@@ -34,13 +38,15 @@ const (
 func main() {
 	var (
 		port              int
-		userPort          int
+		metricsPort       int
+		userContainerPort int
 		targetConcurrency int
 		maxConcurrency    int
 	)
 
 	flag.IntVar(&port, "port", 8000, "port where the proxy will be served")
-	flag.IntVar(&userPort, "user-port", 8080, "port where the proxy will redirect to the traffic to")
+	flag.IntVar(&metricsPort, "metrics-port", 8001, "port where the proxy will be served")
+	flag.IntVar(&userContainerPort, "user-port", 8080, "port where the proxy will redirect to the traffic to")
 	flag.IntVar(&targetConcurrency, "target-concurrency", 0, "target concurrency for user container")
 	flag.IntVar(&maxConcurrency, "max-concurrency", 0, "max concurrency for user container")
 	flag.Parse()
@@ -57,10 +63,10 @@ func main() {
 		maxConcurrency = targetConcurrency * 10
 	}
 
-	target := "127.0.0.1:" + strconv.Itoa(port)
+	target := "http://127.0.0.1:" + strconv.Itoa(port)
 	httpProxy := proxy.NewReverseProxy(target, maxConcurrency, maxConcurrency)
 
-	stats := &proxy.RequestStats{}
+	requestCounterStats := &proxy.RequestStats{}
 	breaker := proxy.NewBreaker(
 		proxy.BreakerParams{
 			QueueDepth:      maxConcurrency,
@@ -68,7 +74,8 @@ func main() {
 			InitialCapacity: targetConcurrency,
 		},
 	)
-	handler := proxy.Handler(breaker, httpProxy)
+
+	promStats := proxy.NewPrometheusStatsReporter()
 
 	go func() {
 		reportTicker := time.NewTicker(_reportInterval)
@@ -81,15 +88,53 @@ func main() {
 			select {
 			case <-reportTicker.C:
 				go func() {
-					stats.Report() // TODO: report on prometheus
+					report := requestCounterStats.Report()
+					promStats.Report(report)
 				}()
 			case <-requestSamplingTicker.C:
 				go func() {
-					stats.Append(breaker.InFlight())
+					requestCounterStats.Append(breaker.InFlight())
 				}()
 			}
 		}
 	}()
 
-	log.Fatal(http.ListenAndServe(":"+strconv.Itoa(userPort), handler))
+	servers := map[string]*http.Server{
+		"proxy": {
+			Addr:    ":" + strconv.Itoa(userContainerPort),
+			Handler: proxy.Handler(breaker, httpProxy),
+		},
+		"metrics": {
+			Addr:    ":" + strconv.Itoa(metricsPort),
+			Handler: promStats,
+		},
+	}
+
+	errCh := make(chan error)
+	for name, server := range servers {
+		go func(name string, server *http.Server) {
+			log.Infof("Starting %s server on %s", name, server.Addr)
+			errCh <- server.ListenAndServe()
+		}(name, server)
+	}
+
+	sigint := make(chan os.Signal, 1)
+	signal.Notify(sigint, os.Interrupt)
+
+	select {
+	case err := <-errCh:
+		log.Fatal("failed to start proxy server", zap.Error(err))
+	case <-sigint:
+		// We received an interrupt signal, shut down.
+		log.Info("Received TERM signal, handling a graceful shutdown...")
+
+		for name, server := range servers {
+			log.Infof("Shutting down %s server", name)
+			if err := server.Shutdown(context.Background()); err != nil {
+				// Error from closing listeners, or context timeout:
+				log.Warn("HTTP server Shutdown Error", zap.Error(err))
+			}
+		}
+		log.Info("Shutdown complete, exiting...")
+	}
 }
