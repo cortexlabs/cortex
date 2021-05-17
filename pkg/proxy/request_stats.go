@@ -27,21 +27,21 @@ import (
 
 type RequestStats struct {
 	sync.Mutex
-	counts []int
+	counts []int64
 }
 
-func (s *RequestStats) Append(val int) {
+func (s *RequestStats) Append(val int64) {
 	s.Lock()
 	defer s.Unlock()
 	s.counts = append(s.counts, val)
 }
 
-func (s *RequestStats) GetAllAndDelete() []int {
-	var output []int
+func (s *RequestStats) GetAllAndDelete() []int64 {
+	var output []int64
 	s.Lock()
 	defer s.Unlock()
 	output = s.counts
-	s.counts = []int{}
+	s.counts = []int64{}
 	return output
 }
 

@@ -22,7 +22,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"math"
 
 	"go.uber.org/atomic"
 )
@@ -31,10 +30,6 @@ var (
 	// ErrRequestQueueFull indicates the breaker queue depth was exceeded.
 	ErrRequestQueueFull = errors.New("pending request queue full")
 )
-
-// MaxBreakerCapacity is the largest valid value for the MaxConcurrency value of BreakerParams.
-// This is limited by the maximum size of a chan struct{} in the current implementation.
-const MaxBreakerCapacity = math.MaxInt32
 
 // BreakerParams defines the parameters of the breaker.
 type BreakerParams struct {
@@ -119,7 +114,7 @@ func (b *Breaker) releasePending() {
 // Reserve reserves an execution slot in the breaker, to permit
 // richer semantics in the caller.
 // The caller on success must execute the callback when done with work.
-func (b *Breaker) Reserve(ctx context.Context) (func(), bool) {
+func (b *Breaker) Reserve(_ context.Context) (func(), bool) {
 	if !b.tryAcquirePending() {
 		return nil, false
 	}
@@ -160,8 +155,8 @@ func (b *Breaker) Maybe(ctx context.Context, thunk func()) error {
 }
 
 // InFlight returns the number of requests currently in flight in this breaker.
-func (b *Breaker) InFlight() int {
-	return int(b.inFlight.Load())
+func (b *Breaker) InFlight() int64 {
+	return b.inFlight.Load()
 }
 
 // UpdateConcurrency updates the maximum number of in-flight requests.
