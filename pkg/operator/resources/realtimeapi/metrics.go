@@ -136,10 +136,10 @@ func getRequestCountMetric(promAPIv1 promv1.API, apiSpec spec.API) (float64, err
 
 func getAvgLatencyMetric(promAPIv1 promv1.API, apiSpec spec.API) (*float64, error) {
 	query := fmt.Sprintf(
-		"rate(cortex_latency_sum{api_name=\"%s\", api_id=\"%s\"}[%dh]) "+
-			"/ rate(cortex_latency_count{api_name=\"%s\", api_id=\"%s\"}[%dh]) >= 0",
-		apiSpec.Name, apiSpec.ID, _metricsWindowHours,
-		apiSpec.Name, apiSpec.ID, _metricsWindowHours,
+		"sum(rate(istio_request_duration_milliseconds_sum{destination_service_name=~\"api-%s.+\"}[%dh])) by (destination_service_name) "+
+			"/ sum(rate(istio_request_duration_milliseconds_count{destination_service_name=~\"api-%s.+\"}[%dh])) by (destination_service_name)",
+		apiSpec.Name, _metricsWindowHours,
+		apiSpec.Name, _metricsWindowHours,
 	)
 
 	values, err := queryPrometheusVec(promAPIv1, query)
