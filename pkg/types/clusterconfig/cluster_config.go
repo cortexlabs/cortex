@@ -94,7 +94,7 @@ type CoreConfig struct {
 	ImageManager                    string `json:"image_manager" yaml:"image_manager"`
 	ImageDownloader                 string `json:"image_downloader" yaml:"image_downloader"`
 	ImageKubexit                    string `json:"image_kubexit" yaml:"image_kubexit"`
-	ImageRequestMonitor             string `json:"image_request_monitor" yaml:"image_request_monitor"`
+	ImageProxy                      string `json:"image_proxy" yaml:"image_proxy"`
 	ImageAsyncGateway               string `json:"image_async_gateway" yaml:"image_async_gateway"`
 	ImageEnqueuer                   string `json:"image_enqueuer" yaml:"image_enqueuer"`
 	ImageClusterAutoscaler          string `json:"image_cluster_autoscaler" yaml:"image_cluster_autoscaler"`
@@ -354,9 +354,9 @@ var CoreConfigStructFieldValidations = []*cr.StructFieldValidation{
 		},
 	},
 	{
-		StructField: "ImageRequestMonitor",
+		StructField: "ImageProxy",
 		StringValidation: &cr.StringValidation{
-			Default:   consts.DefaultRegistry() + "/request-monitor:" + consts.CortexVersion,
+			Default:   consts.DefaultRegistry() + "/proxy:" + consts.CortexVersion,
 			Validator: validateImageVersion,
 		},
 	},
@@ -1363,8 +1363,8 @@ func (cc *CoreConfig) TelemetryEvent() map[string]interface{} {
 	if !strings.HasPrefix(cc.ImageKubexit, "cortexlabs/") {
 		event["image_kubexit._is_custom"] = true
 	}
-	if !strings.HasPrefix(cc.ImageRequestMonitor, "cortexlabs/") {
-		event["image_request_monitor._is_custom"] = true
+	if !strings.HasPrefix(cc.ImageProxy, "cortexlabs/") {
+		event["image_proxy._is_custom"] = true
 	}
 	if !strings.HasPrefix(cc.ImageAsyncGateway, "cortexlabs/") {
 		event["image_async_gateway._is_custom"] = true

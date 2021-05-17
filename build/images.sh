@@ -29,7 +29,7 @@ api_images=(
 dev_images=(
   "downloader"
   "manager"
-  "request-monitor"
+  "proxy"
   "async-gateway"
   "enqueuer"
 )
