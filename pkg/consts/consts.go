@@ -24,11 +24,12 @@ var (
 	CortexVersion      = "master" // CORTEX_VERSION
 	CortexVersionMinor = "master" // CORTEX_VERSION_MINOR
 
-	ProxyListeningPort, ProxyListeningPortStr = int64(8888), "8888"
-	DefaultMaxReplicaQueueLength              = int64(1024)
-	DefaultMaxReplicaConcurrency              = int64(1024)
-	DefaultTargetReplicaConcurrency           = float64(8)
-	NeuronCoresPerInf                         = int64(4)
+	ProxyListeningPort              = int64(8888)
+	ProxyListeningPortStr           = "8888"
+	DefaultMaxReplicaQueueLength    = int64(1024)
+	DefaultMaxReplicaConcurrency    = int64(1024)
+	DefaultTargetReplicaConcurrency = float64(8)
+	NeuronCoresPerInf               = int64(4)
 
 	AuthHeader = "X-Cortex-Authorization"
 
