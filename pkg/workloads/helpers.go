@@ -18,8 +18,10 @@ package workloads
 
 import (
 	"fmt"
+	"path"
+	"strings"
 
-	"github.com/cortexlabs/cortex/pkg/types/userconfig"
+	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	kcore "k8s.io/api/core/v1"
 )
 
@@ -57,7 +59,7 @@ func FileExistsProbe(fileName string) *kcore.Probe {
 	}
 }
 
-func socketExistsProbe(socketName string) *kcore.Probe {
+func SocketExistsProbe(socketName string) *kcore.Probe {
 	return &kcore.Probe{
 		InitialDelaySeconds: 3,
 		TimeoutSeconds:      5,
@@ -72,30 +74,94 @@ func socketExistsProbe(socketName string) *kcore.Probe {
 	}
 }
 
-func nginxGracefulStopper(apiKind userconfig.Kind) *kcore.Lifecycle {
-	if apiKind == userconfig.RealtimeAPIKind {
-		return &kcore.Lifecycle{
-			PreStop: &kcore.Handler{
-				Exec: &kcore.ExecAction{
-					// the sleep is required to wait for any k8s-related race conditions
-					// as described in https://medium.com/codecademy-engineering/kubernetes-nginx-and-zero-downtime-in-production-2c910c6a5ed8
-					Command: []string{"/bin/sh", "-c", "sleep 5; /usr/sbin/nginx -s quit; while pgrep -x nginx; do sleep 1; done"},
+func baseClusterEnvVars() []kcore.EnvFromSource {
+	envVars := []kcore.EnvFromSource{
+		{
+			ConfigMapRef: &kcore.ConfigMapEnvSource{
+				LocalObjectReference: kcore.LocalObjectReference{
+					Name: "env-vars",
 				},
 			},
-		}
+		},
 	}
-	return nil
+
+	return envVars
 }
 
-func waitAPIContainerToStop(apiKind userconfig.Kind) *kcore.Lifecycle {
-	if apiKind == userconfig.RealtimeAPIKind {
-		return &kcore.Lifecycle{
-			PreStop: &kcore.Handler{
-				Exec: &kcore.ExecAction{
-					Command: []string{"/bin/sh", "-c", fmt.Sprintf("while curl localhost:%s/nginx_status; do sleep 1; done", DefaultPortStr)},
+func getKubexitEnvVars(containerName string, deathDeps []string, birthDeps []string) []kcore.EnvVar {
+	envVars := []kcore.EnvVar{
+		{
+			Name:  "KUBEXIT_NAME",
+			Value: containerName,
+		},
+		{
+			Name:  "KUBEXIT_GRAVEYARD",
+			Value: _kubexitGraveyardMountPath,
+		},
+	}
+
+	if deathDeps != nil {
+		envVars = append(envVars,
+			kcore.EnvVar{
+				Name:  "KUBEXIT_DEATH_DEPS",
+				Value: strings.Join(deathDeps, ","),
+			},
+			kcore.EnvVar{
+				Name:  "KUBEXIT_IGNORE_CODE_ON_DEATH_DEPS",
+				Value: "true",
+			},
+		)
+	}
+
+	if birthDeps != nil {
+		envVars = append(envVars,
+			kcore.EnvVar{
+				Name:  "KUBEXIT_BIRTH_DEPS",
+				Value: strings.Join(birthDeps, ","),
+			},
+			kcore.EnvVar{
+				Name:  "KUBEXIT_IGNORE_CODE_ON_DEATH_DEPS",
+				Value: "true",
+			},
+		)
+	}
+
+	return envVars
+}
+
+func defaultVolumes(requiresKubexit bool) []kcore.Volume {
+	volumes := []kcore.Volume{
+		k8s.EmptyDirVolume(_emptyDirVolumeName),
+		{
+			Name: "client-config",
+			VolumeSource: kcore.VolumeSource{
+				ConfigMap: &kcore.ConfigMapVolumeSource{
+					LocalObjectReference: kcore.LocalObjectReference{
+						Name: "client-config",
+					},
 				},
 			},
-		}
+		},
 	}
-	return nil
+
+	if requiresKubexit {
+		return append(volumes, k8s.EmptyDirVolume(_kubexitGraveyardName))
+	}
+	return volumes
+}
+
+func defaultVolumeMounts(requiresKubexit bool) []kcore.VolumeMount {
+	volumeMounts := []kcore.VolumeMount{
+		k8s.EmptyDirVolumeMount(_emptyDirVolumeName, _emptyDirMountPath),
+		{
+			Name:      "client-config",
+			MountPath: path.Join(_clientConfigDir, "cli.yaml"),
+			SubPath:   "cli.yaml",
+		},
+	}
+
+	if requiresKubexit {
+		return append(volumeMounts, k8s.EmptyDirVolumeMount(_kubexitGraveyardName, _kubexitGraveyardMountPath))
+	}
+	return volumeMounts
 }

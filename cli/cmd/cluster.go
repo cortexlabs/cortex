@@ -33,7 +33,6 @@ import (
 	"github.com/cortexlabs/cortex/cli/types/cliconfig"
 	"github.com/cortexlabs/cortex/cli/types/flags"
 	"github.com/cortexlabs/cortex/pkg/consts"
-	"github.com/cortexlabs/cortex/pkg/lib/archive"
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/console"
 	"github.com/cortexlabs/cortex/pkg/lib/docker"
@@ -51,7 +50,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
 	"github.com/cortexlabs/cortex/pkg/types/clusterconfig"
 	"github.com/cortexlabs/cortex/pkg/types/clusterstate"
-	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	"github.com/cortexlabs/yaml"
 	"github.com/spf13/cobra"
 )
@@ -716,11 +714,6 @@ var _clusterExportCmd = &cobra.Command{
 			OperatorEndpoint: "https://" + *loadBalancer.DNSName,
 		}
 
-		info, err := cluster.Info(operatorConfig)
-		if err != nil {
-			exit.Error(err)
-		}
-
 		var apisResponse []schema.APIResponse
 		if len(args) == 0 {
 			apisResponse, err = cluster.GetAPIs(operatorConfig)
@@ -768,24 +761,6 @@ var _clusterExportCmd = &cobra.Command{
 			err = files.WriteFile(yamlBytes, path.Join(baseDir, apiResponse.Spec.FileName))
 			if err != nil {
 				exit.Error(err)
-			}
-
-			if apiResponse.Spec.Kind != userconfig.TrafficSplitterKind {
-				zipFileLocation := path.Join(baseDir, path.Base(apiResponse.Spec.ProjectKey))
-				err = awsClient.DownloadFileFromS3(info.ClusterConfig.Bucket, apiResponse.Spec.ProjectKey, zipFileLocation)
-				if err != nil {
-					exit.Error(err)
-				}
-
-				_, err = archive.UnzipFileToDir(zipFileLocation, baseDir)
-				if err != nil {
-					exit.Error(err)
-				}
-
-				err := os.Remove(zipFileLocation)
-				if err != nil {
-					exit.Error(err)
-				}
 			}
 		}
 	},

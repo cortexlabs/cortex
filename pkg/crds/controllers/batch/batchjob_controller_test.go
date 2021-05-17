@@ -42,12 +42,16 @@ func uploadTestAPISpec(apiName string, apiID string) error {
 				Name: apiName,
 				Kind: userconfig.BatchAPIKind,
 			},
-			Handler: &userconfig.Handler{
-				Type:         userconfig.PythonHandlerType,
-				Image:        "quay.io/cortexlabs/python-handler-cpu:master",
-				Dependencies: &userconfig.Dependencies{},
+			Pod: &userconfig.Pod{
+				// TODO use a real image
+				Containers: []*userconfig.Container{
+					{
+						Name:    "api",
+						Image:   "quay.io/cortexlabs/batch-container-test:master",
+						Command: []string{"/bin/run"},
+					},
+				},
 			},
-			Compute: &userconfig.Compute{},
 		},
 		ID:           apiID,
 		SpecID:       random.String(5),

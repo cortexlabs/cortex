@@ -20,8 +20,6 @@ const (
 	// API
 	NameKey           = "name"
 	KindKey           = "kind"
-	HandlerKey        = "handler"
-	TaskDefinitionKey = "definition"
 	NetworkingKey     = "networking"
 	ComputeKey        = "compute"
 	AutoscalingKey    = "autoscaling"
@@ -32,62 +30,35 @@ const (
 	WeightKey = "weight"
 	ShadowKey = "shadow"
 
-	// Handler
-	TypeKey                   = "type"
-	PathKey                   = "path"
-	ProtobufPathKey           = "protobuf_path"
-	ServerSideBatchingKey     = "server_side_batching"
-	PythonPathKey             = "python_path"
-	ImageKey                  = "image"
-	TensorFlowServingImageKey = "tensorflow_serving_image"
-	ProcessesPerReplicaKey    = "processes_per_replica"
-	ThreadsPerProcessKey      = "threads_per_process"
-	ShmSizeKey                = "shm_size"
-	LogLevelKey               = "log_level"
-	ConfigKey                 = "config"
-	EnvKey                    = "env"
+	// Pod
+	PodKey        = "pod"
+	NodeGroupsKey = "node_groups"
+	ShmSizeKey    = "shm_size"
+	ContainersKey = "containers"
 
-	// Handler/TaskDefinition.Dependencies
-	DependenciesKey = "dependencies"
-	PipKey          = "pip"
-	ShellKey        = "shell"
-	CondaKey        = "conda"
+	// Containers
+	ContainerNameKey = "name"
+	ImageKey         = "image"
+	EnvKey           = "env"
+	CommandKey       = "command"
+	ArgsKey          = "args"
 
-	// MultiModelReloading
-	MultiModelReloadingKey = "multi_model_reloading"
-
-	// MultiModels
-	ModelsKey              = "models"
-	ModelsPathKey          = "path"
-	ModelsPathsKey         = "paths"
-	ModelsDirKey           = "dir"
-	ModelsSignatureKeyKey  = "signature_key"
-	ModelsCacheSizeKey     = "cache_size"
-	ModelsDiskCacheSizeKey = "disk_cache_size"
-
-	// ServerSideBatching
-	MaxBatchSizeKey  = "max_batch_size"
-	BatchIntervalKey = "batch_interval"
-
-	// ModelResource
-	ModelsNameKey = "name"
+	// Compute
+	CPUKey = "cpu"
+	MemKey = "mem"
+	GPUKey = "gpu"
+	InfKey = "inf"
 
 	// Networking
 	EndpointKey = "endpoint"
-
-	// Compute
-	CPUKey        = "cpu"
-	MemKey        = "mem"
-	GPUKey        = "gpu"
-	InfKey        = "inf"
-	NodeGroupsKey = "node_groups"
 
 	// Autoscaling
 	MinReplicasKey                  = "min_replicas"
 	MaxReplicasKey                  = "max_replicas"
 	InitReplicasKey                 = "init_replicas"
-	TargetReplicaConcurrencyKey     = "target_replica_concurrency"
+	MaxReplicaQueueLengthKey        = "max_replica_queue_length"
 	MaxReplicaConcurrencyKey        = "max_replica_concurrency"
+	TargetReplicaConcurrencyKey     = "target_replica_concurrency"
 	WindowKey                       = "window"
 	DownscaleStabilizationPeriodKey = "downscale_stabilization_period"
 	UpscaleStabilizationPeriodKey   = "upscale_stabilization_period"
@@ -102,12 +73,11 @@ const (
 
 	// K8s annotation
 	EndpointAnnotationKey                     = "networking.cortex.dev/endpoint"
-	ProcessesPerReplicaAnnotationKey          = "handler.cortex.dev/processes-per-replica"
-	ThreadsPerProcessAnnotationKey            = "handler.cortex.dev/threads-per-process"
 	MinReplicasAnnotationKey                  = "autoscaling.cortex.dev/min-replicas"
 	MaxReplicasAnnotationKey                  = "autoscaling.cortex.dev/max-replicas"
-	TargetReplicaConcurrencyAnnotationKey     = "autoscaling.cortex.dev/target-replica-concurrency"
+	MaxReplicaQueueLengthAnnotationKey        = "autoscaling.cortex.dev/max-replica-queue-length"
 	MaxReplicaConcurrencyAnnotationKey        = "autoscaling.cortex.dev/max-replica-concurrency"
+	TargetReplicaConcurrencyAnnotationKey     = "autoscaling.cortex.dev/target-replica-concurrency"
 	WindowAnnotationKey                       = "autoscaling.cortex.dev/window"
 	DownscaleStabilizationPeriodAnnotationKey = "autoscaling.cortex.dev/downscale-stabilization-period"
 	UpscaleStabilizationPeriodAnnotationKey   = "autoscaling.cortex.dev/upscale-stabilization-period"

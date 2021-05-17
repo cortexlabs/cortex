@@ -17,25 +17,17 @@ limitations under the License.
 package cmd
 
 import (
-	"crypto/tls"
 	"fmt"
-	"io/ioutil"
-	"net/http"
-	"strconv"
 	"strings"
 	"time"
 
 	"github.com/cortexlabs/cortex/cli/types/cliconfig"
-	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/console"
-	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/table"
 	libtime "github.com/cortexlabs/cortex/pkg/lib/time"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
 	"github.com/cortexlabs/cortex/pkg/types/metrics"
-	"github.com/cortexlabs/cortex/pkg/types/status"
-	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 )
 
 func realtimeAPITable(realtimeAPI schema.APIResponse, env cliconfig.Environment) (string, error) {
@@ -51,19 +43,7 @@ func realtimeAPITable(realtimeAPI schema.APIResponse, env cliconfig.Environment)
 		out += "\n" + console.Bold("metrics dashboard: ") + *realtimeAPI.DashboardURL + "\n"
 	}
 
-	if realtimeAPI.Spec.Handler.IsGRPC() {
-		out += "\n" + console.Bold("insecure endpoint: ") + fmt.Sprintf("%s:%d", realtimeAPI.Endpoint, realtimeAPI.GRPCPorts["insecure"])
-		out += "\n" + console.Bold("secure endpoint: ") + fmt.Sprintf("%s:%d", realtimeAPI.Endpoint, realtimeAPI.GRPCPorts["secure"]) + "\n"
-	} else {
-		out += "\n" + console.Bold("endpoint: ") + realtimeAPI.Endpoint + "\n"
-	}
-
-	if !(realtimeAPI.Spec.Handler.Type == userconfig.PythonHandlerType && realtimeAPI.Spec.Handler.MultiModelReloading == nil) && realtimeAPI.Spec.Handler.ProtobufPath == nil {
-		decribedModels := describeModelInput(realtimeAPI.Status, realtimeAPI.RealtimeModelMetadata.TFModelSummary, realtimeAPI.RealtimeModelMetadata.PythonModelSummary)
-		if decribedModels != "" {
-			out += "\n" + decribedModels
-		}
-	}
+	out += "\n" + console.Bold("endpoint: ") + realtimeAPI.Endpoint + "\n"
 
 	out += "\n" + apiHistoryTable(realtimeAPI.APIVersions)
 
@@ -158,243 +138,4 @@ func code5XXStr(metrics *metrics.Metrics) string {
 		return "-"
 	}
 	return s.Int(metrics.NetworkStats.Code5XX)
-}
-
-func describeModelInput(status *status.Status, apiTFLiveReloadingSummary *schema.TFLiveReloadingSummary, apiModelSummary *schema.PythonModelSummary) string {
-	if status.Updated.Ready+status.Stale.Ready == 0 {
-		return "the models' metadata schema will be available when the api is live\n"
-	}
-
-	if apiTFLiveReloadingSummary != nil {
-		t, err := parseAPITFLiveReloadingSummary(apiTFLiveReloadingSummary)
-		if err != nil {
-			return "error parsing the model's input schema: " + errors.Message(err) + "\n"
-		}
-		return t
-	}
-
-	if apiModelSummary != nil {
-		t, err := parseAPIModelSummary(apiModelSummary)
-		if err != nil {
-			return "error parsing the models' metadata schema: " + errors.Message(err) + "\n"
-		}
-		return t
-	}
-
-	return ""
-}
-
-func getModelFromModelID(modelID string) (modelName string, modelVersion int64, err error) {
-	splitIndex := strings.LastIndex(modelID, "-")
-	modelName = modelID[:splitIndex]
-	modelVersion, err = strconv.ParseInt(modelID[splitIndex+1:], 10, 64)
-	return
-}
-
-func makeRequest(request *http.Request) (http.Header, []byte, error) {
-	client := http.Client{
-		Timeout: 5 * time.Second,
-		Transport: &http.Transport{
-			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-		},
-	}
-
-	response, err := client.Do(request)
-	if err != nil {
-		return nil, nil, errors.Wrap(err, errStrFailedToConnect(*request.URL))
-	}
-	defer response.Body.Close()
-
-	if response.StatusCode != 200 {
-		bodyBytes, err := ioutil.ReadAll(response.Body)
-		if err != nil {
-			return nil, nil, errors.Wrap(err, _errStrRead)
-		}
-		return nil, nil, ErrorResponseUnknown(string(bodyBytes), response.StatusCode)
-	}
-
-	bodyBytes, err := ioutil.ReadAll(response.Body)
-	if err != nil {
-		return nil, nil, errors.Wrap(err, _errStrRead)
-	}
-	return response.Header, bodyBytes, nil
-}
-
-func parseAPIModelSummary(summary *schema.PythonModelSummary) (string, error) {
-	rows := make([][]interface{}, 0)
-
-	for modelName, modelMetadata := range summary.ModelMetadata {
-		latestVersion := int64(0)
-		for _, version := range modelMetadata.Versions {
-			v, err := strconv.ParseInt(version, 10, 64)
-			if err != nil {
-				return "", err
-			}
-			if v > latestVersion {
-				latestVersion = v
-			}
-		}
-		latestStrVersion := strconv.FormatInt(latestVersion, 10)
-
-		for idx, version := range modelMetadata.Versions {
-			var latestTag string
-			if latestStrVersion == version {
-				latestTag = " (latest)"
-			}
-
-			timestamp := modelMetadata.Timestamps[idx]
-			date := time.Unix(timestamp, 0)
-
-			rows = append(rows, []interface{}{
-				modelName,
-				version + latestTag,
-				date.Format(_timeFormat),
-			})
-		}
-	}
-
-	_, usesCortexDefaultModelName := summary.ModelMetadata[consts.SingleModelName]
-
-	t := table.Table{
-		Headers: []table.Header{
-			{
-				Title:    "model name",
-				MaxWidth: 32,
-				Hidden:   usesCortexDefaultModelName,
-			},
-			{
-				Title:    "model version",
-				MaxWidth: 25,
-			},
-			{
-				Title:    "edit time",
-				MaxWidth: 32,
-			},
-		},
-		Rows: rows,
-	}
-
-	return t.MustFormat(), nil
-}
-
-func parseAPITFLiveReloadingSummary(summary *schema.TFLiveReloadingSummary) (string, error) {
-	latestVersions := make(map[string]int64)
-
-	numRows := 0
-	models := make(map[string]schema.GenericModelMetadata, 0)
-	for modelID, modelMetadata := range summary.ModelMetadata {
-		timestamp := modelMetadata.Timestamp
-		modelName, modelVersion, err := getModelFromModelID(modelID)
-		if err != nil {
-			return "", err
-		}
-		if _, ok := models[modelName]; !ok {
-			models[modelName] = schema.GenericModelMetadata{
-				Versions:   []string{strconv.FormatInt(modelVersion, 10)},
-				Timestamps: []int64{timestamp},
-			}
-		} else {
-			model := models[modelName]
-			model.Versions = append(model.Versions, strconv.FormatInt(modelVersion, 10))
-			model.Timestamps = append(model.Timestamps, timestamp)
-			models[modelName] = model
-		}
-		if _, ok := latestVersions[modelName]; !ok {
-			latestVersions[modelName] = modelVersion
-		} else if modelVersion > latestVersions[modelName] {
-			latestVersions[modelName] = modelVersion
-		}
-		numRows += len(modelMetadata.InputSignatures)
-	}
-
-	rows := make([][]interface{}, 0, numRows)
-	for modelName, model := range models {
-		latestVersion := latestVersions[modelName]
-
-		for _, modelVersion := range model.Versions {
-			modelID := fmt.Sprintf("%s-%s", modelName, modelVersion)
-
-			inputSignatures := summary.ModelMetadata[modelID].InputSignatures
-			timestamp := summary.ModelMetadata[modelID].Timestamp
-			versionInt, err := strconv.ParseInt(modelVersion, 10, 64)
-			if err != nil {
-				return "", err
-			}
-
-			var applicableTags string
-			if versionInt == latestVersion {
-				applicableTags = " (latest)"
-			}
-
-			date := time.Unix(timestamp, 0)
-
-			for inputName, inputSignature := range inputSignatures {
-				shapeStr := make([]string, len(inputSignature.Shape))
-				for idx, dim := range inputSignature.Shape {
-					shapeStr[idx] = s.ObjFlatNoQuotes(dim)
-				}
-				shapeRowEntry := ""
-				if len(shapeStr) == 1 && shapeStr[0] == "scalar" {
-					shapeRowEntry = "scalar"
-				} else if len(shapeStr) == 1 && shapeStr[0] == "unknown" {
-					shapeRowEntry = "unknown"
-				} else {
-					shapeRowEntry = "(" + strings.Join(shapeStr, ", ") + ")"
-				}
-				rows = append(rows, []interface{}{
-					modelName,
-					modelVersion + applicableTags,
-					inputName,
-					inputSignature.Type,
-					shapeRowEntry,
-					date.Format(_timeFormat),
-				})
-			}
-		}
-	}
-
-	usesCortexDefaultModelName := false
-	for modelID := range summary.ModelMetadata {
-		modelName, _, err := getModelFromModelID(modelID)
-		if err != nil {
-			return "", err
-		}
-		if modelName == consts.SingleModelName {
-			usesCortexDefaultModelName = true
-			break
-		}
-	}
-
-	t := table.Table{
-		Headers: []table.Header{
-			{
-				Title:    "model name",
-				MaxWidth: 32,
-				Hidden:   usesCortexDefaultModelName,
-			},
-			{
-				Title:    "model version",
-				MaxWidth: 25,
-			},
-			{
-				Title:    "model input",
-				MaxWidth: 32,
-			},
-			{
-				Title:    "type",
-				MaxWidth: 10,
-			},
-			{
-				Title:    "shape",
-				MaxWidth: 20,
-			},
-			{
-				Title:    "edit time",
-				MaxWidth: 32,
-			},
-		},
-		Rows: rows,
-	}
-
-	return t.MustFormat(), nil
 }

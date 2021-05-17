@@ -272,23 +272,8 @@ func (r *BatchJobReconciler) desiredWorkerJob(batchJob batch.BatchJob, apiSpec s
 	var containers []kcore.Container
 	var volumes []kcore.Volume
 
-	switch apiSpec.Handler.Type {
-	case userconfig.PythonHandlerType:
-		containers, volumes = workloads.PythonHandlerJobContainers(&apiSpec)
-	case userconfig.TensorFlowHandlerType:
-		containers, volumes = workloads.TensorFlowHandlerJobContainers(&apiSpec)
-	default:
-		return nil, fmt.Errorf("unexpected handler type (%s)", apiSpec.Handler.Type)
-	}
-
-	for i, container := range containers {
-		if container.Name == workloads.APIContainerName {
-			containers[i].Env = append(container.Env, kcore.EnvVar{
-				Name:  "CORTEX_JOB_SPEC",
-				Value: workloads.BatchSpecPath,
-			})
-		}
-	}
+	containers, volumes = workloads.UserPodContainers(apiSpec)
+	// TODO add the proxy as well
 
 	job := k8s.Job(
 		&k8s.JobSpec{
@@ -323,7 +308,7 @@ func (r *BatchJobReconciler) desiredWorkerJob(batchJob batch.BatchJob, apiSpec s
 				K8sPodSpec: kcore.PodSpec{
 					InitContainers: []kcore.Container{
 						workloads.KubexitInitContainer(),
-						workloads.BatchInitContainer(&apiSpec, &jobSpec),
+						workloads.BatchInitContainer(&jobSpec),
 					},
 					Containers:         containers,
 					Volumes:            volumes,

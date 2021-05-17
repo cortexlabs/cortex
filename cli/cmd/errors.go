@@ -26,7 +26,6 @@ import (
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/urls"
 	"github.com/cortexlabs/cortex/pkg/types/clusterconfig"
-	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 )
 
 const (
@@ -69,7 +68,6 @@ const (
 	ErrDeployFromTopLevelDir               = "cli.deploy_from_top_level_dir"
 	ErrAPINameMustBeProvided               = "cli.api_name_must_be_provided"
 	ErrAPINotFoundInConfig                 = "cli.api_not_found_in_config"
-	ErrNotSupportedForKindAndType          = "cli.not_supported_for_kind_and_type"
 	ErrClusterUIDsLimitInBucket            = "cli.cluster_uids_limit_in_bucket"
 )
 
@@ -283,17 +281,6 @@ func ErrorAPINotFoundInConfig(apiName string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrAPINotFoundInConfig,
 		Message: fmt.Sprintf("api '%s' not found in config", apiName),
-	})
-}
-
-func ErrorNotSupportedForKindAndType(kind userconfig.Kind, handlerType userconfig.HandlerType) error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrNotSupportedForKindAndType,
-		Message: fmt.Sprintf("this command is still in beta and currently only supports %s with type %s", userconfig.RealtimeAPIKind.String(), userconfig.PythonHandlerType.String()),
-		Metadata: map[string]interface{}{
-			"apiKind":     kind.String(),
-			"handlerType": handlerType.String(),
-		},
 	})
 }
 

@@ -17,12 +17,9 @@ limitations under the License.
 package asyncapi
 
 import (
-	"fmt"
-
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
-	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	"github.com/cortexlabs/cortex/pkg/workloads"
 	"istio.io/client-go/pkg/apis/networking/v1beta1"
 	kapps "k8s.io/api/apps/v1"
@@ -53,7 +50,7 @@ func gatewayDeploymentSpec(api spec.API, prevDeployment *kapps.Deployment, queue
 			},
 		},
 	}
-	container := workloads.AsyncGatewayContainers(api, queueURL, volumeMounts)
+	container := workloads.AsyncGatewayContainer(api, queueURL, volumeMounts)
 
 	return *k8s.Deployment(&k8s.DeploymentSpec{
 		Name:           getGatewayK8sName(api.Name),
@@ -90,7 +87,7 @@ func gatewayDeploymentSpec(api spec.API, prevDeployment *kapps.Deployment, queue
 				Containers:                    []kcore.Container{container},
 				NodeSelector:                  workloads.NodeSelectors(),
 				Tolerations:                   workloads.GenerateResourceTolerations(),
-				Affinity:                      workloads.GenerateNodeAffinities(api.Compute.NodeGroups),
+				Affinity:                      workloads.GenerateNodeAffinities(api.Pod.NodeGroups),
 				Volumes:                       volumes,
 				ServiceAccountName:            workloads.ServiceAccountName,
 			},
@@ -173,20 +170,14 @@ func gatewayVirtualServiceSpec(api spec.API) v1beta1.VirtualService {
 	})
 }
 
-func apiDeploymentSpec(api spec.API, prevDeployment *kapps.Deployment, queueURL string) kapps.Deployment {
+func deploymentSpec(api spec.API, prevDeployment *kapps.Deployment, queueURL string) kapps.Deployment {
 	var (
 		containers []kcore.Container
 		volumes    []kcore.Volume
 	)
 
-	switch api.Handler.Type {
-	case userconfig.PythonHandlerType:
-		containers, volumes = workloads.AsyncPythonHandlerContainers(api, queueURL)
-	case userconfig.TensorFlowHandlerType:
-		containers, volumes = workloads.AsyncTensorflowHandlerContainers(api, queueURL)
-	default:
-		panic(fmt.Sprintf("invalid handler type: %s", api.Handler.Type))
-	}
+	containers, volumes = workloads.UserPodContainers(api)
+	// TODO add the proxy as well
 
 	return *k8s.Deployment(&k8s.DeploymentSpec{
 		Name:           workloads.K8sName(api.Name),
@@ -221,15 +212,12 @@ func apiDeploymentSpec(api spec.API, prevDeployment *kapps.Deployment, queueURL 
 			K8sPodSpec: kcore.PodSpec{
 				RestartPolicy:                 "Always",
 				TerminationGracePeriodSeconds: pointer.Int64(_terminationGracePeriodSeconds),
-				InitContainers: []kcore.Container{
-					workloads.InitContainer(&api),
-				},
-				Containers:         containers,
-				NodeSelector:       workloads.NodeSelectors(),
-				Tolerations:        workloads.GenerateResourceTolerations(),
-				Affinity:           workloads.GenerateNodeAffinities(api.Compute.NodeGroups),
-				Volumes:            volumes,
-				ServiceAccountName: workloads.ServiceAccountName,
+				Containers:                    containers,
+				NodeSelector:                  workloads.NodeSelectors(),
+				Tolerations:                   workloads.GenerateResourceTolerations(),
+				Affinity:                      workloads.GenerateNodeAffinities(api.Pod.NodeGroups),
+				Volumes:                       volumes,
+				ServiceAccountName:            workloads.ServiceAccountName,
 			},
 		},
 	})

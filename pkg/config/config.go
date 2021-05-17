@@ -24,6 +24,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/consts"
 	batch "github.com/cortexlabs/cortex/pkg/crds/apis/batch/v1alpha1"
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
+	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/hash"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
@@ -58,6 +59,20 @@ func init() {
 func InitConfigs(clusterConfig *clusterconfig.Config, operatorMetadata *clusterconfig.OperatorMetadata) {
 	ClusterConfig = clusterConfig
 	OperatorMetadata = operatorMetadata
+}
+
+func getClusterConfigFromConfigMap() (clusterconfig.Config, error) {
+	configMapData, err := K8s.GetConfigMapData("cluster-config")
+	if err != nil {
+		return clusterconfig.Config{}, err
+	}
+	clusterConfig := clusterconfig.Config{}
+	errs := cr.ParseYAMLBytes(&clusterConfig, clusterconfig.FullManagedValidation, []byte(configMapData["cluster.yaml"]))
+	if errors.FirstError(errs...) != nil {
+		return clusterconfig.Config{}, errors.FirstError(errs...)
+	}
+
+	return clusterConfig, nil
 }
 
 func Init() error {
@@ -103,6 +118,22 @@ func Init() error {
 	clusterNamespace = clusterConfig.Namespace
 	istioNamespace = clusterConfig.IstioNamespace
 
+	if K8s, err = k8s.New(clusterNamespace, OperatorMetadata.IsOperatorInCluster, nil, scheme); err != nil {
+		return err
+	}
+
+	if K8sIstio, err = k8s.New(istioNamespace, OperatorMetadata.IsOperatorInCluster, nil, scheme); err != nil {
+		return err
+	}
+
+	if !OperatorMetadata.IsOperatorInCluster {
+		cc, err := getClusterConfigFromConfigMap()
+		if err != nil {
+			return err
+		}
+		clusterConfig.Bucket = cc.Bucket
+	}
+
 	exists, err := AWS.DoesBucketExist(clusterConfig.Bucket)
 	if err != nil {
 		return err
@@ -126,14 +157,6 @@ func Init() error {
 		fmt.Println(errors.Message(err))
 	}
 
-	if K8s, err = k8s.New(clusterNamespace, OperatorMetadata.IsOperatorInCluster, nil, scheme); err != nil {
-		return err
-	}
-
-	if K8sIstio, err = k8s.New(istioNamespace, OperatorMetadata.IsOperatorInCluster, nil, scheme); err != nil {
-		return err
-	}
-
 	prometheusURL := os.Getenv("CORTEX_PROMETHEUS_URL")
 	if len(prometheusURL) == 0 {
 		prometheusURL = fmt.Sprintf("http://prometheus.%s:9090", clusterNamespace)
@@ -147,7 +170,6 @@ func Init() error {
 	}
 
 	Prometheus = promv1.NewAPI(promClient)
-
 	if K8sAllNamspaces, err = k8s.New("", OperatorMetadata.IsOperatorInCluster, nil, scheme); err != nil {
 		return err
 	}

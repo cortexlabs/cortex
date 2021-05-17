@@ -1,7 +1,0 @@
-- name: hello-world
-  kind: TaskAPI
-  definition:
-    path: task.py
-  compute:
-    cpu: 50m
-    mem: 100Mi

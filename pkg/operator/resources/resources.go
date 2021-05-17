@@ -23,7 +23,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/config"
 	"github.com/cortexlabs/cortex/pkg/consts"
 	batch "github.com/cortexlabs/cortex/pkg/crds/apis/batch/v1alpha1"
-	"github.com/cortexlabs/cortex/pkg/lib/archive"
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/hash"
@@ -31,7 +30,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/parallel"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
-	"github.com/cortexlabs/cortex/pkg/lib/urls"
 	"github.com/cortexlabs/cortex/pkg/operator/lib/routines"
 	"github.com/cortexlabs/cortex/pkg/operator/operator"
 	"github.com/cortexlabs/cortex/pkg/operator/resources/asyncapi"
@@ -52,10 +50,6 @@ import (
 )
 
 var operatorLogger = logging.GetLogger()
-
-const (
-	_defaultAPIPortInt32 = int32(8888)
-)
 
 // Returns an error if resource doesn't exist
 func GetDeployedResourceByName(resourceName string) (*operator.DeployedResource, error) {
@@ -90,37 +84,18 @@ func GetDeployedResourceByNameOrNil(resourceName string) (*operator.DeployedReso
 	}, nil
 }
 
-func Deploy(projectBytes []byte, configFileName string, configBytes []byte, force bool) ([]schema.DeployResult, error) {
-	projectID := hash.Bytes(projectBytes)
-	projectFileMap, err := archive.UnzipMemToMem(projectBytes)
-	if err != nil {
-		return nil, err
-	}
-
-	projectFiles := ProjectFiles{
-		ProjectByteMap: projectFileMap,
-	}
+func Deploy(configFileName string, configBytes []byte, force bool) ([]schema.DeployResult, error) {
+	projectID := hash.Bytes(configBytes)
 
 	apiConfigs, err := spec.ExtractAPIConfigs(configBytes, configFileName)
 	if err != nil {
 		return nil, err
 	}
 
-	err = ValidateClusterAPIs(apiConfigs, projectFiles)
+	err = ValidateClusterAPIs(apiConfigs)
 	if err != nil {
 		err = errors.Append(err, fmt.Sprintf("\n\napi configuration schema can be found at https://docs.cortex.dev/v/%s/", consts.CortexVersionMinor))
 		return nil, err
-	}
-
-	projectKey := spec.ProjectKey(projectID, config.ClusterConfig.ClusterUID)
-	isProjectUploaded, err := config.AWS.IsS3File(config.ClusterConfig.Bucket, projectKey)
-	if err != nil {
-		return nil, err
-	}
-	if !isProjectUploaded {
-		if err = config.AWS.UploadBytesToS3(projectBytes, config.ClusterConfig.Bucket, projectKey); err != nil {
-			return nil, err
-		}
 	}
 
 	// This is done if user specifies RealtimeAPIs in same file as TrafficSplitter
@@ -155,40 +130,6 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string, force bool) (*schema
 
 	if deployedResource != nil && deployedResource.Kind != apiConfig.Kind {
 		return nil, "", ErrorCannotChangeKindOfDeployedAPI(apiConfig.Name, apiConfig.Kind, deployedResource.Kind)
-	}
-
-	if deployedResource != nil {
-		prevAPISpec, err := operator.DownloadAPISpec(deployedResource.Name, deployedResource.ID())
-		if err != nil {
-			return nil, "", err
-		}
-
-		if deployedResource.Kind == userconfig.RealtimeAPIKind && prevAPISpec != nil && !prevAPISpec.Handler.IsGRPC() && apiConfig.Handler.IsGRPC() {
-			realtimeAPIName := deployedResource.Name
-
-			virtualServices, err := config.K8s.ListVirtualServicesByLabel("apiKind", userconfig.TrafficSplitterKind.String())
-			if err != nil {
-				return nil, "", err
-			}
-
-			trafficSplitterList, err := trafficsplitter.GetAllAPIs(virtualServices)
-			if err != nil {
-				return nil, "", err
-			}
-
-			dependentTrafficSplitters := []string{}
-			for _, trafficSplitter := range trafficSplitterList {
-				for _, api := range trafficSplitter.Spec.APIs {
-					if realtimeAPIName == api.Name {
-						dependentTrafficSplitters = append(dependentTrafficSplitters, api.Name)
-					}
-				}
-			}
-
-			if len(dependentTrafficSplitters) > 0 {
-				return nil, "", ErrorCannotChangeProtocolWhenUsedByTrafficSplitter(realtimeAPIName, dependentTrafficSplitters)
-			}
-		}
 	}
 
 	telemetry.Event("operator.deploy", apiConfig.TelemetryEvent())
@@ -273,60 +214,15 @@ func patchAPI(apiConfig *userconfig.API, force bool) (*spec.API, string, error) 
 		return nil, "", ErrorCannotChangeKindOfDeployedAPI(apiConfig.Name, apiConfig.Kind, deployedResource.Kind)
 	}
 
-	var projectFiles ProjectFiles
-
 	prevAPISpec, err := operator.DownloadAPISpec(deployedResource.Name, deployedResource.ID())
 	if err != nil {
 		return nil, "", err
 	}
 
-	if deployedResource.Kind != userconfig.TrafficSplitterKind {
-		bytes, err := config.AWS.ReadBytesFromS3(config.ClusterConfig.Bucket, prevAPISpec.ProjectKey)
-		if err != nil {
-			return nil, "", err
-		}
-
-		projectFileMap, err := archive.UnzipMemToMem(bytes)
-		if err != nil {
-			return nil, "", err
-		}
-
-		projectFiles = ProjectFiles{
-			ProjectByteMap: projectFileMap,
-		}
-	}
-
-	err = ValidateClusterAPIs([]userconfig.API{*apiConfig}, projectFiles)
+	err = ValidateClusterAPIs([]userconfig.API{*apiConfig})
 	if err != nil {
 		err = errors.Append(err, fmt.Sprintf("\n\napi configuration schema can be found at https://docs.cortex.dev/v/%s/", consts.CortexVersionMinor))
 		return nil, "", err
-	}
-
-	if deployedResource.Kind == userconfig.RealtimeAPIKind && !prevAPISpec.Handler.IsGRPC() && apiConfig.Handler.IsGRPC() {
-		realtimeAPIName := deployedResource.Name
-
-		virtualServices, err := config.K8s.ListVirtualServicesByLabel("apiKind", userconfig.TrafficSplitterKind.String())
-		if err != nil {
-			return nil, "", err
-		}
-
-		trafficSplitterList, err := trafficsplitter.GetAllAPIs(virtualServices)
-		if err != nil {
-			return nil, "", err
-		}
-
-		dependentTrafficSplitters := []string{}
-		for _, trafficSplitter := range trafficSplitterList {
-			for _, api := range trafficSplitter.Spec.APIs {
-				if realtimeAPIName == api.Name {
-					dependentTrafficSplitters = append(dependentTrafficSplitters, api.Name)
-				}
-			}
-		}
-
-		if len(dependentTrafficSplitters) > 0 {
-			return nil, "", ErrorCannotChangeProtocolWhenUsedByTrafficSplitter(realtimeAPIName, dependentTrafficSplitters)
-		}
 	}
 
 	switch deployedResource.Kind {
@@ -601,21 +497,6 @@ func GetAPI(apiName string) ([]schema.APIResponse, error) {
 		if err != nil {
 			return nil, err
 		}
-	}
-
-	// best effort
-	if config.K8s != nil && apiResponse[0].Spec.Kind == userconfig.RealtimeAPIKind && !apiResponse[0].Spec.Handler.IsGRPC() && (apiResponse[0].Spec.Handler.MultiModelReloading != nil || apiResponse[0].Spec.Handler.Models != nil) {
-		internalAPIEndpoint := config.K8s.InternalServiceEndpoint("api-"+apiResponse[0].Spec.Name, _defaultAPIPortInt32)
-
-		infoAPIEndpoint := urls.Join(internalAPIEndpoint, "info")
-		tfModelSummary, pythonModelSummary, err := realtimeapi.GetModelsMetadata(apiResponse[0].Status, apiResponse[0].Spec.Handler, infoAPIEndpoint)
-		if err != nil {
-			operatorLogger.Warn(errors.Wrap(err, fmt.Sprintf("api %s", apiResponse[0].Spec.Name)))
-			return apiResponse, nil
-		}
-
-		apiResponse[0].RealtimeModelMetadata.TFModelSummary = tfModelSummary
-		apiResponse[0].RealtimeModelMetadata.PythonModelSummary = pythonModelSummary
 	}
 
 	return apiResponse, nil
