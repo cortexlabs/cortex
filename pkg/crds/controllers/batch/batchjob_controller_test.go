@@ -49,6 +49,7 @@ func uploadTestAPISpec(apiName string, apiID string) error {
 						Name:    "api",
 						Image:   "quay.io/cortexlabs/batch-container-test:master",
 						Command: []string{"/bin/run"},
+						Compute: &userconfig.Compute{},
 					},
 				},
 			},
