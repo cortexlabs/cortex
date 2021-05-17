@@ -40,15 +40,15 @@ func main() {
 		port              int
 		metricsPort       int
 		userContainerPort int
-		targetConcurrency int
 		maxConcurrency    int
+		maxQueueLength    int
 	)
 
 	flag.IntVar(&port, "port", 8000, "port where the proxy will be served")
 	flag.IntVar(&metricsPort, "metrics-port", 8001, "port where the proxy will be served")
 	flag.IntVar(&userContainerPort, "user-port", 8080, "port where the proxy will redirect to the traffic to")
-	flag.IntVar(&targetConcurrency, "target-concurrency", 0, "target concurrency for user container")
-	flag.IntVar(&maxConcurrency, "max-concurrency", 0, "max concurrency for user container")
+	flag.IntVar(&maxConcurrency, "max-concurrency", 0, "max concurrency allowed for user container")
+	flag.IntVar(&maxQueueLength, "max-queue-length", 0, "max request queue length for user container")
 	flag.Parse()
 
 	log := logging.GetLogger()
@@ -57,21 +57,21 @@ func main() {
 	}()
 
 	switch {
-	case targetConcurrency == 0:
-		log.Fatal("--target-concurrency is required")
 	case maxConcurrency == 0:
-		maxConcurrency = targetConcurrency * 10
+		log.Fatal("--max-concurrency flag is required")
+	case maxQueueLength == 0:
+		maxQueueLength = maxConcurrency * 10
 	}
 
 	target := "http://127.0.0.1:" + strconv.Itoa(port)
-	httpProxy := proxy.NewReverseProxy(target, maxConcurrency, maxConcurrency)
+	httpProxy := proxy.NewReverseProxy(target, maxQueueLength, maxQueueLength)
 
 	requestCounterStats := &proxy.RequestStats{}
 	breaker := proxy.NewBreaker(
 		proxy.BreakerParams{
-			QueueDepth:      maxConcurrency,
-			MaxConcurrency:  targetConcurrency,
-			InitialCapacity: targetConcurrency,
+			QueueDepth:      maxQueueLength,
+			MaxConcurrency:  maxConcurrency,
+			InitialCapacity: maxConcurrency,
 		},
 	)
 
