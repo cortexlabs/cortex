@@ -117,8 +117,8 @@ func GetMetrics(api *spec.API) (*metrics.Metrics, error) {
 
 func getRequestCountMetric(promAPIv1 promv1.API, apiSpec spec.API) (float64, error) {
 	query := fmt.Sprintf(
-		"sum(cortex_status_code{api_name=\"%s\", api_id=\"%s\"} >= 0)",
-		apiSpec.Name, apiSpec.ID,
+		"istio_requests_total{destination_service_name=~\"api-%s.+\"} > 0",
+		apiSpec.Name,
 	)
 
 	values, err := queryPrometheusVec(promAPIv1, query)
@@ -157,8 +157,8 @@ func getAvgLatencyMetric(promAPIv1 promv1.API, apiSpec spec.API) (*float64, erro
 
 func getStatusCode2XXMetric(promAPIv1 promv1.API, apiSpec spec.API) (float64, error) {
 	query := fmt.Sprintf(
-		"sum(cortex_status_code{api_name=\"%s\", api_id=\"%s\", response_code=\"2XX\"} >= 0)",
-		apiSpec.Name, apiSpec.ID,
+		"istio_requests_total{destination_service_name=~\"api-%s.+\", response_code=~\"2.*\"} > 0",
+		apiSpec.Name,
 	)
 
 	values, err := queryPrometheusVec(promAPIv1, query)
@@ -176,8 +176,8 @@ func getStatusCode2XXMetric(promAPIv1 promv1.API, apiSpec spec.API) (float64, er
 
 func getStatusCode4XXMetric(promAPIv1 promv1.API, apiSpec spec.API) (float64, error) {
 	query := fmt.Sprintf(
-		"sum(cortex_status_code{api_name=\"%s\", api_id=\"%s\", response_code=\"4XX\"} >= 0)",
-		apiSpec.Name, apiSpec.ID,
+		"istio_requests_total{destination_service_name=~\"api-%s.+\", response_code=~\"4.*\"} > 0",
+		apiSpec.Name,
 	)
 
 	values, err := queryPrometheusVec(promAPIv1, query)
@@ -195,8 +195,8 @@ func getStatusCode4XXMetric(promAPIv1 promv1.API, apiSpec spec.API) (float64, er
 
 func getStatusCode5XXMetric(promAPIv1 promv1.API, apiSpec spec.API) (float64, error) {
 	query := fmt.Sprintf(
-		"sum(cortex_status_code{api_name=\"%s\", api_id=\"%s\", response_code=\"5XX\"} >= 0)",
-		apiSpec.Name, apiSpec.ID,
+		"istio_requests_total{destination_service_name=~\"api-%s.+\", response_code=~\"5.*\"} > 0",
+		apiSpec.Name,
 	)
 
 	values, err := queryPrometheusVec(promAPIv1, query)
