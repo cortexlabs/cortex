@@ -144,15 +144,15 @@ func (p *Probe) httpProbe() error {
 			return err
 		}
 
-		res, err := httpClient.Do(req)
-		if err != nil {
-			return err
-		}
-
 		req.Header.Add(proxy.UserAgentKey, proxy.KubeProbeUserAgentPrefix)
 
 		for _, header := range p.HTTPGet.HTTPHeaders {
 			req.Header.Add(header.Name, header.Value)
+		}
+
+		res, err := httpClient.Do(req)
+		if err != nil {
+			return err
 		}
 
 		defer func() {
