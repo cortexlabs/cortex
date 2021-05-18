@@ -24,9 +24,9 @@ var (
 	CortexVersion      = "master" // CORTEX_VERSION
 	CortexVersionMinor = "master" // CORTEX_VERSION_MINOR
 
-	DefaultMaxReplicaQueueLength    = int64(1024)
-	DefaultMaxReplicaConcurrency    = int64(1024)
-	DefaultTargetReplicaConcurrency = float64(8)
+	DefaultMaxQueueLength = int64(1024)
+	DefaultMaxConcurrency = int64(16)
+	DefaultTargetInFlight = float64(16)
 
 	DefaultUserPodPortStr   = "8080"
 	DefaultUserPodPortInt32 = int32(8080)
@@ -44,6 +44,7 @@ var (
 	AsyncWorkloadsExpirationDays = int64(7)
 
 	ReservedContainerNames = []string{
+		"proxy",
 		"neuron-rtd",
 	}
 )

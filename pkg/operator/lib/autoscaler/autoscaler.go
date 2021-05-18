@@ -133,7 +133,7 @@ func AutoscaleFn(initialDeployment *kapps.Deployment, apiSpec *spec.API, getInFl
 			return nil
 		}
 
-		rawRecommendation := *avgInFlight / autoscalingSpec.TargetReplicaConcurrency
+		rawRecommendation := *avgInFlight / autoscalingSpec.TargetInFlight
 		recommendation := int32(math.Ceil(rawRecommendation))
 
 		if rawRecommendation < float64(currentReplicas) && rawRecommendation > float64(currentReplicas)*(1-autoscalingSpec.DownscaleTolerance) {
@@ -199,7 +199,7 @@ func AutoscaleFn(initialDeployment *kapps.Deployment, apiSpec *spec.API, getInFl
 		apiLogger.Debugw(fmt.Sprintf("%s autoscaler tick", apiName),
 			"autoscaling", map[string]interface{}{
 				"avg_in_flight":                  *avgInFlight,
-				"target_replica_concurrency":     autoscalingSpec.TargetReplicaConcurrency,
+				"target_in_flight":               autoscalingSpec.TargetInFlight,
 				"raw_recommendation":             rawRecommendation,
 				"current_replicas":               currentReplicas,
 				"downscale_tolerance":            autoscalingSpec.DownscaleTolerance,

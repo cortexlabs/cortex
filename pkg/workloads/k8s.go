@@ -388,9 +388,9 @@ func RealtimeProxyContainer(api spec.API) kcore.Container {
 			"-user-port",
 			s.Int32(*api.Pod.Port),
 			"-max-concurrency",
-			"1",
+			s.Int32(int32(api.Autoscaling.MaxConcurrency)),
 			"-max-queue-length",
-			"1",
+			s.Int32(int32(api.Autoscaling.MaxQueueLength)),
 		},
 		Ports: []kcore.ContainerPort{
 			{Name: "metrics", ContainerPort: consts.MetricsPortInt32},

@@ -17,4 +17,4 @@
     cpu: 3
     mem: 4G
   autoscaling:
-    max_replica_concurrency: 16384
+    max_concurrency: 16384

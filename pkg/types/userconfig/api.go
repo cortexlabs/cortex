@@ -81,9 +81,9 @@ type Autoscaling struct {
 	MinReplicas                  int32         `json:"min_replicas" yaml:"min_replicas"`
 	MaxReplicas                  int32         `json:"max_replicas" yaml:"max_replicas"`
 	InitReplicas                 int32         `json:"init_replicas" yaml:"init_replicas"`
-	MaxReplicaQueueLength        int64         `json:"max_replica_queue_length" yaml:"max_replica_queue_length"`
-	MaxReplicaConcurrency        int64         `json:"max_replica_concurrency" yaml:"max_replica_concurrency"`
-	TargetReplicaConcurrency     float64       `json:"target_replica_concurrency" yaml:"target_replica_concurrency"`
+	MaxQueueLength               int64         `json:"max_queue_length" yaml:"max_queue_length"`
+	MaxConcurrency               int64         `json:"max_concurrency" yaml:"max_concurrency"`
+	TargetInFlight               float64       `json:"target_in_flight" yaml:"target_in_flight"`
 	Window                       time.Duration `json:"window" yaml:"window"`
 	DownscaleStabilizationPeriod time.Duration `json:"downscale_stabilization_period" yaml:"downscale_stabilization_period"`
 	UpscaleStabilizationPeriod   time.Duration `json:"upscale_stabilization_period" yaml:"upscale_stabilization_period"`
@@ -131,9 +131,9 @@ func (api *API) ToK8sAnnotations() map[string]string {
 	if api.Autoscaling != nil {
 		annotations[MinReplicasAnnotationKey] = s.Int32(api.Autoscaling.MinReplicas)
 		annotations[MaxReplicasAnnotationKey] = s.Int32(api.Autoscaling.MaxReplicas)
-		annotations[MaxReplicaQueueLengthAnnotationKey] = s.Int64(api.Autoscaling.MaxReplicaQueueLength)
-		annotations[TargetReplicaConcurrencyAnnotationKey] = s.Float64(api.Autoscaling.TargetReplicaConcurrency)
-		annotations[MaxReplicaConcurrencyAnnotationKey] = s.Int64(api.Autoscaling.MaxReplicaConcurrency)
+		annotations[MaxQueueLengthAnnotationKey] = s.Int64(api.Autoscaling.MaxQueueLength)
+		annotations[TargetInFlightAnnotationKey] = s.Float64(api.Autoscaling.TargetInFlight)
+		annotations[MaxConcurrencyAnnotationKey] = s.Int64(api.Autoscaling.MaxConcurrency)
 		annotations[WindowAnnotationKey] = api.Autoscaling.Window.String()
 		annotations[DownscaleStabilizationPeriodAnnotationKey] = api.Autoscaling.DownscaleStabilizationPeriod.String()
 		annotations[UpscaleStabilizationPeriodAnnotationKey] = api.Autoscaling.UpscaleStabilizationPeriod.String()
@@ -160,23 +160,23 @@ func AutoscalingFromAnnotations(k8sObj kmeta.Object) (*Autoscaling, error) {
 	}
 	a.MaxReplicas = maxReplicas
 
-	maxReplicaQueueLength, err := k8s.ParseInt64Annotation(k8sObj, MaxReplicaQueueLengthAnnotationKey)
+	maxQueueLength, err := k8s.ParseInt64Annotation(k8sObj, MaxQueueLengthAnnotationKey)
 	if err != nil {
 		return nil, err
 	}
-	a.MaxReplicaQueueLength = maxReplicaQueueLength
+	a.MaxQueueLength = maxQueueLength
 
-	maxReplicaConcurrency, err := k8s.ParseInt64Annotation(k8sObj, MaxReplicaConcurrencyAnnotationKey)
+	maxConcurrency, err := k8s.ParseInt64Annotation(k8sObj, MaxConcurrencyAnnotationKey)
 	if err != nil {
 		return nil, err
 	}
-	a.MaxReplicaConcurrency = maxReplicaConcurrency
+	a.MaxConcurrency = maxConcurrency
 
-	targetReplicaConcurrency, err := k8s.ParseFloat64Annotation(k8sObj, TargetReplicaConcurrencyAnnotationKey)
+	targetInFlight, err := k8s.ParseFloat64Annotation(k8sObj, TargetInFlightAnnotationKey)
 	if err != nil {
 		return nil, err
 	}
-	a.TargetReplicaConcurrency = targetReplicaConcurrency
+	a.TargetInFlight = targetInFlight
 
 	window, err := k8s.ParseDurationAnnotation(k8sObj, WindowAnnotationKey)
 	if err != nil {
@@ -381,9 +381,9 @@ func (autoscaling *Autoscaling) UserStr() string {
 	sb.WriteString(fmt.Sprintf("%s: %s\n", MinReplicasKey, s.Int32(autoscaling.MinReplicas)))
 	sb.WriteString(fmt.Sprintf("%s: %s\n", MaxReplicasKey, s.Int32(autoscaling.MaxReplicas)))
 	sb.WriteString(fmt.Sprintf("%s: %s\n", InitReplicasKey, s.Int32(autoscaling.InitReplicas)))
-	sb.WriteString(fmt.Sprintf("%s: %s\n", MaxReplicaQueueLengthKey, s.Int64(autoscaling.MaxReplicaQueueLength)))
-	sb.WriteString(fmt.Sprintf("%s: %s\n", MaxReplicaConcurrencyKey, s.Int64(autoscaling.MaxReplicaConcurrency)))
-	sb.WriteString(fmt.Sprintf("%s: %s\n", TargetReplicaConcurrencyKey, s.Float64(autoscaling.TargetReplicaConcurrency)))
+	sb.WriteString(fmt.Sprintf("%s: %s\n", MaxQueueLengthKey, s.Int64(autoscaling.MaxQueueLength)))
+	sb.WriteString(fmt.Sprintf("%s: %s\n", MaxConcurrencyKey, s.Int64(autoscaling.MaxConcurrency)))
+	sb.WriteString(fmt.Sprintf("%s: %s\n", TargetInFlightKey, s.Float64(autoscaling.TargetInFlight)))
 	sb.WriteString(fmt.Sprintf("%s: %s\n", WindowKey, autoscaling.Window.String()))
 	sb.WriteString(fmt.Sprintf("%s: %s\n", DownscaleStabilizationPeriodKey, autoscaling.DownscaleStabilizationPeriod.String()))
 	sb.WriteString(fmt.Sprintf("%s: %s\n", UpscaleStabilizationPeriodKey, autoscaling.UpscaleStabilizationPeriod.String()))
@@ -508,9 +508,9 @@ func (api *API) TelemetryEvent() map[string]interface{} {
 		event["autoscaling.min_replicas"] = api.Autoscaling.MinReplicas
 		event["autoscaling.max_replicas"] = api.Autoscaling.MaxReplicas
 		event["autoscaling.init_replicas"] = api.Autoscaling.InitReplicas
-		event["autoscaling.max_replica_queue_length"] = api.Autoscaling.MaxReplicaQueueLength
-		event["autoscaling.max_replica_concurrency"] = api.Autoscaling.MaxReplicaConcurrency
-		event["autoscaling.target_replica_concurrency"] = api.Autoscaling.TargetReplicaConcurrency
+		event["autoscaling.max_queue_length"] = api.Autoscaling.MaxQueueLength
+		event["autoscaling.max_concurrency"] = api.Autoscaling.MaxConcurrency
+		event["autoscaling.target_in_flight"] = api.Autoscaling.TargetInFlight
 		event["autoscaling.window"] = api.Autoscaling.Window.Seconds()
 		event["autoscaling.downscale_stabilization_period"] = api.Autoscaling.DownscaleStabilizationPeriod.Seconds()
 		event["autoscaling.upscale_stabilization_period"] = api.Autoscaling.UpscaleStabilizationPeriod.Seconds()

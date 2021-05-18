@@ -34,7 +34,7 @@ spec:
     matchExpressions:
       - key: "monitoring.cortex.dev"
         operator: "In"
-        values: [ "istio", "request-monitor", "statsd-exporter", "dcgm-exporter", "kube-state-metrics" ]
+        values: [ "istio", "proxy-metrics-monitor", "statsd-exporter", "dcgm-exporter", "kube-state-metrics" ]
   serviceMonitorSelector:
     matchExpressions:
       - key: "monitoring.cortex.dev"
@@ -168,9 +168,9 @@ spec:
 apiVersion: monitoring.coreos.com/v1
 kind: PodMonitor
 metadata:
-  name: request-monitor-stats
+  name: proxy-metrics-monitor-stats
   labels:
-    monitoring.cortex.dev: "request-monitor"
+    monitoring.cortex.dev: "proxy-metrics-monitor"
 spec:
   selector:
     matchLabels:
@@ -179,7 +179,7 @@ spec:
       - { key: prometheus-ignore, operator: DoesNotExist }
   namespaceSelector:
     any: true
-  jobLabel: request-monitor-stats
+  jobLabel: proxy-metrics-monitor-stats
   podMetricsEndpoints:
     - path: /metrics
       scheme: http
@@ -188,7 +188,7 @@ spec:
       relabelings:
         - action: keep
           sourceLabels: [ __meta_kubernetes_pod_container_name ]
-          regex: "request-monitor"
+          regex: "proxy"
         - sourceLabels: [ __meta_kubernetes_pod_label_apiName ]
           action: replace
           targetLabel: api_name

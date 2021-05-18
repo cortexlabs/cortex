@@ -331,9 +331,9 @@ func autoscalingValidation() *cr.StructFieldValidation {
 					},
 				},
 				{
-					StructField: "MaxReplicaQueueLength",
+					StructField: "MaxQueueLength",
 					Int64Validation: &cr.Int64Validation{
-						Default:     consts.DefaultMaxReplicaQueueLength,
+						Default:     consts.DefaultMaxQueueLength,
 						GreaterThan: pointer.Int64(0),
 						// our configured nginx can theoretically accept up to 32768 connections, but during testing,
 						// it has been observed that the number is just slightly lower, so it has been offset by 2678
@@ -341,9 +341,9 @@ func autoscalingValidation() *cr.StructFieldValidation {
 					},
 				},
 				{
-					StructField: "MaxReplicaConcurrency",
+					StructField: "MaxConcurrency",
 					Int64Validation: &cr.Int64Validation{
-						Default:     consts.DefaultMaxReplicaConcurrency,
+						Default:     consts.DefaultMaxConcurrency,
 						GreaterThan: pointer.Int64(0),
 						// our configured nginx can theoretically accept up to 32768 connections, but during testing,
 						// it has been observed that the number is just slightly lower, so it has been offset by 2678
@@ -351,9 +351,9 @@ func autoscalingValidation() *cr.StructFieldValidation {
 					},
 				},
 				{
-					StructField: "TargetReplicaConcurrency",
+					StructField: "TargetInFlight",
 					Float64Validation: &cr.Float64Validation{
-						Default:     consts.DefaultTargetReplicaConcurrency,
+						Default:     consts.DefaultTargetInFlight,
 						GreaterThan: pointer.Float64(0),
 					},
 				},
@@ -624,8 +624,8 @@ func validateContainers(
 func validateAutoscaling(api *userconfig.API) error {
 	autoscaling := api.Autoscaling
 
-	if autoscaling.TargetReplicaConcurrency > float64(autoscaling.MaxReplicaConcurrency) {
-		return ErrorConfigGreaterThanOtherConfig(userconfig.TargetReplicaConcurrencyKey, autoscaling.TargetReplicaConcurrency, userconfig.MaxReplicaConcurrencyKey, autoscaling.MaxReplicaConcurrency)
+	if autoscaling.TargetInFlight > float64(autoscaling.MaxConcurrency)+float64(autoscaling.MaxQueueLength) {
+		return ErrorTargetInFlightLimitReached(autoscaling.TargetInFlight, autoscaling.MaxConcurrency, autoscaling.MaxQueueLength)
 	}
 
 	if autoscaling.MinReplicas > autoscaling.MaxReplicas {

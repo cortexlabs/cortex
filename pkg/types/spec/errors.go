@@ -45,6 +45,7 @@ const (
 	ErrMinReplicasGreaterThanMax  = "spec.min_replicas_greater_than_max"
 	ErrInitReplicasGreaterThanMax = "spec.init_replicas_greater_than_max"
 	ErrInitReplicasLessThanMin    = "spec.init_replicas_less_than_min"
+	ErrTargetInFlightLimitReached = "spec.target_in_flight_limit_reached"
 
 	ErrInvalidSurgeOrUnavailable   = "spec.invalid_surge_or_unavailable"
 	ErrSurgeAndUnavailableBothZero = "spec.surge_and_unavailable_both_zero"
@@ -186,6 +187,13 @@ func ErrorInitReplicasLessThanMin(init int32, min int32) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrInitReplicasLessThanMin,
 		Message: fmt.Sprintf("%s cannot be less than %s (%d < %d)", userconfig.InitReplicasKey, userconfig.MinReplicasKey, init, min),
+	})
+}
+
+func ErrorTargetInFlightLimitReached(targetInFlight float64, maxConcurrency, maxQueueLength int64) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrTargetInFlightLimitReached,
+		Message: fmt.Sprintf("%s cannot be greater than %s + %s (%f > %d + %d)", userconfig.TargetInFlightKey, userconfig.MaxConcurrencyKey, userconfig.MaxQueueLengthKey, targetInFlight, maxConcurrency, maxQueueLength),
 	})
 }
 
