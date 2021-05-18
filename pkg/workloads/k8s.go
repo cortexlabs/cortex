@@ -37,9 +37,12 @@ const (
 )
 
 const (
-	_clientConfigDir    = "/mnt/client"
-	_emptyDirMountPath  = "/mnt"
+	_cortexDirVolumeName = "cortex"
+	_cortexDirMountPath  = "/cortex"
+	_clientConfigDir     = "/cortex/client"
+
 	_emptyDirVolumeName = "mnt"
+	_emptyDirMountPath  = "/mnt"
 
 	_proxyContainerName = "proxy"
 
@@ -50,6 +53,12 @@ const (
 
 	_kubexitGraveyardName      = "graveyard"
 	_kubexitGraveyardMountPath = "/graveyard"
+
+	_shmDirVolumeName = "dshm"
+	_shmDirMountPath  = "/dev/shm"
+
+	_clientConfigDirVolume = "client-config"
+	_clientConfigConfigMap = "client-config"
 )
 
 var (
@@ -111,23 +120,25 @@ func AsyncGatewayContainer(api spec.API, queueURL string, volumeMounts []kcore.V
 
 func UserPodContainers(api spec.API) ([]kcore.Container, []kcore.Volume) {
 	requiresKubexit := api.Kind == userconfig.BatchAPIKind || api.Kind == userconfig.TaskAPIKind
-	volumes := defaultVolumes(requiresKubexit)
 
-	containerMounts := []kcore.VolumeMount{}
+	volumes := []kcore.Volume{
+		MntVolume(),
+		CortexVolume(),
+		ClientConfigVolume(),
+	}
+	containerMounts := []kcore.VolumeMount{
+		MntMount(),
+		CortexMount(),
+		ClientConfigMount(),
+	}
+
+	if requiresKubexit {
+		volumes = append(volumes, KubexitVolume())
+		containerMounts = append(containerMounts, KubexitMount())
+	}
 	if api.Pod.ShmSize != nil {
-		volumes = append(volumes, kcore.Volume{
-			Name: "dshm",
-			VolumeSource: kcore.VolumeSource{
-				EmptyDir: &kcore.EmptyDirVolumeSource{
-					Medium:    kcore.StorageMediumMemory,
-					SizeLimit: k8s.QuantityPtr(api.Pod.ShmSize.Quantity),
-				},
-			},
-		})
-		containerMounts = append(containerMounts, kcore.VolumeMount{
-			Name:      "dshm",
-			MountPath: "/dev/shm",
-		})
+		volumes = append(volumes, ShmVolume(api.Pod.ShmSize.Quantity))
+		containerMounts = append(containerMounts, ShmMount())
 	}
 
 	var containers []kcore.Container
@@ -150,7 +161,8 @@ func UserPodContainers(api spec.API) ([]kcore.Container, []kcore.Volume) {
 			containerResourceLimitsList["nvidia.com/gpu"] = *kresource.NewQuantity(container.Compute.GPU, kresource.DecimalSI)
 		}
 
-		containerVolumeMounts := append(defaultVolumeMounts(requiresKubexit), containerMounts...)
+		containerVolumeMounts := containerMounts
+
 		if container.Compute.Inf > 0 {
 			volumes = append(volumes, kcore.Volume{
 				Name: "neuron-sock",
@@ -390,6 +402,7 @@ func RealtimeProxyContainer(api spec.API) kcore.Container {
 				Value: strings.ToUpper(userconfig.InfoLogLevel.String()),
 			},
 		},
+		EnvFrom: baseClusterEnvVars(),
 	}
 }
 

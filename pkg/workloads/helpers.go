@@ -23,6 +23,7 @@ import (
 
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	kcore "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 )
 
 func K8sName(apiName string) string {
@@ -129,39 +130,63 @@ func getKubexitEnvVars(containerName string, deathDeps []string, birthDeps []str
 	return envVars
 }
 
-func defaultVolumes(requiresKubexit bool) []kcore.Volume {
-	volumes := []kcore.Volume{
-		k8s.EmptyDirVolume(_emptyDirVolumeName),
-		{
-			Name: "client-config",
-			VolumeSource: kcore.VolumeSource{
-				ConfigMap: &kcore.ConfigMapVolumeSource{
-					LocalObjectReference: kcore.LocalObjectReference{
-						Name: "client-config",
-					},
+func MntVolume() kcore.Volume {
+	return k8s.EmptyDirVolume(_emptyDirVolumeName)
+}
+
+func CortexVolume() kcore.Volume {
+	return k8s.EmptyDirVolume(_cortexDirVolumeName)
+}
+
+func ClientConfigVolume() kcore.Volume {
+	return kcore.Volume{
+		Name: _clientConfigDirVolume,
+		VolumeSource: kcore.VolumeSource{
+			ConfigMap: &kcore.ConfigMapVolumeSource{
+				LocalObjectReference: kcore.LocalObjectReference{
+					Name: _clientConfigConfigMap,
 				},
 			},
 		},
 	}
-
-	if requiresKubexit {
-		return append(volumes, k8s.EmptyDirVolume(_kubexitGraveyardName))
-	}
-	return volumes
 }
 
-func defaultVolumeMounts(requiresKubexit bool) []kcore.VolumeMount {
-	volumeMounts := []kcore.VolumeMount{
-		k8s.EmptyDirVolumeMount(_emptyDirVolumeName, _emptyDirMountPath),
-		{
-			Name:      "client-config",
-			MountPath: path.Join(_clientConfigDir, "cli.yaml"),
-			SubPath:   "cli.yaml",
+func ShmVolume(q resource.Quantity) kcore.Volume {
+	return kcore.Volume{
+		Name: _shmDirVolumeName,
+		VolumeSource: kcore.VolumeSource{
+			EmptyDir: &kcore.EmptyDirVolumeSource{
+				Medium:    kcore.StorageMediumMemory,
+				SizeLimit: k8s.QuantityPtr(q),
+			},
 		},
 	}
+}
 
-	if requiresKubexit {
-		return append(volumeMounts, k8s.EmptyDirVolumeMount(_kubexitGraveyardName, _kubexitGraveyardMountPath))
+func KubexitVolume() kcore.Volume {
+	return k8s.EmptyDirVolume(_kubexitGraveyardName)
+}
+
+func MntMount() kcore.VolumeMount {
+	return k8s.EmptyDirVolumeMount(_emptyDirVolumeName, _emptyDirMountPath)
+}
+
+func CortexMount() kcore.VolumeMount {
+	return k8s.EmptyDirVolumeMount(_cortexDirVolumeName, _cortexDirMountPath)
+}
+
+func ClientConfigMount() kcore.VolumeMount {
+	return kcore.VolumeMount{
+		Name:      _clientConfigDirVolume,
+		MountPath: path.Join(_clientConfigDir, "cli.yaml"),
+		SubPath:   "cli.yaml",
 	}
-	return volumeMounts
+}
+
+func ShmMount() kcore.VolumeMount {
+	return k8s.EmptyDirVolumeMount(_shmDirVolumeName, _shmDirMountPath)
+}
+
+func KubexitMount() kcore.VolumeMount {
+	return k8s.EmptyDirVolumeMount(_kubexitGraveyardName, _kubexitGraveyardMountPath)
 }
