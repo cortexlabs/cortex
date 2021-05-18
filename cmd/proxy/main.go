@@ -63,7 +63,7 @@ func main() {
 	case maxConcurrency == 0:
 		log.Fatal("--max-concurrency flag is required")
 	case maxQueueLength == 0:
-		maxQueueLength = maxConcurrency * 10
+		log.Fatal("--max-queue-length flag is required")
 	}
 
 	target := "http://127.0.0.1:" + strconv.Itoa(userContainerPort)
