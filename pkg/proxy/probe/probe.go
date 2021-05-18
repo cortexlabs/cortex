@@ -23,6 +23,7 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"sync"
 	"time"
 
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
@@ -39,11 +40,13 @@ const (
 	_defaultTimeoutSeconds      = 3
 	_defaultPeriodSeconds       = 1
 	_defaultSuccessThreshold    = 1
-	_defaultFailureThreshold    = 5
+	_defaultFailureThreshold    = 3
 )
 
 type Probe struct {
 	*kcore.Probe
+	mu     sync.RWMutex
+	hasRun bool
 	count  int32
 	logger *zap.SugaredLogger
 }
@@ -106,6 +109,13 @@ func (p *Probe) ProbeContainer() bool {
 func (p *Probe) doProbe(probe func(time.Duration) error) error {
 	timeout := time.Duration(p.TimeoutSeconds) * time.Second
 	retryInterval := time.Duration(p.PeriodSeconds) * time.Second
+
+	if p.hasRun {
+		p.mu.Lock()
+		defer p.mu.Unlock()
+		time.Sleep(time.Duration(p.InitialDelaySeconds) * time.Second)
+		p.hasRun = true
+	}
 
 	var failCount int
 	pollErr := wait.PollImmediate(retryInterval, timeout, func() (bool, error) {
