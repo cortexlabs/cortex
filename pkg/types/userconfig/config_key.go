@@ -34,6 +34,7 @@ const (
 	PodKey        = "pod"
 	NodeGroupsKey = "node_groups"
 	ShmSizeKey    = "shm_size"
+	PortKey       = "port"
 	ContainersKey = "containers"
 
 	// Containers

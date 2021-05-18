@@ -148,6 +148,7 @@ func podValidation() *cr.StructFieldValidation {
 				{
 					StructField: "ShmSize",
 					StringPtrValidation: &cr.StringPtrValidation{
+						Required:          false,
 						Default:           nil,
 						AllowExplicitNull: true,
 					},
@@ -162,6 +163,18 @@ func podValidation() *cr.StructFieldValidation {
 						AllowEmpty:        false,
 						ElementStringValidation: &cr.StringValidation{
 							AlphaNumericDashUnderscore: true,
+						},
+					},
+				},
+				{
+					StructField: "Port",
+					Int32PtrValidation: &cr.Int32PtrValidation{
+						Required:          false,
+						Default:           nil,
+						AllowExplicitNull: true,
+						DisallowedValues: []int32{
+							consts.ProxyListeningPortInt32,
+							consts.MetricsPortInt32,
 						},
 					},
 				},
@@ -555,6 +568,13 @@ func validatePod(
 		}
 	}
 
+	if api.Pod.Port != nil && api.Kind == userconfig.TaskAPIKind {
+		return ErrorFieldIsNotSupportedForKind(userconfig.PortKey, api.Kind)
+	}
+	if api.Pod.Port == nil && api.Kind != userconfig.TaskAPIKind {
+		api.Pod.Port = pointer.Int32(consts.DefaultUserPodPortInt32)
+	}
+
 	if err := validateCompute(totalCompute); err != nil {
 		return errors.Wrap(err, userconfig.ComputeKey)
 	}
@@ -581,7 +601,7 @@ func validateContainers(
 		containerNames = append(containerNames, container.Name)
 
 		if container.Command == nil && (kind == userconfig.BatchAPIKind || kind == userconfig.TaskAPIKind) {
-			return errors.Wrap(ErrorFieldCannotBeEmptyForKind(userconfig.CommandKey, kind), strconv.FormatInt(int64(i), 10), userconfig.CommandKey)
+			return errors.Wrap(ErrorFieldMustBeSpecifiedForKind(userconfig.CommandKey, kind), strconv.FormatInt(int64(i), 10), userconfig.CommandKey)
 		}
 
 		if err := validateDockerImagePath(container.Image, awsClient, k8sClient); err != nil {
@@ -591,6 +611,9 @@ func validateContainers(
 		for key := range container.Env {
 			if strings.HasPrefix(key, "CORTEX_") || strings.HasPrefix(key, "KUBEXIT_") {
 				return errors.Wrap(ErrorCortexPrefixedEnvVarNotAllowed("CORTEX_", "KUBEXIT_"), strconv.FormatInt(int64(i), 10), userconfig.EnvKey, key)
+			}
+			if key == "HOST_IP" {
+				return errors.Wrap(ErrorDisallowedEnvVars(key), strconv.FormatInt(int64(i), 10), userconfig.EnvKey, key)
 			}
 		}
 	}

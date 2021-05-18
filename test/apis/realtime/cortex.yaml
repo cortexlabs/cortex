@@ -2,6 +2,7 @@
   kind: RealtimeAPI
   pod:
     node_groups: [cpu]
+    port: 1234
     containers:
     - name: api
       image: 499593605069.dkr.ecr.us-west-2.amazonaws.com/sample/realtime-caas:latest

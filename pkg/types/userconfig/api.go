@@ -45,6 +45,7 @@ type API struct {
 type Pod struct {
 	NodeGroups []string      `json:"node_groups" yaml:"node_groups"`
 	ShmSize    *k8s.Quantity `json:"shm_size" yaml:"shm_size"`
+	Port       *int32        `json:"port" yaml:"port"`
 	Containers []*Container  `json:"containers" yaml:"containers"`
 }
 
@@ -276,6 +277,9 @@ func (pod *Pod) UserStr() string {
 	} else {
 		sb.WriteString(fmt.Sprintf("%s: %s\n", NodeGroupsKey, s.ObjFlatNoQuotes(pod.NodeGroups)))
 	}
+	if pod.Port != nil {
+		sb.WriteString(fmt.Sprintf("%s: %d\n", PortKey, *pod.Port))
+	}
 
 	sb.WriteString(fmt.Sprintf("%s:\n", ContainersKey))
 	for _, container := range pod.Containers {
@@ -478,8 +482,11 @@ func (api *API) TelemetryEvent() map[string]interface{} {
 		}
 		event["pod.node_groups._is_defined"] = len(api.Pod.NodeGroups) > 0
 		event["pod.node_groups._len"] = len(api.Pod.NodeGroups)
-		event["pod.containers._len"] = len(api.Pod.Containers)
+		if api.Pod.Port != nil {
+			event["pod.port"] = *api.Pod.Port
+		}
 
+		event["pod.containers._len"] = len(api.Pod.Containers)
 		totalCompute := GetTotalComputeFromContainers(api.Pod.Containers)
 		event["pod.containers.compute._is_defined"] = true
 		if totalCompute.CPU != nil {

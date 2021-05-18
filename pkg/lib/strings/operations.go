@@ -228,6 +228,10 @@ func PluralCustom(singular string, plural string, count interface{}) string {
 	return plural
 }
 
+func PluralToBe(count interface{}) string {
+	return PluralCustom("is", "are", count)
+}
+
 // RemoveDuplicates returns a filtered string slice without repeated entries.
 // The ignoreRegex parameter can optionally be used to ignore repeated patterns in each slice entry.
 func RemoveDuplicates(strs []string, ignoreRegex *regexp.Regexp) []string {

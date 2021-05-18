@@ -17,6 +17,7 @@ limitations under the License.
 package realtimeapi
 
 import (
+	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
@@ -30,7 +31,7 @@ var _terminationGracePeriodSeconds int64 = 60 // seconds
 
 func deploymentSpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deployment {
 	containers, volumes := workloads.UserPodContainers(*api)
-	// TODO add the proxy as well
+	containers = append(containers, workloads.RealtimeProxyContainer(*api))
 
 	return k8s.Deployment(&k8s.DeploymentSpec{
 		Name:           workloads.K8sName(api.Name),
@@ -80,8 +81,8 @@ func serviceSpec(api *spec.API) *kcore.Service {
 	return k8s.Service(&k8s.ServiceSpec{
 		Name:        workloads.K8sName(api.Name),
 		PortName:    "http",
-		Port:        workloads.DefaultPortInt32,
-		TargetPort:  workloads.DefaultPortInt32,
+		Port:        consts.ProxyListeningPortInt32,
+		TargetPort:  consts.ProxyListeningPortInt32,
 		Annotations: api.ToK8sAnnotations(),
 		Labels: map[string]string{
 			"apiName":        api.Name,
@@ -102,7 +103,7 @@ func virtualServiceSpec(api *spec.API) *istioclientnetworking.VirtualService {
 		Destinations: []k8s.Destination{{
 			ServiceName: workloads.K8sName(api.Name),
 			Weight:      100,
-			Port:        uint32(workloads.DefaultPortInt32),
+			Port:        uint32(consts.ProxyListeningPortInt32),
 		}},
 		PrefixPath:  api.Networking.Endpoint,
 		Rewrite:     pointer.String("/"),

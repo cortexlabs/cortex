@@ -51,11 +51,12 @@ const (
 
 	ErrShmSizeCannotExceedMem = "spec.shm_size_cannot_exceed_mem"
 
-	ErrFieldCannotBeEmptyForKind      = "spec.field_cannot_be_empty_for_kind"
+	ErrFieldMustBeSpecifiedForKind    = "spec.field_must_be_specified_for_kind"
+	ErrFieldIsNotSupportedForKind     = "spec.field_is_not_supported_for_kind"
 	ErrCortexPrefixedEnvVarNotAllowed = "spec.cortex_prefixed_env_var_not_allowed"
+	ErrDisallowedEnvVars              = "spec.disallowed_env_vars"
 	ErrRegistryInDifferentRegion      = "spec.registry_in_different_region"
 	ErrRegistryAccountIDMismatch      = "spec.registry_account_id_mismatch"
-	ErrKeyIsNotSupportedForKind       = "spec.key_is_not_supported_for_kind"
 	ErrComputeResourceConflict        = "spec.compute_resource_conflict"
 	ErrInvalidNumberOfInfs            = "spec.invalid_number_of_infs"
 	ErrIncorrectTrafficSplitterWeight = "spec.incorrect_traffic_splitter_weight"
@@ -209,10 +210,17 @@ func ErrorShmSizeCannotExceedMem(shmSize k8s.Quantity, mem k8s.Quantity) error {
 	})
 }
 
-func ErrorFieldCannotBeEmptyForKind(field string, kind userconfig.Kind) error {
+func ErrorFieldMustBeSpecifiedForKind(field string, kind userconfig.Kind) error {
 	return errors.WithStack(&errors.Error{
-		Kind:    ErrFieldCannotBeEmptyForKind,
-		Message: fmt.Sprintf("field %s cannot be empty for %s kind", field, kind.String()),
+		Kind:    ErrFieldMustBeSpecifiedForKind,
+		Message: fmt.Sprintf("field %s must be specified for %s kind", field, kind.String()),
+	})
+}
+
+func ErrorFieldIsNotSupportedForKind(field string, kind userconfig.Kind) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrFieldIsNotSupportedForKind,
+		Message: fmt.Sprintf("%s field is not supported for %s kind", field, kind.String()),
 	})
 }
 
@@ -220,6 +228,13 @@ func ErrorCortexPrefixedEnvVarNotAllowed(prefixes ...string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrCortexPrefixedEnvVarNotAllowed,
 		Message: fmt.Sprintf("environment variables starting with %s are reserved", s.StrsOr(prefixes)),
+	})
+}
+
+func ErrorDisallowedEnvVars(disallowedValues ...string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrDisallowedEnvVars,
+		Message: fmt.Sprintf("environment %s %s %s disallowed", s.PluralS("variables", len(disallowedValues)), s.StrsAnd(disallowedValues), s.PluralToBe(len(disallowedValues))),
 	})
 }
 
@@ -234,13 +249,6 @@ func ErrorRegistryAccountIDMismatch(regID, opID string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrRegistryAccountIDMismatch,
 		Message: fmt.Sprintf("registry account ID (%s) doesn't match your AWS account ID (%s), and using an ECR registry in a different AWS account is not supported", regID, opID),
-	})
-}
-
-func ErrorKeyIsNotSupportedForKind(key string, kind userconfig.Kind) error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrKeyIsNotSupportedForKind,
-		Message: fmt.Sprintf("%s key is not supported for %s kind", key, kind.String()),
 	})
 }
 

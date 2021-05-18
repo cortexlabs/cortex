@@ -44,9 +44,9 @@ func main() {
 		maxQueueLength    int
 	)
 
-	flag.IntVar(&port, "port", 8000, "port where the proxy will be served")
-	flag.IntVar(&metricsPort, "metrics-port", 8001, "port where the proxy will be served")
-	flag.IntVar(&userContainerPort, "user-port", 8080, "port where the proxy will redirect to the traffic to")
+	flag.IntVar(&port, "port", 8888, "port where the proxy is served")
+	flag.IntVar(&metricsPort, "metrics-port", 15000, "metrics port for prometheus")
+	flag.IntVar(&userContainerPort, "user-port", 8080, "port where the proxy redirects to the traffic to")
 	flag.IntVar(&maxConcurrency, "max-concurrency", 0, "max concurrency allowed for user container")
 	flag.IntVar(&maxQueueLength, "max-queue-length", 0, "max request queue length for user container")
 	flag.Parse()
@@ -63,7 +63,7 @@ func main() {
 		maxQueueLength = maxConcurrency * 10
 	}
 
-	target := "http://127.0.0.1:" + strconv.Itoa(port)
+	target := "http://127.0.0.1:" + strconv.Itoa(userContainerPort)
 	httpProxy := proxy.NewReverseProxy(target, maxQueueLength, maxQueueLength)
 
 	requestCounterStats := &proxy.RequestStats{}
@@ -101,7 +101,7 @@ func main() {
 
 	servers := map[string]*http.Server{
 		"proxy": {
-			Addr:    ":" + strconv.Itoa(userContainerPort),
+			Addr:    ":" + strconv.Itoa(port),
 			Handler: proxy.Handler(breaker, httpProxy),
 		},
 		"metrics": {

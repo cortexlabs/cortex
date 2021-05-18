@@ -33,8 +33,6 @@ import (
 )
 
 const (
-	DefaultPortInt32   = int32(8888)
-	DefaultPortStr     = "8888"
 	ServiceAccountName = "default"
 )
 
@@ -42,6 +40,8 @@ const (
 	_clientConfigDir    = "/mnt/client"
 	_emptyDirMountPath  = "/mnt"
 	_emptyDirVolumeName = "mnt"
+
+	_proxyContainerName = "proxy"
 
 	_gatewayContainerName = "gateway"
 
@@ -69,13 +69,13 @@ func AsyncGatewayContainer(api spec.API, queueURL string, volumeMounts []kcore.V
 		Image:           config.ClusterConfig.ImageAsyncGateway,
 		ImagePullPolicy: kcore.PullAlways,
 		Args: []string{
-			"-port", s.Int32(DefaultPortInt32),
+			"-port", s.Int32(consts.ProxyListeningPortInt32),
 			"-queue", queueURL,
 			"-cluster-config", consts.DefaultInClusterConfigPath,
 			api.Name,
 		},
 		Ports: []kcore.ContainerPort{
-			{ContainerPort: DefaultPortInt32},
+			{ContainerPort: consts.ProxyListeningPortInt32},
 		},
 		Env: []kcore.EnvVar{
 			{
@@ -178,7 +178,20 @@ func UserPodContainers(api spec.API) ([]kcore.Container, []kcore.Volume) {
 			podHasInf = true
 		}
 
-		var containerEnvVars []kcore.EnvVar
+		containerEnvVars := []kcore.EnvVar{
+			{
+				Name: "HOST_IP",
+				ValueFrom: &kcore.EnvVarSource{
+					FieldRef: &kcore.ObjectFieldSelector{
+						FieldPath: "status.hostIP",
+					},
+				},
+			},
+			{
+				Name:  "CORTEX_PORT",
+				Value: s.Int32(*api.Pod.Port),
+			},
+		}
 		if requiresKubexit {
 			containerDeathDependencies := containerNames.Copy()
 			containerDeathDependencies.Remove(container.Name)
@@ -195,14 +208,6 @@ func UserPodContainers(api spec.API) ([]kcore.Container, []kcore.Volume) {
 				Value: v,
 			})
 		}
-		containerEnvVars = append(containerEnvVars, kcore.EnvVar{
-			Name: "HOST_IP",
-			ValueFrom: &kcore.EnvVarSource{
-				FieldRef: &kcore.ObjectFieldSelector{
-					FieldPath: "status.hostIP",
-				},
-			},
-		})
 
 		var containerCmd []string
 		if requiresKubexit && container.Command[0] != "/mnt/kubexit" {
@@ -219,11 +224,6 @@ func UserPodContainers(api spec.API) ([]kcore.Container, []kcore.Volume) {
 			Resources: kcore.ResourceRequirements{
 				Requests: containerResourceList,
 				Limits:   containerResourceLimitsList,
-			},
-			Ports: []kcore.ContainerPort{
-				{
-					ContainerPort: int32(8888),
-				},
 			},
 			ImagePullPolicy: kcore.PullAlways,
 			SecurityContext: &kcore.SecurityContext{
@@ -363,6 +363,36 @@ func neuronRuntimeDaemonContainer(computeInf int64, volumeMounts []kcore.VolumeM
 	}
 }
 
+func RealtimeProxyContainer(api spec.API) kcore.Container {
+	return kcore.Container{
+		Name:            _proxyContainerName,
+		Image:           config.ClusterConfig.ImageProxy,
+		ImagePullPolicy: kcore.PullAlways,
+		Args: []string{
+			"-port",
+			consts.ProxyListeningPortStr,
+			"-metrics-port",
+			consts.MetricsPortStr,
+			"-user-port",
+			s.Int32(*api.Pod.Port),
+			"-max-concurrency",
+			"1",
+			"-max-queue-length",
+			"1",
+		},
+		Ports: []kcore.ContainerPort{
+			{Name: "metrics", ContainerPort: consts.MetricsPortInt32},
+			{ContainerPort: consts.ProxyListeningPortInt32},
+		},
+		Env: []kcore.EnvVar{
+			{
+				Name:  "CORTEX_LOG_LEVEL",
+				Value: strings.ToUpper(userconfig.InfoLogLevel.String()),
+			},
+		},
+	}
+}
+
 // func getAsyncAPIEnvVars(api spec.API, queueURL string) []kcore.EnvVar {
 // 	envVars := apiContainerEnvVars(&api)
 
@@ -378,33 +408,4 @@ func neuronRuntimeDaemonContainer(computeInf int64, volumeMounts []kcore.VolumeM
 // 	)
 
 // 	return envVars
-// }
-
-// func RequestMonitorContainer(api *spec.API) kcore.Container {
-// 	requests := kcore.ResourceList{}
-// 	if api.Compute != nil {
-// 		if api.Compute.CPU != nil {
-// 			requests[kcore.ResourceCPU] = _requestMonitorCPURequest
-// 		}
-// 		if api.Compute.Mem != nil {
-// 			requests[kcore.ResourceMemory] = _requestMonitorMemRequest
-// 		}
-// 	}
-
-// 	return kcore.Container{
-// 		Name:            _requestMonitorContainerName,
-// 		Image:           config.ClusterConfig.ImageRequestMonitor,
-// 		ImagePullPolicy: kcore.PullAlways,
-// 		Args:            []string{"-p", DefaultRequestMonitorPortStr},
-// 		Ports: []kcore.ContainerPort{
-// 			{Name: "metrics", ContainerPort: DefaultRequestMonitorPortInt32},
-// 		},
-// 		Env:            requestMonitorEnvVars(api),
-// 		EnvFrom:        baseEnvVars(),
-// 		VolumeMounts:   defaultVolumeMounts(),
-// 		ReadinessProbe: FileExistsProbe(_requestMonitorReadinessFile),
-// 		Resources: kcore.ResourceRequirements{
-// 			Requests: requests,
-// 		},
-// 	}
 // }
