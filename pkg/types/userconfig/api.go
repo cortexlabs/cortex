@@ -303,15 +303,11 @@ func (container *Container) UserStr() string {
 		sb.WriteString(s.Indent(string(d), "  "))
 	}
 
-	if container.Command == nil {
-		sb.WriteString(fmt.Sprintf("%s: null\n", CommandKey))
-	} else {
+	if container.Command != nil {
 		sb.WriteString(fmt.Sprintf("%s: %s\n", CommandKey, s.ObjFlatNoQuotes(container.Command)))
 	}
 
-	if container.Args == nil {
-		sb.WriteString(fmt.Sprintf("%s: null\n", ArgsKey))
-	} else {
+	if container.Args != nil {
 		sb.WriteString(fmt.Sprintf("%s: %s\n", ArgsKey, s.ObjFlatNoQuotes(container.Args)))
 	}
 
