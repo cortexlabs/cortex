@@ -242,7 +242,7 @@ func ErrorCortexPrefixedEnvVarNotAllowed(prefixes ...string) error {
 func ErrorDisallowedEnvVars(disallowedValues ...string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrDisallowedEnvVars,
-		Message: fmt.Sprintf("environment %s %s %s disallowed", s.PluralS("variables", len(disallowedValues)), s.StrsAnd(disallowedValues), s.PluralToBe(len(disallowedValues))),
+		Message: fmt.Sprintf("environment %s %s %s disallowed", s.PluralS("variables", len(disallowedValues)), s.StrsAnd(disallowedValues), s.PluralIs(len(disallowedValues))),
 	})
 }
 

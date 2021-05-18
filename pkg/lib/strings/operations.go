@@ -220,16 +220,16 @@ func PluralEs(str string, count interface{}) string {
 	return PluralCustom(str, str+"es", count)
 }
 
+func PluralIs(count interface{}) string {
+	return PluralCustom("is", "are", count)
+}
+
 func PluralCustom(singular string, plural string, count interface{}) string {
 	countInt, _ := cast.InterfaceToInt64(count)
 	if countInt == 1 {
 		return singular
 	}
 	return plural
-}
-
-func PluralToBe(count interface{}) string {
-	return PluralCustom("is", "are", count)
 }
 
 // RemoveDuplicates returns a filtered string slice without repeated entries.
