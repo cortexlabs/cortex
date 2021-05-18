@@ -43,6 +43,6 @@ func Handler(breaker *Breaker, next http.Handler) http.HandlerFunc {
 }
 
 func isKubeletProbe(r *http.Request) bool {
-	return strings.HasPrefix(r.Header.Get(_userAgentKey), _kubeProbeUserAgentPrefix) ||
-		r.Header.Get(_kubeletProbeHeaderName) != ""
+	return strings.HasPrefix(r.Header.Get(UserAgentKey), KubeProbeUserAgentPrefix) ||
+		r.Header.Get(KubeletProbeHeaderName) != ""
 }

@@ -17,14 +17,16 @@ limitations under the License.
 package proxy
 
 const (
-	_userAgentKey = "User-Agent"
+	// UserAgentKey is the user agent header key
+	UserAgentKey = "User-Agent"
 
+	// KubeProbeUserAgentPrefix is the user agent header prefix used in k8s probes
 	// Since K8s 1.8, prober requests have
 	//   User-Agent = "kube-probe/{major-version}.{minor-version}".
-	_kubeProbeUserAgentPrefix = "kube-probe/"
+	KubeProbeUserAgentPrefix = "kube-probe/"
 
 	// KubeletProbeHeaderName is the header name to augment the probes, because
 	// Istio with mTLS rewrites probes, but their probes pass a different
 	// user-agent.
-	_kubeletProbeHeaderName = "K-Kubelet-Probe"
+	KubeletProbeHeaderName = "K-Kubelet-Probe"
 )
