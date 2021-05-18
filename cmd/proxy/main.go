@@ -27,6 +27,7 @@ import (
 
 	"github.com/cortexlabs/cortex/pkg/lib/logging"
 	"github.com/cortexlabs/cortex/pkg/proxy"
+	"github.com/cortexlabs/cortex/pkg/proxy/probe"
 	"go.uber.org/zap"
 )
 
@@ -39,13 +40,15 @@ func main() {
 	var (
 		port              int
 		metricsPort       int
+		probePort         int
 		userContainerPort int
 		maxConcurrency    int
 		maxQueueLength    int
 	)
 
-	flag.IntVar(&port, "port", 8000, "port where the proxy will be served")
-	flag.IntVar(&metricsPort, "metrics-port", 8001, "port where the proxy will be served")
+	flag.IntVar(&port, "port", 8000, "port where the proxy server will be exposed")
+	flag.IntVar(&metricsPort, "metrics-port", 8001, "port where the metrics server will be exposed")
+	flag.IntVar(&probePort, "probe-port", 8002, "port where the probe server will be exposed")
 	flag.IntVar(&userContainerPort, "user-port", 8080, "port where the proxy will redirect to the traffic to")
 	flag.IntVar(&maxConcurrency, "max-concurrency", 0, "max concurrency allowed for user container")
 	flag.IntVar(&maxQueueLength, "max-queue-length", 0, "max request queue length for user container")
@@ -63,7 +66,7 @@ func main() {
 		maxQueueLength = maxConcurrency * 10
 	}
 
-	target := "http://127.0.0.1:" + strconv.Itoa(port)
+	target := "http://127.0.0.1:" + strconv.Itoa(userContainerPort)
 	httpProxy := proxy.NewReverseProxy(target, maxQueueLength, maxQueueLength)
 
 	requestCounterStats := &proxy.RequestStats{}
@@ -76,6 +79,7 @@ func main() {
 	)
 
 	promStats := proxy.NewPrometheusStatsReporter()
+	readinessProbe := probe.NewDefaultProbe(log, target) // TODO: initialize custom probe from flags
 
 	go func() {
 		reportTicker := time.NewTicker(_reportInterval)
@@ -101,12 +105,16 @@ func main() {
 
 	servers := map[string]*http.Server{
 		"proxy": {
-			Addr:    ":" + strconv.Itoa(userContainerPort),
+			Addr:    ":" + strconv.Itoa(port),
 			Handler: proxy.Handler(breaker, httpProxy),
 		},
 		"metrics": {
 			Addr:    ":" + strconv.Itoa(metricsPort),
 			Handler: promStats,
+		},
+		"probe": {
+			Addr:    ":" + strconv.Itoa(probePort),
+			Handler: probe.Handler(readinessProbe),
 		},
 	}
 

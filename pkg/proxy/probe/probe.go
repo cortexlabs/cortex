@@ -27,6 +27,7 @@ import (
 
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/proxy"
+	"github.com/pkg/errors"
 	"go.uber.org/zap"
 	kcore "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -38,7 +39,7 @@ const (
 	_defaultTimeoutSeconds      = 3
 	_defaultPeriodSeconds       = 1
 	_defaultSuccessThreshold    = 1
-	_defaultFailureThreshold    = 1
+	_defaultFailureThreshold    = 5
 )
 
 type Probe struct {
@@ -96,7 +97,7 @@ func (p *Probe) ProbeContainer() bool {
 	}
 
 	if err != nil {
-		p.logger.Error(err)
+		p.logger.Warn(err)
 		return false
 	}
 	return true
@@ -107,16 +108,16 @@ func (p *Probe) doProbe(probe func(time.Duration) error) error {
 	retryInterval := time.Duration(p.PeriodSeconds) * time.Second
 
 	var failCount int
-	var lastProbeErr error
 	pollErr := wait.PollImmediate(retryInterval, timeout, func() (bool, error) {
 		if err := probe(timeout); err != nil {
 			// Reset count of consecutive successes to zero.
 			p.count = 0
-			// Don't log this now since we probe every 50ms and some failures are
-			// expected if the user container takes longer than that to start up.
-			// We'll log the lastProbeErr if we don't eventually succeed.
-			lastProbeErr = err
 			failCount++
+
+			if failCount >= int(p.FailureThreshold) {
+				return false, errors.Wrapf(err, "probe failure exceeded (failureThreshold = %d)", p.FailureThreshold)
+			}
+
 			return false, nil
 		}
 
@@ -126,10 +127,6 @@ func (p *Probe) doProbe(probe func(time.Duration) error) error {
 		// than the probe's SuccessThreshold.
 		return p.count >= p.SuccessThreshold, nil
 	})
-
-	if pollErr != nil && lastProbeErr != nil {
-		p.logger.Warnf("probe error (failed %d times): %v", failCount, lastProbeErr)
-	}
 
 	return pollErr
 }
