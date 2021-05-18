@@ -59,6 +59,10 @@ const (
 
 	_clientConfigDirVolume = "client-config"
 	_clientConfigConfigMap = "client-config"
+
+	_clusterConfigDirVolume = "cluster-config"
+	_clusterConfigConfigMap = "cluster-config"
+	_clusterConfigDir       = "/configs/cluster"
 )
 
 var (
@@ -375,7 +379,7 @@ func neuronRuntimeDaemonContainer(computeInf int64, volumeMounts []kcore.VolumeM
 	}
 }
 
-func RealtimeProxyContainer(api spec.API) kcore.Container {
+func RealtimeProxyContainer(api spec.API) (kcore.Container, kcore.Volume) {
 	return kcore.Container{
 		Name:            _proxyContainerName,
 		Image:           config.ClusterConfig.ImageProxy,
@@ -391,6 +395,8 @@ func RealtimeProxyContainer(api spec.API) kcore.Container {
 			s.Int32(int32(api.Autoscaling.MaxConcurrency)),
 			"-max-queue-length",
 			s.Int32(int32(api.Autoscaling.MaxQueueLength)),
+			"-cluster-config",
+			consts.DefaultInClusterConfigPath,
 		},
 		Ports: []kcore.ContainerPort{
 			{Name: "metrics", ContainerPort: consts.MetricsPortInt32},
@@ -403,7 +409,10 @@ func RealtimeProxyContainer(api spec.API) kcore.Container {
 			},
 		},
 		EnvFrom: baseClusterEnvVars(),
-	}
+		VolumeMounts: []kcore.VolumeMount{
+			ClusterConfigMount(),
+		},
+	}, ClusterConfigVolume()
 }
 
 // func getAsyncAPIEnvVars(api spec.API, queueURL string) []kcore.EnvVar {

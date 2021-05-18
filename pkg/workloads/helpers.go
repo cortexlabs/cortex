@@ -151,6 +151,19 @@ func ClientConfigVolume() kcore.Volume {
 	}
 }
 
+func ClusterConfigVolume() kcore.Volume {
+	return kcore.Volume{
+		Name: _clusterConfigDirVolume,
+		VolumeSource: kcore.VolumeSource{
+			ConfigMap: &kcore.ConfigMapVolumeSource{
+				LocalObjectReference: kcore.LocalObjectReference{
+					Name: _clusterConfigConfigMap,
+				},
+			},
+		},
+	}
+}
+
 func ShmVolume(q resource.Quantity) kcore.Volume {
 	return kcore.Volume{
 		Name: _shmDirVolumeName,
@@ -180,6 +193,14 @@ func ClientConfigMount() kcore.VolumeMount {
 		Name:      _clientConfigDirVolume,
 		MountPath: path.Join(_clientConfigDir, "cli.yaml"),
 		SubPath:   "cli.yaml",
+	}
+}
+
+func ClusterConfigMount() kcore.VolumeMount {
+	return kcore.VolumeMount{
+		Name:      _clusterConfigDirVolume,
+		MountPath: path.Join(_clusterConfigDir, "cluster.yaml"),
+		SubPath:   "cluster.yaml",
 	}
 }
 
