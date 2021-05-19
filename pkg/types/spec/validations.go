@@ -169,10 +169,8 @@ func podValidation() *cr.StructFieldValidation {
 				{
 					StructField: "Port",
 					Int32PtrValidation: &cr.Int32PtrValidation{
-						Required: false,
-						// it's a pointer because it's not required for the task API
-						// but it is for the realtime/async/batch APIs
-						Default:           nil,
+						Required:          false,
+						Default:           nil, // it's a pointer because it's not required for the task API
 						AllowExplicitNull: true,
 						DisallowedValues: []int32{
 							consts.ProxyListeningPortInt32,
