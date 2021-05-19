@@ -4,6 +4,7 @@ go 1.15
 
 require (
 	cloud.google.com/go v0.73.0 // indirect
+	github.com/DataDog/datadog-go v4.7.0+incompatible
 	github.com/Microsoft/go-winio v0.4.11 // indirect
 	github.com/StackExchange/wmi v0.0.0-20190523213315-cbe66965904d // indirect
 	github.com/aws/aws-sdk-go v1.36.2
@@ -44,7 +45,7 @@ require (
 	github.com/stretchr/testify v1.6.1
 	github.com/ugorji/go/codec v1.2.1
 	github.com/xlab/treeprint v1.0.0
-	github.com/xtgo/uuid v0.0.0-20140804021211-a0b114877d4c // indirect
+	github.com/xtgo/uuid v0.0.0-20140804021211-a0b114877d4c
 	go.uber.org/atomic v1.6.0
 	go.uber.org/zap v1.15.0
 	golang.org/x/lint v0.0.0-20201208152925-83fdc39ff7b5 // indirect

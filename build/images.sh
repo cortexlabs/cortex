@@ -32,6 +32,7 @@ dev_images=(
   "proxy"
   "async-gateway"
   "enqueuer"
+  "dequeuer"
 )
 
 non_dev_images=(
