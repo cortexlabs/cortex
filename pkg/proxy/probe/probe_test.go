@@ -78,11 +78,7 @@ func TestProbeHTTPFailure(t *testing.T) {
 					Host: "127.0.0.1",
 				},
 			},
-			InitialDelaySeconds: 0,
-			TimeoutSeconds:      3,
-			PeriodSeconds:       1,
-			SuccessThreshold:    1,
-			FailureThreshold:    1,
+			TimeoutSeconds: 3,
 		}, log,
 	)
 
@@ -109,11 +105,7 @@ func TestProbeHTTPSuccess(t *testing.T) {
 					Host: targetURL.Hostname(),
 				},
 			},
-			InitialDelaySeconds: 0,
-			TimeoutSeconds:      3,
-			PeriodSeconds:       1,
-			SuccessThreshold:    1,
-			FailureThreshold:    1,
+			TimeoutSeconds: 3,
 		}, log,
 	)
 

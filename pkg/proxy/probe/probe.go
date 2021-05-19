@@ -23,31 +23,21 @@ import (
 	"net"
 	"net/http"
 	"net/url"
-	"sync"
 	"time"
 
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/proxy"
-	"github.com/pkg/errors"
 	"go.uber.org/zap"
 	kcore "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
-	"k8s.io/apimachinery/pkg/util/wait"
 )
 
 const (
-	_defaultInitialDelaySeconds = 1
-	_defaultTimeoutSeconds      = 3
-	_defaultPeriodSeconds       = 1
-	_defaultSuccessThreshold    = 1
-	_defaultFailureThreshold    = 3
+	_defaultTimeoutSeconds = 3
 )
 
 type Probe struct {
 	*kcore.Probe
-	mu     sync.RWMutex
-	hasRun bool
-	count  int32
 	logger *zap.SugaredLogger
 }
 
@@ -72,11 +62,7 @@ func NewDefaultProbe(logger *zap.SugaredLogger, target string) *Probe {
 					Host: targetURL.Hostname(),
 				},
 			},
-			InitialDelaySeconds: _defaultInitialDelaySeconds,
-			TimeoutSeconds:      _defaultTimeoutSeconds,
-			PeriodSeconds:       _defaultPeriodSeconds,
-			SuccessThreshold:    _defaultSuccessThreshold,
-			FailureThreshold:    _defaultFailureThreshold,
+			TimeoutSeconds: _defaultTimeoutSeconds,
 		},
 		logger: logger,
 	}
@@ -106,89 +92,51 @@ func (p *Probe) ProbeContainer() bool {
 	return true
 }
 
-func (p *Probe) doProbe(probe func(time.Duration) error) error {
-	timeout := time.Duration(p.TimeoutSeconds) * time.Second
-	retryInterval := time.Duration(p.PeriodSeconds) * time.Second
+func (p *Probe) httpProbe() error {
+	targetURL := s.EnsurePrefix(
+		net.JoinHostPort(p.HTTPGet.Host, p.HTTPGet.Port.String())+s.EnsurePrefix(p.HTTPGet.Path, "/"),
+		"http://",
+	)
 
-	if p.hasRun {
-		p.mu.Lock()
-		defer p.mu.Unlock()
-		time.Sleep(time.Duration(p.InitialDelaySeconds) * time.Second)
-		p.hasRun = true
+	httpClient := &http.Client{}
+	req, err := http.NewRequest(http.MethodGet, targetURL, nil)
+	if err != nil {
+		return err
 	}
 
-	var failCount int
-	pollErr := wait.PollImmediate(retryInterval, timeout, func() (bool, error) {
-		if err := probe(timeout); err != nil {
-			// Reset count of consecutive successes to zero.
-			p.count = 0
-			failCount++
+	req.Header.Add(proxy.UserAgentKey, proxy.KubeProbeUserAgentPrefix)
 
-			if failCount >= int(p.FailureThreshold) {
-				return false, errors.Wrapf(err, "probe failure exceeded (failureThreshold = %d)", p.FailureThreshold)
-			}
+	for _, header := range p.HTTPGet.HTTPHeaders {
+		req.Header.Add(header.Name, header.Value)
+	}
 
-			return false, nil
-		}
+	res, err := httpClient.Do(req)
+	if err != nil {
+		return err
+	}
 
-		p.count++
+	defer func() {
+		// Ensure body is both read _and_ closed so it can be reused for keep-alive.
+		// No point handling errors, connection just won't be reused.
+		_, _ = io.Copy(ioutil.Discard, res.Body)
+		_ = res.Body.Close()
+	}()
 
-		// Return success if count of consecutive successes is equal to or greater
-		// than the probe's SuccessThreshold.
-		return p.count >= p.SuccessThreshold, nil
-	})
+	// response status code between 200-399 indicates success
+	if !(res.StatusCode >= 200 && res.StatusCode < 400) {
+		return fmt.Errorf("HTTP probe did not respond Ready, got status code: %d", res.StatusCode)
+	}
 
-	return pollErr
-}
-
-func (p *Probe) httpProbe() error {
-	return p.doProbe(func(timeout time.Duration) error {
-		targetURL := s.EnsurePrefix(
-			net.JoinHostPort(p.HTTPGet.Host, p.HTTPGet.Port.String())+s.EnsurePrefix(p.HTTPGet.Path, "/"),
-			"http://",
-		)
-
-		httpClient := &http.Client{}
-		req, err := http.NewRequest(http.MethodGet, targetURL, nil)
-		if err != nil {
-			return err
-		}
-
-		req.Header.Add(proxy.UserAgentKey, proxy.KubeProbeUserAgentPrefix)
-
-		for _, header := range p.HTTPGet.HTTPHeaders {
-			req.Header.Add(header.Name, header.Value)
-		}
-
-		res, err := httpClient.Do(req)
-		if err != nil {
-			return err
-		}
-
-		defer func() {
-			// Ensure body is both read _and_ closed so it can be reused for keep-alive.
-			// No point handling errors, connection just won't be reused.
-			_, _ = io.Copy(ioutil.Discard, res.Body)
-			_ = res.Body.Close()
-		}()
-
-		// response status code between 200-399 indicates success
-		if !(res.StatusCode >= 200 && res.StatusCode < 400) {
-			return fmt.Errorf("HTTP probe did not respond Ready, got status code: %d", res.StatusCode)
-		}
-
-		return nil
-	})
+	return nil
 }
 
 func (p *Probe) tcpProbe() error {
-	return p.doProbe(func(timeout time.Duration) error {
-		address := net.JoinHostPort(p.TCPSocket.Host, p.TCPSocket.Port.String())
-		conn, err := net.DialTimeout("tcp", address, timeout)
-		if err != nil {
-			return err
-		}
-		_ = conn.Close()
-		return nil
-	})
+	timeout := time.Duration(p.TimeoutSeconds) * time.Second
+	address := net.JoinHostPort(p.TCPSocket.Host, p.TCPSocket.Port.String())
+	conn, err := net.DialTimeout("tcp", address, timeout)
+	if err != nil {
+		return err
+	}
+	_ = conn.Close()
+	return nil
 }
