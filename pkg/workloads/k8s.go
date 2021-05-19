@@ -48,9 +48,6 @@ const (
 
 	_gatewayContainerName = "gateway"
 
-	_neuronRTDContainerName = "neuron-rtd"
-	_neuronRTDSocket        = "/sock/neuron.sock"
-
 	_kubexitGraveyardName      = "graveyard"
 	_kubexitGraveyardMountPath = "/graveyard"
 
@@ -146,11 +143,13 @@ func UserPodContainers(api spec.API) ([]kcore.Container, []kcore.Volume) {
 	}
 
 	var containers []kcore.Container
-	var podHasInf bool
 	containerNames := userconfig.GetContainerNames(api.Pod.Containers)
 	for _, container := range api.Pod.Containers {
 		containerResourceList := kcore.ResourceList{}
 		containerResourceLimitsList := kcore.ResourceList{}
+		securityContext := kcore.SecurityContext{
+			Privileged: pointer.Bool(true),
+		}
 
 		if container.Compute.CPU != nil {
 			containerResourceList[kcore.ResourceCPU] = *k8s.QuantityPtr(container.Compute.CPU.Quantity.DeepCopy())
@@ -168,30 +167,18 @@ func UserPodContainers(api spec.API) ([]kcore.Container, []kcore.Volume) {
 		containerVolumeMounts := containerMounts
 
 		if container.Compute.Inf > 0 {
-			volumes = append(volumes, kcore.Volume{
-				Name: "neuron-sock",
-			})
-			rtdVolumeMounts := []kcore.VolumeMount{
-				{
-					Name:      "neuron-sock",
-					MountPath: "/sock",
+			totalHugePages := container.Compute.Inf * _hugePagesMemPerInf
+			containerResourceList["nvidia.com/gpu"] = *kresource.NewQuantity(container.Compute.Inf, kresource.DecimalSI)
+			containerResourceList["hugepages-2Mi"] = *kresource.NewQuantity(totalHugePages, kresource.BinarySI)
+			containerResourceLimitsList["nvidia.com/gpu"] = *kresource.NewQuantity(container.Compute.Inf, kresource.DecimalSI)
+			containerResourceLimitsList["hugepages-2Mi"] = *kresource.NewQuantity(totalHugePages, kresource.BinarySI)
+
+			securityContext.Capabilities = &kcore.Capabilities{
+				Add: []kcore.Capability{
+					"SYS_ADMIN",
+					"IPC_LOCK",
 				},
 			}
-
-			containerVolumeMounts = append(containerVolumeMounts, rtdVolumeMounts...)
-
-			if requiresKubexit {
-				rtdVolumeMounts = append(rtdVolumeMounts,
-					k8s.EmptyDirVolumeMount(_emptyDirVolumeName, _emptyDirMountPath),
-					kcore.VolumeMount{Name: _kubexitGraveyardName, MountPath: _kubexitGraveyardMountPath},
-				)
-				neuronRTDEnvVars := getKubexitEnvVars(_neuronRTDContainerName, containerNames.Slice(), nil)
-				containers = append(containers, neuronRuntimeDaemonContainer(container.Compute.Inf, rtdVolumeMounts, neuronRTDEnvVars))
-			} else {
-				containers = append(containers, neuronRuntimeDaemonContainer(container.Compute.Inf, rtdVolumeMounts, nil))
-			}
-
-			podHasInf = true
 		}
 
 		containerEnvVars := []kcore.EnvVar{
@@ -211,11 +198,7 @@ func UserPodContainers(api spec.API) ([]kcore.Container, []kcore.Volume) {
 		if requiresKubexit {
 			containerDeathDependencies := containerNames.Copy()
 			containerDeathDependencies.Remove(container.Name)
-			if podHasInf {
-				containerEnvVars = getKubexitEnvVars(container.Name, containerDeathDependencies.Slice(), []string{"neuron-rtd"})
-			} else {
-				containerEnvVars = getKubexitEnvVars(container.Name, containerDeathDependencies.Slice(), nil)
-			}
+			containerEnvVars = getKubexitEnvVars(container.Name, containerDeathDependencies.Slice(), nil)
 		}
 
 		for k, v := range container.Env {
@@ -242,10 +225,8 @@ func UserPodContainers(api spec.API) ([]kcore.Container, []kcore.Volume) {
 				Limits:   containerResourceLimitsList,
 			},
 			ImagePullPolicy: kcore.PullAlways,
-			SecurityContext: &kcore.SecurityContext{
-				Privileged: pointer.Bool(true),
-			}},
-		)
+			SecurityContext: &securityContext,
+		})
 	}
 
 	return containers, volumes
@@ -345,36 +326,6 @@ func GenerateNodeAffinities(apiNodeGroups []string) *kcore.Affinity {
 		NodeAffinity: &kcore.NodeAffinity{
 			PreferredDuringSchedulingIgnoredDuringExecution: preferredAffinities,
 			RequiredDuringSchedulingIgnoredDuringExecution:  requiredNodeSelector,
-		},
-	}
-}
-
-func neuronRuntimeDaemonContainer(computeInf int64, volumeMounts []kcore.VolumeMount, envVars []kcore.EnvVar) kcore.Container {
-	totalHugePages := computeInf * _hugePagesMemPerInf
-	return kcore.Container{
-		Name:            _neuronRTDContainerName,
-		Image:           config.ClusterConfig.ImageNeuronRTD,
-		ImagePullPolicy: kcore.PullAlways,
-		Env:             envVars,
-		SecurityContext: &kcore.SecurityContext{
-			Capabilities: &kcore.Capabilities{
-				Add: []kcore.Capability{
-					"SYS_ADMIN",
-					"IPC_LOCK",
-				},
-			},
-		},
-		VolumeMounts:   volumeMounts,
-		ReadinessProbe: SocketExistsProbe(_neuronRTDSocket),
-		Resources: kcore.ResourceRequirements{
-			Requests: kcore.ResourceList{
-				"hugepages-2Mi":         *kresource.NewQuantity(totalHugePages, kresource.BinarySI),
-				"aws.amazon.com/neuron": *kresource.NewQuantity(computeInf, kresource.DecimalSI),
-			},
-			Limits: kcore.ResourceList{
-				"hugepages-2Mi":         *kresource.NewQuantity(totalHugePages, kresource.BinarySI),
-				"aws.amazon.com/neuron": *kresource.NewQuantity(computeInf, kresource.DecimalSI),
-			},
 		},
 	}
 }

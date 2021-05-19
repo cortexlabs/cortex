@@ -22,6 +22,7 @@ import (
 	"time"
 
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
+	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/urls"
@@ -83,7 +84,7 @@ type Autoscaling struct {
 	InitReplicas                 int32         `json:"init_replicas" yaml:"init_replicas"`
 	MaxQueueLength               int64         `json:"max_queue_length" yaml:"max_queue_length"`
 	MaxConcurrency               int64         `json:"max_concurrency" yaml:"max_concurrency"`
-	TargetInFlight               float64       `json:"target_in_flight" yaml:"target_in_flight"`
+	TargetInFlight               *float64      `json:"target_in_flight" yaml:"target_in_flight"`
 	Window                       time.Duration `json:"window" yaml:"window"`
 	DownscaleStabilizationPeriod time.Duration `json:"downscale_stabilization_period" yaml:"downscale_stabilization_period"`
 	UpscaleStabilizationPeriod   time.Duration `json:"upscale_stabilization_period" yaml:"upscale_stabilization_period"`
@@ -132,7 +133,7 @@ func (api *API) ToK8sAnnotations() map[string]string {
 		annotations[MinReplicasAnnotationKey] = s.Int32(api.Autoscaling.MinReplicas)
 		annotations[MaxReplicasAnnotationKey] = s.Int32(api.Autoscaling.MaxReplicas)
 		annotations[MaxQueueLengthAnnotationKey] = s.Int64(api.Autoscaling.MaxQueueLength)
-		annotations[TargetInFlightAnnotationKey] = s.Float64(api.Autoscaling.TargetInFlight)
+		annotations[TargetInFlightAnnotationKey] = s.Float64(*api.Autoscaling.TargetInFlight)
 		annotations[MaxConcurrencyAnnotationKey] = s.Int64(api.Autoscaling.MaxConcurrency)
 		annotations[WindowAnnotationKey] = api.Autoscaling.Window.String()
 		annotations[DownscaleStabilizationPeriodAnnotationKey] = api.Autoscaling.DownscaleStabilizationPeriod.String()
@@ -176,7 +177,7 @@ func AutoscalingFromAnnotations(k8sObj kmeta.Object) (*Autoscaling, error) {
 	if err != nil {
 		return nil, err
 	}
-	a.TargetInFlight = targetInFlight
+	a.TargetInFlight = pointer.Float64(targetInFlight)
 
 	window, err := k8s.ParseDurationAnnotation(k8sObj, WindowAnnotationKey)
 	if err != nil {
@@ -383,7 +384,7 @@ func (autoscaling *Autoscaling) UserStr() string {
 	sb.WriteString(fmt.Sprintf("%s: %s\n", InitReplicasKey, s.Int32(autoscaling.InitReplicas)))
 	sb.WriteString(fmt.Sprintf("%s: %s\n", MaxQueueLengthKey, s.Int64(autoscaling.MaxQueueLength)))
 	sb.WriteString(fmt.Sprintf("%s: %s\n", MaxConcurrencyKey, s.Int64(autoscaling.MaxConcurrency)))
-	sb.WriteString(fmt.Sprintf("%s: %s\n", TargetInFlightKey, s.Float64(autoscaling.TargetInFlight)))
+	sb.WriteString(fmt.Sprintf("%s: %s\n", TargetInFlightKey, s.Float64(*autoscaling.TargetInFlight)))
 	sb.WriteString(fmt.Sprintf("%s: %s\n", WindowKey, autoscaling.Window.String()))
 	sb.WriteString(fmt.Sprintf("%s: %s\n", DownscaleStabilizationPeriodKey, autoscaling.DownscaleStabilizationPeriod.String()))
 	sb.WriteString(fmt.Sprintf("%s: %s\n", UpscaleStabilizationPeriodKey, autoscaling.UpscaleStabilizationPeriod.String()))
@@ -510,7 +511,7 @@ func (api *API) TelemetryEvent() map[string]interface{} {
 		event["autoscaling.init_replicas"] = api.Autoscaling.InitReplicas
 		event["autoscaling.max_queue_length"] = api.Autoscaling.MaxQueueLength
 		event["autoscaling.max_concurrency"] = api.Autoscaling.MaxConcurrency
-		event["autoscaling.target_in_flight"] = api.Autoscaling.TargetInFlight
+		event["autoscaling.target_in_flight"] = *api.Autoscaling.TargetInFlight
 		event["autoscaling.window"] = api.Autoscaling.Window.Seconds()
 		event["autoscaling.downscale_stabilization_period"] = api.Autoscaling.DownscaleStabilizationPeriod.Seconds()
 		event["autoscaling.upscale_stabilization_period"] = api.Autoscaling.UpscaleStabilizationPeriod.Seconds()

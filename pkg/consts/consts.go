@@ -26,7 +26,6 @@ var (
 
 	DefaultMaxQueueLength = int64(1024)
 	DefaultMaxConcurrency = int64(16)
-	DefaultTargetInFlight = float64(16)
 
 	DefaultUserPodPortStr   = "8080"
 	DefaultUserPodPortInt32 = int32(8080)
@@ -45,7 +44,6 @@ var (
 
 	ReservedContainerNames = []string{
 		"proxy",
-		"neuron-rtd",
 	}
 )
 

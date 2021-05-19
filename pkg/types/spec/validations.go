@@ -169,7 +169,9 @@ func podValidation() *cr.StructFieldValidation {
 				{
 					StructField: "Port",
 					Int32PtrValidation: &cr.Int32PtrValidation{
-						Required:          false,
+						Required: false,
+						// it's a pointer because it's not required for the task API
+						// but it is for the realtime/async/batch APIs
 						Default:           nil,
 						AllowExplicitNull: true,
 						DisallowedValues: []int32{
@@ -335,7 +337,7 @@ func autoscalingValidation() *cr.StructFieldValidation {
 					Int64Validation: &cr.Int64Validation{
 						Default:     consts.DefaultMaxQueueLength,
 						GreaterThan: pointer.Int64(0),
-						// our configured nginx can theoretically accept up to 32768 connections, but during testing,
+						// the proxy can theoretically accept up to 32768 connections, but during testing,
 						// it has been observed that the number is just slightly lower, so it has been offset by 2678
 						LessThanOrEqualTo: pointer.Int64(30000),
 					},
@@ -345,15 +347,15 @@ func autoscalingValidation() *cr.StructFieldValidation {
 					Int64Validation: &cr.Int64Validation{
 						Default:     consts.DefaultMaxConcurrency,
 						GreaterThan: pointer.Int64(0),
-						// our configured nginx can theoretically accept up to 32768 connections, but during testing,
+						// the proxy can theoretically accept up to 32768 connections, but during testing,
 						// it has been observed that the number is just slightly lower, so it has been offset by 2678
 						LessThanOrEqualTo: pointer.Int64(30000),
 					},
 				},
 				{
 					StructField: "TargetInFlight",
-					Float64Validation: &cr.Float64Validation{
-						Default:     consts.DefaultTargetInFlight,
+					Float64PtrValidation: &cr.Float64PtrValidation{
+						Default:     nil,
 						GreaterThan: pointer.Float64(0),
 					},
 				},
@@ -624,8 +626,12 @@ func validateContainers(
 func validateAutoscaling(api *userconfig.API) error {
 	autoscaling := api.Autoscaling
 
-	if autoscaling.TargetInFlight > float64(autoscaling.MaxConcurrency)+float64(autoscaling.MaxQueueLength) {
-		return ErrorTargetInFlightLimitReached(autoscaling.TargetInFlight, autoscaling.MaxConcurrency, autoscaling.MaxQueueLength)
+	if autoscaling.TargetInFlight == nil {
+		autoscaling.TargetInFlight = pointer.Float64(float64(autoscaling.MaxConcurrency))
+	}
+
+	if *autoscaling.TargetInFlight > float64(autoscaling.MaxConcurrency)+float64(autoscaling.MaxQueueLength) {
+		return ErrorTargetInFlightLimitReached(*autoscaling.TargetInFlight, autoscaling.MaxConcurrency, autoscaling.MaxQueueLength)
 	}
 
 	if autoscaling.MinReplicas > autoscaling.MaxReplicas {
