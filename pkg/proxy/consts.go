@@ -24,9 +24,4 @@ const (
 	// Since K8s 1.8, prober requests have
 	//   User-Agent = "kube-probe/{major-version}.{minor-version}".
 	KubeProbeUserAgentPrefix = "kube-probe/"
-
-	// KubeletProbeHeaderName is the header name to augment the probes, because
-	// Istio with mTLS rewrites probes, but their probes pass a different
-	// user-agent.
-	KubeletProbeHeaderName = "K-Kubelet-Probe"
 )
