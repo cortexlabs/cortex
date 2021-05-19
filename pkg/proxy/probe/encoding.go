@@ -23,8 +23,8 @@ import (
 	kcore "k8s.io/api/core/v1"
 )
 
-// DecodeProbe takes a json serialised *kcore.Probe and returns a Probe or an error.
-func DecodeProbe(jsonProbe string) (*kcore.Probe, error) {
+// DecodeJSON takes a json serialised *kcore.Probe and returns a Probe or an error.
+func DecodeJSON(jsonProbe string) (*kcore.Probe, error) {
 	pb := &kcore.Probe{}
 	if err := json.Unmarshal([]byte(jsonProbe), pb); err != nil {
 		return nil, err
@@ -32,8 +32,8 @@ func DecodeProbe(jsonProbe string) (*kcore.Probe, error) {
 	return pb, nil
 }
 
-// EncodeProbe takes *kcore.Probe object and returns marshalled Probe JSON string and an error.
-func EncodeProbe(pb *kcore.Probe) (string, error) {
+// EncodeJSON takes *kcore.Probe object and returns marshalled Probe JSON string and an error.
+func EncodeJSON(pb *kcore.Probe) (string, error) {
 	if pb == nil {
 		return "", errors.New("cannot encode nil probe")
 	}

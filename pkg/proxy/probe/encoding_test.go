@@ -14,12 +14,13 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package probe
+package probe_test
 
 import (
 	"encoding/json"
 	"testing"
 
+	"github.com/cortexlabs/cortex/pkg/proxy/probe"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	kcore "k8s.io/api/core/v1"
@@ -44,7 +45,7 @@ func TestDecodeProbeSuccess(t *testing.T) {
 	probeBytes, err := json.Marshal(expectedProbe)
 	require.NoError(t, err)
 
-	gotProbe, err := DecodeProbe(string(probeBytes))
+	gotProbe, err := probe.DecodeJSON(string(probeBytes))
 	require.NoError(t, err)
 
 	require.Equal(t, expectedProbe, gotProbe)
@@ -56,14 +57,14 @@ func TestDecodeProbeFailure(t *testing.T) {
 	probeBytes, err := json.Marshal("blah")
 	require.NoError(t, err)
 
-	_, err = DecodeProbe(string(probeBytes))
+	_, err = probe.DecodeJSON(string(probeBytes))
 	require.Error(t, err)
 }
 
 func TestEncodeProbe(t *testing.T) {
 	t.Parallel()
 
-	probe := &kcore.Probe{
+	pb := &kcore.Probe{
 		SuccessThreshold: 1,
 		Handler: kcore.Handler{
 			TCPSocket: &kcore.TCPSocketAction{
@@ -73,7 +74,7 @@ func TestEncodeProbe(t *testing.T) {
 		},
 	}
 
-	jsonProbe, err := EncodeProbe(probe)
+	jsonProbe, err := probe.EncodeJSON(pb)
 	require.NoError(t, err)
 
 	wantProbe := `{"tcpSocket":{"port":"8080","host":"127.0.0.1"},"successThreshold":1}`
@@ -83,7 +84,7 @@ func TestEncodeProbe(t *testing.T) {
 func TestEncodeNilProbe(t *testing.T) {
 	t.Parallel()
 
-	jsonProbe, err := EncodeProbe(nil)
+	jsonProbe, err := probe.EncodeJSON(nil)
 	assert.Error(t, err)
 	assert.Empty(t, jsonProbe)
 }
