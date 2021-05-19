@@ -120,7 +120,7 @@ func main() {
 
 	promStats := proxy.NewPrometheusStatsReporter()
 
-	readinessProbe := probe.NewDefaultProbe(log, target)
+	var readinessProbe *probe.Probe
 	if probeDefPath != "" {
 		jsonProbe, err := ioutil.ReadFile(probeDefPath)
 		if err != nil {
@@ -133,6 +133,8 @@ func main() {
 		}
 
 		readinessProbe = probe.NewProbe(probeDef, log)
+	} else {
+		readinessProbe = probe.NewDefaultProbe(target, log)
 	}
 
 	go func() {

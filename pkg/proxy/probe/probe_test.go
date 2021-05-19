@@ -50,7 +50,7 @@ func TestDefaultProbeSuccess(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 	}
 	server := httptest.NewServer(handler)
-	pb := probe.NewDefaultProbe(log, server.URL)
+	pb := probe.NewDefaultProbe(server.URL, log)
 
 	require.True(t, pb.ProbeContainer())
 }
@@ -60,7 +60,7 @@ func TestDefaultProbeFailure(t *testing.T) {
 	log := newLogger(t)
 
 	target := "http://127.0.0.1:12345"
-	pb := probe.NewDefaultProbe(log, target)
+	pb := probe.NewDefaultProbe(target, log)
 
 	require.False(t, pb.ProbeContainer())
 }

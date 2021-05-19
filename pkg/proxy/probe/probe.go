@@ -33,7 +33,7 @@ import (
 )
 
 const (
-	_defaultTimeoutSeconds = 3
+	_defaultTimeoutSeconds = 1
 )
 
 type Probe struct {
@@ -48,7 +48,7 @@ func NewProbe(probe *kcore.Probe, logger *zap.SugaredLogger) *Probe {
 	}
 }
 
-func NewDefaultProbe(logger *zap.SugaredLogger, target string) *Probe {
+func NewDefaultProbe(target string, logger *zap.SugaredLogger) *Probe {
 	targetURL, err := url.Parse(target)
 	if err != nil {
 		panic(fmt.Sprintf("failed to parse target URL: %v", err))

@@ -33,7 +33,7 @@ func TestHandlerFailure(t *testing.T) {
 	t.Parallel()
 	log := newLogger(t)
 
-	pb := probe.NewDefaultProbe(log, "http://127.0.0.1:12345")
+	pb := probe.NewDefaultProbe("http://127.0.0.1:12345", log)
 	handler := probe.Handler(pb)
 
 	r := httptest.NewRequest(http.MethodGet, "http://fake.cortex.dev/healthz", nil)
@@ -54,7 +54,7 @@ func TestHandlerSuccessTCP(t *testing.T) {
 	}
 	server := httptest.NewServer(userHandler)
 
-	pb := probe.NewDefaultProbe(log, server.URL)
+	pb := probe.NewDefaultProbe(server.URL, log)
 	handler := probe.Handler(pb)
 
 	r := httptest.NewRequest(http.MethodGet, "http://fake.cortex.dev/healthz", nil)
