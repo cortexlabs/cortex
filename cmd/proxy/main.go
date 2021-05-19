@@ -40,8 +40,7 @@ const (
 func main() {
 	var (
 		port              int
-		metricsPort       int
-		probePort         int
+		adminPort         int
 		userContainerPort int
 		maxConcurrency    int
 		maxQueueLength    int
@@ -49,8 +48,7 @@ func main() {
 	)
 
 	flag.IntVar(&port, "port", 8000, "port where the proxy server will be exposed")
-	flag.IntVar(&metricsPort, "metrics-port", 8001, "port where the metrics server will be exposed")
-	flag.IntVar(&probePort, "probe-port", 8002, "port where the probe server will be exposed")
+	flag.IntVar(&adminPort, "admin-port", 15000, "port where the admin server (for metrics and probes) will be exposed")
 	flag.IntVar(&userContainerPort, "user-port", 8080, "port where the proxy will redirect to the traffic to")
 	flag.IntVar(&maxConcurrency, "max-concurrency", 0, "max concurrency allowed for user container")
 	flag.IntVar(&maxQueueLength, "max-queue-length", 0, "max request queue length for user container")
@@ -120,18 +118,18 @@ func main() {
 		}
 	}()
 
+	adminHandler := http.NewServeMux()
+	adminHandler.Handle("/metrics", promStats)
+	adminHandler.Handle("/healthz", probe.Handler(readinessProbe))
+
 	servers := map[string]*http.Server{
 		"proxy": {
 			Addr:    ":" + strconv.Itoa(port),
 			Handler: proxy.Handler(breaker, httpProxy),
 		},
-		"metrics": {
-			Addr:    ":" + strconv.Itoa(metricsPort),
-			Handler: promStats,
-		},
-		"probe": {
-			Addr:    ":" + strconv.Itoa(probePort),
-			Handler: probe.Handler(readinessProbe),
+		"admin": {
+			Addr:    ":" + strconv.Itoa(adminPort),
+			Handler: adminHandler,
 		},
 	}
 
