@@ -58,6 +58,9 @@ type Container struct {
 	Command []string `json:"command" yaml:"command"`
 	Args    []string `json:"args" yaml:"args"`
 
+	ReadinessProbe *Probe `json:"readiness_probe" yaml:"readiness_probe"`
+	LivenessProbe  *Probe `json:"liveness_probe" yaml:"liveness_probe"`
+
 	Compute *Compute `json:"compute" yaml:"compute"`
 }
 
@@ -69,6 +72,30 @@ type TrafficSplit struct {
 
 type Networking struct {
 	Endpoint *string `json:"endpoint" yaml:"endpoint"`
+}
+
+type Probe struct {
+	HTTPGet             *HTTPGetProbe   `json:"http_get" yaml:"http_get"`
+	TCPSocket           *TCPSocketProbe `json:"tcp_socket" yaml:"tcp_socket"`
+	Exec                *ExecProbe      `json:"exec" yaml:"exec"`
+	InitialDelaySeconds int32           `json:"initial_delay_seconds" yaml:"initial_delay_seconds"`
+	TimeoutSeconds      int32           `json:"timeout_seconds" yaml:"timeout_seconds"`
+	PeriodSeconds       int32           `json:"period_seconds" yaml:"period_seconds"`
+	SuccessThreshold    int32           `json:"success_threshold" yaml:"success_threshold"`
+	FailureThreshold    int32           `json:"failure_threshold" yaml:"failure_threshold"`
+}
+
+type HTTPGetProbe struct {
+	Path string `json:"path" yaml:"path"`
+	Port int32  `json:"port" yaml:"port"`
+}
+
+type TCPSocketProbe struct {
+	Port int32 `json:"port" yaml:"port"`
+}
+
+type ExecProbe struct {
+	Command []string `json:"command" yaml:"command"`
 }
 
 type Compute struct {

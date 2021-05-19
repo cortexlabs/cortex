@@ -52,26 +52,26 @@ func apiValidation(resource userconfig.Resource) *cr.StructValidation {
 	switch resource.Kind {
 	case userconfig.RealtimeAPIKind:
 		structFieldValidations = append(resourceStructValidations,
-			podValidation(),
+			podValidation(userconfig.RealtimeAPIKind),
 			networkingValidation(),
 			autoscalingValidation(),
 			updateStrategyValidation(),
 		)
 	case userconfig.AsyncAPIKind:
 		structFieldValidations = append(resourceStructValidations,
-			podValidation(),
+			podValidation(userconfig.AsyncAPIKind),
 			networkingValidation(),
 			autoscalingValidation(),
 			updateStrategyValidation(),
 		)
 	case userconfig.BatchAPIKind:
 		structFieldValidations = append(resourceStructValidations,
-			podValidation(),
+			podValidation(userconfig.BatchAPIKind),
 			networkingValidation(),
 		)
 	case userconfig.TaskAPIKind:
 		structFieldValidations = append(resourceStructValidations,
-			podValidation(),
+			podValidation(userconfig.TaskAPIKind),
 			networkingValidation(),
 		)
 	case userconfig.TrafficSplitterKind:
@@ -140,7 +140,7 @@ func multiAPIsValidation() *cr.StructFieldValidation {
 	}
 }
 
-func podValidation() *cr.StructFieldValidation {
+func podValidation(kind userconfig.Kind) *cr.StructFieldValidation {
 	return &cr.StructFieldValidation{
 		StructField: "Pod",
 		StructValidation: &cr.StructValidation{
@@ -178,13 +178,64 @@ func podValidation() *cr.StructFieldValidation {
 						},
 					},
 				},
-				containersValidation(),
+				containersValidation(kind),
 			},
 		},
 	}
 }
 
-func containersValidation() *cr.StructFieldValidation {
+func containersValidation(kind userconfig.Kind) *cr.StructFieldValidation {
+	validations := []*cr.StructFieldValidation{
+		{
+			StructField: "Name",
+			StringValidation: &cr.StringValidation{
+				Required:         true,
+				AllowEmpty:       false,
+				DNS1035:          true,
+				MaxLength:        63,
+				DisallowedValues: consts.ReservedContainerNames,
+			},
+		},
+		{
+			StructField: "Image",
+			StringValidation: &cr.StringValidation{
+				Required:           true,
+				AllowEmpty:         false,
+				DockerImageOrEmpty: true,
+			},
+		},
+		{
+			StructField: "Env",
+			StringMapValidation: &cr.StringMapValidation{
+				Required:   false,
+				Default:    map[string]string{},
+				AllowEmpty: true,
+			},
+		},
+		{
+			StructField: "Command",
+			StringListValidation: &cr.StringListValidation{
+				Required:          false,
+				AllowExplicitNull: true,
+				AllowEmpty:        true,
+			},
+		},
+		{
+			StructField: "Args",
+			StringListValidation: &cr.StringListValidation{
+				Required:          false,
+				AllowExplicitNull: true,
+				AllowEmpty:        true,
+			},
+		},
+		computeValidation(),
+		probeValidation("LivenessProbe", false),
+	}
+
+	if kind != userconfig.TaskAPIKind {
+		validations = append(validations, probeValidation("ReadinessProbe", true))
+	}
+
 	return &cr.StructFieldValidation{
 		StructField: "Containers",
 		StructListValidation: &cr.StructListValidation{
@@ -192,51 +243,7 @@ func containersValidation() *cr.StructFieldValidation {
 			TreatNullAsEmpty: true,
 			MinLength:        1,
 			StructValidation: &cr.StructValidation{
-				StructFieldValidations: []*cr.StructFieldValidation{
-					{
-						StructField: "Name",
-						StringValidation: &cr.StringValidation{
-							Required:         true,
-							AllowEmpty:       false,
-							DNS1035:          true,
-							MaxLength:        63,
-							DisallowedValues: consts.ReservedContainerNames,
-						},
-					},
-					{
-						StructField: "Image",
-						StringValidation: &cr.StringValidation{
-							Required:           true,
-							AllowEmpty:         false,
-							DockerImageOrEmpty: true,
-						},
-					},
-					{
-						StructField: "Env",
-						StringMapValidation: &cr.StringMapValidation{
-							Required:   false,
-							Default:    map[string]string{},
-							AllowEmpty: true,
-						},
-					},
-					{
-						StructField: "Command",
-						StringListValidation: &cr.StringListValidation{
-							Required:          false,
-							AllowExplicitNull: true,
-							AllowEmpty:        true,
-						},
-					},
-					{
-						StructField: "Args",
-						StringListValidation: &cr.StringListValidation{
-							Required:          false,
-							AllowExplicitNull: true,
-							AllowEmpty:        true,
-						},
-					},
-					computeValidation(),
-				},
+				StructFieldValidations: validations,
 			},
 		},
 	}
@@ -252,6 +259,135 @@ func networkingValidation() *cr.StructFieldValidation {
 					StringPtrValidation: &cr.StringPtrValidation{
 						Validator: urls.ValidateEndpoint,
 						MaxLength: 1000, // no particular reason other than it works
+					},
+				},
+			},
+		},
+	}
+}
+
+func probeValidation(structFieldName string, hasExecProbe bool) *cr.StructFieldValidation {
+	validations := []*cr.StructFieldValidation{
+		httpGetProbeValidation(),
+		tcpSocketProbeValidation(),
+		execProbeValidation(),
+		{
+			StructField: "InitialDelaySeconds",
+			Int32Validation: &cr.Int32Validation{
+				Default:              0,
+				GreaterThanOrEqualTo: pointer.Int32(0),
+			},
+		},
+		{
+			StructField: "TimeoutSeconds",
+			Int32Validation: &cr.Int32Validation{
+				Default:              1,
+				GreaterThanOrEqualTo: pointer.Int32(0),
+			},
+		},
+		{
+			StructField: "PeriodSeconds",
+			Int32Validation: &cr.Int32Validation{
+				Default:              10,
+				GreaterThanOrEqualTo: pointer.Int32(0),
+			},
+		},
+		{
+			StructField: "SuccessThreshold",
+			Int32Validation: &cr.Int32Validation{
+				Default:              1,
+				GreaterThanOrEqualTo: pointer.Int32(0),
+			},
+		},
+		{
+			StructField: "FailureThreshold",
+			Int32Validation: &cr.Int32Validation{
+				Default:              3,
+				GreaterThanOrEqualTo: pointer.Int32(0),
+			},
+		},
+	}
+
+	if hasExecProbe {
+		validations = append(validations)
+	}
+
+	return &cr.StructFieldValidation{
+		StructField: structFieldName,
+		StructValidation: &cr.StructValidation{
+			Required:               false,
+			AllowExplicitNull:      true,
+			DefaultNil:             true,
+			StructFieldValidations: validations,
+		},
+	}
+}
+
+func httpGetProbeValidation() *cr.StructFieldValidation {
+	return &cr.StructFieldValidation{
+		StructField: "HTTPGet",
+		StructValidation: &cr.StructValidation{
+			Required:          false,
+			AllowExplicitNull: true,
+			DefaultNil:        true,
+			StructFieldValidations: []*cr.StructFieldValidation{
+				{
+					StructField: "Path",
+					StringValidation: &cr.StringValidation{
+						Required:  true,
+						Validator: urls.ValidateEndpointWithEmptyPath,
+					},
+				},
+				{
+					StructField: "Port",
+					Int32Validation: &cr.Int32Validation{
+						Required: true,
+						DisallowedValues: []int32{
+							consts.ProxyListeningPortInt32,
+							consts.MetricsPortInt32,
+						},
+					},
+				},
+			},
+		},
+	}
+}
+
+func tcpSocketProbeValidation() *cr.StructFieldValidation {
+	return &cr.StructFieldValidation{
+		StructField: "TCPSocket",
+		StructValidation: &cr.StructValidation{
+			Required:          false,
+			AllowExplicitNull: true,
+			DefaultNil:        true,
+			StructFieldValidations: []*cr.StructFieldValidation{
+				{
+					StructField: "Port",
+					Int32Validation: &cr.Int32Validation{
+						Required: true,
+						DisallowedValues: []int32{
+							consts.ProxyListeningPortInt32,
+							consts.MetricsPortInt32,
+						},
+					},
+				},
+			},
+		},
+	}
+}
+
+func execProbeValidation() *cr.StructFieldValidation {
+	return &cr.StructFieldValidation{
+		StructField: "Exec",
+		StructValidation: &cr.StructValidation{
+			Required:          false,
+			AllowExplicitNull: true,
+			DefaultNil:        true,
+			StructFieldValidations: []*cr.StructFieldValidation{
+				{
+					StructField: "Command",
+					StringListValidation: &cr.StringListValidation{
+						Required: true,
 					},
 				},
 			},
