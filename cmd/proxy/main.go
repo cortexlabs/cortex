@@ -32,6 +32,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/proxy"
 	"github.com/cortexlabs/cortex/pkg/types/clusterconfig"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
+	"go.uber.org/zap"
 )
 
 const (
@@ -193,9 +194,11 @@ func main() {
 			log.Infof("Shutting down %s server", name)
 			if err := server.Shutdown(context.Background()); err != nil {
 				// Error from closing listeners, or context timeout:
-				Exit(errors.Wrap(err, "HTTP server Shutdown Error"))
+				log.Warn("HTTP server Shutdown Error", zap.Error(err))
+				telemetry.Error(errors.Wrap(err, "HTTP server Shutdown Error"))
 			}
 		}
 		log.Info("Shutdown complete, exiting...")
+		telemetry.Close()
 	}
 }

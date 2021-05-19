@@ -183,14 +183,6 @@ func UserPodContainers(api spec.API) ([]kcore.Container, []kcore.Volume) {
 
 		containerEnvVars := []kcore.EnvVar{
 			{
-				Name: "HOST_IP",
-				ValueFrom: &kcore.EnvVarSource{
-					FieldRef: &kcore.ObjectFieldSelector{
-						FieldPath: "status.hostIP",
-					},
-				},
-			},
-			{
 				Name:  "CORTEX_PORT",
 				Value: s.Int32(*api.Pod.Port),
 			},

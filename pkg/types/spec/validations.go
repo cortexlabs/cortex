@@ -614,9 +614,6 @@ func validateContainers(
 			if strings.HasPrefix(key, "CORTEX_") || strings.HasPrefix(key, "KUBEXIT_") {
 				return errors.Wrap(ErrorCortexPrefixedEnvVarNotAllowed("CORTEX_", "KUBEXIT_"), strconv.FormatInt(int64(i), 10), userconfig.EnvKey, key)
 			}
-			if key == "HOST_IP" {
-				return errors.Wrap(ErrorDisallowedEnvVars(key), strconv.FormatInt(int64(i), 10), userconfig.EnvKey, key)
-			}
 		}
 	}
 
