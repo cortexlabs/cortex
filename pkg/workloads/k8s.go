@@ -33,23 +33,33 @@ import (
 )
 
 const (
-	DefaultPortInt32   = int32(8888)
-	DefaultPortStr     = "8888"
 	ServiceAccountName = "default"
 )
 
 const (
-	_clientConfigDir    = "/mnt/client"
-	_emptyDirMountPath  = "/mnt"
+	_cortexDirVolumeName = "cortex"
+	_cortexDirMountPath  = "/cortex"
+	_clientConfigDir     = "/cortex/client"
+
 	_emptyDirVolumeName = "mnt"
+	_emptyDirMountPath  = "/mnt"
+
+	_proxyContainerName = "proxy"
 
 	_gatewayContainerName = "gateway"
 
-	_neuronRTDContainerName = "neuron-rtd"
-	_neuronRTDSocket        = "/sock/neuron.sock"
-
 	_kubexitGraveyardName      = "graveyard"
 	_kubexitGraveyardMountPath = "/graveyard"
+
+	_shmDirVolumeName = "dshm"
+	_shmDirMountPath  = "/dev/shm"
+
+	_clientConfigDirVolume = "client-config"
+	_clientConfigConfigMap = "client-config"
+
+	_clusterConfigDirVolume = "cluster-config"
+	_clusterConfigConfigMap = "cluster-config"
+	_clusterConfigDir       = "/configs/cluster"
 )
 
 var (
@@ -69,13 +79,13 @@ func AsyncGatewayContainer(api spec.API, queueURL string, volumeMounts []kcore.V
 		Image:           config.ClusterConfig.ImageAsyncGateway,
 		ImagePullPolicy: kcore.PullAlways,
 		Args: []string{
-			"-port", s.Int32(DefaultPortInt32),
+			"-port", s.Int32(consts.ProxyListeningPortInt32),
 			"-queue", queueURL,
 			"-cluster-config", consts.DefaultInClusterConfigPath,
 			api.Name,
 		},
 		Ports: []kcore.ContainerPort{
-			{ContainerPort: DefaultPortInt32},
+			{ContainerPort: consts.ProxyListeningPortInt32},
 		},
 		Env: []kcore.EnvVar{
 			{
@@ -111,31 +121,35 @@ func AsyncGatewayContainer(api spec.API, queueURL string, volumeMounts []kcore.V
 
 func UserPodContainers(api spec.API) ([]kcore.Container, []kcore.Volume) {
 	requiresKubexit := api.Kind == userconfig.BatchAPIKind || api.Kind == userconfig.TaskAPIKind
-	volumes := defaultVolumes(requiresKubexit)
 
-	containerMounts := []kcore.VolumeMount{}
+	volumes := []kcore.Volume{
+		MntVolume(),
+		CortexVolume(),
+		ClientConfigVolume(),
+	}
+	containerMounts := []kcore.VolumeMount{
+		MntMount(),
+		CortexMount(),
+		ClientConfigMount(),
+	}
+
+	if requiresKubexit {
+		volumes = append(volumes, KubexitVolume())
+		containerMounts = append(containerMounts, KubexitMount())
+	}
 	if api.Pod.ShmSize != nil {
-		volumes = append(volumes, kcore.Volume{
-			Name: "dshm",
-			VolumeSource: kcore.VolumeSource{
-				EmptyDir: &kcore.EmptyDirVolumeSource{
-					Medium:    kcore.StorageMediumMemory,
-					SizeLimit: k8s.QuantityPtr(api.Pod.ShmSize.Quantity),
-				},
-			},
-		})
-		containerMounts = append(containerMounts, kcore.VolumeMount{
-			Name:      "dshm",
-			MountPath: "/dev/shm",
-		})
+		volumes = append(volumes, ShmVolume(api.Pod.ShmSize.Quantity))
+		containerMounts = append(containerMounts, ShmMount())
 	}
 
 	var containers []kcore.Container
-	var podHasInf bool
 	containerNames := userconfig.GetContainerNames(api.Pod.Containers)
 	for _, container := range api.Pod.Containers {
 		containerResourceList := kcore.ResourceList{}
 		containerResourceLimitsList := kcore.ResourceList{}
+		securityContext := kcore.SecurityContext{
+			Privileged: pointer.Bool(true),
+		}
 
 		if container.Compute.CPU != nil {
 			containerResourceList[kcore.ResourceCPU] = *k8s.QuantityPtr(container.Compute.CPU.Quantity.DeepCopy())
@@ -150,43 +164,35 @@ func UserPodContainers(api spec.API) ([]kcore.Container, []kcore.Volume) {
 			containerResourceLimitsList["nvidia.com/gpu"] = *kresource.NewQuantity(container.Compute.GPU, kresource.DecimalSI)
 		}
 
-		containerVolumeMounts := append(defaultVolumeMounts(requiresKubexit), containerMounts...)
+		containerVolumeMounts := containerMounts
+
 		if container.Compute.Inf > 0 {
-			volumes = append(volumes, kcore.Volume{
-				Name: "neuron-sock",
-			})
-			rtdVolumeMounts := []kcore.VolumeMount{
-				{
-					Name:      "neuron-sock",
-					MountPath: "/sock",
+			totalHugePages := container.Compute.Inf * _hugePagesMemPerInf
+			containerResourceList["nvidia.com/gpu"] = *kresource.NewQuantity(container.Compute.Inf, kresource.DecimalSI)
+			containerResourceList["hugepages-2Mi"] = *kresource.NewQuantity(totalHugePages, kresource.BinarySI)
+			containerResourceLimitsList["nvidia.com/gpu"] = *kresource.NewQuantity(container.Compute.Inf, kresource.DecimalSI)
+			containerResourceLimitsList["hugepages-2Mi"] = *kresource.NewQuantity(totalHugePages, kresource.BinarySI)
+
+			securityContext.Capabilities = &kcore.Capabilities{
+				Add: []kcore.Capability{
+					"SYS_ADMIN",
+					"IPC_LOCK",
 				},
 			}
-
-			containerVolumeMounts = append(containerVolumeMounts, rtdVolumeMounts...)
-
-			if requiresKubexit {
-				rtdVolumeMounts = append(rtdVolumeMounts,
-					k8s.EmptyDirVolumeMount(_emptyDirVolumeName, _emptyDirMountPath),
-					kcore.VolumeMount{Name: _kubexitGraveyardName, MountPath: _kubexitGraveyardMountPath},
-				)
-				neuronRTDEnvVars := getKubexitEnvVars(_neuronRTDContainerName, containerNames.Slice(), nil)
-				containers = append(containers, neuronRuntimeDaemonContainer(container.Compute.Inf, rtdVolumeMounts, neuronRTDEnvVars))
-			} else {
-				containers = append(containers, neuronRuntimeDaemonContainer(container.Compute.Inf, rtdVolumeMounts, nil))
-			}
-
-			podHasInf = true
 		}
 
-		var containerEnvVars []kcore.EnvVar
+		containerEnvVars := []kcore.EnvVar{}
+		if api.Kind != userconfig.TaskAPIKind {
+			containerEnvVars = append(containerEnvVars, kcore.EnvVar{
+				Name:  "CORTEX_PORT",
+				Value: s.Int32(*api.Pod.Port),
+			})
+		}
+
 		if requiresKubexit {
 			containerDeathDependencies := containerNames.Copy()
 			containerDeathDependencies.Remove(container.Name)
-			if podHasInf {
-				containerEnvVars = getKubexitEnvVars(container.Name, containerDeathDependencies.Slice(), []string{"neuron-rtd"})
-			} else {
-				containerEnvVars = getKubexitEnvVars(container.Name, containerDeathDependencies.Slice(), nil)
-			}
+			containerEnvVars = getKubexitEnvVars(container.Name, containerDeathDependencies.Slice(), nil)
 		}
 
 		for k, v := range container.Env {
@@ -195,18 +201,10 @@ func UserPodContainers(api spec.API) ([]kcore.Container, []kcore.Volume) {
 				Value: v,
 			})
 		}
-		containerEnvVars = append(containerEnvVars, kcore.EnvVar{
-			Name: "HOST_IP",
-			ValueFrom: &kcore.EnvVarSource{
-				FieldRef: &kcore.ObjectFieldSelector{
-					FieldPath: "status.hostIP",
-				},
-			},
-		})
 
 		var containerCmd []string
-		if requiresKubexit && container.Command[0] != "/mnt/kubexit" {
-			containerCmd = append([]string{"/mnt/kubexit"}, container.Command...)
+		if requiresKubexit && container.Command[0] != "/cortex/kubexit" {
+			containerCmd = append([]string{"/cortex/kubexit"}, container.Command...)
 		}
 
 		containers = append(containers, kcore.Container{
@@ -220,16 +218,9 @@ func UserPodContainers(api spec.API) ([]kcore.Container, []kcore.Volume) {
 				Requests: containerResourceList,
 				Limits:   containerResourceLimitsList,
 			},
-			Ports: []kcore.ContainerPort{
-				{
-					ContainerPort: int32(8888),
-				},
-			},
 			ImagePullPolicy: kcore.PullAlways,
-			SecurityContext: &kcore.SecurityContext{
-				Privileged: pointer.Bool(true),
-			}},
-		)
+			SecurityContext: &securityContext,
+		})
 	}
 
 	return containers, volumes
@@ -333,34 +324,40 @@ func GenerateNodeAffinities(apiNodeGroups []string) *kcore.Affinity {
 	}
 }
 
-func neuronRuntimeDaemonContainer(computeInf int64, volumeMounts []kcore.VolumeMount, envVars []kcore.EnvVar) kcore.Container {
-	totalHugePages := computeInf * _hugePagesMemPerInf
+func RealtimeProxyContainer(api spec.API) (kcore.Container, kcore.Volume) {
 	return kcore.Container{
-		Name:            _neuronRTDContainerName,
-		Image:           config.ClusterConfig.ImageNeuronRTD,
+		Name:            _proxyContainerName,
+		Image:           config.ClusterConfig.ImageProxy,
 		ImagePullPolicy: kcore.PullAlways,
-		Env:             envVars,
-		SecurityContext: &kcore.SecurityContext{
-			Capabilities: &kcore.Capabilities{
-				Add: []kcore.Capability{
-					"SYS_ADMIN",
-					"IPC_LOCK",
-				},
+		Args: []string{
+			"-port",
+			consts.ProxyListeningPortStr,
+			"-metrics-port",
+			consts.MetricsPortStr,
+			"-user-port",
+			s.Int32(*api.Pod.Port),
+			"-max-concurrency",
+			s.Int32(int32(api.Autoscaling.MaxConcurrency)),
+			"-max-queue-length",
+			s.Int32(int32(api.Autoscaling.MaxQueueLength)),
+			"-cluster-config",
+			consts.DefaultInClusterConfigPath,
+		},
+		Ports: []kcore.ContainerPort{
+			{Name: "metrics", ContainerPort: consts.MetricsPortInt32},
+			{ContainerPort: consts.ProxyListeningPortInt32},
+		},
+		Env: []kcore.EnvVar{
+			{
+				Name:  "CORTEX_LOG_LEVEL",
+				Value: strings.ToUpper(userconfig.InfoLogLevel.String()),
 			},
 		},
-		VolumeMounts:   volumeMounts,
-		ReadinessProbe: SocketExistsProbe(_neuronRTDSocket),
-		Resources: kcore.ResourceRequirements{
-			Requests: kcore.ResourceList{
-				"hugepages-2Mi":         *kresource.NewQuantity(totalHugePages, kresource.BinarySI),
-				"aws.amazon.com/neuron": *kresource.NewQuantity(computeInf, kresource.DecimalSI),
-			},
-			Limits: kcore.ResourceList{
-				"hugepages-2Mi":         *kresource.NewQuantity(totalHugePages, kresource.BinarySI),
-				"aws.amazon.com/neuron": *kresource.NewQuantity(computeInf, kresource.DecimalSI),
-			},
+		EnvFrom: baseClusterEnvVars(),
+		VolumeMounts: []kcore.VolumeMount{
+			ClusterConfigMount(),
 		},
-	}
+	}, ClusterConfigVolume()
 }
 
 // func getAsyncAPIEnvVars(api spec.API, queueURL string) []kcore.EnvVar {
@@ -378,33 +375,4 @@ func neuronRuntimeDaemonContainer(computeInf int64, volumeMounts []kcore.VolumeM
 // 	)
 
 // 	return envVars
-// }
-
-// func RequestMonitorContainer(api *spec.API) kcore.Container {
-// 	requests := kcore.ResourceList{}
-// 	if api.Compute != nil {
-// 		if api.Compute.CPU != nil {
-// 			requests[kcore.ResourceCPU] = _requestMonitorCPURequest
-// 		}
-// 		if api.Compute.Mem != nil {
-// 			requests[kcore.ResourceMemory] = _requestMonitorMemRequest
-// 		}
-// 	}
-
-// 	return kcore.Container{
-// 		Name:            _requestMonitorContainerName,
-// 		Image:           config.ClusterConfig.ImageRequestMonitor,
-// 		ImagePullPolicy: kcore.PullAlways,
-// 		Args:            []string{"-p", DefaultRequestMonitorPortStr},
-// 		Ports: []kcore.ContainerPort{
-// 			{Name: "metrics", ContainerPort: DefaultRequestMonitorPortInt32},
-// 		},
-// 		Env:            requestMonitorEnvVars(api),
-// 		EnvFrom:        baseEnvVars(),
-// 		VolumeMounts:   defaultVolumeMounts(),
-// 		ReadinessProbe: FileExistsProbe(_requestMonitorReadinessFile),
-// 		Resources: kcore.ResourceRequirements{
-// 			Requests: requests,
-// 		},
-// 	}
 // }
