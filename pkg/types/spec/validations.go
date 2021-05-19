@@ -148,6 +148,7 @@ func podValidation() *cr.StructFieldValidation {
 				{
 					StructField: "ShmSize",
 					StringPtrValidation: &cr.StringPtrValidation{
+						Required:          false,
 						Default:           nil,
 						AllowExplicitNull: true,
 					},
@@ -162,6 +163,18 @@ func podValidation() *cr.StructFieldValidation {
 						AllowEmpty:        false,
 						ElementStringValidation: &cr.StringValidation{
 							AlphaNumericDashUnderscore: true,
+						},
+					},
+				},
+				{
+					StructField: "Port",
+					Int32PtrValidation: &cr.Int32PtrValidation{
+						Required:          false,
+						Default:           nil, // it's a pointer because it's not required for the task API
+						AllowExplicitNull: true,
+						DisallowedValues: []int32{
+							consts.ProxyListeningPortInt32,
+							consts.MetricsPortInt32,
 						},
 					},
 				},
@@ -318,29 +331,29 @@ func autoscalingValidation() *cr.StructFieldValidation {
 					},
 				},
 				{
-					StructField: "MaxReplicaQueueLength",
+					StructField: "MaxQueueLength",
 					Int64Validation: &cr.Int64Validation{
-						Default:     consts.DefaultMaxReplicaQueueLength,
+						Default:     consts.DefaultMaxQueueLength,
 						GreaterThan: pointer.Int64(0),
-						// our configured nginx can theoretically accept up to 32768 connections, but during testing,
+						// the proxy can theoretically accept up to 32768 connections, but during testing,
 						// it has been observed that the number is just slightly lower, so it has been offset by 2678
 						LessThanOrEqualTo: pointer.Int64(30000),
 					},
 				},
 				{
-					StructField: "MaxReplicaConcurrency",
+					StructField: "MaxConcurrency",
 					Int64Validation: &cr.Int64Validation{
-						Default:     consts.DefaultMaxReplicaConcurrency,
+						Default:     consts.DefaultMaxConcurrency,
 						GreaterThan: pointer.Int64(0),
-						// our configured nginx can theoretically accept up to 32768 connections, but during testing,
+						// the proxy can theoretically accept up to 32768 connections, but during testing,
 						// it has been observed that the number is just slightly lower, so it has been offset by 2678
 						LessThanOrEqualTo: pointer.Int64(30000),
 					},
 				},
 				{
-					StructField: "TargetReplicaConcurrency",
-					Float64Validation: &cr.Float64Validation{
-						Default:     consts.DefaultTargetReplicaConcurrency,
+					StructField: "TargetInFlight",
+					Float64PtrValidation: &cr.Float64PtrValidation{
+						Default:     nil,
 						GreaterThan: pointer.Float64(0),
 					},
 				},
@@ -555,6 +568,13 @@ func validatePod(
 		}
 	}
 
+	if api.Pod.Port != nil && api.Kind == userconfig.TaskAPIKind {
+		return ErrorFieldIsNotSupportedForKind(userconfig.PortKey, api.Kind)
+	}
+	if api.Pod.Port == nil && api.Kind != userconfig.TaskAPIKind {
+		api.Pod.Port = pointer.Int32(consts.DefaultUserPodPortInt32)
+	}
+
 	if err := validateCompute(totalCompute); err != nil {
 		return errors.Wrap(err, userconfig.ComputeKey)
 	}
@@ -581,7 +601,7 @@ func validateContainers(
 		containerNames = append(containerNames, container.Name)
 
 		if container.Command == nil && (kind == userconfig.BatchAPIKind || kind == userconfig.TaskAPIKind) {
-			return errors.Wrap(ErrorFieldCannotBeEmptyForKind(userconfig.CommandKey, kind), strconv.FormatInt(int64(i), 10), userconfig.CommandKey)
+			return errors.Wrap(ErrorFieldMustBeSpecifiedForKind(userconfig.CommandKey, kind), strconv.FormatInt(int64(i), 10), userconfig.CommandKey)
 		}
 
 		if err := validateDockerImagePath(container.Image, awsClient, k8sClient); err != nil {
@@ -601,8 +621,12 @@ func validateContainers(
 func validateAutoscaling(api *userconfig.API) error {
 	autoscaling := api.Autoscaling
 
-	if autoscaling.TargetReplicaConcurrency > float64(autoscaling.MaxReplicaConcurrency) {
-		return ErrorConfigGreaterThanOtherConfig(userconfig.TargetReplicaConcurrencyKey, autoscaling.TargetReplicaConcurrency, userconfig.MaxReplicaConcurrencyKey, autoscaling.MaxReplicaConcurrency)
+	if autoscaling.TargetInFlight == nil {
+		autoscaling.TargetInFlight = pointer.Float64(float64(autoscaling.MaxConcurrency))
+	}
+
+	if *autoscaling.TargetInFlight > float64(autoscaling.MaxConcurrency)+float64(autoscaling.MaxQueueLength) {
+		return ErrorTargetInFlightLimitReached(*autoscaling.TargetInFlight, autoscaling.MaxConcurrency, autoscaling.MaxQueueLength)
 	}
 
 	if autoscaling.MinReplicas > autoscaling.MaxReplicas {

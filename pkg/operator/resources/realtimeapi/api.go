@@ -116,7 +116,11 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string, force bool) (*spec.A
 }
 
 func RefreshAPI(apiName string, force bool) (string, error) {
-	prevDeployment, err := config.K8s.GetDeployment(workloads.K8sName(apiName))
+	prevDeployment, prevService, prevVirtualService, err := getK8sResources(&userconfig.API{
+		Resource: userconfig.Resource{
+			Name: apiName,
+		},
+	})
 	if err != nil {
 		return "", err
 	} else if prevDeployment == nil {
@@ -153,7 +157,7 @@ func RefreshAPI(apiName string, force bool) (string, error) {
 		return "", errors.Wrap(err, "upload handler spec")
 	}
 
-	if err := applyK8sDeployment(api, prevDeployment); err != nil {
+	if err := applyK8sResources(api, prevDeployment, prevService, prevVirtualService); err != nil {
 		return "", err
 	}
 
