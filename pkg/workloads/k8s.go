@@ -181,12 +181,14 @@ func UserPodContainers(api spec.API) ([]kcore.Container, []kcore.Volume) {
 			}
 		}
 
-		containerEnvVars := []kcore.EnvVar{
-			{
+		containerEnvVars := []kcore.EnvVar{}
+		if api.Kind != userconfig.TaskAPIKind {
+			containerEnvVars = append(containerEnvVars, kcore.EnvVar{
 				Name:  "CORTEX_PORT",
 				Value: s.Int32(*api.Pod.Port),
-			},
+			})
 		}
+
 		if requiresKubexit {
 			containerDeathDependencies := containerNames.Copy()
 			containerDeathDependencies.Remove(container.Name)
@@ -201,8 +203,8 @@ func UserPodContainers(api spec.API) ([]kcore.Container, []kcore.Volume) {
 		}
 
 		var containerCmd []string
-		if requiresKubexit && container.Command[0] != "/mnt/kubexit" {
-			containerCmd = append([]string{"/mnt/kubexit"}, container.Command...)
+		if requiresKubexit && container.Command[0] != "/cortex/kubexit" {
+			containerCmd = append([]string{"/cortex/kubexit"}, container.Command...)
 		}
 
 		containers = append(containers, kcore.Container{
