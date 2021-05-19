@@ -19,6 +19,7 @@ package main
 import (
 	"context"
 	"flag"
+	"io/ioutil"
 	"net/http"
 	"os"
 	"os/signal"
@@ -44,6 +45,7 @@ func main() {
 		userContainerPort int
 		maxConcurrency    int
 		maxQueueLength    int
+		probeDefPath      string
 	)
 
 	flag.IntVar(&port, "port", 8000, "port where the proxy server will be exposed")
@@ -52,6 +54,7 @@ func main() {
 	flag.IntVar(&userContainerPort, "user-port", 8080, "port where the proxy will redirect to the traffic to")
 	flag.IntVar(&maxConcurrency, "max-concurrency", 0, "max concurrency allowed for user container")
 	flag.IntVar(&maxQueueLength, "max-queue-length", 0, "max request queue length for user container")
+	flag.StringVar(&probeDefPath, "probe", "", "path to the desired probe json definition")
 	flag.Parse()
 
 	log := logging.GetLogger()
@@ -79,7 +82,21 @@ func main() {
 	)
 
 	promStats := proxy.NewPrometheusStatsReporter()
-	readinessProbe := probe.NewDefaultProbe(log, target) // TODO: initialize custom probe from flags
+
+	readinessProbe := probe.NewDefaultProbe(log, target)
+	if probeDefPath != "" {
+		jsonProbe, err := ioutil.ReadFile(probeDefPath)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		probeDef, err := probe.DecodeJSON(string(jsonProbe))
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		readinessProbe = probe.NewProbe(probeDef, log)
+	}
 
 	go func() {
 		reportTicker := time.NewTicker(_reportInterval)
