@@ -2,7 +2,7 @@ import json, re, os, boto3
 
 
 def main():
-    with open("/mnt/job_spec.json", "r") as f:
+    with open("/cortex/job_spec.json", "r") as f:
         job_spec = json.load(f)
     print(json.dumps(job_spec, indent=2))
 
