@@ -42,11 +42,7 @@ const (
 	_requestSampleInterval = 1 * time.Second
 )
 
-var (
-	proxyLogger = logging.GetLogger()
-)
-
-func Exit(err error, wrapStrs ...string) {
+func exit(log *zap.SugaredLogger, err error, wrapStrs ...string) {
 	for _, str := range wrapStrs {
 		err = errors.Wrap(err, str)
 	}
@@ -56,11 +52,10 @@ func Exit(err error, wrapStrs ...string) {
 	}
 
 	if err != nil && !errors.IsNoPrint(err) {
-		proxyLogger.Error(err)
+		log.Error(err)
 	}
 
 	telemetry.Close()
-
 	os.Exit(1)
 }
 
@@ -100,17 +95,17 @@ func main() {
 
 	clusterConfig, err := clusterconfig.NewForFile(clusterConfigPath)
 	if err != nil {
-		Exit(err)
+		exit(log, err)
 	}
 
 	awsClient, err := aws.NewForRegion(clusterConfig.Region)
 	if err != nil {
-		Exit(err)
+		exit(log, err)
 	}
 
 	_, userID, err := awsClient.CheckCredentials()
 	if err != nil {
-		Exit(err)
+		exit(log, err)
 	}
 
 	err = telemetry.Init(telemetry.Config{
@@ -125,7 +120,7 @@ func main() {
 		BackoffMode: telemetry.BackoffDuplicateMessages,
 	})
 	if err != nil {
-		Exit(err)
+		exit(log, err)
 	}
 
 	target := "http://127.0.0.1:" + strconv.Itoa(userContainerPort)
@@ -206,8 +201,8 @@ func main() {
 	signal.Notify(sigint, os.Interrupt)
 
 	select {
-	case err := <-errCh:
-		Exit(errors.Wrap(err, "failed to start proxy server"))
+	case err = <-errCh:
+		exit(log, errors.Wrap(err, "failed to start proxy server"))
 	case <-sigint:
 		// We received an interrupt signal, shut down.
 		log.Info("Received TERM signal, handling a graceful shutdown...")
