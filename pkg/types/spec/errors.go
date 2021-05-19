@@ -35,9 +35,9 @@ const (
 	ErrDuplicateEndpointInOneDeploy = "spec.duplicate_endpoint_in_one_deploy"
 	ErrDuplicateEndpoint            = "spec.duplicate_endpoint"
 	ErrDuplicateContainerName       = "spec.duplicate_container_name"
-	ErrConflictingFields            = "spec.conflicting_fields"
+	ErrCantSpecifyBoth              = "spec.cant_specify_both"
 	ErrSpecifyOnlyOneField          = "spec.specify_only_one_field"
-	ErrSpecifyOneOrTheOther         = "spec.specify_one_or_the_other"
+	ErrNoneSpecified                = "spec.none_specified"
 	ErrSpecifyAllOrNone             = "spec.specify_all_or_none"
 	ErrOneOfPrerequisitesNotDefined = "spec.one_of_prerequisites_not_defined"
 	ErrConfigGreaterThanOtherConfig = "spec.config_greater_than_other_config"
@@ -45,17 +45,17 @@ const (
 	ErrMinReplicasGreaterThanMax  = "spec.min_replicas_greater_than_max"
 	ErrInitReplicasGreaterThanMax = "spec.init_replicas_greater_than_max"
 	ErrInitReplicasLessThanMin    = "spec.init_replicas_less_than_min"
+	ErrTargetInFlightLimitReached = "spec.target_in_flight_limit_reached"
 
 	ErrInvalidSurgeOrUnavailable   = "spec.invalid_surge_or_unavailable"
 	ErrSurgeAndUnavailableBothZero = "spec.surge_and_unavailable_both_zero"
 
 	ErrShmSizeCannotExceedMem = "spec.shm_size_cannot_exceed_mem"
 
-	ErrFieldCannotBeEmptyForKind      = "spec.field_cannot_be_empty_for_kind"
+	ErrFieldMustBeSpecifiedForKind    = "spec.field_must_be_specified_for_kind"
+	ErrFieldIsNotSupportedForKind     = "spec.field_is_not_supported_for_kind"
 	ErrCortexPrefixedEnvVarNotAllowed = "spec.cortex_prefixed_env_var_not_allowed"
-	ErrRegistryInDifferentRegion      = "spec.registry_in_different_region"
-	ErrRegistryAccountIDMismatch      = "spec.registry_account_id_mismatch"
-	ErrKeyIsNotSupportedForKind       = "spec.key_is_not_supported_for_kind"
+	ErrDisallowedEnvVars              = "spec.disallowed_env_vars"
 	ErrComputeResourceConflict        = "spec.compute_resource_conflict"
 	ErrInvalidNumberOfInfs            = "spec.invalid_number_of_infs"
 	ErrIncorrectTrafficSplitterWeight = "spec.incorrect_traffic_splitter_weight"
@@ -116,10 +116,10 @@ func ErrorDuplicateContainerName(containerName string) error {
 	})
 }
 
-func ErrorConflictingFields(fieldKeyA, fieldKeyB string) error {
+func ErrorCantSpecifyBoth(fieldKeyA, fieldKeyB string) error {
 	return errors.WithStack(&errors.Error{
-		Kind:    ErrConflictingFields,
-		Message: fmt.Sprintf("please specify either the %s or %s field (both cannot be specified at the same time)", fieldKeyA, fieldKeyB),
+		Kind:    ErrCantSpecifyBoth,
+		Message: fmt.Sprintf("please specify either %s or %s (both cannot be specified at the same time)", fieldKeyA, fieldKeyB),
 	})
 }
 
@@ -130,10 +130,10 @@ func ErrorSpecifyOnlyOneField(fields ...string) error {
 	})
 }
 
-func ErrorSpecifyOneOrTheOther(fieldKeyA, fieldKeyB string) error {
+func ErrorNoneSpecified(fieldKeyA, fieldKeyB string) error {
 	return errors.WithStack(&errors.Error{
-		Kind:    ErrSpecifyOneOrTheOther,
-		Message: fmt.Sprintf("please specify either the %s field or %s field (cannot be both empty at the same time)", fieldKeyA, fieldKeyB),
+		Kind:    ErrNoneSpecified,
+		Message: fmt.Sprintf("please specify either %s or %s (cannot be both empty at the same time)", fieldKeyA, fieldKeyB),
 	})
 }
 
@@ -188,6 +188,13 @@ func ErrorInitReplicasLessThanMin(init int32, min int32) error {
 	})
 }
 
+func ErrorTargetInFlightLimitReached(targetInFlight float64, maxConcurrency, maxQueueLength int64) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrTargetInFlightLimitReached,
+		Message: fmt.Sprintf("%s cannot be greater than %s + %s (%f > %d + %d)", userconfig.TargetInFlightKey, userconfig.MaxConcurrencyKey, userconfig.MaxQueueLengthKey, targetInFlight, maxConcurrency, maxQueueLength),
+	})
+}
+
 func ErrorInvalidSurgeOrUnavailable(val string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrInvalidSurgeOrUnavailable,
@@ -209,10 +216,17 @@ func ErrorShmSizeCannotExceedMem(shmSize k8s.Quantity, mem k8s.Quantity) error {
 	})
 }
 
-func ErrorFieldCannotBeEmptyForKind(field string, kind userconfig.Kind) error {
+func ErrorFieldMustBeSpecifiedForKind(field string, kind userconfig.Kind) error {
 	return errors.WithStack(&errors.Error{
-		Kind:    ErrFieldCannotBeEmptyForKind,
-		Message: fmt.Sprintf("field %s cannot be empty for %s kind", field, kind.String()),
+		Kind:    ErrFieldMustBeSpecifiedForKind,
+		Message: fmt.Sprintf("%s must be specified for %s kind", field, kind.String()),
+	})
+}
+
+func ErrorFieldIsNotSupportedForKind(field string, kind userconfig.Kind) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrFieldIsNotSupportedForKind,
+		Message: fmt.Sprintf("%s is not supported for %s kind", field, kind.String()),
 	})
 }
 
@@ -223,24 +237,10 @@ func ErrorCortexPrefixedEnvVarNotAllowed(prefixes ...string) error {
 	})
 }
 
-func ErrorRegistryInDifferentRegion(registryRegion string, awsClientRegion string) error {
+func ErrorDisallowedEnvVars(disallowedValues ...string) error {
 	return errors.WithStack(&errors.Error{
-		Kind:    ErrRegistryInDifferentRegion,
-		Message: fmt.Sprintf("registry region (%s) does not match cortex's region (%s); images can only be pulled from repositories in the same region as cortex", registryRegion, awsClientRegion),
-	})
-}
-
-func ErrorRegistryAccountIDMismatch(regID, opID string) error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrRegistryAccountIDMismatch,
-		Message: fmt.Sprintf("registry account ID (%s) doesn't match your AWS account ID (%s), and using an ECR registry in a different AWS account is not supported", regID, opID),
-	})
-}
-
-func ErrorKeyIsNotSupportedForKind(key string, kind userconfig.Kind) error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrKeyIsNotSupportedForKind,
-		Message: fmt.Sprintf("%s key is not supported for %s kind", key, kind.String()),
+		Kind:    ErrDisallowedEnvVars,
+		Message: fmt.Sprintf("environment %s %s %s disallowed", s.PluralS("variables", len(disallowedValues)), s.StrsAnd(disallowedValues), s.PluralIs(len(disallowedValues))),
 	})
 }
 

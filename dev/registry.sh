@@ -222,7 +222,7 @@ elif [ "$cmd" = "create" ]; then
 # usage: registry.sh update-single IMAGE
 elif [ "$cmd" = "update-single" ]; then
   image=$sub_cmd
-  if [ "$image" = "operator" ] || [ "$image" = "request-monitor" ]; then
+  if [ "$image" = "operator" ] || [ "$image" = "proxy" ]; then
     cache_builder $image
   fi
   build_and_push $image
@@ -245,8 +245,8 @@ elif [ "$cmd" = "update" ]; then
   if [[ " ${images_to_build[@]} " =~ " operator " ]]; then
     cache_builder operator
   fi
-  if [[ " ${images_to_build[@]} " =~ " request-monitor " ]]; then
-    cache_builder request-monitor
+  if [[ " ${images_to_build[@]} " =~ " proxy " ]]; then
+    cache_builder proxy
   fi
   if [[ " ${images_to_build[@]} " =~ " async-gateway " ]]; then
     cache_builder async-gateway

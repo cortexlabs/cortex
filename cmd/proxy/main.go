@@ -19,14 +19,21 @@ package main
 import (
 	"context"
 	"flag"
+	"io/ioutil"
 	"net/http"
 	"os"
 	"os/signal"
 	"strconv"
 	"time"
 
+	"github.com/cortexlabs/cortex/pkg/lib/aws"
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/logging"
+	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	"github.com/cortexlabs/cortex/pkg/proxy"
+	"github.com/cortexlabs/cortex/pkg/proxy/probe"
+	"github.com/cortexlabs/cortex/pkg/types/clusterconfig"
+	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	"go.uber.org/zap"
 )
 
@@ -38,17 +45,21 @@ const (
 func main() {
 	var (
 		port              int
-		metricsPort       int
+		adminPort         int
 		userContainerPort int
 		maxConcurrency    int
 		maxQueueLength    int
+		probeDefPath      string
+		clusterConfigPath string
 	)
 
-	flag.IntVar(&port, "port", 8000, "port where the proxy will be served")
-	flag.IntVar(&metricsPort, "metrics-port", 8001, "port where the proxy will be served")
+	flag.IntVar(&port, "port", 8000, "port where the proxy server will be exposed")
+	flag.IntVar(&adminPort, "admin-port", 15000, "port where the admin server (for metrics and probes) will be exposed")
 	flag.IntVar(&userContainerPort, "user-port", 8080, "port where the proxy will redirect to the traffic to")
 	flag.IntVar(&maxConcurrency, "max-concurrency", 0, "max concurrency allowed for user container")
 	flag.IntVar(&maxQueueLength, "max-queue-length", 0, "max request queue length for user container")
+	flag.StringVar(&clusterConfigPath, "cluster-config", "", "cluster config path")
+	flag.StringVar(&probeDefPath, "probe", "", "path to the desired probe json definition")
 	flag.Parse()
 
 	log := logging.GetLogger()
@@ -60,10 +71,42 @@ func main() {
 	case maxConcurrency == 0:
 		log.Fatal("--max-concurrency flag is required")
 	case maxQueueLength == 0:
-		maxQueueLength = maxConcurrency * 10
+		log.Fatal("--max-queue-length flag is required")
+	case clusterConfigPath == "":
+		log.Fatal("--cluster-config flag is required")
 	}
 
-	target := "http://127.0.0.1:" + strconv.Itoa(port)
+	clusterConfig, err := clusterconfig.NewForFile(clusterConfigPath)
+	if err != nil {
+		exit(log, err)
+	}
+
+	awsClient, err := aws.NewForRegion(clusterConfig.Region)
+	if err != nil {
+		exit(log, err)
+	}
+
+	_, userID, err := awsClient.CheckCredentials()
+	if err != nil {
+		exit(log, err)
+	}
+
+	err = telemetry.Init(telemetry.Config{
+		Enabled: clusterConfig.Telemetry,
+		UserID:  userID,
+		Properties: map[string]string{
+			"kind":       userconfig.RealtimeAPIKind.String(),
+			"image_type": "proxy",
+		},
+		Environment: "api",
+		LogErrors:   true,
+		BackoffMode: telemetry.BackoffDuplicateMessages,
+	})
+	if err != nil {
+		exit(log, err)
+	}
+
+	target := "http://127.0.0.1:" + strconv.Itoa(userContainerPort)
 	httpProxy := proxy.NewReverseProxy(target, maxQueueLength, maxQueueLength)
 
 	requestCounterStats := &proxy.RequestStats{}
@@ -76,6 +119,23 @@ func main() {
 	)
 
 	promStats := proxy.NewPrometheusStatsReporter()
+
+	var readinessProbe *probe.Probe
+	if probeDefPath != "" {
+		jsonProbe, err := ioutil.ReadFile(probeDefPath)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		probeDef, err := probe.DecodeJSON(string(jsonProbe))
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		readinessProbe = probe.NewProbe(probeDef, log)
+	} else {
+		readinessProbe = probe.NewDefaultProbe(target, log)
+	}
 
 	go func() {
 		reportTicker := time.NewTicker(_reportInterval)
@@ -99,14 +159,18 @@ func main() {
 		}
 	}()
 
+	adminHandler := http.NewServeMux()
+	adminHandler.Handle("/metrics", promStats)
+	adminHandler.Handle("/healthz", probe.Handler(readinessProbe))
+
 	servers := map[string]*http.Server{
 		"proxy": {
 			Addr:    ":" + strconv.Itoa(userContainerPort),
 			Handler: proxy.Handler(breaker, httpProxy),
 		},
-		"metrics": {
-			Addr:    ":" + strconv.Itoa(metricsPort),
-			Handler: promStats,
+		"admin": {
+			Addr:    ":" + strconv.Itoa(adminPort),
+			Handler: adminHandler,
 		},
 	}
 
@@ -122,8 +186,8 @@ func main() {
 	signal.Notify(sigint, os.Interrupt)
 
 	select {
-	case err := <-errCh:
-		log.Fatal("failed to start proxy server", zap.Error(err))
+	case err = <-errCh:
+		exit(log, errors.Wrap(err, "failed to start proxy server"))
 	case <-sigint:
 		// We received an interrupt signal, shut down.
 		log.Info("Received TERM signal, handling a graceful shutdown...")
@@ -133,8 +197,27 @@ func main() {
 			if err := server.Shutdown(context.Background()); err != nil {
 				// Error from closing listeners, or context timeout:
 				log.Warn("HTTP server Shutdown Error", zap.Error(err))
+				telemetry.Error(errors.Wrap(err, "HTTP server Shutdown Error"))
 			}
 		}
 		log.Info("Shutdown complete, exiting...")
+		telemetry.Close()
 	}
+}
+
+func exit(log *zap.SugaredLogger, err error, wrapStrs ...string) {
+	for _, str := range wrapStrs {
+		err = errors.Wrap(err, str)
+	}
+
+	if err != nil && !errors.IsNoTelemetry(err) {
+		telemetry.Error(err)
+	}
+
+	if err != nil && !errors.IsNoPrint(err) {
+		log.Error(err)
+	}
+
+	telemetry.Close()
+	os.Exit(1)
 }

@@ -22,6 +22,7 @@ import (
 	"time"
 
 	batch "github.com/cortexlabs/cortex/pkg/crds/apis/batch/v1alpha1"
+	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/random"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/types/status"
@@ -43,7 +44,7 @@ func uploadTestAPISpec(apiName string, apiID string) error {
 				Kind: userconfig.BatchAPIKind,
 			},
 			Pod: &userconfig.Pod{
-				// TODO use a real image
+				Port: pointer.Int32(8080),
 				Containers: []*userconfig.Container{
 					{
 						Name:    "api",

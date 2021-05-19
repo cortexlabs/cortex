@@ -24,12 +24,17 @@ var (
 	CortexVersion      = "master" // CORTEX_VERSION
 	CortexVersionMinor = "master" // CORTEX_VERSION_MINOR
 
-	ProxyListeningPort              = int64(8888)
-	ProxyListeningPortStr           = "8888"
-	DefaultMaxReplicaQueueLength    = int64(1024)
-	DefaultMaxReplicaConcurrency    = int64(1024)
-	DefaultTargetReplicaConcurrency = float64(8)
-	NeuronCoresPerInf               = int64(4)
+	DefaultMaxQueueLength = int64(1024)
+	DefaultMaxConcurrency = int64(16)
+
+	DefaultUserPodPortStr   = "8080"
+	DefaultUserPodPortInt32 = int32(8080)
+
+	ProxyListeningPortStr   = "8888"
+	ProxyListeningPortInt32 = int32(8888)
+
+	MetricsPortStr   = "15000"
+	MetricsPortInt32 = int32(15000)
 
 	AuthHeader = "X-Cortex-Authorization"
 
@@ -38,7 +43,7 @@ var (
 	AsyncWorkloadsExpirationDays = int64(7)
 
 	ReservedContainerNames = []string{
-		"neuron-rtd",
+		"proxy",
 	}
 )
 

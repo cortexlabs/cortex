@@ -1,10 +1,15 @@
 - name: realtime
   kind: RealtimeAPI
   pod:
-    node_groups: [cpu]
     containers:
     - name: api
       image: 499593605069.dkr.ecr.us-west-2.amazonaws.com/sample/realtime-caas:latest
+      env:
+        NUM_THREADS: "8"
       compute:
         cpu: 200m
         mem: 512Mi
+  autoscaling:
+    max_queue_length: 16
+    max_concurrency: 8
+    target_in_flight: 10

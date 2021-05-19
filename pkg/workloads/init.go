@@ -29,7 +29,7 @@ import (
 )
 
 const (
-	JobSpecPath = "/mnt/job_spec.json"
+	JobSpecPath = "/cortex/job_spec.json"
 )
 
 const (
@@ -43,8 +43,10 @@ func KubexitInitContainer() kcore.Container {
 		Name:            _kubexitInitContainerName,
 		Image:           config.ClusterConfig.ImageKubexit,
 		ImagePullPolicy: kcore.PullAlways,
-		Command:         []string{"cp", "/bin/kubexit", "/mnt/kubexit"},
-		VolumeMounts:    defaultVolumeMounts(true),
+		Command:         []string{"cp", "/bin/kubexit", "/cortex/kubexit"},
+		VolumeMounts: []kcore.VolumeMount{
+			CortexMount(),
+		},
 	}
 }
 
@@ -79,7 +81,9 @@ func TaskInitContainer(job *spec.TaskJob) kcore.Container {
 				Value: strings.ToUpper(userconfig.InfoLogLevel.String()),
 			},
 		},
-		VolumeMounts: defaultVolumeMounts(true),
+		VolumeMounts: []kcore.VolumeMount{
+			CortexMount(),
+		},
 	}
 }
 
@@ -114,6 +118,8 @@ func BatchInitContainer(job *spec.BatchJob) kcore.Container {
 				Value: strings.ToUpper(userconfig.InfoLogLevel.String()),
 			},
 		},
-		VolumeMounts: defaultVolumeMounts(true),
+		VolumeMounts: []kcore.VolumeMount{
+			CortexMount(),
+		},
 	}
 }

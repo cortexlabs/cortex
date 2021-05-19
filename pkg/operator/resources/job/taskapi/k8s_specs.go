@@ -20,6 +20,7 @@ import (
 	"path"
 
 	"github.com/cortexlabs/cortex/pkg/config"
+	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/parallel"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
@@ -42,7 +43,7 @@ func virtualServiceSpec(api *spec.API) *istioclientnetworking.VirtualService {
 		Destinations: []k8s.Destination{{
 			ServiceName: _operatorService,
 			Weight:      100,
-			Port:        uint32(workloads.DefaultPortInt32),
+			Port:        uint32(consts.ProxyListeningPortInt32),
 		}},
 		PrefixPath:  api.Networking.Endpoint,
 		Rewrite:     pointer.String(path.Join("tasks", api.Name)),
