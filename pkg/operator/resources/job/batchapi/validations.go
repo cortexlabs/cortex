@@ -24,6 +24,7 @@ import (
 	awslib "github.com/cortexlabs/cortex/pkg/lib/aws"
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/operator/resources/job"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
 	"github.com/gobwas/glob"
@@ -143,26 +144,30 @@ func validateS3Lister(s3Lister *schema.S3Lister) error {
 		}
 	}
 
-	filesFound := 0
 	for _, s3Path := range s3Lister.S3Paths {
 		if !awslib.IsValidS3Path(s3Path) {
 			return awslib.ErrorInvalidS3Path(s3Path)
 		}
-
-		err := s3IteratorFromLister(*s3Lister, func(objPath string, s3Obj *s3.Object) (bool, error) {
-			filesFound++
-			return false, nil
-		})
-		if err != nil {
-			return errors.Wrap(err, s3Path)
-		}
-
-		if filesFound > 0 {
-			return nil
-		}
 	}
 
-	return ErrorNoS3FilesFound()
+	shortCircuitLister := schema.S3Lister{
+		S3Paths:    s3Lister.S3Paths,
+		Includes:   s3Lister.Includes,
+		Excludes:   s3Lister.Excludes,
+		MaxResults: pointer.Int64(1),
+	}
+	numResults, err := s3IteratorFromLister(shortCircuitLister, func(objPath string, s3Obj *s3.Object) (bool, error) {
+		return false, nil
+	})
+	if err != nil {
+		return err
+	}
+
+	if numResults == 0 {
+		return ErrorNoS3FilesFound()
+	}
+
+	return nil
 }
 
 func listFilesDryRun(s3Lister *schema.S3Lister) ([]string, error) {
@@ -171,15 +176,14 @@ func listFilesDryRun(s3Lister *schema.S3Lister) ([]string, error) {
 		if !awslib.IsValidS3Path(s3Path) {
 			return nil, awslib.ErrorInvalidS3Path(s3Path)
 		}
+	}
 
-		err := s3IteratorFromLister(*s3Lister, func(bucket string, s3Obj *s3.Object) (bool, error) {
-			s3Files = append(s3Files, awslib.S3Path(bucket, *s3Obj.Key))
-			return true, nil
-		})
-
-		if err != nil {
-			return nil, errors.Wrap(err, s3Path)
-		}
+	_, err := s3IteratorFromLister(*s3Lister, func(bucket string, s3Obj *s3.Object) (bool, error) {
+		s3Files = append(s3Files, awslib.S3Path(bucket, *s3Obj.Key))
+		return true, nil
+	})
+	if err != nil {
+		return nil, err
 	}
 
 	if len(s3Files) == 0 {
