@@ -75,12 +75,15 @@ commands:
 
 jobs:
   test:
-    docker:
-      - image: circleci/python:3.6
+    machine:
+      image: ubuntu-1604:202104-01
     steps:
       - checkout
-      - setup_remote_docker
       - install-go
+      - run:
+          name: Install Python 3.6
+          command: |
+            sudo apt update && sudo apt install python3.6
       - run:
           name: Install Linting Tools
           command: |
