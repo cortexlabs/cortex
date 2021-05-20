@@ -177,7 +177,7 @@ func deploymentSpec(api spec.API, prevDeployment *kapps.Deployment, queueURL str
 		volumes    []kcore.Volume
 	)
 
-	containers, volumes = workloads.UserPodContainers(api)
+	containers, volumes = workloads.UserPodContainers(api, nil)
 	// TODO add the proxy as well
 
 	return *k8s.Deployment(&k8s.DeploymentSpec{

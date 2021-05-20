@@ -50,43 +50,6 @@ func KubexitInitContainer() kcore.Container {
 	}
 }
 
-func TaskInitContainer(job *spec.TaskJob) kcore.Container {
-	downloadConfig := downloadContainerConfig{
-		LastLog: _downloaderLastLog,
-		DownloadArgs: []downloadContainerArg{
-			{
-				From:             aws.S3Path(config.ClusterConfig.Bucket, job.SpecFilePath(config.ClusterConfig.ClusterUID)),
-				To:               JobSpecPath,
-				Unzip:            false,
-				ToFile:           true,
-				ItemName:         "the task spec",
-				HideFromLog:      true,
-				HideUnzippingLog: true,
-			},
-		},
-	}
-
-	downloadArgsBytes, _ := json.Marshal(downloadConfig)
-	downloadArgs := base64.URLEncoding.EncodeToString(downloadArgsBytes)
-
-	return kcore.Container{
-		Name:            _downloaderInitContainerName,
-		Image:           config.ClusterConfig.ImageDownloader,
-		ImagePullPolicy: kcore.PullAlways,
-		Args:            []string{"--download=" + downloadArgs},
-		EnvFrom:         baseClusterEnvVars(),
-		Env: []kcore.EnvVar{
-			{
-				Name:  "CORTEX_LOG_LEVEL",
-				Value: strings.ToUpper(userconfig.InfoLogLevel.String()),
-			},
-		},
-		VolumeMounts: []kcore.VolumeMount{
-			CortexMount(),
-		},
-	}
-}
-
 func BatchInitContainer(job *spec.BatchJob) kcore.Container {
 	downloadConfig := downloadContainerConfig{
 		LastLog: _downloaderLastLog,

@@ -120,8 +120,10 @@ func AsyncGatewayContainer(api spec.API, queueURL string, volumeMounts []kcore.V
 	}
 }
 
-func UserPodContainers(api spec.API) ([]kcore.Container, []kcore.Volume) {
+// job not nil for BatchAPI/TaskAPI kinds
+func UserPodContainers(api spec.API, job *spec.JobKey) ([]kcore.Container, []kcore.Volume) {
 	requiresKubexit := api.Kind == userconfig.BatchAPIKind || api.Kind == userconfig.TaskAPIKind
+	needsSpec := requiresKubexit
 
 	volumes := []kcore.Volume{
 		MntVolume(),
@@ -138,6 +140,11 @@ func UserPodContainers(api spec.API) ([]kcore.Container, []kcore.Volume) {
 		volumes = append(volumes, KubexitVolume())
 		containerMounts = append(containerMounts, KubexitMount())
 	}
+	if needsSpec {
+		volumes = append(volumes, SpecVolume(job.K8sName()))
+		containerMounts = append(containerMounts, SpecMount(job.K8sName()))
+	}
+
 	if api.Pod.ShmSize != nil {
 		volumes = append(volumes, ShmVolume(api.Pod.ShmSize.Quantity))
 		containerMounts = append(containerMounts, ShmMount())
@@ -381,7 +388,33 @@ func GenerateNodeAffinities(apiNodeGroups []string) *kcore.Affinity {
 	}
 }
 
-func GenerateJobConfigMapData(apiSpec spec.API, taskJobSpec *spec.TaskJob, batchJobSpec *spec.BatchJob) (map[string]string, error) {
+func GenerateJobSpecConfigMapData(taskJobSpec *spec.TaskJob, batchJobSpec *spec.BatchJob) (map[string]string, error) {
+	if taskJobSpec != nil {
+		jobSpecEncoded, err := json.MarshalIndent(taskJobSpec, "", "\t")
+		if err != nil {
+			return nil, err
+		}
+
+		return map[string]string{
+			"job_spec.json": string(jobSpecEncoded),
+		}, nil
+	}
+
+	if batchJobSpec != nil {
+		jobSpecEncoded, err := json.MarshalIndent(batchJobSpec, "", "\t")
+		if err != nil {
+			return nil, err
+		}
+
+		return map[string]string{
+			"job_spec.json": string(jobSpecEncoded),
+		}, nil
+	}
+
+	return nil, nil
+}
+
+func GenerateProbesConfigMapData(apiSpec spec.API) (map[string]string, error) {
 	probes := map[string]kcore.Probe{}
 	for _, container := range apiSpec.API.Pod.Containers {
 		if probe := getProbeSpec(container.ReadinessProbe); probe != nil {
@@ -389,33 +422,9 @@ func GenerateJobConfigMapData(apiSpec spec.API, taskJobSpec *spec.TaskJob, batch
 		}
 	}
 
-	probesEncoded, err := json.Marshal(probes)
+	probesEncoded, err := json.MarshalIndent(probes, "", "\t")
 	if err != nil {
 		return nil, err
-	}
-
-	if taskJobSpec != nil {
-		jobSpecEncoded, err := json.Marshal(taskJobSpec)
-		if err != nil {
-			return nil, err
-		}
-
-		return map[string]string{
-			"probes.json":   string(probesEncoded),
-			"job_spec.json": string(jobSpecEncoded),
-		}, nil
-	}
-
-	if batchJobSpec != nil {
-		jobSpecEncoded, err := json.Marshal(batchJobSpec)
-		if err != nil {
-			return nil, err
-		}
-
-		return map[string]string{
-			"probes.json":   string(probesEncoded),
-			"job_spec.json": string(jobSpecEncoded),
-		}, nil
 	}
 
 	return map[string]string{

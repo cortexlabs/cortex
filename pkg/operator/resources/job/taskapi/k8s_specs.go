@@ -60,7 +60,7 @@ func virtualServiceSpec(api *spec.API) *istioclientnetworking.VirtualService {
 }
 
 func k8sJobSpec(api *spec.API, job *spec.TaskJob) *kbatch.Job {
-	containers, volumes := workloads.UserPodContainers(*api)
+	containers, volumes := workloads.UserPodContainers(*api, &job.JobKey)
 
 	return k8s.Job(&k8s.JobSpec{
 		Name:        job.JobKey.K8sName(),
@@ -90,7 +90,6 @@ func k8sJobSpec(api *spec.API, job *spec.TaskJob) *kbatch.Job {
 				RestartPolicy: "Never",
 				InitContainers: []kcore.Container{
 					workloads.KubexitInitContainer(),
-					workloads.TaskInitContainer(job),
 				},
 				Containers:         containers,
 				NodeSelector:       workloads.NodeSelectors(),
