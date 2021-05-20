@@ -76,13 +76,14 @@ commands:
 jobs:
   test:
     machine:
-      image: ubuntu-1604:202104-01
+      image: ubuntu-1604:202104-01  # machine executor necessary to run go integration tests
     steps:
       - checkout
       - install-go
       - run:
           name: Install Python 3.6
           command: |
+            sudo add-apt-repository ppa:deadsnakes/ppa -y
             sudo apt update && sudo apt install python3.6
       - run:
           name: Install Linting Tools
