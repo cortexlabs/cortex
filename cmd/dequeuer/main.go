@@ -132,7 +132,7 @@ func main() {
 		}
 		messageHandler := dequeuer.NewBatchMessageHandler(config, awsClient, metricsClient, log.Sugar())
 
-		handlerConfig := dequeuer.Config{
+		handlerConfig := dequeuer.SQSDequeuerConfig{
 			Region:           region,
 			QueueURL:         queueURL,
 			StopIfNoMessages: true,

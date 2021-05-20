@@ -17,6 +17,8 @@ limitations under the License.
 package dequeuer
 
 import (
+	"bytes"
+	"net/http"
 	"time"
 
 	"github.com/DataDog/datadog-go/statsd"
@@ -35,18 +37,19 @@ type BatchMessageHandler struct {
 	jobCompleteMessageRenewal time.Duration
 	tags                      []string
 	aws                       *awslib.Client
-	metrics                   *statsd.Client
+	metrics                   statsd.ClientInterface
 	log                       *zap.SugaredLogger
 }
 
 type BatchMessageHandlerConfig struct {
-	APIName  string
-	JobID    string
-	QueueURL string
-	Region   string
+	APIName   string
+	JobID     string
+	QueueURL  string
+	Region    string
+	TargetURL string
 }
 
-func NewBatchMessageHandler(config BatchMessageHandlerConfig, awsClient *awslib.Client, statsdClient *statsd.Client, log *zap.SugaredLogger) *BatchMessageHandler {
+func NewBatchMessageHandler(config BatchMessageHandlerConfig, awsClient *awslib.Client, statsdClient statsd.ClientInterface, log *zap.SugaredLogger) *BatchMessageHandler {
 	tags := []string{
 		"api_name:" + config.APIName,
 		"job_id" + config.JobID,
@@ -62,94 +65,101 @@ func NewBatchMessageHandler(config BatchMessageHandlerConfig, awsClient *awslib.
 	}
 }
 
-func (handler *BatchMessageHandler) Handle(message *sqs.Message) error {
+func (h *BatchMessageHandler) Handle(message *sqs.Message) error {
 	if isOnJobCompleteMessage(message) {
-		err := handler.onJobComplete(message)
+		err := h.onJobComplete(message)
 		if err != nil {
 			// TODO
-			handler.log.Fatal(zap.Error(err))
+			h.log.Fatal(zap.Error(err))
 		}
 		return nil
 	}
-	err := handler.handleBatch(message)
+	err := h.handleBatch(message)
 	if err != nil {
 		// TODO
-		handler.log.Infof("failed processing batch %s", *message.MessageId)
-		err = handler.handleFailure(message)
+		h.log.Warnf("failed processing batch %s", *message.MessageId)
+		err = h.handleFailure(message)
 		if err != nil {
 			// TODO
-			handler.log.Fatal(zap.Error(err))
+			h.log.Fatal(zap.Error(err))
 		}
 	}
 	return nil
 }
 
-func (handler *BatchMessageHandler) recordSuccess() error {
-	err := handler.metrics.Incr("cortex_batch_succeeded", handler.tags, 1.0)
+func (h *BatchMessageHandler) recordSuccess() error {
+	err := h.metrics.Incr("cortex_batch_succeeded", h.tags, 1.0)
 	if err != nil {
 		return errors.WithStack(err)
 	}
 	return nil
 }
 
-func (handler *BatchMessageHandler) recordFailure() error {
-	err := handler.metrics.Incr("cortex_batch_failed", handler.tags, 1.0)
+func (h *BatchMessageHandler) recordFailure() error {
+	err := h.metrics.Incr("cortex_batch_failed", h.tags, 1.0)
 	if err != nil {
 		return errors.WithStack(err)
 	}
 	return nil
 }
 
-func (handler *BatchMessageHandler) recordTimePerBatch(elapsedTime time.Duration) error {
-	err := handler.metrics.Histogram("cortex_time_per_batch", elapsedTime.Seconds(), handler.tags, 1.0)
+func (h *BatchMessageHandler) recordTimePerBatch(elapsedTime time.Duration) error {
+	err := h.metrics.Histogram("cortex_time_per_batch", elapsedTime.Seconds(), h.tags, 1.0)
 	if err != nil {
 		return errors.WithStack(err)
 	}
 	return nil
 }
 
-func (handler *BatchMessageHandler) submitRequest(messageBody string) error {
-	// TODO: add code to make HTTP request to target container
-	time.Sleep(1 * time.Minute)
-	handler.log.Info(messageBody)
-	return nil
-}
-
-func (handler *BatchMessageHandler) handleBatch(message *sqs.Message) error {
-	handler.log.Infof("processing batch %s", *message.MessageId)
-
-	startTime := time.Now()
-	err := handler.submitRequest(*message.Body)
+func (h *BatchMessageHandler) submitRequest(messageBody string) error {
+	response, err := http.Post(h.config.TargetURL, "application/json", bytes.NewBuffer([]byte(messageBody)))
 	if err != nil {
 		return err
 	}
 
-	err = handler.recordSuccess()
+	if response.StatusCode != http.StatusOK {
+		return ErrorUserContainerResponse(response.StatusCode)
+	}
+
+	return nil
+}
+
+func (h *BatchMessageHandler) handleBatch(message *sqs.Message) error {
+	h.log.Infof("processing batch %s", *message.MessageId)
+
+	startTime := time.Now()
+	err := h.submitRequest(*message.Body)
+	if err != nil {
+		return err
+	}
+	endTime := time.Now().Sub(startTime)
+
+	err = h.recordSuccess()
 	if err != nil {
 		return errors.Wrap(err, "failed to record success metric")
 	}
 
-	err = handler.recordTimePerBatch(time.Now().Sub(startTime))
+	err = h.recordTimePerBatch(endTime)
 	if err != nil {
 		return errors.Wrap(err, "failed to record time per batch")
 	}
 	return nil
 }
 
-func (handler *BatchMessageHandler) handleFailure(_ *sqs.Message) error {
-	err := handler.recordFailure()
+func (h *BatchMessageHandler) handleFailure(_ *sqs.Message) error {
+	err := h.recordFailure()
 	if err != nil {
-		return err
+		return errors.Wrap(err, "failed to record failure metric")
 	}
 
 	return nil
 }
 
-func (handler *BatchMessageHandler) onJobComplete(message *sqs.Message) error {
+func (h *BatchMessageHandler) onJobComplete(message *sqs.Message) error {
 	shouldRunOnJobComplete := false
-	handler.log.Info("received job_complete message")
+	h.log.Info("received job_complete message")
 	for true {
-		queueAttributes, err := GetQueueAttributes(handler.aws, handler.config.QueueURL)
+		queueAttributes, err := GetQueueAttributes(h.aws, h.config.QueueURL)
 		if err != nil {
 			return err
 		}
@@ -157,12 +167,12 @@ func (handler *BatchMessageHandler) onJobComplete(message *sqs.Message) error {
 		totalMessages := queueAttributes.TotalMessages()
 
 		if totalMessages > 1 {
-			time.Sleep(handler.jobCompleteMessageRenewal)
-			handler.log.Info("found other messages in queue, requeuing job_complete message")
+			time.Sleep(h.jobCompleteMessageRenewal)
+			h.log.Info("found other messages in queue, requeuing job_complete message")
 			newMessageID := uuid.NewRandom().String()
-			if _, err = handler.aws.SQS().SendMessage(
+			if _, err = h.aws.SQS().SendMessage(
 				&sqs.SendMessageInput{
-					QueueUrl:    &handler.config.QueueURL,
+					QueueUrl:    &h.config.QueueURL,
 					MessageBody: aws.String("job_complete"),
 					MessageAttributes: map[string]*sqs.MessageAttributeValue{
 						"job_complete": {
@@ -171,11 +181,11 @@ func (handler *BatchMessageHandler) onJobComplete(message *sqs.Message) error {
 						},
 						"api_name": {
 							DataType:    aws.String("String"),
-							StringValue: aws.String(handler.config.APIName),
+							StringValue: aws.String(h.config.APIName),
 						},
 						"job_id": {
 							DataType:    aws.String("String"),
-							StringValue: aws.String(handler.config.JobID),
+							StringValue: aws.String(h.config.JobID),
 						},
 					},
 					MessageDeduplicationId: aws.String(newMessageID),
@@ -188,13 +198,13 @@ func (handler *BatchMessageHandler) onJobComplete(message *sqs.Message) error {
 			return nil
 		} else {
 			if shouldRunOnJobComplete {
-				handler.log.Info("processing job_complete message")
-				return handler.submitRequest(*message.Body)
+				h.log.Info("processing job_complete message")
+				return h.submitRequest(*message.Body)
 			}
 			shouldRunOnJobComplete = true
 		}
 
-		time.Sleep(handler.jobCompleteMessageRenewal)
+		time.Sleep(h.jobCompleteMessageRenewal)
 	}
 
 	return nil

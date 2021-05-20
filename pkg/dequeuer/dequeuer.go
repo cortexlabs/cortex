@@ -42,7 +42,7 @@ type MessageHandler interface {
 	Handle(*sqs.Message) error
 }
 
-type Config struct {
+type SQSDequeuerConfig struct {
 	Region           string
 	QueueURL         string
 	StopIfNoMessages bool
@@ -50,7 +50,7 @@ type Config struct {
 
 type SQSDequeuer struct {
 	aws                *awslib.Client
-	config             Config
+	config             SQSDequeuerConfig
 	hasDeadLetterQueue bool
 	waitTimeSeconds    *int64
 	visibilityTimeout  *int64
@@ -59,7 +59,7 @@ type SQSDequeuer struct {
 	log                *zap.SugaredLogger
 }
 
-func NewSQSDequeuer(config Config, awsClient *awslib.Client, logger *zap.SugaredLogger) (*SQSDequeuer, error) {
+func NewSQSDequeuer(config SQSDequeuerConfig, awsClient *awslib.Client, logger *zap.SugaredLogger) (*SQSDequeuer, error) {
 	attr, err := GetQueueAttributes(awsClient, config.QueueURL)
 	if err != nil {
 		return nil, err

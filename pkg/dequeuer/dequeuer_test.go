@@ -166,7 +166,7 @@ func TestSQSDequeuer_ReceiveMessage(t *testing.T) {
 	require.NoError(t, err)
 
 	dq, err := NewSQSDequeuer(
-		Config{
+		SQSDequeuerConfig{
 			Region:           _localStackDefaultRegion,
 			QueueURL:         queueURL,
 			StopIfNoMessages: true,
@@ -189,7 +189,7 @@ func TestSQSDequeuer_StartMessageRenewer(t *testing.T) {
 	queueURL := createQueue(t, awsClient)
 
 	dq, err := NewSQSDequeuer(
-		Config{
+		SQSDequeuerConfig{
 			Region:           _localStackDefaultRegion,
 			QueueURL:         queueURL,
 			StopIfNoMessages: true,
