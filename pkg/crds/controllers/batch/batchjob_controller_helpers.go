@@ -302,7 +302,14 @@ func (r *BatchJobReconciler) desiredWorkerJob(batchJob batch.BatchJob, apiSpec s
 	var volumes []kcore.Volume
 
 	containers, volumes = workloads.UserPodContainers(apiSpec, &jobSpec.JobKey)
+
 	// TODO add the proxy as well
+	//
+	// the following volume and mount are required for the proxy
+	// workloads.ProbesSpecMount(batchJob.Spec.APIName + "-" + batchJob.Name)
+	// workloads.SpecVolume(batchJob.Spec.APIName + "-" + batchJob.Name)
+	//
+	// the probes will be made available at /cortex/probes.json
 
 	job := k8s.Job(
 		&k8s.JobSpec{
