@@ -32,7 +32,7 @@ const (
 
 var (
 	_messageAttributes = []string{"All"}
-	_waitTimeSeconds   = 10 * time.Second
+	_waitTime          = 10 * time.Second
 	_visibilityTimeout = 30 * time.Second
 	_notFoundSleepTime = 10 * time.Second
 	_renewalPeriod     = 10 * time.Second
@@ -69,7 +69,7 @@ func NewSQSDequeuer(config SQSDequeuerConfig, awsClient *awslib.Client, logger *
 		aws:                awsClient,
 		config:             config,
 		hasDeadLetterQueue: attr.RedrivePolicy,
-		waitTimeSeconds:    aws.Int64(int64(_waitTimeSeconds.Seconds())),
+		waitTimeSeconds:    aws.Int64(int64(_waitTime.Seconds())),
 		visibilityTimeout:  aws.Int64(int64(_visibilityTimeout.Seconds())),
 		notFoundSleepTime:  _notFoundSleepTime,
 		renewalPeriod:      _renewalPeriod,

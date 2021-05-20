@@ -196,13 +196,13 @@ func (h *BatchMessageHandler) onJobComplete(message *sqs.Message) error {
 			}
 
 			return nil
-		} else {
-			if shouldRunOnJobComplete {
-				h.log.Info("processing job_complete message")
-				return h.submitRequest(*message.Body)
-			}
-			shouldRunOnJobComplete = true
 		}
+
+		if shouldRunOnJobComplete {
+			h.log.Info("processing job_complete message")
+			return h.submitRequest(*message.Body)
+		}
+		shouldRunOnJobComplete = true
 
 		time.Sleep(h.jobCompleteMessageRenewal)
 	}
