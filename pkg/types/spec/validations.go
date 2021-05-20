@@ -172,6 +172,8 @@ func podValidation(kind userconfig.Kind) *cr.StructFieldValidation {
 						Required:          false,
 						Default:           nil, // it's a pointer because it's not required for the task API
 						AllowExplicitNull: true,
+						GreaterThan:       pointer.Int32(0),
+						LessThanOrEqualTo: pointer.Int32(65535),
 						DisallowedValues: []int32{
 							consts.ProxyListeningPortInt32,
 							consts.MetricsPortInt32,
@@ -341,7 +343,9 @@ func httpGetProbeValidation() *cr.StructFieldValidation {
 				{
 					StructField: "Port",
 					Int32Validation: &cr.Int32Validation{
-						Required: true,
+						Required:          true,
+						GreaterThan:       pointer.Int32(0),
+						LessThanOrEqualTo: pointer.Int32(65535),
 						DisallowedValues: []int32{
 							consts.ProxyListeningPortInt32,
 							consts.MetricsPortInt32,
@@ -364,7 +368,9 @@ func tcpSocketProbeValidation() *cr.StructFieldValidation {
 				{
 					StructField: "Port",
 					Int32Validation: &cr.Int32Validation{
-						Required: true,
+						Required:          true,
+						GreaterThan:       pointer.Int32(0),
+						LessThanOrEqualTo: pointer.Int32(65535),
 						DisallowedValues: []int32{
 							consts.ProxyListeningPortInt32,
 							consts.MetricsPortInt32,
@@ -749,6 +755,45 @@ func validateContainers(
 				return errors.Wrap(ErrorCortexPrefixedEnvVarNotAllowed("CORTEX_", "KUBEXIT_"), strconv.FormatInt(int64(i), 10), userconfig.EnvKey, key)
 			}
 		}
+
+		if kind == userconfig.TaskAPIKind && container.ReadinessProbe != nil {
+			return errors.Wrap(ErrorFieldIsNotSupportedForKind(userconfig.ReadinessProbeKey, kind), strconv.FormatInt(int64(i), 10), userconfig.ReadinessProbeKey)
+		}
+
+		if container.ReadinessProbe != nil {
+			if err := validateProbe(*container.ReadinessProbe, true); err != nil {
+				return errors.Wrap(err, strconv.FormatInt(int64(i), 10), userconfig.ReadinessProbeKey)
+			}
+		}
+
+		if container.LivenessProbe != nil {
+			if err := validateProbe(*container.LivenessProbe, false); err != nil {
+				return errors.Wrap(err, strconv.FormatInt(int64(i), 10), userconfig.LivenessProbeKey)
+			}
+		}
+
+	}
+
+	return nil
+}
+
+func validateProbe(probe userconfig.Probe, isReadinessProbe bool) error {
+	specifiedProbes := 0
+	if probe.HTTPGet != nil {
+		specifiedProbes++
+	}
+	if probe.TCPSocket != nil {
+		specifiedProbes++
+	}
+	if probe.Exec != nil {
+		specifiedProbes++
+	}
+
+	if specifiedProbes != 1 {
+		if isReadinessProbe {
+			return ErrorSpecifyOnlyOneField(userconfig.HTTPGetKey, userconfig.TCPSocketKey)
+		}
+		return ErrorSpecifyOnlyOneField(userconfig.HTTPGetKey, userconfig.TCPSocketKey, userconfig.ExecKey)
 	}
 
 	return nil
