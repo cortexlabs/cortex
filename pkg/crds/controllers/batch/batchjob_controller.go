@@ -231,6 +231,12 @@ func (r *BatchJobReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		log.Info("failed to enqueue payload")
 	case batch.EnqueuingDone:
 		if !workerJobExists {
+			log.V(1).Info("creating worker configmap")
+			if err = r.createWorkerConfigMap(ctx, batchJob); err != nil {
+				log.Error(err, "failed to create worker configmap")
+				return ctrl.Result{}, err
+			}
+
 			log.V(1).Info("creating worker job")
 			if err = r.createWorkerJob(ctx, batchJob, queueURL); err != nil {
 				log.Error(err, "failed to create worker job")

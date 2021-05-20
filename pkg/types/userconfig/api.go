@@ -339,6 +339,16 @@ func (container *Container) UserStr() string {
 		sb.WriteString(fmt.Sprintf("%s: %s\n", ArgsKey, s.ObjFlatNoQuotes(container.Args)))
 	}
 
+	if container.ReadinessProbe != nil {
+		sb.WriteString(fmt.Sprintf("%s:\n", ReadinessProbeKey))
+		sb.WriteString(s.Indent(container.ReadinessProbe.UserStr(), "  "))
+	}
+
+	if container.LivenessProbe != nil {
+		sb.WriteString(fmt.Sprintf("%s:\n", LivenessProbeKey))
+		sb.WriteString(s.Indent(container.LivenessProbe.UserStr(), "  "))
+	}
+
 	if container.Compute != nil {
 		sb.WriteString(fmt.Sprintf("%s:\n", ComputeKey))
 		sb.WriteString(s.Indent(container.Compute.UserStr(), "  "))

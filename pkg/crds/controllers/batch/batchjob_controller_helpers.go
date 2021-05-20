@@ -32,6 +32,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	libjson "github.com/cortexlabs/cortex/pkg/lib/json"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
+	m "github.com/cortexlabs/cortex/pkg/lib/maps"
 	"github.com/cortexlabs/cortex/pkg/lib/parallel"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
@@ -185,6 +186,34 @@ func (r *BatchJobReconciler) enqueuePayload(ctx context.Context, batchJob batch.
 	return nil
 }
 
+func (r *BatchJobReconciler) createWorkerConfigMap(ctx context.Context, batchJob batch.BatchJob) error {
+	probesSpecData, err := workloads.GenerateProbesConfigMapData(batchJob.Spec.Probes)
+	if err != nil {
+		return err
+	}
+
+	jobSpec, err := ConvertControllerBatchToJobSpec(batchJob)
+	if err != nil {
+		return err
+	}
+
+	jobSpecData, err := workloads.GenerateJobSpecConfigMapData(nil, &jobSpec)
+	if err != nil {
+		return err
+	}
+
+	configMap, err := r.desiredConfigMap(batchJob, m.MergeStrMapsString(probesSpecData, jobSpecData))
+	if err != nil {
+		return err
+	}
+
+	if err := r.Create(ctx, configMap); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (r *BatchJobReconciler) createWorkerJob(ctx context.Context, batchJob batch.BatchJob, queueURL string) error {
 	apiSpec, err := r.getAPISpec(batchJob) // TODO: should be cached
 	if err != nil {
@@ -331,6 +360,28 @@ func (r *BatchJobReconciler) desiredWorkerJob(batchJob batch.BatchJob, apiSpec s
 	}
 
 	return job, nil
+}
+
+func (r *BatchJobReconciler) desiredConfigMap(batchJob batch.BatchJob, data map[string]string) (*kcore.ConfigMap, error) {
+	configMap := k8s.ConfigMap(&k8s.ConfigMapSpec{
+		Name: batchJob.Spec.APIName + "-" + batchJob.Name,
+		Data: data,
+		Labels: map[string]string{
+			"apiKind":          userconfig.BatchAPIKind.String(),
+			"apiName":          batchJob.Spec.APIName,
+			"apiID":            batchJob.Spec.APIID,
+			"jobID":            batchJob.Name,
+			"cortex.dev/api":   "true",
+			"cortex.dev/batch": "config",
+		},
+	})
+	configMap.Namespace = batchJob.Namespace
+
+	if err := ctrl.SetControllerReference(&batchJob, configMap, r.Scheme); err != nil {
+		return nil, err
+	}
+
+	return configMap, nil
 }
 
 func (r *BatchJobReconciler) getAPISpec(batchJob batch.BatchJob) (*spec.API, error) {
@@ -634,4 +685,41 @@ func saveJobStatus(r *BatchJobReconciler, batchJob batch.BatchJob) error {
 			return r.AWS.UploadStringToS3("", r.ClusterConfig.Bucket, key)
 		},
 	)
+}
+
+func ConvertControllerBatchToJobSpec(b batch.BatchJob) (spec.BatchJob, error) {
+	var deadLetterQueue *spec.SQSDeadLetterQueue
+	if b.Spec.DeadLetterQueue != nil {
+		deadLetterQueue = &spec.SQSDeadLetterQueue{
+			ARN:             b.Spec.DeadLetterQueue.ARN,
+			MaxReceiveCount: int(b.Spec.DeadLetterQueue.MaxReceiveCount),
+		}
+	}
+
+	var config map[string]interface{}
+	if b.Spec.Config != nil {
+		err := yaml.Unmarshal([]byte(*b.Spec.Config), &config)
+		if err != nil {
+			return spec.BatchJob{}, err
+		}
+	}
+
+	var timeout *int
+	if b.Spec.Timeout != nil {
+		timeout = pointer.Int(int(b.Spec.Timeout.Seconds()))
+	}
+
+	return spec.BatchJob{
+		JobKey: spec.JobKey{
+			ID:      b.Status.ID,
+			APIName: b.Spec.APIName,
+			Kind:    userconfig.BatchAPIKind,
+		},
+		RuntimeBatchJobConfig: spec.RuntimeBatchJobConfig{
+			Workers:            int(b.Spec.Workers),
+			SQSDeadLetterQueue: deadLetterQueue,
+			Config:             config,
+			Timeout:            timeout,
+		},
+	}, nil
 }

@@ -142,7 +142,7 @@ func UserPodContainers(api spec.API, job *spec.JobKey) ([]kcore.Container, []kco
 	}
 	if needsSpec {
 		volumes = append(volumes, SpecVolume(job.K8sName()))
-		containerMounts = append(containerMounts, SpecMount(job.K8sName()))
+		containerMounts = append(containerMounts, JobSpecMount(job.K8sName()))
 	}
 
 	if api.Pod.ShmSize != nil {
@@ -161,7 +161,7 @@ func UserPodContainers(api spec.API, job *spec.JobKey) ([]kcore.Container, []kco
 
 		var readinessProbe *kcore.Probe
 		if api.Kind == userconfig.RealtimeAPIKind {
-			readinessProbe = getProbeSpec(container.ReadinessProbe)
+			readinessProbe = GetProbeSpec(container.ReadinessProbe)
 		}
 
 		if container.Compute.CPU != nil {
@@ -225,7 +225,7 @@ func UserPodContainers(api spec.API, job *spec.JobKey) ([]kcore.Container, []kco
 			Args:           container.Args,
 			Env:            containerEnvVars,
 			VolumeMounts:   containerMounts,
-			LivenessProbe:  getProbeSpec(container.LivenessProbe),
+			LivenessProbe:  GetProbeSpec(container.LivenessProbe),
 			ReadinessProbe: readinessProbe,
 			Resources: kcore.ResourceRequirements{
 				Requests: containerResourceList,
@@ -388,6 +388,18 @@ func GenerateNodeAffinities(apiNodeGroups []string) *kcore.Affinity {
 	}
 }
 
+// Generate map from container name -> probe
+func GenerateProbesConfigMapData(probes map[string]kcore.Probe) (map[string]string, error) {
+	probesEncoded, err := json.MarshalIndent(probes, "", "\t")
+	if err != nil {
+		return nil, err
+	}
+
+	return map[string]string{
+		"probes.json": string(probesEncoded),
+	}, nil
+}
+
 func GenerateJobSpecConfigMapData(taskJobSpec *spec.TaskJob, batchJobSpec *spec.BatchJob) (map[string]string, error) {
 	if taskJobSpec != nil {
 		jobSpecEncoded, err := json.MarshalIndent(taskJobSpec, "", "\t")
@@ -412,24 +424,6 @@ func GenerateJobSpecConfigMapData(taskJobSpec *spec.TaskJob, batchJobSpec *spec.
 	}
 
 	return nil, nil
-}
-
-func GenerateProbesConfigMapData(apiSpec spec.API) (map[string]string, error) {
-	probes := map[string]kcore.Probe{}
-	for _, container := range apiSpec.API.Pod.Containers {
-		if probe := getProbeSpec(container.ReadinessProbe); probe != nil {
-			probes[container.Name] = *probe
-		}
-	}
-
-	probesEncoded, err := json.MarshalIndent(probes, "", "\t")
-	if err != nil {
-		return nil, err
-	}
-
-	return map[string]string{
-		"probes.json": string(probesEncoded),
-	}, nil
 }
 
 // func getAsyncAPIEnvVars(api spec.API, queueURL string) []kcore.EnvVar {

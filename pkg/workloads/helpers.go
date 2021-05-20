@@ -46,7 +46,7 @@ type downloadContainerArg struct {
 	HideUnzippingLog bool   `json:"hide_unzipping_log"` // if true, don't log when unzipping
 }
 
-func getProbeSpec(probe *userconfig.Probe) *kcore.Probe {
+func GetProbeSpec(probe *userconfig.Probe) *kcore.Probe {
 	if probe == nil {
 		return nil
 	}
@@ -88,6 +88,22 @@ func getProbeSpec(probe *userconfig.Probe) *kcore.Probe {
 		SuccessThreshold:    probe.SuccessThreshold,
 		FailureThreshold:    probe.FailureThreshold,
 	}
+}
+
+func GetReadinessProbesFromContainers(containers []*userconfig.Container) map[string]kcore.Probe {
+	probes := map[string]kcore.Probe{}
+
+	for _, container := range containers {
+		if container == nil {
+			continue
+		}
+
+		if container.ReadinessProbe != nil {
+			probes[container.Name] = *GetProbeSpec(container.ReadinessProbe)
+		}
+	}
+
+	return probes
 }
 
 func baseClusterEnvVars() []kcore.EnvFromSource {
@@ -216,11 +232,19 @@ func CortexMount() kcore.VolumeMount {
 	return k8s.EmptyDirVolumeMount(_cortexDirVolumeName, _cortexDirMountPath)
 }
 
-func SpecMount(name string) kcore.VolumeMount {
+func JobSpecMount(name string) kcore.VolumeMount {
 	return kcore.VolumeMount{
 		Name:      name,
 		MountPath: path.Join(_cortexDirMountPath, "job_spec.json"),
 		SubPath:   "job_spec.json",
+	}
+}
+
+func ProbesSpecMount(name string) kcore.VolumeMount {
+	return kcore.VolumeMount{
+		Name:      name,
+		MountPath: path.Join(_cortexDirMountPath, "probes.json"),
+		SubPath:   "probes.json",
 	}
 }
 
