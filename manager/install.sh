@@ -147,7 +147,7 @@ function create_eks() {
 
   echo -e "￮ spinning up the cluster (this will take about 25 minutes) ...\n"
   python generate_eks.py $CORTEX_CLUSTER_CONFIG_FILE manifests/ami.json > /workspace/eks.yaml
-  eksctl create cluster --timeout=$EKSCTL_TIMEOUT --install-neuron-plugin=false --install-nvidia-plugin=false -f /workspace/eks.yaml
+  eksctl create cluster --timeout=$EKSCTL_TIMEOUT --install-nvidia-plugin=false --install-neuron-plugin=false --install-nvidia-plugin=false -f /workspace/eks.yaml
   echo
 
   write_kubeconfig
