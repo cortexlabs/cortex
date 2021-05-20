@@ -91,7 +91,7 @@ jobs:
           command: |
             go get -u -v golang.org/x/lint/golint
             go get -u -v github.com/kyoh86/looppointer/cmd/looppointer
-            sudo pip install black aiohttp
+            sudo pip3 install black aiohttp
       - run:
           name: Initialize Credentials
           command: |
