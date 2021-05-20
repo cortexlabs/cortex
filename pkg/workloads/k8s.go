@@ -151,6 +151,11 @@ func UserPodContainers(api spec.API) ([]kcore.Container, []kcore.Volume) {
 			Privileged: pointer.Bool(true),
 		}
 
+		var readinessProbe *kcore.Probe
+		if api.Kind == userconfig.RealtimeAPIKind {
+			readinessProbe = getProbeSpec(container.ReadinessProbe)
+		}
+
 		if container.Compute.CPU != nil {
 			containerResourceList[kcore.ResourceCPU] = *k8s.QuantityPtr(container.Compute.CPU.Quantity.DeepCopy())
 		}
@@ -163,8 +168,6 @@ func UserPodContainers(api spec.API) ([]kcore.Container, []kcore.Volume) {
 			containerResourceList["nvidia.com/gpu"] = *kresource.NewQuantity(container.Compute.GPU, kresource.DecimalSI)
 			containerResourceLimitsList["nvidia.com/gpu"] = *kresource.NewQuantity(container.Compute.GPU, kresource.DecimalSI)
 		}
-
-		containerVolumeMounts := containerMounts
 
 		if container.Compute.Inf > 0 {
 			totalHugePages := container.Compute.Inf * _hugePagesMemPerInf
@@ -208,12 +211,14 @@ func UserPodContainers(api spec.API) ([]kcore.Container, []kcore.Volume) {
 		}
 
 		containers = append(containers, kcore.Container{
-			Name:         container.Name,
-			Image:        container.Image,
-			Command:      containerCmd,
-			Args:         container.Args,
-			Env:          containerEnvVars,
-			VolumeMounts: containerVolumeMounts,
+			Name:           container.Name,
+			Image:          container.Image,
+			Command:        containerCmd,
+			Args:           container.Args,
+			Env:            containerEnvVars,
+			VolumeMounts:   containerMounts,
+			LivenessProbe:  getProbeSpec(container.LivenessProbe),
+			ReadinessProbe: readinessProbe,
 			Resources: kcore.ResourceRequirements{
 				Requests: containerResourceList,
 				Limits:   containerResourceLimitsList,
@@ -332,6 +337,8 @@ func RealtimeProxyContainer(api spec.API) (kcore.Container, kcore.Volume) {
 		Args: []string{
 			"-port",
 			consts.ProxyListeningPortStr,
+			"-admin-port",
+			consts.ProxyAdminPortStr,
 			"-metrics-port",
 			consts.MetricsPortStr,
 			"-user-port",
@@ -356,6 +363,19 @@ func RealtimeProxyContainer(api spec.API) (kcore.Container, kcore.Volume) {
 		EnvFrom: baseClusterEnvVars(),
 		VolumeMounts: []kcore.VolumeMount{
 			ClusterConfigMount(),
+		},
+		ReadinessProbe: &kcore.Probe{
+			Handler: kcore.Handler{
+				HTTPGet: &kcore.HTTPGetAction{
+					Path: "/healthz",
+					Port: intstr.FromInt(int(consts.ProxyAdminPortInt32)),
+				},
+			},
+			InitialDelaySeconds: 1,
+			TimeoutSeconds:      1,
+			PeriodSeconds:       5,
+			SuccessThreshold:    1,
+			FailureThreshold:    1,
 		},
 	}, ClusterConfigVolume()
 }

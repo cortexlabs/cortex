@@ -17,13 +17,14 @@ limitations under the License.
 package workloads
 
 import (
-	"fmt"
 	"path"
 	"strings"
 
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
+	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	kcore "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
+	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
 func K8sName(apiName string) string {
@@ -45,33 +46,47 @@ type downloadContainerArg struct {
 	HideUnzippingLog bool   `json:"hide_unzipping_log"` // if true, don't log when unzipping
 }
 
-func FileExistsProbe(fileName string) *kcore.Probe {
-	return &kcore.Probe{
-		InitialDelaySeconds: 3,
-		TimeoutSeconds:      5,
-		PeriodSeconds:       5,
-		SuccessThreshold:    1,
-		FailureThreshold:    1,
-		Handler: kcore.Handler{
-			Exec: &kcore.ExecAction{
-				Command: []string{"/bin/bash", "-c", fmt.Sprintf("test -f %s", fileName)},
-			},
-		},
+func getProbeSpec(probe *userconfig.Probe) *kcore.Probe {
+	if probe == nil {
+		return nil
 	}
-}
 
-func SocketExistsProbe(socketName string) *kcore.Probe {
-	return &kcore.Probe{
-		InitialDelaySeconds: 3,
-		TimeoutSeconds:      5,
-		PeriodSeconds:       5,
-		SuccessThreshold:    1,
-		FailureThreshold:    1,
-		Handler: kcore.Handler{
-			Exec: &kcore.ExecAction{
-				Command: []string{"/bin/bash", "-c", fmt.Sprintf("test -S %s", socketName)},
+	var httpGetAction *kcore.HTTPGetAction
+	var tcpSocketAction *kcore.TCPSocketAction
+	var execAction *kcore.ExecAction
+
+	if probe.HTTPGet != nil {
+		httpGetAction = &kcore.HTTPGetAction{
+			Path: probe.HTTPGet.Path,
+			Port: intstr.IntOrString{
+				IntVal: probe.HTTPGet.Port,
 			},
+		}
+	}
+	if probe.TCPSocket != nil {
+		tcpSocketAction = &kcore.TCPSocketAction{
+			Port: intstr.IntOrString{
+				IntVal: probe.TCPSocket.Port,
+			},
+		}
+	}
+	if probe.Exec != nil {
+		execAction = &kcore.ExecAction{
+			Command: probe.Exec.Command,
+		}
+	}
+
+	return &kcore.Probe{
+		Handler: kcore.Handler{
+			HTTPGet:   httpGetAction,
+			TCPSocket: tcpSocketAction,
+			Exec:      execAction,
 		},
+		InitialDelaySeconds: probe.InitialDelaySeconds,
+		TimeoutSeconds:      probe.TimeoutSeconds,
+		PeriodSeconds:       probe.PeriodSeconds,
+		SuccessThreshold:    probe.SuccessThreshold,
+		FailureThreshold:    probe.FailureThreshold,
 	}
 }
 

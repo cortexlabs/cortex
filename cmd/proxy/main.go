@@ -54,7 +54,7 @@ func main() {
 	)
 
 	flag.IntVar(&port, "port", 8000, "port where the proxy server will be exposed")
-	flag.IntVar(&adminPort, "admin-port", 15000, "port where the admin server (for metrics and probes) will be exposed")
+	flag.IntVar(&adminPort, "admin-port", 25000, "port where the admin server (for metrics and probes) will be exposed")
 	flag.IntVar(&userContainerPort, "user-port", 8080, "port where the proxy will redirect to the traffic to")
 	flag.IntVar(&maxConcurrency, "max-concurrency", 0, "max concurrency allowed for user container")
 	flag.IntVar(&maxQueueLength, "max-queue-length", 0, "max request queue length for user container")
