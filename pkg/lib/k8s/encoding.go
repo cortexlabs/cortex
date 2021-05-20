@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package probe
+package k8s
 
 import (
 	"encoding/json"
@@ -23,8 +23,8 @@ import (
 	kcore "k8s.io/api/core/v1"
 )
 
-// DecodeJSON takes a json serialised *kcore.Probe and returns a Probe or an error.
-func DecodeJSON(jsonProbe string) (*kcore.Probe, error) {
+// DecodeJSONProbe takes a json serialised *kcore.Probe and returns a Probe or an error.
+func DecodeJSONProbe(jsonProbe string) (*kcore.Probe, error) {
 	pb := &kcore.Probe{}
 	if err := json.Unmarshal([]byte(jsonProbe), pb); err != nil {
 		return nil, err
@@ -32,8 +32,8 @@ func DecodeJSON(jsonProbe string) (*kcore.Probe, error) {
 	return pb, nil
 }
 
-// EncodeJSON takes *kcore.Probe object and returns marshalled Probe JSON string and an error.
-func EncodeJSON(pb *kcore.Probe) (string, error) {
+// EncodeJSONProbe takes *kcore.Probe object and returns marshalled Probe JSON string and an error.
+func EncodeJSONProbe(pb *kcore.Probe) (string, error) {
 	if pb == nil {
 		return "", errors.New("cannot encode nil probe")
 	}

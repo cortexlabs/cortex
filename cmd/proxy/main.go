@@ -28,6 +28,7 @@ import (
 
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/logging"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	"github.com/cortexlabs/cortex/pkg/proxy"
@@ -127,7 +128,7 @@ func main() {
 			log.Fatal(err)
 		}
 
-		probeDef, err := probe.DecodeJSON(string(jsonProbe))
+		probeDef, err := k8s.DecodeJSONProbe(string(jsonProbe))
 		if err != nil {
 			log.Fatal(err)
 		}
