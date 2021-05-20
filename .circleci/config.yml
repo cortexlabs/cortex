@@ -86,12 +86,13 @@ jobs:
           command: |
             sudo add-apt-repository ppa:deadsnakes/ppa -y
             sudo apt update && sudo apt install python3.6
+            pip install -U pip
       - run:
           name: Install Linting Tools
           command: |
             go get -u -v golang.org/x/lint/golint
             go get -u -v github.com/kyoh86/looppointer/cmd/looppointer
-            sudo pip3 install black aiohttp
+            sudo pip install black aiohttp
       - run:
           name: Initialize Credentials
           command: |
