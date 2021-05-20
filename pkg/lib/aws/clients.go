@@ -57,119 +57,119 @@ type clients struct {
 
 func (c *Client) S3() *s3.S3 {
 	if c.clients.s3 == nil {
-		c.clients.s3 = s3.New(c.sess)
+		c.clients.s3 = s3.New(c.Sess)
 	}
 	return c.clients.s3
 }
 
 func (c *Client) S3Uploader() *s3manager.Uploader {
 	if c.clients.s3Uploader == nil {
-		c.clients.s3Uploader = s3manager.NewUploader(c.sess)
+		c.clients.s3Uploader = s3manager.NewUploader(c.Sess)
 	}
 	return c.clients.s3Uploader
 }
 
 func (c *Client) S3Downloader() *s3manager.Downloader {
 	if c.clients.s3Downloader == nil {
-		c.clients.s3Downloader = s3manager.NewDownloader(c.sess)
+		c.clients.s3Downloader = s3manager.NewDownloader(c.Sess)
 	}
 	return c.clients.s3Downloader
 }
 
 func (c *Client) STS() *sts.STS {
 	if c.clients.sts == nil {
-		c.clients.sts = sts.New(c.sess)
+		c.clients.sts = sts.New(c.Sess)
 	}
 	return c.clients.sts
 }
 
 func (c *Client) SQS() *sqs.SQS {
 	if c.clients.sqs == nil {
-		c.clients.sqs = sqs.New(c.sess)
+		c.clients.sqs = sqs.New(c.Sess)
 	}
 	return c.clients.sqs
 }
 
 func (c *Client) EC2() *ec2.EC2 {
 	if c.clients.ec2 == nil {
-		c.clients.ec2 = ec2.New(c.sess)
+		c.clients.ec2 = ec2.New(c.Sess)
 	}
 	return c.clients.ec2
 }
 
 func (c *Client) ELBV2() *elbv2.ELBV2 {
 	if c.clients.elbv2 == nil {
-		c.clients.elbv2 = elbv2.New(c.sess)
+		c.clients.elbv2 = elbv2.New(c.Sess)
 	}
 	return c.clients.elbv2
 }
 
 func (c *Client) EKS() *eks.EKS {
 	if c.clients.eks == nil {
-		c.clients.eks = eks.New(c.sess)
+		c.clients.eks = eks.New(c.Sess)
 	}
 	return c.clients.eks
 }
 
 func (c *Client) ECR() *ecr.ECR {
 	if c.clients.ecr == nil {
-		c.clients.ecr = ecr.New(c.sess)
+		c.clients.ecr = ecr.New(c.Sess)
 	}
 	return c.clients.ecr
 }
 
 func (c *Client) CloudFormation() *cloudformation.CloudFormation {
 	if c.clients.cloudFormation == nil {
-		c.clients.cloudFormation = cloudformation.New(c.sess)
+		c.clients.cloudFormation = cloudformation.New(c.Sess)
 	}
 	return c.clients.cloudFormation
 }
 
 func (c *Client) Autoscaling() *autoscaling.AutoScaling {
 	if c.clients.autoscaling == nil {
-		c.clients.autoscaling = autoscaling.New(c.sess)
+		c.clients.autoscaling = autoscaling.New(c.Sess)
 	}
 	return c.clients.autoscaling
 }
 
 func (c *Client) ACM() *acm.ACM {
 	if c.clients.acm == nil {
-		c.clients.acm = acm.New(c.sess)
+		c.clients.acm = acm.New(c.Sess)
 	}
 	return c.clients.acm
 }
 
 func (c *Client) CloudWatchLogs() *cloudwatchlogs.CloudWatchLogs {
 	if c.clients.cloudWatchLogs == nil {
-		c.clients.cloudWatchLogs = cloudwatchlogs.New(c.sess)
+		c.clients.cloudWatchLogs = cloudwatchlogs.New(c.Sess)
 	}
 	return c.clients.cloudWatchLogs
 }
 
 func (c *Client) CloudWatch() *cloudwatch.CloudWatch {
 	if c.clients.cloudWatch == nil {
-		c.clients.cloudWatch = cloudwatch.New(c.sess)
+		c.clients.cloudWatch = cloudwatch.New(c.Sess)
 	}
 	return c.clients.cloudWatch
 }
 
 func (c *Client) APIGatewayV2() *apigatewayv2.ApiGatewayV2 {
 	if c.clients.apiGatewayV2 == nil {
-		c.clients.apiGatewayV2 = apigatewayv2.New(c.sess)
+		c.clients.apiGatewayV2 = apigatewayv2.New(c.Sess)
 	}
 	return c.clients.apiGatewayV2
 }
 
 func (c *Client) ServiceQuotas() *servicequotas.ServiceQuotas {
 	if c.clients.serviceQuotas == nil {
-		c.clients.serviceQuotas = servicequotas.New(c.sess)
+		c.clients.serviceQuotas = servicequotas.New(c.Sess)
 	}
 	return c.clients.serviceQuotas
 }
 
 func (c *Client) IAM() *iam.IAM {
 	if c.clients.iam == nil {
-		c.clients.iam = iam.New(c.sess)
+		c.clients.iam = iam.New(c.Sess)
 	}
 	return c.clients.iam
 }

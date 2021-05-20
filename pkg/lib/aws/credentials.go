@@ -18,11 +18,11 @@ package aws
 
 // access key ID may be unavailable depending on how the client was instantiated
 func (c *Client) AccessKeyID() *string {
-	if c.sess.Config.Credentials == nil {
+	if c.Sess.Config.Credentials == nil {
 		return nil
 	}
 
-	sessCreds, err := c.sess.Config.Credentials.Get()
+	sessCreds, err := c.Sess.Config.Credentials.Get()
 	if err != nil {
 		return nil
 	}
@@ -35,11 +35,11 @@ func (c *Client) AccessKeyID() *string {
 }
 
 func (c *Client) SecretAccessKey() *string {
-	if c.sess.Config.Credentials == nil {
+	if c.Sess.Config.Credentials == nil {
 		return nil
 	}
 
-	sessCreds, err := c.sess.Config.Credentials.Get()
+	sessCreds, err := c.Sess.Config.Credentials.Get()
 	if err != nil {
 		return nil
 	}
@@ -52,11 +52,11 @@ func (c *Client) SecretAccessKey() *string {
 }
 
 func (c *Client) SessionToken() *string {
-	if c.sess.Config.Credentials == nil {
+	if c.Sess.Config.Credentials == nil {
 		return nil
 	}
 
-	sessCreds, err := c.sess.Config.Credentials.Get()
+	sessCreds, err := c.Sess.Config.Credentials.Get()
 	if err != nil {
 		return nil
 	}

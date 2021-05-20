@@ -28,7 +28,7 @@ import (
 
 type Client struct {
 	Region          string
-	sess            *session.Session
+	Sess            *session.Session
 	IsAnonymous     bool
 	clients         clients
 	accountID       *string
@@ -90,7 +90,7 @@ func NewForRegion(region string) (*Client, error) {
 	}
 
 	return &Client{
-		sess:   sess,
+		Sess:   sess,
 		Region: region,
 	}, nil
 }
@@ -119,7 +119,7 @@ func New() (*Client, error) {
 	}
 
 	return &Client{
-		sess:   sess,
+		Sess:   sess,
 		Region: *sess.Config.Region,
 	}, nil
 }
@@ -137,12 +137,12 @@ func NewAnonymousClientWithRegion(region string) (*Client, error) {
 		return nil, err
 	}
 	return &Client{
-		sess:        sess,
+		Sess:        sess,
 		Region:      region,
 		IsAnonymous: true,
 	}, nil
 }
 
 func (c Client) Session() *session.Session {
-	return c.sess
+	return c.Sess
 }
