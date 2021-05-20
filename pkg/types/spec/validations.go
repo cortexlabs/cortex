@@ -176,6 +176,7 @@ func podValidation(kind userconfig.Kind) *cr.StructFieldValidation {
 						LessThanOrEqualTo: pointer.Int32(65535),
 						DisallowedValues: []int32{
 							consts.ProxyListeningPortInt32,
+							consts.ProxyAdminPortInt32,
 							consts.MetricsPortInt32,
 						},
 					},
@@ -348,6 +349,7 @@ func httpGetProbeValidation() *cr.StructFieldValidation {
 						LessThanOrEqualTo: pointer.Int32(65535),
 						DisallowedValues: []int32{
 							consts.ProxyListeningPortInt32,
+							consts.ProxyAdminPortInt32,
 							consts.MetricsPortInt32,
 						},
 					},
@@ -373,6 +375,7 @@ func tcpSocketProbeValidation() *cr.StructFieldValidation {
 						LessThanOrEqualTo: pointer.Int32(65535),
 						DisallowedValues: []int32{
 							consts.ProxyListeningPortInt32,
+							consts.ProxyAdminPortInt32,
 							consts.MetricsPortInt32,
 						},
 					},

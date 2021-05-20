@@ -103,6 +103,22 @@ func k8sJobSpec(api *spec.API, job *spec.TaskJob) *kbatch.Job {
 	})
 }
 
+func k8sConfigMap(api spec.API, job spec.TaskJob, configMapData map[string]string) kcore.ConfigMap {
+	return *k8s.ConfigMap(&k8s.ConfigMapSpec{
+		Name: job.JobKey.K8sName(),
+		Data: configMapData,
+		Labels: map[string]string{
+			"apiName":        api.Name,
+			"apiID":          api.ID,
+			"specID":         api.SpecID,
+			"handlerID":      api.HandlerID,
+			"jobID":          job.ID,
+			"apiKind":        api.Kind.String(),
+			"cortex.dev/api": "true",
+		},
+	})
+}
+
 func applyK8sResources(api *spec.API, prevVirtualService *istioclientnetworking.VirtualService) error {
 	newVirtualService := virtualServiceSpec(api)
 
@@ -155,4 +171,14 @@ func createK8sJob(apiSpec *spec.API, jobSpec *spec.TaskJob) error {
 	}
 
 	return nil
+}
+
+func deleteK8sConfigMap(jobKey spec.JobKey) error {
+	_, err := config.K8s.DeleteConfigMap(jobKey.K8sName())
+	return err
+}
+
+func createK8sConfigMap(configMap kcore.ConfigMap) error {
+	_, err := config.K8s.CreateConfigMap(&configMap)
+	return err
 }
