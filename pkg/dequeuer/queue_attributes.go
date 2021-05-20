@@ -24,8 +24,6 @@ import (
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 )
 
-var _queueAttributes = []string{"all"}
-
 type QueueAttributes struct {
 	VisibleMessages   int
 	InvisibleMessages int

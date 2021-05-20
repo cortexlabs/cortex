@@ -132,18 +132,20 @@ func main() {
 		}
 		messageHandler := dequeuer.NewBatchMessageHandler(config, awsClient, metricsClient, log.Sugar())
 
-		handlerConfig := dequeuer.SQSHandlerConfig{
+		handlerConfig := dequeuer.Config{
 			Region:           region,
 			QueueURL:         queueURL,
 			StopIfNoMessages: true,
 		}
 
-		sqsHandler, err := dequeuer.NewSQSHandler(handlerConfig, awsClient, log.Sugar())
+		sqsDequeuer, err := dequeuer.NewSQSDequeuer(handlerConfig, awsClient, log.Sugar())
 		if err != nil {
 			log.Fatal("failed to create sqs handler", zap.Error(err))
 		}
 
-		sqsHandler.Start(messageHandler)
+		if err = sqsDequeuer.Start(messageHandler); err != nil {
+			log.Fatal("error durring message dequeueing", zap.Error(err))
+		}
 	default:
 		log.Sugar().Fatalf("kind %s is not supported", apiKind)
 	}

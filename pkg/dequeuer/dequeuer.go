@@ -42,15 +42,15 @@ type MessageHandler interface {
 	Handle(*sqs.Message) error
 }
 
-type SQSHandlerConfig struct {
+type Config struct {
 	Region           string
 	QueueURL         string
 	StopIfNoMessages bool
 }
 
-type SQSHandler struct {
+type SQSDequeuer struct {
 	aws                *awslib.Client
-	config             SQSHandlerConfig
+	config             Config
 	hasDeadLetterQueue bool
 	waitTimeSeconds    *int64
 	visibilityTimeout  *int64
@@ -59,13 +59,13 @@ type SQSHandler struct {
 	log                *zap.SugaredLogger
 }
 
-func NewSQSHandler(config SQSHandlerConfig, awsClient *awslib.Client, logger *zap.SugaredLogger) (*SQSHandler, error) {
+func NewSQSDequeuer(config Config, awsClient *awslib.Client, logger *zap.SugaredLogger) (*SQSDequeuer, error) {
 	attr, err := GetQueueAttributes(awsClient, config.QueueURL)
 	if err != nil {
 		return nil, err
 	}
 
-	return &SQSHandler{
+	return &SQSDequeuer{
 		aws:                awsClient,
 		config:             config,
 		hasDeadLetterQueue: attr.RedrivePolicy,
@@ -77,13 +77,13 @@ func NewSQSHandler(config SQSHandlerConfig, awsClient *awslib.Client, logger *za
 	}, nil
 }
 
-func (handler SQSHandler) ReceiveMessage() ([]*sqs.Message, error) {
-	output, err := handler.aws.SQS().ReceiveMessage(&sqs.ReceiveMessageInput{
-		QueueUrl:              aws.String(handler.config.QueueURL),
+func (d *SQSDequeuer) ReceiveMessage() ([]*sqs.Message, error) {
+	output, err := d.aws.SQS().ReceiveMessage(&sqs.ReceiveMessageInput{
+		QueueUrl:              aws.String(d.config.QueueURL),
 		MaxNumberOfMessages:   aws.Int64(_maxNumberOfMessages),
 		MessageAttributeNames: aws.StringSlice(_messageAttributes),
-		VisibilityTimeout:     handler.visibilityTimeout,
-		WaitTimeSeconds:       handler.waitTimeSeconds,
+		VisibilityTimeout:     d.visibilityTimeout,
+		WaitTimeSeconds:       d.waitTimeSeconds,
 	})
 
 	if err != nil {
@@ -93,45 +93,45 @@ func (handler SQSHandler) ReceiveMessage() ([]*sqs.Message, error) {
 	return output.Messages, nil
 }
 
-func (handler SQSHandler) Start(messageHandler MessageHandler) error {
+func (d *SQSDequeuer) Start(messageHandler MessageHandler) error {
 	noMessagesInPreviousIteration := false
 	for true {
-		messages, err := handler.ReceiveMessage()
+		messages, err := d.ReceiveMessage()
 		if err != nil {
 			return err
 		}
 
 		if len(messages) == 0 {
-			queueAttributes, err := GetQueueAttributes(handler.aws, handler.config.QueueURL)
+			queueAttributes, err := GetQueueAttributes(d.aws, d.config.QueueURL)
 			if err != nil {
 				return err
 			}
 
 			if queueAttributes.TotalMessages() == 0 {
 				if !noMessagesInPreviousIteration {
-					handler.log.Info("no messages found in queue, retrying ...")
+					d.log.Info("no messages found in queue, retrying ...")
 				}
-				if noMessagesInPreviousIteration && handler.config.StopIfNoMessages {
-					handler.log.Info("no messages found in queue, exiting ...")
+				if noMessagesInPreviousIteration && d.config.StopIfNoMessages {
+					d.log.Info("no messages found in queue, exiting ...")
 					return nil
 				}
 				noMessagesInPreviousIteration = true
 			}
-			time.Sleep(handler.notFoundSleepTime)
+			time.Sleep(d.notFoundSleepTime)
 			continue
 		}
 
 		noMessagesInPreviousIteration = false
 		message := messages[0]
 		receiptHandle := *message.ReceiptHandle
-		done := handler.StartMessageRenewer(receiptHandle)
-		handler.handleMessage(message, messageHandler, done)
+		done := d.StartMessageRenewer(receiptHandle)
+		d.handleMessage(message, messageHandler, done)
 	}
 
 	return nil
 }
 
-func (handler SQSHandler) handleMessage(message *sqs.Message, messageHandler MessageHandler, done chan struct{}) {
+func (d *SQSDequeuer) handleMessage(message *sqs.Message, messageHandler MessageHandler, done chan struct{}) {
 	messageErr := messageHandler.Handle(message)
 	// if messageErr != nil {
 	// 	// TODO
@@ -140,38 +140,38 @@ func (handler SQSHandler) handleMessage(message *sqs.Message, messageHandler Mes
 	done <- struct{}{}
 	isOnJobComplete := isOnJobCompleteMessage(message)
 
-	if !isOnJobComplete && handler.hasDeadLetterQueue && messageErr != nil {
+	if !isOnJobComplete && d.hasDeadLetterQueue && messageErr != nil {
 		// expire messages when head letter queue is configured to facilitate redrive policy
 		// always delete onJobComplete messages regardless of dredrive policy because a new one will be added if an onJobComplete message has been consumed prematurely
-		_, err := handler.aws.SQS().ChangeMessageVisibility(
+		_, err := d.aws.SQS().ChangeMessageVisibility(
 			&sqs.ChangeMessageVisibilityInput{
-				QueueUrl:          &handler.config.QueueURL,
+				QueueUrl:          &d.config.QueueURL,
 				ReceiptHandle:     message.ReceiptHandle,
 				VisibilityTimeout: aws.Int64(0),
 			},
 		)
 		if err != nil {
 			// TODO
-			handler.log.Fatal(zap.Error(err))
+			d.log.Fatal(zap.Error(err))
 		}
 		return
 	}
 
-	_, err := handler.aws.SQS().DeleteMessage(
+	_, err := d.aws.SQS().DeleteMessage(
 		&sqs.DeleteMessageInput{
-			QueueUrl:      &handler.config.QueueURL,
+			QueueUrl:      &d.config.QueueURL,
 			ReceiptHandle: message.ReceiptHandle,
 		},
 	)
 	if err != nil {
 		// TODO
-		handler.log.Info(zap.Error(err))
+		d.log.Info(zap.Error(err))
 	}
 }
 
-func (handler SQSHandler) StartMessageRenewer(receiptHandle string) chan struct{} {
+func (d *SQSDequeuer) StartMessageRenewer(receiptHandle string) chan struct{} {
 	done := make(chan struct{})
-	ticker := time.NewTicker(handler.renewalPeriod)
+	ticker := time.NewTicker(d.renewalPeriod)
 	startTime := time.Now()
 	go func() {
 		defer ticker.Stop()
@@ -180,17 +180,17 @@ func (handler SQSHandler) StartMessageRenewer(receiptHandle string) chan struct{
 			case <-done:
 				return
 			case tickerTime := <-ticker.C:
-				newVisibilityTimeout := tickerTime.Sub(startTime) + handler.renewalPeriod
-				_, err := handler.aws.SQS().ChangeMessageVisibility(
+				newVisibilityTimeout := tickerTime.Sub(startTime) + d.renewalPeriod
+				_, err := d.aws.SQS().ChangeMessageVisibility(
 					&sqs.ChangeMessageVisibilityInput{
-						QueueUrl:          &handler.config.QueueURL,
+						QueueUrl:          &d.config.QueueURL,
 						ReceiptHandle:     &receiptHandle,
 						VisibilityTimeout: aws.Int64(int64(newVisibilityTimeout.Seconds())),
 					},
 				)
 				if err != nil {
 					// TODO err
-					handler.log.Info(zap.Error(err))
+					d.log.Info(zap.Error(err))
 				}
 			}
 		}
