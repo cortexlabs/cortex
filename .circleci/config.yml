@@ -82,11 +82,9 @@ jobs:
       - checkout
       - install-go
       - run:
-          name: Install Python 3.6
+          name: Set-up python
           command: |
-            sudo add-apt-repository ppa:deadsnakes/ppa -y
-            sudo apt update && sudo apt install python3.6
-            pip install -U pip
+            pyenv global 3.9.4
       - run:
           name: Install Linting Tools
           command: |
