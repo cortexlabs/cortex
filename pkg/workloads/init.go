@@ -17,25 +17,12 @@ limitations under the License.
 package workloads
 
 import (
-	"encoding/base64"
-	"encoding/json"
-	"strings"
-
 	"github.com/cortexlabs/cortex/pkg/config"
-	"github.com/cortexlabs/cortex/pkg/lib/aws"
-	"github.com/cortexlabs/cortex/pkg/types/spec"
-	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	kcore "k8s.io/api/core/v1"
 )
 
 const (
-	JobSpecPath = "/cortex/job_spec.json"
-)
-
-const (
-	_downloaderInitContainerName = "downloader"
-	_downloaderLastLog           = "downloading the serving image(s)"
-	_kubexitInitContainerName    = "kubexit"
+	_kubexitInitContainerName = "kubexit"
 )
 
 func KubexitInitContainer() kcore.Container {
@@ -44,43 +31,6 @@ func KubexitInitContainer() kcore.Container {
 		Image:           config.ClusterConfig.ImageKubexit,
 		ImagePullPolicy: kcore.PullAlways,
 		Command:         []string{"cp", "/bin/kubexit", "/cortex/kubexit"},
-		VolumeMounts: []kcore.VolumeMount{
-			CortexMount(),
-		},
-	}
-}
-
-func BatchInitContainer(job *spec.BatchJob) kcore.Container {
-	downloadConfig := downloadContainerConfig{
-		LastLog: _downloaderLastLog,
-		DownloadArgs: []downloadContainerArg{
-			{
-				From:             aws.S3Path(config.ClusterConfig.Bucket, job.SpecFilePath(config.ClusterConfig.ClusterUID)),
-				To:               JobSpecPath,
-				Unzip:            false,
-				ToFile:           true,
-				ItemName:         "the job spec",
-				HideFromLog:      true,
-				HideUnzippingLog: true,
-			},
-		},
-	}
-
-	downloadArgsBytes, _ := json.Marshal(downloadConfig)
-	downloadArgs := base64.URLEncoding.EncodeToString(downloadArgsBytes)
-
-	return kcore.Container{
-		Name:            _downloaderInitContainerName,
-		Image:           config.ClusterConfig.ImageDownloader,
-		ImagePullPolicy: kcore.PullAlways,
-		Args:            []string{"--download=" + downloadArgs},
-		EnvFrom:         baseClusterEnvVars(),
-		Env: []kcore.EnvVar{
-			{
-				Name:  "CORTEX_LOG_LEVEL",
-				Value: strings.ToUpper(userconfig.InfoLogLevel.String()),
-			},
-		},
 		VolumeMounts: []kcore.VolumeMount{
 			CortexMount(),
 		},

@@ -31,21 +31,6 @@ func K8sName(apiName string) string {
 	return "api-" + apiName
 }
 
-type downloadContainerConfig struct {
-	DownloadArgs []downloadContainerArg `json:"download_args"`
-	LastLog      string                 `json:"last_log"` // string to log at the conclusion of the downloader (if "" nothing will be logged)
-}
-
-type downloadContainerArg struct {
-	From             string `json:"from"`
-	To               string `json:"to"`
-	ToFile           bool   `json:"to_file"` // whether "To" path reflects the path to a file or just the directory in which "From" object is copied to
-	Unzip            bool   `json:"unzip"`
-	ItemName         string `json:"item_name"`          // name of the item being downloaded, just for logging (if "" nothing will be logged)
-	HideFromLog      bool   `json:"hide_from_log"`      // if true, don't log where the file is being downloaded from
-	HideUnzippingLog bool   `json:"hide_unzipping_log"` // if true, don't log when unzipping
-}
-
 func GetProbeSpec(probe *userconfig.Probe) *kcore.Probe {
 	if probe == nil {
 		return nil

@@ -337,7 +337,6 @@ func (r *BatchJobReconciler) desiredWorkerJob(batchJob batch.BatchJob, apiSpec s
 				K8sPodSpec: kcore.PodSpec{
 					InitContainers: []kcore.Container{
 						workloads.KubexitInitContainer(),
-						workloads.BatchInitContainer(&jobSpec),
 					},
 					Containers:         containers,
 					Volumes:            volumes,
