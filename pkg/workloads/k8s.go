@@ -17,7 +17,6 @@ limitations under the License.
 package workloads
 
 import (
-	"encoding/json"
 	"strings"
 
 	"github.com/cortexlabs/cortex/pkg/config"
@@ -118,6 +117,55 @@ func AsyncGatewayContainer(api spec.API, queueURL string, volumeMounts []kcore.V
 		},
 		VolumeMounts: volumeMounts,
 	}
+}
+
+func RealtimeProxyContainer(api spec.API) (kcore.Container, kcore.Volume) {
+	return kcore.Container{
+		Name:            _proxyContainerName,
+		Image:           config.ClusterConfig.ImageProxy,
+		ImagePullPolicy: kcore.PullAlways,
+		Args: []string{
+			"--port",
+			consts.ProxyListeningPortStr,
+			"--admin-port",
+			consts.AdminPortStr,
+			"--user-port",
+			s.Int32(*api.Pod.Port),
+			"--max-concurrency",
+			s.Int32(int32(api.Autoscaling.MaxConcurrency)),
+			"--max-queue-length",
+			s.Int32(int32(api.Autoscaling.MaxQueueLength)),
+			"--cluster-config",
+			consts.DefaultInClusterConfigPath,
+		},
+		Ports: []kcore.ContainerPort{
+			{Name: "admin", ContainerPort: consts.AdminPortInt32},
+			{ContainerPort: consts.ProxyListeningPortInt32},
+		},
+		Env: []kcore.EnvVar{
+			{
+				Name:  "CORTEX_LOG_LEVEL",
+				Value: strings.ToUpper(userconfig.InfoLogLevel.String()),
+			},
+		},
+		EnvFrom: baseClusterEnvVars(),
+		VolumeMounts: []kcore.VolumeMount{
+			ClusterConfigMount(),
+		},
+		ReadinessProbe: &kcore.Probe{
+			Handler: kcore.Handler{
+				HTTPGet: &kcore.HTTPGetAction{
+					Path: "/healthz",
+					Port: intstr.FromInt(int(consts.AdminPortInt32)),
+				},
+			},
+			InitialDelaySeconds: 1,
+			TimeoutSeconds:      1,
+			PeriodSeconds:       5,
+			SuccessThreshold:    1,
+			FailureThreshold:    1,
+		},
+	}, ClusterConfigVolume()
 }
 
 func RealtimeUserPodContainers(api spec.API) ([]kcore.Container, []kcore.Volume) {
@@ -277,55 +325,6 @@ func userPodContainers(api spec.API, job *spec.JobKey) ([]kcore.Container, []kco
 	return containers, volumes
 }
 
-func RealtimeProxyContainer(api spec.API) (kcore.Container, kcore.Volume) {
-	return kcore.Container{
-		Name:            _proxyContainerName,
-		Image:           config.ClusterConfig.ImageProxy,
-		ImagePullPolicy: kcore.PullAlways,
-		Args: []string{
-			"--port",
-			consts.ProxyListeningPortStr,
-			"--admin-port",
-			consts.AdminPortStr,
-			"--user-port",
-			s.Int32(*api.Pod.Port),
-			"--max-concurrency",
-			s.Int32(int32(api.Autoscaling.MaxConcurrency)),
-			"--max-queue-length",
-			s.Int32(int32(api.Autoscaling.MaxQueueLength)),
-			"--cluster-config",
-			consts.DefaultInClusterConfigPath,
-		},
-		Ports: []kcore.ContainerPort{
-			{Name: "admin", ContainerPort: consts.AdminPortInt32},
-			{ContainerPort: consts.ProxyListeningPortInt32},
-		},
-		Env: []kcore.EnvVar{
-			{
-				Name:  "CORTEX_LOG_LEVEL",
-				Value: strings.ToUpper(userconfig.InfoLogLevel.String()),
-			},
-		},
-		EnvFrom: baseClusterEnvVars(),
-		VolumeMounts: []kcore.VolumeMount{
-			ClusterConfigMount(),
-		},
-		ReadinessProbe: &kcore.Probe{
-			Handler: kcore.Handler{
-				HTTPGet: &kcore.HTTPGetAction{
-					Path: "/healthz",
-					Port: intstr.FromInt(int(consts.AdminPortInt32)),
-				},
-			},
-			InitialDelaySeconds: 1,
-			TimeoutSeconds:      1,
-			PeriodSeconds:       5,
-			SuccessThreshold:    1,
-			FailureThreshold:    1,
-		},
-	}, ClusterConfigVolume()
-}
-
 func NodeSelectors() map[string]string {
 	return map[string]string{
 		"workload": "true",
@@ -422,44 +421,6 @@ func GenerateNodeAffinities(apiNodeGroups []string) *kcore.Affinity {
 			RequiredDuringSchedulingIgnoredDuringExecution:  requiredNodeSelector,
 		},
 	}
-}
-
-// Generate map from container name -> probe
-func GenerateProbesConfigMapData(probes map[string]kcore.Probe) (map[string]string, error) {
-	probesEncoded, err := json.MarshalIndent(probes, "", "\t")
-	if err != nil {
-		return nil, err
-	}
-
-	return map[string]string{
-		"probes.json": string(probesEncoded),
-	}, nil
-}
-
-func GenerateJobSpecConfigMapData(taskJobSpec *spec.TaskJob, batchJobSpec *spec.BatchJob) (map[string]string, error) {
-	if taskJobSpec != nil {
-		jobSpecEncoded, err := json.MarshalIndent(taskJobSpec, "", "\t")
-		if err != nil {
-			return nil, err
-		}
-
-		return map[string]string{
-			"job_spec.json": string(jobSpecEncoded),
-		}, nil
-	}
-
-	if batchJobSpec != nil {
-		jobSpecEncoded, err := json.MarshalIndent(batchJobSpec, "", "\t")
-		if err != nil {
-			return nil, err
-		}
-
-		return map[string]string{
-			"job_spec.json": string(jobSpecEncoded),
-		}, nil
-	}
-
-	return nil, nil
 }
 
 // func getAsyncAPIEnvVars(api spec.API, queueURL string) []kcore.EnvVar {

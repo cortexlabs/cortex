@@ -89,7 +89,11 @@ func uploadJobSpec(jobSpec *spec.TaskJob) error {
 }
 
 func createJobConfigMap(apiSpec spec.API, jobSpec spec.TaskJob) error {
-	configMapData, err := workloads.GenerateJobSpecConfigMapData(&jobSpec, nil)
+	configMapConfig := workloads.ConfigMapConfig{
+		TaskJob: &jobSpec,
+	}
+
+	configMapData, err := configMapConfig.GenerateConfigMapData()
 	if err != nil {
 		return err
 	}

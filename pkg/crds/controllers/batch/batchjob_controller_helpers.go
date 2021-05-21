@@ -32,7 +32,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	libjson "github.com/cortexlabs/cortex/pkg/lib/json"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
-	m "github.com/cortexlabs/cortex/pkg/lib/maps"
 	"github.com/cortexlabs/cortex/pkg/lib/parallel"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
@@ -209,22 +208,22 @@ func (r *BatchJobReconciler) createWorkerConfigMap(ctx context.Context, batchJob
 		return errors.Wrap(err, "failed to get API spec")
 	}
 
-	probesSpecData, err := workloads.GenerateProbesConfigMapData(batchJob.Spec.Probes)
-	if err != nil {
-		return errors.Wrap(err, "failed to generate probes spec config map")
-	}
-
 	jobSpec, err := r.ConvertControllerBatchToJobSpec(batchJob, *apiSpec, queueURL)
 	if err != nil {
 		return errors.Wrap(err, "failed to convert controller batch job to operator batch job")
 	}
 
-	jobSpecData, err := workloads.GenerateJobSpecConfigMapData(nil, &jobSpec)
-	if err != nil {
-		return errors.Wrap(err, "failed to generate job spec config map")
+	configMapConfig := workloads.ConfigMapConfig{
+		BatchJob: &jobSpec,
+		Probes:   batchJob.Spec.Probes,
 	}
 
-	configMap, err := r.desiredConfigMap(batchJob, m.MergeStrMapsString(probesSpecData, jobSpecData))
+	configMapData, err := configMapConfig.GenerateConfigMapData()
+	if err != nil {
+		return errors.Wrap(err, "failed to generate config map data")
+	}
+
+	configMap, err := r.desiredConfigMap(batchJob, configMapData)
 	if err != nil {
 		return errors.Wrap(err, "failed to get desired configmap spec")
 	}
