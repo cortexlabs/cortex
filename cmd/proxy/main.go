@@ -146,7 +146,7 @@ func main() {
 
 	servers := map[string]*http.Server{
 		"proxy": {
-			Addr:    ":" + strconv.Itoa(userContainerPort),
+			Addr:    ":" + strconv.Itoa(port),
 			Handler: proxy.Handler(breaker, httpProxy),
 		},
 		"admin": {
