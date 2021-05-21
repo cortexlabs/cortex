@@ -59,7 +59,7 @@ type S3Lister struct {
 	S3Paths    []string `json:"s3_paths"` // s3://<bucket_name>/key
 	Includes   []string `json:"includes"`
 	Excludes   []string `json:"excludes"`
-	MaxResults *int64   `json:"max_results"` // this is not currently exposed to the user (it's used for validations)
+	MaxResults *int64   `json:"-"` // this is not currently exposed to the user (it's used for validations)
 }
 
 type FilePathLister struct {
