@@ -10,6 +10,7 @@ rules:
   - ""
   resources:
   - pods
+  - configmaps
   verbs:
   - get
   - list
