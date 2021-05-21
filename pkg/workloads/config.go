@@ -50,7 +50,7 @@ func (c *ConfigMapConfig) GenerateConfigMapData() (map[string]string, error) {
 			return nil, err
 		}
 
-		data["job_spec.json"] = string(jobSpecEncoded)
+		data["job.json"] = string(jobSpecEncoded)
 	}
 
 	if c.BatchJob != nil {
@@ -59,7 +59,7 @@ func (c *ConfigMapConfig) GenerateConfigMapData() (map[string]string, error) {
 			return nil, err
 		}
 
-		data["job_spec.json"] = string(jobSpecEncoded)
+		data["job.json"] = string(jobSpecEncoded)
 	}
 
 	return data, nil

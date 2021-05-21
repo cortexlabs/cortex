@@ -151,17 +151,17 @@ func MntVolume() kcore.Volume {
 	return k8s.EmptyDirVolume(_emptyDirVolumeName)
 }
 
-func CortexVolume(configMap *string) kcore.Volume {
-	if configMap == nil {
-		return k8s.EmptyDirVolume(_cortexDirVolumeName)
-	}
+func CortexVolume() kcore.Volume {
+	return k8s.EmptyDirVolume(_cortexDirVolumeName)
+}
 
+func APIConfigVolume(name string) kcore.Volume {
 	return kcore.Volume{
-		Name: _cortexDirVolumeName,
+		Name: name,
 		VolumeSource: kcore.VolumeSource{
 			ConfigMap: &kcore.ConfigMapVolumeSource{
 				LocalObjectReference: kcore.LocalObjectReference{
-					Name: *configMap,
+					Name: name,
 				},
 			},
 		},
@@ -215,9 +215,13 @@ func MntMount() kcore.VolumeMount {
 }
 
 func CortexMount() kcore.VolumeMount {
+	return k8s.EmptyDirVolumeMount(_cortexDirVolumeName, _cortexDirMountPath)
+}
+
+func APIConfigMount(name string) kcore.VolumeMount {
 	return kcore.VolumeMount{
-		Name:      _cortexDirVolumeName,
-		MountPath: _cortexDirMountPath,
+		Name:      name,
+		MountPath: path.Join(_cortexDirMountPath, "spec"),
 	}
 }
 
