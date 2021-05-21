@@ -120,10 +120,71 @@ func AsyncGatewayContainer(api spec.API, queueURL string, volumeMounts []kcore.V
 	}
 }
 
-// job not nil for BatchAPI/TaskAPI kinds
-func UserPodContainers(api spec.API, job *spec.JobKey) ([]kcore.Container, []kcore.Volume) {
-	isBatchOrTask := api.Kind == userconfig.BatchAPIKind || api.Kind == userconfig.TaskAPIKind
+func RealtimeUserPodContainers(api spec.API) ([]kcore.Container, []kcore.Volume) {
+	return userPodContainers(api, nil)
+}
 
+func AsyncUserPodContainers(api spec.API) ([]kcore.Container, []kcore.Volume) {
+	return userPodContainers(api, nil)
+}
+
+func TaskUserPodContainers(api spec.API, job *spec.JobKey) ([]kcore.Container, []kcore.Volume) {
+	containers, volumes := userPodContainers(api, job)
+
+	volumes = append(volumes,
+		KubexitVolume(),
+		SpecVolume(job.K8sName()),
+	)
+
+	containerNames := userconfig.GetContainerNames(api.Pod.Containers)
+	for i, c := range containers {
+		containers[i].VolumeMounts = append(containers[i].VolumeMounts,
+			KubexitMount(),
+			JobSpecMount(job.K8sName()),
+		)
+
+		containerDeathDependencies := containerNames.Copy()
+		containerDeathDependencies.Remove(c.Name)
+		containerDeathEnvVars := getKubexitEnvVars(c.Name, containerDeathDependencies.Slice(), nil)
+		containers[i].Env = append(containers[i].Env, containerDeathEnvVars...)
+
+		if c.Command[0] != "/cortex/kubexit" {
+			containers[i].Command = append([]string{"/cortex/kubexit"}, c.Command...)
+		}
+	}
+
+	return containers, volumes
+}
+
+func BatchUserPodContainers(api spec.API, job *spec.JobKey) ([]kcore.Container, []kcore.Volume) {
+	containers, volumes := userPodContainers(api, job)
+
+	volumes = append(volumes,
+		KubexitVolume(),
+		SpecVolume(job.K8sName()),
+	)
+
+	containerNames := userconfig.GetContainerNames(api.Pod.Containers)
+	for i, c := range containers {
+		containers[i].VolumeMounts = append(containers[i].VolumeMounts,
+			KubexitMount(),
+			JobSpecMount(job.K8sName()),
+		)
+
+		containerDeathDependencies := containerNames.Copy()
+		containerDeathDependencies.Remove(c.Name)
+		containerDeathEnvVars := getKubexitEnvVars(c.Name, containerDeathDependencies.Slice(), nil)
+		containers[i].Env = append(containers[i].Env, containerDeathEnvVars...)
+
+		if c.Command[0] != "/cortex/kubexit" {
+			containers[i].Command = append([]string{"/cortex/kubexit"}, c.Command...)
+		}
+	}
+
+	return containers, volumes
+}
+
+func userPodContainers(api spec.API, job *spec.JobKey) ([]kcore.Container, []kcore.Volume) {
 	volumes := []kcore.Volume{
 		MntVolume(),
 		CortexVolume(),
@@ -135,24 +196,12 @@ func UserPodContainers(api spec.API, job *spec.JobKey) ([]kcore.Container, []kco
 		ClientConfigMount(),
 	}
 
-	if isBatchOrTask {
-		volumes = append(volumes,
-			KubexitVolume(),
-			SpecVolume(job.K8sName()),
-		)
-		containerMounts = append(containerMounts,
-			KubexitMount(),
-			JobSpecMount(job.K8sName()),
-		)
-	}
-
 	if api.Pod.ShmSize != nil {
 		volumes = append(volumes, ShmVolume(api.Pod.ShmSize.Quantity))
 		containerMounts = append(containerMounts, ShmMount())
 	}
 
 	var containers []kcore.Container
-	containerNames := userconfig.GetContainerNames(api.Pod.Containers)
 	for _, container := range api.Pod.Containers {
 		containerResourceList := kcore.ResourceList{}
 		containerResourceLimitsList := kcore.ResourceList{}
@@ -200,13 +249,6 @@ func UserPodContainers(api spec.API, job *spec.JobKey) ([]kcore.Container, []kco
 				Value: s.Int32(*api.Pod.Port),
 			})
 		}
-
-		if isBatchOrTask {
-			containerDeathDependencies := containerNames.Copy()
-			containerDeathDependencies.Remove(container.Name)
-			containerEnvVars = getKubexitEnvVars(container.Name, containerDeathDependencies.Slice(), nil)
-		}
-
 		for k, v := range container.Env {
 			containerEnvVars = append(containerEnvVars, kcore.EnvVar{
 				Name:  k,
@@ -214,15 +256,10 @@ func UserPodContainers(api spec.API, job *spec.JobKey) ([]kcore.Container, []kco
 			})
 		}
 
-		var containerCmd []string
-		if isBatchOrTask && container.Command[0] != "/cortex/kubexit" {
-			containerCmd = append([]string{"/cortex/kubexit"}, container.Command...)
-		}
-
 		containers = append(containers, kcore.Container{
 			Name:           container.Name,
 			Image:          container.Image,
-			Command:        containerCmd,
+			Command:        container.Command,
 			Args:           container.Args,
 			Env:            containerEnvVars,
 			VolumeMounts:   containerMounts,

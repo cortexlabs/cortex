@@ -323,7 +323,7 @@ func (r *BatchJobReconciler) desiredWorkerJob(batchJob batch.BatchJob, apiSpec s
 	var containers []kcore.Container
 	var volumes []kcore.Volume
 
-	containers, volumes = workloads.UserPodContainers(apiSpec, &jobSpec.JobKey)
+	containers, volumes = workloads.BatchUserPodContainers(apiSpec, &jobSpec.JobKey)
 
 	// TODO add the proxy as well
 	//

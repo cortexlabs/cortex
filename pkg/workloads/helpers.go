@@ -79,6 +79,7 @@ func GetReadinessProbesFromContainers(containers []*userconfig.Container) map[st
 	probes := map[string]kcore.Probe{}
 
 	for _, container := range containers {
+		// this should never happen, it's just a precaution
 		if container == nil {
 			continue
 		}
