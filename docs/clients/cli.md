@@ -92,18 +92,6 @@ Flags:
   -h, --help            help for delete
 ```
 
-## prepare-debug
-
-```text
-prepare artifacts to debug containers
-
-Usage:
-  cortex prepare-debug CONFIG_FILE [API_NAME] [flags]
-
-Flags:
-  -h, --help   help for prepare-debug
-```
-
 ## cluster up
 
 ```text
@@ -175,10 +163,10 @@ Flags:
 ## cluster export
 
 ```text
-download the code and configuration for APIs
+download the configurations for all APIs
 
 Usage:
-  cortex cluster export [API_NAME] [API_ID] [flags]
+  cortex cluster export [flags]
 
 Flags:
   -c, --config string   path to a cluster configuration file
