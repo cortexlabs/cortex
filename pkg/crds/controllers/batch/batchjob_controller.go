@@ -23,7 +23,6 @@ import (
 	batch "github.com/cortexlabs/cortex/pkg/crds/apis/batch/v1alpha1"
 	"github.com/cortexlabs/cortex/pkg/crds/controllers"
 	awslib "github.com/cortexlabs/cortex/pkg/lib/aws"
-	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/slices"
 	"github.com/cortexlabs/cortex/pkg/types/clusterconfig"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
@@ -69,10 +68,10 @@ func (r *BatchJobReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 
 	// Step 1: get resource from request
 	batchJob := batch.BatchJob{}
-	log.V(1).Info("retrieving resource")
+	log.V(1).Info("retrieving job resource")
 	if err := r.Get(ctx, req.NamespacedName, &batchJob); err != nil {
 		if !kerrors.IsNotFound(err) {
-			log.Error(err, "failed to retrieve resource")
+			log.Error(err, "failed to retrieve job resource")
 		}
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
@@ -135,6 +134,13 @@ func (r *BatchJobReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 	queueExists, err := r.checkIfQueueExists(batchJob)
 	if err != nil {
 		log.Error(err, "failed to check if queue exists")
+		return ctrl.Result{}, err
+	}
+
+	log.V(1).Info("checking if configmap exists")
+	configMapExists, err := r.checkIfConfigMapExists(ctx, batchJob)
+	if err != nil {
+		log.Error(err, "failed to check if configmap exists")
 		return ctrl.Result{}, err
 	}
 
@@ -231,21 +237,17 @@ func (r *BatchJobReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 	case batch.EnqueuingFailed:
 		log.Info("failed to enqueue payload")
 	case batch.EnqueuingDone:
-		if !workerJobExists {
-			log.V(1).Info("retrieving API spec")
-			apiSpec, err := r.getAPISpec(batchJob) // TODO: should be cached
-			if err != nil {
-				return ctrl.Result{}, errors.Wrap(err, "failed to get API spec")
-			}
-
+		if !configMapExists {
 			log.V(1).Info("creating worker configmap")
-			if err = r.createWorkerConfigMap(ctx, batchJob, *apiSpec, queueURL); err != nil {
+			if err = r.createWorkerConfigMap(ctx, batchJob, queueURL); err != nil {
 				log.Error(err, "failed to create worker configmap")
 				return ctrl.Result{}, err
 			}
 
+		}
+		if !workerJobExists {
 			log.V(1).Info("creating worker job")
-			if err = r.createWorkerJob(ctx, batchJob, *apiSpec, queueURL); err != nil {
+			if err = r.createWorkerJob(ctx, batchJob, queueURL); err != nil {
 				log.Error(err, "failed to create worker job")
 				return ctrl.Result{}, err
 			}

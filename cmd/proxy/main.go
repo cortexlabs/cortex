@@ -19,7 +19,6 @@ package main
 import (
 	"context"
 	"flag"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"os/signal"
@@ -28,7 +27,6 @@ import (
 
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
-	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/logging"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	"github.com/cortexlabs/cortex/pkg/proxy"
@@ -50,7 +48,6 @@ func main() {
 		userContainerPort int
 		maxConcurrency    int
 		maxQueueLength    int
-		probeDefPath      string
 		clusterConfigPath string
 	)
 
@@ -60,7 +57,6 @@ func main() {
 	flag.IntVar(&maxConcurrency, "max-concurrency", 0, "max concurrency allowed for user container")
 	flag.IntVar(&maxQueueLength, "max-queue-length", 0, "max request queue length for user container")
 	flag.StringVar(&clusterConfigPath, "cluster-config", "", "cluster config path")
-	flag.StringVar(&probeDefPath, "probe", "", "path to the desired probe json definition")
 	flag.Parse()
 
 	log := logging.GetLogger()
@@ -120,23 +116,7 @@ func main() {
 	)
 
 	promStats := proxy.NewPrometheusStatsReporter()
-
-	var readinessProbe *probe.Probe
-	if probeDefPath != "" {
-		jsonProbe, err := ioutil.ReadFile(probeDefPath)
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		probeDef, err := k8s.DecodeJSONProbe(string(jsonProbe))
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		readinessProbe = probe.NewProbe(probeDef, log)
-	} else {
-		readinessProbe = probe.NewDefaultProbe(target, log)
-	}
+	readinessProbe := probe.NewDefaultProbe(target, log)
 
 	go func() {
 		reportTicker := time.NewTicker(_reportInterval)
