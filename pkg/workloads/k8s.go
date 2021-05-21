@@ -191,6 +191,7 @@ func RealtimeUserPodContainers(api spec.API) ([]kcore.Container, []kcore.Volume)
 
 func AsyncUserPodContainers(api spec.API) ([]kcore.Container, []kcore.Volume) {
 	containers, volumes := userPodContainers(api)
+	k8sName := K8sName(api.Name)
 
 	for i := range containers {
 		containers[i].VolumeMounts = append(containers[i].VolumeMounts,
@@ -204,7 +205,7 @@ func AsyncUserPodContainers(api spec.API) ([]kcore.Container, []kcore.Volume) {
 		MntVolume(),
 		KubexitVolume(),
 		ClientConfigVolume(),
-		CortexVolume(nil),
+		CortexVolume(&k8sName),
 	)
 
 	return containers, volumes
