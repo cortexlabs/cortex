@@ -34,7 +34,6 @@ commands=(
   "deploy"
   "get"
   "logs"
-  "patch"
   "refresh"
   "delete"
   "cluster up"

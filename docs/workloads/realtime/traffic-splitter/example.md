@@ -50,7 +50,7 @@ traffic_splitter_spec = {
     ],
 }
 
-cx.deploy_traffic_splitter(traffic_splitter_spec)
+cx.deploy(traffic_splitter_spec)
 ```
 
 ## Update the weights of the traffic splitter
@@ -62,5 +62,5 @@ traffic_splitter_spec = cx.get_api("text-generator")["spec"]["submitted_api_spec
 traffic_splitter_spec["apis"][0]["weight"] = 1
 traffic_splitter_spec["apis"][1]["weight"] = 99
 
-cx.patch(traffic_splitter_spec)
+cx.deploy(traffic_splitter_spec)
 ```

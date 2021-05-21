@@ -7,16 +7,11 @@
   * [env\_delete](#env_delete)
 * [cortex.client.Client](#cortex-client-client)
   * [deploy](#deploy)
-  * [deploy\_realtime\_api](#deploy_realtime_api)
-  * [deploy\_async\_api](#deploy_async_api)
-  * [deploy\_batch\_api](#deploy_batch_api)
-  * [deploy\_task\_api](#deploy_task_api)
-  * [deploy\_traffic\_splitter](#deploy_traffic_splitter)
+  * [deploy\_file](#deploy_file)
   * [get\_api](#get_api)
   * [list\_apis](#list_apis)
   * [get\_job](#get_job)
   * [refresh](#refresh)
-  * [patch](#patch)
   * [delete](#delete)
   * [stop\_job](#stop_job)
   * [stream\_api\_logs](#stream_api_logs)
@@ -86,127 +81,37 @@ Delete an environment configured on this machine.
 <!-- CORTEX_VERSION_MINOR -->
 
 ```python
- | deploy(api_spec: Dict[str, Any], project_dir: str, force: bool = True, wait: bool = False)
+ | deploy(api_spec: Dict[str, Any], force: bool = True, wait: bool = False)
 ```
 
-Deploy API(s) from a project directory.
+Deploy or update an API.
 
 **Arguments**:
 
 - `api_spec` - A dictionary defining a single Cortex API. See https://docs.cortex.dev/v/master/ for schema.
-- `project_dir` - Path to a python project.
+- `force` - Override any in-progress api updates.
+- `wait` - Streams logs until the API is ready.
+
+
+**Returns**:
+
+  Deployment status, API specification, and endpoint for each API.
+
+## deploy\_file
+
+<!-- CORTEX_VERSION_MINOR -->
+
+```python
+ | deploy_file(config_file: str, force: bool = False, wait: bool = False) -> Dict
+```
+
+Deploy or update APIs specified in a configuration file.
+
+**Arguments**:
+
+- `config_file` - Local path to a yaml file defining Cortex API(s). See https://docs.cortex.dev/v/master/ for schema.
 - `force` - Override any in-progress api updates.
 - `wait` - Streams logs until the APIs are ready.
-
-
-**Returns**:
-
-  Deployment status, API specification, and endpoint for each API.
-
-## deploy\_realtime\_api
-
-<!-- CORTEX_VERSION_MINOR -->
-
-```python
- | deploy_realtime_api(api_spec: Dict[str, Any], handler, requirements: Optional[List] = None, conda_packages: Optional[List] = None, force: bool = True, wait: bool = False) -> Dict
-```
-
-Deploy a Realtime API.
-
-**Arguments**:
-
-- `api_spec` - A dictionary defining a single Cortex API. See https://docs.cortex.dev/v/master/workloads/realtime-apis/configuration for schema.
-- `handler` - A Cortex Handler class implementation.
-- `requirements` - A list of PyPI dependencies that will be installed before the handler class implementation is invoked.
-- `conda_packages` - A list of Conda dependencies that will be installed before the handler class implementation is invoked.
-- `force` - Override any in-progress api updates.
-- `wait` - Streams logs until the APIs are ready.
-
-
-**Returns**:
-
-  Deployment status, API specification, and endpoint for each API.
-
-## deploy\_async\_api
-
-<!-- CORTEX_VERSION_MINOR -->
-
-```python
- | deploy_async_api(api_spec: Dict[str, Any], handler, requirements: Optional[List] = None, conda_packages: Optional[List] = None, force: bool = True) -> Dict
-```
-
-Deploy an Async API.
-
-**Arguments**:
-
-- `api_spec` - A dictionary defining a single Cortex API. See https://docs.cortex.dev/v/master/workloads/async-apis/configuration for schema.
-- `handler` - A Cortex Handler class implementation.
-- `requirements` - A list of PyPI dependencies that will be installed before the handler class implementation is invoked.
-- `conda_packages` - A list of Conda dependencies that will be installed before the handler class implementation is invoked.
-- `force` - Override any in-progress api updates.
-
-
-**Returns**:
-
-  Deployment status, API specification, and endpoint for each API.
-
-## deploy\_batch\_api
-
-<!-- CORTEX_VERSION_MINOR -->
-
-```python
- | deploy_batch_api(api_spec: Dict[str, Any], handler, requirements: Optional[List] = None, conda_packages: Optional[List] = None) -> Dict
-```
-
-Deploy a Batch API.
-
-**Arguments**:
-
-- `api_spec` - A dictionary defining a single Cortex API. See https://docs.cortex.dev/v/master/workloads/batch-apis/configuration for schema.
-- `handler` - A Cortex Handler class implementation.
-- `requirements` - A list of PyPI dependencies that will be installed before the handler class implementation is invoked.
-- `conda_packages` - A list of Conda dependencies that will be installed before the handler class implementation is invoked.
-
-
-**Returns**:
-
-  Deployment status, API specification, and endpoint for each API.
-
-## deploy\_task\_api
-
-<!-- CORTEX_VERSION_MINOR -->
-
-```python
- | deploy_task_api(api_spec: Dict[str, Any], task, requirements: Optional[List] = None, conda_packages: Optional[List] = None) -> Dict
-```
-
-Deploy a Task API.
-
-**Arguments**:
-
-- `api_spec` - A dictionary defining a single Cortex API. See https://docs.cortex.dev/v/master/workloads/task-apis/configuration for schema.
-- `task` - A callable class implementation.
-- `requirements` - A list of PyPI dependencies that will be installed before the handler class implementation is invoked.
-- `conda_packages` - A list of Conda dependencies that will be installed before the handler class implementation is invoked.
-
-
-**Returns**:
-
-  Deployment status, API specification, and endpoint for each API.
-
-## deploy\_traffic\_splitter
-
-<!-- CORTEX_VERSION_MINOR -->
-
-```python
- | deploy_traffic_splitter(api_spec: Dict[str, Any]) -> Dict
-```
-
-Deploy a Task API.
-
-**Arguments**:
-
-- `api_spec` - A dictionary defining a single Cortex API. See https://docs.cortex.dev/v/master/workloads/realtime-apis/traffic-splitter/configuration for schema.
 
 
 **Returns**:
@@ -271,19 +176,6 @@ Restart all of the replicas for a Realtime API without downtime.
 **Arguments**:
 
 - `api_name` - Name of the API to refresh.
-- `force` - Override an already in-progress API update.
-
-## patch
-
-```python
- | patch(api_spec: Dict, force: bool = False) -> Dict
-```
-
-Update the api specification for an API that has already been deployed.
-
-**Arguments**:
-
-- `api_spec` - The new api specification to apply
 - `force` - Override an already in-progress API update.
 
 ## delete

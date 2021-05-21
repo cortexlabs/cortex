@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import inspect
 import json
 import os
 import shutil
@@ -20,18 +19,13 @@ import subprocess
 import sys
 import threading
 import time
-import uuid
+import yaml
 from pathlib import Path
 from typing import Optional, List, Dict, Any
 
-import dill
-import yaml
-
 from cortex import util
 from cortex.binary import run_cli, get_cli_path
-from cortex.consts import EXPECTED_PYTHON_VERSION
 from cortex.telemetry import sentry_wrapper
-from cortex.exceptions import InvalidKindForMethod
 
 
 class Client:
@@ -51,365 +45,44 @@ class Client:
     def deploy(
         self,
         api_spec: Dict[str, Any],
-        project_dir: str,
         force: bool = True,
         wait: bool = False,
     ):
         """
-        Deploy API(s) from a project directory.
+        Deploy or update an API.
 
         Args:
             api_spec: A dictionary defining a single Cortex API. See https://docs.cortex.dev/v/master/ for schema.
-            project_dir: Path to a python project.
             force: Override any in-progress api updates.
-            wait: Streams logs until the APIs are ready.
-
-        Returns:
-            Deployment status, API specification, and endpoint for each API.
-        """
-        return self._create_api(
-            api_spec=api_spec,
-            project_dir=project_dir,
-            force=force,
-            wait=wait,
-        )
-
-    # CORTEX_VERSION_MINOR
-    def deploy_realtime_api(
-        self,
-        api_spec: Dict[str, Any],
-        handler,
-        requirements: Optional[List] = None,
-        conda_packages: Optional[List] = None,
-        force: bool = True,
-        wait: bool = False,
-    ) -> Dict:
-        """
-        Deploy a Realtime API.
-
-        Args:
-            api_spec: A dictionary defining a single Cortex API. See https://docs.cortex.dev/v/master/workloads/realtime-apis/configuration for schema.
-            handler: A Cortex Handler class implementation.
-            requirements: A list of PyPI dependencies that will be installed before the handler class implementation is invoked.
-            conda_packages: A list of Conda dependencies that will be installed before the handler class implementation is invoked.
-            force: Override any in-progress api updates.
-            wait: Streams logs until the APIs are ready.
-
-        Returns:
-            Deployment status, API specification, and endpoint for each API.
-        """
-        kind = api_spec.get("kind")
-        if kind != "RealtimeAPI":
-            raise InvalidKindForMethod(
-                f"expected an api_spec with kind 'RealtimeAPI', got kind '{kind}' instead"
-            )
-
-        return self._create_api(
-            api_spec=api_spec,
-            handler=handler,
-            requirements=requirements,
-            conda_packages=conda_packages,
-            force=force,
-            wait=wait,
-        )
-
-    # CORTEX_VERSION_MINOR
-    def deploy_async_api(
-        self,
-        api_spec: Dict[str, Any],
-        handler,
-        requirements: Optional[List] = None,
-        conda_packages: Optional[List] = None,
-        force: bool = True,
-    ) -> Dict:
-        """
-        Deploy an Async API.
-
-        Args:
-            api_spec: A dictionary defining a single Cortex API. See https://docs.cortex.dev/v/master/workloads/async-apis/configuration for schema.
-            handler: A Cortex Handler class implementation.
-            requirements: A list of PyPI dependencies that will be installed before the handler class implementation is invoked.
-            conda_packages: A list of Conda dependencies that will be installed before the handler class implementation is invoked.
-            force: Override any in-progress api updates.
-
-        Returns:
-            Deployment status, API specification, and endpoint for each API.
-        """
-        kind = api_spec.get("kind")
-        if kind != "AsyncAPI":
-            raise InvalidKindForMethod(
-                f"expected an api_spec with kind 'AsyncAPI', got kind '{kind}' instead"
-            )
-
-        return self._create_api(
-            api_spec=api_spec,
-            handler=handler,
-            requirements=requirements,
-            conda_packages=conda_packages,
-            force=force,
-        )
-
-    # CORTEX_VERSION_MINOR
-    def deploy_batch_api(
-        self,
-        api_spec: Dict[str, Any],
-        handler,
-        requirements: Optional[List] = None,
-        conda_packages: Optional[List] = None,
-    ) -> Dict:
-        """
-        Deploy a Batch API.
-
-        Args:
-            api_spec: A dictionary defining a single Cortex API. See https://docs.cortex.dev/v/master/workloads/batch-apis/configuration for schema.
-            handler: A Cortex Handler class implementation.
-            requirements: A list of PyPI dependencies that will be installed before the handler class implementation is invoked.
-            conda_packages: A list of Conda dependencies that will be installed before the handler class implementation is invoked.
+            wait: Streams logs until the API is ready.
 
         Returns:
             Deployment status, API specification, and endpoint for each API.
         """
 
-        kind = api_spec.get("kind")
-        if kind != "BatchAPI":
-            raise InvalidKindForMethod(
-                f"expected an api_spec with kind 'BatchAPI', got kind '{kind}' instead"
-            )
+        temp_deploy_dir = util.cli_config_dir() / "deployments" / api_spec["name"]
+        if temp_deploy_dir.exists():
+            shutil.rmtree(str(temp_deploy_dir))
+        temp_deploy_dir.mkdir(parents=True)
 
-        return self._create_api(
-            api_spec=api_spec,
-            handler=handler,
-            requirements=requirements,
-            conda_packages=conda_packages,
-        )
+        cortex_yaml_path = os.path.join(temp_deploy_dir, "cortex.yaml")
 
-    # CORTEX_VERSION_MINOR
-    def deploy_task_api(
-        self,
-        api_spec: Dict[str, Any],
-        task,
-        requirements: Optional[List] = None,
-        conda_packages: Optional[List] = None,
-    ) -> Dict:
-        """
-        Deploy a Task API.
-
-        Args:
-            api_spec: A dictionary defining a single Cortex API. See https://docs.cortex.dev/v/master/workloads/task-apis/configuration for schema.
-            task: A callable class implementation.
-            requirements: A list of PyPI dependencies that will be installed before the handler class implementation is invoked.
-            conda_packages: A list of Conda dependencies that will be installed before the handler class implementation is invoked.
-
-        Returns:
-            Deployment status, API specification, and endpoint for each API.
-        """
-        kind = api_spec.get("kind")
-        if kind != "TaskAPI":
-            raise InvalidKindForMethod(
-                f"expected an api_spec with kind 'TaskAPI', got kind '{kind}' instead"
-            )
-
-        return self._create_api(
-            api_spec=api_spec,
-            task=task,
-            requirements=requirements,
-            conda_packages=conda_packages,
-        )
-
-    # CORTEX_VERSION_MINOR
-    def deploy_traffic_splitter(
-        self,
-        api_spec: Dict[str, Any],
-    ) -> Dict:
-        """
-        Deploy a Task API.
-
-        Args:
-            api_spec: A dictionary defining a single Cortex API. See https://docs.cortex.dev/v/master/workloads/realtime-apis/traffic-splitter/configuration for schema.
-
-        Returns:
-            Deployment status, API specification, and endpoint for each API.
-        """
-        kind = api_spec.get("kind")
-        if kind != "TrafficSplitter":
-            raise InvalidKindForMethod(
-                f"expected an api_spec with kind 'TrafficSplitter', got kind '{kind}' instead"
-            )
-
-        return self._create_api(
-            api_spec=api_spec,
-        )
-
-    # CORTEX_VERSION_MINOR
-    @sentry_wrapper
-    def _create_api(
-        self,
-        api_spec: Dict,
-        handler=None,
-        task=None,
-        requirements: Optional[List] = None,
-        conda_packages: Optional[List] = None,
-        project_dir: Optional[str] = None,
-        force: bool = True,
-        wait: bool = False,
-    ) -> Dict:
-        """
-        Deploy an API.
-
-        Args:
-            api_spec: A dictionary defining a single Cortex API. See https://docs.cortex.dev/v/master/ for schema.
-            handler: A Cortex Handler class implementation. Not required for TaskAPI/TrafficSplitter kinds.
-            task: A callable class/function implementation. Not required for RealtimeAPI/BatchAPI/TrafficSplitter kinds.
-            requirements: A list of PyPI dependencies that will be installed before the handler class implementation is invoked.
-            conda_packages: A list of Conda dependencies that will be installed before the handler class implementation is invoked.
-            project_dir: Path to a python project.
-            force: Override any in-progress api updates.
-            wait: Streams logs until the APIs are ready.
-
-        Returns:
-            Deployment status, API specification, and endpoint for each API.
-        """
-
-        requirements = requirements if requirements is not None else []
-        conda_packages = conda_packages if conda_packages is not None else []
-
-        if project_dir is not None:
-            if handler is not None:
-                raise ValueError(
-                    "`handler` and `project_dir` parameters cannot be specified at the same time, please choose one"
-                )
-            if task is not None:
-                raise ValueError(
-                    "`task` and `project_dir` parameters cannot be specified at the same time, please choose one"
-                )
-
-        if project_dir is not None:
-            cortex_yaml_path = os.path.join(project_dir, f".cortex-{uuid.uuid4()}.yaml")
-
-            with util.open_temporarily(cortex_yaml_path, "w") as f:
-                yaml.dump([api_spec], f)  # write a list
-                return self._deploy(cortex_yaml_path, force, wait)
-
-        api_kind = api_spec.get("kind")
-        if api_kind == "TrafficSplitter":
-            if handler:
-                raise ValueError(f"`handler` parameter cannot be specified for {api_kind} kind")
-            if task:
-                raise ValueError(f"`task` parameter cannot be specified for {api_kind} kind")
-        elif api_kind == "TaskAPI":
-            if handler:
-                raise ValueError(f"`handler` parameter cannnot be specified for {api_kind} kind")
-            if task is None:
-                raise ValueError(f"`task` parameter must be specified for {api_kind} kind")
-        elif api_kind in ["BatchAPI", "RealtimeAPI"]:
-            if not handler:
-                raise ValueError(f"`handler` parameter must be specified for {api_kind}")
-            if task:
-                raise ValueError(f"`task` parameter cannot be specified for {api_kind}")
-        else:
-            raise ValueError(
-                f"invalid {api_kind} kind, `api_spec` must have the `kind` field set to one of the following kinds: "
-                f"{['TrafficSplitter', 'TaskAPI', 'BatchAPI', 'RealtimeAPI']}"
-            )
-
-        if api_spec.get("name") is None:
-            raise ValueError("`api_spec` must have the `name` key set")
-
-        project_dir = util.cli_config_dir() / "deployments" / api_spec["name"]
-
-        if project_dir.exists():
-            shutil.rmtree(str(project_dir))
-
-        project_dir.mkdir(parents=True)
-
-        cortex_yaml_path = os.path.join(project_dir, "cortex.yaml")
-
-        if api_kind == "TrafficSplitter":
-            # for deploying a traffic splitter
-            with open(cortex_yaml_path, "w") as f:
-                yaml.dump([api_spec], f)  # write a list
-                return self._deploy(cortex_yaml_path, force=force, wait=wait)
-
-        actual_version = (
-            f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
-        )
-
-        if actual_version != EXPECTED_PYTHON_VERSION:
-            is_python_set = any(
-                conda_dep.startswith("python=") or "::python=" in conda_dep
-                for conda_dep in conda_packages
-            )
-
-            if not is_python_set:
-                conda_packages = [f"python={actual_version}", "pip=19.*"] + conda_packages
-
-        if len(requirements) > 0:
-            with open(project_dir / "requirements.txt", "w") as requirements_file:
-                requirements_file.write("\n".join(requirements))
-
-        if len(conda_packages) > 0:
-            with open(project_dir / "conda-packages.txt", "w") as conda_file:
-                conda_file.write("\n".join(conda_packages))
-
-        if api_kind in ["BatchAPI", "RealtimeAPI"]:
-            if not inspect.isclass(handler):
-                raise ValueError("`handler` parameter must be a class definition")
-
-            if api_spec.get("handler") is None:
-                raise ValueError("`api_spec` must have the `handler` section defined")
-
-            if api_spec["handler"].get("type") is None:
-                raise ValueError(
-                    "the `type` field in the `handler` section of the `api_spec` must be set (tensorflow or python)"
-                )
-
-            impl_rel_path = self._save_impl(handler, project_dir, "handler")
-            api_spec["handler"]["path"] = impl_rel_path
-
-        if api_kind == "TaskAPI":
-            if not callable(task):
-                raise ValueError(
-                    "`task` parameter must be a callable (e.g. a function definition or a class definition called "
-                    "`Task` with a `__call__` method implemented "
-                )
-
-            impl_rel_path = self._save_impl(task, project_dir, "task")
-            if api_spec.get("definition") is None:
-                api_spec["definition"] = {}
-            api_spec["definition"]["path"] = impl_rel_path
-
-        with open(cortex_yaml_path, "w") as f:
+        with util.open_temporarily(cortex_yaml_path, "w", delete_parent=True) as f:
             yaml.dump([api_spec], f)  # write a list
-            return self._deploy(cortex_yaml_path, force=force, wait=wait)
+            return self.deploy_file(cortex_yaml_path, force=force, wait=wait)
 
-    def _save_impl(self, impl, project_dir: Path, filename: str) -> str:
-        import __main__ as main
-
-        is_interactive = not hasattr(main, "__file__")
-
-        if is_interactive and impl.__module__ == "__main__":
-            # class is defined in a REPL (e.g. jupyter)
-            filename += ".pickle"
-            with open(project_dir / filename, "wb") as pickle_file:
-                dill.dump(impl, pickle_file)
-                return filename
-
-        filename += ".py"
-        with open(project_dir / filename, "w") as f:
-            f.write(dill.source.importable(impl, source=True))
-            return filename
-
-    def _deploy(
+    # CORTEX_VERSION_MINOR
+    def deploy_file(
         self,
         config_file: str,
         force: bool = False,
         wait: bool = False,
     ) -> Dict:
         """
-        Deploy or update APIs specified in the config_file.
+        Deploy or update APIs specified in a configuration file.
 
         Args:
-            config_file: Local path to a yaml file defining Cortex APIs.
+            config_file: Local path to a yaml file defining Cortex API(s). See https://docs.cortex.dev/v/master/ for schema.
             force: Override any in-progress api updates.
             wait: Streams logs until the APIs are ready.
 
@@ -540,29 +213,6 @@ class Client:
             args.append("--force")
 
         run_cli(args, hide_output=True)
-
-    @sentry_wrapper
-    def patch(self, api_spec: Dict, force: bool = False) -> Dict:
-        """
-        Update the api specification for an API that has already been deployed.
-
-        Args:
-            api_spec: The new api specification to apply
-            force: Override an already in-progress API update.
-        """
-
-        cortex_yaml_file = (
-            util.cli_config_dir() / "deployments" / f"cortex-{str(uuid.uuid4())}.yaml"
-        )
-        with util.open_temporarily(cortex_yaml_file, "w") as f:
-            yaml.dump([api_spec], f)
-            args = ["patch", cortex_yaml_file, "--env", self.env_name, "-o", "json"]
-
-            if force:
-                args.append("--force")
-
-            output = run_cli(args, hide_output=True)
-            return json.loads(output.strip())
 
     @sentry_wrapper
     def delete(self, api_name: str, keep_cache: bool = False):
