@@ -17,6 +17,7 @@ limitations under the License.
 package dequeuer
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -92,6 +93,14 @@ func TestMain(m *testing.M) {
 	}
 
 	os.Exit(code)
+}
+
+type mockHandler struct {
+	HandleFunc func(message *sqs.Message) error
+}
+
+func (h *mockHandler) Handle(msg *sqs.Message) error {
+	return h.HandleFunc(msg)
 }
 
 func testAWSClient(t *testing.T) *awslib.Client {
@@ -222,4 +231,49 @@ func TestSQSDequeuer_StartMessageRenewer(t *testing.T) {
 
 		return len(msgs) > 0
 	}, time.Second, 10*time.Second)
+}
+
+func TestSQSDequeuerTerminationOnEmptyQueue(t *testing.T) {
+	t.Parallel()
+
+	awsClient := testAWSClient(t)
+	queueURL := createQueue(t, awsClient)
+
+	dq, err := NewSQSDequeuer(
+		SQSDequeuerConfig{
+			Region:           _localStackDefaultRegion,
+			QueueURL:         queueURL,
+			StopIfNoMessages: true,
+		}, awsClient, newLogger(t),
+	)
+	require.NoError(t, err)
+
+	dq.notFoundSleepTime = 0
+	dq.waitTimeSeconds = aws.Int64(0)
+
+	messageID := "12345"
+	messageBody := "blah"
+	_, err = awsClient.SQS().SendMessage(&sqs.SendMessageInput{
+		MessageBody:            aws.String(messageBody),
+		MessageDeduplicationId: aws.String(messageID),
+		MessageGroupId:         aws.String(messageID),
+		QueueUrl:               aws.String(queueURL),
+	})
+	require.NoError(t, err)
+
+	msgHandler := &mockHandler{
+		HandleFunc: func(msg *sqs.Message) error {
+			return nil
+		},
+	}
+
+	errCh := make(chan error, 1)
+	go func() {
+		errCh <- dq.Start(msgHandler)
+	}()
+
+	time.AfterFunc(10*time.Second, func() { errCh <- errors.New("timeout: dequeuer did not finish") })
+
+	err = <-errCh
+	require.NoError(t, err)
 }
