@@ -33,11 +33,8 @@ var (
 	ProxyListeningPortStr   = "8888"
 	ProxyListeningPortInt32 = int32(8888)
 
-	ProxyAdminPortStr   = "25000"
-	ProxyAdminPortInt32 = int32(25000)
-
-	MetricsPortStr   = "15000"
-	MetricsPortInt32 = int32(15000)
+	AdminPortStr   = "15000"
+	AdminPortInt32 = int32(15000)
 
 	AuthHeader = "X-Cortex-Authorization"
 

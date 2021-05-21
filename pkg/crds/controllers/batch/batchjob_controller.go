@@ -23,6 +23,7 @@ import (
 	batch "github.com/cortexlabs/cortex/pkg/crds/apis/batch/v1alpha1"
 	"github.com/cortexlabs/cortex/pkg/crds/controllers"
 	awslib "github.com/cortexlabs/cortex/pkg/lib/aws"
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/slices"
 	"github.com/cortexlabs/cortex/pkg/types/clusterconfig"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
@@ -231,14 +232,20 @@ func (r *BatchJobReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		log.Info("failed to enqueue payload")
 	case batch.EnqueuingDone:
 		if !workerJobExists {
+			log.V(1).Info("retrieving API spec")
+			apiSpec, err := r.getAPISpec(batchJob) // TODO: should be cached
+			if err != nil {
+				return ctrl.Result{}, errors.Wrap(err, "failed to get API spec")
+			}
+
 			log.V(1).Info("creating worker configmap")
-			if err = r.createWorkerConfigMap(ctx, batchJob); err != nil {
+			if err = r.createWorkerConfigMap(ctx, batchJob, *apiSpec, queueURL); err != nil {
 				log.Error(err, "failed to create worker configmap")
 				return ctrl.Result{}, err
 			}
 
 			log.V(1).Info("creating worker job")
-			if err = r.createWorkerJob(ctx, batchJob, queueURL); err != nil {
+			if err = r.createWorkerJob(ctx, batchJob, *apiSpec, queueURL); err != nil {
 				log.Error(err, "failed to create worker job")
 				return ctrl.Result{}, err
 			}

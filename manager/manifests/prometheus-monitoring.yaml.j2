@@ -184,7 +184,7 @@ spec:
     - path: /metrics
       scheme: http
       interval: 10s
-      port: metrics
+      port: admin
       relabelings:
         - action: keep
           sourceLabels: [ __meta_kubernetes_pod_container_name ]
@@ -221,7 +221,7 @@ metadata:
 spec:
   jobLabel: "statsd-exporter"
   podMetricsEndpoints:
-    - port: metrics
+    - port: admin
       scheme: http
       path: /metrics
       interval: 20s
