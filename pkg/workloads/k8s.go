@@ -169,23 +169,7 @@ func RealtimeProxyContainer(api spec.API) (kcore.Container, kcore.Volume) {
 }
 
 func RealtimeUserPodContainers(api spec.API) ([]kcore.Container, []kcore.Volume) {
-	containers, volumes := userPodContainers(api)
-
-	for i := range containers {
-		containers[i].VolumeMounts = append(containers[i].VolumeMounts,
-			MntMount(),
-			CortexMount(),
-			ClientConfigMount(),
-		)
-	}
-
-	volumes = append(volumes,
-		MntVolume(),
-		ClientConfigVolume(),
-		CortexVolume(),
-	)
-
-	return containers, volumes
+	return userPodContainers(api)
 }
 
 func AsyncUserPodContainers(api spec.API) ([]kcore.Container, []kcore.Volume) {
@@ -194,19 +178,10 @@ func AsyncUserPodContainers(api spec.API) ([]kcore.Container, []kcore.Volume) {
 
 	for i := range containers {
 		containers[i].VolumeMounts = append(containers[i].VolumeMounts,
-			MntMount(),
-			CortexMount(),
-			ClientConfigMount(),
 			APIConfigMount(k8sName),
 		)
 	}
-
-	volumes = append(volumes,
-		MntVolume(),
-		ClientConfigVolume(),
-		CortexVolume(),
-		APIConfigVolume(k8sName),
-	)
+	volumes = append(volumes, APIConfigVolume(k8sName))
 
 	return containers, volumes
 }
@@ -216,20 +191,14 @@ func TaskUserPodContainers(api spec.API, job *spec.JobKey) ([]kcore.Container, [
 	k8sName := job.K8sName()
 
 	volumes = append(volumes,
-		MntVolume(),
 		KubexitVolume(),
-		ClientConfigVolume(),
-		CortexVolume(),
 		APIConfigVolume(k8sName),
 	)
 
 	containerNames := userconfig.GetContainerNames(api.Pod.Containers)
 	for i, c := range containers {
 		containers[i].VolumeMounts = append(containers[i].VolumeMounts,
-			MntMount(),
 			KubexitMount(),
-			CortexMount(),
-			ClientConfigMount(),
 			APIConfigMount(k8sName),
 		)
 
@@ -251,20 +220,14 @@ func BatchUserPodContainers(api spec.API, job *spec.JobKey) ([]kcore.Container, 
 	k8sName := job.K8sName()
 
 	volumes = append(volumes,
-		MntVolume(),
 		KubexitVolume(),
-		ClientConfigVolume(),
-		CortexVolume(),
 		APIConfigVolume(k8sName),
 	)
 
 	containerNames := userconfig.GetContainerNames(api.Pod.Containers)
 	for i, c := range containers {
 		containers[i].VolumeMounts = append(containers[i].VolumeMounts,
-			MntMount(),
 			KubexitMount(),
-			CortexMount(),
-			ClientConfigMount(),
 			APIConfigMount(k8sName),
 		)
 
@@ -282,8 +245,16 @@ func BatchUserPodContainers(api spec.API, job *spec.JobKey) ([]kcore.Container, 
 }
 
 func userPodContainers(api spec.API) ([]kcore.Container, []kcore.Volume) {
-	volumes := []kcore.Volume{}
-	containerMounts := []kcore.VolumeMount{}
+	volumes := []kcore.Volume{
+		MntVolume(),
+		CortexVolume(),
+		ClientConfigVolume(),
+	}
+	containerMounts := []kcore.VolumeMount{
+		MntMount(),
+		CortexMount(),
+		ClientConfigMount(),
+	}
 
 	if api.Pod.ShmSize != nil {
 		volumes = append(volumes, ShmVolume(api.Pod.ShmSize.Quantity))

@@ -412,18 +412,21 @@ func (r *BatchJobReconciler) getAPISpec(batchJob batch.BatchJob) (*spec.API, err
 	cachedAPISpec, found := apiSpecCache.Get(apiSpecKey)
 
 	var apiSpec spec.API
-	if !found {
-		apiSpecBytes, err := r.AWS.ReadBytesFromS3(r.ClusterConfig.Bucket, apiSpecKey)
-		if err != nil {
-			return nil, err
-		}
-
-		if err := json.Unmarshal(apiSpecBytes, &apiSpec); err != nil {
-			return nil, err
-		}
-	} else {
+	if found {
 		apiSpec = cachedAPISpec.(spec.API)
+		return &apiSpec, nil
 	}
+
+	apiSpecBytes, err := r.AWS.ReadBytesFromS3(r.ClusterConfig.Bucket, apiSpecKey)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := json.Unmarshal(apiSpecBytes, &apiSpec); err != nil {
+		return nil, err
+	}
+
+	apiSpecCache.Set(apiSpecKey, apiSpec, _cacheDuration)
 
 	return &apiSpec, nil
 }
