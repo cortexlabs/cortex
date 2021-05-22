@@ -64,13 +64,13 @@ func addJSONObjectsToQueue(uploader *sqsBatchUploader, jsonMessageList *jsonBuff
 	return nil
 }
 
-func s3IteratorFromLister(awsClient *awslib.Client, s3Lister S3Lister, fn func(string, *s3.Object) (bool, error)) error {
+func s3IteratorFromLister(awsClient *awslib.Client, s3Lister S3Lister, fn func(string, *s3.Object) (bool, error)) (int64, error) {
 	includeGlobPatterns := make([]glob.Glob, 0, len(s3Lister.Includes))
 
 	for _, includePattern := range s3Lister.Includes {
 		globExpression, err := glob.Compile(includePattern, '/')
 		if err != nil {
-			return errors.Wrap(err, "failed to interpret glob pattern", includePattern)
+			return 0, errors.Wrap(err, "failed to interpret glob pattern", includePattern)
 		}
 		includeGlobPatterns = append(includeGlobPatterns, globExpression)
 	}
@@ -79,20 +79,22 @@ func s3IteratorFromLister(awsClient *awslib.Client, s3Lister S3Lister, fn func(s
 	for _, excludePattern := range s3Lister.Excludes {
 		globExpression, err := glob.Compile(excludePattern, '/')
 		if err != nil {
-			return errors.Wrap(err, "failed to interpret glob pattern", excludePattern)
+			return 0, errors.Wrap(err, "failed to interpret glob pattern", excludePattern)
 		}
 		excludeGlobPatterns = append(excludeGlobPatterns, globExpression)
 	}
 
+	var numResults int64
+
 	for _, s3Path := range s3Lister.S3Paths {
 		bucket, key, err := awslib.SplitS3Path(s3Path)
 		if err != nil {
-			return err
+			return 0, err
 		}
 
 		awsClientForBucket, err := awslib.NewFromClientS3Path(s3Path, awsClient)
 		if err != nil {
-			return err
+			return 0, err
 		}
 
 		err = awsClientForBucket.S3Iterator(bucket, key, false, nil, nil, func(s3Obj *s3.Object) (bool, error) {
@@ -117,15 +119,24 @@ func s3IteratorFromLister(awsClient *awslib.Client, s3Lister S3Lister, fn func(s
 			}
 
 			if !shouldSkip {
-				return fn(bucket, s3Obj)
+				shouldContinue, err := fn(bucket, s3Obj)
+				numResults++
+				if s3Lister.MaxResults != nil && numResults >= *s3Lister.MaxResults {
+					shouldContinue = false
+				}
+				return shouldContinue, err
 			}
 
 			return true, nil
 		})
 		if err != nil {
-			return err
+			return 0, err
+		}
+
+		if s3Lister.MaxResults != nil && numResults >= *s3Lister.MaxResults {
+			return numResults, nil
 		}
 	}
 
-	return nil
+	return numResults, nil
 }

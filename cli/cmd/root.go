@@ -146,7 +146,7 @@ func initTelemetry() {
 var _rootCmd = &cobra.Command{
 	Use:     "cortex",
 	Aliases: []string{"cx"},
-	Short:   "scale compute-intensive serverless workloads",
+	Short:   "serverless containers on AWS",
 }
 
 func Execute() {
