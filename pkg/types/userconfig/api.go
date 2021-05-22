@@ -568,18 +568,19 @@ func (api *API) TelemetryEvent() map[string]interface{} {
 
 		event["pod.containers._len"] = len(api.Pod.Containers)
 
-		var hasReadinessProbe, hasLivenessProbe bool
+		var numReadinessProbes int
+		var numLivenessProbes int
 		for _, container := range api.Pod.Containers {
 			if container.ReadinessProbe != nil {
-				hasReadinessProbe = true
+				numReadinessProbes++
 			}
 			if container.LivenessProbe != nil {
-				hasLivenessProbe = true
+				numLivenessProbes++
 			}
 		}
 
-		event["pod.containers.readiness_probe"] = hasReadinessProbe
-		event["pod.containers.liveness_probe"] = hasLivenessProbe
+		event["pod.containers._num_readiness_probes"] = numReadinessProbes
+		event["pod.containers._num_liveness_probes"] = numLivenessProbes
 
 		event["pod.containers.compute._is_defined"] = true
 		totalCompute := GetTotalComputeFromContainers(api.Pod.Containers)

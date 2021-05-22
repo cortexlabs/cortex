@@ -19,7 +19,6 @@ package spec
 import (
 	"context"
 	"fmt"
-	"strconv"
 	"strings"
 	"time"
 
@@ -34,6 +33,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/regex"
 	"github.com/cortexlabs/cortex/pkg/lib/slices"
+	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	libtime "github.com/cortexlabs/cortex/pkg/lib/time"
 	"github.com/cortexlabs/cortex/pkg/lib/urls"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
@@ -201,9 +201,9 @@ func containersValidation(kind userconfig.Kind) *cr.StructFieldValidation {
 		{
 			StructField: "Image",
 			StringValidation: &cr.StringValidation{
-				Required:           true,
-				AllowEmpty:         false,
-				DockerImageOrEmpty: true,
+				Required:    true,
+				AllowEmpty:  false,
+				DockerImage: true,
 			},
 		},
 		{
@@ -738,37 +738,37 @@ func validateContainers(
 
 	for i, container := range containers {
 		if slices.HasString(containerNames, container.Name) {
-			return errors.Wrap(ErrorDuplicateContainerName(container.Name), strconv.FormatInt(int64(i), 10), userconfig.ImageKey)
+			return errors.Wrap(ErrorDuplicateContainerName(container.Name), s.Index(i), userconfig.ImageKey)
 		}
 		containerNames = append(containerNames, container.Name)
 
 		if container.Command == nil && (kind == userconfig.BatchAPIKind || kind == userconfig.TaskAPIKind) {
-			return errors.Wrap(ErrorFieldMustBeSpecifiedForKind(userconfig.CommandKey, kind), strconv.FormatInt(int64(i), 10), userconfig.CommandKey)
+			return errors.Wrap(ErrorFieldMustBeSpecifiedForKind(userconfig.CommandKey, kind), s.Index(i), userconfig.CommandKey)
 		}
 
 		if err := validateDockerImagePath(container.Image, awsClient, k8sClient); err != nil {
-			return errors.Wrap(err, strconv.FormatInt(int64(i), 10), userconfig.ImageKey)
+			return errors.Wrap(err, s.Index(i), userconfig.ImageKey)
 		}
 
 		for key := range container.Env {
 			if strings.HasPrefix(key, "CORTEX_") || strings.HasPrefix(key, "KUBEXIT_") {
-				return errors.Wrap(ErrorCortexPrefixedEnvVarNotAllowed("CORTEX_", "KUBEXIT_"), strconv.FormatInt(int64(i), 10), userconfig.EnvKey, key)
+				return errors.Wrap(ErrorCortexPrefixedEnvVarNotAllowed("CORTEX_", "KUBEXIT_"), s.Index(i), userconfig.EnvKey, key)
 			}
 		}
 
 		if kind == userconfig.TaskAPIKind && container.ReadinessProbe != nil {
-			return errors.Wrap(ErrorFieldIsNotSupportedForKind(userconfig.ReadinessProbeKey, kind), strconv.FormatInt(int64(i), 10), userconfig.ReadinessProbeKey)
+			return errors.Wrap(ErrorFieldIsNotSupportedForKind(userconfig.ReadinessProbeKey, kind), s.Index(i), userconfig.ReadinessProbeKey)
 		}
 
 		if container.ReadinessProbe != nil {
 			if err := validateProbe(*container.ReadinessProbe, true); err != nil {
-				return errors.Wrap(err, strconv.FormatInt(int64(i), 10), userconfig.ReadinessProbeKey)
+				return errors.Wrap(err, s.Index(i), userconfig.ReadinessProbeKey)
 			}
 		}
 
 		if container.LivenessProbe != nil {
 			if err := validateProbe(*container.LivenessProbe, false); err != nil {
-				return errors.Wrap(err, strconv.FormatInt(int64(i), 10), userconfig.LivenessProbeKey)
+				return errors.Wrap(err, s.Index(i), userconfig.LivenessProbeKey)
 			}
 		}
 
@@ -778,22 +778,23 @@ func validateContainers(
 }
 
 func validateProbe(probe userconfig.Probe, isReadinessProbe bool) error {
-	specifiedProbes := 0
+	numSpecifiedProbes := 0
 	if probe.HTTPGet != nil {
-		specifiedProbes++
+		numSpecifiedProbes++
 	}
 	if probe.TCPSocket != nil {
-		specifiedProbes++
+		numSpecifiedProbes++
 	}
 	if probe.Exec != nil {
-		specifiedProbes++
+		numSpecifiedProbes++
 	}
 
-	if specifiedProbes != 1 {
-		if isReadinessProbe {
-			return ErrorSpecifyOnlyOneField(userconfig.HTTPGetKey, userconfig.TCPSocketKey)
+	if numSpecifiedProbes != 1 {
+		validProbes := []string{userconfig.HTTPGetKey, userconfig.TCPSocketKey}
+		if !isReadinessProbe {
+			validProbes = append(validProbes, userconfig.ExecKey)
 		}
-		return ErrorSpecifyOnlyOneField(userconfig.HTTPGetKey, userconfig.TCPSocketKey, userconfig.ExecKey)
+		return ErrorSpecifyExactlyOneField(numSpecifiedProbes, validProbes...)
 	}
 
 	return nil
