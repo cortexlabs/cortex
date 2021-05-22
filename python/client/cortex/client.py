@@ -42,6 +42,7 @@ class Client:
         self.env_name = env["name"]
 
     # CORTEX_VERSION_MINOR
+    @sentry_wrapper
     def deploy(
         self,
         api_spec: Dict[str, Any],
@@ -72,6 +73,7 @@ class Client:
             return self.deploy_from_file(cortex_yaml_path, force=force, wait=wait)
 
     # CORTEX_VERSION_MINOR
+    @sentry_wrapper
     def deploy_from_file(
         self,
         config_file: str,
