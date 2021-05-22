@@ -26,7 +26,7 @@ def cli_config_dir() -> Path:
 
 
 @contextmanager
-def open_temporarily(path, mode, delete_parent: bool = False):
+def open_temporarily(path, mode, delete_parent_if_empty: bool = False):
     parentDir = Path(path).parent
     parentDir.mkdir(parents=True, exist_ok=True)
 
@@ -37,7 +37,7 @@ def open_temporarily(path, mode, delete_parent: bool = False):
     finally:
         file.close()
         os.remove(path)
-        if delete_parent:
+        if delete_parent_if_empty and len(os.listdir(str(parentDir))) == 0:
             shutil.rmtree(str(parentDir))
 
 

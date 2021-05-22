@@ -67,7 +67,7 @@ class Client:
 
         cortex_yaml_path = os.path.join(temp_deploy_dir, "cortex.yaml")
 
-        with util.open_temporarily(cortex_yaml_path, "w", delete_parent=True) as f:
+        with util.open_temporarily(cortex_yaml_path, "w", delete_parent_if_empty=True) as f:
             yaml.dump([api_spec], f)  # write a list
             return self.deploy_file(cortex_yaml_path, force=force, wait=wait)
 
