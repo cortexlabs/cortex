@@ -7,7 +7,7 @@
   * [env\_delete](#env_delete)
 * [cortex.client.Client](#cortex-client-client)
   * [deploy](#deploy)
-  * [deploy\_file](#deploy_file)
+  * [deploy\_from\_file](#deploy_from_file)
   * [get\_api](#get_api)
   * [list\_apis](#list_apis)
   * [get\_job](#get_job)
@@ -97,12 +97,12 @@ Deploy or update an API.
 
   Deployment status, API specification, and endpoint for each API.
 
-## deploy\_file
+## deploy\_from\_file
 
 <!-- CORTEX_VERSION_MINOR -->
 
 ```python
- | deploy_file(config_file: str, force: bool = False, wait: bool = False) -> Dict
+ | deploy_from_file(config_file: str, force: bool = False, wait: bool = False) -> Dict
 ```
 
 Deploy or update APIs specified in a configuration file.

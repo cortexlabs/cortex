@@ -69,10 +69,10 @@ class Client:
 
         with util.open_temporarily(cortex_yaml_path, "w", delete_parent_if_empty=True) as f:
             yaml.dump([api_spec], f)  # write a list
-            return self.deploy_file(cortex_yaml_path, force=force, wait=wait)
+            return self.deploy_from_file(cortex_yaml_path, force=force, wait=wait)
 
     # CORTEX_VERSION_MINOR
-    def deploy_file(
+    def deploy_from_file(
         self,
         config_file: str,
         force: bool = False,

@@ -65,7 +65,7 @@ truncate -s -1 $docs_path
 
 # Cortex version comment
 sed -i "s/^## deploy$/## deploy\n\n<!-- CORTEX_VERSION_MINOR -->/g" $docs_path
-sed -i "s/^## deploy\\\_file$/## deploy\\\_file\n\n<!-- CORTEX_VERSION_MINOR -->/g" $docs_path
+sed -i "s/^## deploy\\\_from\\\_file$/## deploy\\\_from\\\_file\n\n<!-- CORTEX_VERSION_MINOR -->/g" $docs_path
 
 pip3 uninstall -y cortex
 rm -rf $ROOT/python/client/cortex.egg-info
