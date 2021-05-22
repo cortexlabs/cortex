@@ -56,9 +56,10 @@ type ItemList struct {
 }
 
 type S3Lister struct {
-	S3Paths  []string `json:"s3_paths"` // s3://<bucket_name>/key
-	Includes []string `json:"includes"`
-	Excludes []string `json:"excludes"`
+	S3Paths    []string `json:"s3_paths"` // s3://<bucket_name>/key
+	Includes   []string `json:"includes"`
+	Excludes   []string `json:"excludes"`
+	MaxResults *int64   `json:"-"` // this is not currently exposed to the user (it's used for validations)
 }
 
 type FilePathLister struct {
@@ -246,7 +247,7 @@ func (e *Enqueuer) enqueueS3Paths(s3PathsLister *FilePathLister) (int, error) {
 	var s3PathList []string
 	uploader := newSQSBatchUploader(e.envConfig.APIName, e.envConfig.JobID, e.queueURL, e.aws.SQS())
 
-	err := s3IteratorFromLister(e.aws, s3PathsLister.S3Lister, func(bucket string, s3Obj *s3.Object) (bool, error) {
+	_, err := s3IteratorFromLister(e.aws, s3PathsLister.S3Lister, func(bucket string, s3Obj *s3.Object) (bool, error) {
 		s3Path := awslib.S3Path(bucket, *s3Obj.Key)
 
 		s3PathList = append(s3PathList, s3Path)
@@ -290,7 +291,7 @@ func (e *Enqueuer) enqueueS3FileContents(delimitedFiles *DelimitedFiles) (int, e
 	uploader := newSQSBatchUploader(e.envConfig.APIName, e.envConfig.JobID, e.queueURL, e.aws.SQS())
 
 	bytesBuffer := bytes.NewBuffer([]byte{})
-	err := s3IteratorFromLister(e.aws, delimitedFiles.S3Lister, func(bucket string, s3Obj *s3.Object) (bool, error) {
+	_, err := s3IteratorFromLister(e.aws, delimitedFiles.S3Lister, func(bucket string, s3Obj *s3.Object) (bool, error) {
 		s3Path := awslib.S3Path(bucket, *s3Obj.Key)
 		log.Info("enqueuing contents from file", zap.String("path", s3Path))
 
