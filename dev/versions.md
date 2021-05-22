@@ -3,12 +3,12 @@
 ## eksctl
 
 1. Find the latest release on [GitHub](https://github.com/weaveworks/eksctl/releases) and check the changelog
-1. Update the version in `manager/Dockerfile`
-1. Update `generate_eks.py` as necessary
-1. Check that `eksctl utils write-kubeconfig` log filter still behaves as desired
+1. Search the code base for the old version to find where to update it (e.g. `manager/Dockerfile`)
+1. Update `generate_eks.py` if necessary
+1. Check that `eksctl utils write-kubeconfig` log filter still behaves as desired, and logs in `cortex cluster up` look good.
 1. Update eksctl on your dev
-   machine: `curl --location "https://github.com/weaveworks/eksctl/releases/download/0.27.0/eksctl_$(uname -s)_amd64.tar.gz" | tar xz -C /tmp && sudo mv -f /tmp/eksctl /usr/local/bin`
-1. Check if eksctl iam polices changed by comparing the previous version of the eksctl policy docs to the new version's and update `./dev/minimum_aws_policy.json` and `docs/clusters/management/auth.md` accordingly. https://github.com/weaveworks/eksctl/blob/v0.40.0/userdocs/src/usage/minimum-iam-policies.md
+   machine: `curl --location "https://github.com/weaveworks/eksctl/releases/download/0.50.0/eksctl_$(uname -s)_amd64.tar.gz" | tar xz -C /tmp && sudo mv -f /tmp/eksctl /usr/local/bin`
+1. Check if eksctl iam polices changed by comparing the previous version of the eksctl policy docs to the new version's and update `./dev/minimum_aws_policy.json` and `docs/clusters/management/auth.md` accordingly. https://github.com/weaveworks/eksctl/blob/v0.50.0/userdocs/src/usage/minimum-iam-policies.md
 
 ## Kubernetes
 
@@ -19,16 +19,16 @@
 
 ## AWS CNI
 
-1. Check which version of the CNI is used by default
+1. Update the CNI version in `eks_cluster.yaml` ([CNI releases](https://github.com/aws/amazon-vpc-cni-k8s/releases))
 1. Update the go module version (see `Go > Non-versioned modules` section below)
-1. If new instances types were added, check if `pkg/lib/aws/servicequotas.go` needs to be updated for the new instances
+1. Check if new instance types were added by running the script below (update the two env vars at the top).
+   1. If there are new instance types, check if any changes need to be made to `servicequotas.go` or `validateInstanceType()`.
 
-### AWS CNI (depreciated since we stopped setting it manually)
-
-1. Find the latest release on [GitHub](https://github.com/aws/amazon-vpc-cni-k8s/releases) and check the changelog
-1. Update the version in `install.sh`
-1. Update the go module version (see `Go > Non-versioned modules` section below)
-1. If new instances types were added, check if `pkg/lib/aws/servicequotas.go` needs to be updated for the new instances
+```bash
+PREV_RELEASE=1.7.5
+NEW_RELEASE=1.7.10
+wget -q -O cni_supported_instances_prev.txt https://raw.githubusercontent.com/aws/amazon-vpc-cni-k8s/v${PREV_RELEASE}/pkg/awsutils/vpc_ip_resource_limit.go; wget -q -O cni_supported_instances_new.txt https://raw.githubusercontent.com/aws/amazon-vpc-cni-k8s/v${NEW_RELEASE}/pkg/awsutils/vpc_ip_resource_limit.go; git diff --no-index cni_supported_instances_prev.txt cni_supported_instances_new.txt; rm -rf cni_supported_instances_prev.txt; rm -rf cni_supported_instances_new.txt
+```
 
 ## Go
 
@@ -96,7 +96,7 @@ see https://github.com/moby/moby/issues/39302#issuecomment-639687466_
 1. `rm -rf go.mod go.sum && go mod init && go clean -modcache`
 1. `go get k8s.io/client-go@v0.17.6 && go get k8s.io/apimachinery@v0.17.6 && go get k8s.io/api@v0.17.6`
 1. `go get istio.io/client-go@1.7.3 && go get istio.io/api@1.7.3`
-1. `go get github.com/aws/amazon-vpc-cni-k8s/pkg/awsutils@v1.7.1`
+1. `go get github.com/aws/amazon-vpc-cni-k8s/pkg/awsutils@v1.7.10`
 1. `go get github.com/cortexlabs/yaml@581aea36a2e4db10f8696587e48cac5248d64f4d`
 1. `go get github.com/cortexlabs/go-input@8b67a7a7b28d1c45f5c588171b3b50148462b247`
 1. `echo -e '\nreplace github.com/docker/docker => github.com/docker/engine v19.03.12' >> go.mod`

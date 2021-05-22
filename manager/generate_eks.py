@@ -241,6 +241,12 @@ def generate_eks(cluster_config_path, ami_json_path):
         },
         "vpc": {"nat": {"gateway": nat_gateway}},
         "nodeGroups": [operator_nodegroup] + worker_nodegroups,
+        "addons": [
+            {
+                "name": "vpc-cni",
+                "version": "1.7.10",
+            },
+        ],
     }
 
     if (
