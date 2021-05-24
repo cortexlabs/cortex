@@ -234,7 +234,9 @@ func containersValidation(kind userconfig.Kind) *cr.StructFieldValidation {
 		probeValidation("LivenessProbe", true),
 	}
 
-	if kind != userconfig.TaskAPIKind {
+	if kind == userconfig.RealtimeAPIKind {
+		validations = append(validations, probeValidation("ReadinessProbe", true))
+	} else if kind == userconfig.AsyncAPIKind || kind == userconfig.BatchAPIKind {
 		validations = append(validations, probeValidation("ReadinessProbe", false))
 	}
 
@@ -760,13 +762,14 @@ func validateContainers(
 		}
 
 		if container.ReadinessProbe != nil {
-			if err := validateProbe(*container.ReadinessProbe, true); err != nil {
+			supportsExecProbe := kind == userconfig.RealtimeAPIKind
+			if err := validateProbe(*container.ReadinessProbe, supportsExecProbe); err != nil {
 				return errors.Wrap(err, s.Index(i), userconfig.ReadinessProbeKey)
 			}
 		}
 
 		if container.LivenessProbe != nil {
-			if err := validateProbe(*container.LivenessProbe, false); err != nil {
+			if err := validateProbe(*container.LivenessProbe, true); err != nil {
 				return errors.Wrap(err, s.Index(i), userconfig.LivenessProbeKey)
 			}
 		}
@@ -776,7 +779,7 @@ func validateContainers(
 	return nil
 }
 
-func validateProbe(probe userconfig.Probe, isReadinessProbe bool) error {
+func validateProbe(probe userconfig.Probe, supportsExecProbe bool) error {
 	numSpecifiedProbes := 0
 	if probe.HTTPGet != nil {
 		numSpecifiedProbes++
@@ -790,7 +793,7 @@ func validateProbe(probe userconfig.Probe, isReadinessProbe bool) error {
 
 	if numSpecifiedProbes != 1 {
 		validProbes := []string{userconfig.HTTPGetKey, userconfig.TCPSocketKey}
-		if !isReadinessProbe {
+		if supportsExecProbe {
 			validProbes = append(validProbes, userconfig.ExecKey)
 		}
 		return ErrorSpecifyExactlyOneField(numSpecifiedProbes, validProbes...)
