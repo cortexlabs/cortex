@@ -79,9 +79,9 @@ func AsyncGatewayContainer(api spec.API, queueURL string, volumeMounts []kcore.V
 		Image:           config.ClusterConfig.ImageAsyncGateway,
 		ImagePullPolicy: kcore.PullAlways,
 		Args: []string{
-			"-port", s.Int32(consts.ProxyListeningPortInt32),
-			"-queue", queueURL,
-			"-cluster-config", consts.DefaultInClusterConfigPath,
+			"--port", s.Int32(consts.ProxyListeningPortInt32),
+			"--queue", queueURL,
+			"--cluster-config", consts.DefaultInClusterConfigPath,
 			api.Name,
 		},
 		Ports: []kcore.ContainerPort{
@@ -119,9 +119,132 @@ func AsyncGatewayContainer(api spec.API, queueURL string, volumeMounts []kcore.V
 	}
 }
 
-func UserPodContainers(api spec.API) ([]kcore.Container, []kcore.Volume) {
-	requiresKubexit := api.Kind == userconfig.BatchAPIKind || api.Kind == userconfig.TaskAPIKind
+func RealtimeProxyContainer(api spec.API) (kcore.Container, kcore.Volume) {
+	return kcore.Container{
+		Name:            _proxyContainerName,
+		Image:           config.ClusterConfig.ImageProxy,
+		ImagePullPolicy: kcore.PullAlways,
+		Args: []string{
+			"--port",
+			consts.ProxyListeningPortStr,
+			"--admin-port",
+			consts.AdminPortStr,
+			"--user-port",
+			s.Int32(*api.Pod.Port),
+			"--max-concurrency",
+			s.Int32(int32(api.Autoscaling.MaxConcurrency)),
+			"--max-queue-length",
+			s.Int32(int32(api.Autoscaling.MaxQueueLength)),
+			"--cluster-config",
+			consts.DefaultInClusterConfigPath,
+		},
+		Ports: []kcore.ContainerPort{
+			{Name: "admin", ContainerPort: consts.AdminPortInt32},
+			{ContainerPort: consts.ProxyListeningPortInt32},
+		},
+		Env: []kcore.EnvVar{
+			{
+				Name:  "CORTEX_LOG_LEVEL",
+				Value: strings.ToUpper(userconfig.InfoLogLevel.String()),
+			},
+		},
+		EnvFrom: baseClusterEnvVars(),
+		VolumeMounts: []kcore.VolumeMount{
+			ClusterConfigMount(),
+		},
+		ReadinessProbe: &kcore.Probe{
+			Handler: kcore.Handler{
+				HTTPGet: &kcore.HTTPGetAction{
+					Path: "/healthz",
+					Port: intstr.FromInt(int(consts.AdminPortInt32)),
+				},
+			},
+			InitialDelaySeconds: 1,
+			TimeoutSeconds:      1,
+			PeriodSeconds:       5,
+			SuccessThreshold:    1,
+			FailureThreshold:    1,
+		},
+	}, ClusterConfigVolume()
+}
 
+func RealtimeUserPodContainers(api spec.API) ([]kcore.Container, []kcore.Volume) {
+	return userPodContainers(api)
+}
+
+func AsyncUserPodContainers(api spec.API) ([]kcore.Container, []kcore.Volume) {
+	containers, volumes := userPodContainers(api)
+	k8sName := K8sName(api.Name)
+
+	for i := range containers {
+		containers[i].VolumeMounts = append(containers[i].VolumeMounts,
+			APIConfigMount(k8sName),
+		)
+	}
+	volumes = append(volumes, APIConfigVolume(k8sName))
+
+	return containers, volumes
+}
+
+func TaskUserPodContainers(api spec.API, job *spec.JobKey) ([]kcore.Container, []kcore.Volume) {
+	containers, volumes := userPodContainers(api)
+	k8sName := job.K8sName()
+
+	volumes = append(volumes,
+		KubexitVolume(),
+		APIConfigVolume(k8sName),
+	)
+
+	containerNames := userconfig.GetContainerNames(api.Pod.Containers)
+	for i, c := range containers {
+		containers[i].VolumeMounts = append(containers[i].VolumeMounts,
+			KubexitMount(),
+			APIConfigMount(k8sName),
+		)
+
+		containerDeathDependencies := containerNames.Copy()
+		containerDeathDependencies.Remove(c.Name)
+		containerDeathEnvVars := getKubexitEnvVars(c.Name, containerDeathDependencies.Slice(), nil)
+		containers[i].Env = append(containers[i].Env, containerDeathEnvVars...)
+
+		if c.Command[0] != "/cortex/kubexit" {
+			containers[i].Command = append([]string{"/cortex/kubexit"}, c.Command...)
+		}
+	}
+
+	return containers, volumes
+}
+
+func BatchUserPodContainers(api spec.API, job *spec.JobKey) ([]kcore.Container, []kcore.Volume) {
+	containers, volumes := userPodContainers(api)
+	k8sName := job.K8sName()
+
+	volumes = append(volumes,
+		KubexitVolume(),
+		APIConfigVolume(k8sName),
+	)
+
+	containerNames := userconfig.GetContainerNames(api.Pod.Containers)
+	for i, c := range containers {
+		containers[i].VolumeMounts = append(containers[i].VolumeMounts,
+			KubexitMount(),
+			APIConfigMount(k8sName),
+		)
+
+		containerDeathDependencies := containerNames.Copy()
+		containerDeathDependencies.Remove(c.Name)
+		containerDeathEnvVars := getKubexitEnvVars(c.Name, containerDeathDependencies.Slice(), nil)
+		containers[i].Env = append(containers[i].Env, containerDeathEnvVars...)
+
+		if c.Command[0] != "/cortex/kubexit" {
+			containers[i].Command = append([]string{"/cortex/kubexit"}, c.Command...)
+		}
+	}
+
+	return containers, volumes
+}
+
+func userPodContainers(api spec.API) ([]kcore.Container, []kcore.Volume) {
 	volumes := []kcore.Volume{
 		MntVolume(),
 		CortexVolume(),
@@ -133,22 +256,22 @@ func UserPodContainers(api spec.API) ([]kcore.Container, []kcore.Volume) {
 		ClientConfigMount(),
 	}
 
-	if requiresKubexit {
-		volumes = append(volumes, KubexitVolume())
-		containerMounts = append(containerMounts, KubexitMount())
-	}
 	if api.Pod.ShmSize != nil {
 		volumes = append(volumes, ShmVolume(api.Pod.ShmSize.Quantity))
 		containerMounts = append(containerMounts, ShmMount())
 	}
 
 	var containers []kcore.Container
-	containerNames := userconfig.GetContainerNames(api.Pod.Containers)
 	for _, container := range api.Pod.Containers {
 		containerResourceList := kcore.ResourceList{}
 		containerResourceLimitsList := kcore.ResourceList{}
 		securityContext := kcore.SecurityContext{
 			Privileged: pointer.Bool(true),
+		}
+
+		var readinessProbe *kcore.Probe
+		if api.Kind == userconfig.RealtimeAPIKind {
+			readinessProbe = GetProbeSpec(container.ReadinessProbe)
 		}
 
 		if container.Compute.CPU != nil {
@@ -163,8 +286,6 @@ func UserPodContainers(api spec.API) ([]kcore.Container, []kcore.Volume) {
 			containerResourceList["nvidia.com/gpu"] = *kresource.NewQuantity(container.Compute.GPU, kresource.DecimalSI)
 			containerResourceLimitsList["nvidia.com/gpu"] = *kresource.NewQuantity(container.Compute.GPU, kresource.DecimalSI)
 		}
-
-		containerVolumeMounts := containerMounts
 
 		if container.Compute.Inf > 0 {
 			totalHugePages := container.Compute.Inf * _hugePagesMemPerInf
@@ -188,13 +309,6 @@ func UserPodContainers(api spec.API) ([]kcore.Container, []kcore.Volume) {
 				Value: s.Int32(*api.Pod.Port),
 			})
 		}
-
-		if requiresKubexit {
-			containerDeathDependencies := containerNames.Copy()
-			containerDeathDependencies.Remove(container.Name)
-			containerEnvVars = getKubexitEnvVars(container.Name, containerDeathDependencies.Slice(), nil)
-		}
-
 		for k, v := range container.Env {
 			containerEnvVars = append(containerEnvVars, kcore.EnvVar{
 				Name:  k,
@@ -202,18 +316,15 @@ func UserPodContainers(api spec.API) ([]kcore.Container, []kcore.Volume) {
 			})
 		}
 
-		var containerCmd []string
-		if requiresKubexit && container.Command[0] != "/cortex/kubexit" {
-			containerCmd = append([]string{"/cortex/kubexit"}, container.Command...)
-		}
-
 		containers = append(containers, kcore.Container{
-			Name:         container.Name,
-			Image:        container.Image,
-			Command:      containerCmd,
-			Args:         container.Args,
-			Env:          containerEnvVars,
-			VolumeMounts: containerVolumeMounts,
+			Name:           container.Name,
+			Image:          container.Image,
+			Command:        container.Command,
+			Args:           container.Args,
+			Env:            containerEnvVars,
+			VolumeMounts:   containerMounts,
+			LivenessProbe:  GetProbeSpec(container.LivenessProbe),
+			ReadinessProbe: readinessProbe,
 			Resources: kcore.ResourceRequirements{
 				Requests: containerResourceList,
 				Limits:   containerResourceLimitsList,
@@ -322,42 +433,6 @@ func GenerateNodeAffinities(apiNodeGroups []string) *kcore.Affinity {
 			RequiredDuringSchedulingIgnoredDuringExecution:  requiredNodeSelector,
 		},
 	}
-}
-
-func RealtimeProxyContainer(api spec.API) (kcore.Container, kcore.Volume) {
-	return kcore.Container{
-		Name:            _proxyContainerName,
-		Image:           config.ClusterConfig.ImageProxy,
-		ImagePullPolicy: kcore.PullAlways,
-		Args: []string{
-			"-port",
-			consts.ProxyListeningPortStr,
-			"-metrics-port",
-			consts.MetricsPortStr,
-			"-user-port",
-			s.Int32(*api.Pod.Port),
-			"-max-concurrency",
-			s.Int32(int32(api.Autoscaling.MaxConcurrency)),
-			"-max-queue-length",
-			s.Int32(int32(api.Autoscaling.MaxQueueLength)),
-			"-cluster-config",
-			consts.DefaultInClusterConfigPath,
-		},
-		Ports: []kcore.ContainerPort{
-			{Name: "metrics", ContainerPort: consts.MetricsPortInt32},
-			{ContainerPort: consts.ProxyListeningPortInt32},
-		},
-		Env: []kcore.EnvVar{
-			{
-				Name:  "CORTEX_LOG_LEVEL",
-				Value: strings.ToUpper(userconfig.InfoLogLevel.String()),
-			},
-		},
-		EnvFrom: baseClusterEnvVars(),
-		VolumeMounts: []kcore.VolumeMount{
-			ClusterConfigMount(),
-		},
-	}, ClusterConfigVolume()
 }
 
 // func getAsyncAPIEnvVars(api spec.API, queueURL string) []kcore.EnvVar {

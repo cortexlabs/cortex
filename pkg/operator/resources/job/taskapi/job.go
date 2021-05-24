@@ -69,6 +69,10 @@ func SubmitJob(apiName string, submission *schema.TaskJobSubmission) (*spec.Task
 		return nil, err
 	}
 
+	if err := createJobConfigMap(*apiSpec, jobSpec); err != nil {
+		return nil, err
+	}
+
 	deployJob(apiSpec, &jobSpec)
 
 	return &jobSpec, nil
@@ -82,6 +86,19 @@ func uploadJobSpec(jobSpec *spec.TaskJob) error {
 	}
 
 	return nil
+}
+
+func createJobConfigMap(apiSpec spec.API, jobSpec spec.TaskJob) error {
+	configMapConfig := workloads.ConfigMapConfig{
+		TaskJob: &jobSpec,
+	}
+
+	configMapData, err := configMapConfig.GenerateConfigMapData()
+	if err != nil {
+		return err
+	}
+
+	return createK8sConfigMap(k8sConfigMap(apiSpec, jobSpec, configMapData))
 }
 
 func deployJob(apiSpec *spec.API, jobSpec *spec.TaskJob) {
@@ -115,12 +132,10 @@ func handleJobSubmissionError(jobKey spec.JobKey, jobErr error) {
 }
 
 func deleteJobRuntimeResources(jobKey spec.JobKey) error {
-	err := deleteK8sJob(jobKey)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return errors.FirstError(
+		deleteK8sJob(jobKey),
+		deleteK8sConfigMap(jobKey),
+	)
 }
 
 func StopJob(jobKey spec.JobKey) error {

@@ -60,7 +60,7 @@ func virtualServiceSpec(api *spec.API) *istioclientnetworking.VirtualService {
 }
 
 func k8sJobSpec(api *spec.API, job *spec.TaskJob) *kbatch.Job {
-	containers, volumes := workloads.UserPodContainers(*api)
+	containers, volumes := workloads.TaskUserPodContainers(*api, &job.JobKey)
 
 	return k8s.Job(&k8s.JobSpec{
 		Name:        job.JobKey.K8sName(),
@@ -90,7 +90,6 @@ func k8sJobSpec(api *spec.API, job *spec.TaskJob) *kbatch.Job {
 				RestartPolicy: "Never",
 				InitContainers: []kcore.Container{
 					workloads.KubexitInitContainer(),
-					workloads.TaskInitContainer(job),
 				},
 				Containers:         containers,
 				NodeSelector:       workloads.NodeSelectors(),
@@ -99,6 +98,21 @@ func k8sJobSpec(api *spec.API, job *spec.TaskJob) *kbatch.Job {
 				Volumes:            volumes,
 				ServiceAccountName: workloads.ServiceAccountName,
 			},
+		},
+	})
+}
+
+func k8sConfigMap(api spec.API, job spec.TaskJob, configMapData map[string]string) kcore.ConfigMap {
+	return *k8s.ConfigMap(&k8s.ConfigMapSpec{
+		Name: job.JobKey.K8sName(),
+		Data: configMapData,
+		Labels: map[string]string{
+			"apiName":        api.Name,
+			"apiID":          api.ID,
+			"specID":         api.SpecID,
+			"jobID":          job.ID,
+			"apiKind":        api.Kind.String(),
+			"cortex.dev/api": "true",
 		},
 	})
 }
@@ -155,4 +169,14 @@ func createK8sJob(apiSpec *spec.API, jobSpec *spec.TaskJob) error {
 	}
 
 	return nil
+}
+
+func deleteK8sConfigMap(jobKey spec.JobKey) error {
+	_, err := config.K8s.DeleteConfigMap(jobKey.K8sName())
+	return err
+}
+
+func createK8sConfigMap(configMap kcore.ConfigMap) error {
+	_, err := config.K8s.CreateConfigMap(&configMap)
+	return err
 }

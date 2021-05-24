@@ -17,62 +17,79 @@ limitations under the License.
 package workloads
 
 import (
-	"fmt"
 	"path"
 	"strings"
 
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
+	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	kcore "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
+	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
 func K8sName(apiName string) string {
 	return "api-" + apiName
 }
 
-type downloadContainerConfig struct {
-	DownloadArgs []downloadContainerArg `json:"download_args"`
-	LastLog      string                 `json:"last_log"` // string to log at the conclusion of the downloader (if "" nothing will be logged)
-}
+func GetProbeSpec(probe *userconfig.Probe) *kcore.Probe {
+	if probe == nil {
+		return nil
+	}
 
-type downloadContainerArg struct {
-	From             string `json:"from"`
-	To               string `json:"to"`
-	ToFile           bool   `json:"to_file"` // whether "To" path reflects the path to a file or just the directory in which "From" object is copied to
-	Unzip            bool   `json:"unzip"`
-	ItemName         string `json:"item_name"`          // name of the item being downloaded, just for logging (if "" nothing will be logged)
-	HideFromLog      bool   `json:"hide_from_log"`      // if true, don't log where the file is being downloaded from
-	HideUnzippingLog bool   `json:"hide_unzipping_log"` // if true, don't log when unzipping
-}
+	var httpGetAction *kcore.HTTPGetAction
+	var tcpSocketAction *kcore.TCPSocketAction
+	var execAction *kcore.ExecAction
 
-func FileExistsProbe(fileName string) *kcore.Probe {
-	return &kcore.Probe{
-		InitialDelaySeconds: 3,
-		TimeoutSeconds:      5,
-		PeriodSeconds:       5,
-		SuccessThreshold:    1,
-		FailureThreshold:    1,
-		Handler: kcore.Handler{
-			Exec: &kcore.ExecAction{
-				Command: []string{"/bin/bash", "-c", fmt.Sprintf("test -f %s", fileName)},
+	if probe.HTTPGet != nil {
+		httpGetAction = &kcore.HTTPGetAction{
+			Path: probe.HTTPGet.Path,
+			Port: intstr.IntOrString{
+				IntVal: probe.HTTPGet.Port,
 			},
+		}
+	}
+	if probe.TCPSocket != nil {
+		tcpSocketAction = &kcore.TCPSocketAction{
+			Port: intstr.IntOrString{
+				IntVal: probe.TCPSocket.Port,
+			},
+		}
+	}
+	if probe.Exec != nil {
+		execAction = &kcore.ExecAction{
+			Command: probe.Exec.Command,
+		}
+	}
+
+	return &kcore.Probe{
+		Handler: kcore.Handler{
+			HTTPGet:   httpGetAction,
+			TCPSocket: tcpSocketAction,
+			Exec:      execAction,
 		},
+		InitialDelaySeconds: probe.InitialDelaySeconds,
+		TimeoutSeconds:      probe.TimeoutSeconds,
+		PeriodSeconds:       probe.PeriodSeconds,
+		SuccessThreshold:    probe.SuccessThreshold,
+		FailureThreshold:    probe.FailureThreshold,
 	}
 }
 
-func SocketExistsProbe(socketName string) *kcore.Probe {
-	return &kcore.Probe{
-		InitialDelaySeconds: 3,
-		TimeoutSeconds:      5,
-		PeriodSeconds:       5,
-		SuccessThreshold:    1,
-		FailureThreshold:    1,
-		Handler: kcore.Handler{
-			Exec: &kcore.ExecAction{
-				Command: []string{"/bin/bash", "-c", fmt.Sprintf("test -S %s", socketName)},
-			},
-		},
+func GetReadinessProbesFromContainers(containers []*userconfig.Container) map[string]kcore.Probe {
+	probes := map[string]kcore.Probe{}
+
+	for _, container := range containers {
+		// this should never happen, it's just a precaution
+		if container == nil {
+			continue
+		}
+
+		if container.ReadinessProbe != nil {
+			probes[container.Name] = *GetProbeSpec(container.ReadinessProbe)
+		}
 	}
+
+	return probes
 }
 
 func baseClusterEnvVars() []kcore.EnvFromSource {
@@ -138,6 +155,19 @@ func CortexVolume() kcore.Volume {
 	return k8s.EmptyDirVolume(_cortexDirVolumeName)
 }
 
+func APIConfigVolume(name string) kcore.Volume {
+	return kcore.Volume{
+		Name: name,
+		VolumeSource: kcore.VolumeSource{
+			ConfigMap: &kcore.ConfigMapVolumeSource{
+				LocalObjectReference: kcore.LocalObjectReference{
+					Name: name,
+				},
+			},
+		},
+	}
+}
+
 func ClientConfigVolume() kcore.Volume {
 	return kcore.Volume{
 		Name: _clientConfigDirVolume,
@@ -186,6 +216,13 @@ func MntMount() kcore.VolumeMount {
 
 func CortexMount() kcore.VolumeMount {
 	return k8s.EmptyDirVolumeMount(_cortexDirVolumeName, _cortexDirMountPath)
+}
+
+func APIConfigMount(name string) kcore.VolumeMount {
+	return kcore.VolumeMount{
+		Name:      name,
+		MountPath: path.Join(_cortexDirMountPath, "spec"),
+	}
 }
 
 func ClientConfigMount() kcore.VolumeMount {

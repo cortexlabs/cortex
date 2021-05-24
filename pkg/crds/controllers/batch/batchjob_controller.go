@@ -57,6 +57,7 @@ type BatchJobReconciler struct {
 // +kubebuilder:rbac:groups=batch.cortex.dev,resources=batchjobs/finalizers,verbs=update
 // +kubebuilder:rbac:groups=batch,resources=jobs,verbs=get;list;watch;create;update;patch
 // +kubebuilder:rbac:groups="",resources=pods,verbs=get;list;watch
+// +kubebuilder:rbac:groups="",resources=configmaps,verbs=create;get;list;watch
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
@@ -137,6 +138,13 @@ func (r *BatchJobReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		return ctrl.Result{}, err
 	}
 
+	log.V(1).Info("getting configmap")
+	configMap, err := r.getConfigMap(ctx, batchJob)
+	if err != nil && !kerrors.IsNotFound(err) {
+		log.Error(err, "failed to get configmap")
+		return ctrl.Result{}, err
+	}
+
 	log.V(1).Info("getting worker job")
 	workerJob, err := r.getWorkerJob(ctx, batchJob)
 	if err != nil && !kerrors.IsNotFound(err) {
@@ -157,6 +165,7 @@ func (r *BatchJobReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 	}
 
 	workerJobExists := workerJob != nil
+	configMapExists := configMap != nil
 	statusInfo := batchJobStatusInfo{
 		QueueExists:     queueExists,
 		EnqueuingStatus: enqueuingStatus,
@@ -167,6 +176,7 @@ func (r *BatchJobReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 
 	log.V(1).Info("status data successfully acquired",
 		"queueExists", queueExists,
+		"configMapExists", configMapExists,
 		"enqueuingStatus", enqueuingStatus,
 		"workerJobExists", workerJobExists,
 	)
@@ -230,6 +240,14 @@ func (r *BatchJobReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 	case batch.EnqueuingFailed:
 		log.Info("failed to enqueue payload")
 	case batch.EnqueuingDone:
+		if !configMapExists {
+			log.V(1).Info("creating worker configmap")
+			if err = r.createWorkerConfigMap(ctx, batchJob, queueURL); err != nil {
+				log.Error(err, "failed to create worker configmap")
+				return ctrl.Result{}, err
+			}
+
+		}
 		if !workerJobExists {
 			log.V(1).Info("creating worker job")
 			if err = r.createWorkerJob(ctx, batchJob, queueURL); err != nil {

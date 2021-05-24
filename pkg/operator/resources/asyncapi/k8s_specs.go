@@ -171,14 +171,41 @@ func gatewayVirtualServiceSpec(api spec.API) v1beta1.VirtualService {
 	})
 }
 
+func configMapSpec(api spec.API) (kcore.ConfigMap, error) {
+	configMapConfig := workloads.ConfigMapConfig{
+		Probes: workloads.GetReadinessProbesFromContainers(api.Pod.Containers),
+	}
+
+	configMapData, err := configMapConfig.GenerateConfigMapData()
+	if err != nil {
+		return kcore.ConfigMap{}, err
+	}
+
+	return *k8s.ConfigMap(&k8s.ConfigMapSpec{
+		Name: workloads.K8sName(api.Name),
+		Data: configMapData,
+		Labels: map[string]string{
+			"apiName":        api.Name,
+			"apiKind":        api.Kind.String(),
+			"apiID":          api.ID,
+			"specID":         api.SpecID,
+			"deploymentID":   api.DeploymentID,
+			"cortex.dev/api": "true",
+		},
+	}), nil
+}
+
 func deploymentSpec(api spec.API, prevDeployment *kapps.Deployment, queueURL string) kapps.Deployment {
 	var (
 		containers []kcore.Container
 		volumes    []kcore.Volume
 	)
 
-	containers, volumes = workloads.UserPodContainers(api)
+	containers, volumes = workloads.AsyncUserPodContainers(api)
+
 	// TODO add the proxy as well
+	// use workloads.APIConfigMount(workloads.K8sName(api.Name)) to mount the probes
+	// the probes will be made available at /cortex/spec/probes.json
 
 	return *k8s.Deployment(&k8s.DeploymentSpec{
 		Name:           workloads.K8sName(api.Name),

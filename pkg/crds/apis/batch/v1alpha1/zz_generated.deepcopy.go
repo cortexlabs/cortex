@@ -114,6 +114,13 @@ func (in *BatchJobSpec) DeepCopyInto(out *BatchJobSpec) {
 		*out = make([]string, len(*in))
 		copy(*out, *in)
 	}
+	if in.Probes != nil {
+		in, out := &in.Probes, &out.Probes
+		*out = make(map[string]corev1.Probe, len(*in))
+		for key, val := range *in {
+			(*out)[key] = *val.DeepCopy()
+		}
+	}
 	if in.TTL != nil {
 		in, out := &in.TTL, &out.TTL
 		*out = new(v1.Duration)

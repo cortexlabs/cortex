@@ -38,11 +38,26 @@ const (
 	ContainersKey = "containers"
 
 	// Containers
-	ContainerNameKey = "name"
-	ImageKey         = "image"
-	EnvKey           = "env"
-	CommandKey       = "command"
-	ArgsKey          = "args"
+	ContainerNameKey  = "name"
+	ImageKey          = "image"
+	EnvKey            = "env"
+	CommandKey        = "command"
+	ArgsKey           = "args"
+	ReadinessProbeKey = "readiness_probe"
+	LivenessProbeKey  = "liveness_probe"
+
+	// Probe
+	HTTPGetKey             = "http_get"
+	TCPSocketKey           = "tcp_socket"
+	ExecKey                = "exec"
+	InitialDelaySecondsKey = "initial_delay_seconds"
+	TimeoutSecondsKey      = "timeout_seconds"
+	PeriodSecondsKey       = "period_seconds"
+	SuccessThresholdKey    = "success_threshold"
+	FailureThresholdKey    = "failure_threshold"
+
+	// Probe types
+	PathKey = "path"
 
 	// Compute
 	CPUKey = "cpu"

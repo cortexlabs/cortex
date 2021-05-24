@@ -27,7 +27,6 @@ api_images=(
 )
 
 dev_images=(
-  "downloader"
   "manager"
   "proxy"
   "async-gateway"
