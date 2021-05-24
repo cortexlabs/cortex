@@ -1,0 +1,17 @@
+- name: text-generator
+  kind: AsyncAPI
+  pod:
+    port: 9000
+    containers:
+    - name: api
+      image: 499593605069.dkr.ecr.us-west-2.amazonaws.com/sample/async-text-generator-gpu:latest
+      env:
+        TARGET_DEVICE: "cuda"
+      readiness_probe:
+        http_get:
+          path: "/healthz"
+          port: 9000
+      compute:
+        cpu: 1
+        gpu: 1
+        mem: 512M
