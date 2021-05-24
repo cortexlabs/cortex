@@ -231,11 +231,11 @@ func containersValidation(kind userconfig.Kind) *cr.StructFieldValidation {
 			},
 		},
 		computeValidation(),
-		probeValidation("LivenessProbe", false),
+		probeValidation("LivenessProbe", true),
 	}
 
 	if kind != userconfig.TaskAPIKind {
-		validations = append(validations, probeValidation("ReadinessProbe", true))
+		validations = append(validations, probeValidation("ReadinessProbe", false))
 	}
 
 	return &cr.StructFieldValidation{
