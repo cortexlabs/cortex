@@ -17,8 +17,7 @@ limitations under the License.
 package workloads
 
 import (
-	"encoding/json"
-
+	libjson "github.com/cortexlabs/cortex/pkg/lib/json"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 	kcore "k8s.io/api/core/v1"
 )
@@ -36,7 +35,7 @@ func (c *ConfigMapConfig) GenerateConfigMapData() (map[string]string, error) {
 
 	data := map[string]string{}
 	if len(c.Probes) > 0 {
-		probesEncoded, err := json.MarshalIndent(c.Probes, "", "\t")
+		probesEncoded, err := libjson.MarshalIndent(c.Probes)
 		if err != nil {
 			return nil, err
 		}
@@ -45,7 +44,7 @@ func (c *ConfigMapConfig) GenerateConfigMapData() (map[string]string, error) {
 	}
 
 	if c.TaskJob != nil {
-		jobSpecEncoded, err := json.MarshalIndent(*c.TaskJob, "", "\t")
+		jobSpecEncoded, err := libjson.MarshalIndent(*c.TaskJob)
 		if err != nil {
 			return nil, err
 		}
@@ -54,7 +53,7 @@ func (c *ConfigMapConfig) GenerateConfigMapData() (map[string]string, error) {
 	}
 
 	if c.BatchJob != nil {
-		jobSpecEncoded, err := json.MarshalIndent(*c.BatchJob, "", "\t")
+		jobSpecEncoded, err := libjson.MarshalIndent(*c.BatchJob)
 		if err != nil {
 			return nil, err
 		}

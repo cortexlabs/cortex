@@ -71,7 +71,7 @@ type batchJobStatusInfo struct {
 	TotalBatchCount int
 }
 
-func (r *BatchJobReconciler) checkIfConfigMapExists(ctx context.Context, batchJob batch.BatchJob) (bool, error) {
+func (r *BatchJobReconciler) getConfigMap(ctx context.Context, batchJob batch.BatchJob) (*kcore.ConfigMap, error) {
 	var configMap kcore.ConfigMap
 	err := r.Get(ctx, client.ObjectKey{
 		Namespace: batchJob.Namespace,
@@ -79,12 +79,12 @@ func (r *BatchJobReconciler) checkIfConfigMapExists(ctx context.Context, batchJo
 	}, &configMap)
 	if err != nil {
 		if kerrors.IsNotFound(err) {
-			return false, nil
+			return nil, nil
 		}
-		return false, err
+		return nil, err
 	}
 
-	return true, nil
+	return &configMap, nil
 }
 
 func (r *BatchJobReconciler) checkIfQueueExists(batchJob batch.BatchJob) (bool, error) {
@@ -566,48 +566,48 @@ func (r *BatchJobReconciler) uploadJobSpec(batchJob batch.BatchJob, api spec.API
 	return &jobSpec, nil
 }
 
-func (r *BatchJobReconciler) ConvertControllerBatchToJobSpec(b batch.BatchJob, api spec.API, queueURL string) (spec.BatchJob, error) {
+func (r *BatchJobReconciler) ConvertControllerBatchToJobSpec(batchJob batch.BatchJob, api spec.API, queueURL string) (spec.BatchJob, error) {
 	var deadLetterQueue *spec.SQSDeadLetterQueue
-	if b.Spec.DeadLetterQueue != nil {
+	if batchJob.Spec.DeadLetterQueue != nil {
 		deadLetterQueue = &spec.SQSDeadLetterQueue{
-			ARN:             b.Spec.DeadLetterQueue.ARN,
-			MaxReceiveCount: int(b.Spec.DeadLetterQueue.MaxReceiveCount),
+			ARN:             batchJob.Spec.DeadLetterQueue.ARN,
+			MaxReceiveCount: int(batchJob.Spec.DeadLetterQueue.MaxReceiveCount),
 		}
 	}
 
 	var config map[string]interface{}
-	if b.Spec.Config != nil {
-		err := yaml.Unmarshal([]byte(*b.Spec.Config), &config)
+	if batchJob.Spec.Config != nil {
+		err := yaml.Unmarshal([]byte(*batchJob.Spec.Config), &config)
 		if err != nil {
 			return spec.BatchJob{}, errors.Wrap(err, "failed to unmarshal job spec config")
 		}
 	}
 
 	var timeout *int
-	if b.Spec.Timeout != nil {
-		timeout = pointer.Int(int(b.Spec.Timeout.Seconds()))
+	if batchJob.Spec.Timeout != nil {
+		timeout = pointer.Int(int(batchJob.Spec.Timeout.Seconds()))
 	}
 
-	totalBatchCount, err := r.Config.GetTotalBatchCount(r, b)
+	totalBatchCount, err := r.Config.GetTotalBatchCount(r, batchJob)
 	if err != nil {
 		return spec.BatchJob{}, errors.Wrap(err, "failed to get total batch count")
 	}
 
 	return spec.BatchJob{
 		JobKey: spec.JobKey{
-			ID:      b.Status.ID,
-			APIName: b.Spec.APIName,
+			ID:      batchJob.Status.ID,
+			APIName: batchJob.Spec.APIName,
 			Kind:    userconfig.BatchAPIKind,
 		},
 		RuntimeBatchJobConfig: spec.RuntimeBatchJobConfig{
-			Workers:            int(b.Spec.Workers),
+			Workers:            int(batchJob.Spec.Workers),
 			SQSDeadLetterQueue: deadLetterQueue,
 			Config:             config,
 			Timeout:            timeout,
 		},
 		APIID:           api.ID,
 		SQSUrl:          queueURL,
-		StartTime:       b.CreationTimestamp.Time,
+		StartTime:       batchJob.CreationTimestamp.Time,
 		TotalBatchCount: totalBatchCount,
 	}, nil
 }

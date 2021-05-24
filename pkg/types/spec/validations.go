@@ -272,7 +272,6 @@ func probeValidation(structFieldName string, hasExecProbe bool) *cr.StructFieldV
 	validations := []*cr.StructFieldValidation{
 		httpGetProbeValidation(),
 		tcpSocketProbeValidation(),
-		execProbeValidation(),
 		{
 			StructField: "InitialDelaySeconds",
 			Int32Validation: &cr.Int32Validation{
@@ -311,7 +310,7 @@ func probeValidation(structFieldName string, hasExecProbe bool) *cr.StructFieldV
 	}
 
 	if hasExecProbe {
-		validations = append(validations)
+		validations = append(validations, execProbeValidation())
 	}
 
 	return &cr.StructFieldValidation{

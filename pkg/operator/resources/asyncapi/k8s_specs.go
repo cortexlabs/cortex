@@ -190,7 +190,6 @@ func configMapSpec(api spec.API) (kcore.ConfigMap, error) {
 			"apiID":          api.ID,
 			"specID":         api.SpecID,
 			"deploymentID":   api.DeploymentID,
-			"handlerID":      api.HandlerID,
 			"cortex.dev/api": "true",
 		},
 	}), nil

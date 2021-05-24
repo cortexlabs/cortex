@@ -68,10 +68,10 @@ func (r *BatchJobReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 
 	// Step 1: get resource from request
 	batchJob := batch.BatchJob{}
-	log.V(1).Info("retrieving job resource")
+	log.V(1).Info("retrieving resource")
 	if err := r.Get(ctx, req.NamespacedName, &batchJob); err != nil {
 		if !kerrors.IsNotFound(err) {
-			log.Error(err, "failed to retrieve job resource")
+			log.Error(err, "failed to retrieve resource")
 		}
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
@@ -137,10 +137,10 @@ func (r *BatchJobReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		return ctrl.Result{}, err
 	}
 
-	log.V(1).Info("checking if configmap exists")
-	configMapExists, err := r.checkIfConfigMapExists(ctx, batchJob)
-	if err != nil {
-		log.Error(err, "failed to check if configmap exists")
+	log.V(1).Info("getting configmap")
+	configMap, err := r.getConfigMap(ctx, batchJob)
+	if err != nil && !kerrors.IsNotFound(err) {
+		log.Error(err, "failed to get configmap")
 		return ctrl.Result{}, err
 	}
 
@@ -164,6 +164,7 @@ func (r *BatchJobReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 	}
 
 	workerJobExists := workerJob != nil
+	configMapExists := configMap != nil
 	statusInfo := batchJobStatusInfo{
 		QueueExists:     queueExists,
 		EnqueuingStatus: enqueuingStatus,
@@ -174,6 +175,7 @@ func (r *BatchJobReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 
 	log.V(1).Info("status data successfully acquired",
 		"queueExists", queueExists,
+		"configMapExists", configMapExists,
 		"enqueuingStatus", enqueuingStatus,
 		"workerJobExists", workerJobExists,
 	)

@@ -110,7 +110,6 @@ func k8sConfigMap(api spec.API, job spec.TaskJob, configMapData map[string]strin
 			"apiName":        api.Name,
 			"apiID":          api.ID,
 			"specID":         api.SpecID,
-			"handlerID":      api.HandlerID,
 			"jobID":          job.ID,
 			"apiKind":        api.Kind.String(),
 			"cortex.dev/api": "true",
