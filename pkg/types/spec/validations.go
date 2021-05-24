@@ -19,7 +19,6 @@ package spec
 import (
 	"context"
 	"fmt"
-	"strconv"
 	"strings"
 	"time"
 
@@ -34,6 +33,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/regex"
 	"github.com/cortexlabs/cortex/pkg/lib/slices"
+	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	libtime "github.com/cortexlabs/cortex/pkg/lib/time"
 	"github.com/cortexlabs/cortex/pkg/lib/urls"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
@@ -52,26 +52,26 @@ func apiValidation(resource userconfig.Resource) *cr.StructValidation {
 	switch resource.Kind {
 	case userconfig.RealtimeAPIKind:
 		structFieldValidations = append(resourceStructValidations,
-			podValidation(),
+			podValidation(userconfig.RealtimeAPIKind),
 			networkingValidation(),
 			autoscalingValidation(),
 			updateStrategyValidation(),
 		)
 	case userconfig.AsyncAPIKind:
 		structFieldValidations = append(resourceStructValidations,
-			podValidation(),
+			podValidation(userconfig.AsyncAPIKind),
 			networkingValidation(),
 			autoscalingValidation(),
 			updateStrategyValidation(),
 		)
 	case userconfig.BatchAPIKind:
 		structFieldValidations = append(resourceStructValidations,
-			podValidation(),
+			podValidation(userconfig.BatchAPIKind),
 			networkingValidation(),
 		)
 	case userconfig.TaskAPIKind:
 		structFieldValidations = append(resourceStructValidations,
-			podValidation(),
+			podValidation(userconfig.TaskAPIKind),
 			networkingValidation(),
 		)
 	case userconfig.TrafficSplitterKind:
@@ -140,7 +140,7 @@ func multiAPIsValidation() *cr.StructFieldValidation {
 	}
 }
 
-func podValidation() *cr.StructFieldValidation {
+func podValidation(kind userconfig.Kind) *cr.StructFieldValidation {
 	return &cr.StructFieldValidation{
 		StructField: "Pod",
 		StructValidation: &cr.StructValidation{
@@ -172,19 +172,72 @@ func podValidation() *cr.StructFieldValidation {
 						Required:          false,
 						Default:           nil, // it's a pointer because it's not required for the task API
 						AllowExplicitNull: true,
+						GreaterThan:       pointer.Int32(0),
+						LessThanOrEqualTo: pointer.Int32(65535),
 						DisallowedValues: []int32{
 							consts.ProxyListeningPortInt32,
-							consts.MetricsPortInt32,
+							consts.AdminPortInt32,
 						},
 					},
 				},
-				containersValidation(),
+				containersValidation(kind),
 			},
 		},
 	}
 }
 
-func containersValidation() *cr.StructFieldValidation {
+func containersValidation(kind userconfig.Kind) *cr.StructFieldValidation {
+	validations := []*cr.StructFieldValidation{
+		{
+			StructField: "Name",
+			StringValidation: &cr.StringValidation{
+				Required:         true,
+				AllowEmpty:       false,
+				DNS1035:          true,
+				MaxLength:        63,
+				DisallowedValues: consts.ReservedContainerNames,
+			},
+		},
+		{
+			StructField: "Image",
+			StringValidation: &cr.StringValidation{
+				Required:    true,
+				AllowEmpty:  false,
+				DockerImage: true,
+			},
+		},
+		{
+			StructField: "Env",
+			StringMapValidation: &cr.StringMapValidation{
+				Required:   false,
+				Default:    map[string]string{},
+				AllowEmpty: true,
+			},
+		},
+		{
+			StructField: "Command",
+			StringListValidation: &cr.StringListValidation{
+				Required:          false,
+				AllowExplicitNull: true,
+				AllowEmpty:        true,
+			},
+		},
+		{
+			StructField: "Args",
+			StringListValidation: &cr.StringListValidation{
+				Required:          false,
+				AllowExplicitNull: true,
+				AllowEmpty:        true,
+			},
+		},
+		computeValidation(),
+		probeValidation("LivenessProbe", true),
+	}
+
+	if kind != userconfig.TaskAPIKind {
+		validations = append(validations, probeValidation("ReadinessProbe", false))
+	}
+
 	return &cr.StructFieldValidation{
 		StructField: "Containers",
 		StructListValidation: &cr.StructListValidation{
@@ -192,51 +245,7 @@ func containersValidation() *cr.StructFieldValidation {
 			TreatNullAsEmpty: true,
 			MinLength:        1,
 			StructValidation: &cr.StructValidation{
-				StructFieldValidations: []*cr.StructFieldValidation{
-					{
-						StructField: "Name",
-						StringValidation: &cr.StringValidation{
-							Required:         true,
-							AllowEmpty:       false,
-							DNS1035:          true,
-							MaxLength:        63,
-							DisallowedValues: consts.ReservedContainerNames,
-						},
-					},
-					{
-						StructField: "Image",
-						StringValidation: &cr.StringValidation{
-							Required:           true,
-							AllowEmpty:         false,
-							DockerImageOrEmpty: true,
-						},
-					},
-					{
-						StructField: "Env",
-						StringMapValidation: &cr.StringMapValidation{
-							Required:   false,
-							Default:    map[string]string{},
-							AllowEmpty: true,
-						},
-					},
-					{
-						StructField: "Command",
-						StringListValidation: &cr.StringListValidation{
-							Required:          false,
-							AllowExplicitNull: true,
-							AllowEmpty:        true,
-						},
-					},
-					{
-						StructField: "Args",
-						StringListValidation: &cr.StringListValidation{
-							Required:          false,
-							AllowExplicitNull: true,
-							AllowEmpty:        true,
-						},
-					},
-					computeValidation(),
-				},
+				StructFieldValidations: validations,
 			},
 		},
 	}
@@ -252,6 +261,138 @@ func networkingValidation() *cr.StructFieldValidation {
 					StringPtrValidation: &cr.StringPtrValidation{
 						Validator: urls.ValidateEndpoint,
 						MaxLength: 1000, // no particular reason other than it works
+					},
+				},
+			},
+		},
+	}
+}
+
+func probeValidation(structFieldName string, hasExecProbe bool) *cr.StructFieldValidation {
+	validations := []*cr.StructFieldValidation{
+		httpGetProbeValidation(),
+		tcpSocketProbeValidation(),
+		{
+			StructField: "InitialDelaySeconds",
+			Int32Validation: &cr.Int32Validation{
+				Default:              0,
+				GreaterThanOrEqualTo: pointer.Int32(0),
+			},
+		},
+		{
+			StructField: "TimeoutSeconds",
+			Int32Validation: &cr.Int32Validation{
+				Default:              1,
+				GreaterThanOrEqualTo: pointer.Int32(0),
+			},
+		},
+		{
+			StructField: "PeriodSeconds",
+			Int32Validation: &cr.Int32Validation{
+				Default:              10,
+				GreaterThanOrEqualTo: pointer.Int32(0),
+			},
+		},
+		{
+			StructField: "SuccessThreshold",
+			Int32Validation: &cr.Int32Validation{
+				Default:              1,
+				GreaterThanOrEqualTo: pointer.Int32(0),
+			},
+		},
+		{
+			StructField: "FailureThreshold",
+			Int32Validation: &cr.Int32Validation{
+				Default:              3,
+				GreaterThanOrEqualTo: pointer.Int32(0),
+			},
+		},
+	}
+
+	if hasExecProbe {
+		validations = append(validations, execProbeValidation())
+	}
+
+	return &cr.StructFieldValidation{
+		StructField: structFieldName,
+		StructValidation: &cr.StructValidation{
+			Required:               false,
+			AllowExplicitNull:      true,
+			DefaultNil:             true,
+			StructFieldValidations: validations,
+		},
+	}
+}
+
+func httpGetProbeValidation() *cr.StructFieldValidation {
+	return &cr.StructFieldValidation{
+		StructField: "HTTPGet",
+		StructValidation: &cr.StructValidation{
+			Required:          false,
+			AllowExplicitNull: true,
+			DefaultNil:        true,
+			StructFieldValidations: []*cr.StructFieldValidation{
+				{
+					StructField: "Path",
+					StringValidation: &cr.StringValidation{
+						Required:  true,
+						Validator: urls.ValidateEndpointAllowEmptyPath,
+					},
+				},
+				{
+					StructField: "Port",
+					Int32Validation: &cr.Int32Validation{
+						Required:          true,
+						GreaterThan:       pointer.Int32(0),
+						LessThanOrEqualTo: pointer.Int32(65535),
+						DisallowedValues: []int32{
+							consts.ProxyListeningPortInt32,
+							consts.AdminPortInt32,
+						},
+					},
+				},
+			},
+		},
+	}
+}
+
+func tcpSocketProbeValidation() *cr.StructFieldValidation {
+	return &cr.StructFieldValidation{
+		StructField: "TCPSocket",
+		StructValidation: &cr.StructValidation{
+			Required:          false,
+			AllowExplicitNull: true,
+			DefaultNil:        true,
+			StructFieldValidations: []*cr.StructFieldValidation{
+				{
+					StructField: "Port",
+					Int32Validation: &cr.Int32Validation{
+						Required:          true,
+						GreaterThan:       pointer.Int32(0),
+						LessThanOrEqualTo: pointer.Int32(65535),
+						DisallowedValues: []int32{
+							consts.ProxyListeningPortInt32,
+							consts.AdminPortInt32,
+						},
+					},
+				},
+			},
+		},
+	}
+}
+
+func execProbeValidation() *cr.StructFieldValidation {
+	return &cr.StructFieldValidation{
+		StructField: "Exec",
+		StructValidation: &cr.StructValidation{
+			Required:          false,
+			AllowExplicitNull: true,
+			DefaultNil:        true,
+			StructFieldValidations: []*cr.StructFieldValidation{
+				{
+					StructField: "Command",
+					StringListValidation: &cr.StringListValidation{
+						Required: true,
 					},
 				},
 			},
@@ -596,23 +737,63 @@ func validateContainers(
 
 	for i, container := range containers {
 		if slices.HasString(containerNames, container.Name) {
-			return errors.Wrap(ErrorDuplicateContainerName(container.Name), strconv.FormatInt(int64(i), 10), userconfig.ImageKey)
+			return errors.Wrap(ErrorDuplicateContainerName(container.Name), s.Index(i), userconfig.ImageKey)
 		}
 		containerNames = append(containerNames, container.Name)
 
 		if container.Command == nil && (kind == userconfig.BatchAPIKind || kind == userconfig.TaskAPIKind) {
-			return errors.Wrap(ErrorFieldMustBeSpecifiedForKind(userconfig.CommandKey, kind), strconv.FormatInt(int64(i), 10), userconfig.CommandKey)
+			return errors.Wrap(ErrorFieldMustBeSpecifiedForKind(userconfig.CommandKey, kind), s.Index(i), userconfig.CommandKey)
 		}
 
 		if err := validateDockerImagePath(container.Image, awsClient, k8sClient); err != nil {
-			return errors.Wrap(err, strconv.FormatInt(int64(i), 10), userconfig.ImageKey)
+			return errors.Wrap(err, s.Index(i), userconfig.ImageKey)
 		}
 
 		for key := range container.Env {
 			if strings.HasPrefix(key, "CORTEX_") || strings.HasPrefix(key, "KUBEXIT_") {
-				return errors.Wrap(ErrorCortexPrefixedEnvVarNotAllowed("CORTEX_", "KUBEXIT_"), strconv.FormatInt(int64(i), 10), userconfig.EnvKey, key)
+				return errors.Wrap(ErrorCortexPrefixedEnvVarNotAllowed("CORTEX_", "KUBEXIT_"), s.Index(i), userconfig.EnvKey, key)
 			}
 		}
+
+		if kind == userconfig.TaskAPIKind && container.ReadinessProbe != nil {
+			return errors.Wrap(ErrorFieldIsNotSupportedForKind(userconfig.ReadinessProbeKey, kind), s.Index(i), userconfig.ReadinessProbeKey)
+		}
+
+		if container.ReadinessProbe != nil {
+			if err := validateProbe(*container.ReadinessProbe, true); err != nil {
+				return errors.Wrap(err, s.Index(i), userconfig.ReadinessProbeKey)
+			}
+		}
+
+		if container.LivenessProbe != nil {
+			if err := validateProbe(*container.LivenessProbe, false); err != nil {
+				return errors.Wrap(err, s.Index(i), userconfig.LivenessProbeKey)
+			}
+		}
+
+	}
+
+	return nil
+}
+
+func validateProbe(probe userconfig.Probe, isReadinessProbe bool) error {
+	numSpecifiedProbes := 0
+	if probe.HTTPGet != nil {
+		numSpecifiedProbes++
+	}
+	if probe.TCPSocket != nil {
+		numSpecifiedProbes++
+	}
+	if probe.Exec != nil {
+		numSpecifiedProbes++
+	}
+
+	if numSpecifiedProbes != 1 {
+		validProbes := []string{userconfig.HTTPGetKey, userconfig.TCPSocketKey}
+		if !isReadinessProbe {
+			validProbes = append(validProbes, userconfig.ExecKey)
+		}
+		return ErrorSpecifyExactlyOneField(numSpecifiedProbes, validProbes...)
 	}
 
 	return nil

@@ -35,9 +35,7 @@ const (
 	ErrDuplicateEndpointInOneDeploy = "spec.duplicate_endpoint_in_one_deploy"
 	ErrDuplicateEndpoint            = "spec.duplicate_endpoint"
 	ErrDuplicateContainerName       = "spec.duplicate_container_name"
-	ErrCantSpecifyBoth              = "spec.cant_specify_both"
-	ErrSpecifyOnlyOneField          = "spec.specify_only_one_field"
-	ErrNoneSpecified                = "spec.none_specified"
+	ErrSpecifyExactlyOneField       = "spec.specify_exactly_one_field"
 	ErrSpecifyAllOrNone             = "spec.specify_all_or_none"
 	ErrOneOfPrerequisitesNotDefined = "spec.one_of_prerequisites_not_defined"
 	ErrConfigGreaterThanOtherConfig = "spec.config_greater_than_other_config"
@@ -116,24 +114,25 @@ func ErrorDuplicateContainerName(containerName string) error {
 	})
 }
 
-func ErrorCantSpecifyBoth(fieldKeyA, fieldKeyB string) error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrCantSpecifyBoth,
-		Message: fmt.Sprintf("please specify either %s or %s (both cannot be specified at the same time)", fieldKeyA, fieldKeyB),
-	})
-}
+func ErrorSpecifyExactlyOneField(numSpecified int, fields ...string) error {
+	var msg string
 
-func ErrorSpecifyOnlyOneField(fields ...string) error {
+	if len(fields) == 2 {
+		if numSpecified == 0 {
+			msg = fmt.Sprintf("please specify either %s", s.UserStrsOr(fields))
+		} else {
+			msg = fmt.Sprintf("please specify either %s (both cannot be specified at the same time)", s.UserStrsOr(fields))
+		}
+	} else {
+		if numSpecified == 0 {
+			msg = fmt.Sprintf("please specify one of the following fields: %s", s.UserStrsOr(fields))
+		} else {
+			msg = fmt.Sprintf("please specify only one of the following fields: %s", s.UserStrsOr(fields))
+		}
+	}
 	return errors.WithStack(&errors.Error{
-		Kind:    ErrSpecifyOnlyOneField,
-		Message: fmt.Sprintf("please specify only one of the following fields %s", s.UserStrsOr(fields)),
-	})
-}
-
-func ErrorNoneSpecified(fieldKeyA, fieldKeyB string) error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrNoneSpecified,
-		Message: fmt.Sprintf("please specify either %s or %s (cannot be both empty at the same time)", fieldKeyA, fieldKeyB),
+		Kind:    ErrSpecifyExactlyOneField,
+		Message: msg,
 	})
 }
 

@@ -19,7 +19,6 @@ package main
 import (
 	"context"
 	"flag"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"os/signal"
@@ -49,7 +48,6 @@ func main() {
 		userContainerPort int
 		maxConcurrency    int
 		maxQueueLength    int
-		probeDefPath      string
 		clusterConfigPath string
 	)
 
@@ -59,7 +57,6 @@ func main() {
 	flag.IntVar(&maxConcurrency, "max-concurrency", 0, "max concurrency allowed for user container")
 	flag.IntVar(&maxQueueLength, "max-queue-length", 0, "max request queue length for user container")
 	flag.StringVar(&clusterConfigPath, "cluster-config", "", "cluster config path")
-	flag.StringVar(&probeDefPath, "probe", "", "path to the desired probe json definition")
 	flag.Parse()
 
 	log := logging.GetLogger()
@@ -119,23 +116,7 @@ func main() {
 	)
 
 	promStats := proxy.NewPrometheusStatsReporter()
-
-	var readinessProbe *probe.Probe
-	if probeDefPath != "" {
-		jsonProbe, err := ioutil.ReadFile(probeDefPath)
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		probeDef, err := probe.DecodeJSON(string(jsonProbe))
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		readinessProbe = probe.NewProbe(probeDef, log)
-	} else {
-		readinessProbe = probe.NewDefaultProbe(target, log)
-	}
+	readinessProbe := probe.NewDefaultProbe(target, log)
 
 	go func() {
 		reportTicker := time.NewTicker(_reportInterval)
@@ -165,7 +146,7 @@ func main() {
 
 	servers := map[string]*http.Server{
 		"proxy": {
-			Addr:    ":" + strconv.Itoa(userContainerPort),
+			Addr:    ":" + strconv.Itoa(port),
 			Handler: proxy.Handler(breaker, httpProxy),
 		},
 		"admin": {

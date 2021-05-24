@@ -58,6 +58,9 @@ type Container struct {
 	Command []string `json:"command" yaml:"command"`
 	Args    []string `json:"args" yaml:"args"`
 
+	ReadinessProbe *Probe `json:"readiness_probe" yaml:"readiness_probe"`
+	LivenessProbe  *Probe `json:"liveness_probe" yaml:"liveness_probe"`
+
 	Compute *Compute `json:"compute" yaml:"compute"`
 }
 
@@ -69,6 +72,30 @@ type TrafficSplit struct {
 
 type Networking struct {
 	Endpoint *string `json:"endpoint" yaml:"endpoint"`
+}
+
+type Probe struct {
+	HTTPGet             *HTTPGetProbe   `json:"http_get" yaml:"http_get"`
+	TCPSocket           *TCPSocketProbe `json:"tcp_socket" yaml:"tcp_socket"`
+	Exec                *ExecProbe      `json:"exec" yaml:"exec"`
+	InitialDelaySeconds int32           `json:"initial_delay_seconds" yaml:"initial_delay_seconds"`
+	TimeoutSeconds      int32           `json:"timeout_seconds" yaml:"timeout_seconds"`
+	PeriodSeconds       int32           `json:"period_seconds" yaml:"period_seconds"`
+	SuccessThreshold    int32           `json:"success_threshold" yaml:"success_threshold"`
+	FailureThreshold    int32           `json:"failure_threshold" yaml:"failure_threshold"`
+}
+
+type HTTPGetProbe struct {
+	Path string `json:"path" yaml:"path"`
+	Port int32  `json:"port" yaml:"port"`
+}
+
+type TCPSocketProbe struct {
+	Port int32 `json:"port" yaml:"port"`
+}
+
+type ExecProbe struct {
+	Command []string `json:"command" yaml:"command"`
 }
 
 type Compute struct {
@@ -312,6 +339,16 @@ func (container *Container) UserStr() string {
 		sb.WriteString(fmt.Sprintf("%s: %s\n", ArgsKey, s.ObjFlatNoQuotes(container.Args)))
 	}
 
+	if container.ReadinessProbe != nil {
+		sb.WriteString(fmt.Sprintf("%s:\n", ReadinessProbeKey))
+		sb.WriteString(s.Indent(container.ReadinessProbe.UserStr(), "  "))
+	}
+
+	if container.LivenessProbe != nil {
+		sb.WriteString(fmt.Sprintf("%s:\n", LivenessProbeKey))
+		sb.WriteString(s.Indent(container.LivenessProbe.UserStr(), "  "))
+	}
+
 	if container.Compute != nil {
 		sb.WriteString(fmt.Sprintf("%s:\n", ComputeKey))
 		sb.WriteString(s.Indent(container.Compute.UserStr(), "  "))
@@ -325,6 +362,52 @@ func (networking *Networking) UserStr() string {
 	if networking.Endpoint != nil {
 		sb.WriteString(fmt.Sprintf("%s: %s\n", EndpointKey, *networking.Endpoint))
 	}
+	return sb.String()
+}
+
+func (probe *Probe) UserStr() string {
+	var sb strings.Builder
+
+	if probe.HTTPGet != nil {
+		sb.WriteString(fmt.Sprintf("%s:\n", HTTPGetKey))
+		sb.WriteString(s.Indent(probe.HTTPGet.UserStr(), "  "))
+	}
+	if probe.TCPSocket != nil {
+		sb.WriteString(fmt.Sprintf("%s:\n", TCPSocketKey))
+		sb.WriteString(s.Indent(probe.TCPSocket.UserStr(), "  "))
+	}
+	if probe.Exec != nil {
+		sb.WriteString(fmt.Sprintf("%s:\n", ExecKey))
+		sb.WriteString(s.Indent(probe.Exec.UserStr(), "  "))
+	}
+
+	sb.WriteString(fmt.Sprintf("%s: %d\n", InitialDelaySecondsKey, probe.InitialDelaySeconds))
+	sb.WriteString(fmt.Sprintf("%s: %d\n", TimeoutSecondsKey, probe.TimeoutSeconds))
+	sb.WriteString(fmt.Sprintf("%s: %d\n", PeriodSecondsKey, probe.PeriodSeconds))
+	sb.WriteString(fmt.Sprintf("%s: %d\n", SuccessThresholdKey, probe.SuccessThreshold))
+	sb.WriteString(fmt.Sprintf("%s: %d\n", FailureThresholdKey, probe.FailureThreshold))
+
+	return sb.String()
+}
+
+func (httpProbe *HTTPGetProbe) UserStr() string {
+	var sb strings.Builder
+
+	sb.WriteString(fmt.Sprintf("%s: %s\n", PathKey, httpProbe.Path))
+	sb.WriteString(fmt.Sprintf("%s: %d\n", PortKey, httpProbe.Port))
+
+	return sb.String()
+}
+
+func (tcpSocketProbe *TCPSocketProbe) UserStr() string {
+	var sb strings.Builder
+	sb.WriteString(fmt.Sprintf("%s: %d\n", PortKey, tcpSocketProbe.Port))
+	return sb.String()
+}
+
+func (execProbe *ExecProbe) UserStr() string {
+	var sb strings.Builder
+	sb.WriteString(fmt.Sprintf("%s: %s\n", CommandKey, s.ObjFlatNoQuotes(execProbe.Command)))
 	return sb.String()
 }
 
@@ -484,8 +567,23 @@ func (api *API) TelemetryEvent() map[string]interface{} {
 		}
 
 		event["pod.containers._len"] = len(api.Pod.Containers)
-		totalCompute := GetTotalComputeFromContainers(api.Pod.Containers)
+
+		var numReadinessProbes int
+		var numLivenessProbes int
+		for _, container := range api.Pod.Containers {
+			if container.ReadinessProbe != nil {
+				numReadinessProbes++
+			}
+			if container.LivenessProbe != nil {
+				numLivenessProbes++
+			}
+		}
+
+		event["pod.containers._num_readiness_probes"] = numReadinessProbes
+		event["pod.containers._num_liveness_probes"] = numLivenessProbes
+
 		event["pod.containers.compute._is_defined"] = true
+		totalCompute := GetTotalComputeFromContainers(api.Pod.Containers)
 		if totalCompute.CPU != nil {
 			event["pod.containers.compute.cpu._is_defined"] = true
 			event["pod.containers.compute.cpu"] = float64(totalCompute.CPU.MilliValue()) / 1000

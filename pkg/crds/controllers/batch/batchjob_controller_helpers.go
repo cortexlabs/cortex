@@ -56,10 +56,11 @@ const (
 	_cacheDuration          = 60 * time.Second
 )
 
-var totalBatchCountCache *cache.Cache
+var totalBatchCountCache, apiSpecCache *cache.Cache
 
 func init() {
 	totalBatchCountCache = cache.New(_cacheDuration, _cacheDuration)
+	apiSpecCache = cache.New(_cacheDuration, _cacheDuration)
 }
 
 type batchJobStatusInfo struct {
@@ -68,6 +69,22 @@ type batchJobStatusInfo struct {
 	EnqueuerJob     *kbatch.Job
 	WorkerJob       *kbatch.Job
 	TotalBatchCount int
+}
+
+func (r *BatchJobReconciler) getConfigMap(ctx context.Context, batchJob batch.BatchJob) (*kcore.ConfigMap, error) {
+	var configMap kcore.ConfigMap
+	err := r.Get(ctx, client.ObjectKey{
+		Namespace: batchJob.Namespace,
+		Name:      batchJob.Spec.APIName + "-" + batchJob.Name,
+	}, &configMap)
+	if err != nil {
+		if kerrors.IsNotFound(err) {
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	return &configMap, nil
 }
 
 func (r *BatchJobReconciler) checkIfQueueExists(batchJob batch.BatchJob) (bool, error) {
@@ -185,8 +202,41 @@ func (r *BatchJobReconciler) enqueuePayload(ctx context.Context, batchJob batch.
 	return nil
 }
 
+func (r *BatchJobReconciler) createWorkerConfigMap(ctx context.Context, batchJob batch.BatchJob, queueURL string) error {
+	apiSpec, err := r.getAPISpec(batchJob)
+	if err != nil {
+		return errors.Wrap(err, "failed to get API spec")
+	}
+
+	jobSpec, err := r.ConvertControllerBatchToJobSpec(batchJob, *apiSpec, queueURL)
+	if err != nil {
+		return errors.Wrap(err, "failed to convert controller batch job to operator batch job")
+	}
+
+	configMapConfig := workloads.ConfigMapConfig{
+		BatchJob: &jobSpec,
+		Probes:   batchJob.Spec.Probes,
+	}
+
+	configMapData, err := configMapConfig.GenerateConfigMapData()
+	if err != nil {
+		return errors.Wrap(err, "failed to generate config map data")
+	}
+
+	configMap, err := r.desiredConfigMap(batchJob, configMapData)
+	if err != nil {
+		return errors.Wrap(err, "failed to get desired configmap spec")
+	}
+
+	if err := r.Create(ctx, configMap); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (r *BatchJobReconciler) createWorkerJob(ctx context.Context, batchJob batch.BatchJob, queueURL string) error {
-	apiSpec, err := r.getAPISpec(batchJob) // TODO: should be cached
+	apiSpec, err := r.getAPISpec(batchJob)
 	if err != nil {
 		return errors.Wrap(err, "failed to get API spec")
 	}
@@ -272,8 +322,11 @@ func (r *BatchJobReconciler) desiredWorkerJob(batchJob batch.BatchJob, apiSpec s
 	var containers []kcore.Container
 	var volumes []kcore.Volume
 
-	containers, volumes = workloads.UserPodContainers(apiSpec)
+	containers, volumes = workloads.BatchUserPodContainers(apiSpec, &jobSpec.JobKey)
+
 	// TODO add the proxy as well
+	// use workloads.APIConfigMount(batchJob.Spec.APIName + "-" + batchJob.Name) to mount the probes
+	// the probes will be made available at /cortex/spec/probes.json
 
 	job := k8s.Job(
 		&k8s.JobSpec{
@@ -308,7 +361,6 @@ func (r *BatchJobReconciler) desiredWorkerJob(batchJob batch.BatchJob, apiSpec s
 				K8sPodSpec: kcore.PodSpec{
 					InitContainers: []kcore.Container{
 						workloads.KubexitInitContainer(),
-						workloads.BatchInitContainer(&jobSpec),
 					},
 					Containers:         containers,
 					Volumes:            volumes,
@@ -333,20 +385,50 @@ func (r *BatchJobReconciler) desiredWorkerJob(batchJob batch.BatchJob, apiSpec s
 	return job, nil
 }
 
+func (r *BatchJobReconciler) desiredConfigMap(batchJob batch.BatchJob, data map[string]string) (*kcore.ConfigMap, error) {
+	configMap := k8s.ConfigMap(&k8s.ConfigMapSpec{
+		Name: batchJob.Spec.APIName + "-" + batchJob.Name,
+		Data: data,
+		Labels: map[string]string{
+			"apiKind":          userconfig.BatchAPIKind.String(),
+			"apiName":          batchJob.Spec.APIName,
+			"apiID":            batchJob.Spec.APIID,
+			"jobID":            batchJob.Name,
+			"cortex.dev/api":   "true",
+			"cortex.dev/batch": "config",
+		},
+	})
+	configMap.Namespace = batchJob.Namespace
+
+	if err := ctrl.SetControllerReference(&batchJob, configMap, r.Scheme); err != nil {
+		return nil, err
+	}
+
+	return configMap, nil
+}
+
 func (r *BatchJobReconciler) getAPISpec(batchJob batch.BatchJob) (*spec.API, error) {
 	apiSpecKey := spec.Key(batchJob.Spec.APIName, batchJob.Spec.APIID, r.ClusterConfig.ClusterUID)
+	cachedAPISpec, found := apiSpecCache.Get(apiSpecKey)
+
+	var apiSpec spec.API
+	if found {
+		apiSpec = cachedAPISpec.(spec.API)
+		return &apiSpec, nil
+	}
 
 	apiSpecBytes, err := r.AWS.ReadBytesFromS3(r.ClusterConfig.Bucket, apiSpecKey)
 	if err != nil {
 		return nil, err
 	}
 
-	apiSpec := &spec.API{}
-	if err := json.Unmarshal(apiSpecBytes, apiSpec); err != nil {
+	if err := json.Unmarshal(apiSpecBytes, &apiSpec); err != nil {
 		return nil, err
 	}
 
-	return apiSpec, nil
+	apiSpecCache.Set(apiSpecKey, apiSpec, _cacheDuration)
+
+	return &apiSpec, nil
 }
 
 func (r *BatchJobReconciler) getWorkerJob(ctx context.Context, batchJob batch.BatchJob) (*kbatch.Job, error) {
@@ -472,6 +554,19 @@ func (r *BatchJobReconciler) deleteSQSQueue(batchJob batch.BatchJob) error {
 }
 
 func (r *BatchJobReconciler) uploadJobSpec(batchJob batch.BatchJob, api spec.API, queueURL string) (*spec.BatchJob, error) {
+	jobSpec, err := r.ConvertControllerBatchToJobSpec(batchJob, api, queueURL)
+	if err != nil {
+		return nil, err
+	}
+
+	if err = r.AWS.UploadJSONToS3(&jobSpec, r.ClusterConfig.Bucket, r.jobSpecKey(batchJob)); err != nil {
+		return nil, err
+	}
+
+	return &jobSpec, nil
+}
+
+func (r *BatchJobReconciler) ConvertControllerBatchToJobSpec(batchJob batch.BatchJob, api spec.API, queueURL string) (spec.BatchJob, error) {
 	var deadLetterQueue *spec.SQSDeadLetterQueue
 	if batchJob.Spec.DeadLetterQueue != nil {
 		deadLetterQueue = &spec.SQSDeadLetterQueue{
@@ -482,8 +577,9 @@ func (r *BatchJobReconciler) uploadJobSpec(batchJob batch.BatchJob, api spec.API
 
 	var config map[string]interface{}
 	if batchJob.Spec.Config != nil {
-		if err := yaml.Unmarshal([]byte(*batchJob.Spec.Config), &config); err != nil {
-			return nil, err
+		err := yaml.Unmarshal([]byte(*batchJob.Spec.Config), &config)
+		if err != nil {
+			return spec.BatchJob{}, errors.Wrap(err, "failed to unmarshal job spec config")
 		}
 	}
 
@@ -494,32 +590,26 @@ func (r *BatchJobReconciler) uploadJobSpec(batchJob batch.BatchJob, api spec.API
 
 	totalBatchCount, err := r.Config.GetTotalBatchCount(r, batchJob)
 	if err != nil {
-		return nil, err
+		return spec.BatchJob{}, errors.Wrap(err, "failed to get total batch count")
 	}
 
-	jobSpec := spec.BatchJob{
+	return spec.BatchJob{
 		JobKey: spec.JobKey{
-			ID:      batchJob.Name,
+			ID:      batchJob.Status.ID,
 			APIName: batchJob.Spec.APIName,
 			Kind:    userconfig.BatchAPIKind,
 		},
 		RuntimeBatchJobConfig: spec.RuntimeBatchJobConfig{
 			Workers:            int(batchJob.Spec.Workers),
 			SQSDeadLetterQueue: deadLetterQueue,
-			Timeout:            timeout,
 			Config:             config,
+			Timeout:            timeout,
 		},
 		APIID:           api.ID,
 		SQSUrl:          queueURL,
 		StartTime:       batchJob.CreationTimestamp.Time,
 		TotalBatchCount: totalBatchCount,
-	}
-
-	if err = r.AWS.UploadJSONToS3(&jobSpec, r.ClusterConfig.Bucket, r.jobSpecKey(batchJob)); err != nil {
-		return nil, err
-	}
-
-	return &jobSpec, nil
+	}, nil
 }
 
 func (r *BatchJobReconciler) jobSpecKey(batchJob batch.BatchJob) string {

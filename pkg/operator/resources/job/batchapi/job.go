@@ -146,6 +146,7 @@ func SubmitJob(apiName string, submission *schema.BatchJobSubmission) (*spec.Bat
 			DeadLetterQueue: deadLetterQueue,
 			TTL:             &kmeta.Duration{Duration: _batchJobTTL},
 			NodeGroups:      apiSpec.Pod.NodeGroups,
+			Probes:          workloads.GetReadinessProbesFromContainers(apiSpec.Pod.Containers),
 		},
 	}
 
