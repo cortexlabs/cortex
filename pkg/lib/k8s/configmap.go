@@ -33,7 +33,8 @@ var _configMapTypeMeta = kmeta.TypeMeta{
 
 type ConfigMapSpec struct {
 	Name        string
-	Data        map[string]string
+	Data        map[string]string // Data and BinaryData must not have overlapping keys
+	BinaryData  map[string][]byte // Data and BinaryData must not have overlapping keys
 	Labels      map[string]string
 	Annotations map[string]string
 }
@@ -46,7 +47,8 @@ func ConfigMap(spec *ConfigMapSpec) *kcore.ConfigMap {
 			Labels:      spec.Labels,
 			Annotations: spec.Annotations,
 		},
-		Data: spec.Data,
+		Data:       spec.Data,
+		BinaryData: spec.BinaryData,
 	}
 	return configMap
 }
@@ -92,15 +94,15 @@ func (c *Client) GetConfigMap(name string) (*kcore.ConfigMap, error) {
 	return configMap, nil
 }
 
-func (c *Client) GetConfigMapData(name string) (map[string]string, error) {
+func (c *Client) GetConfigMapData(name string) (map[string]string, map[string][]byte, error) {
 	configMap, err := c.GetConfigMap(name)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	if configMap == nil {
-		return nil, nil
+		return nil, nil, nil
 	}
-	return configMap.Data, nil
+	return configMap.Data, configMap.BinaryData, nil
 }
 
 func (c *Client) DeleteConfigMap(name string) (bool, error) {

@@ -19,7 +19,6 @@ package cmd
 import (
 	"fmt"
 	"os"
-	"path"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -675,9 +674,9 @@ var _clusterDownCmd = &cobra.Command{
 }
 
 var _clusterExportCmd = &cobra.Command{
-	Use:   "export [API_NAME] [API_ID]",
-	Short: "download the code and configuration for APIs",
-	Args:  cobra.RangeArgs(0, 2),
+	Use:   "export",
+	Short: "download the configurations for all APIs",
+	Args:  cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
 		telemetry.Event("cli.cluster.export")
 
@@ -715,25 +714,13 @@ var _clusterExportCmd = &cobra.Command{
 		}
 
 		var apisResponse []schema.APIResponse
-		if len(args) == 0 {
-			apisResponse, err = cluster.GetAPIs(operatorConfig)
-			if err != nil {
-				exit.Error(err)
-			}
-			if len(apisResponse) == 0 {
-				fmt.Println(fmt.Sprintf("no apis found in your cluster named %s in %s", accessConfig.ClusterName, accessConfig.Region))
-				exit.Ok()
-			}
-		} else if len(args) == 1 {
-			apisResponse, err = cluster.GetAPI(operatorConfig, args[0])
-			if err != nil {
-				exit.Error(err)
-			}
-		} else if len(args) == 2 {
-			apisResponse, err = cluster.GetAPIByID(operatorConfig, args[0], args[1])
-			if err != nil {
-				exit.Error(err)
-			}
+		apisResponse, err = cluster.GetAPIs(operatorConfig)
+		if err != nil {
+			exit.Error(err)
+		}
+		if len(apisResponse) == 0 {
+			fmt.Println(fmt.Sprintf("no apis found in your cluster named %s in %s", accessConfig.ClusterName, accessConfig.Region))
+			exit.Ok()
 		}
 
 		exportPath := fmt.Sprintf("export-%s-%s", accessConfig.Region, accessConfig.ClusterName)
@@ -744,21 +731,16 @@ var _clusterExportCmd = &cobra.Command{
 		}
 
 		for _, apiResponse := range apisResponse {
-			baseDir := filepath.Join(exportPath, apiResponse.Spec.Name, apiResponse.Spec.ID)
+			specFilePath := filepath.Join(exportPath, apiResponse.Spec.Name+".yaml")
 
-			fmt.Println(fmt.Sprintf("exporting %s to %s", apiResponse.Spec.Name, baseDir))
-
-			err = files.CreateDir(baseDir)
-			if err != nil {
-				exit.Error(err)
-			}
+			fmt.Println(fmt.Sprintf("exporting %s to %s", apiResponse.Spec.Name, specFilePath))
 
 			yamlBytes, err := yaml.Marshal(apiResponse.Spec.API.SubmittedAPISpec)
 			if err != nil {
 				exit.Error(err)
 			}
 
-			err = files.WriteFile(yamlBytes, path.Join(baseDir, apiResponse.Spec.FileName))
+			err = files.WriteFile(yamlBytes, specFilePath)
 			if err != nil {
 				exit.Error(err)
 			}

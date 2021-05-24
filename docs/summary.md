@@ -75,7 +75,6 @@
   * [Python packages](workloads/dependencies/python-packages.md)
   * [System packages](workloads/dependencies/system-packages.md)
   * [Custom images](workloads/dependencies/images.md)
-* [Debugging](workloads/debugging.md)
 
 ## Clients
 

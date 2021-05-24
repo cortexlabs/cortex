@@ -73,7 +73,7 @@ func getMemoryCapacityFromNodes(primaryInstances []string) (map[string]*kresourc
 }
 
 func getMemoryCapacityFromConfigMap() (map[string]*kresource.Quantity, error) {
-	configMapData, err := config.K8s.GetConfigMapData(_memConfigMapName)
+	configMapData, _, err := config.K8s.GetConfigMapData(_memConfigMapName)
 	if err != nil {
 		return nil, err
 	}

@@ -62,7 +62,7 @@ func InitConfigs(clusterConfig *clusterconfig.Config, operatorMetadata *clusterc
 }
 
 func getClusterConfigFromConfigMap() (clusterconfig.Config, error) {
-	configMapData, err := K8s.GetConfigMapData("cluster-config")
+	configMapData, _, err := K8s.GetConfigMapData("cluster-config")
 	if err != nil {
 		return clusterconfig.Config{}, err
 	}

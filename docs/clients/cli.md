@@ -46,21 +46,6 @@ Flags:
   -h, --help         help for logs
 ```
 
-## patch
-
-```text
-update API configuration for a deployed API
-
-Usage:
-  cortex patch [CONFIG_FILE] [flags]
-
-Flags:
-  -e, --env string      environment to use
-  -f, --force           override the in-progress api update
-  -o, --output string   output format: one of pretty|json (default "pretty")
-  -h, --help            help for patch
-```
-
 ## refresh
 
 ```text
@@ -90,18 +75,6 @@ Flags:
   -c, --keep-cache      keep cached data for the api
   -o, --output string   output format: one of pretty|json (default "pretty")
   -h, --help            help for delete
-```
-
-## prepare-debug
-
-```text
-prepare artifacts to debug containers
-
-Usage:
-  cortex prepare-debug CONFIG_FILE [API_NAME] [flags]
-
-Flags:
-  -h, --help   help for prepare-debug
 ```
 
 ## cluster up
@@ -175,10 +148,10 @@ Flags:
 ## cluster export
 
 ```text
-download the code and configuration for APIs
+download the configurations for all APIs
 
 Usage:
-  cortex cluster export [API_NAME] [API_ID] [flags]
+  cortex cluster export [flags]
 
 Flags:
   -c, --config string   path to a cluster configuration file

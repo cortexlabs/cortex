@@ -35,11 +35,3 @@ class NotFound(CortexException):
     """
 
     pass
-
-
-class InvalidKindForMethod(CortexException):
-    """
-    Raise when the specified resource kind is not supported by the used python client method.
-    """
-
-    pass
