@@ -11,4 +11,4 @@
           port: 9000
       compute:
         cpu: 1
-        mem: 3G
+        mem: 2.5G
