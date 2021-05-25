@@ -5,11 +5,11 @@ Traffic Splitters can be used to expose multiple RealtimeAPIs as a single endpoi
 ## Configuration
 
 ```yaml
-- name: <string>  # Traffic Splitter name (required)
-  kind: TrafficSplitter
-  networking:
-    endpoint: <string>  # the endpoint for the Traffic Splitter (default: <name>)
-  apis:  # list of Realtime APIs to target
+- name: <string>  # name of the traffic splitter (required)
+  kind: TrafficSplitter  # must be "TrafficSplitter" for traffic splitters (required)
+  networking:  # networking configuration (default: see below)
+    endpoint: <string>  # the endpoint for the traffic splitter (default: <name>)
+  apis:  # list of Realtime APIs to target (required)
     - name: <string>  # name of a Realtime API that is already running or is included in the same configuration file (required)
       weight: <int>   # percentage of traffic to route to the Realtime API (all non-shadow weights must sum to 100) (required)
       shadow: <bool>  # duplicate incoming traffic and send fire-and-forget to this api (only one shadow per traffic splitter) (default: false)
@@ -17,7 +17,7 @@ Traffic Splitters can be used to expose multiple RealtimeAPIs as a single endpoi
 
 ## Example
 
-This example showcases Cortex's Python client, but these steps can also be performed by using the Cortex CLI with YAML files.
+This example showcases Cortex's Python client, but these steps can also be performed by using the Cortex CLI.
 
 ### Deploy a traffic splitter
 
@@ -49,7 +49,7 @@ new_traffic_splitter_spec = {
 cx.deploy(new_traffic_splitter_spec)
 ```
 
-### Update the APIs
+### Update the target APIs
 
 ```python
 new_traffic_splitter_spec = {

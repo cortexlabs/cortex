@@ -8,11 +8,11 @@ Cortex autoscales each API independently based on its configuration.
 
 In addition to the autoscaling configuration options (described below), there are two fields in the pod configuration which are relevant to replica autoscaling:
 
-**`max_concurrency`** (default: 1): The the maximum number of requests that will be concurrently sent into the container by Cortex. If your web server is designed to handle multiple concurrent requests, increasing `max_concurrency` will increase the throughput of a replica (and result in fewer total replicas for a given load).
+**`max_concurrency`** (default: 1): The maximum number of requests that will be concurrently sent into the container by Cortex. If your web server is designed to handle multiple concurrent requests, increasing `max_concurrency` will increase the throughput of a replica (and result in fewer total replicas for a given load).
 
 <br>
 
-**`max_queue_length`** (default: 100): The the maximum number of requests which will be queued by the replica (beyond `max_concurrency`) before requests are rejected with HTTP error code 503. For long-running APIs, decreasing `max_replica_concurrency` and configuring the client to retry when it receives 503 responses will improve queue fairness accross replicas by preventing requests from sitting in long queues.
+**`max_queue_length`** (default: 100): The maximum number of requests which will be queued by the replica (beyond `max_concurrency`) before requests are rejected with HTTP error code 503. For long-running APIs, decreasing `max_replica_concurrency` and configuring the client to retry when it receives 503 responses will improve queue fairness accross replicas by preventing requests from sitting in long queues.
 
 <br>
 

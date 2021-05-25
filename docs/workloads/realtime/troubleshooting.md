@@ -62,7 +62,7 @@ You can disable rolling updates for your API in your API configuration: set `max
 
 ```yaml
 - name: my-api
-  kind: RealtimeAPI  # must be "RealtimeAPI" for realtime APIs (required)
+  kind: RealtimeAPI
   # ...
   update_strategy:
     max_surge: 0

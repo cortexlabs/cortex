@@ -6,9 +6,9 @@ Cortex auto-scales AsyncAPIs on a per-API basis based on your configuration.
 
 ### Relevant pod configuration
 
-In addition to the autoscaling configuration options (described below), there are two fields in the pod configuration which are relevant to replica autoscaling:
+In addition to the autoscaling configuration options (described below), there is one field in the pod configuration which are relevant to replica autoscaling:
 
-**`max_concurrency`** (default: 1): The the maximum number of requests that will be concurrently sent into the container by Cortex. If your web server is designed to handle multiple concurrent requests, increasing `max_concurrency` will increase the throughput of a replica (and result in fewer total replicas for a given load).
+**`max_concurrency`** (default: 1): The maximum number of requests that will be concurrently sent into the container by Cortex. If your web server is designed to handle multiple concurrent requests, increasing `max_concurrency` will increase the throughput of a replica (and result in fewer total replicas for a given load).
 
 <br>
 
@@ -26,7 +26,7 @@ In addition to the autoscaling configuration options (described below), there ar
 
 The autoscaler uses this formula to determine the number of desired replicas:
 
-`desired replicas = sum(in-flight requests accross all replicas) / target_in_flight`
+`desired replicas = total in-flight requests / target_in_flight`
 
 For example, setting `target_in_flight` to `max_concurrency` (the default) causes the cluster to adjust the number of replicas so that on average, there are no requests waiting in the queue.
 

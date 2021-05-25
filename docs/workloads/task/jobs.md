@@ -12,7 +12,7 @@ cortex get <task_api_name>
 POST <task_api_endpoint>:
 {
     "timeout": <int>,   # duration in seconds since the submission of a job before it is terminated (optional)
-    "config": {         # arbitrary input for this specific job (written to /cortex/spec/job.json in the API containers) (optional)
+    "config": {         # arbitrary input for this specific job (optional)
         "string": <any>
     }
 }
@@ -29,6 +29,8 @@ RESPONSE:
     "created_time": <string>
 }
 ```
+
+The entire job specification is written to `/cortex/spec/job.json` in the API containers.
 
 ## Get a job's status
 

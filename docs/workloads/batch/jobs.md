@@ -42,7 +42,7 @@ POST <batch_api_endpoint>:
         ],
         "batch_size": <int>,  # the number of items per batch (the handle_batch() function is called once per batch) (required)
     }
-    "config": {               # arbitrary input for this specific job (written to /cortex/spec/job.json in the API containers) (optional)
+    "config": {               # arbitrary input for this specific job (optional)
         "string": <any>
     }
 }
@@ -64,6 +64,8 @@ RESPONSE:
     "created_time": <string>
 }
 ```
+
+The entire job specification is written to `/cortex/spec/job.json` in the API containers.
 
 ### S3 file paths
 
@@ -93,7 +95,7 @@ POST <batch_api_endpoint>:
         "excludes": [<string>],     # glob patterns (optional)
         "batch_size": <int>,        # the number of S3 file paths per batch (the handle_batch() function is called once per batch) (required)
     }
-    "config": {                     # arbitrary input for this specific job (written to /cortex/spec/job.json in the API containers) (optional)
+    "config": {                     # arbitrary input for this specific job (optional)
         "string": <any>
     }
 }
@@ -115,6 +117,8 @@ RESPONSE:
     "created_time": <string>
 }
 ```
+
+The entire job specification is written to `/cortex/spec/job.json` in the API containers.
 
 ### Newline delimited JSON files in S3
 
@@ -143,7 +147,7 @@ POST <batch_api_endpoint>:
         "excludes": [<string>],     # glob patterns (optional)
         "batch_size": <int>,        # the number of json objects per batch (the handle_batch() function is called once per batch) (required)
     }
-    "config": {                     # arbitrary input for this specific job (written to /cortex/spec/job.json in the API containers) (optional)
+    "config": {                     # arbitrary input for this specific job (optional)
         "string": <any>
     }
 }
@@ -165,6 +169,8 @@ RESPONSE:
     "created_time": <string>
 }
 ```
+
+The entire job specification is written to `/cortex/spec/job.json` in the API containers.
 
 ## Get a job's status
 
