@@ -66,7 +66,8 @@ def test_realtime_api(
     client: cx.Client,
     api: str,
     timeout: int = None,
-    api_config_name: str = "cortex.yaml",
+    api_config_name: str = "cortex_cpu.yaml",
+    extra_path: str = "",
 ):
     api_dir = TEST_APIS_DIR / api
     with open(str(api_dir / api_config_name)) as f:
@@ -89,7 +90,7 @@ def test_realtime_api(
         if not expectations or "grpc" not in expectations:
             with open(str(api_dir / "sample.json")) as f:
                 payload = json.load(f)
-            response = request_prediction(client, api_name, payload)
+            response = request_prediction(client, api_name, payload, extra_path)
 
             assert (
                 response.status_code == HTTPStatus.OK
@@ -137,7 +138,7 @@ def test_batch_api(
     deploy_timeout: int = None,
     job_timeout: int = None,
     retry_attempts: int = 0,
-    api_config_name: str = "cortex.yaml",
+    api_config_name: str = "cortex_cpu.yaml",
     local_operator: bool = False,
 ):
     api_dir = TEST_APIS_DIR / api
@@ -220,7 +221,7 @@ def test_async_api(
     deploy_timeout: int = None,
     poll_retries: int = 5,
     poll_sleep_seconds: int = 1,
-    api_config_name: str = "cortex.yaml",
+    api_config_name: str = "cortex_cpu.yaml",
 ):
     api_dir = TEST_APIS_DIR / api
     with open(str(api_dir / api_config_name)) as f:
@@ -333,7 +334,7 @@ def test_task_api(
     deploy_timeout: int = None,
     job_timeout: int = None,
     retry_attempts: int = 0,
-    api_config_name: str = "cortex.yaml",
+    api_config_name: str = "cortex_cpu.yaml",
     local_operator: bool = False,
 ):
     api_dir = TEST_APIS_DIR / api
@@ -402,7 +403,7 @@ def test_autoscaling(
     apis: Dict[str, Any],
     autoscaling_config: Dict[str, Union[int, float]],
     deploy_timeout: int = None,
-    api_config_name: str = "cortex.yaml",
+    api_config_name: str = "cortex_cpu.yaml",
 ):
     max_replicas = autoscaling_config["max_replicas"]
 
@@ -516,7 +517,7 @@ def test_load_realtime(
     api: str,
     load_config: Dict[str, Union[int, float]],
     deploy_timeout: int = None,
-    api_config_name: str = "cortex.yaml",
+    api_config_name: str = "cortex_cpu.yaml",
 ):
 
     total_requests = load_config["total_requests"]
@@ -627,7 +628,7 @@ def test_load_async(
     load_config: Dict[str, Union[int, float]],
     deploy_timeout: int = None,
     poll_sleep_seconds: int = 1,
-    api_config_name: str = "cortex.yaml",
+    api_config_name: str = "cortex_cpu.yaml",
 ):
 
     total_requests = load_config["total_requests"]
@@ -745,7 +746,7 @@ def test_load_batch(
     load_config: Dict[str, Union[int, float]],
     deploy_timeout: int = None,
     retry_attempts: int = 0,
-    api_config_name: str = "cortex.yaml",
+    api_config_name: str = "cortex_cpu.yaml",
 ):
 
     jobs = load_config["jobs"]
@@ -849,7 +850,7 @@ def test_load_task(
     deploy_timeout: int = None,
     retry_attempts: int = 0,
     poll_sleep_seconds: int = 1,
-    api_config_name: str = "cortex.yaml",
+    api_config_name: str = "cortex_cpu.yaml",
 ):
 
     jobs = load_config["jobs"]
@@ -924,7 +925,7 @@ def test_long_running_realtime(
     api: str,
     long_running_config: Dict[str, Union[int, float]],
     deploy_timeout: int = None,
-    api_config_name: str = "cortex.yaml",
+    api_config_name: str = "cortex_cpu.yaml",
 ):
     api_dir = TEST_APIS_DIR / api
     with open(str(api_dir / api_config_name)) as f:

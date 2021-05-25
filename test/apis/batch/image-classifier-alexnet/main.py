@@ -16,6 +16,7 @@ import boto3
 class Request(BaseModel):
     payload: List[Any]
 
+
 state = {
     "ready": False,
     "model": None,
@@ -28,6 +29,7 @@ state = {
 }
 device = os.getenv("TARGET_DEVICE", "cpu")
 app = FastAPI()
+
 
 @app.on_event("startup")
 def startup():
@@ -58,13 +60,15 @@ def startup():
         "https://storage.googleapis.com/download.tensorflow.org/data/ImageNetLabels.txt"
     ).text.split("\n")[1:]
     state["model"] = torchvision.models.alexnet(pretrained=True).eval().to(device)
-    
+
     state["ready"] = True
+
 
 @app.get("/healthz")
 def healthz(response: Response):
     if not state["ready"]:
         response.status_code = status.HTTP_503_SERVICE_UNAVAILABLE
+
 
 @app.post("/")
 def handle_batch(request: Request):
@@ -97,7 +101,10 @@ def handle_batch(request: Request):
     json_output = json.dumps(results)
 
     # save results
-    state["s3"].put_object(Bucket=state["bucket"], Key=f"{state['key']}/{job_id}.json", Body=json_output)
+    state["s3"].put_object(
+        Bucket=state["bucket"], Key=f"{state['key']}/{job_id}.json", Body=json_output
+    )
+
 
 @app.post("/on_job_complete")
 def on_job_complete():

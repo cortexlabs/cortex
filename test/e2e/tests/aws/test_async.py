@@ -22,6 +22,7 @@ import e2e.tests
 TEST_APIS = ["async/text-generator"]
 TEST_APIS_GPU = ["async/text-generator"]
 
+
 @pytest.mark.usefixtures("client")
 @pytest.mark.parametrize("api", TEST_APIS)
 def test_async_api(printer: Callable, config: Dict, client: cx.Client, api: str):
@@ -31,8 +32,8 @@ def test_async_api(printer: Callable, config: Dict, client: cx.Client, api: str)
         api=api,
         deploy_timeout=config["global"]["async_deploy_timeout"],
         poll_retries=config["global"]["async_workload_timeout"],
-        api_config_name="cortex_cpu.yaml",
     )
+
 
 @pytest.mark.usefixtures("client")
 @pytest.mark.parametrize("api", TEST_APIS_GPU)

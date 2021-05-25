@@ -9,6 +9,7 @@ import json
 import requests
 import cortex
 
+
 def main():
     # parse args
     if len(sys.argv) < 2:
@@ -25,13 +26,10 @@ def main():
     task_endpoint = cx.get_api("trainer")["endpoint"]
 
     # submit job
-    job_spec = {
-        "config": {
-            "dest_s3_dir": dest_s3_dir
-        }
-    }
+    job_spec = {"config": {"dest_s3_dir": dest_s3_dir}}
     response = requests.post(task_endpoint, json=job_spec)
     print(json.dumps(response.json(), indent=2))
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()

@@ -42,7 +42,6 @@ def test_batch_api(printer: Callable, config: Dict, client: cx.Client, api: str)
         job_timeout=config["global"]["batch_job_timeout"],
         retry_attempts=5,
         local_operator=config["global"]["local_operator"],
-        api_config_name="cortex_cpu.yaml",
     )
 
 

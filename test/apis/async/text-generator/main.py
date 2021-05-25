@@ -4,8 +4,10 @@ from fastapi import FastAPI, Response, status
 from pydantic import BaseModel
 from transformers import GPT2Tokenizer, GPT2LMHeadModel
 
+
 class Request(BaseModel):
     text: str
+
 
 state = {
     "model_ready": False,
@@ -15,6 +17,7 @@ state = {
 device = os.getenv("TARGET_DEVICE", "cpu")
 app = FastAPI()
 
+
 @app.on_event("startup")
 def startup():
     global state
@@ -22,10 +25,12 @@ def startup():
     state["model"] = GPT2LMHeadModel.from_pretrained("gpt2").to(device)
     state["model_ready"] = True
 
+
 @app.get("/healthz")
 def healthz(response: Response):
     if not state["model_ready"]:
         response.status_code = status.HTTP_503_SERVICE_UNAVAILABLE
+
 
 @app.post("/")
 def text_generator(request: Request):

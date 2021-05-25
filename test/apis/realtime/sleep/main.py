@@ -4,14 +4,18 @@ from typing import Optional
 from fastapi import FastAPI
 from pydantic import BaseModel
 
+
 class Request(BaseModel):
     sleep_val: Optional[float]
 
+
 app = FastAPI()
+
 
 @app.get("/healthz")
 def healthz():
     return "ok"
+
 
 @app.post("/")
 def sleep(request: Request):

@@ -54,7 +54,6 @@ def test_load_async(printer: Callable, config: Dict, client: cx.Client, api: str
         api,
         load_config=config["global"]["load_test_config"]["async"],
         deploy_timeout=config["global"]["async_deploy_timeout"],
-        api_config_name="cortex_cpu.yaml",
     )
 
 

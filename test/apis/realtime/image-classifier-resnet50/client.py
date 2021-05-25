@@ -22,6 +22,7 @@ import requests
 # the image URL is the location of the image we should send to the server
 IMAGE_URL = "https://tensorflow.org/images/blogs/serving/cat.jpg"
 
+
 def main():
     # parse arg
     if len(sys.argv) < 2:
@@ -40,7 +41,7 @@ def main():
     dl_request.raise_for_status()
 
     # compose a JSON Predict request (send JPEG image in base64).
-    jpeg_bytes = base64.b64encode(dl_request.content).decode('utf-8')
+    jpeg_bytes = base64.b64encode(dl_request.content).decode("utf-8")
     predict_request = '{"instances" : [{"b64": "%s"}]}' % jpeg_bytes
 
     # send few requests to warm-up the model.
@@ -55,11 +56,14 @@ def main():
         response = requests.post(server_url, data=predict_request)
         response.raise_for_status()
         total_time += response.elapsed.total_seconds()
-        prediction = labels[response.json()['predictions'][0]["classes"]]
+        prediction = labels[response.json()["predictions"][0]["classes"]]
 
-    print('Prediction class: {}, avg latency: {} ms'.format(
-        prediction, (total_time*1000)/num_requests))
+    print(
+        "Prediction class: {}, avg latency: {} ms".format(
+            prediction, (total_time * 1000) / num_requests
+        )
+    )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

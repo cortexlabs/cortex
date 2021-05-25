@@ -35,5 +35,4 @@ def test_long_running_realtime(printer: Callable, config: Dict, client: cx.Clien
         api,
         long_running_config=config["global"]["long_running_test_config"],
         deploy_timeout=config["global"]["realtime_deploy_timeout"],
-        api_config_name="cortex_cpu.yaml",
     )

@@ -7,8 +7,10 @@ from typing import Any, List
 from pydantic import BaseModel
 from fastapi import FastAPI, Response, status
 
+
 class Request(BaseModel):
     payload: List[List[int]]
+
 
 state = {
     "ready": False,
@@ -18,6 +20,7 @@ state = {
     "numbers_list": [],
 }
 app = FastAPI()
+
 
 @app.on_event("startup")
 def startup():
@@ -41,16 +44,19 @@ def startup():
 
     state["ready"] = True
 
+
 @app.get("/healthz")
 def healthz(response: Response):
     if not state["ready"]:
         response.status_code = status.HTTP_503_SERVICE_UNAVAILABLE
+
 
 @app.post("/")
 def handle_batch(request: Request):
     global state
     for numbers_list in request.payload:
         state["numbers_list"].append(sum(numbers_list))
+
 
 @app.post("/on_job_complete")
 def on_job_complete():
