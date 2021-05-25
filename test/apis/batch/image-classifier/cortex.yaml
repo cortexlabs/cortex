@@ -1,7 +1,0 @@
-- name: image-classifier
-  kind: BatchAPI
-  handler:
-    type: python
-    path: handler.py
-  compute:
-    cpu: 1

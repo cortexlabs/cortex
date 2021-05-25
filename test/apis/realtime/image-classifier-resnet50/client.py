@@ -25,15 +25,15 @@ IMAGE_URL = 'https://tensorflow.org/images/blogs/serving/cat.jpg'
 def main():
     # parse arg
     if len(sys.argv) < 2:
-        print("missing <http://host:ip> arg")
+        print("missing <http://host:port> arg")
         sys.exit(1)
     address = sys.argv[1]
     server_url = f"{address}/v1/models/resnet50:predict"
 
     # download labels
     labels = requests.get(
-            "https://storage.googleapis.com/download.tensorflow.org/data/ImageNetLabels.txt"
-        ).text.split("\n")[1:]
+        "https://storage.googleapis.com/download.tensorflow.org/data/ImageNetLabels.txt"
+    ).text.split("\n")[1:]
 
     # download the image
     dl_request = requests.get(IMAGE_URL, stream=True)
