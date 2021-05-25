@@ -1,0 +1,63 @@
+- name: prime-generator-a
+  kind: RealtimeAPI
+  pod:
+    port: 9000
+    containers:
+    - name: api
+      image: 499593605069.dkr.ecr.us-west-2.amazonaws.com/sample/realtime-prime-generator:latest
+      readiness_probe:
+        http_get:
+          path: "/healthz"
+          port: 9000
+      compute:
+        cpu: 200m
+        mem: 128M
+  autoscaling:
+    max_concurrency: 1
+
+- name: prime-generator-b
+  kind: RealtimeAPI
+  pod:
+    port: 9000
+    containers:
+    - name: api
+      image: 499593605069.dkr.ecr.us-west-2.amazonaws.com/sample/realtime-prime-generator:latest
+      readiness_probe:
+        http_get:
+          path: "/healthz"
+          port: 9000
+      compute:
+        cpu: 200m
+        mem: 128M
+  autoscaling:
+    max_concurrency: 1
+
+- name: request-recorder
+  kind: RealtimeAPI
+  pod:
+    port: 9000
+    containers:
+    - name: api
+      image: 499593605069.dkr.ecr.us-west-2.amazonaws.com/sample/realtime-prime-generator:latest
+      env:
+        RECORD_ONLY: "true"
+      readiness_probe:
+        http_get:
+          path: "/healthz"
+          port: 9000
+      compute:
+        cpu: 200m
+        mem: 128M
+  autoscaling:
+    max_concurrency: 1
+
+- name: iris-classifier
+  kind: TrafficSplitter
+  apis:
+    - name: prime-generator-a
+      weight: 30
+    - name: prime-generator-b
+      weight: 70
+    - name: request-recorder
+      shadow: true
+      weight: 100
