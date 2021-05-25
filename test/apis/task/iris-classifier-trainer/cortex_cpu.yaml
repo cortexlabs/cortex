@@ -3,7 +3,7 @@
   pod:
     containers:
     - name: s3-model-pusher
-      image: 499593605069.dkr.ecr.us-west-2.amazonaws.com/task-iris-classifier-trainer-cpu:latest
+      image: 499593605069.dkr.ecr.us-west-2.amazonaws.com/task-iris-classifier-trainer-cpumaster
       command:
         - python
         - main.py

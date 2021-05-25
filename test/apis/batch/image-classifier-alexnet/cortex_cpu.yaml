@@ -3,7 +3,7 @@
   pod:
     containers:
     - name: api
-      image: 499593605069.dkr.ecr.us-west-2.amazonaws.com/batch-image-classifier-alexnet-cpu:latest
+      image: 499593605069.dkr.ecr.us-west-2.amazonaws.com/batch-image-classifier-alexnet-cpumaster
       compute:
         cpu: 1
         mem: 2G

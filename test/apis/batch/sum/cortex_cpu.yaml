@@ -3,7 +3,7 @@
   pod:
     containers:
     - name: api
-      image: 499593605069.dkr.ecr.us-west-2.amazonaws.com/batch-sum-cpu:latest
+      image: 499593605069.dkr.ecr.us-west-2.amazonaws.com/batch-sum-cpumaster
       compute:
         cpu: 200m
         mem: 256Mi
