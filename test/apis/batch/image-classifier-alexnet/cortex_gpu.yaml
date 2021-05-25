@@ -1,7 +1,6 @@
 - name: image-classifier-alexnet
   kind: BatchAPI
   pod:
-    port: 8501
     containers:
     - name: api
       image: 499593605069.dkr.ecr.us-west-2.amazonaws.com/sample/batch-image-classifier-alexnet-cpu:latest

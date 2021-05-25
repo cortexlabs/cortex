@@ -58,6 +58,7 @@ def startup():
         "https://storage.googleapis.com/download.tensorflow.org/data/ImageNetLabels.txt"
     ).text.split("\n")[1:]
     state["model"] = torchvision.models.alexnet(pretrained=True).eval().to(device)
+    
     state["ready"] = True
 
 @app.get("/healthz")
