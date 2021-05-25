@@ -21,11 +21,8 @@ import e2e.tests
 
 TEST_APIS = [
     {
-        "primary": "sleep",
-        "dummy": ["sklearn/mpg-estimator", "tensorflow/iris-classifier"],
-        "query_params": {
-            "sleep": "1.0",
-        },
+        "primary": "realtime/sleep",
+        "dummy": ["realtime/prime-generator"],
     }
 ]
 

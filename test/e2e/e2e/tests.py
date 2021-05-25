@@ -405,7 +405,6 @@ def test_autoscaling(
     api_config_name: str = "cortex.yaml",
 ):
     max_replicas = autoscaling_config["max_replicas"]
-    query_params = apis["query_params"]
 
     # increase the concurrency by 1 to ensure we get max_replicas replicas
     concurrency = max_replicas + 1
@@ -424,6 +423,7 @@ def test_autoscaling(
         all_api_names.append(api_specs[0]["name"])
         client.deploy(api_spec=api_specs[0], project_dir=api_dir)
 
+    primary_api_dir = TEST_APIS_DIR / apis["primary"]
     primary_api_name = all_api_names[0]
     autoscaling = client.get_api(primary_api_name)["spec"]["autoscaling"]
 
@@ -458,8 +458,11 @@ def test_autoscaling(
             client=client, api_names=all_api_names, timeout=deploy_timeout
         ), f"apis {all_api_names} not ready"
 
+        with open(str(primary_api_dir / "sample.json")) as f:
+            payload = json.load(f)
+
         threads_futures = make_requests_concurrently(
-            client, primary_api_name, concurrency, request_stopper, query_params=query_params
+            client, primary_api_name, concurrency, request_stopper, payload=payload
         )
 
         test_start_time = time.time()
