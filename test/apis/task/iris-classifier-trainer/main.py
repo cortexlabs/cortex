@@ -13,7 +13,9 @@ def main():
     # get metadata
     config = job_spec["config"]
     job_id = job_spec["job_id"]
-    s3_path = config["s3_path"]
+    s3_path = None
+    if "dest_s3_dir" in config:
+        s3_path = config["dest_s3_dir"]
 
     # Train the model
     iris = load_iris()
@@ -26,10 +28,13 @@ def main():
     print("accuracy: {:.2f}".format(accuracy))
 
     # Upload the model
-    pickle.dump(model, open("model.pkl", "wb"))
-    bucket, key = re.match("s3://(.+?)/(.+)", s3_path).groups()
-    s3 = boto3.client("s3")
-    s3.upload_file("model.pkl", bucket, os.path.join(key, job_id, "model.pkl"))
+    if s3_path:
+        pickle.dump(model, open("model.pkl", "wb"))
+        bucket, key = re.match("s3://(.+?)/(.+)", s3_path).groups()
+        s3 = boto3.client("s3")
+        s3.upload_file("model.pkl", bucket, os.path.join(key, job_id, "model.pkl"))
+    else:
+        print("not uploading the model to the s3 bucket")
 
 
 if __name__ == "__main__":
