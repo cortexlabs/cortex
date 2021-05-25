@@ -1,79 +1,48 @@
 # Configuration
 
 ```yaml
-- name: <string>
-  kind: BatchAPI
-  handler: # detailed configuration below
-  compute: # detailed configuration below
-  networking: # detailed configuration below
-```
-
-## Handler
-
-### Python Handler
-
-<!-- CORTEX_VERSION_BRANCH_STABLE x2 -->
-```yaml
-handler:
-  type: python
-  path: <string>  # path to a python file with a Handler class definition, relative to the Cortex root (required)
-  config: <string: value>  # arbitrary dictionary passed to the constructor of the Handler class (can be overridden by config passed in job submission) (optional)
-  python_path: <string>  # path to the root of your Python folder that will be appended to PYTHONPATH (default: folder containing cortex.yaml)
-  image: <string> # docker image to use for the handler (default: quay.io/cortexlabs/python-handler-cpu:master or quay.io/cortexlabs/python-handler-gpu:master-cuda10.2-cudnn8 based on compute)
-  env: <string: string>  # dictionary of environment variables
-  log_level: <string>  # log level that can be "debug", "info", "warning" or "error" (default: "info")
-  shm_size: <string>  # size of shared memory (/dev/shm) for sharing data between multiple processes, e.g. 64Mi or 1Gi (default: Null)
-  dependencies: # (optional)
-    pip: <string>  # relative path to requirements.txt (default: requirements.txt)
-    conda: <string>  # relative path to conda-packages.txt (default: conda-packages.txt)
-    shell: <string>  # relative path to a shell script for system package installation (default: dependencies.sh)
-```
-
-### TensorFlow Handler
-
-<!-- CORTEX_VERSION_BRANCH_STABLE x3 -->
-```yaml
-handler:
-  type: tensorflow
-  path: <string>  # path to a python file with a Handler class definition, relative to the Cortex root (required)
-  models:  # use this to serve a single model or multiple ones
-    path: <string>  # S3 path to an exported model (e.g. s3://my-bucket/exported_model) (either this or 'paths' field must be provided)
-    paths:  # (either this or 'path' must be provided)
-      - name: <string> # unique name for the model (e.g. text-generator) (required)
-        path: <string>  # S3 path to an exported model (e.g. s3://my-bucket/exported_model) (required)
-        signature_key: <string>  # name of the signature def to use for prediction (required if your model has more than one signature def)
-      ...
-    signature_key: <string>  # name of the signature def to use for prediction (required if your model has more than one signature def)
-  server_side_batching:  # (optional)
-    max_batch_size: <int>  # the maximum number of requests to aggregate before running inference
-    batch_interval: <duration>  # the maximum amount of time to spend waiting for additional requests before running inference on the batch of requests
-  config: <string: value>  # arbitrary dictionary passed to the constructor of the Handler class (can be overridden by config passed in job submission) (optional)
-  python_path: <string>  # path to the root of your Python folder that will be appended to PYTHONPATH (default: folder containing cortex.yaml)
-  image: <string> # docker image to use for the handler (default: quay.io/cortexlabs/tensorflow-handler:master)
-  tensorflow_serving_image: <string> # docker image to use for the TensorFlow Serving container (default: quay.io/cortexlabs/tensorflow-serving-cpu:master or quay.io/cortexlabs/tensorflow-serving-gpu:master based on compute)
-  env: <string: string>  # dictionary of environment variables
-  log_level: <string>  # log level that can be "debug", "info", "warning" or "error" (default: "info")
-  shm_size: <string>  # size of shared memory (/dev/shm) for sharing data between multiple processes, e.g. 64Mi or 1Gi (default: Null)
-  dependencies: # (optional)
-    pip: <string>  # relative path to requirements.txt (default: requirements.txt)
-    conda: <string>  # relative path to conda-packages.txt (default: conda-packages.txt)
-    shell: <string>  # relative path to a shell script for system package installation (default: dependencies.sh)
-```
-
-## Compute
-
-```yaml
-compute:
-  cpu: <string | int | float>  # CPU request per worker. One unit of CPU corresponds to one virtual CPU; fractional requests are allowed, and can be specified as a floating point number or via the "m" suffix (default: 200m)
-  gpu: <int>  # GPU request per worker. One unit of GPU corresponds to one virtual GPU (default: 0)
-  inf: <int>  # Inferentia request per replica. One unit of Inf corresponds to one virtual Inferentia chip (default: 0)
-  mem: <string>  # memory request per worker. One unit of memory is one byte and can be expressed as an integer or by using one of these suffixes: K, M, G, T (or their power-of two counterparts: Ki, Mi, Gi, Ti) (default: Null)
-  node_groups: <list:string>  # to select specific node groups (optional)
-```
-
-## Networking
-
-```yaml
-networking:
-  endpoint: <string>  # the endpoint for the API (default: <api_name>)
+- name: <string>  # name of the API (required)
+  kind: BatchAPI  # must be "BatchAPI" for batch APIs (required)
+  pod:  # pod configuration (required)
+    port: <int>  # port to which requests will be sent (default: 8080; exported as $CORTEX_PORT)
+    max_concurrency: <int>  # maximum number of requests that will be concurrently sent into the container (default: 1)
+    containers:  # configurations for the containers to run (at least one constainer must be provided)
+      - name: <string>  # name of the container (required)
+        image: <string>  # docker image to use for the container (required)
+        command: <list[string]>  # entrypoint (required)
+        args: <list[string]>  # arguments to the entrypoint (default: no args)
+        env: <map[string:string]>  # dictionary of environment variables to set in the container (optional)
+        compute:  # compute resource requests (default: see below)
+          cpu: <string|int|float>  # CPU request for the container; one unit of CPU corresponds to one virtual CPU; fractional requests are allowed, and can be specified as a floating point number or via the "m" suffix (default: 200m)
+          gpu: <int>  # GPU request for the container; one unit of GPU corresponds to one virtual GPU (default: 0)
+          inf: <int>  # Inferentia request for the container; one unit of inf corresponds to one virtual Inferentia chip (default: 0)
+          mem: <string>  # memory request for the container; one unit of memory is one byte and can be expressed as an integer or by using one of these suffixes: K, M, G, T (or their power-of two counterparts: Ki, Mi, Gi, Ti) (default: Null)
+          shm: <string>  # size of shared memory (/dev/shm) for sharing data between multiple processes, e.g. 64Mi or 1Gi (default: Null)
+        readiness_probe:  # periodic probe of container readiness; traffic will not be sent into the pod unless all containers' readiness probes are succeeding (optional)
+          http_get:  # specifies an http endpoint which must respond with status code 200 (only one of http_get, tcp_socket, and exec may be specified)
+            port: <int|string>  # the port to access on the container (required)
+            path: <string>  # the path to access on the HTTP server (default: /)
+          tcp_socket:  # specifies a port which must be ready to receive traffic (only one of http_get, tcp_socket, and exec may be specified)
+            port: <int|string>  # the port to access on the container (required)
+          initial_delay_seconds: <int>  # number of seconds after the container has started before the probe is initiated (default: 0)
+          timeout_seconds: <int>  # number of seconds until the probe times out (default: 1)
+          period_seconds: <int>  # how often (in seconds) to perform the probe (default: 10)
+          success_threshold: <int>  # minimum consecutive successes for the probe to be considered successful after having failed (default: 1)
+          failure_threshold: <int>  # minimum consecutive failures for the probe to be considered failed after having succeeded (default: 3)
+        liveness_probe:  # periodic probe of container liveness; container will be restarted if the probe fails (optional)
+          http_get:  # specifies an http endpoint which must respond with status code 200 (only one of http_get, tcp_socket, and exec may be specified)
+            port: <int|string>  # the port to access on the container (required)
+            path: <string>  # the path to access on the HTTP server (default: /)
+          tcp_socket:  # specifies a port which must be ready to receive traffic (only one of http_get, tcp_socket, and exec may be specified)
+            port: <int|string>  # the port to access on the container (required)
+          exec:  # specifies a command to run which must exit with code 0 (only one of http_get, tcp_socket, and exec may be specified)
+            command: []  # the command to execute inside the container, which is exec'd (not run inside a shell); the working directory is root ('/') in the container's filesystem (required)
+          initial_delay_seconds: <int>  # number of seconds after the container has started before the probe is initiated (default: 0)
+          timeout_seconds: <int>  # number of seconds until the probe times out (default: 1)
+          period_seconds: <int>  # how often (in seconds) to perform the probe (default: 10)
+          success_threshold: <int>  # minimum consecutive successes for the probe to be considered successful after having failed (default: 1)
+          failure_threshold: <int>  # minimum consecutive failures for the probe to be considered failed after having succeeded (default: 3)
+  node_groups: <list[string]>  # a list of node groups on which this API can run (default: all node groups are eligible)
+  networking:  # networking configuration (default: see below)
+    endpoint: <string>  # endpoint for the API (default: <api_name>)
 ```

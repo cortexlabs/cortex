@@ -24,8 +24,8 @@ var (
 	CortexVersion      = "master" // CORTEX_VERSION
 	CortexVersionMinor = "master" // CORTEX_VERSION_MINOR
 
-	DefaultMaxQueueLength = int64(1024)
-	DefaultMaxConcurrency = int64(16)
+	DefaultMaxQueueLength = int64(100)
+	DefaultMaxConcurrency = int64(1)
 
 	DefaultUserPodPortStr   = "8080"
 	DefaultUserPodPortInt32 = int32(8080)

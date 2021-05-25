@@ -1,6 +1,6 @@
 # BatchAPI jobs
 
-## Get the TaskAPI endpoint
+## Get the Batch API's endpoint
 
 ```bash
 cortex get <batch_api_name>
@@ -42,7 +42,7 @@ POST <batch_api_endpoint>:
         ],
         "batch_size": <int>,  # the number of items per batch (the handle_batch() function is called once per batch) (required)
     }
-    "config": {               # custom fields for this specific job (will override values in `config` specified in your api configuration) (optional)
+    "config": {               # arbitrary input for this specific job (written to /cortex/spec/job.json in the API containers) (optional)
         "string": <any>
     }
 }
@@ -81,19 +81,19 @@ If a single S3 file contains a lot of samples/rows, try the next submission stra
 ```yaml
 POST <batch_api_endpoint>:
 {
-    "workers": <int>,            # the number of workers to allocate for this job (required)
-    "timeout": <int>,            # duration in seconds since the submission of a job before it is terminated (optional)
+    "workers": <int>,               # the number of workers to allocate for this job (required)
+    "timeout": <int>,               # duration in seconds since the submission of a job before it is terminated (optional)
     "sqs_dead_letter_queue": {      # specify a queue to redirect failed batches (optional)
         "arn": <string>,            # arn of dead letter queue e.g. arn:aws:sqs:us-west-2:123456789:failed.fifo
         "max_receive_count": <int>  # number of a times a batch is allowed to be handled by a worker before it is considered to be failed and transferred to the dead letter queue (must be >= 1)
     },
     "file_path_lister": {
-        "s3_paths": [<string>],  # can be S3 prefixes or complete S3 paths (required)
-        "includes": [<string>],  # glob patterns (optional)
-        "excludes": [<string>],  # glob patterns (optional)
-        "batch_size": <int>,     # the number of S3 file paths per batch (the handle_batch() function is called once per batch) (required)
+        "s3_paths": [<string>],     # can be S3 prefixes or complete S3 paths (required)
+        "includes": [<string>],     # glob patterns (optional)
+        "excludes": [<string>],     # glob patterns (optional)
+        "batch_size": <int>,        # the number of S3 file paths per batch (the handle_batch() function is called once per batch) (required)
     }
-    "config": {                  # custom fields for this specific job (will override values in `config` specified in your api configuration) (optional)
+    "config": {                     # arbitrary input for this specific job (written to /cortex/spec/job.json in the API containers) (optional)
         "string": <any>
     }
 }
@@ -131,19 +131,19 @@ This submission pattern is useful in the following scenarios:
 ```yaml
 POST <batch_api_endpoint>:
 {
-    "workers": <int>,            # the number of workers to allocate for this job (required)
-    "timeout": <int>,            # duration in seconds since the submission of a job before it is terminated (optional)
+    "workers": <int>,               # the number of workers to allocate for this job (required)
+    "timeout": <int>,               # duration in seconds since the submission of a job before it is terminated (optional)
     "sqs_dead_letter_queue": {      # specify a queue to redirect failed batches (optional)
         "arn": <string>,            # arn of dead letter queue e.g. arn:aws:sqs:us-west-2:123456789:failed.fifo
         "max_receive_count": <int>  # number of a times a batch is allowed to be handled by a worker before it is considered to be failed and transferred to the dead letter queue (must be >= 1)
     },
     "delimited_files": {
-        "s3_paths": [<string>],  # can be S3 prefixes or complete S3 paths (required)
-        "includes": [<string>],  # glob patterns (optional)
-        "excludes": [<string>],  # glob patterns (optional)
-        "batch_size": <int>,     # the number of json objects per batch (the handle_batch() function is called once per batch) (required)
+        "s3_paths": [<string>],     # can be S3 prefixes or complete S3 paths (required)
+        "includes": [<string>],     # glob patterns (optional)
+        "excludes": [<string>],     # glob patterns (optional)
+        "batch_size": <int>,        # the number of json objects per batch (the handle_batch() function is called once per batch) (required)
     }
-    "config": {                  # custom fields for this specific job (will override values in `config` specified in your api configuration) (optional)
+    "config": {                     # arbitrary input for this specific job (written to /cortex/spec/job.json in the API containers) (optional)
         "string": <any>
     }
 }
@@ -188,19 +188,19 @@ RESPONSE:
         "api_id": <string>,
         "sqs_url": <string>,
         "status": <string>,
-        "batches_in_queue": <int>        # number of batches remaining in the queue
+        "batches_in_queue": <int>   # number of batches remaining in the queue
         "batch_metrics": {
-            "succeeded": <int>           # number of succeeded batches
-            "failed": int                # number of failed attempts
+            "succeeded": <int>      # number of succeeded batches
+            "failed": int           # number of failed attempts
             "avg_time_per_batch": <float> (optional)  # average time spent working on a batch (only considers successful attempts)
         },
-        "worker_counts": {               # worker counts are only available while a job is running
-            "pending": <int>,            # number of workers that are waiting for compute resources to be provisioned
-            "initializing": <int>,       # number of workers that are initializing (downloading images or running your handler's init function)
-            "running": <int>,            # number of workers that are actively working on batches from the queue
-            "succeeded": <int>,          # number of workers that have completed after verifying that the queue is empty
-            "failed": <int>,             # number of workers that have failed
-            "stalled": <int>,            # number of workers that have been stuck in pending for more than 10 minutes
+        "worker_counts": {          # worker counts are only available while a job is running
+            "pending": <int>,       # number of workers that are waiting for compute resources to be provisioned
+            "initializing": <int>,  # number of workers that are initializing (downloading images or running your handler's init function)
+            "running": <int>,       # number of workers that are actively working on batches from the queue
+            "succeeded": <int>,     # number of workers that have completed after verifying that the queue is empty
+            "failed": <int>,        # number of workers that have failed
+            "stalled": <int>,       # number of workers that have been stuck in pending for more than 10 minutes
         },
         "created_time": <string>
         "start_time": <string>

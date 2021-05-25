@@ -115,13 +115,9 @@ You could run into connectivity issues if you make a request to your API without
 
 To test connectivity, try the following steps:
 
-1. Deploy any api (e.g. examples/pytorch/iris-classifier).
-1. Make a GET request to the your api (e.g. `curl https://api.cortexlabs.dev/iris-classifier` or paste the url into your browser).
-1. If you run into an error such as `curl: (6) Could not resolve host: api.cortexlabs.dev` wait a few minutes and make the GET request from another device that hasn't made a request to that url in a while. A successful request looks like this:
-
-```text
-{"message":"make a request by sending a POST to this endpoint with a json payload",...}
-```
+1. Deploy an api.
+1. Make a request to the your api (e.g. `curl https://api.cortexlabs.dev/my-api` or paste the url into your browser if your API supports GET requests).
+1. If you run into an error such as `curl: (6) Could not resolve host: api.cortexlabs.dev` wait a few minutes and make the request from another device that hasn't made a request to that url in a while.
 
 ## Cleanup
 

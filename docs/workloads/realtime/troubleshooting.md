@@ -1,13 +1,13 @@
 # Troubleshooting
 
-## 404 or 503 error responses from API requests
+## 503 error responses from API requests
 
-When making requests to your API, it's possible to get a `{"message":"Not Found"}` error message (with HTTP status code `404`), or a `no healthy upstream` error message (with HTTP status code `503`). This means that there are currently no live replicas running for your API. This could happen for a few reasons:
+When making requests to your API, it's possible to get a `no healthy upstream` error message (with HTTP status code `503`). This means that there are currently no live replicas running for your API. This could happen for a few reasons:
 
-1. It's possible that your API is simply not ready yet. You can check the status of your API with `cortex get API_NAME`, and stream the logs with `cortex logs API_NAME`.
-1. Your API may have errored during initialization or while responding to a previous request. `cortex get API_NAME` will show the status of your API, and you can view the logs with `cortex logs API_NAME`.
+1. It's possible that your API is simply not ready yet. You can check the status of your API with `cortex get API_NAME`, and stream the logs for a single replica (at random) with `cortex logs API_NAME`.
+1. Your API may have errored during initialization or while responding to a previous request. `cortex get API_NAME` will show the status of your API, and you can view the logs for all replicas via Cloudwatch Logs Insights.
 
-It is also possible to receive a `{"message":"Service Unavailable"}` error message (with HTTP status code `503`) if you are using API Gateway in front of your API endpoints and if your request exceeds API Gateway's 29 second timeout. If the request is exceeding the API Gateway timeout, your client should receive the `{"message":"Service Unavailable"}` response ~29 seconds after making the request. To confirm that this is the issue, you can modify your handle function to immediately return a response (e.g. `return "ok"`), re-deploy your API, wait for the update to complete, and try making a request. If your client successfully receives the "ok" response, it is likely that the API Gateway timeout is occurring. You can either modify your handler implementation to take less time, run on faster hardware (e.g. GPUs), or don't use API Gateway (there is no timeout when using the API's endpoint).
+If you are using API Gateway in front of your API endpoints, it is also possible to receive a `{"message":"Service Unavailable"}` error message (with HTTP status code `503`) after 29 seconds if your request exceeds API Gateway's 29 second timeout. If this is the case, you can either modify your code to take less time, run on faster hardware (e.g. GPUs), or don't use API Gateway (there is no timeout when using the API's endpoint directly).
 
 ## API is stuck updating
 
@@ -23,7 +23,7 @@ When you created your Cortex cluster, you configured `max_instances` for each no
 
 You can check the current value of `max_instances` for the selected node group by running `cortex cluster info --config cluster.yaml` (or `cortex cluster info --name <CLUSTER-NAME> --region <CLUSTER-REGION>` if you have the name and region of the cluster).
 
-Once you have the name and region of the cluster, you can update `max_instances` by specifying the desired number of `max_instances` for your node group with `cortex cluster scale --name <CLUSTER-NAME> --region <CLUSTER-REGION> --node-group <NG-NAME> --min-instances <MIN-INSTANCES> --max-instances <MAX-INSTANCES>`.
+Once you have the name and region of the cluster, you can update `max_instances` by specifying the desired number of `max_instances` for your node group with `cortex cluster scale --name <CLUSTER-NAME> --region <CLUSTER-REGION> --node-group <NG-NAME> --max-instances <MAX-INSTANCES>`.
 
 ## Check your AWS auto scaling group activity history
 
@@ -58,13 +58,12 @@ Here is an example: You set `max_instances` to 1, or your AWS account limits you
 
 If you're running in a development environment, this rolling update behavior can be undesirable.
 
-You can disable rolling updates for your API in your API configuration (e.g. in `cortex.yaml`): set `max_surge` to 0 (in the `update_strategy` configuration). E.g.:
+You can disable rolling updates for your API in your API configuration: set `max_surge` to 0 in the `update_strategy` section, E.g.:
 
 ```yaml
-- name: text-generator
-  handler:
-    type: python
-    ...
+- name: my-api
+  kind: RealtimeAPI  # must be "RealtimeAPI" for realtime APIs (required)
+  # ...
   update_strategy:
     max_surge: 0
 ```

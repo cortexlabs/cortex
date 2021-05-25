@@ -56,13 +56,13 @@ Copy your "Invoke URL"
 You may now use the "Invoke URL" in place of your API load balancer endpoint in your client. For example, this curl request:
 
 ```bash
-curl http://a9eaf69fd125947abb1065f62de59047-81cdebc0275f7d96.elb.us-west-2.amazonaws.com/iris-classifier -X POST -H "Content-Type: application/json" -d @sample.json
+curl http://a9eaf69fd125947abb1065f62de59047-81cdebc0275f7d96.elb.us-west-2.amazonaws.com/my-api -X POST -H "Content-Type: application/json" -d @sample.json
 ```
 
 Would become:
 
 ```bash
-curl https://31qjv48rs6.execute-api.us-west-2.amazonaws.com/dev/iris-classifier -X POST -H "Content-Type: application/json" -d @sample.json
+curl https://31qjv48rs6.execute-api.us-west-2.amazonaws.com/dev/my-api -X POST -H "Content-Type: application/json" -d @sample.json
 ```
 
 ### Cleanup
@@ -134,13 +134,13 @@ Copy your "Invoke URL"
 You may now use the "Invoke URL" in place of your API load balancer endpoint in your client. For example, this curl request:
 
 ```bash
-curl http://a5044e34a352d44b0945adcd455c7fa3-32fa161d3e5bcbf9.elb.us-west-2.amazonaws.com/iris-classifier -X POST -H "Content-Type: application/json" -d @sample.json
+curl http://a5044e34a352d44b0945adcd455c7fa3-32fa161d3e5bcbf9.elb.us-west-2.amazonaws.com/my-api -X POST -H "Content-Type: application/json" -d @sample.json
 ```
 
 Would become:
 
 ```bash
-curl https://lrivodooqh.execute-api.us-west-2.amazonaws.com/dev/iris-classifier -X POST -H "Content-Type: application/json" -d @sample.json
+curl https://lrivodooqh.execute-api.us-west-2.amazonaws.com/dev/my-api -X POST -H "Content-Type: application/json" -d @sample.json
 ```
 
 ### Cleanup

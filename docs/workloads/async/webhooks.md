@@ -8,42 +8,44 @@ completion or failure, and the URL known in advance is some other service that w
 
 ## Example
 
-Below is a guideline for implementing webhooks for an `AsyncAPI` workload.
+Below is an example implementing webhooks for an `AsyncAPI` workload using FastAPI.
 
 ```python
+import os
 import time
-from datetime import datetime
-
 import requests
+from datetime import datetime
+from fastapi import FastAPI, Header
 
 STATUS_COMPLETED = "completed"
 STATUS_FAILED = "failed"
 
+webhook_url = os.getenv("WEBHOOK_URL")  # the webhook url is set as an environment variable
 
-class Handler:
-    def __init__(self, config):
-        self.webhook_url = config["webhook_url"]  # the webhook url is passed in the config
+app = FastAPI()
 
-    def handle_async(self, payload, request_id):
-        try:
-            time.sleep(60)  # simulates a long workload
-            self.send_report(request_id, STATUS_COMPLETED, result={"data": "hello"})
-        except Exception as err:
-            self.send_report(request_id, STATUS_FAILED)
-            raise err  # the original exception should still be raised!
 
-    # this is a utility method
-    def send_report(self, request_id, status, result=None):
-        response = {"id": request_id, "status": status}
+@app.post("/")
+async def handle(x_cortex_request_id=Header(None)):
+    try:
+        time.sleep(60)  # simulates a long workload
+        send_report(x_cortex_request_id, STATUS_COMPLETED, result={"data": "hello"})
+    except Exception as err:
+        send_report(x_cortex_request_id, STATUS_FAILED)
+        raise err  # the original exception should still be raised
 
-        if result is not None and status == STATUS_COMPLETED:
-            timestamp = datetime.utcnow().isoformat()
-            response.update({"result": result, "timestamp": timestamp})
 
-        try:
-            requests.post(url=self.webhook_url, json=response)
-        except Exception:
-            pass
+def send_report(request_id, status, result=None):
+    response = {"id": request_id, "status": status}
+
+    if result is not None and status == STATUS_COMPLETED:
+        timestamp = datetime.utcnow().isoformat()
+        response.update({"result": result, "timestamp": timestamp})
+
+    try:
+        requests.post(url=webhook_url, json=response)
+    except Exception:
+        pass
 ```
 
 ## Development
