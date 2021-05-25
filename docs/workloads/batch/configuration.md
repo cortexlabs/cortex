@@ -5,7 +5,6 @@
   kind: BatchAPI  # must be "BatchAPI" for batch APIs (required)
   pod:  # pod configuration (required)
     port: <int>  # port to which requests will be sent (default: 8080; exported as $CORTEX_PORT)
-    max_concurrency: <int>  # maximum number of requests that will be concurrently sent into the container (default: 1)
     containers:  # configurations for the containers to run (at least one constainer must be provided)
       - name: <string>  # name of the container (required)
         image: <string>  # docker image to use for the container (required)
