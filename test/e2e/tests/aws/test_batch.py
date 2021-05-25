@@ -19,8 +19,8 @@ import pytest
 
 import e2e.tests
 
-TEST_APIS = ["batch/image-classifier", "batch/onnx", "batch/tensorflow"]
-TEST_APIS_INF = ["batch/inferentia"]
+TEST_APIS = ["batch/image-classifier-alexnet"]
+TEST_APIS_GPU = ["batch/image-classifier-alexnet"]
 
 
 @pytest.mark.usefixtures("client")
@@ -42,15 +42,16 @@ def test_batch_api(printer: Callable, config: Dict, client: cx.Client, api: str)
         job_timeout=config["global"]["batch_job_timeout"],
         retry_attempts=5,
         local_operator=config["global"]["local_operator"],
+        api_config_name="cortex_cpu.yaml",
     )
 
 
 @pytest.mark.usefixtures("client")
-@pytest.mark.parametrize("api", TEST_APIS_INF)
+@pytest.mark.parametrize("api", TEST_APIS_GPU)
 def test_batch_api_inf(printer: Callable, config: Dict, client: cx.Client, api: str):
-    skip_infs = config["global"].get("skip_infs", False)
-    if skip_infs:
-        pytest.skip("--skip-infs flag detected, skipping Inferentia tests")
+    skip_gpus = config["global"].get("skip_gpus", False)
+    if skip_gpus:
+        pytest.skip("--skip-gpus flag detected, skipping GPU tests")
 
     s3_path = config["aws"].get("s3_path")
     if not s3_path:
@@ -68,5 +69,5 @@ def test_batch_api_inf(printer: Callable, config: Dict, client: cx.Client, api: 
         job_timeout=config["global"]["batch_job_timeout"],
         retry_attempts=5,
         local_operator=config["global"]["local_operator"],
-        api_config_name="cortex_inf.yaml",
+        api_config_name="cortex_gpu.yaml",
     )
