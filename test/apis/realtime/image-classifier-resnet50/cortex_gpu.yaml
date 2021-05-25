@@ -1,0 +1,14 @@
+- name: image-classifier-resnet50
+  kind: RealtimeAPI
+  pod:
+    port: 8501
+    containers:
+    - name: api
+      image: 499593605069.dkr.ecr.us-west-2.amazonaws.com/sample/realtime-image-classifier-resnet50-gpu:latest
+      readiness_probe:
+        exec:
+          command: ["tfs_model_status_probe", "-addr", "localhost:8500", "-model-name", "resnet50"]
+      compute:
+        cpu: 200m
+        gpu: 1
+        mem: 512Mi
