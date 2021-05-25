@@ -42,7 +42,7 @@ func IsInstanceSupportedByNLB(instanceType string) (bool, error) {
 	return true, nil
 }
 
-// returns the the first load balancer which has all of the specified tags, or nil if no load balancers match
+// returns the first load balancer which has all of the specified tags, or nil if no load balancers match
 func (c *Client) FindLoadBalancer(tags map[string]string) (*elbv2.LoadBalancer, error) {
 	var loadBalancer *elbv2.LoadBalancer
 	var fnErr error

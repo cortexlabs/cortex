@@ -104,7 +104,6 @@ image_async_gateway: quay.io/cortexlabs/async-gateway:master
 image_cluster_autoscaler: quay.io/cortexlabs/cluster-autoscaler:master
 image_metrics_server: quay.io/cortexlabs/metrics-server:master
 image_inferentia: quay.io/cortexlabs/inferentia:master
-image_neuron_rtd: quay.io/cortexlabs/neuron-rtd:master
 image_nvidia: quay.io/cortexlabs/nvidia:master
 image_fluent_bit: quay.io/cortexlabs/fluent-bit:master
 image_istio_proxy: quay.io/cortexlabs/istio-proxy:master

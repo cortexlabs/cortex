@@ -96,23 +96,23 @@ Currently, we only support 3 different metric types that will be converted to it
 
 ### Pushing metrics
 
- - Counter
+- Counter
 
-    ```python
-    metrics.increment('my_counter', value=1, tags={"tag": "tag_name"})
-    ```
+   ```python
+   metrics.increment('my_counter', value=1, tags={"tag": "tag_name"})
+   ```
 
- - Gauge
+- Gauge
 
-    ```python
-    metrics.gauge('active_connections', value=1001, tags={"tag": "tag_name"})
-    ```
+   ```python
+   metrics.gauge('active_connections', value=1001, tags={"tag": "tag_name"})
+   ```
 
- - Histogram
+- Histogram
 
-    ```python
-    metrics.histogram('inference_time_milliseconds', 120, tags={"tag": "tag_name"})
-    ```
+   ```python
+   metrics.histogram('inference_time_milliseconds', 120, tags={"tag": "tag_name"})
+   ```
 
 ### Metrics client class reference
 

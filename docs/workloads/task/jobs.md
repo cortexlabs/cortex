@@ -1,6 +1,6 @@
 # TaskAPI jobs
 
-## Get the TaskAPI endpoint
+## Get the Task API's endpoint
 
 ```bash
 cortex get <task_api_name>
@@ -11,8 +11,8 @@ cortex get <task_api_name>
 ```yaml
 POST <task_api_endpoint>:
 {
-    "timeout": <int>,  # duration in seconds since the submission of a job before it is terminated (optional)
-    "config": {  # custom fields for this specific job (will override values in `config` specified in your api configuration) (optional)
+    "timeout": <int>,   # duration in seconds since the submission of a job before it is terminated (optional)
+    "config": {         # arbitrary input for this specific job (optional)
         "string": <any>
     }
 }
@@ -29,6 +29,8 @@ RESPONSE:
     "created_time": <string>
 }
 ```
+
+The entire job specification is written to `/cortex/spec/job.json` in the API containers.
 
 ## Get a job's status
 

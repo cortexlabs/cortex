@@ -337,7 +337,8 @@ func httpGetProbeValidation() *cr.StructFieldValidation {
 				{
 					StructField: "Path",
 					StringValidation: &cr.StringValidation{
-						Required:  true,
+						Required:  false,
+						Default:   "/",
 						Validator: urls.ValidateEndpointAllowEmptyPath,
 					},
 				},

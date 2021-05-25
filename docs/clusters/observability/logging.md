@@ -64,15 +64,3 @@ fields @timestamp, message
 | sort @timestamp asc
 | limit 1000
 ```
-
-## Structured logging
-
-You can use Cortex's logger in your Python code to log in JSON, which will enrich your logs with Cortex's metadata, and
-enable you to add custom metadata to the logs.
-
-See the structured logging docs for each API kind:
-
-- [RealtimeAPI](../../workloads/realtime/handler.md#structured-logging)
-- [AsyncAPI](../../workloads/async/handler.md#structured-logging)
-- [BatchAPI](../../workloads/batch/handler.md#structured-logging)
-- [TaskAPI](../../workloads/task/definitions.md#structured-logging)
