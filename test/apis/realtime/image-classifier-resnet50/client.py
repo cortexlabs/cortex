@@ -20,7 +20,7 @@ import base64
 import requests
 
 # the image URL is the location of the image we should send to the server
-IMAGE_URL = 'https://tensorflow.org/images/blogs/serving/cat.jpg'
+IMAGE_URL = "https://tensorflow.org/images/blogs/serving/cat.jpg"
 
 def main():
     # parse arg

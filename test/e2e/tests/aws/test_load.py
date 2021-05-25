@@ -19,10 +19,10 @@ import pytest
 
 import e2e.tests
 
-TEST_APIS_REALTIME = ["tensorflow/iris-classifier"]
-TEST_APIS_ASYNC = ["async/iris-classifier"]
+TEST_APIS_REALTIME = ["realtime/prime-generator"]
+TEST_APIS_ASYNC = ["async/text-generator"]
 TEST_APIS_BATCH = ["batch/sum"]
-TEST_APIS_TASK = ["task/hello-world"]
+TEST_APIS_TASK = ["task/iris-classifier-trainer"]
 
 
 @pytest.mark.usefixtures("client")
@@ -54,6 +54,7 @@ def test_load_async(printer: Callable, config: Dict, client: cx.Client, api: str
         api,
         load_config=config["global"]["load_test_config"]["async"],
         deploy_timeout=config["global"]["async_deploy_timeout"],
+        api_config_name="cortex_cpu.yaml",
     )
 
 

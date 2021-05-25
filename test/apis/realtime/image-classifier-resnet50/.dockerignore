@@ -1,5 +1,6 @@
 Dockerfile
 README.md
+client.py
 *.pyc
 *.pyo
 *.pyd

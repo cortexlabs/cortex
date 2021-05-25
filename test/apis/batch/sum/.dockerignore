@@ -1,6 +1,8 @@
 Dockerfile
 README.md
+sample.json
 submit.py
+sample_generator.py
 *.pyc
 *.pyo
 *.pyd
