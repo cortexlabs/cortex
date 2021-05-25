@@ -108,9 +108,6 @@ func (d *SQSDequeuer) Start(messageHandler MessageHandler) error {
 			}
 
 			if queueAttributes.TotalMessages() == 0 {
-				if !noMessagesInPreviousIteration {
-					d.log.Info("no messages found in queue, retrying ...")
-				}
 				if noMessagesInPreviousIteration && d.config.StopIfNoMessages {
 					d.log.Info("no messages found in queue, exiting ...")
 					return nil
@@ -134,7 +131,7 @@ func (d *SQSDequeuer) Start(messageHandler MessageHandler) error {
 func (d *SQSDequeuer) handleMessage(message *sqs.Message, messageHandler MessageHandler, done chan struct{}) {
 	messageErr := messageHandler.Handle(message)
 	// if messageErr != nil {
-	// 	// TODO
+	// 	// TODO: add to dead letter queue
 	// }
 
 	done <- struct{}{}
@@ -152,7 +149,7 @@ func (d *SQSDequeuer) handleMessage(message *sqs.Message, messageHandler Message
 		)
 		if err != nil {
 			// TODO
-			d.log.Fatal(zap.Error(err))
+			d.log.Error(zap.Error(err))
 		}
 		return
 	}
@@ -190,7 +187,7 @@ func (d *SQSDequeuer) StartMessageRenewer(receiptHandle string) chan struct{} {
 				)
 				if err != nil {
 					// TODO err
-					d.log.Info(zap.Error(err))
+					d.log.Error(zap.Error(err))
 				}
 			}
 		}

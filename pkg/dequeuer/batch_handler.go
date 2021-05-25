@@ -70,18 +70,18 @@ func (h *BatchMessageHandler) Handle(message *sqs.Message) error {
 		err := h.onJobComplete(message)
 		if err != nil {
 			// TODO
-			h.log.Fatal(zap.Error(err))
+			h.log.Fatal(err)
 		}
 		return nil
 	}
 	err := h.handleBatch(message)
 	if err != nil {
 		// TODO
-		h.log.Warnf("failed processing batch %s", *message.MessageId)
+		h.log.Errorw("failed processing batch", "id", *message.MessageId, "error", err)
 		err = h.handleFailure(message)
 		if err != nil {
 			// TODO
-			h.log.Fatal(zap.Error(err))
+			h.log.Fatal(err)
 		}
 	}
 	return nil
@@ -118,14 +118,14 @@ func (h *BatchMessageHandler) submitRequest(messageBody string) error {
 	}
 
 	if response.StatusCode != http.StatusOK {
-		return ErrorUserContainerResponse(response.StatusCode)
+		return ErrorUserContainerResponseStatusCode(response.StatusCode)
 	}
 
 	return nil
 }
 
 func (h *BatchMessageHandler) handleBatch(message *sqs.Message) error {
-	h.log.Infof("processing batch %s", *message.MessageId)
+	h.log.Info("processing batch", "id", *message.MessageId)
 
 	startTime := time.Now()
 	err := h.submitRequest(*message.Body)
@@ -199,7 +199,7 @@ func (h *BatchMessageHandler) onJobComplete(message *sqs.Message) error {
 		}
 
 		if shouldRunOnJobComplete {
-			h.log.Info("processing job_complete message")
+			h.log.Infow("processing job_complete message")
 			return h.submitRequest(*message.Body)
 		}
 		shouldRunOnJobComplete = true

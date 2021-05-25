@@ -23,12 +23,28 @@ import (
 )
 
 const (
-	ErrUserContainerResponse = "dequeuer.user_container_response"
+	ErrUserContainerResponseStatusCode          = "dequeuer.user_container_response_status_code"
+	ErrUserContainerResponseMissingJSONHeader   = "dequeuer.user_container_response_missing_json_header"
+	ErrUserContainerResponseNotJSONSerializable = "dequeuer.user_container_response_not_json_serializable"
 )
 
-func ErrorUserContainerResponse(statusCode int) error {
+func ErrorUserContainerResponseStatusCode(statusCode int) error {
 	return &errors.Error{
-		Kind:    ErrUserContainerResponse,
+		Kind:    ErrUserContainerResponseStatusCode,
 		Message: fmt.Sprintf("invalid response from user container; got status code %d, expected status code 200", statusCode),
+	}
+}
+
+func ErrorUserContainerResponseMissingJSONHeader() error {
+	return &errors.Error{
+		Kind:    ErrUserContainerResponseMissingJSONHeader,
+		Message: "invalid response from user container; response content type header is not 'application/json'",
+	}
+}
+
+func ErrorUserContainerResponseNotJSONSerializable() error {
+	return &errors.Error{
+		Kind:    ErrUserContainerResponseNotJSONSerializable,
+		Message: "invalid response from user container; response is not json serializable",
 	}
 }

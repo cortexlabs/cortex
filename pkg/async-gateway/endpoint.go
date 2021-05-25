@@ -23,6 +23,7 @@ import (
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
+	"github.com/cortexlabs/cortex/pkg/types/status"
 	"github.com/gorilla/mux"
 	"go.uber.org/zap"
 )
@@ -92,7 +93,7 @@ func (e *Endpoint) GetWorkload(w http.ResponseWriter, r *http.Request) {
 		logErrorWithTelemetry(log, errors.Wrap(err, "failed to get workload"))
 		return
 	}
-	if res.Status == StatusNotFound {
+	if res.Status == status.AsyncStatusNotFound {
 		respondPlainText(w, http.StatusNotFound, fmt.Sprintf("error: id %s not found", res.ID))
 		logErrorWithTelemetry(log, errors.ErrorUnexpected(fmt.Sprintf("error: id %s not found", res.ID)))
 		return

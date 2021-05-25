@@ -59,7 +59,7 @@ func TestMain(m *testing.M) {
 				{HostPort: "4566"},
 			},
 		},
-		Env: []string{"SERVICES=sqs"},
+		Env: []string{"SERVICES=sqs,s3"},
 	}
 
 	resource, err := pool.RunWithOptions(options)
@@ -108,10 +108,11 @@ func testAWSClient(t *testing.T) *awslib.Client {
 
 	sess, err := session.NewSessionWithOptions(session.Options{
 		Config: aws.Config{
-			Credentials: credentials.NewStaticCredentials("test", "test", ""),
-			Endpoint:    aws.String(localStackEndpoint),
-			Region:      aws.String(_localStackDefaultRegion), // localstack default region
-			DisableSSL:  aws.Bool(true),
+			Credentials:      credentials.NewStaticCredentials("test", "test", ""),
+			Endpoint:         aws.String(localStackEndpoint),
+			Region:           aws.String(_localStackDefaultRegion), // localstack default region
+			DisableSSL:       aws.Bool(true),
+			S3ForcePathStyle: aws.Bool(true),
 		},
 	})
 	require.NoError(t, err)
@@ -127,7 +128,7 @@ func newLogger(t *testing.T) *zap.SugaredLogger {
 	t.Helper()
 
 	config := zap.NewDevelopmentConfig()
-	config.Level = zap.NewAtomicLevelAt(zap.FatalLevel)
+	config.Level = zap.NewAtomicLevelAt(zap.ErrorLevel)
 	logger, err := config.Build()
 	require.NoError(t, err)
 

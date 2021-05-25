@@ -22,6 +22,7 @@ import (
 	"io"
 	"strings"
 
+	"github.com/cortexlabs/cortex/pkg/types/status"
 	"go.uber.org/zap"
 )
 
@@ -66,8 +67,8 @@ func (s *service) CreateWorkload(id string, payload io.Reader, contentType strin
 		return "", err
 	}
 
-	statusPath := fmt.Sprintf("%s/%s/status/%s", prefix, id, StatusInQueue)
-	log.Debug(fmt.Sprintf("setting status to %s", StatusInQueue))
+	statusPath := fmt.Sprintf("%s/%s/status/%s", prefix, id, status.AsyncStatusInQueue)
+	log.Debug(fmt.Sprintf("setting status to %s", status.AsyncStatusInQueue))
 	if err := s.storage.Upload(statusPath, strings.NewReader(""), "text/plain"); err != nil {
 		return "", err
 	}
@@ -79,15 +80,15 @@ func (s *service) CreateWorkload(id string, payload io.Reader, contentType strin
 func (s *service) GetWorkload(id string) (GetWorkloadResponse, error) {
 	log := s.logger.With(zap.String("id", id))
 
-	status, err := s.getStatus(id)
+	st, err := s.getStatus(id)
 	if err != nil {
 		return GetWorkloadResponse{}, err
 	}
 
-	if status != StatusCompleted {
+	if st != status.AsyncStatusCompleted {
 		return GetWorkloadResponse{
 			ID:     id,
-			Status: status,
+			Status: st,
 		}, nil
 	}
 
@@ -113,13 +114,13 @@ func (s *service) GetWorkload(id string) (GetWorkloadResponse, error) {
 
 	return GetWorkloadResponse{
 		ID:        id,
-		Status:    status,
+		Status:    st,
 		Result:    &userResponse,
 		Timestamp: &timestamp,
 	}, nil
 }
 
-func (s *service) getStatus(id string) (Status, error) {
+func (s *service) getStatus(id string) (status.AsyncStatus, error) {
 	prefix := s.workloadStoragePrefix()
 	log := s.logger.With(zap.String("id", id))
 
@@ -130,27 +131,27 @@ func (s *service) getStatus(id string) (Status, error) {
 		return "", err
 	}
 	if len(files) == 0 {
-		return StatusNotFound, nil
+		return status.AsyncStatusNotFound, nil
 	}
 
 	// determine request status
-	status := StatusInQueue
+	st := status.AsyncStatusInQueue
 	for _, file := range files {
-		fileStatus := Status(file)
+		fileStatus := status.AsyncStatus(file)
 		if !fileStatus.Valid() {
-			status = fileStatus
-			return "", fmt.Errorf("invalid workload status: %s", status)
+			st = fileStatus
+			return "", fmt.Errorf("invalid workload status: %s", st)
 		}
-		if fileStatus == StatusInProgress {
-			status = fileStatus
+		if fileStatus == status.AsyncStatusInProgress {
+			st = fileStatus
 		}
-		if fileStatus == StatusCompleted || fileStatus == StatusFailed {
-			status = fileStatus
+		if fileStatus == status.AsyncStatusCompleted || fileStatus == status.AsyncStatusFailed {
+			st = fileStatus
 			break
 		}
 	}
 
-	return status, nil
+	return st, nil
 }
 
 func (s *service) workloadStoragePrefix() string {
