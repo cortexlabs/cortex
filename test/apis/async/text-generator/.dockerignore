@@ -1,5 +1,7 @@
 Dockerfile
 README.md
+sample.json
+expectations.yaml
 *.pyc
 *.pyo
 *.pyd
