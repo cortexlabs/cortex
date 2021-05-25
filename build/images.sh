@@ -32,7 +32,7 @@ api_images=(
   "realtime-text-generator-cpu"
   "realtime-text-generator-gpu"
   "task-iris-classifier-trainer-cpu"
-  "traffic-splitter-cpu"
+  "trafficsplitter-prime-generator-cpu"
 )
 
 dev_images=(
