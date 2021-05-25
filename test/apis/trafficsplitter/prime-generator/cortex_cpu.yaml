@@ -4,7 +4,7 @@
     port: 9000
     containers:
     - name: api
-      image: 499593605069.dkr.ecr.us-west-2.amazonaws.com/trafficsplitter-prime-generator-cpumaster
+      image: 499593605069.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/trafficsplitter-prime-generator-cpu:master
       readiness_probe:
         http_get:
           path: "/healthz"
@@ -21,7 +21,7 @@
     port: 9000
     containers:
     - name: api
-      image: 499593605069.dkr.ecr.us-west-2.amazonaws.com/trafficsplitter-prime-generator-cpumaster
+      image: 499593605069.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/trafficsplitter-prime-generator-cpu:master
       readiness_probe:
         http_get:
           path: "/healthz"
@@ -38,7 +38,7 @@
     port: 9000
     containers:
     - name: api
-      image: 499593605069.dkr.ecr.us-west-2.amazonaws.com/trafficsplitter-prime-generator-cpumaster
+      image: 499593605069.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/trafficsplitter-prime-generator-cpu:master
       env:
         RECORD_ONLY: "true"
       readiness_probe:

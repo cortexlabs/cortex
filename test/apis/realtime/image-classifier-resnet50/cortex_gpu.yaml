@@ -4,7 +4,7 @@
     port: 8501
     containers:
     - name: api
-      image: 499593605069.dkr.ecr.us-west-2.amazonaws.com/realtime-image-classifier-resnet50-gpumaster
+      image: 499593605069.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/realtime-image-classifier-resnet50-gpu:master
       readiness_probe:
         exec:
           command: ["tfs_model_status_probe", "-addr", "localhost:8500", "-model-name", "resnet50"]
