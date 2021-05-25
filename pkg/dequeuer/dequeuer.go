@@ -57,6 +57,7 @@ type SQSDequeuer struct {
 	notFoundSleepTime  time.Duration
 	renewalPeriod      time.Duration
 	log                *zap.SugaredLogger
+	done               chan struct{}
 }
 
 func NewSQSDequeuer(config SQSDequeuerConfig, awsClient *awslib.Client, logger *zap.SugaredLogger) (*SQSDequeuer, error) {
@@ -74,6 +75,7 @@ func NewSQSDequeuer(config SQSDequeuerConfig, awsClient *awslib.Client, logger *
 		notFoundSleepTime:  _notFoundSleepTime,
 		renewalPeriod:      _renewalPeriod,
 		log:                logger,
+		done:               make(chan struct{}),
 	}, nil
 }
 
@@ -95,37 +97,48 @@ func (d *SQSDequeuer) ReceiveMessage() ([]*sqs.Message, error) {
 
 func (d *SQSDequeuer) Start(messageHandler MessageHandler) error {
 	noMessagesInPreviousIteration := false
-	for true {
-		messages, err := d.ReceiveMessage()
-		if err != nil {
-			return err
-		}
 
-		if len(messages) == 0 {
-			queueAttributes, err := GetQueueAttributes(d.aws, d.config.QueueURL)
+loop:
+	for {
+		select {
+		case <-d.done:
+			break loop
+		default:
+			messages, err := d.ReceiveMessage()
 			if err != nil {
 				return err
 			}
 
-			if queueAttributes.TotalMessages() == 0 {
-				if noMessagesInPreviousIteration && d.config.StopIfNoMessages {
-					d.log.Info("no messages found in queue, exiting ...")
-					return nil
+			if len(messages) == 0 {
+				queueAttributes, err := GetQueueAttributes(d.aws, d.config.QueueURL)
+				if err != nil {
+					return err
 				}
-				noMessagesInPreviousIteration = true
-			}
-			time.Sleep(d.notFoundSleepTime)
-			continue
-		}
 
-		noMessagesInPreviousIteration = false
-		message := messages[0]
-		receiptHandle := *message.ReceiptHandle
-		done := d.StartMessageRenewer(receiptHandle)
-		d.handleMessage(message, messageHandler, done)
+				if queueAttributes.TotalMessages() == 0 {
+					if noMessagesInPreviousIteration && d.config.StopIfNoMessages {
+						d.log.Info("no messages found in queue, exiting ...")
+						return nil
+					}
+					noMessagesInPreviousIteration = true
+				}
+				time.Sleep(d.notFoundSleepTime)
+				continue
+			}
+
+			noMessagesInPreviousIteration = false
+			message := messages[0]
+			receiptHandle := *message.ReceiptHandle
+			done := d.StartMessageRenewer(receiptHandle)
+			d.handleMessage(message, messageHandler, done)
+		}
 	}
 
 	return nil
+}
+
+func (d *SQSDequeuer) Shutdown() {
+	d.done <- struct{}{}
 }
 
 func (d *SQSDequeuer) handleMessage(message *sqs.Message, messageHandler MessageHandler, done chan struct{}) {
