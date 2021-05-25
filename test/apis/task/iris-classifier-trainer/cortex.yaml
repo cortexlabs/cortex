@@ -1,0 +1,12 @@
+- name: trainer
+  kind: TaskAPI
+  pod:
+    containers:
+    - name: s3-model-pusher
+      image: 499593605069.dkr.ecr.us-west-2.amazonaws.com/sample/task-iris-classifier-trainer:latest
+      command:
+        - python
+        - main.py
+      compute:
+        cpu: 200m
+        mem: 256Mi

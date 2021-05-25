@@ -19,35 +19,36 @@ import sys
 import base64
 import requests
 
-# The image URL is the location of the image we should send to the server
+# the image URL is the location of the image we should send to the server
 IMAGE_URL = 'https://tensorflow.org/images/blogs/serving/cat.jpg'
 
 def main():
+    # parse arg
     if len(sys.argv) < 2:
-        print("missing <http://host:ip> parameter")
+        print("missing <http://host:ip> arg")
         sys.exit(1)
-
     address = sys.argv[1]
     server_url = f"{address}/v1/models/resnet50:predict"
 
+    # download labels
     labels = requests.get(
             "https://storage.googleapis.com/download.tensorflow.org/data/ImageNetLabels.txt"
         ).text.split("\n")[1:]
 
-    # Download the image
+    # download the image
     dl_request = requests.get(IMAGE_URL, stream=True)
     dl_request.raise_for_status()
 
-    # Compose a JSON Predict request (send JPEG image in base64).
+    # compose a JSON Predict request (send JPEG image in base64).
     jpeg_bytes = base64.b64encode(dl_request.content).decode('utf-8')
     predict_request = '{"instances" : [{"b64": "%s"}]}' % jpeg_bytes
 
-    # Send few requests to warm-up the model.
+    # send few requests to warm-up the model.
     for _ in range(3):
         response = requests.post(server_url, data=predict_request)
         response.raise_for_status()
 
-    # Send few actual requests and report average latency.
+    # send few actual requests and report average latency.
     total_time = 0
     num_requests = 10
     for _ in range(num_requests):
@@ -61,4 +62,4 @@ def main():
 
 
 if __name__ == '__main__':
-  main()
+    main()
