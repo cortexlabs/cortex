@@ -20,10 +20,19 @@
 set -euo pipefail
 
 api_images=(
-  "python-handler-cpu"
-  "python-handler-gpu"
-  "tensorflow-handler"
-  "python-handler-inf"
+  "async-text-generator-cpu"
+  "async-text-generator-gpu"
+  "batch-image-classifier-alexnet-cpu"
+  "batch-image-classifier-alexnet-gpu"
+  "batch-sum-cpu"
+  "realtime-image-classifier-resnet50-cpu"
+  "realtime-image-classifier-resnet50-gpu"
+  "realtime-prime-generator-cpu"
+  "realtime-sleep-cpu"
+  "realtime-text-generator-cpu"
+  "realtime-text-generator-gpu"
+  "task-iris-classifier-trainer-cpu"
+  "traffic-splitter-cpu"
 )
 
 dev_images=(

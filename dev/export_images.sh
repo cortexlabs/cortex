@@ -40,23 +40,10 @@ for image in "${all_images[@]}"; do
 done
 echo
 
-cuda=("10.0" "10.1" "10.1" "10.2" "10.2" "11.0" "11.1")
-cudnn=("7" "7" "8" "7" "8" "8" "8")
-
 # pull the images from source registry and push them to ECR
 for image in "${all_images[@]}"; do
-    # copy the different cuda/cudnn variations of the python handler image
-    if [ "$image" = "python-handler-gpu" ]; then
-        for i in "${!cuda[@]}"; do
-            full_image="$image:$cortex_version-cuda${cuda[$i]}-cudnn${cudnn[$i]}"
-            echo "copying $full_image from $source_registry to $destination_registry"
-            skopeo copy --src-no-creds "docker://$source_registry/$full_image" "docker://$destination_registry/$full_image"
-            echo
-        done
-    else
-        echo "copying $image:$cortex_version from $source_registry to $destination_registry"
-        skopeo copy --src-no-creds "docker://$source_registry/$image:$cortex_version" "docker://$destination_registry/$image:$cortex_version"
-        echo
-    fi
+    echo "copying $image:$cortex_version from $source_registry to $destination_registry"
+    skopeo copy --src-no-creds "docker://$source_registry/$image:$cortex_version" "docker://$destination_registry/$image:$cortex_version"
+    echo
 done
 echo "done ✓"

@@ -23,10 +23,23 @@ source $ROOT/build/images.sh
 source $ROOT/dev/util.sh
 
 # if parallel utility is installed, the docker build commands will be parallelized
+non_api_images=(
+  "${dev_images[@]}"
+  "${non_dev_images[@]}"
+)
 if command -v parallel &> /dev/null && [ -n "${NUM_BUILD_PROCS+set}" ] && [ "$NUM_BUILD_PROCS" != "1" ]; then
-  ROOT=$ROOT SHELL=$(type -p /bin/bash) parallel --will-cite --halt now,fail=1 --eta --jobs $NUM_BUILD_PROCS $ROOT/build/build-image.sh {} ::: "${all_images[@]}"
+  ROOT=$ROOT SHELL=$(type -p /bin/bash) parallel --will-cite --halt now,fail=1 --eta --jobs $NUM_BUILD_PROCS $ROOT/build/build-image.sh {} "non-api" ::: "${non_api_images[@]}"
 else
-  for image in "${all_images[@]}"; do
-    $ROOT/build/build-image.sh $image
+  for image in "${non_api_images[@]}"; do
+    $ROOT/build/build-image.sh $image "non-api"
+  done
+fi
+
+# if parallel utility is installed, the docker build commands will be parallelized
+if command -v parallel &> /dev/null && [ -n "${NUM_BUILD_PROCS+set}" ] && [ "$NUM_BUILD_PROCS" != "1" ]; then
+  ROOT=$ROOT SHELL=$(type -p /bin/bash) parallel --will-cite --halt now,fail=1 --eta --jobs $NUM_BUILD_PROCS $ROOT/build/build-image.sh {} "api" ::: "${api_images[@]}"
+else
+  for image in "${api_images[@]}"; do
+    $ROOT/build/build-image.sh $image "api"
   done
 fi

@@ -106,9 +106,7 @@ function create_ecr_repository() {
 function build() {
   local image=$1
   local tag=$2
-  local dir="${ROOT}/images/${image}"
-
-  build_args=""
+  local image_type=$3
 
   tag_args=""
   if [ -n "$AWS_ACCOUNT_ID" ] && [ -n "$AWS_REGION" ]; then
@@ -116,7 +114,19 @@ function build() {
   fi
 
   blue_echo "Building $image:$tag..."
-  docker build $ROOT -f $dir/Dockerfile -t cortexlabs/$image:$tag $tag_args $build_args
+  if [ "$image_type" = "non-api" ]; then
+    local dir="${ROOT}/images/${image}"
+    docker build $ROOT -f $dir/Dockerfile -t cortexlabs/$image:$tag $tag_args
+  else
+    local num_words="$(awk -F'-' '{ for(i=1;i<=NF;i++) print $i }' <<< ${image} | wc -l | sed -e 's/^[[:space:]]*//')"
+    local kind_dir="$( cut -d '-' -f 1 <<< "${image}" )"
+    local api_name="$( cut -d '-' -f 2-$((num_words-1)) <<< "${image}" )"
+    local compute_type="$( cut -d '-' -f ${num_words} <<< "${image}" )"
+
+    local dir="${ROOT}/test/apis/${kind_dir}/${api_name}"
+    echo "docker build $dir -f $api_name-$compute_type.dockerfile -t cortexlabs/$image:$tag $tag_args"
+    docker build $dir -f $dir/$api_name-$compute_type.dockerfile -t cortexlabs/$image:$tag $tag_args
+  fi
   green_echo "Built $image:$tag\n"
 }
 
@@ -146,15 +156,12 @@ function push() {
 
 function build_and_push() {
   local image=$1
+  local image_type=$2
 
   set -euo pipefail  # necessary since this is called in a new shell by parallel
 
   tag=$CORTEX_VERSION
-  if [ "${image}" == "python-handler-gpu" ]; then
-    tag="${CORTEX_VERSION}-cuda10.2-cudnn8"
-  fi
-
-  build $image $tag
+  build $image $tag $image_type
   push $image $tag
 }
 
@@ -225,7 +232,7 @@ elif [ "$cmd" = "update-single" ]; then
   if [ "$image" = "operator" ] || [ "$image" = "proxy" ]; then
     cache_builder $image
   fi
-  build_and_push $image
+  build_and_push $image "non-api"
 
 # usage: registry.sh update all|dev|api
 # if parallel utility is installed, the docker build commands will be parallelized
@@ -240,8 +247,6 @@ elif [ "$cmd" = "update" ]; then
     images_to_build+=( "${dev_images[@]}" )
   fi
 
-  images_to_build+=( "${api_images[@]}" )
-
   if [[ " ${images_to_build[@]} " =~ " operator " ]]; then
     cache_builder operator
   fi
@@ -252,11 +257,21 @@ elif [ "$cmd" = "update" ]; then
     cache_builder async-gateway
   fi
 
+  # build non-api images
   if command -v parallel &> /dev/null && [ -n "${NUM_BUILD_PROCS+set}" ] && [ "$NUM_BUILD_PROCS" != "1" ]; then
-    is_registry_logged_in=$is_registry_logged_in ROOT=$ROOT registry_push_url=$registry_push_url SHELL=$(type -p /bin/bash) parallel --will-cite --halt now,fail=1 --eta --jobs $NUM_BUILD_PROCS build_and_push "{}" ::: "${images_to_build[@]}"
+    is_registry_logged_in=$is_registry_logged_in ROOT=$ROOT registry_push_url=$registry_push_url SHELL=$(type -p /bin/bash) parallel --will-cite --halt now,fail=1 --eta --jobs $NUM_BUILD_PROCS build_and_push "{}" "non-api"::: "${images_to_build[@]}"
   else
     for image in "${images_to_build[@]}"; do
-      build_and_push $image
+      build_and_push $image "non-api"
+    done
+  fi
+
+  # build api images
+  if command -v parallel &> /dev/null && [ -n "${NUM_BUILD_PROCS+set}" ] && [ "$NUM_BUILD_PROCS" != "1" ]; then
+    is_registry_logged_in=$is_registry_logged_in ROOT=$ROOT registry_push_url=$registry_push_url SHELL=$(type -p /bin/bash) parallel --will-cite --halt now,fail=1 --eta --jobs $NUM_BUILD_PROCS build_and_push "{}" "api" ::: "${api_images[@]}"
+  else
+    for image in "${api_images[@]}"; do
+      build_and_push $image "api"
     done
   fi
 
