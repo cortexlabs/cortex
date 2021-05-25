@@ -15,3 +15,5 @@
         cpu: 1
         gpu: 1
         mem: 512M
+  autoscaling:
+    max_concurrency: 1

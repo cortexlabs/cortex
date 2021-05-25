@@ -12,3 +12,5 @@
         cpu: 200m
         gpu: 1
         mem: 512Mi
+  autoscaling:
+    max_concurrency: 8

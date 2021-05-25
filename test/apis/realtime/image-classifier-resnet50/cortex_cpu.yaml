@@ -11,3 +11,5 @@
       compute:
         cpu: 1
         mem: 2G
+  autoscaling:
+    max_concurrency: 8
