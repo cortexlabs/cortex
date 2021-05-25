@@ -1,7 +1,0 @@
-- name: iris-classifier
-  kind: RealtimeAPI
-  handler:
-    type: python
-    path: handler.py
-    config:
-      model: s3://cortex-examples/pytorch/iris-classifier/weights.pth

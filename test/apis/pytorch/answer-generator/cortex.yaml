@@ -1,9 +1,0 @@
-- name: answer-generator
-  kind: RealtimeAPI
-  handler:
-    type: python
-    path: handler.py
-  compute:
-    cpu: 1
-    gpu: 1
-    mem: 5G
