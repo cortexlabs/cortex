@@ -1,9 +1,0 @@
-- name: iris-classifier
-  kind: RealtimeAPI
-  handler:
-    type: tensorflow
-    path: handler.py
-    models:
-      path: s3://cortex-examples/tensorflow/iris-classifier/nn/
-  compute:
-    mem: 250Mi
