@@ -4,7 +4,7 @@
     port: 9000
     containers:
     - name: api
-      image: 499593605069.dkr.ecr.us-west-2.amazonaws.com/sample/realtime-prime-generator:latest
+      image: 499593605069.dkr.ecr.us-west-2.amazonaws.com/traffic-splitter-prime-generator-cpu:latest
       readiness_probe:
         http_get:
           path: "/healthz"
@@ -21,7 +21,7 @@
     port: 9000
     containers:
     - name: api
-      image: 499593605069.dkr.ecr.us-west-2.amazonaws.com/sample/realtime-prime-generator:latest
+      image: 499593605069.dkr.ecr.us-west-2.amazonaws.com/traffic-splitter-prime-generator-cpu:latest
       readiness_probe:
         http_get:
           path: "/healthz"
@@ -38,7 +38,7 @@
     port: 9000
     containers:
     - name: api
-      image: 499593605069.dkr.ecr.us-west-2.amazonaws.com/sample/realtime-prime-generator:latest
+      image: 499593605069.dkr.ecr.us-west-2.amazonaws.com/traffic-splitter-prime-generator-cpu:latest
       env:
         RECORD_ONLY: "true"
       readiness_probe:
@@ -51,7 +51,7 @@
   autoscaling:
     max_concurrency: 1
 
-- name: iris-classifier
+- name: prime-generator
   kind: TrafficSplitter
   apis:
     - name: prime-generator-a

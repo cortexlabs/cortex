@@ -4,7 +4,7 @@
     port: 9000
     containers:
     - name: api
-      image: 499593605069.dkr.ecr.us-west-2.amazonaws.com/sample/async-text-generator-cpu:latest
+      image: 499593605069.dkr.ecr.us-west-2.amazonaws.com/realtime-async-text-generator-cpu:latest
       readiness_probe:
         http_get:
           path: "/healthz"
