@@ -37,7 +37,7 @@ def test_async_api(printer: Callable, config: Dict, client: cx.Client, api: str)
 
 @pytest.mark.usefixtures("client")
 @pytest.mark.parametrize("api", TEST_APIS_GPU)
-def test_async_api(printer: Callable, config: Dict, client: cx.Client, api: str):
+def test_async_api_gpu(printer: Callable, config: Dict, client: cx.Client, api: str):
     skip_gpus = config["global"].get("skip_gpus", False)
     if skip_gpus:
         pytest.skip("--skip-gpus flag detected, skipping GPU tests")
