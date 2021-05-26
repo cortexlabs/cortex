@@ -100,7 +100,7 @@ func main() {
 		Enabled: clusterConfig.Telemetry,
 		UserID:  userID,
 		Properties: map[string]string{
-			"kind":       userconfig.RealtimeAPIKind.String(),
+			"kind":       apiKind,
 			"image_type": "dequeuer",
 		},
 		Environment: "api",
@@ -178,7 +178,7 @@ func main() {
 
 	select {
 	case err = <-errCh:
-		exit(log, err, "error durring message dequeueing")
+		exit(log, err, "error during message dequeueing")
 	case <-sigint:
 		log.Info("Received TERM signal, handling a graceful shutdown...")
 		sqsDequeuer.Shutdown()
