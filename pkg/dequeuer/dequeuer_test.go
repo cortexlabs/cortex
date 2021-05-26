@@ -117,11 +117,10 @@ func testAWSClient(t *testing.T) *awslib.Client {
 	})
 	require.NoError(t, err)
 
-	return &awslib.Client{
-		Sess:   sess,
-		Region: _localStackDefaultRegion,
-	}
+	client, err := awslib.NewForSession(sess)
+	require.NoError(t, err)
 
+	return client
 }
 
 func newLogger(t *testing.T) *zap.SugaredLogger {
