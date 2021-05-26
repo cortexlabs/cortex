@@ -77,9 +77,9 @@ func (h *AsyncMessageHandler) Handle(message *sqs.Message) error {
 		}
 
 		h.log.Errorw("failed processing request", "id", requestID, "error", err)
-		err = h.handleFailure(requestID)
+		err = h.handleFailure(requestID) // FIXME: should only handle failure if user error (?)
 		if err != nil {
-			h.log.Errorw("failed to handle message failure", "error", err)
+			return errors.Wrap(err, "failed to handle message failure")
 		}
 	}
 	return nil

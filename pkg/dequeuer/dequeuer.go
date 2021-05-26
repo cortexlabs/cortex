@@ -130,7 +130,11 @@ loop:
 			message := messages[0]
 			receiptHandle := *message.ReceiptHandle
 			done := d.StartMessageRenewer(receiptHandle)
-			d.handleMessage(message, messageHandler, done)
+			err = d.handleMessage(message, messageHandler, done)
+			if err != nil {
+				// TODO: telemetry (for non-user errors)
+				d.log.Errorw("failed to handle message", "error", err)
+			}
 		}
 	}
 
@@ -141,16 +145,16 @@ func (d *SQSDequeuer) Shutdown() {
 	d.done <- struct{}{}
 }
 
-func (d *SQSDequeuer) handleMessage(message *sqs.Message, messageHandler MessageHandler, done chan struct{}) {
+func (d *SQSDequeuer) handleMessage(message *sqs.Message, messageHandler MessageHandler, done chan struct{}) error {
 	err := messageHandler.Handle(message)
 	if err != nil {
-		d.log.Errorw("error during message handling", "error", err)
+		return err
 	}
 
 	done <- struct{}{}
 	isOnJobComplete := isOnJobCompleteMessage(message)
 
-	if !isOnJobComplete && d.hasDeadLetterQueue && err != nil {
+	if !isOnJobComplete && d.hasDeadLetterQueue {
 		// expire messages when head letter queue is configured to facilitate redrive policy
 		// always delete onJobComplete messages regardless of dredrive policy because a new one will be added if an onJobComplete message has been consumed prematurely
 		_, err = d.aws.SQS().ChangeMessageVisibility(
@@ -161,9 +165,9 @@ func (d *SQSDequeuer) handleMessage(message *sqs.Message, messageHandler Message
 			},
 		)
 		if err != nil {
-			d.log.Errorw("failed to change sqs message visibility", "error", err)
+			return errors.Wrap(err, "failed to change sqs message visibility")
 		}
-		return
+		return nil
 	}
 
 	_, err = d.aws.SQS().DeleteMessage(
@@ -173,8 +177,10 @@ func (d *SQSDequeuer) handleMessage(message *sqs.Message, messageHandler Message
 		},
 	)
 	if err != nil {
-		d.log.Errorw("failed to delete sqs message", "error", err)
+		return errors.Wrap(err, "failed to delete sqs message")
 	}
+
+	return nil
 }
 
 func (d *SQSDequeuer) StartMessageRenewer(receiptHandle string) chan struct{} {

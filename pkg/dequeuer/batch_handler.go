@@ -74,16 +74,16 @@ func (h *BatchMessageHandler) Handle(message *sqs.Message) error {
 	if isOnJobCompleteMessage(message) {
 		err := h.onJobComplete(message)
 		if err != nil {
-			h.log.Errorw("failed to handle 'onJobComplete' message", "error", err)
+			return errors.Wrap(err, "failed to handle 'onJobComplete' message")
 		}
 		return nil
 	}
 	err := h.handleBatch(message)
 	if err != nil {
 		h.log.Errorw("failed processing batch", "id", *message.MessageId, "error", err)
-		err = h.handleFailure(message)
+		err = h.handleFailure(message) // FIXME: should only handle failure if user error (?)
 		if err != nil {
-			h.log.Errorw("failed to handle message failure", "error", err)
+			return errors.Wrap(err, "failed to handle message failure")
 		}
 	}
 	return nil
