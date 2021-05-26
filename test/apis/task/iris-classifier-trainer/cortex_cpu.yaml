@@ -3,7 +3,7 @@
   pod:
     containers:
     - name: trainer
-      image: 499593605069.dkr.ecr.us-west-2.amazonaws.com/cortexlabs-tests/task-iris-classifier-trainer-cpu:master
+      image: 499593605069.dkr.ecr.us-west-2.amazonaws.com/cortexlabs-tests/task-iris-classifier-trainer-cpu:latest
       command:
         - python
         - main.py

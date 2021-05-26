@@ -80,7 +80,7 @@ def test_realtime_api(
 
     api_name = api_specs[0]["name"]
     for api_spec in api_specs:
-        client.deploy(api_spec=api_spec, project_dir=str(api_dir))
+        client.deploy(api_spec=api_spec)
 
     try:
         assert apis_ready(
@@ -148,7 +148,7 @@ def test_batch_api(
     assert len(api_specs) == 1
 
     api_name = api_specs[0]["name"]
-    client.deploy(api_spec=api_specs[0], project_dir=str(api_dir))
+    client.deploy(api_spec=api_specs[0])
 
     try:
         endpoint_override = f"http://localhost:8888/batch/{api_name}" if local_operator else None
@@ -235,7 +235,7 @@ def test_async_api(
     assert len(api_specs) == 1
 
     api_name = api_specs[0]["name"]
-    client.deploy(api_spec=api_specs[0], project_dir=str(api_dir))
+    client.deploy(api_spec=api_specs[0])
 
     try:
         assert apis_ready(
@@ -344,7 +344,7 @@ def test_task_api(
     assert len(api_specs) == 1
 
     api_name = api_specs[0]["name"]
-    client.deploy(api_spec=api_specs[0], project_dir=str(api_dir))
+    client.deploy(api_spec=api_specs[0])
 
     try:
         endpoint_override = f"http://localhost:8888/tasks/{api_name}" if local_operator else None
@@ -423,7 +423,7 @@ def test_autoscaling(
             "downscale_stabilization_period": "1m",
         }
         all_api_names.append(api_specs[0]["name"])
-        client.deploy(api_spec=api_specs[0], project_dir=api_dir)
+        client.deploy(api_spec=api_specs[0])
 
     primary_api_name = all_api_names[0]
     autoscaling = client.get_api(primary_api_name)["spec"]["autoscaling"]
@@ -535,7 +535,7 @@ def test_load_realtime(
         "max_replicas": desired_replicas,
     }
     api_name = api_specs[0]["name"]
-    client.deploy(api_spec=api_specs[0], project_dir=str(api_dir))
+    client.deploy(api_spec=api_specs[0])
 
     # controls the flow of requests
     request_stopper = td.Event()
@@ -644,7 +644,7 @@ def test_load_async(
         "max_replicas": desired_replicas,
     }
     api_name = api_specs[0]["name"]
-    client.deploy(api_spec=api_specs[0], project_dir=str(api_dir))
+    client.deploy(api_spec=api_specs[0])
 
     request_stopper = td.Event()
     map_stopper = td.Event()
@@ -768,7 +768,7 @@ def test_load_batch(
     sample_generator = load_generator(sample_generator_path)
 
     api_name = api_specs[0]["name"]
-    client.deploy(api_spec=api_specs[0], project_dir=str(api_dir))
+    client.deploy(api_spec=api_specs[0])
     api_endpoint = client.get_api(api_name)["endpoint"]
 
     try:
@@ -861,7 +861,7 @@ def test_load_task(
     assert len(api_specs) == 1
 
     api_name = api_specs[0]["name"]
-    client.deploy(api_spec=api_specs[0], project_dir=str(api_dir))
+    client.deploy(api_spec=api_specs[0])
 
     request_stopper = td.Event()
     map_stopper = td.Event()
@@ -938,7 +938,7 @@ def test_long_running_realtime(
 
     api_name = api_specs[0]["name"]
     for api_spec in api_specs:
-        client.deploy(api_spec=api_spec, project_dir=str(api_dir))
+        client.deploy(api_spec=api_spec)
 
     try:
         assert apis_ready(
