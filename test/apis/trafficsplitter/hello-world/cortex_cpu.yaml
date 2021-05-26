@@ -5,6 +5,8 @@
     containers:
     - name: api
       image: 499593605069.dkr.ecr.us-west-2.amazonaws.com/cortexlabs-tests/trafficsplitter-hello-world-cpu:latest
+      env:
+        RESPONSE: "hello from API A"
       readiness_probe:
         http_get:
           path: "/healthz"
@@ -15,24 +17,7 @@
   autoscaling:
     max_concurrency: 1
 
-- name: hello-world-a
-  kind: RealtimeAPI
-  pod:
-    port: 9000
-    containers:
-    - name: api
-      image: 499593605069.dkr.ecr.us-west-2.amazonaws.com/cortexlabs-tests/trafficsplitter-hello-world-cpu:latest
-      readiness_probe:
-        http_get:
-          path: "/healthz"
-          port: 9000
-      compute:
-        cpu: 200m
-        mem: 128M
-  autoscaling:
-    max_concurrency: 1
-
-- name: request-recorder
+- name: hello-world-b
   kind: RealtimeAPI
   pod:
     port: 9000
@@ -40,7 +25,26 @@
     - name: api
       image: 499593605069.dkr.ecr.us-west-2.amazonaws.com/cortexlabs-tests/trafficsplitter-hello-world-cpu:latest
       env:
-        RECORD_ONLY: "true"
+        RESPONSE: "hello from API B"
+      readiness_probe:
+        http_get:
+          path: "/healthz"
+          port: 9000
+      compute:
+        cpu: 200m
+        mem: 128M
+  autoscaling:
+    max_concurrency: 1
+
+- name: hello-world-shadow
+  kind: RealtimeAPI
+  pod:
+    port: 9000
+    containers:
+    - name: api
+      image: 499593605069.dkr.ecr.us-west-2.amazonaws.com/cortexlabs-tests/trafficsplitter-hello-world-cpu:latest
+      env:
+        RESPONSE: "hello from shadow API"
       readiness_probe:
         http_get:
           path: "/healthz"
@@ -54,10 +58,10 @@
 - name: hello-world
   kind: TrafficSplitter
   apis:
-    - name: prime-generator-a
+    - name: hello-world-a
       weight: 30
-    - name: prime-generator-b
+    - name: hello-world-b
       weight: 70
-    - name: request-recorder
+    - name: hello-world-shadow
       shadow: true
       weight: 100
