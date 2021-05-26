@@ -30,21 +30,24 @@ const (
 
 func ErrorUserContainerResponseStatusCode(statusCode int) error {
 	return &errors.Error{
-		Kind:    ErrUserContainerResponseStatusCode,
-		Message: fmt.Sprintf("invalid response from user container; got status code %d, expected status code 200", statusCode),
+		Kind:        ErrUserContainerResponseStatusCode,
+		Message:     fmt.Sprintf("invalid response from user container; got status code %d, expected status code 200", statusCode),
+		NoTelemetry: true,
 	}
 }
 
 func ErrorUserContainerResponseMissingJSONHeader() error {
 	return &errors.Error{
-		Kind:    ErrUserContainerResponseMissingJSONHeader,
-		Message: "invalid response from user container; response content type header is not 'application/json'",
+		Kind:        ErrUserContainerResponseMissingJSONHeader,
+		Message:     "invalid response from user container; response content type header is not 'application/json'",
+		NoTelemetry: true,
 	}
 }
 
 func ErrorUserContainerResponseNotJSONSerializable() error {
 	return &errors.Error{
-		Kind:    ErrUserContainerResponseNotJSONSerializable,
-		Message: "invalid response from user container; response is not json serializable",
+		Kind:        ErrUserContainerResponseNotJSONSerializable,
+		Message:     "invalid response from user container; response is not json serializable",
+		NoTelemetry: true,
 	}
 }
