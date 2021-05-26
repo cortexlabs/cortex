@@ -103,9 +103,7 @@ def handle_batch(request: Request):
     json_output = json.dumps(results)
 
     # save results
-    s3.put_object(
-        Bucket=state["bucket"], Key=f"{state['key']}/{job_id}.json", Body=json_output
-    )
+    s3.put_object(Bucket=state["bucket"], Key=f"{state['key']}/{job_id}.json", Body=json_output)
 
 
 @app.post("/on-job-complete")

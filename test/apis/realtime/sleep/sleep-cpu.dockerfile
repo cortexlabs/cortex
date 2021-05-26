@@ -4,7 +4,7 @@ FROM python:3.8-slim
 ENV PYTHONUNBUFFERED True
 
 # Install production dependencies
-RUN pip install --no-cache-dir "uvicorn[standard]" gunicorn fastapi pydantic
+RUN pip install --no-cache-dir "uvicorn[standard]" gunicorn fastapi
 
 # Copy local code to the container image.
 COPY . /app
