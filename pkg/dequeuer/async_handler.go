@@ -29,6 +29,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/sqs"
 	awslib "github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	"github.com/cortexlabs/cortex/pkg/types/status"
 	"go.uber.org/zap"
 )
@@ -158,7 +159,8 @@ func (h *AsyncMessageHandler) deletePayload(requestID string) {
 	key := fmt.Sprintf("%s/%s/payload", h.storagePath, requestID)
 	err := h.aws.DeleteS3File(h.config.Bucket, key)
 	if err != nil {
-		h.log.Errorw("failed to delete user payload", "error", err) // TODO: telemetry
+		h.log.Errorw("failed to delete user payload", "error", err)
+		telemetry.Error(errors.Wrap(err, "failed to delete user payload"))
 	}
 }
 

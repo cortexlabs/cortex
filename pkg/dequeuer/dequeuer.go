@@ -23,6 +23,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/sqs"
 	awslib "github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	"go.uber.org/zap"
 )
 
@@ -132,8 +133,10 @@ loop:
 			done := d.StartMessageRenewer(receiptHandle)
 			err = d.handleMessage(message, messageHandler, done)
 			if err != nil {
-				// TODO: telemetry (for non-user errors)
 				d.log.Errorw("failed to handle message", "error", err)
+				if !errors.IsNoTelemetry(err) {
+					telemetry.Error(err)
+				}
 			}
 		}
 	}
