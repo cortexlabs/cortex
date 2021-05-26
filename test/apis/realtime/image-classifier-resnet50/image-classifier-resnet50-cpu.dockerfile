@@ -14,4 +14,4 @@ RUN mkdir -p /model/resnet50/ \
 
 ENV CORTEX_PORT 8501
 
-ENTRYPOINT tensorflow_model_server --rest_api_port=$CORTEX_PORT --rest_api_num_threads=9 --model_name="resnet50" --model_base_path="/model/resnet50"
+ENTRYPOINT tensorflow_model_server --rest_api_port=$CORTEX_PORT --rest_api_num_threads=8 --model_name="resnet50" --model_base_path="/model/resnet50"

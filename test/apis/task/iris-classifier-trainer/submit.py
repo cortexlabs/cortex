@@ -12,11 +12,8 @@ import cortex
 
 def main():
     # parse args
-    if len(sys.argv) < 2:
-        print("cortex environment name <env-name> arg required")
-        sys.exit(1)
-    if len(sys.argv) < 3:
-        print("destination bucket <dest-s3-dir> arg required")
+    if len(sys.argv) != 3:
+        print("usage: python submit.py <cortex-env> <dest-s3-dir>")
         sys.exit(1)
     env_name = sys.argv[1]
     dest_s3_dir = sys.argv[2]

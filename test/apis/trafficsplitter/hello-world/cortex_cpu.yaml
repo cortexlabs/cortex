@@ -1,10 +1,10 @@
-- name: prime-generator-a
+- name: hello-world-a
   kind: RealtimeAPI
   pod:
     port: 9000
     containers:
     - name: api
-      image: 499593605069.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/trafficsplitter-prime-generator-cpu:master
+      image: 499593605069.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/trafficsplitter-hello-world-cpu:master
       readiness_probe:
         http_get:
           path: "/healthz"
@@ -15,13 +15,13 @@
   autoscaling:
     max_concurrency: 1
 
-- name: prime-generator-b
+- name: hello-world-a
   kind: RealtimeAPI
   pod:
     port: 9000
     containers:
     - name: api
-      image: 499593605069.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/trafficsplitter-prime-generator-cpu:master
+      image: 499593605069.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/trafficsplitter-hello-world-cpu:master
       readiness_probe:
         http_get:
           path: "/healthz"
@@ -38,7 +38,7 @@
     port: 9000
     containers:
     - name: api
-      image: 499593605069.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/trafficsplitter-prime-generator-cpu:master
+      image: 499593605069.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/trafficsplitter-hello-world-cpu:master
       env:
         RECORD_ONLY: "true"
       readiness_probe:
@@ -51,7 +51,7 @@
   autoscaling:
     max_concurrency: 1
 
-- name: prime-generator
+- name: hello-world
   kind: TrafficSplitter
   apis:
     - name: prime-generator-a

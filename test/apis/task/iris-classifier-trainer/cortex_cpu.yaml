@@ -2,7 +2,7 @@
   kind: TaskAPI
   pod:
     containers:
-    - name: s3-model-pusher
+    - name: trainer
       image: 499593605069.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/task-iris-classifier-trainer-cpu:master
       command:
         - python

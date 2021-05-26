@@ -10,7 +10,7 @@ RUN apt-get update \
         cmake -y \
     && apt-get clean -qq && rm -rf /var/lib/apt/lists/*
 
-# Allow statements and log messages to immediately appear in the Knative logs
+# Allow statements and log messages to immediately appear in the logs
 ENV PYTHONUNBUFFERED True
 
 # Install production dependencies
@@ -23,6 +23,5 @@ WORKDIR /app/
 ENV PYTHONPATH=/app
 ENV CORTEX_PORT=9000
 
-# Run the web service on container startup. Here we use the gunicorn
-# webserver, with one worker process and one thread.
-CMD gunicorn -k uvicorn.workers.UvicornWorker --bind :$CORTEX_PORT main:app
+# Run the web service on container startup.
+CMD gunicorn -k uvicorn.workers.UvicornWorker --workers 1 --threads 1 --bind :$CORTEX_PORT main:app

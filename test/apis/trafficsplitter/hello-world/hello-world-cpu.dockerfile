@@ -4,15 +4,10 @@ FROM python:3.8-slim
 ENV PYTHONUNBUFFERED True
 
 # Install production dependencies
-RUN pip install --no-cache-dir \
-    "uvicorn[standard]" \
-    gunicorn \
-    fastapi \
-    pydantic \
-    boto3==1.17.72
+RUN pip install --no-cache-dir "uvicorn[standard]" gunicorn fastapi
 
 # Copy local code to the container image.
-COPY ./main.py /app/
+COPY . /app
 WORKDIR /app/
 
 ENV PYTHONPATH=/app

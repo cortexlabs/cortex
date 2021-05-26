@@ -1,3 +1,5 @@
+# this API is only meant to run with 1-worker jobs
+
 - name: sum
   kind: BatchAPI
   pod:

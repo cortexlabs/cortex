@@ -23,11 +23,11 @@ state = {
     "preprocess": None,
     "job_id": None,
     "labels": None,
-    "s3": None,
     "bucket": None,
     "key": None,
 }
 device = os.getenv("TARGET_DEVICE", "cpu")
+s3 = boto3.client("s3")
 app = FastAPI()
 
 
@@ -42,12 +42,12 @@ def startup():
 
     # get metadata
     config = job_spec["config"]
-    job_id = state["job_id"] = job_spec["job_id"]
+    job_id = job_spec["job_id"]
+    state["job_id"] = job_spec["job_id"]
     if len(config.get("dest_s3_dir", "")) == 0:
         raise Exception("'dest_s3_dir' field was not provided in job submission")
 
     # s3 info
-    state["s3"] = boto3.client("s3")
     state["bucket"], state["key"] = re.match("s3://(.+?)/(.+)", config["dest_s3_dir"]).groups()
     state["key"] = os.path.join(state["key"], job_id)
 
@@ -80,9 +80,11 @@ def handle_batch(request: Request):
     for image_url in payload:
         if image_url.startswith("s3://"):
             bucket, image_key = re.match("s3://(.+?)/(.+)", image_url).groups()
-            image_bytes = state["s3"].get_object(Bucket=bucket, Key=image_key)["Body"].read()
-        else:
+            image_bytes = s3.get_object(Bucket=bucket, Key=image_key)["Body"].read()
+        elif image_url.startswith("http"):
             image_bytes = requests.get(image_url).content
+        else:
+            raise RuntimeError(f"{image_url}: invalid image url")
 
         img_pil = Image.open(BytesIO(image_bytes))
         tensor_list.append(state["preprocess"](img_pil))
@@ -101,24 +103,24 @@ def handle_batch(request: Request):
     json_output = json.dumps(results)
 
     # save results
-    state["s3"].put_object(
+    s3.put_object(
         Bucket=state["bucket"], Key=f"{state['key']}/{job_id}.json", Body=json_output
     )
 
 
-@app.post("/on_job_complete")
+@app.post("/on-job-complete")
 def on_job_complete():
     all_results = []
 
     # aggregate all classifications
-    paginator = state["s3"].get_paginator("list_objects_v2")
+    paginator = s3.get_paginator("list_objects_v2")
     for page in paginator.paginate(Bucket=state["bucket"], Prefix=state["key"]):
         for obj in page["Contents"]:
-            body = state["s3"].get_object(Bucket=state["bucket"], Key=obj["Key"])["Body"]
+            body = s3.get_object(Bucket=state["bucket"], Key=obj["Key"])["Body"]
             all_results += json.loads(body.read().decode("utf8"))
 
     # save single file containing aggregated classifications
-    state["s3"].put_object(
+    s3.put_object(
         Bucket=state["bucket"],
         Key=os.path.join(state["key"], "aggregated_results.json"),
         Body=json.dumps(all_results),

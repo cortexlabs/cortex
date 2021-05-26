@@ -14,12 +14,12 @@ class Request(BaseModel):
 
 state = {
     "ready": False,
-    "s3": None,
     "bucket": None,
     "key": None,
     "numbers_list": [],
 }
 app = FastAPI()
+s3 = boto3.client("s3")
 
 
 @app.on_event("startup")
@@ -38,7 +38,6 @@ def startup():
         raise Exception("'dest_s3_dir' field was not provided in job submission")
 
     # s3 info
-    state["s3"] = boto3.client("s3")
     state["bucket"], state["key"] = re.match("s3://(.+?)/(.+)", config["dest_s3_dir"]).groups()
     state["key"] = os.path.join(state["key"], job_id)
 
@@ -61,4 +60,4 @@ def handle_batch(request: Request):
 @app.post("/on_job_complete")
 def on_job_complete():
     json_output = json.dumps(state["numbers_list"])
-    state["s3"].put_object(Bucket=state["bucket"], Key=f"{state['key']}.json", Body=json_output)
+    s3.put_object(Bucket=state["bucket"], Key=f"{state['key']}.json", Body=json_output)

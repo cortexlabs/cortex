@@ -25,8 +25,8 @@ IMAGE_URL = "https://tensorflow.org/images/blogs/serving/cat.jpg"
 
 def main():
     # parse arg
-    if len(sys.argv) < 2:
-        print("missing <http://host:port> arg")
+    if len(sys.argv) != 2:
+        print("usage: python client.py <http://host:port>")
         sys.exit(1)
     address = sys.argv[1]
     server_url = f"{address}/v1/models/resnet50:predict"
