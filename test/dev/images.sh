@@ -14,19 +14,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+set -eo pipefail
 
-set -euo pipefail
-
-ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")"/.. >/dev/null && pwd)"
-
-source $ROOT/build/images.sh
-source $ROOT/dev/util.sh
-
-# if parallel utility is installed, the docker build commands will be parallelized
-if command -v parallel &> /dev/null && [ -n "${NUM_BUILD_PROCS+set}" ] && [ "$NUM_BUILD_PROCS" != "1" ]; then
-  ROOT=$ROOT SHELL=$(type -p /bin/bash) parallel --will-cite --halt now,fail=1 --eta --jobs $NUM_BUILD_PROCS $ROOT/build/build-image.sh {} ::: "${all_images[@]}"
-else
-  for image in "${all_images[@]}"; do
-    $ROOT/build/build-image.sh $image
-  done
-fi
+api_images=(
+  "async-text-generator-cpu"
+  "async-text-generator-gpu"
+  "batch-image-classifier-alexnet-cpu"
+  "batch-image-classifier-alexnet-gpu"
+  "batch-sum-cpu"
+  "realtime-image-classifier-resnet50-cpu"
+  "realtime-image-classifier-resnet50-gpu"
+  "realtime-prime-generator-cpu"
+  "realtime-sleep-cpu"
+  "realtime-text-generator-cpu"
+  "realtime-text-generator-gpu"
+  "task-iris-classifier-trainer-cpu"
+  "trafficsplitter-hello-world-cpu"
+)

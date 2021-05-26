@@ -5,7 +5,7 @@
   pod:
     containers:
     - name: api
-      image: 499593605069.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/batch-sum-cpu:master
+      image: 499593605069.dkr.ecr.us-west-2.amazonaws.com/cortexlabs-tests/batch-sum-cpu:master
       compute:
         cpu: 200m
         mem: 256Mi

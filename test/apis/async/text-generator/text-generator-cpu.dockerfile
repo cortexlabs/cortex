@@ -4,7 +4,13 @@ FROM python:3.8-slim
 ENV PYTHONUNBUFFERED True
 
 # Install production dependencies
-RUN pip install --no-cache-dir "uvicorn[standard]" gunicorn fastapi pydantic transformers==3.0.* torch==1.7.1+cpu
+RUN pip install --no-cache-dir \
+    "uvicorn[standard]" \
+    gunicorn \
+    fastapi \
+    pydantic \
+    transformers==3.0.* \
+    torch==1.7.1+cpu -f https://download.pytorch.org/whl/torch_stable.html
 
 # Copy local code to the container image.
 COPY . /app

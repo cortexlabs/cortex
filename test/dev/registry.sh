@@ -14,14 +14,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-CORTEX_VERSION=master
-
 set -eo pipefail
 
-ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")"/.. >/dev/null && pwd)"
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")"/../.. >/dev/null && pwd)"
 
-source $ROOT/build/images.sh
 source $ROOT/dev/util.sh
+source $ROOT/test/dev/images.sh
 
 if [ -f "$ROOT/dev/config/env.sh" ]; then
   source $ROOT/dev/config/env.sh
@@ -77,27 +75,14 @@ function registry_login() {
   if [ "$is_registry_logged_in" = "false" ]; then
     blue_echo "Logging in to ECR..."
     aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $registry_push_url
-
-    blue_echo "Logging in to 790709498068.dkr.ecr.us-west-2.amazonaws.com for inferentia..."
-    set +e
-    echo "$AWS_REGION" | grep  "us-gov"
-    is_gov_cloud=$?
-    set -e
-    if [ "$is_gov_cloud" == "0" ]; then
-      # set NORMAL_REGION_AWS_ACCESS_KEY_ID and NORMAL_REGION_AWS_SECRET_ACCESS_KEY credentials from a regular AWS account (non govcloud) in your dev/config/env.sh
-      AWS_ACCESS_KEY_ID=$NORMAL_REGION_AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY=$NORMAL_REGION_AWS_SECRET_ACCESS_KEY aws ecr get-login-password --region us-west-2 | docker login --username AWS --password-stdin 790709498068.dkr.ecr.us-west-2.amazonaws.com
-    else
-      aws ecr get-login-password --region us-west-2 | docker login --username AWS --password-stdin 790709498068.dkr.ecr.us-west-2.amazonaws.com
-    fi
-
     is_registry_logged_in="true"
     green_echo "Success\n"
   fi
 }
 
 function create_ecr_repository() {
-  for image in "${all_images[@]}"; do
-    aws ecr create-repository --repository-name=cortexlabs/$image --region=$AWS_REGION || true
+  for image in "${api_images[@]}"; do
+    aws ecr create-repository --repository-name=cortexlabs-tests/$image --region=$AWS_REGION || true
   done
 }
 
@@ -109,22 +94,18 @@ function build() {
 
   tag_args=""
   if [ -n "$AWS_ACCOUNT_ID" ] && [ -n "$AWS_REGION" ]; then
-    tag_args+=" -t $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/cortexlabs/$image:$tag"
+    tag_args+=" -t $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/cortexlabs-tests/$image:$tag"
   fi
 
-  blue_echo "Building $image:$tag..."
-  local dir="${ROOT}/images/${image}"
-  docker build $ROOT -f $dir/Dockerfile -t cortexlabs/$image:$tag $tag_args
+  local num_words="$(awk -F'-' '{ for(i=1;i<=NF;i++) print $i }' <<< ${image} | wc -l | sed -e 's/^[[:space:]]*//')"
+  local kind_dir="$( cut -d '-' -f 1 <<< "${image}" )"
+  local api_name="$( cut -d '-' -f 2-$((num_words-1)) <<< "${image}" )"
+  local compute_type="$( cut -d '-' -f ${num_words} <<< "${image}" )"
+
+  local dir="${ROOT}/test/apis/${kind_dir}/${api_name}"
+  echo "docker build $dir -f $api_name-$compute_type.dockerfile -t cortexlabs-tests/$image:$tag $tag_args"
+  docker build $dir -f $dir/$api_name-$compute_type.dockerfile -t cortexlabs-tests/$image:$tag $tag_args
   green_echo "Built $image:$tag\n"
-}
-
-function cache_builder() {
-  local image=$1
-  local dir="${ROOT}/images/${image}"
-
-  blue_echo "Building $image-builder..."
-  docker build $ROOT -f $dir/Dockerfile -t cortexlabs/$image-builder:$CORTEX_VERSION --target builder
-  green_echo "Built $image-builder\n"
 }
 
 function push() {
@@ -138,7 +119,7 @@ function push() {
   local tag=$2
 
   blue_echo "Pushing $image:$tag..."
-  docker push $registry_push_url/cortexlabs/$image:$tag
+  docker push $registry_push_url/cortexlabs-tests/$image:$tag
   green_echo "Pushed $image:$tag\n"
 }
 
@@ -147,7 +128,7 @@ function build_and_push() {
 
   set -euo pipefail  # necessary since this is called in a new shell by parallel
 
-  tag=$CORTEX_VERSION
+  tag=latest
   build $image $tag
   push $image $tag
 }
@@ -216,42 +197,19 @@ elif [ "$cmd" = "create" ]; then
 # usage: registry.sh update-single IMAGE
 elif [ "$cmd" = "update-single" ]; then
   image=$sub_cmd
-  if [ "$image" = "operator" ] || [ "$image" = "proxy" ]; then
-    cache_builder $image
-  fi
   build_and_push $image
 
-# usage: registry.sh update all|dev|api
+# usage: registry.sh update
 # if parallel utility is installed, the docker build commands will be parallelized
 elif [ "$cmd" = "update" ]; then
-  images_to_build=()
-
-  if [ "$sub_cmd" == "all" ]; then
-    images_to_build+=( "${non_dev_images[@]}" )
-  fi
-
-  if [[ "$sub_cmd" == "all" || "$sub_cmd" == "dev" ]]; then
-    images_to_build+=( "${dev_images[@]}" )
-  fi
-
-  if [[ " ${images_to_build[@]} " =~ " operator " ]]; then
-    cache_builder operator
-  fi
-  if [[ " ${images_to_build[@]} " =~ " proxy " ]]; then
-    cache_builder proxy
-  fi
-  if [[ " ${images_to_build[@]} " =~ " async-gateway " ]]; then
-    cache_builder async-gateway
-  fi
-
+  # build api images
   if command -v parallel &> /dev/null && [ -n "${NUM_BUILD_PROCS+set}" ] && [ "$NUM_BUILD_PROCS" != "1" ]; then
-    is_registry_logged_in=$is_registry_logged_in ROOT=$ROOT registry_push_url=$registry_push_url SHELL=$(type -p /bin/bash) parallel --will-cite --halt now,fail=1 --eta --jobs $NUM_BUILD_PROCS build_and_push "{}" ::: "${images_to_build[@]}"
+    is_registry_logged_in=$is_registry_logged_in ROOT=$ROOT registry_push_url=$registry_push_url SHELL=$(type -p /bin/bash) parallel --will-cite --halt now,fail=1 --eta --jobs $NUM_BUILD_PROCS build_and_push "{}" ::: "${api_images[@]}"
   else
-    for image in "${images_to_build[@]}"; do
+    for image in "${api_images[@]}"; do
       build_and_push $image
     done
   fi
-
   cleanup_local
 
 else

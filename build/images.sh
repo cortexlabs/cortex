@@ -19,22 +19,6 @@
 
 set -euo pipefail
 
-api_images=(
-  "async-text-generator-cpu"
-  "async-text-generator-gpu"
-  "batch-image-classifier-alexnet-cpu"
-  "batch-image-classifier-alexnet-gpu"
-  "batch-sum-cpu"
-  "realtime-image-classifier-resnet50-cpu"
-  "realtime-image-classifier-resnet50-gpu"
-  "realtime-prime-generator-cpu"
-  "realtime-sleep-cpu"
-  "realtime-text-generator-cpu"
-  "realtime-text-generator-gpu"
-  "task-iris-classifier-trainer-cpu"
-  "trafficsplitter-prime-generator-cpu"
-)
-
 dev_images=(
   "manager"
   "proxy"
@@ -70,7 +54,6 @@ non_dev_images=(
 )
 
 all_images=(
-  "${api_images[@]}"
   "${dev_images[@]}"
   "${non_dev_images[@]}"
 )

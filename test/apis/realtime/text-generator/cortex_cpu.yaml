@@ -4,7 +4,7 @@
     port: 9000
     containers:
     - name: api
-      image: 499593605069.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/realtime-text-generator-cpu:master
+      image: 499593605069.dkr.ecr.us-west-2.amazonaws.com/cortexlabs-tests/realtime-text-generator-cpu:master
       readiness_probe:
         http_get:
           path: "/healthz"
