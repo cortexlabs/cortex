@@ -1,4 +1,4 @@
-- name: trainer
+- name: iris-classifier-trainer
   kind: TaskAPI
   pod:
     containers:
