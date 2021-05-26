@@ -35,7 +35,7 @@ import (
 
 const (
 	// CortexRequestIDHeader is the header containing the workload request id for the user container
-	CortexRequestIDHeader = "X-Cortex-RequestID"
+	CortexRequestIDHeader = "X-Cortex-Request-ID"
 )
 
 type AsyncMessageHandler struct {
@@ -79,7 +79,7 @@ func (h *AsyncMessageHandler) Handle(message *sqs.Message) error {
 		h.log.Errorw("failed processing request", "id", requestID, "error", err)
 		err = h.handleFailure(requestID)
 		if err != nil {
-			h.log.Error(zap.Error(err))
+			h.log.Errorw("failed to handle message failure", "error", err)
 		}
 	}
 	return nil

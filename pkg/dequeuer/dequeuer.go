@@ -142,18 +142,18 @@ func (d *SQSDequeuer) Shutdown() {
 }
 
 func (d *SQSDequeuer) handleMessage(message *sqs.Message, messageHandler MessageHandler, done chan struct{}) {
-	messageErr := messageHandler.Handle(message)
-	// if messageErr != nil {
-	// 	// TODO: add to dead letter queue
-	// }
+	err := messageHandler.Handle(message)
+	if err != nil {
+		d.log.Errorw("error during message handling", "error", err)
+	}
 
 	done <- struct{}{}
 	isOnJobComplete := isOnJobCompleteMessage(message)
 
-	if !isOnJobComplete && d.hasDeadLetterQueue && messageErr != nil {
+	if !isOnJobComplete && d.hasDeadLetterQueue && err != nil {
 		// expire messages when head letter queue is configured to facilitate redrive policy
 		// always delete onJobComplete messages regardless of dredrive policy because a new one will be added if an onJobComplete message has been consumed prematurely
-		_, err := d.aws.SQS().ChangeMessageVisibility(
+		_, err = d.aws.SQS().ChangeMessageVisibility(
 			&sqs.ChangeMessageVisibilityInput{
 				QueueUrl:          &d.config.QueueURL,
 				ReceiptHandle:     message.ReceiptHandle,
@@ -161,21 +161,19 @@ func (d *SQSDequeuer) handleMessage(message *sqs.Message, messageHandler Message
 			},
 		)
 		if err != nil {
-			// TODO
-			d.log.Error(zap.Error(err))
+			d.log.Errorw("failed to change sqs message visibility", "error", err)
 		}
 		return
 	}
 
-	_, err := d.aws.SQS().DeleteMessage(
+	_, err = d.aws.SQS().DeleteMessage(
 		&sqs.DeleteMessageInput{
 			QueueUrl:      &d.config.QueueURL,
 			ReceiptHandle: message.ReceiptHandle,
 		},
 	)
 	if err != nil {
-		// TODO
-		d.log.Info(zap.Error(err))
+		d.log.Errorw("failed to delete sqs message", "error", err)
 	}
 }
 
@@ -199,8 +197,7 @@ func (d *SQSDequeuer) StartMessageRenewer(receiptHandle string) chan struct{} {
 					},
 				)
 				if err != nil {
-					// TODO err
-					d.log.Error(zap.Error(err))
+					d.log.Errorw("failed to renew message visibility timeout", "error", err)
 				}
 			}
 		}

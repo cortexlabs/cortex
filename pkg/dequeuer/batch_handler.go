@@ -26,11 +26,16 @@ import (
 	"github.com/aws/aws-sdk-go/service/sqs"
 	awslib "github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/urls"
 	"github.com/xtgo/uuid"
 	"go.uber.org/zap"
 )
 
-const _jobCompleteMessageRenewal = 10 * time.Second
+const (
+	// CortexJobIDHeader is the header containing the job id for the user container
+	CortexJobIDHeader          = "X-Cortex-Job-ID"
+	_jobCompleteMessageRenewal = 10 * time.Second
+)
 
 type BatchMessageHandler struct {
 	config                    BatchMessageHandlerConfig
@@ -69,19 +74,16 @@ func (h *BatchMessageHandler) Handle(message *sqs.Message) error {
 	if isOnJobCompleteMessage(message) {
 		err := h.onJobComplete(message)
 		if err != nil {
-			// TODO
-			h.log.Fatal(err)
+			h.log.Errorw("failed to handle 'onJobComplete' message", "error", err)
 		}
 		return nil
 	}
 	err := h.handleBatch(message)
 	if err != nil {
-		// TODO
 		h.log.Errorw("failed processing batch", "id", *message.MessageId, "error", err)
 		err = h.handleFailure(message)
 		if err != nil {
-			// TODO
-			h.log.Fatal(err)
+			h.log.Errorw("failed to handle message failure", "error", err)
 		}
 	}
 	return nil
@@ -111,8 +113,21 @@ func (h *BatchMessageHandler) recordTimePerBatch(elapsedTime time.Duration) erro
 	return nil
 }
 
-func (h *BatchMessageHandler) submitRequest(messageBody string) error {
-	response, err := http.Post(h.config.TargetURL, "application/json", bytes.NewBuffer([]byte(messageBody)))
+func (h *BatchMessageHandler) submitRequest(messageBody string, isOnJobComplete bool) error {
+	targetURL := h.config.TargetURL
+	if isOnJobComplete {
+		targetURL = urls.Join(targetURL, "/on_job_complete")
+	}
+
+	httpClient := &http.Client{}
+	req, err := http.NewRequest(http.MethodPost, h.config.TargetURL, bytes.NewBuffer([]byte(messageBody)))
+	if err != nil {
+		return err
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set(CortexJobIDHeader, h.config.JobID)
+	response, err := httpClient.Do(req)
 	if err != nil {
 		return err
 	}
@@ -125,10 +140,10 @@ func (h *BatchMessageHandler) submitRequest(messageBody string) error {
 }
 
 func (h *BatchMessageHandler) handleBatch(message *sqs.Message) error {
-	h.log.Info("processing batch", "id", *message.MessageId)
+	h.log.Infow("processing batch", "id", *message.MessageId)
 
 	startTime := time.Now()
-	err := h.submitRequest(*message.Body)
+	err := h.submitRequest(*message.Body, false)
 	if err != nil {
 		return err
 	}
@@ -168,7 +183,7 @@ func (h *BatchMessageHandler) onJobComplete(message *sqs.Message) error {
 
 		if totalMessages > 1 {
 			time.Sleep(h.jobCompleteMessageRenewal)
-			h.log.Info("found other messages in queue, requeuing job_complete message")
+			h.log.Infow("found other messages in queue, requeuing job_complete message", "id", *message.MessageId)
 			newMessageID := uuid.NewRandom().String()
 			if _, err = h.aws.SQS().SendMessage(
 				&sqs.SendMessageInput{
@@ -199,8 +214,8 @@ func (h *BatchMessageHandler) onJobComplete(message *sqs.Message) error {
 		}
 
 		if shouldRunOnJobComplete {
-			h.log.Infow("processing job_complete message")
-			return h.submitRequest(*message.Body)
+			h.log.Infow("processing job_complete message", "id", *message.MessageId)
+			return h.submitRequest(*message.Body, true)
 		}
 		shouldRunOnJobComplete = true
 
