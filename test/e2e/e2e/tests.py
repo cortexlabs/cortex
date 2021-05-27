@@ -582,13 +582,6 @@ def test_load_realtime(
             api_info = client.get_api(api_name)
             network_stats = api_info["metrics"]["network_stats"]
 
-            assert (
-                network_stats["code_4xx"] == 0
-            ), f"detected 4xx response codes ({network_stats['code_4xx']}) in cortex get"
-            assert (
-                network_stats["code_5xx"] == 0
-            ), f"detected 5xx response codes ({network_stats['code_5xx']}) in cortex get"
-
             printer(
                 f"min RTT: {current_min_rtt} | max RTT: {current_max_rtt} | avg RTT: {current_avg_rtt} | requests: {network_stats['code_2xx']} (out of {total_requests})"
             )
@@ -600,9 +593,13 @@ def test_load_realtime(
             # don't stress the CPU too hard
             time.sleep(1)
 
+        offset = client.get_api(api_name)["metrics"]["network_stats"]["code_2xx"]
+        if offset is None:
+            offset = 0
+
         printer("verifying number of processed requests using the client")
         assert api_requests(
-            client, api_name, total_requests, timeout=status_code_timeout
+            client, api_name, total_requests + offset, timeout=status_code_timeout
         ), f"the number of 2xx response codes for api {api_name} doesn't match the expected number {total_requests}"
 
     except:
