@@ -587,7 +587,7 @@ def test_load_realtime(
             network_stats = api_info["metrics"]["network_stats"]
 
             printer(
-                f"min RTT: {current_min_rtt} | max RTT: {current_max_rtt} | avg RTT: {current_avg_rtt} | requests: {network_stats['code_2xx']} (out of {total_requests})"
+                f"min RTT: {current_min_rtt} | max RTT: {current_max_rtt} | avg RTT: {current_avg_rtt} | requests: {network_stats['code_2xx']-offset} (out of {total_requests-offset})"
             )
 
             # check if the requesting threads are still healthy
