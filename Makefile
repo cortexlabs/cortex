@@ -172,17 +172,10 @@ test-python:
 	@./build/test.sh python
 
 
-# test api docker images
-test-images:
-	@./test/dev/registry.sh update
-test-images-skip-push:
-	@./test/dev/registry.sh update --skip-push
-
-test-registry-create:
-	@./test/dev/registry.sh create
-
-test-registry-clean:
-	@./test/dev/registry.sh clean
+# build test api images
+# the DOCKER_PASSWORD and DOCKER_USERNAME vars to the quay repo are required
+build-and-push-test-images:
+	@./test/utils/build-and-push-images.sh quay.io
 
 # run e2e tests on an existing cluster
 # read test/e2e/README.md for instructions first
@@ -222,9 +215,3 @@ ci-build-cli:
 
 ci-build-and-upload-cli:
 	@./build/cli.sh upload
-
-ci-test-build-images:
-	@./test/dev/build-images.sh
-
-ci-test-push-images:
-	@./test/dev/push-images.sh quay.io

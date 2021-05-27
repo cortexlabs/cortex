@@ -130,7 +130,6 @@ jobs:
       - return-if-not-deployed-branch
       - run: make ci-build-and-upload-cli
       - run: make ci-build-images
-      # - run: make ci-test-build-images
       - quay-login
       - run:
           command: make ci-push-images
@@ -138,9 +137,6 @@ jobs:
       - run:
           command: make ci-backup-images
           no_output_timeout: 20m
-      # - run:
-      #     command: make ci-test-push-images
-      #     no_output_timeout: 20m
 
   e2e-tests:
     docker:
