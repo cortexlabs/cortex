@@ -54,3 +54,53 @@ func TestBatchMessageHandler_Handle(t *testing.T) {
 	require.Equal(t, callCount, 1)
 	require.NoError(t, err)
 }
+
+func TestBatchMessageHandler_Handle_OnJobComplete(t *testing.T) {
+	t.Parallel()
+	awsClient := testAWSClient(t)
+	queueURL := createQueue(t, awsClient)
+
+	var callCount int
+	mux := http.NewServeMux()
+	mux.HandleFunc("/on-job-complete", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			w.WriteHeader(http.StatusMethodNotAllowed)
+			return
+		}
+		callCount++
+		w.WriteHeader(http.StatusOK)
+	})
+	server := httptest.NewServer(mux)
+
+	batchHandler := NewBatchMessageHandler(BatchMessageHandlerConfig{
+		APIName:   "test",
+		JobID:     "12345",
+		Region:    _localStackDefaultRegion,
+		TargetURL: server.URL,
+		QueueURL:  queueURL,
+	}, awsClient, &statsd.NoOpClient{}, newLogger(t))
+
+	batchHandler.jobCompleteMessageDelay = 0
+
+	err := batchHandler.Handle(&sqs.Message{
+		Body: aws.String("job_complete"),
+		MessageAttributes: map[string]*sqs.MessageAttributeValue{
+			"job_complete": {
+				DataType:    aws.String("String"),
+				StringValue: aws.String("true"),
+			},
+			"api_name": {
+				DataType:    aws.String("String"),
+				StringValue: aws.String("test"),
+			},
+			"job_id": {
+				DataType:    aws.String("String"),
+				StringValue: aws.String("12345"),
+			},
+		},
+		MessageId: aws.String("00000"),
+	})
+
+	require.NoError(t, err)
+	require.Equal(t, callCount, 1)
+}

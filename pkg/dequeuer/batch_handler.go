@@ -117,7 +117,7 @@ func (h *BatchMessageHandler) submitRequest(messageBody string, isOnJobComplete 
 		targetURL = urls.Join(targetURL, "/on-job-complete")
 	}
 
-	req, err := http.NewRequest(http.MethodPost, h.config.TargetURL, bytes.NewBuffer([]byte(messageBody)))
+	req, err := http.NewRequest(http.MethodPost, targetURL, bytes.NewBuffer([]byte(messageBody)))
 	if err != nil {
 		return errors.WithStack(err)
 	}
