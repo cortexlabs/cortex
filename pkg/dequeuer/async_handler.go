@@ -192,7 +192,7 @@ func (h *AsyncMessageHandler) submitRequest(payload *userPayload, requestID stri
 
 	var result interface{}
 	if err = json.NewDecoder(response.Body).Decode(&result); err != nil {
-		return nil, ErrorUserContainerResponseNotJSONSerializable()
+		return nil, ErrorUserContainerResponseNotJSONDecodable()
 	}
 
 	return result, nil

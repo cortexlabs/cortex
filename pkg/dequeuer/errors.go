@@ -44,10 +44,10 @@ func ErrorUserContainerResponseMissingJSONHeader() error {
 	}
 }
 
-func ErrorUserContainerResponseNotJSONSerializable() error {
+func ErrorUserContainerResponseNotJSONDecodable() error {
 	return &errors.Error{
 		Kind:        ErrUserContainerResponseNotJSONSerializable,
-		Message:     "invalid response from user container; response is not json serializable",
+		Message:     "invalid response from user container; response is not json decodable",
 		NoTelemetry: true,
 	}
 }
