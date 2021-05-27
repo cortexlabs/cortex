@@ -108,8 +108,9 @@ func main() {
 		BackoffMode: telemetry.BackoffDuplicateMessages,
 	})
 	if err != nil {
-		exit(log, err)
+		log.Fatalw("failed to initialize telemetry", "error", err)
 	}
+	defer telemetry.Close()
 
 	metricsClient, err := statsd.New(fmt.Sprintf("%s:%d", hostIP, statsdPort))
 	if err != nil {
@@ -199,6 +200,5 @@ func exit(log *zap.SugaredLogger, err error, wrapStrs ...string) {
 		log.Error(err)
 	}
 
-	telemetry.Close()
 	os.Exit(1)
 }
