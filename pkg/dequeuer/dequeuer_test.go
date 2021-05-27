@@ -95,14 +95,6 @@ func TestMain(m *testing.M) {
 	os.Exit(code)
 }
 
-type mockHandler struct {
-	HandleFunc func(message *sqs.Message) error
-}
-
-func (h *mockHandler) Handle(msg *sqs.Message) error {
-	return h.HandleFunc(msg)
-}
-
 func testAWSClient(t *testing.T) *awslib.Client {
 	t.Helper()
 
@@ -264,7 +256,7 @@ func TestSQSDequeuerTerminationOnEmptyQueue(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	msgHandler := &mockHandler{
+	msgHandler := &handleFuncMessageHandler{
 		HandleFunc: func(msg *sqs.Message) error {
 			return nil
 		},
@@ -299,11 +291,11 @@ func TestSQSDequeuer_Shutdown(t *testing.T) {
 	dq.notFoundSleepTime = 0
 	dq.waitTimeSeconds = aws.Int64(0)
 
-	msgHandler := &mockHandler{
-		HandleFunc: func(msg *sqs.Message) error {
+	msgHandler := NewHandleFuncMessageHandler(
+		func(message *sqs.Message) error {
 			return nil
 		},
-	}
+	)
 
 	errCh := make(chan error, 1)
 	go func() {
@@ -316,4 +308,50 @@ func TestSQSDequeuer_Shutdown(t *testing.T) {
 
 	err = <-errCh
 	require.NoError(t, err)
+}
+
+func TestSQSDequeuer_Start_HandlerError(t *testing.T) {
+	t.Parallel()
+
+	awsClient := testAWSClient(t)
+	queueURL := createQueue(t, awsClient)
+
+	dq, err := NewSQSDequeuer(
+		SQSDequeuerConfig{
+			Region:           _localStackDefaultRegion,
+			QueueURL:         queueURL,
+			StopIfNoMessages: true,
+		}, awsClient, newLogger(t),
+	)
+	require.NoError(t, err)
+
+	dq.waitTimeSeconds = aws.Int64(0)
+	dq.notFoundSleepTime = 0
+	dq.renewalPeriod = time.Second
+	dq.visibilityTimeout = aws.Int64(1)
+
+	msgHandler := NewHandleFuncMessageHandler(
+		func(message *sqs.Message) error {
+			return fmt.Errorf("an error occurred")
+		},
+	)
+
+	messageID := "12345"
+	messageBody := "blah"
+	_, err = awsClient.SQS().SendMessage(&sqs.SendMessageInput{
+		MessageBody:            aws.String(messageBody),
+		MessageDeduplicationId: aws.String(messageID),
+		MessageGroupId:         aws.String(messageID),
+		QueueUrl:               aws.String(queueURL),
+	})
+	require.NoError(t, err)
+
+	err = dq.Start(msgHandler)
+	require.NoError(t, err)
+
+	require.Never(t, func() bool {
+		msg, err := dq.ReceiveMessage()
+		require.NoError(t, err)
+		return msg != nil
+	}, 5*time.Second, time.Second)
 }

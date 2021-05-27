@@ -35,10 +35,6 @@ var (
 	_renewalPeriod     = 10 * time.Second
 )
 
-type MessageHandler interface {
-	Handle(*sqs.Message) error
-}
-
 type SQSDequeuerConfig struct {
 	Region           string
 	QueueURL         string
@@ -132,7 +128,7 @@ loop:
 			done := d.StartMessageRenewer(receiptHandle)
 			err = d.handleMessage(message, messageHandler, done)
 			if err != nil {
-				d.log.Errorw("failed to handle message", "error", err)
+				d.log.Error(err)
 				if !errors.IsNoTelemetry(err) {
 					telemetry.Error(err)
 				}
@@ -154,8 +150,9 @@ func (d *SQSDequeuer) handleMessage(message *sqs.Message, messageHandler Message
 	isOnJobComplete := isOnJobCompleteMessage(message)
 
 	if !isOnJobComplete && d.hasDeadLetterQueue && messageErr != nil {
-		// expire messages when dead letter queue is configured to facilitate redrive policy
-		// always delete onJobComplete messages regardless of dredrive policy because a new one will be added if an onJobComplete message has been consumed prematurely
+		// expire messages when dead letter queue is configured to facilitate redrive policy.
+		// always delete onJobComplete messages regardless of redrive policy because a new one will
+		// be added if an onJobComplete message has been consumed prematurely
 		_, err := d.aws.SQS().ChangeMessageVisibility(
 			&sqs.ChangeMessageVisibilityInput{
 				QueueUrl:          &d.config.QueueURL,

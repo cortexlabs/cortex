@@ -36,6 +36,8 @@ const (
 )
 
 func TestAsyncMessageHandler_Handle(t *testing.T) {
+	t.Parallel()
+
 	log := newLogger(t)
 	awsClient := testAWSClient(t)
 
@@ -76,6 +78,8 @@ func TestAsyncMessageHandler_Handle(t *testing.T) {
 }
 
 func TestAsyncMessageHandler_Handle_Errors(t *testing.T) {
+	t.Parallel()
+
 	cases := []struct {
 		name          string
 		message       *sqs.Message
