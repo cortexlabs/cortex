@@ -23,10 +23,10 @@ import (
 )
 
 const (
-	ErrUserContainerResponseStatusCode          = "dequeuer.user_container_response_status_code"
-	ErrUserContainerResponseMissingJSONHeader   = "dequeuer.user_container_response_missing_json_header"
-	ErrUserContainerResponseNotJSONSerializable = "dequeuer.user_container_response_not_json_serializable"
-	ErrUserContainerNotReachable                = "dequeuer.user_container_not_reachable"
+	ErrUserContainerResponseStatusCode        = "dequeuer.user_container_response_status_code"
+	ErrUserContainerResponseMissingJSONHeader = "dequeuer.user_container_response_missing_json_header"
+	ErrUserContainerResponseNotJSONDecodable  = "dequeuer.user_container_response_not_json_decodable"
+	ErrUserContainerNotReachable              = "dequeuer.user_container_not_reachable"
 )
 
 func ErrorUserContainerResponseStatusCode(statusCode int) error {
@@ -47,7 +47,7 @@ func ErrorUserContainerResponseMissingJSONHeader() error {
 
 func ErrorUserContainerResponseNotJSONDecodable() error {
 	return &errors.Error{
-		Kind:        ErrUserContainerResponseNotJSONSerializable,
+		Kind:        ErrUserContainerResponseNotJSONDecodable,
 		Message:     "invalid response from user container; response is not json decodable",
 		NoTelemetry: true,
 	}

@@ -140,15 +140,17 @@ func (h *BatchMessageHandler) handleBatch(message *sqs.Message) error {
 	h.log.Infow("processing batch", "id", *message.MessageId)
 
 	startTime := time.Now()
+
 	err := h.submitRequest(*message.Body, false)
 	if err != nil {
 		h.log.Errorw("failed to process batch", "id", *message.MessageId, "error", err)
-		err = h.recordFailure()
-		if err != nil {
-			return errors.Wrap(err, "failed to record failure metric")
+		recordFailureErr := h.recordFailure()
+		if recordFailureErr != nil {
+			return errors.Wrap(recordFailureErr, "failed to record failure metric")
 		}
 		return nil
 	}
+
 	endTime := time.Now().Sub(startTime)
 
 	err = h.recordSuccess()

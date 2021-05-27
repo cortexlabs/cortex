@@ -52,7 +52,7 @@ func main() {
 	flag.StringVar(&apiKind, "api-kind", "", fmt.Sprintf("api kind (%s|%s)", userconfig.BatchAPIKind.String(), userconfig.AsyncAPIKind.String()))
 	flag.StringVar(&apiName, "api-name", "", "api name")
 	flag.StringVar(&jobID, "job-id", "", "job ID")
-	flag.IntVar(&userContainerPort, "user-port", 8080, "target port from which the dequeued messages will be sent to")
+	flag.IntVar(&userContainerPort, "user-port", 8080, "target port to which the dequeued messages will be sent to")
 	flag.IntVar(&statsdPort, "statsd-port", 9125, "port for to send udp statsd metrics")
 
 	flag.Parse()

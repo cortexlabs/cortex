@@ -149,7 +149,7 @@ func (d *SQSDequeuer) handleMessage(message *sqs.Message, messageHandler Message
 	done <- struct{}{}
 	isOnJobComplete := isOnJobCompleteMessage(message)
 
-	if !isOnJobComplete && d.hasDeadLetterQueue && messageErr != nil {
+	if messageErr != nil && d.hasDeadLetterQueue && !isOnJobComplete {
 		// expire messages when dead letter queue is configured to facilitate redrive policy.
 		// always delete onJobComplete messages regardless of redrive policy because a new one will
 		// be added if an onJobComplete message has been consumed prematurely
