@@ -34,8 +34,8 @@ api_images=(
   "realtime-sleep-cpu"
   "realtime-text-generator-cpu"
   "realtime-text-generator-gpu"
+  "realtime-hello-world-cpu"
   "task-iris-classifier-trainer-cpu"
-  "trafficsplitter-hello-world-cpu"
 )
 
 # build the images
