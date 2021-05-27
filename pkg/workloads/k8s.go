@@ -87,12 +87,7 @@ func AsyncGatewayContainer(api spec.API, queueURL string, volumeMounts []kcore.V
 		Ports: []kcore.ContainerPort{
 			{ContainerPort: consts.ProxyListeningPortInt32},
 		},
-		Env: []kcore.EnvVar{
-			{
-				Name:  "CORTEX_LOG_LEVEL",
-				Value: strings.ToUpper(userconfig.InfoLogLevel.String()),
-			},
-		},
+		Env: baseEnvVars,
 		Resources: kcore.ResourceRequirements{
 			Requests: kcore.ResourceList{
 				kcore.ResourceCPU:    _asyncGatewayCPURequest,
@@ -142,12 +137,7 @@ func RealtimeProxyContainer(api spec.API) (kcore.Container, kcore.Volume) {
 			{Name: "admin", ContainerPort: consts.AdminPortInt32},
 			{ContainerPort: consts.ProxyListeningPortInt32},
 		},
-		Env: []kcore.EnvVar{
-			{
-				Name:  "CORTEX_LOG_LEVEL",
-				Value: strings.ToUpper(userconfig.InfoLogLevel.String()),
-			},
-		},
+		Env:     baseEnvVars,
 		EnvFrom: baseClusterEnvVars(),
 		VolumeMounts: []kcore.VolumeMount{
 			ClusterConfigMount(),
@@ -302,13 +292,20 @@ func userPodContainers(api spec.API) ([]kcore.Container, []kcore.Volume) {
 			}
 		}
 
-		containerEnvVars := []kcore.EnvVar{}
+		containerEnvVars := baseEnvVars
+
+		containerEnvVars = append(containerEnvVars, kcore.EnvVar{
+			Name:  "CORTEX_CLI_CONFIG_DIR",
+			Value: _clientConfigDir,
+		})
+
 		if api.Kind != userconfig.TaskAPIKind {
 			containerEnvVars = append(containerEnvVars, kcore.EnvVar{
 				Name:  "CORTEX_PORT",
 				Value: s.Int32(*api.Pod.Port),
 			})
 		}
+
 		for k, v := range container.Env {
 			containerEnvVars = append(containerEnvVars, kcore.EnvVar{
 				Name:  k,
@@ -435,19 +432,13 @@ func GenerateNodeAffinities(apiNodeGroups []string) *kcore.Affinity {
 	}
 }
 
-// func getAsyncAPIEnvVars(api spec.API, queueURL string) []kcore.EnvVar {
-// 	envVars := apiContainerEnvVars(&api)
-
-// 	envVars = append(envVars,
-// 		kcore.EnvVar{
-// 			Name:  "CORTEX_QUEUE_URL",
-// 			Value: queueURL,
-// 		},
-// 		kcore.EnvVar{
-// 			Name:  "CORTEX_ASYNC_WORKLOAD_PATH",
-// 			Value: aws.S3Path(config.ClusterConfig.Bucket, fmt.Sprintf("%s/workloads/%s", config.ClusterConfig.ClusterUID, api.Name)),
-// 		},
-// 	)
-
-// 	return envVars
-// }
+var baseEnvVars = []kcore.EnvVar{
+	{
+		Name:  "CORTEX_VERSION",
+		Value: consts.CortexVersion,
+	},
+	{
+		Name:  "CORTEX_LOG_LEVEL",
+		Value: strings.ToUpper(userconfig.InfoLogLevel.String()),
+	},
+}

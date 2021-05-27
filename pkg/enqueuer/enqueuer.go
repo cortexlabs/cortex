@@ -48,7 +48,7 @@ type EnvConfig struct {
 	JobID      string
 }
 
-// FIXME: all these types should be shared with the cortex webserver (from where the payload is submitted)
+// FIXME: all these types should be shared with the cortex web server (from where the payload is submitted)
 
 type ItemList struct {
 	Items     []json.RawMessage `json:"items"`
