@@ -37,5 +37,5 @@ func Refresh(w http.ResponseWriter, r *http.Request) {
 	response := schema.RefreshResponse{
 		Message: msg,
 	}
-	respond(w, r, response)
+	respondJSON(w, r, response)
 }

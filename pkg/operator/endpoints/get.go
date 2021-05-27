@@ -30,7 +30,7 @@ func GetAPIs(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	respond(w, r, response)
+	respondJSON(w, r, response)
 }
 
 func GetAPI(w http.ResponseWriter, r *http.Request) {
@@ -42,7 +42,7 @@ func GetAPI(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	respond(w, r, response)
+	respondJSON(w, r, response)
 }
 
 func GetAPIByID(w http.ResponseWriter, r *http.Request) {
@@ -55,5 +55,5 @@ func GetAPIByID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	respond(w, r, response)
+	respondJSON(w, r, response)
 }

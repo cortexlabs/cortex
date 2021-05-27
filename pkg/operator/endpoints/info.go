@@ -48,7 +48,7 @@ func Info(w http.ResponseWriter, r *http.Request) {
 		NodeInfos:          nodeInfos,
 		NumPendingReplicas: numPendingReplicas,
 	}
-	respond(w, r, response)
+	respondJSON(w, r, response)
 }
 
 func getNodeInfos() ([]schema.NodeInfo, int, error) {

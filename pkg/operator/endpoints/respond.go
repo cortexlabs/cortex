@@ -28,7 +28,7 @@ import (
 
 var operatorLogger = logging.GetLogger()
 
-func respond(w http.ResponseWriter, r *http.Request, response interface{}) {
+func respondJSON(w http.ResponseWriter, r *http.Request, response interface{}) {
 	if err := json.NewEncoder(w).Encode(response); err != nil {
 		respondError(w, r, errors.Wrap(err, "failed to encode response"))
 	}

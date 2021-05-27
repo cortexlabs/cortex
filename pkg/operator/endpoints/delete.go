@@ -32,5 +32,5 @@ func Delete(w http.ResponseWriter, r *http.Request) {
 		respondError(w, r, err)
 		return
 	}
-	respond(w, r, response)
+	respondJSON(w, r, response)
 }
