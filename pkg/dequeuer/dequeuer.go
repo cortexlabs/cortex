@@ -157,7 +157,7 @@ func (d *SQSDequeuer) handleMessage(message *sqs.Message, messageHandler Message
 	isOnJobComplete := isOnJobCompleteMessage(message)
 
 	if !isOnJobComplete && d.hasDeadLetterQueue {
-		// expire messages when head letter queue is configured to facilitate redrive policy
+		// expire messages when dead letter queue is configured to facilitate redrive policy
 		// always delete onJobComplete messages regardless of dredrive policy because a new one will be added if an onJobComplete message has been consumed prematurely
 		_, err = d.aws.SQS().ChangeMessageVisibility(
 			&sqs.ChangeMessageVisibilityInput{
