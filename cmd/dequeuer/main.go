@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"strconv"
 
 	"github.com/DataDog/datadog-go/statsd"
 	"github.com/cortexlabs/cortex/pkg/consts"
@@ -39,7 +40,7 @@ func main() {
 		clusterConfigPath string
 		clusterUID        string
 		queueURL          string
-		targetURL         string
+		userContainerPort int
 		apiName           string
 		jobID             string
 		statsdPort        int
@@ -48,10 +49,10 @@ func main() {
 	flag.StringVar(&clusterConfigPath, "cluster-config", "", "cluster config path")
 	flag.StringVar(&clusterUID, "cluster-uid", "", "cluster unique identifier")
 	flag.StringVar(&queueURL, "queue", "", "target queue URL from which the api messages will be dequeued")
-	flag.StringVar(&targetURL, "target-url", "", "target URL from which the dequeued messages will be sent to")
 	flag.StringVar(&apiKind, "api-kind", "", fmt.Sprintf("api kind (%s|%s)", userconfig.BatchAPIKind.String(), userconfig.AsyncAPIKind.String()))
 	flag.StringVar(&apiName, "api-name", "", "api name")
 	flag.StringVar(&jobID, "job-id", "", "job ID")
+	flag.IntVar(&userContainerPort, "user-port", 8080, "target port from which the dequeued messages will be sent to")
 	flag.IntVar(&statsdPort, "statsd-port", 9125, "port for to send udp statsd metrics")
 
 	flag.Parse()
@@ -73,13 +74,13 @@ func main() {
 		log.Fatal("--cluster-config is a required option")
 	case queueURL == "":
 		log.Fatal("--queue is a required option")
-	case targetURL == "":
-		log.Fatal("--target-url is a required option")
 	case apiName == "":
 		log.Fatal("--api-name is a required option")
 	case apiKind == "":
 		log.Fatal("--api-kind is a required option")
 	}
+
+	targetURL := "http://127.0.0.1:" + strconv.Itoa(userContainerPort)
 
 	clusterConfig, err := clusterconfig.NewForFile(clusterConfigPath)
 	if err != nil {
