@@ -1,8 +1,0 @@
-- name: question-generator
-  kind: RealtimeAPI
-  handler:
-    type: python
-    path: handler.py
-  compute:
-    cpu: 1
-    mem: 6G

@@ -19,7 +19,7 @@ import pytest
 
 import e2e.tests
 
-TEST_APIS = ["onnx/iris-classifier"]
+TEST_APIS = ["realtime/text-generator"]
 
 
 @pytest.mark.usefixtures("client")

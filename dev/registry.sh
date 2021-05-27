@@ -108,15 +108,13 @@ function build() {
   local tag=$2
   local dir="${ROOT}/images/${image}"
 
-  build_args=""
-
   tag_args=""
   if [ -n "$AWS_ACCOUNT_ID" ] && [ -n "$AWS_REGION" ]; then
     tag_args+=" -t $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/cortexlabs/$image:$tag"
   fi
 
   blue_echo "Building $image:$tag..."
-  docker build $ROOT -f $dir/Dockerfile -t cortexlabs/$image:$tag $tag_args $build_args
+  docker build $ROOT -f $dir/Dockerfile -t cortexlabs/$image:$tag $tag_args
   green_echo "Built $image:$tag\n"
 }
 
@@ -150,10 +148,6 @@ function build_and_push() {
   set -euo pipefail  # necessary since this is called in a new shell by parallel
 
   tag=$CORTEX_VERSION
-  if [ "${image}" == "python-handler-gpu" ]; then
-    tag="${CORTEX_VERSION}-cuda10.2-cudnn8"
-  fi
-
   build $image $tag
   push $image $tag
 }
@@ -239,8 +233,6 @@ elif [ "$cmd" = "update" ]; then
   if [[ "$sub_cmd" == "all" || "$sub_cmd" == "dev" ]]; then
     images_to_build+=( "${dev_images[@]}" )
   fi
-
-  images_to_build+=( "${api_images[@]}" )
 
   if [[ " ${images_to_build[@]} " =~ " operator " ]]; then
     cache_builder operator

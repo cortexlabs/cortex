@@ -14,6 +14,7 @@
 
 import importlib
 import pathlib
+import os
 import sys
 import threading as td
 import time
@@ -169,10 +170,16 @@ def generate_grpc(
 
 
 def request_prediction(
-    client: cx.Client, api_name: str, payload: Union[List, Dict]
+    client: cx.Client,
+    api_name: str,
+    payload: Union[List, Dict],
+    extra_path: Optional[str] = None,
 ) -> requests.Response:
     api_info = client.get_api(api_name)
-    response = requests.post(api_info["endpoint"], json=payload)
+    endpoint = api_info["endpoint"]
+    if extra_path and extra_path != "":
+        endpoint = os.path.join(endpoint, extra_path)
+    response = requests.post(endpoint, json=payload)
 
     return response
 

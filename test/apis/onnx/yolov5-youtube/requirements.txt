@@ -1,5 +1,0 @@
-ffmpeg-python
-aiofiles
-opencv-python-headless
-onnxruntime==1.6.0
-numpy==1.19.1

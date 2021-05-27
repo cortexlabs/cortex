@@ -1,0 +1,19 @@
+- name: text-generator
+  kind: RealtimeAPI
+  pod:
+    port: 9000
+    containers:
+    - name: api
+      image: quay.io/cortexlabs-test/realtime-text-generator-gpu:latest
+      env:
+        TARGET_DEVICE: "cuda"
+      readiness_probe:
+        http_get:
+          path: "/healthz"
+          port: 9000
+      compute:
+        cpu: 1
+        gpu: 1
+        mem: 512M
+  autoscaling:
+    max_concurrency: 1

@@ -124,8 +124,7 @@ async-gateway-update:
 	@./dev/registry.sh update-single async-gateway
 	@kubectl delete pods -l cortex.dev/async=gateway --namespace=default
 
-# Docker images
-
+# docker images
 images-all:
 	@./dev/registry.sh update all
 images-all-skip-push:
@@ -136,15 +135,8 @@ images-dev:
 images-dev-skip-push:
 	@./dev/registry.sh update dev --skip-push
 
-images-api:
-	@./dev/registry.sh update api
-images-api-skip-push:
-	@./dev/registry.sh update api --skip-push
-
 images-manager-skip-push:
 	@./dev/registry.sh update-single manager --skip-push
-images-iris:
-	@./dev/registry.sh update-single python-handler-cpu
 
 registry-create:
 	@./dev/registry.sh create
@@ -178,6 +170,12 @@ test-go:
 
 test-python:
 	@./build/test.sh python
+
+
+# build test api images
+# the DOCKER_PASSWORD and DOCKER_USERNAME vars to the quay repo are required
+build-and-push-test-images:
+	@./test/utils/build-and-push-images.sh quay.io
 
 # run e2e tests on an existing cluster
 # read test/e2e/README.md for instructions first

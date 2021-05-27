@@ -1,7 +1,0 @@
-- name: mpg-estimator
-  kind: RealtimeAPI
-  handler:
-    type: python
-    path: handler.py
-    config:
-      model: s3://cortex-examples/sklearn/mpg-estimator/linreg/

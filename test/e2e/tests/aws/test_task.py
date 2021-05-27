@@ -19,7 +19,7 @@ import pytest
 
 import e2e.tests
 
-TEST_APIS = ["task/hello-world"]
+TEST_APIS = ["task/iris-classifier-trainer"]
 
 
 @pytest.mark.usefixtures("client")

@@ -1,3 +1,0 @@
-conda-forge::ffmpeg=4.2.3
-conda-forge::youtube-dl
-conda-forge::matplotlib

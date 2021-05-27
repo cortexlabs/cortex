@@ -1,0 +1,12 @@
+- name: iris-classifier-trainer
+  kind: TaskAPI
+  pod:
+    containers:
+    - name: trainer
+      image: quay.io/cortexlabs-test/task-iris-classifier-trainer-cpu:latest
+      command:
+        - python
+        - main.py
+      compute:
+        cpu: 200m
+        mem: 256Mi

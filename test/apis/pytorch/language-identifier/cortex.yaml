@@ -1,5 +1,0 @@
-- name: language-identifier
-  kind: RealtimeAPI
-  handler:
-    type: python
-    path: handler.py

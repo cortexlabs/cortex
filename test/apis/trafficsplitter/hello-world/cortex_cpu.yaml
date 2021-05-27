@@ -1,0 +1,67 @@
+- name: hello-world-a
+  kind: RealtimeAPI
+  pod:
+    port: 9000
+    containers:
+    - name: api
+      image: quay.io/cortexlabs-test/realtime-hello-world-cpu:latest
+      env:
+        RESPONSE: "hello from API A"
+      readiness_probe:
+        http_get:
+          path: "/healthz"
+          port: 9000
+      compute:
+        cpu: 200m
+        mem: 128M
+  autoscaling:
+    max_concurrency: 1
+
+- name: hello-world-b
+  kind: RealtimeAPI
+  pod:
+    port: 9000
+    containers:
+    - name: api
+      image: quay.io/cortexlabs-test/realtime-hello-world-cpu:latest
+      env:
+        RESPONSE: "hello from API B"
+      readiness_probe:
+        http_get:
+          path: "/healthz"
+          port: 9000
+      compute:
+        cpu: 200m
+        mem: 128M
+  autoscaling:
+    max_concurrency: 1
+
+- name: hello-world-shadow
+  kind: RealtimeAPI
+  pod:
+    port: 9000
+    containers:
+    - name: api
+      image: quay.io/cortexlabs-test/realtime-hello-world-cpu:latest
+      env:
+        RESPONSE: "hello from shadow API"
+      readiness_probe:
+        http_get:
+          path: "/healthz"
+          port: 9000
+      compute:
+        cpu: 200m
+        mem: 128M
+  autoscaling:
+    max_concurrency: 1
+
+- name: hello-world
+  kind: TrafficSplitter
+  apis:
+    - name: hello-world-a
+      weight: 30
+    - name: hello-world-b
+      weight: 70
+    - name: hello-world-shadow
+      shadow: true
+      weight: 100

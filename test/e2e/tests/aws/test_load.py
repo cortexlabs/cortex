@@ -19,10 +19,10 @@ import pytest
 
 import e2e.tests
 
-TEST_APIS_REALTIME = ["tensorflow/iris-classifier"]
-TEST_APIS_ASYNC = ["async/iris-classifier"]
+TEST_APIS_REALTIME = ["realtime/prime-generator"]
+TEST_APIS_ASYNC = ["async/text-generator"]
 TEST_APIS_BATCH = ["batch/sum"]
-TEST_APIS_TASK = ["task/hello-world"]
+TEST_APIS_TASK = ["task/iris-classifier-trainer"]
 
 
 @pytest.mark.usefixtures("client")

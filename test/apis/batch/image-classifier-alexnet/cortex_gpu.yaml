@@ -1,0 +1,21 @@
+- name: image-classifier-alexnet
+  kind: BatchAPI
+  pod:
+    containers:
+    - name: api
+      image: quay.io/cortexlabs-test/batch-image-classifier-alexnet-gpu:latest
+      command:
+        - "gunicorn"
+        - "-k"
+        - "uvicorn.workers.UvicornWorker"
+        - "--workers"
+        - "1"
+        - "--threads"
+        - "1"
+        - "--bind"
+        - ":$CORTEX_PORT"
+        - "main:app"
+      compute:
+        cpu: 200m
+        gpu: 1
+        mem: 512Mi

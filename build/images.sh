@@ -19,13 +19,6 @@
 
 set -euo pipefail
 
-api_images=(
-  "python-handler-cpu"
-  "python-handler-gpu"
-  "tensorflow-handler"
-  "python-handler-inf"
-)
-
 dev_images=(
   "manager"
   "proxy"
@@ -61,7 +54,6 @@ non_dev_images=(
 )
 
 all_images=(
-  "${api_images[@]}"
   "${dev_images[@]}"
   "${non_dev_images[@]}"
 )
