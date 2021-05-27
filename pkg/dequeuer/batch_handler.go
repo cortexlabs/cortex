@@ -44,6 +44,7 @@ type BatchMessageHandler struct {
 	aws                       *awslib.Client
 	metrics                   statsd.ClientInterface
 	log                       *zap.SugaredLogger
+	httpClient                *http.Client
 }
 
 type BatchMessageHandlerConfig struct {
@@ -67,6 +68,7 @@ func NewBatchMessageHandler(config BatchMessageHandlerConfig, awsClient *awslib.
 		aws:                       awsClient,
 		metrics:                   statsdClient,
 		log:                       log,
+		httpClient:                &http.Client{},
 	}
 }
 
@@ -119,7 +121,6 @@ func (h *BatchMessageHandler) submitRequest(messageBody string, isOnJobComplete 
 		targetURL = urls.Join(targetURL, "/on-job-complete")
 	}
 
-	httpClient := &http.Client{}
 	req, err := http.NewRequest(http.MethodPost, h.config.TargetURL, bytes.NewBuffer([]byte(messageBody)))
 	if err != nil {
 		return errors.WithStack(err)
@@ -127,7 +128,7 @@ func (h *BatchMessageHandler) submitRequest(messageBody string, isOnJobComplete 
 
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set(CortexJobIDHeader, h.config.JobID)
-	response, err := httpClient.Do(req)
+	response, err := h.httpClient.Do(req)
 	if err != nil {
 		return ErrorUserContainerNotReachable(err)
 	}

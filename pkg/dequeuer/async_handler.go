@@ -43,6 +43,7 @@ type AsyncMessageHandler struct {
 	aws         *awslib.Client
 	log         *zap.SugaredLogger
 	storagePath string
+	httpClient  *http.Client
 }
 
 type AsyncMessageHandlerConfig struct {
@@ -63,6 +64,7 @@ func NewAsyncMessageHandler(config AsyncMessageHandlerConfig, awsClient *awslib.
 		aws:         awsClient,
 		log:         logger,
 		storagePath: awslib.S3Path(config.Bucket, fmt.Sprintf("%s/workloads/%s", config.ClusterUID, config.APIName)),
+		httpClient:  &http.Client{},
 	}
 }
 
@@ -169,7 +171,6 @@ func (h *AsyncMessageHandler) deletePayload(requestID string) {
 }
 
 func (h *AsyncMessageHandler) submitRequest(payload *userPayload, requestID string) (interface{}, error) {
-	httpClient := &http.Client{}
 	req, err := http.NewRequest(http.MethodPost, h.config.TargetURL, payload.Body)
 	if err != nil {
 		return nil, errors.WithStack(err)
@@ -177,7 +178,7 @@ func (h *AsyncMessageHandler) submitRequest(payload *userPayload, requestID stri
 
 	req.Header.Set("Content-Type", payload.ContentType)
 	req.Header.Set(CortexRequestIDHeader, requestID)
-	response, err := httpClient.Do(req)
+	response, err := h.httpClient.Do(req)
 	if err != nil {
 		return nil, ErrorUserContainerNotReachable(err)
 	}
