@@ -597,7 +597,9 @@ def test_load_realtime(
             # don't stress the CPU too hard
             time.sleep(1)
 
-        printer(f"verifying number of processed requests ({total_requests}, with an offset of {offset}) using the client")
+        printer(
+            f"verifying number of processed requests ({total_requests}, with an offset of {offset}) using the client"
+        )
         assert api_requests(
             client, api_name, total_requests + offset, timeout=status_code_timeout
         ), f"the number of 2xx response codes for api {api_name} doesn't match the expected number {total_requests}"
