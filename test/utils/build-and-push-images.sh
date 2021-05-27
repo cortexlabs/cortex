@@ -45,15 +45,15 @@ for image in "${api_images[@]}"; do
     compute_type=$(python -c "last_element='$image'.rsplit('-', 1)[1]; print(last_element)")
     dir="${ROOT}/test/apis/${kind}/${api_name}"
 
-    blue_echo "Building cortexlabs-test/$image:latest..."
+    blue_echo "Building $host/cortexlabs-test/$image:latest..."
     docker build $dir -f $dir/$api_name-$compute_type.dockerfile -t cortexlabs-test/$image -t $host/cortexlabs-test/$image
-    green_echo "Built cortexlabs-test/$image:latest\n"
+    green_echo "Built $host/cortexlabs-test/$image:latest\n"
 done
 
 # push the images
 echo "$DOCKER_PASSWORD" | docker login $host -u "$DOCKER_USERNAME" --password-stdin
 for image in "${api_images[@]}"; do
-    blue_echo "Pushing cortexlabs-test/$image:latest..."
+    blue_echo "Pushing $host/cortexlabs-test/$image:latest..."
     docker push $host/cortexlabs-test/${image}
-    green_echo "Pushed cortexlabs-test/$image:latest\n"
+    green_echo "Pushed $host/cortexlabs-test/$image:latest\n"
 done
