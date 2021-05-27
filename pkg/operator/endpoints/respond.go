@@ -28,16 +28,12 @@ import (
 
 var operatorLogger = logging.GetLogger()
 
-func respond(w http.ResponseWriter, response interface{}) {
+func respond(w http.ResponseWriter, r *http.Request, response interface{}) {
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		respondError(w, r, errors.Wrap(err, "failed to encode response"))
+	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(response)
-}
-
-func respondPlainText(w http.ResponseWriter, response string) {
-	w.Header().Set("Content-Type", "text/plain")
-	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(response))
 }
 
 func respondError(w http.ResponseWriter, r *http.Request, err error, strs ...string) {

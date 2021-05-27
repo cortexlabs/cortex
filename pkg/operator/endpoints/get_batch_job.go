@@ -86,5 +86,5 @@ func GetBatchJob(w http.ResponseWriter, r *http.Request) {
 		Endpoint:  parsedURL.String(),
 	}
 
-	respond(w, response)
+	respond(w, r, response)
 }

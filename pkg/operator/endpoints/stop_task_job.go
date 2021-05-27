@@ -46,7 +46,7 @@ func StopTaskJob(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	respond(w, schema.DeleteResponse{
+	respond(w, r, schema.DeleteResponse{
 		Message: fmt.Sprintf("stopped job %s", jobID),
 	})
 }
