@@ -99,7 +99,6 @@ type CoreConfig struct {
 	ImageClusterAutoscaler          string `json:"image_cluster_autoscaler" yaml:"image_cluster_autoscaler"`
 	ImageMetricsServer              string `json:"image_metrics_server" yaml:"image_metrics_server"`
 	ImageInferentia                 string `json:"image_inferentia" yaml:"image_inferentia"`
-	ImageNeuronRTD                  string `json:"image_neuron_rtd" yaml:"image_neuron_rtd"`
 	ImageNvidia                     string `json:"image_nvidia" yaml:"image_nvidia"`
 	ImageFluentBit                  string `json:"image_fluent_bit" yaml:"image_fluent_bit"`
 	ImageIstioProxy                 string `json:"image_istio_proxy" yaml:"image_istio_proxy"`
@@ -384,13 +383,6 @@ var CoreConfigStructFieldValidations = []*cr.StructFieldValidation{
 		StructField: "ImageInferentia",
 		StringValidation: &cr.StringValidation{
 			Default:   consts.DefaultRegistry() + "/inferentia:" + consts.CortexVersion,
-			Validator: validateImageVersion,
-		},
-	},
-	{
-		StructField: "ImageNeuronRTD",
-		StringValidation: &cr.StringValidation{
-			Default:   consts.DefaultRegistry() + "/neuron-rtd:" + consts.CortexVersion,
 			Validator: validateImageVersion,
 		},
 	},
@@ -1369,9 +1361,6 @@ func (cc *CoreConfig) TelemetryEvent() map[string]interface{} {
 	}
 	if !strings.HasPrefix(cc.ImageInferentia, "cortexlabs/") {
 		event["image_inferentia._is_custom"] = true
-	}
-	if !strings.HasPrefix(cc.ImageNeuronRTD, "cortexlabs/") {
-		event["image_neuron_rtd._is_custom"] = true
 	}
 	if !strings.HasPrefix(cc.ImageNvidia, "cortexlabs/") {
 		event["image_nvidia._is_custom"] = true
