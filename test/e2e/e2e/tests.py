@@ -546,6 +546,10 @@ def test_load_realtime(
             client=client, api_names=[api_name], timeout=deploy_timeout
         ), f"api {api_name} not ready"
 
+        offset = client.get_api(api_name)["metrics"]["network_stats"]["code_2xx"]
+        if offset is None:
+            offset = 0
+
         # give the APIs some time to prevent getting high latency spikes in the beginning
         time.sleep(5)
 
@@ -593,11 +597,7 @@ def test_load_realtime(
             # don't stress the CPU too hard
             time.sleep(1)
 
-        offset = client.get_api(api_name)["metrics"]["network_stats"]["code_2xx"]
-        if offset is None:
-            offset = 0
-
-        printer("verifying number of processed requests using the client")
+        printer(f"verifying number of processed requests ({total_requests}, with an offset of {offset}}) using the client")
         assert api_requests(
             client, api_name, total_requests + offset, timeout=status_code_timeout
         ), f"the number of 2xx response codes for api {api_name} doesn't match the expected number {total_requests}"
