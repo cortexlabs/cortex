@@ -183,12 +183,12 @@ func TestSQSDequeuer_ReceiveMessage(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	gotMessages, err := dq.ReceiveMessage()
+	gotMessage, err := dq.ReceiveMessage()
 	require.NoError(t, err)
 
-	require.Len(t, gotMessages, 1)
-	require.Equal(t, messageBody, *gotMessages[0].Body)
-	require.Equal(t, sentMessage.MessageId, gotMessages[0].MessageId)
+	require.NotNil(t, gotMessage)
+	require.Equal(t, messageBody, *gotMessage.Body)
+	require.Equal(t, *sentMessage.MessageId, *gotMessage.MessageId)
 }
 
 func TestSQSDequeuer_StartMessageRenewer(t *testing.T) {
@@ -219,17 +219,20 @@ func TestSQSDequeuer_StartMessageRenewer(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	messages, err := dq.ReceiveMessage()
-	done := dq.StartMessageRenewer(*messages[0].ReceiptHandle)
+	message, err := dq.ReceiveMessage()
+	require.NoError(t, err)
+	require.NotNil(t, message)
+
+	done := dq.StartMessageRenewer(*message.ReceiptHandle)
 	defer func() {
 		done <- struct{}{}
 	}()
 
 	require.Never(t, func() bool {
-		msgs, err := dq.ReceiveMessage()
+		msg, err := dq.ReceiveMessage()
 		require.NoError(t, err)
 
-		return len(msgs) > 0
+		return msg != nil
 	}, time.Second, 10*time.Second)
 }
 

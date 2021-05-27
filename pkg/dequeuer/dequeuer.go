@@ -27,10 +27,6 @@ import (
 	"go.uber.org/zap"
 )
 
-const (
-	_maxNumberOfMessages = int64(1)
-)
-
 var (
 	_messageAttributes = []string{"All"}
 	_waitTime          = 10 * time.Second
@@ -80,10 +76,10 @@ func NewSQSDequeuer(config SQSDequeuerConfig, awsClient *awslib.Client, logger *
 	}, nil
 }
 
-func (d *SQSDequeuer) ReceiveMessage() ([]*sqs.Message, error) {
+func (d *SQSDequeuer) ReceiveMessage() (*sqs.Message, error) {
 	output, err := d.aws.SQS().ReceiveMessage(&sqs.ReceiveMessageInput{
 		QueueUrl:              aws.String(d.config.QueueURL),
-		MaxNumberOfMessages:   aws.Int64(_maxNumberOfMessages),
+		MaxNumberOfMessages:   aws.Int64(1),
 		MessageAttributeNames: aws.StringSlice(_messageAttributes),
 		VisibilityTimeout:     d.visibilityTimeout,
 		WaitTimeSeconds:       d.waitTimeSeconds,
@@ -93,7 +89,11 @@ func (d *SQSDequeuer) ReceiveMessage() ([]*sqs.Message, error) {
 		return nil, errors.WithStack(err)
 	}
 
-	return output.Messages, nil
+	if len(output.Messages) == 0 {
+		return nil, nil
+	}
+
+	return output.Messages[0], nil
 }
 
 func (d *SQSDequeuer) Start(messageHandler MessageHandler) error {
@@ -105,12 +105,12 @@ loop:
 		case <-d.done:
 			break loop
 		default:
-			messages, err := d.ReceiveMessage()
+			message, err := d.ReceiveMessage()
 			if err != nil {
 				return err
 			}
 
-			if len(messages) == 0 {
+			if message == nil { // no message received
 				queueAttributes, err := GetQueueAttributes(d.aws, d.config.QueueURL)
 				if err != nil {
 					return err
@@ -128,7 +128,6 @@ loop:
 			}
 
 			noMessagesInPreviousIteration = false
-			message := messages[0]
 			receiptHandle := *message.ReceiptHandle
 			done := d.StartMessageRenewer(receiptHandle)
 			err = d.handleMessage(message, messageHandler, done)
