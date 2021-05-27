@@ -111,9 +111,6 @@ jobs:
       - run:
           name: Go Tests
           command: make test-go
-      - run:
-          name: Python Tests
-          command: make test-python
 
   build-and-deploy:
     docker:
