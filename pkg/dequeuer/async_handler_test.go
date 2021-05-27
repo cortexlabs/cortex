@@ -26,6 +26,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/sqs"
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/random"
 	"github.com/cortexlabs/cortex/pkg/types/status"
 	"github.com/stretchr/testify/require"
@@ -75,4 +76,47 @@ func TestAsyncMessageHandler_Handle(t *testing.T) {
 		fmt.Sprintf("%s/%s/status/%s", asyncHandler.storagePath, requestID, status.AsyncStatusCompleted),
 	)
 	require.NoError(t, err)
+}
+
+func TestAsyncMessageHandler_Handle_Errors(t *testing.T) {
+	cases := []struct {
+		name          string
+		message       *sqs.Message
+		expectedError error
+	}{
+		{
+			name:          "nil",
+			message:       nil,
+			expectedError: errors.ErrorUnexpected("got unexpected nil SQS message"),
+		},
+		{
+			name:          "nil body",
+			message:       &sqs.Message{},
+			expectedError: errors.ErrorUnexpected("got unexpected sqs message with empty or nil body"),
+		},
+		{
+			name:          "empty body",
+			message:       &sqs.Message{Body: aws.String("")},
+			expectedError: errors.ErrorUnexpected("got unexpected sqs message with empty or nil body"),
+		},
+	}
+
+	log := newLogger(t)
+	awsClient := testAWSClient(t)
+
+	asyncHandler := NewAsyncMessageHandler(
+		AsyncMessageHandlerConfig{
+			ClusterUID: "cortex-test",
+			Bucket:     _testBucket,
+			APIName:    "async-test",
+			TargetURL:  "http://fake.cortex.dev",
+		}, awsClient, &statsd.NoOpClient{}, log,
+	)
+
+	for _, tt := range cases {
+		t.Run(tt.name, func(t *testing.T) {
+			err := asyncHandler.Handle(tt.message)
+			require.EqualError(t, err, tt.expectedError.Error())
+		})
+	}
 }

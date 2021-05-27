@@ -70,13 +70,17 @@ func NewAsyncMessageHandler(config AsyncMessageHandlerConfig, awsClient *awslib.
 }
 
 func (h *AsyncMessageHandler) Handle(message *sqs.Message) error {
-	err := h.handleMessage(message)
-	if err != nil {
-		var requestID string
-		if message.Body != nil {
-			requestID = *message.Body
-		}
+	if message == nil {
+		return errors.ErrorUnexpected("got unexpected nil SQS message")
+	}
 
+	if message.Body == nil || *message.Body == "" {
+		return errors.ErrorUnexpected("got unexpected sqs message with empty or nil body")
+	}
+
+	requestID := *message.Body
+	err := h.handleMessage(requestID)
+	if err != nil {
 		h.log.Errorw("failed processing request", "id", requestID, "error", err)
 		err = h.handleFailure(requestID) // FIXME: should only handle failure if user error (?)
 		if err != nil {
@@ -86,8 +90,7 @@ func (h *AsyncMessageHandler) Handle(message *sqs.Message) error {
 	return nil
 }
 
-func (h *AsyncMessageHandler) handleMessage(message *sqs.Message) error {
-	requestID := *message.Body
+func (h *AsyncMessageHandler) handleMessage(requestID string) error {
 	h.log.Infow("processing workload", "id", requestID)
 
 	err := h.updateStatus(requestID, status.AsyncStatusInProgress)
