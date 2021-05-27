@@ -33,18 +33,18 @@ import (
 
 const (
 	// CortexJobIDHeader is the header containing the job id for the user container
-	CortexJobIDHeader          = "X-Cortex-Job-ID"
-	_jobCompleteMessageRenewal = 10 * time.Second
+	CortexJobIDHeader        = "X-Cortex-Job-ID"
+	_jobCompleteMessageDelay = 10 * time.Second
 )
 
 type BatchMessageHandler struct {
-	config                    BatchMessageHandlerConfig
-	jobCompleteMessageRenewal time.Duration
-	tags                      []string
-	aws                       *awslib.Client
-	metrics                   statsd.ClientInterface
-	log                       *zap.SugaredLogger
-	httpClient                *http.Client
+	config                  BatchMessageHandlerConfig
+	jobCompleteMessageDelay time.Duration
+	tags                    []string
+	aws                     *awslib.Client
+	metrics                 statsd.ClientInterface
+	log                     *zap.SugaredLogger
+	httpClient              *http.Client
 }
 
 type BatchMessageHandlerConfig struct {
@@ -62,13 +62,13 @@ func NewBatchMessageHandler(config BatchMessageHandlerConfig, awsClient *awslib.
 	}
 
 	return &BatchMessageHandler{
-		config:                    config,
-		jobCompleteMessageRenewal: _jobCompleteMessageRenewal,
-		tags:                      tags,
-		aws:                       awsClient,
-		metrics:                   statsdClient,
-		log:                       log,
-		httpClient:                &http.Client{},
+		config:                  config,
+		jobCompleteMessageDelay: _jobCompleteMessageDelay,
+		tags:                    tags,
+		aws:                     awsClient,
+		metrics:                 statsdClient,
+		log:                     log,
+		httpClient:              &http.Client{},
 	}
 }
 
@@ -183,7 +183,7 @@ func (h *BatchMessageHandler) onJobComplete(message *sqs.Message) error {
 		totalMessages := queueAttributes.TotalMessages()
 
 		if totalMessages > 1 {
-			time.Sleep(h.jobCompleteMessageRenewal)
+			time.Sleep(h.jobCompleteMessageDelay)
 			h.log.Infow("found other messages in queue, requeuing job_complete message", "id", *message.MessageId)
 			newMessageID := uuid.NewRandom().String()
 			if _, err = h.aws.SQS().SendMessage(
@@ -220,7 +220,7 @@ func (h *BatchMessageHandler) onJobComplete(message *sqs.Message) error {
 		}
 		shouldRunOnJobComplete = true
 
-		time.Sleep(h.jobCompleteMessageRenewal)
+		time.Sleep(h.jobCompleteMessageDelay)
 	}
 
 	return nil
