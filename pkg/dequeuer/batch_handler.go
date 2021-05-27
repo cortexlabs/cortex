@@ -122,14 +122,14 @@ func (h *BatchMessageHandler) submitRequest(messageBody string, isOnJobComplete 
 	httpClient := &http.Client{}
 	req, err := http.NewRequest(http.MethodPost, h.config.TargetURL, bytes.NewBuffer([]byte(messageBody)))
 	if err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set(CortexJobIDHeader, h.config.JobID)
 	response, err := httpClient.Do(req)
 	if err != nil {
-		return err
+		return ErrorUserContainerNotReachable(err)
 	}
 
 	if response.StatusCode != http.StatusOK {
@@ -207,7 +207,7 @@ func (h *BatchMessageHandler) onJobComplete(message *sqs.Message) error {
 					MessageGroupId:         aws.String(newMessageID),
 				},
 			); err != nil {
-				return err
+				return errors.WithStack(err)
 			}
 
 			return nil

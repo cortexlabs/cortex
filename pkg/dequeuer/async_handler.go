@@ -171,14 +171,14 @@ func (h *AsyncMessageHandler) submitRequest(payload *userPayload, requestID stri
 	httpClient := &http.Client{}
 	req, err := http.NewRequest(http.MethodPost, h.config.TargetURL, payload.Body)
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 
 	req.Header.Set("Content-Type", payload.ContentType)
 	req.Header.Set(CortexRequestIDHeader, requestID)
 	response, err := httpClient.Do(req)
 	if err != nil {
-		return nil, err
+		return nil, ErrorUserContainerNotReachable(err)
 	}
 
 	defer func() {
@@ -204,7 +204,7 @@ func (h *AsyncMessageHandler) submitRequest(payload *userPayload, requestID stri
 func (h *AsyncMessageHandler) uploadResult(requestID string, result interface{}) error {
 	key := fmt.Sprintf("%s/%s/result.json", h.storagePath, requestID)
 	if err := h.aws.UploadJSONToS3(result, h.config.Bucket, key); err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 
 	return nil
