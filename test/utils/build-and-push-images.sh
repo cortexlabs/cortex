@@ -46,12 +46,12 @@ for image in "${api_images[@]}"; do
     dir="${ROOT}/test/apis/${kind}/${api_name}"
 
     blue_echo "Building cortexlabs-test/$image:latest..."
-    docker build $dir -f $dir/$api_name-$compute_type.dockerfile -t cortexlabs-test/$image
+    docker build $dir -f $dir/$api_name-$compute_type.dockerfile -t cortexlabs-test/$image -t $host/cortexlabs-test/$image
     green_echo "Built cortexlabs-test/$image:latest\n"
 done
 
 # push the images
-echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
+echo "$DOCKER_PASSWORD" | docker login $host -u "$DOCKER_USERNAME" --password-stdin
 for image in "${api_images[@]}"; do
     blue_echo "Pushing cortexlabs-test/$image:latest..."
     docker push $host/cortexlabs-test/${image}
