@@ -52,7 +52,6 @@ for image in "${api_images[@]}"; do
 done
 
 # push the images
-echo "$DOCKER_PASSWORD" | docker login $host -u "$DOCKER_USERNAME" --password-stdin
 for image in "${api_images[@]}"; do
     blue_echo "Pushing $host/cortexlabs-test/$image:latest..."
     docker push $host/cortexlabs-test/${image}

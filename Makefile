@@ -173,7 +173,7 @@ test-python:
 
 
 # build test api images
-# the DOCKER_PASSWORD and DOCKER_USERNAME vars to the quay repo are required
+# make sure you login with your quay credentials
 build-and-push-test-images:
 	@./test/utils/build-and-push-images.sh quay.io
 
