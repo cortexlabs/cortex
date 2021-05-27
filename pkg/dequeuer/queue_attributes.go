@@ -27,7 +27,7 @@ import (
 type QueueAttributes struct {
 	VisibleMessages   int
 	InvisibleMessages int
-	RedrivePolicy     bool
+	HasRedrivePolicy  bool
 }
 
 func (attr QueueAttributes) TotalMessages() int {
@@ -49,7 +49,7 @@ func GetQueueAttributes(client *awslib.Client, queueURL string) (QueueAttributes
 
 	var visibleCount int
 	var notVisibleCount int
-	var redrivePolicy bool
+	var hasRedrivePolicy bool
 	if val, found := attributes["ApproximateNumberOfMessages"]; found {
 		count, ok := s.ParseInt(val)
 		if ok {
@@ -64,11 +64,11 @@ func GetQueueAttributes(client *awslib.Client, queueURL string) (QueueAttributes
 		}
 	}
 
-	_, redrivePolicy = attributes["RedrivePolicy"]
+	_, hasRedrivePolicy = attributes["RedrivePolicy"]
 
 	return QueueAttributes{
 		VisibleMessages:   visibleCount,
 		InvisibleMessages: notVisibleCount,
-		RedrivePolicy:     redrivePolicy,
+		HasRedrivePolicy:  hasRedrivePolicy,
 	}, nil
 }
