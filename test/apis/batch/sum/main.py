@@ -3,7 +3,7 @@ import boto3
 import json
 import re
 
-from typing import Any, List
+from typing import List
 from pydantic import BaseModel
 from fastapi import FastAPI, Response, status
 
@@ -57,7 +57,7 @@ def handle_batch(request: Request):
         state["numbers_list"].append(sum(numbers_list))
 
 
-@app.post("/on_job_complete")
+@app.post("/on-job-complete")
 def on_job_complete():
     json_output = json.dumps(state["numbers_list"])
     s3.put_object(Bucket=state["bucket"], Key=f"{state['key']}.json", Body=json_output)
