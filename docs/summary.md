@@ -41,7 +41,6 @@
   * [Example](workloads/async/example.md)
   * [Configuration](workloads/async/configuration.md)
   * [Statuses](workloads/async/statuses.md)
-  * [Webhooks](workloads/async/webhooks.md)
 * [Batch APIs](workloads/batch/batch-apis.md)
   * [Example](workloads/batch/example.md)
   * [Configuration](workloads/batch/configuration.md)
