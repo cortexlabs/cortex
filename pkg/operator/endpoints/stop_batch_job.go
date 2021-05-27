@@ -46,7 +46,7 @@ func StopBatchJob(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	respond(w, schema.DeleteResponse{
+	respondJSON(w, r, schema.DeleteResponse{
 		Message: fmt.Sprintf("stopped job %s", jobID),
 	})
 }

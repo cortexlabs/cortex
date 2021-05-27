@@ -48,5 +48,5 @@ func Deploy(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	respond(w, response)
+	respondJSON(w, r, response)
 }

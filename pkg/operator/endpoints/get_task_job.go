@@ -86,5 +86,5 @@ func GetTaskJob(w http.ResponseWriter, r *http.Request) {
 		Endpoint:  parsedURL.String(),
 	}
 
-	respond(w, response)
+	respondJSON(w, r, response)
 }

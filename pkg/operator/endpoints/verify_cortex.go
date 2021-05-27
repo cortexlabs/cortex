@@ -23,5 +23,5 @@ import (
 )
 
 func VerifyCortex(w http.ResponseWriter, r *http.Request) {
-	respond(w, schema.VerifyCortexResponse{})
+	respondJSON(w, r, schema.VerifyCortexResponse{})
 }

@@ -19,6 +19,7 @@ package realtimeapi
 import (
 	"context"
 	"fmt"
+	"math"
 	"time"
 
 	"github.com/cortexlabs/cortex/pkg/config"
@@ -152,6 +153,10 @@ func getAvgLatencyMetric(promAPIv1 promv1.API, apiSpec spec.API) (*float64, erro
 	}
 
 	avgLatency := float64(values[0].Value)
+
+	if math.IsNaN(avgLatency) {
+		return nil, nil
+	}
 	return &avgLatency, nil
 }
 
