@@ -116,7 +116,7 @@ func (h *BatchMessageHandler) recordTimePerBatch(elapsedTime time.Duration) erro
 func (h *BatchMessageHandler) submitRequest(messageBody string, isOnJobComplete bool) error {
 	targetURL := h.config.TargetURL
 	if isOnJobComplete {
-		targetURL = urls.Join(targetURL, "/on_job_complete")
+		targetURL = urls.Join(targetURL, "/on-job-complete")
 	}
 
 	httpClient := &http.Client{}
