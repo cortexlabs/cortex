@@ -280,3 +280,40 @@ func TestSQSDequeuerTerminationOnEmptyQueue(t *testing.T) {
 	err = <-errCh
 	require.NoError(t, err)
 }
+
+func TestSQSDequeuer_Shutdown(t *testing.T) {
+	t.Parallel()
+
+	awsClient := testAWSClient(t)
+	queueURL := createQueue(t, awsClient)
+
+	dq, err := NewSQSDequeuer(
+		SQSDequeuerConfig{
+			Region:           _localStackDefaultRegion,
+			QueueURL:         queueURL,
+			StopIfNoMessages: true,
+		}, awsClient, newLogger(t),
+	)
+	require.NoError(t, err)
+
+	dq.notFoundSleepTime = 0
+	dq.waitTimeSeconds = aws.Int64(0)
+
+	msgHandler := &mockHandler{
+		HandleFunc: func(msg *sqs.Message) error {
+			return nil
+		},
+	}
+
+	errCh := make(chan error, 1)
+	go func() {
+		errCh <- dq.Start(msgHandler)
+	}()
+
+	time.AfterFunc(5*time.Second, func() { errCh <- errors.New("timeout: dequeuer did not exit") })
+
+	dq.Shutdown()
+
+	err = <-errCh
+	require.NoError(t, err)
+}
