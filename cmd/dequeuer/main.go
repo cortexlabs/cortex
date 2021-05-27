@@ -153,7 +153,7 @@ func main() {
 			TargetURL:  targetURL,
 		}
 
-		messageHandler = dequeuer.NewAsyncMessageHandler(config, awsClient, metricsClient, log)
+		messageHandler = dequeuer.NewAsyncMessageHandler(config, awsClient, log)
 		dequeuerConfig = dequeuer.SQSDequeuerConfig{
 			Region:           clusterConfig.Region,
 			QueueURL:         queueURL,

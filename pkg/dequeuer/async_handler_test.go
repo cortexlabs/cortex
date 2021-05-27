@@ -22,7 +22,6 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/DataDog/datadog-go/statsd"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/sqs"
@@ -48,14 +47,12 @@ func TestAsyncMessageHandler_Handle(t *testing.T) {
 		_, _ = w.Write([]byte("{}"))
 	}))
 
-	asyncHandler := NewAsyncMessageHandler(
-		AsyncMessageHandlerConfig{
-			ClusterUID: "cortex-test",
-			Bucket:     _testBucket,
-			APIName:    "async-test",
-			TargetURL:  server.URL,
-		}, awsClient, &statsd.NoOpClient{}, log,
-	)
+	asyncHandler := NewAsyncMessageHandler(AsyncMessageHandlerConfig{
+		ClusterUID: "cortex-test",
+		Bucket:     _testBucket,
+		APIName:    "async-test",
+		TargetURL:  server.URL,
+	}, awsClient, log)
 
 	_, err := awsClient.S3().CreateBucket(&s3.CreateBucketInput{
 		Bucket: aws.String(_testBucket),
@@ -104,14 +101,12 @@ func TestAsyncMessageHandler_Handle_Errors(t *testing.T) {
 	log := newLogger(t)
 	awsClient := testAWSClient(t)
 
-	asyncHandler := NewAsyncMessageHandler(
-		AsyncMessageHandlerConfig{
-			ClusterUID: "cortex-test",
-			Bucket:     _testBucket,
-			APIName:    "async-test",
-			TargetURL:  "http://fake.cortex.dev",
-		}, awsClient, &statsd.NoOpClient{}, log,
-	)
+	asyncHandler := NewAsyncMessageHandler(AsyncMessageHandlerConfig{
+		ClusterUID: "cortex-test",
+		Bucket:     _testBucket,
+		APIName:    "async-test",
+		TargetURL:  "http://fake.cortex.dev",
+	}, awsClient, log)
 
 	for _, tt := range cases {
 		t.Run(tt.name, func(t *testing.T) {

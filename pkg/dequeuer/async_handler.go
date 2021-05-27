@@ -23,7 +23,6 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/DataDog/datadog-go/statsd"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/sqs"
@@ -42,7 +41,6 @@ const (
 type AsyncMessageHandler struct {
 	config      AsyncMessageHandlerConfig
 	aws         *awslib.Client
-	metrics     statsd.ClientInterface
 	log         *zap.SugaredLogger
 	storagePath string
 }
@@ -59,11 +57,10 @@ type userPayload struct {
 	ContentType string
 }
 
-func NewAsyncMessageHandler(config AsyncMessageHandlerConfig, awsClient *awslib.Client, metrics statsd.ClientInterface, logger *zap.SugaredLogger) *AsyncMessageHandler {
+func NewAsyncMessageHandler(config AsyncMessageHandlerConfig, awsClient *awslib.Client, logger *zap.SugaredLogger) *AsyncMessageHandler {
 	return &AsyncMessageHandler{
 		config:      config,
 		aws:         awsClient,
-		metrics:     metrics,
 		log:         logger,
 		storagePath: awslib.S3Path(config.Bucket, fmt.Sprintf("%s/workloads/%s", config.ClusterUID, config.APIName)),
 	}
