@@ -21,6 +21,9 @@ import (
 
 	"github.com/cortexlabs/cortex/pkg/operator/operator"
 	"github.com/cortexlabs/cortex/pkg/operator/resources"
+	"github.com/cortexlabs/cortex/pkg/operator/resources/asyncapi"
+	"github.com/cortexlabs/cortex/pkg/operator/resources/realtimeapi"
+	"github.com/cortexlabs/cortex/pkg/operator/schema"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
@@ -66,4 +69,58 @@ func ReadLogs(w http.ResponseWriter, r *http.Request) {
 		labels["cortex.dev/async"] = "api"
 	}
 	operator.StreamLogsFromRandomPod(labels, socket)
+}
+
+func LogURL(w http.ResponseWriter, r *http.Request) {
+	apiName := mux.Vars(r)["apiName"]
+	jobID := getOptionalQParam("jobID", r)
+
+	if jobID != "" {
+		JobLogURL(w, r)
+		return
+	}
+
+	deployedResource, err := resources.GetDeployedResourceByName(apiName)
+	if err != nil {
+		respondError(w, r, err)
+		return
+	}
+
+	if deployedResource.Kind == userconfig.BatchAPIKind || deployedResource.Kind == userconfig.TaskAPIKind {
+		respondError(w, r, ErrorLogsJobIDRequired(*deployedResource))
+		return
+	}
+
+	switch deployedResource.Kind {
+	case userconfig.AsyncAPIKind:
+		apiResponse, err := asyncapi.GetAPIByName(deployedResource)
+		if err != nil {
+			respondError(w, r, err)
+			return
+		}
+		logURL, err := operator.APILogURL(apiResponse[0].Spec)
+		if err != nil {
+			respondError(w, r, err)
+			return
+		}
+		respond(w, schema.LogResponse{
+			LogURL: logURL,
+		})
+	case userconfig.RealtimeAPIKind:
+		apiResponse, err := realtimeapi.GetAPIByName(deployedResource)
+		if err != nil {
+			respondError(w, r, err)
+			return
+		}
+		logURL, err := operator.APILogURL(apiResponse[0].Spec)
+		if err != nil {
+			respondError(w, r, err)
+			return
+		}
+		respond(w, schema.LogResponse{
+			LogURL: logURL,
+		})
+	default:
+		respondError(w, r, resources.ErrorOperationIsOnlySupportedForKind(*deployedResource, userconfig.RealtimeAPIKind))
+	}
 }

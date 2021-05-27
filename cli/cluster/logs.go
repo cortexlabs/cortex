@@ -35,12 +35,40 @@ import (
 	"github.com/gorilla/websocket"
 )
 
+func GetLogs(operatorConfig OperatorConfig, apiName string) (schema.LogResponse, error) {
+	httpRes, err := HTTPGet(operatorConfig, "/logs/"+apiName)
+	if err != nil {
+		return schema.LogResponse{}, err
+	}
+
+	var logResponse schema.LogResponse
+	if err = json.Unmarshal(httpRes, &logResponse); err != nil {
+		return schema.LogResponse{}, errors.Wrap(err, "/get/"+apiName, string(httpRes))
+	}
+
+	return logResponse, nil
+}
+
+func GetJobLogs(operatorConfig OperatorConfig, apiName string, jobID string) (schema.LogResponse, error) {
+	httpRes, err := HTTPGet(operatorConfig, "/logs/"+apiName, map[string]string{"jobID": jobID})
+	if err != nil {
+		return schema.LogResponse{}, err
+	}
+
+	var logResponse schema.LogResponse
+	if err = json.Unmarshal(httpRes, &logResponse); err != nil {
+		return schema.LogResponse{}, errors.Wrap(err, "/get/"+apiName, string(httpRes))
+	}
+
+	return logResponse, nil
+}
+
 func StreamLogs(operatorConfig OperatorConfig, apiName string) error {
-	return streamLogs(operatorConfig, "/logs/"+apiName)
+	return streamLogs(operatorConfig, "/streamlogs/"+apiName)
 }
 
 func StreamJobLogs(operatorConfig OperatorConfig, apiName string, jobID string) error {
-	return streamLogs(operatorConfig, "/logs/"+apiName, map[string]string{"jobID": jobID})
+	return streamLogs(operatorConfig, "/streamlogs/"+apiName, map[string]string{"jobID": jobID})
 }
 
 func streamLogs(operatorConfig OperatorConfig, path string, qParams ...map[string]string) error {

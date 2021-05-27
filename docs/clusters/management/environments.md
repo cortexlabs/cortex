@@ -26,11 +26,9 @@ cortex cluster info cluster1.yaml --configure-env cluster1  # configures the clu
 cortex cluster info cluster2.yaml --configure-env cluster2  # configures the cluster2 env
 
 cortex deploy --env cluster1
-cortex logs my-api --env cluster1
 cortex delete my-api --env cluster1
 
 cortex deploy --env cluster2
-cortex logs my-api --env cluster2
 cortex delete my-api --env cluster2
 ```
 

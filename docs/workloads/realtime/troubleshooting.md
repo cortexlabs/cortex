@@ -4,8 +4,8 @@
 
 When making requests to your API, it's possible to get a `no healthy upstream` error message (with HTTP status code `503`). This means that there are currently no live replicas running for your API. This could happen for a few reasons:
 
-1. It's possible that your API is simply not ready yet. You can check the status of your API with `cortex get API_NAME`, and stream the logs for a single replica (at random) with `cortex logs API_NAME`.
-1. Your API may have errored during initialization or while responding to a previous request. `cortex get API_NAME` will show the status of your API, and you can view the logs for all replicas via Cloudwatch Logs Insights.
+1. It's possible that your API is simply not ready yet. You can check the status of your API with `cortex get API_NAME`, and inspect the logs in CloudWatch with the help of `cortex logs API_NAME`.
+1. Your API may have errored during initialization or while responding to a previous request. `cortex get API_NAME` will show the status of your API, and you can view the logs for all replicas by visiting the CloudWatch Insights URL from `cortex logs API_NAME`.
 
 If you are using API Gateway in front of your API endpoints, it is also possible to receive a `{"message":"Service Unavailable"}` error message (with HTTP status code `503`) after 29 seconds if your request exceeds API Gateway's 29 second timeout. If this is the case, you can either modify your code to take less time, run on faster hardware (e.g. GPUs), or don't use API Gateway (there is no timeout when using the API's endpoint directly).
 
@@ -13,7 +13,7 @@ If you are using API Gateway in front of your API endpoints, it is also possible
 
 If your API is stuck in the "updating" or "compute unavailable" state (which is displayed when running `cortex get`), there are a few possible causes. Here are some things to check:
 
-### Check `cortex logs API_NAME`
+### Check `cortex logs API_NAME --random-pod`
 
 If no logs appear (e.g. it just says "fetching logs..."), continue down this list.
 

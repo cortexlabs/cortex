@@ -17,28 +17,36 @@ limitations under the License.
 package cmd
 
 import (
+	"fmt"
+
 	"github.com/cortexlabs/cortex/cli/cluster"
 	"github.com/cortexlabs/cortex/pkg/lib/exit"
-	"github.com/cortexlabs/cortex/pkg/lib/prompt"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
-	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	"github.com/spf13/cobra"
 )
 
 var (
 	_flagLogsEnv            string
 	_flagLogsDisallowPrompt bool
+	_flagRandomPod          bool
+	_logsOutput             = `Navigate to the link below and click "Run Query":
+
+%s
+
+NOTE: there may be 1-2 minutes of delay for the logs to show up in the CloudWatch Insight queries
+`
 )
 
 func logsInit() {
 	_logsCmd.Flags().SortFlags = false
 	_logsCmd.Flags().StringVarP(&_flagLogsEnv, "env", "e", "", "environment to use")
 	_logsCmd.Flags().BoolVarP(&_flagLogsDisallowPrompt, "yes", "y", false, "skip prompts")
+	_logsCmd.Flags().BoolVarP(&_flagRandomPod, "random-pod", "", false, "stream logs from a random pod")
 }
 
 var _logsCmd = &cobra.Command{
 	Use:   "logs API_NAME [JOB_ID]",
-	Short: "stream logs from a single replica of an api or a single worker for a job",
+	Short: "display CloudWatch insights URL for an api or a job",
 	Args:  cobra.RangeArgs(1, 2),
 	Run: func(cmd *cobra.Command, args []string) {
 		envName, err := getEnvFromFlag(_flagLogsEnv)
@@ -52,7 +60,7 @@ var _logsCmd = &cobra.Command{
 			telemetry.Event("cli.logs")
 			exit.Error(err)
 		}
-		telemetry.Event("cli.logs", map[string]interface{}{"env_name": env.Name})
+		telemetry.Event("cli.logs", map[string]interface{}{"env_name": env.Name, "random_pod": _flagRandomPod})
 
 		err = printEnvIfNotSpecified(env.Name, cmd)
 		if err != nil {
@@ -62,38 +70,36 @@ var _logsCmd = &cobra.Command{
 		operatorConfig := MustGetOperatorConfig(env.Name)
 		apiName := args[0]
 
-		apiResponse, err := cluster.GetAPI(operatorConfig, apiName)
-		if err != nil {
-			exit.Error(err)
-		}
-
 		if len(args) == 1 {
-			if apiResponse[0].Spec.Kind == userconfig.RealtimeAPIKind && apiResponse[0].Status.Requested > 1 && !_flagLogsDisallowPrompt {
-				prompt.YesOrExit("logs from a single random replica will be streamed\n\nfor aggregated logs please visit your cloudwatch logging dashboard; see https://docs.cortex.dev for details", "", "")
-			}
-
-			err = cluster.StreamLogs(operatorConfig, apiName)
-			if err != nil {
-				exit.Error(err)
-			}
-		}
-
-		if len(args) == 2 {
-			if apiResponse[0].Spec.Kind == userconfig.BatchAPIKind {
-				jobResponse, err := cluster.GetBatchJob(operatorConfig, apiName, args[1])
+			if _flagRandomPod {
+				err := cluster.StreamLogs(operatorConfig, apiName)
 				if err != nil {
 					exit.Error(err)
 				}
-
-				if jobResponse.JobStatus.Workers > 1 && !_flagLogsDisallowPrompt {
-					prompt.YesOrExit("logs from a single random worker will be streamed\n\nfor aggregated logs please visit your cloudwatch logging dashboard; see https://docs.cortex.dev for details", "", "")
-				}
+				return
 			}
 
-			err = cluster.StreamJobLogs(operatorConfig, apiName, args[1])
+			logResponse, err := cluster.GetLogs(operatorConfig, apiName)
 			if err != nil {
 				exit.Error(err)
 			}
+			fmt.Print(fmt.Sprintf(_logsOutput, logResponse.LogURL))
+			return
 		}
+
+		jobID := args[1]
+		if _flagRandomPod {
+			err := cluster.StreamJobLogs(operatorConfig, apiName, jobID)
+			if err != nil {
+				exit.Error(err)
+			}
+			return
+		}
+
+		logResponse, err := cluster.GetJobLogs(operatorConfig, apiName, jobID)
+		if err != nil {
+			exit.Error(err)
+		}
+		fmt.Print(fmt.Sprintf(_logsOutput, logResponse.LogURL))
 	},
 }

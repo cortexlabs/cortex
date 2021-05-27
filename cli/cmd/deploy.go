@@ -240,7 +240,7 @@ func getAPICommandsMessage(results []schema.DeployResult, envName string) (strin
 			continue
 		}
 		if result.API != nil && result.API.Spec.Kind == userconfig.RealtimeAPIKind {
-			items.Add(fmt.Sprintf("cortex logs %s%s", apiName, envArg), "(stream api logs)")
+			items.Add(fmt.Sprintf("cortex logs %s%s", apiName, envArg), "(access logs)")
 			break
 		}
 	}

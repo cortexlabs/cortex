@@ -21,6 +21,10 @@ import (
 
 	"github.com/cortexlabs/cortex/pkg/operator/operator"
 	"github.com/cortexlabs/cortex/pkg/operator/resources"
+	"github.com/cortexlabs/cortex/pkg/operator/resources/job/batchapi"
+	"github.com/cortexlabs/cortex/pkg/operator/resources/job/taskapi"
+	"github.com/cortexlabs/cortex/pkg/operator/schema"
+	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
@@ -59,4 +63,60 @@ func ReadJobLogs(w http.ResponseWriter, r *http.Request) {
 	}
 
 	operator.StreamLogsFromRandomPod(labels, socket)
+}
+
+func JobLogURL(w http.ResponseWriter, r *http.Request) {
+	apiName := mux.Vars(r)["apiName"]
+	jobID, err := getRequiredQueryParam("jobID", r)
+	if err != nil {
+		respondError(w, r, err)
+		return
+	}
+
+	deployedResource, err := resources.GetDeployedResourceByName(apiName)
+	if err != nil {
+		respondError(w, r, err)
+		return
+	}
+
+	switch deployedResource.Kind {
+	case userconfig.BatchAPIKind:
+		jobStatus, err := batchapi.GetJobStatus(spec.JobKey{
+			ID:      jobID,
+			APIName: apiName,
+			Kind:    userconfig.BatchAPIKind,
+		})
+		if err != nil {
+			respondError(w, r, err)
+			return
+		}
+		logURL, err := operator.BatchJobLogURL(apiName, *jobStatus)
+		if err != nil {
+			respondError(w, r, err)
+			return
+		}
+		respond(w, schema.LogResponse{
+			LogURL: logURL,
+		})
+	case userconfig.TaskAPIKind:
+		jobStatus, err := taskapi.GetJobStatus(spec.JobKey{
+			ID:      jobID,
+			APIName: apiName,
+			Kind:    userconfig.TaskAPIKind,
+		})
+		if err != nil {
+			respondError(w, r, err)
+			return
+		}
+		logURL, err := operator.TaskJobLogURL(apiName, *jobStatus)
+		if err != nil {
+			respondError(w, r, err)
+			return
+		}
+		respond(w, schema.LogResponse{
+			LogURL: logURL,
+		})
+	default:
+		respondError(w, r, resources.ErrorOperationIsOnlySupportedForKind(*deployedResource, userconfig.BatchAPIKind, userconfig.TaskAPIKind))
+	}
 }
