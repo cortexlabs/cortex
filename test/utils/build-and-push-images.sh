@@ -22,6 +22,7 @@ source $ROOT/dev/util.sh
 # registry address
 host=$1
 
+# images to build
 api_images=(
   "async-text-generator-cpu"
   "async-text-generator-gpu"

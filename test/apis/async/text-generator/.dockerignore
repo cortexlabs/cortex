@@ -1,4 +1,4 @@
-Dockerfile
+*.dockerfile
 README.md
 sample.json
 expectations.yaml

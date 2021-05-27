@@ -106,6 +106,7 @@ function create_ecr_repository() {
 function build() {
   local image=$1
   local tag=$2
+  local dir="${ROOT}/images/${image}"
 
   tag_args=""
   if [ -n "$AWS_ACCOUNT_ID" ] && [ -n "$AWS_REGION" ]; then
@@ -113,7 +114,6 @@ function build() {
   fi
 
   blue_echo "Building $image:$tag..."
-  local dir="${ROOT}/images/${image}"
   docker build $ROOT -f $dir/Dockerfile -t cortexlabs/$image:$tag $tag_args
   green_echo "Built $image:$tag\n"
 }
