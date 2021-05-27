@@ -4,7 +4,7 @@
     port: 9000
     containers:
     - name: api
-      image: 499593605069.dkr.ecr.us-west-2.amazonaws.com/cortexlabs-tests/realtime-hello-world-cpu:latest
+      image: quay.io/cortexlabs-test/realtime-hello-world-cpu:latest
       env:
         RESPONSE: "hello from API A"
       readiness_probe:
@@ -23,7 +23,7 @@
     port: 9000
     containers:
     - name: api
-      image: 499593605069.dkr.ecr.us-west-2.amazonaws.com/cortexlabs-tests/realtime-hello-world-cpu:latest
+      image: quay.io/cortexlabs-test/realtime-hello-world-cpu:latest
       env:
         RESPONSE: "hello from API B"
       readiness_probe:
@@ -42,7 +42,7 @@
     port: 9000
     containers:
     - name: api
-      image: 499593605069.dkr.ecr.us-west-2.amazonaws.com/cortexlabs-tests/realtime-hello-world-cpu:latest
+      image: quay.io/cortexlabs-test/realtime-hello-world-cpu:latest
       env:
         RESPONSE: "hello from shadow API"
       readiness_probe:

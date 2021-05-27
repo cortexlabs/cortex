@@ -4,7 +4,7 @@
     port: 9000
     containers:
     - name: api
-      image: 499593605069.dkr.ecr.us-west-2.amazonaws.com/cortexlabs-tests/async-text-generator-gpu:latest
+      image: quay.io/cortexlabs-test/async-text-generator-gpu:latest
       env:
         TARGET_DEVICE: "cuda"
       readiness_probe:

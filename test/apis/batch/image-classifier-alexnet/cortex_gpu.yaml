@@ -3,7 +3,7 @@
   pod:
     containers:
     - name: api
-      image: 499593605069.dkr.ecr.us-west-2.amazonaws.com/cortexlabs-tests/batch-image-classifier-alexnet-gpu:latest
+      image: quay.io/cortexlabs-test/batch-image-classifier-alexnet-gpu:latest
       command:
         - "gunicorn"
         - "-k"
