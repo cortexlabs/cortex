@@ -132,7 +132,11 @@ func (h *AsyncMessageHandler) handleFailure(requestID string) error {
 
 func (h *AsyncMessageHandler) updateStatus(requestID string, status status.AsyncStatus) error {
 	key := fmt.Sprintf("%s/%s/status/%s", h.storagePath, requestID, status)
-	return h.aws.UploadStringToS3("", h.config.Bucket, key)
+	err := h.aws.UploadStringToS3("", h.config.Bucket, key)
+	if err != nil {
+		return errors.WithStack(err)
+	}
+	return nil
 }
 
 func (h *AsyncMessageHandler) getPayload(requestID string) (*userPayload, error) {
@@ -144,7 +148,7 @@ func (h *AsyncMessageHandler) getPayload(requestID string) (*userPayload, error)
 		},
 	)
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 
 	contentType := "application/octet-stream"
