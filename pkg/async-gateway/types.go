@@ -19,7 +19,7 @@ package gateway
 import (
 	"time"
 
-	"github.com/cortexlabs/cortex/pkg/types/status"
+	"github.com/cortexlabs/cortex/pkg/types/async"
 )
 
 // UserResponse represents the user's API response, which has to be JSON serializable
@@ -32,8 +32,8 @@ type CreateWorkloadResponse struct {
 
 // GetWorkloadResponse represents the workload response that is returned to the user
 type GetWorkloadResponse struct {
-	ID        string             `json:"id"`
-	Status    status.AsyncStatus `json:"status"`
-	Result    *UserResponse      `json:"result,omitempty"`
-	Timestamp *time.Time         `json:"timestamp,omitempty"`
+	ID        string        `json:"id"`
+	Status    async.Status  `json:"status"`
+	Result    *UserResponse `json:"result,omitempty"`
+	Timestamp *time.Time    `json:"timestamp,omitempty"`
 }

@@ -29,7 +29,7 @@ import (
 	awslib "github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
-	"github.com/cortexlabs/cortex/pkg/types/status"
+	"github.com/cortexlabs/cortex/pkg/types/async"
 	"go.uber.org/zap"
 )
 
@@ -63,7 +63,7 @@ func NewAsyncMessageHandler(config AsyncMessageHandlerConfig, awsClient *awslib.
 		config:      config,
 		aws:         awsClient,
 		log:         logger,
-		storagePath: awslib.S3Path(config.Bucket, fmt.Sprintf("%s/workloads/%s", config.ClusterUID, config.APIName)),
+		storagePath: async.StoragePath(config.ClusterUID, config.APIName),
 		httpClient:  &http.Client{},
 	}
 }
@@ -88,9 +88,9 @@ func (h *AsyncMessageHandler) Handle(message *sqs.Message) error {
 func (h *AsyncMessageHandler) handleMessage(requestID string) error {
 	h.log.Infow("processing workload", "id", requestID)
 
-	err := h.updateStatus(requestID, status.AsyncStatusInProgress)
+	err := h.updateStatus(requestID, async.StatusInProgress)
 	if err != nil {
-		return errors.Wrap(err, fmt.Sprintf("failed to update status to %s", status.AsyncStatusInProgress))
+		return errors.Wrap(err, fmt.Sprintf("failed to update status to %s", async.StatusInProgress))
 	}
 
 	payload, err := h.getPayload(requestID)
@@ -102,9 +102,9 @@ func (h *AsyncMessageHandler) handleMessage(requestID string) error {
 	result, err := h.submitRequest(payload, requestID)
 	if err != nil {
 		h.log.Errorw("failed to submit request to user container", "id", requestID, "error", err)
-		err = h.updateStatus(requestID, status.AsyncStatusFailed)
+		err = h.updateStatus(requestID, async.StatusFailed)
 		if err != nil {
-			return errors.Wrap(err, fmt.Sprintf("failed to update status to %s", status.AsyncStatusFailed))
+			return errors.Wrap(err, fmt.Sprintf("failed to update status to %s", async.StatusFailed))
 		}
 		return nil
 	}
@@ -113,8 +113,8 @@ func (h *AsyncMessageHandler) handleMessage(requestID string) error {
 		return errors.Wrap(err, "failed to upload result to storage")
 	}
 
-	if err = h.updateStatus(requestID, status.AsyncStatusCompleted); err != nil {
-		return errors.Wrap(err, fmt.Sprintf("failed to update status to %s", status.AsyncStatusCompleted))
+	if err = h.updateStatus(requestID, async.StatusCompleted); err != nil {
+		return errors.Wrap(err, fmt.Sprintf("failed to update status to %s", async.StatusCompleted))
 	}
 
 	h.log.Infow("workload processing complete", "id", requestID)
@@ -122,8 +122,8 @@ func (h *AsyncMessageHandler) handleMessage(requestID string) error {
 	return nil
 }
 
-func (h *AsyncMessageHandler) updateStatus(requestID string, status status.AsyncStatus) error {
-	key := fmt.Sprintf("%s/%s/status/%s", h.storagePath, requestID, status)
+func (h *AsyncMessageHandler) updateStatus(requestID string, status async.Status) error {
+	key := async.StatusPath(h.storagePath, requestID, status)
 	err := h.aws.UploadStringToS3("", h.config.Bucket, key)
 	if err != nil {
 		return errors.WithStack(err)
@@ -132,7 +132,7 @@ func (h *AsyncMessageHandler) updateStatus(requestID string, status status.Async
 }
 
 func (h *AsyncMessageHandler) getPayload(requestID string) (*userPayload, error) {
-	key := fmt.Sprintf("%s/%s/payload", h.storagePath, requestID)
+	key := async.PayloadPath(h.storagePath, requestID)
 	output, err := h.aws.S3().GetObject(
 		&s3.GetObjectInput{
 			Key:    aws.String(key),
@@ -155,7 +155,7 @@ func (h *AsyncMessageHandler) getPayload(requestID string) (*userPayload, error)
 }
 
 func (h *AsyncMessageHandler) deletePayload(requestID string) {
-	key := fmt.Sprintf("%s/%s/payload", h.storagePath, requestID)
+	key := async.PayloadPath(h.storagePath, requestID)
 	err := h.aws.DeleteS3File(h.config.Bucket, key)
 	if err != nil {
 		h.log.Errorw("failed to delete user payload", "error", err)
@@ -197,7 +197,7 @@ func (h *AsyncMessageHandler) submitRequest(payload *userPayload, requestID stri
 }
 
 func (h *AsyncMessageHandler) uploadResult(requestID string, result interface{}) error {
-	key := fmt.Sprintf("%s/%s/result.json", h.storagePath, requestID)
+	key := async.ResultPath(h.storagePath, requestID)
 	if err := h.aws.UploadJSONToS3(result, h.config.Bucket, key); err != nil {
 		return errors.WithStack(err)
 	}

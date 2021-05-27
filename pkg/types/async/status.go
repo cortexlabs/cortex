@@ -14,27 +14,27 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package status
+package async
 
-// AsyncStatus is an enum type for workload status
-type AsyncStatus string
+// Status is an enum type for workload status
+type Status string
 
 // Different possible workload status
 const (
-	AsyncStatusNotFound   AsyncStatus = "not_found"
-	AsyncStatusFailed     AsyncStatus = "failed"
-	AsyncStatusInProgress AsyncStatus = "in_progress"
-	AsyncStatusInQueue    AsyncStatus = "in_queue"
-	AsyncStatusCompleted  AsyncStatus = "completed"
+	StatusNotFound   Status = "not_found"
+	StatusFailed     Status = "failed"
+	StatusInProgress Status = "in_progress"
+	StatusInQueue    Status = "in_queue"
+	StatusCompleted  Status = "completed"
 )
 
-func (status AsyncStatus) String() string {
+func (status Status) String() string {
 	return string(status)
 }
 
-func (status AsyncStatus) Valid() bool {
+func (status Status) Valid() bool {
 	switch status {
-	case AsyncStatusNotFound, AsyncStatusFailed, AsyncStatusInProgress, AsyncStatusInQueue, AsyncStatusCompleted:
+	case StatusNotFound, StatusFailed, StatusInProgress, StatusInQueue, StatusCompleted:
 		return true
 	default:
 		return false

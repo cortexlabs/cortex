@@ -27,7 +27,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/sqs"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/random"
-	"github.com/cortexlabs/cortex/pkg/types/status"
+	"github.com/cortexlabs/cortex/pkg/types/async"
 	"github.com/stretchr/testify/require"
 )
 
@@ -72,7 +72,7 @@ func TestAsyncMessageHandler_Handle(t *testing.T) {
 
 	_, err = awsClient.ReadStringFromS3(
 		_testBucket,
-		fmt.Sprintf("%s/%s/status/%s", asyncHandler.storagePath, requestID, status.AsyncStatusCompleted),
+		fmt.Sprintf("%s/%s/status/%s", asyncHandler.storagePath, requestID, async.StatusCompleted),
 	)
 	require.NoError(t, err)
 }
