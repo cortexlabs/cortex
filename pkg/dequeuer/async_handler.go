@@ -80,11 +80,7 @@ func (h *AsyncMessageHandler) Handle(message *sqs.Message) error {
 	requestID := *message.Body
 	err := h.handleMessage(requestID)
 	if err != nil {
-		h.log.Errorw("failed processing request", "id", requestID, "error", err)
-		err = h.handleFailure(requestID) // FIXME: should only handle failure if user error (?)
-		if err != nil {
-			return errors.Wrap(err, "failed to handle message failure")
-		}
+		return err
 	}
 	return nil
 }
@@ -105,7 +101,12 @@ func (h *AsyncMessageHandler) handleMessage(requestID string) error {
 
 	result, err := h.submitRequest(payload, requestID)
 	if err != nil {
-		return errors.Wrap(err, "failed to submit request to user container")
+		h.log.Errorw("failed to submit request to user container", "id", requestID, "error", err)
+		err = h.updateStatus(requestID, status.AsyncStatusFailed)
+		if err != nil {
+			return errors.Wrap(err, fmt.Sprintf("failed to update status to %s", status.AsyncStatusFailed))
+		}
+		return nil
 	}
 
 	if err = h.uploadResult(requestID, result); err != nil {
@@ -118,14 +119,6 @@ func (h *AsyncMessageHandler) handleMessage(requestID string) error {
 
 	h.log.Infow("workload processing complete", "id", requestID)
 
-	return nil
-}
-
-func (h *AsyncMessageHandler) handleFailure(requestID string) error {
-	err := h.updateStatus(requestID, status.AsyncStatusFailed)
-	if err != nil {
-		return errors.Wrap(err, fmt.Sprintf("failed to update status to %s", status.AsyncStatusFailed))
-	}
 	return nil
 }
 

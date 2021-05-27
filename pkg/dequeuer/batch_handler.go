@@ -82,11 +82,7 @@ func (h *BatchMessageHandler) Handle(message *sqs.Message) error {
 	}
 	err := h.handleBatch(message)
 	if err != nil {
-		h.log.Errorw("failed processing batch", "id", *message.MessageId, "error", err)
-		err = h.handleFailure(message) // FIXME: should only handle failure if user error (?)
-		if err != nil {
-			return errors.Wrap(err, "failed to handle message failure")
-		}
+		return err
 	}
 	return nil
 }
@@ -146,7 +142,12 @@ func (h *BatchMessageHandler) handleBatch(message *sqs.Message) error {
 	startTime := time.Now()
 	err := h.submitRequest(*message.Body, false)
 	if err != nil {
-		return err
+		h.log.Errorw("failed to process batch", "id", *message.MessageId, "error", err)
+		err = h.recordFailure()
+		if err != nil {
+			return errors.Wrap(err, "failed to record failure metric")
+		}
+		return nil
 	}
 	endTime := time.Now().Sub(startTime)
 
@@ -159,15 +160,6 @@ func (h *BatchMessageHandler) handleBatch(message *sqs.Message) error {
 	if err != nil {
 		return errors.Wrap(err, "failed to record time per batch")
 	}
-	return nil
-}
-
-func (h *BatchMessageHandler) handleFailure(_ *sqs.Message) error {
-	err := h.recordFailure()
-	if err != nil {
-		return errors.Wrap(err, "failed to record failure metric")
-	}
-
 	return nil
 }
 
