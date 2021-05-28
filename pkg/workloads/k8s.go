@@ -121,6 +121,9 @@ func asyncDequeuerProxyContainer(api spec.API, queueURL string) (kcore.Container
 		Name:            _dequeuerContainerName,
 		Image:           config.ClusterConfig.ImageDequeuer,
 		ImagePullPolicy: kcore.PullAlways,
+		Command: []string{
+			"/dequeuer",
+		},
 		Args: []string{
 			"--cluster-config", consts.DefaultInClusterConfigPath,
 			"--cluster-uid", config.ClusterConfig.ClusterUID,
@@ -156,9 +159,9 @@ func batchDequeuerProxyContainer(api spec.API, jobID, queueURL string) (kcore.Co
 			"--cluster-config", consts.DefaultInClusterConfigPath,
 			"--cluster-uid", config.ClusterConfig.ClusterUID,
 			"--queue", queueURL,
-			"--job-id", jobID,
 			"--api-kind", api.Kind.String(),
 			"--api-name", api.Name,
+			"--job-id", jobID,
 			"--user-port", s.Int32(*api.Pod.Port),
 			"--statsd-port", consts.StatsDPortStr,
 		},
