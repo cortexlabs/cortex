@@ -319,7 +319,7 @@ func (r *BatchJobReconciler) desiredEnqueuerJob(batchJob batch.BatchJob, queueUR
 }
 
 func (r *BatchJobReconciler) desiredWorkerJob(batchJob batch.BatchJob, apiSpec spec.API, jobSpec spec.BatchJob) (*kbatch.Job, error) {
-	containers, volumes := workloads.BatchUserPodContainers(apiSpec, &jobSpec)
+	containers, volumes := workloads.BatchContainers(apiSpec, &jobSpec)
 
 	job := k8s.Job(
 		&k8s.JobSpec{

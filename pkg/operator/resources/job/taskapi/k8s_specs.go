@@ -60,7 +60,7 @@ func virtualServiceSpec(api *spec.API) *istioclientnetworking.VirtualService {
 }
 
 func k8sJobSpec(api *spec.API, job *spec.TaskJob) *kbatch.Job {
-	containers, volumes := workloads.TaskUserPodContainers(*api, &job.JobKey)
+	containers, volumes := workloads.TaskContainers(*api, &job.JobKey)
 
 	return k8s.Job(&k8s.JobSpec{
 		Name:        job.JobKey.K8sName(),

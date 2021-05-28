@@ -221,7 +221,7 @@ func realtimeProxyContainer(api spec.API) (kcore.Container, kcore.Volume) {
 	}, ClusterConfigVolume()
 }
 
-func RealtimeUserPodContainers(api spec.API) ([]kcore.Container, []kcore.Volume) {
+func RealtimeContainers(api spec.API) ([]kcore.Container, []kcore.Volume) {
 	containers, volumes := userPodContainers(api)
 	proxyContainer, proxyVolume := realtimeProxyContainer(api)
 
@@ -231,7 +231,7 @@ func RealtimeUserPodContainers(api spec.API) ([]kcore.Container, []kcore.Volume)
 	return containers, volumes
 }
 
-func AsyncUserPodContainers(api spec.API, queueURL string) ([]kcore.Container, []kcore.Volume) {
+func AsyncContainers(api spec.API, queueURL string) ([]kcore.Container, []kcore.Volume) {
 	k8sName := K8sName(api.Name)
 
 	containers, volumes := userPodContainers(api)
@@ -244,7 +244,7 @@ func AsyncUserPodContainers(api spec.API, queueURL string) ([]kcore.Container, [
 	return containers, volumes
 }
 
-func TaskUserPodContainers(api spec.API, job *spec.JobKey) ([]kcore.Container, []kcore.Volume) {
+func TaskContainers(api spec.API, job *spec.JobKey) ([]kcore.Container, []kcore.Volume) {
 	containers, volumes := userPodContainers(api)
 	k8sName := job.K8sName()
 
@@ -273,7 +273,7 @@ func TaskUserPodContainers(api spec.API, job *spec.JobKey) ([]kcore.Container, [
 	return containers, volumes
 }
 
-func BatchUserPodContainers(api spec.API, job *spec.BatchJob) ([]kcore.Container, []kcore.Volume) {
+func BatchContainers(api spec.API, job *spec.BatchJob) ([]kcore.Container, []kcore.Volume) {
 	containers, volumes := userPodContainers(api)
 	dequeuerContainer, dequeuerVolume := batchDequeuerProxyContainer(api, job.ID, job.SQSUrl)
 

@@ -201,7 +201,7 @@ func deploymentSpec(api spec.API, prevDeployment *kapps.Deployment, queueURL str
 		volumes    []kcore.Volume
 	)
 
-	containers, volumes = workloads.AsyncUserPodContainers(api, queueURL)
+	containers, volumes = workloads.AsyncContainers(api, queueURL)
 
 	return *k8s.Deployment(&k8s.DeploymentSpec{
 		Name:           workloads.K8sName(api.Name),
