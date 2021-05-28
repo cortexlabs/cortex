@@ -118,7 +118,7 @@ see https://github.com/moby/moby/issues/39302#issuecomment-639687466_
     1. Update the link at the top of the file to the URL you copied from
     1. Check that your diff is reasonable (and put back any of our modifications, e.g. the image path, rolling update
        strategy, resource requests, tolerations, node selector, priority class, etc)
-1. Confirm GPUs work for PyTorch, TensorFlow, and ONNX models
+1. Confirm GPUs work
 
 ## Inferentia device plugin
 

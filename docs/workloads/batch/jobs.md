@@ -202,7 +202,7 @@ RESPONSE:
         },
         "worker_counts": {          # worker counts are only available while a job is running
             "pending": <int>,       # number of workers that are waiting for compute resources to be provisioned
-            "initializing": <int>,  # number of workers that are initializing (downloading images or running your handler's init function)
+            "initializing": <int>,  # number of workers that are initializing
             "running": <int>,       # number of workers that are actively working on batches from the queue
             "succeeded": <int>,     # number of workers that have completed after verifying that the queue is empty
             "failed": <int>,        # number of workers that have failed
