@@ -129,6 +129,10 @@ func (h *BatchMessageHandler) submitRequest(messageBody string, isOnJobComplete 
 		return ErrorUserContainerNotReachable(err)
 	}
 
+	if response.StatusCode == http.StatusNotFound && isOnJobComplete {
+		return nil
+	}
+
 	if response.StatusCode != http.StatusOK {
 		return ErrorUserContainerResponseStatusCode(response.StatusCode)
 	}
