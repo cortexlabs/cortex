@@ -22,6 +22,7 @@ import (
 	"io"
 	"strings"
 
+	"github.com/cortexlabs/cortex/pkg/types/async"
 	"go.uber.org/zap"
 )
 
@@ -52,10 +53,10 @@ func NewService(clusterUID, apiName string, queue Queue, storage Storage, logger
 
 // CreateWorkload enqueues an async workload request and uploads the request payload to S3
 func (s *service) CreateWorkload(id string, payload io.Reader, contentType string) (string, error) {
-	prefix := s.workloadStoragePrefix()
+	prefix := async.StoragePath(s.clusterUID, s.apiName)
 	log := s.logger.With(zap.String("id", id), zap.String("contentType", contentType))
 
-	payloadPath := fmt.Sprintf("%s/%s/payload", prefix, id)
+	payloadPath := async.PayloadPath(prefix, id)
 	log.Debug("uploading payload", zap.String("path", payloadPath))
 	if err := s.storage.Upload(payloadPath, payload, contentType); err != nil {
 		return "", err
@@ -66,8 +67,8 @@ func (s *service) CreateWorkload(id string, payload io.Reader, contentType strin
 		return "", err
 	}
 
-	statusPath := fmt.Sprintf("%s/%s/status/%s", prefix, id, StatusInQueue)
-	log.Debug(fmt.Sprintf("setting status to %s", StatusInQueue))
+	statusPath := fmt.Sprintf("%s/%s/status/%s", prefix, id, async.StatusInQueue)
+	log.Debug(fmt.Sprintf("setting status to %s", async.StatusInQueue))
 	if err := s.storage.Upload(statusPath, strings.NewReader(""), "text/plain"); err != nil {
 		return "", err
 	}
@@ -79,21 +80,21 @@ func (s *service) CreateWorkload(id string, payload io.Reader, contentType strin
 func (s *service) GetWorkload(id string) (GetWorkloadResponse, error) {
 	log := s.logger.With(zap.String("id", id))
 
-	status, err := s.getStatus(id)
+	st, err := s.getStatus(id)
 	if err != nil {
 		return GetWorkloadResponse{}, err
 	}
 
-	if status != StatusCompleted {
+	if st != async.StatusCompleted {
 		return GetWorkloadResponse{
 			ID:     id,
-			Status: status,
+			Status: st,
 		}, nil
 	}
 
 	// attempt to download user result
-	prefix := s.workloadStoragePrefix()
-	resultPath := fmt.Sprintf("%s/%s/result.json", prefix, id)
+	prefix := async.StoragePath(s.clusterUID, s.apiName)
+	resultPath := async.ResultPath(prefix, id)
 	log.Debug("downloading user result", zap.String("path", resultPath))
 	resultBuf, err := s.storage.Download(resultPath)
 	if err != nil {
@@ -113,46 +114,43 @@ func (s *service) GetWorkload(id string) (GetWorkloadResponse, error) {
 
 	return GetWorkloadResponse{
 		ID:        id,
-		Status:    status,
+		Status:    st,
 		Result:    &userResponse,
 		Timestamp: &timestamp,
 	}, nil
 }
 
-func (s *service) getStatus(id string) (Status, error) {
-	prefix := s.workloadStoragePrefix()
+func (s *service) getStatus(id string) (async.Status, error) {
+	prefix := async.StoragePath(s.clusterUID, s.apiName)
 	log := s.logger.With(zap.String("id", id))
 
 	// download workload status
-	log.Debug("checking status", zap.String("path", fmt.Sprintf("%s/%s/status/*", prefix, id)))
-	files, err := s.storage.List(fmt.Sprintf("%s/%s/status", prefix, id))
+	statusPrefixPath := async.StatusPrefixPath(prefix, id)
+	log.Debug("checking status", zap.String("path", statusPrefixPath))
+	files, err := s.storage.List(statusPrefixPath)
 	if err != nil {
 		return "", err
 	}
 	if len(files) == 0 {
-		return StatusNotFound, nil
+		return async.StatusNotFound, nil
 	}
 
 	// determine request status
-	status := StatusInQueue
+	st := async.StatusInQueue
 	for _, file := range files {
-		fileStatus := Status(file)
+		fileStatus := async.Status(file)
 		if !fileStatus.Valid() {
-			status = fileStatus
-			return "", fmt.Errorf("invalid workload status: %s", status)
+			st = fileStatus
+			return "", fmt.Errorf("invalid workload status: %s", st)
 		}
-		if fileStatus == StatusInProgress {
-			status = fileStatus
+		if fileStatus == async.StatusInProgress {
+			st = fileStatus
 		}
-		if fileStatus == StatusCompleted || fileStatus == StatusFailed {
-			status = fileStatus
+		if fileStatus == async.StatusCompleted || fileStatus == async.StatusFailed {
+			st = fileStatus
 			break
 		}
 	}
 
-	return status, nil
-}
-
-func (s *service) workloadStoragePrefix() string {
-	return fmt.Sprintf("%s/workloads/%s", s.clusterUID, s.apiName)
+	return st, nil
 }
