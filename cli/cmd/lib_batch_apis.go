@@ -117,7 +117,7 @@ func batchAPITable(batchAPI schema.APIResponse) string {
 
 		t := table.Table{
 			Headers: []table.Header{
-				{Title: "job id"},
+				{Title: "job id (max 10)"},
 				{Title: "status"},
 				{Title: "progress"}, // (succeeded/total)
 				{Title: "failed attempts", Hidden: totalFailed == 0},

@@ -103,7 +103,7 @@ func taskAPITable(taskAPI schema.APIResponse) string {
 
 		t := table.Table{
 			Headers: []table.Header{
-				{Title: "task job id"},
+				{Title: "task job id (10 max)"},
 				{Title: "status"},
 				{Title: "start time"},
 				{Title: "duration"},

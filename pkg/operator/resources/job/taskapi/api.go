@@ -275,6 +275,8 @@ func GetAPIByName(deployedResource *operator.DeployedResource) ([]schema.APIResp
 				break
 			}
 		}
+	} else {
+		jobStatuses = jobStatuses[:10]
 	}
 
 	return []schema.APIResponse{

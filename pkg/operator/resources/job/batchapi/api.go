@@ -246,6 +246,8 @@ func GetAPIByName(deployedResource *operator.DeployedResource) ([]schema.APIResp
 				}
 			}
 		}
+	} else {
+		jobStatuses = jobStatuses[:10]
 	}
 
 	dashboardURL := pointer.String(getDashboardURL(api.Name))
