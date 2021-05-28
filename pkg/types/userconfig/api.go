@@ -44,12 +44,11 @@ type API struct {
 }
 
 type Pod struct {
-	NodeGroups     []string      `json:"node_groups" yaml:"node_groups"`
-	ShmSize        *k8s.Quantity `json:"shm_size" yaml:"shm_size"`
-	Port           *int32        `json:"port" yaml:"port"`
-	MaxQueueLength int64         `json:"max_queue_length" yaml:"max_queue_length"`
-	MaxConcurrency int64         `json:"max_concurrency" yaml:"max_concurrency"`
-	Containers     []*Container  `json:"containers" yaml:"containers"`
+	NodeGroups     []string     `json:"node_groups" yaml:"node_groups"`
+	Port           *int32       `json:"port" yaml:"port"`
+	MaxQueueLength int64        `json:"max_queue_length" yaml:"max_queue_length"`
+	MaxConcurrency int64        `json:"max_concurrency" yaml:"max_concurrency"`
+	Containers     []*Container `json:"containers" yaml:"containers"`
 }
 
 type Container struct {
@@ -105,6 +104,7 @@ type Compute struct {
 	Mem *k8s.Quantity `json:"mem" yaml:"mem"`
 	GPU int64         `json:"gpu" yaml:"gpu"`
 	Inf int64         `json:"inf" yaml:"inf"`
+	Shm *k8s.Quantity `json:"shm" yaml:"shm"`
 }
 
 type Autoscaling struct {
@@ -289,9 +289,6 @@ func (trafficSplit *TrafficSplit) UserStr() string {
 func (pod *Pod) UserStr(kind Kind) string {
 	var sb strings.Builder
 
-	if pod.ShmSize != nil {
-		sb.WriteString(fmt.Sprintf("%s: %s\n", ShmSizeKey, pod.ShmSize.UserString))
-	}
 	if pod.NodeGroups == nil {
 		sb.WriteString(fmt.Sprintf("%s: null\n", NodeGroupsKey))
 	} else {
@@ -426,35 +423,12 @@ func (compute *Compute) UserStr() string {
 	} else {
 		sb.WriteString(fmt.Sprintf("%s: %s\n", MemKey, compute.Mem.UserString))
 	}
+	if compute.Shm == nil {
+		sb.WriteString(fmt.Sprintf("%s: null  # not configured\n", ShmKey))
+	} else {
+		sb.WriteString(fmt.Sprintf("%s: %s\n", ShmKey, compute.Shm.UserString))
+	}
 	return sb.String()
-}
-
-func (compute Compute) Equals(c2 *Compute) bool {
-	if c2 == nil {
-		return false
-	}
-
-	if compute.CPU == nil && c2.CPU != nil || compute.CPU != nil && c2.CPU == nil {
-		return false
-	}
-
-	if compute.CPU != nil && c2.CPU != nil && !compute.CPU.Equal(*c2.CPU) {
-		return false
-	}
-
-	if compute.Mem == nil && c2.Mem != nil || compute.Mem != nil && c2.Mem == nil {
-		return false
-	}
-
-	if compute.Mem != nil && c2.Mem != nil && !compute.Mem.Equal(*c2.Mem) {
-		return false
-	}
-
-	if compute.GPU != c2.GPU {
-		return false
-	}
-
-	return true
 }
 
 func (autoscaling *Autoscaling) UserStr() string {
@@ -515,6 +489,15 @@ func GetTotalComputeFromContainers(containers []*Container) Compute {
 			}
 		}
 
+		if container.Compute.Shm != nil {
+			newShmQuantity := k8s.NewMilliQuantity(container.Compute.Shm.ToDec().MilliValue())
+			if compute.Shm == nil {
+				compute.Shm = newShmQuantity
+			} else if newShmQuantity != nil {
+				compute.Shm.AddQty(*newShmQuantity)
+			}
+		}
+
 		compute.GPU += container.Compute.GPU
 		compute.Inf += container.Compute.Inf
 	}
@@ -552,9 +535,6 @@ func (api *API) TelemetryEvent() map[string]interface{} {
 
 	if api.Pod != nil {
 		event["pod._is_defined"] = true
-		if api.Pod.ShmSize != nil {
-			event["pod.shm_size"] = api.Pod.ShmSize.String()
-		}
 		event["pod.node_groups._is_defined"] = len(api.Pod.NodeGroups) > 0
 		event["pod.node_groups._len"] = len(api.Pod.NodeGroups)
 		if api.Pod.Port != nil {
@@ -589,6 +569,10 @@ func (api *API) TelemetryEvent() map[string]interface{} {
 		if totalCompute.Mem != nil {
 			event["pod.containers.compute.mem._is_defined"] = true
 			event["pod.containers.compute.mem"] = totalCompute.Mem.Value()
+		}
+		if totalCompute.Shm != nil {
+			event["pod.containers.compute.shm._is_defined"] = true
+			event["pod.containers.compute.shm"] = totalCompute.Shm.Value()
 		}
 		event["pod.containers.compute.gpu"] = totalCompute.GPU
 		event["pod.containers.compute.inf"] = totalCompute.Inf

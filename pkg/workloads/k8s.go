@@ -51,8 +51,7 @@ const (
 	_kubexitGraveyardName      = "graveyard"
 	_kubexitGraveyardMountPath = "/graveyard"
 
-	_shmDirVolumeName = "dshm"
-	_shmDirMountPath  = "/dev/shm"
+	_shmDirMountPath = "/dev/shm"
 
 	_clientConfigDirVolume = "client-config"
 	_clientConfigConfigMap = "client-config"
@@ -246,11 +245,6 @@ func userPodContainers(api spec.API) ([]kcore.Container, []kcore.Volume) {
 		ClientConfigMount(),
 	}
 
-	if api.Pod.ShmSize != nil {
-		volumes = append(volumes, ShmVolume(api.Pod.ShmSize.Quantity))
-		containerMounts = append(containerMounts, ShmMount())
-	}
-
 	var containers []kcore.Container
 	for _, container := range api.Pod.Containers {
 		containerResourceList := kcore.ResourceList{}
@@ -290,6 +284,11 @@ func userPodContainers(api spec.API) ([]kcore.Container, []kcore.Volume) {
 					"IPC_LOCK",
 				},
 			}
+		}
+
+		if container.Compute.Shm != nil {
+			volumes = append(volumes, ShmVolume(container.Compute.Shm.Quantity, "dshm-"+container.Name))
+			containerMounts = append(containerMounts, ShmMount("dshm-"+container.Name))
 		}
 
 		containerEnvVars := baseEnvVars
