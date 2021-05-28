@@ -201,11 +201,7 @@ func deploymentSpec(api spec.API, prevDeployment *kapps.Deployment, queueURL str
 		volumes    []kcore.Volume
 	)
 
-	containers, volumes = workloads.AsyncUserPodContainers(api)
-
-	// TODO add the proxy as well
-	// use workloads.APIConfigMount(workloads.K8sName(api.Name)) to mount the probes
-	// the probes will be made available at /cortex/spec/probes.json
+	containers, volumes = workloads.AsyncContainers(api, queueURL)
 
 	return *k8s.Deployment(&k8s.DeploymentSpec{
 		Name:           workloads.K8sName(api.Name),

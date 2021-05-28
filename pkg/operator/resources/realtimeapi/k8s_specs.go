@@ -30,11 +30,7 @@ import (
 var _terminationGracePeriodSeconds int64 = 60 // seconds
 
 func deploymentSpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deployment {
-	containers, volumes := workloads.RealtimeUserPodContainers(*api)
-	proxyContainer, proxyVolume := workloads.RealtimeProxyContainer(*api)
-
-	containers = append(containers, proxyContainer)
-	volumes = append(volumes, proxyVolume)
+	containers, volumes := workloads.RealtimeContainers(*api)
 
 	return k8s.Deployment(&k8s.DeploymentSpec{
 		Name:           workloads.K8sName(api.Name),

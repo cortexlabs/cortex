@@ -30,6 +30,7 @@ def main():
 
     # submit job
     job_spec = {
+        "workers": 1,
         "item_list": {"items": sample_items, "batch_size": 1},
         "config": {"dest_s3_dir": dest_s3_dir},
     }

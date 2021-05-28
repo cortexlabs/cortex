@@ -15,7 +15,7 @@
         - "--threads"
         - "1"
         - "--bind"
-        - ":$CORTEX_PORT"
+        - ":$(CORTEX_PORT)"
         - "main:app"
       compute:
         cpu: 200m
