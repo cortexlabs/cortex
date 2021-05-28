@@ -549,7 +549,7 @@ def test_load_realtime(
         network_stats = client.get_api(api_name)["metrics"]["network_stats"]
         offset_2xx = network_stats["code_2xx"]
         offset_4xx = network_stats["code_4xx"]
-        offset_5xx = network_stats["code_4xx"]
+        offset_5xx = network_stats["code_5xx"]
 
         if offset_2xx is None:
             offset_2xx = 0
@@ -598,7 +598,7 @@ def test_load_realtime(
                 network_stats["code_4xx"] - offset_4xx == 0
             ), f"detected 4xx response codes ({network_stats['code_4xx'] - offset_4xx}) in cortex get"
             assert (
-                network_stats["code_5xx"] == 0
+                network_stats["code_5xx"] - offset_5xx == 0
             ), f"detected 5xx response codes ({network_stats['code_5xx'] - offset_5xx}) in cortex get"
 
             printer(
