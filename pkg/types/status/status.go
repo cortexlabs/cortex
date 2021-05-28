@@ -24,7 +24,7 @@ type Status struct {
 }
 
 type ReplicaCounts struct {
-	Updated   SubReplicaCounts `json:"updated"` // fully up-to-date (compute and model)
+	Updated   SubReplicaCounts `json:"updated"`
 	Stale     SubReplicaCounts `json:"stale"`
 	Requested int32            `json:"requested"`
 }
