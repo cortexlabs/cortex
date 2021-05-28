@@ -169,7 +169,7 @@ node_groups:
 Add this to your bash profile (e.g. `~/.bash_profile`, `~/.profile` or `~/.bashrc`), replacing the placeholders accordingly:
 
 ```bash
-# set the default image for APIs
+# set the default image registry
 export CORTEX_DEV_DEFAULT_IMAGE_REGISTRY="<account_id>.dkr.ecr.<region>.amazonaws.com/cortexlabs"
 
 # redirect analytics and error reporting to our dev environment
@@ -209,7 +209,7 @@ Here is the typical full dev workflow which covers most cases:
 1. `make cluster-up` (creates a cluster using `dev/config/cluster.yaml`)
 2. `make devstart` (deletes the in-cluster operator, builds the CLI, and starts the operator locally; file changes will trigger the CLI and operator to re-build)
 3. Make your changes
-4. `make images-dev` (only necessary if API images or the manager are modified)
+4. `make images-dev` (only necessary if changes were made outside of the operator and CLI)
 5. Test your changes e.g. via `cortex deploy` (and repeat steps 3 and 4 as necessary)
 6. `make cluster-down` (deletes your cluster)
 
@@ -223,7 +223,5 @@ If you want to switch back to the in-cluster operator:
 If you are only modifying the CLI, `make cli-watch` will build the CLI and re-build it when files are changed. When doing this, you can leave the operator running in the cluster instead of running it locally.
 
 If you are only modifying the operator, `make operator-local` will build and start the operator locally, and build/restart it when files are changed.
-
-If you are modifying code in the API images (i.e. any of the Python serving code), `make images-dev` may build more images than you need during testing. For example, if you are only testing using the `python-handler-cpu` image, you can run `./dev/registry.sh update-single python-handler-cpu`.
 
 See `Makefile` for additional dev commands.
