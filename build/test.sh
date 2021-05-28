@@ -89,7 +89,6 @@ function run_e2e_tests() {
 
 if [ "$cmd" = "go" ]; then
   run_go_tests
-fi
-if [ "$cmd" = "e2e" ]; then
+elif [ "$cmd" = "e2e" ]; then
   run_e2e_tests
 fi

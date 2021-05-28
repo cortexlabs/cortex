@@ -162,9 +162,8 @@ format:
 # Tests #
 #########
 
-test-go:
+test:
 	@./build/test.sh go
-
 
 # build test api images
 # make sure you login with your quay credentials
