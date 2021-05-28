@@ -429,34 +429,6 @@ func (compute *Compute) UserStr() string {
 	return sb.String()
 }
 
-func (compute Compute) Equals(c2 *Compute) bool {
-	if c2 == nil {
-		return false
-	}
-
-	if compute.CPU == nil && c2.CPU != nil || compute.CPU != nil && c2.CPU == nil {
-		return false
-	}
-
-	if compute.CPU != nil && c2.CPU != nil && !compute.CPU.Equal(*c2.CPU) {
-		return false
-	}
-
-	if compute.Mem == nil && c2.Mem != nil || compute.Mem != nil && c2.Mem == nil {
-		return false
-	}
-
-	if compute.Mem != nil && c2.Mem != nil && !compute.Mem.Equal(*c2.Mem) {
-		return false
-	}
-
-	if compute.GPU != c2.GPU {
-		return false
-	}
-
-	return true
-}
-
 func (autoscaling *Autoscaling) UserStr() string {
 	var sb strings.Builder
 	sb.WriteString(fmt.Sprintf("%s: %s\n", MinReplicasKey, s.Int32(autoscaling.MinReplicas)))
