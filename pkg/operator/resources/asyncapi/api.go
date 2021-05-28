@@ -66,7 +66,7 @@ func deploymentID() string {
 	return k8s.RandomName()[:10]
 }
 
-func UpdateAPI(apiConfig userconfig.API, projectID string, force bool) (*spec.API, string, error) {
+func UpdateAPI(apiConfig userconfig.API, force bool) (*spec.API, string, error) {
 	prevK8sResources, err := getK8sResources(apiConfig)
 	if err != nil {
 		return nil, "", err
@@ -77,7 +77,7 @@ func UpdateAPI(apiConfig userconfig.API, projectID string, force bool) (*spec.AP
 		deployID = prevK8sResources.apiDeployment.Labels["deploymentID"]
 	}
 
-	api := spec.GetAPISpec(&apiConfig, projectID, deployID, config.ClusterConfig.ClusterUID)
+	api := spec.GetAPISpec(&apiConfig, deployID, config.ClusterConfig.ClusterUID)
 
 	// resource creation
 	if prevK8sResources.apiDeployment == nil {

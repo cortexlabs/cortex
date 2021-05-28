@@ -38,7 +38,6 @@ type API struct {
 	SpecID       string `json:"spec_id"`
 	HandlerID    string `json:"handler_id"`
 	DeploymentID string `json:"deployment_id"`
-	ProjectID    string `json:"project_id"`
 
 	Key        string `json:"key"`
 	HandlerKey string `json:"handler_key"`
@@ -55,19 +54,17 @@ APIID (uniquely identifies an api configuration for a given deployment)
 				* Containers
 				* Compute
 			* Pod
-			* ProjectID
 		* Deployment Strategy
 		* Autoscaling
 		* Networking
 		* APIs
 	* DeploymentID (used for refreshing a deployment)
 */
-func GetAPISpec(apiConfig *userconfig.API, projectID string, deploymentID string, clusterUID string) *API {
+func GetAPISpec(apiConfig *userconfig.API, deploymentID string, clusterUID string) *API {
 	var buf bytes.Buffer
 
 	buf.WriteString(s.Obj(apiConfig.Resource))
 	buf.WriteString(s.Obj(apiConfig.Pod))
-	buf.WriteString(projectID)
 	handlerID := hash.Bytes(buf.Bytes())
 
 	buf.Reset()
@@ -90,7 +87,6 @@ func GetAPISpec(apiConfig *userconfig.API, projectID string, deploymentID string
 		DeploymentID: deploymentID,
 		LastUpdated:  time.Now().Unix(),
 		MetadataRoot: MetadataRoot(apiConfig.Name, clusterUID),
-		ProjectID:    projectID,
 	}
 }
 

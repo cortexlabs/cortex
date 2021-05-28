@@ -47,7 +47,7 @@ func deploymentID() string {
 	return k8s.RandomName()[:10]
 }
 
-func UpdateAPI(apiConfig *userconfig.API, projectID string, force bool) (*spec.API, string, error) {
+func UpdateAPI(apiConfig *userconfig.API, force bool) (*spec.API, string, error) {
 	prevDeployment, prevService, prevVirtualService, err := getK8sResources(apiConfig)
 	if err != nil {
 		return nil, "", err
@@ -58,7 +58,7 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string, force bool) (*spec.A
 		deploymentID = prevDeployment.Labels["deploymentID"]
 	}
 
-	api := spec.GetAPISpec(apiConfig, projectID, deploymentID, config.ClusterConfig.ClusterUID)
+	api := spec.GetAPISpec(apiConfig, deploymentID, config.ClusterConfig.ClusterUID)
 
 	if prevDeployment == nil {
 		if err := config.AWS.UploadJSONToS3(api, config.ClusterConfig.Bucket, api.Key); err != nil {
@@ -146,7 +146,7 @@ func RefreshAPI(apiName string, force bool) (string, error) {
 		return "", err
 	}
 
-	api = spec.GetAPISpec(api.API, api.ProjectID, deploymentID(), config.ClusterConfig.ClusterUID)
+	api = spec.GetAPISpec(api.API, deploymentID(), config.ClusterConfig.ClusterUID)
 
 	if err := config.AWS.UploadJSONToS3(api, config.ClusterConfig.Bucket, api.Key); err != nil {
 		return "", errors.Wrap(err, "upload api spec")

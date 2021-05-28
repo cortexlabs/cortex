@@ -25,7 +25,6 @@ import (
 	batch "github.com/cortexlabs/cortex/pkg/crds/apis/batch/v1alpha1"
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
-	"github.com/cortexlabs/cortex/pkg/lib/hash"
 	"github.com/cortexlabs/cortex/pkg/lib/logging"
 	"github.com/cortexlabs/cortex/pkg/lib/parallel"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
@@ -85,8 +84,6 @@ func GetDeployedResourceByNameOrNil(resourceName string) (*operator.DeployedReso
 }
 
 func Deploy(configFileName string, configBytes []byte, force bool) ([]schema.DeployResult, error) {
-	projectID := hash.Bytes(configBytes)
-
 	apiConfigs, err := spec.ExtractAPIConfigs(configBytes, configFileName)
 	if err != nil {
 		return nil, err
@@ -105,7 +102,7 @@ func Deploy(configFileName string, configBytes []byte, force bool) ([]schema.Dep
 	for i := range apiConfigs {
 		apiConfig := apiConfigs[i]
 
-		api, msg, err := UpdateAPI(&apiConfig, projectID, force)
+		api, msg, err := UpdateAPI(&apiConfig, force)
 
 		result := schema.DeployResult{
 			Message: msg,
@@ -122,7 +119,7 @@ func Deploy(configFileName string, configBytes []byte, force bool) ([]schema.Dep
 	return results, nil
 }
 
-func UpdateAPI(apiConfig *userconfig.API, projectID string, force bool) (*schema.APIResponse, string, error) {
+func UpdateAPI(apiConfig *userconfig.API, force bool) (*schema.APIResponse, string, error) {
 	deployedResource, err := GetDeployedResourceByNameOrNil(apiConfig.Name)
 	if err != nil {
 		return nil, "", err
@@ -138,13 +135,13 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string, force bool) (*schema
 	var msg string
 	switch apiConfig.Kind {
 	case userconfig.RealtimeAPIKind:
-		api, msg, err = realtimeapi.UpdateAPI(apiConfig, projectID, force)
+		api, msg, err = realtimeapi.UpdateAPI(apiConfig, force)
 	case userconfig.BatchAPIKind:
-		api, msg, err = batchapi.UpdateAPI(apiConfig, projectID)
+		api, msg, err = batchapi.UpdateAPI(apiConfig)
 	case userconfig.TaskAPIKind:
-		api, msg, err = taskapi.UpdateAPI(apiConfig, projectID)
+		api, msg, err = taskapi.UpdateAPI(apiConfig)
 	case userconfig.AsyncAPIKind:
-		api, msg, err = asyncapi.UpdateAPI(*apiConfig, projectID, force)
+		api, msg, err = asyncapi.UpdateAPI(*apiConfig, force)
 	case userconfig.TrafficSplitterKind:
 		api, msg, err = trafficsplitter.UpdateAPI(apiConfig)
 	default:
