@@ -35,8 +35,8 @@ const (
 	NodeGroupsKey     = "node_groups"
 	ShmSizeKey        = "shm_size"
 	PortKey           = "port"
-	MaxQueueLengthKey = "max_queue_length"
 	MaxConcurrencyKey = "max_concurrency"
+	MaxQueueLengthKey = "max_queue_length"
 	ContainersKey     = "containers"
 
 	// Containers
@@ -89,8 +89,8 @@ const (
 
 	// K8s annotation
 	EndpointAnnotationKey                     = "networking.cortex.dev/endpoint"
-	MaxQueueLengthAnnotationKey               = "pod.cortex.dev/max-queue-length"
 	MaxConcurrencyAnnotationKey               = "pod.cortex.dev/max-concurrency"
+	MaxQueueLengthAnnotationKey               = "pod.cortex.dev/max-queue-length"
 	MinReplicasAnnotationKey                  = "autoscaling.cortex.dev/min-replicas"
 	MaxReplicasAnnotationKey                  = "autoscaling.cortex.dev/max-replicas"
 	TargetInFlightAnnotationKey               = "autoscaling.cortex.dev/target-in-flight"

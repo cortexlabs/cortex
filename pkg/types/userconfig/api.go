@@ -301,8 +301,8 @@ func (pod *Pod) UserStr() string {
 		sb.WriteString(fmt.Sprintf("%s: %d\n", PortKey, *pod.Port))
 	}
 
-	sb.WriteString(fmt.Sprintf("%s: %s\n", MaxQueueLengthKey, s.Int64(pod.MaxQueueLength)))
 	sb.WriteString(fmt.Sprintf("%s: %s\n", MaxConcurrencyKey, s.Int64(pod.MaxConcurrency)))
+	sb.WriteString(fmt.Sprintf("%s: %s\n", MaxQueueLengthKey, s.Int64(pod.MaxQueueLength)))
 
 	sb.WriteString(fmt.Sprintf("%s:\n", ContainersKey))
 	for _, container := range pod.Containers {
@@ -559,8 +559,8 @@ func (api *API) TelemetryEvent() map[string]interface{} {
 			event["pod.port"] = *api.Pod.Port
 		}
 
-		event["pod.max_queue_length"] = api.Pod.MaxQueueLength
 		event["pod.max_concurrency"] = api.Pod.MaxConcurrency
+		event["pod.max_queue_length"] = api.Pod.MaxQueueLength
 
 		event["pod.containers._len"] = len(api.Pod.Containers)
 
