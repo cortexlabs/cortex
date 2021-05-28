@@ -546,6 +546,18 @@ def test_load_realtime(
             client=client, api_names=[api_name], timeout=deploy_timeout
         ), f"api {api_name} not ready"
 
+        network_stats = client.get_api(api_name)["metrics"]["network_stats"]
+        offset_2xx = network_stats["code_2xx"]
+        offset_4xx = network_stats["code_4xx"]
+        offset_5xx = network_stats["code_4xx"]
+
+        if offset_2xx is None:
+            offset_2xx = 0
+        if offset_4xx is None:
+            offset_4xx = 0
+        if offset_5xx is None:
+            offset_5xx = 0
+
         # give the APIs some time to prevent getting high latency spikes in the beginning
         time.sleep(5)
 
@@ -583,14 +595,14 @@ def test_load_realtime(
             network_stats = api_info["metrics"]["network_stats"]
 
             assert (
-                network_stats["code_4xx"] == 0
-            ), f"detected 4xx response codes ({network_stats['code_4xx']}) in cortex get"
+                network_stats["code_4xx"] - offset_4xx == 0
+            ), f"detected 4xx response codes ({network_stats['code_4xx'] - offset_4xx}) in cortex get"
             assert (
                 network_stats["code_5xx"] == 0
-            ), f"detected 5xx response codes ({network_stats['code_5xx']}) in cortex get"
+            ), f"detected 5xx response codes ({network_stats['code_5xx'] - offset_5xx}) in cortex get"
 
             printer(
-                f"min RTT: {current_min_rtt} | max RTT: {current_max_rtt} | avg RTT: {current_avg_rtt} | requests: {network_stats['code_2xx']} (out of {total_requests})"
+                f"min RTT: {current_min_rtt} | max RTT: {current_max_rtt} | avg RTT: {current_avg_rtt} | requests: {network_stats['code_2xx']-offset_2xx} (out of {total_requests-offset})"
             )
 
             # check if the requesting threads are still healthy
@@ -600,9 +612,11 @@ def test_load_realtime(
             # don't stress the CPU too hard
             time.sleep(1)
 
-        printer("verifying number of processed requests using the client")
+        printer(
+            f"verifying number of processed requests ({total_requests}, with an offset of {offset_2xx}) using the client"
+        )
         assert api_requests(
-            client, api_name, total_requests, timeout=status_code_timeout
+            client, api_name, total_requests + offset_2xx, timeout=status_code_timeout
         ), f"the number of 2xx response codes for api {api_name} doesn't match the expected number {total_requests}"
 
     except:

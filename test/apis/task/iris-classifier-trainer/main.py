@@ -14,7 +14,7 @@ def main():
     config = job_spec["config"]
     job_id = job_spec["job_id"]
     s3_path = None
-    if "dest_s3_dir" in config:
+    if config is not None and "dest_s3_dir" in config:
         s3_path = config["dest_s3_dir"]
 
     # Train the model

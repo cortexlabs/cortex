@@ -14,3 +14,5 @@
         mem: 128M
   autoscaling:
     max_concurrency: 1
+    target_in_flight: 1
+    max_queue_length: 128

@@ -1,8 +1,0 @@
-grpcio==1.36.0
-grpcio-tools==1.36.0
-grpcio-reflection==1.36.0
-python-multipart==0.0.5
-requests==2.24.0
-uvicorn==0.11.8
-uvloop==0.14.0
-pyyaml==5.4

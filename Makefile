@@ -163,14 +163,7 @@ format:
 #########
 
 test:
-	@./build/test.sh
-
-test-go:
 	@./build/test.sh go
-
-test-python:
-	@./build/test.sh python
-
 
 # build test api images
 # make sure you login with your quay credentials
