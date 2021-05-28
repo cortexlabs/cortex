@@ -2,6 +2,7 @@
   kind: AsyncAPI
   pod:
     port: 9000
+    max_concurrency: 1
     containers:
     - name: api
       image: quay.io/cortexlabs-test/async-text-generator-cpu:latest
@@ -12,5 +13,3 @@
       compute:
         cpu: 1
         mem: 2.5G
-  autoscaling:
-    max_concurrency: 1
