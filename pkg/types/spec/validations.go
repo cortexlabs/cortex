@@ -141,7 +141,7 @@ func multiAPIsValidation() *cr.StructFieldValidation {
 }
 
 func podValidation(kind userconfig.Kind) *cr.StructFieldValidation {
-	return &cr.StructFieldValidation{
+	validation := &cr.StructFieldValidation{
 		StructField: "Pod",
 		StructValidation: &cr.StructValidation{
 			StructFieldValidations: []*cr.StructFieldValidation{
@@ -180,30 +180,37 @@ func podValidation(kind userconfig.Kind) *cr.StructFieldValidation {
 						},
 					},
 				},
-				{
-					StructField: "MaxQueueLength",
-					Int64Validation: &cr.Int64Validation{
-						Default:     consts.DefaultMaxQueueLength,
-						GreaterThan: pointer.Int64(0),
-						// the proxy can theoretically accept up to 32768 connections, but during testing,
-						// it has been observed that the number is just slightly lower, so it has been offset by 2678
-						LessThanOrEqualTo: pointer.Int64(30000),
-					},
-				},
-				{
-					StructField: "MaxConcurrency",
-					Int64Validation: &cr.Int64Validation{
-						Default:     consts.DefaultMaxConcurrency,
-						GreaterThan: pointer.Int64(0),
-						// the proxy can theoretically accept up to 32768 connections, but during testing,
-						// it has been observed that the number is just slightly lower, so it has been offset by 2678
-						LessThanOrEqualTo: pointer.Int64(30000),
-					},
-				},
 				containersValidation(kind),
 			},
 		},
 	}
+
+	if kind == userconfig.RealtimeAPIKind {
+		validation.StructValidation.StructFieldValidations = append(validation.StructValidation.StructFieldValidations,
+			&cr.StructFieldValidation{
+				StructField: "MaxQueueLength",
+				Int64Validation: &cr.Int64Validation{
+					Default:     consts.DefaultMaxQueueLength,
+					GreaterThan: pointer.Int64(0),
+					// the proxy can theoretically accept up to 32768 connections, but during testing,
+					// it has been observed that the number is just slightly lower, so it has been offset by 2678
+					LessThanOrEqualTo: pointer.Int64(30000),
+				},
+			},
+			&cr.StructFieldValidation{
+				StructField: "MaxConcurrency",
+				Int64Validation: &cr.Int64Validation{
+					Default:     consts.DefaultMaxConcurrency,
+					GreaterThan: pointer.Int64(0),
+					// the proxy can theoretically accept up to 32768 connections, but during testing,
+					// it has been observed that the number is just slightly lower, so it has been offset by 2678
+					LessThanOrEqualTo: pointer.Int64(30000),
+				},
+			},
+		)
+	}
+
+	return validation
 }
 
 func containersValidation(kind userconfig.Kind) *cr.StructFieldValidation {
@@ -807,12 +814,19 @@ func validateAutoscaling(api *userconfig.API) error {
 	autoscaling := api.Autoscaling
 	pod := api.Pod
 
-	if autoscaling.TargetInFlight == nil {
-		autoscaling.TargetInFlight = pointer.Float64(float64(pod.MaxConcurrency))
+	if api.Kind == userconfig.RealtimeAPIKind {
+		if autoscaling.TargetInFlight == nil {
+			autoscaling.TargetInFlight = pointer.Float64(float64(pod.MaxConcurrency))
+		}
+		if *autoscaling.TargetInFlight > float64(pod.MaxConcurrency)+float64(pod.MaxQueueLength) {
+			return ErrorTargetInFlightLimitReached(*autoscaling.TargetInFlight, pod.MaxConcurrency, pod.MaxQueueLength)
+		}
 	}
 
-	if *autoscaling.TargetInFlight > float64(pod.MaxConcurrency)+float64(pod.MaxQueueLength) {
-		return ErrorTargetInFlightLimitReached(*autoscaling.TargetInFlight, pod.MaxConcurrency, pod.MaxQueueLength)
+	if api.Kind == userconfig.AsyncAPIKind {
+		if autoscaling.TargetInFlight == nil {
+			autoscaling.TargetInFlight = pointer.Float64(1)
+		}
 	}
 
 	if autoscaling.MinReplicas > autoscaling.MaxReplicas {

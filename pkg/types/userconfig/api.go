@@ -153,7 +153,7 @@ func IdentifyAPI(filePath string, name string, kind Kind, index int) string {
 func (api *API) ToK8sAnnotations() map[string]string {
 	annotations := map[string]string{}
 
-	if api.Pod != nil {
+	if api.Pod != nil && api.Kind == RealtimeAPIKind {
 		annotations[MaxConcurrencyAnnotationKey] = s.Int64(api.Pod.MaxConcurrency)
 		annotations[MaxQueueLengthAnnotationKey] = s.Int64(api.Pod.MaxQueueLength)
 	}
@@ -257,7 +257,7 @@ func (api *API) UserStr() string {
 
 	if api.Pod != nil {
 		sb.WriteString(fmt.Sprintf("%s:\n", PodKey))
-		sb.WriteString(s.Indent(api.Pod.UserStr(), "  "))
+		sb.WriteString(s.Indent(api.Pod.UserStr(api.Kind), "  "))
 	}
 
 	if api.Networking != nil {
@@ -286,7 +286,7 @@ func (trafficSplit *TrafficSplit) UserStr() string {
 	return sb.String()
 }
 
-func (pod *Pod) UserStr() string {
+func (pod *Pod) UserStr(kind Kind) string {
 	var sb strings.Builder
 
 	if pod.ShmSize != nil {
@@ -301,8 +301,10 @@ func (pod *Pod) UserStr() string {
 		sb.WriteString(fmt.Sprintf("%s: %d\n", PortKey, *pod.Port))
 	}
 
-	sb.WriteString(fmt.Sprintf("%s: %s\n", MaxConcurrencyKey, s.Int64(pod.MaxConcurrency)))
-	sb.WriteString(fmt.Sprintf("%s: %s\n", MaxQueueLengthKey, s.Int64(pod.MaxQueueLength)))
+	if kind == RealtimeAPIKind {
+		sb.WriteString(fmt.Sprintf("%s: %s\n", MaxConcurrencyKey, s.Int64(pod.MaxConcurrency)))
+		sb.WriteString(fmt.Sprintf("%s: %s\n", MaxQueueLengthKey, s.Int64(pod.MaxQueueLength)))
+	}
 
 	sb.WriteString(fmt.Sprintf("%s:\n", ContainersKey))
 	for _, container := range pod.Containers {
