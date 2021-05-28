@@ -515,6 +515,15 @@ func GetTotalComputeFromContainers(containers []*Container) Compute {
 			}
 		}
 
+		if container.Compute.Shm != nil {
+			newShmQuantity := k8s.NewMilliQuantity(container.Compute.Shm.ToDec().MilliValue())
+			if compute.Shm == nil {
+				compute.Shm = newShmQuantity
+			} else if newShmQuantity != nil {
+				compute.Shm.AddQty(*newShmQuantity)
+			}
+		}
+
 		compute.GPU += container.Compute.GPU
 		compute.Inf += container.Compute.Inf
 	}
