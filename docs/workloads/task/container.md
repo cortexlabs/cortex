@@ -1,8 +1,12 @@
 # Container Implementation
 
+## Job specification
+
+If you need access to any parameters in the job submission (e.g. `config`), the entire job specification is available at `/cortex/spec/job.json` in your API containers' filesystems.
+
 ## Multiple containers
 
-Your Task's pod can contain multiple containers. The `/mnt` directory is mounted to each container's file system, and is shared across all containers.
+Your Task's pod can contain multiple containers. The `/mnt` directory is mounted to each container's filesystem, and is shared across all containers.
 
 ## Using the Cortex CLI or client
 

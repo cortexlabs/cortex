@@ -10,6 +10,10 @@ Your web server must respond with status code 200 for the batch to be marked as 
 
 Once all batches have been processed, one of your workers will receive an HTTP POST request to `/on-job-complete`. It is not necessary for your web server to handle requests to `/on-job-complete` (404 errors will be ignored).
 
+## Job specification
+
+If you need access to any parameters in the job submission (e.g. `config`), the entire job specification is available at `/cortex/spec/job.json` in your API containers' filesystems.
+
 ## Readiness checks
 
 It is often important to implement a readiness check for your API. By default, as soon as your web server has bound to the port, it will start receiving batches. In some cases, the web server may start listening on the port before its workers are ready to handle traffic (e.g. `tiangolo/uvicorn-gunicorn-fastapi` behaves this way). Readiness checks ensure that traffic is not sent into your web server before it's ready to handle them.
@@ -27,7 +31,7 @@ readiness_probe:
 
 Your API pod can contain multiple containers, only one of which can be listening for requests on the target port (it can be any of the containers).
 
-The `/mnt` directory is mounted to each container's file system, and is shared across all containers.
+The `/mnt` directory is mounted to each container's filesystem, and is shared across all containers.
 
 ## Using the Cortex CLI or client
 

@@ -2,7 +2,7 @@
 
 ## Remote development
 
-We recommend that you run your development environment on an EC2 instance due to frequent docker registry pushing. We've had a good experience using [Mutagen](https://mutagen.io/documentation/introduction) to synchronize local / remote file systems.
+We recommend that you run your development environment on an EC2 instance due to frequent docker registry pushing. We've had a good experience using [Mutagen](https://mutagen.io/documentation/introduction) to synchronize local / remote filesystems.
 
 ## Prerequisites
 
