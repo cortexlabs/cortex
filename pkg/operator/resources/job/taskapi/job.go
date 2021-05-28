@@ -61,7 +61,7 @@ func SubmitJob(apiName string, submission *schema.TaskJobSubmission) (*spec.Task
 		RuntimeTaskJobConfig: submission.RuntimeTaskJobConfig,
 		APIID:                apiSpec.ID,
 		SpecID:               apiSpec.SpecID,
-		HandlerID:            apiSpec.HandlerID,
+		PodID:                apiSpec.PodID,
 		StartTime:            time.Now(),
 	}
 

@@ -65,11 +65,6 @@ func UpdateAPI(apiConfig *userconfig.API, force bool) (*spec.API, string, error)
 			return nil, "", errors.Wrap(err, "upload api spec")
 		}
 
-		// Use api spec indexed by HandlerID for replicas to prevent rolling updates when SpecID changes without HandlerID changing
-		if err := config.AWS.UploadJSONToS3(api, config.ClusterConfig.Bucket, api.HandlerKey); err != nil {
-			return nil, "", errors.Wrap(err, "upload handler spec")
-		}
-
 		if err := applyK8sResources(api, prevDeployment, prevService, prevVirtualService); err != nil {
 			routines.RunWithPanicHandler(func() {
 				deleteK8sResources(api.Name)
@@ -91,11 +86,6 @@ func UpdateAPI(apiConfig *userconfig.API, force bool) (*spec.API, string, error)
 
 		if err := config.AWS.UploadJSONToS3(api, config.ClusterConfig.Bucket, api.Key); err != nil {
 			return nil, "", errors.Wrap(err, "upload api spec")
-		}
-
-		// Use api spec indexed by HandlerID for replicas to prevent rolling updates when SpecID changes without HandlerID changing
-		if err := config.AWS.UploadJSONToS3(api, config.ClusterConfig.Bucket, api.HandlerKey); err != nil {
-			return nil, "", errors.Wrap(err, "upload handler spec")
 		}
 
 		if err := applyK8sResources(api, prevDeployment, prevService, prevVirtualService); err != nil {
@@ -150,11 +140,6 @@ func RefreshAPI(apiName string, force bool) (string, error) {
 
 	if err := config.AWS.UploadJSONToS3(api, config.ClusterConfig.Bucket, api.Key); err != nil {
 		return "", errors.Wrap(err, "upload api spec")
-	}
-
-	// Reupload api spec to the same HandlerID but with the new DeploymentID
-	if err := config.AWS.UploadJSONToS3(api, config.ClusterConfig.Bucket, api.HandlerKey); err != nil {
-		return "", errors.Wrap(err, "upload handler spec")
 	}
 
 	if err := applyK8sResources(api, prevDeployment, prevService, prevVirtualService); err != nil {
@@ -428,7 +413,7 @@ func isAPIUpdating(deployment *kapps.Deployment) (bool, error) {
 }
 
 func isPodSpecLatest(deployment *kapps.Deployment, pod *kcore.Pod) bool {
-	return deployment.Spec.Template.Labels["handlerID"] == pod.Labels["handlerID"] &&
+	return deployment.Spec.Template.Labels["podID"] == pod.Labels["podID"] &&
 		deployment.Spec.Template.Labels["deploymentID"] == pod.Labels["deploymentID"]
 }
 

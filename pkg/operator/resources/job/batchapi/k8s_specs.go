@@ -50,7 +50,7 @@ func virtualServiceSpec(api *spec.API) *istioclientnetworking.VirtualService {
 			"apiName":        api.Name,
 			"apiID":          api.ID,
 			"specID":         api.SpecID,
-			"handlerID":      api.HandlerID,
+			"podID":          api.PodID,
 			"apiKind":        api.Kind.String(),
 			"cortex.dev/api": "true",
 		},

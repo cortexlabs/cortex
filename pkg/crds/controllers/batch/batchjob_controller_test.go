@@ -57,7 +57,7 @@ func uploadTestAPISpec(apiName string, apiID string) error {
 		},
 		ID:           apiID,
 		SpecID:       random.String(5),
-		HandlerID:    random.String(5),
+		PodID:        random.String(5),
 		DeploymentID: random.String(5),
 	}
 	apiSpecKey := spec.Key(apiName, apiID, clusterConfig.ClusterUID)

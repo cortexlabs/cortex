@@ -87,7 +87,7 @@ type TaskJob struct {
 	RuntimeTaskJobConfig
 	APIID     string    `json:"api_id"`
 	SpecID    string    `json:"spec_id"`
-	HandlerID string    `json:"handler_id"`
+	PodID     string    `json:"pod_id"`
 	StartTime time.Time `json:"start_time"`
 }
 

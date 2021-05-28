@@ -81,8 +81,8 @@ func UpdateAPI(apiConfig userconfig.API, force bool) (*spec.API, string, error) 
 
 	// resource creation
 	if prevK8sResources.apiDeployment == nil {
-		if err = uploadAPItoS3(*api); err != nil {
-			return nil, "", err
+		if err := config.AWS.UploadJSONToS3(api, config.ClusterConfig.Bucket, api.Key); err != nil {
+			return nil, "", errors.Wrap(err, "upload api spec")
 		}
 
 		tags := map[string]string{
@@ -121,8 +121,8 @@ func UpdateAPI(apiConfig userconfig.API, force bool) (*spec.API, string, error) 
 			return nil, "", ErrorAPIUpdating(api.Name)
 		}
 
-		if err = uploadAPItoS3(*api); err != nil {
-			return nil, "", err
+		if err := config.AWS.UploadJSONToS3(api, config.ClusterConfig.Bucket, api.Key); err != nil {
+			return nil, "", errors.Wrap(err, "upload api spec")
 		}
 
 		queueURL, err := getQueueURL(api.Name, prevK8sResources.gatewayVirtualService.Labels["deploymentID"])
@@ -506,26 +506,4 @@ func deleteK8sResources(apiName string) error {
 	)
 
 	return err
-}
-
-func uploadAPItoS3(api spec.API) error {
-	return parallel.RunFirstErr(
-		func() error {
-			var err error
-			err = config.AWS.UploadJSONToS3(api, config.ClusterConfig.Bucket, api.Key)
-			if err != nil {
-				err = errors.Wrap(err, "upload api spec")
-			}
-			return err
-		},
-		func() error {
-			var err error
-			// Use api spec indexed by HandlerID for replicas to prevent rolling updates when SpecID changes without HandlerID changing
-			err = config.AWS.UploadJSONToS3(api, config.ClusterConfig.Bucket, api.HandlerKey)
-			if err != nil {
-				err = errors.Wrap(err, "upload handler spec")
-			}
-			return err
-		},
-	)
 }
