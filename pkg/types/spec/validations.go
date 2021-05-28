@@ -146,15 +146,6 @@ func podValidation(kind userconfig.Kind) *cr.StructFieldValidation {
 		StructValidation: &cr.StructValidation{
 			StructFieldValidations: []*cr.StructFieldValidation{
 				{
-					StructField: "ShmSize",
-					StringPtrValidation: &cr.StringPtrValidation{
-						Required:          false,
-						Default:           nil,
-						AllowExplicitNull: true,
-					},
-					Parser: k8s.QuantityParser(&k8s.QuantityValidation{}),
-				},
-				{
 					StructField: "NodeGroups",
 					StringListValidation: &cr.StringListValidation{
 						Required:          false,
@@ -463,6 +454,14 @@ func computeValidation() *cr.StructFieldValidation {
 						GreaterThanOrEqualTo: pointer.Int64(0),
 					},
 				},
+				{
+					StructField: "Shm",
+					StringPtrValidation: &cr.StringPtrValidation{
+						Default:           nil,
+						AllowExplicitNull: true,
+					},
+					Parser: k8s.QuantityParser(&k8s.QuantityValidation{}),
+				},
 			},
 		},
 	}
@@ -706,12 +705,6 @@ func validatePod(
 	containers := api.Pod.Containers
 	totalCompute := userconfig.GetTotalComputeFromContainers(containers)
 
-	if api.Pod.ShmSize != nil {
-		if totalCompute.Mem != nil && api.Pod.ShmSize.Cmp(totalCompute.Mem.Quantity) > 0 {
-			return ErrorShmSizeCannotExceedMem(*api.Pod.ShmSize, *totalCompute.Mem)
-		}
-	}
-
 	if api.Pod.Port != nil && api.Kind == userconfig.TaskAPIKind {
 		return ErrorFieldIsNotSupportedForKind(userconfig.PortKey, api.Kind)
 	}
@@ -773,6 +766,11 @@ func validateContainers(
 			if err := validateProbe(*container.LivenessProbe, true); err != nil {
 				return errors.Wrap(err, s.Index(i), userconfig.LivenessProbeKey)
 			}
+		}
+
+		compute := container.Compute
+		if compute.Shm != nil && compute.Mem != nil && compute.Shm.Cmp(compute.Mem.Quantity) > 0 {
+			return errors.Wrap(ErrorShmCannotExceedMem(*compute.Shm, *compute.Mem), s.Index(i), userconfig.ComputeKey)
 		}
 
 	}

@@ -33,7 +33,6 @@ const (
 	// Pod
 	PodKey            = "pod"
 	NodeGroupsKey     = "node_groups"
-	ShmSizeKey        = "shm_size"
 	PortKey           = "port"
 	MaxConcurrencyKey = "max_concurrency"
 	MaxQueueLengthKey = "max_queue_length"
@@ -66,6 +65,7 @@ const (
 	MemKey = "mem"
 	GPUKey = "gpu"
 	InfKey = "inf"
+	ShmKey = "shm"
 
 	// Networking
 	EndpointKey = "endpoint"

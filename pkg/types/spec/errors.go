@@ -48,7 +48,7 @@ const (
 	ErrInvalidSurgeOrUnavailable   = "spec.invalid_surge_or_unavailable"
 	ErrSurgeAndUnavailableBothZero = "spec.surge_and_unavailable_both_zero"
 
-	ErrShmSizeCannotExceedMem = "spec.shm_size_cannot_exceed_mem"
+	ErrShmCannotExceedMem = "spec.shm_cannot_exceed_mem"
 
 	ErrFieldMustBeSpecifiedForKind    = "spec.field_must_be_specified_for_kind"
 	ErrFieldIsNotSupportedForKind     = "spec.field_is_not_supported_for_kind"
@@ -208,10 +208,10 @@ func ErrorSurgeAndUnavailableBothZero() error {
 	})
 }
 
-func ErrorShmSizeCannotExceedMem(shmSize k8s.Quantity, mem k8s.Quantity) error {
+func ErrorShmCannotExceedMem(shm k8s.Quantity, mem k8s.Quantity) error {
 	return errors.WithStack(&errors.Error{
-		Kind:    ErrShmSizeCannotExceedMem,
-		Message: fmt.Sprintf("shm_size (%s) cannot exceed total compute mem (%s)", shmSize.UserString, mem.UserString),
+		Kind:    ErrShmCannotExceedMem,
+		Message: fmt.Sprintf("%s (%s) cannot exceed total compute %s (%s)", userconfig.ShmKey, shm.UserString, userconfig.MemKey, mem.UserString),
 	})
 }
 
