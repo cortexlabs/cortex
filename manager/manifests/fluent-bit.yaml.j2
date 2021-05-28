@@ -110,8 +110,8 @@ data:
     [FILTER]
         Name                modify
         Match               k8s_container.*
-        Condition           Key_Does_Not_Exist labels
-        Rename              k8s.labels labels
+        Condition           Key_Does_Not_Exist cortex_labels
+        Rename              k8s.labels cortex_labels
 
     [FILTER]
         Name                modify
@@ -136,7 +136,7 @@ data:
         Name                modify
         Match               k8s_container.*.event-exporter-*
         Condition           Key_exists involvedObject.labels
-        Hard_copy           involvedObject.labels labels
+        Hard_copy           involvedObject.labels cortex_labels
 
     [FILTER]
         Name                nest

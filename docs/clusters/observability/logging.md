@@ -27,8 +27,8 @@ Below are some sample CloudWatch Log Insight queries:
 
 ```text
 fields @timestamp, message
-| filter labels.apiName="<INSERT API NAME>"
-| filter labels.apiKind="RealtimeAPI"
+| filter cortex_labels.apiName="<INSERT API NAME>"
+| filter cortex_labels.apiKind="RealtimeAPI"
 | sort @timestamp asc
 | limit 1000
 ```
@@ -37,8 +37,8 @@ fields @timestamp, message
 
 ```text
 fields @timestamp, message
-| filter labels.apiName="<INSERT API NAME>"
-| filter labels.apiKind="AsyncAPI"
+| filter cortex_labels.apiName="<INSERT API NAME>"
+| filter cortex_labels.apiKind="AsyncAPI"
 | sort @timestamp asc
 | limit 1000
 ```
@@ -47,9 +47,9 @@ fields @timestamp, message
 
 ```text
 fields @timestamp, message
-| filter labels.apiName="<INSERT API NAME>"
-| filter labels.jobID="<INSERT JOB ID>"
-| filter labels.apiKind="BatchAPI"
+| filter cortex_labels.apiName="<INSERT API NAME>"
+| filter cortex_labels.jobID="<INSERT JOB ID>"
+| filter cortex_labels.apiKind="BatchAPI"
 | sort @timestamp asc
 | limit 1000
 ```
@@ -58,9 +58,9 @@ fields @timestamp, message
 
 ```text
 fields @timestamp, message
-| filter labels.apiName="<INSERT API NAME>"
-| filter labels.jobID="<INSERT JOB ID>"
-| filter labels.apiKind="TaskAPI"
+| filter cortex_labels.apiName="<INSERT API NAME>"
+| filter cortex_labels.jobID="<INSERT JOB ID>"
+| filter cortex_labels.apiKind="TaskAPI"
 | sort @timestamp asc
 | limit 1000
 ```
