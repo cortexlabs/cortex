@@ -602,7 +602,7 @@ def test_load_realtime(
             ), f"detected 5xx response codes ({network_stats['code_5xx'] - offset_5xx}) in cortex get"
 
             printer(
-                f"min RTT: {current_min_rtt} | max RTT: {current_max_rtt} | avg RTT: {current_avg_rtt} | requests: {network_stats['code_2xx']-offset_2xx} (out of {total_requests-offset})"
+                f"min RTT: {current_min_rtt} | max RTT: {current_max_rtt} | avg RTT: {current_avg_rtt} | requests: {network_stats['code_2xx']-offset_2xx} (out of {total_requests})"
             )
 
             # check if the requesting threads are still healthy
