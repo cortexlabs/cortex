@@ -31,11 +31,13 @@ const (
 	ShadowKey = "shadow"
 
 	// Pod
-	PodKey        = "pod"
-	NodeGroupsKey = "node_groups"
-	ShmSizeKey    = "shm_size"
-	PortKey       = "port"
-	ContainersKey = "containers"
+	PodKey            = "pod"
+	NodeGroupsKey     = "node_groups"
+	ShmSizeKey        = "shm_size"
+	PortKey           = "port"
+	MaxQueueLengthKey = "max_queue_length"
+	MaxConcurrencyKey = "max_concurrency"
+	ContainersKey     = "containers"
 
 	// Containers
 	ContainerNameKey  = "name"
@@ -72,8 +74,6 @@ const (
 	MinReplicasKey                  = "min_replicas"
 	MaxReplicasKey                  = "max_replicas"
 	InitReplicasKey                 = "init_replicas"
-	MaxQueueLengthKey               = "max_queue_length"
-	MaxConcurrencyKey               = "max_concurrency"
 	TargetInFlightKey               = "target_in_flight"
 	WindowKey                       = "window"
 	DownscaleStabilizationPeriodKey = "downscale_stabilization_period"
@@ -89,10 +89,10 @@ const (
 
 	// K8s annotation
 	EndpointAnnotationKey                     = "networking.cortex.dev/endpoint"
+	MaxQueueLengthAnnotationKey               = "pod.cortex.dev/max-queue-length"
+	MaxConcurrencyAnnotationKey               = "pod.cortex.dev/max-concurrency"
 	MinReplicasAnnotationKey                  = "autoscaling.cortex.dev/min-replicas"
 	MaxReplicasAnnotationKey                  = "autoscaling.cortex.dev/max-replicas"
-	MaxQueueLengthAnnotationKey               = "autoscaling.cortex.dev/max-queue-length"
-	MaxConcurrencyAnnotationKey               = "autoscaling.cortex.dev/max-concurrency"
 	TargetInFlightAnnotationKey               = "autoscaling.cortex.dev/target-in-flight"
 	WindowAnnotationKey                       = "autoscaling.cortex.dev/window"
 	DownscaleStabilizationPeriodAnnotationKey = "autoscaling.cortex.dev/downscale-stabilization-period"
