@@ -79,11 +79,6 @@ function run_go_tests() {
   )
 }
 
-function run_python_tests() {
-  docker build $ROOT -f $ROOT/images/test/Dockerfile -t cortexlabs/test
-  docker run cortexlabs/test
-}
-
 function run_e2e_tests() {
   if [ "$create_cluster" = "yes" ]; then
     pytest $ROOT/test/e2e/tests --config "$sub_cmd"
@@ -94,11 +89,6 @@ function run_e2e_tests() {
 
 if [ "$cmd" = "go" ]; then
   run_go_tests
-elif [ "$cmd" = "python" ]; then
-  run_python_tests
 elif [ "$cmd" = "e2e" ]; then
   run_e2e_tests
-else
-  run_go_tests
-  run_python_tests
 fi

@@ -12,7 +12,7 @@ In addition to the autoscaling configuration options (described below), there ar
 
 <br>
 
-**`max_queue_length`** (default: 100): The maximum number of requests which will be queued by the replica (beyond `max_concurrency`) before requests are rejected with HTTP error code 503. For long-running APIs, decreasing `max_replica_concurrency` and configuring the client to retry when it receives 503 responses will improve queue fairness accross replicas by preventing requests from sitting in long queues.
+**`max_queue_length`** (default: 100): The maximum number of requests which will be queued by the replica (beyond `max_concurrency`) before requests are rejected with HTTP error code 503. For long-running APIs, decreasing `max_queue_length` and configuring the client to retry when it receives 503 responses will improve queue fairness accross replicas by preventing requests from sitting in long queues.
 
 <br>
 

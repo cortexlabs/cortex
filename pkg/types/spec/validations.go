@@ -180,6 +180,26 @@ func podValidation(kind userconfig.Kind) *cr.StructFieldValidation {
 						},
 					},
 				},
+				{
+					StructField: "MaxQueueLength",
+					Int64Validation: &cr.Int64Validation{
+						Default:     consts.DefaultMaxQueueLength,
+						GreaterThan: pointer.Int64(0),
+						// the proxy can theoretically accept up to 32768 connections, but during testing,
+						// it has been observed that the number is just slightly lower, so it has been offset by 2678
+						LessThanOrEqualTo: pointer.Int64(30000),
+					},
+				},
+				{
+					StructField: "MaxConcurrency",
+					Int64Validation: &cr.Int64Validation{
+						Default:     consts.DefaultMaxConcurrency,
+						GreaterThan: pointer.Int64(0),
+						// the proxy can theoretically accept up to 32768 connections, but during testing,
+						// it has been observed that the number is just slightly lower, so it has been offset by 2678
+						LessThanOrEqualTo: pointer.Int64(30000),
+					},
+				},
 				containersValidation(kind),
 			},
 		},
@@ -472,26 +492,6 @@ func autoscalingValidation() *cr.StructFieldValidation {
 					DefaultField: "MinReplicas",
 					Int32Validation: &cr.Int32Validation{
 						GreaterThan: pointer.Int32(0),
-					},
-				},
-				{
-					StructField: "MaxQueueLength",
-					Int64Validation: &cr.Int64Validation{
-						Default:     consts.DefaultMaxQueueLength,
-						GreaterThan: pointer.Int64(0),
-						// the proxy can theoretically accept up to 32768 connections, but during testing,
-						// it has been observed that the number is just slightly lower, so it has been offset by 2678
-						LessThanOrEqualTo: pointer.Int64(30000),
-					},
-				},
-				{
-					StructField: "MaxConcurrency",
-					Int64Validation: &cr.Int64Validation{
-						Default:     consts.DefaultMaxConcurrency,
-						GreaterThan: pointer.Int64(0),
-						// the proxy can theoretically accept up to 32768 connections, but during testing,
-						// it has been observed that the number is just slightly lower, so it has been offset by 2678
-						LessThanOrEqualTo: pointer.Int64(30000),
 					},
 				},
 				{
@@ -805,13 +805,14 @@ func validateProbe(probe userconfig.Probe, supportsExecProbe bool) error {
 
 func validateAutoscaling(api *userconfig.API) error {
 	autoscaling := api.Autoscaling
+	pod := api.Pod
 
 	if autoscaling.TargetInFlight == nil {
-		autoscaling.TargetInFlight = pointer.Float64(float64(autoscaling.MaxConcurrency))
+		autoscaling.TargetInFlight = pointer.Float64(float64(pod.MaxConcurrency))
 	}
 
-	if *autoscaling.TargetInFlight > float64(autoscaling.MaxConcurrency)+float64(autoscaling.MaxQueueLength) {
-		return ErrorTargetInFlightLimitReached(*autoscaling.TargetInFlight, autoscaling.MaxConcurrency, autoscaling.MaxQueueLength)
+	if *autoscaling.TargetInFlight > float64(pod.MaxConcurrency)+float64(pod.MaxQueueLength) {
+		return ErrorTargetInFlightLimitReached(*autoscaling.TargetInFlight, pod.MaxConcurrency, pod.MaxQueueLength)
 	}
 
 	if autoscaling.MinReplicas > autoscaling.MaxReplicas {

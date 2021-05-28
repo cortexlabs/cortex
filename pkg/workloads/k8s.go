@@ -192,9 +192,9 @@ func realtimeProxyContainer(api spec.API) (kcore.Container, kcore.Volume) {
 			"--user-port",
 			s.Int32(*api.Pod.Port),
 			"--max-concurrency",
-			s.Int32(int32(api.Autoscaling.MaxConcurrency)),
+			s.Int32(int32(api.Pod.MaxConcurrency)),
 			"--max-queue-length",
-			s.Int32(int32(api.Autoscaling.MaxQueueLength)),
+			s.Int32(int32(api.Pod.MaxQueueLength)),
 		},
 		Ports: []kcore.ContainerPort{
 			{Name: "admin", ContainerPort: consts.AdminPortInt32},
