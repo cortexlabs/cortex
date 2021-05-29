@@ -20,8 +20,7 @@ import "net/http"
 
 func Handler(pb *Probe) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		healthy := pb.ProbeContainer()
-		if !healthy {
+		if !pb.IsHealthy() {
 			w.WriteHeader(http.StatusInternalServerError)
 			_, _ = w.Write([]byte("unhealthy"))
 			return

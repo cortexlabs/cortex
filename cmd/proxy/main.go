@@ -117,6 +117,10 @@ func main() {
 
 	promStats := proxy.NewPrometheusStatsReporter()
 	readinessProbe := probe.NewDefaultProbe(target, log)
+	probeStopper := readinessProbe.StartProbing()
+	defer func() {
+		probeStopper <- true
+	}()
 
 	go func() {
 		reportTicker := time.NewTicker(_reportInterval)

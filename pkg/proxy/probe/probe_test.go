@@ -21,6 +21,7 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"testing"
+	"time"
 
 	"github.com/cortexlabs/cortex/pkg/proxy/probe"
 	"github.com/stretchr/testify/require"
@@ -52,7 +53,19 @@ func TestDefaultProbeSuccess(t *testing.T) {
 	server := httptest.NewServer(handler)
 	pb := probe.NewDefaultProbe(server.URL, log)
 
-	require.True(t, pb.ProbeContainer())
+	stopper := pb.StartProbing()
+	defer func() {
+		stopper <- true
+	}()
+
+	for {
+		if pb.HasRunOnce() {
+			break
+		}
+		time.Sleep(time.Second)
+	}
+
+	require.True(t, pb.IsHealthy())
 }
 
 func TestDefaultProbeFailure(t *testing.T) {
@@ -62,7 +75,19 @@ func TestDefaultProbeFailure(t *testing.T) {
 	target := "http://127.0.0.1:12345"
 	pb := probe.NewDefaultProbe(target, log)
 
-	require.False(t, pb.ProbeContainer())
+	stopper := pb.StartProbing()
+	defer func() {
+		stopper <- true
+	}()
+
+	for {
+		if pb.HasRunOnce() {
+			break
+		}
+		time.Sleep(time.Second)
+	}
+
+	require.False(t, pb.IsHealthy())
 }
 
 func TestProbeHTTPFailure(t *testing.T) {
@@ -78,11 +103,27 @@ func TestProbeHTTPFailure(t *testing.T) {
 					Host: "127.0.0.1",
 				},
 			},
-			TimeoutSeconds: 3,
+			InitialDelaySeconds: 1,
+			TimeoutSeconds:      3,
+			PeriodSeconds:       1,
+			SuccessThreshold:    1,
+			FailureThreshold:    1,
 		}, log,
 	)
 
-	require.False(t, pb.ProbeContainer())
+	stopper := pb.StartProbing()
+	defer func() {
+		stopper <- true
+	}()
+
+	for {
+		if pb.HasRunOnce() {
+			break
+		}
+		time.Sleep(time.Second)
+	}
+
+	require.False(t, pb.IsHealthy())
 }
 
 func TestProbeHTTPSuccess(t *testing.T) {
@@ -105,9 +146,25 @@ func TestProbeHTTPSuccess(t *testing.T) {
 					Host: targetURL.Hostname(),
 				},
 			},
-			TimeoutSeconds: 3,
+			InitialDelaySeconds: 1,
+			TimeoutSeconds:      3,
+			PeriodSeconds:       1,
+			SuccessThreshold:    1,
+			FailureThreshold:    1,
 		}, log,
 	)
 
-	require.True(t, pb.ProbeContainer())
+	stopper := pb.StartProbing()
+	defer func() {
+		stopper <- true
+	}()
+
+	for {
+		if pb.HasRunOnce() {
+			break
+		}
+		time.Sleep(time.Second)
+	}
+
+	require.True(t, pb.IsHealthy())
 }

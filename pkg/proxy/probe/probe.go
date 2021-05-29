@@ -33,12 +33,18 @@ import (
 )
 
 const (
-	_defaultTimeoutSeconds = 1
+	_initialDelaySeconds     = int32(1)
+	_defaultTimeoutSeconds   = int32(1)
+	_defaultPeriodSeconds    = int32(1)
+	_defaultSuccessThreshold = int32(1)
+	_defaultFailureThreshold = int32(1)
 )
 
 type Probe struct {
 	*kcore.Probe
-	logger *zap.SugaredLogger
+	logger     *zap.SugaredLogger
+	healthy    bool
+	hasRunOnce bool
 }
 
 func NewProbe(probe *kcore.Probe, logger *zap.SugaredLogger) *Probe {
@@ -62,13 +68,60 @@ func NewDefaultProbe(target string, logger *zap.SugaredLogger) *Probe {
 					Host: targetURL.Hostname(),
 				},
 			},
-			TimeoutSeconds: _defaultTimeoutSeconds,
+			InitialDelaySeconds: _initialDelaySeconds,
+			TimeoutSeconds:      _defaultTimeoutSeconds,
+			PeriodSeconds:       _defaultPeriodSeconds,
+			SuccessThreshold:    _defaultSuccessThreshold,
+			FailureThreshold:    _defaultFailureThreshold,
 		},
 		logger: logger,
 	}
 }
 
-func (p *Probe) ProbeContainer() bool {
+func (p *Probe) StartProbing() chan bool {
+	stop := make(chan bool)
+
+	ticker := time.NewTicker(time.Duration(p.PeriodSeconds) * time.Second)
+	time.AfterFunc(time.Duration(p.InitialDelaySeconds)*time.Second, func() {
+		successCount := int32(0)
+		failureCount := int32(0)
+
+		for {
+			select {
+			case <-stop:
+				return
+			case <-ticker.C:
+				healthy := p.probeContainer()
+				if healthy {
+					successCount++
+					failureCount = 0
+				} else {
+					failureCount++
+					successCount = 0
+				}
+
+				if successCount >= p.SuccessThreshold {
+					p.healthy = true
+				} else if failureCount >= p.FailureThreshold {
+					p.healthy = false
+				}
+				p.hasRunOnce = true
+			}
+		}
+	})
+
+	return stop
+}
+
+func (p *Probe) IsHealthy() bool {
+	return p.healthy
+}
+
+func (p *Probe) HasRunOnce() bool {
+	return p.hasRunOnce
+}
+
+func (p *Probe) probeContainer() bool {
 	var err error
 
 	switch {
