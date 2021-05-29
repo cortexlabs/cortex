@@ -29,6 +29,7 @@ import (
 	awslib "github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/logging"
+	"github.com/cortexlabs/cortex/pkg/lib/probe"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	"github.com/cortexlabs/cortex/pkg/types/clusterconfig"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
@@ -39,6 +40,7 @@ func main() {
 	var (
 		clusterConfigPath string
 		clusterUID        string
+		probesPath        string
 		queueURL          string
 		userContainerPort int
 		apiName           string
@@ -48,6 +50,7 @@ func main() {
 	)
 	flag.StringVar(&clusterConfigPath, "cluster-config", "", "cluster config path")
 	flag.StringVar(&clusterUID, "cluster-uid", "", "cluster unique identifier")
+	flag.StringVar(&probesPath, "probes-path", "", "path to the probes spec")
 	flag.StringVar(&queueURL, "queue", "", "target queue URL from which the api messages will be dequeued")
 	flag.StringVar(&apiKind, "api-kind", "", fmt.Sprintf("api kind (%s|%s)", userconfig.BatchAPIKind.String(), userconfig.AsyncAPIKind.String()))
 	flag.StringVar(&apiName, "api-name", "", "api name")
@@ -113,6 +116,11 @@ func main() {
 	}
 	defer telemetry.Close()
 
+	probes, err := dequeuer.ProbesFromFile(probesPath, log)
+	if err != nil {
+		exit(log, err, fmt.Sprintf("unable to read probes from %s", probesPath))
+	}
+
 	metricsClient, err := statsd.New(fmt.Sprintf("%s:%d", hostIP, statsdPort))
 	if err != nil {
 		exit(log, err, "unable to initialize metrics client")
@@ -167,6 +175,13 @@ func main() {
 	sigint := make(chan os.Signal, 1)
 	signal.Notify(sigint, os.Interrupt)
 
+	for _, probe := range probes {
+		stopper := probe.StartProbing()
+		defer func() {
+			stopper <- true
+		}()
+	}
+
 	sqsDequeuer, err := dequeuer.NewSQSDequeuer(dequeuerConfig, awsClient, log)
 	if err != nil {
 		exit(log, err, "failed to create sqs dequeuer")
@@ -175,7 +190,9 @@ func main() {
 	errCh := make(chan error)
 	go func() {
 		log.Info("Starting dequeuer...")
-		errCh <- sqsDequeuer.Start(messageHandler)
+		errCh <- sqsDequeuer.Start(messageHandler, func() bool {
+			return probe.AreProbesHealthy(probes)
+		})
 	}()
 
 	select {
