@@ -21,6 +21,7 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"testing"
+	"time"
 
 	"github.com/cortexlabs/cortex/pkg/lib/probe"
 	"github.com/stretchr/testify/require"
@@ -58,6 +59,18 @@ func TestHandlerSuccessTCP(t *testing.T) {
 
 	r := httptest.NewRequest(http.MethodGet, "http://fake.cortex.dev/healthz", nil)
 	w := httptest.NewRecorder()
+
+	stopper := pb.StartProbing()
+	defer func() {
+		stopper <- true
+	}()
+
+	for {
+		if pb.HasRunOnce() {
+			break
+		}
+		time.Sleep(time.Second)
+	}
 
 	handler(w, r)
 
@@ -108,6 +121,18 @@ func TestHandlerSuccessHTTP(t *testing.T) {
 
 	r := httptest.NewRequest(http.MethodGet, "http://fake.cortex.dev/healthz", nil)
 	w := httptest.NewRecorder()
+
+	stopper := pb.StartProbing()
+	defer func() {
+		stopper <- true
+	}()
+
+	for {
+		if pb.HasRunOnce() {
+			break
+		}
+		time.Sleep(time.Second)
+	}
 
 	handler(w, r)
 

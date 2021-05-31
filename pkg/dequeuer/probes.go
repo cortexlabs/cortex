@@ -39,7 +39,8 @@ func ProbesFromFile(probesPath string, logger *zap.SugaredLogger) ([]*probe.Prob
 
 	probesSlice := []*probe.Probe{}
 	for _, p := range probesMap {
-		probesSlice = append(probesSlice, probe.NewProbe(&p, logger))
+		auxProbe := p
+		probesSlice = append(probesSlice, probe.NewProbe(&auxProbe, logger))
 	}
 	return probesSlice, nil
 }
