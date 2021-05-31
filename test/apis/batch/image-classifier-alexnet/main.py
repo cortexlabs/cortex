@@ -1,5 +1,5 @@
 import os, json, re
-from typing import Any, List
+from typing import List
 
 from fastapi import FastAPI, Response, Request, status
 
@@ -67,7 +67,7 @@ def healthz(response: Response):
 
 @app.post("/")
 async def handle_batch(request: Request):
-    payload = await request.json()
+    payload: List[str] = await request.json()
     job_id = state["job_id"]
     tensor_list = []
 

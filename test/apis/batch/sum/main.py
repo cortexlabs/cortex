@@ -45,10 +45,9 @@ def healthz(response: Response):
 
 
 @app.post("/")
-async def handle_batch(response: Request):
+async def handle_batch(request: Request):
     global state
-    payload: List[List[int]] = await response.json()
-    print(payload)
+    payload: List[List[int]] = await request.json()
     for numbers_list in payload:
         state["numbers_list"].append(sum(numbers_list))
 
