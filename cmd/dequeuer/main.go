@@ -76,6 +76,8 @@ func main() {
 	switch {
 	case clusterConfigPath == "":
 		log.Fatal("--cluster-config is a required option")
+	case probesPath == "":
+		log.Fatal("--probes-path is a required option")
 	case queueURL == "":
 		log.Fatal("--queue is a required option")
 	case apiName == "":

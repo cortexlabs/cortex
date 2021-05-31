@@ -31,6 +31,15 @@ def healthz(response: Response):
     if not state["model_ready"]:
         response.status_code = status.HTTP_503_SERVICE_UNAVAILABLE
 
+@app.post("/toggle")
+def toggle():
+    """
+    Strictly for testing the health-check functionality from the dequeuer.
+    Should never go in production.
+    """
+    global state
+    state["model_ready"] = not state["model_ready"]
+
 
 @app.post("/")
 def text_generator(request: Request):

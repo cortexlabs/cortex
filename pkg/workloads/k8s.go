@@ -17,6 +17,7 @@ limitations under the License.
 package workloads
 
 import (
+	"path"
 	"strings"
 
 	"github.com/cortexlabs/cortex/pkg/config"
@@ -126,6 +127,7 @@ func asyncDequeuerProxyContainer(api spec.API, queueURL string) (kcore.Container
 		Args: []string{
 			"--cluster-config", consts.DefaultInClusterConfigPath,
 			"--cluster-uid", config.ClusterConfig.ClusterUID,
+			"--probes-path", path.Join(_cortexDirMountPath, "spec", "probes.json"),
 			"--queue", queueURL,
 			"--api-kind", api.Kind.String(),
 			"--api-name", api.Name,
@@ -157,6 +159,7 @@ func batchDequeuerProxyContainer(api spec.API, jobID, queueURL string) (kcore.Co
 		Args: []string{
 			"--cluster-config", consts.DefaultInClusterConfigPath,
 			"--cluster-uid", config.ClusterConfig.ClusterUID,
+			"--probes-path", path.Join(_cortexDirMountPath, "spec", "probes.json"),
 			"--queue", queueURL,
 			"--api-kind", api.Kind.String(),
 			"--api-name", api.Name,
