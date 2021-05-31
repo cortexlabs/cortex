@@ -29,7 +29,7 @@ func TestDefaultTCPProbeNotPresent(t *testing.T) {
 	t.Parallel()
 	log := newLogger(t)
 
-	userPodPort := intstr.FromInt(8080)
+	userPodPort := 8080
 
 	probes := []*probe.Probe{
 		probe.NewProbe(&kcore.Probe{
@@ -94,5 +94,5 @@ func TestDefaultTCPProbPresent(t *testing.T) {
 		}, log),
 	}
 
-	require.True(t, HasTCPProbeTargetingUserPod(probes, userPodPort))
+	require.True(t, HasTCPProbeTargetingUserPod(probes, userPodPort.IntValue()))
 }

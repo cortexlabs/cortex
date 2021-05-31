@@ -18,7 +18,7 @@ package dequeuer
 
 import "net/http"
 
-func HandlerWithConditionalFunc(isHealthy func() bool) http.HandlerFunc {
+func HandlerWithConditional(isHealthy func() bool) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if !isHealthy() {
 			w.WriteHeader(http.StatusInternalServerError)

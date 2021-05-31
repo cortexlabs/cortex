@@ -42,11 +42,11 @@ var (
 )
 
 const (
-	_initialDelaySeconds     = int32(1)
-	_defaultTimeoutSeconds   = int32(1)
-	_defaultPeriodSeconds    = int32(1)
-	_defaultSuccessThreshold = int32(1)
-	_defaultFailureThreshold = int32(1)
+	_defaultInitialDelaySeconds = int32(1)
+	_defaultTimeoutSeconds      = int32(1)
+	_defaultPeriodSeconds       = int32(1)
+	_defaultSuccessThreshold    = int32(1)
+	_defaultFailureThreshold    = int32(1)
 )
 
 type Probe struct {
@@ -77,7 +77,7 @@ func NewDefaultProbe(target string, logger *zap.SugaredLogger) *Probe {
 					Host: targetURL.Hostname(),
 				},
 			},
-			InitialDelaySeconds: _initialDelaySeconds,
+			InitialDelaySeconds: _defaultInitialDelaySeconds,
 			TimeoutSeconds:      _defaultTimeoutSeconds,
 			PeriodSeconds:       _defaultPeriodSeconds,
 			SuccessThreshold:    _defaultSuccessThreshold,
@@ -87,8 +87,8 @@ func NewDefaultProbe(target string, logger *zap.SugaredLogger) *Probe {
 	}
 }
 
-func (p *Probe) StartProbing() chan bool {
-	stop := make(chan bool)
+func (p *Probe) StartProbing() chan struct{} {
+	stop := make(chan struct{})
 
 	ticker := time.NewTicker(time.Duration(p.PeriodSeconds) * time.Second)
 	time.AfterFunc(time.Duration(p.InitialDelaySeconds)*time.Second, func() {

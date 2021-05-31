@@ -19,6 +19,7 @@ package main
 import (
 	"context"
 	"flag"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
@@ -28,7 +29,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/logging"
-	"github.com/cortexlabs/cortex/pkg/lib/probe"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	"github.com/cortexlabs/cortex/pkg/proxy"
 	"github.com/cortexlabs/cortex/pkg/types/clusterconfig"
@@ -116,7 +116,6 @@ func main() {
 	)
 
 	promStats := proxy.NewPrometheusStatsReporter()
-	readinessProbe := probe.NewDefaultProbe(target, log)
 
 	go func() {
 		reportTicker := time.NewTicker(_reportInterval)
@@ -142,7 +141,7 @@ func main() {
 
 	adminHandler := http.NewServeMux()
 	adminHandler.Handle("/metrics", promStats)
-	adminHandler.Handle("/healthz", probe.Handler(readinessProbe))
+	adminHandler.Handle("/healthz", readinessTCPHandler(target, log))
 
 	servers := map[string]*http.Server{
 		"proxy": {
@@ -162,11 +161,6 @@ func main() {
 			errCh <- server.ListenAndServe()
 		}(name, server)
 	}
-
-	probeStopper := readinessProbe.StartProbing()
-	defer func() {
-		probeStopper <- true
-	}()
 
 	sigint := make(chan os.Signal, 1)
 	signal.Notify(sigint, os.Interrupt)
@@ -206,4 +200,28 @@ func exit(log *zap.SugaredLogger, err error, wrapStrs ...string) {
 
 	telemetry.Close()
 	os.Exit(1)
+}
+
+func readinessTCPHandler(target string, logger *zap.SugaredLogger) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		healthy := false
+
+		timeout := time.Duration(1) * time.Second
+		conn, err := net.DialTimeout("tcp", target, timeout)
+		if err == nil {
+			healthy = true
+		} else {
+			logger.Warn(err)
+		}
+		_ = conn.Close()
+
+		if !healthy {
+			w.WriteHeader(http.StatusInternalServerError)
+			_, _ = w.Write([]byte("unhealthy"))
+			return
+		}
+
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte("healthy"))
+	}
 }

@@ -29,20 +29,17 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
-func TestHandlerFailure(t *testing.T) {
-	t.Parallel()
-	log := newLogger(t)
+func generateHandler(pb *probe.Probe) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if !pb.IsHealthy() {
+			w.WriteHeader(http.StatusInternalServerError)
+			_, _ = w.Write([]byte("unhealthy"))
+			return
+		}
 
-	pb := probe.NewDefaultProbe("http://127.0.0.1:12345", log)
-	handler := probe.Handler(pb)
-
-	r := httptest.NewRequest(http.MethodGet, "http://fake.cortex.dev/healthz", nil)
-	w := httptest.NewRecorder()
-
-	handler(w, r)
-
-	require.Equal(t, http.StatusInternalServerError, w.Code)
-	require.Equal(t, "unhealthy", w.Body.String())
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte("healthy"))
+	}
 }
 
 func TestHandlerSuccessTCP(t *testing.T) {
@@ -55,14 +52,14 @@ func TestHandlerSuccessTCP(t *testing.T) {
 	server := httptest.NewServer(userHandler)
 
 	pb := probe.NewDefaultProbe(server.URL, log)
-	handler := probe.Handler(pb)
+	handler := generateHandler(pb)
 
 	r := httptest.NewRequest(http.MethodGet, "http://fake.cortex.dev/healthz", nil)
 	w := httptest.NewRecorder()
 
 	stopper := pb.StartProbing()
 	defer func() {
-		stopper <- true
+		stopper <- struct{}{}
 	}()
 
 	for {
@@ -117,14 +114,14 @@ func TestHandlerSuccessHTTP(t *testing.T) {
 			FailureThreshold: 3,
 		}, log,
 	)
-	handler := probe.Handler(pb)
+	handler := generateHandler(pb)
 
 	r := httptest.NewRequest(http.MethodGet, "http://fake.cortex.dev/healthz", nil)
 	w := httptest.NewRecorder()
 
 	stopper := pb.StartProbing()
 	defer func() {
-		stopper <- true
+		stopper <- struct{}{}
 	}()
 
 	for {

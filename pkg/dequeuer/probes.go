@@ -17,13 +17,11 @@ limitations under the License.
 package dequeuer
 
 import (
-	"encoding/json"
-
 	"github.com/cortexlabs/cortex/pkg/lib/files"
+	libjson "github.com/cortexlabs/cortex/pkg/lib/json"
 	"github.com/cortexlabs/cortex/pkg/lib/probe"
 	"go.uber.org/zap"
 	kcore "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
 func ProbesFromFile(probesPath string, logger *zap.SugaredLogger) ([]*probe.Probe, error) {
@@ -33,7 +31,7 @@ func ProbesFromFile(probesPath string, logger *zap.SugaredLogger) ([]*probe.Prob
 	}
 
 	probesMap := map[string]kcore.Probe{}
-	if err := json.Unmarshal(fileBytes, &probesMap); err != nil {
+	if err := libjson.Unmarshal(fileBytes, &probesMap); err != nil {
 		return nil, err
 	}
 
@@ -45,12 +43,12 @@ func ProbesFromFile(probesPath string, logger *zap.SugaredLogger) ([]*probe.Prob
 	return probesSlice, nil
 }
 
-func HasTCPProbeTargetingUserPod(probes []*probe.Probe, userPort intstr.IntOrString) bool {
+func HasTCPProbeTargetingUserPod(probes []*probe.Probe, userPort int) bool {
 	for _, probe := range probes {
 		if probe == nil {
 			continue
 		}
-		if probe.Handler.TCPSocket != nil && probe.Handler.TCPSocket.Port == userPort {
+		if probe.Handler.TCPSocket != nil && probe.Handler.TCPSocket.Port.IntValue() == userPort {
 			return true
 		}
 	}

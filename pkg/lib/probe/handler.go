@@ -21,19 +21,6 @@ import (
 	"strings"
 )
 
-func Handler(pb *Probe) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		if !pb.IsHealthy() {
-			w.WriteHeader(http.StatusInternalServerError)
-			_, _ = w.Write([]byte("unhealthy"))
-			return
-		}
-
-		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte("healthy"))
-	}
-}
-
 func IsRequestKubeletProbe(r *http.Request) bool {
 	return strings.HasPrefix(r.Header.Get(_userAgentKey), _kubeProbeUserAgentPrefix)
 }

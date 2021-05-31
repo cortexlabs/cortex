@@ -36,7 +36,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/types/clusterconfig"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	"go.uber.org/zap"
-	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
 func main() {
@@ -131,7 +130,7 @@ func main() {
 		}
 	}
 
-	if !dequeuer.HasTCPProbeTargetingUserPod(probes, intstr.FromInt(userContainerPort)) {
+	if !dequeuer.HasTCPProbeTargetingUserPod(probes, userContainerPort) {
 		probes = append(probes, probe.NewDefaultProbe(fmt.Sprintf("http://localhost:%d", userContainerPort), log))
 	}
 
@@ -189,7 +188,7 @@ func main() {
 		}
 
 		adminHandler := http.NewServeMux()
-		adminHandler.Handle("/healthz", dequeuer.HandlerWithConditionalFunc(func() bool {
+		adminHandler.Handle("/healthz", dequeuer.HandlerWithConditional(func() bool {
 			return probe.AreProbesHealthy(probes)
 		}))
 
@@ -224,7 +223,7 @@ func main() {
 	for _, probe := range probes {
 		stopper := probe.StartProbing()
 		defer func() {
-			stopper <- true
+			stopper <- struct{}{}
 		}()
 	}
 
