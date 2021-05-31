@@ -36,12 +36,10 @@ type API struct {
 	*userconfig.API
 	ID           string `json:"id"`
 	SpecID       string `json:"spec_id"`
-	HandlerID    string `json:"handler_id"`
+	PodID        string `json:"pod_id"`
 	DeploymentID string `json:"deployment_id"`
-	ProjectID    string `json:"project_id"`
 
-	Key        string `json:"key"`
-	HandlerKey string `json:"handler_key"`
+	Key string `json:"key"`
 
 	LastUpdated  int64  `json:"last_updated"`
 	MetadataRoot string `json:"metadata_root"`
@@ -50,28 +48,26 @@ type API struct {
 /*
 APIID (uniquely identifies an api configuration for a given deployment)
 	* SpecID (uniquely identifies api configuration specified by user)
-		* HandlerID (used to determine when rolling updates need to happen)
+		* PodID (an ID representing the pod spec)
 			* Resource
 				* Containers
 				* Compute
 			* Pod
-			* ProjectID
 		* Deployment Strategy
 		* Autoscaling
 		* Networking
 		* APIs
 	* DeploymentID (used for refreshing a deployment)
 */
-func GetAPISpec(apiConfig *userconfig.API, projectID string, deploymentID string, clusterUID string) *API {
+func GetAPISpec(apiConfig *userconfig.API, deploymentID string, clusterUID string) *API {
 	var buf bytes.Buffer
 
 	buf.WriteString(s.Obj(apiConfig.Resource))
 	buf.WriteString(s.Obj(apiConfig.Pod))
-	buf.WriteString(projectID)
-	handlerID := hash.Bytes(buf.Bytes())
+	podID := hash.Bytes(buf.Bytes())
 
 	buf.Reset()
-	buf.WriteString(handlerID)
+	buf.WriteString(podID)
 	buf.WriteString(s.Obj(apiConfig.APIs))
 	buf.WriteString(s.Obj(apiConfig.Networking))
 	buf.WriteString(s.Obj(apiConfig.Autoscaling))
@@ -84,25 +80,12 @@ func GetAPISpec(apiConfig *userconfig.API, projectID string, deploymentID string
 		API:          apiConfig,
 		ID:           apiID,
 		SpecID:       specID,
-		HandlerID:    handlerID,
+		PodID:        podID,
 		Key:          Key(apiConfig.Name, apiID, clusterUID),
-		HandlerKey:   HandlerKey(apiConfig.Name, handlerID, clusterUID),
 		DeploymentID: deploymentID,
 		LastUpdated:  time.Now().Unix(),
 		MetadataRoot: MetadataRoot(apiConfig.Name, clusterUID),
-		ProjectID:    projectID,
 	}
-}
-
-func HandlerKey(apiName string, handlerID string, clusterUID string) string {
-	return filepath.Join(
-		clusterUID,
-		"apis",
-		apiName,
-		"handler",
-		handlerID,
-		consts.CortexVersion+"-spec.json",
-	)
 }
 
 func Key(apiName string, apiID string, clusterUID string) string {

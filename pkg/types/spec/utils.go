@@ -24,8 +24,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 )
 
-type modelValidator func(paths []string, prefix string, versionedPrefix *string) error
-
 func FindDuplicateNames(apis []userconfig.API) []userconfig.API {
 	names := make(map[string][]userconfig.API)
 

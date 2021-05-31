@@ -2,6 +2,8 @@
   kind: RealtimeAPI
   pod:
     port: 9000
+    max_concurrency: 1
+    max_queue_length: 128
     containers:
     - name: api
       image: quay.io/cortexlabs-test/realtime-sleep-cpu:latest
@@ -13,4 +15,4 @@
         cpu: 200m
         mem: 128M
   autoscaling:
-    max_concurrency: 1
+    target_in_flight: 1

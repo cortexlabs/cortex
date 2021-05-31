@@ -20,7 +20,7 @@ def main():
 
     # get task endpoint
     cx = cortex.client(env_name)
-    task_endpoint = cx.get_api("trainer")["endpoint"]
+    task_endpoint = cx.get_api("iris-classifier-trainer")["endpoint"]
 
     # submit job
     job_spec = {"config": {"dest_s3_dir": dest_s3_dir}}

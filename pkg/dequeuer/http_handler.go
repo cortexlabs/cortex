@@ -14,14 +14,19 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package proxy
+package dequeuer
 
-const (
-	// UserAgentKey is the user agent header key
-	UserAgentKey = "User-Agent"
+import "net/http"
 
-	// KubeProbeUserAgentPrefix is the user agent header prefix used in k8s probes
-	// Since K8s 1.8, prober requests have
-	//   User-Agent = "kube-probe/{major-version}.{minor-version}".
-	KubeProbeUserAgentPrefix = "kube-probe/"
-)
+func HealthcheckHandler(isHealthy func() bool) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if !isHealthy() {
+			w.WriteHeader(http.StatusInternalServerError)
+			_, _ = w.Write([]byte("unhealthy"))
+			return
+		}
+
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte("healthy"))
+	}
+}

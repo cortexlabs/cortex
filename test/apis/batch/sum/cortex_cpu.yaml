@@ -15,8 +15,12 @@
         - "--threads"
         - "1"
         - "--bind"
-        - ":$CORTEX_PORT"
+        - ":$(CORTEX_PORT)"
         - "main:app"
+      readiness_probe:
+        http_get:
+          path: "/healthz"
+          port: 8080
       compute:
         cpu: 200m
         mem: 256Mi

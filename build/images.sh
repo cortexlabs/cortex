@@ -28,8 +28,6 @@ dev_images=(
 )
 
 non_dev_images=(
-  "tensorflow-serving-cpu"
-  "tensorflow-serving-gpu"
   "cluster-autoscaler"
   "operator"
   "controller-manager"
@@ -46,10 +44,8 @@ non_dev_images=(
   "kube-rbac-proxy"
   "grafana"
   "event-exporter"
-  "tensorflow-serving-inf"
   "metrics-server"
   "inferentia"
-  "neuron-rtd"
   "nvidia"
   "kubexit"
 )

@@ -69,7 +69,7 @@ func gatewayDeploymentSpec(api spec.API, prevDeployment *kapps.Deployment, queue
 			"apiID":            api.ID,
 			"specID":           api.SpecID,
 			"deploymentID":     api.DeploymentID,
-			"handlerID":        api.HandlerID,
+			"podID":            api.PodID,
 			"cortex.dev/api":   "true",
 			"cortex.dev/async": "gateway",
 		},
@@ -78,7 +78,7 @@ func gatewayDeploymentSpec(api spec.API, prevDeployment *kapps.Deployment, queue
 				"apiName":          api.Name,
 				"apiKind":          api.Kind.String(),
 				"deploymentID":     api.DeploymentID,
-				"handlerID":        api.HandlerID,
+				"podID":            api.PodID,
 				"cortex.dev/api":   "true",
 				"cortex.dev/async": "gateway",
 			},
@@ -113,7 +113,7 @@ func gatewayHPASpec(api spec.API) (kautoscaling.HorizontalPodAutoscaler, error) 
 			"apiID":            api.ID,
 			"specID":           api.SpecID,
 			"deploymentID":     api.DeploymentID,
-			"handlerID":        api.HandlerID,
+			"podID":            api.PodID,
 			"cortex.dev/api":   "true",
 			"cortex.dev/async": "hpa",
 		},
@@ -164,7 +164,7 @@ func gatewayVirtualServiceSpec(api spec.API) v1beta1.VirtualService {
 			"apiID":            api.ID,
 			"specID":           api.SpecID,
 			"deploymentID":     api.DeploymentID,
-			"handlerID":        api.HandlerID,
+			"podID":            api.PodID,
 			"cortex.dev/api":   "true",
 			"cortex.dev/async": "gateway",
 		},
@@ -201,11 +201,7 @@ func deploymentSpec(api spec.API, prevDeployment *kapps.Deployment, queueURL str
 		volumes    []kcore.Volume
 	)
 
-	containers, volumes = workloads.AsyncUserPodContainers(api)
-
-	// TODO add the proxy as well
-	// use workloads.APIConfigMount(workloads.K8sName(api.Name)) to mount the probes
-	// the probes will be made available at /cortex/spec/probes.json
+	containers, volumes = workloads.AsyncContainers(api, queueURL)
 
 	return *k8s.Deployment(&k8s.DeploymentSpec{
 		Name:           workloads.K8sName(api.Name),
@@ -218,7 +214,7 @@ func deploymentSpec(api spec.API, prevDeployment *kapps.Deployment, queueURL str
 			"apiID":            api.ID,
 			"specID":           api.SpecID,
 			"deploymentID":     api.DeploymentID,
-			"handlerID":        api.HandlerID,
+			"podID":            api.PodID,
 			"cortex.dev/api":   "true",
 			"cortex.dev/async": "api",
 		},
@@ -233,7 +229,7 @@ func deploymentSpec(api spec.API, prevDeployment *kapps.Deployment, queueURL str
 				"apiName":          api.Name,
 				"apiKind":          api.Kind.String(),
 				"deploymentID":     api.DeploymentID,
-				"handlerID":        api.HandlerID,
+				"podID":            api.PodID,
 				"cortex.dev/api":   "true",
 				"cortex.dev/async": "api",
 			},

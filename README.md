@@ -6,21 +6,21 @@
 
 <br>
 
-# Scale compute-intensive serverless workloads
+# Serverless containers on AWS
 
-Cortex is a Kubernetes-based serverless platform built for AWS.
-
-<br>
-
-## Deploy realtime, batch, and async workloads
-
-* **Realtime** - realtime APIs respond to requests in real-time and autoscale based on in-flight request volumes.
-* **Batch** - batch APIs run distributed and fault-tolerant batch processing jobs on-demand.
-* **Async** - async APIs process requests asynchronously and autoscale based on request queue length.
+Deploy, manage, and scale containers without managing infrastructure.
 
 <br>
 
-## Scale across hundreds of CPU and GPU instances
+## Build APIs faster
+
+* **Realtime APIs** - respond to requests in real-time and autoscale based on in-flight request volumes.
+* **Batch APIs** - run distributed and fault-tolerant batch processing jobs on-demand.
+* **Async APIs** - process requests asynchronously and autoscale based on request queue length.
+
+<br>
+
+## Scale without limits
 
 * **No resource limits** - allocate as much CPU, GPU, and memory as each workload requires.
 * **No cold starts** - keep a minimum number of API replicas running to ensure that requests are handled in real-time.
@@ -28,8 +28,8 @@ Cortex is a Kubernetes-based serverless platform built for AWS.
 
 <br>
 
-## Control your AWS spend
+## Reduce your AWS spend
 
-* **Spot instance management** - Cortex automatically runs workloads on spot instances and falls back to on-demand instances to ensure reliability.
-* **Multi-instance type clusters** - choose the ideal EC2 instance type for your workloads or mix and match several instance types in the same cluster.
-* **Customizable autoscaling** - optimize the autoscaling behavior for each workload to ensure efficient resource utilization.
+* **Spot instance management** - Cortex runs workloads on spot instances and fall back to on-demand instances to ensure reliability.
+* **Multi-instance type clusters** - Cortex runs different workloads on different EC2 instances to ensure efficient resource utilization.
+* **Efficient autoscaling** - Cortex optimizes the autoscaling behavior of each workload to minimize idle resources.

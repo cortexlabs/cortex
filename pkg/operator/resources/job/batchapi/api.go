@@ -41,13 +41,13 @@ import (
 
 const _batchDashboardUID = "batchapi"
 
-func UpdateAPI(apiConfig *userconfig.API, projectID string) (*spec.API, string, error) {
+func UpdateAPI(apiConfig *userconfig.API) (*spec.API, string, error) {
 	prevVirtualService, err := config.K8s.GetVirtualService(workloads.K8sName(apiConfig.Name))
 	if err != nil {
 		return nil, "", err
 	}
 
-	api := spec.GetAPISpec(apiConfig, projectID, "", config.ClusterConfig.ClusterUID) // Deployment ID not needed for BatchAPI spec
+	api := spec.GetAPISpec(apiConfig, "", config.ClusterConfig.ClusterUID) // Deployment ID not needed for BatchAPI spec
 
 	if prevVirtualService == nil {
 		if err := config.AWS.UploadJSONToS3(api, config.ClusterConfig.Bucket, api.Key); err != nil {

@@ -964,9 +964,7 @@ data:
           }
         },
         {
-          "aliasColors": {
-            "iris-classifier": "light-green"
-          },
+          "aliasColors": {},
           "bars": false,
           "dashLength": 10,
           "dashes": false,

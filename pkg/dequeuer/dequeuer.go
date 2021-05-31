@@ -28,11 +28,12 @@ import (
 )
 
 var (
-	_messageAttributes = []string{"All"}
-	_waitTime          = 10 * time.Second
-	_visibilityTimeout = 30 * time.Second
-	_notFoundSleepTime = 10 * time.Second
-	_renewalPeriod     = 10 * time.Second
+	_messageAttributes  = []string{"All"}
+	_waitTime           = 10 * time.Second
+	_visibilityTimeout  = 30 * time.Second
+	_notFoundSleepTime  = 10 * time.Second
+	_renewalPeriod      = 10 * time.Second
+	_probeRefreshPeriod = 1 * time.Second
 )
 
 type SQSDequeuerConfig struct {
@@ -49,6 +50,7 @@ type SQSDequeuer struct {
 	visibilityTimeout  *int64
 	notFoundSleepTime  time.Duration
 	renewalPeriod      time.Duration
+	probeRefreshPeriod time.Duration
 	log                *zap.SugaredLogger
 	done               chan struct{}
 }
@@ -67,6 +69,7 @@ func NewSQSDequeuer(config SQSDequeuerConfig, awsClient *awslib.Client, logger *
 		visibilityTimeout:  aws.Int64(int64(_visibilityTimeout.Seconds())),
 		notFoundSleepTime:  _notFoundSleepTime,
 		renewalPeriod:      _renewalPeriod,
+		probeRefreshPeriod: _probeRefreshPeriod,
 		log:                logger,
 		done:               make(chan struct{}),
 	}, nil
@@ -92,7 +95,7 @@ func (d *SQSDequeuer) ReceiveMessage() (*sqs.Message, error) {
 	return output.Messages[0], nil
 }
 
-func (d *SQSDequeuer) Start(messageHandler MessageHandler) error {
+func (d *SQSDequeuer) Start(messageHandler MessageHandler, readinessProbeFunc func() bool) error {
 	noMessagesInPreviousIteration := false
 
 loop:
@@ -101,6 +104,11 @@ loop:
 		case <-d.done:
 			break loop
 		default:
+			if !readinessProbeFunc() {
+				time.Sleep(d.probeRefreshPeriod)
+				continue
+			}
+
 			message, err := d.ReceiveMessage()
 			if err != nil {
 				return err

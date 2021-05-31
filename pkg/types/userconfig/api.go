@@ -44,10 +44,11 @@ type API struct {
 }
 
 type Pod struct {
-	NodeGroups []string      `json:"node_groups" yaml:"node_groups"`
-	ShmSize    *k8s.Quantity `json:"shm_size" yaml:"shm_size"`
-	Port       *int32        `json:"port" yaml:"port"`
-	Containers []*Container  `json:"containers" yaml:"containers"`
+	NodeGroups     []string     `json:"node_groups" yaml:"node_groups"`
+	Port           *int32       `json:"port" yaml:"port"`
+	MaxQueueLength int64        `json:"max_queue_length" yaml:"max_queue_length"`
+	MaxConcurrency int64        `json:"max_concurrency" yaml:"max_concurrency"`
+	Containers     []*Container `json:"containers" yaml:"containers"`
 }
 
 type Container struct {
@@ -103,14 +104,13 @@ type Compute struct {
 	Mem *k8s.Quantity `json:"mem" yaml:"mem"`
 	GPU int64         `json:"gpu" yaml:"gpu"`
 	Inf int64         `json:"inf" yaml:"inf"`
+	Shm *k8s.Quantity `json:"shm" yaml:"shm"`
 }
 
 type Autoscaling struct {
 	MinReplicas                  int32         `json:"min_replicas" yaml:"min_replicas"`
 	MaxReplicas                  int32         `json:"max_replicas" yaml:"max_replicas"`
 	InitReplicas                 int32         `json:"init_replicas" yaml:"init_replicas"`
-	MaxQueueLength               int64         `json:"max_queue_length" yaml:"max_queue_length"`
-	MaxConcurrency               int64         `json:"max_concurrency" yaml:"max_concurrency"`
 	TargetInFlight               *float64      `json:"target_in_flight" yaml:"target_in_flight"`
 	Window                       time.Duration `json:"window" yaml:"window"`
 	DownscaleStabilizationPeriod time.Duration `json:"downscale_stabilization_period" yaml:"downscale_stabilization_period"`
@@ -152,6 +152,12 @@ func IdentifyAPI(filePath string, name string, kind Kind, index int) string {
 // InitReplicas was left out deliberately
 func (api *API) ToK8sAnnotations() map[string]string {
 	annotations := map[string]string{}
+
+	if api.Pod != nil && api.Kind == RealtimeAPIKind {
+		annotations[MaxConcurrencyAnnotationKey] = s.Int64(api.Pod.MaxConcurrency)
+		annotations[MaxQueueLengthAnnotationKey] = s.Int64(api.Pod.MaxQueueLength)
+	}
+
 	if api.Networking != nil {
 		annotations[EndpointAnnotationKey] = *api.Networking.Endpoint
 	}
@@ -159,9 +165,7 @@ func (api *API) ToK8sAnnotations() map[string]string {
 	if api.Autoscaling != nil {
 		annotations[MinReplicasAnnotationKey] = s.Int32(api.Autoscaling.MinReplicas)
 		annotations[MaxReplicasAnnotationKey] = s.Int32(api.Autoscaling.MaxReplicas)
-		annotations[MaxQueueLengthAnnotationKey] = s.Int64(api.Autoscaling.MaxQueueLength)
 		annotations[TargetInFlightAnnotationKey] = s.Float64(*api.Autoscaling.TargetInFlight)
-		annotations[MaxConcurrencyAnnotationKey] = s.Int64(api.Autoscaling.MaxConcurrency)
 		annotations[WindowAnnotationKey] = api.Autoscaling.Window.String()
 		annotations[DownscaleStabilizationPeriodAnnotationKey] = api.Autoscaling.DownscaleStabilizationPeriod.String()
 		annotations[UpscaleStabilizationPeriodAnnotationKey] = api.Autoscaling.UpscaleStabilizationPeriod.String()
@@ -187,18 +191,6 @@ func AutoscalingFromAnnotations(k8sObj kmeta.Object) (*Autoscaling, error) {
 		return nil, err
 	}
 	a.MaxReplicas = maxReplicas
-
-	maxQueueLength, err := k8s.ParseInt64Annotation(k8sObj, MaxQueueLengthAnnotationKey)
-	if err != nil {
-		return nil, err
-	}
-	a.MaxQueueLength = maxQueueLength
-
-	maxConcurrency, err := k8s.ParseInt64Annotation(k8sObj, MaxConcurrencyAnnotationKey)
-	if err != nil {
-		return nil, err
-	}
-	a.MaxConcurrency = maxConcurrency
 
 	targetInFlight, err := k8s.ParseFloat64Annotation(k8sObj, TargetInFlightAnnotationKey)
 	if err != nil {
@@ -265,7 +257,7 @@ func (api *API) UserStr() string {
 
 	if api.Pod != nil {
 		sb.WriteString(fmt.Sprintf("%s:\n", PodKey))
-		sb.WriteString(s.Indent(api.Pod.UserStr(), "  "))
+		sb.WriteString(s.Indent(api.Pod.UserStr(api.Kind), "  "))
 	}
 
 	if api.Networking != nil {
@@ -294,12 +286,9 @@ func (trafficSplit *TrafficSplit) UserStr() string {
 	return sb.String()
 }
 
-func (pod *Pod) UserStr() string {
+func (pod *Pod) UserStr(kind Kind) string {
 	var sb strings.Builder
 
-	if pod.ShmSize != nil {
-		sb.WriteString(fmt.Sprintf("%s: %s\n", ShmSizeKey, pod.ShmSize.UserString))
-	}
 	if pod.NodeGroups == nil {
 		sb.WriteString(fmt.Sprintf("%s: null\n", NodeGroupsKey))
 	} else {
@@ -307,6 +296,11 @@ func (pod *Pod) UserStr() string {
 	}
 	if pod.Port != nil {
 		sb.WriteString(fmt.Sprintf("%s: %d\n", PortKey, *pod.Port))
+	}
+
+	if kind == RealtimeAPIKind {
+		sb.WriteString(fmt.Sprintf("%s: %s\n", MaxConcurrencyKey, s.Int64(pod.MaxConcurrency)))
+		sb.WriteString(fmt.Sprintf("%s: %s\n", MaxQueueLengthKey, s.Int64(pod.MaxQueueLength)))
 	}
 
 	sb.WriteString(fmt.Sprintf("%s:\n", ContainersKey))
@@ -429,35 +423,12 @@ func (compute *Compute) UserStr() string {
 	} else {
 		sb.WriteString(fmt.Sprintf("%s: %s\n", MemKey, compute.Mem.UserString))
 	}
+	if compute.Shm == nil {
+		sb.WriteString(fmt.Sprintf("%s: null  # not configured\n", ShmKey))
+	} else {
+		sb.WriteString(fmt.Sprintf("%s: %s\n", ShmKey, compute.Shm.UserString))
+	}
 	return sb.String()
-}
-
-func (compute Compute) Equals(c2 *Compute) bool {
-	if c2 == nil {
-		return false
-	}
-
-	if compute.CPU == nil && c2.CPU != nil || compute.CPU != nil && c2.CPU == nil {
-		return false
-	}
-
-	if compute.CPU != nil && c2.CPU != nil && !compute.CPU.Equal(*c2.CPU) {
-		return false
-	}
-
-	if compute.Mem == nil && c2.Mem != nil || compute.Mem != nil && c2.Mem == nil {
-		return false
-	}
-
-	if compute.Mem != nil && c2.Mem != nil && !compute.Mem.Equal(*c2.Mem) {
-		return false
-	}
-
-	if compute.GPU != c2.GPU {
-		return false
-	}
-
-	return true
 }
 
 func (autoscaling *Autoscaling) UserStr() string {
@@ -465,8 +436,6 @@ func (autoscaling *Autoscaling) UserStr() string {
 	sb.WriteString(fmt.Sprintf("%s: %s\n", MinReplicasKey, s.Int32(autoscaling.MinReplicas)))
 	sb.WriteString(fmt.Sprintf("%s: %s\n", MaxReplicasKey, s.Int32(autoscaling.MaxReplicas)))
 	sb.WriteString(fmt.Sprintf("%s: %s\n", InitReplicasKey, s.Int32(autoscaling.InitReplicas)))
-	sb.WriteString(fmt.Sprintf("%s: %s\n", MaxQueueLengthKey, s.Int64(autoscaling.MaxQueueLength)))
-	sb.WriteString(fmt.Sprintf("%s: %s\n", MaxConcurrencyKey, s.Int64(autoscaling.MaxConcurrency)))
 	sb.WriteString(fmt.Sprintf("%s: %s\n", TargetInFlightKey, s.Float64(*autoscaling.TargetInFlight)))
 	sb.WriteString(fmt.Sprintf("%s: %s\n", WindowKey, autoscaling.Window.String()))
 	sb.WriteString(fmt.Sprintf("%s: %s\n", DownscaleStabilizationPeriodKey, autoscaling.DownscaleStabilizationPeriod.String()))
@@ -520,6 +489,15 @@ func GetTotalComputeFromContainers(containers []*Container) Compute {
 			}
 		}
 
+		if container.Compute.Shm != nil {
+			newShmQuantity := k8s.NewMilliQuantity(container.Compute.Shm.ToDec().MilliValue())
+			if compute.Shm == nil {
+				compute.Shm = newShmQuantity
+			} else if newShmQuantity != nil {
+				compute.Shm.AddQty(*newShmQuantity)
+			}
+		}
+
 		compute.GPU += container.Compute.GPU
 		compute.Inf += container.Compute.Inf
 	}
@@ -557,14 +535,14 @@ func (api *API) TelemetryEvent() map[string]interface{} {
 
 	if api.Pod != nil {
 		event["pod._is_defined"] = true
-		if api.Pod.ShmSize != nil {
-			event["pod.shm_size"] = api.Pod.ShmSize.String()
-		}
 		event["pod.node_groups._is_defined"] = len(api.Pod.NodeGroups) > 0
 		event["pod.node_groups._len"] = len(api.Pod.NodeGroups)
 		if api.Pod.Port != nil {
 			event["pod.port"] = *api.Pod.Port
 		}
+
+		event["pod.max_concurrency"] = api.Pod.MaxConcurrency
+		event["pod.max_queue_length"] = api.Pod.MaxQueueLength
 
 		event["pod.containers._len"] = len(api.Pod.Containers)
 
@@ -592,6 +570,10 @@ func (api *API) TelemetryEvent() map[string]interface{} {
 			event["pod.containers.compute.mem._is_defined"] = true
 			event["pod.containers.compute.mem"] = totalCompute.Mem.Value()
 		}
+		if totalCompute.Shm != nil {
+			event["pod.containers.compute.shm._is_defined"] = true
+			event["pod.containers.compute.shm"] = totalCompute.Shm.Value()
+		}
 		event["pod.containers.compute.gpu"] = totalCompute.GPU
 		event["pod.containers.compute.inf"] = totalCompute.Inf
 	}
@@ -607,8 +589,6 @@ func (api *API) TelemetryEvent() map[string]interface{} {
 		event["autoscaling.min_replicas"] = api.Autoscaling.MinReplicas
 		event["autoscaling.max_replicas"] = api.Autoscaling.MaxReplicas
 		event["autoscaling.init_replicas"] = api.Autoscaling.InitReplicas
-		event["autoscaling.max_queue_length"] = api.Autoscaling.MaxQueueLength
-		event["autoscaling.max_concurrency"] = api.Autoscaling.MaxConcurrency
 		event["autoscaling.target_in_flight"] = *api.Autoscaling.TargetInFlight
 		event["autoscaling.window"] = api.Autoscaling.Window.Seconds()
 		event["autoscaling.downscale_stabilization_period"] = api.Autoscaling.DownscaleStabilizationPeriod.Seconds()

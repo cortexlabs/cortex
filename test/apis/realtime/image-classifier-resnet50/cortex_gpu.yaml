@@ -2,6 +2,7 @@
   kind: RealtimeAPI
   pod:
     port: 8501
+    max_concurrency: 8
     containers:
     - name: api
       image: quay.io/cortexlabs-test/realtime-image-classifier-resnet50-gpu:latest
@@ -12,5 +13,3 @@
         cpu: 200m
         gpu: 1
         mem: 512Mi
-  autoscaling:
-    max_concurrency: 8

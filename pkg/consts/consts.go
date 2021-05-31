@@ -36,6 +36,9 @@ var (
 	AdminPortStr   = "15000"
 	AdminPortInt32 = int32(15000)
 
+	StatsDPortStr   = "9125"
+	StatsDPortInt32 = int32(9125)
+
 	AuthHeader = "X-Cortex-Authorization"
 
 	DefaultInClusterConfigPath   = "/configs/cluster/cluster.yaml"
@@ -43,6 +46,7 @@ var (
 	AsyncWorkloadsExpirationDays = int64(7)
 
 	ReservedContainerNames = []string{
+		"dequeuer",
 		"proxy",
 	}
 )

@@ -1,1 +1,1 @@
-Scale compute-intensive serverless workloads - [docs.cortex.dev](https://www.docs.cortex.dev)
+Serverless containers on AWS - [docs.cortex.dev](https://www.docs.cortex.dev)

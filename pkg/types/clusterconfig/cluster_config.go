@@ -20,15 +20,14 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
-	"io/ioutil"
 	"math"
 	"net"
-	"net/http"
 	"regexp"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/aws/amazon-vpc-cni-k8s/pkg/awsutils"
 	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
@@ -45,8 +44,6 @@ import (
 const (
 	// MaxNodePoolsOrGroups represents the max number of node groups in a cluster
 	MaxNodePoolsOrGroups = 100
-	// the s3 url should be used (rather than the cloudfront URL) to avoid caching
-	_cniSupportedInstancesURL = "https://cortex-public.s3-us-west-2.amazonaws.com/cli-assets/cni_supported_instances.txt"
 	// ClusterNameTag is the tag used for storing a cluster's name in AWS resources
 	ClusterNameTag = "cortex.dev/cluster-name"
 	// SQSQueueDelimiter is the delimiter character used for naming cortex SQS queues (e.g. cx_<cluster_hash>_b_<api_name>_<jon_id>)
@@ -59,7 +56,6 @@ var (
 	_maxNodeGroupLengthWithPrefix = 32
 	_maxNodeGroupLength           = _maxNodeGroupLengthWithPrefix - len("cx-wd-") // or cx-ws-
 	_maxInstancePools             = 20
-	_cachedCNISupportedInstances  *string
 	_defaultIAMPolicies           = []string{"arn:aws:iam::aws:policy/AmazonS3FullAccess"}
 	_invalidTagPrefixes           = []string{"kubernetes.io/", "k8s.io/", "eksctl.", "alpha.eksctl.", "beta.eksctl.", "aws:", "Aws:", "aWs:", "awS:", "aWS:", "AwS:", "aWS:", "AWS:"}
 
@@ -96,10 +92,10 @@ type CoreConfig struct {
 	ImageProxy                      string `json:"image_proxy" yaml:"image_proxy"`
 	ImageAsyncGateway               string `json:"image_async_gateway" yaml:"image_async_gateway"`
 	ImageEnqueuer                   string `json:"image_enqueuer" yaml:"image_enqueuer"`
+	ImageDequeuer                   string `json:"image_dequeuer" yaml:"image_dequeuer"`
 	ImageClusterAutoscaler          string `json:"image_cluster_autoscaler" yaml:"image_cluster_autoscaler"`
 	ImageMetricsServer              string `json:"image_metrics_server" yaml:"image_metrics_server"`
 	ImageInferentia                 string `json:"image_inferentia" yaml:"image_inferentia"`
-	ImageNeuronRTD                  string `json:"image_neuron_rtd" yaml:"image_neuron_rtd"`
 	ImageNvidia                     string `json:"image_nvidia" yaml:"image_nvidia"`
 	ImageFluentBit                  string `json:"image_fluent_bit" yaml:"image_fluent_bit"`
 	ImageIstioProxy                 string `json:"image_istio_proxy" yaml:"image_istio_proxy"`
@@ -367,6 +363,13 @@ var CoreConfigStructFieldValidations = []*cr.StructFieldValidation{
 		},
 	},
 	{
+		StructField: "ImageDequeuer",
+		StringValidation: &cr.StringValidation{
+			Default:   consts.DefaultRegistry() + "/dequeuer:" + consts.CortexVersion,
+			Validator: validateImageVersion,
+		},
+	},
+	{
 		StructField: "ImageClusterAutoscaler",
 		StringValidation: &cr.StringValidation{
 			Default:   consts.DefaultRegistry() + "/cluster-autoscaler:" + consts.CortexVersion,
@@ -384,13 +387,6 @@ var CoreConfigStructFieldValidations = []*cr.StructFieldValidation{
 		StructField: "ImageInferentia",
 		StringValidation: &cr.StringValidation{
 			Default:   consts.DefaultRegistry() + "/inferentia:" + consts.CortexVersion,
-			Validator: validateImageVersion,
-		},
-	},
-	{
-		StructField: "ImageNeuronRTD",
-		StringValidation: &cr.StringValidation{
-			Default:   consts.DefaultRegistry() + "/neuron-rtd:" + consts.CortexVersion,
 			Validator: validateImageVersion,
 		},
 	},
@@ -1120,39 +1116,6 @@ func (ng *NodeGroup) validateNodeGroup(awsClient *aws.Client, region string) err
 	return nil
 }
 
-// Check the instance type against the list of supported instance types for the current default CNI version
-// Returns nil if unable to perform the check successfully
-func checkCNISupport(instanceType string) error {
-	if _cachedCNISupportedInstances == nil {
-		// set to empty string to cache errors too
-		_cachedCNISupportedInstances = pointer.String("")
-
-		res, err := http.Get(_cniSupportedInstancesURL)
-		if err != nil {
-			return nil
-		}
-
-		body, err := ioutil.ReadAll(res.Body)
-		if err != nil {
-			return nil
-		}
-		_ = res.Body.Close()
-
-		_cachedCNISupportedInstances = pointer.String(string(body))
-	}
-
-	// sanity check the response
-	if !strings.Contains(*_cachedCNISupportedInstances, "m5.large") {
-		return nil
-	}
-
-	if !strings.Contains(*_cachedCNISupportedInstances, instanceType) {
-		return ErrorInstanceTypeNotSupportedByCortex(instanceType)
-	}
-
-	return nil
-}
-
 func CheckSpotInstanceCompatibility(target aws.InstanceMetadata, suggested aws.InstanceMetadata) error {
 	if target.Inf > 0 && suggested.Inf == 0 {
 		return ErrorIncompatibleSpotInstanceTypeInf(suggested)
@@ -1269,8 +1232,8 @@ func validateInstanceType(instanceType string) (string, error) {
 		return "", ErrorAMDGPUInstancesNotSupported(instanceType)
 	}
 
-	if err := checkCNISupport(instanceType); err != nil {
-		return "", err
+	if _, ok := awsutils.InstanceNetworkingLimits[instanceType]; !ok {
+		return "", ErrorInstanceTypeNotSupportedByCortex(instanceType)
 	}
 
 	return instanceType, nil
@@ -1361,6 +1324,9 @@ func (cc *CoreConfig) TelemetryEvent() map[string]interface{} {
 	if !strings.HasPrefix(cc.ImageEnqueuer, "cortexlabs/") {
 		event["image_enqueuer._is_custom"] = true
 	}
+	if !strings.HasPrefix(cc.ImageDequeuer, "cortexlabs/") {
+		event["image_dequeuer._is_custom"] = true
+	}
 	if !strings.HasPrefix(cc.ImageClusterAutoscaler, "cortexlabs/") {
 		event["image_cluster_autoscaler._is_custom"] = true
 	}
@@ -1369,9 +1335,6 @@ func (cc *CoreConfig) TelemetryEvent() map[string]interface{} {
 	}
 	if !strings.HasPrefix(cc.ImageInferentia, "cortexlabs/") {
 		event["image_inferentia._is_custom"] = true
-	}
-	if !strings.HasPrefix(cc.ImageNeuronRTD, "cortexlabs/") {
-		event["image_neuron_rtd._is_custom"] = true
 	}
 	if !strings.HasPrefix(cc.ImageNvidia, "cortexlabs/") {
 		event["image_nvidia._is_custom"] = true

@@ -194,9 +194,9 @@ func ClusterConfigVolume() kcore.Volume {
 	}
 }
 
-func ShmVolume(q resource.Quantity) kcore.Volume {
+func ShmVolume(q resource.Quantity, volumeName string) kcore.Volume {
 	return kcore.Volume{
-		Name: _shmDirVolumeName,
+		Name: volumeName,
 		VolumeSource: kcore.VolumeSource{
 			EmptyDir: &kcore.EmptyDirVolumeSource{
 				Medium:    kcore.StorageMediumMemory,
@@ -241,8 +241,8 @@ func ClusterConfigMount() kcore.VolumeMount {
 	}
 }
 
-func ShmMount() kcore.VolumeMount {
-	return k8s.EmptyDirVolumeMount(_shmDirVolumeName, _shmDirMountPath)
+func ShmMount(volumeName string) kcore.VolumeMount {
+	return k8s.EmptyDirVolumeMount(volumeName, _shmDirMountPath)
 }
 
 func KubexitMount() kcore.VolumeMount {

@@ -319,14 +319,7 @@ func (r *BatchJobReconciler) desiredEnqueuerJob(batchJob batch.BatchJob, queueUR
 }
 
 func (r *BatchJobReconciler) desiredWorkerJob(batchJob batch.BatchJob, apiSpec spec.API, jobSpec spec.BatchJob) (*kbatch.Job, error) {
-	var containers []kcore.Container
-	var volumes []kcore.Volume
-
-	containers, volumes = workloads.BatchUserPodContainers(apiSpec, &jobSpec.JobKey)
-
-	// TODO add the proxy as well
-	// use workloads.APIConfigMount(batchJob.Spec.APIName + "-" + batchJob.Name) to mount the probes
-	// the probes will be made available at /cortex/spec/probes.json
+	containers, volumes := workloads.BatchContainers(apiSpec, &jobSpec)
 
 	job := k8s.Job(
 		&k8s.JobSpec{
@@ -338,7 +331,7 @@ func (r *BatchJobReconciler) desiredWorkerJob(batchJob batch.BatchJob, apiSpec s
 				"apiName":          batchJob.Spec.APIName,
 				"apiID":            batchJob.Spec.APIID,
 				"specID":           apiSpec.SpecID,
-				"handlerID":        apiSpec.HandlerID,
+				"podID":            apiSpec.PodID,
 				"jobID":            batchJob.Name,
 				"cortex.dev/api":   "true",
 				"cortex.dev/batch": "worker",
@@ -349,7 +342,7 @@ func (r *BatchJobReconciler) desiredWorkerJob(batchJob batch.BatchJob, apiSpec s
 					"apiName":          batchJob.Spec.APIName,
 					"apiID":            batchJob.Spec.APIID,
 					"specID":           apiSpec.SpecID,
-					"handlerID":        apiSpec.HandlerID,
+					"podID":            apiSpec.PodID,
 					"jobID":            batchJob.Name,
 					"cortex.dev/api":   "true",
 					"cortex.dev/batch": "worker",

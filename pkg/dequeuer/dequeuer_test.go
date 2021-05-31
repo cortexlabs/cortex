@@ -264,7 +264,9 @@ func TestSQSDequeuerTerminationOnEmptyQueue(t *testing.T) {
 
 	errCh := make(chan error, 1)
 	go func() {
-		errCh <- dq.Start(msgHandler)
+		errCh <- dq.Start(msgHandler, func() bool {
+			return true
+		})
 	}()
 
 	time.AfterFunc(10*time.Second, func() { errCh <- errors.New("timeout: dequeuer did not finish") })
@@ -299,7 +301,9 @@ func TestSQSDequeuer_Shutdown(t *testing.T) {
 
 	errCh := make(chan error, 1)
 	go func() {
-		errCh <- dq.Start(msgHandler)
+		errCh <- dq.Start(msgHandler, func() bool {
+			return true
+		})
 	}()
 
 	time.AfterFunc(5*time.Second, func() { errCh <- errors.New("timeout: dequeuer did not exit") })
@@ -346,7 +350,9 @@ func TestSQSDequeuer_Start_HandlerError(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	err = dq.Start(msgHandler)
+	err = dq.Start(msgHandler, func() bool {
+		return true
+	})
 	require.NoError(t, err)
 
 	require.Never(t, func() bool {

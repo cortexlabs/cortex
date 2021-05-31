@@ -2,6 +2,7 @@
   kind: RealtimeAPI
   pod:
     port: 9000
+    max_concurrency: 1
     containers:
     - name: api
       image: quay.io/cortexlabs-test/realtime-hello-world-cpu:latest
@@ -14,13 +15,12 @@
       compute:
         cpu: 200m
         mem: 128M
-  autoscaling:
-    max_concurrency: 1
 
 - name: hello-world-b
   kind: RealtimeAPI
   pod:
     port: 9000
+    max_concurrency: 1
     containers:
     - name: api
       image: quay.io/cortexlabs-test/realtime-hello-world-cpu:latest
@@ -33,13 +33,12 @@
       compute:
         cpu: 200m
         mem: 128M
-  autoscaling:
-    max_concurrency: 1
 
 - name: hello-world-shadow
   kind: RealtimeAPI
   pod:
     port: 9000
+    max_concurrency: 1
     containers:
     - name: api
       image: quay.io/cortexlabs-test/realtime-hello-world-cpu:latest
@@ -52,8 +51,6 @@
       compute:
         cpu: 200m
         mem: 128M
-  autoscaling:
-    max_concurrency: 1
 
 - name: hello-world
   kind: TrafficSplitter

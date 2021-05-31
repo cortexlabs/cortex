@@ -26,19 +26,34 @@ import (
 	"time"
 
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
-	"github.com/cortexlabs/cortex/pkg/proxy"
 	"go.uber.org/zap"
 	kcore "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
+var (
+	// userAgentKey is the user agent header key
+	_userAgentKey = "User-Agent"
+
+	// kubeProbeUserAgentPrefix is the user agent header prefix used in k8s probes
+	// Since K8s 1.8, prober requests have
+	//   User-Agent = "kube-probe/{major-version}.{minor-version}".
+	_kubeProbeUserAgentPrefix = "kube-probe/"
+)
+
 const (
-	_defaultTimeoutSeconds = 1
+	_defaultInitialDelaySeconds = int32(1)
+	_defaultTimeoutSeconds      = int32(1)
+	_defaultPeriodSeconds       = int32(1)
+	_defaultSuccessThreshold    = int32(1)
+	_defaultFailureThreshold    = int32(1)
 )
 
 type Probe struct {
 	*kcore.Probe
-	logger *zap.SugaredLogger
+	logger     *zap.SugaredLogger
+	healthy    bool
+	hasRunOnce bool
 }
 
 func NewProbe(probe *kcore.Probe, logger *zap.SugaredLogger) *Probe {
@@ -62,13 +77,72 @@ func NewDefaultProbe(target string, logger *zap.SugaredLogger) *Probe {
 					Host: targetURL.Hostname(),
 				},
 			},
-			TimeoutSeconds: _defaultTimeoutSeconds,
+			InitialDelaySeconds: _defaultInitialDelaySeconds,
+			TimeoutSeconds:      _defaultTimeoutSeconds,
+			PeriodSeconds:       _defaultPeriodSeconds,
+			SuccessThreshold:    _defaultSuccessThreshold,
+			FailureThreshold:    _defaultFailureThreshold,
 		},
 		logger: logger,
 	}
 }
 
-func (p *Probe) ProbeContainer() bool {
+func (p *Probe) StartProbing() chan struct{} {
+	stop := make(chan struct{})
+
+	ticker := time.NewTicker(time.Duration(p.PeriodSeconds) * time.Second)
+	time.AfterFunc(time.Duration(p.InitialDelaySeconds)*time.Second, func() {
+		successCount := int32(0)
+		failureCount := int32(0)
+
+		for {
+			select {
+			case <-stop:
+				return
+			case <-ticker.C:
+				healthy := p.probeContainer()
+				if healthy {
+					successCount++
+					failureCount = 0
+				} else {
+					failureCount++
+					successCount = 0
+				}
+
+				if successCount >= p.SuccessThreshold {
+					p.healthy = true
+				} else if failureCount >= p.FailureThreshold {
+					p.healthy = false
+				}
+				p.hasRunOnce = true
+			}
+		}
+	})
+
+	return stop
+}
+
+func (p *Probe) IsHealthy() bool {
+	return p.healthy
+}
+
+func (p *Probe) HasRunOnce() bool {
+	return p.hasRunOnce
+}
+
+func AreProbesHealthy(probes []*Probe) bool {
+	for _, probe := range probes {
+		if probe == nil {
+			continue
+		}
+		if !probe.IsHealthy() {
+			return false
+		}
+	}
+	return true
+}
+
+func (p *Probe) probeContainer() bool {
 	var err error
 
 	switch {
@@ -104,7 +178,7 @@ func (p *Probe) httpProbe() error {
 		return err
 	}
 
-	req.Header.Add(proxy.UserAgentKey, proxy.KubeProbeUserAgentPrefix)
+	req.Header.Add(_userAgentKey, _kubeProbeUserAgentPrefix)
 
 	for _, header := range p.HTTPGet.HTTPHeaders {
 		req.Header.Add(header.Name, header.Value)

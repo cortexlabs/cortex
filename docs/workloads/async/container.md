@@ -1,4 +1,4 @@
-# Container Interface
+# Container Implementation
 
 ## Handling requests
 
@@ -25,7 +25,7 @@ readiness_probe:
 
 Your API pod can contain multiple containers, only one of which can be listening for requests on the target port (it can be any of the containers).
 
-The `/mnt` directory is mounted to each container's file system, and is shared across all containers.
+The `/mnt` directory is mounted to each container's filesystem, and is shared across all containers.
 
 ## Using the Cortex CLI or client
 

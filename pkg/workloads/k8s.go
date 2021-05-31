@@ -17,6 +17,7 @@ limitations under the License.
 package workloads
 
 import (
+	"path"
 	"strings"
 
 	"github.com/cortexlabs/cortex/pkg/config"
@@ -44,15 +45,16 @@ const (
 	_emptyDirVolumeName = "mnt"
 	_emptyDirMountPath  = "/mnt"
 
+	_gatewayContainerName = "gateway"
+
 	_proxyContainerName = "proxy"
 
-	_gatewayContainerName = "gateway"
+	_dequeuerContainerName = "dequeuer"
 
 	_kubexitGraveyardName      = "graveyard"
 	_kubexitGraveyardMountPath = "/graveyard"
 
-	_shmDirVolumeName = "dshm"
-	_shmDirMountPath  = "/dev/shm"
+	_shmDirMountPath = "/dev/shm"
 
 	_clientConfigDirVolume = "client-config"
 	_clientConfigConfigMap = "client-config"
@@ -79,9 +81,9 @@ func AsyncGatewayContainer(api spec.API, queueURL string, volumeMounts []kcore.V
 		Image:           config.ClusterConfig.ImageAsyncGateway,
 		ImagePullPolicy: kcore.PullAlways,
 		Args: []string{
+			"--cluster-config", consts.DefaultInClusterConfigPath,
 			"--port", s.Int32(consts.ProxyListeningPortInt32),
 			"--queue", queueURL,
-			"--cluster-config", consts.DefaultInClusterConfigPath,
 			api.Name,
 		},
 		Ports: []kcore.ContainerPort{
@@ -114,12 +116,94 @@ func AsyncGatewayContainer(api spec.API, queueURL string, volumeMounts []kcore.V
 	}
 }
 
-func RealtimeProxyContainer(api spec.API) (kcore.Container, kcore.Volume) {
+func asyncDequeuerProxyContainer(api spec.API, queueURL string) (kcore.Container, kcore.Volume) {
+	return kcore.Container{
+		Name:            _dequeuerContainerName,
+		Image:           config.ClusterConfig.ImageDequeuer,
+		ImagePullPolicy: kcore.PullAlways,
+		Command: []string{
+			"/dequeuer",
+		},
+		Args: []string{
+			"--cluster-config", consts.DefaultInClusterConfigPath,
+			"--cluster-uid", config.ClusterConfig.ClusterUID,
+			"--probes-path", path.Join(_cortexDirMountPath, "spec", "probes.json"),
+			"--queue", queueURL,
+			"--api-kind", api.Kind.String(),
+			"--api-name", api.Name,
+			"--user-port", s.Int32(*api.Pod.Port),
+			"--statsd-port", consts.StatsDPortStr,
+			"--admin-port", consts.AdminPortStr,
+		},
+		Env: append(baseEnvVars, kcore.EnvVar{
+			Name: "HOST_IP",
+			ValueFrom: &kcore.EnvVarSource{
+				FieldRef: &kcore.ObjectFieldSelector{
+					FieldPath: "status.hostIP",
+				},
+			},
+		}),
+		ReadinessProbe: &kcore.Probe{
+			Handler: kcore.Handler{
+				HTTPGet: &kcore.HTTPGetAction{
+					Path: "/healthz",
+					Port: intstr.FromInt(int(consts.AdminPortInt32)),
+				},
+			},
+			InitialDelaySeconds: 1,
+			TimeoutSeconds:      1,
+			PeriodSeconds:       5,
+			SuccessThreshold:    1,
+			FailureThreshold:    1,
+		},
+		VolumeMounts: []kcore.VolumeMount{
+			ClusterConfigMount(),
+		},
+	}, ClusterConfigVolume()
+}
+
+func batchDequeuerProxyContainer(api spec.API, jobID, queueURL string) (kcore.Container, kcore.Volume) {
+	return kcore.Container{
+		Name:            _dequeuerContainerName,
+		Image:           config.ClusterConfig.ImageDequeuer,
+		ImagePullPolicy: kcore.PullAlways,
+		Command: []string{
+			"/dequeuer",
+		},
+		Args: []string{
+			"--cluster-config", consts.DefaultInClusterConfigPath,
+			"--cluster-uid", config.ClusterConfig.ClusterUID,
+			"--probes-path", path.Join(_cortexDirMountPath, "spec", "probes.json"),
+			"--queue", queueURL,
+			"--api-kind", api.Kind.String(),
+			"--api-name", api.Name,
+			"--job-id", jobID,
+			"--user-port", s.Int32(*api.Pod.Port),
+			"--statsd-port", consts.StatsDPortStr,
+		},
+		Env: append(baseEnvVars, kcore.EnvVar{
+			Name: "HOST_IP",
+			ValueFrom: &kcore.EnvVarSource{
+				FieldRef: &kcore.ObjectFieldSelector{
+					FieldPath: "status.hostIP",
+				},
+			},
+		}),
+		VolumeMounts: []kcore.VolumeMount{
+			ClusterConfigMount(),
+			CortexMount(),
+		},
+	}, ClusterConfigVolume()
+}
+
+func realtimeProxyContainer(api spec.API) (kcore.Container, kcore.Volume) {
 	return kcore.Container{
 		Name:            _proxyContainerName,
 		Image:           config.ClusterConfig.ImageProxy,
 		ImagePullPolicy: kcore.PullAlways,
 		Args: []string{
+			"--cluster-config",
+			consts.DefaultInClusterConfigPath,
 			"--port",
 			consts.ProxyListeningPortStr,
 			"--admin-port",
@@ -127,11 +211,9 @@ func RealtimeProxyContainer(api spec.API) (kcore.Container, kcore.Volume) {
 			"--user-port",
 			s.Int32(*api.Pod.Port),
 			"--max-concurrency",
-			s.Int32(int32(api.Autoscaling.MaxConcurrency)),
+			s.Int32(int32(api.Pod.MaxConcurrency)),
 			"--max-queue-length",
-			s.Int32(int32(api.Autoscaling.MaxQueueLength)),
-			"--cluster-config",
-			consts.DefaultInClusterConfigPath,
+			s.Int32(int32(api.Pod.MaxQueueLength)),
 		},
 		Ports: []kcore.ContainerPort{
 			{Name: "admin", ContainerPort: consts.AdminPortInt32},
@@ -158,25 +240,30 @@ func RealtimeProxyContainer(api spec.API) (kcore.Container, kcore.Volume) {
 	}, ClusterConfigVolume()
 }
 
-func RealtimeUserPodContainers(api spec.API) ([]kcore.Container, []kcore.Volume) {
-	return userPodContainers(api)
-}
-
-func AsyncUserPodContainers(api spec.API) ([]kcore.Container, []kcore.Volume) {
+func RealtimeContainers(api spec.API) ([]kcore.Container, []kcore.Volume) {
 	containers, volumes := userPodContainers(api)
-	k8sName := K8sName(api.Name)
+	proxyContainer, proxyVolume := realtimeProxyContainer(api)
 
-	for i := range containers {
-		containers[i].VolumeMounts = append(containers[i].VolumeMounts,
-			APIConfigMount(k8sName),
-		)
-	}
-	volumes = append(volumes, APIConfigVolume(k8sName))
+	containers = append(containers, proxyContainer)
+	volumes = append(volumes, proxyVolume)
 
 	return containers, volumes
 }
 
-func TaskUserPodContainers(api spec.API, job *spec.JobKey) ([]kcore.Container, []kcore.Volume) {
+func AsyncContainers(api spec.API, queueURL string) ([]kcore.Container, []kcore.Volume) {
+	k8sName := K8sName(api.Name)
+
+	containers, volumes := userPodContainers(api)
+	dequeuerContainer, dequeuerVolume := asyncDequeuerProxyContainer(api, queueURL)
+	dequeuerContainer.VolumeMounts = append(dequeuerContainer.VolumeMounts, APIConfigMount(k8sName))
+
+	containers = append(containers, dequeuerContainer)
+	volumes = append(volumes, dequeuerVolume, APIConfigVolume(k8sName))
+
+	return containers, volumes
+}
+
+func TaskContainers(api spec.API, job *spec.JobKey) ([]kcore.Container, []kcore.Volume) {
 	containers, volumes := userPodContainers(api)
 	k8sName := job.K8sName()
 
@@ -205,8 +292,13 @@ func TaskUserPodContainers(api spec.API, job *spec.JobKey) ([]kcore.Container, [
 	return containers, volumes
 }
 
-func BatchUserPodContainers(api spec.API, job *spec.JobKey) ([]kcore.Container, []kcore.Volume) {
+func BatchContainers(api spec.API, job *spec.BatchJob) ([]kcore.Container, []kcore.Volume) {
 	containers, volumes := userPodContainers(api)
+	dequeuerContainer, dequeuerVolume := batchDequeuerProxyContainer(api, job.ID, job.SQSUrl)
+
+	containers = append(containers, dequeuerContainer)
+	volumes = append(volumes, dequeuerVolume)
+
 	k8sName := job.K8sName()
 
 	volumes = append(volumes,
@@ -215,6 +307,8 @@ func BatchUserPodContainers(api spec.API, job *spec.JobKey) ([]kcore.Container, 
 	)
 
 	containerNames := userconfig.GetContainerNames(api.Pod.Containers)
+	containerNames.Add(dequeuerContainer.Name)
+
 	for i, c := range containers {
 		containers[i].VolumeMounts = append(containers[i].VolumeMounts,
 			KubexitMount(),
@@ -244,11 +338,6 @@ func userPodContainers(api spec.API) ([]kcore.Container, []kcore.Volume) {
 		MntMount(),
 		CortexMount(),
 		ClientConfigMount(),
-	}
-
-	if api.Pod.ShmSize != nil {
-		volumes = append(volumes, ShmVolume(api.Pod.ShmSize.Quantity))
-		containerMounts = append(containerMounts, ShmMount())
 	}
 
 	var containers []kcore.Container
@@ -290,6 +379,11 @@ func userPodContainers(api spec.API) ([]kcore.Container, []kcore.Volume) {
 					"IPC_LOCK",
 				},
 			}
+		}
+
+		if container.Compute.Shm != nil {
+			volumes = append(volumes, ShmVolume(container.Compute.Shm.Quantity, "dshm-"+container.Name))
+			containerMounts = append(containerMounts, ShmMount("dshm-"+container.Name))
 		}
 
 		containerEnvVars := baseEnvVars
