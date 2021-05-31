@@ -108,6 +108,8 @@ def on_job_complete():
     # aggregate all classifications
     paginator = s3.get_paginator("list_objects_v2")
     for page in paginator.paginate(Bucket=state["bucket"], Prefix=state["key"]):
+        if "Contents" not in page:
+            continue
         for obj in page["Contents"]:
             body = s3.get_object(Bucket=state["bucket"], Key=obj["Key"])["Body"]
             all_results += json.loads(body.read().decode("utf8"))

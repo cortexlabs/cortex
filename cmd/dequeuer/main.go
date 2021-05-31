@@ -188,7 +188,7 @@ func main() {
 		}
 
 		adminHandler := http.NewServeMux()
-		adminHandler.Handle("/healthz", dequeuer.HandlerWithConditional(func() bool {
+		adminHandler.Handle("/healthz", dequeuer.HealthcheckHandler(func() bool {
 			return probe.AreProbesHealthy(probes)
 		}))
 
