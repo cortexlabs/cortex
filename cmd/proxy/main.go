@@ -204,19 +204,12 @@ func exit(log *zap.SugaredLogger, err error, wrapStrs ...string) {
 
 func readinessTCPHandler(port int, logger *zap.SugaredLogger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		healthy := false
-
 		timeout := time.Duration(1) * time.Second
 		address := net.JoinHostPort("localhost", strconv.FormatInt(int64(port), 10))
 		conn, err := net.DialTimeout("tcp", address, timeout)
-		if err == nil {
-			healthy = true
-		} else {
+		if err != nil {
 			logger.Warn(err)
-		}
-		_ = conn.Close()
-
-		if !healthy {
+			_ = conn.Close()
 			w.WriteHeader(http.StatusInternalServerError)
 			_, _ = w.Write([]byte("unhealthy"))
 			return
