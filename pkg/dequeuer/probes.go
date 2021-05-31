@@ -18,7 +18,6 @@ package dequeuer
 
 import (
 	"encoding/json"
-	"strings"
 
 	"github.com/cortexlabs/cortex/pkg/lib/files"
 	"github.com/cortexlabs/cortex/pkg/lib/probe"
@@ -50,14 +49,9 @@ func HasTCPProbeTargetingUserPod(probes []*probe.Probe, userPort intstr.IntOrStr
 		if probe == nil {
 			continue
 		}
-		if probe.Handler.TCPSocket != nil {
-			tcpSocket := probe.Handler.TCPSocket
-			host := strings.TrimPrefix(tcpSocket.Host, "http://")
-			if (strings.HasPrefix(host, "127.0.0.1") || strings.HasPrefix(host, "localhost")) && tcpSocket.Port == userPort {
-				return true
-			}
+		if probe.Handler.TCPSocket != nil && probe.Handler.TCPSocket.Port == userPort {
+			return true
 		}
 	}
-
 	return false
 }
