@@ -117,10 +117,6 @@ func main() {
 
 	promStats := proxy.NewPrometheusStatsReporter()
 	readinessProbe := probe.NewDefaultProbe(target, log)
-	probeStopper := readinessProbe.StartProbing()
-	defer func() {
-		probeStopper <- true
-	}()
 
 	go func() {
 		reportTicker := time.NewTicker(_reportInterval)
@@ -166,6 +162,11 @@ func main() {
 			errCh <- server.ListenAndServe()
 		}(name, server)
 	}
+
+	probeStopper := readinessProbe.StartProbing()
+	defer func() {
+		probeStopper <- true
+	}()
 
 	sigint := make(chan os.Signal, 1)
 	signal.Notify(sigint, os.Interrupt)

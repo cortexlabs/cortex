@@ -209,13 +209,6 @@ func main() {
 	sigint := make(chan os.Signal, 1)
 	signal.Notify(sigint, os.Interrupt)
 
-	for _, probe := range probes {
-		stopper := probe.StartProbing()
-		defer func() {
-			stopper <- true
-		}()
-	}
-
 	sqsDequeuer, err := dequeuer.NewSQSDequeuer(dequeuerConfig, awsClient, log)
 	if err != nil {
 		exit(log, err, "failed to create sqs dequeuer")
@@ -228,9 +221,16 @@ func main() {
 		})
 	}()
 
+	for _, probe := range probes {
+		stopper := probe.StartProbing()
+		defer func() {
+			stopper <- true
+		}()
+	}
+
 	select {
 	case err = <-errCh:
-		exit(log, err, "error during message dequeueing or from admin server")
+		exit(log, err, "error during message dequeueing or error from admin server")
 	case <-sigint:
 		log.Info("Received TERM signal, handling a graceful shutdown...")
 		sqsDequeuer.Shutdown()

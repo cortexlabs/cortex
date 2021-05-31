@@ -43,11 +43,6 @@ def healthz(response: Response):
     if not state["ready"]:
         response.status_code = status.HTTP_503_SERVICE_UNAVAILABLE
 
-@app.post("/toggle")
-def toggle():
-    global state
-    state["ready"] = not state["ready"]
-
 
 @app.post("/")
 async def handle_batch(response: Request):
