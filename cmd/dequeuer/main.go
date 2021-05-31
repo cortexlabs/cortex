@@ -223,7 +223,7 @@ func main() {
 	for _, probe := range probes {
 		stopper := probe.StartProbing()
 		defer func() {
-			stopper <- struct{}{}
+			stopper <- true
 		}()
 	}
 

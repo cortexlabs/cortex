@@ -59,7 +59,7 @@ func TestHandlerSuccessTCP(t *testing.T) {
 
 	stopper := pb.StartProbing()
 	defer func() {
-		stopper <- struct{}{}
+		stopper <- true
 	}()
 
 	for {
@@ -121,7 +121,7 @@ func TestHandlerSuccessHTTP(t *testing.T) {
 
 	stopper := pb.StartProbing()
 	defer func() {
-		stopper <- struct{}{}
+		stopper <- true
 	}()
 
 	for {

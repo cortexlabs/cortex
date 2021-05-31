@@ -87,8 +87,8 @@ func NewDefaultProbe(target string, logger *zap.SugaredLogger) *Probe {
 	}
 }
 
-func (p *Probe) StartProbing() chan struct{} {
-	stop := make(chan struct{})
+func (p *Probe) StartProbing() chan bool {
+	stop := make(chan bool)
 
 	ticker := time.NewTicker(time.Duration(p.PeriodSeconds) * time.Second)
 	time.AfterFunc(time.Duration(p.InitialDelaySeconds)*time.Second, func() {

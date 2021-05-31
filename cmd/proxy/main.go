@@ -141,7 +141,7 @@ func main() {
 
 	adminHandler := http.NewServeMux()
 	adminHandler.Handle("/metrics", promStats)
-	adminHandler.Handle("/healthz", readinessTCPHandler(target, log))
+	adminHandler.Handle("/healthz", readinessTCPHandler(userContainerPort, log))
 
 	servers := map[string]*http.Server{
 		"proxy": {
@@ -202,12 +202,13 @@ func exit(log *zap.SugaredLogger, err error, wrapStrs ...string) {
 	os.Exit(1)
 }
 
-func readinessTCPHandler(target string, logger *zap.SugaredLogger) http.HandlerFunc {
+func readinessTCPHandler(port int, logger *zap.SugaredLogger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		healthy := false
 
 		timeout := time.Duration(1) * time.Second
-		conn, err := net.DialTimeout("tcp", target, timeout)
+		address := net.JoinHostPort("localhost", strconv.FormatInt(int64(port), 10))
+		conn, err := net.DialTimeout("tcp", address, timeout)
 		if err == nil {
 			healthy = true
 		} else {

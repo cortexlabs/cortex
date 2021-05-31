@@ -55,7 +55,7 @@ func TestDefaultProbeSuccess(t *testing.T) {
 
 	stopper := pb.StartProbing()
 	defer func() {
-		stopper <- struct{}{}
+		stopper <- true
 	}()
 
 	for {
@@ -77,7 +77,7 @@ func TestDefaultProbeFailure(t *testing.T) {
 
 	stopper := pb.StartProbing()
 	defer func() {
-		stopper <- struct{}{}
+		stopper <- true
 	}()
 
 	for {
@@ -113,7 +113,7 @@ func TestProbeHTTPFailure(t *testing.T) {
 
 	stopper := pb.StartProbing()
 	defer func() {
-		stopper <- struct{}{}
+		stopper <- true
 	}()
 
 	for {
@@ -156,7 +156,7 @@ func TestProbeHTTPSuccess(t *testing.T) {
 
 	stopper := pb.StartProbing()
 	defer func() {
-		stopper <- struct{}{}
+		stopper <- true
 	}()
 
 	for {
