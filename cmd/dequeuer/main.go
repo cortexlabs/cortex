@@ -19,6 +19,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"net/http"
 	"os"
 	"os/signal"
 	"strconv"
@@ -48,6 +49,7 @@ func main() {
 		jobID             string
 		statsdPort        int
 		apiKind           string
+		adminPort         int
 	)
 	flag.StringVar(&clusterConfigPath, "cluster-config", "", "cluster config path")
 	flag.StringVar(&clusterUID, "cluster-uid", "", "cluster unique identifier")
@@ -58,6 +60,7 @@ func main() {
 	flag.StringVar(&jobID, "job-id", "", "job ID")
 	flag.IntVar(&userContainerPort, "user-port", 8080, "target port to which the dequeued messages will be sent to")
 	flag.IntVar(&statsdPort, "statsd-port", 9125, "port for to send udp statsd metrics")
+	flag.IntVar(&adminPort, "admin-port", 0, "port where the admin server (for the probes) will be exposed")
 
 	flag.Parse()
 
@@ -136,6 +139,8 @@ func main() {
 	var dequeuerConfig dequeuer.SQSDequeuerConfig
 	var messageHandler dequeuer.MessageHandler
 
+	errCh := make(chan error)
+
 	switch apiKind {
 	case userconfig.BatchAPIKind.String():
 		if jobID == "" {
@@ -161,6 +166,9 @@ func main() {
 		if clusterUID == "" {
 			log.Fatal("--cluster-uid is a required option")
 		}
+		if adminPort == 0 {
+			log.Fatal("--admin-port is a required option")
+		}
 
 		config := dequeuer.AsyncMessageHandlerConfig{
 			ClusterUID: clusterUID,
@@ -175,6 +183,21 @@ func main() {
 			QueueURL:         queueURL,
 			StopIfNoMessages: false,
 		}
+
+		adminHandler := http.NewServeMux()
+		adminHandler.Handle("/healthz", dequeuer.HandlerWithConditionalFunc(func() bool {
+			return probe.AreProbesHealthy(probes)
+		}))
+
+		go func() {
+			server := &http.Server{
+				Addr:    ":" + strconv.Itoa(adminPort),
+				Handler: adminHandler,
+			}
+			log.Infof("Starting %s server on %s", "admin", server.Addr)
+			errCh <- server.ListenAndServe()
+		}()
+
 	default:
 		exit(log, err, fmt.Sprintf("kind %s is not supported", apiKind))
 	}
@@ -194,7 +217,6 @@ func main() {
 		exit(log, err, "failed to create sqs dequeuer")
 	}
 
-	errCh := make(chan error)
 	go func() {
 		log.Info("Starting dequeuer...")
 		errCh <- sqsDequeuer.Start(messageHandler, func() bool {
@@ -204,7 +226,7 @@ func main() {
 
 	select {
 	case err = <-errCh:
-		exit(log, err, "error during message dequeueing")
+		exit(log, err, "error during message dequeueing or from admin server")
 	case <-sigint:
 		log.Info("Received TERM signal, handling a graceful shutdown...")
 		sqsDequeuer.Shutdown()
