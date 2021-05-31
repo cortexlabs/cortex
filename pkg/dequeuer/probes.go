@@ -19,7 +19,7 @@ package dequeuer
 import (
 	"github.com/cortexlabs/cortex/pkg/lib/files"
 	libjson "github.com/cortexlabs/cortex/pkg/lib/json"
-	"github.com/cortexlabs/cortex/pkg/lib/probe"
+	"github.com/cortexlabs/cortex/pkg/probe"
 	"go.uber.org/zap"
 	kcore "k8s.io/api/core/v1"
 )

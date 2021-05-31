@@ -23,7 +23,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/cortexlabs/cortex/pkg/lib/probe"
+	"github.com/cortexlabs/cortex/pkg/probe"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
 	kcore "k8s.io/api/core/v1"

@@ -21,7 +21,7 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/cortexlabs/cortex/pkg/lib/probe"
+	"github.com/cortexlabs/cortex/pkg/probe"
 )
 
 func Handler(breaker *Breaker, next http.Handler) http.HandlerFunc {

@@ -19,7 +19,7 @@ package dequeuer
 import (
 	"testing"
 
-	"github.com/cortexlabs/cortex/pkg/lib/probe"
+	"github.com/cortexlabs/cortex/pkg/probe"
 	"github.com/stretchr/testify/require"
 	kcore "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
