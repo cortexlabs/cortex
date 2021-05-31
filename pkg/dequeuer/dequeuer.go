@@ -95,7 +95,7 @@ func (d *SQSDequeuer) ReceiveMessage() (*sqs.Message, error) {
 	return output.Messages[0], nil
 }
 
-func (d *SQSDequeuer) Start(messageHandler MessageHandler, userPodsHealthy func() bool) error {
+func (d *SQSDequeuer) Start(messageHandler MessageHandler, readinessProbeFunc func() bool) error {
 	noMessagesInPreviousIteration := false
 
 loop:
@@ -104,7 +104,7 @@ loop:
 		case <-d.done:
 			break loop
 		default:
-			if !userPodsHealthy() {
+			if !readinessProbeFunc() {
 				time.Sleep(d.probeRefreshPeriod)
 				continue
 			}
