@@ -24,7 +24,7 @@ import (
 	kcore "k8s.io/api/core/v1"
 )
 
-func ProbesFromFile(probesPath string, logger *zap.SugaredLogger) ([]*probe.Probe, error) {
+func ProbesFromFile(probesPath string, logger *zap.SugaredLogger) ([]probe.Probe, error) {
 	fileBytes, err := files.ReadFileBytes(probesPath)
 	if err != nil {
 		return nil, err
@@ -35,19 +35,16 @@ func ProbesFromFile(probesPath string, logger *zap.SugaredLogger) ([]*probe.Prob
 		return nil, err
 	}
 
-	probesSlice := []*probe.Probe{}
+	probesSlice := []probe.Probe{}
 	for _, p := range probesMap {
 		auxProbe := p
-		probesSlice = append(probesSlice, probe.NewProbe(&auxProbe, logger))
+		probesSlice = append(probesSlice, *probe.NewProbe(&auxProbe, logger))
 	}
 	return probesSlice, nil
 }
 
-func HasTCPProbeTargetingUserPod(probes []*probe.Probe, userPort int) bool {
+func HasTCPProbeTargetingUserPod(probes []probe.Probe, userPort int) bool {
 	for _, probe := range probes {
-		if probe == nil {
-			continue
-		}
 		if probe.Handler.TCPSocket != nil && probe.Handler.TCPSocket.Port.IntValue() == userPort {
 			return true
 		}

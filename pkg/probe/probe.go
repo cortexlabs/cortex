@@ -130,11 +130,8 @@ func (p *Probe) HasRunOnce() bool {
 	return p.hasRunOnce
 }
 
-func AreProbesHealthy(probes []*Probe) bool {
+func AreProbesHealthy(probes []Probe) bool {
 	for _, probe := range probes {
-		if probe == nil {
-			continue
-		}
 		if !probe.IsHealthy() {
 			return false
 		}
