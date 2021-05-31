@@ -4,13 +4,7 @@ import json
 import re
 
 from typing import List
-from pydantic import BaseModel
-from fastapi import FastAPI, Response, status
-
-
-class Request(BaseModel):
-    payload: List[List[int]]
-
+from fastapi import FastAPI, Response, Request, status
 
 state = {
     "ready": False,
@@ -49,11 +43,18 @@ def healthz(response: Response):
     if not state["ready"]:
         response.status_code = status.HTTP_503_SERVICE_UNAVAILABLE
 
+@app.post("/toggle")
+def toggle():
+    global state
+    state["ready"] = not state["ready"]
+
 
 @app.post("/")
-def handle_batch(request: Request):
+async def handle_batch(response: Request):
     global state
-    for numbers_list in request.payload:
+    payload: List[List[int]] = await response.json()
+    print(payload)
+    for numbers_list in payload:
         state["numbers_list"].append(sum(numbers_list))
 
 

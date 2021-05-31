@@ -15,6 +15,10 @@
         - "--bind"
         - ":$(CORTEX_PORT)"
         - "main:app"
+      readiness_probe:
+        http_get:
+          path: "/healthz"
+          port: 8080
       compute:
         cpu: 200m
         gpu: 1

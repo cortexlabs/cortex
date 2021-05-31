@@ -8,7 +8,6 @@ RUN pip install --no-cache-dir \
     "uvicorn[standard]" \
     gunicorn \
     fastapi \
-    pydantic \
     requests \
     torchvision \
     torch \

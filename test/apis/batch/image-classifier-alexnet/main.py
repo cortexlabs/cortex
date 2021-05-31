@@ -1,8 +1,7 @@
 import os, json, re
 from typing import Any, List
 
-from fastapi import FastAPI, Response, status
-from pydantic import BaseModel
+from fastapi import FastAPI, Response, Request, status
 
 import requests
 import torch
@@ -11,10 +10,6 @@ from torchvision import transforms
 from PIL import Image
 from io import BytesIO
 import boto3
-
-
-class Request(BaseModel):
-    payload: List[Any]
 
 
 state = {
@@ -71,8 +66,8 @@ def healthz(response: Response):
 
 
 @app.post("/")
-def handle_batch(request: Request):
-    payload = request.payload
+async def handle_batch(request: Request):
+    payload = await request.json()
     job_id = state["job_id"]
     tensor_list = []
 
