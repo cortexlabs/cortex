@@ -122,7 +122,7 @@ func main() {
 	}
 	defer telemetry.Close()
 
-	var probes []probe.Probe
+	var probes []*probe.Probe
 	if files.IsFile(probesPath) {
 		probes, err = dequeuer.ProbesFromFile(probesPath, log)
 		if err != nil {
@@ -131,7 +131,7 @@ func main() {
 	}
 
 	if !dequeuer.HasTCPProbeTargetingUserPod(probes, userContainerPort) {
-		probes = append(probes, *probe.NewDefaultProbe(fmt.Sprintf("http://localhost:%d", userContainerPort), log))
+		probes = append(probes, probe.NewDefaultProbe(fmt.Sprintf("http://localhost:%d", userContainerPort), log))
 	}
 
 	metricsClient, err := statsd.New(fmt.Sprintf("%s:%d", hostIP, statsdPort))
