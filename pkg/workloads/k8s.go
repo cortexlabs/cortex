@@ -17,6 +17,7 @@ limitations under the License.
 package workloads
 
 import (
+	"path"
 	"strings"
 
 	"github.com/cortexlabs/cortex/pkg/config"
@@ -126,11 +127,13 @@ func asyncDequeuerProxyContainer(api spec.API, queueURL string) (kcore.Container
 		Args: []string{
 			"--cluster-config", consts.DefaultInClusterConfigPath,
 			"--cluster-uid", config.ClusterConfig.ClusterUID,
+			"--probes-path", path.Join(_cortexDirMountPath, "spec", "probes.json"),
 			"--queue", queueURL,
 			"--api-kind", api.Kind.String(),
 			"--api-name", api.Name,
 			"--user-port", s.Int32(*api.Pod.Port),
 			"--statsd-port", consts.StatsDPortStr,
+			"--admin-port", consts.AdminPortStr,
 		},
 		Env: append(baseEnvVars, kcore.EnvVar{
 			Name: "HOST_IP",
@@ -140,6 +143,19 @@ func asyncDequeuerProxyContainer(api spec.API, queueURL string) (kcore.Container
 				},
 			},
 		}),
+		ReadinessProbe: &kcore.Probe{
+			Handler: kcore.Handler{
+				HTTPGet: &kcore.HTTPGetAction{
+					Path: "/healthz",
+					Port: intstr.FromInt(int(consts.AdminPortInt32)),
+				},
+			},
+			InitialDelaySeconds: 1,
+			TimeoutSeconds:      1,
+			PeriodSeconds:       5,
+			SuccessThreshold:    1,
+			FailureThreshold:    1,
+		},
 		VolumeMounts: []kcore.VolumeMount{
 			ClusterConfigMount(),
 		},
@@ -157,6 +173,7 @@ func batchDequeuerProxyContainer(api spec.API, jobID, queueURL string) (kcore.Co
 		Args: []string{
 			"--cluster-config", consts.DefaultInClusterConfigPath,
 			"--cluster-uid", config.ClusterConfig.ClusterUID,
+			"--probes-path", path.Join(_cortexDirMountPath, "spec", "probes.json"),
 			"--queue", queueURL,
 			"--api-kind", api.Kind.String(),
 			"--api-name", api.Name,

@@ -2,7 +2,6 @@
   kind: AsyncAPI
   pod:
     port: 9000
-    max_concurrency: 1
     containers:
     - name: api
       image: quay.io/cortexlabs-test/async-text-generator-gpu:latest

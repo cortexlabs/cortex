@@ -19,6 +19,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"net/http"
 	"os"
 	"os/signal"
 	"strconv"
@@ -28,8 +29,10 @@ import (
 	"github.com/cortexlabs/cortex/pkg/dequeuer"
 	awslib "github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/files"
 	"github.com/cortexlabs/cortex/pkg/lib/logging"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
+	"github.com/cortexlabs/cortex/pkg/probe"
 	"github.com/cortexlabs/cortex/pkg/types/clusterconfig"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	"go.uber.org/zap"
@@ -39,21 +42,25 @@ func main() {
 	var (
 		clusterConfigPath string
 		clusterUID        string
+		probesPath        string
 		queueURL          string
 		userContainerPort int
 		apiName           string
 		jobID             string
 		statsdPort        int
 		apiKind           string
+		adminPort         int
 	)
 	flag.StringVar(&clusterConfigPath, "cluster-config", "", "cluster config path")
 	flag.StringVar(&clusterUID, "cluster-uid", "", "cluster unique identifier")
+	flag.StringVar(&probesPath, "probes-path", "", "path to the probes spec")
 	flag.StringVar(&queueURL, "queue", "", "target queue URL from which the api messages will be dequeued")
 	flag.StringVar(&apiKind, "api-kind", "", fmt.Sprintf("api kind (%s|%s)", userconfig.BatchAPIKind.String(), userconfig.AsyncAPIKind.String()))
 	flag.StringVar(&apiName, "api-name", "", "api name")
 	flag.StringVar(&jobID, "job-id", "", "job ID")
 	flag.IntVar(&userContainerPort, "user-port", 8080, "target port to which the dequeued messages will be sent to")
 	flag.IntVar(&statsdPort, "statsd-port", 9125, "port for to send udp statsd metrics")
+	flag.IntVar(&adminPort, "admin-port", 0, "port where the admin server (for the probes) will be exposed")
 
 	flag.Parse()
 
@@ -72,6 +79,8 @@ func main() {
 	switch {
 	case clusterConfigPath == "":
 		log.Fatal("--cluster-config is a required option")
+	case probesPath == "":
+		log.Fatal("--probes-path is a required option")
 	case queueURL == "":
 		log.Fatal("--queue is a required option")
 	case apiName == "":
@@ -113,6 +122,18 @@ func main() {
 	}
 	defer telemetry.Close()
 
+	var probes []*probe.Probe
+	if files.IsFile(probesPath) {
+		probes, err = dequeuer.ProbesFromFile(probesPath, log)
+		if err != nil {
+			exit(log, err, fmt.Sprintf("unable to read probes from %s", probesPath))
+		}
+	}
+
+	if !dequeuer.HasTCPProbeTargetingUserPod(probes, userContainerPort) {
+		probes = append(probes, probe.NewDefaultProbe(fmt.Sprintf("http://localhost:%d", userContainerPort), log))
+	}
+
 	metricsClient, err := statsd.New(fmt.Sprintf("%s:%d", hostIP, statsdPort))
 	if err != nil {
 		exit(log, err, "unable to initialize metrics client")
@@ -120,6 +141,8 @@ func main() {
 
 	var dequeuerConfig dequeuer.SQSDequeuerConfig
 	var messageHandler dequeuer.MessageHandler
+
+	errCh := make(chan error)
 
 	switch apiKind {
 	case userconfig.BatchAPIKind.String():
@@ -146,6 +169,9 @@ func main() {
 		if clusterUID == "" {
 			log.Fatal("--cluster-uid is a required option")
 		}
+		if adminPort == 0 {
+			log.Fatal("--admin-port is a required option")
+		}
 
 		config := dequeuer.AsyncMessageHandlerConfig{
 			ClusterUID: clusterUID,
@@ -160,6 +186,21 @@ func main() {
 			QueueURL:         queueURL,
 			StopIfNoMessages: false,
 		}
+
+		adminHandler := http.NewServeMux()
+		adminHandler.Handle("/healthz", dequeuer.HealthcheckHandler(func() bool {
+			return probe.AreProbesHealthy(probes)
+		}))
+
+		go func() {
+			server := &http.Server{
+				Addr:    ":" + strconv.Itoa(adminPort),
+				Handler: adminHandler,
+			}
+			log.Infof("Starting %s server on %s", "admin", server.Addr)
+			errCh <- server.ListenAndServe()
+		}()
+
 	default:
 		exit(log, err, fmt.Sprintf("kind %s is not supported", apiKind))
 	}
@@ -172,15 +213,23 @@ func main() {
 		exit(log, err, "failed to create sqs dequeuer")
 	}
 
-	errCh := make(chan error)
 	go func() {
 		log.Info("Starting dequeuer...")
-		errCh <- sqsDequeuer.Start(messageHandler)
+		errCh <- sqsDequeuer.Start(messageHandler, func() bool {
+			return probe.AreProbesHealthy(probes)
+		})
 	}()
+
+	for _, probe := range probes {
+		stopper := probe.StartProbing()
+		defer func() {
+			stopper <- struct{}{}
+		}()
+	}
 
 	select {
 	case err = <-errCh:
-		exit(log, err, "error during message dequeueing")
+		exit(log, err, "error during message dequeueing or error from admin server")
 	case <-sigint:
 		log.Info("Received TERM signal, handling a graceful shutdown...")
 		sqsDequeuer.Shutdown()

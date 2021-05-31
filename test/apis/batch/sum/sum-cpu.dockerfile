@@ -8,7 +8,6 @@ RUN pip install --no-cache-dir \
     "uvicorn[standard]" \
     gunicorn \
     fastapi \
-    pydantic \
     boto3==1.17.72
 
 # Copy local code to the container image.

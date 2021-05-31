@@ -19,6 +19,7 @@ package main
 import (
 	"context"
 	"flag"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
@@ -30,7 +31,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/logging"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	"github.com/cortexlabs/cortex/pkg/proxy"
-	"github.com/cortexlabs/cortex/pkg/proxy/probe"
 	"github.com/cortexlabs/cortex/pkg/types/clusterconfig"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	"go.uber.org/zap"
@@ -116,7 +116,6 @@ func main() {
 	)
 
 	promStats := proxy.NewPrometheusStatsReporter()
-	readinessProbe := probe.NewDefaultProbe(target, log)
 
 	go func() {
 		reportTicker := time.NewTicker(_reportInterval)
@@ -142,7 +141,7 @@ func main() {
 
 	adminHandler := http.NewServeMux()
 	adminHandler.Handle("/metrics", promStats)
-	adminHandler.Handle("/healthz", probe.Handler(readinessProbe))
+	adminHandler.Handle("/healthz", readinessTCPHandler(userContainerPort, log))
 
 	servers := map[string]*http.Server{
 		"proxy": {
@@ -201,4 +200,23 @@ func exit(log *zap.SugaredLogger, err error, wrapStrs ...string) {
 
 	telemetry.Close()
 	os.Exit(1)
+}
+
+func readinessTCPHandler(port int, logger *zap.SugaredLogger) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		timeout := time.Duration(1) * time.Second
+		address := net.JoinHostPort("localhost", strconv.FormatInt(int64(port), 10))
+
+		conn, err := net.DialTimeout("tcp", address, timeout)
+		_ = conn.Close()
+		if err != nil {
+			logger.Warn(err)
+			w.WriteHeader(http.StatusInternalServerError)
+			_, _ = w.Write([]byte("unhealthy"))
+			return
+		}
+
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte("healthy"))
+	}
 }
