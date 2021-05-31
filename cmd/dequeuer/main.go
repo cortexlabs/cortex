@@ -29,6 +29,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/dequeuer"
 	awslib "github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/files"
 	"github.com/cortexlabs/cortex/pkg/lib/logging"
 	"github.com/cortexlabs/cortex/pkg/lib/probe"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
@@ -122,9 +123,12 @@ func main() {
 	}
 	defer telemetry.Close()
 
-	probes, err := dequeuer.ProbesFromFile(probesPath, log)
-	if err != nil {
-		exit(log, err, fmt.Sprintf("unable to read probes from %s", probesPath))
+	var probes []*probe.Probe
+	if files.IsFile(probesPath) {
+		probes, err = dequeuer.ProbesFromFile(probesPath, log)
+		if err != nil {
+			exit(log, err, fmt.Sprintf("unable to read probes from %s", probesPath))
+		}
 	}
 
 	if !dequeuer.HasTCPProbeTargetingUserPod(probes, intstr.FromInt(userContainerPort)) {
