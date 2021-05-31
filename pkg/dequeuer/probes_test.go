@@ -61,7 +61,7 @@ func TestDefaultTCPProbeNotPresent(t *testing.T) {
 	require.False(t, HasTCPProbeTargetingUserPod(probes, userPodPort))
 }
 
-func TestDefaultTCPProbPresent(t *testing.T) {
+func TestDefaultTCPProbePresent(t *testing.T) {
 	t.Parallel()
 	log := newLogger(t)
 
