@@ -34,6 +34,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/types/clusterconfig"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	"go.uber.org/zap"
+	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
 func main() {
@@ -119,6 +120,10 @@ func main() {
 	probes, err := dequeuer.ProbesFromFile(probesPath, log)
 	if err != nil {
 		exit(log, err, fmt.Sprintf("unable to read probes from %s", probesPath))
+	}
+
+	if !dequeuer.HasTCPProbeTargetingUserPod(probes, intstr.FromInt(userContainerPort)) {
+		probes = append(probes, probe.NewDefaultProbe(fmt.Sprintf("http://localhost:%d", userContainerPort), log))
 	}
 
 	metricsClient, err := statsd.New(fmt.Sprintf("%s:%d", hostIP, statsdPort))

@@ -20,12 +20,13 @@ import (
 	"context"
 	"errors"
 	"net/http"
-	"strings"
+
+	"github.com/cortexlabs/cortex/pkg/lib/probe"
 )
 
 func Handler(breaker *Breaker, next http.Handler) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if isKubeletProbe(r) || breaker == nil {
+		if probe.IsRequestKubeletProbe(r) || breaker == nil {
 			next.ServeHTTP(w, r)
 			return
 		}
@@ -40,8 +41,4 @@ func Handler(breaker *Breaker, next http.Handler) http.HandlerFunc {
 			}
 		}
 	}
-}
-
-func isKubeletProbe(r *http.Request) bool {
-	return strings.HasPrefix(r.Header.Get(UserAgentKey), KubeProbeUserAgentPrefix)
 }

@@ -18,11 +18,13 @@ package dequeuer
 
 import (
 	"encoding/json"
+	"strings"
 
 	"github.com/cortexlabs/cortex/pkg/lib/files"
 	"github.com/cortexlabs/cortex/pkg/lib/probe"
 	"go.uber.org/zap"
 	kcore "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
 func ProbesFromFile(probesPath string, logger *zap.SugaredLogger) ([]*probe.Probe, error) {
@@ -41,4 +43,21 @@ func ProbesFromFile(probesPath string, logger *zap.SugaredLogger) ([]*probe.Prob
 		probesSlice = append(probesSlice, probe.NewProbe(&p, logger))
 	}
 	return probesSlice, nil
+}
+
+func HasTCPProbeTargetingUserPod(probes []*probe.Probe, userPort intstr.IntOrString) bool {
+	for _, probe := range probes {
+		if probe == nil {
+			continue
+		}
+		if probe.Handler.TCPSocket != nil {
+			tcpSocket := probe.Handler.TCPSocket
+			host := strings.TrimPrefix(tcpSocket.Host, "http://")
+			if (strings.HasPrefix(host, "127.0.0.1") || strings.HasPrefix(host, "localhost")) && tcpSocket.Port == userPort {
+				return true
+			}
+		}
+	}
+
+	return false
 }

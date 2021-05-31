@@ -23,7 +23,6 @@ import (
 	"testing"
 
 	"github.com/cortexlabs/cortex/pkg/lib/probe"
-	"github.com/cortexlabs/cortex/pkg/proxy"
 	"github.com/stretchr/testify/require"
 	kcore "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -78,7 +77,7 @@ func TestHandlerSuccessHTTP(t *testing.T) {
 	}
 
 	var userHandler http.HandlerFunc = func(w http.ResponseWriter, r *http.Request) {
-		require.Contains(t, r.Header.Get(proxy.UserAgentKey), proxy.KubeProbeUserAgentPrefix)
+		require.True(t, probe.IsRequestKubeletProbe(r))
 		for _, header := range headers {
 			require.Equal(t, header.Value, r.Header.Get(header.Name))
 		}
