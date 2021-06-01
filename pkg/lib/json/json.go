@@ -89,3 +89,10 @@ func Pretty(obj interface{}) (string, error) {
 
 	return string(b), nil
 }
+
+func IsJSONParseable(obj interface{}) bool {
+	if _, err := MarshalJSONStr(obj); err != nil {
+		return false
+	}
+	return true
+}
