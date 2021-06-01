@@ -58,7 +58,7 @@ type BatchMessageHandlerConfig struct {
 func NewBatchMessageHandler(config BatchMessageHandlerConfig, awsClient *awslib.Client, statsdClient statsd.ClientInterface, log *zap.SugaredLogger) *BatchMessageHandler {
 	tags := []string{
 		"api_name:" + config.APIName,
-		"job_id" + config.JobID,
+		"job_id:" + config.JobID,
 	}
 
 	return &BatchMessageHandler{
