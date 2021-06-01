@@ -25,6 +25,7 @@ import (
 	"net/url"
 	"time"
 
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"go.uber.org/zap"
 	kcore "k8s.io/api/core/v1"
@@ -160,7 +161,7 @@ func (p *Probe) probeContainer() bool {
 	}
 
 	if err != nil {
-		p.logger.Warn(err)
+		p.logger.Warn(errors.Wrap(err, "probe to user provided containers failed"))
 		return false
 	}
 	return true

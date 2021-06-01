@@ -208,13 +208,13 @@ func readinessTCPHandler(port int, logger *zap.SugaredLogger) http.HandlerFunc {
 		address := net.JoinHostPort("localhost", strconv.FormatInt(int64(port), 10))
 
 		conn, err := net.DialTimeout("tcp", address, timeout)
-		_ = conn.Close()
 		if err != nil {
-			logger.Warn(err)
+			logger.Warn(errors.Wrap(err, "health check to user provided containers failed"))
 			w.WriteHeader(http.StatusInternalServerError)
 			_, _ = w.Write([]byte("unhealthy"))
 			return
 		}
+		_ = conn.Close()
 
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte("healthy"))
