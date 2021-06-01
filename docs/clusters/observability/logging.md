@@ -67,8 +67,8 @@ fields @timestamp, message
 
 ## Structured logging
 
-JSON logs from your container will be parsed by FluentBit before pushing to CloudWatch.
+If you log JSON strings from your APIs, they will be automatically parsed before pushing to CloudWatch.
 
 It is recommended to configure your JSON logger to use `message` or `msg` as the key for the log line if you would like the sample queries above to display the messages in your logs.
 
-Avoid having top-level keys with `cortex*` prefix to avoid collisions with Cortex's internal logging.
+Avoid using top-level keys that start with "cortex" to prevent collisions with Cortex's internal logging.
