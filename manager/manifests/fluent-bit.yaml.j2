@@ -169,8 +169,8 @@ data:
     [OUTPUT]
         Name              cloudwatch
         Match             k8s_container.*
-        region            us-west-2
-        log_group_name    cortex-vishal-2
+        region            {{ config["region"] }}
+        log_group_name    {{ config["cluster_name"] }}
         log_stream_prefix kube.
         auto_create_group true
 
@@ -201,7 +201,7 @@ spec:
     spec:
       containers:
         - name: fluent-bit
-          image: 969758392368.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/fluent-bit:master
+          image: {{ config["image_fluent_bit"] }}
           imagePullPolicy: Always
           resources:
             requests:
