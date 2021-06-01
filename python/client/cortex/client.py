@@ -55,7 +55,7 @@ class Client:
         Args:
             api_spec: A dictionary defining a single Cortex API. See https://docs.cortex.dev/v/master/ for schema.
             force: Override any in-progress api updates.
-            wait: Block until the APIs are ready.
+            wait: Block until the API is ready.
 
         Returns:
             Deployment status, API specification, and endpoint for each API.
@@ -86,7 +86,7 @@ class Client:
         Args:
             config_file: Local path to a yaml file defining Cortex API(s). See https://docs.cortex.dev/v/master/ for schema.
             force: Override any in-progress api updates.
-            wait: Block until the APIs are ready.
+            wait: Block until the API is ready.
 
         Returns:
             Deployment status, API specification, and endpoint for each API.
