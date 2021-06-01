@@ -65,7 +65,7 @@ func ReadJobLogs(w http.ResponseWriter, r *http.Request) {
 	operator.StreamLogsFromRandomPod(labels, socket)
 }
 
-func JobLogURL(w http.ResponseWriter, r *http.Request) {
+func GetJobLogURL(w http.ResponseWriter, r *http.Request) {
 	apiName := mux.Vars(r)["apiName"]
 	jobID, err := getRequiredQueryParam("jobID", r)
 	if err != nil {

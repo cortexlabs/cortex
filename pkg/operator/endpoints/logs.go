@@ -71,12 +71,12 @@ func ReadLogs(w http.ResponseWriter, r *http.Request) {
 	operator.StreamLogsFromRandomPod(labels, socket)
 }
 
-func LogURL(w http.ResponseWriter, r *http.Request) {
+func GetLogURL(w http.ResponseWriter, r *http.Request) {
 	apiName := mux.Vars(r)["apiName"]
 	jobID := getOptionalQParam("jobID", r)
 
 	if jobID != "" {
-		JobLogURL(w, r)
+		GetJobLogURL(w, r)
 		return
 	}
 

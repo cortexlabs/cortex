@@ -13,9 +13,9 @@ If you are using API Gateway in front of your API endpoints, it is also possible
 
 If your API is stuck in the "updating" or "compute unavailable" state (which is displayed when running `cortex get`), there are a few possible causes. Here are some things to check:
 
-### Check `cortex logs API_NAME --random-pod`
+### Inspect API logs in CloudWatch
 
-If no logs appear (e.g. it just says "fetching logs..."), continue down this list.
+Use `cortex logs API_NAME` for a URL to view logs for your API in CloudWatch. In addition to output from your containers, you will find logs from other parts of the Cortex infrastructure that may help your troubleshooting.
 
 ### Check `max_instances` for your cluster
 

@@ -83,7 +83,7 @@ var _logsCmd = &cobra.Command{
 			if err != nil {
 				exit.Error(err)
 			}
-			fmt.Print(fmt.Sprintf(_logsOutput, logResponse.LogURL))
+			fmt.Printf(_logsOutput, logResponse.LogURL)
 			return
 		}
 
@@ -100,6 +100,6 @@ var _logsCmd = &cobra.Command{
 		if err != nil {
 			exit.Error(err)
 		}
-		fmt.Print(fmt.Sprintf(_logsOutput, logResponse.LogURL))
+		fmt.Printf(_logsOutput, logResponse.LogURL)
 	},
 }

@@ -114,21 +114,18 @@ class Client:
         if not wait:
             return deploy_result
 
-        # wait a few seconds for the new replicas to start initializing
-        time.sleep(5)
-
         api_name = deploy_result["api"]["spec"]["name"]
-        if deploy_result["api"]["spec"]["kind"] != "RealtimeAPI":
+        if (
+            deploy_result["api"]["spec"]["kind"] != "RealtimeAPI"
+            and deploy_result["api"]["spec"]["kind"] != "AsyncAPI"
+        ):
             return deploy_result
 
-        env = os.environ.copy()
-        env["CORTEX_CLI_INVOKER"] = "python"
-
         while True:
+            time.sleep(5)
             api = self.get_api(api_name)
             if api["status"]["status_code"] != "status_updating":
                 break
-            time.sleep(5)
 
         return api
 

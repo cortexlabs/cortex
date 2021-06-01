@@ -123,7 +123,7 @@ func main() {
 	routerWithAuth.HandleFunc("/get/{apiName}", endpoints.GetAPI).Methods("GET")
 	routerWithAuth.HandleFunc("/get/{apiName}/{apiID}", endpoints.GetAPIByID).Methods("GET")
 	routerWithAuth.HandleFunc("/streamlogs/{apiName}", endpoints.ReadLogs)
-	routerWithAuth.HandleFunc("/logs/{apiName}", endpoints.LogURL).Methods("GET")
+	routerWithAuth.HandleFunc("/logs/{apiName}", endpoints.GetLogURL).Methods("GET")
 
 	operatorLogger.Info("Running on port " + _operatorPortStr)
 
