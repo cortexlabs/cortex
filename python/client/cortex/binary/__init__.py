@@ -61,8 +61,6 @@ def run_cli(
 
     output = ""
     result = ""
-    processing_result = False
-    processed_result = False
 
     for c in iter(lambda: process.stdout.read(1), ""):
         output += c
@@ -70,9 +68,6 @@ def run_cli(
         if not hide_output:
             sys.stdout.write(c)
             sys.stdout.flush()
-
-        if processed_result == True:
-            processing_result = False
 
     process.wait()
 

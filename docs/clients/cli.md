@@ -35,7 +35,7 @@ Flags:
 ## logs
 
 ```text
-stream logs from a single replica of an api or a single worker for a job
+get the logs for an API or a job
 
 Usage:
   cortex logs API_NAME [JOB_ID] [flags]
@@ -43,6 +43,7 @@ Usage:
 Flags:
   -e, --env string   environment to use
   -y, --yes          skip prompts
+      --random-pod   stream logs from a random pod
   -h, --help         help for logs
 ```
 

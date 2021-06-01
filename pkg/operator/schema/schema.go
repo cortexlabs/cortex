@@ -60,6 +60,10 @@ type APIResponse struct {
 	APIVersions      []APIVersion            `json:"api_versions,omitempty"`
 }
 
+type LogResponse struct {
+	LogURL string `json:"log_url"`
+}
+
 type BatchJobResponse struct {
 	APISpec   spec.API              `json:"api_spec"`
 	JobStatus status.BatchJobStatus `json:"job_status"`

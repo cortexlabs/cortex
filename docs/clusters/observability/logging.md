@@ -1,27 +1,12 @@
 # Logging
 
-By default, logs are collected with Fluent Bit and are exported to CloudWatch. It is also possible to view the logs of a single replica using the `cortex logs` command.
-
-## `cortex logs`
-
-The CLI includes a command to get the logs for a single API replica for debugging purposes:
-
-```bash
-# RealtimeAPI
-cortex logs <api_name>
-
-# BatchAPI or TaskAPI
-cortex logs <api_name> <job_id>  # the job needs to be in a running state
-```
-
-**Important:** this method won't show the logs for all the API replicas and therefore is not a complete logging
-solution.
+Logs are collected with Fluent Bit and are exported to CloudWatch.
 
 ## Logs on AWS
 
 Logs will automatically be pushed to CloudWatch and a log group with the same name as your cluster will be created to store your logs. API logs are tagged with labels to help with log aggregation and filtering.
 
-Below are some sample CloudWatch Log Insight queries:
+You can use the `cortex logs` command to get a CloudWatch Insights URL of query to fetch logs for your API. Please note that there may be a few minutes of delay from when a message is logged to when it is available in CloudWatch Insights.
 
 **RealtimeAPI:**
 
@@ -63,6 +48,18 @@ fields @timestamp, message
 | filter cortex.labels.apiKind="TaskAPI"
 | sort @timestamp asc
 | limit 1000
+```
+
+## Streaming logs for an API or a running job
+
+You can stream logs directly from a random pod of an API or a running job to iterate and debug quickly. These logs will not be as comprehensive as the logs that are available in CloudWatch.
+
+```bash
+# RealtimeAPI
+cortex logs --random-pod <api_name>
+
+# BatchAPI or TaskAPI
+cortex logs --random-pod <api_name> <job_id>  # the job must be in a running state
 ```
 
 ## Structured logging
