@@ -421,5 +421,6 @@ def client_from_config(config_path: str) -> cx.Client:
 def stream_api_logs(client: cx.Client, api_name: str):
     cx.run_cli(["logs", api_name, "--random-pod", "-e", client.env_name])
 
+
 def stream_job_logs(client: cx.Client, api_name: str, job_id: str):
     cx.run_cli(["logs", api_name, job_id, "--random-pod", "-e", client.env_name])
