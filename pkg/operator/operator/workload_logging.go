@@ -29,7 +29,6 @@ import (
 
 	"github.com/cortexlabs/cortex/pkg/config"
 	awslib "github.com/cortexlabs/cortex/pkg/lib/aws"
-	"github.com/cortexlabs/cortex/pkg/lib/debug"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/exit"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
@@ -137,11 +136,6 @@ func APILogURL(api spec.API) (string, error) {
 	}
 	logGroup := config.ClusterConfig.ClusterName
 
-	secondsAgo := int(time.Now().Unix() - api.LastUpdated)
-	if secondsAgo > 3600 {
-		secondsAgo = 3600
-	}
-
 	args := apiLogURLTemplateArgs{
 		Partition: partition,
 		Region:    region,
@@ -165,7 +159,7 @@ func BatchJobLogURL(apiName string, jobStatus status.BatchJobStatus) (string, er
 		partition = "amazonaws-us-gov"
 	}
 	logGroup := config.ClusterConfig.ClusterName
-	debug.Ppg(jobStatus)
+
 	if jobStatus.EndTime != nil {
 		endTime := *jobStatus.EndTime
 		endTime = endTime.Add(60 * time.Second)

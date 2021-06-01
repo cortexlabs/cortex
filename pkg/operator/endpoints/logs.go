@@ -121,6 +121,6 @@ func LogURL(w http.ResponseWriter, r *http.Request) {
 			LogURL: logURL,
 		})
 	default:
-		respondError(w, r, resources.ErrorOperationIsOnlySupportedForKind(*deployedResource, userconfig.RealtimeAPIKind))
+		respondError(w, r, resources.ErrorOperationIsOnlySupportedForKind(*deployedResource, userconfig.RealtimeAPIKind, userconfig.AsyncAPIKind))
 	}
 }

@@ -51,6 +51,8 @@ from e2e.utils import (
     make_requests_concurrently,
     check_futures_healthy,
     retrieve_results_concurrently,
+    stream_api_logs,
+    stream_job_logs,
 )
 
 TEST_APIS_DIR = Path(__file__).parent.parent.parent / "apis"
@@ -122,7 +124,7 @@ def test_realtime_api(
         try:
             api_info = client.get_api(api_name)
             printer(json.dumps(api_info, indent=2))
-            td.Thread(target=lambda: client.stream_api_logs(api_name), daemon=True).start()
+            td.Thread(target=lambda: stream_api_logs(client, api_name), daemon=True).start()
             time.sleep(5)
         finally:
             raise
@@ -204,8 +206,10 @@ def test_batch_api(
 
             job_status = client.get_job(api_name, job_spec["job_id"])
             printer(json.dumps(job_status, indent=2))
+
             td.Thread(
-                target=lambda: client.stream_job_logs(api_name, job_spec["job_id"]), daemon=True
+                target=lambda: stream_job_logs(client, api_name, job_spec["job_id"]),
+                daemon=True,
             ).start()
             time.sleep(5)
         finally:
@@ -311,11 +315,9 @@ def test_async_api(
         try:
             api_info = client.get_api(api_name)
             printer(json.dumps(api_info, indent=2))
-
-            job_status = client.get_job(api_name, result_response_json["id"])
-            printer(json.dumps(job_status, indent=2))
+            printer(json.dumps(result_response_json, indent=2))
             td.Thread(
-                target=lambda: client.stream_job_logs(api_name, result_response_json["id"]),
+                target=lambda: stream_api_logs(client, api_name),
                 daemon=True,
             ).start()
             time.sleep(5)
@@ -386,7 +388,7 @@ def test_task_api(
             job_status = client.get_job(api_name, job_spec["job_id"])
             printer(json.dumps(job_status, indent=2))
             td.Thread(
-                target=lambda: client.stream_job_logs(api_name, job_spec["job_id"]), daemon=True
+                target=lambda: stream_job_logs(client, api_name, job_spec["job_id"]), daemon=True
             ).start()
             time.sleep(5)
         except:
@@ -986,7 +988,7 @@ def test_long_running_realtime(
         try:
             api_info = client.get_api(api_name)
             printer(json.dumps(api_info, indent=2))
-            td.Thread(target=lambda: client.stream_api_logs(api_name), daemon=True).start()
+            td.Thread(target=lambda: stream_api_logs(client, api_name), daemon=True).start()
             time.sleep(5)
         finally:
             raise

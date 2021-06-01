@@ -120,6 +120,6 @@ func ErrorAnyPathParamRequired(param string, params ...string) error {
 func ErrorLogsJobIDRequired(resource operator.DeployedResource) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrLogsJobIDRequired,
-		Message: fmt.Sprintf("job id is required for %s; you can get a list of latest job ids with `cortex get %s` and use `cortex logs %s JOB_ID`", resource.UserString(), resource.Name, resource.Name),
+		Message: fmt.Sprintf("job id is required for %s ; you can get a list of latest job ids with `cortex get %s` and use `cortex logs %s JOB_ID` to get the logs", resource.UserString(), resource.Name, resource.Name),
 	})
 }

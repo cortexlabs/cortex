@@ -43,7 +43,7 @@ func GetLogs(operatorConfig OperatorConfig, apiName string) (schema.LogResponse,
 
 	var logResponse schema.LogResponse
 	if err = json.Unmarshal(httpRes, &logResponse); err != nil {
-		return schema.LogResponse{}, errors.Wrap(err, "/get/"+apiName, string(httpRes))
+		return schema.LogResponse{}, errors.Wrap(err, "/logs/"+apiName, string(httpRes))
 	}
 
 	return logResponse, nil
@@ -57,7 +57,7 @@ func GetJobLogs(operatorConfig OperatorConfig, apiName string, jobID string) (sc
 
 	var logResponse schema.LogResponse
 	if err = json.Unmarshal(httpRes, &logResponse); err != nil {
-		return schema.LogResponse{}, errors.Wrap(err, "/get/"+apiName, string(httpRes))
+		return schema.LogResponse{}, errors.Wrap(err, "/logs/"+apiName, string(httpRes))
 	}
 
 	return logResponse, nil
