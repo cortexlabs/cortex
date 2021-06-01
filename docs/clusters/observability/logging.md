@@ -27,8 +27,8 @@ Below are some sample CloudWatch Log Insight queries:
 
 ```text
 fields @timestamp, message
-| filter cortex_labels.apiName="<INSERT API NAME>"
-| filter cortex_labels.apiKind="RealtimeAPI"
+| filter cortex.labels.apiName="<INSERT API NAME>"
+| filter cortex.labels.apiKind="RealtimeAPI"
 | sort @timestamp asc
 | limit 1000
 ```
@@ -37,8 +37,8 @@ fields @timestamp, message
 
 ```text
 fields @timestamp, message
-| filter cortex_labels.apiName="<INSERT API NAME>"
-| filter cortex_labels.apiKind="AsyncAPI"
+| filter cortex.labels.apiName="<INSERT API NAME>"
+| filter cortex.labels.apiKind="AsyncAPI"
 | sort @timestamp asc
 | limit 1000
 ```
@@ -47,9 +47,9 @@ fields @timestamp, message
 
 ```text
 fields @timestamp, message
-| filter cortex_labels.apiName="<INSERT API NAME>"
-| filter cortex_labels.jobID="<INSERT JOB ID>"
-| filter cortex_labels.apiKind="BatchAPI"
+| filter cortex.labels.apiName="<INSERT API NAME>"
+| filter cortex.labels.jobID="<INSERT JOB ID>"
+| filter cortex.labels.apiKind="BatchAPI"
 | sort @timestamp asc
 | limit 1000
 ```
@@ -58,9 +58,17 @@ fields @timestamp, message
 
 ```text
 fields @timestamp, message
-| filter cortex_labels.apiName="<INSERT API NAME>"
-| filter cortex_labels.jobID="<INSERT JOB ID>"
-| filter cortex_labels.apiKind="TaskAPI"
+| filter cortex.labels.apiName="<INSERT API NAME>"
+| filter cortex.labels.jobID="<INSERT JOB ID>"
+| filter cortex.labels.apiKind="TaskAPI"
 | sort @timestamp asc
 | limit 1000
 ```
+
+## Structured logging
+
+JSON logs from your container will be parsed by FluentBit before pushing to CloudWatch.
+
+It is recommended to configure your JSON logger to use `message` or `msg` as the key for the log line if you would like the sample queries above to display the messages in your logs.
+
+Avoid having top-level keys with `cortex*` prefix to avoid collisions with Cortex's internal logging.

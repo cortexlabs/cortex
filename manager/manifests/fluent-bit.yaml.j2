@@ -101,6 +101,12 @@ data:
         Hard_rename         message log
 
     [FILTER]
+        Name                modify
+        Match               k8s_container.*
+        Condition           Key_Exists msg
+        Hard_rename         msg log
+
+    [FILTER]
         Name                nest
         Match               k8s_container.*
         Operation           lift
@@ -110,8 +116,8 @@ data:
     [FILTER]
         Name                modify
         Match               k8s_container.*
-        Condition           Key_Does_Not_Exist cortex_labels
-        Rename              k8s.labels cortex_labels
+        Condition           Key_Does_Not_Exist cortex.labels
+        Rename              k8s.labels cortex.labels
 
     [FILTER]
         Name                modify
@@ -136,7 +142,7 @@ data:
         Name                modify
         Match               k8s_container.*.event-exporter-*
         Condition           Key_exists involvedObject.labels
-        Hard_copy           involvedObject.labels cortex_labels
+        Hard_copy           involvedObject.labels cortex.labels
 
     [FILTER]
         Name                nest
@@ -163,8 +169,8 @@ data:
     [OUTPUT]
         Name              cloudwatch
         Match             k8s_container.*
-        region            {{ config["region"] }}
-        log_group_name    {{ config["cluster_name"] }}
+        region            us-west-2
+        log_group_name    cortex-vishal-2
         log_stream_prefix kube.
         auto_create_group true
 
@@ -195,7 +201,7 @@ spec:
     spec:
       containers:
         - name: fluent-bit
-          image: {{ config["image_fluent_bit"] }}
+          image: 969758392368.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/fluent-bit:master
           imagePullPolicy: Always
           resources:
             requests:
