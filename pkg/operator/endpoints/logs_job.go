@@ -95,7 +95,7 @@ func JobLogURL(w http.ResponseWriter, r *http.Request) {
 			respondError(w, r, err)
 			return
 		}
-		respond(w, schema.LogResponse{
+		respondJSON(w, r, schema.LogResponse{
 			LogURL: logURL,
 		})
 	case userconfig.TaskAPIKind:
@@ -113,7 +113,7 @@ func JobLogURL(w http.ResponseWriter, r *http.Request) {
 			respondError(w, r, err)
 			return
 		}
-		respond(w, schema.LogResponse{
+		respondJSON(w, r, schema.LogResponse{
 			LogURL: logURL,
 		})
 	default:

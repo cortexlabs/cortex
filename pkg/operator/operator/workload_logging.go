@@ -29,6 +29,7 @@ import (
 
 	"github.com/cortexlabs/cortex/pkg/config"
 	awslib "github.com/cortexlabs/cortex/pkg/lib/aws"
+	"github.com/cortexlabs/cortex/pkg/lib/debug"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/exit"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
@@ -62,35 +63,35 @@ var _inProgressJobLogsURLTemplate *template.Template
 func init() {
 	var err error
 	_apiLogURLTemplate, err = template.New("api_log_url_template").Parse(strings.TrimSpace(`
-	https://console.{{.Partition}}.com/cloudwatch/home?region={{.Region}}#logsV2:logs-insights$3FqueryDetail$3D$257E$2528end$257E0$257Estart$257E-3600$257EtimeType$257E$2527RELATIVE$257Eunit$257E$2527seconds$257EeditorString$257E$2527fields*20*40timestamp*2c*20message*0a*7c*20filter*20labels.apiName*3d*22{{.APIName}}*22*0a*7c*20sort*20*40timestamp*20asc*0a$257Esource$257E$2528$257E$2527{{.LogGroup}}$2529$2529
+	https://console.{{.Partition}}.com/cloudwatch/home?region={{.Region}}#logsV2:logs-insights$3FqueryDetail$3D$257E$2528end$257E0$257Estart$257E-3600$257EtimeType$257E$2527RELATIVE$257Eunit$257E$2527seconds$257EeditorString$257E$2527fields*20*40timestamp*2c*20message*0a*7c*20filter*20cortex.labels.apiName*3d*22{{.APIName}}*22*0a*7c*20sort*20*40timestamp*20asc*0a$257Esource$257E$2528$257E$2527{{.LogGroup}}$2529$2529
 	`))
 	if err != nil {
 		exit.Panic(err)
 	}
 
 	_completedJobLogURLTemplate, err = template.New("completed_job_log_url_template").Parse(strings.TrimSpace(`
-	https://console.{{.Partition}}.com/cloudwatch/home?region={{.Region}}#logsV2:logs-insights$3FqueryDetail$3D$257E$2528end$257E{{.EndTime}}$257Estart$257E-{{.StartTime}}$257EtimeType$257E$2527RELATIVE$257Eunit$257E$2527seconds$257EeditorString$257E$2527fields*20*40timestamp*2c*20message*0a*7c*20filter*20labels.apiName*3d*22{{.APIName}}*22*20and*20labels.jobID*3d*22{{.JobID}}*22*0a*7c*20sort*20*40timestamp*20asc*0a$257Esource$257E$2528$257E$2527{{.LogGroup}}$2529$2529
+	https://console.{{.Partition}}.com/cloudwatch/home?region={{.Region}}#logsV2:logs-insights$3FqueryDetail$3D$257E$2528end$257E$2527{{.EndTime}}$257Estart$257E$2527{{.StartTime}}$257EtimeType$257E$2527ABSOLUTE$257Etz$257E$2527Local$257EeditorString$257E$2527fields*20*40timestamp*2c*20message*0a*7c*20filter*20cortex.labels.apiName*3d*22sum*22*20and*20cortex.labels.jobID*3d*22697ba471c134ea2e*22*0a*7c*20sort*20*40timestamp*20asc*0a$257Esource$257E$2528$257E$2527{{.LogGroup}}$2529$2529
 	`))
 	if err != nil {
 		exit.Panic(err)
 	}
 
 	_inProgressJobLogsURLTemplate, err = template.New("in_progress_job_log_url_template").Parse(strings.TrimSpace(`
-	https://console.{{.Partition}}.com/cloudwatch/home?region={{.Region}}#logsV2:logs-insights$3FqueryDetail$3D$257E$2528end$257E{{.EndTime}}$257Estart$257E-{{.StartTime}}$257EtimeType$257E$2527RELATIVE$257Eunit$257E$2527seconds$257EeditorString$257E$2527fields*20*40timestamp*2c*20message*0a*7c*20filter*20labels.apiName*3d*22{{.APIName}}*22*20and*20labels.jobID*3d*22{{.JobID}}*22*0a*7c*20sort*20*40timestamp*20asc*0a$257Esource$257E$2528$257E$2527{{.LogGroup}}$2529$2529
+	https://console.{{.Partition}}.com/cloudwatch/home?region={{.Region}}#logsV2:logs-insights$3FqueryDetail$3D$257E$2528end$257E0$257Estart$257E-3600$257EtimeType$257E$2527RELATIVE$257Eunit$257E$2527seconds$257EeditorString$257E$2527fields*20*40timestamp*2c*20message*0a*7c*20filter*20cortex.labels.apiName*3d*22{{.APIName}}*22*20and*20cortex.labels.jobID*3d*22{{.JobID}}*22*0a*7c*20sort*20*40timestamp*20asc*0a$257Esource$257E$2528$257E$2527{{.LogGroup}}$2529$2529
 	`))
 	if err != nil {
 		exit.Panic(err)
 	}
 }
 
-type APILogURLTemplateArgs struct {
+type apiLogURLTemplateArgs struct {
 	Partition string
 	Region    string
 	LogGroup  string
 	APIName   string
 }
 
-type CompletedJobLogURLTemplateArgs struct {
+type completedJobLogURLTemplateArgs struct {
 	Partition string
 	Region    string
 	StartTime string
@@ -100,7 +101,7 @@ type CompletedJobLogURLTemplateArgs struct {
 	JobID     string
 }
 
-type InProgressJobLogURLTemplateArgs struct {
+type inProgressJobLogURLTemplateArgs struct {
 	Partition string
 	Region    string
 	LogGroup  string
@@ -108,7 +109,7 @@ type InProgressJobLogURLTemplateArgs struct {
 	JobID     string
 }
 
-func completedBatchJobLogsURL(args CompletedJobLogURLTemplateArgs) (string, error) {
+func completedBatchJobLogsURL(args completedJobLogURLTemplateArgs) (string, error) {
 	buf := &bytes.Buffer{}
 	err := _completedJobLogURLTemplate.Execute(buf, args)
 	if err != nil {
@@ -118,7 +119,7 @@ func completedBatchJobLogsURL(args CompletedJobLogURLTemplateArgs) (string, erro
 	return strings.TrimSpace(buf.String()), nil
 }
 
-func inProgressBatchJobLogsURL(args InProgressJobLogURLTemplateArgs) (string, error) {
+func inProgressBatchJobLogsURL(args inProgressJobLogURLTemplateArgs) (string, error) {
 	buf := &bytes.Buffer{}
 	err := _inProgressJobLogsURLTemplate.Execute(buf, args)
 	if err != nil {
@@ -141,7 +142,7 @@ func APILogURL(api spec.API) (string, error) {
 		secondsAgo = 3600
 	}
 
-	args := APILogURLTemplateArgs{
+	args := apiLogURLTemplateArgs{
 		Partition: partition,
 		Region:    region,
 		LogGroup:  logGroup,
@@ -164,10 +165,11 @@ func BatchJobLogURL(apiName string, jobStatus status.BatchJobStatus) (string, er
 		partition = "amazonaws-us-gov"
 	}
 	logGroup := config.ClusterConfig.ClusterName
+	debug.Ppg(jobStatus)
 	if jobStatus.EndTime != nil {
 		endTime := *jobStatus.EndTime
 		endTime = endTime.Add(60 * time.Second)
-		return completedBatchJobLogsURL(CompletedJobLogURLTemplateArgs{
+		return completedBatchJobLogsURL(completedJobLogURLTemplateArgs{
 			Partition: partition,
 			Region:    region,
 			StartTime: timeString(jobStatus.StartTime),
@@ -177,7 +179,7 @@ func BatchJobLogURL(apiName string, jobStatus status.BatchJobStatus) (string, er
 			JobID:     jobStatus.ID,
 		})
 	}
-	return inProgressBatchJobLogsURL(InProgressJobLogURLTemplateArgs{
+	return inProgressBatchJobLogsURL(inProgressJobLogURLTemplateArgs{
 		Partition: partition,
 		Region:    region,
 		LogGroup:  logGroup,
@@ -196,7 +198,7 @@ func TaskJobLogURL(apiName string, jobStatus status.TaskJobStatus) (string, erro
 	if jobStatus.EndTime != nil {
 		endTime := *jobStatus.EndTime
 		endTime = endTime.Add(60 * time.Second)
-		return completedBatchJobLogsURL(CompletedJobLogURLTemplateArgs{
+		return completedBatchJobLogsURL(completedJobLogURLTemplateArgs{
 			Partition: partition,
 			Region:    region,
 			StartTime: timeString(jobStatus.StartTime),
@@ -206,7 +208,7 @@ func TaskJobLogURL(apiName string, jobStatus status.TaskJobStatus) (string, erro
 			JobID:     jobStatus.ID,
 		})
 	}
-	return inProgressBatchJobLogsURL(InProgressJobLogURLTemplateArgs{
+	return inProgressBatchJobLogsURL(inProgressJobLogURLTemplateArgs{
 		Partition: partition,
 		Region:    region,
 		LogGroup:  logGroup,

@@ -35,7 +35,7 @@ Flags:
 ## logs
 
 ```text
-display CloudWatch insights URL for an api or a job
+get the logs for an API or a job
 
 Usage:
   cortex logs API_NAME [JOB_ID] [flags]

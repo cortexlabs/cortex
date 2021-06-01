@@ -125,7 +125,7 @@ print(response.text)
 cortex get image-classifier 69b183ed6bdf3e9b
 ```
 
-## View logs
+## Debugging logs
 
 ```bash
 cortex logs image-classifier 69b183ed6bdf3e9b

@@ -33,7 +33,7 @@ var (
 
 %s
 
-NOTE: there may be 1-2 minutes of delay for the logs to show up in the CloudWatch Insight queries
+NOTE: there may be 1-2 minutes of delay for the logs to show up in the results of CloudWatch Insight queries
 `
 )
 
@@ -46,7 +46,7 @@ func logsInit() {
 
 var _logsCmd = &cobra.Command{
 	Use:   "logs API_NAME [JOB_ID]",
-	Short: "display CloudWatch insights URL for an api or a job",
+	Short: "get the logs for an API or a job",
 	Args:  cobra.RangeArgs(1, 2),
 	Run: func(cmd *cobra.Command, args []string) {
 		envName, err := getEnvFromFlag(_flagLogsEnv)
