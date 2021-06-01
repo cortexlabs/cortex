@@ -900,6 +900,9 @@ def test_load_task(
         check_futures_healthy(threads_futures)
         wait_on_futures(threads_futures)
 
+        # give it a bit of a delay to avoid overloading
+        time.sleep(1)
+
         printer("waiting on the jobs")
         job_ids = [job_spec.json()["job_id"] for job_spec in job_specs]
         retrieve_results_concurrently(
