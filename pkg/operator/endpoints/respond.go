@@ -21,6 +21,7 @@ import (
 	"net/http"
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	libjson "github.com/cortexlabs/cortex/pkg/lib/json"
 	"github.com/cortexlabs/cortex/pkg/lib/logging"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
@@ -29,12 +30,15 @@ import (
 var operatorLogger = logging.GetLogger()
 
 func respondJSON(w http.ResponseWriter, r *http.Request, response interface{}) {
-	if err := json.NewEncoder(w).Encode(response); err != nil {
+	jsonBytes, err := libjson.Marshal(response)
+	if err != nil {
 		respondError(w, r, errors.Wrap(err, "failed to encode response"))
 		return
 	}
+
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
+	w.Write(jsonBytes)
 }
 
 func respondError(w http.ResponseWriter, r *http.Request, err error, strs ...string) {
