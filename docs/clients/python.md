@@ -14,8 +14,6 @@
   * [refresh](#refresh)
   * [delete](#delete)
   * [stop\_job](#stop_job)
-  * [stream\_api\_logs](#stream_api_logs)
-  * [stream\_job\_logs](#stream_job_logs)
 
 # cortex
 
@@ -90,7 +88,7 @@ Deploy or update an API.
 
 - `api_spec` - A dictionary defining a single Cortex API. See https://docs.cortex.dev/v/master/ for schema.
 - `force` - Override any in-progress api updates.
-- `wait` - Streams logs until the API is ready.
+- `wait` - Block until the API is ready.
 
 
 **Returns**:
@@ -111,7 +109,7 @@ Deploy or update APIs specified in a configuration file.
 
 - `config_file` - Local path to a yaml file defining Cortex API(s). See https://docs.cortex.dev/v/master/ for schema.
 - `force` - Override any in-progress api updates.
-- `wait` - Streams logs until the APIs are ready.
+- `wait` - Block until the API is ready.
 
 
 **Returns**:
@@ -203,28 +201,3 @@ Stop a running job.
 
 - `api_name` - Name of the Batch/Task API.
 - `job_id` - ID of the Job to stop.
-
-## stream\_api\_logs
-
-```python
- | stream_api_logs(api_name: str)
-```
-
-Stream the logs of an API.
-
-**Arguments**:
-
-- `api_name` - Name of the API.
-
-## stream\_job\_logs
-
-```python
- | stream_job_logs(api_name: str, job_id: str)
-```
-
-Stream the logs of a Job.
-
-**Arguments**:
-
-- `api_name` - Name of the Batch API.
-- `job_id` - Job ID.

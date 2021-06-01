@@ -18,17 +18,23 @@ package operator
 
 import (
 	"bufio"
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
 	"os/exec"
+	"strings"
+	"text/template"
 	"time"
 
 	"github.com/cortexlabs/cortex/pkg/config"
+	awslib "github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	"github.com/cortexlabs/cortex/pkg/operator/lib/routines"
+	"github.com/cortexlabs/cortex/pkg/types/spec"
+	"github.com/cortexlabs/cortex/pkg/types/status"
 	"github.com/gorilla/websocket"
 )
 
@@ -41,6 +47,150 @@ const (
 	_pendingPodCheckInterval = 1 * time.Second
 	_pollPeriod              = 250 * time.Millisecond
 )
+
+func timeString(t time.Time) string {
+	return fmt.Sprintf("%sT%02d*3a%02d*3a%02d", t.Format("2006-01-02"), t.Hour(), t.Minute(), t.Second())
+}
+
+var _apiLogURLTemplate *template.Template = template.Must(template.New("api_log_url_template").Parse(strings.TrimSpace(`
+	https://console.{{.Partition}}.com/cloudwatch/home?region={{.Region}}#logsV2:logs-insights$3FqueryDetail$3D$257E$2528end$257E0$257Estart$257E-3600$257EtimeType$257E$2527RELATIVE$257Eunit$257E$2527seconds$257EeditorString$257E$2527fields*20*40timestamp*2c*20message*0a*7c*20filter*20cortex.labels.apiName*3d*22{{.APIName}}*22*0a*7c*20sort*20*40timestamp*20asc*0a$257Esource$257E$2528$257E$2527{{.LogGroup}}$2529$2529
+`)))
+
+var _completedJobLogURLTemplate *template.Template = template.Must(template.New("completed_job_log_url_template").Parse(strings.TrimSpace(`
+https://console.{{.Partition}}.com/cloudwatch/home?region={{.Region}}#logsV2:logs-insights$3FqueryDetail$3D$257E$2528end$257E$2527{{.EndTime}}$257Estart$257E$2527{{.StartTime}}$257EtimeType$257E$2527ABSOLUTE$257Etz$257E$2527Local$257EeditorString$257E$2527fields*20*40timestamp*2c*20message*0a*7c*20filter*20cortex.labels.apiName*3d*22sum*22*20and*20cortex.labels.jobID*3d*22697ba471c134ea2e*22*0a*7c*20sort*20*40timestamp*20asc*0a$257Esource$257E$2528$257E$2527{{.LogGroup}}$2529$2529
+`)))
+
+var _inProgressJobLogsURLTemplate *template.Template = template.Must(template.New("in_progress_job_log_url_template").Parse(strings.TrimSpace(`
+https://console.{{.Partition}}.com/cloudwatch/home?region={{.Region}}#logsV2:logs-insights$3FqueryDetail$3D$257E$2528end$257E0$257Estart$257E-3600$257EtimeType$257E$2527RELATIVE$257Eunit$257E$2527seconds$257EeditorString$257E$2527fields*20*40timestamp*2c*20message*0a*7c*20filter*20cortex.labels.apiName*3d*22{{.APIName}}*22*20and*20cortex.labels.jobID*3d*22{{.JobID}}*22*0a*7c*20sort*20*40timestamp*20asc*0a$257Esource$257E$2528$257E$2527{{.LogGroup}}$2529$2529
+`)))
+
+type apiLogURLTemplateArgs struct {
+	Partition string
+	Region    string
+	LogGroup  string
+	APIName   string
+}
+
+type completedJobLogURLTemplateArgs struct {
+	Partition string
+	Region    string
+	StartTime string
+	EndTime   string
+	LogGroup  string
+	APIName   string
+	JobID     string
+}
+
+type inProgressJobLogURLTemplateArgs struct {
+	Partition string
+	Region    string
+	LogGroup  string
+	APIName   string
+	JobID     string
+}
+
+func completedBatchJobLogsURL(args completedJobLogURLTemplateArgs) (string, error) {
+	buf := &bytes.Buffer{}
+	err := _completedJobLogURLTemplate.Execute(buf, args)
+	if err != nil {
+		return "", err
+	}
+
+	return strings.TrimSpace(buf.String()), nil
+}
+
+func inProgressBatchJobLogsURL(args inProgressJobLogURLTemplateArgs) (string, error) {
+	buf := &bytes.Buffer{}
+	err := _inProgressJobLogsURLTemplate.Execute(buf, args)
+	if err != nil {
+		return "", err
+	}
+
+	return strings.TrimSpace(buf.String()), nil
+}
+
+func APILogURL(api spec.API) (string, error) {
+	partition := "aws.amazon"
+	region := config.ClusterConfig.Region
+	if awslib.PartitionFromRegion(region) == "aws-us-gov" {
+		partition = "amazonaws-us-gov"
+	}
+	logGroup := config.ClusterConfig.ClusterName
+
+	args := apiLogURLTemplateArgs{
+		Partition: partition,
+		Region:    region,
+		LogGroup:  logGroup,
+		APIName:   api.Name,
+	}
+
+	buf := &bytes.Buffer{}
+	err := _apiLogURLTemplate.Execute(buf, args)
+	if err != nil {
+		return "", err
+	}
+
+	return strings.TrimSpace(buf.String()), nil
+}
+
+func BatchJobLogURL(apiName string, jobStatus status.BatchJobStatus) (string, error) {
+	partition := "aws.amazon"
+	region := config.ClusterConfig.Region
+	if awslib.PartitionFromRegion(region) == "aws-us-gov" {
+		partition = "amazonaws-us-gov"
+	}
+	logGroup := config.ClusterConfig.ClusterName
+
+	if jobStatus.EndTime != nil {
+		endTime := *jobStatus.EndTime
+		endTime = endTime.Add(60 * time.Second)
+		return completedBatchJobLogsURL(completedJobLogURLTemplateArgs{
+			Partition: partition,
+			Region:    region,
+			StartTime: timeString(jobStatus.StartTime),
+			EndTime:   timeString(endTime),
+			LogGroup:  logGroup,
+			APIName:   apiName,
+			JobID:     jobStatus.ID,
+		})
+	}
+	return inProgressBatchJobLogsURL(inProgressJobLogURLTemplateArgs{
+		Partition: partition,
+		Region:    region,
+		LogGroup:  logGroup,
+		APIName:   apiName,
+		JobID:     jobStatus.ID,
+	})
+}
+
+func TaskJobLogURL(apiName string, jobStatus status.TaskJobStatus) (string, error) {
+	partition := "aws.amazon"
+	region := config.ClusterConfig.Region
+	if awslib.PartitionFromRegion(region) == "aws-us-gov" {
+		partition = "amazonaws-us-gov"
+	}
+	logGroup := config.ClusterConfig.ClusterName
+	if jobStatus.EndTime != nil {
+		endTime := *jobStatus.EndTime
+		endTime = endTime.Add(60 * time.Second)
+		return completedBatchJobLogsURL(completedJobLogURLTemplateArgs{
+			Partition: partition,
+			Region:    region,
+			StartTime: timeString(jobStatus.StartTime),
+			EndTime:   timeString(endTime),
+			LogGroup:  logGroup,
+			APIName:   apiName,
+			JobID:     jobStatus.ID,
+		})
+	}
+	return inProgressBatchJobLogsURL(inProgressJobLogURLTemplateArgs{
+		Partition: partition,
+		Region:    region,
+		LogGroup:  logGroup,
+		APIName:   apiName,
+		JobID:     jobStatus.ID,
+	})
+}
 
 func waitForPodToBeNotPending(podName string, cancelListener chan struct{}, socket *websocket.Conn) bool {
 	wrotePending := false

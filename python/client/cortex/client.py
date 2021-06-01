@@ -55,7 +55,7 @@ class Client:
         Args:
             api_spec: A dictionary defining a single Cortex API. See https://docs.cortex.dev/v/master/ for schema.
             force: Override any in-progress api updates.
-            wait: Streams logs until the API is ready.
+            wait: Block until the API is ready.
 
         Returns:
             Deployment status, API specification, and endpoint for each API.
@@ -86,7 +86,7 @@ class Client:
         Args:
             config_file: Local path to a yaml file defining Cortex API(s). See https://docs.cortex.dev/v/master/ for schema.
             force: Override any in-progress api updates.
-            wait: Streams logs until the APIs are ready.
+            wait: Block until the API is ready.
 
         Returns:
             Deployment status, API specification, and endpoint for each API.
@@ -114,41 +114,18 @@ class Client:
         if not wait:
             return deploy_result
 
-        # logging immediately will show previous versions of the replica terminating;
-        # wait a few seconds for the new replicas to start initializing
-        time.sleep(5)
-
-        def stream_to_stdout(process):
-            for c in iter(lambda: process.stdout.read(1), ""):
-                sys.stdout.write(c)
-                sys.stdout.flush()
-
         api_name = deploy_result["api"]["spec"]["name"]
-        if deploy_result["api"]["spec"]["kind"] != "RealtimeAPI":
+        if (
+            deploy_result["api"]["spec"]["kind"] != "RealtimeAPI"
+            and deploy_result["api"]["spec"]["kind"] != "AsyncAPI"
+        ):
             return deploy_result
 
-        env = os.environ.copy()
-        env["CORTEX_CLI_INVOKER"] = "python"
-        process = subprocess.Popen(
-            [get_cli_path(), "logs", "--env", self.env_name, api_name, "-y"],
-            stderr=subprocess.STDOUT,
-            stdout=subprocess.PIPE,
-            encoding="utf8",
-            errors="replace",  # replace non-utf8 characters with `?` instead of failing
-            env=env,
-        )
-
-        streamer = threading.Thread(target=stream_to_stdout, args=[process])
-        streamer.start()
-
-        while process.poll() is None:
+        while True:
+            time.sleep(5)
             api = self.get_api(api_name)
             if api["status"]["status_code"] != "status_updating":
-                time.sleep(5)  # accommodate latency in log streaming from the cluster
-                process.terminate()
                 break
-            time.sleep(5)
-        streamer.join(timeout=10)
 
         return api
 
@@ -259,34 +236,4 @@ class Client:
             "json",
         ]
 
-        run_cli(args)
-
-    @sentry_wrapper
-    def stream_api_logs(
-        self,
-        api_name: str,
-    ):
-        """
-        Stream the logs of an API.
-
-        Args:
-            api_name: Name of the API.
-        """
-        args = ["logs", api_name, "--env", self.env_name, "-y"]
-        run_cli(args)
-
-    @sentry_wrapper
-    def stream_job_logs(
-        self,
-        api_name: str,
-        job_id: str,
-    ):
-        """
-        Stream the logs of a Job.
-
-        Args:
-            api_name: Name of the Batch API.
-            job_id: Job ID.
-        """
-        args = ["logs", api_name, job_id, "--env", self.env_name, "-y"]
         run_cli(args)

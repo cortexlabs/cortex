@@ -416,3 +416,11 @@ def client_from_config(config_path: str) -> cx.Client:
     cluster_name = config["cluster_name"]
 
     return cx.client(f"{cluster_name}")
+
+
+def stream_api_logs(client: cx.Client, api_name: str):
+    cx.run_cli(["logs", api_name, "--random-pod", "-e", client.env_name])
+
+
+def stream_job_logs(client: cx.Client, api_name: str, job_id: str):
+    cx.run_cli(["logs", api_name, job_id, "--random-pod", "-e", client.env_name])

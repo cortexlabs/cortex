@@ -55,7 +55,7 @@ cortex deploy text_generator.yaml
 cortex get text-generator --watch
 ```
 
-### Stream logs
+### Debugging logs
 
 ```bash
 cortex logs text-generator

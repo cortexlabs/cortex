@@ -39,7 +39,7 @@ assignees: ''
 
 ### Stack traces
 
-(error output from `cortex logs <api name>`)
+(error output from CloudWatch Insights or from a random pod `cortex logs <api name>`)
 
 ```text
 <paste stack traces here>
