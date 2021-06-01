@@ -77,7 +77,7 @@ func DefaultZapConfig(level userconfig.LogLevel, fields ...map[string]interface{
 
 	initialFields := map[string]interface{}{}
 	if len(labels) > 0 {
-		initialFields["labels"] = labels
+		initialFields["cortex.labels"] = labels
 	}
 
 	return zap.Config{
