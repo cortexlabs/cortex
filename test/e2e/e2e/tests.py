@@ -540,6 +540,7 @@ def test_load_realtime(
     # controls the flow of requests
     request_stopper = td.Event()
     latencies: List[float] = []
+    failed = False
     try:
         printer(f"getting {desired_replicas} replicas ready")
         assert apis_ready(
@@ -621,6 +622,7 @@ def test_load_realtime(
 
     except:
         # best effort
+        failed = True
         try:
             api_info = client.get_api(api_name)
             printer(json.dumps(api_info, indent=2))
@@ -630,6 +632,8 @@ def test_load_realtime(
     finally:
         request_stopper.set()
         delete_apis(client, [api_name])
+        if failed:
+            time.sleep(30)
 
 
 def test_load_async(
@@ -663,6 +667,7 @@ def test_load_async(
     request_stopper = td.Event()
     map_stopper = td.Event()
     responses: List[Dict[str, Any]] = []
+    failed = False
     try:
         printer(f"getting {desired_replicas} replicas ready")
         assert apis_ready(
@@ -736,6 +741,7 @@ def test_load_async(
 
     except:
         # best effort
+        failed = True
         try:
             api_info = client.get_api(api_name)
             printer(json.dumps(api_info, indent=2))
@@ -747,6 +753,8 @@ def test_load_async(
             printer(f"{len(results)}/{total_requests} have been successfully retrieved")
         map_stopper.set()
         delete_apis(client, [api_name])
+        if failed:
+            time.sleep(30)
 
 
 def test_load_batch(
@@ -784,7 +792,7 @@ def test_load_batch(
     api_name = api_specs[0]["name"]
     client.deploy(api_spec=api_specs[0])
     api_endpoint = client.get_api(api_name)["endpoint"]
-
+    failed = False
     try:
         assert endpoint_ready(
             client=client, api_name=api_name, timeout=deploy_timeout
@@ -838,6 +846,7 @@ def test_load_batch(
 
     except:
         # best effort
+        failed = True
         try:
             api_info = client.get_api(api_name)
 
@@ -851,6 +860,8 @@ def test_load_batch(
 
     finally:
         delete_apis(client, [api_name])
+        if failed:
+            time.sleep(30)
 
 
 def test_load_task(
@@ -879,6 +890,7 @@ def test_load_task(
 
     request_stopper = td.Event()
     map_stopper = td.Event()
+    failed = False
     try:
         assert endpoint_ready(
             client=client, api_name=api_name, timeout=deploy_timeout
@@ -917,6 +929,7 @@ def test_load_task(
 
     except:
         # best effort
+        failed = True
         try:
             api_info = client.get_api(api_name)
 
@@ -931,6 +944,8 @@ def test_load_task(
     finally:
         map_stopper.set()
         delete_apis(client, [api_name])
+        if failed:
+            time.sleep(30)
 
 
 def test_long_running_realtime(

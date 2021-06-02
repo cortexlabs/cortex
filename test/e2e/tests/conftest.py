@@ -84,7 +84,7 @@ def pytest_configure(config):
         "global": {
             "local_operator": config.getoption("--local-operator"),
             "realtime_deploy_timeout": int(
-                os.environ.get("CORTEX_TEST_REALTIME_DEPLOY_TIMEOUT", 150)
+                os.environ.get("CORTEX_TEST_REALTIME_DEPLOY_TIMEOUT", 200)
             ),
             "batch_deploy_timeout": int(os.environ.get("CORTEX_TEST_BATCH_DEPLOY_TIMEOUT", 150)),
             "batch_job_timeout": int(os.environ.get("CORTEX_TEST_BATCH_JOB_TIMEOUT", 200)),
