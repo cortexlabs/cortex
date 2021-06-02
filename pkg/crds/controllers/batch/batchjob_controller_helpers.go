@@ -636,7 +636,7 @@ func (r *BatchJobReconciler) updateCompletedTimestamp(ctx context.Context, batch
 func (r *BatchJobReconciler) persistJobToS3(batchJob batch.BatchJob) error {
 	return parallel.RunFirstErr(
 		func() error {
-			if batchJob.Status.Status != status.JobSucceeded {
+			if batchJob.Status.Status != status.JobSucceeded && batchJob.Status.Status != status.JobCompletedWithFailures {
 				return nil
 			}
 			return r.Config.SaveJobMetrics(r, batchJob)
