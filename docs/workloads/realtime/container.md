@@ -33,14 +33,19 @@ Note: your Cortex CLI or client must match the version of your cluster (availabl
 
 ## Chaining APIs
 
-It is possible to make requests from any Cortex API type to a Realtime API within a Cortex cluster. All running APIs are accessible at `http://api-<api_name>:8888/`, where `<api_name>` is the name of the API you are making a request to.
+It is possible to make requests to Realtime APIs from any Cortex API within a Cortex cluster. Requests can be made to `http://ingressgateway-apis.istio-system.svc.cluster.local/<api_name>`, where `<api_name>` is the name of the Realtime API you are making a request to.
 
-For example, if there is a Realtime api named `my-api` running in the cluster, you could make a request to it from a different API by using:
+For example, if there is a Realtime API named `my-api` running in the cluster, you can make a request to it from a different API in Python by using:
 
 ```python
 import requests
 
-response = requests.post("http://api-my-api:8888/", json={"text": "hello world"})
+response = requests.post(
+    "http://ingressgateway-apis.istio-system.svc.cluster.local/my-api",
+    json={"text": "hello world"},
+)
 ```
 
 Note that if the API making the request is a Realtime API or Async API, its autoscaling configuration (i.e. `target_in_flight`) should be modified with the understanding that requests will be considered "in-flight" in the first API as the request is being fulfilled by the second API.
+
+To make requests from your Realtime API to a Batch, Async, or Task API running within the cluster, see the "Chaining APIs" docs associated with the target workload type.

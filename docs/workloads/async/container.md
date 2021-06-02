@@ -32,3 +32,24 @@ The `/mnt` directory is mounted to each container's filesystem, and is shared ac
 It is possible to use the Cortex CLI or client to interact with your cluster's APIs from within your API containers. All containers will have a CLI configuration file present at `/cortex/client/cli.yaml`, which is configured to connect to the cluster. In addition, the `CORTEX_CLI_CONFIG_DIR` environment variable is set to `/cortex/client` by default. Therefore, no additional configuration is required to use the CLI or Python client (which can be instantiated via `cortex.client()`).
 
 Note: your Cortex CLI or client must match the version of your cluster (available in the `CORTEX_VERSION` environment variable).
+
+## Chaining APIs
+
+It is possible to submit requests to Async APIs from any Cortex API within a Cortex cluster. Requests can be made to `http://ingressgateway-apis.istio-system.svc.cluster.local/<api_name>`, where `<api_name>` is the name of the Async API you are making a request to.
+
+For example, if there is an Async API named `my-api` running in the cluster, you can make a request to it from a different API in Python by using:
+
+```python
+import requests
+
+# make a request to an Async API
+response = requests.post(
+    "http://ingressgateway-apis.istio-system.svc.cluster.local/my-api",
+    json={"text": "hello world"},
+)
+
+# retreive a result from an Async API
+response = requests.get("http://ingressgateway-apis.istio-system.svc.cluster.local/my-api/<id>")
+```
+
+To make requests from your Async API to a Realtime, Batch, or Task API running within the cluster, see the "Chaining APIs" docs associated with the target workload type.
