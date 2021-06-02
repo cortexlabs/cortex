@@ -246,6 +246,9 @@ elif [ "$cmd" = "update" ]; then
   if [[ " ${images_to_build[@]} " =~ " enqueuer " ]]; then
     cache_builder enqueuer
   fi
+  if [[ " ${images_to_build[@]} " =~ " dequeuer " ]]; then
+    cache_builder dequeuer
+  fi
   if [[ " ${images_to_build[@]} " =~ " controller-manager " ]]; then
     cache_builder controller-manager
   fi
