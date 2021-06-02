@@ -114,3 +114,51 @@ Your dashboard now has stored the alert configuration permanently.
 ## Multiple APIs alerts
 
 Due to how Grafana was built, you'll need to re-do the steps of setting a given alert for each individual API. That's because Grafana doesn't currently support alerts on template or transformation queries.
+
+## Enabling email alerts
+
+It is possible to manually configure SMTP to enable email alerts (we plan on automating this proccess, see [#2210](https://github.com/cortexlabs/cortex/issues/2210)).
+
+**Step 1**
+
+Install [kubectl](../advanced/kubectl.md).
+
+**Step 2**
+
+```bash
+kubectl create secret generic grafana-smtp \
+    --from-literal=GF_SMTP_ENABLED=true \
+    --from-literal=GF_SMTP_HOST=<SMTP-HOST> \
+    --from-literal=GF_SMTP_USER=<EMAIL-ADDRESS> \
+    --from-literal=GF_SMTP_FROM_ADDRESS=<EMAIL-ADDRESS> \
+    --from-literal=GF_SMTP_PASSWORD=<EMAIL-PASSWORD>
+```
+
+The `<SMTP-HOST>` varies from provider to provider (e.g. Gmail's is `smtp.gmail.com:587`).
+
+**Step 3**
+
+Edit Grafana's statefulset by running `kubectl edit statefulset grafana` (this will open a code editor). Inside the container named `grafana` (in the `containers` section), add an `envFrom` section that will mount the SMTP secret. Here is an example of what it looks like after the addition:
+
+```yaml
+# ...
+containers:
+- env:
+  - name: GF_SERVER_ROOT_URL
+    value: '%(protocol)s://%(domain)s:%(http_port)s/dashboard'
+  - name: GF_SERVER_SERVE_FROM_SUB_PATH
+    value: "true"
+  - name: GF_USERS_DEFAULT_THEME
+    value: light
+  envFrom:
+    - secretRef:
+        name: grafana-smtp
+  image: quay.io/cortexlabs/grafana:0.35
+  imagePullPolicy: IfNotPresent
+  name: grafana
+# ...
+```
+
+Save and close your editor.
+
+It will take 30-60 seconds for Grafana to restart, after which you can access the dashboard. You can check the logs with `kubectl logs -f grafana-0`.
