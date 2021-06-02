@@ -27,6 +27,10 @@ Your API pod can contain multiple containers, only one of which can be listening
 
 The `/mnt` directory is mounted to each container's filesystem, and is shared across all containers.
 
+## Observability
+
+See docs for [logging](../../clusters/observability/logging.md), [metrics](../../clusters/observability/metrics.md), and [alerting](../../clusters/observability/metrics.md).
+
 ## Using the Cortex CLI or client
 
 It is possible to use the Cortex CLI or client to interact with your cluster's APIs from within your API containers. All containers will have a CLI configuration file present at `/cortex/client/cli.yaml`, which is configured to connect to the cluster. In addition, the `CORTEX_CLI_CONFIG_DIR` environment variable is set to `/cortex/client` by default. Therefore, no additional configuration is required to use the CLI or Python client (which can be instantiated via `cortex.client()`).

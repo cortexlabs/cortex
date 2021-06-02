@@ -4,7 +4,7 @@ Logs are collected with Fluent Bit and are exported to CloudWatch.
 
 ## Logs on AWS
 
-Logs will automatically be pushed to CloudWatch and a log group with the same name as your cluster will be created to store your logs. API logs are tagged with labels to help with log aggregation and filtering.
+Logs will automatically be pushed to CloudWatch and a log group with the same name as your cluster will be created to store your logs. API logs are tagged with labels to help with log aggregation and filtering. Log lines greater than 5 MB in size will be ignored.
 
 You can use the `cortex logs` command to get a CloudWatch Insights URL of query to fetch logs for your API. Please note that there may be a few minutes of delay from when a message is logged to when it is available in CloudWatch Insights.
 
