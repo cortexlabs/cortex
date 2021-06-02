@@ -293,15 +293,12 @@ func TaskContainers(api spec.API, job *spec.JobKey) ([]kcore.Container, []kcore.
 }
 
 func BatchContainers(api spec.API, job *spec.BatchJob) ([]kcore.Container, []kcore.Volume) {
+	userContainers, userVolumes := userPodContainers(api)
 	dequeuerContainer, dequeuerVolume := batchDequeuerProxyContainer(api, job.ID, job.SQSUrl)
 
 	// make sure the dequeuer starts first to allow it to start watching the graveyard before user containers begin
-	containers := []kcore.Container{dequeuerContainer}
-	volumes := []kcore.Volume{dequeuerVolume}
-	userContainers, userVolumes := userPodContainers(api)
-
-	containers = append(containers, userContainers...)
-	volumes = append(volumes, userVolumes...)
+	containers := append([]kcore.Container{dequeuerContainer}, userContainers...)
+	volumes := append([]kcore.Volume{dequeuerVolume}, userVolumes...)
 
 	k8sName := job.K8sName()
 
