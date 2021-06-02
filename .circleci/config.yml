@@ -159,8 +159,8 @@ jobs:
             node_groups:
               - name: spot
                 instance_type: t3.medium
-                min_instances: 10
-                max_instances: 10
+                min_instances: 16
+                max_instances: 16
                 spot: true
               - name: cpu
                 instance_type: c5.xlarge

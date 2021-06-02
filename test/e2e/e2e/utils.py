@@ -374,19 +374,29 @@ def retrieve_results_concurrently(
                 continue
 
             result_response_json = result_response.json()
-            if (
-                async_kind
-                and "status" in result_response_json
-                and result_response_json["status"] == "completed"
-            ):
-                break
+            if async_kind and "status" in result_response_json:
+                if result_response_json["status"] == "completed":
+                    break
+                if result_response_json["status"] not in ["in_progress", "in_queue"]:
+                    raise RuntimeError(
+                        f"status for request ID {request_id} got set to {result_response_json['status']}"
+                    )
+
             if (
                 task_kind
                 and "job_status" in result_response_json
                 and "status" in result_response_json["job_status"]
-                and result_response_json["job_status"]["status"] == "status_succeeded"
             ):
-                break
+                if result_response_json["job_status"]["status"] == "succeeded":
+                    break
+                if result_response_json["job_status"]["status"] not in [
+                    "pending",
+                    "enqueuing",
+                    "running",
+                ]:
+                    raise RuntimeError(
+                        f"status for job ID {request_id} got set to {result_response_json['job_status']['status']}"
+                    )
 
         if event_stopper.is_set():
             return

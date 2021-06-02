@@ -86,13 +86,13 @@ def pytest_configure(config):
             "realtime_deploy_timeout": int(
                 os.environ.get("CORTEX_TEST_REALTIME_DEPLOY_TIMEOUT", 200)
             ),
-            "batch_deploy_timeout": int(os.environ.get("CORTEX_TEST_BATCH_DEPLOY_TIMEOUT", 30)),
+            "batch_deploy_timeout": int(os.environ.get("CORTEX_TEST_BATCH_DEPLOY_TIMEOUT", 150)),
             "batch_job_timeout": int(os.environ.get("CORTEX_TEST_BATCH_JOB_TIMEOUT", 200)),
-            "async_deploy_timeout": int(os.environ.get("CORTEX_TEST_ASYNC_DEPLOY_TIMEOUT", 120)),
+            "async_deploy_timeout": int(os.environ.get("CORTEX_TEST_ASYNC_DEPLOY_TIMEOUT", 150)),
             "async_workload_timeout": int(
                 os.environ.get("CORTEX_TEST_ASYNC_WORKLOAD_TIMEOUT", 200)
             ),
-            "task_deploy_timeout": int(os.environ.get("CORTEX_TEST_TASK_DEPLOY_TIMEOUT", 30)),
+            "task_deploy_timeout": int(os.environ.get("CORTEX_TEST_TASK_DEPLOY_TIMEOUT", 75)),
             "task_job_timeout": int(os.environ.get("CORTEX_TEST_TASK_JOB_TIMEOUT", 200)),
             "skip_gpus": config.getoption("--skip-gpus"),
             "skip_infs": config.getoption("--skip-infs"),
@@ -104,7 +104,7 @@ def pytest_configure(config):
             },
             "load_test_config": {
                 "realtime": {
-                    "total_requests": 10 ** 6,
+                    "total_requests": 10 ** 5,
                     "desired_replicas": 50,
                     "concurrency": 50,
                     "min_rtt": 0.004,  # measured in seconds
@@ -115,7 +115,7 @@ def pytest_configure(config):
                 },
                 "async": {
                     "total_requests": 10 ** 3,
-                    "desired_replicas": 50,
+                    "desired_replicas": 20,
                     "concurrency": 10,
                     "submit_timeout": 120,  # measured in seconds
                     "workload_timeout": 120,  # measured in seconds
@@ -125,13 +125,13 @@ def pytest_configure(config):
                     "workers_per_job": 10,
                     "items_per_job": 10 ** 5,
                     "batch_size": 10 * 2,
-                    "workload_timeout": 210,  # measured in seconds
+                    "workload_timeout": 200,  # measured in seconds
                 },
                 "task": {
                     "jobs": 10 ** 2,
                     "concurrency": 4,
-                    "submit_timeout": 240,  # measured in seconds
-                    "workload_timeout": 180,  # measured in seconds
+                    "submit_timeout": 200,  # measured in seconds
+                    "workload_timeout": 400,  # measured in seconds
                 },
             },
             "long_running_test_config": {
