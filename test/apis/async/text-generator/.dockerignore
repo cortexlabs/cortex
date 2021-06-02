@@ -1,9 +1,10 @@
-*.dockerfile
-README.md
-sample.json
 expectations.yaml
+*.dockerfile
+build*.sh
+cortex*.yaml
 *.pyc
 *.pyo
 *.pyd
 __pycache__
 .pytest_cache
+*.md

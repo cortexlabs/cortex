@@ -1,10 +1,12 @@
-*.dockerfile
-README.md
 sample.json
 submit.py
 sample_generator.py
+*.dockerfile
+build*.sh
+cortex*.yaml
 *.pyc
 *.pyo
 *.pyd
 __pycache__
 .pytest_cache
+*.md

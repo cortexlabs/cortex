@@ -1,8 +1,10 @@
-*.dockerfile
-README.md
 submit.py
+*.dockerfile
+build*.sh
+cortex*.yaml
 *.pyc
 *.pyo
 *.pyd
 __pycache__
 .pytest_cache
+*.md

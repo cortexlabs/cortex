@@ -165,11 +165,6 @@ format:
 test:
 	@./build/test.sh go
 
-# build test api images
-# make sure you login with your quay credentials
-build-and-push-test-images:
-	@./test/utils/build-and-push-images.sh quay.io
-
 # run e2e tests on an existing cluster
 # read test/e2e/README.md for instructions first
 test-e2e:
