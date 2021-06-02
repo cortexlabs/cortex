@@ -24,7 +24,7 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")"/../.. >/dev/null && pwd)"
 source $ROOT/dev/util.sh
 
 function registry_login() {
-  login_url=$1
+  login_url=$1  # e.g. 764403040460.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/realtime-sleep-cpu
   region=$2
 
   blue_echo "\nLogging in to ECR..."
@@ -33,7 +33,7 @@ function registry_login() {
 }
 
 function create_ecr_repo() {
-  repo_name=$1
+  repo_name=$1  # e.g. cortexlabs/realtime-sleep-cpu
   region=$2
 
   blue_echo "\nCreating ECR repo $repo_name..."
@@ -78,7 +78,7 @@ while true; do
   blue_echo "\nPushing $image_url:latest..."
   exec 5>&1
   set +e
-  out=$(docker push $image_url 2>&1 | tee >(cat - >&5))
+  out=$(docker push $image_url 2>&1 | tee /dev/fd/5; exit ${PIPESTATUS[0]})
   set -e
   if [[ "$image_url" == *".ecr."* ]]; then
     if [[ "$out" == *"authorization token has expired"* ]] || [[ "$out" == *"no basic auth credentials"* ]]; then
