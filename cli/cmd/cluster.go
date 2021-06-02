@@ -484,25 +484,17 @@ var _clusterDownCmd = &cobra.Command{
 		loadBalancer, _ := getLoadBalancer(accessConfig.ClusterName, OperatorLoadBalancer, awsClient)
 
 		fmt.Print("￮ deleting sqs queues ... ")
-		if queueExists, err := awsClient.DoesQueueExist(clusterconfig.SQSNamePrefix(accessConfig.ClusterName)); err != nil {
+		numDeleted, err := awsClient.DeleteQueuesWithPrefix(clusterconfig.SQSNamePrefix(accessConfig.ClusterName))
+		if err != nil {
 			errorsList = append(errorsList, err)
 			fmt.Print("failed ✗")
 			fmt.Printf("\n\nfailed to delete all sqs queues; please delete queues starting with the name %s via the cloudwatch console: https://%s.console.aws.amazon.com/sqs/v2/home\n", clusterconfig.SQSNamePrefix(accessConfig.ClusterName), accessConfig.Region)
 			errors.PrintError(err)
 			fmt.Println()
-		} else if !queueExists {
+		} else if numDeleted == 0 {
 			fmt.Println("no sqs queues exist ✓")
 		} else {
-			err = awsClient.DeleteQueuesWithPrefix(clusterconfig.SQSNamePrefix(accessConfig.ClusterName))
-			if err != nil {
-				fmt.Print("failed ✗")
-				errorsList = append(errorsList, err)
-				fmt.Printf("\n\nfailed to delete all sqs queues; please delete queues starting with the name %s via the cloudwatch console: https://%s.console.aws.amazon.com/sqs/v2/home\n", clusterconfig.SQSNamePrefix(accessConfig.ClusterName), accessConfig.Region)
-				errors.PrintError(err)
-				fmt.Println()
-			} else {
-				fmt.Println("✓")
-			}
+			fmt.Println("✓")
 		}
 
 		clusterDoesntExist := !clusterExists

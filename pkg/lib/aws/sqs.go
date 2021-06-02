@@ -64,7 +64,8 @@ func (c *Client) DoesQueueExist(queueName string) (bool, error) {
 	return true, nil
 }
 
-func (c *Client) DeleteQueuesWithPrefix(queueNamePrefix string) error {
+func (c *Client) DeleteQueuesWithPrefix(queueNamePrefix string) (int, error) {
+	var numDeleted int
 	var deleteError error
 
 	err := c.SQS().ListQueuesPages(&sqs.ListQueuesInput{
@@ -75,6 +76,8 @@ func (c *Client) DeleteQueuesWithPrefix(queueNamePrefix string) error {
 				QueueUrl: queueURL,
 			})
 
+			numDeleted++
+
 			if deleteError != nil {
 				deleteError = err
 			}
@@ -83,12 +86,12 @@ func (c *Client) DeleteQueuesWithPrefix(queueNamePrefix string) error {
 	})
 
 	if err != nil {
-		return errors.WithStack(err)
+		return 0, errors.WithStack(err)
 	}
 
 	if deleteError != nil {
-		return errors.WithStack(deleteError)
+		return 0, errors.WithStack(deleteError)
 	}
 
-	return nil
+	return numDeleted, nil
 }
