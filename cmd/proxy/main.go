@@ -209,7 +209,7 @@ func readinessTCPHandler(port int, logger *zap.SugaredLogger) http.HandlerFunc {
 
 		conn, err := net.DialTimeout("tcp", address, timeout)
 		if err != nil {
-			logger.Warn(errors.Wrap(err, "health check to user provided containers failed"))
+			logger.Warn(errors.Wrap(err, "TCP probe to user-provided container port failed"))
 			w.WriteHeader(http.StatusInternalServerError)
 			_, _ = w.Write([]byte("unhealthy"))
 			return
