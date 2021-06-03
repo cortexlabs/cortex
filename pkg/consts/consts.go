@@ -45,6 +45,10 @@ var (
 	MaxBucketLifecycleRules      = 100
 	AsyncWorkloadsExpirationDays = int64(7)
 
+	ReservedContainerPorts = []int32{
+		ProxyListeningPortInt32,
+		AdminPortInt32,
+	}
 	ReservedContainerNames = []string{
 		"dequeuer",
 		"proxy",

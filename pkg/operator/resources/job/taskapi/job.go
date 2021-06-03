@@ -69,10 +69,6 @@ func SubmitJob(apiName string, submission *schema.TaskJobSubmission) (*spec.Task
 		return nil, err
 	}
 
-	if err := createJobConfigMap(*apiSpec, jobSpec); err != nil {
-		return nil, err
-	}
-
 	deployJob(apiSpec, &jobSpec)
 
 	return &jobSpec, nil
@@ -88,6 +84,23 @@ func uploadJobSpec(jobSpec *spec.TaskJob) error {
 	return nil
 }
 
+func deployJob(apiSpec *spec.API, jobSpec *spec.TaskJob) {
+	err := createJobConfigMap(*apiSpec, *jobSpec)
+	if err != nil {
+		handleJobSubmissionError(jobSpec.JobKey, err)
+	}
+
+	err = createK8sJob(apiSpec, jobSpec)
+	if err != nil {
+		handleJobSubmissionError(jobSpec.JobKey, err)
+	}
+
+	err = job.SetRunningStatus(jobSpec.JobKey)
+	if err != nil {
+		handleJobSubmissionError(jobSpec.JobKey, err)
+	}
+}
+
 func createJobConfigMap(apiSpec spec.API, jobSpec spec.TaskJob) error {
 	configMapConfig := workloads.ConfigMapConfig{
 		TaskJob: &jobSpec,
@@ -99,18 +112,6 @@ func createJobConfigMap(apiSpec spec.API, jobSpec spec.TaskJob) error {
 	}
 
 	return createK8sConfigMap(k8sConfigMap(apiSpec, jobSpec, configMapData))
-}
-
-func deployJob(apiSpec *spec.API, jobSpec *spec.TaskJob) {
-	err := createK8sJob(apiSpec, jobSpec)
-	if err != nil {
-		handleJobSubmissionError(jobSpec.JobKey, err)
-	}
-
-	err = job.SetRunningStatus(jobSpec.JobKey)
-	if err != nil {
-		handleJobSubmissionError(jobSpec.JobKey, err)
-	}
 }
 
 func handleJobSubmissionError(jobKey spec.JobKey, jobErr error) {
