@@ -173,7 +173,9 @@ func (p *Probe) httpProbe() error {
 		"http://",
 	)
 
-	httpClient := &http.Client{}
+	httpClient := &http.Client{
+		Timeout: time.Duration(p.TimeoutSeconds) * time.Second,
+	}
 	req, err := http.NewRequest(http.MethodGet, targetURL, nil)
 	if err != nil {
 		return err

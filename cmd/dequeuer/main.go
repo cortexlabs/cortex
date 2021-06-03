@@ -87,6 +87,8 @@ func main() {
 		log.Fatal("--api-name is a required option")
 	case apiKind == "":
 		log.Fatal("--api-kind is a required option")
+	case adminPort == 0:
+		log.Fatal("--admin-port is a required option")
 	}
 
 	targetURL := "http://127.0.0.1:" + strconv.Itoa(userContainerPort)
@@ -142,8 +144,6 @@ func main() {
 	var dequeuerConfig dequeuer.SQSDequeuerConfig
 	var messageHandler dequeuer.MessageHandler
 
-	errCh := make(chan error)
-
 	switch apiKind {
 	case userconfig.BatchAPIKind.String():
 		if jobID == "" {
@@ -169,9 +169,6 @@ func main() {
 		if clusterUID == "" {
 			log.Fatal("--cluster-uid is a required option")
 		}
-		if adminPort == 0 {
-			log.Fatal("--admin-port is a required option")
-		}
 
 		config := dequeuer.AsyncMessageHandlerConfig{
 			ClusterUID: clusterUID,
@@ -187,23 +184,25 @@ func main() {
 			StopIfNoMessages: false,
 		}
 
-		adminHandler := http.NewServeMux()
-		adminHandler.Handle("/healthz", dequeuer.HealthcheckHandler(func() bool {
-			return probe.AreProbesHealthy(probes)
-		}))
-
-		go func() {
-			server := &http.Server{
-				Addr:    ":" + strconv.Itoa(adminPort),
-				Handler: adminHandler,
-			}
-			log.Infof("Starting %s server on %s", "admin", server.Addr)
-			errCh <- server.ListenAndServe()
-		}()
-
 	default:
 		exit(log, err, fmt.Sprintf("kind %s is not supported", apiKind))
 	}
+
+	errCh := make(chan error)
+
+	adminHandler := http.NewServeMux()
+	adminHandler.Handle("/healthz", dequeuer.HealthcheckHandler(func() bool {
+		return probe.AreProbesHealthy(probes)
+	}))
+
+	go func() {
+		server := &http.Server{
+			Addr:    ":" + strconv.Itoa(adminPort),
+			Handler: adminHandler,
+		}
+		log.Infof("Starting %s server on %s", "admin", server.Addr)
+		errCh <- server.ListenAndServe()
+	}()
 
 	sigint := make(chan os.Signal, 1)
 	signal.Notify(sigint, os.Interrupt)
