@@ -4,23 +4,17 @@ import json
 import re
 
 from typing import List
-from fastapi import FastAPI, Request, status
+from fastapi import FastAPI, status
 from fastapi.responses import PlainTextResponse
 
 app = FastAPI()
+app.ready = False
+app.numbers_list = []
 s3 = boto3.client("s3")
-state = {
-    "ready": False,
-    "bucket": None,
-    "key": None,
-    "numbers_list": [],
-}
 
 
 @app.on_event("startup")
 def startup():
-    global state
-
     # read job spec
     with open("/cortex/spec/job.json", "r") as f:
         job_spec = json.load(f)
@@ -33,28 +27,27 @@ def startup():
         raise Exception("'dest_s3_dir' field was not provided in job submission")
 
     # s3 info
-    state["bucket"], state["key"] = re.match("s3://(.+?)/(.+)", config["dest_s3_dir"]).groups()
-    state["key"] = os.path.join(state["key"], job_id)
+    app.bucket, app.key = re.match("s3://(.+?)/(.+)", config["dest_s3_dir"]).groups()
+    app.key = os.path.join(app.key, job_id)
 
-    state["ready"] = True
+    app.ready = True
 
 
 @app.get("/healthz")
 def healthz():
-    if state["ready"]:
+    if app.ready:
         return PlainTextResponse("ok")
     return PlainTextResponse("service unavailable", status_code=status.HTTP_503_SERVICE_UNAVAILABLE)
 
 
 @app.post("/")
-async def handle_batch(request: Request):
-    global state
-    payload: List[List[int]] = await request.json()
-    for numbers_list in payload:
-        state["numbers_list"].append(sum(numbers_list))
+def handle_batch(batches: List[List[int]]):
+    for numbers_list in batches:
+        app.numbers_list.append(sum(numbers_list))
 
 
 @app.post("/on-job-complete")
 def on_job_complete():
-    json_output = json.dumps(state["numbers_list"])
-    s3.put_object(Bucket=state["bucket"], Key=f"{state['key']}.json", Body=json_output)
+    # this is only intended to work if 1 worker is used (since on-job-complete runs once across all workers)
+    json_output = json.dumps(app.numbers_list)
+    s3.put_object(Bucket=app.bucket, Key=f"{app.key}.json", Body=json_output)

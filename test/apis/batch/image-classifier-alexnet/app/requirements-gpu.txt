@@ -2,5 +2,5 @@ uvicorn[standard]
 fastapi
 requests
 boto3==1.17.*
-torchvision==0.8.*
 torch==1.7.*
+torchvision==0.8.*

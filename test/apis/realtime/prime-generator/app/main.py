@@ -25,10 +25,10 @@ def healthz():
     return "ok"
 
 
-class Request(BaseModel):
+class Body(BaseModel):
     primes_to_generate: float
 
 
 @app.post("/")
-def prime_numbers(request: Request):
-    return {"prime_numbers": list(generate_primes(request.primes_to_generate))}
+def prime_numbers(body: Body):
+    return {"prime_numbers": list(generate_primes(body.primes_to_generate))}
