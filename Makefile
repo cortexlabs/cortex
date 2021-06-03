@@ -162,6 +162,11 @@ format:
 # Tests #
 #########
 
+# build test api images
+# make sure you login with your quay credentials
+build-and-push-test-images:
+	@./test/utils/build-all.sh quay.io/cortexlabs-test
+
 test:
 	@./build/test.sh go
 

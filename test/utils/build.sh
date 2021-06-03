@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# usage: ./build.sh build PATH [REGISTRY] [--skip-push]
+# usage: ./build.sh PATH [REGISTRY] [--skip-push]
 #   PATH is e.g. /home/ubuntu/src/github.com/cortexlabs/cortex/test/apis/realtime/sleep/build-cpu.sh
 #   REGISTRY defaults to $CORTEX_DEV_DEFAULT_IMAGE_REGISTRY; e.g. 764403040460.dkr.ecr.us-west-2.amazonaws.com/cortexlabs or quay.io/cortexlabs-test
 
@@ -79,14 +79,19 @@ while true; do
   exec 5>&1
   set +e
   out=$(docker push $image_url 2>&1 | tee /dev/fd/5; exit ${PIPESTATUS[0]})
+  exit_code=$?
   set -e
-  if [[ "$image_url" == *".ecr."* ]]; then
-    if [[ "$out" == *"authorization token has expired"* ]] || [[ "$out" == *"no basic auth credentials"* ]]; then
-      registry_login $login_url $region
-      continue
-    elif [[ "$out" == *"does not exist"* ]]; then
-      create_ecr_repo $repo_name $region
-      continue
+  if [ $exit_code -ne 0 ]; then
+    if [[ "$image_url" != *".ecr."* ]]; then
+      exit $exit_code
+    else
+      if [[ "$out" == *"authorization token has expired"* ]] || [[ "$out" == *"no basic auth credentials"* ]]; then
+        registry_login $login_url $region
+        continue
+      elif [[ "$out" == *"does not exist"* ]]; then
+        create_ecr_repo $repo_name $region
+        continue
+      fi
     fi
   fi
   green_echo "\nPushed $image_url:latest"
