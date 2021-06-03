@@ -169,7 +169,7 @@ func (p *Probe) probeContainer() bool {
 
 func (p *Probe) httpProbe() error {
 	targetURL := s.EnsurePrefix(
-		net.JoinHostPort("localhost", p.HTTPGet.Port.String())+s.EnsurePrefix(p.HTTPGet.Path, "/"),
+		net.JoinHostPort(p.HTTPGet.Host, p.HTTPGet.Port.String())+s.EnsurePrefix(p.HTTPGet.Path, "/"),
 		"http://",
 	)
 
