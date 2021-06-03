@@ -17,12 +17,12 @@ limitations under the License.
 package cliconfig
 
 import (
+	"fmt"
 	"strings"
 
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
+	"github.com/cortexlabs/cortex/pkg/lib/console"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
-	"github.com/cortexlabs/cortex/pkg/lib/pointer"
-	"github.com/cortexlabs/cortex/pkg/lib/table"
 	"github.com/cortexlabs/cortex/pkg/lib/urls"
 )
 
@@ -32,19 +32,17 @@ type Environment struct {
 }
 
 func (env Environment) String(isDefault bool) string {
-	var items table.KeyValuePairs
+	var envStr string
 
 	if isDefault {
-		items.Add("name", env.Name+" (default)")
+		envStr += console.Bold(env.Name + " (default)")
 	} else {
-		items.Add("name", env.Name)
+		envStr += console.Bold(env.Name)
 	}
 
-	items.Add("cortex operator endpoint", env.OperatorEndpoint)
+	envStr += fmt.Sprintf("\ncortex operator endpoint: %s\n", env.OperatorEndpoint)
 
-	return items.String(&table.KeyValuePairOpts{
-		BoldFirstLine: pointer.Bool(true),
-	})
+	return envStr
 }
 
 func CortexEndpointValidator(val string) (string, error) {
