@@ -49,7 +49,7 @@ def startup():
 
 @app.get("/healthz")
 def healthz():
-    if app.app.ready:
+    if app.ready:
         return PlainTextResponse("ok")
     return PlainTextResponse("service unavailable", status_code=status.HTTP_503_SERVICE_UNAVAILABLE)
 
