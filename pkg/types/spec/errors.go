@@ -40,6 +40,8 @@ const (
 	ErrOneOfPrerequisitesNotDefined = "spec.one_of_prerequisites_not_defined"
 	ErrConfigGreaterThanOtherConfig = "spec.config_greater_than_other_config"
 
+	ErrMinReplicasLessThan        = "spec.min_replicas_less_than"
+	ErrInitReplicasLessThan       = "spec.init_replicas_less_than"
 	ErrMinReplicasGreaterThanMax  = "spec.min_replicas_greater_than_max"
 	ErrInitReplicasGreaterThanMax = "spec.init_replicas_greater_than_max"
 	ErrInitReplicasLessThanMin    = "spec.init_replicas_less_than_min"
@@ -163,6 +165,20 @@ func ErrorConfigGreaterThanOtherConfig(tooBigKey string, tooBigVal interface{}, 
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrConfigGreaterThanOtherConfig,
 		Message: fmt.Sprintf("%s (%s) cannot be greater than %s (%s)", tooBigKey, s.UserStr(tooBigVal), tooSmallKey, s.UserStr(tooSmallVal)),
+	})
+}
+
+func ErrorMinReplicasLessThan(min int32, limit int32) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrMinReplicasLessThan,
+		Message: fmt.Sprintf("%s cannot be less than %d (%d)", userconfig.MinReplicasKey, limit, min),
+	})
+}
+
+func ErrorInitReplicasLessThan(min int32, limit int32) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrInitReplicasLessThan,
+		Message: fmt.Sprintf("%s cannot be less than %d (%d)", userconfig.InitReplicasKey, limit, min),
 	})
 }
 

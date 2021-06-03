@@ -30,7 +30,7 @@ const (
 	_prometheusQueryTimeoutSeconds = 10
 )
 
-func getInflightRequests(apiName string, window time.Duration) (*float64, error) {
+func getInflightRequests(apiName string, deploymentID string, minReplicas int32, window time.Duration) (*float64, error) {
 	windowSeconds := int64(window.Seconds())
 
 	// PromQL query:

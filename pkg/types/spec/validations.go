@@ -473,8 +473,7 @@ func autoscalingValidation() *cr.StructFieldValidation {
 				{
 					StructField: "MinReplicas",
 					Int32Validation: &cr.Int32Validation{
-						Default:     1,
-						GreaterThan: pointer.Int32(0),
+						Default: 1,
 					},
 				},
 				{
@@ -485,11 +484,9 @@ func autoscalingValidation() *cr.StructFieldValidation {
 					},
 				},
 				{
-					StructField:  "InitReplicas",
-					DefaultField: "MinReplicas",
-					Int32Validation: &cr.Int32Validation{
-						GreaterThan: pointer.Int32(0),
-					},
+					StructField:     "InitReplicas",
+					DefaultField:    "MinReplicas",
+					Int32Validation: &cr.Int32Validation{},
 				},
 				{
 					StructField: "TargetInFlight",
@@ -804,6 +801,12 @@ func validateAutoscaling(api *userconfig.API) error {
 	pod := api.Pod
 
 	if api.Kind == userconfig.RealtimeAPIKind {
+		if autoscaling.MinReplicas < 1 {
+			return ErrorMinReplicasLessThan(autoscaling.MinReplicas, 1)
+		}
+		if autoscaling.InitReplicas < 1 {
+			return ErrorInitReplicasLessThan(autoscaling.InitReplicas, 1)
+		}
 		if autoscaling.TargetInFlight == nil {
 			autoscaling.TargetInFlight = pointer.Float64(float64(pod.MaxConcurrency))
 		}
@@ -813,6 +816,12 @@ func validateAutoscaling(api *userconfig.API) error {
 	}
 
 	if api.Kind == userconfig.AsyncAPIKind {
+		if autoscaling.MinReplicas < 0 {
+			return ErrorMinReplicasLessThan(autoscaling.MinReplicas, 0)
+		}
+		if autoscaling.InitReplicas < 0 {
+			return ErrorInitReplicasLessThan(autoscaling.InitReplicas, 0)
+		}
 		if autoscaling.TargetInFlight == nil {
 			autoscaling.TargetInFlight = pointer.Float64(1)
 		}

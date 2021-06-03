@@ -33,7 +33,7 @@ import (
 
 // GetInFlightFunc is the function signature used by the autoscaler to retrieve
 // the number of in-flight requests / messages
-type GetInFlightFunc func(apiName string, window time.Duration) (*float64, error)
+type GetInFlightFunc func(apiName string, deploymentID string, minReplicas int32, window time.Duration) (*float64, error)
 
 type recommendations map[time.Time]int32
 
@@ -108,6 +108,7 @@ func AutoscaleFn(initialDeployment *kapps.Deployment, apiSpec *spec.API, getInFl
 
 	apiName := apiSpec.Name
 	currentReplicas := *initialDeployment.Spec.Replicas
+	deploymentID := initialDeployment.Labels["deploymentID"]
 
 	apiLogger, err := operator.GetRealtimeAPILoggerFromSpec(apiSpec)
 	if err != nil {
@@ -124,7 +125,7 @@ func AutoscaleFn(initialDeployment *kapps.Deployment, apiSpec *spec.API, getInFl
 			startTime = time.Now()
 		}
 
-		avgInFlight, err := getInFlightFn(apiName, autoscalingSpec.Window)
+		avgInFlight, err := getInFlightFn(apiName, deploymentID, apiSpec.Autoscaling.MinReplicas, autoscalingSpec.Window)
 		if err != nil {
 			return err
 		}
