@@ -1,7 +1,7 @@
 - name: sleep
   kind: RealtimeAPI
   pod:
-    port: 9000
+    port: 8080
     max_concurrency: 1
     max_queue_length: 128
     containers:
@@ -10,7 +10,7 @@
       readiness_probe:
         http_get:
           path: "/healthz"
-          port: 9000
+          port: 8080
       compute:
         cpu: 200m
         mem: 128M

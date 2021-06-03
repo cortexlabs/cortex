@@ -6,17 +6,7 @@
     containers:
     - name: api
       image: quay.io/cortexlabs-test/batch-sum-cpu:latest
-      command:
-        - "gunicorn"
-        - "-k"
-        - "uvicorn.workers.UvicornWorker"
-        - "--workers"
-        - "1"
-        - "--threads"
-        - "1"
-        - "--bind"
-        - ":$(CORTEX_PORT)"
-        - "main:app"
+      command: ["uvicorn", "--workers", "1", "--host", "0.0.0.0", "--port", "$(CORTEX_PORT)", "main:app"]
       readiness_probe:
         http_get:
           path: "/healthz"

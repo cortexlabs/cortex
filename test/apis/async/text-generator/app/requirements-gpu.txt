@@ -1,0 +1,5 @@
+uvicorn[standard]
+fastapi
+pydantic
+transformers==3.0.*
+torch==1.7.*

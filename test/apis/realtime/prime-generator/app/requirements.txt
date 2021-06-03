@@ -1,0 +1,3 @@
+uvicorn[standard]
+fastapi
+pydantic

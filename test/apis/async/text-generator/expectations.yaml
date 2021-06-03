@@ -3,7 +3,7 @@ response:
   json_schema:
     type: "object"
     properties:
-      prediction:
+      text:
         type: "string"
     required:
-      - "prediction"
+      - "text"

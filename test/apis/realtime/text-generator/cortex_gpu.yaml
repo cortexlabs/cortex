@@ -1,7 +1,7 @@
 - name: text-generator
   kind: RealtimeAPI
   pod:
-    port: 9000
+    port: 8080
     max_concurrency: 1
     containers:
     - name: api
@@ -11,7 +11,7 @@
       readiness_probe:
         http_get:
           path: "/healthz"
-          port: 9000
+          port: 8080
       compute:
         cpu: 1
         gpu: 1

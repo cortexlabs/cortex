@@ -27,7 +27,7 @@ function registry_login() {
   login_url=$1  # e.g. 764403040460.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/realtime-sleep-cpu
   region=$2
 
-  blue_echo "\nLogging in to ECR..."
+  blue_echo "\nLogging in to ECR"
   aws ecr get-login-password --region $region | docker login --username AWS --password-stdin $login_url
   green_echo "\nSuccess"
 }
@@ -36,7 +36,7 @@ function create_ecr_repo() {
   repo_name=$1  # e.g. cortexlabs/realtime-sleep-cpu
   region=$2
 
-  blue_echo "\nCreating ECR repo $repo_name..."
+  blue_echo "\nCreating ECR repo $repo_name"
   aws ecr create-repository --repository-name=$repo_name --region=$region
   green_echo "\nSuccess"
 }
@@ -66,8 +66,8 @@ if [[ "$image_url" == *".ecr."* ]]; then
   region="$(echo "$image_url" | sed 's/.*\.ecr\.//' | sed 's/\..*//')"  # e.g. us-west-2
 fi
 
-blue_echo "Building $image_url:latest...\n"
-docker build "$(dirname "$path")" -f "$(dirname "$path")/$name-$architecture.dockerfile" -t "$image_url"
+blue_echo "Building $image_url:latest\n"
+docker build "$(dirname "$path")" -f "$(dirname "$path")/$architecture.Dockerfile" -t "$image_url"
 green_echo "\nBuilt $image_url:latest"
 
 if [ "$should_skip_push" = "true" ]; then
@@ -75,7 +75,7 @@ if [ "$should_skip_push" = "true" ]; then
 fi
 
 while true; do
-  blue_echo "\nPushing $image_url:latest..."
+  blue_echo "\nPushing $image_url:latest"
   exec 5>&1
   set +e
   out=$(docker push $image_url 2>&1 | tee /dev/fd/5; exit ${PIPESTATUS[0]})
