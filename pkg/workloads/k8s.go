@@ -180,6 +180,7 @@ func batchDequeuerProxyContainer(api spec.API, jobID, queueURL string) (kcore.Co
 			"--job-id", jobID,
 			"--user-port", s.Int32(*api.Pod.Port),
 			"--statsd-port", consts.StatsDPortStr,
+			"--admin-port", consts.AdminPortStr,
 		},
 		Env: append(baseEnvVars, kcore.EnvVar{
 			Name: "HOST_IP",
@@ -189,6 +190,19 @@ func batchDequeuerProxyContainer(api spec.API, jobID, queueURL string) (kcore.Co
 				},
 			},
 		}),
+		ReadinessProbe: &kcore.Probe{
+			Handler: kcore.Handler{
+				HTTPGet: &kcore.HTTPGetAction{
+					Path: "/healthz",
+					Port: intstr.FromInt(int(consts.AdminPortInt32)),
+				},
+			},
+			InitialDelaySeconds: 1,
+			TimeoutSeconds:      1,
+			PeriodSeconds:       5,
+			SuccessThreshold:    1,
+			FailureThreshold:    1,
+		},
 		VolumeMounts: []kcore.VolumeMount{
 			ClusterConfigMount(),
 			CortexMount(),

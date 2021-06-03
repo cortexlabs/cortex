@@ -169,11 +169,13 @@ func (p *Probe) probeContainer() bool {
 
 func (p *Probe) httpProbe() error {
 	targetURL := s.EnsurePrefix(
-		net.JoinHostPort(p.HTTPGet.Host, p.HTTPGet.Port.String())+s.EnsurePrefix(p.HTTPGet.Path, "/"),
+		net.JoinHostPort("localhost", p.HTTPGet.Port.String())+s.EnsurePrefix(p.HTTPGet.Path, "/"),
 		"http://",
 	)
 
-	httpClient := &http.Client{}
+	httpClient := &http.Client{
+		Timeout: time.Duration(p.TimeoutSeconds) * time.Second,
+	}
 	req, err := http.NewRequest(http.MethodGet, targetURL, nil)
 	if err != nil {
 		return err
