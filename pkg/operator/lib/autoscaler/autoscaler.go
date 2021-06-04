@@ -156,10 +156,6 @@ func AutoscaleFn(initialDeployment *kapps.Deployment, apiSpec *spec.API, getInFl
 			recommendation = upscaleFactorCeil
 		}
 
-		if apiSpec.Autoscaling.MinReplicas > 0 && recommendation < 1 {
-			recommendation = 1
-		}
-
 		if recommendation < autoscalingSpec.MinReplicas {
 			recommendation = autoscalingSpec.MinReplicas
 		}
