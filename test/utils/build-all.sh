@@ -20,8 +20,7 @@
 set -eo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")"/../.. >/dev/null && pwd)"
-source $ROOT/dev/util.sh
 
 for f in $(find $ROOT/test/apis -type f -name 'build-*.sh'); do
-  $ROOT/test/utils/build.sh $f "$@"
+  "$f" "$@"
 done
