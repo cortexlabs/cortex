@@ -26,6 +26,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/sqs"
 	"github.com/cortexlabs/cortex/pkg/config"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
@@ -112,14 +113,22 @@ func getMessagesInQueue(apiName string, deploymentID string, minReplicas int32, 
 	}
 
 	var avgMessagesInQueue *float64
-
 	if values.Len() != 0 {
-		val := float64(values[0].Value)
-		avgMessagesInQueue = &val
+		avgMessagesInQueue = pointer.Float64(float64(values[0].Value))
 	}
 
-	if minReplicas > 0 && (avgMessagesInQueue == nil || *avgMessagesInQueue == 0.0) {
-		apiQueueName(apiName, deploymentID)
+	if minReplicas == 0 && (avgMessagesInQueue == nil || *avgMessagesInQueue == 0.0) {
+		queueURL, err := getQueueURL(apiName, deploymentID)
+		if err != nil {
+			return nil, err
+		}
+
+		visibleMessages, err := getAvailableMessagesInQueue(queueURL)
+		if err != nil {
+			return nil, err
+		}
+
+		avgMessagesInQueue = pointer.Float64(float64(visibleMessages))
 	}
 
 	return avgMessagesInQueue, nil

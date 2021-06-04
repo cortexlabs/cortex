@@ -23,6 +23,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/sqs"
 	"github.com/cortexlabs/cortex/pkg/config"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/types/clusterconfig"
 )
 
@@ -50,6 +51,31 @@ func createFIFOQueue(apiName string, deploymentID string, tags map[string]string
 	}
 
 	return *output.QueueUrl, nil
+}
+
+func getAvailableMessagesInQueue(queueURL string) (int32, error) {
+	result, err := config.AWS.SQS().GetQueueAttributes(
+		&sqs.GetQueueAttributesInput{
+			QueueUrl: aws.String(queueURL),
+			AttributeNames: aws.StringSlice([]string{
+				"ApproximateNumberOfMessages",
+			}),
+		},
+	)
+	if err != nil {
+		return 0, errors.WithStack(err)
+	}
+
+	attributes := aws.StringValueMap(result.Attributes)
+
+	if val, found := attributes["ApproximateNumberOfMessages"]; found {
+		visibleCount, ok := s.ParseInt32(val)
+		if ok {
+			return visibleCount, nil
+		}
+	}
+
+	return 0, nil
 }
 
 func apiQueueName(apiName string, deploymentID string) string {
