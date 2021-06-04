@@ -535,7 +535,6 @@ func (api *API) TelemetryEvent() map[string]interface{} {
 
 	if api.Pod != nil {
 		event["pod._is_defined"] = true
-		event["pod.node_groups._is_defined"] = len(api.Pod.NodeGroups) > 0
 		event["pod.node_groups._len"] = len(api.Pod.NodeGroups)
 		if api.Pod.Port != nil {
 			event["pod.port"] = *api.Pod.Port
@@ -560,7 +559,6 @@ func (api *API) TelemetryEvent() map[string]interface{} {
 		event["pod.containers._num_readiness_probes"] = numReadinessProbes
 		event["pod.containers._num_liveness_probes"] = numLivenessProbes
 
-		event["pod.containers.compute._is_defined"] = true
 		totalCompute := GetTotalComputeFromContainers(api.Pod.Containers)
 		if totalCompute.CPU != nil {
 			event["pod.containers.compute.cpu._is_defined"] = true
@@ -589,7 +587,10 @@ func (api *API) TelemetryEvent() map[string]interface{} {
 		event["autoscaling.min_replicas"] = api.Autoscaling.MinReplicas
 		event["autoscaling.max_replicas"] = api.Autoscaling.MaxReplicas
 		event["autoscaling.init_replicas"] = api.Autoscaling.InitReplicas
-		event["autoscaling.target_in_flight"] = *api.Autoscaling.TargetInFlight
+		if api.Autoscaling.TargetInFlight != nil {
+			event["autoscaling.target_in_flight._is_defined"] = true
+			event["autoscaling.target_in_flight"] = *api.Autoscaling.TargetInFlight
+		}
 		event["autoscaling.window"] = api.Autoscaling.Window.Seconds()
 		event["autoscaling.downscale_stabilization_period"] = api.Autoscaling.DownscaleStabilizationPeriod.Seconds()
 		event["autoscaling.upscale_stabilization_period"] = api.Autoscaling.UpscaleStabilizationPeriod.Seconds()

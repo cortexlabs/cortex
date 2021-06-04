@@ -23,6 +23,8 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")"/.. >/dev/null && pwd)"
 source $ROOT/build/images.sh
 source $ROOT/dev/util.sh
 
+images_with_builders="operator proxy async-gateway enqueuer dequeuer controller-manager"
+
 if [ -f "$ROOT/dev/config/env.sh" ]; then
   source $ROOT/dev/config/env.sh
 fi
@@ -216,7 +218,7 @@ elif [ "$cmd" = "create" ]; then
 # usage: registry.sh update-single IMAGE
 elif [ "$cmd" = "update-single" ]; then
   image=$sub_cmd
-  if [ "$image" = "operator" ] || [ "$image" = "proxy" ]; then
+  if [[ " $images_with_builders " =~ " $image " ]]; then
     cache_builder $image
   fi
   build_and_push $image
@@ -234,24 +236,11 @@ elif [ "$cmd" = "update" ]; then
     images_to_build+=( "${dev_images[@]}" )
   fi
 
-  if [[ " ${images_to_build[@]} " =~ " operator " ]]; then
-    cache_builder operator
-  fi
-  if [[ " ${images_to_build[@]} " =~ " proxy " ]]; then
-    cache_builder proxy
-  fi
-  if [[ " ${images_to_build[@]} " =~ " async-gateway " ]]; then
-    cache_builder async-gateway
-  fi
-  if [[ " ${images_to_build[@]} " =~ " enqueuer " ]]; then
-    cache_builder enqueuer
-  fi
-  if [[ " ${images_to_build[@]} " =~ " dequeuer " ]]; then
-    cache_builder dequeuer
-  fi
-  if [[ " ${images_to_build[@]} " =~ " controller-manager " ]]; then
-    cache_builder controller-manager
-  fi
+  for image in $images_with_builders; do
+    if [[ " ${images_to_build[@]} " =~ " $image " ]]; then
+      cache_builder $image
+    fi
+  done
 
   if command -v parallel &> /dev/null && [ -n "${NUM_BUILD_PROCS+set}" ] && [ "$NUM_BUILD_PROCS" != "1" ]; then
     is_registry_logged_in=$is_registry_logged_in ROOT=$ROOT registry_push_url=$registry_push_url SHELL=$(type -p /bin/bash) parallel --will-cite --halt now,fail=1 --eta --jobs $NUM_BUILD_PROCS build_and_push "{}" ::: "${images_to_build[@]}"

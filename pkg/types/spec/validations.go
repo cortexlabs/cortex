@@ -38,7 +38,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/urls"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	dockertypes "github.com/docker/docker/api/types"
-	"github.com/opencontainers/go-digest"
 	kresource "k8s.io/apimachinery/pkg/api/resource"
 )
 
@@ -949,35 +948,4 @@ func getDockerAuthStrFromK8s(dockerClient *docker.Client, k8sClient *k8s.Client)
 	}
 
 	return dockerAuthStr, nil
-}
-
-func getDockerImageDigest(
-	image string,
-	awsClient *aws.Client,
-	k8sClient *k8s.Client,
-) (digest.Digest, error) {
-	dockerClient, err := docker.GetDockerClient()
-	if err != nil {
-		return digest.Digest(""), err
-	}
-
-	dockerAuthStr := docker.NoAuth
-
-	if regex.IsValidECRURL(image) {
-		dockerAuthStr, err = docker.AWSAuthConfig(awsClient)
-		if err != nil {
-			return digest.Digest(""), err
-		}
-	} else if k8sClient != nil {
-		dockerAuthStr, err = getDockerAuthStrFromK8s(dockerClient, k8sClient)
-		if err != nil {
-			return digest.Digest(""), err
-		}
-	}
-
-	distributionDigest, err := docker.GetDistributionDigest(dockerClient, image, dockerAuthStr)
-	if err != nil {
-		return digest.Digest(""), err
-	}
-	return distributionDigest, err
 }
