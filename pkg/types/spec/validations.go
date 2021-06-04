@@ -478,8 +478,8 @@ func autoscalingValidation(kind userconfig.Kind) *cr.StructFieldValidation {
 				{
 					StructField: "MinReplicas",
 					Int32Validation: &cr.Int32Validation{
-						Default:     1,
-						GreaterThan: pointer.Int32(minReplicas),
+						Default:              1,
+						GreaterThanOrEqualTo: pointer.Int32(minReplicas),
 					},
 				},
 				{
@@ -493,7 +493,7 @@ func autoscalingValidation(kind userconfig.Kind) *cr.StructFieldValidation {
 					StructField:  "InitReplicas",
 					DefaultField: "MinReplicas",
 					Int32Validation: &cr.Int32Validation{
-						GreaterThan: pointer.Int32(minReplicas),
+						GreaterThanOrEqualTo: pointer.Int32(minReplicas),
 					},
 				},
 				{
