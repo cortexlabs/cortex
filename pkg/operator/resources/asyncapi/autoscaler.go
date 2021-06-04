@@ -86,7 +86,7 @@ func updateQueueLengthMetricsFn(apiName, queueURL string) func() error {
 	}
 }
 
-func getMessagesInQueue(apiName string, deploymentID string, minReplicas int32, window time.Duration) (*float64, error) {
+func getMessagesInQueue(apiName string, window time.Duration) (*float64, error) {
 	windowSeconds := int64(window.Seconds())
 
 	// PromQL query:
@@ -112,24 +112,8 @@ func getMessagesInQueue(apiName string, deploymentID string, minReplicas int32, 
 		return nil, errors.ErrorUnexpected("failed to convert prometheus metric to vector")
 	}
 
-	var avgMessagesInQueue *float64
 	if values.Len() != 0 {
-		avgMessagesInQueue = pointer.Float64(float64(values[0].Value))
+		return pointer.Float64(float64(values[0].Value)), nil
 	}
-
-	if minReplicas == 0 && (avgMessagesInQueue == nil || *avgMessagesInQueue == 0.0) {
-		queueURL, err := getQueueURL(apiName, deploymentID)
-		if err != nil {
-			return nil, err
-		}
-
-		visibleMessages, err := getAvailableMessagesInQueue(queueURL)
-		if err != nil {
-			return nil, err
-		}
-
-		avgMessagesInQueue = pointer.Float64(float64(visibleMessages))
-	}
-
-	return avgMessagesInQueue, nil
+	return nil, nil
 }
