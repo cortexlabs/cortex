@@ -1,0 +1,15 @@
+- name: image-classifier-resnet50
+  kind: RealtimeAPI
+  pod:
+    port: 8501
+    max_concurrency: 8
+    containers:
+    - name: api
+      image: quay.io/cortexlabs-test/realtime-image-classifier-resnet50-gpu:latest
+      readiness_probe:
+        exec:
+          command: ["tfs_model_status_probe", "-addr", "localhost:8500", "-model-name", "resnet50"]
+      compute:
+        cpu: 200m
+        gpu: 1
+        mem: 512Mi

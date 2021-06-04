@@ -1,8 +1,0 @@
-- name: entity-recognizer
-  kind: RealtimeAPI
-  handler:
-    type: python
-    path: handler.py
-  compute:
-    cpu: 1
-    mem: 1G

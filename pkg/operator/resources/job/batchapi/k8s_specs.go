@@ -21,6 +21,7 @@ import (
 	"path"
 
 	"github.com/cortexlabs/cortex/pkg/config"
+	"github.com/cortexlabs/cortex/pkg/consts"
 	batch "github.com/cortexlabs/cortex/pkg/crds/apis/batch/v1alpha1"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/parallel"
@@ -40,7 +41,7 @@ func virtualServiceSpec(api *spec.API) *istioclientnetworking.VirtualService {
 		Destinations: []k8s.Destination{{
 			ServiceName: _operatorService,
 			Weight:      100,
-			Port:        uint32(workloads.DefaultPortInt32),
+			Port:        uint32(consts.ProxyListeningPortInt32),
 		}},
 		PrefixPath:  api.Networking.Endpoint,
 		Rewrite:     pointer.String(path.Join("batch", api.Name)),
@@ -49,7 +50,7 @@ func virtualServiceSpec(api *spec.API) *istioclientnetworking.VirtualService {
 			"apiName":        api.Name,
 			"apiID":          api.ID,
 			"specID":         api.SpecID,
-			"handlerID":      api.HandlerID,
+			"podID":          api.PodID,
 			"apiKind":        api.Kind.String(),
 			"cortex.dev/api": "true",
 		},

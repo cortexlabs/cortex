@@ -1,0 +1,5 @@
+uvicorn[standard]
+fastapi
+transformers==3.0.*
+-f https://download.pytorch.org/whl/torch_stable.html
+torch==1.7.1+cpu

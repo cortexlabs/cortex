@@ -1,0 +1,14 @@
+- name: hello-world
+  kind: AsyncAPI
+  pod:
+    port: 8080
+    containers:
+    - name: api
+      image: quay.io/cortexlabs-test/async-hello-world-cpu:latest
+      readiness_probe:
+        http_get:
+          path: "/healthz"
+          port: 8080
+      compute:
+        cpu: 200m
+        mem: 128M

@@ -1,4 +1,4 @@
-# AsyncAPI
+# Async APIs
 
 The AsyncAPI kind is designed for asynchronous workloads, in which the user submits a request to start the processing
 and retrieves the result later, either by polling or through a webhook.
@@ -14,7 +14,3 @@ workload status and results. Cortex fully manages the Async Gateway and the queu
 
 AsyncAPI is a good fit for users who want to submit longer workloads (such as video, audio
 or document processing), and do not need the result immediately or synchronously.
-
-{% hint style="info" %}
-AsyncAPI is still in a beta state.
-{% endhint %}

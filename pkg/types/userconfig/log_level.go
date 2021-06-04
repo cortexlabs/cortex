@@ -83,22 +83,6 @@ func (t LogLevel) MarshalBinary() ([]byte, error) {
 	return []byte(t.String()), nil
 }
 
-// Value to set for TF_CPP_MIN_LOG_LEVEL environment variable. Default is 0.
-func TFNumericLogLevelFromLogLevel(logLevel LogLevel) int {
-	var tfLogLevelNumber int
-	switch logLevel.String() {
-	case "debug":
-		tfLogLevelNumber = 0
-	case "info":
-		tfLogLevelNumber = 0
-	case "warning":
-		tfLogLevelNumber = 1
-	case "error":
-		tfLogLevelNumber = 2
-	}
-	return tfLogLevelNumber
-}
-
 func ToZapLogLevel(logLevel LogLevel) zapcore.Level {
 	switch logLevel {
 	case InfoLogLevel:

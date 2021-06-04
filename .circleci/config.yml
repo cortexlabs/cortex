@@ -20,8 +20,9 @@ commands:
       - run:
           name: Install Go
           command: |
-            wget https://dl.google.com/go/go1.14.7.linux-amd64.tar.gz
-            sudo tar -C /usr/local -xzf go1.14.7.linux-amd64.tar.gz
+            sudo rm -rf /usr/local/go
+            wget https://dl.google.com/go/go1.15.12.linux-amd64.tar.gz
+            sudo tar -C /usr/local -xzf go1.15.12.linux-amd64.tar.gz
             rm -rf go*.tar.gz
             echo 'export PATH=$PATH:/usr/local/go/bin' >> $BASH_ENV
             echo 'export PATH=$PATH:~/go/bin' >> $BASH_ENV
@@ -75,18 +76,17 @@ commands:
 
 jobs:
   test:
-    docker:
-      - image: circleci/python:3.6
+    machine:
+      image: ubuntu-1604:202104-01  # machine executor necessary to run go integration tests
     steps:
       - checkout
-      - setup_remote_docker
       - install-go
       - run:
           name: Install Linting Tools
           command: |
             go get -u -v golang.org/x/lint/golint
             go get -u -v github.com/kyoh86/looppointer/cmd/looppointer
-            sudo pip install black aiohttp
+            pip3 install black aiohttp
       - run:
           name: Initialize Credentials
           command: |
@@ -111,9 +111,6 @@ jobs:
       - run:
           name: Go Tests
           command: make test-go
-      - run:
-          name: Python Tests
-          command: make test-python
 
   build-and-deploy:
     docker:
@@ -162,8 +159,8 @@ jobs:
             node_groups:
               - name: spot
                 instance_type: t3.medium
-                min_instances: 10
-                max_instances: 10
+                min_instances: 16
+                max_instances: 16
                 spot: true
               - name: cpu
                 instance_type: c5.xlarge

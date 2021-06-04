@@ -51,6 +51,7 @@ var (
 
 type resources struct {
 	apiDeployment         *kapps.Deployment
+	apiConfigMap          *kcore.ConfigMap
 	gatewayDeployment     *kapps.Deployment
 	gatewayService        *kcore.Service
 	gatewayHPA            *kautoscaling.HorizontalPodAutoscaler
@@ -65,7 +66,7 @@ func deploymentID() string {
 	return k8s.RandomName()[:10]
 }
 
-func UpdateAPI(apiConfig userconfig.API, projectID string, force bool) (*spec.API, string, error) {
+func UpdateAPI(apiConfig userconfig.API, force bool) (*spec.API, string, error) {
 	prevK8sResources, err := getK8sResources(apiConfig)
 	if err != nil {
 		return nil, "", err
@@ -76,12 +77,12 @@ func UpdateAPI(apiConfig userconfig.API, projectID string, force bool) (*spec.AP
 		deployID = prevK8sResources.apiDeployment.Labels["deploymentID"]
 	}
 
-	api := spec.GetAPISpec(&apiConfig, projectID, deployID, config.ClusterConfig.ClusterUID)
+	api := spec.GetAPISpec(&apiConfig, deployID, config.ClusterConfig.ClusterUID)
 
 	// resource creation
 	if prevK8sResources.apiDeployment == nil {
-		if err = uploadAPItoS3(*api); err != nil {
-			return nil, "", err
+		if err := config.AWS.UploadJSONToS3(api, config.ClusterConfig.Bucket, api.Key); err != nil {
+			return nil, "", errors.Wrap(err, "upload api spec")
 		}
 
 		tags := map[string]string{
@@ -120,8 +121,8 @@ func UpdateAPI(apiConfig userconfig.API, projectID string, force bool) (*spec.AP
 			return nil, "", ErrorAPIUpdating(api.Name)
 		}
 
-		if err = uploadAPItoS3(*api); err != nil {
-			return nil, "", err
+		if err := config.AWS.UploadJSONToS3(api, config.ClusterConfig.Bucket, api.Key); err != nil {
+			return nil, "", errors.Wrap(err, "upload api spec")
 		}
 
 		queueURL, err := getQueueURL(api.Name, prevK8sResources.gatewayVirtualService.Labels["deploymentID"])
@@ -288,6 +289,7 @@ func UpdateAutoscalerCron(deployment *kapps.Deployment, apiSpec spec.API) error 
 
 func getK8sResources(apiConfig userconfig.API) (resources, error) {
 	var deployment *kapps.Deployment
+	var apiConfigMap *kcore.ConfigMap
 	var gatewayDeployment *kapps.Deployment
 	var gatewayService *kcore.Service
 	var gatewayHPA *kautoscaling.HorizontalPodAutoscaler
@@ -300,6 +302,11 @@ func getK8sResources(apiConfig userconfig.API) (resources, error) {
 		func() error {
 			var err error
 			deployment, err = config.K8s.GetDeployment(apiK8sName)
+			return err
+		},
+		func() error {
+			var err error
+			apiConfigMap, err = config.K8s.GetConfigMap(apiK8sName)
 			return err
 		},
 		func() error {
@@ -326,6 +333,7 @@ func getK8sResources(apiConfig userconfig.API) (resources, error) {
 
 	return resources{
 		apiDeployment:         deployment,
+		apiConfigMap:          apiConfigMap,
 		gatewayDeployment:     gatewayDeployment,
 		gatewayService:        gatewayService,
 		gatewayHPA:            gatewayHPA,
@@ -334,7 +342,11 @@ func getK8sResources(apiConfig userconfig.API) (resources, error) {
 }
 
 func applyK8sResources(api spec.API, prevK8sResources resources, queueURL string) error {
-	apiDeployment := apiDeploymentSpec(api, prevK8sResources.apiDeployment, queueURL)
+	apiDeployment := deploymentSpec(api, prevK8sResources.apiDeployment, queueURL)
+	apiConfigMap, err := configMapSpec(api)
+	if err != nil {
+		return err
+	}
 	gatewayDeployment := gatewayDeploymentSpec(api, prevK8sResources.gatewayDeployment, queueURL)
 	gatewayHPA, err := gatewayHPASpec(api)
 	if err != nil {
@@ -345,8 +357,11 @@ func applyK8sResources(api spec.API, prevK8sResources resources, queueURL string
 
 	return parallel.RunFirstErr(
 		func() error {
-			err := applyK8sDeployment(prevK8sResources.apiDeployment, &apiDeployment)
-			if err != nil {
+			if err := applyK8sConfigMap(prevK8sResources.apiConfigMap, &apiConfigMap); err != nil {
+				return err
+			}
+
+			if err := applyK8sDeployment(prevK8sResources.apiDeployment, &apiDeployment); err != nil {
 				return err
 			}
 
@@ -373,6 +388,21 @@ func applyK8sResources(api spec.API, prevK8sResources resources, queueURL string
 			return applyK8sVirtualService(prevK8sResources.gatewayVirtualService, &gatewayVirtualService)
 		},
 	)
+}
+
+func applyK8sConfigMap(prevConfigMap *kcore.ConfigMap, newConfigMap *kcore.ConfigMap) error {
+	if prevConfigMap == nil {
+		_, err := config.K8s.CreateConfigMap(newConfigMap)
+		if err != nil {
+			return err
+		}
+	} else {
+		_, err := config.K8s.UpdateConfigMap(newConfigMap)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func applyK8sDeployment(prevDeployment *kapps.Deployment, newDeployment *kapps.Deployment) error {
@@ -454,6 +484,10 @@ func deleteK8sResources(apiName string) error {
 			return err
 		},
 		func() error {
+			_, err := config.K8s.DeleteConfigMap(apiK8sName)
+			return err
+		},
+		func() error {
 			_, err := config.K8s.DeleteDeployment(gatewayK8sName)
 			return err
 		},
@@ -472,26 +506,4 @@ func deleteK8sResources(apiName string) error {
 	)
 
 	return err
-}
-
-func uploadAPItoS3(api spec.API) error {
-	return parallel.RunFirstErr(
-		func() error {
-			var err error
-			err = config.AWS.UploadJSONToS3(api, config.ClusterConfig.Bucket, api.Key)
-			if err != nil {
-				err = errors.Wrap(err, "upload api spec")
-			}
-			return err
-		},
-		func() error {
-			var err error
-			// Use api spec indexed by HandlerID for replicas to prevent rolling updates when SpecID changes without HandlerID changing
-			err = config.AWS.UploadJSONToS3(api, config.ClusterConfig.Bucket, api.HandlerKey)
-			if err != nil {
-				err = errors.Wrap(err, "upload handler spec")
-			}
-			return err
-		},
-	)
 }

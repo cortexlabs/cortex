@@ -17,10 +17,10 @@ limitations under the License.
 package realtimeapi
 
 import (
+	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
-	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	"github.com/cortexlabs/cortex/pkg/workloads"
 	istioclientnetworking "istio.io/client-go/pkg/apis/networking/v1beta1"
 	kapps "k8s.io/api/apps/v1"
@@ -30,39 +30,21 @@ import (
 var _terminationGracePeriodSeconds int64 = 60 // seconds
 
 func deploymentSpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deployment {
-	switch api.Handler.Type {
-	case userconfig.TensorFlowHandlerType:
-		return tensorflowAPISpec(api, prevDeployment)
-	case userconfig.PythonHandlerType:
-		return pythonAPISpec(api, prevDeployment)
-	default:
-		return nil // unexpected
-	}
-}
-
-func tensorflowAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deployment {
-	containers, volumes := workloads.TensorFlowHandlerContainers(api)
-	containers = append(containers, workloads.RequestMonitorContainer(api))
-
-	servingProtocol := "http"
-	if api.Handler != nil && api.Handler.IsGRPC() {
-		servingProtocol = "grpc"
-	}
+	containers, volumes := workloads.RealtimeContainers(*api)
 
 	return k8s.Deployment(&k8s.DeploymentSpec{
 		Name:           workloads.K8sName(api.Name),
-		Replicas:       getRequestedReplicasFromDeployment(api, prevDeployment),
+		Replicas:       getRequestedReplicasFromDeployment(*api, prevDeployment),
 		MaxSurge:       pointer.String(api.UpdateStrategy.MaxSurge),
 		MaxUnavailable: pointer.String(api.UpdateStrategy.MaxUnavailable),
 		Labels: map[string]string{
-			"apiName":         api.Name,
-			"apiKind":         api.Kind.String(),
-			"apiID":           api.ID,
-			"specID":          api.SpecID,
-			"deploymentID":    api.DeploymentID,
-			"handlerID":       api.HandlerID,
-			"servingProtocol": servingProtocol,
-			"cortex.dev/api":  "true",
+			"apiName":        api.Name,
+			"apiKind":        api.Kind.String(),
+			"apiID":          api.ID,
+			"specID":         api.SpecID,
+			"deploymentID":   api.DeploymentID,
+			"podID":          api.PodID,
+			"cortex.dev/api": "true",
 		},
 		Annotations: api.ToK8sAnnotations(),
 		Selector: map[string]string{
@@ -71,12 +53,11 @@ func tensorflowAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.D
 		},
 		PodSpec: k8s.PodSpec{
 			Labels: map[string]string{
-				"apiName":         api.Name,
-				"apiKind":         api.Kind.String(),
-				"deploymentID":    api.DeploymentID,
-				"handlerID":       api.HandlerID,
-				"servingProtocol": servingProtocol,
-				"cortex.dev/api":  "true",
+				"apiName":        api.Name,
+				"apiKind":        api.Kind.String(),
+				"deploymentID":   api.DeploymentID,
+				"podID":          api.PodID,
+				"cortex.dev/api": "true",
 			},
 			Annotations: map[string]string{
 				"traffic.sidecar.istio.io/excludeOutboundIPRanges": "0.0.0.0/0",
@@ -84,94 +65,28 @@ func tensorflowAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.D
 			K8sPodSpec: kcore.PodSpec{
 				RestartPolicy:                 "Always",
 				TerminationGracePeriodSeconds: pointer.Int64(_terminationGracePeriodSeconds),
-				InitContainers: []kcore.Container{
-					workloads.InitContainer(api),
-				},
-				Containers:         containers,
-				NodeSelector:       workloads.NodeSelectors(),
-				Tolerations:        workloads.GenerateResourceTolerations(),
-				Affinity:           workloads.GenerateNodeAffinities(api.Compute.NodeGroups),
-				Volumes:            volumes,
-				ServiceAccountName: workloads.ServiceAccountName,
-			},
-		},
-	})
-}
-
-func pythonAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deployment {
-	containers, volumes := workloads.PythonHandlerContainers(api)
-	containers = append(containers, workloads.RequestMonitorContainer(api))
-
-	servingProtocol := "http"
-	if api.Handler != nil && api.Handler.IsGRPC() {
-		servingProtocol = "grpc"
-	}
-
-	return k8s.Deployment(&k8s.DeploymentSpec{
-		Name:           workloads.K8sName(api.Name),
-		Replicas:       getRequestedReplicasFromDeployment(api, prevDeployment),
-		MaxSurge:       pointer.String(api.UpdateStrategy.MaxSurge),
-		MaxUnavailable: pointer.String(api.UpdateStrategy.MaxUnavailable),
-		Labels: map[string]string{
-			"apiName":         api.Name,
-			"apiKind":         api.Kind.String(),
-			"apiID":           api.ID,
-			"specID":          api.SpecID,
-			"deploymentID":    api.DeploymentID,
-			"handlerID":       api.HandlerID,
-			"servingProtocol": servingProtocol,
-			"cortex.dev/api":  "true",
-		},
-		Annotations: api.ToK8sAnnotations(),
-		Selector: map[string]string{
-			"apiName": api.Name,
-			"apiKind": api.Kind.String(),
-		},
-		PodSpec: k8s.PodSpec{
-			Labels: map[string]string{
-				"apiName":         api.Name,
-				"apiKind":         api.Kind.String(),
-				"deploymentID":    api.DeploymentID,
-				"handlerID":       api.HandlerID,
-				"servingProtocol": servingProtocol,
-				"cortex.dev/api":  "true",
-			},
-			Annotations: map[string]string{
-				"traffic.sidecar.istio.io/excludeOutboundIPRanges": "0.0.0.0/0",
-			},
-			K8sPodSpec: kcore.PodSpec{
-				RestartPolicy:                 "Always",
-				TerminationGracePeriodSeconds: pointer.Int64(_terminationGracePeriodSeconds),
-				InitContainers: []kcore.Container{
-					workloads.InitContainer(api),
-				},
-				Containers:         containers,
-				NodeSelector:       workloads.NodeSelectors(),
-				Tolerations:        workloads.GenerateResourceTolerations(),
-				Affinity:           workloads.GenerateNodeAffinities(api.Compute.NodeGroups),
-				Volumes:            volumes,
-				ServiceAccountName: workloads.ServiceAccountName,
+				Containers:                    containers,
+				NodeSelector:                  workloads.NodeSelectors(),
+				Tolerations:                   workloads.GenerateResourceTolerations(),
+				Affinity:                      workloads.GenerateNodeAffinities(api.Pod.NodeGroups),
+				Volumes:                       volumes,
+				ServiceAccountName:            workloads.ServiceAccountName,
 			},
 		},
 	})
 }
 
 func serviceSpec(api *spec.API) *kcore.Service {
-	servingProtocol := "http"
-	if api.Handler != nil && api.Handler.IsGRPC() {
-		servingProtocol = "grpc"
-	}
 	return k8s.Service(&k8s.ServiceSpec{
 		Name:        workloads.K8sName(api.Name),
-		PortName:    servingProtocol,
-		Port:        workloads.DefaultPortInt32,
-		TargetPort:  workloads.DefaultPortInt32,
+		PortName:    "http",
+		Port:        consts.ProxyListeningPortInt32,
+		TargetPort:  consts.ProxyListeningPortInt32,
 		Annotations: api.ToK8sAnnotations(),
 		Labels: map[string]string{
-			"apiName":         api.Name,
-			"apiKind":         api.Kind.String(),
-			"servingProtocol": servingProtocol,
-			"cortex.dev/api":  "true",
+			"apiName":        api.Name,
+			"apiKind":        api.Kind.String(),
+			"cortex.dev/api": "true",
 		},
 		Selector: map[string]string{
 			"apiName": api.Name,
@@ -181,39 +96,30 @@ func serviceSpec(api *spec.API) *kcore.Service {
 }
 
 func virtualServiceSpec(api *spec.API) *istioclientnetworking.VirtualService {
-	servingProtocol := "http"
-	rewritePath := pointer.String("/")
-
-	if api.Handler != nil && api.Handler.IsGRPC() {
-		servingProtocol = "grpc"
-		rewritePath = nil
-	}
-
 	return k8s.VirtualService(&k8s.VirtualServiceSpec{
 		Name:     workloads.K8sName(api.Name),
 		Gateways: []string{"apis-gateway"},
 		Destinations: []k8s.Destination{{
 			ServiceName: workloads.K8sName(api.Name),
 			Weight:      100,
-			Port:        uint32(workloads.DefaultPortInt32),
+			Port:        uint32(consts.ProxyListeningPortInt32),
 		}},
 		PrefixPath:  api.Networking.Endpoint,
-		Rewrite:     rewritePath,
+		Rewrite:     pointer.String("/"),
 		Annotations: api.ToK8sAnnotations(),
 		Labels: map[string]string{
-			"apiName":         api.Name,
-			"apiKind":         api.Kind.String(),
-			"servingProtocol": servingProtocol,
-			"apiID":           api.ID,
-			"specID":          api.SpecID,
-			"deploymentID":    api.DeploymentID,
-			"handlerID":       api.HandlerID,
-			"cortex.dev/api":  "true",
+			"apiName":        api.Name,
+			"apiKind":        api.Kind.String(),
+			"apiID":          api.ID,
+			"specID":         api.SpecID,
+			"deploymentID":   api.DeploymentID,
+			"podID":          api.PodID,
+			"cortex.dev/api": "true",
 		},
 	})
 }
 
-func getRequestedReplicasFromDeployment(api *spec.API, deployment *kapps.Deployment) int32 {
+func getRequestedReplicasFromDeployment(api spec.API, deployment *kapps.Deployment) int32 {
 	requestedReplicas := api.Autoscaling.InitReplicas
 
 	if deployment != nil && deployment.Spec.Replicas != nil && *deployment.Spec.Replicas > 0 {

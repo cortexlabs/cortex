@@ -42,17 +42,11 @@ func Deploy(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	projectBytes, err := files.ReadReqFile(r, "project.zip")
+	response, err := resources.Deploy(configFileName, configBytes, force)
 	if err != nil {
 		respondError(w, r, err)
 		return
 	}
 
-	response, err := resources.Deploy(projectBytes, configFileName, configBytes, force)
-	if err != nil {
-		respondError(w, r, err)
-		return
-	}
-
-	respond(w, response)
+	respondJSON(w, r, response)
 }

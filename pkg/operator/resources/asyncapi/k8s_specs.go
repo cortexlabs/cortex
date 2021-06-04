@@ -17,12 +17,10 @@ limitations under the License.
 package asyncapi
 
 import (
-	"fmt"
-
+	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
-	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	"github.com/cortexlabs/cortex/pkg/workloads"
 	"istio.io/client-go/pkg/apis/networking/v1beta1"
 	kapps "k8s.io/api/apps/v1"
@@ -53,7 +51,7 @@ func gatewayDeploymentSpec(api spec.API, prevDeployment *kapps.Deployment, queue
 			},
 		},
 	}
-	container := workloads.AsyncGatewayContainers(api, queueURL, volumeMounts)
+	container := workloads.AsyncGatewayContainer(api, queueURL, volumeMounts)
 
 	return *k8s.Deployment(&k8s.DeploymentSpec{
 		Name:           getGatewayK8sName(api.Name),
@@ -71,7 +69,7 @@ func gatewayDeploymentSpec(api spec.API, prevDeployment *kapps.Deployment, queue
 			"apiID":            api.ID,
 			"specID":           api.SpecID,
 			"deploymentID":     api.DeploymentID,
-			"handlerID":        api.HandlerID,
+			"podID":            api.PodID,
 			"cortex.dev/api":   "true",
 			"cortex.dev/async": "gateway",
 		},
@@ -80,7 +78,7 @@ func gatewayDeploymentSpec(api spec.API, prevDeployment *kapps.Deployment, queue
 				"apiName":          api.Name,
 				"apiKind":          api.Kind.String(),
 				"deploymentID":     api.DeploymentID,
-				"handlerID":        api.HandlerID,
+				"podID":            api.PodID,
 				"cortex.dev/api":   "true",
 				"cortex.dev/async": "gateway",
 			},
@@ -90,7 +88,7 @@ func gatewayDeploymentSpec(api spec.API, prevDeployment *kapps.Deployment, queue
 				Containers:                    []kcore.Container{container},
 				NodeSelector:                  workloads.NodeSelectors(),
 				Tolerations:                   workloads.GenerateResourceTolerations(),
-				Affinity:                      workloads.GenerateNodeAffinities(api.Compute.NodeGroups),
+				Affinity:                      workloads.GenerateNodeAffinities(api.Pod.NodeGroups),
 				Volumes:                       volumes,
 				ServiceAccountName:            workloads.ServiceAccountName,
 			},
@@ -115,7 +113,7 @@ func gatewayHPASpec(api spec.API) (kautoscaling.HorizontalPodAutoscaler, error) 
 			"apiID":            api.ID,
 			"specID":           api.SpecID,
 			"deploymentID":     api.DeploymentID,
-			"handlerID":        api.HandlerID,
+			"podID":            api.PodID,
 			"cortex.dev/api":   "true",
 			"cortex.dev/async": "hpa",
 		},
@@ -131,8 +129,8 @@ func gatewayServiceSpec(api spec.API) kcore.Service {
 	return *k8s.Service(&k8s.ServiceSpec{
 		Name:        workloads.K8sName(api.Name),
 		PortName:    "http",
-		Port:        workloads.DefaultPortInt32,
-		TargetPort:  workloads.DefaultPortInt32,
+		Port:        consts.ProxyListeningPortInt32,
+		TargetPort:  consts.ProxyListeningPortInt32,
 		Annotations: api.ToK8sAnnotations(),
 		Labels: map[string]string{
 			"apiName":          api.Name,
@@ -155,7 +153,7 @@ func gatewayVirtualServiceSpec(api spec.API) v1beta1.VirtualService {
 		Destinations: []k8s.Destination{{
 			ServiceName: workloads.K8sName(api.Name),
 			Weight:      100,
-			Port:        uint32(workloads.DefaultPortInt32),
+			Port:        uint32(consts.ProxyListeningPortInt32),
 		}},
 		PrefixPath:  api.Networking.Endpoint,
 		Rewrite:     pointer.String("/"),
@@ -166,27 +164,44 @@ func gatewayVirtualServiceSpec(api spec.API) v1beta1.VirtualService {
 			"apiID":            api.ID,
 			"specID":           api.SpecID,
 			"deploymentID":     api.DeploymentID,
-			"handlerID":        api.HandlerID,
+			"podID":            api.PodID,
 			"cortex.dev/api":   "true",
 			"cortex.dev/async": "gateway",
 		},
 	})
 }
 
-func apiDeploymentSpec(api spec.API, prevDeployment *kapps.Deployment, queueURL string) kapps.Deployment {
+func configMapSpec(api spec.API) (kcore.ConfigMap, error) {
+	configMapConfig := workloads.ConfigMapConfig{
+		Probes: workloads.GetReadinessProbesFromContainers(api.Pod.Containers),
+	}
+
+	configMapData, err := configMapConfig.GenerateConfigMapData()
+	if err != nil {
+		return kcore.ConfigMap{}, err
+	}
+
+	return *k8s.ConfigMap(&k8s.ConfigMapSpec{
+		Name: workloads.K8sName(api.Name),
+		Data: configMapData,
+		Labels: map[string]string{
+			"apiName":        api.Name,
+			"apiKind":        api.Kind.String(),
+			"apiID":          api.ID,
+			"specID":         api.SpecID,
+			"deploymentID":   api.DeploymentID,
+			"cortex.dev/api": "true",
+		},
+	}), nil
+}
+
+func deploymentSpec(api spec.API, prevDeployment *kapps.Deployment, queueURL string) kapps.Deployment {
 	var (
 		containers []kcore.Container
 		volumes    []kcore.Volume
 	)
 
-	switch api.Handler.Type {
-	case userconfig.PythonHandlerType:
-		containers, volumes = workloads.AsyncPythonHandlerContainers(api, queueURL)
-	case userconfig.TensorFlowHandlerType:
-		containers, volumes = workloads.AsyncTensorflowHandlerContainers(api, queueURL)
-	default:
-		panic(fmt.Sprintf("invalid handler type: %s", api.Handler.Type))
-	}
+	containers, volumes = workloads.AsyncContainers(api, queueURL)
 
 	return *k8s.Deployment(&k8s.DeploymentSpec{
 		Name:           workloads.K8sName(api.Name),
@@ -199,7 +214,7 @@ func apiDeploymentSpec(api spec.API, prevDeployment *kapps.Deployment, queueURL 
 			"apiID":            api.ID,
 			"specID":           api.SpecID,
 			"deploymentID":     api.DeploymentID,
-			"handlerID":        api.HandlerID,
+			"podID":            api.PodID,
 			"cortex.dev/api":   "true",
 			"cortex.dev/async": "api",
 		},
@@ -214,22 +229,19 @@ func apiDeploymentSpec(api spec.API, prevDeployment *kapps.Deployment, queueURL 
 				"apiName":          api.Name,
 				"apiKind":          api.Kind.String(),
 				"deploymentID":     api.DeploymentID,
-				"handlerID":        api.HandlerID,
+				"podID":            api.PodID,
 				"cortex.dev/api":   "true",
 				"cortex.dev/async": "api",
 			},
 			K8sPodSpec: kcore.PodSpec{
 				RestartPolicy:                 "Always",
 				TerminationGracePeriodSeconds: pointer.Int64(_terminationGracePeriodSeconds),
-				InitContainers: []kcore.Container{
-					workloads.InitContainer(&api),
-				},
-				Containers:         containers,
-				NodeSelector:       workloads.NodeSelectors(),
-				Tolerations:        workloads.GenerateResourceTolerations(),
-				Affinity:           workloads.GenerateNodeAffinities(api.Compute.NodeGroups),
-				Volumes:            volumes,
-				ServiceAccountName: workloads.ServiceAccountName,
+				Containers:                    containers,
+				NodeSelector:                  workloads.NodeSelectors(),
+				Tolerations:                   workloads.GenerateResourceTolerations(),
+				Affinity:                      workloads.GenerateNodeAffinities(api.Pod.NodeGroups),
+				Volumes:                       volumes,
+				ServiceAccountName:            workloads.ServiceAccountName,
 			},
 		},
 	})

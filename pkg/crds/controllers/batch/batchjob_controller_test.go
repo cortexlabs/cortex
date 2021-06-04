@@ -22,6 +22,7 @@ import (
 	"time"
 
 	batch "github.com/cortexlabs/cortex/pkg/crds/apis/batch/v1alpha1"
+	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/random"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/types/status"
@@ -42,16 +43,21 @@ func uploadTestAPISpec(apiName string, apiID string) error {
 				Name: apiName,
 				Kind: userconfig.BatchAPIKind,
 			},
-			Handler: &userconfig.Handler{
-				Type:         userconfig.PythonHandlerType,
-				Image:        "quay.io/cortexlabs/python-handler-cpu:master",
-				Dependencies: &userconfig.Dependencies{},
+			Pod: &userconfig.Pod{
+				Port: pointer.Int32(8080),
+				Containers: []*userconfig.Container{
+					{
+						Name:    "api",
+						Image:   "quay.io/cortexlabs/batch-container-test:master",
+						Command: []string{"/bin/run"},
+						Compute: &userconfig.Compute{},
+					},
+				},
 			},
-			Compute: &userconfig.Compute{},
 		},
 		ID:           apiID,
 		SpecID:       random.String(5),
-		HandlerID:    random.String(5),
+		PodID:        random.String(5),
 		DeploymentID: random.String(5),
 	}
 	apiSpecKey := spec.Key(apiName, apiID, clusterConfig.ClusterUID)

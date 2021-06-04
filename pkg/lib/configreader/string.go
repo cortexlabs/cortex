@@ -62,6 +62,7 @@ type StringValidation struct {
 	CastScalar                           bool
 	AllowCortexResources                 bool
 	RequireCortexResources               bool
+	DockerImage                          bool
 	DockerImageOrEmpty                   bool
 	Validator                            func(string) (string, error)
 }
@@ -348,6 +349,12 @@ func ValidateStringVal(val string, v *StringValidation) error {
 	if v.AWSTag {
 		if !regex.IsValidAWSTag(val) && val != "" {
 			return ErrorInvalidAWSTag(val)
+		}
+	}
+
+	if v.DockerImage {
+		if !regex.IsValidDockerImage(val) {
+			return ErrorInvalidDockerImage(val)
 		}
 	}
 

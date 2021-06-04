@@ -18,54 +18,59 @@ import pytest
 
 import e2e.tests
 
-TEST_APIS = ["pytorch/iris-classifier", "onnx/iris-classifier", "tensorflow/iris-classifier"]
-TEST_APIS_GRPC = ["grpc/iris-classifier-sklearn", "grpc/prime-number-generator"]
-TEST_APIS_GPU = ["pytorch/text-generator", "tensorflow/text-generator"]
-TEST_APIS_INF = ["pytorch/image-classifier-resnet50"]
+TEST_APIS = [
+    {
+        "name": "realtime/image-classifier-resnet50",
+        "extra_path": "v1/models/resnet50:predict",
+    },
+    {
+        "name": "realtime/prime-generator",
+        "extra_path": "",
+    },
+    {
+        "name": "realtime/text-generator",
+        "extra_path": "",
+    },
+]
+TEST_APIS_GPU = [
+    {
+        "name": "realtime/image-classifier-resnet50",
+        "extra_path": "v1/models/resnet50:predict",
+    },
+    {
+        "name": "realtime/text-generator",
+        "extra_path": "",
+    },
+]
 
 
 @pytest.mark.usefixtures("client")
 @pytest.mark.parametrize("api", TEST_APIS)
-def test_realtime_api(printer: Callable, config: Dict, client: cx.Client, api: str):
-    e2e.tests.test_realtime_api(
-        printer=printer, client=client, api=api, timeout=config["global"]["realtime_deploy_timeout"]
-    )
+def test_realtime_api(printer: Callable, config: Dict, client: cx.Client, api: Dict[str, str]):
 
-
-@pytest.mark.usefixtures("client")
-@pytest.mark.parametrize("api", TEST_APIS_GRPC)
-def test_realtime_api_grpc(printer: Callable, config: Dict, client: cx.Client, api: str):
+    printer(f"testing {api['name']}")
     e2e.tests.test_realtime_api(
         printer=printer,
         client=client,
-        api=api,
+        api=api["name"],
         timeout=config["global"]["realtime_deploy_timeout"],
+        extra_path=api["extra_path"],
     )
 
 
 @pytest.mark.usefixtures("client")
 @pytest.mark.parametrize("api", TEST_APIS_GPU)
-def test_realtime_api_gpu(printer: Callable, config: Dict, client: cx.Client, api: str):
+def test_realtime_api_gpu(printer: Callable, config: Dict, client: cx.Client, api: Dict[str, str]):
     skip_gpus = config["global"].get("skip_gpus", False)
     if skip_gpus:
         pytest.skip("--skip-gpus flag detected, skipping GPU tests")
 
-    e2e.tests.test_realtime_api(
-        printer=printer, client=client, api=api, timeout=config["global"]["realtime_deploy_timeout"]
-    )
-
-
-@pytest.mark.usefixtures("client")
-@pytest.mark.parametrize("api", TEST_APIS_INF)
-def test_realtime_api_inf(printer: Callable, config: Dict, client: cx.Client, api: str):
-    skip_infs = config["global"].get("skip_infs", False)
-    if skip_infs:
-        pytest.skip("--skip-infs flag detected, skipping Inferentia tests")
-
+    printer(f"testing {api['name']}")
     e2e.tests.test_realtime_api(
         printer=printer,
         client=client,
-        api=api,
+        api=api["name"],
         timeout=config["global"]["realtime_deploy_timeout"],
-        api_config_name="cortex_inf.yaml",
+        api_config_name="cortex_gpu.yaml",
+        extra_path=api["extra_path"],
     )

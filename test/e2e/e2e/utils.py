@@ -14,6 +14,7 @@
 
 import importlib
 import pathlib
+import os
 import sys
 import threading as td
 import time
@@ -169,10 +170,16 @@ def generate_grpc(
 
 
 def request_prediction(
-    client: cx.Client, api_name: str, payload: Union[List, Dict]
+    client: cx.Client,
+    api_name: str,
+    payload: Union[List, Dict],
+    extra_path: Optional[str] = None,
 ) -> requests.Response:
     api_info = client.get_api(api_name)
-    response = requests.post(api_info["endpoint"], json=payload)
+    endpoint = api_info["endpoint"]
+    if extra_path and extra_path != "":
+        endpoint = os.path.join(endpoint, extra_path)
+    response = requests.post(endpoint, json=payload)
 
     return response
 
@@ -367,19 +374,29 @@ def retrieve_results_concurrently(
                 continue
 
             result_response_json = result_response.json()
-            if (
-                async_kind
-                and "status" in result_response_json
-                and result_response_json["status"] == "completed"
-            ):
-                break
+            if async_kind and "status" in result_response_json:
+                if result_response_json["status"] == "completed":
+                    break
+                if result_response_json["status"] not in ["in_progress", "in_queue"]:
+                    raise RuntimeError(
+                        f"status for request ID {request_id} got set to {result_response_json['status']}"
+                    )
+
             if (
                 task_kind
                 and "job_status" in result_response_json
                 and "status" in result_response_json["job_status"]
-                and result_response_json["job_status"]["status"] == "status_succeeded"
             ):
-                break
+                if result_response_json["job_status"]["status"] == "succeeded":
+                    break
+                if result_response_json["job_status"]["status"] not in [
+                    "pending",
+                    "enqueuing",
+                    "running",
+                ]:
+                    raise RuntimeError(
+                        f"status for job ID {request_id} got set to {result_response_json['job_status']['status']}"
+                    )
 
         if event_stopper.is_set():
             return
@@ -409,3 +426,11 @@ def client_from_config(config_path: str) -> cx.Client:
     cluster_name = config["cluster_name"]
 
     return cx.client(f"{cluster_name}")
+
+
+def stream_api_logs(client: cx.Client, api_name: str):
+    cx.run_cli(["logs", api_name, "--random-pod", "-e", client.env_name])
+
+
+def stream_job_logs(client: cx.Client, api_name: str, job_id: str):
+    cx.run_cli(["logs", api_name, job_id, "--random-pod", "-e", client.env_name])

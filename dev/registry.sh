@@ -108,15 +108,13 @@ function build() {
   local tag=$2
   local dir="${ROOT}/images/${image}"
 
-  build_args=""
-
   tag_args=""
   if [ -n "$AWS_ACCOUNT_ID" ] && [ -n "$AWS_REGION" ]; then
     tag_args+=" -t $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/cortexlabs/$image:$tag"
   fi
 
   blue_echo "Building $image:$tag..."
-  docker build $ROOT -f $dir/Dockerfile -t cortexlabs/$image:$tag $tag_args $build_args
+  docker build $ROOT -f $dir/Dockerfile -t cortexlabs/$image:$tag $tag_args
   green_echo "Built $image:$tag\n"
 }
 
@@ -150,10 +148,6 @@ function build_and_push() {
   set -euo pipefail  # necessary since this is called in a new shell by parallel
 
   tag=$CORTEX_VERSION
-  if [ "${image}" == "python-handler-gpu" ]; then
-    tag="${CORTEX_VERSION}-cuda10.2-cudnn8"
-  fi
-
   build $image $tag
   push $image $tag
 }
@@ -222,7 +216,7 @@ elif [ "$cmd" = "create" ]; then
 # usage: registry.sh update-single IMAGE
 elif [ "$cmd" = "update-single" ]; then
   image=$sub_cmd
-  if [ "$image" = "operator" ] || [ "$image" = "request-monitor" ]; then
+  if [ "$image" = "operator" ] || [ "$image" = "proxy" ]; then
     cache_builder $image
   fi
   build_and_push $image
@@ -240,19 +234,20 @@ elif [ "$cmd" = "update" ]; then
     images_to_build+=( "${dev_images[@]}" )
   fi
 
-  images_to_build+=( "${api_images[@]}" )
-
   if [[ " ${images_to_build[@]} " =~ " operator " ]]; then
     cache_builder operator
   fi
-  if [[ " ${images_to_build[@]} " =~ " request-monitor " ]]; then
-    cache_builder request-monitor
+  if [[ " ${images_to_build[@]} " =~ " proxy " ]]; then
+    cache_builder proxy
   fi
   if [[ " ${images_to_build[@]} " =~ " async-gateway " ]]; then
     cache_builder async-gateway
   fi
   if [[ " ${images_to_build[@]} " =~ " enqueuer " ]]; then
     cache_builder enqueuer
+  fi
+  if [[ " ${images_to_build[@]} " =~ " dequeuer " ]]; then
+    cache_builder dequeuer
   fi
   if [[ " ${images_to_build[@]} " =~ " controller-manager " ]]; then
     cache_builder controller-manager

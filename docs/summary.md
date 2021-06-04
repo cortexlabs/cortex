@@ -29,53 +29,32 @@
 
 ## Workloads
 
-* Realtime APIs
+* [Realtime APIs](workloads/realtime/realtime-apis.md)
   * [Example](workloads/realtime/example.md)
-  * [Handler](workloads/realtime/handler.md)
   * [Configuration](workloads/realtime/configuration.md)
-  * [Parallelism](workloads/realtime/parallelism.md)
+  * [Containers](workloads/realtime/containers.md)
   * [Autoscaling](workloads/realtime/autoscaling.md)
-  * [Models](workloads/realtime/models.md)
-  * Multi-model
-    * [Example](workloads/realtime/multi-model/example.md)
-    * [Configuration](workloads/realtime/multi-model/configuration.md)
-    * [Caching](workloads/realtime/multi-model/caching.md)
-  * [Server-side batching](workloads/realtime/server-side-batching.md)
+  * [Traffic Splitter](workloads/realtime/traffic-splitter.md)
   * [Metrics](workloads/realtime/metrics.md)
   * [Statuses](workloads/realtime/statuses.md)
-  * Traffic Splitter
-    * [Example](workloads/realtime/traffic-splitter/example.md)
-    * [Configuration](workloads/realtime/traffic-splitter/configuration.md)
   * [Troubleshooting](workloads/realtime/troubleshooting.md)
 * [Async APIs](workloads/async/async-apis.md)
   * [Example](workloads/async/example.md)
-  * [Handler](workloads/async/handler.md)
   * [Configuration](workloads/async/configuration.md)
-  * [TensorFlow Models](workloads/async/models.md)
-  * [Metrics](workloads/async/metrics.md)
+  * [Containers](workloads/async/containers.md)
   * [Statuses](workloads/async/statuses.md)
-  * [Webhooks](workloads/async/webhooks.md)
-* Batch APIs
+* [Batch APIs](workloads/batch/batch-apis.md)
   * [Example](workloads/batch/example.md)
-  * [Handler](workloads/batch/handler.md)
   * [Configuration](workloads/batch/configuration.md)
+  * [Containers](workloads/batch/containers.md)
   * [Jobs](workloads/batch/jobs.md)
-  * [TensorFlow Models](workloads/batch/models.md)
-  * [Metrics](workloads/batch/metrics.md)
   * [Statuses](workloads/batch/statuses.md)
-* Task APIs
+* [Task APIs](workloads/task/task-apis.md)
   * [Example](workloads/task/example.md)
-  * [Definition](workloads/task/definitions.md)
   * [Configuration](workloads/task/configuration.md)
+  * [Containers](workloads/task/containers.md)
   * [Jobs](workloads/task/jobs.md)
-  * [Metrics](workloads/task/metrics.md)
   * [Statuses](workloads/task/statuses.md)
-* Dependencies
-  * [Example](workloads/dependencies/example.md)
-  * [Python packages](workloads/dependencies/python-packages.md)
-  * [System packages](workloads/dependencies/system-packages.md)
-  * [Custom images](workloads/dependencies/images.md)
-* [Debugging](workloads/debugging.md)
 
 ## Clients
 

@@ -19,10 +19,8 @@ import pytest
 
 import e2e.tests
 
-TEST_APIS = [
-    "async/iris-classifier",
-    "async/tensorflow",
-]
+TEST_APIS = ["async/text-generator"]
+TEST_APIS_GPU = ["async/text-generator"]
 
 
 @pytest.mark.usefixtures("client")
@@ -34,4 +32,21 @@ def test_async_api(printer: Callable, config: Dict, client: cx.Client, api: str)
         api=api,
         deploy_timeout=config["global"]["async_deploy_timeout"],
         poll_retries=config["global"]["async_workload_timeout"],
+    )
+
+
+@pytest.mark.usefixtures("client")
+@pytest.mark.parametrize("api", TEST_APIS_GPU)
+def test_async_api_gpu(printer: Callable, config: Dict, client: cx.Client, api: str):
+    skip_gpus = config["global"].get("skip_gpus", False)
+    if skip_gpus:
+        pytest.skip("--skip-gpus flag detected, skipping GPU tests")
+
+    e2e.tests.test_async_api(
+        printer=printer,
+        client=client,
+        api=api,
+        deploy_timeout=config["global"]["async_deploy_timeout"],
+        poll_retries=config["global"]["async_workload_timeout"],
+        api_config_name="cortex_gpu.yaml",
     )

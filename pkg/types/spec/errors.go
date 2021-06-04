@@ -22,9 +22,7 @@ import (
 
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
-	"github.com/cortexlabs/cortex/pkg/lib/files"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
-	libmath "github.com/cortexlabs/cortex/pkg/lib/math"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
@@ -36,9 +34,8 @@ const (
 	ErrDuplicateName                = "spec.duplicate_name"
 	ErrDuplicateEndpointInOneDeploy = "spec.duplicate_endpoint_in_one_deploy"
 	ErrDuplicateEndpoint            = "spec.duplicate_endpoint"
-	ErrConflictingFields            = "spec.conflicting_fields"
-	ErrSpecifyOnlyOneField          = "spec.specify_only_one_field"
-	ErrSpecifyOneOrTheOther         = "spec.specify_one_or_the_other"
+	ErrDuplicateContainerName       = "spec.duplicate_container_name"
+	ErrSpecifyExactlyOneField       = "spec.specify_exactly_one_field"
 	ErrSpecifyAllOrNone             = "spec.specify_all_or_none"
 	ErrOneOfPrerequisitesNotDefined = "spec.one_of_prerequisites_not_defined"
 	ErrConfigGreaterThanOtherConfig = "spec.config_greater_than_other_config"
@@ -46,60 +43,24 @@ const (
 	ErrMinReplicasGreaterThanMax  = "spec.min_replicas_greater_than_max"
 	ErrInitReplicasGreaterThanMax = "spec.init_replicas_greater_than_max"
 	ErrInitReplicasLessThanMin    = "spec.init_replicas_less_than_min"
+	ErrTargetInFlightLimitReached = "spec.target_in_flight_limit_reached"
 
 	ErrInvalidSurgeOrUnavailable   = "spec.invalid_surge_or_unavailable"
 	ErrSurgeAndUnavailableBothZero = "spec.surge_and_unavailable_both_zero"
 
-	ErrModelCachingNotSupportedWhenMultiprocessingEnabled = "spec.model_caching_not_supported_when_multiprocessing_enabled"
+	ErrShmCannotExceedMem = "spec.shm_cannot_exceed_mem"
 
-	ErrShmSizeCannotExceedMem = "spec.shm_size_cannot_exceed_mem"
-
-	ErrFileNotFound              = "spec.file_not_found"
-	ErrDirIsEmpty                = "spec.dir_is_empty"
-	ErrMustBeRelativeProjectPath = "spec.must_be_relative_project_path"
-	ErrPythonPathNotFound        = "spec.python_path_not_found"
-
-	ErrS3FileNotFound = "spec.s3_file_not_found"
-	ErrS3DirNotFound  = "spec.s3_dir_not_found"
-	ErrS3DirIsEmpty   = "spec.s3_dir_is_empty"
-
-	ErrModelPathNotDirectory      = "spec.model_path_not_directory"
-	ErrInvalidBucketScheme        = "spec.invalid_bucket_scheme"
-	ErrInvalidPythonModelPath     = "spec.invalid_python_model_path"
-	ErrInvalidTensorFlowModelPath = "spec.invalid_tensorflow_model_path"
-
-	ErrDuplicateModelNames = "spec.duplicate_model_names"
-	ErrReservedModelName   = "spec.reserved_model_name"
-
-	ErrProtoNumServicesMismatch       = "spec.proto_num_services_mismatch"
-	ErrProtoMissingPackageName        = "spec.proto_missing_package_name"
-	ErrProtoInvalidPackageName        = "spec.proto_invalid_package_name"
-	ErrProtoInvalidNetworkingEndpoint = "spec.proto_invalid_networking_endpoint"
-
-	ErrFieldMustBeDefinedForHandlerType            = "spec.field_must_be_defined_for_handler_type"
-	ErrFieldNotSupportedByHandlerType              = "spec.field_not_supported_by_handler_type"
-	ErrNoAvailableNodeComputeLimit                 = "spec.no_available_node_compute_limit"
-	ErrCortexPrefixedEnvVarNotAllowed              = "spec.cortex_prefixed_env_var_not_allowed"
-	ErrRegistryInDifferentRegion                   = "spec.registry_in_different_region"
-	ErrRegistryAccountIDMismatch                   = "spec.registry_account_id_mismatch"
-	ErrKeyIsNotSupportedForKind                    = "spec.key_is_not_supported_for_kind"
-	ErrComputeResourceConflict                     = "spec.compute_resource_conflict"
-	ErrInvalidNumberOfInfProcesses                 = "spec.invalid_number_of_inf_processes"
-	ErrInvalidNumberOfInfs                         = "spec.invalid_number_of_infs"
-	ErrInsufficientBatchConcurrencyLevel           = "spec.insufficient_batch_concurrency_level"
-	ErrInsufficientBatchConcurrencyLevelInf        = "spec.insufficient_batch_concurrency_level_inf"
-	ErrConcurrencyMismatchServerSideBatchingPython = "spec.concurrency_mismatch_server_side_batching_python"
-	ErrIncorrectTrafficSplitterWeight              = "spec.incorrect_traffic_splitter_weight"
-	ErrTrafficSplitterAPIsNotUnique                = "spec.traffic_splitter_apis_not_unique"
-	ErrOneShadowPerTrafficSplitter                 = "spec.one_shadow_per_traffic_splitter"
-	ErrUnexpectedDockerSecretData                  = "spec.unexpected_docker_secret_data"
-	ErrInvalidONNXHandlerType                      = "spec.invalid_onnx_handler_type"
+	ErrFieldMustBeSpecifiedForKind    = "spec.field_must_be_specified_for_kind"
+	ErrFieldIsNotSupportedForKind     = "spec.field_is_not_supported_for_kind"
+	ErrCortexPrefixedEnvVarNotAllowed = "spec.cortex_prefixed_env_var_not_allowed"
+	ErrDisallowedEnvVars              = "spec.disallowed_env_vars"
+	ErrComputeResourceConflict        = "spec.compute_resource_conflict"
+	ErrInvalidNumberOfInfs            = "spec.invalid_number_of_infs"
+	ErrIncorrectTrafficSplitterWeight = "spec.incorrect_traffic_splitter_weight"
+	ErrTrafficSplitterAPIsNotUnique   = "spec.traffic_splitter_apis_not_unique"
+	ErrOneShadowPerTrafficSplitter    = "spec.one_shadow_per_traffic_splitter"
+	ErrUnexpectedDockerSecretData     = "spec.unexpected_docker_secret_data"
 )
-
-var _modelCurrentStructure = `
-  but its current structure is
-
-%s`
 
 func ErrorMalformedConfig() error {
 	return errors.WithStack(&errors.Error{
@@ -146,24 +107,32 @@ func ErrorDuplicateEndpoint(apiName string) error {
 	})
 }
 
-func ErrorConflictingFields(fieldKeyA, fieldKeyB string) error {
+func ErrorDuplicateContainerName(containerName string) error {
 	return errors.WithStack(&errors.Error{
-		Kind:    ErrConflictingFields,
-		Message: fmt.Sprintf("please specify either the %s or %s field (both cannot be specified at the same time)", fieldKeyA, fieldKeyB),
+		Kind:    ErrDuplicateContainerName,
+		Message: fmt.Sprintf("container name %s must be unique", containerName),
 	})
 }
 
-func ErrorSpecifyOnlyOneField(fields ...string) error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrSpecifyOnlyOneField,
-		Message: fmt.Sprintf("please specify only one of the following fields %s", s.UserStrsOr(fields)),
-	})
-}
+func ErrorSpecifyExactlyOneField(numSpecified int, fields ...string) error {
+	var msg string
 
-func ErrorSpecifyOneOrTheOther(fieldKeyA, fieldKeyB string) error {
+	if len(fields) == 2 {
+		if numSpecified == 0 {
+			msg = fmt.Sprintf("please specify either %s", s.UserStrsOr(fields))
+		} else {
+			msg = fmt.Sprintf("please specify either %s (both cannot be specified at the same time)", s.UserStrsOr(fields))
+		}
+	} else {
+		if numSpecified == 0 {
+			msg = fmt.Sprintf("please specify one of the following fields: %s", s.UserStrsOr(fields))
+		} else {
+			msg = fmt.Sprintf("please specify only one of the following fields: %s", s.UserStrsOr(fields))
+		}
+	}
 	return errors.WithStack(&errors.Error{
-		Kind:    ErrSpecifyOneOrTheOther,
-		Message: fmt.Sprintf("please specify either the %s field or %s field (cannot be both empty at the same time)", fieldKeyA, fieldKeyB),
+		Kind:    ErrSpecifyExactlyOneField,
+		Message: msg,
 	})
 }
 
@@ -218,6 +187,13 @@ func ErrorInitReplicasLessThanMin(init int32, min int32) error {
 	})
 }
 
+func ErrorTargetInFlightLimitReached(targetInFlight float64, maxConcurrency, maxQueueLength int64) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrTargetInFlightLimitReached,
+		Message: fmt.Sprintf("%s cannot be greater than %s + %s (%f > %d + %d)", userconfig.TargetInFlightKey, userconfig.MaxConcurrencyKey, userconfig.MaxQueueLengthKey, targetInFlight, maxConcurrency, maxQueueLength),
+	})
+}
+
 func ErrorInvalidSurgeOrUnavailable(val string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrInvalidSurgeOrUnavailable,
@@ -232,275 +208,38 @@ func ErrorSurgeAndUnavailableBothZero() error {
 	})
 }
 
-func ErrorShmSizeCannotExceedMem(parentFieldName string, shmSize k8s.Quantity, mem k8s.Quantity) error {
+func ErrorShmCannotExceedMem(shm k8s.Quantity, mem k8s.Quantity) error {
 	return errors.WithStack(&errors.Error{
-		Kind:    ErrShmSizeCannotExceedMem,
-		Message: fmt.Sprintf("%s.shm_size (%s) cannot exceed compute.mem (%s)", parentFieldName, shmSize.UserString, mem.UserString),
+		Kind:    ErrShmCannotExceedMem,
+		Message: fmt.Sprintf("%s (%s) cannot exceed total compute %s (%s)", userconfig.ShmKey, shm.UserString, userconfig.MemKey, mem.UserString),
 	})
 }
 
-func ErrorModelCachingNotSupportedWhenMultiprocessingEnabled(desiredProcesses int32) error {
-	const maxNumProcesses int32 = 1
+func ErrorFieldMustBeSpecifiedForKind(field string, kind userconfig.Kind) error {
 	return errors.WithStack(&errors.Error{
-		Kind: ErrModelCachingNotSupportedWhenMultiprocessingEnabled,
-		Message: fmt.Sprintf("when dynamic model caching is enabled (%s < provided models), the max value %s can take is %d, while currently it's set to %d",
-			userconfig.ModelsCacheSizeKey, userconfig.ProcessesPerReplicaKey, maxNumProcesses, desiredProcesses),
+		Kind:    ErrFieldMustBeSpecifiedForKind,
+		Message: fmt.Sprintf("%s must be specified for %s kind", field, kind.String()),
 	})
 }
 
-func ErrorFileNotFound(path string) error {
+func ErrorFieldIsNotSupportedForKind(field string, kind userconfig.Kind) error {
 	return errors.WithStack(&errors.Error{
-		Kind:    ErrFileNotFound,
-		Message: fmt.Sprintf("%s: not found or insufficient permissions", path),
+		Kind:    ErrFieldIsNotSupportedForKind,
+		Message: fmt.Sprintf("%s is not supported for %s kind", field, kind.String()),
 	})
 }
 
-func ErrorDirIsEmpty(path string) error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrDirIsEmpty,
-		Message: fmt.Sprintf("%s: directory is empty", path),
-	})
-}
-
-func ErrorMustBeRelativeProjectPath(path string) error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrMustBeRelativeProjectPath,
-		Message: fmt.Sprintf("%s: must be a relative path (relative to the directory containing your API configuration file)", path),
-	})
-}
-
-func ErrorPythonPathNotFound(pythonPath string) error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrPythonPathNotFound,
-		Message: fmt.Sprintf("%s: path does not exist, or has been excluded from your project directory", pythonPath),
-	})
-}
-
-func ErrorS3FileNotFound(path string) error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrS3FileNotFound,
-		Message: fmt.Sprintf("%s: file not found or insufficient permissions", path),
-	})
-}
-
-func ErrorS3DirNotFound(path string) error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrS3DirNotFound,
-		Message: fmt.Sprintf("%s: dir not found or insufficient permissions", path),
-	})
-}
-
-func ErrorS3DirIsEmpty(path string) error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrS3DirIsEmpty,
-		Message: fmt.Sprintf("%s: S3 directory is empty", path),
-	})
-}
-
-func ErrorModelPathNotDirectory(modelPath string) error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrModelPathNotDirectory,
-		Message: fmt.Sprintf("%s: model path must be a directory", modelPath),
-	})
-}
-
-func ErrorInvalidBucketScheme(path string) error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrInvalidBucketScheme,
-		Message: fmt.Sprintf("%s: path must be an S3 path (e.g. s3://bucket/my-dir/)", path),
-	})
-}
-
-var _pythonModelTemplates = `
-  %s
-  ├── 1523423423/ (Version prefix)
-  |   └── * // Model-specific files (i.e. model.h5, model.pkl, labels.json, etc)
-  └── 2434389194/ (Version prefix)
-	  └── * // Model-specific files (i.e. model.h5, model.pkl, labels.json, etc)
-
-or like
-
-  %s
-  └── * // Model-specific files (i.e. model.h5, model.pkl, labels.json, etc)
-`
-
-func ErrorInvalidPythonModelPath(modelPath string, modelSubPaths []string) error {
-	message := fmt.Sprintf("%s: invalid %s model path. ", modelPath, userconfig.PythonHandlerType.CasedString())
-	message += " " + fmt.Sprintf("For models provided for the %s handler type, the path must be a directory with one of the following structures:\n", userconfig.PythonHandlerType)
-
-	message += fmt.Sprintf(_pythonModelTemplates, modelPath, modelPath)
-
-	if len(modelSubPaths) > 0 {
-		message += "\n" + "but its current structure is (limited to 50 sub-paths)" + "\n\n"
-		if len(modelSubPaths) > 50 {
-			message += s.Indent(files.FileTree(modelSubPaths[:50], "", files.DirsSorted), "  ")
-			message += "\n  ..."
-		} else {
-			message += s.Indent(files.FileTree(modelSubPaths, "", files.DirsSorted), "  ")
-		}
-	} else {
-		message += "\n" + "but its current directory is empty"
-	}
-
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrInvalidPythonModelPath,
-		Message: message,
-	})
-}
-
-var _tfVersionedExpectedStructMessage = `
-  %s
-  ├── 1523423423/ (Version prefix, usually a timestamp)
-  |   ├── saved_model.pb
-  |   └── variables/
-  |       ├── variables.index
-  |       ├── variables.data-00000-of-00003
-  |       ├── variables.data-00001-of-00003
-  |       └── variables.data-00002-of-...
-  └── 2434389194/ (Version prefix, usually a timestamp)
-      ├── saved_model.pb
-      └── variables/
-          ├── variables.index
-          ├── variables.data-00000-of-00003
-          ├── variables.data-00001-of-00003
-          └── variables.data-00002-of-...
-
-or like
-
-  %s
-  ├── saved_model.pb
-  └── variables/
-      ├── variables.index
-      ├── variables.data-00000-of-00003
-      ├── variables.data-00001-of-00003
-      └── variables.data-00002-of-...
-`
-var _neuronTfVersionedExpectedStructMessage = `
-  %s
-  ├── 1523423423/ (Version prefix, usually a timestamp)
-  |   └── saved_model.pb
-  └── 2434389194/ (Version prefix, usually a timestamp)
-      └── saved_model.pb
-
-or like
-
-  %s
-  └── saved_model.pb
-`
-
-func ErrorInvalidTensorFlowModelPath(modelPath string, neuronExport bool, modelSubPaths []string) error {
-	handlerType := userconfig.TensorFlowHandlerType.CasedString()
-	if neuronExport {
-		handlerType = "Neuron " + handlerType
-	}
-	message := fmt.Sprintf("%s: invalid %s model path.", modelPath, handlerType)
-	message += " " + fmt.Sprintf("For models provided for the %s handler type, the path must be a directory with one of the following structures:\n", userconfig.TensorFlowHandlerType)
-
-	if !neuronExport {
-		message += fmt.Sprintf(_tfVersionedExpectedStructMessage, modelPath, modelPath)
-	} else {
-		message += fmt.Sprintf(_neuronTfVersionedExpectedStructMessage, modelPath, modelPath)
-	}
-
-	if len(modelSubPaths) > 0 {
-		message += "\n" + "but its current structure is (limited to 50 sub-paths)" + "\n\n"
-		if len(modelSubPaths) > 50 {
-			message += s.Indent(files.FileTree(modelSubPaths[:50], "", files.DirsSorted), "  ")
-			message += "\n  ..."
-		} else {
-			message += s.Indent(files.FileTree(modelSubPaths, "", files.DirsSorted), "  ")
-		}
-	} else {
-		message += "\n" + "but its current directory is empty"
-	}
-
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrInvalidTensorFlowModelPath,
-		Message: message,
-	})
-}
-
-func ErrorDuplicateModelNames(duplicateModel string) error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrDuplicateModelNames,
-		Message: fmt.Sprintf("cannot have multiple models with the same name (%s)", duplicateModel),
-	})
-}
-
-func ErrorReservedModelName(reservedModel string) error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrReservedModelName,
-		Message: fmt.Sprintf("%s: is a reserved name; please specify a different model name", reservedModel),
-	})
-}
-
-func ErrorProtoNumServicesMismatch(requested int) error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrProtoNumServicesMismatch,
-		Message: fmt.Sprintf("can only have one service defined; there are currently %d services defined", requested),
-	})
-}
-
-func ErrorProtoMissingPackageName(allowedPackageName string) error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrProtoMissingPackageName,
-		Message: fmt.Sprintf("your protobuf definition must have the %s package defined", allowedPackageName),
-	})
-}
-
-func ErrorProtoInvalidPackageName(requestedPackageName, allowedPackageName string) error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrProtoInvalidPackageName,
-		Message: fmt.Sprintf("found invalid package %s; your package must be named %s", requestedPackageName, allowedPackageName),
-	})
-}
-
-func ErrorProtoInvalidNetworkingEndpoint(allowedValue string) error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrProtoInvalidNetworkingEndpoint,
-		Message: fmt.Sprintf("because of the protobuf definition from section %s and field %s, the only permitted value is %s", userconfig.HandlerKey, userconfig.ProtobufPathKey, allowedValue),
-	})
-}
-
-func ErrorFieldMustBeDefinedForHandlerType(fieldKey string, handlerType userconfig.HandlerType) error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrFieldMustBeDefinedForHandlerType,
-		Message: fmt.Sprintf("%s field must be defined for the %s handler type", fieldKey, handlerType.String()),
-	})
-}
-
-func ErrorFieldNotSupportedByHandlerType(fieldKey string, handlerType userconfig.HandlerType) error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrFieldNotSupportedByHandlerType,
-		Message: fmt.Sprintf("%s is not a supported field for the %s handler type", fieldKey, handlerType.String()),
-	})
-}
-
-func ErrorCortexPrefixedEnvVarNotAllowed() error {
+func ErrorCortexPrefixedEnvVarNotAllowed(prefixes ...string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrCortexPrefixedEnvVarNotAllowed,
-		Message: "environment variables starting with CORTEX_ are reserved",
+		Message: fmt.Sprintf("environment variables starting with %s are reserved", s.StrsOr(prefixes)),
 	})
 }
 
-func ErrorRegistryInDifferentRegion(registryRegion string, awsClientRegion string) error {
+func ErrorDisallowedEnvVars(disallowedValues ...string) error {
 	return errors.WithStack(&errors.Error{
-		Kind:    ErrRegistryInDifferentRegion,
-		Message: fmt.Sprintf("registry region (%s) does not match cortex's region (%s); images can only be pulled from repositories in the same region as cortex", registryRegion, awsClientRegion),
-	})
-}
-
-func ErrorRegistryAccountIDMismatch(regID, opID string) error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrRegistryAccountIDMismatch,
-		Message: fmt.Sprintf("registry account ID (%s) doesn't match your AWS account ID (%s), and using an ECR registry in a different AWS account is not supported", regID, opID),
-	})
-}
-
-func ErrorKeyIsNotSupportedForKind(key string, kind userconfig.Kind) error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrKeyIsNotSupportedForKind,
-		Message: fmt.Sprintf("%s key is not supported for %s kind", key, kind.String()),
+		Kind:    ErrDisallowedEnvVars,
+		Message: fmt.Sprintf("environment %s %s %s disallowed", s.PluralS("variables", len(disallowedValues)), s.StrsAnd(disallowedValues), s.PluralIs(len(disallowedValues))),
 	})
 }
 
@@ -511,51 +250,11 @@ func ErrorComputeResourceConflict(resourceA, resourceB string) error {
 	})
 }
 
-func ErrorInvalidNumberOfInfProcesses(processesPerReplica int64, numInf int64, numNeuronCores int64) error {
-	acceptableProcesses := libmath.FactorsInt64(numNeuronCores)
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrInvalidNumberOfInfProcesses,
-		Message: fmt.Sprintf("cannot evenly distribute %d Inferentia %s (%d NeuronCores total) over %d processes - acceptable numbers of processes are %s", numInf, s.PluralS("ASIC", numInf), numNeuronCores, processesPerReplica, s.UserStrsOr(acceptableProcesses)),
-	})
-}
-
 func ErrorInvalidNumberOfInfs(requestedInfs int64) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrInvalidNumberOfInfs,
 		Message: fmt.Sprintf("cannot request %d Infs (currently only 1 Inf can be used per API replica, due to AWS's bug: https://github.com/aws/aws-neuron-sdk/issues/110)", requestedInfs),
 	})
-}
-
-func ErrorInsufficientBatchConcurrencyLevel(maxBatchSize int32, processesPerReplica int32, threadsPerProcess int32) error {
-	return errors.WithStack(&errors.Error{
-		Kind: ErrInsufficientBatchConcurrencyLevel,
-		Message: fmt.Sprintf(
-			"%s (%d) must be less than or equal to %s * %s (%d * %d = %d)",
-			userconfig.MaxBatchSizeKey, maxBatchSize, userconfig.ProcessesPerReplicaKey, userconfig.ThreadsPerProcessKey, processesPerReplica, threadsPerProcess, processesPerReplica*threadsPerProcess,
-		),
-	})
-}
-
-func ErrorInsufficientBatchConcurrencyLevelInf(maxBatchSize int32, threadsPerProcess int32) error {
-	return errors.WithStack(&errors.Error{
-		Kind: ErrInsufficientBatchConcurrencyLevelInf,
-		Message: fmt.Sprintf(
-			"%s (%d) must be less than or equal to %s (%d)",
-			userconfig.MaxBatchSizeKey, maxBatchSize, userconfig.ThreadsPerProcessKey, threadsPerProcess,
-		),
-	})
-}
-
-func ErrorConcurrencyMismatchServerSideBatchingPython(maxBatchsize int32, threadsPerProcess int32) error {
-	return errors.WithStack(
-		&errors.Error{
-			Kind: ErrConcurrencyMismatchServerSideBatchingPython,
-			Message: fmt.Sprintf(
-				"%s (%d) must be equal to %s (%d) when using server side batching with the python handler",
-				userconfig.ThreadsPerProcessKey, threadsPerProcess, userconfig.MaxBatchSizeKey, maxBatchsize,
-			),
-		},
-	)
 }
 
 func ErrorIncorrectTrafficSplitterWeightTotal(totalWeight int32) error {
@@ -595,12 +294,5 @@ func ErrorUnexpectedDockerSecretData(reason string, secretData map[string][]byte
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrUnexpectedDockerSecretData,
 		Message: fmt.Sprintf("docker registry secret named \"%s\" was found, but contains unexpected data (%s); got: %s", _dockerPullSecretName, reason, s.UserStr(secretDataStrMap)),
-	})
-}
-
-func ErrorInvalidONNXHandlerType() error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrInvalidONNXHandlerType,
-		Message: "the onnx handler type has been replaced by the python handler type; please use the python handler type instead (all onnx models are fully supported by the python handler type)",
 	})
 }

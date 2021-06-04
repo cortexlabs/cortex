@@ -114,7 +114,7 @@ func GetRealtimeAPILogger(apiName string, apiID string) (*zap.SugaredLogger, err
 		return nil, err
 	}
 
-	return initializeLogger(loggerCacheKey, apiSpec.Handler.LogLevel, map[string]interface{}{
+	return initializeLogger(loggerCacheKey, userconfig.InfoLogLevel, map[string]interface{}{
 		"apiName": apiSpec.Name,
 		"apiKind": apiSpec.Kind.String(),
 		"apiID":   apiSpec.ID,
@@ -128,7 +128,7 @@ func GetRealtimeAPILoggerFromSpec(apiSpec *spec.API) (*zap.SugaredLogger, error)
 		return logger, nil
 	}
 
-	return initializeLogger(loggerCacheKey, apiSpec.Handler.LogLevel, map[string]interface{}{
+	return initializeLogger(loggerCacheKey, userconfig.InfoLogLevel, map[string]interface{}{
 		"apiName": apiSpec.Name,
 		"apiKind": apiSpec.Kind.String(),
 		"apiID":   apiSpec.ID,
@@ -142,34 +142,7 @@ func GetJobLogger(jobKey spec.JobKey) (*zap.SugaredLogger, error) {
 		return logger, nil
 	}
 
-	apiName := jobKey.APIName
-	var logLevel userconfig.LogLevel
-	switch jobKey.Kind {
-	case userconfig.BatchAPIKind:
-		jobSpec, err := DownloadBatchJobSpec(jobKey)
-		if err != nil {
-			return nil, err
-		}
-		apiSpec, err := DownloadAPISpec(apiName, jobSpec.APIID)
-		if err != nil {
-			return nil, err
-		}
-		logLevel = apiSpec.Handler.LogLevel
-	case userconfig.TaskAPIKind:
-		jobSpec, err := DownloadTaskJobSpec(jobKey)
-		if err != nil {
-			return nil, err
-		}
-		apiSpec, err := DownloadAPISpec(apiName, jobSpec.APIID)
-		if err != nil {
-			return nil, err
-		}
-		logLevel = apiSpec.TaskDefinition.LogLevel
-	default:
-		return nil, errors.ErrorUnexpected("unexpected kind", jobKey.Kind.String())
-	}
-
-	return initializeLogger(loggerCacheKey, logLevel, map[string]interface{}{
+	return initializeLogger(loggerCacheKey, userconfig.InfoLogLevel, map[string]interface{}{
 		"apiName": jobKey.APIName,
 		"apiKind": jobKey.Kind.String(),
 		"jobID":   jobKey.ID,
@@ -183,7 +156,7 @@ func GetJobLoggerFromSpec(apiSpec *spec.API, jobKey spec.JobKey) (*zap.SugaredLo
 		return logger, nil
 	}
 
-	return initializeLogger(loggerCacheKey, apiSpec.Handler.LogLevel, map[string]interface{}{
+	return initializeLogger(loggerCacheKey, userconfig.InfoLogLevel, map[string]interface{}{
 		"apiName": jobKey.APIName,
 		"apiKind": jobKey.Kind.String(),
 		"jobID":   jobKey.ID,

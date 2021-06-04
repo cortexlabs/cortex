@@ -50,16 +50,18 @@ type DeployResult struct {
 }
 
 type APIResponse struct {
-	Spec                  spec.API                `json:"spec"`
-	Status                *status.Status          `json:"status,omitempty"`
-	Metrics               *metrics.Metrics        `json:"metrics,omitempty"`
-	Endpoint              string                  `json:"endpoint"`
-	GRPCPorts             map[string]int64        `json:"grpc_ports,omitempty"`
-	DashboardURL          *string                 `json:"dashboard_url,omitempty"`
-	BatchJobStatuses      []status.BatchJobStatus `json:"batch_job_statuses,omitempty"`
-	TaskJobStatuses       []status.TaskJobStatus  `json:"task_job_statuses,omitempty"`
-	RealtimeModelMetadata RealtimeModelMetadata   `json:"realtime_model_metadata"`
-	APIVersions           []APIVersion            `json:"api_versions,omitempty"`
+	Spec             spec.API                `json:"spec"`
+	Status           *status.Status          `json:"status,omitempty"`
+	Metrics          *metrics.Metrics        `json:"metrics,omitempty"`
+	Endpoint         string                  `json:"endpoint"`
+	DashboardURL     *string                 `json:"dashboard_url,omitempty"`
+	BatchJobStatuses []status.BatchJobStatus `json:"batch_job_statuses,omitempty"`
+	TaskJobStatuses  []status.TaskJobStatus  `json:"task_job_statuses,omitempty"`
+	APIVersions      []APIVersion            `json:"api_versions,omitempty"`
+}
+
+type LogResponse struct {
+	LogURL string `json:"log_url"`
 }
 
 type BatchJobResponse struct {
@@ -85,37 +87,6 @@ type RefreshResponse struct {
 type ErrorResponse struct {
 	Kind    string `json:"kind"`
 	Message string `json:"message"`
-}
-
-type RealtimeModelMetadata struct {
-	TFModelSummary     *TFLiveReloadingSummary `json:"tf_model_summary"`
-	PythonModelSummary *PythonModelSummary     `json:"python_model_summary"`
-}
-
-type TFLiveReloadingSummary struct {
-	ModelMetadata map[string]TFModelIDMetadata `json:"model_metadata"`
-}
-
-type TFModelIDMetadata struct {
-	DiskPath        string                    `json:"disk_path"`
-	SignatureKey    string                    `json:"signature_key"`
-	InputSignatures map[string]InputSignature `json:"input_signatures"`
-	Timestamp       int64                     `json:"timestamp"`
-	SignatureDef    map[string]interface{}    `json:"signature_def"`
-}
-
-type InputSignature struct {
-	Shape []interface{} `json:"shape"`
-	Type  string        `json:"type"`
-}
-
-type PythonModelSummary struct {
-	ModelMetadata map[string]GenericModelMetadata `json:"model_metadata"`
-}
-
-type GenericModelMetadata struct {
-	Versions   []string `json:"versions"`
-	Timestamps []int64  `json:"timestamps"`
 }
 
 type APIVersion struct {

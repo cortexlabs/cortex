@@ -21,8 +21,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
+	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/urls"
@@ -32,11 +32,10 @@ import (
 
 type API struct {
 	Resource
+
+	Pod              *Pod            `json:"pod" yaml:"pod"`
 	APIs             []*TrafficSplit `json:"apis" yaml:"apis"`
-	Handler          *Handler        `json:"handler" yaml:"handler"`
-	TaskDefinition   *TaskDefinition `json:"definition" yaml:"definition"`
 	Networking       *Networking     `json:"networking" yaml:"networking"`
-	Compute          *Compute        `json:"compute" yaml:"compute"`
 	Autoscaling      *Autoscaling    `json:"autoscaling" yaml:"autoscaling"`
 	UpdateStrategy   *UpdateStrategy `json:"update_strategy" yaml:"update_strategy"`
 	Index            int             `json:"index" yaml:"-"`
@@ -44,45 +43,26 @@ type API struct {
 	SubmittedAPISpec interface{}     `json:"submitted_api_spec" yaml:"submitted_api_spec"`
 }
 
-type Handler struct {
-	Type         HandlerType `json:"type" yaml:"type"`
-	Path         string      `json:"path" yaml:"path"`
-	ProtobufPath *string     `json:"protobuf_path" yaml:"protobuf_path"`
-
-	MultiModelReloading *MultiModels `json:"multi_model_reloading" yaml:"multi_model_reloading"`
-	Models              *MultiModels `json:"models" yaml:"models"`
-
-	ServerSideBatching     *ServerSideBatching    `json:"server_side_batching" yaml:"server_side_batching"`
-	ProcessesPerReplica    int32                  `json:"processes_per_replica" yaml:"processes_per_replica"`
-	ThreadsPerProcess      int32                  `json:"threads_per_process" yaml:"threads_per_process"`
-	ShmSize                *k8s.Quantity          `json:"shm_size" yaml:"shm_size"`
-	PythonPath             *string                `json:"python_path" yaml:"python_path"`
-	LogLevel               LogLevel               `json:"log_level" yaml:"log_level"`
-	Image                  string                 `json:"image" yaml:"image"`
-	TensorFlowServingImage string                 `json:"tensorflow_serving_image" yaml:"tensorflow_serving_image"`
-	Config                 map[string]interface{} `json:"config" yaml:"config"`
-	Env                    map[string]string      `json:"env" yaml:"env"`
-	Dependencies           *Dependencies          `json:"dependencies" yaml:"dependencies"`
+type Pod struct {
+	NodeGroups     []string     `json:"node_groups" yaml:"node_groups"`
+	Port           *int32       `json:"port" yaml:"port"`
+	MaxQueueLength int64        `json:"max_queue_length" yaml:"max_queue_length"`
+	MaxConcurrency int64        `json:"max_concurrency" yaml:"max_concurrency"`
+	Containers     []*Container `json:"containers" yaml:"containers"`
 }
 
-type TaskDefinition struct {
-	Path         string                 `json:"path" yaml:"path"`
-	PythonPath   *string                `json:"python_path" yaml:"python_path"`
-	Image        string                 `json:"image" yaml:"image"`
-	ShmSize      *k8s.Quantity          `json:"shm_size" yaml:"shm_size"`
-	LogLevel     LogLevel               `json:"log_level" yaml:"log_level"`
-	Config       map[string]interface{} `json:"config" yaml:"config"`
-	Env          map[string]string      `json:"env" yaml:"env"`
-	Dependencies *Dependencies          `json:"dependencies" yaml:"dependencies"`
-}
+type Container struct {
+	Name  string            `json:"name" yaml:"name"`
+	Image string            `json:"image" yaml:"image"`
+	Env   map[string]string `json:"env" yaml:"env"`
 
-type MultiModels struct {
-	Path          *string          `json:"path" yaml:"path"`
-	Paths         []*ModelResource `json:"paths" yaml:"paths"`
-	Dir           *string          `json:"dir" yaml:"dir"`
-	CacheSize     *int32           `json:"cache_size" yaml:"cache_size"`
-	DiskCacheSize *int32           `json:"disk_cache_size" yaml:"disk_cache_size"`
-	SignatureKey  *string          `json:"signature_key" yaml:"signature_key"`
+	Command []string `json:"command" yaml:"command"`
+	Args    []string `json:"args" yaml:"args"`
+
+	ReadinessProbe *Probe `json:"readiness_probe" yaml:"readiness_probe"`
+	LivenessProbe  *Probe `json:"liveness_probe" yaml:"liveness_probe"`
+
+	Compute *Compute `json:"compute" yaml:"compute"`
 }
 
 type TrafficSplit struct {
@@ -91,41 +71,47 @@ type TrafficSplit struct {
 	Shadow bool   `json:"shadow" yaml:"shadow"`
 }
 
-type ModelResource struct {
-	Name         string  `json:"name" yaml:"name"`
-	Path         string  `json:"path" yaml:"path"`
-	SignatureKey *string `json:"signature_key" yaml:"signature_key"`
-}
-
-type ServerSideBatching struct {
-	MaxBatchSize  int32         `json:"max_batch_size" yaml:"max_batch_size"`
-	BatchInterval time.Duration `json:"batch_interval" yaml:"batch_interval"`
-}
-
-type Dependencies struct {
-	Pip   string `json:"pip" yaml:"pip"`
-	Conda string `json:"conda" yaml:"conda"`
-	Shell string `json:"shell" yaml:"shell"`
-}
-
 type Networking struct {
 	Endpoint *string `json:"endpoint" yaml:"endpoint"`
 }
 
+type Probe struct {
+	HTTPGet             *HTTPGetProbe   `json:"http_get" yaml:"http_get"`
+	TCPSocket           *TCPSocketProbe `json:"tcp_socket" yaml:"tcp_socket"`
+	Exec                *ExecProbe      `json:"exec" yaml:"exec"`
+	InitialDelaySeconds int32           `json:"initial_delay_seconds" yaml:"initial_delay_seconds"`
+	TimeoutSeconds      int32           `json:"timeout_seconds" yaml:"timeout_seconds"`
+	PeriodSeconds       int32           `json:"period_seconds" yaml:"period_seconds"`
+	SuccessThreshold    int32           `json:"success_threshold" yaml:"success_threshold"`
+	FailureThreshold    int32           `json:"failure_threshold" yaml:"failure_threshold"`
+}
+
+type HTTPGetProbe struct {
+	Path string `json:"path" yaml:"path"`
+	Port int32  `json:"port" yaml:"port"`
+}
+
+type TCPSocketProbe struct {
+	Port int32 `json:"port" yaml:"port"`
+}
+
+type ExecProbe struct {
+	Command []string `json:"command" yaml:"command"`
+}
+
 type Compute struct {
-	CPU        *k8s.Quantity `json:"cpu" yaml:"cpu"`
-	Mem        *k8s.Quantity `json:"mem" yaml:"mem"`
-	GPU        int64         `json:"gpu" yaml:"gpu"`
-	Inf        int64         `json:"inf" yaml:"inf"`
-	NodeGroups []string      `json:"node_groups" yaml:"node_groups"`
+	CPU *k8s.Quantity `json:"cpu" yaml:"cpu"`
+	Mem *k8s.Quantity `json:"mem" yaml:"mem"`
+	GPU int64         `json:"gpu" yaml:"gpu"`
+	Inf int64         `json:"inf" yaml:"inf"`
+	Shm *k8s.Quantity `json:"shm" yaml:"shm"`
 }
 
 type Autoscaling struct {
 	MinReplicas                  int32         `json:"min_replicas" yaml:"min_replicas"`
 	MaxReplicas                  int32         `json:"max_replicas" yaml:"max_replicas"`
 	InitReplicas                 int32         `json:"init_replicas" yaml:"init_replicas"`
-	TargetReplicaConcurrency     *float64      `json:"target_replica_concurrency" yaml:"target_replica_concurrency"`
-	MaxReplicaConcurrency        int64         `json:"max_replica_concurrency" yaml:"max_replica_concurrency"`
+	TargetInFlight               *float64      `json:"target_in_flight" yaml:"target_in_flight"`
 	Window                       time.Duration `json:"window" yaml:"window"`
 	DownscaleStabilizationPeriod time.Duration `json:"downscale_stabilization_period" yaml:"downscale_stabilization_period"`
 	UpscaleStabilizationPeriod   time.Duration `json:"upscale_stabilization_period" yaml:"upscale_stabilization_period"`
@@ -142,72 +128,6 @@ type UpdateStrategy struct {
 
 func (api *API) Identify() string {
 	return IdentifyAPI(api.FileName, api.Name, api.Kind, api.Index)
-}
-
-func (api *API) ModelNames() []string {
-	names := []string{}
-	for _, model := range api.Handler.Models.Paths {
-		names = append(names, model.Name)
-	}
-	return names
-}
-
-func (api *API) ApplyDefaultDockerPaths() {
-	usesGPU := api.Compute.GPU > 0
-	usesInf := api.Compute.Inf > 0
-
-	switch api.Kind {
-	case RealtimeAPIKind, BatchAPIKind, AsyncAPIKind:
-		api.applyHandlerDefaultDockerPaths(usesGPU, usesInf)
-	case TaskAPIKind:
-		api.applyTaskDefaultDockerPaths(usesGPU, usesInf)
-	}
-}
-
-func (api *API) applyHandlerDefaultDockerPaths(usesGPU, usesInf bool) {
-	handler := api.Handler
-	switch handler.Type {
-	case PythonHandlerType:
-		if handler.Image == "" {
-			if usesGPU {
-				handler.Image = consts.DefaultImagePythonHandlerGPU
-			} else if usesInf {
-				handler.Image = consts.DefaultImagePythonHandlerInf
-			} else {
-				handler.Image = consts.DefaultImagePythoHandlerCPU
-			}
-		}
-	case TensorFlowHandlerType:
-		if handler.Image == "" {
-			handler.Image = consts.DefaultImageTensorFlowHandler
-		}
-		if handler.TensorFlowServingImage == "" {
-			if usesGPU {
-				handler.TensorFlowServingImage = consts.DefaultImageTensorFlowServingGPU
-			} else if usesInf {
-				handler.TensorFlowServingImage = consts.DefaultImageTensorFlowServingInf
-			} else {
-				handler.TensorFlowServingImage = consts.DefaultImageTensorFlowServingCPU
-			}
-		}
-	}
-}
-
-func (api *API) applyTaskDefaultDockerPaths(usesGPU, usesInf bool) {
-	task := api.TaskDefinition
-	if task.Image == "" {
-		if usesGPU {
-			task.Image = consts.DefaultImagePythonHandlerGPU
-		} else if usesInf {
-			task.Image = consts.DefaultImagePythonHandlerInf
-		} else {
-			task.Image = consts.DefaultImagePythoHandlerCPU
-		}
-	}
-}
-
-func (handler *Handler) IsGRPC() bool {
-	return handler.ProtobufPath != nil
 }
 
 func IdentifyAPI(filePath string, name string, kind Kind, index int) string {
@@ -232,9 +152,10 @@ func IdentifyAPI(filePath string, name string, kind Kind, index int) string {
 // InitReplicas was left out deliberately
 func (api *API) ToK8sAnnotations() map[string]string {
 	annotations := map[string]string{}
-	if api.Handler != nil {
-		annotations[ProcessesPerReplicaAnnotationKey] = s.Int32(api.Handler.ProcessesPerReplica)
-		annotations[ThreadsPerProcessAnnotationKey] = s.Int32(api.Handler.ThreadsPerProcess)
+
+	if api.Pod != nil && api.Kind == RealtimeAPIKind {
+		annotations[MaxConcurrencyAnnotationKey] = s.Int64(api.Pod.MaxConcurrency)
+		annotations[MaxQueueLengthAnnotationKey] = s.Int64(api.Pod.MaxQueueLength)
 	}
 
 	if api.Networking != nil {
@@ -244,8 +165,7 @@ func (api *API) ToK8sAnnotations() map[string]string {
 	if api.Autoscaling != nil {
 		annotations[MinReplicasAnnotationKey] = s.Int32(api.Autoscaling.MinReplicas)
 		annotations[MaxReplicasAnnotationKey] = s.Int32(api.Autoscaling.MaxReplicas)
-		annotations[TargetReplicaConcurrencyAnnotationKey] = s.Float64(*api.Autoscaling.TargetReplicaConcurrency)
-		annotations[MaxReplicaConcurrencyAnnotationKey] = s.Int64(api.Autoscaling.MaxReplicaConcurrency)
+		annotations[TargetInFlightAnnotationKey] = s.Float64(*api.Autoscaling.TargetInFlight)
 		annotations[WindowAnnotationKey] = api.Autoscaling.Window.String()
 		annotations[DownscaleStabilizationPeriodAnnotationKey] = api.Autoscaling.DownscaleStabilizationPeriod.String()
 		annotations[UpscaleStabilizationPeriodAnnotationKey] = api.Autoscaling.UpscaleStabilizationPeriod.String()
@@ -272,17 +192,11 @@ func AutoscalingFromAnnotations(k8sObj kmeta.Object) (*Autoscaling, error) {
 	}
 	a.MaxReplicas = maxReplicas
 
-	targetReplicaConcurrency, err := k8s.ParseFloat64Annotation(k8sObj, TargetReplicaConcurrencyAnnotationKey)
+	targetInFlight, err := k8s.ParseFloat64Annotation(k8sObj, TargetInFlightAnnotationKey)
 	if err != nil {
 		return nil, err
 	}
-	a.TargetReplicaConcurrency = &targetReplicaConcurrency
-
-	maxReplicaConcurrency, err := k8s.ParseInt64Annotation(k8sObj, MaxReplicaConcurrencyAnnotationKey)
-	if err != nil {
-		return nil, err
-	}
-	a.MaxReplicaConcurrency = maxReplicaConcurrency
+	a.TargetInFlight = pointer.Float64(targetInFlight)
 
 	window, err := k8s.ParseDurationAnnotation(k8sObj, WindowAnnotationKey)
 	if err != nil {
@@ -341,24 +255,14 @@ func (api *API) UserStr() string {
 		}
 	}
 
-	if api.TaskDefinition != nil {
-		sb.WriteString(fmt.Sprintf("%s:\n", TaskDefinitionKey))
-		sb.WriteString(s.Indent(api.TaskDefinition.UserStr(), "  "))
-	}
-
-	if api.Handler != nil {
-		sb.WriteString(fmt.Sprintf("%s:\n", HandlerKey))
-		sb.WriteString(s.Indent(api.Handler.UserStr(), "  "))
+	if api.Pod != nil {
+		sb.WriteString(fmt.Sprintf("%s:\n", PodKey))
+		sb.WriteString(s.Indent(api.Pod.UserStr(api.Kind), "  "))
 	}
 
 	if api.Networking != nil {
 		sb.WriteString(fmt.Sprintf("%s:\n", NetworkingKey))
 		sb.WriteString(s.Indent(api.Networking.UserStr(), "  "))
-	}
-
-	if api.Compute != nil {
-		sb.WriteString(fmt.Sprintf("%s:\n", ComputeKey))
-		sb.WriteString(s.Indent(api.Compute.UserStr(), "  "))
 	}
 
 	if api.Autoscaling != nil {
@@ -374,14 +278,6 @@ func (api *API) UserStr() string {
 	return sb.String()
 }
 
-func (dependencies Dependencies) UserStr() string {
-	var sb strings.Builder
-	sb.WriteString(fmt.Sprintf("%s: %s\n", PipKey, dependencies.Pip))
-	sb.WriteString(fmt.Sprintf("%s: %s\n", CondaKey, dependencies.Conda))
-	sb.WriteString(fmt.Sprintf("%s: %s\n", ShellKey, dependencies.Shell))
-	return sb.String()
-}
-
 func (trafficSplit *TrafficSplit) UserStr() string {
 	var sb strings.Builder
 	sb.WriteString(fmt.Sprintf("%s: %s\n", NameKey, trafficSplit.Name))
@@ -390,132 +286,68 @@ func (trafficSplit *TrafficSplit) UserStr() string {
 	return sb.String()
 }
 
-func (task *TaskDefinition) UserStr() string {
+func (pod *Pod) UserStr(kind Kind) string {
 	var sb strings.Builder
 
-	sb.WriteString(fmt.Sprintf("%s: %s\n", PathKey, task.Path))
-	if task.PythonPath != nil {
-		sb.WriteString(fmt.Sprintf("%s: %s\n", PythonPathKey, *task.PythonPath))
-	}
-	sb.WriteString(fmt.Sprintf("%s: %s\n", ImageKey, task.Image))
-	if task.ShmSize != nil {
-		sb.WriteString(fmt.Sprintf("%s: %s\n", ShmSizeKey, task.ShmSize.String()))
-	}
-	sb.WriteString(fmt.Sprintf("%s: %s\n", LogLevelKey, task.LogLevel))
-	if len(task.Config) > 0 {
-		sb.WriteString(fmt.Sprintf("%s:\n", ConfigKey))
-		d, _ := yaml.Marshal(&task.Config)
-		sb.WriteString(s.Indent(string(d), "  "))
-	}
-	if len(task.Env) > 0 {
-		sb.WriteString(fmt.Sprintf("%s:\n", EnvKey))
-		d, _ := yaml.Marshal(&task.Env)
-		sb.WriteString(s.Indent(string(d), "  "))
-	}
-	sb.WriteString(fmt.Sprintf("%s:\n", DependenciesKey))
-	sb.WriteString(s.Indent(task.Dependencies.UserStr(), "  "))
-
-	return sb.String()
-}
-
-func (handler *Handler) UserStr() string {
-	var sb strings.Builder
-
-	sb.WriteString(fmt.Sprintf("%s: %s\n", TypeKey, handler.Type))
-	sb.WriteString(fmt.Sprintf("%s: %s\n", PathKey, handler.Path))
-
-	if handler.ProtobufPath != nil {
-		sb.WriteString(fmt.Sprintf("%s: %s\n", ProtobufPathKey, *handler.ProtobufPath))
-	}
-
-	if handler.Models != nil {
-		sb.WriteString(fmt.Sprintf("%s:\n", ModelsKey))
-		sb.WriteString(s.Indent(handler.Models.UserStr(), "  "))
-	}
-	if handler.MultiModelReloading != nil {
-		sb.WriteString(fmt.Sprintf("%s:\n", MultiModelReloadingKey))
-		sb.WriteString(s.Indent(handler.MultiModelReloading.UserStr(), "  "))
-	}
-
-	if handler.Type == TensorFlowHandlerType && handler.ServerSideBatching != nil {
-		sb.WriteString(fmt.Sprintf("%s:\n", ServerSideBatchingKey))
-		sb.WriteString(s.Indent(handler.ServerSideBatching.UserStr(), "  "))
-	}
-
-	sb.WriteString(fmt.Sprintf("%s: %s\n", ProcessesPerReplicaKey, s.Int32(handler.ProcessesPerReplica)))
-	sb.WriteString(fmt.Sprintf("%s: %s\n", ThreadsPerProcessKey, s.Int32(handler.ThreadsPerProcess)))
-
-	if handler.ShmSize != nil {
-		sb.WriteString(fmt.Sprintf("%s: %s\n", ShmSizeKey, handler.ShmSize.UserString))
-	}
-
-	if len(handler.Config) > 0 {
-		sb.WriteString(fmt.Sprintf("%s:\n", ConfigKey))
-		d, _ := yaml.Marshal(&handler.Config)
-		sb.WriteString(s.Indent(string(d), "  "))
-	}
-	sb.WriteString(fmt.Sprintf("%s: %s\n", ImageKey, handler.Image))
-	if handler.TensorFlowServingImage != "" {
-		sb.WriteString(fmt.Sprintf("%s: %s\n", TensorFlowServingImageKey, handler.TensorFlowServingImage))
-	}
-	if handler.PythonPath != nil {
-		sb.WriteString(fmt.Sprintf("%s: %s\n", PythonPathKey, *handler.PythonPath))
-	}
-
-	sb.WriteString(fmt.Sprintf("%s: %s\n", LogLevelKey, handler.LogLevel))
-
-	if len(handler.Env) > 0 {
-		sb.WriteString(fmt.Sprintf("%s:\n", EnvKey))
-		d, _ := yaml.Marshal(&handler.Env)
-		sb.WriteString(s.Indent(string(d), "  "))
-	}
-	sb.WriteString(fmt.Sprintf("%s:\n", DependenciesKey))
-	sb.WriteString(s.Indent(handler.Dependencies.UserStr(), "  "))
-
-	return sb.String()
-}
-
-func (models *MultiModels) UserStr() string {
-	var sb strings.Builder
-
-	if len(models.Paths) > 0 {
-		sb.WriteString(fmt.Sprintf("%s:\n", ModelsPathsKey))
-		for _, model := range models.Paths {
-			modelUserStr := s.Indent(model.UserStr(), "    ")
-			modelUserStr = modelUserStr[:2] + "-" + modelUserStr[3:]
-			sb.WriteString(modelUserStr)
-		}
-	} else if models.Path != nil {
-		sb.WriteString(fmt.Sprintf("%s: %s\n", ModelsPathKey, *models.Path))
+	if pod.NodeGroups == nil {
+		sb.WriteString(fmt.Sprintf("%s: null\n", NodeGroupsKey))
 	} else {
-		sb.WriteString(fmt.Sprintf("%s: %s\n", ModelsDirKey, *models.Dir))
+		sb.WriteString(fmt.Sprintf("%s: %s\n", NodeGroupsKey, s.ObjFlatNoQuotes(pod.NodeGroups)))
 	}
-	if models.SignatureKey != nil {
-		sb.WriteString(fmt.Sprintf("%s: %s\n", ModelsSignatureKeyKey, *models.SignatureKey))
+	if pod.Port != nil {
+		sb.WriteString(fmt.Sprintf("%s: %d\n", PortKey, *pod.Port))
 	}
-	if models.CacheSize != nil {
-		sb.WriteString(fmt.Sprintf("%s: %s\n", ModelsCacheSizeKey, s.Int32(*models.CacheSize)))
+
+	if kind == RealtimeAPIKind {
+		sb.WriteString(fmt.Sprintf("%s: %s\n", MaxConcurrencyKey, s.Int64(pod.MaxConcurrency)))
+		sb.WriteString(fmt.Sprintf("%s: %s\n", MaxQueueLengthKey, s.Int64(pod.MaxQueueLength)))
 	}
-	if models.DiskCacheSize != nil {
-		sb.WriteString(fmt.Sprintf("%s: %s\n", ModelsDiskCacheSizeKey, s.Int32(*models.DiskCacheSize)))
+
+	sb.WriteString(fmt.Sprintf("%s:\n", ContainersKey))
+	for _, container := range pod.Containers {
+		containerUserStr := s.Indent(container.UserStr(), "    ")
+		containerUserStr = containerUserStr[:2] + "-" + containerUserStr[3:]
+		sb.WriteString(containerUserStr)
 	}
+
 	return sb.String()
 }
 
-func (model *ModelResource) UserStr() string {
+func (container *Container) UserStr() string {
 	var sb strings.Builder
-	sb.WriteString(fmt.Sprintf("%s: %s\n", ModelsNameKey, model.Name))
-	sb.WriteString(fmt.Sprintf("%s: %s\n", ModelsPathKey, model.Path))
-	if model.SignatureKey != nil {
-		sb.WriteString(fmt.Sprintf("%s: %s\n", ModelsSignatureKeyKey, *model.SignatureKey))
-	}
-	return sb.String()
-}
 
-func (batch *ServerSideBatching) UserStr() string {
-	var sb strings.Builder
-	sb.WriteString(fmt.Sprintf("%s: %s\n", MaxBatchSizeKey, s.Int32(batch.MaxBatchSize)))
-	sb.WriteString(fmt.Sprintf("%s: %s\n", BatchIntervalKey, batch.BatchInterval))
+	sb.WriteString(fmt.Sprintf("%s: %s\n", ContainerNameKey, container.Name))
+	sb.WriteString(fmt.Sprintf("%s: %s\n", ImageKey, container.Image))
+
+	if len(container.Env) > 0 {
+		sb.WriteString(fmt.Sprintf("%s:\n", EnvKey))
+		d, _ := yaml.Marshal(&container.Env)
+		sb.WriteString(s.Indent(string(d), "  "))
+	}
+
+	if container.Command != nil {
+		sb.WriteString(fmt.Sprintf("%s: %s\n", CommandKey, s.ObjFlatNoQuotes(container.Command)))
+	}
+
+	if container.Args != nil {
+		sb.WriteString(fmt.Sprintf("%s: %s\n", ArgsKey, s.ObjFlatNoQuotes(container.Args)))
+	}
+
+	if container.ReadinessProbe != nil {
+		sb.WriteString(fmt.Sprintf("%s:\n", ReadinessProbeKey))
+		sb.WriteString(s.Indent(container.ReadinessProbe.UserStr(), "  "))
+	}
+
+	if container.LivenessProbe != nil {
+		sb.WriteString(fmt.Sprintf("%s:\n", LivenessProbeKey))
+		sb.WriteString(s.Indent(container.LivenessProbe.UserStr(), "  "))
+	}
+
+	if container.Compute != nil {
+		sb.WriteString(fmt.Sprintf("%s:\n", ComputeKey))
+		sb.WriteString(s.Indent(container.Compute.UserStr(), "  "))
+	}
+
 	return sb.String()
 }
 
@@ -527,31 +359,49 @@ func (networking *Networking) UserStr() string {
 	return sb.String()
 }
 
-// Represent compute using the smallest base units e.g. bytes for Mem, milli for CPU
-func (compute *Compute) Normalized() string {
+func (probe *Probe) UserStr() string {
 	var sb strings.Builder
-	if compute.CPU == nil {
-		sb.WriteString(fmt.Sprintf("%s: null\n", CPUKey))
-	} else {
-		sb.WriteString(fmt.Sprintf("%s: %d\n", CPUKey, compute.CPU.MilliValue()))
+
+	if probe.HTTPGet != nil {
+		sb.WriteString(fmt.Sprintf("%s:\n", HTTPGetKey))
+		sb.WriteString(s.Indent(probe.HTTPGet.UserStr(), "  "))
 	}
-	if compute.GPU > 0 {
-		sb.WriteString(fmt.Sprintf("%s: %s\n", GPUKey, s.Int64(compute.GPU)))
+	if probe.TCPSocket != nil {
+		sb.WriteString(fmt.Sprintf("%s:\n", TCPSocketKey))
+		sb.WriteString(s.Indent(probe.TCPSocket.UserStr(), "  "))
 	}
-	if compute.Inf > 0 {
-		sb.WriteString(fmt.Sprintf("%s: %s\n", InfKey, s.Int64(compute.Inf)))
-	}
-	if compute.Mem == nil {
-		sb.WriteString(fmt.Sprintf("%s: null\n", MemKey))
-	} else {
-		sb.WriteString(fmt.Sprintf("%s: %d\n", MemKey, compute.Mem.Value()))
-	}
-	if compute.NodeGroups == nil {
-		sb.WriteString(fmt.Sprintf("%s: null\n", NodeGroupsKey))
-	} else {
-		sb.WriteString(fmt.Sprintf("%s: %s\n", NodeGroupsKey, s.ObjFlatNoQuotes(compute.NodeGroups)))
+	if probe.Exec != nil {
+		sb.WriteString(fmt.Sprintf("%s:\n", ExecKey))
+		sb.WriteString(s.Indent(probe.Exec.UserStr(), "  "))
 	}
 
+	sb.WriteString(fmt.Sprintf("%s: %d\n", InitialDelaySecondsKey, probe.InitialDelaySeconds))
+	sb.WriteString(fmt.Sprintf("%s: %d\n", TimeoutSecondsKey, probe.TimeoutSeconds))
+	sb.WriteString(fmt.Sprintf("%s: %d\n", PeriodSecondsKey, probe.PeriodSeconds))
+	sb.WriteString(fmt.Sprintf("%s: %d\n", SuccessThresholdKey, probe.SuccessThreshold))
+	sb.WriteString(fmt.Sprintf("%s: %d\n", FailureThresholdKey, probe.FailureThreshold))
+
+	return sb.String()
+}
+
+func (httpProbe *HTTPGetProbe) UserStr() string {
+	var sb strings.Builder
+
+	sb.WriteString(fmt.Sprintf("%s: %s\n", PathKey, httpProbe.Path))
+	sb.WriteString(fmt.Sprintf("%s: %d\n", PortKey, httpProbe.Port))
+
+	return sb.String()
+}
+
+func (tcpSocketProbe *TCPSocketProbe) UserStr() string {
+	var sb strings.Builder
+	sb.WriteString(fmt.Sprintf("%s: %d\n", PortKey, tcpSocketProbe.Port))
+	return sb.String()
+}
+
+func (execProbe *ExecProbe) UserStr() string {
+	var sb strings.Builder
+	sb.WriteString(fmt.Sprintf("%s: %s\n", CommandKey, s.ObjFlatNoQuotes(execProbe.Command)))
 	return sb.String()
 }
 
@@ -573,48 +423,12 @@ func (compute *Compute) UserStr() string {
 	} else {
 		sb.WriteString(fmt.Sprintf("%s: %s\n", MemKey, compute.Mem.UserString))
 	}
-	if compute.NodeGroups == nil {
-		sb.WriteString(fmt.Sprintf("%s: null  # automatic node-group selection\n", NodeGroupsKey))
+	if compute.Shm == nil {
+		sb.WriteString(fmt.Sprintf("%s: null  # not configured\n", ShmKey))
 	} else {
-		sb.WriteString(fmt.Sprintf("%s: %s\n", NodeGroupsKey, s.ObjFlatNoQuotes(compute.NodeGroups)))
+		sb.WriteString(fmt.Sprintf("%s: %s\n", ShmKey, compute.Shm.UserString))
 	}
 	return sb.String()
-}
-
-func (compute Compute) Equals(c2 *Compute) bool {
-	if c2 == nil {
-		return false
-	}
-
-	if compute.CPU == nil && c2.CPU != nil || compute.CPU != nil && c2.CPU == nil {
-		return false
-	}
-
-	if compute.CPU != nil && c2.CPU != nil && !compute.CPU.Equal(*c2.CPU) {
-		return false
-	}
-
-	if compute.Mem == nil && c2.Mem != nil || compute.Mem != nil && c2.Mem == nil {
-		return false
-	}
-
-	if compute.Mem != nil && c2.Mem != nil && !compute.Mem.Equal(*c2.Mem) {
-		return false
-	}
-
-	if compute.GPU != c2.GPU {
-		return false
-	}
-
-	if compute.NodeGroups == nil && c2.NodeGroups != nil || compute.NodeGroups != nil && c2.NodeGroups == nil {
-		return false
-	}
-
-	if !strset.New(compute.NodeGroups...).IsEqual(strset.New(c2.NodeGroups...)) {
-		return false
-	}
-
-	return true
 }
 
 func (autoscaling *Autoscaling) UserStr() string {
@@ -622,8 +436,7 @@ func (autoscaling *Autoscaling) UserStr() string {
 	sb.WriteString(fmt.Sprintf("%s: %s\n", MinReplicasKey, s.Int32(autoscaling.MinReplicas)))
 	sb.WriteString(fmt.Sprintf("%s: %s\n", MaxReplicasKey, s.Int32(autoscaling.MaxReplicas)))
 	sb.WriteString(fmt.Sprintf("%s: %s\n", InitReplicasKey, s.Int32(autoscaling.InitReplicas)))
-	sb.WriteString(fmt.Sprintf("%s: %s\n", MaxReplicaConcurrencyKey, s.Int64(autoscaling.MaxReplicaConcurrency)))
-	sb.WriteString(fmt.Sprintf("%s: %s\n", TargetReplicaConcurrencyKey, s.Float64(*autoscaling.TargetReplicaConcurrency)))
+	sb.WriteString(fmt.Sprintf("%s: %s\n", TargetInFlightKey, s.Float64(*autoscaling.TargetInFlight)))
 	sb.WriteString(fmt.Sprintf("%s: %s\n", WindowKey, autoscaling.Window.String()))
 	sb.WriteString(fmt.Sprintf("%s: %s\n", DownscaleStabilizationPeriodKey, autoscaling.DownscaleStabilizationPeriod.String()))
 	sb.WriteString(fmt.Sprintf("%s: %s\n", UpscaleStabilizationPeriodKey, autoscaling.UpscaleStabilizationPeriod.String()))
@@ -650,6 +463,58 @@ func ZeroCompute() Compute {
 	}
 }
 
+func GetTotalComputeFromContainers(containers []*Container) Compute {
+	compute := Compute{}
+
+	for _, container := range containers {
+		if container == nil || container.Compute == nil {
+			continue
+		}
+
+		if container.Compute.CPU != nil {
+			newCPUQuantity := k8s.NewMilliQuantity(container.Compute.CPU.ToDec().MilliValue())
+			if compute.CPU == nil {
+				compute.CPU = newCPUQuantity
+			} else if newCPUQuantity != nil {
+				compute.CPU.AddQty(*newCPUQuantity)
+			}
+		}
+
+		if container.Compute.Mem != nil {
+			newMemQuantity := k8s.NewMilliQuantity(container.Compute.Mem.ToDec().MilliValue())
+			if compute.Mem == nil {
+				compute.Mem = newMemQuantity
+			} else if newMemQuantity != nil {
+				compute.Mem.AddQty(*newMemQuantity)
+			}
+		}
+
+		if container.Compute.Shm != nil {
+			newShmQuantity := k8s.NewMilliQuantity(container.Compute.Shm.ToDec().MilliValue())
+			if compute.Shm == nil {
+				compute.Shm = newShmQuantity
+			} else if newShmQuantity != nil {
+				compute.Shm.AddQty(*newShmQuantity)
+			}
+		}
+
+		compute.GPU += container.Compute.GPU
+		compute.Inf += container.Compute.Inf
+	}
+
+	return compute
+}
+
+func GetContainerNames(containers []*Container) strset.Set {
+	containerNames := strset.New()
+	for _, container := range containers {
+		if container != nil {
+			containerNames.Add(container.Name)
+		}
+	}
+	return containerNames
+}
+
 func (api *API) TelemetryEvent() map[string]interface{} {
 	event := map[string]interface{}{"kind": api.Kind}
 
@@ -668,100 +533,49 @@ func (api *API) TelemetryEvent() map[string]interface{} {
 		}
 	}
 
-	if api.Compute != nil {
-		event["compute._is_defined"] = true
-		if api.Compute.CPU != nil {
-			event["compute.cpu._is_defined"] = true
-			event["compute.cpu"] = float64(api.Compute.CPU.MilliValue()) / 1000
-		}
-		if api.Compute.Mem != nil {
-			event["compute.mem._is_defined"] = true
-			event["compute.mem"] = api.Compute.Mem.Value()
-		}
-		event["compute.gpu"] = api.Compute.GPU
-		event["compute.inf"] = api.Compute.Inf
-		event["compute.node_groups._is_defined"] = len(api.Compute.NodeGroups) > 0
-		event["compute.node_groups._len"] = len(api.Compute.NodeGroups)
-	}
-
-	if api.Handler != nil {
-		event["handler._is_defined"] = true
-		event["handler.type"] = api.Handler.Type
-		event["handler.processes_per_replica"] = api.Handler.ProcessesPerReplica
-		event["handler.threads_per_process"] = api.Handler.ThreadsPerProcess
-
-		if api.Handler.ShmSize != nil {
-			event["handler.shm_size"] = api.Handler.ShmSize.String()
+	if api.Pod != nil {
+		event["pod._is_defined"] = true
+		event["pod.node_groups._is_defined"] = len(api.Pod.NodeGroups) > 0
+		event["pod.node_groups._len"] = len(api.Pod.NodeGroups)
+		if api.Pod.Port != nil {
+			event["pod.port"] = *api.Pod.Port
 		}
 
-		event["handler.log_level"] = api.Handler.LogLevel
+		event["pod.max_concurrency"] = api.Pod.MaxConcurrency
+		event["pod.max_queue_length"] = api.Pod.MaxQueueLength
 
-		if api.Handler.ProtobufPath != nil {
-			event["handler.protobuf_path._is_defined"] = true
-		}
-		if api.Handler.PythonPath != nil {
-			event["handler.python_path._is_defined"] = true
-		}
-		if !strings.HasPrefix(api.Handler.Image, "cortexlabs/") {
-			event["handler.image._is_custom"] = true
-		}
-		if !strings.HasPrefix(api.Handler.TensorFlowServingImage, "cortexlabs/") {
-			event["handler.tensorflow_serving_image._is_custom"] = true
-		}
-		if len(api.Handler.Config) > 0 {
-			event["handler.config._is_defined"] = true
-			event["handler.config._len"] = len(api.Handler.Config)
-		}
-		if len(api.Handler.Env) > 0 {
-			event["handler.env._is_defined"] = true
-			event["handler.env._len"] = len(api.Handler.Env)
-		}
+		event["pod.containers._len"] = len(api.Pod.Containers)
 
-		var models *MultiModels
-		if api.Handler.Models != nil {
-			models = api.Handler.Models
-		}
-		if api.Handler.MultiModelReloading != nil {
-			models = api.Handler.MultiModelReloading
-		}
-
-		if models != nil {
-			event["handler.models._is_defined"] = true
-			if models.Path != nil {
-				event["handler.models.path._is_defined"] = true
+		var numReadinessProbes int
+		var numLivenessProbes int
+		for _, container := range api.Pod.Containers {
+			if container.ReadinessProbe != nil {
+				numReadinessProbes++
 			}
-			if len(models.Paths) > 0 {
-				event["handler.models.paths._is_defined"] = true
-				event["handler.models.paths._len"] = len(models.Paths)
-				var numSignatureKeysDefined int
-				for _, mmPath := range models.Paths {
-					if mmPath.SignatureKey != nil {
-						numSignatureKeysDefined++
-					}
-				}
-				event["handler.models.paths._num_signature_keys_defined"] = numSignatureKeysDefined
-			}
-			if models.Dir != nil {
-				event["handler.models.dir._is_defined"] = true
-			}
-			if models.CacheSize != nil {
-				event["handler.models.cache_size._is_defined"] = true
-				event["handler.models.cache_size"] = *models.CacheSize
-			}
-			if models.DiskCacheSize != nil {
-				event["handler.models.disk_cache_size._is_defined"] = true
-				event["handler.models.disk_cache_size"] = *models.DiskCacheSize
-			}
-			if models.SignatureKey != nil {
-				event["handler.models.signature_key._is_defined"] = true
+			if container.LivenessProbe != nil {
+				numLivenessProbes++
 			}
 		}
 
-		if api.Handler.ServerSideBatching != nil {
-			event["handler.server_side_batching._is_defined"] = true
-			event["handler.server_side_batching.max_batch_size"] = api.Handler.ServerSideBatching.MaxBatchSize
-			event["handler.server_side_batching.batch_interval"] = api.Handler.ServerSideBatching.BatchInterval.Seconds()
+		event["pod.containers._num_readiness_probes"] = numReadinessProbes
+		event["pod.containers._num_liveness_probes"] = numLivenessProbes
+
+		event["pod.containers.compute._is_defined"] = true
+		totalCompute := GetTotalComputeFromContainers(api.Pod.Containers)
+		if totalCompute.CPU != nil {
+			event["pod.containers.compute.cpu._is_defined"] = true
+			event["pod.containers.compute.cpu"] = float64(totalCompute.CPU.MilliValue()) / 1000
 		}
+		if totalCompute.Mem != nil {
+			event["pod.containers.compute.mem._is_defined"] = true
+			event["pod.containers.compute.mem"] = totalCompute.Mem.Value()
+		}
+		if totalCompute.Shm != nil {
+			event["pod.containers.compute.shm._is_defined"] = true
+			event["pod.containers.compute.shm"] = totalCompute.Shm.Value()
+		}
+		event["pod.containers.compute.gpu"] = totalCompute.GPU
+		event["pod.containers.compute.inf"] = totalCompute.Inf
 	}
 
 	if api.UpdateStrategy != nil {
@@ -775,11 +589,7 @@ func (api *API) TelemetryEvent() map[string]interface{} {
 		event["autoscaling.min_replicas"] = api.Autoscaling.MinReplicas
 		event["autoscaling.max_replicas"] = api.Autoscaling.MaxReplicas
 		event["autoscaling.init_replicas"] = api.Autoscaling.InitReplicas
-		if api.Autoscaling.TargetReplicaConcurrency != nil {
-			event["autoscaling.target_replica_concurrency._is_defined"] = true
-			event["autoscaling.target_replica_concurrency"] = *api.Autoscaling.TargetReplicaConcurrency
-		}
-		event["autoscaling.max_replica_concurrency"] = api.Autoscaling.MaxReplicaConcurrency
+		event["autoscaling.target_in_flight"] = *api.Autoscaling.TargetInFlight
 		event["autoscaling.window"] = api.Autoscaling.Window.Seconds()
 		event["autoscaling.downscale_stabilization_period"] = api.Autoscaling.DownscaleStabilizationPeriod.Seconds()
 		event["autoscaling.upscale_stabilization_period"] = api.Autoscaling.UpscaleStabilizationPeriod.Seconds()

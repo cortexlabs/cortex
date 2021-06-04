@@ -19,24 +19,15 @@
 
 set -euo pipefail
 
-api_images=(
-  "python-handler-cpu"
-  "python-handler-gpu"
-  "tensorflow-handler"
-  "python-handler-inf"
-)
-
 dev_images=(
-  "downloader"
   "manager"
-  "request-monitor"
+  "proxy"
   "async-gateway"
   "enqueuer"
+  "dequeuer"
 )
 
 non_dev_images=(
-  "tensorflow-serving-cpu"
-  "tensorflow-serving-gpu"
   "cluster-autoscaler"
   "operator"
   "controller-manager"
@@ -53,16 +44,13 @@ non_dev_images=(
   "kube-rbac-proxy"
   "grafana"
   "event-exporter"
-  "tensorflow-serving-inf"
   "metrics-server"
   "inferentia"
-  "neuron-rtd"
   "nvidia"
   "kubexit"
 )
 
 all_images=(
-  "${api_images[@]}"
   "${dev_images[@]}"
   "${non_dev_images[@]}"
 )

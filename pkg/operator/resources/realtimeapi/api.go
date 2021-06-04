@@ -18,17 +18,14 @@ package realtimeapi
 
 import (
 	"fmt"
-	"net/http"
 	"path/filepath"
 
 	"github.com/cortexlabs/cortex/pkg/config"
 	"github.com/cortexlabs/cortex/pkg/lib/cron"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
-	"github.com/cortexlabs/cortex/pkg/lib/json"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/parallel"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
-	"github.com/cortexlabs/cortex/pkg/lib/requests"
 	autoscalerlib "github.com/cortexlabs/cortex/pkg/operator/lib/autoscaler"
 	"github.com/cortexlabs/cortex/pkg/operator/lib/routines"
 	"github.com/cortexlabs/cortex/pkg/operator/operator"
@@ -50,7 +47,7 @@ func deploymentID() string {
 	return k8s.RandomName()[:10]
 }
 
-func UpdateAPI(apiConfig *userconfig.API, projectID string, force bool) (*spec.API, string, error) {
+func UpdateAPI(apiConfig *userconfig.API, force bool) (*spec.API, string, error) {
 	prevDeployment, prevService, prevVirtualService, err := getK8sResources(apiConfig)
 	if err != nil {
 		return nil, "", err
@@ -61,16 +58,11 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string, force bool) (*spec.A
 		deploymentID = prevDeployment.Labels["deploymentID"]
 	}
 
-	api := spec.GetAPISpec(apiConfig, projectID, deploymentID, config.ClusterConfig.ClusterUID)
+	api := spec.GetAPISpec(apiConfig, deploymentID, config.ClusterConfig.ClusterUID)
 
 	if prevDeployment == nil {
 		if err := config.AWS.UploadJSONToS3(api, config.ClusterConfig.Bucket, api.Key); err != nil {
 			return nil, "", errors.Wrap(err, "upload api spec")
-		}
-
-		// Use api spec indexed by HandlerID for replicas to prevent rolling updates when SpecID changes without HandlerID changing
-		if err := config.AWS.UploadJSONToS3(api, config.ClusterConfig.Bucket, api.HandlerKey); err != nil {
-			return nil, "", errors.Wrap(err, "upload handler spec")
 		}
 
 		if err := applyK8sResources(api, prevDeployment, prevService, prevVirtualService); err != nil {
@@ -96,11 +88,6 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string, force bool) (*spec.A
 			return nil, "", errors.Wrap(err, "upload api spec")
 		}
 
-		// Use api spec indexed by HandlerID for replicas to prevent rolling updates when SpecID changes without HandlerID changing
-		if err := config.AWS.UploadJSONToS3(api, config.ClusterConfig.Bucket, api.HandlerKey); err != nil {
-			return nil, "", errors.Wrap(err, "upload handler spec")
-		}
-
 		if err := applyK8sResources(api, prevDeployment, prevService, prevVirtualService); err != nil {
 			return nil, "", err
 		}
@@ -119,7 +106,11 @@ func UpdateAPI(apiConfig *userconfig.API, projectID string, force bool) (*spec.A
 }
 
 func RefreshAPI(apiName string, force bool) (string, error) {
-	prevDeployment, err := config.K8s.GetDeployment(workloads.K8sName(apiName))
+	prevDeployment, prevService, prevVirtualService, err := getK8sResources(&userconfig.API{
+		Resource: userconfig.Resource{
+			Name: apiName,
+		},
+	})
 	if err != nil {
 		return "", err
 	} else if prevDeployment == nil {
@@ -145,18 +136,13 @@ func RefreshAPI(apiName string, force bool) (string, error) {
 		return "", err
 	}
 
-	api = spec.GetAPISpec(api.API, api.ProjectID, deploymentID(), config.ClusterConfig.ClusterUID)
+	api = spec.GetAPISpec(api.API, deploymentID(), config.ClusterConfig.ClusterUID)
 
 	if err := config.AWS.UploadJSONToS3(api, config.ClusterConfig.Bucket, api.Key); err != nil {
 		return "", errors.Wrap(err, "upload api spec")
 	}
 
-	// Reupload api spec to the same HandlerID but with the new DeploymentID
-	if err := config.AWS.UploadJSONToS3(api, config.ClusterConfig.Bucket, api.HandlerKey); err != nil {
-		return "", errors.Wrap(err, "upload handler spec")
-	}
-
-	if err := applyK8sDeployment(api, prevDeployment); err != nil {
+	if err := applyK8sResources(api, prevDeployment, prevService, prevVirtualService); err != nil {
 		return "", err
 	}
 
@@ -257,19 +243,12 @@ func GetAPIByName(deployedResource *operator.DeployedResource) ([]schema.APIResp
 
 	dashboardURL := pointer.String(getDashboardURL(api.Name))
 
-	grpcPorts := map[string]int64{}
-	if api.Handler != nil && api.Handler.IsGRPC() {
-		grpcPorts["insecure"] = 80
-		grpcPorts["secure"] = 443
-	}
-
 	return []schema.APIResponse{
 		{
 			Spec:         *api,
 			Status:       status,
 			Metrics:      metrics,
 			Endpoint:     apiEndpoint,
-			GRPCPorts:    grpcPorts,
 			DashboardURL: dashboardURL,
 		},
 	}, nil
@@ -434,7 +413,7 @@ func isAPIUpdating(deployment *kapps.Deployment) (bool, error) {
 }
 
 func isPodSpecLatest(deployment *kapps.Deployment, pod *kcore.Pod) bool {
-	return deployment.Spec.Template.Labels["handlerID"] == pod.Labels["handlerID"] &&
+	return deployment.Spec.Template.Labels["podID"] == pod.Labels["podID"] &&
 		deployment.Spec.Template.Labels["deploymentID"] == pod.Labels["deploymentID"]
 }
 
@@ -450,67 +429,4 @@ func getDashboardURL(apiName string) string {
 	)
 
 	return dashboardURL
-}
-
-func GetModelsMetadata(status *status.Status, handler *userconfig.Handler, apiEndpoint string) (*schema.TFLiveReloadingSummary, *schema.PythonModelSummary, error) {
-	if status.Updated.Ready+status.Stale.Ready == 0 {
-		return nil, nil, nil
-	}
-
-	cachingEnabled := handler.Models != nil && handler.Models.CacheSize != nil && handler.Models.DiskCacheSize != nil
-	if handler.Type == userconfig.TensorFlowHandlerType && !cachingEnabled {
-		tfLiveReloadingSummary, err := getTFLiveReloadingSummary(apiEndpoint)
-		if err != nil {
-			return nil, nil, err
-		}
-		return tfLiveReloadingSummary, nil, nil
-	}
-
-	if handler.Type == userconfig.PythonHandlerType && handler.MultiModelReloading != nil {
-		pythonModelSummary, err := getPythonModelSummary(apiEndpoint)
-		if err != nil {
-			return nil, nil, err
-		}
-		return nil, pythonModelSummary, nil
-	}
-
-	return nil, nil, nil
-}
-
-func getPythonModelSummary(apiEndpoint string) (*schema.PythonModelSummary, error) {
-	req, err := http.NewRequest("GET", apiEndpoint, nil)
-	if err != nil {
-		return nil, errors.Wrap(err, "unable to request api summary")
-	}
-	req.Header.Set("Content-Type", "application/json")
-	_, response, err := requests.MakeRequest(req)
-	if err != nil {
-		return nil, err
-	}
-
-	var pythonModelSummary schema.PythonModelSummary
-	err = json.DecodeWithNumber(response, &pythonModelSummary)
-	if err != nil {
-		return nil, errors.Wrap(err, "unable to parse api summary response")
-	}
-	return &pythonModelSummary, nil
-}
-
-func getTFLiveReloadingSummary(apiEndpoint string) (*schema.TFLiveReloadingSummary, error) {
-	req, err := http.NewRequest("GET", apiEndpoint, nil)
-	if err != nil {
-		return nil, errors.Wrap(err, "unable to request api summary")
-	}
-	req.Header.Set("Content-Type", "application/json")
-	_, response, err := requests.MakeRequest(req)
-	if err != nil {
-		return nil, err
-	}
-
-	var tfLiveReloadingSummary schema.TFLiveReloadingSummary
-	err = json.DecodeWithNumber(response, &tfLiveReloadingSummary)
-	if err != nil {
-		return nil, errors.Wrap(err, "unable to parse api summary response")
-	}
-	return &tfLiveReloadingSummary, nil
 }

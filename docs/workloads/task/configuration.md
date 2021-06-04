@@ -1,27 +1,35 @@
 # Configuration
 
-<!-- CORTEX_VERSION_BRANCH_STABLE x3 -->
 ```yaml
-- name: <string>  # API name (required)
-  kind: TaskAPI
-  definition:
-    path: <string>  # path to a python file with a Task class definition, relative to the Cortex root (required)
-    config: <string: value>  # arbitrary dictionary passed to the callable method of the Task class (can be overridden by config passed in job submission) (optional)
-    dependencies: # (optional)
-      pip: <string>  # relative path to requirements.txt (default: requirements.txt)
-      conda: <string>  # relative path to conda-packages.txt (default: conda-packages.txt)
-      shell: <string>  # relative path to a shell script for system package installation (default: dependencies.sh)
-    python_path: <string>  # path to the root of your Python folder that will be appended to PYTHONPATH (default: folder containing cortex.yaml)
-    shm_size: <string> # size of shared memory (/dev/shm) for sharing data between multiple processes, e.g. 64Mi or 1Gi (default: Null)
-    image: <string> # docker image to use for the Task (default: quay.io/cortexlabs/python-handler-cpu:master, quay.io/cortexlabs/python-handler-gpu:master-cuda10.2-cudnn8, or quay.io/cortexlabs/python-handler-inf:master based on compute)
-    env: <string: string>  # dictionary of environment variables
-    log_level: <string>  # log level that can be "debug", "info", "warning" or "error" (default: "info")
-  networking:
-    endpoint: <string>  # the endpoint for the API (default: <api_name>)
-  compute:
-    cpu: <string | int | float>  # CPU request per worker. One unit of CPU corresponds to one virtual CPU; fractional requests are allowed, and can be specified as a floating point number or via the "m" suffix (default: 200m)
-    gpu: <int>  # GPU request per worker. One unit of GPU corresponds to one virtual GPU (default: 0)
-    inf: <int> # Inferentia request per worker. One unit corresponds to one Inferentia ASIC with 4 NeuronCores and 8GB of cache memory. Each process will have one NeuronCore Group with (4 * inf / processes_per_replica) NeuronCores, so your model should be compiled to run on (4 * inf / processes_per_replica) NeuronCores. (default: 0)
-    mem: <string>  # memory request per worker. One unit of memory is one byte and can be expressed as an integer or by using one of these suffixes: K, M, G, T (or their power-of two counterparts: Ki, Mi, Gi, Ti) (default: Null)
-    node_groups: <list:string>  # to select specific node groups (optional)
+- name: <string>  # name of the API (required)
+  kind: TaskAPI  # must be "TaskAPI" for task APIs (required)
+  pod:  # pod configuration (required)
+    containers:  # configurations for the containers to run (at least one constainer must be provided)
+      - name: <string>  # name of the container (required)
+        image: <string>  # docker image to use for the container (required)
+        command: <list[string]>  # entrypoint (not executed within a shell); env vars can be used with e.g. $(CORTEX_PORT) (required)
+        args: <list[string]>  # arguments to the entrypoint; env vars can be used with e.g. $(CORTEX_PORT) (default: no args)
+        env: <map[string:string]>  # dictionary of environment variables to set in the container (optional)
+        compute:  # compute resource requests (default: see below)
+          cpu: <string|int|float>  # CPU request for the container; one unit of CPU corresponds to one virtual CPU; fractional requests are allowed, and can be specified as a floating point number or via the "m" suffix (default: 200m)
+          gpu: <int>  # GPU request for the container; one unit of GPU corresponds to one virtual GPU (default: 0)
+          inf: <int>  # Inferentia request for the container; one unit of inf corresponds to one virtual Inferentia chip (default: 0)
+          mem: <string>  # memory request for the container; one unit of memory is one byte and can be expressed as an integer or by using one of these suffixes: K, M, G, T (or their power-of two counterparts: Ki, Mi, Gi, Ti) (default: Null)
+          shm: <string>  # size of shared memory (/dev/shm) for sharing data between multiple processes, e.g. 64Mi or 1Gi (default: Null)
+        liveness_probe:  # periodic probe of container liveness; container will be restarted if the probe fails (optional)
+          http_get:  # specifies an http endpoint which must respond with status code 200 (only one of http_get, tcp_socket, and exec may be specified)
+            port: <int|string>  # the port to access on the container (required)
+            path: <string>  # the path to access on the HTTP server (default: /)
+          tcp_socket:  # specifies a port which must be ready to receive traffic (only one of http_get, tcp_socket, and exec may be specified)
+            port: <int|string>  # the port to access on the container (required)
+          exec:  # specifies a command to run which must exit with code 0 (only one of http_get, tcp_socket, and exec may be specified)
+            command: <list[string]>  # the command to execute inside the container, which is exec'd (not run inside a shell); the working directory is root ('/') in the container's filesystem (required)
+          initial_delay_seconds: <int>  # number of seconds after the container has started before the probe is initiated (default: 0)
+          timeout_seconds: <int>  # number of seconds until the probe times out (default: 1)
+          period_seconds: <int>  # how often (in seconds) to perform the probe (default: 10)
+          success_threshold: <int>  # minimum consecutive successes for the probe to be considered successful after having failed (default: 1)
+          failure_threshold: <int>  # minimum consecutive failures for the probe to be considered failed after having succeeded (default: 3)
+  node_groups: <list[string]>  # a list of node groups on which this API can run (default: all node groups are eligible)
+  networking:  # networking configuration (default: see below)
+    endpoint: <string>  # endpoint for the API (default: <api_name>)
 ```

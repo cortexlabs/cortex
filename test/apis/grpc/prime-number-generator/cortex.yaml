@@ -1,9 +1,0 @@
-- name: prime-generator
-  kind: RealtimeAPI
-  handler:
-    type: python
-    path: generator.py
-    protobuf_path: generator.proto
-  compute:
-    cpu: 200m
-    mem: 200Mi

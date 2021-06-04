@@ -101,6 +101,12 @@ data:
         Hard_rename         message log
 
     [FILTER]
+        Name                modify
+        Match               k8s_container.*
+        Condition           Key_Exists msg
+        Hard_rename         msg log
+
+    [FILTER]
         Name                nest
         Match               k8s_container.*
         Operation           lift
@@ -110,8 +116,8 @@ data:
     [FILTER]
         Name                modify
         Match               k8s_container.*
-        Condition           Key_Does_Not_Exist labels
-        Rename              k8s.labels labels
+        Condition           Key_Does_Not_Exist cortex.labels
+        Rename              k8s.labels cortex.labels
 
     [FILTER]
         Name                modify
@@ -136,7 +142,7 @@ data:
         Name                modify
         Match               k8s_container.*.event-exporter-*
         Condition           Key_exists involvedObject.labels
-        Hard_copy           involvedObject.labels labels
+        Hard_copy           involvedObject.labels cortex.labels
 
     [FILTER]
         Name                nest

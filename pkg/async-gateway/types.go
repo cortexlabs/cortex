@@ -16,35 +16,14 @@ limitations under the License.
 
 package gateway
 
-import "time"
+import (
+	"time"
+
+	"github.com/cortexlabs/cortex/pkg/types/async"
+)
 
 // UserResponse represents the user's API response, which has to be JSON serializable
 type UserResponse = map[string]interface{}
-
-// Status is an enum type for workload status
-type Status string
-
-// Different possible workload status
-const (
-	StatusNotFound   Status = "not_found"
-	StatusFailed     Status = "failed"
-	StatusInProgress Status = "in_progress"
-	StatusInQueue    Status = "in_queue"
-	StatusCompleted  Status = "completed"
-)
-
-func (status Status) String() string {
-	return string(status)
-}
-
-func (status Status) Valid() bool {
-	switch status {
-	case StatusNotFound, StatusFailed, StatusInProgress, StatusInQueue, StatusCompleted:
-		return true
-	default:
-		return false
-	}
-}
 
 //CreateWorkloadResponse represents the response returned to the user on workload creation
 type CreateWorkloadResponse struct {
@@ -54,7 +33,7 @@ type CreateWorkloadResponse struct {
 // GetWorkloadResponse represents the workload response that is returned to the user
 type GetWorkloadResponse struct {
 	ID        string        `json:"id"`
-	Status    Status        `json:"status"`
+	Status    async.Status  `json:"status"`
 	Result    *UserResponse `json:"result,omitempty"`
 	Timestamp *time.Time    `json:"timestamp,omitempty"`
 }

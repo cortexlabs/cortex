@@ -1,8 +1,0 @@
-- name: summing-api
-  kind: BatchAPI
-  handler:
-    type: python
-    path: handler.py
-  compute:
-    cpu: 100m
-    mem: 200Mi

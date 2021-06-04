@@ -57,13 +57,16 @@ type BatchJobReconciler struct {
 // +kubebuilder:rbac:groups=batch.cortex.dev,resources=batchjobs/finalizers,verbs=update
 // +kubebuilder:rbac:groups=batch,resources=jobs,verbs=get;list;watch;create;update;patch
 // +kubebuilder:rbac:groups="",resources=pods,verbs=get;list;watch
+// +kubebuilder:rbac:groups="",resources=configmaps,verbs=create;get;list;watch
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
 func (r *BatchJobReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	log := r.Log.WithValues(
-		"batchjob", req.NamespacedName,
-		"apiKind", userconfig.BatchAPIKind.String(),
+	log := r.Log.WithValues("cortex.labels",
+		map[string]string{
+			"batchjob": req.NamespacedName.String(),
+			"apiKind":  userconfig.BatchAPIKind.String(),
+		},
 	)
 
 	// Step 1: get resource from request
@@ -76,8 +79,15 @@ func (r *BatchJobReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
-	log = log.WithValues("apiName", batchJob.Spec.APIName, "apiID", batchJob.Spec.APIID, "jobID", batchJob.Name)
-
+	log = r.Log.WithValues("cortex.labels",
+		map[string]string{
+			"batchjob": req.NamespacedName.String(),
+			"apiKind":  userconfig.BatchAPIKind.String(),
+			"apiName":  batchJob.Spec.APIName,
+			"apiID":    batchJob.Spec.APIID,
+			"jobID":    batchJob.Name,
+		},
+	)
 	// Step 2: create finalizer or handle deletion
 	if batchJob.ObjectMeta.DeletionTimestamp.IsZero() {
 		// The object is not being deleted, so we add our finalizer if it does not exist yet,
@@ -137,6 +147,13 @@ func (r *BatchJobReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		return ctrl.Result{}, err
 	}
 
+	log.V(1).Info("getting configmap")
+	configMap, err := r.getConfigMap(ctx, batchJob)
+	if err != nil && !kerrors.IsNotFound(err) {
+		log.Error(err, "failed to get configmap")
+		return ctrl.Result{}, err
+	}
+
 	log.V(1).Info("getting worker job")
 	workerJob, err := r.getWorkerJob(ctx, batchJob)
 	if err != nil && !kerrors.IsNotFound(err) {
@@ -157,6 +174,7 @@ func (r *BatchJobReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 	}
 
 	workerJobExists := workerJob != nil
+	configMapExists := configMap != nil
 	statusInfo := batchJobStatusInfo{
 		QueueExists:     queueExists,
 		EnqueuingStatus: enqueuingStatus,
@@ -167,6 +185,7 @@ func (r *BatchJobReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 
 	log.V(1).Info("status data successfully acquired",
 		"queueExists", queueExists,
+		"configMapExists", configMapExists,
 		"enqueuingStatus", enqueuingStatus,
 		"workerJobExists", workerJobExists,
 	)
@@ -206,7 +225,7 @@ func (r *BatchJobReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 	// Step 5: Create resources
 	var queueURL string
 	if !queueExists {
-		log.V(1).Info("creating queue")
+		log.Info("creating queue")
 		queueURL, err = r.createQueue(batchJob)
 		if err != nil {
 			log.Error(err, "failed to create queue")
@@ -218,7 +237,7 @@ func (r *BatchJobReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 
 	switch enqueuingStatus {
 	case batch.EnqueuingNotStarted:
-		log.V(1).Info("enqueuing payload")
+		log.Info("enqueuing payload")
 		if err = r.enqueuePayload(ctx, batchJob, queueURL); err != nil {
 			log.Error(err, "failed to start enqueuing the payload")
 			return ctrl.Result{}, err
@@ -230,8 +249,16 @@ func (r *BatchJobReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 	case batch.EnqueuingFailed:
 		log.Info("failed to enqueue payload")
 	case batch.EnqueuingDone:
+		if !configMapExists {
+			log.V(1).Info("creating worker configmap")
+			if err = r.createWorkerConfigMap(ctx, batchJob, queueURL); err != nil {
+				log.Error(err, "failed to create worker configmap")
+				return ctrl.Result{}, err
+			}
+
+		}
 		if !workerJobExists {
-			log.V(1).Info("creating worker job")
+			log.Info("creating worker job")
 			if err = r.createWorkerJob(ctx, batchJob, queueURL); err != nil {
 				log.Error(err, "failed to create worker job")
 				return ctrl.Result{}, err
@@ -246,7 +273,7 @@ func (r *BatchJobReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 			if err = r.Delete(ctx, &batchJob); err != nil {
 				return ctrl.Result{}, client.IgnoreNotFound(err)
 			}
-			log.V(1).Info("TTL exceeded, deleting resource")
+			log.Info("TTL exceeded, deleting resource")
 			return ctrl.Result{}, nil
 		}
 		log.V(1).Info("scheduling reconciliation requeue", "time", batchJob.Spec.TTL.Duration)

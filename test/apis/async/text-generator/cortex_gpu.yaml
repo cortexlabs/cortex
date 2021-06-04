@@ -1,0 +1,17 @@
+- name: text-generator
+  kind: AsyncAPI
+  pod:
+    port: 8080
+    containers:
+    - name: api
+      image: quay.io/cortexlabs-test/async-text-generator-gpu:latest
+      env:
+        TARGET_DEVICE: "cuda"
+      readiness_probe:
+        http_get:
+          path: "/healthz"
+          port: 8080
+      compute:
+        cpu: 1
+        gpu: 1
+        mem: 512M

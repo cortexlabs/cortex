@@ -1,0 +1,3 @@
+uvicorn[standard]
+fastapi
+boto3==1.17.*

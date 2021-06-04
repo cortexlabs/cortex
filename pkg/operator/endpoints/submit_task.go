@@ -74,5 +74,5 @@ func SubmitTaskJob(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	respond(w, jobSpec)
+	respondJSON(w, r, jobSpec)
 }

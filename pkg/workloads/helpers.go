@@ -17,85 +17,234 @@ limitations under the License.
 package workloads
 
 import (
-	"fmt"
+	"path"
+	"strings"
 
+	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	kcore "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
+	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
 func K8sName(apiName string) string {
 	return "api-" + apiName
 }
 
-type downloadContainerConfig struct {
-	DownloadArgs []downloadContainerArg `json:"download_args"`
-	LastLog      string                 `json:"last_log"` // string to log at the conclusion of the downloader (if "" nothing will be logged)
-}
+func GetProbeSpec(probe *userconfig.Probe) *kcore.Probe {
+	if probe == nil {
+		return nil
+	}
 
-type downloadContainerArg struct {
-	From             string `json:"from"`
-	To               string `json:"to"`
-	ToFile           bool   `json:"to_file"` // whether "To" path reflects the path to a file or just the directory in which "From" object is copied to
-	Unzip            bool   `json:"unzip"`
-	ItemName         string `json:"item_name"`          // name of the item being downloaded, just for logging (if "" nothing will be logged)
-	HideFromLog      bool   `json:"hide_from_log"`      // if true, don't log where the file is being downloaded from
-	HideUnzippingLog bool   `json:"hide_unzipping_log"` // if true, don't log when unzipping
-}
+	var httpGetAction *kcore.HTTPGetAction
+	var tcpSocketAction *kcore.TCPSocketAction
+	var execAction *kcore.ExecAction
 
-func FileExistsProbe(fileName string) *kcore.Probe {
+	if probe.HTTPGet != nil {
+		httpGetAction = &kcore.HTTPGetAction{
+			Path: probe.HTTPGet.Path,
+			Port: intstr.IntOrString{
+				IntVal: probe.HTTPGet.Port,
+			},
+		}
+	}
+	if probe.TCPSocket != nil {
+		tcpSocketAction = &kcore.TCPSocketAction{
+			Port: intstr.IntOrString{
+				IntVal: probe.TCPSocket.Port,
+			},
+		}
+	}
+	if probe.Exec != nil {
+		execAction = &kcore.ExecAction{
+			Command: probe.Exec.Command,
+		}
+	}
+
 	return &kcore.Probe{
-		InitialDelaySeconds: 3,
-		TimeoutSeconds:      5,
-		PeriodSeconds:       5,
-		SuccessThreshold:    1,
-		FailureThreshold:    1,
 		Handler: kcore.Handler{
-			Exec: &kcore.ExecAction{
-				Command: []string{"/bin/bash", "-c", fmt.Sprintf("test -f %s", fileName)},
+			HTTPGet:   httpGetAction,
+			TCPSocket: tcpSocketAction,
+			Exec:      execAction,
+		},
+		InitialDelaySeconds: probe.InitialDelaySeconds,
+		TimeoutSeconds:      probe.TimeoutSeconds,
+		PeriodSeconds:       probe.PeriodSeconds,
+		SuccessThreshold:    probe.SuccessThreshold,
+		FailureThreshold:    probe.FailureThreshold,
+	}
+}
+
+func GetReadinessProbesFromContainers(containers []*userconfig.Container) map[string]kcore.Probe {
+	probes := map[string]kcore.Probe{}
+
+	for _, container := range containers {
+		// this should never happen, it's just a precaution
+		if container == nil {
+			continue
+		}
+
+		if container.ReadinessProbe != nil {
+			probes[container.Name] = *GetProbeSpec(container.ReadinessProbe)
+		}
+	}
+
+	return probes
+}
+
+func baseClusterEnvVars() []kcore.EnvFromSource {
+	envVars := []kcore.EnvFromSource{
+		{
+			ConfigMapRef: &kcore.ConfigMapEnvSource{
+				LocalObjectReference: kcore.LocalObjectReference{
+					Name: "env-vars",
+				},
+			},
+		},
+	}
+
+	return envVars
+}
+
+func getKubexitEnvVars(containerName string, deathDeps []string, birthDeps []string) []kcore.EnvVar {
+	envVars := []kcore.EnvVar{
+		{
+			Name:  "KUBEXIT_NAME",
+			Value: containerName,
+		},
+		{
+			Name:  "KUBEXIT_GRAVEYARD",
+			Value: _kubexitGraveyardMountPath,
+		},
+	}
+
+	if deathDeps != nil {
+		envVars = append(envVars,
+			kcore.EnvVar{
+				Name:  "KUBEXIT_DEATH_DEPS",
+				Value: strings.Join(deathDeps, ","),
+			},
+			kcore.EnvVar{
+				Name:  "KUBEXIT_IGNORE_CODE_ON_DEATH_DEPS",
+				Value: "true",
+			},
+		)
+	}
+
+	if birthDeps != nil {
+		envVars = append(envVars,
+			kcore.EnvVar{
+				Name:  "KUBEXIT_BIRTH_DEPS",
+				Value: strings.Join(birthDeps, ","),
+			},
+			kcore.EnvVar{
+				Name:  "KUBEXIT_IGNORE_CODE_ON_DEATH_DEPS",
+				Value: "true",
+			},
+		)
+	}
+
+	return envVars
+}
+
+func MntVolume() kcore.Volume {
+	return k8s.EmptyDirVolume(_emptyDirVolumeName)
+}
+
+func CortexVolume() kcore.Volume {
+	return k8s.EmptyDirVolume(_cortexDirVolumeName)
+}
+
+func APIConfigVolume(name string) kcore.Volume {
+	return kcore.Volume{
+		Name: name,
+		VolumeSource: kcore.VolumeSource{
+			ConfigMap: &kcore.ConfigMapVolumeSource{
+				LocalObjectReference: kcore.LocalObjectReference{
+					Name: name,
+				},
 			},
 		},
 	}
 }
 
-func socketExistsProbe(socketName string) *kcore.Probe {
-	return &kcore.Probe{
-		InitialDelaySeconds: 3,
-		TimeoutSeconds:      5,
-		PeriodSeconds:       5,
-		SuccessThreshold:    1,
-		FailureThreshold:    1,
-		Handler: kcore.Handler{
-			Exec: &kcore.ExecAction{
-				Command: []string{"/bin/bash", "-c", fmt.Sprintf("test -S %s", socketName)},
+func ClientConfigVolume() kcore.Volume {
+	return kcore.Volume{
+		Name: _clientConfigDirVolume,
+		VolumeSource: kcore.VolumeSource{
+			ConfigMap: &kcore.ConfigMapVolumeSource{
+				LocalObjectReference: kcore.LocalObjectReference{
+					Name: _clientConfigConfigMap,
+				},
 			},
 		},
 	}
 }
 
-func nginxGracefulStopper(apiKind userconfig.Kind) *kcore.Lifecycle {
-	if apiKind == userconfig.RealtimeAPIKind {
-		return &kcore.Lifecycle{
-			PreStop: &kcore.Handler{
-				Exec: &kcore.ExecAction{
-					// the sleep is required to wait for any k8s-related race conditions
-					// as described in https://medium.com/codecademy-engineering/kubernetes-nginx-and-zero-downtime-in-production-2c910c6a5ed8
-					Command: []string{"/bin/sh", "-c", "sleep 5; /usr/sbin/nginx -s quit; while pgrep -x nginx; do sleep 1; done"},
+func ClusterConfigVolume() kcore.Volume {
+	return kcore.Volume{
+		Name: _clusterConfigDirVolume,
+		VolumeSource: kcore.VolumeSource{
+			ConfigMap: &kcore.ConfigMapVolumeSource{
+				LocalObjectReference: kcore.LocalObjectReference{
+					Name: _clusterConfigConfigMap,
 				},
 			},
-		}
+		},
 	}
-	return nil
 }
 
-func waitAPIContainerToStop(apiKind userconfig.Kind) *kcore.Lifecycle {
-	if apiKind == userconfig.RealtimeAPIKind {
-		return &kcore.Lifecycle{
-			PreStop: &kcore.Handler{
-				Exec: &kcore.ExecAction{
-					Command: []string{"/bin/sh", "-c", fmt.Sprintf("while curl localhost:%s/nginx_status; do sleep 1; done", DefaultPortStr)},
-				},
+func ShmVolume(q resource.Quantity, volumeName string) kcore.Volume {
+	return kcore.Volume{
+		Name: volumeName,
+		VolumeSource: kcore.VolumeSource{
+			EmptyDir: &kcore.EmptyDirVolumeSource{
+				Medium:    kcore.StorageMediumMemory,
+				SizeLimit: k8s.QuantityPtr(q),
 			},
-		}
+		},
 	}
-	return nil
+}
+
+func KubexitVolume() kcore.Volume {
+	return k8s.EmptyDirVolume(_kubexitGraveyardName)
+}
+
+func MntMount() kcore.VolumeMount {
+	return k8s.EmptyDirVolumeMount(_emptyDirVolumeName, _emptyDirMountPath)
+}
+
+func CortexMount() kcore.VolumeMount {
+	return k8s.EmptyDirVolumeMount(_cortexDirVolumeName, _cortexDirMountPath)
+}
+
+func APIConfigMount(name string) kcore.VolumeMount {
+	return kcore.VolumeMount{
+		Name:      name,
+		MountPath: path.Join(_cortexDirMountPath, "spec"),
+	}
+}
+
+func ClientConfigMount() kcore.VolumeMount {
+	return kcore.VolumeMount{
+		Name:      _clientConfigDirVolume,
+		MountPath: path.Join(_clientConfigDir, "cli.yaml"),
+		SubPath:   "cli.yaml",
+	}
+}
+
+func ClusterConfigMount() kcore.VolumeMount {
+	return kcore.VolumeMount{
+		Name:      _clusterConfigDirVolume,
+		MountPath: path.Join(_clusterConfigDir, "cluster.yaml"),
+		SubPath:   "cluster.yaml",
+	}
+}
+
+func ShmMount(volumeName string) kcore.VolumeMount {
+	return k8s.EmptyDirVolumeMount(volumeName, _shmDirMountPath)
+}
+
+func KubexitMount() kcore.VolumeMount {
+	return k8s.EmptyDirVolumeMount(_kubexitGraveyardName, _kubexitGraveyardMountPath)
 }

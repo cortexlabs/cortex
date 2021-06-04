@@ -1,0 +1,9 @@
+response:
+  content_type: "json"
+  json_schema:
+    type: "object"
+    properties:
+      text:
+        type: "string"
+    required:
+      - "text"

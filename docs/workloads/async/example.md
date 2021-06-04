@@ -148,12 +148,11 @@ are `in_queue | in_progress | failed | completed`. The `result` and `timestamp` 
 is `completed`. The result will remain queryable for 7 days after the request was completed.
 
 It is also possible to setup a webhook in your handler to get the response sent to a pre-defined web server once the
-workload completes or fails. You can read more about it in the [webhook documentation](./webhooks.md).
+workload completes or fails.
 
-## Stream logs
+## Debugging logs
 
-If necessary, you can stream the logs from a random running pod from your API with the `cortex logs` command. This is
-intended for debugging purposes only. For production logs, you can view the logs in cloudwatch logs.
+If necessary, you can view logs for your API in CloudWatch using the `cortex logs` command.
 
 ```bash
 cortex logs iris-classifier

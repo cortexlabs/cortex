@@ -35,7 +35,7 @@ Flags:
 ## logs
 
 ```text
-stream logs from a single replica of an api or a single worker for a job
+get the logs for an API or a job
 
 Usage:
   cortex logs API_NAME [JOB_ID] [flags]
@@ -43,22 +43,8 @@ Usage:
 Flags:
   -e, --env string   environment to use
   -y, --yes          skip prompts
+      --random-pod   stream logs from a random pod
   -h, --help         help for logs
-```
-
-## patch
-
-```text
-update API configuration for a deployed API
-
-Usage:
-  cortex patch [CONFIG_FILE] [flags]
-
-Flags:
-  -e, --env string      environment to use
-  -f, --force           override the in-progress api update
-  -o, --output string   output format: one of pretty|json (default "pretty")
-  -h, --help            help for patch
 ```
 
 ## refresh
@@ -90,18 +76,6 @@ Flags:
   -c, --keep-cache      keep cached data for the api
   -o, --output string   output format: one of pretty|json (default "pretty")
   -h, --help            help for delete
-```
-
-## prepare-debug
-
-```text
-prepare artifacts to debug containers
-
-Usage:
-  cortex prepare-debug CONFIG_FILE [API_NAME] [flags]
-
-Flags:
-  -h, --help   help for prepare-debug
 ```
 
 ## cluster up
@@ -175,10 +149,10 @@ Flags:
 ## cluster export
 
 ```text
-download the code and configuration for APIs
+download the configurations for all APIs
 
 Usage:
-  cortex cluster export [API_NAME] [API_ID] [flags]
+  cortex cluster export [flags]
 
 Flags:
   -c, --config string   path to a cluster configuration file

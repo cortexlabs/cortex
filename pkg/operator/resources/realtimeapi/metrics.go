@@ -19,6 +19,7 @@ package realtimeapi
 import (
 	"context"
 	"fmt"
+	"math"
 	"time"
 
 	"github.com/cortexlabs/cortex/pkg/config"
@@ -117,8 +118,8 @@ func GetMetrics(api *spec.API) (*metrics.Metrics, error) {
 
 func getRequestCountMetric(promAPIv1 promv1.API, apiSpec spec.API) (float64, error) {
 	query := fmt.Sprintf(
-		"sum(cortex_status_code{api_name=\"%s\", api_id=\"%s\"} >= 0)",
-		apiSpec.Name, apiSpec.ID,
+		"istio_requests_total{destination_service_name=~\"api-%s.+\"} > 0",
+		apiSpec.Name,
 	)
 
 	values, err := queryPrometheusVec(promAPIv1, query)
@@ -136,10 +137,10 @@ func getRequestCountMetric(promAPIv1 promv1.API, apiSpec spec.API) (float64, err
 
 func getAvgLatencyMetric(promAPIv1 promv1.API, apiSpec spec.API) (*float64, error) {
 	query := fmt.Sprintf(
-		"rate(cortex_latency_sum{api_name=\"%s\", api_id=\"%s\"}[%dh]) "+
-			"/ rate(cortex_latency_count{api_name=\"%s\", api_id=\"%s\"}[%dh]) >= 0",
-		apiSpec.Name, apiSpec.ID, _metricsWindowHours,
-		apiSpec.Name, apiSpec.ID, _metricsWindowHours,
+		"sum(rate(istio_request_duration_milliseconds_sum{destination_service_name=~\"api-%s.+\"}[%dh])) by (destination_service_name) "+
+			"/ sum(rate(istio_request_duration_milliseconds_count{destination_service_name=~\"api-%s.+\"}[%dh])) by (destination_service_name)",
+		apiSpec.Name, _metricsWindowHours,
+		apiSpec.Name, _metricsWindowHours,
 	)
 
 	values, err := queryPrometheusVec(promAPIv1, query)
@@ -152,13 +153,17 @@ func getAvgLatencyMetric(promAPIv1 promv1.API, apiSpec spec.API) (*float64, erro
 	}
 
 	avgLatency := float64(values[0].Value)
+
+	if math.IsNaN(avgLatency) {
+		return nil, nil
+	}
 	return &avgLatency, nil
 }
 
 func getStatusCode2XXMetric(promAPIv1 promv1.API, apiSpec spec.API) (float64, error) {
 	query := fmt.Sprintf(
-		"sum(cortex_status_code{api_name=\"%s\", api_id=\"%s\", response_code=\"2XX\"} >= 0)",
-		apiSpec.Name, apiSpec.ID,
+		"istio_requests_total{destination_service_name=~\"api-%s.+\", response_code=~\"2.*\"} > 0",
+		apiSpec.Name,
 	)
 
 	values, err := queryPrometheusVec(promAPIv1, query)
@@ -176,8 +181,8 @@ func getStatusCode2XXMetric(promAPIv1 promv1.API, apiSpec spec.API) (float64, er
 
 func getStatusCode4XXMetric(promAPIv1 promv1.API, apiSpec spec.API) (float64, error) {
 	query := fmt.Sprintf(
-		"sum(cortex_status_code{api_name=\"%s\", api_id=\"%s\", response_code=\"4XX\"} >= 0)",
-		apiSpec.Name, apiSpec.ID,
+		"istio_requests_total{destination_service_name=~\"api-%s.+\", response_code=~\"4.*\"} > 0",
+		apiSpec.Name,
 	)
 
 	values, err := queryPrometheusVec(promAPIv1, query)
@@ -195,8 +200,8 @@ func getStatusCode4XXMetric(promAPIv1 promv1.API, apiSpec spec.API) (float64, er
 
 func getStatusCode5XXMetric(promAPIv1 promv1.API, apiSpec spec.API) (float64, error) {
 	query := fmt.Sprintf(
-		"sum(cortex_status_code{api_name=\"%s\", api_id=\"%s\", response_code=\"5XX\"} >= 0)",
-		apiSpec.Name, apiSpec.ID,
+		"istio_requests_total{destination_service_name=~\"api-%s.+\", response_code=~\"5.*\"} > 0",
+		apiSpec.Name,
 	)
 
 	values, err := queryPrometheusVec(promAPIv1, query)

@@ -1,128 +1,66 @@
 # Configuration
 
 ```yaml
-- name: <string>
-  kind: RealtimeAPI
-  handler: # detailed configuration below
-  compute: # detailed configuration below
-  autoscaling: # detailed configuration below
-  update_strategy: # detailed configuration below
-  networking: # detailed configuration below
-```
-
-## Handler
-
-### Python Handler
-
-<!-- CORTEX_VERSION_BRANCH_STABLE x3 -->
-```yaml
-handler:
-  type: python
-  path: <string>  # path to a python file with a Handler class definition, relative to the Cortex root (required)
-  protobuf_path: <string>  # path to a protobuf file (required if using gRPC)
-  dependencies:  # (optional)
-    pip: <string>  # relative path to requirements.txt (default: requirements.txt)
-    conda: <string>  # relative path to conda-packages.txt (default: conda-packages.txt)
-    shell: <string>  # relative path to a shell script for system package installation (default: dependencies.sh)
-  multi_model_reloading:  # use this to serve one or more models with live reloading (optional)
-    path: <string> # S3 path to an exported model directory (e.g. s3://my-bucket/exported_model/) (either this, 'dir', or 'paths' must be provided if 'multi_model_reloading' is specified)
-    paths:  # list of S3 paths to exported model directories (either this, 'dir', or 'path' must be provided if 'multi_model_reloading' is specified)
-      - name: <string>  # unique name for the model (e.g. text-generator) (required)
-        path: <string>  # S3 path to an exported model directory (e.g. s3://my-bucket/exported_model/) (required)
-      ...
-    dir: <string>  # S3 path to a directory containing multiple models (e.g. s3://my-bucket/models/) (either this, 'path', or 'paths' must be provided if 'multi_model_reloading' is specified)
-    cache_size: <int>  # the number models to keep in memory (optional; all models are kept in memory by default)
-    disk_cache_size: <int>  # the number of models to keep on disk (optional; all models are kept on disk by default)
-  server_side_batching:  # (optional)
-    max_batch_size: <int>  # the maximum number of requests to aggregate before running inference
-    batch_interval: <duration>  # the maximum amount of time to spend waiting for additional requests before running inference on the batch of requests
-  processes_per_replica: <int>  # the number of parallel serving processes to run on each replica (default: 1)
-  threads_per_process: <int>  # the number of threads per process (default: 1)
-  config: <string: value>  # arbitrary dictionary passed to the constructor of the Handler class (optional)
-  python_path: <string>  # path to the root of your Python folder that will be appended to PYTHONPATH (default: folder containing cortex.yaml)
-  image: <string>  # docker image to use for the Handler class (default: quay.io/cortexlabs/python-handler-cpu:master, quay.io/cortexlabs/python-handler-gpu:master-cuda10.2-cudnn8, or quay.io/cortexlabs/python-handler-inf:master based on compute)
-  env: <string: string>  # dictionary of environment variables
-  log_level: <string>  # log level that can be "debug", "info", "warning" or "error" (default: "info")
-  shm_size: <string>  # size of shared memory (/dev/shm) for sharing data between multiple processes, e.g. 64Mi or 1Gi (default: Null)
-```
-
-### TensorFlow Handler
-
-<!-- CORTEX_VERSION_BRANCH_STABLE x4 -->
-```yaml
-handler:
-  type: tensorflow
-  path: <string>  # path to a python file with a Handler class definition, relative to the Cortex root (required)
-  protobuf_path: <string>  # path to a protobuf file (required if using gRPC)
-  dependencies:  # (optional)
-    pip: <string>  # relative path to requirements.txt (default: requirements.txt)
-    conda: <string>  # relative path to conda-packages.txt (default: conda-packages.txt)
-    shell: <string>  # relative path to a shell script for system package installation (default: dependencies.sh)
-  models:  # (required)
-    path: <string> # S3 path to an exported SavedModel directory (e.g. s3://my-bucket/exported_model/) (either this, 'dir', or 'paths' must be provided)
-    paths:  # list of S3 paths to exported SavedModel directories (either this, 'dir', or 'path' must be provided)
-      - name: <string>  # unique name for the model (e.g. text-generator) (required)
-        path: <string>  # S3 path to an exported SavedModel directory (e.g. s3://my-bucket/exported_model/) (required)
-        signature_key: <string>  # name of the signature def to use for prediction (required if your model has more than one signature def)
-      ...
-    dir: <string>  # S3 path to a directory containing multiple SavedModel directories (e.g. s3://my-bucket/models/) (either this, 'path', or 'paths' must be provided)
-    signature_key:  # name of the signature def to use for prediction (required if your model has more than one signature def)
-    cache_size: <int>  # the number models to keep in memory (optional; all models are kept in memory by default)
-    disk_cache_size: <int>  # the number of models to keep on disk (optional; all models are kept on disk by default)
-  server_side_batching:  # (optional)
-    max_batch_size: <int>  # the maximum number of requests to aggregate before running inference
-    batch_interval: <duration>  # the maximum amount of time to spend waiting for additional requests before running inference on the batch of requests
-  processes_per_replica: <int>  # the number of parallel serving processes to run on each replica (default: 1)
-  threads_per_process: <int>  # the number of threads per process (default: 1)
-  config: <string: value>  # arbitrary dictionary passed to the constructor of the Handler class (optional)
-  python_path: <string>  # path to the root of your Python folder that will be appended to PYTHONPATH (default: folder containing cortex.yaml)
-  image: <string>  # docker image to use for the handler (default: quay.io/cortexlabs/tensorflow-handler:master)
-  tensorflow_serving_image: <string>  # docker image to use for the TensorFlow Serving container (default: quay.io/cortexlabs/tensorflow-serving-cpu:master, quay.io/cortexlabs/tensorflow-serving-gpu:master, or quay.io/cortexlabs/tensorflow-serving-inf:master based on compute)
-  env: <string: string>  # dictionary of environment variables
-  log_level: <string>  # log level that can be "debug", "info", "warning" or "error" (default: "info")
-  shm_size: <string>  # size of shared memory (/dev/shm) for sharing data between multiple processes, e.g. 64Mi or 1Gi (default: Null)
-```
-
-## Compute
-
-```yaml
-compute:
-  cpu: <string | int | float>  # CPU request per replica. One unit of CPU corresponds to one virtual CPU; fractional requests are allowed, and can be specified as a floating point number or via the "m" suffix (default: 200m)
-  gpu: <int>  # GPU request per replica. One unit of GPU corresponds to one virtual GPU (default: 0)
-  inf: <int>  # Inferentia request per replica. One unit of Inf corresponds to one virtual Inferentia chip (default: 0)
-  mem: <string>  # memory request per replica. One unit of memory is one byte and can be expressed as an integer or by using one of these suffixes: K, M, G, T (or their power-of two counterparts: Ki, Mi, Gi, Ti) (default: Null)
-  node_groups: <list:string>  # to select specific node groups (optional)
-```
-
-## Autoscaling
-
-```yaml
-autoscaling:
-  min_replicas: <int>  # minimum number of replicas (default: 1)
-  max_replicas: <int>  # maximum number of replicas (default: 100)
-  init_replicas: <int>  # initial number of replicas (default: <min_replicas>)
-  max_replica_concurrency: <int>  # the maximum number of in-flight requests per replica before requests are rejected with error code 503 (default: 1024)
-  target_replica_concurrency: <float>  # the desired number of in-flight requests per replica, which the autoscaler tries to maintain (default: processes_per_replica * threads_per_process)
-  window: <duration>  # the time over which to average the API's concurrency (default: 60s)
-  downscale_stabilization_period: <duration>  # the API will not scale below the highest recommendation made during this period (default: 5m)
-  upscale_stabilization_period: <duration>  # the API will not scale above the lowest recommendation made during this period (default: 1m)
-  max_downscale_factor: <float>  # the maximum factor by which to scale down the API on a single scaling event (default: 0.75)
-  max_upscale_factor: <float>  # the maximum factor by which to scale up the API on a single scaling event (default: 1.5)
-  downscale_tolerance: <float>  # any recommendation falling within this factor below the current number of replicas will not trigger a scale down event (default: 0.05)
-  upscale_tolerance: <float>  # any recommendation falling within this factor above the current number of replicas will not trigger a scale up event (default: 0.05)
-```
-
-## Update strategy
-
-```yaml
-update_strategy:
-  max_surge: <string | int>  # maximum number of replicas that can be scheduled above the desired number of replicas during an update; can be an absolute number, e.g. 5, or a percentage of desired replicas, e.g. 10% (default: 25%) (set to 0 to disable rolling updates)
-  max_unavailable: <string | int>  # maximum number of replicas that can be unavailable during an update; can be an absolute number, e.g. 5, or a percentage of desired replicas, e.g. 10% (default: 25%)
-```
-
-## Networking
-
-```yaml
-  networking:
-    endpoint: <string>  # the endpoint for the API (default: <api_name>)
+- name: <string>  # name of the API (required)
+  kind: RealtimeAPI  # must be "RealtimeAPI" for realtime APIs (required)
+  pod:  # pod configuration (required)
+    port: <int>  # port to which requests will be sent (default: 8080; exported as $CORTEX_PORT)
+    max_concurrency: <int>  # maximum number of requests that will be concurrently sent into the container (default: 1)
+    max_queue_length: <int>  # maximum number of requests per replica which will be queued (beyond max_concurrency) before requests are rejected with error code 503 (default: 100)
+    containers:  # configurations for the containers to run (at least one constainer must be provided)
+      - name: <string>  # name of the container (required)
+        image: <string>  # docker image to use for the container (required)
+        command: <list[string]>  # entrypoint (not executed within a shell); env vars can be used with e.g. $(CORTEX_PORT) (default: the docker image's ENTRYPOINT)
+        args: <list[string]>  # arguments to the entrypoint; env vars can be used with e.g. $(CORTEX_PORT) (default: the docker image's CMD)
+        env: <map[string:string]>  # dictionary of environment variables to set in the container (optional)
+        compute:  # compute resource requests (default: see below)
+          cpu: <string|int|float>  # CPU request for the container; one unit of CPU corresponds to one virtual CPU; fractional requests are allowed, and can be specified as a floating point number or via the "m" suffix (default: 200m)
+          gpu: <int>  # GPU request for the container; one unit of GPU corresponds to one virtual GPU (default: 0)
+          inf: <int>  # Inferentia request for the container; one unit of inf corresponds to one virtual Inferentia chip (default: 0)
+          mem: <string>  # memory request for the container; one unit of memory is one byte and can be expressed as an integer or by using one of these suffixes: K, M, G, T (or their power-of two counterparts: Ki, Mi, Gi, Ti) (default: Null)
+          shm: <string>  # size of shared memory (/dev/shm) for sharing data between multiple processes, e.g. 64Mi or 1Gi (default: Null)
+        readiness_probe:  # periodic probe of container readiness; traffic will not be sent into the pod unless all containers' readiness probes are succeeding (optional)
+          http_get:  # specifies an http endpoint which must respond with status code 200 (only one of http_get, tcp_socket, and exec may be specified)
+            port: <int|string>  # the port to access on the container (required)
+            path: <string>  # the path to access on the HTTP server (default: /)
+          tcp_socket:  # specifies a port which must be ready to receive traffic (only one of http_get, tcp_socket, and exec may be specified)
+            port: <int|string>  # the port to access on the container (required)
+          exec:  # specifies a command to run which must exit with code 0 (only one of http_get, tcp_socket, and exec may be specified)
+            command: <list[string]>  # the command to execute inside the container, which is exec'd (not run inside a shell); the working directory is root ('/') in the container's filesystem (required)
+          initial_delay_seconds: <int>  # number of seconds after the container has started before the probe is initiated (default: 0)
+          timeout_seconds: <int>  # number of seconds until the probe times out (default: 1)
+          period_seconds: <int>  # how often (in seconds) to perform the probe (default: 10)
+          success_threshold: <int>  # minimum consecutive successes for the probe to be considered successful after having failed (default: 1)
+          failure_threshold: <int>  # minimum consecutive failures for the probe to be considered failed after having succeeded (default: 3)
+        liveness_probe:  # periodic probe of container liveness; container will be restarted if the probe fails (optional)
+          http_get:  # specifies an http endpoint which must respond with status code 200 (only one of http_get, tcp_socket, and exec may be specified)
+            port: <int|string>  # the port to access on the container (required)
+            path: <string>  # the path to access on the HTTP server (default: /)
+          tcp_socket:  # specifies a port which must be ready to receive traffic (only one of http_get, tcp_socket, and exec may be specified)
+            port: <int|string>  # the port to access on the container (required)
+          exec:  # specifies a command to run which must exit with code 0 (only one of http_get, tcp_socket, and exec may be specified)
+            command: <list[string]>  # the command to execute inside the container, which is exec'd (not run inside a shell); the working directory is root ('/') in the container's filesystem (required)
+          initial_delay_seconds: <int>  # number of seconds after the container has started before the probe is initiated (default: 0)
+          timeout_seconds: <int>  # number of seconds until the probe times out (default: 1)
+          period_seconds: <int>  # how often (in seconds) to perform the probe (default: 10)
+          success_threshold: <int>  # minimum consecutive successes for the probe to be considered successful after having failed (default: 1)
+          failure_threshold: <int>  # minimum consecutive failures for the probe to be considered failed after having succeeded (default: 3)
+  autoscaling:  # autoscaling configuration (default: see below)
+    min_replicas: <int>  # minimum number of replicas (default: 1)
+    max_replicas: <int>  # maximum number of replicas (default: 100)
+    init_replicas: <int>  # initial number of replicas (default: <min_replicas>)
+    target_in_flight: <int>  # desired number of in-flight requests per replica (including requests actively being processed as well as queued), which the autoscaler tries to maintain (default: <max_concurrency>)
+    window: <duration>  # duration over which to average the API's in-flight requests per replica (default: 60s)
+    downscale_stabilization_period: <duration>  # the API will not scale below the highest recommendation made during this period (default: 5m)
+    upscale_stabilization_period: <duration>  # the API will not scale above the lowest recommendation made during this period (default: 1m)
+    max_downscale_factor: <float>  # maximum factor by which to scale down the API on a single scaling event (default: 0.75)
+    max_upscale_factor: <float>  # maximum factor by which to scale up the API on a single scaling event (default: 1.5)
+    downscale_tolerance: <float>  # any recommendation falling within this factor below the current number of replicas will not trigger a scale down event (default: 0.05)
+    upscale_tolerance: <float>  # any recommendation falling within this factor above the current number of replicas will not trigger a scale up event (default: 0.05)
+  node_groups: <list[string]>  # a list of node groups on which this API can run (default: all node groups are eligible)
+  update_strategy:  # deployment strategy to use when replacing existing replicas with new ones (default: see below)
+    max_surge: <string|int>  # maximum number of replicas that can be scheduled above the desired number of replicas during an update; can be an absolute number, e.g. 5, or a percentage of desired replicas, e.g. 10% (default: 25%) (set to 0 to disable rolling updates)
+    max_unavailable: <string|int>  # maximum number of replicas that can be unavailable during an update; can be an absolute number, e.g. 5, or a percentage of desired replicas, e.g. 10% (default: 25%)
+  networking:  # networking configuration (default: see below)
+    endpoint: <string>  # endpoint for the API (default: <api_name>)
 ```

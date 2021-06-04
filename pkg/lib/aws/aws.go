@@ -35,6 +35,17 @@ type Client struct {
 	hashedAccountID *string
 }
 
+func NewForSession(sess *session.Session) (*Client, error) {
+	if sess.Config.Region == nil {
+		return nil, errors.ErrorUnexpected("session config is missing the Region field")
+	}
+
+	return &Client{
+		Region: *sess.Config.Region,
+		sess:   sess,
+	}, nil
+}
+
 func NewFromClientS3Path(s3Path string, awsClient *Client) (*Client, error) {
 	if !awsClient.IsAnonymous {
 		return NewFromS3Path(s3Path)
@@ -122,10 +133,6 @@ func New() (*Client, error) {
 		sess:   sess,
 		Region: *sess.Config.Region,
 	}, nil
-}
-
-func NewAnonymousClient() (*Client, error) {
-	return NewAnonymousClientWithRegion("us-east-1") // region is always required
 }
 
 func NewAnonymousClientWithRegion(region string) (*Client, error) {

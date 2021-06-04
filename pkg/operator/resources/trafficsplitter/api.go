@@ -21,6 +21,7 @@ import (
 	"path/filepath"
 
 	"github.com/cortexlabs/cortex/pkg/config"
+	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/parallel"
@@ -40,7 +41,7 @@ func UpdateAPI(apiConfig *userconfig.API) (*spec.API, string, error) {
 		return nil, "", err
 	}
 
-	api := spec.GetAPISpec(apiConfig, "", "", config.ClusterConfig.ClusterUID)
+	api := spec.GetAPISpec(apiConfig, "", config.ClusterConfig.ClusterUID)
 	if prevVirtualService == nil {
 		if err := config.AWS.UploadJSONToS3(api, config.ClusterConfig.Bucket, api.Key); err != nil {
 			return nil, "", errors.Wrap(err, "failed to upload api spec")
@@ -112,7 +113,7 @@ func getTrafficSplitterDestinations(trafficSplitter *spec.API) []k8s.Destination
 		destinations[i] = k8s.Destination{
 			ServiceName: workloads.K8sName(api.Name),
 			Weight:      api.Weight,
-			Port:        uint32(_defaultPortInt32),
+			Port:        uint32(consts.ProxyListeningPortInt32),
 			Shadow:      api.Shadow,
 		}
 	}

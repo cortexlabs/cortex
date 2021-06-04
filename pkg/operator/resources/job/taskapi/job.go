@@ -61,7 +61,7 @@ func SubmitJob(apiName string, submission *schema.TaskJobSubmission) (*spec.Task
 		RuntimeTaskJobConfig: submission.RuntimeTaskJobConfig,
 		APIID:                apiSpec.ID,
 		SpecID:               apiSpec.SpecID,
-		HandlerID:            apiSpec.HandlerID,
+		PodID:                apiSpec.PodID,
 		StartTime:            time.Now(),
 	}
 
@@ -85,7 +85,12 @@ func uploadJobSpec(jobSpec *spec.TaskJob) error {
 }
 
 func deployJob(apiSpec *spec.API, jobSpec *spec.TaskJob) {
-	err := createK8sJob(apiSpec, jobSpec)
+	err := createJobConfigMap(*apiSpec, *jobSpec)
+	if err != nil {
+		handleJobSubmissionError(jobSpec.JobKey, err)
+	}
+
+	err = createK8sJob(apiSpec, jobSpec)
 	if err != nil {
 		handleJobSubmissionError(jobSpec.JobKey, err)
 	}
@@ -94,6 +99,19 @@ func deployJob(apiSpec *spec.API, jobSpec *spec.TaskJob) {
 	if err != nil {
 		handleJobSubmissionError(jobSpec.JobKey, err)
 	}
+}
+
+func createJobConfigMap(apiSpec spec.API, jobSpec spec.TaskJob) error {
+	configMapConfig := workloads.ConfigMapConfig{
+		TaskJob: &jobSpec,
+	}
+
+	configMapData, err := configMapConfig.GenerateConfigMapData()
+	if err != nil {
+		return err
+	}
+
+	return createK8sConfigMap(k8sConfigMap(apiSpec, jobSpec, configMapData))
 }
 
 func handleJobSubmissionError(jobKey spec.JobKey, jobErr error) {
@@ -115,12 +133,10 @@ func handleJobSubmissionError(jobKey spec.JobKey, jobErr error) {
 }
 
 func deleteJobRuntimeResources(jobKey spec.JobKey) error {
-	err := deleteK8sJob(jobKey)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return errors.FirstError(
+		deleteK8sJob(jobKey),
+		deleteK8sConfigMap(jobKey),
+	)
 }
 
 func StopJob(jobKey spec.JobKey) error {

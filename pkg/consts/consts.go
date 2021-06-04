@@ -17,42 +17,42 @@ limitations under the License.
 package consts
 
 import (
-	"fmt"
 	"os"
-
-	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 )
 
 var (
 	CortexVersion      = "master" // CORTEX_VERSION
 	CortexVersionMinor = "master" // CORTEX_VERSION_MINOR
 
-	SingleModelName = "_cortex_default"
+	DefaultMaxQueueLength = int64(100)
+	DefaultMaxConcurrency = int64(1)
 
-	DefaultImagePythoHandlerCPU      = fmt.Sprintf("%s/python-handler-cpu:%s", DefaultRegistry(), CortexVersion)
-	DefaultImagePythonHandlerGPU     = fmt.Sprintf("%s/python-handler-gpu:%s-cuda10.2-cudnn8", DefaultRegistry(), CortexVersion)
-	DefaultImagePythonHandlerInf     = fmt.Sprintf("%s/python-handler-inf:%s", DefaultRegistry(), CortexVersion)
-	DefaultImageTensorFlowServingCPU = fmt.Sprintf("%s/tensorflow-serving-cpu:%s", DefaultRegistry(), CortexVersion)
-	DefaultImageTensorFlowServingGPU = fmt.Sprintf("%s/tensorflow-serving-gpu:%s", DefaultRegistry(), CortexVersion)
-	DefaultImageTensorFlowServingInf = fmt.Sprintf("%s/tensorflow-serving-inf:%s", DefaultRegistry(), CortexVersion)
-	DefaultImageTensorFlowHandler    = fmt.Sprintf("%s/tensorflow-handler:%s", DefaultRegistry(), CortexVersion)
-	DefaultImagePathsSet             = strset.New(
-		DefaultImagePythoHandlerCPU,
-		DefaultImagePythonHandlerGPU,
-		DefaultImagePythonHandlerInf,
-		DefaultImageTensorFlowServingCPU,
-		DefaultImageTensorFlowServingGPU,
-		DefaultImageTensorFlowServingInf,
-		DefaultImageTensorFlowHandler,
-	)
+	DefaultUserPodPortStr   = "8080"
+	DefaultUserPodPortInt32 = int32(8080)
 
-	DefaultMaxReplicaConcurrency = int64(1024)
-	NeuronCoresPerInf            = int64(4)
-	AuthHeader                   = "X-Cortex-Authorization"
+	ProxyListeningPortStr   = "8888"
+	ProxyListeningPortInt32 = int32(8888)
+
+	AdminPortStr   = "15000"
+	AdminPortInt32 = int32(15000)
+
+	StatsDPortStr   = "9125"
+	StatsDPortInt32 = int32(9125)
+
+	AuthHeader = "X-Cortex-Authorization"
 
 	DefaultInClusterConfigPath   = "/configs/cluster/cluster.yaml"
 	MaxBucketLifecycleRules      = 100
 	AsyncWorkloadsExpirationDays = int64(7)
+
+	ReservedContainerPorts = []int32{
+		ProxyListeningPortInt32,
+		AdminPortInt32,
+	}
+	ReservedContainerNames = []string{
+		"dequeuer",
+		"proxy",
+	}
 )
 
 func DefaultRegistry() string {

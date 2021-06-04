@@ -1,34 +1,19 @@
 # Logging
 
-By default, logs are collected with Fluent Bit and are exported to CloudWatch. It is also possible to view the logs of a single replica using the `cortex logs` command.
-
-## `cortex logs`
-
-The CLI includes a command to get the logs for a single API replica for debugging purposes:
-
-```bash
-# RealtimeAPI
-cortex logs <api_name>
-
-# BatchAPI or TaskAPI
-cortex logs <api_name> <job_id>  # the job needs to be in a running state
-```
-
-**Important:** this method won't show the logs for all the API replicas and therefore is not a complete logging
-solution.
+Logs are collected with Fluent Bit and are exported to CloudWatch.
 
 ## Logs on AWS
 
-Logs will automatically be pushed to CloudWatch and a log group with the same name as your cluster will be created to store your logs. API logs are tagged with labels to help with log aggregation and filtering.
+Logs will automatically be pushed to CloudWatch and a log group with the same name as your cluster will be created to store your logs. API logs are tagged with labels to help with log aggregation and filtering. Log lines greater than 5 MB in size will be ignored.
 
-Below are some sample CloudWatch Log Insight queries:
+You can use the `cortex logs` command to get a CloudWatch Insights URL of query to fetch logs for your API. Please note that there may be a few minutes of delay from when a message is logged to when it is available in CloudWatch Insights.
 
 **RealtimeAPI:**
 
 ```text
 fields @timestamp, message
-| filter labels.apiName="<INSERT API NAME>"
-| filter labels.apiKind="RealtimeAPI"
+| filter cortex.labels.apiName="<INSERT API NAME>"
+| filter cortex.labels.apiKind="RealtimeAPI"
 | sort @timestamp asc
 | limit 1000
 ```
@@ -37,8 +22,8 @@ fields @timestamp, message
 
 ```text
 fields @timestamp, message
-| filter labels.apiName="<INSERT API NAME>"
-| filter labels.apiKind="AsyncAPI"
+| filter cortex.labels.apiName="<INSERT API NAME>"
+| filter cortex.labels.apiKind="AsyncAPI"
 | sort @timestamp asc
 | limit 1000
 ```
@@ -47,9 +32,9 @@ fields @timestamp, message
 
 ```text
 fields @timestamp, message
-| filter labels.apiName="<INSERT API NAME>"
-| filter labels.jobID="<INSERT JOB ID>"
-| filter labels.apiKind="BatchAPI"
+| filter cortex.labels.apiName="<INSERT API NAME>"
+| filter cortex.labels.jobID="<INSERT JOB ID>"
+| filter cortex.labels.apiKind="BatchAPI"
 | sort @timestamp asc
 | limit 1000
 ```
@@ -58,21 +43,29 @@ fields @timestamp, message
 
 ```text
 fields @timestamp, message
-| filter labels.apiName="<INSERT API NAME>"
-| filter labels.jobID="<INSERT JOB ID>"
-| filter labels.apiKind="TaskAPI"
+| filter cortex.labels.apiName="<INSERT API NAME>"
+| filter cortex.labels.jobID="<INSERT JOB ID>"
+| filter cortex.labels.apiKind="TaskAPI"
 | sort @timestamp asc
 | limit 1000
 ```
 
+## Streaming logs for an API or a running job
+
+You can stream logs directly from a random pod of an API or a running job to iterate and debug quickly. These logs will not be as comprehensive as the logs that are available in CloudWatch.
+
+```bash
+# RealtimeAPI
+cortex logs --random-pod <api_name>
+
+# BatchAPI or TaskAPI
+cortex logs --random-pod <api_name> <job_id>  # the job must be in a running state
+```
+
 ## Structured logging
 
-You can use Cortex's logger in your Python code to log in JSON, which will enrich your logs with Cortex's metadata, and
-enable you to add custom metadata to the logs.
+If you log JSON strings from your APIs, they will be automatically parsed before pushing to CloudWatch.
 
-See the structured logging docs for each API kind:
+It is recommended to configure your JSON logger to use `message` or `msg` as the key for the log line if you would like the sample queries above to display the messages in your logs.
 
-- [RealtimeAPI](../../workloads/realtime/handler.md#structured-logging)
-- [AsyncAPI](../../workloads/async/handler.md#structured-logging)
-- [BatchAPI](../../workloads/batch/handler.md#structured-logging)
-- [TaskAPI](../../workloads/task/definitions.md#structured-logging)
+Avoid using top-level keys that start with "cortex" to prevent collisions with Cortex's internal logging.

@@ -17,7 +17,6 @@ limitations under the License.
 package spec
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"strings"
@@ -29,18 +28,17 @@ import (
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/lib/docker"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
-	"github.com/cortexlabs/cortex/pkg/lib/files"
 	libjson "github.com/cortexlabs/cortex/pkg/lib/json"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
-	libmath "github.com/cortexlabs/cortex/pkg/lib/math"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/regex"
+	"github.com/cortexlabs/cortex/pkg/lib/slices"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	libtime "github.com/cortexlabs/cortex/pkg/lib/time"
 	"github.com/cortexlabs/cortex/pkg/lib/urls"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	dockertypes "github.com/docker/docker/api/types"
-	pbparser "github.com/emicklei/proto"
+	"github.com/opencontainers/go-digest"
 	kresource "k8s.io/apimachinery/pkg/api/resource"
 )
 
@@ -54,31 +52,27 @@ func apiValidation(resource userconfig.Resource) *cr.StructValidation {
 	switch resource.Kind {
 	case userconfig.RealtimeAPIKind:
 		structFieldValidations = append(resourceStructValidations,
-			handlerValidation(),
+			podValidation(userconfig.RealtimeAPIKind),
 			networkingValidation(),
-			computeValidation(),
 			autoscalingValidation(),
 			updateStrategyValidation(),
 		)
 	case userconfig.AsyncAPIKind:
 		structFieldValidations = append(resourceStructValidations,
-			handlerValidation(),
+			podValidation(userconfig.AsyncAPIKind),
 			networkingValidation(),
-			computeValidation(),
 			autoscalingValidation(),
 			updateStrategyValidation(),
 		)
 	case userconfig.BatchAPIKind:
 		structFieldValidations = append(resourceStructValidations,
-			handlerValidation(),
+			podValidation(userconfig.BatchAPIKind),
 			networkingValidation(),
-			computeValidation(),
 		)
 	case userconfig.TaskAPIKind:
 		structFieldValidations = append(resourceStructValidations,
-			taskDefinitionValidation(),
+			podValidation(userconfig.TaskAPIKind),
 			networkingValidation(),
-			computeValidation(),
 		)
 	case userconfig.TrafficSplitterKind:
 		structFieldValidations = append(resourceStructValidations,
@@ -146,206 +140,129 @@ func multiAPIsValidation() *cr.StructFieldValidation {
 	}
 }
 
-func handlerValidation() *cr.StructFieldValidation {
-	return &cr.StructFieldValidation{
-		StructField: "Handler",
+func podValidation(kind userconfig.Kind) *cr.StructFieldValidation {
+	validation := &cr.StructFieldValidation{
+		StructField: "Pod",
 		StructValidation: &cr.StructValidation{
-			Required: true,
 			StructFieldValidations: []*cr.StructFieldValidation{
 				{
-					StructField: "Type",
-					StringValidation: &cr.StringValidation{
-						Required:            true,
-						AllowedValues:       userconfig.HandlerTypeStrings(),
-						HiddenAllowedValues: []string{"onnx"},
-					},
-					Parser: func(str string) (interface{}, error) {
-						if str == "onnx" {
-							return nil, ErrorInvalidONNXHandlerType()
-						}
-						return userconfig.HandlerTypeFromString(str), nil
-					},
-				},
-				{
-					StructField: "Path",
-					StringValidation: &cr.StringValidation{
-						Required: true,
-						AllowedSuffixes: []string{
-							".py",
-							".pickle",
-						},
-					},
-				},
-				{
-					StructField: "ProtobufPath",
-					StringPtrValidation: &cr.StringPtrValidation{
-						Default:                   nil,
-						AllowExplicitNull:         true,
-						AlphaNumericDotUnderscore: true,
-						Suffix:                    ".proto",
-					},
-				},
-				{
-					StructField: "PythonPath",
-					StringPtrValidation: &cr.StringPtrValidation{
-						AllowEmpty:       false,
-						DisallowedValues: []string{".", "./", "./."},
-						Validator: func(path string) (string, error) {
-							if files.IsAbsOrTildePrefixed(path) {
-								return "", ErrorMustBeRelativeProjectPath(path)
-							}
-							path = strings.TrimPrefix(path, "./")
-							path = s.EnsureSuffix(path, "/")
-							return path, nil
-						},
-					},
-				},
-				{
-					StructField: "Image",
-					StringValidation: &cr.StringValidation{
-						Required:           false,
-						AllowEmpty:         true,
-						DockerImageOrEmpty: true,
-					},
-				},
-				{
-					StructField: "TensorFlowServingImage",
-					StringValidation: &cr.StringValidation{
-						Required:           false,
-						AllowEmpty:         true,
-						DockerImageOrEmpty: true,
-					},
-				},
-				{
-					StructField: "ProcessesPerReplica",
-					Int32Validation: &cr.Int32Validation{
-						Default:              1,
-						GreaterThanOrEqualTo: pointer.Int32(1),
-						LessThanOrEqualTo:    pointer.Int32(100),
-					},
-				},
-				{
-					StructField: "ThreadsPerProcess",
-					Int32Validation: &cr.Int32Validation{
-						Default:              1,
-						GreaterThanOrEqualTo: pointer.Int32(1),
-					},
-				},
-				{
-					StructField: "ShmSize",
-					StringPtrValidation: &cr.StringPtrValidation{
+					StructField: "NodeGroups",
+					StringListValidation: &cr.StringListValidation{
+						Required:          false,
 						Default:           nil,
 						AllowExplicitNull: true,
-					},
-					Parser: k8s.QuantityParser(&k8s.QuantityValidation{}),
-				},
-				{
-					StructField: "LogLevel",
-					StringValidation: &cr.StringValidation{
-						Default:       "info",
-						AllowedValues: userconfig.LogLevelTypes(),
-					},
-					Parser: func(str string) (interface{}, error) {
-						return userconfig.LogLevelFromString(str), nil
+						AllowEmpty:        false,
+						ElementStringValidation: &cr.StringValidation{
+							AlphaNumericDashUnderscore: true,
+						},
 					},
 				},
 				{
-					StructField: "Config",
-					InterfaceMapValidation: &cr.InterfaceMapValidation{
-						StringKeysOnly:     true,
-						AllowEmpty:         true,
-						AllowExplicitNull:  true,
-						ConvertNullToEmpty: true,
-						Default:            map[string]interface{}{},
+					StructField: "Port",
+					Int32PtrValidation: &cr.Int32PtrValidation{
+						Required:          false,
+						Default:           nil, // it's a pointer because it's not required for the task API
+						AllowExplicitNull: true,
+						GreaterThan:       pointer.Int32(0),
+						LessThanOrEqualTo: pointer.Int32(65535),
+						DisallowedValues:  consts.ReservedContainerPorts,
 					},
 				},
-				{
-					StructField: "Env",
-					StringMapValidation: &cr.StringMapValidation{
-						Default:    map[string]string{},
-						AllowEmpty: true,
-					},
-				},
-				multiModelValidation("Models"),
-				multiModelValidation("MultiModelReloading"),
-				serverSideBatchingValidation(),
-				dependencyPathValidation(),
+				containersValidation(kind),
 			},
 		},
 	}
+
+	if kind == userconfig.RealtimeAPIKind {
+		validation.StructValidation.StructFieldValidations = append(validation.StructValidation.StructFieldValidations,
+			&cr.StructFieldValidation{
+				StructField: "MaxQueueLength",
+				Int64Validation: &cr.Int64Validation{
+					Default:     consts.DefaultMaxQueueLength,
+					GreaterThan: pointer.Int64(0),
+					// the proxy can theoretically accept up to 32768 connections, but during testing,
+					// it has been observed that the number is just slightly lower, so it has been offset by 2678
+					LessThanOrEqualTo: pointer.Int64(30000),
+				},
+			},
+			&cr.StructFieldValidation{
+				StructField: "MaxConcurrency",
+				Int64Validation: &cr.Int64Validation{
+					Default:     consts.DefaultMaxConcurrency,
+					GreaterThan: pointer.Int64(0),
+					// the proxy can theoretically accept up to 32768 connections, but during testing,
+					// it has been observed that the number is just slightly lower, so it has been offset by 2678
+					LessThanOrEqualTo: pointer.Int64(30000),
+				},
+			},
+		)
+	}
+
+	return validation
 }
 
-func taskDefinitionValidation() *cr.StructFieldValidation {
+func containersValidation(kind userconfig.Kind) *cr.StructFieldValidation {
+	validations := []*cr.StructFieldValidation{
+		{
+			StructField: "Name",
+			StringValidation: &cr.StringValidation{
+				Required:         true,
+				AllowEmpty:       false,
+				DNS1035:          true,
+				MaxLength:        63,
+				DisallowedValues: consts.ReservedContainerNames,
+			},
+		},
+		{
+			StructField: "Image",
+			StringValidation: &cr.StringValidation{
+				Required:    true,
+				AllowEmpty:  false,
+				DockerImage: true,
+			},
+		},
+		{
+			StructField: "Env",
+			StringMapValidation: &cr.StringMapValidation{
+				Required:   false,
+				Default:    map[string]string{},
+				AllowEmpty: true,
+			},
+		},
+		{
+			StructField: "Command",
+			StringListValidation: &cr.StringListValidation{
+				Required:          false,
+				AllowExplicitNull: true,
+				AllowEmpty:        true,
+			},
+		},
+		{
+			StructField: "Args",
+			StringListValidation: &cr.StringListValidation{
+				Required:          false,
+				AllowExplicitNull: true,
+				AllowEmpty:        true,
+			},
+		},
+		computeValidation(),
+		probeValidation("LivenessProbe", true),
+	}
+
+	if kind == userconfig.RealtimeAPIKind {
+		validations = append(validations, probeValidation("ReadinessProbe", true))
+	} else if kind == userconfig.AsyncAPIKind || kind == userconfig.BatchAPIKind {
+		validations = append(validations, probeValidation("ReadinessProbe", false))
+	}
+
 	return &cr.StructFieldValidation{
-		StructField: "TaskDefinition",
-		StructValidation: &cr.StructValidation{
-			Required: true,
-			StructFieldValidations: []*cr.StructFieldValidation{
-				{
-					StructField: "Path",
-					StringValidation: &cr.StringValidation{
-						Required: true,
-					},
-				},
-				{
-					StructField: "PythonPath",
-					StringPtrValidation: &cr.StringPtrValidation{
-						AllowEmpty:       false,
-						DisallowedValues: []string{".", "./", "./."},
-						Validator: func(path string) (string, error) {
-							if files.IsAbsOrTildePrefixed(path) {
-								return "", ErrorMustBeRelativeProjectPath(path)
-							}
-							path = strings.TrimPrefix(path, "./")
-							path = s.EnsureSuffix(path, "/")
-							return path, nil
-						},
-					},
-				},
-				{
-					StructField: "Image",
-					StringValidation: &cr.StringValidation{
-						Required:           false,
-						AllowEmpty:         true,
-						DockerImageOrEmpty: true,
-					},
-				},
-				{
-					StructField: "ShmSize",
-					StringPtrValidation: &cr.StringPtrValidation{
-						Default:           nil,
-						AllowExplicitNull: true,
-					},
-					Parser: k8s.QuantityParser(&k8s.QuantityValidation{}),
-				},
-				{
-					StructField: "LogLevel",
-					StringValidation: &cr.StringValidation{
-						Default:       "info",
-						AllowedValues: userconfig.LogLevelTypes(),
-					},
-					Parser: func(str string) (interface{}, error) {
-						return userconfig.LogLevelFromString(str), nil
-					},
-				},
-				{
-					StructField: "Config",
-					InterfaceMapValidation: &cr.InterfaceMapValidation{
-						StringKeysOnly:     true,
-						AllowEmpty:         true,
-						AllowExplicitNull:  true,
-						ConvertNullToEmpty: true,
-						Default:            map[string]interface{}{},
-					},
-				},
-				{
-					StructField: "Env",
-					StringMapValidation: &cr.StringMapValidation{
-						Default:    map[string]string{},
-						AllowEmpty: true,
-					},
-				},
-				dependencyPathValidation(),
+		StructField: "Containers",
+		StructListValidation: &cr.StructListValidation{
+			Required:         true,
+			TreatNullAsEmpty: true,
+			MinLength:        1,
+			StructValidation: &cr.StructValidation{
+				StructFieldValidations: validations,
 			},
 		},
 	}
@@ -361,6 +278,133 @@ func networkingValidation() *cr.StructFieldValidation {
 					StringPtrValidation: &cr.StringPtrValidation{
 						Validator: urls.ValidateEndpoint,
 						MaxLength: 1000, // no particular reason other than it works
+					},
+				},
+			},
+		},
+	}
+}
+
+func probeValidation(structFieldName string, hasExecProbe bool) *cr.StructFieldValidation {
+	validations := []*cr.StructFieldValidation{
+		httpGetProbeValidation(),
+		tcpSocketProbeValidation(),
+		{
+			StructField: "InitialDelaySeconds",
+			Int32Validation: &cr.Int32Validation{
+				Default:              0,
+				GreaterThanOrEqualTo: pointer.Int32(0),
+			},
+		},
+		{
+			StructField: "TimeoutSeconds",
+			Int32Validation: &cr.Int32Validation{
+				Default:              1,
+				GreaterThanOrEqualTo: pointer.Int32(0),
+			},
+		},
+		{
+			StructField: "PeriodSeconds",
+			Int32Validation: &cr.Int32Validation{
+				Default:              10,
+				GreaterThanOrEqualTo: pointer.Int32(0),
+			},
+		},
+		{
+			StructField: "SuccessThreshold",
+			Int32Validation: &cr.Int32Validation{
+				Default:              1,
+				GreaterThanOrEqualTo: pointer.Int32(0),
+			},
+		},
+		{
+			StructField: "FailureThreshold",
+			Int32Validation: &cr.Int32Validation{
+				Default:              3,
+				GreaterThanOrEqualTo: pointer.Int32(0),
+			},
+		},
+	}
+
+	if hasExecProbe {
+		validations = append(validations, execProbeValidation())
+	}
+
+	return &cr.StructFieldValidation{
+		StructField: structFieldName,
+		StructValidation: &cr.StructValidation{
+			Required:               false,
+			AllowExplicitNull:      true,
+			DefaultNil:             true,
+			StructFieldValidations: validations,
+		},
+	}
+}
+
+func httpGetProbeValidation() *cr.StructFieldValidation {
+	return &cr.StructFieldValidation{
+		StructField: "HTTPGet",
+		StructValidation: &cr.StructValidation{
+			Required:          false,
+			AllowExplicitNull: true,
+			DefaultNil:        true,
+			StructFieldValidations: []*cr.StructFieldValidation{
+				{
+					StructField: "Path",
+					StringValidation: &cr.StringValidation{
+						Required:  false,
+						Default:   "/",
+						Validator: urls.ValidateEndpointAllowEmptyPath,
+					},
+				},
+				{
+					StructField: "Port",
+					Int32Validation: &cr.Int32Validation{
+						Required:          true,
+						GreaterThan:       pointer.Int32(0),
+						LessThanOrEqualTo: pointer.Int32(65535),
+						DisallowedValues:  consts.ReservedContainerPorts,
+					},
+				},
+			},
+		},
+	}
+}
+
+func tcpSocketProbeValidation() *cr.StructFieldValidation {
+	return &cr.StructFieldValidation{
+		StructField: "TCPSocket",
+		StructValidation: &cr.StructValidation{
+			Required:          false,
+			AllowExplicitNull: true,
+			DefaultNil:        true,
+			StructFieldValidations: []*cr.StructFieldValidation{
+				{
+					StructField: "Port",
+					Int32Validation: &cr.Int32Validation{
+						Required:          true,
+						GreaterThan:       pointer.Int32(0),
+						LessThanOrEqualTo: pointer.Int32(65535),
+						DisallowedValues:  consts.ReservedContainerPorts,
+					},
+				},
+			},
+		},
+	}
+}
+
+func execProbeValidation() *cr.StructFieldValidation {
+	return &cr.StructFieldValidation{
+		StructField: "Exec",
+		StructValidation: &cr.StructValidation{
+			Required:          false,
+			AllowExplicitNull: true,
+			DefaultNil:        true,
+			StructFieldValidations: []*cr.StructFieldValidation{
+				{
+					StructField: "Command",
+					StringListValidation: &cr.StringListValidation{
+						Required: true,
 					},
 				},
 			},
@@ -409,16 +453,12 @@ func computeValidation() *cr.StructFieldValidation {
 					},
 				},
 				{
-					StructField: "NodeGroups",
-					StringListValidation: &cr.StringListValidation{
-						Required:          false,
+					StructField: "Shm",
+					StringPtrValidation: &cr.StringPtrValidation{
 						Default:           nil,
 						AllowExplicitNull: true,
-						AllowEmpty:        false,
-						ElementStringValidation: &cr.StringValidation{
-							AlphaNumericDashUnderscore: true,
-						},
 					},
+					Parser: k8s.QuantityParser(&k8s.QuantityValidation{}),
 				},
 			},
 		},
@@ -452,18 +492,9 @@ func autoscalingValidation() *cr.StructFieldValidation {
 					},
 				},
 				{
-					StructField: "MaxReplicaConcurrency",
-					Int64Validation: &cr.Int64Validation{
-						Default:     consts.DefaultMaxReplicaConcurrency,
-						GreaterThan: pointer.Int64(0),
-						// our configured nginx can theoretically accept up to 32768 connections, but during testing,
-						// it has been observed that the number is just slightly lower, so it has been offset by 2678
-						LessThanOrEqualTo: pointer.Int64(30000),
-					},
-				},
-				{
-					StructField: "TargetReplicaConcurrency",
+					StructField: "TargetInFlight",
 					Float64PtrValidation: &cr.Float64PtrValidation{
+						Default:     nil,
 						GreaterThan: pointer.Float64(0),
 					},
 				},
@@ -556,150 +587,6 @@ func updateStrategyValidation() *cr.StructFieldValidation {
 	}
 }
 
-func multiModelValidation(fieldName string) *cr.StructFieldValidation {
-	return &cr.StructFieldValidation{
-		StructField: fieldName,
-		StructValidation: &cr.StructValidation{
-			Required:   false,
-			DefaultNil: true,
-			StructFieldValidations: []*cr.StructFieldValidation{
-				{
-					StructField: "Path",
-					StringPtrValidation: &cr.StringPtrValidation{
-						Required:  false,
-						Validator: checkForInvalidBucketScheme,
-					},
-				},
-				multiModelPathsValidation(),
-				{
-					StructField: "Dir",
-					StringPtrValidation: &cr.StringPtrValidation{
-						Required:  false,
-						Validator: checkForInvalidBucketScheme,
-					},
-				},
-				{
-					StructField: "SignatureKey",
-					StringPtrValidation: &cr.StringPtrValidation{
-						Required: false,
-					},
-				},
-				{
-					StructField: "CacheSize",
-					Int32PtrValidation: &cr.Int32PtrValidation{
-						Required:    false,
-						GreaterThan: pointer.Int32(0),
-					},
-				},
-				{
-					StructField: "DiskCacheSize",
-					Int32PtrValidation: &cr.Int32PtrValidation{
-						Required:    false,
-						GreaterThan: pointer.Int32(0),
-					},
-				},
-			},
-		},
-	}
-}
-
-func multiModelPathsValidation() *cr.StructFieldValidation {
-	return &cr.StructFieldValidation{
-		StructField: "Paths",
-		StructListValidation: &cr.StructListValidation{
-			Required:         false,
-			TreatNullAsEmpty: true,
-			StructValidation: &cr.StructValidation{
-				StructFieldValidations: []*cr.StructFieldValidation{
-					{
-						StructField: "Name",
-						StringValidation: &cr.StringValidation{
-							Required:                   true,
-							AllowEmpty:                 false,
-							DisallowedValues:           []string{consts.SingleModelName},
-							AlphaNumericDashUnderscore: true,
-						},
-					},
-					{
-						StructField: "Path",
-						StringValidation: &cr.StringValidation{
-							Required:   true,
-							AllowEmpty: false,
-							Validator:  checkForInvalidBucketScheme,
-						},
-					},
-					{
-						StructField: "SignatureKey",
-						StringPtrValidation: &cr.StringPtrValidation{
-							Required:   false,
-							AllowEmpty: false,
-						},
-					},
-				},
-			},
-		},
-	}
-}
-
-func serverSideBatchingValidation() *cr.StructFieldValidation {
-	return &cr.StructFieldValidation{
-		StructField: "ServerSideBatching",
-		StructValidation: &cr.StructValidation{
-			Required:          false,
-			DefaultNil:        true,
-			AllowExplicitNull: true,
-			StructFieldValidations: []*cr.StructFieldValidation{
-				{
-					StructField: "MaxBatchSize",
-					Int32Validation: &cr.Int32Validation{
-						Required:             true,
-						GreaterThanOrEqualTo: pointer.Int32(2),
-						LessThanOrEqualTo:    pointer.Int32(1024), // this is an arbitrary limit
-					},
-				},
-				{
-					StructField: "BatchInterval",
-					StringValidation: &cr.StringValidation{
-						Required: true,
-					},
-					Parser: cr.DurationParser(&cr.DurationValidation{
-						GreaterThan: pointer.Duration(libtime.MustParseDuration("0s")),
-					}),
-				},
-			},
-		},
-	}
-}
-
-func dependencyPathValidation() *cr.StructFieldValidation {
-	return &cr.StructFieldValidation{
-		StructField: "Dependencies",
-		StructValidation: &cr.StructValidation{
-			Required: false,
-			StructFieldValidations: []*cr.StructFieldValidation{
-				{
-					StructField: "Pip",
-					StringValidation: &cr.StringValidation{
-						Default: "requirements.txt",
-					},
-				},
-				{
-					StructField: "Conda",
-					StringValidation: &cr.StringValidation{
-						Default: "conda-packages.txt",
-					},
-				},
-				{
-					StructField: "Shell",
-					StringValidation: &cr.StringValidation{
-						Default: "dependencies.sh",
-					},
-				},
-			},
-		},
-	}
-}
-
 var resourceStructValidation = cr.StructValidation{
 	AllowExtraFields:       true,
 	StructFieldValidations: resourceStructValidations,
@@ -746,16 +633,7 @@ func ExtractAPIConfigs(configBytes []byte, configFileName string) ([]userconfig.
 		if !ok {
 			return nil, errors.ErrorUnexpected("unable to cast api spec to json") // unexpected
 		}
-
 		api.SubmittedAPISpec = interfaceMap
-
-		if resourceStruct.Kind == userconfig.RealtimeAPIKind ||
-			resourceStruct.Kind == userconfig.BatchAPIKind ||
-			resourceStruct.Kind == userconfig.TaskAPIKind ||
-			resourceStruct.Kind == userconfig.AsyncAPIKind {
-			api.ApplyDefaultDockerPaths()
-		}
-
 		apis[i] = api
 	}
 
@@ -764,32 +642,17 @@ func ExtractAPIConfigs(configBytes []byte, configFileName string) ([]userconfig.
 
 func ValidateAPI(
 	api *userconfig.API,
-	models *[]CuratedModelResource,
-	projectFiles ProjectFiles,
 	awsClient *aws.Client,
 	k8sClient *k8s.Client,
 ) error {
 
-	// if models is nil, we need to set it to an empty slice to avoid nil pointer exceptions
-	if models == nil {
-		models = &[]CuratedModelResource{}
-	}
-
-	if api.Networking.Endpoint == nil && (api.Handler == nil || (api.Handler != nil && api.Handler.ProtobufPath == nil)) {
+	if api.Networking.Endpoint == nil {
 		api.Networking.Endpoint = pointer.String("/" + api.Name)
 	}
 
-	switch api.Kind {
-	case userconfig.TaskAPIKind:
-		if err := validateTaskDefinition(api, projectFiles, awsClient, k8sClient); err != nil {
-			return errors.Wrap(err, userconfig.TaskDefinitionKey)
-		}
-	default:
-		if err := validateHandler(api, models, projectFiles, awsClient, k8sClient); err != nil {
-			if errors.GetKind(err) == ErrProtoInvalidNetworkingEndpoint {
-				return errors.Wrap(err, userconfig.NetworkingKey, userconfig.EndpointKey)
-			}
-			return errors.Wrap(err, userconfig.HandlerKey)
+	if api.Pod != nil {
+		if err := validatePod(api, awsClient, k8sClient); err != nil {
+			return errors.Wrap(err, userconfig.PodKey)
 		}
 	}
 
@@ -799,59 +662,9 @@ func ValidateAPI(
 		}
 	}
 
-	if err := validateCompute(api); err != nil {
-		return errors.Wrap(err, userconfig.ComputeKey)
-	}
-
 	if api.UpdateStrategy != nil {
 		if err := validateUpdateStrategy(api.UpdateStrategy); err != nil {
 			return errors.Wrap(err, userconfig.UpdateStrategyKey)
-		}
-	}
-
-	if api.Handler != nil && api.Handler.ShmSize != nil && api.Compute.Mem != nil {
-		if api.Handler.ShmSize.Cmp(api.Compute.Mem.Quantity) > 0 {
-			return ErrorShmSizeCannotExceedMem(userconfig.HandlerKey, *api.Handler.ShmSize, *api.Compute.Mem)
-		}
-	}
-
-	if api.TaskDefinition != nil && api.TaskDefinition.ShmSize != nil && api.Compute.Mem != nil {
-		if api.TaskDefinition.ShmSize.Cmp(api.Compute.Mem.Quantity) > 0 {
-			return ErrorShmSizeCannotExceedMem(userconfig.TaskDefinitionKey, *api.TaskDefinition.ShmSize, *api.Compute.Mem)
-		}
-	}
-
-	return nil
-}
-
-func validateTaskDefinition(
-	api *userconfig.API,
-	projectFiles ProjectFiles,
-	awsClient *aws.Client,
-	k8sClient *k8s.Client,
-) error {
-	taskDefinition := api.TaskDefinition
-
-	if err := validateDockerImagePath(taskDefinition.Image, awsClient, k8sClient); err != nil {
-		return errors.Wrap(err, userconfig.ImageKey)
-	}
-
-	for key := range taskDefinition.Env {
-		if strings.HasPrefix(key, "CORTEX_") {
-			return errors.Wrap(ErrorCortexPrefixedEnvVarNotAllowed(), userconfig.EnvKey, key)
-		}
-	}
-
-	if !projectFiles.HasFile(taskDefinition.Path) {
-		return errors.Wrap(files.ErrorFileDoesNotExist(taskDefinition.Path), userconfig.PathKey)
-	}
-
-	if taskDefinition.PythonPath != nil {
-		if !projectFiles.HasDir(*taskDefinition.PythonPath) {
-			return errors.Wrap(
-				ErrorPythonPathNotFound(*taskDefinition.PythonPath),
-				userconfig.PythonPathKey,
-			)
 		}
 	}
 
@@ -882,406 +695,105 @@ func ValidateTrafficSplitter(api *userconfig.API) error {
 	return nil
 }
 
-func validateHandler(
+func validatePod(
 	api *userconfig.API,
-	models *[]CuratedModelResource,
-	projectFiles ProjectFiles,
 	awsClient *aws.Client,
 	k8sClient *k8s.Client,
 ) error {
-	handler := api.Handler
+	containers := api.Pod.Containers
+	totalCompute := userconfig.GetTotalComputeFromContainers(containers)
 
-	if !projectFiles.HasFile(handler.Path) {
-		return errors.Wrap(files.ErrorFileDoesNotExist(handler.Path), userconfig.PathKey)
+	if api.Pod.Port != nil && api.Kind == userconfig.TaskAPIKind {
+		return ErrorFieldIsNotSupportedForKind(userconfig.PortKey, api.Kind)
+	}
+	if api.Pod.Port == nil && api.Kind != userconfig.TaskAPIKind {
+		api.Pod.Port = pointer.Int32(consts.DefaultUserPodPortInt32)
 	}
 
-	if handler.PythonPath != nil {
-		if err := validatePythonPath(handler, projectFiles); err != nil {
-			return errors.Wrap(err, userconfig.PythonPathKey)
-		}
+	if err := validateCompute(totalCompute); err != nil {
+		return errors.Wrap(err, userconfig.ComputeKey)
 	}
 
-	if handler.IsGRPC() {
-		if api.Kind != userconfig.RealtimeAPIKind {
-			return ErrorKeyIsNotSupportedForKind(userconfig.ProtobufPathKey, api.Kind)
-		}
-
-		if err := validateProtobufPath(api, projectFiles); err != nil {
-			return err
-		}
-	}
-
-	if err := validateMultiModelsFields(api); err != nil {
-		return err
-	}
-
-	switch handler.Type {
-	case userconfig.PythonHandlerType:
-		if err := validatePythonHandler(api, models, awsClient); err != nil {
-			return err
-		}
-	case userconfig.TensorFlowHandlerType:
-		if err := validateTensorFlowHandler(api, models, awsClient); err != nil {
-			return err
-		}
-		if err := validateDockerImagePath(handler.TensorFlowServingImage, awsClient, k8sClient); err != nil {
-			return errors.Wrap(err, userconfig.TensorFlowServingImageKey)
-		}
-	}
-
-	if api.Kind == userconfig.BatchAPIKind || api.Kind == userconfig.AsyncAPIKind {
-		if handler.MultiModelReloading != nil {
-			return ErrorKeyIsNotSupportedForKind(userconfig.MultiModelReloadingKey, api.Kind)
-		}
-
-		if handler.ServerSideBatching != nil {
-			return ErrorKeyIsNotSupportedForKind(userconfig.ServerSideBatchingKey, api.Kind)
-		}
-
-		if handler.ProcessesPerReplica > 1 {
-			return ErrorKeyIsNotSupportedForKind(userconfig.ProcessesPerReplicaKey, api.Kind)
-		}
-
-		if handler.ThreadsPerProcess > 1 {
-			return ErrorKeyIsNotSupportedForKind(userconfig.ThreadsPerProcessKey, api.Kind)
-		}
-	}
-
-	if err := validateDockerImagePath(handler.Image, awsClient, k8sClient); err != nil {
-		return errors.Wrap(err, userconfig.ImageKey)
-	}
-
-	for key := range handler.Env {
-		if strings.HasPrefix(key, "CORTEX_") {
-			return errors.Wrap(ErrorCortexPrefixedEnvVarNotAllowed(), userconfig.EnvKey, key)
-		}
+	if err := validateContainers(containers, api.Kind, awsClient, k8sClient); err != nil {
+		return errors.Wrap(err, userconfig.ContainersKey)
 	}
 
 	return nil
 }
 
-func validateMultiModelsFields(api *userconfig.API) error {
-	handler := api.Handler
+func validateContainers(
+	containers []*userconfig.Container,
+	kind userconfig.Kind,
+	awsClient *aws.Client,
+	k8sClient *k8s.Client,
+) error {
+	containerNames := []string{}
 
-	var models *userconfig.MultiModels
-	if api.Handler.Models != nil {
-		if api.Handler.Type == userconfig.PythonHandlerType {
-			return ErrorFieldNotSupportedByHandlerType(userconfig.ModelsKey, api.Handler.Type)
+	for i, container := range containers {
+		if slices.HasString(containerNames, container.Name) {
+			return errors.Wrap(ErrorDuplicateContainerName(container.Name), s.Index(i), userconfig.ImageKey)
 		}
-		models = api.Handler.Models
-	}
-	if api.Handler.MultiModelReloading != nil {
-		if api.Handler.Type != userconfig.PythonHandlerType {
-			return ErrorFieldNotSupportedByHandlerType(userconfig.MultiModelReloadingKey, api.Handler.Type)
-		}
-		models = api.Handler.MultiModelReloading
-	}
+		containerNames = append(containerNames, container.Name)
 
-	if models == nil {
-		if api.Handler.Type != userconfig.PythonHandlerType {
-			return ErrorFieldMustBeDefinedForHandlerType(userconfig.ModelsKey, api.Handler.Type)
-		}
-		return nil
-	}
-
-	if models.Path == nil && len(models.Paths) == 0 && models.Dir == nil {
-		return errors.Wrap(ErrorSpecifyOnlyOneField(userconfig.ModelsPathKey, userconfig.ModelsPathsKey, userconfig.ModelsDirKey), userconfig.ModelsKey)
-	}
-	if models.Path != nil && len(models.Paths) > 0 && models.Dir != nil {
-		return errors.Wrap(ErrorSpecifyOnlyOneField(userconfig.ModelsPathKey, userconfig.ModelsPathsKey, userconfig.ModelsDirKey), userconfig.ModelsKey)
-	}
-
-	if models.Path != nil && len(models.Paths) > 0 {
-		return errors.Wrap(ErrorConflictingFields(userconfig.ModelsPathKey, userconfig.ModelsPathsKey), userconfig.ModelsKey)
-	}
-	if models.Dir != nil && len(models.Paths) > 0 {
-		return errors.Wrap(ErrorConflictingFields(userconfig.ModelsPathsKey, userconfig.ModelsDirKey), userconfig.ModelsKey)
-	}
-	if models.Dir != nil && models.Path != nil {
-		return errors.Wrap(ErrorConflictingFields(userconfig.ModelsPathKey, userconfig.ModelsDirKey), userconfig.ModelsKey)
-	}
-
-	if models.CacheSize != nil && api.Kind != userconfig.RealtimeAPIKind {
-		return errors.Wrap(ErrorKeyIsNotSupportedForKind(userconfig.ModelsCacheSizeKey, api.Kind), userconfig.ModelsKey)
-	}
-	if models.DiskCacheSize != nil && api.Kind != userconfig.RealtimeAPIKind {
-		return errors.Wrap(ErrorKeyIsNotSupportedForKind(userconfig.ModelsDiskCacheSizeKey, api.Kind), userconfig.ModelsKey)
-	}
-
-	if (models.CacheSize == nil && models.DiskCacheSize != nil) ||
-		(models.CacheSize != nil && models.DiskCacheSize == nil) {
-		return errors.Wrap(ErrorSpecifyAllOrNone(userconfig.ModelsCacheSizeKey, userconfig.ModelsDiskCacheSizeKey), userconfig.ModelsKey)
-	}
-
-	if models.CacheSize != nil && models.DiskCacheSize != nil {
-		if *models.CacheSize > *models.DiskCacheSize {
-			return errors.Wrap(ErrorConfigGreaterThanOtherConfig(userconfig.ModelsCacheSizeKey, *models.CacheSize, userconfig.ModelsDiskCacheSizeKey, *models.DiskCacheSize), userconfig.ModelsKey)
+		if container.Command == nil && (kind == userconfig.BatchAPIKind || kind == userconfig.TaskAPIKind) {
+			return errors.Wrap(ErrorFieldMustBeSpecifiedForKind(userconfig.CommandKey, kind), s.Index(i), userconfig.CommandKey)
 		}
 
-		if handler.ProcessesPerReplica > 1 {
-			return ErrorModelCachingNotSupportedWhenMultiprocessingEnabled(handler.ProcessesPerReplica)
+		if err := validateDockerImagePath(container.Image, awsClient, k8sClient); err != nil {
+			return errors.Wrap(err, s.Index(i), userconfig.ImageKey)
 		}
+
+		for key := range container.Env {
+			if strings.HasPrefix(key, "CORTEX_") || strings.HasPrefix(key, "KUBEXIT_") {
+				return errors.Wrap(ErrorCortexPrefixedEnvVarNotAllowed("CORTEX_", "KUBEXIT_"), s.Index(i), userconfig.EnvKey, key)
+			}
+		}
+
+		if kind == userconfig.TaskAPIKind && container.ReadinessProbe != nil {
+			return errors.Wrap(ErrorFieldIsNotSupportedForKind(userconfig.ReadinessProbeKey, kind), s.Index(i), userconfig.ReadinessProbeKey)
+		}
+
+		if container.ReadinessProbe != nil {
+			supportsExecProbe := kind == userconfig.RealtimeAPIKind
+			if err := validateProbe(*container.ReadinessProbe, supportsExecProbe); err != nil {
+				return errors.Wrap(err, s.Index(i), userconfig.ReadinessProbeKey)
+			}
+		}
+
+		if container.LivenessProbe != nil {
+			if err := validateProbe(*container.LivenessProbe, true); err != nil {
+				return errors.Wrap(err, s.Index(i), userconfig.LivenessProbeKey)
+			}
+		}
+
+		compute := container.Compute
+		if compute.Shm != nil && compute.Mem != nil && compute.Shm.Cmp(compute.Mem.Quantity) > 0 {
+			return errors.Wrap(ErrorShmCannotExceedMem(*compute.Shm, *compute.Mem), s.Index(i), userconfig.ComputeKey)
+		}
+
 	}
 
 	return nil
 }
 
-func validatePythonHandler(api *userconfig.API, models *[]CuratedModelResource, awsClient *aws.Client) error {
-	handler := api.Handler
-
-	if handler.Models != nil {
-		return ErrorFieldNotSupportedByHandlerType(userconfig.ModelsKey, handler.Type)
+func validateProbe(probe userconfig.Probe, supportsExecProbe bool) error {
+	numSpecifiedProbes := 0
+	if probe.HTTPGet != nil {
+		numSpecifiedProbes++
+	}
+	if probe.TCPSocket != nil {
+		numSpecifiedProbes++
+	}
+	if probe.Exec != nil {
+		numSpecifiedProbes++
 	}
 
-	if handler.ServerSideBatching != nil {
-		if handler.ServerSideBatching.MaxBatchSize != handler.ThreadsPerProcess {
-			return ErrorConcurrencyMismatchServerSideBatchingPython(
-				handler.ServerSideBatching.MaxBatchSize,
-				handler.ThreadsPerProcess,
-			)
+	if numSpecifiedProbes != 1 {
+		validProbes := []string{userconfig.HTTPGetKey, userconfig.TCPSocketKey}
+		if supportsExecProbe {
+			validProbes = append(validProbes, userconfig.ExecKey)
 		}
-	}
-	if handler.TensorFlowServingImage != "" {
-		return ErrorFieldNotSupportedByHandlerType(userconfig.TensorFlowServingImageKey, handler.Type)
-	}
-
-	if handler.MultiModelReloading == nil {
-		return nil
-	}
-	mmr := handler.MultiModelReloading
-	if mmr.SignatureKey != nil {
-		return errors.Wrap(ErrorFieldNotSupportedByHandlerType(userconfig.ModelsSignatureKeyKey, handler.Type), userconfig.MultiModelReloadingKey)
-	}
-
-	hasSingleModel := mmr.Path != nil
-	hasMultiModels := !hasSingleModel
-
-	var modelWrapError func(error) error
-	var modelResources []userconfig.ModelResource
-
-	if hasSingleModel {
-		modelWrapError = func(err error) error {
-			return errors.Wrap(err, userconfig.MultiModelReloadingKey, userconfig.ModelsPathKey)
-		}
-		modelResources = []userconfig.ModelResource{
-			{
-				Name: consts.SingleModelName,
-				Path: *mmr.Path,
-			},
-		}
-		*mmr.Path = s.EnsureSuffix(*mmr.Path, "/")
-	}
-	if hasMultiModels {
-		if mmr.SignatureKey != nil {
-			return errors.Wrap(ErrorFieldNotSupportedByHandlerType(userconfig.ModelsSignatureKeyKey, handler.Type), userconfig.MultiModelReloadingKey)
-		}
-
-		if len(mmr.Paths) > 0 {
-			modelWrapError = func(err error) error {
-				return errors.Wrap(err, userconfig.MultiModelReloadingKey, userconfig.ModelsPathsKey)
-			}
-
-			for _, path := range mmr.Paths {
-				if path.SignatureKey != nil {
-					return errors.Wrap(
-						ErrorFieldNotSupportedByHandlerType(userconfig.ModelsSignatureKeyKey, handler.Type),
-						userconfig.MultiModelReloadingKey,
-						userconfig.ModelsKey,
-						userconfig.ModelsPathsKey,
-						path.Name,
-					)
-				}
-				(*path).Path = s.EnsureSuffix((*path).Path, "/")
-				modelResources = append(modelResources, *path)
-			}
-		}
-
-		if mmr.Dir != nil {
-			modelWrapError = func(err error) error {
-				return errors.Wrap(err, userconfig.MultiModelReloadingKey, userconfig.ModelsDirKey)
-			}
-		}
-	}
-
-	var err error
-	if hasMultiModels && mmr.Dir != nil {
-		*models, err = validateDirModels(*mmr.Dir, nil, awsClient, generateErrorForHandlerTypeFn(api), nil)
-	} else {
-		*models, err = validateModels(modelResources, nil, awsClient, generateErrorForHandlerTypeFn(api), nil)
-	}
-	if err != nil {
-		return modelWrapError(err)
-	}
-
-	if hasMultiModels {
-		for _, model := range *models {
-			if model.Name == consts.SingleModelName {
-				return modelWrapError(ErrorReservedModelName(model.Name))
-			}
-		}
-	}
-
-	if err := checkDuplicateModelNames(*models); err != nil {
-		return modelWrapError(err)
-	}
-
-	return nil
-}
-
-func validateTensorFlowHandler(api *userconfig.API, models *[]CuratedModelResource, awsClient *aws.Client) error {
-	handler := api.Handler
-
-	if handler.ServerSideBatching != nil {
-		if api.Compute.Inf == 0 && handler.ServerSideBatching.MaxBatchSize > handler.ProcessesPerReplica*handler.ThreadsPerProcess {
-			return ErrorInsufficientBatchConcurrencyLevel(handler.ServerSideBatching.MaxBatchSize, handler.ProcessesPerReplica, handler.ThreadsPerProcess)
-		}
-		if api.Compute.Inf > 0 && handler.ServerSideBatching.MaxBatchSize > handler.ThreadsPerProcess {
-			return ErrorInsufficientBatchConcurrencyLevelInf(handler.ServerSideBatching.MaxBatchSize, handler.ThreadsPerProcess)
-		}
-	}
-
-	if handler.MultiModelReloading != nil {
-		return ErrorFieldNotSupportedByHandlerType(userconfig.MultiModelReloadingKey, userconfig.PythonHandlerType)
-	}
-
-	hasSingleModel := handler.Models.Path != nil
-	hasMultiModels := !hasSingleModel
-
-	var modelWrapError func(error) error
-	var modelResources []userconfig.ModelResource
-
-	if hasSingleModel {
-		modelWrapError = func(err error) error {
-			return errors.Wrap(err, userconfig.ModelsPathKey)
-		}
-		modelResources = []userconfig.ModelResource{
-			{
-				Name:         consts.SingleModelName,
-				Path:         *handler.Models.Path,
-				SignatureKey: handler.Models.SignatureKey,
-			},
-		}
-		*handler.Models.Path = s.EnsureSuffix(*handler.Models.Path, "/")
-	}
-	if hasMultiModels {
-		if len(handler.Models.Paths) > 0 {
-			modelWrapError = func(err error) error {
-				return errors.Wrap(err, userconfig.ModelsKey, userconfig.ModelsPathsKey)
-			}
-
-			for _, path := range handler.Models.Paths {
-				if path.SignatureKey == nil && handler.Models.SignatureKey != nil {
-					path.SignatureKey = handler.Models.SignatureKey
-				}
-				(*path).Path = s.EnsureSuffix((*path).Path, "/")
-				modelResources = append(modelResources, *path)
-			}
-		}
-
-		if handler.Models.Dir != nil {
-			modelWrapError = func(err error) error {
-				return errors.Wrap(err, userconfig.ModelsKey, userconfig.ModelsDirKey)
-			}
-		}
-	}
-
-	var validators []modelValidator
-	if api.Compute.Inf == 0 {
-		validators = append(validators, tensorflowModelValidator)
-	} else {
-		validators = append(validators, tensorflowNeuronModelValidator)
-	}
-
-	var err error
-	if hasMultiModels && handler.Models.Dir != nil {
-		*models, err = validateDirModels(*handler.Models.Dir, handler.Models.SignatureKey, awsClient, generateErrorForHandlerTypeFn(api), validators)
-	} else {
-		*models, err = validateModels(modelResources, handler.Models.SignatureKey, awsClient, generateErrorForHandlerTypeFn(api), validators)
-	}
-	if err != nil {
-		return modelWrapError(err)
-	}
-
-	if hasMultiModels {
-		for _, model := range *models {
-			if model.Name == consts.SingleModelName {
-				return modelWrapError(ErrorReservedModelName(model.Name))
-			}
-		}
-	}
-
-	if err := checkDuplicateModelNames(*models); err != nil {
-		return modelWrapError(err)
-	}
-
-	return nil
-}
-
-func validateProtobufPath(api *userconfig.API, projectFiles ProjectFiles) error {
-	apiName := api.Name
-	protobufPath := *api.Handler.ProtobufPath
-
-	if !projectFiles.HasFile(protobufPath) {
-		return errors.Wrap(files.ErrorFileDoesNotExist(protobufPath), userconfig.ProtobufPathKey)
-	}
-	protoBytes, err := projectFiles.GetFile(protobufPath)
-	if err != nil {
-		return errors.Wrap(err, userconfig.ProtobufPathKey, *api.Handler.ProtobufPath)
-	}
-
-	protoReader := bytes.NewReader(protoBytes)
-	parser := pbparser.NewParser(protoReader)
-	proto, err := parser.Parse()
-	if err != nil {
-		return errors.Wrap(errors.WithStack(err), userconfig.ProtobufPathKey, *api.Handler.ProtobufPath)
-	}
-
-	var packageName string
-	var serviceName string
-
-	numServices := 0
-	pbparser.Walk(proto,
-		pbparser.WithPackage(func(pkg *pbparser.Package) {
-			packageName = pkg.Name
-		}),
-		pbparser.WithService(func(service *pbparser.Service) {
-			numServices++
-			serviceName = service.Name
-		}),
-	)
-
-	if numServices != 1 {
-		return errors.Wrap(ErrorProtoNumServicesMismatch(numServices), userconfig.ProtobufPathKey, *api.Handler.ProtobufPath)
-	}
-
-	var requiredPackageName string
-	requiredPackageName = strings.ReplaceAll(apiName, "-", "_")
-
-	if api.Handler.ServerSideBatching != nil {
-		return ErrorConflictingFields(userconfig.ProtobufPathKey, userconfig.ServerSideBatchingKey)
-	}
-
-	if packageName == "" {
-		return errors.Wrap(ErrorProtoMissingPackageName(requiredPackageName), userconfig.ProtobufPathKey, *api.Handler.ProtobufPath)
-	}
-	if packageName != requiredPackageName {
-		return errors.Wrap(ErrorProtoInvalidPackageName(packageName, requiredPackageName), userconfig.ProtobufPathKey, *api.Handler.ProtobufPath)
-	}
-
-	requiredEndpoint := "/" + requiredPackageName + "." + serviceName
-	if api.Networking.Endpoint == nil {
-		api.Networking.Endpoint = pointer.String(requiredEndpoint)
-	}
-	if *api.Networking.Endpoint != requiredEndpoint {
-		return ErrorProtoInvalidNetworkingEndpoint(requiredEndpoint)
-	}
-
-	return nil
-}
-
-func validatePythonPath(handler *userconfig.Handler, projectFiles ProjectFiles) error {
-	if !projectFiles.HasDir(*handler.PythonPath) {
-		return ErrorPythonPathNotFound(*handler.PythonPath)
+		return ErrorSpecifyExactlyOneField(numSpecifiedProbes, validProbes...)
 	}
 
 	return nil
@@ -1289,14 +801,21 @@ func validatePythonPath(handler *userconfig.Handler, projectFiles ProjectFiles) 
 
 func validateAutoscaling(api *userconfig.API) error {
 	autoscaling := api.Autoscaling
-	handler := api.Handler
+	pod := api.Pod
 
-	if autoscaling.TargetReplicaConcurrency == nil {
-		autoscaling.TargetReplicaConcurrency = pointer.Float64(float64(handler.ProcessesPerReplica * handler.ThreadsPerProcess))
+	if api.Kind == userconfig.RealtimeAPIKind {
+		if autoscaling.TargetInFlight == nil {
+			autoscaling.TargetInFlight = pointer.Float64(float64(pod.MaxConcurrency))
+		}
+		if *autoscaling.TargetInFlight > float64(pod.MaxConcurrency)+float64(pod.MaxQueueLength) {
+			return ErrorTargetInFlightLimitReached(*autoscaling.TargetInFlight, pod.MaxConcurrency, pod.MaxQueueLength)
+		}
 	}
 
-	if *autoscaling.TargetReplicaConcurrency > float64(autoscaling.MaxReplicaConcurrency) {
-		return ErrorConfigGreaterThanOtherConfig(userconfig.TargetReplicaConcurrencyKey, *autoscaling.TargetReplicaConcurrency, userconfig.MaxReplicaConcurrencyKey, autoscaling.MaxReplicaConcurrency)
+	if api.Kind == userconfig.AsyncAPIKind {
+		if autoscaling.TargetInFlight == nil {
+			autoscaling.TargetInFlight = pointer.Float64(1)
+		}
 	}
 
 	if autoscaling.MinReplicas > autoscaling.MaxReplicas {
@@ -1311,20 +830,10 @@ func validateAutoscaling(api *userconfig.API) error {
 		return ErrorInitReplicasLessThanMin(autoscaling.InitReplicas, autoscaling.MinReplicas)
 	}
 
-	if api.Compute.Inf > 0 {
-		numNeuronCores := api.Compute.Inf * consts.NeuronCoresPerInf
-		processesPerReplica := int64(handler.ProcessesPerReplica)
-		if !libmath.IsDivisibleByInt64(numNeuronCores, processesPerReplica) {
-			return ErrorInvalidNumberOfInfProcesses(processesPerReplica, api.Compute.Inf, numNeuronCores)
-		}
-	}
-
 	return nil
 }
 
-func validateCompute(api *userconfig.API) error {
-	compute := api.Compute
-
+func validateCompute(compute userconfig.Compute) error {
 	if compute.GPU > 0 && compute.Inf > 0 {
 		return ErrorComputeResourceConflict(userconfig.GPUKey, userconfig.InfKey)
 	}
@@ -1349,13 +858,6 @@ func validateDockerImagePath(
 	awsClient *aws.Client,
 	k8sClient *k8s.Client,
 ) error {
-	if consts.DefaultImagePathsSet.Has(image) {
-		return nil
-	}
-	if _, err := cr.ValidateImageVersion(image, consts.CortexVersion); err != nil {
-		return err
-	}
-
 	dockerClient, err := docker.GetDockerClient()
 	if err != nil {
 		return err
@@ -1442,4 +944,35 @@ func getDockerAuthStrFromK8s(dockerClient *docker.Client, k8sClient *k8s.Client)
 	}
 
 	return dockerAuthStr, nil
+}
+
+func getDockerImageDigest(
+	image string,
+	awsClient *aws.Client,
+	k8sClient *k8s.Client,
+) (digest.Digest, error) {
+	dockerClient, err := docker.GetDockerClient()
+	if err != nil {
+		return digest.Digest(""), err
+	}
+
+	dockerAuthStr := docker.NoAuth
+
+	if regex.IsValidECRURL(image) {
+		dockerAuthStr, err = docker.AWSAuthConfig(awsClient)
+		if err != nil {
+			return digest.Digest(""), err
+		}
+	} else if k8sClient != nil {
+		dockerAuthStr, err = getDockerAuthStrFromK8s(dockerClient, k8sClient)
+		if err != nil {
+			return digest.Digest(""), err
+		}
+	}
+
+	distributionDigest, err := docker.GetDistributionDigest(dockerClient, image, dockerAuthStr)
+	if err != nil {
+		return digest.Digest(""), err
+	}
+	return distributionDigest, err
 }

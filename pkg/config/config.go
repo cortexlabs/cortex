@@ -62,7 +62,7 @@ func InitConfigs(clusterConfig *clusterconfig.Config, operatorMetadata *clusterc
 }
 
 func getClusterConfigFromConfigMap() (clusterconfig.Config, error) {
-	configMapData, err := K8s.GetConfigMapData("cluster-config")
+	configMapData, _, err := K8s.GetConfigMapData("cluster-config")
 	if err != nil {
 		return clusterconfig.Config{}, err
 	}
@@ -170,7 +170,6 @@ func Init() error {
 	}
 
 	Prometheus = promv1.NewAPI(promClient)
-
 	if K8sAllNamspaces, err = k8s.New("", OperatorMetadata.IsOperatorInCluster, nil, scheme); err != nil {
 		return err
 	}

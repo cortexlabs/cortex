@@ -19,7 +19,6 @@ package cmd
 import (
 	"fmt"
 	"os"
-	"path"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -33,7 +32,6 @@ import (
 	"github.com/cortexlabs/cortex/cli/types/cliconfig"
 	"github.com/cortexlabs/cortex/cli/types/flags"
 	"github.com/cortexlabs/cortex/pkg/consts"
-	"github.com/cortexlabs/cortex/pkg/lib/archive"
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/console"
 	"github.com/cortexlabs/cortex/pkg/lib/docker"
@@ -51,7 +49,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
 	"github.com/cortexlabs/cortex/pkg/types/clusterconfig"
 	"github.com/cortexlabs/cortex/pkg/types/clusterstate"
-	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	"github.com/cortexlabs/yaml"
 	"github.com/spf13/cobra"
 )
@@ -487,25 +484,17 @@ var _clusterDownCmd = &cobra.Command{
 		loadBalancer, _ := getLoadBalancer(accessConfig.ClusterName, OperatorLoadBalancer, awsClient)
 
 		fmt.Print("￮ deleting sqs queues ... ")
-		if queueExists, err := awsClient.DoesQueueExist(clusterconfig.SQSNamePrefix(accessConfig.ClusterName)); err != nil {
+		numDeleted, err := awsClient.DeleteQueuesWithPrefix(clusterconfig.SQSNamePrefix(accessConfig.ClusterName))
+		if err != nil {
 			errorsList = append(errorsList, err)
 			fmt.Print("failed ✗")
 			fmt.Printf("\n\nfailed to delete all sqs queues; please delete queues starting with the name %s via the cloudwatch console: https://%s.console.aws.amazon.com/sqs/v2/home\n", clusterconfig.SQSNamePrefix(accessConfig.ClusterName), accessConfig.Region)
 			errors.PrintError(err)
 			fmt.Println()
-		} else if !queueExists {
+		} else if numDeleted == 0 {
 			fmt.Println("no sqs queues exist ✓")
 		} else {
-			err = awsClient.DeleteQueuesWithPrefix(clusterconfig.SQSNamePrefix(accessConfig.ClusterName))
-			if err != nil {
-				fmt.Print("failed ✗")
-				errorsList = append(errorsList, err)
-				fmt.Printf("\n\nfailed to delete all sqs queues; please delete queues starting with the name %s via the cloudwatch console: https://%s.console.aws.amazon.com/sqs/v2/home\n", clusterconfig.SQSNamePrefix(accessConfig.ClusterName), accessConfig.Region)
-				errors.PrintError(err)
-				fmt.Println()
-			} else {
-				fmt.Println("✓")
-			}
+			fmt.Println("✓")
 		}
 
 		clusterDoesntExist := !clusterExists
@@ -677,9 +666,9 @@ var _clusterDownCmd = &cobra.Command{
 }
 
 var _clusterExportCmd = &cobra.Command{
-	Use:   "export [API_NAME] [API_ID]",
-	Short: "download the code and configuration for APIs",
-	Args:  cobra.RangeArgs(0, 2),
+	Use:   "export",
+	Short: "download the configurations for all APIs",
+	Args:  cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
 		telemetry.Event("cli.cluster.export")
 
@@ -716,31 +705,14 @@ var _clusterExportCmd = &cobra.Command{
 			OperatorEndpoint: "https://" + *loadBalancer.DNSName,
 		}
 
-		info, err := cluster.Info(operatorConfig)
+		var apisResponse []schema.APIResponse
+		apisResponse, err = cluster.GetAPIs(operatorConfig)
 		if err != nil {
 			exit.Error(err)
 		}
-
-		var apisResponse []schema.APIResponse
-		if len(args) == 0 {
-			apisResponse, err = cluster.GetAPIs(operatorConfig)
-			if err != nil {
-				exit.Error(err)
-			}
-			if len(apisResponse) == 0 {
-				fmt.Println(fmt.Sprintf("no apis found in your cluster named %s in %s", accessConfig.ClusterName, accessConfig.Region))
-				exit.Ok()
-			}
-		} else if len(args) == 1 {
-			apisResponse, err = cluster.GetAPI(operatorConfig, args[0])
-			if err != nil {
-				exit.Error(err)
-			}
-		} else if len(args) == 2 {
-			apisResponse, err = cluster.GetAPIByID(operatorConfig, args[0], args[1])
-			if err != nil {
-				exit.Error(err)
-			}
+		if len(apisResponse) == 0 {
+			fmt.Println(fmt.Sprintf("no apis found in your cluster named %s in %s", accessConfig.ClusterName, accessConfig.Region))
+			exit.Ok()
 		}
 
 		exportPath := fmt.Sprintf("export-%s-%s", accessConfig.Region, accessConfig.ClusterName)
@@ -751,41 +723,18 @@ var _clusterExportCmd = &cobra.Command{
 		}
 
 		for _, apiResponse := range apisResponse {
-			baseDir := filepath.Join(exportPath, apiResponse.Spec.Name, apiResponse.Spec.ID)
+			specFilePath := filepath.Join(exportPath, apiResponse.Spec.Name+".yaml")
 
-			fmt.Println(fmt.Sprintf("exporting %s to %s", apiResponse.Spec.Name, baseDir))
-
-			err = files.CreateDir(baseDir)
-			if err != nil {
-				exit.Error(err)
-			}
+			fmt.Println(fmt.Sprintf("exporting %s to %s", apiResponse.Spec.Name, specFilePath))
 
 			yamlBytes, err := yaml.Marshal(apiResponse.Spec.API.SubmittedAPISpec)
 			if err != nil {
 				exit.Error(err)
 			}
 
-			err = files.WriteFile(yamlBytes, path.Join(baseDir, apiResponse.Spec.FileName))
+			err = files.WriteFile(yamlBytes, specFilePath)
 			if err != nil {
 				exit.Error(err)
-			}
-
-			if apiResponse.Spec.Kind != userconfig.TrafficSplitterKind {
-				zipFileLocation := path.Join(baseDir, path.Base(apiResponse.Spec.ProjectKey))
-				err = awsClient.DownloadFileFromS3(info.ClusterConfig.Bucket, apiResponse.Spec.ProjectKey, zipFileLocation)
-				if err != nil {
-					exit.Error(err)
-				}
-
-				_, err = archive.UnzipFileToDir(zipFileLocation, baseDir)
-				if err != nil {
-					exit.Error(err)
-				}
-
-				err := os.Remove(zipFileLocation)
-				if err != nil {
-					exit.Error(err)
-				}
 			}
 		}
 	},

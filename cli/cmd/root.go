@@ -112,12 +112,10 @@ func init() {
 	clusterInit()
 	completionInit()
 	deleteInit()
-	prepareDebugInit()
 	deployInit()
 	envInit()
 	getInit()
 	logsInit()
-	patchInit()
 	refreshInit()
 	versionInit()
 }
@@ -156,11 +154,9 @@ func Execute() {
 
 	_rootCmd.AddCommand(_deployCmd)
 	_rootCmd.AddCommand(_getCmd)
-	_rootCmd.AddCommand(_patchCmd)
 	_rootCmd.AddCommand(_logsCmd)
 	_rootCmd.AddCommand(_refreshCmd)
 	_rootCmd.AddCommand(_deleteCmd)
-	_rootCmd.AddCommand(_prepareDebugCmd)
 
 	_rootCmd.AddCommand(_clusterCmd)
 

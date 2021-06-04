@@ -1,0 +1,15 @@
+- name: prime-generator
+  kind: RealtimeAPI
+  pod:
+    port: 8080
+    max_concurrency: 1
+    containers:
+    - name: api
+      image: quay.io/cortexlabs-test/realtime-prime-generator-cpu:latest
+      readiness_probe:
+        http_get:
+          path: "/healthz"
+          port: 8080
+      compute:
+        cpu: 200m
+        mem: 128M

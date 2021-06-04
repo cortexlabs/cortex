@@ -20,6 +20,7 @@ import (
 	"path"
 
 	"github.com/cortexlabs/cortex/pkg/config"
+	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/parallel"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
@@ -42,7 +43,7 @@ func virtualServiceSpec(api *spec.API) *istioclientnetworking.VirtualService {
 		Destinations: []k8s.Destination{{
 			ServiceName: _operatorService,
 			Weight:      100,
-			Port:        uint32(workloads.DefaultPortInt32),
+			Port:        uint32(consts.ProxyListeningPortInt32),
 		}},
 		PrefixPath:  api.Networking.Endpoint,
 		Rewrite:     pointer.String(path.Join("tasks", api.Name)),
@@ -51,7 +52,7 @@ func virtualServiceSpec(api *spec.API) *istioclientnetworking.VirtualService {
 			"apiName":        api.Name,
 			"apiID":          api.ID,
 			"specID":         api.SpecID,
-			"handlerID":      api.HandlerID,
+			"podID":          api.PodID,
 			"apiKind":        api.Kind.String(),
 			"cortex.dev/api": "true",
 		},
@@ -59,17 +60,7 @@ func virtualServiceSpec(api *spec.API) *istioclientnetworking.VirtualService {
 }
 
 func k8sJobSpec(api *spec.API, job *spec.TaskJob) *kbatch.Job {
-	containers, volumes := workloads.TaskContainers(api)
-	for i, container := range containers {
-		if container.Name == workloads.APIContainerName {
-			containers[i].Env = append(container.Env,
-				kcore.EnvVar{
-					Name:  "CORTEX_TASK_SPEC",
-					Value: workloads.TaskSpecPath,
-				},
-			)
-		}
-	}
+	containers, volumes := workloads.TaskContainers(*api, &job.JobKey)
 
 	return k8s.Job(&k8s.JobSpec{
 		Name:        job.JobKey.K8sName(),
@@ -78,7 +69,7 @@ func k8sJobSpec(api *spec.API, job *spec.TaskJob) *kbatch.Job {
 			"apiName":        api.Name,
 			"apiID":          api.ID,
 			"specID":         api.SpecID,
-			"handlerID":      api.HandlerID,
+			"podID":          api.PodID,
 			"jobID":          job.ID,
 			"apiKind":        api.Kind.String(),
 			"cortex.dev/api": "true",
@@ -86,7 +77,7 @@ func k8sJobSpec(api *spec.API, job *spec.TaskJob) *kbatch.Job {
 		PodSpec: k8s.PodSpec{
 			Labels: map[string]string{
 				"apiName":        api.Name,
-				"handlerID":      api.HandlerID,
+				"podID":          api.PodID,
 				"jobID":          job.ID,
 				"apiKind":        api.Kind.String(),
 				"cortex.dev/api": "true",
@@ -99,15 +90,29 @@ func k8sJobSpec(api *spec.API, job *spec.TaskJob) *kbatch.Job {
 				RestartPolicy: "Never",
 				InitContainers: []kcore.Container{
 					workloads.KubexitInitContainer(),
-					workloads.TaskInitContainer(api, job),
 				},
 				Containers:         containers,
 				NodeSelector:       workloads.NodeSelectors(),
 				Tolerations:        workloads.GenerateResourceTolerations(),
-				Affinity:           workloads.GenerateNodeAffinities(api.Compute.NodeGroups),
+				Affinity:           workloads.GenerateNodeAffinities(api.Pod.NodeGroups),
 				Volumes:            volumes,
 				ServiceAccountName: workloads.ServiceAccountName,
 			},
+		},
+	})
+}
+
+func k8sConfigMap(api spec.API, job spec.TaskJob, configMapData map[string]string) kcore.ConfigMap {
+	return *k8s.ConfigMap(&k8s.ConfigMapSpec{
+		Name: job.JobKey.K8sName(),
+		Data: configMapData,
+		Labels: map[string]string{
+			"apiName":        api.Name,
+			"apiID":          api.ID,
+			"specID":         api.SpecID,
+			"jobID":          job.ID,
+			"apiKind":        api.Kind.String(),
+			"cortex.dev/api": "true",
 		},
 	})
 }
@@ -164,4 +169,14 @@ func createK8sJob(apiSpec *spec.API, jobSpec *spec.TaskJob) error {
 	}
 
 	return nil
+}
+
+func deleteK8sConfigMap(jobKey spec.JobKey) error {
+	_, err := config.K8s.DeleteConfigMap(jobKey.K8sName())
+	return err
+}
+
+func createK8sConfigMap(configMap kcore.ConfigMap) error {
+	_, err := config.K8s.CreateConfigMap(&configMap)
+	return err
 }

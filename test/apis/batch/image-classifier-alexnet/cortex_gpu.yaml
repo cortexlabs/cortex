@@ -1,0 +1,15 @@
+- name: image-classifier-alexnet
+  kind: BatchAPI
+  pod:
+    containers:
+    - name: api
+      image: quay.io/cortexlabs-test/batch-image-classifier-alexnet-gpu:latest
+      command: ["uvicorn", "--workers", "1", "--host", "0.0.0.0", "--port", "$(CORTEX_PORT)", "main:app"]
+      readiness_probe:
+        http_get:
+          path: "/healthz"
+          port: 8080
+      compute:
+        cpu: 200m
+        gpu: 1
+        mem: 512Mi

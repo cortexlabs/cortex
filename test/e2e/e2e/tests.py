@@ -51,6 +51,8 @@ from e2e.utils import (
     make_requests_concurrently,
     check_futures_healthy,
     retrieve_results_concurrently,
+    stream_api_logs,
+    stream_job_logs,
 )
 
 TEST_APIS_DIR = Path(__file__).parent.parent.parent / "apis"
@@ -66,7 +68,8 @@ def test_realtime_api(
     client: cx.Client,
     api: str,
     timeout: int = None,
-    api_config_name: str = "cortex.yaml",
+    api_config_name: str = "cortex_cpu.yaml",
+    extra_path: str = "",
 ):
     api_dir = TEST_APIS_DIR / api
     with open(str(api_dir / api_config_name)) as f:
@@ -79,7 +82,7 @@ def test_realtime_api(
 
     api_name = api_specs[0]["name"]
     for api_spec in api_specs:
-        client.deploy(api_spec=api_spec, project_dir=str(api_dir))
+        client.deploy(api_spec=api_spec)
 
     try:
         assert apis_ready(
@@ -89,7 +92,7 @@ def test_realtime_api(
         if not expectations or "grpc" not in expectations:
             with open(str(api_dir / "sample.json")) as f:
                 payload = json.load(f)
-            response = request_prediction(client, api_name, payload)
+            response = request_prediction(client, api_name, payload, extra_path)
 
             assert (
                 response.status_code == HTTPStatus.OK
@@ -121,7 +124,7 @@ def test_realtime_api(
         try:
             api_info = client.get_api(api_name)
             printer(json.dumps(api_info, indent=2))
-            td.Thread(target=lambda: client.stream_api_logs(api_name), daemon=True).start()
+            td.Thread(target=lambda: stream_api_logs(client, api_name), daemon=True).start()
             time.sleep(5)
         finally:
             raise
@@ -137,7 +140,7 @@ def test_batch_api(
     deploy_timeout: int = None,
     job_timeout: int = None,
     retry_attempts: int = 0,
-    api_config_name: str = "cortex.yaml",
+    api_config_name: str = "cortex_cpu.yaml",
     local_operator: bool = False,
 ):
     api_dir = TEST_APIS_DIR / api
@@ -147,7 +150,7 @@ def test_batch_api(
     assert len(api_specs) == 1
 
     api_name = api_specs[0]["name"]
-    client.deploy(api_spec=api_specs[0], project_dir=str(api_dir))
+    client.deploy(api_spec=api_specs[0])
 
     try:
         endpoint_override = f"http://localhost:8888/batch/{api_name}" if local_operator else None
@@ -203,8 +206,10 @@ def test_batch_api(
 
             job_status = client.get_job(api_name, job_spec["job_id"])
             printer(json.dumps(job_status, indent=2))
+
             td.Thread(
-                target=lambda: client.stream_job_logs(api_name, job_spec["job_id"]), daemon=True
+                target=lambda: stream_job_logs(client, api_name, job_spec["job_id"]),
+                daemon=True,
             ).start()
             time.sleep(5)
         finally:
@@ -220,7 +225,7 @@ def test_async_api(
     deploy_timeout: int = None,
     poll_retries: int = 5,
     poll_sleep_seconds: int = 1,
-    api_config_name: str = "cortex.yaml",
+    api_config_name: str = "cortex_cpu.yaml",
 ):
     api_dir = TEST_APIS_DIR / api
     with open(str(api_dir / api_config_name)) as f:
@@ -234,7 +239,7 @@ def test_async_api(
     assert len(api_specs) == 1
 
     api_name = api_specs[0]["name"]
-    client.deploy(api_spec=api_specs[0], project_dir=str(api_dir))
+    client.deploy(api_spec=api_specs[0])
 
     try:
         assert apis_ready(
@@ -310,11 +315,9 @@ def test_async_api(
         try:
             api_info = client.get_api(api_name)
             printer(json.dumps(api_info, indent=2))
-
-            job_status = client.get_job(api_name, result_response_json["id"])
-            printer(json.dumps(job_status, indent=2))
+            printer(json.dumps(result_response_json, indent=2))
             td.Thread(
-                target=lambda: client.stream_job_logs(api_name, result_response_json["id"]),
+                target=lambda: stream_api_logs(client, api_name),
                 daemon=True,
             ).start()
             time.sleep(5)
@@ -333,7 +336,7 @@ def test_task_api(
     deploy_timeout: int = None,
     job_timeout: int = None,
     retry_attempts: int = 0,
-    api_config_name: str = "cortex.yaml",
+    api_config_name: str = "cortex_cpu.yaml",
     local_operator: bool = False,
 ):
     api_dir = TEST_APIS_DIR / api
@@ -343,7 +346,7 @@ def test_task_api(
     assert len(api_specs) == 1
 
     api_name = api_specs[0]["name"]
-    client.deploy(api_spec=api_specs[0], project_dir=str(api_dir))
+    client.deploy(api_spec=api_specs[0])
 
     try:
         endpoint_override = f"http://localhost:8888/tasks/{api_name}" if local_operator else None
@@ -385,7 +388,7 @@ def test_task_api(
             job_status = client.get_job(api_name, job_spec["job_id"])
             printer(json.dumps(job_status, indent=2))
             td.Thread(
-                target=lambda: client.stream_job_logs(api_name, job_spec["job_id"]), daemon=True
+                target=lambda: stream_job_logs(client, api_name, job_spec["job_id"]), daemon=True
             ).start()
             time.sleep(5)
         except:
@@ -402,7 +405,7 @@ def test_autoscaling(
     apis: Dict[str, Any],
     autoscaling_config: Dict[str, Union[int, float]],
     deploy_timeout: int = None,
-    api_config_name: str = "cortex.yaml",
+    api_config_name: str = "cortex_cpu.yaml",
 ):
     max_replicas = autoscaling_config["max_replicas"]
     query_params = apis["query_params"]
@@ -422,7 +425,7 @@ def test_autoscaling(
             "downscale_stabilization_period": "1m",
         }
         all_api_names.append(api_specs[0]["name"])
-        client.deploy(api_spec=api_specs[0], project_dir=api_dir)
+        client.deploy(api_spec=api_specs[0])
 
     primary_api_name = all_api_names[0]
     autoscaling = client.get_api(primary_api_name)["spec"]["autoscaling"]
@@ -513,7 +516,7 @@ def test_load_realtime(
     api: str,
     load_config: Dict[str, Union[int, float]],
     deploy_timeout: int = None,
-    api_config_name: str = "cortex.yaml",
+    api_config_name: str = "cortex_cpu.yaml",
 ):
 
     total_requests = load_config["total_requests"]
@@ -534,16 +537,29 @@ def test_load_realtime(
         "max_replicas": desired_replicas,
     }
     api_name = api_specs[0]["name"]
-    client.deploy(api_spec=api_specs[0], project_dir=str(api_dir))
+    client.deploy(api_spec=api_specs[0])
 
     # controls the flow of requests
     request_stopper = td.Event()
     latencies: List[float] = []
+    failed = False
     try:
         printer(f"getting {desired_replicas} replicas ready")
         assert apis_ready(
             client=client, api_names=[api_name], timeout=deploy_timeout
         ), f"api {api_name} not ready"
+
+        network_stats = client.get_api(api_name)["metrics"]["network_stats"]
+        offset_2xx = network_stats["code_2xx"]
+        offset_4xx = network_stats["code_4xx"]
+        offset_5xx = network_stats["code_5xx"]
+
+        if offset_2xx is None:
+            offset_2xx = 0
+        if offset_4xx is None:
+            offset_4xx = 0
+        if offset_5xx is None:
+            offset_5xx = 0
 
         # give the APIs some time to prevent getting high latency spikes in the beginning
         time.sleep(5)
@@ -582,14 +598,14 @@ def test_load_realtime(
             network_stats = api_info["metrics"]["network_stats"]
 
             assert (
-                network_stats["code_4xx"] == 0
-            ), f"detected 4xx response codes ({network_stats['code_4xx']}) in cortex get"
+                network_stats["code_4xx"] - offset_4xx == 0
+            ), f"detected 4xx response codes ({network_stats['code_4xx'] - offset_4xx}) in cortex get"
             assert (
-                network_stats["code_5xx"] == 0
-            ), f"detected 5xx response codes ({network_stats['code_5xx']}) in cortex get"
+                network_stats["code_5xx"] - offset_5xx == 0
+            ), f"detected 5xx response codes ({network_stats['code_5xx'] - offset_5xx}) in cortex get"
 
             printer(
-                f"min RTT: {current_min_rtt} | max RTT: {current_max_rtt} | avg RTT: {current_avg_rtt} | requests: {network_stats['code_2xx']} (out of {total_requests})"
+                f"min RTT: {current_min_rtt} | max RTT: {current_max_rtt} | avg RTT: {current_avg_rtt} | requests: {network_stats['code_2xx']-offset_2xx} (out of {total_requests})"
             )
 
             # check if the requesting threads are still healthy
@@ -599,13 +615,16 @@ def test_load_realtime(
             # don't stress the CPU too hard
             time.sleep(1)
 
-        printer("verifying number of processed requests using the client")
+        printer(
+            f"verifying number of processed requests ({total_requests}, with an offset of {offset_2xx}) using the client"
+        )
         assert api_requests(
-            client, api_name, total_requests, timeout=status_code_timeout
+            client, api_name, total_requests + offset_2xx, timeout=status_code_timeout
         ), f"the number of 2xx response codes for api {api_name} doesn't match the expected number {total_requests}"
 
     except:
         # best effort
+        failed = True
         try:
             api_info = client.get_api(api_name)
             printer(json.dumps(api_info, indent=2))
@@ -615,6 +634,8 @@ def test_load_realtime(
     finally:
         request_stopper.set()
         delete_apis(client, [api_name])
+        if failed:
+            time.sleep(30)
 
 
 def test_load_async(
@@ -624,7 +645,7 @@ def test_load_async(
     load_config: Dict[str, Union[int, float]],
     deploy_timeout: int = None,
     poll_sleep_seconds: int = 1,
-    api_config_name: str = "cortex.yaml",
+    api_config_name: str = "cortex_cpu.yaml",
 ):
 
     total_requests = load_config["total_requests"]
@@ -643,11 +664,12 @@ def test_load_async(
         "max_replicas": desired_replicas,
     }
     api_name = api_specs[0]["name"]
-    client.deploy(api_spec=api_specs[0], project_dir=str(api_dir))
+    client.deploy(api_spec=api_specs[0])
 
     request_stopper = td.Event()
     map_stopper = td.Event()
     responses: List[Dict[str, Any]] = []
+    failed = False
     try:
         printer(f"getting {desired_replicas} replicas ready")
         assert apis_ready(
@@ -721,6 +743,7 @@ def test_load_async(
 
     except:
         # best effort
+        failed = True
         try:
             api_info = client.get_api(api_name)
             printer(json.dumps(api_info, indent=2))
@@ -732,6 +755,8 @@ def test_load_async(
             printer(f"{len(results)}/{total_requests} have been successfully retrieved")
         map_stopper.set()
         delete_apis(client, [api_name])
+        if failed:
+            time.sleep(30)
 
 
 def test_load_batch(
@@ -742,7 +767,7 @@ def test_load_batch(
     load_config: Dict[str, Union[int, float]],
     deploy_timeout: int = None,
     retry_attempts: int = 0,
-    api_config_name: str = "cortex.yaml",
+    api_config_name: str = "cortex_cpu.yaml",
 ):
 
     jobs = load_config["jobs"]
@@ -767,9 +792,9 @@ def test_load_batch(
     sample_generator = load_generator(sample_generator_path)
 
     api_name = api_specs[0]["name"]
-    client.deploy(api_spec=api_specs[0], project_dir=str(api_dir))
+    client.deploy(api_spec=api_specs[0])
     api_endpoint = client.get_api(api_name)["endpoint"]
-
+    failed = False
     try:
         assert endpoint_ready(
             client=client, api_name=api_name, timeout=deploy_timeout
@@ -823,6 +848,7 @@ def test_load_batch(
 
     except:
         # best effort
+        failed = True
         try:
             api_info = client.get_api(api_name)
 
@@ -836,6 +862,8 @@ def test_load_batch(
 
     finally:
         delete_apis(client, [api_name])
+        if failed:
+            time.sleep(30)
 
 
 def test_load_task(
@@ -846,7 +874,7 @@ def test_load_task(
     deploy_timeout: int = None,
     retry_attempts: int = 0,
     poll_sleep_seconds: int = 1,
-    api_config_name: str = "cortex.yaml",
+    api_config_name: str = "cortex_cpu.yaml",
 ):
 
     jobs = load_config["jobs"]
@@ -860,10 +888,11 @@ def test_load_task(
     assert len(api_specs) == 1
 
     api_name = api_specs[0]["name"]
-    client.deploy(api_spec=api_specs[0], project_dir=str(api_dir))
+    client.deploy(api_spec=api_specs[0])
 
     request_stopper = td.Event()
     map_stopper = td.Event()
+    failed = False
     try:
         assert endpoint_ready(
             client=client, api_name=api_name, timeout=deploy_timeout
@@ -885,6 +914,9 @@ def test_load_task(
         check_futures_healthy(threads_futures)
         wait_on_futures(threads_futures)
 
+        # give it a bit of a delay to avoid overloading
+        time.sleep(1)
+
         printer("waiting on the jobs")
         job_ids = [job_spec.json()["job_id"] for job_spec in job_specs]
         retrieve_results_concurrently(
@@ -899,6 +931,7 @@ def test_load_task(
 
     except:
         # best effort
+        failed = True
         try:
             api_info = client.get_api(api_name)
 
@@ -913,6 +946,8 @@ def test_load_task(
     finally:
         map_stopper.set()
         delete_apis(client, [api_name])
+        if failed:
+            time.sleep(30)
 
 
 def test_long_running_realtime(
@@ -921,7 +956,7 @@ def test_long_running_realtime(
     api: str,
     long_running_config: Dict[str, Union[int, float]],
     deploy_timeout: int = None,
-    api_config_name: str = "cortex.yaml",
+    api_config_name: str = "cortex_cpu.yaml",
 ):
     api_dir = TEST_APIS_DIR / api
     with open(str(api_dir / api_config_name)) as f:
@@ -937,7 +972,7 @@ def test_long_running_realtime(
 
     api_name = api_specs[0]["name"]
     for api_spec in api_specs:
-        client.deploy(api_spec=api_spec, project_dir=str(api_dir))
+        client.deploy(api_spec=api_spec)
 
     try:
         assert apis_ready(
@@ -971,7 +1006,7 @@ def test_long_running_realtime(
         try:
             api_info = client.get_api(api_name)
             printer(json.dumps(api_info, indent=2))
-            td.Thread(target=lambda: client.stream_api_logs(api_name), daemon=True).start()
+            td.Thread(target=lambda: stream_api_logs(client, api_name), daemon=True).start()
             time.sleep(5)
         finally:
             raise

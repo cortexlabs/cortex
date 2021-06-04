@@ -43,6 +43,8 @@ There is a spot instance limit associated with your AWS account for each instanc
 node_groups:
   - name: cpu-spot
     instance_type: m5.large
+    min_instances: 0
+    max_instances: 5
     spot: true
     spot_config:
       instance_distribution: [m5a.large, m5d.large, m5n.large, m5ad.large, m5dn.large, m4.large, t3.large, t3a.large, t2.large]

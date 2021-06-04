@@ -66,9 +66,9 @@ func main() {
 	}()
 
 	var (
+		clusterConfigPath = flag.String("cluster-config", "", "cluster config path")
 		port              = flag.String("port", _defaultPort, "port on which the gateway server runs on")
 		queueURL          = flag.String("queue", "", "SQS queue URL")
-		clusterConfigPath = flag.String("cluster-config", "", "cluster config path")
 	)
 	flag.Parse()
 

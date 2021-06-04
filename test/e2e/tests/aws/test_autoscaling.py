@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Callable, Dict
+from typing import Any, Callable, Dict
 
 import cortex as cx
 import pytest
@@ -21,8 +21,8 @@ import e2e.tests
 
 TEST_APIS = [
     {
-        "primary": "sleep",
-        "dummy": ["sklearn/mpg-estimator", "tensorflow/iris-classifier"],
+        "primary": "realtime/sleep",
+        "dummy": ["realtime/prime-generator"],
         "query_params": {
             "sleep": "1.0",
         },
@@ -32,7 +32,7 @@ TEST_APIS = [
 
 @pytest.mark.usefixtures("client")
 @pytest.mark.parametrize("apis", TEST_APIS)
-def test_autoscaling(printer: Callable, config: Dict, client: cx.Client, apis: str):
+def test_autoscaling(printer: Callable, config: Dict, client: cx.Client, apis: Dict[str, Any]):
     skip_autoscaling_test = config["global"].get("skip_autoscaling", False)
     if skip_autoscaling_test:
         pytest.skip("--skip-autoscaling flag detected, skipping autoscaling tests")

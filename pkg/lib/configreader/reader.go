@@ -1041,7 +1041,7 @@ func ParseYAMLFile(dest interface{}, validation *StructValidation, filePath stri
 func ParseYAMLBytes(dest interface{}, validation *StructValidation, data []byte) error {
 	fileInterface, err := ReadYAMLBytes(data)
 	if err != nil {
-		return nil
+		return err
 	}
 
 	errs := Struct(dest, fileInterface, validation)

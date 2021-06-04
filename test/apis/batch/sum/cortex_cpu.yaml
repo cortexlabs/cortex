@@ -1,0 +1,16 @@
+# this API is only meant to run with 1-worker jobs
+
+- name: sum
+  kind: BatchAPI
+  pod:
+    containers:
+    - name: api
+      image: quay.io/cortexlabs-test/batch-sum-cpu:latest
+      command: ["uvicorn", "--workers", "1", "--host", "0.0.0.0", "--port", "$(CORTEX_PORT)", "main:app"]
+      readiness_probe:
+        http_get:
+          path: "/healthz"
+          port: 8080
+      compute:
+        cpu: 200m
+        mem: 256Mi

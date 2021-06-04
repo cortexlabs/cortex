@@ -62,7 +62,7 @@ func CheckDNS1123(str string) error {
 	return nil
 }
 
-func ValidateEndpoint(str string) (string, error) {
+func ValidateEndpointAllowEmptyPath(str string) (string, error) {
 	if !_endpointRegex.MatchString(str) {
 		return "", ErrorEndpoint(str)
 	}
@@ -71,7 +71,14 @@ func ValidateEndpoint(str string) (string, error) {
 		return "", ErrorEndpointDoubleSlash(str)
 	}
 
-	path := CanonicalizeEndpoint(str)
+	return CanonicalizeEndpoint(str), nil
+}
+
+func ValidateEndpoint(str string) (string, error) {
+	path, err := ValidateEndpointAllowEmptyPath(str)
+	if err != nil {
+		return "", err
+	}
 
 	if path == "/" {
 		return "", ErrorEndpointEmptyPath()

@@ -18,11 +18,9 @@ package resources
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/cortexlabs/cortex/pkg/config"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
-	"github.com/cortexlabs/cortex/pkg/lib/files"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
@@ -31,46 +29,9 @@ import (
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	istioclientnetworking "istio.io/client-go/pkg/apis/networking/v1beta1"
 	kresource "k8s.io/apimachinery/pkg/api/resource"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	klabels "k8s.io/apimachinery/pkg/labels"
 )
 
-type ProjectFiles struct {
-	ProjectByteMap map[string][]byte
-}
-
-func (projectFiles ProjectFiles) AllPaths() []string {
-	pFiles := make([]string, 0, len(projectFiles.ProjectByteMap))
-	for path := range projectFiles.ProjectByteMap {
-		pFiles = append(pFiles, path)
-	}
-	return pFiles
-}
-
-func (projectFiles ProjectFiles) GetFile(path string) ([]byte, error) {
-	bytes, ok := projectFiles.ProjectByteMap[path]
-	if !ok {
-		return nil, files.ErrorFileDoesNotExist(path)
-	}
-	return bytes, nil
-}
-
-func (projectFiles ProjectFiles) HasFile(path string) bool {
-	_, ok := projectFiles.ProjectByteMap[path]
-	return ok
-}
-
-func (projectFiles ProjectFiles) HasDir(path string) bool {
-	path = s.EnsureSuffix(path, "/")
-	for projectFilePath := range projectFiles.ProjectByteMap {
-		if strings.HasPrefix(projectFilePath, path) {
-			return true
-		}
-	}
-	return false
-}
-
-func ValidateClusterAPIs(apis []userconfig.API, projectFiles spec.ProjectFiles) error {
+func ValidateClusterAPIs(apis []userconfig.API) error {
 	if len(apis) == 0 {
 		return spec.ErrorNoAPIs()
 	}
@@ -86,22 +47,6 @@ func ValidateClusterAPIs(apis []userconfig.API, projectFiles spec.ProjectFiles) 
 		}
 	}
 
-	virtualServicesForGrpc, err := config.K8s.ListVirtualServices(&v1.ListOptions{
-		LabelSelector: klabels.SelectorFromSet(
-			map[string]string{
-				"servingProtocol": "grpc",
-			}).String(),
-	})
-	if err != nil {
-		return err
-	}
-	grpcDeployedRealtimeAPIs := strset.New()
-	for _, virtualService := range virtualServicesForGrpc {
-		if virtualService.Labels["apiKind"] == userconfig.RealtimeAPIKind.String() {
-			grpcDeployedRealtimeAPIs.Add(virtualService.Labels["apiName"])
-		}
-	}
-
 	realtimeAPIs := InclusiveFilterAPIsByKind(apis, userconfig.RealtimeAPIKind)
 
 	for i := range apis {
@@ -109,7 +54,7 @@ func ValidateClusterAPIs(apis []userconfig.API, projectFiles spec.ProjectFiles) 
 		if api.Kind == userconfig.RealtimeAPIKind || api.Kind == userconfig.BatchAPIKind ||
 			api.Kind == userconfig.TaskAPIKind || api.Kind == userconfig.AsyncAPIKind {
 
-			if err := spec.ValidateAPI(api, nil, projectFiles, config.AWS, config.K8s); err != nil {
+			if err := spec.ValidateAPI(api, config.AWS, config.K8s); err != nil {
 				return errors.Wrap(err, api.Identify())
 			}
 
@@ -122,7 +67,7 @@ func ValidateClusterAPIs(apis []userconfig.API, projectFiles spec.ProjectFiles) 
 			if err := spec.ValidateTrafficSplitter(api); err != nil {
 				return errors.Wrap(err, api.Identify())
 			}
-			if err := checkIfAPIExists(api.APIs, realtimeAPIs, httpDeployedRealtimeAPIs, grpcDeployedRealtimeAPIs); err != nil {
+			if err := checkIfAPIExists(api.APIs, realtimeAPIs, httpDeployedRealtimeAPIs); err != nil {
 				return errors.Wrap(err, api.Identify())
 			}
 			if err := validateEndpointCollisions(api, virtualServices); err != nil {
@@ -139,7 +84,7 @@ func ValidateClusterAPIs(apis []userconfig.API, projectFiles spec.ProjectFiles) 
 	for i := range apis {
 		api := &apis[i]
 		if api.Kind != userconfig.TrafficSplitterKind {
-			if err := validateK8sCompute(api.Compute, maxMemMap); err != nil {
+			if err := validateK8sCompute(api, maxMemMap); err != nil {
 				return err
 			}
 		}
@@ -188,12 +133,12 @@ var _nvidiaDCGMExporterMemReserve = kresource.MustParse("50Mi")
 var _inferentiaCPUReserve = kresource.MustParse("100m")
 var _inferentiaMemReserve = kresource.MustParse("100Mi")
 
-func validateK8sCompute(compute *userconfig.Compute, maxMemMap map[string]kresource.Quantity) error {
+func validateK8sCompute(api *userconfig.API, maxMemMap map[string]kresource.Quantity) error {
 	allErrors := []error{}
 	successfulLoops := 0
 
 	clusterNodeGroupNames := strset.New(config.ClusterConfig.GetNodeGroupNames()...)
-	apiNodeGroupNames := compute.NodeGroups
+	apiNodeGroupNames := api.Pod.NodeGroups
 
 	if apiNodeGroupNames != nil {
 		for _, ngName := range apiNodeGroupNames {
@@ -202,6 +147,8 @@ func validateK8sCompute(compute *userconfig.Compute, maxMemMap map[string]kresou
 			}
 		}
 	}
+
+	compute := userconfig.GetTotalComputeFromContainers(api.Pod.Containers)
 
 	for _, instanceMetadata := range config.InstancesMetadata {
 		if apiNodeGroupNames != nil {
@@ -331,16 +278,10 @@ func ExclusiveFilterAPIsByKind(apis []userconfig.API, kindsToExclude ...userconf
 }
 
 // checkIfAPIExists checks if referenced apis in trafficsplitter are either defined in yaml or already deployed.
-// Also prevents traffic splitting apis that use grpc.
-func checkIfAPIExists(trafficSplitterAPIs []*userconfig.TrafficSplit, apis []userconfig.API, httpDeployedRealtimeAPIs strset.Set, grpcDeployedRealtimeAPIs strset.Set) error {
+func checkIfAPIExists(trafficSplitterAPIs []*userconfig.TrafficSplit, apis []userconfig.API, httpDeployedRealtimeAPIs strset.Set) error {
 	var missingAPIs []string
 	// check if apis named in trafficsplitter are either defined in same yaml or already deployed
 	for _, trafficSplitAPI := range trafficSplitterAPIs {
-		// don't allow apis that use grpc
-		if grpcDeployedRealtimeAPIs.Has(trafficSplitAPI.Name) {
-			return ErrorGRPCNotSupportedForTrafficSplitter(trafficSplitAPI.Name)
-		}
-
 		// check if already deployed
 		deployed := httpDeployedRealtimeAPIs.Has(trafficSplitAPI.Name)
 
