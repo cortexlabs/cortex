@@ -42,7 +42,7 @@
           success_threshold: <int>  # minimum consecutive successes for the probe to be considered successful after having failed (default: 1)
           failure_threshold: <int>  # minimum consecutive failures for the probe to be considered failed after having succeeded (default: 3)
   autoscaling:  # autoscaling configuration (default: see below)
-    min_replicas: <int>  # minimum number of replicas (default: 1)
+    min_replicas: <int>  # minimum number of replicas (default: 1; min value: 0)
     max_replicas: <int>  # maximum number of replicas (default: 100)
     init_replicas: <int>  # initial number of replicas (default: <min_replicas>)
     target_in_flight: <int>  # desired number of in-flight requests per replica (including requests actively being processed as well as queued), which the autoscaler tries to maintain (default: 1)

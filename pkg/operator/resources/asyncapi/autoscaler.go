@@ -26,6 +26,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/sqs"
 	"github.com/cortexlabs/cortex/pkg/config"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
@@ -111,12 +112,8 @@ func getMessagesInQueue(apiName string, window time.Duration) (*float64, error) 
 		return nil, errors.ErrorUnexpected("failed to convert prometheus metric to vector")
 	}
 
-	// no values available
-	if values.Len() == 0 {
-		return nil, nil
+	if values.Len() != 0 {
+		return pointer.Float64(float64(values[0].Value)), nil
 	}
-
-	avgMessagesInQueue := float64(values[0].Value)
-
-	return &avgMessagesInQueue, nil
+	return nil, nil
 }
