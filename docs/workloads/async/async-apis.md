@@ -13,5 +13,4 @@ workload status and results. Cortex fully manages the Async Gateway and the queu
 ## Use-cases
 
 AsyncAPI is a good fit for users who want to submit longer workloads (such as video, audio
-or document processing), and do not need the result immediately or synchronously. It is also useful for lowering the costs as the API can be scaled to zero when there are no pending requests. 
-
+or document processing), and do not need the result immediately or synchronously. It is also useful for lowering the costs as the API can be scaled to zero when there are no pending requests.

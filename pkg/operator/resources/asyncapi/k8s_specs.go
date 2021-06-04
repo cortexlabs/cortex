@@ -250,7 +250,7 @@ func deploymentSpec(api spec.API, prevDeployment *kapps.Deployment, queueURL str
 func getRequestedReplicasFromDeployment(api spec.API, deployment *kapps.Deployment) int32 {
 	requestedReplicas := api.Autoscaling.InitReplicas
 
-	if deployment != nil {
+	if deployment != nil && deployment.Spec.Replicas != nil {
 		requestedReplicas = *deployment.Spec.Replicas
 	}
 

@@ -107,8 +107,8 @@ func AutoscaleFn(initialDeployment *kapps.Deployment, apiSpec *spec.API, getInFl
 	}
 
 	apiName := apiSpec.Name
-	currentReplicas := *initialDeployment.Spec.Replicas
 	deploymentID := initialDeployment.Labels["deploymentID"]
+	currentReplicas := *initialDeployment.Spec.Replicas
 
 	apiLogger, err := operator.GetRealtimeAPILoggerFromSpec(apiSpec)
 	if err != nil {

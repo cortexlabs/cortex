@@ -67,7 +67,6 @@ func getAvailableMessagesInQueue(queueURL string) (int32, error) {
 	}
 
 	attributes := aws.StringValueMap(result.Attributes)
-
 	if val, found := attributes["ApproximateNumberOfMessages"]; found {
 		visibleCount, ok := s.ParseInt32(val)
 		if ok {
