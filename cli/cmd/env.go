@@ -97,10 +97,6 @@ var _envListCmd = &cobra.Command{
 		}
 
 		if _flagOutput == flags.JSONOutputType {
-			if len(cliConfig.Environments) == 0 {
-				fmt.Print("[]")
-				return
-			}
 			bytes, err := libjson.Marshal(cliConfig.ConvertToUserFacingCLIConfig())
 			if err != nil {
 				exit.Error(err)
