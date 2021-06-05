@@ -107,10 +107,6 @@ def pytest_configure(config):
                     "total_requests": 10 ** 5,
                     "desired_replicas": 50,
                     "concurrency": 50,
-                    "min_rtt": 0.004,  # measured in seconds
-                    "max_rtt": 1.200,  # measured in seconds
-                    "avg_rtt": 0.07,  # measured in seconds
-                    "avg_rtt_tolerance": 0.06,  # measured in seconds
                     "status_code_timeout": 60,  # measured in seconds
                 },
                 "async": {
