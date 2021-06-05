@@ -575,7 +575,6 @@ func (api *API) TelemetryEvent() map[string]interface{} {
 		event["pod.containers.compute.inf"] = totalCompute.Inf
 	}
 
-	event["node_groups._is_defined"] = len(api.NodeGroups) > 0
 	event["node_groups._len"] = len(api.NodeGroups)
 
 	if api.UpdateStrategy != nil {
