@@ -121,7 +121,7 @@ def pytest_configure(config):
                     "workers_per_job": 10,
                     "items_per_job": 10 ** 5,
                     "batch_size": 10 * 2,
-                    "workload_timeout": 200,  # measured in seconds
+                    "workload_timeout": 300,  # measured in seconds
                 },
                 "task": {
                     "jobs": 10 ** 2,
