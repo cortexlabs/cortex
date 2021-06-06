@@ -138,7 +138,7 @@ func validateK8sCompute(api *userconfig.API, maxMemMap map[string]kresource.Quan
 	successfulLoops := 0
 
 	clusterNodeGroupNames := strset.New(config.ClusterConfig.GetNodeGroupNames()...)
-	apiNodeGroupNames := api.Pod.NodeGroups
+	apiNodeGroupNames := api.NodeGroups
 
 	if apiNodeGroupNames != nil {
 		for _, ngName := range apiNodeGroupNames {

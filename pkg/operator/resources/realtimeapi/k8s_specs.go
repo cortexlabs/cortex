@@ -68,7 +68,7 @@ func deploymentSpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Depl
 				Containers:                    containers,
 				NodeSelector:                  workloads.NodeSelectors(),
 				Tolerations:                   workloads.GenerateResourceTolerations(),
-				Affinity:                      workloads.GenerateNodeAffinities(api.Pod.NodeGroups),
+				Affinity:                      workloads.GenerateNodeAffinities(api.NodeGroups),
 				Volumes:                       volumes,
 				ServiceAccountName:            workloads.ServiceAccountName,
 			},
