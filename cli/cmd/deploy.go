@@ -25,12 +25,9 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/exit"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
 	libjson "github.com/cortexlabs/cortex/pkg/lib/json"
-	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/print"
-	"github.com/cortexlabs/cortex/pkg/lib/table"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
-	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	"github.com/spf13/cobra"
 )
 
@@ -106,10 +103,7 @@ var _deployCmd = &cobra.Command{
 			}
 			fmt.Print(string(bytes))
 		case flags.PrettyOutputType:
-			message, err := deployMessage(deployResults, env.Name)
-			if err != nil {
-				exit.Error(err)
-			}
+			message := mergeResultMessages(deployResults)
 			if didAnyResultsError(deployResults) {
 				print.StderrBoldFirstBlock(message)
 			} else {
@@ -153,21 +147,6 @@ func getDeploymentBytes(configPath string) (map[string][]byte, error) {
 	}
 
 	return uploadBytes, nil
-}
-
-func deployMessage(results []schema.DeployResult, envName string) (string, error) {
-	statusMessage := mergeResultMessages(results)
-
-	if didAllResultsError(results) {
-		return statusMessage, nil
-	}
-
-	apiCommandsMessage, err := getAPICommandsMessage(results, envName)
-	if err != nil {
-		return "", err
-	}
-
-	return statusMessage + "\n\n" + apiCommandsMessage, nil
 }
 
 func mergeResultMessages(results []schema.DeployResult) string {
@@ -214,39 +193,4 @@ func didAnyResultsError(results []schema.DeployResult) bool {
 		}
 	}
 	return false
-}
-
-func getAPICommandsMessage(results []schema.DeployResult, envName string) (string, error) {
-	apiName := "<api_name>"
-	if len(results) == 1 {
-		apiName = results[0].API.Spec.Name
-	}
-
-	defaultEnv, err := getDefaultEnv()
-	if err != nil {
-		return "", err
-	}
-	var envArg string
-	if defaultEnv == nil || envName != *defaultEnv {
-		envArg = " --env " + envName
-	}
-
-	var items table.KeyValuePairs
-	items.Add("cortex get"+envArg, "(show api statuses)")
-	items.Add(fmt.Sprintf("cortex get %s%s", apiName, envArg), "(show api info)")
-
-	for _, result := range results {
-		if len(result.Error) > 0 {
-			continue
-		}
-		if result.API != nil && result.API.Spec.Kind == userconfig.RealtimeAPIKind {
-			items.Add(fmt.Sprintf("cortex logs %s%s", apiName, envArg), "(access logs)")
-			break
-		}
-	}
-
-	return strings.TrimSpace(items.String(&table.KeyValuePairOpts{
-		Delimiter: pointer.String(""),
-		NumSpaces: pointer.Int(2),
-	})), nil
 }
