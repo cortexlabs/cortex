@@ -1,4 +1,4 @@
-# Realtime APIs
+# Realtime
 
 Realtime APIs respond to requests synchronously and autoscale based on in-flight request volumes.
 

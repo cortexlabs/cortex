@@ -1,4 +1,4 @@
-# Async APIs
+# Async
 
 Async APIs are designed for asynchronous workloads in which the user submits an asynchronous request and retrieves the result later (either by polling or through a webhook).
 

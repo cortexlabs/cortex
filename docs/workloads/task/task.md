@@ -1,4 +1,4 @@
-# Task APIs
+# Task
 
 Task APIs provide a lambda-style execution of containers. They are useful for running your containers on demand.
 

@@ -1,4 +1,4 @@
-# Batch APIs
+# Batch
 
 Batch APIs run distributed and fault-tolerant batch processing jobs on demand.
 
