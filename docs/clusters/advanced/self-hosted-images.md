@@ -1,6 +1,6 @@
 # Self-hosted Docker images
 
-Self-hosting the Cortex cluster's internal Docker images can be useful for reducing the ingress costs, for accelerating image pulls, or for eliminating the dependency on Cortex's public container registry.
+Self-hosting the Cortex cluster's system Docker images can be useful for reducing the ingress costs, for accelerating image pulls, or for eliminating the dependency on Cortex's public container registry.
 
 In this guide, we'll use [ECR](https://aws.amazon.com/ecr/) as the destination container registry. When an ECR repository resides in the same region as your Cortex cluster, there are no costs incurred when pulling images.
 

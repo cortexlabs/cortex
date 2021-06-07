@@ -57,8 +57,12 @@ func (cliConfig *CLIConfig) Validate() error {
 }
 
 func (cliConfig *CLIConfig) ConvertToUserFacingCLIConfig() UserFacingCLIConfig {
+	envs := cliConfig.Environments
+	if envs == nil {
+		envs = []*Environment{}
+	}
 	return UserFacingCLIConfig{
 		DefaultEnvironment: cliConfig.DefaultEnvironment,
-		Environments:       cliConfig.Environments,
+		Environments:       envs,
 	}
 }

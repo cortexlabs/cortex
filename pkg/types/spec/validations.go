@@ -38,7 +38,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/urls"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	dockertypes "github.com/docker/docker/api/types"
-	"github.com/opencontainers/go-digest"
 	kresource "k8s.io/apimachinery/pkg/api/resource"
 )
 
@@ -53,6 +52,7 @@ func apiValidation(resource userconfig.Resource) *cr.StructValidation {
 	case userconfig.RealtimeAPIKind:
 		structFieldValidations = append(resourceStructValidations,
 			podValidation(userconfig.RealtimeAPIKind),
+			nodegroupsValidation(),
 			networkingValidation(),
 			autoscalingValidation(resource.Kind),
 			updateStrategyValidation(),
@@ -60,6 +60,7 @@ func apiValidation(resource userconfig.Resource) *cr.StructValidation {
 	case userconfig.AsyncAPIKind:
 		structFieldValidations = append(resourceStructValidations,
 			podValidation(userconfig.AsyncAPIKind),
+			nodegroupsValidation(),
 			networkingValidation(),
 			autoscalingValidation(resource.Kind),
 			updateStrategyValidation(),
@@ -67,11 +68,13 @@ func apiValidation(resource userconfig.Resource) *cr.StructValidation {
 	case userconfig.BatchAPIKind:
 		structFieldValidations = append(resourceStructValidations,
 			podValidation(userconfig.BatchAPIKind),
+			nodegroupsValidation(),
 			networkingValidation(),
 		)
 	case userconfig.TaskAPIKind:
 		structFieldValidations = append(resourceStructValidations,
 			podValidation(userconfig.TaskAPIKind),
+			nodegroupsValidation(),
 			networkingValidation(),
 		)
 	case userconfig.TrafficSplitterKind:
@@ -145,18 +148,6 @@ func podValidation(kind userconfig.Kind) *cr.StructFieldValidation {
 		StructField: "Pod",
 		StructValidation: &cr.StructValidation{
 			StructFieldValidations: []*cr.StructFieldValidation{
-				{
-					StructField: "NodeGroups",
-					StringListValidation: &cr.StringListValidation{
-						Required:          false,
-						Default:           nil,
-						AllowExplicitNull: true,
-						AllowEmpty:        false,
-						ElementStringValidation: &cr.StringValidation{
-							AlphaNumericDashUnderscore: true,
-						},
-					},
-				},
 				{
 					StructField: "Port",
 					Int32PtrValidation: &cr.Int32PtrValidation{
@@ -263,6 +254,21 @@ func containersValidation(kind userconfig.Kind) *cr.StructFieldValidation {
 			MinLength:        1,
 			StructValidation: &cr.StructValidation{
 				StructFieldValidations: validations,
+			},
+		},
+	}
+}
+
+func nodegroupsValidation() *cr.StructFieldValidation {
+	return &cr.StructFieldValidation{
+		StructField: "NodeGroups",
+		StringListValidation: &cr.StringListValidation{
+			Required:          false,
+			Default:           nil,
+			AllowExplicitNull: true,
+			AllowEmpty:        false,
+			ElementStringValidation: &cr.StringValidation{
+				AlphaNumericDashUnderscore: true,
 			},
 		},
 	}
@@ -949,35 +955,4 @@ func getDockerAuthStrFromK8s(dockerClient *docker.Client, k8sClient *k8s.Client)
 	}
 
 	return dockerAuthStr, nil
-}
-
-func getDockerImageDigest(
-	image string,
-	awsClient *aws.Client,
-	k8sClient *k8s.Client,
-) (digest.Digest, error) {
-	dockerClient, err := docker.GetDockerClient()
-	if err != nil {
-		return digest.Digest(""), err
-	}
-
-	dockerAuthStr := docker.NoAuth
-
-	if regex.IsValidECRURL(image) {
-		dockerAuthStr, err = docker.AWSAuthConfig(awsClient)
-		if err != nil {
-			return digest.Digest(""), err
-		}
-	} else if k8sClient != nil {
-		dockerAuthStr, err = getDockerAuthStrFromK8s(dockerClient, k8sClient)
-		if err != nil {
-			return digest.Digest(""), err
-		}
-	}
-
-	distributionDigest, err := docker.GetDistributionDigest(dockerClient, image, dockerAuthStr)
-	if err != nil {
-		return digest.Digest(""), err
-	}
-	return distributionDigest, err
 }

@@ -34,6 +34,7 @@ type API struct {
 	Resource
 
 	Pod              *Pod            `json:"pod" yaml:"pod"`
+	NodeGroups       []string        `json:"node_groups" yaml:"node_groups"`
 	APIs             []*TrafficSplit `json:"apis" yaml:"apis"`
 	Networking       *Networking     `json:"networking" yaml:"networking"`
 	Autoscaling      *Autoscaling    `json:"autoscaling" yaml:"autoscaling"`
@@ -44,7 +45,6 @@ type API struct {
 }
 
 type Pod struct {
-	NodeGroups     []string     `json:"node_groups" yaml:"node_groups"`
 	Port           *int32       `json:"port" yaml:"port"`
 	MaxQueueLength int64        `json:"max_queue_length" yaml:"max_queue_length"`
 	MaxConcurrency int64        `json:"max_concurrency" yaml:"max_concurrency"`
@@ -270,6 +270,12 @@ func (api *API) UserStr() string {
 		sb.WriteString(s.Indent(api.Autoscaling.UserStr(), "  "))
 	}
 
+	if api.NodeGroups == nil {
+		sb.WriteString(fmt.Sprintf("%s: null\n", NodeGroupsKey))
+	} else {
+		sb.WriteString(fmt.Sprintf("%s: %s\n", NodeGroupsKey, s.ObjFlatNoQuotes(api.NodeGroups)))
+	}
+
 	if api.UpdateStrategy != nil {
 		sb.WriteString(fmt.Sprintf("%s:\n", UpdateStrategyKey))
 		sb.WriteString(s.Indent(api.UpdateStrategy.UserStr(), "  "))
@@ -288,12 +294,6 @@ func (trafficSplit *TrafficSplit) UserStr() string {
 
 func (pod *Pod) UserStr(kind Kind) string {
 	var sb strings.Builder
-
-	if pod.NodeGroups == nil {
-		sb.WriteString(fmt.Sprintf("%s: null\n", NodeGroupsKey))
-	} else {
-		sb.WriteString(fmt.Sprintf("%s: %s\n", NodeGroupsKey, s.ObjFlatNoQuotes(pod.NodeGroups)))
-	}
 	if pod.Port != nil {
 		sb.WriteString(fmt.Sprintf("%s: %d\n", PortKey, *pod.Port))
 	}
@@ -535,8 +535,6 @@ func (api *API) TelemetryEvent() map[string]interface{} {
 
 	if api.Pod != nil {
 		event["pod._is_defined"] = true
-		event["pod.node_groups._is_defined"] = len(api.Pod.NodeGroups) > 0
-		event["pod.node_groups._len"] = len(api.Pod.NodeGroups)
 		if api.Pod.Port != nil {
 			event["pod.port"] = *api.Pod.Port
 		}
@@ -560,7 +558,6 @@ func (api *API) TelemetryEvent() map[string]interface{} {
 		event["pod.containers._num_readiness_probes"] = numReadinessProbes
 		event["pod.containers._num_liveness_probes"] = numLivenessProbes
 
-		event["pod.containers.compute._is_defined"] = true
 		totalCompute := GetTotalComputeFromContainers(api.Pod.Containers)
 		if totalCompute.CPU != nil {
 			event["pod.containers.compute.cpu._is_defined"] = true
@@ -578,6 +575,8 @@ func (api *API) TelemetryEvent() map[string]interface{} {
 		event["pod.containers.compute.inf"] = totalCompute.Inf
 	}
 
+	event["node_groups._len"] = len(api.NodeGroups)
+
 	if api.UpdateStrategy != nil {
 		event["update_strategy._is_defined"] = true
 		event["update_strategy.max_surge"] = api.UpdateStrategy.MaxSurge
@@ -589,7 +588,10 @@ func (api *API) TelemetryEvent() map[string]interface{} {
 		event["autoscaling.min_replicas"] = api.Autoscaling.MinReplicas
 		event["autoscaling.max_replicas"] = api.Autoscaling.MaxReplicas
 		event["autoscaling.init_replicas"] = api.Autoscaling.InitReplicas
-		event["autoscaling.target_in_flight"] = *api.Autoscaling.TargetInFlight
+		if api.Autoscaling.TargetInFlight != nil {
+			event["autoscaling.target_in_flight._is_defined"] = true
+			event["autoscaling.target_in_flight"] = *api.Autoscaling.TargetInFlight
+		}
 		event["autoscaling.window"] = api.Autoscaling.Window.Seconds()
 		event["autoscaling.downscale_stabilization_period"] = api.Autoscaling.DownscaleStabilizationPeriod.Seconds()
 		event["autoscaling.upscale_stabilization_period"] = api.Autoscaling.UpscaleStabilizationPeriod.Seconds()
