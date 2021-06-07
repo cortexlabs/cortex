@@ -35,8 +35,6 @@ func TestNewAsyncPrometheusStatsReporter(t *testing.T) {
 
 	statsReporter.HandleEvent(
 		RequestEvent{
-			Route:      "/",
-			Method:     "POST",
 			StatusCode: 200,
 			Duration:   100 * time.Millisecond,
 		},
@@ -73,8 +71,6 @@ func TestAsyncStatsReporter_HandleEvent(t *testing.T) {
 
 	statsReporter.HandleEvent(
 		RequestEvent{
-			Route:      "/",
-			Method:     "POST",
 			StatusCode: 200,
 			Duration:   100 * time.Millisecond,
 		},
