@@ -52,6 +52,7 @@ func apiValidation(resource userconfig.Resource) *cr.StructValidation {
 	case userconfig.RealtimeAPIKind:
 		structFieldValidations = append(resourceStructValidations,
 			podValidation(userconfig.RealtimeAPIKind),
+			nodegroupsValidation(),
 			networkingValidation(),
 			autoscalingValidation(resource.Kind),
 			updateStrategyValidation(),
@@ -59,6 +60,7 @@ func apiValidation(resource userconfig.Resource) *cr.StructValidation {
 	case userconfig.AsyncAPIKind:
 		structFieldValidations = append(resourceStructValidations,
 			podValidation(userconfig.AsyncAPIKind),
+			nodegroupsValidation(),
 			networkingValidation(),
 			autoscalingValidation(resource.Kind),
 			updateStrategyValidation(),
@@ -66,11 +68,13 @@ func apiValidation(resource userconfig.Resource) *cr.StructValidation {
 	case userconfig.BatchAPIKind:
 		structFieldValidations = append(resourceStructValidations,
 			podValidation(userconfig.BatchAPIKind),
+			nodegroupsValidation(),
 			networkingValidation(),
 		)
 	case userconfig.TaskAPIKind:
 		structFieldValidations = append(resourceStructValidations,
 			podValidation(userconfig.TaskAPIKind),
+			nodegroupsValidation(),
 			networkingValidation(),
 		)
 	case userconfig.TrafficSplitterKind:
@@ -144,18 +148,6 @@ func podValidation(kind userconfig.Kind) *cr.StructFieldValidation {
 		StructField: "Pod",
 		StructValidation: &cr.StructValidation{
 			StructFieldValidations: []*cr.StructFieldValidation{
-				{
-					StructField: "NodeGroups",
-					StringListValidation: &cr.StringListValidation{
-						Required:          false,
-						Default:           nil,
-						AllowExplicitNull: true,
-						AllowEmpty:        false,
-						ElementStringValidation: &cr.StringValidation{
-							AlphaNumericDashUnderscore: true,
-						},
-					},
-				},
 				{
 					StructField: "Port",
 					Int32PtrValidation: &cr.Int32PtrValidation{
@@ -262,6 +254,21 @@ func containersValidation(kind userconfig.Kind) *cr.StructFieldValidation {
 			MinLength:        1,
 			StructValidation: &cr.StructValidation{
 				StructFieldValidations: validations,
+			},
+		},
+	}
+}
+
+func nodegroupsValidation() *cr.StructFieldValidation {
+	return &cr.StructFieldValidation{
+		StructField: "NodeGroups",
+		StringListValidation: &cr.StringListValidation{
+			Required:          false,
+			Default:           nil,
+			AllowExplicitNull: true,
+			AllowEmpty:        false,
+			ElementStringValidation: &cr.StringValidation{
+				AlphaNumericDashUnderscore: true,
 			},
 		},
 	}

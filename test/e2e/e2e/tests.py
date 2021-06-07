@@ -522,10 +522,6 @@ def test_load_realtime(
     total_requests = load_config["total_requests"]
     desired_replicas = load_config["desired_replicas"]
     concurrency = load_config["concurrency"]
-    min_rtt = load_config["min_rtt"]
-    max_rtt = load_config["max_rtt"]
-    avg_rtt = load_config["avg_rtt"]
-    avg_rtt_tolerance = load_config["avg_rtt_tolerance"]
     status_code_timeout = load_config["status_code_timeout"]
 
     api_dir = TEST_APIS_DIR / api
@@ -541,7 +537,6 @@ def test_load_realtime(
 
     # controls the flow of requests
     request_stopper = td.Event()
-    latencies: List[float] = []
     failed = False
     try:
         printer(f"getting {desired_replicas} replicas ready")
@@ -573,27 +568,11 @@ def test_load_realtime(
             api_name,
             concurrency,
             request_stopper,
-            latencies=latencies,
             max_total_requests=total_requests,
             payload=payload,
         )
 
         while not request_stopper.is_set():
-            current_min_rtt = min(latencies) if len(latencies) > 0 else min_rtt
-            assert (
-                current_min_rtt >= min_rtt
-            ), f"min latency threshold hit; got {current_min_rtt}s, but the lowest accepted latency is {min_rtt}s"
-
-            current_max_rtt = max(latencies) if len(latencies) > 0 else max_rtt
-            assert (
-                current_max_rtt <= max_rtt
-            ), f"max latency threshold hit; got {current_max_rtt}s, but the highest accepted latency is {max_rtt}s"
-
-            current_avg_rtt = sum(latencies) / len(latencies) if len(latencies) > 0 else avg_rtt
-            assert (
-                avg_rtt - avg_rtt_tolerance < current_avg_rtt < avg_rtt + avg_rtt_tolerance
-            ), f"avg latency ({current_avg_rtt}s) falls outside the expected range ({avg_rtt - avg_rtt_tolerance}s - {avg_rtt + avg_rtt_tolerance})"
-
             api_info = client.get_api(api_name)
             network_stats = api_info["metrics"]["network_stats"]
 
@@ -603,10 +582,6 @@ def test_load_realtime(
             assert (
                 network_stats["code_5xx"] - offset_5xx == 0
             ), f"detected 5xx response codes ({network_stats['code_5xx'] - offset_5xx}) in cortex get"
-
-            printer(
-                f"min RTT: {current_min_rtt} | max RTT: {current_max_rtt} | avg RTT: {current_avg_rtt} | requests: {network_stats['code_2xx']-offset_2xx} (out of {total_requests})"
-            )
 
             # check if the requesting threads are still healthy
             # if not, they'll raise an exception
