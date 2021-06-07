@@ -96,28 +96,28 @@ The docker images used by the cluster can also be overridden. They can be config
 
 <!-- CORTEX_VERSION_BRANCH_STABLE -->
 ```yaml
-image_operator: quay.io/cortexlabs/operator:master
-image_controller_manager: quay.io/cortexlabs/controller-manager:master
-image_manager: quay.io/cortexlabs/manager:master
-image_proxy: quay.io/cortexlabs/proxy:master
-image_async_gateway: quay.io/cortexlabs/async-gateway:master
-image_cluster_autoscaler: quay.io/cortexlabs/cluster-autoscaler:master
-image_metrics_server: quay.io/cortexlabs/metrics-server:master
-image_inferentia: quay.io/cortexlabs/inferentia:master
-image_nvidia: quay.io/cortexlabs/nvidia:master
-image_fluent_bit: quay.io/cortexlabs/fluent-bit:master
-image_istio_proxy: quay.io/cortexlabs/istio-proxy:master
-image_istio_pilot: quay.io/cortexlabs/istio-pilot:master
-image_prometheus: quay.io/cortexlabs/prometheus:master
-image_prometheus_config_reloader: quay.io/cortexlabs/prometheus-config-reloader:master
-image_prometheus_operator: quay.io/cortexlabs/prometheus-operator:master
-image_prometheus_statsd_exporter: quay.io/cortexlabs/prometheus-statsd-exporter:master
-image_prometheus_dcgm_exporter: quay.io/cortexlabs/prometheus-dcgm-exporter:master
-image_prometheus_kube_state_metrics: quay.io/cortexlabs/prometheus-kube-state-metrics:master
-image_prometheus_node_exporter: quay.io/cortexlabs/prometheus-node-exporter:master
-image_kube_rbac_proxy: quay.io/cortexlabs/kube-rbac-proxy:master
-image_grafana: quay.io/cortexlabs/grafana:master
-image_event_exporter: quay.io/cortexlabs/event-exporter:master
-image_enqueuer: quay.io/cortexlabs/enqueuer:master
-image_kubexit: quay.io/cortexlabs/kubexit:master
+image_operator: quay.io/cortexlabs/operator:0.36.0
+image_controller_manager: quay.io/cortexlabs/controller-manager:0.36.0
+image_manager: quay.io/cortexlabs/manager:0.36.0
+image_proxy: quay.io/cortexlabs/proxy:0.36.0
+image_async_gateway: quay.io/cortexlabs/async-gateway:0.36.0
+image_cluster_autoscaler: quay.io/cortexlabs/cluster-autoscaler:0.36.0
+image_metrics_server: quay.io/cortexlabs/metrics-server:0.36.0
+image_inferentia: quay.io/cortexlabs/inferentia:0.36.0
+image_nvidia: quay.io/cortexlabs/nvidia:0.36.0
+image_fluent_bit: quay.io/cortexlabs/fluent-bit:0.36.0
+image_istio_proxy: quay.io/cortexlabs/istio-proxy:0.36.0
+image_istio_pilot: quay.io/cortexlabs/istio-pilot:0.36.0
+image_prometheus: quay.io/cortexlabs/prometheus:0.36.0
+image_prometheus_config_reloader: quay.io/cortexlabs/prometheus-config-reloader:0.36.0
+image_prometheus_operator: quay.io/cortexlabs/prometheus-operator:0.36.0
+image_prometheus_statsd_exporter: quay.io/cortexlabs/prometheus-statsd-exporter:0.36.0
+image_prometheus_dcgm_exporter: quay.io/cortexlabs/prometheus-dcgm-exporter:0.36.0
+image_prometheus_kube_state_metrics: quay.io/cortexlabs/prometheus-kube-state-metrics:0.36.0
+image_prometheus_node_exporter: quay.io/cortexlabs/prometheus-node-exporter:0.36.0
+image_kube_rbac_proxy: quay.io/cortexlabs/kube-rbac-proxy:0.36.0
+image_grafana: quay.io/cortexlabs/grafana:0.36.0
+image_event_exporter: quay.io/cortexlabs/event-exporter:0.36.0
+image_enqueuer: quay.io/cortexlabs/enqueuer:0.36.0
+image_kubexit: quay.io/cortexlabs/kubexit:0.36.0
 ```
