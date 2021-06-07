@@ -1,136 +1,105 @@
 # RealtimeAPI
 
-## HTTP
-
-Create HTTP APIs that respond to requests in real-time.
-
-### Implement
-
-```bash
-mkdir text-generator && cd text-generator
-touch handler.py requirements.txt text_generator.yaml
-```
+### Define an API
 
 ```python
-# handler.py
+# main.py
 
-from transformers import pipeline
+from fastapi import FastAPI
 
-class Handler:
-    def __init__(self, config):
-        self.model = pipeline(task="text-generation")
+app = FastAPI()
 
-    def handle_post(self, payload):
-        return self.model(payload["text"])[0]
+@app.get("/")
+def hello_world():
+    return {"msg": "hello world"}
 ```
 
-```python
-# requirements.txt
+### Create a `Dockerfile`
 
-transformers
-torch
+```Dockerfile
+FROM python:3.8-slim
+
+RUN pip install --no-cache-dir fastapi uvicorn
+COPY main.py /
+
+CMD uvicorn --host 0.0.0.0 --port 8080 main:app
 ```
 
-```yaml
-# text_generator.yaml
-
-- name: text-generator
-  kind: RealtimeAPI
-  handler:
-    type: python
-    path: handler.py
-  compute:
-    gpu: 1
-```
-
-### Deploy
+### Build an image
 
 ```bash
-cortex deploy text_generator.yaml
+docker build . --tag hello-world
 ```
 
-### Monitor
+### Run a container locally
 
 ```bash
-cortex get text-generator --watch
-```
-
-### Debugging logs
-
-```bash
-cortex logs text-generator
+docker run --port 8080:8080 hello-world
 ```
 
 ### Make a request
 
 ```bash
-curl http://***.elb.us-west-2.amazonaws.com/text-generator -X POST -H "Content-Type: application/json" -d '{"text": "hello world"}'
+curl --request POST localhost:8080
 ```
 
-### Delete
+### Login to ECR
 
 ```bash
-cortex delete text-generator
+aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin <AWS_ACCOUNT_ID>.dkr.ecr.us-east-1.amazonaws.com
 ```
 
-## gRPC
+### Create a repository
 
-To make the above API use gRPC as its protocol, make the following changes (the rest of the steps are the same):
-
-### Add protobuf file
-
-Create a `handler.proto` file in your project's directory:
-
-```protobuf
-<!-- handler.proto -->
-
-syntax = "proto3";
-package text_generator;
-
-service Handler {
-    rpc Predict (Message) returns (Message);
-}
-
-message Message {
-    string text = 1;
-}
+```bash
+aws ecr create-repository --repository-name hello-world
 ```
 
-Set the `handler.protobuf_path` field in the API spec to point to the `handler.proto` file:
+### Tag the image
+
+```bash
+docker tag hello-world <AWS_ACCOUNT_ID>.dkr.ecr.us-east-1.amazonaws.com/hello-world
+```
+
+### Push the image
+
+```bash
+docker push <AWS_ACCOUNT_ID>.dkr.ecr.us-east-1.amazonaws.com/hello-world
+```
+
+### Configure a Cortex deployment
 
 ```yaml
-# text_generator.yaml
+# cortex.yaml
 
-- name: text-generator
+- name: hello-world
   kind: RealtimeAPI
-  handler:
-    type: python
-    path: handler.py
-    protobuf_path: handler.proto
-  compute:
-    gpu: 1
+  pod:
+    containers:
+    - name: api
+      image: <AWS_ACCOUNT_ID>.dkr.ecr.us-east-1.amazonaws.com/hello-world
 ```
 
-### Match RPC service name
-
-Match the name of the RPC service(s) from the protobuf definition (in this case `Predict`) with what you're defining in the handler's implementation:
-
-```python
-# handler.py
-
-from transformers import pipeline
-
-class Handler:
-    def __init__(self, config, proto_module_pb2):
-        self.model = pipeline(task="text-generation")
-        self.proto_module_pb2 = proto_module_pb2
-
-    def Predict(self, payload):
-        return self.proto_module_pb2.Message(text="returned message")
-```
-
-### Make a gRPC request
+### Create a Cortex deployment
 
 ```bash
-grpcurl -plaintext -proto handler.proto -d '{"text": "hello-world"}' ***.elb.us-west-2.amazonaws.com:80 text_generator.Handler/Predict
+cortex deploy
+```
+
+### Wait for the API to be ready
+
+```bash
+cortex get --watch
+```
+
+### Get the API endpoint
+
+```bash
+cortex get hello-world
+```
+
+### Make a request
+
+```bash
+curl --request POST http://***.amazonaws.com/hello-world
 ```
