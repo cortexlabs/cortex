@@ -21,6 +21,9 @@ from cortex.exceptions import NotFound
 from cortex.telemetry import sentry_wrapper
 
 
+__version__ = "master"  # CORTEX_VERSION
+
+
 @sentry_wrapper
 def client(env: Optional[str] = None) -> Client:
     """

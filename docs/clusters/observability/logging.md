@@ -50,9 +50,9 @@ fields @timestamp, message
 | limit 1000
 ```
 
-## Streaming logs for an API or a running job
+## Streaming logs from the CLI
 
-You can stream logs directly from a random pod of an API or a running job to iterate and debug quickly. These logs will not be as comprehensive as the logs that are available in CloudWatch.
+You can stream logs directly from a random pod of a running workload to iterate and debug quickly. These logs will not be as comprehensive as the logs that are available in CloudWatch.
 
 ```bash
 # RealtimeAPI
