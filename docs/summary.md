@@ -1,6 +1,7 @@
 # Summary
 
 * [Get started](start.md)
+* [Overview](overview.md)
 
 ## Clusters
 
@@ -29,7 +30,7 @@
 
 ## Workloads
 
-* [Realtime APIs](workloads/realtime/realtime-apis.md)
+* [Realtime](workloads/realtime/realtime.md)
   * [Example](workloads/realtime/example.md)
   * [Configuration](workloads/realtime/configuration.md)
   * [Containers](workloads/realtime/containers.md)
@@ -38,18 +39,18 @@
   * [Metrics](workloads/realtime/metrics.md)
   * [Statuses](workloads/realtime/statuses.md)
   * [Troubleshooting](workloads/realtime/troubleshooting.md)
-* [Async APIs](workloads/async/async-apis.md)
+* [Async](workloads/async/async.md)
   * [Example](workloads/async/example.md)
   * [Configuration](workloads/async/configuration.md)
   * [Containers](workloads/async/containers.md)
   * [Statuses](workloads/async/statuses.md)
-* [Batch APIs](workloads/batch/batch-apis.md)
+* [Batch](workloads/batch/batch.md)
   * [Example](workloads/batch/example.md)
   * [Configuration](workloads/batch/configuration.md)
   * [Containers](workloads/batch/containers.md)
   * [Jobs](workloads/batch/jobs.md)
   * [Statuses](workloads/batch/statuses.md)
-* [Task APIs](workloads/task/task-apis.md)
+* [Task](workloads/task/task.md)
   * [Example](workloads/task/example.md)
   * [Configuration](workloads/task/configuration.md)
   * [Containers](workloads/task/containers.md)
