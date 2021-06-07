@@ -67,6 +67,11 @@ func TestMain(m *testing.M) {
 		log.Fatalf("Could not start resource: %s", err)
 	}
 
+	err = resource.Expire(90)
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	localStackEndpoint = fmt.Sprintf("localhost:%s", resource.GetPort("4566/tcp"))
 
 	// exponential backoff-retry, because the application in the container might not be ready to accept connections yet
@@ -256,7 +261,7 @@ func TestSQSDequeuerTerminationOnEmptyQueue(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	msgHandler := &handleFuncMessageHandler{
+	msgHandler := &messageHandlerFunc{
 		HandleFunc: func(msg *sqs.Message) error {
 			return nil
 		},
@@ -293,7 +298,7 @@ func TestSQSDequeuer_Shutdown(t *testing.T) {
 	dq.notFoundSleepTime = 0
 	dq.waitTimeSeconds = aws.Int64(0)
 
-	msgHandler := NewHandleFuncMessageHandler(
+	msgHandler := NewMessageHandlerFunc(
 		func(message *sqs.Message) error {
 			return nil
 		},
@@ -334,7 +339,7 @@ func TestSQSDequeuer_Start_HandlerError(t *testing.T) {
 	dq.renewalPeriod = time.Second
 	dq.visibilityTimeout = aws.Int64(1)
 
-	msgHandler := NewHandleFuncMessageHandler(
+	msgHandler := NewMessageHandlerFunc(
 		func(message *sqs.Message) error {
 			return fmt.Errorf("an error occurred")
 		},
