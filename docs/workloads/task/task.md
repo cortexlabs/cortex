@@ -13,5 +13,3 @@ Upon submitting a Task, Cortex will respond with a Task ID and will asynchronous
 Cortex will initialize one or more worker pods based on your API specification. After the worker pod(s) run to completion, the Task is marked as completed and the worker pod(s) are terminated.
 
 You can make GET requests to the Task API endpoint to retreive the status of the Task.
-
-![]()

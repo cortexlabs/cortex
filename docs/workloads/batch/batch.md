@@ -17,5 +17,3 @@ After enqueuing is complete, Cortex initializes the requested number of worker p
 After the worker pods have emptied the queue, the job is marked as complete, and Cortex will terminate the worker pods and delete the SQS queue.
 
 You can make GET requests to the BatchAPI endpoint to get the status of the Job and metrics such as the number of batches completed and failed.
-
-![]()
