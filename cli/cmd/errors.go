@@ -69,6 +69,7 @@ const (
 	ErrAPINameMustBeProvided               = "cli.api_name_must_be_provided"
 	ErrAPINotFoundInConfig                 = "cli.api_not_found_in_config"
 	ErrClusterUIDsLimitInBucket            = "cli.cluster_uids_limit_in_bucket"
+	ErrMalformedConfig                     = "cli.malformed_config"
 )
 
 func ErrorInvalidProvider(providerStr, cliConfigPath string) error {
@@ -288,5 +289,12 @@ func ErrorClusterUIDsLimitInBucket(bucket string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrClusterUIDsLimitInBucket,
 		Message: fmt.Sprintf("detected too many top level folders in %s bucket; please empty your bucket and try again", bucket),
+	})
+}
+
+func ErrorMalformedConfig() error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrMalformedConfig,
+		Message: fmt.Sprintf("nodegroups YAML configuration files must contain a list of maps (see https://docs.cortex.dev/v/%s/ for api configuration schema)", consts.CortexVersionMinor),
 	})
 }

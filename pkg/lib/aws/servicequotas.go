@@ -166,7 +166,9 @@ func (c *Client) VerifyNetworkQuotas(
 	requiredVPCs int,
 	availabilityZones strset.Set,
 	numNodeGroups int,
-	longestCIDRWhiteList int) error {
+	longestCIDRWhiteList int,
+	clusterAlreadyExists bool,
+) error {
 	quotaCodeToValueMap := map[string]int{
 		_elasticIPsQuotaCode:         0, // elastic IP quota code
 		_internetGatewayQuotaCode:    0, // internet gw quota code
@@ -177,30 +179,6 @@ func (c *Client) VerifyNetworkQuotas(
 	}
 
 	err := c.ServiceQuotas().ListServiceQuotasPages(
-		&servicequotas.ListServiceQuotasInput{
-			ServiceCode: aws.String("ec2"),
-		},
-		func(page *servicequotas.ListServiceQuotasOutput, lastPage bool) bool {
-			if page == nil {
-				return false
-			}
-			for _, quota := range page.Quotas {
-				if quota == nil || quota.QuotaCode == nil || quota.Value == nil {
-					continue
-				}
-				if _, ok := quotaCodeToValueMap[*quota.QuotaCode]; ok {
-					quotaCodeToValueMap[*quota.QuotaCode] = int(*quota.Value)
-					return false
-				}
-			}
-			return true
-		},
-	)
-	if err != nil {
-		return errors.WithStack(err)
-	}
-
-	err = c.ServiceQuotas().ListServiceQuotasPages(
 		&servicequotas.ListServiceQuotasInput{
 			ServiceCode: aws.String("vpc"),
 		},
@@ -223,88 +201,114 @@ func (c *Client) VerifyNetworkQuotas(
 		return errors.WithStack(err)
 	}
 
-	// check internet GW quota
-	if requiredInternetGateways > 0 {
-		internetGatewaysInUse, err := c.ListInternetGateways()
+	if !clusterAlreadyExists {
+		err = c.ServiceQuotas().ListServiceQuotasPages(
+			&servicequotas.ListServiceQuotasInput{
+				ServiceCode: aws.String("ec2"),
+			},
+			func(page *servicequotas.ListServiceQuotasOutput, lastPage bool) bool {
+				if page == nil {
+					return false
+				}
+				for _, quota := range page.Quotas {
+					if quota == nil || quota.QuotaCode == nil || quota.Value == nil {
+						continue
+					}
+					if _, ok := quotaCodeToValueMap[*quota.QuotaCode]; ok {
+						quotaCodeToValueMap[*quota.QuotaCode] = int(*quota.Value)
+						return false
+					}
+				}
+				return true
+			},
+		)
 		if err != nil {
-			return err
+			return errors.WithStack(err)
 		}
-		if quotaCodeToValueMap[_internetGatewayQuotaCode]-len(internetGatewaysInUse)-requiredInternetGateways < 0 {
-			additionalQuotaRequired := len(internetGatewaysInUse) + requiredInternetGateways - quotaCodeToValueMap[_internetGatewayQuotaCode]
-			return ErrorInternetGatewayLimitExceeded(quotaCodeToValueMap[_internetGatewayQuotaCode], additionalQuotaRequired, c.Region)
-		}
-	}
 
-	if natGatewayRequired {
-		// get NAT GW in use per selected AZ
-		natGateways, err := c.DescribeNATGateways()
-		if err != nil {
-			return err
-		}
-		subnets, err := c.DescribeSubnets()
-		if err != nil {
-			return err
-		}
-		azToGatewaysInUse := map[string]int{}
-		for _, natGateway := range natGateways {
-			if natGateway.SubnetId == nil {
-				continue
+		// check internet GW quota
+		if requiredInternetGateways > 0 {
+			internetGatewaysInUse, err := c.ListInternetGateways()
+			if err != nil {
+				return err
 			}
-			for _, subnet := range subnets {
-				if subnet.SubnetId == nil || subnet.AvailabilityZone == nil {
+			if quotaCodeToValueMap[_internetGatewayQuotaCode]-len(internetGatewaysInUse)-requiredInternetGateways < 0 {
+				additionalQuotaRequired := len(internetGatewaysInUse) + requiredInternetGateways - quotaCodeToValueMap[_internetGatewayQuotaCode]
+				return ErrorInternetGatewayLimitExceeded(quotaCodeToValueMap[_internetGatewayQuotaCode], additionalQuotaRequired, c.Region)
+			}
+		}
+
+		if natGatewayRequired {
+			// get NAT GW in use per selected AZ
+			natGateways, err := c.DescribeNATGateways()
+			if err != nil {
+				return err
+			}
+			subnets, err := c.DescribeSubnets()
+			if err != nil {
+				return err
+			}
+			azToGatewaysInUse := map[string]int{}
+			for _, natGateway := range natGateways {
+				if natGateway.SubnetId == nil {
 					continue
 				}
-				if !availabilityZones.Has(*subnet.AvailabilityZone) {
-					continue
-				}
-				if *subnet.SubnetId == *natGateway.SubnetId {
-					azToGatewaysInUse[*subnet.AvailabilityZone]++
+				for _, subnet := range subnets {
+					if subnet.SubnetId == nil || subnet.AvailabilityZone == nil {
+						continue
+					}
+					if !availabilityZones.Has(*subnet.AvailabilityZone) {
+						continue
+					}
+					if *subnet.SubnetId == *natGateway.SubnetId {
+						azToGatewaysInUse[*subnet.AvailabilityZone]++
+					}
 				}
 			}
-		}
-		// check NAT GW quota
-		numOfExhaustedNATGatewayAZs := 0
-		azsWithQuotaDeficit := []string{}
-		for az, numActiveGatewaysOnAZ := range azToGatewaysInUse {
-			// -1 comes from the NAT gateway we require per AZ
-			azDeficit := quotaCodeToValueMap[_natGatewayQuotaCode] - numActiveGatewaysOnAZ - 1
-			if azDeficit < 0 {
-				numOfExhaustedNATGatewayAZs++
-				azsWithQuotaDeficit = append(azsWithQuotaDeficit, az)
+			// check NAT GW quota
+			numOfExhaustedNATGatewayAZs := 0
+			azsWithQuotaDeficit := []string{}
+			for az, numActiveGatewaysOnAZ := range azToGatewaysInUse {
+				// -1 comes from the NAT gateway we require per AZ
+				azDeficit := quotaCodeToValueMap[_natGatewayQuotaCode] - numActiveGatewaysOnAZ - 1
+				if azDeficit < 0 {
+					numOfExhaustedNATGatewayAZs++
+					azsWithQuotaDeficit = append(azsWithQuotaDeficit, az)
+				}
+			}
+			if (highlyAvailableNATGateway && numOfExhaustedNATGatewayAZs > 0) || (!highlyAvailableNATGateway && numOfExhaustedNATGatewayAZs == len(availabilityZones)) {
+				return ErrorNATGatewayLimitExceeded(quotaCodeToValueMap[_natGatewayQuotaCode], 1, azsWithQuotaDeficit, c.Region)
 			}
 		}
-		if (highlyAvailableNATGateway && numOfExhaustedNATGatewayAZs > 0) || (!highlyAvailableNATGateway && numOfExhaustedNATGatewayAZs == len(availabilityZones)) {
-			return ErrorNATGatewayLimitExceeded(quotaCodeToValueMap[_natGatewayQuotaCode], 1, azsWithQuotaDeficit, c.Region)
-		}
-	}
 
-	// check EIP quota
-	if natGatewayRequired {
-		elasticIPsInUse, err := c.ListElasticIPs()
-		if err != nil {
-			return err
+		// check EIP quota
+		if natGatewayRequired {
+			elasticIPsInUse, err := c.ListElasticIPs()
+			if err != nil {
+				return err
+			}
+			var requiredElasticIPs int
+			if highlyAvailableNATGateway {
+				requiredElasticIPs = len(availabilityZones)
+			} else {
+				requiredElasticIPs = 1
+			}
+			if quotaCodeToValueMap[_elasticIPsQuotaCode]-len(elasticIPsInUse)-requiredElasticIPs < 0 {
+				additionalQuotaRequired := len(elasticIPsInUse) + requiredElasticIPs - quotaCodeToValueMap[_elasticIPsQuotaCode]
+				return ErrorEIPLimitExceeded(quotaCodeToValueMap[_elasticIPsQuotaCode], additionalQuotaRequired, c.Region)
+			}
 		}
-		var requiredElasticIPs int
-		if highlyAvailableNATGateway {
-			requiredElasticIPs = len(availabilityZones)
-		} else {
-			requiredElasticIPs = 1
-		}
-		if quotaCodeToValueMap[_elasticIPsQuotaCode]-len(elasticIPsInUse)-requiredElasticIPs < 0 {
-			additionalQuotaRequired := len(elasticIPsInUse) + requiredElasticIPs - quotaCodeToValueMap[_elasticIPsQuotaCode]
-			return ErrorEIPLimitExceeded(quotaCodeToValueMap[_elasticIPsQuotaCode], additionalQuotaRequired, c.Region)
-		}
-	}
 
-	// check VPC quota
-	if requiredVPCs > 0 {
-		vpcs, err := c.DescribeVpcs()
-		if err != nil {
-			return err
-		}
-		if quotaCodeToValueMap[_vpcQuotaCode]-len(vpcs)-requiredVPCs < 0 {
-			additionalQuotaRequired := len(vpcs) + requiredVPCs - quotaCodeToValueMap[_vpcQuotaCode]
-			return ErrorVPCLimitExceeded(quotaCodeToValueMap[_vpcQuotaCode], additionalQuotaRequired, c.Region)
+		// check VPC quota
+		if requiredVPCs > 0 {
+			vpcs, err := c.DescribeVpcs()
+			if err != nil {
+				return err
+			}
+			if quotaCodeToValueMap[_vpcQuotaCode]-len(vpcs)-requiredVPCs < 0 {
+				additionalQuotaRequired := len(vpcs) + requiredVPCs - quotaCodeToValueMap[_vpcQuotaCode]
+				return ErrorVPCLimitExceeded(quotaCodeToValueMap[_vpcQuotaCode], additionalQuotaRequired, c.Region)
+			}
 		}
 	}
 
@@ -316,7 +320,7 @@ func (c *Client) VerifyNetworkQuotas(
 	}
 
 	// check rules quota for control plane SG
-	requiredRulesForCPSG := requiredRulesForControlPlaneSecurityGroup(numNodeGroups)
+	requiredRulesForCPSG := requiredRulesForControlPlaneSecurityGroup(numNodeGroups, clusterAlreadyExists)
 	if requiredRulesForCPSG > quotaCodeToValueMap[_securityGroupRulesQuotaCode] {
 		additionalQuotaRequired := requiredRulesForCPSG - quotaCodeToValueMap[_securityGroupRulesQuotaCode]
 		return ErrorSecurityGroupRulesExceeded(quotaCodeToValueMap[_securityGroupRulesQuotaCode], additionalQuotaRequired, c.Region)
@@ -337,6 +341,13 @@ func (c *Client) VerifyNetworkQuotas(
 	return nil
 }
 
+func (c *Client) VerifyNetworkQuotasOnNodeGroupsAddition(
+	availabilityZones strset.Set,
+	numNodeGroups int,
+	longestCIDRWhiteList int) error {
+	return c.VerifyNetworkQuotas(0, false, false, 0, availabilityZones, numNodeGroups, longestCIDRWhiteList, true)
+}
+
 func requiredRulesForNodeGroupSecurityGroup(numAZs, whitelistLength int) int {
 	whitelistRuleCount := 0
 	if whitelistLength == 1 {
@@ -344,10 +355,15 @@ func requiredRulesForNodeGroupSecurityGroup(numAZs, whitelistLength int) int {
 	} else if whitelistLength > 1 {
 		whitelistRuleCount = 1 + 5*(whitelistLength-1)
 	}
+
 	return _baseInboundRulesForNodeGroup + numAZs*_inboundRulesPerAZ + whitelistRuleCount
 }
 
-func requiredRulesForControlPlaneSecurityGroup(numNodeGroups int) int {
+func requiredRulesForControlPlaneSecurityGroup(numNodeGroups int, clusterAlreadyExists bool) int {
+	if clusterAlreadyExists {
+		return 2 * numNodeGroups
+	}
+
 	// +1 for the operator node group
 	// this is the number of outbound rules (there are half as many inbound rules, so that is not the limiting factor)
 	return 2 * (numNodeGroups + 1)

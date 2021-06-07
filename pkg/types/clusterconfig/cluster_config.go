@@ -38,6 +38,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	"github.com/cortexlabs/cortex/pkg/lib/slices"
+	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/yaml"
 )
 
@@ -494,126 +495,8 @@ var ManagedConfigStructFieldValidations = []*cr.StructFieldValidation{
 	{
 		StructField: "NodeGroups",
 		StructListValidation: &cr.StructListValidation{
-			Required: true,
-			StructValidation: &cr.StructValidation{
-				StructFieldValidations: []*cr.StructFieldValidation{
-					{
-						StructField: "Name",
-						StringValidation: &cr.StringValidation{
-							Required:                   true,
-							AlphaNumericDashUnderscore: true,
-							MaxLength:                  _maxNodeGroupLength,
-						},
-					},
-					{
-						StructField: "InstanceType",
-						StringValidation: &cr.StringValidation{
-							Required:  true,
-							MinLength: 1,
-							Validator: validateInstanceType,
-						},
-					},
-					{
-						StructField: "MinInstances",
-						Int64Validation: &cr.Int64Validation{
-							Default:              int64(1),
-							GreaterThanOrEqualTo: pointer.Int64(0),
-						},
-					},
-					{
-						StructField: "MaxInstances",
-						Int64Validation: &cr.Int64Validation{
-							Default:              int64(5),
-							GreaterThanOrEqualTo: pointer.Int64(0), // this will be validated to be > 0 during cluster up (can be scaled down later)
-						},
-					},
-					{
-						StructField: "InstanceVolumeSize",
-						Int64Validation: &cr.Int64Validation{
-							Default:              50,
-							GreaterThanOrEqualTo: pointer.Int64(20), // large enough to fit docker images and any other overhead
-							LessThanOrEqualTo:    pointer.Int64(16384),
-						},
-					},
-					{
-						StructField: "InstanceVolumeType",
-						StringValidation: &cr.StringValidation{
-							AllowedValues: VolumeTypesStrings(),
-							Default:       GP3VolumeType.String(),
-						},
-						Parser: func(str string) (interface{}, error) {
-							return VolumeTypeFromString(str), nil
-						},
-					},
-					{
-						StructField: "InstanceVolumeIOPS",
-						Int64PtrValidation: &cr.Int64PtrValidation{
-							AllowExplicitNull: true,
-						},
-					},
-					{
-						StructField: "InstanceVolumeThroughput",
-						Int64PtrValidation: &cr.Int64PtrValidation{
-							GreaterThanOrEqualTo: pointer.Int64(125),
-							LessThanOrEqualTo:    pointer.Int64(1000),
-							AllowExplicitNull:    true,
-						},
-					},
-					{
-						StructField: "Spot",
-						BoolValidation: &cr.BoolValidation{
-							Default: false,
-						},
-					},
-					{
-						StructField: "SpotConfig",
-						StructValidation: &cr.StructValidation{
-							DefaultNil:        true,
-							AllowExplicitNull: true,
-							StructFieldValidations: []*cr.StructFieldValidation{
-								{
-									StructField: "InstanceDistribution",
-									StringListValidation: &cr.StringListValidation{
-										DisallowDups:      true,
-										Validator:         validateInstanceDistribution,
-										AllowExplicitNull: true,
-									},
-								},
-								{
-									StructField: "OnDemandBaseCapacity",
-									Int64PtrValidation: &cr.Int64PtrValidation{
-										GreaterThanOrEqualTo: pointer.Int64(0),
-										AllowExplicitNull:    true,
-									},
-								},
-								{
-									StructField: "OnDemandPercentageAboveBaseCapacity",
-									Int64PtrValidation: &cr.Int64PtrValidation{
-										GreaterThanOrEqualTo: pointer.Int64(0),
-										LessThanOrEqualTo:    pointer.Int64(100),
-										AllowExplicitNull:    true,
-									},
-								},
-								{
-									StructField: "MaxPrice",
-									Float64PtrValidation: &cr.Float64PtrValidation{
-										GreaterThan:       pointer.Float64(0),
-										AllowExplicitNull: true,
-									},
-								},
-								{
-									StructField: "InstancePools",
-									Int64PtrValidation: &cr.Int64PtrValidation{
-										GreaterThanOrEqualTo: pointer.Int64(1),
-										LessThanOrEqualTo:    pointer.Int64(int64(_maxInstancePools)),
-										AllowExplicitNull:    true,
-									},
-								},
-							},
-						},
-					},
-				},
-			},
+			Required:         true,
+			StructValidation: nodeGroupsFieldValidation(),
 		},
 	},
 	{
@@ -786,6 +669,128 @@ var ManagedConfigStructFieldValidations = []*cr.StructFieldValidation{
 	},
 }
 
+func nodeGroupsFieldValidation() *cr.StructValidation {
+	return &cr.StructValidation{
+		StructFieldValidations: []*cr.StructFieldValidation{
+			{
+				StructField: "Name",
+				StringValidation: &cr.StringValidation{
+					Required:                   true,
+					AlphaNumericDashUnderscore: true,
+					MaxLength:                  _maxNodeGroupLength,
+				},
+			},
+			{
+				StructField: "InstanceType",
+				StringValidation: &cr.StringValidation{
+					Required:  true,
+					MinLength: 1,
+					Validator: validateInstanceType,
+				},
+			},
+			{
+				StructField: "MinInstances",
+				Int64Validation: &cr.Int64Validation{
+					Default:              int64(1),
+					GreaterThanOrEqualTo: pointer.Int64(0),
+				},
+			},
+			{
+				StructField: "MaxInstances",
+				Int64Validation: &cr.Int64Validation{
+					Default:              int64(5),
+					GreaterThanOrEqualTo: pointer.Int64(0), // this will be validated to be > 0 during cluster up (can be scaled down later)
+				},
+			},
+			{
+				StructField: "InstanceVolumeSize",
+				Int64Validation: &cr.Int64Validation{
+					Default:              50,
+					GreaterThanOrEqualTo: pointer.Int64(20), // large enough to fit docker images and any other overhead
+					LessThanOrEqualTo:    pointer.Int64(16384),
+				},
+			},
+			{
+				StructField: "InstanceVolumeType",
+				StringValidation: &cr.StringValidation{
+					AllowedValues: VolumeTypesStrings(),
+					Default:       GP3VolumeType.String(),
+				},
+				Parser: func(str string) (interface{}, error) {
+					return VolumeTypeFromString(str), nil
+				},
+			},
+			{
+				StructField: "InstanceVolumeIOPS",
+				Int64PtrValidation: &cr.Int64PtrValidation{
+					AllowExplicitNull: true,
+				},
+			},
+			{
+				StructField: "InstanceVolumeThroughput",
+				Int64PtrValidation: &cr.Int64PtrValidation{
+					GreaterThanOrEqualTo: pointer.Int64(125),
+					LessThanOrEqualTo:    pointer.Int64(1000),
+					AllowExplicitNull:    true,
+				},
+			},
+			{
+				StructField: "Spot",
+				BoolValidation: &cr.BoolValidation{
+					Default: false,
+				},
+			},
+			{
+				StructField: "SpotConfig",
+				StructValidation: &cr.StructValidation{
+					DefaultNil:        true,
+					AllowExplicitNull: true,
+					StructFieldValidations: []*cr.StructFieldValidation{
+						{
+							StructField: "InstanceDistribution",
+							StringListValidation: &cr.StringListValidation{
+								DisallowDups:      true,
+								Validator:         validateInstanceDistribution,
+								AllowExplicitNull: true,
+							},
+						},
+						{
+							StructField: "OnDemandBaseCapacity",
+							Int64PtrValidation: &cr.Int64PtrValidation{
+								GreaterThanOrEqualTo: pointer.Int64(0),
+								AllowExplicitNull:    true,
+							},
+						},
+						{
+							StructField: "OnDemandPercentageAboveBaseCapacity",
+							Int64PtrValidation: &cr.Int64PtrValidation{
+								GreaterThanOrEqualTo: pointer.Int64(0),
+								LessThanOrEqualTo:    pointer.Int64(100),
+								AllowExplicitNull:    true,
+							},
+						},
+						{
+							StructField: "MaxPrice",
+							Float64PtrValidation: &cr.Float64PtrValidation{
+								GreaterThan:       pointer.Float64(0),
+								AllowExplicitNull: true,
+							},
+						},
+						{
+							StructField: "InstancePools",
+							Int64PtrValidation: &cr.Int64PtrValidation{
+								GreaterThanOrEqualTo: pointer.Int64(1),
+								LessThanOrEqualTo:    pointer.Int64(int64(_maxInstancePools)),
+								AllowExplicitNull:    true,
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+}
+
 func CoreConfigValidations(allowExtraFields bool) *cr.StructValidation {
 	return &cr.StructValidation{
 		Required:               true,
@@ -836,6 +841,8 @@ var AccessValidation = &cr.StructValidation{
 		},
 	},
 }
+
+var NodeGroupsValidation = nodeGroupsFieldValidation()
 
 func (cc *Config) ToAccessConfig() AccessConfig {
 	return AccessConfig{
@@ -1000,7 +1007,67 @@ func (cc *Config) Validate(awsClient *aws.Client) error {
 		requiredVPCs = 1
 	}
 	longestCIDRWhiteList := libmath.MaxInt(len(cc.APILoadBalancerCIDRWhiteList), len(cc.OperatorLoadBalancerCIDRWhiteList))
-	if err := awsClient.VerifyNetworkQuotas(1, cc.NATGateway != NoneNATGateway, cc.NATGateway == HighlyAvailableNATGateway, requiredVPCs, strset.FromSlice(cc.AvailabilityZones), len(cc.NodeGroups), longestCIDRWhiteList); err != nil {
+	if err := awsClient.VerifyNetworkQuotas(1, cc.NATGateway != NoneNATGateway, cc.NATGateway == HighlyAvailableNATGateway, requiredVPCs, strset.FromSlice(cc.AvailabilityZones), len(cc.NodeGroups), longestCIDRWhiteList, false); err != nil {
+		// Skip AWS errors, since some regions (e.g. eu-north-1) do not support this API
+		if !aws.IsAWSError(err) {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func ValidateNewNodeGroups(awsClient *aws.Client, cc Config, newNodeGroups []*NodeGroup) error {
+	fmt.Print("verifying your configuration ...\n\n")
+
+	numExistingNodeGroups := len(cc.NodeGroups)
+	numNewNodeGroups := len(newNodeGroups)
+	if numNewNodeGroups == 0 {
+		return ErrorNoNodeGroupSpecified()
+	}
+	if numExistingNodeGroups+numNewNodeGroups > MaxNodePoolsOrGroups {
+		return ErrorMaxNumOfNodeGroupsReached(MaxNodePoolsOrGroups)
+	}
+
+	err := checkNodeGroupsCollision(cc.NodeGroups, newNodeGroups)
+	if err != nil {
+		return err
+	}
+
+	newNgNames := []string{}
+	newInstances := []aws.InstanceTypeRequests{}
+	for i, nodeGroup := range cc.NodeGroups {
+		// setting max_instances to 0 during node group creation is not permitted (but scaling max_instances to 0 afterwards is allowed)
+		if nodeGroup.MaxInstances == 0 {
+			return errors.Wrap(ErrorNodeGroupMaxInstancesIsZero(), s.Index(i), nodeGroup.Name)
+		}
+		if !slices.HasString(newNgNames, nodeGroup.Name) {
+			newNgNames = append(newNgNames, nodeGroup.Name)
+		} else {
+			return errors.Wrap(ErrorDuplicateNodeGroupName(nodeGroup.Name), s.Index(i))
+		}
+
+		err := nodeGroup.validateNodeGroup(awsClient, cc.Region)
+		if err != nil {
+			return errors.Wrap(err, s.Index(i), nodeGroup.Name)
+		}
+
+		newInstances = append(newInstances, aws.InstanceTypeRequests{
+			InstanceType:              nodeGroup.InstanceType,
+			RequiredOnDemandInstances: nodeGroup.MaxPossibleOnDemandInstances(),
+			RequiredSpotInstances:     nodeGroup.MaxPossibleSpotInstances(),
+		})
+	}
+
+	if err := awsClient.VerifyInstanceQuota(newInstances); err != nil {
+		// Skip AWS errors, since some regions (e.g. eu-north-1) do not support this API
+		if !aws.IsAWSError(err) {
+			return err
+		}
+	}
+
+	longestCIDRWhiteList := libmath.MaxInt(len(cc.APILoadBalancerCIDRWhiteList), len(cc.OperatorLoadBalancerCIDRWhiteList))
+	if err := awsClient.VerifyNetworkQuotasOnNodeGroupsAddition(strset.FromSlice(cc.AvailabilityZones), len(newNodeGroups), longestCIDRWhiteList); err != nil {
 		// Skip AWS errors, since some regions (e.g. eu-north-1) do not support this API
 		if !aws.IsAWSError(err) {
 			return err
@@ -1111,6 +1178,30 @@ func (ng *NodeGroup) validateNodeGroup(awsClient *aws.Client, region string) err
 		if ng.SpotConfig != nil {
 			return ErrorConfiguredWhenSpotIsNotEnabled(SpotConfigKey)
 		}
+	}
+
+	return nil
+}
+
+func checkNodeGroupsCollision(a1 []*NodeGroup, a2 []*NodeGroup) error {
+	a1Names := strset.New()
+	a2Names := strset.New()
+
+	for _, ng := range a1 {
+		if ng != nil {
+			a1Names.Add(ng.Name)
+		}
+	}
+
+	for _, ng := range a2 {
+		if ng != nil {
+			a2Names.Add(ng.Name)
+		}
+	}
+
+	intersection := strset.Intersection(a1Names, a2Names)
+	if len(intersection) > 0 {
+		return ErrorNodeGroupsAlreadyExist(intersection.Slice()...)
 	}
 
 	return nil

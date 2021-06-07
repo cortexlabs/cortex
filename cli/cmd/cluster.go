@@ -92,6 +92,12 @@ func clusterInit() {
 	_clusterScaleCmd.Flags().BoolVarP(&_flagClusterDisallowPrompt, "yes", "y", false, "skip prompts")
 	_clusterCmd.AddCommand(_clusterScaleCmd)
 
+	_clusterAddNodegroupsCmd.Flags().SortFlags = false
+	addClusterNameFlag(_clusterAddNodegroupsCmd)
+	addClusterRegionFlag(_clusterAddNodegroupsCmd)
+	_clusterAddNodegroupsCmd.Flags().BoolVarP(&_flagClusterDisallowPrompt, "yes", "y", false, "skip prompts")
+	_clusterCmd.AddCommand(_clusterAddNodegroupsCmd)
+
 	_clusterDownCmd.Flags().SortFlags = false
 	addClusterConfigFlag(_clusterDownCmd)
 	addClusterNameFlag(_clusterDownCmd)
@@ -318,7 +324,7 @@ var _clusterScaleCmd = &cobra.Command{
 	Short: "update the min/max instances for a nodegroup",
 	Args:  cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
-		telemetry.Event("cli.cluster.configure")
+		telemetry.Event("cli.cluster.scale")
 
 		var scaleMinIntances, scaleMaxInstances *int64
 		if wasFlagProvided(cmd, "min-instances") {
@@ -355,7 +361,7 @@ var _clusterScaleCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
-		clusterConfig := refreshCachedClusterConfig(*awsClient, accessConfig, true)
+		clusterConfig := refreshCachedClusterConfig(awsClient, accessConfig, true)
 		clusterConfig, ngIndex, err := updateNodeGroupScale(clusterConfig, _flagClusterScaleNodeGroup, scaleMinIntances, scaleMaxInstances, _flagClusterDisallowPrompt)
 		if err != nil {
 			exit.Error(err)
@@ -374,6 +380,43 @@ var _clusterScaleCmd = &cobra.Command{
 			helpStr += fmt.Sprintf("\n* if your cluster was unable to provision instances, additional error information may be found in the activity history of your cluster's autoscaling groups (select each autoscaling group and click the  \"Activity\" or \"Activity History\" tab): https://console.aws.amazon.com/ec2/autoscaling/home?region=%s#AutoScalingGroups:", clusterConfig.Region)
 			fmt.Println(helpStr)
 			exit.Error(ErrorClusterScale(out + helpStr))
+		}
+	},
+}
+
+var _clusterAddNodegroupsCmd = &cobra.Command{
+	Use:   "add-nodegroups NODEGROUPS_CONFIG_FILE",
+	Short: "add nodegroups to the cluster",
+	Args:  cobra.ExactArgs(1),
+	Run: func(cmd *cobra.Command, args []string) {
+		telemetry.Event("cli.cluster.addnodegroups")
+
+		nodeGroupsConfigFile := args[0]
+
+		if _, err := docker.GetDockerClient(); err != nil {
+			exit.Error(err)
+		}
+
+		accessConfig, err := getClusterAccessConfigWithCache()
+		if err != nil {
+			exit.Error(err)
+		}
+
+		awsClient, err := newAWSClient(accessConfig.Region, _flagOutput == flags.PrettyOutputType)
+		if err != nil {
+			exit.Error(err)
+		}
+
+		nodeGroups, err := getNodeGroupsConfig(awsClient, nodeGroupsConfigFile)
+		if err != nil {
+			exit.Error(err)
+		}
+
+		clusterConfig := refreshCachedClusterConfig(awsClient, accessConfig, true)
+
+		err = clusterconfig.ValidateNewNodeGroups(awsClient, clusterConfig, nodeGroups)
+		if err != nil {
+			exit.Error(err)
 		}
 	},
 }
@@ -747,7 +790,7 @@ func cmdInfo(awsClient *aws.Client, accessConfig *clusterconfig.AccessConfig, ou
 		}
 	}
 
-	clusterConfig := refreshCachedClusterConfig(*awsClient, accessConfig, outputType == flags.PrettyOutputType)
+	clusterConfig := refreshCachedClusterConfig(awsClient, accessConfig, outputType == flags.PrettyOutputType)
 
 	operatorLoadBalancer, err := getLoadBalancer(accessConfig.ClusterName, OperatorLoadBalancer, awsClient)
 	if err != nil {
@@ -1066,7 +1109,7 @@ func cmdDebug(awsClient *aws.Client, accessConfig *clusterconfig.AccessConfig) {
 	return
 }
 
-func refreshCachedClusterConfig(awsClient aws.Client, accessConfig *clusterconfig.AccessConfig, printToStdout bool) clusterconfig.Config {
+func refreshCachedClusterConfig(awsClient *aws.Client, accessConfig *clusterconfig.AccessConfig, printToStdout bool) clusterconfig.Config {
 	// add empty file if cached cluster doesn't exist so that the file output by manager container maintains current user permissions
 	cachedClusterConfigPath := cachedClusterConfigPath(accessConfig.ClusterName, accessConfig.Region)
 	containerConfigPath := fmt.Sprintf("/out/%s", filepath.Base(cachedClusterConfigPath))
@@ -1081,7 +1124,7 @@ func refreshCachedClusterConfig(awsClient aws.Client, accessConfig *clusterconfi
 	if printToStdout {
 		fmt.Print("syncing cluster configuration ...\n\n")
 	}
-	out, exitCode, err := runManagerAccessCommand("/root/refresh.sh "+containerConfigPath, *accessConfig, &awsClient, nil, copyFromPaths)
+	out, exitCode, err := runManagerAccessCommand("/root/refresh.sh "+containerConfigPath, *accessConfig, awsClient, nil, copyFromPaths)
 	if err != nil {
 		exit.Error(err)
 	}
