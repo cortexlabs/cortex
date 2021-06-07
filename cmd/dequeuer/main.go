@@ -141,6 +141,11 @@ func main() {
 		exit(log, err, "unable to initialize metrics client")
 	}
 
+	adminHandler := http.NewServeMux()
+	adminHandler.Handle("/healthz", dequeuer.HealthcheckHandler(func() bool {
+		return probe.AreProbesHealthy(probes)
+	}))
+
 	var dequeuerConfig dequeuer.SQSDequeuerConfig
 	var messageHandler dequeuer.MessageHandler
 
@@ -177,23 +182,21 @@ func main() {
 			TargetURL:  targetURL,
 		}
 
-		messageHandler = dequeuer.NewAsyncMessageHandler(config, awsClient, log)
+		asyncStatsReporter := dequeuer.NewAsyncPrometheusStatsReporter()
+		messageHandler = dequeuer.NewAsyncMessageHandler(config, awsClient, asyncStatsReporter, log)
 		dequeuerConfig = dequeuer.SQSDequeuerConfig{
 			Region:           clusterConfig.Region,
 			QueueURL:         queueURL,
 			StopIfNoMessages: false,
 		}
 
+		// report prometheus metrics for async api kinds
+		adminHandler.Handle("/metrics", asyncStatsReporter)
 	default:
 		exit(log, err, fmt.Sprintf("kind %s is not supported", apiKind))
 	}
 
 	errCh := make(chan error)
-
-	adminHandler := http.NewServeMux()
-	adminHandler.Handle("/healthz", dequeuer.HealthcheckHandler(func() bool {
-		return probe.AreProbesHealthy(probes)
-	}))
 
 	go func() {
 		server := &http.Server{
@@ -219,12 +222,16 @@ func main() {
 		})
 	}()
 
-	for _, probe := range probes {
-		stopper := probe.StartProbing()
-		defer func() {
-			stopper <- struct{}{}
-		}()
+	var stopChs []chan struct{}
+	for _, p := range probes {
+		stopChs = append(stopChs, p.StartProbing())
 	}
+
+	defer func() {
+		for _, stopCh := range stopChs {
+			stopCh <- struct{}{}
+		}
+	}()
 
 	select {
 	case err = <-errCh:
