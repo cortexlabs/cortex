@@ -19,8 +19,6 @@ package dequeuer
 import "time"
 
 type RequestEvent struct {
-	Route      string
-	Method     string
 	StatusCode int
 	Duration   time.Duration
 }
