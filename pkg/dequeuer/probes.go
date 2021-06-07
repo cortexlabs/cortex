@@ -35,7 +35,7 @@ func ProbesFromFile(probesPath string, logger *zap.SugaredLogger) ([]*probe.Prob
 		return nil, err
 	}
 
-	probesSlice := []*probe.Probe{}
+	var probesSlice []*probe.Probe
 	for _, p := range probesMap {
 		auxProbe := p
 		probesSlice = append(probesSlice, probe.NewProbe(&auxProbe, logger))
@@ -44,11 +44,11 @@ func ProbesFromFile(probesPath string, logger *zap.SugaredLogger) ([]*probe.Prob
 }
 
 func HasTCPProbeTargetingUserPod(probes []*probe.Probe, userPort int) bool {
-	for _, probe := range probes {
-		if probe == nil {
+	for _, pb := range probes {
+		if pb == nil {
 			continue
 		}
-		if probe.Handler.TCPSocket != nil && probe.Handler.TCPSocket.Port.IntValue() == userPort {
+		if pb.Handler.TCPSocket != nil && pb.Handler.TCPSocket.Port.IntValue() == userPort {
 			return true
 		}
 	}
