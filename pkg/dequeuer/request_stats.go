@@ -16,20 +16,29 @@ limitations under the License.
 
 package dequeuer
 
-import "github.com/aws/aws-sdk-go/service/sqs"
+import "time"
 
-type MessageHandler interface {
-	Handle(*sqs.Message) error
+type RequestEvent struct {
+	Route      string
+	Method     string
+	StatusCode int
+	Duration   time.Duration
 }
 
-func NewMessageHandlerFunc(handleFunc func(*sqs.Message) error) MessageHandler {
-	return &messageHandlerFunc{HandleFunc: handleFunc}
+type RequestEventHandler interface {
+	HandleEvent(event RequestEvent)
 }
 
-type messageHandlerFunc struct {
-	HandleFunc func(message *sqs.Message) error
+type requestEventHandlerFunc struct {
+	HandleFunc func(event RequestEvent)
 }
 
-func (h *messageHandlerFunc) Handle(msg *sqs.Message) error {
-	return h.HandleFunc(msg)
+func (h *requestEventHandlerFunc) HandleEvent(event RequestEvent) {
+	h.HandleFunc(event)
+}
+
+func NewRequestEventHandlerFunc(handleFunc func(event RequestEvent)) RequestEventHandler {
+	return &requestEventHandlerFunc{
+		HandleFunc: handleFunc,
+	}
 }
