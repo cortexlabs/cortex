@@ -140,6 +140,8 @@ The `<SMTP-HOST>` varies from provider to provider (e.g. Gmail's is `smtp.gmail.
 
 Edit Grafana's statefulset by running `kubectl edit statefulset grafana` (this will open a code editor). Inside the container named `grafana` (in the `containers` section), add an `envFrom` section that will mount the SMTP secret. Here is an example of what it looks like after the addition:
 
+<!-- CORTEX_VERSION_README -->
+
 ```yaml
 # ...
 containers:
@@ -153,7 +155,7 @@ containers:
   envFrom:
     - secretRef:
         name: grafana-smtp
-  image: quay.io/cortexlabs/grafana:0.35
+  image: quay.io/cortexlabs/grafana:0.35.0
   imagePullPolicy: IfNotPresent
   name: grafana
 # ...
