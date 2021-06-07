@@ -439,7 +439,6 @@ var _clusterDownCmd = &cobra.Command{
 		bucketName := clusterconfig.BucketName(accountID, accessConfig.ClusterName, accessConfig.Region)
 
 		warnIfNotAdmin(awsClient)
-		fmt.Println()
 
 		errorsList := []error{}
 
