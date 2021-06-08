@@ -11,7 +11,7 @@ from typing import List
 app = FastAPI()
 
 @app.post("/")
-def process_batch(batch: List[int]):
+def handle_batch(batch: List[int]):
     print(batch)
 
 @app.post("/on-job-complete")
