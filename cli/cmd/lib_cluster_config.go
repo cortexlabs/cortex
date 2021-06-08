@@ -270,7 +270,6 @@ func confirmNodeGroupConfig(nodeGroup clusterconfig.NodeGroup, clusterConfig clu
 		{Title: "aws resource"},
 		{Title: "cost per hour"},
 	}
-	var rows [][]interface{}
 
 	apiInstancePrice := aws.InstanceMetadatas[clusterConfig.Region][nodeGroup.InstanceType].Price
 	apiEBSPrice := aws.EBSMetadatas[clusterConfig.Region][nodeGroup.InstanceVolumeType.String()].PriceGB * float64(nodeGroup.InstanceVolumeSize) / 30 / 24
@@ -285,17 +284,9 @@ func confirmNodeGroupConfig(nodeGroup clusterconfig.NodeGroup, clusterConfig clu
 	nodeGroupMinPrice := float64(nodeGroup.MinInstances) * (apiInstancePrice + apiEBSPrice)
 	nodeGroupMaxPrice := float64(nodeGroup.MaxInstances) * (apiInstancePrice + apiEBSPrice)
 
-	instanceStr := "instances"
-	volumeStr := "volumes"
-	if nodeGroup.MinInstances == 1 && nodeGroup.MaxInstances == 1 {
-		instanceStr = "instance"
-		volumeStr = "volume"
-	}
-	workerInstanceStr := fmt.Sprintf("nodegroup %s: %d - %d %s %s for your apis", nodeGroup.Name, nodeGroup.MinInstances, nodeGroup.MaxInstances, nodeGroup.InstanceType, instanceStr)
-	ebsInstanceStr := fmt.Sprintf("nodegroup %s: %d - %d %dgb ebs %s for your apis", nodeGroup.Name, nodeGroup.MinInstances, nodeGroup.MaxInstances, nodeGroup.InstanceVolumeSize, volumeStr)
+	workerInstanceStr := fmt.Sprintf("nodegroup %s: %d-%d %s instances", nodeGroup.Name, nodeGroup.MinInstances, nodeGroup.MaxInstances, nodeGroup.InstanceType)
 	if nodeGroup.MinInstances == nodeGroup.MaxInstances {
-		workerInstanceStr = fmt.Sprintf("nodegroup %s: %d %s %s for your apis", nodeGroup.Name, nodeGroup.MinInstances, nodeGroup.InstanceType, instanceStr)
-		ebsInstanceStr = fmt.Sprintf("nodegroup %s:%d %dgb ebs %s for your apis", nodeGroup.Name, nodeGroup.MinInstances, nodeGroup.InstanceVolumeSize, volumeStr)
+		workerInstanceStr = fmt.Sprintf("nodegroup %s: %d %s %s", nodeGroup.Name, nodeGroup.MinInstances, nodeGroup.InstanceType, s.PluralS("instance", nodeGroup.MinInstances))
 	}
 
 	workerPriceStr := s.DollarsMaxPrecision(apiInstancePrice) + " each"
@@ -308,12 +299,11 @@ func confirmNodeGroupConfig(nodeGroup clusterconfig.NodeGroup, clusterConfig clu
 		}
 	}
 
-	rows = append(rows, []interface{}{workerInstanceStr, workerPriceStr})
-	rows = append(rows, []interface{}{ebsInstanceStr, s.DollarsAndTenthsOfCents(apiEBSPrice) + " each"})
-
 	items := table.Table{
 		Headers: headers,
-		Rows:    rows,
+		Rows: [][]interface{}{
+			{workerInstanceStr, workerPriceStr},
+		},
 	}
 	fmt.Println(items.MustFormat(&table.Opts{Sort: pointer.Bool(false)}))
 
