@@ -32,3 +32,7 @@ Cortex uses a collection of containers, referred to as a pod, as the atomic unit
 * Task
 
 Visit the workload-specific documentation for more details.
+
+## Architecture Diagram
+
+![cluster](https://user-images.githubusercontent.com/4365343/121231768-ce62e200-c85e-11eb-84b1-3d5d4b999c12.png)
