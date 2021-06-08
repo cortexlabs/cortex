@@ -6,12 +6,16 @@
 # main.py
 
 from fastapi import FastAPI
+from pydantic import BaseModel
 
 app = FastAPI()
 
-@app.get("/")
-def hello_world():
-    return {"msg": "hello world"}
+class Data(BaseModel):
+    msg: str
+
+@app.post("/")
+def handle_post(data: Data):
+    return data
 ```
 
 ### Create a `Dockerfile`
@@ -20,6 +24,7 @@ def hello_world():
 FROM python:3.8-slim
 
 RUN pip install --no-cache-dir fastapi uvicorn
+
 COPY main.py /
 
 CMD uvicorn --host 0.0.0.0 --port 8080 main:app
@@ -28,19 +33,19 @@ CMD uvicorn --host 0.0.0.0 --port 8080 main:app
 ### Build an image
 
 ```bash
-docker build . --tag hello-world
+docker build . -t hello-world
 ```
 
 ### Run a container locally
 
 ```bash
-docker run --port 8080:8080 hello-world
+docker run -p 8080:8080 hello-world
 ```
 
 ### Make a request
 
 ```bash
-curl --request POST localhost:8080
+curl -X POST -H "Content-Type: application/json" -d '{"msg": "hello world"}' localhost:8080
 ```
 
 ### Login to ECR
@@ -101,5 +106,5 @@ cortex get hello-world
 ### Make a request
 
 ```bash
-curl --request POST http://***.amazonaws.com/hello-world
+curl -X POST -H "Content-Type: application/json" -d '{"msg": "hello world"}' http://***.amazonaws.com/hello-world
 ```
