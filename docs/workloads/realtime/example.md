@@ -6,12 +6,16 @@
 # main.py
 
 from fastapi import FastAPI
+from pydantic import BaseModel
 
 app = FastAPI()
 
-@app.get("/")
-def hello_world():
-    return {"msg": "hello world"}
+class Data(BaseModel):
+    msg: str
+
+@app.post("/")
+def realtime(data: Data):
+    return data
 ```
 
 ### Create a `Dockerfile`
@@ -20,6 +24,7 @@ def hello_world():
 FROM python:3.8-slim
 
 RUN pip install --no-cache-dir fastapi uvicorn
+
 COPY main.py /
 
 CMD uvicorn --host 0.0.0.0 --port 8080 main:app
@@ -28,19 +33,19 @@ CMD uvicorn --host 0.0.0.0 --port 8080 main:app
 ### Build an image
 
 ```bash
-docker build . --tag hello-world
+docker build . -t realtime
 ```
 
 ### Run a container locally
 
 ```bash
-docker run --port 8080:8080 hello-world
+docker run -p 8080:8080 realtime
 ```
 
 ### Make a request
 
 ```bash
-curl --request POST localhost:8080
+curl -X POST -H "Content-Type: application/json" -d '{"msg": "hello world"}' localhost:8080
 ```
 
 ### Login to ECR
@@ -52,19 +57,19 @@ aws ecr get-login-password --region us-east-1 | docker login --username AWS --pa
 ### Create a repository
 
 ```bash
-aws ecr create-repository --repository-name hello-world
+aws ecr create-repository --repository-name realtime
 ```
 
 ### Tag the image
 
 ```bash
-docker tag hello-world <AWS_ACCOUNT_ID>.dkr.ecr.us-east-1.amazonaws.com/hello-world
+docker tag realtime <AWS_ACCOUNT_ID>.dkr.ecr.us-east-1.amazonaws.com/realtime
 ```
 
 ### Push the image
 
 ```bash
-docker push <AWS_ACCOUNT_ID>.dkr.ecr.us-east-1.amazonaws.com/hello-world
+docker push <AWS_ACCOUNT_ID>.dkr.ecr.us-east-1.amazonaws.com/realtime
 ```
 
 ### Configure a Cortex deployment
@@ -72,12 +77,12 @@ docker push <AWS_ACCOUNT_ID>.dkr.ecr.us-east-1.amazonaws.com/hello-world
 ```yaml
 # cortex.yaml
 
-- name: hello-world
+- name: realtime
   kind: RealtimeAPI
   pod:
     containers:
     - name: api
-      image: <AWS_ACCOUNT_ID>.dkr.ecr.us-east-1.amazonaws.com/hello-world
+      image: <AWS_ACCOUNT_ID>.dkr.ecr.us-east-1.amazonaws.com/realtime
 ```
 
 ### Create a Cortex deployment
@@ -95,11 +100,11 @@ cortex get --watch
 ### Get the API endpoint
 
 ```bash
-cortex get hello-world
+cortex get realtime
 ```
 
 ### Make a request
 
 ```bash
-curl --request POST http://***.amazonaws.com/hello-world
+curl -X POST -H "Content-Type: application/json" -d '{"msg": "hello world"}' http://***.amazonaws.com/realtime
 ```
