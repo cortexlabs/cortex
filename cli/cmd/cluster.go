@@ -507,7 +507,6 @@ var _clusterDownCmd = &cobra.Command{
 		bucketName := clusterconfig.BucketName(accountID, accessConfig.ClusterName, accessConfig.Region)
 
 		warnIfNotAdmin(awsClient)
-		fmt.Println()
 
 		errorsList := []error{}
 
@@ -964,8 +963,7 @@ func printInfoPricing(infoResponse *schema.InfoResponse, clusterConfig clusterco
 			totalInstancePrice += nodeInfo.Price
 		}
 
-		rows = append(rows, []interface{}{fmt.Sprintf("nodegroup %s: %d (out of %d) %s for your apis", ng.Name, numInstances, ng.MaxInstances, s.PluralS("instance", numInstances)), s.DollarsAndTenthsOfCents(totalInstancePrice) + " total"})
-		rows = append(rows, []interface{}{fmt.Sprintf("nodegroup %s: %d (out of %d) %dgb ebs %s for your apis", ng.Name, numInstances, ng.MaxInstances, ng.InstanceVolumeSize, s.PluralS("volume", numInstances)), s.DollarsAndTenthsOfCents(totalEBSPrice) + " total"})
+		rows = append(rows, []interface{}{fmt.Sprintf("nodegroup %s: %d (out of %d) %s", ng.Name, numInstances, ng.MaxInstances, s.PluralS("instance", numInstances)), s.DollarsAndTenthsOfCents(totalInstancePrice+totalEBSPrice) + " total"})
 
 		totalNodeGroupsPrice += totalEBSPrice + totalInstancePrice
 	}
@@ -979,9 +977,8 @@ func printInfoPricing(infoResponse *schema.InfoResponse, clusterConfig clusterco
 	totalPrice := eksPrice + totalNodeGroupsPrice + 2*(operatorInstancePrice+operatorEBSPrice) + metricsEBSPrice + nlbPrice*2 + natTotalPrice
 	fmt.Printf(console.Bold("\nyour cluster currently costs %s per hour\n\n"), s.DollarsAndCents(totalPrice))
 
-	rows = append(rows, []interface{}{"2 t3.medium instances for cortex", s.DollarsMaxPrecision(operatorInstancePrice * 2)})
-	rows = append(rows, []interface{}{"2 20gb ebs volumes for the operator", s.DollarsAndTenthsOfCents(operatorEBSPrice * 2)})
-	rows = append(rows, []interface{}{"1 40+2gb ebs volumes for metrics (prometheus and grafana)", s.DollarsAndTenthsOfCents(metricsEBSPrice)})
+	operatorPrice := 2*(operatorInstancePrice+operatorEBSPrice) + metricsEBSPrice
+	rows = append(rows, []interface{}{"2 t3.medium instances (cortex system)", s.DollarsAndTenthsOfCents(operatorPrice)})
 	rows = append(rows, []interface{}{"2 network load balancers", s.DollarsMaxPrecision(nlbPrice*2) + " total"})
 
 	if clusterConfig.NATGateway == clusterconfig.SingleNATGateway {

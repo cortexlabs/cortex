@@ -185,40 +185,33 @@ func confirmInstallClusterConfig(clusterConfig *clusterconfig.Config, awsClient 
 			apiEBSPrice += libmath.MaxFloat64(0, (aws.EBSMetadatas[clusterConfig.Region][ng.InstanceVolumeType.String()].PriceThroughput-125)*float64(*ng.InstanceVolumeThroughput)/30/24)
 		}
 
-		totalMinPrice += float64(ng.MinInstances) * (apiInstancePrice + apiEBSPrice)
 		totalMaxPrice += float64(ng.MaxInstances) * (apiInstancePrice + apiEBSPrice)
 
-		instanceStr := "instances"
-		volumeStr := "volumes"
-		if ng.MinInstances == 1 && ng.MaxInstances == 1 {
-			instanceStr = "instance"
-			volumeStr = "volume"
-		}
-		workerInstanceStr := fmt.Sprintf("nodegroup %s: %d - %d %s %s for your apis", ng.Name, ng.MinInstances, ng.MaxInstances, ng.InstanceType, instanceStr)
-		ebsInstanceStr := fmt.Sprintf("nodegroup %s: %d - %d %dgb ebs %s for your apis", ng.Name, ng.MinInstances, ng.MaxInstances, ng.InstanceVolumeSize, volumeStr)
+		workerInstanceStr := fmt.Sprintf("nodegroup %s: %d-%d %s instances", ng.Name, ng.MinInstances, ng.MaxInstances, ng.InstanceType)
 		if ng.MinInstances == ng.MaxInstances {
-			workerInstanceStr = fmt.Sprintf("nodegroup %s: %d %s %s for your apis", ng.Name, ng.MinInstances, ng.InstanceType, instanceStr)
-			ebsInstanceStr = fmt.Sprintf("nodegroup %s:%d %dgb ebs %s for your apis", ng.Name, ng.MinInstances, ng.InstanceVolumeSize, volumeStr)
+			workerInstanceStr = fmt.Sprintf("nodegroup %s: %d %s %s", ng.Name, ng.MinInstances, ng.InstanceType, s.PluralS("instance", ng.MinInstances))
 		}
 
-		workerPriceStr := s.DollarsMaxPrecision(apiInstancePrice) + " each"
+		workerPriceStr := s.DollarsAndTenthsOfCents(apiInstancePrice+apiEBSPrice) + " each"
 		if ng.Spot {
 			ngNameToSpotInstancesUsed[ng.Name]++
 			spotPrice, err := awsClient.SpotInstancePrice(ng.InstanceType)
 			workerPriceStr += " (spot pricing unavailable)"
 			if err == nil && spotPrice != 0 {
-				workerPriceStr = fmt.Sprintf("%s - %s each (varies based on spot price)", s.DollarsMaxPrecision(spotPrice), s.DollarsMaxPrecision(apiInstancePrice))
-				totalMinPrice = fixedPrice + float64(ng.MinInstances)*(spotPrice+apiEBSPrice)
+				workerPriceStr = fmt.Sprintf("%s - %s each (varies based on spot price)", s.DollarsAndTenthsOfCents(spotPrice+apiEBSPrice), s.DollarsAndTenthsOfCents(apiInstancePrice+apiEBSPrice))
+				totalMinPrice += float64(ng.MinInstances) * (spotPrice + apiEBSPrice)
+			} else {
+				totalMinPrice += float64(ng.MinInstances) * (apiInstancePrice + apiEBSPrice)
 			}
+		} else {
+			totalMinPrice += float64(ng.MinInstances) * (apiInstancePrice + apiEBSPrice)
 		}
 
 		rows = append(rows, []interface{}{workerInstanceStr, workerPriceStr})
-		rows = append(rows, []interface{}{ebsInstanceStr, s.DollarsAndTenthsOfCents(apiEBSPrice) + " each"})
 	}
 
-	rows = append(rows, []interface{}{"2 t3.medium instances for cortex", s.DollarsMaxPrecision(operatorInstancePrice * 2)})
-	rows = append(rows, []interface{}{"2 20gb ebs volumes for the operator", s.DollarsAndTenthsOfCents(operatorEBSPrice * 2)})
-	rows = append(rows, []interface{}{"1 40+2gb ebs volumes for metrics (prometheus and grafana)", s.DollarsAndTenthsOfCents(metricsEBSPrice)})
+	operatorPrice := 2*(operatorInstancePrice+operatorEBSPrice) + metricsEBSPrice
+	rows = append(rows, []interface{}{"2 t3.medium instances (cortex system)", s.DollarsAndTenthsOfCents(operatorPrice)})
 	rows = append(rows, []interface{}{"2 network load balancers", s.DollarsMaxPrecision(nlbPrice) + " each"})
 
 	if clusterConfig.NATGateway == clusterconfig.SingleNATGateway {

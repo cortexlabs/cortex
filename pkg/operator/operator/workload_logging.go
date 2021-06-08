@@ -207,13 +207,13 @@ func waitForPodToBeNotPending(podName string, cancelListener chan struct{}, sock
 				return false
 			}
 			if pod == nil {
-				writeAndCloseSocket(socket, "unable to find replica/worker")
+				writeAndCloseSocket(socket, "unable to find pod")
 				return false
 			}
 			podStatus := k8s.GetPodStatus(pod)
 			if podStatus == k8s.PodStatusPending {
 				if !wrotePending {
-					writeString(socket, "waiting for replica/worker to initialize ...\n")
+					writeString(socket, "waiting for pod to initialize ...\n")
 				}
 				wrotePending = true
 				timer.Reset(_pendingPodCheckInterval)
@@ -294,7 +294,7 @@ func StreamLogsFromRandomPod(podSearchLabels map[string]string, socket *websocke
 		return
 	}
 	if len(pods) == 0 {
-		writeAndCloseSocket(socket, "there are currently no replicas/workers running for this api or job; please visit your logging dashboard for historical logs\n")
+		writeAndCloseSocket(socket, "there are currently no pods running for this workload; please visit your logging dashboard for historical logs\n")
 		return
 	}
 

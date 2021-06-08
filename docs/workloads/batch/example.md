@@ -1,142 +1,112 @@
 # BatchAPI
 
-Create APIs that can orchestrate distributed batch inference jobs on large datasets.
+### Define an API
 
-## Implement
+```python
+# main.py
+
+from fastapi import FastAPI
+from typing import List
+
+app = FastAPI()
+
+@app.post("/")
+def handle_batch(batch: List[int]):
+    print(batch)
+
+@app.post("/on-job-complete")
+def on_job_complete():
+    print("done")
+```
+
+### Create a `Dockerfile`
+
+```Dockerfile
+FROM python:3.8-slim
+
+RUN pip install --no-cache-dir fastapi uvicorn
+
+COPY main.py /
+
+CMD uvicorn --host 0.0.0.0 --port 8080 main:app
+```
+
+### Build an image
 
 ```bash
-mkdir image-classifier && cd image-classifier
-touch handler.py requirements.txt image_classifier.yaml
+docker build . -t hello-world
 ```
 
-```python
-# handler.py
+### Run a container locally
 
-class Handler:
-    def __init__(self, config, job_spec):
-        from torchvision import transforms
-        import torchvision
-        import requests
-        import boto3
-        import re
-
-        self.model = torchvision.models.alexnet(pretrained=True).eval()
-        self.labels = requests.get(config["labels"]).text.split("\n")[1:]
-
-        normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
-        self.preprocess = transforms.Compose(
-            [transforms.Resize(256), transforms.CenterCrop(224), transforms.ToTensor(), normalize]
-        )
-
-        self.s3 = boto3.client("s3")  # initialize S3 client to save results
-        self.bucket, self.key = re.match("s3://(.+?)/(.+)", config["dest_s3_dir"]).groups()
-        self.key = os.path.join(self.key, job_spec["job_id"])
-
-    def handle_batch(self, payload, batch_id):
-        import json
-        import torch
-        from PIL import Image
-        from io import BytesIO
-        import requests
-
-        tensor_list = []
-        for image_url in payload:  # download and preprocess each image
-            img_pil = Image.open(BytesIO(requests.get(image_url).content))
-            tensor_list.append(self.preprocess(img_pil))
-
-        img_tensor = torch.stack(tensor_list)
-        with torch.no_grad():  # classify the batch of images
-            prediction = self.model(img_tensor)
-        _, indices = prediction.max(1)
-
-        results = [{"url": payload[i], "class": self.labels[class_idx]} for i, class_idx in enumerate(indices)]
-        self.s3.put_object(Bucket=self.bucket, Key=f"{self.key}/{batch_id}.json", Body=json.dumps(results))
+```bash
+docker run -p 8080:8080 hello-world
 ```
 
-```python
-# requirements.txt
+### Make a request
 
-torch
-boto3
-pillow
-torchvision
-requests
+```bash
+curl -X POST -H "Content-Type: application/json" -d '[1,2,3,4]' localhost:8080
 ```
+
+### Login to ECR
+
+```bash
+aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin <AWS_ACCOUNT_ID>.dkr.ecr.us-east-1.amazonaws.com
+```
+
+### Create a repository
+
+```bash
+aws ecr create-repository --repository-name hello-world
+```
+
+### Tag the image
+
+```bash
+docker tag hello-world <AWS_ACCOUNT_ID>.dkr.ecr.us-east-1.amazonaws.com/hello-world
+```
+
+### Push the image
+
+```bash
+docker push <AWS_ACCOUNT_ID>.dkr.ecr.us-east-1.amazonaws.com/hello-world
+```
+
+### Configure a Cortex deployment
 
 ```yaml
-# image_classifier.yaml
+# cortex.yaml
 
-- name: image-classifier
+- name: hello-world
   kind: BatchAPI
-  handler:
-    type: python
-    path: handler.py
-    config:
-      labels: "https://storage.googleapis.com/download.tensorflow.org/data/ImageNetLabels.txt"
+  pod:
+    containers:
+    - name: api
+      image: <AWS_ACCOUNT_ID>.dkr.ecr.us-east-1.amazonaws.com/hello-world
+      command: ["uvicorn", "--host", "0.0.0.0", "--port", "8080", "main:app"]
 ```
 
-## Deploy
+### Create a Cortex deployment
 
 ```bash
-cortex deploy image_classifier.yaml
+cortex deploy
 ```
 
-## Describe
+### Get the API endpoint
 
 ```bash
-cortex get image-classifier
+cortex get hello-world
 ```
 
-## Submit a job
-
-```python
-import cortex
-import requests
-
-cx = cortex.client("cortex")
-batch_endpoint = cx.get_api("image-classifier")["endpoint"]
-
-dest_s3_dir = # specify S3 directory for the results, e.g. "s3://my-bucket/dir" (make sure your cluster has access to this bucket)
-
-job_spec = {
-    "workers": 1,
-    "item_list": {
-        "items": [
-            "https://i.imgur.com/PzXprwl.jpg",
-            "https://i.imgur.com/E4cOSLw.jpg",
-            "https://i.imgur.com/jDimNTZ.jpg",
-            "https://i.imgur.com/WqeovVj.jpg"
-        ],
-        "batch_size": 2
-    },
-    "config": {
-        "dest_s3_dir": dest_s3_dir
-    }
-}
-
-response = requests.post(batch_endpoint, json=job_spec)
-print(response.text)
-# > {"job_id":"69b183ed6bdf3e9b","api_name":"image-classifier", "config": {"dest_s3_dir": ...}}
-```
-
-## Monitor the job
+### Make a request
 
 ```bash
-cortex get image-classifier 69b183ed6bdf3e9b
+curl -X POST -H "Content-Type: application/json" -d '{"workers": 2, "item_list": {"items": [1,2,3,4], "batch_size": 2}}' http://***.amazonaws.com/hello-world
 ```
 
-## Debugging logs
+### View the logs
 
 ```bash
-cortex logs image-classifier 69b183ed6bdf3e9b
-```
-
-## View the results
-
-Once the job is complete, you should be able to find the results in the directory you've specified.
-
-## Delete
-
-```bash
-cortex delete image-classifier
+cortex logs hello-world <JOB_ID>
 ```

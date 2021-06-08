@@ -35,7 +35,7 @@ Flags:
 ## logs
 
 ```text
-get the logs for an API or a job
+get the logs for a workload
 
 Usage:
   cortex logs API_NAME [JOB_ID] [flags]
@@ -65,7 +65,7 @@ Flags:
 ## delete
 
 ```text
-delete any kind of api or stop a batch job
+delete an api or stop a job
 
 Usage:
   cortex delete API_NAME [JOB_ID] [flags]

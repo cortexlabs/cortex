@@ -21,7 +21,7 @@ cortex cluster up cluster.yaml
 cortex deploy apis.yaml
 ```
 
-* [RealtimeAPI](workloads/realtime/example.md) - create APIs that respond to requests in real-time.
-* [AsyncAPI](workloads/async/example.md) - create APIs that respond to requests asynchronously.
-* [BatchAPI](workloads/batch/example.md) - create APIs that run distributed batch jobs.
-* [TaskAPI](workloads/task/example.md) - create APIs that run jobs on-demand.
+* [Realtime](workloads/realtime/example.md) - create APIs that respond to requests in real-time.
+* [Async](workloads/async/example.md) - create APIs that respond to requests asynchronously.
+* [Batch](workloads/batch/example.md) - create APIs that run distributed batch jobs.
+* [Task](workloads/task/example.md) - create APIs that run jobs on-demand.

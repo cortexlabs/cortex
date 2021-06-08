@@ -1,167 +1,115 @@
 # AsyncAPI
 
-Create APIs that process your workloads asynchronously.
+### Define an API
 
-## Implementation
+```python
+# main.py
 
-Create a folder for your API. In this case, we are deploying an iris-classifier AsyncAPI. This folder will have the
-following structure:
+from fastapi import FastAPI
+from pydantic import BaseModel
 
-```text
-./iris-classifier
-├── cortex.yaml
-├── handler.py
-└── requirements.txt
+app = FastAPI()
+
+class Data(BaseModel):
+    msg: str
+
+@app.post("/")
+def handle_async(data: Data):
+    return data
 ```
 
-We will now create the necessary files:
+### Create a `Dockerfile`
+
+```Dockerfile
+FROM python:3.8-slim
+
+RUN pip install --no-cache-dir fastapi uvicorn
+COPY main.py /
+
+CMD uvicorn --host 0.0.0.0 --port 8080 main:app
+```
+
+### Build an image
 
 ```bash
-mkdir iris-classifier && cd iris-classifier
-touch handler.py requirements.txt cortex.yaml
+docker build . -t hello-world
 ```
 
-```python
-# handler.py
+### Run a container locally
 
-import os
-import pickle
-from typing import Dict, Any
-
-import boto3
-from botocore import UNSIGNED
-from botocore.client import Config
-
-labels = ["setosa", "versicolor", "virginica"]
-
-
-class Handler:
-    def __init__(self, config):
-        s3 = boto3.client("s3")
-        s3.download_file(config["bucket"], config["key"], "/tmp/model.pkl")
-        self.model = pickle.load(open("/tmp/model.pkl", "rb"))
-
-    def handle_async(self, payload: Dict[str, Any]) -> Dict[str, str]:
-        measurements = [
-            payload["sepal_length"],
-            payload["sepal_width"],
-            payload["petal_length"],
-            payload["petal_width"],
-        ]
-
-        label_id = self.model.predict([measurements])[0]
-
-        # result must be json serializable
-        return {"label": labels[label_id]}
+```bash
+docker run -p 8080:8080 hello-world
 ```
 
-```python
-# requirements.txt
+### Make a request
 
-boto3
+```bash
+curl -X POST -H "Content-Type: application/json" -d '{"msg": "hello world"}' localhost:8080
 ```
+
+### Login to ECR
+
+```bash
+aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin <AWS_ACCOUNT_ID>.dkr.ecr.us-east-1.amazonaws.com
+```
+
+### Create a repository
+
+```bash
+aws ecr create-repository --repository-name hello-world
+```
+
+### Tag the image
+
+```bash
+docker tag hello-world <AWS_ACCOUNT_ID>.dkr.ecr.us-east-1.amazonaws.com/hello-world
+```
+
+### Push the image
+
+```bash
+docker push <AWS_ACCOUNT_ID>.dkr.ecr.us-east-1.amazonaws.com/hello-world
+```
+
+### Configure a Cortex deployment
 
 ```yaml
-# text_generator.yaml
+# cortex.yaml
 
-- name: iris-classifier
+- name: hello-world
   kind: AsyncAPI
-  handler:
-    type: python
-    path: handler.py
+  pod:
+    containers:
+    - name: api
+      image: <AWS_ACCOUNT_ID>.dkr.ecr.us-east-1.amazonaws.com/hello-world
 ```
 
-## Deploy
-
-We can now deploy our API with the `cortex deploy` command. This command can be re-run to update your API configuration
-or handler implementation.
+### Create a Cortex deployment
 
 ```bash
-cortex deploy cortex.yaml
-
-# creating iris-classifier (AsyncAPI)
-#
-# cortex get                  (show api statuses)
-# cortex get iris-classifier  (show api info)
+cortex deploy
 ```
 
-## Monitor
-
-To check whether the deployed API is ready, we can run the `cortex get` command with the `--watch` flag.
+### Wait for the API to be ready
 
 ```bash
-cortex get iris-classifier --watch
-
-# status     up-to-date   requested   last update
-# live       1            1           10s
-#
-# endpoint: http://<load_balancer_url>/iris-classifier
-#
-# api id                                                         last deployed
-# 6992e7e8f84469c5-d5w1gbvrm5-25a7c15c950439c0bb32eebb7dc84125   10s
+cortex get --watch
 ```
 
-## Submit a workload
-
-Now we want to submit a workload to our deployed API. We will start by creating a file with a JSON request payload, in
-the format expected by our `iris-classifier` handler implementation.
-
-This is the JSON file we will submit to our iris-classifier API.
+### Get the API endpoint
 
 ```bash
-# sample.json
-{
-    "sepal_length": 5.2,
-    "sepal_width": 3.6,
-    "petal_length": 1.5,
-    "petal_width": 0.3
-}
+cortex get hello-world
 ```
 
-Once we have our sample request payload, we will submit it with a `POST` request to the endpoint URL previously
-displayed in the `cortex get` command. We will quickly get a request `id` back.
+### Make a request
 
 ```bash
-curl -X POST http://<load_balancer_url>/iris-classifier -H "Content-Type: application/json" -d '@./sample.json'
-
-# {"id": "659938d2-2ef6-41f4-8983-4e0b7562a986"}
+curl -X POST -H "Content-Type: application/json" -d '{"msg": "hello world"}' http://***.amazonaws.com/hello-world
 ```
 
-## Retrieve the result
-
-The obtained request id will allow us to check the status of the running payload and retrieve its result. To do so, we
-submit a `GET` request to the same endpoint URL with an appended `/<id>`.
+### Get the response
 
 ```bash
-curl http://<load_balancer_url>/iris-classifier/<id>  # <id> is the request id that was returned in the previous POST request
-
-# {
-#   "id": "659938d2-2ef6-41f4-8983-4e0b7562a986",
-#   "status": "completed",
-#   "result": {"label": "setosa"},
-#   "timestamp": "2021-03-16T15:50:50+00:00"
-# }
-```
-
-Depending on the status of your workload, you will get different responses back. The possible workload status
-are `in_queue | in_progress | failed | completed`. The `result` and `timestamp` keys are returned if the status
-is `completed`. The result will remain queryable for 7 days after the request was completed.
-
-It is also possible to setup a webhook in your handler to get the response sent to a pre-defined web server once the
-workload completes or fails.
-
-## Debugging logs
-
-If necessary, you can view logs for your API in CloudWatch using the `cortex logs` command.
-
-```bash
-cortex logs iris-classifier
-```
-
-## Delete the API
-
-Finally, you can delete your API with a simple `cortex delete` command.
-
-```bash
-cortex delete iris-classifier
+curl http://***.amazonaws.com/hello-world/<REQUEST_ID>
 ```

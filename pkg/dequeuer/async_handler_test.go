@@ -49,12 +49,17 @@ func TestAsyncMessageHandler_Handle(t *testing.T) {
 		_, _ = w.Write([]byte("{}"))
 	}))
 
+	var requestEventsCount int
+	eventHandler := NewRequestEventHandlerFunc(func(event RequestEvent) {
+		requestEventsCount++
+	})
+
 	asyncHandler := NewAsyncMessageHandler(AsyncMessageHandlerConfig{
 		ClusterUID: "cortex-test",
 		Bucket:     _testBucket,
 		APIName:    "async-test",
 		TargetURL:  server.URL,
-	}, awsClient, log)
+	}, awsClient, eventHandler, log)
 
 	_, err := awsClient.S3().CreateBucket(&s3.CreateBucketInput{
 		Bucket: aws.String(_testBucket),
@@ -75,6 +80,7 @@ func TestAsyncMessageHandler_Handle(t *testing.T) {
 		fmt.Sprintf("%s/%s/status/%s", asyncHandler.storagePath, requestID, async.StatusCompleted),
 	)
 	require.NoError(t, err)
+	require.Equal(t, 1, requestEventsCount)
 }
 
 func TestAsyncMessageHandler_Handle_Errors(t *testing.T) {
@@ -105,12 +111,14 @@ func TestAsyncMessageHandler_Handle_Errors(t *testing.T) {
 	log := newLogger(t)
 	awsClient := testAWSClient(t)
 
+	eventHandler := NewRequestEventHandlerFunc(func(event RequestEvent) {})
+
 	asyncHandler := NewAsyncMessageHandler(AsyncMessageHandlerConfig{
 		ClusterUID: "cortex-test",
 		Bucket:     _testBucket,
 		APIName:    "async-test",
 		TargetURL:  "http://fake.cortex.dev",
-	}, awsClient, log)
+	}, awsClient, eventHandler, log)
 
 	for _, tt := range cases {
 		t.Run(tt.name, func(t *testing.T) {

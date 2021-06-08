@@ -22,6 +22,7 @@ import (
 	"io"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/s3"
@@ -39,11 +40,12 @@ const (
 )
 
 type AsyncMessageHandler struct {
-	config      AsyncMessageHandlerConfig
-	aws         *awslib.Client
-	log         *zap.SugaredLogger
-	storagePath string
-	httpClient  *http.Client
+	config       AsyncMessageHandlerConfig
+	aws          *awslib.Client
+	log          *zap.SugaredLogger
+	storagePath  string
+	httpClient   *http.Client
+	eventHandler RequestEventHandler
 }
 
 type AsyncMessageHandlerConfig struct {
@@ -58,13 +60,14 @@ type userPayload struct {
 	ContentType string
 }
 
-func NewAsyncMessageHandler(config AsyncMessageHandlerConfig, awsClient *awslib.Client, logger *zap.SugaredLogger) *AsyncMessageHandler {
+func NewAsyncMessageHandler(config AsyncMessageHandlerConfig, awsClient *awslib.Client, eventHandler RequestEventHandler, logger *zap.SugaredLogger) *AsyncMessageHandler {
 	return &AsyncMessageHandler{
-		config:      config,
-		aws:         awsClient,
-		log:         logger,
-		storagePath: async.StoragePath(config.ClusterUID, config.APIName),
-		httpClient:  &http.Client{},
+		config:       config,
+		aws:          awsClient,
+		log:          logger,
+		storagePath:  async.StoragePath(config.ClusterUID, config.APIName),
+		httpClient:   &http.Client{},
+		eventHandler: eventHandler,
 	}
 }
 
@@ -175,9 +178,16 @@ func (h *AsyncMessageHandler) submitRequest(payload *userPayload, requestID stri
 
 	req.Header.Set("Content-Type", payload.ContentType)
 	req.Header.Set(CortexRequestIDHeader, requestID)
+
+	startTime := time.Now()
 	response, err := h.httpClient.Do(req)
 	if err != nil {
 		return nil, ErrorUserContainerNotReachable(err)
+	}
+
+	requestEvent := RequestEvent{
+		StatusCode: response.StatusCode,
+		Duration:   time.Since(startTime),
 	}
 
 	defer func() {
@@ -196,6 +206,8 @@ func (h *AsyncMessageHandler) submitRequest(payload *userPayload, requestID stri
 	if err = json.NewDecoder(response.Body).Decode(&result); err != nil {
 		return nil, ErrorUserContainerResponseNotJSONDecodable()
 	}
+
+	h.eventHandler.HandleEvent(requestEvent)
 
 	return result, nil
 }
