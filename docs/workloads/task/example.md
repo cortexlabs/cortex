@@ -21,7 +21,7 @@ CMD exec python main.py
 ### Build an image
 
 ```bash
-docker build . --tag hello-world
+docker build . -t hello-world
 ```
 
 ### Run a container locally
@@ -83,7 +83,7 @@ cortex get hello-world
 ### Make a request
 
 ```bash
-curl --request POST --header "Content-Type: application/json" --data '{}' http://***.amazonaws.com/hello-world
+curl -X POST -H "Content-Type: application/json" -d '{}' http://***.amazonaws.com/hello-world
 ```
 
 ### View the logs

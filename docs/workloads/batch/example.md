@@ -25,6 +25,7 @@ def on_job_complete():
 FROM python:3.8-slim
 
 RUN pip install --no-cache-dir fastapi uvicorn
+
 COPY main.py /
 
 CMD uvicorn --host 0.0.0.0 --port 8080 main:app
@@ -33,19 +34,19 @@ CMD uvicorn --host 0.0.0.0 --port 8080 main:app
 ### Build an image
 
 ```bash
-docker build . --tag hello-world
+docker build . -t hello-world
 ```
 
 ### Run a container locally
 
 ```bash
-docker run --port 8080:8080 hello-world
+docker run -p 8080:8080 hello-world
 ```
 
 ### Make a request
 
 ```bash
-curl --request POST --header "Content-Type: application/json" --data '[1,2,3,4]' localhost:8080
+curl -X POST -H "Content-Type: application/json" -d '[1,2,3,4]' localhost:8080
 ```
 
 ### Login to ECR
@@ -101,7 +102,7 @@ cortex get hello-world
 ### Make a request
 
 ```bash
-curl --request POST --header "Content-Type: application/json" --data '{"workers": 2, "item_list": {"items": [1,2,3,4], "batch_size": 2}}' http://***.amazonaws.com/hello-world
+curl -X POST -H "Content-Type: application/json" -d '{"workers": 2, "item_list": {"items": [1,2,3,4], "batch_size": 2}}' http://***.amazonaws.com/hello-world
 ```
 
 ### View the logs
