@@ -271,3 +271,71 @@ func confirmInstallClusterConfig(clusterConfig *clusterconfig.Config, awsClient 
 		prompt.YesOrExit("would you like to continue?", "", exitMessage)
 	}
 }
+
+func confirmNodeGroupConfig(nodeGroup clusterconfig.NodeGroup, clusterConfig clusterconfig.Config, awsClient *aws.Client, disallowPrompt bool) {
+	headers := []table.Header{
+		{Title: "aws resource"},
+		{Title: "cost per hour"},
+	}
+	var rows [][]interface{}
+
+	apiInstancePrice := aws.InstanceMetadatas[clusterConfig.Region][nodeGroup.InstanceType].Price
+	apiEBSPrice := aws.EBSMetadatas[clusterConfig.Region][nodeGroup.InstanceVolumeType.String()].PriceGB * float64(nodeGroup.InstanceVolumeSize) / 30 / 24
+	if nodeGroup.InstanceVolumeType == clusterconfig.IO1VolumeType && nodeGroup.InstanceVolumeIOPS != nil {
+		apiEBSPrice += aws.EBSMetadatas[clusterConfig.Region][nodeGroup.InstanceVolumeType.String()].PriceIOPS * float64(*nodeGroup.InstanceVolumeIOPS) / 30 / 24
+	}
+	if nodeGroup.InstanceVolumeType == clusterconfig.GP3VolumeType && nodeGroup.InstanceVolumeIOPS != nil && nodeGroup.InstanceVolumeThroughput != nil {
+		apiEBSPrice += libmath.MaxFloat64(0, (aws.EBSMetadatas[clusterConfig.Region][nodeGroup.InstanceVolumeType.String()].PriceIOPS-3000)*float64(*nodeGroup.InstanceVolumeIOPS)/30/24)
+		apiEBSPrice += libmath.MaxFloat64(0, (aws.EBSMetadatas[clusterConfig.Region][nodeGroup.InstanceVolumeType.String()].PriceThroughput-125)*float64(*nodeGroup.InstanceVolumeThroughput)/30/24)
+	}
+
+	nodeGroupMinPrice := float64(nodeGroup.MinInstances) * (apiInstancePrice + apiEBSPrice)
+	nodeGroupMaxPrice := float64(nodeGroup.MaxInstances) * (apiInstancePrice + apiEBSPrice)
+
+	instanceStr := "instances"
+	volumeStr := "volumes"
+	if nodeGroup.MinInstances == 1 && nodeGroup.MaxInstances == 1 {
+		instanceStr = "instance"
+		volumeStr = "volume"
+	}
+	workerInstanceStr := fmt.Sprintf("nodegroup %s: %d - %d %s %s for your apis", nodeGroup.Name, nodeGroup.MinInstances, nodeGroup.MaxInstances, nodeGroup.InstanceType, instanceStr)
+	ebsInstanceStr := fmt.Sprintf("nodegroup %s: %d - %d %dgb ebs %s for your apis", nodeGroup.Name, nodeGroup.MinInstances, nodeGroup.MaxInstances, nodeGroup.InstanceVolumeSize, volumeStr)
+	if nodeGroup.MinInstances == nodeGroup.MaxInstances {
+		workerInstanceStr = fmt.Sprintf("nodegroup %s: %d %s %s for your apis", nodeGroup.Name, nodeGroup.MinInstances, nodeGroup.InstanceType, instanceStr)
+		ebsInstanceStr = fmt.Sprintf("nodegroup %s:%d %dgb ebs %s for your apis", nodeGroup.Name, nodeGroup.MinInstances, nodeGroup.InstanceVolumeSize, volumeStr)
+	}
+
+	workerPriceStr := s.DollarsMaxPrecision(apiInstancePrice) + " each"
+	if nodeGroup.Spot {
+		spotPrice, err := awsClient.SpotInstancePrice(nodeGroup.InstanceType)
+		workerPriceStr += " (spot pricing unavailable)"
+		if err == nil && spotPrice != 0 {
+			workerPriceStr = fmt.Sprintf("%s - %s each (varies based on spot price)", s.DollarsMaxPrecision(spotPrice), s.DollarsMaxPrecision(apiInstancePrice))
+			nodeGroupMinPrice = float64(nodeGroup.MinInstances) * (spotPrice + apiEBSPrice)
+		}
+	}
+
+	rows = append(rows, []interface{}{workerInstanceStr, workerPriceStr})
+	rows = append(rows, []interface{}{ebsInstanceStr, s.DollarsAndTenthsOfCents(apiEBSPrice) + " each"})
+
+	items := table.Table{
+		Headers: headers,
+		Rows:    rows,
+	}
+	fmt.Println(items.MustFormat(&table.Opts{Sort: pointer.Bool(false)}))
+
+	if nodeGroupMinPrice == nodeGroupMaxPrice {
+		fmt.Printf("your %s nodegroup will cost %s per hour\n\n", nodeGroup.Name, s.DollarsAndTenthsOfCents(nodeGroupMaxPrice))
+	} else {
+		fmt.Printf("your %s nodegroup will cost %s-%s per hour\n\n", nodeGroup.Name, s.DollarsAndTenthsOfCents(nodeGroupMinPrice), s.DollarsAndTenthsOfCents(nodeGroupMaxPrice))
+	}
+
+	if nodeGroup.Spot {
+		fmt.Printf("warning: you've enabled spot instances for %s nodegroup; spot instances are not guaranteed to be available so please take that into account for production clusters; see https://docs.cortex.dev/v/%s/ for more information\n\n", nodeGroup.Name, consts.CortexVersionMinor)
+	}
+
+	if !disallowPrompt {
+		exitMessage := fmt.Sprintf("nodegroup configuration can be modified via the nodegroup config file; see https://docs.cortex.dev/v/%s/ for more information", consts.CortexVersionMinor)
+		prompt.YesOrExit("would you like to continue?", "", exitMessage)
+	}
+}

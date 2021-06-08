@@ -21,41 +21,19 @@ import (
 
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
-	"github.com/cortexlabs/cortex/pkg/lib/cast"
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
-	"github.com/cortexlabs/cortex/pkg/lib/files"
-	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/types/clusterconfig"
 )
 
-func getNodeGroupsConfig(awsClient *aws.Client, nodeGroupsConfigFile string) ([]*clusterconfig.NodeGroup, error) {
-	nodegroupsBytes, err := files.ReadFileBytes(nodeGroupsConfigFile)
-	if err != nil {
-		return nil, errors.Wrap(err, nodeGroupsConfigFile)
+func getNodeGroupConfig(awsClient *aws.Client, nodeGroupConfigFile string) (clusterconfig.NodeGroup, error) {
+	var nodegroup clusterconfig.NodeGroup
+
+	errs := cr.ParseYAMLFile(&nodegroup, clusterconfig.NodeGroupsValidation, nodeGroupConfigFile)
+	if errors.HasError(errs) {
+		err := errors.Wrap(errors.FirstError(errs...), nodeGroupConfigFile)
+		return clusterconfig.NodeGroup{}, errors.Append(err, fmt.Sprintf("\n\nnodegroups configuration schema can be found at https://docs.cortex.dev/v/%s/", consts.CortexVersionMinor))
 	}
 
-	nodegroupData, err := cr.ReadYAMLBytes(nodegroupsBytes)
-	if err != nil {
-		return nil, errors.Wrap(err, nodeGroupsConfigFile)
-	}
-
-	nodegroupDataSlice, ok := cast.InterfaceToStrInterfaceMapSlice(nodegroupData)
-	if !ok {
-		return nil, errors.Wrap(ErrorMalformedConfig(), nodeGroupsConfigFile)
-	}
-
-	nodegroups := make([]*clusterconfig.NodeGroup, len(nodegroupDataSlice))
-
-	for i, data := range nodegroupDataSlice {
-		nodegroup := clusterconfig.NodeGroup{}
-		errs := cr.Struct(&nodegroup, data, clusterconfig.NodeGroupsValidation)
-		if errors.HasError(errs) {
-			err = errors.Wrap(errors.FirstError(errs...), nodeGroupsConfigFile, s.Index(i))
-			return nil, errors.Append(err, fmt.Sprintf("\n\nnodegroups configuration schema can be found at https://docs.cortex.dev/v/%s/", consts.CortexVersionMinor))
-		}
-		nodegroups[i] = &nodegroup
-	}
-
-	return nodegroups, nil
+	return nodegroup, nil
 }

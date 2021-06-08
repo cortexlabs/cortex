@@ -135,7 +135,7 @@ func ErrorDuplicateNodeGroupName(duplicateNgName string) error {
 func ErrorNodeGroupsAlreadyExist(ngNames ...string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrNodeGroupsAlreadyExist,
-		Message: fmt.Sprintf("nodegroups %s already exist", s.StrsAnd(ngNames)),
+		Message: fmt.Sprintf("%s %s already %s", s.PluralS("nodegroup", len(ngNames)), s.StrsAnd(ngNames), s.VerbForThirdPersonSubject("exist", len(ngNames))),
 	})
 }
 

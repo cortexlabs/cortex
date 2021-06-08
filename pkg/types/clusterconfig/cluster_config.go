@@ -38,7 +38,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	"github.com/cortexlabs/cortex/pkg/lib/slices"
-	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/yaml"
 )
 
@@ -1017,49 +1016,36 @@ func (cc *Config) Validate(awsClient *aws.Client) error {
 	return nil
 }
 
-func ValidateNewNodeGroups(awsClient *aws.Client, cc Config, newNodeGroups []*NodeGroup) error {
+func ValidateNewNodeGroup(awsClient *aws.Client, cc Config, newNodeGroup *NodeGroup) error {
 	fmt.Print("verifying your configuration ...\n\n")
 
 	numExistingNodeGroups := len(cc.NodeGroups)
-	numNewNodeGroups := len(newNodeGroups)
-	if numNewNodeGroups == 0 {
-		return ErrorNoNodeGroupSpecified()
-	}
-	if numExistingNodeGroups+numNewNodeGroups > MaxNodePoolsOrGroups {
+	if numExistingNodeGroups+1 > MaxNodePoolsOrGroups {
 		return ErrorMaxNumOfNodeGroupsReached(MaxNodePoolsOrGroups)
 	}
 
-	err := checkNodeGroupsCollision(cc.NodeGroups, newNodeGroups)
+	err := checkNodeGroupsCollision(cc.NodeGroups, []*NodeGroup{newNodeGroup})
 	if err != nil {
 		return err
 	}
 
-	newNgNames := []string{}
-	newInstances := []aws.InstanceTypeRequests{}
-	for i, nodeGroup := range cc.NodeGroups {
-		// setting max_instances to 0 during node group creation is not permitted (but scaling max_instances to 0 afterwards is allowed)
-		if nodeGroup.MaxInstances == 0 {
-			return errors.Wrap(ErrorNodeGroupMaxInstancesIsZero(), s.Index(i), nodeGroup.Name)
-		}
-		if !slices.HasString(newNgNames, nodeGroup.Name) {
-			newNgNames = append(newNgNames, nodeGroup.Name)
-		} else {
-			return errors.Wrap(ErrorDuplicateNodeGroupName(nodeGroup.Name), s.Index(i))
-		}
-
-		err := nodeGroup.validateNodeGroup(awsClient, cc.Region)
-		if err != nil {
-			return errors.Wrap(err, s.Index(i), nodeGroup.Name)
-		}
-
-		newInstances = append(newInstances, aws.InstanceTypeRequests{
-			InstanceType:              nodeGroup.InstanceType,
-			RequiredOnDemandInstances: nodeGroup.MaxPossibleOnDemandInstances(),
-			RequiredSpotInstances:     nodeGroup.MaxPossibleSpotInstances(),
-		})
+	// setting max_instances to 0 during node group creation is not permitted (but scaling max_instances to 0 afterwards is allowed)
+	if newNodeGroup.MaxInstances == 0 {
+		return errors.Wrap(ErrorNodeGroupMaxInstancesIsZero(), newNodeGroup.Name)
 	}
 
-	if err := awsClient.VerifyInstanceQuota(newInstances); err != nil {
+	err = newNodeGroup.validateNodeGroup(awsClient, cc.Region)
+	if err != nil {
+		return errors.Wrap(err, newNodeGroup.Name)
+	}
+
+	if err := awsClient.VerifyInstanceQuota([]aws.InstanceTypeRequests{
+		{
+			InstanceType:              newNodeGroup.InstanceType,
+			RequiredOnDemandInstances: newNodeGroup.MaxPossibleOnDemandInstances(),
+			RequiredSpotInstances:     newNodeGroup.MaxPossibleSpotInstances(),
+		},
+	}); err != nil {
 		// Skip AWS errors, since some regions (e.g. eu-north-1) do not support this API
 		if !aws.IsAWSError(err) {
 			return err
@@ -1067,7 +1053,7 @@ func ValidateNewNodeGroups(awsClient *aws.Client, cc Config, newNodeGroups []*No
 	}
 
 	longestCIDRWhiteList := libmath.MaxInt(len(cc.APILoadBalancerCIDRWhiteList), len(cc.OperatorLoadBalancerCIDRWhiteList))
-	if err := awsClient.VerifyNetworkQuotasOnNodeGroupsAddition(strset.FromSlice(cc.AvailabilityZones), len(newNodeGroups), longestCIDRWhiteList); err != nil {
+	if err := awsClient.VerifyNetworkQuotasOnNodeGroupsAddition(strset.FromSlice(cc.AvailabilityZones), 1, longestCIDRWhiteList); err != nil {
 		// Skip AWS errors, since some regions (e.g. eu-north-1) do not support this API
 		if !aws.IsAWSError(err) {
 			return err

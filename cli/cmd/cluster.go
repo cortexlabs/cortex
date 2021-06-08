@@ -385,8 +385,8 @@ var _clusterScaleCmd = &cobra.Command{
 }
 
 var _clusterAddNodegroupsCmd = &cobra.Command{
-	Use:   "add-nodegroups NODEGROUPS_CONFIG_FILE",
-	Short: "add nodegroups to the cluster",
+	Use:   "add-nodegroup NODEGROUP_CONFIG_FILE",
+	Short: "add a nodegroup to the cluster",
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		telemetry.Event("cli.cluster.addnodegroups")
@@ -407,16 +407,41 @@ var _clusterAddNodegroupsCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
-		nodeGroups, err := getNodeGroupsConfig(awsClient, nodeGroupsConfigFile)
+		nodeGroup, err := getNodeGroupConfig(awsClient, nodeGroupsConfigFile)
 		if err != nil {
 			exit.Error(err)
 		}
 
 		clusterConfig := refreshCachedClusterConfig(awsClient, accessConfig, true)
 
-		err = clusterconfig.ValidateNewNodeGroups(awsClient, clusterConfig, nodeGroups)
+		err = clusterconfig.ValidateNewNodeGroup(awsClient, clusterConfig, &nodeGroup)
+		if err != nil {
+			exit.Error(errors.Wrap(err, nodeGroupsConfigFile))
+		}
+
+		confirmNodeGroupConfig(nodeGroup, clusterConfig, awsClient, _flagClusterDisallowPrompt)
+
+		clusterConfig.NodeGroups = append(clusterConfig.NodeGroups, &nodeGroup)
+		out, exitCode, err := runManagerWithClusterConfig("/root/install.sh --add-nodegroup", &clusterConfig, awsClient, nil, nil, []string{
+			"CORTEX_NEW_NODEGROUP_NAME=" + nodeGroup.Name,
+		})
 		if err != nil {
 			exit.Error(err)
+		}
+		if exitCode == nil || *exitCode != 0 {
+			stackTemplate := "eksctl-%s-nodegroup-cx-w"
+			if nodeGroup.Spot {
+				stackTemplate += "s"
+			} else {
+				stackTemplate += "d"
+			}
+			stackTemplate += "-%s"
+
+			helpStr := "\ndebugging tips (may or may not apply to this error):"
+			helpStr += fmt.Sprintf("\n* if your cluster was unable to provision the nodegroup, additional error information may be found in the description of your cloudformation stack: https://console.aws.amazon.com/cloudformation/home?region=%s#/stacks?filteringText="+stackTemplate, clusterConfig.Region, clusterConfig.ClusterName, nodeGroup.Name)
+			helpStr += "\n* please run `cortex cluster delete-nodegroup %s` to make sure the nodegroup is deleted before attempting to add it again"
+			fmt.Println(helpStr)
+			exit.Error(ErrorClusterAddNodeGroup(out + helpStr))
 		}
 	},
 }

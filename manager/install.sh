@@ -18,7 +18,8 @@ set -eo pipefail
 
 export CORTEX_VERSION=master
 export CORTEX_VERSION_MINOR=master
-EKSCTL_TIMEOUT=45m
+EKSCTL_CLUSTER_TIMEOUT=45m
+EKSCTL_NODEGROUP_TIMEOUT=25m
 mkdir /workspace
 
 arg1="$1"
@@ -26,6 +27,8 @@ arg1="$1"
 function main() {
   if [ "$arg1" = "--update" ]; then
     cluster_configure
+  elif [ "$arg1" = "--add-nodegroup" ]; then
+    cluster_add_nodegroup
   else
     cluster_up
   fi
@@ -106,6 +109,30 @@ function cluster_configure() {
   print_endpoints
 }
 
+function cluster_add_nodegroup() {
+  check_eks
+
+  add_nodegroup
+
+  echo -n "￮ updating cluster configuration "
+  setup_configmap
+  echo "✓"
+
+  # this is necessary for configuring the autoscaler priority for the new nodegroup
+  echo -n "￮ configuring autoscaling "
+  python render_template.py $CORTEX_CLUSTER_CONFIG_FILE manifests/cluster-autoscaler.yaml.j2 > /workspace/cluster-autoscaler.yaml
+  kubectl apply -f /workspace/cluster-autoscaler.yaml >/dev/null
+  echo "✓"
+
+  restart_operator
+
+  validate_cortex
+
+  echo -e "\ncortex is ready!"
+
+  print_endpoints
+}
+
 # creates the eks cluster and configures kubectl
 function create_eks() {
   set +e
@@ -143,7 +170,7 @@ function create_eks() {
 
   echo -e "￮ spinning up the cluster (this will take about 45 minutes) ...\n"
   python generate_eks.py $CORTEX_CLUSTER_CONFIG_FILE manifests/ami.json > /workspace/eks.yaml
-  eksctl create cluster --timeout=$EKSCTL_TIMEOUT --install-neuron-plugin=false --install-nvidia-plugin=false -f /workspace/eks.yaml
+  eksctl create cluster --timeout=$EKSCTL_CLUSTER_TIMEOUT --install-neuron-plugin=false --install-nvidia-plugin=false -f /workspace/eks.yaml
   echo
 
   write_kubeconfig
@@ -305,6 +332,13 @@ function resize_nodegroup() {
   fi
 
   rm nodegroups.json
+}
+
+function add_nodegroup() {
+  echo -e "￮ adding new nodegroup to the cluster (this will take up to 25 minutes) ...\n"
+  python generate_eks.py $CORTEX_CLUSTER_CONFIG_FILE manifests/ami.json > /workspace/nodegroup.yaml
+  eksctl create nodegroup --timeout=$EKSCTL_NODEGROUP_TIMEOUT --install-neuron-plugin=false --install-nvidia-plugin=false -f /workspace/nodegroup.yaml
+  echo
 }
 
 function setup_istio() {
