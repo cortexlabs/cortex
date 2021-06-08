@@ -14,7 +14,7 @@ class Data(BaseModel):
     msg: str
 
 @app.post("/")
-def realtime(data: Data):
+def handle_async(data: Data):
     return data
 ```
 
@@ -32,13 +32,13 @@ CMD uvicorn --host 0.0.0.0 --port 8080 main:app
 ### Build an image
 
 ```bash
-docker build . -t async
+docker build . -t hello-world
 ```
 
 ### Run a container locally
 
 ```bash
-docker run -p 8080:8080 async
+docker run -p 8080:8080 hello-world
 ```
 
 ### Make a request
@@ -56,19 +56,19 @@ aws ecr get-login-password --region us-east-1 | docker login --username AWS --pa
 ### Create a repository
 
 ```bash
-aws ecr create-repository --repository-name async
+aws ecr create-repository --repository-name hello-world
 ```
 
 ### Tag the image
 
 ```bash
-docker tag async <AWS_ACCOUNT_ID>.dkr.ecr.us-east-1.amazonaws.com/async
+docker tag hello-world <AWS_ACCOUNT_ID>.dkr.ecr.us-east-1.amazonaws.com/hello-world
 ```
 
 ### Push the image
 
 ```bash
-docker push <AWS_ACCOUNT_ID>.dkr.ecr.us-east-1.amazonaws.com/async
+docker push <AWS_ACCOUNT_ID>.dkr.ecr.us-east-1.amazonaws.com/hello-world
 ```
 
 ### Configure a Cortex deployment
@@ -76,12 +76,12 @@ docker push <AWS_ACCOUNT_ID>.dkr.ecr.us-east-1.amazonaws.com/async
 ```yaml
 # cortex.yaml
 
-- name: async
+- name: hello-world
   kind: AsyncAPI
   pod:
     containers:
     - name: api
-      image: <AWS_ACCOUNT_ID>.dkr.ecr.us-east-1.amazonaws.com/async
+      image: <AWS_ACCOUNT_ID>.dkr.ecr.us-east-1.amazonaws.com/hello-world
 ```
 
 ### Create a Cortex deployment
@@ -99,17 +99,17 @@ cortex get --watch
 ### Get the API endpoint
 
 ```bash
-cortex get async
+cortex get hello-world
 ```
 
 ### Make a request
 
 ```bash
-curl -X POST -H "Content-Type: application/json" -d '{"msg": "hello world"}' http://***.amazonaws.com/async
+curl -X POST -H "Content-Type: application/json" -d '{"msg": "hello world"}' http://***.amazonaws.com/hello-world
 ```
 
 ### Get the response
 
 ```bash
-curl http://***.amazonaws.com/async/<REQUEST_ID>
+curl http://***.amazonaws.com/hello-world/<REQUEST_ID>
 ```

@@ -21,13 +21,13 @@ CMD exec python main.py
 ### Build an image
 
 ```bash
-docker build . -t task
+docker build . -t hello-world
 ```
 
 ### Run a container locally
 
 ```bash
-docker run -it --rm task
+docker run -it --rm hello-world
 ```
 
 ### Login to ECR
@@ -39,19 +39,19 @@ aws ecr get-login-password --region us-east-1 | docker login --username AWS --pa
 ### Create a repository
 
 ```bash
-aws ecr create-repository --repository-name task
+aws ecr create-repository --repository-name hello-world
 ```
 
 ### Tag the image
 
 ```bash
-docker tag task <AWS_ACCOUNT_ID>.dkr.ecr.us-east-1.amazonaws.com/task
+docker tag hello-world <AWS_ACCOUNT_ID>.dkr.ecr.us-east-1.amazonaws.com/hello-world
 ```
 
 ### Push the image
 
 ```bash
-docker push <AWS_ACCOUNT_ID>.dkr.ecr.us-east-1.amazonaws.com/task
+docker push <AWS_ACCOUNT_ID>.dkr.ecr.us-east-1.amazonaws.com/hello-world
 ```
 
 ### Configure a Cortex deployment
@@ -59,12 +59,12 @@ docker push <AWS_ACCOUNT_ID>.dkr.ecr.us-east-1.amazonaws.com/task
 ```yaml
 # cortex.yaml
 
-- name: task
+- name: hello-world
   kind: TaskAPI
   pod:
     containers:
     - name: api
-      image: <AWS_ACCOUNT_ID>.dkr.ecr.us-east-1.amazonaws.com/task
+      image: <AWS_ACCOUNT_ID>.dkr.ecr.us-east-1.amazonaws.com/hello-world
       command: ["python", "main.py"]
 ```
 
@@ -77,17 +77,17 @@ cortex deploy
 ### Get the API endpoint
 
 ```bash
-cortex get task
+cortex get hello-world
 ```
 
 ### Make a request
 
 ```bash
-curl -X POST -H "Content-Type: application/json" -d '{}' http://***.amazonaws.com/task
+curl -X POST -H "Content-Type: application/json" -d '{}' http://***.amazonaws.com/hello-world
 ```
 
 ### View the logs
 
 ```bash
-cortex logs task <JOB_ID>
+cortex logs hello-world <JOB_ID>
 ```
