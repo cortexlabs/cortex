@@ -18,4 +18,4 @@ Cortex will initialize a worker pod based on your API specification. After the w
 
 You can make GET requests to the Task API endpoint to retrieve the status of the Task.
 
-![taskapi](https://user-images.githubusercontent.com/4365343/121231738-c30fb680-c85e-11eb-886f-dc4d9bf3ef17.png)
+![](https://user-images.githubusercontent.com/4365343/121231738-c30fb680-c85e-11eb-886f-dc4d9bf3ef17.png)

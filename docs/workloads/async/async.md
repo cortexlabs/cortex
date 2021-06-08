@@ -26,4 +26,4 @@ You can fetch the result by making a GET request to the AsyncAPI endpoint with t
 
 The pool of workers running your containers autoscales based on the average number of messages in the queue and can scale down to 0 (if configured to do so).
 
-![asyncapi](https://user-images.githubusercontent.com/4365343/121231833-e470a280-c85e-11eb-8be7-ad0a7cf9bce3.png)
+![](https://user-images.githubusercontent.com/4365343/121231833-e470a280-c85e-11eb-8be7-ad0a7cf9bce3.png)

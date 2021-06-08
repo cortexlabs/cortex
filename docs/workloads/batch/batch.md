@@ -25,4 +25,4 @@ After the worker pods have emptied the queue, the job is marked as complete, and
 
 You can make GET requests to the BatchAPI endpoint to get the status of the Job and metrics such as the number of batches completed and failed.
 
-![batchapi](https://user-images.githubusercontent.com/4365343/121231862-ed617400-c85e-11eb-96fb-84b10c211131.png)
+![](https://user-images.githubusercontent.com/4365343/121231862-ed617400-c85e-11eb-96fb-84b10c211131.png)

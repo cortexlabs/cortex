@@ -19,4 +19,4 @@ When you deploy a Realtime API, Cortex initializes a pool of worker pods and att
 
 The proxy is responsible for receiving incoming requests, queueing them (if necessary), and forwarding them to your pod when it is ready. Autoscaling is based on aggregate in-flight request volume, which is published by the proxy sidecars.
 
-![realtimeapi](https://user-images.githubusercontent.com/4365343/121231921-fe11ea00-c85e-11eb-9813-6ee114f9a3fc.png)
+![](https://user-images.githubusercontent.com/4365343/121231921-fe11ea00-c85e-11eb-9813-6ee114f9a3fc.png)
