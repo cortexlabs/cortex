@@ -10,6 +10,6 @@ When you deploy a Task API, an endpoint is created to receive task submissions.
 
 Upon submitting a Task, Cortex will respond with a Task ID and will asynchronously trigger the execution of a Task.
 
-Cortex will initialize one or more worker pods based on your API specification. After the worker pod(s) run to completion, the Task is marked as completed and the worker pod(s) are terminated.
+Cortex will initialize a worker pod based on your API specification. After the worker pod runs to completion, the Task is marked as completed and the pod is terminated.
 
 You can make GET requests to the Task API endpoint to retreive the status of the Task.
