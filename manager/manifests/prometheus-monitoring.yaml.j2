@@ -193,6 +193,9 @@ spec:
         - sourceLabels: [ __meta_kubernetes_pod_label_apiKind ]
           action: replace
           targetLabel: api_kind
+        - sourceLabels: [ __meta_kubernetes_pod_label_apiID ]
+          action: replace
+          targetLabel: api_id
         - sourceLabels: [ __address__, __meta_kubernetes_pod_annotation_prometheus_io_port ]
           action: replace
           regex: ([^:]+)(?::\d+)?;(\d+)
@@ -240,6 +243,9 @@ spec:
         - sourceLabels: [ __meta_kubernetes_pod_label_apiKind ]
           action: replace
           targetLabel: api_kind
+        - sourceLabels: [ __meta_kubernetes_pod_label_apiID ]
+          action: replace
+          targetLabel: api_id
         - sourceLabels: [ __address__, __meta_kubernetes_pod_annotation_prometheus_io_port ]
           action: replace
           regex: ([^:]+)(?::\d+)?;(\d+)
