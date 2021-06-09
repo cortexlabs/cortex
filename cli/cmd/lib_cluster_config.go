@@ -25,6 +25,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
+	"github.com/cortexlabs/cortex/pkg/lib/console"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
 	"github.com/cortexlabs/cortex/pkg/lib/maps"
@@ -34,6 +35,7 @@ import (
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/table"
 	"github.com/cortexlabs/cortex/pkg/types/clusterconfig"
+	"github.com/cortexlabs/yaml"
 )
 
 var _cachedClusterConfigRegex = regexp.MustCompile(`^cluster_\S+\.yaml$`)
@@ -131,12 +133,9 @@ func getInstallClusterConfig(awsClient *aws.Client, clusterConfigFile string, di
 
 	promptIfNotAdmin(awsClient, disallowPrompt)
 
-	clusterConfig.Telemetry, err = readTelemetryConfig()
-	if err != nil {
-		return nil, err
-	}
+	clusterConfig.Telemetry = isTelemetryEnabled()
 
-	err = clusterConfig.Validate(awsClient)
+	err = clusterConfig.ValidateOnInstall(awsClient)
 	if err != nil {
 		err = errors.Append(err, fmt.Sprintf("\n\ncluster configuration schema can be found at https://docs.cortex.dev/v/%s/", consts.CortexVersionMinor))
 		return nil, errors.Wrap(err, clusterConfigFile)
@@ -145,6 +144,51 @@ func getInstallClusterConfig(awsClient *aws.Client, clusterConfigFile string, di
 	confirmInstallClusterConfig(clusterConfig, awsClient, disallowPrompt)
 
 	return clusterConfig, nil
+}
+
+func getConfigureClusterConfig(awsClient *aws.Client, cachedClusterConfig clusterconfig.Config, newClusterConfigFile string, disallowPrompt bool) (clusterConfig *clusterconfig.Config, newNgNames, removedNgNames, scaledNgNames []string, errReturned error) {
+	newUserClusterConfig := &clusterconfig.Config{}
+
+	err := readUserClusterConfigFile(newUserClusterConfig, newClusterConfigFile)
+	if err != nil {
+		errReturned = err
+		return
+	}
+
+	promptIfNotAdmin(awsClient, disallowPrompt)
+
+	newUserClusterConfig.Telemetry = isTelemetryEnabled()
+	cachedClusterConfig.Telemetry = newUserClusterConfig.Telemetry
+
+	new, removed, scaled, err := newUserClusterConfig.ValidateOnConfigure(awsClient, cachedClusterConfig)
+	if err != nil {
+		err = errors.Append(err, fmt.Sprintf("\n\ncluster configuration schema can be found at https://docs.cortex.dev/v/%s/", consts.CortexVersionMinor))
+		errReturned = errors.Wrap(err, newClusterConfigFile)
+		return
+	}
+
+	yamlBytes, err := yaml.Marshal(newUserClusterConfig)
+	if err != nil {
+		errReturned = err
+		return
+	}
+	yamlString := string(yamlBytes)
+
+	// TODO add confirmation print here
+	fmt.Println(console.Bold("cluster config:"))
+	fmt.Println(yamlString)
+
+	if !disallowPrompt {
+		exitMessage := fmt.Sprintf("cluster configuration can be modified via the cluster config file; see https://docs.cortex.dev/v/%s/ for more information", consts.CortexVersionMinor)
+		prompt.YesOrExit(fmt.Sprintf("your cluster named \"%s\" in %s will be updated according to the configuration above, are you sure you want to continue?", newUserClusterConfig.ClusterName, newUserClusterConfig.Region), "", exitMessage)
+	}
+
+	clusterConfig = newUserClusterConfig
+	newNgNames = new
+	removedNgNames = removed
+	scaledNgNames = scaled
+
+	return
 }
 
 func confirmInstallClusterConfig(clusterConfig *clusterconfig.Config, awsClient *aws.Client, disallowPrompt bool) {

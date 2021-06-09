@@ -862,7 +862,7 @@ func (cc *CoreConfig) SQSNamePrefix() string {
 }
 
 // this validates the user-provided cluster config
-func (cc *Config) Validate(awsClient *aws.Client) error {
+func (cc *Config) ValidateOnInstall(awsClient *aws.Client) error {
 	fmt.Print("verifying your configuration ...\n\n")
 
 	numNodeGroups := len(cc.NodeGroups)
@@ -1016,51 +1016,189 @@ func (cc *Config) Validate(awsClient *aws.Client) error {
 	return nil
 }
 
-func ValidateNewNodeGroup(awsClient *aws.Client, cc Config, newNodeGroup *NodeGroup) error {
+func (cc *Config) ValidateOnConfigure(awsClient *aws.Client, oldConfig Config) (newNgNames, removedNgNames, scaledNgNames []string, errReturned error) {
 	fmt.Print("verifying your configuration ...\n\n")
 
-	numExistingNodeGroups := len(cc.NodeGroups)
-	if numExistingNodeGroups+1 > MaxNodePoolsOrGroups {
-		return ErrorMaxNumOfNodeGroupsReached(MaxNodePoolsOrGroups)
+	// fill-out empty fields
+	cc.ClusterUID = oldConfig.ClusterUID
+	cc.Bucket = oldConfig.Bucket
+	cc.ClusterName = oldConfig.ClusterName
+	cc.Region = oldConfig.Region
+	if len(cc.Tags) == 0 {
+		cc.Tags = oldConfig.Tags
+	}
+	if len(cc.AvailabilityZones) == 0 {
+		cc.AvailabilityZones = oldConfig.AvailabilityZones
+	}
+	if cc.SSLCertificateARN == nil && oldConfig.SSLCertificateARN != nil {
+		cc.SSLCertificateARN = pointer.String(*oldConfig.SSLCertificateARN)
+	}
+	if len(cc.IAMPolicyARNs) == 0 {
+		cc.IAMPolicyARNs = oldConfig.IAMPolicyARNs
+	}
+	if len(cc.Subnets) == 0 {
+		for _, subnet := range oldConfig.Subnets {
+			if subnet == nil {
+				continue
+			}
+			auxSubnet := *subnet
+			cc.Subnets = append(cc.Subnets, &auxSubnet)
+		}
+	}
+	if len(cc.APILoadBalancerCIDRWhiteList) == 0 {
+		cc.APILoadBalancerCIDRWhiteList = oldConfig.APILoadBalancerCIDRWhiteList
+	}
+	if len(cc.OperatorLoadBalancerCIDRWhiteList) == 0 {
+		cc.OperatorLoadBalancerCIDRWhiteList = oldConfig.OperatorLoadBalancerCIDRWhiteList
+	}
+	if cc.VPCCIDR == nil && oldConfig.VPCCIDR != nil {
+		cc.VPCCIDR = pointer.String(*oldConfig.VPCCIDR)
+	}
+	if cc.CortexPolicyARN == "" {
+		cc.CortexPolicyARN = oldConfig.CortexPolicyARN
+	}
+	if cc.AccountID == "" {
+		cc.AccountID = oldConfig.AccountID
 	}
 
-	err := checkNodeGroupsCollision(cc.NodeGroups, []*NodeGroup{newNodeGroup})
+	// validate actionable changes
+	newClusterConfigCopy, err := cc.DeepCopy()
 	if err != nil {
-		return err
+		errReturned = err
+		return
 	}
 
-	// setting max_instances to 0 during node group creation is not permitted (but scaling max_instances to 0 afterwards is allowed)
-	if newNodeGroup.MaxInstances == 0 {
-		return errors.Wrap(ErrorNodeGroupMaxInstancesIsZero(), newNodeGroup.Name)
-	}
-
-	err = newNodeGroup.validateNodeGroup(awsClient, cc.Region)
+	oldClusterConfigCopy, err := oldConfig.DeepCopy()
 	if err != nil {
-		return errors.Wrap(err, newNodeGroup.Name)
+		errReturned = err
+		return
 	}
 
-	if err := awsClient.VerifyInstanceQuota([]aws.InstanceTypeRequests{
-		{
-			InstanceType:              newNodeGroup.InstanceType,
-			RequiredOnDemandInstances: newNodeGroup.MaxPossibleOnDemandInstances(),
-			RequiredSpotInstances:     newNodeGroup.MaxPossibleSpotInstances(),
-		},
-	}); err != nil {
+	newClusterConfigCopy.NodeGroups = []*NodeGroup{}
+	oldClusterConfigCopy.NodeGroups = []*NodeGroup{}
+
+	h1, err := newClusterConfigCopy.Hash()
+	if err != nil {
+		errReturned = err
+		return
+	}
+	h2, err := oldClusterConfigCopy.Hash()
+	if err != nil {
+		errReturned = err
+		return
+	}
+	if h1 != h2 {
+		errReturned = ErrorConfigCannotBeChangedOnUpdate()
+		return
+	}
+
+	numNodeGroups := len(cc.NodeGroups)
+	if numNodeGroups == 0 {
+		errReturned = ErrorNoNodeGroupSpecified()
+		return
+	}
+	if numNodeGroups > MaxNodePoolsOrGroups {
+		errReturned = ErrorMaxNumOfNodeGroupsReached(MaxNodePoolsOrGroups)
+		return
+	}
+
+	// validate the nodegroups
+	instances := []aws.InstanceTypeRequests{}
+	ngNames := []string{}
+	for _, ng := range cc.NodeGroups {
+		// setting max_instances to 0 during node group creation is not permitted (but scaling max_instances to 0 afterwards is allowed)
+		if ng.MaxInstances == 0 {
+			errReturned = errors.Wrap(ErrorNodeGroupMaxInstancesIsZero(), NodeGroupsKey, ng.Name)
+			return
+		}
+		if !slices.HasString(ngNames, ng.Name) {
+			ngNames = append(ngNames, ng.Name)
+		} else {
+			errReturned = errors.Wrap(ErrorDuplicateNodeGroupName(ng.Name), NodeGroupsKey)
+			return
+		}
+
+		err := ng.validateNodeGroup(awsClient, cc.Region)
+		if err != nil {
+			errReturned = errors.Wrap(err, NodeGroupsKey, ng.Name)
+			return
+		}
+
+		instances = append(instances, aws.InstanceTypeRequests{
+			InstanceType:              ng.InstanceType,
+			RequiredOnDemandInstances: ng.MaxPossibleOnDemandInstances(),
+			RequiredSpotInstances:     ng.MaxPossibleSpotInstances(),
+		})
+	}
+
+	if err := awsClient.VerifyInstanceQuota(instances); err != nil {
 		// Skip AWS errors, since some regions (e.g. eu-north-1) do not support this API
 		if !aws.IsAWSError(err) {
-			return err
+			errReturned = errors.Wrap(err, NodeGroupsKey)
+			return
 		}
 	}
 
-	longestCIDRWhiteList := libmath.MaxInt(len(cc.APILoadBalancerCIDRWhiteList), len(cc.OperatorLoadBalancerCIDRWhiteList))
-	if err := awsClient.VerifyNetworkQuotasOnNodeGroupsAddition(strset.FromSlice(cc.AvailabilityZones), 1, longestCIDRWhiteList); err != nil {
-		// Skip AWS errors, since some regions (e.g. eu-north-1) do not support this API
-		if !aws.IsAWSError(err) {
-			return err
+	retainedNewNgs, retainedOldNgs := cc.getCommonNodeGroups(oldConfig)
+	newNgs := cc.getNewNodeGroups(oldConfig)
+	removedNgs := cc.getRemovedNodeGroups(oldConfig)
+
+	netAdditionOfNgs := len(newNgs) - len(removedNgs)
+	if netAdditionOfNgs > 0 {
+		longestCIDRWhiteList := libmath.MaxInt(len(cc.APILoadBalancerCIDRWhiteList), len(cc.OperatorLoadBalancerCIDRWhiteList))
+		if err := awsClient.VerifyNetworkQuotasOnNodeGroupsAddition(strset.FromSlice(cc.AvailabilityZones), netAdditionOfNgs, longestCIDRWhiteList); err != nil {
+			// Skip AWS errors, since some regions (e.g. eu-north-1) do not support this API
+			if !aws.IsAWSError(err) {
+				errReturned = errors.Wrap(err, NodeGroupsKey)
+				return
+			}
 		}
 	}
 
-	return nil
+	// validate existing nodegroups
+	scaledNgs := []*NodeGroup{}
+	for i := range retainedNewNgs {
+		newNgCopy, err := retainedNewNgs[i].DeepCopy()
+		if err != nil {
+			errReturned = errors.Wrap(err, NodeGroupsKey)
+			return
+		}
+		oldNgCopy, err := retainedOldNgs[i].DeepCopy()
+		if err != nil {
+			errReturned = errors.Wrap(err, NodeGroupsKey)
+			return
+		}
+
+		newNgCopy.MinInstances = 0
+		newNgCopy.MaxInstances = 0
+		oldNgCopy.MinInstances = 0
+		oldNgCopy.MaxInstances = 0
+
+		newHash, err := newNgCopy.Hash()
+		if err != nil {
+			errReturned = errors.Wrap(err, NodeGroupsKey)
+			return
+		}
+		oldHash, err := oldNgCopy.Hash()
+		if err != nil {
+			errReturned = errors.Wrap(err, NodeGroupsKey)
+			return
+		}
+
+		if newHash != oldHash {
+			errReturned = errors.Wrap(ErrorNodeGroupCanOnlyBeScaled(), NodeGroupsKey, newNgCopy.Name)
+			return
+		}
+
+		if retainedNewNgs[i].MinInstances != retainedOldNgs[i].MinInstances || retainedNewNgs[i].MaxInstances != retainedOldNgs[i].MaxInstances {
+			scaledNgs = append(scaledNgs, retainedNewNgs[i])
+		}
+	}
+
+	scaledNgNames = getNodeGroupsNames(scaledNgs)
+	newNgNames = getNodeGroupsNames(newNgs)
+	removedNgNames = getNodeGroupsNames(removedNgs)
+	return
 }
 
 func (ng *NodeGroup) validateNodeGroup(awsClient *aws.Client, region string) error {
@@ -1169,28 +1307,65 @@ func (ng *NodeGroup) validateNodeGroup(awsClient *aws.Client, region string) err
 	return nil
 }
 
-func checkNodeGroupsCollision(a1 []*NodeGroup, a2 []*NodeGroup) error {
-	a1Names := strset.New()
-	a2Names := strset.New()
-
-	for _, ng := range a1 {
-		if ng != nil {
-			a1Names.Add(ng.Name)
+func (cc *Config) getNewNodeGroups(oldConfig Config) []*NodeGroup {
+	newNodeGroups := []*NodeGroup{}
+	for _, updatingNg := range cc.NodeGroups {
+		isNewNg := true
+		for _, previousNg := range oldConfig.NodeGroups {
+			if previousNg.Name == updatingNg.Name {
+				isNewNg = false
+				break
+			}
+		}
+		if isNewNg {
+			ngCopy := *updatingNg
+			newNodeGroups = append(newNodeGroups, &ngCopy)
 		}
 	}
+	return newNodeGroups
+}
 
-	for _, ng := range a2 {
-		if ng != nil {
-			a2Names.Add(ng.Name)
+func (cc *Config) getRemovedNodeGroups(oldConfig Config) []*NodeGroup {
+	removedNodeGroups := []*NodeGroup{}
+	for _, previousNg := range oldConfig.NodeGroups {
+		isRemovedNg := true
+		for _, updatingNg := range cc.NodeGroups {
+			if previousNg.Name == updatingNg.Name {
+				isRemovedNg = false
+				break
+			}
+		}
+		if isRemovedNg {
+			ngCopy := *previousNg
+			removedNodeGroups = append(removedNodeGroups, &ngCopy)
 		}
 	}
+	return removedNodeGroups
+}
 
-	intersection := strset.Intersection(a1Names, a2Names)
-	if len(intersection) > 0 {
-		return ErrorNodeGroupsAlreadyExist(intersection.Slice()...)
+func (cc *Config) getCommonNodeGroups(oldConfig Config) ([]*NodeGroup, []*NodeGroup) {
+	commonNewNodeGroups := []*NodeGroup{}
+	commonOldNodeGroups := []*NodeGroup{}
+	for _, previousNg := range oldConfig.NodeGroups {
+		for _, updatingNg := range cc.NodeGroups {
+			if previousNg.Name == updatingNg.Name {
+				ngNewCopy := *updatingNg
+				ngOldCopy := *previousNg
+				commonNewNodeGroups = append(commonNewNodeGroups, &ngNewCopy)
+				commonOldNodeGroups = append(commonOldNodeGroups, &ngOldCopy)
+				break
+			}
+		}
 	}
+	return commonNewNodeGroups, commonOldNodeGroups
+}
 
-	return nil
+func getNodeGroupsNames(nodeGroups []*NodeGroup) []string {
+	ngNames := []string{}
+	for _, ng := range nodeGroups {
+		ngNames = append(ngNames, ng.Name)
+	}
+	return ngNames
 }
 
 func CheckSpotInstanceCompatibility(target aws.InstanceMetadata, suggested aws.InstanceMetadata) error {
@@ -1324,6 +1499,32 @@ func validateInstanceDistribution(instances []string) ([]string, error) {
 		}
 	}
 	return instances, nil
+}
+
+func (ng *NodeGroup) DeepCopy() (NodeGroup, error) {
+	bytes, err := yaml.Marshal(ng)
+	if err != nil {
+		return NodeGroup{}, err
+	}
+
+	deepCopied := NodeGroup{}
+	err = yaml.Unmarshal(bytes, &deepCopied)
+	if err != nil {
+		return NodeGroup{}, err
+	}
+
+	return deepCopied, nil
+}
+
+func (ng *NodeGroup) Hash() (string, error) {
+	bytes, err := yaml.Marshal(ng)
+	if err != nil {
+		return "", err
+	}
+
+	hash := sha256.New()
+	hash.Write(bytes)
+	return hex.EncodeToString(hash.Sum(nil)), nil
 }
 
 func (ng *NodeGroup) MaxPossibleOnDemandInstances() int64 {

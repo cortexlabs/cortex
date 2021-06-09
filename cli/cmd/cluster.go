@@ -85,18 +85,11 @@ func clusterInit() {
 	_clusterInfoCmd.Flags().BoolVarP(&_flagClusterDisallowPrompt, "yes", "y", false, "skip prompts")
 	_clusterCmd.AddCommand(_clusterInfoCmd)
 
-	_clusterScaleCmd.Flags().SortFlags = false
-	addClusterNameFlag(_clusterScaleCmd)
-	addClusterRegionFlag(_clusterScaleCmd)
-	addClusterScaleFlags(_clusterScaleCmd)
-	_clusterScaleCmd.Flags().BoolVarP(&_flagClusterDisallowPrompt, "yes", "y", false, "skip prompts")
-	_clusterCmd.AddCommand(_clusterScaleCmd)
-
-	_clusterAddNodegroupsCmd.Flags().SortFlags = false
-	addClusterNameFlag(_clusterAddNodegroupsCmd)
-	addClusterRegionFlag(_clusterAddNodegroupsCmd)
-	_clusterAddNodegroupsCmd.Flags().BoolVarP(&_flagClusterDisallowPrompt, "yes", "y", false, "skip prompts")
-	_clusterCmd.AddCommand(_clusterAddNodegroupsCmd)
+	_clusterConfigureCmd.Flags().SortFlags = false
+	addClusterNameFlag(_clusterConfigureCmd)
+	addClusterRegionFlag(_clusterConfigureCmd)
+	_clusterConfigureCmd.Flags().BoolVarP(&_flagClusterDisallowPrompt, "yes", "y", false, "skip prompts")
+	_clusterCmd.AddCommand(_clusterConfigureCmd)
 
 	_clusterDownCmd.Flags().SortFlags = false
 	addClusterConfigFlag(_clusterDownCmd)
@@ -319,23 +312,14 @@ var _clusterUpCmd = &cobra.Command{
 	},
 }
 
-var _clusterScaleCmd = &cobra.Command{
-	Use:   "scale [flags]",
-	Short: "update the min/max instances for a nodegroup",
-	Args:  cobra.NoArgs,
+var _clusterConfigureCmd = &cobra.Command{
+	Use:   "configure CLUSTER_CONFIG_FILE",
+	Short: "update the cluster's configuration",
+	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		telemetry.Event("cli.cluster.scale")
+		telemetry.Event("cli.cluster.configure")
 
-		var scaleMinIntances, scaleMaxInstances *int64
-		if wasFlagProvided(cmd, "min-instances") {
-			scaleMinIntances = pointer.Int64(_flagClusterScaleMinInstances)
-		}
-		if wasFlagProvided(cmd, "max-instances") {
-			scaleMaxInstances = pointer.Int64(_flagClusterScaleMaxInstances)
-		}
-		if scaleMinIntances == nil && scaleMaxInstances == nil {
-			exit.Error(ErrorSpecifyAtLeastOneFlag("--min-instances", "--max-instances"))
-		}
+		clusterConfigFile := args[0]
 
 		if _, err := docker.GetDockerClient(); err != nil {
 			exit.Error(err)
@@ -361,85 +345,28 @@ var _clusterScaleCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
-		clusterConfig := refreshCachedClusterConfig(awsClient, accessConfig, true)
-		clusterConfig, ngIndex, err := updateNodeGroupScale(clusterConfig, _flagClusterScaleNodeGroup, scaleMinIntances, scaleMaxInstances, _flagClusterDisallowPrompt)
+		oldClusterConfig := refreshCachedClusterConfig(awsClient, accessConfig, true)
+		newClusterConfig, newNgs, removedNgs, scaledNgs, err := getConfigureClusterConfig(awsClient, oldClusterConfig, clusterConfigFile, _flagClusterDisallowPrompt)
 		if err != nil {
 			exit.Error(err)
 		}
 
-		out, exitCode, err := runManagerWithClusterConfig("/root/install.sh --update", &clusterConfig, awsClient, nil, nil, []string{
-			"CORTEX_SCALING_NODEGROUP=" + _flagClusterScaleNodeGroup,
-			"CORTEX_SCALING_MIN_INSTANCES=" + s.Int64(clusterConfig.NodeGroups[ngIndex].MinInstances),
-			"CORTEX_SCALING_MAX_INSTANCES=" + s.Int64(clusterConfig.NodeGroups[ngIndex].MaxInstances),
+		if len(newNgs) == 0 && len(removedNgs) == 0 && len(scaledNgs) == 0 {
+			fmt.Printf("no change required")
+			exit.Ok()
+		}
+
+		out, exitCode, err := runManagerWithClusterConfig("/root/install.sh --configure", newClusterConfig, awsClient, nil, nil, []string{
+			"CORTEX_NEW_NODEGROUP_NAMES=" + strings.Join(newNgs, ","),
+			"CORTEX_REMOVED_NODEGROUP_NAMES=" + strings.Join(removedNgs, ","),
+			"CORTEX_SCALED_NODEGROUP_NAMES=" + strings.Join(scaledNgs, ","),
 		})
 		if err != nil {
 			exit.Error(err)
 		}
 		if exitCode == nil || *exitCode != 0 {
 			helpStr := "\ndebugging tips (may or may not apply to this error):"
-			helpStr += fmt.Sprintf("\n* if your cluster was unable to provision instances, additional error information may be found in the activity history of your cluster's autoscaling groups (select each autoscaling group and click the  \"Activity\" or \"Activity History\" tab): https://console.aws.amazon.com/ec2/autoscaling/home?region=%s#AutoScalingGroups:", clusterConfig.Region)
-			fmt.Println(helpStr)
-			exit.Error(ErrorClusterScale(out + helpStr))
-		}
-	},
-}
-
-var _clusterAddNodegroupsCmd = &cobra.Command{
-	Use:   "add-nodegroup NODEGROUP_CONFIG_FILE",
-	Short: "add a nodegroup to the cluster",
-	Args:  cobra.ExactArgs(1),
-	Run: func(cmd *cobra.Command, args []string) {
-		telemetry.Event("cli.cluster.addnodegroups")
-
-		nodeGroupsConfigFile := args[0]
-
-		if _, err := docker.GetDockerClient(); err != nil {
-			exit.Error(err)
-		}
-
-		accessConfig, err := getClusterAccessConfigWithCache()
-		if err != nil {
-			exit.Error(err)
-		}
-
-		awsClient, err := newAWSClient(accessConfig.Region, _flagOutput == flags.PrettyOutputType)
-		if err != nil {
-			exit.Error(err)
-		}
-
-		nodeGroup, err := getNodeGroupConfig(awsClient, nodeGroupsConfigFile)
-		if err != nil {
-			exit.Error(err)
-		}
-
-		clusterConfig := refreshCachedClusterConfig(awsClient, accessConfig, true)
-
-		err = clusterconfig.ValidateNewNodeGroup(awsClient, clusterConfig, &nodeGroup)
-		if err != nil {
-			exit.Error(errors.Wrap(err, nodeGroupsConfigFile))
-		}
-
-		confirmNodeGroupConfig(nodeGroup, clusterConfig, awsClient, _flagClusterDisallowPrompt)
-
-		clusterConfig.NodeGroups = append(clusterConfig.NodeGroups, &nodeGroup)
-		out, exitCode, err := runManagerWithClusterConfig("/root/install.sh --add-nodegroup", &clusterConfig, awsClient, nil, nil, []string{
-			"CORTEX_NEW_NODEGROUP_NAME=" + nodeGroup.Name,
-		})
-		if err != nil {
-			exit.Error(err)
-		}
-		if exitCode == nil || *exitCode != 0 {
-			stackTemplate := "eksctl-%s-nodegroup-cx-w"
-			if nodeGroup.Spot {
-				stackTemplate += "s"
-			} else {
-				stackTemplate += "d"
-			}
-			stackTemplate += "-%s"
-
-			helpStr := "\ndebugging tips (may or may not apply to this error):"
-			helpStr += fmt.Sprintf("\n* if your cluster was unable to provision the nodegroup, additional error information may be found in the description of your cloudformation stack: https://console.aws.amazon.com/cloudformation/home?region=%s#/stacks?filteringText="+stackTemplate, clusterConfig.Region, clusterConfig.ClusterName, nodeGroup.Name)
-			helpStr += "\n* please run `cortex cluster delete-nodegroup %s` to make sure the nodegroup is deleted before attempting to add it again"
+			helpStr += fmt.Sprintf("\n* if your cluster was unable to provision/remove/scale some nodegroups, additional error information may be found in the description of your cloudformation stack: https://console.aws.amazon.com/cloudformation/home?region=%s#/stacks", oldClusterConfig.Region)
 			fmt.Println(helpStr)
 			exit.Error(ErrorClusterAddNodeGroup(out + helpStr))
 		}
@@ -1162,6 +1089,7 @@ func refreshCachedClusterConfig(awsClient *aws.Client, accessConfig *clusterconf
 	return *refreshedClusterConfig
 }
 
+// TODO remove
 func updateNodeGroupScale(clusterConfig clusterconfig.Config, targetNg string, desiredMinReplicas, desiredMaxReplicas *int64, disallowPrompt bool) (clusterconfig.Config, int, error) {
 	clusterName := clusterConfig.ClusterName
 	region := clusterConfig.Region
