@@ -113,18 +113,16 @@ func (p *Probe) StartProbing() chan struct{} {
 					successCount = 0
 				}
 
-				{
-					p.Lock()
+				p.Lock()
 
-					if successCount >= p.SuccessThreshold {
-						p.healthy = true
-					} else if failureCount >= p.FailureThreshold {
-						p.healthy = false
-					}
-					p.hasRunOnce = true
-
-					p.Unlock()
+				if successCount >= p.SuccessThreshold {
+					p.healthy = true
+				} else if failureCount >= p.FailureThreshold {
+					p.healthy = false
 				}
+				p.hasRunOnce = true
+
+				p.Unlock()
 			}
 		}
 	})
