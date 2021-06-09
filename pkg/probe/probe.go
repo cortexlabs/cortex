@@ -145,12 +145,15 @@ func AreProbesHealthy(probes []*Probe) bool {
 
 func (p *Probe) probeContainer() bool {
 	var err error
+	var probeType string
 
 	switch {
 	case p.HTTPGet != nil:
 		err = p.httpProbe()
+		probeType = "http"
 	case p.TCPSocket != nil:
 		err = p.tcpProbe()
+		probeType = "tcp"
 	case p.Exec != nil:
 		// Should never be reachable.
 		p.logger.Error("exec probe not supported")
@@ -161,7 +164,7 @@ func (p *Probe) probeContainer() bool {
 	}
 
 	if err != nil {
-		p.logger.Warn(errors.Wrap(err, "probe to user provided containers failed"))
+		p.logger.Warn(errors.Wrapf(err, "%s probe to user container failed", probeType))
 		return false
 	}
 	return true
