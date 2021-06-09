@@ -110,7 +110,7 @@ jobs:
           command: make lint
       - run:
           name: Go Tests
-          command: make test-go
+          command: make test
 
   build-and-deploy:
     docker:
