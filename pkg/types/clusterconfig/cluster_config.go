@@ -1195,9 +1195,9 @@ func (cc *Config) ValidateOnConfigure(awsClient *aws.Client, oldConfig Config) (
 		}
 	}
 
-	scaledNgNames = getNodeGroupsNames(scaledNgs)
-	newNgNames = getNodeGroupsNames(newNgs)
-	removedNgNames = getNodeGroupsNames(removedNgs)
+	scaledNgNames = GetNodeGroupsNames(scaledNgs)
+	newNgNames = GetNodeGroupsNames(newNgs)
+	removedNgNames = GetNodeGroupsNames(removedNgs)
 	return
 }
 
@@ -1360,12 +1360,20 @@ func (cc *Config) getCommonNodeGroups(oldConfig Config) ([]*NodeGroup, []*NodeGr
 	return commonNewNodeGroups, commonOldNodeGroups
 }
 
-func getNodeGroupsNames(nodeGroups []*NodeGroup) []string {
+func GetNodeGroupsNames(nodeGroups []*NodeGroup) []string {
 	ngNames := []string{}
 	for _, ng := range nodeGroups {
 		ngNames = append(ngNames, ng.Name)
 	}
 	return ngNames
+}
+
+func GetNodeGroupsAvailabilities(nodeGroups []*NodeGroup) []bool {
+	ngAvailability := []bool{}
+	for _, ng := range nodeGroups {
+		ngAvailability = append(ngAvailability, ng.Spot)
+	}
+	return ngAvailability
 }
 
 func CheckSpotInstanceCompatibility(target aws.InstanceMetadata, suggested aws.InstanceMetadata) error {

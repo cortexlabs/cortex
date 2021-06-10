@@ -265,7 +265,6 @@ function resize_nodegroups() {
 
   eksctl get nodegroup --cluster=$CORTEX_CLUSTER_NAME --region=$CORTEX_REGION -o json > nodegroups.json
   eks_ng_len=$(cat nodegroups.json | jq -r length)
-
   cfg_ng_len=$(cat $CORTEX_CLUSTER_CONFIG_FILE | yq -r .node_groups | yq -r length)
 
   for cfg_ng_name in $CORTEX_SCALED_NODEGROUP_NAMES; do
@@ -287,7 +286,7 @@ function resize_nodegroups() {
     fi
 
     for cfg_idx in $(seq 0 $(($cfg_ng_len-1))); do
-      cfg_ng=$(cat $CORTEX_CLUSTER_CONFIG_FILE | jq -r .node_groups[$cfg_idx].name)
+      cfg_ng=$(cat $CORTEX_CLUSTER_CONFIG_FILE | yq -r .node_groups[$cfg_idx].name)
       if [ "$cfg_ng" = "$cfg_ng_name" ]; then
         break
       fi
@@ -296,8 +295,8 @@ function resize_nodegroups() {
     desired=$(cat nodegroups.json | jq -r .[$eks_idx].DesiredCapacity)
     existing_min=$(cat nodegroups.json | jq -r .[$eks_idx].MinSize)
     existing_max=$(cat nodegroups.json | jq -r .[$eks_idx].MaxSize)
-    updating_min=$(cat $CORTEX_CLUSTER_CONFIG_FILE | jq -r .node_groups[$cfg_idx].min_instances)
-    updating_max=$(cat $CORTEX_CLUSTER_CONFIG_FILE | jq -r .node_groups[$cfg_idx].max_instances)
+    updating_min=$(cat $CORTEX_CLUSTER_CONFIG_FILE | yq -r .node_groups[$cfg_idx].min_instances)
+    updating_max=$(cat $CORTEX_CLUSTER_CONFIG_FILE | yq -r .node_groups[$cfg_idx].max_instances)
 
     if [ "$desired" -lt $updating_min ]; then
       desired=$updating_min
