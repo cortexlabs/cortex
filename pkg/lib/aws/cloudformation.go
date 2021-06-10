@@ -23,16 +23,22 @@ import (
 )
 
 func (c *Client) ListEKSStacks(controlPlaneStackName string, nodegroupStackNames strset.Set) ([]*cloudformation.StackSummary, error) {
-	var stackSummaries []*cloudformation.StackSummary
+	stackRecordsByName := map[string][]*cloudformation.StackSummary{}
 	stackSet := strset.Union(nodegroupStackNames, strset.New(controlPlaneStackName))
 
 	err := c.CloudFormation().ListStacksPages(
 		&cloudformation.ListStacksInput{},
 		func(listStackOutput *cloudformation.ListStacksOutput, lastPage bool) bool {
 			for _, stackSummary := range listStackOutput.StackSummaries {
-
-				if stackSet.HasWithPrefix(*stackSummary.StackName) {
-					stackSummaries = append(stackSummaries, stackSummary)
+				if stackSummary == nil || stackSummary.StackName == nil || !stackSet.HasWithPrefix(*stackSummary.StackName) {
+					continue
+				}
+				if _, ok := stackRecordsByName[*stackSummary.StackName]; !ok {
+					stackRecordsByName[*stackSummary.StackName] = []*cloudformation.StackSummary{
+						stackSummary,
+					}
+				} else {
+					stackRecordsByName[*stackSummary.StackName] = append(stackRecordsByName[*stackSummary.StackName], stackSummary)
 				}
 
 				if *stackSummary.StackName == controlPlaneStackName {
@@ -45,6 +51,21 @@ func (c *Client) ListEKSStacks(controlPlaneStackName string, nodegroupStackNames
 	)
 	if err != nil {
 		return nil, errors.WithStack(err)
+	}
+
+	var stackSummaries []*cloudformation.StackSummary
+	for _, stacks := range stackRecordsByName {
+		mostRecent := 0
+		created := stacks[0].CreationTime
+		for i, stack := range stacks[1:] {
+			if stack.CreationTime == nil || (created == nil && stack.CreationTime != nil) {
+				continue
+			}
+			if stack.CreationTime.After(*created) {
+				mostRecent = i
+			}
+		}
+		stackSummaries = append(stackSummaries, stacks[mostRecent])
 	}
 
 	return stackSummaries, nil

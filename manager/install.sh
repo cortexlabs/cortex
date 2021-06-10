@@ -330,7 +330,7 @@ function add_nodegroups() {
 
   nodegroup_names="$(join_by , $CORTEX_NEW_NODEGROUP_NAMES)"
 
-  echo -e "￮ adding new nodegroup(s) to the cluster (this will take up to 25 minutes) ...\n"
+  echo "￮ adding new nodegroup(s) to the cluster (this will take up to 25 minutes) ..."
   python generate_eks.py $CORTEX_CLUSTER_CONFIG_FILE manifests/ami.json --target-node-groups="$nodegroup_names" > /workspace/nodegroups.yaml
   eksctl create nodegroup --timeout=$EKSCTL_NODEGROUP_TIMEOUT --install-neuron-plugin=false --install-nvidia-plugin=false -f /workspace/nodegroups.yaml
   echo
