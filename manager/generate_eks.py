@@ -210,13 +210,12 @@ def get_nodegroup_config_by_name(cluster_config: dict, ng_name: str) -> dict:
         if ng["name"] == ng_name:
             return ng
 
+
 def get_empty_eks_nodegroup(name: str) -> dict:
     """
     Gets an empty nodegroup in EKS-dict format that only has the Cortex nodegroup name filled out.
     """
-    return {
-        "name": name
-    }
+    return {"name": name}
 
 
 def get_ami(ami_map: dict, instance_type: str) -> str:
@@ -238,7 +237,9 @@ def get_ami(ami_map: dict, instance_type: str) -> str:
     type=str,
     help="specific nodegroup stacks to add to the generated eks file; use this for existing clusters",
 )
-def generate_eks(cluster_config_file, ami_json_file, target_node_groups: str, target_stack_names: str):
+def generate_eks(
+    cluster_config_file, ami_json_file, target_node_groups: str, target_stack_names: str
+):
     cluster_config = yaml.safe_load(cluster_config_file)
     region = cluster_config["region"]
     name = cluster_config["cluster_name"]
@@ -259,7 +260,9 @@ def generate_eks(cluster_config_file, ami_json_file, target_node_groups: str, ta
         eks["nodeGroups"] = []
         for node_group_name in node_group_names:
             nodegroup_config = get_nodegroup_config_by_name(cluster_config, node_group_name)
-            eks["nodeGroups"].append(get_worker_nodegroup(ami_map, nodegroup_config, cluster_config))
+            eks["nodeGroups"].append(
+                get_worker_nodegroup(ami_map, nodegroup_config, cluster_config)
+            )
         click.echo(yaml.dump(eks, Dumper=IgnoreAliases, default_flow_style=False, default_style=""))
         return
 
