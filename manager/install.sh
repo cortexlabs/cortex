@@ -25,10 +25,8 @@ mkdir /workspace
 arg1="$1"
 
 function main() {
-  if [ "$arg1" = "--update" ]; then
+  if [ "$arg1" = "--configure" ]; then
     cluster_configure
-  elif [ "$arg1" = "--add-nodegroup" ]; then
-    cluster_add_nodegroup
   else
     cluster_up
   fi
@@ -88,37 +86,15 @@ function cluster_up() {
 function cluster_configure() {
   check_eks
 
-  resize_nodegroup
+  resize_nodegroups
+  add_nodegroups
+  remove_nodegroups
 
   echo -n "￮ updating cluster configuration "
   setup_configmap
   echo "✓"
 
   # this is necessary since max_instances may have been updated
-  echo -n "￮ configuring autoscaling "
-  python render_template.py $CORTEX_CLUSTER_CONFIG_FILE manifests/cluster-autoscaler.yaml.j2 > /workspace/cluster-autoscaler.yaml
-  kubectl apply -f /workspace/cluster-autoscaler.yaml >/dev/null
-  echo "✓"
-
-  restart_operator
-
-  validate_cortex
-
-  echo -e "\ncortex is ready!"
-
-  print_endpoints
-}
-
-function cluster_add_nodegroup() {
-  check_eks
-
-  add_nodegroup
-
-  echo -n "￮ updating cluster configuration "
-  setup_configmap
-  echo "✓"
-
-  # this is necessary for configuring the autoscaler priority for the new nodegroup
   echo -n "￮ configuring autoscaling "
   python render_template.py $CORTEX_CLUSTER_CONFIG_FILE manifests/cluster-autoscaler.yaml.j2 > /workspace/cluster-autoscaler.yaml
   kubectl apply -f /workspace/cluster-autoscaler.yaml >/dev/null
@@ -282,63 +258,122 @@ function start_controller_manager() {
   echo "✓"
 }
 
-function resize_nodegroup() {
-  eksctl get nodegroup --cluster=$CORTEX_CLUSTER_NAME --region=$CORTEX_REGION -o json > nodegroups.json
-  ng_len=$(cat nodegroups.json | jq -r length)
-  config_ng="$CORTEX_SCALING_NODEGROUP"
+function resize_nodegroups() {
+  if [ -z "$CORTEX_SCALED_NODEGROUP_NAMES" ]; then
+    return
+  fi
 
-  has_ng="false"
-  for eks_idx in $(seq 0 $(($ng_len-1))); do
-    stack_ng=$(cat nodegroups.json | jq -r .[$eks_idx].Name)
-    if [ "$stack_ng" = "cx-operator" ]; then
-      continue
+  eksctl get nodegroup --cluster=$CORTEX_CLUSTER_NAME --region=$CORTEX_REGION -o json > nodegroups.json
+  eks_ng_len=$(cat nodegroups.json | jq -r length)
+
+  cfg_ng_len=$(cat $CORTEX_CLUSTER_CONFIG_FILE | yq -r .node_groups | yq -r length)
+
+  for cfg_ng_name in $CORTEX_SCALED_NODEGROUP_NAMES; do
+    has_ng="false"
+    for eks_idx in $(seq 0 $(($eks_ng_len-1))); do
+      stack_ng=$(cat nodegroups.json | jq -r .[$eks_idx].Name)
+      if [ "$stack_ng" = "cx-operator" ]; then
+        continue
+      fi
+      if [[ "$stack_ng" == *"$cfg_ng_name" ]]; then
+        has_ng="true"
+        break
+      fi
+    done
+
+    if [ "$has_ng" == "false" ]; then
+      echo -e "error: \"$cfg_ng_name\" nodegroup (\"cx-*-$cfg_ng_name\" on aws) couldn't be scaled because stack couldn't be found\n"
+      exit 1
     fi
-    if [[ "$stack_ng" == *"$config_ng" ]]; then
-      has_ng="true"
-      break
+
+    for cfg_idx in $(seq 0 $(($cfg_ng_len-1))); do
+      cfg_ng=$(cat $CORTEX_CLUSTER_CONFIG_FILE | jq -r .node_groups[$cfg_idx].name)
+      if [ "$cfg_ng" = "$cfg_ng_name" ]; then
+        break
+      fi
+    done
+
+    desired=$(cat nodegroups.json | jq -r .[$eks_idx].DesiredCapacity)
+    existing_min=$(cat nodegroups.json | jq -r .[$eks_idx].MinSize)
+    existing_max=$(cat nodegroups.json | jq -r .[$eks_idx].MaxSize)
+    updating_min=$(cat $CORTEX_CLUSTER_CONFIG_FILE | jq -r .node_groups[$cfg_idx].min_instances)
+    updating_max=$(cat $CORTEX_CLUSTER_CONFIG_FILE | jq -r .node_groups[$cfg_idx].max_instances)
+
+    if [ "$desired" -lt $updating_min ]; then
+      desired=$updating_min
+    fi
+    if [ "$desired" -gt $updating_max ]; then
+      desired=$updating_max
+    fi
+
+    if [ "$existing_min" != "$updating_min" ] && [ "$existing_max" != "$updating_max" ]; then
+      echo "￮ nodegroup $cfg_ng_name: updating min instances to $updating_min and max instances to $updating_max"
+      eksctl scale nodegroup --cluster=$CORTEX_CLUSTER_NAME --region=$CORTEX_REGION $stack_ng --nodes $desired --nodes-min $updating_min --nodes-max $updating_max --timeout "60m"
+      echo
+    elif [ "$existing_min" != "$updating_min" ]; then
+      echo "￮ nodegroup $cfg_ng_name: updating min instances to $updating_min"
+      eksctl scale nodegroup --cluster=$CORTEX_CLUSTER_NAME --region=$CORTEX_REGION $stack_ng --nodes $desired --nodes-min $updating_min --timeout "60m"
+      echo
+    elif [ "$existing_max" != "$updating_max" ]; then
+      echo "￮ nodegroup $cfg_ng_name: updating max instances to $updating_max"
+      eksctl scale nodegroup --cluster=$CORTEX_CLUSTER_NAME --region=$CORTEX_REGION $stack_ng --nodes $desired --nodes-max $updating_max --timeout "60m"
+      echo
     fi
   done
-
-  if [ "$has_ng" == "false" ]; then
-    echo "error: \"cx-*-$config_ng\" node group couldn't be found"
-    exit 1
-  fi
-
-  desired=$(cat nodegroups.json | jq -r .[$eks_idx].DesiredCapacity)
-  existing_min=$(cat nodegroups.json | jq -r .[$eks_idx].MinSize)
-  existing_max=$(cat nodegroups.json | jq -r .[$eks_idx].MaxSize)
-  updating_min="$CORTEX_SCALING_MIN_INSTANCES"
-  updating_max="$CORTEX_SCALING_MAX_INSTANCES"
-
-  if [ "$desired" -lt $updating_min ]; then
-    desired=$updating_min
-  fi
-  if [ "$desired" -gt $updating_max ]; then
-    desired=$updating_max
-  fi
-
-  if [ "$existing_min" != "$updating_min" ] && [ "$existing_max" != "$updating_max" ]; then
-    echo "￮ nodegroup $config_ng: updating min instances to $updating_min and max instances to $updating_max"
-    eksctl scale nodegroup --cluster=$CORTEX_CLUSTER_NAME --region=$CORTEX_REGION $stack_ng --nodes $desired --nodes-min $updating_min --nodes-max $updating_max --timeout "60m"
-    echo
-  elif [ "$existing_min" != "$updating_min" ]; then
-    echo "￮ nodegroup $config_ng: updating min instances to $updating_min"
-    eksctl scale nodegroup --cluster=$CORTEX_CLUSTER_NAME --region=$CORTEX_REGION $stack_ng --nodes $desired --nodes-min $updating_min --timeout "60m"
-    echo
-  elif [ "$existing_max" != "$updating_max" ]; then
-    echo "￮ nodegroup $config_ng: updating max instances to $updating_max"
-    eksctl scale nodegroup --cluster=$CORTEX_CLUSTER_NAME --region=$CORTEX_REGION $stack_ng --nodes $desired --nodes-max $updating_max --timeout "60m"
-    echo
-  fi
 
   rm nodegroups.json
 }
 
-function add_nodegroup() {
-  echo -e "￮ adding new nodegroup to the cluster (this will take up to 25 minutes) ...\n"
-  python generate_eks.py $CORTEX_CLUSTER_CONFIG_FILE manifests/ami.json > /workspace/nodegroup.yaml
-  eksctl create nodegroup --timeout=$EKSCTL_NODEGROUP_TIMEOUT --install-neuron-plugin=false --install-nvidia-plugin=false -f /workspace/nodegroup.yaml
+function add_nodegroups() {
+  if [ -z "$CORTEX_NEW_NODEGROUP_NAMES" ]; then
+    return
+  fi
+
+  nodegroup_names="$(join_by , $CORTEX_NEW_NODEGROUP_NAMES)"
+
+  echo -e "￮ adding new nodegroup(s) to the cluster (this will take up to 25 minutes) ...\n"
+  python generate_eks.py $CORTEX_CLUSTER_CONFIG_FILE manifests/ami.json --target-node-groups="$nodegroup_names" > /workspace/nodegroups.yaml
+  eksctl create nodegroup --timeout=$EKSCTL_NODEGROUP_TIMEOUT --install-neuron-plugin=false --install-nvidia-plugin=false -f /workspace/nodegroups.yaml
   echo
+}
+
+function remove_nodegroups() {
+  if [ -z "$CORTEX_REMOVED_NODEGROUP_NAMES" ]; then
+    return
+  fi
+
+  eksctl get nodegroup --cluster=$CORTEX_CLUSTER_NAME --region=$CORTEX_REGION -o json > nodegroups.json
+  eks_ng_len=$(cat nodegroups.json | jq -r length)
+
+  stacks_to_delete=()
+  for cfg_ng_name in $CORTEX_REMOVED_NODEGROUP_NAMES; do
+    has_ng="false"
+    for eks_idx in $(seq 0 $(($eks_ng_len-1))); do
+      stack_ng=$(cat nodegroups.json | jq -r .[$eks_idx].Name)
+      if [ "$stack_ng" = "cx-operator" ]; then
+        continue
+      fi
+      if [[ "$stack_ng" == *"$cfg_ng_name" ]]; then
+        has_ng="true"
+        break
+      fi
+    done
+
+    if [ "$has_ng" == "false" ]; then
+      continue
+    fi
+
+    stacks_to_delete+=("$stack_ng")
+  done
+  # TODO check if stacks_to_delete is empty
+  stacks_names="$(join_by , ${stacks_to_delete[@]})"
+
+  echo -e "￮ removing nodegroup(s) from the cluster (this will take up to 25 minutes) ...\n"
+  python generate_eks.py $CORTEX_CLUSTER_CONFIG_FILE manifests/ami.json --target-stack-names="$stacks_names" > /workspace/nodegroups.yaml
+  eksctl delete nodegroup --timeout=$EKSCTL_NODEGROUP_TIMEOUT --approve -f /workspace/nodegroups.yaml
+  echo
+
+  rm nodegroups.json
 }
 
 function setup_istio() {
@@ -560,6 +595,12 @@ function output_if_error() {
   fi
   rm --force /tmp/suppress.out 2> /dev/null
   set -e
+}
+
+function join_by {
+  local IFS="$1"
+  shift
+  echo "$*"
 }
 
 main

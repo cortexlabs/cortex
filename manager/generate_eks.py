@@ -171,6 +171,9 @@ def get_inf_resources(instance_type):
 
 
 def get_all_worker_nodegroups(ami_map: dict, cluster_config: dict) -> list:
+    """
+    Gets all node groups in EKS-dict format.
+    """
     worker_nodegroups = []
     for ng in cluster_config["node_groups"]:
         worker_nodegroups.append(get_worker_nodegroup(ami_map, ng, cluster_config))
@@ -178,6 +181,9 @@ def get_all_worker_nodegroups(ami_map: dict, cluster_config: dict) -> list:
 
 
 def get_worker_nodegroup(ami_map: dict, nodegroup_config: dict, cluster_config: dict) -> dict:
+    """
+    Converts Cortex-dict nodegroup config to EKS-dict format.
+    """
     worker_nodegroup = default_nodegroup(cluster_config)
     worker_nodegroup["ami"] = get_ami(ami_map, nodegroup_config["instance_type"])
 
@@ -197,9 +203,20 @@ def get_worker_nodegroup(ami_map: dict, nodegroup_config: dict, cluster_config: 
 
 
 def get_nodegroup_config_by_name(cluster_config: dict, ng_name: str) -> dict:
+    """
+    Gets a nodegroup in Cortex-dict format from Cortex cluster config.
+    """
     for ng in cluster_config["node_groups"]:
         if ng["name"] == ng_name:
             return ng
+
+def get_empty_eks_nodegroup(name: str) -> dict:
+    """
+    Gets an empty nodegroup in EKS-dict format that only has the Cortex nodegroup name filled out.
+    """
+    return {
+        "name": name
+    }
 
 
 def get_ami(ami_map: dict, instance_type: str) -> str:
@@ -212,11 +229,16 @@ def get_ami(ami_map: dict, instance_type: str) -> str:
 @click.argument("cluster-config_file", type=click.File("r"))
 @click.argument("ami-json-file", type=click.File("r"))
 @click.option(
-    "--new-nodegroup-name",
+    "--target-node-groups",
     type=str,
-    help="nodegroup to add to the existing cluster; if the flag is not specified, then it's assumed the cluster doesn't exist and needs to be created",
+    help="specific nodegroups to add to the generated eks file; use this for existing clusters",
 )
-def generate_eks(cluster_config_file, ami_json_file, new_nodegroup_name):
+@click.option(
+    "--target-stack-names",
+    type=str,
+    help="specific nodegroup stacks to add to the generated eks file; use this for existing clusters",
+)
+def generate_eks(cluster_config_file, ami_json_file, target_node_groups: str, target_stack_names: str):
     cluster_config = yaml.safe_load(cluster_config_file)
     region = cluster_config["region"]
     name = cluster_config["cluster_name"]
@@ -232,9 +254,20 @@ def generate_eks(cluster_config_file, ami_json_file, new_nodegroup_name):
         },
     }
 
-    if new_nodegroup_name:
-        new_nodegroup_config = get_nodegroup_config_by_name(cluster_config, new_nodegroup_name)
-        eks["nodeGroups"] = [get_worker_nodegroup(ami_map, new_nodegroup_config, cluster_config)]
+    if target_node_groups:
+        node_group_names = target_node_groups.split(",")
+        eks["nodeGroups"] = []
+        for node_group_name in node_group_names:
+            nodegroup_config = get_nodegroup_config_by_name(cluster_config, node_group_name)
+            eks["nodeGroups"].append(get_worker_nodegroup(ami_map, nodegroup_config, cluster_config))
+        click.echo(yaml.dump(eks, Dumper=IgnoreAliases, default_flow_style=False, default_style=""))
+        return
+
+    if target_stack_names:
+        stacks_names = target_stack_names.split(",")
+        eks["nodeGroups"] = []
+        for stack_name in stacks_names:
+            eks["nodeGroups"].append(get_empty_eks_nodegroup(stack_name))
         click.echo(yaml.dump(eks, Dumper=IgnoreAliases, default_flow_style=False, default_style=""))
         return
 
@@ -315,4 +348,4 @@ class IgnoreAliases(yaml.Dumper):
 
 
 if __name__ == "__main__":
-    generate_eks(auto_envvar_prefix="CORTEX")
+    generate_eks()

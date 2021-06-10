@@ -352,14 +352,14 @@ var _clusterConfigureCmd = &cobra.Command{
 		}
 
 		if len(newNgs) == 0 && len(removedNgs) == 0 && len(scaledNgs) == 0 {
-			fmt.Printf("no change required")
+			fmt.Println("no change required")
 			exit.Ok()
 		}
 
 		out, exitCode, err := runManagerWithClusterConfig("/root/install.sh --configure", newClusterConfig, awsClient, nil, nil, []string{
-			"CORTEX_NEW_NODEGROUP_NAMES=" + strings.Join(newNgs, ","),
-			"CORTEX_REMOVED_NODEGROUP_NAMES=" + strings.Join(removedNgs, ","),
-			"CORTEX_SCALED_NODEGROUP_NAMES=" + strings.Join(scaledNgs, ","),
+			"CORTEX_SCALED_NODEGROUP_NAMES=" + strings.Join(scaledNgs, " "),
+			"CORTEX_NEW_NODEGROUP_NAMES=" + strings.Join(newNgs, " "),
+			"CORTEX_REMOVED_NODEGROUP_NAMES=" + strings.Join(removedNgs, " "),
 		})
 		if err != nil {
 			exit.Error(err)
