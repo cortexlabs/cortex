@@ -367,7 +367,7 @@ function remove_nodegroups() {
   # TODO check if stacks_to_delete is empty
   stacks_names="$(join_by , ${stacks_to_delete[@]})"
 
-  echo -e "￮ removing nodegroup(s) from the cluster (this will take up to 25 minutes) ...\n"
+  echo "￮ removing nodegroup(s) from the cluster (this will take up to 25 minutes) ..."
   python generate_eks.py $CORTEX_CLUSTER_CONFIG_FILE manifests/ami.json --target-stack-names="$stacks_names" > /workspace/nodegroups.yaml
   eksctl delete nodegroup --timeout=$EKSCTL_NODEGROUP_TIMEOUT --approve -f /workspace/nodegroups.yaml
   echo
