@@ -131,15 +131,15 @@ func (p *Probe) StartProbing() chan struct{} {
 }
 
 func (p *Probe) IsHealthy() bool {
-	p.Lock()
-	defer p.Unlock()
+	p.RLock()
+	defer p.RUnlock()
 
 	return p.healthy
 }
 
 func (p *Probe) HasRunOnce() bool {
-	p.Lock()
-	defer p.Unlock()
+	p.RLock()
+	defer p.RUnlock()
 
 	return p.hasRunOnce
 }
