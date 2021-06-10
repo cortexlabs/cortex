@@ -23,6 +23,7 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"sync"
 	"time"
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
@@ -52,6 +53,7 @@ const (
 
 type Probe struct {
 	*kcore.Probe
+	sync.RWMutex
 	logger     *zap.SugaredLogger
 	healthy    bool
 	hasRunOnce bool
@@ -91,8 +93,9 @@ func NewDefaultProbe(target string, logger *zap.SugaredLogger) *Probe {
 func (p *Probe) StartProbing() chan struct{} {
 	stop := make(chan struct{})
 
-	ticker := time.NewTicker(time.Duration(p.PeriodSeconds) * time.Second)
 	time.AfterFunc(time.Duration(p.InitialDelaySeconds)*time.Second, func() {
+		ticker := time.NewTicker(time.Duration(p.PeriodSeconds) * time.Second)
+
 		successCount := int32(0)
 		failureCount := int32(0)
 
@@ -110,12 +113,16 @@ func (p *Probe) StartProbing() chan struct{} {
 					successCount = 0
 				}
 
+				p.Lock()
+
 				if successCount >= p.SuccessThreshold {
 					p.healthy = true
 				} else if failureCount >= p.FailureThreshold {
 					p.healthy = false
 				}
 				p.hasRunOnce = true
+
+				p.Unlock()
 			}
 		}
 	})
@@ -124,10 +131,16 @@ func (p *Probe) StartProbing() chan struct{} {
 }
 
 func (p *Probe) IsHealthy() bool {
+	p.RLock()
+	defer p.RUnlock()
+
 	return p.healthy
 }
 
 func (p *Probe) HasRunOnce() bool {
+	p.RLock()
+	defer p.RUnlock()
+
 	return p.hasRunOnce
 }
 
