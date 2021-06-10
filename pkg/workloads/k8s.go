@@ -474,7 +474,6 @@ func GenerateResourceTolerations() []kcore.Toleration {
 }
 
 func GenerateNodeAffinities(apiNodeGroups []string) *kcore.Affinity {
-	// node groups are ordered according to how the cluster config node groups are ordered
 	var nodeGroups []*clusterconfig.NodeGroup
 	for _, clusterNodeGroup := range config.ClusterConfig.NodeGroups {
 		for _, apiNodeGroupName := range apiNodeGroups {
@@ -484,16 +483,14 @@ func GenerateNodeAffinities(apiNodeGroups []string) *kcore.Affinity {
 		}
 	}
 
-	numNodeGroups := len(apiNodeGroups)
 	if apiNodeGroups == nil {
 		nodeGroups = config.ClusterConfig.NodeGroups
-		numNodeGroups = len(config.ClusterConfig.NodeGroups)
 	}
 
 	var requiredNodeGroups []string
 	var preferredAffinities []kcore.PreferredSchedulingTerm
 
-	for idx, nodeGroup := range nodeGroups {
+	for _, nodeGroup := range nodeGroups {
 		var nodeGroupPrefix string
 		if nodeGroup.Spot {
 			nodeGroupPrefix = "cx-ws-"
@@ -502,7 +499,7 @@ func GenerateNodeAffinities(apiNodeGroups []string) *kcore.Affinity {
 		}
 
 		preferredAffinities = append(preferredAffinities, kcore.PreferredSchedulingTerm{
-			Weight: int32(100 * (1 - float64(idx)/float64(numNodeGroups))),
+			Weight: int32(nodeGroup.Priority),
 			Preference: kcore.NodeSelectorTerm{
 				MatchExpressions: []kcore.NodeSelectorRequirement{
 					{

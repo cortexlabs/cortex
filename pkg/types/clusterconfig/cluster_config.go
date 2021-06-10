@@ -135,6 +135,7 @@ type NodeGroup struct {
 	InstanceType             string      `json:"instance_type" yaml:"instance_type"`
 	MinInstances             int64       `json:"min_instances" yaml:"min_instances"`
 	MaxInstances             int64       `json:"max_instances" yaml:"max_instances"`
+	Priority                 int64       `json:"priority" yaml:"priority"`
 	InstanceVolumeSize       int64       `json:"instance_volume_size" yaml:"instance_volume_size"`
 	InstanceVolumeType       VolumeType  `json:"instance_volume_type" yaml:"instance_volume_type"`
 	InstanceVolumeIOPS       *int64      `json:"instance_volume_iops" yaml:"instance_volume_iops"`
@@ -699,6 +700,14 @@ func nodeGroupsFieldValidation() *cr.StructValidation {
 				Int64Validation: &cr.Int64Validation{
 					Default:              int64(5),
 					GreaterThanOrEqualTo: pointer.Int64(0), // this will be validated to be > 0 during cluster up (can be scaled down later)
+				},
+			},
+			{
+				StructField: "Priority",
+				Int64Validation: &cr.Int64Validation{
+					Default:              int64(0),
+					GreaterThanOrEqualTo: pointer.Int64(0),
+					LessThanOrEqualTo:    pointer.Int64(100),
 				},
 			},
 			{
@@ -1720,6 +1729,7 @@ func (mc *ManagedConfig) TelemetryEvent() map[string]interface{} {
 		event[nodeGroupKey("instance_type")] = ng.InstanceType
 		event[nodeGroupKey("min_instances")] = ng.MinInstances
 		event[nodeGroupKey("max_instances")] = ng.MaxInstances
+		event[nodeGroupKey("priority")] = ng.Priority
 		event[nodeGroupKey("instance_volume_size")] = ng.InstanceVolumeSize
 		event[nodeGroupKey("instance_volume_type")] = ng.InstanceVolumeType
 		if ng.InstanceVolumeIOPS != nil {
