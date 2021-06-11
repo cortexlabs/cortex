@@ -32,6 +32,7 @@ import (
 	libmath "github.com/cortexlabs/cortex/pkg/lib/math"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/prompt"
+	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/table"
 	"github.com/cortexlabs/cortex/pkg/types/clusterconfig"
@@ -145,7 +146,7 @@ func getInstallClusterConfig(awsClient *aws.Client, clusterConfigFile string, di
 	return clusterConfig, nil
 }
 
-func getConfigureClusterConfig(awsClient *aws.Client, cachedClusterConfig clusterconfig.Config, newClusterConfigFile string, disallowPrompt bool) (clusterConfig *clusterconfig.Config, newNgNames, removedNgNames, scaledNgNames []string, errReturned error) {
+func getConfigureClusterConfig(awsClient *aws.Client, cachedClusterConfig clusterconfig.Config, newClusterConfigFile string, staleNodeGroups []string, disallowPrompt bool) (clusterConfig *clusterconfig.Config, newNgNames, removedNgNames, scaledNgNames []string, errReturned error) {
 	newUserClusterConfig := &clusterconfig.Config{}
 
 	err := readUserClusterConfigFile(newUserClusterConfig, newClusterConfigFile)
@@ -165,6 +166,10 @@ func getConfigureClusterConfig(awsClient *aws.Client, cachedClusterConfig cluste
 		errReturned = errors.Wrap(err, newClusterConfigFile)
 		return
 	}
+
+	removedSet := strset.FromSlice(removed)
+	removedSet.Add(staleNodeGroups...)
+	removed = removedSet.Slice()
 
 	if len(new) == 0 && len(removed) == 0 && len(scaled) == 0 {
 		fmt.Println("no change required")
@@ -300,8 +305,7 @@ func confirmInstallClusterConfig(clusterConfig *clusterconfig.Config, awsClient 
 }
 
 func confirmConfigureClusterConfig(newNgs, removedNgs, scaledNgs []string, oldCc, newCc clusterconfig.Config, disallowPrompt bool) {
-	fmt.Println("your cluster will receive the following changes")
-
+	fmt.Printf("your %s cluster in region %s will receive the following changes\n", newCc.ClusterName, newCc.Region)
 	if len(newNgs) > 0 {
 		fmt.Printf("￮ %d %s (%s) will be added\n", len(newNgs), s.PluralS("nodegroup", len(newNgs)), s.StrsAnd(newNgs))
 	}
@@ -326,6 +330,7 @@ func confirmConfigureClusterConfig(newNgs, removedNgs, scaledNgs []string, oldCc
 			fmt.Println(s.Indent(fmt.Sprintf("￮ %s", output), "  "))
 		}
 	}
+	fmt.Println()
 
 	if !disallowPrompt {
 		exitMessage := fmt.Sprintf("cluster configuration can be modified via the cluster config file; see https://docs.cortex.dev/v/%s/ for more information", consts.CortexVersionMinor)

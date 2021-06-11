@@ -18,6 +18,7 @@ package clusterstate
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go/service/cloudformation"
@@ -39,10 +40,12 @@ const (
 )
 
 type ClusterState struct {
-	StatusMap    map[string]string // cloudformation stackname to cloudformation stackstatus
-	ControlPlane string
-	NodeGroups   []string
-	Status       Status
+	clusterName           string
+	StatusMap             map[string]string // cloudformation stackname to cloudformation stackstatus
+	ControlPlane          string
+	NodeGroupsStacks      []string
+	StaleNodeGroupsStacks []string
+	Status                Status
 }
 
 func is(status string, allowedStatus string, allowedStatuses ...string) bool {
@@ -83,7 +86,7 @@ func (cs ClusterState) TableString() string {
 	}
 
 	idx := 1
-	for _, nodeGroupName := range cs.NodeGroups {
+	for _, nodeGroupName := range cs.NodeGroupsStacks {
 		if status, ok := cs.StatusMap[nodeGroupName]; ok {
 			rows[idx] = []interface{}{nodeGroupName, status}
 			idx++
@@ -107,14 +110,34 @@ func (cs ClusterState) TableString() string {
 	return t.MustFormat()
 }
 
-func getStatus(statusMap map[string]string, controlPlane string, operatorStackName string, clusterName string, region string, ngNames []string, ngSpotEnabled []bool) (Status, error) {
+func (cs ClusterState) GetStaleNodeGroupNames() []string {
+	staleNodeGroups := []string{}
+	spotPrefix := fmt.Sprintf(spotTemplatePrefix+"-", cs.clusterName)
+	onDemandPrefix := fmt.Sprintf(onDemandTemplatePrefix+"-", cs.clusterName)
+
+	for _, stackName := range cs.StaleNodeGroupsStacks {
+		if strings.HasPrefix(stackName, spotPrefix) {
+			ngName := strings.TrimPrefix(stackName, spotPrefix)
+			staleNodeGroups = append(staleNodeGroups, ngName)
+		}
+		if strings.HasPrefix(stackName, onDemandPrefix) {
+			ngName := strings.TrimPrefix(stackName, onDemandPrefix)
+			staleNodeGroups = append(staleNodeGroups, ngName)
+		}
+	}
+
+	return staleNodeGroups
+}
+
+func getStatus(statusMap map[string]string, controlPlane string, operatorStackName string, clusterName string, region string, ngNames []string, ngSpotEnabled []bool) (Status, []string, error) {
 	statusMapCopy := maps.StrMapsCopy(statusMap)
 
 	allStatuses := []string{}
 	controlPlaneStatus := statusMapCopy[controlPlane]
 	allStatusesButTheRemovedOnes := []string{controlPlaneStatus}
 	existingNodeGroupStatuses := []string{}
-	removedNodeGroupStatuses := []string{}
+	staleNodeGroupStatuses := []string{}
+	staleNodeGroupStacks := []string{}
 
 	for i, ngName := range ngNames {
 		availability := "d"
@@ -124,7 +147,7 @@ func getStatus(statusMap map[string]string, controlPlane string, operatorStackNa
 		eksStackName := fmt.Sprintf("eksctl-%s-nodegroup-cx-w%s-%s", clusterName, availability, ngName)
 		status, ok := statusMapCopy[eksStackName]
 		if !ok {
-			return StatusNotFound, ErrorUnexpectedCloudFormationStatus(clusterName, region, statusMapCopy)
+			return StatusNotFound, nil, ErrorUnexpectedCloudFormationStatus(clusterName, region, statusMapCopy)
 		}
 
 		allStatuses = append(allStatuses, status)
@@ -135,7 +158,10 @@ func getStatus(statusMap map[string]string, controlPlane string, operatorStackNa
 	for stackName, status := range statusMapCopy {
 		allStatuses = append(allStatuses, status)
 		if stackName != controlPlane && stackName != operatorStackName {
-			removedNodeGroupStatuses = append(removedNodeGroupStatuses, status)
+			staleNodeGroupStatuses = append(staleNodeGroupStatuses, status)
+			if !any([]string{status}, cloudformation.StackStatusDeleteComplete, cloudformation.StackStatusDeleteInProgress) {
+				staleNodeGroupStacks = append(staleNodeGroupStacks, stackName)
+			}
 		}
 	}
 
@@ -145,69 +171,69 @@ func getStatus(statusMap map[string]string, controlPlane string, operatorStackNa
 	fmt.Println("controlPlaneStatus", controlPlaneStatus)
 	fmt.Println("allStatusesButTheRemovedOnes", allStatusesButTheRemovedOnes)
 	fmt.Println("existingNodeGroupStatuses", existingNodeGroupStatuses)
-	fmt.Println("removedNodeGroupStatuses", removedNodeGroupStatuses)
+	fmt.Println("removedNodeGroupStatuses", staleNodeGroupStatuses)
 
 	debug.Ppg(statusMap)
 
 	if any(allStatuses, string(StatusCreateFailedTimedOut)) {
-		return StatusNotFound, ErrorUnexpectedCloudFormationStatus(clusterName, region, statusMap)
+		return StatusNotFound, nil, ErrorUnexpectedCloudFormationStatus(clusterName, region, statusMap)
 	}
 
 	if len(existingNodeGroupStatuses) == 0 && controlPlaneStatus == string(StatusNotFound) {
-		return StatusNotFound, nil
+		return StatusNotFound, staleNodeGroupStacks, nil
 	}
 
 	// controlplane stack may be created while nodegroup stacks aren't listed in cloudformation stacks during cluster spin up
 	if len(existingNodeGroupStatuses) == 0 && is(controlPlaneStatus, cloudformation.StackStatusCreateComplete, cloudformation.StackStatusCreateInProgress) {
-		return StatusCreateInProgress, nil
+		return StatusCreateInProgress, staleNodeGroupStacks, nil
 	}
 
 	if any(allStatuses, cloudformation.StackStatusCreateFailed) {
-		return StatusCreateFailed, nil
+		return StatusCreateFailed, staleNodeGroupStacks, nil
 	}
 
 	if any(allStatuses, cloudformation.StackStatusDeleteFailed) {
-		return StatusDeleteFailed, nil
+		return StatusDeleteFailed, staleNodeGroupStacks, nil
 	}
 
 	if any(allStatusesButTheRemovedOnes, cloudformation.StackStatusDeleteInProgress) {
-		return StatusDeleteInProgress, nil
+		return StatusDeleteInProgress, staleNodeGroupStacks, nil
 	}
 
 	if all(allStatuses, cloudformation.StackStatusCreateComplete) {
-		return StatusCreateComplete, nil
+		return StatusCreateComplete, staleNodeGroupStacks, nil
 	}
 
 	if all(allStatuses, cloudformation.StackStatusUpdateComplete) {
-		return StatusUpdateComplete, nil
+		return StatusUpdateComplete, staleNodeGroupStacks, nil
 	}
 
 	if all(allStatuses, cloudformation.StackStatusUpdateRollbackComplete) {
-		return StatusUpdateRollbackComplete, nil
+		return StatusUpdateRollbackComplete, staleNodeGroupStacks, nil
 	}
 
 	if all(allStatuses, cloudformation.StackStatusDeleteComplete) {
-		return StatusDeleteComplete, nil
+		return StatusDeleteComplete, staleNodeGroupStacks, nil
 	}
 
 	// nodegroup stacks are deleted first while control plane stack is still in create complete state
 	if controlPlaneStatus == cloudformation.StackStatusCreateComplete &&
 		all(existingNodeGroupStatuses, cloudformation.StackStatusDeleteInProgress, cloudformation.StackStatusDeleteComplete) {
-		return StatusDeleteInProgress, nil
+		return StatusDeleteInProgress, staleNodeGroupStacks, nil
 	}
 
 	// controlplane stack may be in complete state while nodegroup stacks are still in creating or one nodegroup finishes before the other
 	if controlPlaneStatus == cloudformation.StackStatusCreateComplete &&
 		any(existingNodeGroupStatuses, cloudformation.StackStatusCreateInProgress) {
-		return StatusCreateInProgress, nil
+		return StatusCreateInProgress, staleNodeGroupStacks, nil
 	}
 
 	if controlPlaneStatus == cloudformation.StackStatusCreateComplete &&
 		all(existingNodeGroupStatuses, cloudformation.StackStatusCreateComplete, cloudformation.StackStatusUpdateComplete, cloudformation.StackStatusUpdateRollbackComplete) {
-		return StatusUpdateComplete, nil
+		return StatusUpdateComplete, staleNodeGroupStacks, nil
 	}
 
-	return StatusNotFound, ErrorUnexpectedCloudFormationStatus(clusterName, region, statusMap)
+	return StatusNotFound, nil, ErrorUnexpectedCloudFormationStatus(clusterName, region, statusMap)
 }
 
 func GetClusterState(awsClient *aws.Client, clusterConfig *clusterconfig.Config) (*ClusterState, error) {
@@ -245,24 +271,26 @@ func GetClusterState(awsClient *aws.Client, clusterConfig *clusterconfig.Config)
 		statusMap[operatorStackName] = string(StatusCreateFailedTimedOut)
 	}
 
-	status, err := getStatus(
+	status, staleStacks, err := getStatus(
 		statusMap,
 		controlPlaneStackName,
 		operatorStackName,
 		clusterConfig.ClusterName,
 		clusterConfig.Region,
-		clusterconfig.GetNodeGroupsNames(clusterConfig.NodeGroups),
-		clusterconfig.GetNodeGroupsAvailabilities(clusterConfig.NodeGroups),
+		clusterconfig.GetNodeGroupNames(clusterConfig.NodeGroups),
+		clusterconfig.GetNodeGroupAvailabilities(clusterConfig.NodeGroups),
 	)
 	if err != nil {
 		return nil, err
 	}
 
 	return &ClusterState{
-		ControlPlane: controlPlaneStackName,
-		NodeGroups:   nodeGroupStackNames,
-		StatusMap:    statusMap,
-		Status:       status,
+		clusterName:           clusterConfig.ClusterName,
+		ControlPlane:          controlPlaneStackName,
+		NodeGroupsStacks:      nodeGroupStackNames,
+		StaleNodeGroupsStacks: staleStacks,
+		StatusMap:             statusMap,
+		Status:                status,
 	}, nil
 }
 

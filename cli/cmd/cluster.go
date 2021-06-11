@@ -347,8 +347,9 @@ var _clusterConfigureCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
+		staleNodeGroups := clusterState.GetStaleNodeGroupNames()
 		oldClusterConfig := refreshCachedClusterConfig(awsClient, accessConfig, true)
-		newClusterConfig, newNgs, removedNgs, scaledNgs, err := getConfigureClusterConfig(awsClient, oldClusterConfig, clusterConfigFile, _flagClusterDisallowPrompt)
+		newClusterConfig, newNgs, removedNgs, scaledNgs, err := getConfigureClusterConfig(awsClient, oldClusterConfig, clusterConfigFile, staleNodeGroups, _flagClusterDisallowPrompt)
 		if err != nil {
 			exit.Error(err)
 		}
