@@ -327,7 +327,7 @@ func (c *Client) VerifyNetworkQuotas(
 	}
 
 	// check security groups quota
-	requiredSecurityGroups := requiredSecurityGroups(numNodeGroups)
+	requiredSecurityGroups := requiredSecurityGroups(numNodeGroups, clusterAlreadyExists)
 	sgs, err := c.DescribeSecurityGroups()
 	if err != nil {
 		return err
@@ -369,7 +369,11 @@ func requiredRulesForControlPlaneSecurityGroup(numNodeGroups int, clusterAlready
 	return 2 * (numNodeGroups + 1)
 }
 
-func requiredSecurityGroups(numNodeGroups int) int {
+func requiredSecurityGroups(numNodeGroups int, clusterAlreadyExists bool) int {
+	if clusterAlreadyExists {
+		return numNodeGroups
+	}
+
 	// each node group requires a security group
 	return _baseNumberOfSecurityGroups + numNodeGroups
 }
