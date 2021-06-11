@@ -23,7 +23,6 @@ import (
 
 	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
-	"github.com/cortexlabs/cortex/pkg/lib/debug"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/maps"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
@@ -166,14 +165,6 @@ func getStatus(statusMap map[string]string, controlPlane string, operatorStackNa
 	}
 
 	allStatusesButTheRemovedOnes = append(allStatusesButTheRemovedOnes, existingNodeGroupStatuses...)
-
-	fmt.Println("allStatuses", allStatuses)
-	fmt.Println("controlPlaneStatus", controlPlaneStatus)
-	fmt.Println("allStatusesButTheRemovedOnes", allStatusesButTheRemovedOnes)
-	fmt.Println("existingNodeGroupStatuses", existingNodeGroupStatuses)
-	fmt.Println("removedNodeGroupStatuses", staleNodeGroupStatuses)
-
-	debug.Ppg(statusMap)
 
 	if any(allStatuses, string(StatusCreateFailedTimedOut)) {
 		return StatusNotFound, nil, ErrorUnexpectedCloudFormationStatus(clusterName, region, statusMap)
