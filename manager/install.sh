@@ -364,7 +364,13 @@ function remove_nodegroups() {
 
     stacks_to_delete+=("$stack_ng")
   done
-  # TODO check if stacks_to_delete is empty
+
+  # should never happen, but erring on the safe side
+  if ! (( ${#stacks_to_delete[@]} )); then
+    echo "no nodegroup stacks were found for $CORTEX_REMOVED_NODEGROUP_NAMES nodegroups"
+    exit 1
+  fi
+
   stacks_names="$(join_by , ${stacks_to_delete[@]})"
 
   echo "￮ removing nodegroup(s) from the cluster (this will take up to 25 minutes) ..."

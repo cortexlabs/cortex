@@ -25,8 +25,8 @@ import (
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
-	"github.com/cortexlabs/cortex/pkg/lib/console"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/exit"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
 	"github.com/cortexlabs/cortex/pkg/lib/maps"
 	libmath "github.com/cortexlabs/cortex/pkg/lib/math"
@@ -35,7 +35,6 @@ import (
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/table"
 	"github.com/cortexlabs/cortex/pkg/types/clusterconfig"
-	"github.com/cortexlabs/yaml"
 )
 
 var _cachedClusterConfigRegex = regexp.MustCompile(`^cluster_\S+\.yaml$`)
@@ -167,21 +166,12 @@ func getConfigureClusterConfig(awsClient *aws.Client, cachedClusterConfig cluste
 		return
 	}
 
-	yamlBytes, err := yaml.Marshal(newUserClusterConfig)
-	if err != nil {
-		errReturned = err
-		return
+	if len(new) == 0 && len(removed) == 0 && len(scaled) == 0 {
+		fmt.Println("no change required")
+		exit.Ok()
 	}
-	yamlString := string(yamlBytes)
 
-	// TODO add confirmation print here
-	fmt.Println(console.Bold("cluster config:"))
-	fmt.Println(yamlString)
-
-	if !disallowPrompt {
-		exitMessage := fmt.Sprintf("cluster configuration can be modified via the cluster config file; see https://docs.cortex.dev/v/%s/ for more information", consts.CortexVersionMinor)
-		prompt.YesOrExit(fmt.Sprintf("your cluster named \"%s\" in %s will be updated according to the configuration above, are you sure you want to continue?", newUserClusterConfig.ClusterName, newUserClusterConfig.Region), "", exitMessage)
-	}
+	confirmConfigureClusterConfig(new, removed, scaled, cachedClusterConfig, *newUserClusterConfig, _flagClusterDisallowPrompt)
 
 	clusterConfig = newUserClusterConfig
 	newNgNames = new
@@ -309,60 +299,36 @@ func confirmInstallClusterConfig(clusterConfig *clusterconfig.Config, awsClient 
 	}
 }
 
-func confirmNodeGroupConfig(nodeGroup clusterconfig.NodeGroup, clusterConfig clusterconfig.Config, awsClient *aws.Client, disallowPrompt bool) {
-	headers := []table.Header{
-		{Title: "aws resource"},
-		{Title: "cost per hour"},
-	}
+func confirmConfigureClusterConfig(newNgs, removedNgs, scaledNgs []string, oldCc, newCc clusterconfig.Config, disallowPrompt bool) {
+	fmt.Println("your cluster will receive the following changes")
 
-	apiInstancePrice := aws.InstanceMetadatas[clusterConfig.Region][nodeGroup.InstanceType].Price
-	apiEBSPrice := aws.EBSMetadatas[clusterConfig.Region][nodeGroup.InstanceVolumeType.String()].PriceGB * float64(nodeGroup.InstanceVolumeSize) / 30 / 24
-	if nodeGroup.InstanceVolumeType == clusterconfig.IO1VolumeType && nodeGroup.InstanceVolumeIOPS != nil {
-		apiEBSPrice += aws.EBSMetadatas[clusterConfig.Region][nodeGroup.InstanceVolumeType.String()].PriceIOPS * float64(*nodeGroup.InstanceVolumeIOPS) / 30 / 24
+	if len(newNgs) > 0 {
+		fmt.Printf("￮ %d %s (%s) will be added\n", len(newNgs), s.PluralS("nodegroup", len(newNgs)), s.StrsAnd(newNgs))
 	}
-	if nodeGroup.InstanceVolumeType == clusterconfig.GP3VolumeType && nodeGroup.InstanceVolumeIOPS != nil && nodeGroup.InstanceVolumeThroughput != nil {
-		apiEBSPrice += libmath.MaxFloat64(0, (aws.EBSMetadatas[clusterConfig.Region][nodeGroup.InstanceVolumeType.String()].PriceIOPS-3000)*float64(*nodeGroup.InstanceVolumeIOPS)/30/24)
-		apiEBSPrice += libmath.MaxFloat64(0, (aws.EBSMetadatas[clusterConfig.Region][nodeGroup.InstanceVolumeType.String()].PriceThroughput-125)*float64(*nodeGroup.InstanceVolumeThroughput)/30/24)
+	if len(removedNgs) > 0 {
+		fmt.Printf("￮ %d %s (%s) will be removed\n", len(removedNgs), s.PluralS("nodegroup", len(removedNgs)), s.StrsAnd(removedNgs))
 	}
-
-	nodeGroupMinPrice := float64(nodeGroup.MinInstances) * (apiInstancePrice + apiEBSPrice)
-	nodeGroupMaxPrice := float64(nodeGroup.MaxInstances) * (apiInstancePrice + apiEBSPrice)
-
-	workerInstanceStr := fmt.Sprintf("nodegroup %s: %d-%d %s instances", nodeGroup.Name, nodeGroup.MinInstances, nodeGroup.MaxInstances, nodeGroup.InstanceType)
-	if nodeGroup.MinInstances == nodeGroup.MaxInstances {
-		workerInstanceStr = fmt.Sprintf("nodegroup %s: %d %s %s", nodeGroup.Name, nodeGroup.MinInstances, nodeGroup.InstanceType, s.PluralS("instance", nodeGroup.MinInstances))
-	}
-
-	workerPriceStr := s.DollarsMaxPrecision(apiInstancePrice) + " each"
-	if nodeGroup.Spot {
-		spotPrice, err := awsClient.SpotInstancePrice(nodeGroup.InstanceType)
-		workerPriceStr += " (spot pricing unavailable)"
-		if err == nil && spotPrice != 0 {
-			workerPriceStr = fmt.Sprintf("%s - %s each (varies based on spot price)", s.DollarsMaxPrecision(spotPrice), s.DollarsMaxPrecision(apiInstancePrice))
-			nodeGroupMinPrice = float64(nodeGroup.MinInstances) * (spotPrice + apiEBSPrice)
+	if len(scaledNgs) > 0 {
+		fmt.Printf("￮ %d %s will be scaled\n", len(scaledNgs), s.PluralS("nodegroup", len(scaledNgs)))
+		for _, ngName := range scaledNgs {
+			var output string
+			ngOld := oldCc.GetNodeGroupByName(ngName)
+			ngScaled := newCc.GetNodeGroupByName(ngName)
+			if ngOld.MinInstances != ngScaled.MinInstances && ngOld.MaxInstances != ngScaled.MaxInstances {
+				output = fmt.Sprintf("nodegroup %s will update its %s from %d to %d and update its %s from %d to %d", ngName, clusterconfig.MinInstancesKey, ngOld.MinInstances, ngScaled.MinInstances, clusterconfig.MaxInstancesKey, ngOld.MaxInstances, ngScaled.MaxInstances)
+			}
+			if ngOld.MinInstances == ngScaled.MinInstances && ngOld.MaxInstances != ngScaled.MaxInstances {
+				output = fmt.Sprintf("nodegroup %s will update its %s from %d to %d", ngName, clusterconfig.MaxInstancesKey, ngOld.MaxInstances, ngScaled.MaxInstances)
+			}
+			if ngOld.MinInstances != ngScaled.MinInstances && ngOld.MaxInstances == ngScaled.MaxInstances {
+				output = fmt.Sprintf("nodegroup %s will update its %s from %d to %d", ngName, clusterconfig.MinInstancesKey, ngOld.MinInstances, ngScaled.MinInstances)
+			}
+			fmt.Println(s.Indent(fmt.Sprintf("￮ %s", output), "  "))
 		}
 	}
 
-	items := table.Table{
-		Headers: headers,
-		Rows: [][]interface{}{
-			{workerInstanceStr, workerPriceStr},
-		},
-	}
-	fmt.Println(items.MustFormat(&table.Opts{Sort: pointer.Bool(false)}))
-
-	if nodeGroupMinPrice == nodeGroupMaxPrice {
-		fmt.Printf("your %s nodegroup will cost %s per hour\n\n", nodeGroup.Name, s.DollarsAndTenthsOfCents(nodeGroupMaxPrice))
-	} else {
-		fmt.Printf("your %s nodegroup will cost %s-%s per hour\n\n", nodeGroup.Name, s.DollarsAndTenthsOfCents(nodeGroupMinPrice), s.DollarsAndTenthsOfCents(nodeGroupMaxPrice))
-	}
-
-	if nodeGroup.Spot {
-		fmt.Printf("warning: you've enabled spot instances for %s nodegroup; spot instances are not guaranteed to be available so please take that into account for production clusters; see https://docs.cortex.dev/v/%s/ for more information\n\n", nodeGroup.Name, consts.CortexVersionMinor)
-	}
-
 	if !disallowPrompt {
-		exitMessage := fmt.Sprintf("nodegroup configuration can be modified via the nodegroup config file; see https://docs.cortex.dev/v/%s/ for more information", consts.CortexVersionMinor)
-		prompt.YesOrExit("would you like to continue?", "", exitMessage)
+		exitMessage := fmt.Sprintf("cluster configuration can be modified via the cluster config file; see https://docs.cortex.dev/v/%s/ for more information", consts.CortexVersionMinor)
+		prompt.YesOrExit(fmt.Sprintf("your cluster named \"%s\" in %s will be updated according to the configuration above, are you sure you want to continue?", newCc.ClusterName, newCc.Region), "", exitMessage)
 	}
 }

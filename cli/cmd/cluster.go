@@ -353,11 +353,6 @@ var _clusterConfigureCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
-		if len(newNgs) == 0 && len(removedNgs) == 0 && len(scaledNgs) == 0 {
-			fmt.Println("no change required")
-			exit.Ok()
-		}
-
 		out, exitCode, err := runManagerWithClusterConfig("/root/install.sh --configure", newClusterConfig, awsClient, nil, nil, []string{
 			"CORTEX_SCALED_NODEGROUP_NAMES=" + strings.Join(scaledNgs, " "),
 			"CORTEX_NEW_NODEGROUP_NAMES=" + strings.Join(newNgs, " "),
@@ -1087,70 +1082,6 @@ func refreshCachedClusterConfig(awsClient *aws.Client, accessConfig *clusterconf
 		exit.Error(err)
 	}
 	return *refreshedClusterConfig
-}
-
-// TODO remove
-func updateNodeGroupScale(clusterConfig clusterconfig.Config, targetNg string, desiredMinReplicas, desiredMaxReplicas *int64, disallowPrompt bool) (clusterconfig.Config, int, error) {
-	clusterName := clusterConfig.ClusterName
-	region := clusterConfig.Region
-
-	availableNodeGroups := []string{}
-	for idx, ng := range clusterConfig.NodeGroups {
-		if ng == nil {
-			continue
-		}
-		availableNodeGroups = append(availableNodeGroups, ng.Name)
-		if ng.Name == targetNg {
-			var minReplicas, maxReplicas int64
-			if desiredMinReplicas == nil {
-				minReplicas = ng.MinInstances
-			} else {
-				minReplicas = *desiredMinReplicas
-			}
-			if desiredMaxReplicas == nil {
-				maxReplicas = ng.MaxInstances
-			} else {
-				maxReplicas = *desiredMaxReplicas
-			}
-
-			if minReplicas < 0 {
-				return clusterconfig.Config{}, 0, ErrorMinInstancesLowerThan(0)
-			}
-			if maxReplicas < 0 {
-				return clusterconfig.Config{}, 0, ErrorMaxInstancesLowerThan(0)
-			}
-			if minReplicas > maxReplicas {
-				return clusterconfig.Config{}, 0, ErrorMinInstancesGreaterThanMaxInstances(minReplicas, maxReplicas)
-			}
-
-			if ng.MinInstances == minReplicas && ng.MaxInstances == maxReplicas {
-				fmt.Printf("the %s nodegroup in the %s cluster in %s already has min instances set to %d and max instances set to %d\n", ng.Name, clusterName, region, minReplicas, maxReplicas)
-				exit.Ok()
-			}
-
-			if !disallowPrompt {
-				promptMessage := ""
-				if ng.MinInstances != minReplicas && ng.MaxInstances != maxReplicas {
-					promptMessage = fmt.Sprintf("your nodegroup named %s in your %s cluster in %s will update its %s from %d to %d and update its %s from %d to %d", ng.Name, clusterName, region, clusterconfig.MinInstancesKey, ng.MinInstances, minReplicas, clusterconfig.MaxInstancesKey, ng.MaxInstances, maxReplicas)
-				}
-				if ng.MinInstances == minReplicas && ng.MaxInstances != maxReplicas {
-					promptMessage = fmt.Sprintf("your nodegroup named %s in your %s cluster in %s will update its %s from %d to %d", ng.Name, clusterName, region, clusterconfig.MaxInstancesKey, ng.MaxInstances, maxReplicas)
-				}
-				if ng.MinInstances != minReplicas && ng.MaxInstances == maxReplicas {
-					promptMessage = fmt.Sprintf("your nodegroup named %s in your %s cluster in %s will update its %s from %d to %d", ng.Name, clusterName, region, clusterconfig.MinInstancesKey, ng.MinInstances, minReplicas)
-				}
-				if !prompt.YesOrNo(promptMessage, "", "") {
-					exit.Ok()
-				}
-			}
-
-			clusterConfig.NodeGroups[idx].MinInstances = minReplicas
-			clusterConfig.NodeGroups[idx].MaxInstances = maxReplicas
-			return clusterConfig, idx, nil
-		}
-	}
-
-	return clusterconfig.Config{}, 0, ErrorNodeGroupNotFound(targetNg, clusterName, region, availableNodeGroups)
 }
 
 func createS3BucketIfNotFound(awsClient *aws.Client, bucket string, tags map[string]string) error {

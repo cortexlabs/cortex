@@ -1316,6 +1316,15 @@ func (ng *NodeGroup) validateNodeGroup(awsClient *aws.Client, region string) err
 	return nil
 }
 
+func (cc *Config) GetNodeGroupByName(name string) *NodeGroup {
+	for _, ng := range cc.NodeGroups {
+		if ng.Name == name {
+			return ng
+		}
+	}
+	return nil
+}
+
 func (cc *Config) getNewNodeGroups(oldConfig Config) []*NodeGroup {
 	newNodeGroups := []*NodeGroup{}
 	for _, updatingNg := range cc.NodeGroups {
