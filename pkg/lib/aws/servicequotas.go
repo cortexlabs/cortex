@@ -314,7 +314,6 @@ func (c *Client) VerifyNetworkQuotas(
 
 	// check rules quota for nodegroup SGs
 	requiredRulesForSG := requiredRulesForNodeGroupSecurityGroup(len(availabilityZones), longestCIDRWhiteList)
-	// fmt.Println("requiredRulesForSG", requiredRulesForSG, "quota", quotaCodeToValueMap[_securityGroupRulesQuotaCode])
 	if requiredRulesForSG > quotaCodeToValueMap[_securityGroupRulesQuotaCode] {
 		additionalQuotaRequired := requiredRulesForSG - quotaCodeToValueMap[_securityGroupRulesQuotaCode]
 		return ErrorSecurityGroupRulesExceeded(quotaCodeToValueMap[_securityGroupRulesQuotaCode], additionalQuotaRequired, c.Region)
@@ -322,7 +321,6 @@ func (c *Client) VerifyNetworkQuotas(
 
 	// check rules quota for control plane SG
 	requiredRulesForCPSG := requiredRulesForControlPlaneSecurityGroup(numNodeGroups)
-	// fmt.Println("requiredRulesForCPSG", requiredRulesForCPSG, "quota", quotaCodeToValueMap[_securityGroupRulesQuotaCode])
 	if requiredRulesForCPSG > quotaCodeToValueMap[_securityGroupRulesQuotaCode] {
 		additionalQuotaRequired := requiredRulesForCPSG - quotaCodeToValueMap[_securityGroupRulesQuotaCode]
 		return ErrorSecurityGroupRulesExceeded(quotaCodeToValueMap[_securityGroupRulesQuotaCode], additionalQuotaRequired, c.Region)
@@ -330,7 +328,6 @@ func (c *Client) VerifyNetworkQuotas(
 
 	// check security groups quota
 	requiredSecurityGroups := requiredSecurityGroups(numNodeGroups)
-	// fmt.Println("requiredSecurityGroups", requiredSecurityGroups)
 	sgs, err := c.DescribeSecurityGroups()
 	if err != nil {
 		return err

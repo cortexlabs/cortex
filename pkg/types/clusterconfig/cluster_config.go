@@ -850,8 +850,6 @@ var AccessValidation = &cr.StructValidation{
 	},
 }
 
-var NodeGroupsValidation = nodeGroupsFieldValidation()
-
 func (cc *Config) ToAccessConfig() AccessConfig {
 	return AccessConfig{
 		ClusterName:  cc.ClusterName,
