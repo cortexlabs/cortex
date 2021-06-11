@@ -87,8 +87,8 @@ function cluster_configure() {
   check_eks
 
   resize_nodegroups
-  remove_nodegroups
   add_nodegroups
+  remove_nodegroups
 
   echo -n "￮ updating cluster configuration "
   setup_configmap
@@ -330,7 +330,7 @@ function add_nodegroups() {
 
   nodegroup_names="$(join_by , $CORTEX_NEW_NODEGROUP_NAMES)"
 
-  echo "￮ adding new nodegroup(s) to the cluster (this will take up to 30 minutes) ..."
+  echo "￮ adding new nodegroup(s) to the cluster ..."
   python generate_eks.py $CORTEX_CLUSTER_CONFIG_FILE manifests/ami.json --target-node-groups="$nodegroup_names" > /workspace/nodegroups.yaml
   eksctl create nodegroup --timeout=$EKSCTL_NODEGROUP_TIMEOUT --install-neuron-plugin=false --install-nvidia-plugin=false -f /workspace/nodegroups.yaml
   echo
@@ -373,7 +373,7 @@ function remove_nodegroups() {
 
   stacks_names="$(join_by , ${stacks_to_delete[@]})"
 
-  echo "￮ removing nodegroup(s) from the cluster (this will take up to 30 minutes) ..."
+  echo "￮ removing nodegroup(s) from the cluster ..."
   python generate_eks.py $CORTEX_CLUSTER_CONFIG_FILE manifests/ami.json --target-stack-names="$stacks_names" > /workspace/nodegroups.yaml
   eksctl delete nodegroup --timeout=$EKSCTL_NODEGROUP_TIMEOUT --approve -f /workspace/nodegroups.yaml
   echo

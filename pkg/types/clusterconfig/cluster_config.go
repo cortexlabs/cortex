@@ -1151,7 +1151,7 @@ func (cc *Config) ValidateOnConfigure(awsClient *aws.Client, oldConfig Config) (
 	removedNgs := cc.getRemovedNodeGroups(oldConfig)
 
 	longestCIDRWhiteList := libmath.MaxInt(len(cc.APILoadBalancerCIDRWhiteList), len(cc.OperatorLoadBalancerCIDRWhiteList))
-	if err := awsClient.VerifyNetworkQuotasOnNodeGroupsAddition(strset.FromSlice(cc.AvailabilityZones), len(cc.NodeGroups), longestCIDRWhiteList); err != nil {
+	if err := awsClient.VerifyNetworkQuotasOnNodeGroupsAddition(strset.FromSlice(cc.AvailabilityZones), len(cc.NodeGroups)+len(removedNgs), longestCIDRWhiteList); err != nil {
 		// Skip AWS errors, since some regions (e.g. eu-north-1) do not support this API
 		if !aws.IsAWSError(err) {
 			errReturned = errors.Wrap(err, NodeGroupsKey)
