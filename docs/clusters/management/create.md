@@ -35,7 +35,7 @@ node_groups:
     instance_type: m5.large # instance type
     min_instances: 1 # minimum number of instances
     max_instances: 5 # maximum number of instances
-    priority: 0 # priority of the node group; the higher the value, the higher the priority
+    priority: 1 # priority of the node group; the higher the value, the higher the priority
     instance_volume_size: 50 # disk storage size per instance (GB)
     instance_volume_type: gp3 # instance volume type [gp2 | gp3 | io1 | st1 | sc1]
     # instance_volume_iops: 3000 # instance volume iops (only applicable to io1/gp3)

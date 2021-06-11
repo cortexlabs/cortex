@@ -107,6 +107,7 @@ Flags:
   -o, --output string          output format: one of pretty|json (default "pretty")
   -e, --configure-env string   name of environment to configure
   -d, --debug                  save the current cluster state to a file
+      --print-config           print the cluster config
   -y, --yes                    skip prompts
   -h, --help                   help for info
 ```
@@ -114,19 +115,22 @@ Flags:
 ## cluster scale
 
 ```text
-update the min/max instances for a nodegroup
+manage cortex clusters (contains subcommands)
 
 Usage:
-  cortex cluster scale [flags]
+  cortex cluster [command]
+
+Available Commands:
+  up          spin up a cluster on aws
+  info        get information about a cluster
+  configure   update the cluster's configuration
+  down        spin down a cluster
+  export      download the configurations for all APIs
 
 Flags:
-  -n, --name string         name of the cluster
-  -r, --region string       aws region of the cluster
-      --node-group string   name of the node group to scale
-      --min-instances int   minimum number of instances
-      --max-instances int   maximum number of instances
-  -y, --yes                 skip prompts
-  -h, --help                help for scale
+  -h, --help   help for cluster
+
+Use "cortex cluster [command] --help" for more information about a command.
 ```
 
 ## cluster down

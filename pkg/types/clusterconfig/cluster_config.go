@@ -163,10 +163,10 @@ type Config struct {
 }
 
 type OperatorMetadata struct {
-	APIVersion          string `json:"api_version"`
-	OperatorID          string `json:"operator_id"`
-	ClusterID           string `json:"cluster_id"`
-	IsOperatorInCluster bool   `json:"is_operator_in_cluster"`
+	APIVersion          string `json:"api_version" yaml:"api_version"`
+	OperatorID          string `json:"operator_id" yaml:"operator_id"`
+	ClusterID           string `json:"cluster_id" yaml:"cluster_id"`
+	IsOperatorInCluster bool   `json:"is_operator_in_cluster" yaml:"is_operator_in_cluster"`
 }
 
 type InternalConfig struct {
@@ -705,8 +705,8 @@ func nodeGroupsFieldValidation() *cr.StructValidation {
 			{
 				StructField: "Priority",
 				Int64Validation: &cr.Int64Validation{
-					Default:              int64(0),
-					GreaterThanOrEqualTo: pointer.Int64(0),
+					Default:              int64(1),
+					GreaterThanOrEqualTo: pointer.Int64(1),
 					LessThanOrEqualTo:    pointer.Int64(100),
 				},
 			},

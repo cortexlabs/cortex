@@ -63,6 +63,7 @@ var (
 	_flagClusterName                 string
 	_flagClusterRegion               string
 	_flagClusterInfoDebug            bool
+	_flagClusterInfoPrintConfig      bool
 	_flagClusterDisallowPrompt       bool
 	_flagClusterDownKeepAWSResources bool
 )
@@ -82,6 +83,7 @@ func clusterInit() {
 	_clusterInfoCmd.Flags().VarP(&_flagOutput, "output", "o", fmt.Sprintf("output format: one of %s", strings.Join(flags.UserOutputTypeStrings(), "|")))
 	_clusterInfoCmd.Flags().StringVarP(&_flagClusterInfoEnv, "configure-env", "e", "", "name of environment to configure")
 	_clusterInfoCmd.Flags().BoolVarP(&_flagClusterInfoDebug, "debug", "d", false, "save the current cluster state to a file")
+	_clusterInfoCmd.Flags().BoolVarP(&_flagClusterInfoPrintConfig, "print-config", "", false, "print the cluster config")
 	_clusterInfoCmd.Flags().BoolVarP(&_flagClusterDisallowPrompt, "yes", "y", false, "skip prompts")
 	_clusterCmd.AddCommand(_clusterInfoCmd)
 
@@ -390,13 +392,20 @@ var _clusterInfoCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
+		if _flagClusterInfoPrintConfig && _flagOutput == flags.PrettyOutputType {
+			exit.Error(ErrorOutputTypeNotSupportedWithFlag("--print-config", _flagOutput))
+		}
+		if _flagClusterInfoPrintConfig && _flagClusterInfoDebug {
+			exit.Error(ErrorMutuallyExclusiveFlags("--print-config", "--debug"))
+		}
+
 		if _flagClusterInfoDebug {
 			if _flagOutput != flags.PrettyOutputType {
-				exit.Error(ErrorJSONOutputNotSupportedWithFlag("--debug"))
+				exit.Error(ErrorOutputTypeNotSupportedWithFlag("--debug", _flagOutput))
 			}
 			cmdDebug(awsClient, accessConfig)
 		} else {
-			cmdInfo(awsClient, accessConfig, _flagOutput, _flagClusterDisallowPrompt)
+			cmdInfo(awsClient, accessConfig, _flagClusterInfoPrintConfig, _flagOutput, _flagClusterDisallowPrompt)
 		}
 	},
 }
@@ -728,7 +737,7 @@ var _clusterExportCmd = &cobra.Command{
 	},
 }
 
-func cmdInfo(awsClient *aws.Client, accessConfig *clusterconfig.AccessConfig, outputType flags.OutputType, disallowPrompt bool) {
+func cmdInfo(awsClient *aws.Client, accessConfig *clusterconfig.AccessConfig, printConfig bool, outputType flags.OutputType, disallowPrompt bool) {
 	clusterConfig := refreshCachedClusterConfig(awsClient, accessConfig, outputType == flags.PrettyOutputType)
 
 	if outputType == flags.PrettyOutputType {
@@ -749,25 +758,43 @@ func cmdInfo(awsClient *aws.Client, accessConfig *clusterconfig.AccessConfig, ou
 	operatorEndpoint := s.EnsurePrefix(*operatorLoadBalancer.DNSName, "https://")
 	apiEndpoint := *apiLoadBalancer.DNSName
 
-	if outputType == flags.JSONOutputType {
+	if outputType == flags.JSONOutputType || outputType == flags.YAMLOutputType {
 		infoResponse, err := getInfoOperatorResponse(operatorEndpoint)
 		if err != nil {
 			exit.Error(err)
 		}
 		infoResponse.ClusterConfig.Config = clusterConfig
 
-		jsonBytes, err := libjson.Marshal(map[string]interface{}{
-			"cluster_config":    infoResponse.ClusterConfig.Config,
-			"cluster_metadata":  infoResponse.ClusterConfig.OperatorMetadata,
-			"node_infos":        infoResponse.NodeInfos,
-			"endpoint_operator": operatorEndpoint,
-			"endpoint_api":      apiEndpoint,
-		})
+		var outputBytes []byte
+		if outputType == flags.JSONOutputType {
+			if printConfig {
+				outputBytes, err = libjson.Marshal(infoResponse.ClusterConfig.Config)
+			} else {
+				outputBytes, err = libjson.Marshal(map[string]interface{}{
+					"cluster_config":    infoResponse.ClusterConfig.Config,
+					"cluster_metadata":  infoResponse.ClusterConfig.OperatorMetadata,
+					"node_infos":        infoResponse.NodeInfos,
+					"endpoint_operator": operatorEndpoint,
+					"endpoint_api":      apiEndpoint,
+				})
+			}
+		} else {
+			if printConfig {
+				outputBytes, err = yaml.Marshal(infoResponse.ClusterConfig.Config)
+			} else {
+				outputBytes, err = yaml.Marshal(map[string]interface{}{
+					"cluster_config":    infoResponse.ClusterConfig.Config,
+					"cluster_metadata":  infoResponse.ClusterConfig.OperatorMetadata,
+					"node_infos":        infoResponse.NodeInfos,
+					"endpoint_operator": operatorEndpoint,
+					"endpoint_api":      apiEndpoint,
+				})
+			}
+		}
 		if err != nil {
 			exit.Error(err)
 		}
-
-		fmt.Println(string(jsonBytes))
+		fmt.Println(string(outputBytes))
 	}
 	if outputType == flags.PrettyOutputType {
 		fmt.Println(console.Bold("endpoints:"))

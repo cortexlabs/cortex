@@ -22,12 +22,14 @@ const (
 	UnknownOutputType OutputType = iota
 	PrettyOutputType
 	JSONOutputType
+	YAMLOutputType
 )
 
 var _outputTypes = []string{
 	"unknown",
 	"pretty",
 	"json",
+	"yaml",
 }
 
 func OutputTypeFromString(s string) OutputType {

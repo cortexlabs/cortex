@@ -19,7 +19,7 @@ set -eo pipefail
 export CORTEX_VERSION=master
 export CORTEX_VERSION_MINOR=master
 EKSCTL_CLUSTER_TIMEOUT=45m
-EKSCTL_NODEGROUP_TIMEOUT=25m
+EKSCTL_NODEGROUP_TIMEOUT=30m
 mkdir /workspace
 
 arg1="$1"
@@ -330,7 +330,7 @@ function add_nodegroups() {
 
   nodegroup_names="$(join_by , $CORTEX_NEW_NODEGROUP_NAMES)"
 
-  echo "￮ adding new nodegroup(s) to the cluster (this will take up to 25 minutes) ..."
+  echo "￮ adding new nodegroup(s) to the cluster (this will take up to 30 minutes) ..."
   python generate_eks.py $CORTEX_CLUSTER_CONFIG_FILE manifests/ami.json --target-node-groups="$nodegroup_names" > /workspace/nodegroups.yaml
   eksctl create nodegroup --timeout=$EKSCTL_NODEGROUP_TIMEOUT --install-neuron-plugin=false --install-nvidia-plugin=false -f /workspace/nodegroups.yaml
   echo
@@ -373,7 +373,7 @@ function remove_nodegroups() {
 
   stacks_names="$(join_by , ${stacks_to_delete[@]})"
 
-  echo "￮ removing nodegroup(s) from the cluster (this will take up to 25 minutes) ..."
+  echo "￮ removing nodegroup(s) from the cluster (this will take up to 30 minutes) ..."
   python generate_eks.py $CORTEX_CLUSTER_CONFIG_FILE manifests/ami.json --target-stack-names="$stacks_names" > /workspace/nodegroups.yaml
   eksctl delete nodegroup --timeout=$EKSCTL_NODEGROUP_TIMEOUT --approve -f /workspace/nodegroups.yaml
   echo

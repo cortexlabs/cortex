@@ -25,22 +25,22 @@ import (
 )
 
 type InfoResponse struct {
-	ClusterConfig      clusterconfig.InternalConfig `json:"cluster_config"`
-	NodeInfos          []NodeInfo                   `json:"node_infos"`
-	NumPendingReplicas int                          `json:"num_pending_replicas"`
+	ClusterConfig      clusterconfig.InternalConfig `json:"cluster_config" yaml:"cluster_config"`
+	NodeInfos          []NodeInfo                   `json:"node_infos" yaml:"node_infos"`
+	NumPendingReplicas int                          `json:"num_pending_replicas" yaml:"num_pending_replicas"`
 }
 
 type NodeInfo struct {
-	Name                    string             `json:"name"`
-	NodeGroupName           string             `json:"nodegroup_name"`
-	InstanceType            string             `json:"instance_type"`
-	IsSpot                  bool               `json:"is_spot"`
-	Price                   float64            `json:"price"`
-	NumReplicas             int                `json:"num_replicas"`
-	NumAsyncGatewayReplicas int                `json:"num_async_gateway_replicas"`
-	ComputeUserCapacity     userconfig.Compute `json:"compute_user_capacity"`  // the total resources available to the user on a node
-	ComputeAvailable        userconfig.Compute `json:"compute_available"`      // unused resources on a node
-	ComputeUserRequested    userconfig.Compute `json:"compute_user_requested"` // total resources requested by user on a node
+	Name                    string             `json:"name" yaml:"name"`
+	NodeGroupName           string             `json:"nodegroup_name" yaml:"nodegroup_name"`
+	InstanceType            string             `json:"instance_type" yaml:"instance_type"`
+	IsSpot                  bool               `json:"is_spot" yaml:"is_spot"`
+	Price                   float64            `json:"price" yaml:"price"`
+	NumReplicas             int                `json:"num_replicas" yaml:"num_replicas"`
+	NumAsyncGatewayReplicas int                `json:"num_async_gateway_replicas" yaml:"num_async_gateway_replicas"`
+	ComputeUserCapacity     userconfig.Compute `json:"compute_user_capacity" yaml:"compute_user_capacity"`   // the total resources available to the user on a node
+	ComputeAvailable        userconfig.Compute `json:"compute_available" yaml:"compute_unavailable"`         // unused resources on a node
+	ComputeUserRequested    userconfig.Compute `json:"compute_user_requested" yaml:"compute_user_requested"` // total resources requested by user on a node
 }
 
 type DeployResult struct {
