@@ -87,8 +87,8 @@ function cluster_configure() {
   check_eks
 
   resize_nodegroups
-  add_nodegroups
   remove_nodegroups
+  add_nodegroups
 
   echo -n "￮ updating cluster configuration "
   setup_configmap
