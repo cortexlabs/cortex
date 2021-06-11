@@ -84,6 +84,10 @@ func Wrap(err error, strs ...string) error {
 	return cortexError
 }
 
+func Wrapf(err error, template string, params ...string) error {
+	return Wrap(err, fmt.Sprintf(template, params))
+}
+
 // adds to the end of the error message (without adding any whitespace or punctuation)
 func Append(err error, str string) error {
 	if err == nil {

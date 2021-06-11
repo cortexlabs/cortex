@@ -65,9 +65,6 @@ const (
 )
 
 var (
-	_requestMonitorCPURequest = kresource.MustParse("10m")
-	_requestMonitorMemRequest = kresource.MustParse("10Mi")
-
 	_asyncGatewayCPURequest = kresource.MustParse("100m")
 	_asyncGatewayMemRequest = kresource.MustParse("100Mi")
 
@@ -143,6 +140,12 @@ func asyncDequeuerProxyContainer(api spec.API, queueURL string) (kcore.Container
 				},
 			},
 		}),
+		Ports: []kcore.ContainerPort{
+			{
+				Name:          consts.AdminPortName,
+				ContainerPort: consts.AdminPortInt32,
+			},
+		},
 		ReadinessProbe: &kcore.Probe{
 			Handler: kcore.Handler{
 				HTTPGet: &kcore.HTTPGetAction{
@@ -230,7 +233,7 @@ func realtimeProxyContainer(api spec.API) (kcore.Container, kcore.Volume) {
 			s.Int32(int32(api.Pod.MaxQueueLength)),
 		},
 		Ports: []kcore.ContainerPort{
-			{Name: "admin", ContainerPort: consts.AdminPortInt32},
+			{Name: consts.AdminPortName, ContainerPort: consts.AdminPortInt32},
 			{ContainerPort: consts.ProxyListeningPortInt32},
 		},
 		Env:     baseEnvVars,

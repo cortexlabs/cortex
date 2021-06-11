@@ -26,6 +26,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/parallel"
+	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	autoscalerlib "github.com/cortexlabs/cortex/pkg/operator/lib/autoscaler"
 	"github.com/cortexlabs/cortex/pkg/operator/lib/routines"
 	"github.com/cortexlabs/cortex/pkg/operator/operator"
@@ -42,6 +43,7 @@ import (
 const (
 	_stalledPodTimeout = 15 * time.Minute
 	_tickPeriodMetrics = 10 * time.Second
+	_asyncDashboardUID = "asyncapi"
 )
 
 var (
@@ -201,11 +203,20 @@ func GetAPIByName(deployedResource *operator.DeployedResource) ([]schema.APIResp
 		return nil, err
 	}
 
+	metrics, err := GetMetrics(*api)
+	if err != nil {
+		return nil, err
+	}
+
+	dashboardURL := pointer.String(getDashboardURL(api.Name))
+
 	return []schema.APIResponse{
 		{
-			Spec:     *api,
-			Status:   status,
-			Endpoint: apiEndpoint,
+			Spec:         *api,
+			Status:       status,
+			Endpoint:     apiEndpoint,
+			DashboardURL: dashboardURL,
+			Metrics:      metrics,
 		},
 	}, nil
 }
@@ -222,7 +233,12 @@ func GetAllAPIs(pods []kcore.Pod, deployments []kapps.Deployment) ([]schema.APIR
 		return nil, err
 	}
 
-	realtimeAPIs := make([]schema.APIResponse, len(apis))
+	allMetrics, err := GetMultipleMetrics(apis)
+	if err != nil {
+		return nil, err
+	}
+
+	asyncAPIs := make([]schema.APIResponse, len(apis))
 
 	for i := range apis {
 		api := apis[i]
@@ -231,14 +247,15 @@ func GetAllAPIs(pods []kcore.Pod, deployments []kapps.Deployment) ([]schema.APIR
 			return nil, err
 		}
 
-		realtimeAPIs[i] = schema.APIResponse{
+		asyncAPIs[i] = schema.APIResponse{
 			Spec:     api,
 			Status:   &statuses[i],
 			Endpoint: endpoint,
+			Metrics:  &allMetrics[i],
 		}
 	}
 
-	return realtimeAPIs, nil
+	return asyncAPIs, nil
 }
 
 func UpdateMetricsCron(deployment *kapps.Deployment) error {
@@ -347,7 +364,7 @@ func applyK8sResources(api spec.API, prevK8sResources resources, queueURL string
 	if err != nil {
 		return err
 	}
-	gatewayDeployment := gatewayDeploymentSpec(api, prevK8sResources.gatewayDeployment, queueURL)
+	gatewayDeployment := gatewayDeploymentSpec(api, queueURL)
 	gatewayHPA, err := gatewayHPASpec(api)
 	if err != nil {
 		return err
@@ -506,4 +523,18 @@ func deleteK8sResources(apiName string) error {
 	)
 
 	return err
+}
+
+func getDashboardURL(apiName string) string {
+	loadBalancerURL, err := operator.LoadBalancerURL()
+	if err != nil {
+		return ""
+	}
+
+	dashboardURL := fmt.Sprintf(
+		"%s/dashboard/d/%s/asyncapi?orgId=1&refresh=30s&var-api_name=%s",
+		loadBalancerURL, _asyncDashboardUID, apiName,
+	)
+
+	return dashboardURL
 }
