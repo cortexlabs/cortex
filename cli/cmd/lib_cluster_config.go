@@ -33,6 +33,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/prompt"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
+	"github.com/cortexlabs/cortex/pkg/lib/slices"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/table"
 	"github.com/cortexlabs/cortex/pkg/types/clusterconfig"
@@ -168,7 +169,12 @@ func getConfigureClusterConfig(awsClient *aws.Client, cachedClusterConfig cluste
 	}
 
 	removedSet := strset.FromSlice(removed)
-	removedSet.Add(staleNodeGroups...)
+	nodeGroupsFromNewConfig := clusterconfig.GetNodeGroupNames(newUserClusterConfig.NodeGroups)
+	for _, staleNodeGroup := range staleNodeGroups {
+		if !slices.HasString(nodeGroupsFromNewConfig, staleNodeGroup) {
+			removedSet.Add(staleNodeGroups...)
+		}
+	}
 	removed = removedSet.Slice()
 
 	if len(new) == 0 && len(removed) == 0 && len(scaled) == 0 {

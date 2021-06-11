@@ -263,7 +263,7 @@ function resize_nodegroups() {
     return
   fi
 
-  eksctl get nodegroup --cluster=$CORTEX_CLUSTER_NAME --region=$CORTEX_REGION -o json > nodegroups.json
+  eksctl get nodegroup --cluster=$CORTEX_CLUSTER_NAME --region=$CORTEX_REGION -v 0 -o json > nodegroups.json
   eks_ng_len=$(cat nodegroups.json | jq -r length)
   cfg_ng_len=$(cat $CORTEX_CLUSTER_CONFIG_FILE | yq -r .node_groups | yq -r length)
 
@@ -341,7 +341,7 @@ function remove_nodegroups() {
     return
   fi
 
-  eksctl get nodegroup --cluster=$CORTEX_CLUSTER_NAME --region=$CORTEX_REGION -o json > nodegroups.json
+  eksctl get nodegroup --cluster=$CORTEX_CLUSTER_NAME --region=$CORTEX_REGION -v 0 -o json > nodegroups.json
   eks_ng_len=$(cat nodegroups.json | jq -r length)
 
   stacks_to_delete=()
