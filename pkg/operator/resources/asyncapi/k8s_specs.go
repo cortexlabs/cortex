@@ -32,7 +32,7 @@ var _terminationGracePeriodSeconds int64 = 60  // seconds
 var _gatewayHPATargetCPUUtilization int32 = 80 // percentage
 var _gatewayHPATargetMemUtilization int32 = 80 // percentage
 
-func gatewayDeploymentSpec(api spec.API, prevDeployment *kapps.Deployment, queueURL string) kapps.Deployment {
+func gatewayDeploymentSpec(api spec.API, queueURL string) kapps.Deployment {
 	volumeMounts := []kcore.VolumeMount{
 		{
 			Name:      "cluster-config",
@@ -228,6 +228,7 @@ func deploymentSpec(api spec.API, prevDeployment *kapps.Deployment, queueURL str
 			Labels: map[string]string{
 				"apiName":          api.Name,
 				"apiKind":          api.Kind.String(),
+				"apiID":            api.ID,
 				"deploymentID":     api.DeploymentID,
 				"podID":            api.PodID,
 				"cortex.dev/api":   "true",

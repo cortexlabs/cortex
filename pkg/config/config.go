@@ -132,6 +132,7 @@ func Init() error {
 			return err
 		}
 		clusterConfig.Bucket = cc.Bucket
+		clusterConfig.ClusterUID = cc.ClusterUID
 	}
 
 	exists, err := AWS.DoesBucketExist(clusterConfig.Bucket)
