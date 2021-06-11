@@ -33,13 +33,11 @@ spec:
   podMonitorSelector:
     matchExpressions:
       - key: "monitoring.cortex.dev"
-        operator: "In"
-        values: [ "istio", "proxy", "statsd-exporter", "dcgm-exporter", "kube-state-metrics" ]
+        operator: "Exists"
   serviceMonitorSelector:
     matchExpressions:
       - key: "monitoring.cortex.dev"
-        operator: "In"
-        values: [ "kubelet-exporter", "node-exporter", "operator" ]
+        operator: "Exists"
   ruleSelector:
     matchLabels:
       prometheus: k8s
@@ -195,6 +193,59 @@ spec:
         - sourceLabels: [ __meta_kubernetes_pod_label_apiKind ]
           action: replace
           targetLabel: api_kind
+        - sourceLabels: [ __meta_kubernetes_pod_label_apiID ]
+          action: replace
+          targetLabel: api_id
+        - sourceLabels: [ __address__, __meta_kubernetes_pod_annotation_prometheus_io_port ]
+          action: replace
+          regex: ([^:]+)(?::\d+)?;(\d+)
+          replacement: $1:$2
+          targetLabel: __address__
+        - action: labeldrop
+          regex: "__meta_kubernetes_pod_label_(.+)"
+        - sourceLabels: [ __meta_kubernetes_namespace ]
+          action: replace
+          targetLabel: namespace
+        - sourceLabels: [ __meta_kubernetes_pod_name ]
+          action: replace
+          targetLabel: pod_name
+
+---
+
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: async-stats
+  labels:
+    monitoring.cortex.dev: "dequeuer-async"
+spec:
+  selector:
+    matchLabels:
+      apiKind: AsyncAPI
+      cortex.dev/async: api
+    matchExpressions:
+      - { key: prometheus-ignore, operator: DoesNotExist }
+  namespaceSelector:
+    any: true
+  jobLabel: async-stats
+  podMetricsEndpoints:
+    - path: /metrics
+      scheme: http
+      interval: 10s
+      port: admin
+      relabelings:
+        - action: keep
+          sourceLabels: [ __meta_kubernetes_pod_container_name ]
+          regex: "dequeuer"
+        - sourceLabels: [ __meta_kubernetes_pod_label_apiName ]
+          action: replace
+          targetLabel: api_name
+        - sourceLabels: [ __meta_kubernetes_pod_label_apiKind ]
+          action: replace
+          targetLabel: api_kind
+        - sourceLabels: [ __meta_kubernetes_pod_label_apiID ]
+          action: replace
+          targetLabel: api_id
         - sourceLabels: [ __address__, __meta_kubernetes_pod_annotation_prometheus_io_port ]
           action: replace
           regex: ([^:]+)(?::\d+)?;(\d+)

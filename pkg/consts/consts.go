@@ -27,17 +27,16 @@ var (
 	DefaultMaxQueueLength = int64(100)
 	DefaultMaxConcurrency = int64(1)
 
-	DefaultUserPodPortStr   = "8080"
 	DefaultUserPodPortInt32 = int32(8080)
 
 	ProxyListeningPortStr   = "8888"
 	ProxyListeningPortInt32 = int32(8888)
 
+	AdminPortName  = "admin"
 	AdminPortStr   = "15000"
 	AdminPortInt32 = int32(15000)
 
-	StatsDPortStr   = "9125"
-	StatsDPortInt32 = int32(9125)
+	StatsDPortStr = "9125"
 
 	AuthHeader = "X-Cortex-Authorization"
 

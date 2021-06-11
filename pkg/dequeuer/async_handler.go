@@ -185,14 +185,14 @@ func (h *AsyncMessageHandler) submitRequest(payload *userPayload, requestID stri
 		return nil, ErrorUserContainerNotReachable(err)
 	}
 
+	defer func() {
+		_ = response.Body.Close()
+	}()
+
 	requestEvent := RequestEvent{
 		StatusCode: response.StatusCode,
 		Duration:   time.Since(startTime),
 	}
-
-	defer func() {
-		_ = response.Body.Close()
-	}()
 
 	if response.StatusCode != http.StatusOK {
 		return nil, ErrorUserContainerResponseStatusCode(response.StatusCode)

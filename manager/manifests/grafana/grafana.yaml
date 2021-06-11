@@ -132,6 +132,9 @@ spec:
             - mountPath: /grafana-dashboard-definitions/cortex/realtime
               name: grafana-dashboard-realtime
               readOnly: false
+            - mountPath: /grafana-dashboard-definitions/cortex/async
+              name: grafana-dashboard-async
+              readOnly: false
             - mountPath: /grafana-dashboard-definitions/cortex/batch
               name: grafana-dashboard-batch
               readOnly: false
@@ -158,6 +161,9 @@ spec:
         - name: grafana-dashboard-realtime
           configMap:
             name: grafana-dashboard-realtime
+        - name: grafana-dashboard-async
+          configMap:
+            name: grafana-dashboard-async
         - name: grafana-dashboard-batch
           configMap:
             name: grafana-dashboard-batch

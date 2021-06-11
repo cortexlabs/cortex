@@ -136,11 +136,6 @@ func main() {
 		probes = append(probes, probe.NewDefaultProbe(fmt.Sprintf("http://localhost:%d", userContainerPort), log))
 	}
 
-	metricsClient, err := statsd.New(fmt.Sprintf("%s:%d", hostIP, statsdPort))
-	if err != nil {
-		exit(log, err, "unable to initialize metrics client")
-	}
-
 	adminHandler := http.NewServeMux()
 	adminHandler.Handle("/healthz", dequeuer.HealthcheckHandler(func() bool {
 		return probe.AreProbesHealthy(probes)
@@ -161,6 +156,11 @@ func main() {
 			JobID:     jobID,
 			QueueURL:  queueURL,
 			TargetURL: targetURL,
+		}
+
+		metricsClient, err := statsd.New(fmt.Sprintf("%s:%d", hostIP, statsdPort))
+		if err != nil {
+			exit(log, err, "unable to initialize metrics client")
 		}
 
 		messageHandler = dequeuer.NewBatchMessageHandler(config, awsClient, metricsClient, log)
@@ -203,7 +203,7 @@ func main() {
 			Addr:    ":" + strconv.Itoa(adminPort),
 			Handler: adminHandler,
 		}
-		log.Infof("Starting %s server on %s", "admin", server.Addr)
+		log.Infof("Starting %s server on %s", consts.AdminPortName, server.Addr)
 		errCh <- server.ListenAndServe()
 	}()
 
