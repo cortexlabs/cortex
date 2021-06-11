@@ -305,7 +305,7 @@ func confirmInstallClusterConfig(clusterConfig *clusterconfig.Config, awsClient 
 }
 
 func confirmConfigureClusterConfig(newNgs, removedNgs, scaledNgs []string, oldCc, newCc clusterconfig.Config, disallowPrompt bool) {
-	fmt.Printf("your %s cluster in region %s will receive the following changes\n", newCc.ClusterName, newCc.Region)
+	fmt.Printf("your %s cluster in region %s will receive the following changes\n\n", newCc.ClusterName, newCc.Region)
 	if len(newNgs) > 0 {
 		fmt.Printf("￮ %d %s (%s) will be added\n", len(newNgs), s.PluralS("nodegroup", len(newNgs)), s.StrsAnd(newNgs))
 	}

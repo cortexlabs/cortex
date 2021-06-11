@@ -314,20 +314,23 @@ func (c *Client) VerifyNetworkQuotas(
 
 	// check rules quota for nodegroup SGs
 	requiredRulesForSG := requiredRulesForNodeGroupSecurityGroup(len(availabilityZones), longestCIDRWhiteList)
+	// fmt.Println("requiredRulesForSG", requiredRulesForSG, "quota", quotaCodeToValueMap[_securityGroupRulesQuotaCode])
 	if requiredRulesForSG > quotaCodeToValueMap[_securityGroupRulesQuotaCode] {
 		additionalQuotaRequired := requiredRulesForSG - quotaCodeToValueMap[_securityGroupRulesQuotaCode]
 		return ErrorSecurityGroupRulesExceeded(quotaCodeToValueMap[_securityGroupRulesQuotaCode], additionalQuotaRequired, c.Region)
 	}
 
 	// check rules quota for control plane SG
-	requiredRulesForCPSG := requiredRulesForControlPlaneSecurityGroup(numNodeGroups, clusterAlreadyExists)
+	requiredRulesForCPSG := requiredRulesForControlPlaneSecurityGroup(numNodeGroups)
+	// fmt.Println("requiredRulesForCPSG", requiredRulesForCPSG, "quota", quotaCodeToValueMap[_securityGroupRulesQuotaCode])
 	if requiredRulesForCPSG > quotaCodeToValueMap[_securityGroupRulesQuotaCode] {
 		additionalQuotaRequired := requiredRulesForCPSG - quotaCodeToValueMap[_securityGroupRulesQuotaCode]
 		return ErrorSecurityGroupRulesExceeded(quotaCodeToValueMap[_securityGroupRulesQuotaCode], additionalQuotaRequired, c.Region)
 	}
 
 	// check security groups quota
-	requiredSecurityGroups := requiredSecurityGroups(numNodeGroups, clusterAlreadyExists)
+	requiredSecurityGroups := requiredSecurityGroups(numNodeGroups)
+	// fmt.Println("requiredSecurityGroups", requiredSecurityGroups)
 	sgs, err := c.DescribeSecurityGroups()
 	if err != nil {
 		return err
@@ -359,21 +362,13 @@ func requiredRulesForNodeGroupSecurityGroup(numAZs, whitelistLength int) int {
 	return _baseInboundRulesForNodeGroup + numAZs*_inboundRulesPerAZ + whitelistRuleCount
 }
 
-func requiredRulesForControlPlaneSecurityGroup(numNodeGroups int, clusterAlreadyExists bool) int {
-	if clusterAlreadyExists {
-		return 2 * numNodeGroups
-	}
-
+func requiredRulesForControlPlaneSecurityGroup(numNodeGroups int) int {
 	// +1 for the operator node group
 	// this is the number of outbound rules (there are half as many inbound rules, so that is not the limiting factor)
 	return 2 * (numNodeGroups + 1)
 }
 
-func requiredSecurityGroups(numNodeGroups int, clusterAlreadyExists bool) int {
-	if clusterAlreadyExists {
-		return numNodeGroups
-	}
-
+func requiredSecurityGroups(numNodeGroups int) int {
 	// each node group requires a security group
 	return _baseNumberOfSecurityGroups + numNodeGroups
 }
