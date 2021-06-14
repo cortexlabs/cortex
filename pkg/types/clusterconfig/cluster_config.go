@@ -951,11 +951,6 @@ func (cc *Config) validate(awsClient *aws.Client) error {
 		return ErrorS3RegionDiffersFromCluster(cc.Bucket, bucketRegion, cc.Region)
 	}
 
-	if cc.ClusterUID != "" {
-		return ErrorDisallowedField(ClusterUIDKey)
-	}
-	cc.ClusterUID = strconv.FormatInt(time.Now().Unix(), 10)
-
 	if cc.CortexPolicyARN != "" {
 		return ErrorDisallowedField(CortexPolicyARNKey)
 	}
@@ -1117,6 +1112,7 @@ func (cc *Config) ValidateOnConfigure(awsClient *aws.Client, oldConfig Config) (
 
 	cc.ClusterName = oldConfig.ClusterName
 	cc.Region = oldConfig.Region
+	cc.ClusterUID = oldConfig.ClusterUID
 
 	err := cc.validate(awsClient)
 	if err != nil {

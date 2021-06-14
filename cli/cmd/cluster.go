@@ -179,7 +179,7 @@ var _clusterUpCmd = &cobra.Command{
 		}
 
 		if err := clusterstate.CheckClusterExists(stacks); err != nil {
-			if errors.GetKind(err) != string(clusterstate.StatusNotFound) {
+			if errors.GetKind(err) != clusterstate.ErrClusterDoesNotExist {
 				exit.Error(err)
 			}
 		} else if err == nil {
@@ -467,31 +467,31 @@ var _clusterDownCmd = &cobra.Command{
 			fmt.Printf("\n\ncouldn't retrieve cluster state; check the cluster stacks in the cloudformation console: https://%s.console.aws.amazon.com/cloudformation\n", accessConfig.Region)
 			errors.PrintError(err)
 			fmt.Println()
-			exit.Error(err)
-		}
-		if err := clusterstate.CheckClusterExists(stacks); err != nil {
-			if errors.GetKind(err) == string(clusterstate.StatusUndefined) {
-				errorsList = append(errorsList, err)
-				fmt.Print("failed ✗")
-				errors.PrintError(err)
-				fmt.Println()
-			}
-			if errors.GetKind(err) == string(clusterstate.StatusNotFound) {
-				fmt.Println("already deleted ✓")
-			}
 		} else {
-			awsClient.DeleteQueuesWithPrefix(clusterconfig.SQSNamePrefix(accessConfig.ClusterName))
-			awsClient.DeletePolicy(clusterconfig.DefaultPolicyARN(accountID, accessConfig.ClusterName, accessConfig.Region))
-			if !_flagClusterDownKeepAWSResources {
-				volumes, err := listPVCVolumesForCluster(awsClient, accessConfig.ClusterName)
-				if err == nil {
-					for _, volume := range volumes {
-						awsClient.DeleteVolume(*volume.VolumeId)
+			if err := clusterstate.CheckClusterExists(stacks); err != nil {
+				if errors.GetKind(err) == clusterstate.ErrUnexpectedClusterState {
+					errorsList = append(errorsList, err)
+					fmt.Print("failed ✗")
+					errors.PrintError(err)
+					fmt.Println()
+				}
+				if errors.GetKind(err) == clusterstate.ErrClusterDoesNotExist {
+					fmt.Println("already deleted ✓")
+				}
+			} else {
+				awsClient.DeleteQueuesWithPrefix(clusterconfig.SQSNamePrefix(accessConfig.ClusterName))
+				awsClient.DeletePolicy(clusterconfig.DefaultPolicyARN(accountID, accessConfig.ClusterName, accessConfig.Region))
+				if !_flagClusterDownKeepAWSResources {
+					volumes, err := listPVCVolumesForCluster(awsClient, accessConfig.ClusterName)
+					if err == nil {
+						for _, volume := range volumes {
+							awsClient.DeleteVolume(*volume.VolumeId)
+						}
 					}
 				}
+				fmt.Println("✓")
+				clusterExists = true
 			}
-			fmt.Println("✓")
-			clusterExists = true
 		}
 
 		// updating CLI env is best-effort, so ignore errors

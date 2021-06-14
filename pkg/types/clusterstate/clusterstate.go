@@ -156,7 +156,7 @@ func CheckClusterExists(stacks ClusterStacks) error {
 	operatorStackName := fmt.Sprintf(operatorTemplate, stacks.clusterName)
 
 	if stacks.ControlPlaneStack == nil || stacks.ControlPlaneStack.StackName == nil {
-		ErrorClusterDoesNotExist(stacks.clusterName, stacks.region)
+		return ErrorClusterDoesNotExist(stacks.clusterName, stacks.region)
 	}
 	if *stacks.ControlPlaneStack.StackName == operatorStackName {
 		operatorStatus := *stacks.ControlPlaneStack.StackStatus

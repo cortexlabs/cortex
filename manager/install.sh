@@ -341,44 +341,12 @@ function remove_nodegroups() {
     return
   fi
 
-  eksctl get nodegroup --cluster=$CORTEX_CLUSTER_NAME --region=$CORTEX_REGION -v 0 -o json > nodegroups.json
-  eks_ng_len=$(cat nodegroups.json | jq -r length)
-
-  stacks_to_delete=()
-  for cfg_ng_name in $CORTEX_NODEGROUP_NAMES_TO_REMOVE; do
-    has_ng="false"
-    for eks_idx in $(seq 0 $(($eks_ng_len-1))); do
-      stack_ng=$(cat nodegroups.json | jq -r .[$eks_idx].Name)
-      if [ "$stack_ng" = "cx-operator" ]; then
-        continue
-      fi
-      if [[ "$stack_ng" == *"$cfg_ng_name" ]]; then
-        has_ng="true"
-        break
-      fi
-    done
-
-    if [ "$has_ng" == "false" ]; then
-      continue
-    fi
-
-    stacks_to_delete+=("$stack_ng")
-  done
-
-  # should never happen, but erring on the safe side
-  if ! (( ${#stacks_to_delete[@]} )); then
-    echo "no nodegroup stacks were found for $CORTEX_NODEGROUP_NAMES_TO_REMOVE nodegroups"
-    exit 1
-  fi
-
-  stacks_names="$(join_by , ${stacks_to_delete[@]})"
+  eks_nodegroup_names="$(join_by , $CORTEX_NODEGROUP_NAMES_TO_REMOVE)"
 
   echo "￮ removing nodegroup(s) from the cluster ..."
-  python generate_eks.py $CORTEX_CLUSTER_CONFIG_FILE manifests/ami.json --remove-eks-node-groups="$stacks_names" > /workspace/nodegroups.yaml
+  python generate_eks.py $CORTEX_CLUSTER_CONFIG_FILE manifests/ami.json --remove-eks-node-groups="$eks_nodegroup_names" > /workspace/nodegroups.yaml
   eksctl delete nodegroup --timeout=$EKSCTL_NODEGROUP_TIMEOUT --approve -f /workspace/nodegroups.yaml
   echo
-
-  rm nodegroups.json
 }
 
 function setup_istio() {
