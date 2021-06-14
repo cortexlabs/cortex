@@ -185,6 +185,16 @@ type AccessConfig struct {
 	ImageManager string `json:"image_manager" yaml:"image_manager"`
 }
 
+type ConfigureChanges struct {
+	NodeGroupsToAdd    []string
+	NodeGroupsToRemove []string
+	NodeGroupsToScale  []string
+}
+
+func (c *ConfigureChanges) HasChanges() bool {
+	return len(c.NodeGroupsToAdd) != 0 || len(c.NodeGroupsToRemove) != 0 || len(c.NodeGroupsToScale) != 0
+}
+
 // NewForFile initializes and validates the cluster config from the YAML config file
 func NewForFile(clusterConfigPath string) (*Config, error) {
 	coreConfig := CoreConfig{}
@@ -868,10 +878,7 @@ func (cc *CoreConfig) SQSNamePrefix() string {
 	return SQSNamePrefix(cc.ClusterName)
 }
 
-// this validates the user-provided cluster config
-func (cc *Config) ValidateOnInstall(awsClient *aws.Client) error {
-	fmt.Print("verifying your configuration ...\n\n")
-
+func (cc *Config) validate(awsClient *aws.Client) error {
 	numNodeGroups := len(cc.NodeGroups)
 	if numNodeGroups == 0 {
 		return ErrorNoNodeGroupSpecified()
@@ -1008,6 +1015,88 @@ func (cc *Config) ValidateOnInstall(awsClient *aws.Client) error {
 		}
 	}
 
+	return nil
+}
+
+func (cc *Config) validateConfigDiff(oldConfig Config) error {
+	// validate actionable changes
+	newClusterConfigCopy, err := cc.DeepCopy()
+	if err != nil {
+		return err
+	}
+
+	oldClusterConfigCopy, err := oldConfig.DeepCopy()
+	if err != nil {
+		return err
+	}
+
+	newClusterConfigCopy.NodeGroups = []*NodeGroup{}
+	newClusterConfigCopy.AccountID = ""
+	oldClusterConfigCopy.NodeGroups = []*NodeGroup{}
+	oldClusterConfigCopy.AccountID = ""
+
+	h1, err := newClusterConfigCopy.Hash()
+	if err != nil {
+		return err
+	}
+	h2, err := oldClusterConfigCopy.Hash()
+	if err != nil {
+		return err
+	}
+	if h1 != h2 {
+		return ErrorConfigCannotBeChangedOnUpdate()
+	}
+
+	return nil
+}
+
+func (cc *Config) validateSharedNodeGroupsDiff(oldConfig Config) error {
+	sharedNgsFromNewConfig, sharedNgsFromOldConfig := cc.getCommonNodeGroups(oldConfig)
+	for i := range sharedNgsFromNewConfig {
+		newNgCopy, err := sharedNgsFromNewConfig[i].DeepCopy()
+		if err != nil {
+			return errors.Wrap(err, NodeGroupsKey)
+		}
+		oldNgCopy, err := sharedNgsFromOldConfig[i].DeepCopy()
+		if err != nil {
+			return errors.Wrap(err, NodeGroupsKey)
+		}
+
+		newNgCopy.MinInstances = 0
+		newNgCopy.MaxInstances = 0
+		oldNgCopy.MinInstances = 0
+		oldNgCopy.MaxInstances = 0
+
+		newHash, err := newNgCopy.Hash()
+		if err != nil {
+			return errors.Wrap(err, NodeGroupsKey)
+		}
+		oldHash, err := oldNgCopy.Hash()
+		if err != nil {
+			return errors.Wrap(err, NodeGroupsKey)
+		}
+
+		if newHash != oldHash {
+			return errors.Wrap(ErrorNodeGroupCanOnlyBeScaled(), NodeGroupsKey, newNgCopy.Name)
+		}
+	}
+	return nil
+}
+
+// this validates the user-provided cluster config
+func (cc *Config) ValidateOnInstall(awsClient *aws.Client) error {
+	fmt.Print("verifying your configuration ...\n\n")
+
+	err := cc.validate(awsClient)
+	if err != nil {
+		return err
+	}
+
+	if cc.ClusterUID != "" {
+		return ErrorDisallowedField(ClusterUIDKey)
+	}
+	cc.ClusterUID = strconv.FormatInt(time.Now().Unix(), 10)
+
 	var requiredVPCs int
 	if len(cc.Subnets) == 0 {
 		requiredVPCs = 1
@@ -1023,186 +1112,52 @@ func (cc *Config) ValidateOnInstall(awsClient *aws.Client) error {
 	return nil
 }
 
-func (cc *Config) ValidateOnConfigure(awsClient *aws.Client, oldConfig Config) (newNgNames, removedNgNames, scaledNgNames []string, errReturned error) {
+func (cc *Config) ValidateOnConfigure(awsClient *aws.Client, oldConfig Config) (ConfigureChanges, error) {
 	fmt.Print("verifying your configuration ...\n\n")
 
-	// fill-out empty fields
-	cc.ClusterUID = oldConfig.ClusterUID
-	cc.Bucket = oldConfig.Bucket
 	cc.ClusterName = oldConfig.ClusterName
 	cc.Region = oldConfig.Region
-	if len(cc.Tags) == 0 {
-		cc.Tags = oldConfig.Tags
-	}
-	if len(cc.AvailabilityZones) == 0 {
-		cc.AvailabilityZones = oldConfig.AvailabilityZones
-	}
-	if cc.SSLCertificateARN == nil && oldConfig.SSLCertificateARN != nil {
-		cc.SSLCertificateARN = pointer.String(*oldConfig.SSLCertificateARN)
-	}
-	if len(cc.IAMPolicyARNs) == 0 {
-		cc.IAMPolicyARNs = oldConfig.IAMPolicyARNs
-	}
-	if len(cc.Subnets) == 0 {
-		for _, subnet := range oldConfig.Subnets {
-			if subnet == nil {
-				continue
-			}
-			auxSubnet := *subnet
-			cc.Subnets = append(cc.Subnets, &auxSubnet)
-		}
-	}
-	if len(cc.APILoadBalancerCIDRWhiteList) == 0 {
-		cc.APILoadBalancerCIDRWhiteList = oldConfig.APILoadBalancerCIDRWhiteList
-	}
-	if len(cc.OperatorLoadBalancerCIDRWhiteList) == 0 {
-		cc.OperatorLoadBalancerCIDRWhiteList = oldConfig.OperatorLoadBalancerCIDRWhiteList
-	}
-	if cc.VPCCIDR == nil && oldConfig.VPCCIDR != nil {
-		cc.VPCCIDR = pointer.String(*oldConfig.VPCCIDR)
-	}
-	if cc.CortexPolicyARN == "" {
-		cc.CortexPolicyARN = oldConfig.CortexPolicyARN
-	}
-	if cc.AccountID == "" {
-		cc.AccountID = oldConfig.AccountID
-	}
 
-	// validate actionable changes
-	newClusterConfigCopy, err := cc.DeepCopy()
+	err := cc.validate(awsClient)
 	if err != nil {
-		errReturned = err
-		return
+		return ConfigureChanges{}, err
 	}
 
-	oldClusterConfigCopy, err := oldConfig.DeepCopy()
+	err = cc.validateConfigDiff(oldConfig)
 	if err != nil {
-		errReturned = err
-		return
+		return ConfigureChanges{}, err
 	}
 
-	newClusterConfigCopy.NodeGroups = []*NodeGroup{}
-	oldClusterConfigCopy.NodeGroups = []*NodeGroup{}
-
-	h1, err := newClusterConfigCopy.Hash()
+	err = cc.validateSharedNodeGroupsDiff(oldConfig)
 	if err != nil {
-		errReturned = err
-		return
-	}
-	h2, err := oldClusterConfigCopy.Hash()
-	if err != nil {
-		errReturned = err
-		return
-	}
-	if h1 != h2 {
-		errReturned = ErrorConfigCannotBeChangedOnUpdate()
-		return
+		return ConfigureChanges{}, err
 	}
 
-	numNodeGroups := len(cc.NodeGroups)
-	if numNodeGroups == 0 {
-		errReturned = ErrorNoNodeGroupSpecified()
-		return
-	}
-	if numNodeGroups > MaxNodePoolsOrGroups {
-		errReturned = ErrorMaxNumOfNodeGroupsReached(MaxNodePoolsOrGroups)
-		return
-	}
+	ngsToBeAdded := cc.getNewNodeGroups(oldConfig)
+	ngsToBeRemoved := cc.getRemovedNodeGroups(oldConfig)
 
-	// validate the nodegroups
-	instances := []aws.InstanceTypeRequests{}
-	ngNames := []string{}
-	for _, ng := range cc.NodeGroups {
-		// setting max_instances to 0 during node group creation is not permitted (but scaling max_instances to 0 afterwards is allowed)
-		if ng.MaxInstances == 0 {
-			errReturned = errors.Wrap(ErrorNodeGroupMaxInstancesIsZero(), NodeGroupsKey, ng.Name)
-			return
-		}
-		if !slices.HasString(ngNames, ng.Name) {
-			ngNames = append(ngNames, ng.Name)
-		} else {
-			errReturned = errors.Wrap(ErrorDuplicateNodeGroupName(ng.Name), NodeGroupsKey)
-			return
-		}
-
-		err := ng.validateNodeGroup(awsClient, cc.Region)
-		if err != nil {
-			errReturned = errors.Wrap(err, NodeGroupsKey, ng.Name)
-			return
-		}
-
-		instances = append(instances, aws.InstanceTypeRequests{
-			InstanceType:              ng.InstanceType,
-			RequiredOnDemandInstances: ng.MaxPossibleOnDemandInstances(),
-			RequiredSpotInstances:     ng.MaxPossibleSpotInstances(),
-		})
-	}
-
-	if err := awsClient.VerifyInstanceQuota(instances); err != nil {
-		// Skip AWS errors, since some regions (e.g. eu-north-1) do not support this API
-		if !aws.IsAWSError(err) {
-			errReturned = errors.Wrap(err, NodeGroupsKey)
-			return
-		}
-	}
-
-	retainedNewNgs, retainedOldNgs := cc.getCommonNodeGroups(oldConfig)
-	newNgs := cc.getNewNodeGroups(oldConfig)
-	removedNgs := cc.getRemovedNodeGroups(oldConfig)
-
+	tempMaxNodeGroupCount := len(cc.NodeGroups) + len(ngsToBeRemoved)
 	longestCIDRWhiteList := libmath.MaxInt(len(cc.APILoadBalancerCIDRWhiteList), len(cc.OperatorLoadBalancerCIDRWhiteList))
-	if err := awsClient.VerifyNetworkQuotasOnNodeGroupsAddition(strset.FromSlice(cc.AvailabilityZones), len(cc.NodeGroups)+len(removedNgs), longestCIDRWhiteList); err != nil {
+	if err := awsClient.VerifyNetworkQuotasOnNodeGroupsAddition(strset.FromSlice(cc.AvailabilityZones), tempMaxNodeGroupCount, longestCIDRWhiteList); err != nil {
 		// Skip AWS errors, since some regions (e.g. eu-north-1) do not support this API
 		if !aws.IsAWSError(err) {
-			errReturned = errors.Wrap(err, NodeGroupsKey)
-			return
+			return ConfigureChanges{}, errors.Wrap(err, NodeGroupsKey)
 		}
 	}
 
-	// validate existing nodegroups
-	scaledNgs := []*NodeGroup{}
-	for i := range retainedNewNgs {
-		newNgCopy, err := retainedNewNgs[i].DeepCopy()
-		if err != nil {
-			errReturned = errors.Wrap(err, NodeGroupsKey)
-			return
-		}
-		oldNgCopy, err := retainedOldNgs[i].DeepCopy()
-		if err != nil {
-			errReturned = errors.Wrap(err, NodeGroupsKey)
-			return
-		}
-
-		newNgCopy.MinInstances = 0
-		newNgCopy.MaxInstances = 0
-		oldNgCopy.MinInstances = 0
-		oldNgCopy.MaxInstances = 0
-
-		newHash, err := newNgCopy.Hash()
-		if err != nil {
-			errReturned = errors.Wrap(err, NodeGroupsKey)
-			return
-		}
-		oldHash, err := oldNgCopy.Hash()
-		if err != nil {
-			errReturned = errors.Wrap(err, NodeGroupsKey)
-			return
-		}
-
-		if newHash != oldHash {
-			errReturned = errors.Wrap(ErrorNodeGroupCanOnlyBeScaled(), NodeGroupsKey, newNgCopy.Name)
-			return
-		}
-
-		if retainedNewNgs[i].MinInstances != retainedOldNgs[i].MinInstances || retainedNewNgs[i].MaxInstances != retainedOldNgs[i].MaxInstances {
-			scaledNgs = append(scaledNgs, retainedNewNgs[i])
+	sharedNgsFromNewConfig, sharedNgsFromOldConfig := cc.getCommonNodeGroups(oldConfig)
+	ngNamesToBeScaled := []*NodeGroup{}
+	for i := range sharedNgsFromNewConfig {
+		if sharedNgsFromNewConfig[i].MinInstances != sharedNgsFromOldConfig[i].MinInstances || sharedNgsFromNewConfig[i].MaxInstances != sharedNgsFromOldConfig[i].MaxInstances {
+			ngNamesToBeScaled = append(ngNamesToBeScaled, sharedNgsFromNewConfig[i])
 		}
 	}
 
-	scaledNgNames = GetNodeGroupNames(scaledNgs)
-	newNgNames = GetNodeGroupNames(newNgs)
-	removedNgNames = GetNodeGroupNames(removedNgs)
-	return
+	return ConfigureChanges{
+		NodeGroupsToAdd:    GetNodeGroupNames(ngsToBeAdded),
+		NodeGroupsToRemove: GetNodeGroupNames(ngsToBeRemoved),
+		NodeGroupsToScale:  GetNodeGroupNames(ngNamesToBeScaled),
+	}, nil
 }
 
 func (ng *NodeGroup) validateNodeGroup(awsClient *aws.Client, region string) error {

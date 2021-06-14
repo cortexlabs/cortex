@@ -147,13 +147,12 @@ func getInstallClusterConfig(awsClient *aws.Client, clusterConfigFile string, di
 	return clusterConfig, nil
 }
 
-func getConfigureClusterConfig(awsClient *aws.Client, cachedClusterConfig clusterconfig.Config, newClusterConfigFile string, staleNodeGroups []string, disallowPrompt bool) (clusterConfig *clusterconfig.Config, newNgNames, removedNgNames, scaledNgNames []string, errReturned error) {
+func getConfigureClusterConfig(awsClient *aws.Client, cachedClusterConfig clusterconfig.Config, newClusterConfigFile string, staleNodeGroups []string, disallowPrompt bool) (*clusterconfig.Config, clusterconfig.ConfigureChanges, error) {
 	newUserClusterConfig := &clusterconfig.Config{}
 
 	err := readUserClusterConfigFile(newUserClusterConfig, newClusterConfigFile)
 	if err != nil {
-		errReturned = err
-		return
+		return nil, clusterconfig.ConfigureChanges{}, err
 	}
 
 	promptIfNotAdmin(awsClient, disallowPrompt)
@@ -161,35 +160,29 @@ func getConfigureClusterConfig(awsClient *aws.Client, cachedClusterConfig cluste
 	newUserClusterConfig.Telemetry = isTelemetryEnabled()
 	cachedClusterConfig.Telemetry = newUserClusterConfig.Telemetry
 
-	new, removed, scaled, err := newUserClusterConfig.ValidateOnConfigure(awsClient, cachedClusterConfig)
+	configureChanges, err := newUserClusterConfig.ValidateOnConfigure(awsClient, cachedClusterConfig)
 	if err != nil {
 		err = errors.Append(err, fmt.Sprintf("\n\ncluster configuration schema can be found at https://docs.cortex.dev/v/%s/", consts.CortexVersionMinor))
-		errReturned = errors.Wrap(err, newClusterConfigFile)
-		return
+		return nil, clusterconfig.ConfigureChanges{}, errors.Wrap(err, newClusterConfigFile)
 	}
 
-	removedSet := strset.FromSlice(removed)
+	ngsToRemoveSet := strset.FromSlice(configureChanges.NodeGroupsToRemove)
 	nodeGroupsFromNewConfig := clusterconfig.GetNodeGroupNames(newUserClusterConfig.NodeGroups)
 	for _, staleNodeGroup := range staleNodeGroups {
 		if !slices.HasString(nodeGroupsFromNewConfig, staleNodeGroup) {
-			removedSet.Add(staleNodeGroups...)
+			ngsToRemoveSet.Add(staleNodeGroups...)
 		}
 	}
-	removed = removedSet.Slice()
+	configureChanges.NodeGroupsToRemove = ngsToRemoveSet.Slice()
 
-	if len(new) == 0 && len(removed) == 0 && len(scaled) == 0 {
+	if !configureChanges.HasChanges() {
 		fmt.Println("no change required")
 		exit.Ok()
 	}
 
-	confirmConfigureClusterConfig(new, removed, scaled, cachedClusterConfig, *newUserClusterConfig, _flagClusterDisallowPrompt)
+	confirmConfigureClusterConfig(configureChanges, cachedClusterConfig, *newUserClusterConfig, _flagClusterDisallowPrompt)
 
-	clusterConfig = newUserClusterConfig
-	newNgNames = new
-	removedNgNames = removed
-	scaledNgNames = scaled
-
-	return
+	return newUserClusterConfig, configureChanges, nil
 }
 
 func confirmInstallClusterConfig(clusterConfig *clusterconfig.Config, awsClient *aws.Client, disallowPrompt bool) {
@@ -310,7 +303,7 @@ func confirmInstallClusterConfig(clusterConfig *clusterconfig.Config, awsClient 
 	}
 }
 
-func confirmConfigureClusterConfig(newNgs, removedNgs, scaledNgs []string, oldCc, newCc clusterconfig.Config, disallowPrompt bool) {
+func confirmConfigureClusterConfig(configureChanges clusterconfig.ConfigureChanges, oldCc, newCc clusterconfig.Config, disallowPrompt bool) {
 	fmt.Printf("your %s cluster in region %s will receive the following changes\n\n", newCc.ClusterName, newCc.Region)
 	if len(newNgs) > 0 {
 		fmt.Printf("￮ %d %s (%s) will be added\n", len(newNgs), s.PluralS("nodegroup", len(newNgs)), s.StrsAnd(newNgs))

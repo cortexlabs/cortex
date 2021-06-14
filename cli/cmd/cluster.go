@@ -349,15 +349,15 @@ var _clusterConfigureCmd = &cobra.Command{
 		}
 
 		staleNodeGroups := clusterState.GetStaleNodeGroupNames()
-		newClusterConfig, newNgs, removedNgs, scaledNgs, err := getConfigureClusterConfig(awsClient, oldClusterConfig, clusterConfigFile, staleNodeGroups, _flagClusterDisallowPrompt)
+		newClusterConfig, configureChanges, err := getConfigureClusterConfig(awsClient, oldClusterConfig, clusterConfigFile, staleNodeGroups, _flagClusterDisallowPrompt)
 		if err != nil {
 			exit.Error(err)
 		}
 
 		out, exitCode, err := runManagerWithClusterConfig("/root/install.sh --configure", newClusterConfig, awsClient, nil, nil, []string{
-			"CORTEX_SCALED_NODEGROUP_NAMES=" + strings.Join(scaledNgs, " "),
-			"CORTEX_NEW_NODEGROUP_NAMES=" + strings.Join(newNgs, " "),
-			"CORTEX_REMOVED_NODEGROUP_NAMES=" + strings.Join(removedNgs, " "),
+			"CORTEX_SCALED_NODEGROUP_NAMES=" + strings.Join(configureChanges.NodeGroupsToScale, " "),
+			"CORTEX_NEW_NODEGROUP_NAMES=" + strings.Join(configureChanges.NodeGroupsToAdd, " "),
+			"CORTEX_REMOVED_NODEGROUP_NAMES=" + strings.Join(configureChanges.NodeGroupsToRemove, " "),
 		})
 		if err != nil {
 			exit.Error(err)
