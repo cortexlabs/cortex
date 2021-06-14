@@ -462,6 +462,11 @@ var _clusterDownCmd = &cobra.Command{
 		fmt.Print("￮ retrieving cluster ... ")
 		stacks, err := clusterstate.GetClusterStacks(awsClient, accessConfig)
 		if err != nil {
+			errorsList = append(errorsList, err)
+			fmt.Print("failed ✗")
+			fmt.Printf("\n\ncouldn't retrieve cluster state; check the cluster stacks in the cloudformation console: https://%s.console.aws.amazon.com/cloudformation\n", accessConfig.Region)
+			errors.PrintError(err)
+			fmt.Println()
 			exit.Error(err)
 		}
 		if err := clusterstate.CheckClusterExists(stacks); err != nil {
