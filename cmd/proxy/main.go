@@ -176,7 +176,7 @@ func main() {
 			log.Infof("Shutting down %s server", name)
 			if err := server.Shutdown(context.Background()); err != nil {
 				// Error from closing listeners, or context timeout:
-				log.Warn("HTTP server Shutdown Error", zap.Error(err))
+				log.Warnw("HTTP server Shutdown Error", zap.Error(err))
 				telemetry.Error(errors.Wrap(err, "HTTP server Shutdown Error"))
 			}
 		}
