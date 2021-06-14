@@ -259,7 +259,7 @@ function start_controller_manager() {
 }
 
 function resize_nodegroups() {
-  if [ -z "$CORTEX_SCALED_NODEGROUP_NAMES" ]; then
+  if [ -z "$CORTEX_NODEGROUP_NAMES_TO_SCALE" ]; then
     return
   fi
 
@@ -267,7 +267,7 @@ function resize_nodegroups() {
   eks_ng_len=$(cat nodegroups.json | jq -r length)
   cfg_ng_len=$(cat $CORTEX_CLUSTER_CONFIG_FILE | yq -r .node_groups | yq -r length)
 
-  for cfg_ng_name in $CORTEX_SCALED_NODEGROUP_NAMES; do
+  for cfg_ng_name in $CORTEX_NODEGROUP_NAMES_TO_SCALE; do
     has_ng="false"
     for eks_idx in $(seq 0 $(($eks_ng_len-1))); do
       stack_ng=$(cat nodegroups.json | jq -r .[$eks_idx].Name)
@@ -324,20 +324,20 @@ function resize_nodegroups() {
 }
 
 function add_nodegroups() {
-  if [ -z "$CORTEX_NEW_NODEGROUP_NAMES" ]; then
+  if [ -z "$CORTEX_NODEGROUP_NAMES_TO_ADD" ]; then
     return
   fi
 
-  nodegroup_names="$(join_by , $CORTEX_NEW_NODEGROUP_NAMES)"
+  nodegroup_names="$(join_by , $CORTEX_NODEGROUP_NAMES_TO_ADD)"
 
   echo "￮ adding new nodegroup(s) to the cluster ..."
-  python generate_eks.py $CORTEX_CLUSTER_CONFIG_FILE manifests/ami.json --target-node-groups="$nodegroup_names" > /workspace/nodegroups.yaml
+  python generate_eks.py $CORTEX_CLUSTER_CONFIG_FILE manifests/ami.json --add-cortex-node-groups="$nodegroup_names" > /workspace/nodegroups.yaml
   eksctl create nodegroup --timeout=$EKSCTL_NODEGROUP_TIMEOUT --install-neuron-plugin=false --install-nvidia-plugin=false -f /workspace/nodegroups.yaml
   echo
 }
 
 function remove_nodegroups() {
-  if [ -z "$CORTEX_REMOVED_NODEGROUP_NAMES" ]; then
+  if [ -z "$CORTEX_NODEGROUP_NAMES_TO_REMOVE" ]; then
     return
   fi
 
@@ -345,7 +345,7 @@ function remove_nodegroups() {
   eks_ng_len=$(cat nodegroups.json | jq -r length)
 
   stacks_to_delete=()
-  for cfg_ng_name in $CORTEX_REMOVED_NODEGROUP_NAMES; do
+  for cfg_ng_name in $CORTEX_NODEGROUP_NAMES_TO_REMOVE; do
     has_ng="false"
     for eks_idx in $(seq 0 $(($eks_ng_len-1))); do
       stack_ng=$(cat nodegroups.json | jq -r .[$eks_idx].Name)
@@ -367,14 +367,14 @@ function remove_nodegroups() {
 
   # should never happen, but erring on the safe side
   if ! (( ${#stacks_to_delete[@]} )); then
-    echo "no nodegroup stacks were found for $CORTEX_REMOVED_NODEGROUP_NAMES nodegroups"
+    echo "no nodegroup stacks were found for $CORTEX_NODEGROUP_NAMES_TO_REMOVE nodegroups"
     exit 1
   fi
 
   stacks_names="$(join_by , ${stacks_to_delete[@]})"
 
   echo "￮ removing nodegroup(s) from the cluster ..."
-  python generate_eks.py $CORTEX_CLUSTER_CONFIG_FILE manifests/ami.json --target-stack-names="$stacks_names" > /workspace/nodegroups.yaml
+  python generate_eks.py $CORTEX_CLUSTER_CONFIG_FILE manifests/ami.json --remove-eks-node-groups="$stacks_names" > /workspace/nodegroups.yaml
   eksctl delete nodegroup --timeout=$EKSCTL_NODEGROUP_TIMEOUT --approve -f /workspace/nodegroups.yaml
   echo
 

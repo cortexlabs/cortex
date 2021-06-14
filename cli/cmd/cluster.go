@@ -356,9 +356,9 @@ var _clusterConfigureCmd = &cobra.Command{
 		}
 
 		out, exitCode, err := runManagerWithClusterConfig("/root/install.sh --configure", newClusterConfig, awsClient, nil, nil, []string{
-			"CORTEX_SCALED_NODEGROUP_NAMES=" + strings.Join(configureChanges.NodeGroupsToScale, " "),
-			"CORTEX_NEW_NODEGROUP_NAMES=" + strings.Join(configureChanges.NodeGroupsToAdd, " "),
-			"CORTEX_REMOVED_NODEGROUP_NAMES=" + strings.Join(configureChanges.NodeGroupsToRemove, " "),
+			"CORTEX_NODEGROUP_NAMES_TO_SCALE=" + strings.Join(configureChanges.NodeGroupsToScale, " "),   // NodeGroupsToScale contain the cluster config node-group names
+			"CORTEX_NODEGROUP_NAMES_TO_ADD=" + strings.Join(configureChanges.NodeGroupsToAdd, " "),       // NodeGroupsToAdd contain the cluster config node-group names
+			"CORTEX_NODEGROUP_NAMES_TO_REMOVE=" + strings.Join(configureChanges.NodeGroupsToRemove, " "), // NodeGroupsToRemove contain the EKS node-group names
 		})
 		if err != nil {
 			exit.Error(err)
@@ -367,7 +367,7 @@ var _clusterConfigureCmd = &cobra.Command{
 			helpStr := "\ndebugging tips (may or may not apply to this error):"
 			helpStr += fmt.Sprintf("\n* if your cluster was unable to provision/remove/scale some nodegroups, additional error information may be found in the description of your cloudformation stack: https://console.aws.amazon.com/cloudformation/home?region=%s#/stacks", oldClusterConfig.Region)
 			fmt.Println(helpStr)
-			exit.Error(ErrorClusterAddNodeGroup(out + helpStr))
+			exit.Error(ErrorClusterConfigure(out + helpStr))
 		}
 	},
 }
@@ -400,7 +400,7 @@ var _clusterInfoCmd = &cobra.Command{
 			exit.Error(ErrorMutuallyExclusiveFlags("--print-config", "--debug"))
 		}
 		if _flagClusterInfoDebug && _flagOutput != flags.PrettyOutputType {
-			exit.Error(ErrorOutputTypeNotSupportedWithFlag("--debug", _flagOutput))
+			exit.Error(ErrorMutuallyExclusiveFlags("--debug", "--output"))
 		}
 
 		stacks, err := clusterstate.GetClusterStacks(awsClient, accessConfig)
@@ -770,31 +770,24 @@ func cmdInfo(awsClient *aws.Client, accessConfig *clusterconfig.AccessConfig, pr
 		}
 		infoResponse.ClusterConfig.Config = clusterConfig
 
+		var infoInterface interface{}
+		if printConfig {
+			infoInterface = infoResponse.ClusterConfig.Config
+		} else {
+			infoInterface = map[string]interface{}{
+				"cluster_config":    infoResponse.ClusterConfig.Config,
+				"cluster_metadata":  infoResponse.ClusterConfig.OperatorMetadata,
+				"node_infos":        infoResponse.NodeInfos,
+				"endpoint_operator": operatorEndpoint,
+				"endpoint_api":      apiEndpoint,
+			}
+		}
+
 		var outputBytes []byte
 		if outputType == flags.JSONOutputType {
-			if printConfig {
-				outputBytes, err = libjson.Marshal(infoResponse.ClusterConfig.Config)
-			} else {
-				outputBytes, err = libjson.Marshal(map[string]interface{}{
-					"cluster_config":    infoResponse.ClusterConfig.Config,
-					"cluster_metadata":  infoResponse.ClusterConfig.OperatorMetadata,
-					"node_infos":        infoResponse.NodeInfos,
-					"endpoint_operator": operatorEndpoint,
-					"endpoint_api":      apiEndpoint,
-				})
-			}
+			outputBytes, err = libjson.Marshal(infoInterface)
 		} else {
-			if printConfig {
-				outputBytes, err = yaml.Marshal(infoResponse.ClusterConfig.Config)
-			} else {
-				outputBytes, err = yaml.Marshal(map[string]interface{}{
-					"cluster_config":    infoResponse.ClusterConfig.Config,
-					"cluster_metadata":  infoResponse.ClusterConfig.OperatorMetadata,
-					"node_infos":        infoResponse.NodeInfos,
-					"endpoint_operator": operatorEndpoint,
-					"endpoint_api":      apiEndpoint,
-				})
-			}
+			outputBytes, err = yaml.Marshal(infoInterface)
 		}
 		if err != nil {
 			exit.Error(err)

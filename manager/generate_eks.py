@@ -228,17 +228,17 @@ def get_ami(ami_map: dict, instance_type: str) -> str:
 @click.argument("cluster-config_file", type=click.File("r"))
 @click.argument("ami-json-file", type=click.File("r"))
 @click.option(
-    "--target-node-groups",
+    "--add-cortex-node-groups",
     type=str,
     help="specific nodegroups to add to the generated eks file; use this for existing clusters",
 )
 @click.option(
-    "--target-stack-names",
+    "--remove-eks-node-groups",
     type=str,
     help="specific nodegroup stacks to add to the generated eks file; use this for existing clusters",
 )
 def generate_eks(
-    cluster_config_file, ami_json_file, target_node_groups: str, target_stack_names: str
+    cluster_config_file, ami_json_file, add_cortex_node_groups: str, remove_eks_node_groups: str
 ):
     cluster_config = yaml.safe_load(cluster_config_file)
     region = cluster_config["region"]
@@ -255,8 +255,8 @@ def generate_eks(
         },
     }
 
-    if target_node_groups:
-        node_group_names = target_node_groups.split(",")
+    if add_cortex_node_groups:
+        node_group_names = add_cortex_node_groups.split(",")
         eks["nodeGroups"] = []
         for node_group_name in node_group_names:
             nodegroup_config = get_nodegroup_config_by_name(cluster_config, node_group_name)
@@ -266,8 +266,8 @@ def generate_eks(
         click.echo(yaml.dump(eks, Dumper=IgnoreAliases, default_flow_style=False, default_style=""))
         return
 
-    if target_stack_names:
-        stacks_names = target_stack_names.split(",")
+    if remove_eks_node_groups:
+        stacks_names = remove_eks_node_groups.split(",")
         eks["nodeGroups"] = []
         for stack_name in stacks_names:
             eks["nodeGroups"].append(get_empty_eks_nodegroup(stack_name))

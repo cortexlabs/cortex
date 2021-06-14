@@ -341,7 +341,7 @@ func (c *Client) VerifyNetworkQuotas(
 	return nil
 }
 
-func (c *Client) VerifyNetworkQuotasOnNodeGroupsAddition(
+func (c *Client) VerifyNetworkQuotasOnConfigure(
 	availabilityZones strset.Set,
 	numNodeGroups int,
 	longestCIDRWhiteList int) error {

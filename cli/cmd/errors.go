@@ -53,8 +53,7 @@ const (
 	ErrMissingAWSCredentials               = "cli.missing_aws_credentials"
 	ErrCredentialsInClusterConfig          = "cli.credentials_in_cluster_config"
 	ErrClusterUp                           = "cli.cluster_up"
-	ErrClusterScale                        = "cli.cluster_scale"
-	ErrClusterAddNodeGroup                 = "cli.cluster_add_nodegroup"
+	ErrClusterConfigure                    = "cli.cluster_configure"
 	ErrClusterDebug                        = "cli.cluster_debug"
 	ErrClusterRefresh                      = "cli.cluster_refresh"
 	ErrClusterDown                         = "cli.cluster_down"
@@ -72,7 +71,6 @@ const (
 	ErrAPINameMustBeProvided               = "cli.api_name_must_be_provided"
 	ErrAPINotFoundInConfig                 = "cli.api_not_found_in_config"
 	ErrClusterUIDsLimitInBucket            = "cli.cluster_uids_limit_in_bucket"
-	ErrMalformedConfig                     = "cli.malformed_config"
 )
 
 func ErrorInvalidProvider(providerStr, cliConfigPath string) error {
@@ -166,17 +164,9 @@ func ErrorClusterUp(out string) error {
 	})
 }
 
-func ErrorClusterScale(out string) error {
+func ErrorClusterConfigure(out string) error {
 	return errors.WithStack(&errors.Error{
-		Kind:    ErrClusterScale,
-		Message: out,
-		NoPrint: true,
-	})
-}
-
-func ErrorClusterAddNodeGroup(out string) error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrClusterScale,
+		Kind:    ErrClusterConfigure,
 		Message: out,
 		NoPrint: true,
 	})
@@ -307,12 +297,5 @@ func ErrorClusterUIDsLimitInBucket(bucket string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrClusterUIDsLimitInBucket,
 		Message: fmt.Sprintf("detected too many top level folders in %s bucket; please empty your bucket and try again", bucket),
-	})
-}
-
-func ErrorMalformedConfig() error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrMalformedConfig,
-		Message: fmt.Sprintf("nodegroups YAML configuration files must contain a list of maps (see https://docs.cortex.dev/v/%s/ for api configuration schema)", consts.CortexVersionMinor),
 	})
 }

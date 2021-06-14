@@ -57,7 +57,7 @@ const (
 	ErrUnsupportedAvailabilityZone            = "clusterconfig.unsupported_availability_zone"
 	ErrNotEnoughValidDefaultAvailibilityZones = "clusterconfig.not_enough_valid_default_availability_zones"
 	ErrNoNATGatewayWithSubnets                = "clusterconfig.no_nat_gateway_with_subnets"
-	ErrConfigCannotBeChangedOnUpdate          = "clusterconfig.config_cannot_be_changed_on_update"
+	ErrConfigCannotBeChangedOnConfigure       = "clusterconfig.config_cannot_be_changed_on_configure"
 	ErrNodeGroupCanOnlyBeScaled               = "clusterconfig.node_group_can_only_be_scaled"
 	ErrSpecifyOneOrNone                       = "clusterconfig.specify_one_or_none"
 	ErrSpecifyTwoOrNone                       = "clusterconfig.specify_two_or_none"
@@ -285,9 +285,9 @@ func ErrorNoNATGatewayWithSubnets() error {
 	})
 }
 
-func ErrorConfigCannotBeChangedOnUpdate() error {
+func ErrorConfigCannotBeChangedOnConfigure() error {
 	return errors.WithStack(&errors.Error{
-		Kind:    ErrConfigCannotBeChangedOnUpdate,
+		Kind:    ErrConfigCannotBeChangedOnConfigure,
 		Message: fmt.Sprintf("in a running cluster, only the %s field can be modified", NodeGroupsKey),
 	})
 }
@@ -295,7 +295,7 @@ func ErrorConfigCannotBeChangedOnUpdate() error {
 func ErrorNodeGroupCanOnlyBeScaled() error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrNodeGroupCanOnlyBeScaled,
-		Message: "in a running cluster, an existing nodegroup can only be scaled",
+		Message: "in a running cluster, an existing nodegroup can only be scaled or deleted",
 	})
 }
 

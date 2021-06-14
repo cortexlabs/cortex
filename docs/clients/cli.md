@@ -12,7 +12,7 @@ Flags:
   -e, --env string      environment to use
   -f, --force           override the in-progress api update
   -y, --yes             skip prompts
-  -o, --output string   output format: one of pretty|json (default "pretty")
+  -o, --output string   output format: one of pretty|json|yaml (default "pretty")
   -h, --help            help for deploy
 ```
 
@@ -27,7 +27,7 @@ Usage:
 Flags:
   -e, --env string      environment to use
   -w, --watch           re-run the command every 2 seconds
-  -o, --output string   output format: one of pretty|json (default "pretty")
+  -o, --output string   output format: one of pretty|json|yaml (default "pretty")
   -v, --verbose         show additional information (only applies to pretty output format)
   -h, --help            help for get
 ```
@@ -58,7 +58,7 @@ Usage:
 Flags:
   -e, --env string      environment to use
   -f, --force           override the in-progress api update
-  -o, --output string   output format: one of pretty|json (default "pretty")
+  -o, --output string   output format: one of pretty|json|yaml (default "pretty")
   -h, --help            help for refresh
 ```
 
@@ -74,7 +74,7 @@ Flags:
   -e, --env string      environment to use
   -f, --force           delete the api without confirmation
   -c, --keep-cache      keep cached data for the api
-  -o, --output string   output format: one of pretty|json (default "pretty")
+  -o, --output string   output format: one of pretty|json|yaml (default "pretty")
   -h, --help            help for delete
 ```
 
@@ -104,7 +104,7 @@ Flags:
   -c, --config string          path to a cluster configuration file
   -n, --name string            name of the cluster
   -r, --region string          aws region of the cluster
-  -o, --output string          output format: one of pretty|json (default "pretty")
+  -o, --output string          output format: one of pretty|json|yaml (default "pretty")
   -e, --configure-env string   name of environment to configure
   -d, --debug                  save the current cluster state to a file
       --print-config           print the cluster config
@@ -112,25 +112,19 @@ Flags:
   -h, --help                   help for info
 ```
 
-## cluster scale
+## cluster configure
 
 ```text
-manage cortex clusters (contains subcommands)
+update the cluster's configuration
 
 Usage:
-  cortex cluster [command]
-
-Available Commands:
-  up          spin up a cluster on aws
-  info        get information about a cluster
-  configure   update the cluster's configuration
-  down        spin down a cluster
-  export      download the configurations for all APIs
+  cortex cluster configure CLUSTER_CONFIG_FILE [flags]
 
 Flags:
-  -h, --help   help for cluster
-
-Use "cortex cluster [command] --help" for more information about a command.
+  -n, --name string     name of the cluster
+  -r, --region string   aws region of the cluster
+  -y, --yes             skip prompts
+  -h, --help            help for configure
 ```
 
 ## cluster down
@@ -187,7 +181,7 @@ Usage:
   cortex env list [flags]
 
 Flags:
-  -o, --output string   output format: one of pretty|json (default "pretty")
+  -o, --output string   output format: one of pretty|json|yaml (default "pretty")
   -h, --help            help for list
 ```
 

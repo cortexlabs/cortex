@@ -32,7 +32,7 @@ import (
 	libmath "github.com/cortexlabs/cortex/pkg/lib/math"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/prompt"
-	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
+	"github.com/cortexlabs/cortex/pkg/lib/slices"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/table"
 	"github.com/cortexlabs/cortex/pkg/types/clusterconfig"
@@ -166,11 +166,15 @@ func getConfigureClusterConfig(awsClient *aws.Client, stacks clusterstate.Cluste
 		return nil, clusterconfig.ConfigureChanges{}, errors.Wrap(err, newClusterConfigFile)
 	}
 
-	// add stale eks node groups
-	staleEKSNgs := stacks.GetStaleNodeGroupNames(*newUserClusterConfig)
-	nodeGroupsToRemoveSet := strset.FromSlice(configureChanges.NodeGroupsToRemove)
-	nodeGroupsToRemoveSet.Merge(strset.FromSlice(staleEKSNgs))
-	configureChanges.NodeGroupsToRemove = nodeGroupsToRemoveSet.Slice()
+	// intersect with the stale eks node groups
+	eksNodeGroupsToRemove := []string{}
+	staleEKSNgs, staleEKSNgAvailabilities := stacks.GetStaleNodeGroupNames(*newUserClusterConfig)
+	for i := range staleEKSNgs {
+		if slices.HasString(configureChanges.NodeGroupsToRemove, staleEKSNgs[i]) {
+			eksNodeGroupsToRemove = append(eksNodeGroupsToRemove, clusterstate.GetStackName(newUserClusterConfig.ClusterName, staleEKSNgAvailabilities[i], staleEKSNgs[i]))
+		}
+	}
+	configureChanges.NodeGroupsToRemove = eksNodeGroupsToRemove
 
 	if !configureChanges.HasChanges() {
 		fmt.Println("no change required")

@@ -1044,7 +1044,7 @@ func (cc *Config) validateConfigDiff(oldConfig Config) error {
 		return err
 	}
 	if h1 != h2 {
-		return ErrorConfigCannotBeChangedOnUpdate()
+		return ErrorConfigCannotBeChangedOnConfigure()
 	}
 
 	return nil
@@ -1138,7 +1138,7 @@ func (cc *Config) ValidateOnConfigure(awsClient *aws.Client, oldConfig Config) (
 
 	tempMaxNodeGroupCount := len(cc.NodeGroups) + len(ngsToBeRemoved)
 	longestCIDRWhiteList := libmath.MaxInt(len(cc.APILoadBalancerCIDRWhiteList), len(cc.OperatorLoadBalancerCIDRWhiteList))
-	if err := awsClient.VerifyNetworkQuotasOnNodeGroupsAddition(strset.FromSlice(cc.AvailabilityZones), tempMaxNodeGroupCount, longestCIDRWhiteList); err != nil {
+	if err := awsClient.VerifyNetworkQuotasOnConfigure(strset.FromSlice(cc.AvailabilityZones), tempMaxNodeGroupCount, longestCIDRWhiteList); err != nil {
 		// Skip AWS errors, since some regions (e.g. eu-north-1) do not support this API
 		if !aws.IsAWSError(err) {
 			return ConfigureChanges{}, errors.Wrap(err, NodeGroupsKey)

@@ -78,6 +78,46 @@ func (cs ClusterStacks) TableString() string {
 	return t.MustFormat()
 }
 
+func (cs ClusterStacks) GetStaleNodeGroupNames(clusterConfig clusterconfig.Config) ([]string, []bool) {
+	ngNames := clusterconfig.GetNodeGroupNames(clusterConfig.NodeGroups)
+	ngSpotEnabled := clusterconfig.GetNodeGroupAvailabilities(clusterConfig.NodeGroups)
+	operatorStackName := fmt.Sprintf(operatorTemplate, clusterConfig.ClusterName)
+
+	staleNodeGroupNames := []string{}
+	for _, stack := range cs.NodeGroupsStacks {
+		if stack == nil || stack.StackName == nil {
+			continue
+		}
+		var foundNodeGroupName string
+		var found bool
+		for i, ngName := range ngNames {
+			availability := "d"
+			if ngSpotEnabled[i] {
+				availability = "s"
+			}
+			eksStackName := fmt.Sprintf("eksctl-%s-nodegroup-cx-w%s-%s", cs.clusterName, availability, ngName)
+			if *stack.StackName != operatorStackName && *stack.StackName == eksStackName {
+				found = true
+				foundNodeGroupName = ngName
+				break
+			}
+		}
+		if !found {
+			staleNodeGroupNames = append(staleNodeGroupNames, foundNodeGroupName)
+		}
+	}
+
+	return staleNodeGroupNames, ngSpotEnabled
+}
+
+func GetStackName(clusterName string, spot bool, ngName string) string {
+	availability := "d"
+	if spot {
+		availability = "s"
+	}
+	return fmt.Sprintf("eksctl-%s-nodegroup-cx-w%s-%s", clusterName, availability, ngName)
+}
+
 func GetClusterStacks(awsClient *aws.Client, accessConfig *clusterconfig.AccessConfig) (ClusterStacks, error) {
 	controlPlaneStackName := fmt.Sprintf(controlPlaneTemplate, accessConfig.ClusterName)
 	operatorStackName := fmt.Sprintf(operatorTemplate, accessConfig.ClusterName)
@@ -140,38 +180,6 @@ func CheckClusterExists(stacks ClusterStacks) error {
 		return ErrorUnexpectedClusterState(stacks)
 	}
 	return ErrorClusterDoesNotExist(stacks.clusterName, stacks.region)
-}
-
-func (cs ClusterStacks) GetStaleNodeGroupNames(clusterConfig clusterconfig.Config) []string {
-	ngNames := clusterconfig.GetNodeGroupNames(clusterConfig.NodeGroups)
-	ngSpotEnabled := clusterconfig.GetNodeGroupAvailabilities(clusterConfig.NodeGroups)
-	operatorStackName := fmt.Sprintf(operatorTemplate, clusterConfig.ClusterName)
-
-	staleNodeGroupNames := []string{}
-	for _, stack := range cs.NodeGroupsStacks {
-		if stack == nil || stack.StackName == nil {
-			continue
-		}
-		var foundNodeGroupName string
-		var found bool
-		for i, ngName := range ngNames {
-			availability := "d"
-			if ngSpotEnabled[i] {
-				availability = "s"
-			}
-			eksStackName := fmt.Sprintf("eksctl-%s-nodegroup-cx-w%s-%s", cs.clusterName, availability, ngName)
-			if *stack.StackName != operatorStackName && *stack.StackName == eksStackName {
-				found = true
-				foundNodeGroupName = ngName
-				break
-			}
-		}
-		if !found {
-			staleNodeGroupNames = append(staleNodeGroupNames, foundNodeGroupName)
-		}
-	}
-
-	return staleNodeGroupNames
 }
 
 func CloudFormationURL(clusterName string, region string) string {
