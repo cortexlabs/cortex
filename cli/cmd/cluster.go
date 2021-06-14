@@ -173,17 +173,20 @@ var _clusterUpCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
+		stacks, err := clusterstate.GetClusterStacks(awsClient, accessConfig)
+		if err != nil {
+			exit.Error(err)
+		}
+
+		if err := clusterstate.CheckClusterExists(stacks); err != nil {
+			if errors.GetKind(err) != string(clusterstate.StatusNotFound) {
+				exit.Error(err)
+			}
+		} else if err == nil {
+			exit.Error(clusterstate.ErrorClusterAlreadyExists(accessConfig.ClusterName, accessConfig.Region))
+		}
+
 		clusterConfig, err := getInstallClusterConfig(awsClient, clusterConfigFile, _flagClusterDisallowPrompt)
-		if err != nil {
-			exit.Error(err)
-		}
-
-		clusterState, err := clusterstate.GetClusterState(awsClient, clusterConfig)
-		if err != nil {
-			exit.Error(err)
-		}
-
-		err = clusterstate.AssertClusterStatus(accessConfig.ClusterName, accessConfig.Region, clusterState.Status, clusterstate.StatusNotFound, clusterstate.StatusDeleteComplete)
 		if err != nil {
 			exit.Error(err)
 		}
@@ -337,19 +340,17 @@ var _clusterConfigureCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
+		stacks, err := clusterstate.GetClusterStacks(awsClient, accessConfig)
+		if err != nil {
+			exit.Error(err)
+		}
+
+		if err := clusterstate.CheckClusterExists(stacks); err != nil {
+			exit.Error(err)
+		}
+
 		oldClusterConfig := refreshCachedClusterConfig(awsClient, accessConfig, true)
-		clusterState, err := clusterstate.GetClusterState(awsClient, &oldClusterConfig)
-		if err != nil {
-			exit.Error(err)
-		}
-
-		err = clusterstate.AssertClusterStatus(accessConfig.ClusterName, accessConfig.Region, clusterState.Status, clusterstate.StatusCreateComplete, clusterstate.StatusUpdateComplete, clusterstate.StatusUpdateRollbackComplete)
-		if err != nil {
-			exit.Error(err)
-		}
-
-		staleNodeGroups := clusterState.GetStaleNodeGroupNames()
-		newClusterConfig, configureChanges, err := getConfigureClusterConfig(awsClient, oldClusterConfig, clusterConfigFile, staleNodeGroups, _flagClusterDisallowPrompt)
+		newClusterConfig, configureChanges, err := getConfigureClusterConfig(awsClient, stacks, oldClusterConfig, clusterConfigFile, _flagClusterDisallowPrompt)
 		if err != nil {
 			exit.Error(err)
 		}
@@ -398,11 +399,20 @@ var _clusterInfoCmd = &cobra.Command{
 		if _flagClusterInfoPrintConfig && _flagClusterInfoDebug {
 			exit.Error(ErrorMutuallyExclusiveFlags("--print-config", "--debug"))
 		}
+		if _flagClusterInfoDebug && _flagOutput != flags.PrettyOutputType {
+			exit.Error(ErrorOutputTypeNotSupportedWithFlag("--debug", _flagOutput))
+		}
+
+		stacks, err := clusterstate.GetClusterStacks(awsClient, accessConfig)
+		if err != nil {
+			exit.Error(err)
+		}
+
+		if err := clusterstate.CheckClusterExists(stacks); err != nil {
+			exit.Error(err)
+		}
 
 		if _flagClusterInfoDebug {
-			if _flagOutput != flags.PrettyOutputType {
-				exit.Error(ErrorOutputTypeNotSupportedWithFlag("--debug", _flagOutput))
-			}
 			cmdDebug(awsClient, accessConfig)
 		} else {
 			cmdInfo(awsClient, accessConfig, _flagClusterInfoPrintConfig, _flagOutput, _flagClusterDisallowPrompt)
@@ -432,11 +442,13 @@ var _clusterDownCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
-		clusterConfig := refreshCachedClusterConfig(awsClient, accessConfig, true)
+		accountID, _, err := awsClient.GetCachedAccountID()
+		if err != nil {
+			exit.Error(err)
+		}
+		bucketName := clusterconfig.BucketName(accountID, accessConfig.ClusterName, accessConfig.Region)
 
 		warnIfNotAdmin(awsClient)
-
-		errorsList := []error{}
 
 		if _flagClusterDisallowPrompt {
 			fmt.Printf("your cluster named \"%s\" in %s will be spun down and all apis will be deleted\n\n", accessConfig.ClusterName, accessConfig.Region)
@@ -444,35 +456,37 @@ var _clusterDownCmd = &cobra.Command{
 			prompt.YesOrExit(fmt.Sprintf("your cluster named \"%s\" in %s will be spun down and all apis will be deleted, are you sure you want to continue?", accessConfig.ClusterName, accessConfig.Region), "", "")
 		}
 
-		fmt.Print("￮ retrieving cluster ... ")
 		var clusterExists bool
-		clusterState, err := clusterstate.GetClusterState(awsClient, &clusterConfig)
+		errorsList := []error{}
+
+		fmt.Print("￮ retrieving cluster ... ")
+		stacks, err := clusterstate.GetClusterStacks(awsClient, accessConfig)
 		if err != nil {
-			errorsList = append(errorsList, err)
-			fmt.Print("failed ✗")
-			fmt.Printf("\n\ncouldn't retrieve cluster state; check the cluster stacks in the cloudformation console: https://%s.console.aws.amazon.com/cloudformation\n", accessConfig.Region)
-			errors.PrintError(err)
-			fmt.Println()
+			exit.Error(err)
+		}
+		if err := clusterstate.CheckClusterExists(stacks); err != nil {
+			if errors.GetKind(err) == string(clusterstate.StatusUndefined) {
+				errorsList = append(errorsList, err)
+				fmt.Print("failed ✗")
+				errors.PrintError(err)
+				fmt.Println()
+			}
+			if errors.GetKind(err) == string(clusterstate.StatusNotFound) {
+				fmt.Println("already deleted ✓")
+			}
 		} else {
-			switch clusterState.Status {
-			case clusterstate.StatusNotFound:
-				fmt.Println("cluster doesn't exist ✓")
-			case clusterstate.StatusDeleteComplete:
-				awsClient.DeleteQueuesWithPrefix(clusterconfig.SQSNamePrefix(accessConfig.ClusterName))
-				awsClient.DeletePolicy(clusterconfig.DefaultPolicyARN(clusterConfig.AccountID, accessConfig.ClusterName, accessConfig.Region))
-				if !_flagClusterDownKeepAWSResources {
-					volumes, err := listPVCVolumesForCluster(awsClient, accessConfig.ClusterName)
-					if err == nil {
-						for _, volume := range volumes {
-							awsClient.DeleteVolume(*volume.VolumeId)
-						}
+			awsClient.DeleteQueuesWithPrefix(clusterconfig.SQSNamePrefix(accessConfig.ClusterName))
+			awsClient.DeletePolicy(clusterconfig.DefaultPolicyARN(accountID, accessConfig.ClusterName, accessConfig.Region))
+			if !_flagClusterDownKeepAWSResources {
+				volumes, err := listPVCVolumesForCluster(awsClient, accessConfig.ClusterName)
+				if err == nil {
+					for _, volume := range volumes {
+						awsClient.DeleteVolume(*volume.VolumeId)
 					}
 				}
-				fmt.Println("already deleted ✓")
-			default:
-				fmt.Println("✓")
-				clusterExists = true
 			}
+			fmt.Println("✓")
+			clusterExists = true
 		}
 
 		// updating CLI env is best-effort, so ignore errors
@@ -504,7 +518,7 @@ var _clusterDownCmd = &cobra.Command{
 				template := "\nNote: if this error cannot be resolved, please ensure that all CloudFormation stacks for this cluster eventually become fully deleted (%s)."
 				template += " If the stack deletion process has failed, please delete the stacks directly from the AWS console (this may require manually deleting particular AWS resources that are blocking the stack deletion)."
 				template += " In addition to deleting the stacks manually from the AWS console, also make sure to empty and remove the %s bucket"
-				helpStr := fmt.Sprintf(template, clusterstate.CloudFormationURL(accessConfig.ClusterName, accessConfig.Region), clusterConfig.Bucket)
+				helpStr := fmt.Sprintf(template, clusterstate.CloudFormationURL(accessConfig.ClusterName, accessConfig.Region), bucketName)
 				fmt.Println(helpStr)
 				errorsList = append(errorsList, ErrorClusterDown(filterEKSCTLOutput(out)+helpStr))
 			} else {
@@ -516,22 +530,22 @@ var _clusterDownCmd = &cobra.Command{
 		// set lifecycle policy to clean the bucket
 		var bucketExists bool
 		if !_flagClusterDownKeepAWSResources {
-			fmt.Printf("￮ setting lifecycle policy to empty the %s bucket ... ", clusterConfig.Bucket)
-			bucketExists, err := awsClient.DoesBucketExist(clusterConfig.Bucket)
+			fmt.Printf("￮ setting lifecycle policy to empty the %s bucket ... ", bucketName)
+			bucketExists, err := awsClient.DoesBucketExist(bucketName)
 			if err != nil {
 				errorsList = append(errorsList, err)
 				fmt.Print("failed ✗")
-				fmt.Printf("\n\nfailed to set lifecycle policy to empty the %s bucket; you can remove the bucket manually via the s3 console: https://s3.console.aws.amazon.com/s3/management/%s\n", clusterConfig.Bucket, clusterConfig.Bucket)
+				fmt.Printf("\n\nfailed to set lifecycle policy to empty the %s bucket; you can remove the bucket manually via the s3 console: https://s3.console.aws.amazon.com/s3/management/%s\n", bucketName, bucketName)
 				errors.PrintError(err)
 				fmt.Println()
 			} else if !bucketExists {
 				fmt.Println("bucket doesn't exist ✗")
 			} else {
-				err = setLifecycleRulesOnClusterDown(awsClient, clusterConfig.Bucket)
+				err = setLifecycleRulesOnClusterDown(awsClient, bucketName)
 				if err != nil {
 					errorsList = append(errorsList, err)
 					fmt.Print("failed ✗")
-					fmt.Printf("\n\nfailed to set lifecycle policy to empty the %s bucket; you can remove the bucket manually via the s3 console: https://s3.console.aws.amazon.com/s3/management/%s\n", clusterConfig.Bucket, clusterConfig.Bucket)
+					fmt.Printf("\n\nfailed to set lifecycle policy to empty the %s bucket; you can remove the bucket manually via the s3 console: https://s3.console.aws.amazon.com/s3/management/%s\n", bucketName, bucketName)
 					errors.PrintError(err)
 					fmt.Println()
 				} else {
@@ -542,7 +556,7 @@ var _clusterDownCmd = &cobra.Command{
 
 		// delete policy after spinning down the cluster (which deletes the roles) because policies can't be deleted if they are attached to roles
 		if clusterDoesntExist {
-			policyARN := clusterconfig.DefaultPolicyARN(clusterConfig.AccountID, accessConfig.ClusterName, accessConfig.Region)
+			policyARN := clusterconfig.DefaultPolicyARN(accountID, accessConfig.ClusterName, accessConfig.Region)
 			fmt.Printf("￮ deleting auto-generated iam policy %s ... ", policyARN)
 			if policy, err := awsClient.GetPolicyOrNil(policyARN); err != nil {
 				errorsList = append(errorsList, err)
@@ -631,7 +645,7 @@ var _clusterDownCmd = &cobra.Command{
 		}
 		fmt.Printf("\nplease check CloudFormation to ensure that all resources for the %s cluster eventually become successfully deleted: %s\n", accessConfig.ClusterName, clusterstate.CloudFormationURL(accessConfig.ClusterName, accessConfig.Region))
 		if !_flagClusterDownKeepAWSResources && bucketExists {
-			fmt.Printf("\na lifecycle rule has been applied to the cluster's %s bucket to empty its contents within the next 24 hours; you can delete the %s bucket via the s3 console once it has been emptied (or you can empty and delete it now): https://s3.console.aws.amazon.com/s3/management/%s\n", clusterConfig.Bucket, clusterConfig.Bucket, clusterConfig.Bucket)
+			fmt.Printf("\na lifecycle rule has been applied to the cluster's %s bucket to empty its contents within the next 24 hours; you can delete the %s bucket via the s3 console once it has been emptied (or you can empty and delete it now): https://s3.console.aws.amazon.com/s3/management/%s\n", bucketName, bucketName, bucketName)
 		}
 		fmt.Println()
 
@@ -679,15 +693,12 @@ var _clusterExportCmd = &cobra.Command{
 		}
 		warnIfNotAdmin(awsClient)
 
-		clusterConfig := refreshCachedClusterConfig(awsClient, accessConfig, true)
-
-		clusterState, err := clusterstate.GetClusterState(awsClient, &clusterConfig)
+		stacks, err := clusterstate.GetClusterStacks(awsClient, accessConfig)
 		if err != nil {
 			exit.Error(err)
 		}
 
-		err = clusterstate.AssertClusterStatus(accessConfig.ClusterName, accessConfig.Region, clusterState.Status, clusterstate.StatusCreateComplete, clusterstate.StatusUpdateComplete, clusterstate.StatusUpdateRollbackComplete)
-		if err != nil {
+		if err := clusterstate.CheckClusterExists(stacks); err != nil {
 			exit.Error(err)
 		}
 
@@ -739,12 +750,6 @@ var _clusterExportCmd = &cobra.Command{
 
 func cmdInfo(awsClient *aws.Client, accessConfig *clusterconfig.AccessConfig, printConfig bool, outputType flags.OutputType, disallowPrompt bool) {
 	clusterConfig := refreshCachedClusterConfig(awsClient, accessConfig, outputType == flags.PrettyOutputType)
-
-	if outputType == flags.PrettyOutputType {
-		if err := printInfoClusterState(awsClient, &clusterConfig); err != nil {
-			exit.Error(err)
-		}
-	}
 
 	operatorLoadBalancer, err := getLoadBalancer(accessConfig.ClusterName, OperatorLoadBalancer, awsClient)
 	if err != nil {
@@ -812,26 +817,6 @@ func cmdInfo(awsClient *aws.Client, accessConfig *clusterconfig.AccessConfig, pr
 			exit.Error(err)
 		}
 	}
-}
-
-func printInfoClusterState(awsClient *aws.Client, clusterConfig *clusterconfig.Config) error {
-	clusterState, err := clusterstate.GetClusterState(awsClient, clusterConfig)
-	if err != nil {
-		return err
-	}
-
-	fmt.Println(clusterState.TableString())
-	if clusterState.Status == clusterstate.StatusCreateFailed || clusterState.Status == clusterstate.StatusDeleteFailed {
-		fmt.Println(fmt.Sprintf("more information can be found in your AWS console: %s", clusterstate.CloudFormationURL(clusterConfig.ClusterName, clusterConfig.Region)))
-		fmt.Println()
-	}
-
-	err = clusterstate.AssertClusterStatus(clusterConfig.ClusterName, clusterConfig.Region, clusterState.Status, clusterstate.StatusCreateComplete, clusterstate.StatusUpdateComplete, clusterstate.StatusUpdateRollbackComplete)
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
 
 func printInfoOperatorResponse(clusterConfig clusterconfig.Config, operatorEndpoint string) error {

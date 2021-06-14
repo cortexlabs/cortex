@@ -23,16 +23,9 @@ import (
 )
 
 const (
-	ErrClusterDoesNotExist            = "clusterstatus.cluster_does_not_exist"
-	ErrClusterUpInProgress            = "clusterstatus.cluster_up_in_progress"
-	ErrClusterCreateFailed            = "clusterstatus.cluster_create_failed"
-	ErrClusterCreateFailedTimeout     = "clusterstatus.cluster_create_failed_timeout"
-	ErrClusterAlreadyCreated          = "clusterstatus.cluster_already_created"
-	ErrClusterAlreadyUpdated          = "clusterstatus.cluster_already_updated"
-	ErrClusterDownInProgress          = "clusterstatus.cluster_down_in_progress"
-	ErrClusterAlreadyDeleted          = "clusterstatus.cluster_already_deleted"
-	ErrClusterDeleteFailed            = "clusterstatus.cluster_delete_failed"
-	ErrUnexpectedCloudFormationStatus = "clusterstatus.unexpected_cloud_formation_status"
+	ErrClusterDoesNotExist    = "clusterstatus.cluster_does_not_exist"
+	ErrClusterAlreadyExists   = "clusterstatus.cluster_already_exists"
+	ErrUnexpectedClusterState = "clusterstatus.unexpected_cluster_state"
 )
 
 func ErrorClusterDoesNotExist(clusterName string, region string) error {
@@ -42,66 +35,19 @@ func ErrorClusterDoesNotExist(clusterName string, region string) error {
 	})
 }
 
-func ErrorClusterUpInProgress(clusterName string, region string) error {
+func ErrorClusterAlreadyExists(clusterName string, region string) error {
 	return errors.WithStack(&errors.Error{
-		Kind:    ErrClusterUpInProgress,
-		Message: fmt.Sprintf("creation of cluster \"%s\" in %s is currently in progress", clusterName, region),
-	})
-}
-
-func ErrorClusterCreateFailed(clusterName string, region string) error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrClusterCreateFailed,
-		Message: fmt.Sprintf("cluster \"%s\" in %s could not be created; please view error information and delete the CloudFormation stacks directly from your AWS console: %s", clusterName, region, CloudFormationURL(clusterName, region)),
-	})
-}
-
-func ErrorClusterCreateFailedTimeout(clusterName string, region string) error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrClusterCreateFailedTimeout,
-		Message: fmt.Sprintf("cluster \"%s\" in %s could not be created; please view error information and delete the CloudFormation stacks directly from your AWS console: %s", clusterName, region, CloudFormationURL(clusterName, region)),
-	})
-}
-
-func ErrorClusterAlreadyCreated(clusterName string, region string) error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrClusterAlreadyCreated,
+		Kind:    ErrClusterAlreadyExists,
 		Message: fmt.Sprintf("a cluster named \"%s\" already exists in %s", clusterName, region),
 	})
 }
 
-func ErrorClusterAlreadyUpdated(clusterName string, region string) error {
+func ErrorUnexpectedClusterState(stacks ClusterStacks) error {
+	msg := fmt.Sprintf("cluster named \"%s\" in %s is in an unexpected state; if your CloudFormation stacks are updating, please wait for them to complete. Otherwise, run `cortex cluster down` to delete the cluster, or if that fails, delete the CloudFormation stacks directly from your AWS console: %s\n\n", stacks.clusterName, stacks.region, CloudFormationURL(stacks.clusterName, stacks.region))
+	msg += fmt.Sprintf(stacks.TableString())
 	return errors.WithStack(&errors.Error{
-		Kind:    ErrClusterAlreadyUpdated,
-		Message: fmt.Sprintf("a cluster named \"%s\" already created and updated in %s", clusterName, region),
-	})
-}
-
-func ErrorClusterDownInProgress(clusterName string, region string) error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrClusterDownInProgress,
-		Message: fmt.Sprintf("deletion of cluster \"%s\" in %s is currently in progress", clusterName, region),
-	})
-}
-
-func ErrorClusterAlreadyDeleted(clusterName string, region string) error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrClusterAlreadyDeleted,
-		Message: fmt.Sprintf("cluster \"%s\" in %s has already been deleted (or does not exist)", clusterName, region),
-	})
-}
-
-func ErrorClusterDeleteFailed(clusterName string, region string) error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrClusterDeleteFailed,
-		Message: fmt.Sprintf("deletion of cluster \"%s\" in %s failed; please run `cortex cluster down` to delete the cluster, or if that fails, delete the CloudFormation stacks directly from your AWS console: %s", clusterName, region, CloudFormationURL(clusterName, region)),
-	})
-}
-
-func ErrorUnexpectedCloudFormationStatus(clusterName string, region string, metadata interface{}) error {
-	return errors.WithStack(&errors.Error{
-		Kind:     ErrUnexpectedCloudFormationStatus,
-		Message:  fmt.Sprintf("cluster named \"%s\" in %s is in an unexpected state; if your CloudFormation stacks are updating, please wait for them to complete. Otherwise, run `cortex cluster down` to delete the cluster, or if that fails, delete the CloudFormation stacks directly from your AWS console: %s", clusterName, region, CloudFormationURL(clusterName, region)),
-		Metadata: metadata,
+		Kind:     ErrUnexpectedClusterState,
+		Message:  msg,
+		Metadata: stacks,
 	})
 }

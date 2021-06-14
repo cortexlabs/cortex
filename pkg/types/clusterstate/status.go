@@ -19,47 +19,7 @@ package clusterstate
 type Status string
 
 const (
-	StatusNotFound               Status = "not_found"
-	StatusCreateInProgress       Status = "create_in_progress"
-	StatusCreateFailed           Status = "create_failed"
-	StatusCreateFailedTimedOut   Status = "create_failed_timed_out"
-	StatusCreateComplete         Status = "create_complete"
-	StatusUpdateComplete         Status = "update_complete"
-	StatusUpdateRollbackComplete Status = "update_rollback_complete"
-	StatusDeleteInProgress       Status = "delete_in_progress"
-	StatusDeleteComplete         Status = "delete_complete"
-	StatusDeleteFailed           Status = "delete_failed"
+	StatusFound     Status = "found"
+	StatusNotFound  Status = "not_found"
+	StatusUndefined Status = "undefined"
 )
-
-func AssertClusterStatus(clusterName string, region string, status Status, allowedStatuses ...Status) error {
-	for _, allowedStatus := range allowedStatuses {
-		if status == allowedStatus {
-			return nil
-		}
-	}
-
-	switch status {
-	case StatusNotFound:
-		return ErrorClusterDoesNotExist(clusterName, region)
-	case StatusCreateInProgress:
-		return ErrorClusterUpInProgress(clusterName, region)
-	case StatusCreateFailed:
-		return ErrorClusterCreateFailed(clusterName, region)
-	case StatusCreateFailedTimedOut:
-		return ErrorClusterCreateFailedTimeout(clusterName, region)
-	case StatusCreateComplete:
-		return ErrorClusterAlreadyCreated(clusterName, region)
-	case StatusUpdateComplete:
-		return ErrorClusterAlreadyUpdated(clusterName, region)
-	case StatusUpdateRollbackComplete:
-		return ErrorClusterAlreadyUpdated(clusterName, region)
-	case StatusDeleteInProgress:
-		return ErrorClusterDownInProgress(clusterName, region)
-	case StatusDeleteComplete:
-		return ErrorClusterAlreadyDeleted(clusterName, region)
-	case StatusDeleteFailed:
-		return ErrorClusterDeleteFailed(clusterName, region)
-	default:
-		return ErrorUnexpectedCloudFormationStatus(clusterName, region, status)
-	}
-}

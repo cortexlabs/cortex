@@ -33,10 +33,10 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/prompt"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
-	"github.com/cortexlabs/cortex/pkg/lib/slices"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/table"
 	"github.com/cortexlabs/cortex/pkg/types/clusterconfig"
+	"github.com/cortexlabs/cortex/pkg/types/clusterstate"
 )
 
 var _cachedClusterConfigRegex = regexp.MustCompile(`^cluster_\S+\.yaml$`)
@@ -147,7 +147,7 @@ func getInstallClusterConfig(awsClient *aws.Client, clusterConfigFile string, di
 	return clusterConfig, nil
 }
 
-func getConfigureClusterConfig(awsClient *aws.Client, cachedClusterConfig clusterconfig.Config, newClusterConfigFile string, staleNodeGroups []string, disallowPrompt bool) (*clusterconfig.Config, clusterconfig.ConfigureChanges, error) {
+func getConfigureClusterConfig(awsClient *aws.Client, stacks clusterstate.ClusterStacks, cachedClusterConfig clusterconfig.Config, newClusterConfigFile string, disallowPrompt bool) (*clusterconfig.Config, clusterconfig.ConfigureChanges, error) {
 	newUserClusterConfig := &clusterconfig.Config{}
 
 	err := readUserClusterConfigFile(newUserClusterConfig, newClusterConfigFile)
@@ -166,14 +166,11 @@ func getConfigureClusterConfig(awsClient *aws.Client, cachedClusterConfig cluste
 		return nil, clusterconfig.ConfigureChanges{}, errors.Wrap(err, newClusterConfigFile)
 	}
 
-	ngsToRemoveSet := strset.FromSlice(configureChanges.NodeGroupsToRemove)
-	nodeGroupsFromNewConfig := clusterconfig.GetNodeGroupNames(newUserClusterConfig.NodeGroups)
-	for _, staleNodeGroup := range staleNodeGroups {
-		if !slices.HasString(nodeGroupsFromNewConfig, staleNodeGroup) {
-			ngsToRemoveSet.Add(staleNodeGroups...)
-		}
-	}
-	configureChanges.NodeGroupsToRemove = ngsToRemoveSet.Slice()
+	// add stale eks node groups
+	staleEKSNgs := stacks.GetStaleNodeGroupNames(*newUserClusterConfig)
+	nodeGroupsToRemoveSet := strset.FromSlice(configureChanges.NodeGroupsToRemove)
+	nodeGroupsToRemoveSet.Merge(strset.FromSlice(staleEKSNgs))
+	configureChanges.NodeGroupsToRemove = nodeGroupsToRemoveSet.Slice()
 
 	if !configureChanges.HasChanges() {
 		fmt.Println("no change required")
@@ -305,15 +302,15 @@ func confirmInstallClusterConfig(clusterConfig *clusterconfig.Config, awsClient 
 
 func confirmConfigureClusterConfig(configureChanges clusterconfig.ConfigureChanges, oldCc, newCc clusterconfig.Config, disallowPrompt bool) {
 	fmt.Printf("your %s cluster in region %s will receive the following changes\n\n", newCc.ClusterName, newCc.Region)
-	if len(newNgs) > 0 {
-		fmt.Printf("￮ %d %s (%s) will be added\n", len(newNgs), s.PluralS("nodegroup", len(newNgs)), s.StrsAnd(newNgs))
+	if len(configureChanges.NodeGroupsToAdd) > 0 {
+		fmt.Printf("￮ %d %s (%s) will be added\n", len(configureChanges.NodeGroupsToAdd), s.PluralS("nodegroup", len(configureChanges.NodeGroupsToAdd)), s.StrsAnd(configureChanges.NodeGroupsToAdd))
 	}
-	if len(removedNgs) > 0 {
-		fmt.Printf("￮ %d %s (%s) will be removed\n", len(removedNgs), s.PluralS("nodegroup", len(removedNgs)), s.StrsAnd(removedNgs))
+	if len(configureChanges.NodeGroupsToRemove) > 0 {
+		fmt.Printf("￮ %d %s (%s) will be removed\n", len(configureChanges.NodeGroupsToRemove), s.PluralS("nodegroup", len(configureChanges.NodeGroupsToRemove)), s.StrsAnd(configureChanges.NodeGroupsToRemove))
 	}
-	if len(scaledNgs) > 0 {
-		fmt.Printf("￮ %d %s will be scaled\n", len(scaledNgs), s.PluralS("nodegroup", len(scaledNgs)))
-		for _, ngName := range scaledNgs {
+	if len(configureChanges.NodeGroupsToScale) > 0 {
+		fmt.Printf("￮ %d %s will be scaled\n", len(configureChanges.NodeGroupsToScale), s.PluralS("nodegroup", len(configureChanges.NodeGroupsToScale)))
+		for _, ngName := range configureChanges.NodeGroupsToScale {
 			var output string
 			ngOld := oldCc.GetNodeGroupByName(ngName)
 			ngScaled := newCc.GetNodeGroupByName(ngName)
