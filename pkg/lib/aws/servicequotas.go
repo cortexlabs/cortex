@@ -166,6 +166,7 @@ func (c *Client) VerifyNetworkQuotas(
 	requiredVPCs int,
 	availabilityZones strset.Set,
 	numNodeGroups int,
+	netAdditionOfNodeGroups int,
 	longestCIDRWhiteList int,
 	clusterAlreadyExists bool,
 ) error {
@@ -328,7 +329,7 @@ func (c *Client) VerifyNetworkQuotas(
 	}
 
 	// check security groups quota
-	requiredSecurityGroups := requiredSecurityGroups(numNodeGroups)
+	requiredSecurityGroups := requiredSecurityGroups(netAdditionOfNodeGroups, clusterAlreadyExists)
 	sgs, err := c.DescribeSecurityGroups()
 	if err != nil {
 		return err
@@ -345,8 +346,9 @@ func (c *Client) VerifyNetworkQuotas(
 func (c *Client) VerifyNetworkQuotasOnConfigure(
 	availabilityZones strset.Set,
 	numNodeGroups int,
+	netAdditionOfNodeGroups int,
 	longestCIDRWhiteList int) error {
-	return c.VerifyNetworkQuotas(0, false, false, 0, availabilityZones, numNodeGroups, longestCIDRWhiteList, true)
+	return c.VerifyNetworkQuotas(0, false, false, 0, availabilityZones, numNodeGroups, netAdditionOfNodeGroups, longestCIDRWhiteList, true)
 }
 
 func requiredRulesForNodeGroupSecurityGroup(numAZs, whitelistLength int) int {
@@ -366,7 +368,10 @@ func requiredRulesForControlPlaneSecurityGroup(numNodeGroups int) int {
 	return 2 * (numNodeGroups + 1)
 }
 
-func requiredSecurityGroups(numNodeGroups int) int {
+func requiredSecurityGroups(numNodeGroups int, clusterAlreadyExists bool) int {
+	if clusterAlreadyExists {
+		return numNodeGroups
+	}
 	// each node group requires a security group
 	return _baseNumberOfSecurityGroups + numNodeGroups
 }

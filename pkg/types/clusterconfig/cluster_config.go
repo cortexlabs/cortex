@@ -1093,7 +1093,7 @@ func (cc *Config) ValidateOnInstall(awsClient *aws.Client) error {
 		requiredVPCs = 1
 	}
 	longestCIDRWhiteList := libmath.MaxInt(len(cc.APILoadBalancerCIDRWhiteList), len(cc.OperatorLoadBalancerCIDRWhiteList))
-	if err := awsClient.VerifyNetworkQuotas(1, cc.NATGateway != NoneNATGateway, cc.NATGateway == HighlyAvailableNATGateway, requiredVPCs, strset.FromSlice(cc.AvailabilityZones), len(cc.NodeGroups), longestCIDRWhiteList, false); err != nil {
+	if err := awsClient.VerifyNetworkQuotas(1, cc.NATGateway != NoneNATGateway, cc.NATGateway == HighlyAvailableNATGateway, requiredVPCs, strset.FromSlice(cc.AvailabilityZones), len(cc.NodeGroups), len(cc.NodeGroups), longestCIDRWhiteList, false); err != nil {
 		// Skip AWS errors, since some regions (e.g. eu-north-1) do not support this API
 		if !aws.IsAWSError(err) {
 			return err
@@ -1126,8 +1126,9 @@ func (cc *Config) ValidateOnConfigure(awsClient *aws.Client, oldConfig Config, e
 	ngsToBeRemoved := cc.getRemovedNodeGroups(oldConfig)
 
 	tempMaxNodeGroupCount := len(cc.NodeGroups) + len(ngsToBeRemoved)
+	tempNetAdditionOfNodeGroupCount := tempMaxNodeGroupCount - len(oldConfig.NodeGroups)
 	longestCIDRWhiteList := libmath.MaxInt(len(cc.APILoadBalancerCIDRWhiteList), len(cc.OperatorLoadBalancerCIDRWhiteList))
-	if err := awsClient.VerifyNetworkQuotasOnConfigure(strset.FromSlice(cc.AvailabilityZones), tempMaxNodeGroupCount, longestCIDRWhiteList); err != nil {
+	if err := awsClient.VerifyNetworkQuotasOnConfigure(strset.FromSlice(cc.AvailabilityZones), tempMaxNodeGroupCount, tempNetAdditionOfNodeGroupCount, longestCIDRWhiteList); err != nil {
 		// Skip AWS errors, since some regions (e.g. eu-north-1) do not support this API
 		if !aws.IsAWSError(err) {
 			return ConfigureChanges{}, errors.Wrap(err, NodeGroupsKey)
