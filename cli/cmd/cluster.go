@@ -408,7 +408,7 @@ var _clusterInfoCmd = &cobra.Command{
 		if _flagClusterInfoDebug {
 			cmdDebug(awsClient, accessConfig)
 		} else {
-			cmdInfo(awsClient, accessConfig, _flagClusterInfoPrintConfig, _flagOutput, _flagClusterDisallowPrompt)
+			cmdInfo(awsClient, accessConfig, stacks, _flagClusterInfoPrintConfig, _flagOutput, _flagClusterDisallowPrompt)
 		}
 	},
 }
@@ -740,7 +740,7 @@ var _clusterExportCmd = &cobra.Command{
 	},
 }
 
-func cmdInfo(awsClient *aws.Client, accessConfig *clusterconfig.AccessConfig, printConfig bool, outputType flags.OutputType, disallowPrompt bool) {
+func cmdInfo(awsClient *aws.Client, accessConfig *clusterconfig.AccessConfig, stacks clusterstate.ClusterStacks, printConfig bool, outputType flags.OutputType, disallowPrompt bool) {
 	clusterConfig := refreshCachedClusterConfig(awsClient, accessConfig, outputType == flags.PrettyOutputType)
 
 	operatorLoadBalancer, err := getLoadBalancer(accessConfig.ClusterName, OperatorLoadBalancer, awsClient)
@@ -792,7 +792,7 @@ func cmdInfo(awsClient *aws.Client, accessConfig *clusterconfig.AccessConfig, pr
 		fmt.Println("api load balancer:", apiEndpoint)
 		fmt.Println()
 
-		if err := printInfoOperatorResponse(clusterConfig, operatorEndpoint); err != nil {
+		if err := printInfoOperatorResponse(clusterConfig, stacks, operatorEndpoint); err != nil {
 			exit.Error(err)
 		}
 	}
@@ -804,8 +804,10 @@ func cmdInfo(awsClient *aws.Client, accessConfig *clusterconfig.AccessConfig, pr
 	}
 }
 
-func printInfoOperatorResponse(clusterConfig clusterconfig.Config, operatorEndpoint string) error {
+func printInfoOperatorResponse(clusterConfig clusterconfig.Config, stacks clusterstate.ClusterStacks, operatorEndpoint string) error {
 	fmt.Print("fetching cluster status ...\n\n")
+
+	fmt.Println(stacks.TableString())
 
 	yamlBytes, err := yaml.Marshal(clusterConfig)
 	if err != nil {
