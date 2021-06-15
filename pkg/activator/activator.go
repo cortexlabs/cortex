@@ -36,18 +36,16 @@ type Activator interface {
 }
 
 type activator struct {
-	apiActivators          map[string]*apiActivator
-	virtualServiceInformer cache.SharedIndexInformer
-	istioClient            istionetworkingclient.VirtualServiceInterface
-	logger                 *zap.SugaredLogger
+	apiActivators map[string]*apiActivator
+	istioClient   istionetworkingclient.VirtualServiceInterface
+	logger        *zap.SugaredLogger
 }
 
 func New(istioClient istionetworkingclient.VirtualServiceInterface, virtualServiceInformer cache.SharedIndexInformer, logger *zap.SugaredLogger) Activator {
 	act := &activator{
-		apiActivators:          make(map[string]*apiActivator),
-		virtualServiceInformer: virtualServiceInformer,
-		istioClient:            istioClient,
-		logger:                 logger,
+		apiActivators: make(map[string]*apiActivator),
+		istioClient:   istioClient,
+		logger:        logger,
 	}
 
 	virtualServiceInformer.AddEventHandler(
