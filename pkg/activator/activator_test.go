@@ -40,6 +40,8 @@ func newLogger(t *testing.T) *zap.SugaredLogger {
 }
 
 func TestActivator_Try(t *testing.T) {
+	t.Parallel()
+
 	log := newLogger(t)
 
 	apiName := "test"
