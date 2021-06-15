@@ -171,10 +171,14 @@ var _clusterUpCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
-		clusterConfig, err := getInstallClusterConfig(awsClient, clusterConfigFile, _flagClusterDisallowPrompt)
+		promptIfNotAdmin(awsClient, _flagClusterDisallowPrompt)
+
+		clusterConfig, err := getInstallClusterConfig(awsClient, clusterConfigFile)
 		if err != nil {
 			exit.Error(err)
 		}
+
+		confirmInstallClusterConfig(clusterConfig, awsClient, _flagClusterDisallowPrompt)
 
 		err = createS3BucketIfNotFound(awsClient, clusterConfig.Bucket, clusterConfig.Tags)
 		if err != nil {
@@ -336,7 +340,10 @@ var _clusterConfigureCmd = &cobra.Command{
 		}
 
 		oldClusterConfig := refreshCachedClusterConfig(awsClient, accessConfig, true)
-		newClusterConfig, configureChanges, err := getConfigureClusterConfig(awsClient, stacks, oldClusterConfig, clusterConfigFile, _flagClusterDisallowPrompt)
+
+		promptIfNotAdmin(awsClient, _flagClusterDisallowPrompt)
+
+		newClusterConfig, configureChanges, err := getConfigureClusterConfig(awsClient, stacks, oldClusterConfig, clusterConfigFile)
 		if err != nil {
 			exit.Error(err)
 		}
@@ -345,6 +352,8 @@ var _clusterConfigureCmd = &cobra.Command{
 			fmt.Println("no change required")
 			exit.Ok()
 		}
+
+		confirmConfigureClusterConfig(configureChanges, oldClusterConfig, *newClusterConfig, _flagClusterDisallowPrompt)
 
 		out, exitCode, err := runManagerWithClusterConfig("/root/install.sh --configure", newClusterConfig, awsClient, nil, nil, []string{
 			"CORTEX_NODEGROUP_NAMES_TO_SCALE=" + strings.Join(configureChanges.NodeGroupsToScale, " "),   // NodeGroupsToScale contain the cluster config node-group names

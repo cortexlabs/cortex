@@ -121,15 +121,13 @@ func getClusterAccessConfigWithCache(hasClusterFlags bool) (*clusterconfig.Acces
 	return accessConfig, nil
 }
 
-func getInstallClusterConfig(awsClient *aws.Client, clusterConfigFile string, disallowPrompt bool) (*clusterconfig.Config, error) {
+func getInstallClusterConfig(awsClient *aws.Client, clusterConfigFile string) (*clusterconfig.Config, error) {
 	clusterConfig := &clusterconfig.Config{}
 
 	err := readUserClusterConfigFile(clusterConfig, clusterConfigFile)
 	if err != nil {
 		return nil, err
 	}
-
-	promptIfNotAdmin(awsClient, disallowPrompt)
 
 	clusterConfig.Telemetry = isTelemetryEnabled()
 
@@ -139,20 +137,16 @@ func getInstallClusterConfig(awsClient *aws.Client, clusterConfigFile string, di
 		return nil, errors.Wrap(err, clusterConfigFile)
 	}
 
-	confirmInstallClusterConfig(clusterConfig, awsClient, disallowPrompt)
-
 	return clusterConfig, nil
 }
 
-func getConfigureClusterConfig(awsClient *aws.Client, stacks clusterstate.ClusterStacks, cachedClusterConfig clusterconfig.Config, newClusterConfigFile string, disallowPrompt bool) (*clusterconfig.Config, clusterconfig.ConfigureChanges, error) {
+func getConfigureClusterConfig(awsClient *aws.Client, stacks clusterstate.ClusterStacks, cachedClusterConfig clusterconfig.Config, newClusterConfigFile string) (*clusterconfig.Config, clusterconfig.ConfigureChanges, error) {
 	newUserClusterConfig := &clusterconfig.Config{}
 
 	err := readUserClusterConfigFile(newUserClusterConfig, newClusterConfigFile)
 	if err != nil {
 		return nil, clusterconfig.ConfigureChanges{}, err
 	}
-
-	promptIfNotAdmin(awsClient, disallowPrompt)
 
 	newUserClusterConfig.Telemetry = isTelemetryEnabled()
 	cachedClusterConfig.Telemetry = newUserClusterConfig.Telemetry
@@ -162,8 +156,6 @@ func getConfigureClusterConfig(awsClient *aws.Client, stacks clusterstate.Cluste
 		err = errors.Append(err, fmt.Sprintf("\n\ncluster configuration schema can be found at https://docs.cortex.dev/v/%s/", consts.CortexVersionMinor))
 		return nil, clusterconfig.ConfigureChanges{}, errors.Wrap(err, newClusterConfigFile)
 	}
-
-	confirmConfigureClusterConfig(configureChanges, cachedClusterConfig, *newUserClusterConfig, _flagClusterDisallowPrompt)
 
 	return newUserClusterConfig, configureChanges, nil
 }
@@ -288,12 +280,6 @@ func confirmInstallClusterConfig(clusterConfig *clusterconfig.Config, awsClient 
 
 func confirmConfigureClusterConfig(configureChanges clusterconfig.ConfigureChanges, oldCc, newCc clusterconfig.Config, disallowPrompt bool) {
 	fmt.Printf("your %s cluster in region %s will receive the following changes\n\n", newCc.ClusterName, newCc.Region)
-	if len(configureChanges.NodeGroupsToAdd) > 0 {
-		fmt.Printf("￮ %d %s (%s) will be added\n", len(configureChanges.NodeGroupsToAdd), s.PluralS("nodegroup", len(configureChanges.NodeGroupsToAdd)), s.StrsAnd(configureChanges.NodeGroupsToAdd))
-	}
-	if len(configureChanges.NodeGroupsToRemove) > 0 {
-		fmt.Printf("￮ %d %s (%s) will be removed\n", len(configureChanges.NodeGroupsToRemove), s.PluralS("nodegroup", len(configureChanges.NodeGroupsToRemove)), s.StrsAnd(configureChanges.NodeGroupsToRemove))
-	}
 	if len(configureChanges.NodeGroupsToScale) > 0 {
 		fmt.Printf("￮ %d %s will be scaled\n", len(configureChanges.NodeGroupsToScale), s.PluralS("nodegroup", len(configureChanges.NodeGroupsToScale)))
 		for _, ngName := range configureChanges.NodeGroupsToScale {
@@ -311,6 +297,12 @@ func confirmConfigureClusterConfig(configureChanges clusterconfig.ConfigureChang
 			}
 			fmt.Println(s.Indent(fmt.Sprintf("￮ %s", output), "  "))
 		}
+	}
+	if len(configureChanges.NodeGroupsToAdd) > 0 {
+		fmt.Printf("￮ %d %s (%s) will be added\n", len(configureChanges.NodeGroupsToAdd), s.PluralS("nodegroup", len(configureChanges.NodeGroupsToAdd)), s.StrsAnd(configureChanges.NodeGroupsToAdd))
+	}
+	if len(configureChanges.NodeGroupsToRemove) > 0 {
+		fmt.Printf("￮ %d %s (%s) will be removed\n", len(configureChanges.NodeGroupsToRemove), s.PluralS("nodegroup", len(configureChanges.NodeGroupsToRemove)), s.StrsAnd(configureChanges.NodeGroupsToRemove))
 	}
 	fmt.Println()
 

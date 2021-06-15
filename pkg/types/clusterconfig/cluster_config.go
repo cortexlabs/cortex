@@ -234,7 +234,7 @@ func RegionValidator(region string) (string, error) {
 
 func (cc *Config) DeepCopy() (Config, error) {
 	deepCopied := Config{}
-	err := structs.DeepCopy(cc, &deepCopied)
+	err := structs.DeepCopy(&deepCopied, cc)
 	if err != nil {
 		return Config{}, err
 	}
@@ -1469,7 +1469,7 @@ func validateInstanceDistribution(instances []string) ([]string, error) {
 
 func (ng *NodeGroup) DeepCopy() (NodeGroup, error) {
 	deepCopied := NodeGroup{}
-	err := structs.DeepCopy(ng, &deepCopied)
+	err := structs.DeepCopy(&deepCopied, ng)
 	if err != nil {
 		return NodeGroup{}, err
 	}
