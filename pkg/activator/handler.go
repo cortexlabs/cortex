@@ -19,6 +19,7 @@ package activator
 import (
 	"context"
 	stderrors "errors"
+	"fmt"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
@@ -66,6 +67,10 @@ func (h *activatorHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 func (h *activatorHandler) proxyRequest(w http.ResponseWriter, r *http.Request) error {
 	target := r.Header.Get(CortexTargetServiceHeader)
+	if target == "" {
+		return fmt.Errorf("missing %s header", CortexTargetServiceHeader) // FIXME: proper error
+	}
+
 	targetURL, err := url.Parse(target)
 	if err != nil {
 		return errors.WithStack(err)

@@ -62,7 +62,7 @@ func New(istioClient istionetworkingclient.VirtualServiceInterface, virtualServi
 func (a *activator) Try(ctx context.Context, fn func() error) error {
 	apiNameValue := ctx.Value(ApiNameCtxKey)
 	apiName, ok := apiNameValue.(string)
-	if !ok {
+	if !ok || apiName == "" {
 		return fmt.Errorf("failed to get the api name from context") // FIXME: proper error here
 	}
 
