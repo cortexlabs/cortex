@@ -373,7 +373,11 @@ func (c *Client) CreateBucket(bucket string) error {
 	if err != nil {
 		return errors.Wrap(err, "creating bucket "+bucket)
 	}
-	_, err = c.S3().PutBucketEncryption(&s3.PutBucketEncryptionInput{
+	return nil
+}
+
+func (c *Client) EnableBucketEncryption(bucket string) error {
+	_, err := c.S3().PutBucketEncryption(&s3.PutBucketEncryptionInput{
 		Bucket: aws.String(bucket),
 		ServerSideEncryptionConfiguration: &s3.ServerSideEncryptionConfiguration{
 			Rules: []*s3.ServerSideEncryptionRule{
