@@ -349,7 +349,7 @@ var _clusterConfigureCmd = &cobra.Command{
 		out, exitCode, err := runManagerWithClusterConfig("/root/install.sh --configure", newClusterConfig, awsClient, nil, nil, []string{
 			"CORTEX_NODEGROUP_NAMES_TO_SCALE=" + strings.Join(configureChanges.NodeGroupsToScale, " "),   // NodeGroupsToScale contain the cluster config node-group names
 			"CORTEX_NODEGROUP_NAMES_TO_ADD=" + strings.Join(configureChanges.NodeGroupsToAdd, " "),       // NodeGroupsToAdd contain the cluster config node-group names
-			"CORTEX_NODEGROUP_NAMES_TO_REMOVE=" + strings.Join(configureChanges.NodeGroupsToRemove, " "), // NodeGroupsToRemove contain the EKS node-group names
+			"CORTEX_NODEGROUP_NAMES_TO_REMOVE=" + strings.Join(configureChanges.StaleEKSNodeGroups, " "), // StaleEKSNodeGroups contain the EKS node-group names
 		})
 		if err != nil {
 			exit.Error(err)

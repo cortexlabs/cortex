@@ -28,6 +28,7 @@ import (
 	"time"
 
 	"github.com/aws/amazon-vpc-cni-k8s/pkg/awsutils"
+	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
@@ -190,10 +191,11 @@ type ConfigureChanges struct {
 	NodeGroupsToAdd    []string
 	NodeGroupsToRemove []string
 	NodeGroupsToScale  []string
+	StaleEKSNodeGroups []string
 }
 
 func (c *ConfigureChanges) HasChanges() bool {
-	return len(c.NodeGroupsToAdd) != 0 || len(c.NodeGroupsToRemove) != 0 || len(c.NodeGroupsToScale) != 0
+	return len(c.NodeGroupsToAdd) != 0 || len(c.NodeGroupsToRemove) != 0 || len(c.NodeGroupsToScale) != 0 || len(c.StaleEKSNodeGroups) != 0
 }
 
 // NewForFile initializes and validates the cluster config from the YAML config file
@@ -1101,7 +1103,7 @@ func (cc *Config) ValidateOnInstall(awsClient *aws.Client) error {
 	return nil
 }
 
-func (cc *Config) ValidateOnConfigure(awsClient *aws.Client, oldConfig Config) (ConfigureChanges, error) {
+func (cc *Config) ValidateOnConfigure(awsClient *aws.Client, oldConfig Config, eksNodeGroupStacks []*cloudformation.StackSummary) (ConfigureChanges, error) {
 	fmt.Print("verifying your configuration ...\n\n")
 
 	cc.ClusterUID = oldConfig.ClusterUID
@@ -1144,6 +1146,7 @@ func (cc *Config) ValidateOnConfigure(awsClient *aws.Client, oldConfig Config) (
 		NodeGroupsToAdd:    GetNodeGroupNames(ngsToBeAdded),
 		NodeGroupsToRemove: GetNodeGroupNames(ngsToBeRemoved),
 		NodeGroupsToScale:  GetNodeGroupNames(ngNamesToBeScaled),
+		StaleEKSNodeGroups: getStaleEksNodeGroups(cc.ClusterName, eksNodeGroupStacks, ngsToBeRemoved),
 	}, nil
 }
 
@@ -1521,6 +1524,30 @@ func (ng *NodeGroup) SpotConfigOnDemandValues() (int64, int64) {
 	}
 
 	return onDemandBaseCapacity, onDemandPercentageAboveBaseCapacity
+}
+
+func getStaleEksNodeGroups(clusterName string, eksNodeGroupStacks []*cloudformation.StackSummary, ngsMarkedForRemoval []*NodeGroup) []string {
+	eksNodeGroupsToRemove := []string{}
+	for _, ng := range ngsMarkedForRemoval {
+		availability := "d"
+		if ng.Spot {
+			availability = "s"
+		}
+
+		eksNgName := fmt.Sprintf("cx-w%s-%s", availability, ng.Name)
+		eksStackName := fmt.Sprintf("eksctl-%s-nodegroup-cx-w%s-%s", clusterName, availability, ng.Name)
+		for _, eksNgStack := range eksNodeGroupStacks {
+			if eksNgStack == nil || eksNgStack.StackName == nil {
+				continue
+			}
+			if *eksNgStack.StackName == eksStackName {
+				eksNodeGroupsToRemove = append(eksNodeGroupsToRemove, eksNgName)
+				break
+			}
+		}
+	}
+
+	return eksNodeGroupsToRemove
 }
 
 func (cc *CoreConfig) TelemetryEvent() map[string]interface{} {

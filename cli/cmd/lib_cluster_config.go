@@ -31,7 +31,6 @@ import (
 	libmath "github.com/cortexlabs/cortex/pkg/lib/math"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/prompt"
-	"github.com/cortexlabs/cortex/pkg/lib/slices"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/table"
 	"github.com/cortexlabs/cortex/pkg/types/clusterconfig"
@@ -158,21 +157,11 @@ func getConfigureClusterConfig(awsClient *aws.Client, stacks clusterstate.Cluste
 	newUserClusterConfig.Telemetry = isTelemetryEnabled()
 	cachedClusterConfig.Telemetry = newUserClusterConfig.Telemetry
 
-	configureChanges, err := newUserClusterConfig.ValidateOnConfigure(awsClient, cachedClusterConfig)
+	configureChanges, err := newUserClusterConfig.ValidateOnConfigure(awsClient, cachedClusterConfig, stacks.NodeGroupsStacks)
 	if err != nil {
 		err = errors.Append(err, fmt.Sprintf("\n\ncluster configuration schema can be found at https://docs.cortex.dev/v/%s/", consts.CortexVersionMinor))
 		return nil, clusterconfig.ConfigureChanges{}, errors.Wrap(err, newClusterConfigFile)
 	}
-
-	// intersect with the stale eks node groups
-	eksNodeGroupsToRemove := []string{}
-	staleEKSNgs, staleEKSNgAvailabilities := stacks.GetStaleNodeGroupNames(*newUserClusterConfig)
-	for i := range staleEKSNgs {
-		if slices.HasString(configureChanges.NodeGroupsToRemove, staleEKSNgs[i]) {
-			eksNodeGroupsToRemove = append(eksNodeGroupsToRemove, clusterstate.GetStackName(newUserClusterConfig.ClusterName, staleEKSNgAvailabilities[i], staleEKSNgs[i]))
-		}
-	}
-	configureChanges.NodeGroupsToRemove = eksNodeGroupsToRemove
 
 	confirmConfigureClusterConfig(configureChanges, cachedClusterConfig, *newUserClusterConfig, _flagClusterDisallowPrompt)
 
