@@ -21,7 +21,6 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/cortexlabs/cortex/cli/types/flags"
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
@@ -63,7 +62,6 @@ const (
 	ErrMinInstancesGreaterThanMaxInstances = "cli.min_instances_greater_than_max_instances"
 	ErrNodeGroupNotFound                   = "cli.nodegroup_not_found"
 	ErrMutuallyExclusiveFlags              = "cli.mutually_exclusive_flags"
-	ErrOutputTypeNotSupportedWithFlag      = "cli.output_type_not_supported_with_flag"
 	ErrClusterAccessConfigRequired         = "cli.cluster_access_config_or_prompts_required"
 	ErrShellCompletionNotSupported         = "cli.shell_completion_not_supported"
 	ErrNoTerminalWidth                     = "cli.no_terminal_width"
@@ -235,13 +233,6 @@ func ErrorMutuallyExclusiveFlags(flagA, flagB string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrMutuallyExclusiveFlags,
 		Message: fmt.Sprintf("flags %s and %s cannot be used at the same time", flagA, flagB),
-	})
-}
-
-func ErrorOutputTypeNotSupportedWithFlag(flag string, outputType flags.OutputType) error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrOutputTypeNotSupportedWithFlag,
-		Message: fmt.Sprintf("flag %s cannot be used when output type is set to %s", flag, outputType),
 	})
 }
 

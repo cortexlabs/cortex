@@ -230,12 +230,12 @@ def get_ami(ami_map: dict, instance_type: str) -> str:
 @click.option(
     "--add-cortex-node-groups",
     type=str,
-    help="specific nodegroups to add to the generated eks file; use this for existing clusters",
+    help="specific cortex nodegroups to add to the generated eks file; use this for existing clusters",
 )
 @click.option(
     "--remove-eks-node-groups",
     type=str,
-    help="specific nodegroup stacks to add to the generated eks file; use this for existing clusters",
+    help="specific eks nodegroup stacks to add to the generated eks file; use this for existing clusters",
 )
 def generate_eks(
     cluster_config_file, ami_json_file, add_cortex_node_groups: str, remove_eks_node_groups: str

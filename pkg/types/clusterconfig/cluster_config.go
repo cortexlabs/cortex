@@ -38,6 +38,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	"github.com/cortexlabs/cortex/pkg/lib/slices"
+	"github.com/cortexlabs/cortex/pkg/lib/structs"
 	"github.com/cortexlabs/yaml"
 )
 
@@ -230,13 +231,8 @@ func RegionValidator(region string) (string, error) {
 }
 
 func (cc *Config) DeepCopy() (Config, error) {
-	bytes, err := yaml.Marshal(cc)
-	if err != nil {
-		return Config{}, err
-	}
-
 	deepCopied := Config{}
-	err = yaml.Unmarshal(bytes, &deepCopied)
+	err := structs.DeepCopy(cc, &deepCopied)
 	if err != nil {
 		return Config{}, err
 	}
@@ -1026,9 +1022,7 @@ func (cc *Config) validateConfigDiff(oldConfig Config) error {
 	}
 
 	newClusterConfigCopy.NodeGroups = []*NodeGroup{}
-	newClusterConfigCopy.AccountID = ""
 	oldClusterConfigCopy.NodeGroups = []*NodeGroup{}
-	oldClusterConfigCopy.AccountID = ""
 
 	h1, err := newClusterConfigCopy.Hash()
 	if err != nil {
@@ -1110,10 +1104,7 @@ func (cc *Config) ValidateOnInstall(awsClient *aws.Client) error {
 func (cc *Config) ValidateOnConfigure(awsClient *aws.Client, oldConfig Config) (ConfigureChanges, error) {
 	fmt.Print("verifying your configuration ...\n\n")
 
-	cc.ClusterName = oldConfig.ClusterName
-	cc.Region = oldConfig.Region
 	cc.ClusterUID = oldConfig.ClusterUID
-
 	err := cc.validate(awsClient)
 	if err != nil {
 		return ConfigureChanges{}, err
@@ -1474,13 +1465,8 @@ func validateInstanceDistribution(instances []string) ([]string, error) {
 }
 
 func (ng *NodeGroup) DeepCopy() (NodeGroup, error) {
-	bytes, err := yaml.Marshal(ng)
-	if err != nil {
-		return NodeGroup{}, err
-	}
-
 	deepCopied := NodeGroup{}
-	err = yaml.Unmarshal(bytes, &deepCopied)
+	err := structs.DeepCopy(ng, &deepCopied)
 	if err != nil {
 		return NodeGroup{}, err
 	}

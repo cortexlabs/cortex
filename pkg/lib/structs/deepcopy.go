@@ -14,12 +14,17 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package clusterstate
+package structs
 
-type Status string
-
-const (
-	StatusClusterExists            Status = "cluster_exists"
-	StatusClusterDoesntExist       Status = "cluster_doesnt_exist"
-	StatusClusterInUnexpectedState Status = "cluster_in_unexpected_state"
+import (
+	"bytes"
+	"encoding/gob"
 )
+
+func DeepCopy(dst, src interface{}) error {
+	var buf bytes.Buffer
+	if err := gob.NewEncoder(&buf).Encode(src); err != nil {
+		return err
+	}
+	return gob.NewDecoder(bytes.NewBuffer(buf.Bytes())).Decode(dst)
+}

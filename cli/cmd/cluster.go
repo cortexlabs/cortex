@@ -56,9 +56,6 @@ import (
 var (
 	_flagClusterUpEnv                string
 	_flagClusterInfoEnv              string
-	_flagClusterScaleNodeGroup       string
-	_flagClusterScaleMinInstances    int64
-	_flagClusterScaleMaxInstances    int64
 	_flagClusterConfig               string
 	_flagClusterName                 string
 	_flagClusterRegion               string
@@ -88,8 +85,6 @@ func clusterInit() {
 	_clusterCmd.AddCommand(_clusterInfoCmd)
 
 	_clusterConfigureCmd.Flags().SortFlags = false
-	addClusterNameFlag(_clusterConfigureCmd)
-	addClusterRegionFlag(_clusterConfigureCmd)
 	_clusterConfigureCmd.Flags().BoolVarP(&_flagClusterDisallowPrompt, "yes", "y", false, "skip prompts")
 	_clusterCmd.AddCommand(_clusterConfigureCmd)
 
@@ -119,13 +114,6 @@ func addClusterNameFlag(cmd *cobra.Command) {
 
 func addClusterRegionFlag(cmd *cobra.Command) {
 	cmd.Flags().StringVarP(&_flagClusterRegion, "region", "r", "", "aws region of the cluster")
-}
-
-func addClusterScaleFlags(cmd *cobra.Command) {
-	cmd.Flags().StringVar(&_flagClusterScaleNodeGroup, "node-group", "", "name of the node group to scale")
-	cmd.MarkFlagRequired("node-group")
-	cmd.Flags().Int64Var(&_flagClusterScaleMinInstances, "min-instances", 0, "minimum number of instances")
-	cmd.Flags().Int64Var(&_flagClusterScaleMaxInstances, "max-instances", 0, "maximum number of instances")
 }
 
 var _clusterCmd = &cobra.Command{
@@ -178,12 +166,9 @@ var _clusterUpCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
-		if err := clusterstate.CheckClusterExists(stacks); err != nil {
-			if errors.GetKind(err) != clusterstate.ErrClusterDoesNotExist {
-				exit.Error(err)
-			}
-		} else if err == nil {
-			exit.Error(clusterstate.ErrorClusterAlreadyExists(accessConfig.ClusterName, accessConfig.Region))
+		status := clusterstate.GetClusterState(stacks)
+		if err := clusterstate.AssertClusterState(stacks, status, clusterstate.StatusClusterDoesntExist); err != nil {
+			exit.Error(err)
 		}
 
 		clusterConfig, err := getInstallClusterConfig(awsClient, clusterConfigFile, _flagClusterDisallowPrompt)
@@ -330,7 +315,7 @@ var _clusterConfigureCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
-		accessConfig, err := getClusterAccessConfigWithCache()
+		accessConfig, err := getClusterAccessConfigWithCache(false)
 		if err != nil {
 			exit.Error(err)
 		}
@@ -345,7 +330,8 @@ var _clusterConfigureCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
-		if err := clusterstate.CheckClusterExists(stacks); err != nil {
+		status := clusterstate.GetClusterState(stacks)
+		if err := clusterstate.AssertClusterState(stacks, status, clusterstate.StatusClusterExists); err != nil {
 			exit.Error(err)
 		}
 
@@ -353,6 +339,11 @@ var _clusterConfigureCmd = &cobra.Command{
 		newClusterConfig, configureChanges, err := getConfigureClusterConfig(awsClient, stacks, oldClusterConfig, clusterConfigFile, _flagClusterDisallowPrompt)
 		if err != nil {
 			exit.Error(err)
+		}
+
+		if !configureChanges.HasChanges() {
+			fmt.Println("no change required")
+			exit.Ok()
 		}
 
 		out, exitCode, err := runManagerWithClusterConfig("/root/install.sh --configure", newClusterConfig, awsClient, nil, nil, []string{
@@ -383,9 +374,13 @@ var _clusterInfoCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
-		accessConfig, err := getClusterAccessConfigWithCache()
+		accessConfig, err := getClusterAccessConfigWithCache(true)
 		if err != nil {
 			exit.Error(err)
+		}
+
+		if _flagClusterInfoPrintConfig && _flagOutput == flags.PrettyOutputType {
+			_flagOutput = flags.YAMLOutputType
 		}
 
 		awsClient, err := newAWSClient(accessConfig.Region, _flagOutput == flags.PrettyOutputType)
@@ -393,9 +388,6 @@ var _clusterInfoCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
-		if _flagClusterInfoPrintConfig && _flagOutput == flags.PrettyOutputType {
-			exit.Error(ErrorOutputTypeNotSupportedWithFlag("--print-config", _flagOutput))
-		}
 		if _flagClusterInfoPrintConfig && _flagClusterInfoDebug {
 			exit.Error(ErrorMutuallyExclusiveFlags("--print-config", "--debug"))
 		}
@@ -408,7 +400,8 @@ var _clusterInfoCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
-		if err := clusterstate.CheckClusterExists(stacks); err != nil {
+		status := clusterstate.GetClusterState(stacks)
+		if err := clusterstate.AssertClusterState(stacks, status, clusterstate.StatusClusterExists); err != nil {
 			exit.Error(err)
 		}
 
@@ -431,7 +424,7 @@ var _clusterDownCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
-		accessConfig, err := getClusterAccessConfigWithCache()
+		accessConfig, err := getClusterAccessConfigWithCache(true)
 		if err != nil {
 			exit.Error(err)
 		}
@@ -468,17 +461,8 @@ var _clusterDownCmd = &cobra.Command{
 			errors.PrintError(err)
 			fmt.Println()
 		} else {
-			if err := clusterstate.CheckClusterExists(stacks); err != nil {
-				if errors.GetKind(err) == clusterstate.ErrUnexpectedClusterState {
-					errorsList = append(errorsList, err)
-					fmt.Print("failed ✗")
-					errors.PrintError(err)
-					fmt.Println()
-				}
-				if errors.GetKind(err) == clusterstate.ErrClusterDoesNotExist {
-					fmt.Println("already deleted ✓")
-				}
-			} else {
+			status := clusterstate.GetClusterState(stacks)
+			if err := clusterstate.AssertClusterState(stacks, status, clusterstate.StatusClusterDoesntExist); err != nil {
 				awsClient.DeleteQueuesWithPrefix(clusterconfig.SQSNamePrefix(accessConfig.ClusterName))
 				awsClient.DeletePolicy(clusterconfig.DefaultPolicyARN(accountID, accessConfig.ClusterName, accessConfig.Region))
 				if !_flagClusterDownKeepAWSResources {
@@ -491,6 +475,8 @@ var _clusterDownCmd = &cobra.Command{
 				}
 				fmt.Println("✓")
 				clusterExists = true
+			} else {
+				fmt.Println("already deleted ✓")
 			}
 		}
 
@@ -686,7 +672,7 @@ var _clusterExportCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		telemetry.Event("cli.cluster.export")
 
-		accessConfig, err := getClusterAccessConfigWithCache()
+		accessConfig, err := getClusterAccessConfigWithCache(true)
 		if err != nil {
 			exit.Error(err)
 		}
@@ -703,7 +689,8 @@ var _clusterExportCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
-		if err := clusterstate.CheckClusterExists(stacks); err != nil {
+		status := clusterstate.GetClusterState(stacks)
+		if err := clusterstate.AssertClusterState(stacks, status, clusterstate.StatusClusterExists); err != nil {
 			exit.Error(err)
 		}
 

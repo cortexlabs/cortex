@@ -115,7 +115,7 @@ func ErrorNoNodeGroupSpecified() error {
 func ErrorNodeGroupMaxInstancesIsZero() error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrNodeGroupMaxInstancesIsZero,
-		Message: fmt.Sprintf("nodegroups cannot be created with `%s` set to 0 (but `%s` can be scaled to 0 after that)", MaxInstancesKey, MaxInstancesKey),
+		Message: fmt.Sprintf("nodegroups cannot be created with `%s` set to 0 (but `%s` can be scaled to 0 after the nodegroup has been created)", MaxInstancesKey, MaxInstancesKey),
 	})
 }
 

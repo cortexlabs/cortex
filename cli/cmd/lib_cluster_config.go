@@ -26,7 +26,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
-	"github.com/cortexlabs/cortex/pkg/lib/exit"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
 	"github.com/cortexlabs/cortex/pkg/lib/maps"
 	libmath "github.com/cortexlabs/cortex/pkg/lib/math"
@@ -90,7 +89,7 @@ func getNewClusterAccessConfig(clusterConfigFile string) (*clusterconfig.AccessC
 	return accessConfig, nil
 }
 
-func getClusterAccessConfigWithCache() (*clusterconfig.AccessConfig, error) {
+func getClusterAccessConfigWithCache(hasClusterFlags bool) (*clusterconfig.AccessConfig, error) {
 	accessConfig := &clusterconfig.AccessConfig{
 		ImageManager: consts.DefaultRegistry() + "/manager:" + consts.CortexVersion,
 	}
@@ -118,8 +117,7 @@ func getClusterAccessConfigWithCache() (*clusterconfig.AccessConfig, error) {
 	}
 
 	if accessConfig.ClusterName == "" || accessConfig.Region == "" {
-		cliFlagsOnly := _flagClusterScaleNodeGroup != ""
-		return nil, ErrorClusterAccessConfigRequired(cliFlagsOnly)
+		return nil, ErrorClusterAccessConfigRequired(hasClusterFlags)
 	}
 	return accessConfig, nil
 }
@@ -175,11 +173,6 @@ func getConfigureClusterConfig(awsClient *aws.Client, stacks clusterstate.Cluste
 		}
 	}
 	configureChanges.NodeGroupsToRemove = eksNodeGroupsToRemove
-
-	if !configureChanges.HasChanges() {
-		fmt.Println("no change required")
-		exit.Ok()
-	}
 
 	confirmConfigureClusterConfig(configureChanges, cachedClusterConfig, *newUserClusterConfig, _flagClusterDisallowPrompt)
 

@@ -23,31 +23,46 @@ import (
 )
 
 const (
-	ErrClusterDoesNotExist    = "clusterstatus.cluster_does_not_exist"
-	ErrClusterAlreadyExists   = "clusterstatus.cluster_already_exists"
-	ErrUnexpectedClusterState = "clusterstatus.unexpected_cluster_state"
+	ErrClusterDoesNotExist    = "clusterstate.cluster_does_not_exist"
+	ErrClusterAlreadyExists   = "clusterstate.cluster_already_exists"
+	ErrUnexpectedClusterState = "clusterstate.unexpected_cluster_state"
 )
 
-func ErrorClusterDoesNotExist(clusterName string, region string) error {
+func ErrorClusterDoesNotExist(stacks ClusterStacks) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrClusterDoesNotExist,
-		Message: fmt.Sprintf("there is no cluster named \"%s\" in %s", clusterName, region),
+		Message: fmt.Sprintf("there is no cluster named \"%s\" in %s", stacks.clusterName, stacks.region),
 	})
 }
 
-func ErrorClusterAlreadyExists(clusterName string, region string) error {
+func ErrorClusterAlreadyExists(stacks ClusterStacks) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrClusterAlreadyExists,
-		Message: fmt.Sprintf("a cluster named \"%s\" already exists in %s", clusterName, region),
+		Message: fmt.Sprintf("a cluster named \"%s\" already exists in %s", stacks.clusterName, stacks.region),
 	})
 }
 
 func ErrorUnexpectedClusterState(stacks ClusterStacks) error {
-	msg := fmt.Sprintf("cluster named \"%s\" in %s is in an unexpected state; if your CloudFormation stacks are updating, please wait for them to complete. Otherwise, run `cortex cluster down` to delete the cluster, or if that fails, delete the CloudFormation stacks directly from your AWS console: %s\n\n", stacks.clusterName, stacks.region, CloudFormationURL(stacks.clusterName, stacks.region))
+	msg := fmt.Sprintf("cluster named \"%s\" in %s is in an unexpected state; if your CloudFormation stacks are updating, please wait for them to complete. Otherwise, run `cortex cluster down` to delete the cluster\n\n", stacks.clusterName, stacks.region)
 	msg += fmt.Sprintf(stacks.TableString())
 	return errors.WithStack(&errors.Error{
 		Kind:     ErrUnexpectedClusterState,
 		Message:  msg,
 		Metadata: stacks,
 	})
+}
+
+func AssertClusterState(stacks ClusterStacks, currentState, allowedState Status) error {
+	if currentState == allowedState {
+		return nil
+	}
+	switch currentState {
+	case StatusClusterDoesntExist:
+		return ErrorClusterDoesNotExist(stacks)
+	case StatusClusterExists:
+		return ErrorClusterAlreadyExists(stacks)
+	case StatusClusterInUnexpectedState:
+		return ErrorUnexpectedClusterState(stacks)
+	}
+	return nil
 }

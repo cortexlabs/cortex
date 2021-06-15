@@ -30,12 +30,12 @@ var _standardInstanceFamilies = strset.New("a", "c", "d", "h", "i", "m", "r", "t
 var _knownInstanceFamilies = strset.Union(_standardInstanceFamilies, strset.New("p", "g", "inf", "x", "f", "mac"))
 
 const (
-	_elasticIPsQuotaCode         = "L-0263D0A3"
-	_internetGatewayQuotaCode    = "L-A4707A72"
-	_natGatewayQuotaCode         = "L-FE5A380F"
-	_vpcQuotaCode                = "L-F678F1CE"
-	_securityGroupsQuotaCode     = "L-E79EC296"
-	_securityGroupRulesQuotaCode = "L-0EA8095F"
+	_elasticIPsQuotaCode         = "L-0263D0A3" // from EC2 service
+	_internetGatewayQuotaCode    = "L-A4707A72" // from EC2 service
+	_natGatewayQuotaCode         = "L-FE5A380F" // from EC2 service
+	_vpcQuotaCode                = "L-F678F1CE" // from VPC service
+	_securityGroupsQuotaCode     = "L-E79EC296" // from VPC service
+	_securityGroupRulesQuotaCode = "L-0EA8095F" // from VPC service
 
 	// 11 inbound rules
 	_baseInboundRulesForNodeGroup = 11
@@ -170,12 +170,12 @@ func (c *Client) VerifyNetworkQuotas(
 	clusterAlreadyExists bool,
 ) error {
 	quotaCodeToValueMap := map[string]int{
-		_elasticIPsQuotaCode:         0, // elastic IP quota code
-		_internetGatewayQuotaCode:    0, // internet gw quota code
-		_natGatewayQuotaCode:         0, // nat gw quota code
-		_vpcQuotaCode:                0, // vpc quota code
-		_securityGroupsQuotaCode:     0, // security groups quota code
-		_securityGroupRulesQuotaCode: 0, // security group rules quota code
+		_elasticIPsQuotaCode:         0, // elastic IP quota code (from EC2 service)
+		_internetGatewayQuotaCode:    0, // internet gw quota code (from EC2 service)
+		_natGatewayQuotaCode:         0, // nat gw quota code (from EC2 service)
+		_vpcQuotaCode:                0, // vpc quota code (from VPC service)
+		_securityGroupsQuotaCode:     0, // security groups quota code (from VPC service)
+		_securityGroupRulesQuotaCode: 0, // security group rules quota code (from VPC service)
 	}
 
 	err := c.ServiceQuotas().ListServiceQuotasPages(
@@ -201,6 +201,7 @@ func (c *Client) VerifyNetworkQuotas(
 		return errors.WithStack(err)
 	}
 
+	// none of the EC2 quotas are required for validating the network quotas on an existing cluster
 	if !clusterAlreadyExists {
 		err = c.ServiceQuotas().ListServiceQuotasPages(
 			&servicequotas.ListServiceQuotasInput{

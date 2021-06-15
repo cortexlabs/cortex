@@ -224,14 +224,6 @@ func PluralIs(count interface{}) string {
 	return PluralCustom("is", "are", count)
 }
 
-// They exist.
-// He/She/It exists.
-//
-// As explained on https://ell.stackexchange.com/a/128809
-func VerbForThirdPersonSubject(verb string, subjectCount interface{}) string {
-	return PluralCustom(verb+"s", verb, subjectCount)
-}
-
 func PluralCustom(singular string, plural string, count interface{}) string {
 	countInt, _ := cast.InterfaceToInt64(count)
 	if countInt == 1 {

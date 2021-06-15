@@ -121,10 +121,8 @@ Usage:
   cortex cluster configure CLUSTER_CONFIG_FILE [flags]
 
 Flags:
-  -n, --name string     name of the cluster
-  -r, --region string   aws region of the cluster
-  -y, --yes             skip prompts
-  -h, --help            help for configure
+  -y, --yes    skip prompts
+  -h, --help   help for configure
 ```
 
 ## cluster down

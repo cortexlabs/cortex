@@ -119,11 +119,3 @@ func StrMapsEqualInt(m1, m2 map[string]int) bool {
 
 	return true
 }
-
-func StrMapsCopy(m1 map[string]string) map[string]string {
-	newMap := make(map[string]string, len(m1))
-	for k, v := range m1 {
-		newMap[k] = v
-	}
-	return newMap
-}
