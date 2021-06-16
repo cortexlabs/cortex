@@ -1000,7 +1000,7 @@ func (cc *Config) Validate(awsClient *aws.Client) error {
 		requiredVPCs = 1
 	}
 	longestCIDRWhiteList := libmath.MaxInt(len(cc.APILoadBalancerCIDRWhiteList), len(cc.OperatorLoadBalancerCIDRWhiteList))
-	if err := awsClient.VerifyNetworkQuotas(1, cc.NATGateway != NoneNATGateway, cc.NATGateway == HighlyAvailableNATGateway, requiredVPCs, strset.FromSlice(cc.AvailabilityZones), len(cc.NodeGroups), longestCIDRWhiteList); err != nil {
+	if err := VerifyNetworkQuotas(awsClient, 1, cc.NATGateway != NoneNATGateway, cc.NATGateway == HighlyAvailableNATGateway, requiredVPCs, strset.FromSlice(cc.AvailabilityZones), len(cc.NodeGroups), longestCIDRWhiteList); err != nil {
 		// Skip AWS errors, since some regions (e.g. eu-north-1) do not support this API
 		if !aws.IsAWSError(err) {
 			return err
