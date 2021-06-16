@@ -376,14 +376,32 @@ func (c *Client) CreateBucket(bucket string) error {
 	return nil
 }
 
+func (c *Client) EnableBucketEncryption(bucket string) error {
+	_, err := c.S3().PutBucketEncryption(&s3.PutBucketEncryptionInput{
+		Bucket: aws.String(bucket),
+		ServerSideEncryptionConfiguration: &s3.ServerSideEncryptionConfiguration{
+			Rules: []*s3.ServerSideEncryptionRule{
+				{
+					ApplyServerSideEncryptionByDefault: &s3.ServerSideEncryptionByDefault{
+						SSEAlgorithm: pointer.String("AES256"),
+					},
+				},
+			},
+		},
+	})
+	if err != nil {
+		return errors.Wrap(err, "enabling encryption for bucket "+bucket)
+	}
+	return nil
+}
+
 func (c *Client) UploadReaderToS3(data io.Reader, bucket string, key string) error {
 	_, err := c.S3Uploader().Upload(&s3manager.UploadInput{
-		Bucket:               aws.String(bucket),
-		Key:                  aws.String(key),
-		Body:                 data,
-		ACL:                  aws.String("private"),
-		ContentDisposition:   aws.String("attachment"),
-		ServerSideEncryption: aws.String("AES256"),
+		Bucket:             aws.String(bucket),
+		Key:                aws.String(key),
+		Body:               data,
+		ACL:                aws.String("private"),
+		ContentDisposition: aws.String("attachment"),
 	})
 
 	if err != nil {

@@ -1169,6 +1169,11 @@ func createS3BucketIfNotFound(awsClient *aws.Client, bucket string, tags map[str
 			fmt.Print("\n\n")
 			return err
 		}
+		err = awsClient.EnableBucketEncryption(bucket)
+		if err != nil {
+			fmt.Print("\n\n")
+			return err
+		}
 	} else {
 		fmt.Print("￮ using existing s3 bucket: ", bucket)
 	}
