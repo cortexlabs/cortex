@@ -152,13 +152,47 @@ func (c *Client) VerifyInstanceQuota(instances []InstanceTypeRequests) error {
 	return nil
 }
 
+func (c *Client) ListServiceQuotas(quotaCodes []string, serviceCodes []string) (map[string]int, error) {
+	desiredQuotaCodes := strset.New(quotaCodes...)
+	quotaCodeToValueMap := map[string]int{}
+
+	for _, serviceCode := range serviceCodes {
+		err := c.ServiceQuotas().ListServiceQuotasPages(
+			&servicequotas.ListServiceQuotasInput{
+				ServiceCode: aws.String(serviceCode),
+			},
+			func(page *servicequotas.ListServiceQuotasOutput, lastPage bool) bool {
+				if page == nil {
+					return false
+				}
+				for _, quota := range page.Quotas {
+					if quota == nil || quota.QuotaCode == nil || quota.Value == nil {
+						continue
+					}
+					if desiredQuotaCodes.Has(*quota.QuotaCode) {
+						quotaCodeToValueMap[*quota.QuotaCode] = int(*quota.Value)
+					}
+				}
+				return true
+			},
+		)
+		if err != nil {
+			return nil, errors.Wrap(err, serviceCode)
+		}
+	}
+
+	return quotaCodeToValueMap, nil
+}
+
 func (c *Client) VerifyInternetGatewayQuota(internetGatewayQuota int, requiredInternetGateways int) error {
 	internetGatewaysInUse, err := c.ListInternetGateways()
 	if err != nil {
 		return err
 	}
-	if internetGatewayQuota-len(internetGatewaysInUse)-requiredInternetGateways < 0 {
-		additionalQuotaRequired := len(internetGatewaysInUse) + requiredInternetGateways - internetGatewayQuota
+
+	additionalQuotaRequired := len(internetGatewaysInUse) + requiredInternetGateways - internetGatewayQuota
+
+	if additionalQuotaRequired > 0 {
 		return ErrorInternetGatewayLimitExceeded(internetGatewayQuota, additionalQuotaRequired, c.Region)
 	}
 	return nil
@@ -220,8 +254,10 @@ func (c *Client) VerifyEIPQuota(eipQuota int, availabilityZones strset.Set, high
 	} else {
 		requiredElasticIPs = 1
 	}
-	if eipQuota-len(elasticIPsInUse)-requiredElasticIPs < 0 {
-		additionalQuotaRequired := len(elasticIPsInUse) + requiredElasticIPs - eipQuota
+
+	additionalQuotaRequired := len(elasticIPsInUse) + requiredElasticIPs - eipQuota
+
+	if additionalQuotaRequired > 0 {
 		return ErrorEIPLimitExceeded(eipQuota, additionalQuotaRequired, c.Region)
 	}
 
@@ -233,8 +269,10 @@ func (c *Client) VerifyVPCQuota(vpcQuota int, requiredVPCs int) error {
 	if err != nil {
 		return err
 	}
-	if vpcQuota-len(vpcs)-requiredVPCs < 0 {
-		additionalQuotaRequired := len(vpcs) + requiredVPCs - vpcQuota
+
+	additionalQuotaRequired := len(vpcs) + requiredVPCs - vpcQuota
+
+	if additionalQuotaRequired > 0 {
 		return ErrorVPCLimitExceeded(vpcQuota, additionalQuotaRequired, c.Region)
 	}
 	return nil
@@ -246,8 +284,10 @@ func (c *Client) VerifySecurityGroupQuota(securifyGroupsQuota int, numNodeGroups
 	if err != nil {
 		return err
 	}
-	if securifyGroupsQuota-len(sgs)-requiredSecurityGroups < 0 {
-		additionalQuotaRequired := len(sgs) + requiredSecurityGroups - securifyGroupsQuota
+
+	additionalQuotaRequired := len(sgs) + requiredSecurityGroups - securifyGroupsQuota
+
+	if additionalQuotaRequired > 0 {
 		return ErrorSecurityGroupLimitExceeded(securifyGroupsQuota, additionalQuotaRequired, c.Region)
 
 	}
@@ -259,6 +299,7 @@ func (c *Client) VerifySecurityGroupRulesQuota(
 	availabilityZones strset.Set,
 	numNodeGroups int,
 	longestCIDRWhiteList int) error {
+
 	// check rules quota for nodegroup SGs
 	requiredRulesForSG := requiredRulesForNodeGroupSecurityGroup(len(availabilityZones), longestCIDRWhiteList)
 	if requiredRulesForSG > securifyGroupRulesQuota {

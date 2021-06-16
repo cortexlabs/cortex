@@ -18,11 +18,9 @@ package clusterconfig
 
 import (
 	"fmt"
+	"strings"
 
-	"github.com/aws/aws-sdk-go/service/servicequotas"
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
-	"github.com/cortexlabs/cortex/pkg/lib/errors"
-	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 )
 
@@ -45,60 +43,26 @@ func VerifyNetworkQuotas(
 	numNodeGroups int,
 	longestCIDRWhiteList int) error {
 
-	desiredQuotaCodes := strset.New(_elasticIPsQuotaCode, _internetGatewayQuotaCode, _natGatewayQuotaCode, _vpcQuotaCode, _securityGroupsQuotaCode, _securityGroupRulesQuotaCode)
-	quotaCodeToValueMap := map[string]int{}
-
-	err := awsClient.ServiceQuotas().ListServiceQuotasPages(
-		&servicequotas.ListServiceQuotasInput{
-			ServiceCode: pointer.String("ec2"),
-		},
-		func(page *servicequotas.ListServiceQuotasOutput, lastPage bool) bool {
-			if page == nil {
-				return false
-			}
-			for _, quota := range page.Quotas {
-				if quota == nil || quota.QuotaCode == nil || quota.Value == nil {
-					continue
-				}
-				if desiredQuotaCodes.Has(*quota.QuotaCode) {
-					quotaCodeToValueMap[*quota.QuotaCode] = int(*quota.Value)
-					return false
-				}
-			}
-			return true
-		},
-	)
-	if err != nil {
-		return errors.WithStack(err)
+	desiredQuotaCodes := []string{
+		_elasticIPsQuotaCode,
+		_internetGatewayQuotaCode,
+		_natGatewayQuotaCode,
+		_vpcQuotaCode,
+		_securityGroupsQuotaCode,
+		_securityGroupRulesQuotaCode,
 	}
 
-	err = awsClient.ServiceQuotas().ListServiceQuotasPages(
-		&servicequotas.ListServiceQuotasInput{
-			ServiceCode: pointer.String("vpc"),
-		},
-		func(page *servicequotas.ListServiceQuotasOutput, lastPage bool) bool {
-			if page == nil {
-				return false
-			}
-			for _, quota := range page.Quotas {
-				if quota == nil || quota.QuotaCode == nil || quota.Value == nil {
-					continue
-				}
-				if desiredQuotaCodes.Has(*quota.QuotaCode) {
-					quotaCodeToValueMap[*quota.QuotaCode] = int(*quota.Value)
-				}
-			}
-			return true
-		},
-	)
+	serviceCodes := []string{"ec2", "vpc"}
+
+	quotaCodeToValueMap, err := awsClient.ListServiceQuotas(desiredQuotaCodes, serviceCodes)
 	if err != nil {
-		return errors.WithStack(err)
+		return err
 	}
 
-	skippedValidations := ""
+	var skippedValidations []string
 	defer func() {
 		if len(skippedValidations) > 0 {
-			fmt.Println(skippedValidations)
+			fmt.Println(strings.Join(skippedValidations, "\n"))
 		}
 	}()
 
@@ -110,7 +74,7 @@ func VerifyNetworkQuotas(
 				return err
 			}
 		} else {
-			skippedValidations += fmt.Sprintf("skipping internet gateway quota verification: unable to find internet gateway quota (%s)\n", _internetGatewayQuotaCode)
+			skippedValidations = append(skippedValidations, fmt.Sprintf("skipping internet gateway quota verification: unable to find internet gateway quota (%s)", _internetGatewayQuotaCode))
 		}
 	}
 
@@ -121,7 +85,7 @@ func VerifyNetworkQuotas(
 				return err
 			}
 		} else {
-			skippedValidations += fmt.Sprintf("skipping nat gateway quota verification: unable to find nat gateway quota (%s)\n", _natGatewayQuotaCode)
+			skippedValidations = append(skippedValidations, fmt.Sprintf("skipping nat gateway quota verification: unable to find nat gateway quota (%s)\n", _natGatewayQuotaCode))
 		}
 	}
 
@@ -133,7 +97,7 @@ func VerifyNetworkQuotas(
 				return err
 			}
 		} else {
-			skippedValidations += fmt.Sprintf("skipping elastic ip quota verification: unable to find elastic ip quota (%s)\n", _elasticIPsQuotaCode)
+			skippedValidations = append(skippedValidations, fmt.Sprintf("skipping elastic ip quota verification: unable to find elastic ip quota (%s)\n", _elasticIPsQuotaCode))
 		}
 	}
 
@@ -144,7 +108,7 @@ func VerifyNetworkQuotas(
 				return err
 			}
 		} else {
-			skippedValidations += fmt.Sprintf("skipping vpc quota verification: unable to find vpc quota (%s)\n", _vpcQuotaCode)
+			skippedValidations = append(skippedValidations, fmt.Sprintf("skipping vpc quota verification: unable to find vpc quota (%s)\n", _vpcQuotaCode))
 		}
 	}
 
@@ -154,7 +118,7 @@ func VerifyNetworkQuotas(
 			return err
 		}
 	} else {
-		skippedValidations += fmt.Sprintf("skipping security group rules quota verification: unable to find security group rules quota (%s)\n", _securityGroupRulesQuotaCode)
+		skippedValidations = append(skippedValidations, fmt.Sprintf("skipping security group rules quota verification: unable to find security group rules quota (%s)\n", _securityGroupRulesQuotaCode))
 	}
 
 	if securityGroupsQuota, found := quotaCodeToValueMap[_securityGroupsQuotaCode]; found {
@@ -163,7 +127,7 @@ func VerifyNetworkQuotas(
 			return err
 		}
 	} else {
-		skippedValidations += fmt.Sprintf("skipping security group quota verification: unable to find security group quota (%s)\n", _securityGroupsQuotaCode)
+		skippedValidations = append(skippedValidations, fmt.Sprintf("skipping security group quota verification: unable to find security group quota (%s)\n", _securityGroupsQuotaCode))
 	}
 
 	return nil
