@@ -173,8 +173,6 @@ type InternalConfig struct {
 
 	// Populated by operator
 	OperatorMetadata
-
-	InstancesMetadata []aws.InstanceMetadata `json:"instance_metadata"`
 }
 
 // The bare minimum to identify a cluster
@@ -1488,15 +1486,6 @@ func (mc *ManagedConfig) TelemetryEvent() map[string]interface{} {
 	event["node_groups._instances"] = strset.Union(onDemandInstanceTypes, spotInstanceTypes).Slice()
 
 	return event
-}
-
-func (mc *ManagedConfig) GetAllInstanceTypes() []string {
-	allInstanceTypes := strset.New()
-	for _, ng := range mc.NodeGroups {
-		allInstanceTypes.Add(ng.InstanceType)
-	}
-
-	return allInstanceTypes.Slice()
 }
 
 func (mc *ManagedConfig) GetNodeGroupByName(name string) *NodeGroup {

@@ -47,9 +47,8 @@ const (
 
 	_gatewayContainerName = "gateway"
 
-	_proxyContainerName = "proxy"
-
-	_dequeuerContainerName = "dequeuer"
+	ProxyContainerName    = "proxy"
+	DequeuerContainerName = "dequeuer"
 
 	_kubexitGraveyardName      = "graveyard"
 	_kubexitGraveyardMountPath = "/graveyard"
@@ -115,7 +114,7 @@ func AsyncGatewayContainer(api spec.API, queueURL string, volumeMounts []kcore.V
 
 func asyncDequeuerProxyContainer(api spec.API, queueURL string) (kcore.Container, kcore.Volume) {
 	return kcore.Container{
-		Name:            _dequeuerContainerName,
+		Name:            DequeuerContainerName,
 		Image:           config.ClusterConfig.ImageDequeuer,
 		ImagePullPolicy: kcore.PullAlways,
 		Command: []string{
@@ -146,6 +145,12 @@ func asyncDequeuerProxyContainer(api spec.API, queueURL string) (kcore.Container
 				ContainerPort: consts.AdminPortInt32,
 			},
 		},
+		Resources: kcore.ResourceRequirements{
+			Requests: kcore.ResourceList{
+				kcore.ResourceCPU:    consts.CortexDequeuerCPU,
+				kcore.ResourceMemory: consts.CortexDequeuerMem,
+			},
+		},
 		ReadinessProbe: &kcore.Probe{
 			Handler: kcore.Handler{
 				HTTPGet: &kcore.HTTPGetAction{
@@ -167,7 +172,7 @@ func asyncDequeuerProxyContainer(api spec.API, queueURL string) (kcore.Container
 
 func batchDequeuerProxyContainer(api spec.API, jobID, queueURL string) (kcore.Container, kcore.Volume) {
 	return kcore.Container{
-		Name:            _dequeuerContainerName,
+		Name:            DequeuerContainerName,
 		Image:           config.ClusterConfig.ImageDequeuer,
 		ImagePullPolicy: kcore.PullAlways,
 		Command: []string{
@@ -193,6 +198,12 @@ func batchDequeuerProxyContainer(api spec.API, jobID, queueURL string) (kcore.Co
 				},
 			},
 		}),
+		Resources: kcore.ResourceRequirements{
+			Requests: kcore.ResourceList{
+				kcore.ResourceCPU:    consts.CortexDequeuerCPU,
+				kcore.ResourceMemory: consts.CortexDequeuerMem,
+			},
+		},
 		ReadinessProbe: &kcore.Probe{
 			Handler: kcore.Handler{
 				HTTPGet: &kcore.HTTPGetAction{
@@ -215,7 +226,7 @@ func batchDequeuerProxyContainer(api spec.API, jobID, queueURL string) (kcore.Co
 
 func realtimeProxyContainer(api spec.API) (kcore.Container, kcore.Volume) {
 	return kcore.Container{
-		Name:            _proxyContainerName,
+		Name:            ProxyContainerName,
 		Image:           config.ClusterConfig.ImageProxy,
 		ImagePullPolicy: kcore.PullAlways,
 		Args: []string{
@@ -240,6 +251,12 @@ func realtimeProxyContainer(api spec.API) (kcore.Container, kcore.Volume) {
 		EnvFrom: baseClusterEnvVars(),
 		VolumeMounts: []kcore.VolumeMount{
 			ClusterConfigMount(),
+		},
+		Resources: kcore.ResourceRequirements{
+			Requests: kcore.ResourceList{
+				kcore.ResourceCPU:    consts.CortexProxyCPU,
+				kcore.ResourceMemory: consts.CortexProxyMem,
+			},
 		},
 		ReadinessProbe: &kcore.Probe{
 			Handler: kcore.Handler{

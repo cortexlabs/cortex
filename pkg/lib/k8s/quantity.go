@@ -95,6 +95,22 @@ func NewMilliQuantity(milliValue int64) *Quantity {
 	}
 }
 
+// Returns nil if no quantities are passed in
+func NewSummed(quantities ...kresource.Quantity) *Quantity {
+	if len(quantities) == 0 {
+		return nil
+	}
+
+	k8sQuantity := kresource.Quantity{}
+	for _, q := range quantities {
+		k8sQuantity.Add(q)
+	}
+
+	return &Quantity{
+		Quantity: k8sQuantity,
+	}
+}
+
 func (quantity *Quantity) MilliString() string {
 	return s.Int64(quantity.Quantity.MilliValue()) + "m"
 }
@@ -167,6 +183,13 @@ func (quantity *Quantity) Equal(quantity2 Quantity) bool {
 
 func (quantity *Quantity) ID() string {
 	return s.Int64(quantity.MilliValue())
+}
+
+func (quantity *Quantity) DeepCopy() Quantity {
+	return Quantity{
+		Quantity:   quantity.Quantity.DeepCopy(),
+		UserString: quantity.UserString,
+	}
 }
 
 func QuantityPtr(k8sQuantity kresource.Quantity) *kresource.Quantity {

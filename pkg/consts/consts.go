@@ -18,6 +18,8 @@ package consts
 
 import (
 	"os"
+
+	kresource "k8s.io/apimachinery/pkg/api/resource"
 )
 
 var (
@@ -37,6 +39,11 @@ var (
 	AdminPortInt32 = int32(15000)
 
 	StatsDPortStr = "9125"
+
+	CortexProxyCPU    = kresource.MustParse("100m")
+	CortexProxyMem    = kresource.MustParse("100Mi")
+	CortexDequeuerCPU = kresource.MustParse("100m")
+	CortexDequeuerMem = kresource.MustParse("100Mi")
 
 	AuthHeader = "X-Cortex-Authorization"
 

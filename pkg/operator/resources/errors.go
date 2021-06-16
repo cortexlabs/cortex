@@ -73,14 +73,10 @@ func ErrorCannotChangeKindOfDeployedAPI(name string, newKind, prevKind userconfi
 	})
 }
 
-func ErrorNoAvailableNodeComputeLimit(resource string, reqStr string, maxStr string) error {
-	message := fmt.Sprintf("no instances can satisfy the requested %s quantity - requested %s %s but instances only have %s %s available", resource, reqStr, resource, maxStr, resource)
-	if maxStr == "0" {
-		message = fmt.Sprintf("no instances can satisfy the requested %s quantity - requested %s %s but instances don't have any %s", resource, reqStr, resource, resource)
-	}
+func ErrorNoAvailableNodeComputeLimit(msg string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrNoAvailableNodeComputeLimit,
-		Message: message,
+		Message: msg,
 	})
 }
 

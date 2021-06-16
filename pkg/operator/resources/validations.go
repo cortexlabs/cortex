@@ -18,15 +18,22 @@ package resources
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/cortexlabs/cortex/pkg/config"
+	"github.com/cortexlabs/cortex/pkg/consts"
+	"github.com/cortexlabs/cortex/pkg/lib/aws"
+	"github.com/cortexlabs/cortex/pkg/lib/console"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
+	"github.com/cortexlabs/cortex/pkg/lib/slices"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
+	"github.com/cortexlabs/cortex/pkg/lib/table"
 	"github.com/cortexlabs/cortex/pkg/operator/operator"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
+	"github.com/cortexlabs/cortex/pkg/workloads"
 	istioclientnetworking "istio.io/client-go/pkg/apis/networking/v1beta1"
 	kresource "k8s.io/apimachinery/pkg/api/resource"
 )
@@ -134,83 +141,149 @@ var _inferentiaCPUReserve = kresource.MustParse("100m")
 var _inferentiaMemReserve = kresource.MustParse("100Mi")
 
 func validateK8sCompute(api *userconfig.API, maxMemMap map[string]kresource.Quantity) error {
-	allErrors := []error{}
-	successfulLoops := 0
-
 	clusterNodeGroupNames := strset.New(config.ClusterConfig.GetNodeGroupNames()...)
-	apiNodeGroupNames := api.NodeGroups
-
-	if apiNodeGroupNames != nil {
-		for _, ngName := range apiNodeGroupNames {
-			if !clusterNodeGroupNames.Has(ngName) {
-				return ErrorInvalidNodeGroupSelector(ngName, config.ClusterConfig.GetNodeGroupNames())
-			}
+	for _, ngName := range api.NodeGroups {
+		if !clusterNodeGroupNames.Has(ngName) {
+			return ErrorInvalidNodeGroupSelector(ngName, config.ClusterConfig.GetNodeGroupNames())
 		}
 	}
 
-	compute := userconfig.GetTotalComputeFromContainers(api.Pod.Containers)
+	compute := userconfig.GetPodComputeRequest(api)
 
-	for _, instanceMetadata := range config.InstancesMetadata {
-		if apiNodeGroupNames != nil {
-			matchedNodeGroups := 0
-			for _, ngName := range apiNodeGroupNames {
-				if config.ClusterConfig.GetNodeGroupByName(ngName).InstanceType == instanceMetadata.Type {
-					matchedNodeGroups++
-				}
-			}
-			if matchedNodeGroups == 0 {
-				continue
-			}
+	for _, ng := range config.ClusterConfig.NodeGroups {
+		if api.NodeGroups != nil && !slices.HasString(api.NodeGroups, ng.Name) {
+			continue
 		}
 
-		maxMemLoop := maxMemMap[instanceMetadata.Type]
-		maxMemLoop.Sub(_cortexMemReserve)
+		nodeCPU, nodeMem, nodeGPU, nodeInf := getNodeCapacity(ng.InstanceType, maxMemMap)
 
-		maxCPU := instanceMetadata.CPU
-		maxCPU.Sub(_cortexCPUReserve)
-
-		maxGPU := instanceMetadata.GPU
-		if maxGPU > 0 {
-			// Reserve resources for nvidia device plugin daemonset
-			maxCPU.Sub(_nvidiaCPUReserve)
-			maxMemLoop.Sub(_nvidiaMemReserve)
-			// Reserve resources for nvidia dcgm prometheus exporter
-			maxCPU.Sub(_nvidiaDCGMExporterCPUReserve)
-			maxMemLoop.Sub(_nvidiaDCGMExporterMemReserve)
+		if compute.CPU != nil && nodeCPU.Cmp(compute.CPU.Quantity) < 0 {
+			continue
+		} else if compute.Mem != nil && nodeMem.Cmp(compute.Mem.Quantity) < 0 {
+			continue
+		} else if compute.GPU > nodeGPU {
+			continue
+		} else if compute.Inf > nodeInf {
+			continue
 		}
 
-		maxInf := instanceMetadata.Inf
-		if maxInf > 0 {
-			// Reserve resources for inferentia device plugin daemonset
-			maxCPU.Sub(_inferentiaCPUReserve)
-			maxMemLoop.Sub(_inferentiaMemReserve)
+		// we found a node group that has capacity
+		return nil
+	}
+
+	// no nodegroups have capacity
+	errMsg := "no instance types in your cluster are large enough to satisfy the requested resources for your pod\n\n"
+	errMsg += console.Bold("requested pod resources")
+	errMsg += podResourceRequestsTable(api, compute)
+	errMsg += console.Bold("\nnodegroup resources")
+	errMsg += nodeGroupResourcesTable(api, compute, maxMemMap)
+	return ErrorNoAvailableNodeComputeLimit(errMsg)
+}
+
+func podResourceRequestsTable(api *userconfig.API, compute userconfig.Compute) string {
+	sidecarCPUNote := ""
+	sidecarMemNote := ""
+	if api.Kind == userconfig.RealtimeAPIKind {
+		sidecarCPUNote = fmt.Sprintf(" (including %s CPU for the %s sidecar container)", consts.CortexProxyCPU, workloads.ProxyContainerName)
+		sidecarMemNote = fmt.Sprintf(" (including %s memory for the %s sidecar container)", consts.CortexProxyMem, workloads.ProxyContainerName)
+	} else if api.Kind == userconfig.AsyncAPIKind || api.Kind == userconfig.BatchAPIKind {
+		sidecarCPUNote = fmt.Sprintf(" (including %s CPU for the %s sidecar container)", consts.CortexDequeuerCPU, workloads.DequeuerContainerName)
+		sidecarMemNote = fmt.Sprintf(" (including %s memory for the %s sidecar container)", consts.CortexDequeuerMem, workloads.DequeuerContainerName)
+	}
+
+	var items table.KeyValuePairs
+	if compute.CPU != nil {
+		items.Add("CPU", compute.CPU.String()+sidecarCPUNote)
+	}
+	if compute.Mem != nil {
+		items.Add("memory", compute.Mem.String()+sidecarMemNote)
+	}
+	if compute.GPU > 0 {
+		items.Add("GPU", compute.GPU)
+	}
+	if compute.Inf > 0 {
+		items.Add("Inf", compute.Inf)
+	}
+
+	return items.String()
+}
+
+func nodeGroupResourcesTable(api *userconfig.API, compute userconfig.Compute, maxMemMap map[string]kresource.Quantity) string {
+	var skippedNodeGroups []string
+	var nodeGroupResourceRows [][]interface{}
+
+	showGPU := false
+	showInf := false
+	if compute.GPU > 0 {
+		showGPU = true
+	}
+	if compute.Inf > 0 {
+		showInf = true
+	}
+
+	for _, ng := range config.ClusterConfig.NodeGroups {
+		nodeCPU, nodeMem, nodeGPU, nodeInf := getNodeCapacity(ng.InstanceType, maxMemMap)
+		if nodeGPU > 0 {
+			showGPU = true
+		}
+		if nodeInf > 0 {
+			showInf = true
 		}
 
-		loopErrors := []error{}
-		if compute.CPU != nil && maxCPU.Cmp(compute.CPU.Quantity) < 0 {
-			loopErrors = append(loopErrors, ErrorNoAvailableNodeComputeLimit("CPU", compute.CPU.String(), maxCPU.String()))
-		}
-		if compute.Mem != nil && maxMemLoop.Cmp(compute.Mem.Quantity) < 0 {
-			loopErrors = append(loopErrors, ErrorNoAvailableNodeComputeLimit("memory", compute.Mem.String(), maxMemLoop.String()))
-		}
-		if compute.GPU > maxGPU {
-			loopErrors = append(loopErrors, ErrorNoAvailableNodeComputeLimit("GPU", fmt.Sprintf("%d", compute.GPU), fmt.Sprintf("%d", maxGPU)))
-		}
-		if compute.Inf > maxInf {
-			loopErrors = append(loopErrors, ErrorNoAvailableNodeComputeLimit("Inf", fmt.Sprintf("%d", compute.Inf), fmt.Sprintf("%d", maxInf)))
-		}
-		if errors.HasError(loopErrors) {
-			allErrors = append(allErrors, errors.FirstError(loopErrors...))
+		if api.NodeGroups != nil && !slices.HasString(api.NodeGroups, ng.Name) {
+			skippedNodeGroups = append(skippedNodeGroups, ng.Name)
 		} else {
-			successfulLoops++
+			nodeGroupResourceRows = append(nodeGroupResourceRows, []interface{}{ng.Name, ng.InstanceType, nodeCPU, nodeMem, nodeGPU, nodeInf})
 		}
 	}
 
-	if successfulLoops == 0 {
-		return errors.FirstError(allErrors...)
+	nodeGroupResourceRowsTable := table.Table{
+		Headers: []table.Header{
+			{Title: "node group"},
+			{Title: "instance type"},
+			{Title: "CPU"},
+			{Title: "memory"},
+			{Title: "GPU", Hidden: !showGPU},
+			{Title: "Inf", Hidden: !showInf},
+		},
+		Rows: nodeGroupResourceRows,
 	}
 
-	return nil
+	out := nodeGroupResourceRowsTable.MustFormat()
+	if len(skippedNodeGroups) > 0 {
+		out += fmt.Sprintf("\nthe following node groups were skipped (they are not listed in the api configuration's %s field): %s", userconfig.NodeGroupsKey, strings.Join(skippedNodeGroups, ", "))
+	}
+
+	return out
+}
+
+func getNodeCapacity(instanceType string, maxMemMap map[string]kresource.Quantity) (kresource.Quantity, kresource.Quantity, int64, int64) {
+	instanceMetadata := aws.InstanceMetadatas[config.ClusterConfig.Region][instanceType]
+
+	cpu := instanceMetadata.CPU.DeepCopy()
+	cpu.Sub(_cortexCPUReserve)
+
+	mem := maxMemMap[instanceType].DeepCopy()
+	mem.Sub(_cortexMemReserve)
+
+	gpu := instanceMetadata.GPU
+	if gpu > 0 {
+		// Reserve resources for nvidia device plugin daemonset
+		cpu.Sub(_nvidiaCPUReserve)
+		mem.Sub(_nvidiaMemReserve)
+		// Reserve resources for nvidia dcgm prometheus exporter
+		cpu.Sub(_nvidiaDCGMExporterCPUReserve)
+		mem.Sub(_nvidiaDCGMExporterMemReserve)
+	}
+
+	inf := instanceMetadata.Inf
+	if inf > 0 {
+		// Reserve resources for inferentia device plugin daemonset
+		cpu.Sub(_inferentiaCPUReserve)
+		mem.Sub(_inferentiaMemReserve)
+	}
+
+	return cpu, mem, gpu, inf
 }
 
 func validateEndpointCollisions(api *userconfig.API, virtualServices []istioclientnetworking.VirtualService) error {
