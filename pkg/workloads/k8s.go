@@ -386,9 +386,9 @@ func userPodContainers(api spec.API) ([]kcore.Container, []kcore.Volume) {
 
 		if container.Compute.Inf > 0 {
 			totalHugePages := container.Compute.Inf * _hugePagesMemPerInf
-			containerResourceList["nvidia.com/gpu"] = *kresource.NewQuantity(container.Compute.Inf, kresource.DecimalSI)
+			containerResourceList["aws.amazon.com/neuron"] = *kresource.NewQuantity(container.Compute.Inf, kresource.DecimalSI)
 			containerResourceList["hugepages-2Mi"] = *kresource.NewQuantity(totalHugePages, kresource.BinarySI)
-			containerResourceLimitsList["nvidia.com/gpu"] = *kresource.NewQuantity(container.Compute.Inf, kresource.DecimalSI)
+			containerResourceLimitsList["aws.amazon.com/neuron"] = *kresource.NewQuantity(container.Compute.Inf, kresource.DecimalSI)
 			containerResourceLimitsList["hugepages-2Mi"] = *kresource.NewQuantity(totalHugePages, kresource.BinarySI)
 
 			securityContext.Capabilities = &kcore.Capabilities{
