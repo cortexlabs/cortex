@@ -880,7 +880,7 @@ def test_load_task(
         printer(f"submitting {jobs} jobs concurrently")
         job_specs = []
         threads_futures = request_tasks_concurrently(
-            client, api_name, request_stopper, concurrency, jobs, job_specs
+            client, api_name, request_stopper, 1, jobs, job_specs
         )
 
         assert wait_on_event(
