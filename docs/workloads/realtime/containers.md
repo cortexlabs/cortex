@@ -25,6 +25,10 @@ Your API pod can contain multiple containers, only one of which can be listening
 
 The `/mnt` directory is mounted to each container's file system, and is shared across all containers.
 
+## Resource requests
+
+Each container in the pod requests its own amount of CPU, memory, GPU, and Inferentia resources. In addition, Cortex's proxy sidecar container (which is automatically added to the pod) requests 100m CPU and 100Mi memory.
+
 ## Observability
 
 See docs for [logging](../../clusters/observability/logging.md), [metrics](../../clusters/observability/metrics.md), and [alerting](../../clusters/observability/metrics.md).
