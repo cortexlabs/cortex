@@ -77,7 +77,7 @@ func clusterInit() {
 	addClusterConfigFlag(_clusterInfoCmd)
 	addClusterNameFlag(_clusterInfoCmd)
 	addClusterRegionFlag(_clusterInfoCmd)
-	_clusterInfoCmd.Flags().VarP(&_flagOutput, "output", "o", fmt.Sprintf("output format: one of %s", strings.Join(flags.UserOutputTypeStrings(), "|")))
+	_clusterInfoCmd.Flags().VarP(&_flagOutput, "output", "o", fmt.Sprintf("output format: one of %s", strings.Join(flags.OutputTypeStrings(), "|")))
 	_clusterInfoCmd.Flags().StringVarP(&_flagClusterInfoEnv, "configure-env", "e", "", "name of environment to configure")
 	_clusterInfoCmd.Flags().BoolVarP(&_flagClusterInfoDebug, "debug", "d", false, "save the current cluster state to a file")
 	_clusterInfoCmd.Flags().BoolVarP(&_flagClusterInfoPrintConfig, "print-config", "", false, "print the cluster config")
@@ -166,8 +166,8 @@ var _clusterUpCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
-		status := clusterstate.GetClusterState(stacks)
-		if err := clusterstate.AssertClusterState(stacks, status, clusterstate.StatusClusterDoesntExist); err != nil {
+		state := clusterstate.GetClusterState(stacks)
+		if err := clusterstate.AssertClusterState(stacks, state, clusterstate.StateClusterDoesntExist); err != nil {
 			exit.Error(err)
 		}
 
@@ -334,8 +334,8 @@ var _clusterConfigureCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
-		status := clusterstate.GetClusterState(stacks)
-		if err := clusterstate.AssertClusterState(stacks, status, clusterstate.StatusClusterExists); err != nil {
+		state := clusterstate.GetClusterState(stacks)
+		if err := clusterstate.AssertClusterState(stacks, state, clusterstate.StateClusterExists); err != nil {
 			exit.Error(err)
 		}
 
@@ -349,23 +349,28 @@ var _clusterConfigureCmd = &cobra.Command{
 		}
 
 		if !configureChanges.HasChanges() {
-			fmt.Println("no change required")
+			fmt.Println("your cluster is already up to date")
 			exit.Ok()
 		}
 
 		confirmConfigureClusterConfig(configureChanges, oldClusterConfig, *newClusterConfig, _flagClusterDisallowPrompt)
 
 		out, exitCode, err := runManagerWithClusterConfig("/root/install.sh --configure", newClusterConfig, awsClient, nil, nil, []string{
-			"CORTEX_NODEGROUP_NAMES_TO_SCALE=" + strings.Join(configureChanges.NodeGroupsToScale, " "),   // NodeGroupsToScale contain the cluster config node-group names
-			"CORTEX_NODEGROUP_NAMES_TO_ADD=" + strings.Join(configureChanges.NodeGroupsToAdd, " "),       // NodeGroupsToAdd contain the cluster config node-group names
-			"CORTEX_NODEGROUP_NAMES_TO_REMOVE=" + strings.Join(configureChanges.StaleEKSNodeGroups, " "), // StaleEKSNodeGroups contain the EKS node-group names
+			"CORTEX_NODEGROUP_NAMES_TO_SCALE=" + strings.Join(configureChanges.NodeGroupsToScale, " "),          // NodeGroupsToScale contain the cluster config node-group names
+			"CORTEX_NODEGROUP_NAMES_TO_ADD=" + strings.Join(configureChanges.NodeGroupsToAdd, " "),              // NodeGroupsToAdd contain the cluster config node-group names
+			"CORTEX_EKS_NODEGROUP_NAMES_TO_REMOVE=" + strings.Join(configureChanges.EKSNodeGroupsToRemove, " "), // EKSNodeGroupsToRemove contain the EKS node-group names
 		})
 		if err != nil {
 			exit.Error(err)
 		}
 		if exitCode == nil || *exitCode != 0 {
 			helpStr := "\ndebugging tips (may or may not apply to this error):"
-			helpStr += fmt.Sprintf("\n* if your cluster was unable to provision/remove/scale some nodegroups, additional error information may be found in the description of your cloudformation stack: https://console.aws.amazon.com/cloudformation/home?region=%s#/stacks", oldClusterConfig.Region)
+			helpStr += fmt.Sprintf(
+				"\n* if your cluster was unable to provision/remove/scale some nodegroups, additional error information may be found in the description of your cloudformation stack (https://console.aws.amazon.com/cloudformation/home?region=%s#/stacks)"+
+					" or in the activity history of your cluster's autoscaling groups (select each autoscaling group and click the  \"Activity\" or \"Activity History\" tab) (https://console.aws.amazon.com/ec2/autoscaling/home?region=%s#AutoScalingGroups)",
+				oldClusterConfig.Region,
+				oldClusterConfig.Region,
+			)
 			fmt.Println(helpStr)
 			exit.Error(ErrorClusterConfigure(out + helpStr))
 		}
@@ -409,8 +414,8 @@ var _clusterInfoCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
-		status := clusterstate.GetClusterState(stacks)
-		if err := clusterstate.AssertClusterState(stacks, status, clusterstate.StatusClusterExists); err != nil {
+		state := clusterstate.GetClusterState(stacks)
+		if err := clusterstate.AssertClusterState(stacks, state, clusterstate.StateClusterExists); err != nil {
 			exit.Error(err)
 		}
 
@@ -470,8 +475,8 @@ var _clusterDownCmd = &cobra.Command{
 			errors.PrintError(err)
 			fmt.Println()
 		} else {
-			status := clusterstate.GetClusterState(stacks)
-			if err := clusterstate.AssertClusterState(stacks, status, clusterstate.StatusClusterDoesntExist); err != nil {
+			state := clusterstate.GetClusterState(stacks)
+			if err := clusterstate.AssertClusterState(stacks, state, clusterstate.StateClusterDoesntExist); err != nil {
 				awsClient.DeleteQueuesWithPrefix(clusterconfig.SQSNamePrefix(accessConfig.ClusterName))
 				awsClient.DeletePolicy(clusterconfig.DefaultPolicyARN(accountID, accessConfig.ClusterName, accessConfig.Region))
 				if !_flagClusterDownKeepAWSResources {
@@ -698,8 +703,8 @@ var _clusterExportCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
-		status := clusterstate.GetClusterState(stacks)
-		if err := clusterstate.AssertClusterState(stacks, status, clusterstate.StatusClusterExists); err != nil {
+		state := clusterstate.GetClusterState(stacks)
+		if err := clusterstate.AssertClusterState(stacks, state, clusterstate.StateClusterExists); err != nil {
 			exit.Error(err)
 		}
 

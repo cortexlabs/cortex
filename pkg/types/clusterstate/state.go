@@ -16,10 +16,10 @@ limitations under the License.
 
 package clusterstate
 
-type Status string
+type State string
 
 const (
-	StatusClusterExists            Status = "cluster_exists"
-	StatusClusterDoesntExist       Status = "cluster_doesnt_exist"
-	StatusClusterInUnexpectedState Status = "cluster_in_unexpected_state"
+	StateClusterExists            State = "cluster_exists"
+	StateClusterDoesntExist       State = "cluster_doesnt_exist"
+	StateClusterInUnexpectedState State = "cluster_in_unexpected_state"
 )

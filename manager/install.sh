@@ -338,11 +338,11 @@ function add_nodegroups() {
 }
 
 function remove_nodegroups() {
-  if [ -z "$CORTEX_NODEGROUP_NAMES_TO_REMOVE" ]; then
+  if [ -z "$CORTEX_EKS_NODEGROUP_NAMES_TO_REMOVE" ]; then
     return
   fi
 
-  eks_nodegroup_names="$(join_by , $CORTEX_NODEGROUP_NAMES_TO_REMOVE)"
+  eks_nodegroup_names="$(join_by , $CORTEX_EKS_NODEGROUP_NAMES_TO_REMOVE)"
 
   echo "￮ removing nodegroup(s) from the cluster ..."
   python generate_eks.py $CORTEX_CLUSTER_CONFIG_FILE manifests/ami.json --remove-eks-node-groups="$eks_nodegroup_names" > /workspace/nodegroups.yaml

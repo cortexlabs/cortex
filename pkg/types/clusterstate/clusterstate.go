@@ -89,46 +89,6 @@ func (cs ClusterStacks) TableString() string {
 	return t.MustFormat()
 }
 
-func (cs ClusterStacks) GetStaleNodeGroupNames(clusterConfig clusterconfig.Config) ([]string, []bool) {
-	ngNames := clusterconfig.GetNodeGroupNames(clusterConfig.NodeGroups)
-	ngSpotEnabled := clusterconfig.GetNodeGroupAvailabilities(clusterConfig.NodeGroups)
-	operatorStackName := fmt.Sprintf(operatorTemplate, clusterConfig.ClusterName)
-
-	staleNodeGroupNames := []string{}
-	for _, stack := range cs.NodeGroupsStacks {
-		if stack == nil || stack.StackName == nil {
-			continue
-		}
-		var foundNodeGroupName string
-		var found bool
-		for i, ngName := range ngNames {
-			availability := "d"
-			if ngSpotEnabled[i] {
-				availability = "s"
-			}
-			eksStackName := fmt.Sprintf("eksctl-%s-nodegroup-cx-w%s-%s", cs.clusterName, availability, ngName)
-			if *stack.StackName != operatorStackName && *stack.StackName == eksStackName {
-				found = true
-				foundNodeGroupName = ngName
-				break
-			}
-		}
-		if !found {
-			staleNodeGroupNames = append(staleNodeGroupNames, foundNodeGroupName)
-		}
-	}
-
-	return staleNodeGroupNames, ngSpotEnabled
-}
-
-func GetStackName(clusterName string, spot bool, ngName string) string {
-	availability := "d"
-	if spot {
-		availability = "s"
-	}
-	return fmt.Sprintf("eksctl-%s-nodegroup-cx-w%s-%s", clusterName, availability, ngName)
-}
-
 func GetClusterStacks(awsClient *aws.Client, accessConfig *clusterconfig.AccessConfig) (ClusterStacks, error) {
 	controlPlaneStackName := fmt.Sprintf(controlPlaneTemplate, accessConfig.ClusterName)
 	operatorStackName := fmt.Sprintf(operatorTemplate, accessConfig.ClusterName)
@@ -149,11 +109,9 @@ func GetClusterStacks(awsClient *aws.Client, accessConfig *clusterconfig.AccessC
 		}
 		if strings.HasPrefix(*stack.StackName, spotStackNamePrefix) || strings.HasPrefix(*stack.StackName, onDemandStackNamePrefix) {
 			ngStacks = append(ngStacks, stack)
-		}
-		if *stack.StackName == controlPlaneStackName {
+		} else if *stack.StackName == controlPlaneStackName {
 			controlPlaneStack = stack
-		}
-		if *stack.StackName == operatorStackName {
+		} else if *stack.StackName == operatorStackName {
 			operatorStack = stack
 		}
 	}
@@ -167,11 +125,11 @@ func GetClusterStacks(awsClient *aws.Client, accessConfig *clusterconfig.AccessC
 	}, nil
 }
 
-func GetClusterState(stacks ClusterStacks) Status {
+func GetClusterState(stacks ClusterStacks) State {
 	controlPlaneStackName := fmt.Sprintf(controlPlaneTemplate, stacks.clusterName)
 
 	if stacks.ControlPlaneStack == nil || stacks.ControlPlaneStack.StackName == nil {
-		return StatusClusterDoesntExist
+		return StateClusterDoesntExist
 	}
 	if *stacks.ControlPlaneStack.StackName == controlPlaneStackName {
 		controlPlaneStatus := *stacks.ControlPlaneStack.StackStatus
@@ -180,7 +138,7 @@ func GetClusterState(stacks ClusterStacks) Status {
 			cloudformation.StackStatusDeleteComplete,
 			cloudformation.StackStatusDeleteInProgress,
 		}, controlPlaneStatus) {
-			return StatusClusterDoesntExist
+			return StateClusterDoesntExist
 		}
 
 		if slices.HasString([]string{
@@ -189,12 +147,12 @@ func GetClusterState(stacks ClusterStacks) Status {
 			cloudformation.StackStatusRollbackComplete,
 			cloudformation.StackStatusUpdateRollbackComplete,
 		}, controlPlaneStatus) {
-			return StatusClusterExists
+			return StateClusterExists
 		}
 
-		return StatusClusterInUnexpectedState
+		return StateClusterInUnexpectedState
 	}
-	return StatusClusterDoesntExist
+	return StateClusterDoesntExist
 }
 
 func CloudFormationURL(clusterName string, region string) string {

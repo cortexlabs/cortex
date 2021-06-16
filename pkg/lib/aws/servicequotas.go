@@ -348,6 +348,7 @@ func (c *Client) VerifyNetworkQuotasOnConfigure(
 	numNodeGroups int,
 	netAdditionOfNodeGroups int,
 	longestCIDRWhiteList int) error {
+
 	return c.VerifyNetworkQuotas(0, false, false, 0, availabilityZones, numNodeGroups, netAdditionOfNodeGroups, longestCIDRWhiteList, true)
 }
 

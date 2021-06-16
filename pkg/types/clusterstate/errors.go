@@ -52,16 +52,16 @@ func ErrorUnexpectedClusterState(stacks ClusterStacks) error {
 	})
 }
 
-func AssertClusterState(stacks ClusterStacks, currentState, allowedState Status) error {
+func AssertClusterState(stacks ClusterStacks, currentState, allowedState State) error {
 	if currentState == allowedState {
 		return nil
 	}
 	switch currentState {
-	case StatusClusterDoesntExist:
+	case StateClusterDoesntExist:
 		return ErrorClusterDoesNotExist(stacks)
-	case StatusClusterExists:
+	case StateClusterExists:
 		return ErrorClusterAlreadyExists(stacks)
-	case StatusClusterInUnexpectedState:
+	case StateClusterInUnexpectedState:
 		return ErrorUnexpectedClusterState(stacks)
 	}
 	return nil

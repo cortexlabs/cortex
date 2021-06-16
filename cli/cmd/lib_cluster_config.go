@@ -279,7 +279,7 @@ func confirmInstallClusterConfig(clusterConfig *clusterconfig.Config, awsClient 
 }
 
 func confirmConfigureClusterConfig(configureChanges clusterconfig.ConfigureChanges, oldCc, newCc clusterconfig.Config, disallowPrompt bool) {
-	fmt.Printf("your %s cluster in region %s will receive the following changes\n\n", newCc.ClusterName, newCc.Region)
+	fmt.Printf("your %s cluster in region %s will be updated as follows:\n\n", newCc.ClusterName, newCc.Region)
 	if len(configureChanges.NodeGroupsToScale) > 0 {
 		fmt.Printf("￮ %d %s will be scaled\n", len(configureChanges.NodeGroupsToScale), s.PluralS("nodegroup", len(configureChanges.NodeGroupsToScale)))
 		for _, ngName := range configureChanges.NodeGroupsToScale {
@@ -295,14 +295,14 @@ func confirmConfigureClusterConfig(configureChanges clusterconfig.ConfigureChang
 			if ngOld.MinInstances != ngScaled.MinInstances && ngOld.MaxInstances == ngScaled.MaxInstances {
 				output = fmt.Sprintf("nodegroup %s will update its %s from %d to %d", ngName, clusterconfig.MinInstancesKey, ngOld.MinInstances, ngScaled.MinInstances)
 			}
-			fmt.Println(s.Indent(fmt.Sprintf("￮ %s", output), "  "))
+			fmt.Printf(" ￮ %s\n", output)
 		}
 	}
 	if len(configureChanges.NodeGroupsToAdd) > 0 {
-		fmt.Printf("￮ %d %s (%s) will be added\n", len(configureChanges.NodeGroupsToAdd), s.PluralS("nodegroup", len(configureChanges.NodeGroupsToAdd)), s.StrsAnd(configureChanges.NodeGroupsToAdd))
+		fmt.Printf("￮ %d %s will be added: %s\n", len(configureChanges.NodeGroupsToAdd), s.PluralS("nodegroup", len(configureChanges.NodeGroupsToAdd)), s.StrsAnd(configureChanges.NodeGroupsToAdd))
 	}
 	if len(configureChanges.NodeGroupsToRemove) > 0 {
-		fmt.Printf("￮ %d %s (%s) will be removed\n", len(configureChanges.NodeGroupsToRemove), s.PluralS("nodegroup", len(configureChanges.NodeGroupsToRemove)), s.StrsAnd(configureChanges.NodeGroupsToRemove))
+		fmt.Printf("￮ %d %s will be removed: %s\n", len(configureChanges.NodeGroupsToRemove), s.PluralS("nodegroup", len(configureChanges.NodeGroupsToRemove)), s.StrsAnd(configureChanges.NodeGroupsToRemove))
 	}
 	fmt.Println()
 

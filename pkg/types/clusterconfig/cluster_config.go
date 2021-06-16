@@ -188,14 +188,14 @@ type AccessConfig struct {
 }
 
 type ConfigureChanges struct {
-	NodeGroupsToAdd    []string
-	NodeGroupsToRemove []string
-	NodeGroupsToScale  []string
-	StaleEKSNodeGroups []string
+	NodeGroupsToAdd       []string
+	NodeGroupsToRemove    []string
+	NodeGroupsToScale     []string
+	EKSNodeGroupsToRemove []string
 }
 
 func (c *ConfigureChanges) HasChanges() bool {
-	return len(c.NodeGroupsToAdd) != 0 || len(c.NodeGroupsToRemove) != 0 || len(c.NodeGroupsToScale) != 0 || len(c.StaleEKSNodeGroups) != 0
+	return len(c.NodeGroupsToAdd) != 0 || len(c.NodeGroupsToRemove) != 0 || len(c.NodeGroupsToScale) != 0 || len(c.EKSNodeGroupsToRemove) != 0
 }
 
 // NewForFile initializes and validates the cluster config from the YAML config file
@@ -504,7 +504,7 @@ var ManagedConfigStructFieldValidations = []*cr.StructFieldValidation{
 		StructField: "NodeGroups",
 		StructListValidation: &cr.StructListValidation{
 			Required:         true,
-			StructValidation: nodeGroupsFieldValidation(),
+			StructValidation: nodeGroupsFieldValidation,
 		},
 	},
 	{
@@ -677,134 +677,132 @@ var ManagedConfigStructFieldValidations = []*cr.StructFieldValidation{
 	},
 }
 
-func nodeGroupsFieldValidation() *cr.StructValidation {
-	return &cr.StructValidation{
-		StructFieldValidations: []*cr.StructFieldValidation{
-			{
-				StructField: "Name",
-				StringValidation: &cr.StringValidation{
-					Required:                   true,
-					AlphaNumericDashUnderscore: true,
-					MaxLength:                  _maxNodeGroupLength,
-				},
+var nodeGroupsFieldValidation *cr.StructValidation = &cr.StructValidation{
+	StructFieldValidations: []*cr.StructFieldValidation{
+		{
+			StructField: "Name",
+			StringValidation: &cr.StringValidation{
+				Required:                   true,
+				AlphaNumericDashUnderscore: true,
+				MaxLength:                  _maxNodeGroupLength,
 			},
-			{
-				StructField: "InstanceType",
-				StringValidation: &cr.StringValidation{
-					Required:  true,
-					MinLength: 1,
-					Validator: validateInstanceType,
-				},
+		},
+		{
+			StructField: "InstanceType",
+			StringValidation: &cr.StringValidation{
+				Required:  true,
+				MinLength: 1,
+				Validator: validateInstanceType,
 			},
-			{
-				StructField: "MinInstances",
-				Int64Validation: &cr.Int64Validation{
-					Default:              int64(1),
-					GreaterThanOrEqualTo: pointer.Int64(0),
-				},
+		},
+		{
+			StructField: "MinInstances",
+			Int64Validation: &cr.Int64Validation{
+				Default:              int64(1),
+				GreaterThanOrEqualTo: pointer.Int64(0),
 			},
-			{
-				StructField: "MaxInstances",
-				Int64Validation: &cr.Int64Validation{
-					Default:              int64(5),
-					GreaterThanOrEqualTo: pointer.Int64(0), // this will be validated to be > 0 during cluster up (can be scaled down later)
-				},
+		},
+		{
+			StructField: "MaxInstances",
+			Int64Validation: &cr.Int64Validation{
+				Default:              int64(5),
+				GreaterThanOrEqualTo: pointer.Int64(0), // this will be validated to be > 0 during cluster up (can be scaled down later)
 			},
-			{
-				StructField: "Priority",
-				Int64Validation: &cr.Int64Validation{
-					Default:              int64(1),
-					GreaterThanOrEqualTo: pointer.Int64(1),
-					LessThanOrEqualTo:    pointer.Int64(100),
-				},
+		},
+		{
+			StructField: "Priority",
+			Int64Validation: &cr.Int64Validation{
+				Default:              int64(1),
+				GreaterThanOrEqualTo: pointer.Int64(1),
+				LessThanOrEqualTo:    pointer.Int64(100),
 			},
-			{
-				StructField: "InstanceVolumeSize",
-				Int64Validation: &cr.Int64Validation{
-					Default:              50,
-					GreaterThanOrEqualTo: pointer.Int64(20), // large enough to fit docker images and any other overhead
-					LessThanOrEqualTo:    pointer.Int64(16384),
-				},
+		},
+		{
+			StructField: "InstanceVolumeSize",
+			Int64Validation: &cr.Int64Validation{
+				Default:              50,
+				GreaterThanOrEqualTo: pointer.Int64(20), // large enough to fit docker images and any other overhead
+				LessThanOrEqualTo:    pointer.Int64(16384),
 			},
-			{
-				StructField: "InstanceVolumeType",
-				StringValidation: &cr.StringValidation{
-					AllowedValues: VolumeTypesStrings(),
-					Default:       GP3VolumeType.String(),
-				},
-				Parser: func(str string) (interface{}, error) {
-					return VolumeTypeFromString(str), nil
-				},
+		},
+		{
+			StructField: "InstanceVolumeType",
+			StringValidation: &cr.StringValidation{
+				AllowedValues: VolumeTypesStrings(),
+				Default:       GP3VolumeType.String(),
 			},
-			{
-				StructField: "InstanceVolumeIOPS",
-				Int64PtrValidation: &cr.Int64PtrValidation{
-					AllowExplicitNull: true,
-				},
+			Parser: func(str string) (interface{}, error) {
+				return VolumeTypeFromString(str), nil
 			},
-			{
-				StructField: "InstanceVolumeThroughput",
-				Int64PtrValidation: &cr.Int64PtrValidation{
-					GreaterThanOrEqualTo: pointer.Int64(125),
-					LessThanOrEqualTo:    pointer.Int64(1000),
-					AllowExplicitNull:    true,
-				},
+		},
+		{
+			StructField: "InstanceVolumeIOPS",
+			Int64PtrValidation: &cr.Int64PtrValidation{
+				AllowExplicitNull: true,
 			},
-			{
-				StructField: "Spot",
-				BoolValidation: &cr.BoolValidation{
-					Default: false,
-				},
+		},
+		{
+			StructField: "InstanceVolumeThroughput",
+			Int64PtrValidation: &cr.Int64PtrValidation{
+				GreaterThanOrEqualTo: pointer.Int64(125),
+				LessThanOrEqualTo:    pointer.Int64(1000),
+				AllowExplicitNull:    true,
 			},
-			{
-				StructField: "SpotConfig",
-				StructValidation: &cr.StructValidation{
-					DefaultNil:        true,
-					AllowExplicitNull: true,
-					StructFieldValidations: []*cr.StructFieldValidation{
-						{
-							StructField: "InstanceDistribution",
-							StringListValidation: &cr.StringListValidation{
-								DisallowDups:      true,
-								Validator:         validateInstanceDistribution,
-								AllowExplicitNull: true,
-							},
+		},
+		{
+			StructField: "Spot",
+			BoolValidation: &cr.BoolValidation{
+				Default: false,
+			},
+		},
+		{
+			StructField: "SpotConfig",
+			StructValidation: &cr.StructValidation{
+				DefaultNil:        true,
+				AllowExplicitNull: true,
+				StructFieldValidations: []*cr.StructFieldValidation{
+					{
+						StructField: "InstanceDistribution",
+						StringListValidation: &cr.StringListValidation{
+							DisallowDups:      true,
+							Validator:         validateInstanceDistribution,
+							AllowExplicitNull: true,
 						},
-						{
-							StructField: "OnDemandBaseCapacity",
-							Int64PtrValidation: &cr.Int64PtrValidation{
-								GreaterThanOrEqualTo: pointer.Int64(0),
-								AllowExplicitNull:    true,
-							},
+					},
+					{
+						StructField: "OnDemandBaseCapacity",
+						Int64PtrValidation: &cr.Int64PtrValidation{
+							GreaterThanOrEqualTo: pointer.Int64(0),
+							AllowExplicitNull:    true,
 						},
-						{
-							StructField: "OnDemandPercentageAboveBaseCapacity",
-							Int64PtrValidation: &cr.Int64PtrValidation{
-								GreaterThanOrEqualTo: pointer.Int64(0),
-								LessThanOrEqualTo:    pointer.Int64(100),
-								AllowExplicitNull:    true,
-							},
+					},
+					{
+						StructField: "OnDemandPercentageAboveBaseCapacity",
+						Int64PtrValidation: &cr.Int64PtrValidation{
+							GreaterThanOrEqualTo: pointer.Int64(0),
+							LessThanOrEqualTo:    pointer.Int64(100),
+							AllowExplicitNull:    true,
 						},
-						{
-							StructField: "MaxPrice",
-							Float64PtrValidation: &cr.Float64PtrValidation{
-								GreaterThan:       pointer.Float64(0),
-								AllowExplicitNull: true,
-							},
+					},
+					{
+						StructField: "MaxPrice",
+						Float64PtrValidation: &cr.Float64PtrValidation{
+							GreaterThan:       pointer.Float64(0),
+							AllowExplicitNull: true,
 						},
-						{
-							StructField: "InstancePools",
-							Int64PtrValidation: &cr.Int64PtrValidation{
-								GreaterThanOrEqualTo: pointer.Int64(1),
-								LessThanOrEqualTo:    pointer.Int64(int64(_maxInstancePools)),
-								AllowExplicitNull:    true,
-							},
+					},
+					{
+						StructField: "InstancePools",
+						Int64PtrValidation: &cr.Int64PtrValidation{
+							GreaterThanOrEqualTo: pointer.Int64(1),
+							LessThanOrEqualTo:    pointer.Int64(int64(_maxInstancePools)),
+							AllowExplicitNull:    true,
 						},
 					},
 				},
 			},
 		},
-	}
+	},
 }
 
 func CoreConfigValidations(allowExtraFields bool) *cr.StructValidation {
@@ -1012,6 +1010,15 @@ func (cc *Config) validate(awsClient *aws.Client) error {
 }
 
 func (cc *Config) validateConfigDiff(oldConfig Config) error {
+	err := cc.validateTopLevelSectionDiff(oldConfig)
+	if err != nil {
+		return err
+	}
+
+	return cc.validateSharedNodeGroupsDiff(oldConfig)
+}
+
+func (cc *Config) validateTopLevelSectionDiff(oldConfig Config) error {
 	// validate actionable changes
 	newClusterConfigCopy, err := cc.DeepCopy()
 	if err != nil {
@@ -1117,11 +1124,6 @@ func (cc *Config) ValidateOnConfigure(awsClient *aws.Client, oldConfig Config, e
 		return ConfigureChanges{}, err
 	}
 
-	err = cc.validateSharedNodeGroupsDiff(oldConfig)
-	if err != nil {
-		return ConfigureChanges{}, err
-	}
-
 	ngsToBeAdded := cc.getNewNodeGroups(oldConfig)
 	ngsToBeRemoved := cc.getRemovedNodeGroups(oldConfig)
 
@@ -1144,10 +1146,10 @@ func (cc *Config) ValidateOnConfigure(awsClient *aws.Client, oldConfig Config, e
 	}
 
 	return ConfigureChanges{
-		NodeGroupsToAdd:    GetNodeGroupNames(ngsToBeAdded),
-		NodeGroupsToRemove: GetNodeGroupNames(ngsToBeRemoved),
-		NodeGroupsToScale:  GetNodeGroupNames(ngNamesToBeScaled),
-		StaleEKSNodeGroups: getStaleEksNodeGroups(cc.ClusterName, eksNodeGroupStacks, ngsToBeRemoved),
+		NodeGroupsToAdd:       GetNodeGroupNames(ngsToBeAdded),
+		NodeGroupsToRemove:    GetNodeGroupNames(ngsToBeRemoved),
+		NodeGroupsToScale:     GetNodeGroupNames(ngNamesToBeScaled),
+		EKSNodeGroupsToRemove: getStaleEksNodeGroups(cc.ClusterName, eksNodeGroupStacks, ngsToBeRemoved),
 	}, nil
 }
 
@@ -1267,7 +1269,7 @@ func (cc *Config) GetNodeGroupByName(name string) *NodeGroup {
 }
 
 func (cc *Config) getNewNodeGroups(oldConfig Config) []*NodeGroup {
-	newNodeGroups := []*NodeGroup{}
+	var newNodeGroups []*NodeGroup
 	for _, updatingNg := range cc.NodeGroups {
 		isNewNg := true
 		for _, previousNg := range oldConfig.NodeGroups {
@@ -1285,7 +1287,7 @@ func (cc *Config) getNewNodeGroups(oldConfig Config) []*NodeGroup {
 }
 
 func (cc *Config) getRemovedNodeGroups(oldConfig Config) []*NodeGroup {
-	removedNodeGroups := []*NodeGroup{}
+	var removedNodeGroups []*NodeGroup
 	for _, previousNg := range oldConfig.NodeGroups {
 		isRemovedNg := true
 		for _, updatingNg := range cc.NodeGroups {
@@ -1303,8 +1305,8 @@ func (cc *Config) getRemovedNodeGroups(oldConfig Config) []*NodeGroup {
 }
 
 func (cc *Config) getCommonNodeGroups(oldConfig Config) ([]*NodeGroup, []*NodeGroup) {
-	commonNewNodeGroups := []*NodeGroup{}
-	commonOldNodeGroups := []*NodeGroup{}
+	var commonNewNodeGroups []*NodeGroup
+	var commonOldNodeGroups []*NodeGroup
 	for _, previousNg := range oldConfig.NodeGroups {
 		for _, updatingNg := range cc.NodeGroups {
 			if previousNg.Name == updatingNg.Name {
@@ -1320,19 +1322,11 @@ func (cc *Config) getCommonNodeGroups(oldConfig Config) ([]*NodeGroup, []*NodeGr
 }
 
 func GetNodeGroupNames(nodeGroups []*NodeGroup) []string {
-	ngNames := []string{}
-	for _, ng := range nodeGroups {
-		ngNames = append(ngNames, ng.Name)
+	ngNames := make([]string, len(nodeGroups))
+	for i := range nodeGroups {
+		ngNames[i] = nodeGroups[i].Name
 	}
 	return ngNames
-}
-
-func GetNodeGroupAvailabilities(nodeGroups []*NodeGroup) []bool {
-	ngAvailability := []bool{}
-	for _, ng := range nodeGroups {
-		ngAvailability = append(ngAvailability, ng.Spot)
-	}
-	return ngAvailability
 }
 
 func CheckSpotInstanceCompatibility(target aws.InstanceMetadata, suggested aws.InstanceMetadata) error {
@@ -1528,15 +1522,15 @@ func (ng *NodeGroup) SpotConfigOnDemandValues() (int64, int64) {
 }
 
 func getStaleEksNodeGroups(clusterName string, eksNodeGroupStacks []*cloudformation.StackSummary, ngsMarkedForRemoval []*NodeGroup) []string {
-	eksNodeGroupsToRemove := []string{}
+	var eksNodeGroupsToRemove []string
 	for _, ng := range ngsMarkedForRemoval {
-		availability := "d"
+		lifecycle := "d"
 		if ng.Spot {
-			availability = "s"
+			lifecycle = "s"
 		}
 
-		eksNgName := fmt.Sprintf("cx-w%s-%s", availability, ng.Name)
-		eksStackName := fmt.Sprintf("eksctl-%s-nodegroup-cx-w%s-%s", clusterName, availability, ng.Name)
+		eksNgName := fmt.Sprintf("cx-w%s-%s", lifecycle, ng.Name)
+		eksStackName := fmt.Sprintf("eksctl-%s-nodegroup-cx-w%s-%s", clusterName, lifecycle, ng.Name)
 		for _, eksNgStack := range eksNodeGroupStacks {
 			if eksNgStack == nil || eksNgStack.StackName == nil {
 				continue
@@ -1776,9 +1770,9 @@ func (mc *ManagedConfig) GetNodeGroupByName(name string) *NodeGroup {
 }
 
 func (mc *ManagedConfig) GetNodeGroupNames() []string {
-	allNodeGroupNames := []string{}
-	for _, ng := range mc.NodeGroups {
-		allNodeGroupNames = append(allNodeGroupNames, ng.Name)
+	allNodeGroupNames := make([]string, len(mc.NodeGroups))
+	for i := range mc.NodeGroups {
+		allNodeGroupNames[i] = mc.NodeGroups[i].Name
 	}
 
 	return allNodeGroupNames

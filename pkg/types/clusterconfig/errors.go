@@ -122,7 +122,7 @@ func ErrorNodeGroupMaxInstancesIsZero() error {
 func ErrorMaxNumOfNodeGroupsReached(maxNodeGroups int64) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrMaxNumOfNodeGroupsReached,
-		Message: fmt.Sprintf("cannot have more than %d nodegroups in your cluster", maxNodeGroups),
+		Message: fmt.Sprintf("cannot have more than %d nodegroups", maxNodeGroups),
 	})
 }
 
@@ -295,7 +295,7 @@ func ErrorConfigCannotBeChangedOnConfigure() error {
 func ErrorNodeGroupCanOnlyBeScaled() error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrNodeGroupCanOnlyBeScaled,
-		Message: "in a running cluster, an existing nodegroup can only be scaled or deleted",
+		Message: "in a running cluster, nodegroups can only be scaled, added, or deleted",
 	})
 }
 
