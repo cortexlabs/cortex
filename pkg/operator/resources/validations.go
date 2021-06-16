@@ -184,11 +184,11 @@ func podResourceRequestsTable(api *userconfig.API, compute userconfig.Compute) s
 	sidecarCPUNote := ""
 	sidecarMemNote := ""
 	if api.Kind == userconfig.RealtimeAPIKind {
-		sidecarCPUNote = fmt.Sprintf(" (including %s CPU for the %s sidecar container)", consts.CortexProxyCPU, workloads.ProxyContainerName)
-		sidecarMemNote = fmt.Sprintf(" (including %s memory for the %s sidecar container)", consts.CortexProxyMem, workloads.ProxyContainerName)
+		sidecarCPUNote = fmt.Sprintf(" (including %s CPU for the %s sidecar container)", consts.CortexProxyCPU.String(), workloads.ProxyContainerName)
+		sidecarMemNote = fmt.Sprintf(" (including %s memory for the %s sidecar container)", consts.CortexProxyMem.String(), workloads.ProxyContainerName)
 	} else if api.Kind == userconfig.AsyncAPIKind || api.Kind == userconfig.BatchAPIKind {
-		sidecarCPUNote = fmt.Sprintf(" (including %s CPU for the %s sidecar container)", consts.CortexDequeuerCPU, workloads.DequeuerContainerName)
-		sidecarMemNote = fmt.Sprintf(" (including %s memory for the %s sidecar container)", consts.CortexDequeuerMem, workloads.DequeuerContainerName)
+		sidecarCPUNote = fmt.Sprintf(" (including %s CPU for the %s sidecar container)", consts.CortexDequeuerCPU.String(), workloads.DequeuerContainerName)
+		sidecarMemNote = fmt.Sprintf(" (including %s memory for the %s sidecar container)", consts.CortexDequeuerMem.String(), workloads.DequeuerContainerName)
 	}
 
 	var items table.KeyValuePairs
