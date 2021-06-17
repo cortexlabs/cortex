@@ -10,6 +10,10 @@ class Request(BaseModel):
 
 
 app = FastAPI()
+app.server_url = "http://localhost:8501/v1/models/resnet50:predict"
+app.labels = requests.get(
+    "https://storage.googleapis.com/download.tensorflow.org/data/ImageNetLabels.txt"
+).text.split("\n")[1:]
 
 
 @app.get("/healthz")
@@ -19,13 +23,6 @@ def healthz():
 
 @app.post("/")
 def text_generator(request: Request):
-    server_url = f"http://localhost:8501/v1/models/resnet50:predict"
-
-    # download labels
-    labels = requests.get(
-        "https://storage.googleapis.com/download.tensorflow.org/data/ImageNetLabels.txt"
-    ).text.split("\n")[1:]
-
     # download the image
     dl_request = requests.get(request.image_url, stream=True)
     dl_request.raise_for_status()
@@ -35,6 +32,7 @@ def text_generator(request: Request):
     predict_request = '{"instances" : [{"b64": "%s"}]}' % jpeg_bytes
 
     # make prediction
-    response = requests.post(server_url, data=predict_request)
+    response = requests.post(app.server_url, data=predict_request)
     response.raise_for_status()
-    return {"image_prediction": labels[response.json()["predictions"][0]["classes"]]}
+    label = app.labels[response.json()["predictions"][0]["classes"]]
+    return {"image_prediction": label}
