@@ -11,4 +11,4 @@
           command: ["tfs_model_status_probe", "-addr", "localhost:8500", "-model-name", "resnet50"]
       compute:
         cpu: 1
-        mem: 2G
+        mem: 2Gi
