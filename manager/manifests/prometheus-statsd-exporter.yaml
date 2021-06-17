@@ -23,17 +23,13 @@ data:
       observer_type: histogram
 
 ---
-
 apiVersion: apps/v1
-kind: DaemonSet
+kind: Deployment
 metadata:
   name: prometheus-statsd-exporter
   namespace: default
 spec:
-  updateStrategy:
-    type: RollingUpdate
-    rollingUpdate:
-      maxUnavailable: 1
+  replicas: 1
   selector:
     matchLabels:
       name: prometheus-statsd-exporter
@@ -62,7 +58,6 @@ spec:
               protocol: TCP
             - name: statsd-udp
               containerPort: 9125
-              hostPort: 9125
               protocol: UDP
           livenessProbe:
             httpGet:
@@ -86,16 +81,23 @@ spec:
             items:
               - key: statsd-mapping.yaml
                 path: statsd-mapping.yaml
-      nodeSelector:
-        workload: "true"
       terminationGracePeriodSeconds: 60
-      tolerations:
-        - key: aws.amazon.com/neuron
-          operator: Exists
-          effect: NoSchedule
-        - key: nvidia.com/gpu
-          operator: Exists
-          effect: NoSchedule
-        - key: workload
-          operator: Exists
-          effect: NoSchedule
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: default
+  name: prometheus-statsd-exporter
+  labels:
+    cortex.dev/name: prometheus-statsd-exporter
+spec:
+  selector:
+    name: prometheus-statsd-exporter
+  ports:
+    - port: 9125
+      name: statsd-udp
+      protocol: UDP
+    - port: 9102
+      name: metrics
+      protocol: TCP

@@ -47,7 +47,7 @@ func main() {
 		userContainerPort int
 		apiName           string
 		jobID             string
-		statsdPort        int
+		statsdAddress     string
 		apiKind           string
 		adminPort         int
 	)
@@ -58,8 +58,8 @@ func main() {
 	flag.StringVar(&apiKind, "api-kind", "", fmt.Sprintf("api kind (%s|%s)", userconfig.BatchAPIKind.String(), userconfig.AsyncAPIKind.String()))
 	flag.StringVar(&apiName, "api-name", "", "api name")
 	flag.StringVar(&jobID, "job-id", "", "job ID")
+	flag.StringVar(&statsdAddress, "statsd-address", "", "address to push statsd metrics")
 	flag.IntVar(&userContainerPort, "user-port", 8080, "target port to which the dequeued messages will be sent to")
-	flag.IntVar(&statsdPort, "statsd-port", 9125, "port for to send udp statsd metrics")
 	flag.IntVar(&adminPort, "admin-port", 0, "port where the admin server (for the probes) will be exposed")
 
 	flag.Parse()
@@ -68,8 +68,6 @@ func main() {
 	if version == "" {
 		version = consts.CortexVersion
 	}
-
-	hostIP := os.Getenv("HOST_IP")
 
 	log := logging.GetLogger()
 	defer func() {
@@ -158,7 +156,7 @@ func main() {
 			TargetURL: targetURL,
 		}
 
-		metricsClient, err := statsd.New(fmt.Sprintf("%s:%d", hostIP, statsdPort))
+		metricsClient, err := statsd.New(statsdAddress)
 		if err != nil {
 			exit(log, err, "unable to initialize metrics client")
 		}
