@@ -191,11 +191,27 @@ type ConfigureChanges struct {
 	NodeGroupsToAdd       []string
 	NodeGroupsToRemove    []string
 	NodeGroupsToScale     []string
-	EKSNodeGroupsToRemove []string
+	EKSNodeGroupsToRemove []string // EKS node group names of (NodeGroupsToRemove ∩ Cortex-converted EKS node groups) ∪ (Cortex-converted EKS node groups - the new cluster config's nodegroups)
 }
 
 func (c *ConfigureChanges) HasChanges() bool {
 	return len(c.NodeGroupsToAdd) != 0 || len(c.NodeGroupsToRemove) != 0 || len(c.NodeGroupsToScale) != 0 || len(c.EKSNodeGroupsToRemove) != 0
+}
+
+// GetGhostEKSNodeGroups returns the set difference between EKSNodeGroupsToRemove and the EKS-converted NodeGroupsToRemove
+func (c *ConfigureChanges) GetGhostEKSNodeGroups() []string {
+	if len(c.EKSNodeGroupsToRemove) <= len(c.NodeGroupsToRemove) {
+		return nil
+	}
+
+	eksNodeGroupPrefix := "cx-wx-"
+	var ghostEKSNodeGroups []string
+	for _, eksNgToRemove := range c.EKSNodeGroupsToRemove {
+		if !slices.HasString(c.NodeGroupsToRemove, eksNgToRemove[len(eksNodeGroupPrefix):]) {
+			ghostEKSNodeGroups = append(ghostEKSNodeGroups, eksNgToRemove)
+		}
+	}
+	return ghostEKSNodeGroups
 }
 
 // NewForFile initializes and validates the cluster config from the YAML config file
@@ -1149,7 +1165,7 @@ func (cc *Config) ValidateOnConfigure(awsClient *aws.Client, oldConfig Config, e
 		NodeGroupsToAdd:       GetNodeGroupNames(ngsToBeAdded),
 		NodeGroupsToRemove:    GetNodeGroupNames(ngsToBeRemoved),
 		NodeGroupsToScale:     GetNodeGroupNames(ngNamesToBeScaled),
-		EKSNodeGroupsToRemove: getStaleEksNodeGroups(cc.ClusterName, eksNodeGroupStacks, ngsToBeRemoved),
+		EKSNodeGroupsToRemove: getStaleEksNodeGroups(cc.ClusterName, eksNodeGroupStacks, cc.NodeGroups, ngsToBeRemoved),
 	}, nil
 }
 
@@ -1521,8 +1537,27 @@ func (ng *NodeGroup) SpotConfigOnDemandValues() (int64, int64) {
 	return onDemandBaseCapacity, onDemandPercentageAboveBaseCapacity
 }
 
-func getStaleEksNodeGroups(clusterName string, eksNodeGroupStacks []*cloudformation.StackSummary, ngsMarkedForRemoval []*NodeGroup) []string {
-	var eksNodeGroupsToRemove []string
+func doesStackExist(stack *cloudformation.StackSummary) bool {
+	if stack == nil || stack.StackName == nil || slices.HasString([]string{
+		cloudformation.StackStatusDeleteComplete,
+		cloudformation.StackStatusDeleteInProgress,
+	}, *stack.StackStatus) {
+		return false
+	}
+	if slices.HasString([]string{
+		cloudformation.StackStatusCreateComplete,
+		cloudformation.StackStatusUpdateInProgress,
+		cloudformation.StackStatusUpdateComplete,
+		cloudformation.StackStatusUpdateRollbackComplete,
+		cloudformation.StackStatusRollbackComplete,
+	}, *stack.StackStatus) {
+		return true
+	}
+	return false
+}
+
+func getStaleEksNodeGroups(clusterName string, eksNodeGroupStacks []*cloudformation.StackSummary, ngsToExist, ngsMarkedForRemoval []*NodeGroup) []string {
+	eksNodeGroupsToRemove := strset.New()
 	for _, ng := range ngsMarkedForRemoval {
 		lifecycle := "d"
 		if ng.Spot {
@@ -1536,13 +1571,36 @@ func getStaleEksNodeGroups(clusterName string, eksNodeGroupStacks []*cloudformat
 				continue
 			}
 			if *eksNgStack.StackName == eksStackName {
-				eksNodeGroupsToRemove = append(eksNodeGroupsToRemove, eksNgName)
+				eksNodeGroupsToRemove.Add(eksNgName)
 				break
 			}
 		}
 	}
 
-	return eksNodeGroupsToRemove
+	for _, eksNgStack := range eksNodeGroupStacks {
+		if !doesStackExist(eksNgStack) {
+			continue
+		}
+
+		foundNg := false
+		for _, ng := range ngsToExist {
+			lifecycle := "d"
+			if ng.Spot {
+				lifecycle = "s"
+			}
+			eksStackName := fmt.Sprintf("eksctl-%s-nodegroup-cx-w%s-%s", clusterName, lifecycle, ng.Name)
+			if *eksNgStack.StackName == eksStackName {
+				foundNg = true
+				break
+			}
+		}
+		if !foundNg {
+			eksNgName := (*eksNgStack.StackName)[len(fmt.Sprintf("eksctl-%s-nodegroup-", clusterName)):]
+			eksNodeGroupsToRemove.Add(eksNgName)
+		}
+	}
+
+	return eksNodeGroupsToRemove.Slice()
 }
 
 func (cc *CoreConfig) TelemetryEvent() map[string]interface{} {

@@ -304,6 +304,12 @@ func confirmConfigureClusterConfig(configureChanges clusterconfig.ConfigureChang
 	if len(configureChanges.NodeGroupsToRemove) > 0 {
 		fmt.Printf("￮ %d %s will be removed: %s\n", len(configureChanges.NodeGroupsToRemove), s.PluralS("nodegroup", len(configureChanges.NodeGroupsToRemove)), s.StrsAnd(configureChanges.NodeGroupsToRemove))
 	}
+	// EKS node groups that don't appear in the old/new cluster config
+	// this is unlikely but can happen
+	ghostEKSNodeGroups := configureChanges.GetGhostEKSNodeGroups()
+	if len(ghostEKSNodeGroups) > 0 {
+		fmt.Printf("￮ %d %s will be removed: %s\n", len(ghostEKSNodeGroups), s.PluralS("EKS nodegroup", len(ghostEKSNodeGroups)), s.StrsAnd(ghostEKSNodeGroups))
+	}
 	fmt.Println()
 
 	if !disallowPrompt {

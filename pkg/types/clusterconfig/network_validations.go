@@ -25,12 +25,12 @@ import (
 )
 
 const (
-	_elasticIPsQuotaCode         = "L-0263D0A3"
-	_internetGatewayQuotaCode    = "L-A4707A72"
-	_natGatewayQuotaCode         = "L-FE5A380F"
-	_vpcQuotaCode                = "L-F678F1CE"
-	_securityGroupsQuotaCode     = "L-E79EC296"
-	_securityGroupRulesQuotaCode = "L-0EA8095F"
+	_elasticIPsQuotaCode         = "L-0263D0A3" // from EC2 service
+	_internetGatewayQuotaCode    = "L-A4707A72" // from EC2 service
+	_natGatewayQuotaCode         = "L-FE5A380F" // from EC2 service
+	_vpcQuotaCode                = "L-F678F1CE" // from VPC service
+	_securityGroupsQuotaCode     = "L-E79EC296" // from VPC service
+	_securityGroupRulesQuotaCode = "L-0EA8095F" // from VPC service
 )
 
 func VerifyNetworkQuotas(
@@ -47,16 +47,18 @@ func VerifyNetworkQuotas(
 ) error {
 
 	desiredQuotaCodes := []string{
-		_elasticIPsQuotaCode,
-		_internetGatewayQuotaCode,
-		_natGatewayQuotaCode,
 		_vpcQuotaCode,
 		_securityGroupsQuotaCode,
 		_securityGroupRulesQuotaCode,
 	}
-
 	serviceCodes := []string{"vpc"}
+
 	if !clusterAlreadyExists {
+		desiredQuotaCodes = append(desiredQuotaCodes,
+			_elasticIPsQuotaCode,
+			_internetGatewayQuotaCode,
+			_natGatewayQuotaCode,
+		)
 		serviceCodes = append(serviceCodes, "ec2")
 	}
 
