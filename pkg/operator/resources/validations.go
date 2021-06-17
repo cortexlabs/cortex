@@ -92,7 +92,7 @@ func ValidateClusterAPIs(apis []userconfig.API) error {
 		api := &apis[i]
 		if api.Kind != userconfig.TrafficSplitterKind {
 			if err := validateK8sCompute(api, maxMemMap); err != nil {
-				return err
+				return errors.Wrap(err, api.Identify())
 			}
 		}
 	}
@@ -144,7 +144,7 @@ func validateK8sCompute(api *userconfig.API, maxMemMap map[string]kresource.Quan
 	clusterNodeGroupNames := strset.New(config.ClusterConfig.GetNodeGroupNames()...)
 	for _, ngName := range api.NodeGroups {
 		if !clusterNodeGroupNames.Has(ngName) {
-			return ErrorInvalidNodeGroupSelector(ngName, config.ClusterConfig.GetNodeGroupNames())
+			return errors.Wrap(ErrorInvalidNodeGroupSelector(ngName, config.ClusterConfig.GetNodeGroupNames()), userconfig.NodeGroupsKey)
 		}
 	}
 
@@ -183,11 +183,11 @@ func podResourceRequestsTable(api *userconfig.API, compute userconfig.Compute) s
 	sidecarCPUNote := ""
 	sidecarMemNote := ""
 	if api.Kind == userconfig.RealtimeAPIKind {
-		sidecarCPUNote = fmt.Sprintf(" (including %s CPU for the %s sidecar container)", consts.CortexProxyCPU.String(), workloads.ProxyContainerName)
-		sidecarMemNote = fmt.Sprintf(" (including %s memory for the %s sidecar container)", k8s.ToKiStr(consts.CortexProxyMem), workloads.ProxyContainerName)
+		sidecarCPUNote = fmt.Sprintf(" (including %s for the %s sidecar container)", consts.CortexProxyCPU.String(), workloads.ProxyContainerName)
+		sidecarMemNote = fmt.Sprintf(" (including %s for the %s sidecar container)", k8s.ToMiCeilStr(consts.CortexProxyMem), workloads.ProxyContainerName)
 	} else if api.Kind == userconfig.AsyncAPIKind || api.Kind == userconfig.BatchAPIKind {
-		sidecarCPUNote = fmt.Sprintf(" (including %s CPU for the %s sidecar container)", consts.CortexDequeuerCPU.String(), workloads.DequeuerContainerName)
-		sidecarMemNote = fmt.Sprintf(" (including %s memory for the %s sidecar container)", k8s.ToKiStr(consts.CortexDequeuerMem), workloads.DequeuerContainerName)
+		sidecarCPUNote = fmt.Sprintf(" (including %s for the %s sidecar container)", consts.CortexDequeuerCPU.String(), workloads.DequeuerContainerName)
+		sidecarMemNote = fmt.Sprintf(" (including %s for the %s sidecar container)", k8s.ToMiCeilStr(consts.CortexDequeuerMem), workloads.DequeuerContainerName)
 	}
 
 	var items table.KeyValuePairs
@@ -195,7 +195,7 @@ func podResourceRequestsTable(api *userconfig.API, compute userconfig.Compute) s
 		items.Add("CPU", compute.CPU.String()+sidecarCPUNote)
 	}
 	if compute.Mem != nil {
-		items.Add("memory", compute.Mem.ToKiStr()+sidecarMemNote)
+		items.Add("memory", compute.Mem.ToMiCeilStr()+sidecarMemNote)
 	}
 	if compute.GPU > 0 {
 		items.Add("GPU", compute.GPU)
@@ -232,7 +232,7 @@ func nodeGroupResourcesTable(api *userconfig.API, compute userconfig.Compute, ma
 		if api.NodeGroups != nil && !slices.HasString(api.NodeGroups, ng.Name) {
 			skippedNodeGroups = append(skippedNodeGroups, ng.Name)
 		} else {
-			nodeGroupResourceRows = append(nodeGroupResourceRows, []interface{}{ng.Name, ng.InstanceType, nodeCPU, nodeMem, nodeGPU, nodeInf})
+			nodeGroupResourceRows = append(nodeGroupResourceRows, []interface{}{ng.Name, ng.InstanceType, nodeCPU, k8s.ToMiFloorStr(nodeMem), nodeGPU, nodeInf})
 		}
 	}
 

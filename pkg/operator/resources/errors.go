@@ -101,6 +101,6 @@ func ErrorAPIsNotDeployed(notDeployedAPIs []string) error {
 func ErrorInvalidNodeGroupSelector(selected string, availableNodeGroups []string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrInvalidNodeGroupSelector,
-		Message: fmt.Sprintf("node group %s doesn't exist; remove the node group selector to let Cortex determine automatically where to place the API or specify a valid node group name (%s)", selected, s.StrsOr(availableNodeGroups)),
+		Message: fmt.Sprintf("node group \"%s\" doesn't exist; remove the node group selector to let Cortex determine automatically where to place the API, or specify a valid node group name (%s)", selected, s.StrsOr(availableNodeGroups)),
 	})
 }
