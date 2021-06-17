@@ -8,14 +8,17 @@ from pydantic import BaseModel
 class Request(BaseModel):
     image_url: str
 
+
 app = FastAPI()
+
 
 @app.get("/healthz")
 def healthz():
     return "ok"
 
+
 @app.post("/")
-def text_generator(request: Request):  
+def text_generator(request: Request):
     server_url = f"http://localhost:8501/v1/models/resnet50:predict"
 
     # download labels
@@ -34,6 +37,4 @@ def text_generator(request: Request):
     # make prediction
     response = requests.post(server_url, data=predict_request)
     response.raise_for_status()
-    return {
-        "image_prediction": labels[response.json()["predictions"][0]["classes"]]
-    }
+    return {"image_prediction": labels[response.json()["predictions"][0]["classes"]]}
