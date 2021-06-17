@@ -278,8 +278,8 @@ func (c *Client) VerifyVPCQuota(vpcQuota int, requiredVPCs int) error {
 	return nil
 }
 
-func (c *Client) VerifySecurityGroupQuota(securifyGroupsQuota int, numNodeGroups int) error {
-	requiredSecurityGroups := requiredSecurityGroups(numNodeGroups)
+func (c *Client) VerifySecurityGroupQuota(securifyGroupsQuota int, numNodeGroups int, clusterAlreadyExists bool) error {
+	requiredSecurityGroups := requiredSecurityGroups(numNodeGroups, clusterAlreadyExists)
 	sgs, err := c.DescribeSecurityGroups()
 	if err != nil {
 		return err
@@ -323,6 +323,7 @@ func requiredRulesForNodeGroupSecurityGroup(numAZs, whitelistLength int) int {
 	} else if whitelistLength > 1 {
 		whitelistRuleCount = 1 + 5*(whitelistLength-1)
 	}
+
 	return _baseInboundRulesForNodeGroup + numAZs*_inboundRulesPerAZ + whitelistRuleCount
 }
 
@@ -332,7 +333,10 @@ func requiredRulesForControlPlaneSecurityGroup(numNodeGroups int) int {
 	return 2 * (numNodeGroups + 1)
 }
 
-func requiredSecurityGroups(numNodeGroups int) int {
+func requiredSecurityGroups(numNodeGroups int, clusterAlreadyExists bool) int {
+	if clusterAlreadyExists {
+		return numNodeGroups
+	}
 	// each node group requires a security group
 	return _baseNumberOfSecurityGroups + numNodeGroups
 }

@@ -22,17 +22,24 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 )
 
-func (c *Client) ListEKSStacks(controlPlaneStackName string, nodegroupStackNames strset.Set) ([]*cloudformation.StackSummary, error) {
-	var stackSummaries []*cloudformation.StackSummary
-	stackSet := strset.Union(nodegroupStackNames, strset.New(controlPlaneStackName))
+func (c *Client) ListEKSStacks(controlPlaneStackName string, nodeGroupStackNamePrefixes strset.Set) ([]*cloudformation.StackSummary, error) {
+	mostRecentStackRecordsByName := map[string]*cloudformation.StackSummary{}
+	stackSet := strset.Union(nodeGroupStackNamePrefixes, strset.New(controlPlaneStackName))
 
 	err := c.CloudFormation().ListStacksPages(
 		&cloudformation.ListStacksInput{},
 		func(listStackOutput *cloudformation.ListStacksOutput, lastPage bool) bool {
 			for _, stackSummary := range listStackOutput.StackSummaries {
-
-				if stackSet.HasWithPrefix(*stackSummary.StackName) {
-					stackSummaries = append(stackSummaries, stackSummary)
+				if stackSummary == nil || stackSummary.StackName == nil || !stackSet.HasWithPrefix(*stackSummary.StackName) {
+					continue
+				}
+				if _, ok := mostRecentStackRecordsByName[*stackSummary.StackName]; !ok {
+					mostRecentStackRecordsByName[*stackSummary.StackName] = stackSummary
+				} else {
+					created := mostRecentStackRecordsByName[*stackSummary.StackName].CreationTime
+					if created != nil && stackSummary.CreationTime != nil && stackSummary.CreationTime.After(*created) {
+						mostRecentStackRecordsByName[*stackSummary.StackName] = stackSummary
+					}
 				}
 
 				if *stackSummary.StackName == controlPlaneStackName {
@@ -47,5 +54,13 @@ func (c *Client) ListEKSStacks(controlPlaneStackName string, nodegroupStackNames
 		return nil, errors.WithStack(err)
 	}
 
-	return stackSummaries, nil
+	return getStackSummariesFromMap(mostRecentStackRecordsByName), nil
+}
+
+func getStackSummariesFromMap(stackSummaries map[string]*cloudformation.StackSummary) []*cloudformation.StackSummary {
+	var stackSummariesSlice []*cloudformation.StackSummary
+	for _, stack := range stackSummaries {
+		stackSummariesSlice = append(stackSummariesSlice, stack)
+	}
+	return stackSummariesSlice
 }

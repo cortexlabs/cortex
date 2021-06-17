@@ -34,6 +34,7 @@ import (
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/table"
 	"github.com/cortexlabs/cortex/pkg/types/clusterconfig"
+	"github.com/cortexlabs/cortex/pkg/types/clusterstate"
 )
 
 var _cachedClusterConfigRegex = regexp.MustCompile(`^cluster_\S+\.yaml$`)
@@ -87,7 +88,7 @@ func getNewClusterAccessConfig(clusterConfigFile string) (*clusterconfig.AccessC
 	return accessConfig, nil
 }
 
-func getClusterAccessConfigWithCache() (*clusterconfig.AccessConfig, error) {
+func getClusterAccessConfigWithCache(hasClusterFlags bool) (*clusterconfig.AccessConfig, error) {
 	accessConfig := &clusterconfig.AccessConfig{
 		ImageManager: consts.DefaultRegistry() + "/manager:" + consts.CortexVersion,
 	}
@@ -115,13 +116,12 @@ func getClusterAccessConfigWithCache() (*clusterconfig.AccessConfig, error) {
 	}
 
 	if accessConfig.ClusterName == "" || accessConfig.Region == "" {
-		cliFlagsOnly := _flagClusterScaleNodeGroup != ""
-		return nil, ErrorClusterAccessConfigRequired(cliFlagsOnly)
+		return nil, ErrorClusterAccessConfigRequired(hasClusterFlags)
 	}
 	return accessConfig, nil
 }
 
-func getInstallClusterConfig(awsClient *aws.Client, clusterConfigFile string, disallowPrompt bool) (*clusterconfig.Config, error) {
+func getInstallClusterConfig(awsClient *aws.Client, clusterConfigFile string) (*clusterconfig.Config, error) {
 	clusterConfig := &clusterconfig.Config{}
 
 	err := readUserClusterConfigFile(clusterConfig, clusterConfigFile)
@@ -129,22 +129,35 @@ func getInstallClusterConfig(awsClient *aws.Client, clusterConfigFile string, di
 		return nil, err
 	}
 
-	promptIfNotAdmin(awsClient, disallowPrompt)
+	clusterConfig.Telemetry = isTelemetryEnabled()
 
-	clusterConfig.Telemetry, err = readTelemetryConfig()
-	if err != nil {
-		return nil, err
-	}
-
-	err = clusterConfig.Validate(awsClient)
+	err = clusterConfig.ValidateOnInstall(awsClient)
 	if err != nil {
 		err = errors.Append(err, fmt.Sprintf("\n\ncluster configuration schema can be found at https://docs.cortex.dev/v/%s/", consts.CortexVersionMinor))
 		return nil, errors.Wrap(err, clusterConfigFile)
 	}
 
-	confirmInstallClusterConfig(clusterConfig, awsClient, disallowPrompt)
-
 	return clusterConfig, nil
+}
+
+func getConfigureClusterConfig(awsClient *aws.Client, stacks clusterstate.ClusterStacks, cachedClusterConfig clusterconfig.Config, newClusterConfigFile string) (*clusterconfig.Config, clusterconfig.ConfigureChanges, error) {
+	newUserClusterConfig := &clusterconfig.Config{}
+
+	err := readUserClusterConfigFile(newUserClusterConfig, newClusterConfigFile)
+	if err != nil {
+		return nil, clusterconfig.ConfigureChanges{}, err
+	}
+
+	newUserClusterConfig.Telemetry = isTelemetryEnabled()
+	cachedClusterConfig.Telemetry = newUserClusterConfig.Telemetry
+
+	configureChanges, err := newUserClusterConfig.ValidateOnConfigure(awsClient, cachedClusterConfig, stacks.NodeGroupsStacks)
+	if err != nil {
+		err = errors.Append(err, fmt.Sprintf("\n\ncluster configuration schema can be found at https://docs.cortex.dev/v/%s/", consts.CortexVersionMinor))
+		return nil, clusterconfig.ConfigureChanges{}, errors.Wrap(err, newClusterConfigFile)
+	}
+
+	return newUserClusterConfig, configureChanges, nil
 }
 
 func confirmInstallClusterConfig(clusterConfig *clusterconfig.Config, awsClient *aws.Client, disallowPrompt bool) {
@@ -262,5 +275,45 @@ func confirmInstallClusterConfig(clusterConfig *clusterconfig.Config, awsClient 
 	if !disallowPrompt {
 		exitMessage := fmt.Sprintf("cluster configuration can be modified via the cluster config file; see https://docs.cortex.dev/v/%s/ for more information", consts.CortexVersionMinor)
 		prompt.YesOrExit("would you like to continue?", "", exitMessage)
+	}
+}
+
+func confirmConfigureClusterConfig(configureChanges clusterconfig.ConfigureChanges, oldCc, newCc clusterconfig.Config, disallowPrompt bool) {
+	fmt.Printf("your %s cluster in region %s will be updated as follows:\n\n", newCc.ClusterName, newCc.Region)
+	if len(configureChanges.NodeGroupsToScale) > 0 {
+		fmt.Printf("￮ %d %s will be scaled\n", len(configureChanges.NodeGroupsToScale), s.PluralS("nodegroup", len(configureChanges.NodeGroupsToScale)))
+		for _, ngName := range configureChanges.NodeGroupsToScale {
+			var output string
+			ngOld := oldCc.GetNodeGroupByName(ngName)
+			ngScaled := newCc.GetNodeGroupByName(ngName)
+			if ngOld.MinInstances != ngScaled.MinInstances && ngOld.MaxInstances != ngScaled.MaxInstances {
+				output = fmt.Sprintf("nodegroup %s will update its %s from %d to %d and update its %s from %d to %d", ngName, clusterconfig.MinInstancesKey, ngOld.MinInstances, ngScaled.MinInstances, clusterconfig.MaxInstancesKey, ngOld.MaxInstances, ngScaled.MaxInstances)
+			}
+			if ngOld.MinInstances == ngScaled.MinInstances && ngOld.MaxInstances != ngScaled.MaxInstances {
+				output = fmt.Sprintf("nodegroup %s will update its %s from %d to %d", ngName, clusterconfig.MaxInstancesKey, ngOld.MaxInstances, ngScaled.MaxInstances)
+			}
+			if ngOld.MinInstances != ngScaled.MinInstances && ngOld.MaxInstances == ngScaled.MaxInstances {
+				output = fmt.Sprintf("nodegroup %s will update its %s from %d to %d", ngName, clusterconfig.MinInstancesKey, ngOld.MinInstances, ngScaled.MinInstances)
+			}
+			fmt.Printf(" ￮ %s\n", output)
+		}
+	}
+	if len(configureChanges.NodeGroupsToAdd) > 0 {
+		fmt.Printf("￮ %d %s will be added: %s\n", len(configureChanges.NodeGroupsToAdd), s.PluralS("nodegroup", len(configureChanges.NodeGroupsToAdd)), s.StrsAnd(configureChanges.NodeGroupsToAdd))
+	}
+	if len(configureChanges.NodeGroupsToRemove) > 0 {
+		fmt.Printf("￮ %d %s will be removed: %s\n", len(configureChanges.NodeGroupsToRemove), s.PluralS("nodegroup", len(configureChanges.NodeGroupsToRemove)), s.StrsAnd(configureChanges.NodeGroupsToRemove))
+	}
+	// EKS node groups that don't appear in the old/new cluster config
+	// this is unlikely but can happen
+	ghostEKSNodeGroups := configureChanges.GetGhostEKSNodeGroups()
+	if len(ghostEKSNodeGroups) > 0 {
+		fmt.Printf("￮ %d %s will be removed: %s\n", len(ghostEKSNodeGroups), s.PluralS("EKS nodegroup", len(ghostEKSNodeGroups)), s.StrsAnd(ghostEKSNodeGroups))
+	}
+	fmt.Println()
+
+	if !disallowPrompt {
+		exitMessage := fmt.Sprintf("cluster configuration can be modified via the cluster config file; see https://docs.cortex.dev/v/%s/ for more information", consts.CortexVersionMinor)
+		prompt.YesOrExit(fmt.Sprintf("your cluster named \"%s\" in %s will be updated according to the configuration above, are you sure you want to continue?", newCc.ClusterName, newCc.Region), "", exitMessage)
 	}
 }

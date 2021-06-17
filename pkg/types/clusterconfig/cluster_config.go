@@ -28,6 +28,7 @@ import (
 	"time"
 
 	"github.com/aws/amazon-vpc-cni-k8s/pkg/awsutils"
+	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
@@ -38,6 +39,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	"github.com/cortexlabs/cortex/pkg/lib/slices"
+	"github.com/cortexlabs/cortex/pkg/lib/structs"
 	"github.com/cortexlabs/yaml"
 )
 
@@ -135,6 +137,7 @@ type NodeGroup struct {
 	InstanceType             string      `json:"instance_type" yaml:"instance_type"`
 	MinInstances             int64       `json:"min_instances" yaml:"min_instances"`
 	MaxInstances             int64       `json:"max_instances" yaml:"max_instances"`
+	Priority                 int64       `json:"priority" yaml:"priority"`
 	InstanceVolumeSize       int64       `json:"instance_volume_size" yaml:"instance_volume_size"`
 	InstanceVolumeType       VolumeType  `json:"instance_volume_type" yaml:"instance_volume_type"`
 	InstanceVolumeIOPS       *int64      `json:"instance_volume_iops" yaml:"instance_volume_iops"`
@@ -162,10 +165,10 @@ type Config struct {
 }
 
 type OperatorMetadata struct {
-	APIVersion          string `json:"api_version"`
-	OperatorID          string `json:"operator_id"`
-	ClusterID           string `json:"cluster_id"`
-	IsOperatorInCluster bool   `json:"is_operator_in_cluster"`
+	APIVersion          string `json:"api_version" yaml:"api_version"`
+	OperatorID          string `json:"operator_id" yaml:"operator_id"`
+	ClusterID           string `json:"cluster_id" yaml:"cluster_id"`
+	IsOperatorInCluster bool   `json:"is_operator_in_cluster" yaml:"is_operator_in_cluster"`
 }
 
 type InternalConfig struct {
@@ -180,6 +183,33 @@ type AccessConfig struct {
 	ClusterName  string `json:"cluster_name" yaml:"cluster_name"`
 	Region       string `json:"region" yaml:"region"`
 	ImageManager string `json:"image_manager" yaml:"image_manager"`
+}
+
+type ConfigureChanges struct {
+	NodeGroupsToAdd       []string
+	NodeGroupsToRemove    []string
+	NodeGroupsToScale     []string
+	EKSNodeGroupsToRemove []string // EKS node group names of (NodeGroupsToRemove ∩ Cortex-converted EKS node groups) ∪ (Cortex-converted EKS node groups - the new cluster config's nodegroups)
+}
+
+func (c *ConfigureChanges) HasChanges() bool {
+	return len(c.NodeGroupsToAdd) != 0 || len(c.NodeGroupsToRemove) != 0 || len(c.NodeGroupsToScale) != 0 || len(c.EKSNodeGroupsToRemove) != 0
+}
+
+// GetGhostEKSNodeGroups returns the set difference between EKSNodeGroupsToRemove and the EKS-converted NodeGroupsToRemove
+func (c *ConfigureChanges) GetGhostEKSNodeGroups() []string {
+	if len(c.EKSNodeGroupsToRemove) <= len(c.NodeGroupsToRemove) {
+		return nil
+	}
+
+	eksNodeGroupPrefix := "cx-wx-"
+	var ghostEKSNodeGroups []string
+	for _, eksNgToRemove := range c.EKSNodeGroupsToRemove {
+		if !slices.HasString(c.NodeGroupsToRemove, eksNgToRemove[len(eksNodeGroupPrefix):]) {
+			ghostEKSNodeGroups = append(ghostEKSNodeGroups, eksNgToRemove)
+		}
+	}
+	return ghostEKSNodeGroups
 }
 
 // NewForFile initializes and validates the cluster config from the YAML config file
@@ -217,13 +247,8 @@ func RegionValidator(region string) (string, error) {
 }
 
 func (cc *Config) DeepCopy() (Config, error) {
-	bytes, err := yaml.Marshal(cc)
-	if err != nil {
-		return Config{}, err
-	}
-
 	deepCopied := Config{}
-	err = yaml.Unmarshal(bytes, &deepCopied)
+	err := structs.DeepCopy(&deepCopied, cc)
 	if err != nil {
 		return Config{}, err
 	}
@@ -492,126 +517,8 @@ var ManagedConfigStructFieldValidations = []*cr.StructFieldValidation{
 	{
 		StructField: "NodeGroups",
 		StructListValidation: &cr.StructListValidation{
-			Required: true,
-			StructValidation: &cr.StructValidation{
-				StructFieldValidations: []*cr.StructFieldValidation{
-					{
-						StructField: "Name",
-						StringValidation: &cr.StringValidation{
-							Required:                   true,
-							AlphaNumericDashUnderscore: true,
-							MaxLength:                  _maxNodeGroupLength,
-						},
-					},
-					{
-						StructField: "InstanceType",
-						StringValidation: &cr.StringValidation{
-							Required:  true,
-							MinLength: 1,
-							Validator: validateInstanceType,
-						},
-					},
-					{
-						StructField: "MinInstances",
-						Int64Validation: &cr.Int64Validation{
-							Default:              int64(1),
-							GreaterThanOrEqualTo: pointer.Int64(0),
-						},
-					},
-					{
-						StructField: "MaxInstances",
-						Int64Validation: &cr.Int64Validation{
-							Default:              int64(5),
-							GreaterThanOrEqualTo: pointer.Int64(0), // this will be validated to be > 0 during cluster up (can be scaled down later)
-						},
-					},
-					{
-						StructField: "InstanceVolumeSize",
-						Int64Validation: &cr.Int64Validation{
-							Default:              50,
-							GreaterThanOrEqualTo: pointer.Int64(20), // large enough to fit docker images and any other overhead
-							LessThanOrEqualTo:    pointer.Int64(16384),
-						},
-					},
-					{
-						StructField: "InstanceVolumeType",
-						StringValidation: &cr.StringValidation{
-							AllowedValues: VolumeTypesStrings(),
-							Default:       GP3VolumeType.String(),
-						},
-						Parser: func(str string) (interface{}, error) {
-							return VolumeTypeFromString(str), nil
-						},
-					},
-					{
-						StructField: "InstanceVolumeIOPS",
-						Int64PtrValidation: &cr.Int64PtrValidation{
-							AllowExplicitNull: true,
-						},
-					},
-					{
-						StructField: "InstanceVolumeThroughput",
-						Int64PtrValidation: &cr.Int64PtrValidation{
-							GreaterThanOrEqualTo: pointer.Int64(125),
-							LessThanOrEqualTo:    pointer.Int64(1000),
-							AllowExplicitNull:    true,
-						},
-					},
-					{
-						StructField: "Spot",
-						BoolValidation: &cr.BoolValidation{
-							Default: false,
-						},
-					},
-					{
-						StructField: "SpotConfig",
-						StructValidation: &cr.StructValidation{
-							DefaultNil:        true,
-							AllowExplicitNull: true,
-							StructFieldValidations: []*cr.StructFieldValidation{
-								{
-									StructField: "InstanceDistribution",
-									StringListValidation: &cr.StringListValidation{
-										DisallowDups:      true,
-										Validator:         validateInstanceDistribution,
-										AllowExplicitNull: true,
-									},
-								},
-								{
-									StructField: "OnDemandBaseCapacity",
-									Int64PtrValidation: &cr.Int64PtrValidation{
-										GreaterThanOrEqualTo: pointer.Int64(0),
-										AllowExplicitNull:    true,
-									},
-								},
-								{
-									StructField: "OnDemandPercentageAboveBaseCapacity",
-									Int64PtrValidation: &cr.Int64PtrValidation{
-										GreaterThanOrEqualTo: pointer.Int64(0),
-										LessThanOrEqualTo:    pointer.Int64(100),
-										AllowExplicitNull:    true,
-									},
-								},
-								{
-									StructField: "MaxPrice",
-									Float64PtrValidation: &cr.Float64PtrValidation{
-										GreaterThan:       pointer.Float64(0),
-										AllowExplicitNull: true,
-									},
-								},
-								{
-									StructField: "InstancePools",
-									Int64PtrValidation: &cr.Int64PtrValidation{
-										GreaterThanOrEqualTo: pointer.Int64(1),
-										LessThanOrEqualTo:    pointer.Int64(int64(_maxInstancePools)),
-										AllowExplicitNull:    true,
-									},
-								},
-							},
-						},
-					},
-				},
-			},
+			Required:         true,
+			StructValidation: nodeGroupsFieldValidation,
 		},
 	},
 	{
@@ -784,6 +691,134 @@ var ManagedConfigStructFieldValidations = []*cr.StructFieldValidation{
 	},
 }
 
+var nodeGroupsFieldValidation *cr.StructValidation = &cr.StructValidation{
+	StructFieldValidations: []*cr.StructFieldValidation{
+		{
+			StructField: "Name",
+			StringValidation: &cr.StringValidation{
+				Required:                   true,
+				AlphaNumericDashUnderscore: true,
+				MaxLength:                  _maxNodeGroupLength,
+			},
+		},
+		{
+			StructField: "InstanceType",
+			StringValidation: &cr.StringValidation{
+				Required:  true,
+				MinLength: 1,
+				Validator: validateInstanceType,
+			},
+		},
+		{
+			StructField: "MinInstances",
+			Int64Validation: &cr.Int64Validation{
+				Default:              int64(1),
+				GreaterThanOrEqualTo: pointer.Int64(0),
+			},
+		},
+		{
+			StructField: "MaxInstances",
+			Int64Validation: &cr.Int64Validation{
+				Default:              int64(5),
+				GreaterThanOrEqualTo: pointer.Int64(0), // this will be validated to be > 0 during cluster up (can be scaled down later)
+			},
+		},
+		{
+			StructField: "Priority",
+			Int64Validation: &cr.Int64Validation{
+				Default:              int64(1),
+				GreaterThanOrEqualTo: pointer.Int64(1),
+				LessThanOrEqualTo:    pointer.Int64(100),
+			},
+		},
+		{
+			StructField: "InstanceVolumeSize",
+			Int64Validation: &cr.Int64Validation{
+				Default:              50,
+				GreaterThanOrEqualTo: pointer.Int64(20), // large enough to fit docker images and any other overhead
+				LessThanOrEqualTo:    pointer.Int64(16384),
+			},
+		},
+		{
+			StructField: "InstanceVolumeType",
+			StringValidation: &cr.StringValidation{
+				AllowedValues: VolumeTypesStrings(),
+				Default:       GP3VolumeType.String(),
+			},
+			Parser: func(str string) (interface{}, error) {
+				return VolumeTypeFromString(str), nil
+			},
+		},
+		{
+			StructField: "InstanceVolumeIOPS",
+			Int64PtrValidation: &cr.Int64PtrValidation{
+				AllowExplicitNull: true,
+			},
+		},
+		{
+			StructField: "InstanceVolumeThroughput",
+			Int64PtrValidation: &cr.Int64PtrValidation{
+				GreaterThanOrEqualTo: pointer.Int64(125),
+				LessThanOrEqualTo:    pointer.Int64(1000),
+				AllowExplicitNull:    true,
+			},
+		},
+		{
+			StructField: "Spot",
+			BoolValidation: &cr.BoolValidation{
+				Default: false,
+			},
+		},
+		{
+			StructField: "SpotConfig",
+			StructValidation: &cr.StructValidation{
+				DefaultNil:        true,
+				AllowExplicitNull: true,
+				StructFieldValidations: []*cr.StructFieldValidation{
+					{
+						StructField: "InstanceDistribution",
+						StringListValidation: &cr.StringListValidation{
+							DisallowDups:      true,
+							Validator:         validateInstanceDistribution,
+							AllowExplicitNull: true,
+						},
+					},
+					{
+						StructField: "OnDemandBaseCapacity",
+						Int64PtrValidation: &cr.Int64PtrValidation{
+							GreaterThanOrEqualTo: pointer.Int64(0),
+							AllowExplicitNull:    true,
+						},
+					},
+					{
+						StructField: "OnDemandPercentageAboveBaseCapacity",
+						Int64PtrValidation: &cr.Int64PtrValidation{
+							GreaterThanOrEqualTo: pointer.Int64(0),
+							LessThanOrEqualTo:    pointer.Int64(100),
+							AllowExplicitNull:    true,
+						},
+					},
+					{
+						StructField: "MaxPrice",
+						Float64PtrValidation: &cr.Float64PtrValidation{
+							GreaterThan:       pointer.Float64(0),
+							AllowExplicitNull: true,
+						},
+					},
+					{
+						StructField: "InstancePools",
+						Int64PtrValidation: &cr.Int64PtrValidation{
+							GreaterThanOrEqualTo: pointer.Int64(1),
+							LessThanOrEqualTo:    pointer.Int64(int64(_maxInstancePools)),
+							AllowExplicitNull:    true,
+						},
+					},
+				},
+			},
+		},
+	},
+}
+
 func CoreConfigValidations(allowExtraFields bool) *cr.StructValidation {
 	return &cr.StructValidation{
 		Required:               true,
@@ -853,10 +888,7 @@ func (cc *CoreConfig) SQSNamePrefix() string {
 	return SQSNamePrefix(cc.ClusterName)
 }
 
-// this validates the user-provided cluster config
-func (cc *Config) Validate(awsClient *aws.Client) error {
-	fmt.Print("verifying your configuration ...\n\n")
-
+func (cc *Config) validate(awsClient *aws.Client) error {
 	numNodeGroups := len(cc.NodeGroups)
 	if numNodeGroups == 0 {
 		return ErrorNoNodeGroupSpecified()
@@ -929,11 +961,6 @@ func (cc *Config) Validate(awsClient *aws.Client) error {
 		return ErrorS3RegionDiffersFromCluster(cc.Bucket, bucketRegion, cc.Region)
 	}
 
-	if cc.ClusterUID != "" {
-		return ErrorDisallowedField(ClusterUIDKey)
-	}
-	cc.ClusterUID = strconv.FormatInt(time.Now().Unix(), 10)
-
 	if cc.CortexPolicyARN != "" {
 		return ErrorDisallowedField(CortexPolicyARNKey)
 	}
@@ -993,12 +1020,101 @@ func (cc *Config) Validate(awsClient *aws.Client) error {
 		}
 	}
 
+	return nil
+}
+
+func (cc *Config) validateConfigDiff(oldConfig Config) error {
+	err := cc.validateTopLevelSectionDiff(oldConfig)
+	if err != nil {
+		return err
+	}
+
+	return cc.validateSharedNodeGroupsDiff(oldConfig)
+}
+
+func (cc *Config) validateTopLevelSectionDiff(oldConfig Config) error {
+	// validate actionable changes
+	newClusterConfigCopy, err := cc.DeepCopy()
+	if err != nil {
+		return err
+	}
+
+	oldClusterConfigCopy, err := oldConfig.DeepCopy()
+	if err != nil {
+		return err
+	}
+
+	newClusterConfigCopy.NodeGroups = []*NodeGroup{}
+	oldClusterConfigCopy.NodeGroups = []*NodeGroup{}
+
+	h1, err := newClusterConfigCopy.Hash()
+	if err != nil {
+		return err
+	}
+	h2, err := oldClusterConfigCopy.Hash()
+	if err != nil {
+		return err
+	}
+	if h1 != h2 {
+		return ErrorConfigCannotBeChangedOnConfigure()
+	}
+
+	return nil
+}
+
+func (cc *Config) validateSharedNodeGroupsDiff(oldConfig Config) error {
+	sharedNgsFromNewConfig, sharedNgsFromOldConfig := cc.getCommonNodeGroups(oldConfig)
+	for i := range sharedNgsFromNewConfig {
+		newNgCopy, err := sharedNgsFromNewConfig[i].DeepCopy()
+		if err != nil {
+			return errors.Wrap(err, NodeGroupsKey)
+		}
+		oldNgCopy, err := sharedNgsFromOldConfig[i].DeepCopy()
+		if err != nil {
+			return errors.Wrap(err, NodeGroupsKey)
+		}
+
+		newNgCopy.MinInstances = 0
+		newNgCopy.MaxInstances = 0
+		oldNgCopy.MinInstances = 0
+		oldNgCopy.MaxInstances = 0
+
+		newHash, err := newNgCopy.Hash()
+		if err != nil {
+			return errors.Wrap(err, NodeGroupsKey)
+		}
+		oldHash, err := oldNgCopy.Hash()
+		if err != nil {
+			return errors.Wrap(err, NodeGroupsKey)
+		}
+
+		if newHash != oldHash {
+			return errors.Wrap(ErrorNodeGroupCanOnlyBeScaled(), NodeGroupsKey, newNgCopy.Name)
+		}
+	}
+	return nil
+}
+
+// this validates the user-provided cluster config
+func (cc *Config) ValidateOnInstall(awsClient *aws.Client) error {
+	fmt.Print("verifying your configuration ...\n\n")
+
+	err := cc.validate(awsClient)
+	if err != nil {
+		return err
+	}
+
+	if cc.ClusterUID != "" {
+		return ErrorDisallowedField(ClusterUIDKey)
+	}
+	cc.ClusterUID = strconv.FormatInt(time.Now().Unix(), 10)
+
 	var requiredVPCs int
 	if len(cc.Subnets) == 0 {
 		requiredVPCs = 1
 	}
 	longestCIDRWhiteList := libmath.MaxInt(len(cc.APILoadBalancerCIDRWhiteList), len(cc.OperatorLoadBalancerCIDRWhiteList))
-	if err := VerifyNetworkQuotas(awsClient, 1, cc.NATGateway != NoneNATGateway, cc.NATGateway == HighlyAvailableNATGateway, requiredVPCs, strset.FromSlice(cc.AvailabilityZones), len(cc.NodeGroups), longestCIDRWhiteList); err != nil {
+	if err := VerifyNetworkQuotas(awsClient, 1, cc.NATGateway != NoneNATGateway, cc.NATGateway == HighlyAvailableNATGateway, requiredVPCs, strset.FromSlice(cc.AvailabilityZones), len(cc.NodeGroups), len(cc.NodeGroups), longestCIDRWhiteList, false); err != nil {
 		// Skip AWS errors, since some regions (e.g. eu-north-1) do not support this API
 		if !aws.IsAWSError(err) {
 			return err
@@ -1006,6 +1122,49 @@ func (cc *Config) Validate(awsClient *aws.Client) error {
 	}
 
 	return nil
+}
+
+func (cc *Config) ValidateOnConfigure(awsClient *aws.Client, oldConfig Config, eksNodeGroupStacks []*cloudformation.StackSummary) (ConfigureChanges, error) {
+	fmt.Print("verifying your configuration ...\n\n")
+
+	cc.ClusterUID = oldConfig.ClusterUID
+	err := cc.validate(awsClient)
+	if err != nil {
+		return ConfigureChanges{}, err
+	}
+
+	err = cc.validateConfigDiff(oldConfig)
+	if err != nil {
+		return ConfigureChanges{}, err
+	}
+
+	ngsToBeAdded := cc.getNewNodeGroups(oldConfig)
+	ngsToBeRemoved := cc.getRemovedNodeGroups(oldConfig)
+
+	tempMaxNodeGroupCount := len(cc.NodeGroups) + len(ngsToBeRemoved)
+	tempNetAdditionOfNodeGroupCount := tempMaxNodeGroupCount - len(oldConfig.NodeGroups)
+	longestCIDRWhiteList := libmath.MaxInt(len(cc.APILoadBalancerCIDRWhiteList), len(cc.OperatorLoadBalancerCIDRWhiteList))
+	if err := VerifyNetworkQuotasOnConfigure(awsClient, strset.FromSlice(cc.AvailabilityZones), tempMaxNodeGroupCount, tempNetAdditionOfNodeGroupCount, longestCIDRWhiteList); err != nil {
+		// Skip AWS errors, since some regions (e.g. eu-north-1) do not support this API
+		if !aws.IsAWSError(err) {
+			return ConfigureChanges{}, errors.Wrap(err, NodeGroupsKey)
+		}
+	}
+
+	sharedNgsFromNewConfig, sharedNgsFromOldConfig := cc.getCommonNodeGroups(oldConfig)
+	ngNamesToBeScaled := []*NodeGroup{}
+	for i := range sharedNgsFromNewConfig {
+		if sharedNgsFromNewConfig[i].MinInstances != sharedNgsFromOldConfig[i].MinInstances || sharedNgsFromNewConfig[i].MaxInstances != sharedNgsFromOldConfig[i].MaxInstances {
+			ngNamesToBeScaled = append(ngNamesToBeScaled, sharedNgsFromNewConfig[i])
+		}
+	}
+
+	return ConfigureChanges{
+		NodeGroupsToAdd:       GetNodeGroupNames(ngsToBeAdded),
+		NodeGroupsToRemove:    GetNodeGroupNames(ngsToBeRemoved),
+		NodeGroupsToScale:     GetNodeGroupNames(ngNamesToBeScaled),
+		EKSNodeGroupsToRemove: getStaleEksNodeGroups(cc.ClusterName, eksNodeGroupStacks, cc.NodeGroups, ngsToBeRemoved),
+	}, nil
 }
 
 func (ng *NodeGroup) validateNodeGroup(awsClient *aws.Client, region string) error {
@@ -1112,6 +1271,76 @@ func (ng *NodeGroup) validateNodeGroup(awsClient *aws.Client, region string) err
 	}
 
 	return nil
+}
+
+func (cc *Config) GetNodeGroupByName(name string) *NodeGroup {
+	for _, ng := range cc.NodeGroups {
+		if ng.Name == name {
+			return ng
+		}
+	}
+	return nil
+}
+
+func (cc *Config) getNewNodeGroups(oldConfig Config) []*NodeGroup {
+	var newNodeGroups []*NodeGroup
+	for _, updatingNg := range cc.NodeGroups {
+		isNewNg := true
+		for _, previousNg := range oldConfig.NodeGroups {
+			if previousNg.Name == updatingNg.Name {
+				isNewNg = false
+				break
+			}
+		}
+		if isNewNg {
+			ngCopy := *updatingNg
+			newNodeGroups = append(newNodeGroups, &ngCopy)
+		}
+	}
+	return newNodeGroups
+}
+
+func (cc *Config) getRemovedNodeGroups(oldConfig Config) []*NodeGroup {
+	var removedNodeGroups []*NodeGroup
+	for _, previousNg := range oldConfig.NodeGroups {
+		isRemovedNg := true
+		for _, updatingNg := range cc.NodeGroups {
+			if previousNg.Name == updatingNg.Name {
+				isRemovedNg = false
+				break
+			}
+		}
+		if isRemovedNg {
+			ngCopy := *previousNg
+			removedNodeGroups = append(removedNodeGroups, &ngCopy)
+		}
+	}
+	return removedNodeGroups
+}
+
+func (cc *Config) getCommonNodeGroups(oldConfig Config) ([]*NodeGroup, []*NodeGroup) {
+	var commonNewNodeGroups []*NodeGroup
+	var commonOldNodeGroups []*NodeGroup
+	for _, previousNg := range oldConfig.NodeGroups {
+		for _, updatingNg := range cc.NodeGroups {
+			if previousNg.Name == updatingNg.Name {
+				ngNewCopy := *updatingNg
+				ngOldCopy := *previousNg
+				commonNewNodeGroups = append(commonNewNodeGroups, &ngNewCopy)
+				commonOldNodeGroups = append(commonOldNodeGroups, &ngOldCopy)
+				break
+			}
+		}
+	}
+	return commonNewNodeGroups, commonOldNodeGroups
+}
+
+func GetNodeGroupNames(nodeGroups []*NodeGroup) []string {
+	ngNames := make([]string, len(nodeGroups))
+	for i := range nodeGroups {
+		ngNames[i] = nodeGroups[i].Name
+	}
+	return ngNames
 }
 
 func CheckSpotInstanceCompatibility(target aws.InstanceMetadata, suggested aws.InstanceMetadata) error {
@@ -1247,6 +1476,27 @@ func validateInstanceDistribution(instances []string) ([]string, error) {
 	return instances, nil
 }
 
+func (ng *NodeGroup) DeepCopy() (NodeGroup, error) {
+	deepCopied := NodeGroup{}
+	err := structs.DeepCopy(&deepCopied, ng)
+	if err != nil {
+		return NodeGroup{}, err
+	}
+
+	return deepCopied, nil
+}
+
+func (ng *NodeGroup) Hash() (string, error) {
+	bytes, err := yaml.Marshal(ng)
+	if err != nil {
+		return "", err
+	}
+
+	hash := sha256.New()
+	hash.Write(bytes)
+	return hex.EncodeToString(hash.Sum(nil)), nil
+}
+
 func (ng *NodeGroup) MaxPossibleOnDemandInstances() int64 {
 	if !ng.Spot || ng.SpotConfig == nil {
 		return ng.MaxInstances
@@ -1283,6 +1533,63 @@ func (ng *NodeGroup) SpotConfigOnDemandValues() (int64, int64) {
 	}
 
 	return onDemandBaseCapacity, onDemandPercentageAboveBaseCapacity
+}
+
+func doesStackExist(stack *cloudformation.StackSummary) bool {
+	if stack == nil || stack.StackName == nil || slices.HasString([]string{
+		cloudformation.StackStatusDeleteComplete,
+		cloudformation.StackStatusDeleteInProgress,
+	}, *stack.StackStatus) {
+		return false
+	}
+	return true
+}
+
+func getStaleEksNodeGroups(clusterName string, eksNodeGroupStacks []*cloudformation.StackSummary, ngsToExist, ngsMarkedForRemoval []*NodeGroup) []string {
+	eksNodeGroupsToRemove := strset.New()
+	for _, ng := range ngsMarkedForRemoval {
+		lifecycle := "d"
+		if ng.Spot {
+			lifecycle = "s"
+		}
+
+		eksNgName := fmt.Sprintf("cx-w%s-%s", lifecycle, ng.Name)
+		eksStackName := fmt.Sprintf("eksctl-%s-nodegroup-cx-w%s-%s", clusterName, lifecycle, ng.Name)
+		for _, eksNgStack := range eksNodeGroupStacks {
+			if eksNgStack == nil || eksNgStack.StackName == nil {
+				continue
+			}
+			if *eksNgStack.StackName == eksStackName {
+				eksNodeGroupsToRemove.Add(eksNgName)
+				break
+			}
+		}
+	}
+
+	for _, eksNgStack := range eksNodeGroupStacks {
+		if !doesStackExist(eksNgStack) {
+			continue
+		}
+
+		foundNg := false
+		for _, ng := range ngsToExist {
+			lifecycle := "d"
+			if ng.Spot {
+				lifecycle = "s"
+			}
+			eksStackName := fmt.Sprintf("eksctl-%s-nodegroup-cx-w%s-%s", clusterName, lifecycle, ng.Name)
+			if *eksNgStack.StackName == eksStackName {
+				foundNg = true
+				break
+			}
+		}
+		if !foundNg {
+			eksNgName := (*eksNgStack.StackName)[len(fmt.Sprintf("eksctl-%s-nodegroup-", clusterName)):]
+			eksNodeGroupsToRemove.Add(eksNgName)
+		}
+	}
+
+	return eksNodeGroupsToRemove.Slice()
 }
 
 func (cc *CoreConfig) TelemetryEvent() map[string]interface{} {
@@ -1432,6 +1739,7 @@ func (mc *ManagedConfig) TelemetryEvent() map[string]interface{} {
 		event[nodeGroupKey("instance_type")] = ng.InstanceType
 		event[nodeGroupKey("min_instances")] = ng.MinInstances
 		event[nodeGroupKey("max_instances")] = ng.MaxInstances
+		event[nodeGroupKey("priority")] = ng.Priority
 		event[nodeGroupKey("instance_volume_size")] = ng.InstanceVolumeSize
 		event[nodeGroupKey("instance_volume_type")] = ng.InstanceVolumeType
 		if ng.InstanceVolumeIOPS != nil {
@@ -1500,9 +1808,9 @@ func (mc *ManagedConfig) GetNodeGroupByName(name string) *NodeGroup {
 }
 
 func (mc *ManagedConfig) GetNodeGroupNames() []string {
-	allNodeGroupNames := []string{}
-	for _, ng := range mc.NodeGroups {
-		allNodeGroupNames = append(allNodeGroupNames, ng.Name)
+	allNodeGroupNames := make([]string, len(mc.NodeGroups))
+	for i := range mc.NodeGroups {
+		allNodeGroupNames[i] = mc.NodeGroups[i].Name
 	}
 
 	return allNodeGroupNames

@@ -37,15 +37,12 @@ var (
 	AdminPortName  = "admin"
 	AdminPortStr   = "15000"
 	AdminPortInt32 = int32(15000)
-
-	StatsDPortStr = "9125"
+	AuthHeader     = "X-Cortex-Authorization"
 
 	CortexProxyCPU    = kresource.MustParse("100m")
 	CortexProxyMem    = kresource.MustParse("100Mi")
 	CortexDequeuerCPU = kresource.MustParse("100m")
 	CortexDequeuerMem = kresource.MustParse("100Mi")
-
-	AuthHeader = "X-Cortex-Authorization"
 
 	DefaultInClusterConfigPath   = "/configs/cluster/cluster.yaml"
 	MaxBucketLifecycleRules      = 100

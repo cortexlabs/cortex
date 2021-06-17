@@ -247,7 +247,7 @@ func ErrorSecurityGroupRulesExceeded(currentLimit, additionalQuotaRequired int, 
 	url := "https://console.aws.amazon.com/servicequotas/home?#!/services/vpc/quotas"
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrSecurityGroupRulesExceeded,
-		Message: fmt.Sprintf("security group rules limit of %d exceeded in region %s; use fewer availability zones, remove some node groups from your cluster config, reduce the number of CIDR white lists (if you have any), or increase your quota for inbound/outbound rules per security group by at least %d here: %s (if your request was recently approved, please allow ~30 minutes for AWS to reflect this change)", currentLimit, region, additionalQuotaRequired, url),
+		Message: fmt.Sprintf("security group rules limit of %d exceeded in region %s; remove some node groups, use fewer availability zones, reduce the number of CIDR white lists, or increase your quota for inbound/outbound rules per security group by at least %d here: %s (if your request was recently approved, please allow ~30 minutes for AWS to reflect this change)", currentLimit, region, additionalQuotaRequired, url),
 	})
 }
 
@@ -255,6 +255,6 @@ func ErrorSecurityGroupLimitExceeded(currentLimit, additionalQuotaRequired int, 
 	url := "https://console.aws.amazon.com/servicequotas/home?#!/services/vpc/quotas"
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrSecurityGroupLimitExceeded,
-		Message: fmt.Sprintf("security group limit of %d exceeded in region %s; remove some node groups from your cluster config or increase your quota for security groups by at least %d here: %s (if your request was recently approved, please allow ~30 minutes for AWS to reflect this change)", currentLimit, region, additionalQuotaRequired, url),
+		Message: fmt.Sprintf("security group limit of %d exceeded in region %s; remove some node groups or increase your quota for security groups by at least %d here: %s (if your request was recently approved, please allow ~30 minutes for AWS to reflect this change)", currentLimit, region, additionalQuotaRequired, url),
 	})
 }

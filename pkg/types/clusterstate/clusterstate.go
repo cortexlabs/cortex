@@ -18,12 +18,13 @@ package clusterstate
 
 import (
 	"fmt"
-	"time"
+	"strings"
 
 	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
+	"github.com/cortexlabs/cortex/pkg/lib/slices"
 	"github.com/cortexlabs/cortex/pkg/lib/table"
 	"github.com/cortexlabs/cortex/pkg/types/clusterconfig"
 )
@@ -36,56 +37,42 @@ const (
 	onDemandTemplatePrefix = "eksctl-%s-nodegroup-cx-wd"
 )
 
-type ClusterState struct {
-	StatusMap    map[string]string // cloudformation stackname to cloudformation stackstatus
-	ControlPlane string
-	NodeGroups   []string
-	Status       Status
+type ClusterStacks struct {
+	clusterName       string
+	region            string
+	ControlPlaneStack *cloudformation.StackSummary
+	OperatorStack     *cloudformation.StackSummary
+	NodeGroupsStacks  []*cloudformation.StackSummary
 }
 
-func is(status string, allowedStatus string, allowedStatuses ...string) bool {
-	statusSet := strset.New(allowedStatuses...)
-	statusSet.Add(allowedStatus)
-
-	return statusSet.Has(status)
-}
-
-func any(statuses []string, allowedStatus string, allowedStatuses ...string) bool {
-	statusSet := strset.New(allowedStatuses...)
-	statusSet.Add(allowedStatus)
-	for _, stackStatus := range statuses {
-		if statusSet.Has(stackStatus) {
-			return true
-		}
+func (cs ClusterStacks) TableString() string {
+	numStacks := len(cs.NodeGroupsStacks)
+	if cs.ControlPlaneStack != nil {
+		numStacks++
+	}
+	if cs.OperatorStack != nil {
+		numStacks++
 	}
 
-	return false
-}
+	idx := 0
+	rows := make([][]interface{}, numStacks)
 
-func all(statuses []string, allowedStatus string, allowedStatuses ...string) bool {
-	statusSet := strset.New(allowedStatuses...)
-	statusSet.Add(allowedStatus)
-	for _, stackStatus := range statuses {
-		if !statusSet.Has(stackStatus) {
-			return false
+	if cs.ControlPlaneStack != nil {
+		rows[idx] = []interface{}{
+			*cs.ControlPlaneStack.StackName, *cs.ControlPlaneStack.StackStatus,
 		}
+		idx++
+	}
+	if cs.OperatorStack != nil {
+		rows[idx] = []interface{}{
+			*cs.OperatorStack.StackName, *cs.OperatorStack.StackStatus,
+		}
+		idx++
 	}
 
-	return true
-}
-
-func (cs ClusterState) TableString() string {
-	rows := make([][]interface{}, len(cs.StatusMap))
-	rows[0] = []interface{}{
-		cs.ControlPlane, cs.StatusMap[cs.ControlPlane],
-	}
-
-	idx := 1
-	for _, nodeGroupName := range cs.NodeGroups {
-		if status, ok := cs.StatusMap[nodeGroupName]; ok {
-			rows[idx] = []interface{}{nodeGroupName, status}
-			idx++
-		}
+	for _, stack := range cs.NodeGroupsStacks {
+		rows[idx] = []interface{}{*stack.StackName, *stack.StackStatus}
+		idx++
 	}
 
 	t := table.Table{
@@ -99,132 +86,73 @@ func (cs ClusterState) TableString() string {
 		},
 		Rows: rows,
 	}
-	var items table.KeyValuePairs
-	items.Add(cs.ControlPlane, cs.StatusMap[cs.ControlPlane])
-
 	return t.MustFormat()
 }
 
-func getStatus(statusMap map[string]string, controlPlane string, clusterName string, region string) (Status, error) {
-	// the order matters
-	allStatuses := []string{}
-	controlPlaneStatus := statusMap[controlPlane]
-	nodeGroupStatuses := []string{}
-
-	for stackName, status := range statusMap {
-		allStatuses = append(allStatuses, status)
-		if stackName != controlPlane {
-			nodeGroupStatuses = append(nodeGroupStatuses, status)
-		}
-	}
-
-	if any(allStatuses, string(StatusCreateFailedTimedOut)) {
-		return StatusNotFound, ErrorUnexpectedCloudFormationStatus(clusterName, region, statusMap)
-	}
-
-	if len(nodeGroupStatuses) == 0 && controlPlaneStatus == string(StatusNotFound) {
-		return StatusNotFound, nil
-	}
-
-	// controlplane stack may be created while nodegroup stacks aren't listed in cloudformation stacks during cluster spin up
-	if len(nodeGroupStatuses) == 0 && is(controlPlaneStatus, cloudformation.StackStatusCreateComplete, cloudformation.StackStatusCreateInProgress) {
-		return StatusCreateInProgress, nil
-	}
-
-	if any(allStatuses, cloudformation.StackStatusCreateFailed) {
-		return StatusCreateFailed, nil
-	}
-
-	if any(allStatuses, cloudformation.StackStatusDeleteFailed) {
-		return StatusDeleteFailed, nil
-	}
-
-	if any(allStatuses, cloudformation.StackStatusDeleteInProgress) {
-		return StatusDeleteInProgress, nil
-	}
-
-	if all(allStatuses, cloudformation.StackStatusCreateComplete) {
-		return StatusCreateComplete, nil
-	}
-
-	if all(allStatuses, cloudformation.StackStatusUpdateComplete) {
-		return StatusUpdateComplete, nil
-	}
-
-	if all(allStatuses, cloudformation.StackStatusUpdateRollbackComplete) {
-		return StatusUpdateRollbackComplete, nil
-	}
-
-	if all(allStatuses, cloudformation.StackStatusDeleteComplete) {
-		return StatusDeleteComplete, nil
-	}
-
-	// nodegroup stacks are deleted first while control plane stack is still in create complete state
-	if controlPlaneStatus == cloudformation.StackStatusCreateComplete &&
-		all(nodeGroupStatuses, cloudformation.StackStatusDeleteInProgress, cloudformation.StackStatusDeleteComplete) {
-		return StatusDeleteInProgress, nil
-	}
-
-	// controlplane stack may be in complete state while nodegroup stacks are still in creating or one nodegroup finishes before the other
-	if controlPlaneStatus == cloudformation.StackStatusCreateComplete &&
-		all(nodeGroupStatuses, cloudformation.StackStatusCreateInProgress, cloudformation.StackStatusCreateComplete) {
-		return StatusCreateInProgress, nil
-	}
-
-	if controlPlaneStatus == cloudformation.StackStatusCreateComplete &&
-		all(nodeGroupStatuses, cloudformation.StackStatusCreateComplete, cloudformation.StackStatusUpdateComplete, cloudformation.StackStatusUpdateRollbackComplete) {
-		return StatusUpdateComplete, nil
-	}
-
-	return StatusNotFound, ErrorUnexpectedCloudFormationStatus(clusterName, region, statusMap)
-}
-
-func GetClusterState(awsClient *aws.Client, accessConfig *clusterconfig.AccessConfig) (*ClusterState, error) {
+func GetClusterStacks(awsClient *aws.Client, accessConfig *clusterconfig.AccessConfig) (ClusterStacks, error) {
 	controlPlaneStackName := fmt.Sprintf(controlPlaneTemplate, accessConfig.ClusterName)
 	operatorStackName := fmt.Sprintf(operatorTemplate, accessConfig.ClusterName)
 	spotStackNamePrefix := fmt.Sprintf(spotTemplatePrefix, accessConfig.ClusterName)
 	onDemandStackNamePrefix := fmt.Sprintf(onDemandTemplatePrefix, accessConfig.ClusterName)
-
 	nodeGroupStackPrefixesSet := strset.New(operatorStackName, spotStackNamePrefix, onDemandStackNamePrefix)
 
 	stackSummaries, err := awsClient.ListEKSStacks(controlPlaneStackName, nodeGroupStackPrefixesSet)
 	if err != nil {
-		return nil, errors.Wrap(err, "unable to get cluster state from cloudformation")
+		return ClusterStacks{}, errors.Wrap(err, "unable to get cluster state from cloudformation")
 	}
 
-	statusMap := map[string]string{}
-	nodeGroupStackNames := []string{}
-	var controlPlaneCreationTime time.Time
-
-	for _, stackSummary := range stackSummaries {
-		statusMap[*stackSummary.StackName] = *stackSummary.StackStatus
-		if *stackSummary.StackName == controlPlaneStackName {
-			controlPlaneCreationTime = *stackSummary.CreationTime
-		} else {
-			nodeGroupStackNames = append(nodeGroupStackNames, *stackSummary.StackName)
+	var controlPlaneStack, operatorStack *cloudformation.StackSummary
+	var ngStacks []*cloudformation.StackSummary
+	for _, stack := range stackSummaries {
+		if stack == nil || stack.StackName == nil {
+			continue
+		}
+		if strings.HasPrefix(*stack.StackName, spotStackNamePrefix) || strings.HasPrefix(*stack.StackName, onDemandStackNamePrefix) {
+			ngStacks = append(ngStacks, stack)
+		} else if *stack.StackName == controlPlaneStackName {
+			controlPlaneStack = stack
+		} else if *stack.StackName == operatorStackName {
+			operatorStack = stack
 		}
 	}
 
-	if _, ok := statusMap[controlPlaneStackName]; !ok {
-		statusMap[controlPlaneStackName] = string(StatusNotFound)
-	}
-
-	// add a timeout for situations where the control plane is listed in the cloudformation stacks but not the nodegroup stacks
-	if !is(statusMap[controlPlaneStackName], string(StatusNotFound), cloudformation.StackStatusDeleteComplete) && len(nodeGroupStackNames) == 0 && time.Now().After(controlPlaneCreationTime.Add(30*time.Minute)) {
-		statusMap[operatorStackName] = string(StatusCreateFailedTimedOut)
-	}
-
-	status, err := getStatus(statusMap, controlPlaneStackName, accessConfig.ClusterName, accessConfig.Region)
-	if err != nil {
-		return nil, err
-	}
-
-	return &ClusterState{
-		ControlPlane: controlPlaneStackName,
-		NodeGroups:   nodeGroupStackNames,
-		StatusMap:    statusMap,
-		Status:       status,
+	return ClusterStacks{
+		clusterName:       accessConfig.ClusterName,
+		region:            accessConfig.Region,
+		ControlPlaneStack: controlPlaneStack,
+		OperatorStack:     operatorStack,
+		NodeGroupsStacks:  ngStacks,
 	}, nil
+}
+
+func GetClusterState(stacks ClusterStacks) State {
+	controlPlaneStackName := fmt.Sprintf(controlPlaneTemplate, stacks.clusterName)
+
+	if stacks.ControlPlaneStack == nil || stacks.ControlPlaneStack.StackName == nil {
+		return StateClusterDoesntExist
+	}
+	if *stacks.ControlPlaneStack.StackName == controlPlaneStackName {
+		controlPlaneStatus := *stacks.ControlPlaneStack.StackStatus
+
+		if slices.HasString([]string{
+			cloudformation.StackStatusDeleteComplete,
+			cloudformation.StackStatusDeleteInProgress,
+		}, controlPlaneStatus) {
+			return StateClusterDoesntExist
+		}
+
+		if slices.HasString([]string{
+			cloudformation.StackStatusCreateComplete,
+			cloudformation.StackStatusUpdateComplete,
+			cloudformation.StackStatusRollbackComplete,
+			cloudformation.StackStatusUpdateRollbackComplete,
+		}, controlPlaneStatus) {
+			return StateClusterExists
+		}
+
+		return StateClusterInUnexpectedState
+	}
+	return StateClusterDoesntExist
 }
 
 func CloudFormationURL(clusterName string, region string) string {

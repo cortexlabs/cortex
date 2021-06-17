@@ -52,7 +52,7 @@ const (
 	ErrMissingAWSCredentials               = "cli.missing_aws_credentials"
 	ErrCredentialsInClusterConfig          = "cli.credentials_in_cluster_config"
 	ErrClusterUp                           = "cli.cluster_up"
-	ErrClusterScale                        = "cli.cluster_scale"
+	ErrClusterConfigure                    = "cli.cluster_configure"
 	ErrClusterDebug                        = "cli.cluster_debug"
 	ErrClusterRefresh                      = "cli.cluster_refresh"
 	ErrClusterDown                         = "cli.cluster_down"
@@ -61,7 +61,7 @@ const (
 	ErrMaxInstancesLowerThan               = "cli.max_instances_lower_than"
 	ErrMinInstancesGreaterThanMaxInstances = "cli.min_instances_greater_than_max_instances"
 	ErrNodeGroupNotFound                   = "cli.nodegroup_not_found"
-	ErrJSONOutputNotSupportedWithFlag      = "cli.json_output_not_supported_with_flag"
+	ErrMutuallyExclusiveFlags              = "cli.mutually_exclusive_flags"
 	ErrClusterAccessConfigRequired         = "cli.cluster_access_config_or_prompts_required"
 	ErrShellCompletionNotSupported         = "cli.shell_completion_not_supported"
 	ErrNoTerminalWidth                     = "cli.no_terminal_width"
@@ -162,9 +162,9 @@ func ErrorClusterUp(out string) error {
 	})
 }
 
-func ErrorClusterScale(out string) error {
+func ErrorClusterConfigure(out string) error {
 	return errors.WithStack(&errors.Error{
-		Kind:    ErrClusterScale,
+		Kind:    ErrClusterConfigure,
 		Message: out,
 		NoPrint: true,
 	})
@@ -229,10 +229,10 @@ func ErrorNodeGroupNotFound(scalingNodeGroupName, clusterName, clusterRegion str
 	})
 }
 
-func ErrorJSONOutputNotSupportedWithFlag(flag string) error {
+func ErrorMutuallyExclusiveFlags(flagA, flagB string) error {
 	return errors.WithStack(&errors.Error{
-		Kind:    ErrJSONOutputNotSupportedWithFlag,
-		Message: fmt.Sprintf("flag %s cannot be used when output type is set to json", flag),
+		Kind:    ErrMutuallyExclusiveFlags,
+		Message: fmt.Sprintf("flags %s and %s cannot be used at the same time", flagA, flagB),
 	})
 }
 

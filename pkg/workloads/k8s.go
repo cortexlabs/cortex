@@ -60,6 +60,8 @@ const (
 	_clusterConfigDirVolume = "cluster-config"
 	_clusterConfigConfigMap = "cluster-config"
 	_clusterConfigDir       = "/configs/cluster"
+
+	_statsdAddress = "prometheus-statsd-exporter.default:9125"
 )
 
 var (
@@ -126,18 +128,11 @@ func asyncDequeuerProxyContainer(api spec.API, queueURL string) (kcore.Container
 			"--queue", queueURL,
 			"--api-kind", api.Kind.String(),
 			"--api-name", api.Name,
+			"--statsd-address", _statsdAddress,
 			"--user-port", s.Int32(*api.Pod.Port),
-			"--statsd-port", consts.StatsDPortStr,
 			"--admin-port", consts.AdminPortStr,
 		},
-		Env: append(baseEnvVars, kcore.EnvVar{
-			Name: "HOST_IP",
-			ValueFrom: &kcore.EnvVarSource{
-				FieldRef: &kcore.ObjectFieldSelector{
-					FieldPath: "status.hostIP",
-				},
-			},
-		}),
+		Env: baseEnvVars,
 		Ports: []kcore.ContainerPort{
 			{
 				Name:          consts.AdminPortName,
@@ -185,18 +180,11 @@ func batchDequeuerProxyContainer(api spec.API, jobID, queueURL string) (kcore.Co
 			"--api-kind", api.Kind.String(),
 			"--api-name", api.Name,
 			"--job-id", jobID,
+			"--statsd-address", _statsdAddress,
 			"--user-port", s.Int32(*api.Pod.Port),
-			"--statsd-port", consts.StatsDPortStr,
 			"--admin-port", consts.AdminPortStr,
 		},
-		Env: append(baseEnvVars, kcore.EnvVar{
-			Name: "HOST_IP",
-			ValueFrom: &kcore.EnvVarSource{
-				FieldRef: &kcore.ObjectFieldSelector{
-					FieldPath: "status.hostIP",
-				},
-			},
-		}),
+		Env: baseEnvVars,
 		Resources: kcore.ResourceRequirements{
 			Requests: kcore.ResourceList{
 				kcore.ResourceCPU:    consts.CortexDequeuerCPU,
@@ -493,7 +481,6 @@ func GenerateResourceTolerations() []kcore.Toleration {
 }
 
 func GenerateNodeAffinities(apiNodeGroups []string) *kcore.Affinity {
-	// node groups are ordered according to how the cluster config node groups are ordered
 	var nodeGroups []*clusterconfig.NodeGroup
 	for _, clusterNodeGroup := range config.ClusterConfig.NodeGroups {
 		for _, apiNodeGroupName := range apiNodeGroups {
@@ -503,16 +490,14 @@ func GenerateNodeAffinities(apiNodeGroups []string) *kcore.Affinity {
 		}
 	}
 
-	numNodeGroups := len(apiNodeGroups)
 	if apiNodeGroups == nil {
 		nodeGroups = config.ClusterConfig.NodeGroups
-		numNodeGroups = len(config.ClusterConfig.NodeGroups)
 	}
 
 	var requiredNodeGroups []string
 	var preferredAffinities []kcore.PreferredSchedulingTerm
 
-	for idx, nodeGroup := range nodeGroups {
+	for _, nodeGroup := range nodeGroups {
 		var nodeGroupPrefix string
 		if nodeGroup.Spot {
 			nodeGroupPrefix = "cx-ws-"
@@ -521,7 +506,7 @@ func GenerateNodeAffinities(apiNodeGroups []string) *kcore.Affinity {
 		}
 
 		preferredAffinities = append(preferredAffinities, kcore.PreferredSchedulingTerm{
-			Weight: int32(100 * (1 - float64(idx)/float64(numNodeGroups))),
+			Weight: int32(nodeGroup.Priority),
 			Preference: kcore.NodeSelectorTerm{
 				MatchExpressions: []kcore.NodeSelectorRequirement{
 					{
