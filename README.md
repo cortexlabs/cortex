@@ -1,12 +1,14 @@
-<img src='https://s3-us-west-2.amazonaws.com/cortex-public/logo.png' height='26'>
+**[Website](https://www.cortex.dev)** • **[Slack](https://community.cortex.dev)** • **[Docs](https://docs.cortex.dev)**
+
+<br>
+
+<img src='https://s3-us-west-2.amazonaws.com/cortex-public/logo.png' height='32'>
 
 <br>
 
 # Serverless containers on AWS
 
 Deploy, manage, and scale containers without managing infrastructure.
-
-### [Get started](https://docs.cortex.dev)
 
 <br>
 
