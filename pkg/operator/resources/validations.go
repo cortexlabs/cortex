@@ -17,23 +17,16 @@ limitations under the License.
 package resources
 
 import (
-	"fmt"
-	"strings"
-
 	"github.com/cortexlabs/cortex/pkg/config"
-	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
-	"github.com/cortexlabs/cortex/pkg/lib/console"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	"github.com/cortexlabs/cortex/pkg/lib/slices"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
-	"github.com/cortexlabs/cortex/pkg/lib/table"
 	"github.com/cortexlabs/cortex/pkg/operator/operator"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
-	"github.com/cortexlabs/cortex/pkg/workloads"
 	istioclientnetworking "istio.io/client-go/pkg/apis/networking/v1beta1"
 	kresource "k8s.io/apimachinery/pkg/api/resource"
 )
@@ -172,88 +165,7 @@ func validateK8sCompute(api *userconfig.API, maxMemMap map[string]kresource.Quan
 	}
 
 	// no nodegroups have capacity
-	errMsg := "no instance types in your cluster are large enough to satisfy the requested resources for your pod\n\n"
-	errMsg += console.Bold("requested pod resources\n")
-	errMsg += podResourceRequestsTable(api, compute)
-	errMsg += "\n" + s.TrimTrailingNewLines(nodeGroupResourcesTable(api, compute, maxMemMap))
-	return ErrorNoAvailableNodeComputeLimit(errMsg)
-}
-
-func podResourceRequestsTable(api *userconfig.API, compute userconfig.Compute) string {
-	sidecarCPUNote := ""
-	sidecarMemNote := ""
-	if api.Kind == userconfig.RealtimeAPIKind {
-		sidecarCPUNote = fmt.Sprintf(" (including %s for the %s sidecar container)", consts.CortexProxyCPU.String(), workloads.ProxyContainerName)
-		sidecarMemNote = fmt.Sprintf(" (including %s for the %s sidecar container)", k8s.ToMiCeilStr(consts.CortexProxyMem), workloads.ProxyContainerName)
-	} else if api.Kind == userconfig.AsyncAPIKind || api.Kind == userconfig.BatchAPIKind {
-		sidecarCPUNote = fmt.Sprintf(" (including %s for the %s sidecar container)", consts.CortexDequeuerCPU.String(), workloads.DequeuerContainerName)
-		sidecarMemNote = fmt.Sprintf(" (including %s for the %s sidecar container)", k8s.ToMiCeilStr(consts.CortexDequeuerMem), workloads.DequeuerContainerName)
-	}
-
-	var items table.KeyValuePairs
-	if compute.CPU != nil {
-		items.Add("CPU", compute.CPU.String()+sidecarCPUNote)
-	}
-	if compute.Mem != nil {
-		items.Add("memory", compute.Mem.ToMiCeilStr()+sidecarMemNote)
-	}
-	if compute.GPU > 0 {
-		items.Add("GPU", compute.GPU)
-	}
-	if compute.Inf > 0 {
-		items.Add("Inf", compute.Inf)
-	}
-
-	return items.String()
-}
-
-func nodeGroupResourcesTable(api *userconfig.API, compute userconfig.Compute, maxMemMap map[string]kresource.Quantity) string {
-	var skippedNodeGroups []string
-	var nodeGroupResourceRows [][]interface{}
-
-	showGPU := false
-	showInf := false
-	if compute.GPU > 0 {
-		showGPU = true
-	}
-	if compute.Inf > 0 {
-		showInf = true
-	}
-
-	for _, ng := range config.ClusterConfig.NodeGroups {
-		nodeCPU, nodeMem, nodeGPU, nodeInf := getNodeCapacity(ng.InstanceType, maxMemMap)
-		if nodeGPU > 0 {
-			showGPU = true
-		}
-		if nodeInf > 0 {
-			showInf = true
-		}
-
-		if api.NodeGroups != nil && !slices.HasString(api.NodeGroups, ng.Name) {
-			skippedNodeGroups = append(skippedNodeGroups, ng.Name)
-		} else {
-			nodeGroupResourceRows = append(nodeGroupResourceRows, []interface{}{ng.Name, ng.InstanceType, nodeCPU, k8s.ToMiFloorStr(nodeMem), nodeGPU, nodeInf})
-		}
-	}
-
-	nodeGroupResourceRowsTable := table.Table{
-		Headers: []table.Header{
-			{Title: "node group"},
-			{Title: "instance type"},
-			{Title: "CPU"},
-			{Title: "memory"},
-			{Title: "GPU", Hidden: !showGPU},
-			{Title: "Inf", Hidden: !showInf},
-		},
-		Rows: nodeGroupResourceRows,
-	}
-
-	out := nodeGroupResourceRowsTable.MustFormat()
-	if len(skippedNodeGroups) > 0 {
-		out += fmt.Sprintf("\nthe following %s skipped (based on the api configuration's %s field): %s", s.PluralCustom("node group was", "node groups were", len(skippedNodeGroups)), userconfig.NodeGroupsKey, strings.Join(skippedNodeGroups, ", "))
-	}
-
-	return out
+	return ErrorNoAvailableNodeComputeLimit(api, compute, maxMemMap)
 }
 
 func getNodeCapacity(instanceType string, maxMemMap map[string]kresource.Quantity) (kresource.Quantity, kresource.Quantity, int64, int64) {

@@ -18,12 +18,20 @@ package resources
 
 import (
 	"fmt"
+	"strings"
 
+	"github.com/cortexlabs/cortex/pkg/config"
+	"github.com/cortexlabs/cortex/pkg/consts"
+	"github.com/cortexlabs/cortex/pkg/lib/console"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
-	"github.com/cortexlabs/cortex/pkg/lib/strings"
+	"github.com/cortexlabs/cortex/pkg/lib/k8s"
+	"github.com/cortexlabs/cortex/pkg/lib/slices"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
+	"github.com/cortexlabs/cortex/pkg/lib/table"
 	"github.com/cortexlabs/cortex/pkg/operator/operator"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
+	"github.com/cortexlabs/cortex/pkg/workloads"
+	kresource "k8s.io/apimachinery/pkg/api/resource"
 )
 
 const (
@@ -73,7 +81,12 @@ func ErrorCannotChangeKindOfDeployedAPI(name string, newKind, prevKind userconfi
 	})
 }
 
-func ErrorNoAvailableNodeComputeLimit(msg string) error {
+func ErrorNoAvailableNodeComputeLimit(api *userconfig.API, compute userconfig.Compute, maxMemMap map[string]kresource.Quantity) error {
+	msg := "no instance types in your cluster are large enough to satisfy the requested resources for your pod\n\n"
+	msg += console.Bold("requested pod resources\n")
+	msg += podResourceRequestsTable(api, compute)
+	msg += "\n" + s.TrimTrailingNewLines(nodeGroupResourcesTable(api, compute, maxMemMap))
+
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrNoAvailableNodeComputeLimit,
 		Message: msg,
@@ -83,12 +96,12 @@ func ErrorNoAvailableNodeComputeLimit(msg string) error {
 func ErrorAPIUsedByTrafficSplitter(trafficSplitters []string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrRealtimeAPIUsedByTrafficSplitter,
-		Message: fmt.Sprintf("cannot delete api because it is used by the following %s: %s", strings.PluralS("TrafficSplitter", len(trafficSplitters)), strings.StrsSentence(trafficSplitters, "")),
+		Message: fmt.Sprintf("cannot delete api because it is used by the following %s: %s", s.PluralS("TrafficSplitter", len(trafficSplitters)), s.StrsSentence(trafficSplitters, "")),
 	})
 }
 
 func ErrorAPIsNotDeployed(notDeployedAPIs []string) error {
-	message := fmt.Sprintf("apis %s were either not found or are not RealtimeAPIs", strings.StrsAnd(notDeployedAPIs))
+	message := fmt.Sprintf("apis %s were either not found or are not RealtimeAPIs", s.StrsAnd(notDeployedAPIs))
 	if len(notDeployedAPIs) == 1 {
 		message = fmt.Sprintf("api %s was either not found or is not a RealtimeAPI", notDeployedAPIs[0])
 	}
@@ -103,4 +116,81 @@ func ErrorInvalidNodeGroupSelector(selected string, availableNodeGroups []string
 		Kind:    ErrInvalidNodeGroupSelector,
 		Message: fmt.Sprintf("node group \"%s\" doesn't exist; remove the node group selector to let Cortex determine automatically where to place the API, or specify a valid node group name (%s)", selected, s.StrsOr(availableNodeGroups)),
 	})
+}
+
+func podResourceRequestsTable(api *userconfig.API, compute userconfig.Compute) string {
+	sidecarCPUNote := ""
+	sidecarMemNote := ""
+	if api.Kind == userconfig.RealtimeAPIKind {
+		sidecarCPUNote = fmt.Sprintf(" (including %s for the %s sidecar container)", consts.CortexProxyCPU.String(), workloads.ProxyContainerName)
+		sidecarMemNote = fmt.Sprintf(" (including %s for the %s sidecar container)", k8s.ToMiCeilStr(consts.CortexProxyMem), workloads.ProxyContainerName)
+	} else if api.Kind == userconfig.AsyncAPIKind || api.Kind == userconfig.BatchAPIKind {
+		sidecarCPUNote = fmt.Sprintf(" (including %s for the %s sidecar container)", consts.CortexDequeuerCPU.String(), workloads.DequeuerContainerName)
+		sidecarMemNote = fmt.Sprintf(" (including %s for the %s sidecar container)", k8s.ToMiCeilStr(consts.CortexDequeuerMem), workloads.DequeuerContainerName)
+	}
+
+	var items table.KeyValuePairs
+	if compute.CPU != nil {
+		items.Add("CPU", compute.CPU.String()+sidecarCPUNote)
+	}
+	if compute.Mem != nil {
+		items.Add("memory", compute.Mem.ToMiCeilStr()+sidecarMemNote)
+	}
+	if compute.GPU > 0 {
+		items.Add("GPU", compute.GPU)
+	}
+	if compute.Inf > 0 {
+		items.Add("Inf", compute.Inf)
+	}
+
+	return items.String()
+}
+
+func nodeGroupResourcesTable(api *userconfig.API, compute userconfig.Compute, maxMemMap map[string]kresource.Quantity) string {
+	var skippedNodeGroups []string
+	var nodeGroupResourceRows [][]interface{}
+
+	showGPU := false
+	showInf := false
+	if compute.GPU > 0 {
+		showGPU = true
+	}
+	if compute.Inf > 0 {
+		showInf = true
+	}
+
+	for _, ng := range config.ClusterConfig.NodeGroups {
+		nodeCPU, nodeMem, nodeGPU, nodeInf := getNodeCapacity(ng.InstanceType, maxMemMap)
+		if nodeGPU > 0 {
+			showGPU = true
+		}
+		if nodeInf > 0 {
+			showInf = true
+		}
+
+		if api.NodeGroups != nil && !slices.HasString(api.NodeGroups, ng.Name) {
+			skippedNodeGroups = append(skippedNodeGroups, ng.Name)
+		} else {
+			nodeGroupResourceRows = append(nodeGroupResourceRows, []interface{}{ng.Name, ng.InstanceType, nodeCPU, k8s.ToMiFloorStr(nodeMem), nodeGPU, nodeInf})
+		}
+	}
+
+	nodeGroupResourceRowsTable := table.Table{
+		Headers: []table.Header{
+			{Title: "node group"},
+			{Title: "instance type"},
+			{Title: "CPU"},
+			{Title: "memory"},
+			{Title: "GPU", Hidden: !showGPU},
+			{Title: "Inf", Hidden: !showInf},
+		},
+		Rows: nodeGroupResourceRows,
+	}
+
+	out := nodeGroupResourceRowsTable.MustFormat()
+	if len(skippedNodeGroups) > 0 {
+		out += fmt.Sprintf("\nthe following %s skipped (based on the api configuration's %s field): %s", s.PluralCustom("node group was", "node groups were", len(skippedNodeGroups)), userconfig.NodeGroupsKey, strings.Join(skippedNodeGroups, ", "))
+	}
+
+	return out
 }

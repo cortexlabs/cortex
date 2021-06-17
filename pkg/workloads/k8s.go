@@ -45,10 +45,9 @@ const (
 	_emptyDirVolumeName = "mnt"
 	_emptyDirMountPath  = "/mnt"
 
-	_gatewayContainerName = "gateway"
-
 	ProxyContainerName    = "proxy"
 	DequeuerContainerName = "dequeuer"
+	GatewayContainerName  = "gateway"
 
 	_kubexitGraveyardName      = "graveyard"
 	_kubexitGraveyardMountPath = "/graveyard"
@@ -73,7 +72,7 @@ var (
 
 func AsyncGatewayContainer(api spec.API, queueURL string, volumeMounts []kcore.VolumeMount) kcore.Container {
 	return kcore.Container{
-		Name:            _gatewayContainerName,
+		Name:            GatewayContainerName,
 		Image:           config.ClusterConfig.ImageAsyncGateway,
 		ImagePullPolicy: kcore.PullAlways,
 		Args: []string{
