@@ -1544,16 +1544,7 @@ func doesStackExist(stack *cloudformation.StackSummary) bool {
 	}, *stack.StackStatus) {
 		return false
 	}
-	if slices.HasString([]string{
-		cloudformation.StackStatusCreateComplete,
-		cloudformation.StackStatusUpdateInProgress,
-		cloudformation.StackStatusUpdateComplete,
-		cloudformation.StackStatusUpdateRollbackComplete,
-		cloudformation.StackStatusRollbackComplete,
-	}, *stack.StackStatus) {
-		return true
-	}
-	return false
+	return true
 }
 
 func getStaleEksNodeGroups(clusterName string, eksNodeGroupStacks []*cloudformation.StackSummary, ngsToExist, ngsMarkedForRemoval []*NodeGroup) []string {
