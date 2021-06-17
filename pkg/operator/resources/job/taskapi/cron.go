@@ -43,7 +43,6 @@ const (
 
 var operatorLogger = logging.GetLogger()
 var _inProgressJobSpecMap = map[string]*spec.TaskJob{}
-var _notFoundK8sJobs = strset.New()
 
 func ManageJobResources() error {
 	inProgressJobKeys, err := job.ListAllInProgressJobKeys(userconfig.TaskAPIKind)
@@ -110,16 +109,6 @@ func ManageJobResources() error {
 			_ = job.DeleteInProgressFile(jobKey)
 			_ = deleteJobRuntimeResources(jobKey)
 			continue
-		}
-
-		// if a k8s job hasn't been found, it could be because the k8s job hasn't been created yet
-		// the explanation is that job states are uploaded first and then are the k8s jobs created
-		if !jobFound && !_notFoundK8sJobs.Has(jobKey.ID) {
-			_notFoundK8sJobs.Add(jobKey.ID)
-			continue
-		}
-		if _notFoundK8sJobs.Has(jobKey.ID) {
-			_notFoundK8sJobs.Remove(jobKey.ID)
 		}
 
 		// reconcile job state and k8s job
