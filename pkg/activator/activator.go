@@ -29,7 +29,9 @@ import (
 	"k8s.io/client-go/tools/cache"
 )
 
-const ApiNameCtxKey = "apiName"
+type ctxValue string
+
+const APINameCtxKey ctxValue = "apiName"
 
 type Activator interface {
 	Try(ctx context.Context, fn func() error) error
@@ -60,7 +62,7 @@ func New(istioClient istionetworkingclient.VirtualServiceInterface, virtualServi
 }
 
 func (a *activator) Try(ctx context.Context, fn func() error) error {
-	apiNameValue := ctx.Value(ApiNameCtxKey)
+	apiNameValue := ctx.Value(APINameCtxKey)
 	apiName, ok := apiNameValue.(string)
 	if !ok || apiName == "" {
 		return fmt.Errorf("failed to get the api name from context") // FIXME: proper error here

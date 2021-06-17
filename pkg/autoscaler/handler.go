@@ -24,15 +24,15 @@ import (
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 )
 
-type AutoscalerHandler struct {
+type Handler struct {
 	autoscaler *Autoscaler
 }
 
-func NewHandler(autoscaler *Autoscaler) *AutoscalerHandler {
-	return &AutoscalerHandler{autoscaler: autoscaler}
+func NewHandler(autoscaler *Autoscaler) *Handler {
+	return &Handler{autoscaler: autoscaler}
 }
 
-func (h *AutoscalerHandler) AddAPI(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) AddAPI(w http.ResponseWriter, r *http.Request) {
 	var api userconfig.Resource
 	if err := json.NewDecoder(r.Body).Decode(&api); err != nil {
 		http.Error(w, "failed to json decode request body", http.StatusBadRequest)
@@ -48,7 +48,7 @@ func (h *AutoscalerHandler) AddAPI(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-func (h *AutoscalerHandler) Awake(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) Awake(w http.ResponseWriter, r *http.Request) {
 	var api userconfig.Resource
 	if err := json.NewDecoder(r.Body).Decode(&api); err != nil {
 		http.Error(w, "failed to json decode request body", http.StatusBadRequest)
