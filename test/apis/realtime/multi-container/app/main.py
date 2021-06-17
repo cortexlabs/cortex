@@ -34,5 +34,5 @@ def text_generator(request: Request):
     # make prediction
     response = requests.post(app.server_url, data=predict_request)
     response.raise_for_status()
-    label = app.labels[response.json()["predictions"][0]["classes"]]
-    return {"image_prediction": label}
+    label_id = response.json()["predictions"][0]["classes"]
+    return {"image_prediction": app.labels[label_id]}
