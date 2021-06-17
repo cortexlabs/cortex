@@ -62,6 +62,8 @@ const (
 	_clusterConfigDirVolume = "cluster-config"
 	_clusterConfigConfigMap = "cluster-config"
 	_clusterConfigDir       = "/configs/cluster"
+
+	_statsdAddress = "prometheus-statsd-exporter.default:9125"
 )
 
 var (
@@ -128,18 +130,11 @@ func asyncDequeuerProxyContainer(api spec.API, queueURL string) (kcore.Container
 			"--queue", queueURL,
 			"--api-kind", api.Kind.String(),
 			"--api-name", api.Name,
+			"--statsd-address", _statsdAddress,
 			"--user-port", s.Int32(*api.Pod.Port),
-			"--statsd-port", consts.StatsDPortStr,
 			"--admin-port", consts.AdminPortStr,
 		},
-		Env: append(baseEnvVars, kcore.EnvVar{
-			Name: "HOST_IP",
-			ValueFrom: &kcore.EnvVarSource{
-				FieldRef: &kcore.ObjectFieldSelector{
-					FieldPath: "status.hostIP",
-				},
-			},
-		}),
+		Env: baseEnvVars,
 		Ports: []kcore.ContainerPort{
 			{
 				Name:          consts.AdminPortName,
@@ -181,18 +176,11 @@ func batchDequeuerProxyContainer(api spec.API, jobID, queueURL string) (kcore.Co
 			"--api-kind", api.Kind.String(),
 			"--api-name", api.Name,
 			"--job-id", jobID,
+			"--statsd-address", _statsdAddress,
 			"--user-port", s.Int32(*api.Pod.Port),
-			"--statsd-port", consts.StatsDPortStr,
 			"--admin-port", consts.AdminPortStr,
 		},
-		Env: append(baseEnvVars, kcore.EnvVar{
-			Name: "HOST_IP",
-			ValueFrom: &kcore.EnvVarSource{
-				FieldRef: &kcore.ObjectFieldSelector{
-					FieldPath: "status.hostIP",
-				},
-			},
-		}),
+		Env: baseEnvVars,
 		ReadinessProbe: &kcore.Probe{
 			Handler: kcore.Handler{
 				HTTPGet: &kcore.HTTPGetAction{

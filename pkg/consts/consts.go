@@ -35,10 +35,7 @@ var (
 	AdminPortName  = "admin"
 	AdminPortStr   = "15000"
 	AdminPortInt32 = int32(15000)
-
-	StatsDPortStr = "9125"
-
-	AuthHeader = "X-Cortex-Authorization"
+	AuthHeader     = "X-Cortex-Authorization"
 
 	DefaultInClusterConfigPath   = "/configs/cluster/cluster.yaml"
 	MaxBucketLifecycleRules      = 100
