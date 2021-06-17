@@ -1726,13 +1726,9 @@ func (mc *ManagedConfig) TelemetryEvent() map[string]interface{} {
 	var totalMinSize, totalMaxSize int
 
 	event["node_groups._len"] = len(mc.NodeGroups)
-	for _, ng := range mc.NodeGroups {
+	for i, ng := range mc.NodeGroups {
 		nodeGroupKey := func(field string) string {
-			lifecycle := "on_demand"
-			if ng.Spot {
-				lifecycle = "spot"
-			}
-			return fmt.Sprintf("node_groups.%s-%s.%s", ng.InstanceType, lifecycle, field)
+			return fmt.Sprintf("node_groups.%d.%s", i, field)
 		}
 		event[nodeGroupKey("_is_defined")] = true
 		event[nodeGroupKey("name")] = ng.Name
