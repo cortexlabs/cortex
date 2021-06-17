@@ -53,7 +53,7 @@ func TestActivator_Try(t *testing.T) {
 	}
 
 	ctx := context.Background()
-	ctx = context.WithValue(ctx, ApiNameCtxKey, apiName)
+	ctx = context.WithValue(ctx, APINameCtxKey, apiName)
 
 	errCh := make(chan error)
 	waitCh := make(chan struct{})

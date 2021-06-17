@@ -34,23 +34,23 @@ const (
 	CortexTargetServiceHeader = "X-Cortex-Target-Service"
 )
 
-type activatorHandler struct {
+type Handler struct {
 	activator Activator
 	logger    *zap.SugaredLogger
 }
 
-func NewHandler(act Activator, logger *zap.SugaredLogger) *activatorHandler {
-	return &activatorHandler{
+func NewHandler(act Activator, logger *zap.SugaredLogger) *Handler {
+	return &Handler{
 		activator: act,
 		logger:    logger,
 	}
 }
 
-func (h *activatorHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	apiName := r.Header.Get(CortexAPINameHeader)
 
 	ctx := r.Context()
-	ctx = context.WithValue(ctx, ApiNameCtxKey, apiName)
+	ctx = context.WithValue(ctx, APINameCtxKey, apiName)
 
 	if err := h.activator.Try(ctx, func() error {
 		return h.proxyRequest(w, r)
@@ -65,7 +65,7 @@ func (h *activatorHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (h *activatorHandler) proxyRequest(w http.ResponseWriter, r *http.Request) error {
+func (h *Handler) proxyRequest(w http.ResponseWriter, r *http.Request) error {
 	target := r.Header.Get(CortexTargetServiceHeader)
 	if target == "" {
 		return fmt.Errorf("missing %s header", CortexTargetServiceHeader) // FIXME: proper error
