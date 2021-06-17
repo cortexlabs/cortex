@@ -87,7 +87,7 @@ func main() {
 
 	select {
 	case err = <-errCh:
-		log.Fatalw("failed to start proxy server", zap.Error(err))
+		log.Fatalw("failed to start activator server", zap.Error(err))
 	case <-sigint:
 		// We received an interrupt signal, shut down.
 		log.Info("Received TERM signal, handling a graceful shutdown...")
