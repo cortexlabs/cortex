@@ -18,6 +18,8 @@ package consts
 
 import (
 	"os"
+
+	kresource "k8s.io/apimachinery/pkg/api/resource"
 )
 
 var (
@@ -36,6 +38,11 @@ var (
 	AdminPortStr   = "15000"
 	AdminPortInt32 = int32(15000)
 	AuthHeader     = "X-Cortex-Authorization"
+
+	CortexProxyCPU    = kresource.MustParse("100m")
+	CortexProxyMem    = kresource.MustParse("100Mi")
+	CortexDequeuerCPU = kresource.MustParse("100m")
+	CortexDequeuerMem = kresource.MustParse("100Mi")
 
 	DefaultInClusterConfigPath   = "/configs/cluster/cluster.yaml"
 	MaxBucketLifecycleRules      = 100

@@ -55,7 +55,6 @@ const (
 	ErrCortexPrefixedEnvVarNotAllowed = "spec.cortex_prefixed_env_var_not_allowed"
 	ErrDisallowedEnvVars              = "spec.disallowed_env_vars"
 	ErrComputeResourceConflict        = "spec.compute_resource_conflict"
-	ErrInvalidNumberOfInfs            = "spec.invalid_number_of_infs"
 	ErrIncorrectTrafficSplitterWeight = "spec.incorrect_traffic_splitter_weight"
 	ErrTrafficSplitterAPIsNotUnique   = "spec.traffic_splitter_apis_not_unique"
 	ErrOneShadowPerTrafficSplitter    = "spec.one_shadow_per_traffic_splitter"
@@ -247,13 +246,6 @@ func ErrorComputeResourceConflict(resourceA, resourceB string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrComputeResourceConflict,
 		Message: fmt.Sprintf("%s and %s resources cannot be used together", resourceA, resourceB),
-	})
-}
-
-func ErrorInvalidNumberOfInfs(requestedInfs int64) error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrInvalidNumberOfInfs,
-		Message: fmt.Sprintf("cannot request %d Infs (currently only 1 Inf can be used per API replica, due to AWS's bug: https://github.com/aws/aws-neuron-sdk/issues/110)", requestedInfs),
 	})
 }
 

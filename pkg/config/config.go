@@ -40,8 +40,7 @@ import (
 var (
 	OperatorMetadata *clusterconfig.OperatorMetadata
 
-	ClusterConfig     *clusterconfig.Config
-	InstancesMetadata []aws.InstanceMetadata
+	ClusterConfig *clusterconfig.Config
 
 	AWS             *aws.Client
 	K8s             *k8s.Client
@@ -91,10 +90,6 @@ func Init() error {
 	}
 
 	ClusterConfig = clusterConfig
-
-	for _, instanceType := range clusterConfig.GetAllInstanceTypes() {
-		InstancesMetadata = append(InstancesMetadata, aws.InstanceMetadatas[clusterConfig.Region][instanceType])
-	}
 
 	AWS, err = aws.NewForRegion(clusterConfig.Region)
 	if err != nil {

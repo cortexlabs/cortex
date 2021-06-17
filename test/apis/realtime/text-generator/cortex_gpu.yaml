@@ -15,4 +15,4 @@
       compute:
         cpu: 1
         gpu: 1
-        mem: 512M
+        mem: 512Mi
