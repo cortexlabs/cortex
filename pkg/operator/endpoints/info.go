@@ -38,9 +38,8 @@ func Info(w http.ResponseWriter, r *http.Request) {
 	}
 
 	fullClusterConfig := clusterconfig.InternalConfig{
-		Config:            *config.ClusterConfig,
-		OperatorMetadata:  *config.OperatorMetadata,
-		InstancesMetadata: config.InstancesMetadata,
+		Config:           *config.ClusterConfig,
+		OperatorMetadata: *config.OperatorMetadata,
 	}
 
 	response := schema.InfoResponse{

@@ -11,4 +11,4 @@
           port: 8080
       compute:
         cpu: 1
-        mem: 2.5G
+        mem: 2.5Gi

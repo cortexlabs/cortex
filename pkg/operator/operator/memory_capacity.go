@@ -18,6 +18,7 @@ package operator
 
 import (
 	"github.com/cortexlabs/cortex/pkg/config"
+	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/slices"
 	kresource "k8s.io/apimachinery/pkg/api/resource"
@@ -104,9 +105,10 @@ func UpdateMemoryCapacityConfigMap() (map[string]kresource.Quantity, error) {
 	primaryInstances := []string{}
 
 	minMemMap := map[string]kresource.Quantity{}
-	for _, instanceMetadata := range config.InstancesMetadata {
-		minMemMap[instanceMetadata.Type] = instanceMetadata.Memory
-		primaryInstances = append(primaryInstances, instanceMetadata.Type)
+	for _, ng := range config.ClusterConfig.NodeGroups {
+		instanceMetadata := aws.InstanceMetadatas[config.ClusterConfig.Region][ng.InstanceType]
+		minMemMap[ng.InstanceType] = instanceMetadata.Memory
+		primaryInstances = append(primaryInstances, ng.InstanceType)
 	}
 
 	nodeMemCapacityMap, err := getMemoryCapacityFromNodes(primaryInstances)
