@@ -29,12 +29,13 @@ region: us-east-1
 # list of availability zones for your region
 availability_zones:  # default: 3 random availability zones in your region, e.g. [us-east-1a, us-east-1b, us-east-1c]
 
-# list of cluster node groups; the smaller index, the higher the priority of the node group
+# list of cluster node groups;
 node_groups:
   - name: ng-cpu # name of the node group
     instance_type: m5.large # instance type
     min_instances: 1 # minimum number of instances
     max_instances: 5 # maximum number of instances
+    priority: 1 # priority of the node group; the higher the value, the higher the priority [1-100]
     instance_volume_size: 50 # disk storage size per instance (GB)
     instance_volume_type: gp3 # instance volume type [gp2 | gp3 | io1 | st1 | sc1]
     # instance_volume_iops: 3000 # instance volume iops (only applicable to io1/gp3)

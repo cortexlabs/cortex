@@ -104,29 +104,25 @@ Flags:
   -c, --config string          path to a cluster configuration file
   -n, --name string            name of the cluster
   -r, --region string          aws region of the cluster
-  -o, --output string          output format: one of pretty|json (default "pretty")
+  -o, --output string          output format: one of pretty|json|yaml (default "pretty")
   -e, --configure-env string   name of environment to configure
   -d, --debug                  save the current cluster state to a file
+      --print-config           print the cluster config
   -y, --yes                    skip prompts
   -h, --help                   help for info
 ```
 
-## cluster scale
+## cluster configure
 
 ```text
-update the min/max instances for a nodegroup
+update the cluster's configuration
 
 Usage:
-  cortex cluster scale [flags]
+  cortex cluster configure CLUSTER_CONFIG_FILE [flags]
 
 Flags:
-  -n, --name string         name of the cluster
-  -r, --region string       aws region of the cluster
-      --node-group string   name of the node group to scale
-      --min-instances int   minimum number of instances
-      --max-instances int   maximum number of instances
-  -y, --yes                 skip prompts
-  -h, --help                help for scale
+  -y, --yes    skip prompts
+  -h, --help   help for configure
 ```
 
 ## cluster down

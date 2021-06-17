@@ -57,6 +57,8 @@ const (
 	ErrUnsupportedAvailabilityZone            = "clusterconfig.unsupported_availability_zone"
 	ErrNotEnoughValidDefaultAvailibilityZones = "clusterconfig.not_enough_valid_default_availability_zones"
 	ErrNoNATGatewayWithSubnets                = "clusterconfig.no_nat_gateway_with_subnets"
+	ErrConfigCannotBeChangedOnConfigure       = "clusterconfig.config_cannot_be_changed_on_configure"
+	ErrNodeGroupCanOnlyBeScaled               = "clusterconfig.node_group_can_only_be_scaled"
 	ErrSpecifyOneOrNone                       = "clusterconfig.specify_one_or_none"
 	ErrSpecifyTwoOrNone                       = "clusterconfig.specify_two_or_none"
 	ErrDependentFieldMustBeSpecified          = "clusterconfig.dependent_field_must_be_specified"
@@ -113,7 +115,7 @@ func ErrorNoNodeGroupSpecified() error {
 func ErrorNodeGroupMaxInstancesIsZero() error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrNodeGroupMaxInstancesIsZero,
-		Message: fmt.Sprintf("nodegroups cannot be created with `%s` set to 0 (but `%s` can be scaled to 0 after the cluster has been created)", MaxInstancesKey, MaxInstancesKey),
+		Message: fmt.Sprintf("nodegroups cannot be created with `%s` set to 0 (but `%s` can be scaled to 0 after the nodegroup has been created)", MaxInstancesKey, MaxInstancesKey),
 	})
 }
 
@@ -280,6 +282,20 @@ func ErrorNoNATGatewayWithSubnets() error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrNoNATGatewayWithSubnets,
 		Message: fmt.Sprintf("nat gateway cannot be automatically created when specifying subnets for your cluster; please unset %s or %s", NATGatewayKey, SubnetsKey),
+	})
+}
+
+func ErrorConfigCannotBeChangedOnConfigure() error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrConfigCannotBeChangedOnConfigure,
+		Message: fmt.Sprintf("in a running cluster, only the %s field can be modified", NodeGroupsKey),
+	})
+}
+
+func ErrorNodeGroupCanOnlyBeScaled() error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrNodeGroupCanOnlyBeScaled,
+		Message: "in a running cluster, nodegroups can only be scaled, added, or deleted",
 	})
 }
 
