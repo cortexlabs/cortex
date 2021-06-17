@@ -672,10 +672,11 @@ func getMetrics(r *BatchJobReconciler, batchJob batch.BatchJob) (metrics.BatchMe
 		ID:      batchJob.Name,
 		APIName: batchJob.Spec.APIName,
 		Kind:    userconfig.BatchAPIKind,
-	}, batchJob.Status.EndTime.Time)
+	}, time.Now())
 	if err != nil {
 		return metrics.BatchMetrics{}, err
 	}
+
 	return jobMetrics, nil
 }
 
