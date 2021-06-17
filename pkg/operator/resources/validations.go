@@ -173,10 +173,9 @@ func validateK8sCompute(api *userconfig.API, maxMemMap map[string]kresource.Quan
 
 	// no nodegroups have capacity
 	errMsg := "no instance types in your cluster are large enough to satisfy the requested resources for your pod\n\n"
-	errMsg += console.Bold("requested pod resources")
+	errMsg += console.Bold("requested pod resources\n")
 	errMsg += podResourceRequestsTable(api, compute)
-	errMsg += console.Bold("\nnodegroup resources")
-	errMsg += nodeGroupResourcesTable(api, compute, maxMemMap)
+	errMsg += "\n" + s.TrimTrailingNewLines(nodeGroupResourcesTable(api, compute, maxMemMap))
 	return ErrorNoAvailableNodeComputeLimit(errMsg)
 }
 
@@ -185,10 +184,10 @@ func podResourceRequestsTable(api *userconfig.API, compute userconfig.Compute) s
 	sidecarMemNote := ""
 	if api.Kind == userconfig.RealtimeAPIKind {
 		sidecarCPUNote = fmt.Sprintf(" (including %s CPU for the %s sidecar container)", consts.CortexProxyCPU.String(), workloads.ProxyContainerName)
-		sidecarMemNote = fmt.Sprintf(" (including %s memory for the %s sidecar container)", consts.CortexProxyMem.String(), workloads.ProxyContainerName)
+		sidecarMemNote = fmt.Sprintf(" (including %s memory for the %s sidecar container)", k8s.ToKiStr(consts.CortexProxyMem), workloads.ProxyContainerName)
 	} else if api.Kind == userconfig.AsyncAPIKind || api.Kind == userconfig.BatchAPIKind {
 		sidecarCPUNote = fmt.Sprintf(" (including %s CPU for the %s sidecar container)", consts.CortexDequeuerCPU.String(), workloads.DequeuerContainerName)
-		sidecarMemNote = fmt.Sprintf(" (including %s memory for the %s sidecar container)", consts.CortexDequeuerMem.String(), workloads.DequeuerContainerName)
+		sidecarMemNote = fmt.Sprintf(" (including %s memory for the %s sidecar container)", k8s.ToKiStr(consts.CortexDequeuerMem), workloads.DequeuerContainerName)
 	}
 
 	var items table.KeyValuePairs
@@ -196,7 +195,7 @@ func podResourceRequestsTable(api *userconfig.API, compute userconfig.Compute) s
 		items.Add("CPU", compute.CPU.String()+sidecarCPUNote)
 	}
 	if compute.Mem != nil {
-		items.Add("memory", compute.Mem.String()+sidecarMemNote)
+		items.Add("memory", compute.Mem.ToKiStr()+sidecarMemNote)
 	}
 	if compute.GPU > 0 {
 		items.Add("GPU", compute.GPU)
@@ -251,7 +250,7 @@ func nodeGroupResourcesTable(api *userconfig.API, compute userconfig.Compute, ma
 
 	out := nodeGroupResourceRowsTable.MustFormat()
 	if len(skippedNodeGroups) > 0 {
-		out += fmt.Sprintf("\nthe following node groups were skipped (they are not listed in the api configuration's %s field): %s", userconfig.NodeGroupsKey, strings.Join(skippedNodeGroups, ", "))
+		out += fmt.Sprintf("\nthe following %s skipped (based on the api configuration's %s field): %s", s.PluralCustom("node group was", "node groups were", len(skippedNodeGroups)), userconfig.NodeGroupsKey, strings.Join(skippedNodeGroups, ", "))
 	}
 
 	return out

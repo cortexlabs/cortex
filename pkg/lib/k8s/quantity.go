@@ -119,9 +119,21 @@ func (quantity *Quantity) ToFloat32() float32 {
 	return float32(quantity.Quantity.MilliValue()) / float32(1000)
 }
 
-func (quantity *Quantity) ToKi() int64 {
-	kiFloat := float64(quantity.Quantity.Value()) / float64(1024)
+func ToKi(k8sQuantity kresource.Quantity) int64 {
+	kiFloat := float64(k8sQuantity.Value()) / float64(1024)
 	return int64(math.Round(kiFloat))
+}
+
+func ToKiStr(k8sQuantity kresource.Quantity) string {
+	return s.Int64(ToKi(k8sQuantity)) + "Ki"
+}
+
+func (quantity *Quantity) ToKi() int64 {
+	return ToKi(quantity.Quantity)
+}
+
+func (quantity *Quantity) ToKiStr() string {
+	return ToKiStr(quantity.Quantity)
 }
 
 // SplitInTwo divides the quantity in two and return both halves (ensuring they add up to the original value)
