@@ -23,7 +23,6 @@ const (
 	ClusterNameKey                         = "cluster_name"
 	RegionKey                              = "region"
 	NodeGroupsKey                          = "node_groups"
-	NodePoolsKey                           = "node_pools"
 	InstanceTypeKey                        = "instance_type"
 	AcceleratorTypeKey                     = "accelerator_type"
 	AcceleratorsPerInstanceKey             = "accelerators_per_instance"

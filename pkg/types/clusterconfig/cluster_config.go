@@ -176,8 +176,6 @@ type InternalConfig struct {
 
 	// Populated by operator
 	OperatorMetadata
-
-	InstancesMetadata []aws.InstanceMetadata `json:"instance_metadata"`
 }
 
 // The bare minimum to identify a cluster
@@ -1728,13 +1726,9 @@ func (mc *ManagedConfig) TelemetryEvent() map[string]interface{} {
 	var totalMinSize, totalMaxSize int
 
 	event["node_groups._len"] = len(mc.NodeGroups)
-	for _, ng := range mc.NodeGroups {
+	for i, ng := range mc.NodeGroups {
 		nodeGroupKey := func(field string) string {
-			lifecycle := "on_demand"
-			if ng.Spot {
-				lifecycle = "spot"
-			}
-			return fmt.Sprintf("node_groups.%s-%s.%s", ng.InstanceType, lifecycle, field)
+			return fmt.Sprintf("node_groups.%d.%s", i, field)
 		}
 		event[nodeGroupKey("_is_defined")] = true
 		event[nodeGroupKey("name")] = ng.Name
@@ -1796,15 +1790,6 @@ func (mc *ManagedConfig) TelemetryEvent() map[string]interface{} {
 	event["node_groups._instances"] = strset.Union(onDemandInstanceTypes, spotInstanceTypes).Slice()
 
 	return event
-}
-
-func (mc *ManagedConfig) GetAllInstanceTypes() []string {
-	allInstanceTypes := strset.New()
-	for _, ng := range mc.NodeGroups {
-		allInstanceTypes.Add(ng.InstanceType)
-	}
-
-	return allInstanceTypes.Slice()
 }
 
 func (mc *ManagedConfig) GetNodeGroupByName(name string) *NodeGroup {

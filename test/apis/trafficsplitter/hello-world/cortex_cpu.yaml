@@ -14,7 +14,7 @@
           port: 8080
       compute:
         cpu: 200m
-        mem: 128M
+        mem: 128Mi
 
 - name: hello-world-b
   kind: RealtimeAPI
@@ -32,7 +32,7 @@
           port: 8080
       compute:
         cpu: 200m
-        mem: 128M
+        mem: 128Mi
 
 - name: hello-world-shadow
   kind: RealtimeAPI
@@ -50,7 +50,7 @@
           port: 8080
       compute:
         cpu: 200m
-        mem: 128M
+        mem: 128Mi
 
 - name: hello-world
   kind: TrafficSplitter

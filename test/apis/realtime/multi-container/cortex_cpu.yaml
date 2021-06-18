@@ -1,0 +1,19 @@
+- name: multi-container
+  kind: RealtimeAPI
+  pod:
+    port: 8080
+    containers:
+    - name: web-server
+      image: quay.io/cortexlabs-test/realtime-multi-container-web-cpu:latest
+      readiness_probe:
+        http_get:
+          path: "/healthz"
+          port: 8080
+    - name: tfs-server
+      image: quay.io/cortexlabs-test/realtime-multi-container-tfs-cpu:latest
+      readiness_probe:
+        exec:
+          command: ["tfs_model_status_probe", "-addr", "localhost:8500", "-model-name", "resnet50"]
+      compute:
+        cpu: 1
+        mem: 2G
