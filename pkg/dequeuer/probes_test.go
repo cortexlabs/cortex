@@ -27,7 +27,9 @@ import (
 
 func TestDefaultTCPProbeNotPresent(t *testing.T) {
 	t.Parallel()
+
 	log := newLogger(t)
+	defer func() { _ = log.Sync() }()
 
 	userPodPort := 8080
 
@@ -63,7 +65,9 @@ func TestDefaultTCPProbeNotPresent(t *testing.T) {
 
 func TestDefaultTCPProbePresent(t *testing.T) {
 	t.Parallel()
+
 	log := newLogger(t)
+	defer func() { _ = log.Sync() }()
 
 	userPodPort := intstr.FromInt(8080)
 

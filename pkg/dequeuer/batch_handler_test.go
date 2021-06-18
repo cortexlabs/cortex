@@ -39,12 +39,15 @@ func TestBatchMessageHandler_Handle(t *testing.T) {
 		}),
 	)
 
+	logger := newLogger(t)
+	defer func() { _ = logger.Sync() }()
+
 	batchHandler := NewBatchMessageHandler(BatchMessageHandlerConfig{
 		APIName:   "test",
 		JobID:     "12345",
 		Region:    _localStackDefaultRegion,
 		TargetURL: server.URL,
-	}, awsClient, &statsd.NoOpClient{}, newLogger(t))
+	}, awsClient, &statsd.NoOpClient{}, logger)
 
 	err := batchHandler.Handle(&sqs.Message{
 		Body:      aws.String(""),
@@ -72,13 +75,16 @@ func TestBatchMessageHandler_Handle_OnJobComplete(t *testing.T) {
 	})
 	server := httptest.NewServer(mux)
 
+	logger := newLogger(t)
+	defer func() { _ = logger.Sync() }()
+
 	batchHandler := NewBatchMessageHandler(BatchMessageHandlerConfig{
 		APIName:   "test",
 		JobID:     "12345",
 		Region:    _localStackDefaultRegion,
 		TargetURL: server.URL,
 		QueueURL:  queueURL,
-	}, awsClient, &statsd.NoOpClient{}, newLogger(t))
+	}, awsClient, &statsd.NoOpClient{}, logger)
 
 	batchHandler.jobCompleteMessageDelay = 0
 
