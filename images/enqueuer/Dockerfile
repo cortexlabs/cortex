@@ -1,3 +1,5 @@
+ARG TARGETARCH, TARGETOS
+
 # Build the manager binary
 FROM golang:1.15 as builder
 
@@ -16,7 +18,7 @@ COPY pkg/workloads pkg/workloads
 COPY cmd/enqueuer cmd/enqueuer
 
 # Build
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 GO111MODULE=on go build -o enqueuer ./cmd/enqueuer
+RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} GO111MODULE=on go build -o enqueuer ./cmd/enqueuer
 
 # Use distroless as minimal base image to package the manager binary
 # Refer to https://github.com/GoogleContainerTools/distroless for more details

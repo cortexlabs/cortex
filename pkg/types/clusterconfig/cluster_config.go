@@ -1443,14 +1443,6 @@ func validateInstanceType(instanceType string) (string, error) {
 		return "", ErrorInstanceTypeNotSupportedByCortex(instanceType)
 	}
 
-	isARM, err := aws.IsARMInstance(instanceType)
-	if err != nil {
-		return "", err
-	}
-	if isARM {
-		return "", ErrorARMInstancesNotSupported(instanceType)
-	}
-
 	isAMDGPU, err := aws.IsAMDGPUInstance(instanceType)
 	if err != nil {
 		return "", err
