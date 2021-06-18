@@ -681,11 +681,16 @@ func getTotalBatchCount(r *BatchJobReconciler, batchJob batch.BatchJob) (int, er
 }
 
 func getMetrics(r *BatchJobReconciler, batchJob batch.BatchJob) (metrics.BatchMetrics, error) {
+	endTime := time.Now()
+	if batchJob.Status.EndTime != nil {
+		endTime = batchJob.Status.EndTime.Time
+	}
+
 	jobMetrics, err := batch.GetMetrics(r.Prometheus, spec.JobKey{
 		ID:      batchJob.Name,
 		APIName: batchJob.Spec.APIName,
 		Kind:    userconfig.BatchAPIKind,
-	}, time.Now())
+	}, endTime)
 	if err != nil {
 		return metrics.BatchMetrics{}, err
 	}
