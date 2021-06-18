@@ -116,7 +116,7 @@ spec:
 Update prometheus with your annotations:
 
 ```bash
-kubectl patch prometheuses.monitoring.coreos.com prometheus --patch "$(cat patch.yaml)" --type merge
+kubectl patch prometheuses.monitoring.coreos.com prometheus --patch-file patch.yaml --type merge
 ```
 
 ## Long term metric storage
@@ -144,5 +144,5 @@ spec:
 Update prometheus with your changes:
 
 ```bash
-kubectl patch prometheuses.monitoring.coreos.com prometheus --patch "$(cat patch.yaml)" --type merge
+kubectl patch prometheuses.monitoring.coreos.com prometheus --patch-file patch.yaml --type merge
 ```
