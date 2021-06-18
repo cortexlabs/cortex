@@ -123,12 +123,6 @@ def pytest_configure(config):
                     "batch_size": 10 * 2,
                     "workload_timeout": 300,  # measured in seconds
                 },
-                "task": {
-                    "jobs": 10 ** 2,
-                    "concurrency": 4,  # task-retrieving concurrency
-                    "submit_timeout": 150,  # measured in seconds
-                    "workload_timeout": 400,  # measured in seconds
-                },
             },
             "long_running_test_config": {
                 "time_to_run": 5 * 24 * 3600,  # measured in seconds

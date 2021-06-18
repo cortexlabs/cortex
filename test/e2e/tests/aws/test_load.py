@@ -22,7 +22,6 @@ import e2e.tests
 TEST_APIS_REALTIME = ["realtime/prime-generator"]
 TEST_APIS_ASYNC = ["async/text-generator"]
 TEST_APIS_BATCH = ["batch/sum"]
-TEST_APIS_TASK = ["task/iris-classifier-trainer"]
 
 
 @pytest.mark.usefixtures("client")
@@ -78,20 +77,4 @@ def test_load_batch(printer: Callable, config: Dict, client: cx.Client, api: str
         test_s3_path=s3_path,
         load_config=config["global"]["load_test_config"]["batch"],
         deploy_timeout=config["global"]["batch_deploy_timeout"],
-    )
-
-
-@pytest.mark.usefixtures("client")
-@pytest.mark.parametrize("api", TEST_APIS_TASK)
-def test_load_task(printer: Callable, config: Dict, client: cx.Client, api: str):
-    skip_load_test = config["global"].get("skip_load", False)
-    if skip_load_test:
-        pytest.skip("--skip-load flag detected, skipping load tests")
-
-    e2e.tests.test_load_task(
-        printer,
-        client,
-        api,
-        load_config=config["global"]["load_test_config"]["task"],
-        deploy_timeout=config["global"]["task_deploy_timeout"],
     )
