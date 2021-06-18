@@ -46,6 +46,7 @@ import (
 	kbatch "k8s.io/api/batch/v1"
 	kcore "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -462,6 +463,18 @@ func (r *BatchJobReconciler) updateStatus(ctx context.Context, batchJob *batch.B
 	if worker != nil {
 		batchJob.Status.EndTime = worker.Status.CompletionTime // assign right away, because it's a pointer
 
+		if batchJob.Status.EndTime == nil {
+			completedTimestampStr, completedTimestampExists := batchJob.Annotations[_completedTimestampAnnotation]
+			if completedTimestampExists {
+				ts, err := time.Parse(time.RFC3339, completedTimestampStr)
+				if err != nil {
+					return errors.Wrap(err, "failed to parse completed timestamp string")
+				}
+				completedTime := v1.NewTime(ts)
+				batchJob.Status.EndTime = &completedTime
+			}
+		}
+
 		if worker.Status.Failed == batchJob.Spec.Workers {
 			batchJobStatus := status.JobWorkerError
 			for _, condition := range worker.Status.Conditions {
@@ -668,14 +681,20 @@ func getTotalBatchCount(r *BatchJobReconciler, batchJob batch.BatchJob) (int, er
 }
 
 func getMetrics(r *BatchJobReconciler, batchJob batch.BatchJob) (metrics.BatchMetrics, error) {
+	endTime := time.Now()
+	if batchJob.Status.EndTime != nil {
+		endTime = batchJob.Status.EndTime.Time
+	}
+
 	jobMetrics, err := batch.GetMetrics(r.Prometheus, spec.JobKey{
 		ID:      batchJob.Name,
 		APIName: batchJob.Spec.APIName,
 		Kind:    userconfig.BatchAPIKind,
-	}, batchJob.Status.EndTime.Time)
+	}, endTime)
 	if err != nil {
 		return metrics.BatchMetrics{}, err
 	}
+
 	return jobMetrics, nil
 }
 

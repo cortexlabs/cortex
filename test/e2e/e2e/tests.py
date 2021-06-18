@@ -41,12 +41,10 @@ from e2e.utils import (
     wait_on_futures,
     endpoint_ready,
     request_prediction,
-    generate_grpc,
     job_done,
     jobs_done,
     request_batch_prediction,
     request_task,
-    request_tasks_concurrently,
     retrieve_async_result,
     make_requests_concurrently,
     check_futures_healthy,
@@ -89,36 +87,16 @@ def test_realtime_api(
             client=client, api_names=[api_name], timeout=timeout
         ), f"apis {api_name} not ready"
 
-        if not expectations or "grpc" not in expectations:
-            with open(str(api_dir / "sample.json")) as f:
-                payload = json.load(f)
-            response = request_prediction(client, api_name, payload, extra_path)
+        with open(str(api_dir / "sample.json")) as f:
+            payload = json.load(f)
+        response = request_prediction(client, api_name, payload, extra_path)
 
-            assert (
-                response.status_code == HTTPStatus.OK
-            ), f"status code: got {response.status_code}, expected {HTTPStatus.OK}"
+        assert (
+            response.status_code == HTTPStatus.OK
+        ), f"status code: got {response.status_code}, expected {HTTPStatus.OK}"
 
-            if expectations and "response" in expectations:
-                assert_response_expectations(response, expectations["response"])
-
-        if expectations and "grpc" in expectations:
-            stub, input_sample, output_values, output_type, is_output_stream = generate_grpc(
-                client, api_name, api_dir, expectations["grpc"]
-            )
-            if is_output_stream:
-                for response, output_val in zip(stub.Predict(input_sample), output_values):
-                    assert (
-                        type(response) == output_type
-                    ), f"didn't receive response of type {str(output_type)}, but received {str(type(response))}"
-                    assert response == output_val, f"received {response} instead of {output_val}"
-            else:
-                response = stub.Predict(input_sample)
-                assert (
-                    type(stub.Predict(input_sample)) == output_type
-                ), f"didn't receive response of type {str(output_type)}, but received {str(type(response))}"
-                assert (
-                    response == output_values[0]
-                ), f"received {response} instead of {output_values[0]}"
+        if expectations and "response" in expectations:
+            assert_response_expectations(response, expectations["response"])
     except:
         # best effort
         try:
@@ -836,90 +814,6 @@ def test_load_batch(
             raise
 
     finally:
-        delete_apis(client, [api_name])
-        if failed:
-            time.sleep(30)
-
-
-def test_load_task(
-    printer: Callable,
-    client: cx.Client,
-    api: str,
-    load_config: Dict[str, Union[int, float]],
-    deploy_timeout: int = None,
-    retry_attempts: int = 0,
-    poll_sleep_seconds: int = 1,
-    api_config_name: str = "cortex_cpu.yaml",
-):
-
-    jobs = load_config["jobs"]
-    concurrency = load_config["concurrency"]
-    submit_timeout = load_config["submit_timeout"]
-    workload_timeout = load_config["workload_timeout"]
-
-    api_dir = TEST_APIS_DIR / api
-    with open(str(api_dir / api_config_name)) as f:
-        api_specs = yaml.safe_load(f)
-    assert len(api_specs) == 1
-
-    api_name = api_specs[0]["name"]
-    client.deploy(api_spec=api_specs[0])
-
-    request_stopper = td.Event()
-    map_stopper = td.Event()
-    failed = False
-    try:
-        assert endpoint_ready(
-            client=client, api_name=api_name, timeout=deploy_timeout
-        ), f"api {api_name} not ready"
-
-        # give the operator time to start
-        time.sleep(1 * retry_attempts)
-
-        # submit jobs
-        printer(f"submitting {jobs} jobs concurrently")
-        job_specs = []
-        threads_futures = request_tasks_concurrently(
-            client, api_name, request_stopper, 1, jobs, job_specs
-        )
-
-        assert wait_on_event(
-            request_stopper, submit_timeout
-        ), f"{jobs} jobs couldn't be submitted in {submit_timeout}s"
-        check_futures_healthy(threads_futures)
-        wait_on_futures(threads_futures)
-
-        # give it a bit of a delay to avoid overloading
-        time.sleep(1)
-
-        printer("waiting on the jobs")
-        job_ids = [job_spec.json()["job_id"] for job_spec in job_specs]
-        retrieve_results_concurrently(
-            client,
-            api_name,
-            concurrency,
-            map_stopper,
-            job_ids,
-            poll_sleep_seconds=poll_sleep_seconds,
-            timeout=workload_timeout,
-        )
-
-    except:
-        # best effort
-        failed = True
-        try:
-            api_info = client.get_api(api_name)
-
-            # only get the last 10 job statuses
-            if "task_job_statuses" in api_info and len(api_info["task_job_statuses"]) > 10:
-                api_info["task_job_statuses"] = api_info["task_job_statuses"][-10:]
-
-            printer(json.dumps(api_info, indent=2))
-        finally:
-            raise
-
-    finally:
-        map_stopper.set()
         delete_apis(client, [api_name])
         if failed:
             time.sleep(30)
