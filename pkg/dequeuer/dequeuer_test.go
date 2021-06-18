@@ -351,7 +351,7 @@ func TestSQSDequeuer_Start_HandlerError(t *testing.T) {
 
 	dq.waitTimeSeconds = aws.Int64(0)
 	dq.notFoundSleepTime = 0
-	dq.renewalPeriod = time.Second
+	dq.renewalPeriod = 500 * time.Millisecond
 	dq.visibilityTimeout = aws.Int64(1)
 
 	msgHandler := NewMessageHandlerFunc(
@@ -370,10 +370,12 @@ func TestSQSDequeuer_Start_HandlerError(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	err = dq.Start(msgHandler, func() bool {
-		return true
-	})
-	require.NoError(t, err)
+	go func() {
+		err := dq.Start(msgHandler, func() bool {
+			return true
+		})
+		require.NoError(t, err)
+	}()
 
 	require.Never(t, func() bool {
 		msg, err := dq.ReceiveMessage()
