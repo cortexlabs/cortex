@@ -44,7 +44,9 @@ func generateHandler(pb *probe.Probe) http.HandlerFunc {
 
 func TestHandlerSuccessTCP(t *testing.T) {
 	t.Parallel()
+
 	log := newLogger(t)
+	defer func() { _ = log.Sync() }()
 
 	var userHandler http.HandlerFunc = func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
@@ -77,7 +79,9 @@ func TestHandlerSuccessTCP(t *testing.T) {
 
 func TestHandlerSuccessHTTP(t *testing.T) {
 	t.Parallel()
+
 	log := newLogger(t)
+	defer func() { _ = log.Sync() }()
 
 	headers := []kcore.HTTPHeader{
 		{

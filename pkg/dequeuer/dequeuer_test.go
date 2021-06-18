@@ -171,12 +171,15 @@ func TestSQSDequeuer_ReceiveMessage(t *testing.T) {
 	})
 	require.NoError(t, err)
 
+	logger := newLogger(t)
+	defer func() { _ = logger.Sync() }()
+
 	dq, err := NewSQSDequeuer(
 		SQSDequeuerConfig{
 			Region:           _localStackDefaultRegion,
 			QueueURL:         queueURL,
 			StopIfNoMessages: true,
-		}, awsClient, newLogger(t),
+		}, awsClient, logger,
 	)
 	require.NoError(t, err)
 
@@ -194,12 +197,15 @@ func TestSQSDequeuer_StartMessageRenewer(t *testing.T) {
 	awsClient := testAWSClient(t)
 	queueURL := createQueue(t, awsClient)
 
+	logger := newLogger(t)
+	defer func() { _ = logger.Sync() }()
+
 	dq, err := NewSQSDequeuer(
 		SQSDequeuerConfig{
 			Region:           _localStackDefaultRegion,
 			QueueURL:         queueURL,
 			StopIfNoMessages: true,
-		}, awsClient, newLogger(t),
+		}, awsClient, logger,
 	)
 	require.NoError(t, err)
 
@@ -239,12 +245,15 @@ func TestSQSDequeuerTerminationOnEmptyQueue(t *testing.T) {
 	awsClient := testAWSClient(t)
 	queueURL := createQueue(t, awsClient)
 
+	logger := newLogger(t)
+	defer func() { _ = logger.Sync() }()
+
 	dq, err := NewSQSDequeuer(
 		SQSDequeuerConfig{
 			Region:           _localStackDefaultRegion,
 			QueueURL:         queueURL,
 			StopIfNoMessages: true,
-		}, awsClient, newLogger(t),
+		}, awsClient, logger,
 	)
 	require.NoError(t, err)
 
@@ -286,12 +295,15 @@ func TestSQSDequeuer_Shutdown(t *testing.T) {
 	awsClient := testAWSClient(t)
 	queueURL := createQueue(t, awsClient)
 
+	logger := newLogger(t)
+	defer func() { _ = logger.Sync() }()
+
 	dq, err := NewSQSDequeuer(
 		SQSDequeuerConfig{
 			Region:           _localStackDefaultRegion,
 			QueueURL:         queueURL,
 			StopIfNoMessages: true,
-		}, awsClient, newLogger(t),
+		}, awsClient, logger,
 	)
 	require.NoError(t, err)
 
@@ -325,18 +337,21 @@ func TestSQSDequeuer_Start_HandlerError(t *testing.T) {
 	awsClient := testAWSClient(t)
 	queueURL := createQueue(t, awsClient)
 
+	logger := newLogger(t)
+	defer func() { _ = logger.Sync() }()
+
 	dq, err := NewSQSDequeuer(
 		SQSDequeuerConfig{
 			Region:           _localStackDefaultRegion,
 			QueueURL:         queueURL,
 			StopIfNoMessages: true,
-		}, awsClient, newLogger(t),
+		}, awsClient, logger,
 	)
 	require.NoError(t, err)
 
 	dq.waitTimeSeconds = aws.Int64(0)
 	dq.notFoundSleepTime = 0
-	dq.renewalPeriod = time.Second
+	dq.renewalPeriod = 500 * time.Millisecond
 	dq.visibilityTimeout = aws.Int64(1)
 
 	msgHandler := NewMessageHandlerFunc(
@@ -355,10 +370,12 @@ func TestSQSDequeuer_Start_HandlerError(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	err = dq.Start(msgHandler, func() bool {
-		return true
-	})
-	require.NoError(t, err)
+	go func() {
+		err := dq.Start(msgHandler, func() bool {
+			return true
+		})
+		require.NoError(t, err)
+	}()
 
 	require.Never(t, func() bool {
 		msg, err := dq.ReceiveMessage()
