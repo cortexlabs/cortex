@@ -46,7 +46,6 @@ from e2e.utils import (
     jobs_done,
     request_batch_prediction,
     request_task,
-    request_tasks_concurrently,
     retrieve_async_result,
     make_requests_concurrently,
     check_futures_healthy,
