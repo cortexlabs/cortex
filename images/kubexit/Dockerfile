@@ -1,3 +1,4 @@
+# This file has been adapted from https://github.com/cortexlabs/kubexit
 FROM golang:1.14.1-alpine3.11 AS builder
 RUN apk update && apk upgrade && \
     apk add bash git openssh
