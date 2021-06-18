@@ -39,6 +39,8 @@ func TestAsyncMessageHandler_Handle(t *testing.T) {
 	t.Parallel()
 
 	log := newLogger(t)
+	defer func() { _ = log.Sync() }()
+
 	awsClient := testAWSClient(t)
 
 	requestID := random.String(8)
@@ -109,6 +111,8 @@ func TestAsyncMessageHandler_Handle_Errors(t *testing.T) {
 	}
 
 	log := newLogger(t)
+	defer func() { _ = log.Sync() }()
+
 	awsClient := testAWSClient(t)
 
 	eventHandler := NewRequestEventHandlerFunc(func(event RequestEvent) {})

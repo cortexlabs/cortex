@@ -45,7 +45,9 @@ func newLogger(t *testing.T) *zap.SugaredLogger {
 
 func TestDefaultProbeSuccess(t *testing.T) {
 	t.Parallel()
+
 	log := newLogger(t)
+	defer func() { _ = log.Sync() }()
 
 	var handler http.HandlerFunc = func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
@@ -70,7 +72,9 @@ func TestDefaultProbeSuccess(t *testing.T) {
 
 func TestDefaultProbeFailure(t *testing.T) {
 	t.Parallel()
+
 	log := newLogger(t)
+	defer func() { _ = log.Sync() }()
 
 	target := "http://127.0.0.1:12345"
 	pb := probe.NewDefaultProbe(target, log)
@@ -92,7 +96,9 @@ func TestDefaultProbeFailure(t *testing.T) {
 
 func TestProbeHTTPFailure(t *testing.T) {
 	t.Parallel()
+
 	log := newLogger(t)
+	defer func() { _ = log.Sync() }()
 
 	pb := probe.NewProbe(
 		&kcore.Probe{
@@ -128,7 +134,9 @@ func TestProbeHTTPFailure(t *testing.T) {
 
 func TestProbeHTTPSuccess(t *testing.T) {
 	t.Parallel()
+
 	log := newLogger(t)
+	defer func() { _ = log.Sync() }()
 
 	var handler http.HandlerFunc = func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
