@@ -68,7 +68,6 @@ func gatewayDeploymentSpec(api spec.API, queueURL string) kapps.Deployment {
 			"apiKind":          api.Kind.String(),
 			"apiID":            api.ID,
 			"specID":           api.SpecID,
-			"deploymentID":     api.DeploymentID,
 			"podID":            api.PodID,
 			"cortex.dev/api":   "true",
 			"cortex.dev/async": "gateway",
@@ -77,7 +76,6 @@ func gatewayDeploymentSpec(api spec.API, queueURL string) kapps.Deployment {
 			Labels: map[string]string{
 				"apiName":          api.Name,
 				"apiKind":          api.Kind.String(),
-				"deploymentID":     api.DeploymentID,
 				"podID":            api.PodID,
 				"cortex.dev/api":   "true",
 				"cortex.dev/async": "gateway",
