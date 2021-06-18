@@ -76,11 +76,11 @@ You can export both the Cortex system logs and your application logs to your des
 
 ### Configure kubectl
 
-Follow these [instructions](../../clusters/advanced/kubectl.md) to setup kubectl and point it to your cluster.
+Follow these [instructions](../../clusters/advanced/kubectl.md) to set up kubectl.
 
 ### Find supported destinations in FluentBit
 
-Visit FluentBit output [docs](https://docs.fluentbit.io/manual/concepts/data-pipeline/output) to find a list supported destinations for your logs.
+Visit FluentBit's [output docs](https://docs.fluentbit.io/manual/concepts/data-pipeline/output) to see a list supported destinations.
 
 Make sure to navigate to the version of FluentBit being used in your cluster. You can find the version of FluentBit by looking at the first view lines of one of the FluentBit pod logs.
 
@@ -90,7 +90,7 @@ Get the FluentBit pods:
 kubectl get pods --selector app=fluent-bit
 ```
 
-The version should be in the first few log lines:
+FluentBit's version should be in the first few log lines of a FluentBit pod:
 
 ```bash
 kubectl logs fluent-bit-kxmzn | head -n 20
@@ -100,7 +100,7 @@ kubectl logs fluent-bit-kxmzn | head -n 20
 
 Define `patch.yaml` with your new output configuration:
 
-```text
+```yaml
 data:
   output.conf: |
     [OUTPUT]
@@ -115,15 +115,15 @@ data:
         Logstash_Prefix   my-logs
 ```
 
-Update FluentBit configuration:
+Update FluentBit's configuration:
 
-```
+```bash
 kubectl patch configmap fluent-bit-config --patch-file patch.yaml --type merge
 ```
 
 ### Restart FluentBit
 
-Restart FluentBit to initialize with the new configuration:
+Restart FluentBit to apply the new configuration:
 
 ```bash
 kubectl rollout restart daemonset/fluent-bit
