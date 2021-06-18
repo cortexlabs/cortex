@@ -235,11 +235,15 @@ func main() {
 		fmt.Print(region)
 		sess := session.New(&aws.Config{Region: aws.String(region)})
 		svc := ec2.New(sess)
-		cpuAMI, err := FindImage(svc, EKSResourceAccountID(region), fmt.Sprintf("amazon-eks-node-%s-v*", k8sVersion))
+		cpuAmd64AMI, err := FindImage(svc, EKSResourceAccountID(region), fmt.Sprintf("amazon-eks-node-%s-v*", k8sVersion))
 		if err != nil {
 			log.Fatal(err.Error())
 		}
-		acceleratedAMI, err := FindImage(svc, EKSResourceAccountID(region), fmt.Sprintf("amazon-eks-gpu-node-%s-v*", k8sVersion))
+		cpuArm64AMI, err := FindImage(svc, EKSResourceAccountID(region), fmt.Sprintf("amazon-eks-arm64-node-%s-v*", k8sVersion))
+		if err != nil {
+			log.Fatal(err.Error())
+		}
+		acceleratedAmd64AMI, err := FindImage(svc, EKSResourceAccountID(region), fmt.Sprintf("amazon-eks-gpu-node-%s-v*", k8sVersion))
 		if err != nil {
 			log.Fatal(err.Error())
 		}
@@ -248,8 +252,9 @@ func main() {
 			k8sVersionMap[k8sVersion][region] = map[string]string{}
 		}
 		k8sVersionMap[k8sVersion][region] = map[string]string{
-			"cpu":         cpuAMI,
-			"accelerated": acceleratedAMI,
+			"cpu_amd64":         cpuAmd64AMI,
+			"cpu_arm64":         cpuArm64AMI,
+			"accelerated_amd64": acceleratedAmd64AMI,
 		}
 		fmt.Println(" ✓")
 	}
