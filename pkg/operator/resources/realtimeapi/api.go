@@ -43,17 +43,17 @@ const _realtimeDashboardUID = "realtimeapi"
 
 var _autoscalerCrons = make(map[string]cron.Cron) // apiName -> cron
 
-func deploymentID() string {
+func generateDeploymentID() string {
 	return k8s.RandomName()[:10]
 }
 
 func UpdateAPI(apiConfig *userconfig.API, force bool) (*spec.API, string, error) {
-	prevDeployment, prevService, prevVirtualService, err := getK8sResources(apiConfig)
+	prevDeployment, prevService, prevVirtualService, err := getK8sResources(apiConfig.Name)
 	if err != nil {
 		return nil, "", err
 	}
 
-	deploymentID := deploymentID()
+	deploymentID := generateDeploymentID()
 	if prevDeployment != nil && prevDeployment.Labels["deploymentID"] != "" {
 		deploymentID = prevDeployment.Labels["deploymentID"]
 	}
@@ -106,11 +106,7 @@ func UpdateAPI(apiConfig *userconfig.API, force bool) (*spec.API, string, error)
 }
 
 func RefreshAPI(apiName string, force bool) (string, error) {
-	prevDeployment, prevService, prevVirtualService, err := getK8sResources(&userconfig.API{
-		Resource: userconfig.Resource{
-			Name: apiName,
-		},
-	})
+	prevDeployment, prevService, prevVirtualService, err := getK8sResources(apiName)
 	if err != nil {
 		return "", err
 	} else if prevDeployment == nil {
@@ -136,7 +132,7 @@ func RefreshAPI(apiName string, force bool) (string, error) {
 		return "", err
 	}
 
-	api = spec.GetAPISpec(api.API, deploymentID(), config.ClusterConfig.ClusterUID)
+	api = spec.GetAPISpec(api.API, generateDeploymentID(), config.ClusterConfig.ClusterUID)
 
 	if err := config.AWS.UploadJSONToS3(api, config.ClusterConfig.Bucket, api.Key); err != nil {
 		return "", errors.Wrap(err, "upload api spec")
@@ -146,7 +142,7 @@ func RefreshAPI(apiName string, force bool) (string, error) {
 		return "", err
 	}
 
-	return fmt.Sprintf("updating %s", api.Name), nil
+	return fmt.Sprintf("updating %s", api.Resource.UserString()), nil
 }
 
 func DeleteAPI(apiName string, keepCache bool) error {
@@ -254,7 +250,7 @@ func GetAPIByName(deployedResource *operator.DeployedResource) ([]schema.APIResp
 	}, nil
 }
 
-func getK8sResources(apiConfig *userconfig.API) (*kapps.Deployment, *kcore.Service, *istioclientnetworking.VirtualService, error) {
+func getK8sResources(apiName string) (*kapps.Deployment, *kcore.Service, *istioclientnetworking.VirtualService, error) {
 	var deployment *kapps.Deployment
 	var service *kcore.Service
 	var virtualService *istioclientnetworking.VirtualService
@@ -262,17 +258,17 @@ func getK8sResources(apiConfig *userconfig.API) (*kapps.Deployment, *kcore.Servi
 	err := parallel.RunFirstErr(
 		func() error {
 			var err error
-			deployment, err = config.K8s.GetDeployment(workloads.K8sName(apiConfig.Name))
+			deployment, err = config.K8s.GetDeployment(workloads.K8sName(apiName))
 			return err
 		},
 		func() error {
 			var err error
-			service, err = config.K8s.GetService(workloads.K8sName(apiConfig.Name))
+			service, err = config.K8s.GetService(workloads.K8sName(apiName))
 			return err
 		},
 		func() error {
 			var err error
-			virtualService, err = config.K8s.GetVirtualService(workloads.K8sName(apiConfig.Name))
+			virtualService, err = config.K8s.GetVirtualService(workloads.K8sName(apiName))
 			return err
 		},
 	)

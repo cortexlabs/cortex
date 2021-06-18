@@ -64,22 +64,22 @@ func getGatewayK8sName(apiName string) string {
 	return "gateway-" + apiName
 }
 
-func deploymentID() string {
+func generateDeploymentID() string {
 	return k8s.RandomName()[:10]
 }
 
 func UpdateAPI(apiConfig userconfig.API, force bool) (*spec.API, string, error) {
-	prevK8sResources, err := getK8sResources(apiConfig)
+	prevK8sResources, err := getK8sResources(apiConfig.Name)
 	if err != nil {
 		return nil, "", err
 	}
 
-	deployID := deploymentID()
+	deploymentID := generateDeploymentID()
 	if prevK8sResources.apiDeployment != nil && prevK8sResources.apiDeployment.Labels["deploymentID"] != "" {
-		deployID = prevK8sResources.apiDeployment.Labels["deploymentID"]
+		deploymentID = prevK8sResources.apiDeployment.Labels["deploymentID"]
 	}
 
-	api := spec.GetAPISpec(&apiConfig, deployID, config.ClusterConfig.ClusterUID)
+	api := spec.GetAPISpec(&apiConfig, deploymentID, config.ClusterConfig.ClusterUID)
 
 	// resource creation
 	if prevK8sResources.apiDeployment == nil {
@@ -91,7 +91,7 @@ func UpdateAPI(apiConfig userconfig.API, force bool) (*spec.API, string, error) 
 			"apiName": apiConfig.Name,
 		}
 
-		queueURL, err := createFIFOQueue(apiConfig.Name, deployID, tags)
+		queueURL, err := createFIFOQueue(apiConfig.Name, deploymentID, tags)
 		if err != nil {
 			return nil, "", err
 		}
@@ -148,6 +148,52 @@ func UpdateAPI(apiConfig userconfig.API, force bool) (*spec.API, string, error) 
 		return api, fmt.Sprintf("%s is already updating", api.Resource.UserString()), nil
 	}
 	return api, fmt.Sprintf("%s is up to date", api.Resource.UserString()), nil
+}
+
+func RefreshAPI(apiName string, force bool) (string, error) {
+	prevK8sResources, err := getK8sResources(apiName)
+	if err != nil {
+		return "", err
+	} else if prevK8sResources.apiDeployment == nil {
+		return "", errors.ErrorUnexpected("unable to find deployment", apiName)
+	}
+
+	isUpdating, err := isAPIUpdating(prevK8sResources.apiDeployment)
+	if err != nil {
+		return "", err
+	}
+
+	if isUpdating && !force {
+		return "", ErrorAPIUpdating(apiName)
+	}
+
+	apiID, err := k8s.GetLabel(prevK8sResources.apiDeployment, "apiID")
+	if err != nil {
+		return "", err
+	}
+
+	api, err := operator.DownloadAPISpec(apiName, apiID)
+	if err != nil {
+		return "", err
+	}
+
+	api = spec.GetAPISpec(api.API, generateDeploymentID(), config.ClusterConfig.ClusterUID)
+
+	if err := config.AWS.UploadJSONToS3(api, config.ClusterConfig.Bucket, api.Key); err != nil {
+		return "", errors.Wrap(err, "upload api spec")
+	}
+
+	// TODO check the use of deploymentID in the queue url
+	queueURL, err := getQueueURL(api.Name, prevK8sResources.gatewayVirtualService.Labels["deploymentID"])
+	if err != nil {
+		return "", err
+	}
+
+	if err = applyK8sResources(*api, prevK8sResources, queueURL); err != nil {
+		return "", err
+	}
+
+	return fmt.Sprintf("updating %s", api.Resource.UserString()), nil
 }
 
 func DeleteAPI(apiName string, keepCache bool) error {
@@ -265,13 +311,13 @@ func UpdateMetricsCron(deployment *kapps.Deployment) error {
 	}
 
 	apiName := deployment.Labels["apiName"]
-	deployID := deployment.Labels["deploymentID"]
+	deploymentID := deployment.Labels["deploymentID"]
 
 	if prevMetricsCron, ok := _metricsCrons[apiName]; ok {
 		prevMetricsCron.Cancel()
 	}
 
-	queueURL, err := getQueueURL(apiName, deployID)
+	queueURL, err := getQueueURL(apiName, deploymentID)
 	if err != nil {
 		return err
 	}
@@ -304,7 +350,7 @@ func UpdateAutoscalerCron(deployment *kapps.Deployment, apiSpec spec.API) error 
 	return nil
 }
 
-func getK8sResources(apiConfig userconfig.API) (resources, error) {
+func getK8sResources(apiName string) (resources, error) {
 	var deployment *kapps.Deployment
 	var apiConfigMap *kcore.ConfigMap
 	var gatewayDeployment *kapps.Deployment
@@ -312,8 +358,8 @@ func getK8sResources(apiConfig userconfig.API) (resources, error) {
 	var gatewayHPA *kautoscaling.HorizontalPodAutoscaler
 	var gatewayVirtualService *istioclientnetworking.VirtualService
 
-	gatewayK8sName := getGatewayK8sName(apiConfig.Name)
-	apiK8sName := workloads.K8sName(apiConfig.Name)
+	gatewayK8sName := getGatewayK8sName(apiName)
+	apiK8sName := workloads.K8sName(apiName)
 
 	err := parallel.RunFirstErr(
 		func() error {

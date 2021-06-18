@@ -175,8 +175,10 @@ func RefreshAPI(apiName string, force bool) (string, error) {
 	switch deployedResource.Kind {
 	case userconfig.RealtimeAPIKind:
 		return realtimeapi.RefreshAPI(apiName, force)
+	case userconfig.AsyncAPIKind:
+		return asyncapi.RefreshAPI(apiName, force)
 	default:
-		return "", ErrorOperationIsOnlySupportedForKind(*deployedResource, userconfig.RealtimeAPIKind)
+		return "", ErrorOperationIsOnlySupportedForKind(*deployedResource, userconfig.RealtimeAPIKind, userconfig.AsyncAPIKind)
 	}
 }
 
