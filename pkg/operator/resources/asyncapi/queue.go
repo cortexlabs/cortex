@@ -26,12 +26,12 @@ import (
 	"github.com/cortexlabs/cortex/pkg/types/clusterconfig"
 )
 
-func createFIFOQueue(apiName string, deploymentID string, tags map[string]string) (string, error) {
+func createFIFOQueue(apiName string, tags map[string]string) (string, error) {
 	for key, value := range config.ClusterConfig.Tags {
 		tags[key] = value
 	}
 
-	queueName := apiQueueName(apiName, deploymentID)
+	queueName := apiQueueName(apiName)
 
 	attributes := map[string]string{
 		sqs.QueueAttributeNameFifoQueue:         "true",
@@ -52,8 +52,8 @@ func createFIFOQueue(apiName string, deploymentID string, tags map[string]string
 	return *output.QueueUrl, nil
 }
 
-func apiQueueName(apiName string, deploymentID string) string {
-	return config.ClusterConfig.SQSNamePrefix() + apiName + clusterconfig.SQSQueueDelimiter + deploymentID + ".fifo"
+func apiQueueName(apiName string) string {
+	return config.ClusterConfig.SQSNamePrefix() + apiName + clusterconfig.SQSQueueDelimiter + ".fifo"
 }
 
 func deleteQueueByURL(queueURL string) error {
@@ -67,7 +67,7 @@ func deleteQueueByURL(queueURL string) error {
 	return err
 }
 
-func getQueueURL(apiName string, deploymentID string) (string, error) {
+func getQueueURL(apiName string) (string, error) {
 	operatorAccountID, _, err := config.AWS.GetCachedAccountID()
 	if err != nil {
 		return "", errors.Wrap(err, "failed to construct queue url", "unable to get account id")
@@ -75,6 +75,6 @@ func getQueueURL(apiName string, deploymentID string) (string, error) {
 
 	return fmt.Sprintf(
 		"https://sqs.%s.amazonaws.com/%s/%s",
-		config.AWS.Region, operatorAccountID, apiQueueName(apiName, deploymentID),
+		config.AWS.Region, operatorAccountID, apiQueueName(apiName),
 	), nil
 }

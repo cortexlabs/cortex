@@ -91,7 +91,7 @@ func UpdateAPI(apiConfig userconfig.API, force bool) (*spec.API, string, error) 
 			"apiName": apiConfig.Name,
 		}
 
-		queueURL, err := createFIFOQueue(apiConfig.Name, deploymentID, tags)
+		queueURL, err := createFIFOQueue(apiConfig.Name, tags)
 		if err != nil {
 			return nil, "", err
 		}
@@ -127,7 +127,7 @@ func UpdateAPI(apiConfig userconfig.API, force bool) (*spec.API, string, error) 
 			return nil, "", errors.Wrap(err, "upload api spec")
 		}
 
-		queueURL, err := getQueueURL(api.Name, prevK8sResources.gatewayVirtualService.Labels["deploymentID"])
+		queueURL, err := getQueueURL(api.Name)
 		if err != nil {
 			return nil, "", err
 		}
@@ -183,8 +183,7 @@ func RefreshAPI(apiName string, force bool) (string, error) {
 		return "", errors.Wrap(err, "upload api spec")
 	}
 
-	// TODO check the use of deploymentID in the queue url
-	queueURL, err := getQueueURL(api.Name, prevK8sResources.gatewayVirtualService.Labels["deploymentID"])
+	queueURL, err := getQueueURL(api.Name)
 	if err != nil {
 		return "", err
 	}
@@ -199,18 +198,12 @@ func RefreshAPI(apiName string, force bool) (string, error) {
 func DeleteAPI(apiName string, keepCache bool) error {
 	err := parallel.RunFirstErr(
 		func() error {
-			vs, err := config.K8s.GetVirtualService(workloads.K8sName(apiName))
+			queueURL, err := getQueueURL(apiName)
 			if err != nil {
 				return err
 			}
-			if vs != nil {
-				queueURL, err := getQueueURL(apiName, vs.Labels["deploymentID"])
-				if err != nil {
-					return err
-				}
-				// best effort deletion
-				_ = deleteQueueByURL(queueURL)
-			}
+			// best effort deletion
+			_ = deleteQueueByURL(queueURL)
 			return nil
 		},
 		func() error {
@@ -311,13 +304,12 @@ func UpdateMetricsCron(deployment *kapps.Deployment) error {
 	}
 
 	apiName := deployment.Labels["apiName"]
-	deploymentID := deployment.Labels["deploymentID"]
 
 	if prevMetricsCron, ok := _metricsCrons[apiName]; ok {
 		prevMetricsCron.Cancel()
 	}
 
-	queueURL, err := getQueueURL(apiName, deploymentID)
+	queueURL, err := getQueueURL(apiName)
 	if err != nil {
 		return err
 	}
