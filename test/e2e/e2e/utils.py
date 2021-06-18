@@ -197,33 +197,6 @@ def request_task(
     return response
 
 
-def request_tasks_concurrently(
-    client: cx.Client,
-    api_name: str,
-    event_stopper: td.Event,
-    concurrency: int,
-    total_requests: int,
-    responses: Optional[List[Dict[str, Any]]] = None,
-    config: Dict = None,
-    timeout: int = None,
-):
-    payload = {}
-    if config is not None:
-        payload["config"] = config
-    if timeout is not None:
-        payload["timeout"] = timeout
-
-    return make_requests_concurrently(
-        client,
-        api_name,
-        concurrency,
-        event_stopper,
-        responses=responses,
-        max_total_requests=total_requests,
-        payload=payload,
-    )
-
-
 _make_requests_concurrently_max_total_requests: int = 0
 
 
