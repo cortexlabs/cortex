@@ -69,3 +69,62 @@ If you log JSON strings from your APIs, they will be automatically parsed before
 It is recommended to configure your JSON logger to use `message` or `msg` as the key for the log line if you would like the sample queries above to display the messages in your logs.
 
 Avoid using top-level keys that start with "cortex" to prevent collisions with Cortex's internal logging.
+
+## Exporting logs
+
+You can export both the Cortex system logs and your application logs to your desired destination by configuring FluentBit.
+
+### Configure kubectl
+
+Follow these [instructions](../../clusters/advanced/kubectl.md) to setup kubectl and point it to your cluster.
+
+### Find supported destinations in FluentBit
+
+Visit FluentBit output [docs](https://docs.fluentbit.io/manual/concepts/data-pipeline/output) to find a list supported destinations for your logs.
+
+Make sure to navigate to the version of FluentBit being used in your cluster. You can find the version of FluentBit by looking at the first view lines of one of the FluentBit pod logs.
+
+Get the FluentBit pods:
+
+```bash
+kubectl get pods --selector app=fluent-bit
+```
+
+The version should be in the first few log lines:
+
+```bash
+kubectl logs fluent-bit-kxmzn | head -n 20
+```
+
+### Update FluentBit configuration
+
+Define `patch.yaml` with your new output configuration:
+
+```text
+data:
+  output.conf: |
+    [OUTPUT]
+        Name              es
+        Match             k8s_container.*
+        Host              https://abc123.us-west-2.es.amazonaws.com
+        Port              443
+        AWS_Region        us-west-2
+        AWS_Auth          On
+        tls               On
+        Logstash_Format   On
+        Logstash_Prefix   my-logs
+```
+
+Update FluentBit configuration:
+
+```
+kubectl patch configmap fluent-bit-config --patch-file patch.yaml --type merge
+```
+
+### Restart FluentBit
+
+Restart FluentBit to initialize with the new configuration:
+
+```bash
+kubectl rollout restart daemonset/fluent-bit
+```

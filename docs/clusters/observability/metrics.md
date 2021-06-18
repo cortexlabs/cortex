@@ -61,11 +61,88 @@ The dashboards that Cortex ships with are the following:
 - Cluster resources
 - Node resources
 
-## Exposed metrics
+### Available metrics
 
-Cortex exposes more metrics with Prometheus, that can be potentially useful. To check the available metrics, access
-the `Explore` menu in grafana and press the `Metrics` button.
+Cortex exposes more metrics with Prometheus, that can be potentially useful. To check the available metrics, access the `Explore` menu in grafana and press the `Metrics` button.
 
 ![](https://user-images.githubusercontent.com/7456627/107377492-515f7000-6aeb-11eb-9b46-909120335060.png)
 
 You can use any of these metrics to set up your own dashboards.
+
+## Exporting metrics to monitoring solutions
+
+You can scrape metrics from the in-cluster prometheus server via the `/federate` endpoint and push them to monitoring solutions such as Datadog.
+
+The steps for exporting metrics from Prometheus will vary based on your monitoring solution. Here are a few high-level steps to get you started. We will be using Datadog as an example.
+
+### Configure kubectl
+
+Follow these [instructions](../../clusters/advanced/kubectl.md) to setup kubectl and point it to your cluster.
+
+### Install agent
+
+Monitoring solutions provide Kubernetes agents that are capable of scraping prometheus metrics. Follow the instructions to install the agent onto your cluster.
+
+Here are the [instructions](https://docs.datadoghq.com/agent/kubernetes/?tab=helm#installation) for Datadog.
+
+### Scrape prometheus
+
+Some agents require a prometheus endpoint to scrape directly. You can provide `http://prometheus.default:9090/federate?match[]={job=~".+"}` as the target url to indicate that all metrics need to be scraped.
+
+Some agents look for targets to scrape via annotations. You can find instructions below to update Cortex's prometheus server with the correct annotations to enable the agents to scrape it:
+
+Create a `patch.yaml` and add the relevant annotations for your monitoring solution. Below is an example for [Datadog](https://docs.datadoghq.com/agent/kubernetes/prometheus/).
+
+The annotations below indicate to the Datadog agents to scrape the prometheus server at the endpoint `/federate?match[]={job=~".+"}` and extract `cortex_in_flight_requests`. Note that Datadog specifically required the query params in the prometheus url to be encoded.
+
+```yaml
+spec:
+  podMetadata:
+    annotations:
+      ad.datadoghq.com/prometheus.check_names: |
+         ["prometheus"]
+      ad.datadoghq.com/prometheus.init_configs: |
+         [{}]
+      ad.datadoghq.com/prometheus.instances: |
+         [
+            {
+               "prometheus_url": "http://%%host%%:%%port%%/federate?match[]=%7Bjob%3D~%22.%2B%22%7D",
+               "namespace": "cortex",
+               "metrics": [{"cortex_in_flight_requests":"in_flight_requests"}]
+            }
+         ]
+```
+
+Update prometheus with your annotations:
+
+```bash
+kubectl patch prometheuses.monitoring.coreos.com prometheus --patch "$(cat patch.yaml)" --type merge
+```
+
+## Long term metric storage
+
+Prometheus can be configured to write metrics to other monitoring solutions or databases for long term storage. You can attach a remote storage adapter to prometheus that will receive samples from prometheus and write to your destination. You can find a list of prometheus remote storage adapters [here](https://prometheus.io/docs/operating/integrations/#remote-endpoints-and-storage). More prometheus remote storage adapters can be found online if yours isn't on the list.
+
+Once you've found an adapter that works for you, follow the steps below:
+
+### Configure kubectl
+
+Follow these [instructions](../../clusters/advanced/kubectl.md) to setup kubectl and point it to your cluster.
+
+### Update prometheus
+
+Define a `patch.yaml` file with your changes to the prometheus server:
+
+```yaml
+spec:
+  containers: # container for your adapter
+    ...
+  remote_write:
+    url: "http://localhost:9201/write" # http endpoint for your adapter
+```
+
+Update prometheus with your changes:
+
+```bash
+kubectl patch prometheuses.monitoring.coreos.com prometheus --patch "$(cat patch.yaml)" --type merge
+```
