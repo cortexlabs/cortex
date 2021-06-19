@@ -20,6 +20,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
+	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/workloads"
 	"istio.io/client-go/pkg/apis/networking/v1beta1"
@@ -66,9 +67,6 @@ func gatewayDeploymentSpec(api spec.API, queueURL string) kapps.Deployment {
 		Labels: map[string]string{
 			"apiName":          api.Name,
 			"apiKind":          api.Kind.String(),
-			"apiID":            api.ID,
-			"specID":           api.SpecID,
-			"podID":            api.PodID,
 			"cortex.dev/api":   "true",
 			"cortex.dev/async": "gateway",
 		},
@@ -76,7 +74,6 @@ func gatewayDeploymentSpec(api spec.API, queueURL string) kapps.Deployment {
 			Labels: map[string]string{
 				"apiName":          api.Name,
 				"apiKind":          api.Kind.String(),
-				"podID":            api.PodID,
 				"cortex.dev/api":   "true",
 				"cortex.dev/async": "gateway",
 			},
@@ -108,10 +105,6 @@ func gatewayHPASpec(api spec.API) (kautoscaling.HorizontalPodAutoscaler, error) 
 		Labels: map[string]string{
 			"apiName":          api.Name,
 			"apiKind":          api.Kind.String(),
-			"apiID":            api.ID,
-			"specID":           api.SpecID,
-			"deploymentID":     api.DeploymentID,
-			"podID":            api.PodID,
 			"cortex.dev/api":   "true",
 			"cortex.dev/async": "hpa",
 		},
@@ -161,6 +154,7 @@ func gatewayVirtualServiceSpec(api spec.API) v1beta1.VirtualService {
 			"apiKind":          api.Kind.String(),
 			"apiID":            api.ID,
 			"specID":           api.SpecID,
+			"createdTime":      s.Int64(api.CreatedTime),
 			"deploymentID":     api.DeploymentID,
 			"podID":            api.PodID,
 			"cortex.dev/api":   "true",
@@ -185,9 +179,6 @@ func configMapSpec(api spec.API) (kcore.ConfigMap, error) {
 		Labels: map[string]string{
 			"apiName":        api.Name,
 			"apiKind":        api.Kind.String(),
-			"apiID":          api.ID,
-			"specID":         api.SpecID,
-			"deploymentID":   api.DeploymentID,
 			"cortex.dev/api": "true",
 		},
 	}), nil
@@ -211,6 +202,7 @@ func deploymentSpec(api spec.API, prevDeployment *kapps.Deployment, queueURL str
 			"apiKind":          api.Kind.String(),
 			"apiID":            api.ID,
 			"specID":           api.SpecID,
+			"createdTime":      s.Int64(api.CreatedTime),
 			"deploymentID":     api.DeploymentID,
 			"podID":            api.PodID,
 			"cortex.dev/api":   "true",
@@ -227,6 +219,7 @@ func deploymentSpec(api spec.API, prevDeployment *kapps.Deployment, queueURL str
 				"apiName":          api.Name,
 				"apiKind":          api.Kind.String(),
 				"apiID":            api.ID,
+				"createdTime":      s.Int64(api.CreatedTime),
 				"deploymentID":     api.DeploymentID,
 				"podID":            api.PodID,
 				"cortex.dev/api":   "true",

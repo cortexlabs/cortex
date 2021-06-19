@@ -19,6 +19,7 @@ package realtimeapi
 import (
 	"fmt"
 	"path/filepath"
+	"time"
 
 	"github.com/cortexlabs/cortex/pkg/config"
 	"github.com/cortexlabs/cortex/pkg/lib/cron"
@@ -53,12 +54,18 @@ func UpdateAPI(apiConfig *userconfig.API, force bool) (*spec.API, string, error)
 		return nil, "", err
 	}
 
+	createdTime := time.Now().UnixNano()
 	deploymentID := generateDeploymentID()
-	if prevDeployment != nil && prevDeployment.Labels["deploymentID"] != "" {
-		deploymentID = prevDeployment.Labels["deploymentID"]
+	if prevVirtualService != nil && prevVirtualService.Labels["createdTime"] != "" {
+		var err error
+		createdTime, err = k8s.ParseInt64Label(prevVirtualService, "createdTime")
+		if err != nil {
+			return nil, "", err
+		}
+		deploymentID = prevVirtualService.Labels["deploymentID"]
 	}
 
-	api := spec.GetAPISpec(apiConfig, deploymentID, config.ClusterConfig.ClusterUID)
+	api := spec.GetAPISpec(apiConfig, createdTime, deploymentID, config.ClusterConfig.ClusterUID)
 
 	if prevDeployment == nil {
 		if err := config.AWS.UploadJSONToS3(api, config.ClusterConfig.Bucket, api.Key); err != nil {
@@ -132,7 +139,12 @@ func RefreshAPI(apiName string, force bool) (string, error) {
 		return "", err
 	}
 
-	api = spec.GetAPISpec(api.API, generateDeploymentID(), config.ClusterConfig.ClusterUID)
+	createdTime, err := k8s.ParseInt64Label(prevVirtualService, "createdTime")
+	if err != nil {
+		return "", err
+	}
+
+	api = spec.GetAPISpec(api.API, createdTime, generateDeploymentID(), config.ClusterConfig.ClusterUID)
 
 	if err := config.AWS.UploadJSONToS3(api, config.ClusterConfig.Bucket, api.Key); err != nil {
 		return "", errors.Wrap(err, "upload api spec")

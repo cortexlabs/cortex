@@ -41,12 +41,14 @@ type API struct {
 
 	Key string `json:"key"`
 
+	CreatedTime  int64  `json:"created_time"`
 	LastUpdated  int64  `json:"last_updated"`
 	MetadataRoot string `json:"metadata_root"`
 }
 
 /*
-APIID (uniquely identifies an api configuration for a given deployment)
+* ID (uniquely identifies an api configuration for a given deployment)
+	* DeploymentID (used for refreshing a deployment)
 	* SpecID (uniquely identifies api configuration specified by user)
 		* PodID (an ID representing the pod spec)
 			* Resource
@@ -57,9 +59,10 @@ APIID (uniquely identifies an api configuration for a given deployment)
 		* Autoscaling
 		* Networking
 		* APIs
-	* DeploymentID (used for refreshing a deployment)
+
+createdTime is Time.UnixNano()
 */
-func GetAPISpec(apiConfig *userconfig.API, deploymentID string, clusterUID string) *API {
+func GetAPISpec(apiConfig *userconfig.API, createdTime int64, deploymentID string, clusterUID string) *API {
 	var buf bytes.Buffer
 
 	buf.WriteString(s.Obj(apiConfig.Resource))
@@ -82,6 +85,7 @@ func GetAPISpec(apiConfig *userconfig.API, deploymentID string, clusterUID strin
 		SpecID:       specID,
 		PodID:        podID,
 		Key:          Key(apiConfig.Name, apiID, clusterUID),
+		CreatedTime:  createdTime,
 		DeploymentID: deploymentID,
 		LastUpdated:  time.Now().Unix(),
 		MetadataRoot: MetadataRoot(apiConfig.Name, clusterUID),

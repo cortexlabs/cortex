@@ -24,6 +24,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/parallel"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
+	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	"github.com/cortexlabs/cortex/pkg/workloads"
@@ -53,6 +54,7 @@ func virtualServiceSpec(api *spec.API) *istioclientnetworking.VirtualService {
 			"apiID":          api.ID,
 			"specID":         api.SpecID,
 			"podID":          api.PodID,
+			"createdTime":    s.Int64(api.CreatedTime),
 			"apiKind":        api.Kind.String(),
 			"cortex.dev/api": "true",
 		},
@@ -108,9 +110,6 @@ func k8sConfigMap(api spec.API, job spec.TaskJob, configMapData map[string]strin
 		Data: configMapData,
 		Labels: map[string]string{
 			"apiName":        api.Name,
-			"apiID":          api.ID,
-			"specID":         api.SpecID,
-			"jobID":          job.ID,
 			"apiKind":        api.Kind.String(),
 			"cortex.dev/api": "true",
 		},

@@ -74,15 +74,21 @@ func UpdateAPI(apiConfig userconfig.API, force bool) (*spec.API, string, error) 
 		return nil, "", err
 	}
 
+	createdTime := time.Now().UnixNano()
 	deploymentID := generateDeploymentID()
-	if prevK8sResources.apiDeployment != nil && prevK8sResources.apiDeployment.Labels["deploymentID"] != "" {
-		deploymentID = prevK8sResources.apiDeployment.Labels["deploymentID"]
+	if prevK8sResources.gatewayVirtualService != nil && prevK8sResources.gatewayVirtualService.Labels["createdTime"] != "" {
+		var err error
+		createdTime, err = k8s.ParseInt64Label(prevK8sResources.gatewayVirtualService, "createdTime")
+		if err != nil {
+			return nil, "", err
+		}
+		deploymentID = prevK8sResources.gatewayVirtualService.Labels["deploymentID"]
 	}
 
-	api := spec.GetAPISpec(&apiConfig, deploymentID, config.ClusterConfig.ClusterUID)
+	api := spec.GetAPISpec(&apiConfig, createdTime, deploymentID, config.ClusterConfig.ClusterUID)
 
 	// resource creation
-	if prevK8sResources.apiDeployment == nil {
+	if prevK8sResources.gatewayVirtualService == nil {
 		if err := config.AWS.UploadJSONToS3(api, config.ClusterConfig.Bucket, api.Key); err != nil {
 			return nil, "", errors.Wrap(err, "upload api spec")
 		}
@@ -91,7 +97,7 @@ func UpdateAPI(apiConfig userconfig.API, force bool) (*spec.API, string, error) 
 			"apiName": apiConfig.Name,
 		}
 
-		queueURL, err := createFIFOQueue(apiConfig.Name, tags)
+		queueURL, err := createFIFOQueue(apiConfig.Name, createdTime, tags)
 		if err != nil {
 			return nil, "", err
 		}
@@ -127,7 +133,12 @@ func UpdateAPI(apiConfig userconfig.API, force bool) (*spec.API, string, error) 
 			return nil, "", errors.Wrap(err, "upload api spec")
 		}
 
-		queueURL, err := getQueueURL(api.Name)
+		createdTime, err := k8s.ParseInt64Label(prevK8sResources.gatewayVirtualService, "createdTime")
+		if err != nil {
+			return nil, "", err
+		}
+
+		queueURL, err := getQueueURL(api.Name, createdTime)
 		if err != nil {
 			return nil, "", err
 		}
@@ -154,7 +165,7 @@ func RefreshAPI(apiName string, force bool) (string, error) {
 	prevK8sResources, err := getK8sResources(apiName)
 	if err != nil {
 		return "", err
-	} else if prevK8sResources.apiDeployment == nil {
+	} else if prevK8sResources.gatewayVirtualService == nil {
 		return "", errors.ErrorUnexpected("unable to find deployment", apiName)
 	}
 
@@ -167,7 +178,7 @@ func RefreshAPI(apiName string, force bool) (string, error) {
 		return "", ErrorAPIUpdating(apiName)
 	}
 
-	apiID, err := k8s.GetLabel(prevK8sResources.apiDeployment, "apiID")
+	apiID, err := k8s.GetLabel(prevK8sResources.gatewayVirtualService, "apiID")
 	if err != nil {
 		return "", err
 	}
@@ -177,13 +188,18 @@ func RefreshAPI(apiName string, force bool) (string, error) {
 		return "", err
 	}
 
-	api = spec.GetAPISpec(api.API, generateDeploymentID(), config.ClusterConfig.ClusterUID)
+	createdTime, err := k8s.ParseInt64Label(prevK8sResources.gatewayVirtualService, "createdTime")
+	if err != nil {
+		return "", err
+	}
+
+	api = spec.GetAPISpec(api.API, createdTime, generateDeploymentID(), config.ClusterConfig.ClusterUID)
 
 	if err := config.AWS.UploadJSONToS3(api, config.ClusterConfig.Bucket, api.Key); err != nil {
 		return "", errors.Wrap(err, "upload api spec")
 	}
 
-	queueURL, err := getQueueURL(api.Name)
+	queueURL, err := getQueueURL(api.Name, createdTime)
 	if err != nil {
 		return "", err
 	}
@@ -198,12 +214,22 @@ func RefreshAPI(apiName string, force bool) (string, error) {
 func DeleteAPI(apiName string, keepCache bool) error {
 	err := parallel.RunFirstErr(
 		func() error {
-			queueURL, err := getQueueURL(apiName)
+			vs, err := config.K8s.GetVirtualService(workloads.K8sName(apiName))
 			if err != nil {
 				return err
 			}
-			// best effort deletion
-			_ = deleteQueueByURL(queueURL)
+			if vs != nil {
+				createdTime, err := k8s.ParseInt64Label(vs, "createdTime")
+				if err != nil {
+					return err
+				}
+				queueURL, err := getQueueURL(apiName, createdTime)
+				if err != nil {
+					return err
+				}
+				// best effort deletion
+				_ = deleteQueueByURL(queueURL)
+			}
 			return nil
 		},
 		func() error {
@@ -309,7 +335,12 @@ func UpdateMetricsCron(deployment *kapps.Deployment) error {
 		prevMetricsCron.Cancel()
 	}
 
-	queueURL, err := getQueueURL(apiName)
+	createdTime, err := k8s.ParseInt64Label(deployment, "createdTime")
+	if err != nil {
+		return err
+	}
+
+	queueURL, err := getQueueURL(apiName, createdTime)
 	if err != nil {
 		return err
 	}

@@ -20,6 +20,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
+	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/workloads"
 	istioclientnetworking "istio.io/client-go/pkg/apis/networking/v1beta1"
@@ -42,6 +43,7 @@ func deploymentSpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Depl
 			"apiKind":        api.Kind.String(),
 			"apiID":          api.ID,
 			"specID":         api.SpecID,
+			"createdTime":    s.Int64(api.CreatedTime),
 			"deploymentID":   api.DeploymentID,
 			"podID":          api.PodID,
 			"cortex.dev/api": "true",
@@ -55,6 +57,7 @@ func deploymentSpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Depl
 			Labels: map[string]string{
 				"apiName":        api.Name,
 				"apiKind":        api.Kind.String(),
+				"createdTime":    s.Int64(api.CreatedTime),
 				"deploymentID":   api.DeploymentID,
 				"podID":          api.PodID,
 				"cortex.dev/api": "true",
@@ -112,6 +115,7 @@ func virtualServiceSpec(api *spec.API) *istioclientnetworking.VirtualService {
 			"apiKind":        api.Kind.String(),
 			"apiID":          api.ID,
 			"specID":         api.SpecID,
+			"createdTime":    s.Int64(api.CreatedTime),
 			"deploymentID":   api.DeploymentID,
 			"podID":          api.PodID,
 			"cortex.dev/api": "true",
