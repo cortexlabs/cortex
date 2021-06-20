@@ -116,7 +116,7 @@ func RefreshAPI(apiName string, force bool) (string, error) {
 	prevDeployment, prevService, prevVirtualService, err := getK8sResources(apiName)
 	if err != nil {
 		return "", err
-	} else if prevDeployment == nil {
+	} else if prevDeployment == nil || prevVirtualService == nil {
 		return "", errors.ErrorUnexpected("unable to find deployment", apiName)
 	}
 
