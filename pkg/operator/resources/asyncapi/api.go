@@ -323,19 +323,19 @@ func GetAllAPIs(pods []kcore.Pod, deployments []kapps.Deployment) ([]schema.APIR
 	return asyncAPIs, nil
 }
 
-func UpdateMetricsCron(deployment *kapps.Deployment) error {
+func UpdateMetricsCron(apiDeployment *kapps.Deployment) error {
 	// skip gateway deployments
-	if deployment.Labels["cortex.dev/async"] != "api" {
+	if apiDeployment.Labels["cortex.dev/async"] != "api" {
 		return nil
 	}
 
-	apiName := deployment.Labels["apiName"]
+	apiName := apiDeployment.Labels["apiName"]
 
 	if prevMetricsCron, ok := _metricsCrons[apiName]; ok {
 		prevMetricsCron.Cancel()
 	}
 
-	createdTime, err := k8s.ParseInt64Label(deployment, "createdTime")
+	createdTime, err := k8s.ParseInt64Label(apiDeployment, "createdTime")
 	if err != nil {
 		return err
 	}

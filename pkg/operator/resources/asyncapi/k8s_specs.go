@@ -72,6 +72,7 @@ func gatewayDeploymentSpec(api spec.API, queueURL string) kapps.Deployment {
 		},
 		PodSpec: k8s.PodSpec{
 			Labels: map[string]string{
+				// ID labels are omitted to avoid restarting the gateway on update/refresh
 				"apiName":          api.Name,
 				"apiKind":          api.Kind.String(),
 				"cortex.dev/api":   "true",

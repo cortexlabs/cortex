@@ -65,9 +65,10 @@ func main() {
 
 	for i := range deployments {
 		deployment := deployments[i]
-		apiKind := deployment.Labels["apiKind"]
-		if userconfig.KindFromString(apiKind) == userconfig.RealtimeAPIKind ||
-			userconfig.KindFromString(apiKind) == userconfig.AsyncAPIKind {
+		apiKind := userconfig.KindFromString(deployment.Labels["apiKind"])
+		if apiKind == userconfig.RealtimeAPIKind ||
+			(apiKind == userconfig.AsyncAPIKind && deployment.Labels["cortex.dev/async"] != "gateway") {
+
 			apiID := deployment.Labels["apiID"]
 			apiName := deployment.Labels["apiName"]
 			api, err := operator.DownloadAPISpec(apiName, apiID)
@@ -76,11 +77,11 @@ func main() {
 			}
 
 			switch apiKind {
-			case userconfig.RealtimeAPIKind.String():
+			case userconfig.RealtimeAPIKind:
 				if err := realtimeapi.UpdateAutoscalerCron(&deployment, api); err != nil {
 					operatorLogger.Fatal(errors.Wrap(err, "init"))
 				}
-			case userconfig.AsyncAPIKind.String():
+			case userconfig.AsyncAPIKind:
 				if err := asyncapi.UpdateMetricsCron(&deployment); err != nil {
 					operatorLogger.Fatal(errors.Wrap(err, "init"))
 				}
