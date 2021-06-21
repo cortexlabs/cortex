@@ -129,9 +129,9 @@ function build_and_push() {
 
   tag=$CORTEX_VERSION
   if [ "$include_arm64_arch" = "true" ]; then
-    blue_echo "Building and pushing $image:$tag with amd64/arm64 arch support..."
+    blue_echo "Building and pushing $image:$tag (amd64 and arm64)..."
   else
-    blue_echo "Building and pushing $image:$tag with amd64 arch support only..."
+    blue_echo "Building and pushing $image:$tag (amd64)..."
   fi
 
   platforms="linux/amd64"
@@ -142,9 +142,9 @@ function build_and_push() {
   docker buildx build $ROOT -f $dir/Dockerfile -t $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/cortexlabs/$image:$tag --platform $platforms --push
 
   if [ "$include_arm64_arch" = "true" ]; then
-    green_echo "Built and pushed $image:$tag with amd64/arm64 arch support..."
+    green_echo "Built and pushed $image:$tag (amd64 and arm64)..."
   else
-    green_echo "Built and pushed $image:$tag with amd64 arch support only..."
+    green_echo "Built and pushed $image:$tag (amd64)..."
   fi
 
   if [[ " $images_that_can_run_locally " =~ " $image " ]] && [[ "$include_arm64_arch" == "false" ]]; then
