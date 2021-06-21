@@ -20,6 +20,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
+	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/workloads"
 	istioclientnetworking "istio.io/client-go/pkg/apis/networking/v1beta1"
@@ -38,13 +39,14 @@ func deploymentSpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Depl
 		MaxSurge:       pointer.String(api.UpdateStrategy.MaxSurge),
 		MaxUnavailable: pointer.String(api.UpdateStrategy.MaxUnavailable),
 		Labels: map[string]string{
-			"apiName":        api.Name,
-			"apiKind":        api.Kind.String(),
-			"apiID":          api.ID,
-			"specID":         api.SpecID,
-			"deploymentID":   api.DeploymentID,
-			"podID":          api.PodID,
-			"cortex.dev/api": "true",
+			"apiName":               api.Name,
+			"apiKind":               api.Kind.String(),
+			"apiID":                 api.ID,
+			"specID":                api.SpecID,
+			"initialDeploymentTime": s.Int64(api.InitialDeploymentTime),
+			"deploymentID":          api.DeploymentID,
+			"podID":                 api.PodID,
+			"cortex.dev/api":        "true",
 		},
 		Annotations: api.ToK8sAnnotations(),
 		Selector: map[string]string{
@@ -53,11 +55,12 @@ func deploymentSpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Depl
 		},
 		PodSpec: k8s.PodSpec{
 			Labels: map[string]string{
-				"apiName":        api.Name,
-				"apiKind":        api.Kind.String(),
-				"deploymentID":   api.DeploymentID,
-				"podID":          api.PodID,
-				"cortex.dev/api": "true",
+				"apiName":               api.Name,
+				"apiKind":               api.Kind.String(),
+				"initialDeploymentTime": s.Int64(api.InitialDeploymentTime),
+				"deploymentID":          api.DeploymentID,
+				"podID":                 api.PodID,
+				"cortex.dev/api":        "true",
 			},
 			Annotations: map[string]string{
 				"traffic.sidecar.istio.io/excludeOutboundIPRanges": "0.0.0.0/0",
@@ -108,13 +111,14 @@ func virtualServiceSpec(api *spec.API) *istioclientnetworking.VirtualService {
 		Rewrite:     pointer.String("/"),
 		Annotations: api.ToK8sAnnotations(),
 		Labels: map[string]string{
-			"apiName":        api.Name,
-			"apiKind":        api.Kind.String(),
-			"apiID":          api.ID,
-			"specID":         api.SpecID,
-			"deploymentID":   api.DeploymentID,
-			"podID":          api.PodID,
-			"cortex.dev/api": "true",
+			"apiName":               api.Name,
+			"apiKind":               api.Kind.String(),
+			"apiID":                 api.ID,
+			"specID":                api.SpecID,
+			"initialDeploymentTime": s.Int64(api.InitialDeploymentTime),
+			"deploymentID":          api.DeploymentID,
+			"podID":                 api.PodID,
+			"cortex.dev/api":        "true",
 		},
 	})
 }

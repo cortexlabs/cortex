@@ -20,10 +20,12 @@ import (
 	"context"
 	"fmt"
 	"path/filepath"
+	"time"
 
 	"github.com/cortexlabs/cortex/pkg/config"
 	batch "github.com/cortexlabs/cortex/pkg/crds/apis/batch/v1alpha1"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/parallel"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
@@ -47,7 +49,16 @@ func UpdateAPI(apiConfig *userconfig.API) (*spec.API, string, error) {
 		return nil, "", err
 	}
 
-	api := spec.GetAPISpec(apiConfig, "", config.ClusterConfig.ClusterUID) // Deployment ID not needed for BatchAPI spec
+	initialDeploymentTime := time.Now().UnixNano()
+	if prevVirtualService != nil && prevVirtualService.Labels["initialDeploymentTime"] != "" {
+		var err error
+		initialDeploymentTime, err = k8s.ParseInt64Label(prevVirtualService, "initialDeploymentTime")
+		if err != nil {
+			return nil, "", err
+		}
+	}
+
+	api := spec.GetAPISpec(apiConfig, initialDeploymentTime, "", config.ClusterConfig.ClusterUID) // Deployment ID not needed for BatchAPI spec
 
 	if prevVirtualService == nil {
 		if err := config.AWS.UploadJSONToS3(api, config.ClusterConfig.Bucket, api.Key); err != nil {

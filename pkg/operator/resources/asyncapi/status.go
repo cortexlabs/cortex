@@ -297,6 +297,7 @@ func addPodToReplicaCounts(pod *kcore.Pod, deployment *kapps.Deployment, counts 
 }
 
 func isPodSpecLatest(deployment *kapps.Deployment, pod *kcore.Pod) bool {
+	// Note: the gateway deployment/pods don't have "podID" or "deploymentID" labels, which is ok since it is always up-to-date
 	return deployment.Spec.Template.Labels["podID"] == pod.Labels["podID"] &&
 		deployment.Spec.Template.Labels["deploymentID"] == pod.Labels["deploymentID"]
 }
