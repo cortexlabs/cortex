@@ -26,6 +26,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/parallel"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
+	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/workloads"
 	istioclientnetworking "istio.io/client-go/pkg/apis/networking/v1beta1"
@@ -47,12 +48,13 @@ func virtualServiceSpec(api *spec.API) *istioclientnetworking.VirtualService {
 		Rewrite:     pointer.String(path.Join("batch", api.Name)),
 		Annotations: api.ToK8sAnnotations(),
 		Labels: map[string]string{
-			"apiName":        api.Name,
-			"apiID":          api.ID,
-			"specID":         api.SpecID,
-			"podID":          api.PodID,
-			"apiKind":        api.Kind.String(),
-			"cortex.dev/api": "true",
+			"apiName":               api.Name,
+			"apiID":                 api.ID,
+			"specID":                api.SpecID,
+			"podID":                 api.PodID,
+			"initialDeploymentTime": s.Int64(api.InitialDeploymentTime),
+			"apiKind":               api.Kind.String(),
+			"cortex.dev/api":        "true",
 		},
 	})
 }

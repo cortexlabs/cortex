@@ -41,12 +41,14 @@ type API struct {
 
 	Key string `json:"key"`
 
-	LastUpdated  int64  `json:"last_updated"`
-	MetadataRoot string `json:"metadata_root"`
+	InitialDeploymentTime int64  `json:"initial_deployment_time"`
+	LastUpdated           int64  `json:"last_updated"`
+	MetadataRoot          string `json:"metadata_root"`
 }
 
 /*
-APIID (uniquely identifies an api configuration for a given deployment)
+* ID (uniquely identifies an api configuration for a given deployment)
+	* DeploymentID (used for refreshing a deployment)
 	* SpecID (uniquely identifies api configuration specified by user)
 		* PodID (an ID representing the pod spec)
 			* Resource
@@ -57,9 +59,10 @@ APIID (uniquely identifies an api configuration for a given deployment)
 		* Autoscaling
 		* Networking
 		* APIs
-	* DeploymentID (used for refreshing a deployment)
+
+initialDeploymentTime is Time.UnixNano()
 */
-func GetAPISpec(apiConfig *userconfig.API, deploymentID string, clusterUID string) *API {
+func GetAPISpec(apiConfig *userconfig.API, initialDeploymentTime int64, deploymentID string, clusterUID string) *API {
 	var buf bytes.Buffer
 
 	buf.WriteString(s.Obj(apiConfig.Resource))
@@ -77,14 +80,15 @@ func GetAPISpec(apiConfig *userconfig.API, deploymentID string, clusterUID strin
 	apiID := fmt.Sprintf("%s-%s-%s", MonotonicallyDecreasingID(), deploymentID, specID) // should be up to 60 characters long
 
 	return &API{
-		API:          apiConfig,
-		ID:           apiID,
-		SpecID:       specID,
-		PodID:        podID,
-		Key:          Key(apiConfig.Name, apiID, clusterUID),
-		DeploymentID: deploymentID,
-		LastUpdated:  time.Now().Unix(),
-		MetadataRoot: MetadataRoot(apiConfig.Name, clusterUID),
+		API:                   apiConfig,
+		ID:                    apiID,
+		SpecID:                specID,
+		PodID:                 podID,
+		Key:                   Key(apiConfig.Name, apiID, clusterUID),
+		InitialDeploymentTime: initialDeploymentTime,
+		DeploymentID:          deploymentID,
+		LastUpdated:           time.Now().Unix(),
+		MetadataRoot:          MetadataRoot(apiConfig.Name, clusterUID),
 	}
 }
 

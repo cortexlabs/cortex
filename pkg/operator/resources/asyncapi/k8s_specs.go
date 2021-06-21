@@ -20,6 +20,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
+	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/workloads"
 	"istio.io/client-go/pkg/apis/networking/v1beta1"
@@ -66,19 +67,14 @@ func gatewayDeploymentSpec(api spec.API, queueURL string) kapps.Deployment {
 		Labels: map[string]string{
 			"apiName":          api.Name,
 			"apiKind":          api.Kind.String(),
-			"apiID":            api.ID,
-			"specID":           api.SpecID,
-			"deploymentID":     api.DeploymentID,
-			"podID":            api.PodID,
 			"cortex.dev/api":   "true",
 			"cortex.dev/async": "gateway",
 		},
 		PodSpec: k8s.PodSpec{
 			Labels: map[string]string{
+				// ID labels are omitted to avoid restarting the gateway on update/refresh
 				"apiName":          api.Name,
 				"apiKind":          api.Kind.String(),
-				"deploymentID":     api.DeploymentID,
-				"podID":            api.PodID,
 				"cortex.dev/api":   "true",
 				"cortex.dev/async": "gateway",
 			},
@@ -110,10 +106,6 @@ func gatewayHPASpec(api spec.API) (kautoscaling.HorizontalPodAutoscaler, error) 
 		Labels: map[string]string{
 			"apiName":          api.Name,
 			"apiKind":          api.Kind.String(),
-			"apiID":            api.ID,
-			"specID":           api.SpecID,
-			"deploymentID":     api.DeploymentID,
-			"podID":            api.PodID,
 			"cortex.dev/api":   "true",
 			"cortex.dev/async": "hpa",
 		},
@@ -159,14 +151,15 @@ func gatewayVirtualServiceSpec(api spec.API) v1beta1.VirtualService {
 		Rewrite:     pointer.String("/"),
 		Annotations: api.ToK8sAnnotations(),
 		Labels: map[string]string{
-			"apiName":          api.Name,
-			"apiKind":          api.Kind.String(),
-			"apiID":            api.ID,
-			"specID":           api.SpecID,
-			"deploymentID":     api.DeploymentID,
-			"podID":            api.PodID,
-			"cortex.dev/api":   "true",
-			"cortex.dev/async": "gateway",
+			"apiName":               api.Name,
+			"apiKind":               api.Kind.String(),
+			"apiID":                 api.ID,
+			"specID":                api.SpecID,
+			"initialDeploymentTime": s.Int64(api.InitialDeploymentTime),
+			"deploymentID":          api.DeploymentID,
+			"podID":                 api.PodID,
+			"cortex.dev/api":        "true",
+			"cortex.dev/async":      "gateway",
 		},
 	})
 }
@@ -187,9 +180,6 @@ func configMapSpec(api spec.API) (kcore.ConfigMap, error) {
 		Labels: map[string]string{
 			"apiName":        api.Name,
 			"apiKind":        api.Kind.String(),
-			"apiID":          api.ID,
-			"specID":         api.SpecID,
-			"deploymentID":   api.DeploymentID,
 			"cortex.dev/api": "true",
 		},
 	}), nil
@@ -209,14 +199,15 @@ func deploymentSpec(api spec.API, prevDeployment *kapps.Deployment, queueURL str
 		MaxSurge:       pointer.String(api.UpdateStrategy.MaxSurge),
 		MaxUnavailable: pointer.String(api.UpdateStrategy.MaxUnavailable),
 		Labels: map[string]string{
-			"apiName":          api.Name,
-			"apiKind":          api.Kind.String(),
-			"apiID":            api.ID,
-			"specID":           api.SpecID,
-			"deploymentID":     api.DeploymentID,
-			"podID":            api.PodID,
-			"cortex.dev/api":   "true",
-			"cortex.dev/async": "api",
+			"apiName":               api.Name,
+			"apiKind":               api.Kind.String(),
+			"apiID":                 api.ID,
+			"specID":                api.SpecID,
+			"initialDeploymentTime": s.Int64(api.InitialDeploymentTime),
+			"deploymentID":          api.DeploymentID,
+			"podID":                 api.PodID,
+			"cortex.dev/api":        "true",
+			"cortex.dev/async":      "api",
 		},
 		Annotations: api.ToK8sAnnotations(),
 		Selector: map[string]string{
@@ -226,13 +217,14 @@ func deploymentSpec(api spec.API, prevDeployment *kapps.Deployment, queueURL str
 		},
 		PodSpec: k8s.PodSpec{
 			Labels: map[string]string{
-				"apiName":          api.Name,
-				"apiKind":          api.Kind.String(),
-				"apiID":            api.ID,
-				"deploymentID":     api.DeploymentID,
-				"podID":            api.PodID,
-				"cortex.dev/api":   "true",
-				"cortex.dev/async": "api",
+				"apiName":               api.Name,
+				"apiKind":               api.Kind.String(),
+				"apiID":                 api.ID,
+				"initialDeploymentTime": s.Int64(api.InitialDeploymentTime),
+				"deploymentID":          api.DeploymentID,
+				"podID":                 api.PodID,
+				"cortex.dev/api":        "true",
+				"cortex.dev/async":      "api",
 			},
 			K8sPodSpec: kcore.PodSpec{
 				RestartPolicy:                 "Always",
