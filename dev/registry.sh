@@ -232,6 +232,7 @@ elif [ "$cmd" = "update" ]; then
 # usage: registry.sh clean-cache
 elif [ "$cmd" = "clean-cache" ]; then
   cleanup_local
+  
 else
   echo "unknown command: $cmd"
   exit 1
