@@ -23,6 +23,9 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")"/.. >/dev/null && pwd)"
 source $ROOT/build/images.sh
 source $ROOT/dev/util.sh
 
+images_with_builders="operator proxy async-gateway enqueuer dequeuer controller-manager kube-rbac-proxy kubexit"
+images_that_can_run_locally="operator"
+
 if [ -f "$ROOT/dev/config/env.sh" ]; then
   source $ROOT/dev/config/env.sh
 fi
@@ -108,52 +111,47 @@ function create_ecr_repository() {
 
 ### HELPERS ###
 
-function build() {
+function cache_builder() {
   local image=$1
-  local tag=$2
+  local include_arm64_arch=$2
   local dir="${ROOT}/images/${image}"
 
-  tag_args=""
-  if [ -n "$AWS_ACCOUNT_ID" ] && [ -n "$AWS_REGION" ]; then
-    tag_args+=" -t $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/cortexlabs/$image:$tag"
+  if ! in_array $image "multi_arch_images"; then
+    include_arm64_arch="false"
   fi
 
-  blue_echo "Building $image:$tag..."
-  docker build $ROOT -f $dir/Dockerfile -t cortexlabs/$image:$tag $tag_args
-  green_echo "Built $image:$tag\n"
-}
+  tag=$CORTEX_VERSION
 
-function push() {
-  if [ "$skip_push" = "true" ]; then
-    return
+  if [ "$include_arm64_arch" = "true" ]; then
+    blue_echo "Building $image-builder with amd64/arm64 arch support..."
+  else
+    blue_echo "Building $image-builder with amd64 arch support only..."
   fi
 
-  registry_login
+  platforms="--platform linux/amd64"
+  if [ "$include_arm64_arch" = "true" ]; then
+    platforms+=",linux/arm64"
+  fi
 
-  local image=$1
-  local tag=$2
+  docker buildx build $ROOT -f $dir/Dockerfile -t cortexlabs/$image-builder:$tag $platforms --target builder
 
-  blue_echo "Pushing $image:$tag..."
-  docker push $registry_push_url/cortexlabs/$image:$tag
-  green_echo "Pushed $image:$tag\n"
+  if [ "$include_arm64_arch" = "true" ]; then
+    green_echo "Built $image-builder with amd64/arm64 arch support..."
+  else
+    green_echo "Built $image-builder with amd64 arch support only..."
+  fi
 }
 
 function build_and_push() {
-  local image=$1
-
-  set -euo pipefail  # necessary since this is called in a new shell by parallel
-
-  tag=$CORTEX_VERSION
-  build $image $tag
-  push $image $tag
-}
-
-function build_and_push_multi_arch() {
   local image=$1
   local include_arm64_arch=$2
   local dir="${ROOT}/images/${image}"
 
   set -euo pipefail  # necessary since this is called in a new shell by parallel
+
+  if ! in_array $image "multi_arch_images"; then
+    include_arm64_arch="false"
+  fi
 
   registry_login
   if [ ! -n "$AWS_ACCOUNT_ID" ] || [ ! -n "$AWS_REGION" ]; then
@@ -180,12 +178,19 @@ function build_and_push_multi_arch() {
   else
     green_echo "Built and pushed $image:$tag with amd64 arch support only..."
   fi
+
+  blue_echo "Exporting $image:$tag to local docker..."
+  if [[ " $images_that_can_run_locally " =~ " $image " ]] && [[ "$include_arm64_arch" == "false" ]]; then
+    docker buildx build $ROOT -f $dir/Dockerfile -t cortexlabs/$image:$tag -t $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/cortexlabs/$image:$tag $platforms --load
+  fi
+  green_echo "Exported $image:$tag to local docker..."
 }
 
 function cleanup_local() {
   echo "cleaning local repositories..."
   docker container prune -f
   docker image prune -f
+  docker buildx prune -f
 }
 
 function cleanup_ecr() {
@@ -223,14 +228,6 @@ function validate_env() {
   fi
 }
 
-# export functions for parallel command
-export -f build_and_push
-export -f push
-export -f build
-export -f blue_echo
-export -f green_echo
-export -f registry_login
-
 # validate environment is correctly set on env.sh
 validate_env
 
@@ -246,11 +243,10 @@ elif [ "$cmd" = "create" ]; then
 # usage: registry.sh update-single IMAGE
 elif [ "$cmd" = "update-single" ]; then
   image=$sub_cmd
-  if ! in_array $image "multi_arch_images"; then
-    build_and_push $image
-  else
-    build_and_push_multi_arch $image $include_arm64_arch
+  if [[ " $images_with_builders " =~ " $image " ]]; then
+    cache_builder $image $include_arm64_arch
   fi
+  build_and_push $image $include_arm64_arch
 
 # usage: registry.sh update all|dev|api
 # if parallel utility is installed, the docker build commands will be parallelized
@@ -265,15 +261,17 @@ elif [ "$cmd" = "update" ]; then
     images_to_build+=( "${dev_images[@]}" )
   fi
 
+  for image in $images_with_builders; do
+    if [[ " ${images_to_build[@]} " =~ " $image " ]]; then
+      cache_builder $image $include_arm64_arch
+    fi
+  done
+
   if command -v parallel &> /dev/null && [ -n "${NUM_BUILD_PROCS+set}" ] && [ "$NUM_BUILD_PROCS" != "1" ]; then
     is_registry_logged_in=$is_registry_logged_in ROOT=$ROOT registry_push_url=$registry_push_url SHELL=$(type -p /bin/bash) parallel --will-cite --halt now,fail=1 --eta --jobs $NUM_BUILD_PROCS build_and_push "{}" ::: "${images_to_build[@]}"
   else
     for image in "${images_to_build[@]}"; do
-      if in_array $image "multi_arch_images"; then
-        build_and_push $image
-      else
-        build_and_push_multi_arch $image $include_arm64_arch
-      fi
+      build_and_push $image $include_arm64_arch
     done
   fi
 
