@@ -121,7 +121,7 @@ jobs:
       - checkout
       - setup_remote_docker
       - install-go
-      - run: sudo apt update && sudo apt install parallel -y
+      - run: docker buildx create --name builder --platform linux/amd64,linux/arm64 --use && docker buildx inspect --bootstrap
       - run: sudo pip install awscli
       - run: make ci-build-cli
       - return-if-not-deployed-branch

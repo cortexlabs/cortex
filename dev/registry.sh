@@ -249,7 +249,6 @@ elif [ "$cmd" = "update-single" ]; then
   build_and_push $image $include_arm64_arch
 
 # usage: registry.sh update all|dev|api
-# if parallel utility is installed, the docker build commands will be parallelized
 elif [ "$cmd" = "update" ]; then
   images_to_build=()
 
@@ -267,13 +266,9 @@ elif [ "$cmd" = "update" ]; then
     fi
   done
 
-  if command -v parallel &> /dev/null && [ -n "${NUM_BUILD_PROCS+set}" ] && [ "$NUM_BUILD_PROCS" != "1" ]; then
-    is_registry_logged_in=$is_registry_logged_in ROOT=$ROOT registry_push_url=$registry_push_url SHELL=$(type -p /bin/bash) parallel --will-cite --halt now,fail=1 --eta --jobs $NUM_BUILD_PROCS build_and_push "{}" ::: "${images_to_build[@]}"
-  else
-    for image in "${images_to_build[@]}"; do
-      build_and_push $image $include_arm64_arch
-    done
-  fi
+  for image in "${images_to_build[@]}"; do
+    build_and_push $image $include_arm64_arch
+  done
 
   cleanup_local
 
