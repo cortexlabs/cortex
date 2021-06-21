@@ -121,11 +121,11 @@ function build_and_push() {
     include_arm64_arch="false"
   fi
 
-  registry_login
   if [ ! -n "$AWS_ACCOUNT_ID" ] || [ ! -n "$AWS_REGION" ]; then
     echo "AWS_ACCOUNT_ID or AWS_REGION env vars not found"
     exit 1
   fi
+  registry_login
 
   tag=$CORTEX_VERSION
   if [ "$include_arm64_arch" = "true" ]; then
@@ -148,7 +148,7 @@ function build_and_push() {
   fi
 
   if [[ " $images_that_can_run_locally " =~ " $image " ]] && [[ "$include_arm64_arch" == "false" ]]; then
-   blue_echo "Exporting $image:$tag to local docker..."
+    blue_echo "Exporting $image:$tag to local docker..."
     docker buildx build $ROOT -f $dir/Dockerfile -t cortexlabs/$image:$tag -t $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/cortexlabs/$image:$tag --platform $platforms --load
     green_echo "Exported $image:$tag to local docker..."
   fi
@@ -232,7 +232,7 @@ elif [ "$cmd" = "update" ]; then
 # usage: registry.sh clean-cache
 elif [ "$cmd" = "clean-cache" ]; then
   cleanup_local
-  
+
 else
   echo "unknown command: $cmd"
   exit 1
