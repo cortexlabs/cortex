@@ -23,7 +23,7 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")"/.. >/dev/null && pwd)"
 source $ROOT/build/images.sh
 source $ROOT/dev/util.sh
 
-images_with_builders="operator proxy async-gateway enqueuer dequeuer controller-manager"
+images_with_builders="operator proxy async-gateway enqueuer dequeuer controller-manager activator autoscaler"
 
 if [ -f "$ROOT/dev/config/env.sh" ]; then
   source $ROOT/dev/config/env.sh
