@@ -189,10 +189,12 @@ func (h *AsyncMessageHandler) submitRequest(payload *userPayload, requestID stri
 		_ = response.Body.Close()
 	}()
 
-	requestEvent := RequestEvent{
-		StatusCode: response.StatusCode,
-		Duration:   time.Since(startTime),
-	}
+	h.eventHandler.HandleEvent(
+		RequestEvent{
+			StatusCode: response.StatusCode,
+			Duration:   time.Since(startTime),
+		},
+	)
 
 	if response.StatusCode != http.StatusOK {
 		return nil, ErrorUserContainerResponseStatusCode(response.StatusCode)
@@ -206,8 +208,6 @@ func (h *AsyncMessageHandler) submitRequest(payload *userPayload, requestID stri
 	if err = json.NewDecoder(response.Body).Decode(&result); err != nil {
 		return nil, ErrorUserContainerResponseNotJSONDecodable()
 	}
-
-	h.eventHandler.HandleEvent(requestEvent)
 
 	return result, nil
 }
