@@ -120,6 +120,19 @@ func IsAMDGPUInstance(instanceType string) (bool, error) {
 	return false, nil
 }
 
+func IsMacInstance(instanceType string) (bool, error) {
+	parsedType, err := ParseInstanceType(instanceType)
+	if err != nil {
+		return false, err
+	}
+
+	if parsedType.Family == "mac" {
+		return true, nil
+	}
+
+	return false, nil
+}
+
 func (c *Client) SpotInstancePrice(instanceType string) (float64, error) {
 	result, err := c.EC2().DescribeSpotPriceHistory(&ec2.DescribeSpotPriceHistoryInput{
 		InstanceTypes:       []*string{aws.String(instanceType)},

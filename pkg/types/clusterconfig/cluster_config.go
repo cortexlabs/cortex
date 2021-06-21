@@ -1451,6 +1451,14 @@ func validateInstanceType(instanceType string) (string, error) {
 		return "", ErrorAMDGPUInstancesNotSupported(instanceType)
 	}
 
+	isMac, err := aws.IsMacInstance(instanceType)
+	if err != nil {
+		return "", err
+	}
+	if isMac {
+		return "", ErrorMacInstancesNotSupported(instanceType)
+	}
+
 	if _, ok := awsutils.InstanceNetworkingLimits[instanceType]; !ok {
 		return "", ErrorInstanceTypeNotSupportedByCortex(instanceType)
 	}
