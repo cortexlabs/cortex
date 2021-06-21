@@ -103,6 +103,23 @@ func ParseInstanceType(instanceType string) (ParsedInstanceType, error) {
 	}, nil
 }
 
+func IsARMInstance(instanceType string) (bool, error) {
+	parsedType, err := ParseInstanceType(instanceType)
+	if err != nil {
+		return false, err
+	}
+
+	if parsedType.Family == "a" {
+		return true, nil
+	}
+
+	if parsedType.Capabilities.Has("g") {
+		return true, nil
+	}
+
+	return false, nil
+}
+
 func IsAMDGPUInstance(instanceType string) (bool, error) {
 	parsedType, err := ParseInstanceType(instanceType)
 	if err != nil {
