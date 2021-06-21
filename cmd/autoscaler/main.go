@@ -19,10 +19,12 @@ package main
 import (
 	"context"
 	"flag"
+	"fmt"
 	"net/http"
 	"os"
 	"os/signal"
 	"strconv"
+	"time"
 
 	"github.com/cortexlabs/cortex/pkg/autoscaler"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
@@ -32,8 +34,11 @@ import (
 	promapi "github.com/prometheus/client_golang/api"
 	promv1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	"go.uber.org/zap"
-	kcore "k8s.io/api/core/v1"
+	istioclient "istio.io/client-go/pkg/clientset/versioned"
+	istioinformers "istio.io/client-go/pkg/informers/externalversions"
+	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/tools/cache"
 )
 
 func main() {
@@ -41,24 +46,41 @@ func main() {
 		port          int
 		inCluster     bool
 		prometheusURL string
+		namespace     string
 	)
 
 	flag.IntVar(&port, "port", 8000, "port where the autoscaler server will be exposed")
 	flag.BoolVar(&inCluster, "in-cluster", false, "use when autoscaler runs in-cluster")
-	flag.StringVar(&prometheusURL, "prometheus-url", os.Getenv("CORTEX_PROMETHEUS_URL"), "prometheus url (can be set through the CORTEX_PROMETHEUS_URL env variable)")
+	flag.StringVar(&prometheusURL, "prometheus-url", os.Getenv("CORTEX_PROMETHEUS_URL"),
+		"prometheus url (can be set through the CORTEX_PROMETHEUS_URL env variable)",
+	)
+	flag.StringVar(&namespace, "namespace", os.Getenv("CORTEX_NAMESPACE"),
+		"kubernetes namespace where the cortex APIs are deployed "+
+			"(can be set through the CORTEX_NAMESPACE env variable)",
+	)
+	flag.Parse()
 
 	log := logging.GetLogger()
 	defer func() {
 		_ = log.Sync()
 	}()
 
-	if prometheusURL == "" {
+	switch {
+	case prometheusURL == "":
 		log.Fatal("--prometheus-url is a required option")
+	case namespace == "":
+		log.Fatal("--namespace is a required option")
 	}
 
-	k8sClient, err := k8s.New(kcore.NamespaceAll, inCluster, nil, runtime.NewScheme())
+	k8sClient, err := k8s.New(namespace, inCluster, nil, runtime.NewScheme())
 	if err != nil {
 		log.Fatal("failed to initialize kubernetes client")
+	}
+
+	//goland:noinspection GoNilness
+	istioClient, err := istioclient.NewForConfig(k8sClient.RestConfig)
+	if err != nil {
+		log.Fatal(err)
 	}
 
 	promClient, err := promapi.NewClient(
@@ -79,10 +101,68 @@ func main() {
 	autoScaler.AddScaler(realtimeScaler, userconfig.RealtimeAPIKind)
 	autoScaler.AddScaler(asyncScaler, userconfig.AsyncAPIKind)
 
+	istioInformerFactory := istioinformers.NewSharedInformerFactory(istioClient, 10*time.Second) // TODO: check how much makes sense
+	virtualServiceInformer := istioInformerFactory.Networking().V1beta1().VirtualServices().Informer()
+	virtualServiceInformer.AddEventHandler(
+		cache.ResourceEventHandlerFuncs{
+			AddFunc: func(obj interface{}) {
+				resource, err := meta.Accessor(obj)
+				if err != nil {
+					log.Errorw("failed to access resource metadata", zap.Error(err))
+					return
+				}
+
+				if resource.GetNamespace() != namespace {
+					// filter out virtual services that are not in the cortex namespace
+					return
+				}
+
+				api, err := apiResourceFromLabels(resource.GetLabels())
+				if err != nil {
+					// filter out non-cortex apis
+					return
+				}
+
+				if err := autoScaler.AddAPI(api); err != nil {
+					log.Errorw("failed to add API to autoscaler",
+						zap.Error(err),
+						zap.String("apiName", api.Name),
+						zap.String("apiKind", api.Kind.String()),
+					)
+					return
+				}
+			},
+			DeleteFunc: func(obj interface{}) {
+				resource, err := meta.Accessor(obj)
+				if err != nil {
+					log.Errorw("failed to access resource metadata", zap.Error(err))
+				}
+
+				if resource.GetNamespace() != namespace {
+					// filter out virtual services that are not in the cortex namespace
+					return
+				}
+
+				api, err := apiResourceFromLabels(resource.GetLabels())
+				if err != nil {
+					// filter out non-cortex apis
+					return
+				}
+
+				autoScaler.RemoveAPI(api)
+			},
+		},
+	)
+
 	handler := autoscaler.NewHandler(autoScaler)
 	router := mux.NewRouter()
 	router.HandleFunc("/add", handler.AddAPI).Methods(http.MethodPost)
 	router.HandleFunc("/awake", handler.Awake).Methods(http.MethodPost)
+	router.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+		_, _ = w.Write([]byte("ok"))
+	}).Methods(http.MethodGet)
 
 	server := &http.Server{
 		Addr:    ":" + strconv.Itoa(port),
@@ -94,6 +174,10 @@ func main() {
 		log.Infof("Starting autoscaler server on %s", server.Addr)
 		errCh <- server.ListenAndServe()
 	}()
+
+	stopCh := make(chan struct{})
+	virtualServiceInformer.Run(stopCh)
+	defer func() { stopCh <- struct{}{} }()
 
 	sigint := make(chan os.Signal, 1)
 	signal.Notify(sigint, os.Interrupt)
@@ -111,4 +195,21 @@ func main() {
 		}
 		log.Info("Shutdown complete, exiting...")
 	}
+}
+
+func apiResourceFromLabels(labels map[string]string) (userconfig.Resource, error) {
+	apiName, ok := labels["apiName"]
+	if !ok {
+		return userconfig.Resource{}, fmt.Errorf("apiName key does not exist")
+	}
+
+	apiKind, ok := labels["apiKind"]
+	if !ok {
+		return userconfig.Resource{}, fmt.Errorf("apiKind key does not exist")
+	}
+
+	return userconfig.Resource{
+		Name: apiName,
+		Kind: userconfig.KindFromString(apiKind),
+	}, nil
 }
