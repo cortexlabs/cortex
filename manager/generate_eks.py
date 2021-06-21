@@ -341,7 +341,11 @@ def generate_eks(
         "addons": [
             {
                 "name": "vpc-cni",
-                "version": "1.7.10",
+                "version": "1.8.0",
+            },
+            {
+                "name": "kube-proxy",
+                "version": "1.18.8",
             },
         ],
     }
