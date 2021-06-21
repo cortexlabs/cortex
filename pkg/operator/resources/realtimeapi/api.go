@@ -54,18 +54,18 @@ func UpdateAPI(apiConfig *userconfig.API, force bool) (*spec.API, string, error)
 		return nil, "", err
 	}
 
-	createdTime := time.Now().UnixNano()
+	initialDeploymentTime := time.Now().UnixNano()
 	deploymentID := generateDeploymentID()
-	if prevVirtualService != nil && prevVirtualService.Labels["createdTime"] != "" {
+	if prevVirtualService != nil && prevVirtualService.Labels["initialDeploymentTime"] != "" {
 		var err error
-		createdTime, err = k8s.ParseInt64Label(prevVirtualService, "createdTime")
+		initialDeploymentTime, err = k8s.ParseInt64Label(prevVirtualService, "initialDeploymentTime")
 		if err != nil {
 			return nil, "", err
 		}
 		deploymentID = prevVirtualService.Labels["deploymentID"]
 	}
 
-	api := spec.GetAPISpec(apiConfig, createdTime, deploymentID, config.ClusterConfig.ClusterUID)
+	api := spec.GetAPISpec(apiConfig, initialDeploymentTime, deploymentID, config.ClusterConfig.ClusterUID)
 
 	if prevDeployment == nil {
 		if err := config.AWS.UploadJSONToS3(api, config.ClusterConfig.Bucket, api.Key); err != nil {
@@ -139,12 +139,12 @@ func RefreshAPI(apiName string, force bool) (string, error) {
 		return "", err
 	}
 
-	createdTime, err := k8s.ParseInt64Label(prevVirtualService, "createdTime")
+	initialDeploymentTime, err := k8s.ParseInt64Label(prevVirtualService, "initialDeploymentTime")
 	if err != nil {
 		return "", err
 	}
 
-	api = spec.GetAPISpec(api.API, createdTime, generateDeploymentID(), config.ClusterConfig.ClusterUID)
+	api = spec.GetAPISpec(api.API, initialDeploymentTime, generateDeploymentID(), config.ClusterConfig.ClusterUID)
 
 	if err := config.AWS.UploadJSONToS3(api, config.ClusterConfig.Bucket, api.Key); err != nil {
 		return "", errors.Wrap(err, "upload api spec")

@@ -46,16 +46,16 @@ func UpdateAPI(apiConfig *userconfig.API) (*spec.API, string, error) {
 		return nil, "", err
 	}
 
-	createdTime := time.Now().UnixNano()
-	if prevVirtualService != nil && prevVirtualService.Labels["createdTime"] != "" {
+	initialDeploymentTime := time.Now().UnixNano()
+	if prevVirtualService != nil && prevVirtualService.Labels["initialDeploymentTime"] != "" {
 		var err error
-		createdTime, err = k8s.ParseInt64Label(prevVirtualService, "createdTime")
+		initialDeploymentTime, err = k8s.ParseInt64Label(prevVirtualService, "initialDeploymentTime")
 		if err != nil {
 			return nil, "", err
 		}
 	}
 
-	api := spec.GetAPISpec(apiConfig, createdTime, "", config.ClusterConfig.ClusterUID) // Deployment ID not needed for TaskAPI spec
+	api := spec.GetAPISpec(apiConfig, initialDeploymentTime, "", config.ClusterConfig.ClusterUID) // Deployment ID not needed for TaskAPI spec
 
 	if prevVirtualService == nil {
 		if err := config.AWS.UploadJSONToS3(api, config.ClusterConfig.Bucket, api.Key); err != nil {

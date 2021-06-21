@@ -41,9 +41,9 @@ type API struct {
 
 	Key string `json:"key"`
 
-	CreatedTime  int64  `json:"created_time"`
-	LastUpdated  int64  `json:"last_updated"`
-	MetadataRoot string `json:"metadata_root"`
+	InitialDeploymentTime int64  `json:"initial_deployment_time"`
+	LastUpdated           int64  `json:"last_updated"`
+	MetadataRoot          string `json:"metadata_root"`
 }
 
 /*
@@ -60,9 +60,9 @@ type API struct {
 		* Networking
 		* APIs
 
-createdTime is Time.UnixNano()
+initialDeploymentTime is Time.UnixNano()
 */
-func GetAPISpec(apiConfig *userconfig.API, createdTime int64, deploymentID string, clusterUID string) *API {
+func GetAPISpec(apiConfig *userconfig.API, initialDeploymentTime int64, deploymentID string, clusterUID string) *API {
 	var buf bytes.Buffer
 
 	buf.WriteString(s.Obj(apiConfig.Resource))
@@ -80,15 +80,15 @@ func GetAPISpec(apiConfig *userconfig.API, createdTime int64, deploymentID strin
 	apiID := fmt.Sprintf("%s-%s-%s", MonotonicallyDecreasingID(), deploymentID, specID) // should be up to 60 characters long
 
 	return &API{
-		API:          apiConfig,
-		ID:           apiID,
-		SpecID:       specID,
-		PodID:        podID,
-		Key:          Key(apiConfig.Name, apiID, clusterUID),
-		CreatedTime:  createdTime,
-		DeploymentID: deploymentID,
-		LastUpdated:  time.Now().Unix(),
-		MetadataRoot: MetadataRoot(apiConfig.Name, clusterUID),
+		API:                   apiConfig,
+		ID:                    apiID,
+		SpecID:                specID,
+		PodID:                 podID,
+		Key:                   Key(apiConfig.Name, apiID, clusterUID),
+		InitialDeploymentTime: initialDeploymentTime,
+		DeploymentID:          deploymentID,
+		LastUpdated:           time.Now().Unix(),
+		MetadataRoot:          MetadataRoot(apiConfig.Name, clusterUID),
 	}
 }
 

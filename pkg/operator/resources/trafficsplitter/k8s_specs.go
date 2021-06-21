@@ -34,12 +34,12 @@ func virtualServiceSpec(trafficSplitter *spec.API) *istioclientnetworking.Virtua
 		Rewrite:      pointer.String("/"),
 		Annotations:  trafficSplitter.ToK8sAnnotations(),
 		Labels: map[string]string{
-			"apiName":        trafficSplitter.Name,
-			"apiKind":        trafficSplitter.Kind.String(),
-			"apiID":          trafficSplitter.ID,
-			"specID":         trafficSplitter.SpecID,
-			"createdTime":    s.Int64(trafficSplitter.CreatedTime),
-			"cortex.dev/api": "true",
+			"apiName":               trafficSplitter.Name,
+			"apiKind":               trafficSplitter.Kind.String(),
+			"apiID":                 trafficSplitter.ID,
+			"specID":                trafficSplitter.SpecID,
+			"initialDeploymentTime": s.Int64(trafficSplitter.InitialDeploymentTime),
+			"cortex.dev/api":        "true",
 		},
 	})
 }

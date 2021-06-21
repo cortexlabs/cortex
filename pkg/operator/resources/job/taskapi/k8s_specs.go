@@ -50,13 +50,13 @@ func virtualServiceSpec(api *spec.API) *istioclientnetworking.VirtualService {
 		Rewrite:     pointer.String(path.Join("tasks", api.Name)),
 		Annotations: api.ToK8sAnnotations(),
 		Labels: map[string]string{
-			"apiName":        api.Name,
-			"apiID":          api.ID,
-			"specID":         api.SpecID,
-			"podID":          api.PodID,
-			"createdTime":    s.Int64(api.CreatedTime),
-			"apiKind":        api.Kind.String(),
-			"cortex.dev/api": "true",
+			"apiName":               api.Name,
+			"apiID":                 api.ID,
+			"specID":                api.SpecID,
+			"podID":                 api.PodID,
+			"initialDeploymentTime": s.Int64(api.InitialDeploymentTime),
+			"apiKind":               api.Kind.String(),
+			"cortex.dev/api":        "true",
 		},
 	})
 }

@@ -27,12 +27,12 @@ import (
 	"github.com/cortexlabs/cortex/pkg/types/clusterconfig"
 )
 
-func createFIFOQueue(apiName string, createdTime int64, tags map[string]string) (string, error) {
+func createFIFOQueue(apiName string, initialDeploymentTime int64, tags map[string]string) (string, error) {
 	for key, value := range config.ClusterConfig.Tags {
 		tags[key] = value
 	}
 
-	queueName := apiQueueName(apiName, createdTime)
+	queueName := apiQueueName(apiName, initialDeploymentTime)
 
 	attributes := map[string]string{
 		sqs.QueueAttributeNameFifoQueue:         "true",
@@ -53,10 +53,12 @@ func createFIFOQueue(apiName string, createdTime int64, tags map[string]string) 
 	return *output.QueueUrl, nil
 }
 
-func apiQueueName(apiName string, createdTime int64) string {
-	createdTimeStr := s.Int64(createdTime)
-	createdTimeID := createdTimeStr[len(createdTimeStr)-10:]
-	return config.ClusterConfig.SQSNamePrefix() + apiName + clusterconfig.SQSQueueDelimiter + createdTimeID + ".fifo"
+func apiQueueName(apiName string, initialDeploymentTime int64) string {
+	// initialDeploymentTime is incorporated so that the queue name changes when doing a deploy after a delete
+	// (if the queue name doesn't change, the user would have to wait 60 seconds before recreating the queue)
+	initialDeploymentTimeStr := s.Int64(initialDeploymentTime)
+	initialDeploymentTimeID := initialDeploymentTimeStr[len(initialDeploymentTimeStr)-10:]
+	return config.ClusterConfig.SQSNamePrefix() + apiName + clusterconfig.SQSQueueDelimiter + initialDeploymentTimeID + ".fifo"
 }
 
 func deleteQueueByURL(queueURL string) error {
@@ -70,7 +72,7 @@ func deleteQueueByURL(queueURL string) error {
 	return err
 }
 
-func getQueueURL(apiName string, createdTime int64) (string, error) {
+func getQueueURL(apiName string, initialDeploymentTime int64) (string, error) {
 	operatorAccountID, _, err := config.AWS.GetCachedAccountID()
 	if err != nil {
 		return "", errors.Wrap(err, "failed to construct queue url", "unable to get account id")
@@ -78,6 +80,6 @@ func getQueueURL(apiName string, createdTime int64) (string, error) {
 
 	return fmt.Sprintf(
 		"https://sqs.%s.amazonaws.com/%s/%s",
-		config.AWS.Region, operatorAccountID, apiQueueName(apiName, createdTime),
+		config.AWS.Region, operatorAccountID, apiQueueName(apiName, initialDeploymentTime),
 	), nil
 }
