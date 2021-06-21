@@ -1,0 +1,16 @@
+- name: hello-world
+  kind: RealtimeAPI
+  pod:
+    port: 8080
+    max_concurrency: 1
+    containers:
+    - name: api
+      image: infrastructureascode/hello-world
+      readiness_probe:
+        http_get:
+          path: "/healthz"
+          port: 8080
+      compute:
+        cpu: 200m
+        mem: 128Mi
+  node_groups: ["arm"]
