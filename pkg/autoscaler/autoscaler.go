@@ -110,10 +110,17 @@ func (a *Autoscaler) AddAPI(api userconfig.Resource) error {
 }
 
 func (a *Autoscaler) RemoveAPI(api userconfig.Resource) {
+	log := a.logger.With(
+		zap.String("apiName", api.Name),
+		zap.String("apiKind", api.Kind.String()),
+	)
+
 	if autoscalerCron, ok := a.crons[api.Name]; ok {
 		autoscalerCron.Cancel()
 		delete(a.crons, api.Name)
 	}
+
+	log.Info("autoscaler stop")
 }
 
 func (a *Autoscaler) Stop() {
