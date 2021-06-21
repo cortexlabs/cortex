@@ -36,6 +36,10 @@ func ValidateClusterAPIs(apis []userconfig.API) error {
 		return spec.ErrorNoAPIs()
 	}
 
+	if len(config.ClusterConfig.NodeGroups) == 0 {
+		return ErrorNoNodeGroups()
+	}
+
 	virtualServices, err := config.K8s.ListVirtualServices(nil)
 	if err != nil {
 		return err

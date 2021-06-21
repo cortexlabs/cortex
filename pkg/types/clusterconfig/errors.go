@@ -32,7 +32,6 @@ const (
 	ErrInvalidLegacyProvider                  = "clusterconfig.invalid_legacy_provider"
 	ErrDisallowedField                        = "clusterconfig.disallowed_field"
 	ErrInvalidRegion                          = "clusterconfig.invalid_region"
-	ErrNoNodeGroupSpecified                   = "clusterconfig.no_nodegroup_specified"
 	ErrNodeGroupMaxInstancesIsZero            = "clusterconfig.node_group_max_instances_is_zero"
 	ErrMaxNumOfNodeGroupsReached              = "clusterconfig.max_num_of_nodegroups_reached"
 	ErrDuplicateNodeGroupName                 = "clusterconfig.duplicate_nodegroup_name"
@@ -102,13 +101,6 @@ func ErrorInvalidRegion(region string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrInvalidRegion,
 		Message: fmt.Sprintf("%s is not a valid AWS region, or is an AWS region which is not supported by AWS EKS; please choose one of the following regions: %s", s.UserStr(region), strings.Join(aws.EKSSupportedRegions.SliceSorted(), ", ")),
-	})
-}
-
-func ErrorNoNodeGroupSpecified() error {
-	return errors.WithStack(&errors.Error{
-		Kind:    ErrNoNodeGroupSpecified,
-		Message: "no nodegroup was specified; please specify at least 1 nodegroup",
 	})
 }
 
