@@ -24,14 +24,10 @@ import (
 	"net/http/httputil"
 	"net/url"
 
+	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/proxy"
 	"go.uber.org/zap"
-)
-
-const (
-	CortexAPINameHeader       = "X-Cortex-API-Name"
-	CortexTargetServiceHeader = "X-Cortex-Target-Service"
 )
 
 type Handler struct {
@@ -47,7 +43,12 @@ func NewHandler(act Activator, logger *zap.SugaredLogger) *Handler {
 }
 
 func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	apiName := r.Header.Get(CortexAPINameHeader)
+	if hasCortexProbeHeader(r) {
+		w.WriteHeader(http.StatusOK)
+		return
+	}
+
+	apiName := r.Header.Get(consts.CortexAPINameHeader)
 
 	ctx := r.Context()
 	ctx = context.WithValue(ctx, APINameCtxKey, apiName)
@@ -66,9 +67,9 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) proxyRequest(w http.ResponseWriter, r *http.Request) error {
-	target := r.Header.Get(CortexTargetServiceHeader)
+	target := r.Header.Get(consts.CortexTargetServiceHeader)
 	if target == "" {
-		return fmt.Errorf("missing %s header", CortexTargetServiceHeader) // FIXME: proper error
+		return fmt.Errorf("missing %s header", consts.CortexTargetServiceHeader) // FIXME: proper error
 	}
 
 	targetURL, err := url.Parse(target)
@@ -80,4 +81,8 @@ func (h *Handler) proxyRequest(w http.ResponseWriter, r *http.Request) error {
 	reverseProxy.ServeHTTP(w, r)
 
 	return nil
+}
+
+func hasCortexProbeHeader(r *http.Request) bool {
+	return r.Header.Get(consts.CortexProbeHeader) != ""
 }

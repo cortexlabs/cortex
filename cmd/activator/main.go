@@ -32,24 +32,36 @@ import (
 	istioclient "istio.io/client-go/pkg/clientset/versioned"
 	istioinformers "istio.io/client-go/pkg/informers/externalversions"
 	kmeta "k8s.io/apimachinery/pkg/apis/meta/v1"
+	kclientrest "k8s.io/client-go/rest"
 	kclientcmd "k8s.io/client-go/tools/clientcmd"
 	kclienthomedir "k8s.io/client-go/util/homedir"
 )
 
 func main() {
 	var (
-		port int
+		port      int
+		inCluster bool
 	)
 
 	flag.IntVar(&port, "port", 8000, "port where the activator server will be exposed")
+	flag.BoolVar(&inCluster, "in-cluster", false, "use when autoscaler runs in-cluster")
+	flag.Parse()
 
 	log := logging.GetLogger()
 	defer func() {
 		_ = log.Sync()
 	}()
 
-	kubeConfig := path.Join(kclienthomedir.HomeDir(), ".kube", "config")
-	restConfig, err := kclientcmd.BuildConfigFromFlags("", kubeConfig)
+	var err error
+	var restConfig *kclientrest.Config
+
+	if inCluster {
+		restConfig, err = kclientrest.InClusterConfig()
+	} else {
+		kubeConfig := path.Join(kclienthomedir.HomeDir(), ".kube", "config")
+		restConfig, err = kclientcmd.BuildConfigFromFlags("", kubeConfig)
+	}
+
 	if err != nil {
 		log.Fatal(err)
 	}

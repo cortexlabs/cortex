@@ -80,8 +80,8 @@ func serviceSpec(api *spec.API) *kcore.Service {
 	return k8s.Service(&k8s.ServiceSpec{
 		Name:        workloads.K8sName(api.Name),
 		PortName:    "http",
-		Port:        consts.ProxyListeningPortInt32,
-		TargetPort:  consts.ProxyListeningPortInt32,
+		Port:        consts.ProxyPortInt32,
+		TargetPort:  consts.ProxyPortInt32,
 		Annotations: api.ToK8sAnnotations(),
 		Labels: map[string]string{
 			"apiName":        api.Name,
@@ -99,11 +99,18 @@ func virtualServiceSpec(api *spec.API) *istioclientnetworking.VirtualService {
 	return k8s.VirtualService(&k8s.VirtualServiceSpec{
 		Name:     workloads.K8sName(api.Name),
 		Gateways: []string{"apis-gateway"},
-		Destinations: []k8s.Destination{{
-			ServiceName: workloads.K8sName(api.Name),
-			Weight:      100,
-			Port:        uint32(consts.ProxyListeningPortInt32),
-		}},
+		Destinations: []k8s.Destination{
+			{
+				ServiceName: workloads.K8sName(api.Name),
+				Weight:      100,
+				Port:        uint32(consts.ProxyPortInt32),
+			},
+			{
+				ServiceName: consts.ActivatorName,
+				Weight:      0,
+				Port:        uint32(consts.ActivatorPortInt32),
+			},
+		},
 		PrefixPath:  api.Networking.Endpoint,
 		Rewrite:     pointer.String("/"),
 		Annotations: api.ToK8sAnnotations(),
