@@ -23,11 +23,12 @@ CORTEX_VERSION=master
 
 host=$1
 image=$2
-multi_arch=$2
+include_arm64_arch=$2
+
+platforms="--platform linux/amd64"
+if [ "$include_arm64_arch" == "false" ]; then
+  platforms+=",linux/arm64"
+fi
 
 echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
-if [ "$multi_arch" == "false" ]; then
-  docker push $host/cortexlabs/${image}:${CORTEX_VERSION}
-else
-  docker buildx build $ROOT -f $ROOT/images/$image/Dockerfile $host/cortexlabs/${image}:${CORTEX_VERSION} --platform linux/amd64,linux/arm64 --push
-fi
+docker buildx build $ROOT -f $ROOT/images/$image/Dockerfile $host/cortexlabs/${image}:${CORTEX_VERSION} $platforms --push

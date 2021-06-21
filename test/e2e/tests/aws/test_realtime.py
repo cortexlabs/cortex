@@ -63,6 +63,7 @@ def test_realtime_api(printer: Callable, config: Dict, client: cx.Client, api: D
         extra_path=api["extra_path"],
     )
 
+
 @pytest.mark.usefixtures("client")
 @pytest.mark.parametrize("api", TEST_APIS_ARM)
 def test_realtime_api(printer: Callable, config: Dict, client: cx.Client, api: Dict[str, str]):

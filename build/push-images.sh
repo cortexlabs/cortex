@@ -25,9 +25,9 @@ source $ROOT/dev/util.sh
 host=$1
 
 for image in "${all_images[@]}"; do
-  multi_arch_image="false"
+  include_arm64_arch="false"
   if in_array $image "multi_arch_images"; then
-    multi_arch_image="true"
+    include_arm64_arch="true"
   fi
-  $ROOT/build/push-image.sh $host $image $multi_arch_image
+  $ROOT/build/push-image.sh $host $image $include_arm64_arch
 done
