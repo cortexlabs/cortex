@@ -13,6 +13,6 @@
           port: 8080
       compute:
         cpu: 200m
-        mem: 128M
+        mem: 128Mi
   autoscaling:
     target_in_flight: 1

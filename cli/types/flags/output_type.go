@@ -22,12 +22,14 @@ const (
 	UnknownOutputType OutputType = iota
 	PrettyOutputType
 	JSONOutputType
+	YAMLOutputType
 )
 
 var _outputTypes = []string{
 	"unknown",
 	"pretty",
 	"json",
+	"yaml",
 }
 
 func OutputTypeFromString(s string) OutputType {
@@ -39,12 +41,18 @@ func OutputTypeFromString(s string) OutputType {
 	return UnknownOutputType
 }
 
-func UserOutputTypeStrings() []string {
+func OutputTypeStrings() []string {
 	return _outputTypes[1:]
 }
 
-func OutputTypeStrings() []string {
-	return _outputTypes[1:]
+func OutputTypeStringsExcluding(outputType OutputType) []string {
+	var outputTypes []string
+	for _, _outputType := range _outputTypes[1:] {
+		if OutputTypeFromString(_outputType) != outputType {
+			outputTypes = append(outputTypes, _outputType)
+		}
+	}
+	return outputTypes
 }
 
 func (t OutputType) String() string {

@@ -56,13 +56,11 @@ import (
 var (
 	_flagClusterUpEnv                string
 	_flagClusterInfoEnv              string
-	_flagClusterScaleNodeGroup       string
-	_flagClusterScaleMinInstances    int64
-	_flagClusterScaleMaxInstances    int64
 	_flagClusterConfig               string
 	_flagClusterName                 string
 	_flagClusterRegion               string
 	_flagClusterInfoDebug            bool
+	_flagClusterInfoPrintConfig      bool
 	_flagClusterDisallowPrompt       bool
 	_flagClusterDownKeepAWSResources bool
 )
@@ -79,18 +77,16 @@ func clusterInit() {
 	addClusterConfigFlag(_clusterInfoCmd)
 	addClusterNameFlag(_clusterInfoCmd)
 	addClusterRegionFlag(_clusterInfoCmd)
-	_clusterInfoCmd.Flags().VarP(&_flagOutput, "output", "o", fmt.Sprintf("output format: one of %s", strings.Join(flags.UserOutputTypeStrings(), "|")))
+	_clusterInfoCmd.Flags().VarP(&_flagOutput, "output", "o", fmt.Sprintf("output format: one of %s", strings.Join(flags.OutputTypeStrings(), "|")))
 	_clusterInfoCmd.Flags().StringVarP(&_flagClusterInfoEnv, "configure-env", "e", "", "name of environment to configure")
 	_clusterInfoCmd.Flags().BoolVarP(&_flagClusterInfoDebug, "debug", "d", false, "save the current cluster state to a file")
+	_clusterInfoCmd.Flags().BoolVarP(&_flagClusterInfoPrintConfig, "print-config", "", false, "print the cluster config")
 	_clusterInfoCmd.Flags().BoolVarP(&_flagClusterDisallowPrompt, "yes", "y", false, "skip prompts")
 	_clusterCmd.AddCommand(_clusterInfoCmd)
 
-	_clusterScaleCmd.Flags().SortFlags = false
-	addClusterNameFlag(_clusterScaleCmd)
-	addClusterRegionFlag(_clusterScaleCmd)
-	addClusterScaleFlags(_clusterScaleCmd)
-	_clusterScaleCmd.Flags().BoolVarP(&_flagClusterDisallowPrompt, "yes", "y", false, "skip prompts")
-	_clusterCmd.AddCommand(_clusterScaleCmd)
+	_clusterConfigureCmd.Flags().SortFlags = false
+	_clusterConfigureCmd.Flags().BoolVarP(&_flagClusterDisallowPrompt, "yes", "y", false, "skip prompts")
+	_clusterCmd.AddCommand(_clusterConfigureCmd)
 
 	_clusterDownCmd.Flags().SortFlags = false
 	addClusterConfigFlag(_clusterDownCmd)
@@ -118,13 +114,6 @@ func addClusterNameFlag(cmd *cobra.Command) {
 
 func addClusterRegionFlag(cmd *cobra.Command) {
 	cmd.Flags().StringVarP(&_flagClusterRegion, "region", "r", "", "aws region of the cluster")
-}
-
-func addClusterScaleFlags(cmd *cobra.Command) {
-	cmd.Flags().StringVar(&_flagClusterScaleNodeGroup, "node-group", "", "name of the node group to scale")
-	cmd.MarkFlagRequired("node-group")
-	cmd.Flags().Int64Var(&_flagClusterScaleMinInstances, "min-instances", 0, "minimum number of instances")
-	cmd.Flags().Int64Var(&_flagClusterScaleMaxInstances, "max-instances", 0, "maximum number of instances")
 }
 
 var _clusterCmd = &cobra.Command{
@@ -172,20 +161,24 @@ var _clusterUpCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
-		clusterConfig, err := getInstallClusterConfig(awsClient, clusterConfigFile, _flagClusterDisallowPrompt)
+		stacks, err := clusterstate.GetClusterStacks(awsClient, accessConfig)
 		if err != nil {
 			exit.Error(err)
 		}
 
-		clusterState, err := clusterstate.GetClusterState(awsClient, accessConfig)
+		state := clusterstate.GetClusterState(stacks)
+		if err := clusterstate.AssertClusterState(stacks, state, clusterstate.StateClusterDoesntExist); err != nil {
+			exit.Error(err)
+		}
+
+		promptIfNotAdmin(awsClient, _flagClusterDisallowPrompt)
+
+		clusterConfig, err := getInstallClusterConfig(awsClient, clusterConfigFile)
 		if err != nil {
 			exit.Error(err)
 		}
 
-		err = clusterstate.AssertClusterStatus(accessConfig.ClusterName, accessConfig.Region, clusterState.Status, clusterstate.StatusNotFound, clusterstate.StatusDeleteComplete)
-		if err != nil {
-			exit.Error(err)
-		}
+		confirmInstallClusterConfig(clusterConfig, awsClient, _flagClusterDisallowPrompt)
 
 		err = createS3BucketIfNotFound(awsClient, clusterConfig.Bucket, clusterConfig.Tags)
 		if err != nil {
@@ -313,29 +306,20 @@ var _clusterUpCmd = &cobra.Command{
 	},
 }
 
-var _clusterScaleCmd = &cobra.Command{
-	Use:   "scale [flags]",
-	Short: "update the min/max instances for a nodegroup",
-	Args:  cobra.NoArgs,
+var _clusterConfigureCmd = &cobra.Command{
+	Use:   "configure CLUSTER_CONFIG_FILE",
+	Short: "update the cluster's configuration",
+	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		telemetry.Event("cli.cluster.configure")
 
-		var scaleMinIntances, scaleMaxInstances *int64
-		if wasFlagProvided(cmd, "min-instances") {
-			scaleMinIntances = pointer.Int64(_flagClusterScaleMinInstances)
-		}
-		if wasFlagProvided(cmd, "max-instances") {
-			scaleMaxInstances = pointer.Int64(_flagClusterScaleMaxInstances)
-		}
-		if scaleMinIntances == nil && scaleMaxInstances == nil {
-			exit.Error(ErrorSpecifyAtLeastOneFlag("--min-instances", "--max-instances"))
-		}
+		clusterConfigFile := args[0]
 
 		if _, err := docker.GetDockerClient(); err != nil {
 			exit.Error(err)
 		}
 
-		accessConfig, err := getClusterAccessConfigWithCache()
+		accessConfig, err := getClusterAccessConfigWithCache(false)
 		if err != nil {
 			exit.Error(err)
 		}
@@ -345,35 +329,50 @@ var _clusterScaleCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
-		clusterState, err := clusterstate.GetClusterState(awsClient, accessConfig)
+		stacks, err := clusterstate.GetClusterStacks(awsClient, accessConfig)
 		if err != nil {
 			exit.Error(err)
 		}
 
-		err = clusterstate.AssertClusterStatus(accessConfig.ClusterName, accessConfig.Region, clusterState.Status, clusterstate.StatusCreateComplete, clusterstate.StatusUpdateComplete, clusterstate.StatusUpdateRollbackComplete)
+		state := clusterstate.GetClusterState(stacks)
+		if err := clusterstate.AssertClusterState(stacks, state, clusterstate.StateClusterExists); err != nil {
+			exit.Error(err)
+		}
+
+		oldClusterConfig := refreshCachedClusterConfig(awsClient, accessConfig, true)
+
+		promptIfNotAdmin(awsClient, _flagClusterDisallowPrompt)
+
+		newClusterConfig, configureChanges, err := getConfigureClusterConfig(awsClient, stacks, oldClusterConfig, clusterConfigFile)
 		if err != nil {
 			exit.Error(err)
 		}
 
-		clusterConfig := refreshCachedClusterConfig(*awsClient, accessConfig, true)
-		clusterConfig, ngIndex, err := updateNodeGroupScale(clusterConfig, _flagClusterScaleNodeGroup, scaleMinIntances, scaleMaxInstances, _flagClusterDisallowPrompt)
-		if err != nil {
-			exit.Error(err)
+		if !configureChanges.HasChanges() {
+			fmt.Println("your cluster is already up to date")
+			exit.Ok()
 		}
 
-		out, exitCode, err := runManagerWithClusterConfig("/root/install.sh --update", &clusterConfig, awsClient, nil, nil, []string{
-			"CORTEX_SCALING_NODEGROUP=" + _flagClusterScaleNodeGroup,
-			"CORTEX_SCALING_MIN_INSTANCES=" + s.Int64(clusterConfig.NodeGroups[ngIndex].MinInstances),
-			"CORTEX_SCALING_MAX_INSTANCES=" + s.Int64(clusterConfig.NodeGroups[ngIndex].MaxInstances),
+		confirmConfigureClusterConfig(configureChanges, oldClusterConfig, *newClusterConfig, _flagClusterDisallowPrompt)
+
+		out, exitCode, err := runManagerWithClusterConfig("/root/install.sh --configure", newClusterConfig, awsClient, nil, nil, []string{
+			"CORTEX_NODEGROUP_NAMES_TO_SCALE=" + strings.Join(configureChanges.NodeGroupsToScale, " "),          // NodeGroupsToScale contain the cluster config node-group names
+			"CORTEX_NODEGROUP_NAMES_TO_ADD=" + strings.Join(configureChanges.NodeGroupsToAdd, " "),              // NodeGroupsToAdd contain the cluster config node-group names
+			"CORTEX_EKS_NODEGROUP_NAMES_TO_REMOVE=" + strings.Join(configureChanges.EKSNodeGroupsToRemove, " "), // EKSNodeGroupsToRemove contain the EKS node-group names
 		})
 		if err != nil {
 			exit.Error(err)
 		}
 		if exitCode == nil || *exitCode != 0 {
 			helpStr := "\ndebugging tips (may or may not apply to this error):"
-			helpStr += fmt.Sprintf("\n* if your cluster was unable to provision instances, additional error information may be found in the activity history of your cluster's autoscaling groups (select each autoscaling group and click the  \"Activity\" or \"Activity History\" tab): https://console.aws.amazon.com/ec2/autoscaling/home?region=%s#AutoScalingGroups:", clusterConfig.Region)
+			helpStr += fmt.Sprintf(
+				"\n* if your cluster was unable to provision/remove/scale some nodegroups, additional error information may be found in the description of your cloudformation stack (https://console.aws.amazon.com/cloudformation/home?region=%s#/stacks)"+
+					" or in the activity history of your cluster's autoscaling groups (select each autoscaling group and click the  \"Activity\" or \"Activity History\" tab) (https://console.aws.amazon.com/ec2/autoscaling/home?region=%s#AutoScalingGroups)",
+				oldClusterConfig.Region,
+				oldClusterConfig.Region,
+			)
 			fmt.Println(helpStr)
-			exit.Error(ErrorClusterScale(out + helpStr))
+			exit.Error(ErrorClusterConfigure(out + helpStr))
 		}
 	},
 }
@@ -389,9 +388,13 @@ var _clusterInfoCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
-		accessConfig, err := getClusterAccessConfigWithCache()
+		accessConfig, err := getClusterAccessConfigWithCache(true)
 		if err != nil {
 			exit.Error(err)
+		}
+
+		if _flagClusterInfoPrintConfig && _flagOutput == flags.PrettyOutputType {
+			_flagOutput = flags.YAMLOutputType
 		}
 
 		awsClient, err := newAWSClient(accessConfig.Region, _flagOutput == flags.PrettyOutputType)
@@ -399,13 +402,27 @@ var _clusterInfoCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
+		if _flagClusterInfoPrintConfig && _flagClusterInfoDebug {
+			exit.Error(ErrorMutuallyExclusiveFlags("--print-config", "--debug"))
+		}
+		if _flagClusterInfoDebug && _flagOutput != flags.PrettyOutputType {
+			exit.Error(ErrorMutuallyExclusiveFlags("--debug", "--output"))
+		}
+
+		stacks, err := clusterstate.GetClusterStacks(awsClient, accessConfig)
+		if err != nil {
+			exit.Error(err)
+		}
+
+		state := clusterstate.GetClusterState(stacks)
+		if err := clusterstate.AssertClusterState(stacks, state, clusterstate.StateClusterExists); err != nil {
+			exit.Error(err)
+		}
+
 		if _flagClusterInfoDebug {
-			if _flagOutput != flags.PrettyOutputType {
-				exit.Error(ErrorJSONOutputNotSupportedWithFlag("--debug"))
-			}
 			cmdDebug(awsClient, accessConfig)
 		} else {
-			cmdInfo(awsClient, accessConfig, _flagOutput, _flagClusterDisallowPrompt)
+			cmdInfo(awsClient, accessConfig, stacks, _flagClusterInfoPrintConfig, _flagOutput, _flagClusterDisallowPrompt)
 		}
 	},
 }
@@ -421,7 +438,7 @@ var _clusterDownCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
-		accessConfig, err := getClusterAccessConfigWithCache()
+		accessConfig, err := getClusterAccessConfigWithCache(true)
 		if err != nil {
 			exit.Error(err)
 		}
@@ -440,17 +457,17 @@ var _clusterDownCmd = &cobra.Command{
 
 		warnIfNotAdmin(awsClient)
 
-		errorsList := []error{}
-
 		if _flagClusterDisallowPrompt {
 			fmt.Printf("your cluster named \"%s\" in %s will be spun down and all apis will be deleted\n\n", accessConfig.ClusterName, accessConfig.Region)
 		} else {
 			prompt.YesOrExit(fmt.Sprintf("your cluster named \"%s\" in %s will be spun down and all apis will be deleted, are you sure you want to continue?", accessConfig.ClusterName, accessConfig.Region), "", "")
 		}
 
-		fmt.Print("￮ retrieving cluster ... ")
 		var clusterExists bool
-		clusterState, err := clusterstate.GetClusterState(awsClient, accessConfig)
+		errorsList := []error{}
+
+		fmt.Print("￮ retrieving cluster ... ")
+		stacks, err := clusterstate.GetClusterStacks(awsClient, accessConfig)
 		if err != nil {
 			errorsList = append(errorsList, err)
 			fmt.Print("failed ✗")
@@ -458,10 +475,8 @@ var _clusterDownCmd = &cobra.Command{
 			errors.PrintError(err)
 			fmt.Println()
 		} else {
-			switch clusterState.Status {
-			case clusterstate.StatusNotFound:
-				fmt.Println("cluster doesn't exist ✓")
-			case clusterstate.StatusDeleteComplete:
+			state := clusterstate.GetClusterState(stacks)
+			if err := clusterstate.AssertClusterState(stacks, state, clusterstate.StateClusterDoesntExist); err != nil {
 				awsClient.DeleteQueuesWithPrefix(clusterconfig.SQSNamePrefix(accessConfig.ClusterName))
 				awsClient.DeletePolicy(clusterconfig.DefaultPolicyARN(accountID, accessConfig.ClusterName, accessConfig.Region))
 				if !_flagClusterDownKeepAWSResources {
@@ -472,10 +487,10 @@ var _clusterDownCmd = &cobra.Command{
 						}
 					}
 				}
-				fmt.Println("already deleted ✓")
-			default:
 				fmt.Println("✓")
 				clusterExists = true
+			} else {
+				fmt.Println("already deleted ✓")
 			}
 		}
 
@@ -671,7 +686,7 @@ var _clusterExportCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		telemetry.Event("cli.cluster.export")
 
-		accessConfig, err := getClusterAccessConfigWithCache()
+		accessConfig, err := getClusterAccessConfigWithCache(true)
 		if err != nil {
 			exit.Error(err)
 		}
@@ -683,13 +698,13 @@ var _clusterExportCmd = &cobra.Command{
 		}
 		warnIfNotAdmin(awsClient)
 
-		clusterState, err := clusterstate.GetClusterState(awsClient, accessConfig)
+		stacks, err := clusterstate.GetClusterStacks(awsClient, accessConfig)
 		if err != nil {
 			exit.Error(err)
 		}
 
-		err = clusterstate.AssertClusterStatus(accessConfig.ClusterName, accessConfig.Region, clusterState.Status, clusterstate.StatusCreateComplete, clusterstate.StatusUpdateComplete, clusterstate.StatusUpdateRollbackComplete)
-		if err != nil {
+		state := clusterstate.GetClusterState(stacks)
+		if err := clusterstate.AssertClusterState(stacks, state, clusterstate.StateClusterExists); err != nil {
 			exit.Error(err)
 		}
 
@@ -739,14 +754,8 @@ var _clusterExportCmd = &cobra.Command{
 	},
 }
 
-func cmdInfo(awsClient *aws.Client, accessConfig *clusterconfig.AccessConfig, outputType flags.OutputType, disallowPrompt bool) {
-	if outputType == flags.PrettyOutputType {
-		if err := printInfoClusterState(awsClient, accessConfig); err != nil {
-			exit.Error(err)
-		}
-	}
-
-	clusterConfig := refreshCachedClusterConfig(*awsClient, accessConfig, outputType == flags.PrettyOutputType)
+func cmdInfo(awsClient *aws.Client, accessConfig *clusterconfig.AccessConfig, stacks clusterstate.ClusterStacks, printConfig bool, outputType flags.OutputType, disallowPrompt bool) {
+	clusterConfig := refreshCachedClusterConfig(awsClient, accessConfig, outputType == flags.PrettyOutputType)
 
 	operatorLoadBalancer, err := getLoadBalancer(accessConfig.ClusterName, OperatorLoadBalancer, awsClient)
 	if err != nil {
@@ -760,25 +769,36 @@ func cmdInfo(awsClient *aws.Client, accessConfig *clusterconfig.AccessConfig, ou
 	operatorEndpoint := s.EnsurePrefix(*operatorLoadBalancer.DNSName, "https://")
 	apiEndpoint := *apiLoadBalancer.DNSName
 
-	if outputType == flags.JSONOutputType {
+	if outputType == flags.JSONOutputType || outputType == flags.YAMLOutputType {
 		infoResponse, err := getInfoOperatorResponse(operatorEndpoint)
 		if err != nil {
 			exit.Error(err)
 		}
 		infoResponse.ClusterConfig.Config = clusterConfig
 
-		jsonBytes, err := libjson.Marshal(map[string]interface{}{
-			"cluster_config":    infoResponse.ClusterConfig.Config,
-			"cluster_metadata":  infoResponse.ClusterConfig.OperatorMetadata,
-			"node_infos":        infoResponse.NodeInfos,
-			"endpoint_operator": operatorEndpoint,
-			"endpoint_api":      apiEndpoint,
-		})
+		var infoInterface interface{}
+		if printConfig {
+			infoInterface = infoResponse.ClusterConfig.Config
+		} else {
+			infoInterface = map[string]interface{}{
+				"cluster_config":    infoResponse.ClusterConfig.Config,
+				"cluster_metadata":  infoResponse.ClusterConfig.OperatorMetadata,
+				"node_infos":        infoResponse.NodeInfos,
+				"endpoint_operator": operatorEndpoint,
+				"endpoint_api":      apiEndpoint,
+			}
+		}
+
+		var outputBytes []byte
+		if outputType == flags.JSONOutputType {
+			outputBytes, err = libjson.Marshal(infoInterface)
+		} else {
+			outputBytes, err = yaml.Marshal(infoInterface)
+		}
 		if err != nil {
 			exit.Error(err)
 		}
-
-		fmt.Println(string(jsonBytes))
+		fmt.Println(string(outputBytes))
 	}
 	if outputType == flags.PrettyOutputType {
 		fmt.Println(console.Bold("endpoints:"))
@@ -786,7 +806,7 @@ func cmdInfo(awsClient *aws.Client, accessConfig *clusterconfig.AccessConfig, ou
 		fmt.Println("api load balancer:", apiEndpoint)
 		fmt.Println()
 
-		if err := printInfoOperatorResponse(clusterConfig, operatorEndpoint); err != nil {
+		if err := printInfoOperatorResponse(clusterConfig, stacks, operatorEndpoint); err != nil {
 			exit.Error(err)
 		}
 	}
@@ -798,28 +818,10 @@ func cmdInfo(awsClient *aws.Client, accessConfig *clusterconfig.AccessConfig, ou
 	}
 }
 
-func printInfoClusterState(awsClient *aws.Client, accessConfig *clusterconfig.AccessConfig) error {
-	clusterState, err := clusterstate.GetClusterState(awsClient, accessConfig)
-	if err != nil {
-		return err
-	}
-
-	fmt.Println(clusterState.TableString())
-	if clusterState.Status == clusterstate.StatusCreateFailed || clusterState.Status == clusterstate.StatusDeleteFailed {
-		fmt.Println(fmt.Sprintf("more information can be found in your AWS console: %s", clusterstate.CloudFormationURL(accessConfig.ClusterName, accessConfig.Region)))
-		fmt.Println()
-	}
-
-	err = clusterstate.AssertClusterStatus(accessConfig.ClusterName, accessConfig.Region, clusterState.Status, clusterstate.StatusCreateComplete, clusterstate.StatusUpdateComplete, clusterstate.StatusUpdateRollbackComplete)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func printInfoOperatorResponse(clusterConfig clusterconfig.Config, operatorEndpoint string) error {
+func printInfoOperatorResponse(clusterConfig clusterconfig.Config, stacks clusterstate.ClusterStacks, operatorEndpoint string) error {
 	fmt.Print("fetching cluster status ...\n\n")
+
+	fmt.Println(stacks.TableString())
 
 	yamlBytes, err := yaml.Marshal(clusterConfig)
 	if err != nil {
@@ -1063,7 +1065,7 @@ func cmdDebug(awsClient *aws.Client, accessConfig *clusterconfig.AccessConfig) {
 	return
 }
 
-func refreshCachedClusterConfig(awsClient aws.Client, accessConfig *clusterconfig.AccessConfig, printToStdout bool) clusterconfig.Config {
+func refreshCachedClusterConfig(awsClient *aws.Client, accessConfig *clusterconfig.AccessConfig, printToStdout bool) clusterconfig.Config {
 	// add empty file if cached cluster doesn't exist so that the file output by manager container maintains current user permissions
 	cachedClusterConfigPath := cachedClusterConfigPath(accessConfig.ClusterName, accessConfig.Region)
 	containerConfigPath := fmt.Sprintf("/out/%s", filepath.Base(cachedClusterConfigPath))
@@ -1078,7 +1080,7 @@ func refreshCachedClusterConfig(awsClient aws.Client, accessConfig *clusterconfi
 	if printToStdout {
 		fmt.Print("syncing cluster configuration ...\n\n")
 	}
-	out, exitCode, err := runManagerAccessCommand("/root/refresh.sh "+containerConfigPath, *accessConfig, &awsClient, nil, copyFromPaths)
+	out, exitCode, err := runManagerAccessCommand("/root/refresh.sh "+containerConfigPath, *accessConfig, awsClient, nil, copyFromPaths)
 	if err != nil {
 		exit.Error(err)
 	}
@@ -1092,69 +1094,6 @@ func refreshCachedClusterConfig(awsClient aws.Client, accessConfig *clusterconfi
 		exit.Error(err)
 	}
 	return *refreshedClusterConfig
-}
-
-func updateNodeGroupScale(clusterConfig clusterconfig.Config, targetNg string, desiredMinReplicas, desiredMaxReplicas *int64, disallowPrompt bool) (clusterconfig.Config, int, error) {
-	clusterName := clusterConfig.ClusterName
-	region := clusterConfig.Region
-
-	availableNodeGroups := []string{}
-	for idx, ng := range clusterConfig.NodeGroups {
-		if ng == nil {
-			continue
-		}
-		availableNodeGroups = append(availableNodeGroups, ng.Name)
-		if ng.Name == targetNg {
-			var minReplicas, maxReplicas int64
-			if desiredMinReplicas == nil {
-				minReplicas = ng.MinInstances
-			} else {
-				minReplicas = *desiredMinReplicas
-			}
-			if desiredMaxReplicas == nil {
-				maxReplicas = ng.MaxInstances
-			} else {
-				maxReplicas = *desiredMaxReplicas
-			}
-
-			if minReplicas < 0 {
-				return clusterconfig.Config{}, 0, ErrorMinInstancesLowerThan(0)
-			}
-			if maxReplicas < 0 {
-				return clusterconfig.Config{}, 0, ErrorMaxInstancesLowerThan(0)
-			}
-			if minReplicas > maxReplicas {
-				return clusterconfig.Config{}, 0, ErrorMinInstancesGreaterThanMaxInstances(minReplicas, maxReplicas)
-			}
-
-			if ng.MinInstances == minReplicas && ng.MaxInstances == maxReplicas {
-				fmt.Printf("the %s nodegroup in the %s cluster in %s already has min instances set to %d and max instances set to %d\n", ng.Name, clusterName, region, minReplicas, maxReplicas)
-				exit.Ok()
-			}
-
-			if !disallowPrompt {
-				promptMessage := ""
-				if ng.MinInstances != minReplicas && ng.MaxInstances != maxReplicas {
-					promptMessage = fmt.Sprintf("your nodegroup named %s in your %s cluster in %s will update its %s from %d to %d and update its %s from %d to %d", ng.Name, clusterName, region, clusterconfig.MinInstancesKey, ng.MinInstances, minReplicas, clusterconfig.MaxInstancesKey, ng.MaxInstances, maxReplicas)
-				}
-				if ng.MinInstances == minReplicas && ng.MaxInstances != maxReplicas {
-					promptMessage = fmt.Sprintf("your nodegroup named %s in your %s cluster in %s will update its %s from %d to %d", ng.Name, clusterName, region, clusterconfig.MaxInstancesKey, ng.MaxInstances, maxReplicas)
-				}
-				if ng.MinInstances != minReplicas && ng.MaxInstances == maxReplicas {
-					promptMessage = fmt.Sprintf("your nodegroup named %s in your %s cluster in %s will update its %s from %d to %d", ng.Name, clusterName, region, clusterconfig.MinInstancesKey, ng.MinInstances, minReplicas)
-				}
-				if !prompt.YesOrNo(promptMessage, "", "") {
-					exit.Ok()
-				}
-			}
-
-			clusterConfig.NodeGroups[idx].MinInstances = minReplicas
-			clusterConfig.NodeGroups[idx].MaxInstances = maxReplicas
-			return clusterConfig, idx, nil
-		}
-	}
-
-	return clusterconfig.Config{}, 0, ErrorNodeGroupNotFound(targetNg, clusterName, region, availableNodeGroups)
 }
 
 func createS3BucketIfNotFound(awsClient *aws.Client, bucket string, tags map[string]string) error {

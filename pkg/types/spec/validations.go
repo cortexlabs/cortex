@@ -711,8 +711,6 @@ func validatePod(
 	awsClient *aws.Client,
 	k8sClient *k8s.Client,
 ) error {
-	containers := api.Pod.Containers
-	totalCompute := userconfig.GetTotalComputeFromContainers(containers)
 
 	if api.Pod.Port != nil && api.Kind == userconfig.TaskAPIKind {
 		return ErrorFieldIsNotSupportedForKind(userconfig.PortKey, api.Kind)
@@ -721,11 +719,11 @@ func validatePod(
 		api.Pod.Port = pointer.Int32(consts.DefaultUserPodPortInt32)
 	}
 
-	if err := validateCompute(totalCompute); err != nil {
+	if err := validateCompute(api); err != nil {
 		return errors.Wrap(err, userconfig.ComputeKey)
 	}
 
-	if err := validateContainers(containers, api.Kind, awsClient, k8sClient); err != nil {
+	if err := validateContainers(api.Pod.Containers, api.Kind, awsClient, k8sClient); err != nil {
 		return errors.Wrap(err, userconfig.ContainersKey)
 	}
 
@@ -844,13 +842,11 @@ func validateAutoscaling(api *userconfig.API) error {
 	return nil
 }
 
-func validateCompute(compute userconfig.Compute) error {
+func validateCompute(api *userconfig.API) error {
+	compute := userconfig.GetPodComputeRequest(api)
+
 	if compute.GPU > 0 && compute.Inf > 0 {
 		return ErrorComputeResourceConflict(userconfig.GPUKey, userconfig.InfKey)
-	}
-
-	if compute.Inf > 1 {
-		return ErrorInvalidNumberOfInfs(compute.Inf)
 	}
 
 	return nil

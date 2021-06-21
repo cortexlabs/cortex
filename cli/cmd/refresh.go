@@ -38,7 +38,7 @@ func refreshInit() {
 	_refreshCmd.Flags().SortFlags = false
 	_refreshCmd.Flags().StringVarP(&_flagRefreshEnv, "env", "e", "", "environment to use")
 	_refreshCmd.Flags().BoolVarP(&_flagRefreshForce, "force", "f", false, "override the in-progress api update")
-	_refreshCmd.Flags().VarP(&_flagOutput, "output", "o", fmt.Sprintf("output format: one of %s", strings.Join(flags.UserOutputTypeStrings(), "|")))
+	_refreshCmd.Flags().VarP(&_flagOutput, "output", "o", fmt.Sprintf("output format: one of %s", strings.Join(flags.OutputTypeStringsExcluding(flags.YAMLOutputType), "|")))
 }
 
 var _refreshCmd = &cobra.Command{

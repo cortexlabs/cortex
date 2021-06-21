@@ -4,11 +4,9 @@ Cortex can be configured to provision different instance types to improve worklo
 
 ## Best practices
 
-**Node groups with lower indices have higher priority.**
-
-1. Spot node groups should be listed before on-demand node groups.
-1. CPU node groups should be listed before GPU/Inferentia node groups.
-1. Node groups with small instance types should be listed before node groups with large instance types.
+1. Spot node groups should have a higher priority than on-demand node groups.
+1. CPU node groups should have higher priorities than GPU/Inferentia node groups.
+1. Node groups with small instance types should have higher priorities than node groups with large instance types.
 
 ## Examples
 
@@ -22,6 +20,7 @@ node_groups:
     instance_type: m5.large
     min_instances: 0
     max_instances: 5
+    priority: 100
     spot: true
     spot_config:
       instance_distribution: [m5a.large, m5d.large, m5n.large, m5ad.large, m5dn.large, m4.large, t3.large, t3a.large, t2.large]
@@ -41,6 +40,7 @@ node_groups:
     instance_type: m5.large
     min_instances: 0
     max_instances: 5
+    priority: 100
   - name: gpu
     instance_type: g4dn.xlarge
     min_instances: 0
@@ -61,6 +61,7 @@ node_groups:
     instance_type: m5.large
     min_instances: 0
     max_instances: 5
+    priority: 100
     spot: true
     spot_config:
       instance_distribution: [m5a.large, m5d.large, m5n.large, m5ad.large, m5dn.large, m4.large, t3.large, t3a.large, t2.large]
@@ -68,10 +69,12 @@ node_groups:
     instance_type: m5.large
     min_instances: 0
     max_instances: 5
+    priority: 50
   - name: gpu-spot
     instance_type: g4dn.xlarge
     min_instances: 0
     max_instances: 5
+    priority: 20
     spot: true
   - name: gpu-on-demand
     instance_type: g4dn.xlarge
@@ -89,16 +92,19 @@ node_groups:
     instance_type: t3.medium
     min_instances: 0
     max_instances: 5
+    priority: 100
     spot: true
   - name: cpu-2
     instance_type: m5.2xlarge
     min_instances: 0
     max_instances: 5
+    priority: 70
     spot: true
   - name: cpu-3
     instance_type: m5.8xlarge
     min_instances: 0
     max_instances: 5
+    priority: 30
     spot: true
   - name: cpu-4
     instance_type: m5.24xlarge

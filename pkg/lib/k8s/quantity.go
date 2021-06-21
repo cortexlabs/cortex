@@ -95,6 +95,22 @@ func NewMilliQuantity(milliValue int64) *Quantity {
 	}
 }
 
+// Returns nil if no quantities are passed in
+func NewSummed(quantities ...kresource.Quantity) *Quantity {
+	if len(quantities) == 0 {
+		return nil
+	}
+
+	k8sQuantity := kresource.Quantity{}
+	for _, q := range quantities {
+		k8sQuantity.Add(q)
+	}
+
+	return &Quantity{
+		Quantity: k8sQuantity,
+	}
+}
+
 func (quantity *Quantity) MilliString() string {
 	return s.Int64(quantity.Quantity.MilliValue()) + "m"
 }
@@ -103,32 +119,88 @@ func (quantity *Quantity) ToFloat32() float32 {
 	return float32(quantity.Quantity.MilliValue()) / float32(1000)
 }
 
-func (quantity *Quantity) ToKi() int64 {
-	kiFloat := float64(quantity.Quantity.Value()) / float64(1024)
+func ToKiRounded(k8sQuantity kresource.Quantity) int64 {
+	kiFloat := float64(k8sQuantity.Value()) / float64(1024)
 	return int64(math.Round(kiFloat))
 }
-
-// SplitInTwo divides the quantity in two and return both halves (ensuring they add up to the original value)
-func (quantity *Quantity) SplitInTwo() (*kresource.Quantity, *kresource.Quantity) {
-	return SplitInTwo(&quantity.Quantity)
+func ToKiRoundedStr(k8sQuantity kresource.Quantity) string {
+	return s.Int64(ToKiRounded(k8sQuantity)) + "Ki"
+}
+func (quantity *Quantity) ToKiRounded() int64 {
+	return ToKiRounded(quantity.Quantity)
+}
+func (quantity *Quantity) ToKiRoundedStr() string {
+	return ToKiRoundedStr(quantity.Quantity)
 }
 
-// SplitInTwo divides the quantity in two and return both halves (ensuring they add up to the original value)
-func SplitInTwo(quantity *kresource.Quantity) (*kresource.Quantity, *kresource.Quantity) {
-	milliValue := quantity.MilliValue()
-	halfMilliValue := milliValue / 2
-	q1 := kresource.NewMilliQuantity(milliValue-halfMilliValue, kresource.DecimalSI)
-	q2 := kresource.NewMilliQuantity(halfMilliValue, kresource.DecimalSI)
-	return q1, q2
+func ToKiCeil(k8sQuantity kresource.Quantity) int64 {
+	kiFloat := float64(k8sQuantity.Value()) / float64(1024)
+	return int64(math.Ceil(kiFloat))
+}
+func ToKiCeilStr(k8sQuantity kresource.Quantity) string {
+	return s.Int64(ToKiCeil(k8sQuantity)) + "Ki"
+}
+func (quantity *Quantity) ToKiCeil() int64 {
+	return ToKiCeil(quantity.Quantity)
+}
+func (quantity *Quantity) ToKiCeilStr() string {
+	return ToKiCeilStr(quantity.Quantity)
 }
 
-func SplitInThree(quantity *kresource.Quantity) (*kresource.Quantity, *kresource.Quantity, *kresource.Quantity) {
-	milliValue := quantity.MilliValue()
-	thirdMilliValue := milliValue / 3
-	q1 := kresource.NewMilliQuantity(milliValue-2*thirdMilliValue, kresource.DecimalSI)
-	q2 := kresource.NewMilliQuantity(thirdMilliValue, kresource.DecimalSI)
-	q3 := kresource.NewMilliQuantity(thirdMilliValue, kresource.DecimalSI)
-	return q1, q2, q3
+func ToKiFloor(k8sQuantity kresource.Quantity) int64 {
+	kiFloat := float64(k8sQuantity.Value()) / float64(1024)
+	return int64(math.Floor(kiFloat))
+}
+func ToKiFloorStr(k8sQuantity kresource.Quantity) string {
+	return s.Int64(ToKiFloor(k8sQuantity)) + "Ki"
+}
+func (quantity *Quantity) ToKiFloor() int64 {
+	return ToKiFloor(quantity.Quantity)
+}
+func (quantity *Quantity) ToKiFloorStr() string {
+	return ToKiFloorStr(quantity.Quantity)
+}
+
+func ToMiRounded(k8sQuantity kresource.Quantity) int64 {
+	miFloat := float64(k8sQuantity.Value()) / float64(1024*1024)
+	return int64(math.Round(miFloat))
+}
+func ToMiRoundedStr(k8sQuantity kresource.Quantity) string {
+	return s.Int64(ToMiRounded(k8sQuantity)) + "Mi"
+}
+func (quantity *Quantity) ToMiRounded() int64 {
+	return ToMiRounded(quantity.Quantity)
+}
+func (quantity *Quantity) ToMiRoundedStr() string {
+	return ToMiRoundedStr(quantity.Quantity)
+}
+
+func ToMiCeil(k8sQuantity kresource.Quantity) int64 {
+	miFloat := float64(k8sQuantity.Value()) / float64(1024*1024)
+	return int64(math.Ceil(miFloat))
+}
+func ToMiCeilStr(k8sQuantity kresource.Quantity) string {
+	return s.Int64(ToMiCeil(k8sQuantity)) + "Mi"
+}
+func (quantity *Quantity) ToMiCeil() int64 {
+	return ToMiCeil(quantity.Quantity)
+}
+func (quantity *Quantity) ToMiCeilStr() string {
+	return ToMiCeilStr(quantity.Quantity)
+}
+
+func ToMiFloor(k8sQuantity kresource.Quantity) int64 {
+	miFloat := float64(k8sQuantity.Value()) / float64(1024*1024)
+	return int64(math.Floor(miFloat))
+}
+func ToMiFloorStr(k8sQuantity kresource.Quantity) string {
+	return s.Int64(ToMiFloor(k8sQuantity)) + "Mi"
+}
+func (quantity *Quantity) ToMiFloor() int64 {
+	return ToMiFloor(quantity.Quantity)
+}
+func (quantity *Quantity) ToMiFloorStr() string {
+	return ToMiFloorStr(quantity.Quantity)
 }
 
 func (quantity *Quantity) Sub(q2 kresource.Quantity) {
@@ -167,6 +239,13 @@ func (quantity *Quantity) Equal(quantity2 Quantity) bool {
 
 func (quantity *Quantity) ID() string {
 	return s.Int64(quantity.MilliValue())
+}
+
+func (quantity *Quantity) DeepCopy() Quantity {
+	return Quantity{
+		Quantity:   quantity.Quantity.DeepCopy(),
+		UserString: quantity.UserString,
+	}
 }
 
 func QuantityPtr(k8sQuantity kresource.Quantity) *kresource.Quantity {

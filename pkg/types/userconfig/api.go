@@ -21,12 +21,14 @@ import (
 	"strings"
 	"time"
 
+	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/urls"
 	"github.com/cortexlabs/yaml"
+	kresource "k8s.io/apimachinery/pkg/api/resource"
 	kmeta "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -463,46 +465,45 @@ func ZeroCompute() Compute {
 	}
 }
 
-func GetTotalComputeFromContainers(containers []*Container) Compute {
-	compute := Compute{}
+func GetPodComputeRequest(api *API) Compute {
+	var cpuQtys []kresource.Quantity
+	var memQtys []kresource.Quantity
+	var shmQtys []kresource.Quantity
+	var totalGPU int64
+	var totalInf int64
 
-	for _, container := range containers {
+	for _, container := range api.Pod.Containers {
 		if container == nil || container.Compute == nil {
 			continue
 		}
-
 		if container.Compute.CPU != nil {
-			newCPUQuantity := k8s.NewMilliQuantity(container.Compute.CPU.ToDec().MilliValue())
-			if compute.CPU == nil {
-				compute.CPU = newCPUQuantity
-			} else if newCPUQuantity != nil {
-				compute.CPU.AddQty(*newCPUQuantity)
-			}
+			cpuQtys = append(cpuQtys, container.Compute.CPU.Quantity)
 		}
-
 		if container.Compute.Mem != nil {
-			newMemQuantity := k8s.NewMilliQuantity(container.Compute.Mem.ToDec().MilliValue())
-			if compute.Mem == nil {
-				compute.Mem = newMemQuantity
-			} else if newMemQuantity != nil {
-				compute.Mem.AddQty(*newMemQuantity)
-			}
+			memQtys = append(memQtys, container.Compute.Mem.Quantity)
 		}
-
 		if container.Compute.Shm != nil {
-			newShmQuantity := k8s.NewMilliQuantity(container.Compute.Shm.ToDec().MilliValue())
-			if compute.Shm == nil {
-				compute.Shm = newShmQuantity
-			} else if newShmQuantity != nil {
-				compute.Shm.AddQty(*newShmQuantity)
-			}
+			shmQtys = append(shmQtys, container.Compute.Shm.Quantity)
 		}
-
-		compute.GPU += container.Compute.GPU
-		compute.Inf += container.Compute.Inf
+		totalGPU += container.Compute.GPU
+		totalInf += container.Compute.Inf
 	}
 
-	return compute
+	if api.Kind == RealtimeAPIKind {
+		cpuQtys = append(cpuQtys, consts.CortexProxyCPU)
+		memQtys = append(memQtys, consts.CortexProxyMem)
+	} else if api.Kind == AsyncAPIKind || api.Kind == BatchAPIKind {
+		cpuQtys = append(cpuQtys, consts.CortexDequeuerCPU)
+		memQtys = append(memQtys, consts.CortexDequeuerMem)
+	}
+
+	return Compute{
+		CPU: k8s.NewSummed(cpuQtys...),
+		Mem: k8s.NewSummed(memQtys...),
+		Shm: k8s.NewSummed(shmQtys...),
+		GPU: totalGPU,
+		Inf: totalInf,
+	}
 }
 
 func GetContainerNames(containers []*Container) strset.Set {
@@ -558,7 +559,7 @@ func (api *API) TelemetryEvent() map[string]interface{} {
 		event["pod.containers._num_readiness_probes"] = numReadinessProbes
 		event["pod.containers._num_liveness_probes"] = numLivenessProbes
 
-		totalCompute := GetTotalComputeFromContainers(api.Pod.Containers)
+		totalCompute := GetPodComputeRequest(api)
 		if totalCompute.CPU != nil {
 			event["pod.containers.compute.cpu._is_defined"] = true
 			event["pod.containers.compute.cpu"] = float64(totalCompute.CPU.MilliValue()) / 1000

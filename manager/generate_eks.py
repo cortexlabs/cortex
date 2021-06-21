@@ -14,6 +14,7 @@
 
 import json
 import sys
+import click
 
 import yaml
 
@@ -170,26 +171,51 @@ def get_inf_resources(instance_type):
 
 
 def get_all_worker_nodegroups(ami_map: dict, cluster_config: dict) -> list:
+    """
+    Gets all node groups in EKS-dict format.
+    """
     worker_nodegroups = []
     for ng in cluster_config["node_groups"]:
-        worker_nodegroup = default_nodegroup(cluster_config)
-        worker_nodegroup["ami"] = get_ami(ami_map, ng["instance_type"])
-
-        apply_worker_settings(worker_nodegroup, ng)
-        apply_clusterconfig(worker_nodegroup, ng)
-
-        if ng["spot"]:
-            apply_spot_settings(worker_nodegroup, ng)
-
-        if is_gpu(ng["instance_type"]):
-            apply_gpu_settings(worker_nodegroup)
-
-        if is_inf(ng["instance_type"]):
-            apply_inf_settings(worker_nodegroup, ng)
-
-        worker_nodegroups.append(worker_nodegroup)
-
+        worker_nodegroups.append(get_worker_nodegroup(ami_map, ng, cluster_config))
     return worker_nodegroups
+
+
+def get_worker_nodegroup(ami_map: dict, nodegroup_config: dict, cluster_config: dict) -> dict:
+    """
+    Converts Cortex-dict nodegroup config to EKS-dict format.
+    """
+    worker_nodegroup = default_nodegroup(cluster_config)
+    worker_nodegroup["ami"] = get_ami(ami_map, nodegroup_config["instance_type"])
+
+    apply_worker_settings(worker_nodegroup, nodegroup_config)
+    apply_clusterconfig(worker_nodegroup, nodegroup_config)
+
+    if nodegroup_config["spot"]:
+        apply_spot_settings(worker_nodegroup, nodegroup_config)
+
+    if is_gpu(nodegroup_config["instance_type"]):
+        apply_gpu_settings(worker_nodegroup)
+
+    if is_inf(nodegroup_config["instance_type"]):
+        apply_inf_settings(worker_nodegroup, nodegroup_config)
+
+    return worker_nodegroup
+
+
+def get_nodegroup_config_by_name(cluster_config: dict, ng_name: str) -> dict:
+    """
+    Gets a nodegroup in Cortex-dict format from Cortex cluster config.
+    """
+    for ng in cluster_config["node_groups"]:
+        if ng["name"] == ng_name:
+            return ng
+
+
+def get_empty_eks_nodegroup(name: str) -> dict:
+    """
+    Gets an empty nodegroup in EKS-dict format that only has the Cortex nodegroup name filled out.
+    """
+    return {"name": name}
 
 
 def get_ami(ami_map: dict, instance_type: str) -> str:
@@ -198,14 +224,55 @@ def get_ami(ami_map: dict, instance_type: str) -> str:
     return ami_map["cpu"]
 
 
-def generate_eks(cluster_config_path, ami_json_path):
-    with open(cluster_config_path, "r") as f:
-        cluster_config = yaml.safe_load(f)
-
+@click.command()
+@click.argument("cluster-config_file", type=click.File("r"))
+@click.argument("ami-json-file", type=click.File("r"))
+@click.option(
+    "--add-cortex-node-groups",
+    type=str,
+    help="specific cortex nodegroups to add to the generated eks file; use this for existing clusters",
+)
+@click.option(
+    "--remove-eks-node-groups",
+    type=str,
+    help="specific eks nodegroup stacks to add to the generated eks file; use this for existing clusters",
+)
+def generate_eks(
+    cluster_config_file, ami_json_file, add_cortex_node_groups: str, remove_eks_node_groups: str
+):
+    cluster_config = yaml.safe_load(cluster_config_file)
     region = cluster_config["region"]
+    name = cluster_config["cluster_name"]
+    ami_map = json.load(ami_json_file)[K8S_VERSION][region]
 
-    with open(ami_json_path, "r") as f:
-        ami_map = json.load(f)[K8S_VERSION][region]
+    eks = {
+        "apiVersion": "eksctl.io/v1alpha5",
+        "kind": "ClusterConfig",
+        "metadata": {
+            "name": name,
+            "region": region,
+            "version": K8S_VERSION,
+        },
+    }
+
+    if add_cortex_node_groups:
+        node_group_names = add_cortex_node_groups.split(",")
+        eks["nodeGroups"] = []
+        for node_group_name in node_group_names:
+            nodegroup_config = get_nodegroup_config_by_name(cluster_config, node_group_name)
+            eks["nodeGroups"].append(
+                get_worker_nodegroup(ami_map, nodegroup_config, cluster_config)
+            )
+        click.echo(yaml.dump(eks, Dumper=IgnoreAliases, default_flow_style=False, default_style=""))
+        return
+
+    if remove_eks_node_groups:
+        stacks_names = remove_eks_node_groups.split(",")
+        eks["nodeGroups"] = []
+        for stack_name in stacks_names:
+            eks["nodeGroups"].append(get_empty_eks_nodegroup(stack_name))
+        click.echo(yaml.dump(eks, Dumper=IgnoreAliases, default_flow_style=False, default_style=""))
+        return
 
     operator_nodegroup = default_nodegroup(cluster_config)
     operator_settings = {
@@ -234,8 +301,8 @@ def generate_eks(cluster_config_path, ami_json_path):
         "apiVersion": "eksctl.io/v1alpha5",
         "kind": "ClusterConfig",
         "metadata": {
-            "name": cluster_config["cluster_name"],
-            "region": cluster_config["region"],
+            "name": name,
+            "region": region,
             "version": K8S_VERSION,
             "tags": cluster_config["tags"],
         },
@@ -270,7 +337,7 @@ def generate_eks(cluster_config_path, ami_json_path):
     if cluster_config.get("vpc_cidr", "") != "":
         eks["vpc"]["cidr"] = cluster_config["vpc_cidr"]
 
-    print(yaml.dump(eks, Dumper=IgnoreAliases, default_flow_style=False, default_style=""))
+    click.echo(yaml.dump(eks, Dumper=IgnoreAliases, default_flow_style=False, default_style=""))
 
 
 class IgnoreAliases(yaml.Dumper):
@@ -284,4 +351,4 @@ class IgnoreAliases(yaml.Dumper):
 
 
 if __name__ == "__main__":
-    generate_eks(cluster_config_path=sys.argv[1], ami_json_path=sys.argv[2])
+    generate_eks()
