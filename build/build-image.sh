@@ -22,12 +22,7 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")"/.. >/dev/null && pwd)"
 CORTEX_VERSION=master
 
 image=$1
-include_arm64_arch=$2
-
-platforms="linux/amd64"
-if [ "$include_arm64_arch" == "true" ]; then
-  platforms+=",linux/arm64"
-fi
+platforms=$2
 
 if [ "$image" == "inferentia" ]; then
   aws ecr get-login-password --region us-west-2 | docker login --username AWS --password-stdin 790709498068.dkr.ecr.us-west-2.amazonaws.com
