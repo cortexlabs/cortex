@@ -23,7 +23,6 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")"/.. >/dev/null && pwd)"
 source $ROOT/build/images.sh
 source $ROOT/dev/util.sh
 
-images_with_builders="operator proxy async-gateway enqueuer dequeuer controller-manager kube-rbac-proxy kubexit"
 images_that_can_run_locally="operator manager"
 
 if [ -f "$ROOT/dev/config/env.sh" ]; then
@@ -110,37 +109,6 @@ function create_ecr_repository() {
 }
 
 ### HELPERS ###
-
-function cache_builder() {
-  local image=$1
-  local include_arm64_arch=$2
-  local dir="${ROOT}/images/${image}"
-
-  if ! in_array $image "multi_arch_images"; then
-    include_arm64_arch="false"
-  fi
-
-  tag=$CORTEX_VERSION
-
-  if [ "$include_arm64_arch" = "true" ]; then
-    blue_echo "Building $image-builder with amd64/arm64 arch support..."
-  else
-    blue_echo "Building $image-builder with amd64 arch support only..."
-  fi
-
-  platforms="--platform linux/amd64"
-  if [ "$include_arm64_arch" = "true" ]; then
-    platforms+=",linux/arm64"
-  fi
-
-  docker buildx build $ROOT -f $dir/Dockerfile -t cortexlabs/$image-builder:$tag $platforms --target builder
-
-  if [ "$include_arm64_arch" = "true" ]; then
-    green_echo "Built $image-builder with amd64/arm64 arch support..."
-  else
-    green_echo "Built $image-builder with amd64 arch support only..."
-  fi
-}
 
 function build_and_push() {
   local image=$1
@@ -243,9 +211,6 @@ elif [ "$cmd" = "create" ]; then
 # usage: registry.sh update-single IMAGE
 elif [ "$cmd" = "update-single" ]; then
   image=$sub_cmd
-  if [[ " $images_with_builders " =~ " $image " ]]; then
-    cache_builder $image $include_arm64_arch
-  fi
   build_and_push $image $include_arm64_arch
 
 # usage: registry.sh update all|dev|api
@@ -259,12 +224,6 @@ elif [ "$cmd" = "update" ]; then
   if [[ "$sub_cmd" == "all" || "$sub_cmd" == "dev" ]]; then
     images_to_build+=( "${dev_images[@]}" )
   fi
-
-  for image in $images_with_builders; do
-    if [[ " ${images_to_build[@]} " =~ " $image " ]]; then
-      cache_builder $image $include_arm64_arch
-    fi
-  done
 
   for image in "${images_to_build[@]}"; do
     build_and_push $image $include_arm64_arch
