@@ -23,7 +23,7 @@ CORTEX_VERSION=master
 
 host=$1
 image=$2
-include_arm64_arch=$2
+include_arm64_arch=$3
 
 platforms="linux/amd64"
 if [ "$include_arm64_arch" == "true" ]; then
