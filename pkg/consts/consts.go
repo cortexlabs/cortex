@@ -41,9 +41,7 @@ var (
 	AdminPortStr   = "15000"
 	AdminPortInt32 = int32(15000)
 
-	StatsDPortStr = "9125"
-
-	AuthHeader     = "X-Cortex-Authorization"
+	AuthHeader = "X-Cortex-Authorization"
 
 	CortexProxyCPU    = kresource.MustParse("100m")
 	CortexProxyMem    = kresource.MustParse("100Mi")
