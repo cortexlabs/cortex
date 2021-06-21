@@ -21,6 +21,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/stretchr/testify/require"
 )
 
@@ -49,8 +50,8 @@ func TestActivatorHandler_ServeHTTP(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	r := httptest.NewRequest("POST", "http://fake.cortex.dev/api", nil)
-	r.Header.Set(CortexAPINameHeader, apiName)
-	r.Header.Set(CortexTargetServiceHeader, server.URL)
+	r.Header.Set(consts.CortexAPINameHeader, apiName)
+	r.Header.Set(consts.CortexTargetServiceHeader, server.URL)
 
 	ah.ServeHTTP(w, r)
 
