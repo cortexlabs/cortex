@@ -126,8 +126,6 @@ func ErrorNoNodeGroups() error {
 	})
 }
 
-// HELPERS
-
 func podResourceRequestsTable(api *userconfig.API, compute userconfig.Compute) string {
 	sidecarCPUNote := ""
 	sidecarMemNote := ""
