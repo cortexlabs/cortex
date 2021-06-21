@@ -25,10 +25,10 @@ host=$1
 image=$2
 include_arm64_arch=$2
 
-platforms="--platform linux/amd64"
-if [ "$include_arm64_arch" == "false" ]; then
+platforms="linux/amd64"
+if [ "$include_arm64_arch" == "true" ]; then
   platforms+=",linux/arm64"
 fi
 
 echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
-docker buildx build $ROOT -f $ROOT/images/$image/Dockerfile $host/cortexlabs/${image}:${CORTEX_VERSION} $platforms --push
+docker buildx build $ROOT -f $ROOT/images/$image/Dockerfile $host/cortexlabs/${image}:${CORTEX_VERSION} --platform $platforms --push

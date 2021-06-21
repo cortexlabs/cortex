@@ -24,12 +24,12 @@ CORTEX_VERSION=master
 image=$1
 include_arm64_arch=$2
 
-platforms="--platform linux/amd64"
-if [ "$include_arm64_arch" == "false" ]; then
+platforms="linux/amd64"
+if [ "$include_arm64_arch" == "true" ]; then
   platforms+=",linux/arm64"
 fi
 
 if [ "$image" == "inferentia" ]; then
   aws ecr get-login-password --region us-west-2 | docker login --username AWS --password-stdin 790709498068.dkr.ecr.us-west-2.amazonaws.com
 fi
-docker buildx build $ROOT -f $ROOT/images/$image/Dockerfile -t quay.io/cortexlabs/${image}:${CORTEX_VERSION} -t cortexlabs/${image}:${CORTEX_VERSION} $platforms
+docker buildx build $ROOT -f $ROOT/images/$image/Dockerfile -t quay.io/cortexlabs/${image}:${CORTEX_VERSION} -t cortexlabs/${image}:${CORTEX_VERSION} --platform $platforms

@@ -134,12 +134,12 @@ function build_and_push() {
     blue_echo "Building and pushing $image:$tag with amd64 arch support only..."
   fi
 
-  platforms="--platform linux/amd64"
+  platforms="linux/amd64"
   if [ "$include_arm64_arch" = "true" ]; then
     platforms+=",linux/arm64"
   fi
 
-  docker buildx build $ROOT -f $dir/Dockerfile -t $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/cortexlabs/$image:$tag $platforms --push
+  docker buildx build $ROOT -f $dir/Dockerfile -t $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/cortexlabs/$image:$tag --platform $platforms --push
 
   if [ "$include_arm64_arch" = "true" ]; then
     green_echo "Built and pushed $image:$tag with amd64/arm64 arch support..."
@@ -149,7 +149,7 @@ function build_and_push() {
 
   if [[ " $images_that_can_run_locally " =~ " $image " ]] && [[ "$include_arm64_arch" == "false" ]]; then
    blue_echo "Exporting $image:$tag to local docker..."
-    docker buildx build $ROOT -f $dir/Dockerfile -t cortexlabs/$image:$tag -t $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/cortexlabs/$image:$tag $platforms --load
+    docker buildx build $ROOT -f $dir/Dockerfile -t cortexlabs/$image:$tag -t $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/cortexlabs/$image:$tag --platform $platforms --load
     green_echo "Exported $image:$tag to local docker..."
   fi
 }
