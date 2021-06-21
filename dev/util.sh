@@ -45,3 +45,13 @@ function join_by() {
   done
   echo
 }
+
+# Check if array contains item [$1: item, $2: array name]
+function in_array() {
+    local needle="$1" item
+    local -n arrref="$2"
+    for item in "${arrref[@]}"; do
+        [[ "${item}" == "${needle}" ]] && return 0
+    done
+    return 1
+}

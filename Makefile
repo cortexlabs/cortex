@@ -127,11 +127,15 @@ async-gateway-update:
 # docker images
 images-all:
 	@./dev/registry.sh update all
+images-all-multi-arch:
+	@./dev/registry.sh update all --include-arm64-arch
 images-all-skip-push:
 	@./dev/registry.sh update all --skip-push
 
 images-dev:
 	@./dev/registry.sh update dev
+images-dev-multi-arch:
+	@./dev/registry.sh update dev --include-arm64-arch
 images-dev-skip-push:
 	@./dev/registry.sh update dev --skip-push
 

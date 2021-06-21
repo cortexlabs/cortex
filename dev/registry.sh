@@ -23,8 +23,6 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")"/.. >/dev/null && pwd)"
 source $ROOT/build/images.sh
 source $ROOT/dev/util.sh
 
-images_with_builders="operator proxy async-gateway enqueuer dequeuer controller-manager"
-
 if [ -f "$ROOT/dev/config/env.sh" ]; then
   source $ROOT/dev/config/env.sh
 fi
@@ -33,12 +31,17 @@ AWS_ACCOUNT_ID=${AWS_ACCOUNT_ID:-}
 AWS_REGION=${AWS_REGION:-}
 
 skip_push="false"
+include_arm64_arch="false"
 positional_args=()
 while [[ $# -gt 0 ]]; do
   key="$1"
   case $key in
     --skip-push)
     skip_push="true"
+    shift
+    ;;
+    --include-arm64-arch)
+    include_arm64_arch="true"
     shift
     ;;
     *)
@@ -120,15 +123,6 @@ function build() {
   green_echo "Built $image:$tag\n"
 }
 
-function cache_builder() {
-  local image=$1
-  local dir="${ROOT}/images/${image}"
-
-  blue_echo "Building $image-builder..."
-  docker build $ROOT -f $dir/Dockerfile -t cortexlabs/$image-builder:$CORTEX_VERSION --target builder
-  green_echo "Built $image-builder\n"
-}
-
 function push() {
   if [ "$skip_push" = "true" ]; then
     return
@@ -152,6 +146,40 @@ function build_and_push() {
   tag=$CORTEX_VERSION
   build $image $tag
   push $image $tag
+}
+
+function build_and_push_multi_arch() {
+  local image=$1
+  local include_arm64_arch=$2
+  local dir="${ROOT}/images/${image}"
+
+  set -euo pipefail  # necessary since this is called in a new shell by parallel
+
+  registry_login
+  if [ ! -n "$AWS_ACCOUNT_ID" ] || [ ! -n "$AWS_REGION" ]; then
+    echo "AWS_ACCOUNT_ID or AWS_REGION env vars not found"
+    exit 1
+  fi
+
+  tag=$CORTEX_VERSION
+  if [ "$include_arm64_arch" = "true" ]; then
+    blue_echo "Building and pushing $image:$tag with amd64/arm64 arch support..."
+  else
+    blue_echo "Building and pushing $image:$tag with amd64 arch support only..."
+  fi
+
+  platforms="--platform linux/amd64"
+  if [ "$include_arm64_arch" = "true" ]; then
+    platforms+=",linux/arm64"
+  fi
+
+  docker buildx build $ROOT -f $dir/Dockerfile -t $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/cortexlabs/$image:$tag $platforms --push
+
+  if [ "$include_arm64_arch" = "true" ]; then
+    green_echo "Built and pushed $image:$tag with amd64/arm64 arch support..."
+  else
+    green_echo "Built and pushed $image:$tag with amd64 arch support only..."
+  fi
 }
 
 function cleanup_local() {
@@ -218,10 +246,11 @@ elif [ "$cmd" = "create" ]; then
 # usage: registry.sh update-single IMAGE
 elif [ "$cmd" = "update-single" ]; then
   image=$sub_cmd
-  if [[ " $images_with_builders " =~ " $image " ]]; then
-    cache_builder $image
+  if ! in_array $image "multi_arch_images"; then
+    build_and_push $image
+  else
+    build_and_push_multi_arch $image $include_arm64_arch
   fi
-  build_and_push $image
 
 # usage: registry.sh update all|dev|api
 # if parallel utility is installed, the docker build commands will be parallelized
@@ -236,17 +265,15 @@ elif [ "$cmd" = "update" ]; then
     images_to_build+=( "${dev_images[@]}" )
   fi
 
-  for image in $images_with_builders; do
-    if [[ " ${images_to_build[@]} " =~ " $image " ]]; then
-      cache_builder $image
-    fi
-  done
-
   if command -v parallel &> /dev/null && [ -n "${NUM_BUILD_PROCS+set}" ] && [ "$NUM_BUILD_PROCS" != "1" ]; then
     is_registry_logged_in=$is_registry_logged_in ROOT=$ROOT registry_push_url=$registry_push_url SHELL=$(type -p /bin/bash) parallel --will-cite --halt now,fail=1 --eta --jobs $NUM_BUILD_PROCS build_and_push "{}" ::: "${images_to_build[@]}"
   else
     for image in "${images_to_build[@]}"; do
-      build_and_push $image
+      if in_array $image "multi_arch_images"; then
+        build_and_push $image
+      else
+        build_and_push_multi_arch $image $include_arm64_arch
+      fi
     done
   fi
 

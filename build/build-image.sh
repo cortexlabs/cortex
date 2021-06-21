@@ -22,8 +22,13 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")"/.. >/dev/null && pwd)"
 CORTEX_VERSION=master
 
 image=$1
+multi_arch=$2
 
 if [ "$image" == "inferentia" ]; then
   aws ecr get-login-password --region us-west-2 | docker login --username AWS --password-stdin 790709498068.dkr.ecr.us-west-2.amazonaws.com
 fi
-docker build "$ROOT" -f $ROOT/images/$image/Dockerfile -t quay.io/cortexlabs/${image}:${CORTEX_VERSION} -t cortexlabs/${image}:${CORTEX_VERSION}
+if [ "$multi_arch" == "false" ]; then
+  docker build "$ROOT" -f $ROOT/images/$image/Dockerfile -t quay.io/cortexlabs/${image}:${CORTEX_VERSION} -t cortexlabs/${image}:${CORTEX_VERSION}
+else
+  docker buildx build $ROOT -f $ROOT/images/$image/Dockerfile -t quay.io/cortexlabs/${image}:${CORTEX_VERSION} -t cortexlabs/${image}:${CORTEX_VERSION} --platform linux/amd64,linux/arm64
+fi

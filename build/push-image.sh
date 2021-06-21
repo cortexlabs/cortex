@@ -17,10 +17,17 @@
 
 set -euo pipefail
 
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")"/.. >/dev/null && pwd)"
+
 CORTEX_VERSION=master
 
 host=$1
 image=$2
+multi_arch=$2
 
 echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
-docker push $host/cortexlabs/${image}:${CORTEX_VERSION}
+if [ "$multi_arch" == "false" ]; then
+  docker push $host/cortexlabs/${image}:${CORTEX_VERSION}
+else
+  docker buildx build $ROOT -f $ROOT/images/$image/Dockerfile $host/cortexlabs/${image}:${CORTEX_VERSION} --platform linux/amd64,linux/arm64 --push
+fi
