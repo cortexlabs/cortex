@@ -323,12 +323,7 @@ func GetAllAPIs(pods []kcore.Pod, deployments []kapps.Deployment) ([]schema.APIR
 	return asyncAPIs, nil
 }
 
-func UpdateMetricsCron(apiDeployment *kapps.Deployment) error {
-	// skip gateway deployments
-	if apiDeployment.Labels["cortex.dev/async"] != "api" {
-		return nil
-	}
-
+func UpdateAPIMetricsCron(apiDeployment *kapps.Deployment) error {
 	apiName := apiDeployment.Labels["apiName"]
 
 	if prevMetricsCron, ok := _metricsCrons[apiName]; ok {
@@ -352,18 +347,13 @@ func UpdateMetricsCron(apiDeployment *kapps.Deployment) error {
 	return nil
 }
 
-func UpdateAutoscalerCron(deployment *kapps.Deployment, apiSpec spec.API) error {
-	// skip gateway deployments
-	if deployment.Labels["cortex.dev/async"] != "api" {
-		return nil
-	}
-
-	apiName := deployment.Labels["apiName"]
+func UpdateAPIAutoscalerCron(apiDeployment *kapps.Deployment, apiSpec spec.API) error {
+	apiName := apiDeployment.Labels["apiName"]
 	if prevAutoscalerCron, ok := _autoscalerCrons[apiName]; ok {
 		prevAutoscalerCron.Cancel()
 	}
 
-	autoscaler, err := autoscalerlib.AutoscaleFn(deployment, &apiSpec, getMessagesInQueue)
+	autoscaler, err := autoscalerlib.AutoscaleFn(apiDeployment, &apiSpec, getMessagesInQueue)
 	if err != nil {
 		return err
 	}
@@ -451,11 +441,11 @@ func applyK8sResources(api spec.API, prevK8sResources resources, queueURL string
 				return err
 			}
 
-			if err := UpdateMetricsCron(&apiDeployment); err != nil {
+			if err := UpdateAPIMetricsCron(&apiDeployment); err != nil {
 				return err
 			}
 
-			if err := UpdateAutoscalerCron(&apiDeployment, api); err != nil {
+			if err := UpdateAPIAutoscalerCron(&apiDeployment, api); err != nil {
 				return err
 			}
 

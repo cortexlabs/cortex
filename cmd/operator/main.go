@@ -82,11 +82,11 @@ func main() {
 					operatorLogger.Fatal(errors.Wrap(err, "init"))
 				}
 			case userconfig.AsyncAPIKind:
-				if err := asyncapi.UpdateMetricsCron(&deployment); err != nil {
+				if err := asyncapi.UpdateAPIMetricsCron(&deployment); err != nil {
 					operatorLogger.Fatal(errors.Wrap(err, "init"))
 				}
 
-				if err := asyncapi.UpdateAutoscalerCron(&deployment, *api); err != nil {
+				if err := asyncapi.UpdateAPIAutoscalerCron(&deployment, *api); err != nil {
 					operatorLogger.Fatal(errors.Wrap(err, "init"))
 				}
 			}
