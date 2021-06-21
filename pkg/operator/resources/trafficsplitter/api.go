@@ -123,7 +123,7 @@ func getTrafficSplitterDestinations(trafficSplitter *spec.API) []k8s.Destination
 		destinations[i] = k8s.Destination{
 			ServiceName: workloads.K8sName(api.Name),
 			Weight:      api.Weight,
-			Port:        uint32(consts.ProxyListeningPortInt32),
+			Port:        uint32(consts.ProxyPortInt32),
 			Shadow:      api.Shadow,
 		}
 	}

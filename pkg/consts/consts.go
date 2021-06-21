@@ -31,12 +31,18 @@ var (
 
 	DefaultUserPodPortInt32 = int32(8080)
 
-	ProxyListeningPortStr   = "8888"
-	ProxyListeningPortInt32 = int32(8888)
+	ProxyPortStr   = "8888"
+	ProxyPortInt32 = int32(8888)
+
+	ActivatorName      = "activator"
+	ActivatorPortInt32 = int32(8000)
 
 	AdminPortName  = "admin"
 	AdminPortStr   = "15000"
 	AdminPortInt32 = int32(15000)
+
+	StatsDPortStr = "9125"
+
 	AuthHeader     = "X-Cortex-Authorization"
 
 	CortexProxyCPU    = kresource.MustParse("100m")
@@ -49,13 +55,20 @@ var (
 	AsyncWorkloadsExpirationDays = int64(7)
 
 	ReservedContainerPorts = []int32{
-		ProxyListeningPortInt32,
+		ProxyPortInt32,
 		AdminPortInt32,
 	}
 	ReservedContainerNames = []string{
 		"dequeuer",
 		"proxy",
 	}
+
+	UserAgentKey             = "User-Agent"
+	KubeProbeUserAgentPrefix = "kube-probe/"
+
+	CortexAPINameHeader       = "X-Cortex-API-Name"
+	CortexTargetServiceHeader = "X-Cortex-Target-Service"
+	CortexProbeHeader         = "X-Cortex-Probe"
 )
 
 func DefaultRegistry() string {
