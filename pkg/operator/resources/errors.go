@@ -44,6 +44,7 @@ const (
 	ErrRealtimeAPIUsedByTrafficSplitter = "resources.realtime_api_used_by_traffic_splitter"
 	ErrAPIsNotDeployed                  = "resources.apis_not_deployed"
 	ErrInvalidNodeGroupSelector         = "resources.invalid_node_group_selector"
+	ErrNoNodeGroups                     = "resources.no_node_groups"
 )
 
 func ErrorOperationIsOnlySupportedForKind(resource operator.DeployedResource, supportedKind userconfig.Kind, supportedKinds ...userconfig.Kind) error {
@@ -117,6 +118,15 @@ func ErrorInvalidNodeGroupSelector(selected string, availableNodeGroups []string
 		Message: fmt.Sprintf("node group \"%s\" doesn't exist; remove the node group selector to let Cortex determine automatically where to place the API, or specify a valid node group name (%s)", selected, s.StrsOr(availableNodeGroups)),
 	})
 }
+
+func ErrorNoNodeGroups() error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrNoNodeGroups,
+		Message: fmt.Sprintf("your api cannot be deployed because your cluster doesn't have any node groups; create a node group with `cortex cluster configure CLUSTER_CONFIG_FILE`"),
+	})
+}
+
+// HELPERS
 
 func podResourceRequestsTable(api *userconfig.API, compute userconfig.Compute) string {
 	sidecarCPUNote := ""

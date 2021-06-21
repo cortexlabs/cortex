@@ -47,9 +47,15 @@ func (cc *Config) setDefaultAvailabilityZones(awsClient *aws.Client) error {
 	}
 	instanceTypesSlice := instanceTypes.Slice()
 
-	zones, err := awsClient.ListSupportedAvailabilityZones(instanceTypesSlice[0], instanceTypesSlice[1:]...)
-	if err != nil {
-		// Try again without checking instance types
+	var zones strset.Set
+	var err error
+
+	if len(instanceTypesSlice) > 0 {
+		zones, err = awsClient.ListSupportedAvailabilityZones(instanceTypesSlice[0], instanceTypesSlice[1:]...)
+	}
+
+	if len(zones) == 0 || err != nil {
+		// Try without checking instance types
 		zones, err = awsClient.ListAvailabilityZonesInRegion()
 		if err != nil {
 			return nil // Let eksctl choose the availability zones
@@ -75,12 +81,6 @@ func (cc *Config) setDefaultAvailabilityZones(awsClient *aws.Client) error {
 }
 
 func (cc *Config) validateUserAvailabilityZones(awsClient *aws.Client) error {
-	instanceTypes := strset.New()
-	for _, ng := range cc.NodeGroups {
-		instanceTypes.Add(ng.InstanceType)
-	}
-	instanceTypesSlice := instanceTypes.Slice()
-
 	allZones, err := awsClient.ListAvailabilityZonesInRegion()
 	if err != nil {
 		return nil // Skip validation
@@ -92,15 +92,23 @@ func (cc *Config) validateUserAvailabilityZones(awsClient *aws.Client) error {
 		}
 	}
 
-	supportedZones, err := awsClient.ListSupportedAvailabilityZones(instanceTypesSlice[0], instanceTypesSlice[1:]...)
-	if err != nil {
-		// Skip validation instance-based validation
-		supportedZones = strset.Difference(allZones, _azBlacklist)
-	}
+	if len(cc.NodeGroups) > 0 {
+		instanceTypes := strset.New()
+		for _, ng := range cc.NodeGroups {
+			instanceTypes.Add(ng.InstanceType)
+		}
+		instanceTypesSlice := instanceTypes.Slice()
 
-	for _, userZone := range cc.AvailabilityZones {
-		if !supportedZones.Has(userZone) {
-			return ErrorUnsupportedAvailabilityZone(userZone, instanceTypesSlice[0], instanceTypesSlice[1:]...)
+		supportedZones, err := awsClient.ListSupportedAvailabilityZones(instanceTypesSlice[0], instanceTypesSlice[1:]...)
+		if err != nil {
+			// Skip validation instance-based validation
+			supportedZones = strset.Difference(allZones, _azBlacklist)
+		}
+
+		for _, userZone := range cc.AvailabilityZones {
+			if !supportedZones.Has(userZone) {
+				return ErrorUnsupportedAvailabilityZone(userZone, instanceTypesSlice[0], instanceTypesSlice[1:]...)
+			}
 		}
 	}
 
