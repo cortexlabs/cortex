@@ -24,7 +24,7 @@ source $ROOT/build/images.sh
 source $ROOT/dev/util.sh
 
 images_with_builders="operator proxy async-gateway enqueuer dequeuer controller-manager kube-rbac-proxy kubexit"
-images_that_can_run_locally="operator"
+images_that_can_run_locally="operator manager"
 
 if [ -f "$ROOT/dev/config/env.sh" ]; then
   source $ROOT/dev/config/env.sh
@@ -147,7 +147,7 @@ function build_and_push() {
   local include_arm64_arch=$2
   local dir="${ROOT}/images/${image}"
 
-  set -euo pipefail  # necessary since this is called in a new shell by parallel
+  set -euo pipefail
 
   if ! in_array $image "multi_arch_images"; then
     include_arm64_arch="false"
@@ -179,11 +179,11 @@ function build_and_push() {
     green_echo "Built and pushed $image:$tag with amd64 arch support only..."
   fi
 
-  blue_echo "Exporting $image:$tag to local docker..."
   if [[ " $images_that_can_run_locally " =~ " $image " ]] && [[ "$include_arm64_arch" == "false" ]]; then
+   blue_echo "Exporting $image:$tag to local docker..."
     docker buildx build $ROOT -f $dir/Dockerfile -t cortexlabs/$image:$tag -t $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/cortexlabs/$image:$tag $platforms --load
+    green_echo "Exported $image:$tag to local docker..."
   fi
-  green_echo "Exported $image:$tag to local docker..."
 }
 
 function cleanup_local() {
@@ -270,8 +270,9 @@ elif [ "$cmd" = "update" ]; then
     build_and_push $image $include_arm64_arch
   done
 
+# usage: registry.sh clean-cache
+elif [ "$cmd" = "clean-cache" ]; then
   cleanup_local
-
 else
   echo "unknown command: $cmd"
   exit 1

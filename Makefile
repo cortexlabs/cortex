@@ -142,6 +142,9 @@ images-dev-skip-push:
 images-manager-skip-push:
 	@./dev/registry.sh update-single manager --skip-push
 
+images-clean-cache:
+	@./dev/registry.sh clean-cache
+
 registry-create:
 	@./dev/registry.sh create
 
