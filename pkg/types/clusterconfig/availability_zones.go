@@ -49,11 +49,9 @@ func (cc *Config) setDefaultAvailabilityZones(awsClient *aws.Client) error {
 
 	var zones strset.Set
 	var err error
-
 	if len(instanceTypesSlice) > 0 {
 		zones, err = awsClient.ListSupportedAvailabilityZones(instanceTypesSlice[0], instanceTypesSlice[1:]...)
 	}
-
 	if len(zones) == 0 || err != nil {
 		// Try without checking instance types
 		zones, err = awsClient.ListAvailabilityZonesInRegion()
