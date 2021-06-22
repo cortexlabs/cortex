@@ -477,6 +477,9 @@ var _clusterDownCmd = &cobra.Command{
 		} else {
 			state := clusterstate.GetClusterState(stacks)
 			if err := clusterstate.AssertClusterState(stacks, state, clusterstate.StateClusterDoesntExist); err != nil {
+				fmt.Println("✓")
+				clusterExists = true
+			} else {
 				awsClient.DeleteQueuesWithPrefix(clusterconfig.SQSNamePrefix(accessConfig.ClusterName))
 				awsClient.DeletePolicy(clusterconfig.DefaultPolicyARN(accountID, accessConfig.ClusterName, accessConfig.Region))
 				if !_flagClusterDownKeepAWSResources {
@@ -487,9 +490,6 @@ var _clusterDownCmd = &cobra.Command{
 						}
 					}
 				}
-				fmt.Println("✓")
-				clusterExists = true
-			} else {
 				fmt.Println("already deleted ✓")
 			}
 		}
