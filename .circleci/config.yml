@@ -127,20 +127,18 @@ jobs:
           command: |
             docker context create custom-context --default-stack-orchestrator swarm --docker "host=$DOCKER_HOST,ca=$DOCKER_CERT_PATH/ca.pem,cert=$DOCKER_CERT_PATH/cert.pem,key=$DOCKER_CERT_PATH/key.pem"
             docker buildx create --name builder --platform linux/amd64,linux/arm64 --use custom-context && docker buildx inspect --bootstrap
-      - run: pip install awscli
-      - run: make ci-build-cli
-      - return-if-not-deployed-branch
-      - run: make ci-build-and-upload-cli
-      - run:
-          command: make ci-build-images
-          no_output_timeout: 40m
+      # - run: pip install awscli
+      # - run: make ci-build-cli
+      # - return-if-not-deployed-branch
+      # - run: make ci-build-and-upload-cli
       - quay-login
       - run:
-          command: make ci-push-images
-          no_output_timeout: 20m
-      - run:
-          command: make ci-backup-images
-          no_output_timeout: 20m
+          name: Build and Push CI Images
+          command: |
+            make ci-build-images
+            make ci-push-images
+            make ci-backup-images
+          no_output_timeout: 40m
 
   e2e-tests:
     docker:
@@ -201,24 +199,24 @@ jobs:
 workflows:
   build:
     jobs:
-      - test
-      - build-and-deploy-approval:
-          type: approval
-          requires:
-            - test
-          filters:
-            branches:
-              only:
-                - /^[0-9]+\.[0-9]+$/
-      - build-and-deploy:
-          requires:
-            - test
-            - build-and-deploy-approval
-          filters:
-            branches:
-              only:
-                - master
-                - /^[0-9]+\.[0-9]+$/
+      # - test
+      # - build-and-deploy-approval:
+      #     type: approval
+      #     requires:
+      #       - test
+      #     filters:
+      #       branches:
+      #         only:
+      #           - /^[0-9]+\.[0-9]+$/
+      - build-and-deploy
+          # requires:
+          #   - test
+          #   - build-and-deploy-approval
+          # filters:
+          #   branches:
+          #     only:
+          #       - master
+          #       - /^[0-9]+\.[0-9]+$/
   nightly:
     triggers:
       - schedule:
