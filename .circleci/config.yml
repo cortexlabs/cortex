@@ -126,7 +126,7 @@ jobs:
       - install-go
       - run: |
           ls $DOCKER_CERT_PATH
-          docker context create custom-context --default-stack-orchestrator swarm --docker "host=$DOCKER_HOST"
+          docker context create custom-context --default-stack-orchestrator swarm --docker "host=$DOCKER_HOST,ca=$DOCKER_CERT_PATH/ca.pem,cert=$DOCKER_CERT_PATH/cert.pem,key=$DOCKER_CERT_PATH/key.pem"
           docker buildx create --name builder --platform linux/amd64,linux/arm64 --use custom-context && docker buildx inspect --bootstrap
       # - run: sudo pip install awscli
       # - run: make ci-build-cli
