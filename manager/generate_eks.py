@@ -13,12 +13,33 @@
 # limitations under the License.
 
 import json
-import sys
 import click
 
+from collections import namedtuple
+import re
 import yaml
 
 K8S_VERSION = "1.18"
+
+ParsedInstanceType = namedtuple(
+    "ParsedInstanceType", ["family", "generation", "capabilities", "size"]
+)
+
+
+def parse_instance_type(instance_type: str) -> ParsedInstanceType:
+    parts = instance_type.split(".")
+    if len(parts) != 2:
+        raise ValueError(f"unexpected invalid instance type: {instance_type}")
+
+    prefix = parts[0]
+    size = parts[1]
+
+    family = re.search("[a-z]*", prefix.lower()).group()
+    generation = re.sub("\D", "", prefix.lower())
+    capabilities = prefix[len(family) + len(generation) :]
+
+    return ParsedInstanceType(family, generation, capabilities, size)
+
 
 # kubelet config schema:
 # https://github.com/kubernetes/kubernetes/blob/master/staging/src/k8s.io/kubelet/config/v1beta1/types.go
@@ -132,7 +153,8 @@ def apply_gpu_settings(nodegroup):
 
 
 def is_gpu(instance_type):
-    return instance_type.startswith("g") or instance_type.startswith("p")
+    parsed_instance_type = parse_instance_type(instance_type)
+    return parsed_instance_type.family in ["g", "p"]
 
 
 def apply_inf_settings(nodegroup, config):
@@ -155,7 +177,8 @@ def apply_inf_settings(nodegroup, config):
 
 
 def is_inf(instance_type):
-    return instance_type.startswith("inf")
+    parsed_instance_type = parse_instance_type(instance_type)
+    return parsed_instance_type.family == "inf"
 
 
 def get_inf_resources(instance_type):
@@ -168,6 +191,11 @@ def get_inf_resources(instance_type):
         num_chips = 16
 
     return num_chips, f"{128 * num_chips}Mi"
+
+
+def is_arm64(instance_type: str):
+    parsed_instance_type = parse_instance_type(instance_type)
+    return parsed_instance_type.family == "a" or "g" in parsed_instance_type.capabilities
 
 
 def get_all_worker_nodegroups(ami_map: dict, cluster_config: dict) -> list:
@@ -220,8 +248,10 @@ def get_empty_eks_nodegroup(name: str) -> dict:
 
 def get_ami(ami_map: dict, instance_type: str) -> str:
     if is_gpu(instance_type) or is_inf(instance_type):
-        return ami_map["accelerated"]
-    return ami_map["cpu"]
+        return ami_map["accelerated_amd64"]
+    if is_arm64(instance_type):
+        return ami_map["cpu_arm64"]
+    return ami_map["cpu_amd64"]
 
 
 @click.command()
@@ -311,7 +341,11 @@ def generate_eks(
         "addons": [
             {
                 "name": "vpc-cni",
-                "version": "1.7.10",
+                "version": "1.8.0",
+            },
+            {
+                "name": "kube-proxy",
+                "version": "1.18.8",
             },
         ],
     }

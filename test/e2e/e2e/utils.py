@@ -126,7 +126,7 @@ def jobs_done(client: cx.Client, api_name: str, job_ids: List[str], timeout: int
     return True
 
 
-def request_prediction(
+def post_request(
     client: cx.Client,
     api_name: str,
     payload: Union[List, Dict],
@@ -137,6 +137,21 @@ def request_prediction(
     if extra_path and extra_path != "":
         endpoint = os.path.join(endpoint, extra_path)
     response = requests.post(endpoint, json=payload)
+
+    return response
+
+
+def get_request(
+    client: cx.Client,
+    api_name: str,
+    payload: Union[List, Dict],
+    extra_path: Optional[str] = None,
+) -> requests.Response:
+    api_info = client.get_api(api_name)
+    endpoint = api_info["endpoint"]
+    if extra_path and extra_path != "":
+        endpoint = os.path.join(endpoint, extra_path)
+    response = requests.get(endpoint, json=payload)
 
     return response
 

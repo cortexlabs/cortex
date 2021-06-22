@@ -6,7 +6,7 @@ require (
 	cloud.google.com/go v0.73.0 // indirect
 	github.com/DataDog/datadog-go v4.7.0+incompatible
 	github.com/StackExchange/wmi v0.0.0-20190523213315-cbe66965904d // indirect
-	github.com/aws/amazon-vpc-cni-k8s v1.7.10
+	github.com/aws/amazon-vpc-cni-k8s v1.8.0
 	github.com/aws/aws-sdk-go v1.37.23
 	github.com/bmizerany/assert v0.0.0-20160611221934-b7ed37b82869 // indirect
 	github.com/containerd/containerd v1.4.3 // indirect

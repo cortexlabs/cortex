@@ -23,7 +23,7 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")"/.. >/dev/null && pwd)"
 source $ROOT/build/images.sh
 source $ROOT/dev/util.sh
 
-images_with_builders="operator proxy async-gateway enqueuer dequeuer controller-manager"
+images_that_can_run_locally="operator manager"
 
 if [ -f "$ROOT/dev/config/env.sh" ]; then
   source $ROOT/dev/config/env.sh
@@ -33,12 +33,17 @@ AWS_ACCOUNT_ID=${AWS_ACCOUNT_ID:-}
 AWS_REGION=${AWS_REGION:-}
 
 skip_push="false"
+include_arm64_arch="false"
 positional_args=()
 while [[ $# -gt 0 ]]; do
   key="$1"
   case $key in
     --skip-push)
     skip_push="true"
+    shift
+    ;;
+    --include-arm64-arch)
+    include_arm64_arch="true"
     shift
     ;;
     *)
@@ -105,59 +110,55 @@ function create_ecr_repository() {
 
 ### HELPERS ###
 
-function build() {
-  local image=$1
-  local tag=$2
-  local dir="${ROOT}/images/${image}"
-
-  tag_args=""
-  if [ -n "$AWS_ACCOUNT_ID" ] && [ -n "$AWS_REGION" ]; then
-    tag_args+=" -t $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/cortexlabs/$image:$tag"
-  fi
-
-  blue_echo "Building $image:$tag..."
-  docker build $ROOT -f $dir/Dockerfile -t cortexlabs/$image:$tag $tag_args
-  green_echo "Built $image:$tag\n"
-}
-
-function cache_builder() {
-  local image=$1
-  local dir="${ROOT}/images/${image}"
-
-  blue_echo "Building $image-builder..."
-  docker build $ROOT -f $dir/Dockerfile -t cortexlabs/$image-builder:$CORTEX_VERSION --target builder
-  green_echo "Built $image-builder\n"
-}
-
-function push() {
-  if [ "$skip_push" = "true" ]; then
-    return
-  fi
-
-  registry_login
-
-  local image=$1
-  local tag=$2
-
-  blue_echo "Pushing $image:$tag..."
-  docker push $registry_push_url/cortexlabs/$image:$tag
-  green_echo "Pushed $image:$tag\n"
-}
-
 function build_and_push() {
   local image=$1
+  local include_arm64_arch=$2
+  local dir="${ROOT}/images/${image}"
 
-  set -euo pipefail  # necessary since this is called in a new shell by parallel
+  set -euo pipefail
+
+  if ! in_array $image "multi_arch_images"; then
+    include_arm64_arch="false"
+  fi
+
+  if [ ! -n "$AWS_ACCOUNT_ID" ] || [ ! -n "$AWS_REGION" ]; then
+    echo "AWS_ACCOUNT_ID or AWS_REGION env vars not found"
+    exit 1
+  fi
+  registry_login
 
   tag=$CORTEX_VERSION
-  build $image $tag
-  push $image $tag
+  if [ "$include_arm64_arch" = "true" ]; then
+    blue_echo "Building and pushing $image:$tag (amd64 and arm64)..."
+  else
+    blue_echo "Building and pushing $image:$tag (amd64)..."
+  fi
+
+  platforms="linux/amd64"
+  if [ "$include_arm64_arch" = "true" ]; then
+    platforms+=",linux/arm64"
+  fi
+
+  docker buildx build $ROOT -f $dir/Dockerfile -t $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/cortexlabs/$image:$tag --platform $platforms --push
+
+  if [ "$include_arm64_arch" = "true" ]; then
+    green_echo "Built and pushed $image:$tag (amd64 and arm64)..."
+  else
+    green_echo "Built and pushed $image:$tag (amd64)..."
+  fi
+
+  if [[ " $images_that_can_run_locally " =~ " $image " ]] && [[ "$include_arm64_arch" == "false" ]]; then
+    blue_echo "Exporting $image:$tag to local docker..."
+    docker buildx build $ROOT -f $dir/Dockerfile -t cortexlabs/$image:$tag -t $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/cortexlabs/$image:$tag --platform $platforms --load
+    green_echo "Exported $image:$tag to local docker..."
+  fi
 }
 
 function cleanup_local() {
   echo "cleaning local repositories..."
   docker container prune -f
   docker image prune -f
+  docker buildx prune -f
 }
 
 function cleanup_ecr() {
@@ -195,14 +196,6 @@ function validate_env() {
   fi
 }
 
-# export functions for parallel command
-export -f build_and_push
-export -f push
-export -f build
-export -f blue_echo
-export -f green_echo
-export -f registry_login
-
 # validate environment is correctly set on env.sh
 validate_env
 
@@ -218,13 +211,9 @@ elif [ "$cmd" = "create" ]; then
 # usage: registry.sh update-single IMAGE
 elif [ "$cmd" = "update-single" ]; then
   image=$sub_cmd
-  if [[ " $images_with_builders " =~ " $image " ]]; then
-    cache_builder $image
-  fi
-  build_and_push $image
+  build_and_push $image $include_arm64_arch
 
 # usage: registry.sh update all|dev|api
-# if parallel utility is installed, the docker build commands will be parallelized
 elif [ "$cmd" = "update" ]; then
   images_to_build=()
 
@@ -236,20 +225,12 @@ elif [ "$cmd" = "update" ]; then
     images_to_build+=( "${dev_images[@]}" )
   fi
 
-  for image in $images_with_builders; do
-    if [[ " ${images_to_build[@]} " =~ " $image " ]]; then
-      cache_builder $image
-    fi
+  for image in "${images_to_build[@]}"; do
+    build_and_push $image $include_arm64_arch
   done
 
-  if command -v parallel &> /dev/null && [ -n "${NUM_BUILD_PROCS+set}" ] && [ "$NUM_BUILD_PROCS" != "1" ]; then
-    is_registry_logged_in=$is_registry_logged_in ROOT=$ROOT registry_push_url=$registry_push_url SHELL=$(type -p /bin/bash) parallel --will-cite --halt now,fail=1 --eta --jobs $NUM_BUILD_PROCS build_and_push "{}" ::: "${images_to_build[@]}"
-  else
-    for image in "${images_to_build[@]}"; do
-      build_and_push $image
-    done
-  fi
-
+# usage: registry.sh clean-cache
+elif [ "$cmd" = "clean-cache" ]; then
   cleanup_local
 
 else

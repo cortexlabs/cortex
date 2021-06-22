@@ -17,10 +17,13 @@
 
 set -euo pipefail
 
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")"/.. >/dev/null && pwd)"
+
 CORTEX_VERSION=master
 
 host=$1
 image=$2
+platforms=$3
 
 echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
-docker push $host/cortexlabs/${image}:${CORTEX_VERSION}
+docker buildx build $ROOT -f $ROOT/images/$image/Dockerfile $host/cortexlabs/${image}:${CORTEX_VERSION} --platform $platforms --push

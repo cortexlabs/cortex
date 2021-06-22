@@ -32,6 +32,12 @@ TEST_APIS = [
         "extra_path": "",
     },
 ]
+TEST_APIS_ARM = [
+    {
+        "name": "realtime/hello-world",
+        "extra_path": "",
+    },
+]
 TEST_APIS_GPU = [
     {
         "name": "realtime/image-classifier-resnet50",
@@ -55,6 +61,22 @@ def test_realtime_api(printer: Callable, config: Dict, client: cx.Client, api: D
         api=api["name"],
         timeout=config["global"]["realtime_deploy_timeout"],
         extra_path=api["extra_path"],
+    )
+
+
+@pytest.mark.usefixtures("client")
+@pytest.mark.parametrize("api", TEST_APIS_ARM)
+def test_realtime_api_arm(printer: Callable, config: Dict, client: cx.Client, api: Dict[str, str]):
+
+    printer(f"testing {api['name']}")
+    e2e.tests.test_realtime_api(
+        printer=printer,
+        client=client,
+        api=api["name"],
+        timeout=config["global"]["realtime_deploy_timeout"],
+        api_config_name="cortex_cpu_arm64.yaml",
+        extra_path=api["extra_path"],
+        method="GET",
     )
 
 

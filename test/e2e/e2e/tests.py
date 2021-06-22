@@ -40,7 +40,8 @@ from e2e.utils import (
     wait_on_event,
     wait_on_futures,
     endpoint_ready,
-    request_prediction,
+    post_request,
+    get_request,
     job_done,
     jobs_done,
     request_batch_prediction,
@@ -68,6 +69,7 @@ def test_realtime_api(
     timeout: int = None,
     api_config_name: str = "cortex_cpu.yaml",
     extra_path: str = "",
+    method: str = "POST",
 ):
     api_dir = TEST_APIS_DIR / api
     with open(str(api_dir / api_config_name)) as f:
@@ -89,7 +91,10 @@ def test_realtime_api(
 
         with open(str(api_dir / "sample.json")) as f:
             payload = json.load(f)
-        response = request_prediction(client, api_name, payload, extra_path)
+        if method == "POST":
+            response = post_request(client, api_name, payload, extra_path)
+        else:
+            response = get_request(client, api_name, payload, extra_path)
 
         assert (
             response.status_code == HTTPStatus.OK
@@ -227,7 +232,7 @@ def test_async_api(
         with open(str(api_dir / "sample.json")) as f:
             payload = json.load(f)
 
-        response = request_prediction(client, api_name, payload)
+        response = post_request(client, api_name, payload)
 
         assert (
             response.status_code == HTTPStatus.OK
@@ -854,7 +859,7 @@ def test_long_running_realtime(
         counter = 0
         start_time = time.time()
         while time.time() - start_time <= time_to_run:
-            response = request_prediction(client, api_name, payload)
+            response = post_request(client, api_name, payload)
 
             assert (
                 response.status_code == HTTPStatus.OK

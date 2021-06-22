@@ -50,6 +50,18 @@ non_dev_images=(
   "kubexit"
 )
 
+# for linux/amd64 and linux/arm64
+multi_arch_images=(
+  "proxy"
+  "async-gateway"
+  "enqueuer"
+  "dequeuer"
+  "fluent-bit"
+  "prometheus-node-exporter"
+  "kube-rbac-proxy"
+  "kubexit"
+)
+
 all_images=(
   "${dev_images[@]}"
   "${non_dev_images[@]}"

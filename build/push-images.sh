@@ -24,11 +24,10 @@ source $ROOT/dev/util.sh
 
 host=$1
 
-# if parallel utility is installed, the docker push commands will be parallelized
-if command -v parallel &> /dev/null && [ -n "${NUM_BUILD_PROCS+set}" ] && [ "$NUM_BUILD_PROCS" != "1" ]; then
-  ROOT=$ROOT DOCKER_USERNAME=$DOCKER_USERNAME DOCKER_PASSWORD=$DOCKER_PASSWORD SHELL=$(type -p /bin/bash) parallel --will-cite --halt now,fail=1 --eta --jobs $NUM_BUILD_PROCS $ROOT/build/push-image.sh $host {} ::: "${all_images[@]}"
-else
-  for image in "${all_images[@]}"; do
-    $ROOT/build/push-image.sh $host $image
-  done
-fi
+for image in "${all_images[@]}"; do
+  platforms="linux/amd64"
+  if in_array $image "multi_arch_images"; then
+    platforms+=",linux/arm64"
+  fi
+  $ROOT/build/push-image.sh $host $image $platforms
+done

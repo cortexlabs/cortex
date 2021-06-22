@@ -121,7 +121,7 @@ jobs:
       - checkout
       - setup_remote_docker
       - install-go
-      - run: sudo apt update && sudo apt install parallel -y
+      - run: docker buildx create --name builder --platform linux/amd64,linux/arm64 --use && docker buildx inspect --bootstrap
       - run: sudo pip install awscli
       - run: make ci-build-cli
       - return-if-not-deployed-branch
@@ -172,6 +172,10 @@ jobs:
                 max_instances: 2
               - name: inferentia
                 instance_type: inf1.xlarge
+                min_instances: 1
+                max_instances: 2
+              - name: arm
+                instance_type: a1.large
                 min_instances: 1
                 max_instances: 2
             EOF

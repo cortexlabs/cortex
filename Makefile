@@ -127,16 +127,23 @@ async-gateway-update:
 # docker images
 images-all:
 	@./dev/registry.sh update all
+images-all-multi-arch:
+	@./dev/registry.sh update all --include-arm64-arch
 images-all-skip-push:
 	@./dev/registry.sh update all --skip-push
 
 images-dev:
 	@./dev/registry.sh update dev
+images-dev-multi-arch:
+	@./dev/registry.sh update dev --include-arm64-arch
 images-dev-skip-push:
 	@./dev/registry.sh update dev --skip-push
 
 images-manager-skip-push:
 	@./dev/registry.sh update-single manager --skip-push
+
+images-clean-cache:
+	@./dev/registry.sh clean-cache
 
 registry-create:
 	@./dev/registry.sh create
@@ -151,7 +158,6 @@ tools:
 	@go get -u -v github.com/kyoh86/looppointer/cmd/looppointer
 	@go get -u -v github.com/VojtechVitek/rerun/cmd/rerun
 	@go get -u -v github.com/go-delve/delve/cmd/dlv
-	@if [[ "$$OSTYPE" == "darwin"* ]]; then brew install parallel; elif [[ "$$OSTYPE" == "linux"* ]]; then sudo apt-get install -y parallel; else echo "your operating system is not supported"; fi
 	@python3 -m pip install aiohttp black 'pydoc-markdown>=3.0.0,<4.0.0' boto3 pyyaml
 	@python3 -m pip install -e test/e2e
 

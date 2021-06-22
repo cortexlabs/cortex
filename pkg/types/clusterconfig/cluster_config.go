@@ -1441,20 +1441,20 @@ func validateInstanceType(instanceType string) (string, error) {
 		return "", ErrorInstanceTypeNotSupportedByCortex(instanceType)
 	}
 
-	isARM, err := aws.IsARMInstance(instanceType)
-	if err != nil {
-		return "", err
-	}
-	if isARM {
-		return "", ErrorARMInstancesNotSupported(instanceType)
-	}
-
 	isAMDGPU, err := aws.IsAMDGPUInstance(instanceType)
 	if err != nil {
 		return "", err
 	}
 	if isAMDGPU {
 		return "", ErrorAMDGPUInstancesNotSupported(instanceType)
+	}
+
+	isMac, err := aws.IsMacInstance(instanceType)
+	if err != nil {
+		return "", err
+	}
+	if isMac {
+		return "", ErrorMacInstancesNotSupported(instanceType)
 	}
 
 	if _, ok := awsutils.InstanceNetworkingLimits[instanceType]; !ok {
