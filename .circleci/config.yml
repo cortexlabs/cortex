@@ -118,6 +118,7 @@ jobs:
     environment:
       DOCKER_CLI_EXPERIMENTAL: enabled
       DOCKER_CONTEXT: default
+      DOCKER_TLS_VERIFY: 0
     steps:
       - setup_remote_docker:
           version: 19.03.14
