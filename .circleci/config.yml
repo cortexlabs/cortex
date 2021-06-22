@@ -123,8 +123,8 @@ jobs:
           version: 19.03.14
       - checkout
       - install-go
-      # - run: |
-      #     docker buildx create --name builder --platform linux/amd64,linux/arm64 --use && docker buildx inspect --bootstrap
+      - run: |
+          docker buildx create --name builder --platform linux/amd64,linux/arm64 --use default && docker buildx inspect --bootstrap
       # - run: sudo pip install awscli
       # - run: make ci-build-cli
       # - return-if-not-deployed-branch
