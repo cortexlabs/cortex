@@ -114,7 +114,7 @@ jobs:
 
   build-and-deploy:
     docker:
-      - image: circleci/python:3.6
+      - image: cimg/python:3.6
     environment:
       DOCKER_CLI_EXPERIMENTAL: enabled
       DOCKER_CONTEXT: default
