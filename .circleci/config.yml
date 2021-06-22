@@ -125,6 +125,7 @@ jobs:
       - checkout
       - install-go
       - run: |
+          docker context ls
           docker buildx create --name builder --platform linux/amd64,linux/arm64 --use $DOCKER_HOST && docker buildx inspect --bootstrap
       # - run: sudo pip install awscli
       # - run: make ci-build-cli
