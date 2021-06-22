@@ -47,7 +47,7 @@ non_dev_images=(
   # "metrics-server"
   # "inferentia"
   # "nvidia"
-  "kubexit"
+  # "kubexit"
 )
 
 # for linux/amd64 and linux/arm64

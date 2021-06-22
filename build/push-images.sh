@@ -23,11 +23,12 @@ source $ROOT/build/images.sh
 source $ROOT/dev/util.sh
 
 host=$1
+backup=$2
 
 for image in "${all_images[@]}"; do
   platforms="linux/amd64"
   if in_array $image "multi_arch_images"; then
     platforms+=",linux/arm64"
   fi
-  $ROOT/build/push-image.sh $host $image $platforms
+  $ROOT/build/push-image.sh $host $backup $image $platforms
 done

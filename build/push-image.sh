@@ -22,8 +22,9 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")"/.. >/dev/null && pwd)"
 CORTEX_VERSION=master
 
 host=$1
-image=$2
-platforms=$3
+backup=$2
+image=$3
+platforms=$4
 
 echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
-docker buildx build $ROOT --progress plain -f $ROOT/images/$image/Dockerfile -t $host/cortexlabs/${image}:${CORTEX_VERSION} --platform $platforms --push
+docker buildx build $ROOT --progress plain -f $ROOT/images/$image/Dockerfile -t $host/cortexlabs/${image}:${CORTEX_VERSION} -t $backup/cortexlabs/${image}:${CORTEX_VERSION} --platform $platforms --push
