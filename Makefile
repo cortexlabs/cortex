@@ -204,10 +204,7 @@ ci-build-images:
 	@./build/build-images.sh
 
 ci-push-images:
-	@./build/push-images.sh quay.io
-
-ci-backup-images:
-	@./build/push-images.sh docker.io
+	@./build/push-images.sh quay.io docker.io
 
 ci-build-cli:
 	@./build/cli.sh
