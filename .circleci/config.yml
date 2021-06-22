@@ -192,19 +192,19 @@ jobs:
 workflows:
   build:
     jobs:
-      - test
-      - build-and-deploy-approval:
-          type: approval
-          requires:
-            - test
-          filters:
-            branches:
-              only:
-                - /^[0-9]+\.[0-9]+$/
+      # - test
+      # - build-and-deploy-approval:
+      #     type: approval
+      #     requires:
+      #       - test
+      #     filters:
+      #       branches:
+      #         only:
+      #           - /^[0-9]+\.[0-9]+$/
       - build-and-deploy:
-          requires:
-            - test
-            - build-and-deploy-approval
+          # requires:
+          #   - test
+          #   - build-and-deploy-approval
           filters:
             branches:
               only:
