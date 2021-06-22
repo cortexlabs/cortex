@@ -131,7 +131,7 @@ jobs:
       - run: make ci-build-cli
       - return-if-not-deployed-branch
       - run: make ci-build-and-upload-cli
-      - run: 
+      - run:
           command: make ci-build-images
           no_output_timeout: 40m
       - quay-login
