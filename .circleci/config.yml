@@ -125,8 +125,9 @@ jobs:
       - checkout
       - install-go
       - run: |
-          docker context ls
-          docker buildx create --name builder --platform linux/amd64,linux/arm64 --use $DOCKER_HOST && docker buildx inspect --bootstrap
+          ls $DOCKER_CERT_PATH
+          docker context create custom-context --default-stack-orchestrator swarm --docker "host=$DOCKER_HOST"
+          docker buildx create --name builder --platform linux/amd64,linux/arm64 --use custom-context && docker buildx inspect --bootstrap
       # - run: sudo pip install awscli
       # - run: make ci-build-cli
       # - return-if-not-deployed-branch
