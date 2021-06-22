@@ -8,7 +8,7 @@
       image: infrastructureascode/hello-world
       readiness_probe:
         http_get:
-          path: "/healthz"
+          path: "/health"
           port: 8080
       compute:
         cpu: 200m
