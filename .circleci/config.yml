@@ -123,6 +123,7 @@ jobs:
       - run: |
           export DOCKER_CLI_EXPERIMENTAL=enabled
           export DOCKER_CONTEXT=default
+          unset DOCKER_HOST
           docker context ls 
           docker buildx create --name builder --platform linux/amd64,linux/arm64 --use && docker buildx inspect --bootstrap
       - run: sudo pip install awscli
