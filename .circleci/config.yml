@@ -119,7 +119,8 @@ jobs:
       NUM_BUILD_PROCS: "2"
     steps:
       - checkout
-      - setup_remote_docker
+      - setup_remote_docker:
+          version: 20.10.6
       - install-go
       - run: docker buildx create --name builder --platform linux/amd64,linux/arm64 --use && docker buildx inspect --bootstrap
       - run: sudo pip install awscli
@@ -142,7 +143,8 @@ jobs:
       CORTEX_TEST_BATCH_S3_PATH: s3://cortex-nightly-artifacts/test/jobs
     steps:
       - checkout
-      - setup_remote_docker
+      - setup_remote_docker:
+          version: 20.10.6
       - install-e2e-dependencies
       - run:
           name: Initialize Credentials
