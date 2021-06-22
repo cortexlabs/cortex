@@ -115,17 +115,8 @@ jobs:
   build-and-deploy:
     docker:
       - image: circleci/python:3.6
-    environment:
-      DOCKER_CLI_EXPERIMENTAL: enabled
     steps:
-      - setup_remote_docker:
-          version: 20.10.6
-      - run: |
-          ssh remote-docker \<<EOF
-            sudo bash -c 'echo "{\"experimental\": true}" > /etc/docker/daemon.json'
-            sudo systemctl restart docker
-            sudo docker info
-          EOF
+      - setup_remote_docker
       - checkout
       - install-go
       - run: docker buildx create --name builder --platform linux/amd64,linux/arm64 --use && docker buildx inspect --bootstrap
@@ -147,16 +138,8 @@ jobs:
       - image: circleci/python:3.6
     environment:
       CORTEX_TEST_BATCH_S3_PATH: s3://cortex-nightly-artifacts/test/jobs
-      DOCKER_CLI_EXPERIMENTAL: enabled
     steps:
-      - setup_remote_docker:
-          version: 20.10.6
-      - run: |
-          ssh remote-docker \<<EOF
-            sudo bash -c 'echo "{\"experimental\": true}" > /etc/docker/daemon.json'
-            sudo systemctl restart docker
-            sudo docker info
-          EOF
+      - setup_remote_docker
       - checkout
       - install-e2e-dependencies
       - run:
