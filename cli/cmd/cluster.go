@@ -475,17 +475,22 @@ var _clusterDownCmd = &cobra.Command{
 			errors.PrintError(err)
 			fmt.Println()
 		} else {
-
-			switch clusterstate.GetClusterState(stacks) {
-			case clusterstate.StateClusterExists:
+			state := clusterstate.GetClusterState(stacks)
+			if err := clusterstate.AssertClusterState(stacks, state, clusterstate.StateClusterDoesntExist); err != nil {
+				awsClient.DeleteQueuesWithPrefix(clusterconfig.SQSNamePrefix(accessConfig.ClusterName))
+				awsClient.DeletePolicy(clusterconfig.DefaultPolicyARN(accountID, accessConfig.ClusterName, accessConfig.Region))
+				if !_flagClusterDownKeepAWSResources {
+					volumes, err := listPVCVolumesForCluster(awsClient, accessConfig.ClusterName)
+					if err == nil {
+						for _, volume := range volumes {
+							awsClient.DeleteVolume(*volume.VolumeId)
+						}
+					}
+				}
 				fmt.Println("✓")
 				clusterExists = true
-			case clusterstate.StateClusterDoesntExist:
-				fmt.Println("cluster doesn't exist ✓")
-			default:
-				// still attempt to spin down the cluster if it's in an unexpected state
-				fmt.Println("✓")
-				clusterExists = true
+			} else {
+				fmt.Println("already deleted ✓")
 			}
 		}
 
@@ -506,9 +511,7 @@ var _clusterDownCmd = &cobra.Command{
 			fmt.Println("✓")
 		}
 
-		// this will be updated later if the EKS cluster deletion succeeded
 		clusterDoesntExist := !clusterExists
-
 		if clusterExists {
 			fmt.Print("￮ spinning down the cluster ...")
 			out, exitCode, err := runManagerAccessCommand("/root/uninstall.sh", *accessConfig, awsClient, nil, nil)
