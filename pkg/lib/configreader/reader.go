@@ -94,7 +94,7 @@ type StructListValidation struct {
 	StructValidation      *StructValidation
 	Required              bool
 	AllowExplicitNull     bool
-	TreatNullAsEmpty      bool // If explicit null or if it's top level and the file is empty, treat as empty map
+	TreatNullAsEmpty      bool // If explicit null or if it's top level and the file is empty, treat as empty list
 	MinLength             int
 	MaxLength             int
 	InvalidLengths        []int

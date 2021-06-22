@@ -19,6 +19,7 @@ package trafficsplitter
 import (
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
+	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/workloads"
 	istioclientnetworking "istio.io/client-go/pkg/apis/networking/v1beta1"
@@ -33,11 +34,12 @@ func virtualServiceSpec(trafficSplitter *spec.API) *istioclientnetworking.Virtua
 		Rewrite:      pointer.String("/"),
 		Annotations:  trafficSplitter.ToK8sAnnotations(),
 		Labels: map[string]string{
-			"apiName":        trafficSplitter.Name,
-			"apiKind":        trafficSplitter.Kind.String(),
-			"apiID":          trafficSplitter.ID,
-			"specID":         trafficSplitter.SpecID,
-			"cortex.dev/api": "true",
+			"apiName":               trafficSplitter.Name,
+			"apiKind":               trafficSplitter.Kind.String(),
+			"apiID":                 trafficSplitter.ID,
+			"specID":                trafficSplitter.SpecID,
+			"initialDeploymentTime": s.Int64(trafficSplitter.InitialDeploymentTime),
+			"cortex.dev/api":        "true",
 		},
 	})
 }

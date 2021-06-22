@@ -517,8 +517,9 @@ var ManagedConfigStructFieldValidations = []*cr.StructFieldValidation{
 	{
 		StructField: "NodeGroups",
 		StructListValidation: &cr.StructListValidation{
-			Required:         true,
-			StructValidation: nodeGroupsFieldValidation,
+			AllowExplicitNull: true,
+			TreatNullAsEmpty:  true,
+			StructValidation:  nodeGroupsFieldValidation,
 		},
 	},
 	{
@@ -890,9 +891,6 @@ func (cc *CoreConfig) SQSNamePrefix() string {
 
 func (cc *Config) validate(awsClient *aws.Client) error {
 	numNodeGroups := len(cc.NodeGroups)
-	if numNodeGroups == 0 {
-		return ErrorNoNodeGroupSpecified()
-	}
 	if numNodeGroups > MaxNodePoolsOrGroups {
 		return ErrorMaxNumOfNodeGroupsReached(MaxNodePoolsOrGroups)
 	}

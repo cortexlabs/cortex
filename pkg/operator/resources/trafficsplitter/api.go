@@ -19,6 +19,7 @@ package trafficsplitter
 import (
 	"fmt"
 	"path/filepath"
+	"time"
 
 	"github.com/cortexlabs/cortex/pkg/config"
 	"github.com/cortexlabs/cortex/pkg/consts"
@@ -41,7 +42,16 @@ func UpdateAPI(apiConfig *userconfig.API) (*spec.API, string, error) {
 		return nil, "", err
 	}
 
-	api := spec.GetAPISpec(apiConfig, "", config.ClusterConfig.ClusterUID)
+	initialDeploymentTime := time.Now().UnixNano()
+	if prevVirtualService != nil && prevVirtualService.Labels["initialDeploymentTime"] != "" {
+		var err error
+		initialDeploymentTime, err = k8s.ParseInt64Label(prevVirtualService, "initialDeploymentTime")
+		if err != nil {
+			return nil, "", err
+		}
+	}
+
+	api := spec.GetAPISpec(apiConfig, initialDeploymentTime, "", config.ClusterConfig.ClusterUID)
 	if prevVirtualService == nil {
 		if err := config.AWS.UploadJSONToS3(api, config.ClusterConfig.Bucket, api.Key); err != nil {
 			return nil, "", errors.Wrap(err, "failed to upload api spec")
