@@ -75,9 +75,9 @@ commands:
           template: basic_fail_1
 
 jobs:
-  test:
+  lint:
     machine:
-      image: ubuntu-1604:202104-01  # machine executor necessary to run go integration tests
+      image: ubuntu-1604:202104-01
     steps:
       - checkout
       - install-go
@@ -87,6 +87,16 @@ jobs:
             go get -u -v golang.org/x/lint/golint
             go get -u -v github.com/kyoh86/looppointer/cmd/looppointer
             pip3 install black aiohttp
+      - run:
+          name: Lint
+          command: make lint
+
+  test:
+    machine:
+      image: ubuntu-1604:202104-01  # machine executor necessary to run go integration tests
+    steps:
+      - checkout
+      - install-go
       - run:
           name: Initialize Credentials
           command: |
@@ -105,9 +115,6 @@ jobs:
                 min_instances: 1
                 max_instances: 1
             EOF
-      - run:
-          name: Lint
-          command: make lint
       - run:
           name: Go Tests
           command: make test
@@ -197,10 +204,12 @@ jobs:
 workflows:
   build:
     jobs:
+      - lint
       - test
       - build-and-deploy-approval:
           type: approval
           requires:
+            - lint
             - test
           filters:
             branches:
@@ -208,6 +217,7 @@ workflows:
                 - /^[0-9]+\.[0-9]+$/
       - build-and-deploy:
           requires:
+            - lint
             - test
             - build-and-deploy-approval
           filters:
