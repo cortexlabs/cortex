@@ -66,7 +66,7 @@ def test_realtime_api(printer: Callable, config: Dict, client: cx.Client, api: D
 
 @pytest.mark.usefixtures("client")
 @pytest.mark.parametrize("api", TEST_APIS_ARM)
-def test_realtime_api(printer: Callable, config: Dict, client: cx.Client, api: Dict[str, str]):
+def test_realtime_api_arm(printer: Callable, config: Dict, client: cx.Client, api: Dict[str, str]):
 
     printer(f"testing {api['name']}")
     e2e.tests.test_realtime_api(
@@ -76,6 +76,7 @@ def test_realtime_api(printer: Callable, config: Dict, client: cx.Client, api: D
         timeout=config["global"]["realtime_deploy_timeout"],
         api_config_name="cortex_cpu_arm64.yaml",
         extra_path=api["extra_path"],
+        method="GET",
     )
 
 
