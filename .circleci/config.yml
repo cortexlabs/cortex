@@ -117,7 +117,6 @@ jobs:
       - image: cimg/python:3.6
     environment:
       DOCKER_CLI_EXPERIMENTAL: enabled
-      DOCKER_CONTEXT: default
     steps:
       - setup_remote_docker
       - checkout
@@ -131,16 +130,13 @@ jobs:
       - run: make ci-build-cli
       - return-if-not-deployed-branch
       - run: make ci-build-and-upload-cli
-      - run:
-          command: make ci-build-images
-          no_output_timeout: 40m
       - quay-login
       - run:
-          command: make ci-push-images
-          no_output_timeout: 20m
-      - run:
-          command: make ci-backup-images
-          no_output_timeout: 20m
+          name: Build and Push CI Images
+          command: |
+            make ci-build-images
+            make ci-push-images
+          no_output_timeout: 40m
 
   e2e-tests:
     docker:
