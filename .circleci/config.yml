@@ -115,8 +115,8 @@ jobs:
   build-and-deploy:
     docker:
       - image: cimg/python:3.6
-    # environment:
-    #   DOCKER_CLI_EXPERIMENTAL: enabled
+    environment:
+      DOCKER_CLI_EXPERIMENTAL: enabled
     #   DOCKER_CONTEXT: default
     steps:
       - setup_remote_docker
