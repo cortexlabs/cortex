@@ -475,22 +475,11 @@ var _clusterDownCmd = &cobra.Command{
 			errors.PrintError(err)
 			fmt.Println()
 		} else {
-			state := clusterstate.GetClusterState(stacks)
-			if err := clusterstate.AssertClusterState(stacks, state, clusterstate.StateClusterDoesntExist); err != nil {
+			if clusterstate.GetClusterState(stacks) == clusterstate.StateClusterDoesntExist {
+				fmt.Println("cluster doesn't exist ✓")
+			} else {
 				fmt.Println("✓")
 				clusterExists = true
-			} else {
-				awsClient.DeleteQueuesWithPrefix(clusterconfig.SQSNamePrefix(accessConfig.ClusterName))
-				awsClient.DeletePolicy(clusterconfig.DefaultPolicyARN(accountID, accessConfig.ClusterName, accessConfig.Region))
-				if !_flagClusterDownKeepAWSResources {
-					volumes, err := listPVCVolumesForCluster(awsClient, accessConfig.ClusterName)
-					if err == nil {
-						for _, volume := range volumes {
-							awsClient.DeleteVolume(*volume.VolumeId)
-						}
-					}
-				}
-				fmt.Println("already deleted ✓")
 			}
 		}
 
