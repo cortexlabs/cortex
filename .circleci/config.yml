@@ -114,12 +114,15 @@ jobs:
 
   build-and-deploy:
     docker:
-      - image: circleci/python:3.6
+      - image: cimg/base:stable
     steps:
-      - setup_remote_docker
+      - setup_remote_docker:
+          version: 19.03.14
       - checkout
       - install-go
-      - run: docker buildx create --name builder --platform linux/amd64,linux/arm64 --use && docker buildx inspect --bootstrap
+      - run: |
+          export DOCKER_CLI_EXPERIMENTAL=enabled
+          docker buildx create --name builder --platform linux/amd64,linux/arm64 --use && docker buildx inspect --bootstrap
       - run: sudo pip install awscli
       - run: make ci-build-cli
       - return-if-not-deployed-branch
