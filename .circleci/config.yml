@@ -116,7 +116,7 @@ jobs:
     docker:
       - image: circleci/python:3.6
     environment:
-      NUM_BUILD_PROCS: "2"
+      DOCKER_CLI_EXPERIMENTAL: enabled
     steps:
       - checkout
       - setup_remote_docker:
@@ -141,6 +141,7 @@ jobs:
       - image: circleci/python:3.6
     environment:
       CORTEX_TEST_BATCH_S3_PATH: s3://cortex-nightly-artifacts/test/jobs
+      DOCKER_CLI_EXPERIMENTAL: enabled
     steps:
       - checkout
       - setup_remote_docker:
