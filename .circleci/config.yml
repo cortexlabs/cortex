@@ -119,8 +119,7 @@ jobs:
       DOCKER_CLI_EXPERIMENTAL: enabled
       DOCKER_CONTEXT: default
     steps:
-      - setup_remote_docker:
-          version: 19.03.14
+      - setup_remote_docker
       - checkout
       - install-go
       - run:
