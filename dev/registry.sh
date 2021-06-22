@@ -125,13 +125,23 @@ function build_and_push() {
     echo "AWS_ACCOUNT_ID or AWS_REGION env vars not found"
     exit 1
   fi
-  registry_login
 
   tag=$CORTEX_VERSION
+
+  push_or_not_flag=""
+  running_operation="Building"
+  finished_operation="Built"
+  if [ "$skip_push" = "false" ]; then
+    push_or_not_flag="--push"
+    running_operation+=" and pushing"
+    finished_operation+=" and pushed"
+    registry_login
+  fi
+
   if [ "$include_arm64_arch" = "true" ]; then
-    blue_echo "Building and pushing $image:$tag (amd64 and arm64)..."
+    blue_echo "$running_operation $image:$tag (amd64 and arm64)..."
   else
-    blue_echo "Building and pushing $image:$tag (amd64)..."
+    blue_echo "$running_operation $image:$tag (amd64)..."
   fi
 
   platforms="linux/amd64"
@@ -139,12 +149,12 @@ function build_and_push() {
     platforms+=",linux/arm64"
   fi
 
-  docker buildx build $ROOT -f $dir/Dockerfile -t $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/cortexlabs/$image:$tag --platform $platforms --push
+  docker buildx build $ROOT -f $dir/Dockerfile -t $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/cortexlabs/$image:$tag --platform $platforms $push_or_not_flag
 
   if [ "$include_arm64_arch" = "true" ]; then
-    green_echo "Built and pushed $image:$tag (amd64 and arm64)..."
+    green_echo "$finished_operation $image:$tag (amd64 and arm64)..."
   else
-    green_echo "Built and pushed $image:$tag (amd64)..."
+    green_echo "$finished_operation $image:$tag (amd64)..."
   fi
 
   if [[ " $images_that_can_run_locally " =~ " $image " ]] && [[ "$include_arm64_arch" == "false" ]]; then
