@@ -933,7 +933,7 @@ func printInfoNodes(infoResponse *schema.InfoResponse) {
 	numAPIInstances := len(infoResponse.NodeInfos)
 
 	var totalReplicas int
-	var doesClusterHaveGPUs, doesClusterHaveInfs, doesClusterHaveAsyncAPIs bool
+	var doesClusterHaveGPUs, doesClusterHaveInfs, doesClusterHaveAsyncGateways, doesClusterHaveEnqueuers bool
 	for _, nodeInfo := range infoResponse.NodeInfos {
 		totalReplicas += nodeInfo.NumReplicas
 		if nodeInfo.ComputeUserCapacity.GPU > 0 {
@@ -943,7 +943,10 @@ func printInfoNodes(infoResponse *schema.InfoResponse) {
 			doesClusterHaveInfs = true
 		}
 		if nodeInfo.NumAsyncGatewayReplicas > 0 {
-			doesClusterHaveAsyncAPIs = true
+			doesClusterHaveAsyncGateways = true
+		}
+		if nodeInfo.NumEnqueuerReplicas > 0 {
+			doesClusterHaveEnqueuers = true
 		}
 	}
 
@@ -962,7 +965,8 @@ func printInfoNodes(infoResponse *schema.InfoResponse) {
 		{Title: "instance type"},
 		{Title: "lifecycle"},
 		{Title: "replicas"},
-		{Title: "async gateway replicas", Hidden: !doesClusterHaveAsyncAPIs},
+		{Title: "async gateway replicas", Hidden: !doesClusterHaveAsyncGateways},
+		{Title: "batch enqueuer replicas", Hidden: !doesClusterHaveEnqueuers},
 		{Title: "CPU (requested / total allocatable)"},
 		{Title: "memory (requested / total allocatable)"},
 		{Title: "GPU (requested / total allocatable)", Hidden: !doesClusterHaveGPUs},
@@ -980,7 +984,7 @@ func printInfoNodes(infoResponse *schema.InfoResponse) {
 		memStr := nodeInfo.ComputeUserRequested.Mem.String() + " / " + nodeInfo.ComputeUserCapacity.Mem.String()
 		gpuStr := s.Int64(nodeInfo.ComputeUserRequested.GPU) + " / " + s.Int64(nodeInfo.ComputeUserCapacity.GPU)
 		infStr := s.Int64(nodeInfo.ComputeUserRequested.Inf) + " / " + s.Int64(nodeInfo.ComputeUserCapacity.Inf)
-		rows = append(rows, []interface{}{nodeInfo.InstanceType, lifecycle, nodeInfo.NumReplicas, nodeInfo.NumAsyncGatewayReplicas, cpuStr, memStr, gpuStr, infStr})
+		rows = append(rows, []interface{}{nodeInfo.InstanceType, lifecycle, nodeInfo.NumReplicas, nodeInfo.NumAsyncGatewayReplicas, nodeInfo.NumEnqueuerReplicas, cpuStr, memStr, gpuStr, infStr})
 	}
 
 	t := table.Table{

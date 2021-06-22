@@ -104,8 +104,14 @@ func getNodeInfos() ([]schema.NodeInfo, int, error) {
 	for i := range pods {
 		pod := pods[i]
 
+		if pod.Status.Phase == kcore.PodSucceeded || pod.Status.Phase == kcore.PodFailed {
+			// note: pending pods can be scheduled on nodes (image pull in progress)
+			continue
+		}
+
 		_, isAPIPod := pod.Labels["apiName"]
-		asyncDeploymentType, isAsyncPod := pod.Labels["cortex.dev/async"]
+		asyncPodType, isAsyncPod := pod.Labels["cortex.dev/async"]
+		batchPodType, isBatchPod := pod.Labels["cortex.dev/batch"]
 
 		if pod.Spec.NodeName == "" && isAPIPod {
 			numPendingReplicas++
@@ -118,8 +124,10 @@ func getNodeInfos() ([]schema.NodeInfo, int, error) {
 		}
 
 		if isAPIPod {
-			if isAsyncPod && asyncDeploymentType == "gateway" {
+			if isAsyncPod && asyncPodType == "gateway" {
 				node.NumAsyncGatewayReplicas++
+			} else if isBatchPod && batchPodType == "enqueuer" {
+				node.NumEnqueuerReplicas++
 			} else {
 				node.NumReplicas++
 			}
