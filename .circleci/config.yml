@@ -114,13 +114,20 @@ jobs:
 
   build-and-deploy:
     docker:
-      - image: circleci/python:3.6
+      - image: cimg/python:3.6
+    environment:
+      DOCKER_CLI_EXPERIMENTAL: enabled
+      DOCKER_CONTEXT: default
     steps:
       - setup_remote_docker
       - checkout
       - install-go
-      - run: docker buildx create --name builder --platform linux/amd64,linux/arm64 --use && docker buildx inspect --bootstrap
-      - run: sudo pip install awscli
+      - run:
+          name: Configure Docker Buildx
+          command: |
+            docker context create custom-context --default-stack-orchestrator swarm --docker "host=$DOCKER_HOST,ca=$DOCKER_CERT_PATH/ca.pem,cert=$DOCKER_CERT_PATH/cert.pem,key=$DOCKER_CERT_PATH/key.pem"
+            docker buildx create --name builder --platform linux/amd64,linux/arm64 --use custom-context && docker buildx inspect --bootstrap
+      - run: pip install awscli
       - run: make ci-build-cli
       - return-if-not-deployed-branch
       - run: make ci-build-and-upload-cli
@@ -135,7 +142,7 @@ jobs:
 
   e2e-tests:
     docker:
-      - image: circleci/python:3.6
+      - image: cimg/python:3.6
     environment:
       CORTEX_TEST_BATCH_S3_PATH: s3://cortex-nightly-artifacts/test/jobs
     steps:
