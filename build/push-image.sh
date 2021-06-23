@@ -24,8 +24,15 @@ CORTEX_VERSION=master
 host_primary=$1
 host_backup=$2
 image=$3
-arch=$4
+is_multi_arch=$4
+arch=$5
 
 echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
-docker push $host_primary/cortexlabs/${image}:manifest-${CORTEX_VERSION}-$arch
-docker push $host_backup/cortexlabs/${image}:manifest-${CORTEX_VERSION}-$arch
+if [ "$is_multi_arch" = "true" ]; then
+  tag="manifest-${CORTEX_VERSION}-$arch"
+else
+  tag="${CORTEX_VERSION}"
+fi
+
+docker push $host_primary/cortexlabs/${image}:${tag}
+docker push $host_backup/cortexlabs/${image}:${tag}
