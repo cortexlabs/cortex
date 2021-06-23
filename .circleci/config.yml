@@ -132,11 +132,11 @@ jobs:
           name: Configure Docker Buildx
           command: |
             docker context create custom-context --default-stack-orchestrator swarm --docker "host=$DOCKER_HOST,ca=$DOCKER_CERT_PATH/ca.pem,cert=$DOCKER_CERT_PATH/cert.pem,key=$DOCKER_CERT_PATH/key.pem"
-            docker buildx create --name builder --platform linux/amd64,linux/arm64 --use custom-context && docker buildx inspect --bootstrap
-      - run: pip install awscli
-      - run: make ci-build-cli
-      - return-if-not-deployed-branch
-      - run: make ci-build-and-upload-cli
+            docker buildx create --name builder --driver-opt image=moby/buildkit:master --platform linux/amd64,linux/arm64 --use custom-context && docker buildx inspect --bootstrap
+      # - run: pip install awscli
+      # - run: make ci-build-cli
+      # - return-if-not-deployed-branch
+      # - run: make ci-build-and-upload-cli
       - quay-login
       - run:
           name: Build and Push CI Images
@@ -204,27 +204,27 @@ jobs:
 workflows:
   build:
     jobs:
-      - lint
-      - test
-      - build-and-deploy-approval:
-          type: approval
-          requires:
-            - lint
-            - test
-          filters:
-            branches:
-              only:
-                - /^[0-9]+\.[0-9]+$/
-      - build-and-deploy:
-          requires:
-            - lint
-            - test
-            - build-and-deploy-approval
-          filters:
-            branches:
-              only:
-                - master
-                - /^[0-9]+\.[0-9]+$/
+      # - lint
+      # - test
+      # - build-and-deploy-approval:
+      #     type: approval
+      #     requires:
+      #       - lint
+      #       - test
+      #     filters:
+      #       branches:
+      #         only:
+      #           - /^[0-9]+\.[0-9]+$/
+      - build-and-deploy
+          # requires:
+          #   - lint
+          #   - test
+          #   - build-and-deploy-approval
+          # filters:
+          #   branches:
+          #     only:
+          #       - master
+          #       - /^[0-9]+\.[0-9]+$/
   nightly:
     triggers:
       - schedule:
