@@ -137,12 +137,14 @@ jobs:
       # - run: make ci-build-cli
       # - return-if-not-deployed-branch
       # - run: make ci-build-and-upload-cli
+      - run:
+          name: Build CI Images
+          command: make ci-build-images
+          no_output_timeout: 40m
       - quay-login
       - run:
-          name: Build and Push CI Images
-          command: |
-            make ci-build-images
-            make ci-push-images
+          name: Push CI Images
+          command: make ci-push-images
           no_output_timeout: 40m
 
   e2e-tests:

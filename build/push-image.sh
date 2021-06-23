@@ -27,4 +27,4 @@ image=$3
 platforms=$4
 
 echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
-docker buildx build $ROOT --progress plain -f $ROOT/images/$image/Dockerfile -t $host_primary/cortexlabs/${image}:${CORTEX_VERSION} -t $host_backup/cortexlabs/${image}:${CORTEX_VERSION} --platform $platforms --push
+docker buildx build $ROOT --cache-to=type=local,src=$ROOT/.cache --progress plain -f $ROOT/images/$image/Dockerfile -t $host_primary/cortexlabs/${image}:${CORTEX_VERSION} -t $host_backup/cortexlabs/${image}:${CORTEX_VERSION} --platform $platforms --push
