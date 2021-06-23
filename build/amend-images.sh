@@ -26,9 +26,7 @@ host_primary=$1
 host_backup=$2
 
 for image in "${all_images[@]}"; do
-    has_arm64_build="false"
     if in_array $image "multi_arch_images"; then
-        has_arm64_build="true"
+        $ROOT/build/amend-image.sh $host_primary $host_backup $image
     fi
-    $ROOT/build/amend-image.sh $host_primary $host_backup $image $has_arm64_build
 done
