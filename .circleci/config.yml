@@ -155,13 +155,12 @@ jobs:
           no_output_timeout: 40m
 
   build-and-push-images-arm64:
-    docker:
-      - image: cimg/python:3.6
+    machine:
+      image: ubuntu-2004:202101-01  # machine executor necessary to run go integration tests
     environment:
       DOCKER_CLI_EXPERIMENTAL: enabled
     resource_class: arm.medium
     steps:
-      - setup_remote_docker
       - checkout
       - return-if-not-deployed-branch
       - run: make ci-build-and-upload-cli
