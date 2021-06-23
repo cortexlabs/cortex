@@ -129,19 +129,16 @@ jobs:
       - setup_remote_docker
       - checkout
       - install-go
+      - return-if-not-deployed-branch
       - run: pip install awscli
       - run: make ci-build-cli
-      # - return-if-not-deployed-branch
       - run: make ci-build-and-upload-cli
 
   build-and-push-images-amd64:
     machine:
-      image: ubuntu-2004:202101-01  # machine executor necessary to build arm64 images
-    environment:
-      DOCKER_CLI_EXPERIMENTAL: enabled
+      image: ubuntu-2004:202101-01
     resource_class: medium
     steps:
-      # - setup_remote_docker
       - checkout
       # - return-if-not-deployed-branch
       - run:
@@ -156,9 +153,7 @@ jobs:
 
   build-and-push-images-arm64:
     machine:
-      image: ubuntu-2004:202101-01  # machine executor necessary to build arm64 images
-    environment:
-      DOCKER_CLI_EXPERIMENTAL: enabled
+      image: ubuntu-2004:202101-01
     resource_class: arm.medium
     steps:
       - checkout

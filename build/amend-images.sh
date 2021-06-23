@@ -19,9 +19,16 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")"/.. >/dev/null && pwd)"
 
+source $ROOT/build/images.sh
+source $ROOT/dev/util.sh
+
 host_primary=$1
 host_backup=$2
 
 for image in "${all_images[@]}"; do
-    $ROOT/build/amend-image.sh $host_primary $host_backup $image
+    has_arm64_build="false"
+    if in_array $image "multi_arch_images"; then
+        has_arm64_build="true"
+    fi
+    $ROOT/build/amend-image.sh $host_primary $host_backup $image $has_arm64_build
 done
