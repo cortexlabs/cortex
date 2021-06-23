@@ -24,24 +24,20 @@ host_backup=$2
 image=$3
 has_arm64_build=$4
 
+hosts=(
+    "$host_primary"
+    "$host_backup"
+)
 echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
 
-if [ "$has_arm64_build" = "true" ]; then
-    docker manifest create $host_primary/cortexlabs/${image}:${CORTEX_VERSION} \
-        -a $host_primary/cortexlabs/${image}:manifest-${CORTEX_VERSION}-amd64 \
-        -a $host_primary/cortexlabs/${image}:manifest-${CORTEX_VERSION}-arm64
-else
-    docker manifest create $host_primary/cortexlabs/${image}:${CORTEX_VERSION} \
-        -a $host_primary/cortexlabs/${image}:manifest-${CORTEX_VERSION}-amd64
-fi
-docker manifest push $host_primary/cortexlabs/${image}:${CORTEX_VERSION}
-
-if [ "$has_arm64_build" = "true" ]; then
-    docker manifest create $host_backup/cortexlabs/${image}:${CORTEX_VERSION} \
-        -a $host_backup/cortexlabs/${image}:manifest-${CORTEX_VERSION}-amd64 \
-        -a $host_backup/cortexlabs/${image}:manifest-${CORTEX_VERSION}-arm64
-else
-    docker manifest create $host_backup/cortexlabs/${image}:${CORTEX_VERSION} \
-        -a $host_backup/cortexlabs/${image}:manifest-${CORTEX_VERSION}-amd64
-fi
-docker manifest push $host_backup/cortexlabs/${image}:${CORTEX_VERSION}
+for host in "${hosts[@]}"; do
+    if [ "$has_arm64_build" = "true" ]; then
+        docker manifest create $host/cortexlabs/${image}:${CORTEX_VERSION} \
+            -a $host/cortexlabs/${image}:manifest-${CORTEX_VERSION}-amd64 \
+            -a $host/cortexlabs/${image}:manifest-${CORTEX_VERSION}-arm64
+    else
+        docker manifest create $host/cortexlabs/${image}:${CORTEX_VERSION} \
+            -a $host/cortexlabs/${image}:manifest-${CORTEX_VERSION}-amd64
+    fi
+    docker manifest push $host/cortexlabs/${image}:${CORTEX_VERSION}
+done
