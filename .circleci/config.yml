@@ -163,7 +163,6 @@ jobs:
     steps:
       - checkout
       # - return-if-not-deployed-branch
-      - run: make ci-build-and-upload-cli
       - run:
           name: Build CI Images (arm64)
           command: make ci-build-images-arm64

@@ -201,10 +201,10 @@ lint-docs:
 ###############
 
 ci-build-images-amd64:
-	@./build/build-images.sh amd64
+	@./build/build-images.sh amd64 quay.io docker.io
 
 ci-build-images-arm64:
-	@./build/build-images.sh arm64
+	@./build/build-images.sh arm64 quay.io docker.io
 
 ci-push-images-amd64:
 	@./build/push-images.sh amd64 quay.io docker.io
