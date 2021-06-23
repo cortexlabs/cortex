@@ -17,21 +17,21 @@
 
 set -euo pipefail
 
-ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")"/.. >/dev/null && pwd)"
+CORTEX_VERSION=0.37.0
 
-source $ROOT/build/images.sh
-source $ROOT/dev/util.sh
+host_primary=$1
+host_backup=$2
+image=$3
 
-arch=$1
-host_primary=$2
-host_backup=$3
+hosts=(
+    "$host_primary"
+    "$host_backup"
+)
+echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
 
-for image in "${all_images[@]}"; do
-  is_multi_arch="false"
-  if in_array $image "multi_arch_images"; then
-    is_multi_arch="true"
-    $ROOT/build/push-image.sh $host_primary $host_backup $image $is_multi_arch $arch
-  elif [ "$arch" = "amd64" ]; then
-    $ROOT/build/push-image.sh $host_primary $host_backup $image $is_multi_arch $arch
-  fi
+for host in "${hosts[@]}"; do
+    docker manifest create $host/cortexlabs/${image}:${CORTEX_VERSION} \
+        -a $host/cortexlabs/${image}:manifest-${CORTEX_VERSION}-amd64 \
+        -a $host/cortexlabs/${image}:manifest-${CORTEX_VERSION}-arm64
+    docker manifest push $host/cortexlabs/${image}:${CORTEX_VERSION}
 done

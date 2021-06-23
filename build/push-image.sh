@@ -24,7 +24,16 @@ CORTEX_VERSION=0.37.0
 host_primary=$1
 host_backup=$2
 image=$3
-platforms=$4
+is_multi_arch=$4
+arch=$5
 
 echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
-docker buildx build $ROOT --progress plain -f $ROOT/images/$image/Dockerfile -t $host_primary/cortexlabs/${image}:${CORTEX_VERSION} -t $host_backup/cortexlabs/${image}:${CORTEX_VERSION} --platform $platforms --push
+
+if [ "$is_multi_arch" = "true" ]; then
+  tag="manifest-${CORTEX_VERSION}-$arch"
+else
+  tag="${CORTEX_VERSION}"
+fi
+
+docker push $host_primary/cortexlabs/${image}:${tag}
+docker push $host_backup/cortexlabs/${image}:${tag}
