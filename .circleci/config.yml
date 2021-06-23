@@ -135,13 +135,13 @@ jobs:
       - run: make ci-build-and-upload-cli
 
   build-and-push-images-amd64:
-    docker:
-      - image: cimg/python:3.6
+    machine:
+      image: ubuntu-2004:202101-01  # machine executor necessary to build arm64 images
     environment:
       DOCKER_CLI_EXPERIMENTAL: enabled
     resource_class: medium
     steps:
-      - setup_remote_docker
+      # - setup_remote_docker
       - checkout
       # - return-if-not-deployed-branch
       - run:
@@ -156,7 +156,7 @@ jobs:
 
   build-and-push-images-arm64:
     machine:
-      image: ubuntu-2004:202101-01  # machine executor necessary to run go integration tests
+      image: ubuntu-2004:202101-01  # machine executor necessary to build arm64 images
     environment:
       DOCKER_CLI_EXPERIMENTAL: enabled
     resource_class: arm.medium
