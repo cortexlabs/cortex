@@ -140,7 +140,7 @@ jobs:
     resource_class: medium
     steps:
       - checkout
-      # - return-if-not-deployed-branch
+      - return-if-not-deployed-branch
       - run:
           name: Build CI Images (amd64)
           command: make ci-build-images-amd64
@@ -157,7 +157,7 @@ jobs:
     resource_class: arm.medium
     steps:
       - checkout
-      # - return-if-not-deployed-branch
+      - return-if-not-deployed-branch
       - run:
           name: Build CI Images (arm64)
           command: make ci-build-images-arm64
@@ -177,7 +177,7 @@ jobs:
     steps:
       - setup_remote_docker
       - checkout
-      # - return-if-not-deployed-branch
+      - return-if-not-deployed-branch
       - quay-login
       - run:
           name: Amend CI Images
@@ -243,55 +243,55 @@ jobs:
 workflows:
   build:
     jobs:
-      # - lint
-      # - test
-      # - build-and-deploy-approval:
-      #     type: approval
-          # requires:
-          #   - lint
-          #   - test
-          # filters:
-          #   branches:
-          #     only:
-          #       - /^[0-9]+\.[0-9]+$/
-      # - build-and-upload-cli:
-      #     requires:
-            # - lint
-            # - test
-          #   - build-and-deploy-approval
-          # filters:
-          #   branches:
-          #     only:
-          #       - master
-          #       - /^[0-9]+\.[0-9]+$/
-      - build-and-push-images-amd64
-          # requires:
-          #   - build-and-upload-cli
-          #   - build-and-deploy-approval
-          # filters:
-          #   branches:
-          #     only:
-          #       - master
-          #       - /^[0-9]+\.[0-9]+$/
-      - build-and-push-images-arm64
-          # requires:
-          #   - build-and-upload-cli
-          #   - build-and-deploy-approval
-          # filters:
-          #   branches:
-          #     only:
-          #       - master
-          #       - /^[0-9]+\.[0-9]+$/
+      - lint
+      - test
+      - build-and-deploy-approval:
+          type: approval
+          requires:
+            - lint
+            - test
+          filters:
+            branches:
+              only:
+                - /^[0-9]+\.[0-9]+$/
+      - build-and-upload-cli:
+          requires:
+            - lint
+            - test
+            - build-and-deploy-approval
+          filters:
+            branches:
+              only:
+                - master
+                - /^[0-9]+\.[0-9]+$/
+      - build-and-push-images-amd64:
+          requires:
+            - build-and-upload-cli
+            - build-and-deploy-approval
+          filters:
+            branches:
+              only:
+                - master
+                - /^[0-9]+\.[0-9]+$/
+      - build-and-push-images-arm64:
+          requires:
+            - build-and-upload-cli
+            - build-and-deploy-approval
+          filters:
+            branches:
+              only:
+                - master
+                - /^[0-9]+\.[0-9]+$/
       - amend-images:
           requires:
             - build-and-push-images-amd64
             - build-and-push-images-arm64
-          #   - build-and-deploy-approval
-          # filters:
-          #   branches:
-          #     only:
-          #       - master
-          #       - /^[0-9]+\.[0-9]+$/
+            - build-and-deploy-approval
+          filters:
+            branches:
+              only:
+                - master
+                - /^[0-9]+\.[0-9]+$/
   nightly:
     triggers:
       - schedule:
