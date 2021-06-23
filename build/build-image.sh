@@ -27,4 +27,4 @@ platforms=$2
 if [ "$image" == "inferentia" ]; then
   aws ecr get-login-password --region us-west-2 | docker login --username AWS --password-stdin 790709498068.dkr.ecr.us-west-2.amazonaws.com
 fi
-docker buildx build $ROOT --progress plain -f $ROOT/images/$image/Dockerfile -t quay.io/cortexlabs/${image}:${CORTEX_VERSION} -t cortexlabs/${image}:${CORTEX_VERSION} --platform $platforms
+docker buildx build $ROOT --cache-to=type=local,dest=$ROOT/.cache,mode=max --progress plain -f $ROOT/images/$image/Dockerfile -t quay.io/cortexlabs/${image}:${CORTEX_VERSION} -t cortexlabs/${image}:${CORTEX_VERSION} --platform $platforms
