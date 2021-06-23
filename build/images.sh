@@ -20,7 +20,7 @@
 set -euo pipefail
 
 dev_images=(
-  # "manager"
+  "manager"
   "proxy"
   # "async-gateway"
   # "enqueuer"
