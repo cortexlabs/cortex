@@ -17,15 +17,20 @@
 
 set -euo pipefail
 
-ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")"/.. >/dev/null && pwd)"
-
 CORTEX_VERSION=master
 
 host_primary=$1
 host_backup=$2
 image=$3
-arch=$4
 
 echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
-docker push $host_primary/cortexlabs/${image}:manifest-${CORTEX_VERSION}-$arch
-docker push $host_backup/cortexlabs/${image}:manifest-${CORTEX_VERSION}-$arch
+
+docker manifest create $host_primary/cortexlabs/${image}:${CORTEX_VERSION} \
+    -a $host_primary/cortexlabs/${image}:manifest-${CORTEX_VERSION}-amd64 \
+    -a $host_primary/cortexlabs/${image}:manifest-${CORTEX_VERSION}-arm64
+docker manifest push $host_primary/cortexlabs/${image}:${CORTEX_VERSION}
+
+docker manifest create $host_backup/cortexlabs/${image}:${CORTEX_VERSION} \
+    -a $host_backup/cortexlabs/${image}:manifest-${CORTEX_VERSION}-amd64 \
+    -a $host_backup/cortexlabs/${image}:manifest-${CORTEX_VERSION}-arm64
+docker manifest push $host_backup/cortexlabs/${image}:${CORTEX_VERSION}
