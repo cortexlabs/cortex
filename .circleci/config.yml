@@ -267,7 +267,6 @@ workflows:
       - build-and-push-images-amd64:
           requires:
             - build-and-upload-cli
-            - build-and-deploy-approval
           filters:
             branches:
               only:
@@ -276,7 +275,6 @@ workflows:
       - build-and-push-images-arm64:
           requires:
             - build-and-upload-cli
-            - build-and-deploy-approval
           filters:
             branches:
               only:
@@ -286,7 +284,6 @@ workflows:
           requires:
             - build-and-push-images-amd64
             - build-and-push-images-arm64
-            - build-and-deploy-approval
           filters:
             branches:
               only:
