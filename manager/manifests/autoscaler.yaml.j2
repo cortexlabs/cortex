@@ -30,8 +30,17 @@ rules:
   resources:
   - virtualservices
   verbs:
+  - get
   - list
   - watch
+  - update
+- apiGroups:
+  - "apps"
+  resources:
+  - deployments
+  verbs:
+  - get
+  - update
 
 ---
 
