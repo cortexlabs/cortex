@@ -280,36 +280,32 @@ func confirmInstallClusterConfig(clusterConfig *clusterconfig.Config, awsClient 
 
 func confirmConfigureClusterConfig(configureChanges clusterconfig.ConfigureChanges, oldCc, newCc clusterconfig.Config, disallowPrompt bool) {
 	fmt.Printf("your %s cluster in region %s will be updated as follows:\n\n", newCc.ClusterName, newCc.Region)
-	if len(configureChanges.NodeGroupsToScale) > 0 {
-		fmt.Printf("￮ %d %s will be scaled\n", len(configureChanges.NodeGroupsToScale), s.PluralS("nodegroup", len(configureChanges.NodeGroupsToScale)))
-		for _, ngName := range configureChanges.NodeGroupsToScale {
-			var output string
-			ngOld := oldCc.GetNodeGroupByName(ngName)
-			ngScaled := newCc.GetNodeGroupByName(ngName)
-			if ngOld.MinInstances != ngScaled.MinInstances && ngOld.MaxInstances != ngScaled.MaxInstances {
-				output = fmt.Sprintf("nodegroup %s will update its %s from %d to %d and update its %s from %d to %d", ngName, clusterconfig.MinInstancesKey, ngOld.MinInstances, ngScaled.MinInstances, clusterconfig.MaxInstancesKey, ngOld.MaxInstances, ngScaled.MaxInstances)
-			}
-			if ngOld.MinInstances == ngScaled.MinInstances && ngOld.MaxInstances != ngScaled.MaxInstances {
-				output = fmt.Sprintf("nodegroup %s will update its %s from %d to %d", ngName, clusterconfig.MaxInstancesKey, ngOld.MaxInstances, ngScaled.MaxInstances)
-			}
-			if ngOld.MinInstances != ngScaled.MinInstances && ngOld.MaxInstances == ngScaled.MaxInstances {
-				output = fmt.Sprintf("nodegroup %s will update its %s from %d to %d", ngName, clusterconfig.MinInstancesKey, ngOld.MinInstances, ngScaled.MinInstances)
-			}
-			fmt.Printf(" ￮ %s\n", output)
+
+	for _, ngName := range configureChanges.NodeGroupsToScale {
+		ngOld := oldCc.GetNodeGroupByName(ngName)
+		ngScaled := newCc.GetNodeGroupByName(ngName)
+		if ngOld.MinInstances != ngScaled.MinInstances && ngOld.MaxInstances != ngScaled.MaxInstances {
+			fmt.Printf("￮ nodegroup %s will update %s from %d to %d and %s from %d to %d\n", ngName, clusterconfig.MinInstancesKey, ngOld.MinInstances, ngScaled.MinInstances, clusterconfig.MaxInstancesKey, ngOld.MaxInstances, ngScaled.MaxInstances)
+		} else if ngOld.MinInstances == ngScaled.MinInstances && ngOld.MaxInstances != ngScaled.MaxInstances {
+			fmt.Printf("￮ nodegroup %s will update %s from %d to %d\n", ngName, clusterconfig.MaxInstancesKey, ngOld.MaxInstances, ngScaled.MaxInstances)
+		} else if ngOld.MinInstances != ngScaled.MinInstances && ngOld.MaxInstances == ngScaled.MaxInstances {
+			fmt.Printf("￮ nodegroup %s will update %s from %d to %d\n", ngName, clusterconfig.MinInstancesKey, ngOld.MinInstances, ngScaled.MinInstances)
 		}
 	}
-	if len(configureChanges.NodeGroupsToAdd) > 0 {
-		fmt.Printf("￮ %d %s will be added: %s\n", len(configureChanges.NodeGroupsToAdd), s.PluralS("nodegroup", len(configureChanges.NodeGroupsToAdd)), s.StrsAnd(configureChanges.NodeGroupsToAdd))
+
+	for _, ngName := range configureChanges.NodeGroupsToAdd {
+		fmt.Printf("￮ nodegroup %s will be added\n", ngName)
 	}
-	if len(configureChanges.NodeGroupsToRemove) > 0 {
-		fmt.Printf("￮ %d %s will be removed: %s\n", len(configureChanges.NodeGroupsToRemove), s.PluralS("nodegroup", len(configureChanges.NodeGroupsToRemove)), s.StrsAnd(configureChanges.NodeGroupsToRemove))
+
+	for _, ngName := range configureChanges.NodeGroupsToRemove {
+		fmt.Printf("￮ nodegroup %s will be removed\n", ngName)
 	}
-	// EKS node groups that don't appear in the old/new cluster config
-	// this is unlikely but can happen
-	ghostEKSNodeGroups := configureChanges.GetGhostEKSNodeGroups()
-	if len(ghostEKSNodeGroups) > 0 {
-		fmt.Printf("￮ %d %s will be removed: %s\n", len(ghostEKSNodeGroups), s.PluralS("EKS nodegroup", len(ghostEKSNodeGroups)), s.StrsAnd(ghostEKSNodeGroups))
+
+	// EKS node groups that don't appear in the old/new cluster config; this is unlikely but can happen
+	for _, ngName := range configureChanges.GetGhostEKSNodeGroups() {
+		fmt.Printf("￮ EKS nodegroup %s will be removed\n", ngName)
 	}
+
 	fmt.Println()
 
 	if !disallowPrompt {
