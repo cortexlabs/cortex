@@ -22,29 +22,34 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
-	"path"
 	"strconv"
 	"time"
 
 	"github.com/cortexlabs/cortex/pkg/activator"
+	"github.com/cortexlabs/cortex/pkg/autoscaler"
+	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/logging"
 	"go.uber.org/zap"
-	istioclient "istio.io/client-go/pkg/clientset/versioned"
 	istioinformers "istio.io/client-go/pkg/informers/externalversions"
-	kmeta "k8s.io/apimachinery/pkg/apis/meta/v1"
-	kclientrest "k8s.io/client-go/rest"
-	kclientcmd "k8s.io/client-go/tools/clientcmd"
-	kclienthomedir "k8s.io/client-go/util/homedir"
+	"k8s.io/apimachinery/pkg/runtime"
+	kinformers "k8s.io/client-go/informers"
 )
 
 func main() {
 	var (
-		port      int
-		inCluster bool
+		port          int
+		inCluster     bool
+		autoscalerURL string
+		namespace     string
 	)
 
 	flag.IntVar(&port, "port", 8000, "port where the activator server will be exposed")
 	flag.BoolVar(&inCluster, "in-cluster", false, "use when autoscaler runs in-cluster")
+	flag.StringVar(&autoscalerURL, "autoscaler-url", "", "the URL for the cortex autoscaler endpoint")
+	flag.StringVar(&namespace, "namespace", os.Getenv("CORTEX_NAMESPACE"),
+		"kubernetes namespace where the cortex APIs are deployed "+
+			"(can be set through the CORTEX_NAMESPACE env variable)",
+	)
 	flag.Parse()
 
 	log := logging.GetLogger()
@@ -52,30 +57,30 @@ func main() {
 		_ = log.Sync()
 	}()
 
-	var err error
-	var restConfig *kclientrest.Config
-
-	if inCluster {
-		restConfig, err = kclientrest.InClusterConfig()
-	} else {
-		kubeConfig := path.Join(kclienthomedir.HomeDir(), ".kube", "config")
-		restConfig, err = kclientcmd.BuildConfigFromFlags("", kubeConfig)
+	switch {
+	case autoscalerURL == "":
+		log.Fatal("--autoscaler-url is a required option")
+	case namespace == "":
+		log.Fatal("--namespace is a required option")
 	}
 
+	k8sClient, err := k8s.New(namespace, inCluster, nil, runtime.NewScheme())
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalw("failed to initialize kubernetes client", zap.Error(err))
 	}
 
-	istioClient, err := istioclient.NewForConfig(restConfig)
-	if err != nil {
-		log.Fatal(err)
-	}
+	istioClient := k8sClient.IstioClientSet()
+	kubeClient := k8sClient.ClientSet()
+	autoscalerClient := autoscaler.NewClient(autoscalerURL)
 
 	istioInformerFactory := istioinformers.NewSharedInformerFactory(istioClient, 10*time.Second) // TODO: check how much makes sense
 	virtualServiceInformer := istioInformerFactory.Networking().V1beta1().VirtualServices().Informer()
-	virtualServiceClient := istioClient.NetworkingV1beta1().VirtualServices(kmeta.NamespaceAll)
+	virtualServiceClient := istioClient.NetworkingV1beta1().VirtualServices(namespace)
 
-	act := activator.New(virtualServiceClient, virtualServiceInformer, log)
+	kubeInformeFactory := kinformers.NewSharedInformerFactory(kubeClient, 2*time.Second)
+	deploymentInformer := kubeInformeFactory.Apps().V1().Deployments().Informer()
+
+	act := activator.New(virtualServiceClient, deploymentInformer, virtualServiceInformer, autoscalerClient, log)
 	handler := activator.NewHandler(act, log)
 	server := &http.Server{
 		Addr:    ":" + strconv.Itoa(port),
@@ -83,7 +88,8 @@ func main() {
 	}
 
 	stopCh := make(chan struct{})
-	istioInformerFactory.Start(stopCh)
+	go virtualServiceInformer.Run(stopCh)
+	go deploymentInformer.Run(stopCh)
 	defer func() {
 		stopCh <- struct{}{}
 	}()

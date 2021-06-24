@@ -34,11 +34,12 @@ func TestApiActivator_Try(t *testing.T) {
 	waitCh := make(chan struct{})
 
 	for i := 0; i < 3; i++ {
+
 		go func() {
-			errCh <- act.Try(context.Background(), func() error {
+			errCh <- act.try(context.Background(), func() error {
 				<-waitCh
 				return nil
-			})
+			}, &readinessTracker{ready: true})
 		}()
 	}
 
