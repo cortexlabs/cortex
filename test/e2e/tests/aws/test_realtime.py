@@ -60,6 +60,7 @@ def test_realtime_api(printer: Callable, config: Dict, client: cx.Client, api: D
         client=client,
         api=api["name"],
         timeout=config["global"]["realtime_deploy_timeout"],
+        node_groups=config["aws"]["x86_nodegroups"],
         extra_path=api["extra_path"],
     )
 
@@ -75,6 +76,7 @@ def test_realtime_api_arm(printer: Callable, config: Dict, client: cx.Client, ap
         api=api["name"],
         timeout=config["global"]["realtime_deploy_timeout"],
         api_config_name="cortex_cpu_arm64.yaml",
+        node_groups=config["aws"]["arm_nodegroups"],
         extra_path=api["extra_path"],
         method="GET",
     )
@@ -94,5 +96,6 @@ def test_realtime_api_gpu(printer: Callable, config: Dict, client: cx.Client, ap
         api=api["name"],
         timeout=config["global"]["realtime_deploy_timeout"],
         api_config_name="cortex_gpu.yaml",
+        node_groups=config["aws"]["x86_nodegroups"],
         extra_path=api["extra_path"],
     )

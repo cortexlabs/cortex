@@ -67,6 +67,18 @@ def pytest_addoption(parser):
         action="store_true",
         help="enable for using testing against BatchAPI with a local operator",
     )
+    parser.addoption(
+        "--arm-nodegroups",
+        action="store",
+        default=None,
+        help="arm nodegroups to run the arm tests on",
+    )
+    parser.addoption(
+        "--x86-nodegroups",
+        action="store",
+        default=None,
+        help="x86 nodegroups to run the x86 tests on",
+    )
 
 
 def pytest_configure(config):
@@ -75,11 +87,21 @@ def pytest_configure(config):
     s3_path = os.environ.get("CORTEX_TEST_BATCH_S3_PATH")
     s3_path = config.getoption("--s3-path") if not s3_path else s3_path
 
+    arm_nodegroups = []
+    if config.getoption("--arm-nodegroups"):
+        arm_nodegroups = config.getoption("--arm-nodegroups").split(",")
+
+    x86_nodegroups = []
+    if config.getoption("--x86-nodegroups"):
+        x86_nodegroups = config.getoption("--x86-nodegroups").split(",")
+
     configuration = {
         "aws": {
             "env": config.getoption("--env"),
             "config": config.getoption("--config"),
             "s3_path": s3_path,
+            "arm_nodegroups": arm_nodegroups,
+            "x86_nodegroups": x86_nodegroups,
         },
         "global": {
             "local_operator": config.getoption("--local-operator"),
