@@ -27,7 +27,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/parallel"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
-	autoscalerlib "github.com/cortexlabs/cortex/pkg/operator/lib/autoscaler"
 	"github.com/cortexlabs/cortex/pkg/operator/lib/routines"
 	"github.com/cortexlabs/cortex/pkg/operator/operator"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
@@ -47,8 +46,7 @@ const (
 )
 
 var (
-	_autoscalerCrons = make(map[string]cron.Cron)
-	_metricsCrons    = make(map[string]cron.Cron)
+	_metricsCrons = make(map[string]cron.Cron)
 )
 
 type resources struct {
@@ -283,27 +281,6 @@ func UpdateMetricsCron(deployment *kapps.Deployment) error {
 	return nil
 }
 
-func UpdateAutoscalerCron(deployment *kapps.Deployment, apiSpec spec.API) error {
-	// skip gateway deployments
-	if deployment.Labels["cortex.dev/async"] != "api" {
-		return nil
-	}
-
-	apiName := deployment.Labels["apiName"]
-	if prevAutoscalerCron, ok := _autoscalerCrons[apiName]; ok {
-		prevAutoscalerCron.Cancel()
-	}
-
-	autoscaler, err := autoscalerlib.AutoscaleFn(deployment, &apiSpec, getMessagesInQueue)
-	if err != nil {
-		return err
-	}
-
-	_autoscalerCrons[apiName] = cron.Run(autoscaler, operator.ErrorHandler(apiName+" autoscaler"), spec.AutoscalingTickInterval)
-
-	return nil
-}
-
 func getK8sResources(apiConfig userconfig.API) (resources, error) {
 	var deployment *kapps.Deployment
 	var apiConfigMap *kcore.ConfigMap
@@ -383,10 +360,6 @@ func applyK8sResources(api spec.API, prevK8sResources resources, queueURL string
 			}
 
 			if err := UpdateMetricsCron(&apiDeployment); err != nil {
-				return err
-			}
-
-			if err := UpdateAutoscalerCron(&apiDeployment, api); err != nil {
 				return err
 			}
 
@@ -493,10 +466,6 @@ func deleteK8sResources(apiName string) error {
 				delete(_metricsCrons, apiName)
 			}
 
-			if autoscalerCron, ok := _autoscalerCrons[apiName]; ok {
-				autoscalerCron.Cancel()
-				delete(_autoscalerCrons, apiName)
-			}
 			_, err := config.K8s.DeleteDeployment(apiK8sName)
 			return err
 		},

@@ -30,7 +30,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/operator/operator"
 	"github.com/cortexlabs/cortex/pkg/operator/resources/asyncapi"
 	"github.com/cortexlabs/cortex/pkg/operator/resources/job/taskapi"
-	"github.com/cortexlabs/cortex/pkg/operator/resources/realtimeapi"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
@@ -66,28 +65,10 @@ func main() {
 	for i := range deployments {
 		deployment := deployments[i]
 		apiKind := deployment.Labels["apiKind"]
-		if userconfig.KindFromString(apiKind) == userconfig.RealtimeAPIKind ||
-			userconfig.KindFromString(apiKind) == userconfig.AsyncAPIKind {
-			apiID := deployment.Labels["apiID"]
-			apiName := deployment.Labels["apiName"]
-			api, err := operator.DownloadAPISpec(apiName, apiID)
-			if err != nil {
-				exit.Error(errors.Wrap(err, "init"))
-			}
-
-			switch apiKind {
-			case userconfig.RealtimeAPIKind.String():
-				if err := realtimeapi.UpdateAutoscalerCron(&deployment, api); err != nil {
-					operatorLogger.Fatal(errors.Wrap(err, "init"))
-				}
-			case userconfig.AsyncAPIKind.String():
-				if err := asyncapi.UpdateMetricsCron(&deployment); err != nil {
-					operatorLogger.Fatal(errors.Wrap(err, "init"))
-				}
-
-				if err := asyncapi.UpdateAutoscalerCron(&deployment, *api); err != nil {
-					operatorLogger.Fatal(errors.Wrap(err, "init"))
-				}
+		switch apiKind {
+		case userconfig.AsyncAPIKind.String():
+			if err := asyncapi.UpdateMetricsCron(&deployment); err != nil {
+				operatorLogger.Fatal(errors.Wrap(err, "init"))
 			}
 		}
 	}
