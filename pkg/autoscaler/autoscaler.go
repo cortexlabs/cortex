@@ -60,6 +60,15 @@ func (a *Autoscaler) AddScaler(scaler Scaler, kind userconfig.Kind) {
 }
 
 func (a *Autoscaler) Awake(api userconfig.Resource) error {
+	a.Lock()
+	// ignore awake call if one already happened within the awakenStabilizationPeriod duration
+	if awakenRec, ok := a.awakenMap[api.Name]; ok {
+		if awakenRec.minSince(_awakenStabilizationPeriod) != nil {
+			return nil
+		}
+	}
+	a.Unlock()
+
 	scaler, ok := a.scalers[api.Kind]
 	if !ok {
 		return errors.ErrorUnexpected(
