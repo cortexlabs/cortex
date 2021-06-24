@@ -32,5 +32,6 @@ def test_task_api(printer: Callable, config: Dict, client: cx.Client, api: str):
         retry_attempts=5,
         deploy_timeout=config["global"]["task_deploy_timeout"],
         job_timeout=config["global"]["task_job_timeout"],
+        node_groups=config["aws"]["x86_nodegroups"],
         local_operator=config["global"]["local_operator"],
     )

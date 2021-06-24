@@ -62,9 +62,9 @@ commands:
           name: Run E2E Tests
           no_output_timeout: 30m
           command: |
-            pytest -v test/e2e/tests --env cortex --skip-autoscaling --skip-load --skip-long-running
-            pytest -v test/e2e/tests --env cortex -k test_autoscaling
-            pytest -v test/e2e/tests --env cortex -k test_load
+            pytest -v test/e2e/tests --env cortex --x86-nodegroups spot,cpu,gpu,inferentia --arm-nodegroups arm --skip-autoscaling --skip-load --skip-long-running
+            pytest -v test/e2e/tests --env cortex --x86-nodegroups spot,cpu,gpu,inferentia -k test_autoscaling
+            pytest -v test/e2e/tests --env cortex --x86-nodegroups spot,cpu,gpu,inferentia -k test_load
       - run:
           name: Delete Cluster
           command: cortex cluster down --config << parameters.config >> -y
