@@ -66,8 +66,8 @@ commands:
 
 jobs:
   lint:
-    machine:
-      image: ubuntu-1604:202104-01
+    docker:
+      - image: cimg/python:3.6
     resource_class: medium
     steps:
       - checkout
