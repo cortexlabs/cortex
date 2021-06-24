@@ -25,8 +25,6 @@ source $ROOT/dev/util.sh
 host_primary=$1
 host_backup=$2
 
-for image in "${all_images[@]}"; do
-    if in_array $image "multi_arch_images"; then
-        $ROOT/build/amend-image.sh $host_primary $host_backup $image
-    fi
+for image in "${multi_arch_images[@]}"; do
+    $ROOT/build/amend-image.sh $host_primary $host_backup $image
 done
