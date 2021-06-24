@@ -28,18 +28,26 @@ import (
 	"github.com/cortexlabs/cortex/pkg/workloads"
 	promv1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	"github.com/prometheus/common/model"
+	"go.uber.org/zap"
 	kapps "k8s.io/api/apps/v1"
+	kmeta "k8s.io/apimachinery/pkg/apis/meta/v1"
+)
+
+const (
+	_waitForReadyReplicasTimeout = 10 * time.Minute
 )
 
 type realtimeScaler struct {
 	k8s        *k8s.Client
 	prometheus promv1.API
+	logger     *zap.SugaredLogger
 }
 
-func NewRealtimeScaler(k8sClient *k8s.Client, promClient promv1.API) Scaler {
+func NewRealtimeScaler(k8sClient *k8s.Client, promClient promv1.API, logger *zap.SugaredLogger) Scaler {
 	return &realtimeScaler{
 		k8s:        k8sClient,
 		prometheus: promClient,
+		logger:     logger,
 	}
 }
 
@@ -72,9 +80,15 @@ func (s *realtimeScaler) Scale(apiName string, request int32) error {
 	}
 
 	if current == 0 && request > 0 {
-		if err := s.routeToService(deployment); err != nil {
-			return err
-		}
+		go func() {
+			if err := s.routeToService(deployment); err != nil {
+				s.logger.Errorw("failed to re-route traffic to API",
+					zap.Error(err), zap.String("apiName", apiName),
+				)
+				// TODO: telemetry
+			}
+		}()
+
 	}
 
 	return nil
@@ -148,6 +162,7 @@ func (s *realtimeScaler) CurrentReplicas(apiName string) (int32, error) {
 }
 
 func (s *realtimeScaler) routeToService(deployment *kapps.Deployment) error {
+	ctx := context.Background()
 	vs, err := s.k8s.GetVirtualService(deployment.Name)
 	if err != nil {
 		return err // TODO: error handling
@@ -161,13 +176,23 @@ func (s *realtimeScaler) routeToService(deployment *kapps.Deployment) error {
 		return errors.ErrorUnexpected("virtual service does not have the required minimum number of 2 http routes")
 	}
 
+	if err = s.waitForReadyReplicas(ctx, deployment); err != nil {
+		return err // TODO: error handling
+	}
+
 	vs.Spec.Http[0].Route[0].Weight = 100 // service traffic
 	vs.Spec.Http[0].Route[1].Weight = 0   // activator traffic
+
+	vsClient := s.k8s.IstioClientSet().NetworkingV1beta1().VirtualServices(s.k8s.Namespace)
+	if _, err = vsClient.Update(ctx, vs, kmeta.UpdateOptions{}); err != nil {
+		return err // TODO: error handling
+	}
 
 	return nil
 }
 
 func (s *realtimeScaler) routeToActivator(deployment *kapps.Deployment) error {
+	ctx := context.Background()
 	vs, err := s.k8s.GetVirtualService(deployment.Name)
 	if err != nil {
 		return err // TODO: error handling
@@ -184,5 +209,44 @@ func (s *realtimeScaler) routeToActivator(deployment *kapps.Deployment) error {
 	vs.Spec.Http[0].Route[0].Weight = 0   // service traffic
 	vs.Spec.Http[0].Route[1].Weight = 100 // activator traffic
 
+	vsClient := s.k8s.IstioClientSet().NetworkingV1beta1().VirtualServices(s.k8s.Namespace)
+	if _, err = vsClient.Update(ctx, vs, kmeta.UpdateOptions{}); err != nil {
+		return err // TODO: error handling
+	}
+
 	return nil
+}
+
+func (s *realtimeScaler) waitForReadyReplicas(ctx context.Context, deployment *kapps.Deployment) error {
+	watcher, err := s.k8s.ClientSet().AppsV1().Deployments(s.k8s.Namespace).Watch(
+		ctx,
+		kmeta.ListOptions{
+			FieldSelector: fmt.Sprintf("metadata.name=%s", deployment.Name),
+			Watch:         true,
+		},
+	)
+	if err != nil {
+		return err
+	}
+
+	defer watcher.Stop()
+
+	ctx, cancel := context.WithTimeout(ctx, _waitForReadyReplicasTimeout)
+	defer cancel()
+
+	for {
+		select {
+		case event := <-watcher.ResultChan():
+			deploy, ok := event.Object.(*kapps.Deployment)
+			if !ok {
+				continue
+			}
+
+			if deploy.Status.ReadyReplicas > 0 {
+				return nil
+			}
+		case <-ctx.Done():
+			return ctx.Err()
+		}
+	}
 }
