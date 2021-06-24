@@ -32,6 +32,13 @@ rules:
   verbs:
   - list
   - watch
+- apiGroups:
+  - "apps"
+  resources:
+  - deployments
+  verbs:
+  - list
+  - watch
 
 ---
 
@@ -72,6 +79,8 @@ spec:
           args:
             - "--in-cluster"
             - "--port=8000"
+            - "--autoscaler-url=http://autoscaler.{{ env['CORTEX_NAMESPACE'] }}:8000"
+            - "--namespace={{ env['CORTEX_NAMESPACE'] }}"
           ports:
             - containerPort: 8000
           livenessProbe:
