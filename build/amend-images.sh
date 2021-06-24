@@ -19,20 +19,14 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")"/.. >/dev/null && pwd)"
 
-CORTEX_VERSION=master
+source $ROOT/build/images.sh
+source $ROOT/dev/util.sh
 
 host_primary=$1
 host_backup=$2
-image=$3
-is_multi_arch=$4
-arch=$5
 
-echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
-if [ "$is_multi_arch" = "true" ]; then
-  tag="manifest-${CORTEX_VERSION}-$arch"
-else
-  tag="${CORTEX_VERSION}"
-fi
-
-docker push $host_primary/cortexlabs/${image}:${tag}
-docker push $host_backup/cortexlabs/${image}:${tag}
+for image in "${all_images[@]}"; do
+    if in_array $image "multi_arch_images"; then
+        $ROOT/build/amend-image.sh $host_primary $host_backup $image
+    fi
+done

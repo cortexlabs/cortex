@@ -75,9 +75,10 @@ commands:
           template: basic_fail_1
 
 jobs:
-  test:
+  lint:
     machine:
-      image: ubuntu-1604:202104-01  # machine executor necessary to run go integration tests
+      image: ubuntu-1604:202104-01
+    resource_class: medium
     steps:
       - checkout
       - install-go
@@ -87,6 +88,17 @@ jobs:
             go get -u -v golang.org/x/lint/golint
             go get -u -v github.com/kyoh86/looppointer/cmd/looppointer
             pip3 install black aiohttp
+      - run:
+          name: Lint
+          command: make lint
+
+  test:
+    machine:
+      image: ubuntu-1604:202104-01  # machine executor necessary to run go integration tests
+    resource_class: medium
+    steps:
+      - checkout
+      - install-go
       - run:
           name: Initialize Credentials
           command: |
@@ -106,36 +118,70 @@ jobs:
                 max_instances: 1
             EOF
       - run:
-          name: Lint
-          command: make lint
-      - run:
           name: Go Tests
           command: make test
 
-  build-and-deploy:
+  build-and-upload-cli:
     docker:
       - image: cimg/python:3.6
-    environment:
-      DOCKER_CLI_EXPERIMENTAL: enabled
+    resource_class: medium
     steps:
       - setup_remote_docker
       - checkout
       - install-go
-      - run:
-          name: Configure Docker Buildx
-          command: |
-            docker context create custom-context --default-stack-orchestrator swarm --docker "host=$DOCKER_HOST,ca=$DOCKER_CERT_PATH/ca.pem,cert=$DOCKER_CERT_PATH/cert.pem,key=$DOCKER_CERT_PATH/key.pem"
-            docker buildx create --name builder --platform linux/amd64,linux/arm64 --use custom-context && docker buildx inspect --bootstrap
       - run: pip install awscli
       - run: make ci-build-cli
       - return-if-not-deployed-branch
       - run: make ci-build-and-upload-cli
+
+  build-and-push-images-amd64:
+    machine:
+      image: ubuntu-2004:202101-01
+    resource_class: medium
+    steps:
+      - checkout
+      - return-if-not-deployed-branch
+      - run:
+          name: Build CI Images (amd64)
+          command: make ci-build-images-amd64
+          no_output_timeout: 40m
       - quay-login
       - run:
-          name: Build and Push CI Images
-          command: |
-            make ci-build-images
-            make ci-push-images
+          name: Push CI Images (amd64)
+          command: make ci-push-images-amd64
+          no_output_timeout: 40m
+
+  build-and-push-images-arm64:
+    machine:
+      image: ubuntu-2004:202101-01
+    resource_class: arm.medium
+    steps:
+      - checkout
+      - return-if-not-deployed-branch
+      - run:
+          name: Build CI Images (arm64)
+          command: make ci-build-images-arm64
+          no_output_timeout: 40m
+      - quay-login
+      - run:
+          name: Push CI Images (arm64)
+          command: make ci-push-images-arm64
+          no_output_timeout: 40m
+
+  amend-images:
+    docker:
+      - image: cimg/python:3.6
+    environment:
+      DOCKER_CLI_EXPERIMENTAL: enabled
+    resource_class: medium
+    steps:
+      - setup_remote_docker
+      - checkout
+      - return-if-not-deployed-branch
+      - quay-login
+      - run:
+          name: Amend CI Images
+          command: make ci-amend-images
           no_output_timeout: 40m
 
   e2e-tests:
@@ -197,19 +243,47 @@ jobs:
 workflows:
   build:
     jobs:
+      - lint
       - test
       - build-and-deploy-approval:
           type: approval
           requires:
+            - lint
             - test
           filters:
             branches:
               only:
                 - /^[0-9]+\.[0-9]+$/
-      - build-and-deploy:
+      - build-and-upload-cli:
           requires:
+            - lint
             - test
             - build-and-deploy-approval
+          filters:
+            branches:
+              only:
+                - master
+                - /^[0-9]+\.[0-9]+$/
+      - build-and-push-images-amd64:
+          requires:
+            - build-and-upload-cli
+          filters:
+            branches:
+              only:
+                - master
+                - /^[0-9]+\.[0-9]+$/
+      - build-and-push-images-arm64:
+          requires:
+            - build-and-upload-cli
+          filters:
+            branches:
+              only:
+                - master
+                - /^[0-9]+\.[0-9]+$/
+      - amend-images:
+          requires:
+            - build-and-push-images-amd64
+            - build-and-push-images-arm64
           filters:
             branches:
               only:

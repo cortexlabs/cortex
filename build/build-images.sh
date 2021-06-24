@@ -22,10 +22,16 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")"/.. >/dev/null && pwd)"
 source $ROOT/build/images.sh
 source $ROOT/dev/util.sh
 
+arch=$1
+host_primary=$2
+host_backup=$3
+
 for image in "${all_images[@]}"; do
-  platforms="linux/amd64"
+  is_multi_arch="false"
   if in_array $image "multi_arch_images"; then
-    platforms+=",linux/arm64"
+    is_multi_arch="true"
+    $ROOT/build/build-image.sh $host_primary $host_backup $image $is_multi_arch $arch
+  elif [ "$arch" = "amd64" ]; then
+    $ROOT/build/build-image.sh $host_primary $host_backup $image $is_multi_arch $arch
   fi
-  $ROOT/build/build-image.sh $image $platforms
 done
