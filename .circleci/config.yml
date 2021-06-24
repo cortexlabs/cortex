@@ -68,7 +68,7 @@ jobs:
   lint:
     docker:
       - image: cimg/python:3.6
-    resource_class: large
+    resource_class: medium+
     steps:
       - checkout
       - install-go
@@ -85,7 +85,7 @@ jobs:
   test:
     machine:
       image: ubuntu-1604:202104-01  # machine executor necessary to run go integration tests
-    resource_class: large
+    resource_class: medium
     steps:
       - checkout
       - install-go
@@ -114,7 +114,7 @@ jobs:
   build-and-upload-cli:
     docker:
       - image: cimg/python:3.6
-    resource_class: large
+    resource_class: medium
     steps:
       - checkout
       - install-go
@@ -125,7 +125,7 @@ jobs:
   build-and-push-images-amd64:
     machine:
       image: ubuntu-2004:202101-01
-    resource_class: large
+    resource_class: medium
     steps:
       - checkout
       - run:
