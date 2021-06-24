@@ -37,6 +37,7 @@ def test_load_realtime(printer: Callable, config: Dict, client: cx.Client, api: 
         api,
         load_config=config["global"]["load_test_config"]["realtime"],
         deploy_timeout=config["global"]["realtime_deploy_timeout"],
+        node_groups=config["aws"]["x86_nodegroups"],
     )
 
 
@@ -53,6 +54,7 @@ def test_load_async(printer: Callable, config: Dict, client: cx.Client, api: str
         api,
         load_config=config["global"]["load_test_config"]["async"],
         deploy_timeout=config["global"]["async_deploy_timeout"],
+        node_groups=config["aws"]["x86_nodegroups"],
     )
 
 
@@ -77,4 +79,5 @@ def test_load_batch(printer: Callable, config: Dict, client: cx.Client, api: str
         test_s3_path=s3_path,
         load_config=config["global"]["load_test_config"]["batch"],
         deploy_timeout=config["global"]["batch_deploy_timeout"],
+        node_groups=config["aws"]["x86_nodegroups"],
     )
