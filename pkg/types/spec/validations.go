@@ -473,7 +473,8 @@ func computeValidation() *cr.StructFieldValidation {
 
 func autoscalingValidation(kind userconfig.Kind) *cr.StructFieldValidation {
 	minReplicas := int32(1)
-	if kind == userconfig.AsyncAPIKind {
+	switch kind {
+	case userconfig.AsyncAPIKind, userconfig.RealtimeAPIKind:
 		minReplicas = int32(0)
 	}
 
