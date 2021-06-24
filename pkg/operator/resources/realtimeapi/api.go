@@ -39,7 +39,7 @@ import (
 
 const _realtimeDashboardUID = "realtimeapi"
 
-func deploymentID() string {
+func generateDeploymentID() string {
 	return k8s.RandomName()[:10]
 }
 
@@ -49,7 +49,7 @@ func UpdateAPI(apiConfig *userconfig.API, force bool) (*spec.API, string, error)
 		return nil, "", err
 	}
 
-	deploymentID := deploymentID()
+	deploymentID := generateDeploymentID()
 	if prevDeployment != nil && prevDeployment.Labels["deploymentID"] != "" {
 		deploymentID = prevDeployment.Labels["deploymentID"]
 	}
@@ -132,7 +132,7 @@ func RefreshAPI(apiName string, force bool) (string, error) {
 		return "", err
 	}
 
-	api = spec.GetAPISpec(api.API, deploymentID(), config.ClusterConfig.ClusterUID)
+	api = spec.GetAPISpec(api.API, generateDeploymentID(), config.ClusterConfig.ClusterUID)
 
 	if err := config.AWS.UploadJSONToS3(api, config.ClusterConfig.Bucket, api.Key); err != nil {
 		return "", errors.Wrap(err, "upload api spec")
