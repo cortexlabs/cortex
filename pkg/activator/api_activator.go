@@ -18,8 +18,10 @@ package activator
 
 import (
 	"context"
+	"sync"
 
 	"github.com/cortexlabs/cortex/pkg/proxy"
+	kapps "k8s.io/api/apps/v1"
 )
 
 type apiActivator struct {
@@ -40,20 +42,55 @@ func newAPIActivator(apiName string, maxQueueLength, maxConcurrency int) *apiAct
 		apiName:        apiName,
 		breaker:        breaker,
 		maxConcurrency: maxConcurrency,
-		maxQueueLength: maxConcurrency,
+		maxQueueLength: maxQueueLength,
 	}
 }
 
-func (a *apiActivator) Try(ctx context.Context, fn func() error) error {
-	// FIXME: wait for an api pod to be ready, then try the request
-
-	var fnErr error
-
+func (a *apiActivator) try(ctx context.Context, fn func() error, tracker *readinessTracker) error {
+	var execErr error
 	if err := a.breaker.Maybe(ctx, func() {
-		fnErr = fn()
+	loop:
+		for {
+			select {
+			case <-ctx.Done():
+				execErr = ctx.Err()
+				return
+			default:
+				if tracker.IsReady() {
+					break loop
+				}
+			}
+		}
+
+		execErr = fn()
 	}); err != nil {
 		return err
 	}
 
-	return fnErr
+	return execErr
+}
+
+func (a *apiActivator) inFlight() int64 {
+	return a.breaker.InFlight()
+}
+
+type readinessTracker struct {
+	mux   sync.RWMutex
+	ready bool
+}
+
+func newReadinessTracker() *readinessTracker {
+	return &readinessTracker{}
+}
+
+func (t *readinessTracker) Update(deployment *kapps.Deployment) {
+	t.mux.Lock()
+	defer t.mux.Unlock()
+	t.ready = deployment.Status.ReadyReplicas > 0
+}
+
+func (t *readinessTracker) IsReady() bool {
+	t.mux.RLock()
+	defer t.mux.RUnlock()
+	return t.ready
 }
