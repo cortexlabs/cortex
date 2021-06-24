@@ -17,12 +17,16 @@ limitations under the License.
 package realtimeapi
 
 import (
+	"fmt"
+
+	"github.com/cortexlabs/cortex/pkg/config"
 	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/workloads"
+	istionetworking "istio.io/api/networking/v1beta1"
 	istioclientnetworking "istio.io/client-go/pkg/apis/networking/v1beta1"
 	kapps "k8s.io/api/apps/v1"
 	kcore "k8s.io/api/core/v1"
@@ -99,18 +103,23 @@ func serviceSpec(api *spec.API) *kcore.Service {
 }
 
 func virtualServiceSpec(api *spec.API) *istioclientnetworking.VirtualService {
+	var activatorWeight int32
+	if api.Autoscaling.InitReplicas == 0 {
+		activatorWeight = 100
+	}
+
 	return k8s.VirtualService(&k8s.VirtualServiceSpec{
 		Name:     workloads.K8sName(api.Name),
 		Gateways: []string{"apis-gateway"},
 		Destinations: []k8s.Destination{
 			{
 				ServiceName: workloads.K8sName(api.Name),
-				Weight:      100,
+				Weight:      100 - activatorWeight,
 				Port:        uint32(consts.ProxyPortInt32),
 			},
 			{
 				ServiceName: consts.ActivatorName,
-				Weight:      0,
+				Weight:      activatorWeight,
 				Port:        uint32(consts.ActivatorPortInt32),
 			},
 		},
@@ -126,6 +135,19 @@ func virtualServiceSpec(api *spec.API) *istioclientnetworking.VirtualService {
 			"deploymentID":          api.DeploymentID,
 			"podID":                 api.PodID,
 			"cortex.dev/api":        "true",
+		},
+		Headers: &istionetworking.Headers{
+			Request: &istionetworking.Headers_HeaderOperations{
+				Add: map[string]string{
+					consts.CortexAPINameHeader: api.Name,
+					consts.CortexTargetServiceHeader: fmt.Sprintf(
+						"http://%s.%s:%d",
+						workloads.K8sName(api.Name),
+						config.ClusterConfig.Namespace,
+						consts.ProxyPortInt32,
+					),
+				},
+			},
 		},
 	})
 }

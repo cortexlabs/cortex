@@ -44,6 +44,7 @@ type VirtualServiceSpec struct {
 	Rewrite      *string
 	Labels       map[string]string
 	Annotations  map[string]string
+	Headers      *istionetworking.Headers
 }
 
 type Destination struct {
@@ -96,6 +97,7 @@ func VirtualService(spec *VirtualServiceSpec) *istioclientnetworking.VirtualServ
 			Route:            destinations,
 			Mirror:           mirror,
 			MirrorPercentage: mirrorWeight,
+			Headers:          spec.Headers,
 		})
 
 		if spec.Rewrite != nil {
@@ -117,6 +119,7 @@ func VirtualService(spec *VirtualServiceSpec) *istioclientnetworking.VirtualServ
 			Route:            destinations,
 			Mirror:           mirror,
 			MirrorPercentage: mirrorWeight,
+			Headers:          spec.Headers,
 		}
 
 		prefixMatch := &istionetworking.HTTPRoute{
@@ -132,6 +135,7 @@ func VirtualService(spec *VirtualServiceSpec) *istioclientnetworking.VirtualServ
 			Route:            destinations,
 			Mirror:           mirror,
 			MirrorPercentage: mirrorWeight,
+			Headers:          spec.Headers,
 		}
 
 		if spec.Rewrite != nil {
