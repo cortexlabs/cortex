@@ -20,11 +20,23 @@ import (
 	"context"
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/cortexlabs/cortex/pkg/proxy"
+	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
 )
+
+type autoscalerClientMock struct{}
+
+func (m autoscalerClientMock) AddAPI(_ userconfig.Resource) error {
+	return nil
+}
+
+func (m autoscalerClientMock) Awake(_ userconfig.Resource) error {
+	return nil
+}
 
 func newLogger(t *testing.T) *zap.SugaredLogger {
 	t.Helper()
@@ -46,8 +58,12 @@ func TestActivator_Try(t *testing.T) {
 
 	apiName := "test"
 	act := &activator{
+		autoscalerClient: autoscalerClientMock{},
 		apiActivators: map[string]*apiActivator{
 			apiName: newAPIActivator(apiName, 1, 1),
+		},
+		readinessTrackers: map[string]*readinessTracker{
+			apiName: {ready: true},
 		},
 		logger: log,
 	}
@@ -60,6 +76,9 @@ func TestActivator_Try(t *testing.T) {
 
 	for i := 0; i < 3; i++ {
 		go func() {
+			ctx, cancel := context.WithTimeout(ctx, time.Second)
+			defer cancel()
+
 			errCh <- act.Try(ctx, func() error {
 				<-waitCh
 				return nil
