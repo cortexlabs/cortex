@@ -4,17 +4,6 @@ orbs:
   slack: circleci/slack@4.2.0
 
 commands:
-  return-if-not-deployed-branch:
-    description: >-
-      Exit and succeed this build step if it should not deploy images to DockerHub / upload CLI to AWS
-    steps:
-      - run:
-          name: Exit build step if should not be deployed
-          command: |
-            if ! ([[ "$CIRCLE_BRANCH" =~ ^[0-9]+\.[0-9]+$ ]] || [[ "$CIRCLE_BRANCH" == "master" ]]); then
-              echo "Exiting build step for branch which should not be deployed ($CIRCLE_BRANCH)"
-              circleci step halt
-            fi
   install-go:
     steps:
       - run:
@@ -26,6 +15,7 @@ commands:
             rm -rf go*.tar.gz
             echo 'export PATH=$PATH:/usr/local/go/bin' >> $BASH_ENV
             echo 'export PATH=$PATH:~/go/bin' >> $BASH_ENV
+
   quay-login:
     description: Log Docker agent into Quay.io
     steps:
@@ -126,12 +116,10 @@ jobs:
       - image: cimg/python:3.6
     resource_class: medium
     steps:
-      - setup_remote_docker
       - checkout
       - install-go
       - run: pip install awscli
       - run: make ci-build-cli
-      - return-if-not-deployed-branch
       - run: make ci-build-and-upload-cli
 
   build-and-push-images-amd64:
@@ -140,16 +128,15 @@ jobs:
     resource_class: medium
     steps:
       - checkout
-      - return-if-not-deployed-branch
       - run:
           name: Build CI Images (amd64)
           command: make ci-build-images-amd64
-          no_output_timeout: 40m
+          no_output_timeout: 20m
       - quay-login
       - run:
           name: Push CI Images (amd64)
           command: make ci-push-images-amd64
-          no_output_timeout: 40m
+          no_output_timeout: 20m
 
   build-and-push-images-arm64:
     machine:
@@ -157,16 +144,15 @@ jobs:
     resource_class: arm.medium
     steps:
       - checkout
-      - return-if-not-deployed-branch
       - run:
           name: Build CI Images (arm64)
           command: make ci-build-images-arm64
-          no_output_timeout: 40m
+          no_output_timeout: 20m
       - quay-login
       - run:
           name: Push CI Images (arm64)
           command: make ci-push-images-arm64
-          no_output_timeout: 40m
+          no_output_timeout: 20m
 
   amend-images:
     docker:
@@ -177,12 +163,11 @@ jobs:
     steps:
       - setup_remote_docker
       - checkout
-      - return-if-not-deployed-branch
       - quay-login
       - run:
           name: Amend CI Images
           command: make ci-amend-images
-          no_output_timeout: 40m
+          no_output_timeout: 20m
 
   e2e-tests:
     docker:
@@ -247,15 +232,14 @@ workflows:
       - test
       - build-and-deploy-approval:
           type: approval
-          requires:
-            - lint
-            - test
           filters:
             branches:
               only:
                 - /^[0-9]+\.[0-9]+$/
       - build-and-upload-cli:
           requires:
+            - lint
+            - test
             - build-and-deploy-approval
           filters:
             branches:
@@ -264,7 +248,9 @@ workflows:
                 - /^[0-9]+\.[0-9]+$/
       - build-and-push-images-amd64:
           requires:
-            - build-and-upload-cli
+            - lint
+            - test
+            - build-and-deploy-approval
           filters:
             branches:
               only:
@@ -272,7 +258,9 @@ workflows:
                 - /^[0-9]+\.[0-9]+$/
       - build-and-push-images-arm64:
           requires:
-            - build-and-upload-cli
+            - lint
+            - test
+            - build-and-deploy-approval
           filters:
             branches:
               only:
@@ -287,6 +275,7 @@ workflows:
               only:
                 - master
                 - /^[0-9]+\.[0-9]+$/
+
   nightly:
     triggers:
       - schedule:
