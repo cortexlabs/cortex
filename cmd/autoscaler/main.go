@@ -94,7 +94,7 @@ func main() {
 
 	promAPIClient := promv1.NewAPI(promClient)
 
-	realtimeScaler := autoscaler.NewRealtimeScaler(k8sClient, promAPIClient)
+	realtimeScaler := autoscaler.NewRealtimeScaler(k8sClient, promAPIClient, log)
 	asyncScaler := autoscaler.NewAsyncScaler(k8sClient, promAPIClient)
 
 	autoScaler := autoscaler.New(log)
@@ -169,15 +169,15 @@ func main() {
 		Handler: router,
 	}
 
+	stopCh := make(chan struct{})
+	go virtualServiceInformer.Run(stopCh)
+	defer func() { stopCh <- struct{}{} }()
+
 	errCh := make(chan error)
 	go func() {
 		log.Infof("Starting autoscaler server on %s", server.Addr)
 		errCh <- server.ListenAndServe()
 	}()
-
-	stopCh := make(chan struct{})
-	virtualServiceInformer.Run(stopCh)
-	defer func() { stopCh <- struct{}{} }()
 
 	sigint := make(chan os.Signal, 1)
 	signal.Notify(sigint, os.Interrupt)
