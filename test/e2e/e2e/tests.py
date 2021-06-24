@@ -68,12 +68,17 @@ def test_realtime_api(
     api: str,
     timeout: int = None,
     api_config_name: str = "cortex_cpu.yaml",
+    node_groups: List[str] = [],
     extra_path: str = "",
     method: str = "POST",
 ):
     api_dir = TEST_APIS_DIR / api
     with open(str(api_dir / api_config_name)) as f:
         api_specs = yaml.safe_load(f)
+    assert len(api_specs) == 1
+
+    if len(node_groups) > 0:
+        api_specs[0]["node_groups"] = node_groups
 
     expectations = None
     expectations_file = api_dir / "expectations.yaml"
@@ -124,13 +129,16 @@ def test_batch_api(
     job_timeout: int = None,
     retry_attempts: int = 0,
     api_config_name: str = "cortex_cpu.yaml",
+    node_groups: List[str] = [],
     local_operator: bool = False,
 ):
     api_dir = TEST_APIS_DIR / api
     with open(str(api_dir / api_config_name)) as f:
         api_specs = yaml.safe_load(f)
-
     assert len(api_specs) == 1
+
+    if len(node_groups) > 0:
+        api_specs[0]["node_groups"] = node_groups
 
     api_name = api_specs[0]["name"]
     client.deploy(api_spec=api_specs[0])
@@ -209,17 +217,20 @@ def test_async_api(
     poll_retries: int = 5,
     poll_sleep_seconds: int = 1,
     api_config_name: str = "cortex_cpu.yaml",
+    node_groups: List[str] = [],
 ):
     api_dir = TEST_APIS_DIR / api
     with open(str(api_dir / api_config_name)) as f:
         api_specs = yaml.safe_load(f)
+    assert len(api_specs) == 1
+
+    if len(node_groups) > 0:
+        api_specs[0]["node_groups"] = node_groups
 
     expectations = None
     expectations_file = api_dir / "expectations.yaml"
     if expectations_file.exists():
         expectations = parse_expectations(str(expectations_file))
-
-    assert len(api_specs) == 1
 
     api_name = api_specs[0]["name"]
     client.deploy(api_spec=api_specs[0])
@@ -320,6 +331,7 @@ def test_task_api(
     job_timeout: int = None,
     retry_attempts: int = 0,
     api_config_name: str = "cortex_cpu.yaml",
+    node_groups: List[str] = [],
     local_operator: bool = False,
 ):
     api_dir = TEST_APIS_DIR / api
@@ -327,6 +339,9 @@ def test_task_api(
         api_specs = yaml.safe_load(f)
 
     assert len(api_specs) == 1
+
+    if len(node_groups) > 0:
+        api_specs[0]["node_groups"] = node_groups
 
     api_name = api_specs[0]["name"]
     client.deploy(api_spec=api_specs[0])
@@ -389,6 +404,7 @@ def test_autoscaling(
     autoscaling_config: Dict[str, Union[int, float]],
     deploy_timeout: int = None,
     api_config_name: str = "cortex_cpu.yaml",
+    node_groups: List[str] = [],
 ):
     max_replicas = autoscaling_config["max_replicas"]
     query_params = apis["query_params"]
@@ -403,10 +419,14 @@ def test_autoscaling(
         with open(str(api_dir / api_config_name)) as f:
             api_specs = yaml.safe_load(f)
         assert len(api_specs) == 1
+
+        if len(node_groups) > 0:
+            api_specs[0]["node_groups"] = node_groups
         api_specs[0]["autoscaling"] = {
             "max_replicas": max_replicas,
             "downscale_stabilization_period": "1m",
         }
+
         all_api_names.append(api_specs[0]["name"])
         client.deploy(api_spec=api_specs[0])
 
@@ -500,6 +520,7 @@ def test_load_realtime(
     load_config: Dict[str, Union[int, float]],
     deploy_timeout: int = None,
     api_config_name: str = "cortex_cpu.yaml",
+    node_groups: List[str] = [],
 ):
 
     total_requests = load_config["total_requests"]
@@ -511,10 +532,14 @@ def test_load_realtime(
     with open(str(api_dir / api_config_name)) as f:
         api_specs = yaml.safe_load(f)
     assert len(api_specs) == 1
+
     api_specs[0]["autoscaling"] = {
         "min_replicas": desired_replicas,
         "max_replicas": desired_replicas,
     }
+    if len(node_groups) > 0:
+        api_specs[0]["node_groups"] = node_groups
+
     api_name = api_specs[0]["name"]
     client.deploy(api_spec=api_specs[0])
 
@@ -604,6 +629,7 @@ def test_load_async(
     deploy_timeout: int = None,
     poll_sleep_seconds: int = 1,
     api_config_name: str = "cortex_cpu.yaml",
+    node_groups: List[str] = [],
 ):
 
     total_requests = load_config["total_requests"]
@@ -615,12 +641,15 @@ def test_load_async(
     api_dir = TEST_APIS_DIR / api
     with open(str(api_dir / api_config_name)) as f:
         api_specs = yaml.safe_load(f)
-
     assert len(api_specs) == 1
+
     api_specs[0]["autoscaling"] = {
         "min_replicas": desired_replicas,
         "max_replicas": desired_replicas,
     }
+    if len(node_groups) > 0:
+        api_specs[0]["node_groups"] = node_groups
+
     api_name = api_specs[0]["name"]
     client.deploy(api_spec=api_specs[0])
 
@@ -726,6 +755,7 @@ def test_load_batch(
     deploy_timeout: int = None,
     retry_attempts: int = 0,
     api_config_name: str = "cortex_cpu.yaml",
+    node_groups: List[str] = [],
 ):
 
     jobs = load_config["jobs"]
@@ -742,6 +772,9 @@ def test_load_batch(
     with open(str(api_dir / api_config_name)) as f:
         api_specs = yaml.safe_load(f)
     assert len(api_specs) == 1
+
+    if len(node_groups) > 0:
+        api_specs[0]["node_groups"] = node_groups
 
     sample_generator_path = api_dir / "sample_generator.py"
     assert (
@@ -831,13 +864,18 @@ def test_long_running_realtime(
     long_running_config: Dict[str, Union[int, float]],
     deploy_timeout: int = None,
     api_config_name: str = "cortex_cpu.yaml",
+    node_groups: List[str] = [],
 ):
     api_dir = TEST_APIS_DIR / api
     with open(str(api_dir / api_config_name)) as f:
         api_specs = yaml.safe_load(f)
+    assert len(api_specs) == 1
 
     time_to_run = long_running_config["time_to_run"]
     status_code_timeout = long_running_config["status_code_timeout"]
+
+    if len(node_groups) > 0:
+        api_specs[0]["node_groups"] = node_groups
 
     expectations = None
     expectations_file = api_dir / "expectations.yaml"

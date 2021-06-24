@@ -32,6 +32,7 @@ def test_async_api(printer: Callable, config: Dict, client: cx.Client, api: str)
         api=api,
         deploy_timeout=config["global"]["async_deploy_timeout"],
         poll_retries=config["global"]["async_workload_timeout"],
+        node_groups=config["aws"]["x86_nodegroups"],
     )
 
 
@@ -49,4 +50,5 @@ def test_async_api_gpu(printer: Callable, config: Dict, client: cx.Client, api: 
         deploy_timeout=config["global"]["async_deploy_timeout"],
         poll_retries=config["global"]["async_workload_timeout"],
         api_config_name="cortex_gpu.yaml",
+        node_groups=config["aws"]["x86_nodegroups"],
     )

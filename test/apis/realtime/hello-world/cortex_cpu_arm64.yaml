@@ -13,4 +13,3 @@
       compute:
         cpu: 200m
         mem: 128Mi
-  node_groups: ["arm"]

@@ -43,4 +43,5 @@ def test_autoscaling(printer: Callable, config: Dict, client: cx.Client, apis: D
         apis,
         autoscaling_config=config["global"]["autoscaling_test_config"],
         deploy_timeout=config["global"]["realtime_deploy_timeout"],
+        node_groups=config["aws"]["x86_nodegroups"],
     )

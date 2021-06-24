@@ -41,6 +41,7 @@ def test_batch_api(printer: Callable, config: Dict, client: cx.Client, api: str)
         deploy_timeout=config["global"]["batch_deploy_timeout"],
         job_timeout=config["global"]["batch_job_timeout"],
         retry_attempts=5,
+        node_groups=config["aws"]["x86_nodegroups"],
         local_operator=config["global"]["local_operator"],
     )
 
@@ -67,6 +68,7 @@ def test_batch_api_gpu(printer: Callable, config: Dict, client: cx.Client, api: 
         deploy_timeout=config["global"]["batch_deploy_timeout"],
         job_timeout=config["global"]["batch_job_timeout"],
         retry_attempts=5,
-        local_operator=config["global"]["local_operator"],
         api_config_name="cortex_gpu.yaml",
+        node_groups=config["aws"]["x86_nodegroups"],
+        local_operator=config["global"]["local_operator"],
     )
