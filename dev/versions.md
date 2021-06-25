@@ -15,6 +15,7 @@
 1. Find the latest version of Kubernetes supported by
    eksctl ([source code](https://github.com/weaveworks/eksctl/blob/master/pkg/apis/eksctl.io/v1alpha5/types.go))
 1. Update the version in `generate_eks.py`
+1. Update `ami.json` (see release checklist for instructions)
 1. See instructions for upgrading the Kubernetes client below
 
 ## AWS CNI

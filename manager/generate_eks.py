@@ -19,7 +19,7 @@ from collections import namedtuple
 import re
 import yaml
 
-K8S_VERSION = "1.18"
+K8S_VERSION = "1.20"
 
 ParsedInstanceType = namedtuple(
     "ParsedInstanceType", ["family", "generation", "capabilities", "size"]
