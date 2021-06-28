@@ -67,6 +67,7 @@ var (
 	CortexAPINameHeader       = "X-Cortex-API-Name"
 	CortexTargetServiceHeader = "X-Cortex-Target-Service"
 	CortexProbeHeader         = "X-Cortex-Probe"
+	CortexOriginHeader        = "X-Cortex-Origin"
 )
 
 func DefaultRegistry() string {
