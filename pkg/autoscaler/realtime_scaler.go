@@ -68,15 +68,15 @@ func (s *realtimeScaler) Scale(apiName string, request int32) error {
 	}
 
 	if request == 0 {
-		if err := s.routeToActivator(deployment); err != nil {
-			return err
+		if err = s.routeToActivator(deployment); err != nil {
+			return errors.Wrap(err, "failed to re-route traffic to activator")
 		}
 	}
 
 	deployment.Spec.Replicas = pointer.Int32(request)
 
-	if _, err := s.k8s.UpdateDeployment(deployment); err != nil {
-		return err
+	if _, err = s.k8s.UpdateDeployment(deployment); err != nil {
+		return errors.Wrap(err, "failed to update deployment")
 	}
 
 	if current == 0 && request > 0 {
@@ -133,7 +133,7 @@ func (s *realtimeScaler) GetInFlightRequests(apiName string, window time.Duratio
 func (s *realtimeScaler) GetAutoscalingSpec(apiName string) (*userconfig.Autoscaling, error) {
 	deployment, err := s.k8s.GetDeployment(workloads.K8sName(apiName))
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "failed to get deployment")
 	}
 
 	if deployment == nil {
@@ -165,7 +165,7 @@ func (s *realtimeScaler) routeToService(deployment *kapps.Deployment) error {
 	ctx := context.Background()
 	vs, err := s.k8s.GetVirtualService(deployment.Name)
 	if err != nil {
-		return err // TODO: error handling
+		return errors.Wrap(err, "failed to get virtual service")
 	}
 
 	if len(vs.Spec.Http) < 1 {
@@ -177,7 +177,7 @@ func (s *realtimeScaler) routeToService(deployment *kapps.Deployment) error {
 	}
 
 	if err = s.waitForReadyReplicas(ctx, deployment); err != nil {
-		return err // TODO: error handling
+		return errors.Wrap(err, "no ready replicas available")
 	}
 
 	vs.Spec.Http[0].Route[0].Weight = 100 // service traffic
@@ -185,7 +185,7 @@ func (s *realtimeScaler) routeToService(deployment *kapps.Deployment) error {
 
 	vsClient := s.k8s.IstioClientSet().NetworkingV1beta1().VirtualServices(s.k8s.Namespace)
 	if _, err = vsClient.Update(ctx, vs, kmeta.UpdateOptions{}); err != nil {
-		return err // TODO: error handling
+		return errors.Wrap(err, "failed to update virtual service")
 	}
 
 	return nil
@@ -195,7 +195,7 @@ func (s *realtimeScaler) routeToActivator(deployment *kapps.Deployment) error {
 	ctx := context.Background()
 	vs, err := s.k8s.GetVirtualService(deployment.Name)
 	if err != nil {
-		return err // TODO: error handling
+		return errors.Wrap(err, "failed to get virtual service")
 	}
 
 	if len(vs.Spec.Http) < 1 {
@@ -211,7 +211,7 @@ func (s *realtimeScaler) routeToActivator(deployment *kapps.Deployment) error {
 
 	vsClient := s.k8s.IstioClientSet().NetworkingV1beta1().VirtualServices(s.k8s.Namespace)
 	if _, err = vsClient.Update(ctx, vs, kmeta.UpdateOptions{}); err != nil {
-		return err // TODO: error handling
+		return errors.Wrap(err, "failed to update virtual service")
 	}
 
 	return nil
@@ -226,7 +226,7 @@ func (s *realtimeScaler) waitForReadyReplicas(ctx context.Context, deployment *k
 		},
 	)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "could not create deployment watcher")
 	}
 
 	defer watcher.Stop()
