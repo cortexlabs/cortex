@@ -41,6 +41,7 @@ rules:
   verbs:
   - get
   - update
+  - watch
 
 ---
 
@@ -83,6 +84,11 @@ spec:
             - "--port=8000"
             - "--prometheus-url=http://prometheus.{{ env['CORTEX_NAMESPACE'] }}:9090"
             - "--namespace={{ env['CORTEX_NAMESPACE'] }}"
+          env:
+          - name: CORTEX_LOG_LEVEL
+            value: DEBUG
+          - name: CORTEX_DISABLE_JSON_LOGGING
+            value: "true"
           ports:
             - containerPort: 8000
           livenessProbe:
