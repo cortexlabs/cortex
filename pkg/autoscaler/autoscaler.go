@@ -182,6 +182,20 @@ func (a *Autoscaler) autoscaleFn(api userconfig.Resource) (func() error, error) 
 			return nil
 		}
 
+		// awaken state: was scaled from zero
+		// This needs to be protected by a Mutex because an Awaken call will also modify it
+		a.Lock()
+		a.awakenMap[api.Name].deleteOlderThan(a.awakenStabilizationPeriod)
+		awoke := a.awakenMap[api.Name].minSince(_awakenStabilizationPeriod) != nil
+		a.Unlock()
+
+		// If there was an awaken event, the number of current replicas
+		// will be outdated until some kind of scaling occurs
+		if awoke {
+			// if API was awoke, current replicas is at least 1
+			currentReplicas = libmath.MaxInt32(currentReplicas, 1)
+		}
+
 		rawRecommendation := *avgInFlight / *autoscalingSpec.TargetInFlight
 		recommendation := int32(math.Ceil(rawRecommendation))
 
@@ -241,15 +255,9 @@ func (a *Autoscaler) autoscaleFn(api userconfig.Resource) (func() error, error) 
 			}
 		}
 
-		// awaken state: was scaled from zero
-		// This needs to be protected by a Mutex because an Awaken call will also modify it
-		a.Lock()
-		a.awakenMap[api.Name].deleteOlderThan(a.awakenStabilizationPeriod)
-		awoke := a.awakenMap[api.Name].minSince(_awakenStabilizationPeriod) != nil
-		a.Unlock()
-
-		if request < 1 && awoke {
-			request = currentReplicas // FIXME: current replicas might be outdated after API is awaken
+		// do now allow downscale bellow 1 if API was awoke with the awaken stabilization period
+		if awoke {
+			request = libmath.MaxInt32(currentReplicas, 1)
 		}
 
 		log.Debugw("autoscaler tick",
