@@ -131,6 +131,16 @@ spec:
       path: /metrics
       scheme: http
       interval: 15s
+      metricRelabelings:
+      - action: keep
+        sourceLabels: [__name__]
+        regex: "DCGM_FI_DEV_(\
+          GPU_UTIL|\
+          FB_USED|\
+          FB_FREE\
+          )"
+      - action: labelkeep
+        regex: (__name__|exported_pod)
   namespaceSelector:
     any: true
   selector:
