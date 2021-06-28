@@ -52,6 +52,7 @@ type Destination struct {
 	Weight      int32
 	Port        uint32
 	Shadow      bool
+	Headers     *istionetworking.Headers
 }
 
 func VirtualService(spec *VirtualServiceSpec) *istioclientnetworking.VirtualService {
@@ -76,7 +77,8 @@ func VirtualService(spec *VirtualServiceSpec) *istioclientnetworking.VirtualServ
 						Number: destination.Port,
 					},
 				},
-				Weight: destination.Weight,
+				Weight:  destination.Weight,
+				Headers: destination.Headers,
 			})
 		}
 	}

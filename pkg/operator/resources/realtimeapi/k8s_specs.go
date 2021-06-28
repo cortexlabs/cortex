@@ -113,11 +113,25 @@ func virtualServiceSpec(api *spec.API) *istioclientnetworking.VirtualService {
 				ServiceName: workloads.K8sName(api.Name),
 				Weight:      100 - activatorWeight,
 				Port:        uint32(consts.ProxyPortInt32),
+				Headers: &istionetworking.Headers{
+					Response: &istionetworking.Headers_HeaderOperations{
+						Add: map[string]string{
+							consts.CortexOriginHeader: "api",
+						},
+					},
+				},
 			},
 			{
 				ServiceName: consts.ActivatorName,
 				Weight:      activatorWeight,
 				Port:        uint32(consts.ActivatorPortInt32),
+				Headers: &istionetworking.Headers{
+					Response: &istionetworking.Headers_HeaderOperations{
+						Add: map[string]string{
+							consts.CortexOriginHeader: consts.ActivatorName,
+						},
+					},
+				},
 			},
 		},
 		PrefixPath:  api.Networking.Endpoint,
