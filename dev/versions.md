@@ -18,6 +18,11 @@
 1. Update `ami.json` (see release checklist for instructions)
 1. See instructions for upgrading the Kubernetes client below
 
+## aws-iam-authenticator
+
+1. Find the latest release [here](https://docs.aws.amazon.com/eks/latest/userguide/install-aws-iam-authenticator.html)
+1. Update the version in `images/manager/Dockerfile`
+
 ## Istio
 
 1. Find the latest [release](https://istio.io/latest/news/releases) and check the release notes (here are
@@ -224,8 +229,8 @@ supported (<https://github.com/awslabs/amazon-eks-ami/issues/176>)
 1. Find the latest release in the Kube Prometheus [GitHub Repo](https://github.com/prometheus-operator/kube-prometheus/blob/main/manifests/).
 1. Copy the `node-exporter-*.yaml` files contents into `prometheus-node-exporter.yaml`, but keep the prometheus rules resource.
 1. Replace the image in the Deployment resource with a cortex env var.
-1. Update the base image versions in `images/prometheus-node-exporter/Dockerfile`
-   and `images/kube-rbac-proxy/Dockerfile`.
+1. Update the base image version in `images/prometheus-node-exporter/Dockerfile`
+1. Update the base branch version in `images/kube-rbac-proxy/Dockerfile` (as well as the rest of the contents if necessary).
 
 ## Grafana
 
@@ -240,11 +245,6 @@ supported (<https://github.com/awslabs/amazon-eks-ami/issues/176>)
    on [GitHub](https://github.com/opsgenie/kubernetes-event-exporter).
 1. Update the base image version in `images/event-exporter/Dockerfile`.
 1. Update `event-exporter.yaml` as necessary, if that's the case.
-
-## aws-iam-authenticator
-
-1. Find the latest release [here](https://docs.aws.amazon.com/eks/latest/userguide/install-aws-iam-authenticator.html)
-1. Update the version in `images/manager/Dockerfile`
 
 ## kubectl
 
