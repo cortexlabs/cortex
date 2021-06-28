@@ -191,6 +191,59 @@ spec:
           sourceLabels:
             - __meta_kubernetes_pod_node_name
           targetLabel: instance
+      metricRelabelings:
+        - action: keeplabel
+          sourceLabels: [__name__, instance, job]
+          regex: "node_(\
+            cpu_seconds_total|\
+            load1|\
+            load5|\
+            load15|\
+            memory_MemTotal_bytes|\
+            memory_MemFree_bytes|\
+            memory_Buffers_bytes|\
+            memory_Cached_bytes|\
+            memory_MemAvailable_bytes|\
+            disk_read_bytes_total|\
+            disk_written_bytes_total|\
+            disk_io_time_seconds_total|\
+            disk_io_time_weighted_seconds|\
+            filesystem_size_bytes|\
+            filesystem_avail_bytes|\
+            network_receive_bytes_total|\
+            network_transmit_bytes_total|\
+            network_receive_drop_total|\
+            network_transmit_drop_total\
+            );(.+)"
+        - action: keep
+          sourceLabels: [__name__, device]
+          regex: "node_(\
+            disk_read_bytes_total|\
+            disk_written_bytes_total|\
+            disk_io_time_seconds_total|\
+            disk_io_time_weighted_seconds|\
+            filesystem_size_bytes|\
+            filesystem_avail_bytes|\
+            network_receive_bytes_total|\
+            network_transmit_bytes_total|\
+            network_receive_drop_total|\
+            network_transmit_drop_total\
+            );(.+)"
+        - action: keep
+          sourceLabels: [__name__, fstype]
+          regex: "node_(\
+            node_filesystem_size_bytes|\
+            node_filesystem_avail_bytes\
+            );(.+)"
+        - action: keep
+          sourceLabels: [__name__, mountpoint]
+          regex: (node_filesystem_size_bytes);(.+)
+        - action: keep
+          sourceLabels: [__name__, mode]
+          regex: (node_cpu_seconds_total);(.+)
+        - action: keep
+          sourceLabels: [__name__]
+          regex: node_vmstat_pgmajfault
       scheme: https
       tlsConfig:
         insecureSkipVerify: true
