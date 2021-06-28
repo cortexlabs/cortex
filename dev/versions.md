@@ -18,6 +18,15 @@
 1. Update `ami.json` (see release checklist for instructions)
 1. See instructions for upgrading the Kubernetes client below
 
+## Istio
+
+1. Find the latest [release](https://istio.io/latest/news/releases) and check the release notes (here are
+   the [latest IstioOperator Options](https://istio.io/latest/docs/reference/config/istio.operator.v1alpha1/))
+1. Update the version in `images/manager/Dockerfile`
+1. Update the version in all `images/istio-*` Dockerfiles
+1. Update `istio.yaml.j2`, `apis.yaml.j2`, `operator.yaml.j2`, and `pkg/lib/k8s` as necessary
+1. Update `install.sh` as necessary
+
 ## AWS CNI
 
 1. Update the CNI version in `eks_cluster.yaml` ([CNI releases](https://github.com/aws/amazon-vpc-cni-k8s/releases))
@@ -96,7 +105,7 @@ see https://github.com/moby/moby/issues/39302#issuecomment-639687466_
 
 1. `rm -rf go.mod go.sum && go mod init && go clean -modcache`
 1. `go get k8s.io/client-go@v0.17.6 && go get k8s.io/apimachinery@v0.17.6 && go get k8s.io/api@v0.17.6`
-1. `go get istio.io/client-go@1.7.3 && go get istio.io/api@1.7.3`
+1. `go get istio.io/client-go@1.10.2 && go get istio.io/api@1.10.2`
 1. `go get github.com/aws/amazon-vpc-cni-k8s/pkg/awsutils@v1.8.0`
 1. `go get github.com/cortexlabs/yaml@581aea36a2e4db10f8696587e48cac5248d64f4d`
 1. `go get github.com/cortexlabs/go-input@8b67a7a7b28d1c45f5c588171b3b50148462b247`
@@ -135,15 +144,6 @@ see https://github.com/moby/moby/issues/39302#issuecomment-639687466_
    to `manager/manifests/inferentia.yaml`
     1. Update the links at the top of the file to the URL you copied from
     1. Check that your diff is reasonable (and put back any of our modifications)
-
-## Istio
-
-1. Find the latest [release](https://istio.io/latest/news/releases) and check the release notes (here are
-   the [latest IstioOperator Options](https://istio.io/latest/docs/reference/config/istio.operator.v1alpha1/))
-1. Update the version in `images/manager/Dockerfile`
-1. Update the version in all `images/istio-*` Dockerfiles
-1. Update `istio.yaml.j2`, `apis.yaml.j2`, `operator.yaml.j2`, and `pkg/lib/k8s` as necessary
-1. Update `install.sh` as necessary
 
 ## Metrics server
 
