@@ -10,8 +10,8 @@ commands:
           name: Install Go
           command: |
             sudo rm -rf /usr/local/go
-            wget https://dl.google.com/go/go1.15.12.linux-amd64.tar.gz
-            sudo tar -C /usr/local -xzf go1.15.12.linux-amd64.tar.gz
+            wget https://dl.google.com/go/go1.16.5.linux-amd64.tar.gz
+            sudo tar -C /usr/local -xzf go1.16.5.linux-amd64.tar.gz
             rm -rf go*.tar.gz
             echo 'export PATH=$PATH:/usr/local/go/bin' >> $BASH_ENV
             echo 'export PATH=$PATH:~/go/bin' >> $BASH_ENV

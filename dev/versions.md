@@ -44,18 +44,18 @@ wget -q -O cni_supported_instances_prev.txt https://raw.githubusercontent.com/aw
 
 1. Find the latest release on Golang's [release page](https://golang.org/doc/devel/release.html) (
    or [downloads page](https://golang.org/dl/)) and check the changelog
-1. Search the codebase for the current minor version (e.g. `1.14`), update versions as appropriate
+1. Search the codebase for the current minor version (e.g. `1.16`), update versions as appropriate
 1. Update your local version and alert developers:
     * Linux:
-        1. `wget https://dl.google.com/go/go1.14.7.linux-amd64.tar.gz`
-        1. `tar -xvf go1.14.7.linux-amd64.tar.gz`
+        1. `wget https://dl.google.com/go/go1.16.5.linux-amd64.tar.gz`
+        1. `tar -xvf go1.16.5.linux-amd64.tar.gz`
         1. `sudo rm -rf /usr/local/go`
         1. `sudo mv -f go /usr/local`
-        1. `rm go1.14.7.linux-amd64.tar.gz`
+        1. `rm go1.16.5.linux-amd64.tar.gz`
         1. refresh shell
         1. `go version`
     * Mac:
-        1. `brew upgrade go` or `brew install go@1.14`
+        1. `brew upgrade go` or `brew install go@1.16`
         1. refresh shell
         1. `go version`
 1. Update go modules as necessary
@@ -64,8 +64,7 @@ wget -q -O cni_supported_instances_prev.txt https://raw.githubusercontent.com/aw
 
 ### Kubernetes client
 
-1. Find the latest patch release for the minor kubernetes version that EKS uses by default (here
-   are [their versions](https://docs.aws.amazon.com/eks/latest/userguide/kubernetes-versions.html))
+1. Find the latest patch release for the minor kubernetes version that we use (e.g. for k8s 1.20, use `client-go` version `v0.20.X`, where `X` is the latest available patch release)
 1. Follow the "Update non-versioned modules" instructions using the updated version for `k8s.io/client-go`
 
 ### Istio client
@@ -104,17 +103,20 @@ see https://github.com/moby/moby/issues/39302#issuecomment-639687466_
 ### Non-versioned modules
 
 1. `rm -rf go.mod go.sum && go mod init && go clean -modcache`
-1. `go get k8s.io/client-go@v0.17.6 && go get k8s.io/apimachinery@v0.17.6 && go get k8s.io/api@v0.17.6`
+1. `go get k8s.io/client-go@v0.20.8 && go get k8s.io/apimachinery@v0.20.8 && go get k8s.io/api@v0.20.8`
 1. `go get istio.io/client-go@1.10.2 && go get istio.io/api@1.10.2`
 1. `go get github.com/aws/amazon-vpc-cni-k8s/pkg/awsutils@v1.8.0`
-1. `go get github.com/cortexlabs/yaml@581aea36a2e4db10f8696587e48cac5248d64f4d`
+1. `go get github.com/cortexlabs/yaml@31e52ba8433b683c471ef92cf1711fe67671dac5`
 1. `go get github.com/cortexlabs/go-input@8b67a7a7b28d1c45f5c588171b3b50148462b247`
-1. `echo -e '\nreplace github.com/docker/docker => github.com/docker/engine v19.03.12' >> go.mod`
+1. `go get github.com/xlab/treeprint@v1.0.0`
+1. `echo -e '\nreplace github.com/docker/docker => github.com/docker/engine v19.03.13' >> go.mod`
 1. `go get -u github.com/docker/distribution`
 1. `go mod tidy`
 1. For every non-indirect, non-hardcoded dependency in go.mod, update with `go get -u <path>`
 1. `go mod tidy`
-1. `make test-go`
+1. Re-run the hardcoded `go get` commands above
+1. `go mod tidy`
+1. `make test`
 1. `go mod tidy`
 1. Check that the diff in `go.mod` is reasonable
 
