@@ -100,6 +100,7 @@ func main() {
 	autoScaler := autoscaler.New(log)
 	autoScaler.AddScaler(realtimeScaler, userconfig.RealtimeAPIKind)
 	autoScaler.AddScaler(asyncScaler, userconfig.AsyncAPIKind)
+	defer autoScaler.Stop()
 
 	istioInformerFactory := istioinformers.NewSharedInformerFactory(istioClient, 10*time.Second) // TODO: check how much makes sense
 	virtualServiceInformer := istioInformerFactory.Networking().V1beta1().VirtualServices().Informer()
