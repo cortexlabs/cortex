@@ -115,7 +115,7 @@ func virtualServiceSpec(api *spec.API) *istioclientnetworking.VirtualService {
 				Port:        uint32(consts.ProxyPortInt32),
 				Headers: &istionetworking.Headers{
 					Response: &istionetworking.Headers_HeaderOperations{
-						Add: map[string]string{
+						Set: map[string]string{
 							consts.CortexOriginHeader: "api",
 						},
 					},
@@ -126,8 +126,19 @@ func virtualServiceSpec(api *spec.API) *istioclientnetworking.VirtualService {
 				Weight:      activatorWeight,
 				Port:        uint32(consts.ActivatorPortInt32),
 				Headers: &istionetworking.Headers{
+					Request: &istionetworking.Headers_HeaderOperations{
+						Set: map[string]string{
+							consts.CortexAPINameHeader: api.Name,
+							consts.CortexTargetServiceHeader: fmt.Sprintf(
+								"http://%s.%s:%d",
+								workloads.K8sName(api.Name),
+								config.ClusterConfig.Namespace,
+								consts.ProxyPortInt32,
+							),
+						},
+					},
 					Response: &istionetworking.Headers_HeaderOperations{
-						Add: map[string]string{
+						Set: map[string]string{
 							consts.CortexOriginHeader: consts.ActivatorName,
 						},
 					},
@@ -145,19 +156,6 @@ func virtualServiceSpec(api *spec.API) *istioclientnetworking.VirtualService {
 			"deploymentID":   api.DeploymentID,
 			"podID":          api.PodID,
 			"cortex.dev/api": "true",
-		},
-		Headers: &istionetworking.Headers{
-			Request: &istionetworking.Headers_HeaderOperations{
-				Add: map[string]string{
-					consts.CortexAPINameHeader: api.Name,
-					consts.CortexTargetServiceHeader: fmt.Sprintf(
-						"http://%s.%s:%d",
-						workloads.K8sName(api.Name),
-						config.ClusterConfig.Namespace,
-						consts.ProxyPortInt32,
-					),
-				},
-			},
 		},
 	})
 }
