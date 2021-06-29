@@ -160,6 +160,18 @@ spec:
         - sourceLabels: [ __meta_kubernetes_pod_name ]
           action: replace
           targetLabel: pod_name
+      metricRelabelings:
+        - action: keep
+          sourceLabels: [__name__]
+          regex: "istio_(\
+            requests_total|\
+            request_duration_milliseconds_bucket|\
+            request_duration_milliseconds_sum|\
+            request_duration_milliseconds_count\
+            )"
+        - action: labeldrop
+          sourceLabels: [__name__]
+          regex: (__name__|destination_service_name|response_code)
 
 ---
 
