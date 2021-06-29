@@ -23,6 +23,22 @@
 1. Find the latest release [here](https://docs.aws.amazon.com/eks/latest/userguide/install-aws-iam-authenticator.html)
 1. Update the version in `images/manager/Dockerfile`
 
+## kubectl
+
+1. Find the latest release [here](https://storage.googleapis.com/kubernetes-release/release/stable.txt)
+1. Update the version in `images/manager/Dockerfile` and `images/operator/Dockerfile`
+1. Update your local version and alert developers
+    * Linux:
+        1. `curl -LO https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl`
+        1. `chmod +x ./kubectl`
+        1. `sudo mv -f ./kubectl /usr/local/bin/kubectl`
+        1. refresh shell
+        1. `kubectl version`
+    * Mac:
+        1. `brew upgrade kubernetes-cli`
+        1. refresh shell
+        1. `kubectl version`
+
 ## Istio
 
 1. Find the latest [release](https://istio.io/latest/news/releases) and check the release notes (here are
@@ -232,22 +248,6 @@ see https://github.com/moby/moby/issues/39302#issuecomment-639687466_
 1. Find the latest release on [GitHub](https://github.com/opsgenie/kubernetes-event-exporter) / [GitHub Container Registry](https://github.com/opsgenie/kubernetes-event-exporter/pkgs/container/kubernetes-event-exporter).
 1. Update the base image version in `images/event-exporter/Dockerfile`.
 1. Update `event-exporter.yaml` as necessary, if that's the case.
-
-## kubectl
-
-1. Find the latest release [here](https://storage.googleapis.com/kubernetes-release/release/stable.txt)
-1. Update the version in `images/manager/Dockerfile` and `images/operator/Dockerfile`
-1. Update your local version and alert developers
-    * Linux:
-        1. `curl -LO https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl`
-        1. `chmod +x ./kubectl`
-        1. `sudo mv -f ./kubectl /usr/local/bin/kubectl`
-        1. refresh shell
-        1. `kubectl version`
-    * Mac:
-        1. `brew upgrade kubernetes-cli`
-        1. refresh shell
-        1. `kubectl version`
 
 ## Alpine base images
 
