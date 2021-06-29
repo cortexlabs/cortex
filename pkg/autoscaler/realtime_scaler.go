@@ -38,7 +38,7 @@ const (
 )
 
 type realtimeScaler struct {
-	k8s        *k8s.Client
+	k8s        *k8s.Client // TODO: add cache
 	prometheus promv1.API
 	logger     *zap.SugaredLogger
 }
@@ -172,16 +172,18 @@ func (s *realtimeScaler) routeToService(deployment *kapps.Deployment) error {
 		return errors.ErrorUnexpected("virtual service does not have any http entries")
 	}
 
-	if len(vs.Spec.Http[0].Route) != 2 {
-		return errors.ErrorUnexpected("virtual service does not have the required minimum number of 2 http routes")
-	}
-
 	if err = s.waitForReadyReplicas(ctx, deployment); err != nil {
 		return errors.Wrap(err, "no ready replicas available")
 	}
 
-	vs.Spec.Http[0].Route[0].Weight = 100 // service traffic
-	vs.Spec.Http[0].Route[1].Weight = 0   // activator traffic
+	for i := range vs.Spec.Http {
+		if len(vs.Spec.Http[i].Route) != 2 {
+			return errors.ErrorUnexpected("virtual service does not have the required number of 2 http routes")
+		}
+
+		vs.Spec.Http[i].Route[0].Weight = 100 // service traffic
+		vs.Spec.Http[i].Route[1].Weight = 0   // activator traffic
+	}
 
 	vsClient := s.k8s.IstioClientSet().NetworkingV1beta1().VirtualServices(s.k8s.Namespace)
 	if _, err = vsClient.Update(ctx, vs, kmeta.UpdateOptions{}); err != nil {
@@ -202,12 +204,14 @@ func (s *realtimeScaler) routeToActivator(deployment *kapps.Deployment) error {
 		return errors.ErrorUnexpected("virtual service does not have any http entries")
 	}
 
-	if len(vs.Spec.Http[0].Route) != 2 {
-		return errors.ErrorUnexpected("virtual service does not have the required minimum number of 2 http routes")
-	}
+	for i := range vs.Spec.Http {
+		if len(vs.Spec.Http[i].Route) != 2 {
+			return errors.ErrorUnexpected("virtual service does not have the required number of 2 http routes")
+		}
 
-	vs.Spec.Http[0].Route[0].Weight = 0   // service traffic
-	vs.Spec.Http[0].Route[1].Weight = 100 // activator traffic
+		vs.Spec.Http[i].Route[0].Weight = 0   // service traffic
+		vs.Spec.Http[i].Route[1].Weight = 100 // activator traffic
+	}
 
 	vsClient := s.k8s.IstioClientSet().NetworkingV1beta1().VirtualServices(s.k8s.Namespace)
 	if _, err = vsClient.Update(ctx, vs, kmeta.UpdateOptions{}); err != nil {
