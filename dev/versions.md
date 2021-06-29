@@ -162,10 +162,9 @@ see https://github.com/moby/moby/issues/39302#issuecomment-639687466_
 1. Find the latest patch release for our current version of k8s (e.g. k8s v1.17 -> cluster-autocluster v1.17.3)
    on [GitHub](https://github.com/kubernetes/autoscaler/releases) and check the changelog
 1. Update the base image in `images/cluster-autoscaler/Dockerfile` to the repository URL shown in the GitHub release
-1. In the [GitHub Repo](https://github.com/kubernetes/autoscaler/blob/master/cluster-autoscaler/cloudprovider/aws), set
-   the tree to the tag for the chosen release, and
-   open `cloudprovider/aws/examples/cluster-autoscaler-autodiscover.yaml` (
-   e.g. <https://github.com/kubernetes/autoscaler/blob/cluster-autoscaler-1.16.5/cluster-autoscaler/cloudprovider/aws/examples/cluster-autoscaler-autodiscover.yaml>)
+1. In the [GitHub Repo](https://github.com/kubernetes/autoscaler/blob/master/cluster-autoscaler/cloudprovider/aws),
+   set the tree to the tag for the chosen release, and open `cloudprovider/aws/examples/cluster-autoscaler-autodiscover.yaml`
+   (e.g. <https://github.com/kubernetes/autoscaler/blob/cluster-autoscaler-1.20.0/cluster-autoscaler/cloudprovider/aws/examples/cluster-autoscaler-autodiscover.yaml>)
 1. Resolve merge conflicts with the template in `manager/manifests/cluster-autoscaler.yaml.j2`
 
 ## FluentBit
