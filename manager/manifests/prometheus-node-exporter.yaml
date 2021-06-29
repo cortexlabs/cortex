@@ -217,7 +217,7 @@ spec:
             node_vmstat_pgmajfault\
             )"
         - action: labelkeep
-        regex: (__name__|instance|job|device|fstype|mountpoint|mode)
+          regex: (__name__|instance|job|device|fstype|mountpoint|mode)
       scheme: https
       tlsConfig:
         insecureSkipVerify: true
