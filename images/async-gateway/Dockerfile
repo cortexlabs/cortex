@@ -14,7 +14,7 @@ COPY cmd/async-gateway cmd/async-gateway
 
 RUN GO111MODULE=on CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -installsuffix cgo -o async-gateway ./cmd/async-gateway
 
-FROM alpine:3.12
+FROM alpine:3.14
 
 RUN apk update && apk add ca-certificates
 
