@@ -1,1 +1,1 @@
-FROM opsgenie/kubernetes-event-exporter:0.9
+FROM ghcr.io/opsgenie/kubernetes-event-exporter:v0.10

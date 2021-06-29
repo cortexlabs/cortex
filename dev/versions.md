@@ -229,8 +229,7 @@ see https://github.com/moby/moby/issues/39302#issuecomment-639687466_
 
 ## Event Exporter
 
-1. Find the latest release
-   on [GitHub](https://github.com/opsgenie/kubernetes-event-exporter).
+1. Find the latest release on [GitHub](https://github.com/opsgenie/kubernetes-event-exporter) / [GitHub Container Registry](https://github.com/opsgenie/kubernetes-event-exporter/pkgs/container/kubernetes-event-exporter).
 1. Update the base image version in `images/event-exporter/Dockerfile`.
 1. Update `event-exporter.yaml` as necessary, if that's the case.
 
