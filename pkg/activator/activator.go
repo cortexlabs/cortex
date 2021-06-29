@@ -221,10 +221,7 @@ func (a *activator) updateDeploymentTracker(obj interface{}) {
 	}
 
 	tracker := a.getOrCreateDeploymentTracker(api.apiName)
-
-	if deployment.Status.ReadyReplicas > 0 {
-		tracker.Update(deployment)
-	}
+	tracker.Update(deployment)
 }
 
 func (a *activator) removeDeploymentTracker(obj interface{}) {
