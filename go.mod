@@ -1,6 +1,6 @@
 module github.com/cortexlabs/cortex
 
-go 1.16
+go 1.15
 
 require (
 	github.com/Azure/go-autorest/autorest v0.11.12 // indirect
@@ -62,12 +62,12 @@ require (
 	go.uber.org/zap v1.18.1
 	golang.org/x/net v0.0.0-20210614182718-04defd469f4e // indirect
 	golang.org/x/oauth2 v0.0.0-20210628180205-a41e5a781914 // indirect
+	golang.org/x/sys v0.0.0-20210629170331-7dc0b73dc9fb // indirect
 	golang.org/x/term v0.0.0-20210615171337-6886f2dfbf5b // indirect
 	golang.org/x/time v0.0.0-20210611083556-38a9dc6acbc6 // indirect
 	gomodules.xyz/jsonpatch/v2 v2.2.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
-	google.golang.org/genproto v0.0.0-20210624195500-8bfb893ecb84 // indirect
-	google.golang.org/protobuf v1.27.1 // indirect
+	google.golang.org/genproto v0.0.0-20210629135825-364e77e5a69d // indirect
 	gopkg.in/check.v1 v1.0.0-20200227125254-8fa46927fb4f // indirect
 	gopkg.in/karalabe/cookiejar.v2 v2.0.0-20150724131613-8dcd6a7f4951
 	gopkg.in/segmentio/analytics-go.v3 v3.1.0
@@ -79,7 +79,7 @@ require (
 	k8s.io/client-go v0.20.8
 	k8s.io/klog/v2 v2.9.0 // indirect
 	k8s.io/kube-openapi v0.0.0-20210527164424-3c818078ee3d // indirect
-	k8s.io/utils v0.0.0-20210527160623-6fdb442a123b // indirect
+	k8s.io/utils v0.0.0-20210629042839-4a2b36d8d73f // indirect
 	sigs.k8s.io/controller-runtime v0.8.3
 	sigs.k8s.io/structured-merge-diff/v4 v4.1.1 // indirect
 )
