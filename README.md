@@ -8,27 +8,17 @@
 
 # Serverless containers on AWS
 
-Deploy, manage, and scale containers without managing infrastructure.
+Avoid the complexity of Kubernetes, service meshes, load balancers, queues, and autoscalers. Deploy, manage, and scale containers on a Kubernetes-based serverless platform that is up to 75% less expensive than Lambda.
 
 <br>
 
-## Scale realtime, batch, and async workloads
+## Build production-grade microservices faster
 
-**Realtime** - respond to requests in real-time and autoscale based on in-flight request volumes.
+**Autoscaling** - customize autoscaling for realtime, async, and batch workloads.
 
-**Batch** - run distributed and fault-tolerant batch processing jobs on-demand.
+**Networking** - get HTTP endpoints that can handle large-scale production traffic.
 
-**Async** - process requests asynchronously and autoscale based on request queue length.
-
-<br>
-
-```bash
-$ cortex deploy
-
-creating realtime text-generator
-creating batch image-classifier
-creating async video-analyzer
-```
+**Observability** - send logs and metrics from every workload to any monitoring tool.
 
 <br>
 
@@ -36,37 +26,16 @@ creating async video-analyzer
 
 **No resource limits** - allocate as much CPU, GPU, and memory as each workload requires.
 
-**No cold starts** - keep a minimum number of replicas running to ensure that requests are handled in real-time.
+**No cold starts** - keep a minimum number of replicas running to minimize latency.
 
 **No timeouts** - run workloads for as long as you want.
 
 <br>
 
-```bash
-$ cortex get
+## Save up to 75% on your AWS bill
 
-WORKLOAD             TYPE         REPLICAS
-text-generator       realtime     32
-image-classifier     batch        64
-video-analyzer       async        16
-```
+**Spot instances** - run workloads on spot and/or reserved instances without affecting reliability.
 
-<br>
+**Custom instances** - use instances with the optimal price-performance ratio for your workloads.
 
-## Control your AWS spend
-
-**Scale to zero** - optimize the autoscaling behavior of each workload to minimize idle resources.
-
-**Multi-instance** - run different workloads on different EC2 instances to ensure efficient resource utilization.
-
-**Spot instances** - run workloads on spot instances and fall back to on-demand instances to ensure reliability.
-
-<br>
-
-```bash
-$ cortex cluster up
-
-INSTANCE        PRICE     SPOT     SCALE
-c5.xlarge       $0.17     yes      0-100
-g4dn.xlarge     $0.53     yes      0-100
-```
+**Scale to zero** - scale workloads to zero to minimize idle resources.
