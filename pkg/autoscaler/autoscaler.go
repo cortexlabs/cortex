@@ -41,7 +41,7 @@ type Autoscaler struct {
 	logger                    *zap.SugaredLogger
 	crons                     map[string]cron.Cron
 	scalers                   map[userconfig.Kind]Scaler
-	awakenMap                 map[string]recommendations
+	awakenMap                 map[string]time.Time
 	awakenStabilizationPeriod time.Duration
 }
 
@@ -50,7 +50,7 @@ func New(logger *zap.SugaredLogger) *Autoscaler {
 		logger:                    logger,
 		crons:                     make(map[string]cron.Cron),
 		scalers:                   make(map[userconfig.Kind]Scaler),
-		awakenMap:                 make(map[string]recommendations),
+		awakenMap:                 make(map[string]time.Time),
 		awakenStabilizationPeriod: _awakenStabilizationPeriod,
 	}
 }
@@ -62,8 +62,8 @@ func (a *Autoscaler) AddScaler(scaler Scaler, kind userconfig.Kind) {
 func (a *Autoscaler) Awake(api userconfig.Resource) error {
 	a.Lock()
 	// ignore awake call if one already happened within the awakenStabilizationPeriod duration
-	if awakenRec, ok := a.awakenMap[api.Name]; ok {
-		if awakenRec.minSince(_awakenStabilizationPeriod) != nil {
+	if awakenTimestamp, ok := a.awakenMap[api.Name]; ok {
+		if time.Since(awakenTimestamp) <= _awakenStabilizationPeriod {
 			return nil
 		}
 	}
@@ -87,7 +87,7 @@ func (a *Autoscaler) Awake(api userconfig.Resource) error {
 	}
 
 	a.Lock()
-	a.awakenMap[api.Name].add(1)
+	a.awakenMap[api.Name] = time.Now()
 	a.Unlock()
 
 	return nil
@@ -156,44 +156,28 @@ func (a *Autoscaler) autoscaleFn(api userconfig.Resource) (func() error, error) 
 		return nil, errors.Wrap(err, "failed to get autoscaling spec")
 	}
 
-	currentReplicas, err := scaler.CurrentReplicas(api.Name)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to get current replicas")
-	}
-
 	log.Info("autoscaler init")
 
 	var startTime time.Time
 	recs := make(recommendations)
 
-	a.awakenMap[api.Name] = make(recommendations)
-
 	return func() error {
+		currentReplicas, err := scaler.CurrentReplicas(api.Name)
+		if err != nil {
+			return errors.Wrap(err, "failed to get current replicas")
+		}
+
 		if startTime.IsZero() {
 			startTime = time.Now()
 		}
 
 		avgInFlight, err := scaler.GetInFlightRequests(api.Name, autoscalingSpec.Window)
 		if err != nil {
-			return err
+			return errors.Wrap(err, "failed to get in-flight requests")
 		}
 		if avgInFlight == nil {
 			log.Debug("autoscaler tick: metrics not available yet")
 			return nil
-		}
-
-		// awaken state: was scaled from zero
-		// This needs to be protected by a Mutex because an Awaken call will also modify it
-		a.Lock()
-		a.awakenMap[api.Name].deleteOlderThan(a.awakenStabilizationPeriod)
-		awoke := a.awakenMap[api.Name].minSince(_awakenStabilizationPeriod) != nil
-		a.Unlock()
-
-		// If there was an awaken event, the number of current replicas
-		// will be outdated until some kind of scaling occurs
-		if awoke {
-			// if API was awoke, current replicas is at least 1
-			currentReplicas = libmath.MaxInt32(currentReplicas, 1)
 		}
 
 		rawRecommendation := *avgInFlight / *autoscalingSpec.TargetInFlight
@@ -255,6 +239,12 @@ func (a *Autoscaler) autoscaleFn(api userconfig.Resource) (func() error, error) 
 			}
 		}
 
+		// awaken state: was scaled from zero
+		// This needs to be protected by a Mutex because an Awaken call will also modify it
+		a.Lock()
+		awoke := time.Since(a.awakenMap[api.Name]) <= _awakenStabilizationPeriod
+		a.Unlock()
+
 		// do now allow downscale bellow 1 if API was awoke with the awaken stabilization period
 		if awoke {
 			request = libmath.MaxInt32(currentReplicas, 1)
@@ -288,7 +278,6 @@ func (a *Autoscaler) autoscaleFn(api userconfig.Resource) (func() error, error) 
 			if err = scaler.Scale(api.Name, request); err != nil {
 				return err
 			}
-			currentReplicas = request
 		}
 
 		return nil
