@@ -127,7 +127,7 @@ see https://github.com/moby/moby/issues/39302#issuecomment-639687466_
 
 ## Nvidia device plugin
 
-1. Update the version in `images/nvidia/Dockerfile` ([releases](https://github.com/NVIDIA/k8s-device-plugin/releases)
+1. Update the version in `images/nvidia-device-plugin/Dockerfile` ([releases](https://github.com/NVIDIA/k8s-device-plugin/releases)
    , [Dockerhub](https://hub.docker.com/r/nvidia/k8s-device-plugin))
 1. In the [GitHub Repo](https://github.com/NVIDIA/k8s-device-plugin), find the latest release and go to this file (
    replacing the version number): <https://github.com/NVIDIA/k8s-device-plugin/blob/v0.6.0/nvidia-device-plugin.yml>
@@ -136,19 +136,12 @@ see https://github.com/moby/moby/issues/39302#issuecomment-639687466_
     1. Check that your diff is reasonable (and put back any of our modifications, e.g. the image path, rolling update
        strategy, resource requests, tolerations, node selector, priority class, etc)
 
-## Inferentia device plugin
+## Neuron device plugin and scheduler
 
-1. Check if the image
-   in [k8s-neuron-device-plugin.yml](https://github.com/aws/aws-neuron-sdk/blob/master/docs/neuron-container-tools/k8s-neuron-device-plugin.yml)
-   has been updated (also check the readme in the parent directory to see if anything has changed). To check what the
-   latest tag currently points to,
-   run `aws ecr list-images --region us-west-2 --registry-id 790709498068 --repository-name neuron-device-plugin`, and
-   then see which version has the same imageDigest as `latest`.
-1. Copy the contents
-   of [k8s-neuron-device-plugin.yml](https://github.com/aws/aws-neuron-sdk/blob/master/docs/neuron-container-tools/k8s-neuron-device-plugin.yml)
-   and [k8s-neuron-device-plugin-rbac.yml](https://github.com/aws/aws-neuron-sdk/blob/master/docs/neuron-container-tools/k8s-neuron-device-plugin-rbac.yml)
-   to `manager/manifests/inferentia.yaml`
-    1. Update the links at the top of the file to the URL you copied from
+1. Update `images/neuron-device-plugin/Dockerfile` if necessary (see [here](https://gallery.ecr.aws/neuron/neuron-device-plugin) for the latest tag)
+1. Update `images/neuron-scheduler/Dockerfile` if necessary (see [here](https://gallery.ecr.aws/neuron/neuron-scheduler) for the latest tag)
+1. Copy the contents of `k8s-neuron-*` in [this folder](https://github.com/aws/aws-neuron-sdk/tree/master/src/k8) into `manager/manifests/inferentia.yaml`
+    1. Update the link at the top of the file to the URL you copied from
     1. Check that your diff is reasonable (and put back any of our modifications)
 
 ## Metrics server

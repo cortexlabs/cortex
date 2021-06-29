@@ -12,9 +12,161 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Source: https://github.com/aws/aws-neuron-sdk/blob/master/docs/neuron-container-tools/k8s-neuron-device-plugin-rbac.yml
-# Source: https://github.com/aws/aws-neuron-sdk/blob/master/docs/neuron-container-tools/k8s-neuron-device-plugin.yml
+# Source: https://github.com/aws/aws-neuron-sdk/blob/master/src/k8/k8s-neuron-*
 
+apiVersion: v1
+data:
+  policy.cfg: |
+    {
+      "kind": "Policy",
+      "apiVersion": "v1",
+      "extenders": [
+        {
+          "urlPrefix": "http://127.0.0.1:32700",
+          "filterVerb": "filter",
+          "bindVerb":   "bind",
+          "enableHttps": false,
+          "nodeCacheCapable": true,
+          "managedResources": [
+            {
+              "name": "aws.amazon.com/neuron",
+              "ignoredByScheduler": false
+            }
+          ],
+          "ignorable": false
+        }
+      ]
+    }
+kind: ConfigMap
+metadata:
+  name: scheduler-policy
+  namespace: kube-system
+
+---
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: k8s-neuron-scheduler
+rules:
+  - apiGroups:
+      - ""
+    resources:
+      - nodes
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups:
+      - ""
+    resources:
+      - events
+    verbs:
+      - create
+      - patch
+  - apiGroups:
+      - ""
+    resources:
+      - pods
+    verbs:
+      - update
+      - patch
+      - get
+      - list
+      - watch
+  - apiGroups:
+      - ""
+    resources:
+      - bindings
+      - pods/binding
+    verbs:
+      - create
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: k8s-neuron-scheduler
+  namespace: kube-system
+---
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: k8s-neuron-scheduler
+  namespace: kube-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: k8s-neuron-scheduler
+subjects:
+  - kind: ServiceAccount
+    name: k8s-neuron-scheduler
+    namespace: kube-system
+
+---
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: k8s-neuron-scheduler
+  namespace: kube-system
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: neuron-scheduler
+      component: k8s-neuron-scheduler
+  template:
+    metadata:
+      labels:
+        app: neuron-scheduler
+        component: k8s-neuron-scheduler
+      annotations:
+        scheduler.alpha.kubernetes.io/critical-pod: ""
+    spec:
+      hostNetwork: true
+      tolerations:
+        - effect: NoSchedule
+          operator: Exists
+          key: node-role.kubernetes.io/master
+        - effect: NoSchedule
+          operator: Exists
+          key: node.cloudprovider.kubernetes.io/uninitialized
+      nodeSelector:
+        node-role.kubernetes.io/master: ""
+      serviceAccount: k8s-neuron-scheduler
+      containers:
+        - name: neuron-scheduler
+          image: $CORTEX_IMAGE_NEURON_SCHEDULER
+          env:
+            - name: PORT
+              value: "12345"
+          resources:
+            requests:
+              cpu: 100m
+              memory: 100Mi
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: k8s-neuron-scheduler
+  namespace: kube-system
+  labels:
+    app: neuron-scheduler
+    component: k8s-neuron-scheduler
+spec:
+  type: NodePort
+  ports:
+    - port: 12345
+      name: http
+      targetPort: 12345
+      nodePort: 32700
+  selector:
+    # select app=ingress-nginx pods
+    app: neuron-scheduler
+    component: k8s-neuron-scheduler
+
+---
 kind: ClusterRole
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
@@ -130,7 +282,7 @@ spec:
       containers:
         #Device Plugin containers are available both in us-east and us-west ecr
         #repos
-        - image: $CORTEX_IMAGE_INFERENTIA
+        - image: $CORTEX_IMAGE_NEURON_DEVICE_PLUGIN
           imagePullPolicy: Always
           name: neuron-device-plugin
           env:

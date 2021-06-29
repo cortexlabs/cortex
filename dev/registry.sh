@@ -84,19 +84,6 @@ function registry_login() {
   if [ "$is_registry_logged_in" = "false" ]; then
     blue_echo "Logging in to ECR..."
     aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $registry_push_url
-
-    blue_echo "Logging in to 790709498068.dkr.ecr.us-west-2.amazonaws.com for inferentia..."
-    set +e
-    echo "$AWS_REGION" | grep  "us-gov"
-    is_gov_cloud=$?
-    set -e
-    if [ "$is_gov_cloud" == "0" ]; then
-      # set NORMAL_REGION_AWS_ACCESS_KEY_ID and NORMAL_REGION_AWS_SECRET_ACCESS_KEY credentials from a regular AWS account (non govcloud) in your dev/config/env.sh
-      AWS_ACCESS_KEY_ID=$NORMAL_REGION_AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY=$NORMAL_REGION_AWS_SECRET_ACCESS_KEY aws ecr get-login-password --region us-west-2 | docker login --username AWS --password-stdin 790709498068.dkr.ecr.us-west-2.amazonaws.com
-    else
-      aws ecr get-login-password --region us-west-2 | docker login --username AWS --password-stdin 790709498068.dkr.ecr.us-west-2.amazonaws.com
-    fi
-
     is_registry_logged_in="true"
     green_echo "Success\n"
   fi
