@@ -162,7 +162,6 @@ spec:
       image: {{ env['CORTEX_IMAGE_ISTIO_PILOT_IMAGE'] }}
     gateways:
       istio-ingressgateway:
-        debug: info
         runAsRoot: true
         autoscaleEnabled: false
         secretVolumes:

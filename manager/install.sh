@@ -39,7 +39,7 @@ function cluster_up() {
   setup_configmap
   echo "✓"
 
-  echo -n "￮ configuring networking (this might take a few minutes) "
+  echo -n "￮ configuring networking (this will take a few minutes) "
   setup_istio
   python render_template.py $CORTEX_CLUSTER_CONFIG_FILE manifests/apis.yaml.j2 > /workspace/apis.yaml
   kubectl apply -f /workspace/apis.yaml >/dev/null
@@ -362,7 +362,7 @@ function setup_istio() {
   fi
 
   python render_template.py $CORTEX_CLUSTER_CONFIG_FILE manifests/istio.yaml.j2 > /workspace/istio.yaml
-  output_if_error istio-${ISTIO_VERSION}/bin/istioctl install -f /workspace/istio.yaml
+  output_if_error istio-${ISTIO_VERSION}/bin/istioctl install --skip-confirmation --filename /workspace/istio.yaml
 }
 
 function validate_cortex() {
