@@ -89,6 +89,9 @@ The following is a list of metrics that are currently in use.
 1. node_load15 with the following labels:
     1. job
     1. instance
+1. node_exporter_build_info with the following labels:
+    1. job
+    1. instance
 1. node_memory_MemTotal_bytes with the following labels:
     1. job
     1. instance
