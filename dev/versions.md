@@ -164,9 +164,6 @@ see https://github.com/moby/moby/issues/39302#issuecomment-639687466_
    via `kubectl get deployment metrics-server -n kube-system`
    and `kubectl get apiservice v1beta1.metrics.k8s.io -o yaml`
 
-Note: overriding horizontal-pod-autoscaler-sync-period on EKS is currently not
-supported (<https://github.com/awslabs/amazon-eks-ami/issues/176>)
-
 ## Cluster autoscaler
 
 1. Find the latest patch release for our current version of k8s (e.g. k8s v1.17 -> cluster-autocluster v1.17.3)
