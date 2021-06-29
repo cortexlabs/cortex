@@ -49,6 +49,10 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	apiName := r.Header.Get(consts.CortexAPINameHeader)
+	if apiName == "" {
+		http.Error(w, fmt.Sprintf("missing %s", consts.CortexAPINameHeader), http.StatusInternalServerError)
+		return
+	}
 
 	ctx := r.Context()
 	ctx = context.WithValue(ctx, APINameCtxKey, apiName)
@@ -76,6 +80,10 @@ func (h *Handler) proxyRequest(w http.ResponseWriter, r *http.Request) error {
 	if err != nil {
 		return errors.WithStack(err)
 	}
+
+	// delete activator specific headers
+	r.Header.Del(consts.CortexAPINameHeader)
+	r.Header.Del(consts.CortexTargetServiceHeader)
 
 	reverseProxy := httputil.NewSingleHostReverseProxy(targetURL)
 	reverseProxy.ServeHTTP(w, r)
