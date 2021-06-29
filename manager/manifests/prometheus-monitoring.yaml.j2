@@ -169,7 +169,7 @@ spec:
             request_duration_milliseconds_sum|\
             request_duration_milliseconds_count\
             )"
-        - action: labeldrop
+        - action: labelkeep
           sourceLabels: [__name__]
           regex: (__name__|destination_service_name|response_code)
 
