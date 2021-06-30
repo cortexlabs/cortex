@@ -36,7 +36,8 @@ data:
       "editable": true,
       "gnetId": null,
       "graphTooltip": 0,
-      "iteration": 1617119656448,
+      "id": 4,
+      "iteration": 1625068140971,
       "links": [],
       "panels": [
         {
@@ -427,13 +428,13 @@ data:
           "steppedLine": false,
           "targets": [
             {
-              "expr": "count(kube_job_status_active{job_name=~\"$api_name.+\"})",
+              "expr": "count(kube_job_status_active{job_name=~\"$api_name.+\"} != 0)",
               "interval": "",
               "legendFormat": "Active Jobs",
               "refId": "Active Batches"
             },
             {
-              "expr": "sum(kube_pod_info{exported_pod=~\"$api_name.+\"})",
+              "expr": "sum(kube_job_status_active{job_name=~\"$api_name.+\"})",
               "hide": false,
               "interval": "",
               "legendFormat": "Active Workers",
