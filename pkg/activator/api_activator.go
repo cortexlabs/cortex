@@ -48,20 +48,20 @@ func newAPIActivator(apiName string, maxQueueLength, maxConcurrency int) *apiAct
 
 func (a *apiActivator) try(ctx context.Context, fn func() error, tracker *readinessTracker) error {
 	var execErr error
+
 	if err := a.breaker.Maybe(ctx, func() {
-	loop:
-		for {
-			select {
-			case <-ctx.Done():
-				execErr = ctx.Err()
-				return
-			default:
-				if tracker.IsReady() {
+		if !tracker.IsReady() {
+		loop:
+			for {
+				select {
+				case <-ctx.Done():
+					execErr = ctx.Err()
+					return
+				case <-tracker.Wait():
 					break loop
 				}
 			}
 		}
-
 		execErr = fn()
 	}); err != nil {
 		return err
@@ -76,16 +76,25 @@ func (a *apiActivator) inFlight() int64 {
 
 type readinessTracker struct {
 	mux   sync.RWMutex
+	c     chan bool
 	ready bool
 }
 
 func newReadinessTracker() *readinessTracker {
-	return &readinessTracker{}
+	return &readinessTracker{
+		c: make(chan bool),
+	}
 }
 
 func (t *readinessTracker) Update(deployment *kapps.Deployment) {
 	t.mux.Lock()
 	defer t.mux.Unlock()
+
+	// if changing from unready to ready state, wake up waiting goroutines
+	if !t.ready && deployment.Status.ReadyReplicas > 0 {
+		close(t.c)            // wake up all of the goroutines waiting on this channel
+		t.c = make(chan bool) // make a new channel ready to be used
+	}
 	t.ready = deployment.Status.ReadyReplicas > 0
 }
 
@@ -93,4 +102,10 @@ func (t *readinessTracker) IsReady() bool {
 	t.mux.RLock()
 	defer t.mux.RUnlock()
 	return t.ready
+}
+
+func (t *readinessTracker) Wait() chan bool {
+	t.mux.RLock()
+	defer t.mux.RUnlock()
+	return t.c
 }
