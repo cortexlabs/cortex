@@ -25,6 +25,8 @@ dev_images=(
   "async-gateway"
   "enqueuer"
   "dequeuer"
+  "autoscaler"
+  "activator"
 )
 
 non_dev_images=(
