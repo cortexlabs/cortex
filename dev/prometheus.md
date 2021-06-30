@@ -36,6 +36,7 @@ The following is a list of metrics that are currently in use.
     1. response_code
 1. istio_request_duration_milliseconds_bucket with the following labels:
     1. destination_service_name
+    1. le
 1. istio_request_duration_milliseconds_sum with the following labels:
     1. destination_service_name
 1. istio_request_duration_milliseconds_count with the following labels:
