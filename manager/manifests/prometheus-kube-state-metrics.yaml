@@ -281,7 +281,7 @@ spec:
           job_status_active\
           )"
       - action: labelkeep
-        regex: (__name__|exported_pod|job_name)
+        regex: (__name__|exported_pod|exported_container|job_name)
   namespaceSelector:
     any: true
   selector:

@@ -56,8 +56,10 @@ The following is a list of metrics that are currently in use.
 
 1. kube_pod_container_resource_requests_cpu_cores with the following labels:
     1. exported_pod
+    1. exported_container (required for not dropping the values for each container of each pod)
 1. kube_pod_container_resource_requests_memory_bytes with the following labels:
     1. exported_pod
+    1. exported_container (required for not dropping the values for each container of each pod)
 1. kube_pod_info with the following labels:
     1. exported_pod
 1. kube_deployment_status_replicas_available with the following labels:
