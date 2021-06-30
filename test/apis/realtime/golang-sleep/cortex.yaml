@@ -1,0 +1,21 @@
+- name: golang-sleep
+  kind: RealtimeAPI
+  pod:
+    port: 8080
+    containers:
+      - name: api
+        image: quay.io/cortexlabs-test/realtime-golang-sleep-cpu
+        command:
+          - "./main"
+          - --port
+          - "8080"
+        readiness_probe:
+          http_get:
+            path: "/healthz"
+            port: 8080
+        compute:
+          cpu: 500m
+          mem: 1Gi
+  autoscaling:
+    min_replicas: 50
+    max_replicas: 1000

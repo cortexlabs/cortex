@@ -1,0 +1,26 @@
+- name: golang
+  kind: BatchAPI
+  pod:
+    port: 8080
+    containers:
+      - name: api
+        image: quay.io/cortexlabs-test/batch-golang-cpu:latest
+        command:
+          - "./main"
+          - --url
+          - "<RealtimeAPI URL>"
+          - --port
+          - "8080"
+          - --concurrency
+          - "1"
+          - --num-requests
+          - "1"
+          - --id
+          - "1234" # in grafana, you can look for load_test{id="..."} to get the client side status codes
+        readiness_probe:
+          http_get:
+            path: "/healthz"
+            port: 8080
+        compute:
+          cpu: 100m
+          mem: 100Mi
