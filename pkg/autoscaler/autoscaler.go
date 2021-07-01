@@ -115,6 +115,11 @@ func (a *Autoscaler) AddAPI(api userconfig.Resource) error {
 
 	a.crons[api.Name] = cron.Run(autoscaleFn, errorHandler, spec.AutoscalingTickInterval)
 
+	// make sure there is no awaken call registered to an older API with the same name
+	a.Lock()
+	delete(a.awakenMap, api.Name)
+	a.Unlock()
+
 	return nil
 }
 
@@ -128,6 +133,10 @@ func (a *Autoscaler) RemoveAPI(api userconfig.Resource) {
 		autoscalerCron.Cancel()
 		delete(a.crons, api.Name)
 	}
+
+	a.Lock()
+	delete(a.awakenMap, api.Name)
+	a.Unlock()
 
 	log.Info("autoscaler stop")
 }
