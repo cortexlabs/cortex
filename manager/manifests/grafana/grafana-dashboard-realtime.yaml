@@ -36,7 +36,7 @@ data:
       "editable": true,
       "gnetId": null,
       "graphTooltip": 0,
-      "iteration": 1625170524753,
+      "iteration": 1625175811197,
       "links": [],
       "panels": [
         {
@@ -1406,7 +1406,7 @@ data:
           "targets": [
             {
               "exemplar": true,
-              "expr": "sum(DCGM_FI_DEV_GPU_UTIL{exported_pod=~\"api-$api_name.+\"}) / 2 / 100",
+              "expr": "sum(DCGM_FI_DEV_GPU_UTIL{exported_pod=~\"api-$api_name.+\"}) / 100",
               "hide": false,
               "interval": "",
               "legendFormat": "Total GPU Usage",
@@ -2059,5 +2059,5 @@ data:
       "timezone": "",
       "title": "RealtimeAPI",
       "uid": "realtimeapi",
-      "version": 2
+      "version": 3
     }
