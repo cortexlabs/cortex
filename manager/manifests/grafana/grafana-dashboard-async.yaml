@@ -36,18 +36,11 @@ data:
       "editable": true,
       "gnetId": null,
       "graphTooltip": 0,
-      "id": 6,
-      "iteration": 1623161267934,
+      "iteration": 1625168772532,
       "links": [],
       "panels": [
         {
           "datasource": null,
-          "fieldConfig": {
-            "defaults": {
-              "custom": {}
-            },
-            "overrides": []
-          },
           "gridPos": {
             "h": 2,
             "w": 24,
@@ -59,16 +52,19 @@ data:
             "content": "<h1 style=\"text-align: center\">AsyncAPI</h1>",
             "mode": "markdown"
           },
-          "pluginVersion": "7.4.2",
+          "pluginVersion": "8.0.4",
           "timeFrom": null,
           "timeShift": null,
-          "title": "",
           "transparent": true,
           "type": "text"
         },
         {
           "collapsed": false,
           "datasource": null,
+          "fieldConfig": {
+            "defaults": {},
+            "overrides": []
+          },
           "gridPos": {
             "h": 1,
             "w": 24,
@@ -87,12 +83,6 @@ data:
           "dashes": false,
           "datasource": null,
           "description": "Request rate, computed over every minute, of an API",
-          "fieldConfig": {
-            "defaults": {
-              "custom": {}
-            },
-            "overrides": []
-          },
           "fill": 1,
           "fillGradient": 0,
           "gridPos": {
@@ -121,7 +111,7 @@ data:
             "alertThreshold": true
           },
           "percentage": false,
-          "pluginVersion": "7.4.2",
+          "pluginVersion": "8.0.4",
           "pointradius": 2,
           "points": false,
           "renderer": "flot",
@@ -186,12 +176,6 @@ data:
           "dashes": false,
           "datasource": null,
           "description": "Active in-flight requests for an API.\n\nNote: In-flight requests are recorded every 10 seconds, which will correspond to the minimum resolution.",
-          "fieldConfig": {
-            "defaults": {
-              "custom": {}
-            },
-            "overrides": []
-          },
           "fill": 1,
           "fillGradient": 0,
           "gridPos": {
@@ -219,7 +203,7 @@ data:
             "alertThreshold": true
           },
           "percentage": false,
-          "pluginVersion": "7.4.2",
+          "pluginVersion": "8.0.4",
           "pointradius": 2,
           "points": false,
           "renderer": "flot",
@@ -284,12 +268,6 @@ data:
           "dashes": false,
           "datasource": null,
           "description": "Request rate, computed over every minute, for responses with status code 2XX of an API",
-          "fieldConfig": {
-            "defaults": {
-              "custom": {}
-            },
-            "overrides": []
-          },
           "fill": 1,
           "fillGradient": 0,
           "gridPos": {
@@ -318,7 +296,7 @@ data:
             "alertThreshold": true
           },
           "percentage": false,
-          "pluginVersion": "7.4.2",
+          "pluginVersion": "8.0.4",
           "pointradius": 2,
           "points": false,
           "renderer": "flot",
@@ -382,12 +360,6 @@ data:
           "dashLength": 10,
           "dashes": false,
           "datasource": null,
-          "fieldConfig": {
-            "defaults": {
-              "custom": {}
-            },
-            "overrides": []
-          },
           "fill": 1,
           "fillGradient": 0,
           "gridPos": {
@@ -415,7 +387,7 @@ data:
             "alertThreshold": true
           },
           "percentage": false,
-          "pluginVersion": "7.4.2",
+          "pluginVersion": "8.0.4",
           "pointradius": 2,
           "points": false,
           "renderer": "flot",
@@ -489,12 +461,6 @@ data:
           "dashes": false,
           "datasource": null,
           "description": "Request rate, computed over every minute, for responses with status code 4XX of an API",
-          "fieldConfig": {
-            "defaults": {
-              "custom": {}
-            },
-            "overrides": []
-          },
           "fill": 1,
           "fillGradient": 0,
           "gridPos": {
@@ -523,7 +489,7 @@ data:
             "alertThreshold": true
           },
           "percentage": false,
-          "pluginVersion": "7.4.2",
+          "pluginVersion": "8.0.4",
           "pointradius": 2,
           "points": false,
           "renderer": "flot",
@@ -588,12 +554,6 @@ data:
           "dashes": false,
           "datasource": null,
           "description": "Request rate, computed over every minute, for responses with status code 5XX of an API",
-          "fieldConfig": {
-            "defaults": {
-              "custom": {}
-            },
-            "overrides": []
-          },
           "fill": 1,
           "fillGradient": 0,
           "gridPos": {
@@ -622,7 +582,7 @@ data:
             "alertThreshold": true
           },
           "percentage": false,
-          "pluginVersion": "7.4.2",
+          "pluginVersion": "8.0.4",
           "pointradius": 2,
           "points": false,
           "renderer": "flot",
@@ -687,12 +647,6 @@ data:
           "dashes": false,
           "datasource": null,
           "description": "99th percentile latency, computed over a minute, for an API",
-          "fieldConfig": {
-            "defaults": {
-              "custom": {}
-            },
-            "overrides": []
-          },
           "fill": 1,
           "fillGradient": 0,
           "gridPos": {
@@ -720,7 +674,7 @@ data:
             "alertThreshold": true
           },
           "percentage": false,
-          "pluginVersion": "7.4.2",
+          "pluginVersion": "8.0.4",
           "pointradius": 2,
           "points": false,
           "renderer": "flot",
@@ -785,12 +739,6 @@ data:
           "dashes": false,
           "datasource": null,
           "description": "90th percentile latency, computed over a minute, for an API",
-          "fieldConfig": {
-            "defaults": {
-              "custom": {}
-            },
-            "overrides": []
-          },
           "fill": 1,
           "fillGradient": 0,
           "gridPos": {
@@ -818,7 +766,7 @@ data:
             "alertThreshold": true
           },
           "percentage": false,
-          "pluginVersion": "7.4.2",
+          "pluginVersion": "8.0.4",
           "pointradius": 2,
           "points": false,
           "renderer": "flot",
@@ -884,12 +832,6 @@ data:
           "dashes": false,
           "datasource": null,
           "description": "50th percentile latency, computed over a minute, for an API",
-          "fieldConfig": {
-            "defaults": {
-              "custom": {}
-            },
-            "overrides": []
-          },
           "fill": 1,
           "fillGradient": 0,
           "gridPos": {
@@ -917,7 +859,7 @@ data:
             "alertThreshold": true
           },
           "percentage": false,
-          "pluginVersion": "7.4.2",
+          "pluginVersion": "8.0.4",
           "pointradius": 2,
           "points": false,
           "renderer": "flot",
@@ -983,12 +925,6 @@ data:
           "dashes": false,
           "datasource": null,
           "description": "Average latency, computed over a minute, for an API",
-          "fieldConfig": {
-            "defaults": {
-              "custom": {}
-            },
-            "overrides": []
-          },
           "fill": 1,
           "fillGradient": 0,
           "gridPos": {
@@ -1016,7 +952,7 @@ data:
             "alertThreshold": true
           },
           "percentage": false,
-          "pluginVersion": "7.4.2",
+          "pluginVersion": "8.0.4",
           "pointradius": 2,
           "points": false,
           "renderer": "flot",
@@ -1078,6 +1014,10 @@ data:
         {
           "collapsed": false,
           "datasource": null,
+          "fieldConfig": {
+            "defaults": {},
+            "overrides": []
+          },
           "gridPos": {
             "h": 1,
             "w": 24,
@@ -1099,17 +1039,6 @@ data:
           "dashes": false,
           "datasource": null,
           "description": "Total CPU usage across all replicas of the API",
-          "fieldConfig": {
-            "defaults": {
-              "color": {},
-              "custom": {},
-              "thresholds": {
-                "mode": "absolute",
-                "steps": []
-              }
-            },
-            "overrides": []
-          },
           "fill": 1,
           "fillGradient": 0,
           "gridPos": {
@@ -1136,7 +1065,7 @@ data:
             "alertThreshold": true
           },
           "percentage": false,
-          "pluginVersion": "7.4.2",
+          "pluginVersion": "8.0.4",
           "pointradius": 2,
           "points": false,
           "renderer": "flot",
@@ -1155,7 +1084,8 @@ data:
               "refId": "CPU Usage"
             },
             {
-              "expr": "sum(kube_pod_container_resource_requests_cpu_cores{exported_pod=~\"api-$api_name.+\"})",
+              "exemplar": true,
+              "expr": "sum(kube_pod_container_resource_requests{exported_pod=~\"api-$api_name.+\", resource=\"cpu\"})",
               "hide": false,
               "interval": "",
               "legendFormat": "Total CPU Request",
@@ -1213,17 +1143,6 @@ data:
           "dashes": false,
           "datasource": null,
           "description": "Total memory usage across all replicas of the API",
-          "fieldConfig": {
-            "defaults": {
-              "color": {},
-              "custom": {},
-              "thresholds": {
-                "mode": "absolute",
-                "steps": []
-              }
-            },
-            "overrides": []
-          },
           "fill": 1,
           "fillGradient": 0,
           "gridPos": {
@@ -1250,7 +1169,7 @@ data:
             "alertThreshold": true
           },
           "percentage": false,
-          "pluginVersion": "7.4.2",
+          "pluginVersion": "8.0.4",
           "pointradius": 2,
           "points": false,
           "renderer": "flot",
@@ -1269,7 +1188,8 @@ data:
               "refId": "Memory Usage"
             },
             {
-              "expr": "sum(kube_pod_container_resource_requests_memory_bytes{exported_pod=~\"api-$api_name.+\"}) / 1024^2",
+              "exemplar": true,
+              "expr": "sum(kube_pod_container_resource_requests{exported_pod=~\"api-$api_name.+\", resource=\"memory\"}) / 1024^2",
               "hide": false,
               "interval": "",
               "legendFormat": "Total Memory Request",
@@ -1328,17 +1248,6 @@ data:
           "dashes": false,
           "datasource": null,
           "description": "Total GPU core usage across all replicas of the API",
-          "fieldConfig": {
-            "defaults": {
-              "color": {},
-              "custom": {},
-              "thresholds": {
-                "mode": "absolute",
-                "steps": []
-              }
-            },
-            "overrides": []
-          },
           "fill": 1,
           "fillGradient": 0,
           "gridPos": {
@@ -1365,7 +1274,7 @@ data:
             "alertThreshold": true
           },
           "percentage": false,
-          "pluginVersion": "7.4.2",
+          "pluginVersion": "8.0.4",
           "pointradius": 2,
           "points": false,
           "renderer": "flot",
@@ -1440,17 +1349,6 @@ data:
           "dashes": false,
           "datasource": null,
           "description": "Total GPU memory usage across all replicas of the API",
-          "fieldConfig": {
-            "defaults": {
-              "color": {},
-              "custom": {},
-              "thresholds": {
-                "mode": "absolute",
-                "steps": []
-              }
-            },
-            "overrides": []
-          },
           "fill": 1,
           "fillGradient": 0,
           "gridPos": {
@@ -1477,7 +1375,7 @@ data:
             "alertThreshold": true
           },
           "percentage": false,
-          "pluginVersion": "7.4.2",
+          "pluginVersion": "8.0.4",
           "pointradius": 2,
           "points": false,
           "renderer": "flot",
@@ -1547,6 +1445,10 @@ data:
         {
           "collapsed": false,
           "datasource": null,
+          "fieldConfig": {
+            "defaults": {},
+            "overrides": []
+          },
           "gridPos": {
             "h": 1,
             "w": 24,
@@ -1570,17 +1472,6 @@ data:
           "dashes": false,
           "datasource": null,
           "description": "Avg CPU usage across all replicas of the API",
-          "fieldConfig": {
-            "defaults": {
-              "color": {},
-              "custom": {},
-              "thresholds": {
-                "mode": "absolute",
-                "steps": []
-              }
-            },
-            "overrides": []
-          },
           "fill": 1,
           "fillGradient": 0,
           "gridPos": {
@@ -1607,7 +1498,7 @@ data:
             "alertThreshold": true
           },
           "percentage": false,
-          "pluginVersion": "7.4.2",
+          "pluginVersion": "8.0.4",
           "pointradius": 2,
           "points": false,
           "renderer": "flot",
@@ -1626,7 +1517,8 @@ data:
               "refId": "CPU Usage"
             },
             {
-              "expr": "sum(kube_pod_container_resource_requests_cpu_cores{exported_pod=~\"api-$api_name.+\"})\n/\nsum(kube_pod_info{exported_pod=~\"api-$api_name.+\"})",
+              "exemplar": true,
+              "expr": "sum(kube_pod_container_resource_requests{exported_pod=~\"api-$api_name.+\", resource=\"cpu\"})\n/\nsum(kube_pod_info{exported_pod=~\"api-$api_name.+\"})",
               "hide": false,
               "interval": "",
               "legendFormat": "Avg CPU Request",
@@ -1686,17 +1578,6 @@ data:
           "dashes": false,
           "datasource": null,
           "description": "Avg memory usage across all replicas of the API",
-          "fieldConfig": {
-            "defaults": {
-              "color": {},
-              "custom": {},
-              "thresholds": {
-                "mode": "absolute",
-                "steps": []
-              }
-            },
-            "overrides": []
-          },
           "fill": 1,
           "fillGradient": 0,
           "gridPos": {
@@ -1723,7 +1604,7 @@ data:
             "alertThreshold": true
           },
           "percentage": false,
-          "pluginVersion": "7.4.2",
+          "pluginVersion": "8.0.4",
           "pointradius": 2,
           "points": false,
           "renderer": "flot",
@@ -1742,7 +1623,8 @@ data:
               "refId": "Memory Usage"
             },
             {
-              "expr": "sum(kube_pod_container_resource_requests_memory_bytes{exported_pod=~\"api-$api_name.+\"}) / 1024^2\n/\nsum(kube_pod_info{exported_pod=~\"api-$api_name.+\"})",
+              "exemplar": true,
+              "expr": "sum(kube_pod_container_resource_requests{exported_pod=~\"api-$api_name.+\", resource=\"memory\"}) / 1024^2\n/\nsum(kube_pod_info{exported_pod=~\"api-$api_name.+\"})",
               "hide": false,
               "interval": "",
               "legendFormat": "Avg Memory Request",
@@ -1802,17 +1684,6 @@ data:
           "dashes": false,
           "datasource": null,
           "description": "Avg GPU core usage across all replicas of the API",
-          "fieldConfig": {
-            "defaults": {
-              "color": {},
-              "custom": {},
-              "thresholds": {
-                "mode": "absolute",
-                "steps": []
-              }
-            },
-            "overrides": []
-          },
           "fill": 1,
           "fillGradient": 0,
           "gridPos": {
@@ -1839,7 +1710,7 @@ data:
             "alertThreshold": true
           },
           "percentage": false,
-          "pluginVersion": "7.4.2",
+          "pluginVersion": "8.0.4",
           "pointradius": 2,
           "points": false,
           "renderer": "flot",
@@ -1916,17 +1787,6 @@ data:
           "dashes": false,
           "datasource": null,
           "description": "Avg GPU memory usage across all replicas of the API",
-          "fieldConfig": {
-            "defaults": {
-              "color": {},
-              "custom": {},
-              "thresholds": {
-                "mode": "absolute",
-                "steps": []
-              }
-            },
-            "overrides": []
-          },
           "fill": 1,
           "fillGradient": 0,
           "gridPos": {
@@ -1953,7 +1813,7 @@ data:
             "alertThreshold": true
           },
           "percentage": false,
-          "pluginVersion": "7.4.2",
+          "pluginVersion": "8.0.4",
           "pointradius": 2,
           "points": false,
           "renderer": "flot",
@@ -2022,14 +1882,18 @@ data:
         }
       ],
       "refresh": "30s",
-      "schemaVersion": 27,
+      "schemaVersion": 30,
       "style": "dark",
       "tags": [],
       "templating": {
         "list": [
           {
             "allValue": null,
-            "current": {},
+            "current": {
+              "selected": false,
+              "text": "None",
+              "value": "None"
+            },
             "datasource": null,
             "definition": "label_values(cortex_async_queue_length{api_kind=\"AsyncAPI\"}, api_name)",
             "description": null,
@@ -2049,7 +1913,6 @@ data:
             "skipUrlSync": false,
             "sort": 1,
             "tagValuesQuery": "",
-            "tags": [],
             "tagsQuery": "",
             "type": "query",
             "useTags": false
@@ -2064,5 +1927,5 @@ data:
       "timezone": "",
       "title": "AsyncAPI",
       "uid": "asyncapi",
-      "version": 2
+      "version": 1
     }

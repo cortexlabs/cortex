@@ -118,7 +118,7 @@ func GetMetrics(api *spec.API) (*metrics.Metrics, error) {
 
 func getRequestCountMetric(promAPIv1 promv1.API, apiSpec spec.API) (float64, error) {
 	query := fmt.Sprintf(
-		"istio_requests_total{destination_service_name=~\"api-%s.+\"} > 0",
+		"istio_requests_total{destination_service=~\"api-%s.+\"} > 0",
 		apiSpec.Name,
 	)
 
@@ -137,8 +137,8 @@ func getRequestCountMetric(promAPIv1 promv1.API, apiSpec spec.API) (float64, err
 
 func getAvgLatencyMetric(promAPIv1 promv1.API, apiSpec spec.API) (*float64, error) {
 	query := fmt.Sprintf(
-		"sum(rate(istio_request_duration_milliseconds_sum{destination_service_name=~\"api-%s.+\"}[%dh])) by (destination_service_name) "+
-			"/ sum(rate(istio_request_duration_milliseconds_count{destination_service_name=~\"api-%s.+\"}[%dh])) by (destination_service_name)",
+		"sum(rate(istio_request_duration_milliseconds_sum{destination_service=~\"api-%s.+\"}[%dh])) by (destination_service) "+
+			"/ sum(rate(istio_request_duration_milliseconds_count{destination_service=~\"api-%s.+\"}[%dh])) by (destination_service)",
 		apiSpec.Name, _metricsWindowHours,
 		apiSpec.Name, _metricsWindowHours,
 	)
@@ -162,7 +162,7 @@ func getAvgLatencyMetric(promAPIv1 promv1.API, apiSpec spec.API) (*float64, erro
 
 func getStatusCode2XXMetric(promAPIv1 promv1.API, apiSpec spec.API) (float64, error) {
 	query := fmt.Sprintf(
-		"istio_requests_total{destination_service_name=~\"api-%s.+\", response_code=~\"2.*\"} > 0",
+		"istio_requests_total{destination_service=~\"api-%s.+\", response_code=~\"2.*\"} > 0",
 		apiSpec.Name,
 	)
 
@@ -181,7 +181,7 @@ func getStatusCode2XXMetric(promAPIv1 promv1.API, apiSpec spec.API) (float64, er
 
 func getStatusCode4XXMetric(promAPIv1 promv1.API, apiSpec spec.API) (float64, error) {
 	query := fmt.Sprintf(
-		"istio_requests_total{destination_service_name=~\"api-%s.+\", response_code=~\"4.*\"} > 0",
+		"istio_requests_total{destination_service=~\"api-%s.+\", response_code=~\"4.*\"} > 0",
 		apiSpec.Name,
 	)
 
@@ -200,7 +200,7 @@ func getStatusCode4XXMetric(promAPIv1 promv1.API, apiSpec spec.API) (float64, er
 
 func getStatusCode5XXMetric(promAPIv1 promv1.API, apiSpec spec.API) (float64, error) {
 	query := fmt.Sprintf(
-		"istio_requests_total{destination_service_name=~\"api-%s.+\", response_code=~\"5.*\"} > 0",
+		"istio_requests_total{destination_service=~\"api-%s.+\", response_code=~\"5.*\"} > 0",
 		apiSpec.Name,
 	)
 
