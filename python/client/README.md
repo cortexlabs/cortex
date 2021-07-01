@@ -1,1 +1,1 @@
-Serverless containers on AWS - [docs.cortex.dev](https://www.docs.cortex.dev)
+Cost-effective serverless computing - [docs.cortex.dev](https://www.docs.cortex.dev)
