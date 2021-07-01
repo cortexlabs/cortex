@@ -42,13 +42,11 @@ import (
 
 const (
 	_stalledPodTimeout = 15 * time.Minute
-	_tickPeriodMetrics = 10 * time.Second
 	_asyncDashboardUID = "asyncapi"
 )
 
 var (
 	_autoscalerCrons = make(map[string]cron.Cron)
-	_metricsCrons    = make(map[string]cron.Cron)
 )
 
 type resources struct {
@@ -323,30 +321,6 @@ func GetAllAPIs(pods []kcore.Pod, deployments []kapps.Deployment) ([]schema.APIR
 	return asyncAPIs, nil
 }
 
-func UpdateAPIMetricsCron(apiDeployment *kapps.Deployment) error {
-	apiName := apiDeployment.Labels["apiName"]
-
-	if prevMetricsCron, ok := _metricsCrons[apiName]; ok {
-		prevMetricsCron.Cancel()
-	}
-
-	initialDeploymentTime, err := k8s.ParseInt64Label(apiDeployment, "initialDeploymentTime")
-	if err != nil {
-		return err
-	}
-
-	queueURL, err := getQueueURL(apiName, initialDeploymentTime)
-	if err != nil {
-		return err
-	}
-
-	metricsCron := updateQueueLengthMetricsFn(apiName, queueURL)
-
-	_metricsCrons[apiName] = cron.Run(metricsCron, operator.ErrorHandler(apiName+" metrics"), _tickPeriodMetrics)
-
-	return nil
-}
-
 func UpdateAPIAutoscalerCron(apiDeployment *kapps.Deployment, apiSpec spec.API) error {
 	apiName := apiDeployment.Labels["apiName"]
 	if prevAutoscalerCron, ok := _autoscalerCrons[apiName]; ok {
@@ -438,10 +412,6 @@ func applyK8sResources(api spec.API, prevK8sResources resources, queueURL string
 			}
 
 			if err := applyK8sDeployment(prevK8sResources.apiDeployment, &apiDeployment); err != nil {
-				return err
-			}
-
-			if err := UpdateAPIMetricsCron(&apiDeployment); err != nil {
 				return err
 			}
 
@@ -547,11 +517,6 @@ func deleteK8sResources(apiName string) error {
 
 	err := parallel.RunFirstErr(
 		func() error {
-			if metricsCron, ok := _metricsCrons[apiName]; ok {
-				metricsCron.Cancel()
-				delete(_metricsCrons, apiName)
-			}
-
 			if autoscalerCron, ok := _autoscalerCrons[apiName]; ok {
 				autoscalerCron.Cancel()
 				delete(_autoscalerCrons, apiName)
