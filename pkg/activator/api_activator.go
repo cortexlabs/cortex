@@ -19,7 +19,9 @@ package activator
 import (
 	"context"
 	"sync"
+	"time"
 
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/proxy"
 	kapps "k8s.io/api/apps/v1"
 )
@@ -50,12 +52,15 @@ func (a *apiActivator) try(ctx context.Context, fn func() error, tracker *readin
 	var execErr error
 
 	if err := a.breaker.Maybe(ctx, func() {
+		ctx, cancel := context.WithTimeout(ctx, 10*time.Minute)
+		defer cancel()
+
 		if !tracker.IsReady() {
 		loop:
 			for {
 				select {
 				case <-ctx.Done():
-					execErr = ctx.Err()
+					execErr = errors.Wrap(ctx.Err(), "no ready replicas available")
 					return
 				case <-tracker.Wait():
 					break loop
