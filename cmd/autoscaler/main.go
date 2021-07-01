@@ -37,6 +37,7 @@ import (
 	istioclient "istio.io/client-go/pkg/clientset/versioned"
 	istioinformers "istio.io/client-go/pkg/informers/externalversions"
 	"k8s.io/apimachinery/pkg/api/meta"
+	kmeta "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/cache"
 )
@@ -102,7 +103,11 @@ func main() {
 	autoScaler.AddScaler(asyncScaler, userconfig.AsyncAPIKind)
 	defer autoScaler.Stop()
 
-	istioInformerFactory := istioinformers.NewSharedInformerFactory(istioClient, 10*time.Second) // TODO: check how much makes sense
+	istioInformerFactory := istioinformers.NewSharedInformerFactoryWithOptions(
+		istioClient, 10*time.Second, // TODO: check how much makes sense
+		istioinformers.WithNamespace(namespace),
+		istioinformers.WithTweakListOptions(informerFilter),
+	)
 	virtualServiceInformer := istioInformerFactory.Networking().V1beta1().VirtualServices().Informer()
 	virtualServiceInformer.AddEventHandler(
 		cache.ResourceEventHandlerFuncs{
@@ -213,4 +218,19 @@ func apiResourceFromLabels(labels map[string]string) (userconfig.Resource, error
 		Name: apiName,
 		Kind: userconfig.KindFromString(apiKind),
 	}, nil
+}
+
+func informerFilter(listOptions *kmeta.ListOptions) {
+	listOptions.LabelSelector = kmeta.FormatLabelSelector(&kmeta.LabelSelector{
+		MatchExpressions: []kmeta.LabelSelectorRequirement{
+			{
+				Key:      "apiName",
+				Operator: kmeta.LabelSelectorOpExists,
+			},
+			{
+				Key:      "apiKind",
+				Operator: kmeta.LabelSelectorOpExists,
+			},
+		},
+	})
 }
