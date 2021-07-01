@@ -8,7 +8,7 @@
 
 # Cost-effective serverless computing
 
-Cortex is a highly-scalable and cost-effective serverless computing platform that runs in your AWS account. It scales microservices, data processing, machine learning, and other compute-intensive realtime and batch workloads. Cortex is designed to handle production traffic of up to 20M QPS and is up to 90% less expensive than AWS Lambda.
+Cortex is a highly-scalable and cost-effective serverless computing platform that runs on your AWS account. It scales microservices, data processing, machine learning, and other compute-intensive realtime and batch workloads. Cortex is designed to handle production traffic of up to 20M QPS and is up to 90% less expensive than AWS Lambda.
 
 <br>
 
