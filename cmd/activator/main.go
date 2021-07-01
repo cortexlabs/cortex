@@ -29,8 +29,10 @@ import (
 	"github.com/cortexlabs/cortex/pkg/autoscaler"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/logging"
+	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	"go.uber.org/zap"
 	istioinformers "istio.io/client-go/pkg/informers/externalversions"
+	kmeta "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	kinformers "k8s.io/client-go/informers"
 )
@@ -73,14 +75,23 @@ func main() {
 	kubeClient := k8sClient.ClientSet()
 	autoscalerClient := autoscaler.NewClient(autoscalerURL)
 
-	istioInformerFactory := istioinformers.NewSharedInformerFactory(istioClient, 10*time.Second) // TODO: check how much makes sense
+	istioInformerFactory := istioinformers.NewSharedInformerFactoryWithOptions(
+		istioClient, 10*time.Second, // TODO: check how much makes sense
+		istioinformers.WithNamespace(namespace),
+		istioinformers.WithTweakListOptions(informerFilter),
+	)
 	virtualServiceInformer := istioInformerFactory.Networking().V1beta1().VirtualServices().Informer()
 	virtualServiceClient := istioClient.NetworkingV1beta1().VirtualServices(namespace)
 
-	kubeInformeFactory := kinformers.NewSharedInformerFactory(kubeClient, 2*time.Second)
+	kubeInformeFactory := kinformers.NewSharedInformerFactoryWithOptions(
+		kubeClient, 2*time.Second, // TODO: check how much makes sense
+		kinformers.WithNamespace(namespace),
+		kinformers.WithTweakListOptions(informerFilter),
+	)
 	deploymentInformer := kubeInformeFactory.Apps().V1().Deployments().Informer()
 
 	act := activator.New(virtualServiceClient, deploymentInformer, virtualServiceInformer, autoscalerClient, log)
+
 	handler := activator.NewHandler(act, log)
 	server := &http.Server{
 		Addr:    ":" + strconv.Itoa(port),
@@ -116,4 +127,18 @@ func main() {
 		}
 		log.Info("Shutdown complete, exiting...")
 	}
+}
+
+func informerFilter(listOptions *kmeta.ListOptions) {
+	listOptions.LabelSelector = kmeta.FormatLabelSelector(&kmeta.LabelSelector{
+		MatchLabels: map[string]string{
+			"apiKind": userconfig.RealtimeAPIKind.String(),
+		},
+		MatchExpressions: []kmeta.LabelSelectorRequirement{
+			{
+				Key:      "apiName",
+				Operator: kmeta.LabelSelectorOpExists,
+			},
+		},
+	})
 }
