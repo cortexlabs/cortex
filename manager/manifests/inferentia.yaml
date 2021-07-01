@@ -131,8 +131,6 @@ spec:
         - effect: NoSchedule
           operator: Exists
           key: node.cloudprovider.kubernetes.io/uninitialized
-      nodeSelector:
-        node-role.kubernetes.io/master: ""
       serviceAccount: k8s-neuron-scheduler
       containers:
         - name: neuron-scheduler
