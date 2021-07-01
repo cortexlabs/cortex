@@ -68,14 +68,14 @@ cluster-up-y:
 	@$(MAKE) kubectl
 
 cluster-configure:
-	@$(MAKE) images-all
+	@$(MAKE) images-manager-skip-push
 	@$(MAKE) cli
 	@kill $(shell pgrep -f rerun) >/dev/null 2>&1 || true
 	@eval $$(python3 ./manager/cluster_config_env.py ./dev/config/cluster.yaml) && eval $$(python3 ./dev/create_user.py $$CORTEX_CLUSTER_NAME $$AWS_ACCOUNT_ID $$CORTEX_REGION) && sleep 10 && ./bin/cortex cluster configure ./dev/config/cluster.yaml; eksctl create iamidentitymapping --region $$CORTEX_REGION --cluster $$CORTEX_CLUSTER_NAME --arn $$DEFAULT_USER_ARN --group system:masters --username $$DEFAULT_USER_ARN
 	@$(MAKE) kubectl
 
 cluster-configure-y:
-	@$(MAKE) images-all
+	@$(MAKE) images-manager-skip-push
 	@$(MAKE) cli
 	@kill $(shell pgrep -f rerun) >/dev/null 2>&1 || true
 	@eval $$(python3 ./manager/cluster_config_env.py ./dev/config/cluster.yaml) && eval $$(python3 ./dev/create_user.py $$CORTEX_CLUSTER_NAME $$AWS_ACCOUNT_ID $$CORTEX_REGION) && sleep 10 && ./bin/cortex cluster configure ./dev/config/cluster.yaml --yes; eksctl create iamidentitymapping --region $$CORTEX_REGION --cluster $$CORTEX_CLUSTER_NAME --arn $$DEFAULT_USER_ARN --group system:masters --username $$DEFAULT_USER_ARN
