@@ -1,1 +1,1 @@
-FROM nvidia/dcgm-exporter:2.0.13-2.1.1-ubuntu18.04
+FROM nvcr.io/nvidia/k8s/dcgm-exporter:2.1.8-2.4.0-rc.3-ubuntu18.04
