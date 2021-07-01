@@ -222,6 +222,11 @@ func (a *activator) updateDeploymentTracker(obj interface{}) {
 
 	tracker := a.getOrCreateDeploymentTracker(api.apiName)
 	tracker.Update(deployment)
+
+	a.logger.Debugw("updated readiness tracker",
+		zap.Bool("ready", deployment.Status.ReadyReplicas > 0),
+		zap.String("apiName", api.apiName),
+	)
 }
 
 func (a *activator) removeDeploymentTracker(obj interface{}) {
