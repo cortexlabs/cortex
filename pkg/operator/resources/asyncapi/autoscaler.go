@@ -19,72 +19,17 @@ package asyncapi
 import (
 	"context"
 	"fmt"
-	"strconv"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/sqs"
 	"github.com/cortexlabs/cortex/pkg/config"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
-	"github.com/cortexlabs/cortex/pkg/types/userconfig"
-	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promauto"
 	"github.com/prometheus/common/model"
 )
 
 const (
-	_sqsQueryTimeoutSeconds        = 10
 	_prometheusQueryTimeoutSeconds = 10
 )
-
-var queueLengthGauge = promauto.NewGaugeVec(
-	prometheus.GaugeOpts{
-		Name:        "cortex_async_queue_length",
-		Help:        "The number of in-queue messages for a cortex AsyncAPI",
-		ConstLabels: map[string]string{"api_kind": userconfig.AsyncAPIKind.String()},
-	}, []string{"api_name"},
-)
-
-func updateQueueLengthMetricsFn(apiName, queueURL string) func() error {
-	return func() error {
-		sqsClient := config.AWS.SQS()
-
-		ctx, cancel := context.WithTimeout(context.Background(), _sqsQueryTimeoutSeconds*time.Second)
-		defer cancel()
-
-		input := &sqs.GetQueueAttributesInput{
-			AttributeNames: []*string{
-				aws.String("ApproximateNumberOfMessages"),
-				aws.String("ApproximateNumberOfMessagesNotVisible"),
-			},
-			QueueUrl: aws.String(queueURL),
-		}
-
-		output, err := sqsClient.GetQueueAttributesWithContext(ctx, input)
-		if err != nil {
-			return err
-		}
-
-		visibleMessagesStr := output.Attributes["ApproximateNumberOfMessages"]
-		invisibleMessagesStr := output.Attributes["ApproximateNumberOfMessagesNotVisible"]
-
-		visibleMessages, err := strconv.ParseFloat(*visibleMessagesStr, 64)
-		if err != nil {
-			return err
-		}
-
-		invisibleMessages, err := strconv.ParseFloat(*invisibleMessagesStr, 64)
-		if err != nil {
-			return err
-		}
-
-		queueLength := visibleMessages + invisibleMessages
-		queueLengthGauge.WithLabelValues(apiName).Set(queueLength)
-
-		return nil
-	}
-}
 
 func getMessagesInQueue(apiName string, window time.Duration) (*float64, error) {
 	windowSeconds := int64(window.Seconds())

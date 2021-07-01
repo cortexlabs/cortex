@@ -31,7 +31,7 @@ import (
 func TestNewAsyncPrometheusStatsReporter(t *testing.T) {
 	t.Parallel()
 
-	statsReporter := NewAsyncPrometheusStatsReporter()
+	statsReporter := NewAsyncPrometheusStatsReporter(nil, "", nil)
 
 	statsReporter.HandleEvent(
 		RequestEvent{

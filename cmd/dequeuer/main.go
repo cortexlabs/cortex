@@ -180,7 +180,10 @@ func main() {
 			TargetURL:  targetURL,
 		}
 
-		asyncStatsReporter := dequeuer.NewAsyncPrometheusStatsReporter()
+		asyncStatsReporter := dequeuer.NewAsyncPrometheusStatsReporter(awsClient.SQS(), queueURL, log)
+		stopStatsReporter := asyncStatsReporter.Start()
+		defer stopStatsReporter()
+
 		messageHandler = dequeuer.NewAsyncMessageHandler(config, awsClient, asyncStatsReporter, log)
 		dequeuerConfig = dequeuer.SQSDequeuerConfig{
 			Region:           clusterConfig.Region,
