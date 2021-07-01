@@ -8,15 +8,15 @@
 
 # Cost-effective serverless computing
 
-Cortex is a highly-scalable and cost-effective serverless computing platform that runs in your AWS account. It scales microservices, data processing, machine learning, and other compute-intensive workloads. Cortex is designed to handle production traffic of up to 10M QPS at up to 75% less than the cost of AWS Lambda.
+Cortex is a highly-scalable and cost-effective serverless computing platform that runs in your AWS account. It scales microservices, data processing, machine learning, and other compute-intensive realtime and batch workloads. Cortex is designed to handle production traffic of up to 20M QPS and is up to 90% less expensive than AWS Lambda.
 
 <br>
 
 ## Maximize instance utilization
 
-**Workload autoscaling** - set autoscaling policies for each workload based on its traffic.
+**Workload autoscaling** - set autoscaling policies per workload based on its traffic.
 
-**Resource requests** - configure CPU, GPU, and memory requests for each workload, without limits.
+**Resource requests** - configure CPU, GPU, and memory requests per workload, without limits.
 
 **Container deployments** - customize the runtime and request concurrency for each container.
 
@@ -24,18 +24,18 @@ Cortex is a highly-scalable and cost-effective serverless computing platform tha
 
 ## Minimize instance costs
 
-**Cluster autoscaling** - Cortex elastically scales your cluster to meet demand.
+**Cluster autoscaling** - elastically scale your cluster to meet demand.
 
-**Spot instances** - Cortex manages spot and reserved instances without sacrificing reliability.
+**Spot instances** - run workloads on spot instances without sacrificing reliability.
 
-**Multi-instance** - Cortex runs each workload on the instance with the optimal price-performance ratio.
+**Multi-instance** - use multiple instance types to optimize price-performance ratio per workload.
 
 <br>
 
-## Monitor your spend
+## Control your spend
 
-**Workload observability** - monitor workload performance and resource utilization with pre-built dashboards.
+**Workload observability** - monitor latency and resource utilization with pre-built dashboards.
 
-**Spend estimations** - predict your spend based on estimates that use the latest AWS pricing information.
+**Cost transparency** - visualize your costs using the latest AWS pricing information.
 
-**Cost breakdowns** - visualize your cost per workload to optimize your deployments.
+**Predictable spend** - set limits on resource consumption globally and per workload.
