@@ -97,8 +97,9 @@ type CoreConfig struct {
 	ImageDequeuer                   string `json:"image_dequeuer" yaml:"image_dequeuer"`
 	ImageClusterAutoscaler          string `json:"image_cluster_autoscaler" yaml:"image_cluster_autoscaler"`
 	ImageMetricsServer              string `json:"image_metrics_server" yaml:"image_metrics_server"`
-	ImageInferentia                 string `json:"image_inferentia" yaml:"image_inferentia"`
-	ImageNvidia                     string `json:"image_nvidia" yaml:"image_nvidia"`
+	ImageNvidiaDevicePlugin         string `json:"image_nvidia_device_plugin" yaml:"image_nvidia_device_plugin"`
+	ImageNeuronDevicePlugin         string `json:"image_neuron_device_plugin" yaml:"image_neuron_device_plugin"`
+	ImageNeuronScheduler            string `json:"image_neuron_scheduler" yaml:"image_neuron_scheduler"`
 	ImageFluentBit                  string `json:"image_fluent_bit" yaml:"image_fluent_bit"`
 	ImageIstioProxy                 string `json:"image_istio_proxy" yaml:"image_istio_proxy"`
 	ImageIstioPilot                 string `json:"image_istio_pilot" yaml:"image_istio_pilot"`
@@ -407,16 +408,23 @@ var CoreConfigStructFieldValidations = []*cr.StructFieldValidation{
 		},
 	},
 	{
-		StructField: "ImageInferentia",
+		StructField: "ImageNvidiaDevicePlugin",
 		StringValidation: &cr.StringValidation{
-			Default:   consts.DefaultRegistry() + "/inferentia:" + consts.CortexVersion,
+			Default:   consts.DefaultRegistry() + "/nvidia-device-plugin:" + consts.CortexVersion,
 			Validator: validateImageVersion,
 		},
 	},
 	{
-		StructField: "ImageNvidia",
+		StructField: "ImageNeuronDevicePlugin",
 		StringValidation: &cr.StringValidation{
-			Default:   consts.DefaultRegistry() + "/nvidia:" + consts.CortexVersion,
+			Default:   consts.DefaultRegistry() + "/neuron-device-plugin:" + consts.CortexVersion,
+			Validator: validateImageVersion,
+		},
+	},
+	{
+		StructField: "ImageNeuronScheduler",
+		StringValidation: &cr.StringValidation{
+			Default:   consts.DefaultRegistry() + "/neuron-scheduler:" + consts.CortexVersion,
 			Validator: validateImageVersion,
 		},
 	},
@@ -1636,11 +1644,14 @@ func (cc *CoreConfig) TelemetryEvent() map[string]interface{} {
 	if !strings.HasPrefix(cc.ImageMetricsServer, "cortexlabs/") {
 		event["image_metrics_server._is_custom"] = true
 	}
-	if !strings.HasPrefix(cc.ImageInferentia, "cortexlabs/") {
-		event["image_inferentia._is_custom"] = true
+	if !strings.HasPrefix(cc.ImageNvidiaDevicePlugin, "cortexlabs/") {
+		event["image_nvidia_device_plugin._is_custom"] = true
 	}
-	if !strings.HasPrefix(cc.ImageNvidia, "cortexlabs/") {
-		event["image_nvidia._is_custom"] = true
+	if !strings.HasPrefix(cc.ImageNeuronDevicePlugin, "cortexlabs/") {
+		event["image_neuron_device_plugin._is_custom"] = true
+	}
+	if !strings.HasPrefix(cc.ImageNeuronScheduler, "cortexlabs/") {
+		event["image_neuron_scheduler._is_custom"] = true
 	}
 	if !strings.HasPrefix(cc.ImageFluentBit, "cortexlabs/") {
 		event["image_fluent_bit._is_custom"] = true

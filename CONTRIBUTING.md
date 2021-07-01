@@ -22,10 +22,10 @@ To install Go on linux, run:
 
 ```bash
 mkdir -p ~/bin && \
-wget https://dl.google.com/go/go1.14.7.linux-amd64.tar.gz && \
-sudo tar -xvf go1.14.7.linux-amd64.tar.gz && \
+wget https://dl.google.com/go/go1.16.5.linux-amd64.tar.gz && \
+sudo tar -xvf go1.16.5.linux-amd64.tar.gz && \
 sudo mv go /usr/local && \
-rm go1.14.7.linux-amd64.tar.gz && \
+rm go1.16.5.linux-amd64.tar.gz && \
 echo 'export PATH="/usr/local/go/bin:$HOME/go/bin:$PATH"' >> $HOME/.bashrc
 ```
 
@@ -135,10 +135,6 @@ export AWS_REGION="***"  # you can use any AWS region you'd like, e.g. "us-west-
 export AWS_ACCESS_KEY_ID="***"  # alternatively, you can remove this to use the default credentials chain on your machine
 export AWS_SECRET_ACCESS_KEY="***"  # alternatively, you can remove this to use the default credentials chain on your machine
 export DEFAULT_USER_ARN="arn:aws:iam::<ACCOUNT_ID>:<AWS IAM ENTITY>" # (e.g. arn:aws-us-gov:iam::123456789:user/foo)
-
-# If you are working on govcloud, you will need to set credentials from a public (non govcloud) account to access inferentia ECR
-# export NORMAL_REGION_AWS_ACCESS_KEY_ID="***"
-# export NORMAL_REGION_AWS_SECRET_ACCESS_KEY="***"
 ```
 
 Create the ECR registries:

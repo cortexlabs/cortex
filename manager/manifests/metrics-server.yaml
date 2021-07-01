@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# source: https://github.com/kubernetes-sigs/metrics-server/releases/download/v0.5.0/components.yaml
+
 apiVersion: v1
 kind: ServiceAccount
 metadata:
@@ -144,9 +146,10 @@ spec:
       containers:
         - args:
             - --cert-dir=/tmp
-            - --secure-port=4443
+            - --secure-port=443
             - --kubelet-preferred-address-types=InternalIP,ExternalIP,Hostname
             - --kubelet-use-node-status-port
+            - --metric-resolution=15s
           image: $CORTEX_IMAGE_METRICS_SERVER
           imagePullPolicy: Always
           livenessProbe:
@@ -158,7 +161,7 @@ spec:
             periodSeconds: 10
           name: metrics-server
           ports:
-            - containerPort: 4443
+            - containerPort: 443
               name: https
               protocol: TCP
           readinessProbe:
@@ -167,7 +170,12 @@ spec:
               path: /readyz
               port: https
               scheme: HTTPS
+            initialDelaySeconds: 20
             periodSeconds: 10
+          resources:
+            requests:
+              cpu: 100m
+              memory: 200Mi
           securityContext:
             readOnlyRootFilesystem: true
             runAsNonRoot: true
@@ -175,10 +183,6 @@ spec:
           volumeMounts:
             - mountPath: /tmp
               name: tmp-dir
-          resources:
-            requests:
-              cpu: 100m
-              memory: 100Mi
       nodeSelector:
         kubernetes.io/os: linux
       priorityClassName: system-cluster-critical
