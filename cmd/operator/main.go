@@ -34,7 +34,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 var operatorLogger = logging.GetLogger()
@@ -105,9 +104,6 @@ func main() {
 	routerWithoutAuth.HandleFunc("/tasks/{apiName}", endpoints.SubmitTaskJob).Methods("POST")
 	routerWithoutAuth.HandleFunc("/tasks/{apiName}", endpoints.GetTaskJob).Methods("GET")
 	routerWithoutAuth.HandleFunc("/tasks/{apiName}", endpoints.StopTaskJob).Methods("DELETE")
-
-	// prometheus metrics
-	routerWithoutAuth.Handle("/metrics", promhttp.Handler()).Methods("GET")
 
 	routerWithAuth := router.NewRoute().Subrouter()
 
