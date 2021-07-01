@@ -220,7 +220,7 @@ see https://github.com/moby/moby/issues/39302#issuecomment-639687466_
 
 ## Prometheus kube-state-metrics Exporter
 
-1. Run `helm template` on the kube-state-metrics charts https://github.com/kubernetes/kube-state-metrics/tree/master/charts/kube-state-metrics and save the output somewhere temporarily.
+1. Run `helm template` on the kube-state-metrics charts from https://github.com/kubernetes/kube-state-metrics#helm-chart and save the output somewhere temporarily.
 1. Update the base image version in `images/prometheus-kube-state-metrics/Dockerfile`.
 1. Update `prometheus-kube-state-metrics.yaml` as necessary, if that's the case. Keep in mind that in our k8s template, the `ServiceMonitor` was changed to a `PodMonitor`. Remove any unnecessary labels. The update can also include adjusting the resource requests.
 
