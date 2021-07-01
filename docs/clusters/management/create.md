@@ -107,6 +107,7 @@ image_metrics_server: quay.io/cortexlabs/metrics-server:master
 image_nvidia_device_plugin: quay.io/cortexlabs/nvidia-device-plugin:master
 image_neuron_device_plugin: quay.io/cortexlabs/neuron-device-plugin:master
 image_neuron_scheduler: quay.io/cortexlabs/neuron-scheduler:master
+image_fluent_bit: quay.io/cortexlabs/fluent-bit:master
 image_istio_proxy: quay.io/cortexlabs/istio-proxy:master
 image_istio_pilot: quay.io/cortexlabs/istio-pilot:master
 image_prometheus: quay.io/cortexlabs/prometheus:master
