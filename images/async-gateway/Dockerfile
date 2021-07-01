@@ -1,6 +1,6 @@
 ARG TARGETARCH, TARGETOS
 
-FROM golang:1.15.13 as builder
+FROM golang:1.16.5 as builder
 
 COPY go.mod go.sum /workspace/
 WORKDIR /workspace

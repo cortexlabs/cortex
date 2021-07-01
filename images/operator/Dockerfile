@@ -1,4 +1,4 @@
-FROM golang:1.15.13 as builder
+FROM golang:1.16.5 as builder
 
 RUN curl -LO https://storage.googleapis.com/kubernetes-release/release/v1.21.2/bin/linux/amd64/kubectl && \
     mv ./kubectl /tmp/kubectl
