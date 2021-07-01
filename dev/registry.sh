@@ -139,15 +139,15 @@ function build_and_push() {
   docker buildx build $ROOT -f $dir/Dockerfile -t $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/cortexlabs/$image:$tag --platform $platforms $push_or_not_flag
 
   if [ "$include_arm64_arch" = "true" ]; then
-    green_echo "$finished_operation $image:$tag (amd64 and arm64)..."
+    green_echo "$finished_operation $image:$tag (amd64 and arm64)"
   else
-    green_echo "$finished_operation $image:$tag (amd64)..."
+    green_echo "$finished_operation $image:$tag (amd64)"
   fi
 
   if [[ " $images_that_can_run_locally " =~ " $image " ]] && [[ "$include_arm64_arch" == "false" ]]; then
     blue_echo "Exporting $image:$tag to local docker..."
     docker buildx build $ROOT -f $dir/Dockerfile -t cortexlabs/$image:$tag -t $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/cortexlabs/$image:$tag --platform $platforms --load
-    green_echo "Exported $image:$tag to local docker..."
+    green_echo "Exported $image:$tag to local docker"
   fi
 }
 
