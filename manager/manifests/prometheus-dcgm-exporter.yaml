@@ -67,9 +67,6 @@ spec:
           value: "true"
         image: $CORTEX_IMAGE_PROMETHEUS_DCGM_EXPORTER
         imagePullPolicy: Always
-        args: 
-        - -f 
-        - /etc/dcgm-exporter/dcp-metrics-included.csv
         name: dcgm-exporter
         ports:
         - containerPort: 9400
@@ -89,17 +86,6 @@ spec:
         - mountPath: /var/lib/kubelet/pod-resources
           name: pod-gpu-resources
           readOnly: true
-        livenessProbe:
-          httpGet:
-            path: /health
-            port: 9400
-          initialDelaySeconds: 5
-          periodSeconds: 5
-        readinessProbe:
-          httpGet:
-            path: /health
-            port: 9400
-          initialDelaySeconds: 5
       tolerations:
       - key: workload
         effect: NoSchedule
