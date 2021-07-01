@@ -253,3 +253,7 @@ see https://github.com/moby/moby/issues/39302#issuecomment-639687466_
 
 1. Find the latest release on [Dockerhub](https://hub.docker.com/_/alpine)
 1. Search the codebase for `alpine` and update accordingly
+
+## Python client dependencies
+
+1. Update package versions in `install_requires` in `python/client/setup.py`.
