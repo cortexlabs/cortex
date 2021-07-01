@@ -36,6 +36,6 @@ Cortex is a highly-scalable and cost-effective serverless computing platform tha
 
 **Workload observability** - monitor workload performance and resource utilization with pre-built dashboards.
 
-**Predictable spend** - predict your spend based on estimates that use the latest AWS pricing information.
+**Spend estimations** - predict your spend based on estimates that use the latest AWS pricing information.
 
 **Cost breakdowns** - visualize your cost per workload to optimize your deployments.
