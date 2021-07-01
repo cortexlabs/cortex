@@ -6,36 +6,36 @@
 
 <br>
 
-# Serverless containers on AWS
+# Cost-effective serverless computing
 
-Avoid the complexity of Kubernetes, service meshes, load balancers, queues, and autoscalers. Deploy, manage, and scale containers on a Kubernetes-based serverless platform that is up to 75% less expensive than Lambda.
-
-<br>
-
-## Build production-grade microservices faster
-
-**Autoscaling** - customize autoscaling for realtime, async, and batch workloads.
-
-**Networking** - get HTTP endpoints that can handle large-scale production traffic.
-
-**Observability** - send logs and metrics from every workload to any monitoring tool.
+Cortex is a highly-scalable and cost-effective serverless computing platform that runs on your AWS account. It scales microservices, data processing, machine learning, and other compute-intensive realtime and batch workloads. Cortex is designed to handle production traffic of up to 20M QPS and is up to 90% less expensive than AWS Lambda.
 
 <br>
 
-## Allocate CPU, GPU, and memory without limits
+## Maximize instance utilization
 
-**No resource limits** - allocate as much CPU, GPU, and memory as each workload requires.
+**Workload autoscaling** - set autoscaling policies per workload based on its traffic.
 
-**No cold starts** - keep a minimum number of replicas running to minimize latency.
+**Resource requests** - configure CPU, GPU, and memory requests per workload, without limits.
 
-**No timeouts** - run workloads for as long as you want.
+**Container deployments** - customize the runtime and request concurrency for each container.
 
 <br>
 
-## Save up to 75% on your AWS bill
+## Minimize instance costs
 
-**Spot instances** - run workloads on spot and/or reserved instances without affecting reliability.
+**Cluster autoscaling** - elastically scale your cluster to meet demand.
 
-**Custom instances** - use instances with the optimal price-performance ratio for your workloads.
+**Spot instances** - run workloads on spot instances without sacrificing reliability.
 
-**Scale to zero** - scale workloads to zero to minimize idle resources.
+**Multi-instance** - use multiple instance types to optimize price-performance ratio per workload.
+
+<br>
+
+## Control your spend
+
+**Workload observability** - monitor latency and resource utilization with pre-built dashboards.
+
+**Cost transparency** - visualize your costs using the latest AWS pricing information.
+
+**Predictable spend** - set limits on resource consumption globally and per workload.
