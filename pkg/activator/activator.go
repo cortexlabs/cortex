@@ -126,7 +126,7 @@ func (a *activator) getOrCreateAPIActivator(ctx context.Context, apiName string)
 		return nil, err
 	}
 
-	apiAct := newAPIActivator(apiName, maxQueueLength, maxConcurrency)
+	apiAct := newAPIActivator(maxQueueLength, maxConcurrency)
 
 	a.activatorsMux.Lock()
 	a.apiActivators[apiName] = apiAct
@@ -168,7 +168,7 @@ func (a *activator) addAPI(obj interface{}) {
 	a.logger.Debugw("adding new api activator", zap.String("apiName", apiName))
 
 	a.activatorsMux.Lock()
-	a.apiActivators[apiName] = newAPIActivator(apiName, apiMetadata.maxQueueLength, apiMetadata.maxConcurrency)
+	a.apiActivators[apiName] = newAPIActivator(apiMetadata.maxQueueLength, apiMetadata.maxConcurrency)
 	a.activatorsMux.Unlock()
 }
 
@@ -194,9 +194,8 @@ func (a *activator) updateAPI(oldObj interface{}, newObj interface{}) {
 	if oldAPIMetatada.maxConcurrency != apiMetadata.maxConcurrency || oldAPIMetatada.maxQueueLength != apiMetadata.maxQueueLength {
 		a.logger.Debugw("updating api activator", zap.String("apiName", apiName))
 
-		// FIXME: cannot re-create api activator, because it will discard the request queue
 		a.activatorsMux.Lock()
-		a.apiActivators[apiName] = newAPIActivator(apiName, apiMetadata.maxQueueLength, apiMetadata.maxConcurrency)
+		a.apiActivators[apiName].updateQueueParams(apiMetadata.maxQueueLength, apiMetadata.maxConcurrency)
 		a.activatorsMux.Unlock()
 	}
 }

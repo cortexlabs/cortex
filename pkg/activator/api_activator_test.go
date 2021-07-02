@@ -28,7 +28,7 @@ import (
 func TestApiActivator_Try(t *testing.T) {
 	t.Parallel()
 
-	act := newAPIActivator("test", 1, 1)
+	act := newAPIActivator(1, 1)
 
 	errCh := make(chan error)
 	waitCh := make(chan struct{})

@@ -34,7 +34,7 @@ func TestActivatorHandler_ServeHTTP(t *testing.T) {
 	act := &activator{
 		autoscalerClient: autoscalerClientMock{},
 		apiActivators: map[string]*apiActivator{
-			apiName: newAPIActivator(apiName, 1, 1),
+			apiName: newAPIActivator(1, 1),
 		},
 		readinessTrackers: map[string]*readinessTracker{
 			apiName: {ready: true},

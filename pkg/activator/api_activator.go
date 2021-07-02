@@ -27,27 +27,21 @@ import (
 )
 
 type apiActivator struct {
-	apiName        string
-	breaker        *proxy.Breaker
-	maxConcurrency int
-	maxQueueLength int
+	breaker *proxy.Breaker
 }
 
-func newAPIActivator(apiName string, maxQueueLength, maxConcurrency int) *apiActivator {
+func newAPIActivator(maxQueueLength, maxConcurrency int) *apiActivator {
 	breaker := proxy.NewBreaker(proxy.BreakerParams{
 		QueueDepth:      maxQueueLength,
 		MaxConcurrency:  maxConcurrency,
 		InitialCapacity: maxConcurrency,
 	})
 
-	return &apiActivator{
-		apiName:        apiName,
-		breaker:        breaker,
-		maxConcurrency: maxConcurrency,
-		maxQueueLength: maxQueueLength,
-	}
+	return &apiActivator{breaker: breaker}
 }
 
+// try waits for the readinessTracker to be ready and then attempts to execute the passed callback.
+// If the readinessTracker does not reach a ready state, it will timeout.
 func (a *apiActivator) try(ctx context.Context, fn func() error, tracker *readinessTracker) error {
 	var execErr error
 
@@ -75,6 +69,13 @@ func (a *apiActivator) try(ctx context.Context, fn func() error, tracker *readin
 	return execErr
 }
 
+// updateQueueParams updates the breaker queue parameters (not thread safe)
+func (a *apiActivator) updateQueueParams(maxQueueLength, maxConcurrency int) {
+	a.breaker.UpdateConcurrency(maxConcurrency)
+	a.breaker.UpdateQueueLength(maxQueueLength)
+}
+
+// inFlight returns the amount of in-flight requests of the breaker
 func (a *apiActivator) inFlight() int64 {
 	return a.breaker.InFlight()
 }

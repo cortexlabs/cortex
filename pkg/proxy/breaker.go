@@ -164,9 +164,18 @@ func (b *Breaker) UpdateConcurrency(size int) {
 	b.sem.updateCapacity(size)
 }
 
+// UpdateQueueLength updates the number of allowed requests in-queue
+func (b *Breaker) UpdateQueueLength(size int) {
+	b.totalSlots = int64(b.sem.Capacity() + size)
+}
+
 // Capacity returns the number of allowed in-flight requests on this breaker.
 func (b *Breaker) Capacity() int {
 	return b.sem.Capacity()
+}
+
+func (b *Breaker) QueueLength() int64 {
+	return b.totalSlots - int64(b.sem.Capacity())
 }
 
 // newSemaphore creates a semaphore with the desired initial capacity.
