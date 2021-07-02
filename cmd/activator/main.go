@@ -83,12 +83,12 @@ func main() {
 	virtualServiceInformer := istioInformerFactory.Networking().V1beta1().VirtualServices().Informer()
 	virtualServiceClient := istioClient.NetworkingV1beta1().VirtualServices(namespace)
 
-	kubeInformeFactory := kinformers.NewSharedInformerFactoryWithOptions(
+	kubeInformerFactory := kinformers.NewSharedInformerFactoryWithOptions(
 		kubeClient, 2*time.Second, // TODO: check how much makes sense
 		kinformers.WithNamespace(namespace),
 		kinformers.WithTweakListOptions(informerFilter),
 	)
-	deploymentInformer := kubeInformeFactory.Apps().V1().Deployments().Informer()
+	deploymentInformer := kubeInformerFactory.Apps().V1().Deployments().Informer()
 
 	act := activator.New(virtualServiceClient, deploymentInformer, virtualServiceInformer, autoscalerClient, log)
 
