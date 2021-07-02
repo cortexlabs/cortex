@@ -281,6 +281,10 @@ func confirmInstallClusterConfig(clusterConfig *clusterconfig.Config, awsClient 
 func confirmConfigureClusterConfig(configureChanges clusterconfig.ConfigureChanges, oldCc, newCc clusterconfig.Config, disallowPrompt bool) {
 	fmt.Printf("your %s cluster in region %s will be updated as follows:\n\n", newCc.ClusterName, newCc.Region)
 
+	for _, fieldToUpdate := range configureChanges.FieldsToUpdate {
+		fmt.Printf("￮ %s will be updated\n", fieldToUpdate)
+	}
+
 	for _, ngName := range configureChanges.NodeGroupsToScale {
 		ngOld := oldCc.GetNodeGroupByName(ngName)
 		ngScaled := newCc.GetNodeGroupByName(ngName)
