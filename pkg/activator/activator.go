@@ -73,11 +73,11 @@ func New(
 
 	deploymentInformer.AddEventHandler(
 		cache.ResourceEventHandlerFuncs{
-			AddFunc: act.updateDeploymentTracker,
+			AddFunc: act.updateReadinessTracker,
 			UpdateFunc: func(_, newObj interface{}) {
-				act.updateDeploymentTracker(newObj)
+				act.updateReadinessTracker(newObj)
 			},
-			DeleteFunc: act.removeDeploymentTracker,
+			DeleteFunc: act.removeReadinessTracker,
 		},
 	)
 
@@ -96,7 +96,7 @@ func (a *activator) Try(ctx context.Context, fn func() error) error {
 		return err
 	}
 
-	tracker := a.getOrCreateDeploymentTracker(apiName)
+	tracker := a.getOrCreateReadinessTracker(apiName)
 
 	if act.inFlight() == 0 {
 		go a.awakenAPI(apiName)
@@ -127,7 +127,7 @@ func (a *activator) getOrCreateAPIActivator(ctx context.Context, apiName string)
 	return apiAct, nil
 }
 
-func (a *activator) getOrCreateDeploymentTracker(apiName string) *readinessTracker {
+func (a *activator) getOrCreateReadinessTracker(apiName string) *readinessTracker {
 	tracker, ok := a.readinessTrackers[apiName]
 	if ok {
 		return tracker
@@ -203,7 +203,7 @@ func (a *activator) awakenAPI(apiName string) {
 	}
 }
 
-func (a *activator) updateDeploymentTracker(obj interface{}) {
+func (a *activator) updateReadinessTracker(obj interface{}) {
 	deployment, ok := obj.(*kapps.Deployment)
 	if !ok {
 		return
@@ -219,7 +219,7 @@ func (a *activator) updateDeploymentTracker(obj interface{}) {
 		return
 	}
 
-	tracker := a.getOrCreateDeploymentTracker(api.apiName)
+	tracker := a.getOrCreateReadinessTracker(api.apiName)
 	tracker.Update(deployment)
 
 	a.logger.Debugw("updated readiness tracker",
@@ -228,7 +228,7 @@ func (a *activator) updateDeploymentTracker(obj interface{}) {
 	)
 }
 
-func (a *activator) removeDeploymentTracker(obj interface{}) {
+func (a *activator) removeReadinessTracker(obj interface{}) {
 	api, err := getAPIMeta(obj)
 	if err != nil {
 		a.logger.Errorw("error during deployment informer callback", zap.Error(err))
