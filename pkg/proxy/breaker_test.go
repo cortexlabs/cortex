@@ -21,6 +21,9 @@ import (
 	"fmt"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/require"
+	"go.uber.org/atomic"
 )
 
 const (
@@ -147,6 +150,22 @@ func TestBreakerQueueing(t *testing.T) {
 	reqs.processSuccessfully(t)
 }
 
+func TestBreakerInflight(t *testing.T) {
+	params := BreakerParams{QueueDepth: 2, MaxConcurrency: 1, InitialCapacity: 1}
+	b := NewBreaker(params) // Breaker capacity = 2
+	reqs := newRequestor(b)
+
+	// Bring breaker to capacity. Doesn't error because queue subsumes these requests.
+	reqs.request()
+	reqs.request()
+	reqs.request()
+
+	require.Eventually(t, func() bool {
+		return b.InFlight() == int64(3)
+	}, time.Second, 10*time.Millisecond)
+	require.Equal(t, reqs.InProgress.Load(), int64(1))
+}
+
 func TestBreakerNoOverload(t *testing.T) {
 	params := BreakerParams{QueueDepth: 1, MaxConcurrency: 1, InitialCapacity: 1}
 	b := NewBreaker(params) // Breaker capacity = 2
@@ -220,7 +239,6 @@ func TestBreakerUpdateConcurrency(t *testing.T) {
 	if got, want := b.Capacity(), 0; got != want {
 		t.Errorf("Capacity() = %d, want: %d", got, want)
 	}
-
 }
 
 // Test empty semaphore, token cannot be acquired
@@ -329,6 +347,7 @@ type requestor struct {
 	breaker    *Breaker
 	acceptedCh chan bool
 	barrierCh  chan struct{}
+	InProgress atomic.Int64
 }
 
 func newRequestor(breaker *Breaker) *requestor {
@@ -350,6 +369,7 @@ func (r *requestor) request() {
 func (r *requestor) requestWithContext(ctx context.Context) {
 	go func() {
 		err := r.breaker.Maybe(ctx, func() {
+			r.InProgress.Inc()
 			<-r.barrierCh
 		})
 		r.acceptedCh <- err == nil
