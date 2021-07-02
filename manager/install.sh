@@ -41,13 +41,13 @@ function cluster_up() {
 
   echo -n "￮ configuring networking (this will take a few minutes) "
   setup_istio
-  python render_template.py $CORTEX_CLUSTER_CONFIG_FILE manifests/apis.yaml.j2 > /workspace/apis.yaml
-  kubectl apply -f /workspace/apis.yaml >/dev/null
+  python render_template.py $CORTEX_CLUSTER_CONFIG_FILE manifests/apis.yaml.j2 | kubectl apply -f - >/dev/null
   echo "✓"
 
   echo -n "￮ configuring autoscaling "
-  python render_template.py $CORTEX_CLUSTER_CONFIG_FILE manifests/cluster-autoscaler.yaml.j2 > /workspace/cluster-autoscaler.yaml
-  kubectl apply -f /workspace/cluster-autoscaler.yaml >/dev/null
+  python render_template.py $CORTEX_CLUSTER_CONFIG_FILE manifests/autoscaler.yaml.j2 | kubectl apply -f - >/dev/null
+  python render_template.py $CORTEX_CLUSTER_CONFIG_FILE manifests/activator.yaml.j2 | kubectl apply -f - >/dev/null
+  python render_template.py $CORTEX_CLUSTER_CONFIG_FILE manifests/cluster-autoscaler.yaml.j2 | kubectl apply -f - >/dev/null
   echo "✓"
 
   echo -n "￮ configuring logging "
@@ -96,8 +96,7 @@ function cluster_configure() {
 
   # this is necessary since max_instances may have been updated
   echo -n "￮ configuring autoscaling "
-  python render_template.py $CORTEX_CLUSTER_CONFIG_FILE manifests/cluster-autoscaler.yaml.j2 > /workspace/cluster-autoscaler.yaml
-  kubectl apply -f /workspace/cluster-autoscaler.yaml >/dev/null
+  python render_template.py $CORTEX_CLUSTER_CONFIG_FILE manifests/cluster-autoscaler.yaml.j2 | kubectl apply -f - >/dev/null
   echo "✓"
 
   restart_operator
