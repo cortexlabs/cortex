@@ -39,6 +39,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	"github.com/cortexlabs/cortex/pkg/lib/slices"
+	libstr "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/structs"
 	"github.com/cortexlabs/yaml"
 )
@@ -191,10 +192,11 @@ type ConfigureChanges struct {
 	NodeGroupsToRemove    []string
 	NodeGroupsToScale     []string
 	EKSNodeGroupsToRemove []string // EKS node group names of (NodeGroupsToRemove ∩ Cortex-converted EKS node groups) ∪ (Cortex-converted EKS node groups - the new cluster config's nodegroups)
+	FieldsToUpdate        []string
 }
 
 func (c *ConfigureChanges) HasChanges() bool {
-	return len(c.NodeGroupsToAdd) != 0 || len(c.NodeGroupsToRemove) != 0 || len(c.NodeGroupsToScale) != 0 || len(c.EKSNodeGroupsToRemove) != 0
+	return len(c.NodeGroupsToAdd)+len(c.NodeGroupsToRemove)+len(c.NodeGroupsToScale)+len(c.EKSNodeGroupsToRemove)+len(c.FieldsToUpdate) != 0
 }
 
 // GetGhostEKSNodeGroups returns the set difference between EKSNodeGroupsToRemove and the EKS-converted NodeGroupsToRemove
@@ -1029,43 +1031,54 @@ func (cc *Config) validate(awsClient *aws.Client) error {
 	return nil
 }
 
-func (cc *Config) validateConfigDiff(oldConfig Config) error {
-	err := cc.validateTopLevelSectionDiff(oldConfig)
-	if err != nil {
-		return err
-	}
-
-	return cc.validateSharedNodeGroupsDiff(oldConfig)
-}
-
-func (cc *Config) validateTopLevelSectionDiff(oldConfig Config) error {
+func (cc *Config) validateTopLevelSectionDiff(oldConfig Config) ([]string, error) {
+	var fieldsToUpdate []string
 	// validate actionable changes
 	newClusterConfigCopy, err := cc.DeepCopy()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	oldClusterConfigCopy, err := oldConfig.DeepCopy()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	newClusterConfigCopy.NodeGroups = []*NodeGroup{}
-	oldClusterConfigCopy.NodeGroups = []*NodeGroup{}
+	if libstr.Obj(newClusterConfigCopy.SSLCertificateARN) != libstr.Obj(oldClusterConfigCopy.SSLCertificateARN) {
+		fieldsToUpdate = append(fieldsToUpdate, SSLCertificateARNKey)
+	}
+
+	if libstr.Obj(newClusterConfigCopy.APILoadBalancerCIDRWhiteList) != libstr.Obj(oldClusterConfigCopy.APILoadBalancerCIDRWhiteList) {
+		fieldsToUpdate = append(fieldsToUpdate, APILoadBalancerCIDRWhiteListKey)
+	}
+
+	if libstr.Obj(newClusterConfigCopy.OperatorLoadBalancerCIDRWhiteList) != libstr.Obj(oldClusterConfigCopy.OperatorLoadBalancerCIDRWhiteList) {
+		fieldsToUpdate = append(fieldsToUpdate, OperatorLoadBalancerCIDRWhiteListKey)
+	}
+
+	emptyUpdatableFields(&newClusterConfigCopy)
+	emptyUpdatableFields(&oldClusterConfigCopy)
 
 	h1, err := newClusterConfigCopy.Hash()
 	if err != nil {
-		return err
+		return nil, err
 	}
 	h2, err := oldClusterConfigCopy.Hash()
 	if err != nil {
-		return err
+		return nil, err
 	}
 	if h1 != h2 {
-		return ErrorConfigCannotBeChangedOnConfigure()
+		return nil, ErrorConfigCannotBeChangedOnConfigure()
 	}
 
-	return nil
+	return fieldsToUpdate, nil
+}
+
+func emptyUpdatableFields(clusterConfig *Config) {
+	clusterConfig.SSLCertificateARN = nil
+	clusterConfig.APILoadBalancerCIDRWhiteList = nil
+	clusterConfig.OperatorLoadBalancerCIDRWhiteList = nil
+	clusterConfig.NodeGroups = []*NodeGroup{}
 }
 
 func (cc *Config) validateSharedNodeGroupsDiff(oldConfig Config) error {
@@ -1139,7 +1152,12 @@ func (cc *Config) ValidateOnConfigure(awsClient *aws.Client, oldConfig Config, e
 		return ConfigureChanges{}, err
 	}
 
-	err = cc.validateConfigDiff(oldConfig)
+	fieldsToUpdate, err := cc.validateTopLevelSectionDiff(oldConfig)
+	if err != nil {
+		return ConfigureChanges{}, err
+	}
+
+	err = cc.validateSharedNodeGroupsDiff(oldConfig)
 	if err != nil {
 		return ConfigureChanges{}, err
 	}
@@ -1170,6 +1188,7 @@ func (cc *Config) ValidateOnConfigure(awsClient *aws.Client, oldConfig Config, e
 		NodeGroupsToRemove:    GetNodeGroupNames(ngsToBeRemoved),
 		NodeGroupsToScale:     GetNodeGroupNames(ngNamesToBeScaled),
 		EKSNodeGroupsToRemove: getStaleEksNodeGroups(cc.ClusterName, eksNodeGroupStacks, cc.NodeGroups, ngsToBeRemoved),
+		FieldsToUpdate:        fieldsToUpdate,
 	}, nil
 }
 
