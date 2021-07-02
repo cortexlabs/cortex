@@ -16,7 +16,7 @@ apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: activator
-  namespace: {{ env['CORTEX_NAMESPACE'] }}
+  namespace: default
 
 ---
 
@@ -53,7 +53,7 @@ roleRef:
 subjects:
 - kind: ServiceAccount
   name: activator
-  namespace: {{ env['CORTEX_NAMESPACE'] }}
+  namespace: default
 
 ---
 
@@ -79,8 +79,8 @@ spec:
           args:
             - "--in-cluster"
             - "--port=8000"
-            - "--autoscaler-url=http://autoscaler.{{ env['CORTEX_NAMESPACE'] }}:8000"
-            - "--namespace={{ env['CORTEX_NAMESPACE'] }}"
+            - "--autoscaler-url=http://autoscaler.default:8000"
+            - "--namespace=default"
           ports:
             - containerPort: 8000
           livenessProbe:
