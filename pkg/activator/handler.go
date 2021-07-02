@@ -73,7 +73,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) proxyRequest(w http.ResponseWriter, r *http.Request) error {
 	target := r.Header.Get(consts.CortexTargetServiceHeader)
 	if target == "" {
-		return fmt.Errorf("missing %s header", consts.CortexTargetServiceHeader) // FIXME: proper error
+		return errors.ErrorUnexpected("missing header", consts.CortexTargetServiceHeader)
 	}
 
 	targetURL, err := url.Parse(target)
