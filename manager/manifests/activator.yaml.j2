@@ -105,6 +105,9 @@ spec:
             limits:
               cpu: 250m
               memory: 300Mi
+          envFrom:
+          - configMapRef:
+              name: env-vars
           volumeMounts:
           - mountPath: /configs/cluster/cluster.yaml
             name: cluster-config

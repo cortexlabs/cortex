@@ -92,7 +92,7 @@ func GetReadinessProbesFromContainers(containers []*userconfig.Container) map[st
 	return probes
 }
 
-func baseClusterEnvVars() []kcore.EnvFromSource {
+func BaseClusterEnvVars() []kcore.EnvFromSource {
 	envVars := []kcore.EnvFromSource{
 		{
 			ConfigMapRef: &kcore.ConfigMapEnvSource{

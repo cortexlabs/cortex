@@ -300,6 +300,8 @@ func (r *BatchJobReconciler) desiredEnqueuerJob(batchJob batch.BatchJob, queueUR
 								"-apiName", batchJob.Spec.APIName,
 								"-jobID", batchJob.Name,
 							},
+							Env:             workloads.BaseEnvVars,
+							EnvFrom:         workloads.BaseClusterEnvVars(),
 							ImagePullPolicy: kcore.PullAlways,
 						},
 					},

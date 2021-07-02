@@ -51,6 +51,9 @@ spec:
           requests:
             cpu: 100m
             memory: 20Mi
+        envFrom:
+        - configMapRef:
+            name: env-vars
         volumeMounts:
           - mountPath: /mnt/cluster.yaml
             name: cluster-config
