@@ -93,7 +93,7 @@ iam_policy_arns: ["arn:aws:iam::aws:policy/AmazonS3FullAccess"]
 vpc_cidr: 192.168.0.0/16
 
 # instance type for prometheus
-# use a bigger instance if the cluster is expected to grow past the thousand node (or api replica) threshold
+# use a bigger instance if the cluster is expected to grow past the thousand node (or api replica) mark
 prometheus_instance_type: "t3.medium"
 ```
 

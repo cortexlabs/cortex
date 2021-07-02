@@ -55,8 +55,8 @@ const (
 )
 
 var (
-	_operatorNodeGroupInstanceType     = "t3.medium"
-	_operatorNodeGroupRequiredOnDemand = int64(25)
+	_operatorNodeGroupInstanceType        = "t3.medium"
+	_operatorNodeGroupMaxRequiredOnDemand = int64(25)
 
 	_maxNodeGroupLengthWithPrefix = 32
 	_maxNodeGroupLength           = _maxNodeGroupLengthWithPrefix - len("cx-wd-") // or cx-ws-
@@ -919,7 +919,7 @@ func (cc *Config) validate(awsClient *aws.Client) error {
 	instances := []aws.InstanceTypeRequests{
 		{
 			InstanceType:              _operatorNodeGroupInstanceType,
-			RequiredOnDemandInstances: int64(_operatorNodeGroupRequiredOnDemand),
+			RequiredOnDemandInstances: int64(_operatorNodeGroupMaxRequiredOnDemand),
 		},
 		{
 			InstanceType:              cc.PrometheusInstanceType,
