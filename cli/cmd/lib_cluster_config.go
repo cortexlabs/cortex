@@ -230,7 +230,7 @@ func confirmInstallClusterConfig(clusterConfig *clusterconfig.Config, awsClient 
 	maxOperatorNodeGroupPrice := 25 * (operatorInstancePrice + operatorEBSPrice)
 	prometheusNodeGroupPrice := prometheusInstancePrice + prometheusEBSPrice + metricsEBSPrice
 	rows = append(rows, []interface{}{"1-25 t3.medium instances (cortex system)", fmt.Sprintf("%s - %s (depending on load)", s.DollarsAndTenthsOfCents(minOperatorNodeGroupPrice), s.DollarsAndTenthsOfCents(maxOperatorNodeGroupPrice))})
-	rows = append(rows, []interface{}{fmt.Sprintf("1 %s instance (cortex system)", clusterConfig.PrometheusInstanceType), s.DollarsAndTenthsOfCents(prometheusNodeGroupPrice)})
+	rows = append(rows, []interface{}{fmt.Sprintf("1 %s instance (prometheus)", clusterConfig.PrometheusInstanceType), s.DollarsAndTenthsOfCents(prometheusNodeGroupPrice)})
 	rows = append(rows, []interface{}{"2 network load balancers", s.DollarsMaxPrecision(nlbPrice) + " each"})
 
 	if clusterConfig.NATGateway == clusterconfig.SingleNATGateway {

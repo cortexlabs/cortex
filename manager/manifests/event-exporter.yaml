@@ -82,6 +82,10 @@ spec:
           volumeMounts:
             - mountPath: /data
               name: event-exporter-config
+          resources:
+            requests:
+              cpu: 20m
+              memory: 50Mi
       volumes:
         - name: event-exporter-config
           configMap:
