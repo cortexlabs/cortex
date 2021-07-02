@@ -18,6 +18,7 @@ package activator
 
 import (
 	"context"
+	"sync"
 
 	"github.com/cortexlabs/cortex/pkg/autoscaler"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
@@ -39,6 +40,8 @@ type Activator interface {
 }
 
 type activator struct {
+	activatorsMux     sync.RWMutex
+	trackersMux       sync.RWMutex
 	autoscalerClient  autoscaler.Client
 	apiActivators     map[string]*apiActivator
 	readinessTrackers map[string]*readinessTracker
@@ -106,7 +109,9 @@ func (a *activator) Try(ctx context.Context, fn func() error) error {
 }
 
 func (a *activator) getOrCreateAPIActivator(ctx context.Context, apiName string) (*apiActivator, error) {
+	a.activatorsMux.RLock()
 	act, ok := a.apiActivators[apiName]
+	a.activatorsMux.RUnlock()
 	if ok {
 		return act, nil
 	}
@@ -122,20 +127,29 @@ func (a *activator) getOrCreateAPIActivator(ctx context.Context, apiName string)
 	}
 
 	apiAct := newAPIActivator(apiName, maxQueueLength, maxConcurrency)
+
+	a.activatorsMux.Lock()
 	a.apiActivators[apiName] = apiAct
+	a.activatorsMux.Unlock()
 
 	return apiAct, nil
 }
 
 func (a *activator) getOrCreateReadinessTracker(apiName string) *readinessTracker {
+	a.trackersMux.RLock()
 	tracker, ok := a.readinessTrackers[apiName]
+	a.trackersMux.RUnlock()
 	if ok {
 		return tracker
 	}
 
-	a.readinessTrackers[apiName] = newReadinessTracker()
+	tracker = newReadinessTracker()
 
-	return a.readinessTrackers[apiName]
+	a.trackersMux.Lock()
+	a.readinessTrackers[apiName] = tracker
+	a.trackersMux.Unlock()
+
+	return tracker
 }
 
 func (a *activator) addAPI(obj interface{}) {
@@ -152,10 +166,13 @@ func (a *activator) addAPI(obj interface{}) {
 	apiName := apiMetadata.apiName
 
 	a.logger.Debugw("adding new api activator", zap.String("apiName", apiName))
+
+	a.activatorsMux.Lock()
 	a.apiActivators[apiName] = newAPIActivator(apiName, apiMetadata.maxQueueLength, apiMetadata.maxConcurrency)
+	a.activatorsMux.Unlock()
 }
 
-func (a *activator) updateAPI(_ interface{}, newObj interface{}) {
+func (a *activator) updateAPI(oldObj interface{}, newObj interface{}) {
 	apiMetadata, err := getAPIMeta(newObj)
 	if err != nil {
 		a.logger.Errorw("error during virtual service informer update callback", zap.Error(err))
@@ -168,11 +185,19 @@ func (a *activator) updateAPI(_ interface{}, newObj interface{}) {
 
 	apiName := apiMetadata.apiName
 
-	if a.apiActivators[apiName].maxConcurrency != apiMetadata.maxConcurrency ||
-		a.apiActivators[apiName].maxQueueLength != apiMetadata.maxQueueLength {
+	oldAPIMetatada, err := getAPIMeta(oldObj)
+	if err != nil {
+		a.logger.Errorw("error during virtual service informer update callback", zap.Error(err))
+		return
+	}
 
+	if oldAPIMetatada.maxConcurrency != apiMetadata.maxConcurrency || oldAPIMetatada.maxQueueLength != apiMetadata.maxQueueLength {
 		a.logger.Debugw("updating api activator", zap.String("apiName", apiName))
+
+		// FIXME: cannot re-create api activator, because it will discard the request queue
+		a.activatorsMux.Lock()
 		a.apiActivators[apiName] = newAPIActivator(apiName, apiMetadata.maxQueueLength, apiMetadata.maxConcurrency)
+		a.activatorsMux.Unlock()
 	}
 }
 
@@ -188,7 +213,10 @@ func (a *activator) removeAPI(obj interface{}) {
 	}
 
 	a.logger.Debugw("deleting api activator", zap.String("apiName", apiMetadata.apiName))
+
+	a.activatorsMux.Lock()
 	delete(a.apiActivators, apiMetadata.apiName)
+	a.activatorsMux.Unlock()
 }
 
 func (a *activator) awakenAPI(apiName string) {
@@ -239,5 +267,7 @@ func (a *activator) removeReadinessTracker(obj interface{}) {
 		return
 	}
 
+	a.trackersMux.Lock()
 	delete(a.readinessTrackers, api.apiName)
+	a.trackersMux.Unlock()
 }
