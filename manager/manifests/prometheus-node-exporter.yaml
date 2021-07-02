@@ -153,12 +153,15 @@ spec:
       hostPID: true
       nodeSelector:
         kubernetes.io/os: linux
+        prometheus: "true"
       securityContext:
         runAsNonRoot: true
         runAsUser: 65534
       serviceAccountName: node-exporter
       tolerations:
-        - operator: Exists
+        - key: prometheus
+          operator: Exists
+          effect: NoSchedule
       volumes:
         - hostPath:
             path: /sys

@@ -25,8 +25,8 @@ spec:
       k8s:
         resources:
           requests:
-            cpu: 200m  # default is 500m
-            memory: 1.75Gi  # default is 2048Mi == 2Gi
+            cpu: 100m  # default is 500m
+            memory: 200Mi  # default is 2048Mi == 2Gi
     cni:
       enabled: false
     ingressGateways:
@@ -74,7 +74,7 @@ spec:
               cpu: 100m
               memory: 128Mi
             limits:
-              cpu: 2000m
+              cpu: 1000m
               memory: 1024Mi
           replicaCount: 1
           hpaSpec:
@@ -132,20 +132,23 @@ spec:
                 targetPort: 15443
           resources:
             requests:
-              cpu: 200m
+              cpu: 300m
               memory: 128Mi
             limits:
-              cpu: 2000m
+              cpu: 1500m
               memory: 1024Mi
           replicaCount: 1
           hpaSpec:
             minReplicas: 1
-            maxReplicas: 1  # edit autoscaleEnabled in values if increasing this
+            maxReplicas: 100  # edit autoscaleEnabled in values if increasing this
             metrics:
               - type: Resource
                 resource:
                   name: cpu
-                  targetAverageUtilization: 80
+                  targetAverageUtilization: 90
+                resource:
+                  name: mem
+                  targetAverageUtilization: 90
             scaleTargetRef:
               apiVersion: apps/v1
               kind: Deployment

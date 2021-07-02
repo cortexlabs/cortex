@@ -234,6 +234,12 @@ spec:
             port: 8080
           initialDelaySeconds: 5
           timeoutSeconds: 5
+      nodeSelector:
+        prometheus: "true"
+      tolerations:
+        - key: prometheus
+          operator: Exists
+          effect: NoSchedule
 ---
 apiVersion: monitoring.coreos.com/v1
 kind: PodMonitor

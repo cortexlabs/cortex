@@ -169,11 +169,11 @@ spec:
           name: cluster-autoscaler
           resources:
             limits:
-              cpu: 100m
-              memory: 300Mi
+              cpu: 300m
+              memory: 1Gi
             requests:
               cpu: 100m
-              memory: 300Mi
+              memory: 200Mi
           command:
             - ./cluster-autoscaler
             - --v=4

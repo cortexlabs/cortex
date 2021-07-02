@@ -30,6 +30,12 @@ metadata:
 spec:
   image: {{ config['image_prometheus'] }}
   serviceAccountName: prometheus
+  nodeSelector:
+    prometheus: "true"
+  tolerations:
+    - key: prometheus
+      operator: Exists
+      effect: NoSchedule
   podMonitorSelector:
     matchExpressions:
       - key: "monitoring.cortex.dev"

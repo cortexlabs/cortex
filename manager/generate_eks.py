@@ -305,19 +305,37 @@ def generate_eks(
         return
 
     operator_nodegroup = default_nodegroup(cluster_config)
+    # TODO validate requests when clustering up
     operator_settings = {
         "ami": get_ami(ami_map, "t3.medium"),
         "name": "cx-operator",
         "instanceType": "t3.medium",
-        "minSize": 2,
-        "maxSize": 2,
-        "desiredCapacity": 2,
+        "minSize": 1,
+        "maxSize": 25,
+        "desiredCapacity": 1,
         "volumeType": "gp3",
         "volumeSize": 20,
         "volumeIOPS": 3000,
         "volumeThroughput": 125,
     }
     operator_nodegroup = merge_override(operator_nodegroup, operator_settings)
+
+    prometheus_nodegroup = default_nodegroup(cluster_config)
+    prometheus_settings = {
+        "ami": get_ami(ami_map, "t3.xlarge"),
+        "name": "cx-prometheus",
+        "instanceType": "t3.xlarge",
+        "minSize": 1,
+        "maxSize": 1,
+        "desiredCapacity": 1,
+        "volumeType": "gp3",
+        "volumeSize": 20,
+        "volumeIOPS": 3000,
+        "volumeThroughput": 125,
+        "labels": {"prometheus": "true"},
+        "taints": {"prometheus": "true:NoSchedule"},
+    }
+    prometheus_nodegroup = merge_override(prometheus_nodegroup, prometheus_settings)
 
     worker_nodegroups = get_all_worker_nodegroups(ami_map, cluster_config)
 
@@ -337,7 +355,7 @@ def generate_eks(
             "tags": cluster_config["tags"],
         },
         "vpc": {"nat": {"gateway": nat_gateway}},
-        "nodeGroups": [operator_nodegroup] + worker_nodegroups,
+        "nodeGroups": [operator_nodegroup, prometheus_nodegroup] + worker_nodegroups,
         "addons": [
             {
                 "name": "vpc-cni",
