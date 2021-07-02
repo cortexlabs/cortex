@@ -86,11 +86,15 @@ tags:  # <string>: <string> map of key/value pairs
 # SSL certificate ARN (only necessary when using a custom domain)
 ssl_certificate_arn:
 
-# List of IAM policies to attach to your Cortex APIs
+# list of IAM policies to attach to your Cortex APIs
 iam_policy_arns: ["arn:aws:iam::aws:policy/AmazonS3FullAccess"]
 
 # primary CIDR block for the cluster's VPC
 vpc_cidr: 192.168.0.0/16
+
+# instance type for prometheus
+# use a bigger instance if the cluster is expected to grow past the thousand node (or api replica) threshold
+prometheus_instance_type: "t3.medium"
 ```
 
 The docker images used by the cluster can also be overridden. They can be configured by adding any of these keys to your cluster configuration file (default values are shown):

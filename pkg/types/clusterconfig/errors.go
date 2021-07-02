@@ -46,6 +46,8 @@ const (
 	ErrSpotPriceGreaterThanMaxPrice           = "clusterconfig.spot_price_greater_than_max_price"
 	ErrInstanceTypeNotSupportedByCortex       = "clusterconfig.instance_type_not_supported_by_cortex"
 	ErrAMDGPUInstancesNotSupported            = "clusterconfig.amd_gpu_instances_not_supported"
+	ErrNvidiaGPUInstancesNotSupported         = "clusterconfig.nvidia_gpu_instance_not_supported"
+	ErrInferentiaInstancesNotSupported        = "clusterconfig.inferentia_instances_not_supported"
 	ErrMacInstancesNotSupported               = "clusterconfig.mac_instances_not_supported"
 	ErrAtLeastOneInstanceDistribution         = "clusterconfig.at_least_one_instance_distribution"
 	ErrNoCompatibleSpotInstanceFound          = "clusterconfig.no_compatible_spot_instance_found"
@@ -199,6 +201,20 @@ func ErrorAMDGPUInstancesNotSupported(instanceType string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrAMDGPUInstancesNotSupported,
 		Message: fmt.Sprintf("AMD GPU instances (including %s) are not supported by cortex", instanceType),
+	})
+}
+
+func ErrorNvidiaGPUInstancesNotSupported(instanceType string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrNvidiaGPUInstancesNotSupported,
+		Message: fmt.Sprintf("Nvidia GPU instances (including %s) are not supported by cortex", instanceType),
+	})
+}
+
+func ErrorInferentiaInstancesNotSupported(instanceType string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrInferentiaInstancesNotSupported,
+		Message: fmt.Sprintf("Inferentia instances (including %s) are not supported by cortex", instanceType),
 	})
 }
 

@@ -849,7 +849,7 @@ func printInfoPricing(infoResponse *schema.InfoResponse, clusterConfig clusterco
 	eksPrice := aws.EKSPrices[clusterConfig.Region]
 	operatorInstancePrice := aws.InstanceMetadatas[clusterConfig.Region]["t3.medium"].Price
 	operatorEBSPrice := aws.EBSMetadatas[clusterConfig.Region]["gp3"].PriceGB * 20 / 30 / 24
-	prometheusInstancePrice := aws.InstanceMetadatas[clusterConfig.Region]["t3.xlarge"].Price
+	prometheusInstancePrice := aws.InstanceMetadatas[clusterConfig.Region][clusterConfig.PrometheusInstanceType].Price
 	prometheusEBSPrice := aws.EBSMetadatas[clusterConfig.Region]["gp3"].PriceGB * 20 / 30 / 24
 	metricsEBSPrice := aws.EBSMetadatas[clusterConfig.Region]["gp2"].PriceGB * (40 + 2) / 30 / 24
 	nlbPrice := aws.NLBMetadatas[clusterConfig.Region].Price
@@ -907,7 +907,7 @@ func printInfoPricing(infoResponse *schema.InfoResponse, clusterConfig clusterco
 	fmt.Printf(console.Bold("\nyour cluster currently costs %s per hour\n\n"), s.DollarsAndCents(totalPrice))
 
 	rows = append(rows, []interface{}{fmt.Sprintf("%d t3.medium %s (cortex system)", len(infoResponse.OperatorNodeInfos), s.PluralS("instance", len(infoResponse.OperatorNodeInfos))), s.DollarsAndTenthsOfCents(operatorNodeGroupPrice)})
-	rows = append(rows, []interface{}{"1 t3.xlarge instance (cortex system)", s.DollarsAndTenthsOfCents(prometheusNodeGroupPrice)})
+	rows = append(rows, []interface{}{fmt.Sprintf("1 %s instance (cortex system)", clusterConfig.PrometheusInstanceType), s.DollarsAndTenthsOfCents(prometheusNodeGroupPrice)})
 	rows = append(rows, []interface{}{"2 network load balancers", s.DollarsMaxPrecision(nlbPrice*2) + " total"})
 
 	if clusterConfig.NATGateway == clusterconfig.SingleNATGateway {

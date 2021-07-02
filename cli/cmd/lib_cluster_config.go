@@ -163,7 +163,7 @@ func getConfigureClusterConfig(awsClient *aws.Client, stacks clusterstate.Cluste
 func confirmInstallClusterConfig(clusterConfig *clusterconfig.Config, awsClient *aws.Client, disallowPrompt bool) {
 	eksPrice := aws.EKSPrices[clusterConfig.Region]
 	operatorInstancePrice := aws.InstanceMetadatas[clusterConfig.Region]["t3.medium"].Price
-	prometheusInstancePrice := aws.InstanceMetadatas[clusterConfig.Region]["t3.xlarge"].Price
+	prometheusInstancePrice := aws.InstanceMetadatas[clusterConfig.Region][clusterConfig.PrometheusInstanceType].Price
 	operatorEBSPrice := aws.EBSMetadatas[clusterConfig.Region]["gp3"].PriceGB * 20 / 30 / 24
 	prometheusEBSPrice := aws.EBSMetadatas[clusterConfig.Region]["gp3"].PriceGB * 20 / 30 / 24
 	metricsEBSPrice := aws.EBSMetadatas[clusterConfig.Region]["gp2"].PriceGB * (40 + 2) / 30 / 24
@@ -230,7 +230,7 @@ func confirmInstallClusterConfig(clusterConfig *clusterconfig.Config, awsClient 
 	maxOperatorNodeGroupPrice := 25 * (operatorInstancePrice + operatorEBSPrice)
 	prometheusNodeGroupPrice := prometheusInstancePrice + prometheusEBSPrice + metricsEBSPrice
 	rows = append(rows, []interface{}{"1-25 t3.medium instances (cortex system)", fmt.Sprintf("%s - %s (depending on load)", s.DollarsAndTenthsOfCents(minOperatorNodeGroupPrice), s.DollarsAndTenthsOfCents(maxOperatorNodeGroupPrice))})
-	rows = append(rows, []interface{}{"1 t3.xlarge instance (cortex system)", s.DollarsAndTenthsOfCents(prometheusNodeGroupPrice)})
+	rows = append(rows, []interface{}{fmt.Sprintf("1 %s instance (cortex system)", clusterConfig.PrometheusInstanceType), s.DollarsAndTenthsOfCents(prometheusNodeGroupPrice)})
 	rows = append(rows, []interface{}{"2 network load balancers", s.DollarsMaxPrecision(nlbPrice) + " each"})
 
 	if clusterConfig.NATGateway == clusterconfig.SingleNATGateway {

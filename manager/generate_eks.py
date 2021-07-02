@@ -273,6 +273,7 @@ def generate_eks(
     cluster_config = yaml.safe_load(cluster_config_file)
     region = cluster_config["region"]
     name = cluster_config["cluster_name"]
+    prometheus_instance_type = cluster_config["prometheus_instance_type"]
     ami_map = json.load(ami_json_file)[K8S_VERSION][region]
 
     eks = {
@@ -322,9 +323,9 @@ def generate_eks(
 
     prometheus_nodegroup = default_nodegroup(cluster_config)
     prometheus_settings = {
-        "ami": get_ami(ami_map, "t3.xlarge"),
+        "ami": get_ami(ami_map, prometheus_instance_type),
         "name": "cx-prometheus",
-        "instanceType": "t3.xlarge",
+        "instanceType": prometheus_instance_type,
         "minSize": 1,
         "maxSize": 1,
         "desiredCapacity": 1,

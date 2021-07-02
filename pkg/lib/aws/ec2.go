@@ -137,6 +137,46 @@ func IsAMDGPUInstance(instanceType string) (bool, error) {
 	return false, nil
 }
 
+func IsNvidiaGPUInstance(instanceType string) (bool, error) {
+	parsedType, err := ParseInstanceType(instanceType)
+	if err != nil {
+		return false, err
+	}
+
+	if !_gpuInstanceFamilies.Has(parsedType.Family) {
+		return false, nil
+	}
+
+	if !parsedType.Capabilities.Has("a") {
+		return true, nil
+	}
+
+	return false, nil
+}
+
+func IsGPUInstance(instanceType string) (bool, error) {
+	isAMDGPU, err := IsAMDGPUInstance(instanceType)
+	if err != nil {
+		return false, err
+	}
+
+	isNvidiaGPU, err := IsNvidiaGPUInstance(instanceType)
+	if err != nil {
+		return false, err
+	}
+
+	return isAMDGPU || isNvidiaGPU, nil
+}
+
+func IsInferentiaInstance(instanceType string) (bool, error) {
+	parsedType, err := ParseInstanceType(instanceType)
+	if err != nil {
+		return false, err
+	}
+
+	return parsedType.Family == "inf", nil
+}
+
 func IsMacInstance(instanceType string) (bool, error) {
 	parsedType, err := ParseInstanceType(instanceType)
 	if err != nil {

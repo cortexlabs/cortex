@@ -55,10 +55,8 @@ const (
 )
 
 var (
-	_operatorNodeGroupInstanceType       = "t3.medium"
-	_operatorNodeGroupRequiredOnDemand   = int64(25)
-	_prometheusNodeGroupInstanceType     = "t3.xlarge"
-	_prometheusNodeGroupRequiredOnDemand = int64(1)
+	_operatorNodeGroupInstanceType     = "t3.medium"
+	_operatorNodeGroupRequiredOnDemand = int64(25)
 
 	_maxNodeGroupLengthWithPrefix = 32
 	_maxNodeGroupLength           = _maxNodeGroupLengthWithPrefix - len("cx-wd-") // or cx-ws-
@@ -88,8 +86,9 @@ type CoreConfig struct {
 	IstioNamespace string `json:"istio_namespace" yaml:"istio_namespace"`
 
 	// User-specifiable fields
-	ClusterName string `json:"cluster_name" yaml:"cluster_name"`
-	Region      string `json:"region" yaml:"region"`
+	ClusterName            string `json:"cluster_name" yaml:"cluster_name"`
+	Region                 string `json:"region" yaml:"region"`
+	PrometheusInstanceType string `json:"prometheus_instance_type" yaml:"prometheus_instance_type"`
 
 	// User-specifiable fields
 	ImageOperator                   string `json:"image_operator" yaml:"image_operator"`
@@ -334,6 +333,14 @@ var CoreConfigStructFieldValidations = []*cr.StructFieldValidation{
 			Required:  true,
 			MinLength: 1,
 			Validator: RegionValidator,
+		},
+	},
+	{
+		StructField: "PrometheusInstanceType",
+		StringValidation: &cr.StringValidation{
+			MinLength: 1,
+			Default:   "t3.medium",
+			Validator: validatePrometheusInstanceType,
 		},
 	},
 	{
@@ -915,8 +922,8 @@ func (cc *Config) validate(awsClient *aws.Client) error {
 			RequiredOnDemandInstances: int64(_operatorNodeGroupRequiredOnDemand),
 		},
 		{
-			InstanceType:              _prometheusNodeGroupInstanceType,
-			RequiredOnDemandInstances: int64(_prometheusNodeGroupRequiredOnDemand),
+			InstanceType:              cc.PrometheusInstanceType,
+			RequiredOnDemandInstances: 1,
 		},
 	}
 	for _, nodeGroup := range cc.NodeGroups {
@@ -1486,6 +1493,31 @@ func validateInstanceType(instanceType string) (string, error) {
 	return instanceType, nil
 }
 
+func validatePrometheusInstanceType(instanceType string) (string, error) {
+	_, err := validateInstanceType(instanceType)
+	if err != nil {
+		return "", err
+	}
+
+	isNvidiaGPU, err := aws.IsNvidiaGPUInstance(instanceType)
+	if err != nil {
+		return "", err
+	}
+	if isNvidiaGPU {
+		return "", ErrorNvidiaGPUInstancesNotSupported(instanceType)
+	}
+
+	isInf, err := aws.IsInferentiaInstance(instanceType)
+	if err != nil {
+		return "", err
+	}
+	if isInf {
+		return "", ErrorInferentiaInstancesNotSupported(instanceType)
+	}
+
+	return instanceType, nil
+}
+
 func validateInstanceDistribution(instances []string) ([]string, error) {
 	for _, instance := range instances {
 		_, err := validateInstanceType(instance)
@@ -1627,6 +1659,7 @@ func (cc *CoreConfig) TelemetryEvent() map[string]interface{} {
 	}
 
 	event["region"] = cc.Region
+	event["prometheus_instance_type"] = cc.PrometheusInstanceType
 
 	if !strings.HasPrefix(cc.ImageOperator, "cortexlabs/") {
 		event["image_operator._is_custom"] = true
