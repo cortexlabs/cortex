@@ -54,6 +54,8 @@ const (
 	NATGatewayKey                          = "nat_gateway"
 	APILoadBalancerSchemeKey               = "api_load_balancer_scheme"
 	OperatorLoadBalancerSchemeKey          = "operator_load_balancer_scheme"
+	APILoadBalancerCIDRWhiteListKey        = "api_load_balancer_cidr_white_list"
+	OperatorLoadBalancerCIDRWhiteListKey   = "operator_load_balancer_cidr_white_list"
 	VPCCIDRKey                             = "vpc_cidr"
 	AccountIDKey                           = "account_id"
 	TelemetryKey                           = "telemetry"

@@ -296,7 +296,7 @@ func ErrorNoNATGatewayWithSubnets() error {
 func ErrorConfigCannotBeChangedOnConfigure() error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrConfigCannotBeChangedOnConfigure,
-		Message: fmt.Sprintf("in a running cluster, only the %s field can be modified", NodeGroupsKey),
+		Message: fmt.Sprintf("in a running cluster, only %s can be modified", s.StrsAnd([]string{NodeGroupsKey, SSLCertificateARNKey, OperatorLoadBalancerCIDRWhiteListKey, APILoadBalancerCIDRWhiteListKey})),
 	})
 }
 
