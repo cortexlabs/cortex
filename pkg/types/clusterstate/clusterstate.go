@@ -144,8 +144,11 @@ func GetClusterState(stacks ClusterStacks) State {
 		if slices.HasString([]string{
 			cloudformation.StackStatusCreateInProgress,
 			cloudformation.StackStatusCreateComplete,
+			cloudformation.StackStatusUpdateInProgress,
 			cloudformation.StackStatusUpdateComplete,
+			cloudformation.StackStatusRollbackInProgress,
 			cloudformation.StackStatusRollbackComplete,
+			cloudformation.StackStatusUpdateRollbackInProgress,
 			cloudformation.StackStatusUpdateRollbackComplete,
 		}, controlPlaneStatus) {
 			return StateClusterExists
