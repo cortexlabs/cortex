@@ -39,7 +39,7 @@ function cluster_up() {
   setup_configmap
   echo "✓"
 
-  echo -n "￮ configuring networking (this might take a few minutes) "
+  echo -n "￮ configuring networking (this will take a few minutes) "
   setup_istio
   python render_template.py $CORTEX_CLUSTER_CONFIG_FILE manifests/apis.yaml.j2 > /workspace/apis.yaml
   kubectl apply -f /workspace/apis.yaml >/dev/null
@@ -190,7 +190,7 @@ function check_eks() {
 }
 
 function write_kubeconfig() {
-  eksctl utils write-kubeconfig --cluster=$CORTEX_CLUSTER_NAME --region=$CORTEX_REGION | (grep -v "saved kubeconfig as" | grep -v "using region" | grep -v "eksctl version" || true)
+  eksctl utils write-kubeconfig --cluster=$CORTEX_CLUSTER_NAME --region=$CORTEX_REGION --verbose=0 | (grep -v "saved kubeconfig as" || true)
   out=$(kubectl get pods 2>&1 || true); if [[ "$out" == *"must be logged in to the server"* ]]; then echo "error: your aws iam user does not have access to this cluster; to grant access, see https://docs.cortex.dev/v/${CORTEX_VERSION_MINOR}/"; exit 1; fi
 }
 
@@ -264,7 +264,7 @@ function resize_nodegroups() {
     return
   fi
 
-  eksctl get nodegroup --cluster=$CORTEX_CLUSTER_NAME --region=$CORTEX_REGION -v 0 -o json > nodegroups.json
+  eksctl get nodegroup --cluster=$CORTEX_CLUSTER_NAME --region=$CORTEX_REGION --verbose=0 -o json > nodegroups.json
   eks_ng_len=$(cat nodegroups.json | jq -r length)
   cfg_ng_len=$(cat $CORTEX_CLUSTER_CONFIG_FILE | yq -r .node_groups | yq -r length)
 
@@ -362,7 +362,7 @@ function setup_istio() {
   fi
 
   python render_template.py $CORTEX_CLUSTER_CONFIG_FILE manifests/istio.yaml.j2 > /workspace/istio.yaml
-  output_if_error istio-${ISTIO_VERSION}/bin/istioctl install -f /workspace/istio.yaml
+  output_if_error istio-${ISTIO_VERSION}/bin/istioctl install --skip-confirmation --filename /workspace/istio.yaml
 }
 
 function validate_cortex() {

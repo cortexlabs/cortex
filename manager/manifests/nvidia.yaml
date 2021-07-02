@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Source: https://github.com/NVIDIA/k8s-device-plugin/blob/v0.7.3/nvidia-device-plugin.yml
+# Source: https://github.com/NVIDIA/k8s-device-plugin/blob/v0.9.0/nvidia-device-plugin.yml
 
 apiVersion: apps/v1
 kind: DaemonSet
@@ -53,7 +53,7 @@ spec:
       # See https://kubernetes.io/docs/tasks/administer-cluster/guaranteed-scheduling-critical-addon-pods/
       priorityClassName: "system-node-critical"
       containers:
-        - image: $CORTEX_IMAGE_NVIDIA
+        - image: $CORTEX_IMAGE_NVIDIA_DEVICE_PLUGIN
           name: nvidia-device-plugin-ctr
           args: ["--fail-on-init-error=false"]
           securityContext:

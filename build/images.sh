@@ -47,8 +47,9 @@ non_dev_images=(
   "grafana"
   "event-exporter"
   "metrics-server"
-  "inferentia"
-  "nvidia"
+  "nvidia-device-plugin"
+  "neuron-device-plugin"
+  "neuron-scheduler"
   "kubexit"
 )
 

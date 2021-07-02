@@ -1,6 +1,6 @@
 ARG TARGETARCH, TARGETOS
 
-FROM golang:1.15 as builder
+FROM golang:1.16.5 as builder
 
 WORKDIR /workspace
 # Copy the Go Modules manifests

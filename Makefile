@@ -51,14 +51,13 @@ operator-local-dbg:
 
 # configure kubectl to point to the cluster specified in dev/config/cluster.yaml
 kubectl:
-	@eval $$(python3 ./manager/cluster_config_env.py ./dev/config/cluster.yaml) && eval $$(python3 ./dev/create_user.py $$CORTEX_CLUSTER_NAME $$AWS_ACCOUNT_ID $$CORTEX_REGION) && eksctl utils write-kubeconfig --cluster="$$CORTEX_CLUSTER_NAME" --region="$$CORTEX_REGION" | (grep -v "saved kubeconfig as" | grep -v "using region" | grep -v "eksctl version" || true); eksctl create iamidentitymapping --region $$CORTEX_REGION --cluster $$CORTEX_CLUSTER_NAME --arn $$DEFAULT_USER_ARN --group system:masters --username $$DEFAULT_USER_ARN
+	@eval $$(python3 ./manager/cluster_config_env.py ./dev/config/cluster.yaml) && eval $$(python3 ./dev/create_user.py $$CORTEX_CLUSTER_NAME $$AWS_ACCOUNT_ID $$CORTEX_REGION) && eksctl utils write-kubeconfig --cluster="$$CORTEX_CLUSTER_NAME" --region="$$CORTEX_REGION" --verbose=0 | (grep -v "saved kubeconfig as" || true); eksctl create iamidentitymapping --region $$CORTEX_REGION --cluster $$CORTEX_CLUSTER_NAME --arn $$DEFAULT_USER_ARN --group system:masters --username $$DEFAULT_USER_ARN
 
 cluster-up:
 	@$(MAKE) images-all
 	@$(MAKE) cli
 	@kill $(shell pgrep -f rerun) >/dev/null 2>&1 || true
 	@eval $$(python3 ./manager/cluster_config_env.py ./dev/config/cluster.yaml) && eval $$(python3 ./dev/create_user.py $$CORTEX_CLUSTER_NAME $$AWS_ACCOUNT_ID $$CORTEX_REGION) && sleep 10 && ./bin/cortex cluster up ./dev/config/cluster.yaml --configure-env="$$CORTEX_CLUSTER_NAME"; eksctl create iamidentitymapping --region $$CORTEX_REGION --cluster $$CORTEX_CLUSTER_NAME --arn $$DEFAULT_USER_ARN --group system:masters --username $$DEFAULT_USER_ARN
-
 	@$(MAKE) kubectl
 
 cluster-up-y:
@@ -66,6 +65,20 @@ cluster-up-y:
 	@$(MAKE) cli
 	@kill $(shell pgrep -f rerun) >/dev/null 2>&1 || true
 	@eval $$(python3 ./manager/cluster_config_env.py ./dev/config/cluster.yaml) && eval $$(python3 ./dev/create_user.py $$CORTEX_CLUSTER_NAME $$AWS_ACCOUNT_ID $$CORTEX_REGION) && sleep 10 && ./bin/cortex cluster up ./dev/config/cluster.yaml --configure-env="$$CORTEX_CLUSTER_NAME" --yes; eksctl create iamidentitymapping --region $$CORTEX_REGION --cluster $$CORTEX_CLUSTER_NAME --arn $$DEFAULT_USER_ARN --group system:masters --username $$DEFAULT_USER_ARN
+	@$(MAKE) kubectl
+
+cluster-configure:
+	@$(MAKE) images-manager-skip-push
+	@$(MAKE) cli
+	@kill $(shell pgrep -f rerun) >/dev/null 2>&1 || true
+	@eval $$(python3 ./manager/cluster_config_env.py ./dev/config/cluster.yaml) && eval $$(python3 ./dev/create_user.py $$CORTEX_CLUSTER_NAME $$AWS_ACCOUNT_ID $$CORTEX_REGION) && sleep 10 && ./bin/cortex cluster configure ./dev/config/cluster.yaml; eksctl create iamidentitymapping --region $$CORTEX_REGION --cluster $$CORTEX_CLUSTER_NAME --arn $$DEFAULT_USER_ARN --group system:masters --username $$DEFAULT_USER_ARN
+	@$(MAKE) kubectl
+
+cluster-configure-y:
+	@$(MAKE) images-manager-skip-push
+	@$(MAKE) cli
+	@kill $(shell pgrep -f rerun) >/dev/null 2>&1 || true
+	@eval $$(python3 ./manager/cluster_config_env.py ./dev/config/cluster.yaml) && eval $$(python3 ./dev/create_user.py $$CORTEX_CLUSTER_NAME $$AWS_ACCOUNT_ID $$CORTEX_REGION) && sleep 10 && ./bin/cortex cluster configure ./dev/config/cluster.yaml --yes; eksctl create iamidentitymapping --region $$CORTEX_REGION --cluster $$CORTEX_CLUSTER_NAME --arn $$DEFAULT_USER_ARN --group system:masters --username $$DEFAULT_USER_ARN
 	@$(MAKE) kubectl
 
 cluster-down:
