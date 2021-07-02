@@ -1630,88 +1630,88 @@ func (cc *CoreConfig) TelemetryEvent() map[string]interface{} {
 
 	event["region"] = cc.Region
 
-	if !strings.HasPrefix(cc.ImageOperator, "cortexlabs/") {
+	if !strings.HasPrefix(cc.ImageOperator, "quay.io/cortexlabs/") {
 		event["image_operator._is_custom"] = true
 	}
-	if !strings.HasPrefix(cc.ImageControllerManager, "cortexlabs/") {
+	if !strings.HasPrefix(cc.ImageControllerManager, "quay.io/cortexlabs/") {
 		event["image_operator_controller_manager._is_custom"] = true
 	}
-	if !strings.HasPrefix(cc.ImageManager, "cortexlabs/") {
+	if !strings.HasPrefix(cc.ImageManager, "quay.io/cortexlabs/") {
 		event["image_manager._is_custom"] = true
 	}
-	if !strings.HasPrefix(cc.ImageKubexit, "cortexlabs/") {
+	if !strings.HasPrefix(cc.ImageKubexit, "quay.io/cortexlabs/") {
 		event["image_kubexit._is_custom"] = true
 	}
-	if !strings.HasPrefix(cc.ImageProxy, "cortexlabs/") {
+	if !strings.HasPrefix(cc.ImageProxy, "quay.io/cortexlabs/") {
 		event["image_proxy._is_custom"] = true
 	}
-	if !strings.HasPrefix(cc.ImageActivator, "cortexlabs/") {
+	if !strings.HasPrefix(cc.ImageActivator, "quay.io/cortexlabs/") {
 		event["image_activator._is_custom"] = true
 	}
-	if !strings.HasPrefix(cc.ImageAutoscaler, "cortexlabs/") {
+	if !strings.HasPrefix(cc.ImageAutoscaler, "quay.io/cortexlabs/") {
 		event["image_autoscaler._is_custom"] = true
 	}
-	if !strings.HasPrefix(cc.ImageAsyncGateway, "cortexlabs/") {
+	if !strings.HasPrefix(cc.ImageAsyncGateway, "quay.io/cortexlabs/") {
 		event["image_async_gateway._is_custom"] = true
 	}
-	if !strings.HasPrefix(cc.ImageEnqueuer, "cortexlabs/") {
+	if !strings.HasPrefix(cc.ImageEnqueuer, "quay.io/cortexlabs/") {
 		event["image_enqueuer._is_custom"] = true
 	}
-	if !strings.HasPrefix(cc.ImageDequeuer, "cortexlabs/") {
+	if !strings.HasPrefix(cc.ImageDequeuer, "quay.io/cortexlabs/") {
 		event["image_dequeuer._is_custom"] = true
 	}
-	if !strings.HasPrefix(cc.ImageClusterAutoscaler, "cortexlabs/") {
+	if !strings.HasPrefix(cc.ImageClusterAutoscaler, "quay.io/cortexlabs/") {
 		event["image_cluster_autoscaler._is_custom"] = true
 	}
-	if !strings.HasPrefix(cc.ImageMetricsServer, "cortexlabs/") {
+	if !strings.HasPrefix(cc.ImageMetricsServer, "quay.io/cortexlabs/") {
 		event["image_metrics_server._is_custom"] = true
 	}
-	if !strings.HasPrefix(cc.ImageNvidiaDevicePlugin, "cortexlabs/") {
+	if !strings.HasPrefix(cc.ImageNvidiaDevicePlugin, "quay.io/cortexlabs/") {
 		event["image_nvidia_device_plugin._is_custom"] = true
 	}
-	if !strings.HasPrefix(cc.ImageNeuronDevicePlugin, "cortexlabs/") {
+	if !strings.HasPrefix(cc.ImageNeuronDevicePlugin, "quay.io/cortexlabs/") {
 		event["image_neuron_device_plugin._is_custom"] = true
 	}
-	if !strings.HasPrefix(cc.ImageNeuronScheduler, "cortexlabs/") {
+	if !strings.HasPrefix(cc.ImageNeuronScheduler, "quay.io/cortexlabs/") {
 		event["image_neuron_scheduler._is_custom"] = true
 	}
-	if !strings.HasPrefix(cc.ImageFluentBit, "cortexlabs/") {
+	if !strings.HasPrefix(cc.ImageFluentBit, "quay.io/cortexlabs/") {
 		event["image_fluent_bit._is_custom"] = true
 	}
-	if !strings.HasPrefix(cc.ImageIstioProxy, "cortexlabs/") {
+	if !strings.HasPrefix(cc.ImageIstioProxy, "quay.io/cortexlabs/") {
 		event["image_istio_proxy._is_custom"] = true
 	}
-	if !strings.HasPrefix(cc.ImageIstioPilot, "cortexlabs/") {
+	if !strings.HasPrefix(cc.ImageIstioPilot, "quay.io/cortexlabs/") {
 		event["image_istio_pilot._is_custom"] = true
 	}
-	if strings.HasPrefix(cc.ImagePrometheus, "cortexlabs/") {
+	if strings.HasPrefix(cc.ImagePrometheus, "quay.io/cortexlabs/") {
 		event["image_prometheus._is_custom"] = true
 	}
-	if strings.HasPrefix(cc.ImagePrometheusConfigReloader, "cortexlabs/") {
+	if strings.HasPrefix(cc.ImagePrometheusConfigReloader, "quay.io/cortexlabs/") {
 		event["image_prometheus_config_reloader._is_custom"] = true
 	}
-	if strings.HasPrefix(cc.ImagePrometheusOperator, "cortexlabs/") {
+	if strings.HasPrefix(cc.ImagePrometheusOperator, "quay.io/cortexlabs/") {
 		event["image_prometheus_operator._is_custom"] = true
 	}
-	if strings.HasPrefix(cc.ImagePrometheusStatsDExporter, "cortexlabs/") {
+	if strings.HasPrefix(cc.ImagePrometheusStatsDExporter, "quay.io/cortexlabs/") {
 		event["image_prometheus_statsd_exporter._is_custom"] = true
 	}
-	if strings.HasPrefix(cc.ImagePrometheusDCGMExporter, "cortexlabs/") {
+	if strings.HasPrefix(cc.ImagePrometheusDCGMExporter, "quay.io/cortexlabs/") {
 		event["image_prometheus_dcgm_exporter._is_custom"] = true
 	}
-	if strings.HasPrefix(cc.ImagePrometheusKubeStateMetrics, "cortexlabs/") {
+	if strings.HasPrefix(cc.ImagePrometheusKubeStateMetrics, "quay.io/cortexlabs/") {
 		event["image_prometheus_kube_state_metrics._is_custom"] = true
 	}
-	if strings.HasPrefix(cc.ImagePrometheusNodeExporter, "cortexlabs/") {
+	if strings.HasPrefix(cc.ImagePrometheusNodeExporter, "quay.io/cortexlabs/") {
 		event["image_prometheus_node_exporter._is_custom"] = true
 	}
-	if strings.HasPrefix(cc.ImageKubeRBACProxy, "cortexlabs/") {
+	if strings.HasPrefix(cc.ImageKubeRBACProxy, "quay.io/cortexlabs/") {
 		event["image_kube_rbac_proxy._is_custom"] = true
 	}
-	if strings.HasPrefix(cc.ImageGrafana, "cortexlabs/") {
+	if strings.HasPrefix(cc.ImageGrafana, "quay.io/cortexlabs/") {
 		event["image_grafana._is_custom"] = true
 	}
-	if strings.HasPrefix(cc.ImageEventExporter, "cortexlabs/") {
+	if strings.HasPrefix(cc.ImageEventExporter, "quay.io/cortexlabs/") {
 		event["image_event_exporter._is_custom"] = true
 	}
 
