@@ -705,9 +705,9 @@ var nodeGroupsFieldValidation *cr.StructValidation = &cr.StructValidation{
 		{
 			StructField: "Name",
 			StringValidation: &cr.StringValidation{
-				Required:                   true,
-				AlphaNumericDashUnderscore: true,
-				MaxLength:                  _maxNodeGroupLength,
+				Required:         true,
+				AlphaNumericDash: true,
+				MaxLength:        _maxNodeGroupLength,
 			},
 		},
 		{
