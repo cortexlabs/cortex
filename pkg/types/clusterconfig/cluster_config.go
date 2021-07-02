@@ -1649,10 +1649,7 @@ func (cc *CoreConfig) TelemetryEvent() map[string]interface{} {
 		event["image_activator._is_custom"] = true
 	}
 	if !strings.HasPrefix(cc.ImageAutoscaler, "cortexlabs/") {
-		event["image_activator._is_custom"] = true
-	}
-	if !strings.HasPrefix(cc.ImageProxy, "cortexlabs/") {
-		event["image_proxy._is_custom"] = true
+		event["image_autoscaler._is_custom"] = true
 	}
 	if !strings.HasPrefix(cc.ImageAsyncGateway, "cortexlabs/") {
 		event["image_async_gateway._is_custom"] = true
