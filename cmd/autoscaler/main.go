@@ -27,8 +27,12 @@ import (
 	"time"
 
 	"github.com/cortexlabs/cortex/pkg/autoscaler"
+	"github.com/cortexlabs/cortex/pkg/lib/aws"
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/logging"
+	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
+	"github.com/cortexlabs/cortex/pkg/types/clusterconfig"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	"github.com/gorilla/mux"
 	promapi "github.com/prometheus/client_golang/api"
@@ -44,10 +48,11 @@ import (
 
 func main() {
 	var (
-		port          int
-		inCluster     bool
-		prometheusURL string
-		namespace     string
+		port              int
+		inCluster         bool
+		prometheusURL     string
+		namespace         string
+		clusterConfigPath string
 	)
 
 	flag.IntVar(&port, "port", 8000, "port where the autoscaler server will be exposed")
@@ -59,6 +64,7 @@ func main() {
 		"kubernetes namespace where the cortex APIs are deployed "+
 			"(can be set through the CORTEX_NAMESPACE env variable)",
 	)
+	flag.StringVar(&clusterConfigPath, "cluster-config", "", "cluster config path")
 	flag.Parse()
 
 	log := logging.GetLogger()
@@ -71,17 +77,50 @@ func main() {
 		log.Fatal("--prometheus-url is a required option")
 	case namespace == "":
 		log.Fatal("--namespace is a required option")
+	case clusterConfigPath == "":
+		log.Fatal("--cluster-config flag is required")
 	}
+
+	clusterConfig, err := clusterconfig.NewForFile(clusterConfigPath)
+	if err != nil {
+		exit(log, err)
+	}
+
+	awsClient, err := aws.NewForRegion(clusterConfig.Region)
+	if err != nil {
+		exit(log, err)
+	}
+
+	_, userID, err := awsClient.CheckCredentials()
+	if err != nil {
+		exit(log, err)
+	}
+
+	err = telemetry.Init(telemetry.Config{
+		Enabled: clusterConfig.Telemetry,
+		UserID:  userID,
+		Properties: map[string]string{
+			"kind":       userconfig.RealtimeAPIKind.String(),
+			"image_type": "autoscaler",
+		},
+		Environment: "api",
+		LogErrors:   true,
+		BackoffMode: telemetry.BackoffDuplicateMessages,
+	})
+	if err != nil {
+		log.Fatalw("failed to initialize telemetry", zap.Error(err))
+	}
+	defer telemetry.Close()
 
 	k8sClient, err := k8s.New(namespace, inCluster, nil, runtime.NewScheme())
 	if err != nil {
-		log.Fatal("failed to initialize kubernetes client")
+		exit(log, err, "failed to initialize kubernetes client")
 	}
 
 	//goland:noinspection GoNilness
 	istioClient, err := istioclient.NewForConfig(k8sClient.RestConfig)
 	if err != nil {
-		log.Fatal(err)
+		exit(log, err, "failed to initialize istio client")
 	}
 
 	promClient, err := promapi.NewClient(
@@ -90,7 +129,7 @@ func main() {
 		},
 	)
 	if err != nil {
-		log.Fatal("failed to initialize prometheus client")
+		exit(log, err, "failed to initialize prometheus client")
 	}
 
 	promAPIClient := promv1.NewAPI(promClient)
@@ -189,7 +228,7 @@ func main() {
 
 	select {
 	case err = <-errCh:
-		log.Fatalw("failed to start autoscaler server", zap.Error(err))
+		exit(log, err, "failed to start autoscaler server")
 	case <-sigint:
 		// We received an interrupt signal, shut down.
 		log.Info("Received TERM signal, handling a graceful shutdown...")
@@ -232,4 +271,20 @@ func informerFilter(listOptions *kmeta.ListOptions) {
 			},
 		},
 	})
+}
+
+func exit(log *zap.SugaredLogger, err error, wrapStrs ...string) {
+	for _, str := range wrapStrs {
+		err = errors.Wrap(err, str)
+	}
+
+	if err != nil && !errors.IsNoTelemetry(err) {
+		telemetry.Error(err)
+	}
+
+	if err != nil && !errors.IsNoPrint(err) {
+		log.Error(err)
+	}
+
+	os.Exit(1)
 }
