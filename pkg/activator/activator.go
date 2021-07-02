@@ -18,7 +18,6 @@ package activator
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/cortexlabs/cortex/pkg/autoscaler"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
@@ -89,7 +88,7 @@ func (a *activator) Try(ctx context.Context, fn func() error) error {
 	apiNameValue := ctx.Value(APINameCtxKey)
 	apiName, ok := apiNameValue.(string)
 	if !ok || apiName == "" {
-		return fmt.Errorf("failed to get the api name from context") // FIXME: proper error here
+		return errors.ErrorUnexpected("failed to get the api name from context")
 	}
 
 	act, err := a.getOrCreateAPIActivator(ctx, apiName)
