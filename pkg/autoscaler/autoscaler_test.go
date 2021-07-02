@@ -77,7 +77,7 @@ func TestAutoscaler_Awake(t *testing.T) {
 		logger:                    log,
 		crons:                     make(map[string]cron.Cron),
 		scalers:                   make(map[userconfig.Kind]Scaler),
-		awakenMap:                 make(map[string]time.Time),
+		lastAwakenTimestamp:       make(map[string]time.Time),
 		awakenStabilizationPeriod: awakenStabilizationPeriod,
 	}
 	autoScaler.AddScaler(scalerMock, userconfig.RealtimeAPIKind)
@@ -104,7 +104,7 @@ func TestAutoscaler_Awake(t *testing.T) {
 	err = autoScaler.Awaken(api)
 	require.NoError(t, err)
 
-	_, ok := autoScaler.awakenMap[api.Name]
+	_, ok := autoScaler.lastAwakenTimestamp[api.Name]
 	require.True(t, ok)
 
 	require.Never(t, func() bool {

@@ -41,7 +41,7 @@ type Autoscaler struct {
 	logger                    *zap.SugaredLogger
 	crons                     map[string]cron.Cron
 	scalers                   map[userconfig.Kind]Scaler
-	awakenMap                 map[string]time.Time
+	lastAwakenTimestamp       map[string]time.Time
 	awakenStabilizationPeriod time.Duration
 }
 
@@ -50,7 +50,7 @@ func New(logger *zap.SugaredLogger) *Autoscaler {
 		logger:                    logger,
 		crons:                     make(map[string]cron.Cron),
 		scalers:                   make(map[userconfig.Kind]Scaler),
-		awakenMap:                 make(map[string]time.Time),
+		lastAwakenTimestamp:       make(map[string]time.Time),
 		awakenStabilizationPeriod: _awakenStabilizationPeriod,
 	}
 }
@@ -62,7 +62,7 @@ func (a *Autoscaler) AddScaler(scaler Scaler, kind userconfig.Kind) {
 func (a *Autoscaler) Awaken(api userconfig.Resource) error {
 	a.Lock()
 	// ignore awake call if one already happened within the awakenStabilizationPeriod duration
-	if awakenTimestamp, ok := a.awakenMap[api.Name]; ok {
+	if awakenTimestamp, ok := a.lastAwakenTimestamp[api.Name]; ok {
 		if time.Since(awakenTimestamp) <= _awakenStabilizationPeriod {
 			return nil
 		}
@@ -87,7 +87,7 @@ func (a *Autoscaler) Awaken(api userconfig.Resource) error {
 	}
 
 	a.Lock()
-	a.awakenMap[api.Name] = time.Now()
+	a.lastAwakenTimestamp[api.Name] = time.Now()
 	a.Unlock()
 
 	return nil
@@ -117,7 +117,7 @@ func (a *Autoscaler) AddAPI(api userconfig.Resource) error {
 
 	// make sure there is no awaken call registered to an older API with the same name
 	a.Lock()
-	delete(a.awakenMap, api.Name)
+	delete(a.lastAwakenTimestamp, api.Name)
 	a.Unlock()
 
 	return nil
@@ -135,7 +135,7 @@ func (a *Autoscaler) RemoveAPI(api userconfig.Resource) {
 	}
 
 	a.Lock()
-	delete(a.awakenMap, api.Name)
+	delete(a.lastAwakenTimestamp, api.Name)
 	a.Unlock()
 
 	log.Info("autoscaler stop")
@@ -251,7 +251,7 @@ func (a *Autoscaler) autoscaleFn(api userconfig.Resource) (func() error, error) 
 		// awaken state: was scaled from zero
 		// This needs to be protected by a Mutex because an Awaken call will also modify it
 		a.Lock()
-		awoke := time.Since(a.awakenMap[api.Name]) <= _awakenStabilizationPeriod
+		awoke := time.Since(a.lastAwakenTimestamp[api.Name]) <= _awakenStabilizationPeriod
 		a.Unlock()
 
 		// do now allow downscale bellow 1 if API was awoke with the awaken stabilization period
