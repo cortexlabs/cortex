@@ -67,8 +67,10 @@ func main() {
 		apiKind := deployment.Labels["apiKind"]
 		switch apiKind {
 		case userconfig.AsyncAPIKind.String():
-			if err := asyncapi.UpdateAPIMetricsCron(&deployment); err != nil {
-				operatorLogger.Fatal(errors.Wrap(err, "init"))
+			if deployment.Labels["cortex.dev/async"] == "api" {
+				if err := asyncapi.UpdateAPIMetricsCron(&deployment); err != nil {
+					operatorLogger.Fatal(errors.Wrap(err, "init"))
+				}
 			}
 		}
 	}
