@@ -186,10 +186,9 @@ func confirmInstallClusterConfig(clusterConfig *clusterconfig.Config, awsClient 
 	rows = append(rows, []interface{}{"1 eks cluster", s.DollarsMaxPrecision(eksPrice)})
 
 	ngNameToSpotInstancesUsed := map[string]int{}
-	baseMinPrice := eksPrice + operatorInstancePrice + operatorEBSPrice + prometheusInstancePrice + prometheusEBSPrice + metricsEBSPrice + 2*nlbPrice + natTotalPrice
-	baseMaxPrice := eksPrice + 25*(operatorInstancePrice+operatorEBSPrice) + prometheusInstancePrice + prometheusEBSPrice + metricsEBSPrice + 2*nlbPrice + natTotalPrice
-	totalMinPrice := baseMinPrice
-	totalMaxPrice := baseMaxPrice
+	fixedPrice := eksPrice + operatorInstancePrice + operatorEBSPrice + prometheusInstancePrice + prometheusEBSPrice + metricsEBSPrice + 2*nlbPrice + natTotalPrice
+	totalMinPrice := fixedPrice
+	totalMaxPrice := fixedPrice
 	for _, ng := range clusterConfig.NodeGroups {
 		apiInstancePrice := aws.InstanceMetadatas[clusterConfig.Region][ng.InstanceType].Price
 		apiEBSPrice := aws.EBSMetadatas[clusterConfig.Region][ng.InstanceVolumeType.String()].PriceGB * float64(ng.InstanceVolumeSize) / 30 / 24
@@ -226,10 +225,9 @@ func confirmInstallClusterConfig(clusterConfig *clusterconfig.Config, awsClient 
 		rows = append(rows, []interface{}{workerInstanceStr, workerPriceStr})
 	}
 
-	minOperatorNodeGroupPrice := operatorInstancePrice + operatorEBSPrice
-	maxOperatorNodeGroupPrice := 25 * (operatorInstancePrice + operatorEBSPrice)
+	operatorNodeGroupPrice := operatorInstancePrice + operatorEBSPrice
 	prometheusNodeGroupPrice := prometheusInstancePrice + prometheusEBSPrice + metricsEBSPrice
-	rows = append(rows, []interface{}{"1-25 t3.medium instances (cortex system)", fmt.Sprintf("%s - %s (depending on load)", s.DollarsAndTenthsOfCents(minOperatorNodeGroupPrice), s.DollarsAndTenthsOfCents(maxOperatorNodeGroupPrice))})
+	rows = append(rows, []interface{}{"1 t3.medium instance (cortex system)", s.DollarsAndTenthsOfCents(operatorNodeGroupPrice)})
 	rows = append(rows, []interface{}{fmt.Sprintf("1 %s instance (prometheus)", clusterConfig.PrometheusInstanceType), s.DollarsAndTenthsOfCents(prometheusNodeGroupPrice)})
 	rows = append(rows, []interface{}{"2 network load balancers", s.DollarsMaxPrecision(nlbPrice) + " each"})
 

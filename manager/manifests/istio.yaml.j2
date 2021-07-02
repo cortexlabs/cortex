@@ -163,7 +163,7 @@ spec:
     gateways:
       istio-ingressgateway:
         runAsRoot: true
-        autoscaleEnabled: false
+        autoscaleEnabled: true
         secretVolumes:
         - name: customgateway-certs
           secretName: istio-customgateway-certs
