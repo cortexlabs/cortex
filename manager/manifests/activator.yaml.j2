@@ -81,6 +81,7 @@ spec:
             - "--port=8000"
             - "--autoscaler-url=http://autoscaler.default:8000"
             - "--namespace=default"
+            - "--cluster-config=/configs/cluster/cluster.yaml"
           ports:
             - containerPort: 8000
           livenessProbe:
@@ -104,7 +105,15 @@ spec:
             limits:
               cpu: 250m
               memory: 300Mi
-
+          volumeMounts:
+          - mountPath: /configs/cluster/cluster.yaml
+            name: cluster-config
+            subPath: cluster.yaml
+      volumes:
+      - configMap:
+          defaultMode: 420
+          name: cluster-config
+        name: cluster-config
 ---
 
 apiVersion: v1
