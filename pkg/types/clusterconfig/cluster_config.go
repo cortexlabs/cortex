@@ -55,6 +55,11 @@ const (
 )
 
 var (
+	_operatorNodeGroupInstanceType       = "t3.medium"
+	_operatorNodeGroupRequiredOnDemand   = int64(25)
+	_prometheusNodeGroupInstanceType     = "t3.xlarge"
+	_prometheusNodeGroupRequiredOnDemand = int64(1)
+
 	_maxNodeGroupLengthWithPrefix = 32
 	_maxNodeGroupLength           = _maxNodeGroupLengthWithPrefix - len("cx-wd-") // or cx-ws-
 	_maxInstancePools             = 20
@@ -904,7 +909,16 @@ func (cc *Config) validate(awsClient *aws.Client) error {
 	}
 
 	ngNames := []string{}
-	instances := []aws.InstanceTypeRequests{}
+	instances := []aws.InstanceTypeRequests{
+		{
+			InstanceType:              _operatorNodeGroupInstanceType,
+			RequiredOnDemandInstances: int64(_operatorNodeGroupRequiredOnDemand),
+		},
+		{
+			InstanceType:              _prometheusNodeGroupInstanceType,
+			RequiredOnDemandInstances: int64(_prometheusNodeGroupRequiredOnDemand),
+		},
+	}
 	for _, nodeGroup := range cc.NodeGroups {
 		// setting max_instances to 0 during cluster creation is not permitted (but scaling max_instances to 0 afterwards is allowed)
 		if nodeGroup.MaxInstances == 0 {

@@ -305,7 +305,6 @@ def generate_eks(
         return
 
     operator_nodegroup = default_nodegroup(cluster_config)
-    # TODO validate requests when clustering up
     operator_settings = {
         "ami": get_ami(ami_map, "t3.medium"),
         "name": "cx-operator",
