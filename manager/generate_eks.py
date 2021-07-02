@@ -316,6 +316,7 @@ def generate_eks(
         "volumeSize": 20,
         "volumeIOPS": 3000,
         "volumeThroughput": 125,
+        "labels": {"operator": "true"},
     }
     operator_nodegroup = merge_override(operator_nodegroup, operator_settings)
 

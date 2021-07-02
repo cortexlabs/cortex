@@ -163,7 +163,9 @@ func getConfigureClusterConfig(awsClient *aws.Client, stacks clusterstate.Cluste
 func confirmInstallClusterConfig(clusterConfig *clusterconfig.Config, awsClient *aws.Client, disallowPrompt bool) {
 	eksPrice := aws.EKSPrices[clusterConfig.Region]
 	operatorInstancePrice := aws.InstanceMetadatas[clusterConfig.Region]["t3.medium"].Price
+	prometheusInstancePrice := aws.InstanceMetadatas[clusterConfig.Region]["t3.xlarge"].Price
 	operatorEBSPrice := aws.EBSMetadatas[clusterConfig.Region]["gp3"].PriceGB * 20 / 30 / 24
+	prometheusEBSPrice := aws.EBSMetadatas[clusterConfig.Region]["gp3"].PriceGB * 20 / 30 / 24
 	metricsEBSPrice := aws.EBSMetadatas[clusterConfig.Region]["gp2"].PriceGB * (40 + 2) / 30 / 24
 	nlbPrice := aws.NLBMetadatas[clusterConfig.Region].Price
 	natUnitPrice := aws.NATMetadatas[clusterConfig.Region].Price
@@ -184,9 +186,10 @@ func confirmInstallClusterConfig(clusterConfig *clusterconfig.Config, awsClient 
 	rows = append(rows, []interface{}{"1 eks cluster", s.DollarsMaxPrecision(eksPrice)})
 
 	ngNameToSpotInstancesUsed := map[string]int{}
-	fixedPrice := eksPrice + 2*(operatorInstancePrice+operatorEBSPrice) + metricsEBSPrice + 2*nlbPrice + natTotalPrice
-	totalMinPrice := fixedPrice
-	totalMaxPrice := fixedPrice
+	baseMinPrice := eksPrice + operatorInstancePrice + operatorEBSPrice + prometheusInstancePrice + prometheusEBSPrice + metricsEBSPrice + 2*nlbPrice + natTotalPrice
+	baseMaxPrice := eksPrice + 25*(operatorInstancePrice+operatorEBSPrice) + prometheusInstancePrice + prometheusEBSPrice + metricsEBSPrice + 2*nlbPrice + natTotalPrice
+	totalMinPrice := baseMinPrice
+	totalMaxPrice := baseMaxPrice
 	for _, ng := range clusterConfig.NodeGroups {
 		apiInstancePrice := aws.InstanceMetadatas[clusterConfig.Region][ng.InstanceType].Price
 		apiEBSPrice := aws.EBSMetadatas[clusterConfig.Region][ng.InstanceVolumeType.String()].PriceGB * float64(ng.InstanceVolumeSize) / 30 / 24
@@ -223,8 +226,11 @@ func confirmInstallClusterConfig(clusterConfig *clusterconfig.Config, awsClient 
 		rows = append(rows, []interface{}{workerInstanceStr, workerPriceStr})
 	}
 
-	operatorPrice := 2*(operatorInstancePrice+operatorEBSPrice) + metricsEBSPrice
-	rows = append(rows, []interface{}{"2 t3.medium instances (cortex system)", s.DollarsAndTenthsOfCents(operatorPrice)})
+	minOperatorNodeGroupPrice := operatorInstancePrice + operatorEBSPrice
+	maxOperatorNodeGroupPrice := 25 * (operatorInstancePrice + operatorEBSPrice)
+	prometheusNodeGroupPrice := prometheusInstancePrice + prometheusEBSPrice + metricsEBSPrice
+	rows = append(rows, []interface{}{"1-25 t3.medium instances (cortex system)", fmt.Sprintf("%s - %s (depending on load)", s.DollarsAndTenthsOfCents(minOperatorNodeGroupPrice), s.DollarsAndTenthsOfCents(maxOperatorNodeGroupPrice))})
+	rows = append(rows, []interface{}{"1 t3.xlarge instance (cortex system)", s.DollarsAndTenthsOfCents(prometheusNodeGroupPrice)})
 	rows = append(rows, []interface{}{"2 network load balancers", s.DollarsMaxPrecision(nlbPrice) + " each"})
 
 	if clusterConfig.NATGateway == clusterconfig.SingleNATGateway {

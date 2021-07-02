@@ -31,7 +31,13 @@ import (
 )
 
 func Info(w http.ResponseWriter, r *http.Request) {
-	nodeInfos, numPendingReplicas, err := getNodeInfos()
+	workerNodeInfos, numPendingReplicas, err := getWorkerNodeInfos()
+	if err != nil {
+		respondError(w, r, err)
+		return
+	}
+
+	operatorNodeInfos, err := getOperatorNodeInfos()
 	if err != nil {
 		respondError(w, r, err)
 		return
@@ -44,13 +50,14 @@ func Info(w http.ResponseWriter, r *http.Request) {
 
 	response := schema.InfoResponse{
 		ClusterConfig:      fullClusterConfig,
-		NodeInfos:          nodeInfos,
+		WorkerNodeInfos:    workerNodeInfos,
+		OperatorNodeInfos:  operatorNodeInfos,
 		NumPendingReplicas: numPendingReplicas,
 	}
 	respondJSON(w, r, response)
 }
 
-func getNodeInfos() ([]schema.NodeInfo, int, error) {
+func getWorkerNodeInfos() ([]schema.WorkerNodeInfo, int, error) {
 	pods, err := config.K8sAllNamspaces.ListPods(nil)
 	if err != nil {
 		return nil, 0, err
@@ -61,8 +68,8 @@ func getNodeInfos() ([]schema.NodeInfo, int, error) {
 		return nil, 0, err
 	}
 
-	nodeInfoMap := make(map[string]*schema.NodeInfo, len(nodes)) // node name -> info
-	spotPriceCache := make(map[string]float64)                   // instance type -> spot price
+	nodeInfoMap := make(map[string]*schema.WorkerNodeInfo, len(nodes)) // node name -> info
+	spotPriceCache := make(map[string]float64)                         // instance type -> spot price
 
 	for i := range nodes {
 		node := nodes[i]
@@ -86,12 +93,14 @@ func getNodeInfos() ([]schema.NodeInfo, int, error) {
 			}
 		}
 
-		nodeInfoMap[node.Name] = &schema.NodeInfo{
+		nodeInfoMap[node.Name] = &schema.WorkerNodeInfo{
+			NodeInfo: schema.NodeInfo{
+				NodeGroupName: nodeGroupName,
+				InstanceType:  instanceType,
+				IsSpot:        isSpot,
+				Price:         price,
+			},
 			Name:                 node.Name,
-			NodeGroupName:        nodeGroupName,
-			InstanceType:         instanceType,
-			IsSpot:               isSpot,
-			Price:                price,
 			NumReplicas:          0,                             // will be added to below
 			ComputeUserCapacity:  nodeComputeAllocatable(&node), // will be subtracted from below
 			ComputeAvailable:     nodeComputeAllocatable(&node), // will be subtracted from below
@@ -160,7 +169,7 @@ func getNodeInfos() ([]schema.NodeInfo, int, error) {
 
 	sort.Strings(nodeNames)
 
-	nodeInfos := make([]schema.NodeInfo, len(nodeNames))
+	nodeInfos := make([]schema.WorkerNodeInfo, len(nodeNames))
 	for i, nodeName := range nodeNames {
 		nodeInfos[i] = *nodeInfoMap[nodeName]
 	}
@@ -178,4 +187,42 @@ func nodeComputeAllocatable(node *kcore.Node) userconfig.Compute {
 		GPU: gpuQty.Value(),
 		Inf: infQty.Value(),
 	}
+}
+
+func getOperatorNodeInfos() ([]schema.NodeInfo, error) {
+	nodes, err := config.K8sAllNamspaces.ListNodesByLabel("operator", "true")
+	if err != nil {
+		return nil, err
+	}
+
+	nodeInfoMap := make(map[string]*schema.NodeInfo, len(nodes)) // node name -> info
+
+	for i := range nodes {
+		node := nodes[i]
+
+		instanceType := node.Labels["beta.kubernetes.io/instance-type"]
+		nodeGroupName := node.Labels["alpha.eksctl.io/nodegroup-name"]
+
+		price := aws.InstanceMetadatas[config.ClusterConfig.Region][instanceType].Price
+
+		nodeInfoMap[node.Name] = &schema.NodeInfo{
+			NodeGroupName: nodeGroupName,
+			InstanceType:  instanceType,
+			Price:         price,
+		}
+	}
+
+	nodeNames := make([]string, 0, len(nodeInfoMap))
+	for nodeName := range nodeInfoMap {
+		nodeNames = append(nodeNames, nodeName)
+	}
+
+	sort.Strings(nodeNames)
+
+	nodeInfos := make([]schema.NodeInfo, len(nodeNames))
+	for i, nodeName := range nodeNames {
+		nodeInfos[i] = *nodeInfoMap[nodeName]
+	}
+
+	return nodeInfos, nil
 }
