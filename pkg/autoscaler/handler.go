@@ -41,7 +41,7 @@ func (h *Handler) Awaken(w http.ResponseWriter, r *http.Request) {
 	defer func() { _ = r.Body.Close() }()
 
 	if err := h.autoscaler.Awaken(api); err != nil {
-		http.Error(w, errors.Wrap(err, "failed to add api to autoscaler").Error(), http.StatusInternalServerError)
+		http.Error(w, errors.Wrap(err, "failed to awaken api").Error(), http.StatusInternalServerError)
 		return
 	}
 

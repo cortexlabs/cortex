@@ -50,7 +50,7 @@ func (c *client) Awaken(api userconfig.Resource) error {
 	}
 
 	response, err := c.httpClient.Post(
-		urls.Join(c.endpoint, "/awake"), "application/json", bytes.NewBuffer(payload),
+		urls.Join(c.endpoint, "/awaken"), "application/json", bytes.NewBuffer(payload),
 	)
 	if err != nil {
 		return err

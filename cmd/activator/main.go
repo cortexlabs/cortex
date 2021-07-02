@@ -96,7 +96,7 @@ func main() {
 			"kind":       userconfig.RealtimeAPIKind.String(),
 			"image_type": "activator",
 		},
-		Environment: "api",
+		Environment: "operator",
 		LogErrors:   true,
 		BackoffMode: telemetry.BackoffDuplicateMessages,
 	})

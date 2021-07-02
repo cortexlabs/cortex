@@ -249,17 +249,6 @@ func (a *Autoscaler) autoscaleFn(api userconfig.Resource) (func() error, error) 
 			}
 		}
 
-		// awaken state: was scaled from zero
-		// This needs to be protected by a Mutex because an Awaken call will also modify it
-		a.Lock()
-		awoke := time.Since(a.lastAwakenTimestamp[api.Name]) <= _awakenStabilizationPeriod
-		a.Unlock()
-
-		// do now allow downscale bellow 1 if API was awoke with the awaken stabilization period
-		if awoke {
-			request = libmath.MaxInt32(currentReplicas, 1)
-		}
-
 		log.Debugw("autoscaler tick",
 			"autoscaling", map[string]interface{}{
 				"avg_in_flight":                  *avgInFlight,
