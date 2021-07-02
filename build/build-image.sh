@@ -27,10 +27,6 @@ image=$3
 is_multi_arch=$4
 arch=$5
 
-if [ "$image" == "inferentia" ]; then
-  aws ecr get-login-password --region us-west-2 | docker login --username AWS --password-stdin 790709498068.dkr.ecr.us-west-2.amazonaws.com
-fi
-
 if [ "$is_multi_arch" = "true" ]; then
   tag="manifest-${CORTEX_VERSION}-$arch"
 else

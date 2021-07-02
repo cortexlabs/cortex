@@ -19,7 +19,7 @@ from collections import namedtuple
 import re
 import yaml
 
-K8S_VERSION = "1.18"
+K8S_VERSION = "1.20"
 
 ParsedInstanceType = namedtuple(
     "ParsedInstanceType", ["family", "generation", "capabilities", "size"]
@@ -160,7 +160,7 @@ def is_gpu(instance_type):
 def apply_inf_settings(nodegroup, config):
     instance_type = config["instance_type"]
 
-    num_chips, hugepages_mem = get_inf_resources(instance_type)
+    num_chips, num_hugepages = get_inf_resources(instance_type)
     inf_settings = {
         "tags": {
             "k8s.io/cluster-autoscaler/node-template/label/aws.amazon.com/neuron": "true",
@@ -168,7 +168,7 @@ def apply_inf_settings(nodegroup, config):
             "k8s.io/cluster-autoscaler/node-template/resources/aws.amazon.com/neuron": str(
                 num_chips
             ),
-            "k8s.io/cluster-autoscaler/node-template/resources/hugepages-2Mi": hugepages_mem,
+            "k8s.io/cluster-autoscaler/node-template/resources/hugepages-2Mi": num_hugepages,
         },
         "labels": {"aws.amazon.com/neuron": "true"},
         "taints": {"aws.amazon.com/neuron": "true:NoSchedule"},

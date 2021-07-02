@@ -161,6 +161,11 @@ rules:
   resources:
     - volumeattachments
   verbs: ["list", "watch"]
+
+- apiGroups: ["autoscaling.k8s.io"]
+  resources:
+    - verticalpodautoscalers
+  verbs: ["list", "watch"]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
@@ -184,7 +189,7 @@ metadata:
   namespace: default
   labels:
     app.kubernetes.io/name: kube-state-metrics
-    app.kubernetes.io/version: "1.9.8"
+    app.kubernetes.io/version: "2.1.0"
 spec:
   selector:
     matchLabels:
@@ -208,33 +213,8 @@ spec:
             cpu: 300m
             memory: 400Mi
         args:
-        - --collectors=certificatesigningrequests
-        - --collectors=configmaps
-        - --collectors=cronjobs
-        - --collectors=daemonsets
-        - --collectors=deployments
-        - --collectors=endpoints
-        - --collectors=horizontalpodautoscalers
-        - --collectors=ingresses
-        - --collectors=jobs
-        - --collectors=limitranges
-        - --collectors=mutatingwebhookconfigurations
-        - --collectors=namespaces
-        - --collectors=networkpolicies
-        - --collectors=nodes
-        - --collectors=persistentvolumeclaims
-        - --collectors=persistentvolumes
-        - --collectors=poddisruptionbudgets
-        - --collectors=pods
-        - --collectors=replicasets
-        - --collectors=replicationcontrollers
-        - --collectors=resourcequotas
-        - --collectors=secrets
-        - --collectors=services
-        - --collectors=statefulsets
-        - --collectors=storageclasses
-        - --collectors=validatingwebhookconfigurations
-        - --collectors=volumeattachments
+        - --port=8080
+        - --resources=certificatesigningrequests,configmaps,cronjobs,daemonsets,deployments,endpoints,horizontalpodautoscalers,ingresses,jobs,limitranges,mutatingwebhookconfigurations,namespaces,networkpolicies,nodes,persistentvolumeclaims,persistentvolumes,poddisruptionbudgets,pods,replicasets,replicationcontrollers,resourcequotas,secrets,services,statefulsets,storageclasses,validatingwebhookconfigurations,verticalpodautoscalers,volumeattachments
         - --telemetry-port=8081
         imagePullPolicy: Always
         image: $CORTEX_IMAGE_PROMETHEUS_KUBE_STATE_METRICS
