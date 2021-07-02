@@ -59,7 +59,7 @@ func (a *Autoscaler) AddScaler(scaler Scaler, kind userconfig.Kind) {
 	a.scalers[kind] = scaler
 }
 
-func (a *Autoscaler) Awake(api userconfig.Resource) error {
+func (a *Autoscaler) Awaken(api userconfig.Resource) error {
 	a.Lock()
 	// ignore awake call if one already happened within the awakenStabilizationPeriod duration
 	if awakenTimestamp, ok := a.awakenMap[api.Name]; ok {

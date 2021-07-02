@@ -162,8 +162,7 @@ func main() {
 
 	handler := autoscaler.NewHandler(autoScaler)
 	router := mux.NewRouter()
-	router.HandleFunc("/add", handler.AddAPI).Methods(http.MethodPost)
-	router.HandleFunc("/awake", handler.Awake).Methods(http.MethodPost)
+	router.HandleFunc("/awaken", handler.Awaken).Methods(http.MethodPost)
 	router.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		w.Header().Set("Content-Type", "text/plain; charset=utf-8")

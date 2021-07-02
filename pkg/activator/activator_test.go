@@ -34,7 +34,7 @@ func (m autoscalerClientMock) AddAPI(_ userconfig.Resource) error {
 	return nil
 }
 
-func (m autoscalerClientMock) Awake(_ userconfig.Resource) error {
+func (m autoscalerClientMock) Awaken(_ userconfig.Resource) error {
 	return nil
 }
 

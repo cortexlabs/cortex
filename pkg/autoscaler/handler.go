@@ -32,7 +32,7 @@ func NewHandler(autoscaler *Autoscaler) *Handler {
 	return &Handler{autoscaler: autoscaler}
 }
 
-func (h *Handler) AddAPI(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) Awaken(w http.ResponseWriter, r *http.Request) {
 	var api userconfig.Resource
 	if err := json.NewDecoder(r.Body).Decode(&api); err != nil {
 		http.Error(w, "failed to json decode request body", http.StatusBadRequest)
@@ -40,23 +40,7 @@ func (h *Handler) AddAPI(w http.ResponseWriter, r *http.Request) {
 	}
 	defer func() { _ = r.Body.Close() }()
 
-	if err := h.autoscaler.AddAPI(api); err != nil {
-		http.Error(w, errors.Wrap(err, "failed to add api to autoscaler").Error(), http.StatusInternalServerError)
-		return
-	}
-
-	w.WriteHeader(http.StatusOK)
-}
-
-func (h *Handler) Awake(w http.ResponseWriter, r *http.Request) {
-	var api userconfig.Resource
-	if err := json.NewDecoder(r.Body).Decode(&api); err != nil {
-		http.Error(w, "failed to json decode request body", http.StatusBadRequest)
-		return
-	}
-	defer func() { _ = r.Body.Close() }()
-
-	if err := h.autoscaler.Awake(api); err != nil {
+	if err := h.autoscaler.Awaken(api); err != nil {
 		http.Error(w, errors.Wrap(err, "failed to add api to autoscaler").Error(), http.StatusInternalServerError)
 		return
 	}

@@ -101,7 +101,7 @@ func TestAutoscaler_Awake(t *testing.T) {
 		}
 	}()
 
-	err = autoScaler.Awake(api)
+	err = autoScaler.Awaken(api)
 	require.NoError(t, err)
 
 	_, ok := autoScaler.awakenMap[api.Name]

@@ -100,7 +100,7 @@ func (a *activator) Try(ctx context.Context, fn func() error) error {
 	tracker := a.getOrCreateDeploymentTracker(apiName)
 
 	if act.inFlight() == 0 {
-		go a.awakeAPI(apiName)
+		go a.awakenAPI(apiName)
 	}
 
 	return act.try(ctx, fn, tracker)
@@ -192,8 +192,8 @@ func (a *activator) removeAPI(obj interface{}) {
 	delete(a.apiActivators, apiMetadata.apiName)
 }
 
-func (a *activator) awakeAPI(apiName string) {
-	err := a.autoscalerClient.Awake(
+func (a *activator) awakenAPI(apiName string) {
+	err := a.autoscalerClient.Awaken(
 		userconfig.Resource{
 			Name: apiName,
 			Kind: userconfig.RealtimeAPIKind, // only realtime apis are supported as of now, so we can assume the kind

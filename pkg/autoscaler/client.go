@@ -28,8 +28,7 @@ import (
 )
 
 type Client interface {
-	AddAPI(api userconfig.Resource) error
-	Awake(api userconfig.Resource) error
+	Awaken(api userconfig.Resource) error
 }
 
 type client struct {
@@ -44,34 +43,7 @@ func NewClient(endpoint string) Client {
 	}
 }
 
-func (c *client) AddAPI(api userconfig.Resource) error {
-	payload, err := json.Marshal(api)
-	if err != nil {
-		return err
-	}
-
-	response, err := c.httpClient.Post(
-		urls.Join(c.endpoint, "/add"), "application/json", bytes.NewBuffer(payload),
-	)
-	if err != nil {
-		return err
-	}
-	defer func() { _ = response.Body.Close() }()
-
-	if response.StatusCode != http.StatusOK {
-		bodyBytes, _ := ioutil.ReadAll(response.Body)
-		errMsg := fmt.Sprintf("failed to add api to autoscaler (status code %d)", response.StatusCode)
-		if bodyBytes != nil {
-			errMsg = errMsg + fmt.Sprintf(": %s", string(bodyBytes))
-		}
-
-		return fmt.Errorf(errMsg)
-	}
-
-	return nil
-}
-
-func (c *client) Awake(api userconfig.Resource) error {
+func (c *client) Awaken(api userconfig.Resource) error {
 	payload, err := json.Marshal(api)
 	if err != nil {
 		return err
