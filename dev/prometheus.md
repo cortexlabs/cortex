@@ -32,15 +32,15 @@ The following is a list of metrics that are currently in use.
 #### Istio metrics
 
 1. istio_requests_total with the following labels:
-    1. destination_service_name
+    1. destination_service
     1. response_code
 1. istio_request_duration_milliseconds_bucket with the following labels:
-    1. destination_service_name
+    1. destination_service
     1. le
 1. istio_request_duration_milliseconds_sum with the following labels:
-    1. destination_service_name
+    1. destination_service
 1. istio_request_duration_milliseconds_count with the following labels:
-    1. destination_service_name
+    1. destination_service
 
 #### Kubelet metrics
 1. container_cpu_usage_seconds_total with the following labels:
@@ -54,11 +54,9 @@ The following is a list of metrics that are currently in use.
 
 #### Kube-state-metrics metrics
 
-1. kube_pod_container_resource_requests_cpu_cores with the following labels:
+1. kube_pod_container_resource_requests with the following labels:
     1. exported_pod
-    1. exported_container (required for not dropping the values for each container of each pod)
-1. kube_pod_container_resource_requests_memory_bytes with the following labels:
-    1. exported_pod
+    1. resource
     1. exported_container (required for not dropping the values for each container of each pod)
 1. kube_pod_info with the following labels:
     1. exported_pod

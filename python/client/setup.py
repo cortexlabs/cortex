@@ -80,7 +80,7 @@ if pathlib.Path("README.md").is_file():
 setup(
     name="cortex",
     version="master",  # CORTEX_VERSION
-    description="Serverless containers on AWS",
+    description="Cost-effective serverless computing",
     author="cortex.dev",
     author_email="dev@cortex.dev",
     license="Apache License 2.0",
@@ -98,9 +98,8 @@ setup(
     install_requires=(
         [
             "importlib-resources; python_version < '3.7'",
-            "pyyaml>=5.3.0",
-            "dill>=0.3.1.1",  # lines up with dill package version range used in cortex serving code
-            "sentry-sdk>=0.20.2",
+            "pyyaml>=5.4.1",
+            "sentry-sdk>=1.1.0",
         ]
     ),
     python_requires=">=3.6",

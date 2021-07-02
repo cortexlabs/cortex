@@ -36,18 +36,11 @@ data:
       "editable": true,
       "gnetId": null,
       "graphTooltip": 0,
-      "id": 4,
-      "iteration": 1625068140971,
+      "iteration": 1625169092506,
       "links": [],
       "panels": [
         {
           "datasource": null,
-          "fieldConfig": {
-            "defaults": {
-              "custom": {}
-            },
-            "overrides": []
-          },
           "gridPos": {
             "h": 2,
             "w": 24,
@@ -59,15 +52,18 @@ data:
             "content": "<h1 style=\"text-align: center\">BatchAPI</h1>\n",
             "mode": "markdown"
           },
-          "pluginVersion": "7.4.2",
+          "pluginVersion": "8.0.4",
           "timeFrom": null,
           "timeShift": null,
-          "title": "",
           "transparent": true,
           "type": "text"
         },
         {
           "datasource": null,
+          "fieldConfig": {
+            "defaults": {},
+            "overrides": []
+          },
           "gridPos": {
             "h": 1,
             "w": 24,
@@ -85,12 +81,6 @@ data:
           "dashes": false,
           "datasource": null,
           "description": "Number of succeeded batches for an API",
-          "fieldConfig": {
-            "defaults": {
-              "custom": {}
-            },
-            "overrides": []
-          },
           "fill": 1,
           "fillGradient": 0,
           "gridPos": {
@@ -118,7 +108,7 @@ data:
             "alertThreshold": true
           },
           "percentage": false,
-          "pluginVersion": "7.4.2",
+          "pluginVersion": "8.0.4",
           "pointradius": 2,
           "points": false,
           "renderer": "flot",
@@ -185,12 +175,6 @@ data:
           "dashes": false,
           "datasource": null,
           "description": "Number of failed batches for an API",
-          "fieldConfig": {
-            "defaults": {
-              "custom": {}
-            },
-            "overrides": []
-          },
           "fill": 1,
           "fillGradient": 0,
           "gridPos": {
@@ -218,7 +202,7 @@ data:
             "alertThreshold": true
           },
           "percentage": false,
-          "pluginVersion": "7.4.2",
+          "pluginVersion": "8.0.4",
           "pointradius": 2,
           "points": false,
           "renderer": "flot",
@@ -285,12 +269,6 @@ data:
           "dashes": false,
           "datasource": null,
           "description": "Average time per batch for an API",
-          "fieldConfig": {
-            "defaults": {
-              "custom": {}
-            },
-            "overrides": []
-          },
           "fill": 1,
           "fillGradient": 0,
           "gridPos": {
@@ -318,7 +296,7 @@ data:
             "alertThreshold": true
           },
           "percentage": false,
-          "pluginVersion": "7.4.2",
+          "pluginVersion": "8.0.4",
           "pointradius": 2,
           "points": false,
           "renderer": "flot",
@@ -385,12 +363,6 @@ data:
           "dashes": false,
           "datasource": null,
           "description": "Active jobs/workers",
-          "fieldConfig": {
-            "defaults": {
-              "custom": {}
-            },
-            "overrides": []
-          },
           "fill": 1,
           "fillGradient": 0,
           "gridPos": {
@@ -418,7 +390,7 @@ data:
             "alertThreshold": true
           },
           "percentage": false,
-          "pluginVersion": "7.4.2",
+          "pluginVersion": "8.0.4",
           "pointradius": 2,
           "points": false,
           "renderer": "flot",
@@ -428,12 +400,14 @@ data:
           "steppedLine": false,
           "targets": [
             {
+              "exemplar": true,
               "expr": "count(kube_job_status_active{job_name=~\"$api_name.+\"} != 0)",
               "interval": "",
               "legendFormat": "Active Jobs",
               "refId": "Active Batches"
             },
             {
+              "exemplar": true,
               "expr": "sum(kube_job_status_active{job_name=~\"$api_name.+\"})",
               "hide": false,
               "interval": "",
@@ -487,6 +461,10 @@ data:
         },
         {
           "datasource": null,
+          "fieldConfig": {
+            "defaults": {},
+            "overrides": []
+          },
           "gridPos": {
             "h": 1,
             "w": 24,
@@ -507,17 +485,6 @@ data:
           "dashes": false,
           "datasource": null,
           "description": "Total CPU usage across all workers of the API",
-          "fieldConfig": {
-            "defaults": {
-              "color": {},
-              "custom": {},
-              "thresholds": {
-                "mode": "absolute",
-                "steps": []
-              }
-            },
-            "overrides": []
-          },
           "fill": 1,
           "fillGradient": 0,
           "gridPos": {
@@ -544,7 +511,7 @@ data:
             "alertThreshold": true
           },
           "percentage": false,
-          "pluginVersion": "7.4.2",
+          "pluginVersion": "8.0.4",
           "pointradius": 2,
           "points": false,
           "renderer": "flot",
@@ -563,7 +530,8 @@ data:
               "refId": "CPU Usage"
             },
             {
-              "expr": "sum(kube_pod_container_resource_requests_cpu_cores{exported_pod=~\"$api_name.+\"})",
+              "exemplar": true,
+              "expr": "sum(kube_pod_container_resource_requests{exported_pod=~\"$api_name.+\", resource=\"cpu\"})",
               "hide": false,
               "interval": "",
               "legendFormat": "Total CPU Request",
@@ -623,17 +591,6 @@ data:
           "dashes": false,
           "datasource": null,
           "description": "Total memory usage across all workers of the API",
-          "fieldConfig": {
-            "defaults": {
-              "color": {},
-              "custom": {},
-              "thresholds": {
-                "mode": "absolute",
-                "steps": []
-              }
-            },
-            "overrides": []
-          },
           "fill": 1,
           "fillGradient": 0,
           "gridPos": {
@@ -660,7 +617,7 @@ data:
             "alertThreshold": true
           },
           "percentage": false,
-          "pluginVersion": "7.4.2",
+          "pluginVersion": "8.0.4",
           "pointradius": 2,
           "points": false,
           "renderer": "flot",
@@ -679,7 +636,8 @@ data:
               "refId": "Memory Usage"
             },
             {
-              "expr": "sum(kube_pod_container_resource_requests_memory_bytes{exported_pod=~\"$api_name.+\"}) / 1024^2",
+              "exemplar": true,
+              "expr": "sum(kube_pod_container_resource_requests{exported_pod=~\"$api_name.+\", resource=\"memory\"}) / 1024^2",
               "hide": false,
               "interval": "",
               "legendFormat": "Total Memory Request",
@@ -740,17 +698,6 @@ data:
           "dashes": false,
           "datasource": null,
           "description": "Total GPU core usage across all workers of the API",
-          "fieldConfig": {
-            "defaults": {
-              "color": {},
-              "custom": {},
-              "thresholds": {
-                "mode": "absolute",
-                "steps": []
-              }
-            },
-            "overrides": []
-          },
           "fill": 1,
           "fillGradient": 0,
           "gridPos": {
@@ -777,7 +724,7 @@ data:
             "alertThreshold": true
           },
           "percentage": false,
-          "pluginVersion": "7.4.2",
+          "pluginVersion": "8.0.4",
           "pointradius": 2,
           "points": false,
           "renderer": "flot",
@@ -854,17 +801,6 @@ data:
           "dashes": false,
           "datasource": null,
           "description": "Total GPU memory usage across all workers of the API",
-          "fieldConfig": {
-            "defaults": {
-              "color": {},
-              "custom": {},
-              "thresholds": {
-                "mode": "absolute",
-                "steps": []
-              }
-            },
-            "overrides": []
-          },
           "fill": 1,
           "fillGradient": 0,
           "gridPos": {
@@ -891,7 +827,7 @@ data:
             "alertThreshold": true
           },
           "percentage": false,
-          "pluginVersion": "7.4.2",
+          "pluginVersion": "8.0.4",
           "pointradius": 2,
           "points": false,
           "renderer": "flot",
@@ -963,6 +899,10 @@ data:
         {
           "collapsed": false,
           "datasource": null,
+          "fieldConfig": {
+            "defaults": {},
+            "overrides": []
+          },
           "gridPos": {
             "h": 1,
             "w": 24,
@@ -986,17 +926,6 @@ data:
           "dashes": false,
           "datasource": null,
           "description": "Avg CPU usage across all workers of the API",
-          "fieldConfig": {
-            "defaults": {
-              "color": {},
-              "custom": {},
-              "thresholds": {
-                "mode": "absolute",
-                "steps": []
-              }
-            },
-            "overrides": []
-          },
           "fill": 1,
           "fillGradient": 0,
           "gridPos": {
@@ -1023,7 +952,7 @@ data:
             "alertThreshold": true
           },
           "percentage": false,
-          "pluginVersion": "7.4.2",
+          "pluginVersion": "8.0.4",
           "pointradius": 2,
           "points": false,
           "renderer": "flot",
@@ -1042,7 +971,8 @@ data:
               "refId": "CPU Usage"
             },
             {
-              "expr": "sum(kube_pod_container_resource_requests_cpu_cores{exported_pod=~\"$api_name.+\"})\n/\nsum(kube_pod_info{exported_pod=~\"$api_name.+\"})",
+              "exemplar": true,
+              "expr": "sum(kube_pod_container_resource_requests{exported_pod=~\"$api_name.+\", resource=\"cpu\"})\n/\nsum(kube_pod_info{exported_pod=~\"$api_name.+\"})",
               "hide": false,
               "interval": "",
               "legendFormat": "Avg CPU Request",
@@ -1104,17 +1034,6 @@ data:
           "dashes": false,
           "datasource": null,
           "description": "Avg memory usage across all workers of the API",
-          "fieldConfig": {
-            "defaults": {
-              "color": {},
-              "custom": {},
-              "thresholds": {
-                "mode": "absolute",
-                "steps": []
-              }
-            },
-            "overrides": []
-          },
           "fill": 1,
           "fillGradient": 0,
           "gridPos": {
@@ -1141,7 +1060,7 @@ data:
             "alertThreshold": true
           },
           "percentage": false,
-          "pluginVersion": "7.4.2",
+          "pluginVersion": "8.0.4",
           "pointradius": 2,
           "points": false,
           "renderer": "flot",
@@ -1160,7 +1079,8 @@ data:
               "refId": "Memory Usage"
             },
             {
-              "expr": "sum(kube_pod_container_resource_requests_memory_bytes{exported_pod=~\"$api_name.+\"}) / 1024^2\n/\nsum(kube_pod_info{exported_pod=~\"$api_name.+\"})",
+              "exemplar": true,
+              "expr": "sum(kube_pod_container_resource{exported_pod=~\"$api_name.+\", resource=\"memory\"}) / 1024^2\n/\nsum(kube_pod_info{exported_pod=~\"$api_name.+\"})",
               "hide": false,
               "interval": "",
               "legendFormat": "Avg Memory Request",
@@ -1223,17 +1143,6 @@ data:
           "dashes": false,
           "datasource": null,
           "description": "Avg GPU core usage across all workers of the API",
-          "fieldConfig": {
-            "defaults": {
-              "color": {},
-              "custom": {},
-              "thresholds": {
-                "mode": "absolute",
-                "steps": []
-              }
-            },
-            "overrides": []
-          },
           "fill": 1,
           "fillGradient": 0,
           "gridPos": {
@@ -1260,7 +1169,7 @@ data:
             "alertThreshold": true
           },
           "percentage": false,
-          "pluginVersion": "7.4.2",
+          "pluginVersion": "8.0.4",
           "pointradius": 2,
           "points": false,
           "renderer": "flot",
@@ -1341,17 +1250,6 @@ data:
           "dashes": false,
           "datasource": null,
           "description": "Avg GPU memory usage across all workers of the API",
-          "fieldConfig": {
-            "defaults": {
-              "color": {},
-              "custom": {},
-              "thresholds": {
-                "mode": "absolute",
-                "steps": []
-              }
-            },
-            "overrides": []
-          },
           "fill": 1,
           "fillGradient": 0,
           "gridPos": {
@@ -1378,7 +1276,7 @@ data:
             "alertThreshold": true
           },
           "percentage": false,
-          "pluginVersion": "7.4.2",
+          "pluginVersion": "8.0.4",
           "pointradius": 2,
           "points": false,
           "renderer": "flot",
@@ -1449,14 +1347,18 @@ data:
         }
       ],
       "refresh": "30s",
-      "schemaVersion": 27,
+      "schemaVersion": 30,
       "style": "dark",
       "tags": [],
       "templating": {
         "list": [
           {
             "allValue": null,
-            "current": {},
+            "current": {
+              "selected": false,
+              "text": "None",
+              "value": "None"
+            },
             "datasource": null,
             "definition": "label_values({__name__=~\"cortex_batch_.+\"}, api_name)",
             "description": null,
@@ -1476,7 +1378,6 @@ data:
             "skipUrlSync": false,
             "sort": 0,
             "tagValuesQuery": "",
-            "tags": [],
             "tagsQuery": "",
             "type": "query",
             "useTags": false

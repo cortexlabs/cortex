@@ -36,17 +36,10 @@ data:
       "editable": true,
       "gnetId": null,
       "graphTooltip": 0,
-      "id": 14,
       "links": [],
       "panels": [
         {
           "datasource": null,
-          "fieldConfig": {
-            "defaults": {
-              "custom": {}
-            },
-            "overrides": []
-          },
           "gridPos": {
             "h": 2,
             "w": 24,
@@ -58,16 +51,19 @@ data:
             "content": "<h1 style=\"text-align: center\">Cluster</h1>\n",
             "mode": "html"
           },
-          "pluginVersion": "7.4.0",
+          "pluginVersion": "8.0.4",
           "timeFrom": null,
           "timeShift": null,
-          "title": "",
           "transparent": true,
           "type": "text"
         },
         {
           "collapsed": false,
           "datasource": null,
+          "fieldConfig": {
+            "defaults": {},
+            "overrides": []
+          },
           "gridPos": {
             "h": 1,
             "w": 24,
@@ -86,12 +82,6 @@ data:
           "dashLength": 10,
           "dashes": false,
           "datasource": null,
-          "fieldConfig": {
-            "defaults": {
-              "custom": {}
-            },
-            "overrides": []
-          },
           "fill": 10,
           "fillGradient": 0,
           "gridPos": {
@@ -119,7 +109,7 @@ data:
             "alertThreshold": true
           },
           "percentage": false,
-          "pluginVersion": "7.4.0",
+          "pluginVersion": "8.0.4",
           "pointradius": 5,
           "points": false,
           "renderer": "flot",
@@ -185,12 +175,6 @@ data:
           "dashLength": 10,
           "dashes": false,
           "datasource": null,
-          "fieldConfig": {
-            "defaults": {
-              "custom": {}
-            },
-            "overrides": []
-          },
           "fill": 10,
           "fillGradient": 0,
           "gridPos": {
@@ -218,7 +202,7 @@ data:
             "alertThreshold": true
           },
           "percentage": false,
-          "pluginVersion": "7.4.0",
+          "pluginVersion": "8.0.4",
           "pointradius": 5,
           "points": false,
           "renderer": "flot",
@@ -281,6 +265,10 @@ data:
         {
           "collapsed": false,
           "datasource": null,
+          "fieldConfig": {
+            "defaults": {},
+            "overrides": []
+          },
           "gridPos": {
             "h": 1,
             "w": 24,
@@ -299,12 +287,6 @@ data:
           "dashLength": 10,
           "dashes": false,
           "datasource": null,
-          "fieldConfig": {
-            "defaults": {
-              "custom": {}
-            },
-            "overrides": []
-          },
           "fill": 10,
           "fillGradient": 0,
           "gridPos": {
@@ -332,7 +314,7 @@ data:
             "alertThreshold": true
           },
           "percentage": false,
-          "pluginVersion": "7.4.0",
+          "pluginVersion": "8.0.4",
           "pointradius": 5,
           "points": false,
           "renderer": "flot",
@@ -398,12 +380,6 @@ data:
           "dashLength": 10,
           "dashes": false,
           "datasource": null,
-          "fieldConfig": {
-            "defaults": {
-              "custom": {}
-            },
-            "overrides": []
-          },
           "fill": 10,
           "fillGradient": 0,
           "gridPos": {
@@ -431,7 +407,7 @@ data:
             "alertThreshold": true
           },
           "percentage": false,
-          "pluginVersion": "7.4.0",
+          "pluginVersion": "8.0.4",
           "pointradius": 5,
           "points": false,
           "renderer": "flot",
@@ -494,6 +470,10 @@ data:
         {
           "collapsed": false,
           "datasource": null,
+          "fieldConfig": {
+            "defaults": {},
+            "overrides": []
+          },
           "gridPos": {
             "h": 1,
             "w": 24,
@@ -512,12 +492,6 @@ data:
           "dashLength": 10,
           "dashes": false,
           "datasource": null,
-          "fieldConfig": {
-            "defaults": {
-              "custom": {}
-            },
-            "overrides": []
-          },
           "fill": 10,
           "fillGradient": 0,
           "gridPos": {
@@ -545,7 +519,7 @@ data:
             "alertThreshold": true
           },
           "percentage": false,
-          "pluginVersion": "7.4.0",
+          "pluginVersion": "8.0.4",
           "pointradius": 5,
           "points": false,
           "renderer": "flot",
@@ -630,12 +604,6 @@ data:
           "dashLength": 10,
           "dashes": false,
           "datasource": null,
-          "fieldConfig": {
-            "defaults": {
-              "custom": {}
-            },
-            "overrides": []
-          },
           "fill": 10,
           "fillGradient": 0,
           "gridPos": {
@@ -663,7 +631,7 @@ data:
             "alertThreshold": true
           },
           "percentage": false,
-          "pluginVersion": "7.4.0",
+          "pluginVersion": "8.0.4",
           "pointradius": 5,
           "points": false,
           "renderer": "flot",
@@ -745,6 +713,10 @@ data:
         {
           "collapsed": false,
           "datasource": null,
+          "fieldConfig": {
+            "defaults": {},
+            "overrides": []
+          },
           "gridPos": {
             "h": 1,
             "w": 24,
@@ -763,12 +735,6 @@ data:
           "dashLength": 10,
           "dashes": false,
           "datasource": null,
-          "fieldConfig": {
-            "defaults": {
-              "custom": {}
-            },
-            "overrides": []
-          },
           "fill": 10,
           "fillGradient": 0,
           "gridPos": {
@@ -796,7 +762,7 @@ data:
             "alertThreshold": true
           },
           "percentage": false,
-          "pluginVersion": "7.4.0",
+          "pluginVersion": "8.0.4",
           "pointradius": 5,
           "points": false,
           "renderer": "flot",
@@ -862,12 +828,6 @@ data:
           "dashLength": 10,
           "dashes": false,
           "datasource": null,
-          "fieldConfig": {
-            "defaults": {
-              "custom": {}
-            },
-            "overrides": []
-          },
           "fill": 10,
           "fillGradient": 0,
           "gridPos": {
@@ -895,7 +855,7 @@ data:
             "alertThreshold": true
           },
           "percentage": false,
-          "pluginVersion": "7.4.0",
+          "pluginVersion": "8.0.4",
           "pointradius": 5,
           "points": false,
           "renderer": "flot",
@@ -958,6 +918,10 @@ data:
         {
           "collapsed": false,
           "datasource": null,
+          "fieldConfig": {
+            "defaults": {},
+            "overrides": []
+          },
           "gridPos": {
             "h": 1,
             "w": 24,
@@ -976,12 +940,6 @@ data:
           "dashLength": 10,
           "dashes": false,
           "datasource": null,
-          "fieldConfig": {
-            "defaults": {
-              "custom": {}
-            },
-            "overrides": []
-          },
           "fill": 10,
           "fillGradient": 0,
           "gridPos": {
@@ -1009,7 +967,7 @@ data:
             "alertThreshold": true
           },
           "percentage": false,
-          "pluginVersion": "7.4.0",
+          "pluginVersion": "8.0.4",
           "pointradius": 5,
           "points": false,
           "renderer": "flot",
@@ -1071,7 +1029,7 @@ data:
         }
       ],
       "refresh": "1m",
-      "schemaVersion": 27,
+      "schemaVersion": 30,
       "style": "dark",
       "tags": [],
       "templating": {

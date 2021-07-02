@@ -77,20 +77,15 @@ spec:
             cpu: 50m
             memory: 50Mi
         securityContext:
-          privileged: true
-        terminationMessagePath: /dev/termination-log
-        terminationMessagePolicy: File
+          capabilities:
+            add:
+            - SYS_ADMIN
+          runAsNonRoot: false
+          runAsUser: 0
         volumeMounts:
         - mountPath: /var/lib/kubelet/pod-resources
           name: pod-gpu-resources
           readOnly: true
-        - mountPath: /usr/local/nvidia
-          name: nvidia-install-dir-host
-      dnsPolicy: ClusterFirst
-      restartPolicy: Always
-      schedulerName: default-scheduler
-      securityContext: {}
-      terminationGracePeriodSeconds: 30
       tolerations:
       - key: workload
         effect: NoSchedule
@@ -103,10 +98,6 @@ spec:
           path: /var/lib/kubelet/pod-resources
           type: ""
         name: pod-gpu-resources
-      - hostPath:
-          path: /home/kubernetes/bin/nvidia
-          type: ""
-        name: nvidia-install-dir-host
       nodeSelector:
         workload: "true"
         nvidia.com/gpu: "$NVIDIA_COM_GPU_VALUE"

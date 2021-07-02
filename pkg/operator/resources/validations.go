@@ -126,14 +126,14 @@ Reserved (300 + 300 + 200) see eks.yaml for details
 */
 var _cortexMemReserve = kresource.MustParse("1150Mi")
 
-var _nvidiaCPUReserve = kresource.MustParse("100m")
-var _nvidiaMemReserve = kresource.MustParse("100Mi")
+var _nvidiaDevicePluginCPUReserve = kresource.MustParse("100m")
+var _nvidiaDevicePluginMemReserve = kresource.MustParse("100Mi")
 
 var _nvidiaDCGMExporterCPUReserve = kresource.MustParse("50m")
 var _nvidiaDCGMExporterMemReserve = kresource.MustParse("50Mi")
 
-var _inferentiaCPUReserve = kresource.MustParse("100m")
-var _inferentiaMemReserve = kresource.MustParse("100Mi")
+var _neuronDevicePluginCPUReserve = kresource.MustParse("100m")
+var _neuronDevicePluginMemReserve = kresource.MustParse("100Mi")
 
 func validateK8sCompute(api *userconfig.API, maxMemMap map[string]kresource.Quantity) error {
 	clusterNodeGroupNames := strset.New(config.ClusterConfig.GetNodeGroupNames()...)
@@ -182,8 +182,8 @@ func getNodeCapacity(instanceType string, maxMemMap map[string]kresource.Quantit
 	gpu := instanceMetadata.GPU
 	if gpu > 0 {
 		// Reserve resources for nvidia device plugin daemonset
-		cpu.Sub(_nvidiaCPUReserve)
-		mem.Sub(_nvidiaMemReserve)
+		cpu.Sub(_nvidiaDevicePluginCPUReserve)
+		mem.Sub(_nvidiaDevicePluginMemReserve)
 		// Reserve resources for nvidia dcgm prometheus exporter
 		cpu.Sub(_nvidiaDCGMExporterCPUReserve)
 		mem.Sub(_nvidiaDCGMExporterMemReserve)
@@ -191,9 +191,9 @@ func getNodeCapacity(instanceType string, maxMemMap map[string]kresource.Quantit
 
 	inf := instanceMetadata.Inf
 	if inf > 0 {
-		// Reserve resources for inferentia device plugin daemonset
-		cpu.Sub(_inferentiaCPUReserve)
-		mem.Sub(_inferentiaMemReserve)
+		// Reserve resources for neuron device plugin daemonset
+		cpu.Sub(_neuronDevicePluginCPUReserve)
+		mem.Sub(_neuronDevicePluginMemReserve)
 	}
 
 	return cpu, mem, gpu, inf
