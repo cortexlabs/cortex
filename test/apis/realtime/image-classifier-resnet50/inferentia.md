@@ -2,6 +2,8 @@
 
 The Inferentia examples were inspired by [this tutorial](https://awsdocs-neuron.readthedocs-hosted.com/en/latest/neuron-deploy/tutorials/k8s_rn50_demo.html).
 
+This guide shows how to exec into a pod, check the Neuron runtime, and make inferences using gRPC for testing purposes (exposing gRPC endpoints outside of the cluster is not currently supported by Cortex, but is on the roadmap). It is possible to make HTTP requests to this API from outside of the cluster.
+
 ## Making an inference
 
 Exec into the TensorFlow Serving pod:
