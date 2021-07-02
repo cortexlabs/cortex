@@ -115,7 +115,7 @@ spec:
               cpu: 250m
               memory: 180Mi
             requests:
-              cpu: 100m
+              cpu: 40m
               memory: 180Mi
           volumeMounts:
             - mountPath: /host/sys

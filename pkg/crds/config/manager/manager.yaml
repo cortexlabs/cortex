@@ -46,10 +46,10 @@ spec:
           periodSeconds: 10
         resources:
           limits:
-            cpu: 200m
+            cpu: 300m
             memory: 100Mi
           requests:
-            cpu: 200m
+            cpu: 100m
             memory: 80Mi
         volumeMounts:
           - mountPath: /mnt/cluster.yaml
