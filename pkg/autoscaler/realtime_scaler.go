@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
@@ -32,10 +33,6 @@ import (
 	"go.uber.org/zap"
 	kapps "k8s.io/api/apps/v1"
 	kmeta "k8s.io/apimachinery/pkg/apis/meta/v1"
-)
-
-const (
-	_waitForReadyReplicasTimeout = 10 * time.Minute
 )
 
 type realtimeScaler struct {
@@ -236,7 +233,7 @@ func (s *realtimeScaler) waitForReadyReplicas(ctx context.Context, deployment *k
 
 	defer watcher.Stop()
 
-	ctx, cancel := context.WithTimeout(ctx, _waitForReadyReplicasTimeout)
+	ctx, cancel := context.WithTimeout(ctx, consts.WaitForReadyReplicasTimeout)
 	defer cancel()
 
 	for {

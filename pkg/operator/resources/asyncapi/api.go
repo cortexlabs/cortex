@@ -40,7 +40,6 @@ import (
 )
 
 const (
-	_stalledPodTimeout = 15 * time.Minute
 	_tickPeriodMetrics = 10 * time.Second
 	_asyncDashboardUID = "asyncapi"
 )

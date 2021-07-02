@@ -21,6 +21,7 @@ import (
 	"time"
 
 	"github.com/cortexlabs/cortex/pkg/config"
+	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/parallel"
@@ -272,7 +273,7 @@ func addPodToReplicaCounts(pod *kcore.Pod, deployment *kapps.Deployment, counts 
 
 	switch k8s.GetPodStatus(pod) {
 	case k8s.PodStatusPending:
-		if time.Since(pod.CreationTimestamp.Time) > _stalledPodTimeout {
+		if time.Since(pod.CreationTimestamp.Time) > consts.WaitForInitializingReplicasTimeout {
 			subCounts.Stalled++
 		} else {
 			subCounts.Pending++
