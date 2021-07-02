@@ -1056,8 +1056,8 @@ func (cc *Config) validateTopLevelSectionDiff(oldConfig Config) ([]string, error
 		fieldsToUpdate = append(fieldsToUpdate, OperatorLoadBalancerCIDRWhiteListKey)
 	}
 
-	emptyUpdatableFields(&newClusterConfigCopy)
-	emptyUpdatableFields(&oldClusterConfigCopy)
+	clearUpdatableFields(&newClusterConfigCopy)
+	clearUpdatableFields(&oldClusterConfigCopy)
 
 	h1, err := newClusterConfigCopy.Hash()
 	if err != nil {
@@ -1074,7 +1074,7 @@ func (cc *Config) validateTopLevelSectionDiff(oldConfig Config) ([]string, error
 	return fieldsToUpdate, nil
 }
 
-func emptyUpdatableFields(clusterConfig *Config) {
+func clearUpdatableFields(clusterConfig *Config) {
 	clusterConfig.SSLCertificateARN = nil
 	clusterConfig.APILoadBalancerCIDRWhiteList = nil
 	clusterConfig.OperatorLoadBalancerCIDRWhiteList = nil

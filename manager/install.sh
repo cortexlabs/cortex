@@ -392,8 +392,6 @@ function update_networking() {
 
   echo -n "￮ updating networking configuration "
 
-  https_index=$(kubectl get svc ingressgateway-apis -n=istio-system -o json  | jq '.spec.ports | map(.name == "https") | index(true)')
-
   if [ "$new_ssl_certificate_arn" != "$prev_ssl_certificate_arn" ] ; then
       # there is a bug where changing the certificate annotation will not cause the HTTPS listener in the NLB to update
       # the current workaround is to delete the HTTPS listener and have it recreated with istioctl
