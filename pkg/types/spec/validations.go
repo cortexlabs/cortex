@@ -54,7 +54,7 @@ func apiValidation(resource userconfig.Resource) *cr.StructValidation {
 			podValidation(userconfig.RealtimeAPIKind),
 			nodegroupsValidation(),
 			networkingValidation(),
-			autoscalingValidation(resource.Kind),
+			autoscalingValidation(),
 			updateStrategyValidation(),
 		)
 	case userconfig.AsyncAPIKind:
@@ -62,7 +62,7 @@ func apiValidation(resource userconfig.Resource) *cr.StructValidation {
 			podValidation(userconfig.AsyncAPIKind),
 			nodegroupsValidation(),
 			networkingValidation(),
-			autoscalingValidation(resource.Kind),
+			autoscalingValidation(),
 			updateStrategyValidation(),
 		)
 	case userconfig.BatchAPIKind:
@@ -471,13 +471,7 @@ func computeValidation() *cr.StructFieldValidation {
 	}
 }
 
-func autoscalingValidation(kind userconfig.Kind) *cr.StructFieldValidation {
-	minReplicas := int32(1)
-	switch kind {
-	case userconfig.AsyncAPIKind, userconfig.RealtimeAPIKind:
-		minReplicas = int32(0)
-	}
-
+func autoscalingValidation() *cr.StructFieldValidation {
 	return &cr.StructFieldValidation{
 		StructField: "Autoscaling",
 		StructValidation: &cr.StructValidation{
@@ -486,7 +480,7 @@ func autoscalingValidation(kind userconfig.Kind) *cr.StructFieldValidation {
 					StructField: "MinReplicas",
 					Int32Validation: &cr.Int32Validation{
 						Default:              1,
-						GreaterThanOrEqualTo: pointer.Int32(minReplicas),
+						GreaterThanOrEqualTo: pointer.Int32(0),
 					},
 				},
 				{
@@ -500,7 +494,7 @@ func autoscalingValidation(kind userconfig.Kind) *cr.StructFieldValidation {
 					StructField:  "InitReplicas",
 					DefaultField: "MinReplicas",
 					Int32Validation: &cr.Int32Validation{
-						GreaterThanOrEqualTo: pointer.Int32(minReplicas),
+						GreaterThanOrEqualTo: pointer.Int32(0),
 					},
 				},
 				{
