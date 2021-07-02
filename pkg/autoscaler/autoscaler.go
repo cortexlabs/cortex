@@ -143,8 +143,9 @@ func (a *Autoscaler) RemoveAPI(api userconfig.Resource) {
 }
 
 func (a *Autoscaler) Stop() {
-	for _, apiCron := range a.crons {
+	for apiName, apiCron := range a.crons {
 		apiCron.Cancel()
+		delete(a.crons, apiName)
 	}
 }
 
