@@ -25,6 +25,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/cron"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	libmath "github.com/cortexlabs/cortex/pkg/lib/math"
+	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	libtime "github.com/cortexlabs/cortex/pkg/lib/time"
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
@@ -110,7 +111,7 @@ func (a *Autoscaler) AddAPI(api userconfig.Resource) error {
 		)
 
 		log.Error(err)
-		// FIXME telemetry
+		telemetry.Error(err)
 	}
 
 	a.crons[api.Name] = cron.Run(autoscaleFn, errorHandler, spec.AutoscalingTickInterval)

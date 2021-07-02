@@ -24,6 +24,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
+	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	"github.com/cortexlabs/cortex/pkg/workloads"
 	promv1 "github.com/prometheus/client_golang/api/prometheus/v1"
@@ -85,7 +86,7 @@ func (s *realtimeScaler) Scale(apiName string, request int32) error {
 				s.logger.Errorw("failed to re-route traffic to API",
 					zap.Error(err), zap.String("apiName", apiName),
 				)
-				// TODO: telemetry
+				telemetry.Error(err)
 			}
 		}()
 
