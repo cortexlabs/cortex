@@ -205,7 +205,7 @@ test-e2e-new:
 lint:
 	@./build/lint.sh
 
-# this is a subset of lint.sh, and is only meant to be run on master
+# this is a subset of lint.sh, and is only meant to be run on experiment
 lint-docs:
 	@./build/lint-docs.sh
 

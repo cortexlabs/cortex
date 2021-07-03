@@ -21,7 +21,7 @@ from cortex.exceptions import NotFound
 from cortex.telemetry import sentry_wrapper
 
 
-__version__ = "master"  # CORTEX_VERSION
+__version__ = "experiment"  # CORTEX_VERSION
 
 
 @sentry_wrapper

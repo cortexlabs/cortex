@@ -105,7 +105,7 @@ def apply_clusterconfig(nodegroup, config):
         "minSize": config["min_instances"],
         "maxSize": config["max_instances"],
         "volumeType": config["instance_volume_type"],
-        "desiredCapacity": 1 if config["min_instances"] == 0 else config["min_instances"],
+        "desiredCapacity": config["min_instances"],
     }
     # add iops to settings if volume_type is io1/gp3
     if config["instance_volume_type"] in ["io1", "gp3"]:

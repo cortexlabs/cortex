@@ -51,7 +51,7 @@ class InstallBinary(install):
             cortex_version = self.config_vars["dist_version"]
 
             if "dev" in cortex_version:
-                cortex_version = "master"
+                cortex_version = "experiment"
 
             download_url = f"https://s3-us-west-2.amazonaws.com/get-cortex/{cortex_version}/cli/{platform}/cortex.zip"
 
@@ -79,7 +79,7 @@ if pathlib.Path("README.md").is_file():
 
 setup(
     name="cortex",
-    version="master",  # CORTEX_VERSION
+    version="experiment",  # CORTEX_VERSION
     description="Cost-effective serverless computing",
     author="cortex.dev",
     author_email="dev@cortex.dev",

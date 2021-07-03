@@ -112,7 +112,7 @@ if [[ $output ]]; then
 fi
 
 if [ "$is_release_branch" = "true" ]; then
-  # Check for occurrences of "master" which should be changed to the version number
+  # Check for occurrences of "experiment" which should be changed to the version number
   output=$(cd "$ROOT" && find . -type f \
   ! -path "./build/lint.sh" \
   ! -path "./vendor/*" \
@@ -129,9 +129,9 @@ if [ "$is_release_branch" = "true" ]; then
   ! -name ".*" \
   ! -name "*.bin" \
   -exec grep -R -A 5 -e "CORTEX_VERSION" {} \;)
-  output=$(echo "$output" | grep -e "master" || true)
+  output=$(echo "$output" | grep -e "experiment" || true)
   if [[ $output ]]; then
-    echo 'occurrences of "master" which should be changed to the version number:'
+    echo 'occurrences of "experiment" which should be changed to the version number:'
     echo "$output"
     exit 1
   fi
