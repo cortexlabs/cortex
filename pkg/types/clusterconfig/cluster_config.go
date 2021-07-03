@@ -908,10 +908,6 @@ func (cc *Config) validate(awsClient *aws.Client) error {
 	ngNames := []string{}
 	instances := []aws.InstanceTypeRequests{}
 	for _, nodeGroup := range cc.NodeGroups {
-		// setting max_instances to 0 during cluster creation is not permitted (but scaling max_instances to 0 afterwards is allowed)
-		if nodeGroup.MaxInstances == 0 {
-			return errors.Wrap(ErrorNodeGroupMaxInstancesIsZero(), NodeGroupsKey, nodeGroup.Name)
-		}
 		if !slices.HasString(ngNames, nodeGroup.Name) {
 			ngNames = append(ngNames, nodeGroup.Name)
 		} else {
@@ -1121,6 +1117,13 @@ func (cc *Config) ValidateOnInstall(awsClient *aws.Client) error {
 	err := cc.validate(awsClient)
 	if err != nil {
 		return err
+	}
+
+	// setting max_instances to 0 during cluster creation is not permitted (but scaling max_instances to 0 afterwards is allowed)
+	for _, nodeGroup := range cc.NodeGroups {
+		if nodeGroup != nil && nodeGroup.MaxInstances == 0 {
+			return errors.Wrap(ErrorNodeGroupMaxInstancesIsZero(), NodeGroupsKey, nodeGroup.Name)
+		}
 	}
 
 	if cc.ClusterUID != "" {
