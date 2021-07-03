@@ -137,13 +137,25 @@ metadata:
   namespace: kube-system
 data:
   priorities: |-
-  {% for ng in config['node_groups']|reverse %}
-    {{ (loop.index0+1) * 10 }}:
-    {% if ng['spot'] %}
-      - .*{{ 'cx-ws-' + ng['name'] }}.*
-    {% else %}
-      - .*{{ 'cx-wd-' + ng['name'] }}.*
+  {% for p in range(1, 100) %}
+    {% set found = {'priority': False} %}
+    {% for ng in config['node_groups'] %}
+      {% if ng['priority'] == p %}
+        {%- if found.update({'priority':True}) %} {%- endif %}
+      {% endif %}
+    {% endfor %}
+    {% if found['priority'] %}
+    {{ 101-p }}:
     {% endif %}
+    {% for ng in config['node_groups'] %}
+      {% if ng['priority'] == p %}
+        {% if ng['spot'] %}
+      - .*{{ 'cx-ws-' + ng['name'] }}.*
+        {% else %}
+      - .*{{ 'cx-wd-' + ng['name'] }}.*
+        {% endif %}
+      {% endif %}
+    {% endfor %}
   {% endfor %}
 ---
 apiVersion: apps/v1
