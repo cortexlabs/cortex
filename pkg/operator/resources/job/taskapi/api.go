@@ -25,6 +25,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/parallel"
+	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	"github.com/cortexlabs/cortex/pkg/operator/lib/routines"
 	"github.com/cortexlabs/cortex/pkg/operator/operator"
@@ -38,6 +39,8 @@ import (
 	kbatch "k8s.io/api/batch/v1"
 	kcore "k8s.io/api/core/v1"
 )
+
+const _taskDashboardUID = "taskapi"
 
 // UpdateAPI deploys or update a task api without triggering any task
 func UpdateAPI(apiConfig *userconfig.API) (*spec.API, string, error) {
@@ -288,11 +291,28 @@ func GetAPIByName(deployedResource *operator.DeployedResource) ([]schema.APIResp
 		}
 	}
 
+	dashboardURL := pointer.String(getDashboardURL(api.Name))
+
 	return []schema.APIResponse{
 		{
 			Spec:            *api,
 			TaskJobStatuses: jobStatuses,
 			Endpoint:        endpoint,
+			DashboardURL:    dashboardURL,
 		},
 	}, nil
+}
+
+func getDashboardURL(apiName string) string {
+	loadBalancerURL, err := operator.LoadBalancerURL()
+	if err != nil {
+		return ""
+	}
+
+	dashboardURL := fmt.Sprintf(
+		"%s/dashboard/d/%s/taskapi?orgId=1&refresh=30s&var-api_name=%s",
+		loadBalancerURL, _taskDashboardUID, apiName,
+	)
+
+	return dashboardURL
 }

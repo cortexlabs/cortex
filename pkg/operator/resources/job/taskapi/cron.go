@@ -96,6 +96,7 @@ func ManageJobResources() error {
 			err := errors.FirstError(
 				job.DeleteInProgressFile(jobKey),
 				deleteJobRuntimeResources(jobKey),
+				recordFailure(jobKey),
 			)
 			if err != nil {
 				telemetry.Error(err)
@@ -136,6 +137,7 @@ func ManageJobResources() error {
 				err := errors.FirstError(
 					job.DeleteInProgressFile(jobKey),
 					deleteJobRuntimeResources(jobKey),
+					recordFailure(jobKey),
 				)
 				if err != nil {
 					telemetry.Error(err)
@@ -152,6 +154,7 @@ func ManageJobResources() error {
 			err := errors.FirstError(
 				job.SetTimedOutStatus(jobKey),
 				deleteJobRuntimeResources(jobKey),
+				recordFailure(jobKey),
 			)
 			if err != nil {
 				telemetry.Error(err)
@@ -161,7 +164,7 @@ func ManageJobResources() error {
 		}
 
 		if jobState.Status == status.JobRunning {
-			err = checkIfJobCompleted(jobKey, k8sJob)
+			err = checkIfJobCompleted(jobKey, jobSpec.StartTime, k8sJob)
 			if err != nil {
 				telemetry.Error(err)
 				operatorLogger.Error(err)
@@ -201,13 +204,14 @@ func reconcileInProgressJob(jobState *job.State, jobFound bool) (status.JobCode,
 	return jobState.Status, ""
 }
 
-func checkIfJobCompleted(jobKey spec.JobKey, k8sJob kbatch.Job) error {
+func checkIfJobCompleted(jobKey spec.JobKey, jobStartTime time.Time, k8sJob kbatch.Job) error {
 	pods, _ := config.K8s.ListPodsByLabel("jobID", jobKey.ID)
 	for i := range pods {
 		if k8s.WasPodOOMKilled(&pods[i]) {
 			return errors.FirstError(
 				job.SetWorkerOOMStatus(jobKey),
 				deleteJobRuntimeResources(jobKey),
+				recordFailure(jobKey),
 			)
 		}
 	}
@@ -216,11 +220,14 @@ func checkIfJobCompleted(jobKey spec.JobKey, k8sJob kbatch.Job) error {
 		return errors.FirstError(
 			job.SetWorkerErrorStatus(jobKey),
 			deleteJobRuntimeResources(jobKey),
+			recordFailure(jobKey),
 		)
 	} else if int(k8sJob.Status.Succeeded) == 1 && len(pods) > 0 {
 		return errors.FirstError(
 			job.SetSucceededStatus(jobKey),
 			deleteJobRuntimeResources(jobKey),
+			recordSuccess(jobKey),
+			recordTimePerTask(jobKey, time.Since(jobStartTime)),
 		)
 	}
 
