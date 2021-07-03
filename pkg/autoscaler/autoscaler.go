@@ -62,13 +62,14 @@ func (a *Autoscaler) AddScaler(scaler Scaler, kind userconfig.Kind) {
 
 func (a *Autoscaler) Awaken(api userconfig.Resource) error {
 	a.Lock()
+	defer a.Unlock()
+
 	// ignore awake call if one already happened within the awakenStabilizationPeriod duration
 	if awakenTimestamp, ok := a.lastAwakenTimestamp[api.Name]; ok {
 		if time.Since(awakenTimestamp) <= _awakenStabilizationPeriod {
 			return nil
 		}
 	}
-	a.Unlock()
 
 	scaler, ok := a.scalers[api.Kind]
 	if !ok {
@@ -87,9 +88,7 @@ func (a *Autoscaler) Awaken(api userconfig.Resource) error {
 		return err
 	}
 
-	a.Lock()
 	a.lastAwakenTimestamp[api.Name] = time.Now()
-	a.Unlock()
 
 	return nil
 }

@@ -109,7 +109,9 @@ func (a *activator) Try(ctx context.Context, fn func() error) error {
 }
 
 func (a *activator) getOrCreateAPIActivator(ctx context.Context, apiName string) (*apiActivator, error) {
-	a.activatorsMux.RLock()
+	a.activatorsMux.Lock()
+	defer a.activatorsMux.Unlock()
+
 	act, ok := a.apiActivators[apiName]
 	a.activatorsMux.RUnlock()
 	if ok {
@@ -128,9 +130,7 @@ func (a *activator) getOrCreateAPIActivator(ctx context.Context, apiName string)
 
 	apiAct := newAPIActivator(maxQueueLength, maxConcurrency)
 
-	a.activatorsMux.Lock()
 	a.apiActivators[apiName] = apiAct
-	a.activatorsMux.Unlock()
 
 	return apiAct, nil
 }
@@ -168,7 +168,9 @@ func (a *activator) addAPI(obj interface{}) {
 	a.logger.Debugw("adding new api activator", zap.String("apiName", apiName))
 
 	a.activatorsMux.Lock()
-	a.apiActivators[apiName] = newAPIActivator(apiMetadata.maxQueueLength, apiMetadata.maxConcurrency)
+	if a.apiActivators[apiName] != nil {
+		a.apiActivators[apiName] = newAPIActivator(apiMetadata.maxQueueLength, apiMetadata.maxConcurrency)
+	}
 	a.activatorsMux.Unlock()
 }
 
