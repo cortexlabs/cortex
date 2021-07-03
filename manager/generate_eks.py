@@ -273,6 +273,7 @@ def generate_eks(
     cluster_config = yaml.safe_load(cluster_config_file)
     region = cluster_config["region"]
     name = cluster_config["cluster_name"]
+    prometheus_instance_type = cluster_config["prometheus_instance_type"]
     ami_map = json.load(ami_json_file)[K8S_VERSION][region]
 
     eks = {
@@ -309,15 +310,33 @@ def generate_eks(
         "ami": get_ami(ami_map, "t3.medium"),
         "name": "cx-operator",
         "instanceType": "t3.medium",
-        "minSize": 2,
-        "maxSize": 2,
-        "desiredCapacity": 2,
+        "minSize": 1,
+        "maxSize": 25,
+        "desiredCapacity": 1,
         "volumeType": "gp3",
         "volumeSize": 20,
         "volumeIOPS": 3000,
         "volumeThroughput": 125,
+        "labels": {"operator": "true"},
     }
     operator_nodegroup = merge_override(operator_nodegroup, operator_settings)
+
+    prometheus_nodegroup = default_nodegroup(cluster_config)
+    prometheus_settings = {
+        "ami": get_ami(ami_map, prometheus_instance_type),
+        "name": "cx-prometheus",
+        "instanceType": prometheus_instance_type,
+        "minSize": 1,
+        "maxSize": 1,
+        "desiredCapacity": 1,
+        "volumeType": "gp3",
+        "volumeSize": 20,
+        "volumeIOPS": 3000,
+        "volumeThroughput": 125,
+        "labels": {"prometheus": "true"},
+        "taints": {"prometheus": "true:NoSchedule"},
+    }
+    prometheus_nodegroup = merge_override(prometheus_nodegroup, prometheus_settings)
 
     worker_nodegroups = get_all_worker_nodegroups(ami_map, cluster_config)
 
@@ -337,7 +356,7 @@ def generate_eks(
             "tags": cluster_config["tags"],
         },
         "vpc": {"nat": {"gateway": nat_gateway}},
-        "nodeGroups": [operator_nodegroup] + worker_nodegroups,
+        "nodeGroups": [operator_nodegroup, prometheus_nodegroup] + worker_nodegroups,
         "addons": [
             {
                 "name": "vpc-cni",

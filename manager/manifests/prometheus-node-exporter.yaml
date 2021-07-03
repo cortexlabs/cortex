@@ -115,7 +115,7 @@ spec:
               cpu: 250m
               memory: 180Mi
             requests:
-              cpu: 100m
+              cpu: 40m
               memory: 180Mi
           volumeMounts:
             - mountPath: /host/sys
@@ -194,6 +194,34 @@ spec:
           sourceLabels:
             - __meta_kubernetes_pod_node_name
           targetLabel: instance
+      metricRelabelings:
+        - action: keep
+          sourceLabels: [__name__]
+          regex: "node_(\
+            cpu_seconds_total|\
+            load1|\
+            load5|\
+            load15|\
+            exporter_build_info|\
+            memory_MemTotal_bytes|\
+            memory_MemFree_bytes|\
+            memory_Buffers_bytes|\
+            memory_Cached_bytes|\
+            memory_MemAvailable_bytes|\
+            disk_read_bytes_total|\
+            disk_written_bytes_total|\
+            disk_io_time_seconds_total|\
+            disk_io_time_weighted_seconds_total|\
+            filesystem_size_bytes|\
+            filesystem_avail_bytes|\
+            network_receive_bytes_total|\
+            network_transmit_bytes_total|\
+            network_receive_drop_total|\
+            network_transmit_drop_total|\
+            vmstat_pgmajfault\
+            )"
+        - action: labelkeep
+          regex: (__name__|instance|job|device|fstype|mountpoint|mode)
       scheme: https
       tlsConfig:
         insecureSkipVerify: true
