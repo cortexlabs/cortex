@@ -14199,6 +14199,11 @@ spec:
           allowPrivilegeEscalation: false
       nodeSelector:
         kubernetes.io/os: linux
+        prometheus: "true"
+      tolerations:
+        - key: prometheus
+          operator: Exists
+          effect: NoSchedule
       securityContext:
         runAsNonRoot: true
         runAsUser: 65534

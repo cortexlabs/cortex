@@ -173,6 +173,12 @@ spec:
         - name: grafana-dashboard-nodes
           configMap:
             name: grafana-dashboard-nodes
+      nodeSelector:
+        prometheus: "true"
+      tolerations:
+        - key: prometheus
+          operator: Exists
+          effect: NoSchedule
       affinity:
         podAffinity:
           preferredDuringSchedulingIgnoredDuringExecution:

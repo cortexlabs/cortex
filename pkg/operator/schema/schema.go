@@ -26,22 +26,27 @@ import (
 
 type InfoResponse struct {
 	ClusterConfig      clusterconfig.InternalConfig `json:"cluster_config" yaml:"cluster_config"`
-	NodeInfos          []NodeInfo                   `json:"node_infos" yaml:"node_infos"`
+	WorkerNodeInfos    []WorkerNodeInfo             `json:"worker_node_infos" yaml:"worker_node_infos"`
+	OperatorNodeInfos  []NodeInfo                   `json:"operator_node_infos" yaml:"operator_node_infos"`
 	NumPendingReplicas int                          `json:"num_pending_replicas" yaml:"num_pending_replicas"`
 }
 
-type NodeInfo struct {
+type WorkerNodeInfo struct {
+	NodeInfo
 	Name                    string             `json:"name" yaml:"name"`
-	NodeGroupName           string             `json:"nodegroup_name" yaml:"nodegroup_name"`
-	InstanceType            string             `json:"instance_type" yaml:"instance_type"`
-	IsSpot                  bool               `json:"is_spot" yaml:"is_spot"`
-	Price                   float64            `json:"price" yaml:"price"`
 	NumReplicas             int                `json:"num_replicas" yaml:"num_replicas"`
 	NumAsyncGatewayReplicas int                `json:"num_async_gateway_replicas" yaml:"num_async_gateway_replicas"`
 	NumEnqueuerReplicas     int                `json:"num_enqueuer_replicas" yaml:"num_enqueuer_replicas"`
 	ComputeUserCapacity     userconfig.Compute `json:"compute_user_capacity" yaml:"compute_user_capacity"`   // the total resources available to the user on a node
 	ComputeAvailable        userconfig.Compute `json:"compute_available" yaml:"compute_unavailable"`         // unused resources on a node
 	ComputeUserRequested    userconfig.Compute `json:"compute_user_requested" yaml:"compute_user_requested"` // total resources requested by user on a node
+}
+
+type NodeInfo struct {
+	NodeGroupName string  `json:"nodegroup_name" yaml:"nodegroup_name"`
+	InstanceType  string  `json:"instance_type" yaml:"instance_type"`
+	IsSpot        bool    `json:"is_spot" yaml:"is_spot"`
+	Price         float64 `json:"price" yaml:"price"`
 }
 
 type DeployResult struct {
@@ -97,9 +102,9 @@ type APIVersion struct {
 
 type VerifyCortexResponse struct{}
 
-func (ir InfoResponse) GetNodesWithNodeGroupName(ngName string) []NodeInfo {
-	nodesInfo := []NodeInfo{}
-	for _, nodeInfo := range ir.NodeInfos {
+func (ir InfoResponse) GetNodesWithNodeGroupName(ngName string) []WorkerNodeInfo {
+	nodesInfo := []WorkerNodeInfo{}
+	for _, nodeInfo := range ir.WorkerNodeInfos {
 		if nodeInfo.NodeGroupName == ngName {
 			nodesInfo = append(nodesInfo, nodeInfo)
 		}
