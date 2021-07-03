@@ -946,12 +946,12 @@ func (cc *Config) validate(awsClient *aws.Client) error {
 		})
 	}
 
-	if err := awsClient.VerifyInstanceQuota(instances); err != nil {
-		// Skip AWS errors, since some regions (e.g. eu-north-1) do not support this API
-		if !aws.IsAWSError(err) {
-			return errors.Wrap(err, NodeGroupsKey)
-		}
-	}
+	// if err := awsClient.VerifyInstanceQuota(instances); err != nil {
+	// 	// Skip AWS errors, since some regions (e.g. eu-north-1) do not support this API
+	// 	if !aws.IsAWSError(err) {
+	// 		return errors.Wrap(err, NodeGroupsKey)
+	// 	}
+	// }
 
 	if len(cc.AvailabilityZones) > 0 && len(cc.Subnets) > 0 {
 		return ErrorSpecifyOneOrNone(AvailabilityZonesKey, SubnetsKey)
