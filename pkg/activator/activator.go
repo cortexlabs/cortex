@@ -40,8 +40,8 @@ type Activator interface {
 }
 
 type activator struct {
-	activatorsMux     sync.RWMutex
-	trackersMux       sync.RWMutex
+	activatorsMux     sync.Mutex
+	trackersMux       sync.Mutex
 	autoscalerClient  autoscaler.Client
 	apiActivators     map[string]*apiActivator
 	readinessTrackers map[string]*readinessTracker
@@ -113,7 +113,6 @@ func (a *activator) getOrCreateAPIActivator(ctx context.Context, apiName string)
 	defer a.activatorsMux.Unlock()
 
 	act, ok := a.apiActivators[apiName]
-	a.activatorsMux.RUnlock()
 	if ok {
 		return act, nil
 	}
@@ -136,18 +135,15 @@ func (a *activator) getOrCreateAPIActivator(ctx context.Context, apiName string)
 }
 
 func (a *activator) getOrCreateReadinessTracker(apiName string) *readinessTracker {
-	a.trackersMux.RLock()
+	a.trackersMux.Lock()
+	defer a.trackersMux.Unlock()
 	tracker, ok := a.readinessTrackers[apiName]
-	a.trackersMux.RUnlock()
 	if ok {
 		return tracker
 	}
 
 	tracker = newReadinessTracker()
-
-	a.trackersMux.Lock()
 	a.readinessTrackers[apiName] = tracker
-	a.trackersMux.Unlock()
 
 	return tracker
 }
@@ -269,6 +265,6 @@ func (a *activator) removeReadinessTracker(obj interface{}) {
 	}
 
 	a.trackersMux.Lock()
+	defer a.trackersMux.Unlock()
 	delete(a.readinessTrackers, api.apiName)
-	a.trackersMux.Unlock()
 }
