@@ -67,6 +67,12 @@ func IsAlphaNumericDotUnderscore(s string) bool {
 	return _alphaNumericDotUnderscoreRegex.MatchString(s)
 }
 
+var _alphaNumericDashRegex = regexp.MustCompile(`^[a-zA-Z0-9\-]+$`)
+
+func IsAlphaNumericDash(s string) bool {
+	return _alphaNumericDashRegex.MatchString(s)
+}
+
 // used the evaluated form of
 // https://github.com/docker/distribution/blob/3150937b9f2b1b5b096b2634d0e7c44d4a0f89fb/reference/regexp.go#L68-L70
 var _dockerValidImage = regexp.MustCompile(
