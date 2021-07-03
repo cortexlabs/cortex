@@ -1,0 +1,22 @@
+- name: image-classifier-resnet50
+  kind: RealtimeAPI
+  pod:
+    port: 9000
+    max_concurrency: 8
+    containers:
+    - name: api
+      image: quay.io/cortexlabs-test/neuron-tf-serving:latest
+      command: ["/usr/local/bin/entrypoint.sh"]
+      args:
+        - --port=8500
+        - --rest_api_port=9000
+        - --model_name=resnet50_neuron
+        - --model_base_path=s3://cortex-examples/resnet50_neuron/
+      env:
+        AWS_REGION: us-west-2
+        S3_USE_HTTPS: "1"
+        S3_VERIFY_SSL: "0"
+        S3_ENDPOINT: s3.us-west-2.amazonaws.com
+        AWS_LOG_LEVEL: "3"
+      compute:
+        inf: 1
