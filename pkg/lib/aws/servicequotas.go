@@ -328,9 +328,9 @@ func requiredRulesForNodeGroupSecurityGroup(numAZs, whitelistLength int) int {
 }
 
 func requiredRulesForControlPlaneSecurityGroup(numNodeGroups int) int {
-	// +1 for the operator node group
+	// +2 for the operator and prometheus node groups
 	// this is the number of outbound rules (there are half as many inbound rules, so that is not the limiting factor)
-	return 2 * (numNodeGroups + 1)
+	return 2 * (numNodeGroups + 2)
 }
 
 func requiredSecurityGroups(numNodeGroups int, clusterAlreadyExists bool) int {

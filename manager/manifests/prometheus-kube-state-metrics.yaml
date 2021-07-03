@@ -234,6 +234,12 @@ spec:
             port: 8080
           initialDelaySeconds: 5
           timeoutSeconds: 5
+      nodeSelector:
+        prometheus: "true"
+      tolerations:
+        - key: prometheus
+          operator: Exists
+          effect: NoSchedule
 ---
 apiVersion: monitoring.coreos.com/v1
 kind: PodMonitor
@@ -250,6 +256,17 @@ spec:
       scheme: http
       path: /metrics
       interval: 30s
+      metricRelabelings:
+      - action: keep
+        sourceLabels: [__name__]
+        regex: "kube_(\
+          pod_container_resource_requests|\
+          pod_info|\
+          deployment_status_replicas_available|\
+          job_status_active\
+          )"
+      - action: labelkeep
+        regex: (__name__|exported_pod|exported_container|job_name|resource)
   namespaceSelector:
     any: true
   selector:

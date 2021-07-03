@@ -770,11 +770,12 @@ func cmdInfo(awsClient *aws.Client, accessConfig *clusterconfig.AccessConfig, st
 			infoInterface = infoResponse.ClusterConfig.Config
 		} else {
 			infoInterface = map[string]interface{}{
-				"cluster_config":    infoResponse.ClusterConfig.Config,
-				"cluster_metadata":  infoResponse.ClusterConfig.OperatorMetadata,
-				"node_infos":        infoResponse.NodeInfos,
-				"endpoint_operator": operatorEndpoint,
-				"endpoint_api":      apiEndpoint,
+				"cluster_config":      infoResponse.ClusterConfig.Config,
+				"cluster_metadata":    infoResponse.ClusterConfig.OperatorMetadata,
+				"worker_node_infos":   infoResponse.WorkerNodeInfos,
+				"operator_node_infos": infoResponse.OperatorNodeInfos,
+				"endpoint_operator":   operatorEndpoint,
+				"endpoint_api":        apiEndpoint,
 			}
 		}
 
@@ -848,6 +849,8 @@ func printInfoPricing(infoResponse *schema.InfoResponse, clusterConfig clusterco
 	eksPrice := aws.EKSPrices[clusterConfig.Region]
 	operatorInstancePrice := aws.InstanceMetadatas[clusterConfig.Region]["t3.medium"].Price
 	operatorEBSPrice := aws.EBSMetadatas[clusterConfig.Region]["gp3"].PriceGB * 20 / 30 / 24
+	prometheusInstancePrice := aws.InstanceMetadatas[clusterConfig.Region][clusterConfig.PrometheusInstanceType].Price
+	prometheusEBSPrice := aws.EBSMetadatas[clusterConfig.Region]["gp3"].PriceGB * 20 / 30 / 24
 	metricsEBSPrice := aws.EBSMetadatas[clusterConfig.Region]["gp2"].PriceGB * (40 + 2) / 30 / 24
 	nlbPrice := aws.NLBMetadatas[clusterConfig.Region].Price
 	natUnitPrice := aws.NATMetadatas[clusterConfig.Region].Price
@@ -891,17 +894,20 @@ func printInfoPricing(infoResponse *schema.InfoResponse, clusterConfig clusterco
 		totalNodeGroupsPrice += totalEBSPrice + totalInstancePrice
 	}
 
+	operatorNodeGroupPrice := float64(len(infoResponse.OperatorNodeInfos)) * (operatorInstancePrice + operatorEBSPrice)
+	prometheusNodeGroupPrice := prometheusInstancePrice + prometheusEBSPrice + metricsEBSPrice
+
 	var natTotalPrice float64
 	if clusterConfig.NATGateway == clusterconfig.SingleNATGateway {
 		natTotalPrice = natUnitPrice
 	} else if clusterConfig.NATGateway == clusterconfig.HighlyAvailableNATGateway {
 		natTotalPrice = natUnitPrice * float64(len(clusterConfig.AvailabilityZones))
 	}
-	totalPrice := eksPrice + totalNodeGroupsPrice + 2*(operatorInstancePrice+operatorEBSPrice) + metricsEBSPrice + nlbPrice*2 + natTotalPrice
+	totalPrice := eksPrice + totalNodeGroupsPrice + operatorNodeGroupPrice + prometheusNodeGroupPrice + nlbPrice*2 + natTotalPrice
 	fmt.Printf(console.Bold("\nyour cluster currently costs %s per hour\n\n"), s.DollarsAndCents(totalPrice))
 
-	operatorPrice := 2*(operatorInstancePrice+operatorEBSPrice) + metricsEBSPrice
-	rows = append(rows, []interface{}{"2 t3.medium instances (cortex system)", s.DollarsAndTenthsOfCents(operatorPrice)})
+	rows = append(rows, []interface{}{fmt.Sprintf("%d t3.medium %s (cortex system)", len(infoResponse.OperatorNodeInfos), s.PluralS("instance", len(infoResponse.OperatorNodeInfos))), s.DollarsAndTenthsOfCents(operatorNodeGroupPrice)})
+	rows = append(rows, []interface{}{fmt.Sprintf("1 %s instance (prometheus)", clusterConfig.PrometheusInstanceType), s.DollarsAndTenthsOfCents(prometheusNodeGroupPrice)})
 	rows = append(rows, []interface{}{"2 network load balancers", s.DollarsMaxPrecision(nlbPrice*2) + " total"})
 
 	if clusterConfig.NATGateway == clusterconfig.SingleNATGateway {
@@ -919,11 +925,11 @@ func printInfoPricing(infoResponse *schema.InfoResponse, clusterConfig clusterco
 }
 
 func printInfoNodes(infoResponse *schema.InfoResponse) {
-	numAPIInstances := len(infoResponse.NodeInfos)
+	numAPIInstances := len(infoResponse.WorkerNodeInfos)
 
 	var totalReplicas int
 	var doesClusterHaveGPUs, doesClusterHaveInfs, doesClusterHaveAsyncGateways, doesClusterHaveEnqueuers bool
-	for _, nodeInfo := range infoResponse.NodeInfos {
+	for _, nodeInfo := range infoResponse.WorkerNodeInfos {
 		totalReplicas += nodeInfo.NumReplicas
 		if nodeInfo.ComputeUserCapacity.GPU > 0 {
 			doesClusterHaveGPUs = true
@@ -946,7 +952,7 @@ func printInfoNodes(infoResponse *schema.InfoResponse) {
 
 	fmt.Printf(console.Bold("\nyour cluster has %d API %s running across %d %s%s\n"), totalReplicas, s.PluralS("replica", totalReplicas), numAPIInstances, s.PluralS("instance", numAPIInstances), pendingReplicasStr)
 
-	if len(infoResponse.NodeInfos) == 0 {
+	if len(infoResponse.WorkerNodeInfos) == 0 {
 		return
 	}
 
@@ -963,7 +969,7 @@ func printInfoNodes(infoResponse *schema.InfoResponse) {
 	}
 
 	var rows [][]interface{}
-	for _, nodeInfo := range infoResponse.NodeInfos {
+	for _, nodeInfo := range infoResponse.WorkerNodeInfos {
 		lifecycle := "on-demand"
 		if nodeInfo.IsSpot {
 			lifecycle = "spot"

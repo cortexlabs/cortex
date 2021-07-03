@@ -30,6 +30,12 @@ metadata:
 spec:
   image: {{ config['image_prometheus'] }}
   serviceAccountName: prometheus
+  nodeSelector:
+    prometheus: "true"
+  tolerations:
+    - key: prometheus
+      operator: Exists
+      effect: NoSchedule
   podMonitorSelector:
     matchExpressions:
       - key: "monitoring.cortex.dev"
@@ -160,6 +166,17 @@ spec:
         - sourceLabels: [ __meta_kubernetes_pod_name ]
           action: replace
           targetLabel: pod_name
+      metricRelabelings:
+        - action: keep
+          sourceLabels: [__name__]
+          regex: "istio_(\
+            requests_total|\
+            request_duration_milliseconds_bucket|\
+            request_duration_milliseconds_sum|\
+            request_duration_milliseconds_count\
+            )"
+        - action: labelkeep
+          regex: (__name__|destination_service|response_code|le)
 
 ---
 
@@ -209,6 +226,10 @@ spec:
         - sourceLabels: [ __meta_kubernetes_pod_name ]
           action: replace
           targetLabel: pod_name
+      metricRelabelings:
+        - action: keep
+          sourceLabels: [__name__]
+          regex: "cortex_(.+)"
 
 ---
 
@@ -259,6 +280,10 @@ spec:
         - sourceLabels: [ __meta_kubernetes_pod_name ]
           action: replace
           targetLabel: pod_name
+      metricRelabelings:
+        - action: keep
+          sourceLabels: [__name__]
+          regex: "cortex_(.+)"
 
 ---
 
@@ -276,6 +301,10 @@ spec:
       scheme: http
       path: /metrics
       interval: 20s
+      metricRelabelings:
+        - action: keep
+          sourceLabels: [__name__]
+          regex: "cortex_(.+)"
   namespaceSelector:
     any: true
   selector:
@@ -298,6 +327,10 @@ spec:
       scheme: http
       path: /metrics
       interval: 10s
+      metricRelabelings:
+        - action: keep
+          sourceLabels: [__name__]
+          regex: "cortex_(.+)"
   namespaceSelector:
     any: true
   selector:

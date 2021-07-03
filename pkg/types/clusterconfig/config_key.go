@@ -22,6 +22,7 @@ const (
 
 	ClusterNameKey                         = "cluster_name"
 	RegionKey                              = "region"
+	PrometheusInstanceTypeKey              = "prometheus_instance_type"
 	NodeGroupsKey                          = "node_groups"
 	InstanceTypeKey                        = "instance_type"
 	AcceleratorTypeKey                     = "accelerator_type"
