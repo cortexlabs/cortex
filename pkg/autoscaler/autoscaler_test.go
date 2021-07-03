@@ -47,6 +47,7 @@ func TestAutoscaler_Awake(t *testing.T) {
 	mux := sync.RWMutex{}
 	var latestRequest int32
 
+	downscaleStabilizationPeriod := 3 * time.Second
 	scalerMock := &ScalerFunc{
 		ScaleFunc: func(apiName string, request int32) error {
 			mux.Lock()
@@ -60,25 +61,24 @@ func TestAutoscaler_Awake(t *testing.T) {
 		},
 		GetAutoscalingSpecFunc: func(apiName string) (*userconfig.Autoscaling, error) {
 			return &userconfig.Autoscaling{
-				MinReplicas:    0,
-				MaxReplicas:    1,
-				InitReplicas:   1,
-				TargetInFlight: pointer.Float64(1),
-				Window:         time.Second,
+				MinReplicas:                  0,
+				MaxReplicas:                  1,
+				InitReplicas:                 1,
+				TargetInFlight:               pointer.Float64(1),
+				Window:                       time.Second,
+				DownscaleStabilizationPeriod: downscaleStabilizationPeriod,
 			}, nil
 		},
 		CurrentReplicasFunc: func(apiName string) (int32, error) {
-			return 1, nil
+			return 0, nil
 		},
 	}
 
-	awakenStabilizationPeriod := 3 * time.Second
 	autoScaler := &Autoscaler{
-		logger:                    log,
-		crons:                     make(map[string]cron.Cron),
-		scalers:                   make(map[userconfig.Kind]Scaler),
-		lastAwakenTimestamp:       make(map[string]time.Time),
-		awakenStabilizationPeriod: awakenStabilizationPeriod,
+		logger:              log,
+		crons:               make(map[string]cron.Cron),
+		scalers:             make(map[userconfig.Kind]Scaler),
+		lastAwakenTimestamp: make(map[string]time.Time),
 	}
 	autoScaler.AddScaler(scalerMock, userconfig.RealtimeAPIKind)
 
@@ -110,6 +110,6 @@ func TestAutoscaler_Awake(t *testing.T) {
 	require.Never(t, func() bool {
 		mux.RLock()
 		defer mux.RUnlock()
-		return latestRequest == 0
-	}, awakenStabilizationPeriod, time.Second)
+		return latestRequest != 1
+	}, downscaleStabilizationPeriod, time.Second)
 }

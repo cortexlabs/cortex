@@ -34,25 +34,22 @@ import (
 
 const (
 	_prometheusQueryTimeoutSeconds = 10
-	_awakenStabilizationPeriod     = 10 * time.Minute
 )
 
 type Autoscaler struct {
 	sync.Mutex
-	logger                    *zap.SugaredLogger
-	crons                     map[string]cron.Cron
-	scalers                   map[userconfig.Kind]Scaler
-	lastAwakenTimestamp       map[string]time.Time
-	awakenStabilizationPeriod time.Duration
+	logger              *zap.SugaredLogger
+	crons               map[string]cron.Cron
+	scalers             map[userconfig.Kind]Scaler
+	lastAwakenTimestamp map[string]time.Time
 }
 
 func New(logger *zap.SugaredLogger) *Autoscaler {
 	return &Autoscaler{
-		logger:                    logger,
-		crons:                     make(map[string]cron.Cron),
-		scalers:                   make(map[userconfig.Kind]Scaler),
-		lastAwakenTimestamp:       make(map[string]time.Time),
-		awakenStabilizationPeriod: _awakenStabilizationPeriod,
+		logger:              logger,
+		crons:               make(map[string]cron.Cron),
+		scalers:             make(map[userconfig.Kind]Scaler),
+		lastAwakenTimestamp: make(map[string]time.Time),
 	}
 }
 
@@ -63,13 +60,6 @@ func (a *Autoscaler) AddScaler(scaler Scaler, kind userconfig.Kind) {
 func (a *Autoscaler) Awaken(api userconfig.Resource) error {
 	a.Lock()
 	defer a.Unlock()
-
-	// ignore awake call if one already happened within the awakenStabilizationPeriod duration
-	if awakenTimestamp, ok := a.lastAwakenTimestamp[api.Name]; ok {
-		if time.Since(awakenTimestamp) <= _awakenStabilizationPeriod {
-			return nil
-		}
-	}
 
 	scaler, ok := a.scalers[api.Kind]
 	if !ok {
@@ -83,9 +73,18 @@ func (a *Autoscaler) Awaken(api userconfig.Resource) error {
 		zap.String("apiKind", api.Kind.String()),
 	)
 
+	currentReplicas, err := scaler.CurrentReplicas(api.Name)
+	if err != nil {
+		return errors.Wrap(err, "failed to get current replicas")
+	}
+
+	if currentReplicas > 0 {
+		return nil
+	}
+
 	log.Infof("autoscaling awake event")
 	if err := scaler.Scale(api.Name, 1); err != nil {
-		return err
+		return errors.Wrap(err, "failed to scale api to one")
 	}
 
 	a.lastAwakenTimestamp[api.Name] = time.Now()
@@ -239,6 +238,17 @@ func (a *Autoscaler) autoscaleFn(api userconfig.Resource) (func() error, error) 
 			} else if downscaleStabilizationFloor != nil && request < *downscaleStabilizationFloor {
 				request = *downscaleStabilizationFloor
 			}
+
+			// awaken state: was scaled from zero
+			// This needs to be protected by a Mutex because an Awaken call will also modify it
+			a.Lock()
+			lastAwakenTimestamp := a.lastAwakenTimestamp[api.Name]
+
+			// Make sure we don't scale below zero if API was recently awaken
+			if time.Since(lastAwakenTimestamp) < autoscalingSpec.DownscaleStabilizationPeriod {
+				request = libmath.MaxInt32(request, 1)
+			}
+			a.Unlock()
 		}
 		if request > currentReplicas {
 			upscaleStabilizationCeil = recs.minSince(autoscalingSpec.UpscaleStabilizationPeriod)
@@ -247,17 +257,6 @@ func (a *Autoscaler) autoscaleFn(api userconfig.Resource) (func() error, error) 
 			} else if upscaleStabilizationCeil != nil && request > *upscaleStabilizationCeil {
 				request = *upscaleStabilizationCeil
 			}
-		}
-
-		// awaken state: was scaled from zero
-		// This needs to be protected by a Mutex because an Awaken call will also modify it
-		a.Lock()
-		awoke := time.Since(a.lastAwakenTimestamp[api.Name]) <= _awakenStabilizationPeriod
-		a.Unlock()
-
-		// do now allow downscale bellow 1 if API was awoke with the awaken stabilization period
-		if awoke {
-			request = libmath.MaxInt32(currentReplicas, 1)
 		}
 
 		log.Debugw("autoscaler tick",
