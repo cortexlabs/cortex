@@ -163,7 +163,9 @@ func getConfigureClusterConfig(awsClient *aws.Client, stacks clusterstate.Cluste
 func confirmInstallClusterConfig(clusterConfig *clusterconfig.Config, awsClient *aws.Client, disallowPrompt bool) {
 	eksPrice := aws.EKSPrices[clusterConfig.Region]
 	operatorInstancePrice := aws.InstanceMetadatas[clusterConfig.Region]["t3.medium"].Price
+	prometheusInstancePrice := aws.InstanceMetadatas[clusterConfig.Region][clusterConfig.PrometheusInstanceType].Price
 	operatorEBSPrice := aws.EBSMetadatas[clusterConfig.Region]["gp3"].PriceGB * 20 / 30 / 24
+	prometheusEBSPrice := aws.EBSMetadatas[clusterConfig.Region]["gp3"].PriceGB * 20 / 30 / 24
 	metricsEBSPrice := aws.EBSMetadatas[clusterConfig.Region]["gp2"].PriceGB * (40 + 2) / 30 / 24
 	nlbPrice := aws.NLBMetadatas[clusterConfig.Region].Price
 	natUnitPrice := aws.NATMetadatas[clusterConfig.Region].Price
@@ -184,7 +186,7 @@ func confirmInstallClusterConfig(clusterConfig *clusterconfig.Config, awsClient 
 	rows = append(rows, []interface{}{"1 eks cluster", s.DollarsMaxPrecision(eksPrice)})
 
 	ngNameToSpotInstancesUsed := map[string]int{}
-	fixedPrice := eksPrice + 2*(operatorInstancePrice+operatorEBSPrice) + metricsEBSPrice + 2*nlbPrice + natTotalPrice
+	fixedPrice := eksPrice + operatorInstancePrice + operatorEBSPrice + prometheusInstancePrice + prometheusEBSPrice + metricsEBSPrice + 2*nlbPrice + natTotalPrice
 	totalMinPrice := fixedPrice
 	totalMaxPrice := fixedPrice
 	for _, ng := range clusterConfig.NodeGroups {
@@ -223,8 +225,10 @@ func confirmInstallClusterConfig(clusterConfig *clusterconfig.Config, awsClient 
 		rows = append(rows, []interface{}{workerInstanceStr, workerPriceStr})
 	}
 
-	operatorPrice := 2*(operatorInstancePrice+operatorEBSPrice) + metricsEBSPrice
-	rows = append(rows, []interface{}{"2 t3.medium instances (cortex system)", s.DollarsAndTenthsOfCents(operatorPrice)})
+	operatorNodeGroupPrice := operatorInstancePrice + operatorEBSPrice
+	prometheusNodeGroupPrice := prometheusInstancePrice + prometheusEBSPrice + metricsEBSPrice
+	rows = append(rows, []interface{}{"1 t3.medium instance (cortex system)", s.DollarsAndTenthsOfCents(operatorNodeGroupPrice)})
+	rows = append(rows, []interface{}{fmt.Sprintf("1 %s instance (prometheus)", clusterConfig.PrometheusInstanceType), s.DollarsAndTenthsOfCents(prometheusNodeGroupPrice)})
 	rows = append(rows, []interface{}{"2 network load balancers", s.DollarsMaxPrecision(nlbPrice) + " each"})
 
 	if clusterConfig.NATGateway == clusterconfig.SingleNATGateway {
@@ -280,6 +284,10 @@ func confirmInstallClusterConfig(clusterConfig *clusterconfig.Config, awsClient 
 
 func confirmConfigureClusterConfig(configureChanges clusterconfig.ConfigureChanges, oldCc, newCc clusterconfig.Config, disallowPrompt bool) {
 	fmt.Printf("your %s cluster in region %s will be updated as follows:\n\n", newCc.ClusterName, newCc.Region)
+
+	for _, fieldToUpdate := range configureChanges.FieldsToUpdate {
+		fmt.Printf("￮ %s will be updated\n", fieldToUpdate)
+	}
 
 	for _, ngName := range configureChanges.NodeGroupsToScale {
 		ngOld := oldCc.GetNodeGroupByName(ngName)

@@ -90,6 +90,8 @@ function cluster_configure() {
   add_nodegroups
   remove_nodegroups
 
+  update_networking
+
   echo -n "￮ updating cluster configuration "
   setup_configmap
   echo "✓"
@@ -362,6 +364,51 @@ function setup_istio() {
 
   python render_template.py $CORTEX_CLUSTER_CONFIG_FILE manifests/istio.yaml.j2 > /workspace/istio.yaml
   output_if_error istio-${ISTIO_VERSION}/bin/istioctl install --skip-confirmation --filename /workspace/istio.yaml
+}
+
+function update_networking() {
+  prev_ssl_certificate_arn=$(kubectl get svc ingressgateway-apis -n=istio-system -o json | jq -r '.metadata.annotations."service.beta.kubernetes.io/aws-load-balancer-ssl-cert"')
+
+  if [ "$prev_ssl_certificate_arn" = "null" ]; then
+      prev_ssl_certificate_arn=""
+  fi
+
+  new_ssl_certificate_arn=$(cat $CORTEX_CLUSTER_CONFIG_FILE | yq -r .ssl_certificate_arn)
+
+  if [ "$new_ssl_certificate_arn" = "null" ]; then
+      new_ssl_certificate_arn=""
+  fi
+
+  prev_api_whitelist_ip_address=$(kubectl get svc ingressgateway-apis  -n=istio-system -o yaml | yq -r -c ".spec.loadBalancerSourceRanges")
+  prev_operator_whitelist_ip_address=$(kubectl get svc ingressgateway-operator  -n=istio-system -o yaml | yq -r -c ".spec.loadBalancerSourceRanges")
+
+  new_api_whitelist_ip_address=$(cat $CORTEX_CLUSTER_CONFIG_FILE | yq -r -c ".api_load_balancer_cidr_white_list")
+  new_operator_whitelist_ip_address=$(cat $CORTEX_CLUSTER_CONFIG_FILE | yq -r -c ".operator_load_balancer_cidr_white_list")
+
+  if [ "$prev_ssl_certificate_arn" = "$new_ssl_certificate_arn" ] && [ "$prev_api_whitelist_ip_address" = "$new_api_whitelist_ip_address" ] && [ "$prev_operator_whitelist_ip_address" = "$new_operator_whitelist_ip_address" ] ; then
+      return
+  fi
+
+  echo -n "￮ updating networking configuration "
+
+  if [ "$new_ssl_certificate_arn" != "$prev_ssl_certificate_arn" ] ; then
+      # there is a bug where changing the certificate annotation will not cause the HTTPS listener in the NLB to update
+      # the current workaround is to delete the HTTPS listener and have it recreated with istioctl
+      if [ "$prev_ssl_certificate_arn" != "" ] ; then
+        kubectl patch svc ingressgateway-apis -n=istio-system --type=json -p="[{'op': 'remove', 'path': '/metadata/annotations/service.beta.kubernetes.io~1aws-load-balancer-ssl-cert'}]" >/dev/null
+      fi
+      https_index=$(kubectl get svc ingressgateway-apis -n=istio-system -o json  | jq '.spec.ports | map(.name == "https") | index(true)')
+      if [ "$https_index" != "null" ] ; then
+        kubectl patch svc ingressgateway-apis -n=istio-system --type=json -p="[{'op': 'remove', 'path': '/spec/ports/$https_index'}]" >/dev/null
+      fi
+  fi
+
+  python render_template.py $CORTEX_CLUSTER_CONFIG_FILE manifests/istio.yaml.j2 > /workspace/istio.yaml
+  output_if_error istio-${ISTIO_VERSION}/bin/istioctl install --skip-confirmation --filename /workspace/istio.yaml
+  python render_template.py $CORTEX_CLUSTER_CONFIG_FILE manifests/apis.yaml.j2 > /workspace/apis.yaml
+  kubectl apply -f /workspace/apis.yaml >/dev/null
+
+  echo "✓"
 }
 
 function validate_cortex() {

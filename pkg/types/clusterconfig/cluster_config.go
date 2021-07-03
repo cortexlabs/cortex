@@ -39,6 +39,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	"github.com/cortexlabs/cortex/pkg/lib/slices"
+	libstr "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"github.com/cortexlabs/cortex/pkg/lib/structs"
 	"github.com/cortexlabs/yaml"
 )
@@ -55,6 +56,8 @@ const (
 )
 
 var (
+	_operatorNodeGroupInstanceType = "t3.medium"
+
 	_maxNodeGroupLengthWithPrefix = 32
 	_maxNodeGroupLength           = _maxNodeGroupLengthWithPrefix - len("cx-wd-") // or cx-ws-
 	_maxInstancePools             = 20
@@ -83,8 +86,9 @@ type CoreConfig struct {
 	IstioNamespace string `json:"istio_namespace" yaml:"istio_namespace"`
 
 	// User-specifiable fields
-	ClusterName string `json:"cluster_name" yaml:"cluster_name"`
-	Region      string `json:"region" yaml:"region"`
+	ClusterName            string `json:"cluster_name" yaml:"cluster_name"`
+	Region                 string `json:"region" yaml:"region"`
+	PrometheusInstanceType string `json:"prometheus_instance_type" yaml:"prometheus_instance_type"`
 
 	// User-specifiable fields
 	ImageOperator                   string `json:"image_operator" yaml:"image_operator"`
@@ -193,10 +197,11 @@ type ConfigureChanges struct {
 	NodeGroupsToRemove    []string
 	NodeGroupsToScale     []string
 	EKSNodeGroupsToRemove []string // EKS node group names of (NodeGroupsToRemove ∩ Cortex-converted EKS node groups) ∪ (Cortex-converted EKS node groups - the new cluster config's nodegroups)
+	FieldsToUpdate        []string
 }
 
 func (c *ConfigureChanges) HasChanges() bool {
-	return len(c.NodeGroupsToAdd) != 0 || len(c.NodeGroupsToRemove) != 0 || len(c.NodeGroupsToScale) != 0 || len(c.EKSNodeGroupsToRemove) != 0
+	return len(c.NodeGroupsToAdd)+len(c.NodeGroupsToRemove)+len(c.NodeGroupsToScale)+len(c.EKSNodeGroupsToRemove)+len(c.FieldsToUpdate) != 0
 }
 
 // GetGhostEKSNodeGroups returns the set difference between EKSNodeGroupsToRemove and the EKS-converted NodeGroupsToRemove
@@ -331,6 +336,14 @@ var CoreConfigStructFieldValidations = []*cr.StructFieldValidation{
 			Required:  true,
 			MinLength: 1,
 			Validator: RegionValidator,
+		},
+	},
+	{
+		StructField: "PrometheusInstanceType",
+		StringValidation: &cr.StringValidation{
+			MinLength: 1,
+			Default:   "t3.medium",
+			Validator: validatePrometheusInstanceType,
 		},
 	},
 	{
@@ -920,12 +933,17 @@ func (cc *Config) validate(awsClient *aws.Client) error {
 	}
 
 	ngNames := []string{}
-	instances := []aws.InstanceTypeRequests{}
+	instances := []aws.InstanceTypeRequests{
+		{
+			InstanceType:              _operatorNodeGroupInstanceType,
+			RequiredOnDemandInstances: 1,
+		},
+		{
+			InstanceType:              cc.PrometheusInstanceType,
+			RequiredOnDemandInstances: 1,
+		},
+	}
 	for _, nodeGroup := range cc.NodeGroups {
-		// setting max_instances to 0 during cluster creation is not permitted (but scaling max_instances to 0 afterwards is allowed)
-		if nodeGroup.MaxInstances == 0 {
-			return errors.Wrap(ErrorNodeGroupMaxInstancesIsZero(), NodeGroupsKey, nodeGroup.Name)
-		}
 		if !slices.HasString(ngNames, nodeGroup.Name) {
 			ngNames = append(ngNames, nodeGroup.Name)
 		} else {
@@ -1045,43 +1063,54 @@ func (cc *Config) validate(awsClient *aws.Client) error {
 	return nil
 }
 
-func (cc *Config) validateConfigDiff(oldConfig Config) error {
-	err := cc.validateTopLevelSectionDiff(oldConfig)
-	if err != nil {
-		return err
-	}
-
-	return cc.validateSharedNodeGroupsDiff(oldConfig)
-}
-
-func (cc *Config) validateTopLevelSectionDiff(oldConfig Config) error {
+func (cc *Config) validateTopLevelSectionDiff(oldConfig Config) ([]string, error) {
+	var fieldsToUpdate []string
 	// validate actionable changes
 	newClusterConfigCopy, err := cc.DeepCopy()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	oldClusterConfigCopy, err := oldConfig.DeepCopy()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	newClusterConfigCopy.NodeGroups = []*NodeGroup{}
-	oldClusterConfigCopy.NodeGroups = []*NodeGroup{}
+	if libstr.Obj(newClusterConfigCopy.SSLCertificateARN) != libstr.Obj(oldClusterConfigCopy.SSLCertificateARN) {
+		fieldsToUpdate = append(fieldsToUpdate, SSLCertificateARNKey)
+	}
+
+	if libstr.Obj(newClusterConfigCopy.APILoadBalancerCIDRWhiteList) != libstr.Obj(oldClusterConfigCopy.APILoadBalancerCIDRWhiteList) {
+		fieldsToUpdate = append(fieldsToUpdate, APILoadBalancerCIDRWhiteListKey)
+	}
+
+	if libstr.Obj(newClusterConfigCopy.OperatorLoadBalancerCIDRWhiteList) != libstr.Obj(oldClusterConfigCopy.OperatorLoadBalancerCIDRWhiteList) {
+		fieldsToUpdate = append(fieldsToUpdate, OperatorLoadBalancerCIDRWhiteListKey)
+	}
+
+	clearUpdatableFields(&newClusterConfigCopy)
+	clearUpdatableFields(&oldClusterConfigCopy)
 
 	h1, err := newClusterConfigCopy.Hash()
 	if err != nil {
-		return err
+		return nil, err
 	}
 	h2, err := oldClusterConfigCopy.Hash()
 	if err != nil {
-		return err
+		return nil, err
 	}
 	if h1 != h2 {
-		return ErrorConfigCannotBeChangedOnConfigure()
+		return nil, ErrorConfigCannotBeChangedOnConfigure()
 	}
 
-	return nil
+	return fieldsToUpdate, nil
+}
+
+func clearUpdatableFields(clusterConfig *Config) {
+	clusterConfig.SSLCertificateARN = nil
+	clusterConfig.APILoadBalancerCIDRWhiteList = nil
+	clusterConfig.OperatorLoadBalancerCIDRWhiteList = nil
+	clusterConfig.NodeGroups = []*NodeGroup{}
 }
 
 func (cc *Config) validateSharedNodeGroupsDiff(oldConfig Config) error {
@@ -1126,6 +1155,13 @@ func (cc *Config) ValidateOnInstall(awsClient *aws.Client) error {
 		return err
 	}
 
+	// setting max_instances to 0 during cluster creation is not permitted (but scaling max_instances to 0 afterwards is allowed)
+	for _, nodeGroup := range cc.NodeGroups {
+		if nodeGroup != nil && nodeGroup.MaxInstances == 0 {
+			return errors.Wrap(ErrorNodeGroupMaxInstancesIsZero(), NodeGroupsKey, nodeGroup.Name)
+		}
+	}
+
 	if cc.ClusterUID != "" {
 		return ErrorDisallowedField(ClusterUIDKey)
 	}
@@ -1155,7 +1191,12 @@ func (cc *Config) ValidateOnConfigure(awsClient *aws.Client, oldConfig Config, e
 		return ConfigureChanges{}, err
 	}
 
-	err = cc.validateConfigDiff(oldConfig)
+	fieldsToUpdate, err := cc.validateTopLevelSectionDiff(oldConfig)
+	if err != nil {
+		return ConfigureChanges{}, err
+	}
+
+	err = cc.validateSharedNodeGroupsDiff(oldConfig)
 	if err != nil {
 		return ConfigureChanges{}, err
 	}
@@ -1186,6 +1227,7 @@ func (cc *Config) ValidateOnConfigure(awsClient *aws.Client, oldConfig Config, e
 		NodeGroupsToRemove:    GetNodeGroupNames(ngsToBeRemoved),
 		NodeGroupsToScale:     GetNodeGroupNames(ngNamesToBeScaled),
 		EKSNodeGroupsToRemove: getStaleEksNodeGroups(cc.ClusterName, eksNodeGroupStacks, cc.NodeGroups, ngsToBeRemoved),
+		FieldsToUpdate:        fieldsToUpdate,
 	}, nil
 }
 
@@ -1488,6 +1530,31 @@ func validateInstanceType(instanceType string) (string, error) {
 	return instanceType, nil
 }
 
+func validatePrometheusInstanceType(instanceType string) (string, error) {
+	_, err := validateInstanceType(instanceType)
+	if err != nil {
+		return "", err
+	}
+
+	isGPU, err := aws.IsGPUInstance(instanceType)
+	if err != nil {
+		return "", err
+	}
+	if isGPU {
+		return "", ErrorGPUInstancesNotSupported(instanceType)
+	}
+
+	isInf, err := aws.IsInferentiaInstance(instanceType)
+	if err != nil {
+		return "", err
+	}
+	if isInf {
+		return "", ErrorInferentiaInstancesNotSupported(instanceType)
+	}
+
+	return instanceType, nil
+}
+
 func validateInstanceDistribution(instances []string) ([]string, error) {
 	for _, instance := range instances {
 		_, err := validateInstanceType(instance)
@@ -1629,6 +1696,7 @@ func (cc *CoreConfig) TelemetryEvent() map[string]interface{} {
 	}
 
 	event["region"] = cc.Region
+	event["prometheus_instance_type"] = cc.PrometheusInstanceType
 
 	if !strings.HasPrefix(cc.ImageOperator, "quay.io/cortexlabs/") {
 		event["image_operator._is_custom"] = true

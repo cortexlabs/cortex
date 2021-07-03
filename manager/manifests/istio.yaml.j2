@@ -25,8 +25,8 @@ spec:
       k8s:
         resources:
           requests:
-            cpu: 200m  # default is 500m
-            memory: 1.75Gi  # default is 2048Mi == 2Gi
+            cpu: 100m  # default is 500m
+            memory: 200Mi  # default is 2048Mi == 2Gi
     cni:
       enabled: false
     ingressGateways:
@@ -50,9 +50,7 @@ spec:
           service:
             type: LoadBalancer
             externalTrafficPolicy: Cluster # https://medium.com/pablo-perez/k8s-externaltrafficpolicy-local-or-cluster-40b259a19404, https://www.asykim.com/blog/deep-dive-into-kubernetes-external-traffic-policies
-            {% if config.get('operator_load_balancer_cidr_white_list', [])|length > 0 %}
-            loadBalancerSourceRanges: {{ config['operator_load_balancer_cidr_white_list'] }}
-            {% endif %}
+            loadBalancerSourceRanges: {{ config.get('operator_load_balancer_cidr_white_list', ['0.0.0.0/0']) }}
             selector:
               app: operator-istio-gateway
               istio: ingressgateway-operator
@@ -74,7 +72,7 @@ spec:
               cpu: 100m
               memory: 128Mi
             limits:
-              cpu: 2000m
+              cpu: 1000m
               memory: 1024Mi
           replicaCount: 1
           hpaSpec:
@@ -110,9 +108,7 @@ spec:
             {% endif %}
           service:
             type: LoadBalancer
-            {% if config.get('api_load_balancer_cidr_white_list', [])|length > 0 %}
-            loadBalancerSourceRanges: {{ config['api_load_balancer_cidr_white_list'] }}
-            {% endif %}
+            loadBalancerSourceRanges: {{ config.get('api_load_balancer_cidr_white_list', ['0.0.0.0/0']) }}
             externalTrafficPolicy: Cluster # https://medium.com/pablo-perez/k8s-externaltrafficpolicy-local-or-cluster-40b259a19404, https://www.asykim.com/blog/deep-dive-into-kubernetes-external-traffic-policies
             selector:
               app: apis-istio-gateway
@@ -132,20 +128,24 @@ spec:
                 targetPort: 15443
           resources:
             requests:
-              cpu: 200m
+              cpu: 512m
               memory: 128Mi
             limits:
-              cpu: 2000m
+              cpu: 1500m
               memory: 1024Mi
           replicaCount: 1
           hpaSpec:
             minReplicas: 1
-            maxReplicas: 1  # edit autoscaleEnabled in values if increasing this
+            maxReplicas: 100  # edit autoscaleEnabled in values if increasing this
             metrics:
               - type: Resource
                 resource:
                   name: cpu
-                  targetAverageUtilization: 80
+                  targetAverageUtilization: 90
+              - type: Resource
+                resource:
+                  name: mem
+                  targetAverageUtilization: 90
             scaleTargetRef:
               apiVersion: apps/v1
               kind: Deployment
@@ -163,7 +163,7 @@ spec:
     gateways:
       istio-ingressgateway:
         runAsRoot: true
-        autoscaleEnabled: false
+        autoscaleEnabled: true
         secretVolumes:
         - name: customgateway-certs
           secretName: istio-customgateway-certs

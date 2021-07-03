@@ -74,6 +74,12 @@ spec:
           volumeMounts:
             - name: statsd-mapping-config
               mountPath: /etc/prometheus-statsd-exporter
+      nodeSelector:
+        prometheus: "true"
+      tolerations:
+        - key: prometheus
+          operator: Exists
+          effect: NoSchedule
       volumes:
         - name: statsd-mapping-config
           configMap:

@@ -46,6 +46,8 @@ const (
 	ErrSpotPriceGreaterThanMaxPrice           = "clusterconfig.spot_price_greater_than_max_price"
 	ErrInstanceTypeNotSupportedByCortex       = "clusterconfig.instance_type_not_supported_by_cortex"
 	ErrAMDGPUInstancesNotSupported            = "clusterconfig.amd_gpu_instances_not_supported"
+	ErrGPUInstancesNotSupported               = "clusterconfig.gpu_instance_not_supported"
+	ErrInferentiaInstancesNotSupported        = "clusterconfig.inferentia_instances_not_supported"
 	ErrMacInstancesNotSupported               = "clusterconfig.mac_instances_not_supported"
 	ErrAtLeastOneInstanceDistribution         = "clusterconfig.at_least_one_instance_distribution"
 	ErrNoCompatibleSpotInstanceFound          = "clusterconfig.no_compatible_spot_instance_found"
@@ -202,6 +204,20 @@ func ErrorAMDGPUInstancesNotSupported(instanceType string) error {
 	})
 }
 
+func ErrorGPUInstancesNotSupported(instanceType string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrGPUInstancesNotSupported,
+		Message: fmt.Sprintf("GPU instances (including %s) are not supported", instanceType),
+	})
+}
+
+func ErrorInferentiaInstancesNotSupported(instanceType string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrInferentiaInstancesNotSupported,
+		Message: fmt.Sprintf("Inferentia instances (including %s) are not supported", instanceType),
+	})
+}
+
 func ErrorMacInstancesNotSupported(instanceType string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrMacInstancesNotSupported,
@@ -280,7 +296,7 @@ func ErrorNoNATGatewayWithSubnets() error {
 func ErrorConfigCannotBeChangedOnConfigure() error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrConfigCannotBeChangedOnConfigure,
-		Message: fmt.Sprintf("in a running cluster, only the %s field can be modified", NodeGroupsKey),
+		Message: fmt.Sprintf("in a running cluster, only %s can be modified", s.StrsAnd([]string{NodeGroupsKey, SSLCertificateARNKey, OperatorLoadBalancerCIDRWhiteListKey, APILoadBalancerCIDRWhiteListKey})),
 	})
 }
 
