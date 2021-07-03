@@ -149,11 +149,11 @@ data:
     {% endif %}
     {% for ng in config['node_groups'] %}
       {% if ng['priority'] == p %}
-      {% if ng['spot'] %}
+        {% if ng['spot'] %}
       - .*{{ 'cx-ws-' + ng['name'] }}.*
-      {% else %}
+        {% else %}
       - .*{{ 'cx-wd-' + ng['name'] }}.*
-      {% endif %}
+        {% endif %}
       {% endif %}
     {% endfor %}
   {% endfor %}
