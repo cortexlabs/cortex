@@ -25,6 +25,7 @@ dev_images=(
   "async-gateway"
   "enqueuer"
   "dequeuer"
+  "node-termination-notifier"
 )
 
 non_dev_images=(

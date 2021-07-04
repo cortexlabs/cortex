@@ -1,0 +1,4 @@
+click==8.0.1
+pyzmq==22.1.0
+requests==2.25.1
+prometheus-client==0.11.0

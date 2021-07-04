@@ -1,0 +1,114 @@
+# Copyright 2021 Cortex Labs, Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: node-termination-notifier
+  namespace: kube-system
+  labels:
+    app.kubernetes.io/name: node-termination-notifier
+    app.kubernetes.io/instance: node-termination-notifier
+    app.kubernetes.io/component: node-termination-notifier
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: node-termination-notifier
+  namespace: kube-system
+  labels:
+    app.kubernetes.io/name: node-termination-notifier
+    app.kubernetes.io/instance: node-termination-notifier
+    app.kubernetes.io/component: node-termination-notifier
+spec:
+  updateStrategy:
+    type: RollingUpdate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: node-termination-notifier
+      app.kubernetes.io/instance: node-termination-notifier
+      app.kubernetes.io/component: node-termination-notifier
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: node-termination-notifier
+        app.kubernetes.io/instance: node-termination-notifier
+        app.kubernetes.io/component: node-termination-notifier
+    spec:
+      serviceAccountName: node-termination-notifier
+      containers:
+      - image: 499593605069.dkr.ecr.us-east-1.amazonaws.com/cortexlabs/node-termination-notifier:experiment
+        imagePullPolicy: Always
+        name: node-termination-notifier
+        env:
+        - name: METRICS_PORT
+          value: "9400"
+        - name: PUB_PORT
+          value: "10400"
+        args:
+        - --query-endpoint
+        - "169.254.169.254"
+        ports:
+        - containerPort: 9400
+          name: metrics
+          protocol: TCP
+        - containerPort: 10400
+          protocol: TCP
+        resources:
+          requests:
+            cpu: 10m
+            memory: 20Mi
+      nodeSelector:
+        workload: "true"
+      tolerations:
+      - key: workload
+        effect: NoSchedule
+        operator: Exists
+      - key: nvidia.com/gpu
+        operator: Exists
+        effect: NoSchedule
+      - key: aws.amazon.com/neuron
+        operator: Exists
+        effect: NoSchedule
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: node-termination-notifier
+  namespace: default
+  labels:
+    monitoring.cortex.dev: node-termination-notifier
+    app.kubernetes.io/name: node-termination-notifier
+    app.kubernetes.io/instance: node-termination-notifier
+    app.kubernetes.io/component: node-termination-notifier
+  annotations:
+    prometheus.io/scrape: 'true'
+    prometheus.io/port: '9400'
+spec:
+  jobLabel: "node-termination-notifier"
+  podMetricsEndpoints:
+    - port: metrics
+      path: /
+      scheme: http
+      interval: 15s
+      metricRelabelings:
+      - action: keep
+        sourceLabels: [__name__]
+        regex: "aws_node_termination"
+  namespaceSelector:
+    any: true
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: node-termination-notifier
+      app.kubernetes.io/instance: node-termination-notifier
