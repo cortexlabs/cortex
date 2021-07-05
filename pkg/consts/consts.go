@@ -23,8 +23,8 @@ import (
 )
 
 var (
-	CortexVersion      = "master" // CORTEX_VERSION
-	CortexVersionMinor = "master" // CORTEX_VERSION_MINOR
+	CortexVersion      = "0.38.0" // CORTEX_VERSION
+	CortexVersionMinor = "0.38"   // CORTEX_VERSION_MINOR
 
 	DefaultMaxQueueLength = int64(100)
 	DefaultMaxConcurrency = int64(1)

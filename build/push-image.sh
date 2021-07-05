@@ -19,7 +19,7 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")"/.. >/dev/null && pwd)"
 
-CORTEX_VERSION=master
+CORTEX_VERSION=0.38.0
 
 host_primary=$1
 host_backup=$2
