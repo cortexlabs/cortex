@@ -124,7 +124,7 @@ data:
               "expr": "sum(rate(cortex_async_request_count{api_name=\"$api_name\"}[1m])) by (api_name)",
               "interval": "",
               "legendFormat": "{{api_name}}",
-              "refId": "2XX"
+              "refId": "Request Rate"
             }
           ],
           "thresholds": [],
@@ -502,7 +502,7 @@ data:
               "expr": "sum(rate(cortex_async_request_count{api_kind=\"AsyncAPI\",api_name=\"$api_name\",status_code=~\"4.+\"}[1m])) by (api_name, status_code)",
               "interval": "",
               "legendFormat": "{{api_name}}",
-              "refId": "2XX"
+              "refId": "4XX"
             }
           ],
           "thresholds": [],
@@ -595,7 +595,7 @@ data:
               "expr": "sum(rate(cortex_async_request_count{api_kind=\"AsyncAPI\",api_name=\"$api_name\",status_code=~\"5.+\"}[1m])) by (api_name, status_code)",
               "interval": "",
               "legendFormat": "{{api_name}}",
-              "refId": "2XX"
+              "refId": "5XX"
             }
           ],
           "thresholds": [],

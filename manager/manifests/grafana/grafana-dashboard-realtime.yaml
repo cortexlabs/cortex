@@ -121,7 +121,7 @@ data:
               "expr": "sum (rate(istio_requests_total{destination_service=~\"api-$api_name.+\"}[1m])) by (destination_service)",
               "interval": "",
               "legendFormat": "{{destination_service}}",
-              "refId": "2XX"
+              "refId": "Request Rate"
             }
           ],
           "thresholds": [],
@@ -526,7 +526,7 @@ data:
               "expr": "sum(rate(istio_requests_total{destination_service=~\"api-$api_name.+\", response_code=~\"4.+\"}[1m])) by (destination_service, response_code)",
               "interval": "",
               "legendFormat": "{{destination_service}}",
-              "refId": "2XX"
+              "refId": "4XX"
             }
           ],
           "thresholds": [],
@@ -635,7 +635,7 @@ data:
               "expr": "sum(rate(istio_requests_total{destination_service=~\"api-$api_name.+\", response_code=~\"5.+\"}[1m])) by (destination_service, response_code)",
               "interval": "",
               "legendFormat": "{{destination_service}}",
-              "refId": "2XX"
+              "refId": "5XX"
             }
           ],
           "thresholds": [],
