@@ -33,10 +33,11 @@ import (
 	"go.uber.org/zap"
 	kapps "k8s.io/api/apps/v1"
 	kmeta "k8s.io/apimachinery/pkg/apis/meta/v1"
+	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 type realtimeScaler struct {
-	k8s        *k8s.Client // TODO: add cache
+	k8s        *k8s.Client
 	prometheus promv1.API
 	logger     *zap.SugaredLogger
 }
@@ -50,13 +51,16 @@ func NewRealtimeScaler(k8sClient *k8s.Client, promClient promv1.API, logger *zap
 }
 
 func (s *realtimeScaler) Scale(apiName string, request int32) error {
-	deployment, err := s.k8s.GetDeployment(workloads.K8sName(apiName))
-	if err != nil {
-		return err
-	}
+	ctx := context.Background()
 
-	if deployment == nil {
-		return errors.ErrorUnexpected("unable to find k8s deployment", apiName)
+	// we use the controller-runtime client to make use of the cache mechanism
+	var deployment kapps.Deployment
+	err := s.k8s.Get(ctx, ctrlclient.ObjectKey{
+		Namespace: s.k8s.Namespace,
+		Name:      workloads.K8sName(apiName),
+	}, &deployment)
+	if err != nil {
+		return errors.Wrap(err, "failed to get deployment")
 	}
 
 	current := deployment.Status.Replicas
@@ -66,20 +70,20 @@ func (s *realtimeScaler) Scale(apiName string, request int32) error {
 	}
 
 	if request == 0 {
-		if err = s.routeToActivator(deployment); err != nil {
+		if err = s.routeToActivator(&deployment); err != nil {
 			return errors.Wrap(err, "failed to re-route traffic to activator")
 		}
 	}
 
 	deployment.Spec.Replicas = pointer.Int32(request)
 
-	if _, err = s.k8s.UpdateDeployment(deployment); err != nil {
+	if err = s.k8s.Update(ctx, &deployment); err != nil {
 		return errors.Wrap(err, "failed to update deployment")
 	}
 
 	if current == 0 && request > 0 {
 		go func() {
-			if err := s.routeToService(deployment); err != nil {
+			if err := s.routeToService(&deployment); err != nil {
 				s.logger.Errorw("failed to re-route traffic to API",
 					zap.Error(err), zap.String("apiName", apiName),
 				)
@@ -147,13 +151,16 @@ func (s *realtimeScaler) GetAutoscalingSpec(apiName string) (*userconfig.Autosca
 }
 
 func (s *realtimeScaler) CurrentReplicas(apiName string) (int32, error) {
-	deployment, err := s.k8s.GetDeployment(workloads.K8sName(apiName))
-	if err != nil {
-		return 0, err
-	}
+	ctx := context.Background()
 
-	if deployment == nil {
-		return 0, errors.ErrorUnexpected("unable to find k8s deployment", apiName)
+	// we use the controller-runtime client to make use of the cache mechanism
+	var deployment kapps.Deployment
+	err := s.k8s.Get(ctx, ctrlclient.ObjectKey{
+		Namespace: s.k8s.Namespace,
+		Name:      workloads.K8sName(apiName),
+	}, &deployment)
+	if err != nil {
+		return 0, errors.Wrap(err, "failed to get deployment")
 	}
 
 	return deployment.Status.Replicas, nil
