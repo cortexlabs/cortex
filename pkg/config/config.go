@@ -21,6 +21,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/DataDog/datadog-go/statsd"
 	"github.com/cortexlabs/cortex/pkg/consts"
 	batch "github.com/cortexlabs/cortex/pkg/crds/apis/batch/v1alpha1"
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
@@ -46,6 +47,7 @@ var (
 	K8s             *k8s.Client
 	K8sIstio        *k8s.Client
 	K8sAllNamspaces *k8s.Client
+	MetricsClient   *statsd.Client
 	Prometheus      promv1.API
 	scheme          = runtime.NewScheme()
 )
@@ -168,6 +170,11 @@ func Init() error {
 	Prometheus = promv1.NewAPI(promClient)
 	if K8sAllNamspaces, err = k8s.New("", OperatorMetadata.IsOperatorInCluster, nil, scheme); err != nil {
 		return err
+	}
+
+	MetricsClient, err = statsd.New("prometheus-statsd-exporter.default:9125")
+	if err != nil {
+		return errors.Wrap(errors.WithStack(err), "unable to initialize metrics client")
 	}
 
 	return nil

@@ -114,6 +114,10 @@ func taskAPITable(taskAPI schema.APIResponse) string {
 		out += t.MustFormat()
 	}
 
+	if taskAPI.DashboardURL != nil && *taskAPI.DashboardURL != "" {
+		out += "\n" + console.Bold("metrics dashboard: ") + *taskAPI.DashboardURL + "\n"
+	}
+
 	out += "\n" + console.Bold("endpoint: ") + taskAPI.Endpoint + "\n"
 
 	out += "\n" + apiHistoryTable(taskAPI.APIVersions)

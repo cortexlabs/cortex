@@ -35,6 +35,7 @@ const (
 	ErrLeadingWhitespace             = "configreader.leading_whitespace"
 	ErrTrailingWhitespace            = "configreader.trailing_whitespace"
 	ErrAlphaNumericDashUnderscore    = "configreader.alpha_numeric_dash_underscore"
+	ErrAlphaNumericDash              = "configreader.alpha_numeric_dash"
 	ErrAlphaNumericDotUnderscore     = "configreader.alpha_numeric_dot_underscore"
 	ErrAlphaNumericDashDotUnderscore = "configreader.alpha_numeric_dash_dot_underscore"
 	ErrInvalidAWSTag                 = "configreader.invalid_aws_tag"
@@ -137,6 +138,13 @@ func ErrorAlphaNumericDashUnderscore(provided string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrAlphaNumericDashUnderscore,
 		Message: fmt.Sprintf("%s must contain only letters, numbers, underscores, and dashes", s.UserStr(provided)),
+	})
+}
+
+func ErrorAlphaNumericDash(provided string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrAlphaNumericDash,
+		Message: fmt.Sprintf("%s must contain only letters, numbers, and dashes", s.UserStr(provided)),
 	})
 }
 
