@@ -110,19 +110,19 @@ func ValidateClusterAPIs(apis []userconfig.API) error {
 CPU Reservations:
 
 FluentBit 100
-NodeExporter 110 (it has two containers)
+NodeExporter 50 (it has two containers)
 KubeProxy 100
 AWS cni 10
-Reserved (150 + 150) see eks.yaml for details
+Reserved (150 + 150) see generate_eks.py for details
 */
-var _cortexCPUReserve = kresource.MustParse("620m")
+var _cortexCPUReserve = kresource.MustParse("560m")
 
 /*
 Memory Reservations:
 
 FluentBit 150
 NodeExporter 200 (it has two containers)
-Reserved (300 + 300 + 200) see eks.yaml for details
+Reserved (300 + 300 + 200) see generate_eks.py for details
 */
 var _cortexMemReserve = kresource.MustParse("1150Mi")
 
