@@ -100,11 +100,15 @@ The docker images used by the cluster can also be overridden. They can be config
 
 <!-- CORTEX_VERSION_BRANCH_STABLE -->
 ```yaml
+image_manager: quay.io/cortexlabs/manager:0.38.0
 image_operator: quay.io/cortexlabs/operator:0.38.0
 image_controller_manager: quay.io/cortexlabs/controller-manager:0.38.0
-image_manager: quay.io/cortexlabs/manager:0.38.0
+image_autoscaler: quay.io/cortexlabs/autoscaler:0.38.0
 image_proxy: quay.io/cortexlabs/proxy:0.38.0
 image_async_gateway: quay.io/cortexlabs/async-gateway:0.38.0
+image_activator: quay.io/cortexlabs/activator:0.38.0
+image_enqueuer: quay.io/cortexlabs/enqueuer:0.38.0
+image_dequeuer: quay.io/cortexlabs/dequeuer:0.38.0
 image_cluster_autoscaler: quay.io/cortexlabs/cluster-autoscaler:0.38.0
 image_metrics_server: quay.io/cortexlabs/metrics-server:0.38.0
 image_nvidia_device_plugin: quay.io/cortexlabs/nvidia-device-plugin:0.38.0
@@ -123,6 +127,5 @@ image_prometheus_node_exporter: quay.io/cortexlabs/prometheus-node-exporter:0.38
 image_kube_rbac_proxy: quay.io/cortexlabs/kube-rbac-proxy:0.38.0
 image_grafana: quay.io/cortexlabs/grafana:0.38.0
 image_event_exporter: quay.io/cortexlabs/event-exporter:0.38.0
-image_enqueuer: quay.io/cortexlabs/enqueuer:0.38.0
 image_kubexit: quay.io/cortexlabs/kubexit:0.38.0
 ```
