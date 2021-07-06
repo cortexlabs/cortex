@@ -49,8 +49,7 @@ def record_prom_event(
         metadata_info.instanceLifeCycle,
         metadata_info.instanceType,
         action,
-    )
-    gauge.set(1)
+    ).set(1)
 
 
 def convert_metadata_info_to_json(metadata_info: NodeMetadata) -> dict:
