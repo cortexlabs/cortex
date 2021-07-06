@@ -52,6 +52,7 @@ from e2e.utils import (
     retrieve_results_concurrently,
     stream_api_logs,
     stream_job_logs,
+    wait_for,
 )
 
 TEST_APIS_DIR = Path(__file__).parent.parent.parent / "apis"
@@ -922,5 +923,51 @@ def test_long_running_realtime(
             time.sleep(5)
         finally:
             raise
+    finally:
+        delete_apis(client, [api_name])
+
+
+def test_realtime_scale_to_zero(
+    client: cx.Client,
+    api: str,
+    timeout: int = None,
+    api_config_name: str = "cortex_cpu.yaml",
+):
+    api_dir = TEST_APIS_DIR / api
+    with open(str(api_dir / api_config_name)) as f:
+        api_specs = yaml.safe_load(f)
+
+    api_name = api_specs[0]["name"]
+    for api_spec in api_specs:
+        client.deploy(api_spec=api_spec)
+
+    try:
+        assert apis_ready(
+            client=client, api_names=[api_name], timeout=timeout
+        ), f"apis {api_name} not ready"
+
+        api_info = client.get_api(api_name)
+        endpoint = api_info["endpoint"]
+
+        response = requests.post(endpoint, json={}, timeout=30)
+
+        # make first request, which should go to activator
+        assert (
+            response.status_code == HTTPStatus.OK
+        ), f"status code: got {response.status_code}, expected {HTTPStatus.OK}"
+
+        assert response.headers.get("x-cortex-origin") == "activator"
+
+        def _make_request() -> bool:
+            res = requests.post(endpoint, json={}, timeout=30)
+
+            # make second request, which should go directly to the api
+            assert (
+                res.status_code == HTTPStatus.OK
+            ), f"status code: got {res.status_code}, expected {HTTPStatus.OK}"
+
+            return res.headers.get("x-cortex-origin") == "api"
+
+        assert wait_for(_make_request, timeout=60)
     finally:
         delete_apis(client, [api_name])

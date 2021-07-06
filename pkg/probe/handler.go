@@ -19,8 +19,10 @@ package probe
 import (
 	"net/http"
 	"strings"
+
+	"github.com/cortexlabs/cortex/pkg/consts"
 )
 
 func IsRequestKubeletProbe(r *http.Request) bool {
-	return strings.HasPrefix(r.Header.Get(_userAgentKey), _kubeProbeUserAgentPrefix)
+	return strings.HasPrefix(r.Header.Get(consts.UserAgentKey), consts.KubeProbeUserAgentPrefix)
 }

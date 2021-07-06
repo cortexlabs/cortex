@@ -1,5 +1,3 @@
-ARG TARGETARCH, TARGETOS
-
 FROM golang:1.16.5 as builder
 
 WORKDIR /workspace
@@ -12,17 +10,17 @@ RUN go mod download
 
 # Copy the go source
 COPY pkg pkg
-COPY cmd/proxy cmd/proxy
-WORKDIR /workspace/cmd/proxy
+COPY cmd/activator cmd/activator
+WORKDIR /workspace/cmd/activator
 
 # Build
-RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH}  GO111MODULE=on go build -a -o /workspace/bin/proxy main.go
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 GO111MODULE=on go build -a -o /workspace/bin/activator main.go
 
 # Use distroless as minimal base image to package the manager binary
 # Refer to https://github.com/GoogleContainerTools/distroless for more details
 FROM gcr.io/distroless/static:nonroot
 WORKDIR /
-COPY --from=builder /workspace/bin/proxy .
+COPY --from=builder /workspace/bin/activator .
 USER 65532:65532
 
-ENTRYPOINT ["/proxy"]
+ENTRYPOINT ["/activator"]

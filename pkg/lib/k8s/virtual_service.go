@@ -18,13 +18,13 @@ package k8s
 
 import (
 	"context"
-	"reflect"
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
 	"github.com/cortexlabs/cortex/pkg/lib/urls"
 	istionetworking "istio.io/api/networking/v1beta1"
 	istioclientnetworking "istio.io/client-go/pkg/apis/networking/v1beta1"
+	istionetworkingclient "istio.io/client-go/pkg/clientset/versioned/typed/networking/v1beta1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	kmeta "k8s.io/apimachinery/pkg/apis/meta/v1"
 	klabels "k8s.io/apimachinery/pkg/labels"
@@ -44,6 +44,7 @@ type VirtualServiceSpec struct {
 	Rewrite      *string
 	Labels       map[string]string
 	Annotations  map[string]string
+	Headers      *istionetworking.Headers
 }
 
 type Destination struct {
@@ -51,6 +52,7 @@ type Destination struct {
 	Weight      int32
 	Port        uint32
 	Shadow      bool
+	Headers     *istionetworking.Headers
 }
 
 func VirtualService(spec *VirtualServiceSpec) *istioclientnetworking.VirtualService {
@@ -75,7 +77,8 @@ func VirtualService(spec *VirtualServiceSpec) *istioclientnetworking.VirtualServ
 						Number: destination.Port,
 					},
 				},
-				Weight: destination.Weight,
+				Weight:  destination.Weight,
+				Headers: destination.Headers,
 			})
 		}
 	}
@@ -96,6 +99,7 @@ func VirtualService(spec *VirtualServiceSpec) *istioclientnetworking.VirtualServ
 			Route:            destinations,
 			Mirror:           mirror,
 			MirrorPercentage: mirrorWeight,
+			Headers:          spec.Headers,
 		})
 
 		if spec.Rewrite != nil {
@@ -117,6 +121,7 @@ func VirtualService(spec *VirtualServiceSpec) *istioclientnetworking.VirtualServ
 			Route:            destinations,
 			Mirror:           mirror,
 			MirrorPercentage: mirrorWeight,
+			Headers:          spec.Headers,
 		}
 
 		prefixMatch := &istionetworking.HTTPRoute{
@@ -132,6 +137,7 @@ func VirtualService(spec *VirtualServiceSpec) *istioclientnetworking.VirtualServ
 			Route:            destinations,
 			Mirror:           mirror,
 			MirrorPercentage: mirrorWeight,
+			Headers:          spec.Headers,
 		}
 
 		if spec.Rewrite != nil {
@@ -162,6 +168,10 @@ func VirtualService(spec *VirtualServiceSpec) *istioclientnetworking.VirtualServ
 	}
 
 	return virtualService
+}
+
+func (c *Client) VirtualServiceClient() istionetworkingclient.VirtualServiceInterface {
+	return c.virtualServiceClient
 }
 
 func (c *Client) CreateVirtualService(virtualService *istioclientnetworking.VirtualService) (*istioclientnetworking.VirtualService, error) {
@@ -268,24 +278,4 @@ func ExtractVirtualServiceEndpoints(virtualService *istioclientnetworking.Virtua
 		}
 	}
 	return endpoints
-}
-
-func VirtualServicesMatch(vs1, vs2 istionetworking.VirtualService) bool {
-	if !strset.New(vs1.Hosts...).IsEqual(strset.New(vs2.Hosts...)) {
-		return false
-	}
-
-	if !strset.New(vs1.Gateways...).IsEqual(strset.New(vs2.Gateways...)) {
-		return false
-	}
-
-	if !strset.New(vs1.ExportTo...).IsEqual(strset.New(vs2.ExportTo...)) {
-		return false
-	}
-
-	if !reflect.DeepEqual(vs1.Http, vs2.Http) {
-		return false
-	}
-
-	return true
 }

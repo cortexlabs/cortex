@@ -22,12 +22,10 @@ import (
 	"time"
 
 	"github.com/cortexlabs/cortex/pkg/config"
-	"github.com/cortexlabs/cortex/pkg/lib/cron"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/parallel"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
-	autoscalerlib "github.com/cortexlabs/cortex/pkg/operator/lib/autoscaler"
 	"github.com/cortexlabs/cortex/pkg/operator/lib/routines"
 	"github.com/cortexlabs/cortex/pkg/operator/operator"
 	"github.com/cortexlabs/cortex/pkg/operator/schema"
@@ -41,8 +39,6 @@ import (
 )
 
 const _realtimeDashboardUID = "realtimeapi"
-
-var _autoscalerCrons = make(map[string]cron.Cron) // apiName -> cron
 
 func generateDeploymentID() string {
 	return k8s.RandomName()[:10]
@@ -74,7 +70,7 @@ func UpdateAPI(apiConfig *userconfig.API, force bool) (*spec.API, string, error)
 
 		if err := applyK8sResources(api, prevDeployment, prevService, prevVirtualService); err != nil {
 			routines.RunWithPanicHandler(func() {
-				deleteK8sResources(api.Name)
+				_ = deleteK8sResources(api.Name)
 			})
 			return nil, "", err
 		}
@@ -167,7 +163,7 @@ func DeleteAPI(apiName string, keepCache bool) error {
 				return nil
 			}
 			// best effort deletion, swallow errors because there could be weird error messages
-			deleteBucketResources(apiName)
+			_ = deleteBucketResources(apiName)
 			return nil
 		},
 	)
@@ -220,21 +216,21 @@ func namesAndIDsFromStatuses(statuses []status.Status) ([]string, []string) {
 	apiNames := make([]string, len(statuses))
 	apiIDs := make([]string, len(statuses))
 
-	for i, status := range statuses {
-		apiNames[i] = status.APIName
-		apiIDs[i] = status.APIID
+	for i, st := range statuses {
+		apiNames[i] = st.APIName
+		apiIDs[i] = st.APIID
 	}
 
 	return apiNames, apiIDs
 }
 
 func GetAPIByName(deployedResource *operator.DeployedResource) ([]schema.APIResponse, error) {
-	status, err := GetStatus(deployedResource.Name)
+	st, err := GetStatus(deployedResource.Name)
 	if err != nil {
 		return nil, err
 	}
 
-	api, err := operator.DownloadAPISpec(status.APIName, status.APIID)
+	api, err := operator.DownloadAPISpec(st.APIName, st.APIID)
 	if err != nil {
 		return nil, err
 	}
@@ -254,7 +250,7 @@ func GetAPIByName(deployedResource *operator.DeployedResource) ([]schema.APIResp
 	return []schema.APIResponse{
 		{
 			Spec:         *api,
-			Status:       status,
+			Status:       st,
 			Metrics:      metrics,
 			Endpoint:     apiEndpoint,
 			DashboardURL: dashboardURL,
@@ -312,7 +308,7 @@ func applyK8sDeployment(api *spec.API, prevDeployment *kapps.Deployment) error {
 		}
 	} else if prevDeployment.Status.ReadyReplicas == 0 {
 		// Delete deployment if it never became ready
-		config.K8s.DeleteDeployment(workloads.K8sName(api.Name))
+		_, _ = config.K8s.DeleteDeployment(workloads.K8sName(api.Name))
 		_, err := config.K8s.CreateDeployment(newDeployment)
 		if err != nil {
 			return err
@@ -323,27 +319,6 @@ func applyK8sDeployment(api *spec.API, prevDeployment *kapps.Deployment) error {
 			return err
 		}
 	}
-
-	if err := UpdateAutoscalerCron(newDeployment, api); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func UpdateAutoscalerCron(deployment *kapps.Deployment, apiSpec *spec.API) error {
-	apiName := deployment.Labels["apiName"]
-
-	if prevAutoscalerCron, ok := _autoscalerCrons[apiName]; ok {
-		prevAutoscalerCron.Cancel()
-	}
-
-	autoscaler, err := autoscalerlib.AutoscaleFn(deployment, apiSpec, getInflightRequests)
-	if err != nil {
-		return err
-	}
-
-	_autoscalerCrons[apiName] = cron.Run(autoscaler, operator.ErrorHandler(apiName+" autoscaler"), spec.AutoscalingTickInterval)
 
 	return nil
 }
@@ -375,11 +350,6 @@ func applyK8sVirtualService(api *spec.API, prevVirtualService *istioclientnetwor
 func deleteK8sResources(apiName string) error {
 	return parallel.RunFirstErr(
 		func() error {
-			if autoscalerCron, ok := _autoscalerCrons[apiName]; ok {
-				autoscalerCron.Cancel()
-				delete(_autoscalerCrons, apiName)
-			}
-
 			_, err := config.K8s.DeleteDeployment(workloads.K8sName(apiName))
 			return err
 		},

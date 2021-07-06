@@ -26,21 +26,12 @@ import (
 	"sync"
 	"time"
 
+	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 	"go.uber.org/zap"
 	kcore "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
-)
-
-var (
-	// userAgentKey is the user agent header key
-	_userAgentKey = "User-Agent"
-
-	// kubeProbeUserAgentPrefix is the user agent header prefix used in k8s probes
-	// Since K8s 1.8, prober requests have
-	//   User-Agent = "kube-probe/{major-version}.{minor-version}".
-	_kubeProbeUserAgentPrefix = "kube-probe/"
 )
 
 const (
@@ -197,7 +188,7 @@ func (p *Probe) httpProbe() error {
 		return err
 	}
 
-	req.Header.Add(_userAgentKey, _kubeProbeUserAgentPrefix)
+	req.Header.Add(consts.UserAgentKey, consts.KubeProbeUserAgentPrefix)
 
 	for _, header := range p.HTTPGet.HTTPHeaders {
 		req.Header.Add(header.Name, header.Value)

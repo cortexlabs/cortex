@@ -42,7 +42,7 @@ func virtualServiceSpec(api *spec.API) *istioclientnetworking.VirtualService {
 		Destinations: []k8s.Destination{{
 			ServiceName: _operatorService,
 			Weight:      100,
-			Port:        uint32(consts.ProxyListeningPortInt32),
+			Port:        uint32(consts.ProxyPortInt32),
 		}},
 		PrefixPath:  api.Networking.Endpoint,
 		Rewrite:     pointer.String(path.Join("batch", api.Name)),
