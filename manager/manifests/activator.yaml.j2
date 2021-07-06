@@ -1,0 +1,158 @@
+# Copyright 2021 Cortex Labs, Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: activator
+  namespace: default
+
+---
+
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: activator-role
+rules:
+- apiGroups:
+  - "networking.istio.io"
+  resources:
+  - virtualservices
+  verbs:
+  - list
+  - watch
+- apiGroups:
+  - "apps"
+  resources:
+  - deployments
+  verbs:
+  - list
+  - watch
+
+---
+
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: activator-rolebinding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: activator-role
+subjects:
+- kind: ServiceAccount
+  name: activator
+  namespace: default
+
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: activator
+spec:
+  selector:
+    matchLabels:
+      app: activator
+  template:
+    metadata:
+      name: activator
+      labels:
+        app: activator
+    spec:
+      serviceAccountName: activator
+      containers:
+        - name: activator
+          imagePullPolicy: Always
+          image: {{ config['image_activator'] }}
+          args:
+            - "--in-cluster"
+            - "--port=8000"
+            - "--autoscaler-url=http://autoscaler.default:8000"
+            - "--namespace=default"
+            - "--cluster-config=/configs/cluster/cluster.yaml"
+          ports:
+            - containerPort: 8000
+          livenessProbe:
+            httpGet:
+              port: 8000
+              path: /
+              httpHeaders:
+                - name: X-Cortex-Probe
+                  value: "true"
+          readinessProbe:
+            httpGet:
+              port: 8000
+              path: /
+              httpHeaders:
+                - name: X-Cortex-Probe
+                  value: "true"
+          resources:
+            requests:
+              cpu: 100m
+              memory: 100Mi
+            limits:
+              cpu: 250m
+              memory: 300Mi
+          envFrom:
+          - configMapRef:
+              name: env-vars
+          volumeMounts:
+          - mountPath: /configs/cluster/cluster.yaml
+            name: cluster-config
+            subPath: cluster.yaml
+      volumes:
+      - configMap:
+          defaultMode: 420
+          name: cluster-config
+        name: cluster-config
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: activator
+spec:
+  type: ClusterIP
+  selector:
+    app: activator
+  ports:
+    - port: 8000
+
+---
+
+apiVersion: autoscaling/v2beta2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: activator-hpa
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: activator
+  minReplicas: 1
+  maxReplicas: 10
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 70

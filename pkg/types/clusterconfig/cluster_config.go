@@ -34,7 +34,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
-	"github.com/cortexlabs/cortex/pkg/lib/hash"
+	libhash "github.com/cortexlabs/cortex/pkg/lib/hash"
 	libmath "github.com/cortexlabs/cortex/pkg/lib/math"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
@@ -96,6 +96,8 @@ type CoreConfig struct {
 	ImageManager                    string `json:"image_manager" yaml:"image_manager"`
 	ImageKubexit                    string `json:"image_kubexit" yaml:"image_kubexit"`
 	ImageProxy                      string `json:"image_proxy" yaml:"image_proxy"`
+	ImageActivator                  string `json:"image_activator" yaml:"image_activator"`
+	ImageAutoscaler                 string `json:"image_autoscaler" yaml:"image_autoscaler"`
 	ImageAsyncGateway               string `json:"image_async_gateway" yaml:"image_async_gateway"`
 	ImageEnqueuer                   string `json:"image_enqueuer" yaml:"image_enqueuer"`
 	ImageDequeuer                   string `json:"image_dequeuer" yaml:"image_dequeuer"`
@@ -382,6 +384,20 @@ var CoreConfigStructFieldValidations = []*cr.StructFieldValidation{
 		StructField: "ImageProxy",
 		StringValidation: &cr.StringValidation{
 			Default:   consts.DefaultRegistry() + "/proxy:" + consts.CortexVersion,
+			Validator: validateImageVersion,
+		},
+	},
+	{
+		StructField: "ImageActivator",
+		StringValidation: &cr.StringValidation{
+			Default:   consts.DefaultRegistry() + "/activator:" + consts.CortexVersion,
+			Validator: validateImageVersion,
+		},
+	},
+	{
+		StructField: "ImageAutoscaler",
+		StringValidation: &cr.StringValidation{
+			Default:   consts.DefaultRegistry() + "/autoscaler:" + consts.CortexVersion,
 			Validator: validateImageVersion,
 		},
 	},
@@ -902,7 +918,7 @@ func (cc *Config) ToAccessConfig() AccessConfig {
 
 func SQSNamePrefix(clusterName string) string {
 	// 8 was chosen to make sure that other identifiers can be added to the full queue name before reaching the 80 char SQS name limit
-	return "cx" + SQSQueueDelimiter + hash.String(clusterName)[:8] + SQSQueueDelimiter
+	return "cx" + SQSQueueDelimiter + libhash.String(clusterName)[:8] + SQSQueueDelimiter
 }
 
 // SQSNamePrefix returns a string with the hash of cluster name and adds trailing "_" e.g. cx_abcd1234_
@@ -1697,6 +1713,12 @@ func (cc *CoreConfig) TelemetryEvent() map[string]interface{} {
 	if !strings.HasPrefix(cc.ImageProxy, "quay.io/cortexlabs/") {
 		event["image_proxy._is_custom"] = true
 	}
+	if !strings.HasPrefix(cc.ImageActivator, "quay.io/cortexlabs/") {
+		event["image_activator._is_custom"] = true
+	}
+	if !strings.HasPrefix(cc.ImageAutoscaler, "quay.io/cortexlabs/") {
+		event["image_autoscaler._is_custom"] = true
+	}
 	if !strings.HasPrefix(cc.ImageAsyncGateway, "quay.io/cortexlabs/") {
 		event["image_async_gateway._is_custom"] = true
 	}
@@ -1890,7 +1912,7 @@ func (mc *ManagedConfig) GetNodeGroupNames() []string {
 }
 
 func BucketName(accountID, clusterName, region string) string {
-	bucketID := hash.String(accountID + region)[:8] // this is to "guarantee" a globally unique name
+	bucketID := libhash.String(accountID + region)[:8] // this is to "guarantee" a globally unique name
 	return clusterName + "-" + bucketID
 }
 

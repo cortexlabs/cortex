@@ -51,10 +51,8 @@ TEST_APIS_GPU = [
 
 
 @pytest.mark.usefixtures("client")
-@pytest.mark.parametrize("api", TEST_APIS)
+@pytest.mark.parametrize("api", TEST_APIS, ids=[api["name"] for api in TEST_APIS])
 def test_realtime_api(printer: Callable, config: Dict, client: cx.Client, api: Dict[str, str]):
-
-    printer(f"testing {api['name']}")
     e2e.tests.test_realtime_api(
         printer=printer,
         client=client,
@@ -83,13 +81,12 @@ def test_realtime_api_arm(printer: Callable, config: Dict, client: cx.Client, ap
 
 
 @pytest.mark.usefixtures("client")
-@pytest.mark.parametrize("api", TEST_APIS_GPU)
+@pytest.mark.parametrize("api", TEST_APIS_GPU, ids=[api["name"] for api in TEST_APIS_GPU])
 def test_realtime_api_gpu(printer: Callable, config: Dict, client: cx.Client, api: Dict[str, str]):
     skip_gpus = config["global"].get("skip_gpus", False)
     if skip_gpus:
         pytest.skip("--skip-gpus flag detected, skipping GPU tests")
 
-    printer(f"testing {api['name']}")
     e2e.tests.test_realtime_api(
         printer=printer,
         client=client,

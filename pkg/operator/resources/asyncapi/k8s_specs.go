@@ -121,8 +121,8 @@ func gatewayServiceSpec(api spec.API) kcore.Service {
 	return *k8s.Service(&k8s.ServiceSpec{
 		Name:        workloads.K8sName(api.Name),
 		PortName:    "http",
-		Port:        consts.ProxyListeningPortInt32,
-		TargetPort:  consts.ProxyListeningPortInt32,
+		Port:        consts.ProxyPortInt32,
+		TargetPort:  consts.ProxyPortInt32,
 		Annotations: api.ToK8sAnnotations(),
 		Labels: map[string]string{
 			"apiName":          api.Name,
@@ -145,7 +145,7 @@ func gatewayVirtualServiceSpec(api spec.API) v1beta1.VirtualService {
 		Destinations: []k8s.Destination{{
 			ServiceName: workloads.K8sName(api.Name),
 			Weight:      100,
-			Port:        uint32(consts.ProxyListeningPortInt32),
+			Port:        uint32(consts.ProxyPortInt32),
 		}},
 		PrefixPath:  api.Networking.Endpoint,
 		Rewrite:     pointer.String("/"),
