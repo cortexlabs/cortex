@@ -10,7 +10,7 @@ Async APIs are a good fit for users who want to submit longer workloads (such as
 * retrieve status and response via HTTP endpoint
 * autoscale based on queue length
 * avoid cold starts
-* scale to 0
+* scale to zero
 * perform rolling updates
 * automatically recover from failures and spot instance termination
 

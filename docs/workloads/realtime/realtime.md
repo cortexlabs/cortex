@@ -9,6 +9,7 @@ Realtime APIs are a good fit for users who want to run stateless containers as a
 * respond to requests synchronously
 * autoscale based on request volume
 * avoid cold starts
+* scale to zero
 * perform rolling updates
 * automatically recover from failures and spot instance termination
 * perform A/B tests and canary deployments
