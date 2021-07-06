@@ -161,10 +161,9 @@ func (a *activator) addAPI(obj interface{}) {
 
 	apiName := apiMetadata.apiName
 
-	a.logger.Debugw("adding new api activator", zap.String("apiName", apiName))
-
 	a.activatorsMux.Lock()
 	if a.apiActivators[apiName] == nil {
+		a.logger.Debugw("adding new api activator", zap.String("apiName", apiName))
 		a.apiActivators[apiName] = newAPIActivator(apiMetadata.maxQueueLength, apiMetadata.maxConcurrency)
 	}
 	a.activatorsMux.Unlock()
