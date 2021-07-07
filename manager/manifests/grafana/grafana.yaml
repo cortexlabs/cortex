@@ -138,6 +138,9 @@ spec:
             - mountPath: /grafana-dashboard-definitions/cortex/batch
               name: grafana-dashboard-batch
               readOnly: false
+            - mountPath: /grafana-dashboard-definitions/cortex/task
+              name: grafana-dashboard-task
+              readOnly: false
             - mountPath: /grafana-dashboard-definitions/cortex/cluster
               name: grafana-dashboard-cluster
               readOnly: false
@@ -167,6 +170,9 @@ spec:
         - name: grafana-dashboard-batch
           configMap:
             name: grafana-dashboard-batch
+        - name: grafana-dashboard-task
+          configMap:
+            name: grafana-dashboard-task
         - name: grafana-dashboard-cluster
           configMap:
             name: grafana-dashboard-cluster
