@@ -32,6 +32,7 @@ import (
 	"github.com/cortexlabs/cortex/cli/types/cliconfig"
 	"github.com/cortexlabs/cortex/cli/types/flags"
 	"github.com/cortexlabs/cortex/pkg/consts"
+	"github.com/cortexlabs/cortex/pkg/health"
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/console"
 	"github.com/cortexlabs/cortex/pkg/lib/docker"
@@ -39,6 +40,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/exit"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
 	libjson "github.com/cortexlabs/cortex/pkg/lib/json"
+	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	libmath "github.com/cortexlabs/cortex/pkg/lib/math"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/prompt"
@@ -51,6 +53,8 @@ import (
 	"github.com/cortexlabs/cortex/pkg/types/clusterstate"
 	"github.com/cortexlabs/yaml"
 	"github.com/spf13/cobra"
+	"k8s.io/apimachinery/pkg/runtime"
+	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 )
 
 var (
@@ -101,11 +105,18 @@ func clusterInit() {
 	addClusterNameFlag(_clusterExportCmd)
 	addClusterRegionFlag(_clusterExportCmd)
 	_clusterCmd.AddCommand(_clusterExportCmd)
+
+	_clusterHealthCmd.Flags().SortFlags = false
+	_clusterHealthCmd.Flags().VarP(&_flagOutput, "output", "o", fmt.Sprintf("output format: one of %s", strings.Join(flags.OutputTypeStringsExcluding(flags.YAMLOutputType), "|")))
+	_clusterCmd.AddCommand(_clusterHealthCmd)
 }
 
 func addClusterConfigFlag(cmd *cobra.Command) {
 	cmd.Flags().StringVarP(&_flagClusterConfig, "config", "c", "", "path to a cluster configuration file")
-	cmd.Flags().SetAnnotation("config", cobra.BashCompFilenameExt, _configFileExts)
+	err := cmd.Flags().SetAnnotation("config", cobra.BashCompFilenameExt, _configFileExts)
+	if err != nil {
+		exit.Error(err) // should never happen
+	}
 }
 
 func addClusterNameFlag(cmd *cobra.Command) {
@@ -631,8 +642,8 @@ var _clusterDownCmd = &cobra.Command{
 		}
 
 		// best-effort deletion of cached config
-		cachedClusterConfigPath := cachedClusterConfigPath(accessConfig.ClusterName, accessConfig.Region)
-		os.Remove(cachedClusterConfigPath)
+		cachedClusterConfigPath := getCachedClusterConfigPath(accessConfig.ClusterName, accessConfig.Region)
+		_ = os.Remove(cachedClusterConfigPath)
 
 		if len(errorsList) > 0 {
 			exit.Error(errors.ListOfErrors(ErrClusterDown, false, errorsList...))
@@ -740,6 +751,51 @@ var _clusterExportCmd = &cobra.Command{
 				exit.Error(err)
 			}
 		}
+	},
+}
+
+var _clusterHealthCmd = &cobra.Command{
+	Use:   "health",
+	Short: "inspect a cortex cluster's health status",
+	Run: func(cmd *cobra.Command, args []string) {
+		scheme := runtime.NewScheme()
+		if err := clientgoscheme.AddToScheme(scheme); err != nil {
+			exit.Error(err)
+		}
+
+		client, err := k8s.New("default", false, nil, scheme)
+		if err != nil {
+			exit.Error(err)
+		}
+
+		clusterHealth, err := health.Check(client)
+		if err != nil {
+			exit.Error(err)
+		}
+
+		if _flagOutput == flags.JSONOutputType {
+			fmt.Println(clusterHealth)
+			return
+		}
+
+		healthTable := table.Table{
+			Headers: []table.Header{
+				{Title: ""},
+				{Title: "live"},
+			},
+			Rows: [][]interface{}{
+				{"operator", clusterHealth.Operator},
+				{"prometheus", clusterHealth.Prometheus},
+				{"autoscaler", clusterHealth.Autoscaler},
+				{"activator", clusterHealth.Activator},
+				{"grafana", clusterHealth.Grafana},
+				{"controller manager", clusterHealth.ControllerManager},
+				{"apis gateway", clusterHealth.APIsGateway},
+				{"operator gateway", clusterHealth.APIsGateway},
+			},
+		}
+
+		fmt.Println(healthTable.MustFormat())
 	},
 }
 
@@ -1066,7 +1122,7 @@ func cmdDebug(awsClient *aws.Client, accessConfig *clusterconfig.AccessConfig) {
 
 func refreshCachedClusterConfig(awsClient *aws.Client, accessConfig *clusterconfig.AccessConfig, printToStdout bool) clusterconfig.Config {
 	// add empty file if cached cluster doesn't exist so that the file output by manager container maintains current user permissions
-	cachedClusterConfigPath := cachedClusterConfigPath(accessConfig.ClusterName, accessConfig.Region)
+	cachedClusterConfigPath := getCachedClusterConfigPath(accessConfig.ClusterName, accessConfig.Region)
 	containerConfigPath := fmt.Sprintf("/out/%s", filepath.Base(cachedClusterConfigPath))
 
 	copyFromPaths := []dockerCopyFromPath{
