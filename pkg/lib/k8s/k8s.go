@@ -53,7 +53,8 @@ var (
 type Client struct {
 	ctrl.Client
 	RestConfig           *kclientrest.Config
-	clientset            *kclientset.Clientset
+	clientSet            *kclientset.Clientset
+	istioClientSet       *istioclient.Clientset
 	dynamicClient        kclientdynamic.Interface
 	podClient            kclientcore.PodInterface
 	nodeClient           kclientcore.NodeInterface
@@ -86,7 +87,7 @@ func New(namespace string, inCluster bool, restConfig *kclientrest.Config, schem
 		return nil, errors.Wrap(err, "kubeconfig")
 	}
 
-	client.clientset, err = kclientset.NewForConfig(client.RestConfig)
+	client.clientSet, err = kclientset.NewForConfig(client.RestConfig)
 	if err != nil {
 		return nil, errors.Wrap(err, "kubeconfig")
 	}
@@ -101,22 +102,30 @@ func New(namespace string, inCluster bool, restConfig *kclientrest.Config, schem
 		return nil, errors.Wrap(err, "kubeconfig")
 	}
 
-	istioClient, err := istioclient.NewForConfig(client.RestConfig)
+	client.istioClientSet, err = istioclient.NewForConfig(client.RestConfig)
 	if err != nil {
 		return nil, errors.Wrap(err, "kubeconfig")
 	}
-	client.virtualServiceClient = istioClient.NetworkingV1beta1().VirtualServices(namespace)
+	client.virtualServiceClient = client.istioClientSet.NetworkingV1beta1().VirtualServices(namespace)
 
-	client.podClient = client.clientset.CoreV1().Pods(namespace)
-	client.nodeClient = client.clientset.CoreV1().Nodes()
-	client.serviceClient = client.clientset.CoreV1().Services(namespace)
-	client.configMapClient = client.clientset.CoreV1().ConfigMaps(namespace)
-	client.secretClient = client.clientset.CoreV1().Secrets(namespace)
-	client.deploymentClient = client.clientset.AppsV1().Deployments(namespace)
-	client.jobClient = client.clientset.BatchV1().Jobs(namespace)
-	client.ingressClient = client.clientset.ExtensionsV1beta1().Ingresses(namespace)
-	client.hpaClient = client.clientset.AutoscalingV2beta2().HorizontalPodAutoscalers(namespace)
+	client.podClient = client.clientSet.CoreV1().Pods(namespace)
+	client.nodeClient = client.clientSet.CoreV1().Nodes()
+	client.serviceClient = client.clientSet.CoreV1().Services(namespace)
+	client.configMapClient = client.clientSet.CoreV1().ConfigMaps(namespace)
+	client.secretClient = client.clientSet.CoreV1().Secrets(namespace)
+	client.deploymentClient = client.clientSet.AppsV1().Deployments(namespace)
+	client.jobClient = client.clientSet.BatchV1().Jobs(namespace)
+	client.ingressClient = client.clientSet.ExtensionsV1beta1().Ingresses(namespace)
+	client.hpaClient = client.clientSet.AutoscalingV2beta2().HorizontalPodAutoscalers(namespace)
 	return client, nil
+}
+
+func (c *Client) ClientSet() *kclientset.Clientset {
+	return c.clientSet
+}
+
+func (c *Client) IstioClientSet() *istioclient.Clientset {
+	return c.istioClientSet
 }
 
 // to be safe, k8s sometimes needs all characters to be lower case, and the first to be a letter

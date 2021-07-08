@@ -18,24 +18,19 @@ package asyncapi
 
 import (
 	"context"
-	"fmt"
 	"strconv"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/sqs"
 	"github.com/cortexlabs/cortex/pkg/config"
-	"github.com/cortexlabs/cortex/pkg/lib/errors"
-	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
-	"github.com/prometheus/common/model"
 )
 
 const (
-	_sqsQueryTimeoutSeconds        = 10
-	_prometheusQueryTimeoutSeconds = 10
+	_sqsQueryTimeoutSeconds = 10
 )
 
 var queueLengthGauge = promauto.NewGaugeVec(
@@ -84,36 +79,4 @@ func updateQueueLengthMetricsFn(apiName, queueURL string) func() error {
 
 		return nil
 	}
-}
-
-func getMessagesInQueue(apiName string, window time.Duration) (*float64, error) {
-	windowSeconds := int64(window.Seconds())
-
-	// PromQL query:
-	// 	sum(sum_over_time(cortex_async_queue_length{api_name="<apiName>"}[60s])) /
-	//	sum(count_over_time(cortex_async_queue_length{api_name="<apiName>"}[60s]))
-	query := fmt.Sprintf(
-		"sum(sum_over_time(cortex_async_queue_length{api_name=\"%s\"}[%ds])) / "+
-			"max(count_over_time(cortex_async_queue_length{api_name=\"%s\"}[%ds]))",
-		apiName, windowSeconds,
-		apiName, windowSeconds,
-	)
-
-	ctx, cancel := context.WithTimeout(context.Background(), _prometheusQueryTimeoutSeconds*time.Second)
-	defer cancel()
-
-	valuesQuery, _, err := config.Prometheus.Query(ctx, query, time.Now())
-	if err != nil {
-		return nil, err
-	}
-
-	values, ok := valuesQuery.(model.Vector)
-	if !ok {
-		return nil, errors.ErrorUnexpected("failed to convert prometheus metric to vector")
-	}
-
-	if values.Len() != 0 {
-		return pointer.Float64(float64(values[0].Value)), nil
-	}
-	return nil, nil
 }

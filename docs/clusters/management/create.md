@@ -100,11 +100,15 @@ The docker images used by the cluster can also be overridden. They can be config
 
 <!-- CORTEX_VERSION_BRANCH_STABLE -->
 ```yaml
+image_manager: quay.io/cortexlabs/manager:master
 image_operator: quay.io/cortexlabs/operator:master
 image_controller_manager: quay.io/cortexlabs/controller-manager:master
-image_manager: quay.io/cortexlabs/manager:master
+image_autoscaler: quay.io/cortexlabs/autoscaler:master
 image_proxy: quay.io/cortexlabs/proxy:master
 image_async_gateway: quay.io/cortexlabs/async-gateway:master
+image_activator: quay.io/cortexlabs/activator:master
+image_enqueuer: quay.io/cortexlabs/enqueuer:master
+image_dequeuer: quay.io/cortexlabs/dequeuer:master
 image_cluster_autoscaler: quay.io/cortexlabs/cluster-autoscaler:master
 image_metrics_server: quay.io/cortexlabs/metrics-server:master
 image_nvidia_device_plugin: quay.io/cortexlabs/nvidia-device-plugin:master
@@ -123,6 +127,5 @@ image_prometheus_node_exporter: quay.io/cortexlabs/prometheus-node-exporter:mast
 image_kube_rbac_proxy: quay.io/cortexlabs/kube-rbac-proxy:master
 image_grafana: quay.io/cortexlabs/grafana:master
 image_event_exporter: quay.io/cortexlabs/event-exporter:master
-image_enqueuer: quay.io/cortexlabs/enqueuer:master
 image_kubexit: quay.io/cortexlabs/kubexit:master
 ```

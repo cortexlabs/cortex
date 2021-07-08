@@ -6,11 +6,11 @@ Cortex auto-scales AsyncAPIs on a per-API basis based on your configuration.
 
 ### Autoscaling configuration
 
-**`min_replicas`**: The lower bound on how many replicas can be running for an API.
+**`min_replicas`** (default: 1): The lower bound on how many replicas can be running for an API. Scale-to-zero is supported.
 
 <br>
 
-**`max_replicas`**: The upper bound on how many replicas can be running for an API.
+**`max_replicas`** (default: 100): The upper bound on how many replicas can be running for an API.
 
 <br>
 

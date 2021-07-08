@@ -405,7 +405,7 @@ func (c *Client) Exec(podName string, containerName string, command []string) (s
 		TTY:       true,
 	}
 
-	req := c.clientset.CoreV1().RESTClient().Post().Namespace(c.Namespace).Resource("pods").Name(podName).SubResource("exec")
+	req := c.clientSet.CoreV1().RESTClient().Post().Namespace(c.Namespace).Resource("pods").Name(podName).SubResource("exec")
 	req.VersionedParams(options, kscheme.ParameterCodec)
 
 	exec, err := kremotecommand.NewSPDYExecutor(c.RestConfig, "POST", req.URL())

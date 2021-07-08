@@ -79,14 +79,15 @@ func AsyncGatewayContainer(api spec.API, queueURL string, volumeMounts []kcore.V
 		ImagePullPolicy: kcore.PullAlways,
 		Args: []string{
 			"--cluster-config", consts.DefaultInClusterConfigPath,
-			"--port", s.Int32(consts.ProxyListeningPortInt32),
+			"--port", s.Int32(consts.ProxyPortInt32),
 			"--queue", queueURL,
 			api.Name,
 		},
 		Ports: []kcore.ContainerPort{
-			{ContainerPort: consts.ProxyListeningPortInt32},
+			{ContainerPort: consts.ProxyPortInt32},
 		},
-		Env: baseEnvVars,
+		Env:     BaseEnvVars,
+		EnvFrom: BaseClusterEnvVars(),
 		Resources: kcore.ResourceRequirements{
 			Requests: kcore.ResourceList{
 				kcore.ResourceCPU:    _asyncGatewayCPURequest,
@@ -132,7 +133,8 @@ func asyncDequeuerProxyContainer(api spec.API, queueURL string) (kcore.Container
 			"--user-port", s.Int32(*api.Pod.Port),
 			"--admin-port", consts.AdminPortStr,
 		},
-		Env: baseEnvVars,
+		Env:     BaseEnvVars,
+		EnvFrom: BaseClusterEnvVars(),
 		Ports: []kcore.ContainerPort{
 			{
 				Name:          consts.AdminPortName,
@@ -184,7 +186,8 @@ func batchDequeuerProxyContainer(api spec.API, jobID, queueURL string) (kcore.Co
 			"--user-port", s.Int32(*api.Pod.Port),
 			"--admin-port", consts.AdminPortStr,
 		},
-		Env: baseEnvVars,
+		Env:     BaseEnvVars,
+		EnvFrom: BaseClusterEnvVars(),
 		Resources: kcore.ResourceRequirements{
 			Requests: kcore.ResourceList{
 				kcore.ResourceCPU:    consts.CortexDequeuerCPU,
@@ -220,7 +223,7 @@ func realtimeProxyContainer(api spec.API) (kcore.Container, kcore.Volume) {
 			"--cluster-config",
 			consts.DefaultInClusterConfigPath,
 			"--port",
-			consts.ProxyListeningPortStr,
+			consts.ProxyPortStr,
 			"--admin-port",
 			consts.AdminPortStr,
 			"--user-port",
@@ -232,10 +235,10 @@ func realtimeProxyContainer(api spec.API) (kcore.Container, kcore.Volume) {
 		},
 		Ports: []kcore.ContainerPort{
 			{Name: consts.AdminPortName, ContainerPort: consts.AdminPortInt32},
-			{ContainerPort: consts.ProxyListeningPortInt32},
+			{ContainerPort: consts.ProxyPortInt32},
 		},
-		Env:     baseEnvVars,
-		EnvFrom: baseClusterEnvVars(),
+		Env:     BaseEnvVars,
+		EnvFrom: BaseClusterEnvVars(),
 		VolumeMounts: []kcore.VolumeMount{
 			ClusterConfigMount(),
 		},
@@ -408,7 +411,7 @@ func userPodContainers(api spec.API) ([]kcore.Container, []kcore.Volume) {
 			containerMounts = append(containerMounts, ShmMount("dshm-"+container.Name))
 		}
 
-		containerEnvVars := baseEnvVars
+		containerEnvVars := BaseEnvVars
 
 		containerEnvVars = append(containerEnvVars, kcore.EnvVar{
 			Name:  "CORTEX_CLI_CONFIG_DIR",
@@ -545,7 +548,7 @@ func GenerateNodeAffinities(apiNodeGroups []string) *kcore.Affinity {
 	}
 }
 
-var baseEnvVars = []kcore.EnvVar{
+var BaseEnvVars = []kcore.EnvVar{
 	{
 		Name:  "CORTEX_VERSION",
 		Value: consts.CortexVersion,

@@ -19,13 +19,12 @@ package job
 import (
 	"time"
 
+	"github.com/cortexlabs/cortex/pkg/consts"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/types/status"
 	kbatch "k8s.io/api/batch/v1"
 	kcore "k8s.io/api/core/v1"
 )
-
-const _stalledPodTimeout = 15 * time.Minute
 
 func GetWorkerCountsForJob(k8sJob kbatch.Job, pods []kcore.Pod) status.WorkerCounts {
 	if k8sJob.Status.Failed > 0 {
@@ -50,7 +49,7 @@ func addPodToWorkerCounts(pod *kcore.Pod, workerCounts *status.WorkerCounts) {
 
 	switch k8s.GetPodStatus(pod) {
 	case k8s.PodStatusPending:
-		if time.Since(pod.CreationTimestamp.Time) > _stalledPodTimeout {
+		if time.Since(pod.CreationTimestamp.Time) > consts.WaitForInitializingReplicasTimeout {
 			workerCounts.Stalled++
 		} else {
 			workerCounts.Pending++
