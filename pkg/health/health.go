@@ -36,6 +36,7 @@ type ClusterHealth struct {
 	Grafana           bool `json:"grafana"`
 	OperatorGateway   bool `json:"operator_gateway"`
 	APIsGateway       bool `json:"apis_gateway"`
+	ClusterAutoscaler bool `json:"cluster_autoscaler"`
 }
 
 func (c ClusterHealth) String() string {
@@ -58,6 +59,7 @@ func Check(client *k8s.Client) (ClusterHealth, error) {
 		grafanaHealth           bool
 		operatorGatewayHealth   bool
 		apisGatewayHealth       bool
+		clusterAutoscalerHealth bool
 	)
 
 	ctx := context.Background()
@@ -150,6 +152,17 @@ func Check(client *k8s.Client) (ClusterHealth, error) {
 			apisGatewayHealth = deployment.Status.ReadyReplicas > 0
 			return nil
 		},
+		func() error {
+			var deployment kapps.Deployment
+			if err := client.Get(ctx, ctrlclient.ObjectKey{
+				Namespace: "kube-system",
+				Name:      "cluster-autoscaler",
+			}, &deployment); err != nil {
+				return err
+			}
+			clusterAutoscalerHealth = deployment.Status.ReadyReplicas > 0
+			return nil
+		},
 	); err != nil {
 		return ClusterHealth{}, err
 	}
@@ -163,5 +176,6 @@ func Check(client *k8s.Client) (ClusterHealth, error) {
 		Grafana:           grafanaHealth,
 		OperatorGateway:   operatorGatewayHealth,
 		APIsGateway:       apisGatewayHealth,
+		ClusterAutoscaler: clusterAutoscalerHealth,
 	}, nil
 }
