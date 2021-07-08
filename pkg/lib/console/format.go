@@ -22,6 +22,16 @@ import (
 
 var _bold = color.New(color.Bold).SprintFunc()
 
+// Bold returns a string formatted in bold
 func Bold(a ...interface{}) string {
 	return _bold(a...)
+}
+
+// BoolColor converts a boolean into a colored string (green: true, red: false)
+func BoolColor(b bool) string {
+	if b {
+		return color.GreenString("%t", b)
+	} else {
+		return color.RedString("%t", b)
+	}
 }
