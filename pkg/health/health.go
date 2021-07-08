@@ -28,22 +28,29 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/parallel"
 	"github.com/cortexlabs/cortex/pkg/types/clusterconfig"
 	kapps "k8s.io/api/apps/v1"
+	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // ClusterHealth represents the healthiness of each component of a cluster
 type ClusterHealth struct {
-	Operator             bool `json:"operator"`
-	ControllerManager    bool `json:"controller_manager"`
-	Prometheus           bool `json:"prometheus"`
-	Autoscaler           bool `json:"autoscaler"`
-	Activator            bool `json:"activator"`
-	Grafana              bool `json:"grafana"`
-	OperatorGateway      bool `json:"operator_gateway"`
-	APIsGateway          bool `json:"apis_gateway"`
-	ClusterAutoscaler    bool `json:"cluster_autoscaler"`
-	OperatorLoadBalancer bool `json:"operator_load_balancer"`
-	APIsLoadBalancer     bool `json:"apis_load_balancer"`
+	Operator                 bool `json:"operator"`
+	ControllerManager        bool `json:"controller_manager"`
+	Prometheus               bool `json:"prometheus"`
+	Autoscaler               bool `json:"autoscaler"`
+	Activator                bool `json:"activator"`
+	Grafana                  bool `json:"grafana"`
+	OperatorGateway          bool `json:"operator_gateway"`
+	APIsGateway              bool `json:"apis_gateway"`
+	ClusterAutoscaler        bool `json:"cluster_autoscaler"`
+	OperatorLoadBalancer     bool `json:"operator_load_balancer"`
+	APIsLoadBalancer         bool `json:"apis_load_balancer"`
+	FluentBit                bool `json:"fluent_bit"`
+	NodeExporter             bool `json:"node_exporter"`
+	DCGMExporter             bool `json:"dcgm_exporter"`
+	StatsDExporter           bool `json:"statsd_exporter"`
+	EventExporter            bool `json:"event_exporter"`
+	KubeStateMetricsExporter bool `json:"kube_state_metrics_exporter"`
 }
 
 func (c ClusterHealth) String() string {
@@ -69,108 +76,59 @@ func Check(awsClient *awslib.Client, k8sClient *k8s.Client, clusterName string) 
 		clusterAutoscalerHealth    bool
 		operatorLoadBalancerHealth bool
 		apisLoadBalancerHealth     bool
+		fluentBitHealth            bool
+		nodeExporterHealth         bool
+		dcgmExporterHealth         bool
+		statsdExporterHealth       bool
+		eventExporterHealth        bool
+		kubeStateMetricsHealth     bool
 	)
 
-	ctx := context.Background()
 	if err := parallel.RunFirstErr(
 		func() error {
-			var deployment kapps.Deployment
-			if err := k8sClient.Get(ctx, ctrlclient.ObjectKey{
-				Namespace: "default",
-				Name:      "operator",
-			}, &deployment); err != nil {
-				return err
-			}
-			operatorHealth = deployment.Status.ReadyReplicas > 0
-			return nil
+			var err error
+			operatorHealth, err = getDeploymentReadiness(k8sClient, "operator", "default")
+			return err
 		},
 		func() error {
-			var deployment kapps.Deployment
-			if err := k8sClient.Get(ctx, ctrlclient.ObjectKey{
-				Namespace: "default",
-				Name:      "operator-controller-manager",
-			}, &deployment); err != nil {
-				return err
-			}
-			controllerManagerHealth = deployment.Status.ReadyReplicas > 0
-			return nil
+			var err error
+			controllerManagerHealth, err = getDeploymentReadiness(k8sClient, "operator-controller-manager", "default")
+			return err
 		},
 		func() error {
-			var statefulSet kapps.StatefulSet
-			if err := k8sClient.Get(ctx, ctrlclient.ObjectKey{
-				Namespace: "default",
-				Name:      "prometheus-prometheus",
-			}, &statefulSet); err != nil {
-				return err
-			}
-			prometheusHealth = statefulSet.Status.ReadyReplicas > 0
-			return nil
+			var err error
+			prometheusHealth, err = getStatefulSetReadiness(k8sClient, "prometheus-prometheus", "default")
+			return err
 		},
 		func() error {
-			var deployment kapps.Deployment
-			if err := k8sClient.Get(ctx, ctrlclient.ObjectKey{
-				Namespace: "default",
-				Name:      "autoscaler",
-			}, &deployment); err != nil {
-				return err
-			}
-			autoscalerHealth = deployment.Status.ReadyReplicas > 0
-			return nil
+			var err error
+			autoscalerHealth, err = getDeploymentReadiness(k8sClient, "autoscaler", "default")
+			return err
 		},
 		func() error {
-			var deployment kapps.Deployment
-			if err := k8sClient.Get(ctx, ctrlclient.ObjectKey{
-				Namespace: "default",
-				Name:      "activator",
-			}, &deployment); err != nil {
-				return err
-			}
-			activatorHealth = deployment.Status.ReadyReplicas > 0
-			return nil
+			var err error
+			activatorHealth, err = getDeploymentReadiness(k8sClient, "activator", "default")
+			return err
 		},
 		func() error {
-			var statefulSet kapps.StatefulSet
-			if err := k8sClient.Get(ctx, ctrlclient.ObjectKey{
-				Namespace: "default",
-				Name:      "grafana",
-			}, &statefulSet); err != nil {
-				return err
-			}
-			grafanaHealth = statefulSet.Status.ReadyReplicas > 0
-			return nil
+			var err error
+			grafanaHealth, err = getStatefulSetReadiness(k8sClient, "grafana", "default")
+			return err
 		},
 		func() error {
-			var deployment kapps.Deployment
-			if err := k8sClient.Get(ctx, ctrlclient.ObjectKey{
-				Namespace: "istio-system",
-				Name:      "ingressgateway-operator",
-			}, &deployment); err != nil {
-				return err
-			}
-			operatorGatewayHealth = deployment.Status.ReadyReplicas > 0
-			return nil
+			var err error
+			operatorGatewayHealth, err = getDeploymentReadiness(k8sClient, "ingressgateway-operator", "istio-system")
+			return err
 		},
 		func() error {
-			var deployment kapps.Deployment
-			if err := k8sClient.Get(ctx, ctrlclient.ObjectKey{
-				Namespace: "istio-system",
-				Name:      "ingressgateway-apis",
-			}, &deployment); err != nil {
-				return err
-			}
-			apisGatewayHealth = deployment.Status.ReadyReplicas > 0
-			return nil
+			var err error
+			apisGatewayHealth, err = getDeploymentReadiness(k8sClient, "ingressgateway-apis", "istio-system")
+			return err
 		},
 		func() error {
-			var deployment kapps.Deployment
-			if err := k8sClient.Get(ctx, ctrlclient.ObjectKey{
-				Namespace: "kube-system",
-				Name:      "cluster-autoscaler",
-			}, &deployment); err != nil {
-				return err
-			}
-			clusterAutoscalerHealth = deployment.Status.ReadyReplicas > 0
-			return nil
+			var err error
+			clusterAutoscalerHealth, err = getDeploymentReadiness(k8sClient, "cluster-autoscaler", "kube-system")
+			return err
 		},
 		func() error {
 			var err error
@@ -182,23 +140,105 @@ func Check(awsClient *awslib.Client, k8sClient *k8s.Client, clusterName string) 
 			apisLoadBalancerHealth, err = getLoadBalancerHealth(awsClient, clusterName, "api")
 			return err
 		},
+		func() error {
+			var err error
+			fluentBitHealth, err = getDaemonSetReadiness(k8sClient, "fluent-bit", "default")
+			return err
+		},
+		func() error {
+			var err error
+			dcgmExporterHealth, err = getDaemonSetReadiness(k8sClient, "dcgm-exporter", "default")
+			return err
+		},
+		func() error {
+			var err error
+			nodeExporterHealth, err = getDaemonSetReadiness(k8sClient, "node-exporter", "default")
+			return err
+		},
+		func() error {
+			var err error
+			statsdExporterHealth, err = getDeploymentReadiness(k8sClient, "prometheus-statsd-exporter", "default")
+			return err
+		},
+		func() error {
+			var err error
+			eventExporterHealth, err = getDeploymentReadiness(k8sClient, "event-exporter", "default")
+			return err
+		},
+		func() error {
+			var err error
+			kubeStateMetricsHealth, err = getDeploymentReadiness(k8sClient, "kube-state-metrics", "default")
+			return err
+		},
 	); err != nil {
 		return ClusterHealth{}, err
 	}
 
 	return ClusterHealth{
-		Operator:             operatorHealth,
-		ControllerManager:    controllerManagerHealth,
-		Prometheus:           prometheusHealth,
-		Autoscaler:           autoscalerHealth,
-		Activator:            activatorHealth,
-		Grafana:              grafanaHealth,
-		OperatorGateway:      operatorGatewayHealth,
-		APIsGateway:          apisGatewayHealth,
-		ClusterAutoscaler:    clusterAutoscalerHealth,
-		OperatorLoadBalancer: operatorLoadBalancerHealth,
-		APIsLoadBalancer:     apisLoadBalancerHealth,
+		Operator:                 operatorHealth,
+		ControllerManager:        controllerManagerHealth,
+		Prometheus:               prometheusHealth,
+		Autoscaler:               autoscalerHealth,
+		Activator:                activatorHealth,
+		Grafana:                  grafanaHealth,
+		OperatorGateway:          operatorGatewayHealth,
+		APIsGateway:              apisGatewayHealth,
+		ClusterAutoscaler:        clusterAutoscalerHealth,
+		OperatorLoadBalancer:     operatorLoadBalancerHealth,
+		APIsLoadBalancer:         apisLoadBalancerHealth,
+		FluentBit:                fluentBitHealth,
+		NodeExporter:             nodeExporterHealth,
+		DCGMExporter:             dcgmExporterHealth,
+		StatsDExporter:           statsdExporterHealth,
+		EventExporter:            eventExporterHealth,
+		KubeStateMetricsExporter: kubeStateMetricsHealth,
 	}, nil
+}
+
+func getDeploymentReadiness(k8sClient *k8s.Client, name, namespace string) (bool, error) {
+	ctx := context.Background()
+	var deployment kapps.Deployment
+	if err := k8sClient.Get(ctx, ctrlclient.ObjectKey{
+		Namespace: namespace,
+		Name:      name,
+	}, &deployment); err != nil {
+		if kerrors.IsNotFound(err) {
+			return false, nil
+		}
+		return false, err
+	}
+
+	return deployment.Status.ReadyReplicas > 0, nil
+}
+
+func getStatefulSetReadiness(k8sClient *k8s.Client, name, namespace string) (bool, error) {
+	ctx := context.Background()
+	var statefulSet kapps.StatefulSet
+	if err := k8sClient.Get(ctx, ctrlclient.ObjectKey{
+		Namespace: namespace,
+		Name:      name,
+	}, &statefulSet); err != nil {
+		if kerrors.IsNotFound(err) {
+			return false, nil
+		}
+		return false, err
+	}
+	return statefulSet.Status.ReadyReplicas > 0, nil
+}
+
+func getDaemonSetReadiness(k8sClient *k8s.Client, name, namespace string) (bool, error) {
+	ctx := context.Background()
+	var daemonSet kapps.DaemonSet
+	if err := k8sClient.Get(ctx, ctrlclient.ObjectKey{
+		Namespace: namespace,
+		Name:      name,
+	}, &daemonSet); err != nil {
+		if kerrors.IsNotFound(err) {
+			return false, nil
+		}
+		return false, err
+	}
+	return daemonSet.Status.NumberReady == daemonSet.Status.CurrentNumberScheduled, nil
 }
 
 func getLoadBalancerHealth(awsClient *awslib.Client, clusterName string, loadBalancerName string) (bool, error) {

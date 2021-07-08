@@ -819,6 +819,12 @@ var _clusterHealthCmd = &cobra.Command{
 				{"cluster autoscaler", clusterHealth.ClusterAutoscaler},
 				{"operator load balancer", clusterHealth.OperatorLoadBalancer},
 				{"apis load balancer", clusterHealth.APIsLoadBalancer},
+				{"fluent bit", clusterHealth.FluentBit},
+				{"node exporter", clusterHealth.NodeExporter},
+				{"dcgm exporter", clusterHealth.DCGMExporter},
+				{"statsd exporter", clusterHealth.StatsDExporter},
+				{"event exporter", clusterHealth.EventExporter},
+				{"kube state metrics", clusterHealth.KubeStateMetricsExporter},
 			},
 		}
 
