@@ -96,7 +96,7 @@ spec:
         app: grafana
     spec:
       containers:
-          image: {{ config['image_grafana'] }}
+        - image: {{ config['image_grafana'] }}
           name: grafana
           ports:
             - containerPort: 3000
