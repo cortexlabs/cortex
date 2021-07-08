@@ -34,23 +34,23 @@ import (
 
 // ClusterHealth represents the healthiness of each component of a cluster
 type ClusterHealth struct {
-	Operator                 bool `json:"operator"`
-	ControllerManager        bool `json:"controller_manager"`
-	Prometheus               bool `json:"prometheus"`
-	Autoscaler               bool `json:"autoscaler"`
-	Activator                bool `json:"activator"`
-	Grafana                  bool `json:"grafana"`
-	OperatorGateway          bool `json:"operator_gateway"`
-	APIsGateway              bool `json:"apis_gateway"`
-	ClusterAutoscaler        bool `json:"cluster_autoscaler"`
-	OperatorLoadBalancer     bool `json:"operator_load_balancer"`
-	APIsLoadBalancer         bool `json:"apis_load_balancer"`
-	FluentBit                bool `json:"fluent_bit"`
-	NodeExporter             bool `json:"node_exporter"`
-	DCGMExporter             bool `json:"dcgm_exporter"`
-	StatsDExporter           bool `json:"statsd_exporter"`
-	EventExporter            bool `json:"event_exporter"`
-	KubeStateMetricsExporter bool `json:"kube_state_metrics_exporter"`
+	Operator             bool `json:"operator"`
+	ControllerManager    bool `json:"controller_manager"`
+	Prometheus           bool `json:"prometheus"`
+	Autoscaler           bool `json:"autoscaler"`
+	Activator            bool `json:"activator"`
+	Grafana              bool `json:"grafana"`
+	OperatorGateway      bool `json:"operator_gateway"`
+	APIsGateway          bool `json:"apis_gateway"`
+	ClusterAutoscaler    bool `json:"cluster_autoscaler"`
+	OperatorLoadBalancer bool `json:"operator_load_balancer"`
+	APIsLoadBalancer     bool `json:"apis_load_balancer"`
+	FluentBit            bool `json:"fluent_bit"`
+	NodeExporter         bool `json:"node_exporter"`
+	DCGMExporter         bool `json:"dcgm_exporter"`
+	StatsDExporter       bool `json:"statsd_exporter"`
+	EventExporter        bool `json:"event_exporter"`
+	KubeStateMetrics     bool `json:"kube_state_metrics"`
 }
 
 func (c ClusterHealth) String() string {
@@ -175,23 +175,23 @@ func Check(awsClient *awslib.Client, k8sClient *k8s.Client, clusterName string) 
 	}
 
 	return ClusterHealth{
-		Operator:                 operatorHealth,
-		ControllerManager:        controllerManagerHealth,
-		Prometheus:               prometheusHealth,
-		Autoscaler:               autoscalerHealth,
-		Activator:                activatorHealth,
-		Grafana:                  grafanaHealth,
-		OperatorGateway:          operatorGatewayHealth,
-		APIsGateway:              apisGatewayHealth,
-		ClusterAutoscaler:        clusterAutoscalerHealth,
-		OperatorLoadBalancer:     operatorLoadBalancerHealth,
-		APIsLoadBalancer:         apisLoadBalancerHealth,
-		FluentBit:                fluentBitHealth,
-		NodeExporter:             nodeExporterHealth,
-		DCGMExporter:             dcgmExporterHealth,
-		StatsDExporter:           statsdExporterHealth,
-		EventExporter:            eventExporterHealth,
-		KubeStateMetricsExporter: kubeStateMetricsHealth,
+		Operator:             operatorHealth,
+		ControllerManager:    controllerManagerHealth,
+		Prometheus:           prometheusHealth,
+		Autoscaler:           autoscalerHealth,
+		Activator:            activatorHealth,
+		Grafana:              grafanaHealth,
+		OperatorGateway:      operatorGatewayHealth,
+		APIsGateway:          apisGatewayHealth,
+		ClusterAutoscaler:    clusterAutoscalerHealth,
+		OperatorLoadBalancer: operatorLoadBalancerHealth,
+		APIsLoadBalancer:     apisLoadBalancerHealth,
+		FluentBit:            fluentBitHealth,
+		NodeExporter:         nodeExporterHealth,
+		DCGMExporter:         dcgmExporterHealth,
+		StatsDExporter:       statsdExporterHealth,
+		EventExporter:        eventExporterHealth,
+		KubeStateMetrics:     kubeStateMetricsHealth,
 	}, nil
 }
 
