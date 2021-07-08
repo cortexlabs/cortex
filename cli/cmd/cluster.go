@@ -772,7 +772,12 @@ var _clusterHealthCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
-		restConfig, err := getClusterRESTConfig(accessConfig.ClusterName, accessConfig.Region)
+		awsClient, err := awslib.NewForRegion(accessConfig.Region)
+		if err != nil {
+			exit.Error(err)
+		}
+
+		restConfig, err := getClusterRESTConfig(awsClient, accessConfig.ClusterName, accessConfig.Region)
 		if err != nil {
 			exit.Error(err)
 		}
@@ -787,7 +792,7 @@ var _clusterHealthCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
-		clusterHealth, err := health.Check(k8sClient)
+		clusterHealth, err := health.Check(awsClient, k8sClient, accessConfig.ClusterName)
 		if err != nil {
 			exit.Error(err)
 		}
@@ -812,6 +817,8 @@ var _clusterHealthCmd = &cobra.Command{
 				{"apis gateway", clusterHealth.APIsGateway},
 				{"operator gateway", clusterHealth.APIsGateway},
 				{"cluster autoscaler", clusterHealth.ClusterAutoscaler},
+				{"operator load balancer", clusterHealth.OperatorLoadBalancer},
+				{"apis load balancer", clusterHealth.APIsLoadBalancer},
 			},
 		}
 
@@ -1343,12 +1350,7 @@ func filterEKSCTLOutput(out string) string {
 	return strings.Join(s.RemoveDuplicates(strings.Split(out, "\n"), _eksctlPrefixRegex), "\n")
 }
 
-func getClusterRESTConfig(clusterName string, region string) (*rest.Config, error) {
-	awsClient, err := awslib.NewForRegion(region)
-	if err != nil {
-		return nil, err
-	}
-
+func getClusterRESTConfig(awsClient *awslib.Client, clusterName string, region string) (*rest.Config, error) {
 	clusterOutput, err := awsClient.EKS().DescribeCluster(
 		&eks.DescribeClusterInput{
 			Name: aws.String(clusterName),
