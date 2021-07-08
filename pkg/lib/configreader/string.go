@@ -43,6 +43,7 @@ type StringValidation struct {
 	Prefix                               string
 	Suffix                               string
 	InvalidPrefixes                      []string
+	InvalidSuffixes                      []string
 	AllowedPrefixes                      []string
 	AllowedSuffixes                      []string
 	MaxLength                            int
@@ -278,6 +279,12 @@ func ValidateStringVal(val string, v *StringValidation) error {
 	for _, invalidPrefix := range v.InvalidPrefixes {
 		if strings.HasPrefix(val, invalidPrefix) {
 			return ErrorCantHavePrefix(val, invalidPrefix)
+		}
+	}
+
+	for _, invalidSuffix := range v.InvalidSuffixes {
+		if strings.HasSuffix(val, invalidSuffix) {
+			return ErrorCantHaveSuffix(val, invalidSuffix)
 		}
 	}
 
