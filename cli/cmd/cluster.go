@@ -777,7 +777,7 @@ var _clusterHealthCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
-		restConfig, err := getClusterRESTConfig(awsClient, accessConfig.ClusterName, accessConfig.Region)
+		restConfig, err := getClusterRESTConfig(awsClient, accessConfig.ClusterName)
 		if err != nil {
 			exit.Error(err)
 		}
@@ -797,6 +797,11 @@ var _clusterHealthCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
+		clusterWarnings, err := health.GetWarnings(k8sClient)
+		if err != nil {
+			exit.Error(err)
+		}
+
 		if _flagOutput == flags.JSONOutputType {
 			fmt.Println(clusterHealth)
 			return
@@ -806,25 +811,26 @@ var _clusterHealthCmd = &cobra.Command{
 			Headers: []table.Header{
 				{Title: ""},
 				{Title: "live"},
+				{Title: "warning", Hidden: !clusterWarnings.HasWarnings()},
 			},
 			Rows: [][]interface{}{
-				{"operator", console.BoolColor(clusterHealth.Operator)},
-				{"prometheus", console.BoolColor(clusterHealth.Prometheus)},
-				{"autoscaler", console.BoolColor(clusterHealth.Autoscaler)},
-				{"activator", console.BoolColor(clusterHealth.Activator)},
-				{"grafana", console.BoolColor(clusterHealth.Grafana)},
-				{"controller manager", console.BoolColor(clusterHealth.ControllerManager)},
-				{"apis gateway", console.BoolColor(clusterHealth.APIsGateway)},
-				{"operator gateway", console.BoolColor(clusterHealth.APIsGateway)},
-				{"cluster autoscaler", console.BoolColor(clusterHealth.ClusterAutoscaler)},
-				{"operator load balancer", console.BoolColor(clusterHealth.OperatorLoadBalancer)},
-				{"apis load balancer", console.BoolColor(clusterHealth.APIsLoadBalancer)},
-				{"fluent bit", console.BoolColor(clusterHealth.FluentBit)},
-				{"node exporter", console.BoolColor(clusterHealth.NodeExporter)},
-				{"dcgm exporter", console.BoolColor(clusterHealth.DCGMExporter)},
-				{"statsd exporter", console.BoolColor(clusterHealth.StatsDExporter)},
-				{"event exporter", console.BoolColor(clusterHealth.EventExporter)},
-				{"kube state metrics", console.BoolColor(clusterHealth.KubeStateMetricsExporter)},
+				{"operator", console.BoolColor(clusterHealth.Operator), ""},
+				{"prometheus", console.BoolColor(clusterHealth.Prometheus), clusterWarnings.Prometheus},
+				{"autoscaler", console.BoolColor(clusterHealth.Autoscaler), ""},
+				{"activator", console.BoolColor(clusterHealth.Activator), ""},
+				{"grafana", console.BoolColor(clusterHealth.Grafana), ""},
+				{"controller manager", console.BoolColor(clusterHealth.ControllerManager), ""},
+				{"apis gateway", console.BoolColor(clusterHealth.APIsGateway), ""},
+				{"operator gateway", console.BoolColor(clusterHealth.APIsGateway), ""},
+				{"cluster autoscaler", console.BoolColor(clusterHealth.ClusterAutoscaler), ""},
+				{"operator load balancer", console.BoolColor(clusterHealth.OperatorLoadBalancer), ""},
+				{"apis load balancer", console.BoolColor(clusterHealth.APIsLoadBalancer), ""},
+				{"fluent bit", console.BoolColor(clusterHealth.FluentBit), ""},
+				{"node exporter", console.BoolColor(clusterHealth.NodeExporter), ""},
+				{"dcgm exporter", console.BoolColor(clusterHealth.DCGMExporter), ""},
+				{"statsd exporter", console.BoolColor(clusterHealth.StatsDExporter), ""},
+				{"event exporter", console.BoolColor(clusterHealth.EventExporter), ""},
+				{"kube state metrics", console.BoolColor(clusterHealth.KubeStateMetrics), ""},
 			},
 		}
 
@@ -1356,7 +1362,7 @@ func filterEKSCTLOutput(out string) string {
 	return strings.Join(s.RemoveDuplicates(strings.Split(out, "\n"), _eksctlPrefixRegex), "\n")
 }
 
-func getClusterRESTConfig(awsClient *awslib.Client, clusterName string, region string) (*rest.Config, error) {
+func getClusterRESTConfig(awsClient *awslib.Client, clusterName string) (*rest.Config, error) {
 	clusterOutput, err := awsClient.EKS().DescribeCluster(
 		&eks.DescribeClusterInput{
 			Name: aws.String(clusterName),

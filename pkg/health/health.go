@@ -19,6 +19,7 @@ package health
 import (
 	"context"
 	"fmt"
+	"reflect"
 
 	"github.com/aws/aws-sdk-go/service/elbv2"
 	awslib "github.com/cortexlabs/cortex/pkg/lib/aws"
@@ -29,6 +30,9 @@ import (
 	"github.com/cortexlabs/cortex/pkg/types/clusterconfig"
 	kapps "k8s.io/api/apps/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
+	kresource "k8s.io/apimachinery/pkg/api/resource"
+	kmeta "k8s.io/apimachinery/pkg/apis/meta/v1"
+	kmetrics "k8s.io/metrics/pkg/client/clientset/versioned"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -60,6 +64,21 @@ func (c ClusterHealth) String() string {
 	}
 
 	return string(bytes)
+}
+
+type ClusterWarnings struct {
+	Prometheus string
+}
+
+// HasWarnings checks if ClusterWarnings has any warnings in its' fields
+func (w ClusterWarnings) HasWarnings() bool {
+	v := reflect.ValueOf(w)
+	for i := 0; i < v.NumField(); i++ {
+		if v.Field(i).String() != "" {
+			return true
+		}
+	}
+	return false
 }
 
 // Check checks for the health of the different components of a cluster
@@ -195,6 +214,25 @@ func Check(awsClient *awslib.Client, k8sClient *k8s.Client, clusterName string) 
 	}, nil
 }
 
+func GetWarnings(k8sClient *k8s.Client) (ClusterWarnings, error) {
+	var (
+		prometheusMemorySaturationWarn string
+	)
+
+	saturation, err := getPodMemorySaturation(k8sClient, "prometheus-prometheus-0", "default")
+	if err != nil {
+		return ClusterWarnings{}, err
+	}
+
+	if saturation >= 0.7 {
+		prometheusMemorySaturationWarn = fmt.Sprintf("memory usage is critically high (%.1f%%)", saturation*100)
+	}
+
+	return ClusterWarnings{
+		Prometheus: prometheusMemorySaturationWarn,
+	}, nil
+}
+
 func getDeploymentReadiness(k8sClient *k8s.Client, name, namespace string) (bool, error) {
 	ctx := context.Background()
 	var deployment kapps.Deployment
@@ -255,4 +293,40 @@ func getLoadBalancerHealth(awsClient *awslib.Client, clusterName string, loadBal
 	}
 
 	return *loadBalancer.State.Code == elbv2.LoadBalancerStateEnumActive, nil
+}
+
+func getPodMemorySaturation(k8sClient *k8s.Client, podName, namespace string) (float64, error) {
+	ctx := context.Background()
+	pod, err := k8sClient.GetPod(podName)
+	if err != nil {
+		return 0, err
+	}
+
+	metricsClient, err := kmetrics.NewForConfig(k8sClient.RestConfig)
+	if err != nil {
+		return 0, err
+	}
+	podMetrics, err := metricsClient.MetricsV1beta1().PodMetricses(namespace).Get(ctx, podName, kmeta.GetOptions{})
+	if err != nil {
+		return 0, err
+	}
+
+	var totalMememoryUsage kresource.Quantity
+	for _, container := range podMetrics.Containers {
+		memory := container.Usage.Memory()
+		if memory != nil {
+			totalMememoryUsage.Add(*container.Usage.Memory())
+		}
+	}
+
+	node, err := k8sClient.ClientSet().CoreV1().Nodes().Get(ctx, pod.Spec.NodeName, kmeta.GetOptions{})
+	if err != nil {
+		return 0, err
+	}
+
+	nodeMemory := node.Status.Allocatable.Memory()
+
+	memRatio := totalMememoryUsage.AsApproximateFloat64() / nodeMemory.AsApproximateFloat64()
+
+	return memRatio, nil
 }
