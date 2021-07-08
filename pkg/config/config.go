@@ -68,7 +68,7 @@ func getClusterConfigFromConfigMap() (clusterconfig.Config, error) {
 		return clusterconfig.Config{}, err
 	}
 	clusterConfig := clusterconfig.Config{}
-	err = cr.ParseYAMLBytes(&clusterConfig, clusterconfig.FullManagedValidation, []byte(configMapData["cluster.yaml"]))
+	err = cr.ParseYAMLBytes(&clusterConfig, clusterconfig.FullConfigValidation, []byte(configMapData["cluster.yaml"]))
 	if err != nil {
 		return clusterconfig.Config{}, err
 	}
