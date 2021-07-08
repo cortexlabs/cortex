@@ -78,8 +78,6 @@ func getClusterConfigFromConfigMap() (clusterconfig.Config, error) {
 
 func Init() error {
 	var err error
-	var clusterNamespace string
-	var istioNamespace string
 
 	clusterConfigPath := os.Getenv("CORTEX_CLUSTER_CONFIG_PATH")
 	if clusterConfigPath == "" {
@@ -112,14 +110,11 @@ func Init() error {
 		IsOperatorInCluster: strings.ToLower(os.Getenv("CORTEX_OPERATOR_IN_CLUSTER")) != "false",
 	}
 
-	clusterNamespace = clusterConfig.Namespace
-	istioNamespace = clusterConfig.IstioNamespace
-
-	if K8s, err = k8s.New(clusterNamespace, OperatorMetadata.IsOperatorInCluster, nil, scheme); err != nil {
+	if K8s, err = k8s.New(consts.DefaultNamespace, OperatorMetadata.IsOperatorInCluster, nil, scheme); err != nil {
 		return err
 	}
 
-	if K8sIstio, err = k8s.New(istioNamespace, OperatorMetadata.IsOperatorInCluster, nil, scheme); err != nil {
+	if K8sIstio, err = k8s.New(consts.IstioNamespace, OperatorMetadata.IsOperatorInCluster, nil, scheme); err != nil {
 		return err
 	}
 
@@ -157,7 +152,7 @@ func Init() error {
 
 	prometheusURL := os.Getenv("CORTEX_PROMETHEUS_URL")
 	if len(prometheusURL) == 0 {
-		prometheusURL = fmt.Sprintf("http://prometheus.%s:9090", clusterNamespace)
+		prometheusURL = fmt.Sprintf("http://prometheus.%s:9090", consts.DefaultNamespace)
 	}
 
 	promClient, err := promapi.NewClient(promapi.Config{
@@ -172,9 +167,11 @@ func Init() error {
 		return err
 	}
 
-	MetricsClient, err = statsd.New("prometheus-statsd-exporter.default:9125")
-	if err != nil {
-		return errors.Wrap(errors.WithStack(err), "unable to initialize metrics client")
+	if OperatorMetadata.IsOperatorInCluster {
+		MetricsClient, err = statsd.New(fmt.Sprintf("prometheus-statsd-exporter.%s:9125", consts.DefaultNamespace))
+		if err != nil {
+			return errors.Wrap(errors.WithStack(err), "unable to initialize metrics client")
+		}
 	}
 
 	return nil

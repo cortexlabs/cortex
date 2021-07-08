@@ -421,8 +421,10 @@ var _clusterInfoCmd = &cobra.Command{
 
 		if _flagClusterInfoDebug {
 			cmdDebug(awsClient, accessConfig)
+		} else if _flagClusterInfoPrintConfig {
+			cmdPrintConfig(awsClient, accessConfig, _flagOutput)
 		} else {
-			cmdInfo(awsClient, accessConfig, stacks, _flagClusterInfoPrintConfig, _flagOutput, _flagClusterDisallowPrompt)
+			cmdInfo(awsClient, accessConfig, stacks, _flagOutput, _flagClusterDisallowPrompt)
 		}
 	},
 }
@@ -743,7 +745,27 @@ var _clusterExportCmd = &cobra.Command{
 	},
 }
 
-func cmdInfo(awsClient *aws.Client, accessConfig *clusterconfig.AccessConfig, stacks clusterstate.ClusterStacks, printConfig bool, outputType flags.OutputType, disallowPrompt bool) {
+func cmdPrintConfig(awsClient *aws.Client, accessConfig *clusterconfig.AccessConfig, outputType flags.OutputType) {
+	clusterConfig := refreshCachedClusterConfig(awsClient, accessConfig, outputType == flags.PrettyOutputType)
+
+	infoInterface := clusterConfig.CoreConfig
+
+	if outputType == flags.JSONOutputType {
+		outputBytes, err := libjson.Marshal(infoInterface)
+		if err != nil {
+			exit.Error(err)
+		}
+		fmt.Println(string(outputBytes))
+	} else {
+		outputBytes, err := yaml.Marshal(infoInterface)
+		if err != nil {
+			exit.Error(err)
+		}
+		fmt.Println(string(outputBytes))
+	}
+}
+
+func cmdInfo(awsClient *aws.Client, accessConfig *clusterconfig.AccessConfig, stacks clusterstate.ClusterStacks, outputType flags.OutputType, disallowPrompt bool) {
 	clusterConfig := refreshCachedClusterConfig(awsClient, accessConfig, outputType == flags.PrettyOutputType)
 
 	operatorLoadBalancer, err := getLoadBalancer(accessConfig.ClusterName, OperatorLoadBalancer, awsClient)
@@ -765,18 +787,13 @@ func cmdInfo(awsClient *aws.Client, accessConfig *clusterconfig.AccessConfig, st
 		}
 		infoResponse.ClusterConfig.Config = clusterConfig
 
-		var infoInterface interface{}
-		if printConfig {
-			infoInterface = infoResponse.ClusterConfig.Config
-		} else {
-			infoInterface = map[string]interface{}{
-				"cluster_config":      infoResponse.ClusterConfig.Config,
-				"cluster_metadata":    infoResponse.ClusterConfig.OperatorMetadata,
-				"worker_node_infos":   infoResponse.WorkerNodeInfos,
-				"operator_node_infos": infoResponse.OperatorNodeInfos,
-				"endpoint_operator":   operatorEndpoint,
-				"endpoint_api":        apiEndpoint,
-			}
+		infoInterface := map[string]interface{}{
+			"cluster_config":      infoResponse.ClusterConfig.Config,
+			"cluster_metadata":    infoResponse.ClusterConfig.OperatorMetadata,
+			"worker_node_infos":   infoResponse.WorkerNodeInfos,
+			"operator_node_infos": infoResponse.OperatorNodeInfos,
+			"endpoint_operator":   operatorEndpoint,
+			"endpoint_api":        apiEndpoint,
 		}
 
 		var outputBytes []byte
