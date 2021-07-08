@@ -209,8 +209,8 @@ func main() {
 	router := mux.NewRouter()
 	router.HandleFunc("/awaken", handler.Awaken).Methods(http.MethodPost)
 	router.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
 		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte("ok"))
 	}).Methods(http.MethodGet)
 

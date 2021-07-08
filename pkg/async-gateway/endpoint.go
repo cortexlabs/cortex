@@ -106,14 +106,14 @@ func (e *Endpoint) GetWorkload(w http.ResponseWriter, r *http.Request) {
 }
 
 func respondPlainText(w http.ResponseWriter, statusCode int, message string) {
-	w.WriteHeader(statusCode)
 	w.Header().Set("Content-Type", "text/plain")
+	w.WriteHeader(statusCode)
 	_, _ = w.Write([]byte(message))
 }
 
 func respondJSON(w http.ResponseWriter, statusCode int, s interface{}) error {
-	w.WriteHeader(statusCode)
 	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(statusCode)
 	return json.NewEncoder(w).Encode(s)
 }
 
