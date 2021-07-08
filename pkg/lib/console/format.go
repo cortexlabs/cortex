@@ -31,7 +31,6 @@ func Bold(a ...interface{}) string {
 func BoolColor(b bool) string {
 	if b {
 		return color.GreenString("%t", b)
-	} else {
-		return color.RedString("%t", b)
 	}
+	return color.RedString("%t", b)
 }
