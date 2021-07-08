@@ -96,7 +96,7 @@ spec:
         app: grafana
     spec:
       containers:
-        - image: $CORTEX_IMAGE_GRAFANA
+          image: {{ config['image_grafana'] }}
           name: grafana
           ports:
             - containerPort: 3000
@@ -147,6 +147,11 @@ spec:
             - mountPath: /grafana-dashboard-definitions/cortex/nodes
               name: grafana-dashboard-nodes
               readOnly: false
+            {% if env.get("CORTEX_DEV_HAS_CONTROL_PLANE_DASHBOARD") == "true" %}
+            - mountPath: /grafana-dashboard-definitions/cortex/control-plane
+              name: grafana-dashboard-control-plane
+              readOnly: false
+            {% endif %}
       securityContext:
         fsGroup: 65534
         runAsNonRoot: true
@@ -179,6 +184,11 @@ spec:
         - name: grafana-dashboard-nodes
           configMap:
             name: grafana-dashboard-nodes
+        {% if env.get("CORTEX_DEV_HAS_CONTROL_PLANE_DASHBOARD") == "true" %}
+        - name: grafana-dashboard-control-plane
+          configMap:
+            name: grafana-dashboard-control-plane
+        {% endif %}
       nodeSelector:
         prometheus: "true"
       tolerations:

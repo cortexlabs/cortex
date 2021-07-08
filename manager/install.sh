@@ -235,7 +235,10 @@ function setup_grafana() {
   kubectl apply -f manifests/grafana/grafana-dashboard-task.yaml >/dev/null
   kubectl apply -f manifests/grafana/grafana-dashboard-cluster.yaml >/dev/null
   kubectl apply -f manifests/grafana/grafana-dashboard-nodes.yaml >/dev/null
-  envsubst < manifests/grafana/grafana.yaml | kubectl apply -f - >/dev/null
+  if [ "$CORTEX_DEV_HAS_CONTROL_PLANE_DASHBOARD" = "true" ]; then
+    kubectl apply -f manifests/grafana/grafana-dashboard-control-plane.yaml >/dev/null
+  fi
+  python render_template.py $CORTEX_CLUSTER_CONFIG_FILE manifests/grafana/grafana.yaml.j2 | kubectl apply -f - >/dev/null
 }
 
 function restart_operator() {
