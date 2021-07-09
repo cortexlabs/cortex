@@ -21,6 +21,7 @@ import (
 	"errors"
 	"net/http"
 
+	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	"github.com/cortexlabs/cortex/pkg/probe"
 )
 
@@ -38,6 +39,7 @@ func Handler(breaker *Breaker, next http.Handler) http.HandlerFunc {
 				http.Error(w, err.Error(), http.StatusServiceUnavailable)
 			} else {
 				w.WriteHeader(http.StatusInternalServerError)
+				telemetry.Error(err)
 			}
 		}
 	}
