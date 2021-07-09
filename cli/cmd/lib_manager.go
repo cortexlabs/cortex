@@ -81,7 +81,7 @@ func runManager(containerConfig *container.Config, addNewLineAfterPull bool, cop
 	}
 
 	removeContainer := func() {
-		dockerClient.ContainerRemove(context.Background(), containerInfo.ID, dockertypes.ContainerRemoveOptions{
+		_ = dockerClient.ContainerRemove(context.Background(), containerInfo.ID, dockertypes.ContainerRemoveOptions{
 			RemoveVolumes: true,
 			Force:         true,
 		})
@@ -166,7 +166,7 @@ func runManagerWithClusterConfig(entrypoint string, clusterConfig *clusterconfig
 		return "", nil, errors.WithStack(err)
 	}
 
-	cachedClusterConfigPath := cachedClusterConfigPath(clusterConfig.ClusterName, clusterConfig.Region)
+	cachedClusterConfigPath := getCachedClusterConfigPath(clusterConfig.ClusterName, clusterConfig.Region)
 	if err := files.WriteFile(clusterConfigBytes, cachedClusterConfigPath); err != nil {
 		return "", nil, err
 	}
