@@ -35,6 +35,8 @@ const (
 	ErrNodeGroupMaxInstancesIsZero            = "clusterconfig.node_group_max_instances_is_zero"
 	ErrMaxNumOfNodeGroupsReached              = "clusterconfig.max_num_of_nodegroups_reached"
 	ErrDuplicateNodeGroupName                 = "clusterconfig.duplicate_nodegroup_name"
+	ErrMaxNodesToAddOnClusterUp               = "clusterconfig.max_nodes_to_add_on_cluster_up"
+	ErrMaxNodesToAddOnClusterConfigure        = "clusterconfig.max_nodes_to_add_on_cluster_configure"
 	ErrInstanceTypeTooSmall                   = "clusterconfig.instance_type_too_small"
 	ErrMinInstancesGreaterThanMax             = "clusterconfig.min_instances_greater_than_max"
 	ErrInstanceTypeNotSupportedInRegion       = "clusterconfig.instance_type_not_supported_in_region"
@@ -124,6 +126,20 @@ func ErrorDuplicateNodeGroupName(duplicateNgName string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrDuplicateNodeGroupName,
 		Message: fmt.Sprintf("cannot have multiple nodegroups with the same name (%s)", duplicateNgName),
+	})
+}
+
+func ErrorMaxNodesToAddOnClusterUp(requestedNodes, maxNodes int64) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrMaxNodesToAddOnClusterUp,
+		Message: fmt.Sprintf("cannot add (%d) more than %d nodes during cluster up; reduce the %s values on your nodegroups to accomodate for this figure", requestedNodes, maxNodes, MinInstancesKey),
+	})
+}
+
+func ErrorMaxNodesToAddOnClusterConfigure(requestedNodes, maxNodes int64) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrMaxNodesToAddOnClusterConfigure,
+		Message: fmt.Sprintf("cannot add (%d) more than %d nodes on cluster configure; reduce the %s values on your nodegroups to accomodate for this figure", requestedNodes, maxNodes, MinInstancesKey),
 	})
 }
 

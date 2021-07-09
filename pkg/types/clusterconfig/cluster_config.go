@@ -45,8 +45,12 @@ import (
 )
 
 const (
-	// MaxNodePoolsOrGroups represents the max number of node groups in a cluster
-	MaxNodePoolsOrGroups = 100
+	// MaxNodeGroups represents the max number of node groups in a cluster
+	MaxNodeGroups = 100
+	// MaxNodesToAddOnClusterUp represents the max number of nodes to add on cluster up
+	MaxNodesToAddOnClusterUp = 200
+	// MaxNodesToAddOnClusterConfigure represents the max number of nodes to add on cluster up/configure
+	MaxNodesToAddOnClusterConfigure = 100
 	// ClusterNameTag is the tag used for storing a cluster's name in AWS resources
 	ClusterNameTag = "cortex.dev/cluster-name"
 	// SQSQueueDelimiter is the delimiter character used for naming cortex SQS queues (e.g. cx_<cluster_hash>_b_<api_name>_<jon_id>)
@@ -928,8 +932,8 @@ func (cc *CoreConfig) SQSNamePrefix() string {
 
 func (cc *Config) validate(awsClient *aws.Client) error {
 	numNodeGroups := len(cc.NodeGroups)
-	if numNodeGroups > MaxNodePoolsOrGroups {
-		return ErrorMaxNumOfNodeGroupsReached(MaxNodePoolsOrGroups)
+	if numNodeGroups > MaxNodeGroups {
+		return ErrorMaxNumOfNodeGroupsReached(MaxNodeGroups)
 	}
 
 	ngNames := []string{}
@@ -1153,6 +1157,11 @@ func (cc *Config) ValidateOnInstall(awsClient *aws.Client) error {
 	err := cc.validate(awsClient)
 	if err != nil {
 		return err
+	}
+
+	requestedTotalMinInstances := getTotalMinInstances(cc.NodeGroups)
+	if requestedTotalMinInstances > MaxNodesToAddOnClusterUp {
+		return ErrorMaxNodesToAddOnClusterUp(requestedTotalMinInstances, MaxNodesToAddOnClusterUp)
 	}
 
 	// setting max_instances to 0 during cluster creation is not permitted (but scaling max_instances to 0 afterwards is allowed)
@@ -1397,6 +1406,14 @@ func (cc *Config) getCommonNodeGroups(oldConfig Config) ([]*NodeGroup, []*NodeGr
 		}
 	}
 	return commonNewNodeGroups, commonOldNodeGroups
+}
+
+func getTotalMinInstances(nodeGroups []*NodeGroup) int64 {
+	totalMinInstances := int64(0)
+	for _, ng := range nodeGroups {
+		totalMinInstances += ng.MinInstances
+	}
+	return totalMinInstances
 }
 
 func GetNodeGroupNames(nodeGroups []*NodeGroup) []string {
