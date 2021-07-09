@@ -39,7 +39,7 @@ import (
 
 var _cachedClusterConfigRegex = regexp.MustCompile(`^cluster_\S+\.yaml$`)
 
-func cachedClusterConfigPath(clusterName string, region string) string {
+func getCachedClusterConfigPath(clusterName string, region string) string {
 	return filepath.Join(_localDir, fmt.Sprintf("cluster_%s_%s.yaml", clusterName, region))
 }
 
