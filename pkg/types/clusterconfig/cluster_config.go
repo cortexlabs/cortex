@@ -35,6 +35,7 @@ import (
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	libhash "github.com/cortexlabs/cortex/pkg/lib/hash"
+	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	libmath "github.com/cortexlabs/cortex/pkg/lib/math"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	"github.com/cortexlabs/cortex/pkg/lib/sets/strset"
@@ -1151,6 +1152,21 @@ func (cc *Config) validateSharedNodeGroupsDiff(oldConfig Config) error {
 	return nil
 }
 
+func (cc *Config) validateNodeAdditionQuota(k8sClient *k8s.Client) error {
+	workloadNodes, err := k8sClient.ListNodesByLabel("workload", "true")
+	if err != nil {
+		return err
+	}
+	totalCurrentNodes := int64(len(workloadNodes))
+	totalRequestedNodes := getTotalMinInstances(cc.NodeGroups)
+
+	if totalRequestedNodes-totalCurrentNodes > MaxNodesToAddOnClusterConfigure {
+		return ErrorMaxNodesToAddOnClusterConfigure(totalRequestedNodes, totalCurrentNodes, MaxNodesToAddOnClusterConfigure)
+	}
+
+	return nil
+}
+
 // this validates the user-provided cluster config
 func (cc *Config) ValidateOnInstall(awsClient *aws.Client) error {
 	fmt.Print("verifying your configuration ...\n\n")
@@ -1192,7 +1208,7 @@ func (cc *Config) ValidateOnInstall(awsClient *aws.Client) error {
 	return nil
 }
 
-func (cc *Config) ValidateOnConfigure(awsClient *aws.Client, oldConfig Config, eksNodeGroupStacks []*cloudformation.StackSummary) (ConfigureChanges, error) {
+func (cc *Config) ValidateOnConfigure(awsClient *aws.Client, k8sClient *k8s.Client, oldConfig Config, eksNodeGroupStacks []*cloudformation.StackSummary) (ConfigureChanges, error) {
 	fmt.Print("verifying your configuration ...\n\n")
 
 	cc.ClusterUID = oldConfig.ClusterUID
@@ -1207,6 +1223,11 @@ func (cc *Config) ValidateOnConfigure(awsClient *aws.Client, oldConfig Config, e
 	}
 
 	err = cc.validateSharedNodeGroupsDiff(oldConfig)
+	if err != nil {
+		return ConfigureChanges{}, err
+	}
+
+	err = cc.validateNodeAdditionQuota(k8sClient)
 	if err != nil {
 		return ConfigureChanges{}, err
 	}

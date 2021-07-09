@@ -136,10 +136,10 @@ func ErrorMaxNodesToAddOnClusterUp(requestedNodes, maxNodes int64) error {
 	})
 }
 
-func ErrorMaxNodesToAddOnClusterConfigure(requestedNodes, maxNodes int64) error {
+func ErrorMaxNodesToAddOnClusterConfigure(requestedNodes, currentNodes, maxNodes int64) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrMaxNodesToAddOnClusterConfigure,
-		Message: fmt.Sprintf("cannot add (%d) more than %d nodes on cluster configure; reduce the %s values on your nodegroups to accomodate for this figure", requestedNodes, maxNodes, MinInstancesKey),
+		Message: fmt.Sprintf("cannot add (%d requested nodes) more than %d nodes to your cluster (%d current nodes); reduce the %s values on your nodegroups by %d to accomodate for this figure", requestedNodes, maxNodes, currentNodes, MinInstancesKey, requestedNodes-maxNodes),
 	})
 }
 

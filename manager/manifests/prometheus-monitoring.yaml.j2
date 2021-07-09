@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-{{% if env.get("CORTEX_DEV_HAS_CONTROL_PLANE_DASHBOARD") == "true" %}}
+{% if env.get("CORTEX_DEV_HAS_CONTROL_PLANE_DASHBOARD") == "true" %}
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -62,7 +62,7 @@ data:
           regex: default;kubernetes;https
 
 ---
-{{ %endif }}
+{% endif %}
 
 apiVersion: storage.k8s.io/v1
 kind: StorageClass
@@ -110,7 +110,7 @@ spec:
         resources:
           requests:
             storage: 40Gi
-  {{% if env.get("CORTEX_DEV_HAS_CONTROL_PLANE_DASHBOARD") == "true" %}}
+  {% if env.get("CORTEX_DEV_HAS_CONTROL_PLANE_DASHBOARD") == "true" %}
   volumes:
   - configMap:
       items:
@@ -122,7 +122,7 @@ spec:
   - mountPath: /etc/prometheus/config_out/prometheus.env.yaml
     name: prometheus-file-config
     subPath: prometheus.env.yaml
-  {{% endif %}}
+  {% endif %}
   retention: 2w
   retentionSize: 35GB
   securityContext:

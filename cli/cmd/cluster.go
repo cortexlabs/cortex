@@ -348,6 +348,21 @@ var _clusterConfigureCmd = &cobra.Command{
 			exit.Error(err)
 		}
 
+		restConfig, err := getClusterRESTConfig(awsClient, accessConfig.ClusterName)
+		if err != nil {
+			exit.Error(err)
+		}
+
+		scheme := runtime.NewScheme()
+		if err := clientgoscheme.AddToScheme(scheme); err != nil {
+			exit.Error(err)
+		}
+
+		k8sClient, err := k8s.New("default", false, restConfig, scheme)
+		if err != nil {
+			exit.Error(err)
+		}
+
 		stacks, err := clusterstate.GetClusterStacks(awsClient, accessConfig)
 		if err != nil {
 			exit.Error(err)
@@ -362,7 +377,7 @@ var _clusterConfigureCmd = &cobra.Command{
 
 		promptIfNotAdmin(awsClient, _flagClusterDisallowPrompt)
 
-		newClusterConfig, configureChanges, err := getConfigureClusterConfig(awsClient, stacks, oldClusterConfig, clusterConfigFile)
+		newClusterConfig, configureChanges, err := getConfigureClusterConfig(awsClient, k8sClient, stacks, oldClusterConfig, clusterConfigFile)
 		if err != nil {
 			exit.Error(err)
 		}
