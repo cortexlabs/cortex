@@ -28,10 +28,6 @@ func PayloadPath(storagePath string, requestID string) string {
 	return fmt.Sprintf("%s/%s/payload", storagePath, requestID)
 }
 
-func HeadersPath(storagePath string, requestID string) string {
-	return fmt.Sprintf("%s/%s/headers.json", storagePath, requestID)
-}
-
 func ResultPath(storagePath string, requestID string) string {
 	return fmt.Sprintf("%s/%s/result.json", storagePath, requestID)
 }
