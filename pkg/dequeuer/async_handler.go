@@ -106,7 +106,16 @@ func (h *AsyncMessageHandler) handleMessage(requestID string) error {
 	}
 	defer h.deletePayload(requestID)
 
-	result, err := h.submitRequest(payload, requestID)
+	headers, err := h.getHeaders(requestID)
+	if err != nil {
+		updateStatusErr := h.updateStatus(requestID, async.StatusFailed)
+		if updateStatusErr != nil {
+			h.log.Errorw("failed to update status after failure to get headers", "id", requestID, "error", updateStatusErr)
+		}
+		return errors.Wrap(err, "failed to get payload")
+	}
+
+	result, err := h.submitRequest(payload, headers, requestID)
 	if err != nil {
 		h.log.Errorw("failed to submit request to user container", "id", requestID, "error", err)
 		updateStatusErr := h.updateStatus(requestID, async.StatusFailed)
@@ -170,12 +179,13 @@ func (h *AsyncMessageHandler) deletePayload(requestID string) {
 	}
 }
 
-func (h *AsyncMessageHandler) submitRequest(payload *userPayload, requestID string) (interface{}, error) {
+func (h *AsyncMessageHandler) submitRequest(payload *userPayload, headers http.Header, requestID string) (interface{}, error) {
 	req, err := http.NewRequest(http.MethodPost, h.config.TargetURL, payload.Body)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
 
+	req.Header = headers
 	req.Header.Set("Content-Type", payload.ContentType)
 	req.Header.Set(CortexRequestIDHeader, requestID)
 
@@ -215,4 +225,15 @@ func (h *AsyncMessageHandler) submitRequest(payload *userPayload, requestID stri
 func (h *AsyncMessageHandler) uploadResult(requestID string, result interface{}) error {
 	key := async.ResultPath(h.storagePath, requestID)
 	return h.aws.UploadJSONToS3(result, h.config.Bucket, key)
+}
+
+func (h *AsyncMessageHandler) getHeaders(requestID string) (http.Header, error) {
+	key := async.HeadersPath(h.storagePath, requestID)
+
+	var headers http.Header
+	if err := h.aws.ReadJSONFromS3(&headers, h.config.Bucket, key); err != nil {
+		return nil, err
+	}
+
+	return headers, nil
 }
