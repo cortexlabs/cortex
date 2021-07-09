@@ -242,21 +242,12 @@ func main() {
 }
 
 func exit(log *zap.SugaredLogger, err error, wrapStrs ...string) {
-	if err == nil {
-		os.Exit(0)
-	}
-
 	for _, str := range wrapStrs {
 		err = errors.Wrap(err, str)
 	}
 
-	if !errors.IsNoTelemetry(err) {
-		telemetry.Error(err)
+	telemetry.Error(err)
+	if err != nil && !errors.IsNoPrint(err) {
+		log.Fatal(err)
 	}
-
-	if !errors.IsNoPrint(err) {
-		log.Error(err)
-	}
-
-	os.Exit(1)
 }

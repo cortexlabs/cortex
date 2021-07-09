@@ -100,8 +100,9 @@ func main() {
 		BackoffMode: telemetry.BackoffDuplicateMessages,
 	})
 	if err != nil {
-		exit(log, err)
+		log.Fatalw("failed to initialize telemetry", zap.Error(err))
 	}
+	defer telemetry.Close()
 
 	target := "http://127.0.0.1:" + strconv.Itoa(userContainerPort)
 	httpProxy := proxy.NewReverseProxy(target, maxQueueLength, maxQueueLength)
@@ -190,16 +191,10 @@ func exit(log *zap.SugaredLogger, err error, wrapStrs ...string) {
 		err = errors.Wrap(err, str)
 	}
 
-	if err != nil && !errors.IsNoTelemetry(err) {
-		telemetry.Error(err)
-	}
-
+	telemetry.Error(err)
 	if err != nil && !errors.IsNoPrint(err) {
-		log.Error(err)
+		log.Fatal(err)
 	}
-
-	telemetry.Close()
-	os.Exit(1)
 }
 
 func readinessTCPHandler(port int, logger *zap.SugaredLogger) http.HandlerFunc {
