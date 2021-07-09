@@ -43,6 +43,7 @@ const (
 	ErrMustHavePrefix                = "configreader.must_have_prefix"
 	ErrMustHaveSuffix                = "configreader.must_have_suffix"
 	ErrCantHavePrefix                = "configreader.cant_have_prefix"
+	ErrCantHaveSuffix                = "configreader.cant_have_suffix"
 	ErrInvalidInterface              = "configreader.invalid_interface"
 	ErrInvalidFloat64                = "configreader.invalid_float64"
 	ErrInvalidFloat32                = "configreader.invalid_float32"
@@ -196,6 +197,13 @@ func ErrorCantHavePrefix(provided string, prefix string) error {
 	return errors.WithStack(&errors.Error{
 		Kind:    ErrCantHavePrefix,
 		Message: fmt.Sprintf("%s cannot start with %s", s.UserStr(provided), s.UserStr(prefix)),
+	})
+}
+
+func ErrorCantHaveSuffix(provided string, suffix string) error {
+	return errors.WithStack(&errors.Error{
+		Kind:    ErrCantHaveSuffix,
+		Message: fmt.Sprintf("%s cannot end with %s", s.UserStr(provided), s.UserStr(suffix)),
 	})
 }
 

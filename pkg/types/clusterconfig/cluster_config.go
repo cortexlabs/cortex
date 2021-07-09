@@ -737,6 +737,7 @@ var nodeGroupsFieldValidation *cr.StructValidation = &cr.StructValidation{
 				Required:         true,
 				AlphaNumericDash: true,
 				MaxLength:        _maxNodeGroupLength,
+				InvalidSuffixes:  []string{"-"},
 			},
 		},
 		{
