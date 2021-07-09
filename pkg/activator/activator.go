@@ -22,6 +22,7 @@ import (
 
 	"github.com/cortexlabs/cortex/pkg/autoscaler"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	"github.com/cortexlabs/cortex/pkg/workloads"
 	"go.uber.org/zap"
@@ -152,6 +153,7 @@ func (a *activator) addAPI(obj interface{}) {
 	apiMetadata, err := getAPIMeta(obj)
 	if err != nil {
 		a.logger.Errorw("error during virtual service informer add callback", zap.Error(err))
+		telemetry.Error(err)
 		return
 	}
 
@@ -173,6 +175,7 @@ func (a *activator) updateAPI(oldObj interface{}, newObj interface{}) {
 	apiMetadata, err := getAPIMeta(newObj)
 	if err != nil {
 		a.logger.Errorw("error during virtual service informer update callback", zap.Error(err))
+		telemetry.Error(err)
 		return
 	}
 
@@ -185,6 +188,7 @@ func (a *activator) updateAPI(oldObj interface{}, newObj interface{}) {
 	oldAPIMetatada, err := getAPIMeta(oldObj)
 	if err != nil {
 		a.logger.Errorw("error during virtual service informer update callback", zap.Error(err))
+		telemetry.Error(err)
 		return
 	}
 
@@ -201,6 +205,7 @@ func (a *activator) removeAPI(obj interface{}) {
 	apiMetadata, err := getAPIMeta(obj)
 	if err != nil {
 		a.logger.Errorw("error during virtual service informer delete callback", zap.Error(err))
+		telemetry.Error(err)
 		return
 	}
 
@@ -236,6 +241,7 @@ func (a *activator) updateReadinessTracker(obj interface{}) {
 	api, err := getAPIMeta(obj)
 	if err != nil {
 		a.logger.Errorw("error during deployment informer callback", zap.Error(err))
+		telemetry.Error(err)
 		return
 	}
 
@@ -256,6 +262,7 @@ func (a *activator) removeReadinessTracker(obj interface{}) {
 	api, err := getAPIMeta(obj)
 	if err != nil {
 		a.logger.Errorw("error during deployment informer callback", zap.Error(err))
+		telemetry.Error(err)
 		return
 	}
 
