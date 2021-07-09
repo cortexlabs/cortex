@@ -160,6 +160,7 @@ func main() {
 				resource, err := meta.Accessor(obj)
 				if err != nil {
 					log.Errorw("failed to access resource metadata", zap.Error(err))
+					telemetry.Error(err)
 					return
 				}
 
@@ -180,6 +181,7 @@ func main() {
 						zap.String("apiName", api.Name),
 						zap.String("apiKind", api.Kind.String()),
 					)
+					telemetry.Error(err)
 					return
 				}
 			},
