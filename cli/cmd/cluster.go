@@ -764,7 +764,7 @@ var _clusterExportCmd = &cobra.Command{
 
 var _clusterHealthCmd = &cobra.Command{
 	Use:   "health",
-	Short: "inspect a cortex cluster's health status",
+	Short: "inspect the health of components in the cluster",
 	Args:  cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
 		accessConfig, err := getClusterAccessConfigWithCache(true)
