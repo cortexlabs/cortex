@@ -28,7 +28,7 @@ kind: Prometheus
 metadata:
   name: prometheus
 spec:
-  image: {{ config['image_prometheus'] }}
+  image: $CORTEX_IMAGE_PROMETHEUS
   serviceAccountName: prometheus
   nodeSelector:
     prometheus: "true"
@@ -58,6 +58,9 @@ spec:
         resources:
           requests:
             storage: 40Gi
+  additionalScrapeConfigs:
+    name: additional-scrape-configs
+    key: prometheus-additional-scrape-configs.yaml
   retention: 2w
   retentionSize: 35GB
   securityContext:

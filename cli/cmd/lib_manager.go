@@ -81,7 +81,7 @@ func runManager(containerConfig *container.Config, addNewLineAfterPull bool, cop
 	}
 
 	removeContainer := func() {
-		dockerClient.ContainerRemove(context.Background(), containerInfo.ID, dockertypes.ContainerRemoveOptions{
+		_ = dockerClient.ContainerRemove(context.Background(), containerInfo.ID, dockertypes.ContainerRemoveOptions{
 			RemoveVolumes: true,
 			Force:         true,
 		})
@@ -166,7 +166,7 @@ func runManagerWithClusterConfig(entrypoint string, clusterConfig *clusterconfig
 		return "", nil, errors.WithStack(err)
 	}
 
-	cachedClusterConfigPath := cachedClusterConfigPath(clusterConfig.ClusterName, clusterConfig.Region)
+	cachedClusterConfigPath := getCachedClusterConfigPath(clusterConfig.ClusterName, clusterConfig.Region)
 	if err := files.WriteFile(clusterConfigBytes, cachedClusterConfigPath); err != nil {
 		return "", nil, err
 	}
@@ -191,6 +191,7 @@ func runManagerWithClusterConfig(entrypoint string, clusterConfig *clusterconfig
 		"CORTEX_TELEMETRY_SENTRY_DSN=" + os.Getenv("CORTEX_TELEMETRY_SENTRY_DSN"),
 		"CORTEX_TELEMETRY_SEGMENT_WRITE_KEY=" + os.Getenv("CORTEX_TELEMETRY_SEGMENT_WRITE_KEY"),
 		"CORTEX_DEV_DEFAULT_IMAGE_REGISTRY=" + os.Getenv("CORTEX_DEV_DEFAULT_IMAGE_REGISTRY"),
+		"CORTEX_DEV_ADD_CONTROL_PLANE_DASHBOARD=" + os.Getenv("CORTEX_DEV_ADD_CONTROL_PLANE_DASHBOARD"),
 		"CORTEX_CLUSTER_CONFIG_FILE=" + containerClusterConfigPath,
 	}
 	envs = append(envs, extraEnvs...)

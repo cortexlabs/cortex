@@ -27,6 +27,7 @@ import (
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
+	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/maps"
 	libmath "github.com/cortexlabs/cortex/pkg/lib/math"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
@@ -39,7 +40,7 @@ import (
 
 var _cachedClusterConfigRegex = regexp.MustCompile(`^cluster_\S+\.yaml$`)
 
-func cachedClusterConfigPath(clusterName string, region string) string {
+func getCachedClusterConfigPath(clusterName string, region string) string {
 	return filepath.Join(_localDir, fmt.Sprintf("cluster_%s_%s.yaml", clusterName, region))
 }
 
@@ -140,7 +141,7 @@ func getInstallClusterConfig(awsClient *aws.Client, clusterConfigFile string) (*
 	return clusterConfig, nil
 }
 
-func getConfigureClusterConfig(awsClient *aws.Client, stacks clusterstate.ClusterStacks, cachedClusterConfig clusterconfig.Config, newClusterConfigFile string) (*clusterconfig.Config, clusterconfig.ConfigureChanges, error) {
+func getConfigureClusterConfig(awsClient *aws.Client, k8sClient *k8s.Client, stacks clusterstate.ClusterStacks, cachedClusterConfig clusterconfig.Config, newClusterConfigFile string) (*clusterconfig.Config, clusterconfig.ConfigureChanges, error) {
 	newUserClusterConfig := &clusterconfig.Config{}
 
 	err := readUserClusterConfigFile(newUserClusterConfig, newClusterConfigFile)
@@ -151,7 +152,7 @@ func getConfigureClusterConfig(awsClient *aws.Client, stacks clusterstate.Cluste
 	newUserClusterConfig.Telemetry = isTelemetryEnabled()
 	cachedClusterConfig.Telemetry = newUserClusterConfig.Telemetry
 
-	configureChanges, err := newUserClusterConfig.ValidateOnConfigure(awsClient, cachedClusterConfig, stacks.NodeGroupsStacks)
+	configureChanges, err := newUserClusterConfig.ValidateOnConfigure(awsClient, k8sClient, cachedClusterConfig, stacks.NodeGroupsStacks)
 	if err != nil {
 		err = errors.Append(err, fmt.Sprintf("\n\ncluster configuration schema can be found at https://docs.cortex.dev/v/%s/", consts.CortexVersionMinor))
 		return nil, clusterconfig.ConfigureChanges{}, errors.Wrap(err, newClusterConfigFile)
