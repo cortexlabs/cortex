@@ -22,13 +22,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 )
 
-type Scaler interface {
-	Scale(apiName string, request int32) error
-	GetInFlightRequests(apiName string, window time.Duration) (*float64, error)
-	GetAutoscalingSpec(apiName string) (*userconfig.Autoscaling, error)
-	CurrentReplicas(apiName string) (int32, error)
-}
-
 type ScalerFunc struct {
 	ScaleFunc               func(apiName string, request int32) error
 	GetInFlightRequestsFunc func(apiName string, window time.Duration) (*float64, error)
