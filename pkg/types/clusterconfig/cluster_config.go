@@ -823,7 +823,7 @@ var nodeGroupsFieldValidation *cr.StructValidation = &cr.StructValidation{
 
 var FullConfigValidation = &cr.StructValidation{
 	Required:               true,
-	StructFieldValidations: append([]*cr.StructFieldValidation{}, append(CoreConfigStructFieldValidations, ManagedConfigStructFieldValidations...)...),
+	StructFieldValidations: append(CoreConfigStructFieldValidations, ManagedConfigStructFieldValidations...),
 	AllowExtraFields:       false,
 }
 
